@@ -1,36 +1,41 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# PPStudio
 
-## Getting Started
+Next.js projekt připravený pro vývoj webové aplikace.
 
-First, run the development server:
+## Rychlý start
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Aplikace běží na `http://localhost:3000`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Skripty
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- `npm run dev` - vývojový server
+- `npm run build` - produkční build
+- `npm run start` - spuštění buildu
+- `npm run lint` - linting
 
-## Learn More
+## Povinná dokumentace během vývoje
 
-To learn more about Next.js, take a look at the following resources:
+Při každé významné změně udržuj aktuální:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- `MANUAL.md` - průběžný provozní a uživatelský manuál
+- `CHANGELOG.md` - chronologický seznam změn
+- `docs/DEVELOPMENT.md` - podrobná technická dokumentace
+- `docs/ADR/` - architektonická rozhodnutí (ADR)
+- `docs/ENVIRONMENT.md` - proměnné prostředí
+- `docs/DEPLOYMENT.md` - nasazení a rollback
+- `docs/INCIDENTS.md` - produkční incidenty
+- `docs/DEPENDENCIES.md` - důležité knihovny
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Doporučení:
+- Každý větší PR by měl obsahovat i aktualizaci dokumentace.
+- Změny v nasazení nebo konfiguraci vždy zapisuj do manuálu.
 
-## Deploy on Vercel
+## Pravidlo pro commit zprávy
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Commit message píš česky.
+- Pro jednotný styl je nastavená lokální šablona `.gitmessage-cz.txt`.

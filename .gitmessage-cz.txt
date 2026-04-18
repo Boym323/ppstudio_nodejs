@@ -1,0 +1,15 @@
+<typ>: <stručný český popis změny>
+
+Co bylo změněno:
+- 
+
+Proč:
+- 
+
+Dopad:
+- 
+
+Dokumentace:
+- [ ] MANUAL.md aktualizován
+- [ ] CHANGELOG.md aktualizován
+- [ ] docs/* aktualizováno
