@@ -2,6 +2,7 @@ import { EmailLogStatus } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
 import { sendEmail } from "@/lib/email/provider";
+import { getEmailDeliveryRetryDelayMs, getMaxEmailDeliveryAttempts } from "@/lib/email/retry";
 import { renderEmailTemplate } from "@/lib/email/templates";
 
 export type EmailLogDeliveryOutcome = {
@@ -25,10 +26,12 @@ export async function deliverEmailLog(emailLogId: string): Promise<EmailLogDeliv
     select: {
       id: true,
       status: true,
+      attemptCount: true,
       recipientEmail: true,
       subject: true,
       templateKey: true,
       payload: true,
+      processingStartedAt: true,
     },
   });
 
@@ -67,6 +70,9 @@ export async function deliverEmailLog(emailLogId: string): Promise<EmailLogDeliv
         provider: delivery.provider,
         providerMessageId: delivery.messageId,
         sentAt: new Date(),
+        processingStartedAt: null,
+        processingToken: null,
+        nextAttemptAt: new Date(),
         errorMessage: null,
       },
     });
@@ -76,13 +82,21 @@ export async function deliverEmailLog(emailLogId: string): Promise<EmailLogDeliv
     };
   } catch (error) {
     const errorMessage = getErrorMessage(error).slice(0, 1000);
+    const attemptCount = emailLog.attemptCount;
+    const shouldRetry = attemptCount < getMaxEmailDeliveryAttempts();
+    const nextAttemptAt = shouldRetry
+      ? new Date(Date.now() + getEmailDeliveryRetryDelayMs(attemptCount))
+      : null;
 
     await prisma.emailLog.update({
       where: {
         id: emailLog.id,
       },
       data: {
-        status: EmailLogStatus.FAILED,
+        status: shouldRetry ? EmailLogStatus.PENDING : EmailLogStatus.FAILED,
+        nextAttemptAt: nextAttemptAt ?? undefined,
+        processingStartedAt: null,
+        processingToken: null,
         errorMessage,
       },
     });

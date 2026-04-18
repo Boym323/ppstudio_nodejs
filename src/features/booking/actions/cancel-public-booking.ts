@@ -16,7 +16,7 @@ export type CancelPublicBookingActionState = {
     serviceName: string;
     clientName: string;
     scheduledAtLabel: string;
-    emailDeliveryStatus: "sent" | "failed" | "skipped";
+    emailDeliveryStatus: "queued" | "logged" | "skipped";
   };
 };
 

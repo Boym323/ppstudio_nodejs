@@ -44,11 +44,7 @@ export function CancellationPanel({ token, initialState }: CancellationPanelProp
       <StatusCard
         eyebrow="Rezervace zrušena"
         title={`Hotovo, ${serverState.result.clientName}.`}
-        description={
-          serverState.result.emailDeliveryStatus === "failed"
-            ? "Rezervace byla zrušená, ale potvrzovací e-mail se teď nepodařilo odeslat. Záznam o selhání je uložený v admin logu."
-            : "Rezervace byla úspěšně zrušená a potvrzení jsme zpracovali i do e-mailové vrstvy."
-        }
+        description="Rezervace byla úspěšně zrušená a potvrzovací e-mail je zařazený do zpracování na pozadí."
       />
     );
   }

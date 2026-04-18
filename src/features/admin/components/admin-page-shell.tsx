@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { cn } from "@/lib/utils";
 
 type StatItem = {
@@ -30,6 +32,7 @@ type AdminKeyValueListProps = {
     meta?: string;
     description?: string;
     badge?: string;
+    href?: string;
   }>;
   emptyTitle: string;
   emptyDescription: string;
@@ -127,27 +130,52 @@ export function AdminKeyValueList({
   return (
     <div className="grid gap-3">
       {items.map((item) => (
-        <article
-          key={item.id}
-          className="rounded-[1.5rem] border border-white/8 bg-white/5 p-4"
-        >
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <h4 className="text-base font-medium text-white">{item.title}</h4>
-              {item.meta ? (
-                <p className="mt-1 text-sm leading-6 text-white/58">{item.meta}</p>
+        <div key={item.id}>
+          {item.href ? (
+            <Link
+              href={item.href}
+              className="group block rounded-[1.5rem] border border-white/8 bg-white/5 p-4 transition hover:border-white/18 hover:bg-white/7 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/60"
+            >
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <h4 className="text-base font-medium text-white transition group-hover:text-[var(--color-accent-soft)]">
+                    {item.title}
+                  </h4>
+                  {item.meta ? (
+                    <p className="mt-1 text-sm leading-6 text-white/58">{item.meta}</p>
+                  ) : null}
+                </div>
+                {item.badge ? (
+                  <span className="rounded-full border border-[var(--color-accent)]/40 px-3 py-1 text-xs uppercase tracking-[0.2em] text-[var(--color-accent-soft)]">
+                    {item.badge}
+                  </span>
+                ) : null}
+              </div>
+              {item.description ? (
+                <p className="mt-3 text-sm leading-6 text-white/72">{item.description}</p>
               ) : null}
-            </div>
-            {item.badge ? (
-              <span className="rounded-full border border-[var(--color-accent)]/40 px-3 py-1 text-xs uppercase tracking-[0.2em] text-[var(--color-accent-soft)]">
-                {item.badge}
-              </span>
-            ) : null}
-          </div>
-          {item.description ? (
-            <p className="mt-3 text-sm leading-6 text-white/72">{item.description}</p>
-          ) : null}
-        </article>
+            </Link>
+          ) : (
+            <article className="rounded-[1.5rem] border border-white/8 bg-white/5 p-4">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <h4 className="text-base font-medium text-white">{item.title}</h4>
+                  {item.meta ? (
+                    <p className="mt-1 text-sm leading-6 text-white/58">{item.meta}</p>
+                  ) : null}
+                </div>
+                {item.badge ? (
+                  <span className="rounded-full border border-[var(--color-accent)]/40 px-3 py-1 text-xs uppercase tracking-[0.2em] text-[var(--color-accent-soft)]">
+                    {item.badge}
+                  </span>
+                ) : null}
+              </div>
+              {item.description ? (
+                <p className="mt-3 text-sm leading-6 text-white/72">{item.description}</p>
+              ) : null}
+            </article>
+          )}
+        </div>
       ))}
     </div>
   );

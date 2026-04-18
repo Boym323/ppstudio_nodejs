@@ -3,13 +3,14 @@ import {
   BookingActionTokenType,
   BookingSource,
   BookingStatus,
+  EmailLogStatus,
   EmailLogType,
   Prisma,
 } from "@prisma/client";
 
+import { env } from "@/config/env";
 import { hashBookingActionToken } from "@/features/booking/lib/booking-action-tokens";
 import { formatBookingDateLabel } from "@/features/booking/lib/booking-format";
-import { deliverEmailLog } from "@/lib/email/delivery";
 import { prisma } from "@/lib/prisma";
 
 const CANCELLABLE_BOOKING_STATUSES: BookingStatus[] = [
@@ -41,7 +42,7 @@ export type CancelPublicBookingResult =
       serviceName: string;
       clientName: string;
       scheduledAtLabel: string;
-      emailDeliveryStatus: "sent" | "failed" | "skipped";
+      emailDeliveryStatus: "queued" | "logged" | "skipped";
     }
   | {
       status: "already_cancelled" | "expired" | "invalid" | "not_cancellable";
@@ -271,12 +272,17 @@ export async function cancelPublicBookingByToken(rawToken: string): Promise<Canc
         },
       });
 
-      const emailLog = await tx.emailLog.create({
+      await tx.emailLog.create({
         data: {
           bookingId: lockedToken.booking.id,
           clientId: lockedToken.booking.clientId,
           actionTokenId: lockedToken.id,
           type: EmailLogType.BOOKING_CANCELLED,
+          status: env.EMAIL_DELIVERY_MODE === "background" ? undefined : EmailLogStatus.SENT,
+          attemptCount: env.EMAIL_DELIVERY_MODE === "background" ? undefined : 1,
+          nextAttemptAt: env.EMAIL_DELIVERY_MODE === "background" ? now : undefined,
+          processingStartedAt: null,
+          processingToken: null,
           recipientEmail: lockedToken.booking.clientEmailSnapshot,
           subject: `Storno potvrzeno: ${lockedToken.booking.serviceNameSnapshot}`,
           templateKey: "booking-cancelled-v1",
@@ -287,16 +293,14 @@ export async function cancelPublicBookingByToken(rawToken: string): Promise<Canc
             scheduledStartsAt: lockedToken.booking.scheduledStartsAt.toISOString(),
             scheduledEndsAt: lockedToken.booking.scheduledEndsAt.toISOString(),
           },
-        },
-        select: {
-          id: true,
+          provider: env.EMAIL_DELIVERY_MODE === "background" ? undefined : "log",
+          sentAt: env.EMAIL_DELIVERY_MODE === "background" ? undefined : now,
         },
       });
 
       return {
         status: "ready" as const,
         details: toCancellationDetails(lockedToken),
-        emailLogId: emailLog.id,
       };
     },
     {
@@ -308,11 +312,12 @@ export async function cancelPublicBookingByToken(rawToken: string): Promise<Canc
     return transactionResult;
   }
 
-  const emailDelivery = await deliverEmailLog(transactionResult.emailLogId);
-
   return {
     status: "cancelled",
     ...transactionResult.details,
-    emailDeliveryStatus: emailDelivery.status,
+    emailDeliveryStatus:
+      (env.EMAIL_DELIVERY_MODE === "background" ? "queued" : "logged") as
+        | "queued"
+        | "logged",
   };
 }

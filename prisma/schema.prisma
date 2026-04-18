@@ -266,6 +266,10 @@ model EmailLog {
   actionTokenId     String?
   type              EmailLogType
   status            EmailLogStatus      @default(PENDING)
+  attemptCount      Int                 @default(0)
+  nextAttemptAt     DateTime            @default(now())
+  processingStartedAt DateTime?
+  processingToken   String?
   recipientEmail    String
   subject           String
   templateKey       String
@@ -284,6 +288,8 @@ model EmailLog {
   @@index([clientId, createdAt])
   @@index([actionTokenId, createdAt])
   @@index([status, createdAt])
+  @@index([status, nextAttemptAt])
+  @@index([processingStartedAt])
   @@index([providerMessageId])
 }
 

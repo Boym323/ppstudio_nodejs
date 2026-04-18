@@ -23,7 +23,7 @@ Seznam důležitých knihoven a důvod jejich použití.
 - `typescript`: statická typová kontrola.
 - `eslint`: linting.
 - `eslint-config-next`: pravidla lintu pro Next.js.
-- `tsx`: lehký TypeScript runtime pro Node test runner.
+- `tsx`: lehký TypeScript runtime pro Node test runner a background worker skript.
 
 ## Stylování
 - `tailwindcss`: utility-first CSS framework.
@@ -38,7 +38,7 @@ Seznam důležitých knihoven a důvod jejich použití.
 ## Poznámky k datové vrstvě
 - Prisma schema v1 používá enumy pro role, stavy slotů, stavy rezervací a e-mailové workflow.
 - Pro bezpečné storno a přesun termínu není potřeba další knihovna; token workflow je navržený na úrovni DB přes hash + expiraci.
-- E-mailové šablony i delivery vrstva zůstávají jednoduché a nepřidávají frontovací nebo queue závislosti, což drží self-hosted nasazení lehké.
+- E-mailové šablony i delivery vrstva zůstávají jednoduché a nepřidávají queue službu mimo PostgreSQL outbox.
 - `Json` pole ve `Setting`, `BookingStatusHistory` a `EmailLog` ponechávají prostor pro evoluci bez destruktivních migrací.
 - Admin role-aware dashboardy používají jen existující Next.js, Prisma a React primitives; nepřidávali jsme další admin UI knihovnu ani CMS vrstvu.
 

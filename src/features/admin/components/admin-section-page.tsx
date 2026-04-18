@@ -1,6 +1,7 @@
 import { type AdminArea, type AdminSectionSlug } from "@/config/navigation";
 
-import { getAdminSectionData, getAdminSectionTitle } from "../lib/admin-data";
+import { getAdminSectionData, getAdminSectionTitle, type EmailLogsDashboardData } from "../lib/admin-data";
+import { AdminEmailLogsPage } from "./admin-email-logs-page";
 import { AdminKeyValueList, AdminPageShell, AdminPanel } from "./admin-page-shell";
 
 type AdminSectionPageProps = {
@@ -13,6 +14,11 @@ export async function AdminSectionPage({
   section,
 }: AdminSectionPageProps) {
   const data = await getAdminSectionData(section, area);
+
+  if (section === "email-logy" && area === "owner") {
+    return <AdminEmailLogsPage area={area} data={data as EmailLogsDashboardData} />;
+  }
+
   const title = getAdminSectionTitle(section);
 
   return (

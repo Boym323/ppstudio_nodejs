@@ -1,0 +1,26 @@
+[Unit]
+Description=PP Studio email delivery worker
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/var/www/ppstudio
+EnvironmentFile=/var/www/ppstudio/.env
+Environment=NODE_ENV=production
+
+# Optional hardening:
+# User=ppstudio
+# Group=ppstudio
+# Set these if you run the service under a dedicated unprivileged account.
+
+ExecStart=/usr/bin/env npm run email:worker
+Restart=always
+RestartSec=10
+KillSignal=SIGTERM
+TimeoutStopSec=30
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

@@ -11,7 +11,7 @@ const serverEnvSchema = z
     ADMIN_OWNER_PASSWORD: z.string().min(8),
     ADMIN_STAFF_EMAIL: z.email(),
     ADMIN_STAFF_PASSWORD: z.string().min(8),
-    EMAIL_DELIVERY_MODE: z.enum(["log", "smtp"]).default("log"),
+    EMAIL_DELIVERY_MODE: z.enum(["log", "background"]).default("log"),
     SMTP_HOST: z.string().trim().optional(),
     SMTP_PORT: z.coerce.number().int().positive().optional(),
     SMTP_SECURE: z
@@ -25,7 +25,7 @@ const serverEnvSchema = z
     SMTP_REPLY_TO: z.email().optional(),
   })
   .superRefine((env, context) => {
-    if (env.EMAIL_DELIVERY_MODE !== "smtp") {
+    if (env.EMAIL_DELIVERY_MODE !== "background") {
       return;
     }
 
@@ -42,7 +42,7 @@ const serverEnvSchema = z
         context.addIssue({
           code: z.ZodIssueCode.custom,
           path: [field],
-          message: `${field} je povinné, když EMAIL_DELIVERY_MODE=smtp.`,
+          message: `${field} je povinné, když EMAIL_DELIVERY_MODE=background.`,
         });
       }
     }

@@ -136,13 +136,16 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
 - `BookingStatusHistory` slouží jako audit změn stavu a rozlišuje akci uživatele, klienta nebo systému.
 - `BookingActionToken` ukládá pouze hash tokenu pro storno a přesun termínu, nikdy ne surovou hodnotu tokenu.
 - `EmailLog` umožňuje trasovat odeslané i neúspěšné e-maily navázané na klienta, rezervaci a případný token.
+- Owner-only sekce `Email logy` je provozní observability obrazovka pro pending frontu, retry pokusy a poslední chyby workeru.
+- Detail konkrétního e-mailu na `/admin/email-logy/[emailLogId]` ukazuje payload, poslední chybu, vazby na rezervaci a klientku a nabízí ruční retry nebo uvolnění zaseknutého jobu.
+- Po úspěšné akci se na detailu objeví krátká potvrzovací hláška, aby bylo zřejmé, že operace proběhla.
 - Veřejný booking flow po potvrzení:
   - znovu validuje službu a termín server-side
   - naváže nebo vytvoří klienta podle e-mailu
   - vytvoří rezervaci se snapshotem služby a času
   - zapíše audit změny stavu
   - připraví storno token a e-mailový log pro potvrzení
-  - po commitu odešle potvrzovací e-mail v režimu `log` nebo `smtp`
+  - uloží e-mail jako `PENDING` v background režimu nebo `SENT` v log režimu
 - Pokud se termín mezitím obsadí, služba přestane být aktivní nebo slot přestane odpovídat délce služby, uživatel dostane konkrétnější chybu místo obecného selhání.
 - Veřejný submit je lehce rate-limitený podle IP a e-mailu; opakované pokusy v krátkém čase skončí blokací s user-friendly hláškou.
 - Krok 2 už skrývá i sloty, které jsou pro vybranou službu příliš krátké.
@@ -150,7 +153,7 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
   - ověří hash tokenu server-side
   - zobrazí bezpečný potvrzovací krok
   - po potvrzení zruší rezervaci a zapíše audit
-  - odešle storno potvrzení a výsledek uloží do `EmailLog`
+  - uloží storno potvrzení do `EmailLog` pro worker nebo do `SENT` v log režimu
 
 ## Provozní Poznámky
 - `proxy.ts` filtruje nepřihlášené požadavky na `/admin/*`.
@@ -160,3 +163,8 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
 - Po každé změně Prisma schematu je potřeba spustit alespoň `npm run db:generate`; při změně struktury DB i `npm run db:migrate`.
 - Technické SEO minimum je nyní pokryté přes globální metadata, `robots.ts` a `sitemap.ts`.
 - Rezervační část má vlastní error boundary a loading fallback, takže výpadek booking vrstvy nepoškodí celý web.
+- Background e-mail worker lze spustit přes `npm run email:worker` jako samostatný proces; pro jednorázové dohnání fronty je k dispozici `npm run email:worker:once`.
+- Pro systemd provoz použij [`deploy/systemd/ppstudio-web.service`](/var/www/ppstudio/deploy/systemd/ppstudio-web.service) pro hlavní app a [`deploy/systemd/ppstudio-email-worker.service`](/var/www/ppstudio/deploy/systemd/ppstudio-email-worker.service) pro worker.
+- Systemd `.example` šablony s poznámkami k `User`/`Group` jsou v [`deploy/systemd/ppstudio-web.service.example`](/var/www/ppstudio/deploy/systemd/ppstudio-web.service.example) a [`deploy/systemd/ppstudio-email-worker.service.example`](/var/www/ppstudio/deploy/systemd/ppstudio-email-worker.service.example).
+- Jednorázová instalace obou units je připravená v [`deploy/deploy.sh`](/var/www/ppstudio/deploy/deploy.sh).
+- Pro Docker Compose provoz použij [`deploy/docker-compose.email-worker.yml`](/var/www/ppstudio/deploy/docker-compose.email-worker.yml).

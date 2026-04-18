@@ -1,8 +1,11 @@
 import {
   AdminRole,
+  BookingActionTokenType,
   AvailabilitySlotStatus,
   BookingStatus,
   EmailLogStatus,
+  EmailLogType,
+  Prisma,
 } from "@prisma/client";
 
 import { type AdminArea, type AdminSectionSlug } from "@/config/navigation";
@@ -76,6 +79,47 @@ function statusLabel(status: BookingStatus | AvailabilitySlotStatus | EmailLogSt
       return "Chyba";
     default:
       return String(status);
+  }
+}
+
+function retryStateLabel(
+  nextAttemptAt: Date | null,
+  processingStartedAt: Date | null,
+  attemptCount: number,
+) {
+  if (processingStartedAt) {
+    return `Zpracovává se • pokus ${attemptCount}`;
+  }
+
+  if (attemptCount > 0) {
+    return `Retry • další pokus ${formatDateTimeLabel(nextAttemptAt)}`;
+  }
+
+  return `Ve frontě • další pokus ${formatDateTimeLabel(nextAttemptAt)}`;
+}
+
+function emailTypeLabel(type: EmailLogType) {
+  switch (type) {
+    case EmailLogType.BOOKING_CREATED:
+    case EmailLogType.BOOKING_CONFIRMED:
+      return "Potvrzení rezervace";
+    case EmailLogType.BOOKING_CANCELLED:
+      return "Storno potvrzení";
+    case EmailLogType.BOOKING_RESCHEDULED:
+      return "Přesun termínu";
+    case EmailLogType.BOOKING_REMINDER:
+      return "Připomínka termínu";
+    case EmailLogType.GENERIC:
+      return "Obecný e-mail";
+  }
+}
+
+function actionTokenTypeLabel(type: BookingActionTokenType) {
+  switch (type) {
+    case BookingActionTokenType.CANCEL:
+      return "Storno token";
+    case BookingActionTokenType.RESCHEDULE:
+      return "Přesun termínu";
   }
 }
 
@@ -492,14 +536,120 @@ function mapBootstrapUser(user: BootstrapAdminUser) {
   };
 }
 
-async function getEmailLogsData() {
-  const [pending, sent, failed, items] = await Promise.all([
-    prisma.emailLog.count({ where: { status: EmailLogStatus.PENDING } }),
+type EmailLogItem = {
+  id: string;
+  title: string;
+  meta?: string;
+  description?: string;
+  badge?: string;
+  href?: string;
+};
+
+export type EmailLogsDashboardData = {
+  stats: Array<{
+    label: string;
+    value: string;
+    tone?: "default" | "accent" | "muted";
+    detail?: string;
+  }>;
+  pendingItems: EmailLogItem[];
+  retryingItems: EmailLogItem[];
+  failedItems: EmailLogItem[];
+};
+
+export type EmailLogDetailData = {
+  id: string;
+  status: EmailLogStatus;
+  statusLabel: string;
+  type: EmailLogType;
+  typeLabel: string;
+  recipientEmail: string;
+  subject: string;
+  templateKey: string;
+  attemptCount: number;
+  queueStateLabel: string;
+  isProcessing: boolean;
+  isStuck: boolean;
+  canRetry: boolean;
+  canRelease: boolean;
+  nextAttemptLabel: string;
+  processingStartedLabel: string;
+  sentAtLabel: string;
+  createdAtLabel: string;
+  updatedAtLabel: string;
+  providerLabel: string;
+  providerMessageIdLabel: string;
+  errorMessage: string | null;
+  payload: Prisma.JsonValue | null;
+  bookingSummary: string;
+  clientSummary: string;
+  actionTokenSummary: string;
+};
+
+async function getEmailLogsData(): Promise<EmailLogsDashboardData> {
+  const now = new Date();
+  const [
+    pending,
+    retrying,
+    processing,
+    sent,
+    failed,
+    pendingItems,
+    retryingItems,
+    failedItems,
+  ] = await Promise.all([
+    prisma.emailLog.count({
+      where: {
+        status: EmailLogStatus.PENDING,
+        attemptCount: 0,
+        nextAttemptAt: { lte: now },
+        processingStartedAt: null,
+      },
+    }),
+    prisma.emailLog.count({
+      where: {
+        status: EmailLogStatus.PENDING,
+        attemptCount: { gt: 0 },
+      },
+    }),
+    prisma.emailLog.count({
+      where: {
+        status: EmailLogStatus.PENDING,
+        processingStartedAt: { not: null },
+      },
+    }),
     prisma.emailLog.count({ where: { status: EmailLogStatus.SENT } }),
     prisma.emailLog.count({ where: { status: EmailLogStatus.FAILED } }),
     prisma.emailLog.findMany({
-      orderBy: { createdAt: "desc" },
-      take: 12,
+      where: {
+        status: EmailLogStatus.PENDING,
+        attemptCount: 0,
+        nextAttemptAt: { lte: now },
+        processingStartedAt: null,
+      },
+      orderBy: [{ nextAttemptAt: "asc" }, { createdAt: "asc" }],
+      take: 6,
+      include: {
+        booking: { select: { clientNameSnapshot: true } },
+      },
+    }),
+    prisma.emailLog.findMany({
+      where: {
+        status: EmailLogStatus.PENDING,
+        attemptCount: { gt: 0 },
+      },
+      orderBy: [{ nextAttemptAt: "asc" }, { createdAt: "desc" }],
+      take: 6,
+      include: {
+        booking: { select: { clientNameSnapshot: true } },
+      },
+    }),
+    prisma.emailLog.findMany({
+      where: {
+        status: EmailLogStatus.FAILED,
+      },
+      orderBy: { updatedAt: "desc" },
+      take: 6,
       include: {
         booking: { select: { clientNameSnapshot: true } },
       },
@@ -508,21 +658,145 @@ async function getEmailLogsData() {
 
   return {
     stats: [
-      { label: "Čeká", value: String(pending) },
-      { label: "Odesláno", value: String(sent), tone: "accent" as const },
       {
-        label: "Chyba",
+        label: "Ve frontě",
+        value: String(pending),
+        tone: "accent" as const,
+        detail: "E-maily připravené k nejbližšímu zpracování.",
+      },
+      {
+        label: "Retrying",
+        value: String(retrying),
+        detail: "Pokusy, které worker vrátí na další retry.",
+      },
+      {
+        label: "Zpracovává se",
+        value: String(processing),
+        tone: "muted" as const,
+        detail: "Záznamy, které worker právě claimuje.",
+      },
+      {
+        label: "Odesláno",
+        value: String(sent),
+        detail: "Úspěšně doručené e-maily.",
+      },
+      {
+        label: "Chyby",
         value: String(failed),
         tone: failed > 0 ? ("accent" as const) : ("muted" as const),
+        detail: "Selhané záznamy po vyčerpání retry politiky.",
       },
     ],
-    items: items.map((log) => ({
+    pendingItems: pendingItems.map((log) => ({
       id: log.id,
       title: `${log.subject} • ${log.recipientEmail}`,
-      meta: `${statusLabel(log.status)} • ${formatDateTimeLabel(log.createdAt)}`,
-      description: `${log.type} • klientka ${log.booking?.clientNameSnapshot ?? "bez rezervace"}${log.errorMessage ? ` • ${log.errorMessage}` : ""}`,
-      badge: statusLabel(log.status),
+      meta: retryStateLabel(log.nextAttemptAt, log.processingStartedAt, log.attemptCount),
+      description: `${log.type} • klientka ${log.booking?.clientNameSnapshot ?? "bez rezervace"}`,
+      badge: "pending",
+      href: `/admin/email-logy/${log.id}`,
     })),
+    retryingItems: retryingItems.map((log) => ({
+      id: log.id,
+      title: `${log.subject} • ${log.recipientEmail}`,
+      meta: retryStateLabel(log.nextAttemptAt, log.processingStartedAt, log.attemptCount),
+      description: `${log.type} • ${log.errorMessage ?? "Bez poslední chyby"}`,
+      badge: "retry",
+      href: `/admin/email-logy/${log.id}`,
+    })),
+    failedItems: failedItems.map((log) => ({
+      id: log.id,
+      title: `${log.subject} • ${log.recipientEmail}`,
+      meta: `${statusLabel(log.status)} • ${formatDateTimeLabel(log.updatedAt)}`,
+      description: `${log.type} • ${log.errorMessage ?? "Bez textu chyby"} • klientka ${log.booking?.clientNameSnapshot ?? "bez rezervace"}`,
+      badge: "chyba",
+      href: `/admin/email-logy/${log.id}`,
+    })),
+  };
+}
+
+export async function getEmailLogDetailData(emailLogId: string): Promise<EmailLogDetailData | null> {
+  const now = new Date();
+  const emailLog = await prisma.emailLog.findUnique({
+    where: { id: emailLogId },
+    include: {
+      booking: {
+        select: {
+          id: true,
+          clientNameSnapshot: true,
+          clientEmailSnapshot: true,
+          serviceNameSnapshot: true,
+          scheduledStartsAt: true,
+          scheduledEndsAt: true,
+          status: true,
+        },
+      },
+      client: {
+        select: {
+          id: true,
+          fullName: true,
+          email: true,
+          phone: true,
+          isActive: true,
+        },
+      },
+      actionToken: {
+        select: {
+          id: true,
+          type: true,
+          expiresAt: true,
+          usedAt: true,
+          revokedAt: true,
+        },
+      },
+    },
+  });
+
+  if (!emailLog) {
+    return null;
+  }
+
+  const processingStartedAt = emailLog.processingStartedAt;
+  const isProcessing = processingStartedAt !== null;
+  const isStuck =
+    isProcessing && now.getTime() - processingStartedAt.getTime() > 10 * 60 * 1000;
+
+  return {
+    id: emailLog.id,
+    status: emailLog.status,
+    statusLabel: statusLabel(emailLog.status),
+    type: emailLog.type,
+    typeLabel: emailTypeLabel(emailLog.type),
+    recipientEmail: emailLog.recipientEmail,
+    subject: emailLog.subject,
+    templateKey: emailLog.templateKey,
+    attemptCount: emailLog.attemptCount,
+    queueStateLabel: retryStateLabel(
+      emailLog.nextAttemptAt,
+      emailLog.processingStartedAt,
+      emailLog.attemptCount,
+    ),
+    isProcessing,
+    isStuck,
+    canRetry: emailLog.status !== EmailLogStatus.SENT && !isProcessing,
+    canRelease: isProcessing && emailLog.status === EmailLogStatus.PENDING,
+    nextAttemptLabel: formatDateTimeLabel(emailLog.nextAttemptAt),
+    processingStartedLabel: formatDateTimeLabel(emailLog.processingStartedAt),
+    sentAtLabel: formatDateTimeLabel(emailLog.sentAt),
+    createdAtLabel: formatDateTimeLabel(emailLog.createdAt),
+    updatedAtLabel: formatDateTimeLabel(emailLog.updatedAt),
+    providerLabel: emailLog.provider ?? "Bez providera",
+    providerMessageIdLabel: emailLog.providerMessageId ?? "Bez message id",
+    errorMessage: emailLog.errorMessage,
+    payload: emailLog.payload,
+    bookingSummary: emailLog.booking
+      ? `${emailLog.booking.clientNameSnapshot} • ${emailLog.booking.serviceNameSnapshot} • ${formatDateTimeLabel(emailLog.booking.scheduledStartsAt)} - ${formatTime.format(emailLog.booking.scheduledEndsAt)}`
+      : "Bez navázané rezervace",
+    clientSummary: emailLog.client
+      ? `${emailLog.client.fullName} • ${emailLog.client.email}${emailLog.client.phone ? ` • ${emailLog.client.phone}` : ""}`
+      : "Bez navázaného klienta",
+    actionTokenSummary: emailLog.actionToken
+      ? `${actionTokenTypeLabel(emailLog.actionToken.type)} • expirace ${formatDateTimeLabel(emailLog.actionToken.expiresAt)}${emailLog.actionToken.usedAt ? ` • použito ${formatDateTimeLabel(emailLog.actionToken.usedAt)}` : ""}${emailLog.actionToken.revokedAt ? ` • zrušeno ${formatDateTimeLabel(emailLog.actionToken.revokedAt)}` : ""}`
+      : "Bez navázaného action tokenu",
   };
 }
 

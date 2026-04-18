@@ -22,3 +22,4 @@ Evidence produkčních incidentů a jejich řešení.
 - Nefunkční CTA odkazy mezi veřejným webem a rezervační částí.
 - Opakované `EmailLog.status = FAILED` po nasazení nové SMTP konfigurace.
 - Nefunkční storno odkazy kvůli špatnému `NEXT_PUBLIC_APP_URL` nebo proxy přepisu hosta.
+- Worker běžící bez SMTP přístupu nebo bez `EMAIL_DELIVERY_MODE=background` a zůstávající fronta `PENDING` logů.

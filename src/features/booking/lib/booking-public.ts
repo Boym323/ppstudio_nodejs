@@ -5,16 +5,17 @@ import {
   BookingActionTokenType,
   BookingSource,
   BookingStatus,
+  EmailLogStatus,
   EmailLogType,
   Prisma,
 } from "@prisma/client";
 
+import { env } from "@/config/env";
 import {
   buildBookingActionToken,
   buildBookingCancellationUrl,
 } from "@/features/booking/lib/booking-action-tokens";
 import { formatBookingDateLabel } from "@/features/booking/lib/booking-format";
-import { deliverEmailLog } from "@/lib/email/delivery";
 import { prisma } from "@/lib/prisma";
 
 const ACTIVE_BOOKING_STATUSES = [BookingStatus.PENDING, BookingStatus.CONFIRMED] as const;
@@ -71,7 +72,7 @@ export type CreatePublicBookingResult = {
   scheduledAtLabel: string;
   clientName: string;
   clientEmail: string;
-  emailDeliveryStatus: "sent" | "failed" | "skipped";
+  emailDeliveryStatus: "queued" | "logged" | "skipped";
 };
 
 type LockedSlotRow = {
@@ -507,12 +508,17 @@ export async function createPublicBooking(
             },
           });
 
-          const emailLog = await tx.emailLog.create({
+          await tx.emailLog.create({
             data: {
               bookingId: booking.id,
               clientId: client.id,
               actionTokenId: actionToken.id,
               type: EmailLogType.BOOKING_CONFIRMED,
+              status: env.EMAIL_DELIVERY_MODE === "background" ? undefined : EmailLogStatus.SENT,
+              attemptCount: env.EMAIL_DELIVERY_MODE === "background" ? undefined : 1,
+              nextAttemptAt: env.EMAIL_DELIVERY_MODE === "background" ? now : undefined,
+              processingStartedAt: null,
+              processingToken: null,
               recipientEmail: normalizedEmail,
               subject: `Potvrzení rezervace: ${service.name}`,
               templateKey: "booking-confirmation-v1",
@@ -524,14 +530,12 @@ export async function createPublicBooking(
                 scheduledEndsAt: booking.scheduledEndsAt.toISOString(),
                 cancellationUrl,
               },
-            },
-            select: {
-              id: true,
+              provider: env.EMAIL_DELIVERY_MODE === "background" ? undefined : "log",
+              sentAt: env.EMAIL_DELIVERY_MODE === "background" ? undefined : now,
             },
           });
 
           return {
-            emailLogId: emailLog.id,
             bookingId: booking.id,
             referenceCode: booking.id.slice(-8).toUpperCase(),
             serviceName: service.name,
@@ -547,20 +551,19 @@ export async function createPublicBooking(
           isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
         },
       );
-
-      const emailDelivery = await deliverEmailLog(transactionResult.emailLogId);
-      const bookingResult = {
+      const bookingResult: CreatePublicBookingResult = {
         bookingId: transactionResult.bookingId,
         referenceCode: transactionResult.referenceCode,
         serviceName: transactionResult.serviceName,
         scheduledAtLabel: transactionResult.scheduledAtLabel,
         clientName: transactionResult.clientName,
         clientEmail: transactionResult.clientEmail,
+        emailDeliveryStatus:
+          env.EMAIL_DELIVERY_MODE === "background" ? "queued" : "logged",
       };
 
       return {
         ...bookingResult,
-        emailDeliveryStatus: emailDelivery.status,
       };
     } catch (error) {
       if (error instanceof PublicBookingError) {

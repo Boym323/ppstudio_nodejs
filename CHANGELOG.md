@@ -31,6 +31,10 @@ Formát je inspirovaný Keep a Changelog.
 - Metadata routes pro `robots.txt` a `sitemap.xml`.
 - Booking error boundary, loading fallback a základní unit testy pro e-mailové šablony.
 - ADR 0008 pro rozhodnutí kolem e-mailů a veřejného storna.
+- Systemd units pro hlavní Next.js app a background e-mail worker.
+- Deployment notes pro systemd a Docker Compose provoz workeru.
+- Owner-only admin obrazovka pro pending/retrying emaily a poslední chyby workeru.
+- Owner-only detail email logu s payloadem, chybou, ručním retry a uvolněním zaseknutého jobu.
 
 ### Changed
 - Výchozí Next.js demo bylo nahrazeno čistým škálovatelným scaffoldingem pro produkční vývoj.

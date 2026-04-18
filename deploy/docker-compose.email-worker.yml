@@ -1,0 +1,10 @@
+services:
+  email-worker:
+    image: ppstudio:latest
+    working_dir: /app
+    command: npm run email:worker
+    env_file:
+      - ../.env
+    environment:
+      NODE_ENV: production
+    restart: unless-stopped

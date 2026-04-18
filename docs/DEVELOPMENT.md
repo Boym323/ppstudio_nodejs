@@ -47,6 +47,9 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - `src/config/navigation.ts` drží centrální definici admin sekcí, slugů a navigace pro obě role.
 - `src/features/admin/components/admin-sidebar-nav.tsx` je klientská navigace s aktivním stavem podle pathname.
 - `src/features/admin/components/admin-overview-page.tsx` a `admin-section-page.tsx` renderují role-aware read model nad Prisma daty.
+- `src/features/admin/components/admin-email-logs-page.tsx` je owner-only observability obrazovka pro email frontu, retry pokusy a poslední chyby.
+- `src/features/admin/components/admin-email-log-detail-page.tsx` a route `/admin/email-logy/[emailLogId]` přidávají detail jednoho logu s payloadem, chybou a operacemi pro ruční retry nebo uvolnění zaseknutého jobu.
+- Po úspěšné akci detail vrací server-rendered flash banner přes query parametr, aby obsluha viděla okamžitou zpětnou vazbu bez client state.
 - `src/features/admin/lib/admin-data.ts` je čistá serverová read vrstva pro admin dashboardy a sekce.
 - Lite admin záměrně nepoužívá technický jazyk ani sekce typu nastavení, email logy nebo správa uživatelů.
 - Pro `SALON` držíme kratší menu a na úvodní obrazovce zviditelňujeme dnešní rezervace, nejbližší termíny a rychlé akce pro přidání slotu nebo otevření rezervace.
@@ -84,9 +87,9 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Veřejný booking submit má lehký rate limit podle IP a e-mailu a zapisuje auditní log pokusů, blokací a selhání pro provozní troubleshooting.
 - Krok 2 veřejného booking flow filtruje sloty i podle délky služby, aby se krátké sloty neukazovaly až v posledním kroku.
 - `src/lib/email/*` je samostatná infrastrukturní vrstva:
-  - provider řeší `log` vs `smtp`
+  - provider řeší SMTP transport
   - templates renderují obsah z `EmailLog.templateKey`
-  - delivery aktualizuje `EmailLog.status`, `provider`, `providerMessageId` a `errorMessage`
+  - worker claimuje `EmailLog` řádky v background režimu a delivery aktualizuje `EmailLog.status`, `provider`, `providerMessageId`, `attemptCount`, `nextAttemptAt` a `errorMessage`
 
 ## Migrační Strategie
 - Stávající bootstrap migrace rozšiřujeme inkrementálně, ne přepisem historie.
@@ -107,6 +110,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - `npm run lint`
   - `npm run test`
   - `npm run build`
+- Pokud měníš e-mail delivery, ověř i `npm run email:worker:once`.
 - Při změně veřejného webu navíc ručně ověř:
   - mobilní header a CTA na `/`, `/sluzby`, `/kontakt`
   - správnost interních odkazů v footeru
@@ -127,6 +131,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Server-side validace musí znovu ověřit i to, že délka vybrané služby reálně odpovídá délce slotu.
 - Pro anti-spam ochranu zapisuj submission logy i pro blokované pokusy, aby šlo dělat provozní audit bez zbytečného přidávání další infrastruktury.
 - E-mailové šablony drž jako čisté funkce bez přímé DB závislosti, aby šly jednoduše unit testovat.
+- Background worker je provozní proces, ne web request; při nasazení musí běžet odděleně od Next.js serveru.
 
 ## Poznámky k releasu
 - Release checklist.
