@@ -48,6 +48,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - `src/features/admin/components/admin-overview-page.tsx` a `admin-section-page.tsx` renderují role-aware read model nad Prisma daty.
 - `src/features/admin/lib/admin-data.ts` je čistá serverová read vrstva pro admin dashboardy a sekce.
 - Lite admin záměrně nepoužívá technický jazyk ani sekce typu nastavení, email logy nebo správa uživatelů.
+- Pro `SALON` držíme kratší menu a na úvodní obrazovce zviditelňujeme dnešní rezervace, nejbližší termíny a rychlé akce pro přidání slotu nebo otevření rezervace.
 
 ## Konvence
 - Route soubory držet tenké, byznys logiku přesouvat do `features`, `content` a `lib`.

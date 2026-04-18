@@ -29,16 +29,16 @@ export function AdminSidebarNav({
     <>
       <div className="space-y-3 border-b border-white/10 pb-5">
         <p className="text-xs uppercase tracking-[0.35em] text-white/50">
-          {currentArea === "owner" ? "Owner Admin" : "Provozní Admin"}
+          {currentArea === "owner" ? "Owner Admin" : "Provoz salonu"}
         </p>
         <h1 className="font-display text-3xl text-white">PP Studio</h1>
         <p className="text-sm leading-6 text-white/70">
-          Přihlášen: {userName} • {currentRole === AdminRole.OWNER ? "ADMIN" : "SALON"}
+          Přihlášen: {userName} • {currentRole === AdminRole.OWNER ? "owner" : "provoz"}
         </p>
         <p className="text-sm leading-6 text-white/56">
           {currentArea === "owner"
             ? "Plný backoffice pro majitele. Včetně řízení služeb, přístupů a technických logů."
-            : "Rychlé provozní rozhraní pro recepci a běžný chod salonu bez technických detailů."}
+            : "Rychlé provozní rozhraní pro recepci a běžný chod salonu."}
         </p>
       </div>
 

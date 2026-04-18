@@ -17,7 +17,7 @@ export async function AdminSectionPage({
 
   return (
     <AdminPageShell
-      eyebrow={area === "owner" ? "Full Admin Sekce" : "Lite Admin Sekce"}
+      eyebrow={area === "owner" ? "Full Admin sekce" : "Provozní sekce"}
       title={title}
       description={getSectionDescription(section, area)}
       stats={"stats" in data ? data.stats : undefined}

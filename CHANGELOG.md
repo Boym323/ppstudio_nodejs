@@ -40,6 +40,7 @@ Formát je inspirovaný Keep a Changelog.
 - Veřejný booking submit má lehký rate limit, auditní log pokusů a blokací a krok 2 už schovává sloty kratší než vybraná služba.
 - Admin UI už není jen dvojice placeholder dashboardů; `OWNER` a `SALON` mají odlišné rozhraní, navigaci a úroveň detailu.
 - Přesměrování po loginu i při nedostatečném oprávnění se teď řídí centrální helper funkcí podle role.
+- `SALON` rozhraní má kratší menu, méně technický jazyk a rychlé akce pro přidání termínu a práci s rezervací.
 
 ### Fixed
 - Návrh datové vrstvy už nespoléhá na zjednodušený booking request model bez auditní historie a bez bezpečných tokenů.

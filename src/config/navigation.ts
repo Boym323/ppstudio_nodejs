@@ -41,28 +41,36 @@ const sharedSections = [
     ownerHref: "/admin/rezervace",
     salonHref: "/admin/provoz/rezervace",
     label: "Rezervace",
+    salonLabel: "Dnešní rezervace",
     description: "Přehled potvrzených, čekajících i dnešních rezervací.",
+    salonDescription: "Termíny, které je potřeba dnes odbavit nebo zkontrolovat.",
   },
   {
     slug: "volne-terminy",
     ownerHref: "/admin/volne-terminy",
     salonHref: "/admin/provoz/volne-terminy",
     label: "Volné termíny",
+    salonLabel: "Termíny",
     description: "Ruční publikace a rychlá kontrola dostupných slotů.",
+    salonDescription: "Rychlé přidání nového termínu a kontrola toho, co je volné.",
   },
   {
     slug: "klienti",
     ownerHref: "/admin/klienti",
     salonHref: "/admin/provoz/klienti",
     label: "Klienti",
+    salonLabel: "Klientky",
     description: "Kontakty, historie rezervací a provozní poznámky ke klientům.",
+    salonDescription: "Rychlý přístup ke klientkám a jejich předchozím návštěvám.",
   },
   {
     slug: "sluzby",
     ownerHref: "/admin/sluzby",
     salonHref: "/admin/provoz/sluzby",
     label: "Služby",
+    salonLabel: "Nabídka",
     description: "Aktivní nabídka služeb, délky a orientace v ceníku.",
+    salonDescription: "Přehled služeb bez technického řešení katalogu.",
   },
   {
     slug: "kategorie-sluzeb",
@@ -117,12 +125,30 @@ export const salonAdminNavigation: AdminNavigationItem[] = [
     slug: "overview",
     description: "Rychlý denní přehled bez technického balastu.",
   },
-  ...sharedSections.map((section) => ({
-    href: section.salonHref,
-    label: section.label,
-    slug: section.slug,
-    description: section.description,
-  })),
+  {
+    href: "/admin/provoz/rezervace",
+    label: "Dnešní rezervace",
+    slug: "rezervace",
+    description: "Termíny, které je potřeba dnes odbavit nebo zkontrolovat.",
+  },
+  {
+    href: "/admin/provoz/volne-terminy",
+    label: "Termíny",
+    slug: "volne-terminy",
+    description: "Rychlé přidání nového termínu a kontrola toho, co je volné.",
+  },
+  {
+    href: "/admin/provoz/klienti",
+    label: "Klientky",
+    slug: "klienti",
+    description: "Rychlý přístup ke klientkám a jejich předchozím návštěvám.",
+  },
+  {
+    href: "/admin/provoz/sluzby",
+    label: "Nabídka",
+    slug: "sluzby",
+    description: "Přehled služeb bez technického řešení katalogu.",
+  },
 ];
 
 export const ownerOnlyAdminSectionSlugs = new Set<AdminSectionSlug>(

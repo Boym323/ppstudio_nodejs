@@ -113,6 +113,7 @@ export async function getAdminOverviewData(area: AdminArea) {
     pendingBookings,
     upcomingBookings,
     todayBookings,
+    todayBookingItems,
     upcomingPublishedSlots,
     draftSlots,
     activeClients,
@@ -134,6 +135,18 @@ export async function getAdminOverviewData(area: AdminArea) {
       where: {
         scheduledStartsAt: { gte: todayStart, lt: tomorrowStart },
         status: { in: [BookingStatus.PENDING, BookingStatus.CONFIRMED] },
+      },
+    }),
+    prisma.booking.findMany({
+      where: {
+        scheduledStartsAt: { gte: todayStart, lt: tomorrowStart },
+        status: { in: [BookingStatus.PENDING, BookingStatus.CONFIRMED] },
+      },
+      orderBy: { scheduledStartsAt: "asc" },
+      take: 4,
+      include: {
+        service: { select: { name: true } },
+        client: { select: { fullName: true } },
       },
     }),
     prisma.availabilitySlot.count({
@@ -221,7 +234,7 @@ export async function getAdminOverviewData(area: AdminArea) {
             {
               label: "Chybné e-maily",
               value: String(emailFailures),
-              tone: emailFailures > 0 ? "accent" : "muted",
+              tone: emailFailures > 0 ? ("accent" as const) : ("muted" as const),
               detail: "Počet e-mailů se stavem FAILED.",
             },
           ]
@@ -249,6 +262,7 @@ export async function getAdminOverviewData(area: AdminArea) {
             },
           ],
     recentBookings,
+    todayBookingItems,
     nextSlots,
   };
 }
@@ -496,7 +510,11 @@ async function getEmailLogsData() {
     stats: [
       { label: "Čeká", value: String(pending) },
       { label: "Odesláno", value: String(sent), tone: "accent" as const },
-      { label: "Chyba", value: String(failed), tone: failed > 0 ? "accent" : "muted" as const },
+      {
+        label: "Chyba",
+        value: String(failed),
+        tone: failed > 0 ? ("accent" as const) : ("muted" as const),
+      },
     ],
     items: items.map((log) => ({
       id: log.id,

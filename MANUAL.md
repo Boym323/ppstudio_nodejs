@@ -115,6 +115,12 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
   - Uživatelé / role
   - Email logy
   - Nastavení
+- Lite provozní menu je záměrně kratší a drží jen to, co recepce a tým potřebují nejčastěji:
+  - Přehled
+  - Dnešní rezervace
+  - Termíny
+  - Klientky
+  - Nabídka
 - Ochrana není řešená jen skrytím položek v menu:
   - `proxy.ts` dál blokuje nepřihlášené vstupy
   - server-side guard helpery kontrolují oprávnění každé admin route
