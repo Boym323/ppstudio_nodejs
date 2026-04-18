@@ -60,6 +60,12 @@ npm run db:migrate
 ## Veřejný Web
 - Navigace vede na klíčové konverzní a důvěryhodnostní stránky místo jedné přetížené homepage.
 - Detail služby je staticky generovaný z centrálního katalogu služeb.
+- `/rezervace` nyní obsahuje produkční V1 flow:
+  - výběr služby
+  - výběr ručně publikovaného termínu
+  - kontaktní údaje klienta
+  - souhrn a potvrzení
+- Rezervační stránka je renderovaná dynamicky při requestu, takže nově publikované nebo obsazené sloty jsou vidět bez dalšího buildu.
 - Placeholder obsah je záměrně označený a má být před spuštěním nahrazen:
   - finálním copywritingem
   - reálnými cenami a délkami služeb
@@ -86,6 +92,12 @@ npm run db:migrate
 - `BookingStatusHistory` slouží jako audit změn stavu a rozlišuje akci uživatele, klienta nebo systému.
 - `BookingActionToken` ukládá pouze hash tokenu pro storno a přesun termínu, nikdy ne surovou hodnotu tokenu.
 - `EmailLog` umožňuje trasovat odeslané i neúspěšné e-maily navázané na klienta, rezervaci a případný token.
+- Veřejný booking flow po potvrzení:
+  - znovu validuje službu a termín server-side
+  - naváže nebo vytvoří klienta podle e-mailu
+  - vytvoří rezervaci se snapshotem služby a času
+  - zapíše audit změny stavu
+  - připraví storno token a e-mailový log pro potvrzení
 
 ## Provozní Poznámky
 - `proxy.ts` filtruje nepřihlášené požadavky na `/admin/*`.

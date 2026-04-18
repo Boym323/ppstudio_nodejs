@@ -19,6 +19,8 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - `(booking)` pro rezervace bez míchání admin logiky.
 - `(admin)` pro backoffice.
 - Další vnitřní route group `(protected)` uvnitř adminu chrání sekce vyžadující session.
+- Veřejné booking flow používá server-loaded page + klientský wizard + server action pro finální zápis.
+- `/rezervace` používá `connection()` a renderuje se request-time, aby ručně publikované sloty nebyly zafixované do build outputu.
 
 ## Veřejný Web
 - Každá veřejná stránka má vlastní route a metadata.
@@ -42,6 +44,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Server-side validaci preferovat před klientskými závislostmi.
 - Nezakládat univerzální `utils` složky ve feature vrstvách bez jasné potřeby.
 - U veřejného webu nepřidávat efektní animace bez jasného UX důvodu.
+- Booking mutations držet ve feature service vrstvě a server action používat jen jako tenký vstupní adaptér.
 
 ## Technický dluh a rozhodnutí
 - Klíčová rozhodnutí zapisuj jako krátké ADR záznamy.
@@ -50,6 +53,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 ## Datová Vrstva
 - Prisma schema definuje v1 základ pro správu služeb, slotů, klientů a rezervací.
 - Prisma 7 CLI konfigurace je v `prisma.config.ts`, ne v `schema.prisma`.
+- Runtime Prisma klient používá `@prisma/adapter-pg` + `pg`, protože Prisma 7 vyžaduje pro PostgreSQL explicitní driver adapter.
 - `AdminUser` zůstává oddělený od klientských kontaktů; klientská vrstva je modelovaná přes `Client`.
 - `AvailabilitySlot` je navržený jako ručně publikovatelný termín s kapacitou a stavem zveřejnění.
 - `AvailabilitySlot` má explicitní `serviceRestrictionMode`, takže admin rozhraní pozná rozdíl mezi slotem bez omezení a slotem, který čeká na výběr služeb.
@@ -60,6 +64,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - `BookingActionToken` ukládá hash tokenu, expiraci a použití/revokaci pro bezpečné self-service storno nebo přesun termínu.
 - `EmailLog` je připravený na notifikační workflow a troubleshooting komunikace s klientem.
 - `Setting` je generická tabulka pro serverově spravované konfigurační hodnoty bez nutnosti přidávat nové sloupce.
+- `src/features/booking/lib/booking-public.ts` je veřejný write model pro rezervace a drží i ochranu proti souběžnému obsazení slotu.
 
 ## Migrační Strategie
 - Stávající bootstrap migrace rozšiřujeme inkrementálně, ne přepisem historie.
@@ -94,6 +99,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Admin routy nikdy neodemykat jen na základě klientského stavu.
 - Cancel/reschedule tokeny generovat jako náhodné tajné hodnoty, do DB ukládat pouze jejich hash.
 - E-mail a telefon normalizovat na vstupu server-side ještě před zápisem do `Client` a `Booking`.
+- Při veřejné rezervaci zamknout slot v transakci a znovu ověřit kapacitu až těsně před vytvořením `Booking`.
 
 ## Poznámky k releasu
 - Release checklist.

@@ -9,10 +9,13 @@ Seznam důležitých knihoven a důvod jejich použití.
 
 ## Datová a aplikační vrstva
 - `@prisma/client`: typovaný přístup k databázi nad booking doménou, adminem i provozními daty.
+- `@prisma/adapter-pg`: oficiální PostgreSQL driver adapter pro Prisma 7 runtime.
+- `pg`: PostgreSQL driver použitý pod Prisma adapterem.
 - `prisma`: schema, migrace a generování klienta pro PostgreSQL.
 - `zod`: validace env a serverových vstupů.
 - `jose`: podpis a verifikace admin session.
 - `dotenv`: načtení `.env` pro Prisma CLI konfiguraci.
+- vestavěný Node.js `crypto`: generování a hashování action tokenů pro booking workflow bez další závislosti.
 
 ## Kvalita kódu
 - `typescript`: statická typová kontrola.

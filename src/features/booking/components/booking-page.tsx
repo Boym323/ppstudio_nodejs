@@ -1,49 +1,47 @@
 import { Container } from "@/components/ui/container";
 import { SectionHeading } from "@/components/ui/section-heading";
+import type { PublicBookingCatalog } from "@/features/booking/lib/booking-public";
 
-const bookingHighlights = [
-  "Ručně publikované termíny pro plnou kontrolu nad kapacitou salonu.",
-  "Server-side validace rezervací bez závislosti na křehkém klientském stavu.",
-  "Připraveno na napojení Prisma modelu `AvailabilitySlot` a `Booking`.",
-] as const;
+import { BookingFlow } from "./booking-flow";
 
-export function BookingPage() {
+type BookingPageProps = {
+  catalog: PublicBookingCatalog;
+};
+
+export function BookingPage({ catalog }: BookingPageProps) {
+  const hasServices = catalog.services.length > 0;
+  const hasSlots = catalog.slots.length > 0;
+
   return (
     <div className="py-16 sm:py-20">
       <Container className="space-y-12">
         <SectionHeading
           eyebrow="Rezervace"
-          title="Rezervační vrstva je připravená pro skutečný provoz."
-          description="Tahle obrazovka není demo s vymyšlenými sloty. Je to čistý základ pro publikované termíny, potvrzení rezervace a další navazující workflow."
+          title="Rychlé rezervační flow pro ručně publikované termíny."
+          description="Klientka projde čtyři jasné kroky, finální validace běží server-side a termín se potvrzuje až při skutečném zápisu do databáze."
         />
 
-        <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-          <section className="rounded-[var(--radius-panel)] border border-black/6 bg-white p-7 shadow-[var(--shadow-panel)]">
-            <p className="text-xs font-semibold uppercase tracking-[0.32em] text-[var(--color-accent)]">
-              Stav připravenosti
-            </p>
-            <h3 className="mt-5 font-display text-4xl text-[var(--color-foreground)]">
-              Publikované termíny se sem načtou z databáze po prvním napojení obsahu.
+        {!hasServices ? (
+          <section className="rounded-[var(--radius-panel)] border border-black/6 bg-white p-8 shadow-[var(--shadow-panel)]">
+            <h3 className="font-display text-3xl text-[var(--color-foreground)]">
+              Zatím chybí aktivní služby
             </h3>
             <p className="mt-4 max-w-2xl text-base leading-7 text-[var(--color-muted)]">
-              Datový model i stránková struktura už s termíny počítají. Další sprint může rovnou řešit CRUD slotů, potvrzovací flow a notifikace bez přestavby rout.
+              Rezervační flow je připravené, ale v databázi ještě nejsou dostupné aktivní služby.
             </p>
           </section>
-
-          <section className="rounded-[var(--radius-panel)] border border-[var(--color-accent-soft)]/40 bg-[var(--color-surface-strong)] p-7">
-            <h3 className="font-display text-3xl text-[var(--color-foreground)]">Co je připravené</h3>
-            <ul className="mt-6 space-y-4">
-              {bookingHighlights.map((item) => (
-                <li
-                  key={item}
-                  className="rounded-2xl border border-black/6 bg-white/85 px-4 py-4 text-sm leading-6 text-[var(--color-muted)]"
-                >
-                  {item}
-                </li>
-              ))}
-            </ul>
+        ) : !hasSlots ? (
+          <section className="rounded-[var(--radius-panel)] border border-black/6 bg-white p-8 shadow-[var(--shadow-panel)]">
+            <h3 className="font-display text-3xl text-[var(--color-foreground)]">
+              Momentálně nejsou publikované volné termíny
+            </h3>
+            <p className="mt-4 max-w-2xl text-base leading-7 text-[var(--color-muted)]">
+              Admin může kdykoli ručně zveřejnit další sloty bez závislosti na pevné otevírací době.
+            </p>
           </section>
-        </div>
+        ) : (
+          <BookingFlow catalog={catalog} />
+        )}
       </Container>
     </div>
   );
