@@ -5,9 +5,20 @@ Dokumentace proměnných prostředí pro lokální vývoj i produkci.
 ## Pravidla
 - Tajné hodnoty nikdy neukládej do repozitáře.
 - Každá nová proměnná musí mít popis a příklad v `.env.example`.
+- Serverové proměnné se validují při startu aplikace přes `src/config/env.ts`.
 
 ## Přehled
 - `NODE_ENV`: režim běhu (`development`, `production`).
+- `NEXT_PUBLIC_APP_NAME`: veřejný název značky.
 - `NEXT_PUBLIC_APP_URL`: veřejná URL aplikace.
-- `API_BASE_URL`: URL backend API.
-- `API_TOKEN`: serverový token pro komunikaci s API.
+- `DATABASE_URL`: PostgreSQL connection string pro Prisma.
+- `SHADOW_DATABASE_URL`: pomocná databáze pro `prisma migrate dev` (lokální vývoj).
+- `ADMIN_SESSION_SECRET`: klíč pro podpis admin session cookie.
+- `ADMIN_OWNER_EMAIL`: bootstrap email pro owner admin účet.
+- `ADMIN_OWNER_PASSWORD`: bootstrap heslo pro owner admin účet.
+- `ADMIN_STAFF_EMAIL`: bootstrap email pro lite admin účet (role `SALON`).
+- `ADMIN_STAFF_PASSWORD`: bootstrap heslo pro lite admin účet (role `SALON`).
+
+## Poznámky
+- Bootstrap admin přístupy slouží jako startovní vrstva projektu a měly by být později nahrazené databázovým managementem uživatelů.
+- V produkci používej silná hesla a unikátní `ADMIN_SESSION_SECRET`.

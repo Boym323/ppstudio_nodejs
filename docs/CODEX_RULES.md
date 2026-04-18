@@ -1,0 +1,13 @@
+Pravidla pro práci v tomto repozitáři:
+- zachovávej čistou, produkční architekturu
+- neprováděj zbytečné refaktory mimo scope úkolu
+- nesahej na nesouvisející soubory
+- u větší změny nejdřív napiš stručný plán
+- preferuj malé, čitelné komponenty
+- business logiku dávej mimo UI komponenty
+- validaci dělej server-side
+- pojmenování drž konzistentní
+- admin část odděluj od public webu
+- lite admin navrhuj jednoduše, bez technických detailů
+- rezervace stav na ručně vypisovaných slotech, ne na pevné pracovní době
+- kód piš tak, aby byl dobře rozšiřitelný pro v2

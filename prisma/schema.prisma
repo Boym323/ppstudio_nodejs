@@ -1,0 +1,290 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum AdminRole {
+  OWNER
+  SALON
+}
+
+enum AvailabilitySlotStatus {
+  DRAFT
+  PUBLISHED
+  CANCELLED
+  ARCHIVED
+}
+
+enum AvailabilitySlotServiceRestrictionMode {
+  ANY
+  SELECTED
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+  NO_SHOW
+}
+
+enum BookingSource {
+  PUBLIC_WEB
+  OWNER_ADMIN
+  SALON_ADMIN
+}
+
+enum BookingActorType {
+  USER
+  CLIENT
+  SYSTEM
+}
+
+enum BookingActionTokenType {
+  CANCEL
+  RESCHEDULE
+}
+
+enum EmailLogStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
+enum EmailLogType {
+  BOOKING_CREATED
+  BOOKING_CONFIRMED
+  BOOKING_CANCELLED
+  BOOKING_RESCHEDULED
+  BOOKING_REMINDER
+  GENERIC
+}
+
+model AdminUser {
+  id                        String                 @id @default(cuid())
+  email                     String                 @unique
+  name                      String
+  role                      AdminRole
+  passwordHash              String?
+  isActive                  Boolean                @default(true)
+  lastLoginAt               DateTime?
+  createdAt                 DateTime               @default(now())
+  updatedAt                 DateTime               @updatedAt
+  createdAvailabilitySlots  AvailabilitySlot[]     @relation("AvailabilitySlotCreatedBy")
+  createdBookings           Booking[]              @relation("BookingCreatedBy")
+  bookingStatusHistoryItems BookingStatusHistory[] @relation("BookingStatusHistoryActor")
+  updatedSettings           Setting[]              @relation("SettingUpdatedBy")
+}
+
+model ServiceCategory {
+  id          String    @id @default(cuid())
+  name        String
+  slug        String    @unique
+  description String?
+  sortOrder   Int       @default(0)
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  services    Service[]
+
+  @@index([isActive, sortOrder])
+}
+
+model Service {
+  id                       String                    @id @default(cuid())
+  categoryId               String
+  name                     String
+  slug                     String                    @unique
+  shortDescription         String?
+  description              String?
+  durationMinutes          Int
+  priceFromCzk             Int?
+  sortOrder                Int                       @default(0)
+  isActive                 Boolean                   @default(true)
+  createdAt                DateTime                  @default(now())
+  updatedAt                DateTime                  @updatedAt
+  category                 ServiceCategory           @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  allowedAvailabilitySlots AvailabilitySlotService[]
+  bookings                 Booking[]
+
+  @@index([categoryId, isActive, sortOrder])
+  @@index([isActive, sortOrder])
+}
+
+model AvailabilitySlot {
+  id                     String                                 @id @default(cuid())
+  startsAt               DateTime
+  endsAt                 DateTime
+  capacity               Int                                    @default(1)
+  status                 AvailabilitySlotStatus                 @default(DRAFT)
+  serviceRestrictionMode AvailabilitySlotServiceRestrictionMode @default(ANY)
+  publicNote             String?
+  internalNote           String?
+  publishedAt            DateTime?
+  cancelledAt            DateTime?
+  createdByUserId        String?
+  createdAt              DateTime                               @default(now())
+  updatedAt              DateTime                               @updatedAt
+  createdByUser          AdminUser?                             @relation("AvailabilitySlotCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  allowedServices        AvailabilitySlotService[]
+  bookings               Booking[]
+
+  @@index([status, startsAt])
+  @@index([serviceRestrictionMode, startsAt])
+  @@index([startsAt, endsAt])
+  @@index([createdByUserId])
+}
+
+model AvailabilitySlotService {
+  slotId    String
+  serviceId String
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  slot      AvailabilitySlot @relation(fields: [slotId], references: [id], onDelete: Cascade)
+  service   Service          @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@id([slotId, serviceId])
+  @@index([serviceId, slotId])
+}
+
+model Client {
+  id           String     @id @default(cuid())
+  fullName     String
+  email        String     @unique
+  phone        String?
+  internalNote String?
+  isActive     Boolean    @default(true)
+  lastBookedAt DateTime?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  bookings     Booking[]
+  emailLogs    EmailLog[]
+
+  @@index([phone])
+  @@index([isActive, fullName])
+}
+
+model Booking {
+  id                       String                 @id @default(cuid())
+  clientId                 String
+  slotId                   String
+  serviceId                String
+  source                   BookingSource          @default(PUBLIC_WEB)
+  status                   BookingStatus          @default(PENDING)
+  clientNameSnapshot       String
+  clientEmailSnapshot      String
+  clientPhoneSnapshot      String?
+  serviceNameSnapshot      String
+  serviceDurationMinutes   Int
+  servicePriceFromCzk      Int?
+  scheduledStartsAt        DateTime
+  scheduledEndsAt          DateTime
+  clientNote               String?
+  internalNote             String?
+  confirmedAt              DateTime?
+  cancelledAt              DateTime?
+  completedAt              DateTime?
+  rescheduledAt            DateTime?
+  rescheduledFromBookingId String?                @unique
+  createdByUserId          String?
+  createdAt                DateTime               @default(now())
+  updatedAt                DateTime               @updatedAt
+  client                   Client                 @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  slot                     AvailabilitySlot       @relation(fields: [slotId], references: [id], onDelete: Restrict)
+  service                  Service                @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  createdByUser            AdminUser?             @relation("BookingCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  rescheduledFromBooking   Booking?               @relation("BookingRescheduleChain", fields: [rescheduledFromBookingId], references: [id], onDelete: SetNull)
+  rescheduledToBooking     Booking?               @relation("BookingRescheduleChain")
+  statusHistory            BookingStatusHistory[]
+  actionTokens             BookingActionToken[]
+  emailLogs                EmailLog[]
+
+  @@unique([slotId, clientId])
+  @@index([slotId, status])
+  @@index([clientId, createdAt])
+  @@index([serviceId, scheduledStartsAt])
+  @@index([status, scheduledStartsAt])
+  @@index([source, createdAt])
+  @@index([createdByUserId])
+  @@index([rescheduledAt])
+}
+
+model BookingStatusHistory {
+  id          String           @id @default(cuid())
+  bookingId   String
+  status      BookingStatus
+  actorType   BookingActorType
+  actorUserId String?
+  reason      String?
+  note        String?
+  metadata    Json?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  booking     Booking          @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  actorUser   AdminUser?       @relation("BookingStatusHistoryActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([bookingId, createdAt])
+  @@index([actorUserId, createdAt])
+}
+
+model BookingActionToken {
+  id         String                 @id @default(cuid())
+  bookingId  String
+  type       BookingActionTokenType
+  tokenHash  String                 @unique
+  expiresAt  DateTime
+  usedAt     DateTime?
+  revokedAt  DateTime?
+  lastSentAt DateTime?
+  createdAt  DateTime               @default(now())
+  updatedAt  DateTime               @updatedAt
+  booking    Booking                @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  emailLogs  EmailLog[]
+
+  @@index([bookingId, type, expiresAt])
+  @@index([expiresAt])
+}
+
+model EmailLog {
+  id                String              @id @default(cuid())
+  bookingId         String?
+  clientId          String?
+  actionTokenId     String?
+  type              EmailLogType
+  status            EmailLogStatus      @default(PENDING)
+  recipientEmail    String
+  subject           String
+  templateKey       String
+  payload           Json?
+  provider          String?
+  providerMessageId String?
+  errorMessage      String?
+  sentAt            DateTime?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  booking           Booking?            @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  client            Client?             @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  actionToken       BookingActionToken? @relation(fields: [actionTokenId], references: [id], onDelete: SetNull)
+
+  @@index([bookingId, createdAt])
+  @@index([clientId, createdAt])
+  @@index([actionTokenId, createdAt])
+  @@index([status, createdAt])
+  @@index([providerMessageId])
+}
+
+model Setting {
+  id              String     @id @default(cuid())
+  key             String     @unique
+  value           Json
+  description     String?
+  updatedByUserId String?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  updatedByUser   AdminUser? @relation("SettingUpdatedBy", fields: [updatedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([updatedByUserId])
+}
