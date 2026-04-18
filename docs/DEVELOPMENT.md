@@ -65,6 +65,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - `EmailLog` je připravený na notifikační workflow a troubleshooting komunikace s klientem.
 - `Setting` je generická tabulka pro serverově spravované konfigurační hodnoty bez nutnosti přidávat nové sloupce.
 - `src/features/booking/lib/booking-public.ts` je veřejný write model pro rezervace a drží i ochranu proti souběžnému obsazení slotu.
+- Veřejný booking flow vrací doménové chybové kódy a doporučený krok formuláře, takže UI může zobrazit přesnější recovery stav bez duplikace serverové logiky.
 
 ## Migrační Strategie
 - Stávající bootstrap migrace rozšiřujeme inkrementálně, ne přepisem historie.
@@ -100,6 +101,8 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Cancel/reschedule tokeny generovat jako náhodné tajné hodnoty, do DB ukládat pouze jejich hash.
 - E-mail a telefon normalizovat na vstupu server-side ještě před zápisem do `Client` a `Booking`.
 - Při veřejné rezervaci zamknout slot v transakci a znovu ověřit kapacitu až těsně před vytvořením `Booking`.
+- Při serializable konfliktu nebo deadlocku booking flow transakci krátce retryne místo okamžitého pádu na generickou chybu.
+- Server-side validace musí znovu ověřit i to, že délka vybrané služby reálně odpovídá délce slotu.
 
 ## Poznámky k releasu
 - Release checklist.

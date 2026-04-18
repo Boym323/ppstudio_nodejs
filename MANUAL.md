@@ -98,6 +98,7 @@ npm run db:migrate
   - vytvoří rezervaci se snapshotem služby a času
   - zapíše audit změny stavu
   - připraví storno token a e-mailový log pro potvrzení
+- Pokud se termín mezitím obsadí, služba přestane být aktivní nebo slot přestane odpovídat délce služby, uživatel dostane konkrétnější chybu místo obecného selhání.
 
 ## Provozní Poznámky
 - `proxy.ts` filtruje nepřihlášené požadavky na `/admin/*`.

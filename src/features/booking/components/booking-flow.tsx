@@ -377,6 +377,7 @@ export function BookingFlow({ catalog }: BookingFlowProps) {
                     name="fullName"
                     value={fullName}
                     onChange={(event) => setFullName(event.target.value)}
+                    aria-invalid={serverState.fieldErrors?.fullName ? true : undefined}
                     className="min-h-12 w-full rounded-2xl border border-black/8 bg-white px-4 py-3 outline-none focus:border-[var(--color-accent)]"
                     autoComplete="name"
                   />
@@ -392,6 +393,7 @@ export function BookingFlow({ catalog }: BookingFlowProps) {
                     type="email"
                     value={email}
                     onChange={(event) => setEmail(event.target.value)}
+                    aria-invalid={serverState.fieldErrors?.email ? true : undefined}
                     className="min-h-12 w-full rounded-2xl border border-black/8 bg-white px-4 py-3 outline-none focus:border-[var(--color-accent)]"
                     autoComplete="email"
                   />
@@ -409,6 +411,7 @@ export function BookingFlow({ catalog }: BookingFlowProps) {
                     type="tel"
                     value={phone}
                     onChange={(event) => setPhone(event.target.value)}
+                    aria-invalid={serverState.fieldErrors?.phone ? true : undefined}
                     className="min-h-12 w-full rounded-2xl border border-black/8 bg-white px-4 py-3 outline-none focus:border-[var(--color-accent)]"
                     autoComplete="tel"
                   />
@@ -426,6 +429,7 @@ export function BookingFlow({ catalog }: BookingFlowProps) {
                     value={clientNote}
                     onChange={(event) => setClientNote(event.target.value)}
                     rows={4}
+                    aria-invalid={serverState.fieldErrors?.clientNote ? true : undefined}
                     className="w-full rounded-2xl border border-black/8 bg-white px-4 py-3 outline-none focus:border-[var(--color-accent)]"
                   />
                   {serverState.fieldErrors?.clientNote ? (
@@ -483,8 +487,15 @@ export function BookingFlow({ catalog }: BookingFlowProps) {
             potvrzovací e-mail se storno odkazem.
           </div>
 
+          {serverState.status === "error" && serverState.suggestedStep ? (
+            <p className="mt-4 text-sm text-[var(--color-muted)]">
+              Doporučený návrat ke kroku {serverState.suggestedStep}, kde je potřeba výběr nebo údaje
+              upravit.
+            </p>
+          ) : null}
+
           <div className="mt-6 flex flex-wrap gap-3">
-            <BookingSubmitButton />
+            <BookingSubmitButton disabled={!canGoToStep4} />
             {currentStep > 1 ? (
               <button
                 type="button"
