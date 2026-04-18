@@ -125,30 +125,13 @@ export const salonAdminNavigation: AdminNavigationItem[] = [
     slug: "overview",
     description: "Rychlý denní přehled bez technického balastu.",
   },
-  {
-    href: "/admin/provoz/rezervace",
-    label: "Dnešní rezervace",
-    slug: "rezervace",
-    description: "Termíny, které je potřeba dnes odbavit nebo zkontrolovat.",
-  },
-  {
-    href: "/admin/provoz/volne-terminy",
-    label: "Termíny",
-    slug: "volne-terminy",
-    description: "Rychlé přidání nového termínu a kontrola toho, co je volné.",
-  },
-  {
-    href: "/admin/provoz/klienti",
-    label: "Klientky",
-    slug: "klienti",
-    description: "Rychlý přístup ke klientkám a jejich předchozím návštěvám.",
-  },
-  {
-    href: "/admin/provoz/sluzby",
-    label: "Nabídka",
-    slug: "sluzby",
-    description: "Přehled služeb bez technického řešení katalogu.",
-  },
+  ...sharedSections.map((section) => ({
+    href: section.salonHref,
+    label: "salonLabel" in section ? section.salonLabel : section.label,
+    slug: section.slug,
+    description:
+      "salonDescription" in section ? section.salonDescription : section.description,
+  })),
 ];
 
 export const ownerOnlyAdminSectionSlugs = new Set<AdminSectionSlug>(

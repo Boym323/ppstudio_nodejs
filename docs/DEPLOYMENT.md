@@ -22,6 +22,7 @@ Postup nasazení aplikace do produkce.
    - login redirect pro `OWNER` a `SALON`
    - dostupnost owner-only sekcí jen pro `OWNER`
    - lite admin navigaci a mobilní čitelnost na `/admin/provoz/*`
+   - owner sekci `/admin/email-logy` po každé změně Prisma schématu nebo e-mailové outbox vrstvy
 12. Ověř booking a email vrstvu:
    - vytvoření testovací rezervace
    - zápis `EmailLog` ve stavu `PENDING` v background režimu nebo `SENT` v log režimu
@@ -81,3 +82,4 @@ sudo /var/www/ppstudio/deploy/deploy.sh
 - Pro menší self-hosted provoz stačí běžný SMTP účet s app passwordem, běžící worker a monitoring `EmailLog` v owner adminu.
 - Pokud SMTP dočasně nefunguje, přepni na `EMAIL_DELIVERY_MODE=log`; booking a storno zůstanou funkční a e-mailové pokusy se dál auditují.
 - Reverzní proxy by měla korektně předávat `x-forwarded-for`, aby submission audit a rate limiting pracovaly smysluplně.
+- I když `npm run build` dnes předem volá `prisma generate`, v release checklistu necháváme explicitní `npm run db:generate`, protože chrání i jiné skripty a ruční servisní zásahy.

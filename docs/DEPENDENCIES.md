@@ -45,3 +45,6 @@ Seznam důležitých knihoven a důvod jejich použití.
 ## Pravidla aktualizací
 - Minimálně 1x měsíčně zkontrolovat bezpečnostní a major update.
 - Před major updatem ověřit kompatibilitu a sepsat dopad.
+
+## Provozní poznámka
+- `npm run dev` a `npm run build` nyní automaticky spouštějí `prisma generate`, aby admin sekce nepoužívaly zastaralý Prisma klient po změnách schématu `EmailLog` a dalších modelů.

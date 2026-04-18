@@ -121,6 +121,8 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
   - Termíny
   - Klientky
   - Nabídka
+  - Kategorie služeb
+- Aby se owner sekce `Email logy` neopírala o ručně zastaralý Prisma klient, `npm run dev` i `npm run build` si nyní předem samy spouštějí `prisma generate`.
 - Ochrana není řešená jen skrytím položek v menu:
   - `proxy.ts` dál blokuje nepřihlášené vstupy
   - server-side guard helpery kontrolují oprávnění každé admin route

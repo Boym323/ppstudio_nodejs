@@ -61,6 +61,9 @@ Formát je inspirovaný Keep a Changelog.
 - Veřejný booking zápis nyní znovu ověřuje slot v transakci a lépe chrání proti dvojité rezervaci při souběžném submitu.
 - Storno odkaz už není slepý placeholder bez skutečné server-side akce.
 - E-mailová komunikace kolem rezervací má auditovatelný stav `SENT` / `FAILED` místo pouhého připraveného payloadu.
+- Admin `Email logy` už se nerozbije na zastaralém generovaném Prisma klientu; `dev` i `build` si předem automaticky generují aktuální client.
+- Lite admin navigace znovu ukazuje všechny sdílené provozní sekce, takže dostupné routy odpovídají menu.
+- Dynamické admin sekce `/admin/[section]`, `/admin/provoz/[section]` a `/admin/email-logy/[emailLogId]` už se renderují v admin shellu i při přímém otevření URL, takže se neresetuje vzhled na veřejný theme background.
 
 ### Removed
 - Výchozí create-next-app homepage.

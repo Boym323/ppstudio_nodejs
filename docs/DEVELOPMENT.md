@@ -53,6 +53,8 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - `src/features/admin/lib/admin-data.ts` je čistá serverová read vrstva pro admin dashboardy a sekce.
 - Lite admin záměrně nepoužívá technický jazyk ani sekce typu nastavení, email logy nebo správa uživatelů.
 - Pro `SALON` držíme kratší menu a na úvodní obrazovce zviditelňujeme dnešní rezervace, nejbližší termíny a rychlé akce pro přidání slotu nebo otevření rezervace.
+- `salonAdminNavigation` se skládá ze stejné centrální definice sdílených sekcí jako owner navigace, aby route guardy, dostupné URL a menu nemohly časem ujet od sebe.
+- Dynamické admin routy jako `/admin/[section]`, `/admin/provoz/[section]` a `/admin/email-logy/[emailLogId]` mají vlastní layouty se stejným `AdminShell`, aby se neztratil admin vizuál ani ochrana při přímém vstupu na detailní URL.
 
 ## Konvence
 - Route soubory držet tenké, byznys logiku přesouvat do `features`, `content` a `lib`.
@@ -110,6 +112,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - `npm run lint`
   - `npm run test`
   - `npm run build`
+- `npm run dev` i `npm run build` nyní před startem automaticky spouští `prisma generate`, takže po změně Prisma schématu nevznikne rozjezd mezi generovaným klientem a runtime admin obrazovkami.
 - Pokud měníš e-mail delivery, ověř i `npm run email:worker:once`.
 - Při změně veřejného webu navíc ručně ověř:
   - mobilní header a CTA na `/`, `/sluzby`, `/kontakt`

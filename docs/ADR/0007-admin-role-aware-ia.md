@@ -30,6 +30,7 @@ Použité principy:
 ### Pozitivní
 - owner a provoz dostávají rozdílné UX, ne jen rozdílná oprávnění
 - technické sekce nejsou v lite adminu ani v navigaci, ani v routingu
+- sdílené provozní sekce se renderují z jedné centrální definice, takže menu zůstává konzistentní s povolenými route
 - rozšíření o formuláře nebo akce lze doplňovat po sekcích bez přestavby IA
 - server drží finální autoritu nad tím, kam která role smí
 
