@@ -28,15 +28,19 @@
 
 html {
   scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
   min-height: 100%;
   background:
-    radial-gradient(circle at top, rgba(219, 194, 165, 0.18), transparent 28%),
-    linear-gradient(180deg, #fbf7f2 0%, #f6f1eb 100%);
+    radial-gradient(circle at top, rgba(219, 194, 165, 0.14), transparent 24%),
+    linear-gradient(180deg, #fbf7f2 0%, #f7f2ec 100%);
   color: var(--color-foreground);
   font-family: var(--font-sans), sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+  text-rendering: optimizeLegibility;
 }
 
 a,
@@ -56,6 +60,20 @@ select {
   background: rgba(190, 160, 120, 0.32);
 }
 
+.font-display,
+h1,
+h2,
+h3,
+h4 {
+  text-wrap: balance;
+}
+
 .font-display {
   font-family: var(--font-display), serif;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+  height: auto;
 }

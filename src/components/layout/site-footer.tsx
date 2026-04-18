@@ -8,12 +8,12 @@ import { Container } from '../ui/container';
 export function SiteFooter() {
   return (
     <footer className="border-t border-black/5 bg-[var(--color-surface)]">
-      <Container className="grid gap-10 py-10 sm:py-12 lg:grid-cols-[1fr_auto_auto] lg:items-start lg:justify-between">
+      <Container className="grid gap-10 py-10 sm:py-12 lg:grid-cols-[1.1fr_auto_auto] lg:items-start lg:justify-between">
         <div className="max-w-md">
-          <p className="font-display text-2xl tracking-[0.16em] text-[var(--color-foreground)]">
+          <p className="font-display text-[1.55rem] tracking-[0.14em] text-[var(--color-foreground)]">
             {siteConfig.name}
           </p>
-          <p className="mt-4 text-sm leading-6 text-[var(--color-muted)]">
+          <p className="mt-4 max-w-md text-sm leading-7 text-[var(--color-muted)]">
             Luxusní a čistý prezentační web pro kosmetický salon se silnou rezervací, důvěryhodným obsahem a jasnými provozními informacemi.
           </p>
         </div>

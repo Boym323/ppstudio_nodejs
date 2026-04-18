@@ -14,16 +14,21 @@ export function SectionHeading({
   align = "left",
 }: SectionHeadingProps) {
   return (
-    <div className={cn("space-y-4", align === "center" && "text-center")}>
-      <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[var(--color-accent)]">
+    <div
+      className={cn(
+        "space-y-3",
+        align === "center" && "mx-auto max-w-3xl text-center",
+      )}
+    >
+      <p className="text-[11px] font-semibold uppercase tracking-[0.32em] text-[var(--color-accent)]">
         {eyebrow}
       </p>
-      <div className="space-y-3">
-        <h2 className="font-display text-4xl tracking-tight text-[var(--color-foreground)] sm:text-5xl">
+      <div className="space-y-4">
+        <h2 className="font-display text-3xl leading-[1.06] tracking-tight text-[var(--color-foreground)] sm:text-4xl lg:text-5xl">
           {title}
         </h2>
         {description ? (
-          <p className="max-w-2xl text-base leading-7 text-[var(--color-muted)]">
+          <p className="max-w-2xl text-[15px] leading-7 text-[var(--color-muted)] sm:text-base">
             {description}
           </p>
         ) : null}

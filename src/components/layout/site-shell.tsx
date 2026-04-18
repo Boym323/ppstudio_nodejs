@@ -8,7 +8,7 @@ type SiteShellProps = {
 
 export function SiteShell({ children, variant = "public" }: SiteShellProps) {
   return (
-    <div className="flex min-h-screen flex-col bg-[var(--color-background)]">
+    <div className="flex min-h-screen flex-col bg-[var(--color-background)] overflow-x-clip">
       <SiteHeader variant={variant} />
       <main className="flex-1">{children}</main>
       <SiteFooter />
