@@ -18,13 +18,29 @@ const sansFont = Manrope({
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.url),
+  applicationName: siteConfig.name,
   title: {
     default: `${siteConfig.name} | ${siteConfig.title}`,
     template: `%s | ${siteConfig.name}`,
   },
   description: siteConfig.description,
+  keywords: [
+    "kosmetický salon",
+    "luxusní kosmetika",
+    "péče o pleť",
+    "rezervace kosmetiky",
+    siteConfig.name,
+  ],
+  category: "beauty",
+  authors: [{ name: siteConfig.name }],
+  creator: siteConfig.name,
+  publisher: siteConfig.name,
   alternates: {
     canonical: "/",
+  },
+  robots: {
+    index: true,
+    follow: true,
   },
   openGraph: {
     title: `${siteConfig.name} | ${siteConfig.title}`,
@@ -33,6 +49,11 @@ export const metadata: Metadata = {
     siteName: siteConfig.name,
     locale: siteConfig.locale,
     type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `${siteConfig.name} | ${siteConfig.title}`,
+    description: siteConfig.description,
   },
 };
 

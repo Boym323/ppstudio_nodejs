@@ -21,6 +21,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Další vnitřní route group `(protected)` uvnitř adminu chrání sekce vyžadující session.
 - Veřejné booking flow používá server-loaded page + klientský wizard + server action pro finální zápis.
 - `/rezervace` používá `connection()` a renderuje se request-time, aby ručně publikované sloty nebyly zafixované do build outputu.
+- `src/app/robots.ts` a `src/app/sitemap.ts` používají metadata route API v App Routeru.
 
 ## Veřejný Web
 - Každá veřejná stránka má vlastní route a metadata.
@@ -78,9 +79,14 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - `EmailLog` je připravený na notifikační workflow a troubleshooting komunikace s klientem.
 - `Setting` je generická tabulka pro serverově spravované konfigurační hodnoty bez nutnosti přidávat nové sloupce.
 - `src/features/booking/lib/booking-public.ts` je veřejný write model pro rezervace a drží i ochranu proti souběžnému obsazení slotu.
+- `src/features/booking/lib/booking-cancellation.ts` drží veřejné storno workflow nad hashovaným action tokenem.
 - Veřejný booking flow vrací doménové chybové kódy a doporučený krok formuláře, takže UI může zobrazit přesnější recovery stav bez duplikace serverové logiky.
 - Veřejný booking submit má lehký rate limit podle IP a e-mailu a zapisuje auditní log pokusů, blokací a selhání pro provozní troubleshooting.
 - Krok 2 veřejného booking flow filtruje sloty i podle délky služby, aby se krátké sloty neukazovaly až v posledním kroku.
+- `src/lib/email/*` je samostatná infrastrukturní vrstva:
+  - provider řeší `log` vs `smtp`
+  - templates renderují obsah z `EmailLog.templateKey`
+  - delivery aktualizuje `EmailLog.status`, `provider`, `providerMessageId` a `errorMessage`
 
 ## Migrační Strategie
 - Stávající bootstrap migrace rozšiřujeme inkrementálně, ne přepisem historie.
@@ -99,6 +105,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 ## Testování
 - Minimální kontrola při každé změně:
   - `npm run lint`
+  - `npm run test`
   - `npm run build`
 - Při změně veřejného webu navíc ručně ověř:
   - mobilní header a CTA na `/`, `/sluzby`, `/kontakt`
@@ -119,6 +126,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Při serializable konfliktu nebo deadlocku booking flow transakci krátce retryne místo okamžitého pádu na generickou chybu.
 - Server-side validace musí znovu ověřit i to, že délka vybrané služby reálně odpovídá délce slotu.
 - Pro anti-spam ochranu zapisuj submission logy i pro blokované pokusy, aby šlo dělat provozní audit bez zbytečného přidávání další infrastruktury.
+- E-mailové šablony drž jako čisté funkce bez přímé DB závislosti, aby šly jednoduše unit testovat.
 
 ## Poznámky k releasu
 - Release checklist.

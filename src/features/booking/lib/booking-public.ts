@@ -8,9 +8,13 @@ import {
   EmailLogType,
   Prisma,
 } from "@prisma/client";
-import { createHash, randomBytes } from "node:crypto";
 
-import { env } from "@/config/env";
+import {
+  buildBookingActionToken,
+  buildBookingCancellationUrl,
+} from "@/features/booking/lib/booking-action-tokens";
+import { formatBookingDateLabel } from "@/features/booking/lib/booking-format";
+import { deliverEmailLog } from "@/lib/email/delivery";
 import { prisma } from "@/lib/prisma";
 
 const ACTIVE_BOOKING_STATUSES = [BookingStatus.PENDING, BookingStatus.CONFIRMED] as const;
@@ -67,6 +71,7 @@ export type CreatePublicBookingResult = {
   scheduledAtLabel: string;
   clientName: string;
   clientEmail: string;
+  emailDeliveryStatus: "sent" | "failed" | "skipped";
 };
 
 type LockedSlotRow = {
@@ -120,35 +125,6 @@ export function isValidNormalizedClientPhone(phone?: string) {
   }
 
   return /^\+?\d{8,15}$/.test(phone);
-}
-
-function buildCancellationToken() {
-  const rawToken = randomBytes(32).toString("base64url");
-  const tokenHash = createHash("sha256").update(rawToken).digest("hex");
-
-  return { rawToken, tokenHash };
-}
-
-function buildCancellationUrl(rawToken: string) {
-  return `${env.NEXT_PUBLIC_APP_URL}/rezervace/storno/${rawToken}`;
-}
-
-function formatBookingDateLabel(startsAt: Date, endsAt: Date) {
-  const dateFormatter = new Intl.DateTimeFormat("cs-CZ", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-    timeZone: "Europe/Prague",
-  });
-
-  const timeFormatter = new Intl.DateTimeFormat("cs-CZ", {
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone: "Europe/Prague",
-  });
-
-  return `${dateFormatter.format(startsAt)} od ${timeFormatter.format(startsAt)} do ${timeFormatter.format(endsAt)}`;
 }
 
 function doesSlotSupportServiceDuration(startsAt: Date, endsAt: Date, serviceDurationMinutes: number) {
@@ -327,7 +303,7 @@ export async function createPublicBooking(
 
   for (let attempt = 1; attempt <= MAX_BOOKING_TRANSACTION_RETRIES; attempt += 1) {
     try {
-      return await prisma.$transaction(
+      const transactionResult = await prisma.$transaction(
         async (tx) => {
           const now = new Date();
           const service = await tx.service.findFirst({
@@ -513,8 +489,8 @@ export async function createPublicBooking(
             },
           });
 
-          const cancellationToken = buildCancellationToken();
-          const cancellationUrl = buildCancellationUrl(cancellationToken.rawToken);
+          const cancellationToken = buildBookingActionToken();
+          const cancellationUrl = buildBookingCancellationUrl(cancellationToken.rawToken);
           const expiresAt = new Date(
             now.getTime() + CANCELLATION_TOKEN_TTL_DAYS * 24 * 60 * 60 * 1000,
           );
@@ -531,7 +507,7 @@ export async function createPublicBooking(
             },
           });
 
-          await tx.emailLog.create({
+          const emailLog = await tx.emailLog.create({
             data: {
               bookingId: booking.id,
               clientId: client.id,
@@ -549,9 +525,13 @@ export async function createPublicBooking(
                 cancellationUrl,
               },
             },
+            select: {
+              id: true,
+            },
           });
 
           return {
+            emailLogId: emailLog.id,
             bookingId: booking.id,
             referenceCode: booking.id.slice(-8).toUpperCase(),
             serviceName: service.name,
@@ -567,6 +547,21 @@ export async function createPublicBooking(
           isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
         },
       );
+
+      const emailDelivery = await deliverEmailLog(transactionResult.emailLogId);
+      const bookingResult = {
+        bookingId: transactionResult.bookingId,
+        referenceCode: transactionResult.referenceCode,
+        serviceName: transactionResult.serviceName,
+        scheduledAtLabel: transactionResult.scheduledAtLabel,
+        clientName: transactionResult.clientName,
+        clientEmail: transactionResult.clientEmail,
+      };
+
+      return {
+        ...bookingResult,
+        emailDeliveryStatus: emailDelivery.status,
+      };
     } catch (error) {
       if (error instanceof PublicBookingError) {
         throw error;

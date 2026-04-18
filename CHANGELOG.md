@@ -26,6 +26,11 @@ Formát je inspirovaný Keep a Changelog.
 - Role-aware admin IA s oddělenou navigací a routami pro full admin (`/admin/*`) a lite admin (`/admin/provoz/*`).
 - Přehledové admin sekce nad reálnými Prisma daty pro rezervace, sloty, klienty, služby, kategorie, uživatele, email logy a nastavení.
 - Serverové guard helpery pro admin area a sekce, včetně role-based redirectů a `notFound` ochrany neplatných cest.
+- Produkční email delivery vrstva s režimy `log` a `smtp`, renderováním šablon a doručováním nad `EmailLog`.
+- Skutečné veřejné storno rezervace přes tokenizovaný odkaz, potvrzovací krok a audit změny stavu.
+- Metadata routes pro `robots.txt` a `sitemap.xml`.
+- Booking error boundary, loading fallback a základní unit testy pro e-mailové šablony.
+- ADR 0008 pro rozhodnutí kolem e-mailů a veřejného storna.
 
 ### Changed
 - Výchozí Next.js demo bylo nahrazeno čistým škálovatelným scaffoldingem pro produkční vývoj.
@@ -41,17 +46,17 @@ Formát je inspirovaný Keep a Changelog.
 - Admin UI už není jen dvojice placeholder dashboardů; `OWNER` a `SALON` mají odlišné rozhraní, navigaci a úroveň detailu.
 - Přesměrování po loginu i při nedostatečném oprávnění se teď řídí centrální helper funkcí podle role.
 - `SALON` rozhraní má kratší menu, méně technický jazyk a rychlé akce pro přidání termínu a práci s rezervací.
+- Rezervační flow už po úspěšném commitu rovnou zpracovává potvrzovací e-mail a ve UI rozlišuje, zda delivery proběhla nebo selhala.
+- Placeholder storno route byla nahrazená produkčním flow nad `BookingActionToken`.
+- Root metadata byla rozšířená o základní SEO signály pro nasazení v1.
 
 ### Fixed
 - Návrh datové vrstvy už nespoléhá na zjednodušený booking request model bez auditní historie a bez bezpečných tokenů.
 - Datový model lépe chrání proti náhoditému duplicitnímu bookingu stejného klienta do stejného slotu.
 - Veřejný web už není omezený na technický placeholder homepage bez struktury pro reálný salonní obsah.
 - Veřejný booking zápis nyní znovu ověřuje slot v transakci a lépe chrání proti dvojité rezervaci při souběžném submitu.
+- Storno odkaz už není slepý placeholder bez skutečné server-side akce.
+- E-mailová komunikace kolem rezervací má auditovatelný stav `SENT` / `FAILED` místo pouhého připraveného payloadu.
 
 ### Removed
 - Výchozí create-next-app homepage.
-# Changelog
-
-## Unreleased
-- Přidán importní script pro kategorie a služby přes JSON upsert podle `slug`.
-- Doplněn dokumentovaný postup pro import dat ze starého webu.

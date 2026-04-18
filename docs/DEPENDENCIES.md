@@ -14,6 +14,7 @@ Seznam důležitých knihoven a důvod jejich použití.
 - `prisma`: schema, migrace a generování klienta pro PostgreSQL.
 - `zod`: validace env a serverových vstupů.
 - `jose`: podpis a verifikace admin session.
+- `nodemailer`: SMTP transport pro potvrzení rezervace a storno e-maily.
 - `dotenv`: načtení `.env` pro Prisma CLI konfiguraci.
 - vestavěný Node.js `crypto`: generování a hashování action tokenů pro booking workflow bez další závislosti.
 - Booking submission audit využívá stejnou Prisma vrstvu a nezavádí další knihovnu pro rate limiting ani logování.
@@ -22,6 +23,7 @@ Seznam důležitých knihoven a důvod jejich použití.
 - `typescript`: statická typová kontrola.
 - `eslint`: linting.
 - `eslint-config-next`: pravidla lintu pro Next.js.
+- `tsx`: lehký TypeScript runtime pro Node test runner.
 
 ## Stylování
 - `tailwindcss`: utility-first CSS framework.
@@ -36,6 +38,7 @@ Seznam důležitých knihoven a důvod jejich použití.
 ## Poznámky k datové vrstvě
 - Prisma schema v1 používá enumy pro role, stavy slotů, stavy rezervací a e-mailové workflow.
 - Pro bezpečné storno a přesun termínu není potřeba další knihovna; token workflow je navržený na úrovni DB přes hash + expiraci.
+- E-mailové šablony i delivery vrstva zůstávají jednoduché a nepřidávají frontovací nebo queue závislosti, což drží self-hosted nasazení lehké.
 - `Json` pole ve `Setting`, `BookingStatusHistory` a `EmailLog` ponechávají prostor pro evoluci bez destruktivních migrací.
 - Admin role-aware dashboardy používají jen existující Next.js, Prisma a React primitives; nepřidávali jsme další admin UI knihovnu ani CMS vrstvu.
 

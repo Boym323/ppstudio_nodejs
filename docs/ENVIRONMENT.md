@@ -18,9 +18,20 @@ Dokumentace proměnných prostředí pro lokální vývoj i produkci.
 - `ADMIN_OWNER_PASSWORD`: bootstrap heslo pro owner admin účet.
 - `ADMIN_STAFF_EMAIL`: bootstrap email pro lite admin účet (role `SALON`).
 - `ADMIN_STAFF_PASSWORD`: bootstrap heslo pro lite admin účet (role `SALON`).
+- `EMAIL_DELIVERY_MODE`: režim e-mailové delivery (`log`, `smtp`).
+- `SMTP_HOST`: SMTP hostname pro produkční odesílání.
+- `SMTP_PORT`: SMTP port.
+- `SMTP_SECURE`: `true` pro implicitní TLS, jinak `false`.
+- `SMTP_USER`: SMTP login.
+- `SMTP_PASSWORD`: SMTP heslo nebo app password.
+- `SMTP_FROM_EMAIL`: adresa odesílatele.
+- `SMTP_FROM_NAME`: jméno odesílatele zobrazované klientovi.
+- `SMTP_REPLY_TO`: volitelná reply-to adresa.
 
 ## Poznámky
 - Bootstrap admin přístupy slouží jako startovní vrstva projektu a měly by být později nahrazené databázovým managementem uživatelů.
 - V produkci používej silná hesla a unikátní `ADMIN_SESSION_SECRET`.
 - Veřejný obsah salonu není řízený env proměnnými; texty a placeholdery jsou centralizované v `src/content/public-site.ts`.
 - Bootstrap přístupy se zobrazují i v owner sekci `Uživatelé / role`, aby šlo při provozu snadno dohledat aktivní zdroje přístupu.
+- Pokud je `EMAIL_DELIVERY_MODE=smtp`, jsou `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD` a `SMTP_FROM_EMAIL` povinné už při startu aplikace.
+- `EMAIL_DELIVERY_MODE=log` je vhodný pro lokální vývoj, testovací rollout a safe-mode při produkčním incidentu s SMTP.

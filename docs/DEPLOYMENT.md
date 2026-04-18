@@ -4,7 +4,7 @@ Postup nasazení aplikace do produkce.
 
 ## Release checklist
 1. `npm ci`
-2. Ověř správné produkční env proměnné (`DATABASE_URL`, `ADMIN_SESSION_SECRET`, admin bootstrap účty)
+2. Ověř správné produkční env proměnné (`DATABASE_URL`, `ADMIN_SESSION_SECRET`, admin bootstrap účty, email delivery)
 3. Zálohuj databázi, pokud release obsahuje novou Prisma migraci.
 4. `npm run db:generate`
 5. `npm run db:migrate`
@@ -22,6 +22,11 @@ Postup nasazení aplikace do produkce.
    - login redirect pro `OWNER` a `SALON`
    - dostupnost owner-only sekcí jen pro `OWNER`
    - lite admin navigaci a mobilní čitelnost na `/admin/provoz/*`
+12. Ověř booking a email vrstvu:
+   - vytvoření testovací rezervace
+   - doručení potvrzovacího e-mailu nebo korektní `EmailLog` v `FAILED`
+   - funkční storno odkaz
+   - potvrzovací storno e-mail nebo korektní `EmailLog` v `FAILED`
 
 ## Nasazení
 1. Pull nové verze na server.
@@ -30,6 +35,7 @@ Postup nasazení aplikace do produkce.
 4. Aplikace databázových změn (`npm run db:migrate`).
 5. Build (`npm run build`).
 6. Restart procesu aplikace.
+7. Pokud běžíš v self-hosted režimu bez připraveného SMTP, nech dočasně `EMAIL_DELIVERY_MODE=log`, ať booking flow neblokuje start produkce.
 
 ## Poznámky k DB migracím
 - Migrace `20260418184500_schema_v1_booking_core` převádí legacy `BookingRequest` na `Booking` a backfilluje nové tabulky.
@@ -45,3 +51,9 @@ Postup nasazení aplikace do produkce.
 4. U datově transformačních migrací rollback neprováděj naslepo; nejdřív ověř, zda starší aplikace umí pracovat s novým schématem.
 5. Restart procesu.
 6. Ověření funkčnosti.
+
+## Self-hosted poznámky
+- Aplikace nevyžaduje externí queue; e-maily se ve v1 odesílají synchronně po commitu booking/storno transakce.
+- Pro menší self-hosted provoz stačí běžný SMTP účet s app passwordem a monitoring `EmailLog` v owner adminu.
+- Pokud SMTP dočasně nefunguje, přepni na `EMAIL_DELIVERY_MODE=log`; booking a storno zůstanou funkční a e-mailové pokusy se dál auditují.
+- Reverzní proxy by měla korektně předávat `x-forwarded-for`, aby submission audit a rate limiting pracovaly smysluplně.

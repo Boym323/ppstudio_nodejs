@@ -20,3 +20,5 @@ Evidence produkčních incidentů a jejich řešení.
 - Chybný role redirect nebo neočekávaný přístup `SALON` do owner-only sekcí.
 - Veřejné kontaktní údaje nebo ceny ponechané v placeholder režimu po nasazení.
 - Nefunkční CTA odkazy mezi veřejným webem a rezervační částí.
+- Opakované `EmailLog.status = FAILED` po nasazení nové SMTP konfigurace.
+- Nefunkční storno odkazy kvůli špatnému `NEXT_PUBLIC_APP_URL` nebo proxy přepisu hosta.

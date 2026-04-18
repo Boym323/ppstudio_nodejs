@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "test": "node --import tsx --test src/**/*.test.ts",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:push": "prisma db push",
@@ -19,6 +20,7 @@
     "clsx": "^2.1.1",
     "jose": "^6.2.2",
     "next": "16.2.4",
+    "nodemailer": "^8.0.5",
     "pg": "^8.20.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
@@ -28,6 +30,7 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
+    "@types/nodemailer": "^8.0.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "dotenv": "^17.4.2",
@@ -35,6 +38,7 @@
     "eslint-config-next": "16.2.4",
     "prisma": "^7.7.0",
     "tailwindcss": "^4",
+    "tsx": "^4.21.0",
     "typescript": "^5"
   }
 }

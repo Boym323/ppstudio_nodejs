@@ -142,9 +142,15 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
   - vytvoří rezervaci se snapshotem služby a času
   - zapíše audit změny stavu
   - připraví storno token a e-mailový log pro potvrzení
+  - po commitu odešle potvrzovací e-mail v režimu `log` nebo `smtp`
 - Pokud se termín mezitím obsadí, služba přestane být aktivní nebo slot přestane odpovídat délce služby, uživatel dostane konkrétnější chybu místo obecného selhání.
 - Veřejný submit je lehce rate-limitený podle IP a e-mailu; opakované pokusy v krátkém čase skončí blokací s user-friendly hláškou.
 - Krok 2 už skrývá i sloty, které jsou pro vybranou službu příliš krátké.
+- `/rezervace/storno/[token]` je produkční self-service storno stránka:
+  - ověří hash tokenu server-side
+  - zobrazí bezpečný potvrzovací krok
+  - po potvrzení zruší rezervaci a zapíše audit
+  - odešle storno potvrzení a výsledek uloží do `EmailLog`
 
 ## Provozní Poznámky
 - `proxy.ts` filtruje nepřihlášené požadavky na `/admin/*`.
@@ -152,3 +158,5 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
 - Prisma klient používá singleton pattern pro vývoj i produkci.
 - Databáze blokuje překrývající se aktivní sloty přes PostgreSQL exclusion constraint.
 - Po každé změně Prisma schematu je potřeba spustit alespoň `npm run db:generate`; při změně struktury DB i `npm run db:migrate`.
+- Technické SEO minimum je nyní pokryté přes globální metadata, `robots.ts` a `sitemap.ts`.
+- Rezervační část má vlastní error boundary a loading fallback, takže výpadek booking vrstvy nepoškodí celý web.
