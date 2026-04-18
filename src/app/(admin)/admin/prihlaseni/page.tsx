@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 
+import { getAdminHomeHref } from "@/config/navigation";
 import { AdminLoginForm } from "@/features/admin/components/admin-login-form";
 import { getSession } from "@/lib/auth/session";
 
@@ -18,7 +19,7 @@ export default async function AdminLoginPage({ searchParams }: LoginPageProps) {
   const session = await getSession();
 
   if (session) {
-    redirect(session.role === "OWNER" ? "/admin" : "/admin/provoz");
+    redirect(getAdminHomeHref(session.role));
   }
 
   const params = await searchParams;

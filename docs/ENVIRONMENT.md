@@ -23,3 +23,4 @@ Dokumentace proměnných prostředí pro lokální vývoj i produkci.
 - Bootstrap admin přístupy slouží jako startovní vrstva projektu a měly by být později nahrazené databázovým managementem uživatelů.
 - V produkci používej silná hesla a unikátní `ADMIN_SESSION_SECRET`.
 - Veřejný obsah salonu není řízený env proměnnými; texty a placeholdery jsou centralizované v `src/content/public-site.ts`.
+- Bootstrap přístupy se zobrazují i v owner sekci `Uživatelé / role`, aby šlo při provozu snadno dohledat aktivní zdroje přístupu.

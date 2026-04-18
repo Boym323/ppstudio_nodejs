@@ -37,6 +37,17 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - `src/proxy.ts` řeší rychlé odfiltrování nepřihlášených návštěv adminu.
 - Role-based autorizace se dokončuje uvnitř serverových helperů v `src/lib/auth/session.ts`.
 - Lite admin účet se v aplikaci hlásí přes bootstrap env proměnné, ale nese databázovou roli `SALON`.
+- Pro role-based admin IA používáme dvě serverově chráněné oblasti:
+  - `OWNER` na `/admin/*`
+  - `SALON` na `/admin/provoz/*`
+- Neplatná nebo zakázaná admin sekce se neřeší jen skrytím v menu; routa se validuje server-side přes `src/features/admin/lib/admin-guards.ts`.
+
+## Admin Informační Architektura
+- `src/config/navigation.ts` drží centrální definici admin sekcí, slugů a navigace pro obě role.
+- `src/features/admin/components/admin-sidebar-nav.tsx` je klientská navigace s aktivním stavem podle pathname.
+- `src/features/admin/components/admin-overview-page.tsx` a `admin-section-page.tsx` renderují role-aware read model nad Prisma daty.
+- `src/features/admin/lib/admin-data.ts` je čistá serverová read vrstva pro admin dashboardy a sekce.
+- Lite admin záměrně nepoužívá technický jazyk ani sekce typu nastavení, email logy nebo správa uživatelů.
 
 ## Konvence
 - Route soubory držet tenké, byznys logiku přesouvat do `features`, `content` a `lib`.
@@ -58,6 +69,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - `AvailabilitySlot` je navržený jako ručně publikovatelný termín s kapacitou a stavem zveřejnění.
 - `AvailabilitySlot` má explicitní `serviceRestrictionMode`, takže admin rozhraní pozná rozdíl mezi slotem bez omezení a slotem, který čeká na výběr služeb.
 - Vazba `AvailabilitySlotService` umožňuje omezit slot jen na vybrané služby bez zabetonování schématu na jednu službu na slot.
+- Import kategorií a služeb je řešený jako JSON upsert přes `scripts/import-services.mjs`; identity záznamů drží `slug`.
 - `Booking` ukládá snapshot jména služby, ceny a času, takže historické rezervace zůstanou konzistentní i po úpravě katalogu.
 - `Booking` drží i reschedule chain přes self-relation, což zjednodušuje reporting i provozní dohled nad přesunutými termíny.
 - `BookingStatusHistory` drží auditní stopu změn stavu včetně aktéra a strukturovaných metadat.

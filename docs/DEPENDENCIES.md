@@ -37,6 +37,7 @@ Seznam důležitých knihoven a důvod jejich použití.
 - Prisma schema v1 používá enumy pro role, stavy slotů, stavy rezervací a e-mailové workflow.
 - Pro bezpečné storno a přesun termínu není potřeba další knihovna; token workflow je navržený na úrovni DB přes hash + expiraci.
 - `Json` pole ve `Setting`, `BookingStatusHistory` a `EmailLog` ponechávají prostor pro evoluci bez destruktivních migrací.
+- Admin role-aware dashboardy používají jen existující Next.js, Prisma a React primitives; nepřidávali jsme další admin UI knihovnu ani CMS vrstvu.
 
 ## Pravidla aktualizací
 - Minimálně 1x měsíčně zkontrolovat bezpečnostní a major update.

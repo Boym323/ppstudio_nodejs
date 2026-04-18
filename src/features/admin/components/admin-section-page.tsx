@@ -1,0 +1,129 @@
+import { type AdminArea, type AdminSectionSlug } from "@/config/navigation";
+
+import { getAdminSectionData, getAdminSectionTitle } from "../lib/admin-data";
+import { AdminKeyValueList, AdminPageShell, AdminPanel } from "./admin-page-shell";
+
+type AdminSectionPageProps = {
+  area: AdminArea;
+  section: Exclude<AdminSectionSlug, "overview">;
+};
+
+export async function AdminSectionPage({
+  area,
+  section,
+}: AdminSectionPageProps) {
+  const data = await getAdminSectionData(section, area);
+  const title = getAdminSectionTitle(section);
+
+  return (
+    <AdminPageShell
+      eyebrow={area === "owner" ? "Full Admin Sekce" : "Lite Admin Sekce"}
+      title={title}
+      description={getSectionDescription(section, area)}
+      stats={"stats" in data ? data.stats : undefined}
+      compact={area === "salon"}
+    >
+      <AdminPanel
+        title={getPanelTitle(section, area)}
+        description={getPanelDescription(section, area)}
+        compact={area === "salon"}
+      >
+        <AdminKeyValueList
+          items={"items" in data ? data.items : []}
+          emptyTitle={`Sekce ${title.toLowerCase()} je zatím prázdná.`}
+          emptyDescription={getEmptyDescription(section, area)}
+        />
+      </AdminPanel>
+    </AdminPageShell>
+  );
+}
+
+function getSectionDescription(section: Exclude<AdminSectionSlug, "overview">, area: AdminArea) {
+  const owner = area === "owner";
+
+  switch (section) {
+    case "rezervace":
+      return owner
+        ? "Plný přehled nad stavem rezervací, zdroji bookingu a provozní prioritou dalších kroků."
+        : "Rychlý provozní seznam rezervací pro potvrzení, telefonát nebo obsluhu klientky.";
+    case "volne-terminy":
+      return owner
+        ? "Ruční správa publikovaných slotů a kontrola kapacity pro veřejné rezervační flow."
+        : "Jednoduchý přehled volných termínů bez technických detailů navíc.";
+    case "klienti":
+      return owner
+        ? "Historie klientely, aktivita a kontext pro vztah se salonem i reporting."
+        : "Praktický adresář klientek pro běžný provoz, komunikaci a orientaci v historii.";
+    case "sluzby":
+      return owner
+        ? "Katalog služeb pro web, ceník i booking logiku včetně cen, délek a publikace."
+        : "Základní orientace v nabídce služeb, aby provoz rychle věděl délku a cenu.";
+    case "kategorie-sluzeb":
+      return owner
+        ? "Struktura nabídky, která určuje přehlednost katalogu i veřejného webu."
+        : "Lehký přehled kategorií, ve kterých se provoz může snadno orientovat.";
+    case "uzivatele":
+      return "Sekce pouze pro majitele: správa přístupů, rolí a přechodných bootstrap účtů.";
+    case "email-logy":
+      return "Sekce pouze pro majitele: audit e-mailové komunikace, selhání a provozních incidentů.";
+    case "nastaveni":
+      return "Sekce pouze pro majitele: serverově spravované hodnoty a provozní konfigurace aplikace.";
+  }
+}
+
+function getPanelTitle(section: Exclude<AdminSectionSlug, "overview">, area: AdminArea) {
+  if (area === "salon") {
+    switch (section) {
+      case "rezervace":
+        return "Termíny k obsluze";
+      case "volne-terminy":
+        return "Připravené sloty";
+      case "klienti":
+        return "Klientská karta";
+      case "sluzby":
+        return "Aktuální nabídka";
+      case "kategorie-sluzeb":
+        return "Rozdělení služeb";
+      case "uzivatele":
+      case "email-logy":
+      case "nastaveni":
+        return "Detail sekce";
+    }
+  }
+
+  return "Přehled dat";
+}
+
+function getPanelDescription(section: Exclude<AdminSectionSlug, "overview">, area: AdminArea) {
+  if (area === "salon") {
+    return "Záměrně jednoduché UI pro rychlé čtení na mobilu i za provozu.";
+  }
+
+  switch (section) {
+    case "uzivatele":
+      return "Bootstrap přístupy jsou vidět vedle databázových účtů, aby vlastník neztratil kontrolu nad tím, kdo se do systému dostane.";
+    case "email-logy":
+      return "Pomáhá odhalit problémy v potvrzovacích e-mailech dřív, než je pocítí klientka.";
+    case "nastaveni":
+      return "Read model pro serverová nastavení. Změnové formuláře lze doplnit v navazující iteraci bez přestavby struktury.";
+    default:
+      return "Sekce je navržená pro přehled, rychlost a čistý provozní kontext bez generického CMS chaosu.";
+  }
+}
+
+function getEmptyDescription(section: Exclude<AdminSectionSlug, "overview">, area: AdminArea) {
+  if (area === "salon") {
+    return "Až budou v databázi reálná provozní data, zobrazí se tady bez dalších úprav navigace.";
+  }
+
+  switch (section) {
+    case "uzivatele":
+      return "Pokud ještě neexistují databázové admin účty, stále tu zůstávají viditelné bootstrap přístupy z env.";
+    case "email-logy":
+      return "Email logy se založí při navázání nebo odeslání notifikačního workflow.";
+    case "nastaveni":
+      return "Jakmile aplikace začne ukládat serverově spravované hodnoty do tabulky Setting, objeví se zde.";
+    default:
+      return "Sekce je připravená na reálná data bez nutnosti přegenerovávat demo obsah.";
+  }
+}

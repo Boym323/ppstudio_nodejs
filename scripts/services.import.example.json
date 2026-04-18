@@ -1,0 +1,31 @@
+{
+  "categories": [
+    {
+      "name": "Péče o pleť",
+      "slug": "pece-o-plet",
+      "description": "Základní kosmetické ošetření pleti.",
+      "sortOrder": 10,
+      "isActive": true
+    },
+    {
+      "name": "Prémiové rituály",
+      "slug": "premiove-ritualy",
+      "description": "Delší a luxusnější procedury.",
+      "sortOrder": 20,
+      "isActive": true
+    }
+  ],
+  "services": [
+    {
+      "name": "Hloubkové ošetření pleti",
+      "slug": "hloubkove-osetreni-pleti",
+      "categorySlug": "pece-o-plet",
+      "shortDescription": "Šetrné ošetření pro čistou a zklidněnou pleť.",
+      "description": "Doplň sem text ze starého webu nebo finální popis služby.",
+      "durationMinutes": 75,
+      "priceFromCzk": 1690,
+      "sortOrder": 10,
+      "isActive": true
+    }
+  ]
+}

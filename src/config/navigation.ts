@@ -1,19 +1,149 @@
+import { AdminRole } from "@prisma/client";
+
 export const mainNavigation = [
-  { href: '/', label: 'Domů' },
-  { href: '/sluzby', label: 'Služby' },
-  { href: '/cenik', label: 'Ceník' },
-  { href: '/o-salonu', label: 'O salonu' },
-  { href: '/kontakt', label: 'Kontakt' },
+  { href: "/", label: "Domů" },
+  { href: "/sluzby", label: "Služby" },
+  { href: "/cenik", label: "Ceník" },
+  { href: "/o-salonu", label: "O salonu" },
+  { href: "/kontakt", label: "Kontakt" },
 ] as const;
 
 export const footerNavigation = [
-  { href: '/faq', label: 'FAQ' },
-  { href: '/storno-podminky', label: 'Storno podmínky' },
-  { href: '/obchodni-podminky', label: 'Obchodní podmínky' },
-  { href: '/gdpr', label: 'GDPR' },
+  { href: "/faq", label: "FAQ" },
+  { href: "/storno-podminky", label: "Storno podmínky" },
+  { href: "/obchodni-podminky", label: "Obchodní podmínky" },
+  { href: "/gdpr", label: "GDPR" },
 ] as const;
 
-export const adminNavigation = [
-  { href: '/admin', label: 'Owner přehled' },
-  { href: '/admin/provoz', label: 'Provoz salonu' },
+export type AdminArea = "owner" | "salon";
+
+export type AdminSectionSlug =
+  | "overview"
+  | "rezervace"
+  | "volne-terminy"
+  | "klienti"
+  | "sluzby"
+  | "kategorie-sluzeb"
+  | "uzivatele"
+  | "email-logy"
+  | "nastaveni";
+
+export type AdminNavigationItem = {
+  href: string;
+  label: string;
+  slug: AdminSectionSlug;
+  description: string;
+};
+
+const sharedSections = [
+  {
+    slug: "rezervace",
+    ownerHref: "/admin/rezervace",
+    salonHref: "/admin/provoz/rezervace",
+    label: "Rezervace",
+    description: "Přehled potvrzených, čekajících i dnešních rezervací.",
+  },
+  {
+    slug: "volne-terminy",
+    ownerHref: "/admin/volne-terminy",
+    salonHref: "/admin/provoz/volne-terminy",
+    label: "Volné termíny",
+    description: "Ruční publikace a rychlá kontrola dostupných slotů.",
+  },
+  {
+    slug: "klienti",
+    ownerHref: "/admin/klienti",
+    salonHref: "/admin/provoz/klienti",
+    label: "Klienti",
+    description: "Kontakty, historie rezervací a provozní poznámky ke klientům.",
+  },
+  {
+    slug: "sluzby",
+    ownerHref: "/admin/sluzby",
+    salonHref: "/admin/provoz/sluzby",
+    label: "Služby",
+    description: "Aktivní nabídka služeb, délky a orientace v ceníku.",
+  },
+  {
+    slug: "kategorie-sluzeb",
+    ownerHref: "/admin/kategorie-sluzeb",
+    salonHref: "/admin/provoz/kategorie-sluzeb",
+    label: "Kategorie služeb",
+    description: "Struktura katalogu a pořadí služeb na webu.",
+  },
 ] as const;
+
+const ownerOnlySections = [
+  {
+    slug: "uzivatele",
+    href: "/admin/uzivatele",
+    label: "Uživatelé / role",
+    description: "Přístupy administrace, role a zodpovědnosti.",
+  },
+  {
+    slug: "email-logy",
+    href: "/admin/email-logy",
+    label: "Email logy",
+    description: "Audit potvrzení, připomínek a selhaných zpráv.",
+  },
+  {
+    slug: "nastaveni",
+    href: "/admin/nastaveni",
+    label: "Nastavení",
+    description: "Serverově spravované hodnoty a provozní konfigurace.",
+  },
+] as const;
+
+export const ownerAdminNavigation: AdminNavigationItem[] = [
+  {
+    href: "/admin",
+    label: "Přehled",
+    slug: "overview",
+    description: "Manažerský souhrn výkonu, rezervací a provozních rizik.",
+  },
+  ...sharedSections.map((section) => ({
+    href: section.ownerHref,
+    label: section.label,
+    slug: section.slug,
+    description: section.description,
+  })),
+  ...ownerOnlySections,
+];
+
+export const salonAdminNavigation: AdminNavigationItem[] = [
+  {
+    href: "/admin/provoz",
+    label: "Přehled",
+    slug: "overview",
+    description: "Rychlý denní přehled bez technického balastu.",
+  },
+  ...sharedSections.map((section) => ({
+    href: section.salonHref,
+    label: section.label,
+    slug: section.slug,
+    description: section.description,
+  })),
+];
+
+export const ownerOnlyAdminSectionSlugs = new Set<AdminSectionSlug>(
+  ownerOnlySections.map((section) => section.slug),
+);
+
+export const sharedAdminSectionSlugs = new Set<AdminSectionSlug>(
+  sharedSections.map((section) => section.slug),
+);
+
+export function getAdminHomeHref(role: AdminRole) {
+  return role === AdminRole.OWNER ? "/admin" : "/admin/provoz";
+}
+
+export function getAdminNavigation(
+  area: AdminArea,
+  currentRole: AdminRole,
+): AdminNavigationItem[] {
+  if (area === "salon") {
+    return salonAdminNavigation;
+  }
+
+  return currentRole === AdminRole.OWNER ? ownerAdminNavigation : salonAdminNavigation;
+}

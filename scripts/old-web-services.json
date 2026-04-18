@@ -1,0 +1,301 @@
+{
+  "categories": [
+    {
+      "name": "Kosmetické ošetření",
+      "slug": "kosmeticke-osetreni",
+      "sortOrder": 1,
+      "isActive": true
+    },
+    {
+      "name": "Lash & brow bar",
+      "slug": "lash-brow-bar",
+      "sortOrder": 2,
+      "isActive": true
+    },
+    {
+      "name": "Masáže",
+      "slug": "masaze",
+      "sortOrder": 3,
+      "isActive": true
+    },
+    {
+      "name": "Úprava řas a obočí",
+      "slug": "uprava-ras-a-oboci",
+      "sortOrder": 4,
+      "isActive": true
+    },
+    {
+      "name": "Depilace",
+      "slug": "depilace",
+      "sortOrder": 5,
+      "isActive": true
+    },
+    {
+      "name": "Vizážistika a líčení",
+      "slug": "vizazistika-a-liceni",
+      "sortOrder": 6,
+      "isActive": true
+    },
+    {
+      "name": "Ostatní služby",
+      "slug": "ostatni-sluzby",
+      "sortOrder": 7,
+      "isActive": true
+    }
+  ],
+  "services": [
+    {
+      "name": "REFRESH TREATMENT (60 min)",
+      "slug": "refresh-treatment-60-min",
+      "categorySlug": "kosmeticke-osetreni",
+      "shortDescription": "Ošetření smíšené nebo normální pleti.",
+      "description": "Ošetření smíšené/normální pleti: diagnostika pleti, povrchové čištění, peeling, ultrazvuková špachtle, sérum, maska, závěrečný krém, barvení obočí/řas.",
+      "durationMinutes": 60,
+      "priceFromCzk": 1000,
+      "sortOrder": 10,
+      "isActive": true
+    },
+    {
+      "name": "REFRESH TREATMENT (90 min)",
+      "slug": "refresh-treatment-90-min",
+      "categorySlug": "kosmeticke-osetreni",
+      "shortDescription": "Delší varianta ošetření smíšené nebo normální pleti.",
+      "description": "Ošetření smíšené/normální pleti: diagnostika pleti, povrchové čištění, peeling, ultrazvuková špachtle, sérum, maska, závěrečný krém, barvení obočí/řas, masáž obličeje, krku a dekoltu.",
+      "durationMinutes": 90,
+      "priceFromCzk": 1200,
+      "sortOrder": 20,
+      "isActive": true
+    },
+    {
+      "name": "ANTI AGE TREATMENT",
+      "slug": "anti-age-treatment",
+      "categorySlug": "kosmeticke-osetreni",
+      "shortDescription": "Ošetření zralé pleti.",
+      "description": "Ošetření zralé pleti: diagnostika pleti, povrchové čištění, masáž obličeje, krku a dekoltu, lifting galvanickou žehličkou, sérum, maska, závěrečný krém, barvení obočí/řas.",
+      "durationMinutes": 90,
+      "priceFromCzk": 1400,
+      "sortOrder": 30,
+      "isActive": true
+    },
+    {
+      "name": "CLEAR TREATMENT",
+      "slug": "clear-treatment",
+      "categorySlug": "kosmeticke-osetreni",
+      "shortDescription": "Ošetření problematické nebo aknózní pleti.",
+      "description": "Ošetření problematické/aknózní pleti: diagnostika pleti, povrchové čištění, ultrazvuková špachtle, sérum, cooling galvanickou žehličkou, maska, závěrečný krém, barvení obočí/řas.",
+      "durationMinutes": 60,
+      "priceFromCzk": 1000,
+      "sortOrder": 40,
+      "isActive": true
+    },
+    {
+      "name": "LIFTING EYE TREATMENT",
+      "slug": "lifting-eye-treatment",
+      "categorySlug": "kosmeticke-osetreni",
+      "shortDescription": "Ošetření očního okolí.",
+      "description": "Ošetření očního okolí: povrchové čištění, mikromasáž očního okolí, oční liftingová maska, závěrečný krém.",
+      "durationMinutes": 45,
+      "priceFromCzk": 700,
+      "sortOrder": 50,
+      "isActive": false
+    },
+    {
+      "name": "Lash lifting",
+      "slug": "lash-lifting",
+      "categorySlug": "lash-brow-bar",
+      "shortDescription": "Natočení a výživa přírodních řas.",
+      "description": "Natočení a výživa přírodních řas, otevřený pohled, dlouhotrvající efekt 4-6 týdnů.",
+      "durationMinutes": 75,
+      "priceFromCzk": 900,
+      "sortOrder": 10,
+      "isActive": true
+    },
+    {
+      "name": "Laminace obočí",
+      "slug": "laminace-oboci",
+      "categorySlug": "lash-brow-bar",
+      "shortDescription": "Fixace chloupků obočí s dlouhotrvajícím efektem.",
+      "description": "Okamžitý objem a fixace chloupků obočí, dlouhotrvající efekt 4-6 týdnů.",
+      "durationMinutes": 75,
+      "priceFromCzk": 800,
+      "sortOrder": 20,
+      "isActive": true
+    },
+    {
+      "name": "Lash lifting + laminace obočí",
+      "slug": "lash-lifting-plus-laminace-oboci",
+      "categorySlug": "lash-brow-bar",
+      "shortDescription": "Kombinované ošetření řas i obočí.",
+      "description": "Kombinované ošetření řas i obočí.",
+      "durationMinutes": 120,
+      "priceFromCzk": 1450,
+      "sortOrder": 30,
+      "isActive": true
+    },
+    {
+      "name": "Barvení obočí",
+      "slug": "barveni-oboci",
+      "categorySlug": "uprava-ras-a-oboci",
+      "shortDescription": "Samostatné barvení obočí.",
+      "description": "Samostatné barvení obočí.",
+      "durationMinutes": 30,
+      "priceFromCzk": 200,
+      "sortOrder": 10,
+      "isActive": true
+    },
+    {
+      "name": "Barvení řas",
+      "slug": "barveni-ras",
+      "categorySlug": "uprava-ras-a-oboci",
+      "shortDescription": "Samostatné barvení řas.",
+      "description": "Samostatné barvení řas.",
+      "durationMinutes": 30,
+      "priceFromCzk": 200,
+      "sortOrder": 20,
+      "isActive": true
+    },
+    {
+      "name": "Úprava obočí",
+      "slug": "uprava-oboci",
+      "categorySlug": "uprava-ras-a-oboci",
+      "shortDescription": "Tvarování a úprava obočí.",
+      "description": "Tvarování a úprava obočí.",
+      "durationMinutes": 30,
+      "priceFromCzk": 100,
+      "sortOrder": 30,
+      "isActive": true
+    },
+    {
+      "name": "Depilace horního rtu, brady",
+      "slug": "depilace-horniho-rtu-brady",
+      "categorySlug": "depilace",
+      "shortDescription": "Odstranění chloupků v obličeji.",
+      "description": "Odstranění chloupků v obličeji.",
+      "durationMinutes": 30,
+      "priceFromCzk": 150,
+      "sortOrder": 10,
+      "isActive": true
+    },
+    {
+      "name": "Depilace periferií",
+      "slug": "depilace-periferii",
+      "categorySlug": "depilace",
+      "shortDescription": "Odstranění chloupků na vybraných částech obličeje.",
+      "description": "Odstranění chloupků na vybraných částech obličeje.",
+      "durationMinutes": 30,
+      "priceFromCzk": 150,
+      "sortOrder": 20,
+      "isActive": true
+    },
+    {
+      "name": "Depilace - Celé nohy",
+      "slug": "depilace-cele-nohy",
+      "categorySlug": "depilace",
+      "shortDescription": "Odstranění chloupků na celých nohách.",
+      "description": "Odstranění chloupků na celých nohách.",
+      "durationMinutes": 30,
+      "priceFromCzk": 500,
+      "sortOrder": 30,
+      "isActive": true
+    },
+    {
+      "name": "Depilace - Nohy po kolena",
+      "slug": "depilace-nohy-po-kolena",
+      "categorySlug": "depilace",
+      "shortDescription": "Odstranění chloupků na lýtkách.",
+      "description": "Odstranění chloupků na lýtkách.",
+      "durationMinutes": 30,
+      "priceFromCzk": 400,
+      "sortOrder": 40,
+      "isActive": false
+    },
+    {
+      "name": "Depilace - Ruce",
+      "slug": "depilace-ruce",
+      "categorySlug": "depilace",
+      "shortDescription": "Odstranění chloupků na rukou.",
+      "description": "Odstranění chloupků na rukou.",
+      "durationMinutes": 30,
+      "priceFromCzk": 250,
+      "sortOrder": 50,
+      "isActive": true
+    },
+    {
+      "name": "Denní líčení",
+      "slug": "denni-liceni",
+      "categorySlug": "vizazistika-a-liceni",
+      "shortDescription": "Líčení vhodné na běžný den.",
+      "description": "Líčení vhodné na běžný den, schůzku nebo pracovní akce.",
+      "durationMinutes": 60,
+      "priceFromCzk": 600,
+      "sortOrder": 10,
+      "isActive": true
+    },
+    {
+      "name": "Večerní, společenské líčení",
+      "slug": "vecerni-spolecenske-liceni",
+      "categorySlug": "vizazistika-a-liceni",
+      "shortDescription": "Líčení na ples, večírek nebo focení.",
+      "description": "Líčení vhodné na ples, večírek, focení nebo speciální příležitosti.",
+      "durationMinutes": 75,
+      "priceFromCzk": 800,
+      "sortOrder": 20,
+      "isActive": true
+    },
+    {
+      "name": "MEN'S TREATMENT",
+      "slug": "mens-treatment",
+      "categorySlug": "kosmeticke-osetreni",
+      "shortDescription": "Ošetření pleti pro muže.",
+      "description": "Ošetření smíšené/normální pleti: diagnostika pleti, povrchové čištění, peeling, ultrazvuková špachtle, sérum, maska, závěrečný krém, masáž krk a obličej.",
+      "durationMinutes": 90,
+      "priceFromCzk": 1000,
+      "sortOrder": 60,
+      "isActive": true
+    },
+    {
+      "name": "SPICULE & PDRN TREATMENT",
+      "slug": "spicule-pdrn-treatment",
+      "categorySlug": "kosmeticke-osetreni",
+      "shortDescription": "Péče s PDRN elixírem a maskou.",
+      "description": "Povrchové čištění, lehká masáž, nanesení PDRN elixíru, ampule, aplikace masky, závěrečný krém.",
+      "durationMinutes": 60,
+      "priceFromCzk": 1300,
+      "sortOrder": 70,
+      "isActive": true
+    },
+    {
+      "name": "STUDENT TREATMENT (15-20 let)",
+      "slug": "student-treatment-15-20-let",
+      "categorySlug": "kosmeticke-osetreni",
+      "shortDescription": "Ošetření pro věk 15 až 20 let.",
+      "description": "Pro věk 15 - 20 let. Diagnostika pleti, peeling, povrchové začištění, ultrazvuková špachtle a mechanické dočištění, aplikace masky, závěrečný krém.",
+      "durationMinutes": 60,
+      "priceFromCzk": 800,
+      "sortOrder": 80,
+      "isActive": true
+    },
+    {
+      "name": "Lymfatická masáž obličeje",
+      "slug": "lymfaticka-masaz-obliceje",
+      "categorySlug": "masaze",
+      "shortDescription": "Detoxikační masáž s liftingovým efektem.",
+      "description": "Detoxikace, zmírnění únavy, lifting pleti, odstranění otoků.",
+      "durationMinutes": 60,
+      "priceFromCzk": 900,
+      "sortOrder": 10,
+      "isActive": true
+    },
+    {
+      "name": "SPICULE & EXOSOMY TREATMENT",
+      "slug": "spicule-exosomy-treatment",
+      "categorySlug": "kosmeticke-osetreni",
+      "shortDescription": "Péče s Exosomy elixírem a maskou.",
+      "description": "Povrchové čištění, lehká masáž, nanesení Exosomy elixíru, ampule, aplikace masky, závěrečný krém.",
+      "durationMinutes": 60,
+      "priceFromCzk": 1300,
+      "sortOrder": 90,
+      "isActive": true
+    }
+  ]
+}

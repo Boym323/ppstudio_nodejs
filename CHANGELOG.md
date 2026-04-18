@@ -23,6 +23,9 @@ Formát je inspirovaný Keep a Changelog.
 - Příprava storno URL a `EmailLog` payloadu pro potvrzovací e-mail při vytvoření rezervace.
 - Placeholder route pro tokenizované storno odkazy na `/rezervace/storno/[token]`.
 - PostgreSQL driver adapter setup přes `@prisma/adapter-pg` a `pg` pro Prisma 7 runtime.
+- Role-aware admin IA s oddělenou navigací a routami pro full admin (`/admin/*`) a lite admin (`/admin/provoz/*`).
+- Přehledové admin sekce nad reálnými Prisma daty pro rezervace, sloty, klienty, služby, kategorie, uživatele, email logy a nastavení.
+- Serverové guard helpery pro admin area a sekce, včetně role-based redirectů a `notFound` ochrany neplatných cest.
 
 ### Changed
 - Výchozí Next.js demo bylo nahrazeno čistým škálovatelným scaffoldingem pro produkční vývoj.
@@ -35,6 +38,8 @@ Formát je inspirovaný Keep a Changelog.
 - Rezervační stránka už není statický placeholder; načítá reálné služby a ručně publikované sloty z databáze.
 - Veřejné booking flow má přesnější server-side validaci, retry při serializable konfliktech a konkrétnější chybové stavy pro stale službu, stale slot i duplicitní rezervaci stejného klienta.
 - Veřejný booking submit má lehký rate limit, auditní log pokusů a blokací a krok 2 už schovává sloty kratší než vybraná služba.
+- Admin UI už není jen dvojice placeholder dashboardů; `OWNER` a `SALON` mají odlišné rozhraní, navigaci a úroveň detailu.
+- Přesměrování po loginu i při nedostatečném oprávnění se teď řídí centrální helper funkcí podle role.
 
 ### Fixed
 - Návrh datové vrstvy už nespoléhá na zjednodušený booking request model bez auditní historie a bez bezpečných tokenů.
@@ -44,3 +49,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Removed
 - Výchozí create-next-app homepage.
+# Changelog
+
+## Unreleased
+- Přidán importní script pro kategorie a služby přes JSON upsert podle `slug`.
+- Doplněn dokumentovaný postup pro import dat ze starého webu.

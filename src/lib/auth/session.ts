@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { env } from "@/config/env";
+import { type AdminArea, getAdminHomeHref } from "@/config/navigation";
 
 const COOKIE_NAME = "ppstudio-admin-session";
 const SESSION_MAX_AGE = 60 * 60 * 12;
@@ -35,6 +36,8 @@ const bootstrapUsers = [
     role: AdminRole.SALON,
   },
 ] as const;
+
+export type BootstrapAdminUser = (typeof bootstrapUsers)[number];
 
 export async function authenticateAdmin(email: string, password: string) {
   const normalizedEmail = email.trim().toLowerCase();
@@ -101,10 +104,22 @@ export async function requireRole(allowedRoles: AdminRole[]) {
   const session = await requireSession();
 
   if (!allowedRoles.includes(session.role)) {
-    redirect("/admin/provoz");
+    redirect(getAdminHomeHref(session.role));
   }
 
   return session;
+}
+
+export async function requireAdminArea(area: AdminArea) {
+  if (area === "owner") {
+    return requireRole([AdminRole.OWNER]);
+  }
+
+  return requireRole([AdminRole.OWNER, AdminRole.SALON]);
+}
+
+export function listBootstrapAdminUsers(): BootstrapAdminUser[] {
+  return [...bootstrapUsers];
 }
 
 export function getSessionCookie() {

@@ -18,6 +18,10 @@ Postup nasazení aplikace do produkce.
    - kontakt
    - FAQ a právní stránky
    - CTA na rezervaci
+11. Projdi ruční QA admin částí:
+   - login redirect pro `OWNER` a `SALON`
+   - dostupnost owner-only sekcí jen pro `OWNER`
+   - lite admin navigaci a mobilní čitelnost na `/admin/provoz/*`
 
 ## Nasazení
 1. Pull nové verze na server.

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
+import { getAdminHomeHref } from "@/config/navigation";
 import {
   authenticateAdmin,
   createSessionToken,
@@ -44,7 +45,7 @@ export async function POST(request: Request) {
   });
 
   const response = NextResponse.redirect(
-    new URL(authenticatedUser.role === "OWNER" ? "/admin" : "/admin/provoz", request.url),
+    new URL(getAdminHomeHref(authenticatedUser.role), request.url),
     303,
   );
 

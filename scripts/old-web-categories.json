@@ -1,0 +1,47 @@
+{
+  "categories": [
+    {
+      "name": "Kosmetické ošetření",
+      "slug": "kosmeticke-osetreni",
+      "sortOrder": 1,
+      "isActive": true
+    },
+    {
+      "name": "Lash & brow bar",
+      "slug": "lash-brow-bar",
+      "sortOrder": 2,
+      "isActive": true
+    },
+    {
+      "name": "Masáže",
+      "slug": "masaze",
+      "sortOrder": 3,
+      "isActive": true
+    },
+    {
+      "name": "Úprava řas a obočí",
+      "slug": "uprava-ras-a-oboci",
+      "sortOrder": 4,
+      "isActive": true
+    },
+    {
+      "name": "Depilace",
+      "slug": "depilace",
+      "sortOrder": 5,
+      "isActive": true
+    },
+    {
+      "name": "Vizážistika a líčení",
+      "slug": "vizazistika-a-liceni",
+      "sortOrder": 6,
+      "isActive": true
+    },
+    {
+      "name": "Ostatní služby",
+      "slug": "ostatni-sluzby",
+      "sortOrder": 7,
+      "isActive": true
+    }
+  ],
+  "services": []
+}
