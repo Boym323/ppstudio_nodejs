@@ -16,6 +16,7 @@ Seznam důležitých knihoven a důvod jejich použití.
 - `jose`: podpis a verifikace admin session.
 - `dotenv`: načtení `.env` pro Prisma CLI konfiguraci.
 - vestavěný Node.js `crypto`: generování a hashování action tokenů pro booking workflow bez další závislosti.
+- Booking submission audit využívá stejnou Prisma vrstvu a nezavádí další knihovnu pro rate limiting ani logování.
 
 ## Kvalita kódu
 - `typescript`: statická typová kontrola.

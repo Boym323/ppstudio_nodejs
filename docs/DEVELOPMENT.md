@@ -66,6 +66,8 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - `Setting` je generická tabulka pro serverově spravované konfigurační hodnoty bez nutnosti přidávat nové sloupce.
 - `src/features/booking/lib/booking-public.ts` je veřejný write model pro rezervace a drží i ochranu proti souběžnému obsazení slotu.
 - Veřejný booking flow vrací doménové chybové kódy a doporučený krok formuláře, takže UI může zobrazit přesnější recovery stav bez duplikace serverové logiky.
+- Veřejný booking submit má lehký rate limit podle IP a e-mailu a zapisuje auditní log pokusů, blokací a selhání pro provozní troubleshooting.
+- Krok 2 veřejného booking flow filtruje sloty i podle délky služby, aby se krátké sloty neukazovaly až v posledním kroku.
 
 ## Migrační Strategie
 - Stávající bootstrap migrace rozšiřujeme inkrementálně, ne přepisem historie.
@@ -103,6 +105,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Při veřejné rezervaci zamknout slot v transakci a znovu ověřit kapacitu až těsně před vytvořením `Booking`.
 - Při serializable konfliktu nebo deadlocku booking flow transakci krátce retryne místo okamžitého pádu na generickou chybu.
 - Server-side validace musí znovu ověřit i to, že délka vybrané služby reálně odpovídá délce slotu.
+- Pro anti-spam ochranu zapisuj submission logy i pro blokované pokusy, aby šlo dělat provozní audit bez zbytečného přidávání další infrastruktury.
 
 ## Poznámky k releasu
 - Release checklist.

@@ -99,6 +99,8 @@ npm run db:migrate
   - zapíše audit změny stavu
   - připraví storno token a e-mailový log pro potvrzení
 - Pokud se termín mezitím obsadí, služba přestane být aktivní nebo slot přestane odpovídat délce služby, uživatel dostane konkrétnější chybu místo obecného selhání.
+- Veřejný submit je lehce rate-limitený podle IP a e-mailu; opakované pokusy v krátkém čase skončí blokací s user-friendly hláškou.
+- Krok 2 už skrývá i sloty, které jsou pro vybranou službu příliš krátké.
 
 ## Provozní Poznámky
 - `proxy.ts` filtruje nepřihlášené požadavky na `/admin/*`.

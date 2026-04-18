@@ -64,6 +64,12 @@ enum EmailLogType {
   GENERIC
 }
 
+enum BookingSubmissionOutcome {
+  SUCCESS
+  FAILED
+  BLOCKED
+}
+
 model AdminUser {
   id                        String                 @id @default(cuid())
   email                     String                 @unique
@@ -110,6 +116,7 @@ model Service {
   category                 ServiceCategory           @relation(fields: [categoryId], references: [id], onDelete: Restrict)
   allowedAvailabilitySlots AvailabilitySlotService[]
   bookings                 Booking[]
+  submissionLogs           BookingSubmissionLog[]
 
   @@index([categoryId, isActive, sortOrder])
   @@index([isActive, sortOrder])
@@ -132,6 +139,7 @@ model AvailabilitySlot {
   createdByUser          AdminUser?                             @relation("AvailabilitySlotCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
   allowedServices        AvailabilitySlotService[]
   bookings               Booking[]
+  submissionLogs         BookingSubmissionLog[]
 
   @@index([status, startsAt])
   @@index([serviceRestrictionMode, startsAt])
@@ -163,6 +171,7 @@ model Client {
   updatedAt    DateTime   @updatedAt
   bookings     Booking[]
   emailLogs    EmailLog[]
+  submissionLogs BookingSubmissionLog[]
 
   @@index([phone])
   @@index([isActive, fullName])
@@ -202,6 +211,7 @@ model Booking {
   statusHistory            BookingStatusHistory[]
   actionTokens             BookingActionToken[]
   emailLogs                EmailLog[]
+  submissionLogs           BookingSubmissionLog[]
 
   @@unique([slotId, clientId])
   @@index([slotId, status])
@@ -275,6 +285,35 @@ model EmailLog {
   @@index([actionTokenId, createdAt])
   @@index([status, createdAt])
   @@index([providerMessageId])
+}
+
+model BookingSubmissionLog {
+  id           String                   @id @default(cuid())
+  bookingId    String?
+  clientId     String?
+  serviceId    String?
+  slotId       String?
+  ipHash       String?
+  emailHash    String?
+  outcome      BookingSubmissionOutcome
+  failureCode  String?
+  failureReason String?
+  userAgent    String?
+  metadata     Json?
+  createdAt    DateTime                 @default(now())
+  updatedAt    DateTime                 @updatedAt
+  booking      Booking?                 @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  client       Client?                  @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  service      Service?                 @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+  slot         AvailabilitySlot?        @relation(fields: [slotId], references: [id], onDelete: SetNull)
+
+  @@index([bookingId, createdAt])
+  @@index([clientId, createdAt])
+  @@index([serviceId, createdAt])
+  @@index([slotId, createdAt])
+  @@index([ipHash, createdAt])
+  @@index([emailHash, createdAt])
+  @@index([outcome, createdAt])
 }
 
 model Setting {

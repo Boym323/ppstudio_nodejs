@@ -34,6 +34,7 @@ Formát je inspirovaný Keep a Changelog.
 - SEO metadata veřejných stránek jsou sjednocená přes globální metadata base a per-page metadata.
 - Rezervační stránka už není statický placeholder; načítá reálné služby a ručně publikované sloty z databáze.
 - Veřejné booking flow má přesnější server-side validaci, retry při serializable konfliktech a konkrétnější chybové stavy pro stale službu, stale slot i duplicitní rezervaci stejného klienta.
+- Veřejný booking submit má lehký rate limit, auditní log pokusů a blokací a krok 2 už schovává sloty kratší než vybraná služba.
 
 ### Fixed
 - Návrh datové vrstvy už nespoléhá na zjednodušený booking request model bez auditní historie a bez bezpečných tokenů.

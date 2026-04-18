@@ -54,6 +54,10 @@ function formatSlotTimeRange(startsAt: string, endsAt: string) {
   return `${formatter.format(new Date(startsAt))} - ${formatter.format(new Date(endsAt))}`;
 }
 
+function getSlotDurationMinutes(slot: PublicBookingCatalog["slots"][number]) {
+  return (new Date(slot.endsAt).getTime() - new Date(slot.startsAt).getTime()) / (1000 * 60);
+}
+
 export function BookingFlow({ catalog }: BookingFlowProps) {
   const [serverState, formAction] = useActionState(
     createPublicBookingAction,
@@ -71,10 +75,6 @@ export function BookingFlow({ catalog }: BookingFlowProps) {
     () => new Map(catalog.services.map((service) => [service.id, service])),
     [catalog.services],
   );
-  const slotsById = useMemo(
-    () => new Map(catalog.slots.map((slot) => [slot.id, slot])),
-    [catalog.slots],
-  );
 
   const selectedService = selectedServiceId ? servicesById.get(selectedServiceId) : undefined;
   const availableSlots = useMemo(() => {
@@ -87,14 +87,22 @@ export function BookingFlow({ catalog }: BookingFlowProps) {
         return false;
       }
 
+      if (!selectedService) {
+        return false;
+      }
+
+      if (getSlotDurationMinutes(slot) < selectedService.durationMinutes) {
+        return false;
+      }
+
       if (slot.serviceRestrictionMode === AvailabilitySlotServiceRestrictionMode.ANY) {
         return true;
       }
 
       return slot.allowedServiceIds.includes(selectedServiceId);
     });
-  }, [catalog.slots, selectedServiceId]);
-  const selectedSlot = selectedSlotId ? slotsById.get(selectedSlotId) : undefined;
+  }, [catalog.slots, selectedService, selectedServiceId]);
+  const selectedSlot = selectedSlotId ? availableSlots.find((slot) => slot.id === selectedSlotId) : undefined;
 
   const canGoToStep2 = Boolean(selectedService);
   const canGoToStep3 = canGoToStep2 && Boolean(selectedSlot);
@@ -148,7 +156,7 @@ export function BookingFlow({ catalog }: BookingFlowProps) {
   return (
     <form action={formAction} className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
       <input type="hidden" name="serviceId" value={selectedServiceId} />
-      <input type="hidden" name="slotId" value={selectedSlotId} />
+      <input type="hidden" name="slotId" value={selectedSlot?.id ?? ""} />
 
       <div className="space-y-6">
         <section className="rounded-[var(--radius-panel)] border border-black/6 bg-white p-6 shadow-[var(--shadow-panel)] sm:p-8">
@@ -214,26 +222,6 @@ export function BookingFlow({ catalog }: BookingFlowProps) {
                       onClick={() => {
                         setSelectedServiceId(service.id);
                         setCurrentStep(2);
-
-                        if (
-                          selectedSlotId &&
-                          !catalog.slots.some((slot) => {
-                            if (slot.id !== selectedSlotId) {
-                              return false;
-                            }
-
-                            if (
-                              slot.serviceRestrictionMode ===
-                              AvailabilitySlotServiceRestrictionMode.ANY
-                            ) {
-                              return true;
-                            }
-
-                            return slot.allowedServiceIds.includes(service.id);
-                          })
-                        ) {
-                          setSelectedSlotId("");
-                        }
                       }}
                       className={cn(
                         "rounded-3xl border p-5 text-left",
@@ -301,7 +289,7 @@ export function BookingFlow({ catalog }: BookingFlowProps) {
                 </div>
               ) : availableSlots.length === 0 ? (
                 <div className="rounded-3xl border border-dashed border-black/10 bg-[var(--color-surface)]/20 px-5 py-6 text-sm text-[var(--color-muted)]">
-                  Pro tuto službu teď není publikovaný žádný volný termín.
+                  Pro tuto službu teď není publikovaný žádný volný termín s dostatečnou délkou.
                 </div>
               ) : (
                 <div className="grid gap-3 sm:grid-cols-2">
