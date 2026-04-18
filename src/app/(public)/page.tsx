@@ -1,5 +1,11 @@
-import { HomePage } from "@/features/home/components/home-page";
+import { PublicHomePage, buildPageMetadata } from '@/features/public/components/public-site';
 
-export default function PublicHomePage() {
-  return <HomePage />;
+export const metadata = buildPageMetadata({
+  title: 'Luxusní kosmetický salon',
+  description:
+    'Moderní prezentační web pro kosmetický salon s důrazem na důvěru, čisté UX a silnou cestu k rezervaci.',
+});
+
+export default function Page() {
+  return <PublicHomePage />;
 }

@@ -17,8 +17,23 @@ const sansFont = Manrope({
 });
 
 export const metadata: Metadata = {
-  title: siteConfig.title,
+  metadataBase: new URL(siteConfig.url),
+  title: {
+    default: `${siteConfig.name} | ${siteConfig.title}`,
+    template: `%s | ${siteConfig.name}`,
+  },
   description: siteConfig.description,
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    title: `${siteConfig.name} | ${siteConfig.title}`,
+    description: siteConfig.description,
+    url: siteConfig.url,
+    siteName: siteConfig.name,
+    locale: siteConfig.locale,
+    type: "website",
+  },
 };
 
 export default function RootLayout({

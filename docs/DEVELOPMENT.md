@@ -7,16 +7,26 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - `src/components` drží čistě sdílené stavební prvky.
 - `src/features` seskupuje konkrétní produktové oblasti:
   - `home`
+  - `public`
   - `booking`
   - `admin`
 - `src/lib` obsahuje infrastructure kód bez prezentační logiky.
 - `src/config` drží metadata, navigaci a validované prostředí.
+- `src/content` drží editovatelná data veřejného webu odděleně od layoutu a route souborů.
 
 ## Route Strategie
 - `(public)` pro prezentační web.
 - `(booking)` pro rezervace bez míchání admin logiky.
 - `(admin)` pro backoffice.
 - Další vnitřní route group `(protected)` uvnitř adminu chrání sekce vyžadující session.
+
+## Veřejný Web
+- Každá veřejná stránka má vlastní route a metadata.
+- Detail služby běží na `sluzby/[slug]` a používá `generateStaticParams`.
+- Veřejný obsah je centralizovaný v `src/content/public-site.ts`.
+- Reusable page sekce jsou ve `src/features/public/components/public-site.tsx`.
+- Placeholder obsah musí být jasně odlišen od finálních produkčních textů.
+- CTA na rezervaci držet konzistentně v headeru, hero sekcích a kontextových blocích.
 
 ## Auth Strategie
 - Login probíhá přes `src/app/api/auth/login/route.ts`.
@@ -27,10 +37,11 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Lite admin účet se v aplikaci hlásí přes bootstrap env proměnné, ale nese databázovou roli `SALON`.
 
 ## Konvence
-- Route soubory držet tenké, byznys logiku přesouvat do `features` a `lib`.
+- Route soubory držet tenké, byznys logiku přesouvat do `features`, `content` a `lib`.
 - Komponenty pojmenovávat podle odpovědnosti, ne podle umístění na stránce typu `Section1`.
 - Server-side validaci preferovat před klientskými závislostmi.
 - Nezakládat univerzální `utils` složky ve feature vrstvách bez jasné potřeby.
+- U veřejného webu nepřidávat efektní animace bez jasného UX důvodu.
 
 ## Technický dluh a rozhodnutí
 - Klíčová rozhodnutí zapisuj jako krátké ADR záznamy.
@@ -68,6 +79,10 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Minimální kontrola při každé změně:
   - `npm run lint`
   - `npm run build`
+- Při změně veřejného webu navíc ručně ověř:
+  - mobilní header a CTA na `/`, `/sluzby`, `/kontakt`
+  - správnost interních odkazů v footeru
+  - metadata a titulky pro detail služby
 - Po změně Prisma schematu navíc:
   - `npm run db:generate`
   - `npm run db:migrate`

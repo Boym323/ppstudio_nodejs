@@ -16,6 +16,8 @@ Formát je inspirovaný Keep a Changelog.
 - `proxy.ts` ochrana admin cest podle konvencí Next.js 16.
 - Architektonická dokumentace v `README.md` a nové ADR.
 - Navazující review migrace pro explicitní režim omezení služeb na slotu, reschedule chain a DB ochranu proti překrývajícím se aktivním slotům.
+- Veřejný prezentační web pro kosmetický salon s kompletní sadou obsahových stránek, detailů služeb a právních podstránek.
+- Centrální obsahová vrstva `src/content/public-site.ts` pro snadnou výměnu placeholder textů, cen a foto briefů.
 
 ### Changed
 - Výchozí Next.js demo bylo nahrazeno čistým škálovatelným scaffoldingem pro produkční vývoj.
@@ -23,10 +25,13 @@ Formát je inspirovaný Keep a Changelog.
 - Lite admin role byla v databázové vrstvě přejmenovaná z `STAFF` na `SALON`.
 - `AvailabilitySlot` už není navázaný na jednu službu; omezení služeb je řešené přes M:N vazbu.
 - Slot teď explicitně říká, zda bere libovolnou službu nebo jen vybrané služby.
+- Hlavní navigace a footer nyní odpovídají IA veřejného webu a posilují cestu k rezervaci i důvěru.
+- SEO metadata veřejných stránek jsou sjednocená přes globální metadata base a per-page metadata.
 
 ### Fixed
 - Návrh datové vrstvy už nespoléhá na zjednodušený booking request model bez auditní historie a bez bezpečných tokenů.
 - Datový model lépe chrání proti náhoditému duplicitnímu bookingu stejného klienta do stejného slotu.
+- Veřejný web už není omezený na technický placeholder homepage bez struktury pro reálný salonní obsah.
 
 ### Removed
 - Výchozí create-next-app homepage.

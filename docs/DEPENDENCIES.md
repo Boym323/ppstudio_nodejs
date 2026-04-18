@@ -25,6 +25,10 @@ Seznam důležitých knihoven a důvod jejich použití.
 - `clsx`: skládání className bez string chaosu.
 - `tailwind-merge`: bezpečné slučování Tailwind tříd.
 
+## Poznámky k veřejnému webu
+- Nová veřejná část byla postavená bez dalších UI knihoven nebo animačních balíků.
+- Cílem je nízká složitost, rychlý render a co nejmenší závislostní povrch pro marketingový web.
+
 ## Poznámky k datové vrstvě
 - Prisma schema v1 používá enumy pro role, stavy slotů, stavy rezervací a e-mailové workflow.
 - Pro bezpečné storno a přesun termínu není potřeba další knihovna; token workflow je navržený na úrovni DB přes hash + expiraci.

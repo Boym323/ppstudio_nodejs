@@ -10,7 +10,7 @@ Dokumentace proměnných prostředí pro lokální vývoj i produkci.
 ## Přehled
 - `NODE_ENV`: režim běhu (`development`, `production`).
 - `NEXT_PUBLIC_APP_NAME`: veřejný název značky.
-- `NEXT_PUBLIC_APP_URL`: veřejná URL aplikace.
+- `NEXT_PUBLIC_APP_URL`: veřejná URL aplikace, používá se i pro metadata a canonical základ webu.
 - `DATABASE_URL`: PostgreSQL connection string pro Prisma.
 - `SHADOW_DATABASE_URL`: pomocná databáze pro `prisma migrate dev` (lokální vývoj).
 - `ADMIN_SESSION_SECRET`: klíč pro podpis admin session cookie.
@@ -22,3 +22,4 @@ Dokumentace proměnných prostředí pro lokální vývoj i produkci.
 ## Poznámky
 - Bootstrap admin přístupy slouží jako startovní vrstva projektu a měly by být později nahrazené databázovým managementem uživatelů.
 - V produkci používej silná hesla a unikátní `ADMIN_SESSION_SECRET`.
+- Veřejný obsah salonu není řízený env proměnnými; texty a placeholdery jsou centralizované v `src/content/public-site.ts`.

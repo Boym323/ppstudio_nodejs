@@ -12,6 +12,12 @@ Postup nasazení aplikace do produkce.
 7. `npm run build`
 8. Aktualizuj `CHANGELOG.md`
 9. Ověř aktuálnost dokumentace (`MANUAL.md`, `docs/*`)
+10. Projdi ruční QA veřejného webu na mobilu i desktopu:
+   - homepage
+   - služby a detail služby
+   - kontakt
+   - FAQ a právní stránky
+   - CTA na rezervaci
 
 ## Nasazení
 1. Pull nové verze na server.

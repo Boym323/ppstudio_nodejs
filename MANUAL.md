@@ -21,6 +21,17 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
 
 ## Aktuální Stav Projektu
 - Projekt běží na Next.js 16 App Routeru se strukturou oddělenou na public web, booking a admin.
+- Veřejná část aktuálně pokrývá:
+  - homepage
+  - služby a detail služby
+  - ceník
+  - o salonu
+  - kontakt
+  - FAQ
+  - storno podmínky
+  - obchodní podmínky
+  - GDPR
+- Veřejný obsah je centralizovaný v `src/content/public-site.ts`, aby šly texty, ceny a foto briefy měnit bez zásahu do layout komponent.
 - Rezervační vrstva stojí na ručně vypisovaných termínech přes `AvailabilitySlot`, ne na pevné otevírací době.
 - Admin má dva směry použití:
   - owner dashboard na `/admin`
@@ -45,6 +56,16 @@ Pokud databáze ještě neobsahuje schema nebo přibyly nové migrace:
 ```bash
 npm run db:migrate
 ```
+
+## Veřejný Web
+- Navigace vede na klíčové konverzní a důvěryhodnostní stránky místo jedné přetížené homepage.
+- Detail služby je staticky generovaný z centrálního katalogu služeb.
+- Placeholder obsah je záměrně označený a má být před spuštěním nahrazen:
+  - finálním copywritingem
+  - reálnými cenami a délkami služeb
+  - autentickými kontakty
+  - vlastními fotografiemi majitelky, interiéru a procedur
+- CTA na rezervaci je dostupné v hlavičce, hero sekcích i obsahových blocích.
 
 ## Přihlášení Do Adminu
 - Admin login je dostupný na `/admin/prihlaseni`.
