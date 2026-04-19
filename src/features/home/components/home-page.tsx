@@ -29,26 +29,26 @@ export function HomePage() {
         <Container className="grid gap-16 py-20 lg:grid-cols-[1.15fr_0.85fr] lg:items-end lg:py-28">
           <div className="space-y-8">
             <div className="space-y-5">
-              <p className="text-xs uppercase tracking-[0.38em] text-[var(--color-accent-soft)]">
+              <p className="text-eyebrow tracking-[0.18em] text-[var(--color-accent-soft)]">
                 Luxusní kosmetický salon
               </p>
-              <h1 className="max-w-4xl font-display text-5xl leading-none tracking-tight sm:text-6xl lg:text-7xl">
+              <h1 className="heading-hero max-w-4xl leading-[1.1] text-white">
                 Elegantní základ pro značku, rezervace i každodenní provoz salonu.
               </h1>
-              <p className="max-w-2xl text-lg leading-8 text-white/72">
+              <p className="text-body-lg max-w-2xl text-white/72">
                 Web má působit prémiově, fungovat rychle na mobilu a dát klientce jasnou cestu od první návštěvy až k rezervaci termínu.
               </p>
             </div>
             <div className="flex flex-col gap-4 sm:flex-row">
               <Link
                 href="/rezervace"
-                className="inline-flex items-center justify-center rounded-full bg-[var(--color-accent)] px-7 py-4 text-sm font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-contrast)] transition hover:brightness-105"
+                className="button-text inline-flex items-center justify-center rounded-full bg-[var(--color-accent)] px-7 py-4 text-[var(--color-accent-contrast)] transition hover:brightness-105"
               >
                 Otevřít rezervace
               </Link>
               <Link
                 href="/admin/prihlaseni"
-                className="inline-flex items-center justify-center rounded-full border border-white/20 px-7 py-4 text-sm font-semibold uppercase tracking-[0.18em] text-white transition hover:border-white/40 hover:bg-white/6"
+                className="button-text inline-flex items-center justify-center rounded-full border border-white/20 px-7 py-4 text-white transition hover:border-white/40 hover:bg-white/6"
               >
                 Vstup do adminu
               </Link>
@@ -56,8 +56,8 @@ export function HomePage() {
           </div>
           <div className="grid gap-4">
             <div className="rounded-[var(--radius-panel)] border border-white/10 bg-white/8 p-6 backdrop-blur-sm">
-              <p className="text-xs uppercase tracking-[0.35em] text-white/45">Směr projektu</p>
-              <p className="mt-5 font-display text-3xl leading-tight text-white">
+              <p className="text-eyebrow tracking-[0.18em] text-white/45">Směr projektu</p>
+              <p className="heading-card mt-5 text-white">
                 UX-first architektura připravená pro růst bez přepisování základů.
               </p>
             </div>
@@ -88,8 +88,8 @@ export function HomePage() {
                 key={pillar.title}
                 className="rounded-[var(--radius-panel)] border border-black/6 bg-white p-7 shadow-[var(--shadow-panel)]"
               >
-                <h3 className="font-display text-3xl text-[var(--color-foreground)]">{pillar.title}</h3>
-                <p className="mt-4 text-base leading-7 text-[var(--color-muted)]">
+                <h3 className="heading-card text-[var(--color-foreground)]">{pillar.title}</h3>
+                <p className="text-body mt-4 text-[var(--color-muted)]">
                   {pillar.description}
                 </p>
               </article>

@@ -77,3 +77,37 @@ img {
   max-width: 100%;
   height: auto;
 }
+
+@layer components {
+  .heading-hero {
+    @apply font-display text-4xl leading-tight tracking-tight sm:text-5xl lg:text-6xl;
+  }
+
+  .heading-section {
+    @apply font-display text-2xl leading-[1.1] tracking-tight sm:text-3xl lg:text-4xl;
+  }
+
+  .heading-card {
+    @apply font-display text-xl leading-tight sm:text-2xl lg:text-3xl;
+  }
+
+  .text-body {
+    @apply text-base leading-7;
+  }
+
+  .text-body-lg {
+    @apply text-lg leading-8;
+  }
+
+  .text-ui {
+    @apply text-sm;
+  }
+
+  .text-eyebrow {
+    @apply text-xs font-semibold uppercase tracking-[0.18em];
+  }
+
+  .button-text {
+    @apply text-sm font-semibold uppercase tracking-[0.14em];
+  }
+}

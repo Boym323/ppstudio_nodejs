@@ -24,14 +24,14 @@ export function SiteHeader({ variant = 'public', brandName = 'PP Studio' }: Site
           <Link href="/" className="flex flex-col items-start text-[var(--color-foreground)]">
             <span className="font-display text-[1.55rem] tracking-[0.14em]">{brandName}</span>
             {showHomepageSubtitle ? (
-              <span className="mt-1 text-[10px] font-semibold uppercase tracking-[0.3em] text-[var(--color-accent)] sm:text-[11px]">
+              <span className="text-eyebrow mt-1 tracking-[0.15em] text-[var(--color-accent)]">
                 COSMETICS &amp; LAMINATIONS
               </span>
             ) : null}
           </Link>
           <Link
             href="/rezervace"
-            className="inline-flex min-h-11 items-center justify-center rounded-full bg-[var(--color-foreground)] px-5 text-[11px] font-semibold uppercase tracking-[0.16em] text-white md:hidden"
+            className="button-text inline-flex min-h-11 items-center justify-center rounded-full bg-[var(--color-foreground)] px-5 text-white md:hidden"
           >
             Rezervace
           </Link>
@@ -43,7 +43,7 @@ export function SiteHeader({ variant = 'public', brandName = 'PP Studio' }: Site
               key={item.href}
               href={item.href}
               className={cn(
-                'rounded-full px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] transition-colors sm:text-xs',
+                'button-text rounded-full px-3 py-2 tracking-[0.15em] transition-colors',
                 'text-[var(--color-muted)] hover:bg-white/70 hover:text-[var(--color-foreground)]',
               )}
             >
@@ -56,14 +56,14 @@ export function SiteHeader({ variant = 'public', brandName = 'PP Studio' }: Site
           {variant === 'public' ? (
             <Link
               href="/rezervace"
-              className="inline-flex min-h-11 items-center justify-center rounded-full bg-[var(--color-foreground)] px-5 text-xs font-semibold uppercase tracking-[0.16em] text-white hover:bg-[#2c221d]"
+              className="button-text inline-flex min-h-11 items-center justify-center rounded-full bg-[var(--color-foreground)] px-5 text-white hover:bg-[#2c221d]"
             >
               Rezervovat termín
             </Link>
           ) : null}
           <Link
             href="/admin/prihlaseni"
-            className="inline-flex min-h-11 items-center justify-center rounded-full border border-black/10 px-5 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--color-foreground)] hover:border-black/20 hover:bg-white"
+            className="button-text inline-flex min-h-11 items-center justify-center rounded-full border border-black/10 px-5 text-[var(--color-foreground)] hover:border-black/20 hover:bg-white"
           >
             Admin
           </Link>
