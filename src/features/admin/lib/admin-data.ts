@@ -9,6 +9,7 @@ import {
 } from "@prisma/client";
 
 import { type AdminArea, type AdminSectionSlug } from "@/config/navigation";
+import { getAdminBookingHref } from "@/features/admin/lib/admin-booking";
 import { listBootstrapAdminUsers, type BootstrapAdminUser } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 
@@ -366,6 +367,7 @@ async function getReservationsData(area: AdminArea) {
           ? `Zdroj: ${booking.source}. Kontakt: ${booking.client.phone ?? booking.clientEmailSnapshot}.`
           : `Kontakt: ${booking.client.phone ?? booking.clientEmailSnapshot}.`,
       badge: statusLabel(booking.status),
+      href: getAdminBookingHref(area, booking.id),
     })),
   };
 }

@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { type AdminArea } from "@/config/navigation";
+import { getAdminBookingHref } from "@/features/admin/lib/admin-booking";
 
 import { getAdminOverviewData } from "../lib/admin-data";
 import { AdminKeyValueList, AdminPageShell, AdminPanel } from "./admin-page-shell";
@@ -91,6 +92,7 @@ export async function AdminOverviewPage({ area }: AdminOverviewPageProps) {
                     ? "Nejbližší rezervace. Doporučujeme otevřít jako první."
                     : "Další rezervace v dnešním pořadí.",
                 badge: index === 0 ? "teď" : "dnes",
+                href: getAdminBookingHref(area, booking.id),
               }))}
               emptyTitle="Na dnešek zatím nejsou žádné rezervace."
               emptyDescription="Jakmile se objeví první termín, okamžitě se zobrazí tady nahoře."
@@ -139,6 +141,7 @@ export async function AdminOverviewPage({ area }: AdminOverviewPageProps) {
                 area === "owner"
                   ? `Klientka ${booking.client.fullName} má před sebou rezervaci služby ${booking.service.name}.`
                   : `Připrav klientku ${booking.client.fullName} na službu ${booking.service.name}.`,
+              href: getAdminBookingHref(area, booking.id),
             }))}
             emptyTitle="Zatím tu nejsou žádné budoucí rezervace."
             emptyDescription="Jakmile klientka odešle rezervaci nebo admin vytvoří termín ručně, objeví se tady."

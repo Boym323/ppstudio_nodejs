@@ -35,6 +35,7 @@ Formát je inspirovaný Keep a Changelog.
 - Deployment notes pro systemd a Docker Compose provoz workeru.
 - Owner-only admin obrazovka pro pending/retrying emaily a poslední chyby workeru.
 - Owner-only detail email logu s payloadem, chybou, ručním retry a uvolněním zaseknutého jobu.
+- První produkční detail rezervace v adminu pro `OWNER` i `SALON`, včetně napojení ze seznamů a dashboardu.
 
 ### Changed
 - Výchozí Next.js demo bylo nahrazeno čistým škálovatelným scaffoldingem pro produkční vývoj.
@@ -53,6 +54,7 @@ Formát je inspirovaný Keep a Changelog.
 - Rezervační flow už po úspěšném commitu rovnou zpracovává potvrzovací e-mail a ve UI rozlišuje, zda delivery proběhla nebo selhala.
 - Placeholder storno route byla nahrazená produkčním flow nad `BookingActionToken`.
 - Root metadata byla rozšířená o základní SEO signály pro nasazení v1.
+- Admin rezervace už nejsou jen read-only seznam; detail nyní umožňuje server-side změnu stavu s důvodem, interní poznámkou a auditní historií.
 
 ### Fixed
 - Návrh datové vrstvy už nespoléhá na zjednodušený booking request model bez auditní historie a bez bezpečných tokenů.

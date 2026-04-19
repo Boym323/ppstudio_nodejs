@@ -122,6 +122,15 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
   - Klientky
   - Nabídka
   - Kategorie služeb
+- Detail rezervace je nyní dostupný jak pro `OWNER`, tak pro `SALON`:
+  - `OWNER` na `/admin/rezervace/[bookingId]`
+  - `SALON` na `/admin/provoz/rezervace/[bookingId]`
+- Z detailu rezervace lze bezpečně změnit stav pouze v povolených krocích:
+  - `PENDING -> CONFIRMED`
+  - `CONFIRMED -> COMPLETED`
+  - `PENDING/CONFIRMED -> CANCELLED`
+  - `CONFIRMED -> NO_SHOW`
+- Každá změna stavu z detailu zapisuje položku do `BookingStatusHistory` včetně admin aktéra, důvodu a poznámky.
 - Aby se owner sekce `Email logy` neopírala o ručně zastaralý Prisma klient, `npm run dev` i `npm run build` si nyní předem samy spouštějí `prisma generate`.
 - Ochrana není řešená jen skrytím položek v menu:
   - `proxy.ts` dál blokuje nepřihlášené vstupy
@@ -136,6 +145,7 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
 - `Booking` drží snapshot klienta, služby i času, takže pozdější změny ceníku nebo názvů služeb nepoškodí historická data.
 - `Booking` navíc drží vazbu na předchozí rezervaci při reschedule a nepovoluje duplicitní booking stejného klienta do stejného slotu.
 - `BookingStatusHistory` slouží jako audit změn stavu a rozlišuje akci uživatele, klienta nebo systému.
+- Admin detail rezervace zobrazuje historii změn jako provozní timeline, takže salon i owner vidí, kdo a kdy stav upravil.
 - `BookingActionToken` ukládá pouze hash tokenu pro storno a přesun termínu, nikdy ne surovou hodnotu tokenu.
 - `EmailLog` umožňuje trasovat odeslané i neúspěšné e-maily navázané na klienta, rezervaci a případný token.
 - Owner-only sekce `Email logy` je provozní observability obrazovka pro pending frontu, retry pokusy a poslední chyby workeru.
