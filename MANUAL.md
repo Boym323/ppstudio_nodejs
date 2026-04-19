@@ -31,7 +31,8 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
   - storno podmínky
   - obchodní podmínky
   - GDPR
-- Veřejný obsah je centralizovaný v `src/content/public-site.ts`, aby šly texty, ceny a foto briefy měnit bez zásahu do layout komponent.
+- Veřejný obsah je centralizovaný v `src/content/public-site.ts`, aby šly texty a hlavní brand copy měnit bez zásahu do layout komponent.
+- Reálné služby z DB dostávají veřejnou copy vrstvu v `src/features/public/lib/public-services.ts`, kde lze držet jemnější public názvy a krátké popisy odděleně od interních katalogových názvů.
 - Ceník na `/cenik` je členěný podle kategorií a už nepoužívá vedlejší blok s poznámkami; detail služby zůstává místem pro doplňující vysvětlení.
 - Rezervační vrstva stojí na ručně vypisovaných termínech přes `AvailabilitySlot`, ne na pevné otevírací době.
 - Admin má dva směry použití:
@@ -90,11 +91,7 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
   - kontaktní údaje klienta
   - souhrn a potvrzení
 - Rezervační stránka je renderovaná dynamicky při requestu, takže nově publikované nebo obsazené sloty jsou vidět bez dalšího buildu.
-- Placeholder obsah je záměrně označený a má být před spuštěním nahrazen:
-  - finálním copywritingem
-  - reálnými cenami a délkami služeb
-  - autentickými kontakty
-  - vlastními fotografiemi majitelky, interiéru a procedur
+- Hero, sekce `O salonu` a základní service copy jsou už přepsané do klidnějšího a osobnějšího tónu; další jemné úpravy je vhodné dělat centrálně v obsahové vrstvě nebo v DB copy mapě služeb.
 - CTA na rezervaci je dostupné v hlavičce, hero sekcích i obsahových blocích.
 
 ## Přihlášení Do Adminu

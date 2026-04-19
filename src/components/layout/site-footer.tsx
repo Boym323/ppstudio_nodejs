@@ -16,7 +16,7 @@ export async function SiteFooter() {
             {salonProfile.name}
           </p>
           <p className="mt-4 max-w-md text-sm leading-7 text-[var(--color-muted)]">
-            Luxusní a čistý prezentační web pro kosmetický salon se silnou rezervací, důvěryhodným obsahem a jasnými provozními informacemi.
+            Komorní studio pro péči o pleť, výraz i celkový pocit ze sebe. Přehledně, osobně a bez zbytečného spěchu.
           </p>
         </div>
 

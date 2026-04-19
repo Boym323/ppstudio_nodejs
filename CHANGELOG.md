@@ -60,6 +60,8 @@ Formát je inspirovaný Keep a Changelog.
 - Týdenní planner dostupností pro `OWNER` i `SALON` nyní zobrazuje rezervace, omezené intervaly, neaktivní sloty i minulý čas v jednom klidném kalendáři.
 
 ### Changed
+- Veřejný brand copy na homepage, stránce `O salonu`, `Kontakt`, `Služby` a `Ceník` byl přepsaný do kratšího, osobnějšího a méně generického tónu bez interního placeholder jazyka.
+- Public read model služeb v `src/features/public/lib/public-services.ts` nově umí přepisovat interní názvy na jemnější public varianty a drží ručně kurátorované krátké popisy podle skutečných služeb z databáze.
 - Stránka `/cenik` je rozdělená do vizuálně oddělených kategorií ve stylu samostatných sekcí s vlastní hlavičkou; obsah je zúžený do čitelnější šířky, bez počtu služeb v kategorii a bez popisku `Cena od`, s novou typografickou hierarchií zvýrazňující cenu, klidnější názvy služeb a čitelnější popisy.
 - Tón textů v adminu byl sjednocen napříč `Nastavení`, `Službami`, `Kategoriemi`, `Rezervacemi` i přehledy, aby celé prostředí působilo klidněji a konzistentněji.
 - Admin sekce `Nastavení` dostala další vizuální a textový polish: orientační blok nahoře, kratší mikrocopy a jemnější hierarchii panelů bez změny logiky.

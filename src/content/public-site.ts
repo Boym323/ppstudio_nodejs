@@ -42,9 +42,9 @@ export type ContactItem = {
 };
 
 export const salonHighlights: HighlightItem[] = [
-  { label: 'Individuální konzultace', value: '15 minut před první návštěvou' },
-  { label: 'Prostor pro klid', value: 'Jen 1 klientka v čase ošetření' },
-  { label: 'Rezervace', value: 'Ručně vypisované volné termíny' },
+  { label: 'Osobní přístup', value: 'Každá návštěva podle aktuální potřeby' },
+  { label: 'Komorní péče', value: 'Čas vedený bez zbytečného spěchu' },
+  { label: 'Rezervace', value: 'Volné termíny vypisované průběžně' },
 ];
 
 export function buildTrustMetrics(cancellationHours: number): TrustMetric[] {
@@ -119,33 +119,33 @@ export const services: Service[] = [
 
 export const homepageContent = {
   eyebrow: 'Kosmetický salon s důrazem na detail',
-  title: 'Luxusní web, který budí důvěru a vede klientku přirozeně k rezervaci.',
+  title: 'Místo, kde se pečuje pozorně',
   description:
-    'Veřejná část je navržená jako čistý prezentační web pro moderní salon: silná první obrazovka, srozumitelná nabídka služeb, jasné podmínky a obsah připravený pro pozdější doplnění reálných textů i fotografií.',
-  primaryCta: { href: '/rezervace', label: 'Rezervovat termín' },
-  secondaryCta: { href: '/sluzby', label: 'Prohlédnout služby' },
+    'Každá návštěva v PP Studio vychází z aktuální potřeby pleti, vašeho stylu a toho, jak se chcete cítit.',
+  primaryCta: { href: '/rezervace', label: 'Vybrat termín' },
+  secondaryCta: { href: '/sluzby', label: 'Zobrazit služby' },
 };
 
 export const aboutContent = {
-  heroTitle: 'Klidné místo pro péči, která nepůsobí sériově.',
+  heroTitle: 'Péče, která začíná pozorností',
   heroDescription:
-    'Stránka je připravená pro příběh majitelky i samotného prostoru. Texty níže jsou realistické placeholdery a jsou rozdělené tak, aby šly snadno nahradit finálním copywritingem bez zásahu do layoutu.',
+    'V PP Studio je pro mě důležité, aby každá návštěva odpovídala tomu, co právě potřebuje vaše pleť, výraz i celkový pocit ze sebe.',
   story: [
-    'PP Studio je koncipováno jako komorní salon, kde se propojuje odborná péče o pleť s klidnou atmosférou a osobním přístupem. Místo rychlého střídání klientek staví na pečlivě vedeném čase a citlivé komunikaci.',
-    'Tato verze webu záměrně používá editovatelnou textovou strukturu. Reálný příběh značky sem lze později doplnit po blocích: filozofie péče, profesní zkušenosti, použité značky a fotografie prostoru.',
+    'Věřím, že dobrá péče začíná tím, že vás někdo opravdu vnímá. Proto si dávám záležet na tom, aby zvolená služba odpovídala tomu, co vám bude sedět právě teď.',
+    'Nejde mi o univerzální postup ani o rychlý efekt za každou cenu. Důležitý je pro mě promyšlený výběr péče, pečlivé provedení a výsledek, ve kterém se budete cítit dobře.',
   ],
   values: [
     {
-      title: 'Jemnost bez neurčitosti',
-      description: 'Komunikace působí lehce, ale klientka vždy přesně ví, co služba obsahuje, kolik stojí a jak probíhá rezervace.',
+      title: 'Pozornost',
+      description: 'Každá návštěva má vlastní tempo a vlastní důvod. Podle toho volím průběh i doporučení.',
     },
     {
-      title: 'Péče na míru',
-      description: 'Obsah i budoucí booking flow počítají s tím, že různé služby a různé klientky potřebují odlišné vedení.',
+      title: 'Jistota',
+      description: 'Chci, abyste se v průběhu celé návštěvy cítila klidně, pohodlně a bez nejistoty.',
     },
     {
-      title: 'Důvěra před prodejem',
-      description: 'Na webu mají prioritu jasné informace, reference, podmínky a kontakt, ne agresivní prodejní tlak.',
+      title: 'Výsledek',
+      description: 'Cílem není nápadnost, ale péče, která je přesná, kultivovaná a dává vám smysl.',
     },
   ],
   galleryGuide: [
@@ -205,12 +205,12 @@ export function buildFaqItems(cancellationHours: number): FaqItem[] {
     {
       question: 'Jak funguje rezervace termínu?',
       answer:
-        'Salon publikuje volné termíny ručně. Klientka tak vidí jen skutečně dostupné časy a může si vybrat bez zbytečných slepých míst v kalendáři.',
+        'Volné termíny vypisuji průběžně. V rezervačním přehledu tak uvidíte jen časy, které jsou opravdu k dispozici.',
     },
     {
       question: 'Je možné službu při rezervaci ještě upřesnit?',
       answer:
-        'Ano. Web počítá s tím, že některé rezervace začínají výběrem orientační služby a finální doporučení může vzniknout až po krátké konzultaci.',
+        'Ano. Pokud si nejste jistá výběrem, zvolte nejbližší variantu a při návštěvě vše společně doladíme.',
     },
     {
       question: 'Jak je to se storno podmínkami?',
@@ -219,7 +219,7 @@ export function buildFaqItems(cancellationHours: number): FaqItem[] {
     {
       question: 'Mohu přijít i na první konzultaci bez předchozí zkušenosti?',
       answer:
-        'Ano. Obsah webu i budoucí booking flow jsou psané tak, aby se na nich dobře orientovala i klientka, která salon navštěvuje poprvé.',
+        'Ano. Pokud jdete poprvé, ráda vás péčí provedu tak, abyste se mohla rozhodovat s klidem a jistotou.',
     },
   ];
 }

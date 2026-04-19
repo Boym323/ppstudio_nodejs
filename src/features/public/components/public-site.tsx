@@ -7,7 +7,6 @@ import {
   buildFaqItems,
   buildLegalContent,
   buildTrustMetrics,
-  contentStructureGuide,
   homepageContent,
   salonHighlights,
   services,
@@ -70,10 +69,10 @@ function PublicHero({
         <div className="grid gap-4">
           <div className="rounded-[calc(var(--radius-panel)-0.25rem)] border border-white/75 bg-white/82 p-5 shadow-[var(--shadow-panel)] backdrop-blur sm:p-6">
             <p className="text-[11px] font-semibold uppercase tracking-[0.32em] text-[var(--color-accent)]">
-              Připraveno pro produkční obsah
+              PP Studio
             </p>
             <p className="mt-4 max-w-md font-display text-2xl leading-[1.12] text-[var(--color-foreground)] sm:text-3xl">
-              Texty, fotky i nabídka služeb jsou oddělené do editovatelné struktury bez demo chaosu.
+              Péče vedená osobně, s prostorem pro to, co právě potřebujete.
             </p>
           </div>
           <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
@@ -234,7 +233,7 @@ function CtaBand() {
               Rezervace bez zbytečných kroků
             </p>
             <h2 className="mt-4 font-display text-3xl leading-[1.08] tracking-tight sm:text-4xl lg:text-5xl">
-              Volné termíny budou vždy vedené ručně, ale cesta klientky zůstane jednoduchá.
+              Vyberte si službu a termín v několika klidných krocích.
             </h2>
           </div>
           <div className="mt-6 flex flex-col gap-3 sm:flex-row lg:mt-0">
@@ -242,13 +241,13 @@ function CtaBand() {
               href="/rezervace"
               className="inline-flex min-h-13 w-full items-center justify-center rounded-full bg-[var(--color-accent)] px-7 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-accent-contrast)] hover:brightness-105 sm:w-auto sm:text-sm"
             >
-              Přejít na rezervaci
+              Vybrat termín
             </Link>
             <Link
               href="/kontakt"
               className="inline-flex min-h-13 w-full items-center justify-center rounded-full border border-white/18 px-7 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-white hover:border-white/35 hover:bg-white/6 sm:w-auto sm:text-sm"
             >
-              Kontaktovat salon
+              Napsat do studia
             </Link>
           </div>
         </div>
@@ -322,8 +321,8 @@ export async function PublicHomePage({ featuredServices = services.slice(0, 3) }
         <Container className="space-y-8 sm:space-y-10">
           <SectionHeading
             eyebrow="Vybrané služby"
-            title="Přehled služeb je stručný, srozumitelný a připravený pro pozdější rozšíření bez přepisování layoutu."
-            description="Každá služba má vlastní detail pro SEO, důvěru i lepší orientaci klientky. Níže uvedené texty jsou realistické placeholdery oddělené od kódu v centrálním obsahu."
+            title="Služby vybírám tak, aby bylo hned jasné, pro koho jsou a co od nich můžete čekat."
+            description="Kosmetická ošetření, řasy a obočí, masáž i líčení mají každé svůj vlastní rytmus i účel."
           />
           <div className="grid gap-6 lg:grid-cols-3">
             {featuredServices.map((service) => (
@@ -337,58 +336,30 @@ export async function PublicHomePage({ featuredServices = services.slice(0, 3) }
         <Container className="grid gap-6 lg:grid-cols-[1fr_0.9fr]">
           <div className="rounded-[var(--radius-panel)] border border-black/6 bg-white p-6 shadow-[var(--shadow-panel)] sm:p-8">
             <SectionHeading
-              eyebrow="Důvěra a jasnost"
-              title="Web mluví klidně, ale přesně."
-              description="Veřejná část vede návštěvnici přes služby, ceník, odpovědi na běžné otázky i právní informace bez zahlcení a bez prázdných marketingových frází."
+              eyebrow="Jak pracuji"
+              title="Každá návštěva má mít jasný směr a příjemný průběh."
+              description="Od první volby služby po samotnou péči je pro mě důležité, abyste se mohla rozhodovat s jistotou a bez tlaku."
             />
             <div className="mt-8 grid gap-4 sm:grid-cols-2">
               <div className="rounded-[calc(var(--radius-panel)-0.5rem)] bg-[var(--color-surface)] p-5">
-                <p className="font-display text-xl text-[var(--color-foreground)] sm:text-2xl">Silné CTA</p>
-                <p className="mt-3 text-[13px] leading-6 text-[var(--color-muted)] sm:text-sm">Rezervace je v navigaci, v hero sekci i v kontextových blocích napříč webem.</p>
+                <p className="font-display text-xl text-[var(--color-foreground)] sm:text-2xl">Péče podle vás</p>
+                <p className="mt-3 text-[13px] leading-6 text-[var(--color-muted)] sm:text-sm">Pokud si nejste jistá výběrem, službu společně při návštěvě upravíme nebo upřesníme.</p>
               </div>
               <div className="rounded-[calc(var(--radius-panel)-0.5rem)] bg-[var(--color-surface)] p-5">
-                <p className="font-display text-xl text-[var(--color-foreground)] sm:text-2xl">Perfektní mobil</p>
-                <p className="mt-3 text-[13px] leading-6 text-[var(--color-muted)] sm:text-sm">Sekce drží rytmus, typografii i čitelnost na menších displejích bez nadbytečných efektů.</p>
+                <p className="font-display text-xl text-[var(--color-foreground)] sm:text-2xl">Jasné podmínky</p>
+                <p className="mt-3 text-[13px] leading-6 text-[var(--color-muted)] sm:text-sm">Ceník, storno pravidla i kontakty najdete přehledně a bez zbytečně složitých formulací.</p>
               </div>
             </div>
           </div>
           <PlaceholderNote
-            title="Doplnit před spuštěním"
+            title="Dobré vědět"
             items={[
-              'finální headline a brand voice hero sekce',
-              'autentické fotografie majitelky a interiéru',
-              'reálné ceny, délky procedur a používané značky',
-              'reference klientek a přesné kontaktní údaje',
+              'pokud si nejste jistá výběrem služby, stačí zvolit nejbližší variantu',
+              'volné termíny vypisuji průběžně podle reálné kapacity',
+              'rezervaci lze pohodlně potvrdit online během několika kroků',
+              'na první návštěvě je vždy prostor pro krátké upřesnění péče',
             ]}
           />
-        </Container>
-      </section>
-
-      <section className="py-12 sm:py-16">
-        <Container className="grid gap-6 lg:grid-cols-2">
-          <div className="rounded-[var(--radius-panel)] border border-black/6 bg-white p-6 shadow-[var(--shadow-panel)] sm:p-8">
-            <SectionHeading
-              eyebrow="Obsahová osnova"
-              title="Doporučená struktura pro budoucí texty a fotky."
-              description="Obsah je rozdělený do přirozených bloků, takže copywriter nebo majitelka salonu může doplňovat jednotlivé části postupně."
-            />
-            <div className="mt-8 grid gap-4">
-              {contentStructureGuide.map((group) => (
-                <PlaceholderNote key={group.title} title={group.title} items={[...group.items]} />
-              ))}
-            </div>
-          </div>
-          <div className="rounded-[var(--radius-panel)] border border-black/6 bg-[#fcf8f4] p-6 shadow-[var(--shadow-panel)] sm:p-8">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[var(--color-accent)]">Připravené další kroky</p>
-            <div className="mt-5 space-y-5 text-[15px] leading-7 text-[var(--color-muted)] sm:text-base">
-              <p>
-                Jakmile budou k dispozici reálné podklady, stačí vyměnit centrální obsah a není nutné přepisovat komponenty ani routy.
-              </p>
-              <p>
-                Tím zůstává prezentace čistá, SEO konzistentní a další navazující práce na booking flow nebo administraci se nepromíchá s veřejným obsahem.
-              </p>
-            </div>
-          </div>
         </Container>
       </section>
 
@@ -402,8 +373,8 @@ export function ServicesPage({ services: catalogServices = services }: { service
     <div className="pb-8 sm:pb-12">
       <PublicHero
         eyebrow="Služby"
-        title="Nabídka, která ukazuje výsledek i průběh bez zahlcení detaily."
-        description="Výpis služeb je navržený tak, aby si klientka rychle našla vhodný směr a teprve pak šla do detailu. To je přirozenější pro UX i následné SEO rozšíření katalogu."
+        title="Péče rozdělená podle toho, co právě hledáte."
+        description="Kosmetická ošetření pracují se stavem pleti, lash & brow služby s výrazem, masáž s uvolněním a líčení s konkrétní příležitostí."
         primaryCta={{ href: '/rezervace', label: 'Vybrat termín' }}
         secondaryCta={{ href: '/cenik', label: 'Zobrazit ceník' }}
       />
@@ -411,7 +382,7 @@ export function ServicesPage({ services: catalogServices = services }: { service
         <Container className="space-y-8 sm:space-y-10">
           <SectionHeading
             eyebrow="Katalog služeb"
-            title="Každá karta shrnuje to podstatné: pro koho služba je, jak dlouho trvá a od jaké ceny začíná."
+            title="Každá služba shrnuje to podstatné: zaměření péče, délku i cenu."
           />
           <div className="grid gap-6 lg:grid-cols-3">
             {catalogServices.map((service) => (
@@ -477,18 +448,18 @@ export function ServiceDetailPage({ service }: { service: Service }) {
           </div>
           <div className="space-y-6">
             <PlaceholderNote
-              title="Doplnit reálný obsah"
+              title="Dobré vědět"
               items={[
-                `foto brief: ${service.placeholderAssetBrief}`,
-                'přesná metodika a použité produkty',
-                'kontraindikace nebo doporučení před návštěvou',
-                'reference nebo mini FAQ ke službě',
+                'pokud si nejste jistá výběrem, při návštěvě službu společně upřesníme',
+                'termín vyberete online během několika kroků',
+                'u delších návštěv je vždy prostor i na krátkou konzultaci',
+                'konkrétní doporučení k domácí péči dostanete podle průběhu služby',
               ]}
             />
             <div className="rounded-[calc(var(--radius-panel)-0.5rem)] border border-black/6 bg-white p-5 shadow-[var(--shadow-panel)] sm:p-6">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[var(--color-accent)]">Poznámka k obsahu</p>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[var(--color-accent)]">Rezervace</p>
               <p className="mt-4 text-[15px] leading-7 text-[var(--color-muted)] sm:text-base">
-                Tento detail služby je připravený jako produkční šablona. Reálné texty lze měnit centrálně bez zásahu do komponent, routingu ani SEO struktury.
+                Pokud vám tahle služba dává smysl, můžete si rovnou vybrat termín. Pokud váháte, napište mi a společně zvolíme vhodnější variantu.
               </p>
             </div>
           </div>
@@ -506,9 +477,9 @@ export function PricingPage({ services: catalogServices = services }: { services
     <div className="pb-8 sm:pb-12">
       <PublicHero
         eyebrow="Ceník"
-        title="Přehled cen navržený pro rychlé rozhodnutí i pohodlné čtení na mobilu."
-        description="Ceník drží jen to podstatné. Detailní vysvětlení služeb zůstává na samostatných stránkách, takže ceny nepůsobí přeplácaně a klientka se neztrácí."
-        primaryCta={{ href: '/rezervace', label: 'Pokračovat k rezervaci' }}
+        title="Ceny přehledně a bez zbytečného hledání."
+        description="Najdete tu služby rozdělené do kategorií, abyste si mohla rychle udělat jasnější představu."
+        primaryCta={{ href: '/rezervace', label: 'Vybrat termín' }}
         secondaryCta={{ href: '/sluzby', label: 'Porovnat služby' }}
       />
       <section className="py-12 sm:py-16">
@@ -516,8 +487,8 @@ export function PricingPage({ services: catalogServices = services }: { services
           <div className="mx-auto max-w-4xl space-y-6">
             <SectionHeading
               eyebrow="Aktuální přehled"
-              title="Ceník rozdělený podle kategorií, aby se v něm dalo rychle vyznat."
-              description="Každá kategorie stojí samostatně a služby jsou seřazené stejně jako v administraci. Ceník tak působí přehledněji a v užší šířce se čte přirozeněji."
+              title="Ceník rozdělený tak, aby se v něm dalo rozhodovat s větší jistotou."
+              description="Pokud si nejste jistá volbou, ráda vám s výběrem služby pomohu osobně."
             />
           </div>
           <div className="mx-auto max-w-[52rem] space-y-8">
@@ -559,15 +530,15 @@ export function AboutPage() {
         eyebrow="O salonu"
         title={aboutContent.heroTitle}
         description={aboutContent.heroDescription}
-        primaryCta={{ href: '/kontakt', label: 'Kontaktovat salon' }}
+        primaryCta={{ href: '/kontakt', label: 'Napsat do studia' }}
         secondaryCta={{ href: '/rezervace', label: 'Rezervovat termín' }}
       />
       <section className="py-12 sm:py-16">
         <Container className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
           <div className="rounded-[var(--radius-panel)] border border-black/6 bg-white p-6 shadow-[var(--shadow-panel)] sm:p-8">
             <SectionHeading
-              eyebrow="Příběh značky"
-              title="Texty jsou rozdělené do bloků, aby se daly pohodlně nahradit finální verzí bez zásahu do layoutu."
+              eyebrow="Můj přístup"
+              title="Chci, aby péče dávala smysl vám, ne jen obecně."
             />
             <div className="mt-8 space-y-5 text-[15px] leading-7 text-[var(--color-muted)] sm:text-base">
               {aboutContent.story.map((paragraph) => (
@@ -583,7 +554,14 @@ export function AboutPage() {
               ))}
             </div>
           </div>
-          <PlaceholderNote title="Doporučené fotografie" items={aboutContent.galleryGuide} />
+          <PlaceholderNote
+            title="Na čem mi záleží"
+            items={[
+              'pečlivě zvolená služba podle aktuální potřeby',
+              'příjemný průběh bez zbytečného spěchu',
+              'výsledek, ve kterém se budete cítit dobře',
+            ]}
+          />
         </Container>
       </section>
       <CtaBand />
@@ -604,9 +582,9 @@ export async function ContactPage() {
     <div className="pb-8 sm:pb-12">
       <PublicHero
         eyebrow="Kontakt"
-        title="Kontakt i praktické informace mají být dostupné během několika sekund."
-        description="Stránka je navržená pro rychlé rozhodnutí na mobilu: kontakt, adresa, provozní režim a jasný odkaz na rezervaci. Reálné údaje jsou teď označené jako placeholdery."
-        primaryCta={{ href: '/rezervace', label: 'Přejít na rezervaci' }}
+        title="Pokud si nejste jistá, napište mi."
+        description="Ráda vám pomohu s výběrem služby i termínu. Najdete mě ve Zlíně a ozvat se můžete telefonicky, e-mailem i přes Instagram."
+        primaryCta={{ href: '/rezervace', label: 'Přejít k rezervaci' }}
       />
       <section className="py-12 sm:py-16">
         <Container className="grid gap-6 lg:grid-cols-[1fr_0.95fr]">
@@ -617,13 +595,12 @@ export async function ContactPage() {
           </div>
           <div className="rounded-[var(--radius-panel)] border border-black/6 bg-white p-6 shadow-[var(--shadow-panel)] sm:p-8">
             <SectionHeading
-              eyebrow="Doplnit před spuštěním"
-              title="Co ještě na kontaktní stránce doplnit."
+              eyebrow="Když váháte"
+              title="S výběrem služby vám ráda pomohu."
             />
             <div className="mt-8 space-y-4 text-[15px] leading-7 text-[var(--color-muted)] sm:text-base">
-              <p>Vložit mapu nebo odkaz na navigaci, pokud skutečná adresa pracoviště podporuje osobní návštěvy bez komplikovaného hledání.</p>
-              <p>Doplnit instrukce k parkování, patru nebo vstupu do budovy, pokud mají vliv na komfort první návštěvy.</p>
-              <p>Pokud salon komunikuje primárně přes telefon nebo WhatsApp, lze tento blok rozšířit o krátký provozní režim odpovědí.</p>
+              <p>Pokud si nejste jistá, kterou službu zvolit, napište mi nebo si rezervujte nejbližší variantu.</p>
+              <p>Podle stavu pleti, vašeho přání nebo konkrétní příležitosti spolu vybereme péči, která vám bude sedět nejlépe.</p>
             </div>
           </div>
         </Container>
@@ -644,7 +621,7 @@ export async function FaqPage() {
         title="Odpovědi na otázky, které klientce pomáhají rozhodnout se bez nejistoty."
         description="FAQ je krátké, jasné a psané s důrazem na první návštěvu, způsob rezervace i základní provozní očekávání."
         primaryCta={{ href: '/rezervace', label: 'Najít volný termín' }}
-        secondaryCta={{ href: '/kontakt', label: 'Zeptat se přímo' }}
+        secondaryCta={{ href: '/kontakt', label: 'Napsat do studia' }}
       />
       <section className="py-12 sm:py-16">
         <Container className="space-y-6">

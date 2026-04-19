@@ -30,10 +30,15 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Veřejný web drží dva zdroje obsahu:
   - marketingové bloky, FAQ a právní texty jsou dál centralizované v `src/content/public-site.ts`
   - služby a ceník berou data z DB přes `src/features/public/lib/public-services.ts`
+- `src/features/public/lib/public-services.ts` nyní zároveň funguje jako tenká prezentační vrstva nad DB katalogem:
+  - může mapovat interní názvy služby na jemnější public názvy
+  - drží krátké public popisy po sluzích podle `slug`
+  - category label může být na veřejném webu jemnější než interní DB název
 - Ceník na `/cenik` je renderovaný jako plnošířkový přehled po kategoriích a už nemá doprovodný blok s poznámkami.
 - Úvodní stránka používá stejný DB katalog pro featured služby, aby odkazy z homepage mířily na aktuální slugs.
 - Reusable page sekce jsou ve `src/features/public/components/public-site.tsx`.
 - Placeholder obsah musí být jasně odlišen od finálních produkčních textů.
+- Pokud je interní název služby příliš technický nebo exportovaný ze starého webu, nepřepisuj DB záznam jen kvůli public copy; preferuj public override v read modelu.
 - CTA na rezervaci držet konzistentně v headeru, hero sekcích a kontextových blocích.
 
 ## Auth Strategie
