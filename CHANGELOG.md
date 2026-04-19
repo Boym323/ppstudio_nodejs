@@ -74,10 +74,15 @@ Formát je inspirovaný Keep a Changelog.
 - Dokumentace byla srovnaná s aktuálním kódem: týdenní planner, `EMAIL_DELIVERY_MODE=background` a produkční migrace přes `prisma migrate deploy`.
 
 ### Fixed
+- Opravené označování `Minulý čas` v admin planneru: budoucí dny už nejsou chybně blokované podle aktuální hodiny dneška.
+- Planner UI nyní používá pevný počet 28 řádků pro pracovní okno `06:00-20:00`, takže se mřížka nerozjíždí ani při rozjetých datech nebo zastaralém client payloadu.
+- Planner grid už negeneruje extra řádky bez časových popisků; výška mřížky se nyní primárně řídí `timeLabels` (pracovní okno), a ne nekonzistentní délkou buněk v payloadu.
 - Opravené Next.js 16 `use server` chyby: server action soubory už exportují pouze `async` funkce; initial action state objekty byly přesunuté do samostatných modulů pro client komponenty.
 - Root layout nově obsahuje `data-scroll-behavior=\"smooth\"`, takže při zapnutém `scroll-behavior: smooth` na `<html>` už nevzniká runtime warning při route přechodech.
 - Planner grid už negeneruje přesažené prázdné řádky při rozjezdu mezi počtem `timeLabels` a počtem buněk v datech dne; vykreslení je nyní svázané s reálným počtem dostupných buněk.
 - Planner kalendář už nemůže zmizet při nekonzistenci dat z klienta/serveru; počet vykreslených řádků se bere bezpečně z dostupného maxima (`timeLabels` vs. `cells`) místo průniku.
+- Výpočet začátku týdne v planneru už nepoužívá UTC den týdne, ale lokální kalendářní den (Praha), takže týden se znovu otevírá správně od pondělí místo posunu na úterý.
+- Ukládání změn dostupnosti už nepadá na FK `createdByUserId` při bootstrap přihlášení: server action nyní mapuje session na reálného `AdminUser` podle e-mailu a když záznam neexistuje, uloží slot s `createdByUserId = null`.
 - Cross-origin blokaci Next.js dev serveru při otevření aplikace z LAN adresy `192.168.0.143`, která rozbíjela HMR přes `/_next/webpack-hmr`.
 - Návrh datové vrstvy už nespoléhá na zjednodušený booking request model bez auditní historie a bez bezpečných tokenů.
 - Datový model lépe chrání proti náhoditému duplicitnímu bookingu stejného klienta do stejného slotu.

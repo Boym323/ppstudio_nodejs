@@ -45,6 +45,11 @@ const monthDayFormatter = new Intl.DateTimeFormat("cs-CZ", {
   timeZone: PRAGUE_TIME_ZONE,
 });
 
+const monthOnlyFormatter = new Intl.DateTimeFormat("cs-CZ", {
+  month: "numeric",
+  timeZone: PRAGUE_TIME_ZONE,
+});
+
 const dateTimePartsFormatter = new Intl.DateTimeFormat("en-CA", {
   timeZone: PRAGUE_TIME_ZONE,
   year: "numeric",
@@ -195,7 +200,7 @@ function addDays(date: Date, amount: number) {
 function getWeekStartForDate(date: Date) {
   const parts = getDateTimeParts(date);
   const startOfDay = pragueLocalDateTimeToUtc(parts.year, parts.month, parts.day, 0, 0);
-  const dayOfWeek = startOfDay.getUTCDay();
+  const dayOfWeek = new Date(Date.UTC(parts.year, parts.month - 1, parts.day)).getUTCDay();
   const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
 
   return addDays(startOfDay, mondayOffset);
@@ -322,10 +327,6 @@ function isPlainEditableSlot(slot: {
   );
 }
 
-function isPastInterval(interval: { endCell: number }, nowCell: number, isPastDay: boolean) {
-  return isPastDay || interval.endCell <= nowCell;
-}
-
 function isSameDateKey(left: string, right: string) {
   return left === right;
 }
@@ -362,6 +363,7 @@ export type PlannerDay = {
   label: string;
   shortLabel: string;
   dayNumber: string;
+  monthLabel: string;
   monthDayLabel: string;
   isToday: boolean;
   isPast: boolean;
@@ -617,7 +619,17 @@ export async function getAdminPlannerWeek(area: AdminArea, week?: string | null)
     const availableCells = buildCellsMap(availableIntervals);
     const inactiveCells = buildCellsMap(intervals.filter((interval) => interval.status === "inactive"));
     const lockedCells = buildCellsMap(intervals.filter((interval) => interval.status === "locked"));
-    const pastCells = Array.from({ length: DAY_CELLS }, (_, cellIndex) => isPastInterval({ endCell: cellIndex + 1 }, nowCell, isPast || (isToday && cellIndex + 1 <= nowCell)));
+    const pastCells = Array.from({ length: DAY_CELLS }, (_, cellIndex) => {
+      if (isPast) {
+        return true;
+      }
+
+      if (!isToday) {
+        return false;
+      }
+
+      return cellIndex + 1 <= nowCell;
+    });
 
     const day: PlannerDay = {
       dateKey,
@@ -625,6 +637,7 @@ export async function getAdminPlannerWeek(area: AdminArea, week?: string | null)
       label: `${weekdayLongFormatter.format(dayStart)} ${dateLabelFormatter.format(dayStart)}`,
       shortLabel: weekdayShortFormatter.format(dayStart),
       dayNumber: dayNumberFormatter.format(dayStart),
+      monthLabel: `${monthOnlyFormatter.format(dayStart)}.`,
       monthDayLabel: monthDayFormatter.format(dayStart),
       isToday,
       isPast,
@@ -759,7 +772,7 @@ export async function applyAvailabilitySelection(
     startCell: number;
     endCell: number;
     mode: "add" | "remove";
-    actorUserId: string;
+    actorUserId: string | null;
   },
 ): Promise<PlannerMutationResult> {
   ensureHalfHourCellIndex(input.startCell);
@@ -857,7 +870,7 @@ export async function clearPlannerDay(
 
 async function replaceDayWithIntervals(
   tx: Prisma.TransactionClient,
-  actorUserId: string,
+  actorUserId: string | null,
   dateKey: string,
   intervals: TimeRange[],
 ) {
@@ -907,7 +920,7 @@ export async function copyPlannerDay(
     weekKey: string;
     sourceDateKey: string;
     targetDateKey: string;
-    actorUserId: string;
+    actorUserId: string | null;
   },
 ): Promise<PlannerMutationResult> {
   await prisma.$transaction(async (tx) => {
@@ -941,7 +954,7 @@ export async function copyPlannerWeek(
   input: {
     sourceWeekKey: string;
     targetWeekKey: string;
-    actorUserId: string;
+    actorUserId: string | null;
   },
 ): Promise<PlannerMutationResult> {
   const sourceWeekStart = resolveWeekStart(input.sourceWeekKey);
@@ -988,7 +1001,7 @@ export async function applyWeeklyTemplate(
   input: {
     weekKey: string;
     template: WeeklyTemplateInput;
-    actorUserId: string;
+    actorUserId: string | null;
   },
 ): Promise<PlannerMutationResult> {
   const weekStart = resolveWeekStart(input.weekKey);

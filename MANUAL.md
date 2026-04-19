@@ -148,6 +148,8 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
 - Hlavní práce probíhá jen přes týdenní kalendář; samostatný formulář pro běžnou úpravu dostupnosti už není potřeba.
 - 30min mřížka slouží jen jako editace v admin UI. Do databáze se ukládají souvislé intervaly `startsAt`-`endsAt`, aby zůstala kompatibilita s veřejným booking flow i delšími službami.
 - Planner přímo neupravuje sloty, které už obsahují rezervace, omezení služeb, poznámky nebo jinou kapacitu než `1`; takové intervaly jsou v kalendáři vidět jako omezené a zůstávají chráněné.
+- Výchozí týden v planneru je počítaný nad lokálním datem `Europe/Prague`, takže týden vždy začíná pondělím i kolem časových posunů.
+- Při bootstrap přihlášení (`ADMIN_OWNER_*`, `ADMIN_STAFF_*`) se autor změny dostupnosti ukládá jen pokud existuje odpovídající záznam v tabulce `AdminUser`; jinak se použije `createdByUserId = null`, aby změna nespadla na FK.
 - Z detailu rezervace lze bezpečně změnit stav pouze v povolených krocích:
   - `PENDING -> CONFIRMED`
   - `CONFIRMED -> COMPLETED`

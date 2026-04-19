@@ -3,6 +3,12 @@ import Link from "next/link";
 import type { PlannerDay } from "@/features/admin/lib/admin-slots";
 import { cn } from "@/lib/utils";
 
+const PLANNER_START_HOUR = 6;
+const PLANNER_END_HOUR = 20;
+const PLANNER_CELL_COUNT = (PLANNER_END_HOUR - PLANNER_START_HOUR) * 2;
+const PLANNER_DESKTOP_ROW_CLASS = "grid grid-rows-[repeat(28,minmax(0,1rem))] gap-y-1";
+const PLANNER_MOBILE_ROW_CLASS = "grid grid-rows-[repeat(28,minmax(0,1.25rem))] gap-y-1";
+
 export type CellTone = "available" | "booked" | "locked" | "inactive" | "past" | "empty";
 
 export type DraftSelection = {
@@ -74,7 +80,7 @@ export function formatDayActionLabel(day: PlannerDay) {
 }
 
 export function formatRangeLabel(startCell: number, endCell: number) {
-  const plannerStartMinutes = 6 * 60;
+  const plannerStartMinutes = PLANNER_START_HOUR * 60;
   const startMinutes = plannerStartMinutes + startCell * 30;
   const endMinutes = plannerStartMinutes + endCell * 30;
   const formatTime = (minutes: number) =>
@@ -325,9 +331,7 @@ export function DesktopWeekGrid({
   weekKey: string;
 }) {
   const selection = draft ? getSelectionRange(draft) : null;
-  const dayCellCount = days[0]?.cells.available.length ?? 0;
-  const rowCount = Math.max(timeLabels.length, dayCellCount);
-  const rowIndexes = Array.from({ length: rowCount }, (_, index) => index);
+  const rowIndexes = Array.from({ length: PLANNER_CELL_COUNT }, (_, index) => index);
 
   return (
     <div className="hidden rounded-[var(--radius-panel)] border border-white/10 bg-black/10 p-5 lg:block">
@@ -346,23 +350,23 @@ export function DesktopWeekGrid({
           >
             <p className="text-[11px] uppercase tracking-[0.28em] text-white/50">{day.shortLabel}</p>
             <p className="mt-2 font-display text-3xl text-white">{day.dayNumber}</p>
-            <p className="mt-1 text-sm text-white/60">{day.monthDayLabel}</p>
+            <p className="mt-1 text-sm text-white/60">{day.monthLabel}</p>
           </Link>
         ))}
 
-        <div className="space-y-1 pt-2">
+        <div className={cn(PLANNER_DESKTOP_ROW_CLASS, "pt-2")}>
           {rowIndexes.map((cellIndex) => (
             <div
               key={`label-${cellIndex}`}
               className="flex h-4 items-start text-[11px] uppercase tracking-[0.18em] text-white/38"
             >
-              {cellIndex % 2 === 0 ? timeLabels[cellIndex] ?? "" : ""}
+              {cellIndex % 2 === 0 ? timeLabels[cellIndex] ?? formatRangeLabel(cellIndex, cellIndex + 1).slice(0, 5) : ""}
             </div>
           ))}
         </div>
 
         {days.map((day) => (
-          <div key={day.dateKey} className="space-y-1 pt-2">
+          <div key={day.dateKey} className={cn(PLANNER_DESKTOP_ROW_CLASS, "pt-2")}>
             {rowIndexes.map((cellIndex) => {
               const selected =
                 draft?.dateKey === day.dateKey &&
@@ -401,8 +405,7 @@ export function MobileDayGrid({
   onCellEnter: (dayKey: string, cellIndex: number) => void;
 }) {
   const selection = draft ? getSelectionRange(draft) : null;
-  const rowCount = Math.max(timeLabels.length, day.cells.available.length);
-  const rowIndexes = Array.from({ length: rowCount }, (_, index) => index);
+  const rowIndexes = Array.from({ length: PLANNER_CELL_COUNT }, (_, index) => index);
 
   return (
     <div className="rounded-[var(--radius-panel)] border border-white/10 bg-black/10 p-4 lg:hidden">
@@ -410,7 +413,7 @@ export function MobileDayGrid({
       <h4 className="mt-2 font-display text-3xl text-white">{day.label}</h4>
       <p className="mt-2 text-sm leading-6 text-white/64">Klepněte nebo táhněte přes čas, který chcete přidat nebo odebrat.</p>
 
-      <div className="mt-4 grid grid-cols-[44px_minmax(0,1fr)] gap-x-3 gap-y-1">
+      <div className={cn("mt-4 grid grid-cols-[44px_minmax(0,1fr)] gap-x-3", PLANNER_MOBILE_ROW_CLASS)}>
         {rowIndexes.map((cellIndex) => {
           const selected =
             draft?.dateKey === day.dateKey &&
@@ -421,7 +424,7 @@ export function MobileDayGrid({
           return (
             <div key={`${day.dateKey}-${cellIndex}`} className="contents">
               <div className="pt-1 text-[11px] uppercase tracking-[0.16em] text-white/42">
-                {cellIndex % 2 === 0 ? timeLabels[cellIndex] ?? "" : ""}
+                {cellIndex % 2 === 0 ? timeLabels[cellIndex] ?? formatRangeLabel(cellIndex, cellIndex + 1).slice(0, 5) : ""}
               </div>
               <GridCell
                 tone={getCellTone(day, cellIndex)}

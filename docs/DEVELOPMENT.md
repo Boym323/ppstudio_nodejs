@@ -175,6 +175,8 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Mobil nepoužívá celou stěnu velkých denních karet; týden vybírá přes kompaktní horizontální přepínač dnů a jeden přímý editor vybraného dne.
 - Route `novy`, `[slotId]` a `[slotId]/upravit` jsou zachované kvůli kompatibilitě URL, ale přesměrují obsluhu zpět do planneru ve správném týdnu.
 - Mřížka používá 28 půlhodinových buněk na den (okno `06:00-20:00`).
+- Výpočet začátku týdne musí vycházet z lokálního kalendářního dne `Europe/Prague` (pondělí jako první den), ne z `getUTCDay()` nad UTC půlnocí.
+- `createdByUserId` při planner mutacích ber z reálného `AdminUser.id`; bootstrap session identifikátory (`bootstrap-owner`, `bootstrap-staff`) nejsou DB FK a musí fallbacknout na `null`.
 - Zápis do DB probíhá přes merge/split logiku:
   - prázdné nebo zelené buňky se z klienta pošlou jako rozsah buněk
   - server z nich spočítá časové hranice v časové zóně `Europe/Prague`

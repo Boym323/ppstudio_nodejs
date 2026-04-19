@@ -14,6 +14,7 @@ import {
   type WeeklyTemplateInput,
 } from "@/features/admin/lib/admin-slots";
 import { requireAdminSectionAccess } from "@/features/admin/lib/admin-guards";
+import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 
 const PLANNER_DAY_CELLS = (20 - 6) * 2;
@@ -76,9 +77,20 @@ function revalidatePlanner(area: AdminArea) {
 
 async function withPlannerAccess(area: AdminArea) {
   const session = await requireAdminSectionAccess(area, "volne-terminy");
+  const dbUser = await prisma.adminUser.findFirst({
+    where: {
+      email: {
+        equals: session.email.trim(),
+        mode: "insensitive",
+      },
+    },
+    select: {
+      id: true,
+    },
+  });
 
   return {
-    actorUserId: session.sub,
+    actorUserId: dbUser?.id ?? null,
   };
 }
 
