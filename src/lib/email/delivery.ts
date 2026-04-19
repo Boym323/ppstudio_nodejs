@@ -49,7 +49,7 @@ export async function deliverEmailLog(emailLogId: string): Promise<EmailLogDeliv
   }
 
   try {
-    const rendered = renderEmailTemplate(
+    const rendered = await renderEmailTemplate(
       emailLog.templateKey,
       emailLog.subject,
       emailLog.payload,

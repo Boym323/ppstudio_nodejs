@@ -44,7 +44,7 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
   - kategorie služeb a služby včetně samostatné veřejné rezervovatelnosti
   - sloty s omezením na vybrané služby
   - klienty, rezervace a historii stavů
-  - e-mailové logy, action tokeny a settings
+  - e-mailové logy, action tokeny, legacy `Setting` a nový singleton `SiteSettings`
 
 ## Lokální Spuštění
 ```bash
@@ -130,6 +130,11 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
   - Uživatelé / role
   - Email logy
   - Nastavení
+- Sekce `Nastavení` je nyní produkčně použitelná pro `OWNER` na `/admin/nastaveni`:
+  - blok `Salon` spravuje název salonu, adresu, telefon, kontaktní e-mail a Instagram
+  - blok `Rezervace` drží jen skutečně globální booking pravidla: minimální předstih, horizont dopředu a storno limit pro self-service storno
+  - blok `E-maily a notifikace` spravuje admin notifikační e-mail, sender name, sender email a krátkou patičku potvrzovacích e-mailů
+  - technické SMTP údaje, app URL a session secret zůstávají správně mimo admin v env
 - Lite provozní menu je záměrně kratší a drží jen to, co recepce a tým potřebují nejčastěji:
   - Přehled
   - Dnešní rezervace
@@ -201,6 +206,7 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
 - Veřejný booking flow po potvrzení:
   - veřejný web `/`, `/sluzby`, `/cenik` a detail služby nyní čerpá z databáze v request-time
   - admin změny se do něj promítnou bez rebuildů
+  - globální booking pravidla čte ze `SiteSettings`, ne z natvrdo zapsaných konstant
   - znovu validuje službu a termín server-side
   - naváže nebo vytvoří klienta podle e-mailu
   - vytvoří rezervaci se snapshotem služby a času
@@ -213,7 +219,7 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
 - `/rezervace/storno/[token]` je produkční self-service storno stránka:
   - ověří hash tokenu server-side
   - zobrazí bezpečný potvrzovací krok
-  - po potvrzení zruší rezervaci a zapíše audit
+  - po potvrzení zruší rezervaci a zapíše audit, ale jen pokud rezervace ještě splňuje globální storno limit ze settings
   - uloží storno potvrzení do `EmailLog` pro worker nebo do `SENT` v log režimu
 
 ## Provozní Poznámky

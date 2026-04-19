@@ -63,6 +63,8 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - `src/features/admin/lib/admin-service-categories.ts` drží serverový read model pro seznam, filtry, detail kategorie a lehký náhled navázaných služeb.
 - `src/features/admin/actions/service-category-actions.ts` je tenký server action adaptér pro editaci a bezpečné mazání kategorie; validace zůstává v `src/features/admin/lib/admin-service-category-validation.ts`.
 - `src/features/admin/components/admin-booking-detail-page.tsx` a route dvojice `/admin/rezervace/[bookingId]` + `/admin/provoz/rezervace/[bookingId]` drží první produkční workflow pro práci s rezervací.
+- Sekce `Nastavení` má vlastní workflow v `src/features/admin/components/admin-settings-page.tsx` a už neběží přes generický placeholder renderer.
+- Formuláře pro `Salon`, `Rezervace` a `E-maily a notifikace` jsou oddělené do samostatných client komponent a server action adaptérů v `src/features/admin/actions/settings-actions.ts`.
 - Produkční slot routy jsou explicitní a nepoužívají generický `[section]` detail:
   - `/admin/volne-terminy`
   - `/admin/volne-terminy/novy`
@@ -116,7 +118,9 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - `BookingStatusHistory` drží auditní stopu změn stavu včetně aktéra a strukturovaných metadat.
 - `BookingActionToken` ukládá hash tokenu, expiraci a použití/revokaci pro bezpečné self-service storno nebo přesun termínu.
 - `EmailLog` je připravený na notifikační workflow a troubleshooting komunikace s klientem.
-- `Setting` je generická tabulka pro serverově spravované konfigurační hodnoty bez nutnosti přidávat nové sloupce.
+- Legacy `Setting` zůstává v databázi jako obecné key-value úložiště pro budoucí interní potřeby, ale produkční admin sekce `Nastavení` stojí na explicitním singleton modelu `SiteSettings`.
+- `src/lib/site-settings.ts` je centrální read vrstva pro veřejné kontakty, booking pravidla a e-mailový branding; zároveň bezpečně bootstrapuje výchozí singleton záznam.
+- `SiteSettings` drží jen skutečně globální provozní hodnoty. Technické env proměnné jako SMTP host/port, `NEXT_PUBLIC_APP_URL` nebo `ADMIN_SESSION_SECRET` se do adminu záměrně nepřenášejí.
 - `src/features/booking/lib/booking-public.ts` je veřejný write model pro rezervace a drží i ochranu proti souběžnému obsazení slotu.
 - `src/features/booking/lib/booking-cancellation.ts` drží veřejné storno workflow nad hashovaným action tokenem.
 - Veřejný booking flow vrací doménové chybové kódy a doporučený krok formuláře, takže UI může zobrazit přesnější recovery stav bez duplikace serverové logiky.
@@ -161,6 +165,12 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - změnu pořadí kategorie a nové řazení na `/sluzby`, `/cenik` a v `/rezervace`
   - deaktivaci kategorie s navázanými službami a očekávané skrytí z veřejného webu i bookingu
   - blokaci mazání neprázdné kategorie a úspěšné smazání prázdné kategorie
+- Po změně admin sekce `Nastavení` ručně ověř i:
+  - `/admin/nastaveni` na desktopu i mobilu
+  - propsání kontaktů do footeru a stránky `/kontakt`
+  - propsání storno limitu do `/faq` a `/storno-podminky`
+  - propsání booking pravidel do `/rezervace` a do self-service storna
+  - novou rezervaci i storno s admin notifikačním e-mailem
   - mobilní header a CTA na `/`, `/sluzby`, `/kontakt`
   - správnost interních odkazů v footeru
   - metadata a titulky pro detail služby

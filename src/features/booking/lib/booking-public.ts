@@ -17,6 +17,11 @@ import {
 } from "@/features/booking/lib/booking-action-tokens";
 import { formatBookingDateLabel } from "@/features/booking/lib/booking-format";
 import { prisma } from "@/lib/prisma";
+import {
+  getBookingPolicySettings,
+  getEmailBrandingSettings,
+  isBookingWithinWindow,
+} from "@/lib/site-settings";
 
 const ACTIVE_BOOKING_STATUSES = [BookingStatus.PENDING, BookingStatus.CONFIRMED] as const;
 const CANCELLATION_TOKEN_TTL_DAYS = 30;
@@ -202,6 +207,13 @@ function mapKnownPrismaError(error: Prisma.PrismaClientKnownRequestError) {
 
 export async function getPublicBookingCatalog(): Promise<PublicBookingCatalog> {
   const now = new Date();
+  const bookingPolicy = await getBookingPolicySettings();
+  const bookingWindowStart = new Date(
+    now.getTime() + bookingPolicy.minAdvanceHours * 60 * 60 * 1000,
+  );
+  const bookingWindowEnd = new Date(
+    now.getTime() + bookingPolicy.maxAdvanceDays * 24 * 60 * 60 * 1000,
+  );
 
   const [services, slots] = await Promise.all([
     prisma.service.findMany({
@@ -233,7 +245,8 @@ export async function getPublicBookingCatalog(): Promise<PublicBookingCatalog> {
       where: {
         status: AvailabilitySlotStatus.PUBLISHED,
         startsAt: {
-          gte: now,
+          gte: bookingWindowStart,
+          lte: bookingWindowEnd,
         },
       },
       orderBy: [{ startsAt: "asc" }],
@@ -294,6 +307,10 @@ export async function createPublicBooking(
   const normalizedEmail = normalizeClientEmail(input.email);
   const normalizedPhone = normalizeClientPhone(input.phone);
   const normalizedClientNote = input.clientNote ? normalizeWhitespace(input.clientNote) : undefined;
+  const [bookingPolicy, emailBranding] = await Promise.all([
+    getBookingPolicySettings(),
+    getEmailBrandingSettings(),
+  ]);
 
   if (!isValidNormalizedClientPhone(normalizedPhone)) {
     throw new PublicBookingError(
@@ -369,7 +386,16 @@ export async function createPublicBooking(
             },
           });
 
-          if (!slot || slot.status !== AvailabilitySlotStatus.PUBLISHED || slot.startsAt < now) {
+          if (
+            !slot ||
+            slot.status !== AvailabilitySlotStatus.PUBLISHED ||
+            !isBookingWithinWindow(
+              slot.startsAt,
+              now,
+              bookingPolicy.minAdvanceHours,
+              bookingPolicy.maxAdvanceDays,
+            )
+          ) {
             throw new PublicBookingError(
               publicBookingErrorCodes.slotUnavailable,
               "Vybraný termín už není dostupný.",
@@ -536,6 +562,35 @@ export async function createPublicBooking(
               sentAt: env.EMAIL_DELIVERY_MODE === "background" ? undefined : now,
             },
           });
+
+          if (emailBranding.notificationAdminEmail.trim().length > 0) {
+            await tx.emailLog.create({
+              data: {
+                bookingId: booking.id,
+                clientId: client.id,
+                type: EmailLogType.BOOKING_CREATED,
+                status: env.EMAIL_DELIVERY_MODE === "background" ? undefined : EmailLogStatus.SENT,
+                attemptCount: env.EMAIL_DELIVERY_MODE === "background" ? undefined : 1,
+                nextAttemptAt: env.EMAIL_DELIVERY_MODE === "background" ? now : undefined,
+                processingStartedAt: null,
+                processingToken: null,
+                recipientEmail: emailBranding.notificationAdminEmail,
+                subject: `Nová rezervace: ${service.name}`,
+                templateKey: "admin-booking-notification-v1",
+                payload: {
+                  bookingId: booking.id,
+                  serviceName: service.name,
+                  clientName: normalizedFullName,
+                  clientEmail: normalizedEmail,
+                  clientPhone: normalizedPhone,
+                  scheduledStartsAt: booking.scheduledStartsAt.toISOString(),
+                  scheduledEndsAt: booking.scheduledEndsAt.toISOString(),
+                },
+                provider: env.EMAIL_DELIVERY_MODE === "background" ? undefined : "log",
+                sentAt: env.EMAIL_DELIVERY_MODE === "background" ? undefined : now,
+              },
+            });
+          }
 
           return {
             bookingId: booking.id,

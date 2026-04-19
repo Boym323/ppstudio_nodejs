@@ -5,9 +5,11 @@ import { type AdminArea } from "@/config/navigation";
 import { AdminBookingDetailPage } from "@/features/admin/components/admin-booking-detail-page";
 import { AdminOverviewPage } from "@/features/admin/components/admin-overview-page";
 import { AdminSectionPage } from "@/features/admin/components/admin-section-page";
+import { AdminSettingsPage } from "@/features/admin/components/admin-settings-page";
 import { AdminServiceCategoriesPage } from "@/features/admin/components/admin-service-categories-page";
 import { AdminServicesPage } from "@/features/admin/components/admin-services-page";
 import { AdminWeeklyPlannerPage } from "@/features/admin/components/admin-weekly-planner-page";
+import { getSiteSettings } from "@/lib/site-settings";
 import { requireAdminArea } from "@/lib/auth/session";
 
 import { getAdminBookingDetailData } from "./admin-booking";
@@ -62,6 +64,39 @@ export function createAdminSectionRoute(area: AdminArea) {
 
     if (section === "kategorie-sluzeb") {
       return <AdminServiceCategoriesPage area={area} searchParams={await searchParams} />;
+    }
+
+    if (section === "nastaveni") {
+      const settings = await getSiteSettings();
+      const formattedUpdatedAt = new Intl.DateTimeFormat("cs-CZ", {
+        day: "numeric",
+        month: "numeric",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      }).format(settings.updatedAt);
+
+      return (
+        <AdminSettingsPage
+          settings={{
+            salonName: settings.salonName,
+            addressLine: settings.addressLine,
+            city: settings.city,
+            postalCode: settings.postalCode,
+            phone: settings.phone,
+            contactEmail: settings.contactEmail,
+            instagramUrl: settings.instagramUrl,
+            bookingMinAdvanceHours: settings.bookingMinAdvanceHours,
+            bookingMaxAdvanceDays: settings.bookingMaxAdvanceDays,
+            bookingCancellationHours: settings.bookingCancellationHours,
+            notificationAdminEmail: settings.notificationAdminEmail,
+            emailSenderName: settings.emailSenderName,
+            emailSenderEmail: settings.emailSenderEmail,
+            emailFooterText: settings.emailFooterText,
+            updatedAt: formattedUpdatedAt,
+          }}
+        />
+      );
     }
 
     return <AdminSectionPage area={area} section={section} />;

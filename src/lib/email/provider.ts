@@ -1,6 +1,7 @@
 import nodemailer from "nodemailer";
 
 import { env } from "@/config/env";
+import { getEmailBrandingSettings } from "@/lib/site-settings";
 
 export type EmailDeliveryMessage = {
   to: string;
@@ -53,8 +54,10 @@ export async function sendEmail(message: EmailDeliveryMessage): Promise<EmailDel
   }
 
   const transporter = getTransporter();
+  const emailBranding = await getEmailBrandingSettings();
+  const fromEmail = emailBranding.senderEmail || env.SMTP_FROM_EMAIL;
   const info = await transporter.sendMail({
-    from: `"${env.SMTP_FROM_NAME}" <${env.SMTP_FROM_EMAIL}>`,
+    from: `"${emailBranding.senderName}" <${fromEmail}>`,
     to: message.to,
     replyTo: env.SMTP_REPLY_TO ?? env.SMTP_FROM_EMAIL,
     subject: message.subject,

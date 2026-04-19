@@ -17,7 +17,7 @@ async function loadRenderer() {
 
 test("renderEmailTemplate creates confirmation email with cancellation link", async () => {
   const { renderEmailTemplate } = await loadRenderer();
-  const email = renderEmailTemplate(
+  const email = await renderEmailTemplate(
     "booking-confirmation-v1",
     "Potvrzení rezervace: Luxusní péče",
     {
@@ -37,7 +37,7 @@ test("renderEmailTemplate creates confirmation email with cancellation link", as
 
 test("renderEmailTemplate creates cancellation email with booking reference", async () => {
   const { renderEmailTemplate } = await loadRenderer();
-  const email = renderEmailTemplate(
+  const email = await renderEmailTemplate(
     "booking-cancelled-v1",
     "Storno potvrzeno: Luxusní péče",
     {

@@ -29,3 +29,4 @@ Sem patří krátké záznamy architektonických rozhodnutí.
 - `0013-admin-weekly-availability-grid-v2.md`
 - `0014-admin-service-catalog-workflow-v1.md`
 - `0015-admin-service-category-management-v1.md`
+- `0016-admin-site-settings-singleton-v1.md`

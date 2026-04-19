@@ -3,21 +3,23 @@ import type { Metadata } from 'next';
 
 import {
   aboutContent,
-  contactItems,
+  buildContactItems,
+  buildFaqItems,
+  buildLegalContent,
+  buildTrustMetrics,
   contentStructureGuide,
-  faqItems,
   homepageContent,
-  legalContent,
   priceNotes,
   salonHighlights,
   services,
-  trustMetrics,
   type ContactItem,
   type LegalSection,
   type Service,
+  type TrustMetric,
 } from '@/content/public-site';
 import { Container } from '@/components/ui/container';
 import { SectionHeading } from '@/components/ui/section-heading';
+import { getBookingPolicySettings, getPublicSalonProfile } from '@/lib/site-settings';
 
 function PublicHero({
   eyebrow,
@@ -92,12 +94,12 @@ function PublicHero({
   );
 }
 
-function TrustStrip() {
+function TrustStrip({ metrics }: { metrics: TrustMetric[] }) {
   return (
     <section className="py-5 sm:py-8">
       <Container>
         <div className="grid gap-px overflow-hidden rounded-[var(--radius-panel)] border border-black/6 bg-black/6 shadow-[var(--shadow-panel)] sm:grid-cols-3">
-          {trustMetrics.map((metric) => (
+          {metrics.map((metric) => (
             <div key={metric.label} className="space-y-2 bg-white p-5 sm:p-6">
               <p className="font-display text-2xl text-[var(--color-foreground)] sm:text-3xl">{metric.value}</p>
               <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-accent)]">
@@ -234,11 +236,14 @@ export function buildPageMetadata({
   };
 }
 
-export function PublicHomePage({ featuredServices = services.slice(0, 3) }: { featuredServices?: Service[] } = {}) {
+export async function PublicHomePage({ featuredServices = services.slice(0, 3) }: { featuredServices?: Service[] } = {}) {
+  const bookingPolicy = await getBookingPolicySettings();
+  const trustMetrics = buildTrustMetrics(bookingPolicy.cancellationHours);
+
   return (
     <div className="pb-8 sm:pb-12">
       <PublicHero {...homepageContent} />
-      <TrustStrip />
+      <TrustStrip metrics={trustMetrics} />
 
       <section className="py-12 sm:py-16">
         <Container className="space-y-8 sm:space-y-10">
@@ -500,7 +505,15 @@ export function AboutPage() {
   );
 }
 
-export function ContactPage() {
+export async function ContactPage() {
+  const salonProfile = await getPublicSalonProfile();
+  const contactItems = buildContactItems({
+    phone: salonProfile.phone,
+    email: salonProfile.email,
+    addressLine: salonProfile.addressLine,
+    instagramUrl: salonProfile.instagramUrl,
+  });
+
   return (
     <div className="pb-8 sm:pb-12">
       <PublicHero
@@ -534,7 +547,10 @@ export function ContactPage() {
   );
 }
 
-export function FaqPage() {
+export async function FaqPage() {
+  const bookingPolicy = await getBookingPolicySettings();
+  const faqItems = buildFaqItems(bookingPolicy.cancellationHours);
+
   return (
     <div className="pb-8 sm:pb-12">
       <PublicHero
@@ -582,8 +598,13 @@ export function LegalPage({
   );
 }
 
-export const legalPages = {
-  cancellation: legalContent.cancellation,
-  terms: legalContent.terms,
-  gdpr: legalContent.gdpr,
-};
+export async function getLegalPages() {
+  const bookingPolicy = await getBookingPolicySettings();
+  const legalContent = buildLegalContent(bookingPolicy.cancellationHours);
+
+  return {
+    cancellation: legalContent.cancellation,
+    terms: legalContent.terms,
+    gdpr: legalContent.gdpr,
+  };
+}

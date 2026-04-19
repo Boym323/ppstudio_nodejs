@@ -7,6 +7,11 @@ Formát je inspirovaný Keep a Changelog.
 ## [Unreleased]
 
 ### Added
+- Produkční owner-only sekci `Nastavení` s rozdělením na bloky `Salon`, `Rezervace` a `E-maily a notifikace`.
+- Explicitní singleton model `SiteSettings` a bootstrap read vrstvu místo původního spoléhání na generické key-value `Setting`.
+- Server action a Zod validační vrstvu pro bezpečnou správu veřejných kontaktů, globálních booking pravidel a e-mailového senderu.
+- Admin notifikační e-maily o nové a zrušené rezervaci posílané na konfigurovatelnou provozní adresu.
+- ADR 0016 pro rozhodnutí kolem scope admin sekce `Nastavení` a volby explicitního singleton modelu.
 - Produkční admin sekci `Kategorie služeb` pro `OWNER` i `SALON` s responzivním seznamem, filtrováním, výběrem kategorie a krátkou editací nad reálnými Prisma daty.
 - Server action a Zod validační vrstvu pro bezpečnou editaci názvu, volitelného popisu, pořadí a aktivního stavu kategorie.
 - Bezpečné mazání pouze pro prázdné kategorie bez navázaných služeb.
@@ -54,6 +59,9 @@ Formát je inspirovaný Keep a Changelog.
 - Týdenní planner dostupností pro `OWNER` i `SALON` nyní zobrazuje rezervace, omezené intervaly, neaktivní sloty i minulý čas v jednom klidném kalendáři.
 
 ### Changed
+- Veřejný footer, kontaktní stránka, FAQ, storno podmínky a e-mailové šablony teď čerpají kontaktní údaje a storno pravidlo ze `SiteSettings` místo z natvrdo zapsaných placeholderů.
+- Veřejný booking katalog i finální potvrzení rezervace nově respektují globální minimální předstih a maximální horizont rezervace ze settings.
+- Self-service storno přes token nově respektuje globální storno limit před termínem; pozdější zásah už klientce srozumitelně doporučí kontaktovat salon.
 - Běžný text webu nyní používá `Inter` místo `Manrope`, zatímco nadpisy a logo zůstávají na `Cormorant Garamond`.
 - Domovská stránka teď v levé části hlavičky pod `PP Studio` zobrazuje doplněk `COSMETICS & LAMINATIONS`.
 - Sekce `Kategorie služeb` už není jen read-only přehled v `admin-data`; route `/admin/kategorie-sluzeb` a `/admin/provoz/kategorie-sluzeb` renderuje samostatný pracovní workflow se seznamem a editací.

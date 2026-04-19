@@ -1,17 +1,19 @@
 import Link from 'next/link';
 
 import { footerNavigation, mainNavigation } from '@/config/navigation';
-import { siteConfig } from '@/config/site';
+import { getPublicSalonProfile } from '@/lib/site-settings';
 
 import { Container } from '../ui/container';
 
-export function SiteFooter() {
+export async function SiteFooter() {
+  const salonProfile = await getPublicSalonProfile();
+
   return (
     <footer className="border-t border-black/5 bg-[var(--color-surface)]">
       <Container className="grid gap-10 py-10 sm:py-12 lg:grid-cols-[1.1fr_auto_auto] lg:items-start lg:justify-between">
         <div className="max-w-md">
           <p className="font-display text-[1.55rem] tracking-[0.14em] text-[var(--color-foreground)]">
-            {siteConfig.name}
+            {salonProfile.name}
           </p>
           <p className="mt-4 max-w-md text-sm leading-7 text-[var(--color-muted)]">
             Luxusní a čistý prezentační web pro kosmetický salon se silnou rezervací, důvěryhodným obsahem a jasnými provozními informacemi.
@@ -35,11 +37,11 @@ export function SiteFooter() {
             ))}
           </div>
           <div className="grid gap-2 lg:pt-2">
-            <a href={`tel:${siteConfig.contact.phone}`} className="hover:text-[var(--color-foreground)]">
-              {siteConfig.contact.phone}
+            <a href={`tel:${salonProfile.phone.replace(/\s+/g, '')}`} className="hover:text-[var(--color-foreground)]">
+              {salonProfile.phone}
             </a>
-            <a href={`mailto:${siteConfig.contact.email}`} className="hover:text-[var(--color-foreground)]">
-              {siteConfig.contact.email}
+            <a href={`mailto:${salonProfile.email}`} className="hover:text-[var(--color-foreground)]">
+              {salonProfile.email}
             </a>
           </div>
         </div>

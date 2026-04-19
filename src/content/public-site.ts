@@ -47,23 +47,27 @@ export const salonHighlights: HighlightItem[] = [
   { label: 'Rezervace', value: 'Ručně vypisované volné termíny' },
 ];
 
-export const trustMetrics: TrustMetric[] = [
-  {
-    value: '1:1',
-    label: 'Soukromá péče',
-    description: 'Termíny jsou vedené tak, aby měla klientka klid, soukromí a dostatek času bez spěchu.',
-  },
-  {
-    value: '45-120 min',
-    label: 'Délka procedur',
-    description: 'Délky služeb jsou navržené realisticky, včetně času na konzultaci, ošetření i doporučení domácí péče.',
-  },
-  {
-    value: '48 h',
-    label: 'Storno okno',
-    description: 'Pravidla storna jsou komunikovaná jemně, ale zcela jasně už při rozhodování o rezervaci.',
-  },
-];
+export function buildTrustMetrics(cancellationHours: number): TrustMetric[] {
+  return [
+    {
+      value: '1:1',
+      label: 'Soukromá péče',
+      description: 'Termíny jsou vedené tak, aby měla klientka klid, soukromí a dostatek času bez spěchu.',
+    },
+    {
+      value: '45-120 min',
+      label: 'Délka procedur',
+      description: 'Délky služeb jsou navržené realisticky, včetně času na konzultaci, ošetření i doporučení domácí péče.',
+    },
+    {
+      value: `${cancellationHours} h`,
+      label: 'Storno okno',
+      description: 'Pravidla storna jsou komunikovaná jemně, ale zcela jasně už při rozhodování o rezervaci.',
+    },
+  ];
+}
+
+export const trustMetrics = buildTrustMetrics(48);
 
 export const services: Service[] = [
   {
@@ -157,74 +161,99 @@ export const priceNotes = [
   'Akční nabídky a balíčky držte odděleně od základního ceníku, aby byl ceník čitelný i na mobilu.',
 ];
 
-export const contactItems: ContactItem[] = [
-  {
-    label: 'Telefon',
-    value: '+420 777 000 000',
-    href: 'tel:+420777000000',
-    note: 'Placeholder kontakt pro budoucí nahrazení.',
-  },
-  {
-    label: 'E-mail',
-    value: 'hello@ppstudio.cz',
-    href: 'mailto:hello@ppstudio.cz',
-    note: 'Placeholder kontakt pro budoucí nahrazení.',
-  },
-  {
-    label: 'Adresa salonu',
-    value: 'Masarykova 12, 602 00 Brno',
-    note: 'Ukázková adresa pro layout a lokální SEO strukturu.',
-  },
-  {
-    label: 'Otevírací režim',
-    value: 'Dle vypsaných termínů a individuální domluvy',
-  },
-];
+export function buildContactItems(input: {
+  phone: string;
+  email: string;
+  addressLine: string;
+  instagramUrl?: string | null;
+}): ContactItem[] {
+  return [
+    {
+      label: 'Telefon',
+      value: input.phone,
+      href: `tel:${input.phone.replace(/\s+/g, '')}`,
+    },
+    {
+      label: 'E-mail',
+      value: input.email,
+      href: `mailto:${input.email}`,
+    },
+    {
+      label: 'Adresa salonu',
+      value: input.addressLine,
+    },
+    ...(input.instagramUrl
+      ? [
+          {
+            label: 'Instagram',
+            value: input.instagramUrl.replace(/^https?:\/\/(www\.)?/i, ''),
+            href: input.instagramUrl,
+          } satisfies ContactItem,
+        ]
+      : [
+          {
+            label: 'Otevírací režim',
+            value: 'Dle vypsaných termínů a individuální domluvy',
+          } satisfies ContactItem,
+        ]),
+  ];
+}
 
-export const faqItems: FaqItem[] = [
-  {
-    question: 'Jak funguje rezervace termínu?',
-    answer:
-      'Salon publikuje volné termíny ručně. Klientka tak vidí jen skutečně dostupné časy a může si vybrat bez zbytečných slepých míst v kalendáři.',
-  },
-  {
-    question: 'Je možné službu při rezervaci ještě upřesnit?',
-    answer:
-      'Ano. Web počítá s tím, že některé rezervace začínají výběrem orientační služby a finální doporučení může vzniknout až po krátké konzultaci.',
-  },
-  {
-    question: 'Jak je to se storno podmínkami?',
-    answer:
-      'Standardní návrh je zrušení nebo přesun alespoň 48 hodin předem. Přesné znění je vždy dostupné na samostatné stránce storno podmínek.',
-  },
-  {
-    question: 'Mohu přijít i na první konzultaci bez předchozí zkušenosti?',
-    answer:
-      'Ano. Obsah webu i budoucí booking flow jsou psané tak, aby se na nich dobře orientovala i klientka, která salon navštěvuje poprvé.',
-  },
-];
+export const contactItems = buildContactItems({
+  phone: '+420 777 000 000',
+  email: 'hello@ppstudio.cz',
+  addressLine: 'Masarykova 12, 602 00 Brno',
+  instagramUrl: null,
+});
 
-export const legalContent = {
-  cancellation: {
-    title: 'Storno podmínky',
-    intro:
-      'Níže uvedený text je produkčně použitelná struktura připravená pro právní a provozní doplnění podle reálného fungování salonu.',
-    sections: [
-      {
-        title: 'Rušení a změna termínu',
-        paragraphs: [
-          'Rezervovaný termín je možné bez sankce zrušit nebo přesunout nejpozději 48 hodin před jeho začátkem.',
-          'Při zrušení méně než 48 hodin předem může salon uplatnit storno poplatek podle typu rezervované služby nebo zálohy.',
-        ],
-      },
-      {
-        title: 'Nedostavení se',
-        paragraphs: [
-          'Pokud se klientka na rezervovaný termín bez omluvy nedostaví, může být při další rezervaci vyžadována záloha nebo může být rezervace odmítnuta.',
-        ],
-      },
-    ],
-  },
+export function buildFaqItems(cancellationHours: number): FaqItem[] {
+  return [
+    {
+      question: 'Jak funguje rezervace termínu?',
+      answer:
+        'Salon publikuje volné termíny ručně. Klientka tak vidí jen skutečně dostupné časy a může si vybrat bez zbytečných slepých míst v kalendáři.',
+    },
+    {
+      question: 'Je možné službu při rezervaci ještě upřesnit?',
+      answer:
+        'Ano. Web počítá s tím, že některé rezervace začínají výběrem orientační služby a finální doporučení může vzniknout až po krátké konzultaci.',
+    },
+    {
+      question: 'Jak je to se storno podmínkami?',
+      answer: `Rezervaci je možné zrušit nebo přesunout alespoň ${cancellationHours} hodin předem. Přesné znění je vždy dostupné na samostatné stránce storno podmínek.`,
+    },
+    {
+      question: 'Mohu přijít i na první konzultaci bez předchozí zkušenosti?',
+      answer:
+        'Ano. Obsah webu i budoucí booking flow jsou psané tak, aby se na nich dobře orientovala i klientka, která salon navštěvuje poprvé.',
+    },
+  ];
+}
+
+export const faqItems = buildFaqItems(48);
+
+export function buildLegalContent(cancellationHours: number) {
+  return {
+    cancellation: {
+      title: 'Storno podmínky',
+      intro:
+        'Níže uvedený text je produkčně použitelná struktura připravená pro právní a provozní doplnění podle reálného fungování salonu.',
+      sections: [
+        {
+          title: 'Rušení a změna termínu',
+          paragraphs: [
+            `Rezervovaný termín je možné bez sankce zrušit nebo přesunout nejpozději ${cancellationHours} hodin před jeho začátkem.`,
+            `Při zrušení méně než ${cancellationHours} hodin předem může salon uplatnit storno poplatek podle typu rezervované služby nebo zálohy.`,
+          ],
+        },
+        {
+          title: 'Nedostavení se',
+          paragraphs: [
+            'Pokud se klientka na rezervovaný termín bez omluvy nedostaví, může být při další rezervaci vyžadována záloha nebo může být rezervace odmítnuta.',
+          ],
+        },
+      ],
+    },
   terms: {
     title: 'Obchodní podmínky',
     intro:
@@ -266,8 +295,11 @@ export const legalContent = {
         ],
       },
     ],
-  },
-};
+    },
+  };
+}
+
+export const legalContent = buildLegalContent(48);
 
 export const contentStructureGuide = [
   {

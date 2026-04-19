@@ -8,13 +8,12 @@ import { cn } from '@/lib/utils';
 
 import { Container } from '../ui/container';
 
-const BRAND_NAME = 'PP Studio';
-
 type SiteHeaderProps = {
   variant?: 'public' | 'booking';
+  brandName?: string;
 };
 
-export function SiteHeader({ variant = 'public' }: SiteHeaderProps) {
+export function SiteHeader({ variant = 'public', brandName = 'PP Studio' }: SiteHeaderProps) {
   const pathname = usePathname();
   const showHomepageSubtitle = pathname === '/';
 
@@ -23,7 +22,7 @@ export function SiteHeader({ variant = 'public' }: SiteHeaderProps) {
       <Container className="flex min-h-18 flex-col justify-center gap-4 py-4 md:min-h-20 md:flex-row md:items-center md:justify-between md:py-0">
         <div className="flex items-center justify-between gap-4">
           <Link href="/" className="flex flex-col items-start text-[var(--color-foreground)]">
-            <span className="font-display text-[1.55rem] tracking-[0.14em]">{BRAND_NAME}</span>
+            <span className="font-display text-[1.55rem] tracking-[0.14em]">{brandName}</span>
             {showHomepageSubtitle ? (
               <span className="mt-1 text-[10px] font-semibold uppercase tracking-[0.3em] text-[var(--color-accent)] sm:text-[11px]">
                 COSMETICS &amp; LAMINATIONS

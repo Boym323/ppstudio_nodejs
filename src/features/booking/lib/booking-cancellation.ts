@@ -12,6 +12,11 @@ import { env } from "@/config/env";
 import { hashBookingActionToken } from "@/features/booking/lib/booking-action-tokens";
 import { formatBookingDateLabel } from "@/features/booking/lib/booking-format";
 import { prisma } from "@/lib/prisma";
+import {
+  canClientCancelBooking,
+  getBookingPolicySettings,
+  getEmailBrandingSettings,
+} from "@/lib/site-settings";
 
 const CANCELLABLE_BOOKING_STATUSES: BookingStatus[] = [
   BookingStatus.PENDING,
@@ -114,7 +119,10 @@ async function findCancellationToken(tokenHash: string) {
   });
 }
 
-function resolveCancellationState(token: LoadedCancellationToken | null): PublicCancellationPageState {
+function resolveCancellationState(
+  token: LoadedCancellationToken | null,
+  cancellationHours: number,
+): PublicCancellationPageState {
   if (!token) {
     return {
       status: "invalid",
@@ -164,6 +172,14 @@ function resolveCancellationState(token: LoadedCancellationToken | null): Public
     };
   }
 
+  if (!canClientCancelBooking(token.booking.scheduledStartsAt, new Date(), cancellationHours)) {
+    return {
+      status: "not_cancellable",
+      message: `Online storno už není dostupné méně než ${cancellationHours} hodin před termínem. Kontaktujte prosím salon.`,
+      ...details,
+    };
+  }
+
   return {
     status: "ready",
     expiresAt: token.expiresAt.toISOString(),
@@ -173,13 +189,20 @@ function resolveCancellationState(token: LoadedCancellationToken | null): Public
 
 export async function getPublicCancellationPageState(rawToken: string): Promise<PublicCancellationPageState> {
   const tokenHash = hashBookingActionToken(rawToken);
-  const token = await findCancellationToken(tokenHash);
+  const [token, bookingPolicy] = await Promise.all([
+    findCancellationToken(tokenHash),
+    getBookingPolicySettings(),
+  ]);
 
-  return resolveCancellationState(token);
+  return resolveCancellationState(token, bookingPolicy.cancellationHours);
 }
 
 export async function cancelPublicBookingByToken(rawToken: string): Promise<CancelPublicBookingResult> {
   const tokenHash = hashBookingActionToken(rawToken);
+  const [bookingPolicy, emailBranding] = await Promise.all([
+    getBookingPolicySettings(),
+    getEmailBrandingSettings(),
+  ]);
 
   const transactionResult = await prisma.$transaction(
     async (tx) => {
@@ -217,7 +240,7 @@ export async function cancelPublicBookingByToken(rawToken: string): Promise<Canc
         },
       });
 
-      const state = resolveCancellationState(token);
+      const state = resolveCancellationState(token, bookingPolicy.cancellationHours);
 
       if (state.status !== "ready") {
         return state;
@@ -297,6 +320,34 @@ export async function cancelPublicBookingByToken(rawToken: string): Promise<Canc
           sentAt: env.EMAIL_DELIVERY_MODE === "background" ? undefined : now,
         },
       });
+
+      if (emailBranding.notificationAdminEmail.trim().length > 0) {
+        await tx.emailLog.create({
+          data: {
+            bookingId: lockedToken.booking.id,
+            clientId: lockedToken.booking.clientId,
+            type: EmailLogType.BOOKING_CANCELLED,
+            status: env.EMAIL_DELIVERY_MODE === "background" ? undefined : EmailLogStatus.SENT,
+            attemptCount: env.EMAIL_DELIVERY_MODE === "background" ? undefined : 1,
+            nextAttemptAt: env.EMAIL_DELIVERY_MODE === "background" ? now : undefined,
+            processingStartedAt: null,
+            processingToken: null,
+            recipientEmail: emailBranding.notificationAdminEmail,
+            subject: `Zrušená rezervace: ${lockedToken.booking.serviceNameSnapshot}`,
+            templateKey: "admin-booking-cancelled-v1",
+            payload: {
+              bookingId: lockedToken.booking.id,
+              serviceName: lockedToken.booking.serviceNameSnapshot,
+              clientName: lockedToken.booking.clientNameSnapshot,
+              clientEmail: lockedToken.booking.clientEmailSnapshot,
+              scheduledStartsAt: lockedToken.booking.scheduledStartsAt.toISOString(),
+              scheduledEndsAt: lockedToken.booking.scheduledEndsAt.toISOString(),
+            },
+            provider: env.EMAIL_DELIVERY_MODE === "background" ? undefined : "log",
+            sentAt: env.EMAIL_DELIVERY_MODE === "background" ? undefined : now,
+          },
+        });
+      }
 
       return {
         status: "ready" as const,

@@ -84,6 +84,7 @@ model AdminUser {
   createdBookings           Booking[]              @relation("BookingCreatedBy")
   bookingStatusHistoryItems BookingStatusHistory[] @relation("BookingStatusHistoryActor")
   updatedSettings           Setting[]              @relation("SettingUpdatedBy")
+  updatedSiteSettings       SiteSettings[]         @relation("SiteSettingsUpdatedBy")
 }
 
 model ServiceCategory {
@@ -332,6 +333,30 @@ model Setting {
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt
   updatedByUser   AdminUser? @relation("SettingUpdatedBy", fields: [updatedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([updatedByUserId])
+}
+
+model SiteSettings {
+  id                         String     @id @default("site-settings")
+  salonName                  String
+  addressLine                String
+  city                       String
+  postalCode                 String
+  phone                      String
+  contactEmail               String
+  instagramUrl               String?
+  bookingMinAdvanceHours     Int        @default(2)
+  bookingMaxAdvanceDays      Int        @default(90)
+  bookingCancellationHours   Int        @default(48)
+  notificationAdminEmail     String
+  emailSenderName            String
+  emailSenderEmail           String
+  emailFooterText            String?
+  updatedByUserId            String?
+  createdAt                  DateTime   @default(now())
+  updatedAt                  DateTime   @updatedAt
+  updatedByUser              AdminUser? @relation("SiteSettingsUpdatedBy", fields: [updatedByUserId], references: [id], onDelete: SetNull)
 
   @@index([updatedByUserId])
 }

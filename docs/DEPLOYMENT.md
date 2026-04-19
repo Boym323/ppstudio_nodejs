@@ -40,10 +40,16 @@ Postup nasazení aplikace do produkce.
      - blokaci a archivaci
      - zákaz smazání slotu s navázanou rezervací
    - owner sekci `/admin/email-logy` po každé změně Prisma schématu nebo e-mailové outbox vrstvy
+   - owner sekci `/admin/nastaveni`:
+     - uložení všech tří bloků
+     - propsání kontaktů do footeru a `/kontakt`
+     - propsání storno limitu do `/faq` a `/storno-podminky`
+     - propsání booking limitů do `/rezervace`
 12. Ověř booking a email vrstvu:
    - vytvoření testovací rezervace
    - zápis `EmailLog` ve stavu `PENDING` v background režimu nebo `SENT` v log režimu
    - funkční storno odkaz
+   - doručení admin notifikačního e-mailu na `notificationAdminEmail`
    - zpracování email workerem nebo potvrzený `EmailLog` v log režimu
 
 ## Nasazení
@@ -83,6 +89,7 @@ sudo /var/www/ppstudio/deploy/deploy.sh
 - Migrace `20260418193000_booking_model_review_fixes` přidává explicitní slot restriction mode a DB constraint proti překrývajícím se aktivním slotům.
 - Migrace `20260418220000_email_outbox_worker` doplňuje sloupce pro outbox, claimování a retry e-mailových jobů.
 - Migrace `20260419103000_service_public_bookability` přidává sloupec `Service.isPubliclyBookable`; po deployi ověř, že `/rezervace`, `/sluzby` a `/cenik` zobrazují jen správné služby a že admin sekce `Služby` funguje v owner i salon oblasti.
+- Migrace `20260419140000_site_settings_singleton` přidává tabulku `SiteSettings`; po deployi ověř, že se `/admin/nastaveni` otevře bez chyby a že první render bezpečně založí výchozí singleton záznam.
 - Admin workflow kategorií služeb nevyžaduje novou DB migraci; navazuje na existující model `ServiceCategory`.
 - Před produkční aplikací migrace ověř data, která by mohla mít rezervaci bez přiřazené služby; tato migrace takové řádky záměrně odmítne.
 - Pokud v databázi existují duplicitní rezervace stejného klienta do stejného slotu, nová migrace se zastaví a vyžádá jejich ruční vyčištění.
