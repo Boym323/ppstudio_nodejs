@@ -25,7 +25,7 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
   - homepage
   - služby a detail služby
   - ceník rozdělený podle kategorií přes celou šířku obsahu
-  - o salonu
+  - o mně
   - kontakt
   - FAQ
   - storno podmínky
@@ -92,6 +92,7 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
   - souhrn a potvrzení
 - Rezervační stránka je renderovaná dynamicky při requestu, takže nově publikované nebo obsazené sloty jsou vidět bez dalšího buildu.
 - Hero, sekce `O mně` a základní service copy jsou už přepsané do klidnějšího a osobnějšího tónu; další jemné úpravy je vhodné dělat centrálně v obsahové vrstvě nebo v DB copy mapě služeb.
+- Stránka `/o-mne` má vlastní modulární implementaci s profilem, příběhem, přístupem, očekáváními a jemným CTA; texty jsou připravené v `aboutContent`.
 - Homepage copy teď vědomě navazuje na konverzně funkční strukturu starého webu (`služba + lokalita`, rychlé CTA na rezervaci/ceník, sekce pro nejistý výběr služby), ale běží na současném komponentovém základu.
 - Homepage hero podporuje i vizuální brand prvky přes obsahový config (`logoImage`, `portraitImage` v `src/content/public-site.ts`); lokální assety jsou v `public/brand/`.
 - Homepage hero lze obsahově ladit blíž původnímu webu přes `homepageContent` (`benefits`, `ctaNote`) bez zásahu do routy.

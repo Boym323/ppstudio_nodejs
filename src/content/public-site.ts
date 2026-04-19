@@ -41,6 +41,61 @@ export type ContactItem = {
   note?: string;
 };
 
+export type LinkItem = {
+  href: string;
+  label: string;
+};
+
+export type AboutProfile = {
+  name: string;
+  role: string;
+  intro: string;
+  specialties: string[];
+};
+
+export type AboutStorySection = {
+  eyebrow: string;
+  title: string;
+  paragraphs: string[];
+};
+
+export type AboutValueItem = {
+  title: string;
+  description: string;
+};
+
+export type AboutApproachSection = {
+  eyebrow: string;
+  title: string;
+  paragraphs: string[];
+  values: AboutValueItem[];
+};
+
+export type AboutExpectationsSection = {
+  eyebrow: string;
+  title: string;
+  description: string;
+  brandNote: string;
+  items: string[];
+  closing: string;
+};
+
+export type AboutCtaSection = {
+  eyebrow: string;
+  title: string;
+  description: string;
+  primaryCta: LinkItem;
+  secondaryCta: LinkItem;
+};
+
+export type AboutContent = {
+  profile: AboutProfile;
+  story: AboutStorySection;
+  approach: AboutApproachSection;
+  expectations: AboutExpectationsSection;
+  cta: AboutCtaSection;
+};
+
 export const salonHighlights: HighlightItem[] = [
   { label: 'Příjemné prostředí', value: 'Klidná péče bez zbytečného spěchu' },
   { label: 'Individuální přístup', value: 'Služba podle aktuální potřeby pleti' },
@@ -140,33 +195,68 @@ export const homepageContent = {
   secondaryCta: { href: '/cenik', label: 'Zobrazit ceník' },
 };
 
-export const aboutContent = {
-  heroTitle: 'Péče, která začíná pozorností',
-  heroDescription:
-    'V PP Studio je pro mě důležité, aby každá návštěva odpovídala tomu, co právě potřebuje vaše pleť, výraz i celkový pocit ze sebe.',
-  story: [
-    'Věřím, že dobrá péče začíná tím, že vás někdo opravdu vnímá. Proto si dávám záležet na tom, aby zvolená služba odpovídala tomu, co vám bude sedět právě teď.',
-    'Nejde mi o univerzální postup ani o rychlý efekt za každou cenu. Důležitý je pro mě promyšlený výběr péče, pečlivé provedení a výsledek, ve kterém se budete cítit dobře.',
-  ],
-  values: [
-    {
-      title: 'Pozornost',
-      description: 'Každá návštěva má vlastní tempo a vlastní důvod. Podle toho volím průběh i doporučení.',
-    },
-    {
-      title: 'Jistota',
-      description: 'Chci, abyste se v průběhu celé návštěvy cítila klidně, pohodlně a bez nejistoty.',
-    },
-    {
-      title: 'Výsledek',
-      description: 'Cílem není nápadnost, ale péče, která je přesná, kultivovaná a dává vám smysl.',
-    },
-  ],
-  galleryGuide: [
-    'portrét majitelky v pracovním prostředí',
-    'detail salonního prostoru v denním světle',
-    'detail produktů a nástrojů v jednotném barevném stylu',
-  ],
+export const aboutContent: AboutContent = {
+  profile: {
+    name: 'Pavlína Pomykalová',
+    role: 'Majitelka PP Studia · Cosmetics & Laminations',
+    intro:
+      'Vytvořila jsem místo, kde se můžete zastavit, nadechnout a dopřát si chvíli jen pro sebe. Chci, aby návštěva působila příjemně od prvního kontaktu až po výsledek, se kterým budete spokojená i v běžném dni.',
+    specialties: ['Lash lifting', 'Laminace obočí', 'Kosmetické ošetření', 'Lymfatická masáž obličeje'],
+  },
+  story: {
+    eyebrow: 'Můj příběh',
+    title: 'Profesní cesta, která začala rozhodnutím dělat práci poctivě a osobně.',
+    paragraphs: [
+      'Moje profesní cesta v beauty světě se začala psát v roce 2024. Právě tehdy jsem se rozhodla v tomto oboru pokračovat naplno a postupně si vybudovat pevný odborný základ.',
+      'V roce 2025, po dosažení kvalifikací, jsem zahájila aktivní praxi. Od začátku pro mě bylo důležité vytvářet péči, která není jen o proceduře samotné, ale i o pocitu klidu, jistoty a důvěry.',
+    ],
+  },
+  approach: {
+    eyebrow: 'Můj přístup',
+    title: 'Péče, která stojí na empatii, přesnosti a výsledku, který vám bude sedět.',
+    paragraphs: [
+      'Věřím, že obličej je zrcadlem naší duše. Mým cílem je podporovat ženské sebevědomí, ušetřit vám čas v každodenní rutině a nabídnout péči, která prospívá nejen vzhledu, ale i celkovému pocitu.',
+      'Ke každé klientce přistupuji s respektem a empatií. Doporučuji jen to, co skutečně dává smysl, funguje v praxi a odpovídá tomu, co od návštěvy očekáváte.',
+    ],
+    values: [
+      {
+        title: 'Respekt',
+        description: 'Každá návštěva má vlastní tempo. Důležité je, abyste se cítila dobře už v průběhu celé péče.',
+      },
+      {
+        title: 'Empatie',
+        description: 'Naslouchám tomu, co chcete změnit, zvýraznit nebo si naopak co nejvíc zjednodušit.',
+      },
+      {
+        title: 'Výsledek',
+        description: 'Doporučuji jen služby a postupy, které mají jasný přínos a působí přirozeně i dlouhodobě.',
+      },
+    ],
+  },
+  expectations: {
+    eyebrow: 'Na co se můžete těšit',
+    title: 'Jemná, profesionální péče v prostředí, kde není potřeba nikam spěchat.',
+    description:
+      'Pracuji s českou kosmetikou FOR LIFE & MADAGA, která vychází z francouzských základů a stojí na kvalitě, šetrnosti a promyšlené profesionální péči.',
+    brandNote:
+      'Kromě značky samotné je pro mě důležitý i způsob práce: srozumitelný průběh, citlivé doporučení a výsledek, který působí upraveně, ale pořád přirozeně.',
+    items: [
+      'profesionální péče o pleť podle aktuální potřeby',
+      'laminace obočí pro upravený a přirozený výraz',
+      'lash lifting pro otevřenější pohled bez každodenní námahy',
+      'uvolňovací lymfatická masáž obličeje pro lehkost a komfort',
+    ],
+    closing:
+      'Těším se na každé naše setkání. Praxi lze podpořit vášní, talentem, důsledností, estetickým cítěním i odhodláním, které do každé své práce dávám.',
+  },
+  cta: {
+    eyebrow: 'Rezervace',
+    title: 'Pokud vám je tenhle přístup blízký, můžete si rovnou vybrat termín.',
+    description:
+      'Rezervaci dokončíte online v několika klidných krocích. Pokud si zatím nejste jistá volbou služby, ráda vám pomohu i předem.',
+    primaryCta: { href: '/rezervace', label: 'Rezervovat termín' },
+    secondaryCta: { href: '/kontakt', label: 'Napsat do studia' },
+  },
 };
 
 export function buildContactItems(input: {

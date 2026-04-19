@@ -61,6 +61,8 @@ Formát je inspirovaný Keep a Changelog.
 - Týdenní planner dostupností pro `OWNER` i `SALON` nyní zobrazuje rezervace, omezené intervaly, neaktivní sloty i minulý čas v jednom klidném kalendáři.
 
 ### Changed
+- Stránka `/o-mne` byla zjednodušená blíž původnímu webu: bez portrétní fotky a bez sekce certifikátů, s přímočařejší skladbou `hero -> profil -> Můj příběh -> Můj přístup -> Na co se můžete těšit -> jemné CTA`.
+- Implementace stránky `O mně` v `src/features/public/components/about-page.tsx` byla vizuálně zklidněná a obsahový model `aboutContent` byl zúžený jen na bloky, které jsou teď na stránce skutečně použité.
 - Hero portrét na desktopu už nepoužívá `lg:h-full`; má pevnou výšku `lg:h-[31rem]`, takže je reálně menší a lépe sedí k levému textovému bloku.
 - Pravý hero sloupec byl přepnutý na `flex` layout, aby se výška portrétu na desktopu spolehlivě dorovnávala k levému obsahovému bloku až po CTA poznámku.
 - Logo v homepage hero je nyní centrované v levém bloku a portrét na desktopu znovu používá `lg:h-full`, aby držel výšku levého obsahu.

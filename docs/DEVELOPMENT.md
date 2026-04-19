@@ -37,6 +37,8 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Ceník na `/cenik` je renderovaný jako plnošířkový přehled po kategoriích a už nemá doprovodný blok s poznámkami.
 - Úvodní stránka používá stejný DB katalog pro featured služby, aby odkazy z homepage mířily na aktuální slugs.
 - Reusable page sekce jsou ve `src/features/public/components/public-site.tsx`.
+- Stránka `/o-mne` už neběží jako jeden blok v `public-site.tsx`; vlastní skladba je v `src/features/public/components/about-page.tsx`.
+- `aboutContent` v `src/content/public-site.ts` používá strukturovaný model (`profile`, `story`, `approach`, `expectations`, `cta`), aby bylo možné copy upravovat bez zásahu do layoutu.
 - Placeholder obsah musí být jasně odlišen od finálních produkčních textů.
 - Pokud je interní název služby příliš technický nebo exportovaný ze starého webu, nepřepisuj DB záznam jen kvůli public copy; preferuj public override v read modelu.
 - CTA na rezervaci držet konzistentně v headeru, hero sekcích a kontextových blocích.

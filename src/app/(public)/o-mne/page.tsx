@@ -1,8 +1,9 @@
-import { AboutPage, buildPageMetadata } from '@/features/public/components/public-site';
+import { AboutPage } from '@/features/public/components/about-page';
+import { buildPageMetadata } from '@/features/public/components/public-site';
 
 export const metadata = buildPageMetadata({
   title: 'O mně',
-  description: 'Příběh salonu, hodnoty značky a obsahová struktura připravená pro důvěryhodnou prezentaci.',
+  description: 'Poznejte příběh a přístup Pavlíny Pomykalové v PP Studiu.',
 });
 
 export default function Page() {

@@ -3,7 +3,6 @@ import Image from 'next/image';
 import type { Metadata } from 'next';
 
 import {
-  aboutContent,
   buildContactItems,
   buildFaqItems,
   buildLegalContent,
@@ -561,52 +560,6 @@ export function PricingPage({ services: catalogServices = services }: { services
               </section>
             ))}
           </div>
-        </Container>
-      </section>
-      <CtaBand />
-    </div>
-  );
-}
-
-export function AboutPage() {
-  return (
-    <div className="pb-8 sm:pb-12">
-      <PublicHero
-        eyebrow="O mně"
-        title={aboutContent.heroTitle}
-        description={aboutContent.heroDescription}
-        primaryCta={{ href: '/kontakt', label: 'Napsat do studia' }}
-        secondaryCta={{ href: '/rezervace', label: 'Rezervovat termín' }}
-      />
-      <section className="py-12 sm:py-16">
-        <Container className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
-          <div className="rounded-[var(--radius-panel)] border border-black/6 bg-white p-6 shadow-[var(--shadow-panel)] sm:p-8">
-            <SectionHeading
-              eyebrow="Můj přístup"
-              title="Chci, aby péče dávala smysl vám, ne jen obecně."
-            />
-            <div className="mt-8 space-y-5 text-[15px] leading-7 text-[var(--color-muted)] sm:text-base">
-              {aboutContent.story.map((paragraph) => (
-                <p key={paragraph}>{paragraph}</p>
-              ))}
-            </div>
-            <div className="mt-8 grid gap-4 sm:grid-cols-3">
-              {aboutContent.values.map((value) => (
-                <div key={value.title} className="rounded-[calc(var(--radius-panel)-0.5rem)] bg-[var(--color-surface)] p-5">
-                  <p className="font-display text-2xl text-[var(--color-foreground)]">{value.title}</p>
-                  <p className="mt-3 text-sm leading-6 text-[var(--color-muted)]">{value.description}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-          <PlaceholderNote
-            title="Na čem mi záleží"
-            items={[
-              'pečlivě zvolená služba podle aktuální potřeby',
-              'příjemný průběh bez zbytečného spěchu',
-              'výsledek, ve kterém se budete cítit dobře',
-            ]}
-          />
         </Container>
       </section>
       <CtaBand />
