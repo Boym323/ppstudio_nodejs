@@ -1,15 +1,12 @@
 import type { Metadata } from 'next';
+import { connection } from "next/server";
 import { notFound } from 'next/navigation';
 
-import { getServiceBySlug, services } from '@/content/public-site';
+import { getPublicServiceBySlug } from '@/features/public/lib/public-services';
 import { ServiceDetailPage, buildPageMetadata } from '@/features/public/components/public-site';
 
-export function generateStaticParams() {
-  return services.map((service) => ({ slug: service.slug }));
-}
-
-export function generateMetadata({ params }: { params: { slug: string } }): Metadata {
-  const service = getServiceBySlug(params.slug);
+export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
+  const service = await getPublicServiceBySlug(params.slug);
 
   if (!service) {
     return buildPageMetadata({
@@ -24,8 +21,10 @@ export function generateMetadata({ params }: { params: { slug: string } }): Meta
   });
 }
 
-export default function Page({ params }: { params: { slug: string } }) {
-  const service = getServiceBySlug(params.slug);
+export default async function Page({ params }: { params: { slug: string } }) {
+  await connection();
+
+  const service = await getPublicServiceBySlug(params.slug);
 
   if (!service) {
     notFound();

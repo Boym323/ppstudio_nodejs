@@ -28,3 +28,4 @@ Sem patří krátké záznamy architektonických rozhodnutí.
 - `0012-admin-route-factory-consolidation.md`
 - `0013-admin-weekly-availability-grid-v2.md`
 - `0014-admin-service-catalog-workflow-v1.md`
+- `0015-admin-service-category-management-v1.md`

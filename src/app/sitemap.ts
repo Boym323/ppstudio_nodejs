@@ -1,9 +1,9 @@
 import type { MetadataRoute } from "next";
 
 import { siteConfig } from "@/config/site";
-import { services } from "@/content/public-site";
+import { getPublicServices } from "@/features/public/lib/public-services";
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const lastModified = new Date();
   const staticRoutes = [
     "",
@@ -25,7 +25,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: (route === "" ? "weekly" : "monthly") as "weekly" | "monthly",
       priority: route === "" ? 1 : route === "/rezervace" ? 0.9 : 0.7,
     })),
-    ...services.map((service) => ({
+    ...(await getPublicServices()).map((service) => ({
       url: `${siteConfig.url}/sluzby/${service.slug}`,
       lastModified,
       changeFrequency: "monthly" as const,

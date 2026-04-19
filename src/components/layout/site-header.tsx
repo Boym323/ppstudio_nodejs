@@ -1,22 +1,34 @@
+'use client';
+
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 import { mainNavigation } from '@/config/navigation';
-import { siteConfig } from '@/config/site';
 import { cn } from '@/lib/utils';
 
 import { Container } from '../ui/container';
+
+const BRAND_NAME = 'PP Studio';
 
 type SiteHeaderProps = {
   variant?: 'public' | 'booking';
 };
 
 export function SiteHeader({ variant = 'public' }: SiteHeaderProps) {
+  const pathname = usePathname();
+  const showHomepageSubtitle = pathname === '/';
+
   return (
     <header className="sticky top-0 z-40 border-b border-black/5 bg-[color:rgba(248,243,237,0.9)] backdrop-blur-xl">
       <Container className="flex min-h-18 flex-col justify-center gap-4 py-4 md:min-h-20 md:flex-row md:items-center md:justify-between md:py-0">
         <div className="flex items-center justify-between gap-4">
-          <Link href="/" className="font-display text-[1.55rem] tracking-[0.14em] text-[var(--color-foreground)]">
-            {siteConfig.name}
+          <Link href="/" className="flex flex-col items-start text-[var(--color-foreground)]">
+            <span className="font-display text-[1.55rem] tracking-[0.14em]">{BRAND_NAME}</span>
+            {showHomepageSubtitle ? (
+              <span className="mt-1 text-[10px] font-semibold uppercase tracking-[0.3em] text-[var(--color-accent)] sm:text-[11px]">
+                COSMETICS &amp; LAMINATIONS
+              </span>
+            ) : null}
           </Link>
           <Link
             href="/rezervace"

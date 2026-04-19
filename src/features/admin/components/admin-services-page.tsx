@@ -1,6 +1,7 @@
 import { AdminPageShell, AdminPanel } from "@/features/admin/components/admin-page-shell";
 import { AdminServiceForm } from "@/features/admin/components/admin-service-form";
 import { AdminServicesList } from "@/features/admin/components/admin-services-list";
+import { AdminServicesToolbar } from "@/features/admin/components/admin-services-toolbar";
 import { formatServicePrice } from "@/features/admin/lib/admin-service-format";
 import { getAdminServicesPageData } from "@/features/admin/lib/admin-services";
 import { type AdminArea } from "@/config/navigation";
@@ -26,6 +27,8 @@ export async function AdminServicesPage({
 }) {
   const data = await getAdminServicesPageData(area, searchParams);
   const queryString = toQueryString(searchParams);
+  const selectedServiceVisible =
+    Boolean(data.selectedService) && data.services.some((service) => service.id === data.selectedService?.id);
 
   return (
     <AdminPageShell
@@ -42,63 +45,26 @@ export async function AdminServicesPage({
       <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
         <AdminPanel
           title="Přehled služeb"
-          description="Filtr zůstává jednoduchý: rychlé hledání, stav služby a veřejná rezervovatelnost."
+          description="Filtr je schválně krátký. V běžném provozu stačí najít službu, otevřít ji a upravit jen to, co je potřeba."
           compact={area === "salon"}
         >
-          <form className="grid gap-3 rounded-[1.35rem] border border-white/8 bg-white/5 p-4 sm:grid-cols-2 xl:grid-cols-4">
-            <label className="block sm:col-span-2 xl:col-span-1">
-              <span className="text-xs uppercase tracking-[0.2em] text-white/50">Hledat</span>
-              <input
-                type="search"
-                name="query"
-                defaultValue={data.filters.query}
-                placeholder="Název, slug nebo kategorie"
-                className="mt-2 w-full rounded-[1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none transition placeholder:text-white/30 focus:border-[var(--color-accent)]/60"
-              />
-            </label>
+          <AdminServicesToolbar
+            currentPath={data.currentPath}
+            filters={data.filters}
+            selectedServiceName={data.selectedService?.name}
+          />
 
-            <SelectField name="status" label="Stav" defaultValue={data.filters.status}>
-              <option value="all" className="text-black">Všechny</option>
-              <option value="active" className="text-black">Aktivní</option>
-              <option value="inactive" className="text-black">Neaktivní</option>
-            </SelectField>
-
-            <SelectField name="bookable" label="Rezervace" defaultValue={data.filters.bookable}>
-              <option value="all" className="text-black">Všechny</option>
-              <option value="public" className="text-black">Veřejné</option>
-              <option value="private" className="text-black">Jen interní</option>
-            </SelectField>
-
-            <SelectField name="sort" label="Řazení" defaultValue={data.filters.sort}>
-              <option value="category" className="text-black">Kategorie</option>
-              <option value="order" className="text-black">Pořadí</option>
-              <option value="name" className="text-black">Název</option>
-              <option value="duration" className="text-black">Délka</option>
-              <option value="price" className="text-black">Cena</option>
-            </SelectField>
-
-            <div className="flex items-end gap-3 sm:col-span-2 xl:col-span-4">
-              <button
-                type="submit"
-                className="rounded-full bg-[var(--color-accent)] px-5 py-3 text-sm font-semibold text-[var(--color-accent-contrast)] transition hover:brightness-105"
-              >
-                Filtrovat
-              </button>
-              <a
-                href={data.currentPath}
-                className="rounded-full border border-white/10 px-5 py-3 text-sm text-white/80 transition hover:border-white/18 hover:bg-white/6"
-              >
-                Reset
-              </a>
-            </div>
-          </form>
-
-          <div className="mt-5 grid gap-3 text-sm text-white/64 sm:grid-cols-2 lg:grid-cols-4">
-            <p><span className="text-white">Služeb:</span> {data.services.length}</p>
-            <p><span className="text-white">Aktivní výběr:</span> {data.selectedService?.name ?? "Žádná"}</p>
-            <p><span className="text-white">Kategorie:</span> {data.categories.length}</p>
-            <p><span className="text-white">Ceny:</span> v Kč bez DPH logiky navíc</p>
+          <div className="mt-5 grid gap-3 text-sm text-white/64 sm:grid-cols-2 lg:grid-cols-3">
+            <p><span className="text-white">Služeb v seznamu:</span> {data.services.length}</p>
+            <p><span className="text-white">Kategorií:</span> {data.categories.length}</p>
+            <p><span className="text-white">Veřejně nabízené:</span> {data.services.filter((service) => service.isPubliclyBookable).length}</p>
           </div>
+
+          {data.selectedService && !selectedServiceVisible ? (
+            <div className="mt-5 rounded-[1.25rem] border border-amber-300/20 bg-amber-400/10 px-4 py-3 text-sm leading-6 text-amber-50">
+              Vybraná služba je mimo aktuální filtr. Seznam zůstává zúžený, ale editace dole je pořád otevřená.
+            </div>
+          ) : null}
 
           <div className="mt-5">
             <AdminServicesList
@@ -149,30 +115,5 @@ export async function AdminServicesPage({
         </AdminPanel>
       </div>
     </AdminPageShell>
-  );
-}
-
-function SelectField({
-  name,
-  label,
-  defaultValue,
-  children,
-}: {
-  name: string;
-  label: string;
-  defaultValue: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className="block">
-      <span className="text-xs uppercase tracking-[0.2em] text-white/50">{label}</span>
-      <select
-        name={name}
-        defaultValue={defaultValue}
-        className="mt-2 w-full rounded-[1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--color-accent)]/60"
-      >
-        {children}
-      </select>
-    </label>
   );
 }

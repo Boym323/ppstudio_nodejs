@@ -26,8 +26,11 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 
 ## Veřejný Web
 - Každá veřejná stránka má vlastní route a metadata.
-- Detail služby běží na `sluzby/[slug]` a používá `generateStaticParams`.
-- Veřejný obsah je centralizovaný v `src/content/public-site.ts`.
+- Detail služby běží na `sluzby/[slug]` a čerpá z request-time DB read modelu, aby admin změny byly vidět bez rebuildů.
+- Veřejný web drží dva zdroje obsahu:
+  - marketingové bloky, FAQ a právní texty jsou dál centralizované v `src/content/public-site.ts`
+  - služby a ceník berou data z DB přes `src/features/public/lib/public-services.ts`
+- Úvodní stránka používá stejný DB katalog pro featured služby, aby odkazy z homepage mířily na aktuální slugs.
 - Reusable page sekce jsou ve `src/features/public/components/public-site.tsx`.
 - Placeholder obsah musí být jasně odlišen od finálních produkčních textů.
 - CTA na rezervaci držet konzistentně v headeru, hero sekcích a kontextových blocích.
@@ -56,6 +59,9 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Sekce `Služby` má vlastní workflow v `src/features/admin/components/admin-services-page.tsx` a už neběží přes generický placeholder renderer.
 - `src/features/admin/lib/admin-services.ts` drží serverový read model pro seznam, filtry, detail služby a navázané kategorie.
 - `src/features/admin/actions/service-actions.ts` je tenký server action adaptér pro editaci služby; validace zůstává v `src/features/admin/lib/admin-service-validation.ts`.
+- Sekce `Kategorie služeb` má vlastní workflow v `src/features/admin/components/admin-service-categories-page.tsx` a stejně jako `Služby` obchází generický placeholder renderer.
+- `src/features/admin/lib/admin-service-categories.ts` drží serverový read model pro seznam, filtry, detail kategorie a lehký náhled navázaných služeb.
+- `src/features/admin/actions/service-category-actions.ts` je tenký server action adaptér pro editaci a bezpečné mazání kategorie; validace zůstává v `src/features/admin/lib/admin-service-category-validation.ts`.
 - `src/features/admin/components/admin-booking-detail-page.tsx` a route dvojice `/admin/rezervace/[bookingId]` + `/admin/provoz/rezervace/[bookingId]` drží první produkční workflow pro práci s rezervací.
 - Produkční slot routy jsou explicitní a nepoužívají generický `[section]` detail:
   - `/admin/volne-terminy`
@@ -150,6 +156,11 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - přepnutí `Veřejně rezervovatelná` a dopad na `/rezervace`
   - změnu délky služby a skrytí slotů, které jsou po změně kratší než služba
   - editaci služby v neaktivní kategorii a očekávané skrytí z veřejného bookingu
+- Po změně admin kategorií služeb ručně ověř i:
+  - `/admin/kategorie-sluzeb` i `/admin/provoz/kategorie-sluzeb` na desktopu a mobilu
+  - změnu pořadí kategorie a nové řazení na `/sluzby`, `/cenik` a v `/rezervace`
+  - deaktivaci kategorie s navázanými službami a očekávané skrytí z veřejného webu i bookingu
+  - blokaci mazání neprázdné kategorie a úspěšné smazání prázdné kategorie
   - mobilní header a CTA na `/`, `/sluzby`, `/kontakt`
   - správnost interních odkazů v footeru
   - metadata a titulky pro detail služby

@@ -121,6 +121,11 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
   - responzivní seznam ukazuje název, kategorii, délku, cenu, aktivitu, veřejnou rezervovatelnost a pořadí
   - jednoduchý editor umožňuje upravit název, popisy, délku, cenu, kategorii, pořadí a oba publikační přepínače
   - veřejný booking flow bere službu jen pokud je `isActive = true`, `isPubliclyBookable = true` a její kategorie je aktivní
+- Sekce `Kategorie služeb` je nyní produkčně použitelná pro obě role na `/admin/kategorie-sluzeb` a `/admin/provoz/kategorie-sluzeb`:
+  - seznam ukazuje název, pořadí, aktivitu a počet navázaných služeb
+  - editor umožňuje upravit název, volitelný popis, pořadí a aktivní stav
+  - mazání je povolené jen pro prázdné kategorie bez služeb; jinak je doporučené kategorii pouze vypnout
+  - změna pořadí nebo aktivity se promítá do adminu, veřejných výpisů `/sluzby` a `/cenik` i do veřejného booking flow
 - Sekce jen pro `OWNER`:
   - Uživatelé / role
   - Email logy
@@ -194,7 +199,8 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
 - Detail konkrétního e-mailu na `/admin/email-logy/[emailLogId]` ukazuje payload, poslední chybu, vazby na rezervaci a klientku a nabízí ruční retry nebo uvolnění zaseknutého jobu.
 - Po úspěšné akci se na detailu objeví krátká potvrzovací hláška, aby bylo zřejmé, že operace proběhla.
 - Veřejný booking flow po potvrzení:
-- Veřejný marketingový web `/sluzby` a `/cenik` je zatím stále napojený na `src/content/public-site.ts`; nová admin správa služeb proto okamžitě řídí booking katalog, ale nepropisuje se ještě do prezentačních textů a landing obsahu.
+  - veřejný web `/`, `/sluzby`, `/cenik` a detail služby nyní čerpá z databáze v request-time
+  - admin změny se do něj promítnou bez rebuildů
   - znovu validuje službu a termín server-side
   - naváže nebo vytvoří klienta podle e-mailu
   - vytvoří rezervaci se snapshotem služby a času

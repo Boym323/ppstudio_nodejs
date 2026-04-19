@@ -7,6 +7,10 @@ Formát je inspirovaný Keep a Changelog.
 ## [Unreleased]
 
 ### Added
+- Produkční admin sekci `Kategorie služeb` pro `OWNER` i `SALON` s responzivním seznamem, filtrováním, výběrem kategorie a krátkou editací nad reálnými Prisma daty.
+- Server action a Zod validační vrstvu pro bezpečnou editaci názvu, volitelného popisu, pořadí a aktivního stavu kategorie.
+- Bezpečné mazání pouze pro prázdné kategorie bez navázaných služeb.
+- ADR 0015 pro admin workflow kategorií služeb a bezpečné chování vazby kategorie -> služby.
 - Produkční admin sekci `Služby` pro `OWNER` i `SALON` s responzivním seznamem, filtrováním, výběrem služby a jednoduchou editací nad reálnými Prisma daty.
 - Server action a Zod validační vrstvu pro bezpečnou editaci názvu, popisů, délky, ceny, kategorie, pořadí a publikačních přepínačů služby.
 - Nové pole `Service.isPubliclyBookable`, které odděluje interně aktivní službu od služby skutečně nabízené ve veřejném booking flow.
@@ -50,7 +54,12 @@ Formát je inspirovaný Keep a Changelog.
 - Týdenní planner dostupností pro `OWNER` i `SALON` nyní zobrazuje rezervace, omezené intervaly, neaktivní sloty i minulý čas v jednom klidném kalendáři.
 
 ### Changed
+- Domovská stránka teď v levé části hlavičky pod `PP Studio` zobrazuje doplněk `COSMETICS & LAMINATIONS`.
+- Sekce `Kategorie služeb` už není jen read-only přehled v `admin-data`; route `/admin/kategorie-sluzeb` a `/admin/provoz/kategorie-sluzeb` renderuje samostatný pracovní workflow se seznamem a editací.
+- Admin sekce `Služby` prošla druhým kolem UX zjednodušení: oddělený toolbar, čitelnější formulář po sekcích, kompaktnější seznam a lepší mobilní čitelnost bez změny business logiky.
 - Veřejný booking katalog a server-side potvrzení rezervace nově vyžadují u služby nejen `isActive`, ale i `isPubliclyBookable`, takže admin může službu ponechat aktivní pro interní provoz a současně ji skrýt z veřejného bookingu.
+- Veřejné stránky `/sluzby`, `/cenik` a detail služby jsou nově napojené na DB request-time read model, takže admin změny služeb se projeví bez rebuildů.
+- Úvodní stránka teď používá stejný DB katalog pro featured služby, aby odkazy na detail služby zůstaly konzistentní.
 - Sekce `Služby` už není jen read-only přehled v `admin-data`; route `/admin/sluzby` a `/admin/provoz/sluzby` renderuje samostatný pracovní workflow se seznamem a editací.
 - Rezervační planner v adminu nyní používá pracovní okno `06:00-20:00` místo celého dne (`00:00-24:00`): mřížka má 28 půlhodinových buněk a serverové validace/cell mapování byly sjednocené na stejný rozsah.
 - Admin shell layout byl vizuálně stabilizovaný pro desktop i mobil: širší sidebar na `lg+`, sticky pozice navigace, ochrana proti horizontálnímu přetékání a `min-w-0` pro hlavní obsah.
@@ -80,6 +89,7 @@ Formát je inspirovaný Keep a Changelog.
 - Dokumentace byla srovnaná s aktuálním kódem: týdenní planner, `EMAIL_DELIVERY_MODE=background` a produkční migrace přes `prisma migrate deploy`.
 
 ### Fixed
+- Hlavička veřejného webu už v browseru nespouští validaci serverových env proměnných; brand text je teď lokální a subtitle na domovce zůstává zachovaný.
 - Opravené označování `Minulý čas` v admin planneru: budoucí dny už nejsou chybně blokované podle aktuální hodiny dneška.
 - Planner UI nyní používá pevný počet 28 řádků pro pracovní okno `06:00-20:00`, takže se mřížka nerozjíždí ani při rozjetých datech nebo zastaralém client payloadu.
 - Planner grid už negeneruje extra řádky bez časových popisků; výška mřížky se nyní primárně řídí `timeLabels` (pracovní okno), a ne nekonzistentní délkou buněk v payloadu.

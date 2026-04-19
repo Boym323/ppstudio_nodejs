@@ -8,7 +8,6 @@ import {
   initialUpdateServiceActionState,
 } from "@/features/admin/actions/update-service-action-state";
 import { updateServiceAction } from "@/features/admin/actions/service-actions";
-import { formatServicePrice } from "@/features/admin/lib/admin-service-format";
 
 export function AdminServiceForm({
   area,
@@ -68,116 +67,158 @@ export function AdminServiceForm({
       <div className="grid gap-3 rounded-[1.25rem] border border-white/8 bg-white/5 p-4 text-sm text-white/70 sm:grid-cols-3">
         <p><span className="text-white">Kategorie:</span> {service.category.name}</p>
         <p><span className="text-white">Rezervace:</span> {service._count.bookings}</p>
-        <p><span className="text-white">Omezení slotů:</span> {service._count.allowedAvailabilitySlots}</p>
+        <p><span className="text-white">Napojení na sloty:</span> {service._count.allowedAvailabilitySlots}</p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="Název služby" error={serverState.fieldErrors?.name}>
-          <input
-            type="text"
-            name="name"
-            defaultValue={service.name}
-            maxLength={120}
-            className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--color-accent)]/60"
-          />
-        </Field>
+      <SectionBlock
+        title="Základ služby"
+        description="Tady stačí upravit název, kategorii, délku, cenu a pořadí."
+      >
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Název služby" error={serverState.fieldErrors?.name}>
+            <input
+              type="text"
+              name="name"
+              defaultValue={service.name}
+              maxLength={120}
+              className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--color-accent)]/60"
+            />
+          </Field>
 
-        <Field label="Kategorie" error={serverState.fieldErrors?.categoryId}>
-          <select
-            name="categoryId"
-            defaultValue={service.categoryId}
-            className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--color-accent)]/60"
-          >
-            {categories.map((category) => (
-              <option key={category.id} value={category.id} className="text-black">
-                {category.name}{category.isActive ? "" : " (neaktivní)"}
-              </option>
-            ))}
-          </select>
-        </Field>
+          <Field label="Kategorie" error={serverState.fieldErrors?.categoryId}>
+            <select
+              name="categoryId"
+              defaultValue={service.categoryId}
+              className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--color-accent)]/60"
+            >
+              {categories.map((category) => (
+                <option key={category.id} value={category.id} className="text-black">
+                  {category.name}{category.isActive ? "" : " (neaktivní)"}
+                </option>
+              ))}
+            </select>
+          </Field>
 
-        <Field label="Délka v minutách" error={serverState.fieldErrors?.durationMinutes}>
-          <input
-            type="number"
-            name="durationMinutes"
-            min={5}
-            max={480}
-            defaultValue={service.durationMinutes}
-            className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--color-accent)]/60"
-          />
-        </Field>
+          <Field label="Délka v minutách" error={serverState.fieldErrors?.durationMinutes}>
+            <input
+              type="number"
+              name="durationMinutes"
+              min={5}
+              max={480}
+              step={5}
+              inputMode="numeric"
+              defaultValue={service.durationMinutes}
+              className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--color-accent)]/60"
+            />
+          </Field>
 
-        <Field label="Cena od (Kč)" error={serverState.fieldErrors?.priceFromCzk}>
-          <input
-            type="number"
-            name="priceFromCzk"
-            min={0}
-            max={50000}
-            defaultValue={service.priceFromCzk ?? ""}
-            placeholder="Např. 1200"
-            className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none transition placeholder:text-white/32 focus:border-[var(--color-accent)]/60"
-          />
-        </Field>
+          <Field label="Cena od (Kč)" error={serverState.fieldErrors?.priceFromCzk}>
+            <input
+              type="number"
+              name="priceFromCzk"
+              min={0}
+              max={50000}
+              step={50}
+              inputMode="numeric"
+              defaultValue={service.priceFromCzk ?? ""}
+              placeholder="Např. 1200"
+              className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none transition placeholder:text-white/32 focus:border-[var(--color-accent)]/60"
+            />
+          </Field>
 
-        <Field label="Pořadí" error={serverState.fieldErrors?.sortOrder}>
-          <input
-            type="number"
-            name="sortOrder"
-            min={0}
-            max={9999}
-            defaultValue={service.sortOrder}
-            className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--color-accent)]/60"
-          />
-        </Field>
+          <Field label="Pořadí" error={serverState.fieldErrors?.sortOrder}>
+            <input
+              type="number"
+              name="sortOrder"
+              min={0}
+              max={9999}
+              step={1}
+              inputMode="numeric"
+              defaultValue={service.sortOrder}
+              className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--color-accent)]/60"
+            />
+          </Field>
 
-        <div className="rounded-[1.1rem] border border-white/8 bg-white/5 p-4 text-sm text-white/72">
-          <p className="font-medium text-white">Aktuální veřejná cena</p>
-          <p className="mt-2 text-lg text-[var(--color-accent-soft)]">{formatServicePrice(service.priceFromCzk)}</p>
-          <p className="mt-2 leading-6">
-            Booking používá aktuální délku služby pro nové rezervace. Historické rezervace si nechávají vlastní snapshot.
-          </p>
+          <div className="rounded-[1.1rem] border border-white/8 bg-white/5 p-4 text-sm text-white/72">
+            <p className="font-medium text-white">Co se uloží do bookingu</p>
+            <p className="mt-2 leading-6">
+              Nová délka a cena platí pro budoucí rezervace. Historické záznamy zůstanou beze změny.
+            </p>
+          </div>
         </div>
-      </div>
+      </SectionBlock>
 
-      <Field label="Krátký popis" error={serverState.fieldErrors?.shortDescription}>
-        <textarea
-          name="shortDescription"
-          rows={3}
-          maxLength={240}
-          defaultValue={service.shortDescription ?? ""}
-          placeholder="Krátký popis pro rychlou orientaci v nabídce."
-          className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm leading-6 text-white outline-none transition placeholder:text-white/32 focus:border-[var(--color-accent)]/60"
-        />
-      </Field>
+      <SectionBlock
+        title="Publikace"
+        description="Obě volby jsou schválně oddělené, aby šlo službu nechat interně aktivní a přitom ji skrýt z veřejné rezervace."
+      >
+        <div className="grid gap-3 sm:grid-cols-2">
+          <ToggleCard
+            name="isActive"
+            defaultChecked={service.isActive}
+            title="Aktivní služba"
+            description="Použij, když má služba zůstat v nabídce a dál se s ní má počítat v provozu."
+          />
+          <ToggleCard
+            name="isPubliclyBookable"
+            defaultChecked={service.isPubliclyBookable}
+            title="Veřejně rezervovatelná"
+            description="Použij, když se má služba objevit na webu pro klientky."
+          />
+        </div>
+      </SectionBlock>
 
-      <Field label="Detailní popis" error={serverState.fieldErrors?.description}>
-        <textarea
-          name="description"
-          rows={6}
-          maxLength={4000}
-          defaultValue={service.description ?? ""}
-          placeholder="Detailní poznámka k průběhu služby nebo tomu, co obsahuje."
-          className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm leading-6 text-white outline-none transition placeholder:text-white/32 focus:border-[var(--color-accent)]/60"
-        />
-      </Field>
+      <SectionBlock
+        title="Text pro detail"
+        description="Krátký popis je pro rychlé čtení, delší popis jen když opravdu pomáhá klientce rozhodnout se."
+      >
+        <div className="grid gap-4">
+          <Field label="Krátký popis" error={serverState.fieldErrors?.shortDescription}>
+            <textarea
+              name="shortDescription"
+              rows={2}
+              maxLength={240}
+              defaultValue={service.shortDescription ?? ""}
+              placeholder="Krátká věta pro orientaci v nabídce."
+              className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm leading-6 text-white outline-none transition placeholder:text-white/32 focus:border-[var(--color-accent)]/60"
+            />
+          </Field>
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        <ToggleCard
-          name="isActive"
-          defaultChecked={service.isActive}
-          title="Služba je aktivní"
-          description="Aktivní služba zůstává použitelná v navazující provozní logice a může být dál napojená na sloty."
-        />
-        <ToggleCard
-          name="isPubliclyBookable"
-          defaultChecked={service.isPubliclyBookable}
-          title="Veřejně rezervovatelná"
-          description="Pouze aktivní a veřejně rezervovatelná služba se objeví ve veřejném booking flow."
-        />
-      </div>
+          <Field label="Detailní popis" error={serverState.fieldErrors?.description}>
+            <textarea
+              name="description"
+              rows={4}
+              maxLength={4000}
+              defaultValue={service.description ?? ""}
+              placeholder="Delší popis, jen pokud skutečně pomáhá rozhodnutí nebo detailnímu vysvětlení služby."
+              className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm leading-6 text-white outline-none transition placeholder:text-white/32 focus:border-[var(--color-accent)]/60"
+            />
+          </Field>
+        </div>
+      </SectionBlock>
 
       <SubmitButton />
     </form>
+  );
+}
+
+function SectionBlock({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="rounded-[1.25rem] border border-white/8 bg-white/5 p-4">
+      <div className="border-b border-white/10 pb-4">
+        <h4 className="font-display text-xl text-white">{title}</h4>
+        <p className="mt-2 text-sm leading-6 text-white/62">{description}</p>
+      </div>
+      <div className="pt-4">{children}</div>
+    </section>
   );
 }
 

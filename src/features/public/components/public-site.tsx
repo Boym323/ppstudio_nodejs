@@ -234,7 +234,7 @@ export function buildPageMetadata({
   };
 }
 
-export function PublicHomePage() {
+export function PublicHomePage({ featuredServices = services.slice(0, 3) }: { featuredServices?: Service[] } = {}) {
   return (
     <div className="pb-8 sm:pb-12">
       <PublicHero {...homepageContent} />
@@ -248,7 +248,7 @@ export function PublicHomePage() {
             description="Každá služba má vlastní detail pro SEO, důvěru i lepší orientaci klientky. Níže uvedené texty jsou realistické placeholdery oddělené od kódu v centrálním obsahu."
           />
           <div className="grid gap-6 lg:grid-cols-3">
-            {services.map((service) => (
+            {featuredServices.map((service) => (
               <ServiceCard key={service.slug} service={service} />
             ))}
           </div>
@@ -319,7 +319,7 @@ export function PublicHomePage() {
   );
 }
 
-export function ServicesPage() {
+export function ServicesPage({ services: catalogServices = services }: { services?: Service[] } = {}) {
   return (
     <div className="pb-8 sm:pb-12">
       <PublicHero
@@ -336,7 +336,7 @@ export function ServicesPage() {
             title="Každá karta shrnuje to podstatné: pro koho služba je, jak dlouho trvá a od jaké ceny začíná."
           />
           <div className="grid gap-6 lg:grid-cols-3">
-            {services.map((service) => (
+            {catalogServices.map((service) => (
               <ServiceCard key={service.slug} service={service} />
             ))}
           </div>
@@ -421,7 +421,7 @@ export function ServiceDetailPage({ service }: { service: Service }) {
   );
 }
 
-export function PricingPage() {
+export function PricingPage({ services: catalogServices = services }: { services?: Service[] } = {}) {
   return (
     <div className="pb-8 sm:pb-12">
       <PublicHero
@@ -439,7 +439,7 @@ export function PricingPage() {
               title="Jednoduchý ceník bez marketingového šumu."
             />
             <div className="mt-8 divide-y divide-black/6">
-              {services.map((service) => (
+              {catalogServices.map((service) => (
                 <div key={service.slug} className="flex flex-col gap-4 py-5 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <p className="font-display text-2xl text-[var(--color-foreground)] sm:text-3xl">{service.name}</p>
