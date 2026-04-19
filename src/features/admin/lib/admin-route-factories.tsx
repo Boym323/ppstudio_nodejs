@@ -5,6 +5,7 @@ import { type AdminArea } from "@/config/navigation";
 import { AdminBookingDetailPage } from "@/features/admin/components/admin-booking-detail-page";
 import { AdminOverviewPage } from "@/features/admin/components/admin-overview-page";
 import { AdminSectionPage } from "@/features/admin/components/admin-section-page";
+import { AdminServicesPage } from "@/features/admin/components/admin-services-page";
 import { AdminWeeklyPlannerPage } from "@/features/admin/components/admin-weekly-planner-page";
 import { requireAdminArea } from "@/lib/auth/session";
 
@@ -41,8 +42,10 @@ export function createAdminOverviewRoute(area: AdminArea) {
 export function createAdminSectionRoute(area: AdminArea) {
   return async function AdminSectionRoute({
     params,
+    searchParams,
   }: {
     params: AdminSectionParams;
+    searchParams: Promise<Record<string, string | string[] | undefined>>;
   }) {
     const { section } = await params;
 
@@ -51,6 +54,10 @@ export function createAdminSectionRoute(area: AdminArea) {
     }
 
     await requireAdminSectionAccess(area, section);
+
+    if (section === "sluzby") {
+      return <AdminServicesPage area={area} searchParams={await searchParams} />;
+    }
 
     return <AdminSectionPage area={area} section={section} />;
   };

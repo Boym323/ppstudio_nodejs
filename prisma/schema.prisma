@@ -111,6 +111,7 @@ model Service {
   priceFromCzk             Int?
   sortOrder                Int                       @default(0)
   isActive                 Boolean                   @default(true)
+  isPubliclyBookable       Boolean                   @default(true)
   createdAt                DateTime                  @default(now())
   updatedAt                DateTime                  @updatedAt
   category                 ServiceCategory           @relation(fields: [categoryId], references: [id], onDelete: Restrict)
@@ -118,8 +119,8 @@ model Service {
   bookings                 Booking[]
   submissionLogs           BookingSubmissionLog[]
 
-  @@index([categoryId, isActive, sortOrder])
-  @@index([isActive, sortOrder])
+  @@index([categoryId, isActive, isPubliclyBookable, sortOrder])
+  @@index([isActive, isPubliclyBookable, sortOrder])
 }
 
 model AvailabilitySlot {

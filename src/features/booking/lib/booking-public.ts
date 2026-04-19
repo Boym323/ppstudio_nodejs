@@ -207,6 +207,7 @@ export async function getPublicBookingCatalog(): Promise<PublicBookingCatalog> {
     prisma.service.findMany({
       where: {
         isActive: true,
+        isPubliclyBookable: true,
         category: {
           is: {
             isActive: true,
@@ -311,6 +312,7 @@ export async function createPublicBooking(
             where: {
               id: input.serviceId,
               isActive: true,
+              isPubliclyBookable: true,
               category: {
                 is: {
                   isActive: true,

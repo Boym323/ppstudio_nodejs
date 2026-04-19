@@ -69,8 +69,8 @@ const sharedSections = [
     salonHref: "/admin/provoz/sluzby",
     label: "Služby",
     salonLabel: "Nabídka",
-    description: "Aktivní nabídka služeb, délky a orientace v ceníku.",
-    salonDescription: "Přehled služeb bez technického řešení katalogu.",
+    description: "Správa nabídky služeb, délek, cen a veřejné rezervovatelnosti.",
+    salonDescription: "Rychlý přehled a jednoduchá editace nabídky pro běžný provoz.",
   },
   {
     slug: "kategorie-sluzeb",

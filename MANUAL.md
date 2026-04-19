@@ -41,7 +41,7 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
   - `SALON` vidí jen provozní sekce a jednodušší copy bez technických pojmů
 - Prisma schema v1 už pokrývá:
   - admin uživatele a role
-  - kategorie služeb a služby
+  - kategorie služeb a služby včetně samostatné veřejné rezervovatelnosti
   - sloty s omezením na vybrané služby
   - klienty, rezervace a historii stavů
   - e-mailové logy, action tokeny a settings
@@ -117,6 +117,10 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
   - Klienti
   - Služby
   - Kategorie služeb
+- Sekce `Služby` je nyní provozně použitelná pro obě role na `/admin/sluzby` a `/admin/provoz/sluzby`:
+  - responzivní seznam ukazuje název, kategorii, délku, cenu, aktivitu, veřejnou rezervovatelnost a pořadí
+  - jednoduchý editor umožňuje upravit název, popisy, délku, cenu, kategorii, pořadí a oba publikační přepínače
+  - veřejný booking flow bere službu jen pokud je `isActive = true`, `isPubliclyBookable = true` a její kategorie je aktivní
 - Sekce jen pro `OWNER`:
   - Uživatelé / role
   - Email logy
@@ -179,6 +183,7 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
   - zákaz snížení kapacity pod počet aktivních rezervací
   - zákaz výběru služeb, které by rozbily už navázané aktivní rezervace
 - Kategorie a služby jsou samostatné DB entity, které se dnes plní přes import nebo admin správu, ne přes hardcoded seed.
+- `Service.isPubliclyBookable` odděluje interně aktivní službu od služby skutečně nabízené ve veřejné rezervaci.
 - `Booking` drží snapshot klienta, služby i času, takže pozdější změny ceníku nebo názvů služeb nepoškodí historická data.
 - `Booking` navíc drží vazbu na předchozí rezervaci při reschedule a nepovoluje duplicitní booking stejného klienta do stejného slotu.
 - `BookingStatusHistory` slouží jako audit změn stavu a rozlišuje akci uživatele, klienta nebo systému.
@@ -189,6 +194,7 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
 - Detail konkrétního e-mailu na `/admin/email-logy/[emailLogId]` ukazuje payload, poslední chybu, vazby na rezervaci a klientku a nabízí ruční retry nebo uvolnění zaseknutého jobu.
 - Po úspěšné akci se na detailu objeví krátká potvrzovací hláška, aby bylo zřejmé, že operace proběhla.
 - Veřejný booking flow po potvrzení:
+- Veřejný marketingový web `/sluzby` a `/cenik` je zatím stále napojený na `src/content/public-site.ts`; nová admin správa služeb proto okamžitě řídí booking katalog, ale nepropisuje se ještě do prezentačních textů a landing obsahu.
   - znovu validuje službu a termín server-side
   - naváže nebo vytvoří klienta podle e-mailu
   - vytvoří rezervaci se snapshotem služby a času

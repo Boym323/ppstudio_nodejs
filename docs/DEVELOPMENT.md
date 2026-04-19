@@ -53,6 +53,9 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - `src/config/navigation.ts` drží centrální definici admin sekcí, slugů a navigace pro obě role.
 - `src/features/admin/components/admin-sidebar-nav.tsx` je klientská navigace s aktivním stavem podle pathname.
 - `src/features/admin/components/admin-overview-page.tsx` a `admin-section-page.tsx` renderují role-aware read model nad Prisma daty.
+- Sekce `Služby` má vlastní workflow v `src/features/admin/components/admin-services-page.tsx` a už neběží přes generický placeholder renderer.
+- `src/features/admin/lib/admin-services.ts` drží serverový read model pro seznam, filtry, detail služby a navázané kategorie.
+- `src/features/admin/actions/service-actions.ts` je tenký server action adaptér pro editaci služby; validace zůstává v `src/features/admin/lib/admin-service-validation.ts`.
 - `src/features/admin/components/admin-booking-detail-page.tsx` a route dvojice `/admin/rezervace/[bookingId]` + `/admin/provoz/rezervace/[bookingId]` drží první produkční workflow pro práci s rezervací.
 - Produkční slot routy jsou explicitní a nepoužívají generický `[section]` detail:
   - `/admin/volne-terminy`
@@ -102,6 +105,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Planner přímo upravuje jen jednoduché publikované sloty bez rezervací, bez poznámek, bez omezení služeb a s kapacitou `1`; ostatní zůstávají v UI viditelné jako uzamčené nebo neaktivní.
 - Import kategorií a služeb je řešený jako JSON upsert přes `scripts/import-services.mjs`; identity záznamů drží `slug`.
 - `Booking` ukládá snapshot jména služby, ceny a času, takže historické rezervace zůstanou konzistentní i po úpravě katalogu.
+- `Service` nově odděluje obecnou aktivitu (`isActive`) od veřejné rezervovatelnosti (`isPubliclyBookable`); public booking flow vyžaduje obě podmínky a aktivní kategorii.
 - `Booking` drží i reschedule chain přes self-relation, což zjednodušuje reporting i provozní dohled nad přesunutými termíny.
 - `BookingStatusHistory` drží auditní stopu změn stavu včetně aktéra a strukturovaných metadat.
 - `BookingActionToken` ukládá hash tokenu, expiraci a použití/revokaci pro bezpečné self-service storno nebo přesun termínu.
@@ -130,6 +134,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - unique ochranu proti duplicitní rezervaci stejného klienta do stejného slotu
   - PostgreSQL exclusion constraint proti překrývajícím se aktivním slotům
 - Nové slot admin workflow nevyžadovalo další migraci; navazuje přímo na už existující schema a constrainty.
+- Migrace `20260419103000_service_public_bookability` přidává `Service.isPubliclyBookable` a backfilluje ho podle dosavadního `isActive`, aby se zachovalo chování migrovaných služeb.
 - Při další iteraci booking workflow preferuj nové migrace nad ruční editací starších SQL souborů.
 
 ## Testování
@@ -140,6 +145,11 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - `npm run dev` i `npm run build` nyní před startem automaticky spouští `prisma generate`, takže po změně Prisma schématu nevznikne rozjezd mezi generovaným klientem a runtime admin obrazovkami.
 - Pokud měníš e-mail delivery, ověř i `npm run email:worker:once`.
 - Při změně veřejného webu navíc ručně ověř:
+- Po změně admin katalogu služeb ručně ověř i:
+  - `/admin/sluzby` i `/admin/provoz/sluzby` na desktopu a mobilu
+  - přepnutí `Veřejně rezervovatelná` a dopad na `/rezervace`
+  - změnu délky služby a skrytí slotů, které jsou po změně kratší než služba
+  - editaci služby v neaktivní kategorii a očekávané skrytí z veřejného bookingu
   - mobilní header a CTA na `/`, `/sluzby`, `/kontakt`
   - správnost interních odkazů v footeru
   - metadata a titulky pro detail služby

@@ -7,6 +7,10 @@ Formát je inspirovaný Keep a Changelog.
 ## [Unreleased]
 
 ### Added
+- Produkční admin sekci `Služby` pro `OWNER` i `SALON` s responzivním seznamem, filtrováním, výběrem služby a jednoduchou editací nad reálnými Prisma daty.
+- Server action a Zod validační vrstvu pro bezpečnou editaci názvu, popisů, délky, ceny, kategorie, pořadí a publikačních přepínačů služby.
+- Nové pole `Service.isPubliclyBookable`, které odděluje interně aktivní službu od služby skutečně nabízené ve veřejném booking flow.
+- ADR 0014 pro admin katalog služeb a oddělení veřejné rezervovatelnosti od obecné aktivity služby.
 - `allowedDevOrigins` konfiguraci v `next.config.ts` pro dev přístup z LAN hosta `192.168.0.143`, aby Next.js neblokoval `/_next/webpack-hmr` a další dev-only assety při testování z jiného zařízení.
 - Sdílené admin route factory funkce v `src/features/admin/lib/admin-route-factories.tsx` pro owner/salon overview, section, booking detail a slot route varianty.
 - Sdílený admin shell layout wrapper `src/features/admin/components/admin-shell-layout.tsx` používaný napříč admin layout soubory.
@@ -46,6 +50,8 @@ Formát je inspirovaný Keep a Changelog.
 - Týdenní planner dostupností pro `OWNER` i `SALON` nyní zobrazuje rezervace, omezené intervaly, neaktivní sloty i minulý čas v jednom klidném kalendáři.
 
 ### Changed
+- Veřejný booking katalog a server-side potvrzení rezervace nově vyžadují u služby nejen `isActive`, ale i `isPubliclyBookable`, takže admin může službu ponechat aktivní pro interní provoz a současně ji skrýt z veřejného bookingu.
+- Sekce `Služby` už není jen read-only přehled v `admin-data`; route `/admin/sluzby` a `/admin/provoz/sluzby` renderuje samostatný pracovní workflow se seznamem a editací.
 - Rezervační planner v adminu nyní používá pracovní okno `06:00-20:00` místo celého dne (`00:00-24:00`): mřížka má 28 půlhodinových buněk a serverové validace/cell mapování byly sjednocené na stejný rozsah.
 - Admin shell layout byl vizuálně stabilizovaný pro desktop i mobil: širší sidebar na `lg+`, sticky pozice navigace, ochrana proti horizontálnímu přetékání a `min-w-0` pro hlavní obsah.
 - Admin page shell dostal responzivní typografii (nadpisy/stats) a jemnější spacing, aby se sekce nelámaly na menších šířkách.
