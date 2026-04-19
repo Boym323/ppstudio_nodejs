@@ -46,6 +46,9 @@ Formát je inspirovaný Keep a Changelog.
 - Týdenní planner dostupností pro `OWNER` i `SALON` nyní zobrazuje rezervace, omezené intervaly, neaktivní sloty i minulý čas v jednom klidném kalendáři.
 
 ### Changed
+- Rezervační planner v adminu nyní používá pracovní okno `06:00-20:00` místo celého dne (`00:00-24:00`): mřížka má 28 půlhodinových buněk a serverové validace/cell mapování byly sjednocené na stejný rozsah.
+- Admin shell layout byl vizuálně stabilizovaný pro desktop i mobil: širší sidebar na `lg+`, sticky pozice navigace, ochrana proti horizontálnímu přetékání a `min-w-0` pro hlavní obsah.
+- Admin page shell dostal responzivní typografii (nadpisy/stats) a jemnější spacing, aby se sekce nelámaly na menších šířkách.
 - Owner a salon route soubory v `src/app/(admin)/admin/*` a `src/app/(admin)/admin/provoz/*` byly zredukované na tenké wrappery, které pouze předávají `area` do sdílené factory logiky při zachování stejných URL a oprávnění.
 - Route varianty sekce `volne-terminy` (`list`, `novy`, `detail`, `upravit`) teď vedou do stejného týdenního planneru; detail/edit URL se přesměrují do správného týdne.
 - Výchozí Next.js demo bylo nahrazeno čistým škálovatelným scaffoldingem pro produkční vývoj.
@@ -71,6 +74,10 @@ Formát je inspirovaný Keep a Changelog.
 - Dokumentace byla srovnaná s aktuálním kódem: týdenní planner, `EMAIL_DELIVERY_MODE=background` a produkční migrace přes `prisma migrate deploy`.
 
 ### Fixed
+- Opravené Next.js 16 `use server` chyby: server action soubory už exportují pouze `async` funkce; initial action state objekty byly přesunuté do samostatných modulů pro client komponenty.
+- Root layout nově obsahuje `data-scroll-behavior=\"smooth\"`, takže při zapnutém `scroll-behavior: smooth` na `<html>` už nevzniká runtime warning při route přechodech.
+- Planner grid už negeneruje přesažené prázdné řádky při rozjezdu mezi počtem `timeLabels` a počtem buněk v datech dne; vykreslení je nyní svázané s reálným počtem dostupných buněk.
+- Planner kalendář už nemůže zmizet při nekonzistenci dat z klienta/serveru; počet vykreslených řádků se bere bezpečně z dostupného maxima (`timeLabels` vs. `cells`) místo průniku.
 - Cross-origin blokaci Next.js dev serveru při otevření aplikace z LAN adresy `192.168.0.143`, která rozbíjela HMR přes `/_next/webpack-hmr`.
 - Návrh datové vrstvy už nespoléhá na zjednodušený booking request model bez auditní historie a bez bezpečných tokenů.
 - Datový model lépe chrání proti náhoditému duplicitnímu bookingu stejného klienta do stejného slotu.

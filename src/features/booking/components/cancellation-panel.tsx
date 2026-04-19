@@ -2,10 +2,8 @@
 
 import { useActionState } from "react";
 
-import {
-  cancelPublicBookingAction,
-  initialCancelPublicBookingActionState,
-} from "@/features/booking/actions/cancel-public-booking";
+import { cancelPublicBookingAction } from "@/features/booking/actions/cancel-public-booking";
+import { initialCancelPublicBookingActionState } from "@/features/booking/actions/cancel-public-booking-action-state";
 import type { PublicCancellationPageState } from "@/features/booking/lib/booking-cancellation";
 
 type CancellationPanelProps = {

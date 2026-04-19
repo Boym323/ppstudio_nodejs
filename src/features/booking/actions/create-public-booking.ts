@@ -14,6 +14,7 @@ import {
   normalizeClientPhone,
   PublicBookingError,
 } from "@/features/booking/lib/booking-public";
+import { type PublicBookingActionState } from "@/features/booking/actions/public-booking-action-state";
 
 function readFormString(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -53,27 +54,6 @@ const publicBookingSchema = z.object({
     .optional()
     .or(z.literal("")),
 });
-
-export type PublicBookingActionState = {
-  status: "idle" | "error" | "success";
-  formError?: string;
-  errorCode?: string;
-  suggestedStep?: 1 | 2 | 3 | 4;
-  fieldErrors?: Partial<Record<"serviceId" | "slotId" | "fullName" | "email" | "phone" | "clientNote", string>>;
-  confirmation?: {
-    bookingId: string;
-    referenceCode: string;
-    serviceName: string;
-    scheduledAtLabel: string;
-    clientName: string;
-    clientEmail: string;
-    emailDeliveryStatus: "queued" | "logged" | "skipped";
-  };
-};
-
-export const initialPublicBookingActionState: PublicBookingActionState = {
-  status: "idle",
-};
 
 function hashSubmissionFingerprint(value: string) {
   return createHash("sha256").update(`${env.ADMIN_SESSION_SECRET}:${value}`).digest("hex");

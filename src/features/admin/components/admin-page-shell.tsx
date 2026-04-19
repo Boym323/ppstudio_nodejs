@@ -53,15 +53,20 @@ export function AdminPageShell({
   compact = false,
 }: AdminPageShellProps) {
   return (
-    <div className="space-y-6">
-      <section className="rounded-[var(--radius-panel)] border border-white/10 bg-white/6 p-7 backdrop-blur-xl">
+    <div className="min-w-0 space-y-6">
+      <section className="rounded-[var(--radius-panel)] border border-white/10 bg-white/6 p-5 backdrop-blur-xl sm:p-7">
         <p className="text-xs uppercase tracking-[0.35em] text-[var(--color-accent-soft)]">
           {eyebrow}
         </p>
-        <h2 className={cn("mt-4 font-display text-white", compact ? "text-4xl" : "text-5xl")}>
+        <h2
+          className={cn(
+            "mt-4 font-display text-white",
+            compact ? "text-3xl sm:text-4xl" : "text-3xl sm:text-4xl xl:text-5xl",
+          )}
+        >
           {title}
         </h2>
-        <p className="mt-4 max-w-3xl text-base leading-7 text-white/72">{description}</p>
+        <p className="mt-4 max-w-3xl text-sm leading-7 text-white/72 sm:text-base">{description}</p>
       </section>
 
       {stats?.length ? (
@@ -75,7 +80,7 @@ export function AdminPageShell({
               )}
             >
               <p className="text-xs uppercase tracking-[0.24em] text-white/55">{stat.label}</p>
-              <p className="mt-4 font-display text-4xl">{stat.value}</p>
+              <p className="mt-4 break-words font-display text-3xl sm:text-4xl">{stat.value}</p>
               {stat.detail ? (
                 <p className="mt-3 text-sm leading-6 text-white/62">{stat.detail}</p>
               ) : null}
@@ -103,7 +108,7 @@ export function AdminPanel({
       )}
     >
       <div className="border-b border-white/10 pb-4">
-        <h3 className="font-display text-3xl text-white">{title}</h3>
+        <h3 className="font-display text-2xl text-white sm:text-3xl">{title}</h3>
         {description ? (
           <p className="mt-3 max-w-3xl text-sm leading-6 text-white/66">{description}</p>
         ) : null}

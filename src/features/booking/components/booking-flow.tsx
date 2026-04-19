@@ -3,10 +3,8 @@
 import { AvailabilitySlotServiceRestrictionMode } from "@prisma/client";
 import { useActionState, useMemo, useState } from "react";
 
-import {
-  createPublicBookingAction,
-  initialPublicBookingActionState,
-} from "@/features/booking/actions/create-public-booking";
+import { createPublicBookingAction } from "@/features/booking/actions/create-public-booking";
+import { initialPublicBookingActionState } from "@/features/booking/actions/public-booking-action-state";
 import type { PublicBookingCatalog } from "@/features/booking/lib/booking-public";
 import { cn } from "@/lib/utils";
 

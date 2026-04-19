@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { type AdminArea } from "@/config/navigation";
+import { type UpdateBookingStatusActionState } from "@/features/admin/actions/update-booking-status-action-state";
 import {
   applyAdminBookingStatusChange,
   canApplyAdminBookingTransition,
@@ -46,17 +47,6 @@ const updateBookingStatusSchema = z.object({
     .optional()
     .or(z.literal("")),
 });
-
-export type UpdateBookingStatusActionState = {
-  status: "idle" | "error" | "success";
-  formError?: string;
-  successMessage?: string;
-  fieldErrors?: Partial<Record<"targetStatus" | "reason" | "internalNote", string>>;
-};
-
-export const initialUpdateBookingStatusActionState: UpdateBookingStatusActionState = {
-  status: "idle",
-};
 
 function revalidateBookingAdminPaths(bookingId: string) {
   const paths = [

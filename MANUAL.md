@@ -135,7 +135,7 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
   - týdenní planner na `/admin/volne-terminy` a `/admin/provoz/volne-terminy`
   - route `novy`, `detail` a `upravit` zůstávají zachované, ale vrací zpět do planneru ve správném týdnu
 - Slot workflow podporuje:
-  - plánování po týdnech s hlavní plochou po dnech a 30min buňkách
+  - plánování po týdnech s hlavní plochou po dnech a 30min buňkách v pracovním okně `06:00-20:00`
   - přidání i odebrání dostupnosti kliknutím nebo tažením přímo v mřížce
   - automatické sloučení sousedních půlhodin do souvislých intervalů `AvailabilitySlot`
   - denní rychlé akce `zkopírovat den`, `nastavit den jako zavřeno`
@@ -160,6 +160,10 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
   - server-side guard helpery kontrolují oprávnění každé admin route
   - nedovolený vstup se přesměruje na domovskou admin stránku role nebo skončí `notFound` pro neplatnou sekci
 - Owner a salon route soubory nyní používají sdílené factory wrappery (`src/features/admin/lib/admin-route-factories.tsx`), takže URL i oprávnění zůstávají stejné, ale logika není duplikovaná.
+- Admin shell byl vizuálně zpevněný pro provozní použití:
+  - širší sidebar na desktopu a sticky navigace při scrollu
+  - hlavní obsah má ochranu proti horizontálnímu přetečení (`min-w-0`, `overflow-x-clip`)
+  - hlavičky a metriky v admin kartách mají responzivní velikosti pro menší šířky
 
 ## Datový Model Rezervací
 - `AvailabilitySlot` je hlavní entita dostupnosti a nese časový interval, stav, kapacitu a interní/veřejné poznámky.
@@ -214,7 +218,7 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
 - Pro Docker Compose provoz použij [`deploy/docker-compose.email-worker.yml`](/var/www/ppstudio/deploy/docker-compose.email-worker.yml).
 
 ## Týdenní Planner Dostupností
-- Desktop používá klasický týdenní grid se 7 dny a 30min řádky.
+- Desktop používá klasický týdenní grid se 7 dny a 30min řádky v rozsahu `06:00-20:00`.
 - Mobil drží týdenní režim přes přehled sedmi dnů a jeden editační panel vybraného dne.
 - Základní význam barev:
   - zelená = běžná dostupnost

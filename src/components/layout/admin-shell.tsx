@@ -12,9 +12,9 @@ type AdminShellProps = {
 
 export function AdminShell({ children, currentRole, userName }: AdminShellProps) {
   return (
-    <div className="min-h-screen bg-[var(--color-admin-background)] text-[var(--color-admin-foreground)]">
-      <Container className="grid gap-5 py-5 lg:grid-cols-[280px_minmax(0,1fr)] xl:grid-cols-[296px_minmax(0,1fr)]">
-        <aside className="rounded-[var(--radius-panel)] border border-white/10 bg-white/5 p-5 backdrop-blur-xl">
+    <div className="min-h-screen overflow-x-clip bg-[var(--color-admin-background)] text-[var(--color-admin-foreground)]">
+      <Container className="grid items-start gap-6 py-6 lg:grid-cols-[320px_minmax(0,1fr)] xl:grid-cols-[336px_minmax(0,1fr)]">
+        <aside className="rounded-[var(--radius-panel)] border border-white/10 bg-white/5 p-5 backdrop-blur-xl lg:sticky lg:top-6">
           <AdminSidebarNav currentRole={currentRole} userName={userName} />
           <form action="/api/auth/logout" method="post" className="mt-6">
             <button
@@ -25,7 +25,7 @@ export function AdminShell({ children, currentRole, userName }: AdminShellProps)
             </button>
           </form>
         </aside>
-        <div className="space-y-6">{children}</div>
+        <div className="min-w-0 space-y-6">{children}</div>
       </Container>
     </div>
   );

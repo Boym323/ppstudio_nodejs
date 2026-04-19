@@ -10,7 +10,10 @@ import { prisma } from "@/lib/prisma";
 
 const PRAGUE_TIME_ZONE = "Europe/Prague";
 const HALF_HOUR_MINUTES = 30;
-const DAY_MINUTES = 24 * 60;
+const PLANNER_START_HOUR = 6;
+const PLANNER_END_HOUR = 20;
+const PLANNER_START_MINUTES = PLANNER_START_HOUR * 60;
+const DAY_MINUTES = (PLANNER_END_HOUR - PLANNER_START_HOUR) * 60;
 const DAY_CELLS = DAY_MINUTES / HALF_HOUR_MINUTES;
 const ACTIVE_BOOKING_STATUSES = [BookingStatus.PENDING, BookingStatus.CONFIRMED] as const;
 const EDITABLE_SLOT_CAPACITY = 1;
@@ -163,8 +166,8 @@ export function getDayBounds(dateKey: string) {
 
 export function getCellRangeBounds(dateKey: string, startCell: number, endCell: number) {
   const { year, month, day } = parseDateKey(dateKey);
-  const startMinutes = startCell * HALF_HOUR_MINUTES;
-  const endMinutes = endCell * HALF_HOUR_MINUTES;
+  const startMinutes = PLANNER_START_MINUTES + startCell * HALF_HOUR_MINUTES;
+  const endMinutes = PLANNER_START_MINUTES + endCell * HALF_HOUR_MINUTES;
 
   return {
     startsAt: pragueLocalDateTimeToUtc(
@@ -220,7 +223,9 @@ function clampIntervalToDay(interval: TimeRange, dayStart: Date, dayEnd: Date): 
 
 export function dateToCellIndex(date: Date) {
   const parts = getDateTimeParts(date);
-  return Math.max(0, Math.min(DAY_CELLS, (parts.hour * 60 + parts.minute) / HALF_HOUR_MINUTES));
+  const minutesFromMidnight = parts.hour * 60 + parts.minute;
+  const plannerMinutes = minutesFromMidnight - PLANNER_START_MINUTES;
+  return Math.max(0, Math.min(DAY_CELLS, plannerMinutes / HALF_HOUR_MINUTES));
 }
 
 function intervalToCellRange(interval: TimeRange) {
@@ -518,6 +523,9 @@ export async function getAdminPlannerWeek(area: AdminArea, week?: string | null)
         }
 
         const cells = intervalToCellRange(clipped);
+        if (cells.endCell <= cells.startCell) {
+          return null;
+        }
 
         return {
           id: booking.id,
@@ -544,6 +552,9 @@ export async function getAdminPlannerWeek(area: AdminArea, week?: string | null)
         }
 
         const cells = intervalToCellRange(clipped);
+        if (cells.endCell <= cells.startCell) {
+          return null;
+        }
         const activeBookings = slot.bookings.filter((booking) =>
           ACTIVE_BOOKING_STATUSES.includes(booking.status as (typeof ACTIVE_BOOKING_STATUSES)[number]),
         );
@@ -1015,7 +1026,7 @@ export async function applyWeeklyTemplate(
 
 export function getPlannerTimeLabels() {
   return Array.from({ length: DAY_CELLS }, (_, index) => {
-    const minutes = index * HALF_HOUR_MINUTES;
+    const minutes = PLANNER_START_MINUTES + index * HALF_HOUR_MINUTES;
     return `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
   });
 }

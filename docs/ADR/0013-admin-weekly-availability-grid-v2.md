@@ -15,6 +15,7 @@ UX cíl byl opačný než u starého řešení: běžná obsluha musí být scho
 
 ## Rozhodnutí
 - Hlavní admin workflow pro sekci `volne-terminy` je nově týdenní kalendář po dnech a 30min buňkách.
+- Planner je záměrně omezený na pracovní okno `06:00-20:00` (28 buněk za den), aby UI odpovídalo reálnému provozu salonu.
 - 30min grid je pouze editační vrstva v admin UI. Databázový zápis zůstává založený na souvislých intervalech `startsAt`-`endsAt` v tabulce `AvailabilitySlot`.
 - Server při každé změně dělá merge/split nad celým dnem:
   - načte existující jednoduché publikované sloty bez rezervací

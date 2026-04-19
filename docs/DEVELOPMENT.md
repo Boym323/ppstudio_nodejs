@@ -72,6 +72,9 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Dynamické admin routy jako `/admin/[section]`, `/admin/provoz/[section]` a `/admin/email-logy/[emailLogId]` mají vlastní layouty se stejným `AdminShell`, aby se neztratil admin vizuál ani ochrana při přímém vstupu na detailní URL.
 - Sdílené route wrappery pro owner/salon jsou centralizované v `src/features/admin/lib/admin-route-factories.tsx`; route soubory v `src/app/(admin)/admin/**/page.tsx` mají být jen tenké entrypointy s předáním `area`.
 - Sdílený layout wrapper `src/features/admin/components/admin-shell-layout.tsx` je jediný zdroj truth pro admin shell layout v section/slots/email-log/detail větvích.
+- Vizuální stabilita adminu je primárně v:
+  - `src/components/layout/admin-shell.tsx` (šířky sloupců, sticky sidebar, anti-overflow)
+  - `src/features/admin/components/admin-page-shell.tsx` (responzivní nadpisy, stat karty, spacing)
 
 ## Konvence
 - Route soubory držet tenké, byznys logiku přesouvat do `features`, `content` a `lib`.
@@ -171,7 +174,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Hlavní workflow běží na `/admin/volne-terminy` a `/admin/provoz/volne-terminy`.
 - Mobil nepoužívá celou stěnu velkých denních karet; týden vybírá přes kompaktní horizontální přepínač dnů a jeden přímý editor vybraného dne.
 - Route `novy`, `[slotId]` a `[slotId]/upravit` jsou zachované kvůli kompatibilitě URL, ale přesměrují obsluhu zpět do planneru ve správném týdnu.
-- Mřížka používá 48 půlhodinových buněk na den.
+- Mřížka používá 28 půlhodinových buněk na den (okno `06:00-20:00`).
 - Zápis do DB probíhá přes merge/split logiku:
   - prázdné nebo zelené buňky se z klienta pošlou jako rozsah buněk
   - server z nich spočítá časové hranice v časové zóně `Europe/Prague`

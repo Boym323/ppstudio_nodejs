@@ -1,5 +1,6 @@
 "use server";
 
+import { type CancelPublicBookingActionState } from "@/features/booking/actions/cancel-public-booking-action-state";
 import { cancelPublicBookingByToken } from "@/features/booking/lib/booking-cancellation";
 
 function readFormString(formData: FormData, key: string) {
@@ -7,22 +8,6 @@ function readFormString(formData: FormData, key: string) {
 
   return typeof value === "string" ? value : "";
 }
-
-export type CancelPublicBookingActionState = {
-  status: "idle" | "success" | "error";
-  formError?: string;
-  result?: {
-    referenceCode: string;
-    serviceName: string;
-    clientName: string;
-    scheduledAtLabel: string;
-    emailDeliveryStatus: "queued" | "logged" | "skipped";
-  };
-};
-
-export const initialCancelPublicBookingActionState: CancelPublicBookingActionState = {
-  status: "idle",
-};
 
 export async function cancelPublicBookingAction(
   _previousState: CancelPublicBookingActionState,

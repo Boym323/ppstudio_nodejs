@@ -3,10 +3,8 @@
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 
-import {
-  initialUpdateBookingStatusActionState,
-  updateBookingStatusAction,
-} from "@/features/admin/actions/booking-actions";
+import { updateBookingStatusAction } from "@/features/admin/actions/booking-actions";
+import { initialUpdateBookingStatusActionState } from "@/features/admin/actions/update-booking-status-action-state";
 import { type AdminBookingActionOption } from "@/features/admin/lib/admin-booking";
 import { type AdminArea } from "@/config/navigation";
 

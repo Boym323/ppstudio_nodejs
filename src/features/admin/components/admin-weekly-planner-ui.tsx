@@ -74,8 +74,9 @@ export function formatDayActionLabel(day: PlannerDay) {
 }
 
 export function formatRangeLabel(startCell: number, endCell: number) {
-  const startMinutes = startCell * 30;
-  const endMinutes = endCell * 30;
+  const plannerStartMinutes = 6 * 60;
+  const startMinutes = plannerStartMinutes + startCell * 30;
+  const endMinutes = plannerStartMinutes + endCell * 30;
   const formatTime = (minutes: number) =>
     `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
 
@@ -324,6 +325,9 @@ export function DesktopWeekGrid({
   weekKey: string;
 }) {
   const selection = draft ? getSelectionRange(draft) : null;
+  const dayCellCount = days[0]?.cells.available.length ?? 0;
+  const rowCount = Math.max(timeLabels.length, dayCellCount);
+  const rowIndexes = Array.from({ length: rowCount }, (_, index) => index);
 
   return (
     <div className="hidden rounded-[var(--radius-panel)] border border-white/10 bg-black/10 p-5 lg:block">
@@ -347,16 +351,19 @@ export function DesktopWeekGrid({
         ))}
 
         <div className="space-y-1 pt-2">
-          {timeLabels.map((label, cellIndex) => (
-            <div key={label} className="flex h-4 items-start text-[11px] uppercase tracking-[0.18em] text-white/38">
-              {cellIndex % 2 === 0 ? label : ""}
+          {rowIndexes.map((cellIndex) => (
+            <div
+              key={`label-${cellIndex}`}
+              className="flex h-4 items-start text-[11px] uppercase tracking-[0.18em] text-white/38"
+            >
+              {cellIndex % 2 === 0 ? timeLabels[cellIndex] ?? "" : ""}
             </div>
           ))}
         </div>
 
         {days.map((day) => (
           <div key={day.dateKey} className="space-y-1 pt-2">
-            {timeLabels.map((_, cellIndex) => {
+            {rowIndexes.map((cellIndex) => {
               const selected =
                 draft?.dateKey === day.dateKey &&
                 selection !== null &&
@@ -394,6 +401,8 @@ export function MobileDayGrid({
   onCellEnter: (dayKey: string, cellIndex: number) => void;
 }) {
   const selection = draft ? getSelectionRange(draft) : null;
+  const rowCount = Math.max(timeLabels.length, day.cells.available.length);
+  const rowIndexes = Array.from({ length: rowCount }, (_, index) => index);
 
   return (
     <div className="rounded-[var(--radius-panel)] border border-white/10 bg-black/10 p-4 lg:hidden">
@@ -402,7 +411,7 @@ export function MobileDayGrid({
       <p className="mt-2 text-sm leading-6 text-white/64">Klepněte nebo táhněte přes čas, který chcete přidat nebo odebrat.</p>
 
       <div className="mt-4 grid grid-cols-[44px_minmax(0,1fr)] gap-x-3 gap-y-1">
-        {timeLabels.map((label, cellIndex) => {
+        {rowIndexes.map((cellIndex) => {
           const selected =
             draft?.dateKey === day.dateKey &&
             selection !== null &&
@@ -410,9 +419,9 @@ export function MobileDayGrid({
             cellIndex < selection.endCell;
 
           return (
-            <div key={`${day.dateKey}-${label}`} className="contents">
+            <div key={`${day.dateKey}-${cellIndex}`} className="contents">
               <div className="pt-1 text-[11px] uppercase tracking-[0.16em] text-white/42">
-                {cellIndex % 2 === 0 ? label : ""}
+                {cellIndex % 2 === 0 ? timeLabels[cellIndex] ?? "" : ""}
               </div>
               <GridCell
                 tone={getCellTone(day, cellIndex)}

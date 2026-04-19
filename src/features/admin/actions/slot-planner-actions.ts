@@ -16,11 +16,13 @@ import {
 import { requireAdminSectionAccess } from "@/features/admin/lib/admin-guards";
 import { revalidatePath } from "next/cache";
 
+const PLANNER_DAY_CELLS = (20 - 6) * 2;
+
 const selectionSchema = z.object({
   weekKey: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   dateKey: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  startCell: z.number().int().min(0).max(48),
-  endCell: z.number().int().min(0).max(48),
+  startCell: z.number().int().min(0).max(PLANNER_DAY_CELLS),
+  endCell: z.number().int().min(0).max(PLANNER_DAY_CELLS),
   mode: z.enum(["add", "remove"]),
 });
 
@@ -47,8 +49,8 @@ const weeklyTemplateSchema = z.object({
       weekday: z.number().int().min(0).max(6),
       intervals: z.array(
         z.object({
-          startCell: z.number().int().min(0).max(48),
-          endCell: z.number().int().min(0).max(48),
+          startCell: z.number().int().min(0).max(PLANNER_DAY_CELLS),
+          endCell: z.number().int().min(0).max(PLANNER_DAY_CELLS),
         }),
       ),
     }),
