@@ -1,8 +1,3 @@
-import { AdminOverviewPage } from "@/features/admin/components/admin-overview-page";
-import { requireAdminArea } from "@/lib/auth/session";
+import { createAdminOverviewRoute } from "@/features/admin/lib/admin-route-factories";
 
-export default async function OwnerDashboardPage() {
-  await requireAdminArea("owner");
-
-  return <AdminOverviewPage area="owner" />;
-}
+export default createAdminOverviewRoute("owner");

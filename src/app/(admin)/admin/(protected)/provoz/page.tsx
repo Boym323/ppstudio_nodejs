@@ -1,8 +1,3 @@
-import { AdminOverviewPage } from "@/features/admin/components/admin-overview-page";
-import { requireAdminArea } from "@/lib/auth/session";
+import { createAdminOverviewRoute } from "@/features/admin/lib/admin-route-factories";
 
-export default async function OperationsDashboardPage() {
-  await requireAdminArea("salon");
-
-  return <AdminOverviewPage area="salon" />;
-}
+export default createAdminOverviewRoute("salon");

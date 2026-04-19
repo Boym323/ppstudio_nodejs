@@ -7,6 +7,8 @@ Formát je inspirovaný Keep a Changelog.
 ## [Unreleased]
 
 ### Added
+- Sdílené admin route factory funkce v `src/features/admin/lib/admin-route-factories.tsx` pro owner/salon overview, section, booking detail a slot route varianty.
+- Sdílený admin shell layout wrapper `src/features/admin/components/admin-shell-layout.tsx` používaný napříč admin layout soubory.
 - Dočasná reset obrazovka `AdminSlotsResetPage` pro celou sekci `/admin/volne-terminy*` a `/admin/provoz/volne-terminy*`, aby bylo možné navrhnout planner znovu od čistého základu.
 - Produkční základ projektu pro veřejný web, rezervace a admin sekce.
 - Route groups pro `public`, `booking` a `admin`.
@@ -45,6 +47,7 @@ Formát je inspirovaný Keep a Changelog.
 - UX vylepšení slot adminu: chytřejší create formulář, jednodušší create flow pro roli `SALON` a jasnější error/success feedback po akcích.
 
 ### Changed
+- Owner a salon route soubory v `src/app/(admin)/admin/*` a `src/app/(admin)/admin/provoz/*` byly zredukované na tenké wrappery, které pouze předávají `area` do sdílené factory logiky při zachování stejných URL a oprávnění.
 - Všechny route varianty sekce `volne-terminy` (`list`, `novy`, `detail`, `upravit`) teď vědomě renderují minimalistický reset stav místo původního planner workflow.
 - Výchozí Next.js demo bylo nahrazeno čistým škálovatelným scaffoldingem pro produkční vývoj.
 - `.env.example` nyní pokrývá databázi a bootstrap admin přístupy.

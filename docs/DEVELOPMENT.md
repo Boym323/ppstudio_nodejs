@@ -68,6 +68,8 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Pro `SALON` držíme kratší menu a na úvodní obrazovce zviditelňujeme dnešní rezervace, nejbližší termíny a rychlé akce pro přidání slotu nebo otevření rezervace.
 - `salonAdminNavigation` se skládá ze stejné centrální definice sdílených sekcí jako owner navigace, aby route guardy, dostupné URL a menu nemohly časem ujet od sebe.
 - Dynamické admin routy jako `/admin/[section]`, `/admin/provoz/[section]` a `/admin/email-logy/[emailLogId]` mají vlastní layouty se stejným `AdminShell`, aby se neztratil admin vizuál ani ochrana při přímém vstupu na detailní URL.
+- Sdílené route wrappery pro owner/salon jsou centralizované v `src/features/admin/lib/admin-route-factories.tsx`; route soubory v `src/app/(admin)/admin/**/page.tsx` mají být jen tenké entrypointy s předáním `area`.
+- Sdílený layout wrapper `src/features/admin/components/admin-shell-layout.tsx` je jediný zdroj truth pro admin shell layout v section/slots/email-log/detail větvích.
 
 ## Konvence
 - Route soubory držet tenké, byznys logiku přesouvat do `features`, `content` a `lib`.

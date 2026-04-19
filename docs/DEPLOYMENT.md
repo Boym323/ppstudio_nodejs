@@ -21,6 +21,7 @@ Postup nasazení aplikace do produkce.
 11. Projdi ruční QA admin částí:
    - login redirect pro `OWNER` a `SALON`
    - dostupnost owner-only sekcí jen pro `OWNER`
+   - stejné chování owner/salon párových route po refaktoru factory wrapperů (overview, section, booking detail, slot list/create/detail/edit)
    - lite admin navigaci a mobilní čitelnost na `/admin/provoz/*`
    - slot workflow na `/admin/volne-terminy*` a `/admin/provoz/volne-terminy*`:
      - přepínání týdnů a zachování vybraného dne

@@ -1,7 +1,3 @@
-import { AdminSlotsResetPage } from "@/features/admin/components/admin-slots-reset-page";
-import { requireAdminSectionAccess } from "@/features/admin/lib/admin-guards";
+import { createAdminSlotsRoute } from "@/features/admin/lib/admin-route-factories";
 
-export default async function SalonSlotsPage() {
-  await requireAdminSectionAccess("salon", "volne-terminy");
-  return <AdminSlotsResetPage area="salon" mode="list" />;
-}
+export default createAdminSlotsRoute("salon", "list");

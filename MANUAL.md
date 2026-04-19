@@ -171,6 +171,7 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
   - `proxy.ts` dál blokuje nepřihlášené vstupy
   - server-side guard helpery kontrolují oprávnění každé admin route
   - nedovolený vstup se přesměruje na domovskou admin stránku role nebo skončí `notFound` pro neplatnou sekci
+- Owner a salon route soubory nyní používají sdílené factory wrappery (`src/features/admin/lib/admin-route-factories.tsx`), takže URL i oprávnění zůstávají stejné, ale logika není duplikovaná.
 
 ## Datový Model Rezervací
 - `AvailabilitySlot` je hlavní entita dostupnosti a nese časový interval, stav, kapacitu a interní/veřejné poznámky.

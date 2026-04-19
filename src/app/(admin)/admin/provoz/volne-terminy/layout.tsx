@@ -1,16 +1,1 @@
-import { AdminShell } from "@/components/layout/admin-shell";
-import { requireSession } from "@/lib/auth/session";
-
-export default async function SalonSlotsLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
-  const session = await requireSession();
-
-  return (
-    <AdminShell currentRole={session.role} userName={session.name}>
-      {children}
-    </AdminShell>
-  );
-}
+export { AdminShellLayout as default } from "@/features/admin/components/admin-shell-layout";

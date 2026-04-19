@@ -43,6 +43,7 @@ Seznam důležitých knihoven a důvod jejich použití.
 - E-mailové šablony i delivery vrstva zůstávají jednoduché a nepřidávají queue službu mimo PostgreSQL outbox.
 - `Json` pole ve `Setting`, `BookingStatusHistory` a `EmailLog` ponechávají prostor pro evoluci bez destruktivních migrací.
 - Admin role-aware dashboardy používají jen existující Next.js, Prisma a React primitives; nepřidávali jsme další admin UI knihovnu ani CMS vrstvu.
+- Konsolidace owner/salon admin route wrapperů do shared factory patternu proběhla bez přidání nové knihovny.
 
 ## Pravidla aktualizací
 - Minimálně 1x měsíčně zkontrolovat bezpečnostní a major update.

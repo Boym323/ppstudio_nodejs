@@ -27,6 +27,7 @@ Evidence produkčních incidentů a jejich řešení.
 - Pokus o vytvoření nebo editaci překrývajícího se slotu, který by měl skončit user-friendly validační chybou místo neošetřeného 500.
 - Slot omylem snížený pod počet aktivních rezervací nebo archivovaný navzdory aktivní rezervaci.
 - Chybějící provozní feedback po slot akci (stav/smazání), kdy obsluha neví, proč se nic nestalo.
+- Rozjeté chování owner vs salon route po změně shared factory wrapperů (např. rozdílný guard nebo chybějící `notFound` validace sekce).
 
 ## Preventivní poznámka
 - Sekce `volne-terminy` je po resetu z `2026-04-19` záměrně minimalistická; incidentem je pouze neočekávaný pád route, ne absence starých planner funkcí.

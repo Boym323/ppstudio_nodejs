@@ -38,6 +38,7 @@ Dokumentace proměnných prostředí pro lokální vývoj i produkci.
 - `EMAIL_DELIVERY_MODE=log` je vhodný pro lokální vývoj, testovací rollout a safe-mode při produkčním incidentu s SMTP.
 - Po změně `prisma/schema.prisma` už `npm run dev` a `npm run build` automaticky obnoví generovaný Prisma klient, ale při ruční práci s CLI je stále bezpečné spustit i `npm run db:generate`.
 - Slot admin CRUD nezavádí žádné nové env proměnné; spoléhá na stávající session, databázi a bootstrap admin účty.
+- Refaktor owner/salon admin route wrapperů na sdílené factory funkce nezavádí žádné nové env proměnné.
 
 ## Poznámka k týdennímu planneru slotů
 - K datu `2026-04-19` je planner sekce `volne-terminy` dočasně resetovaný na minimalistický baseline.
