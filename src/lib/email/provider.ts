@@ -1,7 +1,7 @@
 import nodemailer from "nodemailer";
 
 import { env } from "@/config/env";
-import { getEmailBrandingSettings } from "@/lib/site-settings";
+import { getEmailBrandingSettings, getSafeEnvelopeFromEmail } from "@/lib/site-settings";
 
 export type EmailDeliveryMessage = {
   to: string;
@@ -55,11 +55,20 @@ export async function sendEmail(message: EmailDeliveryMessage): Promise<EmailDel
 
   const transporter = getTransporter();
   const emailBranding = await getEmailBrandingSettings();
-  const fromEmail = emailBranding.senderEmail || env.SMTP_FROM_EMAIL;
+  const requestedSenderEmail = emailBranding.senderEmail || env.SMTP_FROM_EMAIL || "hello@ppstudio.cz";
+  const fromEmail = getSafeEnvelopeFromEmail(requestedSenderEmail);
+
+  if (fromEmail !== requestedSenderEmail) {
+    console.warn("Sender email overridden by SMTP safety policy", {
+      requestedSenderEmail,
+      fromEmail,
+    });
+  }
+
   const info = await transporter.sendMail({
     from: `"${emailBranding.senderName}" <${fromEmail}>`,
     to: message.to,
-    replyTo: env.SMTP_REPLY_TO ?? env.SMTP_FROM_EMAIL,
+    replyTo: env.SMTP_REPLY_TO ?? requestedSenderEmail ?? env.SMTP_FROM_EMAIL,
     subject: message.subject,
     text: message.text,
     html: message.html,

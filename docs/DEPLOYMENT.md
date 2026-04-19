@@ -7,18 +7,19 @@ Postup nasazení aplikace do produkce.
 2. Ověř správné produkční env proměnné (`DATABASE_URL`, `ADMIN_SESSION_SECRET`, admin bootstrap účty, email delivery, worker)
 3. Zálohuj databázi, pokud release obsahuje novou Prisma migraci.
 4. `npm run db:generate`
-5. `npx prisma migrate deploy`
-6. `npm run lint`
-7. `npm run build`
-8. Aktualizuj `CHANGELOG.md`
-9. Ověř aktuálnost dokumentace (`MANUAL.md`, `docs/*`)
-10. Projdi ruční QA veřejného webu na mobilu i desktopu:
+5. `npm run db:check-migrations`
+6. `npx prisma migrate deploy`
+7. `npm run lint`
+8. `npm run build`
+9. Aktualizuj `CHANGELOG.md`
+10. Ověř aktuálnost dokumentace (`MANUAL.md`, `docs/*`)
+11. Projdi ruční QA veřejného webu na mobilu i desktopu:
    - homepage
    - služby a detail služby
    - kontakt
    - FAQ a právní stránky
    - CTA na rezervaci
-11. Projdi ruční QA admin částí:
+12. Projdi ruční QA admin částí:
    - login redirect pro `OWNER` a `SALON`
    - dostupnost owner-only sekcí jen pro `OWNER`
    - stejné chování owner/salon párových route po refaktoru factory wrapperů (overview, section, booking detail, slot list/create/detail/edit)
@@ -45,7 +46,7 @@ Postup nasazení aplikace do produkce.
      - propsání kontaktů do footeru a `/kontakt`
      - propsání storno limitu do `/faq` a `/storno-podminky`
      - propsání booking limitů do `/rezervace`
-12. Ověř booking a email vrstvu:
+13. Ověř booking a email vrstvu:
    - vytvoření testovací rezervace
    - zápis `EmailLog` ve stavu `PENDING` v background režimu nebo `SENT` v log režimu
    - funkční storno odkaz
@@ -56,11 +57,12 @@ Postup nasazení aplikace do produkce.
 1. Pull nové verze na server.
 2. Instalace závislostí (`npm ci`).
 3. Generování Prisma klienta (`npm run db:generate`).
-4. Aplikace databázových změn (`npx prisma migrate deploy`).
-5. Build (`npm run build`).
-6. Restart procesu aplikace.
-7. Pokud běžíš v self-hosted režimu bez připraveného SMTP, nech dočasně `EMAIL_DELIVERY_MODE=log`, ať booking flow neblokuje start produkce.
-8. Pro produkci spusť zvlášť `npm run email:worker` jako samostatný proces nebo službu.
+4. Kontrola historie migrací (`npm run db:check-migrations`).
+5. Aplikace databázových změn (`npx prisma migrate deploy`).
+6. Build (`npm run build`).
+7. Restart procesu aplikace.
+8. Pokud běžíš v self-hosted režimu bez připraveného SMTP, nech dočasně `EMAIL_DELIVERY_MODE=log`, ať booking flow neblokuje start produkce.
+9. Pro produkci spusť zvlášť `npm run email:worker` jako samostatný proces nebo službu.
 
 ### Systemd
 - Doporučený web unit je v [`deploy/systemd/ppstudio-web.service`](/var/www/ppstudio/deploy/systemd/ppstudio-web.service).
@@ -95,7 +97,7 @@ sudo /var/www/ppstudio/deploy/deploy.sh
 - Pokud v databázi existují duplicitní rezervace stejného klienta do stejného slotu, nová migrace se zastaví a vyžádá jejich ruční vyčištění.
 - Pokud nasazuješ jen frontend bez DB změn, `npx prisma migrate deploy` zůstává bezpečný no-op.
 - `npm run db:migrate` v tomto repozitáři mapuje na `prisma migrate dev` a je určený pro lokální vývoj, ne pro produkční server.
-- Produkční release flow proto používá `npx prisma migrate deploy`.
+- Produkční release flow proto používá `npm run db:check-migrations` a `npx prisma migrate deploy`.
 
 ## Rollback
 1. Návrat na předchozí commit/release tag.

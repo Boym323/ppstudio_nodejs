@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { env } from "@/config/env";
 import { requireAdminSectionAccess } from "@/features/admin/lib/admin-guards";
 import {
   updateBookingSettingsSchema,
@@ -9,7 +10,11 @@ import {
   updateSalonSettingsSchema,
 } from "@/features/admin/lib/admin-settings-validation";
 import { prisma } from "@/lib/prisma";
-import { getSiteSettings, SITE_SETTINGS_ID } from "@/lib/site-settings";
+import {
+  getSiteSettings,
+  isSenderEmailAllowedBySmtpPolicy,
+  SITE_SETTINGS_ID,
+} from "@/lib/site-settings";
 
 import { type UpdateBookingSettingsActionState } from "./update-booking-settings-action-state";
 import { type UpdateEmailSettingsActionState } from "./update-email-settings-action-state";
@@ -187,6 +192,17 @@ export async function updateEmailSettingsAction(
 
   const actorUserId = await getActorUserId();
   const currentSettings = await getSiteSettings();
+
+  if (!isSenderEmailAllowedBySmtpPolicy(parsed.data.emailSenderEmail)) {
+    return {
+      status: "error",
+      formError:
+        "Odesílatelský e-mail teď nejde uložit. V režimu EMAIL_DELIVERY_MODE=background musí odpovídat SMTP_FROM_EMAIL, jinak by doručování mohlo selhávat.",
+      fieldErrors: {
+        emailSenderEmail: `Použijte adresu ${env.SMTP_FROM_EMAIL} nebo upravte SMTP konfiguraci.`,
+      },
+    };
+  }
 
   await prisma.siteSettings.upsert({
     where: { id: SITE_SETTINGS_ID },

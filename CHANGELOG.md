@@ -7,6 +7,7 @@ Formát je inspirovaný Keep a Changelog.
 ## [Unreleased]
 
 ### Added
+- Skript `npm run db:check-migrations`, který před deployem kontroluje otevřené failed/incomplete záznamy v `_prisma_migrations`.
 - Produkční owner-only sekci `Nastavení` s rozdělením na bloky `Salon`, `Rezervace` a `E-maily a notifikace`.
 - Explicitní singleton model `SiteSettings` a bootstrap read vrstvu místo původního spoléhání na generické key-value `Setting`.
 - Server action a Zod validační vrstvu pro bezpečnou správu veřejných kontaktů, globálních booking pravidel a e-mailového senderu.
@@ -59,6 +60,9 @@ Formát je inspirovaný Keep a Changelog.
 - Týdenní planner dostupností pro `OWNER` i `SALON` nyní zobrazuje rezervace, omezené intervaly, neaktivní sloty i minulý čas v jednom klidném kalendáři.
 
 ### Changed
+- Admin ukládání `emailSenderEmail` nyní v `EMAIL_DELIVERY_MODE=background` odmítne adresu odlišnou od `SMTP_FROM_EMAIL`, aby se předešlo produkčním `EmailLog FAILED` kvůli SMTP policy.
+- SMTP provider vrstva má bezpečný fallback envelope senderu na `SMTP_FROM_EMAIL` a warning log, pokud DB sender neprojde policy.
+- Root metadata branding (`applicationName`, title template, OpenGraph `siteName`) bere název salonu ze `SiteSettings`; canonical URL base zůstává na `NEXT_PUBLIC_APP_URL`.
 - Veřejný footer, kontaktní stránka, FAQ, storno podmínky a e-mailové šablony teď čerpají kontaktní údaje a storno pravidlo ze `SiteSettings` místo z natvrdo zapsaných placeholderů.
 - Veřejný booking katalog i finální potvrzení rezervace nově respektují globální minimální předstih a maximální horizont rezervace ze settings.
 - Self-service storno přes token nově respektuje globální storno limit před termínem; pozdější zásah už klientce srozumitelně doporučí kontaktovat salon.

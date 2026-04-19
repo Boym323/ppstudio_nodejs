@@ -154,6 +154,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - `npm run build`
 - `npm run dev` i `npm run build` nyní před startem automaticky spouští `prisma generate`, takže po změně Prisma schématu nevznikne rozjezd mezi generovaným klientem a runtime admin obrazovkami.
 - Pokud měníš e-mail delivery, ověř i `npm run email:worker:once`.
+- Před aplikací migrací v prostředí, kde už běžela produkční data, spusť `npm run db:check-migrations`; script zkontroluje otevřené failed/incomplete záznamy v `_prisma_migrations`.
 - Při změně veřejného webu navíc ručně ověř:
 - Po změně admin katalogu služeb ručně ověř i:
   - `/admin/sluzby` i `/admin/provoz/sluzby` na desktopu a mobilu

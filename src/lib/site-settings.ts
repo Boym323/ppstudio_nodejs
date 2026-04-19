@@ -104,6 +104,30 @@ export async function getEmailBrandingSettings() {
   };
 }
 
+function normalizeEmail(value: string) {
+  return value.trim().toLowerCase();
+}
+
+export function isSenderEmailAllowedBySmtpPolicy(senderEmail: string) {
+  if (env.EMAIL_DELIVERY_MODE !== "background") {
+    return true;
+  }
+
+  if (!env.SMTP_FROM_EMAIL) {
+    return true;
+  }
+
+  return normalizeEmail(senderEmail) === normalizeEmail(env.SMTP_FROM_EMAIL);
+}
+
+export function getSafeEnvelopeFromEmail(senderEmail: string) {
+  if (isSenderEmailAllowedBySmtpPolicy(senderEmail)) {
+    return senderEmail;
+  }
+
+  return env.SMTP_FROM_EMAIL ?? senderEmail;
+}
+
 export async function getSiteSettingsAuditMeta() {
   const settings = await getSiteSettings();
 

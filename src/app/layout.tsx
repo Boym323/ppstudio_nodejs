@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Cormorant_Garamond, Inter } from "next/font/google";
 
 import { siteConfig } from "@/config/site";
+import { getPublicSalonProfile } from "@/lib/site-settings";
 
 import "./globals.css";
 
@@ -16,46 +17,53 @@ const sansFont = Inter({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  metadataBase: new URL(siteConfig.url),
-  applicationName: siteConfig.name,
-  title: {
-    default: `${siteConfig.name} | ${siteConfig.title}`,
-    template: `%s | ${siteConfig.name}`,
-  },
-  description: siteConfig.description,
-  keywords: [
-    "kosmetický salon",
-    "luxusní kosmetika",
-    "péče o pleť",
-    "rezervace kosmetiky",
-    siteConfig.name,
-  ],
-  category: "beauty",
-  authors: [{ name: siteConfig.name }],
-  creator: siteConfig.name,
-  publisher: siteConfig.name,
-  alternates: {
-    canonical: "/",
-  },
-  robots: {
-    index: true,
-    follow: true,
-  },
-  openGraph: {
-    title: `${siteConfig.name} | ${siteConfig.title}`,
+export async function generateMetadata(): Promise<Metadata> {
+  const salonProfile = await getPublicSalonProfile().catch(() => ({
+    name: siteConfig.name,
+  }));
+  const brandName = salonProfile.name || siteConfig.name;
+
+  return {
+    metadataBase: new URL(siteConfig.url),
+    applicationName: brandName,
+    title: {
+      default: `${brandName} | ${siteConfig.title}`,
+      template: `%s | ${brandName}`,
+    },
     description: siteConfig.description,
-    url: siteConfig.url,
-    siteName: siteConfig.name,
-    locale: siteConfig.locale,
-    type: "website",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: `${siteConfig.name} | ${siteConfig.title}`,
-    description: siteConfig.description,
-  },
-};
+    keywords: [
+      "kosmetický salon",
+      "luxusní kosmetika",
+      "péče o pleť",
+      "rezervace kosmetiky",
+      brandName,
+    ],
+    category: "beauty",
+    authors: [{ name: brandName }],
+    creator: brandName,
+    publisher: brandName,
+    alternates: {
+      canonical: "/",
+    },
+    robots: {
+      index: true,
+      follow: true,
+    },
+    openGraph: {
+      title: `${brandName} | ${siteConfig.title}`,
+      description: siteConfig.description,
+      url: siteConfig.url,
+      siteName: brandName,
+      locale: siteConfig.locale,
+      type: "website",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${brandName} | ${siteConfig.title}`,
+      description: siteConfig.description,
+    },
+  };
+}
 
 export default function RootLayout({
   children,

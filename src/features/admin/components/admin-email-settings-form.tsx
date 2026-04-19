@@ -70,7 +70,7 @@ export function AdminEmailSettingsForm({
           <div className="sm:col-span-2">
             <SettingsField
               label="E-mail odesílatele"
-              hint="Použijte adresu, kterou vaše e-mailová služba opravdu dovoluje odesílat."
+              hint="Použijte adresu, kterou vaše e-mailová služba opravdu dovoluje odesílat. V režimu EMAIL_DELIVERY_MODE=background musí odpovídat hodnotě SMTP_FROM_EMAIL."
               error={serverState.fieldErrors?.emailSenderEmail}
             >
               <input
