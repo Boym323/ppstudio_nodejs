@@ -29,34 +29,49 @@ export function AdminSettingsPage({
     <AdminPageShell
       eyebrow="Full Admin sekce"
       title="Nastavení"
-      description="Jedno klidné místo pro skutečně globální údaje salonu, booking pravidla a základní e-mailovou komunikaci. Správa služeb, slotů a rezervací zůstává ve vlastních modulech."
+      description="Jedno klidné místo pro veřejné kontakty salonu, globální pravidla rezervace a základní e-mailové odesílání. Nic pro služby, sloty ani jednotlivé rezervace."
       stats={[
         {
-          label: "Poslední úprava",
+          label: "Naposledy uložené",
           value: settings.updatedAt,
           tone: "accent",
-          detail: "Změny se propisují do veřejných kontaktů, bookingu a potvrzovacích e-mailů.",
+          detail: "Změny se propisují do veřejných kontaktů, rezervací a potvrzovacích e-mailů.",
         },
       ]}
     >
+      <section className="grid gap-3 rounded-[1.5rem] border border-white/8 bg-white/4 p-4 sm:grid-cols-3 sm:gap-4">
+        <article className="rounded-[1.2rem] border border-white/8 bg-black/10 p-4">
+          <p className="text-xs uppercase tracking-[0.24em] text-white/45">Salon</p>
+          <p className="mt-2 text-sm leading-6 text-white/72">Název, adresa, telefon, e-mail a Instagram.</p>
+        </article>
+        <article className="rounded-[1.2rem] border border-white/8 bg-black/10 p-4">
+          <p className="text-xs uppercase tracking-[0.24em] text-white/45">Rezervace</p>
+          <p className="mt-2 text-sm leading-6 text-white/72">Předstih, horizont dopředu a storno limit.</p>
+        </article>
+        <article className="rounded-[1.2rem] border border-white/8 bg-black/10 p-4">
+          <p className="text-xs uppercase tracking-[0.24em] text-white/45">E-maily</p>
+          <p className="mt-2 text-sm leading-6 text-white/72">Upozornění, odesílatel a krátká patička.</p>
+        </article>
+      </section>
+
       <div className="grid gap-6">
         <AdminPanel
           title="Salon"
-          description="Veřejné kontaktní údaje a identita salonu. Bez marketingového CMS a bez technických detailů navíc."
+          description="Veřejné kontaktní údaje pro web i e-maily."
         >
           <AdminSalonSettingsForm settings={settings} />
         </AdminPanel>
 
         <AdminPanel
           title="Rezervace"
-          description="Jen pravidla, která platí pro celý rezervační systém. Detailní provozní plánování patří dál do volných termínů."
+          description="Jen společná pravidla pro celý rezervační systém."
         >
           <AdminBookingSettingsForm settings={settings} />
         </AdminPanel>
 
         <AdminPanel
           title="E-maily a notifikace"
-          description="Základní komunikace směrem ke klientce a upozornění pro provoz. SMTP přístupové údaje zůstávají bezpečně mimo administraci."
+          description="Základní komunikace směrem ke klientce a provozu."
         >
           <AdminEmailSettingsForm settings={settings} />
         </AdminPanel>

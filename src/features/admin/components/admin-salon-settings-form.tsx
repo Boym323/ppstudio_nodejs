@@ -9,9 +9,10 @@ import { updateSalonSettingsAction } from "@/features/admin/actions/settings-act
 
 import {
   SettingsField,
+  SettingsFormFooter,
+  SettingsFormMessages,
+  settingsControlClassName,
   SettingsSection,
-  SettingsStatus,
-  SettingsSubmitButton,
 } from "./admin-settings-form-ui";
 
 export function AdminSalonSettingsForm({
@@ -34,27 +35,27 @@ export function AdminSalonSettingsForm({
 
   return (
     <form action={formAction} className="space-y-5">
-      <SettingsStatus status="success" message={serverState.status === "success" ? serverState.successMessage : undefined} />
-      <SettingsStatus status="error" message={serverState.status === "error" ? serverState.formError : undefined} />
+      <SettingsFormMessages serverState={serverState} />
 
       <SettingsSection
         title="Základní údaje"
-        description="Tyto údaje se propisují do kontaktních míst webu a do komunikace se zákaznicí."
+        description="Krátké veřejné údaje, které má klientka snadno najít."
       >
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 md:grid-cols-2">
           <SettingsField label="Název salonu" error={serverState.fieldErrors?.salonName}>
             <input
               type="text"
               name="salonName"
               defaultValue={settings.salonName}
               maxLength={120}
-              className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--color-accent)]/60"
+              autoComplete="organization"
+              className={settingsControlClassName}
             />
           </SettingsField>
 
           <SettingsField
             label="Telefon"
-            hint="Telefon, na který má klientka volat při dotazu nebo změně termínu."
+            hint="Telefon pro dotaz nebo změnu termínu."
             error={serverState.fieldErrors?.phone}
           >
             <input
@@ -62,7 +63,9 @@ export function AdminSalonSettingsForm({
               name="phone"
               defaultValue={settings.phone}
               maxLength={32}
-              className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--color-accent)]/60"
+              autoComplete="tel"
+              inputMode="tel"
+              className={settingsControlClassName}
             />
           </SettingsField>
 
@@ -72,7 +75,8 @@ export function AdminSalonSettingsForm({
               name="addressLine"
               defaultValue={settings.addressLine}
               maxLength={160}
-              className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--color-accent)]/60"
+              autoComplete="street-address"
+              className={settingsControlClassName}
             />
           </SettingsField>
 
@@ -82,7 +86,8 @@ export function AdminSalonSettingsForm({
               name="city"
               defaultValue={settings.city}
               maxLength={120}
-              className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--color-accent)]/60"
+              autoComplete="address-level2"
+              className={settingsControlClassName}
             />
           </SettingsField>
 
@@ -92,13 +97,15 @@ export function AdminSalonSettingsForm({
               name="postalCode"
               defaultValue={settings.postalCode}
               maxLength={6}
-              className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--color-accent)]/60"
+              autoComplete="postal-code"
+              inputMode="numeric"
+              className={settingsControlClassName}
             />
           </SettingsField>
 
           <SettingsField
             label="Kontaktní e-mail"
-            hint="Veřejný e-mail pro dotazy klientek."
+            hint="Veřejný e-mail pro dotazy."
             error={serverState.fieldErrors?.contactEmail}
           >
             <input
@@ -106,14 +113,15 @@ export function AdminSalonSettingsForm({
               name="contactEmail"
               defaultValue={settings.contactEmail}
               maxLength={254}
-              className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--color-accent)]/60"
+              autoComplete="email"
+              className={settingsControlClassName}
             />
           </SettingsField>
 
-          <div className="sm:col-span-2">
+          <div className="md:col-span-2">
             <SettingsField
               label="Instagram"
-              hint="Volitelné. Pokud profil nepoužíváte, pole nechte prázdné."
+              hint="Volitelné. Když profil nepoužíváte, nech pole prázdné."
               error={serverState.fieldErrors?.instagramUrl}
             >
               <input
@@ -121,15 +129,16 @@ export function AdminSalonSettingsForm({
                 name="instagramUrl"
                 defaultValue={settings.instagramUrl ?? ""}
                 maxLength={300}
+                autoComplete="url"
                 placeholder="https://www.instagram.com/..."
-                className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none transition placeholder:text-white/32 focus:border-[var(--color-accent)]/60"
+                className={settingsControlClassName}
               />
             </SettingsField>
           </div>
         </div>
       </SettingsSection>
 
-      <SettingsSubmitButton />
+      <SettingsFormFooter note="Po uložení se veřejné kontakty hned promítnou na webu i do e-mailů." />
     </form>
   );
 }

@@ -60,6 +60,8 @@ Formát je inspirovaný Keep a Changelog.
 - Týdenní planner dostupností pro `OWNER` i `SALON` nyní zobrazuje rezervace, omezené intervaly, neaktivní sloty i minulý čas v jednom klidném kalendáři.
 
 ### Changed
+- Admin sekce `Nastavení` dostala další vizuální a textový polish: orientační blok nahoře, kratší mikrocopy a jemnější hierarchii panelů bez změny logiky.
+- Admin sekce `Nastavení` prošla druhým kolem UX úprav: společný formulářový skeleton, kratší popisky, jasnější názvy polí a lepší mobilní rozložení bez zásahu do business logiky.
 - Admin ukládání `emailSenderEmail` nyní v `EMAIL_DELIVERY_MODE=background` odmítne adresu odlišnou od `SMTP_FROM_EMAIL`, aby se předešlo produkčním `EmailLog FAILED` kvůli SMTP policy.
 - SMTP provider vrstva má bezpečný fallback envelope senderu na `SMTP_FROM_EMAIL` a warning log, pokud DB sender neprojde policy.
 - Root metadata branding (`applicationName`, title template, OpenGraph `siteName`) bere název salonu ze `SiteSettings`; canonical URL base zůstává na `NEXT_PUBLIC_APP_URL`.

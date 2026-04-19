@@ -65,6 +65,8 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - `src/features/admin/components/admin-booking-detail-page.tsx` a route dvojice `/admin/rezervace/[bookingId]` + `/admin/provoz/rezervace/[bookingId]` drží první produkční workflow pro práci s rezervací.
 - Sekce `Nastavení` má vlastní workflow v `src/features/admin/components/admin-settings-page.tsx` a už neběží přes generický placeholder renderer.
 - Formuláře pro `Salon`, `Rezervace` a `E-maily a notifikace` jsou oddělené do samostatných client komponent a server action adaptérů v `src/features/admin/actions/settings-actions.ts`.
+- Sdílený skeleton formulářů pro `Nastavení` je v `src/features/admin/components/admin-settings-form-ui.tsx`; drží společné styly polí, zprávy po uložení a patičku se submit buttonem, aby se neopakoval stejný markup ve třech sekcích.
+- Stránka `Nastavení` má nahoře krátký orientační blok, který v jedné větě vysvětlí, co patří do `Salon`, `Rezervace` a `E-maily`.
 - Produkční slot routy jsou explicitní a nepoužívají generický `[section]` detail:
   - `/admin/volne-terminy`
   - `/admin/volne-terminy/novy`

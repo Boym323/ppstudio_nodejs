@@ -9,9 +9,10 @@ import { updateBookingSettingsAction } from "@/features/admin/actions/settings-a
 
 import {
   SettingsField,
+  SettingsFormFooter,
+  SettingsFormMessages,
+  settingsControlClassName,
   SettingsSection,
-  SettingsStatus,
-  SettingsSubmitButton,
 } from "./admin-settings-form-ui";
 
 export function AdminBookingSettingsForm({
@@ -30,16 +31,15 @@ export function AdminBookingSettingsForm({
 
   return (
     <form action={formAction} className="space-y-5">
-      <SettingsStatus status="success" message={serverState.status === "success" ? serverState.successMessage : undefined} />
-      <SettingsStatus status="error" message={serverState.status === "error" ? serverState.formError : undefined} />
+      <SettingsFormMessages serverState={serverState} />
 
       <SettingsSection
         title="Globální pravidla rezervace"
-        description="Platí pro celý booking. Tímto nenahrazujete správu služeb ani volných termínů."
+        description="Jen pravidla, která platí pro celý booking."
       >
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-3">
           <SettingsField
-            label="Minimální předstih"
+            label="Předstih před rezervací"
             hint="Kolik hodin před začátkem termínu ještě dovolíte novou rezervaci."
             error={serverState.fieldErrors?.bookingMinAdvanceHours}
           >
@@ -48,8 +48,10 @@ export function AdminBookingSettingsForm({
               name="bookingMinAdvanceHours"
               min={0}
               max={168}
+              step={1}
+              inputMode="numeric"
               defaultValue={settings.bookingMinAdvanceHours}
-              className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--color-accent)]/60"
+              className={settingsControlClassName}
             />
           </SettingsField>
 
@@ -63,14 +65,16 @@ export function AdminBookingSettingsForm({
               name="bookingMaxAdvanceDays"
               min={1}
               max={365}
+              step={1}
+              inputMode="numeric"
               defaultValue={settings.bookingMaxAdvanceDays}
-              className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--color-accent)]/60"
+              className={settingsControlClassName}
             />
           </SettingsField>
 
           <SettingsField
-            label="Storno limit"
-            hint="Kolik hodin před termínem ještě dovolíte storno přes odkaz v e-mailu."
+            label="Storno do"
+            hint="Kolik hodin před termínem ještě jde rezervaci zrušit přes e-mail."
             error={serverState.fieldErrors?.bookingCancellationHours}
           >
             <input
@@ -78,14 +82,16 @@ export function AdminBookingSettingsForm({
               name="bookingCancellationHours"
               min={0}
               max={336}
+              step={1}
+              inputMode="numeric"
               defaultValue={settings.bookingCancellationHours}
-              className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--color-accent)]/60"
+              className={settingsControlClassName}
             />
           </SettingsField>
         </div>
       </SettingsSection>
 
-      <SettingsSubmitButton />
+      <SettingsFormFooter note="Změny se použijí pro nové rezervace. Už uložené termíny tím neměníš." />
     </form>
   );
 }

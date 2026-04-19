@@ -134,6 +134,8 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
   - blok `Salon` spravuje název salonu, adresu, telefon, kontaktní e-mail a Instagram
   - blok `Rezervace` drží jen skutečně globální booking pravidla: minimální předstih, horizont dopředu a storno limit pro self-service storno
   - blok `E-maily a notifikace` spravuje admin notifikační e-mail, sender name, sender email a krátkou patičku potvrzovacích e-mailů
+  - formuláře mají jednotný footer se stavem ukládání, kratší popisky a mobilní rozložení, aby šly snadno používat i na telefonu
+  - nahoře je malý orientační blok, který rychle vysvětlí, co do které části patří
   - technické SMTP údaje, app URL a session secret zůstávají správně mimo admin v env
 - Lite provozní menu je záměrně kratší a drží jen to, co recepce a tým potřebují nejčastěji:
   - Přehled

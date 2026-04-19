@@ -9,9 +9,11 @@ import { updateEmailSettingsAction } from "@/features/admin/actions/settings-act
 
 import {
   SettingsField,
+  SettingsFormFooter,
+  SettingsFormMessages,
+  settingsControlClassName,
+  settingsTextareaClassName,
   SettingsSection,
-  SettingsStatus,
-  SettingsSubmitButton,
 } from "./admin-settings-form-ui";
 
 export function AdminEmailSettingsForm({
@@ -31,17 +33,16 @@ export function AdminEmailSettingsForm({
 
   return (
     <form action={formAction} className="space-y-5">
-      <SettingsStatus status="success" message={serverState.status === "success" ? serverState.successMessage : undefined} />
-      <SettingsStatus status="error" message={serverState.status === "error" ? serverState.formError : undefined} />
+      <SettingsFormMessages serverState={serverState} />
 
       <SettingsSection
         title="Komunikace"
-        description="Držíme jen praktická globální nastavení. Technická SMTP konfigurace zůstává mimo administraci."
+        description="Jen to, co běžně potřebuje obsluha salonu."
       >
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 md:grid-cols-2">
           <SettingsField
             label="E-mail pro upozornění"
-            hint="Na tuto adresu chodí provozní oznámení o nové nebo zrušené rezervaci."
+            hint="Na tuto adresu chodí oznámení o nové nebo zrušené rezervaci."
             error={serverState.fieldErrors?.notificationAdminEmail}
           >
             <input
@@ -49,13 +50,14 @@ export function AdminEmailSettingsForm({
               name="notificationAdminEmail"
               defaultValue={settings.notificationAdminEmail}
               maxLength={254}
-              className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--color-accent)]/60"
+              autoComplete="email"
+              className={settingsControlClassName}
             />
           </SettingsField>
 
           <SettingsField
             label="Jméno odesílatele"
-            hint="Takto se e-mail zobrazí klientce v doručené poště."
+            hint="Jak se má salon zobrazovat v doručené poště."
             error={serverState.fieldErrors?.emailSenderName}
           >
             <input
@@ -63,14 +65,15 @@ export function AdminEmailSettingsForm({
               name="emailSenderName"
               defaultValue={settings.emailSenderName}
               maxLength={120}
-              className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--color-accent)]/60"
+              autoComplete="organization"
+              className={settingsControlClassName}
             />
           </SettingsField>
 
-          <div className="sm:col-span-2">
+          <div className="md:col-span-2">
             <SettingsField
               label="E-mail odesílatele"
-              hint="Použijte adresu, kterou vaše e-mailová služba opravdu dovoluje odesílat. V režimu EMAIL_DELIVERY_MODE=background musí odpovídat hodnotě SMTP_FROM_EMAIL."
+              hint="Musí odpovídat adrese, kterou umí vaše e-mailová služba odesílat."
               error={serverState.fieldErrors?.emailSenderEmail}
             >
               <input
@@ -78,12 +81,13 @@ export function AdminEmailSettingsForm({
                 name="emailSenderEmail"
                 defaultValue={settings.emailSenderEmail}
                 maxLength={254}
-                className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--color-accent)]/60"
+                autoComplete="email"
+                className={settingsControlClassName}
               />
             </SettingsField>
           </div>
 
-          <div className="sm:col-span-2">
+          <div className="md:col-span-2">
             <SettingsField
               label="Krátká patička e-mailů"
               hint="Volitelné. Hodí se pro krátkou větu pod potvrzením rezervace."
@@ -94,14 +98,14 @@ export function AdminEmailSettingsForm({
                 rows={4}
                 maxLength={600}
                 defaultValue={settings.emailFooterText ?? ""}
-                className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm leading-6 text-white outline-none transition focus:border-[var(--color-accent)]/60"
+                className={settingsTextareaClassName}
               />
             </SettingsField>
           </div>
         </div>
       </SettingsSection>
 
-      <SettingsSubmitButton />
+      <SettingsFormFooter note="Změny tady ovlivní, jak salon vystupuje v potvrzovacích e-mailech a provozních upozorněních." />
     </form>
   );
 }
