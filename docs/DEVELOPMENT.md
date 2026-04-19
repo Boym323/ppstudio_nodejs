@@ -40,6 +40,9 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Placeholder obsah musí být jasně odlišen od finálních produkčních textů.
 - Pokud je interní název služby příliš technický nebo exportovaný ze starého webu, nepřepisuj DB záznam jen kvůli public copy; preferuj public override v read modelu.
 - CTA na rezervaci držet konzistentně v headeru, hero sekcích a kontextových blocích.
+- U homepage copy preferovat strukturu, která se už historicky osvědčila: jasný lokální hero claim, dvě primární akce (rezervace + ceník) a blok „nejste si jistá výběrem“, který snižuje bariéru první rezervace.
+- Pokud homepage potřebuje logo/fotku majitelky, nastav to v `homepageContent` (`logoImage`, `portraitImage`) a používej lokální soubory z `public/brand`, aby nebyla závislost na externím hostingu.
+- Pro vizuální přiblížení starému webu drž hero variantu jen pro homepage (`logoImage` + `portraitImage`), zatímco ostatní public stránky mají zůstat v obecné hero variantě bez portrait-first kompozice.
 
 ## Auth Strategie
 - Login probíhá přes `src/app/api/auth/login/route.ts`.

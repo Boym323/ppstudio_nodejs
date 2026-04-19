@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import type { Metadata } from 'next';
 
 import {
@@ -8,7 +9,6 @@ import {
   buildLegalContent,
   buildTrustMetrics,
   homepageContent,
-  salonHighlights,
   services,
   type ContactItem,
   type LegalSection,
@@ -23,27 +23,67 @@ function PublicHero({
   eyebrow,
   title,
   description,
+  benefits,
+  ctaNote,
+  logoImage,
+  portraitImage,
   primaryCta,
   secondaryCta,
 }: {
   eyebrow: string;
   title: string;
   description: string;
+  benefits?: string[];
+  ctaNote?: string;
+  logoImage?: { src: string; alt: string; width: number; height: number };
+  portraitImage?: { src: string; alt: string; width: number; height: number };
   primaryCta?: { href: string; label: string };
   secondaryCta?: { href: string; label: string };
 }) {
+  const isHomepageStyle = Boolean(logoImage && portraitImage);
+
   return (
     <section className="relative isolate overflow-hidden border-b border-black/5 bg-[radial-gradient(circle_at_top_left,rgba(226,205,182,0.5),transparent_32%),linear-gradient(180deg,#f8f2eb_0%,#f5ede4_48%,#f8f3ed_100%)]">
-      <Container className="grid gap-10 py-12 sm:py-16 lg:grid-cols-[1.08fr_0.92fr] lg:items-end lg:py-24">
+      <Container className="grid gap-10 py-12 sm:py-16 lg:grid-cols-[1.08fr_0.92fr] lg:items-stretch lg:py-24">
         <div className="space-y-7">
-          <div className="space-y-4">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.32em] text-[var(--color-accent)]">
-              {eyebrow}
-            </p>
+          <div className="space-y-3">
+            {!isHomepageStyle ? (
+              <p className="text-[11px] font-semibold uppercase tracking-[0.32em] text-[var(--color-accent)]">{eyebrow}</p>
+            ) : null}
+            {logoImage ? (
+              <div className="relative mx-auto h-[150px] w-[150px] sm:h-[176px] sm:w-[176px]">
+                <Image
+                  src={logoImage.src}
+                  alt={logoImage.alt}
+                  fill
+                  sizes="(min-width: 640px) 176px, 150px"
+                  className="object-contain drop-shadow-[0_8px_20px_rgba(23,19,17,0.2)]"
+                  priority
+                />
+              </div>
+            ) : null}
             <h1 className="max-w-3xl font-display text-[2.5rem] leading-[1.04] tracking-tight text-[var(--color-foreground)] sm:text-5xl lg:text-6xl">
-              {title}
+              {isHomepageStyle ? (
+                <>
+                  PP <span className="text-[var(--color-accent)]">Studio</span>
+                </>
+              ) : (
+                title
+              )}
             </h1>
             <p className="max-w-2xl text-[15px] leading-7 text-[var(--color-muted)] sm:text-lg sm:leading-8">{description}</p>
+            {isHomepageStyle && benefits?.length ? (
+              <div className="flex flex-wrap gap-2 pt-1">
+                {benefits.map((benefit) => (
+                  <span
+                    key={benefit}
+                    className="rounded-full border border-[var(--color-accent)]/35 bg-[#fff7ef] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-accent-contrast)]"
+                  >
+                    {benefit}
+                  </span>
+                ))}
+              </div>
+            ) : null}
           </div>
           {(primaryCta || secondaryCta) && (
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -65,27 +105,32 @@ function PublicHero({
               ) : null}
             </div>
           )}
+          {isHomepageStyle && ctaNote ? (
+            <p className="max-w-2xl text-[13px] leading-6 text-[var(--color-muted)] sm:text-sm">{ctaNote}</p>
+          ) : null}
         </div>
-        <div className="grid gap-4">
-          <div className="rounded-[calc(var(--radius-panel)-0.25rem)] border border-white/75 bg-white/82 p-5 shadow-[var(--shadow-panel)] backdrop-blur sm:p-6">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.32em] text-[var(--color-accent)]">
-              PP Studio
-            </p>
-            <p className="mt-4 max-w-md font-display text-2xl leading-[1.12] text-[var(--color-foreground)] sm:text-3xl">
-              Péče vedená osobně, s prostorem pro to, co právě potřebujete.
-            </p>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
-            {salonHighlights.map((item) => (
-              <div
-                key={item.label}
-                className="rounded-[calc(var(--radius-panel)-0.5rem)] border border-black/6 bg-[#fffaf6] p-4"
-              >
-                <p className="text-[13px] text-[var(--color-muted)]">{item.label}</p>
-                <p className="mt-2 text-[15px] font-medium leading-6 text-[var(--color-foreground)]">{item.value}</p>
-              </div>
-            ))}
-          </div>
+        <div className="flex">
+          {portraitImage ? (
+            <div className="relative w-full overflow-hidden rounded-[calc(var(--radius-panel)-0.25rem)] border border-white/80 bg-white/70 shadow-[var(--shadow-panel)] backdrop-blur">
+              <Image
+                src={portraitImage.src}
+                alt={portraitImage.alt}
+                width={portraitImage.width}
+                height={portraitImage.height}
+                className="h-[16rem] w-full object-cover object-center sm:h-[20rem] lg:h-[24rem]"
+                priority
+              />
+            </div>
+          ) : (
+            <div className="rounded-[calc(var(--radius-panel)-0.25rem)] border border-white/75 bg-white/82 p-5 shadow-[var(--shadow-panel)] backdrop-blur sm:p-6">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.32em] text-[var(--color-accent)]">
+                PP Studio
+              </p>
+              <p className="mt-4 max-w-md font-display text-2xl leading-[1.12] text-[var(--color-foreground)] sm:text-3xl">
+                Péče vedená osobně, s prostorem pro to, co právě potřebujete.
+              </p>
+            </div>
+          )}
         </div>
       </Container>
     </section>
@@ -321,8 +366,8 @@ export async function PublicHomePage({ featuredServices = services.slice(0, 3) }
         <Container className="space-y-8 sm:space-y-10">
           <SectionHeading
             eyebrow="Vybrané služby"
-            title="Služby vybírám tak, aby bylo hned jasné, pro koho jsou a co od nich můžete čekat."
-            description="Kosmetická ošetření, řasy a obočí, masáž i líčení mají každé svůj vlastní rytmus i účel."
+            title="Nejoblíbenější služby přehledně: pro koho jsou, co přináší a kolik času zaberou."
+            description="Ať řešíte pleť, řasy nebo obočí, cílem je jasná volba bez složitého rozhodování."
           />
           <div className="grid gap-6 lg:grid-cols-3">
             {featuredServices.map((service) => (
@@ -336,28 +381,28 @@ export async function PublicHomePage({ featuredServices = services.slice(0, 3) }
         <Container className="grid gap-6 lg:grid-cols-[1fr_0.9fr]">
           <div className="rounded-[var(--radius-panel)] border border-black/6 bg-white p-6 shadow-[var(--shadow-panel)] sm:p-8">
             <SectionHeading
-              eyebrow="Jak pracuji"
-              title="Každá návštěva má mít jasný směr a příjemný průběh."
-              description="Od první volby služby po samotnou péči je pro mě důležité, abyste se mohla rozhodovat s jistotou a bez tlaku."
+              eyebrow="Nejste si jistá výběrem?"
+              title="Zvolte orientačně termín, službu spolu doladíme na místě."
+              description="Pokud váháte mezi variantami, stačí vybrat nejbližší možnost. Před ošetřením vše krátce upřesníme."
             />
             <div className="mt-8 grid gap-4 sm:grid-cols-2">
               <div className="rounded-[calc(var(--radius-panel)-0.5rem)] bg-[var(--color-surface)] p-5">
-                <p className="font-display text-xl text-[var(--color-foreground)] sm:text-2xl">Péče podle vás</p>
-                <p className="mt-3 text-[13px] leading-6 text-[var(--color-muted)] sm:text-sm">Pokud si nejste jistá výběrem, službu společně při návštěvě upravíme nebo upřesníme.</p>
+                <p className="font-display text-xl text-[var(--color-foreground)] sm:text-2xl">Jasné doporučení</p>
+                <p className="mt-3 text-[13px] leading-6 text-[var(--color-muted)] sm:text-sm">Podle stavu pleti nebo cíle návštěvy vybereme službu, která vám bude dávat smysl.</p>
               </div>
               <div className="rounded-[calc(var(--radius-panel)-0.5rem)] bg-[var(--color-surface)] p-5">
-                <p className="font-display text-xl text-[var(--color-foreground)] sm:text-2xl">Jasné podmínky</p>
-                <p className="mt-3 text-[13px] leading-6 text-[var(--color-muted)] sm:text-sm">Ceník, storno pravidla i kontakty najdete přehledně a bez zbytečně složitých formulací.</p>
+                <p className="font-display text-xl text-[var(--color-foreground)] sm:text-2xl">Rychlé objednání</p>
+                <p className="mt-3 text-[13px] leading-6 text-[var(--color-muted)] sm:text-sm">Rezervaci dokončíte online během pár kroků, potvrzení termínu přijde e-mailem.</p>
               </div>
             </div>
           </div>
           <PlaceholderNote
             title="Dobré vědět"
             items={[
-              'pokud si nejste jistá výběrem služby, stačí zvolit nejbližší variantu',
+              'pokud váháte, zvolte orientační službu a vše doladíme na místě',
               'volné termíny vypisuji průběžně podle reálné kapacity',
-              'rezervaci lze pohodlně potvrdit online během několika kroků',
-              'na první návštěvě je vždy prostor pro krátké upřesnění péče',
+              'potvrzení rezervace dostanete e-mailem po dokončení objednání',
+              'ceník i podmínky najdete přehledně bez složitých formulací',
             ]}
           />
         </Container>

@@ -7,6 +7,7 @@ Formát je inspirovaný Keep a Changelog.
 ## [Unreleased]
 
 ### Added
+- Lokální brand assety `public/brand/ppstudio-logo.png` a `public/brand/ppstudio-portrait.jpg` pro homepage hero.
 - Skript `npm run db:check-migrations`, který před deployem kontroluje otevřené failed/incomplete záznamy v `_prisma_migrations`.
 - Produkční owner-only sekci `Nastavení` s rozdělením na bloky `Salon`, `Rezervace` a `E-maily a notifikace`.
 - Explicitní singleton model `SiteSettings` a bootstrap read vrstvu místo původního spoléhání na generické key-value `Setting`.
@@ -60,6 +61,17 @@ Formát je inspirovaný Keep a Changelog.
 - Týdenní planner dostupností pro `OWNER` i `SALON` nyní zobrazuje rezervace, omezené intervaly, neaktivní sloty i minulý čas v jednom klidném kalendáři.
 
 ### Changed
+- Hero portrét na desktopu už nepoužívá `lg:h-full`; má pevnou výšku `lg:h-[31rem]`, takže je reálně menší a lépe sedí k levému textovému bloku.
+- Pravý hero sloupec byl přepnutý na `flex` layout, aby se výška portrétu na desktopu spolehlivě dorovnávala k levému obsahovému bloku až po CTA poznámku.
+- Logo v homepage hero je nyní centrované v levém bloku a portrét na desktopu znovu používá `lg:h-full`, aby držel výšku levého obsahu.
+- Logo v homepage hero bylo znovu zvětšené a dostalo jemný stín pro lepší čitelnost; portrét má teď explicitně menší výšku (`16/20/24rem`) pro klidnější horní fold.
+- Na homepage byl odstraněn eyebrow text `Kosmetický salon Zlín`; hero je na desktopu zarovnaný výš a portrét se nyní na `lg+` natahuje na výšku levého bloku.
+- Logo v homepage hero bylo zvětšené a už nepoužívá bílé kruhové pozadí ani rámeček, aby působilo přirozeněji a blíž původnímu webu.
+- Umístění loga v homepage hero bylo posunuté blíž k hlavnímu nadpisu (`eyebrow` je nově nad logem), aby kompozice více odpovídala původnímu webu.
+- Homepage hero portrét byl zmenšený a pod portrétem byly odstraněny tři doprovodné boxy, aby horní fold působil klidněji.
+- Homepage hero nyní umí přes obsahový config vykreslit logo a portrét (`logoImage`, `portraitImage`) přes `next/image`.
+- Homepage byla vizuálně přiblížená původnímu webu: hero teď používá brand nadpis `PP Studio`, benefit štítky, CTA poznámku a čistý pravý portrét bez doprovodných karet.
+- Homepage public copy byla přeuspořádaná podle osvědčeného toku ze starého webu (jasnější hero, silnější CTA na rezervaci/ceník, přímější „nejste si jistá“ guidance) při zachování současného design systému a komponent.
 - Subtitle `COSMETICS & LAMINATIONS` v levé části hlavičky se nově zobrazuje na všech stránkách používajících `SiteHeader`, nejen na homepage.
 - Stejný brand subtitle `COSMETICS & LAMINATIONS` je nově viditelný i v admin sidebaru pod `PP Studio` pro konzistentní branding napříč webem i správou.
 - Veřejný brand copy na homepage, stránce `O salonu`, `Kontakt`, `Služby` a `Ceník` byl přepsaný do kratšího, osobnějšího a méně generického tónu bez interního placeholder jazyka.
@@ -110,6 +122,8 @@ Formát je inspirovaný Keep a Changelog.
 - Dokumentace byla srovnaná s aktuálním kódem: týdenní planner, `EMAIL_DELIVERY_MODE=background` a produkční migrace přes `prisma migrate deploy`.
 
 ### Fixed
+- Rozpadlý layout homepage hero po přidání loga: logo má nově fixní render box s `next/image` `fill`, takže už neroztahuje levý sloupec.
+- Homepage hero na desktopu už není přilepený ke spodní hraně (`lg:items-center` místo `lg:items-end`) a portrét má klidnější výšku, takže vlevo nevzniká velká prázdná plocha.
 - Hlavička veřejného webu už v browseru nespouští validaci serverových env proměnných; brand text je teď lokální a subtitle na domovce zůstává zachovaný.
 - Opravené označování `Minulý čas` v admin planneru: budoucí dny už nejsou chybně blokované podle aktuální hodiny dneška.
 - Planner UI nyní používá pevný počet 28 řádků pro pracovní okno `06:00-20:00`, takže se mřížka nerozjíždí ani při rozjetých datech nebo zastaralém client payloadu.

@@ -42,9 +42,9 @@ export type ContactItem = {
 };
 
 export const salonHighlights: HighlightItem[] = [
-  { label: 'Osobní přístup', value: 'Každá návštěva podle aktuální potřeby' },
-  { label: 'Komorní péče', value: 'Čas vedený bez zbytečného spěchu' },
-  { label: 'Rezervace', value: 'Volné termíny vypisované průběžně' },
+  { label: 'Příjemné prostředí', value: 'Klidná péče bez zbytečného spěchu' },
+  { label: 'Individuální přístup', value: 'Služba podle aktuální potřeby pleti' },
+  { label: 'Online rezervace 24/7', value: 'Termín vyberete v několika krocích' },
 ];
 
 export function buildTrustMetrics(cancellationHours: number): TrustMetric[] {
@@ -118,12 +118,26 @@ export const services: Service[] = [
 ];
 
 export const homepageContent = {
-  eyebrow: 'Kosmetický salon s důrazem na detail',
-  title: 'Místo, kde se pečuje pozorně',
+  eyebrow: 'Kosmetický salon Zlín',
+  title: 'PP Studio',
   description:
-    'Každá návštěva v PP Studio vychází z aktuální potřeby pleti, vašeho stylu a toho, jak se chcete cítit.',
-  primaryCta: { href: '/rezervace', label: 'Vybrat termín' },
-  secondaryCta: { href: '/sluzby', label: 'Zobrazit služby' },
+    'Lash lifting, laminace obočí a ošetření pleti v příjemném prostředí s individuálním přístupem.',
+  benefits: ['Příjemné prostředí', 'Individuální přístup', 'Online rezervace 24/7'],
+  ctaNote: 'Rychlé online objednání, potvrzení termínu e-mailem.',
+  logoImage: {
+    src: '/brand/ppstudio-logo.png',
+    alt: 'PP Studio logo',
+    width: 172,
+    height: 172,
+  },
+  portraitImage: {
+    src: '/brand/ppstudio-portrait.jpg',
+    alt: 'PP Studio - portrét kosmetičky',
+    width: 640,
+    height: 960,
+  },
+  primaryCta: { href: '/rezervace', label: 'Rezervovat termín' },
+  secondaryCta: { href: '/cenik', label: 'Zobrazit ceník' },
 };
 
 export const aboutContent = {
