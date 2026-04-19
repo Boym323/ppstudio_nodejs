@@ -31,7 +31,12 @@ export function AdminSidebarNav({
         <p className="text-xs uppercase tracking-[0.35em] text-white/50">
           {currentArea === "owner" ? "Owner Admin" : "Provoz salonu"}
         </p>
-        <h1 className="font-display text-3xl text-white">PP Studio</h1>
+        <div className="space-y-1">
+          <h1 className="font-display text-3xl text-white">PP Studio</h1>
+          <p className="text-[0.68rem] uppercase tracking-[0.2em] text-[var(--color-accent-soft)]">
+            COSMETICS &amp; LAMINATIONS
+          </p>
+        </div>
         <p className="text-sm leading-6 text-white/70">
           Přihlášen: {userName} • {currentRole === AdminRole.OWNER ? "owner" : "provoz"}
         </p>

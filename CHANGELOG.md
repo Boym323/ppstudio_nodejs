@@ -60,6 +60,8 @@ Formát je inspirovaný Keep a Changelog.
 - Týdenní planner dostupností pro `OWNER` i `SALON` nyní zobrazuje rezervace, omezené intervaly, neaktivní sloty i minulý čas v jednom klidném kalendáři.
 
 ### Changed
+- Subtitle `COSMETICS & LAMINATIONS` v levé části hlavičky se nově zobrazuje na všech stránkách používajících `SiteHeader`, nejen na homepage.
+- Stejný brand subtitle `COSMETICS & LAMINATIONS` je nově viditelný i v admin sidebaru pod `PP Studio` pro konzistentní branding napříč webem i správou.
 - Veřejný brand copy na homepage, stránce `O salonu`, `Kontakt`, `Služby` a `Ceník` byl přepsaný do kratšího, osobnějšího a méně generického tónu bez interního placeholder jazyka.
 - Public read model služeb v `src/features/public/lib/public-services.ts` nově umí přepisovat interní názvy na jemnější public varianty a drží ručně kurátorované krátké popisy podle skutečných služeb z databáze.
 - Stránka `/cenik` je rozdělená do vizuálně oddělených kategorií ve stylu samostatných sekcí s vlastní hlavičkou; obsah je zúžený do čitelnější šířky, bez počtu služeb v kategorii a bez popisku `Cena od`, s novou typografickou hierarchií zvýrazňující cenu, klidnější názvy služeb a čitelnější popisy.
