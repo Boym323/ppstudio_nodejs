@@ -91,7 +91,7 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
   - kontaktní údaje klienta
   - souhrn a potvrzení
 - Rezervační stránka je renderovaná dynamicky při requestu, takže nově publikované nebo obsazené sloty jsou vidět bez dalšího buildu.
-- Hero, sekce `O salonu` a základní service copy jsou už přepsané do klidnějšího a osobnějšího tónu; další jemné úpravy je vhodné dělat centrálně v obsahové vrstvě nebo v DB copy mapě služeb.
+- Hero, sekce `O mně` a základní service copy jsou už přepsané do klidnějšího a osobnějšího tónu; další jemné úpravy je vhodné dělat centrálně v obsahové vrstvě nebo v DB copy mapě služeb.
 - Homepage copy teď vědomě navazuje na konverzně funkční strukturu starého webu (`služba + lokalita`, rychlé CTA na rezervaci/ceník, sekce pro nejistý výběr služby), ale běží na současném komponentovém základu.
 - Homepage hero podporuje i vizuální brand prvky přes obsahový config (`logoImage`, `portraitImage` v `src/content/public-site.ts`); lokální assety jsou v `public/brand/`.
 - Homepage hero lze obsahově ladit blíž původnímu webu přes `homepageContent` (`benefits`, `ctaNote`) bez zásahu do routy.

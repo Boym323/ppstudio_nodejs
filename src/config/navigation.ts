@@ -4,7 +4,7 @@ export const mainNavigation = [
   { href: "/", label: "Domů" },
   { href: "/sluzby", label: "Služby" },
   { href: "/cenik", label: "Ceník" },
-  { href: "/o-salonu", label: "O salonu" },
+  { href: "/o-mne", label: "O mně" },
   { href: "/kontakt", label: "Kontakt" },
 ] as const;
 

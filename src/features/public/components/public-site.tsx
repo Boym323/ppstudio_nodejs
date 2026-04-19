@@ -572,7 +572,7 @@ export function AboutPage() {
   return (
     <div className="pb-8 sm:pb-12">
       <PublicHero
-        eyebrow="O salonu"
+        eyebrow="O mně"
         title={aboutContent.heroTitle}
         description={aboutContent.heroDescription}
         primaryCta={{ href: '/kontakt', label: 'Napsat do studia' }}
