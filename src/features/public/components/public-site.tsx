@@ -9,7 +9,6 @@ import {
   buildTrustMetrics,
   contentStructureGuide,
   homepageContent,
-  priceNotes,
   salonHighlights,
   services,
   type ContactItem,
@@ -146,6 +145,80 @@ function ServiceCard({ service }: { service: Service }) {
         >
           Detail služby
         </Link>
+      </div>
+    </article>
+  );
+}
+
+type ServiceCategoryGroup = {
+  category: string;
+  services: Service[];
+};
+
+const categoryLeadByName: Record<string, string> = {
+  "Péče o pleť": "Ideální volba při řešení hydratace, rozjasnění a pravidelné péče o pleť.",
+  "Prémiové rituály": "Delší procedury zaměřené na komfort, liftingový efekt a výraznější relaxační přínos.",
+  "Brow & lash": "Úpravy obočí a řas pro upravený, přirozený vzhled bez každodenního složitého stylingu.",
+};
+
+function groupServicesByCategory(catalogServices: Service[]): ServiceCategoryGroup[] {
+  const groups: ServiceCategoryGroup[] = [];
+
+  for (const service of catalogServices) {
+    const lastGroup = groups[groups.length - 1];
+
+    if (lastGroup?.category === service.category) {
+      lastGroup.services.push(service);
+      continue;
+    }
+
+    groups.push({
+      category: service.category,
+      services: [service],
+    });
+  }
+
+  return groups;
+}
+
+function getCategoryLead(category: string, services: Service[]) {
+  if (categoryLeadByName[category]) {
+    return categoryLeadByName[category];
+  }
+
+  const firstService = services[0];
+
+  if (!firstService) {
+    return "Přehled služeb v této kategorii.";
+  }
+
+  return firstService.intro;
+}
+
+function PricingServiceRow({ service }: { service: Service }) {
+  return (
+    <article className="grid gap-4 border-b border-[#dfd2c4] px-5 py-4 last:border-b-0 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start sm:gap-8 sm:px-6 sm:py-5">
+      <div className="space-y-2">
+        <div className="flex items-start justify-between gap-4 sm:block">
+          <h3 className="max-w-2xl font-display text-[1.2rem] leading-[1.12] text-[var(--color-foreground)] sm:text-[1.45rem]">
+            {service.name}
+          </h3>
+          <div className="shrink-0 text-right sm:hidden">
+            <p className="font-display text-[1.35rem] leading-none text-[var(--color-foreground)]">{service.priceFrom}</p>
+            <p className="mt-1 text-[12px] leading-4 text-[var(--color-muted)]">{service.duration}</p>
+          </div>
+        </div>
+        <p className="max-w-3xl text-[15px] leading-[1.65] text-[color:color-mix(in_srgb,var(--color-muted)_82%,#3f3129_18%)] sm:text-[15px]">
+          {service.intro}
+        </p>
+      </div>
+      <div className="hidden sm:flex sm:min-w-[11rem] sm:flex-col sm:items-end sm:justify-start sm:pt-0.5 sm:text-right">
+        <p className="font-display text-[1.9rem] leading-none tracking-[-0.02em] text-[var(--color-foreground)]">
+          {service.priceFrom}
+        </p>
+        <p className="mt-2 text-[12px] font-medium uppercase tracking-[0.18em] text-[var(--color-muted)]">
+          {service.duration}
+        </p>
       </div>
     </article>
   );
@@ -427,6 +500,8 @@ export function ServiceDetailPage({ service }: { service: Service }) {
 }
 
 export function PricingPage({ services: catalogServices = services }: { services?: Service[] } = {}) {
+  const groupedServices = groupServicesByCategory(catalogServices);
+
   return (
     <div className="pb-8 sm:pb-12">
       <PublicHero
@@ -437,28 +512,39 @@ export function PricingPage({ services: catalogServices = services }: { services
         secondaryCta={{ href: '/sluzby', label: 'Porovnat služby' }}
       />
       <section className="py-12 sm:py-16">
-        <Container className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
-          <div className="rounded-[var(--radius-panel)] border border-black/6 bg-white p-6 shadow-[var(--shadow-panel)] sm:p-8">
+        <Container className="space-y-6">
+          <div className="mx-auto max-w-4xl space-y-6">
             <SectionHeading
               eyebrow="Aktuální přehled"
-              title="Jednoduchý ceník bez marketingového šumu."
+              title="Ceník rozdělený podle kategorií, aby se v něm dalo rychle vyznat."
+              description="Každá kategorie stojí samostatně a služby jsou seřazené stejně jako v administraci. Ceník tak působí přehledněji a v užší šířce se čte přirozeněji."
             />
-            <div className="mt-8 divide-y divide-black/6">
-              {catalogServices.map((service) => (
-                <div key={service.slug} className="flex flex-col gap-4 py-5 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <p className="font-display text-2xl text-[var(--color-foreground)] sm:text-3xl">{service.name}</p>
-                    <p className="mt-2 text-[15px] leading-6 text-[var(--color-muted)] sm:text-sm">{service.intro}</p>
-                  </div>
-                  <div className="shrink-0 text-left sm:text-right">
-                    <p className="text-lg font-semibold text-[var(--color-foreground)]">od {service.priceFrom}</p>
-                    <p className="text-sm text-[var(--color-muted)]">{service.duration}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
           </div>
-          <PlaceholderNote title="Poznámky k ceníku" items={priceNotes} />
+          <div className="mx-auto max-w-[52rem] space-y-8">
+            {groupedServices.map((group) => (
+              <section
+                key={group.category}
+                className="overflow-hidden rounded-[calc(var(--radius-panel)+0.15rem)] border border-[#d8c9b8] bg-[#fcf9f5] shadow-[0_18px_50px_rgba(75,49,31,0.05)]"
+              >
+                <div className="space-y-3 border-b border-[#dfd2c4] bg-[linear-gradient(180deg,#f3ece3_0%,#efe6db_100%)] px-5 py-4 sm:px-6 sm:py-5">
+                  <div className="space-y-2">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[var(--color-accent)]">Kategorie</p>
+                    <h2 className="font-display text-[1.55rem] leading-[1.02] tracking-[-0.02em] text-[var(--color-foreground)] sm:text-[1.95rem]">
+                      {group.category}
+                    </h2>
+                  </div>
+                  <p className="max-w-3xl text-[14px] leading-[1.6] text-[color:color-mix(in_srgb,var(--color-muted)_80%,#413129_20%)] sm:text-[15px]">
+                    {getCategoryLead(group.category, group.services)}
+                  </p>
+                </div>
+                <div className="bg-white">
+                  {group.services.map((service) => (
+                    <PricingServiceRow key={service.slug} service={service} />
+                  ))}
+                </div>
+              </section>
+            ))}
+          </div>
         </Container>
       </section>
       <CtaBand />

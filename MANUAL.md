@@ -24,7 +24,7 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
 - Veřejná část aktuálně pokrývá:
   - homepage
   - služby a detail služby
-  - ceník
+  - ceník rozdělený podle kategorií přes celou šířku obsahu
   - o salonu
   - kontakt
   - FAQ
@@ -32,6 +32,7 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
   - obchodní podmínky
   - GDPR
 - Veřejný obsah je centralizovaný v `src/content/public-site.ts`, aby šly texty, ceny a foto briefy měnit bez zásahu do layout komponent.
+- Ceník na `/cenik` je členěný podle kategorií a už nepoužívá vedlejší blok s poznámkami; detail služby zůstává místem pro doplňující vysvětlení.
 - Rezervační vrstva stojí na ručně vypisovaných termínech přes `AvailabilitySlot`, ne na pevné otevírací době.
 - Admin má dva směry použití:
   - full admin na `/admin/*` pro roli `OWNER`

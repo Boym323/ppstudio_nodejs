@@ -30,6 +30,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Veřejný web drží dva zdroje obsahu:
   - marketingové bloky, FAQ a právní texty jsou dál centralizované v `src/content/public-site.ts`
   - služby a ceník berou data z DB přes `src/features/public/lib/public-services.ts`
+- Ceník na `/cenik` je renderovaný jako plnošířkový přehled po kategoriích a už nemá doprovodný blok s poznámkami.
 - Úvodní stránka používá stejný DB katalog pro featured služby, aby odkazy z homepage mířily na aktuální slugs.
 - Reusable page sekce jsou ve `src/features/public/components/public-site.tsx`.
 - Placeholder obsah musí být jasně odlišen od finálních produkčních textů.

@@ -155,12 +155,6 @@ export const aboutContent = {
   ],
 };
 
-export const priceNotes = [
-  'Ceny jsou uvedené jako realistické placeholdery a před spuštěním je potřeba je ověřit vůči skutečné nabídce salonu.',
-  'Pokud se služba rozpadne na více variant, doporučuji zachovat jednu hlavní kartu a detaily rozepsat až na detailu služby.',
-  'Akční nabídky a balíčky držte odděleně od základního ceníku, aby byl ceník čitelný i na mobilu.',
-];
-
 export function buildContactItems(input: {
   phone: string;
   email: string;

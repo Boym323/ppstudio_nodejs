@@ -60,6 +60,7 @@ Formát je inspirovaný Keep a Changelog.
 - Týdenní planner dostupností pro `OWNER` i `SALON` nyní zobrazuje rezervace, omezené intervaly, neaktivní sloty i minulý čas v jednom klidném kalendáři.
 
 ### Changed
+- Stránka `/cenik` je rozdělená do vizuálně oddělených kategorií ve stylu samostatných sekcí s vlastní hlavičkou; obsah je zúžený do čitelnější šířky, bez počtu služeb v kategorii a bez popisku `Cena od`, s novou typografickou hierarchií zvýrazňující cenu, klidnější názvy služeb a čitelnější popisy.
 - Tón textů v adminu byl sjednocen napříč `Nastavení`, `Službami`, `Kategoriemi`, `Rezervacemi` i přehledy, aby celé prostředí působilo klidněji a konzistentněji.
 - Admin sekce `Nastavení` dostala další vizuální a textový polish: orientační blok nahoře, kratší mikrocopy a jemnější hierarchii panelů bez změny logiky.
 - Admin sekce `Nastavení` prošla druhým kolem UX úprav: společný formulářový skeleton, kratší popisky, jasnější názvy polí a lepší mobilní rozložení bez zásahu do business logiky.
