@@ -5,7 +5,8 @@ Dokumentace proměnných prostředí pro lokální vývoj i produkci.
 ## Pravidla
 - Tajné hodnoty nikdy neukládej do repozitáře.
 - Každá nová proměnná musí mít popis a příklad v `.env.example`.
-- Serverové proměnné se validují při startu aplikace přes `src/config/env.ts`.
+- Runtime proměnné používané aplikací se validují při startu přes `src/config/env.ts`.
+- CLI-only proměnné pro Prisma, například `SHADOW_DATABASE_URL`, načítá `prisma.config.ts` a nevalidují se při startu Next.js serveru.
 
 ## Přehled
 - `NODE_ENV`: režim běhu (`development`, `production`).

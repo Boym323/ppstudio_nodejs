@@ -60,7 +60,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - `/admin/volne-terminy/[slotId]/upravit`
   - salon varianta pod `/admin/provoz/volne-terminy/*`
 - `src/features/admin/actions/booking-actions.ts` je tenký server action adaptér pro změnu stavu rezervace.
-- `src/features/admin/components/admin-slots-page.tsx` používá URL-driven filtry (`date`, `status`, `preset`) a přidává rychlé provozní preset akce pro dnešek/zítřek/týden.
+- `src/features/admin/components/admin-slots-page.tsx` používá URL-driven planner stav (`week`, `day`, `status`, `panel`) a skládá týdenní přehled s detailním panelem vybraného dne.
 - `src/features/admin/components/admin-slot-form.tsx` je klientský formulář s chytrými defaulty, rychlou volbou délky a role-aware zjednodušením pro `SALON`.
 - `src/features/admin/lib/admin-booking.ts` drží detailový read model, mapování povolených přechodů a zápis do `BookingStatusHistory`.
 - `src/features/admin/components/admin-email-logs-page.tsx` je owner-only observability obrazovka pro email frontu, retry pokusy a poslední chyby.

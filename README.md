@@ -46,7 +46,7 @@ docs/
 - `/admin/*` běží z `src/app/(admin)`
 - `/admin/prihlaseni` je veřejná vstupní stránka pro admin
 - `/admin` je owner dashboard
-- `/admin/provoz` je provozní dashboard dostupný pro owner i staff
+- `/admin/provoz` je provozní dashboard pro roli `SALON`
 
 ## Auth základ
 
@@ -55,7 +55,7 @@ Admin autentizace je připravená jako produkční skeleton:
 - přihlášení přes serverový `POST` route handler
 - validace vstupu přes Zod
 - podepsaná session cookie přes `jose`
-- role `OWNER` a `STAFF`
+- role `OWNER` a `SALON`
 - bootstrap přístupy jsou dočasně řízené přes env proměnné
 
 Další krok je přesun admin uživatelů z env do databáze a navázání na plnohodnotné auditování a obnovu hesla.
@@ -68,7 +68,13 @@ Prisma schema už počítá s těmito entitami:
 - `ServiceCategory`
 - `Service`
 - `AvailabilitySlot`
-- `BookingRequest`
+- `Client`
+- `Booking`
+- `BookingStatusHistory`
+- `BookingActionToken`
+- `EmailLog`
+- `Setting`
+- `BookingSubmissionLog`
 
 To vytváří solidní základ pro ručně vypisované volné termíny i následnou správu rezervací.
 
@@ -94,9 +100,13 @@ npm run db:migrate
 - `npm run start` spustí produkční build
 - `npm run lint` zkontroluje kvalitu kódu
 - `npm run db:generate` vygeneruje Prisma client
-- `npm run db:migrate` vytvoří a aplikuje migraci
+- `npm run db:migrate` spustí lokální `prisma migrate dev`
 - `npm run db:push` synchronizuje schema bez migrace
 - `npm run db:studio` otevře Prisma Studio
+- `npm run email:worker` spustí background worker pro e-mailovou frontu
+- `npm run email:worker:once` jednorázově zpracuje čekající e-maily
+
+Pro produkční nasazení používej Prisma deploy flow přes `npx prisma migrate deploy`; lokální script `npm run db:migrate` je určený pro vývoj.
 
 Prisma 7 používá `prisma.config.ts` jako výchozí místo pro datasource konfiguraci CLI, zatímco datový model zůstává v `prisma/schema.prisma`.
 

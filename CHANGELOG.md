@@ -26,7 +26,7 @@ Formát je inspirovaný Keep a Changelog.
 - Role-aware admin IA s oddělenou navigací a routami pro full admin (`/admin/*`) a lite admin (`/admin/provoz/*`).
 - Přehledové admin sekce nad reálnými Prisma daty pro rezervace, sloty, klienty, služby, kategorie, uživatele, email logy a nastavení.
 - Serverové guard helpery pro admin area a sekce, včetně role-based redirectů a `notFound` ochrany neplatných cest.
-- Produkční email delivery vrstva s režimy `log` a `smtp`, renderováním šablon a doručováním nad `EmailLog`.
+- Produkční email delivery vrstva s režimy `log` a `background`, renderováním šablon a SMTP providerem v background režimu nad `EmailLog`.
 - Skutečné veřejné storno rezervace přes tokenizovaný odkaz, potvrzovací krok a audit změny stavu.
 - Metadata routes pro `robots.txt` a `sitemap.xml`.
 - Booking error boundary, loading fallback a základní unit testy pro e-mailové šablony.
@@ -37,7 +37,8 @@ Formát je inspirovaný Keep a Changelog.
 - Owner-only detail email logu s payloadem, chybou, ručním retry a uvolněním zaseknutého jobu.
 - První produkční detail rezervace v adminu pro `OWNER` i `SALON`, včetně napojení ze seznamů a dashboardu.
 - Produkční admin CRUD pro `AvailabilitySlot` v owner i salon oblasti, včetně seznamu, filtrů, detailu, vytvoření, editace, blokace a bezpečného mazání.
-- UX vylepšení slot adminu: rychlé filtry `dnešek/zítřek/týden`, chytřejší create formulář, jednodušší create flow pro roli `SALON` a jasnější error/success feedback po akcích.
+- Týdenní planner dostupností pro `OWNER` i `SALON`, včetně denních karet, sekundárního detailu dne, batch create a návratu zpět do stejného týdne po akci.
+- UX vylepšení slot adminu: chytřejší create formulář, jednodušší create flow pro roli `SALON` a jasnější error/success feedback po akcích.
 
 ### Changed
 - Výchozí Next.js demo bylo nahrazeno čistým škálovatelným scaffoldingem pro produkční vývoj.
@@ -59,6 +60,7 @@ Formát je inspirovaný Keep a Changelog.
 - Admin rezervace už nejsou jen read-only seznam; detail nyní umožňuje server-side změnu stavu s důvodem, interní poznámkou a auditní historií.
 - Sekce `Volné termíny` už není jen read-only přehled; statické route `/admin/volne-terminy*` a `/admin/provoz/volne-terminy*` teď přebírají plné provozní workflow pro sloty.
 - Slot create formulář má nyní provozní defaulty a rychlé přepínače délky; výběr služeb se ukazuje jen při režimu `SELECTED`.
+- Dokumentace byla srovnaná s aktuálním kódem: týdenní planner, `EMAIL_DELIVERY_MODE=background` a produkční migrace přes `prisma migrate deploy`.
 
 ### Fixed
 - Návrh datové vrstvy už nespoléhá na zjednodušený booking request model bez auditní historie a bez bezpečných tokenů.
@@ -75,9 +77,3 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Removed
 - Výchozí create-next-app homepage.
-- Týdenní planner dostupností jako hlavní admin workflow pro `OWNER` i `SALON`, včetně denních karet, sekundárního detailu dne a mobilně přívětivého stacked layoutu.
-- Rychlé inline plánování přímo z týdne: přidání jednoho slotu, dávkové založení série, rychlá změna stavu a rychlá úprava času/kapacity.
-- Server-side batch create workflow pro sérii slotů v jednom dni s validací kolizí, nesmyslných hodnot a přetečení do dalšího dne.
-- Sekce `Volné termíny` už není primárně seznam slotů s filtry po dni; hlavní obrazovka je nově skutečný týdenní planner s vybraným dnem jako sekundární vrstvou.
-- Slot admin UX byl přepracovaný z obecného CRUD seznamu na provozní plánovací rozhraní se silnějším mobilním použitím a menším počtem přechodů mezi stránkami.
-- Týdenní workflow nově pokrývá rychlé operativní úpravy přímo na stránce, takže obsluha nemusí kvůli běžné práci skákat mezi několika route detailů.

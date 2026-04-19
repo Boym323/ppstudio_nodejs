@@ -126,13 +126,14 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
   - `OWNER` na `/admin/rezervace/[bookingId]`
   - `SALON` na `/admin/provoz/rezervace/[bookingId]`
 - Správa slotů je nyní produkčně použitelná pro obě role:
-  - seznam a filtry na `/admin/volne-terminy` a `/admin/provoz/volne-terminy`
+  - týdenní planner na `/admin/volne-terminy` a `/admin/provoz/volne-terminy`
   - vytvoření na `/admin/volne-terminy/novy` a `/admin/provoz/volne-terminy/novy`
   - detail a editace na `/admin/volne-terminy/[slotId]` a `/admin/provoz/volne-terminy/[slotId]`
 - Slot workflow podporuje:
-  - filtrování podle dne a stavu slotu
-  - rychlé filtry `dnešek`, `zítřek`, `tento týden`
-  - vytvoření a editaci slotu
+  - plánování po týdnech s výběrem konkrétního dne
+  - filtr týdne a stavu slotu
+  - rychlé vytvoření jednoho slotu i celé série přímo z planneru
+  - vytvoření a plnou editaci slotu na samostatné route
   - přepnutí stavu mezi `DRAFT`, `PUBLISHED`, `CANCELLED` a `ARCHIVED`
   - blokaci slotu bez smazání historie
   - smazání jen tehdy, když slot nemá žádnou navázanou rezervaci
@@ -143,7 +144,7 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
 - Pro roli `SALON` je vytvoření slotu zjednodušené:
   - nový slot se zakládá rovnou jako publikovaný
   - interní poznámka se ve formuláři nezobrazuje
-  - stránka zdůrazňuje rychlé provozní filtry a minimální počet kroků
+  - planner i formuláře zdůrazňují rychlé provozní akce a minimální počet kroků
 - Chybové a potvrzovací hlášky:
   - seznam i detail slotu teď rozlišují úspěšné i chybové flash zprávy
   - neúspěšná změna stavu nebo smazání už nekončí tichým redirectem bez kontextu

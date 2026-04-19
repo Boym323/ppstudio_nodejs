@@ -23,6 +23,7 @@ Evidence produkčních incidentů a jejich řešení.
 - Opakované `EmailLog.status = FAILED` po nasazení nové SMTP konfigurace.
 - Nefunkční storno odkazy kvůli špatnému `NEXT_PUBLIC_APP_URL` nebo proxy přepisu hosta.
 - Worker běžící bez SMTP přístupu nebo bez `EMAIL_DELIVERY_MODE=background` a zůstávající fronta `PENDING` logů.
+- Omylem spuštěné `prisma migrate dev` na produkčním serveru místo `prisma migrate deploy`.
 - Pokus o vytvoření nebo editaci překrývajícího se slotu, který by měl skončit user-friendly validační chybou místo neošetřeného 500.
 - Slot omylem snížený pod počet aktivních rezervací nebo archivovaný navzdory aktivní rezervaci.
 - Chybějící provozní feedback po slot akci (stav/smazání), kdy obsluha neví, proč se nic nestalo.

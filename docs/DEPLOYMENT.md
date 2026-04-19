@@ -7,7 +7,7 @@ Postup nasazení aplikace do produkce.
 2. Ověř správné produkční env proměnné (`DATABASE_URL`, `ADMIN_SESSION_SECRET`, admin bootstrap účty, email delivery, worker)
 3. Zálohuj databázi, pokud release obsahuje novou Prisma migraci.
 4. `npm run db:generate`
-5. `npm run db:migrate`
+5. `npx prisma migrate deploy`
 6. `npm run lint`
 7. `npm run build`
 8. Aktualizuj `CHANGELOG.md`
@@ -23,8 +23,10 @@ Postup nasazení aplikace do produkce.
    - dostupnost owner-only sekcí jen pro `OWNER`
    - lite admin navigaci a mobilní čitelnost na `/admin/provoz/*`
    - slot workflow na `/admin/volne-terminy*` a `/admin/provoz/volne-terminy*`:
-     - rychlé preset filtry (dnešek/zítřek/týden)
+     - přepínání týdnů a zachování vybraného dne
+     - filtr stavu v planneru
      - vytvoření slotu
+     - vytvoření série slotů
      - filtr dne a stavu
      - editaci bez kolize
      - blokaci a archivaci
@@ -40,7 +42,7 @@ Postup nasazení aplikace do produkce.
 1. Pull nové verze na server.
 2. Instalace závislostí (`npm ci`).
 3. Generování Prisma klienta (`npm run db:generate`).
-4. Aplikace databázových změn (`npm run db:migrate`).
+4. Aplikace databázových změn (`npx prisma migrate deploy`).
 5. Build (`npm run build`).
 6. Restart procesu aplikace.
 7. Pokud běžíš v self-hosted režimu bez připraveného SMTP, nech dočasně `EMAIL_DELIVERY_MODE=log`, ať booking flow neblokuje start produkce.
@@ -74,7 +76,9 @@ sudo /var/www/ppstudio/deploy/deploy.sh
 - Migrace `20260418220000_email_outbox_worker` doplňuje sloupce pro outbox, claimování a retry e-mailových jobů.
 - Před produkční aplikací migrace ověř data, která by mohla mít rezervaci bez přiřazené služby; tato migrace takové řádky záměrně odmítne.
 - Pokud v databázi existují duplicitní rezervace stejného klienta do stejného slotu, nová migrace se zastaví a vyžádá jejich ruční vyčištění.
-- Pokud nasazuješ jen frontend bez DB změn, `npm run db:migrate` zůstává bezpečný no-op.
+- Pokud nasazuješ jen frontend bez DB změn, `npx prisma migrate deploy` zůstává bezpečný no-op.
+- `npm run db:migrate` v tomto repozitáři mapuje na `prisma migrate dev` a je určený pro lokální vývoj, ne pro produkční server.
+- Produkční release flow proto používá `npx prisma migrate deploy`.
 
 ## Rollback
 1. Návrat na předchozí commit/release tag.
