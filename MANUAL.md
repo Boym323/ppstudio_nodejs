@@ -219,22 +219,27 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
 
 ## Týdenní Planner Slotů V1
 - Hlavní workflow pro správu dostupností je nově týdenní přehled na `/admin/volne-terminy` a `/admin/provoz/volne-terminy`.
+- Na desktopu je to skutečný 7sloupcový týdenní kalendář po dnech od `8:00` do `18:00`.
 - Týden je hlavní plánovací jednotka:
-  - každý den má vlastní kartu
-  - z karty je jedním tapem dostupné `Přidat slot`, `Přidat sérii` a `Detail dne`
+  - každý den je vlastní sloupec nebo karta v týdnu
+  - dostupné sloty jsou vizuálně zelené bloky
+  - z každého dne je jedním klikem nebo tapem dostupné `Přidat slot` a `Přidat sérii`
   - den je barevně a textově označen jako `Prázdný den`, `Aktivní den`, `Omezený den` nebo `Zrušený den`
-- Denní detail je sekundární vrstva v pravém panelu na desktopu a ve stacked bloku na mobilu.
-- Denní detail slouží pro:
-  - rychlou změnu stavu slotu
-  - rychlou úpravu času a kapacity
-  - přechod do plné editace pro `allowed services`, `publicNote` a `internalNote`
+- Denní detail je už jen sekundární vrstva, která se otevře až po potřebě hlubší úpravy.
+- Základní plánování probíhá přímo v týdnu:
+  - sloty lze přidávat z denních akcí na desktopu i mobilu
+  - sloty lze rychle otevřít přes detail
+  - formulář pro přidání se objevuje až po volbě akce
 - Rychlé vložení jednoho slotu z týdne vytváří jednoduchý slot bez omezení služeb a bez poznámek; detail se doplňuje až podle potřeby.
 - Dávkové vložení více slotů zakládá sérii jednoduchých slotů v jednom dni.
+- Model je už připravený na budoucí fill-time job:
+  - výchozí referenční okno je `8:00–18:00`
+  - zatím jde jen o datový a vizuální referenční bod
+  - aktuální provoz stále pracuje s ručně zadávanými sloty
 - Server sérii odmítne, pokud:
   - některý slot koliduje s existujícím aktivním slotem
   - série přesahuje do dalšího dne
-  - kapacita nebo délka slotu nedává smysl
 - Mobilní režim nepoužívá širokou tabulku:
   - dny jsou řazené vertikálně pod sebe
-  - detail dne je pod přehledem
-  - rychlé akce jsou dostupné jako velká tlačítka a anchor odkazy
+  - rychlé akce jsou velká a snadno dosažitelná tlačítka
+  - formulář pro přidání slotu je krátký a bez kapacity v UI

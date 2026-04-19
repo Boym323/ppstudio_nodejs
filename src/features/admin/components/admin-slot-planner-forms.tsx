@@ -132,53 +132,37 @@ export function AdminQuickCreateSlotForm({
         ))}
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      {isSalon ? (
+        <div className="rounded-[1rem] border border-white/10 bg-white/5 px-4 py-3">
+          <p className="text-sm font-medium text-white">Stav</p>
+          <p className="mt-2 text-sm leading-6 text-white/66">Provozní vložení se rovnou publikuje.</p>
+        </div>
+      ) : (
         <label className="block">
-          <span className="text-sm font-medium text-white">Kapacita</span>
-          <input
-            type="number"
-            name="capacity"
-            min={1}
-            defaultValue={1}
+          <span className="text-sm font-medium text-white">Stav</span>
+          <select
+            name="status"
+            defaultValue={AvailabilitySlotStatus.DRAFT}
             className="mt-2 w-full rounded-[1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none focus:border-[var(--color-accent)]/60"
-          />
-          {state.fieldErrors?.capacity ? (
-            <p className="mt-2 text-sm text-red-300">{state.fieldErrors.capacity}</p>
-          ) : null}
+          >
+            <option value={AvailabilitySlotStatus.DRAFT} className="text-black">
+              Rozpracovaný
+            </option>
+            <option value={AvailabilitySlotStatus.PUBLISHED} className="text-black">
+              Publikovaný
+            </option>
+            <option value={AvailabilitySlotStatus.CANCELLED} className="text-black">
+              Zrušený
+            </option>
+          </select>
         </label>
-
-        {isSalon ? (
-          <div className="rounded-[1rem] border border-white/10 bg-white/5 px-4 py-3">
-            <p className="text-sm font-medium text-white">Stav</p>
-            <p className="mt-2 text-sm leading-6 text-white/66">Provozní vložení se rovnou publikuje.</p>
-          </div>
-        ) : (
-          <label className="block">
-            <span className="text-sm font-medium text-white">Stav</span>
-            <select
-              name="status"
-              defaultValue={AvailabilitySlotStatus.DRAFT}
-              className="mt-2 w-full rounded-[1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none focus:border-[var(--color-accent)]/60"
-            >
-              <option value={AvailabilitySlotStatus.DRAFT} className="text-black">
-                Rozpracovaný
-              </option>
-              <option value={AvailabilitySlotStatus.PUBLISHED} className="text-black">
-                Publikovaný
-              </option>
-              <option value={AvailabilitySlotStatus.CANCELLED} className="text-black">
-                Zrušený
-              </option>
-            </select>
-          </label>
-        )}
-      </div>
+      )}
 
       <p className="text-sm leading-6 text-white/64">
-        Rychlé vložení vytváří jednoduchý slot bez omezení služeb a bez poznámek. Detaily lze doplnit v denním přehledu nebo v plné úpravě.
+        Vloží se jednoduchý dostupný slot bez omezení služeb a bez kapacity v rozhraní. Detaily lze doplnit později.
       </p>
 
-      <PlannerSubmitButton label="Přidat slot do dne" pendingLabel="Ukládám slot..." />
+      <PlannerSubmitButton label="Přidat slot" pendingLabel="Ukládám slot..." />
     </form>
   );
 }
@@ -242,7 +226,7 @@ export function AdminBatchCreateSlotForm({
         </label>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2">
         <label className="block">
           <span className="text-sm font-medium text-white">Délka</span>
           <input
@@ -270,20 +254,6 @@ export function AdminBatchCreateSlotForm({
           />
           {state.fieldErrors?.gapMinutes ? (
             <p className="mt-2 text-sm text-red-300">{state.fieldErrors.gapMinutes}</p>
-          ) : null}
-        </label>
-
-        <label className="block">
-          <span className="text-sm font-medium text-white">Kapacita</span>
-          <input
-            type="number"
-            name="capacity"
-            min={1}
-            defaultValue={1}
-            className="mt-2 w-full rounded-[1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none focus:border-[var(--color-accent)]/60"
-          />
-          {state.fieldErrors?.capacity ? (
-            <p className="mt-2 text-sm text-red-300">{state.fieldErrors.capacity}</p>
           ) : null}
         </label>
       </div>
@@ -345,6 +315,7 @@ export function AdminSlotQuickEditForm({
       <input type="hidden" name="serviceRestrictionMode" value={slot.serviceRestrictionMode} />
       <input type="hidden" name="publicNote" value={slot.publicNote ?? ""} />
       <input type="hidden" name="internalNote" value={slot.internalNote ?? ""} />
+      <input type="hidden" name="capacity" value={String(slot.capacity)} />
       <input type="hidden" name="returnTo" value={returnTo} />
       {slot.serviceIds.map((serviceId) => (
         <input key={serviceId} type="hidden" name="serviceIds" value={serviceId} />
@@ -380,33 +351,20 @@ export function AdminSlotQuickEditForm({
         </label>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-[140px_1fr] sm:items-end">
-        <label className="block">
-          <span className="text-sm font-medium text-white">Kapacita</span>
-          <input
-            type="number"
-            name="capacity"
-            min={1}
-            defaultValue={slot.capacity}
-            className="mt-2 w-full rounded-[0.9rem] border border-white/10 bg-black/20 px-3 py-2.5 text-sm text-white outline-none focus:border-[var(--color-accent)]/60"
-          />
-        </label>
-
-        <div className="flex flex-wrap gap-2">
-          {[30, 60, 90].map((minutes) => (
-            <button
-              key={minutes}
-              type="button"
-              onClick={() => setEndsAt(addMinutes(startsAt, minutes))}
-              className="rounded-full border border-white/14 bg-white/6 px-3 py-2 text-sm text-white/85 transition hover:border-white/25 hover:text-white"
-            >
-              +{minutes} min
-            </button>
-          ))}
-        </div>
+      <div className="flex flex-wrap gap-2">
+        {[30, 60, 90].map((minutes) => (
+          <button
+            key={minutes}
+            type="button"
+            onClick={() => setEndsAt(addMinutes(startsAt, minutes))}
+            className="rounded-full border border-white/14 bg-white/6 px-3 py-2 text-sm text-white/85 transition hover:border-white/25 hover:text-white"
+          >
+            +{minutes} min
+          </button>
+        ))}
       </div>
 
-      <PlannerSubmitButton label="Uložit čas a kapacitu" pendingLabel="Ukládám změnu..." />
+      <PlannerSubmitButton label="Uložit čas" pendingLabel="Ukládám změnu..." />
     </form>
   );
 }

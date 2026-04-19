@@ -176,11 +176,14 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - načte sloty jen pro vybraný týden
   - seskupí je po dnech
   - spočítá stav dne a summary metriky
+- Read model už obsahuje i referenční default window `8:00–18:00`, aby na něj šel později napojit fill-time job bez změny planner UI.
 - `src/features/admin/components/admin-slots-page.tsx` je serverová planner stránka:
-  - vlevo týdenní grid/list dnů
-  - vpravo sekundární panel vybraného dne
-  - na mobilu se panel skládá pod týdenní přehled
+  - na desktopu 7sloupcový kalendář po dnech
+  - na mobilu stacked seznam dnů
+  - denní formulář se objevuje jen po volbě akce z týdne
+- Zelené bloky v týdenním kalendáři reprezentují dostupné sloty; prázdné dny zobrazují referenční window pro budoucí automatické doplňování.
 - `src/features/admin/components/admin-slot-planner-forms.tsx` drží klientské miniformuláře pro rychlé akce z týdenního planneru.
+- Kapacita je v planner UI schovaná jako interní default, aby se obsluha soustředila jen na čas a stav slotu.
 - Pro rychlé úpravy jsme záměrně nepřidávali novou UI knihovnu; workflow stojí na App Routeru, server actions a malých klientských formulářích s `useActionState`.
 - `src/features/admin/actions/slot-actions.ts` nyní podporuje návrat na planner přes `returnTo`, aby rychlé akce po uložení vracely obsluhu zpět do stejného týdne a dne.
 - Nový batch create flow běží přes `createAdminSlotsBatch()` a zapisuje sloty v jedné DB transakci.

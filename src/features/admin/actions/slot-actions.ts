@@ -35,6 +35,16 @@ function readFormStringList(formData: FormData, key: string) {
     .filter(Boolean);
 }
 
+function readFormNumberValue(formData: FormData, key: string) {
+  const value = formData.get(key);
+  if (typeof value !== "string") {
+    return undefined;
+  }
+
+  const trimmed = value.trim();
+  return trimmed ? trimmed : undefined;
+}
+
 function withFlash(target: string, flash: string) {
   const [pathname, search = ""] = target.split("?");
   const params = new URLSearchParams(search);
@@ -49,7 +59,10 @@ const upsertSlotSchema = z.object({
   slotId: z.string().trim().max(64).optional().or(z.literal("")),
   startsAt: z.string().trim().min(1, "Vyplňte začátek slotu."),
   endsAt: z.string().trim().min(1, "Vyplňte konec slotu."),
-  capacity: z.coerce.number().int().min(1, "Kapacita musí být alespoň 1."),
+  capacity: z.preprocess(
+    (value) => (value === undefined || value === "" ? undefined : value),
+    z.coerce.number().int().min(1, "Kapacita musí být alespoň 1.").default(1),
+  ),
   status: z.nativeEnum(AvailabilitySlotStatus),
   serviceRestrictionMode: z.nativeEnum(AvailabilitySlotServiceRestrictionMode),
   publicNote: z.string().trim().max(240, "Veřejná poznámka je příliš dlouhá.").optional(),
@@ -65,7 +78,10 @@ const batchSlotSchema = z.object({
   slotCount: z.coerce.number().int().min(1, "Zadejte počet slotů.").max(12, "Maximálně 12 slotů."),
   slotLengthMinutes: z.coerce.number().int().min(15, "Délka slotu musí být alespoň 15 minut."),
   gapMinutes: z.coerce.number().int().min(0, "Mezera nemůže být záporná."),
-  capacity: z.coerce.number().int().min(1, "Kapacita musí být alespoň 1."),
+  capacity: z.preprocess(
+    (value) => (value === undefined || value === "" ? undefined : value),
+    z.coerce.number().int().min(1, "Kapacita musí být alespoň 1.").default(1),
+  ),
   status: z.nativeEnum(AvailabilitySlotStatus),
   returnTo: z.string().trim().max(1000).optional(),
 });
@@ -193,7 +209,7 @@ export async function upsertSlotAction(
     slotId: readFormString(formData, "slotId"),
     startsAt: readFormString(formData, "startsAt"),
     endsAt: readFormString(formData, "endsAt"),
-    capacity: readFormString(formData, "capacity"),
+    capacity: readFormNumberValue(formData, "capacity"),
     status: readFormString(formData, "status"),
     serviceRestrictionMode: readFormString(formData, "serviceRestrictionMode"),
     publicNote: readFormString(formData, "publicNote"),
@@ -249,7 +265,7 @@ export async function createSlotBatchAction(
     slotCount: readFormString(formData, "slotCount"),
     slotLengthMinutes: readFormString(formData, "slotLengthMinutes"),
     gapMinutes: readFormString(formData, "gapMinutes"),
-    capacity: readFormString(formData, "capacity"),
+    capacity: readFormNumberValue(formData, "capacity"),
     status: readFormString(formData, "status"),
     returnTo: readFormString(formData, "returnTo"),
   });

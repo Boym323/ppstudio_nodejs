@@ -37,7 +37,8 @@ Formát je inspirovaný Keep a Changelog.
 - Owner-only detail email logu s payloadem, chybou, ručním retry a uvolněním zaseknutého jobu.
 - První produkční detail rezervace v adminu pro `OWNER` i `SALON`, včetně napojení ze seznamů a dashboardu.
 - Produkční admin CRUD pro `AvailabilitySlot` v owner i salon oblasti, včetně seznamu, filtrů, detailu, vytvoření, editace, blokace a bezpečného mazání.
-- Týdenní planner dostupností pro `OWNER` i `SALON`, včetně denních karet, sekundárního detailu dne, batch create a návratu zpět do stejného týdne po akci.
+- Týdenní planner dostupností pro `OWNER` i `SALON` je teď čistě týdenní kalendář po dnech se zelenými dostupnými bloky, denními akcemi a mobilním stacked zobrazením.
+- Výchozí dostupnost je připravená do `18:00` a kapacita je v UI skrytá, aby se obsluha soustředila jen na dostupné sloty.
 - UX vylepšení slot adminu: chytřejší create formulář, jednodušší create flow pro roli `SALON` a jasnější error/success feedback po akcích.
 
 ### Changed

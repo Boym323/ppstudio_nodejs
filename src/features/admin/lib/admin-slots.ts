@@ -51,6 +51,13 @@ const formatMonthDay = new Intl.DateTimeFormat("cs-CZ", {
   month: "numeric",
 });
 
+const defaultAvailabilityWindow = {
+  startHour: 8,
+  startMinute: 0,
+  endHour: 18,
+  endMinute: 0,
+};
+
 export const activeBookingStatuses = [BookingStatus.PENDING, BookingStatus.CONFIRMED] as const;
 
 function isActiveBookingStatus(status: BookingStatus) {
@@ -144,6 +151,8 @@ export type AdminSlotPlannerDay = {
   stateTone: "empty" | "active" | "limited" | "cancelled";
   summaryLabel: string;
   timeRangeLabel: string;
+  availabilityWindowLabel: string;
+  availabilityWindowHint: string;
   slotCount: number;
   publishedCount: number;
   freeCount: number;
@@ -235,6 +244,20 @@ function getWeekdayShortLabel(value: Date) {
 
 function getWeekdayLongLabel(value: Date) {
   return formatWeekdayLong.format(value).replace(/^./, (char) => char.toUpperCase());
+}
+
+export function getDefaultAvailabilityWindowForDay(day: Date) {
+  const start = new Date(day);
+  start.setHours(defaultAvailabilityWindow.startHour, defaultAvailabilityWindow.startMinute, 0, 0);
+
+  const end = new Date(day);
+  end.setHours(defaultAvailabilityWindow.endHour, defaultAvailabilityWindow.endMinute, 0, 0);
+
+  return { start, end };
+}
+
+function formatTimeRange(start: Date, end: Date) {
+  return `${formatTime.format(start)} - ${formatTime.format(end)}`;
 }
 
 function parseDateOnlyInput(value?: string) {
@@ -494,6 +517,7 @@ function buildPlannerDay(day: Date, slots: AdminSlotPlannerSlot[]): AdminSlotPla
   const suggestedStartsAt = getSuggestedStartsAt(day, slots);
   const suggestedEndsAt = new Date(suggestedStartsAt);
   suggestedEndsAt.setMinutes(suggestedEndsAt.getMinutes() + 60);
+  const defaultWindow = getDefaultAvailabilityWindowForDay(day);
 
   return {
     dateKey: toDateKey(day),
@@ -505,9 +529,12 @@ function buildPlannerDay(day: Date, slots: AdminSlotPlannerSlot[]): AdminSlotPla
     stateTone: state.tone,
     summaryLabel: state.summary,
     timeRangeLabel:
+      slots.length > 0 ? `${slots[0].startsAtLabel} - ${slots[slots.length - 1].endsAtLabel}` : "Bez slotů",
+    availabilityWindowLabel: formatTimeRange(defaultWindow.start, defaultWindow.end),
+    availabilityWindowHint:
       slots.length > 0
-        ? `${slots[0].timeShortLabel} - ${slots[slots.length - 1].endsAtLabel}`
-        : "Bez slotů",
+        ? "Zelené bloky nahoře ukazují ručně zadanou dostupnost pro tento den."
+        : "Připraveno pro budoucí fill-time job. Výchozí okno je zatím jen referenční 8:00–18:00.",
     slotCount: slots.length,
     publishedCount,
     freeCount,
