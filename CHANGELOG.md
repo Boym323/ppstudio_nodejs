@@ -7,9 +7,12 @@ Formát je inspirovaný Keep a Changelog.
 ## [Unreleased]
 
 ### Added
+- `allowedDevOrigins` konfiguraci v `next.config.ts` pro dev přístup z LAN hosta `192.168.0.143`, aby Next.js neblokoval `/_next/webpack-hmr` a další dev-only assety při testování z jiného zařízení.
 - Sdílené admin route factory funkce v `src/features/admin/lib/admin-route-factories.tsx` pro owner/salon overview, section, booking detail a slot route varianty.
 - Sdílený admin shell layout wrapper `src/features/admin/components/admin-shell-layout.tsx` používaný napříč admin layout soubory.
-- Dočasná reset obrazovka `AdminSlotsResetPage` pro celou sekci `/admin/volne-terminy*` a `/admin/provoz/volne-terminy*`, aby bylo možné navrhnout planner znovu od čistého základu.
+- Nový týdenní planner dostupností pro `OWNER` i `SALON` nad 30min gridem s přímou editací kliknutím nebo tažením.
+- Serverovou merge/split vrstvu, která skládá půlhodinové editace do souvislých intervalů `AvailabilitySlot` kompatibilních s public booking flow.
+- Denní rychlé akce `zkopírovat den` a `nastavit den jako zavřeno`, týdenní akci `zkopírovat týden na další` a jednoduchou lokální šablonu týdne.
 - Produkční základ projektu pro veřejný web, rezervace a admin sekce.
 - Route groups pro `public`, `booking` a `admin`.
 - Design tokens a sdílené layout komponenty pro luxusní prezentační web.
@@ -40,15 +43,11 @@ Formát je inspirovaný Keep a Changelog.
 - Owner-only detail email logu s payloadem, chybou, ručním retry a uvolněním zaseknutého jobu.
 - První produkční detail rezervace v adminu pro `OWNER` i `SALON`, včetně napojení ze seznamů a dashboardu.
 - Produkční admin CRUD pro `AvailabilitySlot` v owner i salon oblasti, včetně seznamu, filtrů, detailu, vytvoření, editace, blokace a bezpečného mazání.
-- Týdenní planner dostupností pro `OWNER` i `SALON` je teď čistě týdenní kalendář po dnech se zelenými dostupnými bloky, denními akcemi a mobilním stacked zobrazením.
-- Sekundární pracovní panel vybraného dne přímo vedle týdenního přehledu s rychlým přidáním slotu, dávkovým přidáním série, inline změnou stavu a rychlou úpravou času vybraného slotu.
-- Mobilní sticky akce pro přidání jednoho slotu nebo série do právě vybraného dne bez hover-only interakcí.
-- Výchozí dostupnost je připravená do `18:00` a kapacita je v UI skrytá, aby se obsluha soustředila jen na dostupné sloty.
-- UX vylepšení slot adminu: chytřejší create formulář, jednodušší create flow pro roli `SALON` a jasnější error/success feedback po akcích.
+- Týdenní planner dostupností pro `OWNER` i `SALON` nyní zobrazuje rezervace, omezené intervaly, neaktivní sloty i minulý čas v jednom klidném kalendáři.
 
 ### Changed
 - Owner a salon route soubory v `src/app/(admin)/admin/*` a `src/app/(admin)/admin/provoz/*` byly zredukované na tenké wrappery, které pouze předávají `area` do sdílené factory logiky při zachování stejných URL a oprávnění.
-- Všechny route varianty sekce `volne-terminy` (`list`, `novy`, `detail`, `upravit`) teď vědomě renderují minimalistický reset stav místo původního planner workflow.
+- Route varianty sekce `volne-terminy` (`list`, `novy`, `detail`, `upravit`) teď vedou do stejného týdenního planneru; detail/edit URL se přesměrují do správného týdne.
 - Výchozí Next.js demo bylo nahrazeno čistým škálovatelným scaffoldingem pro produkční vývoj.
 - `.env.example` nyní pokrývá databázi a bootstrap admin přístupy.
 - Lite admin role byla v databázové vrstvě přejmenovaná z `STAFF` na `SALON`.
@@ -66,13 +65,13 @@ Formát je inspirovaný Keep a Changelog.
 - Placeholder storno route byla nahrazená produkčním flow nad `BookingActionToken`.
 - Root metadata byla rozšířená o základní SEO signály pro nasazení v1.
 - Admin rezervace už nejsou jen read-only seznam; detail nyní umožňuje server-side změnu stavu s důvodem, interní poznámkou a auditní historií.
-- Sekce `Volné termíny` už není jen read-only přehled; statické route `/admin/volne-terminy*` a `/admin/provoz/volne-terminy*` teď přebírají plné provozní workflow pro sloty.
-- Týdenní planner nově drží v URL i vybraný slot (`slot`) a vrací obsluhu po rychlých akcích zpět do stejného týdne, dne i kontextu vybraného slotu.
-- Denní karty v planneru teď ukazují i rozložení času v mini timeline, rychlé metriky dne a přímý vstup do denního pracovního panelu.
-- Slot create formulář má nyní provozní defaulty a rychlé přepínače délky; výběr služeb se ukazuje jen při režimu `SELECTED`.
+- Sekce `Volné termíny` se posunula z reset placeholderu na produkční týdenní planner bez samostatného formulářového workflow pro běžnou obsluhu.
+- Ukládání dostupnosti nově chrání rezervace a složitější sloty server-side a zapisuje jen minimální sadu souvislých intervalů bez zbytečné fragmentace.
+- Druhé kolo planneru zjednodušilo mobilní workflow na kompaktní výběr dne, přesunulo sekundární akce do klidnějšího bloku a rozdělilo velkou klientskou komponentu na menší UI části.
 - Dokumentace byla srovnaná s aktuálním kódem: týdenní planner, `EMAIL_DELIVERY_MODE=background` a produkční migrace přes `prisma migrate deploy`.
 
 ### Fixed
+- Cross-origin blokaci Next.js dev serveru při otevření aplikace z LAN adresy `192.168.0.143`, která rozbíjela HMR přes `/_next/webpack-hmr`.
 - Návrh datové vrstvy už nespoléhá na zjednodušený booking request model bez auditní historie a bez bezpečných tokenů.
 - Datový model lépe chrání proti náhoditému duplicitnímu bookingu stejného klienta do stejného slotu.
 - Veřejný web už není omezený na technický placeholder homepage bez struktury pro reálný salonní obsah.
@@ -87,11 +86,11 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Removed
 - Výchozí create-next-app homepage.
+- Reset komponenta `src/features/admin/components/admin-slots-reset-page.tsx`.
 - Původní implementace planneru, formulářů a slot detail/edit workflow byla z feature vrstvy odstraněná:
   - `src/features/admin/components/admin-slots-page.tsx`
   - `src/features/admin/components/admin-slot-form.tsx`
   - `src/features/admin/components/admin-slot-planner-forms.tsx`
   - `src/features/admin/components/admin-slot-detail-page.tsx`
   - `src/features/admin/actions/slot-actions.ts`
-  - `src/features/admin/lib/admin-slots.ts`
   - `src/features/admin/lib/admin-slot-repository.ts`

@@ -60,6 +60,12 @@ Pokud databáze ještě neobsahuje schema nebo přibyly nové migrace:
 npm run db:migrate
 ```
 
+### Lokální vývoj z jiného zařízení v LAN
+- Next.js 16 v dev režimu blokuje cross-origin přístup k dev assetům a HMR endpointům, pokud origin výslovně nepovolíš.
+- Projekt proto v `next.config.ts` povoluje `allowedDevOrigins` pro lokální host `192.168.0.143`, aby šel dev server otevřít i z jiného zařízení v domácí nebo interní síti.
+- Po změně `allowedDevOrigins` je potřeba restartovat `npm run dev`.
+- Pokud budeš používat jiný hostname nebo IP, doplň ho do `allowedDevOrigins` a změnu zapiš i do dokumentace.
+
 ### Import kategorií a služeb
 - Import běží přes JSON soubor a upsertuje záznamy podle `slug`.
 - Nejrychlejší postup:
@@ -127,39 +133,21 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
   - `SALON` na `/admin/provoz/rezervace/[bookingId]`
 - Správa slotů je nyní produkčně použitelná pro obě role:
   - týdenní planner na `/admin/volne-terminy` a `/admin/provoz/volne-terminy`
-  - vytvoření na `/admin/volne-terminy/novy` a `/admin/provoz/volne-terminy/novy`
-  - detail a editace na `/admin/volne-terminy/[slotId]` a `/admin/provoz/volne-terminy/[slotId]`
+  - route `novy`, `detail` a `upravit` zůstávají zachované, ale vrací zpět do planneru ve správném týdnu
 - Slot workflow podporuje:
-  - plánování po týdnech s výběrem konkrétního dne
-  - filtr týdne a stavu slotu
-  - rychlé vytvoření jednoho slotu i celé série přímo z planneru
-  - výběr konkrétního slotu přímo z planneru bez odchodu na detailovou stránku
-  - inline změnu stavu a rychlou úpravu času ve vybraném dni
-  - vytvoření a plnou editaci slotu na samostatné route
-  - přepnutí stavu mezi `DRAFT`, `PUBLISHED`, `CANCELLED` a `ARCHIVED`
-  - blokaci slotu bez smazání historie
-  - smazání jen tehdy, když slot nemá žádnou navázanou rezervaci
-- Formulář slotu nově obsahuje provozní UX pomůcky:
-  - chytré defaulty času (zaokrouhlené na nejbližších 15 minut)
-  - rychlé přepínače délky (`+30`, `+60`, `+90`, `+120 min`)
-  - výběr služeb se zobrazuje jen v režimu `Jen vybrané služby`
-- Pro roli `SALON` je vytvoření slotu zjednodušené:
-  - nový slot se zakládá rovnou jako publikovaný
-  - interní poznámka se ve formuláři nezobrazuje
-  - planner i formuláře zdůrazňují rychlé provozní akce a minimální počet kroků
-- Chybové a potvrzovací hlášky:
-  - seznam i detail slotu teď rozlišují úspěšné i chybové flash zprávy
-  - neúspěšná změna stavu nebo smazání už nekončí tichým redirectem bez kontextu
+  - plánování po týdnech s hlavní plochou po dnech a 30min buňkách
+  - přidání i odebrání dostupnosti kliknutím nebo tažením přímo v mřížce
+  - automatické sloučení sousedních půlhodin do souvislých intervalů `AvailabilitySlot`
+  - denní rychlé akce `zkopírovat den`, `nastavit den jako zavřeno`
+  - týdenní rychlé akce `zkopírovat týden na další` a lokální šablonu týdne uloženou v zařízení
+  - zobrazení rezervací, omezených intervalů, neaktivních slotů a minulého času
+  - server-side ochranu proti zásahu do rezervací, omezených slotů a překryvům
 
 ## Stav Sekce Volné Termíny
-- K datu `19. dubna 2026` je sekce `/admin/volne-terminy*` a `/admin/provoz/volne-terminy*` záměrně resetovaná.
-- Všechny stránky v této sekci teď používají jednotnou minimalistickou obrazovku `AdminSlotsResetPage`.
-- Cílem je připravit nový návrh planneru od čistého základu; původní workflow plánování, tvorby, detailu a editace je dočasně vypnuté.
-- Detail slotu ukazuje:
-  - zda je slot volný nebo obsazený
-  - kolik rezervací je aktivních proti kapacitě
-  - omezení na konkrétní služby
-  - navázané rezervace a důvod, proč nejde slot smazat
+- K datu `19. dubna 2026` je sekce `/admin/volne-terminy*` a `/admin/provoz/volne-terminy*` znovu aktivní jako týdenní planner.
+- Hlavní práce probíhá jen přes týdenní kalendář; samostatný formulář pro běžnou úpravu dostupnosti už není potřeba.
+- 30min mřížka slouží jen jako editace v admin UI. Do databáze se ukládají souvislé intervaly `startsAt`-`endsAt`, aby zůstala kompatibilita s veřejným booking flow i delšími službami.
+- Planner přímo neupravuje sloty, které už obsahují rezervace, omezení služeb, poznámky nebo jinou kapacitu než `1`; takové intervaly jsou v kalendáři vidět jako omezené a zůstávají chráněné.
 - Z detailu rezervace lze bezpečně změnit stav pouze v povolených krocích:
   - `PENDING -> CONFIRMED`
   - `CONFIRMED -> COMPLETED`
@@ -225,35 +213,16 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
 - Jednorázová instalace obou units je připravená v [`deploy/deploy.sh`](/var/www/ppstudio/deploy/deploy.sh).
 - Pro Docker Compose provoz použij [`deploy/docker-compose.email-worker.yml`](/var/www/ppstudio/deploy/docker-compose.email-worker.yml).
 
-## Týdenní Planner Slotů V1
-- Tato kapitola je historický popis před resetem; aktuálně je planner dočasně vypnutý a nahrazený reset obrazovkou.
-- Hlavní workflow pro správu dostupností je nově týdenní přehled na `/admin/volne-terminy` a `/admin/provoz/volne-terminy`.
-- Na desktopu je to dominantní týdenní grid po dnech s vedlejším pracovním panelem vybraného dne.
-- Týden je hlavní plánovací jednotka:
-  - každý den je vlastní sloupec nebo karta v týdnu
-  - dostupné sloty jsou vizuálně zelené bloky
-  - každá karta dne ukazuje i rychlé metriky a mini timeline rozložení času
-  - z každého dne je jedním klikem nebo tapem dostupné `Přidat slot` a `Přidat sérii`
-  - den je barevně a textově označen jako `Prázdný den`, `Aktivní den`, `Omezený den` nebo `Zrušený den`
-- Denní detail je sekundární pracovní vrstva:
-  - na desktopu se otevírá vedle týdenního gridu
-  - na mobilu se skládá pod týdenním přehledem
-- Základní plánování probíhá přímo v týdnu:
-  - sloty lze přidávat z denních akcí na desktopu i mobilu
-  - konkrétní slot lze vybrat přímo z denní karty
-  - vybraný slot lze rychle přepnout do jiného stavu nebo časově upravit inline
-  - formulář pro přidání se objevuje až po volbě akce
-- Rychlé vložení jednoho slotu z týdne vytváří jednoduchý slot bez omezení služeb a bez poznámek; detail se doplňuje až podle potřeby.
-- Dávkové vložení více slotů zakládá sérii jednoduchých slotů v jednom dni.
-- Model je už připravený na budoucí fill-time job:
-  - výchozí referenční okno je `8:00–18:00`
-  - zatím jde jen o datový a vizuální referenční bod
-  - aktuální provoz stále pracuje s ručně zadávanými sloty
-- Server sérii odmítne, pokud:
-  - některý slot koliduje s existujícím aktivním slotem
-  - série přesahuje do dalšího dne
-- Mobilní režim nepoužívá širokou tabulku:
-  - dny jsou řazené vertikálně pod sebe
-  - rychlé akce jsou velká a snadno dosažitelná tlačítka
-  - spodní sticky lišta drží `Přidat slot` a `Přidat sérii` pro vybraný den stále po ruce
-  - formulář pro přidání slotu je krátký a bez kapacity v UI
+## Týdenní Planner Dostupností
+- Desktop používá klasický týdenní grid se 7 dny a 30min řádky.
+- Mobil drží týdenní režim přes přehled sedmi dnů a jeden editační panel vybraného dne.
+- Základní význam barev:
+  - zelená = běžná dostupnost
+  - růžová = rezervace
+  - písková = omezený interval, který nejde měnit přímo z planneru
+  - šedá = neaktivní slot
+  - tmavší podklad = minulý čas
+- Kliknutí nebo tažení přes prázdné buňky dostupnost přidá.
+- Kliknutí nebo tažení přes zelené buňky dostupnost odebere nebo zkrátí.
+- Při ukládání se sousední půlhodiny automaticky sloučí do co nejmenšího počtu souvislých intervalů.
+- Planner nikdy nepřepisuje rezervace ani technicky složitější sloty; pokud by změna zasáhla do chráněného úseku, vrátí srozumitelnou chybu.

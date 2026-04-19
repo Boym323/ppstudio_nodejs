@@ -97,13 +97,15 @@ sudo /var/www/ppstudio/deploy/deploy.sh
 - Pokud SMTP dočasně nefunguje, přepni na `EMAIL_DELIVERY_MODE=log`; booking a storno zůstanou funkční a e-mailové pokusy se dál auditují.
 - Reverzní proxy by měla korektně předávat `x-forwarded-for`, aby submission audit a rate limiting pracovaly smysluplně.
 - I když `npm run build` dnes předem volá `prisma generate`, v release checklistu necháváme explicitní `npm run db:generate`, protože chrání i jiné skripty a ruční servisní zásahy.
+- `allowedDevOrigins` je čistě development nastavení pro `next dev`; produkční deploy ani `next start` na něm nestojí. Pokud někdo řeší vzdálené testování přes LAN, upravuje se `next.config.ts`, ne produkční env.
 
 ## Dodatečná QA pro týdenní planner
-- K datu `2026-04-19` je planner resetovaný, takže ověř pouze konzistentní zobrazení reset stavu v owner i salon variantě.
 - Ověř všechny route varianty:
   - `/admin/volne-terminy`
   - `/admin/volne-terminy/novy`
   - `/admin/volne-terminy/[slotId]`
   - `/admin/volne-terminy/[slotId]/upravit`
   - a stejné cesty pod `/admin/provoz/volne-terminy/*`
-- Ověř, že stránky nepadnou na runtime/import chybě a že guardy rolí fungují stejně jako dřív.
+- Ověř, že planner renderuje týdenní kalendář a že guardy rolí fungují stejně jako dřív.
+- Ověř přidání dostupnosti kliknutím i tažením, odebrání zeleného intervalu a copy day/week.
+- Ověř, že pokus o zásah do rezervace skončí čitelnou chybou bez změny dat.

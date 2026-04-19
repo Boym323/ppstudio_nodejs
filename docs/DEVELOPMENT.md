@@ -22,6 +22,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Veřejné booking flow používá server-loaded page + klientský wizard + server action pro finální zápis.
 - `/rezervace` používá `connection()` a renderuje se request-time, aby ručně publikované sloty nebyly zafixované do build outputu.
 - `src/app/robots.ts` a `src/app/sitemap.ts` používají metadata route API v App Routeru.
+- `next.config.ts` používá `allowedDevOrigins` pro lokální LAN vývoj na `192.168.0.143`; bez toho Next.js 16 z jiného zařízení zablokuje dev assety a HMR endpoint `/_next/webpack-hmr`.
 
 ## Veřejný Web
 - Každá veřejná stránka má vlastní route a metadata.
@@ -44,9 +45,11 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Neplatná nebo zakázaná admin sekce se neřeší jen skrytím v menu; routa se validuje server-side přes `src/features/admin/lib/admin-guards.ts`.
 
 ## Admin Informační Architektura
-- K datu `2026-04-19` je sekce `volne-terminy` záměrně vyčištěná na reset baseline.
-- Aktivní je jen `src/features/admin/components/admin-slots-reset-page.tsx`, která obsluhuje `list/novy/detail/upravit` varianty pro owner i salon.
-- Dřívější planner/form/detail implementace byla odebraná a bude nahrazená novým návrhem.
+- Sekce `volne-terminy` je znovu aktivní jako týdenní planner nad 30min gridem.
+- Serverový read/persistence model je v `src/features/admin/lib/admin-slots.ts`.
+- Server action adaptéry planneru jsou v `src/features/admin/actions/slot-planner-actions.ts`.
+- UI je rozdělené na serverový wrapper `src/features/admin/components/admin-weekly-planner-page.tsx` a klientský kalendář `src/features/admin/components/admin-weekly-planner-client.tsx`.
+- Prezentační části planneru jsou dál rozsekané do `src/features/admin/components/admin-weekly-planner-ui.tsx`, aby hlavní klientská komponenta držela hlavně stav a akce.
 - `src/config/navigation.ts` drží centrální definici admin sekcí, slugů a navigace pro obě role.
 - `src/features/admin/components/admin-sidebar-nav.tsx` je klientská navigace s aktivním stavem podle pathname.
 - `src/features/admin/components/admin-overview-page.tsx` a `admin-section-page.tsx` renderují role-aware read model nad Prisma daty.
@@ -58,7 +61,6 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - `/admin/volne-terminy/[slotId]/upravit`
   - salon varianta pod `/admin/provoz/volne-terminy/*`
 - `src/features/admin/actions/booking-actions.ts` je tenký server action adaptér pro změnu stavu rezervace.
-- `src/features/admin/components/admin-slots-reset-page.tsx` teď poskytuje jednotný reset UI stav pro `list/novy/detail/upravit`, dokud nevznikne nový planner.
 - `src/features/admin/lib/admin-booking.ts` drží detailový read model, mapování povolených přechodů a zápis do `BookingStatusHistory`.
 - `src/features/admin/components/admin-email-logs-page.tsx` je owner-only observability obrazovka pro email frontu, retry pokusy a poslední chyby.
 - `src/features/admin/components/admin-email-log-detail-page.tsx` a route `/admin/email-logy/[emailLogId]` přidávají detail jednoho logu s payloadem, chybou a operacemi pro ruční retry nebo uvolnění zaseknutého jobu.
@@ -90,9 +92,11 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Runtime Prisma klient používá `@prisma/adapter-pg` + `pg`, protože Prisma 7 vyžaduje pro PostgreSQL explicitní driver adapter.
 - `AdminUser` zůstává oddělený od klientských kontaktů; klientská vrstva je modelovaná přes `Client`.
 - `AvailabilitySlot` je navržený jako ručně publikovatelný termín s kapacitou a stavem zveřejnění.
-- Pro admin CRUD slotů je `AvailabilitySlot` hlavní provozní entita; nevycházíme z generované otevírací doby ani kalendářových templateů.
+- Pro admin planner je `AvailabilitySlot` stále hlavní provozní entita; 30min grid je jen editační vrstva nad souvislými intervaly.
 - `AvailabilitySlot` má explicitní `serviceRestrictionMode`, takže admin rozhraní pozná rozdíl mezi slotem bez omezení a slotem, který čeká na výběr služeb.
 - Vazba `AvailabilitySlotService` umožňuje omezit slot jen na vybrané služby bez zabetonování schématu na jednu službu na slot.
+- Veřejný booking flow rezervuje celý `AvailabilitySlot` a kontroluje, že délka slotu pokrývá délku služby; planner proto při ukládání půlhodiny vždy skládá do souvislých oken.
+- Planner přímo upravuje jen jednoduché publikované sloty bez rezervací, bez poznámek, bez omezení služeb a s kapacitou `1`; ostatní zůstávají v UI viditelné jako uzamčené nebo neaktivní.
 - Import kategorií a služeb je řešený jako JSON upsert přes `scripts/import-services.mjs`; identity záznamů drží `slug`.
 - `Booking` ukládá snapshot jména služby, ceny a času, takže historické rezervace zůstanou konzistentní i po úpravě katalogu.
 - `Booking` drží i reschedule chain přes self-relation, což zjednodušuje reporting i provozní dohled nad přesunutými termíny.
@@ -144,6 +148,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - vytvoření kolizního slotu odmítnuté serverem
   - editaci slotu s aktivní rezervací a blokaci neplatného snížení kapacity
   - archivaci pouze bez aktivní rezervace
+- Při úpravě lokálního dev serveru nebo `next.config.ts` ručně ověř i otevření aplikace z vedlejšího zařízení v LAN; pokud browser hlásí blokaci `/_next/webpack-hmr`, zkontroluj `allowedDevOrigins` a restartuj dev server.
 
 ## Bezpečnost
 - Tajné údaje držet pouze v env.
@@ -163,10 +168,23 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Migrační kroky (pokud jsou potřeba).
 
 ## Týdenní plánování slotů
-- Sekce `volne-terminy` je aktuálně v reset baseline režimu.
-- Všechny route varianty (`list`, `novy`, `detail`, `upravit`) renderují `AdminSlotsResetPage`.
-- Cílem je připravit nový planner bez navázání na původní implementační rozhodnutí.
+- Hlavní workflow běží na `/admin/volne-terminy` a `/admin/provoz/volne-terminy`.
+- Mobil nepoužívá celou stěnu velkých denních karet; týden vybírá přes kompaktní horizontální přepínač dnů a jeden přímý editor vybraného dne.
+- Route `novy`, `[slotId]` a `[slotId]/upravit` jsou zachované kvůli kompatibilitě URL, ale přesměrují obsluhu zpět do planneru ve správném týdnu.
+- Mřížka používá 48 půlhodinových buněk na den.
+- Zápis do DB probíhá přes merge/split logiku:
+  - prázdné nebo zelené buňky se z klienta pošlou jako rozsah buněk
+  - server z nich spočítá časové hranice v časové zóně `Europe/Prague`
+  - den znovu načte ze serveru
+  - chráněné intervaly (rezervace, omezení služeb, neaktivní sloty, sloty s poznámkou nebo jinou kapacitou) odmítne měnit
+  - zbylé jednoduché publikované sloty smaže a znovu založí jako minimální sadu souvislých intervalů
+- Copy day/week přenáší jen běžnou dostupnost; rezervace ani omezené intervaly se nekopírují.
+- Jednoduchá týdenní šablona je uložená lokálně v prohlížeči, takže nevyžaduje novou tabulku ani další env.
 
 ## Ruční QA pro planner
-- Ověř, že owner i salon route varianty `/volne-terminy*` zobrazují konzistentní reset stav.
-- Ověř, že navigace funguje mezi `přehled` a `nový termín` bez runtime chyb.
+- Ověř owner i salon variantu `/admin/volne-terminy` a `/admin/provoz/volne-terminy`.
+- Ověř přidání jedné půlhodiny kliknutím do prázdného dne.
+- Ověř přidání delšího úseku tažením a následné sloučení do jednoho `AvailabilitySlot`.
+- Ověř odebrání části dostupnosti ze zeleného bloku a správné rozdělení na zbylé intervaly.
+- Ověř, že zásah do rezervace nebo omezeného slotu vrátí srozumitelnou chybu a nic nepřepíše.
+- Ověř kopírování dne, kopírování týdne a použití lokální šablony.

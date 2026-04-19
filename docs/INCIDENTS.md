@@ -14,6 +14,7 @@ Evidence produkčních incidentů a jejich řešení.
 - Zatím bez záznamu.
 
 ## Doporučené sledované oblasti
+- Cross-origin blokace Next.js dev assetů (`/_next/webpack-hmr`, overlay, refresh endpointy) při otevření lokálního dev serveru z jiného zařízení nebo hostname, který není v `allowedDevOrigins`.
 - Neplatné nebo chybějící env proměnné při startu aplikace.
 - Chyby Prisma klienta po změně schematu nebo po nasazení bez `db:generate`.
 - Selhání admin přihlášení kvůli špatnému `ADMIN_SESSION_SECRET` nebo bootstrap účtům.

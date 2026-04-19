@@ -1,14 +1,16 @@
 import { notFound } from "next/navigation";
+import { redirect } from "next/navigation";
 
 import { type AdminArea } from "@/config/navigation";
 import { AdminBookingDetailPage } from "@/features/admin/components/admin-booking-detail-page";
 import { AdminOverviewPage } from "@/features/admin/components/admin-overview-page";
 import { AdminSectionPage } from "@/features/admin/components/admin-section-page";
-import { AdminSlotsResetPage } from "@/features/admin/components/admin-slots-reset-page";
+import { AdminWeeklyPlannerPage } from "@/features/admin/components/admin-weekly-planner-page";
 import { requireAdminArea } from "@/lib/auth/session";
 
 import { getAdminBookingDetailData } from "./admin-booking";
 import { isAdminSectionSlug, requireAdminSectionAccess } from "./admin-guards";
+import { findSlotWeekContext } from "./admin-slots";
 
 type AdminSectionParams = Promise<{
   section: string;
@@ -21,6 +23,11 @@ type AdminBookingDetailParams = Promise<{
 
 type AdminSlotParams = Promise<{
   slotId: string;
+}>;
+
+type AdminSearchParams = Promise<{
+  week?: string;
+  day?: string;
 }>;
 
 export function createAdminOverviewRoute(area: AdminArea) {
@@ -73,23 +80,36 @@ export function createAdminBookingDetailRoute(area: AdminArea) {
   };
 }
 
-export function createAdminSlotsRoute(area: AdminArea, mode: "list" | "create") {
-  return async function AdminSlotsRoute() {
+export function createAdminSlotsRoute(area: AdminArea, _mode: "list" | "create") {
+  return async function AdminSlotsRoute({
+    searchParams,
+  }: {
+    searchParams: AdminSearchParams;
+  }) {
+    void _mode;
     await requireAdminSectionAccess(area, "volne-terminy");
+    const { week, day } = await searchParams;
 
-    return <AdminSlotsResetPage area={area} mode={mode} />;
+    return <AdminWeeklyPlannerPage area={area} week={week} day={day} />;
   };
 }
 
-export function createAdminSlotDetailRoute(area: AdminArea, mode: "detail" | "edit") {
+export function createAdminSlotDetailRoute(area: AdminArea, _mode: "detail" | "edit") {
   return async function AdminSlotDetailRoute({
     params,
   }: {
     params: AdminSlotParams;
   }) {
+    void _mode;
     await requireAdminSectionAccess(area, "volne-terminy");
     const { slotId } = await params;
+    const slotContext = await findSlotWeekContext(slotId);
+    const baseHref = area === "owner" ? "/admin/volne-terminy" : "/admin/provoz/volne-terminy";
 
-    return <AdminSlotsResetPage area={area} mode={mode} slotId={slotId} />;
+    if (!slotContext) {
+      notFound();
+    }
+
+    redirect(`${baseHref}?week=${slotContext.weekKey}&day=${slotContext.dateKey}`);
   };
 }

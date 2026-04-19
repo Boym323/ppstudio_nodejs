@@ -39,11 +39,11 @@ Dokumentace proměnných prostředí pro lokální vývoj i produkci.
 - Po změně `prisma/schema.prisma` už `npm run dev` a `npm run build` automaticky obnoví generovaný Prisma klient, ale při ruční práci s CLI je stále bezpečné spustit i `npm run db:generate`.
 - Slot admin CRUD nezavádí žádné nové env proměnné; spoléhá na stávající session, databázi a bootstrap admin účty.
 - Refaktor owner/salon admin route wrapperů na sdílené factory funkce nezavádí žádné nové env proměnné.
+- Povolené LAN originy pro Next.js dev server nejsou env proměnné; udržují se přímo v `next.config.ts` přes `allowedDevOrigins` a po změně vyžadují restart `npm run dev`.
 
 ## Poznámka k týdennímu planneru slotů
-- K datu `2026-04-19` je planner sekce `volne-terminy` dočasně resetovaný na minimalistický baseline.
 - Týdenní planner dostupností nepřidává žádné nové env proměnné.
-- Rychlé akce, batch create, inline editace vybraného slotu i sekundární detail dne používají stejné existující základy:
+- Přímá editace v 30min gridu, copy day/week i lokální šablona týdne používají stejné existující základy:
   - `DATABASE_URL`
   - `ADMIN_SESSION_SECRET`
   - bootstrap admin účty pro `OWNER` a `SALON`
