@@ -1,33 +1,14 @@
-import { notFound } from "next/navigation";
-
-import { AdminSlotDetailPage } from "@/features/admin/components/admin-slot-detail-page";
-import {
-  getAdminSlotDetailData,
-  getSlotFlashMeta,
-} from "@/features/admin/lib/admin-slots";
+import { AdminSlotsResetPage } from "@/features/admin/components/admin-slots-reset-page";
 import { requireAdminSectionAccess } from "@/features/admin/lib/admin-guards";
 
 type SalonSlotDetailPageProps = {
   params: Promise<{
     slotId: string;
   }>;
-  searchParams: Promise<{
-    flash?: string;
-  }>;
 };
 
-export default async function SalonSlotDetailPage({
-  params,
-  searchParams,
-}: SalonSlotDetailPageProps) {
+export default async function SalonSlotDetailPage({ params }: SalonSlotDetailPageProps) {
   await requireAdminSectionAccess("salon", "volne-terminy");
   const { slotId } = await params;
-  const { flash } = await searchParams;
-  const data = await getAdminSlotDetailData("salon", slotId);
-
-  if (!data) {
-    notFound();
-  }
-
-  return <AdminSlotDetailPage area="salon" data={data} flash={getSlotFlashMeta(flash)} />;
+  return <AdminSlotsResetPage area="salon" mode="detail" slotId={slotId} />;
 }

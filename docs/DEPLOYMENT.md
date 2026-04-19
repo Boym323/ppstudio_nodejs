@@ -98,14 +98,11 @@ sudo /var/www/ppstudio/deploy/deploy.sh
 - I když `npm run build` dnes předem volá `prisma generate`, v release checklistu necháváme explicitní `npm run db:generate`, protože chrání i jiné skripty a ruční servisní zásahy.
 
 ## Dodatečná QA pro týdenní planner
-- Na desktopu ověř 7denní přehled v owner i salon části.
-- Na mobilu ověř stacked layout dnů bez horizontálního scrollu.
-- Ověř, že sticky mobilní akce `Přidat slot` a `Přidat sérii` otevírají formulář pro právě vybraný den.
-- Ověř, že denní karty ukazují mini timeline a že výběr konkrétního slotu otevře správný inline detail.
-- Ověř z detailu dne:
-  - přidání jednoho slotu
-  - založení série slotů
-  - rychlou změnu stavu
-  - rychlou úpravu času
-- Ověř, že po uložení rychlé akce zůstane obsluha ve stejném týdnu, dni a vybraném slotu.
-- Ověř, že plná editace slotu dál správně ukládá služby a poznámky.
+- K datu `2026-04-19` je planner resetovaný, takže ověř pouze konzistentní zobrazení reset stavu v owner i salon variantě.
+- Ověř všechny route varianty:
+  - `/admin/volne-terminy`
+  - `/admin/volne-terminy/novy`
+  - `/admin/volne-terminy/[slotId]`
+  - `/admin/volne-terminy/[slotId]/upravit`
+  - a stejné cesty pod `/admin/provoz/volne-terminy/*`
+- Ověř, že stránky nepadnou na runtime/import chybě a že guardy rolí fungují stejně jako dřív.

@@ -7,6 +7,7 @@ Formát je inspirovaný Keep a Changelog.
 ## [Unreleased]
 
 ### Added
+- Dočasná reset obrazovka `AdminSlotsResetPage` pro celou sekci `/admin/volne-terminy*` a `/admin/provoz/volne-terminy*`, aby bylo možné navrhnout planner znovu od čistého základu.
 - Produkční základ projektu pro veřejný web, rezervace a admin sekce.
 - Route groups pro `public`, `booking` a `admin`.
 - Design tokens a sdílené layout komponenty pro luxusní prezentační web.
@@ -44,6 +45,7 @@ Formát je inspirovaný Keep a Changelog.
 - UX vylepšení slot adminu: chytřejší create formulář, jednodušší create flow pro roli `SALON` a jasnější error/success feedback po akcích.
 
 ### Changed
+- Všechny route varianty sekce `volne-terminy` (`list`, `novy`, `detail`, `upravit`) teď vědomě renderují minimalistický reset stav místo původního planner workflow.
 - Výchozí Next.js demo bylo nahrazeno čistým škálovatelným scaffoldingem pro produkční vývoj.
 - `.env.example` nyní pokrývá databázi a bootstrap admin přístupy.
 - Lite admin role byla v databázové vrstvě přejmenovaná z `STAFF` na `SALON`.
@@ -82,3 +84,11 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Removed
 - Výchozí create-next-app homepage.
+- Původní implementace planneru, formulářů a slot detail/edit workflow byla z feature vrstvy odstraněná:
+  - `src/features/admin/components/admin-slots-page.tsx`
+  - `src/features/admin/components/admin-slot-form.tsx`
+  - `src/features/admin/components/admin-slot-planner-forms.tsx`
+  - `src/features/admin/components/admin-slot-detail-page.tsx`
+  - `src/features/admin/actions/slot-actions.ts`
+  - `src/features/admin/lib/admin-slots.ts`
+  - `src/features/admin/lib/admin-slot-repository.ts`

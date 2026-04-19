@@ -1,9 +1,11 @@
 # ADR 0011: Týdenní planner dostupností jako hlavní admin workflow
 
 ## Stav
-Accepted
+Superseded (dočasně resetováno 2026-04-19)
 
 ## Kontext
+Tento ADR popisuje původní V1 planner, který byl následně vědomě odstraněn a sekce `volne-terminy` byla přepnutá do reset baseline režimu.
+
 Původní admin workflow pro sloty už umělo CRUD nad jednotlivými termíny, ale hlavní obrazovka pořád fungovala spíš jako seznam a filtr. To nestačilo pro každodenní práci salonu, kde je potřeba:
 
 - plánovat celý týden jako jednu provozní jednotku

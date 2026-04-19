@@ -150,6 +150,11 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
 - Chybové a potvrzovací hlášky:
   - seznam i detail slotu teď rozlišují úspěšné i chybové flash zprávy
   - neúspěšná změna stavu nebo smazání už nekončí tichým redirectem bez kontextu
+
+## Stav Sekce Volné Termíny
+- K datu `19. dubna 2026` je sekce `/admin/volne-terminy*` a `/admin/provoz/volne-terminy*` záměrně resetovaná.
+- Všechny stránky v této sekci teď používají jednotnou minimalistickou obrazovku `AdminSlotsResetPage`.
+- Cílem je připravit nový návrh planneru od čistého základu; původní workflow plánování, tvorby, detailu a editace je dočasně vypnuté.
 - Detail slotu ukazuje:
   - zda je slot volný nebo obsazený
   - kolik rezervací je aktivních proti kapacitě
@@ -220,6 +225,7 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
 - Pro Docker Compose provoz použij [`deploy/docker-compose.email-worker.yml`](/var/www/ppstudio/deploy/docker-compose.email-worker.yml).
 
 ## Týdenní Planner Slotů V1
+- Tato kapitola je historický popis před resetem; aktuálně je planner dočasně vypnutý a nahrazený reset obrazovkou.
 - Hlavní workflow pro správu dostupností je nově týdenní přehled na `/admin/volne-terminy` a `/admin/provoz/volne-terminy`.
 - Na desktopu je to dominantní týdenní grid po dnech s vedlejším pracovním panelem vybraného dne.
 - Týden je hlavní plánovací jednotka:

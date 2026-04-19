@@ -40,6 +40,7 @@ Dokumentace proměnných prostředí pro lokální vývoj i produkci.
 - Slot admin CRUD nezavádí žádné nové env proměnné; spoléhá na stávající session, databázi a bootstrap admin účty.
 
 ## Poznámka k týdennímu planneru slotů
+- K datu `2026-04-19` je planner sekce `volne-terminy` dočasně resetovaný na minimalistický baseline.
 - Týdenní planner dostupností nepřidává žádné nové env proměnné.
 - Rychlé akce, batch create, inline editace vybraného slotu i sekundární detail dne používají stejné existující základy:
   - `DATABASE_URL`
