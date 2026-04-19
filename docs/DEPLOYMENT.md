@@ -22,6 +22,12 @@ Postup nasazení aplikace do produkce.
    - login redirect pro `OWNER` a `SALON`
    - dostupnost owner-only sekcí jen pro `OWNER`
    - lite admin navigaci a mobilní čitelnost na `/admin/provoz/*`
+   - slot workflow na `/admin/volne-terminy*` a `/admin/provoz/volne-terminy*`:
+     - vytvoření slotu
+     - filtr dne a stavu
+     - editaci bez kolize
+     - blokaci a archivaci
+     - zákaz smazání slotu s navázanou rezervací
    - owner sekci `/admin/email-logy` po každé změně Prisma schématu nebo e-mailové outbox vrstvy
 12. Ověř booking a email vrstvu:
    - vytvoření testovací rezervace

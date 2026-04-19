@@ -36,6 +36,7 @@ Formát je inspirovaný Keep a Changelog.
 - Owner-only admin obrazovka pro pending/retrying emaily a poslední chyby workeru.
 - Owner-only detail email logu s payloadem, chybou, ručním retry a uvolněním zaseknutého jobu.
 - První produkční detail rezervace v adminu pro `OWNER` i `SALON`, včetně napojení ze seznamů a dashboardu.
+- Produkční admin CRUD pro `AvailabilitySlot` v owner i salon oblasti, včetně seznamu, filtrů, detailu, vytvoření, editace, blokace a bezpečného mazání.
 
 ### Changed
 - Výchozí Next.js demo bylo nahrazeno čistým škálovatelným scaffoldingem pro produkční vývoj.
@@ -55,6 +56,7 @@ Formát je inspirovaný Keep a Changelog.
 - Placeholder storno route byla nahrazená produkčním flow nad `BookingActionToken`.
 - Root metadata byla rozšířená o základní SEO signály pro nasazení v1.
 - Admin rezervace už nejsou jen read-only seznam; detail nyní umožňuje server-side změnu stavu s důvodem, interní poznámkou a auditní historií.
+- Sekce `Volné termíny` už není jen read-only přehled; statické route `/admin/volne-terminy*` a `/admin/provoz/volne-terminy*` teď přebírají plné provozní workflow pro sloty.
 
 ### Fixed
 - Návrh datové vrstvy už nespoléhá na zjednodušený booking request model bez auditní historie a bez bezpečných tokenů.
@@ -66,6 +68,7 @@ Formát je inspirovaný Keep a Changelog.
 - Admin `Email logy` už se nerozbije na zastaralém generovaném Prisma klientu; `dev` i `build` si předem automaticky generují aktuální client.
 - Lite admin navigace znovu ukazuje všechny sdílené provozní sekce, takže dostupné routy odpovídají menu.
 - Dynamické admin sekce `/admin/[section]`, `/admin/provoz/[section]` a `/admin/email-logy/[emailLogId]` už se renderují v admin shellu i při přímém otevření URL, takže se neresetuje vzhled na veřejný theme background.
+- Slot formuláře a server actions nyní zachytí nekonzistence dřív, než spadnou na DB constraintu: časové pořadí, překryvy, podstřelenou kapacitu i neplatné omezení služeb.
 
 ### Removed
 - Výchozí create-next-app homepage.

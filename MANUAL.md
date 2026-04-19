@@ -125,6 +125,21 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
 - Detail rezervace je nyní dostupný jak pro `OWNER`, tak pro `SALON`:
   - `OWNER` na `/admin/rezervace/[bookingId]`
   - `SALON` na `/admin/provoz/rezervace/[bookingId]`
+- Správa slotů je nyní produkčně použitelná pro obě role:
+  - seznam a filtry na `/admin/volne-terminy` a `/admin/provoz/volne-terminy`
+  - vytvoření na `/admin/volne-terminy/novy` a `/admin/provoz/volne-terminy/novy`
+  - detail a editace na `/admin/volne-terminy/[slotId]` a `/admin/provoz/volne-terminy/[slotId]`
+- Slot workflow podporuje:
+  - filtrování podle dne a stavu slotu
+  - vytvoření a editaci slotu
+  - přepnutí stavu mezi `DRAFT`, `PUBLISHED`, `CANCELLED` a `ARCHIVED`
+  - blokaci slotu bez smazání historie
+  - smazání jen tehdy, když slot nemá žádnou navázanou rezervaci
+- Detail slotu ukazuje:
+  - zda je slot volný nebo obsazený
+  - kolik rezervací je aktivních proti kapacitě
+  - omezení na konkrétní služby
+  - navázané rezervace a důvod, proč nejde slot smazat
 - Z detailu rezervace lze bezpečně změnit stav pouze v povolených krocích:
   - `PENDING -> CONFIRMED`
   - `CONFIRMED -> COMPLETED`
@@ -139,8 +154,15 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
 
 ## Datový Model Rezervací
 - `AvailabilitySlot` je hlavní entita dostupnosti a nese časový interval, stav, kapacitu a interní/veřejné poznámky.
+- Admin CRUD slotů nepoužívá pevnou otevírací dobu; každý slot se zakládá ručně jako samostatný časový interval.
 - `AvailabilitySlot` má explicitní `serviceRestrictionMode`, takže je zřejmé, zda slot přijímá jakoukoli službu nebo jen vybrané služby.
 - `AvailabilitySlotService` umožňuje slot omezit jen na konkrétní služby, když je `serviceRestrictionMode = SELECTED`.
+- Server-side slot validace navíc hlídá:
+  - `endsAt > startsAt`
+  - kapacitu minimálně `1`
+  - kolizi s jiným aktivním slotem ještě před zápisem
+  - zákaz snížení kapacity pod počet aktivních rezervací
+  - zákaz výběru služeb, které by rozbily už navázané aktivní rezervace
 - Kategorie a služby jsou samostatné DB entity, které se dnes plní přes import nebo admin správu, ne přes hardcoded seed.
 - `Booking` drží snapshot klienta, služby i času, takže pozdější změny ceníku nebo názvů služeb nepoškodí historická data.
 - `Booking` navíc drží vazbu na předchozí rezervaci při reschedule a nepovoluje duplicitní booking stejného klienta do stejného slotu.
@@ -172,6 +194,7 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
 - Finální autorizace probíhá server-side v admin layoutu a stránkách.
 - Prisma klient používá singleton pattern pro vývoj i produkci.
 - Databáze blokuje překrývající se aktivní sloty přes PostgreSQL exclusion constraint.
+- Sloty s historickými rezervacemi nemažeme ani když už nejsou aktivní; pro zachování auditní stopy se místo toho archivují.
 - Po každé změně Prisma schematu je potřeba spustit alespoň `npm run db:generate`; při změně struktury DB i `npm run db:migrate`.
 - Technické SEO minimum je nyní pokryté přes globální metadata, `robots.ts` a `sitemap.ts`.
 - Rezervační část má vlastní error boundary a loading fallback, takže výpadek booking vrstvy nepoškodí celý web.

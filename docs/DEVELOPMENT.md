@@ -48,6 +48,17 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - `src/features/admin/components/admin-sidebar-nav.tsx` je klientská navigace s aktivním stavem podle pathname.
 - `src/features/admin/components/admin-overview-page.tsx` a `admin-section-page.tsx` renderují role-aware read model nad Prisma daty.
 - `src/features/admin/components/admin-booking-detail-page.tsx` a route dvojice `/admin/rezervace/[bookingId]` + `/admin/provoz/rezervace/[bookingId]` drží první produkční workflow pro práci s rezervací.
+- Slot admin workflow je oddělené do vlastní feature vrstvy:
+  - `src/features/admin/lib/admin-slot-repository.ts` pro Prisma dotazy
+  - `src/features/admin/lib/admin-slots.ts` pro read modely, mapování stavů a byznys pravidla
+  - `src/features/admin/actions/slot-actions.ts` jako tenký server action adaptér
+  - `src/features/admin/components/admin-slots-page.tsx`, `admin-slot-detail-page.tsx` a `admin-slot-form.tsx` pro UI
+- Produkční slot routy jsou explicitní a nepoužívají generický `[section]` detail:
+  - `/admin/volne-terminy`
+  - `/admin/volne-terminy/novy`
+  - `/admin/volne-terminy/[slotId]`
+  - `/admin/volne-terminy/[slotId]/upravit`
+  - salon varianta pod `/admin/provoz/volne-terminy/*`
 - `src/features/admin/actions/booking-actions.ts` je tenký server action adaptér pro změnu stavu rezervace.
 - `src/features/admin/lib/admin-booking.ts` drží detailový read model, mapování povolených přechodů a zápis do `BookingStatusHistory`.
 - `src/features/admin/components/admin-email-logs-page.tsx` je owner-only observability obrazovka pro email frontu, retry pokusy a poslední chyby.
@@ -67,6 +78,11 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - U veřejného webu nepřidávat efektní animace bez jasného UX důvodu.
 - Booking mutations držet ve feature service vrstvě a server action používat jen jako tenký vstupní adaptér.
 - Admin změny stavu rezervace validovat server-side proti povoleným přechodům a nikdy je neřídit jen podle toho, co UI zrovna nabízí v selectu.
+- Slot CRUD validovat server-side i při editaci:
+  - časové pořadí
+  - překryv s jiným aktivním slotem
+  - minimální kapacitu
+  - konzistenci omezení služeb vůči aktivním rezervacím
 
 ## Technický dluh a rozhodnutí
 - Klíčová rozhodnutí zapisuj jako krátké ADR záznamy.
@@ -78,6 +94,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Runtime Prisma klient používá `@prisma/adapter-pg` + `pg`, protože Prisma 7 vyžaduje pro PostgreSQL explicitní driver adapter.
 - `AdminUser` zůstává oddělený od klientských kontaktů; klientská vrstva je modelovaná přes `Client`.
 - `AvailabilitySlot` je navržený jako ručně publikovatelný termín s kapacitou a stavem zveřejnění.
+- Pro admin CRUD slotů je `AvailabilitySlot` hlavní provozní entita; nevycházíme z generované otevírací doby ani kalendářových templateů.
 - `AvailabilitySlot` má explicitní `serviceRestrictionMode`, takže admin rozhraní pozná rozdíl mezi slotem bez omezení a slotem, který čeká na výběr služeb.
 - Vazba `AvailabilitySlotService` umožňuje omezit slot jen na vybrané služby bez zabetonování schématu na jednu službu na slot.
 - Import kategorií a služeb je řešený jako JSON upsert přes `scripts/import-services.mjs`; identity záznamů drží `slug`.
@@ -109,6 +126,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - reschedule chain pro rezervace
   - unique ochranu proti duplicitní rezervaci stejného klienta do stejného slotu
   - PostgreSQL exclusion constraint proti překrývajícím se aktivním slotům
+- Nové slot admin workflow nevyžadovalo další migraci; navazuje přímo na už existující schema a constrainty.
 - Při další iteraci booking workflow preferuj nové migrace nad ruční editací starších SQL souborů.
 
 ## Testování
@@ -126,6 +144,10 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - `npm run db:generate`
   - `npm run db:migrate`
   - `npx prisma validate --schema prisma/schema.prisma`
+- Po změně slot admin workflow ručně ověř i:
+  - vytvoření kolizního slotu odmítnuté serverem
+  - editaci slotu s aktivní rezervací a blokaci neplatného snížení kapacity
+  - archivaci pouze bez aktivní rezervace
 
 ## Bezpečnost
 - Tajné údaje držet pouze v env.

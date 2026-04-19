@@ -45,7 +45,7 @@ export async function AdminOverviewPage({ area }: AdminOverviewPageProps) {
         >
           <div className="grid gap-3 sm:grid-cols-3">
             <Link
-              href="/admin/provoz/volne-terminy"
+              href="/admin/provoz/volne-terminy/novy"
               className="rounded-[1.5rem] border border-[var(--color-accent)]/45 bg-[rgba(190,160,120,0.14)] px-4 py-4 text-left transition hover:bg-[rgba(190,160,120,0.22)]"
             >
               <span className="block text-sm font-medium text-white">Přidat termín</span>
