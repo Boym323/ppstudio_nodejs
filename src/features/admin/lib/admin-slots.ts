@@ -69,6 +69,7 @@ export type AdminSlotFilterInput = {
   day?: string;
   status?: string;
   panel?: string;
+  slot?: string;
   flash?: string;
 };
 
@@ -172,11 +173,13 @@ export type AdminSlotPlannerData = {
     dayInput: string;
     statusInput: string;
     panelInput: SlotPlannerPanel;
+    slotInput?: string;
     flash?: SlotFlashMeta;
   };
   weekLabel: string;
   days: AdminSlotPlannerDay[];
   selectedDay: AdminSlotPlannerDay;
+  selectedSlot: AdminSlotPlannerSlot | null;
   stats: {
     total: number;
     published: number;
@@ -280,6 +283,7 @@ export function getAdminSlotPlannerHref(
     day?: string;
     status?: string;
     panel?: SlotPlannerPanel;
+    slot?: string;
     flash?: string;
   },
 ) {
@@ -299,6 +303,10 @@ export function getAdminSlotPlannerHref(
 
   if (options?.panel && options.panel !== "day") {
     params.set("panel", options.panel);
+  }
+
+  if (options?.slot) {
+    params.set("slot", options.slot);
   }
 
   if (options?.flash) {
@@ -565,6 +573,7 @@ export function parseAdminSlotFilters(input: AdminSlotFilterInput) {
   const normalizedPanel = input.panel?.trim().toLowerCase();
   const panelInput: SlotPlannerPanel =
     normalizedPanel === "create" || normalizedPanel === "batch" ? normalizedPanel : "day";
+  const slotInput = input.slot?.trim() || undefined;
 
   return {
     startsAtGte: weekStart,
@@ -577,6 +586,7 @@ export function parseAdminSlotFilters(input: AdminSlotFilterInput) {
     status,
     statusInput: status ?? "ALL",
     panelInput,
+    slotInput,
     flash: getSlotFlashMeta(input.flash),
   };
 }
@@ -667,6 +677,8 @@ export async function getAdminSlotListData(area: AdminArea, filters: AdminSlotFi
     days.find((day) => day.dateKey === parsed.dayInput) ??
     days.find((day) => day.dateKey === toDateKey(new Date())) ??
     days[0];
+  const selectedSlot =
+    selectedDay.slots.find((slot) => slot.id === parsed.slotInput) ?? selectedDay.slots[0] ?? null;
 
   const allWeekSlots = days.flatMap((day) => day.slots);
 
@@ -677,11 +689,13 @@ export async function getAdminSlotListData(area: AdminArea, filters: AdminSlotFi
       dayInput: selectedDay.dateKey,
       statusInput: parsed.statusInput,
       panelInput: parsed.panelInput,
+      slotInput: selectedSlot?.id,
       flash: parsed.flash,
     },
     weekLabel: `${formatDateLong.format(parsed.weekStart)} - ${formatDateLong.format(addDays(parsed.weekStart, 6))}`,
     days,
     selectedDay,
+    selectedSlot,
     stats: {
       total: allWeekSlots.length,
       published: allWeekSlots.filter((slot) => slot.status === AvailabilitySlotStatus.PUBLISHED).length,

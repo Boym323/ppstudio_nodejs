@@ -38,6 +38,8 @@ Formát je inspirovaný Keep a Changelog.
 - První produkční detail rezervace v adminu pro `OWNER` i `SALON`, včetně napojení ze seznamů a dashboardu.
 - Produkční admin CRUD pro `AvailabilitySlot` v owner i salon oblasti, včetně seznamu, filtrů, detailu, vytvoření, editace, blokace a bezpečného mazání.
 - Týdenní planner dostupností pro `OWNER` i `SALON` je teď čistě týdenní kalendář po dnech se zelenými dostupnými bloky, denními akcemi a mobilním stacked zobrazením.
+- Sekundární pracovní panel vybraného dne přímo vedle týdenního přehledu s rychlým přidáním slotu, dávkovým přidáním série, inline změnou stavu a rychlou úpravou času vybraného slotu.
+- Mobilní sticky akce pro přidání jednoho slotu nebo série do právě vybraného dne bez hover-only interakcí.
 - Výchozí dostupnost je připravená do `18:00` a kapacita je v UI skrytá, aby se obsluha soustředila jen na dostupné sloty.
 - UX vylepšení slot adminu: chytřejší create formulář, jednodušší create flow pro roli `SALON` a jasnější error/success feedback po akcích.
 
@@ -60,6 +62,8 @@ Formát je inspirovaný Keep a Changelog.
 - Root metadata byla rozšířená o základní SEO signály pro nasazení v1.
 - Admin rezervace už nejsou jen read-only seznam; detail nyní umožňuje server-side změnu stavu s důvodem, interní poznámkou a auditní historií.
 - Sekce `Volné termíny` už není jen read-only přehled; statické route `/admin/volne-terminy*` a `/admin/provoz/volne-terminy*` teď přebírají plné provozní workflow pro sloty.
+- Týdenní planner nově drží v URL i vybraný slot (`slot`) a vrací obsluhu po rychlých akcích zpět do stejného týdne, dne i kontextu vybraného slotu.
+- Denní karty v planneru teď ukazují i rozložení času v mini timeline, rychlé metriky dne a přímý vstup do denního pracovního panelu.
 - Slot create formulář má nyní provozní defaulty a rychlé přepínače délky; výběr služeb se ukazuje jen při režimu `SELECTED`.
 - Dokumentace byla srovnaná s aktuálním kódem: týdenní planner, `EMAIL_DELIVERY_MODE=background` a produkční migrace přes `prisma migrate deploy`.
 

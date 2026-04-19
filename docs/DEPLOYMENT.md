@@ -24,11 +24,13 @@ Postup nasazení aplikace do produkce.
    - lite admin navigaci a mobilní čitelnost na `/admin/provoz/*`
    - slot workflow na `/admin/volne-terminy*` a `/admin/provoz/volne-terminy*`:
      - přepínání týdnů a zachování vybraného dne
+     - zachování vybraného slotu po rychlé úpravě nebo změně stavu
      - filtr stavu v planneru
      - vytvoření slotu
      - vytvoření série slotů
-     - filtr dne a stavu
-     - editaci bez kolize
+     - otevření denního pracovního panelu z karty dne
+     - inline změnu stavu z day workspace
+     - rychlou úpravu času bez kolize
      - blokaci a archivaci
      - zákaz smazání slotu s navázanou rezervací
    - owner sekci `/admin/email-logy` po každé změně Prisma schématu nebo e-mailové outbox vrstvy
@@ -98,10 +100,12 @@ sudo /var/www/ppstudio/deploy/deploy.sh
 ## Dodatečná QA pro týdenní planner
 - Na desktopu ověř 7denní přehled v owner i salon části.
 - Na mobilu ověř stacked layout dnů bez horizontálního scrollu.
+- Ověř, že sticky mobilní akce `Přidat slot` a `Přidat sérii` otevírají formulář pro právě vybraný den.
+- Ověř, že denní karty ukazují mini timeline a že výběr konkrétního slotu otevře správný inline detail.
 - Ověř z detailu dne:
   - přidání jednoho slotu
   - založení série slotů
   - rychlou změnu stavu
-  - rychlou úpravu času a kapacity
-- Ověř, že po uložení rychlé akce zůstane obsluha ve stejném týdnu a dni.
+  - rychlou úpravu času
+- Ověř, že po uložení rychlé akce zůstane obsluha ve stejném týdnu, dni a vybraném slotu.
 - Ověř, že plná editace slotu dál správně ukládá služby a poznámky.

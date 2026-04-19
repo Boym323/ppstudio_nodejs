@@ -41,7 +41,7 @@ Dokumentace proměnných prostředí pro lokální vývoj i produkci.
 
 ## Poznámka k týdennímu planneru slotů
 - Týdenní planner dostupností nepřidává žádné nové env proměnné.
-- Rychlé akce, batch create i sekundární detail dne používají stejné existující základy:
+- Rychlé akce, batch create, inline editace vybraného slotu i sekundární detail dne používají stejné existující základy:
   - `DATABASE_URL`
   - `ADMIN_SESSION_SECRET`
   - bootstrap admin účty pro `OWNER` a `SALON`

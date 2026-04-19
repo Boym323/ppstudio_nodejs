@@ -8,6 +8,7 @@ type OwnerSlotsPageProps = {
     day?: string;
     status?: string;
     panel?: string;
+    slot?: string;
     flash?: string;
   }>;
 };

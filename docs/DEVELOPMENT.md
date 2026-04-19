@@ -60,7 +60,8 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - `/admin/volne-terminy/[slotId]/upravit`
   - salon varianta pod `/admin/provoz/volne-terminy/*`
 - `src/features/admin/actions/booking-actions.ts` je tenký server action adaptér pro změnu stavu rezervace.
-- `src/features/admin/components/admin-slots-page.tsx` používá URL-driven planner stav (`week`, `day`, `status`, `panel`) a skládá týdenní přehled s detailním panelem vybraného dne.
+- `src/features/admin/components/admin-slots-page.tsx` používá URL-driven planner stav (`week`, `day`, `status`, `panel`, `slot`) a skládá týdenní přehled s detailním panelem vybraného dne.
+- Vybraný slot se v planneru otevírá přímo v sekundárním day workspace, takže běžná úprava času a změna stavu nemusí otevírat samostatnou stránku.
 - `src/features/admin/components/admin-slot-form.tsx` je klientský formulář s chytrými defaulty, rychlou volbou délky a role-aware zjednodušením pro `SALON`.
 - `src/features/admin/lib/admin-booking.ts` drží detailový read model, mapování povolených přechodů a zápis do `BookingStatusHistory`.
 - `src/features/admin/components/admin-email-logs-page.tsx` je owner-only observability obrazovka pro email frontu, retry pokusy a poslední chyby.
@@ -86,6 +87,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - minimální kapacitu
   - konzistenci omezení služeb vůči aktivním rezervacím
 - U slot actions vracet i chybový flash feedback (`status-error`, `delete-error`) místo tichého redirectu bez informace.
+- Rychlé slot akce v planneru musí vždy posílat `returnTo`, aby po uložení zůstal zachovaný týden, den i vybraný slot.
 
 ## Technický dluh a rozhodnutí
 - Klíčová rozhodnutí zapisuj jako krátké ADR záznamy.
@@ -172,12 +174,17 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 ## Týdenní plánování slotů
 - `src/features/admin/lib/admin-slots.ts` nově vrací read model pro celý týden, ne jen plochý seznam slotů.
 - `getAdminSlotListData()` skládá 7denní planner:
-  - normalizuje `week`, `day`, `status` a `panel` z URL
+  - normalizuje `week`, `day`, `status`, `panel` a `slot` z URL
   - načte sloty jen pro vybraný týden
   - seskupí je po dnech
   - spočítá stav dne a summary metriky
+- Read model vrací i `selectedSlot`, takže UI umí otevřít konkrétní slot přímo v rámci týdenního planneru.
 - Read model už obsahuje i referenční default window `8:00–18:00`, aby na něj šel později napojit fill-time job bez změny planner UI.
 - `src/features/admin/components/admin-slots-page.tsx` je serverová planner stránka:
+  - na desktopu renderuje dominantní týdenní grid a vedle něj day workspace
+  - na mobilu skládá stacked seznam dnů a sticky spodní akce
+  - denní karty ukazují mini timeline, metriky dne a rychlé akce
+  - vybraný slot umí inline změnu stavu a rychlou úpravu času přes `AdminSlotQuickEditForm`
   - na desktopu 7sloupcový kalendář po dnech
   - na mobilu stacked seznam dnů
   - denní formulář se objevuje jen po volbě akce z týdne

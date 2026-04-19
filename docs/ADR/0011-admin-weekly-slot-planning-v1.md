@@ -18,6 +18,7 @@ Původní admin workflow pro sloty už umělo CRUD nad jednotlivými termíny, a
   - počet slotů
   - počet volných a plných publikovaných slotů
   - časový rozsah dne
+  - mini timeline rozložení času
   - stav dne (`Prázdný`, `Aktivní`, `Omezený`, `Zrušený`)
 - Detail dne je sekundární vrstva:
   - na desktopu pravý panel vedle týdne
@@ -26,8 +27,9 @@ Původní admin workflow pro sloty už umělo CRUD nad jednotlivými termíny, a
   - rychlé přidání jednoho slotu
   - dávkové vytvoření série slotů
   - rychlá změna stavu slotu
-  - rychlá úprava času a kapacity
+  - rychlá úprava času vybraného slotu
   - přechod do plné editace pro služby a poznámky
+- URL-driven stav planneru drží i vybraný slot, aby se obsluha po akci vracela do stejného týdne, dne a pracovního kontextu.
 - Dávkové vytváření slotů běží server-side v jedné transakci a používá stejnou validační logiku jako jednotlivý CRUD.
 - Nepřidáváme kalendářovou knihovnu, drag-and-drop ani externí drawer/modal framework.
 
@@ -37,6 +39,7 @@ Původní admin workflow pro sloty už umělo CRUD nad jednotlivými termíny, a
 - týden se stává skutečnou pracovní plochou místo orientačního dashboardu
 - běžné denní operace jdou udělat s menším počtem kliknutí a bez ztráty kontextu
 - mobilní rozhraní je plnohodnotné díky stacked kartám dnů a sekundárnímu panelu dne
+- sticky mobilní akce drží nejčastější workflow v dosahu palce
 - batch create nezavádí paralelní byznys pravidla; používá stejnou doménovou validaci jako jednotlivé sloty
 
 ### Negativní

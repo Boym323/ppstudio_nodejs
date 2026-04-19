@@ -8,6 +8,7 @@ type SalonSlotsPageProps = {
     day?: string;
     status?: string;
     panel?: string;
+    slot?: string;
     flash?: string;
   }>;
 };

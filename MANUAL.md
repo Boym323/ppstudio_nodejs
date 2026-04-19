@@ -133,6 +133,8 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
   - plánování po týdnech s výběrem konkrétního dne
   - filtr týdne a stavu slotu
   - rychlé vytvoření jednoho slotu i celé série přímo z planneru
+  - výběr konkrétního slotu přímo z planneru bez odchodu na detailovou stránku
+  - inline změnu stavu a rychlou úpravu času ve vybraném dni
   - vytvoření a plnou editaci slotu na samostatné route
   - přepnutí stavu mezi `DRAFT`, `PUBLISHED`, `CANCELLED` a `ARCHIVED`
   - blokaci slotu bez smazání historie
@@ -219,16 +221,20 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
 
 ## Týdenní Planner Slotů V1
 - Hlavní workflow pro správu dostupností je nově týdenní přehled na `/admin/volne-terminy` a `/admin/provoz/volne-terminy`.
-- Na desktopu je to skutečný 7sloupcový týdenní kalendář po dnech od `8:00` do `18:00`.
+- Na desktopu je to dominantní týdenní grid po dnech s vedlejším pracovním panelem vybraného dne.
 - Týden je hlavní plánovací jednotka:
   - každý den je vlastní sloupec nebo karta v týdnu
   - dostupné sloty jsou vizuálně zelené bloky
+  - každá karta dne ukazuje i rychlé metriky a mini timeline rozložení času
   - z každého dne je jedním klikem nebo tapem dostupné `Přidat slot` a `Přidat sérii`
   - den je barevně a textově označen jako `Prázdný den`, `Aktivní den`, `Omezený den` nebo `Zrušený den`
-- Denní detail je už jen sekundární vrstva, která se otevře až po potřebě hlubší úpravy.
+- Denní detail je sekundární pracovní vrstva:
+  - na desktopu se otevírá vedle týdenního gridu
+  - na mobilu se skládá pod týdenním přehledem
 - Základní plánování probíhá přímo v týdnu:
   - sloty lze přidávat z denních akcí na desktopu i mobilu
-  - sloty lze rychle otevřít přes detail
+  - konkrétní slot lze vybrat přímo z denní karty
+  - vybraný slot lze rychle přepnout do jiného stavu nebo časově upravit inline
   - formulář pro přidání se objevuje až po volbě akce
 - Rychlé vložení jednoho slotu z týdne vytváří jednoduchý slot bez omezení služeb a bez poznámek; detail se doplňuje až podle potřeby.
 - Dávkové vložení více slotů zakládá sérii jednoduchých slotů v jednom dni.
@@ -242,4 +248,5 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
 - Mobilní režim nepoužívá širokou tabulku:
   - dny jsou řazené vertikálně pod sebe
   - rychlé akce jsou velká a snadno dosažitelná tlačítka
+  - spodní sticky lišta drží `Přidat slot` a `Přidat sérii` pro vybraný den stále po ruce
   - formulář pro přidání slotu je krátký a bez kapacity v UI

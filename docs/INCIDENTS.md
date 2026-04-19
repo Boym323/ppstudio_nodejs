@@ -31,5 +31,7 @@ Evidence produkčních incidentů a jejich řešení.
 ## Preventivní poznámka
 - Admin sekce `Email logy` je citlivá na rozjezd mezi Prisma schématem a generovaným klientem. Projekt proto nyní před `dev` i `build` automaticky spouští `prisma generate`.
 - Rozbitý týdenní planner po deployi: špatné zachování query parametrů `week/day/panel`, kvůli kterému se obsluha po akci vrací na jiný den nebo na výchozí týden.
+- Rozbitý týdenní planner po deployi: špatné zachování query parametrů `week/day/panel/slot`, kvůli kterému se obsluha po akci vrací na jiný den, jiný slot nebo na výchozí týden.
 - Batch create vytvářející jen část série: tohle nesmí nastat; workflow má běžet transakčně all-or-nothing.
 - Mobilní planner s nečitelnými touch targety nebo horizontálním scrollem v kartách dnů.
+- Day workspace otevírající špatný slot po změně filtru stavu nebo týdne.
