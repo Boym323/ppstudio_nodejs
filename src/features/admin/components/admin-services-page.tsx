@@ -36,8 +36,8 @@ export async function AdminServicesPage({
       title="Služby"
       description={
         area === "owner"
-          ? "Jedno místo pro cenu, délku, pořadí i veřejnou rezervovatelnost. Změny se propsají do booking flow bez přepisu historických rezervací."
-          : "Klidný přehled nabídky pro běžný provoz. Na mobilu jde rychle zkontrolovat délku i cenu a upravit to, co je potřeba."
+          ? "Jedno místo pro cenu, délku, pořadí a veřejnou rezervovatelnost."
+          : "Klidný přehled nabídky pro běžný provoz."
       }
       stats={data.stats}
       compact={area === "salon"}
@@ -45,7 +45,7 @@ export async function AdminServicesPage({
       <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
         <AdminPanel
           title="Přehled služeb"
-          description="Filtr je schválně krátký. V běžném provozu stačí najít službu, otevřít ji a upravit jen to, co je potřeba."
+          description="Najdi službu, otevři ji a uprav jen to, co je potřeba."
           compact={area === "salon"}
         >
           <AdminServicesToolbar
@@ -62,7 +62,7 @@ export async function AdminServicesPage({
 
           {data.selectedService && !selectedServiceVisible ? (
             <div className="mt-5 rounded-[1.25rem] border border-amber-300/20 bg-amber-400/10 px-4 py-3 text-sm leading-6 text-amber-50">
-              Vybraná služba je mimo aktuální filtr. Seznam zůstává zúžený, ale editace dole je pořád otevřená.
+              Vybraná služba není v aktuálním filtru. Editace dole zůstává otevřená.
             </div>
           ) : null}
 
@@ -106,9 +106,9 @@ export async function AdminServicesPage({
             />
           ) : (
             <div className="rounded-[1.5rem] border border-dashed border-white/14 bg-white/4 p-5">
-              <p className="text-base font-medium text-white">Ve filtru není žádná služba k editaci.</p>
+              <p className="text-base font-medium text-white">Ve filtru není žádná služba k úpravě.</p>
               <p className="mt-2 text-sm leading-6 text-white/62">
-                Zkuste změnit filtr nebo znovu otevřít kompletní seznam služeb.
+                Zkuste změnit filtr nebo otevřít celý seznam služeb.
               </p>
             </div>
           )}

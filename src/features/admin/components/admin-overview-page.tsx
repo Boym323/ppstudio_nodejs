@@ -26,13 +26,13 @@ export async function AdminOverviewPage({ area }: AdminOverviewPageProps) {
       eyebrow={area === "owner" ? "Full Admin" : "Provoz salonu"}
       title={
         area === "owner"
-          ? "Plný přehled značky, rezervací a provozních rizik."
-          : "Denní provoz bez zbytečných detailů navíc."
+          ? "Plný přehled značky, rezervací a provozu."
+          : "Denní provoz bez zbytečných detailů."
       }
       description={
         area === "owner"
-          ? "Tato vrstva drží strategické řízení salonu, publikační kontrolu i dohled nad systémem. Navigace je záměrně širší, protože owner řeší obchod i provoz zároveň."
-          : "Tahle varianta je zjednodušená pro recepci a běžný chod salonu. Vidíš jen to, co pomáhá rychle obsloužit klientky a udržet termíny pod kontrolou."
+          ? "Tady je strategický přehled salonu, publikace i provozních rizik."
+          : "Tahle varianta je zjednodušená pro recepci a běžný chod salonu."
       }
       stats={data.stats}
       compact={area === "salon"}
@@ -40,7 +40,7 @@ export async function AdminOverviewPage({ area }: AdminOverviewPageProps) {
       {area === "salon" ? (
         <AdminPanel
           title="Rychlé akce"
-          description="Všechno důležité na jeden klik. Bez technických pojmů, jen provoz."
+          description="Všechno důležité na jeden klik."
           compact
         >
           <div className="grid gap-3 sm:grid-cols-3">
@@ -50,7 +50,7 @@ export async function AdminOverviewPage({ area }: AdminOverviewPageProps) {
             >
               <span className="block text-sm font-medium text-white">Přidat termín</span>
               <span className="mt-2 block text-sm leading-6 text-white/68">
-                Otevři formulář pro nový volný termín.
+                Otevři formulář pro nový termín.
               </span>
             </Link>
             <Link
@@ -59,7 +59,7 @@ export async function AdminOverviewPage({ area }: AdminOverviewPageProps) {
             >
               <span className="block text-sm font-medium text-white">Práce s rezervací</span>
               <span className="mt-2 block text-sm leading-6 text-white/68">
-                Zkontroluj dnešní rezervace a další nejbližší.
+                Zkontroluj dnešní rezervace i nejbližší další.
               </span>
             </Link>
             <Link
@@ -68,7 +68,7 @@ export async function AdminOverviewPage({ area }: AdminOverviewPageProps) {
             >
               <span className="block text-sm font-medium text-white">Otevřít klientku</span>
               <span className="mt-2 block text-sm leading-6 text-white/68">
-                Najdi kontakt a poslední návštěvu během pár vteřin.
+                Najdi kontakt a poslední návštěvu.
               </span>
             </Link>
           </div>
@@ -78,10 +78,10 @@ export async function AdminOverviewPage({ area }: AdminOverviewPageProps) {
       {area === "salon" ? (
         <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
           <AdminPanel
-            title="Dnešní rezervace"
-            description="Tohle je první obrazovka pro provoz: co se děje dnes a co má přijít hned po tom."
-            compact
-          >
+          title="Dnešní rezervace"
+          description="Co se děje dnes a co má přijít hned po tom."
+          compact
+        >
             <AdminKeyValueList
               items={data.todayBookingItems.map((booking, index) => ({
                 id: booking.id,
@@ -89,21 +89,21 @@ export async function AdminOverviewPage({ area }: AdminOverviewPageProps) {
                 meta: formatCardDateTime.format(booking.scheduledStartsAt),
                 description:
                   index === 0
-                    ? "Nejbližší rezervace. Doporučujeme otevřít jako první."
+                    ? "Nejbližší rezervace."
                     : "Další rezervace v dnešním pořadí.",
                 badge: index === 0 ? "teď" : "dnes",
                 href: getAdminBookingHref(area, booking.id),
               }))}
               emptyTitle="Na dnešek zatím nejsou žádné rezervace."
-              emptyDescription="Jakmile se objeví první termín, okamžitě se zobrazí tady nahoře."
+              emptyDescription="Jakmile se objeví první termín, zobrazí se tady."
             />
           </AdminPanel>
 
           <AdminPanel
-            title="Nejbližší další termíny"
-            description="Když je dnešek hotový, tady hned vidíš, co je v nejbližším pořadí dál."
-            compact
-          >
+          title="Nejbližší další termíny"
+          description="Hned vidíš, co je v nejbližším pořadí dál."
+          compact
+        >
             <AdminKeyValueList
               items={data.nextSlots.slice(0, 3).map((slot, index) => ({
                 id: slot.id,
@@ -127,8 +127,8 @@ export async function AdminOverviewPage({ area }: AdminOverviewPageProps) {
           title={area === "owner" ? "Nejbližší rezervace" : "Další rezervace"}
           description={
             area === "owner"
-              ? "Klíčové rezervace s nejbližším termínem a kontextem pro další rozhodnutí."
-              : "Druhá linie přehledu pro to, co přichází po dnešním seznamu."
+              ? "Rezervace s nejbližším termínem."
+              : "Rezervace, které přicházejí po dnešním seznamu."
           }
           compact={area === "salon"}
         >
@@ -139,12 +139,12 @@ export async function AdminOverviewPage({ area }: AdminOverviewPageProps) {
               meta: formatCardDateTime.format(booking.scheduledStartsAt),
               description:
                 area === "owner"
-                  ? `Klientka ${booking.client.fullName} má před sebou rezervaci služby ${booking.service.name}.`
+                  ? `Klientka ${booking.client.fullName} má rezervaci služby ${booking.service.name}.`
                   : `Připrav klientku ${booking.client.fullName} na službu ${booking.service.name}.`,
               href: getAdminBookingHref(area, booking.id),
             }))}
             emptyTitle="Zatím tu nejsou žádné budoucí rezervace."
-            emptyDescription="Jakmile klientka odešle rezervaci nebo admin vytvoří termín ručně, objeví se tady."
+            emptyDescription="Jakmile přijde nová rezervace, objeví se tady."
           />
         </AdminPanel>
 
@@ -152,8 +152,8 @@ export async function AdminOverviewPage({ area }: AdminOverviewPageProps) {
           title={area === "owner" ? "Volné a připravené termíny" : "Další volné termíny"}
           description={
             area === "owner"
-              ? "Kontrola publikovaných i rozpracovaných slotů, ať víš, co je venku a co ještě čeká."
-              : "Přehled termínů, které může provoz rychle doplnit nebo přeposlat klientce."
+              ? "Kontrola publikovaných i rozpracovaných termínů."
+              : "Přehled termínů, které můžeš rychle doplnit nebo poslat dál."
           }
           compact={area === "salon"}
         >
@@ -164,11 +164,11 @@ export async function AdminOverviewPage({ area }: AdminOverviewPageProps) {
               meta: `Kapacita ${slot.capacity} • obsazeno ${slot.bookings.length}`,
               description:
                 slot.publicNote ??
-                (area === "owner" ? "Bez doplněné poznámky ke slotu." : "Bez veřejné poznámky."),
+                (area === "owner" ? "Bez poznámky." : "Bez veřejné poznámky."),
               badge: slot.status,
             }))}
             emptyTitle="Volné termíny zatím nejsou vypsané."
-            emptyDescription="Jakmile salon ručně založí první sloty, objeví se tady."
+            emptyDescription="Jakmile salon založí první termíny, objeví se tady."
           />
         </AdminPanel>
       </div>

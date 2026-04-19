@@ -60,6 +60,7 @@ Formát je inspirovaný Keep a Changelog.
 - Týdenní planner dostupností pro `OWNER` i `SALON` nyní zobrazuje rezervace, omezené intervaly, neaktivní sloty i minulý čas v jednom klidném kalendáři.
 
 ### Changed
+- Tón textů v adminu byl sjednocen napříč `Nastavení`, `Službami`, `Kategoriemi`, `Rezervacemi` i přehledy, aby celé prostředí působilo klidněji a konzistentněji.
 - Admin sekce `Nastavení` dostala další vizuální a textový polish: orientační blok nahoře, kratší mikrocopy a jemnější hierarchii panelů bez změny logiky.
 - Admin sekce `Nastavení` prošla druhým kolem UX úprav: společný formulářový skeleton, kratší popisky, jasnější názvy polí a lepší mobilní rozložení bez zásahu do business logiky.
 - Admin ukládání `emailSenderEmail` nyní v `EMAIL_DELIVERY_MODE=background` odmítne adresu odlišnou od `SMTP_FROM_EMAIL`, aby se předešlo produkčním `EmailLog FAILED` kvůli SMTP policy.
@@ -68,7 +69,7 @@ Formát je inspirovaný Keep a Changelog.
 - Veřejný footer, kontaktní stránka, FAQ, storno podmínky a e-mailové šablony teď čerpají kontaktní údaje a storno pravidlo ze `SiteSettings` místo z natvrdo zapsaných placeholderů.
 - Veřejný booking katalog i finální potvrzení rezervace nově respektují globální minimální předstih a maximální horizont rezervace ze settings.
 - Self-service storno přes token nově respektuje globální storno limit před termínem; pozdější zásah už klientce srozumitelně doporučí kontaktovat salon.
-- Běžný text webu nyní používá `Inter` místo `Manrope`, zatímco nadpisy a logo zůstávají na `Cormorant Garamond`.
+- Běžný text webu nyní používá `Inter` místo `Manrope`, zatímco nadpisy a logo používají `Playfair Display` místo `Cormorant Garamond`.
 - Domovská stránka teď v levé části hlavičky pod `PP Studio` zobrazuje doplněk `COSMETICS & LAMINATIONS`.
 - Sekce `Kategorie služeb` už není jen read-only přehled v `admin-data`; route `/admin/kategorie-sluzeb` a `/admin/provoz/kategorie-sluzeb` renderuje samostatný pracovní workflow se seznamem a editací.
 - Admin sekce `Služby` prošla druhým kolem UX zjednodušení: oddělený toolbar, čitelnější formulář po sekcích, kompaktnější seznam a lepší mobilní čitelnost bez změny business logiky.

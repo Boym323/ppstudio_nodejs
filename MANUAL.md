@@ -137,6 +137,7 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
   - formuláře mají jednotný footer se stavem ukládání, kratší popisky a mobilní rozložení, aby šly snadno používat i na telefonu
   - nahoře je malý orientační blok, který rychle vysvětlí, co do které části patří
   - technické SMTP údaje, app URL a session secret zůstávají správně mimo admin v env
+- Tón admin obrazovek je záměrně jednotný: klidný, krátký a ne-technický, aby se v něm obsluha zbytečně neztrácela.
 - Lite provozní menu je záměrně kratší a drží jen to, co recepce a tým potřebují nejčastěji:
   - Přehled
   - Dnešní rezervace

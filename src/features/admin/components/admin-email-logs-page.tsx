@@ -16,7 +16,7 @@ export function AdminEmailLogsPage({ area, data }: AdminEmailLogsPageProps) {
       title={getAdminSectionTitle("email-logy")}
       description={
         area === "owner"
-          ? "Přehled fronty, retry pokusů a posledních chyb potvrzovacích e-mailů a storno notifikací. Každý záznam otevře detail s payloadem a operacemi."
+          ? "Přehled fronty, pokusů o doručení a posledních chyb potvrzovacích e-mailů i storno notifikací."
           : "Zjednodušený přehled e-mailů není v provozní sekci dostupný."
       }
       stats={data.stats}
@@ -25,37 +25,37 @@ export function AdminEmailLogsPage({ area, data }: AdminEmailLogsPageProps) {
       <div className="grid gap-6 xl:grid-cols-3">
         <AdminPanel
           title="Pending fronta"
-          description="Záznamy připravené k nejbližšímu zpracování workerem."
+          description="Záznamy připravené ke zpracování."
           compact
         >
           <AdminKeyValueList
             items={data.pendingItems}
-            emptyTitle="Pending fronta je prázdná."
-            emptyDescription="Jakmile přijde nový booking nebo storno e-mail, objeví se tady."
+            emptyTitle="Fronta je prázdná."
+            emptyDescription="Jakmile přijde nový e-mail, objeví se tady."
           />
         </AdminPanel>
 
         <AdminPanel
           title="Retry pokusy"
-          description="E-maily, které se po chybě vrací do fronty pro další pokus."
+          description="E-maily, které se po chybě zkusí znovu."
           compact
         >
           <AdminKeyValueList
             items={data.retryingItems}
-            emptyTitle="Žádné retry pokusy."
-            emptyDescription="Pokud worker narazí na dočasnou chybu, objeví se záznam tady."
+            emptyTitle="Žádné opakované pokusy."
+            emptyDescription="Pokud přijde dočasná chyba, objeví se záznam tady."
           />
         </AdminPanel>
 
         <AdminPanel
           title="Poslední chyby"
-          description="Selhané doručení s posledním uloženým textem chyby."
+          description="Selhané doručení s poslední uloženou chybou."
           compact
         >
           <AdminKeyValueList
             items={data.failedItems}
             emptyTitle="Žádné poslední chyby."
-            emptyDescription="Jakmile nějaké doručení po retry politice selže, uvidíš ho tady."
+            emptyDescription="Jakmile doručení selže, uvidíš ho tady."
           />
         </AdminPanel>
       </div>

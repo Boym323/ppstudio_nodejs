@@ -53,7 +53,7 @@ export function AdminBookingStatusForm({
       ) : null}
 
       <label className="block">
-        <span className="text-sm font-medium text-white">Co chceš s rezervací udělat</span>
+        <span className="text-sm font-medium text-white">Co se má s rezervací stát</span>
         <select
           name="targetStatus"
           defaultValue=""
@@ -86,7 +86,7 @@ export function AdminBookingStatusForm({
       </div>
 
       <label className="block">
-        <span className="text-sm font-medium text-white">Důvod pro tým</span>
+        <span className="text-sm font-medium text-white">Krátký důvod pro tým</span>
         <input
           type="text"
           name="reason"

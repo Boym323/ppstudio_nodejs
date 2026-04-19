@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
-import { Cormorant_Garamond, Inter } from "next/font/google";
+import { Inter, Playfair_Display } from "next/font/google";
 
 import { siteConfig } from "@/config/site";
 import { getPublicSalonProfile } from "@/lib/site-settings";
 
 import "./globals.css";
 
-const displayFont = Cormorant_Garamond({
+const displayFont = Playfair_Display({
   variable: "--font-display",
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],

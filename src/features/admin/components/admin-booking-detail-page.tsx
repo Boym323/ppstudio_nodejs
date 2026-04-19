@@ -22,7 +22,7 @@ export function AdminBookingDetailPage({ data }: AdminBookingDetailPageProps) {
           label: "Stav",
           value: data.statusLabel,
           tone: "accent",
-          detail: "Aktuální stav rezervace, který vidí i provoz.",
+          detail: "Aktuální stav rezervace.",
         },
         {
           label: "Klientka",
@@ -37,7 +37,7 @@ export function AdminBookingDetailPage({ data }: AdminBookingDetailPageProps) {
         {
           label: "Naposledy změněno",
           value: data.updatedAtLabel,
-          detail: "Čas poslední uložené změny.",
+          detail: "Čas poslední změny.",
         },
       ]}
       compact={data.area === "salon"}
@@ -60,7 +60,7 @@ export function AdminBookingDetailPage({ data }: AdminBookingDetailPageProps) {
       <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
         <AdminPanel
           title="Základní přehled"
-          description="Praktický souhrn všeho, co obsluha potřebuje před dalším krokem."
+          description="Krátký souhrn všeho, co potřebuješ před dalším krokem."
           compact={data.area === "salon"}
         >
           <dl className="grid gap-4 sm:grid-cols-2">
@@ -75,7 +75,7 @@ export function AdminBookingDetailPage({ data }: AdminBookingDetailPageProps) {
 
         <AdminPanel
           title="Změna stavu"
-          description="Jednoduchý pracovní krok pro potvrzení, dokončení, storno nebo nedorazila."
+          description="Vyber jednu akci a doplň krátký důvod."
           compact={data.area === "salon"}
         >
           <AdminBookingStatusForm
@@ -87,17 +87,17 @@ export function AdminBookingDetailPage({ data }: AdminBookingDetailPageProps) {
 
         <AdminPanel
           title="Poznámky"
-          description="Veřejná poznámka od klientky a interní poznámka pro salon."
+          description="Poznámka od klientky a interní poznámka pro salon."
           compact={data.area === "salon"}
         >
           <div className="grid gap-4">
             <NoteBlock
               label="Poznámka od klientky"
-              value={data.clientNote ?? "Klientka k rezervaci nic nedopsala."}
+              value={data.clientNote ?? "Klientka nic nedopsala."}
             />
             <NoteBlock
               label="Interní poznámka"
-              value={data.internalNote ?? "Interní poznámka zatím není vyplněná."}
+              value={data.internalNote ?? "Interní poznámka zatím chybí."}
             />
           </div>
         </AdminPanel>
@@ -137,7 +137,7 @@ export function AdminBookingDetailPage({ data }: AdminBookingDetailPageProps) {
             </div>
           ) : (
             <div className="rounded-[1.25rem] border border-dashed border-white/14 bg-white/4 p-5">
-              <p className="text-sm leading-6 text-white/68">Historie změn zatím není dostupná.</p>
+              <p className="text-sm leading-6 text-white/68">Historie změn zatím není k dispozici.</p>
             </div>
           )}
         </AdminPanel>

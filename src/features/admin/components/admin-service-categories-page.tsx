@@ -127,8 +127,8 @@ export async function AdminServiceCategoriesPage({
       title="Kategorie služeb"
       description={
         area === "owner"
-          ? "Jednoduché místo pro pořadí, názvy a skrytí kategorií bez rizika pro navázané služby."
-          : "Klidný přehled kategorií pro běžný provoz. Na mobilu rychle uvidíte, co je aktivní a v jakém pořadí se kategorie zobrazují."
+          ? "Jednoduché místo pro pořadí, názvy a skrytí kategorií."
+          : "Klidný přehled kategorií pro běžný provoz."
       }
       stats={data.stats}
       compact={area === "salon"}
@@ -136,7 +136,7 @@ export async function AdminServiceCategoriesPage({
       <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
         <AdminPanel
           title="Přehled kategorií"
-          description="Stačí najít kategorii, otevřít ji a upravit jen to, co opravdu potřebujete. Pořadí je záměrně jednoduché číslo."
+          description="Najdi kategorii, otevři ji a uprav jen to, co opravdu potřebuješ."
           compact={area === "salon"}
         >
           <CategoryToolbar
@@ -180,9 +180,9 @@ export async function AdminServiceCategoriesPage({
             />
           ) : (
             <div className="rounded-[1.5rem] border border-dashed border-white/14 bg-white/4 p-5">
-              <p className="text-base font-medium text-white">Ve filtru není žádná kategorie k editaci.</p>
+              <p className="text-base font-medium text-white">Ve filtru není žádná kategorie k úpravě.</p>
               <p className="mt-2 text-sm leading-6 text-white/62">
-                Zkuste změnit filtr nebo znovu otevřít kompletní seznam kategorií.
+                Zkuste změnit filtr nebo otevřít celý seznam kategorií.
               </p>
             </div>
           )}
