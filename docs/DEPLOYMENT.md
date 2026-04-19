@@ -23,6 +23,7 @@ Postup nasazení aplikace do produkce.
    - dostupnost owner-only sekcí jen pro `OWNER`
    - lite admin navigaci a mobilní čitelnost na `/admin/provoz/*`
    - slot workflow na `/admin/volne-terminy*` a `/admin/provoz/volne-terminy*`:
+     - rychlé preset filtry (dnešek/zítřek/týden)
      - vytvoření slotu
      - filtr dne a stavu
      - editaci bez kolize
@@ -89,3 +90,14 @@ sudo /var/www/ppstudio/deploy/deploy.sh
 - Pokud SMTP dočasně nefunguje, přepni na `EMAIL_DELIVERY_MODE=log`; booking a storno zůstanou funkční a e-mailové pokusy se dál auditují.
 - Reverzní proxy by měla korektně předávat `x-forwarded-for`, aby submission audit a rate limiting pracovaly smysluplně.
 - I když `npm run build` dnes předem volá `prisma generate`, v release checklistu necháváme explicitní `npm run db:generate`, protože chrání i jiné skripty a ruční servisní zásahy.
+
+## Dodatečná QA pro týdenní planner
+- Na desktopu ověř 7denní přehled v owner i salon části.
+- Na mobilu ověř stacked layout dnů bez horizontálního scrollu.
+- Ověř z detailu dne:
+  - přidání jednoho slotu
+  - založení série slotů
+  - rychlou změnu stavu
+  - rychlou úpravu času a kapacity
+- Ověř, že po uložení rychlé akce zůstane obsluha ve stejném týdnu a dni.
+- Ověř, že plná editace slotu dál správně ukládá služby a poznámky.

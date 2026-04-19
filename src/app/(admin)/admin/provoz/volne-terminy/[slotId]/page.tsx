@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { AdminSlotDetailPage } from "@/features/admin/components/admin-slot-detail-page";
 import {
   getAdminSlotDetailData,
-  getSlotFlashMessage,
+  getSlotFlashMeta,
 } from "@/features/admin/lib/admin-slots";
 import { requireAdminSectionAccess } from "@/features/admin/lib/admin-guards";
 
@@ -29,5 +29,5 @@ export default async function SalonSlotDetailPage({
     notFound();
   }
 
-  return <AdminSlotDetailPage area="salon" data={data} flashMessage={getSlotFlashMessage(flash)} />;
+  return <AdminSlotDetailPage area="salon" data={data} flash={getSlotFlashMeta(flash)} />;
 }

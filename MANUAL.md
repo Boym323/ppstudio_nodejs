@@ -131,10 +131,22 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
   - detail a editace na `/admin/volne-terminy/[slotId]` a `/admin/provoz/volne-terminy/[slotId]`
 - Slot workflow podporuje:
   - filtrování podle dne a stavu slotu
+  - rychlé filtry `dnešek`, `zítřek`, `tento týden`
   - vytvoření a editaci slotu
   - přepnutí stavu mezi `DRAFT`, `PUBLISHED`, `CANCELLED` a `ARCHIVED`
   - blokaci slotu bez smazání historie
   - smazání jen tehdy, když slot nemá žádnou navázanou rezervaci
+- Formulář slotu nově obsahuje provozní UX pomůcky:
+  - chytré defaulty času (zaokrouhlené na nejbližších 15 minut)
+  - rychlé přepínače délky (`+30`, `+60`, `+90`, `+120 min`)
+  - výběr služeb se zobrazuje jen v režimu `Jen vybrané služby`
+- Pro roli `SALON` je vytvoření slotu zjednodušené:
+  - nový slot se zakládá rovnou jako publikovaný
+  - interní poznámka se ve formuláři nezobrazuje
+  - stránka zdůrazňuje rychlé provozní filtry a minimální počet kroků
+- Chybové a potvrzovací hlášky:
+  - seznam i detail slotu teď rozlišují úspěšné i chybové flash zprávy
+  - neúspěšná změna stavu nebo smazání už nekončí tichým redirectem bez kontextu
 - Detail slotu ukazuje:
   - zda je slot volný nebo obsazený
   - kolik rezervací je aktivních proti kapacitě
@@ -203,3 +215,25 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
 - Systemd `.example` šablony s poznámkami k `User`/`Group` jsou v [`deploy/systemd/ppstudio-web.service.example`](/var/www/ppstudio/deploy/systemd/ppstudio-web.service.example) a [`deploy/systemd/ppstudio-email-worker.service.example`](/var/www/ppstudio/deploy/systemd/ppstudio-email-worker.service.example).
 - Jednorázová instalace obou units je připravená v [`deploy/deploy.sh`](/var/www/ppstudio/deploy/deploy.sh).
 - Pro Docker Compose provoz použij [`deploy/docker-compose.email-worker.yml`](/var/www/ppstudio/deploy/docker-compose.email-worker.yml).
+
+## Týdenní Planner Slotů V1
+- Hlavní workflow pro správu dostupností je nově týdenní přehled na `/admin/volne-terminy` a `/admin/provoz/volne-terminy`.
+- Týden je hlavní plánovací jednotka:
+  - každý den má vlastní kartu
+  - z karty je jedním tapem dostupné `Přidat slot`, `Přidat sérii` a `Detail dne`
+  - den je barevně a textově označen jako `Prázdný den`, `Aktivní den`, `Omezený den` nebo `Zrušený den`
+- Denní detail je sekundární vrstva v pravém panelu na desktopu a ve stacked bloku na mobilu.
+- Denní detail slouží pro:
+  - rychlou změnu stavu slotu
+  - rychlou úpravu času a kapacity
+  - přechod do plné editace pro `allowed services`, `publicNote` a `internalNote`
+- Rychlé vložení jednoho slotu z týdne vytváří jednoduchý slot bez omezení služeb a bez poznámek; detail se doplňuje až podle potřeby.
+- Dávkové vložení více slotů zakládá sérii jednoduchých slotů v jednom dni.
+- Server sérii odmítne, pokud:
+  - některý slot koliduje s existujícím aktivním slotem
+  - série přesahuje do dalšího dne
+  - kapacita nebo délka slotu nedává smysl
+- Mobilní režim nepoužívá širokou tabulku:
+  - dny jsou řazené vertikálně pod sebe
+  - detail dne je pod přehledem
+  - rychlé akce jsou dostupné jako velká tlačítka a anchor odkazy

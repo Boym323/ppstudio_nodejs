@@ -9,36 +9,25 @@ import { prisma } from "@/lib/prisma";
 type DbClient = Prisma.TransactionClient | typeof prisma;
 
 export type SlotListFilters = {
-  date?: Date;
+  startsAtGte?: Date;
+  startsAtLt?: Date;
   status?: AvailabilitySlotStatus;
 };
-
-function buildDateWhere(date?: Date): Prisma.AvailabilitySlotWhereInput | undefined {
-  if (!date) {
-    return undefined;
-  }
-
-  const startsAt = new Date(date);
-  startsAt.setHours(0, 0, 0, 0);
-  const endsAt = new Date(startsAt);
-  endsAt.setDate(endsAt.getDate() + 1);
-
-  return {
-    startsAt: {
-      gte: startsAt,
-      lt: endsAt,
-    },
-  };
-}
 
 export async function listAdminSlots(filters: SlotListFilters) {
   return prisma.availabilitySlot.findMany({
     where: {
-      ...buildDateWhere(filters.date),
+      startsAt:
+        filters.startsAtGte || filters.startsAtLt
+          ? {
+              gte: filters.startsAtGte,
+              lt: filters.startsAtLt,
+            }
+          : undefined,
       ...(filters.status ? { status: filters.status } : null),
     },
     orderBy: [{ startsAt: "asc" }, { createdAt: "asc" }],
-    take: 80,
+    take: 200,
     include: {
       createdByUser: {
         select: {
@@ -196,7 +185,17 @@ export async function getSlotForWrite(slotId: string, db: DbClient = prisma) {
     where: {
       id: slotId,
     },
-    include: {
+    select: {
+      id: true,
+      startsAt: true,
+      endsAt: true,
+      capacity: true,
+      status: true,
+      serviceRestrictionMode: true,
+      publicNote: true,
+      internalNote: true,
+      publishedAt: true,
+      cancelledAt: true,
       allowedServices: {
         select: {
           serviceId: true,

@@ -4,8 +4,10 @@ import { requireAdminSectionAccess } from "@/features/admin/lib/admin-guards";
 
 type SalonSlotsPageProps = {
   searchParams: Promise<{
-    date?: string;
+    week?: string;
+    day?: string;
     status?: string;
+    panel?: string;
     flash?: string;
   }>;
 };

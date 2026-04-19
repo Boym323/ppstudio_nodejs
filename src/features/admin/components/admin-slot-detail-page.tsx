@@ -9,13 +9,14 @@ import {
 import {
   getAdminSlotEditHref,
   getAdminSlotListHref,
+  type SlotFlashMeta,
 } from "@/features/admin/lib/admin-slots";
 
 import { AdminPageShell, AdminPanel } from "./admin-page-shell";
 
 type AdminSlotDetailPageProps = {
   area: AdminArea;
-  flashMessage?: string;
+  flash?: SlotFlashMeta;
   data: {
     id: string;
     title: string;
@@ -55,7 +56,7 @@ type AdminSlotDetailPageProps = {
 
 export function AdminSlotDetailPage({
   area,
-  flashMessage,
+  flash,
   data,
 }: AdminSlotDetailPageProps) {
   return (
@@ -75,9 +76,15 @@ export function AdminSlotDetailPage({
       ]}
       compact={area === "salon"}
     >
-      {flashMessage ? (
-        <div className="rounded-[1.25rem] border border-emerald-300/20 bg-emerald-400/10 px-4 py-3 text-sm leading-6 text-emerald-50">
-          {flashMessage}
+      {flash ? (
+        <div
+          className={
+            flash.tone === "error"
+              ? "rounded-[1.25rem] border border-red-300/25 bg-red-400/10 px-4 py-3 text-sm leading-6 text-red-50"
+              : "rounded-[1.25rem] border border-emerald-300/20 bg-emerald-400/10 px-4 py-3 text-sm leading-6 text-emerald-50"
+          }
+        >
+          {flash.message}
         </div>
       ) : null}
 

@@ -60,6 +60,8 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - `/admin/volne-terminy/[slotId]/upravit`
   - salon varianta pod `/admin/provoz/volne-terminy/*`
 - `src/features/admin/actions/booking-actions.ts` je tenký server action adaptér pro změnu stavu rezervace.
+- `src/features/admin/components/admin-slots-page.tsx` používá URL-driven filtry (`date`, `status`, `preset`) a přidává rychlé provozní preset akce pro dnešek/zítřek/týden.
+- `src/features/admin/components/admin-slot-form.tsx` je klientský formulář s chytrými defaulty, rychlou volbou délky a role-aware zjednodušením pro `SALON`.
 - `src/features/admin/lib/admin-booking.ts` drží detailový read model, mapování povolených přechodů a zápis do `BookingStatusHistory`.
 - `src/features/admin/components/admin-email-logs-page.tsx` je owner-only observability obrazovka pro email frontu, retry pokusy a poslední chyby.
 - `src/features/admin/components/admin-email-log-detail-page.tsx` a route `/admin/email-logy/[emailLogId]` přidávají detail jednoho logu s payloadem, chybou a operacemi pro ruční retry nebo uvolnění zaseknutého jobu.
@@ -83,6 +85,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - překryv s jiným aktivním slotem
   - minimální kapacitu
   - konzistenci omezení služeb vůči aktivním rezervacím
+- U slot actions vracet i chybový flash feedback (`status-error`, `delete-error`) místo tichého redirectu bez informace.
 
 ## Technický dluh a rozhodnutí
 - Klíčová rozhodnutí zapisuj jako krátké ADR záznamy.
@@ -165,3 +168,28 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 ## Poznámky k releasu
 - Release checklist.
 - Migrační kroky (pokud jsou potřeba).
+
+## Týdenní plánování slotů
+- `src/features/admin/lib/admin-slots.ts` nově vrací read model pro celý týden, ne jen plochý seznam slotů.
+- `getAdminSlotListData()` skládá 7denní planner:
+  - normalizuje `week`, `day`, `status` a `panel` z URL
+  - načte sloty jen pro vybraný týden
+  - seskupí je po dnech
+  - spočítá stav dne a summary metriky
+- `src/features/admin/components/admin-slots-page.tsx` je serverová planner stránka:
+  - vlevo týdenní grid/list dnů
+  - vpravo sekundární panel vybraného dne
+  - na mobilu se panel skládá pod týdenní přehled
+- `src/features/admin/components/admin-slot-planner-forms.tsx` drží klientské miniformuláře pro rychlé akce z týdenního planneru.
+- Pro rychlé úpravy jsme záměrně nepřidávali novou UI knihovnu; workflow stojí na App Routeru, server actions a malých klientských formulářích s `useActionState`.
+- `src/features/admin/actions/slot-actions.ts` nyní podporuje návrat na planner přes `returnTo`, aby rychlé akce po uložení vracely obsluhu zpět do stejného týdne a dne.
+- Nový batch create flow běží přes `createAdminSlotsBatch()` a zapisuje sloty v jedné DB transakci.
+- Batch create používá stávající doménovou validaci slotu, takže neobchází pravidla pro překryvy ani ochranu proti neplatným hodnotám.
+
+## Ruční QA pro planner
+- Ověř týdenní přehled na desktopu i mobilu pro obě role.
+- Ověř přepínání týdnů a zachování zvoleného dne.
+- Ověř rychlé přidání jednoho slotu z detailu dne.
+- Ověř založení série slotů a odmítnutí kolizní série.
+- Ověř rychlou změnu stavu a rychlou úpravu času bez odchodu na plný detail.
+- Ověř přechod do plné editace slotu pro poznámky a omezení služeb.

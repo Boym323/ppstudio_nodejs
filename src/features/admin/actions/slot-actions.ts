@@ -12,6 +12,7 @@ import { type AdminArea } from "@/config/navigation";
 import {
   AdminSlotError,
   createAdminSlot,
+  createAdminSlotsBatch,
   deleteAdminSlot,
   getAdminSlotDetailHref,
   getAdminSlotListHref,
@@ -34,6 +35,15 @@ function readFormStringList(formData: FormData, key: string) {
     .filter(Boolean);
 }
 
+function withFlash(target: string, flash: string) {
+  const [pathname, search = ""] = target.split("?");
+  const params = new URLSearchParams(search);
+  params.set("flash", flash);
+  const query = params.toString();
+
+  return query ? `${pathname}?${query}` : pathname;
+}
+
 const upsertSlotSchema = z.object({
   area: z.enum(["owner", "salon"]),
   slotId: z.string().trim().max(64).optional().or(z.literal("")),
@@ -45,17 +55,32 @@ const upsertSlotSchema = z.object({
   publicNote: z.string().trim().max(240, "Veřejná poznámka je příliš dlouhá.").optional(),
   internalNote: z.string().trim().max(1000, "Interní poznámka je příliš dlouhá.").optional(),
   serviceIds: z.array(z.string().trim().min(1)).default([]),
+  returnTo: z.string().trim().max(1000).optional(),
+});
+
+const batchSlotSchema = z.object({
+  area: z.enum(["owner", "salon"]),
+  day: z.string().trim().regex(/^\d{4}-\d{2}-\d{2}$/u, "Vyberte den série."),
+  startTime: z.string().trim().regex(/^\d{2}:\d{2}$/u, "Vyplňte první čas."),
+  slotCount: z.coerce.number().int().min(1, "Zadejte počet slotů.").max(12, "Maximálně 12 slotů."),
+  slotLengthMinutes: z.coerce.number().int().min(15, "Délka slotu musí být alespoň 15 minut."),
+  gapMinutes: z.coerce.number().int().min(0, "Mezera nemůže být záporná."),
+  capacity: z.coerce.number().int().min(1, "Kapacita musí být alespoň 1."),
+  status: z.nativeEnum(AvailabilitySlotStatus),
+  returnTo: z.string().trim().max(1000).optional(),
 });
 
 const slotStatusActionSchema = z.object({
   area: z.enum(["owner", "salon"]),
   slotId: z.string().trim().min(1).max(64),
   nextStatus: z.nativeEnum(AvailabilitySlotStatus),
+  returnTo: z.string().trim().max(1000).optional(),
 });
 
 const deleteSlotSchema = z.object({
   area: z.enum(["owner", "salon"]),
   slotId: z.string().trim().min(1).max(64),
+  returnTo: z.string().trim().max(1000).optional(),
 });
 
 export type UpsertSlotActionState = {
@@ -70,17 +95,31 @@ export type UpsertSlotActionState = {
   redirectTo?: string;
 };
 
-function revalidateSlotPaths(slotId: string) {
+export type BatchCreateSlotsActionState = {
+  status: "idle" | "error" | "success";
+  formError?: string;
+  fieldErrors?: Partial<
+    Record<"day" | "startTime" | "slotCount" | "slotLengthMinutes" | "gapMinutes" | "capacity" | "status", string>
+  >;
+  redirectTo?: string;
+};
+
+function revalidateSlotPaths(slotId?: string) {
   const paths = [
     "/admin",
     "/admin/volne-terminy",
-    `/admin/volne-terminy/${slotId}`,
-    `/admin/volne-terminy/${slotId}/upravit`,
     "/admin/provoz",
     "/admin/provoz/volne-terminy",
-    `/admin/provoz/volne-terminy/${slotId}`,
-    `/admin/provoz/volne-terminy/${slotId}/upravit`,
   ];
+
+  if (slotId) {
+    paths.push(
+      `/admin/volne-terminy/${slotId}`,
+      `/admin/volne-terminy/${slotId}/upravit`,
+      `/admin/provoz/volne-terminy/${slotId}`,
+      `/admin/provoz/volne-terminy/${slotId}/upravit`,
+    );
+  }
 
   for (const path of paths) {
     revalidatePath(path);
@@ -99,6 +138,21 @@ function mapSlotError(error: unknown): UpsertSlotActionState {
   return {
     status: "error",
     formError: "Slot se nepodařilo uložit kvůli nečekané chybě.",
+  };
+}
+
+function mapBatchError(error: unknown): BatchCreateSlotsActionState {
+  if (error instanceof AdminSlotError) {
+    return {
+      status: "error",
+      formError: error.message,
+      fieldErrors: error.fieldErrors,
+    };
+  }
+
+  return {
+    status: "error",
+    formError: "Sérii slotů se nepodařilo uložit kvůli nečekané chybě.",
   };
 }
 
@@ -145,6 +199,7 @@ export async function upsertSlotAction(
     publicNote: readFormString(formData, "publicNote"),
     internalNote: readFormString(formData, "internalNote"),
     serviceIds: readFormStringList(formData, "serviceIds"),
+    returnTo: readFormString(formData, "returnTo"),
   });
 
   if (!parsed.success) {
@@ -174,10 +229,74 @@ export async function upsertSlotAction(
 
     return {
       status: "success",
-      redirectTo: `${getAdminSlotDetailHref(area, result.id)}?flash=${result.flash}`,
+      redirectTo: parsed.data.returnTo
+        ? withFlash(parsed.data.returnTo, result.flash)
+        : `${getAdminSlotDetailHref(area, result.id)}?flash=${result.flash}`,
     };
   } catch (error) {
     return mapSlotError(error);
+  }
+}
+
+export async function createSlotBatchAction(
+  _previousState: BatchCreateSlotsActionState,
+  formData: FormData,
+): Promise<BatchCreateSlotsActionState> {
+  const parsed = batchSlotSchema.safeParse({
+    area: readFormString(formData, "area"),
+    day: readFormString(formData, "day"),
+    startTime: readFormString(formData, "startTime"),
+    slotCount: readFormString(formData, "slotCount"),
+    slotLengthMinutes: readFormString(formData, "slotLengthMinutes"),
+    gapMinutes: readFormString(formData, "gapMinutes"),
+    capacity: readFormString(formData, "capacity"),
+    status: readFormString(formData, "status"),
+    returnTo: readFormString(formData, "returnTo"),
+  });
+
+  if (!parsed.success) {
+    const fieldErrors = parsed.error.flatten().fieldErrors;
+
+    return {
+      status: "error",
+      formError: "Sérii slotů je potřeba ještě upravit.",
+      fieldErrors: {
+        day: fieldErrors.day?.[0],
+        startTime: fieldErrors.startTime?.[0],
+        slotCount: fieldErrors.slotCount?.[0],
+        slotLengthMinutes: fieldErrors.slotLengthMinutes?.[0],
+        gapMinutes: fieldErrors.gapMinutes?.[0],
+        capacity: fieldErrors.capacity?.[0],
+        status: fieldErrors.status?.[0],
+      },
+    };
+  }
+
+  const area = parsed.data.area as AdminArea;
+  const session = await requireAdminArea(area);
+
+  try {
+    await createAdminSlotsBatch({
+      day: parseSlotDateInput(`${parsed.data.day}T00:00`),
+      startTime: parsed.data.startTime,
+      slotCount: parsed.data.slotCount,
+      slotLengthMinutes: parsed.data.slotLengthMinutes,
+      gapMinutes: parsed.data.gapMinutes,
+      capacity: parsed.data.capacity,
+      status: parsed.data.status,
+      actorUserId: session.sub,
+    });
+    revalidateSlotPaths();
+
+    return {
+      status: "success",
+      redirectTo: withFlash(
+        parsed.data.returnTo || getAdminSlotListHref(area),
+        "batch-created",
+      ),
+    };
+  } catch (error) {
+    return mapBatchError(error);
   }
 }
 
@@ -186,10 +305,11 @@ export async function changeSlotStatusAction(formData: FormData) {
     area: readFormString(formData, "area"),
     slotId: readFormString(formData, "slotId"),
     nextStatus: readFormString(formData, "nextStatus"),
+    returnTo: readFormString(formData, "returnTo"),
   });
 
   if (!parsed.success) {
-    redirect("/admin");
+    redirect("/admin?flash=invalid-action");
   }
 
   const area = parsed.data.area as AdminArea;
@@ -198,10 +318,19 @@ export async function changeSlotStatusAction(formData: FormData) {
   try {
     await updateAdminSlotStatus(parsed.data.slotId, parsed.data.nextStatus);
   } catch {
-    redirect(getAdminSlotDetailHref(area, parsed.data.slotId));
+    if (parsed.data.returnTo) {
+      redirect(withFlash(parsed.data.returnTo, "status-error"));
+    }
+
+    redirect(`${getAdminSlotDetailHref(area, parsed.data.slotId)}?flash=status-error`);
   }
 
   revalidateSlotPaths(parsed.data.slotId);
+
+  if (parsed.data.returnTo) {
+    redirect(withFlash(parsed.data.returnTo, "status-updated"));
+  }
+
   redirect(`${getAdminSlotDetailHref(area, parsed.data.slotId)}?flash=status-updated`);
 }
 
@@ -209,10 +338,11 @@ export async function deleteSlotAction(formData: FormData) {
   const parsed = deleteSlotSchema.safeParse({
     area: readFormString(formData, "area"),
     slotId: readFormString(formData, "slotId"),
+    returnTo: readFormString(formData, "returnTo"),
   });
 
   if (!parsed.success) {
-    redirect("/admin");
+    redirect("/admin?flash=invalid-action");
   }
 
   const area = parsed.data.area as AdminArea;
@@ -221,9 +351,18 @@ export async function deleteSlotAction(formData: FormData) {
   try {
     await deleteAdminSlot(parsed.data.slotId);
   } catch {
-    redirect(getAdminSlotDetailHref(area, parsed.data.slotId));
+    if (parsed.data.returnTo) {
+      redirect(withFlash(parsed.data.returnTo, "delete-error"));
+    }
+
+    redirect(`${getAdminSlotDetailHref(area, parsed.data.slotId)}?flash=delete-error`);
   }
 
   revalidateSlotPaths(parsed.data.slotId);
+
+  if (parsed.data.returnTo) {
+    redirect(withFlash(parsed.data.returnTo, "deleted"));
+  }
+
   redirect(`${getAdminSlotListHref(area)}?flash=deleted`);
 }

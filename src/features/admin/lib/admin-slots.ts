@@ -19,9 +19,9 @@ import {
 } from "@/features/admin/lib/admin-slot-repository";
 import { prisma } from "@/lib/prisma";
 
-const formatDate = new Intl.DateTimeFormat("cs-CZ", {
+const formatDateLong = new Intl.DateTimeFormat("cs-CZ", {
   day: "numeric",
-  month: "numeric",
+  month: "long",
   year: "numeric",
 });
 
@@ -38,6 +38,19 @@ const formatTime = new Intl.DateTimeFormat("cs-CZ", {
   minute: "2-digit",
 });
 
+const formatWeekdayLong = new Intl.DateTimeFormat("cs-CZ", {
+  weekday: "long",
+});
+
+const formatWeekdayShort = new Intl.DateTimeFormat("cs-CZ", {
+  weekday: "short",
+});
+
+const formatMonthDay = new Intl.DateTimeFormat("cs-CZ", {
+  day: "numeric",
+  month: "numeric",
+});
+
 export const activeBookingStatuses = [BookingStatus.PENDING, BookingStatus.CONFIRMED] as const;
 
 function isActiveBookingStatus(status: BookingStatus) {
@@ -45,8 +58,10 @@ function isActiveBookingStatus(status: BookingStatus) {
 }
 
 export type AdminSlotFilterInput = {
-  date?: string;
+  week?: string;
+  day?: string;
   status?: string;
+  panel?: string;
   flash?: string;
 };
 
@@ -65,6 +80,17 @@ type PersistSlotInput = AdminSlotFormInput & {
   actorUserId: string;
 };
 
+export type BatchCreateSlotsInput = {
+  day: Date;
+  startTime: string;
+  slotCount: number;
+  slotLengthMinutes: number;
+  gapMinutes: number;
+  capacity: number;
+  status: AvailabilitySlotStatus;
+  actorUserId: string;
+};
+
 export class AdminSlotError extends Error {
   fieldErrors?: Record<string, string>;
 
@@ -75,13 +101,81 @@ export class AdminSlotError extends Error {
   }
 }
 
-function formatDateLabel(value: Date | null | undefined) {
-  if (!value) {
-    return "Bez data";
-  }
+export type SlotFlashMeta = {
+  tone: "success" | "error";
+  message: string;
+};
 
-  return formatDate.format(value);
-}
+export type SlotPlannerPanel = "day" | "create" | "batch";
+
+export type AdminSlotPlannerSlot = {
+  id: string;
+  startsAtInput: string;
+  endsAtInput: string;
+  startsAtLabel: string;
+  endsAtLabel: string;
+  timeRangeLabel: string;
+  timeShortLabel: string;
+  statusLabel: string;
+  status: AvailabilitySlotStatus;
+  occupancyLabel: string;
+  activeBookingsCount: number;
+  totalBookingsCount: number;
+  capacity: number;
+  freeCapacity: number;
+  restrictionLabel: string;
+  serviceRestrictionMode: AvailabilitySlotServiceRestrictionMode;
+  serviceIds: string[];
+  allowedServiceNames: string[];
+  publicNote: string | null;
+  internalNote: string | null;
+  createdByLabel: string;
+  canDelete: boolean;
+  hasActiveBookings: boolean;
+};
+
+export type AdminSlotPlannerDay = {
+  dateKey: string;
+  dateLabel: string;
+  weekdayShortLabel: string;
+  weekdayLabel: string;
+  headingLabel: string;
+  stateLabel: string;
+  stateTone: "empty" | "active" | "limited" | "cancelled";
+  summaryLabel: string;
+  timeRangeLabel: string;
+  slotCount: number;
+  publishedCount: number;
+  freeCount: number;
+  occupiedCount: number;
+  cancelledCount: number;
+  draftCount: number;
+  archivedCount: number;
+  suggestedStartsAtInput: string;
+  suggestedEndsAtInput: string;
+  slots: AdminSlotPlannerSlot[];
+};
+
+export type AdminSlotPlannerData = {
+  area: AdminArea;
+  filters: {
+    weekInput: string;
+    dayInput: string;
+    statusInput: string;
+    panelInput: SlotPlannerPanel;
+    flash?: SlotFlashMeta;
+  };
+  weekLabel: string;
+  days: AdminSlotPlannerDay[];
+  selectedDay: AdminSlotPlannerDay;
+  stats: {
+    total: number;
+    published: number;
+    free: number;
+    occupied: number;
+    emptyDays: number;
+  };
+};
 
 function formatDateTimeLabel(value: Date | null | undefined) {
   if (!value) {
@@ -91,8 +185,105 @@ function formatDateTimeLabel(value: Date | null | undefined) {
   return formatDateTime.format(value);
 }
 
+function getStartOfDay(value: Date) {
+  const next = new Date(value);
+  next.setHours(0, 0, 0, 0);
+  return next;
+}
+
+function getStartOfWeek(value: Date) {
+  const next = getStartOfDay(value);
+  const dayIndex = (next.getDay() + 6) % 7;
+  next.setDate(next.getDate() - dayIndex);
+  return next;
+}
+
+function addDays(value: Date, days: number) {
+  const next = new Date(value);
+  next.setDate(next.getDate() + days);
+  return next;
+}
+
+function toDateKey(value: Date) {
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, "0");
+  const day = String(value.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
+function getDateInputValue(value: Date) {
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, "0");
+  const day = String(value.getDate()).padStart(2, "0");
+  const hours = String(value.getHours()).padStart(2, "0");
+  const minutes = String(value.getMinutes()).padStart(2, "0");
+
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+}
+
+function getMonthDayLabel(value: Date) {
+  return formatMonthDay.format(value).replace(/\s/g, "");
+}
+
+function getWeekdayShortLabel(value: Date) {
+  return formatWeekdayShort
+    .format(value)
+    .replace(/\./g, "")
+    .replace(/^./, (char) => char.toUpperCase());
+}
+
+function getWeekdayLongLabel(value: Date) {
+  return formatWeekdayLong.format(value).replace(/^./, (char) => char.toUpperCase());
+}
+
+function parseDateOnlyInput(value?: string) {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return undefined;
+  }
+
+  const parsed = new Date(`${value}T00:00:00`);
+  return Number.isNaN(parsed.getTime()) ? undefined : parsed;
+}
+
 export function getAdminSlotListHref(area: AdminArea) {
   return area === "owner" ? "/admin/volne-terminy" : "/admin/provoz/volne-terminy";
+}
+
+export function getAdminSlotPlannerHref(
+  area: AdminArea,
+  options?: {
+    week?: string;
+    day?: string;
+    status?: string;
+    panel?: SlotPlannerPanel;
+    flash?: string;
+  },
+) {
+  const params = new URLSearchParams();
+
+  if (options?.week) {
+    params.set("week", options.week);
+  }
+
+  if (options?.day) {
+    params.set("day", options.day);
+  }
+
+  if (options?.status && options.status !== "ALL") {
+    params.set("status", options.status);
+  }
+
+  if (options?.panel && options.panel !== "day") {
+    params.set("panel", options.panel);
+  }
+
+  if (options?.flash) {
+    params.set("flash", options.flash);
+  }
+
+  const query = params.toString();
+  return query ? `${getAdminSlotListHref(area)}?${query}` : getAdminSlotListHref(area);
 }
 
 export function getAdminSlotCreateHref(area: AdminArea) {
@@ -114,7 +305,7 @@ export function getAdminSlotStatusLabel(status: AvailabilitySlotStatus) {
     case AvailabilitySlotStatus.PUBLISHED:
       return "Publikovaný";
     case AvailabilitySlotStatus.CANCELLED:
-      return "Blokovaný";
+      return "Zrušený";
     case AvailabilitySlotStatus.ARCHIVED:
       return "Archivovaný";
   }
@@ -137,22 +328,54 @@ export function getSlotOccupancyLabel(activeBookingsCount: number, capacity: num
   }
 
   if (activeBookingsCount >= capacity) {
-    return "Obsazený";
+    return "Plný";
   }
 
   return "Částečně obsazený";
 }
 
-export function getSlotFlashMessage(flash?: string) {
+export function getSlotFlashMeta(flash?: string): SlotFlashMeta | undefined {
   switch (flash) {
     case "created":
-      return "Slot byl vytvořený.";
+      return {
+        tone: "success",
+        message: "Slot byl vytvořený.",
+      };
     case "updated":
-      return "Slot byl upravený.";
+      return {
+        tone: "success",
+        message: "Slot byl upravený.",
+      };
     case "status-updated":
-      return "Stav slotu byl změněný.";
+      return {
+        tone: "success",
+        message: "Stav slotu byl změněný.",
+      };
     case "deleted":
-      return "Slot byl smazaný.";
+      return {
+        tone: "success",
+        message: "Slot byl smazaný.",
+      };
+    case "batch-created":
+      return {
+        tone: "success",
+        message: "Série slotů byla vytvořená.",
+      };
+    case "status-error":
+      return {
+        tone: "error",
+        message: "Stav slotu se nepodařilo změnit. Zkontrolujte pravidla slotu a zkuste to znovu.",
+      };
+    case "delete-error":
+      return {
+        tone: "error",
+        message: "Slot se nepodařilo smazat. Často je na něj navázaná aktivní nebo historická rezervace.",
+      };
+    case "invalid-action":
+      return {
+        tone: "error",
+        message: "Požadovaná akce není platná.",
+      };
     default:
       return undefined;
   }
@@ -161,16 +384,6 @@ export function getSlotFlashMessage(flash?: string) {
 function normalizeText(value?: string) {
   const normalized = value?.trim().replace(/\s+/g, " ");
   return normalized ? normalized : undefined;
-}
-
-function getDateInputValue(value: Date) {
-  const year = value.getFullYear();
-  const month = String(value.getMonth() + 1).padStart(2, "0");
-  const day = String(value.getDate()).padStart(2, "0");
-  const hours = String(value.getHours()).padStart(2, "0");
-  const minutes = String(value.getMinutes()).padStart(2, "0");
-
-  return `${year}-${month}-${day}T${hours}:${minutes}`;
 }
 
 export function parseSlotDateInput(value: string) {
@@ -186,6 +399,128 @@ export function parseSlotDateInput(value: string) {
   return parsed;
 }
 
+export function parseSlotDayAndTime(day: Date, timeInput: string) {
+  if (!/^\d{2}:\d{2}$/.test(timeInput)) {
+    throw new AdminSlotError("Zadejte platný čas.", {
+      startTime: "Zadejte platný čas.",
+    });
+  }
+
+  const [hours, minutes] = timeInput.split(":").map(Number);
+  const parsed = new Date(day);
+  parsed.setHours(hours, minutes, 0, 0);
+
+  if (Number.isNaN(parsed.getTime())) {
+    throw new AdminSlotError("Zadejte platný čas.", {
+      startTime: "Zadejte platný čas.",
+    });
+  }
+
+  return parsed;
+}
+
+function getDayState(daySlots: AdminSlotPlannerSlot[]) {
+  if (daySlots.length === 0) {
+    return {
+      tone: "empty" as const,
+      label: "Prázdný den",
+      summary: "Bez slotů",
+    };
+  }
+
+  const hasBookableSlot = daySlots.some(
+    (slot) => slot.status === AvailabilitySlotStatus.PUBLISHED && slot.freeCapacity > 0,
+  );
+  const allClosed = daySlots.every(
+    (slot) =>
+      slot.status === AvailabilitySlotStatus.CANCELLED || slot.status === AvailabilitySlotStatus.ARCHIVED,
+  );
+
+  if (allClosed) {
+    return {
+      tone: "cancelled" as const,
+      label: "Zrušený den",
+      summary: "Všechny sloty jsou stažené nebo archivované",
+    };
+  }
+
+  if (hasBookableSlot) {
+    return {
+      tone: "active" as const,
+      label: "Aktivní den",
+      summary: "Jsou k dispozici sloty k rezervaci",
+    };
+  }
+
+  return {
+    tone: "limited" as const,
+    label: "Omezený den",
+    summary: "Den potřebuje kontrolu nebo úpravu",
+  };
+}
+
+function getSuggestedStartsAt(day: Date, slots: AdminSlotPlannerSlot[]) {
+  if (slots.length === 0) {
+    const suggested = new Date(day);
+    suggested.setHours(9, 0, 0, 0);
+    return suggested;
+  }
+
+  const lastSlot = slots[slots.length - 1];
+  const suggested = new Date(lastSlot.endsAtInput);
+  suggested.setMinutes(suggested.getMinutes() + 15);
+
+  if (toDateKey(suggested) !== toDateKey(day)) {
+    const fallback = new Date(day);
+    fallback.setHours(9, 0, 0, 0);
+    return fallback;
+  }
+
+  return suggested;
+}
+
+function buildPlannerDay(day: Date, slots: AdminSlotPlannerSlot[]): AdminSlotPlannerDay {
+  const publishedCount = slots.filter((slot) => slot.status === AvailabilitySlotStatus.PUBLISHED).length;
+  const freeCount = slots.filter(
+    (slot) => slot.status === AvailabilitySlotStatus.PUBLISHED && slot.freeCapacity > 0,
+  ).length;
+  const occupiedCount = slots.filter(
+    (slot) => slot.status === AvailabilitySlotStatus.PUBLISHED && slot.freeCapacity === 0,
+  ).length;
+  const cancelledCount = slots.filter((slot) => slot.status === AvailabilitySlotStatus.CANCELLED).length;
+  const draftCount = slots.filter((slot) => slot.status === AvailabilitySlotStatus.DRAFT).length;
+  const archivedCount = slots.filter((slot) => slot.status === AvailabilitySlotStatus.ARCHIVED).length;
+  const state = getDayState(slots);
+  const suggestedStartsAt = getSuggestedStartsAt(day, slots);
+  const suggestedEndsAt = new Date(suggestedStartsAt);
+  suggestedEndsAt.setMinutes(suggestedEndsAt.getMinutes() + 60);
+
+  return {
+    dateKey: toDateKey(day),
+    dateLabel: formatDateLong.format(day),
+    weekdayShortLabel: getWeekdayShortLabel(day),
+    weekdayLabel: getWeekdayLongLabel(day),
+    headingLabel: `${getWeekdayShortLabel(day)} ${getMonthDayLabel(day)}`,
+    stateLabel: state.label,
+    stateTone: state.tone,
+    summaryLabel: state.summary,
+    timeRangeLabel:
+      slots.length > 0
+        ? `${slots[0].timeShortLabel} - ${slots[slots.length - 1].endsAtLabel}`
+        : "Bez slotů",
+    slotCount: slots.length,
+    publishedCount,
+    freeCount,
+    occupiedCount,
+    cancelledCount,
+    draftCount,
+    archivedCount,
+    suggestedStartsAtInput: getDateInputValue(suggestedStartsAt),
+    suggestedEndsAtInput: getDateInputValue(suggestedEndsAt),
+    slots,
+  };
+}
+
 export function parseAdminSlotFilters(input: AdminSlotFilterInput) {
   const normalizedStatus = input.status?.trim().toUpperCase();
   const status =
@@ -194,15 +529,28 @@ export function parseAdminSlotFilters(input: AdminSlotFilterInput) {
       ? (normalizedStatus as AvailabilitySlotStatus)
       : undefined;
 
-  const date =
-    input.date && /^\d{4}-\d{2}-\d{2}$/.test(input.date) ? new Date(`${input.date}T00:00:00`) : undefined;
+  const rawWeek = parseDateOnlyInput(input.week);
+  const rawDay = parseDateOnlyInput(input.day);
+  const baseDate = rawWeek ?? rawDay ?? new Date();
+  const weekStart = getStartOfWeek(baseDate);
+  const weekEnd = addDays(weekStart, 7);
+  const selectedDayDate = rawDay && rawDay >= weekStart && rawDay < weekEnd ? rawDay : new Date(weekStart);
+  const normalizedPanel = input.panel?.trim().toLowerCase();
+  const panelInput: SlotPlannerPanel =
+    normalizedPanel === "create" || normalizedPanel === "batch" ? normalizedPanel : "day";
 
   return {
-    date,
-    dateInput: input.date ?? "",
+    startsAtGte: weekStart,
+    startsAtLt: weekEnd,
+    weekStart,
+    weekEnd,
+    weekInput: toDateKey(weekStart),
+    dayInput: toDateKey(selectedDayDate),
+    selectedDayDate,
     status,
     statusInput: status ?? "ALL",
-    flashMessage: getSlotFlashMessage(input.flash),
+    panelInput,
+    flash: getSlotFlashMeta(input.flash),
   };
 }
 
@@ -236,39 +584,88 @@ export async function getAdminSlotFormData(slotId?: string) {
   };
 }
 
-export async function getAdminSlotListData(area: AdminArea, filters: AdminSlotFilterInput) {
+export async function getAdminSlotListData(area: AdminArea, filters: AdminSlotFilterInput): Promise<AdminSlotPlannerData> {
   const parsed = parseAdminSlotFilters(filters);
   const slots = await listAdminSlots({
-    date: parsed.date,
+    startsAtGte: parsed.startsAtGte,
+    startsAtLt: parsed.startsAtLt,
     status: parsed.status,
   });
 
+  const groupedSlots = new Map<string, AdminSlotPlannerSlot[]>();
+
+  for (const slot of slots) {
+    const activeBookings = slot.bookings.filter((booking) => isActiveBookingStatus(booking.status));
+    const dateKey = toDateKey(slot.startsAt);
+    const daySlots = groupedSlots.get(dateKey) ?? [];
+
+    daySlots.push({
+      id: slot.id,
+      startsAtInput: getDateInputValue(slot.startsAt),
+      endsAtInput: getDateInputValue(slot.endsAt),
+      startsAtLabel: formatTime.format(slot.startsAt),
+      endsAtLabel: formatTime.format(slot.endsAt),
+      timeRangeLabel: `${formatTime.format(slot.startsAt)} - ${formatTime.format(slot.endsAt)}`,
+      timeShortLabel: formatTime.format(slot.startsAt),
+      statusLabel: getAdminSlotStatusLabel(slot.status),
+      status: slot.status,
+      occupancyLabel: getSlotOccupancyLabel(activeBookings.length, slot.capacity),
+      activeBookingsCount: activeBookings.length,
+      totalBookingsCount: slot.bookings.length,
+      capacity: slot.capacity,
+      freeCapacity: Math.max(slot.capacity - activeBookings.length, 0),
+      restrictionLabel: getSlotRestrictionModeLabel(
+        slot.serviceRestrictionMode,
+        slot.allowedServices.length,
+      ),
+      serviceRestrictionMode: slot.serviceRestrictionMode,
+      serviceIds: slot.allowedServices.map((allowedService) => allowedService.service.id),
+      allowedServiceNames: slot.allowedServices.map((allowedService) => allowedService.service.name),
+      publicNote: slot.publicNote,
+      internalNote: slot.internalNote,
+      createdByLabel: slot.createdByUser?.name ?? "Neznámý admin",
+      canDelete: slot.bookings.length === 0,
+      hasActiveBookings: activeBookings.length > 0,
+    });
+
+    groupedSlots.set(dateKey, daySlots);
+  }
+
+  const days = Array.from({ length: 7 }, (_, index) => {
+    const day = addDays(parsed.weekStart, index);
+    return buildPlannerDay(day, groupedSlots.get(toDateKey(day)) ?? []);
+  });
+
+  const selectedDay =
+    days.find((day) => day.dateKey === parsed.dayInput) ??
+    days.find((day) => day.dateKey === toDateKey(new Date())) ??
+    days[0];
+
+  const allWeekSlots = days.flatMap((day) => day.slots);
+
   return {
     area,
-    filters: parsed,
-    slots: slots.map((slot) => {
-      const activeBookings = slot.bookings.filter((booking) => isActiveBookingStatus(booking.status));
-
-      return {
-        id: slot.id,
-        startsAtLabel: formatDateTimeLabel(slot.startsAt),
-        endsAtLabel: formatTime.format(slot.endsAt),
-        dateLabel: formatDateLabel(slot.startsAt),
-        statusLabel: getAdminSlotStatusLabel(slot.status),
-        status: slot.status,
-        occupancyLabel: getSlotOccupancyLabel(activeBookings.length, slot.capacity),
-        activeBookingsCount: activeBookings.length,
-        capacity: slot.capacity,
-        restrictionLabel: getSlotRestrictionModeLabel(
-          slot.serviceRestrictionMode,
-          slot.allowedServices.length,
-        ),
-        allowedServiceNames: slot.allowedServices.map((allowedService) => allowedService.service.name),
-        publicNote: slot.publicNote,
-        internalNote: slot.internalNote,
-        createdByLabel: slot.createdByUser?.name ?? "Neznámý admin",
-      };
-    }),
+    filters: {
+      weekInput: parsed.weekInput,
+      dayInput: selectedDay.dateKey,
+      statusInput: parsed.statusInput,
+      panelInput: parsed.panelInput,
+      flash: parsed.flash,
+    },
+    weekLabel: `${formatDateLong.format(parsed.weekStart)} - ${formatDateLong.format(addDays(parsed.weekStart, 6))}`,
+    days,
+    selectedDay,
+    stats: {
+      total: allWeekSlots.length,
+      published: allWeekSlots.filter((slot) => slot.status === AvailabilitySlotStatus.PUBLISHED).length,
+      free: allWeekSlots.filter(
+        (slot) => slot.status === AvailabilitySlotStatus.PUBLISHED && slot.freeCapacity > 0,
+      ).length,
+      occupied: allWeekSlots.filter(
+        (slot) => slot.status === AvailabilitySlotStatus.PUBLISHED && slot.freeCapacity === 0,
+      ).length,
+      emptyDays: days.filter((day) => day.slotCount === 0).length,
+    },
   };
 }
 
@@ -349,6 +746,7 @@ async function validateSlotPayload(
   options?: {
     slotId?: string;
   },
+  db: Prisma.TransactionClient | typeof prisma = prisma,
 ) {
   const fieldErrors: Record<string, string> = {};
 
@@ -374,13 +772,16 @@ async function validateSlotPayload(
   }
 
   const [services, overlap, existingSlot] = await Promise.all([
-    getServicesByIds(uniqueServiceIds),
-    findSlotOverlap({
-      startsAt: input.startsAt,
-      endsAt: input.endsAt,
-      excludeSlotId: options?.slotId,
-    }),
-    options?.slotId ? getSlotForWrite(options.slotId) : Promise.resolve(null),
+    getServicesByIds(uniqueServiceIds, db),
+    findSlotOverlap(
+      {
+        startsAt: input.startsAt,
+        endsAt: input.endsAt,
+        excludeSlotId: options?.slotId,
+      },
+      db,
+    ),
+    options?.slotId ? getSlotForWrite(options.slotId, db) : Promise.resolve(null),
   ]);
 
   if (uniqueServiceIds.length !== services.length) {
@@ -405,10 +806,8 @@ async function validateSlotPayload(
     );
   }
 
-    if (existingSlot) {
-    const activeBookings = existingSlot.bookings.filter((booking) =>
-      isActiveBookingStatus(booking.status),
-    );
+  if (existingSlot) {
+    const activeBookings = existingSlot.bookings.filter((booking) => isActiveBookingStatus(booking.status));
 
     if (input.capacity < activeBookings.length) {
       throw new AdminSlotError("Kapacitu nelze snížit pod počet aktivních rezervací.", {
@@ -457,12 +856,21 @@ async function persistSlot(
 ) {
   const normalizedPublicNote = normalizeText(input.publicNote);
   const normalizedInternalNote = normalizeText(input.internalNote);
-  const validated = await validateSlotPayload(input, options);
-  const publishedAt = input.status === AvailabilitySlotStatus.PUBLISHED ? new Date() : null;
-  const cancelledAt = input.status === AvailabilitySlotStatus.CANCELLED ? new Date() : null;
 
   try {
     return await prisma.$transaction(async (tx) => {
+      const validated = await validateSlotPayload(
+        {
+          ...input,
+          publicNote: normalizedPublicNote,
+          internalNote: normalizedInternalNote,
+        },
+        options,
+        tx,
+      );
+      const publishedAt = input.status === AvailabilitySlotStatus.PUBLISHED ? new Date() : null;
+      const cancelledAt = input.status === AvailabilitySlotStatus.CANCELLED ? new Date() : null;
+
       if (options?.slotId) {
         await updateSlotRecord(
           options.slotId,
@@ -542,6 +950,103 @@ async function persistSlot(
 
 export async function createAdminSlot(input: PersistSlotInput) {
   return persistSlot(input);
+}
+
+export async function createAdminSlotsBatch(input: BatchCreateSlotsInput) {
+  const fieldErrors: Record<string, string> = {};
+
+  if (input.slotCount < 1) {
+    fieldErrors.slotCount = "Počet slotů musí být alespoň 1.";
+  }
+
+  if (input.slotCount > 12) {
+    fieldErrors.slotCount = "V jedné sérii lze založit maximálně 12 slotů.";
+  }
+
+  if (input.slotLengthMinutes < 15) {
+    fieldErrors.slotLengthMinutes = "Délka slotu musí být alespoň 15 minut.";
+  }
+
+  if (input.gapMinutes < 0) {
+    fieldErrors.gapMinutes = "Mezera mezi sloty nemůže být záporná.";
+  }
+
+  if (input.capacity < 1) {
+    fieldErrors.capacity = "Kapacita musí být alespoň 1.";
+  }
+
+  if (Object.keys(fieldErrors).length > 0) {
+    throw new AdminSlotError("Sérii slotů se nepodařilo připravit.", fieldErrors);
+  }
+
+  const firstStartsAt = parseSlotDayAndTime(input.day, input.startTime);
+
+  try {
+    return await prisma.$transaction(async (tx) => {
+      for (let index = 0; index < input.slotCount; index += 1) {
+        const startsAt = new Date(firstStartsAt);
+        startsAt.setMinutes(
+          firstStartsAt.getMinutes() + index * (input.slotLengthMinutes + input.gapMinutes),
+        );
+        const endsAt = new Date(startsAt);
+        endsAt.setMinutes(endsAt.getMinutes() + input.slotLengthMinutes);
+
+        if (toDateKey(startsAt) !== toDateKey(input.day) || toDateKey(endsAt) !== toDateKey(input.day)) {
+          throw new AdminSlotError(
+            "Série přesahuje do dalšího dne. Zkraťte délku, počet slotů nebo mezeru mezi nimi.",
+            {
+              slotCount: "Série přesahuje do dalšího dne.",
+            },
+          );
+        }
+
+        await validateSlotPayload(
+          {
+            startsAt,
+            endsAt,
+            capacity: input.capacity,
+            status: input.status,
+            serviceRestrictionMode: AvailabilitySlotServiceRestrictionMode.ANY,
+            publicNote: undefined,
+            internalNote: undefined,
+            serviceIds: [],
+          },
+          undefined,
+          tx,
+        );
+
+        await createSlotRecord(
+          {
+            startsAt,
+            endsAt,
+            capacity: input.capacity,
+            status: input.status,
+            serviceRestrictionMode: AvailabilitySlotServiceRestrictionMode.ANY,
+            publicNote: null,
+            internalNote: null,
+            publishedAt: input.status === AvailabilitySlotStatus.PUBLISHED ? new Date() : null,
+            cancelledAt: input.status === AvailabilitySlotStatus.CANCELLED ? new Date() : null,
+            createdByUser: {
+              connect: {
+                id: input.actorUserId,
+              },
+            },
+          },
+          tx,
+        );
+      }
+
+      return { count: input.slotCount };
+    });
+  } catch (error) {
+    if (isOverlapConstraintError(error)) {
+      throw new AdminSlotError("Některý z nových slotů koliduje s existujícím termínem.", {
+        startTime: "Série koliduje s jiným aktivním slotem.",
+      });
+    }
+
+    throw error;
+  }
 }
 
 export async function updateAdminSlot(slotId: string, input: PersistSlotInput) {
