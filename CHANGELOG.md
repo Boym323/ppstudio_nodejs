@@ -54,6 +54,7 @@ Formát je inspirovaný Keep a Changelog.
 - Týdenní planner dostupností pro `OWNER` i `SALON` nyní zobrazuje rezervace, omezené intervaly, neaktivní sloty i minulý čas v jednom klidném kalendáři.
 
 ### Changed
+- Běžný text webu nyní používá `Inter` místo `Manrope`, zatímco nadpisy a logo zůstávají na `Cormorant Garamond`.
 - Domovská stránka teď v levé části hlavičky pod `PP Studio` zobrazuje doplněk `COSMETICS & LAMINATIONS`.
 - Sekce `Kategorie služeb` už není jen read-only přehled v `admin-data`; route `/admin/kategorie-sluzeb` a `/admin/provoz/kategorie-sluzeb` renderuje samostatný pracovní workflow se seznamem a editací.
 - Admin sekce `Služby` prošla druhým kolem UX zjednodušení: oddělený toolbar, čitelnější formulář po sekcích, kompaktnější seznam a lepší mobilní čitelnost bez změny business logiky.
