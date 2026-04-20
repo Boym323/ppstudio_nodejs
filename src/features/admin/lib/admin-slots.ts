@@ -550,7 +550,7 @@ export async function getAdminPlannerWeek(area: AdminArea, week?: string | null)
     }
 
     const intervals: PlannerInterval[] = daySlots
-      .flatMap((slot) => {
+      .flatMap<PlannerInterval>((slot) => {
         const clipped = clampIntervalToDay(
           { startsAt: slot.startsAt, endsAt: slot.endsAt },
           dayStart,
@@ -605,15 +605,15 @@ export async function getAdminPlannerWeek(area: AdminArea, week?: string | null)
             [{ startsAt: clipped.startsAt, endsAt: clipped.endsAt }],
           );
 
-          const bookedIntervals = mergedBookings
-            .map((bookedRange, index) => {
+          const bookedIntervals: PlannerInterval[] = mergedBookings
+            .flatMap((bookedRange, index) => {
               const bookingCells = intervalToCellRange(bookedRange);
 
               if (bookingCells.endCell <= bookingCells.startCell) {
-                return null;
+                return [];
               }
 
-              return {
+              return [{
                 id: `${slot.id}:booked:${index}`,
                 startCell: bookingCells.startCell,
                 endCell: bookingCells.endCell,
@@ -622,19 +622,18 @@ export async function getAdminPlannerWeek(area: AdminArea, week?: string | null)
                 bookingCount: activeBookingCount,
                 canEdit: false,
                 detail: `${activeBookingCount} rezervace`,
-              } satisfies PlannerInterval;
-            })
-            .filter((interval): interval is PlannerInterval => interval !== null);
+              } satisfies PlannerInterval];
+            });
 
-          const lockedRemainderIntervals = freeRanges
-            .map((freeRange, index) => {
+          const lockedRemainderIntervals: PlannerInterval[] = freeRanges
+            .flatMap((freeRange, index) => {
               const freeCells = intervalToCellRange(freeRange);
 
               if (freeCells.endCell <= freeCells.startCell) {
-                return null;
+                return [];
               }
 
-              return {
+              return [{
                 id: `${slot.id}:locked:${index}`,
                 startCell: freeCells.startCell,
                 endCell: freeCells.endCell,
@@ -643,9 +642,8 @@ export async function getAdminPlannerWeek(area: AdminArea, week?: string | null)
                 bookingCount: activeBookingCount,
                 canEdit: false,
                 detail: "Zbytek intervalu je svázaný existující rezervací.",
-              } satisfies PlannerInterval;
-            })
-            .filter((interval): interval is PlannerInterval => interval !== null);
+              } satisfies PlannerInterval];
+            });
 
           return [...bookedIntervals, ...lockedRemainderIntervals];
         }

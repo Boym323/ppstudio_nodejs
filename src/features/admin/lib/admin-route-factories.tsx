@@ -7,6 +7,8 @@ import { AdminOverviewPage } from "@/features/admin/components/admin-overview-pa
 import { AdminSectionPage } from "@/features/admin/components/admin-section-page";
 import { AdminSettingsPage } from "@/features/admin/components/admin-settings-page";
 import { AdminCertificatesPage } from "@/features/admin/components/admin-certificates-page";
+import { AdminClientDetailPage } from "@/features/admin/components/admin-client-detail-page";
+import { AdminClientsPage } from "@/features/admin/components/admin-clients-page";
 import { AdminServiceCategoriesPage } from "@/features/admin/components/admin-service-categories-page";
 import { AdminServicesPage } from "@/features/admin/components/admin-services-page";
 import { AdminWeeklyPlannerPage } from "@/features/admin/components/admin-weekly-planner-page";
@@ -14,6 +16,7 @@ import { getSiteSettings } from "@/lib/site-settings";
 import { requireAdminArea } from "@/lib/auth/session";
 
 import { getAdminBookingDetailData } from "./admin-booking";
+import { getAdminClientDetailData } from "./admin-clients";
 import { isAdminSectionSlug, requireAdminSectionAccess } from "./admin-guards";
 import { findSlotWeekContext } from "./admin-slots";
 
@@ -28,6 +31,10 @@ type AdminBookingDetailParams = Promise<{
 
 type AdminSlotParams = Promise<{
   slotId: string;
+}>;
+
+type AdminClientDetailParams = Promise<{
+  clientId: string;
 }>;
 
 type AdminSearchParams = Promise<{
@@ -71,6 +78,10 @@ export function createAdminSectionRoute(area: AdminArea) {
       return <AdminCertificatesPage area={area} searchParams={await searchParams} />;
     }
 
+    if (section === "klienti") {
+      return <AdminClientsPage area={area} searchParams={await searchParams} />;
+    }
+
     if (section === "nastaveni") {
       const settings = await getSiteSettings();
       const formattedUpdatedAt = new Intl.DateTimeFormat("cs-CZ", {
@@ -105,6 +116,24 @@ export function createAdminSectionRoute(area: AdminArea) {
     }
 
     return <AdminSectionPage area={area} section={section} />;
+  };
+}
+
+export function createAdminClientDetailRoute(area: AdminArea) {
+  return async function AdminClientDetailRoute({
+    params,
+  }: {
+    params: AdminClientDetailParams;
+  }) {
+    await requireAdminSectionAccess(area, "klienti");
+    const { clientId } = await params;
+    const data = await getAdminClientDetailData(area, clientId);
+
+    if (!data) {
+      notFound();
+    }
+
+    return <AdminClientDetailPage data={data} />;
   };
 }
 

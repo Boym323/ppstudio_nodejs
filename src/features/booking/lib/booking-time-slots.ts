@@ -133,21 +133,22 @@ export function groupSlotsByDayPeriod(slots: TimeSlotOption[]): TimeSlotGroupDat
     grouped.set(period, current);
   }
 
-  const orderedGroups: TimeSlotGroupData[] = ["morning", "lateMorning", "afternoon", "evening"]
-    .map((period) => {
+  const orderedPeriods = ["morning", "lateMorning", "afternoon", "evening"] as const satisfies readonly DayPeriodKey[];
+
+  const orderedGroups: TimeSlotGroupData[] = orderedPeriods
+    .flatMap((period) => {
       const periodSlots = grouped.get(period);
 
       if (!periodSlots || periodSlots.length === 0) {
-        return null;
+        return [];
       }
 
-      return {
+      return [{
         key: period,
         label: getDayPeriodLabel(period),
         slots: periodSlots,
-      };
-    })
-    .filter((group): group is TimeSlotGroupData => group !== null);
+      }];
+    });
 
   if (orderedGroups.length <= 1) {
     return [

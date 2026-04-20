@@ -91,6 +91,9 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - `src/features/admin/lib/admin-service-categories.ts` drží serverový read model pro seznam, filtry, detail kategorie a lehký náhled navázaných služeb.
 - `src/features/admin/actions/service-category-actions.ts` je tenký server action adaptér pro editaci a bezpečné mazání kategorie; validace zůstává v `src/features/admin/lib/admin-service-category-validation.ts`.
 - `src/features/admin/components/admin-booking-detail-page.tsx` a route dvojice `/admin/rezervace/[bookingId]` + `/admin/provoz/rezervace/[bookingId]` drží první produkční workflow pro práci s rezervací.
+- Sekce `Klienti` má vlastní workflow v `src/features/admin/components/admin-clients-page.tsx` a už neběží přes generický placeholder renderer.
+- `src/features/admin/lib/admin-clients.ts` drží serverový read model pro seznam klientek, filtry, detail klientky a napojení na historii rezervací.
+- `src/features/admin/actions/client-actions.ts` je tenký server action adaptér pro editaci interní poznámky klientky; validace zůstává v `src/features/admin/lib/admin-client-validation.ts`.
 - Sekce `Certifikáty` má vlastní workflow v `src/features/admin/components/admin-certificates-page.tsx` a je dostupná v owner i salon oblasti.
 - Server action adaptéry pro certifikáty jsou v `src/features/admin/actions/certificate-actions.ts`; validace vstupu je v `src/features/admin/lib/admin-certificate-validation.ts`.
 - Sekce `Nastavení` má vlastní workflow v `src/features/admin/components/admin-settings-page.tsx` a už neběží přes generický placeholder renderer.
@@ -236,6 +239,12 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - stavy `PENDING`, `CONFIRMED` i uzavřenou rezervaci bez dostupných dalších akcí
   - funkčnost rychlých odkazů `tel:` a `mailto:`
   - propsání uložené změny do success stavu formuláře i do bloku `Historie změn`
+- Po změně admin sekce `Klienti` ručně ověř i:
+  - `/admin/klienti` a `/admin/provoz/klienti` na desktopu i mobilu
+  - hledání podle jména, e-mailu i telefonu
+  - přechod do detailu klientky a návrat zpět na seznam
+  - uložení interní poznámky a propsání změny po refreshi do owner i salon oblasti
+  - rychlé odkazy `tel:` a `mailto:` v detailu klientky
   - vytvoření kolizního slotu odmítnuté serverem
   - editaci slotu s aktivní rezervací a blokaci neplatného snížení kapacity
   - archivaci pouze bez aktivní rezervace

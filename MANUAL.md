@@ -139,6 +139,11 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
   - Rezervace
   - Volné termíny
   - Klienti
+- Sekce `Klienti` je nyní produkčně použitelná pro obě role na `/admin/klienti`, `/admin/provoz/klienti` a v detailu na `/admin/klienti/[clientId]`, `/admin/provoz/klienti/[clientId]`:
+  - seznam podporuje hledání přes jméno, e-mail, telefon i interní poznámku
+  - filtry umí omezit aktivní/neaktivní profily a přepnout řazení podle poslední návštěvy, počtu rezervací, jména nebo vytvoření
+  - detail klientky ukazuje kontakty, poslední a budoucí termín, nejčastější službu a posledních 10 rezervací
+  - interní poznámka se upravuje přímo v detailu klientky a po uložení se propisuje do obou admin oblastí
 
 ## Média a obrázky
 - Lokální filesystem adapter je v `src/lib/media/*`.
