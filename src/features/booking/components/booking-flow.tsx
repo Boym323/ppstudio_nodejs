@@ -702,7 +702,12 @@ export function BookingFlow({ catalog }: BookingFlowProps) {
             Souhrn a potvrzení
           </h3>
           <div className="mt-6 space-y-4">
-            <div className="rounded-3xl border border-black/6 bg-white/80 p-5">
+            <div
+              className={cn(
+                "rounded-3xl border border-black/6 bg-white/80 p-5 transition-all duration-150 ease-out",
+                selectedTimeOption ? "border-[var(--color-accent)]/30 shadow-[0_6px_16px_rgba(0,0,0,0.06)]" : "",
+              )}
+            >
               <p className="text-xs uppercase tracking-[0.18em] text-[var(--color-muted)]">Služba</p>
               <p className="mt-2 text-lg font-semibold text-[var(--color-foreground)]">
                 {selectedService ? selectedService.name : "Zatím nevybráno"}
