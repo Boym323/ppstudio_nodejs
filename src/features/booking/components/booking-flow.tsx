@@ -151,12 +151,12 @@ export function BookingFlow({ catalog }: BookingFlowProps) {
   }
 
   return (
-    <form action={formAction} className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
+    <form action={formAction} className="grid gap-5 sm:gap-6 lg:grid-cols-[1.15fr_0.85fr]">
       <input type="hidden" name="serviceId" value={selectedServiceId} />
       <input type="hidden" name="slotId" value={selectedSlot?.id ?? ""} />
 
-      <div className="space-y-6">
-        <section className="rounded-[var(--radius-panel)] border border-black/6 bg-white p-6 shadow-[var(--shadow-panel)] sm:p-8">
+      <div className="space-y-5 sm:space-y-6">
+        <section className="rounded-[var(--radius-panel)] border border-black/6 bg-white p-5 shadow-[var(--shadow-panel)] sm:p-7 lg:p-8">
           <div className="flex flex-wrap gap-3">
             {stepLabels.map((label, index) => {
               const stepNumber = index + 1;
@@ -186,7 +186,7 @@ export function BookingFlow({ catalog }: BookingFlowProps) {
             </div>
           ) : null}
 
-          <div className="mt-8 space-y-8">
+          <div className="mt-6 space-y-7 sm:mt-8 sm:space-y-8">
             <div className="space-y-4">
               <div className="flex items-center justify-between gap-4">
                 <div>

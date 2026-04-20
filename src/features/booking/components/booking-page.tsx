@@ -13,7 +13,7 @@ export function BookingPage({ catalog }: BookingPageProps) {
   const hasSlots = catalog.slots.length > 0;
 
   return (
-    <div className="py-16 sm:py-20">
+    <div className="py-12 sm:py-16">
       <Container className="space-y-12">
         <SectionHeading
           eyebrow="Rezervace"

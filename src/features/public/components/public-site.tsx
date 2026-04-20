@@ -43,8 +43,8 @@ function PublicHero({
 
   return (
     <section className="relative isolate overflow-hidden border-b border-black/5 bg-[radial-gradient(circle_at_top_left,rgba(226,205,182,0.5),transparent_32%),linear-gradient(180deg,#f8f2eb_0%,#f5ede4_48%,#f8f3ed_100%)]">
-      <Container className="grid gap-10 py-12 sm:py-16 lg:grid-cols-[1.08fr_0.92fr] lg:items-stretch lg:py-24">
-        <div className="space-y-7">
+      <Container className="grid gap-8 py-10 sm:gap-10 sm:py-16 lg:grid-cols-[1.08fr_0.92fr] lg:items-stretch lg:py-24">
+        <div className="space-y-6 sm:space-y-7">
           <div className="space-y-3">
             {!isHomepageStyle ? (
               <p className="text-[11px] font-semibold uppercase tracking-[0.32em] text-[var(--color-accent)]">{eyebrow}</p>
@@ -269,7 +269,7 @@ function PricingServiceRow({ service }: { service: Service }) {
 
 function CtaBand() {
   return (
-    <section className="py-12 sm:py-16">
+    <section className="py-10 sm:py-14 lg:py-16">
       <Container>
         <div className="rounded-[var(--radius-panel)] bg-[linear-gradient(135deg,#1b1613_0%,#2a211b_55%,#3a2f28_100%)] px-5 py-7 text-white shadow-[0_24px_70px_rgba(34,22,12,0.18)] sm:px-8 sm:py-10 lg:flex lg:items-center lg:justify-between lg:gap-8">
           <div className="max-w-2xl">
@@ -361,7 +361,7 @@ export async function PublicHomePage({ featuredServices = services.slice(0, 3) }
       <PublicHero {...homepageContent} />
       <TrustStrip metrics={trustMetrics} />
 
-      <section className="py-12 sm:py-16">
+      <section className="py-10 sm:py-14 lg:py-16">
         <Container className="space-y-8 sm:space-y-10">
           <SectionHeading
             eyebrow="Vybrané služby"
@@ -376,7 +376,7 @@ export async function PublicHomePage({ featuredServices = services.slice(0, 3) }
         </Container>
       </section>
 
-      <section className="py-12 sm:py-16">
+      <section className="py-10 sm:py-14 lg:py-16">
         <Container className="grid gap-6 lg:grid-cols-[1fr_0.9fr]">
           <div className="rounded-[var(--radius-panel)] border border-black/6 bg-white p-6 shadow-[var(--shadow-panel)] sm:p-8">
             <SectionHeading
@@ -422,7 +422,7 @@ export function ServicesPage({ services: catalogServices = services }: { service
         primaryCta={{ href: '/rezervace', label: 'Vybrat termín' }}
         secondaryCta={{ href: '/cenik', label: 'Zobrazit ceník' }}
       />
-      <section className="py-12 sm:py-16">
+      <section className="py-10 sm:py-14 lg:py-16">
         <Container className="space-y-8 sm:space-y-10">
           <SectionHeading
             eyebrow="Katalog služeb"
@@ -450,7 +450,7 @@ export function ServiceDetailPage({ service }: { service: Service }) {
         primaryCta={{ href: '/rezervace', label: 'Rezervovat službu' }}
         secondaryCta={{ href: '/sluzby', label: 'Zpět na služby' }}
       />
-      <section className="py-12 sm:py-16">
+      <section className="py-10 sm:py-14 lg:py-16">
         <Container className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
           <div className="rounded-[var(--radius-panel)] border border-black/6 bg-white p-6 shadow-[var(--shadow-panel)] sm:p-8">
             <div className="grid gap-5 sm:grid-cols-2">
@@ -526,7 +526,7 @@ export function PricingPage({ services: catalogServices = services }: { services
         primaryCta={{ href: '/rezervace', label: 'Vybrat termín' }}
         secondaryCta={{ href: '/sluzby', label: 'Porovnat služby' }}
       />
-      <section className="py-12 sm:py-16">
+      <section className="py-10 sm:py-14 lg:py-16">
         <Container className="space-y-6">
           <SectionHeading
             eyebrow="Aktuální přehled"
@@ -582,7 +582,7 @@ export async function ContactPage() {
         description="Ráda vám pomohu s výběrem služby i termínu. Najdete mě ve Zlíně a ozvat se můžete telefonicky, e-mailem i přes Instagram."
         primaryCta={{ href: '/rezervace', label: 'Přejít k rezervaci' }}
       />
-      <section className="py-12 sm:py-16">
+      <section className="py-10 sm:py-14 lg:py-16">
         <Container className="grid gap-6 lg:grid-cols-[1fr_0.95fr]">
           <div className="grid gap-6 sm:grid-cols-2">
             {contactItems.map((item) => (
@@ -619,7 +619,7 @@ export async function FaqPage() {
         primaryCta={{ href: '/rezervace', label: 'Najít volný termín' }}
         secondaryCta={{ href: '/kontakt', label: 'Napsat do studia' }}
       />
-      <section className="py-12 sm:py-16">
+      <section className="py-10 sm:py-14 lg:py-16">
         <Container className="space-y-6">
           {faqItems.map((item) => (
             <section key={item.question} className="rounded-[var(--radius-panel)] border border-black/6 bg-white p-5 shadow-[var(--shadow-panel)] sm:p-8">
@@ -648,7 +648,7 @@ export function LegalPage({
   return (
     <div className="pb-8 sm:pb-12">
       <PublicHero eyebrow={eyebrow} title={title} description={description} secondaryCta={{ href: '/kontakt', label: 'Potřebuji upřesnění' }} />
-      <section className="py-12 sm:py-16">
+      <section className="py-10 sm:py-14 lg:py-16">
         <Container className="space-y-6">
           <LegalSections sections={sections} />
         </Container>

@@ -35,6 +35,7 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
 - Reálné služby z DB dostávají veřejnou copy vrstvu v `src/features/public/lib/public-services.ts`, kde lze držet jemnější public názvy a krátké popisy odděleně od interních katalogových názvů.
 - Ceník na `/cenik` je členěný podle kategorií a už nepoužívá vedlejší blok s poznámkami; detail služby zůstává místem pro doplňující vysvětlení.
 - Veřejné stránky drží jednotný šířkový rytmus přes sdílený `Container` (`max-w-7xl`); při úpravách layoutu nepřidávej další globální zúžení sekcí přes `mx-auto max-w-*`.
+- Vertikální spacing veřejných sekcí je sjednocený do rytmu `py-10 / sm:py-14 / lg:py-16`; větší rozestupy používej jen pro obsahově výrazné bloky.
 - Rezervační vrstva stojí na ručně vypisovaných termínech přes `AvailabilitySlot`, ne na pevné otevírací době.
 - Admin má dva směry použití:
   - full admin na `/admin/*` pro roli `OWNER`

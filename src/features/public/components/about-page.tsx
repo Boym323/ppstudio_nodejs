@@ -9,7 +9,7 @@ function AboutProfileSection() {
   const { profile } = aboutContent;
 
   return (
-    <section className="py-12 sm:py-16">
+    <section className="py-10 sm:py-14 lg:py-16">
       <Container>
         <div className="rounded-[var(--radius-panel)] border border-[#e6dbcf] bg-white p-6 shadow-[0_18px_50px_rgba(64,42,26,0.06)] sm:p-8 lg:p-10">
           <div className="space-y-4 text-center">
@@ -43,7 +43,7 @@ function StorySection() {
   const { story } = aboutContent;
 
   return (
-    <section className="py-12 sm:py-16">
+    <section className="py-10 sm:py-14 lg:py-16">
       <Container>
         <article className="rounded-[var(--radius-panel)] border border-[#e6dbcf] bg-white p-6 shadow-[0_18px_50px_rgba(64,42,26,0.06)] sm:p-8 lg:p-10">
           <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[var(--color-accent)]">{story.eyebrow}</p>
@@ -65,7 +65,7 @@ function ApproachSection() {
   const { approach } = aboutContent;
 
   return (
-    <section className="py-12 sm:py-16">
+    <section className="py-10 sm:py-14 lg:py-16">
       <Container className="grid gap-6 lg:grid-cols-[1.02fr_0.98fr]">
         <div className="rounded-[var(--radius-panel)] border border-[#e6dbcf] bg-white p-6 shadow-[0_18px_50px_rgba(64,42,26,0.06)] sm:p-8">
           <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[var(--color-accent)]">{approach.eyebrow}</p>
@@ -98,7 +98,7 @@ function ExpectationsSection() {
   const { expectations, cta } = aboutContent;
 
   return (
-    <section className="py-12 sm:py-16">
+    <section className="py-10 sm:py-14 lg:py-16">
       <Container className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
         <div className="rounded-[var(--radius-panel)] border border-[#e6dbcf] bg-white p-6 shadow-[0_18px_50px_rgba(64,42,26,0.06)] sm:p-8 lg:p-10">
           <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[var(--color-accent)]">{expectations.eyebrow}</p>
@@ -159,7 +159,7 @@ function CertificatesSection({ certificates }: { certificates: PublicCertificate
   }
 
   return (
-    <section className="py-12 sm:py-16">
+    <section className="py-10 sm:py-14 lg:py-16">
       <Container>
         <div className="rounded-[var(--radius-panel)] border border-[#e6dbcf] bg-white p-6 shadow-[0_18px_50px_rgba(64,42,26,0.06)] sm:p-8 lg:p-10">
           <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[var(--color-accent)]">Certifikace</p>
