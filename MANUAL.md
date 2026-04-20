@@ -108,8 +108,8 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
 - Rezervační stránka je renderovaná dynamicky při requestu, takže nově publikované nebo obsazené sloty jsou vidět bez dalšího buildu.
 - Hero, sekce `O mně` a základní service copy jsou už přepsané do klidnějšího a osobnějšího tónu; další jemné úpravy je vhodné dělat centrálně v obsahové vrstvě nebo v DB copy mapě služeb.
 - Stránka `/kontakt` má nově silnější orientaci na rychlou akci:
-  - hero obsahuje quick contact card s přímými odkazy na telefon, e-mail a Instagram
-  - spodní kontaktní karty už neopakují hero kontakt; slouží hlavně pro praktické informace jako adresa a rezervační režim
+  - hero drží text + CTA vlevo a vyhrazený placeholder prostor pro budoucí fotografii vpravo
+  - spodní část kontaktu kombinuje mapový náhled a quick contact blok s telefonem, e-mailem, Instagramem a údajem o provozovateli
   - spodní CTA blok rozlišuje dvě cesty rozhodnutí (rovnou rezervace vs. nejdřív kontakt)
   - na mobilu je dole sticky CTA lišta s rychlou rezervací, voláním a e-mail kontaktem
 - Stránka `/o-mne` má vlastní modulární implementaci s profilem, příběhem, přístupem, očekáváními a jemným CTA; texty jsou připravené v `aboutContent`.

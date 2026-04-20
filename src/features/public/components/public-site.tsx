@@ -16,11 +16,11 @@ import {
 import { Container } from '@/components/ui/container';
 import { SectionHeading } from '@/components/ui/section-heading';
 import {
-  ContactCard,
   ContactCTA,
   ContactHero,
   ContactMapPreviewCard,
   ContactMobileStickyCTA,
+  QuickContactCard,
 } from '@/features/public/components/contact-sections';
 import { getBookingPolicySettings, getPublicSalonProfile } from '@/lib/site-settings';
 
@@ -558,51 +558,26 @@ export async function ContactPage() {
     instagramUrl: salonProfile.instagramUrl,
   });
   const addressItem = contactItems.find((item) => item.label === 'Adresa salonu');
-  const practicalContactItems = [
-    {
-      label: 'Provozovatel',
-      value: 'Pavlína Pomykalová',
-      note: 'IČ: 234 275 66',
-    },
-    {
-      label: 'Rezervační režim',
-      value: salonProfile.bookingLabel,
-      href: '/rezervace',
-      note: 'Volné termíny najdete přehledně online, bez zbytečného čekání na odpověď.',
-    },
-  ];
 
   return (
     <div className="pb-24 sm:pb-12">
       <ContactHero
         title="Pokud si nejste jistá, napište mi."
         description="Ráda vám pomohu s výběrem služby i termínu. Najdete mě ve Zlíně a ozvat se můžete telefonicky, e-mailem i přes Instagram."
-        phone={salonProfile.phone}
         email={salonProfile.email}
-        instagramUrl={salonProfile.instagramUrl}
       />
       <section id="kontaktni-karty" className="py-8 sm:py-12 lg:py-14">
         <Container className="grid gap-6 lg:grid-cols-[1fr_0.95fr]">
           <div className="space-y-6">
-            {addressItem ? (
-              <ContactMapPreviewCard address={addressItem.value} href={addressItem.href ?? '#'} />
-            ) : null}
-            <div className="grid gap-6 sm:grid-cols-2">
-              {practicalContactItems.map((item) => (
-                <ContactCard key={item.label} item={item} />
-              ))}
-            </div>
+            {addressItem ? <ContactMapPreviewCard address={addressItem.value} href={addressItem.href ?? '#'} /> : null}
           </div>
-          <div className="rounded-[var(--radius-panel)] border border-black/6 bg-white p-6 shadow-[var(--shadow-panel)] sm:p-8">
-            <SectionHeading
-              eyebrow="Když váháte"
-              title="S výběrem služby vám ráda pomohu."
-            />
-            <div className="mt-8 space-y-4 text-[15px] leading-7 text-[var(--color-muted)] sm:text-base">
-              <p>Nejste si jistá, kterou službu zvolit? Stačí krátká zpráva nebo orientační rezervace.</p>
-              <p>Podle stavu pleti a vašeho cíle společně vybereme péči, která vám bude dávat smysl.</p>
-            </div>
-          </div>
+          <QuickContactCard
+            phone={salonProfile.phone}
+            email={salonProfile.email}
+            instagramUrl={salonProfile.instagramUrl}
+            operatorName="Pavlína Pomykalová"
+            operatorId="234 275 66"
+          />
         </Container>
       </section>
       <ContactCTA email={salonProfile.email} />

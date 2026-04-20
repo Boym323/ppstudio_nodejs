@@ -27,17 +27,37 @@ function ContactIconMessage() {
   );
 }
 
+function ContactIconInstagram() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8">
+      <rect x="3" y="3" width="18" height="18" rx="5" />
+      <circle cx="12" cy="12" r="4" />
+      <circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
 type ContactHeroProps = {
   title: string;
   description: string;
-  phone: string;
   email: string;
-  instagramUrl: string | null;
 };
 
-export function ContactHero({ title, description, phone, email, instagramUrl }: ContactHeroProps) {
-  const instagramValue = instagramUrl?.replace(/^https?:\/\/(www\.)?/i, '') ?? 'instagram.com';
+function ContactHeroPhotoPlaceholder() {
+  return (
+    <div className="w-full rounded-[calc(var(--radius-panel)-0.25rem)] border border-dashed border-[#dacaba] bg-[linear-gradient(180deg,#f8f2eb_0%,#f3e8db_100%)] p-6 shadow-[var(--shadow-panel)] sm:p-8">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[var(--color-accent)]">Prostor pro fotografii</p>
+      <div className="mt-4 flex min-h-[14rem] items-center justify-center rounded-[calc(var(--radius-panel)-0.6rem)] border border-[#dfcfbe] bg-white/65 p-5 sm:min-h-[17rem]">
+        <p className="max-w-sm text-center text-sm leading-6 text-[var(--color-muted)]">
+          Sem doplníme vaši finální fotografii. Po nahrání ji můžeme zobrazit místo tohoto placeholderu.
+        </p>
+      </div>
+    </div>
+  );
+}
 
+export function ContactHero({ title, description, email }: ContactHeroProps) {
+  
   return (
     <section className="relative isolate overflow-hidden border-b border-black/5 bg-[radial-gradient(circle_at_top_left,rgba(226,205,182,0.5),transparent_32%),linear-gradient(180deg,#f8f2eb_0%,#f5ede4_48%,#f8f3ed_100%)]">
       <Container className="grid gap-8 py-10 sm:gap-10 sm:py-14 lg:grid-cols-[1.04fr_0.96fr] lg:items-stretch lg:py-20">
@@ -65,31 +85,7 @@ export function ContactHero({ title, description, phone, email, instagramUrl }: 
           </div>
         </div>
         <aside className="flex">
-          <div className="w-full rounded-[calc(var(--radius-panel)-0.25rem)] border border-white/75 bg-white/82 p-5 shadow-[var(--shadow-panel)] backdrop-blur sm:p-6">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-[var(--color-accent)]">Rychlý kontakt</p>
-            <div className="mt-5 space-y-4">
-              <a href={getSafeTelHref(phone)} className="block rounded-2xl border border-black/8 bg-[#fcf7f1] px-4 py-3 hover:border-black/15">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--color-accent)]">Telefon</p>
-                <p className="mt-1.5 text-[15px] leading-6 text-[var(--color-foreground)]">{phone}</p>
-              </a>
-              <a href={`mailto:${email}`} className="block rounded-2xl border border-black/8 bg-[#fcf7f1] px-4 py-3 hover:border-black/15">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--color-accent)]">E-mail</p>
-                <p className="mt-1.5 text-[15px] leading-6 text-[var(--color-foreground)]">{email}</p>
-              </a>
-              {instagramUrl ? (
-                <a
-                  href={instagramUrl}
-                  target="_blank"
-                  rel="noreferrer noopener"
-                  className="block rounded-2xl border border-black/8 bg-[#fcf7f1] px-4 py-3 hover:border-black/15"
-                >
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--color-accent)]">Instagram</p>
-                  <p className="mt-1.5 text-[15px] leading-6 text-[var(--color-foreground)]">{instagramValue}</p>
-                </a>
-              ) : null}
-            </div>
-            <p className="mt-4 text-sm leading-6 text-[var(--color-muted)]">Odpovím co nejdříve, ať máte v dalším kroku jistotu.</p>
-          </div>
+          <ContactHeroPhotoPlaceholder />
         </aside>
       </Container>
     </section>
@@ -176,6 +172,72 @@ export function ContactMapPreviewCard({ address, href }: ContactMapPreviewCardPr
         </div>
       </div>
     </a>
+  );
+}
+
+type QuickContactCardProps = {
+  phone: string;
+  email: string;
+  instagramUrl: string | null;
+  operatorName: string;
+  operatorId: string;
+};
+
+export function QuickContactCard({
+  phone,
+  email,
+  instagramUrl,
+  operatorName,
+  operatorId,
+}: QuickContactCardProps) {
+  const instagramValue = instagramUrl?.replace(/^https?:\/\/(www\.)?/i, '') ?? 'instagram.com';
+
+  return (
+    <div className="rounded-[var(--radius-panel)] border border-black/6 bg-white p-6 shadow-[var(--shadow-panel)] sm:p-8">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-[var(--color-accent)]">Rychlý kontakt</p>
+      <div className="mt-5 rounded-[calc(var(--radius-panel)-0.55rem)] border border-black/6 bg-[#fffcf8] p-4">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--color-accent)]">Provozovatel</p>
+        <p className="mt-1.5 text-[15px] leading-6 text-[var(--color-foreground)]">{operatorName}</p>
+        <p className="mt-1 text-sm leading-6 text-[var(--color-muted)]">IČ: {operatorId}</p>
+      </div>
+      <div className="mt-5 space-y-3.5">
+        <a
+          href={getSafeTelHref(phone)}
+          className="flex items-center gap-3 rounded-2xl border border-black/8 bg-[#fcf7f1] px-4 py-3 hover:border-black/15"
+          aria-label={`Telefon ${phone}`}
+        >
+          <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-black/10 bg-white text-[var(--color-foreground)]">
+            <ContactIconPhone />
+          </span>
+          <span className="text-[15px] leading-6 text-[var(--color-foreground)]">{phone}</span>
+        </a>
+        <a
+          href={`mailto:${email}`}
+          className="flex items-center gap-3 rounded-2xl border border-black/8 bg-[#fcf7f1] px-4 py-3 hover:border-black/15"
+          aria-label={`E-mail ${email}`}
+        >
+          <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-black/10 bg-white text-[var(--color-foreground)]">
+            <ContactIconMessage />
+          </span>
+          <span className="text-[15px] leading-6 text-[var(--color-foreground)]">{email}</span>
+        </a>
+        {instagramUrl ? (
+          <a
+            href={instagramUrl}
+            target="_blank"
+            rel="noreferrer noopener"
+            className="flex items-center gap-3 rounded-2xl border border-black/8 bg-[#fcf7f1] px-4 py-3 hover:border-black/15"
+            aria-label={`Instagram ${instagramValue}`}
+          >
+            <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-black/10 bg-white text-[var(--color-foreground)]">
+              <ContactIconInstagram />
+            </span>
+            <span className="text-[15px] leading-6 text-[var(--color-foreground)]">{instagramValue}</span>
+          </a>
+        ) : null}
+      </div>
+      <p className="mt-4 text-sm leading-6 text-[var(--color-muted)]">Odpovím co nejdříve, ať máte v dalším kroku jistotu.</p>
+    </div>
   );
 }
 

@@ -41,10 +41,12 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Reusable page sekce jsou ve `src/features/public/components/public-site.tsx`.
 - Kontaktní stránka má vlastní modulární sekce v `src/features/public/components/contact-sections.tsx`:
   - `ContactHero`
+  - `ContactMapPreviewCard`
+  - `QuickContactCard`
   - `ContactCard`
   - `ContactCTA`
   - `ContactMobileStickyCTA`
-- Kontakt data (`buildContactItems`) drží i provozní mikrocopy a Google Maps deep-link pro adresu, takže cards zůstávají plně klikací bez ad-hoc link logiky v JSX.
+- Kontakt data (`buildContactItems`) drží i provozní mikrocopy a Google Maps deep-link pro adresu; aktuální skladba stránky používá především map preview a pravý quick contact panel.
 - Stránka `/o-mne` už neběží jako jeden blok v `public-site.tsx`; vlastní skladba je v `src/features/public/components/about-page.tsx`.
 - `aboutContent` v `src/content/public-site.ts` používá strukturovaný model (`profile`, `story`, `approach`, `expectations`, `cta`), aby bylo možné copy upravovat bez zásahu do layoutu.
 - Pro konzistentní vizuální rytmus napříč veřejnými stránkami drž hlavní obsah v jednotném wrapperu `Container` (`max-w-7xl`) a vyhýbej se dalším globálním zúžením přes `mx-auto max-w-*` na úrovni celé sekce.

@@ -73,6 +73,7 @@ Formát je inspirovaný Keep a Changelog.
 - Týdenní planner dostupností pro `OWNER` i `SALON` nyní zobrazuje rezervace, omezené intervaly, neaktivní sloty i minulý čas v jednom klidném kalendáři.
 
 ### Changed
+- Stránka `/kontakt` byla zjednodušená podle aktuálního UX zadání: sekce `Když váháte`, `Provozovatel` a `Rezervační režim` byly odstraněny, `Rychlý kontakt` se přesunul do pravého sloupce pod mapu (včetně údajů provozovatele) a pravý panel hero nyní drží vyhrazený placeholder prostor pro budoucí fotografii.
 - `Map preview card` na `/kontakt` už nepoužívá jen stylizovaný placeholder; nově zobrazuje skutečný mapový náhled adresy s jemným overlayem a odkazem do Google Maps.
 - Kontaktní stránka doplnila pod praktické informace klidný `map preview card` s přímým odkazem do Google Maps; adresa už se nezobrazuje dvakrát jako samostatná malá karta.
 - Stránka `/kontakt` už neopakuje stejné kontaktní údaje ve dvou blocích za sebou: hero drží rychlý kontakt, spodní karty teď slouží jen pro praktické informace (`adresa`, režim rezervace).
