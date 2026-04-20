@@ -73,6 +73,7 @@ Formát je inspirovaný Keep a Changelog.
 - Týdenní planner dostupností pro `OWNER` i `SALON` nyní zobrazuje rezervace, omezené intervaly, neaktivní sloty i minulý čas v jednom klidném kalendáři.
 
 ### Changed
+- Sjednocené šířky veřejných layoutů: stránky `/o-mne`, `/cenik` a booking error fallback už nepoužívají dodatečné zúžené wrappery (`max-w-4xl`, `max-w-5xl`, `max-w-[52rem]`, `max-w-3xl`) a drží jednotný `Container` rytmus (`max-w-7xl`).
 - Veřejná sekce certifikátů na `/o-mne` už neřeže portrait soubory (`object-contain`) a nově podporuje klikací zvětšení v lightboxu.
 - Stránka `/o-mne` byla zjednodušená blíž původnímu webu: bez portrétní fotky a bez sekce certifikátů, s přímočařejší skladbou `hero -> profil -> Můj příběh -> Můj přístup -> Na co se můžete těšit -> jemné CTA`.
 - Implementace stránky `O mně` v `src/features/public/components/about-page.tsx` byla vizuálně zklidněná a obsahový model `aboutContent` byl zúžený jen na bloky, které jsou teď na stránce skutečně použité.

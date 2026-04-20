@@ -1,5 +1,7 @@
 "use client";
 
+import { Container } from "@/components/ui/container";
+
 export default function BookingError({
   error,
   reset,
@@ -8,7 +10,7 @@ export default function BookingError({
   reset: () => void;
 }) {
   return (
-    <div className="mx-auto w-full max-w-3xl px-4 py-16 sm:px-6 sm:py-20">
+    <Container className="py-16 sm:py-20">
       <section className="rounded-[var(--radius-panel)] border border-black/6 bg-white p-8 shadow-[var(--shadow-panel)]">
         <p className="text-xs font-semibold uppercase tracking-[0.32em] text-[var(--color-accent)]">
           Rezervace
@@ -41,6 +43,6 @@ export default function BookingError({
           </a>
         </div>
       </section>
-    </div>
+    </Container>
   );
 }

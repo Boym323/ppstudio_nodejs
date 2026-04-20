@@ -41,6 +41,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Reusable page sekce jsou ve `src/features/public/components/public-site.tsx`.
 - Stránka `/o-mne` už neběží jako jeden blok v `public-site.tsx`; vlastní skladba je v `src/features/public/components/about-page.tsx`.
 - `aboutContent` v `src/content/public-site.ts` používá strukturovaný model (`profile`, `story`, `approach`, `expectations`, `cta`), aby bylo možné copy upravovat bez zásahu do layoutu.
+- Pro konzistentní vizuální rytmus napříč veřejnými stránkami drž hlavní obsah v jednotném wrapperu `Container` (`max-w-7xl`) a vyhýbej se dalším globálním zúžením přes `mx-auto max-w-*` na úrovni celé sekce.
 - Placeholder obsah musí být jasně odlišen od finálních produkčních textů.
 - Pokud je interní název služby příliš technický nebo exportovaný ze starého webu, nepřepisuj DB záznam jen kvůli public copy; preferuj public override v read modelu.
 - CTA na rezervaci držet konzistentně v headeru, hero sekcích a kontextových blocích.

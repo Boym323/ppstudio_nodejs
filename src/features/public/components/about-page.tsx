@@ -11,7 +11,7 @@ function AboutProfileSection() {
   return (
     <section className="py-12 sm:py-16">
       <Container>
-        <div className="mx-auto max-w-4xl rounded-[var(--radius-panel)] border border-[#e6dbcf] bg-white p-6 shadow-[0_18px_50px_rgba(64,42,26,0.06)] sm:p-8 lg:p-10">
+        <div className="rounded-[var(--radius-panel)] border border-[#e6dbcf] bg-white p-6 shadow-[0_18px_50px_rgba(64,42,26,0.06)] sm:p-8 lg:p-10">
           <div className="space-y-4 text-center">
             <h2 className="font-display text-3xl leading-[1.04] text-[var(--color-foreground)] sm:text-4xl">
               {profile.name}
@@ -45,7 +45,7 @@ function StorySection() {
   return (
     <section className="py-12 sm:py-16">
       <Container>
-        <article className="mx-auto max-w-4xl rounded-[var(--radius-panel)] border border-[#e6dbcf] bg-white p-6 shadow-[0_18px_50px_rgba(64,42,26,0.06)] sm:p-8 lg:p-10">
+        <article className="rounded-[var(--radius-panel)] border border-[#e6dbcf] bg-white p-6 shadow-[0_18px_50px_rgba(64,42,26,0.06)] sm:p-8 lg:p-10">
           <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[var(--color-accent)]">{story.eyebrow}</p>
           <h2 className="mt-4 font-display text-3xl leading-[1.08] text-[var(--color-foreground)] sm:text-4xl">
             {story.title}
@@ -66,7 +66,7 @@ function ApproachSection() {
 
   return (
     <section className="py-12 sm:py-16">
-      <Container className="mx-auto grid max-w-4xl gap-6 lg:grid-cols-[1.02fr_0.98fr]">
+      <Container className="grid gap-6 lg:grid-cols-[1.02fr_0.98fr]">
         <div className="rounded-[var(--radius-panel)] border border-[#e6dbcf] bg-white p-6 shadow-[0_18px_50px_rgba(64,42,26,0.06)] sm:p-8">
           <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[var(--color-accent)]">{approach.eyebrow}</p>
           <h2 className="mt-4 font-display text-3xl leading-[1.08] text-[var(--color-foreground)] sm:text-4xl">
@@ -99,7 +99,7 @@ function ExpectationsSection() {
 
   return (
     <section className="py-12 sm:py-16">
-      <Container className="mx-auto grid max-w-4xl gap-6 lg:grid-cols-[1.05fr_0.95fr]">
+      <Container className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
         <div className="rounded-[var(--radius-panel)] border border-[#e6dbcf] bg-white p-6 shadow-[0_18px_50px_rgba(64,42,26,0.06)] sm:p-8 lg:p-10">
           <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[var(--color-accent)]">{expectations.eyebrow}</p>
           <h2 className="mt-4 font-display text-3xl leading-[1.08] text-[var(--color-foreground)] sm:text-4xl">
@@ -161,7 +161,7 @@ function CertificatesSection({ certificates }: { certificates: PublicCertificate
   return (
     <section className="py-12 sm:py-16">
       <Container>
-        <div className="mx-auto max-w-5xl rounded-[var(--radius-panel)] border border-[#e6dbcf] bg-white p-6 shadow-[0_18px_50px_rgba(64,42,26,0.06)] sm:p-8 lg:p-10">
+        <div className="rounded-[var(--radius-panel)] border border-[#e6dbcf] bg-white p-6 shadow-[0_18px_50px_rgba(64,42,26,0.06)] sm:p-8 lg:p-10">
           <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[var(--color-accent)]">Certifikace</p>
           <h2 className="mt-4 font-display text-3xl leading-[1.08] text-[var(--color-foreground)] sm:text-4xl">
             Odbornost průběžně rozvíjím na odborných školeních.

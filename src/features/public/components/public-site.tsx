@@ -528,14 +528,12 @@ export function PricingPage({ services: catalogServices = services }: { services
       />
       <section className="py-12 sm:py-16">
         <Container className="space-y-6">
-          <div className="mx-auto max-w-4xl space-y-6">
-            <SectionHeading
-              eyebrow="Aktuální přehled"
-              title="Ceník rozdělený tak, aby se v něm dalo rozhodovat s větší jistotou."
-              description="Pokud si nejste jistá volbou, ráda vám s výběrem služby pomohu osobně."
-            />
-          </div>
-          <div className="mx-auto max-w-[52rem] space-y-8">
+          <SectionHeading
+            eyebrow="Aktuální přehled"
+            title="Ceník rozdělený tak, aby se v něm dalo rozhodovat s větší jistotou."
+            description="Pokud si nejste jistá volbou, ráda vám s výběrem služby pomohu osobně."
+          />
+          <div className="space-y-8">
             {groupedServices.map((group) => (
               <section
                 key={group.category}
