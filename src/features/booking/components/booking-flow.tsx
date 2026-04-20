@@ -153,8 +153,13 @@ export function BookingFlow({ catalog }: BookingFlowProps) {
   const [selectedDateKey, setSelectedDateKey] = useState("");
   const [visibleMonthKey, setVisibleMonthKey] = useState("");
   const [isTermStepHighlighted, setIsTermStepHighlighted] = useState(false);
+  const [isContactStepHighlighted, setIsContactStepHighlighted] = useState(false);
   const termStepSectionRef = useRef<HTMLDivElement | null>(null);
   const termStepHighlightTimeoutRef = useRef<number | null>(null);
+  const contactStepSectionRef = useRef<HTMLDivElement | null>(null);
+  const firstContactInputRef = useRef<HTMLInputElement | null>(null);
+  const contactStepHighlightTimeoutRef = useRef<number | null>(null);
+  const contactStepFocusTimeoutRef = useRef<number | null>(null);
 
   const focusTermStepSection = () => {
     const sectionElement = termStepSectionRef.current;
@@ -196,10 +201,71 @@ export function BookingFlow({ catalog }: BookingFlowProps) {
     });
   };
 
+  const focusContactStepSection = () => {
+    const sectionElement = contactStepSectionRef.current;
+    const firstInputElement = firstContactInputRef.current;
+
+    if (!sectionElement || !firstInputElement) {
+      return;
+    }
+
+    if (contactStepHighlightTimeoutRef.current !== null) {
+      window.clearTimeout(contactStepHighlightTimeoutRef.current);
+    }
+
+    if (contactStepFocusTimeoutRef.current !== null) {
+      window.clearTimeout(contactStepFocusTimeoutRef.current);
+    }
+
+    setIsContactStepHighlighted(true);
+    contactStepHighlightTimeoutRef.current = window.setTimeout(() => {
+      setIsContactStepHighlighted(false);
+      contactStepHighlightTimeoutRef.current = null;
+    }, 900);
+
+    window.requestAnimationFrame(() => {
+      const rect = sectionElement.getBoundingClientRect();
+      const topSafeArea = 120;
+      const bottomSafeArea = 64;
+      const isComfortablyVisible =
+        rect.top >= topSafeArea && rect.bottom <= window.innerHeight - bottomSafeArea;
+
+      const focusFirstInput = () => {
+        firstInputElement.focus({ preventScroll: true });
+      };
+
+      if (isComfortablyVisible) {
+        focusFirstInput();
+        return;
+      }
+
+      const desktopOffset = 104;
+      const mobileOffset = 72;
+      const targetTop =
+        window.scrollY + rect.top - (window.innerWidth >= 1024 ? desktopOffset : mobileOffset);
+
+      window.scrollTo({
+        top: Math.max(0, targetTop),
+        behavior: "smooth",
+      });
+
+      contactStepFocusTimeoutRef.current = window.setTimeout(() => {
+        focusFirstInput();
+        contactStepFocusTimeoutRef.current = null;
+      }, 280);
+    });
+  };
+
   useEffect(() => {
     return () => {
       if (termStepHighlightTimeoutRef.current !== null) {
         window.clearTimeout(termStepHighlightTimeoutRef.current);
+      }
+      if (contactStepHighlightTimeoutRef.current !== null) {
+        window.clearTimeout(contactStepHighlightTimeoutRef.current);
+      }
+      if (contactStepFocusTimeoutRef.current !== null) {
+        window.clearTimeout(contactStepFocusTimeoutRef.current);
       }
     };
   }, []);
@@ -642,6 +708,7 @@ export function BookingFlow({ catalog }: BookingFlowProps) {
 
                           setSelectedTimeOptionKey(slotOption.key);
                           setCurrentStep(3);
+                          focusContactStepSection();
                         }}
                       />
                     ))}
@@ -658,7 +725,15 @@ export function BookingFlow({ catalog }: BookingFlowProps) {
               ) : null}
             </div>
 
-            <div className="space-y-4">
+            <div
+              ref={contactStepSectionRef}
+              className={cn(
+                "space-y-4 rounded-3xl transition-all duration-300",
+                isContactStepHighlighted
+                  ? "bg-[var(--color-surface-strong)]/25 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]"
+                  : "",
+              )}
+            >
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.32em] text-[var(--color-accent)]">
@@ -685,6 +760,7 @@ export function BookingFlow({ catalog }: BookingFlowProps) {
                     Jméno a příjmení
                   </span>
                   <input
+                    ref={firstContactInputRef}
                     name="fullName"
                     value={fullName}
                     onChange={(event) => setFullName(event.target.value)}
