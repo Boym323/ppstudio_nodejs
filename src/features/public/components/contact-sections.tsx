@@ -57,10 +57,10 @@ function ContactHeroPhotoPlaceholder() {
             PP Studio
           </div>
           <p className="mt-4 max-w-sm font-display text-3xl leading-[1.06] text-[var(--color-foreground)] sm:text-4xl">
-            Osobni pece v klidnem, soukromem prostredi.
+            Osobní péče v klidném, soukromém prostředí.
           </p>
           <p className="mt-3 max-w-md text-sm leading-6 text-[var(--color-muted)]">
-            Misto pro hlavni fotografii studia nebo majitelky, ktera doplni prvni dojem prirozene a bez vizualniho hluku.
+            Místo pro hlavní fotografii studia nebo majitelky, která doplní první dojem přirozeně a bez vizuálního hluku.
           </p>
         </div>
       </div>
@@ -201,14 +201,14 @@ export function ContactMapPreviewCard({ address, href }: ContactMapPreviewCardPr
       </div>
       <div className="flex flex-1 flex-col justify-between gap-5 p-5 sm:p-6">
         <div className="space-y-2.5">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--color-accent)]">Jak se k nam dostanete</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--color-accent)]">Jak se k nám dostanete</p>
           <p className="font-display text-[1.7rem] leading-[1.02] tracking-[-0.02em] text-[var(--color-foreground)] sm:text-[1.85rem]">
             {address}
           </p>
         </div>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="max-w-md text-[15px] leading-7 text-[var(--color-muted)]">
-            Otevrete trasu v Google Maps a dorazite bez zbytecneho hledani.
+            Otevřete trasu v Google Maps a dorazíte bez zbytečného hledání.
           </p>
           <span className="inline-flex min-h-11 shrink-0 items-center justify-center self-start rounded-full border border-black/10 bg-[var(--color-surface)] px-5 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-foreground)] transition group-hover:border-black/20 group-hover:bg-[#f5ede4] sm:self-auto">
             Otevřít mapu
@@ -245,11 +245,11 @@ export function QuickContactCard({
         <p className="mt-2 font-display text-[1.9rem] leading-[1.04] text-[var(--color-foreground)]">{operatorName}</p>
         <div className="mt-4 grid gap-3 border-t border-[#eadfd2] pt-4 sm:grid-cols-2">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--color-accent)]">IC</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--color-accent)]">IČ</p>
             <p className="mt-1 text-sm leading-6 text-[var(--color-muted)]">{operatorId}</p>
           </div>
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--color-accent)]">Oteviraci doba</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--color-accent)]">Otevírací doba</p>
             <p className="mt-1 text-sm leading-6 text-[var(--color-muted)]">{openingHours}</p>
           </div>
         </div>

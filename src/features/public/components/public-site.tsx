@@ -579,7 +579,7 @@ export async function ContactPage() {
             instagramUrl={salonProfile.instagramUrl}
             operatorName="Pavlína Pomykalová"
             operatorId="234 275 66"
-            openingHours="Po-Pa: Dle objednavek"
+            openingHours="Po-Pá: Dle objednávek"
           />
         </Container>
       </section>
