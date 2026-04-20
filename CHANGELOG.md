@@ -142,6 +142,7 @@ Formát je inspirovaný Keep a Changelog.
 - Dokumentace byla srovnaná s aktuálním kódem: týdenní planner, `EMAIL_DELIVERY_MODE=background` a produkční migrace přes `prisma migrate deploy`.
 
 ### Fixed
+- Veřejná rezervace už nepadá při prázdném telefonu na Prisma `P2011` (`Null constraint violation`): DB sloupec `Booking.clientPhoneSnapshot` je nově nullable migrací `20260420125500_booking_client_phone_nullable_fix` a historicky rozjetý název PK constraintu byl sjednocen migrací `20260420130500_rename_booking_primary_key_constraint`.
 - Admin auth redirecty (`/api/auth/login`, `/api/auth/logout` a guard v `proxy.ts`) nyní skládají absolutní URL přes `x-forwarded-host`/`x-forwarded-proto` (s fallbackem na `request.url`), takže při provozu za reverzní proxy nepřepisují doménu na interní `localhost`.
 - Rozpadlý layout homepage hero po přidání loga: logo má nově fixní render box s `next/image` `fill`, takže už neroztahuje levý sloupec.
 - Homepage hero na desktopu už není přilepený ke spodní hraně (`lg:items-center` místo `lg:items-end`) a portrét má klidnější výšku, takže vlevo nevzniká velká prázdná plocha.

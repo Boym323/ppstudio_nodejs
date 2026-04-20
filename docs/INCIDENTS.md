@@ -11,7 +11,12 @@ Evidence produkčních incidentů a jejich řešení.
 - Preventivní opatření
 
 ## Incidenty
-- Zatím bez záznamu.
+- Datum a čas: 2026-04-20 14:46 CEST
+  Dopad (uživatelé/systém): veřejné odeslání formuláře `/rezervace` mohlo skončit obecnou chybou `UNEXPECTED_ERROR` místo potvrzení rezervace, pokud klientka nevyplnila telefon.
+  Příčina: drift mezi Prisma modelem a DB schématem; `Booking.clientPhoneSnapshot` byl v DB `NOT NULL`, ale aplikační logika ho používá jako volitelné pole.
+  Okamžité řešení: rollback neúspěšné migrace a bezpečné nasazení opravné migrace `20260420125500_booking_client_phone_nullable_fix`.
+  Trvalá oprava: sloupec `clientPhoneSnapshot` je nullable; navíc byla přidána migrace `20260420130500_rename_booking_primary_key_constraint`, aby byl stav DB plně konzistentní se schématem.
+  Preventivní opatření: před nasazením pouštět `npm run db:check-migrations` a po změnách schématu ověřit diff `prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --script`.
 
 ## Doporučené sledované oblasti
 - Cross-origin blokace Next.js dev assetů (`/_next/webpack-hmr`, overlay, refresh endpointy) při otevření lokálního dev serveru z jiného zařízení nebo hostname, který není v `allowedDevOrigins`.
