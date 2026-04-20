@@ -289,4 +289,5 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Ověř přidání delšího úseku tažením a následné sloučení do jednoho `AvailabilitySlot`.
 - Ověř odebrání části dostupnosti ze zeleného bloku a správné rozdělení na zbylé intervaly.
 - Ověř, že zásah do rezervace nebo omezeného slotu vrátí srozumitelnou chybu a nic nepřepíše.
+- Ověř, že slot s historickou rezervací (`CANCELLED`/`COMPLETED`/`NO_SHOW`) planner nebere jako editovatelný a interval zobrazí jako uzamčený.
 - Ověř kopírování dne, kopírování týdne a použití lokální šablony.

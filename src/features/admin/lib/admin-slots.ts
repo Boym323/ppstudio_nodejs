@@ -470,11 +470,6 @@ export async function getAdminPlannerWeek(area: AdminArea, week?: string | null)
           },
         },
         bookings: {
-          where: {
-            status: {
-              in: [...ACTIVE_BOOKING_STATUSES],
-            },
-          },
           select: {
             id: true,
             status: true,
@@ -548,6 +543,11 @@ export async function getAdminPlannerWeek(area: AdminArea, week?: string | null)
         } satisfies PlannerBooking;
       })
       .filter((booking): booking is PlannerBooking => booking !== null);
+    const activeBookingsBySlotId = new Map<string, number>();
+
+    for (const booking of dayBookings) {
+      activeBookingsBySlotId.set(booking.slotId, (activeBookingsBySlotId.get(booking.slotId) ?? 0) + 1);
+    }
 
     const intervals: PlannerInterval[] = daySlots
       .flatMap((slot) => {
@@ -566,7 +566,7 @@ export async function getAdminPlannerWeek(area: AdminArea, week?: string | null)
           return [];
         }
 
-        const activeBookings = slot.bookings;
+        const activeBookingCount = activeBookingsBySlotId.get(slot.id) ?? 0;
         const plainEditable = slot.status === AvailabilitySlotStatus.PUBLISHED && isPlainEditableSlot(slot);
 
         if (slot.status !== AvailabilitySlotStatus.PUBLISHED) {
@@ -576,7 +576,7 @@ export async function getAdminPlannerWeek(area: AdminArea, week?: string | null)
             endCell: cells.endCell,
             label: formatTimeRange(clipped.startsAt, clipped.endsAt),
             status: "inactive",
-            bookingCount: activeBookings.length,
+            bookingCount: activeBookingCount,
             canEdit: false,
             detail: "Neaktivní nebo interní interval",
           } satisfies PlannerInterval];
@@ -619,9 +619,9 @@ export async function getAdminPlannerWeek(area: AdminArea, week?: string | null)
                 endCell: bookingCells.endCell,
                 label: formatTimeRange(bookedRange.startsAt, bookedRange.endsAt),
                 status: "booked",
-                bookingCount: activeBookings.length,
+                bookingCount: activeBookingCount,
                 canEdit: false,
-                detail: `${activeBookings.length} rezervace`,
+                detail: `${activeBookingCount} rezervace`,
               } satisfies PlannerInterval;
             })
             .filter((interval): interval is PlannerInterval => interval !== null);
@@ -640,7 +640,7 @@ export async function getAdminPlannerWeek(area: AdminArea, week?: string | null)
                 endCell: freeCells.endCell,
                 label: formatTimeRange(freeRange.startsAt, freeRange.endsAt),
                 status: "locked",
-                bookingCount: activeBookings.length,
+                bookingCount: activeBookingCount,
                 canEdit: false,
                 detail: "Zbytek intervalu je svázaný existující rezervací.",
               } satisfies PlannerInterval;
@@ -669,12 +669,14 @@ export async function getAdminPlannerWeek(area: AdminArea, week?: string | null)
           endCell: cells.endCell,
           label: formatTimeRange(clipped.startsAt, clipped.endsAt),
           status: "locked",
-          bookingCount: activeBookings.length,
+          bookingCount: activeBookingCount,
           canEdit: false,
           detail: slot.allowedServices.length > 0
             ? "Omezeno na vybrané služby"
             : slot.capacity !== EDITABLE_SLOT_CAPACITY
               ? `Kapacita ${slot.capacity}`
+              : slot.bookings.length > 0
+                ? "Slot obsahuje navázané rezervace a nejde upravit přímo v planneru."
               : slot.publicNote ?? slot.internalNote ?? "Vyžaduje detailní správu",
         } satisfies PlannerInterval];
       })
@@ -808,11 +810,6 @@ async function getEditableDayState(tx: Prisma.TransactionClient, dateKey: string
         },
       },
       bookings: {
-        where: {
-          status: {
-            in: [...ACTIVE_BOOKING_STATUSES],
-          },
-        },
         select: {
           id: true,
           status: true,
