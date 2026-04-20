@@ -22,12 +22,12 @@ export function TimeSlotButton({
       onClick={onClick}
       aria-pressed={isSelected}
       className={cn(
-        "inline-flex min-h-10 items-center justify-center rounded-xl border px-3 py-1.5 text-[13px] font-semibold transition-colors outline-none sm:text-sm",
+        "inline-flex min-h-10 items-center justify-center rounded-xl border px-3 py-1.5 text-[13px] font-semibold transition-all outline-none sm:text-sm",
         isSelected
-          ? "border-[var(--color-accent)] bg-[var(--color-accent)] text-[var(--color-accent-contrast)] shadow-sm"
-          : "border-black/8 bg-white text-[var(--color-foreground)] hover:border-[var(--color-accent)]/35 hover:bg-[var(--color-surface)]/45 focus-visible:border-[var(--color-accent)] focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/20",
+          ? "border-[var(--color-accent)] bg-[var(--color-accent)] text-white shadow-[0_8px_20px_rgba(0,0,0,0.16)] ring-2 ring-[var(--color-accent)]/30 ring-offset-1 ring-offset-white"
+          : "border-black/8 bg-[var(--color-surface)]/45 text-[var(--color-muted)] hover:border-[var(--color-accent)]/30 hover:bg-white hover:text-[var(--color-foreground)] focus-visible:border-[var(--color-accent)] focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/20",
         isDisabled
-          ? "cursor-not-allowed border-black/6 bg-[var(--color-surface)]/25 text-[var(--color-muted)] opacity-45 hover:border-black/6 hover:bg-[var(--color-surface)]/25"
+          ? "cursor-not-allowed border-black/6 bg-[var(--color-surface)]/25 text-[var(--color-muted)] opacity-35 shadow-none ring-0 hover:border-black/6 hover:bg-[var(--color-surface)]/25 hover:text-[var(--color-muted)]"
           : "",
       )}
     >
