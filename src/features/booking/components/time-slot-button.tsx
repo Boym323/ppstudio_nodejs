@@ -22,7 +22,7 @@ export function TimeSlotButton({
       onClick={onClick}
       aria-pressed={isSelected}
       className={cn(
-        "inline-flex min-h-11 items-center justify-center rounded-full border px-4 py-2 text-sm font-semibold transition-colors outline-none",
+        "inline-flex min-h-10 items-center justify-center rounded-xl border px-3 py-1.5 text-[13px] font-semibold transition-colors outline-none sm:text-sm",
         isSelected
           ? "border-[var(--color-accent)] bg-[var(--color-accent)] text-[var(--color-accent-contrast)] shadow-sm"
           : "border-black/8 bg-white text-[var(--color-foreground)] hover:border-[var(--color-accent)]/35 hover:bg-[var(--color-surface)]/45 focus-visible:border-[var(--color-accent)] focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/20",
