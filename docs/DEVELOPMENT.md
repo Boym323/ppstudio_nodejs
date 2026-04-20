@@ -131,7 +131,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Pro admin planner je `AvailabilitySlot` stále hlavní provozní entita; 30min grid je jen editační vrstva nad souvislými intervaly.
 - `AvailabilitySlot` má explicitní `serviceRestrictionMode`, takže admin rozhraní pozná rozdíl mezi slotem bez omezení a slotem, který čeká na výběr služeb.
 - Vazba `AvailabilitySlotService` umožňuje omezit slot jen na vybrané služby bez zabetonování schématu na jednu službu na slot.
-- Veřejný booking flow rezervuje celý `AvailabilitySlot` a kontroluje, že délka slotu pokrývá délku služby; planner proto při ukládání půlhodiny vždy skládá do souvislých oken.
+- Veřejný booking flow rezervuje konkrétní interval uvnitř `AvailabilitySlot` podle vybraného `startsAt` a délky služby; planner proto při ukládání půlhodiny stále skládá do souvislých oken.
 - Planner přímo upravuje jen jednoduché publikované sloty bez rezervací, bez poznámek, bez omezení služeb a s kapacitou `1`; ostatní zůstávají v UI viditelné jako uzamčené nebo neaktivní.
 - Import kategorií a služeb je řešený jako JSON upsert přes `scripts/import-services.mjs`; identity záznamů drží `slug`.
 - `Booking` ukládá snapshot jména služby, ceny a času, takže historické rezervace zůstanou konzistentní i po úpravě katalogu.
@@ -155,6 +155,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Veřejný booking submit má lehký rate limit podle IP a e-mailu a zapisuje auditní log pokusů, blokací a selhání pro provozní troubleshooting.
 - Krok 2 veřejného booking flow filtruje sloty i podle délky služby, aby se krátké sloty neukazovaly až v posledním kroku.
 - Krok 2 veřejného booking flow používá dvoufázový výběr termínu: kalendářní výběr dne a následně seznam konkrétních časů pro vybraný den.
+- Krok 2 generuje konkrétní starty po 30 minutách uvnitř slotu a zobrazuje jen ty, které se při aktuální kapacitě nekryjí s existujícími aktivními rezervacemi.
 - Krok 2 veřejného booking flow zobrazuje na kartách termínu primárně konkrétní začátek rezervace; konec a délka slotu jsou jen doplňkové metadata pro lepší čitelnost.
 - `src/lib/email/*` je samostatná infrastrukturní vrstva:
   - provider řeší SMTP transport
@@ -171,8 +172,9 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Migrace `20260418193000_booking_model_review_fixes` doplňuje minimální provozní ochrany:
   - explicitní režim omezení služeb na slotu
   - reschedule chain pro rezervace
-  - unique ochranu proti duplicitní rezervaci stejného klienta do stejného slotu
+  - původní unique ochranu proti duplicitní rezervaci stejného klienta do stejného slotu (později nahrazenou přesnější variantou na úroveň konkrétního intervalu)
   - PostgreSQL exclusion constraint proti překrývajícím se aktivním slotům
+- Migrace `20260420153000_booking_exact_duplicate_active` nahrazuje široké `UNIQUE(slotId, clientId)` za partial unique index `Booking_exact_duplicate_active_key`, který blokuje jen přesně duplicitní aktivní interval (`slotId + clientId + scheduledStartsAt + scheduledEndsAt` při `status IN (PENDING, CONFIRMED)`).
 - Nové slot admin workflow nevyžadovalo další migraci; navazuje přímo na už existující schema a constrainty.
 - Migrace `20260419103000_service_public_bookability` přidává `Service.isPubliclyBookable` a backfilluje ho podle dosavadního `isActive`, aby se zachovalo chování migrovaných služeb.
 - Při další iteraci booking workflow preferuj nové migrace nad ruční editací starších SQL souborů.

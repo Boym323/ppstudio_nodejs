@@ -29,6 +29,7 @@ const MAX_FAILED_ATTEMPTS_PER_EMAIL = 3;
 const publicBookingSchema = z.object({
   serviceId: z.string().trim().min(1, "Vyberte službu.").max(64, "Vyberte službu z nabídky."),
   slotId: z.string().trim().min(1, "Vyberte termín.").max(64, "Vyberte termín z nabídky."),
+  startsAt: z.string().trim().min(1, "Vyberte začátek rezervace."),
   fullName: z
     .string()
     .trim()
@@ -152,6 +153,7 @@ export async function createPublicBookingAction(
   const parsed = publicBookingSchema.safeParse({
     serviceId: readFormString(formData, "serviceId"),
     slotId: readFormString(formData, "slotId"),
+    startsAt: readFormString(formData, "startsAt"),
     fullName: readFormString(formData, "fullName"),
     email: readFormString(formData, "email"),
     phone: readFormString(formData, "phone"),
@@ -201,6 +203,7 @@ export async function createPublicBookingAction(
         fieldErrors: {
           serviceId: fieldErrors.serviceId?.[0],
           slotId: fieldErrors.slotId?.[0],
+          startsAt: fieldErrors.startsAt?.[0],
           fullName: fieldErrors.fullName?.[0],
           email: fieldErrors.email?.[0],
           phone: fieldErrors.phone?.[0],
@@ -214,7 +217,7 @@ export async function createPublicBookingAction(
       formError: "Formulář potřebuje doplnit nebo opravit.",
       errorCode: "VALIDATION_ERROR",
       suggestedStep:
-        fieldErrors.serviceId || fieldErrors.slotId
+        fieldErrors.serviceId || fieldErrors.slotId || fieldErrors.startsAt
           ? 2
           : fieldErrors.fullName || fieldErrors.email || fieldErrors.phone || fieldErrors.clientNote
             ? 3
@@ -222,6 +225,7 @@ export async function createPublicBookingAction(
       fieldErrors: {
         serviceId: fieldErrors.serviceId?.[0],
         slotId: fieldErrors.slotId?.[0],
+        startsAt: fieldErrors.startsAt?.[0],
         fullName: fieldErrors.fullName?.[0],
         email: fieldErrors.email?.[0],
         phone: fieldErrors.phone?.[0],
@@ -234,6 +238,7 @@ export async function createPublicBookingAction(
     const result = await createPublicBooking({
       serviceId: parsed.data.serviceId,
       slotId: parsed.data.slotId,
+      startsAt: parsed.data.startsAt,
       fullName: parsed.data.fullName,
       email: normalizeClientEmail(parsed.data.email),
       phone: normalizeClientPhone(parsed.data.phone || undefined),
@@ -250,6 +255,7 @@ export async function createPublicBookingAction(
       slotId: parsed.data.slotId,
       metadata: {
         referenceCode: result.referenceCode,
+        startsAt: parsed.data.startsAt,
       },
     });
 

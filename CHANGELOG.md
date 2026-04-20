@@ -73,6 +73,9 @@ Formát je inspirovaný Keep a Changelog.
 - Týdenní planner dostupností pro `OWNER` i `SALON` nyní zobrazuje rezervace, omezené intervaly, neaktivní sloty i minulý čas v jednom klidném kalendáři.
 
 ### Changed
+- Databázová ochrana duplicit rezervací byla zpřesněná: místo širokého `UNIQUE(slotId, clientId)` nyní platí partial unique index `Booking_exact_duplicate_active_key`, který blokuje jen přesně duplicitní aktivní interval stejného klienta (`slotId + clientId + scheduledStartsAt + scheduledEndsAt` pro `PENDING/CONFIRMED`).
+- Krok 2 veřejného rezervačního formuláře už nebere celý publikovaný interval jako jediný termín; nově nabízí konkrétní starty po 30 minutách uvnitř volného okna (např. 09:00, 09:30, 10:00) podle délky vybrané služby a aktuální kapacity.
+- Veřejné vytvoření rezervace nyní přijímá explicitní `startsAt` z formuláře a server-side potvrzuje, že zvolený interval opravdu leží uvnitř slotu a nekoliduje s existujícími rezervacemi.
 - Veřejný web už nikde nezobrazuje přímý odkaz do admin přihlášení (`/admin/prihlaseni`); z hlavičky i homepage CTA zůstává jen klientská cesta k rezervaci.
 - Krok 2 veřejného booking flow byl přepracovaný na variantu kalendář + seznam časů: klientka nejdřív vybere den v měsíčním kalendáři a pak konkrétní čas pro daný den.
 - Krok 2 veřejného booking flow (`Vyberte termín`) nyní na kartách zobrazuje jednoznačný začátek rezervace jako hlavní údaj; rozsah času je přesunutý do sekundární informace `Konec v ... • Délka ...`, aby termín nepůsobil jako neurčité časové okno.

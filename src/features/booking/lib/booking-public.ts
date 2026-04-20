@@ -55,15 +55,20 @@ export type PublicBookingCatalog = {
     startsAt: string;
     endsAt: string;
     publicNote: string | null;
-    remainingCapacity: number;
+    capacity: number;
     serviceRestrictionMode: AvailabilitySlotServiceRestrictionMode;
     allowedServiceIds: string[];
+    bookedIntervals: Array<{
+      startsAt: string;
+      endsAt: string;
+    }>;
   }>;
 };
 
 export type CreatePublicBookingInput = {
   serviceId: string;
   slotId: string;
+  startsAt: string;
   fullName: string;
   email: string;
   phone?: string;
@@ -166,12 +171,18 @@ function mapKnownPrismaError(error: Prisma.PrismaClientKnownRequestError) {
   const targets = getUniqueConstraintTargets(error);
 
   if (
-    targets.includes("Booking_slotId_clientId_key") ||
-    (targets.includes("slotId") && targets.includes("clientId"))
+    targets.includes("Booking_exact_duplicate_active_key") ||
+    targets.includes("Booking_slotId_clientId_scheduledStartsAt_scheduledEndsAt_key") ||
+    (
+      targets.includes("slotId")
+      && targets.includes("clientId")
+      && targets.includes("scheduledStartsAt")
+      && targets.includes("scheduledEndsAt")
+    )
   ) {
     return new PublicBookingError(
       publicBookingErrorCodes.slotAlreadyBookedByClient,
-      "Tento termín už máte rezervovaný pod stejným e-mailem.",
+      "Tento konkrétní čas už máte rezervovaný pod stejným e-mailem.",
       2,
     );
   }
@@ -269,7 +280,8 @@ export async function getPublicBookingCatalog(): Promise<PublicBookingCatalog> {
             },
           },
           select: {
-            id: true,
+            scheduledStartsAt: true,
+            scheduledEndsAt: true,
           },
         },
       },
@@ -292,11 +304,15 @@ export async function getPublicBookingCatalog(): Promise<PublicBookingCatalog> {
         startsAt: slot.startsAt.toISOString(),
         endsAt: slot.endsAt.toISOString(),
         publicNote: slot.publicNote,
-        remainingCapacity: Math.max(slot.capacity - slot.bookings.length, 0),
+        capacity: slot.capacity,
         serviceRestrictionMode: slot.serviceRestrictionMode,
         allowedServiceIds: slot.allowedServices.map((allowedService) => allowedService.serviceId),
+        bookedIntervals: slot.bookings.map((booking) => ({
+          startsAt: booking.scheduledStartsAt.toISOString(),
+          endsAt: booking.scheduledEndsAt.toISOString(),
+        })),
       }))
-      .filter((slot) => slot.remainingCapacity > 0),
+      .filter((slot) => slot.capacity > 0),
   };
 }
 
@@ -307,10 +323,20 @@ export async function createPublicBooking(
   const normalizedEmail = normalizeClientEmail(input.email);
   const normalizedPhone = normalizeClientPhone(input.phone);
   const normalizedClientNote = input.clientNote ? normalizeWhitespace(input.clientNote) : undefined;
+  const requestedStartsAt = new Date(input.startsAt);
+  const isRequestedStartsAtValid = !Number.isNaN(requestedStartsAt.getTime());
   const [bookingPolicy, emailBranding] = await Promise.all([
     getBookingPolicySettings(),
     getEmailBrandingSettings(),
   ]);
+
+  if (!isRequestedStartsAtValid) {
+    throw new PublicBookingError(
+      publicBookingErrorCodes.slotUnavailable,
+      "Vybraný termín už není dostupný.",
+      2,
+    );
+  }
 
   if (!isValidNormalizedClientPhone(normalizedPhone)) {
     throw new PublicBookingError(
@@ -390,7 +416,7 @@ export async function createPublicBooking(
             !slot ||
             slot.status !== AvailabilitySlotStatus.PUBLISHED ||
             !isBookingWithinWindow(
-              slot.startsAt,
+              requestedStartsAt,
               now,
               bookingPolicy.minAdvanceHours,
               bookingPolicy.maxAdvanceDays,
@@ -422,11 +448,29 @@ export async function createPublicBooking(
             );
           }
 
+          const requestedEndsAt = new Date(
+            requestedStartsAt.getTime() + service.durationMinutes * 60 * 1000,
+          );
+
+          if (requestedStartsAt < slot.startsAt || requestedEndsAt > slot.endsAt) {
+            throw new PublicBookingError(
+              publicBookingErrorCodes.slotUnavailable,
+              "Vybraný termín už není dostupný.",
+              2,
+            );
+          }
+
           const activeBookingCount = await tx.booking.count({
             where: {
               slotId: slot.id,
               status: {
                 in: [...ACTIVE_BOOKING_STATUSES],
+              },
+              scheduledStartsAt: {
+                lt: requestedEndsAt,
+              },
+              scheduledEndsAt: {
+                gt: requestedStartsAt,
               },
             },
           });
@@ -467,6 +511,8 @@ export async function createPublicBooking(
               status: {
                 in: [...ACTIVE_BOOKING_STATUSES],
               },
+              scheduledStartsAt: requestedStartsAt,
+              scheduledEndsAt: requestedEndsAt,
             },
             select: {
               id: true,
@@ -476,7 +522,7 @@ export async function createPublicBooking(
           if (existingClientBooking) {
             throw new PublicBookingError(
               publicBookingErrorCodes.slotAlreadyBookedByClient,
-              "Tento termín už máte rezervovaný pod stejným e-mailem.",
+              "Tento konkrétní čas už máte rezervovaný pod stejným e-mailem.",
               2,
             );
           }
@@ -494,8 +540,8 @@ export async function createPublicBooking(
               serviceNameSnapshot: service.name,
               serviceDurationMinutes: service.durationMinutes,
               servicePriceFromCzk: service.priceFromCzk,
-              scheduledStartsAt: slot.startsAt,
-              scheduledEndsAt: slot.endsAt,
+              scheduledStartsAt: requestedStartsAt,
+              scheduledEndsAt: requestedEndsAt,
               clientNote: normalizedClientNote,
               confirmedAt: now,
             },

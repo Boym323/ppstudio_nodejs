@@ -3,7 +3,7 @@ export type PublicBookingActionState = {
   formError?: string;
   errorCode?: string;
   suggestedStep?: 1 | 2 | 3 | 4;
-  fieldErrors?: Partial<Record<"serviceId" | "slotId" | "fullName" | "email" | "phone" | "clientNote", string>>;
+  fieldErrors?: Partial<Record<"serviceId" | "slotId" | "startsAt" | "fullName" | "email" | "phone" | "clientNote", string>>;
   confirmation?: {
     bookingId: string;
     referenceCode: string;

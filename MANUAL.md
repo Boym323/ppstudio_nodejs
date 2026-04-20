@@ -99,10 +99,11 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
 - Detail služby je staticky generovaný z centrálního katalogu služeb.
 - `/rezervace` nyní obsahuje produkční V1 flow:
   - výběr služby
-  - výběr ručně publikovaného termínu
+  - výběr konkrétního času v rámci ručně publikovaného volného okna
   - kontaktní údaje klienta
   - souhrn a potvrzení
 - Výběr termínu v kroku 2 používá kalendářový režim: nejdřív den, potom konkrétní čas v rámci vybraného dne.
+- Krok 2 nabízí starty po 30 minutách uvnitř dostupného okna a bere v úvahu délku služby i už obsazené intervaly.
 - Krok `Vyberte termín` v booking flow dává jako hlavní údaj přesný začátek rezervace; konec a délka slotu jsou doplněné sekundárně pro lepší orientaci.
 - Rezervační stránka je renderovaná dynamicky při requestu, takže nově publikované nebo obsazené sloty jsou vidět bez dalšího buildu.
 - Hero, sekce `O mně` a základní service copy jsou už přepsané do klidnějšího a osobnějšího tónu; další jemné úpravy je vhodné dělat centrálně v obsahové vrstvě nebo v DB copy mapě služeb.
@@ -238,7 +239,7 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
 - Kategorie a služby jsou samostatné DB entity, které se dnes plní přes import nebo admin správu, ne přes hardcoded seed.
 - `Service.isPubliclyBookable` odděluje interně aktivní službu od služby skutečně nabízené ve veřejné rezervaci.
 - `Booking` drží snapshot klienta, služby i času, takže pozdější změny ceníku nebo názvů služeb nepoškodí historická data.
-- `Booking` navíc drží vazbu na předchozí rezervaci při reschedule a nepovoluje duplicitní booking stejného klienta do stejného slotu.
+- `Booking` navíc drží vazbu na předchozí rezervaci při reschedule a na DB úrovni blokuje jen přesně duplicitní aktivní booking stejného klienta ve stejném intervalu (stejný slot, stejný začátek, stejný konec).
 - `BookingStatusHistory` slouží jako audit změn stavu a rozlišuje akci uživatele, klienta nebo systému.
 - Admin detail rezervace zobrazuje historii změn jako provozní timeline, takže salon i owner vidí, kdo a kdy stav upravil.
 - `BookingActionToken` ukládá pouze hash tokenu pro storno a přesun termínu, nikdy ne surovou hodnotu tokenu.
@@ -259,6 +260,7 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
 - Pokud se termín mezitím obsadí, služba přestane být aktivní nebo slot přestane odpovídat délce služby, uživatel dostane konkrétnější chybu místo obecného selhání.
 - Veřejný submit je lehce rate-limitený podle IP a e-mailu; opakované pokusy v krátkém čase skončí blokací s user-friendly hláškou.
 - Krok 2 už skrývá i sloty, které jsou pro vybranou službu příliš krátké.
+- Server při potvrzení rezervace navíc kontroluje i zvolený `startsAt`, takže klientka nemůže potvrdit čas mimo hranice slotu ani čas kolidující s už existující rezervací.
 - `/rezervace/storno/[token]` je produkční self-service storno stránka:
   - ověří hash tokenu server-side
   - zobrazí bezpečný potvrzovací krok

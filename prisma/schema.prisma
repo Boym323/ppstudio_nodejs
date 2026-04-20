@@ -231,7 +231,6 @@ model Booking {
   emailLogs                EmailLog[]
   submissionLogs           BookingSubmissionLog[]
 
-  @@unique([slotId, clientId])
   @@index([slotId, status])
   @@index([clientId, createdAt])
   @@index([serviceId, scheduledStartsAt])

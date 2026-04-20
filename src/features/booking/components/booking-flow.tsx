@@ -14,12 +14,24 @@ type BookingFlowProps = {
   catalog: PublicBookingCatalog;
 };
 
+type SlotTimeOption = {
+  key: string;
+  slotId: string;
+  startsAt: string;
+  endsAt: string;
+  slotStartsAt: string;
+  slotEndsAt: string;
+  publicNote: string | null;
+  remainingCapacity: number;
+};
+
 const stepLabels = [
   "Služba",
   "Termín",
   "Kontakt",
   "Souhrn",
 ] as const;
+const BOOKING_START_STEP_MINUTES = 30;
 
 function formatPrice(priceFromCzk: number | null) {
   if (!priceFromCzk) {
@@ -112,13 +124,61 @@ function getSlotDurationMinutes(slot: PublicBookingCatalog["slots"][number]) {
   return (new Date(slot.endsAt).getTime() - new Date(slot.startsAt).getTime()) / (1000 * 60);
 }
 
+function buildSlotTimeOptions(
+  slot: PublicBookingCatalog["slots"][number],
+  serviceDurationMinutes: number,
+): SlotTimeOption[] {
+  const slotStartsAtMs = new Date(slot.startsAt).getTime();
+  const slotEndsAtMs = new Date(slot.endsAt).getTime();
+  const serviceDurationMs = serviceDurationMinutes * 60 * 1000;
+  const stepMs = BOOKING_START_STEP_MINUTES * 60 * 1000;
+  const latestStartMs = slotEndsAtMs - serviceDurationMs;
+
+  if (latestStartMs < slotStartsAtMs) {
+    return [];
+  }
+
+  const options: SlotTimeOption[] = [];
+
+  for (let startsAtMs = slotStartsAtMs; startsAtMs <= latestStartMs; startsAtMs += stepMs) {
+    const endsAtMs = startsAtMs + serviceDurationMs;
+    const overlappingBookingsCount = slot.bookedIntervals.filter((booking) => {
+      const bookingStartsAtMs = new Date(booking.startsAt).getTime();
+      const bookingEndsAtMs = new Date(booking.endsAt).getTime();
+
+      return bookingStartsAtMs < endsAtMs && bookingEndsAtMs > startsAtMs;
+    }).length;
+    const remainingCapacity = Math.max(slot.capacity - overlappingBookingsCount, 0);
+
+    if (remainingCapacity < 1) {
+      continue;
+    }
+
+    const startsAt = new Date(startsAtMs).toISOString();
+    const endsAt = new Date(endsAtMs).toISOString();
+
+    options.push({
+      key: `${slot.id}:${startsAt}`,
+      slotId: slot.id,
+      startsAt,
+      endsAt,
+      slotStartsAt: slot.startsAt,
+      slotEndsAt: slot.endsAt,
+      publicNote: slot.publicNote,
+      remainingCapacity,
+    });
+  }
+
+  return options;
+}
+
 export function BookingFlow({ catalog }: BookingFlowProps) {
   const [serverState, formAction] = useActionState(
     createPublicBookingAction,
     initialPublicBookingActionState,
   );
   const [selectedServiceId, setSelectedServiceId] = useState("");
-  const [selectedSlotId, setSelectedSlotId] = useState("");
+  const [selectedTimeOptionKey, setSelectedTimeOptionKey] = useState("");
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -139,10 +199,6 @@ export function BookingFlow({ catalog }: BookingFlowProps) {
     }
 
     return catalog.slots.filter((slot) => {
-      if (slot.remainingCapacity < 1) {
-        return false;
-      }
-
       if (!selectedService) {
         return false;
       }
@@ -158,14 +214,23 @@ export function BookingFlow({ catalog }: BookingFlowProps) {
       return slot.allowedServiceIds.includes(selectedServiceId);
     });
   }, [catalog.slots, selectedService, selectedServiceId]);
-  const selectedSlot = selectedSlotId ? availableSlots.find((slot) => slot.id === selectedSlotId) : undefined;
-  const availableSlotsByDate = useMemo(() => {
-    const grouped = new Map<string, PublicBookingCatalog["slots"]>();
+  const availableTimeOptions = useMemo(() => {
+    if (!selectedService) {
+      return [];
+    }
 
-    for (const slot of availableSlots) {
-      const dateKey = getSlotDateKey(slot.startsAt);
+    return availableSlots.flatMap((slot) => buildSlotTimeOptions(slot, selectedService.durationMinutes));
+  }, [availableSlots, selectedService]);
+  const selectedTimeOption = selectedTimeOptionKey
+    ? availableTimeOptions.find((option) => option.key === selectedTimeOptionKey)
+    : undefined;
+  const availableSlotsByDate = useMemo(() => {
+    const grouped = new Map<string, SlotTimeOption[]>();
+
+    for (const slotOption of availableTimeOptions) {
+      const dateKey = getSlotDateKey(slotOption.startsAt);
       const current = grouped.get(dateKey) ?? [];
-      current.push(slot);
+      current.push(slotOption);
       grouped.set(dateKey, current);
     }
 
@@ -177,7 +242,7 @@ export function BookingFlow({ catalog }: BookingFlowProps) {
     }
 
     return grouped;
-  }, [availableSlots]);
+  }, [availableTimeOptions]);
   const availableDateKeys = useMemo(
     () => [...availableSlotsByDate.keys()].sort((dateA, dateB) => dateA.localeCompare(dateB)),
     [availableSlotsByDate],
@@ -189,7 +254,7 @@ export function BookingFlow({ catalog }: BookingFlowProps) {
       ).sort((monthA, monthB) => monthA.localeCompare(monthB)),
     [availableDateKeys],
   );
-  const selectedSlotDateKey = selectedSlot ? getSlotDateKey(selectedSlot.startsAt) : "";
+  const selectedSlotDateKey = selectedTimeOption ? getSlotDateKey(selectedTimeOption.startsAt) : "";
   const firstAvailableDateKey = availableDateKeys[0] ?? "";
   const effectiveSelectedDateKey = selectedSlotDateKey
     || (selectedDateKey && availableSlotsByDate.has(selectedDateKey) ? selectedDateKey : firstAvailableDateKey);
@@ -232,7 +297,7 @@ export function BookingFlow({ catalog }: BookingFlowProps) {
   }, [effectiveVisibleMonthKey]);
 
   const canGoToStep2 = Boolean(selectedService);
-  const canGoToStep3 = canGoToStep2 && Boolean(selectedSlot);
+  const canGoToStep3 = canGoToStep2 && Boolean(selectedTimeOption);
   const canGoToStep4 = canGoToStep3 && fullName.trim() && email.trim();
 
   if (serverState.status === "success" && serverState.confirmation) {
@@ -282,7 +347,8 @@ export function BookingFlow({ catalog }: BookingFlowProps) {
   return (
     <form action={formAction} className="grid gap-5 sm:gap-6 lg:grid-cols-[1.15fr_0.85fr]">
       <input type="hidden" name="serviceId" value={selectedServiceId} />
-      <input type="hidden" name="slotId" value={selectedSlot?.id ?? ""} />
+      <input type="hidden" name="slotId" value={selectedTimeOption?.slotId ?? ""} />
+      <input type="hidden" name="startsAt" value={selectedTimeOption?.startsAt ?? ""} />
 
       <div className="space-y-5 sm:space-y-6">
         <section className="rounded-[var(--radius-panel)] border border-black/6 bg-white p-5 shadow-[var(--shadow-panel)] sm:p-7 lg:p-8">
@@ -338,6 +404,7 @@ export function BookingFlow({ catalog }: BookingFlowProps) {
                       type="button"
                       onClick={() => {
                         setSelectedServiceId(service.id);
+                        setSelectedTimeOptionKey("");
                         setCurrentStep(2);
                       }}
                       className={cn(
@@ -404,7 +471,7 @@ export function BookingFlow({ catalog }: BookingFlowProps) {
                 <div className="rounded-3xl border border-dashed border-black/10 bg-[var(--color-surface)]/20 px-5 py-6 text-sm text-[var(--color-muted)]">
                   Nejprve vyberte službu. Pak zobrazíme jen kompatibilní ručně publikované termíny.
                 </div>
-              ) : availableSlots.length === 0 ? (
+              ) : availableTimeOptions.length === 0 ? (
                 <div className="rounded-3xl border border-dashed border-black/10 bg-[var(--color-surface)]/20 px-5 py-6 text-sm text-[var(--color-muted)]">
                   Pro tuto službu teď není publikovaný žádný volný termín s dostatečnou délkou.
                 </div>
@@ -428,7 +495,7 @@ export function BookingFlow({ catalog }: BookingFlowProps) {
                               );
                               if (firstDateInMonth) {
                                 setSelectedDateKey(firstDateInMonth);
-                                setSelectedSlotId("");
+                                setSelectedTimeOptionKey("");
                               }
                             }
                           }}
@@ -450,7 +517,7 @@ export function BookingFlow({ catalog }: BookingFlowProps) {
                               );
                               if (firstDateInMonth) {
                                 setSelectedDateKey(firstDateInMonth);
-                                setSelectedSlotId("");
+                                setSelectedTimeOptionKey("");
                               }
                             }
                           }}
@@ -485,7 +552,7 @@ export function BookingFlow({ catalog }: BookingFlowProps) {
                             onClick={() => {
                               setSelectedDateKey(dateKey);
                               if (selectedSlotDateKey && selectedSlotDateKey !== dateKey) {
-                                setSelectedSlotId("");
+                                setSelectedTimeOptionKey("");
                               }
                             }}
                             disabled={!hasSlots}
@@ -513,15 +580,15 @@ export function BookingFlow({ catalog }: BookingFlowProps) {
                         Vyberte v kalendáři den se zvýrazněným termínem.
                       </div>
                     ) : null}
-                    {selectedDateSlots.map((slot) => {
-                      const isSelected = slot.id === selectedSlotId;
+                    {selectedDateSlots.map((slotOption) => {
+                      const isSelected = slotOption.key === selectedTimeOptionKey;
 
                       return (
                         <button
-                          key={slot.id}
+                          key={slotOption.key}
                           type="button"
                           onClick={() => {
-                            setSelectedSlotId(slot.id);
+                            setSelectedTimeOptionKey(slotOption.key);
                             setCurrentStep(3);
                           }}
                           className={cn(
@@ -532,23 +599,26 @@ export function BookingFlow({ catalog }: BookingFlowProps) {
                           )}
                         >
                           <p className="text-xs uppercase tracking-[0.22em] text-[var(--color-muted)]">
-                            {formatSlotDate(slot.startsAt)}
+                            {formatSlotDate(slotOption.startsAt)}
                           </p>
                           <h4 className="mt-3 font-display text-2xl text-[var(--color-foreground)]">
-                            {formatSlotTime(slot.startsAt)}
+                            {formatSlotTime(slotOption.startsAt)}
                           </h4>
                           <p className="mt-1 text-sm font-medium text-[var(--color-foreground)]">
                             Začátek rezervace
                           </p>
                           <p className="mt-2 text-sm text-[var(--color-muted)]">
-                            Konec v {formatSlotTime(slot.endsAt)} • Délka {formatSlotDuration(slot.startsAt, slot.endsAt)}
+                            Konec v {formatSlotTime(slotOption.endsAt)} • Délka {formatSlotDuration(slotOption.startsAt, slotOption.endsAt)}
                           </p>
                           <p className="mt-1 text-sm text-[var(--color-muted)]">
-                            Zbývá {slot.remainingCapacity} voln{slot.remainingCapacity === 1 ? "é místo" : "á místa"}
+                            V okně {formatSlotTimeRange(slotOption.slotStartsAt, slotOption.slotEndsAt)}
                           </p>
-                          {slot.publicNote ? (
+                          <p className="mt-1 text-sm text-[var(--color-muted)]">
+                            Zbývá {slotOption.remainingCapacity} voln{slotOption.remainingCapacity === 1 ? "é místo" : "á místa"}
+                          </p>
+                          {slotOption.publicNote ? (
                             <p className="mt-3 text-sm leading-6 text-[var(--color-muted)]">
-                              {slot.publicNote}
+                              {slotOption.publicNote}
                             </p>
                           ) : null}
                         </button>
@@ -557,8 +627,8 @@ export function BookingFlow({ catalog }: BookingFlowProps) {
                   </div>
                 </div>
               )}
-              {serverState.fieldErrors?.slotId ? (
-                <p className="text-sm text-red-700">{serverState.fieldErrors.slotId}</p>
+              {serverState.fieldErrors?.slotId || serverState.fieldErrors?.startsAt ? (
+                <p className="text-sm text-red-700">{serverState.fieldErrors.slotId ?? serverState.fieldErrors.startsAt}</p>
               ) : null}
             </div>
 
@@ -681,8 +751,8 @@ export function BookingFlow({ catalog }: BookingFlowProps) {
             <div className="rounded-3xl border border-black/6 bg-white/80 p-5">
               <p className="text-xs uppercase tracking-[0.18em] text-[var(--color-muted)]">Termín</p>
               <p className="mt-2 text-lg font-semibold text-[var(--color-foreground)]">
-                {selectedSlot
-                  ? `${formatSlotDate(selectedSlot.startsAt)} • ${formatSlotTimeRange(selectedSlot.startsAt, selectedSlot.endsAt)}`
+                {selectedTimeOption
+                  ? `${formatSlotDate(selectedTimeOption.startsAt)} • ${formatSlotTimeRange(selectedTimeOption.startsAt, selectedTimeOption.endsAt)}`
                   : "Zatím nevybráno"}
               </p>
             </div>
