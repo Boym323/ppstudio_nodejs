@@ -19,10 +19,7 @@ type SlotTimeOption = {
   slotId: string;
   startsAt: string;
   endsAt: string;
-  slotStartsAt: string;
-  slotEndsAt: string;
   publicNote: string | null;
-  remainingCapacity: number;
 };
 
 const stepLabels = [
@@ -162,10 +159,7 @@ function buildSlotTimeOptions(
       slotId: slot.id,
       startsAt,
       endsAt,
-      slotStartsAt: slot.startsAt,
-      slotEndsAt: slot.endsAt,
       publicNote: slot.publicNote,
-      remainingCapacity,
     });
   }
 
@@ -609,12 +603,6 @@ export function BookingFlow({ catalog }: BookingFlowProps) {
                           </p>
                           <p className="mt-2 text-sm text-[var(--color-muted)]">
                             Konec v {formatSlotTime(slotOption.endsAt)} • Délka {formatSlotDuration(slotOption.startsAt, slotOption.endsAt)}
-                          </p>
-                          <p className="mt-1 text-sm text-[var(--color-muted)]">
-                            V okně {formatSlotTimeRange(slotOption.slotStartsAt, slotOption.slotEndsAt)}
-                          </p>
-                          <p className="mt-1 text-sm text-[var(--color-muted)]">
-                            Zbývá {slotOption.remainingCapacity} voln{slotOption.remainingCapacity === 1 ? "é místo" : "á místa"}
                           </p>
                           {slotOption.publicNote ? (
                             <p className="mt-3 text-sm leading-6 text-[var(--color-muted)]">
