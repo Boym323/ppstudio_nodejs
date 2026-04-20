@@ -26,6 +26,7 @@ import {
 const ACTIVE_BOOKING_STATUSES = [BookingStatus.PENDING, BookingStatus.CONFIRMED] as const;
 const CANCELLATION_TOKEN_TTL_DAYS = 30;
 const MAX_BOOKING_TRANSACTION_RETRIES = 3;
+const EDITABLE_SLOT_CAPACITY = 1;
 
 export const publicBookingErrorCodes = {
   serviceUnavailable: "SERVICE_UNAVAILABLE",
@@ -404,6 +405,11 @@ export async function createPublicBooking(
               capacity: true,
               status: true,
               serviceRestrictionMode: true,
+              publicNote: true,
+              internalNote: true,
+              publishedAt: true,
+              cancelledAt: true,
+              createdByUserId: true,
               allowedServices: {
                 select: {
                   serviceId: true,
@@ -533,7 +539,7 @@ export async function createPublicBooking(
               slotId: slot.id,
               serviceId: service.id,
               source: BookingSource.PUBLIC_WEB,
-              status: BookingStatus.CONFIRMED,
+              status: BookingStatus.PENDING,
               clientNameSnapshot: normalizedFullName,
               clientEmailSnapshot: normalizedEmail,
               clientPhoneSnapshot: normalizedPhone,
@@ -543,7 +549,6 @@ export async function createPublicBooking(
               scheduledStartsAt: requestedStartsAt,
               scheduledEndsAt: requestedEndsAt,
               clientNote: normalizedClientNote,
-              confirmedAt: now,
             },
             select: {
               id: true,
@@ -552,12 +557,68 @@ export async function createPublicBooking(
             },
           });
 
+          const shouldSplitSlotForAdminEditing =
+            slot.capacity === EDITABLE_SLOT_CAPACITY &&
+            (requestedStartsAt.getTime() > slot.startsAt.getTime()
+              || requestedEndsAt.getTime() < slot.endsAt.getTime());
+
+          if (shouldSplitSlotForAdminEditing) {
+            const beforeInterval =
+              requestedStartsAt.getTime() > slot.startsAt.getTime()
+                ? { startsAt: slot.startsAt, endsAt: requestedStartsAt }
+                : null;
+            const afterInterval =
+              requestedEndsAt.getTime() < slot.endsAt.getTime()
+                ? { startsAt: requestedEndsAt, endsAt: slot.endsAt }
+                : null;
+
+            await tx.availabilitySlot.update({
+              where: {
+                id: slot.id,
+              },
+              data: {
+                startsAt: requestedStartsAt,
+                endsAt: requestedEndsAt,
+              },
+            });
+
+            const intervalFragments = [beforeInterval, afterInterval].filter(
+              (fragment): fragment is { startsAt: Date; endsAt: Date } => fragment !== null,
+            );
+
+            for (const fragment of intervalFragments) {
+              await tx.availabilitySlot.create({
+                data: {
+                  startsAt: fragment.startsAt,
+                  endsAt: fragment.endsAt,
+                  capacity: slot.capacity,
+                  status: slot.status,
+                  serviceRestrictionMode: slot.serviceRestrictionMode,
+                  publicNote: slot.publicNote,
+                  internalNote: slot.internalNote,
+                  publishedAt: slot.publishedAt,
+                  cancelledAt: slot.cancelledAt,
+                  createdByUserId: slot.createdByUserId,
+                  allowedServices: slot.allowedServices.length > 0
+                    ? {
+                        createMany: {
+                          data: slot.allowedServices.map((allowedService) => ({
+                            serviceId: allowedService.serviceId,
+                          })),
+                        },
+                      }
+                    : undefined,
+                },
+              });
+            }
+          }
+
           await tx.bookingStatusHistory.create({
             data: {
               bookingId: booking.id,
-              status: BookingStatus.CONFIRMED,
+              status: BookingStatus.PENDING,
               actorType: BookingActorType.CLIENT,
-              reason: "public-booking-flow-v1",
+              reason: "public-booking-request-v1",
               metadata: {
                 source: BookingSource.PUBLIC_WEB,
               },
@@ -594,7 +655,7 @@ export async function createPublicBooking(
               processingStartedAt: null,
               processingToken: null,
               recipientEmail: normalizedEmail,
-              subject: `Potvrzení rezervace: ${service.name}`,
+              subject: `Přijetí rezervace: ${service.name}`,
               templateKey: "booking-confirmation-v1",
               payload: {
                 bookingId: booking.id,

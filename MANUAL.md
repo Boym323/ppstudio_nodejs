@@ -247,20 +247,21 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
 - Owner-only sekce `Email logy` je provozní observability obrazovka pro pending frontu, retry pokusy a poslední chyby workeru.
 - Detail konkrétního e-mailu na `/admin/email-logy/[emailLogId]` ukazuje payload, poslední chybu, vazby na rezervaci a klientku a nabízí ruční retry nebo uvolnění zaseknutého jobu.
 - Po úspěšné akci se na detailu objeví krátká potvrzovací hláška, aby bylo zřejmé, že operace proběhla.
-- Veřejný booking flow po potvrzení:
+- Veřejný booking flow po odeslání:
   - veřejný web `/`, `/sluzby`, `/cenik` a detail služby nyní čerpá z databáze v request-time
   - admin změny se do něj promítnou bez rebuildů
   - globální booking pravidla čte ze `SiteSettings`, ne z natvrdo zapsaných konstant
   - znovu validuje službu a termín server-side
   - naváže nebo vytvoří klienta podle e-mailu
-  - vytvoří rezervaci se snapshotem služby a času
+  - vytvoří rezervaci se stavem `PENDING` (čeká na schválení) a se snapshotem služby a času
   - zapíše audit změny stavu
-  - připraví storno token a e-mailový log pro potvrzení
+  - připraví storno token a e-mailový log s informací o přijetí rezervace
   - uloží e-mail jako `PENDING` v background režimu nebo `SENT` v log režimu
 - Pokud se termín mezitím obsadí, služba přestane být aktivní nebo slot přestane odpovídat délce služby, uživatel dostane konkrétnější chybu místo obecného selhání.
 - Veřejný submit je lehce rate-limitený podle IP a e-mailu; opakované pokusy v krátkém čase skončí blokací s user-friendly hláškou.
 - Krok 2 už skrývá i sloty, které jsou pro vybranou službu příliš krátké.
-- Server při potvrzení rezervace navíc kontroluje i zvolený `startsAt`, takže klientka nemůže potvrdit čas mimo hranice slotu ani čas kolidující s už existující rezervací.
+- Server při odeslání rezervace navíc kontroluje i zvolený `startsAt`, takže klientka nemůže odeslat čas mimo hranice slotu ani čas kolidující s už existující rezervací.
+- Pokud rezervace obsadí jen část delšího slotu s kapacitou `1`, systém slot interně rozdělí na rezervovaný úsek a samostatné volné zbytky, takže v admin planneru lze s volnými částmi dál pracovat po blocích.
 - `/rezervace/storno/[token]` je produkční self-service storno stránka:
   - ověří hash tokenu server-side
   - zobrazí bezpečný potvrzovací krok

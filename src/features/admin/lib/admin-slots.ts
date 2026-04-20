@@ -349,6 +349,7 @@ export type PlannerInterval = {
 
 export type PlannerBooking = {
   id: string;
+  slotId: string;
   startCell: number;
   endCell: number;
   label: string;
@@ -469,6 +470,11 @@ export async function getAdminPlannerWeek(area: AdminArea, week?: string | null)
           },
         },
         bookings: {
+          where: {
+            status: {
+              in: [...ACTIVE_BOOKING_STATUSES],
+            },
+          },
           select: {
             id: true,
             status: true,
@@ -485,12 +491,13 @@ export async function getAdminPlannerWeek(area: AdminArea, week?: string | null)
           gt: weekStart,
         },
         status: {
-          not: BookingStatus.CANCELLED,
+          in: [...ACTIVE_BOOKING_STATUSES],
         },
       },
       orderBy: [{ scheduledStartsAt: "asc" }],
       select: {
         id: true,
+        slotId: true,
         scheduledStartsAt: true,
         scheduledEndsAt: true,
         status: true,
@@ -531,6 +538,7 @@ export async function getAdminPlannerWeek(area: AdminArea, week?: string | null)
 
         return {
           id: booking.id,
+          slotId: booking.slotId,
           startCell: cells.startCell,
           endCell: cells.endCell,
           label: formatTimeRange(clipped.startsAt, clipped.endsAt),
@@ -542,7 +550,7 @@ export async function getAdminPlannerWeek(area: AdminArea, week?: string | null)
       .filter((booking): booking is PlannerBooking => booking !== null);
 
     const intervals: PlannerInterval[] = daySlots
-      .map((slot) => {
+      .flatMap((slot) => {
         const clipped = clampIntervalToDay(
           { startsAt: slot.startsAt, endsAt: slot.endsAt },
           dayStart,
@@ -550,53 +558,126 @@ export async function getAdminPlannerWeek(area: AdminArea, week?: string | null)
         );
 
         if (!clipped) {
-          return null;
+          return [];
         }
 
         const cells = intervalToCellRange(clipped);
         if (cells.endCell <= cells.startCell) {
-          return null;
+          return [];
         }
-        const activeBookings = slot.bookings.filter((booking) =>
-          ACTIVE_BOOKING_STATUSES.includes(booking.status as (typeof ACTIVE_BOOKING_STATUSES)[number]),
-        );
+
+        const activeBookings = slot.bookings;
         const plainEditable = slot.status === AvailabilitySlotStatus.PUBLISHED && isPlainEditableSlot(slot);
 
-        let status: PlannerInterval["status"];
-        let detail: string;
-        let canEdit = false;
-
         if (slot.status !== AvailabilitySlotStatus.PUBLISHED) {
-          status = "inactive";
-          detail = "Neaktivní nebo interní interval";
-        } else if (activeBookings.length > 0) {
-          status = "booked";
-          detail = `${activeBookings.length} rezervace`; 
-        } else if (plainEditable) {
-          status = "available";
-          detail = "Běžná dostupnost";
-          canEdit = true;
-        } else {
-          status = "locked";
-          detail = slot.allowedServices.length > 0
-            ? "Omezeno na vybrané služby"
-            : slot.capacity !== EDITABLE_SLOT_CAPACITY
-              ? `Kapacita ${slot.capacity}`
-              : slot.publicNote ?? slot.internalNote ?? "Vyžaduje detailní správu";
+          return [{
+            id: slot.id,
+            startCell: cells.startCell,
+            endCell: cells.endCell,
+            label: formatTimeRange(clipped.startsAt, clipped.endsAt),
+            status: "inactive",
+            bookingCount: activeBookings.length,
+            canEdit: false,
+            detail: "Neaktivní nebo interní interval",
+          } satisfies PlannerInterval];
         }
 
-        return {
+        const slotBookingRanges = bookings
+          .filter(
+            (booking) =>
+              booking.slotId === slot.id
+              && booking.scheduledStartsAt < dayEnd
+              && booking.scheduledEndsAt > dayStart,
+          )
+          .map((booking) =>
+            clampIntervalToDay(
+              { startsAt: booking.scheduledStartsAt, endsAt: booking.scheduledEndsAt },
+              dayStart,
+              dayEnd,
+            ),
+          )
+          .filter((range): range is TimeRange => range !== null);
+
+        if (slotBookingRanges.length > 0) {
+          const mergedBookings = mergeIntervals(slotBookingRanges);
+          const freeRanges = mergedBookings.reduce(
+            (remaining, bookedRange) => subtractIntervals(remaining, bookedRange),
+            [{ startsAt: clipped.startsAt, endsAt: clipped.endsAt }],
+          );
+
+          const bookedIntervals = mergedBookings
+            .map((bookedRange, index) => {
+              const bookingCells = intervalToCellRange(bookedRange);
+
+              if (bookingCells.endCell <= bookingCells.startCell) {
+                return null;
+              }
+
+              return {
+                id: `${slot.id}:booked:${index}`,
+                startCell: bookingCells.startCell,
+                endCell: bookingCells.endCell,
+                label: formatTimeRange(bookedRange.startsAt, bookedRange.endsAt),
+                status: "booked",
+                bookingCount: activeBookings.length,
+                canEdit: false,
+                detail: `${activeBookings.length} rezervace`,
+              } satisfies PlannerInterval;
+            })
+            .filter((interval): interval is PlannerInterval => interval !== null);
+
+          const lockedRemainderIntervals = freeRanges
+            .map((freeRange, index) => {
+              const freeCells = intervalToCellRange(freeRange);
+
+              if (freeCells.endCell <= freeCells.startCell) {
+                return null;
+              }
+
+              return {
+                id: `${slot.id}:locked:${index}`,
+                startCell: freeCells.startCell,
+                endCell: freeCells.endCell,
+                label: formatTimeRange(freeRange.startsAt, freeRange.endsAt),
+                status: "locked",
+                bookingCount: activeBookings.length,
+                canEdit: false,
+                detail: "Zbytek intervalu je svázaný existující rezervací.",
+              } satisfies PlannerInterval;
+            })
+            .filter((interval): interval is PlannerInterval => interval !== null);
+
+          return [...bookedIntervals, ...lockedRemainderIntervals];
+        }
+
+        if (plainEditable) {
+          return [{
+            id: slot.id,
+            startCell: cells.startCell,
+            endCell: cells.endCell,
+            label: formatTimeRange(clipped.startsAt, clipped.endsAt),
+            status: "available",
+            bookingCount: 0,
+            canEdit: true,
+            detail: "Běžná dostupnost",
+          } satisfies PlannerInterval];
+        }
+
+        return [{
           id: slot.id,
           startCell: cells.startCell,
           endCell: cells.endCell,
           label: formatTimeRange(clipped.startsAt, clipped.endsAt),
-          status,
+          status: "locked",
           bookingCount: activeBookings.length,
-          canEdit,
-          detail,
-        } satisfies PlannerInterval;
+          canEdit: false,
+          detail: slot.allowedServices.length > 0
+            ? "Omezeno na vybrané služby"
+            : slot.capacity !== EDITABLE_SLOT_CAPACITY
+              ? `Kapacita ${slot.capacity}`
+              : slot.publicNote ?? slot.internalNote ?? "Vyžaduje detailní správu",
+        } satisfies PlannerInterval];
       })
-      .filter((interval): interval is PlannerInterval => interval !== null)
       .sort((left, right) => left.startCell - right.startCell);
 
     const availableIntervals = intervals
@@ -727,6 +808,11 @@ async function getEditableDayState(tx: Prisma.TransactionClient, dateKey: string
         },
       },
       bookings: {
+        where: {
+          status: {
+            in: [...ACTIVE_BOOKING_STATUSES],
+          },
+        },
         select: {
           id: true,
           status: true,

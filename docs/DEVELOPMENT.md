@@ -133,6 +133,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Vazba `AvailabilitySlotService` umožňuje omezit slot jen na vybrané služby bez zabetonování schématu na jednu službu na slot.
 - Veřejný booking flow rezervuje konkrétní interval uvnitř `AvailabilitySlot` podle vybraného `startsAt` a délky služby; planner proto při ukládání půlhodiny stále skládá do souvislých oken.
 - Planner přímo upravuje jen jednoduché publikované sloty bez rezervací, bez poznámek, bez omezení služeb a s kapacitou `1`; ostatní zůstávají v UI viditelné jako uzamčené nebo neaktivní.
+- Pokud slot obsahuje rezervaci jen v části intervalu (např. booking 09:00-09:30 v okně 08:00-14:00), planner ho ve vizualizaci dělí na rezervovanou část a chráněný zbytek, aby celý interval nezmizel z mřížky.
 - Import kategorií a služeb je řešený jako JSON upsert přes `scripts/import-services.mjs`; identity záznamů drží `slug`.
 - `Booking` ukládá snapshot jména služby, ceny a času, takže historické rezervace zůstanou konzistentní i po úpravě katalogu.
 - `Service` nově odděluje obecnou aktivitu (`isActive`) od veřejné rezervovatelnosti (`isPubliclyBookable`); public booking flow vyžaduje obě podmínky a aktivní kategorii.
@@ -149,6 +150,8 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - `src/lib/media/media-validation.ts` centralizuje kontrolu MIME typu, přípony a maximální velikosti souboru.
 - `src/lib/media/media-filename.ts` generuje bezpečný název z původního jména a náhodného suffixu, takže nehrozí přepisování souborů se stejným názvem.
 - `src/features/booking/lib/booking-public.ts` je veřejný write model pro rezervace a drží i ochranu proti souběžnému obsazení slotu.
+- Veřejná rezervace se po submitu vytváří jako `BookingStatus.PENDING`; potvrzení (`CONFIRMED`) je provozní krok z adminu.
+- Pokud veřejná rezervace zabere jen část delšího slotu s kapacitou `1`, booking write model slot v transakci automaticky rozdělí na rezervovaný úsek a zbylé volné fragmenty, aby admin planner zůstal editovatelný po samostatných blocích.
 - `src/features/booking/lib/booking-cancellation.ts` drží veřejné storno workflow nad hashovaným action tokenem.
 - `src/features/public/lib/public-certificates.ts` je veřejný read model certifikátů pro stránku `/o-mne`.
 - Veřejný booking flow vrací doménové chybové kódy a doporučený krok formuláře, takže UI může zobrazit přesnější recovery stav bez duplikace serverové logiky.

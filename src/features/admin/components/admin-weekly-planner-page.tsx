@@ -39,7 +39,7 @@ export async function AdminWeeklyPlannerPage({ area, week, day }: AdminWeeklyPla
       </header>
 
       <AdminWeeklyPlannerClient
-        key={`${data.weekKey}-${initialDayKey}`}
+        key={data.weekKey}
         data={data}
         timeLabels={getPlannerTimeLabels()}
         initialDayKey={initialDayKey}

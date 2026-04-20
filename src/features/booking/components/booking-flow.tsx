@@ -136,16 +136,30 @@ function buildSlotTimeOptions(
   }
 
   const options: SlotTimeOption[] = [];
+  const bookingStartsSorted = slot.bookedIntervals
+    .map((booking) => new Date(booking.startsAt).getTime())
+    .sort((left, right) => left - right);
+  const bookingEndsSorted = slot.bookedIntervals
+    .map((booking) => new Date(booking.endsAt).getTime())
+    .sort((left, right) => left - right);
+  let startsPointer = 0;
+  let endsPointer = 0;
+  let activeOverlaps = 0;
 
   for (let startsAtMs = slotStartsAtMs; startsAtMs <= latestStartMs; startsAtMs += stepMs) {
     const endsAtMs = startsAtMs + serviceDurationMs;
-    const overlappingBookingsCount = slot.bookedIntervals.filter((booking) => {
-      const bookingStartsAtMs = new Date(booking.startsAt).getTime();
-      const bookingEndsAtMs = new Date(booking.endsAt).getTime();
 
-      return bookingStartsAtMs < endsAtMs && bookingEndsAtMs > startsAtMs;
-    }).length;
-    const remainingCapacity = Math.max(slot.capacity - overlappingBookingsCount, 0);
+    while (startsPointer < bookingStartsSorted.length && bookingStartsSorted[startsPointer] < endsAtMs) {
+      activeOverlaps += 1;
+      startsPointer += 1;
+    }
+
+    while (endsPointer < bookingEndsSorted.length && bookingEndsSorted[endsPointer] <= startsAtMs) {
+      activeOverlaps -= 1;
+      endsPointer += 1;
+    }
+
+    const remainingCapacity = Math.max(slot.capacity - activeOverlaps, 0);
 
     if (remainingCapacity < 1) {
       continue;
@@ -298,13 +312,13 @@ export function BookingFlow({ catalog }: BookingFlowProps) {
     return (
       <section className="rounded-[var(--radius-panel)] border border-[var(--color-accent-soft)]/50 bg-white p-8 shadow-[var(--shadow-panel)]">
         <p className="text-xs font-semibold uppercase tracking-[0.32em] text-[var(--color-accent)]">
-          Rezervace potvrzena
+          Rezervace přijata
         </p>
         <h3 className="mt-5 font-display text-4xl text-[var(--color-foreground)]">
           Děkujeme, {serverState.confirmation.clientName}.
         </h3>
         <p className="mt-4 max-w-2xl text-base leading-7 text-[var(--color-muted)]">
-          Rezervace je potvrzená. Potvrzení vám během chvíle pošleme na e-mail.
+          Rezervaci jsme přijali ke schválení. Jakmile ji potvrdíme, pošleme vám e-mail.
         </p>
         <dl className="mt-8 grid gap-4 sm:grid-cols-2">
           <div className="rounded-3xl border border-black/6 bg-[var(--color-surface)]/45 p-5">
@@ -756,8 +770,8 @@ export function BookingFlow({ catalog }: BookingFlowProps) {
           </div>
 
           <div className="mt-6 rounded-3xl border border-black/6 bg-white/80 p-5 text-sm leading-6 text-[var(--color-muted)]">
-            Odesláním formuláře vytvoříme rezervaci, navážeme klienta, uzamkneme slot a připravíme
-            potvrzovací e-mail se storno odkazem.
+            Odesláním formuláře vytvoříme rezervaci ke schválení, navážeme klienta, uzamkneme slot
+            a pošleme vám e-mail s přehledem i storno odkazem.
           </div>
 
           {serverState.status === "error" && serverState.suggestedStep ? (
@@ -782,7 +796,7 @@ export function BookingFlow({ catalog }: BookingFlowProps) {
 
           {!canGoToStep4 ? (
             <p className="mt-4 text-sm text-[var(--color-muted)]">
-              Pro potvrzení dokončete výběr služby, termínu a kontaktních údajů.
+              Pro odeslání dokončete výběr služby, termínu a kontaktních údajů.
             </p>
           ) : null}
         </section>

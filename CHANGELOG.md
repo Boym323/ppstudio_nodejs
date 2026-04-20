@@ -73,6 +73,10 @@ Formát je inspirovaný Keep a Changelog.
 - Týdenní planner dostupností pro `OWNER` i `SALON` nyní zobrazuje rezervace, omezené intervaly, neaktivní sloty i minulý čas v jednom klidném kalendáři.
 
 ### Changed
+- Při vytvoření veřejné rezervace uvnitř delšího slotu s kapacitou `1` se slot nyní automaticky rozdělí na rezervovaný úsek a navazující volné fragmenty, aby admin planner mohl volné části dál upravovat po samostatných blocích.
+- Výpočet dostupných časů v kroku 2 veřejné rezervace byl optimalizovaný z opakovaného porovnávání každého času se všemi rezervacemi na lineární průchod nad seřazenými intervaly, takže i delší sloty s více rezervacemi reagují rychleji.
+- Veřejné rezervace už se po odeslání automaticky nepotvrzují; nově se zakládají jako `PENDING` a čekají na schválení v adminu.
+- Klientská success obrazovka, submit CTA a potvrzovací e-mail wording byly přepsané na režim „rezervace přijata ke schválení“ místo okamžitého potvrzení.
 - Databázová ochrana duplicit rezervací byla zpřesněná: místo širokého `UNIQUE(slotId, clientId)` nyní platí partial unique index `Booking_exact_duplicate_active_key`, který blokuje jen přesně duplicitní aktivní interval stejného klienta (`slotId + clientId + scheduledStartsAt + scheduledEndsAt` pro `PENDING/CONFIRMED`).
 - Krok 2 veřejného rezervačního formuláře už nebere celý publikovaný interval jako jediný termín; nově nabízí konkrétní starty po 30 minutách uvnitř volného okna (např. 09:00, 09:30, 10:00) podle délky vybrané služby a aktuální kapacity.
 - Veřejné vytvoření rezervace nyní přijímá explicitní `startsAt` z formuláře a server-side potvrzuje, že zvolený interval opravdu leží uvnitř slotu a nekoliduje s existujícími rezervacemi.
@@ -145,6 +149,13 @@ Formát je inspirovaný Keep a Changelog.
 - Dokumentace byla srovnaná s aktuálním kódem: týdenní planner, `EMAIL_DELIVERY_MODE=background` a produkční migrace přes `prisma migrate deploy`.
 
 ### Fixed
+- Admin weekly planner už při kliknutí/tažení v mřížce neprovádí okamžitý `router.replace` na query `day`, takže během editace „neuskočí“ rozložení stránky.
+- Admin weekly planner při `router.refresh()` po uložení už zbytečně neremountuje client část podle `initialDayKey`; výběr dne proto zůstává stabilní i po úspěšné akci.
+- Admin weekly planner už při `pointerdown` nemění aktivní den v postranním panelu; den se synchronizuje až po úspěšném dokončení akce, takže klik na jednu půlhodinu se neroztáhne na delší blok kvůli průběžnému reflow.
+- Výběr rozsahu v planneru byl přepnutý z `pointerenter` na `pointermove` s kontrolou stisku tlačítka myši, aby se rozsah nepřepočítával bez reálného tažení a kliknutí na 30 minut zůstalo 30 minut.
+- Planner při běžně úspěšném výběru už nezobrazuje success flash nad mřížkou a blok `SelectionStatus` má stabilní výšku i bez aktivního draftu, takže při kliknutí/tažení dál neuskakuje layout.
+- Výběr dne v admin planneru je nyní odvozený z URL (`day`) a aktivního draftu místo lokálního sync state; kliky na dny nad kalendářem znovu spolehlivě přepínají den bez návratu původního „uskočení“.
+- Admin týdenní planner už po vytvoření krátké rezervace uvnitř delšího slotu „neschová“ zbytek intervalu; slot se nyní v planneru rozpadá na rezervovanou část a navazující chráněný zbytek, takže blok zůstává vizuálně čitelný.
 - Veřejná rezervace už nepadá při prázdném telefonu na Prisma `P2011` (`Null constraint violation`): DB sloupec `Booking.clientPhoneSnapshot` je nově nullable migrací `20260420125500_booking_client_phone_nullable_fix` a historicky rozjetý název PK constraintu byl sjednocen migrací `20260420130500_rename_booking_primary_key_constraint`.
 - Admin auth redirecty (`/api/auth/login`, `/api/auth/logout` a guard v `proxy.ts`) nyní skládají absolutní URL přes `x-forwarded-host`/`x-forwarded-proto` (s fallbackem na `request.url`), takže při provozu za reverzní proxy nepřepisují doménu na interní `localhost`.
 - Rozpadlý layout homepage hero po přidání loga: logo má nově fixní render box s `next/image` `fill`, takže už neroztahuje levý sloupec.

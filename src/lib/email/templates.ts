@@ -122,11 +122,11 @@ export async function renderEmailTemplate(
       const text = [
         `Dobrý den, ${data.clientName},`,
         "",
-        `vaše rezervace služby ${data.serviceName} je potvrzená.`,
+        `vaši rezervaci služby ${data.serviceName} jsme přijali ke schválení.`,
         `Termín: ${scheduledAtLabel}`,
         `Referenční kód: ${data.bookingId.slice(-8).toUpperCase()}`,
         "",
-        `Storno rezervace: ${data.cancellationUrl}`,
+        `Pokud potřebujete rezervaci stáhnout, použijte storno odkaz: ${data.cancellationUrl}`,
         "",
         `${brand.name}`,
         `${brand.email} | ${brand.phone}`,
@@ -134,8 +134,8 @@ export async function renderEmailTemplate(
 
       const html = buildEmailShell(
         brand,
-        "Potvrzení rezervace",
-        `Vaše rezervace služby ${data.serviceName} je potvrzená.`,
+        "Rezervace přijata",
+        `Vaši rezervaci služby ${data.serviceName} jsme přijali ke schválení.`,
         `
           <div style="border:1px solid rgba(33,23,20,0.08);border-radius:18px;padding:20px;background:#fbf7f3;">
             <p style="margin:0 0 8px;font-size:13px;text-transform:uppercase;letter-spacing:0.16em;color:#9e7f65;">Termín</p>
@@ -143,7 +143,7 @@ export async function renderEmailTemplate(
             <p style="margin:16px 0 0;font-size:14px;line-height:1.7;color:#5b4c44;">Referenční kód: <strong>${escapeHtml(data.bookingId.slice(-8).toUpperCase())}</strong></p>
           </div>
           <p style="margin:24px 0 0;font-size:15px;line-height:1.7;color:#5b4c44;">
-            Pokud potřebujete termín zrušit, použijte bezpečný storno odkaz:
+            Pokud potřebujete rezervaci stáhnout, použijte bezpečný storno odkaz:
           </p>
           <p style="margin:16px 0 0;">
             <a href="${escapeHtml(data.cancellationUrl)}" style="display:inline-block;padding:14px 22px;border-radius:999px;background:#1f1714;color:#ffffff;text-decoration:none;font-weight:600;">

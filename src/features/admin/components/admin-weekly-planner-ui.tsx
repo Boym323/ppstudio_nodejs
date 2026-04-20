@@ -231,13 +231,13 @@ export function PlannerFeedback({
 
 export function SelectionStatus({ draft }: { draft: DraftSelection | null }) {
   if (!draft) {
-    return null;
+    return <div className="min-h-[3.25rem]" aria-hidden="true" />;
   }
 
   const range = getSelectionRange(draft);
 
   return (
-    <div className="rounded-[1.2rem] border border-[var(--color-accent)]/35 bg-[rgba(190,160,120,0.12)] px-4 py-3 text-sm text-white/88">
+    <div className="min-h-[3.25rem] rounded-[1.2rem] border border-[var(--color-accent)]/35 bg-[rgba(190,160,120,0.12)] px-4 py-3 text-sm text-white/88">
       {draft.mode === "add" ? "Přidáváte" : "Odebíráte"} {formatRangeLabel(range.startCell, range.endCell)}
     </div>
   );
@@ -285,18 +285,18 @@ export function GridCell({
   tone,
   selected,
   onPointerDown,
-  onPointerEnter,
+  onPointerMove,
 }: {
   tone: CellTone;
   selected: boolean;
   onPointerDown: () => void;
-  onPointerEnter: () => void;
+  onPointerMove: (event: React.PointerEvent<HTMLButtonElement>) => void;
 }) {
   return (
     <button
       type="button"
       onPointerDown={onPointerDown}
-      onPointerEnter={onPointerEnter}
+      onPointerMove={onPointerMove}
       className={cn(
         "h-5 w-full rounded-[0.55rem] border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/70 lg:h-4",
         tone === "available" && "border-emerald-300/40 bg-emerald-300/70 hover:bg-emerald-300/85",
@@ -316,7 +316,7 @@ export function DesktopWeekGrid({
   timeLabels,
   draft,
   onCellStart,
-  onCellEnter,
+  onCellMove,
   selectedDayKey,
   baseHref,
   weekKey,
@@ -325,7 +325,7 @@ export function DesktopWeekGrid({
   timeLabels: string[];
   draft: DraftSelection | null;
   onCellStart: (day: PlannerDay, cellIndex: number) => void;
-  onCellEnter: (dayKey: string, cellIndex: number) => void;
+  onCellMove: (dayKey: string, cellIndex: number, buttons: number) => void;
   selectedDayKey: string;
   baseHref: string;
   weekKey: string;
@@ -380,7 +380,7 @@ export function DesktopWeekGrid({
                   tone={getCellTone(day, cellIndex)}
                   selected={selected}
                   onPointerDown={() => onCellStart(day, cellIndex)}
-                  onPointerEnter={() => onCellEnter(day.dateKey, cellIndex)}
+                  onPointerMove={(event) => onCellMove(day.dateKey, cellIndex, event.buttons)}
                 />
               );
             })}
@@ -396,13 +396,13 @@ export function MobileDayGrid({
   timeLabels,
   draft,
   onCellStart,
-  onCellEnter,
+  onCellMove,
 }: {
   day: PlannerDay;
   timeLabels: string[];
   draft: DraftSelection | null;
   onCellStart: (day: PlannerDay, cellIndex: number) => void;
-  onCellEnter: (dayKey: string, cellIndex: number) => void;
+  onCellMove: (dayKey: string, cellIndex: number, buttons: number) => void;
 }) {
   const selection = draft ? getSelectionRange(draft) : null;
   const rowIndexes = Array.from({ length: PLANNER_CELL_COUNT }, (_, index) => index);
@@ -430,7 +430,7 @@ export function MobileDayGrid({
                 tone={getCellTone(day, cellIndex)}
                 selected={selected}
                 onPointerDown={() => onCellStart(day, cellIndex)}
-                onPointerEnter={() => onCellEnter(day.dateKey, cellIndex)}
+                onPointerMove={(event) => onCellMove(day.dateKey, cellIndex, event.buttons)}
               />
             </div>
           );

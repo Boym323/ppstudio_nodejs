@@ -22,7 +22,6 @@ import {
   SelectionStatus,
   WeekToolbar,
   getCellTone,
-  getDayActionHref,
   getSelectionRange,
   getWeekdayTemplateFromDays,
   isEditableTone,
@@ -60,11 +59,11 @@ export function AdminWeeklyPlannerClient({
 }: AdminWeeklyPlannerClientProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [selectedDayKey, setSelectedDayKey] = useState(initialDayKey);
   const [draftSelection, setDraftSelection] = useState<DraftSelection | null>(null);
   const [feedback, setFeedback] = useState<FeedbackState | null>(null);
   const [copyTargetKey, setCopyTargetKey] = useState("");
 
+  const selectedDayKey = draftSelection?.dateKey ?? initialDayKey;
   const selectedDay = useMemo(
     () => data.days.find((day) => day.dateKey === selectedDayKey) ?? data.days[0],
     [data.days, selectedDayKey],
@@ -90,23 +89,20 @@ export function AdminWeeklyPlannerClient({
           mode: currentDraft.mode,
         });
 
-        setFeedback({ tone: result.ok ? "success" : "error", message: result.message });
-
         if (result.ok) {
+          setFeedback(null);
+          setCopyTargetKey("");
+          router.replace(`${data.baseHref}?week=${data.weekKey}&day=${currentDraft.dateKey}`, { scroll: false });
           router.refresh();
+        } else {
+          setFeedback({ tone: "error", message: result.message });
         }
       });
     }
 
     window.addEventListener("pointerup", handlePointerUp);
     return () => window.removeEventListener("pointerup", handlePointerUp);
-  }, [data.area, data.weekKey, draftSelection, router]);
-
-  function updateDayInUrl(dayKey: string) {
-    setSelectedDayKey(dayKey);
-    setCopyTargetKey("");
-    router.replace(getDayActionHref(data.baseHref, data.weekKey, dayKey), { scroll: false });
-  }
+  }, [data.area, data.baseHref, data.weekKey, draftSelection, router]);
 
   function handleCellStart(day: PlannerDay, cellIndex: number) {
     const tone = getCellTone(day, cellIndex);
@@ -116,7 +112,6 @@ export function AdminWeeklyPlannerClient({
       return;
     }
 
-    updateDayInUrl(day.dateKey);
     setDraftSelection({
       dateKey: day.dateKey,
       mode: tone === "available" ? "remove" : "add",
@@ -125,7 +120,11 @@ export function AdminWeeklyPlannerClient({
     });
   }
 
-  function handleCellEnter(dayKey: string, cellIndex: number) {
+  function handleCellMove(dayKey: string, cellIndex: number, buttons: number) {
+    if (buttons !== 1) {
+      return;
+    }
+
     setDraftSelection((current) => {
       if (!current || current.dateKey !== dayKey) {
         return current;
@@ -246,14 +245,14 @@ export function AdminWeeklyPlannerClient({
             timeLabels={timeLabels}
             draft={draftSelection}
             onCellStart={handleCellStart}
-            onCellEnter={handleCellEnter}
+            onCellMove={handleCellMove}
           />
           <DesktopWeekGrid
             days={data.days}
             timeLabels={timeLabels}
             draft={draftSelection}
             onCellStart={handleCellStart}
-            onCellEnter={handleCellEnter}
+            onCellMove={handleCellMove}
             selectedDayKey={selectedDay.dateKey}
             baseHref={data.baseHref}
             weekKey={data.weekKey}
