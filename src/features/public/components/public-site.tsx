@@ -564,7 +564,9 @@ export async function ContactPage() {
       <ContactHero
         title="Pokud si nejste jistá, napište mi."
         description="Ráda vám pomohu s výběrem služby i termínu. Najdete mě ve Zlíně a ozvat se můžete telefonicky, e-mailem i přes Instagram."
+        phone={salonProfile.phone}
         email={salonProfile.email}
+        instagramUrl={salonProfile.instagramUrl}
       />
       <section id="kontaktni-karty" className="py-8 sm:py-12 lg:py-14">
         <Container className="grid gap-6 lg:grid-cols-[1fr_0.95fr]">
@@ -577,6 +579,7 @@ export async function ContactPage() {
             instagramUrl={salonProfile.instagramUrl}
             operatorName="Pavlína Pomykalová"
             operatorId="234 275 66"
+            openingHours="Po-Pa: Dle objednavek"
           />
         </Container>
       </section>
