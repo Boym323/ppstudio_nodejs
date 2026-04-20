@@ -304,7 +304,7 @@ export function BookingFlow({ catalog }: BookingFlowProps) {
           Děkujeme, {serverState.confirmation.clientName}.
         </h3>
         <p className="mt-4 max-w-2xl text-base leading-7 text-[var(--color-muted)]">
-          Rezervace byla úspěšně vytvořená a potvrzovací e-mail je zařazený do zpracování na pozadí.
+          Rezervace je potvrzená. Potvrzení vám během chvíle pošleme na e-mail.
         </p>
         <dl className="mt-8 grid gap-4 sm:grid-cols-2">
           <div className="rounded-3xl border border-black/6 bg-[var(--color-surface)]/45 p-5">

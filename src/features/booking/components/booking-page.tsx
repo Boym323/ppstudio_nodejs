@@ -17,8 +17,8 @@ export function BookingPage({ catalog }: BookingPageProps) {
       <Container className="space-y-12">
         <SectionHeading
           eyebrow="Rezervace"
-          title="Rychlé rezervační flow pro ručně publikované termíny."
-          description="Klientka projde čtyři jasné kroky, finální validace běží server-side a termín se potvrzuje až při skutečném zápisu do databáze."
+          title="Vyberte si termín, který vám nejlépe vyhovuje."
+          description="Rezervace zabere jen chvilku. Vyberte službu, čas a doplňte kontakt, o vše ostatní se postaráme."
         />
 
         {!hasServices ? (
