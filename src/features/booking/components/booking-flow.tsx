@@ -1,7 +1,7 @@
 "use client";
 
 import { AvailabilitySlotServiceRestrictionMode } from "@prisma/client";
-import { useActionState, useMemo, useState } from "react";
+import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 
 import { createPublicBookingAction } from "@/features/booking/actions/create-public-booking";
 import { initialPublicBookingActionState } from "@/features/booking/actions/public-booking-action-state";
@@ -152,6 +152,57 @@ export function BookingFlow({ catalog }: BookingFlowProps) {
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedDateKey, setSelectedDateKey] = useState("");
   const [visibleMonthKey, setVisibleMonthKey] = useState("");
+  const [isTermStepHighlighted, setIsTermStepHighlighted] = useState(false);
+  const termStepSectionRef = useRef<HTMLDivElement | null>(null);
+  const termStepHighlightTimeoutRef = useRef<number | null>(null);
+
+  const focusTermStepSection = () => {
+    const sectionElement = termStepSectionRef.current;
+
+    if (!sectionElement) {
+      return;
+    }
+
+    if (termStepHighlightTimeoutRef.current !== null) {
+      window.clearTimeout(termStepHighlightTimeoutRef.current);
+    }
+
+    setIsTermStepHighlighted(true);
+    termStepHighlightTimeoutRef.current = window.setTimeout(() => {
+      setIsTermStepHighlighted(false);
+      termStepHighlightTimeoutRef.current = null;
+    }, 750);
+
+    window.requestAnimationFrame(() => {
+      const rect = sectionElement.getBoundingClientRect();
+      const topSafeArea = 120;
+      const bottomSafeArea = 48;
+      const isComfortablyVisible =
+        rect.top >= topSafeArea && rect.bottom <= window.innerHeight - bottomSafeArea;
+
+      if (isComfortablyVisible) {
+        return;
+      }
+
+      const desktopOffset = 112;
+      const mobileOffset = 88;
+      const targetTop =
+        window.scrollY + rect.top - (window.innerWidth >= 1024 ? desktopOffset : mobileOffset);
+
+      window.scrollTo({
+        top: Math.max(0, targetTop),
+        behavior: "smooth",
+      });
+    });
+  };
+
+  useEffect(() => {
+    return () => {
+      if (termStepHighlightTimeoutRef.current !== null) {
+        window.clearTimeout(termStepHighlightTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const servicesById = useMemo(
     () => new Map(catalog.services.map((service) => [service.id, service])),
@@ -386,11 +437,12 @@ export function BookingFlow({ catalog }: BookingFlowProps) {
                         setSelectedServiceId(service.id);
                         setSelectedTimeOptionKey("");
                         setCurrentStep(2);
+                        focusTermStepSection();
                       }}
                       className={cn(
-                        "rounded-3xl border p-5 text-left",
+                        "rounded-3xl border p-5 text-left transition-all duration-150",
                         isSelected
-                          ? "border-[var(--color-accent)] bg-[var(--color-surface-strong)]/45"
+                          ? "border-[var(--color-accent)] bg-[var(--color-surface-strong)]/45 shadow-[0_6px_14px_rgba(0,0,0,0.06)]"
                           : "border-black/6 bg-[var(--color-surface)]/25 hover:bg-[var(--color-surface)]/45",
                       )}
                     >
@@ -426,7 +478,15 @@ export function BookingFlow({ catalog }: BookingFlowProps) {
               ) : null}
             </div>
 
-            <div className="space-y-4">
+            <div
+              ref={termStepSectionRef}
+              className={cn(
+                "space-y-4 rounded-3xl transition-all duration-300",
+                isTermStepHighlighted
+                  ? "bg-[var(--color-surface-strong)]/30 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]"
+                  : "",
+              )}
+            >
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.32em] text-[var(--color-accent)]">
