@@ -7,6 +7,7 @@ import {
   createSessionToken,
   getSessionCookie,
 } from "@/lib/auth/session";
+import { buildAbsoluteUrl } from "@/lib/http/request-origin";
 
 const loginSchema = z.object({
   email: z.email(),
@@ -23,7 +24,7 @@ export async function POST(request: Request) {
 
   if (!result.success) {
     return NextResponse.redirect(
-      new URL("/admin/prihlaseni?error=invalid_payload", request.url),
+      buildAbsoluteUrl(request, "/admin/prihlaseni?error=invalid_payload"),
       303,
     );
   }
@@ -32,7 +33,7 @@ export async function POST(request: Request) {
 
   if (!authenticatedUser) {
     return NextResponse.redirect(
-      new URL("/admin/prihlaseni?error=invalid_credentials", request.url),
+      buildAbsoluteUrl(request, "/admin/prihlaseni?error=invalid_credentials"),
       303,
     );
   }
@@ -45,7 +46,7 @@ export async function POST(request: Request) {
   });
 
   const response = NextResponse.redirect(
-    new URL(getAdminHomeHref(authenticatedUser.role), request.url),
+    buildAbsoluteUrl(request, getAdminHomeHref(authenticatedUser.role)),
     303,
   );
 

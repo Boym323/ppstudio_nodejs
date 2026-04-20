@@ -11,6 +11,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - `booking`
   - `admin`
 - `src/lib` obsahuje infrastructure kód bez prezentační logiky.
+- `src/lib/media` drží infrastrukturní vrstvu pro lokální ukládání a čtení médií.
 - `src/config` drží metadata, navigaci a validované prostředí.
 - `src/content` drží editovatelná data veřejného webu odděleně od layoutu a route souborů.
 
@@ -22,6 +23,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Veřejné booking flow používá server-loaded page + klientský wizard + server action pro finální zápis.
 - `/rezervace` používá `connection()` a renderuje se request-time, aby ručně publikované sloty nebyly zafixované do build outputu.
 - `src/app/robots.ts` a `src/app/sitemap.ts` používají metadata route API v App Routeru.
+- Veřejně dostupná nahraná média se servírují přes route handler `src/app/media/[kind]/[[...path]]/route.ts`, ne přes `public/` repozitáře.
 - `next.config.ts` používá `allowedDevOrigins` pro lokální LAN vývoj na `192.168.0.143`; bez toho Next.js 16 z jiného zařízení zablokuje dev assety a HMR endpoint `/_next/webpack-hmr`.
 
 ## Veřejný Web
@@ -45,6 +47,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - U homepage copy preferovat strukturu, která se už historicky osvědčila: jasný lokální hero claim, dvě primární akce (rezervace + ceník) a blok „nejste si jistá výběrem“, který snižuje bariéru první rezervace.
 - Pokud homepage potřebuje logo/fotku majitelky, nastav to v `homepageContent` (`logoImage`, `portraitImage`) a používej lokální soubory z `public/brand`, aby nebyla závislost na externím hostingu.
 - Pro vizuální přiblížení starému webu drž hero variantu jen pro homepage (`logoImage` + `portraitImage`), zatímco ostatní public stránky mají zůstat v obecné hero variantě bez portrait-first kompozice.
+- Statické soubory v `public/brand` jsou vhodné jen pro ručně verzované assety projektu; admin uploady mají používat sdílenou media vrstvu a model `MediaAsset`.
 
 ## Auth Strategie
 - Login probíhá přes `src/app/api/auth/login/route.ts`.
@@ -74,11 +77,14 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - `src/features/admin/lib/admin-service-categories.ts` drží serverový read model pro seznam, filtry, detail kategorie a lehký náhled navázaných služeb.
 - `src/features/admin/actions/service-category-actions.ts` je tenký server action adaptér pro editaci a bezpečné mazání kategorie; validace zůstává v `src/features/admin/lib/admin-service-category-validation.ts`.
 - `src/features/admin/components/admin-booking-detail-page.tsx` a route dvojice `/admin/rezervace/[bookingId]` + `/admin/provoz/rezervace/[bookingId]` drží první produkční workflow pro práci s rezervací.
+- Sekce `Certifikáty` má vlastní workflow v `src/features/admin/components/admin-certificates-page.tsx` a je dostupná v owner i salon oblasti.
+- Server action adaptéry pro certifikáty jsou v `src/features/admin/actions/certificate-actions.ts`; validace vstupu je v `src/features/admin/lib/admin-certificate-validation.ts`.
 - Sekce `Nastavení` má vlastní workflow v `src/features/admin/components/admin-settings-page.tsx` a už neběží přes generický placeholder renderer.
 - Formuláře pro `Salon`, `Rezervace` a `E-maily a notifikace` jsou oddělené do samostatných client komponent a server action adaptérů v `src/features/admin/actions/settings-actions.ts`.
 - Sdílený skeleton formulářů pro `Nastavení` je v `src/features/admin/components/admin-settings-form-ui.tsx`; drží společné styly polí, zprávy po uložení a patičku se submit buttonem, aby se neopakoval stejný markup ve třech sekcích.
 - Stránka `Nastavení` má nahoře krátký orientační blok, který v jedné větě vysvětlí, co patří do `Salon`, `Rezervace` a `E-maily`.
 - Tón admin copy je sjednocený napříč hlavními sekcemi tak, aby zůstal klidný, krátký a srozumitelný pro běžnou obsluhu.
+- Pro budoucí upload workflow nepřidávej zvláštní implementaci pro owner a salon admin; sdílená feature vrstva je v `src/features/media/lib/media-library.ts`.
 - Produkční slot routy jsou explicitní a nepoužívají generický `[section]` detail:
   - `/admin/volne-terminy`
   - `/admin/volne-terminy/novy`
@@ -135,8 +141,14 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Legacy `Setting` zůstává v databázi jako obecné key-value úložiště pro budoucí interní potřeby, ale produkční admin sekce `Nastavení` stojí na explicitním singleton modelu `SiteSettings`.
 - `src/lib/site-settings.ts` je centrální read vrstva pro veřejné kontakty, booking pravidla a e-mailový branding; zároveň bezpečně bootstrapuje výchozí singleton záznam.
 - `SiteSettings` drží jen skutečně globální provozní hodnoty. Technické env proměnné jako SMTP host/port, `NEXT_PUBLIC_APP_URL` nebo `ADMIN_SESSION_SECRET` se do adminu záměrně nepřenášejí.
+- `MediaAsset` je obecný metadata model pro certifikáty, fotky prostor, reference i další obsahové obrázky; binární obsah zůstává na lokálním filesystemu mimo DB.
+- Filesystem layout médií má tvar `<MEDIA_STORAGE_ROOT>/<visibility>/<kind>/<year>/<month>/<storedFilename>`.
+- `src/lib/media/local-media-storage.ts` je adapter pro lokální filesystem; business vrstva přes něj neřeší konkrétní `fs` operace ani fyzické cesty.
+- `src/lib/media/media-validation.ts` centralizuje kontrolu MIME typu, přípony a maximální velikosti souboru.
+- `src/lib/media/media-filename.ts` generuje bezpečný název z původního jména a náhodného suffixu, takže nehrozí přepisování souborů se stejným názvem.
 - `src/features/booking/lib/booking-public.ts` je veřejný write model pro rezervace a drží i ochranu proti souběžnému obsazení slotu.
 - `src/features/booking/lib/booking-cancellation.ts` drží veřejné storno workflow nad hashovaným action tokenem.
+- `src/features/public/lib/public-certificates.ts` je veřejný read model certifikátů pro stránku `/o-mne`.
 - Veřejný booking flow vrací doménové chybové kódy a doporučený krok formuláře, takže UI může zobrazit přesnější recovery stav bez duplikace serverové logiky.
 - Veřejný booking submit má lehký rate limit podle IP a e-mailu a zapisuje auditní log pokusů, blokací a selhání pro provozní troubleshooting.
 - Krok 2 veřejného booking flow filtruje sloty i podle délky služby, aby se krátké sloty neukazovaly až v posledním kroku.
@@ -198,6 +210,15 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - editaci slotu s aktivní rezervací a blokaci neplatného snížení kapacity
   - archivaci pouze bez aktivní rezervace
 - Při úpravě lokálního dev serveru nebo `next.config.ts` ručně ověř i otevření aplikace z vedlejšího zařízení v LAN; pokud browser hlásí blokaci `/_next/webpack-hmr`, zkontroluj `allowedDevOrigins` a restartuj dev server.
+- Po změně media vrstvy ručně ověř i:
+  - vytvoření upload rootu v `MEDIA_STORAGE_ROOT`
+  - úspěšné uložení veřejného obrázku a jeho dostupnost přes `/media/<kind>/...`
+  - odmítnutí nepodporovaného MIME typu a příliš velkého souboru
+  - smazání assetu v DB i na filesystemu
+- Po změně certifikátového workflow ručně ověř i:
+  - `/admin/certifikaty` a `/admin/provoz/certifikaty` na desktopu i mobilu
+  - upload certifikátu a okamžité propsání do `/o-mne`
+  - smazání certifikátu a zmizení z adminu i veřejné stránky
 
 ## Bezpečnost
 - Tajné údaje držet pouze v env.

@@ -7,6 +7,18 @@ Formát je inspirovaný Keep a Changelog.
 ## [Unreleased]
 
 ### Added
+- První konkrétní admin modul `Certifikáty` dostupný pro `OWNER` i `SALON` na `/admin/certifikaty` a `/admin/provoz/certifikaty`.
+- Server actions pro upload a smazání certifikátů napojené na `saveMediaAsset()` a `removeMediaAsset()`.
+- Veřejný read model `getPublicCertificates()` nad `MediaAssetKind.CERTIFICATE`.
+- Stránka `/o-mne` nyní načítá certifikáty z DB v request-time režimu a zobrazuje je v nové sekci `Certifikace`.
+- Obecný základ lokální media storage vrstvy pro certifikáty, fotky prostor, reference i další budoucí obsah webu.
+- Prisma model `MediaAsset` a migraci `20260419230000_media_storage_v1` pro ukládání media metadat mimo binární data.
+- Sdílenou infrastrukturní vrstvu `src/lib/media/*` pro validaci souborů, generování názvů, bezpečné cesty a lokální filesystem adapter.
+- Sdílenou feature service `src/features/media/lib/media-library.ts` pro budoucí owner/salon upload workflow bez duplikace.
+- Veřejný route handler `/media/[kind]/[[...path]]`, který servíruje jen veřejné assety evidované v databázi.
+- Volitelnou env proměnnou `MEDIA_STORAGE_ROOT` s výchozí cestou `../ppstudio-uploads` mimo repo a mimo build artefakty.
+- ADR 0017 pro architektonické rozhodnutí kolem lokálního media storage.
+- Základní testy pro bezpečné názvy souborů, storage path validaci a upload validační vrstvu.
 - Lokální brand assety `public/brand/ppstudio-logo.png` a `public/brand/ppstudio-portrait.jpg` pro homepage hero.
 - Skript `npm run db:check-migrations`, který před deployem kontroluje otevřené failed/incomplete záznamy v `_prisma_migrations`.
 - Produkční owner-only sekci `Nastavení` s rozdělením na bloky `Salon`, `Rezervace` a `E-maily a notifikace`.
@@ -61,6 +73,7 @@ Formát je inspirovaný Keep a Changelog.
 - Týdenní planner dostupností pro `OWNER` i `SALON` nyní zobrazuje rezervace, omezené intervaly, neaktivní sloty i minulý čas v jednom klidném kalendáři.
 
 ### Changed
+- Veřejná sekce certifikátů na `/o-mne` už neřeže portrait soubory (`object-contain`) a nově podporuje klikací zvětšení v lightboxu.
 - Stránka `/o-mne` byla zjednodušená blíž původnímu webu: bez portrétní fotky a bez sekce certifikátů, s přímočařejší skladbou `hero -> profil -> Můj příběh -> Můj přístup -> Na co se můžete těšit -> jemné CTA`.
 - Implementace stránky `O mně` v `src/features/public/components/about-page.tsx` byla vizuálně zklidněná a obsahový model `aboutContent` byl zúžený jen na bloky, které jsou teď na stránce skutečně použité.
 - Hero portrét na desktopu už nepoužívá `lg:h-full`; má pevnou výšku `lg:h-[31rem]`, takže je reálně menší a lépe sedí k levému textovému bloku.
@@ -124,6 +137,7 @@ Formát je inspirovaný Keep a Changelog.
 - Dokumentace byla srovnaná s aktuálním kódem: týdenní planner, `EMAIL_DELIVERY_MODE=background` a produkční migrace přes `prisma migrate deploy`.
 
 ### Fixed
+- Admin auth redirecty (`/api/auth/login`, `/api/auth/logout` a guard v `proxy.ts`) nyní skládají absolutní URL přes `x-forwarded-host`/`x-forwarded-proto` (s fallbackem na `request.url`), takže při provozu za reverzní proxy nepřepisují doménu na interní `localhost`.
 - Rozpadlý layout homepage hero po přidání loga: logo má nově fixní render box s `next/image` `fill`, takže už neroztahuje levý sloupec.
 - Homepage hero na desktopu už není přilepený ke spodní hraně (`lg:items-center` místo `lg:items-end`) a portrét má klidnější výšku, takže vlevo nevzniká velká prázdná plocha.
 - Hlavička veřejného webu už v browseru nespouští validaci serverových env proměnných; brand text je teď lokální a subtitle na domovce zůstává zachovaný.

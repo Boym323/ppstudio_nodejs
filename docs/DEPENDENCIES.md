@@ -15,6 +15,7 @@ Seznam důležitých knihoven a důvod jejich použití.
 - `zod`: validace env a serverových vstupů.
 - `jose`: podpis a verifikace admin session.
 - `nodemailer`: SMTP transport pro potvrzení rezervace a storno e-maily.
+- `image-size`: čtení rozměrů lokálně uložených obrázků pro metadata `MediaAsset`.
 - `dotenv`: načtení `.env` pro Prisma CLI konfiguraci.
 - vestavěný Node.js `crypto`: generování a hashování action tokenů pro booking workflow bez další závislosti.
 - Booking submission audit využívá stejnou Prisma vrstvu a nezavádí další knihovnu pro rate limiting ani logování.
@@ -47,6 +48,7 @@ Seznam důležitých knihoven a důvod jejich použití.
 - Konsolidace owner/salon admin route wrapperů do shared factory patternu proběhla bez přidání nové knihovny.
 - Admin workflow pro služby (seznam, filtry, editace a validační vrstva) bylo doplněné čistě nad existujícím stackem Next.js, React, Prisma a Zod.
 - Admin workflow pro kategorie služeb (seznam, editace, pořadí a bezpečné mazání prázdných kategorií) bylo doplněné čistě nad existujícím stackem Next.js, React, Prisma a Zod.
+- Lokální media storage vrstva zůstává na stávajícím stacku Next.js, Prisma a Node filesystemu; nová závislost `image-size` řeší jen rozměry obrázků bez zavádění těžšího image pipeline řešení.
 
 ## Pravidla aktualizací
 - Minimálně 1x měsíčně zkontrolovat bezpečnostní a major update.

@@ -6,6 +6,7 @@ import { AdminBookingDetailPage } from "@/features/admin/components/admin-bookin
 import { AdminOverviewPage } from "@/features/admin/components/admin-overview-page";
 import { AdminSectionPage } from "@/features/admin/components/admin-section-page";
 import { AdminSettingsPage } from "@/features/admin/components/admin-settings-page";
+import { AdminCertificatesPage } from "@/features/admin/components/admin-certificates-page";
 import { AdminServiceCategoriesPage } from "@/features/admin/components/admin-service-categories-page";
 import { AdminServicesPage } from "@/features/admin/components/admin-services-page";
 import { AdminWeeklyPlannerPage } from "@/features/admin/components/admin-weekly-planner-page";
@@ -64,6 +65,10 @@ export function createAdminSectionRoute(area: AdminArea) {
 
     if (section === "kategorie-sluzeb") {
       return <AdminServiceCategoriesPage area={area} searchParams={await searchParams} />;
+    }
+
+    if (section === "certifikaty") {
+      return <AdminCertificatesPage area={area} searchParams={await searchParams} />;
     }
 
     if (section === "nastaveni") {

@@ -70,6 +70,22 @@ enum BookingSubmissionOutcome {
   BLOCKED
 }
 
+enum MediaStorageProvider {
+  LOCAL
+}
+
+enum MediaAssetVisibility {
+  PUBLIC
+  PRIVATE
+}
+
+enum MediaAssetKind {
+  CERTIFICATE
+  SPACE
+  REFERENCE
+  CONTENT
+}
+
 model AdminUser {
   id                        String                 @id @default(cuid())
   email                     String                 @unique
@@ -359,4 +375,27 @@ model SiteSettings {
   updatedByUser              AdminUser? @relation("SiteSettingsUpdatedBy", fields: [updatedByUserId], references: [id], onDelete: SetNull)
 
   @@index([updatedByUserId])
+}
+
+model MediaAsset {
+  id               String               @id @default(cuid())
+  storageProvider  MediaStorageProvider @default(LOCAL)
+  visibility       MediaAssetVisibility @default(PUBLIC)
+  kind             MediaAssetKind
+  originalFilename String
+  storedFilename   String
+  mimeType         String
+  extension        String
+  sizeBytes        Int
+  width            Int?
+  height           Int?
+  alt              String?
+  title            String?
+  storagePath      String               @unique
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+
+  @@index([kind, createdAt])
+  @@index([visibility, kind, createdAt])
+  @@index([storageProvider, kind, createdAt])
 }

@@ -4,22 +4,24 @@ Postup nasazení aplikace do produkce.
 
 ## Release checklist
 1. `npm ci`
-2. Ověř správné produkční env proměnné (`DATABASE_URL`, `ADMIN_SESSION_SECRET`, admin bootstrap účty, email delivery, worker)
-3. Zálohuj databázi, pokud release obsahuje novou Prisma migraci.
-4. `npm run db:generate`
-5. `npm run db:check-migrations`
-6. `npx prisma migrate deploy`
-7. `npm run lint`
-8. `npm run build`
-9. Aktualizuj `CHANGELOG.md`
-10. Ověř aktuálnost dokumentace (`MANUAL.md`, `docs/*`)
-11. Projdi ruční QA veřejného webu na mobilu i desktopu:
+2. Ověř správné produkční env proměnné (`DATABASE_URL`, `ADMIN_SESSION_SECRET`, admin bootstrap účty, email delivery, worker, `MEDIA_STORAGE_ROOT`)
+3. Ověř existenci a práva k upload rootu; web proces musí umět zapisovat do `MEDIA_STORAGE_ROOT` nebo do výchozí cesty `../ppstudio-uploads`.
+4. Zálohuj databázi, pokud release obsahuje novou Prisma migraci.
+5. Zálohuj nebo snapshotuj upload root, pokud release mění práci s médii nebo cleanup logiku.
+6. `npm run db:generate`
+7. `npm run db:check-migrations`
+8. `npx prisma migrate deploy`
+9. `npm run lint`
+10. `npm run build`
+11. Aktualizuj `CHANGELOG.md`
+12. Ověř aktuálnost dokumentace (`MANUAL.md`, `docs/*`)
+13. Projdi ruční QA veřejného webu na mobilu i desktopu:
    - homepage
    - služby a detail služby
    - kontakt
    - FAQ a právní stránky
    - CTA na rezervaci
-12. Projdi ruční QA admin částí:
+14. Projdi ruční QA admin částí:
    - login redirect pro `OWNER` a `SALON`
    - dostupnost owner-only sekcí jen pro `OWNER`
    - stejné chování owner/salon párových route po refaktoru factory wrapperů (overview, section, booking detail, slot list/create/detail/edit)
@@ -46,12 +48,17 @@ Postup nasazení aplikace do produkce.
      - propsání kontaktů do footeru a `/kontakt`
      - propsání storno limitu do `/faq` a `/storno-podminky`
      - propsání booking limitů do `/rezervace`
-13. Ověř booking a email vrstvu:
-   - vytvoření testovací rezervace
-   - zápis `EmailLog` ve stavu `PENDING` v background režimu nebo `SENT` v log režimu
-   - funkční storno odkaz
-   - doručení admin notifikačního e-mailu na `notificationAdminEmail`
-   - zpracování email workerem nebo potvrzený `EmailLog` v log režimu
+   - certifikátový modul na `/admin/certifikaty` a `/admin/provoz/certifikaty`:
+     - upload podporovaného obrázku
+     - smazání certifikátu
+     - propsání změn na `/o-mne`
+15. Ověř booking, email a media vrstvu:
+  - vytvoření testovací rezervace
+  - zápis `EmailLog` ve stavu `PENDING` v background režimu nebo `SENT` v log režimu
+  - funkční storno odkaz
+  - doručení admin notifikačního e-mailu na `notificationAdminEmail`
+  - zpracování email workerem nebo potvrzený `EmailLog` v log režimu
+  - načtení testovacího veřejného media URL `/media/<kind>/...`
 
 ## Nasazení
 1. Pull nové verze na server.
@@ -60,9 +67,10 @@ Postup nasazení aplikace do produkce.
 4. Kontrola historie migrací (`npm run db:check-migrations`).
 5. Aplikace databázových změn (`npx prisma migrate deploy`).
 6. Build (`npm run build`).
-7. Restart procesu aplikace.
-8. Pokud běžíš v self-hosted režimu bez připraveného SMTP, nech dočasně `EMAIL_DELIVERY_MODE=log`, ať booking flow neblokuje start produkce.
-9. Pro produkci spusť zvlášť `npm run email:worker` jako samostatný proces nebo službu.
+7. Připrav nebo ověř existenci upload rootu mimo repo, například `/var/www/ppstudio-uploads`, včetně práv pro web proces.
+8. Restart procesu aplikace.
+9. Pokud běžíš v self-hosted režimu bez připraveného SMTP, nech dočasně `EMAIL_DELIVERY_MODE=log`, ať booking flow neblokuje start produkce.
+10. Pro produkci spusť zvlášť `npm run email:worker` jako samostatný proces nebo službu.
 
 ### Systemd
 - Doporučený web unit je v [`deploy/systemd/ppstudio-web.service`](/var/www/ppstudio/deploy/systemd/ppstudio-web.service).
@@ -92,6 +100,7 @@ sudo /var/www/ppstudio/deploy/deploy.sh
 - Migrace `20260418220000_email_outbox_worker` doplňuje sloupce pro outbox, claimování a retry e-mailových jobů.
 - Migrace `20260419103000_service_public_bookability` přidává sloupec `Service.isPubliclyBookable`; po deployi ověř, že `/rezervace`, `/sluzby` a `/cenik` zobrazují jen správné služby a že admin sekce `Služby` funguje v owner i salon oblasti.
 - Migrace `20260419140000_site_settings_singleton` přidává tabulku `SiteSettings`; po deployi ověř, že se `/admin/nastaveni` otevře bez chyby a že první render bezpečně založí výchozí singleton záznam.
+- Migrace `20260419230000_media_storage_v1` přidává tabulku `MediaAsset` a enumy pro lokální media storage; po deployi ověř zápis souboru do upload rootu a načtení přes `/media/*`.
 - Admin workflow kategorií služeb nevyžaduje novou DB migraci; navazuje na existující model `ServiceCategory`.
 - Před produkční aplikací migrace ověř data, která by mohla mít rezervaci bez přiřazené služby; tato migrace takové řádky záměrně odmítne.
 - Pokud v databázi existují duplicitní rezervace stejného klienta do stejného slotu, nová migrace se zastaví a vyžádá jejich ruční vyčištění.
@@ -114,6 +123,8 @@ sudo /var/www/ppstudio/deploy/deploy.sh
 - Reverzní proxy by měla korektně předávat `x-forwarded-for`, aby submission audit a rate limiting pracovaly smysluplně.
 - I když `npm run build` dnes předem volá `prisma generate`, v release checklistu necháváme explicitní `npm run db:generate`, protože chrání i jiné skripty a ruční servisní zásahy.
 - `allowedDevOrigins` je čistě development nastavení pro `next dev`; produkční deploy ani `next start` na něm nestojí. Pokud někdo řeší vzdálené testování přes LAN, upravuje se `next.config.ts`, ne produkční env.
+- Upload root není build artefakt. Při deployi se nemaže a má být zálohovaný samostatně od repozitáře i databáze.
+- Veřejná média se publikují přes `/media/*`, takže reverse proxy nemusí mapovat fyzickou cestu upload adresáře přímo do document rootu.
 
 ## Dodatečná QA pro týdenní planner
 - Ověř všechny route varianty:

@@ -5,6 +5,8 @@ import {
   BookingStatus,
   EmailLogStatus,
   EmailLogType,
+  MediaAssetKind,
+  MediaAssetVisibility,
   Prisma,
 } from "@prisma/client";
 
@@ -134,6 +136,8 @@ export function getAdminSectionTitle(slug: AdminSectionSlug) {
       return "Volné termíny";
     case "klienti":
       return "Klienti";
+    case "certifikaty":
+      return "Certifikáty";
     case "sluzby":
       return "Služby";
     case "kategorie-sluzeb":
@@ -320,6 +324,8 @@ export async function getAdminSectionData(section: AdminSectionSlug, area: Admin
       return getSlotsData(area);
     case "klienti":
       return getClientsData(area);
+    case "certifikaty":
+      return getCertificatesData(area);
     case "sluzby":
       return getServicesData(area);
     case "kategorie-sluzeb":
@@ -440,6 +446,43 @@ async function getClientsData(area: AdminArea) {
           ? `Rezervací: ${client._count.bookings}. Poslední booking: ${formatDateLabel(client.lastBookedAt)}.`
           : `Rezervací: ${client._count.bookings}. Poslední návštěva: ${formatDateLabel(client.lastBookedAt)}.`,
       badge: client.isActive ? "Aktivní" : "Neaktivní",
+    })),
+  };
+}
+
+async function getCertificatesData(area: AdminArea) {
+  const [publicCertificates, recentCertificates] = await Promise.all([
+    prisma.mediaAsset.count({
+      where: {
+        kind: MediaAssetKind.CERTIFICATE,
+        visibility: MediaAssetVisibility.PUBLIC,
+      },
+    }),
+    prisma.mediaAsset.findMany({
+      where: {
+        kind: MediaAssetKind.CERTIFICATE,
+      },
+      orderBy: { createdAt: "desc" },
+      take: 8,
+    }),
+  ]);
+
+  return {
+    stats: [
+      {
+        label: "Veřejné certifikáty",
+        value: String(publicCertificates),
+        tone: "accent" as const,
+      },
+    ],
+    items: recentCertificates.map((asset) => ({
+      id: asset.id,
+      title: asset.title || asset.originalFilename,
+      meta: `${asset.mimeType} • ${Math.round(asset.sizeBytes / 1024)} KB`,
+      description: area === "owner"
+        ? `Nahráno ${formatDateLabel(asset.createdAt)} • soubor ${asset.storedFilename}`
+        : `Nahráno ${formatDateLabel(asset.createdAt)}`,
+      badge: asset.visibility === MediaAssetVisibility.PUBLIC ? "Veřejné" : "Soukromé",
     })),
   };
 }

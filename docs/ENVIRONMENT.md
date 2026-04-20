@@ -28,6 +28,7 @@ Dokumentace proměnných prostředí pro lokální vývoj i produkci.
 - `SMTP_FROM_EMAIL`: adresa odesílatele.
 - `SMTP_FROM_NAME`: jméno odesílatele zobrazované klientovi.
 - `SMTP_REPLY_TO`: volitelná reply-to adresa.
+- `MEDIA_STORAGE_ROOT`: volitelná absolutní cesta k lokálnímu root adresáři pro nahraná média; pokud chybí, aplikace použije `../ppstudio-uploads` vedle repozitáře.
 
 ## Poznámky
 - Bootstrap admin přístupy slouží jako startovní vrstva projektu a měly by být později nahrazené databázovým managementem uživatelů.
@@ -43,6 +44,9 @@ Dokumentace proměnných prostředí pro lokální vývoj i produkci.
 - Admin sekce `Kategorie služeb` také nepřidává nové env proměnné; používá stejnou databázi, session a Prisma klient jako zbytek adminu.
 - Admin sekce `Nastavení` také nepřidává nové env proměnné; kontaktní údaje, booking pravidla a e-mailový branding ukládá do DB modelu `SiteSettings`.
 - Do admin sekce `Nastavení` záměrně nepatří technické hodnoty jako `NEXT_PUBLIC_APP_URL`, `ADMIN_SESSION_SECRET`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER` nebo `SMTP_PASSWORD`.
+- `MEDIA_STORAGE_ROOT` je infrastrukturní proměnná, ne business nastavení. Nepatří do adminu a má se spravovat na úrovni serveru nebo deploy konfigurace.
+- Doporučená produkční cesta je mimo repo i mimo `.next`, například `/var/www/ppstudio-uploads`.
+- Aplikace uvnitř storage rootu sama odděluje `public/`, `private/` a připravený `temp/` prostor pro budoucí drafty nebo přechodné uploady; veřejné soubory pak servíruje přes URL vrstvu `/media/*`.
 - Refaktor owner/salon admin route wrapperů na sdílené factory funkce nezavádí žádné nové env proměnné.
 - Povolené LAN originy pro Next.js dev server nejsou env proměnné; udržují se přímo v `next.config.ts` přes `allowedDevOrigins` a po změně vyžadují restart `npm run dev`.
 

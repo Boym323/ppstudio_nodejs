@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { buildAbsoluteUrl } from "@/lib/http/request-origin";
 
 const ADMIN_LOGIN_PATH = "/admin/prihlaseni";
 const SESSION_COOKIE = "ppstudio-admin-session";
@@ -13,10 +14,8 @@ export function proxy(request: NextRequest) {
   const hasSession = request.cookies.has(SESSION_COOKIE);
 
   if (!hasSession) {
-    const loginUrl = new URL(ADMIN_LOGIN_PATH, request.url);
-    loginUrl.searchParams.set("next", pathname);
-
-    return NextResponse.redirect(loginUrl);
+    const loginPath = `${ADMIN_LOGIN_PATH}?next=${encodeURIComponent(pathname)}`;
+    return NextResponse.redirect(buildAbsoluteUrl(request, loginPath));
   }
 
   return NextResponse.next();

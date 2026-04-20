@@ -2,6 +2,8 @@ import Link from 'next/link';
 
 import { aboutContent } from '@/content/public-site';
 import { Container } from '@/components/ui/container';
+import { AboutCertificatesGallery } from '@/features/public/components/about-certificates-gallery';
+import { type PublicCertificate } from '@/features/public/lib/public-certificates';
 
 function AboutProfileSection() {
   const { profile } = aboutContent;
@@ -151,13 +153,38 @@ function ExpectationsSection() {
   );
 }
 
-export function AboutPage() {
+function CertificatesSection({ certificates }: { certificates: PublicCertificate[] }) {
+  if (certificates.length === 0) {
+    return null;
+  }
+
+  return (
+    <section className="py-12 sm:py-16">
+      <Container>
+        <div className="mx-auto max-w-5xl rounded-[var(--radius-panel)] border border-[#e6dbcf] bg-white p-6 shadow-[0_18px_50px_rgba(64,42,26,0.06)] sm:p-8 lg:p-10">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[var(--color-accent)]">Certifikace</p>
+          <h2 className="mt-4 font-display text-3xl leading-[1.08] text-[var(--color-foreground)] sm:text-4xl">
+            Odbornost průběžně rozvíjím na odborných školeních.
+          </h2>
+          <p className="mt-5 max-w-3xl text-[15px] leading-7 text-[var(--color-muted)] sm:text-base">
+            Certifikáty níže jsou výběr z průběžného vzdělávání, na kterém stavím svou každodenní praxi.
+          </p>
+
+          <AboutCertificatesGallery certificates={certificates} />
+        </div>
+      </Container>
+    </section>
+  );
+}
+
+export function AboutPage({ certificates }: { certificates: PublicCertificate[] }) {
   return (
     <div className="pb-8 sm:pb-12">
       <AboutProfileSection />
       <StorySection />
       <ApproachSection />
       <ExpectationsSection />
+      <CertificatesSection certificates={certificates} />
     </div>
   );
 }

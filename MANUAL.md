@@ -46,7 +46,7 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
   - kategorie služeb a služby včetně samostatné veřejné rezervovatelnosti
   - sloty s omezením na vybrané služby
   - klienty, rezervace a historii stavů
-  - e-mailové logy, action tokeny, legacy `Setting` a nový singleton `SiteSettings`
+  - e-mailové logy, action tokeny, legacy `Setting`, singleton `SiteSettings` a metadata model `MediaAsset`
 
 ## Lokální Spuštění
 ```bash
@@ -61,6 +61,16 @@ Pokud databáze ještě neobsahuje schema nebo přibyly nové migrace:
 ```bash
 npm run db:migrate
 ```
+
+### Lokální media storage
+- Upload root se nastavuje přes `MEDIA_STORAGE_ROOT`.
+- Pokud proměnná není vyplněná, aplikace použije výchozí cestu `../ppstudio-uploads` vedle repozitáře.
+- Uvnitř rootu aplikace odděluje:
+  - `public/` pro veřejně čitelná média
+  - `private/` pro budoucí neveřejné soubory
+  - `temp/` pro budoucí drafty nebo přechodné upload workflow
+- Veřejná média se zobrazují přes URL vrstvu `/media/<kind>/...`, ne přímým odkazem na fyzickou cestu.
+- Statické assety verzované v repozitáři (`public/brand`) a uploady z adminu jsou dvě rozdílné věci; nové admin obrázky mají jít přes media storage vrstvu.
 
 ### Lokální vývoj z jiného zařízení v LAN
 - Next.js 16 v dev režimu blokuje cross-origin přístup k dev assetům a HMR endpointům, pokud origin výslovně nepovolíš.
@@ -98,6 +108,7 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
 - Homepage hero lze obsahově ladit blíž původnímu webu přes `homepageContent` (`benefits`, `ctaNote`) bez zásahu do routy.
 - Hero na homepage je záměrně klidnější: portrét je menší a pravý sloupec nepoužívá doprovodné mini boxy.
 - CTA na rezervaci je dostupné v hlavičce, hero sekcích i obsahových blocích.
+- Certifikáty, fotky prostor, reference a další budoucí obsahové obrázky mají sdílený základ přes `MediaAsset` a lokální upload storage.
 
 ## Přihlášení Do Adminu
 - Admin login je dostupný na `/admin/prihlaseni`.
@@ -118,6 +129,28 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
   - Rezervace
   - Volné termíny
   - Klienti
+
+## Média a obrázky
+- Lokální filesystem adapter je v `src/lib/media/*`.
+- Sdílená feature service pro budoucí owner/salon upload workflow je v `src/features/media/lib/media-library.ts`.
+- Metadata se ukládají do tabulky `MediaAsset`, zatímco binární soubor zůstává na filesystemu.
+- Podporované typy jsou aktuálně obrázky `jpg`, `jpeg`, `png`, `webp`, `gif`, `svg`.
+- Maximální velikost souboru je 8 MB.
+- Název souboru se skládá ze slugifikovaného původního jména a náhodného suffixu, takže nedochází k přepisování stejně pojmenovaných uploadů.
+- Relativní storage path má tvar `certificates/2026/04/moje-fotka-a1b2c3d4e5f6.webp`.
+- Pro budoucí private média už existuje fyzické oddělení v `private/`, ale veřejný přístup je zatím implementovaný jen pro `PUBLIC` assety.
+- Certifikáty mají první produkční napojení:
+  - admin upload a mazání přes `/admin/certifikaty` a `/admin/provoz/certifikaty`
+  - veřejné zobrazení v sekci `Certifikace` na stránce `/o-mne`
+  - backend napojený na `saveMediaAsset()` a `MediaAssetKind.CERTIFICATE`
+
+## Provoz a zálohy
+- Zálohuj databázi i upload root; jedna bez druhé nestačí pro úplnou obnovu médií.
+- Při deployi se upload root nemaže ani nepřegenerovává, protože není součástí build artefaktů.
+- Pokud upload začne selhávat, první kontrola má být:
+  - existence cesty z `MEDIA_STORAGE_ROOT`
+  - práva procesu k zápisu
+  - dostupnost veřejné URL `/media/*`
   - Služby
   - Kategorie služeb
 - Sekce `Služby` je nyní provozně použitelná pro obě role na `/admin/sluzby` a `/admin/provoz/sluzby`:

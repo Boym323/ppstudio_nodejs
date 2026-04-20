@@ -1,4 +1,5 @@
 import { z } from "zod";
+import path from "node:path";
 
 const serverEnvSchema = z
   .object({
@@ -23,6 +24,7 @@ const serverEnvSchema = z
     SMTP_FROM_EMAIL: z.email().optional(),
     SMTP_FROM_NAME: z.string().trim().min(1).default("PP Studio"),
     SMTP_REPLY_TO: z.email().optional(),
+    MEDIA_STORAGE_ROOT: z.string().trim().optional(),
   })
   .superRefine((env, context) => {
     if (env.EMAIL_DELIVERY_MODE !== "background") {
@@ -56,3 +58,8 @@ if (!parsed.success) {
 }
 
 export const env = parsed.data;
+
+export const mediaStorageRoot =
+  env.MEDIA_STORAGE_ROOT && env.MEDIA_STORAGE_ROOT.length > 0
+    ? path.resolve(env.MEDIA_STORAGE_ROOT)
+    : path.resolve(/* turbopackIgnore: true */ process.cwd(), "..", "ppstudio-uploads");
