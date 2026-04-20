@@ -102,6 +102,8 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
   - výběr ručně publikovaného termínu
   - kontaktní údaje klienta
   - souhrn a potvrzení
+- Výběr termínu v kroku 2 používá kalendářový režim: nejdřív den, potom konkrétní čas v rámci vybraného dne.
+- Krok `Vyberte termín` v booking flow dává jako hlavní údaj přesný začátek rezervace; konec a délka slotu jsou doplněné sekundárně pro lepší orientaci.
 - Rezervační stránka je renderovaná dynamicky při requestu, takže nově publikované nebo obsazené sloty jsou vidět bez dalšího buildu.
 - Hero, sekce `O mně` a základní service copy jsou už přepsané do klidnějšího a osobnějšího tónu; další jemné úpravy je vhodné dělat centrálně v obsahové vrstvě nebo v DB copy mapě služeb.
 - Stránka `/o-mne` má vlastní modulární implementaci s profilem, příběhem, přístupem, očekáváními a jemným CTA; texty jsou připravené v `aboutContent`.

@@ -154,6 +154,8 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Veřejný booking flow vrací doménové chybové kódy a doporučený krok formuláře, takže UI může zobrazit přesnější recovery stav bez duplikace serverové logiky.
 - Veřejný booking submit má lehký rate limit podle IP a e-mailu a zapisuje auditní log pokusů, blokací a selhání pro provozní troubleshooting.
 - Krok 2 veřejného booking flow filtruje sloty i podle délky služby, aby se krátké sloty neukazovaly až v posledním kroku.
+- Krok 2 veřejného booking flow používá dvoufázový výběr termínu: kalendářní výběr dne a následně seznam konkrétních časů pro vybraný den.
+- Krok 2 veřejného booking flow zobrazuje na kartách termínu primárně konkrétní začátek rezervace; konec a délka slotu jsou jen doplňkové metadata pro lepší čitelnost.
 - `src/lib/email/*` je samostatná infrastrukturní vrstva:
   - provider řeší SMTP transport
   - templates renderují obsah z `EmailLog.templateKey`

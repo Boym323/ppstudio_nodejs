@@ -73,6 +73,8 @@ Formát je inspirovaný Keep a Changelog.
 - Týdenní planner dostupností pro `OWNER` i `SALON` nyní zobrazuje rezervace, omezené intervaly, neaktivní sloty i minulý čas v jednom klidném kalendáři.
 
 ### Changed
+- Krok 2 veřejného booking flow byl přepracovaný na variantu kalendář + seznam časů: klientka nejdřív vybere den v měsíčním kalendáři a pak konkrétní čas pro daný den.
+- Krok 2 veřejného booking flow (`Vyberte termín`) nyní na kartách zobrazuje jednoznačný začátek rezervace jako hlavní údaj; rozsah času je přesunutý do sekundární informace `Konec v ... • Délka ...`, aby termín nepůsobil jako neurčité časové okno.
 - Jemný spacing polish veřejného webu a rezervace: sjednocený vertikální rytmus sekcí (`py-10 / sm:py-14 / lg:py-16`), kompaktnější mobile hero spacing a lehce utažené rozestupy v rezervačním flow bez změny funkčnosti.
 - Sjednocené šířky veřejných layoutů: stránky `/o-mne`, `/cenik` a booking error fallback už nepoužívají dodatečné zúžené wrappery (`max-w-4xl`, `max-w-5xl`, `max-w-[52rem]`, `max-w-3xl`) a drží jednotný `Container` rytmus (`max-w-7xl`).
 - Veřejná sekce certifikátů na `/o-mne` už neřeže portrait soubory (`object-contain`) a nově podporuje klikací zvětšení v lightboxu.

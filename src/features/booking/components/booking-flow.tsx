@@ -52,6 +52,62 @@ function formatSlotTimeRange(startsAt: string, endsAt: string) {
   return `${formatter.format(new Date(startsAt))} - ${formatter.format(new Date(endsAt))}`;
 }
 
+function formatSlotTime(value: string) {
+  return new Intl.DateTimeFormat("cs-CZ", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Europe/Prague",
+  }).format(new Date(value));
+}
+
+function formatCalendarMonthLabel(monthKey: string) {
+  const [year, month] = monthKey.split("-").map((part) => Number(part));
+
+  if (!year || !month) {
+    return "";
+  }
+
+  return new Intl.DateTimeFormat("cs-CZ", {
+    month: "long",
+    year: "numeric",
+    timeZone: "Europe/Prague",
+  }).format(new Date(Date.UTC(year, month - 1, 1, 12, 0, 0)));
+}
+
+function getSlotDateKey(value: string) {
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    timeZone: "Europe/Prague",
+  });
+
+  return formatter.format(new Date(value));
+}
+
+function getSlotDayNumber(value: string) {
+  return new Intl.DateTimeFormat("cs-CZ", {
+    day: "numeric",
+    timeZone: "Europe/Prague",
+  }).format(new Date(value));
+}
+
+function formatSlotDuration(startsAt: string, endsAt: string) {
+  const durationMinutes = Math.round((new Date(endsAt).getTime() - new Date(startsAt).getTime()) / (1000 * 60));
+  const hours = Math.floor(durationMinutes / 60);
+  const minutes = durationMinutes % 60;
+
+  if (hours > 0 && minutes > 0) {
+    return `${hours} h ${minutes} min`;
+  }
+
+  if (hours > 0) {
+    return `${hours} h`;
+  }
+
+  return `${minutes} min`;
+}
+
 function getSlotDurationMinutes(slot: PublicBookingCatalog["slots"][number]) {
   return (new Date(slot.endsAt).getTime() - new Date(slot.startsAt).getTime()) / (1000 * 60);
 }
@@ -68,6 +124,8 @@ export function BookingFlow({ catalog }: BookingFlowProps) {
   const [phone, setPhone] = useState("");
   const [clientNote, setClientNote] = useState("");
   const [currentStep, setCurrentStep] = useState(1);
+  const [selectedDateKey, setSelectedDateKey] = useState("");
+  const [visibleMonthKey, setVisibleMonthKey] = useState("");
 
   const servicesById = useMemo(
     () => new Map(catalog.services.map((service) => [service.id, service])),
@@ -101,6 +159,77 @@ export function BookingFlow({ catalog }: BookingFlowProps) {
     });
   }, [catalog.slots, selectedService, selectedServiceId]);
   const selectedSlot = selectedSlotId ? availableSlots.find((slot) => slot.id === selectedSlotId) : undefined;
+  const availableSlotsByDate = useMemo(() => {
+    const grouped = new Map<string, PublicBookingCatalog["slots"]>();
+
+    for (const slot of availableSlots) {
+      const dateKey = getSlotDateKey(slot.startsAt);
+      const current = grouped.get(dateKey) ?? [];
+      current.push(slot);
+      grouped.set(dateKey, current);
+    }
+
+    for (const [dateKey, slots] of grouped.entries()) {
+      grouped.set(
+        dateKey,
+        [...slots].sort((slotA, slotB) => new Date(slotA.startsAt).getTime() - new Date(slotB.startsAt).getTime()),
+      );
+    }
+
+    return grouped;
+  }, [availableSlots]);
+  const availableDateKeys = useMemo(
+    () => [...availableSlotsByDate.keys()].sort((dateA, dateB) => dateA.localeCompare(dateB)),
+    [availableSlotsByDate],
+  );
+  const availableMonths = useMemo(
+    () =>
+      Array.from(
+        new Set(availableDateKeys.map((dateKey) => dateKey.slice(0, 7))),
+      ).sort((monthA, monthB) => monthA.localeCompare(monthB)),
+    [availableDateKeys],
+  );
+  const selectedSlotDateKey = selectedSlot ? getSlotDateKey(selectedSlot.startsAt) : "";
+  const firstAvailableDateKey = availableDateKeys[0] ?? "";
+  const effectiveSelectedDateKey = selectedSlotDateKey
+    || (selectedDateKey && availableSlotsByDate.has(selectedDateKey) ? selectedDateKey : firstAvailableDateKey);
+  const fallbackVisibleMonthKey = (effectiveSelectedDateKey || firstAvailableDateKey).slice(0, 7);
+  const effectiveVisibleMonthKey =
+    visibleMonthKey && availableMonths.includes(visibleMonthKey) ? visibleMonthKey : fallbackVisibleMonthKey;
+  const selectedDateSlots = effectiveSelectedDateKey
+    ? availableSlotsByDate.get(effectiveSelectedDateKey) ?? []
+    : [];
+
+  const calendarCells = useMemo(() => {
+    if (!effectiveVisibleMonthKey) {
+      return [];
+    }
+
+    const [yearLabel, monthLabel] = effectiveVisibleMonthKey.split("-");
+    const year = Number(yearLabel);
+    const month = Number(monthLabel);
+
+    if (!year || !month) {
+      return [];
+    }
+
+    const daysInMonth = new Date(year, month, 0).getDate();
+    const firstWeekday = new Date(year, month - 1, 1).getDay();
+    const leadingPlaceholders = (firstWeekday + 6) % 7;
+    const cells: Array<string | null> = Array.from({ length: leadingPlaceholders }, () => null);
+
+    for (let day = 1; day <= daysInMonth; day += 1) {
+      cells.push(`${yearLabel}-${monthLabel}-${day.toString().padStart(2, "0")}`);
+    }
+
+    const trailingPlaceholders = (7 - (cells.length % 7)) % 7;
+
+    for (let index = 0; index < trailingPlaceholders; index += 1) {
+      cells.push(null);
+    }
+
+    return cells;
+  }, [effectiveVisibleMonthKey]);
 
   const canGoToStep2 = Boolean(selectedService);
   const canGoToStep3 = canGoToStep2 && Boolean(selectedSlot);
@@ -266,7 +395,7 @@ export function BookingFlow({ catalog }: BookingFlowProps) {
                     Krok 2
                   </p>
                   <h3 className="mt-2 font-display text-3xl text-[var(--color-foreground)]">
-                    Vyberte termín
+                    Vyberte den a čas
                   </h3>
                 </div>
                 {canGoToStep3 ? (
@@ -289,42 +418,152 @@ export function BookingFlow({ catalog }: BookingFlowProps) {
                   Pro tuto službu teď není publikovaný žádný volný termín s dostatečnou délkou.
                 </div>
               ) : (
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {availableSlots.map((slot) => {
-                    const isSelected = slot.id === selectedSlotId;
+                <div className="space-y-5">
+                  <div className="rounded-3xl border border-black/6 bg-white p-4 sm:p-5">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-sm font-semibold text-[var(--color-foreground)]">
+                        {formatCalendarMonthLabel(effectiveVisibleMonthKey)}
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const monthIndex = availableMonths.indexOf(effectiveVisibleMonthKey);
+                            if (monthIndex > 0) {
+                              const nextMonthKey = availableMonths[monthIndex - 1];
+                              setVisibleMonthKey(nextMonthKey);
+                              const firstDateInMonth = availableDateKeys.find((dateKey) =>
+                                dateKey.startsWith(`${nextMonthKey}-`),
+                              );
+                              if (firstDateInMonth) {
+                                setSelectedDateKey(firstDateInMonth);
+                                setSelectedSlotId("");
+                              }
+                            }
+                          }}
+                          disabled={availableMonths.indexOf(effectiveVisibleMonthKey) <= 0}
+                          className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-black/8 text-lg text-[var(--color-foreground)] disabled:opacity-40"
+                          aria-label="Předchozí měsíc"
+                        >
+                          ‹
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const monthIndex = availableMonths.indexOf(effectiveVisibleMonthKey);
+                            if (monthIndex < availableMonths.length - 1) {
+                              const nextMonthKey = availableMonths[monthIndex + 1];
+                              setVisibleMonthKey(nextMonthKey);
+                              const firstDateInMonth = availableDateKeys.find((dateKey) =>
+                                dateKey.startsWith(`${nextMonthKey}-`),
+                              );
+                              if (firstDateInMonth) {
+                                setSelectedDateKey(firstDateInMonth);
+                                setSelectedSlotId("");
+                              }
+                            }
+                          }}
+                          disabled={availableMonths.indexOf(effectiveVisibleMonthKey) >= availableMonths.length - 1}
+                          className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-black/8 text-lg text-[var(--color-foreground)] disabled:opacity-40"
+                          aria-label="Další měsíc"
+                        >
+                          ›
+                        </button>
+                      </div>
+                    </div>
 
-                    return (
-                      <button
-                        key={slot.id}
-                        type="button"
-                        onClick={() => {
-                          setSelectedSlotId(slot.id);
-                          setCurrentStep(3);
-                        }}
-                        className={cn(
-                          "rounded-3xl border p-5 text-left",
-                          isSelected
-                            ? "border-[var(--color-accent)] bg-[var(--color-surface-strong)]/45"
-                            : "border-black/6 bg-white hover:bg-[var(--color-surface)]/35",
-                        )}
-                      >
-                        <p className="text-xs uppercase tracking-[0.22em] text-[var(--color-muted)]">
-                          {formatSlotDate(slot.startsAt)}
-                        </p>
-                        <h4 className="mt-3 font-display text-2xl text-[var(--color-foreground)]">
-                          {formatSlotTimeRange(slot.startsAt, slot.endsAt)}
-                        </h4>
-                        <p className="mt-2 text-sm text-[var(--color-muted)]">
-                          Zbývá {slot.remainingCapacity} voln{slot.remainingCapacity === 1 ? "é místo" : "á místa"}
-                        </p>
-                        {slot.publicNote ? (
-                          <p className="mt-3 text-sm leading-6 text-[var(--color-muted)]">
-                            {slot.publicNote}
+                    <div className="mt-4 grid grid-cols-7 gap-2 text-center text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-muted)]">
+                      {["Po", "Út", "St", "Čt", "Pá", "So", "Ne"].map((dayLabel) => (
+                        <span key={dayLabel}>{dayLabel}</span>
+                      ))}
+                    </div>
+
+                    <div className="mt-3 grid grid-cols-7 gap-2">
+                      {calendarCells.map((dateKey, index) => {
+                        if (!dateKey) {
+                          return <div key={`calendar-empty-${index}`} className="h-11 rounded-2xl bg-[var(--color-surface)]/20" />;
+                        }
+
+                        const hasSlots = availableSlotsByDate.has(dateKey);
+                        const isSelectedDate = dateKey === effectiveSelectedDateKey;
+
+                        return (
+                          <button
+                            key={dateKey}
+                            type="button"
+                            onClick={() => {
+                              setSelectedDateKey(dateKey);
+                              if (selectedSlotDateKey && selectedSlotDateKey !== dateKey) {
+                                setSelectedSlotId("");
+                              }
+                            }}
+                            disabled={!hasSlots}
+                            className={cn(
+                              "h-11 rounded-2xl border text-sm font-semibold",
+                              hasSlots
+                                ? "border-black/8 bg-white text-[var(--color-foreground)] hover:bg-[var(--color-surface)]/35"
+                                : "border-transparent bg-[var(--color-surface)]/20 text-[var(--color-muted)]/50",
+                              isSelectedDate && hasSlots
+                                ? "border-[var(--color-accent)] bg-[var(--color-surface-strong)]/45"
+                                : "",
+                            )}
+                            aria-label={`Vybrat den ${dateKey}`}
+                          >
+                            {getSlotDayNumber(`${dateKey}T12:00:00.000Z`)}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {selectedDateSlots.length === 0 ? (
+                      <div className="rounded-3xl border border-dashed border-black/10 bg-[var(--color-surface)]/20 px-5 py-6 text-sm text-[var(--color-muted)] sm:col-span-2">
+                        Vyberte v kalendáři den se zvýrazněným termínem.
+                      </div>
+                    ) : null}
+                    {selectedDateSlots.map((slot) => {
+                      const isSelected = slot.id === selectedSlotId;
+
+                      return (
+                        <button
+                          key={slot.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedSlotId(slot.id);
+                            setCurrentStep(3);
+                          }}
+                          className={cn(
+                            "rounded-3xl border p-5 text-left",
+                            isSelected
+                              ? "border-[var(--color-accent)] bg-[var(--color-surface-strong)]/45"
+                              : "border-black/6 bg-white hover:bg-[var(--color-surface)]/35",
+                          )}
+                        >
+                          <p className="text-xs uppercase tracking-[0.22em] text-[var(--color-muted)]">
+                            {formatSlotDate(slot.startsAt)}
                           </p>
-                        ) : null}
-                      </button>
-                    );
-                  })}
+                          <h4 className="mt-3 font-display text-2xl text-[var(--color-foreground)]">
+                            {formatSlotTime(slot.startsAt)}
+                          </h4>
+                          <p className="mt-1 text-sm font-medium text-[var(--color-foreground)]">
+                            Začátek rezervace
+                          </p>
+                          <p className="mt-2 text-sm text-[var(--color-muted)]">
+                            Konec v {formatSlotTime(slot.endsAt)} • Délka {formatSlotDuration(slot.startsAt, slot.endsAt)}
+                          </p>
+                          <p className="mt-1 text-sm text-[var(--color-muted)]">
+                            Zbývá {slot.remainingCapacity} voln{slot.remainingCapacity === 1 ? "é místo" : "á místa"}
+                          </p>
+                          {slot.publicNote ? (
+                            <p className="mt-3 text-sm leading-6 text-[var(--color-muted)]">
+                              {slot.publicNote}
+                            </p>
+                          ) : null}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
               {serverState.fieldErrors?.slotId ? (
