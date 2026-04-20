@@ -55,12 +55,6 @@ export function SiteHeader({ variant = 'public', brandName = 'PP Studio' }: Site
               Rezervovat termín
             </Link>
           ) : null}
-          <Link
-            href="/admin/prihlaseni"
-            className="button-text inline-flex min-h-11 items-center justify-center rounded-full border border-black/10 px-5 text-[var(--color-foreground)] hover:border-black/20 hover:bg-white"
-          >
-            Admin
-          </Link>
         </div>
       </Container>
     </header>

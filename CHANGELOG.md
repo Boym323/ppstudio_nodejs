@@ -73,6 +73,7 @@ Formát je inspirovaný Keep a Changelog.
 - Týdenní planner dostupností pro `OWNER` i `SALON` nyní zobrazuje rezervace, omezené intervaly, neaktivní sloty i minulý čas v jednom klidném kalendáři.
 
 ### Changed
+- Veřejný web už nikde nezobrazuje přímý odkaz do admin přihlášení (`/admin/prihlaseni`); z hlavičky i homepage CTA zůstává jen klientská cesta k rezervaci.
 - Krok 2 veřejného booking flow byl přepracovaný na variantu kalendář + seznam časů: klientka nejdřív vybere den v měsíčním kalendáři a pak konkrétní čas pro daný den.
 - Krok 2 veřejného booking flow (`Vyberte termín`) nyní na kartách zobrazuje jednoznačný začátek rezervace jako hlavní údaj; rozsah času je přesunutý do sekundární informace `Konec v ... • Délka ...`, aby termín nepůsobil jako neurčité časové okno.
 - Jemný spacing polish veřejného webu a rezervace: sjednocený vertikální rytmus sekcí (`py-10 / sm:py-14 / lg:py-16`), kompaktnější mobile hero spacing a lehce utažené rozestupy v rezervačním flow bez změny funkčnosti.

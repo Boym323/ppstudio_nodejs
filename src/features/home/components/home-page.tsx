@@ -46,12 +46,6 @@ export function HomePage() {
               >
                 Otevřít rezervace
               </Link>
-              <Link
-                href="/admin/prihlaseni"
-                className="button-text inline-flex items-center justify-center rounded-full border border-white/20 px-7 py-4 text-white transition hover:border-white/40 hover:bg-white/6"
-              >
-                Vstup do adminu
-              </Link>
             </div>
           </div>
           <div className="grid gap-4">

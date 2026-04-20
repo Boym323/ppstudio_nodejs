@@ -326,15 +326,6 @@ export function BookingFlow({ catalog }: BookingFlowProps) {
                     Vyberte službu
                   </h3>
                 </div>
-                {canGoToStep2 ? (
-                  <button
-                    type="button"
-                    onClick={() => setCurrentStep(2)}
-                    className="rounded-full border border-black/8 px-4 py-2 text-sm font-semibold text-[var(--color-foreground)]"
-                  >
-                    Pokračovat
-                  </button>
-                ) : null}
               </div>
 
               <div className="grid gap-3">
