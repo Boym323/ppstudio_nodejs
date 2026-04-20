@@ -30,7 +30,7 @@ export function TimeSlotGroup({
         </div>
       ) : null}
 
-      <div className="grid grid-cols-2 gap-1.5 max-[360px]:grid-cols-1 sm:gap-2 sm:[grid-template-columns:repeat(auto-fit,minmax(5.5rem,1fr))]">
+      <div className="grid grid-cols-2 gap-1.5 sm:gap-2 md:grid-cols-3 lg:grid-cols-4">
         {slots.map((slot) => (
           <TimeSlotButton
             key={slot.key}
