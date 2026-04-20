@@ -73,6 +73,12 @@ Formát je inspirovaný Keep a Changelog.
 - Týdenní planner dostupností pro `OWNER` i `SALON` nyní zobrazuje rezervace, omezené intervaly, neaktivní sloty i minulý čas v jednom klidném kalendáři.
 
 ### Changed
+- Veřejný booking krok `Vyberte termín` už nepoužívá velké slot karty; po výběru dne zobrazuje kompaktní grid malých časových tlačítek, volitelné seskupení `Ráno / Dopoledne / Odpoledne / Večer` a detail termínu přesouvá až do summary panelu.
+- Admin detail rezervace už nezobrazuje ani nepřenáší `referenční kód`; v hlavičce zůstává jen termín a interní admin datový model už `referenceCode` neobsahuje.
+- Admin detail rezervace (`Změna stavu`) už nepoužívá select `Vyber akci`; volba stavu je nově přes dvě/tři akční karty jako tlačítka a aktivní výběr se okamžitě vizuálně zvýrazní podle typu akce (např. potvrzení zeleně, zrušení červeně).
+- Admin detail rezervace dostal nový stavový hero blok s doporučeným dalším krokem, rychlým kontaktem na klientku a stručným kontextem rezervace bez nutnosti scrollovat do dalších panelů.
+- Detail rezervace teď používá klidnější dvousloupcové rozvržení s operačním souhrnem, lépe oddělenými poznámkami klientky vs. interními poznámkami a čitelnější timeline historií změn.
+- Blok `Změna stavu` nyní předvybírá nejpravděpodobnější akci a pod výběrem rovnou ukazuje krátké shrnutí dopadu i kontextový placeholder pro auditní důvod.
 - Při vytvoření veřejné rezervace uvnitř delšího slotu s kapacitou `1` se slot nyní automaticky rozdělí na rezervovaný úsek a navazující volné fragmenty, aby admin planner mohl volné části dál upravovat po samostatných blocích.
 - Výpočet dostupných časů v kroku 2 veřejné rezervace byl optimalizovaný z opakovaného porovnávání každého času se všemi rezervacemi na lineární průchod nad seřazenými intervaly, takže i delší sloty s více rezervacemi reagují rychleji.
 - Veřejné rezervace už se po odeslání automaticky nepotvrzují; nově se zakládají jako `PENDING` a čekají na schválení v adminu.
@@ -149,6 +155,11 @@ Formát je inspirovaný Keep a Changelog.
 - Dokumentace byla srovnaná s aktuálním kódem: týdenní planner, `EMAIL_DELIVERY_MODE=background` a produkční migrace přes `prisma migrate deploy`.
 
 ### Fixed
+- Kalendář v kroku 2 na `/rezervace` už není závislý na locale formátu `Intl.DateTimeFormat().format()`: klíče dnů se teď skládají stabilně přes `formatToParts` do `YYYY-MM-DD`, takže se znovu správně vykreslí měsíce i dostupné dny napříč prostředími/browsery.
+- Krok 2 veřejné rezervace má pro kalendářní mřížku explicitní `gridTemplateColumns: repeat(7, minmax(0, 1fr))` přímo v komponentě, takže při runtime CSS driftu nespadne do jednokolonového layoutu.
+- Admin planner už při aktivním výběru (`Přidáváte/Odebíráte`) neskáče ve layoutu; status box má fixní výšku i v prázdném stavu, takže mřížka zůstává stabilní během kliknutí i tažení.
+- Změna stavu rezervace v admin detailu už nepadá na FK `BookingStatusHistory_actorUserId_fkey` při bootstrap přihlášení; server action nyní mapuje session na reálné `AdminUser.id` podle e-mailu a při nenalezení ukládá historii s `actorUserId = null`.
+- Admin weekly planner klient už nemění velikost dependency pole v `useEffect` během React Fast Refresh; zmizela dev chyba `The final argument passed to useEffect changed size between renders`.
 - Admin weekly planner už při kliknutí/tažení v mřížce neprovádí okamžitý `router.replace` na query `day`, takže během editace „neuskočí“ rozložení stránky.
 - Admin weekly planner při `router.refresh()` po uložení už zbytečně neremountuje client část podle `initialDayKey`; výběr dne proto zůstává stabilní i po úspěšné akci.
 - Admin weekly planner už při `pointerdown` nemění aktivní den v postranním panelu; den se synchronizuje až po úspěšném dokončení akce, takže klik na jednu půlhodinu se neroztáhne na delší blok kvůli průběžnému reflow.

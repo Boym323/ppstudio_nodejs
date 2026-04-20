@@ -104,7 +104,7 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
   - souhrn a potvrzení
 - Výběr termínu v kroku 2 používá kalendářový režim: nejdřív den, potom konkrétní čas v rámci vybraného dne.
 - Krok 2 nabízí starty po 30 minutách uvnitř dostupného okna a bere v úvahu délku služby i už obsazené intervaly.
-- Krok `Vyberte termín` v booking flow dává jako hlavní údaj přesný začátek rezervace; konec a délka slotu jsou doplněné sekundárně pro lepší orientaci.
+- Krok `Vyberte termín` v booking flow používá kompaktní výběr časů: po volbě dne se zobrazí malý grid klikacích časů a detail termínu (`konec`, `délka`, případná poznámka) se přesouvá až do souhrnu.
 - Rezervační stránka je renderovaná dynamicky při requestu, takže nově publikované nebo obsazené sloty jsou vidět bez dalšího buildu.
 - Hero, sekce `O mně` a základní service copy jsou už přepsané do klidnějšího a osobnějšího tónu; další jemné úpravy je vhodné dělat centrálně v obsahové vrstvě nebo v DB copy mapě služeb.
 - Stránka `/o-mne` má vlastní modulární implementaci s profilem, příběhem, přístupem, očekáváními a jemným CTA; texty jsou připravené v `aboutContent`.
@@ -189,6 +189,9 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
 - Detail rezervace je nyní dostupný jak pro `OWNER`, tak pro `SALON`:
   - `OWNER` na `/admin/rezervace/[bookingId]`
   - `SALON` na `/admin/provoz/rezervace/[bookingId]`
+  - nahoře má stavový přehled s doporučeným dalším krokem, aby obsluha rychle poznala, jestli má potvrzovat, uzavírat nebo jen dohledat kontext
+  - pravý sloupec drží rychlý kontakt na klientku a základní metadata rezervace, takže telefon a e-mail není potřeba hledat v kartách níže
+  - poznámky jsou oddělené na klientské a interní a historie změn je zobrazená jako čitelnější časová osa
 - Správa slotů je nyní produkčně použitelná pro obě role:
   - týdenní planner na `/admin/volne-terminy` a `/admin/provoz/volne-terminy`
   - route `novy`, `detail` a `upravit` zůstávají zachované, ale vrací zpět do planneru ve správném týdnu
@@ -213,6 +216,8 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
   - `CONFIRMED -> COMPLETED`
   - `PENDING/CONFIRMED -> CANCELLED`
   - `CONFIRMED -> NO_SHOW`
+- Volba akce v bloku `Změna stavu` je řešená přes klikací karty místo selectu; aktivní karta je barevně zvýrazněná podle typu akce (potvrzení zeleně, zrušení červeně), aby obsluha hned viděla, co je vybrané.
+- Blok `Změna stavu` nově předvybírá nejčastější další krok a pod výběrem ukazuje krátké shrnutí dopadu akce, takže je menší riziko chybného uložení ve spěchu.
 - Každá změna stavu z detailu zapisuje položku do `BookingStatusHistory` včetně admin aktéra, důvodu a poznámky.
 - Aby se owner sekce `Email logy` neopírala o ručně zastaralý Prisma klient, `npm run dev` i `npm run build` si nyní předem samy spouštějí `prisma generate`.
 - Ochrana není řešená jen skrytím položek v menu:

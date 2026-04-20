@@ -230,15 +230,27 @@ export function PlannerFeedback({
 }
 
 export function SelectionStatus({ draft }: { draft: DraftSelection | null }) {
-  if (!draft) {
-    return <div className="min-h-[3.25rem]" aria-hidden="true" />;
-  }
-
-  const range = getSelectionRange(draft);
+  const selection = draft ? getSelectionRange(draft) : null;
 
   return (
-    <div className="min-h-[3.25rem] rounded-[1.2rem] border border-[var(--color-accent)]/35 bg-[rgba(190,160,120,0.12)] px-4 py-3 text-sm text-white/88">
-      {draft.mode === "add" ? "Přidáváte" : "Odebíráte"} {formatRangeLabel(range.startCell, range.endCell)}
+    <div
+      className={cn(
+        "h-[3.25rem] rounded-[1.2rem] border px-4 py-3 text-sm transition",
+        draft
+          ? "border-[var(--color-accent)]/35 bg-[rgba(190,160,120,0.12)] text-white/88"
+          : "border-transparent bg-transparent text-transparent",
+      )}
+      aria-live="polite"
+      aria-atomic="true"
+    >
+      <p className="truncate whitespace-nowrap">
+        {draft && selection
+          ? `${draft.mode === "add" ? "Přidáváte" : "Odebíráte"} ${formatRangeLabel(
+              selection.startCell,
+              selection.endCell,
+            )}`
+          : "Stav výběru"}
+      </p>
     </div>
   );
 }

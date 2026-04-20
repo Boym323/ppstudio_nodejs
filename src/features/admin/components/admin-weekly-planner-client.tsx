@@ -102,7 +102,7 @@ export function AdminWeeklyPlannerClient({
 
     window.addEventListener("pointerup", handlePointerUp);
     return () => window.removeEventListener("pointerup", handlePointerUp);
-  }, [data.area, data.baseHref, data.weekKey, draftSelection, router]);
+  }, [data, draftSelection, router]);
 
   function handleCellStart(day: PlannerDay, cellIndex: number) {
     const tone = getCellTone(day, cellIndex);

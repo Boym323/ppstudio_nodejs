@@ -63,6 +63,23 @@ function revalidateBookingAdminPaths(bookingId: string) {
   }
 }
 
+async function resolveBookingActorUserId(area: AdminArea) {
+  const session = await requireAdminArea(area);
+  const dbUser = await prisma.adminUser.findFirst({
+    where: {
+      email: {
+        equals: session.email.trim(),
+        mode: "insensitive",
+      },
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  return dbUser?.id ?? null;
+}
+
 export async function updateBookingStatusAction(
   _previousState: UpdateBookingStatusActionState,
   formData: FormData,
@@ -90,7 +107,7 @@ export async function updateBookingStatusAction(
   }
 
   const area = parsed.data.area as AdminArea;
-  const session = await requireAdminArea(area);
+  const actorUserId = await resolveBookingActorUserId(area);
   const booking = await prisma.booking.findUnique({
     where: { id: parsed.data.bookingId },
     select: {
@@ -123,7 +140,7 @@ export async function updateBookingStatusAction(
   const result = await applyAdminBookingStatusChange({
     bookingId: parsed.data.bookingId,
     targetStatus: parsed.data.targetStatus as AdminBookingActionValue,
-    actorUserId: session.sub,
+    actorUserId,
     reason: parsed.data.reason || undefined,
     internalNote: parsed.data.internalNote || undefined,
   });

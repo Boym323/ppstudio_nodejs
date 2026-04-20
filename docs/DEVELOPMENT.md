@@ -68,10 +68,14 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Serverový read/persistence model je v `src/features/admin/lib/admin-slots.ts`.
 - Server action adaptéry planneru jsou v `src/features/admin/actions/slot-planner-actions.ts`.
 - UI je rozdělené na serverový wrapper `src/features/admin/components/admin-weekly-planner-page.tsx` a klientský kalendář `src/features/admin/components/admin-weekly-planner-client.tsx`.
+- V `admin-weekly-planner-client.tsx` drž dependency pole hlavního `useEffect` stabilní přes `[data, draftSelection, router]`; při úpravách jednotlivých položek pole v dev režimu může React Fast Refresh hlásit chybu o změně velikosti dependency array.
 - Prezentační části planneru jsou dál rozsekané do `src/features/admin/components/admin-weekly-planner-ui.tsx`, aby hlavní klientská komponenta držela hlavně stav a akce.
+- `SelectionStatus` v planner UI má fixní výšku i bez aktivního draftu, aby při průběžném výpisu `Přidáváte/Odebíráte` neposkakovala mřížka.
 - `src/config/navigation.ts` drží centrální definici admin sekcí, slugů a navigace pro obě role.
 - `src/features/admin/components/admin-sidebar-nav.tsx` je klientská navigace s aktivním stavem podle pathname.
 - `src/features/admin/components/admin-overview-page.tsx` a `admin-section-page.tsx` renderují role-aware read model nad Prisma daty.
+- `src/features/admin/components/admin-booking-detail-page.tsx` skládá detail rezervace jako serverový read layout; drž v něm jen prezentační kompozici a odvozené provozní hinty, ne mutační logiku.
+- `src/features/admin/components/admin-booking-status-form.tsx` zůstává malou klientskou vrstvou jen pro interaktivní výběr akce a submit server action; při dalších úpravách nenechávej zbytečně růst klientský bundle mimo tenhle formulář.
 - Sekce `Služby` má vlastní workflow v `src/features/admin/components/admin-services-page.tsx` a už neběží přes generický placeholder renderer.
 - `src/features/admin/lib/admin-services.ts` drží serverový read model pro seznam, filtry, detail služby a navázané kategorie.
 - `src/features/admin/actions/service-actions.ts` je tenký server action adaptér pro editaci služby; validace zůstává v `src/features/admin/lib/admin-service-validation.ts`.
@@ -93,7 +97,8 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - `/admin/volne-terminy/[slotId]`
   - `/admin/volne-terminy/[slotId]/upravit`
   - salon varianta pod `/admin/provoz/volne-terminy/*`
-- `src/features/admin/actions/booking-actions.ts` je tenký server action adaptér pro změnu stavu rezervace.
+- `src/features/admin/actions/booking-actions.ts` je tenký server action adaptér pro změnu stavu rezervace; aktéra mapuje z admin session na reálné `AdminUser.id` podle e-mailu a při nenalezení používá `null`, aby zápis historie nenarazil na FK.
+- `src/features/admin/components/admin-booking-status-form.tsx` používá pro volbu změny stavu klikací akční karty (ne select); vybraná akce se okamžitě zvýrazní barvou podle typu změny a do server action se posílá přes hidden `targetStatus`.
 - `src/features/admin/lib/admin-booking.ts` drží detailový read model, mapování povolených přechodů a zápis do `BookingStatusHistory`.
 - `src/features/admin/components/admin-email-logs-page.tsx` je owner-only observability obrazovka pro email frontu, retry pokusy a poslední chyby.
 - `src/features/admin/components/admin-email-log-detail-page.tsx` a route `/admin/email-logy/[emailLogId]` přidávají detail jednoho logu s payloadem, chybou a operacemi pro ruční retry nebo uvolnění zaseknutého jobu.
@@ -159,7 +164,10 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Krok 2 veřejného booking flow filtruje sloty i podle délky služby, aby se krátké sloty neukazovaly až v posledním kroku.
 - Krok 2 veřejného booking flow používá dvoufázový výběr termínu: kalendářní výběr dne a následně seznam konkrétních časů pro vybraný den.
 - Krok 2 generuje konkrétní starty po 30 minutách uvnitř slotu a zobrazuje jen ty, které se při aktuální kapacitě nekryjí s existujícími aktivními rezervacemi.
-- Krok 2 veřejného booking flow zobrazuje na kartách termínu primárně konkrétní začátek rezervace; konec a délka slotu jsou jen doplňkové metadata pro lepší čitelnost.
+- Krok 2 veřejného booking flow drž jako kompaktní time picker nad malými tlačítky; seznam slotů nemá opakovat detail termínu, ten patří až do souhrnu v pravém panelu.
+- Transformaci slotů pro krok 2 drž mimo JSX v helperu `src/features/booking/lib/booking-time-slots.ts`; UI komponenty mají dostávat už připravené `TimeSlotOption[]` a skupiny z `groupSlotsByDayPeriod()`.
+- Kalendářní denní klíče v kroku 2 (`YYYY-MM-DD`) generuj locale-agnosticky přes `Intl.DateTimeFormat(...).formatToParts()`; nepoužívej `format()` jako zdroj klíče, protože pořadí/oddělovače se liší mezi prostředími a může rozbít mapování měsíců/dnů.
+- U kalendářních gridů v kroku 2 drž explicitní `gridTemplateColumns: repeat(7, minmax(0, 1fr))` přímo v komponentě jako runtime pojistku; samotná utility třída nemusí v některých prostředích stačit.
 - `src/lib/email/*` je samostatná infrastrukturní vrstva:
   - provider řeší SMTP transport
   - templates renderují obsah z `EmailLog.templateKey`
@@ -215,6 +223,11 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - `npm run db:migrate`
   - `npx prisma validate --schema prisma/schema.prisma`
 - Po změně slot admin workflow ručně ověř i:
+- Po změně detailu rezervace ručně ověř i:
+  - `/admin/rezervace/[bookingId]` a `/admin/provoz/rezervace/[bookingId]` na desktopu i mobilu
+  - stavy `PENDING`, `CONFIRMED` i uzavřenou rezervaci bez dostupných dalších akcí
+  - funkčnost rychlých odkazů `tel:` a `mailto:`
+  - propsání uložené změny do success stavu formuláře i do bloku `Historie změn`
   - vytvoření kolizního slotu odmítnuté serverem
   - editaci slotu s aktivní rezervací a blokaci neplatného snížení kapacity
   - archivaci pouze bez aktivní rezervace

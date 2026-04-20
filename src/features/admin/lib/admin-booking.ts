@@ -26,7 +26,6 @@ export type AdminBookingActionOption = {
 export type AdminBookingDetailData = {
   id: string;
   area: AdminArea;
-  referenceCode: string;
   title: string;
   status: BookingStatus;
   statusLabel: string;
@@ -54,7 +53,7 @@ export type AdminBookingDetailData = {
 type ApplyAdminBookingStatusChangeInput = {
   bookingId: string;
   targetStatus: AdminBookingActionValue;
-  actorUserId: string;
+  actorUserId: string | null;
   reason?: string;
   internalNote?: string;
 };
@@ -198,7 +197,6 @@ export async function getAdminBookingDetailData(
   return {
     id: booking.id,
     area,
-    referenceCode: booking.id.slice(-8).toUpperCase(),
     title: `${booking.clientNameSnapshot} • ${booking.serviceNameSnapshot}`,
     status: booking.status,
     statusLabel: getBookingStatusLabel(booking.status),

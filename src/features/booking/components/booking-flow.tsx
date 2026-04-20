@@ -6,20 +6,18 @@ import { useActionState, useMemo, useState } from "react";
 import { createPublicBookingAction } from "@/features/booking/actions/create-public-booking";
 import { initialPublicBookingActionState } from "@/features/booking/actions/public-booking-action-state";
 import type { PublicBookingCatalog } from "@/features/booking/lib/booking-public";
+import {
+  buildSlotTimeOptions,
+  groupSlotsByDayPeriod,
+  type TimeSlotOption,
+} from "@/features/booking/lib/booking-time-slots";
 import { cn } from "@/lib/utils";
 
 import { BookingSubmitButton } from "./booking-submit-button";
+import { TimeSlotGroup } from "./time-slot-group";
 
 type BookingFlowProps = {
   catalog: PublicBookingCatalog;
-};
-
-type SlotTimeOption = {
-  key: string;
-  slotId: string;
-  startsAt: string;
-  endsAt: string;
-  publicNote: string | null;
 };
 
 const stepLabels = [
@@ -28,7 +26,16 @@ const stepLabels = [
   "Kontakt",
   "Souhrn",
 ] as const;
-const BOOKING_START_STEP_MINUTES = 30;
+const EMPTY_TIME_SLOTS: TimeSlotOption[] = [];
+const slotDateKeyFormatter = new Intl.DateTimeFormat("en-US", {
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  timeZone: "Europe/Prague",
+});
+const calendarGridColumnsStyle = {
+  gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
+} as const;
 
 function formatPrice(priceFromCzk: number | null) {
   if (!priceFromCzk) {
@@ -49,16 +56,6 @@ function formatSlotDate(startsAt: string) {
     month: "long",
     timeZone: "Europe/Prague",
   }).format(new Date(startsAt));
-}
-
-function formatSlotTimeRange(startsAt: string, endsAt: string) {
-  const formatter = new Intl.DateTimeFormat("cs-CZ", {
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone: "Europe/Prague",
-  });
-
-  return `${formatter.format(new Date(startsAt))} - ${formatter.format(new Date(endsAt))}`;
 }
 
 function formatSlotTime(value: string) {
@@ -84,21 +81,41 @@ function formatCalendarMonthLabel(monthKey: string) {
 }
 
 function getSlotDateKey(value: string) {
-  const formatter = new Intl.DateTimeFormat("en-CA", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    timeZone: "Europe/Prague",
-  });
+  const parsedValue = new Date(value);
 
-  return formatter.format(new Date(value));
+  if (Number.isNaN(parsedValue.getTime())) {
+    return "";
+  }
+
+  let year = "";
+  let month = "";
+  let day = "";
+
+  for (const part of slotDateKeyFormatter.formatToParts(parsedValue)) {
+    if (part.type === "year") {
+      year = part.value;
+    } else if (part.type === "month") {
+      month = part.value;
+    } else if (part.type === "day") {
+      day = part.value;
+    }
+  }
+
+  if (!year || !month || !day) {
+    return "";
+  }
+
+  return `${year}-${month}-${day}`;
 }
 
-function getSlotDayNumber(value: string) {
-  return new Intl.DateTimeFormat("cs-CZ", {
-    day: "numeric",
-    timeZone: "Europe/Prague",
-  }).format(new Date(value));
+function getSlotDayNumber(dateKey: string) {
+  const dayValue = Number(dateKey.split("-")[2]);
+
+  if (!Number.isInteger(dayValue) || dayValue < 1 || dayValue > 31) {
+    return "";
+  }
+
+  return String(dayValue);
 }
 
 function formatSlotDuration(startsAt: string, endsAt: string) {
@@ -119,65 +136,6 @@ function formatSlotDuration(startsAt: string, endsAt: string) {
 
 function getSlotDurationMinutes(slot: PublicBookingCatalog["slots"][number]) {
   return (new Date(slot.endsAt).getTime() - new Date(slot.startsAt).getTime()) / (1000 * 60);
-}
-
-function buildSlotTimeOptions(
-  slot: PublicBookingCatalog["slots"][number],
-  serviceDurationMinutes: number,
-): SlotTimeOption[] {
-  const slotStartsAtMs = new Date(slot.startsAt).getTime();
-  const slotEndsAtMs = new Date(slot.endsAt).getTime();
-  const serviceDurationMs = serviceDurationMinutes * 60 * 1000;
-  const stepMs = BOOKING_START_STEP_MINUTES * 60 * 1000;
-  const latestStartMs = slotEndsAtMs - serviceDurationMs;
-
-  if (latestStartMs < slotStartsAtMs) {
-    return [];
-  }
-
-  const options: SlotTimeOption[] = [];
-  const bookingStartsSorted = slot.bookedIntervals
-    .map((booking) => new Date(booking.startsAt).getTime())
-    .sort((left, right) => left - right);
-  const bookingEndsSorted = slot.bookedIntervals
-    .map((booking) => new Date(booking.endsAt).getTime())
-    .sort((left, right) => left - right);
-  let startsPointer = 0;
-  let endsPointer = 0;
-  let activeOverlaps = 0;
-
-  for (let startsAtMs = slotStartsAtMs; startsAtMs <= latestStartMs; startsAtMs += stepMs) {
-    const endsAtMs = startsAtMs + serviceDurationMs;
-
-    while (startsPointer < bookingStartsSorted.length && bookingStartsSorted[startsPointer] < endsAtMs) {
-      activeOverlaps += 1;
-      startsPointer += 1;
-    }
-
-    while (endsPointer < bookingEndsSorted.length && bookingEndsSorted[endsPointer] <= startsAtMs) {
-      activeOverlaps -= 1;
-      endsPointer += 1;
-    }
-
-    const remainingCapacity = Math.max(slot.capacity - activeOverlaps, 0);
-
-    if (remainingCapacity < 1) {
-      continue;
-    }
-
-    const startsAt = new Date(startsAtMs).toISOString();
-    const endsAt = new Date(endsAtMs).toISOString();
-
-    options.push({
-      key: `${slot.id}:${startsAt}`,
-      slotId: slot.id,
-      startsAt,
-      endsAt,
-      publicNote: slot.publicNote,
-    });
-  }
-
-  return options;
 }
 
 export function BookingFlow({ catalog }: BookingFlowProps) {
@@ -229,14 +187,24 @@ export function BookingFlow({ catalog }: BookingFlowProps) {
 
     return availableSlots.flatMap((slot) => buildSlotTimeOptions(slot, selectedService.durationMinutes));
   }, [availableSlots, selectedService]);
-  const selectedTimeOption = selectedTimeOptionKey
+  const selectedTimeOptionCandidate = selectedTimeOptionKey
     ? availableTimeOptions.find((option) => option.key === selectedTimeOptionKey)
     : undefined;
+  const selectedTimeOption = selectedTimeOptionCandidate && !selectedTimeOptionCandidate.isDisabled
+    ? selectedTimeOptionCandidate
+    : undefined;
+  const selectableTimeOptions = useMemo(
+    () => availableTimeOptions.filter((option) => !option.isDisabled),
+    [availableTimeOptions],
+  );
   const availableSlotsByDate = useMemo(() => {
-    const grouped = new Map<string, SlotTimeOption[]>();
+    const grouped = new Map<string, TimeSlotOption[]>();
 
     for (const slotOption of availableTimeOptions) {
       const dateKey = getSlotDateKey(slotOption.startsAt);
+      if (!dateKey) {
+        continue;
+      }
       const current = grouped.get(dateKey) ?? [];
       current.push(slotOption);
       grouped.set(dateKey, current);
@@ -270,8 +238,12 @@ export function BookingFlow({ catalog }: BookingFlowProps) {
   const effectiveVisibleMonthKey =
     visibleMonthKey && availableMonths.includes(visibleMonthKey) ? visibleMonthKey : fallbackVisibleMonthKey;
   const selectedDateSlots = effectiveSelectedDateKey
-    ? availableSlotsByDate.get(effectiveSelectedDateKey) ?? []
-    : [];
+    ? availableSlotsByDate.get(effectiveSelectedDateKey) ?? EMPTY_TIME_SLOTS
+    : EMPTY_TIME_SLOTS;
+  const selectedDateSlotGroups = useMemo(
+    () => groupSlotsByDayPeriod(selectedDateSlots),
+    [selectedDateSlots],
+  );
 
   const calendarCells = useMemo(() => {
     if (!effectiveVisibleMonthKey) {
@@ -305,7 +277,7 @@ export function BookingFlow({ catalog }: BookingFlowProps) {
   }, [effectiveVisibleMonthKey]);
 
   const canGoToStep2 = Boolean(selectedService);
-  const canGoToStep3 = canGoToStep2 && Boolean(selectedTimeOption);
+  const canGoToStep3 = canGoToStep2 && Boolean(selectedTimeOption && !selectedTimeOption.isDisabled);
   const canGoToStep4 = canGoToStep3 && fullName.trim() && email.trim();
 
   if (serverState.status === "success" && serverState.confirmation) {
@@ -479,7 +451,7 @@ export function BookingFlow({ catalog }: BookingFlowProps) {
                 <div className="rounded-3xl border border-dashed border-black/10 bg-[var(--color-surface)]/20 px-5 py-6 text-sm text-[var(--color-muted)]">
                   Nejprve vyberte službu. Pak zobrazíme jen kompatibilní ručně publikované termíny.
                 </div>
-              ) : availableTimeOptions.length === 0 ? (
+              ) : selectableTimeOptions.length === 0 ? (
                 <div className="rounded-3xl border border-dashed border-black/10 bg-[var(--color-surface)]/20 px-5 py-6 text-sm text-[var(--color-muted)]">
                   Pro tuto službu teď není publikovaný žádný volný termín s dostatečnou délkou.
                 </div>
@@ -538,19 +510,24 @@ export function BookingFlow({ catalog }: BookingFlowProps) {
                       </div>
                     </div>
 
-                    <div className="mt-4 grid grid-cols-7 gap-2 text-center text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-muted)]">
+                    <div
+                      className="mt-4 grid gap-2 text-center text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-muted)]"
+                      style={calendarGridColumnsStyle}
+                    >
                       {["Po", "Út", "St", "Čt", "Pá", "So", "Ne"].map((dayLabel) => (
                         <span key={dayLabel}>{dayLabel}</span>
                       ))}
                     </div>
 
-                    <div className="mt-3 grid grid-cols-7 gap-2">
+                    <div className="mt-3 grid gap-2" style={calendarGridColumnsStyle}>
                       {calendarCells.map((dateKey, index) => {
                         if (!dateKey) {
                           return <div key={`calendar-empty-${index}`} className="h-11 rounded-2xl bg-[var(--color-surface)]/20" />;
                         }
 
-                        const hasSlots = availableSlotsByDate.has(dateKey);
+                        const dateSlots = availableSlotsByDate.get(dateKey) ?? [];
+                        const hasSlots = dateSlots.length > 0;
+                        const hasSelectableSlots = dateSlots.some((slot) => !slot.isDisabled);
                         const isSelectedDate = dateKey === effectiveSelectedDateKey;
 
                         return (
@@ -569,63 +546,50 @@ export function BookingFlow({ catalog }: BookingFlowProps) {
                               hasSlots
                                 ? "border-black/8 bg-white text-[var(--color-foreground)] hover:bg-[var(--color-surface)]/35"
                                 : "border-transparent bg-[var(--color-surface)]/20 text-[var(--color-muted)]/50",
+                              !hasSelectableSlots && hasSlots
+                                ? "border-black/6 bg-[var(--color-surface)]/30 text-[var(--color-muted)]"
+                                : "",
                               isSelectedDate && hasSlots
                                 ? "border-[var(--color-accent)] bg-[var(--color-surface-strong)]/45"
                                 : "",
                             )}
                             aria-label={`Vybrat den ${dateKey}`}
                           >
-                            {getSlotDayNumber(`${dateKey}T12:00:00.000Z`)}
+                            {getSlotDayNumber(dateKey)}
                           </button>
                         );
                       })}
                     </div>
                   </div>
 
-                  <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-4">
                     {selectedDateSlots.length === 0 ? (
-                      <div className="rounded-3xl border border-dashed border-black/10 bg-[var(--color-surface)]/20 px-5 py-6 text-sm text-[var(--color-muted)] sm:col-span-2">
+                      <div className="rounded-3xl border border-dashed border-black/10 bg-[var(--color-surface)]/20 px-5 py-6 text-sm text-[var(--color-muted)]">
                         Vyberte v kalendáři den se zvýrazněným termínem.
                       </div>
                     ) : null}
-                    {selectedDateSlots.map((slotOption) => {
-                      const isSelected = slotOption.key === selectedTimeOptionKey;
+                    {selectedDateSlotGroups.map((group) => (
+                      <TimeSlotGroup
+                        key={group.key}
+                        label={group.label}
+                        slots={group.slots}
+                        selectedKey={selectedTimeOptionKey}
+                        formatTime={formatSlotTime}
+                        onSelect={(slotOption) => {
+                          if (slotOption.isDisabled) {
+                            return;
+                          }
 
-                      return (
-                        <button
-                          key={slotOption.key}
-                          type="button"
-                          onClick={() => {
-                            setSelectedTimeOptionKey(slotOption.key);
-                            setCurrentStep(3);
-                          }}
-                          className={cn(
-                            "rounded-3xl border p-5 text-left",
-                            isSelected
-                              ? "border-[var(--color-accent)] bg-[var(--color-surface-strong)]/45"
-                              : "border-black/6 bg-white hover:bg-[var(--color-surface)]/35",
-                          )}
-                        >
-                          <p className="text-xs uppercase tracking-[0.22em] text-[var(--color-muted)]">
-                            {formatSlotDate(slotOption.startsAt)}
-                          </p>
-                          <h4 className="mt-3 font-display text-2xl text-[var(--color-foreground)]">
-                            {formatSlotTime(slotOption.startsAt)}
-                          </h4>
-                          <p className="mt-1 text-sm font-medium text-[var(--color-foreground)]">
-                            Začátek rezervace
-                          </p>
-                          <p className="mt-2 text-sm text-[var(--color-muted)]">
-                            Konec v {formatSlotTime(slotOption.endsAt)} • Délka {formatSlotDuration(slotOption.startsAt, slotOption.endsAt)}
-                          </p>
-                          {slotOption.publicNote ? (
-                            <p className="mt-3 text-sm leading-6 text-[var(--color-muted)]">
-                              {slotOption.publicNote}
-                            </p>
-                          ) : null}
-                        </button>
-                      );
-                    })}
+                          setSelectedTimeOptionKey(slotOption.key);
+                          setCurrentStep(3);
+                        }}
+                      />
+                    ))}
+                    {selectedDateSlots.length > 0 && selectedDateSlots.every((slot) => slot.isDisabled) ? (
+                      <div className="rounded-3xl border border-dashed border-black/10 bg-[var(--color-surface)]/20 px-5 py-6 text-sm text-[var(--color-muted)]">
+                        Pro vybraný den už nejsou volné žádné časy. Zkuste prosím jiný den.
+                      </div>
+                    ) : null}
                   </div>
                 </div>
               )}
@@ -754,9 +718,16 @@ export function BookingFlow({ catalog }: BookingFlowProps) {
               <p className="text-xs uppercase tracking-[0.18em] text-[var(--color-muted)]">Termín</p>
               <p className="mt-2 text-lg font-semibold text-[var(--color-foreground)]">
                 {selectedTimeOption
-                  ? `${formatSlotDate(selectedTimeOption.startsAt)} • ${formatSlotTimeRange(selectedTimeOption.startsAt, selectedTimeOption.endsAt)}`
+                  ? `${formatSlotDate(selectedTimeOption.startsAt)} • ${formatSlotTime(selectedTimeOption.startsAt)}`
                   : "Zatím nevybráno"}
               </p>
+              {selectedTimeOption ? (
+                <div className="mt-3 space-y-1 text-sm text-[var(--color-muted)]">
+                  <p>Konec v {formatSlotTime(selectedTimeOption.endsAt)}</p>
+                  <p>Délka {formatSlotDuration(selectedTimeOption.startsAt, selectedTimeOption.endsAt)}</p>
+                  {selectedTimeOption.publicNote ? <p>{selectedTimeOption.publicNote}</p> : null}
+                </div>
+              ) : null}
             </div>
 
             <div className="rounded-3xl border border-black/6 bg-white/80 p-5">
