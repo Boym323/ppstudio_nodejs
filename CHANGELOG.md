@@ -73,6 +73,10 @@ Formát je inspirovaný Keep a Changelog.
 - Týdenní planner dostupností pro `OWNER` i `SALON` nyní zobrazuje rezervace, omezené intervaly, neaktivní sloty i minulý čas v jednom klidném kalendáři.
 
 ### Changed
+- `Map preview card` na `/kontakt` už nepoužívá jen stylizovaný placeholder; nově zobrazuje skutečný mapový náhled adresy s jemným overlayem a odkazem do Google Maps.
+- Kontaktní stránka doplnila pod praktické informace klidný `map preview card` s přímým odkazem do Google Maps; adresa už se nezobrazuje dvakrát jako samostatná malá karta.
+- Stránka `/kontakt` už neopakuje stejné kontaktní údaje ve dvou blocích za sebou: hero drží rychlý kontakt, spodní karty teď slouží jen pro praktické informace (`adresa`, režim rezervace).
+- Stránka `/kontakt` dostala konverznější UX bez změny design language: nový hero s quick contact kartou (telefon/e-mail/Instagram), dvě CTA akce (`Rezervovat termín`, `Napsat do studia`), plně klikací kontaktní karty včetně Google Maps odkazu pro adresu, kratší guidance text, upravený spodní CTA banner pro scénář „vím / nevím“ a mobilní sticky CTA lištu s rychlou rezervací a kontaktem.
 - Veřejný booking krok `Vyberte termín` už nepoužívá velké slot karty; po výběru dne zobrazuje kompaktní grid malých časových tlačítek, volitelné seskupení `Ráno / Dopoledne / Odpoledne / Večer` a detail termínu přesouvá až do summary panelu.
 - Admin detail rezervace už nezobrazuje ani nepřenáší `referenční kód`; v hlavičce zůstává jen termín a interní admin datový model už `referenceCode` neobsahuje.
 - Admin detail rezervace (`Změna stavu`) už nepoužívá select `Vyber akci`; volba stavu je nově přes dvě/tři akční karty jako tlačítka a aktivní výběr se okamžitě vizuálně zvýrazní podle typu akce (např. potvrzení zeleně, zrušení červeně).

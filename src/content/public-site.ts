@@ -265,20 +265,27 @@ export function buildContactItems(input: {
   addressLine: string;
   instagramUrl?: string | null;
 }): ContactItem[] {
+  const mapsQuery = encodeURIComponent(input.addressLine);
+  const mapsHref = `https://www.google.com/maps/search/?api=1&query=${mapsQuery}`;
+
   return [
     {
       label: 'Telefon',
       value: input.phone,
       href: `tel:${input.phone.replace(/\s+/g, '')}`,
+      note: 'Volejte kdykoli během dne, když vám vyhovuje rychlé upřesnění.',
     },
     {
       label: 'E-mail',
       value: input.email,
       href: `mailto:${input.email}`,
+      note: 'Napište mi pár vět a doporučím další krok.',
     },
     {
       label: 'Adresa salonu',
       value: input.addressLine,
+      href: mapsHref,
+      note: 'Otevřete trasu v mapě a dorazíte bez hledání.',
     },
     ...(input.instagramUrl
       ? [
@@ -286,12 +293,14 @@ export function buildContactItems(input: {
             label: 'Instagram',
             value: input.instagramUrl.replace(/^https?:\/\/(www\.)?/i, ''),
             href: input.instagramUrl,
+            note: 'Můžete napsat i přes zprávu na Instagramu.',
           } satisfies ContactItem,
         ]
       : [
           {
             label: 'Otevírací režim',
             value: 'Dle vypsaných termínů a individuální domluvy',
+            note: 'Volné časy průběžně aktualizuji v rezervačním přehledu.',
           } satisfies ContactItem,
         ]),
   ];

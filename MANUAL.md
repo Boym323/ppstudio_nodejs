@@ -107,6 +107,11 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
 - Krok `Vyberte termín` v booking flow používá kompaktní výběr časů: po volbě dne se zobrazí malý grid klikacích časů a detail termínu (`konec`, `délka`, případná poznámka) se přesouvá až do souhrnu.
 - Rezervační stránka je renderovaná dynamicky při requestu, takže nově publikované nebo obsazené sloty jsou vidět bez dalšího buildu.
 - Hero, sekce `O mně` a základní service copy jsou už přepsané do klidnějšího a osobnějšího tónu; další jemné úpravy je vhodné dělat centrálně v obsahové vrstvě nebo v DB copy mapě služeb.
+- Stránka `/kontakt` má nově silnější orientaci na rychlou akci:
+  - hero obsahuje quick contact card s přímými odkazy na telefon, e-mail a Instagram
+  - spodní kontaktní karty už neopakují hero kontakt; slouží hlavně pro praktické informace jako adresa a rezervační režim
+  - spodní CTA blok rozlišuje dvě cesty rozhodnutí (rovnou rezervace vs. nejdřív kontakt)
+  - na mobilu je dole sticky CTA lišta s rychlou rezervací, voláním a e-mail kontaktem
 - Stránka `/o-mne` má vlastní modulární implementaci s profilem, příběhem, přístupem, očekáváními a jemným CTA; texty jsou připravené v `aboutContent`.
 - Homepage copy teď vědomě navazuje na konverzně funkční strukturu starého webu (`služba + lokalita`, rychlé CTA na rezervaci/ceník, sekce pro nejistý výběr služby), ale běží na současném komponentovém základu.
 - Homepage hero podporuje i vizuální brand prvky přes obsahový config (`logoImage`, `portraitImage` v `src/content/public-site.ts`); lokální assety jsou v `public/brand/`.

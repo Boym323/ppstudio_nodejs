@@ -1,0 +1,245 @@
+import Link from 'next/link';
+
+import { Container } from '@/components/ui/container';
+import { type ContactItem } from '@/content/public-site';
+
+function getSafeTelHref(phone: string) {
+  return `tel:${phone.replace(/\s+/g, '')}`;
+}
+
+function isExternalHref(href: string) {
+  return href.startsWith('http://') || href.startsWith('https://');
+}
+
+function ContactIconPhone() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M22 16.9v2a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.2 19.2 0 0 1-5.9-5.9A19.8 19.8 0 0 1 2.2 3.3 2 2 0 0 1 4.2 1h2a2 2 0 0 1 2 1.7c.1.8.3 1.6.6 2.4a2 2 0 0 1-.5 2.1l-.9.9a16 16 0 0 0 6.7 6.7l.9-.9a2 2 0 0 1 2.1-.5c.8.3 1.6.5 2.4.6A2 2 0 0 1 22 16.9Z" />
+    </svg>
+  );
+}
+
+function ContactIconMessage() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4v8Z" />
+    </svg>
+  );
+}
+
+type ContactHeroProps = {
+  title: string;
+  description: string;
+  phone: string;
+  email: string;
+  instagramUrl: string | null;
+};
+
+export function ContactHero({ title, description, phone, email, instagramUrl }: ContactHeroProps) {
+  const instagramValue = instagramUrl?.replace(/^https?:\/\/(www\.)?/i, '') ?? 'instagram.com';
+
+  return (
+    <section className="relative isolate overflow-hidden border-b border-black/5 bg-[radial-gradient(circle_at_top_left,rgba(226,205,182,0.5),transparent_32%),linear-gradient(180deg,#f8f2eb_0%,#f5ede4_48%,#f8f3ed_100%)]">
+      <Container className="grid gap-8 py-10 sm:gap-10 sm:py-14 lg:grid-cols-[1.04fr_0.96fr] lg:items-stretch lg:py-20">
+        <div className="space-y-6">
+          <div className="space-y-3">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.32em] text-[var(--color-accent)]">Kontakt</p>
+            <h1 className="max-w-3xl font-display text-[2.5rem] leading-[1.04] tracking-tight text-[var(--color-foreground)] sm:text-5xl lg:text-6xl">
+              {title}
+            </h1>
+            <p className="max-w-2xl text-[15px] leading-7 text-[var(--color-muted)] sm:text-lg sm:leading-8">{description}</p>
+          </div>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <Link
+              href="/rezervace"
+              className="inline-flex min-h-13 items-center justify-center rounded-full bg-[var(--color-foreground)] px-7 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-white hover:bg-[#2c221d] sm:text-sm"
+            >
+              Rezervovat termín
+            </Link>
+            <a
+              href={`mailto:${email}`}
+              className="inline-flex min-h-13 items-center justify-center rounded-full border border-black/10 bg-white/75 px-7 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-foreground)] hover:border-black/20 hover:bg-white sm:text-sm"
+            >
+              Napsat do studia
+            </a>
+          </div>
+        </div>
+        <aside className="flex">
+          <div className="w-full rounded-[calc(var(--radius-panel)-0.25rem)] border border-white/75 bg-white/82 p-5 shadow-[var(--shadow-panel)] backdrop-blur sm:p-6">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-[var(--color-accent)]">Rychlý kontakt</p>
+            <div className="mt-5 space-y-4">
+              <a href={getSafeTelHref(phone)} className="block rounded-2xl border border-black/8 bg-[#fcf7f1] px-4 py-3 hover:border-black/15">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--color-accent)]">Telefon</p>
+                <p className="mt-1.5 text-[15px] leading-6 text-[var(--color-foreground)]">{phone}</p>
+              </a>
+              <a href={`mailto:${email}`} className="block rounded-2xl border border-black/8 bg-[#fcf7f1] px-4 py-3 hover:border-black/15">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--color-accent)]">E-mail</p>
+                <p className="mt-1.5 text-[15px] leading-6 text-[var(--color-foreground)]">{email}</p>
+              </a>
+              {instagramUrl ? (
+                <a
+                  href={instagramUrl}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  className="block rounded-2xl border border-black/8 bg-[#fcf7f1] px-4 py-3 hover:border-black/15"
+                >
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--color-accent)]">Instagram</p>
+                  <p className="mt-1.5 text-[15px] leading-6 text-[var(--color-foreground)]">{instagramValue}</p>
+                </a>
+              ) : null}
+            </div>
+            <p className="mt-4 text-sm leading-6 text-[var(--color-muted)]">Odpovím co nejdříve, ať máte v dalším kroku jistotu.</p>
+          </div>
+        </aside>
+      </Container>
+    </section>
+  );
+}
+
+type ContactCardProps = {
+  item: ContactItem;
+};
+
+export function ContactCard({ item }: ContactCardProps) {
+  const baseClassName =
+    'block h-full rounded-[calc(var(--radius-panel)-0.5rem)] border border-black/6 bg-white p-5 shadow-[var(--shadow-panel)] transition duration-200 hover:scale-[1.05] hover:shadow-[0_20px_50px_rgba(64,42,26,0.12)] sm:p-6';
+
+  const content = (
+    <>
+      <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--color-accent)]">{item.label}</p>
+      <p className="mt-3 text-lg leading-7 text-[var(--color-foreground)]">{item.value}</p>
+      <p className="mt-2 text-sm leading-6 text-[var(--color-muted)]">{item.note ?? 'Kliknutím otevřete kontakt.'}</p>
+    </>
+  );
+
+  if (!item.href) {
+    return <div className={baseClassName}>{content}</div>;
+  }
+
+  const isExternal = isExternalHref(item.href);
+
+  return (
+    <a
+      href={item.href}
+      className={baseClassName}
+      target={isExternal ? '_blank' : undefined}
+      rel={isExternal ? 'noreferrer noopener' : undefined}
+    >
+      {content}
+    </a>
+  );
+}
+
+type ContactCTAProps = {
+  email: string;
+};
+
+type ContactMapPreviewCardProps = {
+  address: string;
+  href: string;
+};
+
+export function ContactMapPreviewCard({ address, href }: ContactMapPreviewCardProps) {
+  const embedSrc = `https://www.google.com/maps?q=${encodeURIComponent(address)}&z=16&output=embed`;
+
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer noopener"
+      className="group block overflow-hidden rounded-[var(--radius-panel)] border border-black/6 bg-white shadow-[var(--shadow-panel)] transition duration-200 hover:shadow-[0_20px_50px_rgba(64,42,26,0.12)]"
+    >
+      <div className="relative h-52 overflow-hidden bg-[#efe4d8] sm:h-56">
+        <iframe
+          title={`Mapa pro adresu ${address}`}
+          src={embedSrc}
+          loading="lazy"
+          referrerPolicy="no-referrer-when-downgrade"
+          className="pointer-events-none absolute inset-0 h-full w-full border-0 grayscale-[0.1] contrast-[0.98] sepia-[0.08]"
+        />
+        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(248,242,235,0.08)_0%,rgba(248,242,235,0.14)_100%)]" />
+        <div className="absolute inset-x-0 bottom-0 h-28 bg-[linear-gradient(180deg,rgba(248,242,235,0)_0%,rgba(248,242,235,0.78)_58%,#f8f2eb_100%)]" />
+        <div className="absolute left-5 top-5 rounded-full border border-white/70 bg-white/80 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--color-accent)] backdrop-blur">
+          Mapa
+        </div>
+      </div>
+      <div className="space-y-3 p-5 sm:p-6">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-accent)]">Jak se k nám dostanete</p>
+          <p className="mt-3 text-lg leading-7 text-[var(--color-foreground)]">{address}</p>
+        </div>
+        <div className="flex items-center justify-between gap-4">
+          <p className="max-w-md text-sm leading-6 text-[var(--color-muted)]">Otevřete trasu v Google Maps a dorazíte bez zbytečného hledání.</p>
+          <span className="inline-flex shrink-0 items-center rounded-full border border-black/10 bg-[var(--color-surface)] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-foreground)] transition group-hover:border-black/20 group-hover:bg-[#f5ede4]">
+            Otevřít mapu
+          </span>
+        </div>
+      </div>
+    </a>
+  );
+}
+
+export function ContactCTA({ email }: ContactCTAProps) {
+  return (
+    <section className="py-8 sm:py-12 lg:py-14">
+      <Container>
+        <div className="rounded-[var(--radius-panel)] bg-[linear-gradient(135deg,#1b1613_0%,#2a211b_55%,#3a2f28_100%)] px-5 py-7 text-white shadow-[0_24px_70px_rgba(34,22,12,0.18)] sm:px-8 sm:py-10 lg:flex lg:items-center lg:justify-between lg:gap-8">
+          <div className="max-w-2xl">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[var(--color-accent-soft)]">Další krok</p>
+            <h2 className="mt-4 font-display text-3xl leading-[1.08] tracking-tight sm:text-4xl lg:text-5xl">
+              Když víte, co chcete, vyberte termín. Když ještě váháte, napište mi.
+            </h2>
+          </div>
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row lg:mt-0">
+            <Link
+              href="/rezervace"
+              className="inline-flex min-h-13 w-full items-center justify-center rounded-full bg-[var(--color-accent)] px-7 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-accent-contrast)] hover:brightness-105 sm:w-auto sm:text-sm"
+            >
+              Vybrat termín
+            </Link>
+            <a
+              href={`mailto:${email}`}
+              className="inline-flex min-h-13 w-full items-center justify-center rounded-full border border-white/18 px-7 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-white hover:border-white/35 hover:bg-white/6 sm:w-auto sm:text-sm"
+            >
+              Napsat do studia
+            </a>
+          </div>
+        </div>
+      </Container>
+    </section>
+  );
+}
+
+type ContactMobileStickyCTAProps = {
+  phone: string;
+  email: string;
+};
+
+export function ContactMobileStickyCTA({ phone, email }: ContactMobileStickyCTAProps) {
+  return (
+    <div className="fixed inset-x-0 bottom-0 z-40 border-t border-black/8 bg-[#fffdf9]/95 px-3 py-3 backdrop-blur sm:hidden">
+      <div className="mx-auto flex max-w-7xl items-center gap-2">
+        <Link
+          href="/rezervace"
+          className="inline-flex min-h-12 flex-1 items-center justify-center rounded-full bg-[var(--color-foreground)] px-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-white"
+        >
+          Rezervovat
+        </Link>
+        <a
+          href={getSafeTelHref(phone)}
+          aria-label="Zavolat do studia"
+          className="inline-flex min-h-12 min-w-12 items-center justify-center rounded-full border border-black/10 bg-white text-[var(--color-foreground)]"
+        >
+          <ContactIconPhone />
+        </a>
+        <a
+          href={`mailto:${email}`}
+          aria-label="Napsat do studia"
+          className="inline-flex min-h-12 min-w-12 items-center justify-center rounded-full border border-black/10 bg-white text-[var(--color-foreground)]"
+        >
+          <ContactIconMessage />
+        </a>
+      </div>
+    </div>
+  );
+}

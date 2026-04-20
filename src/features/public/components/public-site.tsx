@@ -9,13 +9,19 @@ import {
   buildTrustMetrics,
   homepageContent,
   services,
-  type ContactItem,
   type LegalSection,
   type Service,
   type TrustMetric,
 } from '@/content/public-site';
 import { Container } from '@/components/ui/container';
 import { SectionHeading } from '@/components/ui/section-heading';
+import {
+  ContactCard,
+  ContactCTA,
+  ContactHero,
+  ContactMapPreviewCard,
+  ContactMobileStickyCTA,
+} from '@/features/public/components/contact-sections';
 import { getBookingPolicySettings, getPublicSalonProfile } from '@/lib/site-settings';
 
 function PublicHero({
@@ -300,28 +306,6 @@ function CtaBand() {
   );
 }
 
-function ContactCard({ item }: { item: ContactItem }) {
-  const content = (
-    <>
-      <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--color-accent)]">{item.label}</p>
-      <p className="mt-3 text-lg text-[var(--color-foreground)]">{item.value}</p>
-      {item.note ? <p className="mt-3 text-sm leading-6 text-[var(--color-muted)]">{item.note}</p> : null}
-    </>
-  );
-
-  return (
-    <div className="rounded-[calc(var(--radius-panel)-0.5rem)] border border-black/6 bg-white p-5 shadow-[var(--shadow-panel)] sm:p-6">
-      {item.href ? (
-        <a href={item.href} className="block hover:opacity-80">
-          {content}
-        </a>
-      ) : (
-        content
-      )}
-    </div>
-  );
-}
-
 function LegalSections({ sections }: { sections: LegalSection[] }) {
   return (
     <div className="space-y-6">
@@ -573,21 +557,41 @@ export async function ContactPage() {
     addressLine: salonProfile.addressLine,
     instagramUrl: salonProfile.instagramUrl,
   });
+  const addressItem = contactItems.find((item) => item.label === 'Adresa salonu');
+  const practicalContactItems = [
+    {
+      label: 'Provozovatel',
+      value: 'Pavlína Pomykalová',
+      note: 'IČ: 234 275 66',
+    },
+    {
+      label: 'Rezervační režim',
+      value: salonProfile.bookingLabel,
+      href: '/rezervace',
+      note: 'Volné termíny najdete přehledně online, bez zbytečného čekání na odpověď.',
+    },
+  ];
 
   return (
-    <div className="pb-8 sm:pb-12">
-      <PublicHero
-        eyebrow="Kontakt"
+    <div className="pb-24 sm:pb-12">
+      <ContactHero
         title="Pokud si nejste jistá, napište mi."
         description="Ráda vám pomohu s výběrem služby i termínu. Najdete mě ve Zlíně a ozvat se můžete telefonicky, e-mailem i přes Instagram."
-        primaryCta={{ href: '/rezervace', label: 'Přejít k rezervaci' }}
+        phone={salonProfile.phone}
+        email={salonProfile.email}
+        instagramUrl={salonProfile.instagramUrl}
       />
-      <section className="py-10 sm:py-14 lg:py-16">
+      <section id="kontaktni-karty" className="py-8 sm:py-12 lg:py-14">
         <Container className="grid gap-6 lg:grid-cols-[1fr_0.95fr]">
-          <div className="grid gap-6 sm:grid-cols-2">
-            {contactItems.map((item) => (
-              <ContactCard key={item.label} item={item} />
-            ))}
+          <div className="space-y-6">
+            {addressItem ? (
+              <ContactMapPreviewCard address={addressItem.value} href={addressItem.href ?? '#'} />
+            ) : null}
+            <div className="grid gap-6 sm:grid-cols-2">
+              {practicalContactItems.map((item) => (
+                <ContactCard key={item.label} item={item} />
+              ))}
+            </div>
           </div>
           <div className="rounded-[var(--radius-panel)] border border-black/6 bg-white p-6 shadow-[var(--shadow-panel)] sm:p-8">
             <SectionHeading
@@ -595,13 +599,14 @@ export async function ContactPage() {
               title="S výběrem služby vám ráda pomohu."
             />
             <div className="mt-8 space-y-4 text-[15px] leading-7 text-[var(--color-muted)] sm:text-base">
-              <p>Pokud si nejste jistá, kterou službu zvolit, napište mi nebo si rezervujte nejbližší variantu.</p>
-              <p>Podle stavu pleti, vašeho přání nebo konkrétní příležitosti spolu vybereme péči, která vám bude sedět nejlépe.</p>
+              <p>Nejste si jistá, kterou službu zvolit? Stačí krátká zpráva nebo orientační rezervace.</p>
+              <p>Podle stavu pleti a vašeho cíle společně vybereme péči, která vám bude dávat smysl.</p>
             </div>
           </div>
         </Container>
       </section>
-      <CtaBand />
+      <ContactCTA email={salonProfile.email} />
+      <ContactMobileStickyCTA phone={salonProfile.phone} email={salonProfile.email} />
     </div>
   );
 }
