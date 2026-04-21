@@ -6,9 +6,10 @@ import { BookingFlow } from "./booking-flow";
 
 type BookingPageProps = {
   catalog: PublicBookingCatalog;
+  initialSelectedServiceSlug?: string;
 };
 
-export function BookingPage({ catalog }: BookingPageProps) {
+export function BookingPage({ catalog, initialSelectedServiceSlug }: BookingPageProps) {
   const hasServices = catalog.services.length > 0;
   const hasSlots = catalog.slots.length > 0;
 
@@ -40,7 +41,7 @@ export function BookingPage({ catalog }: BookingPageProps) {
             </p>
           </section>
         ) : (
-          <BookingFlow catalog={catalog} />
+          <BookingFlow catalog={catalog} initialSelectedServiceSlug={initialSelectedServiceSlug} />
         )}
       </Container>
     </div>

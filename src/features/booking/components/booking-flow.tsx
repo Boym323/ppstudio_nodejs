@@ -21,6 +21,7 @@ import { TimeSlotGroup } from "./time-slot-group";
 
 type BookingFlowProps = {
   catalog: PublicBookingCatalog;
+  initialSelectedServiceSlug?: string;
 };
 
 type ContactFieldKey = "fullName" | "email" | "phone";
@@ -225,20 +226,25 @@ function buildContactFieldErrors(values: Record<ContactFieldKey, string>) {
   };
 }
 
-export function BookingFlow({ catalog }: BookingFlowProps) {
+export function BookingFlow({ catalog, initialSelectedServiceSlug }: BookingFlowProps) {
   const [serverState, formAction] = useActionState(
     createPublicBookingAction,
     initialPublicBookingActionState,
   );
-  const initialCategoryKey = getCategoryKey(catalog.services[0]?.categoryName ?? "");
+  const initialSelectedService = initialSelectedServiceSlug
+    ? catalog.services.find((service) => service.slug === initialSelectedServiceSlug)
+    : undefined;
+  const initialCategoryKey = getCategoryKey(
+    initialSelectedService?.categoryName ?? catalog.services[0]?.categoryName ?? "",
+  );
   const [selectedCategoryKey, setSelectedCategoryKey] = useState(initialCategoryKey);
-  const [selectedServiceId, setSelectedServiceId] = useState("");
+  const [selectedServiceId, setSelectedServiceId] = useState(initialSelectedService?.id ?? "");
   const [selectedTimeOptionKey, setSelectedTimeOptionKey] = useState("");
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [clientNote, setClientNote] = useState("");
-  const [currentStep, setCurrentStep] = useState(1);
+  const [currentStep, setCurrentStep] = useState(initialSelectedService ? 2 : 1);
   const [selectedDateKey, setSelectedDateKey] = useState("");
   const [visibleMonthKey, setVisibleMonthKey] = useState("");
   const [isServiceStepHighlighted, setIsServiceStepHighlighted] = useState(false);
@@ -395,6 +401,45 @@ export function BookingFlow({ catalog }: BookingFlowProps) {
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (!initialSelectedServiceSlug) {
+      return;
+    }
+
+    const sectionElement = termStepSectionRef.current;
+
+    if (!sectionElement) {
+      return;
+    }
+
+    const frameId = window.requestAnimationFrame(() => {
+      setCurrentStep(2);
+      const rect = sectionElement.getBoundingClientRect();
+      const topSafeArea = 120;
+      const bottomSafeArea = 64;
+      const isComfortablyVisible =
+        rect.top >= topSafeArea && rect.bottom <= window.innerHeight - bottomSafeArea;
+
+      if (isComfortablyVisible) {
+        return;
+      }
+
+      const desktopOffset = 104;
+      const mobileOffset = 72;
+      const targetTop =
+        window.scrollY + rect.top - (window.innerWidth >= 1024 ? desktopOffset : mobileOffset);
+
+      window.scrollTo({
+        top: Math.max(0, targetTop),
+        behavior: "smooth",
+      });
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+    };
+  }, [initialSelectedServiceSlug]);
 
   const servicesById = useMemo(
     () => new Map(catalog.services.map((service) => [service.id, service])),

@@ -9,10 +9,20 @@ export const metadata: Metadata = {
   description: "Online rezervace s rychlým výběrem služby, nejbližších termínů a potvrzením po schválení.",
 };
 
-export default async function ReservationPage() {
+export default async function ReservationPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
   await connection();
 
   const catalog = await getPublicBookingCatalog();
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
+  const serviceSlug = Array.isArray(resolvedSearchParams?.service)
+    ? resolvedSearchParams?.service[0]
+    : resolvedSearchParams?.service;
+  const initialSelectedServiceSlug =
+    typeof serviceSlug === "string" && serviceSlug.length > 0 ? serviceSlug : undefined;
 
-  return <BookingPage catalog={catalog} />;
+  return <BookingPage catalog={catalog} initialSelectedServiceSlug={initialSelectedServiceSlug} />;
 }

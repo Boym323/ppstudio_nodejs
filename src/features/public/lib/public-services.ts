@@ -246,7 +246,7 @@ function mapPricingCategory(category: PublicPricingCategoryRow): PublicPricingCa
       duration: `${service.durationMinutes} min`,
       price: formatPrice(service.priceFromCzk),
       badge: service.pricingBadge,
-      ctaHref: "/rezervace",
+      ctaHref: `/rezervace?service=${encodeURIComponent(service.slug)}`,
     })),
   };
 }
