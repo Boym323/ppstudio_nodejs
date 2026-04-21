@@ -439,7 +439,7 @@ export function ServiceDetailPage({ service }: { service: Service }) {
           <div className="rounded-[var(--radius-panel)] border border-black/6 bg-white p-6 shadow-[var(--shadow-panel)] sm:p-8">
             <div className="grid gap-5 sm:grid-cols-2">
               <div>
-                <p className="text-sm text-[var(--color-muted)]">Cena od</p>
+                <p className="text-sm text-[var(--color-muted)]">Cena</p>
                 <p className="mt-2 font-display text-3xl text-[var(--color-foreground)] sm:text-4xl">{service.priceFrom}</p>
               </div>
               <div>

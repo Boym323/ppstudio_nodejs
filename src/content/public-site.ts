@@ -424,7 +424,7 @@ export const contentStructureGuide = [
     items: [
       'název služby',
       'krátký výsledek nebo přínos',
-      'délka a cena od',
+      'délka a cena',
       'pro koho je vhodná',
       'co obsahuje procedura',
     ],
