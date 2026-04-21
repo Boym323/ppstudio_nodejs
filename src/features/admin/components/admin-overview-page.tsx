@@ -1,5 +1,5 @@
 import { getAdminDashboardData } from "../lib/admin-dashboard";
-import { DashboardPage } from "./admin-dashboard-page";
+import { DashboardPage } from "@/features/admin/components/admin-dashboard-page";
 
 type AdminOverviewPageProps = {
   area: "owner" | "salon";

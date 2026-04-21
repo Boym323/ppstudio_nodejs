@@ -204,6 +204,7 @@ Formát je inspirovaný Keep a Changelog.
 - Dokumentace byla srovnaná s aktuálním kódem: týdenní planner, `EMAIL_DELIVERY_MODE=background` a produkční migrace přes `prisma migrate deploy`.
 
 ### Fixed
+- Import admin overview stránky na `DashboardPage` nyní používá absolutní alias `@/features/...`, takže v dev režimu už nedochází k chybě `Module not found: Can't resolve './admin-dashboard-page'`.
 - Planner už neukládá každé kliknutí okamžitě na server; změny se nejdřív drží v lokálním konceptu týdne, takže při rychlé práci neodskakuje layout ani denní kontext vpravo.
 - Admin shell a sidebar v sekci planneru už nemají zbytečně velkou vizuální váhu; hlavní prostor dostala týdenní mřížka a mobilní navigace se přesunula do draweru.
 - Kalendář v kroku 2 na `/rezervace` už není závislý na locale formátu `Intl.DateTimeFormat().format()`: klíče dnů se teď skládají stabilně přes `formatToParts` do `YYYY-MM-DD`, takže se znovu správně vykreslí měsíce i dostupné dny napříč prostředími/browsery.
