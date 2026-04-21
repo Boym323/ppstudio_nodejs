@@ -98,6 +98,10 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - `CategoryDetailPanel.tsx`
   - `CategoryDetailDrawer.tsx`
   - `types.ts`
+- Aktuální vizuální verze sekce `Kategorie služeb` je záměrně blíž finálnímu provoznímu mockupu:
+  - `CategoryStats.tsx` renderuje kompaktní souhrnnou lištu
+  - `CategoryRow.tsx` drží hustší řádkový layout s akcemi vpravo
+  - `CategoryDetailPanel.tsx` je klasický formulářový detail se sticky footrem, ne vysoký card stack
 - `src/features/admin/actions/service-category-actions.ts` nově obsluhuje create, update, optimistic quick toggles, inline reorder i bezpečné mazání prázdné kategorie; validace zůstává v `src/features/admin/lib/admin-service-category-validation.ts`.
 - `src/features/admin/components/admin-booking-detail-page.tsx` a route dvojice `/admin/rezervace/[bookingId]` + `/admin/provoz/rezervace/[bookingId]` drží první produkční workflow pro práci s rezervací.
 - Sekce `Klienti` má vlastní workflow v `src/features/admin/components/admin-clients-page.tsx` a už neběží přes generický placeholder renderer.

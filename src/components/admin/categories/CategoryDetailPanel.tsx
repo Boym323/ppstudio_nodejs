@@ -1,11 +1,11 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import Link from "next/link";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
 
 import {
   createServiceCategoryAction,
-  deleteServiceCategoryAction,
   updateServiceCategoryAction,
 } from "@/features/admin/actions/service-category-actions";
 import {
@@ -28,17 +28,21 @@ type BaseProps = {
     sortOrder: number;
     isActive: boolean;
   }) => void;
+};
+
+type CreateProps = BaseProps & {
+  mode: "create";
+};
+
+type EditProps = BaseProps & {
+  mode: "edit";
+  category: CategoryRecord;
+  isActionPending?: boolean;
+  onToggleActive: (nextValue: boolean) => void;
   onDeactivate?: () => void;
 };
 
-type Props =
-  | (BaseProps & {
-      mode: "create";
-    })
-  | (BaseProps & {
-      mode: "edit";
-      category: CategoryRecord;
-    });
+type Props = CreateProps | EditProps;
 
 export function CategoryDetailPanel(props: Props) {
   const { onSaved } = props;
@@ -47,6 +51,9 @@ export function CategoryDetailPanel(props: Props) {
     initialUpdateServiceCategoryActionState,
   );
   const lastReportedId = useRef<string | null>(null);
+  const [descriptionLength, setDescriptionLength] = useState(
+    props.mode === "create" ? 0 : (props.category.description ?? "").length,
+  );
 
   useEffect(() => {
     if (
@@ -59,51 +66,50 @@ export function CategoryDetailPanel(props: Props) {
     }
   }, [onSaved, serverState.category, serverState.status]);
 
-  const showDeleteSection = props.mode === "edit" && props.category.counts.total === 0;
+  const servicesHref =
+    props.mode === "edit" ? `${props.servicesPath}?category=${props.category.id}` : props.servicesPath;
+  const createServiceHref =
+    props.mode === "edit"
+      ? `${props.servicesPath}?mode=create&category=${props.category.id}`
+      : `${props.servicesPath}?mode=create`;
 
   return (
-    <section className="flex h-full max-h-[calc(100dvh-2rem)] min-h-[40rem] flex-col overflow-hidden rounded-[1.9rem] border border-white/10 bg-[linear-gradient(180deg,rgba(15,23,42,0.96),rgba(7,10,18,0.98))] shadow-[0_34px_120px_rgba(0,0,0,0.34)] xl:max-h-[calc(100vh-3rem)]">
-      <header className="shrink-0 border-b border-white/8 px-5 pb-4 pt-5 sm:px-6">
+    <section className="flex h-full max-h-[calc(100dvh-1.5rem)] min-h-[40rem] flex-col overflow-hidden rounded-[1.7rem] border border-white/10 bg-[linear-gradient(180deg,rgba(22,27,34,0.98),rgba(12,16,22,0.99))] shadow-[0_30px_100px_rgba(0,0,0,0.36)] xl:max-h-[calc(100vh-2rem)]">
+      <header className="shrink-0 border-b border-white/8 px-6 pb-4 pt-5">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-[11px] uppercase tracking-[0.24em] text-white/38">
-              {props.mode === "create" ? "Nová kategorie" : "Detail kategorie"}
-            </p>
-            <h3 className="mt-2 truncate text-[1.65rem] font-medium leading-tight text-white">
-              {props.mode === "create" ? "Kategorie služeb" : props.category.name}
+            <p className="text-[10px] uppercase tracking-[0.28em] text-white/36">Detail kategorie</p>
+            <h3 className="mt-2 truncate text-[1.1rem] font-medium text-white sm:text-[1.05rem] xl:text-[1.7rem]">
+              {props.mode === "create" ? "Nová kategorie" : props.category.name}
             </h3>
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              {props.mode === "create" ? (
+                <>
+                  <AdminStatePill tone="accent">Připraveno</AdminStatePill>
+                  <AdminStatePill tone="muted">Nová položka</AdminStatePill>
+                </>
+              ) : (
+                <>
+                  <AdminStatePill tone={props.category.isActive ? "active" : "muted"}>
+                    {props.category.isActive ? "Aktivní" : "Skrytá"}
+                  </AdminStatePill>
+                  <AdminStatePill tone="accent">Pořadí #{Math.max(1, Math.round(props.category.sortOrder / 10))}</AdminStatePill>
+                  <AdminStatePill tone="accent">{props.category.counts.total} služeb</AdminStatePill>
+                </>
+              )}
+            </div>
           </div>
+
           {props.onClose ? (
             <button
               type="button"
               onClick={props.onClose}
-              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-black/20 text-white/76 transition hover:border-white/18 hover:bg-white/8"
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white/78 transition hover:bg-white/6 hover:text-white"
               aria-label="Zavřít detail"
             >
               <CloseIcon />
             </button>
           ) : null}
-        </div>
-
-        <div className="mt-4 flex flex-wrap gap-2">
-          {props.mode === "create" ? (
-            <>
-              <AdminStatePill tone="accent">Připraveno</AdminStatePill>
-              <AdminStatePill tone="muted">Bez služeb</AdminStatePill>
-            </>
-          ) : (
-            <>
-              <AdminStatePill tone={props.category.isActive ? "active" : "muted"}>
-                {props.category.isActive ? "Aktivní" : "Skrytá"}
-              </AdminStatePill>
-              <AdminStatePill tone="accent">
-                Pořadí #{Math.max(1, Math.round(props.category.sortOrder / 10))}
-              </AdminStatePill>
-              <AdminStatePill tone={props.category.counts.total > 0 ? "accent" : "muted"}>
-                {props.category.counts.total} služeb
-              </AdminStatePill>
-            </>
-          )}
         </div>
       </header>
 
@@ -115,8 +121,13 @@ export function CategoryDetailPanel(props: Props) {
         <input type="hidden" name="area" value={props.area} />
         <input type="hidden" name="returnTo" value={props.returnTo} />
         {props.mode === "edit" ? <input type="hidden" name="categoryId" value={props.category.id} /> : null}
+        <input
+          type="hidden"
+          name="isActive"
+          value={props.mode === "edit" ? String(props.category.isActive) : "true"}
+        />
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6">
+        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
           <div className="space-y-6">
             {serverState.status === "success" && serverState.successMessage ? (
               <div className="rounded-2xl border border-emerald-300/20 bg-emerald-400/10 px-4 py-3 text-sm leading-6 text-emerald-50">
@@ -130,12 +141,9 @@ export function CategoryDetailPanel(props: Props) {
               </div>
             ) : null}
 
-            <PanelSection
-              title="Základ kategorie"
-              helper="Název, pořadí a krátký kontext pro rychlou orientaci v katalogu."
-            >
-              <div className="space-y-4">
-                <Field label="Název" error={serverState.fieldErrors?.name}>
+            <PanelSection title="Základ kategorie">
+              <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_120px]">
+                <Field label="Název kategorie" error={serverState.fieldErrors?.name}>
                   <input
                     type="text"
                     name="name"
@@ -145,59 +153,74 @@ export function CategoryDetailPanel(props: Props) {
                   />
                 </Field>
 
-                <div className="grid gap-4 sm:grid-cols-[148px_minmax(0,1fr)]">
-                  <Field label="Pořadí" error={serverState.fieldErrors?.sortOrder}>
-                    <input
-                      type="number"
-                      name="sortOrder"
-                      min={0}
-                      max={9999}
-                      step={1}
-                      inputMode="numeric"
-                      defaultValue={props.mode === "create" ? 10 : props.category.sortOrder}
-                      className={fieldClassName}
-                    />
-                  </Field>
-
-                  <Field label="Krátký popis" error={serverState.fieldErrors?.description}>
-                    <textarea
-                      name="description"
-                      rows={3}
-                      maxLength={1000}
-                      defaultValue={props.mode === "create" ? "" : props.category.description ?? ""}
-                      className={cn(fieldClassName, "min-h-[96px] resize-y leading-6")}
-                      placeholder="Volitelné. Stačí krátký popis, který pomůže v adminu."
-                    />
-                  </Field>
-                </div>
+                <Field label="Pořadí" error={serverState.fieldErrors?.sortOrder}>
+                  <input
+                    type="number"
+                    name="sortOrder"
+                    min={0}
+                    max={9999}
+                    step={1}
+                    inputMode="numeric"
+                    defaultValue={props.mode === "create" ? 10 : props.category.sortOrder}
+                    className={fieldClassName}
+                  />
+                </Field>
               </div>
+
+              <Field
+                label="Krátký popis (volitelné)"
+                error={serverState.fieldErrors?.description}
+                className="mt-4"
+              >
+                <textarea
+                  name="description"
+                  rows={3}
+                  maxLength={160}
+                  defaultValue={props.mode === "create" ? "" : props.category.description ?? ""}
+                  onChange={(event) => setDescriptionLength(event.currentTarget.value.length)}
+                  className={cn(fieldClassName, "min-h-[96px] resize-y leading-6")}
+                  placeholder="Volitelné. Pomáhá jen tam, kde usnadní rychlou orientaci."
+                />
+                <div className="mt-2 text-right text-xs text-white/34">{descriptionLength}/160</div>
+              </Field>
             </PanelSection>
 
-            <PanelSection
-              title="Viditelnost"
-              helper="Vypnutí kategorii schová, ale služby zůstanou."
-            >
-              <label className="flex items-start justify-between gap-4 rounded-2xl border border-white/8 bg-black/16 px-4 py-3.5">
-                <div>
-                  <p className="text-sm font-medium text-white">Aktivní kategorie</p>
-                  <p className="mt-1 text-sm leading-6 text-white/50">
-                    Použijte, když má zůstat v běžné nabídce a booking flow.
-                  </p>
-                </div>
-                <input
-                  type="checkbox"
-                  name="isActive"
-                  defaultChecked={props.mode === "create" ? true : props.category.isActive}
-                  className="mt-1 h-5 w-5 rounded border-white/20 bg-black/40 text-[var(--color-accent)] focus:ring-[var(--color-accent)]"
-                />
-              </label>
+            <PanelSection title="Viditelnost">
+              {props.mode === "edit" ? (
+                <button
+                  type="button"
+                  onClick={() => props.onToggleActive(!props.category.isActive)}
+                  disabled={props.isActionPending}
+                  className="flex w-full items-start gap-3 rounded-2xl border border-white/8 bg-white/[0.02] px-4 py-3 text-left transition hover:border-white/14 hover:bg-white/[0.04] disabled:cursor-wait disabled:opacity-70"
+                >
+                  <ToggleVisual active={props.category.isActive} />
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-white">Aktivní kategorie</p>
+                    <p className="mt-1 text-sm leading-6 text-white/52">
+                      Vypnutí kategorii skryje, služby zůstanou zachované pro interní použití.
+                    </p>
+                  </div>
+                </button>
+              ) : (
+                <label className="flex items-start gap-3 rounded-2xl border border-white/8 bg-white/[0.02] px-4 py-3">
+                  <input
+                    type="checkbox"
+                    name="isActiveCheckbox"
+                    defaultChecked
+                    className="mt-1 h-5 w-5 rounded border-white/20 bg-black/40 text-[var(--color-accent)] focus:ring-[var(--color-accent)]"
+                  />
+                  <div>
+                    <p className="text-sm font-medium text-white">Aktivní kategorie</p>
+                    <p className="mt-1 text-sm leading-6 text-white/52">
+                      Nová kategorie bude po vytvoření hned viditelná v nabídce.
+                    </p>
+                  </div>
+                </label>
+              )}
             </PanelSection>
 
             {props.mode === "edit" ? (
-              <PanelSection
-                title="Navázané služby"
-                helper="Souhrn a rychlé akce bez zbytečného prodlužování panelu."
-              >
+              <PanelSection title="Navázané služby">
                 <div className="grid gap-3 sm:grid-cols-3">
                   <SummaryCard label="Aktivní" value={props.category.counts.active} />
                   <SummaryCard label="Veřejné" value={props.category.counts.public} />
@@ -205,104 +228,86 @@ export function CategoryDetailPanel(props: Props) {
                 </div>
 
                 <div className="mt-4 flex flex-wrap gap-3">
-                  <a
-                    href={`${props.servicesPath}?mode=create&category=${props.category.id}`}
-                    className="inline-flex rounded-xl bg-[var(--color-accent)] px-4 py-3 text-sm font-semibold text-[var(--color-accent-contrast)] transition hover:brightness-105"
+                  <Link
+                    href={createServiceHref}
+                    className="inline-flex min-h-11 items-center rounded-xl bg-[var(--color-accent)] px-4 text-sm font-semibold text-[var(--color-accent-contrast)] transition hover:brightness-105"
                   >
-                    Vytvořit službu v této kategorii
-                  </a>
-                  <a
-                    href={`${props.servicesPath}?category=${props.category.id}`}
-                    className="inline-flex rounded-xl border border-white/10 px-4 py-3 text-sm text-white/78 transition hover:border-white/18 hover:bg-white/8"
+                    + Vytvořit službu v této kategorii
+                  </Link>
+                  <Link
+                    href={servicesHref}
+                    className="inline-flex min-h-11 items-center rounded-xl border border-white/10 px-4 text-sm text-white/78 transition hover:border-white/18 hover:bg-white/8"
                   >
                     Otevřít služby této kategorie
-                  </a>
+                  </Link>
                 </div>
 
-                {props.category.services.length > 0 ? (
-                  <div className="mt-4 overflow-hidden rounded-2xl border border-white/8 bg-black/18">
-                    <div className="flex items-center justify-between border-b border-white/8 px-4 py-3">
-                      <p className="text-sm font-medium text-white">Rychlý přehled služeb</p>
-                      <p className="text-xs uppercase tracking-[0.18em] text-white/40">
-                        max 6 položek
-                      </p>
-                    </div>
+                <div className="mt-4 overflow-hidden rounded-2xl border border-white/8 bg-white/[0.02]">
+                  <div className="flex items-center justify-between border-b border-white/8 px-4 py-3">
+                    <p className="text-sm text-white/78">Rychlý přehled služeb</p>
+                    <p className="text-xs text-white/34">Max {props.category.services.length} položek</p>
+                  </div>
 
-                    <div className="max-h-56 overflow-y-auto px-3 py-3">
-                      <div className="grid gap-2">
-                        {props.category.services.map((service) => (
-                          <div
-                            key={service.id}
-                            className="flex items-start justify-between gap-3 rounded-xl border border-white/7 bg-white/[0.03] px-3 py-2.5"
-                          >
-                            <div className="min-w-0">
-                              <p className="truncate text-sm font-medium text-white">{service.name}</p>
-                              <p className="mt-1 text-[11px] uppercase tracking-[0.18em] text-white/40">
-                                Pořadí {service.sortOrder}
-                              </p>
-                            </div>
-                            <div className="flex flex-wrap justify-end gap-2">
-                              <AdminStatePill tone={service.isActive ? "active" : "muted"}>
-                                {service.isActive ? "Aktivní" : "Skrytá"}
-                              </AdminStatePill>
-                              <AdminStatePill tone={service.isPubliclyBookable ? "active" : "muted"}>
-                                {service.isPubliclyBookable ? "Veřejná" : "Interní"}
-                              </AdminStatePill>
-                            </div>
+                  <div className="max-h-40 overflow-y-auto px-3 py-2">
+                    <div className="grid gap-1.5">
+                      {props.category.services.slice(0, 6).map((service) => (
+                        <div
+                          key={service.id}
+                          className="grid grid-cols-[minmax(0,1fr)_78px_auto] items-center gap-3 rounded-xl border border-white/7 bg-black/14 px-3 py-2"
+                        >
+                          <p className="truncate text-sm font-medium text-white">{service.name}</p>
+                          <p className="text-sm text-white/52">Pořadí {service.sortOrder}</p>
+                          <div className="flex flex-wrap justify-end gap-2">
+                            <AdminStatePill tone={service.isActive ? "active" : "muted"}>
+                              {service.isActive ? "Aktivní" : "Skrytá"}
+                            </AdminStatePill>
+                            <AdminStatePill tone={service.isPubliclyBookable ? "active" : "muted"}>
+                              {service.isPubliclyBookable ? "Veřejná" : "Interní"}
+                            </AdminStatePill>
                           </div>
-                        ))}
-                      </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                ) : (
-                  <div className="mt-4 rounded-2xl border border-dashed border-white/12 bg-black/12 px-4 py-4 text-sm leading-6 text-white/54">
-                    Tato kategorie zatím nemá žádnou službu.
+
+                  <div className="border-t border-white/8 px-3 py-2">
+                    <Link
+                      href={servicesHref}
+                      className="flex items-center justify-center gap-2 rounded-xl bg-white/[0.03] px-4 py-3 text-sm font-medium text-[var(--color-accent-soft)] transition hover:bg-white/[0.05]"
+                    >
+                      <span className="text-base">+</span>
+                      Zobrazit všechny služby ({props.category.counts.total})
+                    </Link>
                   </div>
-                )}
+                </div>
               </PanelSection>
             ) : null}
 
-            {showDeleteSection ? (
-              <PanelSection
-                title="Odstranění"
-                helper="Prázdnou kategorii lze smazat, jinak je bezpečnější ji jen vypnout."
-              >
-                <>
-                  <input type="hidden" name="area" value={props.area} />
-                  <input type="hidden" name="categoryId" value={props.category.id} />
-                  <input type="hidden" name="currentPath" value={props.returnTo} />
-                  <div className="rounded-2xl border border-amber-300/18 bg-amber-400/8 px-4 py-3">
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <p className="max-w-[20rem] text-sm leading-6 text-amber-50/90">
-                        Kategorie je prázdná a může být odstraněná bez dopadu na služby.
-                      </p>
-                      <button
-                        type="submit"
-                        formAction={deleteServiceCategoryAction}
-                        className="rounded-xl border border-white/10 px-4 py-2.5 text-sm text-white/76 transition hover:border-white/18 hover:bg-white/8"
-                      >
-                        Smazat prázdnou kategorii
-                      </button>
-                    </div>
-                  </div>
-                </>
+            {props.mode === "edit" ? (
+              <PanelSection title="Odstranění">
+                <div className="rounded-2xl border border-amber-300/24 bg-[rgba(157,99,23,0.2)] px-4 py-3 text-sm leading-6 text-amber-50/90">
+                  {props.category.counts.total > 0
+                    ? `Kategorie obsahuje ${props.category.counts.total} služeb, takže mazání není dostupné. Pro běžný provoz je lepší ji jen vypnout.`
+                    : "Kategorie je prázdná a může být bezpečně smazaná."}
+                </div>
               </PanelSection>
             ) : null}
           </div>
         </div>
 
-        <div className="shrink-0 border-t border-white/8 bg-[linear-gradient(180deg,rgba(7,10,18,0.18),rgba(7,10,18,0.94)_28%,rgba(7,10,18,0.98))] px-5 pb-5 pt-4 backdrop-blur-xl sm:px-6">
+        <div className="shrink-0 border-t border-white/8 bg-[linear-gradient(180deg,rgba(7,10,18,0.12),rgba(7,10,18,0.94)_28%,rgba(7,10,18,0.98))] px-5 pb-5 pt-4 backdrop-blur-xl sm:px-6">
           <div className="flex flex-wrap items-center gap-3">
             <SubmitButton label="Uložit" />
-            <SubmitButton label={props.onClose ? "Uložit a zavřít" : "Uložit a zavřít"} intent="save-close" secondary />
+            <SubmitButton label="Uložit a zavřít" intent="save-close" secondary />
             {props.mode === "edit" ? (
               <button
                 type="button"
                 onClick={props.onDeactivate}
-                disabled={!props.category.isActive}
-                className="inline-flex min-h-12 items-center justify-center rounded-xl border border-red-300/24 px-4 text-sm font-medium text-red-100 transition hover:border-red-300/34 hover:bg-red-400/12 disabled:cursor-not-allowed disabled:opacity-45"
+                disabled={!props.category.isActive || props.isActionPending}
+                className="inline-flex min-h-12 items-center justify-center rounded-xl border border-red-400/28 px-4 text-sm font-medium text-red-300 transition hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-45"
               >
-                Deaktivovat kategorii
+                <TrashIcon />
+                <span className="ml-2">Deaktivovat kategorii</span>
               </button>
             ) : props.onClose ? (
               <button
@@ -325,19 +330,14 @@ const fieldClassName =
 
 function PanelSection({
   title,
-  helper,
   children,
 }: {
   title: string;
-  helper?: string;
   children: React.ReactNode;
 }) {
   return (
-    <section className="border-t border-white/8 pt-6 first:border-t-0 first:pt-0">
-      <div className="mb-4">
-        <h4 className="text-sm font-semibold uppercase tracking-[0.18em] text-white/58">{title}</h4>
-        {helper ? <p className="mt-1 text-sm leading-6 text-white/42">{helper}</p> : null}
-      </div>
+    <section className="border-t border-white/8 pt-5 first:border-t-0 first:pt-0">
+      <h4 className="mb-3 text-[11px] font-semibold uppercase tracking-[0.24em] text-white/48">{title}</h4>
       {children}
     </section>
   );
@@ -346,15 +346,17 @@ function PanelSection({
 function Field({
   label,
   error,
+  className,
   children,
 }: {
   label: string;
   error?: string;
+  className?: string;
   children: React.ReactNode;
 }) {
   return (
-    <label className="block">
-      <span className="text-sm font-medium text-white">{label}</span>
+    <label className={cn("block", className)}>
+      <span className="text-sm text-white/80">{label}</span>
       {children}
       {error ? <p className="mt-2 text-sm text-red-200">{error}</p> : null}
     </label>
@@ -363,10 +365,28 @@ function Field({
 
 function SummaryCard({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-2xl border border-white/8 bg-black/18 px-4 py-3">
-      <p className="text-[11px] uppercase tracking-[0.18em] text-white/40">{label}</p>
-      <p className="mt-2 text-lg font-medium text-white">{value}</p>
+    <div className="rounded-2xl border border-white/8 bg-white/[0.02] px-4 py-3">
+      <p className="text-[11px] uppercase tracking-[0.18em] text-white/38">{label}</p>
+      <p className="mt-1 text-3xl font-medium text-white">{value}</p>
     </div>
+  );
+}
+
+function ToggleVisual({ active }: { active: boolean }) {
+  return (
+    <span
+      className={cn(
+        "mt-1 inline-flex h-6 w-11 shrink-0 items-center rounded-full border px-1 transition",
+        active ? "border-emerald-300/24 bg-emerald-400/18" : "border-white/10 bg-black/35",
+      )}
+    >
+      <span
+        className={cn(
+          "h-4.5 w-4.5 rounded-full transition",
+          active ? "translate-x-[18px] bg-emerald-100" : "translate-x-0 bg-white/72",
+        )}
+      />
+    </span>
   );
 }
 
@@ -388,9 +408,9 @@ function SubmitButton({
       value={intent}
       disabled={pending}
       className={cn(
-        "inline-flex min-h-12 items-center justify-center rounded-xl px-4 text-sm font-semibold transition disabled:cursor-wait disabled:opacity-70",
+        "inline-flex min-h-12 items-center justify-center rounded-xl px-6 text-sm font-semibold transition disabled:cursor-wait disabled:opacity-70",
         secondary
-          ? "border border-white/10 text-white/80 hover:border-white/18 hover:bg-white/8"
+          ? "border border-white/10 bg-white/[0.02] text-white/82 hover:border-white/18 hover:bg-white/8"
           : "bg-[var(--color-accent)] text-[var(--color-accent-contrast)] hover:brightness-105",
       )}
     >
@@ -403,6 +423,14 @@ function CloseIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
       <path d="M5 5l8 8M13 5l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function TrashIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path d="M6 2.5h4M2.5 4h11M5 4V3.5A1.5 1.5 0 0 1 6.5 2h3A1.5 1.5 0 0 1 11 3.5V4m-5 2.5V11m3-4.5V11M4 4l.5 8A1.5 1.5 0 0 0 6 13.5h4A1.5 1.5 0 0 0 11.5 12L12 4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
     </svg>
   );
 }

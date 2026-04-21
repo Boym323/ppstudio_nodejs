@@ -12,6 +12,8 @@ export function CategoryDetailDrawer({
   category,
   onClose,
   onSaved,
+  isActionPending,
+  onToggleActive,
   onDeactivate,
 }: {
   open: boolean;
@@ -28,6 +30,8 @@ export function CategoryDetailDrawer({
     sortOrder: number;
     isActive: boolean;
   }) => void;
+  isActionPending?: boolean;
+  onToggleActive?: (nextValue: boolean) => void;
   onDeactivate?: () => void;
 }) {
   if (!open) {
@@ -59,6 +63,8 @@ export function CategoryDetailDrawer({
             returnTo={returnTo}
             servicesPath={servicesPath}
             category={category}
+            isActionPending={isActionPending}
+            onToggleActive={onToggleActive ?? (() => undefined)}
             onClose={onClose}
             onSaved={onSaved}
             onDeactivate={onDeactivate}

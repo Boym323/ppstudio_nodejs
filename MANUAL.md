@@ -176,6 +176,8 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
   - na mobilu se detail otevírá samostatně, aby admin nebyl dlouhý a nepohodlný
   - veřejný booking flow bere službu jen pokud je `isActive = true`, `isPubliclyBookable = true` a její kategorie je aktivní
 - Sekce `Kategorie služeb` je nyní produkčně použitelná pro obě role na `/admin/kategorie-sluzeb` a `/admin/provoz/kategorie-sluzeb`:
+  - horní přehled používá kompaktní souhrnnou lištu místo vysokých stat karet
+  - seznam kategorií je hustší a víc provozně orientovaný: název, pořadí, kontext služeb, stav badge, toggle a akce jsou na jednom řádku
   - desktop používá pracovní rozložení `seznam + sticky detail`, takže je možné rychle procházet kategorie bez skákání mezi stránkami
   - nahoře jsou 4 stat karty (`Aktivní`, `Kategorie se službami`, `Prázdné`, `Potřebují pozornost`) a filtry s chipy `Prázdné`, `Bez veřejné služby`, `S upozorněním`
   - seznam ukazuje název, pořadí, aktivitu, počet všech služeb i kontext aktivních a veřejných služeb

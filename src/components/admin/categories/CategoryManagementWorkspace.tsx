@@ -290,6 +290,8 @@ export function CategoryManagementWorkspace({
               returnTo={returnTo}
               servicesPath={servicesPath}
               category={detailCategory}
+              isActionPending={Boolean(selectedCategoryId && pendingMap[selectedCategoryId])}
+              onToggleActive={(nextValue) => handleToggleActive(detailCategory.id, nextValue)}
               onSaved={handleSaved}
               onDeactivate={() => handleToggleActive(detailCategory.id, false)}
             />
@@ -310,6 +312,12 @@ export function CategoryManagementWorkspace({
         category={detailCategory}
         onClose={() => setMobileDrawerOpen(false)}
         onSaved={handleSaved}
+        isActionPending={Boolean(selectedCategoryId && pendingMap[selectedCategoryId])}
+        onToggleActive={
+          detailCategory
+            ? (nextValue) => handleToggleActive(detailCategory.id, nextValue)
+            : undefined
+        }
         onDeactivate={
           detailCategory
             ? () => handleToggleActive(detailCategory.id, false)

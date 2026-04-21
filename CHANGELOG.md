@@ -83,6 +83,7 @@ Formát je inspirovaný Keep a Changelog.
 - Týdenní planner dostupností pro `OWNER` i `SALON` nyní zobrazuje rezervace, omezené intervaly, neaktivní sloty i minulý čas v jednom klidném kalendáři.
 
 ### Changed
+- Sekce `Kategorie služeb` byla vizuálně dotažená blíž produkčnímu dark admin návrhu: horní souhrn je v jedné kompaktní liště, řádky seznamu jsou hustší a pravý detail panel má čistší formulářový layout se sticky footrem.
 - Sekce `Kategorie služeb` už není jen responzivní seznam s vedlejším formulářem; nově funguje jako provozní list/detail workspace s výrazně kompaktnějším seznamem, sticky detailem a mobilním drawer UX.
 - Sekce `Služby` už nepůsobí jako čistý detail editor; seznam nově slouží jako hlavní pracovní plocha s fulltextem, filtrem kategorie, stavovými badge, upozorněními a rychlými akcemi bez otevírání detailu.
 - Sekce `Kategorie služeb` nově ukazuje pořadí, počet všech / aktivních / veřejných služeb, stavová varování a rychlé přechody do navázaných služeb.

@@ -34,16 +34,16 @@ export function CategoryRow({
   return (
     <article
       className={cn(
-        "rounded-2xl border px-4 py-4 transition sm:px-5",
+        "rounded-[1.45rem] border px-4 py-4 transition sm:px-5",
         isSelected
-          ? "border-[var(--color-accent)]/40 bg-[rgba(190,160,120,0.09)] shadow-[0_20px_60px_rgba(0,0,0,0.18)]"
+          ? "border-[var(--color-accent)]/55 bg-[rgba(190,160,120,0.085)] shadow-[0_20px_60px_rgba(0,0,0,0.18)]"
           : hasWarning
-            ? "border-amber-300/22 bg-amber-400/[0.07] hover:border-amber-300/35 hover:bg-amber-400/[0.09]"
-            : "border-white/8 bg-white/[0.04] hover:border-white/14 hover:bg-white/[0.06]",
+            ? "border-amber-300/22 bg-white/[0.03] hover:border-amber-300/35"
+            : "border-white/8 bg-white/[0.03] hover:border-white/14 hover:bg-white/[0.05]",
       )}
     >
-      <div className="grid gap-4 xl:grid-cols-[36px_minmax(0,1.6fr)_110px_220px_150px_84px_auto] xl:items-center">
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-black/20 text-white/34">
+      <div className="grid gap-4 xl:grid-cols-[28px_minmax(0,1.45fr)_56px_132px_112px_62px_auto] xl:items-center">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/[0.02] text-white/42">
           <GripIcon />
         </div>
 
@@ -52,38 +52,32 @@ export function CategoryRow({
           onClick={onOpen}
           className="min-w-0 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/50"
         >
-          <div className="flex flex-wrap items-center gap-2">
-            <h3 className="text-base font-medium text-white">{category.name}</h3>
-            {hasWarning ? <AdminStatePill tone="accent">Upozornění</AdminStatePill> : null}
-            {!category.isActive ? <AdminStatePill tone="muted">Skrytá</AdminStatePill> : null}
-          </div>
-          <p className="mt-1 text-sm leading-6 text-white/58">{getCategorySubtitle(category)}</p>
+          <h3 className={cn("text-[1.05rem] font-medium", hasWarning ? "text-[var(--color-accent-soft)]" : "text-white")}>
+            {category.name}
+          </h3>
+          <p className="mt-1 max-w-[15rem] text-sm leading-6 text-white/58">{getCategorySubtitle(category)}</p>
           {category.warnings[0] ? (
-            <p className="mt-2 text-sm leading-6 text-amber-100/90">{category.warnings[0]}</p>
+            <p className="mt-2 text-sm leading-6 text-red-300/92">{category.warnings[0]}</p>
           ) : null}
         </button>
 
         <div>
-          <p className="text-[11px] uppercase tracking-[0.2em] text-white/40">Pořadí</p>
-          <p className="mt-2 text-sm font-medium text-white">#{Math.max(1, Math.round(category.sortOrder / 10))}</p>
+          <p className="text-[11px] uppercase tracking-[0.24em] text-white/30">Pořadí</p>
+          <p className="mt-2 text-[1.05rem] font-medium text-white">#{Math.max(1, Math.round(category.sortOrder / 10))}</p>
         </div>
 
         <div>
-          <p className="text-[11px] uppercase tracking-[0.2em] text-white/40">Služby</p>
-          <p className="mt-2 text-sm text-white/72">
-            <span className="text-white">{category.counts.active}</span> aktivní
-            {" / "}
-            <span className="text-white">{category.counts.public}</span> veřejné
-            {" / "}
-            <span className="text-white">{category.counts.total}</span> celkem
+          <p className="text-sm leading-6 text-white/72">
+            <span className="text-white">{category.counts.active} aktivní</span> / {category.counts.public} veřejné
+            <br />
+            / {category.counts.total} celkem
           </p>
         </div>
 
-        <div className="flex flex-wrap gap-2">
+        <div className="flex justify-start">
           <AdminStatePill tone={category.isActive ? "active" : "muted"}>
             {category.isActive ? "Aktivní" : "Skrytá"}
           </AdminStatePill>
-          {hasWarning ? <AdminStatePill tone="accent">Pozornost</AdminStatePill> : null}
         </div>
 
         <button
@@ -94,16 +88,16 @@ export function CategoryRow({
           disabled={isPending}
           onClick={onToggleActive}
           className={cn(
-            "inline-flex h-11 w-[72px] items-center rounded-full border px-1 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/55 disabled:cursor-wait disabled:opacity-70",
+            "inline-flex h-8 w-[52px] items-center rounded-full border px-1 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/55 disabled:cursor-wait disabled:opacity-70",
             category.isActive
-              ? "border-emerald-300/25 bg-emerald-400/12"
+              ? "border-emerald-300/25 bg-emerald-400/16"
               : "border-white/10 bg-black/25",
           )}
         >
           <span
             className={cn(
-              "h-8 w-8 rounded-full transition",
-              category.isActive ? "translate-x-[28px] bg-emerald-200" : "translate-x-0 bg-white/70",
+              "h-6 w-6 rounded-full transition",
+              category.isActive ? "translate-x-[20px] bg-emerald-200" : "translate-x-0 bg-white/70",
             )}
           />
         </button>
@@ -112,35 +106,37 @@ export function CategoryRow({
           <button
             type="button"
             onClick={onOpen}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-black/20 text-white/80 transition hover:border-white/20 hover:bg-white/8"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-black/16 text-white/80 transition hover:border-white/20 hover:bg-white/8"
             aria-label="Otevřít detail"
           >
             <OpenIcon />
           </button>
           <Link
             href={servicesHref}
-            className="inline-flex rounded-xl border border-white/10 px-3 py-2 text-sm text-white/78 transition hover:border-white/20 hover:bg-white/8"
+            className="inline-flex h-10 items-center rounded-xl border border-white/10 px-4 text-sm text-white/78 transition hover:border-white/20 hover:bg-white/8"
           >
             Služby
           </Link>
-          <button
-            type="button"
-            disabled={!canMoveUp || isPending}
-            onClick={() => onMove("up")}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-black/20 text-white/80 transition hover:border-white/20 hover:bg-white/8 disabled:cursor-not-allowed disabled:opacity-35"
-            aria-label="Posunout nahoru"
-          >
-            <ArrowUpIcon />
-          </button>
-          <button
-            type="button"
-            disabled={!canMoveDown || isPending}
-            onClick={() => onMove("down")}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-black/20 text-white/80 transition hover:border-white/20 hover:bg-white/8 disabled:cursor-not-allowed disabled:opacity-35"
-            aria-label="Posunout dolů"
-          >
-            <ArrowDownIcon />
-          </button>
+          <div className="grid gap-2">
+            <button
+              type="button"
+              disabled={!canMoveUp || isPending}
+              onClick={() => onMove("up")}
+              className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-black/16 text-white/80 transition hover:border-white/20 hover:bg-white/8 disabled:cursor-not-allowed disabled:opacity-35"
+              aria-label="Posunout nahoru"
+            >
+              <ArrowUpIcon />
+            </button>
+            <button
+              type="button"
+              disabled={!canMoveDown || isPending}
+              onClick={() => onMove("down")}
+              className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-black/16 text-white/80 transition hover:border-white/20 hover:bg-white/8 disabled:cursor-not-allowed disabled:opacity-35"
+              aria-label="Posunout dolů"
+            >
+              <ArrowDownIcon />
+            </button>
+          </div>
         </div>
       </div>
     </article>
