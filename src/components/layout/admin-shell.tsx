@@ -36,11 +36,11 @@ export function AdminShell({ children, currentRole, userName }: AdminShellProps)
 
       <div
         className={cn(
-          "mx-auto grid w-full items-start gap-4 px-4 py-4 sm:px-6 sm:py-6 lg:gap-6 lg:px-8",
+          "mx-auto grid w-full items-start gap-4 px-4 py-4 sm:px-6 sm:py-6 lg:gap-5 lg:px-7",
           "max-w-[min(100%,1820px)] lg:grid-cols-[232px_minmax(0,1fr)] xl:grid-cols-[236px_minmax(0,1fr)]",
         )}
       >
-        <aside className="hidden rounded-[1.5rem] border border-white/8 bg-white/[0.04] p-4 backdrop-blur-xl lg:sticky lg:top-6 lg:block">
+        <aside className="hidden rounded-[1.5rem] border border-white/8 bg-white/[0.04] p-3.5 backdrop-blur-xl lg:sticky lg:top-6 lg:block">
           <AdminSidebarNav currentRole={currentRole} userName={userName} />
           <form action="/api/auth/logout" method="post" className="mt-5">
             <button

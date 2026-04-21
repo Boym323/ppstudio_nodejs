@@ -37,3 +37,4 @@ Sem patří krátké záznamy architektonických rozhodnutí.
 - `0021-admin-booking-list-density-v1.md`
 - `0022-admin-booking-detail-operations-v2.md`
 - `0023-admin-weekly-planner-workspace-v3.md`
+- `0024-admin-operational-dashboard-v1.md`

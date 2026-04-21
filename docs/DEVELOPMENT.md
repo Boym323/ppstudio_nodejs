@@ -82,7 +82,14 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Pravý panel planneru je akční inspektor dne; na menších breakpointech se otevírá jako `MobileInspectorSheet`.
 - `src/config/navigation.ts` drží centrální definici admin sekcí, slugů a navigace pro obě role.
 - `src/features/admin/components/admin-sidebar-nav.tsx` je klientská navigace s aktivním stavem podle pathname.
-- `src/features/admin/components/admin-overview-page.tsx` a `admin-section-page.tsx` renderují role-aware read model nad Prisma daty.
+- `src/features/admin/components/admin-overview-page.tsx` je po redesignu jen tenký server wrapper; skutečný overview workspace skládá `src/features/admin/components/admin-dashboard-page.tsx`.
+- `src/features/admin/lib/admin-dashboard.ts` drží serverový read model pro operativní dashboard dne:
+  - hero `Dnes`
+  - alerty
+  - timeline rezervací + volných oken
+  - spodní KPI
+  - pravý sidebar stats / pending / upcoming slots / quick actions
+- `admin-section-page.tsx` dál obsluhuje generické nebo sekundární sekce; overview už na něj nenavazuje.
 - `src/features/admin/components/admin-booking-detail-page.tsx` skládá detail rezervace jako serverový read layout; v aktuální verzi používá pět bloků `sticky header -> souhrn -> akce -> poznámky -> historie` a nemá znovu vracet paralelní souhrnné sekce se stejným obsahem.
 - `src/features/admin/components/admin-booking-status-form.tsx` zůstává malou klientskou vrstvou jen pro interaktivní výběr akce a submit server action; při dalších úpravách nenechávej zbytečně růst klientský bundle mimo tenhle formulář.
 - `src/features/admin/components/admin-booking-note-form.tsx` je oddělená klientská vrstva jen pro samostatnou editaci interní poznámky rezervace; drž ji bez dalších provozních rozhodnutí nebo statusové logiky.
@@ -135,6 +142,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - `src/features/admin/components/admin-email-log-detail-page.tsx` a route `/admin/email-logy/[emailLogId]` přidávají detail jednoho logu s payloadem, chybou a operacemi pro ruční retry nebo uvolnění zaseknutého jobu.
 - Po úspěšné akci detail vrací server-rendered flash banner přes query parametr, aby obsluha viděla okamžitou zpětnou vazbu bez client state.
 - `src/features/admin/lib/admin-data.ts` je čistá serverová read vrstva pro admin dashboardy a sekce.
+- Operativní overview dashboard má vlastní read model mimo `admin-data.ts`, aby se layout dneška a sekundární sekce nevyvíjely ve stejné obecné struktuře.
 - Lite admin záměrně nepoužívá technický jazyk ani sekce typu nastavení, email logy nebo správa uživatelů.
 - Pro `SALON` držíme kratší menu a na úvodní obrazovce zviditelňujeme dnešní rezervace, nejbližší termíny a rychlé akce pro přidání slotu nebo otevření rezervace.
 - `salonAdminNavigation` se skládá ze stejné centrální definice sdílených sekcí jako owner navigace, aby route guardy, dostupné URL a menu nemohly časem ujet od sebe.
@@ -143,7 +151,8 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Sdílený layout wrapper `src/features/admin/components/admin-shell-layout.tsx` je jediný zdroj truth pro admin shell layout v section/slots/email-log/detail větvích.
 - Vizuální stabilita adminu je primárně v:
   - `src/components/layout/admin-shell.tsx` (šířky sloupců, sticky sidebar, anti-overflow)
-  - `src/features/admin/components/admin-page-shell.tsx` (responzivní nadpisy, stat karty, spacing)
+  - `src/features/admin/components/admin-page-shell.tsx` (responzivní nadpisy, stat karty, spacing pro sekce mimo overview)
+  - `src/features/admin/components/admin-dashboard-page.tsx` (přesná hierarchie a hustota overview dashboardu)
 
 ## Konvence
 - Route soubory držet tenké, byznys logiku přesouvat do `features`, `content` a `lib`.

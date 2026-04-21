@@ -139,6 +139,13 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
   - Rezervace
   - Volné termíny
   - Klienti
+- Sekce `Přehled` na `/admin` a `/admin/provoz` je nyní operativní dashboard dne:
+  - layout je rozdělený na hlavní pracovní plochu a pravý sidebar; levý navigační sidebar zůstává součástí shellu
+  - nahoře je velká karta `Dnes` s počtem dnešních rezervací, informací za kolik začíná další termín a blokem `Další klientka`
+  - pod ní jsou jen krátké alerty, které vyžadují akci; pokud nic nehoří, zobrazí se jediná zelená karta `Vše je v pořádku`
+  - střed stránky drží `Dnešní plán` s mixem rezervací a volných oken, aby bylo během pár sekund jasné, co se dnes děje
+  - pravý sidebar soustředí rychlý přehled, počty čekajících potvrzení, nejbližší publikované sloty pro dnes/zítra a 4 rychlé akce
+  - data jsou server-rendered a připravená na další napojení, ale bez přidání nové klientské state vrstvy
 - Sekce `Rezervace` je nyní přepracovaná jako kompaktní pracovní seznam na `/admin/rezervace` a `/admin/provoz/rezervace`:
   - místo vysokých karet používá hustý řádkový grid se sloupci `Rezervace`, `Čas`, `Status`, `Zdroj`, `Kontakt`, `Akce`
   - každá rezervace drží klientku + službu a datum + čas ve dvou krátkých řádcích bez zbytečné výšky
@@ -214,6 +221,7 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
   - Klientky
   - Nabídka
   - Kategorie služeb
+- Levý sidebar zůstává i po redesignu dashboardu záměrně úzký; když budeš upravovat shell spacing, priorita je ponechat co nejvíc šířky pro operativní obsah, ne pro dekorativní chrome.
 - Detail rezervace je nyní dostupný jak pro `OWNER`, tak pro `SALON`:
   - `OWNER` na `/admin/rezervace/[bookingId]`
   - `SALON` na `/admin/provoz/rezervace/[bookingId]`

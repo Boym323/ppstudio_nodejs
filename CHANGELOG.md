@@ -7,6 +7,9 @@ Formát je inspirovaný Keep a Changelog.
 ## [Unreleased]
 
 ### Added
+- Nový operativní admin dashboard na `/admin` a `/admin/provoz` s fixní skladbou `hero dneška -> alerty -> dnešní plán -> KPI` a samostatným pravým sidebar workspace pro quick stats, čekající potvrzení, nejbližší sloty a rychlé akce.
+- Samostatný serverový read model `src/features/admin/lib/admin-dashboard.ts` a prezentační komponenty `DashboardPage`, `TodayHeroCard`, `AlertsRow`, `TodayTimeline`, `KPIGrid`, `RightSidebar`, `QuickStats`, `UpcomingSlots` a `QuickActions`.
+- ADR 0024 pro rozhodnutí, proč overview adminu funguje jako operativní workspace dne místo manažerského přehledu.
 - Třetí iteraci admin sekce `Volné termíny / Týdenní plán dostupností` s grid-first layoutem, užším sidebar shell layoutem, akčním inspektorem dne a mobilními drawery pro navigaci i detail.
 - Lokální draft workflow pro týdenní planner: klik výběru bloku, drag editace do konceptu, sticky action bar `Zahodit / Uložit koncept / Publikovat změny` a novou server action synchronizaci celého týdne při publikaci.
 - ADR 0023 pro rozhodnutí kolem draft-first pracovního rozhraní planneru.
@@ -91,6 +94,8 @@ Formát je inspirovaný Keep a Changelog.
 - Týdenní planner dostupností pro `OWNER` i `SALON` nyní zobrazuje rezervace, omezené intervaly, neaktivní sloty i minulý čas v jednom klidném kalendáři.
 
 ### Changed
+- Admin overview už nepoužívá generický hero se statistikami; nově je to tmavý SaaS-style dashboard zaměřený na dnešek, další klientku, čekající potvrzení a nejbližší volná okna.
+- Levý admin sidebar dostal jemně utažený spacing, aby vedle nového dashboard workspace působil kompaktněji a nechával víc prostoru samotnému obsahu.
 - Detail rezervace na `/admin/rezervace/[bookingId]` a `/admin/provoz/rezervace/[bookingId]` už není dlouhá hero/detail stránka; nově používá sticky header, jeden kompaktní souhrn, akční zónu, oddělené poznámky a hustší timeline historie.
 - Z detailu rezervace byly sloučené a odstraněné překryvné bloky `Další krok`, `Kontext rezervace`, `Základní přehled` a `Operační souhrn`; jejich obsah se přesunul do jednoho summary panelu a krátkého stavového info boxu.
 - Rychlé kontaktní akce `Zavolat klientce` a `Napsat e-mail` jsou nově dostupné přímo v horním sticky headeru spolu se stavem, zdrojem a akcí `Obnovit detail`.

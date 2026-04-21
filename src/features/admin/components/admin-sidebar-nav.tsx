@@ -27,7 +27,7 @@ export function AdminSidebarNav({
 
   return (
     <>
-      <div className="space-y-2 border-b border-white/8 pb-4">
+      <div className="space-y-1.5 border-b border-white/8 pb-3.5">
         <p className="text-[10px] uppercase tracking-[0.32em] text-white/42">
           {currentArea === "owner" ? "Owner Admin" : "Provoz salonu"}
         </p>
@@ -40,7 +40,7 @@ export function AdminSidebarNav({
         </p>
       </div>
 
-      <nav className="mt-4 grid gap-1.5">
+      <nav className="mt-3.5 grid gap-1.5">
         {navigation.map((item) => {
           const isActive =
             pathname === item.href ||
@@ -53,7 +53,7 @@ export function AdminSidebarNav({
               key={item.href}
               href={item.href}
               className={cn(
-                "rounded-2xl border px-3.5 py-2.5 transition",
+                "rounded-2xl border px-3 py-2.5 transition",
                 isActive
                   ? "border-[var(--color-accent)]/46 bg-[rgba(190,160,120,0.14)] text-white shadow-[0_8px_24px_rgba(0,0,0,0.24)]"
                   : "border-transparent text-white/66 hover:border-white/8 hover:bg-white/[0.05] hover:text-white",

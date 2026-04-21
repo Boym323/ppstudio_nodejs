@@ -26,6 +26,12 @@ Postup nasazení aplikace do produkce.
    - dostupnost owner-only sekcí jen pro `OWNER`
    - stejné chování owner/salon párových route po refaktoru factory wrapperů (overview, section, booking detail, slot list/create/detail/edit)
    - lite admin navigaci a mobilní čitelnost na `/admin/provoz/*`
+   - overview dashboard na `/admin` a `/admin/provoz`:
+     - hero karta `Dnes` ukazuje správný počet dnešních rezervací a další klientku
+     - alerty odpovídají stavu dat a bez alertů se zobrazí jen zelené `Vše je v pořádku`
+     - `Dnešní plán` kombinuje rezervace a volná okna bez rozbitých časů nebo duplicit
+     - pravý sidebar ukazuje jen blízké publikované sloty pro dnes a zítra
+     - rychlé akce vedou na správné owner/salon URL
    - sekci `Kategorie služeb` na `/admin/kategorie-sluzeb` a `/admin/provoz/kategorie-sluzeb`:
      - desktopový sticky detail a mobilní full-screen drawer
      - vytvoření nové kategorie přes CTA
@@ -66,6 +72,7 @@ Postup nasazení aplikace do produkce.
      - propsání změn na `/o-mne`
 15. Ověř booking, email a media vrstvu:
   - vytvoření testovací rezervace
+  - propsání nové rezervace nebo změny slotu do overview dashboardu bez potřeby buildu nebo manuálního refresh flow navíc
   - `/admin/rezervace` a `/admin/provoz/rezervace`: kompaktní řádkový seznam, sticky header a inline akce `Potvrdit` / `Zrušit`
   - změnu dne v kroku 2 `/rezervace` a reset nevalidního vybraného času
   - kompaktní grid časů na mobilu i desktopu včetně disabled stavů a návratu zpět ze souhrnu
