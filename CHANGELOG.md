@@ -7,6 +7,9 @@ Formát je inspirovaný Keep a Changelog.
 ## [Unreleased]
 
 ### Added
+- Kompaktní pracovní workspace pro admin sekci `Rezervace` na `/admin/rezervace` a `/admin/provoz/rezervace` s vlastním row-based layoutem místo generického seznamu.
+- Inline server actions `Potvrdit` a `Zrušit` přímo v řádku rezervace bez nutnosti otevřít detail.
+- ADR 0021 pro rozhodnutí kolem hustšího pracovního seznamu rezervací.
 - Nový dark admin workspace pro `Kategorie služeb` s 3sloupcovým desktop layoutem (shell sidebar + list + sticky detail), samostatnými komponentami v `src/components/admin/categories/*`, stat kartami, chip filtry a mobilním full-screen drawer detailem.
 - Inline server actions pro okamžité optimistic přepnutí aktivity a reorder kategorií bez reloadu stránky, při zachování stávající validace a business logiky.
 - Výrazně přepracovaný admin workflow pro `Služby` a `Kategorie služeb` s jasnými CTA pro vytvoření nové položky, rychlými akcemi přímo v seznamu a mobilním list/detail flow bez dlouhého stacked scrollu.
@@ -83,6 +86,11 @@ Formát je inspirovaný Keep a Changelog.
 - Týdenní planner dostupností pro `OWNER` i `SALON` nyní zobrazuje rezervace, omezené intervaly, neaktivní sloty i minulý čas v jednom klidném kalendáři.
 
 ### Changed
+- Rezervační řádky teď drží stabilní šířku akčního sloupce, takže `Potvrdit` / `Zrušit` už neposouvají čas a sloupce zůstávají zarovnané.
+- Rezervační workspace dostal lehký polish: jemnější panel, kompaktní stats v jedné řadě, subtilní hover na řádcích a sloučené inline akce do menšího capsule bloku.
+- Sekce `Rezervace` už nepoužívá vysoké vertikální karty; nově funguje jako kompaktní grid řádků se sticky headerem a sloupci `Rezervace`, `Čas`, `Status`, `Zdroj`, `Kontakt`, `Akce`.
+- Horní statistiky sekce `Rezervace` byly zmenšené z velkých karet do jedné řady kompaktních souhrnných pill bloků, aby na obrazovce zůstalo víc samotných rezervací.
+- Rezervační řádky byly zhuštěné na 1-2 textové řádky na buňku, s menším paddingem a barevnými badge pro rychlé čtení stavů `čeká`, `hotovo`, `zrušeno`.
 - Sekce `Kategorie služeb` byla vizuálně dotažená blíž produkčnímu dark admin návrhu: horní souhrn je v jedné kompaktní liště, řádky seznamu jsou hustší a pravý detail panel má čistší formulářový layout se sticky footrem.
 - Sekce `Kategorie služeb` už není jen responzivní seznam s vedlejším formulářem; nově funguje jako provozní list/detail workspace s výrazně kompaktnějším seznamem, sticky detailem a mobilním drawer UX.
 - Sekce `Služby` už nepůsobí jako čistý detail editor; seznam nově slouží jako hlavní pracovní plocha s fulltextem, filtrem kategorie, stavovými badge, upozorněními a rychlými akcemi bez otevírání detailu.

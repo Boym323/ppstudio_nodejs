@@ -139,6 +139,13 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
   - Rezervace
   - Volné termíny
   - Klienti
+- Sekce `Rezervace` je nyní přepracovaná jako kompaktní pracovní seznam na `/admin/rezervace` a `/admin/provoz/rezervace`:
+  - místo vysokých karet používá hustý řádkový grid se sloupci `Rezervace`, `Čas`, `Status`, `Zdroj`, `Kontakt`, `Akce`
+  - každá rezervace drží klientku + službu a datum + čas ve dvou krátkých řádcích bez zbytečné výšky
+  - horní statistiky jsou zmenšené do jedné souhrnné řady místo velkých karet
+  - hlavička seznamu zůstává sticky při scrollu, takže jsou sloupce stále čitelné
+  - přímo v řádku jsou rychlé akce `Potvrdit`, `Zrušit` a `Detail`; složitější práce dál patří do detailu rezervace
+  - stav se zobrazuje přes barevné badge, aby bylo na první pohled vidět, co čeká, co je hotové a co je zrušené
 - Sekce `Klienti` je nyní produkčně použitelná pro obě role na `/admin/klienti`, `/admin/provoz/klienti` a v detailu na `/admin/klienti/[clientId]`, `/admin/provoz/klienti/[clientId]`:
   - seznam podporuje hledání přes jméno, e-mail, telefon i interní poznámku
   - filtry umí omezit aktivní/neaktivní profily a přepnout řazení podle poslední návštěvy, počtu rezervací, jména nebo vytvoření

@@ -84,6 +84,11 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - `src/features/admin/components/admin-overview-page.tsx` a `admin-section-page.tsx` renderují role-aware read model nad Prisma daty.
 - `src/features/admin/components/admin-booking-detail-page.tsx` skládá detail rezervace jako serverový read layout; drž v něm jen prezentační kompozici a odvozené provozní hinty, ne mutační logiku.
 - `src/features/admin/components/admin-booking-status-form.tsx` zůstává malou klientskou vrstvou jen pro interaktivní výběr akce a submit server action; při dalších úpravách nenechávej zbytečně růst klientský bundle mimo tenhle formulář.
+- Sekce `Rezervace` má vlastní workflow v `src/features/admin/components/admin-bookings-page.tsx` a už neběží přes generický placeholder renderer.
+- `src/features/admin/lib/admin-data.ts` pro rezervace vrací explicitní řádkový read model (`title`, `serviceName`, `scheduledDateLabel`, `scheduledTimeLabel`, `status`, `sourceLabel`, `contactLabel`, `availableActions`) místo obecného `title/meta/description`.
+- `src/features/admin/components/admin-bookings-quick-actions.tsx` je záměrně velmi malá klientská vrstva jen pro inline akce `Potvrdit` a `Zrušit`; složitější workflow dál patří do detailu rezervace.
+- Horní statistiky sekce `Rezervace` jsou záměrně kompaktní v jedné řadě, ne ve vysokých kartách; při dalších úpravách hustoty drž prioritu na počtu viditelných řádků.
+- Sticky header rezervačního seznamu je součást provozního UX; při změnách shell layoutu ověř, že zůstane čitelný i při delším scrollu.
 - Sekce `Služby` má vlastní workflow v `src/features/admin/components/admin-services-page.tsx` a už neběží přes generický placeholder renderer.
 - `src/features/admin/lib/admin-services.ts` drží serverový read model pro seznam, provozní warningy, detail služby a předvyplněný create flow.
 - `src/features/admin/actions/service-actions.ts` nově obsluhuje create, update, duplikaci, quick toggles a reorder; validace zůstává v `src/features/admin/lib/admin-service-validation.ts`.
@@ -238,6 +243,13 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - kombinaci fulltextu, stavu, řazení a chip filtrů
   - optimistic přepnutí aktivního stavu a posun nahoru/dolů
   - warning stavy `prázdná`, `bez veřejné služby`, `neaktivní s aktivními službami`
+- Po změně sekce `Rezervace` ručně ověř i:
+  - `/admin/rezervace` i `/admin/provoz/rezervace` na desktopu a mobilu
+  - kompaktní řádkový layout bez návratu k vysokým kartám
+  - sticky header sloupců při scrollu
+  - inline akce `Potvrdit` a `Zrušit` bez otevření detailu
+  - správné schování neplatné rychlé akce podle aktuálního stavu rezervace
+  - barevné badge pro `čeká`, `hotovo`, `zrušeno` a čitelnost kontaktu i zdroje v hustém řádku
   - přepnutí `Veřejně rezervovatelná` a dopad na `/rezervace`
   - změnu délky služby a skrytí slotů, které jsou po změně kratší než služba
   - editaci služby v neaktivní kategorii a očekávané skrytí z veřejného bookingu

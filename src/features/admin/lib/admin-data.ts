@@ -11,7 +11,12 @@ import {
 } from "@prisma/client";
 
 import { type AdminArea, type AdminSectionSlug } from "@/config/navigation";
-import { getAdminBookingHref } from "@/features/admin/lib/admin-booking";
+import {
+  getAdminBookingActionOptions,
+  getAdminBookingHref,
+  getBookingSourceLabel,
+  getBookingStatusLabel,
+} from "@/features/admin/lib/admin-booking";
 import { listBootstrapAdminUsers, type BootstrapAdminUser } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 
@@ -341,16 +346,48 @@ export async function getAdminSectionData(section: AdminSectionSlug, area: Admin
   }
 }
 
+export type ReservationsDashboardData = {
+  stats: Array<{
+    label: string;
+    value: string;
+    tone?: "default" | "accent" | "muted";
+    detail?: string;
+  }>;
+  items: Array<{
+    id: string;
+    title: string;
+    serviceName: string;
+    scheduledDateLabel: string;
+    scheduledTimeLabel: string;
+    status: BookingStatus;
+    statusLabel: string;
+    sourceLabel: string;
+    contactLabel: string;
+    href: string;
+    availableActions: ReturnType<typeof getAdminBookingActionOptions>;
+  }>;
+};
+
 async function getReservationsData(area: AdminArea) {
   const now = new Date();
-  const [pending, confirmed, completed, items] = await Promise.all([
+  const todayStart = new Date(now);
+  todayStart.setHours(0, 0, 0, 0);
+
+  const [today, pending, confirmed, completed, cancelled, items] = await Promise.all([
+    prisma.booking.count({
+      where: {
+        scheduledStartsAt: { gte: todayStart },
+        status: { in: [BookingStatus.PENDING, BookingStatus.CONFIRMED] },
+      },
+    }),
     prisma.booking.count({ where: { status: BookingStatus.PENDING } }),
     prisma.booking.count({ where: { status: BookingStatus.CONFIRMED } }),
     prisma.booking.count({ where: { status: BookingStatus.COMPLETED } }),
+    prisma.booking.count({ where: { status: BookingStatus.CANCELLED } }),
     prisma.booking.findMany({
       orderBy: { scheduledStartsAt: "asc" },
-      where: area === "salon" ? { scheduledStartsAt: { gte: now } } : undefined,
-      take: 10,
+      where: area === "salon" ? { scheduledStartsAt: { gte: todayStart } } : undefined,
+      take: 24,
       include: {
         client: { select: { fullName: true, phone: true } },
         service: { select: { name: true } },
@@ -360,22 +397,26 @@ async function getReservationsData(area: AdminArea) {
 
   return {
     stats: [
-      { label: "Čekající", value: String(pending), tone: "accent" as const },
+      { label: "Dnes a dál", value: String(today), tone: "accent" as const },
+      { label: "Čeká", value: String(pending) },
       { label: "Potvrzené", value: String(confirmed) },
-      { label: "Dokončené", value: String(completed), tone: "muted" as const },
+      { label: "Hotovo", value: String(completed), tone: "muted" as const },
+      { label: "Zrušené", value: String(cancelled), tone: "muted" as const },
     ],
     items: items.map((booking) => ({
       id: booking.id,
-      title: `${booking.client.fullName} • ${booking.service.name}`,
-      meta: `${formatDateTimeLabel(booking.scheduledStartsAt)} • ${statusLabel(booking.status)}`,
-      description:
-        area === "owner"
-          ? `Zdroj: ${booking.source}. Kontakt: ${booking.client.phone ?? booking.clientEmailSnapshot}.`
-          : `Kontakt: ${booking.client.phone ?? booking.clientEmailSnapshot}.`,
-      badge: statusLabel(booking.status),
+      title: booking.client.fullName,
+      serviceName: booking.service.name,
+      scheduledDateLabel: formatDateLabel(booking.scheduledStartsAt),
+      scheduledTimeLabel: `${formatTime.format(booking.scheduledStartsAt)} - ${formatTime.format(booking.scheduledEndsAt)}`,
+      status: booking.status,
+      statusLabel: getBookingStatusLabel(booking.status),
+      sourceLabel: getBookingSourceLabel(booking.source),
+      contactLabel: booking.client.phone ?? booking.clientEmailSnapshot,
       href: getAdminBookingHref(area, booking.id),
+      availableActions: getAdminBookingActionOptions(booking.status),
     })),
-  };
+  } satisfies ReservationsDashboardData;
 }
 
 async function getSlotsData(area: AdminArea) {

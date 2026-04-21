@@ -66,6 +66,7 @@ Postup nasazení aplikace do produkce.
      - propsání změn na `/o-mne`
 15. Ověř booking, email a media vrstvu:
   - vytvoření testovací rezervace
+  - `/admin/rezervace` a `/admin/provoz/rezervace`: kompaktní řádkový seznam, sticky header a inline akce `Potvrdit` / `Zrušit`
   - změnu dne v kroku 2 `/rezervace` a reset nevalidního vybraného času
   - kompaktní grid časů na mobilu i desktopu včetně disabled stavů a návratu zpět ze souhrnu
   - zápis `EmailLog` ve stavu `PENDING` v background režimu nebo `SENT` v log režimu
