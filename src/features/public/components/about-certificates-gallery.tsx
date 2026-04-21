@@ -35,11 +35,11 @@ export function AboutCertificatesGallery({ certificates }: { certificates: About
 
   return (
     <>
-      <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:mt-12 lg:grid-cols-3 lg:gap-7">
         {certificates.map((certificate) => (
           <article
             key={certificate.id}
-            className="overflow-hidden rounded-[calc(var(--radius-panel)-0.45rem)] border border-[#e6dbcf] bg-[#fffcf8] shadow-[var(--shadow-panel)]"
+            className="group overflow-hidden rounded-[calc(var(--radius-panel)-0.45rem)] border border-[#e6dbcf] bg-[#fffcf8] shadow-[var(--shadow-panel)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_24px_60px_rgba(34,22,12,0.12)]"
           >
             <button
               type="button"
@@ -51,14 +51,14 @@ export function AboutCertificatesGallery({ certificates }: { certificates: About
               className="block w-full text-left"
               aria-disabled={!certificate.imageUrl}
             >
-              <div className="relative h-56 w-full overflow-hidden bg-[linear-gradient(160deg,#f6eee5_0%,#f1e5d7_52%,#eadbc9_100%)] p-3">
+              <div className="relative h-60 w-full overflow-hidden bg-[linear-gradient(160deg,#f6eee5_0%,#f1e5d7_52%,#eadbc9_100%)] p-3 sm:h-64">
                 {certificate.imageUrl ? (
                   <Image
                     src={certificate.imageUrl}
                     alt={certificate.alt}
                     fill
                     sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
-                    className="object-contain p-3"
+                    className="object-contain p-3 transition duration-300 group-hover:scale-[1.015]"
                   />
                 ) : (
                   <div className="relative flex h-full items-end rounded-[1.35rem] border border-white/60 bg-white/50 p-5">
@@ -75,9 +75,9 @@ export function AboutCertificatesGallery({ certificates }: { certificates: About
                   </div>
                 )}
               </div>
-              <div className="p-4">
-                <h3 className="font-medium text-[var(--color-foreground)]">{certificate.title}</h3>
-                <p className="mt-2 text-sm text-[var(--color-muted)]">{certificate.hint}</p>
+              <div className="p-5 sm:p-6">
+                <h3 className="font-display text-[1.45rem] leading-[1.05] text-[var(--color-foreground)]">{certificate.title}</h3>
+                <p className="mt-2 text-[13px] leading-6 text-[var(--color-muted)]">{certificate.hint}</p>
               </div>
             </button>
           </article>

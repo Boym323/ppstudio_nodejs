@@ -141,6 +141,8 @@ Formát je inspirovaný Keep a Changelog.
 - Hero sekce `/o-mne` nově vytahuje CTA výš, používá badge služeb a podporuje reálnou brand fotografii z `public/brand/ppstudio-portrait.jpg` se záložním elegantním placeholderem.
 - Obsahový model `aboutContent` v `src/content/public-site.ts` byl rozšířený o novou IA stránky (`whyChooseMe`, hero CTA/badges, zjednodušený story/approach/expectations flow).
 - Galerie certifikátů na `/o-mne` nově funguje i bez nahraných admin certifikátů: renderuje placeholder karty a je připravená na pozdější napojení na reálná data bez další změny layoutu.
+- Jemný polish pass stránky `/o-mne` dotáhl proporce a hierarchii bez dalšího redesignu: silnější hero textový sloupec, prostornější benefit karty, propojenější sekce příběhu, klidnější rytmus karet v „Můj přístup“, vzdušnější CTA kartu a výraznější finální tmavý CTA blok.
+- Finální UI polish stránky `/o-mne` ještě lehce posílil hero text vůči fotografii, sjednotil výšku benefit boxů, přidal decentní hovery na certifikace a opticky odlehčil sekundární CTA.
 - Veřejné vytvoření rezervace nyní přijímá explicitní `startsAt` z formuláře a server-side potvrzuje, že zvolený interval opravdu leží uvnitř slotu a nekoliduje s existujícími rezervacemi.
 - Veřejný web už nikde nezobrazuje přímý odkaz do admin přihlášení (`/admin/prihlaseni`); z hlavičky i homepage CTA zůstává jen klientská cesta k rezervaci.
 - Krok 2 veřejného booking flow byl přepracovaný na variantu kalendář + seznam časů: klientka nejdřív vybere den v měsíčním kalendáři a pak konkrétní čas pro daný den.
