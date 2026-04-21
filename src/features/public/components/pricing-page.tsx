@@ -27,7 +27,7 @@ export function PricingHero() {
         aria-hidden="true"
         className="pointer-events-none absolute inset-y-0 right-0 hidden w-[30rem] bg-[radial-gradient(circle_at_68%_38%,rgba(214,190,164,0.16),transparent_22%),linear-gradient(180deg,transparent,rgba(206,184,158,0.06))] lg:block"
       />
-      <Container className="relative grid gap-10 py-12 sm:py-16 lg:grid-cols-[minmax(0,1.08fr)_minmax(22rem,0.92fr)] lg:items-center lg:gap-12 lg:py-20">
+      <Container className="relative py-12 sm:py-16 lg:py-20">
         <div className="max-w-3xl space-y-6">
           <div className="space-y-4">
             <p className="text-[11px] font-semibold uppercase tracking-[0.32em] text-[var(--color-accent-contrast)]">CENÍK</p>
@@ -51,26 +51,6 @@ export function PricingHero() {
             >
               Porovnat služby
             </Link>
-          </div>
-        </div>
-        <div className="relative flex justify-end">
-          <div className="w-full max-w-[28rem] rounded-[2rem] border border-white/80 bg-[linear-gradient(180deg,rgba(255,252,249,0.94),rgba(247,239,229,0.92))] p-6 shadow-[0_24px_60px_rgba(76,54,32,0.08)] backdrop-blur sm:p-7">
-            <div className="flex items-start gap-5">
-              <div className="flex h-15 w-15 shrink-0 items-center justify-center rounded-full border border-[#dcc8b2] bg-[#f5ebde] text-[#9f7a4f] shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">
-                <CalendarIcon className="h-7 w-7" />
-              </div>
-              <div className="space-y-3 pt-1">
-                <h2 className="max-w-[15rem] font-display text-[1.95rem] leading-[1.04] tracking-[-0.03em] text-[var(--color-foreground)]">
-                  Rezervace bez zbytečných kroků
-                </h2>
-                <p className="max-w-[17rem] text-[15px] leading-7 text-[var(--color-muted)]">
-                  Vyberte si službu a termín v několika klidných krocích.
-                </p>
-              </div>
-            </div>
-            <div aria-hidden="true" className="mt-6 flex justify-end text-[#ccb08f]">
-              <SparkLinesIcon className="h-8 w-8" />
-            </div>
           </div>
         </div>
       </Container>
@@ -284,22 +264,6 @@ function buildPricingBlocks(categories: PublicPricingCategory[]) {
   return blocks;
 }
 
-function CalendarIcon({ className }: PricingIconProps) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={className}>
-      <rect x="3.5" y="5" width="17" height="15.5" rx="2.5" />
-      <path d="M7.5 3.5v4" />
-      <path d="M16.5 3.5v4" />
-      <path d="M3.5 9.5h17" />
-      <path d="M8 13h.01" />
-      <path d="M12 13h.01" />
-      <path d="M16 13h.01" />
-      <path d="M8 17h.01" />
-      <path d="M12 17h.01" />
-    </svg>
-  );
-}
-
 function DropletIcon({ className }: PricingIconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={className}>
@@ -358,19 +322,6 @@ function LipstickIcon({ className }: PricingIconProps) {
       <path d="M9.5 4.5h5v4.5a2.5 2.5 0 0 1-5 0Z" />
       <path d="M8.2 9.3h7.6V14H8.2Z" />
       <path d="M7 14h10v6.5H7Z" />
-    </svg>
-  );
-}
-
-function SparkLinesIcon({ className }: PricingIconProps) {
-  return (
-    <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className={className}>
-      <path d="M4 16h9" />
-      <path d="M19 16h9" />
-      <path d="M16 4v9" />
-      <path d="M16 19v9" />
-      <path d="m7.7 7.7 6.1 6.1" />
-      <path d="m18.2 18.2 6.1 6.1" />
     </svg>
   );
 }

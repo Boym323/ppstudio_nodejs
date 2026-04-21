@@ -272,39 +272,6 @@ function PricingServiceRow({ service }: { service: Service }) {
   );
 }
 
-function CtaBand() {
-  return (
-    <section className="py-10 sm:py-14 lg:py-16">
-      <Container>
-        <div className="rounded-[var(--radius-panel)] bg-[linear-gradient(135deg,#1b1613_0%,#2a211b_55%,#3a2f28_100%)] px-5 py-7 text-white shadow-[0_24px_70px_rgba(34,22,12,0.18)] sm:px-8 sm:py-10 lg:flex lg:items-center lg:justify-between lg:gap-8">
-          <div className="max-w-2xl">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[var(--color-accent-soft)]">
-              Rezervace bez zbytečných kroků
-            </p>
-            <h2 className="mt-4 font-display text-3xl leading-[1.08] tracking-tight sm:text-4xl lg:text-5xl">
-              Vyberte si službu a termín v několika klidných krocích.
-            </h2>
-          </div>
-          <div className="mt-6 flex flex-col gap-3 sm:flex-row lg:mt-0">
-            <Link
-              href="/rezervace"
-              className="inline-flex min-h-13 w-full items-center justify-center rounded-full bg-[var(--color-accent)] px-7 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-accent-contrast)] hover:brightness-105 sm:w-auto sm:text-sm"
-            >
-              Vybrat termín
-            </Link>
-            <Link
-              href="/kontakt"
-              className="inline-flex min-h-13 w-full items-center justify-center rounded-full border border-white/18 px-7 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-white hover:border-white/35 hover:bg-white/6 sm:w-auto sm:text-sm"
-            >
-              Napsat do studia
-            </Link>
-          </div>
-        </div>
-      </Container>
-    </section>
-  );
-}
-
 function LegalSections({ sections }: { sections: LegalSection[] }) {
   return (
     <div className="space-y-6">
@@ -490,7 +457,6 @@ export function ServiceDetailPage({ service }: { service: Service }) {
           </div>
         </Container>
       </section>
-      <CtaBand />
     </div>
   );
 }
@@ -541,7 +507,6 @@ export function PricingPage({ services: catalogServices = services }: { services
           </div>
         </Container>
       </section>
-      <CtaBand />
     </div>
   );
 }
@@ -608,7 +573,6 @@ export async function FaqPage() {
           ))}
         </Container>
       </section>
-      <CtaBand />
     </div>
   );
 }

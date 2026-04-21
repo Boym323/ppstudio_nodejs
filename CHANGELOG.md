@@ -104,6 +104,7 @@ Formát je inspirovaný Keep a Changelog.
 - Týdenní planner dostupností pro `OWNER` i `SALON` nyní zobrazuje rezervace, omezené intervaly, neaktivní sloty i minulý čas v jednom klidném kalendáři.
 
 ### Changed
+- FAQ, detail služby a starší shared public varianty už také nepoužívají CTA blok `Rezervace bez zbytečných kroků`; hero `/cenik` byl zároveň zjednodušený bez pravého rezervačního boxu.
 - Stránky `Domů`, `Služby` a `/cenik` už nezobrazují spodní CTA blok `Rezervace bez zbytečných kroků`, aby se stejné výzvy k rezervaci zbytečně neopakovaly.
 - Stránka `O mně` prošla čistým spacing compression passem: zkrátil se vertikální rytmus sekcí, utáhl se padding karet a zhušťily se certifikace, aby stránka působila kompaktněji bez redesignu.
 - Sekce `O mně` už v bloku `Co vás čeká` nezobrazuje postranní CTA kartu `Rezervace`; layout se vrátil na jeden širší obsahový panel, aby stránka působila klidněji.
