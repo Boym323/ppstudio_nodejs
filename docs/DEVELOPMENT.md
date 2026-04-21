@@ -40,7 +40,13 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - může mapovat interní názvy služby na jemnější public názvy
   - drží krátké public popisy po sluzích podle `slug`
   - category label může být na veřejném webu jemnější než interní DB název
-- Ceník na `/cenik` je renderovaný jako plnošířkový přehled po kategoriích a už nemá doprovodný blok s poznámkami.
+- Ceník na `/cenik` má vlastní skladbu v `src/features/public/components/pricing-page.tsx`; obecný `public-site.tsx` už neobsahuje pricing-specific layout logiku.
+- Pricing modul je rozdělený na komponenty `PricingHero`, `CategoryChips`, `PricingSection`, `PricingItem`, `PricingGridSection` a `PricingCTA`, aby šlo věrně ladit spacing a hierarchii bez zásahu do ostatních veřejných stránek.
+- Prezentační vrstva ceníku používá dvě mapy:
+  - `pricingCategoryConfigs` pro pořadí kategorií, ikonografii, popisy a volbu layoutu `list/grid`
+  - `servicePricingMetaBySlug` pro badge a kratší jednořádkové popisy položek
+- DB read model v `src/features/public/lib/public-services.ts` dál zůstává zdrojem truth pro názvy služeb, ceny, délky a veřejné category labely; pricing modul nad ním jen skládá page-specific prezentaci.
+- Ceník už nepoužívá doprovodný blok s poznámkami.
 - Úvodní stránka používá stejný DB katalog pro featured služby, aby odkazy z homepage mířily na aktuální slugs.
 - Reusable page sekce jsou ve `src/features/public/components/public-site.tsx`.
 - Kontaktní stránka má vlastní modulární sekce v `src/features/public/components/contact-sections.tsx`:

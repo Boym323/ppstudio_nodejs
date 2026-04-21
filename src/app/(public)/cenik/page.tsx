@@ -1,6 +1,7 @@
 import { connection } from "next/server";
 
-import { PricingPage, buildPageMetadata } from '@/features/public/components/public-site';
+import { buildPageMetadata } from "@/features/public/components/public-site";
+import { PricingPage } from "@/features/public/components/pricing-page";
 import { getPublicServices } from '@/features/public/lib/public-services';
 
 export const metadata = buildPageMetadata({

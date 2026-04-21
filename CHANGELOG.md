@@ -7,6 +7,9 @@ Formát je inspirovaný Keep a Changelog.
 ## [Unreleased]
 
 ### Added
+- Samostatný pricing page modul `src/features/public/components/pricing-page.tsx` s komponentami `PricingHero`, `CategoryChips`, `PricingSection`, `PricingItem`, `PricingGridSection` a `PricingCTA`.
+- Prezentační pricing metadata pro badge, kratší popisy a layout kategorií, aby `/cenik` mohl věrněji kopírovat referenční design bez duplikace DB dat.
+- ADR 0026 pro rozhodnutí kolem struktury a prezentační vrstvy veřejné stránky `/cenik`.
 - Druhou iteraci veřejného booking flow na `/rezervace` zaměřenou na rychlost dokončení: výběr služby přes `kategorie -> služba`, sekci `Nejbližší dostupné termíny`, progress bar, inline validaci kontaktu, editovatelný souhrn a mobilní sticky CTA.
 - Nové klientské booking komponenty `CategorySelect`, `SuggestedSlots` a `StickyCTA`, které zkracují cestu k rezervaci bez zásahu do existující serverové business logiky.
 - ADR 0025 pro rozhodnutí kolem booking UX flow V2.
