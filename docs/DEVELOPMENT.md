@@ -22,6 +22,10 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Další vnitřní route group `(protected)` uvnitř adminu chrání sekce vyžadující session.
 - Veřejné booking flow používá server-loaded page + klientský wizard + server action pro finální zápis.
 - `/rezervace` používá `connection()` a renderuje se request-time, aby ručně publikované sloty nebyly zafixované do build outputu.
+- Klientské UX booking flow je soustředěné v `src/features/booking/components/booking-flow.tsx`, ale rychlé decision bloky jsou rozsekané do menších komponent:
+  - `CategorySelect` pro první rozhodnutí nad kategoriemi
+  - `SuggestedSlots` pro nejbližší jedním klikem rezervovatelné časy
+  - `StickyCTA` pro mobilní pokračování / submit bez ztráty kontextu
 - `src/app/robots.ts` a `src/app/sitemap.ts` používají metadata route API v App Routeru.
 - Veřejně dostupná nahraná média se servírují přes route handler `src/app/media/[kind]/[[...path]]/route.ts`, ne přes `public/` repozitáře.
 - `next.config.ts` používá `allowedDevOrigins` pro lokální LAN vývoj na `192.168.0.143`; bez toho Next.js 16 z jiného zařízení zablokuje dev assety a HMR endpoint `/_next/webpack-hmr`.
@@ -205,9 +209,12 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Veřejný booking flow vrací doménové chybové kódy a doporučený krok formuláře, takže UI může zobrazit přesnější recovery stav bez duplikace serverové logiky.
 - Veřejný booking submit má lehký rate limit podle IP a e-mailu a zapisuje auditní log pokusů, blokací a selhání pro provozní troubleshooting.
 - Krok 2 veřejného booking flow filtruje sloty i podle délky služby, aby se krátké sloty neukazovaly až v posledním kroku.
-- Krok 2 veřejného booking flow používá dvoufázový výběr termínu: kalendářní výběr dne a následně seznam konkrétních časů pro vybraný den.
+- Krok 1 veřejného booking flow je dvouúrovňový (`kategorie -> služba`), ale dál používá stejný katalog a `serviceId`.
+- Krok 2 veřejného booking flow nabízí nejdřív `SuggestedSlots` s nejbližšími volnými časy a teprve pod nimi kalendářní fallback pro jiný den.
+- Krok 2 veřejného booking flow používá dvoufázový výběr termínu: rychlá doporučená volba nebo kalendářní výběr dne a následně seznam konkrétních časů pro vybraný den.
 - Krok 2 generuje konkrétní starty po 30 minutách uvnitř slotu a zobrazuje jen ty, které se při aktuální kapacitě nekryjí s existujícími aktivními rezervacemi.
-- Krok 2 veřejného booking flow drž jako kompaktní time picker nad malými tlačítky; seznam slotů nemá opakovat detail termínu, ten patří až do souhrnu v pravém panelu.
+- Krok 2 veřejného booking flow drž jako rychlý decision flow: doporučené termíny nahoře, kalendář jako fallback a pod ním větší tlačítka konkrétních časů; detail termínu patří až do souhrnu v pravém panelu.
+- Kontaktní krok používá lehkou klientskou inline validaci jen jako UX vrstvu; server-side validace v `create-public-booking.ts` zůstává autoritativní.
 - Transformaci slotů pro krok 2 drž mimo JSX v helperu `src/features/booking/lib/booking-time-slots.ts`; UI komponenty mají dostávat už připravené `TimeSlotOption[]` a skupiny z `groupSlotsByDayPeriod()`.
 - Kalendářní denní klíče v kroku 2 (`YYYY-MM-DD`) generuj locale-agnosticky přes `Intl.DateTimeFormat(...).formatToParts()`; nepoužívej `format()` jako zdroj klíče, protože pořadí/oddělovače se liší mezi prostředími a může rozbít mapování měsíců/dnů.
 - U kalendářních gridů v kroku 2 drž explicitní `gridTemplateColumns: repeat(7, minmax(0, 1fr))` přímo v komponentě jako runtime pojistku; samotná utility třída nemusí v některých prostředích stačit.
@@ -242,6 +249,16 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Pokud měníš e-mail delivery, ověř i `npm run email:worker:once`.
 - Před aplikací migrací v prostředí, kde už běžela produkční data, spusť `npm run db:check-migrations`; script zkontroluje otevřené failed/incomplete záznamy v `_prisma_migrations`.
 - Při změně veřejného webu navíc ručně ověř:
+- Po změně veřejného booking flow ručně ověř i:
+  - `/rezervace` na mobilu i desktopu
+  - přepnutí kategorie služby a reset vybraného termínu při změně služby
+  - automatický scroll ze služby na termíny
+  - sekci `Nejbližší dostupné termíny` a jedním klikem navázaný přechod na kontakt
+  - kalendářní fallback pro jiný den
+  - větší grid časů včetně selected/disabled stavů
+  - inline validaci jména, e-mailu a telefonu
+  - sticky CTA na mobilu pro stavy `vybrat termín -> doplnit kontakt -> odeslat rezervaci`
+  - editaci služby / termínu / kontaktu ze souhrnu bez ztráty vybraných dat
 - Po změně admin katalogu služeb ručně ověř i:
   - `/admin/sluzby` i `/admin/provoz/sluzby` na desktopu a mobilu
   - založení nové služby přes CTA `Nová služba`

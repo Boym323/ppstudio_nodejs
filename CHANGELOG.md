@@ -7,6 +7,9 @@ Formát je inspirovaný Keep a Changelog.
 ## [Unreleased]
 
 ### Added
+- Druhou iteraci veřejného booking flow na `/rezervace` zaměřenou na rychlost dokončení: výběr služby přes `kategorie -> služba`, sekci `Nejbližší dostupné termíny`, progress bar, inline validaci kontaktu, editovatelný souhrn a mobilní sticky CTA.
+- Nové klientské booking komponenty `CategorySelect`, `SuggestedSlots` a `StickyCTA`, které zkracují cestu k rezervaci bez zásahu do existující serverové business logiky.
+- ADR 0025 pro rozhodnutí kolem booking UX flow V2.
 - Nový operativní admin dashboard na `/admin` a `/admin/provoz` s fixní skladbou `hero dneška -> alerty -> dnešní plán -> KPI` a samostatným pravým sidebar workspace pro quick stats, čekající potvrzení, nejbližší sloty a rychlé akce.
 - Samostatný serverový read model `src/features/admin/lib/admin-dashboard.ts` a prezentační komponenty `DashboardPage`, `TodayHeroCard`, `AlertsRow`, `TodayTimeline`, `KPIGrid`, `RightSidebar`, `QuickStats`, `UpcomingSlots` a `QuickActions`.
 - ADR 0024 pro rozhodnutí, proč overview adminu funguje jako operativní workspace dne místo manažerského přehledu.

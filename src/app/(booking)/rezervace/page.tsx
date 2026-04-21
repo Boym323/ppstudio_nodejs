@@ -6,7 +6,7 @@ import { BookingPage } from "@/features/booking/components/booking-page";
 
 export const metadata: Metadata = {
   title: "Rezervace",
-  description: "Online rezervace s ručně vypisovanými volnými termíny a okamžitým potvrzením.",
+  description: "Online rezervace s rychlým výběrem služby, nejbližších termínů a potvrzením po schválení.",
 };
 
 export default async function ReservationPage() {

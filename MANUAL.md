@@ -98,13 +98,18 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
 - Navigace vede na klíčové konverzní a důvěryhodnostní stránky místo jedné přetížené homepage.
 - Detail služby je staticky generovaný z centrálního katalogu služeb.
 - `/rezervace` nyní obsahuje produkční V1 flow:
-  - výběr služby
+  - výběr kategorie služby a následně konkrétní služby
   - výběr konkrétního času v rámci ručně publikovaného volného okna
   - kontaktní údaje klienta
   - souhrn a potvrzení
-- Výběr termínu v kroku 2 používá kalendářový režim: nejdřív den, potom konkrétní čas v rámci vybraného dne.
+- Výběr služby je nově rozdělený na dvě úrovně (`kategorie -> služba`), aby se klientka rozhodovala v kratších blocích a rychleji našla správnou variantu.
+- Po výběru služby booking flow automaticky scrolluje na krok s termíny.
+- Výběr termínu v kroku 2 teď začíná sekcí `Nejbližší dostupné termíny`; kalendář zůstává hned pod ní jako sekundární cesta pro jiný den.
 - Krok 2 nabízí starty po 30 minutách uvnitř dostupného okna a bere v úvahu délku služby i už obsazené intervaly.
-- Krok `Vyberte termín` v booking flow používá kompaktní výběr časů: po volbě dne se zobrazí malý grid klikacích časů a detail termínu (`konec`, `délka`, případná poznámka) se přesouvá až do souhrnu.
+- Krok `Vyberte termín` používá větší a výraznější tlačítka časů s menší hustotou na řádek; detail termínu (`konec`, `délka`, případná poznámka) zůstává v souhrnu.
+- Kontaktní krok přidává průběžnou inline validaci i helper text, co se stane po odeslání.
+- Souhrn umožňuje upravit službu, termín i kontakt přímo z pravého panelu bez vracení přes předchozí kroky.
+- Na mobilu je booking doplněný o sticky CTA lištu, která podle stavu výběru vede na další akci nebo rovnou na odeslání.
 - Rezervační stránka je renderovaná dynamicky při requestu, takže nově publikované nebo obsazené sloty jsou vidět bez dalšího buildu.
 - Hero, sekce `O mně` a základní service copy jsou už přepsané do klidnějšího a osobnějšího tónu; další jemné úpravy je vhodné dělat centrálně v obsahové vrstvě nebo v DB copy mapě služeb.
 - Stránka `/kontakt` má nově silnější orientaci na rychlou akci:

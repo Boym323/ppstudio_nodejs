@@ -74,8 +74,11 @@ Postup nasazení aplikace do produkce.
   - vytvoření testovací rezervace
   - propsání nové rezervace nebo změny slotu do overview dashboardu bez potřeby buildu nebo manuálního refresh flow navíc
   - `/admin/rezervace` a `/admin/provoz/rezervace`: kompaktní řádkový seznam, sticky header a inline akce `Potvrdit` / `Zrušit`
-  - změnu dne v kroku 2 `/rezervace` a reset nevalidního vybraného času
-  - kompaktní grid časů na mobilu i desktopu včetně disabled stavů a návratu zpět ze souhrnu
+  - přepnutí kategorie nebo služby v kroku 1 `/rezervace` a reset nevalidního vybraného času
+  - sekci `Nejbližší dostupné termíny` a jednoklikový přechod na kontakt
+  - změnu dne v kalendářním fallbacku kroku 2 `/rezervace` a reset nevalidního vybraného času
+  - větší grid časů na mobilu i desktopu včetně disabled stavů a návratu zpět ze souhrnu
+  - sticky CTA lištu na mobilu a editaci jednotlivých bloků přímo ze souhrnu
   - zápis `EmailLog` ve stavu `PENDING` v background režimu nebo `SENT` v log režimu
   - funkční storno odkaz
   - doručení admin notifikačního e-mailu na `notificationAdminEmail`

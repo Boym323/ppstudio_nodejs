@@ -18,7 +18,7 @@ export function BookingPage({ catalog }: BookingPageProps) {
         <SectionHeading
           eyebrow="Rezervace"
           title="Vyberte si termín, který vám nejlépe vyhovuje."
-          description="Rezervace zabere jen chvilku. Vyberte službu, čas a doplňte kontakt, o vše ostatní se postaráme."
+          description="Rezervace zabere jen chvilku. Nejdřív zvolíte službu, potom nejbližší termín a nakonec doplníte kontakt."
         />
 
         {!hasServices ? (
