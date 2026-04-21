@@ -104,6 +104,9 @@ Formát je inspirovaný Keep a Changelog.
 - Týdenní planner dostupností pro `OWNER` i `SALON` nyní zobrazuje rezervace, omezené intervaly, neaktivní sloty i minulý čas v jednom klidném kalendáři.
 
 ### Changed
+- Stránka `O mně` prošla čistým spacing compression passem: zkrátil se vertikální rytmus sekcí, utáhl se padding karet a zhušťily se certifikace, aby stránka působila kompaktněji bez redesignu.
+- Sekce `O mně` už v bloku `Co vás čeká` nezobrazuje postranní CTA kartu `Rezervace`; layout se vrátil na jeden širší obsahový panel, aby stránka působila klidněji.
+- Z veřejných stránek `Kontakt` a `O mně` byly odstraněny koncové CTA bloky, aby se snížilo opakování výzev k rezervaci a stránky působily klidněji.
 - Druhé kolo polish admin dashboardu zvětšilo pracovní plochu overview, potlačilo levou navigaci a přetáhlo důraz na hero kartu `Dnes`, čitelnější timeline a klidnější pravý sidebar.
 - Overview dashboard teď používá větší desktop workspace rytmus: silnější hero, delší CTA, kompaktnější pravý panel a sekundárnější spodní KPI.
 - Admin overview už nepoužívá generický hero se statistikami; nově je to tmavý SaaS-style dashboard zaměřený na dnešek, další klientku, čekající potvrzení a nejbližší volná okna.

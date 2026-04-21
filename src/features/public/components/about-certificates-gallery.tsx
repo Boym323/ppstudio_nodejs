@@ -35,7 +35,7 @@ export function AboutCertificatesGallery({ certificates }: { certificates: About
 
   return (
     <>
-      <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:mt-12 lg:grid-cols-3 lg:gap-8">
+      <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:mt-10 lg:grid-cols-3 lg:gap-6">
         {certificates.map((certificate) => (
           <article
             key={certificate.id}
@@ -51,7 +51,7 @@ export function AboutCertificatesGallery({ certificates }: { certificates: About
               className="block w-full text-left"
               aria-disabled={!certificate.imageUrl}
             >
-              <div className="relative h-60 w-full overflow-hidden bg-[linear-gradient(160deg,#f6eee5_0%,#f1e5d7_52%,#eadbc9_100%)] p-3 sm:h-64">
+              <div className="relative h-56 w-full overflow-hidden bg-[linear-gradient(160deg,#f6eee5_0%,#f1e5d7_52%,#eadbc9_100%)] p-3 sm:h-60">
                 {certificate.imageUrl ? (
                   <Image
                     src={certificate.imageUrl}
@@ -61,7 +61,7 @@ export function AboutCertificatesGallery({ certificates }: { certificates: About
                     className="object-contain p-3 transition duration-300 group-hover:scale-[1.015]"
                   />
                 ) : (
-                  <div className="relative flex h-full items-end rounded-[1.35rem] border border-white/60 bg-white/50 p-5">
+                  <div className="relative flex h-full items-end rounded-[1.35rem] border border-white/60 bg-white/50 p-4">
                     <div className="absolute left-[10%] top-[14%] h-16 w-16 rounded-full bg-white/40 blur-2xl" />
                     <div className="absolute right-[8%] top-[20%] h-24 w-24 rounded-full bg-[#e8d5c0]/45 blur-3xl" />
                     <div className="relative space-y-2">
@@ -75,7 +75,7 @@ export function AboutCertificatesGallery({ certificates }: { certificates: About
                   </div>
                 )}
               </div>
-              <div className="p-5 sm:p-6">
+              <div className="p-4 sm:p-5">
                 <h3 className="font-display text-[1.45rem] leading-[1.05] text-[var(--color-foreground)]">{certificate.title}</h3>
                 <p className="mt-2 text-[13px] leading-6 text-[var(--color-muted)]">{certificate.hint}</p>
               </div>

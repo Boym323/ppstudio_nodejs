@@ -16,7 +16,6 @@ import {
 import { Container } from '@/components/ui/container';
 import { SectionHeading } from '@/components/ui/section-heading';
 import {
-  ContactCTA,
   ContactHero,
   ContactMapPreviewCard,
   ContactMobileStickyCTA,
@@ -583,7 +582,6 @@ export async function ContactPage() {
           />
         </Container>
       </section>
-      <ContactCTA email={salonProfile.email} />
       <ContactMobileStickyCTA phone={salonProfile.phone} email={salonProfile.email} />
     </div>
   );

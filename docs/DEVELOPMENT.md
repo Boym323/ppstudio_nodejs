@@ -55,8 +55,8 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - `ContactMobileStickyCTA`
 - Kontakt data (`buildContactItems`) drží i provozní mikrocopy a Google Maps deep-link pro adresu; aktuální skladba stránky používá především map preview a pravý quick contact panel.
 - Stránka `/o-mne` už neběží jako jeden blok v `public-site.tsx`; vlastní skladba je v `src/features/public/components/about-page.tsx`.
-- Stránka `/o-mne` je nově rozdělená do sekcí `HeroSection`, `WhyChooseMeSection`, `StorySection`, `ApproachSection`, `WhatToExpectSection`, `CertificationsSection` a `FinalCtaSection`, aby šlo pracovat s hierarchií i konverzními body bez monolitického JSX bloku.
-- Další vizuální ladění `/o-mne` preferuje jemný polish přímo v těchto sekcích místo dalšího přestavování IA; hlavní páky jsou proporce gridů, padding, typografická síla a optické vyvážení CTA.
+- Stránka `/o-mne` je rozdělená do sekcí `HeroSection`, `WhyChooseMeSection`, `StorySection`, `ApproachSection`, `WhatToExpectSection` a `CertificationsSection`, aby šlo pracovat s hierarchií bez monolitického JSX bloku.
+- Další vizuální ladění `/o-mne` preferuje jemný polish přímo v těchto sekcích místo dalšího přestavování IA; hlavní páky jsou proporce gridů, padding, typografická síla a optické vyvážení spodního okraje stránky.
 - U finálního polish passu preferuj drobné úpravy `max-width`, `gap`, `line-height`, `hover` a `shadow` před zásahy do obsahu nebo dalšího členění sekcí.
 - Pokud stránka `O mně` potřebuje další micro tuning, drž se jen utility tříd v existujících komponentách `about-page.tsx` a `about-certificates-gallery.tsx`.
 - `aboutContent` v `src/content/public-site.ts` používá strukturovaný model (`profile`, `whyChooseMe`, `story`, `approach`, `expectations`, `cta`), aby bylo možné copy i CTA upravovat bez zásahu do layoutu.
