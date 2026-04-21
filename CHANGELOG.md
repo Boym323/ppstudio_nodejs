@@ -7,6 +7,10 @@ Formát je inspirovaný Keep a Changelog.
 ## [Unreleased]
 
 ### Added
+- Rozšíření katalogu `Service` a `ServiceCategory` o veřejná pricing metadata pro `/cenik`, `/sluzby` a detail služby: `publicName`, `publicIntro`, `seoDescription`, `pricingShortDescription`, `pricingBadge`, `pricingDescription`, `pricingLayout`, `pricingIconKey`, `pricingSortOrder`.
+- Admin formuláře `Služby` a `Kategorie služeb` pro správu těchto veřejných metadata bez zásahu do kódu.
+- Databázovou migraci `20260421113000_public_pricing_metadata` a rozšířený import `scripts/import-services.mjs`, který umí nová public/pricing pole načítat z JSON.
+- ADR 0027 pro rozhodnutí, že veřejná pricing metadata patří přímo do katalogu služeb a kategorií.
 - Samostatný pricing page modul `src/features/public/components/pricing-page.tsx` s komponentami `PricingHero`, `CategoryChips`, `PricingSection`, `PricingItem`, `PricingGridSection` a `PricingCTA`.
 - Prezentační pricing metadata pro badge, kratší popisy a layout kategorií, aby `/cenik` mohl věrněji kopírovat referenční design bez duplikace DB dat.
 - ADR 0026 pro rozhodnutí kolem struktury a prezentační vrstvy veřejné stránky `/cenik`.

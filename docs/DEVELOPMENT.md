@@ -36,16 +36,13 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Veřejný web drží dva zdroje obsahu:
   - marketingové bloky, FAQ a právní texty jsou dál centralizované v `src/content/public-site.ts`
   - služby a ceník berou data z DB přes `src/features/public/lib/public-services.ts`
-- `src/features/public/lib/public-services.ts` nyní zároveň funguje jako tenká prezentační vrstva nad DB katalogem:
-  - může mapovat interní názvy služby na jemnější public názvy
-  - drží krátké public popisy po sluzích podle `slug`
-  - category label může být na veřejném webu jemnější než interní DB název
+- `src/features/public/lib/public-services.ts` nyní zároveň funguje jako thin read model nad rozšířeným katalogem:
+  - `Service` nese `publicName`, `publicIntro`, `seoDescription`, `pricingShortDescription`, `pricingBadge`
+  - `ServiceCategory` nese `publicName`, `pricingDescription`, `pricingLayout`, `pricingIconKey`, `pricingSortOrder`
+  - fallbacky pořád existují, ale primární zdroj veřejné copy už je databáze, ne lokální slug mapy
 - Ceník na `/cenik` má vlastní skladbu v `src/features/public/components/pricing-page.tsx`; obecný `public-site.tsx` už neobsahuje pricing-specific layout logiku.
 - Pricing modul je rozdělený na komponenty `PricingHero`, `CategoryChips`, `PricingSection`, `PricingItem`, `PricingGridSection` a `PricingCTA`, aby šlo věrně ladit spacing a hierarchii bez zásahu do ostatních veřejných stránek.
-- Prezentační vrstva ceníku používá dvě mapy:
-  - `pricingCategoryConfigs` pro pořadí kategorií, ikonografii, popisy a volbu layoutu `list/grid`
-  - `servicePricingMetaBySlug` pro badge a kratší jednořádkové popisy položek
-- DB read model v `src/features/public/lib/public-services.ts` dál zůstává zdrojem truth pro názvy služeb, ceny, délky a veřejné category labely; pricing modul nad ním jen skládá page-specific prezentaci.
+- `/cenik` už nečte prezentační metadata z lokálních map; route používá `getPublicPricingCatalog()` a dostává z DB hotové kategorie včetně badge, icon key a layoutu.
 - Ceník už nepoužívá doprovodný blok s poznámkami.
 - Úvodní stránka používá stejný DB katalog pro featured služby, aby odkazy z homepage mířily na aktuální slugs.
 - Reusable page sekce jsou ve `src/features/public/components/public-site.tsx`.
@@ -68,6 +65,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Pro konzistentní spacing preferuj na veřejných stránkách vertikální rytmus `py-10 / sm:py-14 / lg:py-16`; větší rozestupy používej jen tam, kde mají jasný obsahový důvod (např. hero nebo výrazný CTA blok).
 - Placeholder obsah musí být jasně odlišen od finálních produkčních textů.
 - Pokud je interní název služby příliš technický nebo exportovaný ze starého webu, nepřepisuj DB záznam jen kvůli public copy; preferuj public override v read modelu.
+- Pro public override už preferuj přímo pole v katalogu (`Service.publicName`, `Service.publicIntro`, `ServiceCategory.publicName`, `ServiceCategory.pricingDescription`); lokální fallback v read modelu má být jen záchranná síť, ne primární workflow.
 - CTA na rezervaci držet konzistentně v headeru, hero sekcích a kontextových blocích.
 - U homepage copy preferovat strukturu, která se už historicky osvědčila: jasný lokální hero claim, dvě primární akce (rezervace + ceník) a blok „nejste si jistá výběrem“, který snižuje bariéru první rezervace.
 - Pokud homepage potřebuje logo/fotku majitelky, nastav to v `homepageContent` (`logoImage`, `portraitImage`) a používej lokální soubory z `public/brand`, aby nebyla závislost na externím hostingu.

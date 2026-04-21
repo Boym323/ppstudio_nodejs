@@ -23,7 +23,9 @@ function readFormString(formData: FormData, key: string) {
 }
 
 function readCheckbox(formData: FormData, key: string) {
-  return formData.get(key) === "on";
+  const value = formData.get(key);
+
+  return value === "on" || value === "true";
 }
 
 function getCategoryBasePath(area: AdminArea) {
@@ -128,7 +130,13 @@ export async function createServiceCategoryAction(
     area: readFormString(formData, "area"),
     returnTo: readFormString(formData, "returnTo"),
     name: readFormString(formData, "name"),
+    publicName: readFormString(formData, "publicName"),
     description: readFormString(formData, "description"),
+    pricingDescription: readFormString(formData, "pricingDescription"),
+    pricingLayout: readFormString(formData, "pricingLayout"),
+    pricingIconKey: readFormString(formData, "pricingIconKey"),
+    sortOrder: readFormString(formData, "sortOrder"),
+    pricingSortOrder: readFormString(formData, "pricingSortOrder"),
     isActive: readCheckbox(formData, "isActive"),
   });
 
@@ -140,7 +148,13 @@ export async function createServiceCategoryAction(
       formError: "Novou kategorii je potřeba ještě doplnit nebo opravit.",
       fieldErrors: {
         name: fieldErrors.name?.[0],
+        publicName: fieldErrors.publicName?.[0],
         description: fieldErrors.description?.[0],
+        pricingDescription: fieldErrors.pricingDescription?.[0],
+        pricingLayout: fieldErrors.pricingLayout?.[0],
+        pricingIconKey: fieldErrors.pricingIconKey?.[0],
+        sortOrder: fieldErrors.sortOrder?.[0],
+        pricingSortOrder: fieldErrors.pricingSortOrder?.[0],
       },
     };
   }
@@ -148,19 +162,18 @@ export async function createServiceCategoryAction(
   const area = parsed.data.area as AdminArea;
   await requireAdminSectionAccess(area, "kategorie-sluzeb");
 
-  const [slug, maxSortOrder] = await Promise.all([
-    createUniqueCategorySlug(parsed.data.name),
-    prisma.serviceCategory.aggregate({
-      _max: { sortOrder: true },
-    }),
-  ]);
-
+  const slug = await createUniqueCategorySlug(parsed.data.name);
   const category = await prisma.serviceCategory.create({
     data: {
       slug,
       name: parsed.data.name,
+      publicName: parsed.data.publicName || null,
       description: parsed.data.description || null,
-      sortOrder: (maxSortOrder._max.sortOrder ?? 0) + 10,
+      pricingDescription: parsed.data.pricingDescription || null,
+      pricingLayout: parsed.data.pricingLayout,
+      pricingIconKey: parsed.data.pricingIconKey,
+      sortOrder: parsed.data.sortOrder,
+      pricingSortOrder: parsed.data.pricingSortOrder,
       isActive: parsed.data.isActive,
     },
     select: { id: true },
@@ -187,8 +200,13 @@ export async function updateServiceCategoryAction(
     returnTo: readFormString(formData, "returnTo"),
     intent: readFormString(formData, "intent") || undefined,
     name: readFormString(formData, "name"),
+    publicName: readFormString(formData, "publicName"),
     description: readFormString(formData, "description"),
+    pricingDescription: readFormString(formData, "pricingDescription"),
+    pricingLayout: readFormString(formData, "pricingLayout"),
+    pricingIconKey: readFormString(formData, "pricingIconKey"),
     sortOrder: readFormString(formData, "sortOrder"),
+    pricingSortOrder: readFormString(formData, "pricingSortOrder"),
     isActive: readCheckbox(formData, "isActive"),
   });
 
@@ -200,8 +218,13 @@ export async function updateServiceCategoryAction(
       formError: "Formulář potřebuje doplnit nebo opravit.",
       fieldErrors: {
         name: fieldErrors.name?.[0],
+        publicName: fieldErrors.publicName?.[0],
         description: fieldErrors.description?.[0],
+        pricingDescription: fieldErrors.pricingDescription?.[0],
+        pricingLayout: fieldErrors.pricingLayout?.[0],
+        pricingIconKey: fieldErrors.pricingIconKey?.[0],
         sortOrder: fieldErrors.sortOrder?.[0],
+        pricingSortOrder: fieldErrors.pricingSortOrder?.[0],
       },
     };
   }
@@ -234,8 +257,13 @@ export async function updateServiceCategoryAction(
     where: { id: parsed.data.categoryId },
     data: {
       name: parsed.data.name,
+      publicName: parsed.data.publicName || null,
       description: parsed.data.description || null,
+      pricingDescription: parsed.data.pricingDescription || null,
+      pricingLayout: parsed.data.pricingLayout,
+      pricingIconKey: parsed.data.pricingIconKey,
       sortOrder: parsed.data.sortOrder,
+      pricingSortOrder: parsed.data.pricingSortOrder,
       isActive: parsed.data.isActive,
     },
   });
@@ -256,8 +284,13 @@ export async function updateServiceCategoryAction(
     category: {
       id: parsed.data.categoryId,
       name: parsed.data.name,
+      publicName: parsed.data.publicName || null,
       description: parsed.data.description || null,
+      pricingDescription: parsed.data.pricingDescription || null,
+      pricingLayout: parsed.data.pricingLayout,
+      pricingIconKey: parsed.data.pricingIconKey,
       sortOrder: parsed.data.sortOrder,
+      pricingSortOrder: parsed.data.pricingSortOrder,
       isActive: parsed.data.isActive,
     },
   };

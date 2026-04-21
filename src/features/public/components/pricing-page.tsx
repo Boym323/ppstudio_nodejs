@@ -1,169 +1,23 @@
 import Link from "next/link";
 
 import { Container } from "@/components/ui/container";
-import type { Service } from "@/content/public-site";
+import type { PublicPricingCategory } from "@/features/public/lib/public-services";
 
 type PricingIconProps = {
   className?: string;
 };
 
-type PricingChipData = {
-  id: string;
-  label: string;
-  icon: PricingIcon;
-  isActive?: boolean;
-};
-
-type PricingItemData = {
-  slug: string;
-  name: string;
-  description: string;
-  duration: string;
-  price: string;
-  badge?: string;
-  ctaHref: string;
-};
-
-type PricingSectionData = {
-  id: string;
-  label: string;
-  icon: PricingIcon;
-  summary: string;
-  layout: "list" | "grid";
-  items: PricingItemData[];
-};
-
-type PricingCategoryConfig = {
-  id: string;
-  label: string;
-  icon: PricingIcon;
-  summary: string;
-  layout: "list" | "grid";
-};
-
 type PricingIcon = (props: PricingIconProps) => React.JSX.Element;
+type PricingIconKey = PublicPricingCategory["iconKey"];
 
-const pricingCategoryConfigs: PricingCategoryConfig[] = [
-  {
-    id: "kosmeticke-osetreni",
-    label: "Kosmetické ošetření",
-    icon: DropletIcon,
-    summary:
-      "Ošetření pro pleť, která potřebuje vyčistit, zklidnit a vrátit do rovnováhy. Vhodné pro pravidelnou péči i jako jistý začátek.",
-    layout: "list",
-  },
-  {
-    id: "rasy-a-oboci",
-    label: "Řasy a obočí",
-    icon: EyeLashesIcon,
-    summary: "Služby pro výraznější pohled a upravený rám obličeje.",
-    layout: "grid",
-  },
-  {
-    id: "masaze",
-    label: "Masáže",
-    icon: LotusIcon,
-    summary: "Uvolnění napětí, odlehčení obličeje a podpora regenerace.",
-    layout: "grid",
-  },
-  {
-    id: "barveni-a-uprava",
-    label: "Barvení a úprava",
-    icon: BrushIcon,
-    summary: "Drobné služby, které dodají obličeji definici.",
-    layout: "grid",
-  },
-  {
-    id: "depilace",
-    label: "Depilace",
-    icon: LeafIcon,
-    summary: "Šetrná úprava pro čistší a hladší vzhled.",
-    layout: "grid",
-  },
-  {
-    id: "liceni",
-    label: "Líčení",
-    icon: LipstickIcon,
-    summary: "Líčení na každý den i výjimečné příležitosti.",
-    layout: "list",
-  },
-];
-
-const servicePricingMetaBySlug: Record<
-  string,
-  {
-    badge?: string;
-    pricingDescription: string;
-  }
-> = {
-  "refresh-treatment-60-min": {
-    badge: "PRO PRVNÍ NÁVŠTĚVU",
-    pricingDescription: "Jemné základní ošetření vhodné i jako první návštěva.",
-  },
-  "refresh-treatment-90-min": {
-    badge: "DELŠÍ VARIANTA",
-    pricingDescription: "Více prostoru pro komfort a uvolnění.",
-  },
-  "anti-age-treatment": {
-    badge: "CÍLENĚJŠÍ PÉČE",
-    pricingDescription: "Podpora pevnosti, výživy a celkové kondice pleti.",
-  },
-  "clear-treatment": {
-    pricingDescription: "Pro pleť se sklonem k nečistotám a nerovnováze.",
-  },
-  "mens-treatment": {
-    pricingDescription: "Praktická péče pro čistou, svěží a upravenou pleť.",
-  },
-  "spicule-pdrn-treatment": {
-    badge: "INTENZIVNÍ PÉČE",
-    pricingDescription: "Intenzivní péče pro obnovu a novou energii pleti.",
-  },
-  "student-treatment-15-20-let": {
-    pricingDescription: "Péče pro mladou pleť se zaměřením na čistotu a rovnováhu.",
-  },
-  "spicule-exosomy-treatment": {
-    badge: "REGENERACE",
-    pricingDescription: "Cílená péče pro regeneraci a podporu kondice pleti.",
-  },
-  "lash-lifting": {
-    pricingDescription: "Výraznější linie řas a otevřenější pohled bez řasenky.",
-  },
-  "laminace-oboci": {
-    pricingDescription: "Úprava pro disciplinovanější tvar a upravený rám obličeje.",
-  },
-  "lash-lifting-plus-laminace-oboci": {
-    pricingDescription: "Kombinace pro sjednocený výraz očí i obočí.",
-  },
-  "lymfaticka-masaz-obliceje": {
-    pricingDescription: "Klidná masáž pro odlehčení obličeje a jemné uvolnění.",
-  },
-  "barveni-oboci": {
-    pricingDescription: "Rychlá úprava pro plnější a čitelnější tvar obočí.",
-  },
-  "barveni-ras": {
-    pricingDescription: "Zvýraznění řas pro otevřenější pohled i bez líčení.",
-  },
-  "uprava-oboci": {
-    pricingDescription: "Precizní úprava tvaru obočí pro čistší linii.",
-  },
-  "depilace-horniho-rtu-brady": {
-    pricingDescription: "Šetrná úprava drobných partií obličeje.",
-  },
-  "depilace-periferii": {
-    pricingDescription: "Úprava menších oblastí podle individuální potřeby.",
-  },
-  "depilace-cele-nohy": {
-    pricingDescription: "Praktická péče pro hladký vzhled a lehký pocit.",
-  },
-  "depilace-ruce": {
-    pricingDescription: "Jemná úprava pro hladší a pěstěný vzhled rukou.",
-  },
-  "denni-liceni": {
-    pricingDescription: "Lehký styl líčení pro práci, schůzku nebo běžný den.",
-  },
-  "vecerni-spolecenske-liceni": {
-    pricingDescription: "Líčení pro večer, společenské události a slavnostní chvíle.",
-  },
+const pricingIcons: Record<PricingIconKey, PricingIcon> = {
+  DROPLET: DropletIcon,
+  EYE_LASHES: EyeLashesIcon,
+  LOTUS: LotusIcon,
+  BRUSH: BrushIcon,
+  LEAF: LeafIcon,
+  LIPSTICK: LipstickIcon,
+  SPARK: SparkIcon,
 };
 
 export function PricingHero() {
@@ -214,10 +68,7 @@ export function PricingHero() {
                 </p>
               </div>
             </div>
-            <div
-              aria-hidden="true"
-              className="mt-6 flex justify-end text-[#ccb08f]"
-            >
+            <div aria-hidden="true" className="mt-6 flex justify-end text-[#ccb08f]">
               <SparkLinesIcon className="h-8 w-8" />
             </div>
           </div>
@@ -227,28 +78,28 @@ export function PricingHero() {
   );
 }
 
-export function CategoryChips({ chips }: { chips: PricingChipData[] }) {
+export function CategoryChips({ categories }: { categories: PublicPricingCategory[] }) {
   return (
     <section className="py-6 sm:py-7">
       <Container>
         <div className="flex gap-3 overflow-x-auto pb-1">
-          {chips.map((chip) => {
-            const Icon = chip.icon;
+          {categories.map((category, index) => {
+            const Icon = pricingIcons[category.iconKey] ?? SparkIcon;
 
             return (
               <a
-                key={chip.id}
-                href={`#${chip.id}`}
-                aria-current={chip.isActive ? "page" : undefined}
+                key={category.id}
+                href={`#${category.id}`}
+                aria-current={index === 0 ? "page" : undefined}
                 className={[
                   "inline-flex shrink-0 items-center gap-3 rounded-full border px-5 py-3 text-sm font-medium",
-                  chip.isActive
+                  index === 0
                     ? "border-[var(--color-foreground)] bg-[var(--color-foreground)] text-white shadow-[0_14px_32px_rgba(23,19,17,0.12)]"
                     : "border-black/8 bg-white/82 text-[var(--color-foreground)] shadow-[0_8px_22px_rgba(23,19,17,0.04)] hover:border-black/12 hover:bg-white",
                 ].join(" ")}
               >
                 <Icon className="h-[1.05rem] w-[1.05rem]" />
-                <span className="whitespace-nowrap">{chip.label}</span>
+                <span className="whitespace-nowrap">{category.label}</span>
               </a>
             );
           })}
@@ -258,12 +109,12 @@ export function CategoryChips({ chips }: { chips: PricingChipData[] }) {
   );
 }
 
-export function PricingSection({ section }: { section: PricingSectionData }) {
-  const Icon = section.icon;
+export function PricingSection({ category }: { category: PublicPricingCategory }) {
+  const Icon = pricingIcons[category.iconKey] ?? SparkIcon;
 
   return (
     <section
-      id={section.id}
+      id={category.id}
       className="scroll-mt-32 overflow-hidden rounded-[1.85rem] border border-black/6 bg-[linear-gradient(180deg,rgba(255,252,248,0.92),rgba(252,247,241,0.92))] shadow-[0_18px_48px_rgba(55,38,24,0.05)]"
     >
       <div className="grid gap-4 border-b border-black/6 px-5 py-5 sm:px-7 sm:py-6 lg:grid-cols-[minmax(0,0.72fr)_minmax(0,1fr)] lg:items-start lg:gap-8">
@@ -272,15 +123,15 @@ export function PricingSection({ section }: { section: PricingSectionData }) {
             <Icon className="h-6 w-6" />
           </div>
           <h2 className="font-display text-[2rem] leading-[1.02] tracking-[-0.03em] text-[var(--color-foreground)] sm:text-[2.2rem]">
-            {section.label}
+            {category.label}
           </h2>
         </div>
         <p className="max-w-2xl text-[14px] leading-7 text-[var(--color-muted)] sm:text-[15px]">
-          {section.summary}
+          {category.summary}
         </p>
       </div>
       <div className="divide-y divide-black/6 bg-white/78">
-        {section.items.map((item) => (
+        {category.items.map((item) => (
           <PricingItem key={item.slug} item={item} />
         ))}
       </div>
@@ -288,7 +139,7 @@ export function PricingSection({ section }: { section: PricingSectionData }) {
   );
 }
 
-export function PricingItem({ item }: { item: PricingItemData }) {
+export function PricingItem({ item }: { item: PublicPricingCategory["items"][number] }) {
   return (
     <article className="grid gap-4 px-4 py-4 transition hover:bg-[#fffdf9] hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_14px_28px_rgba(46,31,20,0.04)] sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:px-5 sm:py-5 lg:grid-cols-[minmax(0,1fr)_auto_auto_auto] lg:gap-6">
       <div className="space-y-2">
@@ -324,12 +175,12 @@ export function PricingItem({ item }: { item: PricingItemData }) {
   );
 }
 
-export function PricingGridSection({ section }: { section: PricingSectionData }) {
-  const Icon = section.icon;
+export function PricingGridSection({ category }: { category: PublicPricingCategory }) {
+  const Icon = pricingIcons[category.iconKey] ?? SparkIcon;
 
   return (
     <section
-      id={section.id}
+      id={category.id}
       className="scroll-mt-32 overflow-hidden rounded-[1.75rem] border border-black/6 bg-[linear-gradient(180deg,rgba(255,252,248,0.92),rgba(251,247,241,0.92))] shadow-[0_16px_40px_rgba(55,38,24,0.04)]"
     >
       <div className="border-b border-black/6 px-5 py-5 sm:px-6 sm:py-6">
@@ -339,16 +190,16 @@ export function PricingGridSection({ section }: { section: PricingSectionData })
           </div>
           <div>
             <h2 className="font-display text-[1.9rem] leading-[1.02] tracking-[-0.03em] text-[var(--color-foreground)]">
-              {section.label}
+              {category.label}
             </h2>
             <p className="mt-1 text-[14px] leading-6 text-[var(--color-muted)]">
-              {section.summary}
+              {category.summary}
             </p>
           </div>
         </div>
       </div>
       <div className="grid gap-px bg-black/6 sm:grid-cols-2">
-        {section.items.map((item) => (
+        {category.items.map((item) => (
           <article
             key={item.slug}
             className="flex h-full flex-col gap-5 bg-white px-5 py-5 transition hover:bg-[#fffdf9] hover:shadow-[0_16px_30px_rgba(46,31,20,0.04)] sm:px-6"
@@ -414,39 +265,28 @@ export function PricingCTA() {
   );
 }
 
-export function PricingPage({ services }: { services: Service[] }) {
-  const sections = buildPricingSections(services);
-  const primarySections = sections.filter((section) => section.layout === "list");
-  const gridSections = sections.filter((section) => section.layout === "grid");
+export function PricingPage({ categories }: { categories: PublicPricingCategory[] }) {
+  const blocks = buildPricingBlocks(categories);
 
   return (
     <div className="pb-8 sm:pb-12">
       <PricingHero />
-      <CategoryChips
-        chips={sections.map((section, index) => ({
-          id: section.id,
-          label: section.label,
-          icon: section.icon,
-          isActive: index === 0,
-        }))}
-      />
+      <CategoryChips categories={categories} />
       <section className="pb-2">
         <Container className="space-y-8">
-          {primarySections
-            .filter((section) => section.label === "Kosmetické ošetření")
-            .map((section) => (
-              <PricingSection key={section.id} section={section} />
-            ))}
-          <div className="grid gap-6 lg:grid-cols-2">
-            {gridSections.map((section) => (
-              <PricingGridSection key={section.id} section={section} />
-            ))}
-          </div>
-          {primarySections
-            .filter((section) => section.label !== "Kosmetické ošetření")
-            .map((section) => (
-              <PricingSection key={section.id} section={section} />
-            ))}
+          {blocks.map((block, index) => {
+            if (block.kind === "list") {
+              return <PricingSection key={`${block.category.id}-${index}`} category={block.category} />;
+            }
+
+            return (
+              <div key={`grid-${index}`} className="grid gap-6 lg:grid-cols-2">
+                {block.categories.map((category) => (
+                  <PricingGridSection key={category.id} category={category} />
+                ))}
+              </div>
+            );
+          })}
         </Container>
       </section>
       <PricingCTA />
@@ -454,75 +294,33 @@ export function PricingPage({ services }: { services: Service[] }) {
   );
 }
 
-function buildPricingSections(services: Service[]): PricingSectionData[] {
-  const servicesByCategory = new Map<string, Service[]>();
+function buildPricingBlocks(categories: PublicPricingCategory[]) {
+  const blocks: Array<
+    | { kind: "list"; category: PublicPricingCategory }
+    | { kind: "grid"; categories: PublicPricingCategory[] }
+  > = [];
+  let pendingGrid: PublicPricingCategory[] = [];
 
-  for (const service of services) {
-    const group = servicesByCategory.get(service.category);
+  const flushGrid = () => {
+    if (pendingGrid.length > 0) {
+      blocks.push({ kind: "grid", categories: pendingGrid });
+      pendingGrid = [];
+    }
+  };
 
-    if (group) {
-      group.push(service);
+  for (const category of categories) {
+    if (category.layout === "GRID") {
+      pendingGrid.push(category);
       continue;
     }
 
-    servicesByCategory.set(service.category, [service]);
+    flushGrid();
+    blocks.push({ kind: "list", category });
   }
 
-  const configuredSections = pricingCategoryConfigs
-    .map((config) => {
-      const categoryServices = servicesByCategory.get(config.label);
+  flushGrid();
 
-      if (!categoryServices?.length) {
-        return null;
-      }
-
-      return {
-        id: config.id,
-        label: config.label,
-        icon: config.icon,
-        summary: config.summary,
-        layout: config.layout,
-        items: categoryServices.map(mapServiceToPricingItem),
-      } satisfies PricingSectionData;
-    })
-    .filter((section): section is PricingSectionData => section !== null);
-
-  const configuredLabels = new Set(configuredSections.map((section) => section.label));
-  const fallbackSections = Array.from(servicesByCategory.entries())
-    .filter(([category]) => !configuredLabels.has(category))
-    .map(([category, categoryServices]) => ({
-      id: toKebabCase(category),
-      label: category,
-      icon: SparkIcon,
-      summary: "Přehled služeb v této kategorii.",
-      layout: "grid" as const,
-      items: categoryServices.map(mapServiceToPricingItem),
-    }));
-
-  return [...configuredSections, ...fallbackSections];
-}
-
-function mapServiceToPricingItem(service: Service): PricingItemData {
-  const meta = servicePricingMetaBySlug[service.slug];
-
-  return {
-    slug: service.slug,
-    name: service.name,
-    description: meta?.pricingDescription ?? service.intro,
-    duration: service.duration,
-    price: service.priceFrom,
-    badge: meta?.badge,
-    ctaHref: "/rezervace",
-  };
-}
-
-function toKebabCase(value: string) {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
+  return blocks;
 }
 
 function CalendarIcon({ className }: PricingIconProps) {

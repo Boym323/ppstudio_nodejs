@@ -131,6 +131,8 @@ sudo /var/www/ppstudio/deploy/deploy.sh
 - Migrace `20260418193000_booking_model_review_fixes` přidává explicitní slot restriction mode a DB constraint proti překrývajícím se aktivním slotům.
 - Migrace `20260418220000_email_outbox_worker` doplňuje sloupce pro outbox, claimování a retry e-mailových jobů.
 - Migrace `20260419103000_service_public_bookability` přidává sloupec `Service.isPubliclyBookable`; po deployi ověř, že `/rezervace`, `/sluzby` a `/cenik` zobrazují jen správné služby a že admin sekce `Služby` funguje v owner i salon oblasti.
+- Migrace `20260421113000_public_pricing_metadata` rozšiřuje katalog služeb a kategorií o veřejná pricing metadata; po deployi ověř `/cenik`, `/sluzby`, detail služby a admin formuláře `Služby` + `Kategorie služeb`.
+- Pokud je databáze v divergentním stavu a `prisma migrate dev` by nabízelo reset, neprováděj ho naslepo. Pro tuto migraci lze bezpečně použít `npx prisma db execute --file prisma/migrations/20260421113000_public_pricing_metadata/migration.sql` a až potom ověřit build.
 - Migrace `20260419140000_site_settings_singleton` přidává tabulku `SiteSettings`; po deployi ověř, že se `/admin/nastaveni` otevře bez chyby a že první render bezpečně založí výchozí singleton záznam.
 - Migrace `20260419230000_media_storage_v1` přidává tabulku `MediaAsset` a enumy pro lokální media storage; po deployi ověř zápis souboru do upload rootu a načtení přes `/media/*`.
 - Admin workflow kategorií služeb nevyžaduje novou DB migraci; navazuje na existující model `ServiceCategory`.

@@ -61,8 +61,10 @@ function buildCategoryWhere(
   if (filters.query) {
     where.OR = [
       { name: { contains: filters.query, mode: "insensitive" } },
+      { publicName: { contains: filters.query, mode: "insensitive" } },
       { slug: { contains: filters.query, mode: "insensitive" } },
       { description: { contains: filters.query, mode: "insensitive" } },
+      { pricingDescription: { contains: filters.query, mode: "insensitive" } },
     ];
   }
 
@@ -91,6 +93,7 @@ type CategoryCounts = {
 
 export function describeCategoryWarnings(category: {
   isActive: boolean;
+  pricingDescription: string | null;
   counts: CategoryCounts;
 }) {
   const warnings: string[] = [];
@@ -105,6 +108,10 @@ export function describeCategoryWarnings(category: {
 
   if (!category.isActive && category.counts.active > 0) {
     warnings.push("Neaktivní kategorie stále obsahuje aktivní služby.");
+  }
+
+  if (category.isActive && category.counts.public > 0 && !category.pricingDescription) {
+    warnings.push("Veřejné kategorii chybí popis pro ceník.");
   }
 
   return warnings;
@@ -208,6 +215,7 @@ export async function getAdminServiceCategoriesPageData(
     };
     const warnings = describeCategoryWarnings({
       isActive: category.isActive,
+      pricingDescription: category.pricingDescription,
       counts,
     });
 

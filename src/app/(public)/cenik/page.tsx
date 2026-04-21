@@ -2,7 +2,7 @@ import { connection } from "next/server";
 
 import { buildPageMetadata } from "@/features/public/components/public-site";
 import { PricingPage } from "@/features/public/components/pricing-page";
-import { getPublicServices } from '@/features/public/lib/public-services';
+import { getPublicPricingCatalog } from "@/features/public/lib/public-services";
 
 export const metadata = buildPageMetadata({
   title: 'Ceník',
@@ -12,7 +12,7 @@ export const metadata = buildPageMetadata({
 export default async function Page() {
   await connection();
 
-  const services = await getPublicServices();
+  const categories = await getPublicPricingCatalog();
 
-  return <PricingPage services={services} />;
+  return <PricingPage categories={categories} />;
 }

@@ -74,8 +74,11 @@ function buildServiceWhere(filters: ReturnType<typeof normalizeSearchParams>): P
   if (filters.query) {
     where.OR = [
       { name: { contains: filters.query, mode: "insensitive" } },
+      { publicName: { contains: filters.query, mode: "insensitive" } },
       { slug: { contains: filters.query, mode: "insensitive" } },
       { shortDescription: { contains: filters.query, mode: "insensitive" } },
+      { publicIntro: { contains: filters.query, mode: "insensitive" } },
+      { pricingShortDescription: { contains: filters.query, mode: "insensitive" } },
       { category: { is: { name: { contains: filters.query, mode: "insensitive" } } } },
     ];
   }
@@ -102,8 +105,11 @@ function buildServiceOrderBy(sort: ServiceListSortValue): Prisma.ServiceOrderByW
 function describeServiceWarnings(service: {
   isActive: boolean;
   isPubliclyBookable: boolean;
+  publicName: string | null;
   priceFromCzk: number | null;
   shortDescription: string | null;
+  publicIntro: string | null;
+  pricingShortDescription: string | null;
   category: {
     isActive: boolean;
   };
@@ -124,6 +130,18 @@ function describeServiceWarnings(service: {
 
   if (!service.shortDescription || service.shortDescription.trim().length < 12) {
     warnings.push("Krátký popis je příliš stručný nebo chybí.");
+  }
+
+  if (service.isPubliclyBookable && !service.publicName) {
+    warnings.push("Veřejná služba zatím používá jen interní název.");
+  }
+
+  if (service.isPubliclyBookable && !service.publicIntro) {
+    warnings.push("Veřejné službě chybí úvod pro web.");
+  }
+
+  if (service.isPubliclyBookable && !service.pricingShortDescription) {
+    warnings.push("Veřejné službě chybí krátký popis do ceníku.");
   }
 
   return warnings;
@@ -177,6 +195,7 @@ export async function getAdminServicesPageData(
           select: {
             id: true,
             name: true,
+            publicName: true,
             isActive: true,
             sortOrder: true,
           },
@@ -194,6 +213,7 @@ export async function getAdminServicesPageData(
       select: {
         id: true,
         name: true,
+        publicName: true,
         isActive: true,
         sortOrder: true,
         _count: {
@@ -227,6 +247,7 @@ export async function getAdminServicesPageData(
             select: {
               id: true,
               name: true,
+              publicName: true,
               isActive: true,
               sortOrder: true,
             },

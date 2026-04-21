@@ -26,8 +26,13 @@ export function CategoryDetailDrawer({
   onSaved?: (category: {
     id: string;
     name: string;
+    publicName: string | null;
     description: string | null;
+    pricingDescription: string | null;
+    pricingLayout: "LIST" | "GRID";
+    pricingIconKey: "DROPLET" | "EYE_LASHES" | "LOTUS" | "BRUSH" | "LEAF" | "LIPSTICK" | "SPARK";
     sortOrder: number;
+    pricingSortOrder: number;
     isActive: boolean;
   }) => void;
   isActionPending?: boolean;

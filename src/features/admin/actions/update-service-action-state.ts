@@ -5,8 +5,13 @@ export type UpdateServiceActionState = {
   fieldErrors?: Partial<
     Record<
       | "name"
+      | "publicName"
       | "shortDescription"
       | "description"
+      | "publicIntro"
+      | "seoDescription"
+      | "pricingShortDescription"
+      | "pricingBadge"
       | "durationMinutes"
       | "priceFromCzk"
       | "categoryId"

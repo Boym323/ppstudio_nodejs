@@ -12,6 +12,10 @@ import {
   initialUpdateServiceCategoryActionState,
 } from "@/features/admin/actions/update-service-category-action-state";
 import { AdminStatePill } from "@/features/admin/components/admin-state-pill";
+import {
+  pricingIconKeyValues,
+  pricingLayoutValues,
+} from "@/features/admin/lib/admin-service-category-validation";
 import { cn } from "@/lib/utils";
 
 import type { CategoryRecord } from "./types";
@@ -24,8 +28,13 @@ type BaseProps = {
   onSaved?: (category: {
     id: string;
     name: string;
+    publicName: string | null;
     description: string | null;
+    pricingDescription: string | null;
+    pricingLayout: "LIST" | "GRID";
+    pricingIconKey: "DROPLET" | "EYE_LASHES" | "LOTUS" | "BRUSH" | "LEAF" | "LIPSTICK" | "SPARK";
     sortOrder: number;
+    pricingSortOrder: number;
     isActive: boolean;
   }) => void;
 };
@@ -121,11 +130,9 @@ export function CategoryDetailPanel(props: Props) {
         <input type="hidden" name="area" value={props.area} />
         <input type="hidden" name="returnTo" value={props.returnTo} />
         {props.mode === "edit" ? <input type="hidden" name="categoryId" value={props.category.id} /> : null}
-        <input
-          type="hidden"
-          name="isActive"
-          value={props.mode === "edit" ? String(props.category.isActive) : "true"}
-        />
+        {props.mode === "edit" ? (
+          <input type="hidden" name="isActive" value={String(props.category.isActive)} />
+        ) : null}
 
         <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
           <div className="space-y-6">
@@ -142,9 +149,9 @@ export function CategoryDetailPanel(props: Props) {
             ) : null}
 
             <PanelSection title="Základ kategorie">
-              <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_120px]">
-                <Field label="Název kategorie" error={serverState.fieldErrors?.name}>
-                  <input
+          <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_120px]">
+            <Field label="Název kategorie" error={serverState.fieldErrors?.name}>
+              <input
                     type="text"
                     name="name"
                     maxLength={120}
@@ -183,6 +190,75 @@ export function CategoryDetailPanel(props: Props) {
                 />
                 <div className="mt-2 text-right text-xs text-white/34">{descriptionLength}/160</div>
               </Field>
+
+              <Field label="Veřejný název" error={serverState.fieldErrors?.publicName} className="sm:col-span-2">
+                <input
+                  type="text"
+                  name="publicName"
+                  maxLength={120}
+                  defaultValue={props.mode === "create" ? "" : props.category.publicName ?? ""}
+                  className={fieldClassName}
+                  placeholder="Např. Řasy a obočí"
+                />
+              </Field>
+            </PanelSection>
+
+            <PanelSection title="Veřejný ceník">
+              <div className="grid gap-4">
+                <Field label="Popis pro ceník" error={serverState.fieldErrors?.pricingDescription}>
+                  <textarea
+                    name="pricingDescription"
+                    rows={3}
+                    maxLength={240}
+                    defaultValue={props.mode === "create" ? "" : props.category.pricingDescription ?? ""}
+                    className={cn(fieldClassName, "min-h-[96px] resize-y leading-6")}
+                    placeholder="Krátké vysvětlení, které se ukáže v hlavičce sekce na /cenik."
+                  />
+                </Field>
+
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <Field label="Layout v ceníku" error={serverState.fieldErrors?.pricingLayout}>
+                    <select
+                      name="pricingLayout"
+                      defaultValue={props.mode === "create" ? "GRID" : props.category.pricingLayout}
+                      className={fieldClassName}
+                    >
+                      {pricingLayoutValues.map((value) => (
+                        <option key={value} value={value} className="text-black">
+                          {value === "LIST" ? "Velký seznam" : "Mřížka karet"}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+
+                  <Field label="Ikona" error={serverState.fieldErrors?.pricingIconKey}>
+                    <select
+                      name="pricingIconKey"
+                      defaultValue={props.mode === "create" ? "SPARK" : props.category.pricingIconKey}
+                      className={fieldClassName}
+                    >
+                      {pricingIconKeyValues.map((value) => (
+                        <option key={value} value={value} className="text-black">
+                          {formatPricingIconKeyLabel(value)}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+
+                  <Field label="Pořadí v ceníku" error={serverState.fieldErrors?.pricingSortOrder}>
+                    <input
+                      type="number"
+                      name="pricingSortOrder"
+                      min={0}
+                      max={9999}
+                      step={1}
+                      inputMode="numeric"
+                      defaultValue={props.mode === "create" ? 10 : props.category.pricingSortOrder}
+                      className={fieldClassName}
+                    />
+                  </Field>
+                </div>
+              </div>
             </PanelSection>
 
             <PanelSection title="Viditelnost">
@@ -205,7 +281,7 @@ export function CategoryDetailPanel(props: Props) {
                 <label className="flex items-start gap-3 rounded-2xl border border-white/8 bg-white/[0.02] px-4 py-3">
                   <input
                     type="checkbox"
-                    name="isActiveCheckbox"
+                    name="isActive"
                     defaultChecked
                     className="mt-1 h-5 w-5 rounded border-white/20 bg-black/40 text-[var(--color-accent)] focus:ring-[var(--color-accent)]"
                   />
@@ -361,6 +437,25 @@ function Field({
       {error ? <p className="mt-2 text-sm text-red-200">{error}</p> : null}
     </label>
   );
+}
+
+function formatPricingIconKeyLabel(value: string) {
+  switch (value) {
+    case "DROPLET":
+      return "Kapka / pleť";
+    case "EYE_LASHES":
+      return "Oko / řasy";
+    case "LOTUS":
+      return "Lotus";
+    case "BRUSH":
+      return "Štětec";
+    case "LEAF":
+      return "List";
+    case "LIPSTICK":
+      return "Rtěnka";
+    default:
+      return "Univerzální";
+  }
 }
 
 function SummaryCard({ label, value }: { label: string; value: number }) {

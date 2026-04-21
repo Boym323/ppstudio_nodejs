@@ -22,8 +22,13 @@ export type CategoryCounts = {
 export type CategoryRecord = {
   id: string;
   name: string;
+  publicName: string | null;
   description: string | null;
+  pricingDescription: string | null;
+  pricingLayout: "LIST" | "GRID";
+  pricingIconKey: "DROPLET" | "EYE_LASHES" | "LOTUS" | "BRUSH" | "LEAF" | "LIPSTICK" | "SPARK";
   sortOrder: number;
+  pricingSortOrder: number;
   isActive: boolean;
   warnings: string[];
   problemCount: number;
@@ -44,7 +49,7 @@ export type CategoryFiltersState = {
   mobileDetail: "0" | "1";
 };
 
-export function getCategoryWarnings(category: Pick<CategoryRecord, "isActive" | "counts">) {
+export function getCategoryWarnings(category: Pick<CategoryRecord, "isActive" | "counts" | "pricingDescription">) {
   const warnings: string[] = [];
 
   if (category.counts.total === 0) {
@@ -57,6 +62,10 @@ export function getCategoryWarnings(category: Pick<CategoryRecord, "isActive" | 
 
   if (!category.isActive && category.counts.active > 0) {
     warnings.push("Neaktivní kategorie stále obsahuje aktivní služby.");
+  }
+
+  if (category.isActive && category.counts.public > 0 && !category.pricingDescription) {
+    warnings.push("Veřejné kategorii chybí popis pro ceník.");
   }
 
   return warnings;

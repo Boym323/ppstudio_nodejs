@@ -35,8 +35,13 @@ type OptimisticAction =
       category: {
         id: string;
         name: string;
+        publicName: string | null;
         description: string | null;
+        pricingDescription: string | null;
+        pricingLayout: "LIST" | "GRID";
+        pricingIconKey: "DROPLET" | "EYE_LASHES" | "LOTUS" | "BRUSH" | "LEAF" | "LIPSTICK" | "SPARK";
         sortOrder: number;
+        pricingSortOrder: number;
         isActive: boolean;
       };
     };
@@ -92,8 +97,13 @@ function categoryReducer(state: CategoryRecord[], action: OptimisticAction) {
         const nextCategory = {
           ...category,
           name: action.category.name,
+          publicName: action.category.publicName,
           description: action.category.description,
+          pricingDescription: action.category.pricingDescription,
+          pricingLayout: action.category.pricingLayout,
+          pricingIconKey: action.category.pricingIconKey,
           sortOrder: action.category.sortOrder,
+          pricingSortOrder: action.category.pricingSortOrder,
           isActive: action.category.isActive,
         };
         const warnings = getCategoryWarnings(nextCategory);
@@ -158,11 +168,18 @@ export function CategoryManagementWorkspace({
   const handleSaved = (category: {
     id: string;
     name: string;
+    publicName: string | null;
     description: string | null;
+    pricingDescription: string | null;
+    pricingLayout: "LIST" | "GRID";
+    pricingIconKey: "DROPLET" | "EYE_LASHES" | "LOTUS" | "BRUSH" | "LEAF" | "LIPSTICK" | "SPARK";
     sortOrder: number;
+    pricingSortOrder: number;
     isActive: boolean;
   }) => {
-    applyOptimistic({ type: "save", category });
+    startTransition(() => {
+      applyOptimistic({ type: "save", category });
+    });
   };
 
   const runOptimisticAction = async (

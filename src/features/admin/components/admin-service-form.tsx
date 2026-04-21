@@ -12,6 +12,7 @@ import {
   initialUpdateServiceActionState,
 } from "@/features/admin/actions/update-service-action-state";
 import { AdminStatePill } from "@/features/admin/components/admin-state-pill";
+import { pricingBadgeSuggestions } from "@/features/admin/lib/admin-service-validation";
 import { formatServicePrice } from "@/features/admin/lib/admin-service-format";
 
 type CategoryOption = {
@@ -32,8 +33,13 @@ type EditServiceFormProps = BaseServiceFormProps & {
   service: {
     id: string;
     name: string;
+    publicName: string | null;
     shortDescription: string | null;
     description: string | null;
+    publicIntro: string | null;
+    seoDescription: string | null;
+    pricingShortDescription: string | null;
+    pricingBadge: string | null;
     durationMinutes: number;
     priceFromCzk: number | null;
     sortOrder: number;
@@ -56,8 +62,13 @@ type CreateServiceFormProps = BaseServiceFormProps & {
   mode: "create";
   initialValues: {
     name: string;
+    publicName: string;
     shortDescription: string;
     description: string;
+    publicIntro: string;
+    seoDescription: string;
+    pricingShortDescription: string;
+    pricingBadge: string;
     durationMinutes: number;
     priceFromCzk: string;
     categoryId?: string;
@@ -268,6 +279,80 @@ export function AdminServiceForm(props: EditServiceFormProps | CreateServiceForm
               placeholder="Delší vysvětlení jen tehdy, když klientce skutečně pomůže s rozhodnutím."
               className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm leading-6 text-white outline-none transition placeholder:text-white/32 focus:border-[var(--color-accent)]/60"
             />
+          </Field>
+        </div>
+      </SectionBlock>
+
+      <SectionBlock
+        title="Veřejná prezentace"
+        description="Tato vrstva řídí veřejný web a ceník, aniž by bylo nutné přepisovat interní katalogové názvy."
+      >
+        <div className="grid gap-4">
+          <Field label="Veřejný název" error={serverState.fieldErrors?.publicName}>
+            <input
+              type="text"
+              name="publicName"
+              maxLength={120}
+              defaultValue={props.mode === "create" ? props.initialValues.publicName : props.service.publicName ?? ""}
+              placeholder="Např. Refresh ošetření pleti"
+              className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none transition placeholder:text-white/32 focus:border-[var(--color-accent)]/60"
+            />
+          </Field>
+
+          <Field label="Veřejný úvod" error={serverState.fieldErrors?.publicIntro}>
+            <textarea
+              name="publicIntro"
+              rows={3}
+              maxLength={400}
+              defaultValue={props.mode === "create" ? props.initialValues.publicIntro : props.service.publicIntro ?? ""}
+              placeholder="Krátký úvod pro veřejný web, detail služby a seznamy."
+              className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm leading-6 text-white outline-none transition placeholder:text-white/32 focus:border-[var(--color-accent)]/60"
+            />
+          </Field>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="SEO popis" error={serverState.fieldErrors?.seoDescription}>
+              <textarea
+                name="seoDescription"
+                rows={3}
+                maxLength={240}
+                defaultValue={props.mode === "create" ? props.initialValues.seoDescription : props.service.seoDescription ?? ""}
+                placeholder="Krátký popis pro metadata detailu služby."
+                className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm leading-6 text-white outline-none transition placeholder:text-white/32 focus:border-[var(--color-accent)]/60"
+              />
+            </Field>
+
+            <Field label="Krátký popis do ceníku" error={serverState.fieldErrors?.pricingShortDescription}>
+              <textarea
+                name="pricingShortDescription"
+                rows={3}
+                maxLength={240}
+                defaultValue={
+                  props.mode === "create"
+                    ? props.initialValues.pricingShortDescription
+                    : props.service.pricingShortDescription ?? ""
+                }
+                placeholder="Jedna věta pro řádek nebo kartu v ceníku."
+                className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm leading-6 text-white outline-none transition placeholder:text-white/32 focus:border-[var(--color-accent)]/60"
+              />
+            </Field>
+          </div>
+
+          <Field label="Badge v ceníku" error={serverState.fieldErrors?.pricingBadge}>
+            <input
+              type="text"
+              name="pricingBadge"
+              list="pricing-badge-suggestions"
+              maxLength={40}
+              defaultValue={props.mode === "create" ? props.initialValues.pricingBadge : props.service.pricingBadge ?? ""}
+              placeholder="Např. PRO PRVNÍ NÁVŠTĚVU"
+              className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none transition placeholder:text-white/32 focus:border-[var(--color-accent)]/60"
+            />
+            <datalist id="pricing-badge-suggestions">
+              {pricingBadgeSuggestions.map((suggestion) => (
+                <option key={suggestion} value={suggestion} />
+              ))}
+            </datalist>
           </Field>
         </div>
       </SectionBlock>

@@ -32,9 +32,12 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
   - obchodní podmínky
   - GDPR
 - Veřejný obsah je centralizovaný v `src/content/public-site.ts`, aby šly texty a hlavní brand copy měnit bez zásahu do layout komponent.
-- Reálné služby z DB dostávají veřejnou copy vrstvu v `src/features/public/lib/public-services.ts`, kde lze držet jemnější public názvy a krátké popisy odděleně od interních katalogových názvů.
+- Reálné služby z DB dostávají veřejnou copy vrstvu v `src/features/public/lib/public-services.ts`, ale její metadata už nevznikají z lokálních map; čtou se přímo z rozšířeného katalogu služeb a kategorií.
 - Ceník na `/cenik` má vlastní modul v `src/features/public/components/pricing-page.tsx` a je rozdělený do jasné kompozice `hero -> category chips -> hlavní sekce -> menší grid sekce -> finální CTA`.
-- Prezentační metadata ceníku (badge, krátké popisy pro řádky a layout jednotlivých kategorií) jsou oddělená od DB read modelu a připravená na budoucí napojení na CMS nebo public katalogovou tabulku bez přepisu layoutu.
+- Katalog služeb a kategorií teď nese i veřejná pricing metadata:
+  - služba: `publicName`, `publicIntro`, `seoDescription`, `pricingShortDescription`, `pricingBadge`
+  - kategorie: `publicName`, `pricingDescription`, `pricingLayout`, `pricingIconKey`, `pricingSortOrder`
+- Admin sekce `Služby` a `Kategorie služeb` tato metadata umí upravovat bez zásahu do databáze nebo kódu.
 - Ceník už nepoužívá vedlejší blok s poznámkami; detail služby zůstává místem pro doplňující vysvětlení.
 - Veřejné stránky drží jednotný šířkový rytmus přes sdílený `Container` (`max-w-7xl`); při úpravách layoutu nepřidávej další globální zúžení sekcí přes `mx-auto max-w-*`.
 - Vertikální spacing veřejných sekcí je sjednocený do rytmu `py-10 / sm:py-14 / lg:py-16`; větší rozestupy používej jen pro obsahově výrazné bloky.
@@ -90,8 +93,8 @@ node scripts/import-services.mjs --file scripts/services.import.example.json --d
 node scripts/import-services.mjs --file path/to/old-web-services.json
 ```
 - Import očekává strukturu:
-  - `categories[]` s poli `name`, `slug`, `description`, `sortOrder`, `isActive`
-  - `services[]` s poli `name`, `slug`, `categorySlug`, `durationMinutes`, `priceFromCzk`, `description`, `shortDescription`, `sortOrder`, `isActive`
+  - `categories[]` s poli `name`, `slug`, `description`, `publicName`, `pricingDescription`, `pricingLayout`, `pricingIconKey`, `sortOrder`, `pricingSortOrder`, `isActive`
+  - `services[]` s poli `name`, `slug`, `categorySlug`, `publicName`, `publicIntro`, `seoDescription`, `pricingShortDescription`, `pricingBadge`, `durationMinutes`, `priceFromCzk`, `description`, `shortDescription`, `sortOrder`, `isActive`
 - Pokud starý web exportuje data v jiném formátu, je potřeba je před importem namapovat do této struktury.
 - Pro tvoje aktuální kategorie je připravený vzor v `scripts/old-web-categories.json`.
 - Pro tvoje aktuální služby je připravený vzor v `scripts/old-web-services.json`.

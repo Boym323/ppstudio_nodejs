@@ -53,8 +53,13 @@ export async function AdminServicesPage({
         categories={data.categories}
         initialValues={{
           name: "",
+          publicName: "",
           shortDescription: "",
           description: "",
+          publicIntro: "",
+          seoDescription: "",
+          pricingShortDescription: "",
+          pricingBadge: "",
           durationMinutes: 60,
           priceFromCzk: "",
           categoryId: data.draftCategoryId,
@@ -70,8 +75,13 @@ export async function AdminServicesPage({
         service={{
           id: data.selectedService.id,
           name: data.selectedService.name,
+          publicName: data.selectedService.publicName,
           shortDescription: data.selectedService.shortDescription,
           description: data.selectedService.description,
+          publicIntro: data.selectedService.publicIntro,
+          seoDescription: data.selectedService.seoDescription,
+          pricingShortDescription: data.selectedService.pricingShortDescription,
+          pricingBadge: data.selectedService.pricingBadge,
           durationMinutes: data.selectedService.durationMinutes,
           priceFromCzk: data.selectedService.priceFromCzk,
           sortOrder: data.selectedService.sortOrder,

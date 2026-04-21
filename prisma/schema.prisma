@@ -86,6 +86,21 @@ enum MediaAssetKind {
   CONTENT
 }
 
+enum PricingLayout {
+  LIST
+  GRID
+}
+
+enum PricingIconKey {
+  DROPLET
+  EYE_LASHES
+  LOTUS
+  BRUSH
+  LEAF
+  LIPSTICK
+  SPARK
+}
+
 model AdminUser {
   id                        String                 @id @default(cuid())
   email                     String                 @unique
@@ -104,26 +119,37 @@ model AdminUser {
 }
 
 model ServiceCategory {
-  id          String    @id @default(cuid())
-  name        String
-  slug        String    @unique
-  description String?
-  sortOrder   Int       @default(0)
-  isActive    Boolean   @default(true)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  services    Service[]
+  id                 String         @id @default(cuid())
+  name               String
+  slug               String         @unique
+  description        String?
+  publicName         String?
+  pricingDescription String?
+  pricingLayout      PricingLayout  @default(GRID)
+  pricingIconKey     PricingIconKey @default(SPARK)
+  sortOrder          Int            @default(0)
+  pricingSortOrder   Int            @default(0)
+  isActive           Boolean        @default(true)
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+  services           Service[]
 
   @@index([isActive, sortOrder])
+  @@index([isActive, pricingSortOrder])
 }
 
 model Service {
   id                       String                    @id @default(cuid())
   categoryId               String
   name                     String
+  publicName               String?
   slug                     String                    @unique
   shortDescription         String?
   description              String?
+  publicIntro              String?
+  seoDescription           String?
+  pricingShortDescription  String?
+  pricingBadge             String?
   durationMinutes          Int
   priceFromCzk             Int?
   sortOrder                Int                       @default(0)
