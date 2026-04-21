@@ -280,40 +280,6 @@ function CertificationsSection({ certificates }: { certificates: PublicCertifica
   );
 }
 
-function FinalCtaSection() {
-  const { cta } = aboutContent;
-
-  return (
-    <section className="py-10 sm:py-14 lg:py-16">
-      <Container>
-        <div className="rounded-[var(--radius-panel)] bg-[linear-gradient(135deg,#1b1613_0%,#2a211b_55%,#3a2f28_100%)] px-8 py-10 text-white shadow-[0_24px_70px_rgba(34,22,12,0.18)] sm:px-11 sm:py-14 lg:flex lg:items-center lg:justify-between lg:gap-12 lg:px-14 lg:py-16">
-          <div className="max-w-[40rem]">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.26em] text-[var(--color-accent-soft)]">PP Studio</p>
-            <h2 className="mt-4 max-w-[12ch] font-display text-[2.65rem] leading-[1.02] text-white sm:text-[3.35rem] lg:text-[4rem]">
-              Chcete si vybrat termín, nebo se nejdřív poradit?
-            </h2>
-          </div>
-
-          <div className="mt-10 flex flex-col gap-3.5 sm:flex-row lg:mt-0 lg:shrink-0">
-            <Link
-              href={cta.primaryCta.href}
-              className="inline-flex min-h-14 items-center justify-center rounded-full bg-[var(--color-accent)] px-8 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-accent-contrast)] shadow-[0_18px_40px_rgba(0,0,0,0.18)] hover:brightness-105 sm:text-sm"
-            >
-              {cta.primaryCta.label}
-            </Link>
-            <Link
-              href={cta.secondaryCta.href}
-              className="inline-flex min-h-14 items-center justify-center rounded-full border border-white/18 bg-white/8 px-8 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-white hover:border-white/30 hover:bg-white/10 sm:text-sm"
-            >
-              {cta.secondaryCta.label}
-            </Link>
-          </div>
-        </div>
-      </Container>
-    </section>
-  );
-}
-
 export function AboutPage({ certificates }: { certificates: PublicCertificate[] }) {
   return (
     <div className="overflow-hidden pb-8 sm:pb-12">
@@ -323,7 +289,6 @@ export function AboutPage({ certificates }: { certificates: PublicCertificate[] 
       <ApproachSection />
       <WhatToExpectSection />
       <CertificationsSection certificates={certificates} />
-      <FinalCtaSection />
     </div>
   );
 }
