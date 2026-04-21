@@ -7,6 +7,8 @@ Formát je inspirovaný Keep a Changelog.
 ## [Unreleased]
 
 ### Added
+- Nový dark admin workspace pro `Kategorie služeb` s 3sloupcovým desktop layoutem (shell sidebar + list + sticky detail), samostatnými komponentami v `src/components/admin/categories/*`, stat kartami, chip filtry a mobilním full-screen drawer detailem.
+- Inline server actions pro okamžité optimistic přepnutí aktivity a reorder kategorií bez reloadu stránky, při zachování stávající validace a business logiky.
 - Výrazně přepracovaný admin workflow pro `Služby` a `Kategorie služeb` s jasnými CTA pro vytvoření nové položky, rychlými akcemi přímo v seznamu a mobilním list/detail flow bez dlouhého stacked scrollu.
 - Server actions pro vytvoření služby, vytvoření kategorie, duplikaci služby, rychlé přepínače aktivního / veřejného stavu a jednoduchý reorder nahoru / dolů.
 - Provozní warningy a kontext v seznamech služeb a kategorií, včetně detekce konfliktů stavů, prázdných kategorií a chybějících dat.
@@ -81,6 +83,7 @@ Formát je inspirovaný Keep a Changelog.
 - Týdenní planner dostupností pro `OWNER` i `SALON` nyní zobrazuje rezervace, omezené intervaly, neaktivní sloty i minulý čas v jednom klidném kalendáři.
 
 ### Changed
+- Sekce `Kategorie služeb` už není jen responzivní seznam s vedlejším formulářem; nově funguje jako provozní list/detail workspace s výrazně kompaktnějším seznamem, sticky detailem a mobilním drawer UX.
 - Sekce `Služby` už nepůsobí jako čistý detail editor; seznam nově slouží jako hlavní pracovní plocha s fulltextem, filtrem kategorie, stavovými badge, upozorněními a rychlými akcemi bez otevírání detailu.
 - Sekce `Kategorie služeb` nově ukazuje pořadí, počet všech / aktivních / veřejných služeb, stavová varování a rychlé přechody do navázaných služeb.
 - Formuláře služeb a kategorií mají přehlednější informační bloky, viditelnější success/error feedback a akce `Uložit` + `Uložit a zavřít`.

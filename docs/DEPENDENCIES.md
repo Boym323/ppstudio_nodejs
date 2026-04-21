@@ -49,6 +49,7 @@ Seznam důležitých knihoven a důvod jejich použití.
 - Konsolidace owner/salon admin route wrapperů do shared factory patternu proběhla bez přidání nové knihovny.
 - Admin workflow pro služby (seznam, filtry, editace a validační vrstva) bylo doplněné čistě nad existujícím stackem Next.js, React, Prisma a Zod.
 - Přepracované workflow `Služby` a `Kategorie služeb` (create CTA, quick actions, reorder, warningy, mobilní list/detail flow) zůstává bez nové UI nebo drag-and-drop závislosti; běží čistě na stávajícím stacku Next.js, React, Prisma a Zod.
+- Nový dark workspace `Kategorie služeb` používá jen React 19 primitives (`useActionState`, `useOptimistic`, `startTransition`) a nepřidává žádný drawer, icon ani form helper balík.
 - Lokální media storage vrstva zůstává na stávajícím stacku Next.js, Prisma a Node filesystemu; nová závislost `image-size` řeší jen rozměry obrázků bez zavádění těžšího image pipeline řešení.
 
 ## Pravidla aktualizací

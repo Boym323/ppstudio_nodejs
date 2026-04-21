@@ -2,9 +2,10 @@ import { Prisma } from "@prisma/client";
 
 import { type AdminArea } from "@/config/navigation";
 import {
-  serviceCategoryListSearchParamsSchema,
+  type ServiceCategoryIssueFilterValue,
   type ServiceCategoryListSortValue,
   type ServiceCategoryListStatusValue,
+  serviceCategoryListSearchParamsSchema,
 } from "@/features/admin/lib/admin-service-category-validation";
 import { prisma } from "@/lib/prisma";
 
@@ -13,6 +14,7 @@ function normalizeSearchParams(searchParams?: Record<string, string | string[] |
     query: typeof searchParams?.query === "string" ? searchParams.query : undefined,
     status: typeof searchParams?.status === "string" ? searchParams.status : undefined,
     sort: typeof searchParams?.sort === "string" ? searchParams.sort : undefined,
+    flags: typeof searchParams?.flags === "string" ? searchParams.flags : undefined,
     categoryId: typeof searchParams?.categoryId === "string" ? searchParams.categoryId : undefined,
     mode: typeof searchParams?.mode === "string" ? searchParams.mode : undefined,
     mobileDetail: typeof searchParams?.mobileDetail === "string" ? searchParams.mobileDetail : undefined,
@@ -22,6 +24,7 @@ function normalizeSearchParams(searchParams?: Record<string, string | string[] |
     query: "",
     status: "all" as ServiceCategoryListStatusValue,
     sort: "order" as ServiceCategoryListSortValue,
+    flags: [] as ServiceCategoryIssueFilterValue[],
     categoryId: undefined as string | undefined,
     mode: "list" as "list" | "create",
     mobileDetail: "0" as "0" | "1",
@@ -35,6 +38,7 @@ function normalizeSearchParams(searchParams?: Record<string, string | string[] |
     query: parsed.data.query ?? defaults.query,
     status: parsed.data.status ?? defaults.status,
     sort: parsed.data.sort ?? defaults.sort,
+    flags: parsed.data.flags ?? defaults.flags,
     categoryId: parsed.data.categoryId,
     mode: parsed.data.mode ?? defaults.mode,
     mobileDetail: parsed.data.mobileDetail ?? defaults.mobileDetail,
@@ -85,7 +89,7 @@ type CategoryCounts = {
   public: number;
 };
 
-function describeCategoryWarnings(category: {
+export function describeCategoryWarnings(category: {
   isActive: boolean;
   counts: CategoryCounts;
 }) {
@@ -106,6 +110,31 @@ function describeCategoryWarnings(category: {
   return warnings;
 }
 
+function matchesCategoryFlags(
+  category: {
+    counts: CategoryCounts;
+    warnings: string[];
+  },
+  flags: ServiceCategoryIssueFilterValue[],
+) {
+  if (flags.length === 0) {
+    return true;
+  }
+
+  return flags.every((flag) => {
+    switch (flag) {
+      case "empty":
+        return category.counts.total === 0;
+      case "without-public":
+        return category.counts.public === 0;
+      case "warning":
+        return category.warnings.length > 0;
+      default:
+        return true;
+    }
+  });
+}
+
 export async function getAdminServiceCategoriesPageData(
   area: AdminArea,
   searchParams?: Record<string, string | string[] | undefined>,
@@ -124,6 +153,17 @@ export async function getAdminServiceCategoriesPageData(
         _count: {
           select: {
             services: true,
+          },
+        },
+        services: {
+          orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+          take: 6,
+          select: {
+            id: true,
+            name: true,
+            sortOrder: true,
+            isActive: true,
+            isPubliclyBookable: true,
           },
         },
       },
@@ -179,10 +219,18 @@ export async function getAdminServiceCategoriesPageData(
     };
   });
 
-  const selectedCategoryId = filters.mode === "create" ? undefined : filters.categoryId ?? categoriesWithMeta[0]?.id;
+  const filteredCategories = categoriesWithMeta.filter((category) =>
+    matchesCategoryFlags(category, filters.flags),
+  );
+
+  const selectedCategoryId =
+    filters.mode === "create" ? undefined : filters.categoryId ?? filteredCategories[0]?.id;
+  const selectedCategoryFromList =
+    filteredCategories.find((category) => category.id === selectedCategoryId) ?? null;
 
   const selectedCategory = selectedCategoryId
-    ? await prisma.serviceCategory.findUnique({
+    ? selectedCategoryFromList ??
+      await prisma.serviceCategory.findUnique({
         where: { id: selectedCategoryId },
         include: {
           _count: {
@@ -242,8 +290,11 @@ export async function getAdminServiceCategoriesPageData(
     area,
     filters,
     stats,
-    categories: categoriesWithMeta,
+    categories: filteredCategories,
     selectedCategory,
+    selectedCategoryVisible:
+      Boolean(selectedCategoryId) &&
+      filteredCategories.some((category) => category.id === selectedCategoryId),
     selectedCategoryCounts: selectedCategory
       ? countsByCategory.get(selectedCategory.id) ?? { total: 0, active: 0, public: 0 }
       : { total: 0, active: 0, public: 0 },

@@ -27,9 +27,12 @@ Postup nasazení aplikace do produkce.
    - stejné chování owner/salon párových route po refaktoru factory wrapperů (overview, section, booking detail, slot list/create/detail/edit)
    - lite admin navigaci a mobilní čitelnost na `/admin/provoz/*`
    - sekci `Kategorie služeb` na `/admin/kategorie-sluzeb` a `/admin/provoz/kategorie-sluzeb`:
+     - desktopový sticky detail a mobilní full-screen drawer
      - vytvoření nové kategorie přes CTA
+     - kombinaci search / stav / řazení / chip filtrů
      - změnu pořadí
      - přepnutí aktivní / neaktivní
+     - optimistic reakci seznamu bez reloadu stránky
      - warning stavy `prázdná`, `bez veřejné služby`, `neaktivní s aktivními službami`
      - mobilní otevření detailu a návrat zpět na seznam
      - blokaci mazání kategorie se službami
@@ -114,6 +117,7 @@ sudo /var/www/ppstudio/deploy/deploy.sh
 - Migrace `20260419230000_media_storage_v1` přidává tabulku `MediaAsset` a enumy pro lokální media storage; po deployi ověř zápis souboru do upload rootu a načtení přes `/media/*`.
 - Admin workflow kategorií služeb nevyžaduje novou DB migraci; navazuje na existující model `ServiceCategory`.
 - Přepracované admin workflow služeb a kategorií nevyžaduje novou DB migraci; změna je čistě v read modelech, server actions a UI vrstvách.
+- Nový layout sekce `Kategorie služeb` také nevyžaduje novou DB migraci; změna zůstává čistě v komponentách, read modelu a server actions nad existujícím `ServiceCategory`.
 - Před produkční aplikací migrace ověř data, která by mohla mít rezervaci bez přiřazené služby; tato migrace takové řádky záměrně odmítne.
 - Pokud v databázi existují duplicitní rezervace stejného klienta do stejného slotu, nová migrace se zastaví a vyžádá jejich ruční vyčištění.
 - Pokud nasazuješ jen frontend bez DB změn, `npx prisma migrate deploy` zůstává bezpečný no-op.

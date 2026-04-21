@@ -31,3 +31,6 @@ Sem patří krátké záznamy architektonických rozhodnutí.
 - `0015-admin-service-category-management-v1.md`
 - `0016-admin-site-settings-singleton-v1.md`
 - `0017-local-media-storage-v1.md`
+- `0018-admin-client-crm-workflow-v1.md`
+- `0019-admin-service-catalog-operations-v2.md`
+- `0020-admin-service-category-layout-v2.md`

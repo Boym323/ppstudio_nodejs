@@ -176,11 +176,14 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
   - na mobilu se detail otevírá samostatně, aby admin nebyl dlouhý a nepohodlný
   - veřejný booking flow bere službu jen pokud je `isActive = true`, `isPubliclyBookable = true` a její kategorie je aktivní
 - Sekce `Kategorie služeb` je nyní produkčně použitelná pro obě role na `/admin/kategorie-sluzeb` a `/admin/provoz/kategorie-sluzeb`:
+  - desktop používá pracovní rozložení `seznam + sticky detail`, takže je možné rychle procházet kategorie bez skákání mezi stránkami
+  - nahoře jsou 4 stat karty (`Aktivní`, `Kategorie se službami`, `Prázdné`, `Potřebují pozornost`) a filtry s chipy `Prázdné`, `Bez veřejné služby`, `S upozorněním`
   - seznam ukazuje název, pořadí, aktivitu, počet všech služeb i kontext aktivních a veřejných služeb
-  - karta kategorie zvýrazní prázdné kategorie, aktivní kategorie bez veřejných služeb a neaktivní kategorie s aktivními službami
+  - problémové kategorie mají zvýrazněný warning stav a jemně odlišený border
   - přímo v seznamu jsou rychlé akce `aktivovat/deaktivovat`, `otevřít detail`, `zobrazit služby` a posuny v pořadí
-  - editor umožňuje upravit název, volitelný popis, pořadí a aktivní stav; navíc nabízí CTA `Vytvořit službu v této kategorii`
-  - novou kategorii lze založit přes jasné CTA `Nová kategorie` a na mobilu se detail otevírá samostatně
+  - přepnutí aktivního stavu a posun v pořadí probíhá okamžitě optimistic UI přes server action bez reloadu
+  - editor umožňuje upravit název, volitelný popis, pořadí a aktivní stav; navíc nabízí CTA `Vytvořit službu` a `Otevřít služby této kategorie`
+  - novou kategorii lze založit přes jasné CTA `+ Nová kategorie`; na mobilu se detail otevírá jako samostatný full-screen drawer
   - mazání je povolené jen pro prázdné kategorie bez služeb; jinak je doporučené kategorii pouze vypnout
   - změna pořadí nebo aktivity se promítá do adminu, veřejných výpisů `/sluzby` a `/cenik` i do veřejného booking flow
 - Sekce jen pro `OWNER`:

@@ -253,7 +253,52 @@ export async function updateServiceCategoryAction(
       : category._count.services > 0
         ? "Kategorie je vypnutá. Navázané služby zůstávají bezpečně zachované, ale veřejný web i booking ji schovají."
         : "Kategorie je vypnutá. Zůstává uložená pro případ, že ji budete chtít znovu použít.",
+    category: {
+      id: parsed.data.categoryId,
+      name: parsed.data.name,
+      description: parsed.data.description || null,
+      sortOrder: parsed.data.sortOrder,
+      isActive: parsed.data.isActive,
+    },
   };
+}
+
+export async function setServiceCategoryActiveAction(input: {
+  area: AdminArea;
+  categoryId: string;
+  isActive: boolean;
+}): Promise<{ ok: boolean }> {
+  await requireAdminSectionAccess(input.area, "kategorie-sluzeb");
+
+  const category = await prisma.serviceCategory.findUnique({
+    where: { id: input.categoryId },
+    select: { id: true },
+  });
+
+  if (!category) {
+    return { ok: false };
+  }
+
+  await prisma.serviceCategory.update({
+    where: { id: category.id },
+    data: { isActive: input.isActive },
+  });
+
+  revalidateServiceCategoryPaths(input.area);
+
+  return { ok: true };
+}
+
+export async function reorderServiceCategoryInlineAction(input: {
+  area: AdminArea;
+  categoryId: string;
+  direction: "up" | "down";
+}): Promise<{ ok: boolean }> {
+  await requireAdminSectionAccess(input.area, "kategorie-sluzeb");
+  await reorderCategories(input.categoryId, input.direction);
+  revalidateServiceCategoryPaths(input.area);
+
+  return { ok: true };
 }
 
 export async function toggleServiceCategoryActiveAction(formData: FormData): Promise<void> {

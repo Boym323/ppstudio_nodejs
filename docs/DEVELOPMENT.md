@@ -89,7 +89,16 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - `src/features/admin/actions/service-actions.ts` nově obsluhuje create, update, duplikaci, quick toggles a reorder; validace zůstává v `src/features/admin/lib/admin-service-validation.ts`.
 - Sekce `Kategorie služeb` má vlastní workflow v `src/features/admin/components/admin-service-categories-page.tsx` a stejně jako `Služby` obchází generický placeholder renderer.
 - `src/features/admin/lib/admin-service-categories.ts` drží serverový read model pro seznam, warningy, detail kategorie a počty navázaných služeb podle stavu.
-- `src/features/admin/actions/service-category-actions.ts` nově obsluhuje create, update, quick toggles, reorder i bezpečné mazání prázdné kategorie; validace zůstává v `src/features/admin/lib/admin-service-category-validation.ts`.
+- Nové UI komponenty pro workflow kategorií jsou v `src/components/admin/categories/`:
+  - `CategoryManagementWorkspace.tsx`
+  - `CategoryStats.tsx`
+  - `CategoryFilters.tsx`
+  - `CategoryList.tsx`
+  - `CategoryRow.tsx`
+  - `CategoryDetailPanel.tsx`
+  - `CategoryDetailDrawer.tsx`
+  - `types.ts`
+- `src/features/admin/actions/service-category-actions.ts` nově obsluhuje create, update, optimistic quick toggles, inline reorder i bezpečné mazání prázdné kategorie; validace zůstává v `src/features/admin/lib/admin-service-category-validation.ts`.
 - `src/features/admin/components/admin-booking-detail-page.tsx` a route dvojice `/admin/rezervace/[bookingId]` + `/admin/provoz/rezervace/[bookingId]` drží první produkční workflow pro práci s rezervací.
 - Sekce `Klienti` má vlastní workflow v `src/features/admin/components/admin-clients-page.tsx` a už neběží přes generický placeholder renderer.
 - `src/features/admin/lib/admin-clients.ts` drží serverový read model pro seznam klientek, filtry, detail klientky a napojení na historii rezervací.
@@ -133,8 +142,8 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - U veřejného webu nepřidávat efektní animace bez jasného UX důvodu.
 - Booking mutations držet ve feature service vrstvě a server action používat jen jako tenký vstupní adaptér.
 - Admin změny stavu rezervace validovat server-side proti povoleným přechodům a nikdy je neřídit jen podle toho, co UI zrovna nabízí v selectu.
-- U admin katalogu služeb a kategorií preferuj query-driven list/detail stav (`mode`, `mobileDetail`) před zaváděním nové routy, pokud cílem není nový samostatný workflow.
-- Rychlé provozní akce v seznamech řeš server actions a plným refresh renderem; pro tenhle admin záměrně nepřidáváme těžší klientský state management.
+- U admin katalogu služeb a kategorií preferuj query-driven vstup do workflow (`mode`, `mobileDetail`) před zaváděním nové routy, pokud cílem není nový samostatný workflow.
+- Rychlé provozní akce v seznamech řeš server actions; u kategorií je povolený lehký lokální optimistic state přes `useOptimistic`, ale bez další state-management knihovny.
 
 ## Technický dluh a rozhodnutí
 - Klíčová rozhodnutí zapisuj jako krátké ADR záznamy.
@@ -218,6 +227,13 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - filtr podle kategorie a kombinaci s fulltextem / stavem / veřejností
   - rychlé akce v kartě seznamu (`aktivovat`, `veřejná/interní`, `duplikovat`, `posunout`)
   - mobilní otevření detailu a návrat zpět na seznam
+- Po změně admin katalogu kategorií ručně ověř i:
+  - `/admin/kategorie-sluzeb` i `/admin/provoz/kategorie-sluzeb` na desktopu a mobilu
+  - sticky detail panel na desktopu a drawer detail na mobilu
+  - vytvoření nové kategorie přes CTA `+ Nová kategorie`
+  - kombinaci fulltextu, stavu, řazení a chip filtrů
+  - optimistic přepnutí aktivního stavu a posun nahoru/dolů
+  - warning stavy `prázdná`, `bez veřejné služby`, `neaktivní s aktivními službami`
   - přepnutí `Veřejně rezervovatelná` a dopad na `/rezervace`
   - změnu délky služby a skrytí slotů, které jsou po změně kratší než služba
   - editaci služby v neaktivní kategorii a očekávané skrytí z veřejného bookingu

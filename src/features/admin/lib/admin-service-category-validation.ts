@@ -2,11 +2,22 @@ import { z } from "zod";
 
 export const serviceCategoryListSortValues = ["order", "name", "services"] as const;
 export const serviceCategoryListStatusValues = ["all", "active", "inactive"] as const;
+export const serviceCategoryIssueFilterValues = ["empty", "without-public", "warning"] as const;
 
 export const serviceCategoryListSearchParamsSchema = z.object({
   query: z.string().trim().max(120).optional(),
   status: z.enum(serviceCategoryListStatusValues).optional(),
   sort: z.enum(serviceCategoryListSortValues).optional(),
+  flags: z.preprocess((value) => {
+    if (typeof value !== "string" || value.trim().length === 0) {
+      return undefined;
+    }
+
+    return value
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }, z.array(z.enum(serviceCategoryIssueFilterValues)).max(3).optional()),
   categoryId: z.string().trim().max(64).optional(),
   mode: z.enum(["list", "create"]).optional(),
   mobileDetail: z.enum(["0", "1"]).optional(),
@@ -61,3 +72,4 @@ export const deleteServiceCategorySchema = z.object({
 
 export type ServiceCategoryListSortValue = (typeof serviceCategoryListSortValues)[number];
 export type ServiceCategoryListStatusValue = (typeof serviceCategoryListStatusValues)[number];
+export type ServiceCategoryIssueFilterValue = (typeof serviceCategoryIssueFilterValues)[number];
