@@ -82,8 +82,9 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - `src/config/navigation.ts` drží centrální definici admin sekcí, slugů a navigace pro obě role.
 - `src/features/admin/components/admin-sidebar-nav.tsx` je klientská navigace s aktivním stavem podle pathname.
 - `src/features/admin/components/admin-overview-page.tsx` a `admin-section-page.tsx` renderují role-aware read model nad Prisma daty.
-- `src/features/admin/components/admin-booking-detail-page.tsx` skládá detail rezervace jako serverový read layout; drž v něm jen prezentační kompozici a odvozené provozní hinty, ne mutační logiku.
+- `src/features/admin/components/admin-booking-detail-page.tsx` skládá detail rezervace jako serverový read layout; v aktuální verzi používá pět bloků `sticky header -> souhrn -> akce -> poznámky -> historie` a nemá znovu vracet paralelní souhrnné sekce se stejným obsahem.
 - `src/features/admin/components/admin-booking-status-form.tsx` zůstává malou klientskou vrstvou jen pro interaktivní výběr akce a submit server action; při dalších úpravách nenechávej zbytečně růst klientský bundle mimo tenhle formulář.
+- `src/features/admin/components/admin-booking-note-form.tsx` je oddělená klientská vrstva jen pro samostatnou editaci interní poznámky rezervace; drž ji bez dalších provozních rozhodnutí nebo statusové logiky.
 - Sekce `Rezervace` má vlastní workflow v `src/features/admin/components/admin-bookings-page.tsx` a už neběží přes generický placeholder renderer.
 - `src/features/admin/lib/admin-data.ts` pro rezervace vrací explicitní řádkový read model (`title`, `serviceName`, `scheduledDateLabel`, `scheduledTimeLabel`, `status`, `sourceLabel`, `contactLabel`, `availableActions`) místo obecného `title/meta/description`.
 - `src/features/admin/components/admin-bookings-quick-actions.tsx` je záměrně velmi malá klientská vrstva jen pro inline akce `Potvrdit` a `Zrušit`; složitější workflow dál patří do detailu rezervace.
@@ -126,9 +127,9 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - `/admin/volne-terminy/[slotId]`
   - `/admin/volne-terminy/[slotId]/upravit`
   - salon varianta pod `/admin/provoz/volne-terminy/*`
-- `src/features/admin/actions/booking-actions.ts` je tenký server action adaptér pro změnu stavu rezervace; aktéra mapuje z admin session na reálné `AdminUser.id` podle e-mailu a při nenalezení používá `null`, aby zápis historie nenarazil na FK.
+- `src/features/admin/actions/booking-actions.ts` je tenký server action adaptér pro změnu stavu i samostatnou editaci interní poznámky rezervace; aktéra mapuje z admin session na reálné `AdminUser.id` podle e-mailu a při nenalezení používá `null`, aby zápis historie nenarazil na FK.
 - `src/features/admin/components/admin-booking-status-form.tsx` používá pro volbu změny stavu klikací akční karty (ne select); vybraná akce se okamžitě zvýrazní barvou podle typu změny a do server action se posílá přes hidden `targetStatus`.
-- `src/features/admin/lib/admin-booking.ts` drží detailový read model, mapování povolených přechodů a zápis do `BookingStatusHistory`.
+- `src/features/admin/lib/admin-booking.ts` drží detailový read model, mapování povolených přechodů, samostatnou poznámkovou mutaci a zápis do `BookingStatusHistory` včetně jednoduchého mapování zdroje změny pro timeline.
 - `src/features/admin/components/admin-email-logs-page.tsx` je owner-only observability obrazovka pro email frontu, retry pokusy a poslední chyby.
 - `src/features/admin/components/admin-email-log-detail-page.tsx` a route `/admin/email-logy/[emailLogId]` přidávají detail jednoho logu s payloadem, chybou a operacemi pro ruční retry nebo uvolnění zaseknutého jobu.
 - Po úspěšné akci detail vrací server-rendered flash banner přes query parametr, aby obsluha viděla okamžitou zpětnou vazbu bez client state.
@@ -250,6 +251,9 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - inline akce `Potvrdit` a `Zrušit` bez otevření detailu
   - správné schování neplatné rychlé akce podle aktuálního stavu rezervace
   - barevné badge pro `čeká`, `hotovo`, `zrušeno` a čitelnost kontaktu i zdroje v hustém řádku
+  - detail rezervace s novým sticky headerem, jedním souhrnným panelem a kompaktní akční zónou
+  - samostatné uložení interní poznámky bez změny stavu a propsání do historie
+  - timeline historie s důvodem, poznámkou a zdrojem změny, pokud je k dispozici
   - přepnutí `Veřejně rezervovatelná` a dopad na `/rezervace`
   - změnu délky služby a skrytí slotů, které jsou po změně kratší než služba
   - editaci služby v neaktivní kategorii a očekávané skrytí z veřejného bookingu

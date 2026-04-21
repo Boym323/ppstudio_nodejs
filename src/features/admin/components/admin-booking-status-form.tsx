@@ -33,41 +33,41 @@ export function AdminBookingStatusForm({
 
   if (availableActions.length === 0) {
     return (
-      <div className="rounded-[1.25rem] border border-dashed border-white/14 bg-white/4 p-5">
-        <p className="text-base font-medium text-white">Tahle rezervace je už uzavřená.</p>
-        <p className="mt-2 text-sm leading-6 text-white/68">
-          V detailu zůstává historie i poznámky, ale další změna stavu už tady není potřeba.
+      <div className="rounded-[1.15rem] border border-white/10 bg-white/[0.04] p-4">
+        <p className="text-sm font-medium text-white">Rezervace je v uzavřeném stavu.</p>
+        <p className="mt-1 text-sm leading-6 text-white/64">
+          Detail teď slouží hlavně pro rychlou kontrolu poznámek, kontaktu a auditní historie.
         </p>
       </div>
     );
   }
 
   return (
-    <form action={formAction} className="space-y-4">
+    <form action={formAction} className="space-y-5" id="booking-actions">
       <input type="hidden" name="area" value={area} />
       <input type="hidden" name="bookingId" value={bookingId} />
       <input type="hidden" name="targetStatus" value={selectedAction} />
 
       {serverState.status === "success" && serverState.successMessage ? (
-        <div className="rounded-[1.25rem] border border-emerald-300/20 bg-emerald-400/10 px-4 py-3 text-sm leading-6 text-emerald-50">
+        <div className="rounded-[1rem] border border-emerald-300/20 bg-emerald-400/10 px-4 py-3 text-sm leading-6 text-emerald-50">
           {serverState.successMessage}
         </div>
       ) : null}
 
       {serverState.status === "error" && serverState.formError ? (
-        <div className="rounded-[1.25rem] border border-red-300/20 bg-red-400/10 px-4 py-3 text-sm leading-6 text-red-50">
+        <div className="rounded-[1rem] border border-red-300/20 bg-red-400/10 px-4 py-3 text-sm leading-6 text-red-50">
           {serverState.formError}
         </div>
       ) : null}
 
       <fieldset className="space-y-4">
-        <legend className="text-sm font-medium text-white">Co se má s rezervací stát</legend>
-        <p className="text-sm text-white/68">
-          Nejčastější další krok je už předvybraný, stačí ho potvrdit nebo změnit.
+        <legend className="text-sm font-medium text-white">Dostupné akce</legend>
+        <p className="text-sm text-white/64">
+          Vyber další krok. Předvolená je nejpravděpodobnější akce pro aktuální stav rezervace.
         </p>
 
         <div
-          className="grid gap-3 md:grid-cols-2"
+          className="grid gap-3 md:grid-cols-2 xl:grid-cols-4"
           role="radiogroup"
           aria-label="Akce pro změnu stavu rezervace"
         >
@@ -126,24 +126,10 @@ export function AdminBookingStatusForm({
           className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none transition placeholder:text-white/32 focus:border-[var(--color-accent)]/60"
         />
         <span className="mt-2 block text-xs leading-5 text-white/46">
-          Krátká auditní stopa, kterou tým pochopí i zpětně.
+          Krátká auditní stopa pro historii rezervace.
         </span>
         {serverState.fieldErrors?.reason ? (
           <p className="mt-2 text-sm text-red-300">{serverState.fieldErrors.reason}</p>
-        ) : null}
-      </label>
-
-      <label className="block">
-        <span className="text-sm font-medium text-white">Interní poznámka</span>
-        <textarea
-          name="internalNote"
-          rows={4}
-          maxLength={1000}
-          placeholder="Volitelné doplnění pro kolegyni nebo pro pozdější dohledání souvislostí."
-          className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm leading-6 text-white outline-none transition placeholder:text-white/32 focus:border-[var(--color-accent)]/60"
-        />
-        {serverState.fieldErrors?.internalNote ? (
-          <p className="mt-2 text-sm text-red-300">{serverState.fieldErrors.internalNote}</p>
         ) : null}
       </label>
 
@@ -174,15 +160,15 @@ function getActionButtonClassName(value: AdminBookingActionValue, isSelected: bo
 function getActionPreviewClassName(value: AdminBookingActionValue) {
   switch (value) {
     case "CONFIRMED":
-      return "rounded-[1.25rem] border border-emerald-300/25 bg-emerald-500/10 p-4";
+      return "rounded-[1.15rem] border border-emerald-300/25 bg-emerald-500/10 p-4";
     case "CANCELLED":
-      return "rounded-[1.25rem] border border-red-300/25 bg-red-500/10 p-4";
+      return "rounded-[1.15rem] border border-red-300/25 bg-red-500/10 p-4";
     case "COMPLETED":
-      return "rounded-[1.25rem] border border-cyan-300/25 bg-cyan-500/10 p-4";
+      return "rounded-[1.15rem] border border-cyan-300/25 bg-cyan-500/10 p-4";
     case "NO_SHOW":
-      return "rounded-[1.25rem] border border-amber-300/25 bg-amber-500/10 p-4";
+      return "rounded-[1.15rem] border border-amber-300/25 bg-amber-500/10 p-4";
     default:
-      return "rounded-[1.25rem] border border-white/10 bg-white/5 p-4";
+      return "rounded-[1.15rem] border border-white/10 bg-white/5 p-4";
   }
 }
 

@@ -7,6 +7,8 @@ Formát je inspirovaný Keep a Changelog.
 ## [Unreleased]
 
 ### Added
+- Samostatnou server action a kompaktní formulář pro interní poznámku rezervace, takže ji lze upravit i bez změny stavu a každá úprava se propíše do auditní historie.
+- ADR 0022 pro rozhodnutí kolem operativního redesignu detailu rezervace.
 - Kompaktní pracovní workspace pro admin sekci `Rezervace` na `/admin/rezervace` a `/admin/provoz/rezervace` s vlastním row-based layoutem místo generického seznamu.
 - Inline server actions `Potvrdit` a `Zrušit` přímo v řádku rezervace bez nutnosti otevřít detail.
 - ADR 0021 pro rozhodnutí kolem hustšího pracovního seznamu rezervací.
@@ -86,6 +88,11 @@ Formát je inspirovaný Keep a Changelog.
 - Týdenní planner dostupností pro `OWNER` i `SALON` nyní zobrazuje rezervace, omezené intervaly, neaktivní sloty i minulý čas v jednom klidném kalendáři.
 
 ### Changed
+- Detail rezervace na `/admin/rezervace/[bookingId]` a `/admin/provoz/rezervace/[bookingId]` už není dlouhá hero/detail stránka; nově používá sticky header, jeden kompaktní souhrn, akční zónu, oddělené poznámky a hustší timeline historie.
+- Z detailu rezervace byly sloučené a odstraněné překryvné bloky `Další krok`, `Kontext rezervace`, `Základní přehled` a `Operační souhrn`; jejich obsah se přesunul do jednoho summary panelu a krátkého stavového info boxu.
+- Rychlé kontaktní akce `Zavolat klientce` a `Napsat e-mail` jsou nově dostupné přímo v horním sticky headeru spolu se stavem, zdrojem a akcí `Obnovit detail`.
+- Akční panel detailu rezervace byl zhuštěný na skutečně provozní blok: používá menší spacing, silnější hierarchii stavových akcí a důvod zapisuje bez vedlejší poznámkové duplicity.
+- Historie změn rezervace nově zobrazuje i stručný zdroj změny z metadata payloadu (`Akce detailu`, `Interní poznámka`), pokud je k dispozici.
 - Rezervační řádky teď drží stabilní šířku akčního sloupce, takže `Potvrdit` / `Zrušit` už neposouvají čas a sloupce zůstávají zarovnané.
 - Rezervační workspace dostal lehký polish: jemnější panel, kompaktní stats v jedné řadě, subtilní hover na řádcích a sloučené inline akce do menšího capsule bloku.
 - Sekce `Rezervace` už nepoužívá vysoké vertikální karty; nově funguje jako kompaktní grid řádků se sticky headerem a sloupci `Rezervace`, `Čas`, `Status`, `Zdroj`, `Kontakt`, `Akce`.

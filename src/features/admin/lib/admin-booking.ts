@@ -47,6 +47,7 @@ export type AdminBookingDetailData = {
     createdAtLabel: string;
     reason: string | null;
     note: string | null;
+    sourceLabel: string | null;
   }>;
 };
 
@@ -165,6 +166,25 @@ function getActorLabel(actorType: BookingActorType, actorName?: string | null) {
   }
 }
 
+function getHistorySourceLabel(metadata: unknown) {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
+    return null;
+  }
+
+  const source = "source" in metadata ? metadata.source : null;
+
+  switch (source) {
+    case "admin-booking-detail-v1":
+      return "Původní detail";
+    case "admin-booking-detail-v2":
+      return "Akce detailu";
+    case "admin-booking-note-v1":
+      return "Interní poznámka";
+    default:
+      return null;
+  }
+}
+
 export async function getAdminBookingDetailData(
   area: AdminArea,
   bookingId: string,
@@ -218,6 +238,7 @@ export async function getAdminBookingDetailData(
       createdAtLabel: formatDateTimeLabel(historyItem.createdAt),
       reason: historyItem.reason,
       note: historyItem.note,
+      sourceLabel: getHistorySourceLabel(historyItem.metadata),
     })),
   };
 }
@@ -277,9 +298,56 @@ export async function applyAdminBookingStatusChange({
         reason: reason || null,
         note: internalNote || null,
         metadata: {
-          source: "admin-booking-detail-v1",
+          source: "admin-booking-detail-v2",
           fromStatus: booking.status,
           toStatus: targetStatus,
+        },
+      },
+    });
+
+    return { status: "success" as const };
+  });
+}
+
+export async function updateAdminBookingInternalNote({
+  bookingId,
+  actorUserId,
+  internalNote,
+}: {
+  bookingId: string;
+  actorUserId: string | null;
+  internalNote: string | null;
+}) {
+  return prisma.$transaction(async (tx) => {
+    const booking = await tx.booking.findUnique({
+      where: { id: bookingId },
+      select: {
+        id: true,
+        status: true,
+      },
+    });
+
+    if (!booking) {
+      return { status: "not-found" as const };
+    }
+
+    await tx.booking.update({
+      where: { id: booking.id },
+      data: {
+        internalNote,
+      },
+    });
+
+    await tx.bookingStatusHistory.create({
+      data: {
+        bookingId: booking.id,
+        status: booking.status,
+        actorType: BookingActorType.USER,
+        actorUserId,
+        reason: internalNote ? "Interní poznámka upravena" : "Interní poznámka odstraněna",
+        note: internalNote,
+        metadata: {
+          source: "admin-booking-note-v1",
         },
       },
     });

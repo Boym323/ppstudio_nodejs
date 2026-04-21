@@ -217,9 +217,11 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
 - Detail rezervace je nyní dostupný jak pro `OWNER`, tak pro `SALON`:
   - `OWNER` na `/admin/rezervace/[bookingId]`
   - `SALON` na `/admin/provoz/rezervace/[bookingId]`
-  - nahoře má stavový přehled s doporučeným dalším krokem, aby obsluha rychle poznala, jestli má potvrzovat, uzavírat nebo jen dohledat kontext
-  - pravý sloupec drží rychlý kontakt na klientku a základní metadata rezervace, takže telefon a e-mail není potřeba hledat v kartách níže
-  - poznámky jsou oddělené na klientské a interní a historie změn je zobrazená jako čitelnější časová osa
+  - nahoře používá kompaktní sticky header s návratem do seznamu, termínem, badge stavu, zdrojem a rychlými kontaktními akcemi
+  - pod hlavičkou je jeden kompaktní souhrn místo více podobných boxů se stejnými daty
+  - hlavní blok `Akce s rezervací` drží dostupné změny stavu a krátký stavový kontext bez dlouhých odstavců
+  - poznámky jsou rozdělené na klientskou a interní; interní poznámku lze uložit samostatně i bez změny statusu
+  - historie změn zůstává dole jako hustší časová osa se stavem, aktérem, časem a dostupným zdrojem změny
 - Správa slotů je nyní produkčně použitelná pro obě role:
   - týdenní planner na `/admin/volne-terminy` a `/admin/provoz/volne-terminy`
   - route `novy`, `detail` a `upravit` zůstávají zachované, ale vrací zpět do planneru ve správném týdnu

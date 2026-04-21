@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { type AdminArea } from "@/config/navigation";
+import { type UpdateBookingNoteActionState } from "@/features/admin/actions/update-booking-note-action-state";
 import { type UpdateBookingStatusActionState } from "@/features/admin/actions/update-booking-status-action-state";
 import {
   applyAdminBookingStatusChange,
@@ -12,6 +13,7 @@ import {
   getAdminBookingActionOptions,
   getBookingStatusLabel,
   type AdminBookingActionValue,
+  updateAdminBookingInternalNote,
 } from "@/features/admin/lib/admin-booking";
 import { requireAdminArea } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
@@ -46,6 +48,12 @@ const updateBookingStatusSchema = z.object({
     .max(1000, "Interní poznámka je příliš dlouhá.")
     .optional()
     .or(z.literal("")),
+});
+
+const updateBookingNoteSchema = z.object({
+  area: z.enum(["owner", "salon"]),
+  bookingId: z.string().trim().min(1).max(64),
+  internalNote: z.string().trim().max(1000, "Interní poznámka je příliš dlouhá."),
 });
 
 function revalidateBookingAdminPaths(bookingId: string) {
@@ -101,7 +109,6 @@ export async function updateBookingStatusAction(
       fieldErrors: {
         targetStatus: fieldErrors.targetStatus?.[0],
         reason: fieldErrors.reason?.[0],
-        internalNote: fieldErrors.internalNote?.[0],
       },
     };
   }
@@ -164,5 +171,52 @@ export async function updateBookingStatusAction(
   return {
     status: "success",
     successMessage: "Změna byla uložená a propsala se i do historie rezervace.",
+  };
+}
+
+export async function updateBookingNoteAction(
+  _previousState: UpdateBookingNoteActionState,
+  formData: FormData,
+): Promise<UpdateBookingNoteActionState> {
+  const parsed = updateBookingNoteSchema.safeParse({
+    area: readFormString(formData, "area"),
+    bookingId: readFormString(formData, "bookingId"),
+    internalNote: readFormString(formData, "internalNote"),
+  });
+
+  if (!parsed.success) {
+    const fieldErrors = parsed.error.flatten().fieldErrors;
+
+    return {
+      status: "error",
+      formError: "Poznámku se nepodařilo uložit.",
+      fieldErrors: {
+        internalNote: fieldErrors.internalNote?.[0],
+      },
+    };
+  }
+
+  const area = parsed.data.area as AdminArea;
+  const actorUserId = await resolveBookingActorUserId(area);
+  const result = await updateAdminBookingInternalNote({
+    bookingId: parsed.data.bookingId,
+    actorUserId,
+    internalNote: parsed.data.internalNote || null,
+  });
+
+  if (result.status === "not-found") {
+    return {
+      status: "error",
+      formError: "Rezervaci se nepodařilo najít.",
+    };
+  }
+
+  revalidateBookingAdminPaths(parsed.data.bookingId);
+
+  return {
+    status: "success",
+    successMessage: parsed.data.internalNote
+      ? "Interní poznámka je uložená."
+      : "Interní poznámka byla odstraněná.",
   };
 }
