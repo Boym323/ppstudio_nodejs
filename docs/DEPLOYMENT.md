@@ -151,5 +151,7 @@ sudo /var/www/ppstudio/deploy/deploy.sh
   - `/admin/volne-terminy/[slotId]/upravit`
   - a stejné cesty pod `/admin/provoz/volne-terminy/*`
 - Ověř, že planner renderuje týdenní kalendář a že guardy rolí fungují stejně jako dřív.
-- Ověř přidání dostupnosti kliknutím i tažením, odebrání zeleného intervalu a copy day/week.
+- Ověř, že kliknutí do gridu vybírá blok pro pravý inspektor a že teprve tažení nebo akce z inspektoru mění koncept.
+- Ověř přidání dostupnosti tažením, odebrání zeleného intervalu a copy day/week.
+- Ověř sticky action bar `Zahodit / Uložit koncept / Publikovat změny` včetně obnovení uloženého konceptu po refreshi stejného týdne.
 - Ověř, že pokus o zásah do rezervace skončí čitelnou chybou bez změny dat.

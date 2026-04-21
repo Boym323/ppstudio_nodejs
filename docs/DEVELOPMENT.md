@@ -76,9 +76,10 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Serverový read/persistence model je v `src/features/admin/lib/admin-slots.ts`.
 - Server action adaptéry planneru jsou v `src/features/admin/actions/slot-planner-actions.ts`.
 - UI je rozdělené na serverový wrapper `src/features/admin/components/admin-weekly-planner-page.tsx` a klientský kalendář `src/features/admin/components/admin-weekly-planner-client.tsx`.
-- V `admin-weekly-planner-client.tsx` drž dependency pole hlavního `useEffect` stabilní přes `[data, draftSelection, router]`; při úpravách jednotlivých položek pole v dev režimu může React Fast Refresh hlásit chybu o změně velikosti dependency array.
+- `admin-weekly-planner-client.tsx` je teď draft-first vrstva: drží `workingDays`, z nich odvozuje `hasUnsavedChanges` a publikuje celý týden až přes `syncPlannerWeekDraftAction()`.
 - Prezentační části planneru jsou dál rozsekané do `src/features/admin/components/admin-weekly-planner-ui.tsx`, aby hlavní klientská komponenta držela hlavně stav a akce.
-- `SelectionStatus` v planner UI má fixní výšku i bez aktivního draftu, aby při průběžném výpisu `Přidáváte/Odebíráte` neposkakovala mřížka.
+- `src/components/layout/admin-shell.tsx` je klientský kvůli mobilnímu draweru sidebaru; desktop shell zůstává záměrně úzký, aby většina šířky patřila planner gridu.
+- Pravý panel planneru je akční inspektor dne; na menších breakpointech se otevírá jako `MobileInspectorSheet`.
 - `src/config/navigation.ts` drží centrální definici admin sekcí, slugů a navigace pro obě role.
 - `src/features/admin/components/admin-sidebar-nav.tsx` je klientská navigace s aktivním stavem podle pathname.
 - `src/features/admin/components/admin-overview-page.tsx` a `admin-section-page.tsx` renderují role-aware read model nad Prisma daty.
@@ -336,13 +337,14 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - chráněné intervaly (rezervace, omezení služeb, neaktivní sloty, sloty s poznámkou nebo jinou kapacitou) odmítne měnit
   - zbylé jednoduché publikované sloty smaže a znovu založí jako minimální sadu souvislých intervalů
 - Copy day/week přenáší jen běžnou dostupnost; rezervace ani omezené intervaly se nekopírují.
-- Jednoduchá týdenní šablona je uložená lokálně v prohlížeči, takže nevyžaduje novou tabulku ani další env.
+- Jednoduchá týdenní šablona i týdenní koncept jsou uložené lokálně v prohlížeči, takže nevyžadují novou tabulku ani další env; draft se klíčuje podle `area + weekKey`.
 
 ## Ruční QA pro planner
 - Ověř owner i salon variantu `/admin/volne-terminy` a `/admin/provoz/volne-terminy`.
-- Ověř přidání jedné půlhodiny kliknutím do prázdného dne.
+- Ověř, že kliknutí do buňky jen vybere blok pro inspektor a samotnou změnu udělá až tažení nebo akce z inspektoru.
 - Ověř přidání delšího úseku tažením a následné sloučení do jednoho `AvailabilitySlot`.
 - Ověř odebrání části dostupnosti ze zeleného bloku a správné rozdělení na zbylé intervaly.
+- Ověř sticky action bar pro neuložené změny: `Zahodit`, `Uložit koncept`, `Publikovat změny`.
 - Ověř, že zásah do rezervace nebo omezeného slotu vrátí srozumitelnou chybu a nic nepřepíše.
 - Ověř, že slot s historickou rezervací (`CANCELLED`/`COMPLETED`/`NO_SHOW`) planner nebere jako editovatelný a interval zobrazí jako uzamčený.
-- Ověř kopírování dne, kopírování týdne a použití lokální šablony.
+- Ověř kopírování dne, kopírování týdne, použití lokální šablony a obnovení uloženého konceptu po refreshi stejného týdne.

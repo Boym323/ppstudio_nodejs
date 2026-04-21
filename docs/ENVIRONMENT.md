@@ -53,7 +53,8 @@ Dokumentace proměnných prostředí pro lokální vývoj i produkci.
 
 ## Poznámka k týdennímu planneru slotů
 - Týdenní planner dostupností nepřidává žádné nové env proměnné.
-- Přímá editace v 30min gridu, copy day/week i lokální šablona týdne používají stejné existující základy:
+- Přímá editace v 30min gridu, lokální koncept týdne, copy day/week i lokální šablona týdne používají stejné existující základy:
   - `DATABASE_URL`
   - `ADMIN_SESSION_SECRET`
   - bootstrap admin účty pro `OWNER` a `SALON`
+- Koncept týdne i týdenní šablona se ukládají do `localStorage` v browseru; nejsou to env proměnné ani sdílená serverová konfigurace.

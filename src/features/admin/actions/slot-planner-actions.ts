@@ -5,12 +5,14 @@ import { z } from "zod";
 import { type AdminArea } from "@/config/navigation";
 import {
   applyAvailabilitySelection,
+  syncPlannerWeekDraft,
   applyWeeklyTemplate,
   clearPlannerDay,
   copyPlannerDay,
   copyPlannerWeek,
   PlannerMutationError,
   type PlannerMutationResult,
+  type WeeklyDraftInput,
   type WeeklyTemplateInput,
 } from "@/features/admin/lib/admin-slots";
 import { requireAdminSectionAccess } from "@/features/admin/lib/admin-guards";
@@ -48,6 +50,21 @@ const weeklyTemplateSchema = z.object({
   template: z.array(
     z.object({
       weekday: z.number().int().min(0).max(6),
+      intervals: z.array(
+        z.object({
+          startCell: z.number().int().min(0).max(PLANNER_DAY_CELLS),
+          endCell: z.number().int().min(0).max(PLANNER_DAY_CELLS),
+        }),
+      ),
+    }),
+  ),
+});
+
+const weeklyDraftSchema = z.object({
+  weekKey: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  days: z.array(
+    z.object({
+      dateKey: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
       intervals: z.array(
         z.object({
           startCell: z.number().int().min(0).max(PLANNER_DAY_CELLS),
@@ -243,5 +260,33 @@ export async function applyWeeklyTemplateAction(
     return result;
   } catch (error) {
     return mapPlannerError(error, "Šablonu se teď nepodařilo použít.");
+  }
+}
+
+export async function syncPlannerWeekDraftAction(
+  area: AdminArea,
+  rawInput: unknown,
+): Promise<PlannerMutationResult> {
+  const access = await withPlannerAccess(area);
+  const parsed = weeklyDraftSchema.safeParse(rawInput);
+
+  if (!parsed.success) {
+    return {
+      ok: false,
+      message: "Koncept týdne už není platný. Zkuste změny vytvořit znovu.",
+      weekKey: "",
+    };
+  }
+
+  try {
+    const result = await syncPlannerWeekDraft(area, {
+      weekKey: parsed.data.weekKey,
+      days: parsed.data.days as WeeklyDraftInput,
+      actorUserId: access.actorUserId,
+    });
+    revalidatePlanner(area);
+    return result;
+  } catch (error) {
+    return mapPlannerError(error, "Koncept týdne se teď nepodařilo publikovat.");
   }
 }

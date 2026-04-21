@@ -227,9 +227,11 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
   - route `novy`, `detail` a `upravit` zůstávají zachované, ale vrací zpět do planneru ve správném týdnu
 - Slot workflow podporuje:
   - plánování po týdnech s hlavní plochou po dnech a 30min buňkách v pracovním okně `06:00-20:00`
-  - přidání i odebrání dostupnosti kliknutím nebo tažením přímo v mřížce
+  - kliknutím výběr konkrétního bloku a tažením přidání nebo odebrání dostupnosti přímo v mřížce
   - automatické sloučení sousedních půlhodin do souvislých intervalů `AvailabilitySlot`
-  - denní rychlé akce `zkopírovat den`, `nastavit den jako zavřeno`
+  - pravý akční inspektor dne s denním souhrnem, rychlými akcemi a detailem výběru z gridu
+  - denní rychlé akce `zkopírovat den`, `nastavit den jako zavřeno`, `obnovit den z publikovaného stavu`
+  - spodní sticky bar pro `Zahodit`, `Uložit koncept` a `Publikovat změny`
   - týdenní rychlé akce `zkopírovat týden na další` a lokální šablonu týdne uloženou v zařízení
   - zobrazení rezervací, omezených intervalů, neaktivních slotů a minulého času
   - server-side ochranu proti zásahu do rezervací, omezených slotů a překryvům
@@ -237,7 +239,10 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
 ## Stav Sekce Volné Termíny
 - K datu `19. dubna 2026` je sekce `/admin/volne-terminy*` a `/admin/provoz/volne-terminy*` znovu aktivní jako týdenní planner.
 - Hlavní práce probíhá jen přes týdenní kalendář; samostatný formulář pro běžnou úpravu dostupnosti už není potřeba.
+- Aktuální podoba adminu dává prioritu mřížce týdne; levý sidebar je užší a mobil používá drawer pro navigaci.
+- Pravý panel funguje jako akční inspektor; na mobilu se otevírá jako spodní sheet, aby grid zůstal hlavní pracovní plochou.
 - 30min mřížka slouží jen jako editace v admin UI. Do databáze se ukládají souvislé intervaly `startsAt`-`endsAt`, aby zůstala kompatibilita s veřejným booking flow i delšími službami.
+- Neuložené změny se drží lokálně jako koncept týdne pro dané zařízení a týden; do databáze se propíšou až přes akci `Publikovat změny`.
 - Planner přímo neupravuje sloty, které už obsahují rezervace, omezení služeb, poznámky nebo jinou kapacitu než `1`; takové intervaly jsou v kalendáři vidět jako omezené a zůstávají chráněné.
 - Za „obsahují rezervace“ se počítají i historické vazby (`CANCELLED`, `COMPLETED`, `NO_SHOW`), protože slot s navázaným booking záznamem nejde mazat přes FK `Booking.slotId -> AvailabilitySlot.id`.
 - Výchozí týden v planneru je počítaný nad lokálním datem `Europe/Prague`, takže týden vždy začíná pondělím i kolem časových posunů.

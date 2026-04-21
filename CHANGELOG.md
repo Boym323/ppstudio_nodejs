@@ -7,6 +7,9 @@ Formát je inspirovaný Keep a Changelog.
 ## [Unreleased]
 
 ### Added
+- Třetí iteraci admin sekce `Volné termíny / Týdenní plán dostupností` s grid-first layoutem, užším sidebar shell layoutem, akčním inspektorem dne a mobilními drawery pro navigaci i detail.
+- Lokální draft workflow pro týdenní planner: klik výběru bloku, drag editace do konceptu, sticky action bar `Zahodit / Uložit koncept / Publikovat změny` a novou server action synchronizaci celého týdne při publikaci.
+- ADR 0023 pro rozhodnutí kolem draft-first pracovního rozhraní planneru.
 - Samostatnou server action a kompaktní formulář pro interní poznámku rezervace, takže ji lze upravit i bez změny stavu a každá úprava se propíše do auditní historie.
 - ADR 0022 pro rozhodnutí kolem operativního redesignu detailu rezervace.
 - Kompaktní pracovní workspace pro admin sekci `Rezervace` na `/admin/rezervace` a `/admin/provoz/rezervace` s vlastním row-based layoutem místo generického seznamu.
@@ -194,6 +197,8 @@ Formát je inspirovaný Keep a Changelog.
 - Dokumentace byla srovnaná s aktuálním kódem: týdenní planner, `EMAIL_DELIVERY_MODE=background` a produkční migrace přes `prisma migrate deploy`.
 
 ### Fixed
+- Planner už neukládá každé kliknutí okamžitě na server; změny se nejdřív drží v lokálním konceptu týdne, takže při rychlé práci neodskakuje layout ani denní kontext vpravo.
+- Admin shell a sidebar v sekci planneru už nemají zbytečně velkou vizuální váhu; hlavní prostor dostala týdenní mřížka a mobilní navigace se přesunula do draweru.
 - Kalendář v kroku 2 na `/rezervace` už není závislý na locale formátu `Intl.DateTimeFormat().format()`: klíče dnů se teď skládají stabilně přes `formatToParts` do `YYYY-MM-DD`, takže se znovu správně vykreslí měsíce i dostupné dny napříč prostředími/browsery.
 - Krok 2 veřejné rezervace má pro kalendářní mřížku explicitní `gridTemplateColumns: repeat(7, minmax(0, 1fr))` přímo v komponentě, takže při runtime CSS driftu nespadne do jednokolonového layoutu.
 - Admin planner už při aktivním výběru (`Přidáváte/Odebíráte`) neskáče ve layoutu; status box má fixní výšku i v prázdném stavu, takže mřížka zůstává stabilní během kliknutí i tažení.

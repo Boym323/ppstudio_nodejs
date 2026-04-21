@@ -55,7 +55,9 @@ Evidence produkčních incidentů a jejich řešení.
 - Admin sekce `Email logy` je citlivá na rozjezd mezi Prisma schématem a generovaným klientem. Projekt proto nyní před `dev` i `build` automaticky spouští `prisma generate`.
 - Rozbitý týdenní planner po deployi: špatné zachování query parametrů `week/day/panel`, kvůli kterému se obsluha po akci vrací na jiný den nebo na výchozí týden.
 - Rozbitý týdenní planner po deployi: špatné zachování query parametrů `week/day/panel/slot`, kvůli kterému se obsluha po akci vrací na jiný den, jiný slot nebo na výchozí týden.
+- Sticky draft bar nebo badge `Neuloženo`, které zůstávají viset i po návratu ke stejnému týdennímu stavu; indikace se má odvozovat z reálného diffu proti serverovým dnům, ne jen z ručně přepínaného flagu.
 - Batch create vytvářející jen část série: tohle nesmí nastat; workflow má běžet transakčně all-or-nothing.
 - Mobilní planner s nečitelnými touch targety nebo horizontálním scrollem v kartách dnů.
+- Mobilní nebo tabletový inspektor dne, který překryje grid bez možnosti rychlého zavření nebo neukáže vybraný blok po tapnutí.
 - Day workspace otevírající špatný slot po změně filtru stavu nebo týdne.
 - Owner-only sekce `Nastavení` má dopad i na veřejný web a e-mailovou komunikaci; po každé změně je potřeba rychlá smoke kontrola footeru, `/kontakt`, `/faq`, `/storno-podminky` a `/rezervace`.

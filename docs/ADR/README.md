@@ -34,3 +34,6 @@ Sem patří krátké záznamy architektonických rozhodnutí.
 - `0018-admin-client-crm-workflow-v1.md`
 - `0019-admin-service-catalog-operations-v2.md`
 - `0020-admin-service-category-layout-v2.md`
+- `0021-admin-booking-list-density-v1.md`
+- `0022-admin-booking-detail-operations-v2.md`
+- `0023-admin-weekly-planner-workspace-v3.md`

@@ -1077,6 +1077,14 @@ export type WeeklyTemplateInput = Array<{
   }>;
 }>;
 
+export type WeeklyDraftInput = Array<{
+  dateKey: string;
+  intervals: Array<{
+    startCell: number;
+    endCell: number;
+  }>;
+}>;
+
 export async function applyWeeklyTemplate(
   area: AdminArea,
   input: {
@@ -1114,6 +1122,49 @@ export async function applyWeeklyTemplate(
   return {
     ok: true,
     message: "Týdenní šablona byla použitá na právě otevřený týden.",
+    weekKey: input.weekKey,
+  };
+}
+
+export async function syncPlannerWeekDraft(
+  area: AdminArea,
+  input: {
+    weekKey: string;
+    days: WeeklyDraftInput;
+    actorUserId: string | null;
+  },
+): Promise<PlannerMutationResult> {
+  const weekStart = resolveWeekStart(input.weekKey);
+  const allowedDateKeys = new Set(
+    Array.from({ length: 7 }, (_, index) => formatDateKey(addDays(weekStart, index))),
+  );
+
+  await prisma.$transaction(async (tx) => {
+    for (const day of input.days) {
+      if (!allowedDateKeys.has(day.dateKey)) {
+        throw new PlannerMutationError("Koncept obsahuje den mimo aktuálně otevřený týden.");
+      }
+
+      const intervals = day.intervals.map((interval) => {
+        ensureHalfHourCellIndex(interval.startCell);
+        ensureHalfHourCellIndex(interval.endCell);
+
+        if (interval.endCell <= interval.startCell) {
+          throw new PlannerMutationError("Koncept týdne obsahuje prázdný interval.");
+        }
+
+        return getCellRangeBounds(day.dateKey, interval.startCell, interval.endCell);
+      });
+
+      await replaceDayWithIntervals(tx, input.actorUserId, day.dateKey, intervals);
+    }
+  }, {
+    isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+  });
+
+  return {
+    ok: true,
+    message: "Změny týdne byly publikované do dostupností.",
     weekKey: input.weekKey,
   };
 }
