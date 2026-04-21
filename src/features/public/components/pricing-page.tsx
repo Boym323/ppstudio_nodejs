@@ -227,44 +227,6 @@ export function PricingGridSection({ category }: { category: PublicPricingCatego
   );
 }
 
-export function PricingCTA() {
-  return (
-    <section className="py-10 sm:py-14 lg:py-16">
-      <Container>
-        <div className="rounded-[1.9rem] bg-[linear-gradient(135deg,#171413_0%,#1f1b19_46%,#2a2420_100%)] px-6 py-7 text-white shadow-[0_28px_70px_rgba(29,20,13,0.2)] sm:px-8 sm:py-9 lg:flex lg:items-center lg:justify-between lg:gap-8 lg:px-10">
-          <div className="flex max-w-2xl items-start gap-5">
-            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full border border-[#7d6648] text-[#d7b98c]">
-              <CalendarIcon className="h-8 w-8" />
-            </div>
-            <div className="space-y-3">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[#cfae82]">
-                Rezervace bez zbytečných kroků
-              </p>
-              <h2 className="font-display text-[2.1rem] leading-[1.03] tracking-[-0.03em] text-white sm:text-[2.6rem]">
-                Vyberte si službu a termín v několika klidných krocích.
-              </h2>
-            </div>
-          </div>
-          <div className="mt-7 flex flex-col gap-3 sm:flex-row lg:mt-0">
-            <Link
-              href="/rezervace"
-              className="inline-flex min-h-13 items-center justify-center rounded-full bg-[#d9b375] px-7 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#1c150f] hover:brightness-105"
-            >
-              Vybrat termín
-            </Link>
-            <Link
-              href="/kontakt"
-              className="inline-flex min-h-13 items-center justify-center rounded-full border border-white/18 px-7 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-white hover:border-white/35 hover:bg-white/5"
-            >
-              Napsat do studia
-            </Link>
-          </div>
-        </div>
-      </Container>
-    </section>
-  );
-}
-
 export function PricingPage({ categories }: { categories: PublicPricingCategory[] }) {
   const blocks = buildPricingBlocks(categories);
 
@@ -289,7 +251,6 @@ export function PricingPage({ categories }: { categories: PublicPricingCategory[
           })}
         </Container>
       </section>
-      <PricingCTA />
     </div>
   );
 }

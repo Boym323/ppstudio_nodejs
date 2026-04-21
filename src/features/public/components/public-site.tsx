@@ -390,7 +390,6 @@ export async function PublicHomePage({ featuredServices = services.slice(0, 3) }
         </Container>
       </section>
 
-      <CtaBand />
     </div>
   );
 }
@@ -418,7 +417,6 @@ export function ServicesPage({ services: catalogServices = services }: { service
           </div>
         </Container>
       </section>
-      <CtaBand />
     </div>
   );
 }
