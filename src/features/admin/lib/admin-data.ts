@@ -550,8 +550,8 @@ async function getServicesData(area: AdminArea) {
       meta: `${service.category.name} • ${service.durationMinutes} min`,
       description:
         area === "owner"
-          ? `Cena od ${service.priceFromCzk ? `${service.priceFromCzk} Kč` : "nenastavena"}. Slug: ${service.slug}.`
-          : `Cena od ${service.priceFromCzk ? `${service.priceFromCzk} Kč` : "nenastavena"}.`,
+          ? `Cena ${service.priceFromCzk ? `${service.priceFromCzk} Kč` : "nenastavena"}. Slug: ${service.slug}.`
+          : `Cena ${service.priceFromCzk ? `${service.priceFromCzk} Kč` : "nenastavena"}.`,
       badge: service.isActive ? "Aktivní" : "Skryté",
     })),
   };

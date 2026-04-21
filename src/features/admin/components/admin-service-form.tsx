@@ -175,7 +175,7 @@ export function AdminServiceForm(props: EditServiceFormProps | CreateServiceForm
             />
           </Field>
 
-          <Field label="Cena od (Kč)" error={serverState.fieldErrors?.priceFromCzk}>
+          <Field label="Cena (Kč)" error={serverState.fieldErrors?.priceFromCzk}>
             <input
               type="number"
               name="priceFromCzk"
