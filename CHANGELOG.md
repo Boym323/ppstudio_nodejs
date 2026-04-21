@@ -94,6 +94,8 @@ Formát je inspirovaný Keep a Changelog.
 - Týdenní planner dostupností pro `OWNER` i `SALON` nyní zobrazuje rezervace, omezené intervaly, neaktivní sloty i minulý čas v jednom klidném kalendáři.
 
 ### Changed
+- Druhé kolo polish admin dashboardu zvětšilo pracovní plochu overview, potlačilo levou navigaci a přetáhlo důraz na hero kartu `Dnes`, čitelnější timeline a klidnější pravý sidebar.
+- Overview dashboard teď používá větší desktop workspace rytmus: silnější hero, delší CTA, kompaktnější pravý panel a sekundárnější spodní KPI.
 - Admin overview už nepoužívá generický hero se statistikami; nově je to tmavý SaaS-style dashboard zaměřený na dnešek, další klientku, čekající potvrzení a nejbližší volná okna.
 - Levý admin sidebar dostal jemně utažený spacing, aby vedle nového dashboard workspace působil kompaktněji a nechával víc prostoru samotnému obsahu.
 - Detail rezervace na `/admin/rezervace/[bookingId]` a `/admin/provoz/rezervace/[bookingId]` už není dlouhá hero/detail stránka; nově používá sticky header, jeden kompaktní souhrn, akční zónu, oddělené poznámky a hustší timeline historie.

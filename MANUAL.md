@@ -146,6 +146,7 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
   - střed stránky drží `Dnešní plán` s mixem rezervací a volných oken, aby bylo během pár sekund jasné, co se dnes děje
   - pravý sidebar soustředí rychlý přehled, počty čekajících potvrzení, nejbližší publikované sloty pro dnes/zítra a 4 rychlé akce
   - data jsou server-rendered a připravená na další napojení, ale bez přidání nové klientské state vrstvy
+  - druhé kolo UI polish posunulo dashboard blíž desktop workspace režimu: hero karta je výraznější, timeline má silnější vertikální rytmus, pravý sidebar méně štěpí plochu a spodní KPI zůstávají záměrně sekundární
 - Sekce `Rezervace` je nyní přepracovaná jako kompaktní pracovní seznam na `/admin/rezervace` a `/admin/provoz/rezervace`:
   - místo vysokých karet používá hustý řádkový grid se sloupci `Rezervace`, `Čas`, `Status`, `Zdroj`, `Kontakt`, `Akce`
   - každá rezervace drží klientku + službu a datum + čas ve dvou krátkých řádcích bez zbytečné výšky

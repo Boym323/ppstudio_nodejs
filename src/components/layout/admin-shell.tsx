@@ -36,16 +36,16 @@ export function AdminShell({ children, currentRole, userName }: AdminShellProps)
 
       <div
         className={cn(
-          "mx-auto grid w-full items-start gap-4 px-4 py-4 sm:px-6 sm:py-6 lg:gap-5 lg:px-7",
-          "max-w-[min(100%,1820px)] lg:grid-cols-[232px_minmax(0,1fr)] xl:grid-cols-[236px_minmax(0,1fr)]",
+          "mx-auto grid min-h-screen w-full items-start gap-4 px-4 py-4 sm:px-6 sm:py-6 lg:gap-6 lg:px-6 lg:py-5 xl:px-7",
+          "max-w-[min(100%,1860px)] lg:grid-cols-[224px_minmax(0,1fr)] xl:grid-cols-[228px_minmax(0,1fr)]",
         )}
       >
-        <aside className="hidden rounded-[1.5rem] border border-white/8 bg-white/[0.04] p-3.5 backdrop-blur-xl lg:sticky lg:top-6 lg:block">
+        <aside className="hidden rounded-[1.5rem] border border-white/7 bg-white/[0.03] p-3 backdrop-blur-xl lg:sticky lg:top-5 lg:block">
           <AdminSidebarNav currentRole={currentRole} userName={userName} />
           <form action="/api/auth/logout" method="post" className="mt-5">
             <button
               type="submit"
-              className="w-full rounded-full border border-white/10 bg-white/[0.03] px-4 py-2.5 text-sm text-white/74 transition hover:border-white/20 hover:bg-white/[0.06] hover:text-white"
+              className="w-full rounded-full border border-white/8 bg-white/[0.025] px-4 py-2.5 text-sm text-white/66 transition hover:border-white/16 hover:bg-white/[0.05] hover:text-white"
             >
               Odhlásit se
             </button>

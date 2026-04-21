@@ -90,6 +90,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - spodní KPI
   - pravý sidebar stats / pending / upcoming slots / quick actions
 - `admin-section-page.tsx` dál obsluhuje generické nebo sekundární sekce; overview už na něj nenavazuje.
+- Druhé kolo visual polish overview je čistě prezentační: neměň read model ani sekce, pokud ladíš jen proporce, spacing, typografii nebo card rhythm.
 - `src/features/admin/components/admin-booking-detail-page.tsx` skládá detail rezervace jako serverový read layout; v aktuální verzi používá pět bloků `sticky header -> souhrn -> akce -> poznámky -> historie` a nemá znovu vracet paralelní souhrnné sekce se stejným obsahem.
 - `src/features/admin/components/admin-booking-status-form.tsx` zůstává malou klientskou vrstvou jen pro interaktivní výběr akce a submit server action; při dalších úpravách nenechávej zbytečně růst klientský bundle mimo tenhle formulář.
 - `src/features/admin/components/admin-booking-note-form.tsx` je oddělená klientská vrstva jen pro samostatnou editaci interní poznámky rezervace; drž ji bez dalších provozních rozhodnutí nebo statusové logiky.
