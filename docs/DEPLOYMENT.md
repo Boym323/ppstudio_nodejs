@@ -17,6 +17,13 @@ Postup nasazení aplikace do produkce.
 12. Ověř aktuálnost dokumentace (`MANUAL.md`, `docs/*`)
 13. Projdi ruční QA veřejného webu na mobilu i desktopu:
    - homepage
+   - `/o-mne`:
+     - výrazný hero s oběma CTA
+     - čitelnost badge služeb na mobilu
+     - rozumný crop hlavní fotografie nebo elegantní fallback placeholder
+     - CTA kartu v sekci „Co vás u mě čeká“
+     - sekci certifikací s reálnými daty i bez nich
+     - finální tmavý CTA blok
    - služby a detail služby
    - kontakt
    - FAQ a právní stránky
@@ -66,7 +73,7 @@ Postup nasazení aplikace do produkce.
      - propsání kontaktů do footeru a `/kontakt`
      - propsání storno limitu do `/faq` a `/storno-podminky`
      - propsání booking limitů do `/rezervace`
-   - certifikátový modul na `/admin/certifikaty` a `/admin/provoz/certifikaty`:
+  - certifikátový modul na `/admin/certifikaty` a `/admin/provoz/certifikaty`:
      - upload podporovaného obrázku
      - smazání certifikátu
      - propsání změn na `/o-mne`

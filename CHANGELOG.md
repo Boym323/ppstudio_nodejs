@@ -137,6 +137,10 @@ Formát je inspirovaný Keep a Changelog.
 - Klientská success obrazovka, submit CTA a potvrzovací e-mail wording byly přepsané na režim „rezervace přijata ke schválení“ místo okamžitého potvrzení.
 - Databázová ochrana duplicit rezervací byla zpřesněná: místo širokého `UNIQUE(slotId, clientId)` nyní platí partial unique index `Booking_exact_duplicate_active_key`, který blokuje jen přesně duplicitní aktivní interval stejného klienta (`slotId + clientId + scheduledStartsAt + scheduledEndsAt` pro `PENDING/CONFIRMED`).
 - Krok 2 veřejného rezervačního formuláře už nebere celý publikovaný interval jako jediný termín; nově nabízí konkrétní starty po 30 minutách uvnitř volného okna (např. 09:00, 09:30, 10:00) podle délky vybrané služby a aktuální kapacity.
+- Stránka `/o-mne` byla kompletně přepracovaná do výrazně konverznější landing-page skladby `hero -> proč právě PP Studio -> příběh -> přístup -> co vás čeká + CTA -> certifikace -> finální CTA`.
+- Hero sekce `/o-mne` nově vytahuje CTA výš, používá badge služeb a podporuje reálnou brand fotografii z `public/brand/ppstudio-portrait.jpg` se záložním elegantním placeholderem.
+- Obsahový model `aboutContent` v `src/content/public-site.ts` byl rozšířený o novou IA stránky (`whyChooseMe`, hero CTA/badges, zjednodušený story/approach/expectations flow).
+- Galerie certifikátů na `/o-mne` nově funguje i bez nahraných admin certifikátů: renderuje placeholder karty a je připravená na pozdější napojení na reálná data bez další změny layoutu.
 - Veřejné vytvoření rezervace nyní přijímá explicitní `startsAt` z formuláře a server-side potvrzuje, že zvolený interval opravdu leží uvnitř slotu a nekoliduje s existujícími rezervacemi.
 - Veřejný web už nikde nezobrazuje přímý odkaz do admin přihlášení (`/admin/prihlaseni`); z hlavičky i homepage CTA zůstává jen klientská cesta k rezervaci.
 - Krok 2 veřejného booking flow byl přepracovaný na variantu kalendář + seznam časů: klientka nejdřív vybere den v měsíčním kalendáři a pak konkrétní čas pro daný den.

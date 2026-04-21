@@ -52,7 +52,9 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - `ContactMobileStickyCTA`
 - Kontakt data (`buildContactItems`) drží i provozní mikrocopy a Google Maps deep-link pro adresu; aktuální skladba stránky používá především map preview a pravý quick contact panel.
 - Stránka `/o-mne` už neběží jako jeden blok v `public-site.tsx`; vlastní skladba je v `src/features/public/components/about-page.tsx`.
-- `aboutContent` v `src/content/public-site.ts` používá strukturovaný model (`profile`, `story`, `approach`, `expectations`, `cta`), aby bylo možné copy upravovat bez zásahu do layoutu.
+- Stránka `/o-mne` je nově rozdělená do sekcí `HeroSection`, `WhyChooseMeSection`, `StorySection`, `ApproachSection`, `WhatToExpectSection`, `CertificationsSection` a `FinalCtaSection`, aby šlo pracovat s hierarchií i konverzními body bez monolitického JSX bloku.
+- `aboutContent` v `src/content/public-site.ts` používá strukturovaný model (`profile`, `whyChooseMe`, `story`, `approach`, `expectations`, `cta`), aby bylo možné copy i CTA upravovat bez zásahu do layoutu.
+- Certifikace na `/o-mne` berou public data z `src/features/public/lib/public-certificates.ts`, ale UI je záměrně připravené i na nulový stav pomocí placeholder karet v `AboutCertificatesGallery`.
 - Pro konzistentní vizuální rytmus napříč veřejnými stránkami drž hlavní obsah v jednotném wrapperu `Container` (`max-w-7xl`) a vyhýbej se dalším globálním zúžením přes `mx-auto max-w-*` na úrovni celé sekce.
 - Pro konzistentní spacing preferuj na veřejných stránkách vertikální rytmus `py-10 / sm:py-14 / lg:py-16`; větší rozestupy používej jen tam, kde mají jasný obsahový důvod (např. hero nebo výrazný CTA blok).
 - Placeholder obsah musí být jasně odlišen od finálních produkčních textů.
@@ -60,7 +62,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - CTA na rezervaci držet konzistentně v headeru, hero sekcích a kontextových blocích.
 - U homepage copy preferovat strukturu, která se už historicky osvědčila: jasný lokální hero claim, dvě primární akce (rezervace + ceník) a blok „nejste si jistá výběrem“, který snižuje bariéru první rezervace.
 - Pokud homepage potřebuje logo/fotku majitelky, nastav to v `homepageContent` (`logoImage`, `portraitImage`) a používej lokální soubory z `public/brand`, aby nebyla závislost na externím hostingu.
-- Pro vizuální přiblížení starému webu drž hero variantu jen pro homepage (`logoImage` + `portraitImage`), zatímco ostatní public stránky mají zůstat v obecné hero variantě bez portrait-first kompozice.
+- Stránka `/o-mne` je výjimka z obecného pravidla „bez portrait-first kompozice“: může používat výraznější dvousloupcový hero s portrétem majitelky, pokud to pomáhá důvěře a rychlejšímu rozhodnutí klientky.
 - Statické soubory v `public/brand` jsou vhodné jen pro ručně verzované assety projektu; admin uploady mají používat sdílenou media vrstvu a model `MediaAsset`.
 
 ## Auth Strategie

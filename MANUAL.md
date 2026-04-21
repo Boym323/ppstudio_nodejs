@@ -117,7 +117,13 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
   - spodní část kontaktu kombinuje mapový náhled a quick contact blok s telefonem, e-mailem, Instagramem a údajem o provozovateli
   - spodní CTA blok rozlišuje dvě cesty rozhodnutí (rovnou rezervace vs. nejdřív kontakt)
   - na mobilu je dole sticky CTA lišta s rychlou rezervací, voláním a e-mail kontaktem
-- Stránka `/o-mne` má vlastní modulární implementaci s profilem, příběhem, přístupem, očekáváními a jemným CTA; texty jsou připravené v `aboutContent`.
+- Stránka `/o-mne` je nově poskládaná jako scan-friendly landing page:
+  - výraznější hero s dvěma CTA a badge služeb
+  - stručná sekce „Proč právě PP Studio“
+  - kratší příběh, samostatný blok přístupu a obsahově silnější sekce „Co vás u mě čeká“
+  - samostatná mřížka certifikací, která funguje i bez finálních admin dat díky placeholder kartám
+  - kontrastní finální CTA blok na konci stránky
+- Texty a struktura stránky `O mně` jsou centralizované v `aboutContent`; layout počítá s polem `whyChooseMe`, hero badge, CTA kartou i pozdějším napojením certifikací na admin data bez dalšího přepisu sekcí.
 - Homepage copy teď vědomě navazuje na konverzně funkční strukturu starého webu (`služba + lokalita`, rychlé CTA na rezervaci/ceník, sekce pro nejistý výběr služby), ale běží na současném komponentovém základu.
 - Homepage hero podporuje i vizuální brand prvky přes obsahový config (`logoImage`, `portraitImage` v `src/content/public-site.ts`); lokální assety jsou v `public/brand/`.
 - Homepage hero lze obsahově ladit blíž původnímu webu přes `homepageContent` (`benefits`, `ctaNote`) bez zásahu do routy.

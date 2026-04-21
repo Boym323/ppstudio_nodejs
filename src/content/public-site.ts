@@ -47,10 +47,28 @@ export type LinkItem = {
 };
 
 export type AboutProfile = {
-  name: string;
-  role: string;
+  eyebrow: string;
+  headline: string;
   intro: string;
-  specialties: string[];
+  primaryCta: LinkItem;
+  secondaryCta: LinkItem;
+  badges: string[];
+  image: {
+    src: string;
+    alt: string;
+    width: number;
+    height: number;
+  } | null;
+};
+
+export type AboutBenefitItem = {
+  title: string;
+};
+
+export type AboutWhyChooseMeSection = {
+  eyebrow: string;
+  title: string;
+  items: AboutBenefitItem[];
 };
 
 export type AboutStorySection = {
@@ -67,15 +85,14 @@ export type AboutValueItem = {
 export type AboutApproachSection = {
   eyebrow: string;
   title: string;
-  paragraphs: string[];
+  intro: string;
   values: AboutValueItem[];
 };
 
 export type AboutExpectationsSection = {
   eyebrow: string;
   title: string;
-  description: string;
-  brandNote: string;
+  paragraphs: string[];
   items: string[];
   closing: string;
 };
@@ -90,6 +107,7 @@ export type AboutCtaSection = {
 
 export type AboutContent = {
   profile: AboutProfile;
+  whyChooseMe: AboutWhyChooseMeSection;
   story: AboutStorySection;
   approach: AboutApproachSection;
   expectations: AboutExpectationsSection;
@@ -197,27 +215,43 @@ export const homepageContent = {
 
 export const aboutContent: AboutContent = {
   profile: {
-    name: 'Pavlína Pomykalová',
-    role: 'Majitelka PP Studia · Cosmetics & Laminations',
+    eyebrow: 'O mně',
+    headline: 'Péče o pleť a výraz,\nkterá dává smysl i v běžném dni.',
     intro:
-      'Vytvořila jsem místo, kde se můžete zastavit, nadechnout a dopřát si chvíli jen pro sebe. Chci, aby návštěva působila příjemně od prvního kontaktu až po výsledek, se kterým budete spokojená i v běžném dni.',
-    specialties: ['Lash lifting', 'Laminace obočí', 'Kosmetické ošetření', 'Lymfatická masáž obličeje'],
+      'Jmenuji se Pavlína Pomykalová a v PP Studiu vytvářím klidné místo pro ženy, které chtějí profesionální péči, přirozený výsledek a přístup bez zbytečného spěchu.',
+    primaryCta: { href: '/rezervace', label: 'Rezervovat termín' },
+    secondaryCta: { href: '/kontakt', label: 'Napsat do studia' },
+    badges: ['Lash lifting', 'Laminace obočí', 'Kosmetické ošetření', 'Lymfatická masáž obličeje'],
+    image: {
+      src: '/brand/ppstudio-portrait.jpg',
+      alt: 'Pavlína Pomykalová v prostředí PP Studia',
+      width: 640,
+      height: 960,
+    },
+  },
+  whyChooseMe: {
+    eyebrow: 'Proč právě PP Studio',
+    title: 'Proč si klientky vybírají právě mě',
+    items: [
+      { title: 'Osobní přístup bez tlaku a bez spěchu' },
+      { title: 'Doporučení podle skutečné potřeby, ne podle šablony' },
+      { title: 'Přirozený výsledek, který vám bude sedět' },
+      { title: 'Péče, ve které se můžete cítit dobře od začátku do konce' },
+    ],
   },
   story: {
     eyebrow: 'Můj příběh',
     title: 'Profesní cesta, která začala rozhodnutím dělat práci poctivě a osobně.',
     paragraphs: [
-      'Moje profesní cesta v beauty světě se začala psát v roce 2024. Právě tehdy jsem se rozhodla v tomto oboru pokračovat naplno a postupně si vybudovat pevný odborný základ.',
-      'V roce 2025, po dosažení kvalifikací, jsem zahájila aktivní praxi. Od začátku pro mě bylo důležité vytvářet péči, která není jen o proceduře samotné, ale i o pocitu klidu, jistoty a důvěry.',
+      'Moje cesta v beauty oboru začala v roce 2024, kdy jsem se rozhodla věnovat této práci naplno. Po získání potřebných kvalifikací jsem v roce 2025 zahájila aktivní praxi a začala budovat vlastní přístup ke klientské péči.',
+      'Od začátku pro mě bylo důležité, aby každá návštěva nebyla jen procedurou, ale také chvílí klidu, důvěry a příjemného zastavení. Právě na tom stavím PP Studio i svou každodenní práci.',
     ],
   },
   approach: {
     eyebrow: 'Můj přístup',
-    title: 'Péče, která stojí na empatii, přesnosti a výsledku, který vám bude sedět.',
-    paragraphs: [
-      'Věřím, že obličej je zrcadlem naší duše. Mým cílem je podporovat ženské sebevědomí, ušetřit vám čas v každodenní rutině a nabídnout péči, která prospívá nejen vzhledu, ale i celkovému pocitu.',
-      'Ke každé klientce přistupuji s respektem a empatií. Doporučuji jen to, co skutečně dává smysl, funguje v praxi a odpovídá tomu, co od návštěvy očekáváte.',
-    ],
+    title: 'Péče, která stojí na respektu, empatii a výsledku.',
+    intro:
+      'Věřím, že dobrá péče není jen o technice, ale i o tom, jak se během ní cítíte. Chci, abyste odcházela upravená, spokojená a s výsledkem, který vám bude opravdu sedět.',
     values: [
       {
         title: 'Respekt',
@@ -234,26 +268,26 @@ export const aboutContent: AboutContent = {
     ],
   },
   expectations: {
-    eyebrow: 'Na co se můžete těšit',
+    eyebrow: 'Co vás u mě čeká',
     title: 'Jemná, profesionální péče v prostředí, kde není potřeba nikam spěchat.',
-    description:
+    paragraphs: [
       'Pracuji s českou kosmetikou FOR LIFE & MADAGA, která vychází z francouzských základů a stojí na kvalitě, šetrnosti a promyšlené profesionální péči.',
-    brandNote:
-      'Kromě značky samotné je pro mě důležitý i způsob práce: srozumitelný průběh, citlivé doporučení a výsledek, který působí upraveně, ale pořád přirozeně.',
+      'Stejně důležitý je pro mě ale i samotný průběh návštěvy: srozumitelně vysvětlený postup, citlivé doporučení a výsledek, který působí upraveně, ale stále přirozeně.',
+    ],
     items: [
       'profesionální péče o pleť podle aktuální potřeby',
-      'laminace obočí pro upravený a přirozený výraz',
-      'lash lifting pro otevřenější pohled bez každodenní námahy',
-      'uvolňovací lymfatická masáž obličeje pro lehkost a komfort',
+      'přirozeně upravený vzhled bez zbytečného přehánění',
+      'lash lifting a laminace pro jednodušší každodenní rutinu',
+      'lymfatická masáž obličeje pro lehkost, uvolnění a komfort',
     ],
     closing:
-      'Těším se na každé naše setkání. Praxi lze podpořit vášní, talentem, důsledností, estetickým cítěním i odhodláním, které do každé své práce dávám.',
+      'Do každé péče dávám důslednost, estetické cítění i poctivý zájem o to, aby vám výsledek opravdu vyhovoval.',
   },
   cta: {
     eyebrow: 'Rezervace',
     title: 'Pokud vám je tenhle přístup blízký, můžete si rovnou vybrat termín.',
     description:
-      'Rezervaci dokončíte online v několika klidných krocích. Pokud si zatím nejste jistá volbou služby, ráda vám pomohu i předem.',
+      'Rezervaci dokončíte online v několika klidných krocích. A pokud si zatím nejste jistá volbou služby, ráda vám pomohu předem.',
     primaryCta: { href: '/rezervace', label: 'Rezervovat termín' },
     secondaryCta: { href: '/kontakt', label: 'Napsat do studia' },
   },
