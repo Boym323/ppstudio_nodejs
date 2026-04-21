@@ -22,18 +22,18 @@ export function AdminBookingNoteForm({
   );
 
   return (
-    <form action={formAction} className="space-y-4">
+    <form action={formAction} className="space-y-3">
       <input type="hidden" name="area" value={area} />
       <input type="hidden" name="bookingId" value={bookingId} />
 
       {serverState.status === "success" && serverState.successMessage ? (
-        <div className="rounded-[1rem] border border-emerald-300/20 bg-emerald-400/10 px-4 py-3 text-sm leading-6 text-emerald-50">
+        <div className="rounded-[0.9rem] border border-emerald-300/16 bg-emerald-400/10 px-3 py-2 text-sm leading-5 text-emerald-50">
           {serverState.successMessage}
         </div>
       ) : null}
 
       {serverState.status === "error" && serverState.formError ? (
-        <div className="rounded-[1rem] border border-red-300/20 bg-red-400/10 px-4 py-3 text-sm leading-6 text-red-50">
+        <div className="rounded-[0.9rem] border border-red-300/16 bg-red-400/10 px-3 py-2 text-sm leading-5 text-red-50">
           {serverState.formError}
         </div>
       ) : null}
@@ -42,14 +42,14 @@ export function AdminBookingNoteForm({
         <span className="text-sm font-medium text-white">Interní poznámka</span>
         <textarea
           name="internalNote"
-          rows={5}
+          rows={3}
           maxLength={1000}
           defaultValue={initialValue}
           placeholder="Např. citlivost na čas, preferovaný kontakt nebo krátký provozní kontext pro tým."
-          className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm leading-6 text-white outline-none transition placeholder:text-white/32 focus:border-[var(--color-accent)]/60"
+          className="mt-2 w-full rounded-[1rem] border border-white/8 bg-black/20 px-3.5 py-2 text-sm leading-5 text-white outline-none transition placeholder:text-white/30 focus:border-[var(--color-accent)]/55"
         />
-        <span className="mt-2 block text-xs leading-5 text-white/46">
-          Poznámka zůstává interní a každé uložení se propíše do auditní historie.
+        <span className="mt-1.5 block text-xs leading-4 text-white/40">
+          Interní poznámka s auditní stopou.
         </span>
         {serverState.fieldErrors?.internalNote ? (
           <p className="mt-2 text-sm text-red-300">{serverState.fieldErrors.internalNote}</p>
@@ -67,7 +67,7 @@ function SubmitButton({ hasValue }: { hasValue: boolean }) {
   return (
     <button
       type="submit"
-      className="rounded-full bg-[var(--color-accent)] px-5 py-3 text-sm font-semibold text-[var(--color-accent-contrast)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-70"
+      className="rounded-full bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-[var(--color-accent-contrast)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-70"
       disabled={pending}
     >
       {pending ? "Ukládám poznámku..." : hasValue ? "Upravit poznámku" : "Přidat poznámku"}

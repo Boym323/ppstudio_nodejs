@@ -23,6 +23,7 @@ type AdminPanelProps = {
   description?: string;
   children: React.ReactNode;
   compact?: boolean;
+  denseHeader?: boolean;
 };
 
 type AdminKeyValueListProps = {
@@ -99,6 +100,7 @@ export function AdminPanel({
   description,
   children,
   compact = false,
+  denseHeader = false,
 }: AdminPanelProps) {
   return (
     <section
@@ -107,13 +109,22 @@ export function AdminPanel({
         compact ? "p-5" : "p-6",
       )}
     >
-      <div className="border-b border-white/10 pb-4">
-        <h3 className="font-display text-2xl text-white sm:text-3xl">{title}</h3>
+      <div className={cn("border-b border-white/10", denseHeader ? "pb-3" : "pb-4")}>
+        <h3
+          className={cn(
+            "font-display text-white",
+            denseHeader ? "text-[1.4rem] sm:text-[1.55rem]" : "text-2xl sm:text-3xl",
+          )}
+        >
+          {title}
+        </h3>
         {description ? (
-          <p className="mt-3 max-w-3xl text-sm leading-6 text-white/66">{description}</p>
+          <p className={cn("max-w-3xl text-sm text-white/66", denseHeader ? "mt-2 leading-5" : "mt-3 leading-6")}>
+            {description}
+          </p>
         ) : null}
       </div>
-      <div className="pt-4">{children}</div>
+      <div className={denseHeader ? "pt-3" : "pt-4"}>{children}</div>
     </section>
   );
 }
