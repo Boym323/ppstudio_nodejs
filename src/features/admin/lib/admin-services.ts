@@ -15,7 +15,10 @@ function normalizeSearchParams(searchParams?: Record<string, string | string[] |
     status: typeof searchParams?.status === "string" ? searchParams.status : undefined,
     bookable: typeof searchParams?.bookable === "string" ? searchParams.bookable : undefined,
     sort: typeof searchParams?.sort === "string" ? searchParams.sort : undefined,
+    category: typeof searchParams?.category === "string" ? searchParams.category : undefined,
     serviceId: typeof searchParams?.serviceId === "string" ? searchParams.serviceId : undefined,
+    mode: typeof searchParams?.mode === "string" ? searchParams.mode : undefined,
+    mobileDetail: typeof searchParams?.mobileDetail === "string" ? searchParams.mobileDetail : undefined,
   });
 
   const defaults = {
@@ -23,7 +26,10 @@ function normalizeSearchParams(searchParams?: Record<string, string | string[] |
     status: "all" as ServiceListStatusValue,
     bookable: "all" as ServiceListBookableValue,
     sort: "category" as ServiceListSortValue,
+    category: undefined as string | undefined,
     serviceId: undefined as string | undefined,
+    mode: "list" as "list" | "create",
+    mobileDetail: "0" as "0" | "1",
   };
 
   if (!parsed.success) {
@@ -35,7 +41,10 @@ function normalizeSearchParams(searchParams?: Record<string, string | string[] |
     status: parsed.data.status ?? defaults.status,
     bookable: parsed.data.bookable ?? defaults.bookable,
     sort: parsed.data.sort ?? defaults.sort,
+    category: parsed.data.category,
     serviceId: parsed.data.serviceId,
+    mode: parsed.data.mode ?? defaults.mode,
+    mobileDetail: parsed.data.mobileDetail ?? defaults.mobileDetail,
   };
 }
 
@@ -56,6 +65,10 @@ function buildServiceWhere(filters: ReturnType<typeof normalizeSearchParams>): P
 
   if (filters.bookable === "private") {
     where.isPubliclyBookable = false;
+  }
+
+  if (filters.category) {
+    where.categoryId = filters.category;
   }
 
   if (filters.query) {
@@ -79,11 +92,62 @@ function buildServiceOrderBy(sort: ServiceListSortValue): Prisma.ServiceOrderByW
     case "price":
       return [{ priceFromCzk: "asc" }, { name: "asc" }];
     case "order":
-      return [{ sortOrder: "asc" }, { name: "asc" }];
+      return [{ category: { sortOrder: "asc" } }, { sortOrder: "asc" }, { name: "asc" }];
     case "category":
     default:
       return [{ category: { sortOrder: "asc" } }, { sortOrder: "asc" }, { name: "asc" }];
   }
+}
+
+function describeServiceWarnings(service: {
+  isActive: boolean;
+  isPubliclyBookable: boolean;
+  priceFromCzk: number | null;
+  shortDescription: string | null;
+  category: {
+    isActive: boolean;
+  };
+}) {
+  const warnings: string[] = [];
+
+  if (service.isActive && !service.category.isActive) {
+    warnings.push("Služba je aktivní, ale její kategorie je vypnutá.");
+  }
+
+  if (service.isPubliclyBookable && (!service.isActive || !service.category.isActive)) {
+    warnings.push("Je označená jako veřejná, ale klientka ji teď stejně neuvidí.");
+  }
+
+  if (service.priceFromCzk === null) {
+    warnings.push("Chybí cena.");
+  }
+
+  if (!service.shortDescription || service.shortDescription.trim().length < 12) {
+    warnings.push("Krátký popis je příliš stručný nebo chybí.");
+  }
+
+  return warnings;
+}
+
+function buildServiceContext(service: {
+  isActive: boolean;
+  isPubliclyBookable: boolean;
+  _count: {
+    bookings: number;
+    allowedAvailabilitySlots: number;
+  };
+}) {
+  if (!service.isActive) {
+    return "Služba je vypnutá a zůstává jen pro interní evidenci nebo pozdější návrat.";
+  }
+
+  if (service.isPubliclyBookable) {
+    return service._count.bookings > 0
+      ? `Veřejně nabízená služba s historií ${service._count.bookings} rezervací.`
+      : "Veřejně nabízená služba připravená pro web i booking flow.";
+  }
+
+  return "Interní nebo připravovaná služba, která se klientkám ve veřejné rezervaci neukazuje.";
 }
 
 export async function getAdminServicesPageData(
@@ -114,6 +178,7 @@ export async function getAdminServicesPageData(
             id: true,
             name: true,
             isActive: true,
+            sortOrder: true,
           },
         },
         _count: {
@@ -131,11 +196,28 @@ export async function getAdminServicesPageData(
         name: true,
         isActive: true,
         sortOrder: true,
+        _count: {
+          select: {
+            services: true,
+          },
+        },
       },
     }),
   ]);
 
-  const selectedServiceId = filters.serviceId ?? services[0]?.id;
+  const servicesWithMeta = services.map((service) => {
+    const warnings = describeServiceWarnings(service);
+
+    return {
+      ...service,
+      warnings,
+      operationalContext: buildServiceContext(service),
+      isEffectivelyVisible: service.isActive && service.isPubliclyBookable && service.category.isActive,
+      problemCount: warnings.length,
+    };
+  });
+
+  const selectedServiceId = filters.mode === "create" ? undefined : filters.serviceId ?? servicesWithMeta[0]?.id;
 
   const selectedService = selectedServiceId
     ? await prisma.service.findUnique({
@@ -146,6 +228,7 @@ export async function getAdminServicesPageData(
               id: true,
               name: true,
               isActive: true,
+              sortOrder: true,
             },
           },
           _count: {
@@ -158,37 +241,50 @@ export async function getAdminServicesPageData(
       })
     : null;
 
+  const problematicCount = servicesWithMeta.filter((service) => service.problemCount > 0).length;
+  const stats: Array<{
+    label: string;
+    value: string;
+    tone?: "default" | "accent" | "muted";
+    detail: string;
+  }> = [
+    {
+      label: "Aktivní služby",
+      value: String(activeCount),
+      tone: "accent",
+      detail: "Služby, které zůstávají k dispozici pro běžný provoz nebo další plánování.",
+    },
+    {
+      label: "Neaktivní služby",
+      value: String(inactiveCount),
+      tone: "muted",
+      detail: "Dočasně vypnuté nebo historicky ponechané služby, které zůstávají v katalogu.",
+    },
+    {
+      label: "Veřejně rezervovatelné",
+      value: String(publicCount),
+      tone: "default",
+      detail: "Služby označené pro veřejnou rezervaci, i když některé mohou být skryté přes stav nebo kategorii.",
+    },
+    {
+      label: "Jen interní / problémové",
+      value: String(privateCount + problematicCount),
+      tone: privateCount + problematicCount > 0 ? "accent" : "muted",
+      detail: "Součet interních služeb a položek, které si říkají o rychlou kontrolu.",
+    },
+  ];
+
   return {
     area,
     filters,
-    stats: [
-      {
-        label: "Aktivní služby",
-        value: String(activeCount),
-        tone: "accent" as const,
-        detail: "Služby, které zůstávají dostupné pro interní práci a další navazující flow.",
-      },
-      {
-        label: "Neaktivní služby",
-        value: String(inactiveCount),
-        tone: "muted" as const,
-        detail: "Služby dočasně vypnuté nebo historicky ponechané v katalogu.",
-      },
-      {
-        label: "Veřejně rezervovatelné",
-        value: String(publicCount),
-        detail: "Tyto služby se mohou objevit ve veřejném booking flow, pokud jsou zároveň aktivní.",
-      },
-      {
-        label: "Jen interní / skryté",
-        value: String(privateCount),
-        tone: "muted" as const,
-        detail: "Hodí se pro provozní nebo připravované služby bez veřejné rezervace.",
-      },
-    ],
-    services,
+    stats,
+    services: servicesWithMeta,
     categories,
     selectedService,
+    draftCategoryId:
+      filters.category && categories.some((category) => category.id === filters.category)
+        ? filters.category
+        : categories.find((category) => category.isActive)?.id ?? categories[0]?.id,
     currentPath: area === "owner" ? "/admin/sluzby" : "/admin/provoz/sluzby",
   };
 }

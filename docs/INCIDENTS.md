@@ -38,6 +38,8 @@ Evidence produkčních incidentů a jejich řešení.
 - Mylný předpoklad, že admin změna služby automaticky aktualizuje i veřejné stránky `/sluzby` a `/cenik`; ten je už vyřešený, veřejný katalog teď čte z DB v request-time.
 - Omylem smazaná kategorie se službami; tohle má být nyní systémově blokované a provoz má místo toho použít deaktivaci.
 - Neočekávané rozjetí pořadí kategorií mezi adminem a veřejným katalogem po ruční DB úpravě `sortOrder`.
+- Rozbitá quick action v admin sekci `Služby` nebo `Kategorie služeb`, která by po kliknutí nevrátila obsluhu do stejného filtrovaného kontextu; po změnách vždy ověř query-driven návrat na seznam.
+- Mobilní admin detail služeb nebo kategorií otevřený pod seznamem místo odděleného flow; po UI zásahu vždy ověř, že se na mobilu používá samostatný detailový režim.
 - Sender e-mail upravený v admin sekci `Nastavení` na adresu, kterou SMTP provider ve skutečnosti nepovoluje; výsledek budou opakované `EmailLog.status = FAILED`.
 - Přehnaně přísný minimální předstih nebo příliš krátký horizont rezervace ve `SiteSettings`, kvůli kterému veřejný booking náhle schová skoro všechny sloty.
 - Rozbitý reset vybraného času při změně dne v kroku 2 `/rezervace`, kvůli kterému by souhrn nebo hidden inputs držely stale `startsAt` mimo aktuálně zobrazený den.

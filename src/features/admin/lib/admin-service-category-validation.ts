@@ -8,11 +8,15 @@ export const serviceCategoryListSearchParamsSchema = z.object({
   status: z.enum(serviceCategoryListStatusValues).optional(),
   sort: z.enum(serviceCategoryListSortValues).optional(),
   categoryId: z.string().trim().max(64).optional(),
+  mode: z.enum(["list", "create"]).optional(),
+  mobileDetail: z.enum(["0", "1"]).optional(),
 });
 
 export const updateServiceCategorySchema = z.object({
   area: z.enum(["owner", "salon"]),
   categoryId: z.string().trim().min(1).max(64),
+  returnTo: z.string().trim().min(1).max(400).optional(),
+  intent: z.enum(["save", "save-close"]).optional(),
   name: z
     .string()
     .trim()
@@ -29,6 +33,23 @@ export const updateServiceCategorySchema = z.object({
     .int("Pořadí musí být celé číslo.")
     .min(0, "Pořadí nesmí být záporné.")
     .max(9999, "Pořadí je příliš vysoké."),
+  isActive: z.boolean(),
+});
+
+export const createServiceCategorySchema = z.object({
+  area: z.enum(["owner", "salon"]),
+  returnTo: z.string().trim().min(1).max(400).optional(),
+  name: z
+    .string()
+    .trim()
+    .min(2, "Název kategorie musí mít alespoň 2 znaky.")
+    .max(120, "Název kategorie je příliš dlouhý."),
+  description: z
+    .string()
+    .trim()
+    .max(1000, "Popis je příliš dlouhý.")
+    .optional()
+    .or(z.literal("")),
   isActive: z.boolean(),
 });
 

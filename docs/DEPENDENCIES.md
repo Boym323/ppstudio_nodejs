@@ -48,7 +48,7 @@ Seznam důležitých knihoven a důvod jejich použití.
 - Admin role-aware dashboardy používají jen existující Next.js, Prisma a React primitives; nepřidávali jsme další admin UI knihovnu ani CMS vrstvu.
 - Konsolidace owner/salon admin route wrapperů do shared factory patternu proběhla bez přidání nové knihovny.
 - Admin workflow pro služby (seznam, filtry, editace a validační vrstva) bylo doplněné čistě nad existujícím stackem Next.js, React, Prisma a Zod.
-- Admin workflow pro kategorie služeb (seznam, editace, pořadí a bezpečné mazání prázdných kategorií) bylo doplněné čistě nad existujícím stackem Next.js, React, Prisma a Zod.
+- Přepracované workflow `Služby` a `Kategorie služeb` (create CTA, quick actions, reorder, warningy, mobilní list/detail flow) zůstává bez nové UI nebo drag-and-drop závislosti; běží čistě na stávajícím stacku Next.js, React, Prisma a Zod.
 - Lokální media storage vrstva zůstává na stávajícím stacku Next.js, Prisma a Node filesystemu; nová závislost `image-size` řeší jen rozměry obrázků bez zavádění těžšího image pipeline řešení.
 
 ## Pravidla aktualizací

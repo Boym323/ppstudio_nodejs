@@ -7,6 +7,10 @@ Formát je inspirovaný Keep a Changelog.
 ## [Unreleased]
 
 ### Added
+- Výrazně přepracovaný admin workflow pro `Služby` a `Kategorie služeb` s jasnými CTA pro vytvoření nové položky, rychlými akcemi přímo v seznamu a mobilním list/detail flow bez dlouhého stacked scrollu.
+- Server actions pro vytvoření služby, vytvoření kategorie, duplikaci služby, rychlé přepínače aktivního / veřejného stavu a jednoduchý reorder nahoru / dolů.
+- Provozní warningy a kontext v seznamech služeb a kategorií, včetně detekce konfliktů stavů, prázdných kategorií a chybějících dat.
+- ADR 0019 pro rozhodnutí kolem provozně orientovaného admin katalogu služeb a kategorií.
 - Produkční admin sekci `Klienti` pro `OWNER` i `SALON` s fulltextovým hledáním, filtry a řazením nad reálnými Prisma daty.
 - Samostatný detail klientky na `/admin/klienti/[clientId]` a `/admin/provoz/klienti/[clientId]` s kontakty, souhrnem historie a posledními rezervacemi.
 - Server action a validační vrstvu pro bezpečnou editaci interní poznámky klientky přímo z detailu.
@@ -77,6 +81,10 @@ Formát je inspirovaný Keep a Changelog.
 - Týdenní planner dostupností pro `OWNER` i `SALON` nyní zobrazuje rezervace, omezené intervaly, neaktivní sloty i minulý čas v jednom klidném kalendáři.
 
 ### Changed
+- Sekce `Služby` už nepůsobí jako čistý detail editor; seznam nově slouží jako hlavní pracovní plocha s fulltextem, filtrem kategorie, stavovými badge, upozorněními a rychlými akcemi bez otevírání detailu.
+- Sekce `Kategorie služeb` nově ukazuje pořadí, počet všech / aktivních / veřejných služeb, stavová varování a rychlé přechody do navázaných služeb.
+- Formuláře služeb a kategorií mají přehlednější informační bloky, viditelnější success/error feedback a akce `Uložit` + `Uložit a zavřít`.
+- Mobilní admin flow pro služby i kategorie používá oddělený detail otevřený přes query-driven view místo dlouhého seznamu a detailu pod sebou.
 - Admin týdenní planner dostupností nově považuje slot s jakoukoli navázanou rezervací (včetně historických stavů jako `CANCELLED`/`COMPLETED`) za needitovatelný, takže úprava už nepadá na FK chybě a místo toho se interval správně chová jako uzamčený.
 - `Rychly kontakt` na `/kontakt` nově doplnuje i oteviraci dobu `Po-Pa: Dle objednavek`.
 - Kontakt prošel dalsim UX polischem: hero znovu ukazuje lehky rychly kontakt uz nad foldem a pravy vizualni panel byl zjemneny, aby nepusobil jako interní placeholder; spodni `Rychly kontakt` ma stale ikonky, ale znovu i male textove labely pro lepsi scan.

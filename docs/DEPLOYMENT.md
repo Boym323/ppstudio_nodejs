@@ -27,10 +27,19 @@ Postup nasazení aplikace do produkce.
    - stejné chování owner/salon párových route po refaktoru factory wrapperů (overview, section, booking detail, slot list/create/detail/edit)
    - lite admin navigaci a mobilní čitelnost na `/admin/provoz/*`
    - sekci `Kategorie služeb` na `/admin/kategorie-sluzeb` a `/admin/provoz/kategorie-sluzeb`:
+     - vytvoření nové kategorie přes CTA
      - změnu pořadí
      - přepnutí aktivní / neaktivní
+     - warning stavy `prázdná`, `bez veřejné služby`, `neaktivní s aktivními službami`
+     - mobilní otevření detailu a návrat zpět na seznam
      - blokaci mazání kategorie se službami
      - smazání prázdné kategorie
+   - sekci `Služby` na `/admin/sluzby` a `/admin/provoz/sluzby`:
+     - vytvoření nové služby přes CTA
+     - filtr podle kategorie
+     - rychlé akce `aktivovat / deaktivovat`, `veřejná / interní`, `duplikovat`, `posunout`
+     - warning stavy v kartách seznamu
+     - mobilní otevření detailu a návrat zpět na seznam
    - slot workflow na `/admin/volne-terminy*` a `/admin/provoz/volne-terminy*`:
      - přepínání týdnů a zachování vybraného dne
      - zachování vybraného slotu po rychlé úpravě nebo změně stavu
@@ -104,6 +113,7 @@ sudo /var/www/ppstudio/deploy/deploy.sh
 - Migrace `20260419140000_site_settings_singleton` přidává tabulku `SiteSettings`; po deployi ověř, že se `/admin/nastaveni` otevře bez chyby a že první render bezpečně založí výchozí singleton záznam.
 - Migrace `20260419230000_media_storage_v1` přidává tabulku `MediaAsset` a enumy pro lokální media storage; po deployi ověř zápis souboru do upload rootu a načtení přes `/media/*`.
 - Admin workflow kategorií služeb nevyžaduje novou DB migraci; navazuje na existující model `ServiceCategory`.
+- Přepracované admin workflow služeb a kategorií nevyžaduje novou DB migraci; změna je čistě v read modelech, server actions a UI vrstvách.
 - Před produkční aplikací migrace ověř data, která by mohla mít rezervaci bez přiřazené služby; tato migrace takové řádky záměrně odmítne.
 - Pokud v databázi existují duplicitní rezervace stejného klienta do stejného slotu, nová migrace se zastaví a vyžádá jejich ruční vyčištění.
 - Pokud nasazuješ jen frontend bez DB změn, `npx prisma migrate deploy` zůstává bezpečný no-op.

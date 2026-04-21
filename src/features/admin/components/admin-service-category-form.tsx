@@ -4,28 +4,37 @@ import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 
 import { type AdminArea } from "@/config/navigation";
-import { AdminStatePill } from "@/features/admin/components/admin-state-pill";
 import {
-  initialUpdateServiceCategoryActionState,
-} from "@/features/admin/actions/update-service-category-action-state";
-import {
+  createServiceCategoryAction,
   deleteServiceCategoryAction,
   updateServiceCategoryAction,
 } from "@/features/admin/actions/service-category-actions";
+import {
+  initialUpdateServiceCategoryActionState,
+} from "@/features/admin/actions/update-service-category-action-state";
+import { AdminStatePill } from "@/features/admin/components/admin-state-pill";
 
-export function AdminServiceCategoryForm({
-  area,
-  currentPath,
-  category,
-}: {
+type BaseCategoryProps = {
   area: AdminArea;
   currentPath: string;
+  servicesPath: string;
+  returnTo: string;
+};
+
+type EditCategoryProps = BaseCategoryProps & {
+  mode: "edit";
   category: {
     id: string;
     name: string;
     description: string | null;
     sortOrder: number;
     isActive: boolean;
+    warnings: string[];
+    counts: {
+      total: number;
+      active: number;
+      public: number;
+    };
     _count: {
       services: number;
     };
@@ -37,17 +46,29 @@ export function AdminServiceCategoryForm({
       isPubliclyBookable: boolean;
     }>;
   };
-}) {
+};
+
+type CreateCategoryProps = BaseCategoryProps & {
+  mode: "create";
+  initialValues: {
+    name: string;
+    description: string;
+    isActive: boolean;
+  };
+};
+
+export function AdminServiceCategoryForm(props: EditCategoryProps | CreateCategoryProps) {
   const [serverState, formAction] = useActionState(
-    updateServiceCategoryAction,
+    props.mode === "create" ? createServiceCategoryAction : updateServiceCategoryAction,
     initialUpdateServiceCategoryActionState,
   );
 
   return (
     <div className="space-y-5">
       <form action={formAction} className="space-y-5">
-        <input type="hidden" name="area" value={area} />
-        <input type="hidden" name="categoryId" value={category.id} />
+        <input type="hidden" name="area" value={props.area} />
+        <input type="hidden" name="returnTo" value={props.returnTo} />
+        {props.mode === "edit" ? <input type="hidden" name="categoryId" value={props.category.id} /> : null}
 
         {serverState.status === "success" && serverState.successMessage ? (
           <div className="rounded-[1.25rem] border border-emerald-300/20 bg-emerald-400/10 px-4 py-3 text-sm leading-6 text-emerald-50">
@@ -62,42 +83,64 @@ export function AdminServiceCategoryForm({
         ) : null}
 
         <div className="flex flex-wrap gap-2 rounded-[1.25rem] border border-white/8 bg-white/5 p-4">
-          <AdminStatePill tone={category.isActive ? "active" : "muted"}>
-            {category.isActive ? "Aktivní" : "Skrytá"}
-          </AdminStatePill>
-          <AdminStatePill tone="accent">Pořadí {category.sortOrder}</AdminStatePill>
-          <AdminStatePill tone={category._count.services > 0 ? "accent" : "muted"}>
-            {category._count.services > 0 ? `${category._count.services} služeb` : "Prázdná"}
-          </AdminStatePill>
+          {props.mode === "edit" ? (
+            <>
+              <AdminStatePill tone={props.category.isActive ? "active" : "muted"}>
+                {props.category.isActive ? "Aktivní" : "Neaktivní"}
+              </AdminStatePill>
+              <AdminStatePill tone="accent">Pořadí #{props.category.sortOrder}</AdminStatePill>
+              <AdminStatePill tone={props.category.counts.total > 0 ? "accent" : "muted"}>
+                {props.category.counts.total > 0 ? `${props.category.counts.total} služeb` : "Prázdná"}
+              </AdminStatePill>
+            </>
+          ) : (
+            <>
+              <AdminStatePill tone="accent">Nová kategorie</AdminStatePill>
+              <AdminStatePill tone="muted">Připraví se pro další služby</AdminStatePill>
+            </>
+          )}
         </div>
+
+        {props.mode === "edit" && props.category.warnings.length > 0 ? (
+          <section className="rounded-[1.25rem] border border-amber-300/20 bg-amber-400/10 p-4">
+            <h4 className="font-display text-xl text-white">Provozní upozornění</h4>
+            <div className="mt-3 grid gap-2">
+              {props.category.warnings.map((warning) => (
+                <p key={warning} className="text-sm leading-6 text-amber-50">{warning}</p>
+              ))}
+            </div>
+          </section>
+        ) : null}
 
         <SectionBlock
           title="Základ kategorie"
-          description="Stačí upravit název a číslo pořadí. Popis je jen doplněk, když pomůže rychlé orientaci."
+          description="Lehký formulář pro rychlé přeuspořádání a čistou orientaci v katalogu."
         >
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Název kategorie" error={serverState.fieldErrors?.name}>
               <input
                 type="text"
                 name="name"
-                defaultValue={category.name}
+                defaultValue={props.mode === "create" ? props.initialValues.name : props.category.name}
                 maxLength={120}
                 className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--color-accent)]/60"
               />
             </Field>
 
-            <Field label="Pořadí" error={serverState.fieldErrors?.sortOrder}>
-              <input
-                type="number"
-                name="sortOrder"
-                min={0}
-                max={9999}
-                step={1}
-                inputMode="numeric"
-                defaultValue={category.sortOrder}
-                className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--color-accent)]/60"
-              />
-            </Field>
+            {props.mode === "edit" ? (
+              <Field label="Pořadí" error={serverState.fieldErrors?.sortOrder}>
+                <input
+                  type="number"
+                  name="sortOrder"
+                  min={0}
+                  max={9999}
+                  step={1}
+                  inputMode="numeric"
+                  defaultValue={props.category.sortOrder}
+                  className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--color-accent)]/60"
+                />
+              </Field>
+            ) : null}
 
             <Field
               label="Krátký popis"
@@ -108,8 +151,8 @@ export function AdminServiceCategoryForm({
                 name="description"
                 rows={3}
                 maxLength={1000}
-                defaultValue={category.description ?? ""}
-                placeholder="Volitelné. Hodí se jen tehdy, když pomůže rychlé orientaci."
+                defaultValue={props.mode === "create" ? props.initialValues.description : props.category.description ?? ""}
+                placeholder="Volitelné. Pomáhá jen tam, kde usnadní rychlou orientaci."
                 className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm leading-6 text-white outline-none transition placeholder:text-white/32 focus:border-[var(--color-accent)]/60"
               />
             </Field>
@@ -118,95 +161,116 @@ export function AdminServiceCategoryForm({
 
         <SectionBlock
           title="Viditelnost"
-          description="Vypnutí kategorii bezpečně schová, ale navázané služby zůstávají v databázi beze změny."
+          description="Vypnutí kategorii bezpečně schová, ale navázané služby ponechá beze změny."
         >
           <ToggleCard
             name="isActive"
-            defaultChecked={category.isActive}
+            defaultChecked={props.mode === "create" ? props.initialValues.isActive : props.category.isActive}
             title="Aktivní kategorie"
             description="Použijte, když má kategorie zůstat v běžné nabídce a veřejných výpisech."
           />
         </SectionBlock>
 
-      <SectionBlock
-        title="Navázané služby"
-        description={
-          category._count.services > 0
-            ? "Tahleta kategorie je už v provozu. Uvedené služby zůstanou zachované i při vypnutí kategorie."
-            : "Tahleta kategorie je prázdná a lze ji případně bezpečně smazat."
-        }
-      >
-      {category.services.length > 0 ? (
-          <div className="grid gap-2">
-            {category.services.map((service) => (
-              <div
-                key={service.id}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-[1.1rem] border border-white/8 bg-black/10 px-4 py-3"
-              >
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-white">{service.name}</p>
-                  <p className="mt-1 text-xs uppercase tracking-[0.18em] text-white/48">
-                    Pořadí {service.sortOrder}
-                  </p>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <AdminStatePill tone={service.isActive ? "active" : "muted"}>
-                    {service.isActive ? "Aktivní" : "Skrytá"}
-                  </AdminStatePill>
-                  <AdminStatePill tone={service.isPubliclyBookable ? "active" : "muted"}>
-                    {service.isPubliclyBookable ? "Veřejná" : "Interní"}
-                  </AdminStatePill>
-                </div>
-              </div>
-            ))}
+        {props.mode === "edit" ? (
+          <SectionBlock
+            title="Navázané služby"
+            description={
+              props.category._count.services > 0
+                ? "Kategorie už je v provozu. Níže vidíte rychlý kontext nejbližších navázaných služeb."
+                : "Kategorie zatím neobsahuje žádnou službu."
+            }
+          >
+            <div className="grid gap-3 text-sm text-white/70 sm:grid-cols-3">
+              <p><span className="text-white">Aktivní služby:</span> {props.category.counts.active}</p>
+              <p><span className="text-white">Veřejné služby:</span> {props.category.counts.public}</p>
+              <p><span className="text-white">Celkem:</span> {props.category.counts.total}</p>
+            </div>
 
-            {category._count.services > category.services.length ? (
-              <p className="text-sm leading-6 text-white/62">
-                Zobrazeno je jen prvních {category.services.length} služeb.
-              </p>
+            <div className="mt-4 flex flex-wrap gap-3">
+              <a
+                href={`${props.servicesPath}?mode=create&category=${props.category.id}`}
+                className="rounded-full bg-[var(--color-accent)] px-5 py-3 text-sm font-semibold text-[var(--color-accent-contrast)] transition hover:brightness-105"
+              >
+                Vytvořit službu v této kategorii
+              </a>
+              <a
+                href={`${props.servicesPath}?category=${props.category.id}`}
+                className="rounded-full border border-white/10 px-5 py-3 text-sm text-white/80 transition hover:border-white/18 hover:bg-white/6"
+              >
+                Otevřít služby této kategorie
+              </a>
+            </div>
+
+            {props.category.services.length > 0 ? (
+              <div className="mt-4 grid gap-2">
+                {props.category.services.map((service) => (
+                  <div
+                    key={service.id}
+                    className="flex flex-wrap items-center justify-between gap-3 rounded-[1.1rem] border border-white/8 bg-black/10 px-4 py-3"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-white">{service.name}</p>
+                      <p className="mt-1 text-xs uppercase tracking-[0.18em] text-white/48">
+                        Pořadí {service.sortOrder}
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <AdminStatePill tone={service.isActive ? "active" : "muted"}>
+                        {service.isActive ? "Aktivní" : "Skrytá"}
+                      </AdminStatePill>
+                      <AdminStatePill tone={service.isPubliclyBookable ? "active" : "muted"}>
+                        {service.isPubliclyBookable ? "Veřejná" : "Interní"}
+                      </AdminStatePill>
+                    </div>
+                  </div>
+                ))}
+
+                {props.category._count.services > props.category.services.length ? (
+                  <p className="text-sm leading-6 text-white/62">
+                    Zobrazen je jen rychlý náhled prvních {props.category.services.length} služeb.
+                  </p>
+                ) : null}
+              </div>
             ) : null}
-          </div>
+          </SectionBlock>
+        ) : null}
+
+        <SubmitButtons isCreate={props.mode === "create"} />
+      </form>
+
+      {props.mode === "edit" ? (
+        <SectionBlock
+          title="Odstranění"
+          description={
+            props.category._count.services > 0
+              ? "Mazání je schválně zablokované, dokud jsou v kategorii služby."
+              : "Prázdnou kategorii lze odstranit, pokud si ji už nechcete nechávat pro později."
+          }
+        >
+          {props.category._count.services > 0 ? (
+            <p className="rounded-[1.15rem] border border-amber-300/20 bg-amber-400/10 px-4 py-3 text-sm leading-6 text-amber-50">
+              Kategorie obsahuje {props.category._count.services} služeb, takže mazání není dostupné. Pro běžný provoz je lepší ji jen vypnout.
+            </p>
           ) : (
-            <div className="rounded-[1.15rem] border border-dashed border-white/14 bg-white/4 p-4 text-sm leading-6 text-white/62">
-              Tahle kategorie zatím neobsahuje žádnou službu.
+            <div className="flex flex-col gap-3 rounded-[1.15rem] border border-white/8 bg-black/10 p-4 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-sm leading-6 text-white/72">
+                Kategorii můžete smazat, protože je prázdná. Pokud si ji chcete nechat pro později, stačí ji vypnout.
+              </p>
+              <form action={deleteServiceCategoryAction}>
+                <input type="hidden" name="area" value={props.area} />
+                <input type="hidden" name="categoryId" value={props.category.id} />
+                <input type="hidden" name="currentPath" value={props.currentPath} />
+                <button
+                  type="submit"
+                  className="rounded-full border border-red-300/30 bg-red-400/10 px-5 py-3 text-sm font-semibold text-red-50 transition hover:border-red-200/40 hover:bg-red-400/14"
+                >
+                  Smazat kategorii
+                </button>
+              </form>
             </div>
           )}
         </SectionBlock>
-
-        <SubmitButton label="Uložit kategorii" pendingLabel="Ukládám..." />
-      </form>
-
-      <SectionBlock
-        title="Odstranění"
-        description={
-          category._count.services > 0
-            ? "Mazání je schválně zablokované, dokud jsou v kategorii služby."
-            : "Prázdnou kategorii lze odstranit, pokud si ji už nechcete nechat pro později."
-        }
-      >
-        {category._count.services > 0 ? (
-          <p className="rounded-[1.15rem] border border-amber-300/20 bg-amber-400/10 px-4 py-3 text-sm leading-6 text-amber-50">
-            Kategorie obsahuje {category._count.services} služeb, takže mazání není dostupné. Pro běžný provoz je lepší ji jen vypnout.
-          </p>
-        ) : (
-          <div className="flex flex-col gap-3 rounded-[1.15rem] border border-white/8 bg-black/10 p-4 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-sm leading-6 text-white/72">
-              Kategorii můžete smazat, protože je prázdná. Pokud ji chcete používat později, stačí ji nechat vypnutou.
-            </p>
-            <form action={deleteServiceCategoryAction}>
-              <input type="hidden" name="area" value={area} />
-              <input type="hidden" name="categoryId" value={category.id} />
-              <input type="hidden" name="currentPath" value={currentPath} />
-              <button
-                type="submit"
-                className="rounded-full border border-red-300/30 bg-red-400/10 px-5 py-3 text-sm font-semibold text-red-50 transition hover:border-red-200/40 hover:bg-red-400/14"
-              >
-                Smazat kategorii
-              </button>
-            </form>
-          </div>
-        )}
-      </SectionBlock>
+      ) : null}
     </div>
   );
 }
@@ -278,32 +342,32 @@ function ToggleCard({
   );
 }
 
-function SubmitButton({
-  label,
-  pendingLabel,
-}: {
-  label: string;
-  pendingLabel: string;
-}) {
-  return <SubmitButtonInner label={label} pendingLabel={pendingLabel} />;
-}
-
-function SubmitButtonInner({
-  label,
-  pendingLabel,
-}: {
-  label: string;
-  pendingLabel: string;
-}) {
+function SubmitButtons({ isCreate }: { isCreate: boolean }) {
   const { pending } = useFormStatus();
 
   return (
-    <button
-      type="submit"
-      disabled={pending}
-      className="rounded-full bg-[var(--color-accent)] px-5 py-3 text-sm font-semibold text-[var(--color-accent-contrast)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-70"
-    >
-      {pending ? pendingLabel : label}
-    </button>
+    <div className="flex flex-wrap gap-3">
+      <button
+        type="submit"
+        name="intent"
+        value="save"
+        disabled={pending}
+        className="rounded-full bg-[var(--color-accent)] px-5 py-3 text-sm font-semibold text-[var(--color-accent-contrast)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-70"
+      >
+        {pending ? (isCreate ? "Vytvářím kategorii..." : "Ukládám kategorii...") : isCreate ? "Vytvořit kategorii" : "Uložit"}
+      </button>
+
+      {!isCreate ? (
+        <button
+          type="submit"
+          name="intent"
+          value="save-close"
+          disabled={pending}
+          className="rounded-full border border-white/10 px-5 py-3 text-sm font-semibold text-white/80 transition hover:border-white/18 hover:bg-white/6 disabled:cursor-not-allowed disabled:opacity-70"
+        >
+          Uložit a zavřít
+        </button>
+      ) : null}
+    </div>
   );
 }

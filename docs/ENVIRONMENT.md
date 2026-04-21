@@ -42,7 +42,7 @@ Dokumentace proměnných prostředí pro lokální vývoj i produkci.
 - Slot admin CRUD nezavádí žádné nové env proměnné; spoléhá na stávající session, databázi a bootstrap admin účty.
 - Refaktor veřejného výběru časů v `/rezervace` také nezavádí žádné nové env proměnné; jde čistě o klientskou UI vrstvu nad existujícím booking catalogem.
 - Admin sekce `Služby` také nepřidává nové env proměnné; používá stávající databázi, session a Prisma klient.
-- Admin sekce `Kategorie služeb` také nepřidává nové env proměnné; používá stejnou databázi, session a Prisma klient jako zbytek adminu.
+- Přepracované admin workflow `Služby` a `Kategorie služeb` také nepřidává nové env proměnné; create, quick actions, mobilní detail i varování běží čistě nad existující databází, session a Prisma klientem.
 - Admin sekce `Nastavení` také nepřidává nové env proměnné; kontaktní údaje, booking pravidla a e-mailový branding ukládá do DB modelu `SiteSettings`.
 - Do admin sekce `Nastavení` záměrně nepatří technické hodnoty jako `NEXT_PUBLIC_APP_URL`, `ADMIN_SESSION_SECRET`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER` nebo `SMTP_PASSWORD`.
 - `MEDIA_STORAGE_ROOT` je infrastrukturní proměnná, ne business nastavení. Nepatří do adminu a má se spravovat na úrovni serveru nebo deploy konfigurace.

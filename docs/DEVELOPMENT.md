@@ -85,11 +85,11 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - `src/features/admin/components/admin-booking-detail-page.tsx` skládá detail rezervace jako serverový read layout; drž v něm jen prezentační kompozici a odvozené provozní hinty, ne mutační logiku.
 - `src/features/admin/components/admin-booking-status-form.tsx` zůstává malou klientskou vrstvou jen pro interaktivní výběr akce a submit server action; při dalších úpravách nenechávej zbytečně růst klientský bundle mimo tenhle formulář.
 - Sekce `Služby` má vlastní workflow v `src/features/admin/components/admin-services-page.tsx` a už neběží přes generický placeholder renderer.
-- `src/features/admin/lib/admin-services.ts` drží serverový read model pro seznam, filtry, detail služby a navázané kategorie.
-- `src/features/admin/actions/service-actions.ts` je tenký server action adaptér pro editaci služby; validace zůstává v `src/features/admin/lib/admin-service-validation.ts`.
+- `src/features/admin/lib/admin-services.ts` drží serverový read model pro seznam, provozní warningy, detail služby a předvyplněný create flow.
+- `src/features/admin/actions/service-actions.ts` nově obsluhuje create, update, duplikaci, quick toggles a reorder; validace zůstává v `src/features/admin/lib/admin-service-validation.ts`.
 - Sekce `Kategorie služeb` má vlastní workflow v `src/features/admin/components/admin-service-categories-page.tsx` a stejně jako `Služby` obchází generický placeholder renderer.
-- `src/features/admin/lib/admin-service-categories.ts` drží serverový read model pro seznam, filtry, detail kategorie a lehký náhled navázaných služeb.
-- `src/features/admin/actions/service-category-actions.ts` je tenký server action adaptér pro editaci a bezpečné mazání kategorie; validace zůstává v `src/features/admin/lib/admin-service-category-validation.ts`.
+- `src/features/admin/lib/admin-service-categories.ts` drží serverový read model pro seznam, warningy, detail kategorie a počty navázaných služeb podle stavu.
+- `src/features/admin/actions/service-category-actions.ts` nově obsluhuje create, update, quick toggles, reorder i bezpečné mazání prázdné kategorie; validace zůstává v `src/features/admin/lib/admin-service-category-validation.ts`.
 - `src/features/admin/components/admin-booking-detail-page.tsx` a route dvojice `/admin/rezervace/[bookingId]` + `/admin/provoz/rezervace/[bookingId]` drží první produkční workflow pro práci s rezervací.
 - Sekce `Klienti` má vlastní workflow v `src/features/admin/components/admin-clients-page.tsx` a už neběží přes generický placeholder renderer.
 - `src/features/admin/lib/admin-clients.ts` drží serverový read model pro seznam klientek, filtry, detail klientky a napojení na historii rezervací.
@@ -133,6 +133,8 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - U veřejného webu nepřidávat efektní animace bez jasného UX důvodu.
 - Booking mutations držet ve feature service vrstvě a server action používat jen jako tenký vstupní adaptér.
 - Admin změny stavu rezervace validovat server-side proti povoleným přechodům a nikdy je neřídit jen podle toho, co UI zrovna nabízí v selectu.
+- U admin katalogu služeb a kategorií preferuj query-driven list/detail stav (`mode`, `mobileDetail`) před zaváděním nové routy, pokud cílem není nový samostatný workflow.
+- Rychlé provozní akce v seznamech řeš server actions a plným refresh renderem; pro tenhle admin záměrně nepřidáváme těžší klientský state management.
 
 ## Technický dluh a rozhodnutí
 - Klíčová rozhodnutí zapisuj jako krátké ADR záznamy.
@@ -212,11 +214,19 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Při změně veřejného webu navíc ručně ověř:
 - Po změně admin katalogu služeb ručně ověř i:
   - `/admin/sluzby` i `/admin/provoz/sluzby` na desktopu a mobilu
+  - založení nové služby přes CTA `Nová služba`
+  - filtr podle kategorie a kombinaci s fulltextem / stavem / veřejností
+  - rychlé akce v kartě seznamu (`aktivovat`, `veřejná/interní`, `duplikovat`, `posunout`)
+  - mobilní otevření detailu a návrat zpět na seznam
   - přepnutí `Veřejně rezervovatelná` a dopad na `/rezervace`
   - změnu délky služby a skrytí slotů, které jsou po změně kratší než služba
   - editaci služby v neaktivní kategorii a očekávané skrytí z veřejného bookingu
 - Po změně admin kategorií služeb ručně ověř i:
   - `/admin/kategorie-sluzeb` i `/admin/provoz/kategorie-sluzeb` na desktopu a mobilu
+  - založení nové kategorie přes CTA `Nová kategorie`
+  - rychlé akce v seznamu (`aktivovat`, `posunout`, `zobrazit služby`)
+  - CTA `Vytvořit službu v této kategorii` a předvyplnění kategorie v sekci `Služby`
+  - mobilní otevření detailu a návrat zpět na seznam
   - změnu pořadí kategorie a nové řazení na `/sluzby`, `/cenik` a v `/rezervace`
   - deaktivaci kategorie s navázanými službami a očekávané skrytí z veřejného webu i bookingu
   - blokaci mazání neprázdné kategorie a úspěšné smazání prázdné kategorie

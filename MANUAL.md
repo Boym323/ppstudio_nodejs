@@ -169,12 +169,18 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
   - Služby
   - Kategorie služeb
 - Sekce `Služby` je nyní provozně použitelná pro obě role na `/admin/sluzby` a `/admin/provoz/sluzby`:
-  - responzivní seznam ukazuje název, kategorii, délku, cenu, aktivitu, veřejnou rezervovatelnost a pořadí
-  - jednoduchý editor umožňuje upravit název, popisy, délku, cenu, kategorii, pořadí a oba publikační přepínače
+  - seznam nově funguje jako rychlá pracovní plocha: fulltext, filtr stavu, veřejné rezervace, kategorie a řazení
+  - v kartách jsou rychlé akce `aktivovat/deaktivovat`, `veřejná/interní`, `duplikovat` a jednoduché posuny v pořadí
+  - každá karta ukazuje provozní kontext, stavové badge a upozornění na problematické stavy
+  - formulář podporuje `Uložit` i `Uložit a zavřít` a novou službu lze založit přes jasné CTA `Nová služba`
+  - na mobilu se detail otevírá samostatně, aby admin nebyl dlouhý a nepohodlný
   - veřejný booking flow bere službu jen pokud je `isActive = true`, `isPubliclyBookable = true` a její kategorie je aktivní
 - Sekce `Kategorie služeb` je nyní produkčně použitelná pro obě role na `/admin/kategorie-sluzeb` a `/admin/provoz/kategorie-sluzeb`:
-  - seznam ukazuje název, pořadí, aktivitu a počet navázaných služeb
-  - editor umožňuje upravit název, volitelný popis, pořadí a aktivní stav
+  - seznam ukazuje název, pořadí, aktivitu, počet všech služeb i kontext aktivních a veřejných služeb
+  - karta kategorie zvýrazní prázdné kategorie, aktivní kategorie bez veřejných služeb a neaktivní kategorie s aktivními službami
+  - přímo v seznamu jsou rychlé akce `aktivovat/deaktivovat`, `otevřít detail`, `zobrazit služby` a posuny v pořadí
+  - editor umožňuje upravit název, volitelný popis, pořadí a aktivní stav; navíc nabízí CTA `Vytvořit službu v této kategorii`
+  - novou kategorii lze založit přes jasné CTA `Nová kategorie` a na mobilu se detail otevírá samostatně
   - mazání je povolené jen pro prázdné kategorie bez služeb; jinak je doporučené kategorii pouze vypnout
   - změna pořadí nebo aktivity se promítá do adminu, veřejných výpisů `/sluzby` a `/cenik` i do veřejného booking flow
 - Sekce jen pro `OWNER`:

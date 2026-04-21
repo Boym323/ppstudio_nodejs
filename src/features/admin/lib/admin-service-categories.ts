@@ -14,6 +14,8 @@ function normalizeSearchParams(searchParams?: Record<string, string | string[] |
     status: typeof searchParams?.status === "string" ? searchParams.status : undefined,
     sort: typeof searchParams?.sort === "string" ? searchParams.sort : undefined,
     categoryId: typeof searchParams?.categoryId === "string" ? searchParams.categoryId : undefined,
+    mode: typeof searchParams?.mode === "string" ? searchParams.mode : undefined,
+    mobileDetail: typeof searchParams?.mobileDetail === "string" ? searchParams.mobileDetail : undefined,
   });
 
   const defaults = {
@@ -21,6 +23,8 @@ function normalizeSearchParams(searchParams?: Record<string, string | string[] |
     status: "all" as ServiceCategoryListStatusValue,
     sort: "order" as ServiceCategoryListSortValue,
     categoryId: undefined as string | undefined,
+    mode: "list" as "list" | "create",
+    mobileDetail: "0" as "0" | "1",
   };
 
   if (!parsed.success) {
@@ -32,6 +36,8 @@ function normalizeSearchParams(searchParams?: Record<string, string | string[] |
     status: parsed.data.status ?? defaults.status,
     sort: parsed.data.sort ?? defaults.sort,
     categoryId: parsed.data.categoryId,
+    mode: parsed.data.mode ?? defaults.mode,
+    mobileDetail: parsed.data.mobileDetail ?? defaults.mobileDetail,
   };
 }
 
@@ -73,6 +79,33 @@ function buildCategoryOrderBy(
   }
 }
 
+type CategoryCounts = {
+  total: number;
+  active: number;
+  public: number;
+};
+
+function describeCategoryWarnings(category: {
+  isActive: boolean;
+  counts: CategoryCounts;
+}) {
+  const warnings: string[] = [];
+
+  if (category.counts.total === 0) {
+    warnings.push("Kategorie je prázdná.");
+  }
+
+  if (category.isActive && category.counts.public === 0) {
+    warnings.push("Aktivní kategorie zatím nemá žádnou veřejnou službu.");
+  }
+
+  if (!category.isActive && category.counts.active > 0) {
+    warnings.push("Neaktivní kategorie stále obsahuje aktivní služby.");
+  }
+
+  return warnings;
+}
+
 export async function getAdminServiceCategoriesPageData(
   area: AdminArea,
   searchParams?: Record<string, string | string[] | undefined>,
@@ -80,7 +113,7 @@ export async function getAdminServiceCategoriesPageData(
   const filters = normalizeSearchParams(searchParams);
   const where = buildCategoryWhere(filters);
 
-  const [activeCount, inactiveCount, categoriesWithServicesCount, categories] = await Promise.all([
+  const [activeCount, inactiveCount, categoriesWithServicesCount, categories, services] = await Promise.all([
     prisma.serviceCategory.count({ where: { isActive: true } }),
     prisma.serviceCategory.count({ where: { isActive: false } }),
     prisma.serviceCategory.count({ where: { services: { some: {} } } }),
@@ -95,9 +128,58 @@ export async function getAdminServiceCategoriesPageData(
         },
       },
     }),
+    prisma.service.findMany({
+      select: {
+        id: true,
+        categoryId: true,
+        isActive: true,
+        isPubliclyBookable: true,
+      },
+    }),
   ]);
 
-  const selectedCategoryId = filters.categoryId ?? categories[0]?.id;
+  const countsByCategory = new Map<string, CategoryCounts>();
+
+  for (const service of services) {
+    const current = countsByCategory.get(service.categoryId) ?? {
+      total: 0,
+      active: 0,
+      public: 0,
+    };
+
+    current.total += 1;
+
+    if (service.isActive) {
+      current.active += 1;
+    }
+
+    if (service.isActive && service.isPubliclyBookable) {
+      current.public += 1;
+    }
+
+    countsByCategory.set(service.categoryId, current);
+  }
+
+  const categoriesWithMeta = categories.map((category) => {
+    const counts = countsByCategory.get(category.id) ?? {
+      total: 0,
+      active: 0,
+      public: 0,
+    };
+    const warnings = describeCategoryWarnings({
+      isActive: category.isActive,
+      counts,
+    });
+
+    return {
+      ...category,
+      counts,
+      warnings,
+      problemCount: warnings.length,
+    };
+  });
+
+  const selectedCategoryId = filters.mode === "create" ? undefined : filters.categoryId ?? categoriesWithMeta[0]?.id;
 
   const selectedCategory = selectedCategoryId
     ? await prisma.serviceCategory.findUnique({
@@ -123,36 +205,49 @@ export async function getAdminServiceCategoriesPageData(
       })
     : null;
 
+  const problematicCount = categoriesWithMeta.filter((category) => category.problemCount > 0).length;
+  const stats: Array<{
+    label: string;
+    value: string;
+    tone?: "default" | "accent" | "muted";
+    detail: string;
+  }> = [
+    {
+      label: "Aktivní kategorie",
+      value: String(activeCount),
+      tone: "accent",
+      detail: "Tyto kategorie se propisují do adminu i veřejného katalogu.",
+    },
+    {
+      label: "Kategorie se službami",
+      value: String(categoriesWithServicesCount),
+      tone: "default",
+      detail: "Mají navázané služby a dávají smysl spíš pro úpravu než mazání.",
+    },
+    {
+      label: "Prázdné kategorie",
+      value: String(Math.max(activeCount + inactiveCount - categoriesWithServicesCount, 0)),
+      tone: "muted",
+      detail: "Prázdné kategorie lze bezpečně odstranit, pokud už je nechcete držet pro později.",
+    },
+    {
+      label: "Potřebují pozornost",
+      value: String(problematicCount),
+      tone: problematicCount > 0 ? "accent" : "muted",
+      detail: "Prázdné, vypnuté nebo bez veřejných služeb podle aktuálního stavu.",
+    },
+  ];
+
   return {
     area,
     filters,
-    stats: [
-      {
-        label: "Aktivní kategorie",
-        value: String(activeCount),
-        tone: "accent" as const,
-        detail: "Tyto kategorie se dál propisují do admin přehledu i veřejných výpisů služeb.",
-      },
-      {
-        label: "Neaktivní kategorie",
-        value: String(inactiveCount),
-        tone: "muted" as const,
-        detail: "Vazby na služby zůstávají zachované, ale web a booking je běžně schovají.",
-      },
-      {
-        label: "Kategorie se službami",
-        value: String(categoriesWithServicesCount),
-        detail: "Tyto kategorie už mají navázané služby, takže dává smysl je spíš upravit než mazat.",
-      },
-      {
-        label: "Prázdné kategorie",
-        value: String(Math.max(activeCount + inactiveCount - categoriesWithServicesCount, 0)),
-        tone: "muted" as const,
-        detail: "Prázdné kategorie lze bezpečně odstranit bez zásahu do služeb.",
-      },
-    ],
-    categories,
+    stats,
+    categories: categoriesWithMeta,
     selectedCategory,
+    selectedCategoryCounts: selectedCategory
+      ? countsByCategory.get(selectedCategory.id) ?? { total: 0, active: 0, public: 0 }
+      : { total: 0, active: 0, public: 0 },
     currentPath: area === "owner" ? "/admin/kategorie-sluzeb" : "/admin/provoz/kategorie-sluzeb",
+    servicesPath: area === "owner" ? "/admin/sluzby" : "/admin/provoz/sluzby",
   };
 }
