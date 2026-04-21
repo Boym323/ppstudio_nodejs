@@ -125,6 +125,7 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
   - kontrastní finální CTA blok na konci stránky
 - Následný polish pass nad `/o-mne` už nemění strukturu ani copy; upravuje hlavně proporce hero, vnitřní spacing karet, rytmus sekcí a sílu finálního CTA.
 - Finální UI polish ještě mírně navýšil váhu textového hero sloupce, sjednotil benefit boxy do stabilnější výšky a přidal jemné hover stavy pro benefit karty a certifikace.
+- Další doladění stránky `O mně` má už být jen přes drobné utility změny, ne přes nové bloky nebo přepis IA.
 - Texty a struktura stránky `O mně` jsou centralizované v `aboutContent`; layout počítá s polem `whyChooseMe`, hero badge, CTA kartou i pozdějším napojením certifikací na admin data bez dalšího přepisu sekcí.
 - Homepage copy teď vědomě navazuje na konverzně funkční strukturu starého webu (`služba + lokalita`, rychlé CTA na rezervaci/ceník, sekce pro nejistý výběr služby), ale běží na současném komponentovém základu.
 - Homepage hero podporuje i vizuální brand prvky přes obsahový config (`logoImage`, `portraitImage` v `src/content/public-site.ts`); lokální assety jsou v `public/brand/`.

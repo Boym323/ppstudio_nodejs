@@ -16,10 +16,10 @@ function HeroSection() {
   return (
     <section className="relative isolate overflow-hidden border-b border-black/5 bg-[radial-gradient(circle_at_top_left,rgba(226,205,182,0.5),transparent_32%),linear-gradient(180deg,#f8f2eb_0%,#f5ede4_48%,#f8f3ed_100%)]">
       <Container className="grid gap-10 py-11 sm:gap-12 sm:py-16 lg:grid-cols-[1.18fr_0.82fr] lg:items-center lg:gap-16 lg:py-24">
-        <div className="max-w-[46rem] space-y-9 lg:space-y-10">
-          <div className="space-y-6 sm:space-y-7">
+        <div className="max-w-[48rem] space-y-10 lg:space-y-11">
+          <div className="space-y-7 sm:space-y-8">
             <p className="text-eyebrow tracking-[0.22em] text-[var(--color-accent)]">{profile.eyebrow}</p>
-            <h1 className="max-w-[11.5ch] whitespace-pre-line font-display text-[2.8rem] leading-[0.98] tracking-tight text-[var(--color-foreground)] sm:text-[3.6rem] lg:text-[4.55rem]">
+            <h1 className="max-w-[16ch] whitespace-pre-line font-display text-[2.8rem] leading-[0.98] tracking-tight text-[var(--color-foreground)] sm:max-w-[18ch] sm:text-[3.6rem] lg:max-w-[19ch] lg:text-[4.55rem]">
               {profile.headline}
             </h1>
             <p className="max-w-[40rem] text-[15px] leading-7 text-[var(--color-muted)] sm:text-[1.1rem] sm:leading-8">
@@ -27,7 +27,7 @@ function HeroSection() {
             </p>
           </div>
 
-          <div className="flex flex-col gap-3.5 pt-1 sm:flex-row sm:flex-wrap sm:items-center">
+          <div className="flex flex-col gap-3.5 pt-2 sm:flex-row sm:flex-wrap sm:items-center">
             <Link
               href={profile.primaryCta.href}
               className="inline-flex min-h-14 items-center justify-center rounded-full bg-[var(--color-foreground)] px-7 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-white shadow-[0_16px_36px_rgba(34,22,12,0.14)] hover:bg-[#2c221d] sm:text-sm"
@@ -42,7 +42,7 @@ function HeroSection() {
             </Link>
           </div>
 
-          <div className="flex flex-wrap gap-3 pt-1">
+          <div className="flex flex-wrap gap-3 pt-2">
             {profile.badges.map((badge) => (
               <span
                 key={badge}
@@ -114,7 +114,7 @@ function WhyChooseMeSection() {
               <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-accent)]">
                 0{index + 1}
               </p>
-              <h3 className="mt-6 max-w-[18rem] font-display text-[1.85rem] leading-[1.12] text-[var(--color-foreground)]">
+              <h3 className="mt-6 max-w-[19rem] font-display text-[1.9rem] leading-[1.14] text-[var(--color-foreground)]">
                 {item.title}
               </h3>
             </article>
@@ -136,7 +136,7 @@ function StorySection() {
             <div className="lg:pr-10">
               <SectionHeading eyebrow={story.eyebrow} title={story.title} />
             </div>
-            <div className="space-y-5 border-black/5 text-[15px] leading-7 text-[var(--color-muted)] sm:text-base lg:border-l lg:pl-10 xl:pl-12">
+            <div className="space-y-5 border-black/5 text-[15px] leading-7 text-[var(--color-muted)] sm:text-base lg:border-l lg:pl-12 xl:pl-14">
               {story.paragraphs.map((paragraph) => (
                 <p key={paragraph}>{paragraph}</p>
               ))}
@@ -161,11 +161,11 @@ function ApproachSection() {
           </p>
         </div>
 
-        <div className="grid gap-6">
+        <div className="grid gap-7">
           {approach.values.map((value) => (
             <article
               key={value.title}
-              className="rounded-[var(--radius-panel)] border border-[#e6dbcf] bg-[linear-gradient(180deg,#fffcf8_0%,#fbf4eb_100%)] p-7 shadow-[var(--shadow-panel)] shadow-black/5 sm:p-8"
+              className="rounded-[var(--radius-panel)] border border-[#e6dbcf] bg-[linear-gradient(180deg,#fffcf8_0%,#fbf4eb_100%)] p-7 shadow-[var(--shadow-panel)] shadow-black/5 transition duration-200 hover:-translate-y-0.5 hover:border-[#dfd0c0] hover:shadow-[0_24px_60px_rgba(34,22,12,0.1)] sm:p-8"
             >
               <div className="mb-5 h-1.5 w-16 rounded-full bg-[var(--color-accent)]/55" />
               <h3 className="font-display text-[2.2rem] leading-[1.02] text-[var(--color-foreground)]">{value.title}</h3>
@@ -219,16 +219,16 @@ function WhatToExpectSection() {
             </h3>
             <p className="mt-6 max-w-md text-[15px] leading-7 text-[var(--color-muted)] sm:text-base">{cta.description}</p>
 
-            <div className="mt-12 flex flex-col gap-3.5">
+            <div className="mt-14 flex flex-col gap-3.5">
               <Link
                 href={cta.primaryCta.href}
-                className="inline-flex min-h-14 items-center justify-center rounded-full bg-[var(--color-foreground)] px-8 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-white shadow-[0_18px_40px_rgba(34,22,12,0.14)] hover:bg-[#2c221d] sm:text-sm"
+                className="inline-flex min-h-14 items-center justify-center rounded-full bg-[var(--color-foreground)] px-8 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-white shadow-[0_20px_44px_rgba(34,22,12,0.16)] hover:bg-[#241a15] sm:text-sm"
               >
                 {cta.primaryCta.label}
               </Link>
               <Link
                 href={cta.secondaryCta.href}
-                className="inline-flex min-h-14 items-center justify-center rounded-full border border-black/8 bg-white/88 px-7 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-foreground)] hover:border-black/16 hover:bg-white sm:text-sm"
+                className="inline-flex min-h-14 items-center justify-center rounded-full border border-black/8 bg-white/92 px-7 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-foreground)] hover:border-black/14 hover:bg-white sm:text-sm"
               >
                 {cta.secondaryCta.label}
               </Link>
@@ -286,15 +286,15 @@ function FinalCtaSection() {
   return (
     <section className="py-10 sm:py-14 lg:py-16">
       <Container>
-        <div className="rounded-[var(--radius-panel)] bg-[linear-gradient(135deg,#1b1613_0%,#2a211b_55%,#3a2f28_100%)] px-7 py-9 text-white shadow-[0_24px_70px_rgba(34,22,12,0.18)] sm:px-10 sm:py-13 lg:flex lg:items-center lg:justify-between lg:gap-10 lg:px-12 lg:py-16">
+        <div className="rounded-[var(--radius-panel)] bg-[linear-gradient(135deg,#1b1613_0%,#2a211b_55%,#3a2f28_100%)] px-8 py-10 text-white shadow-[0_24px_70px_rgba(34,22,12,0.18)] sm:px-11 sm:py-14 lg:flex lg:items-center lg:justify-between lg:gap-12 lg:px-14 lg:py-16">
           <div className="max-w-[40rem]">
             <p className="text-[11px] font-semibold uppercase tracking-[0.26em] text-[var(--color-accent-soft)]">PP Studio</p>
-            <h2 className="mt-4 max-w-[12ch] font-display text-[2.5rem] leading-[1.02] text-white sm:text-[3.25rem] lg:text-[3.8rem]">
+            <h2 className="mt-4 max-w-[12ch] font-display text-[2.65rem] leading-[1.02] text-white sm:text-[3.35rem] lg:text-[4rem]">
               Chcete si vybrat termín, nebo se nejdřív poradit?
             </h2>
           </div>
 
-          <div className="mt-8 flex flex-col gap-3.5 sm:flex-row lg:mt-0 lg:shrink-0">
+          <div className="mt-10 flex flex-col gap-3.5 sm:flex-row lg:mt-0 lg:shrink-0">
             <Link
               href={cta.primaryCta.href}
               className="inline-flex min-h-14 items-center justify-center rounded-full bg-[var(--color-accent)] px-8 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-accent-contrast)] shadow-[0_18px_40px_rgba(0,0,0,0.18)] hover:brightness-105 sm:text-sm"

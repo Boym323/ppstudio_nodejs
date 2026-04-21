@@ -35,11 +35,11 @@ export function AboutCertificatesGallery({ certificates }: { certificates: About
 
   return (
     <>
-      <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:mt-12 lg:grid-cols-3 lg:gap-7">
+      <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:mt-12 lg:grid-cols-3 lg:gap-8">
         {certificates.map((certificate) => (
           <article
             key={certificate.id}
-            className="group overflow-hidden rounded-[calc(var(--radius-panel)-0.45rem)] border border-[#e6dbcf] bg-[#fffcf8] shadow-[var(--shadow-panel)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_24px_60px_rgba(34,22,12,0.12)]"
+            className="group overflow-hidden rounded-[calc(var(--radius-panel)-0.45rem)] border border-[#e6dbcf] bg-[#fffdf9] shadow-[var(--shadow-panel)] transition duration-200 hover:-translate-y-0.5 hover:border-[#ddcfbf] hover:bg-white hover:shadow-[0_24px_60px_rgba(34,22,12,0.12)]"
           >
             <button
               type="button"
