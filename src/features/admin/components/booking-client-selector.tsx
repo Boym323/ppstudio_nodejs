@@ -48,7 +48,7 @@ export function BookingClientSelector({
   const selectedClient = clients.find((client) => client.id === selectedClientId) ?? null;
   const normalizedQuery = query.trim().toLocaleLowerCase("cs-CZ");
   const matchingClients = normalizedQuery.length === 0
-    ? clients.slice(0, 6)
+    ? []
     : clients
         .filter((client) => {
           const haystack = [
@@ -138,6 +138,10 @@ export function BookingClientSelector({
               </button>
             );
           })}
+        </div>
+      ) : query.trim().length === 0 ? (
+        <div className="mt-4 rounded-[1rem] border border-dashed border-white/14 bg-white/[0.03] p-3.5 text-sm text-white/62">
+          Začněte psát jméno, telefon nebo e-mail klientky.
         </div>
       ) : query.trim().length > 0 ? (
         <div className="mt-4 rounded-[1rem] border border-dashed border-white/14 bg-white/[0.03] p-3.5 text-sm text-white/62">

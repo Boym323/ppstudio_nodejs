@@ -14,11 +14,11 @@ type BookingSourceFieldProps = {
 };
 
 const sourceOptions = [
-  { value: BookingSource.WEB, label: "WEB" },
-  { value: BookingSource.PHONE, label: "PHONE" },
-  { value: BookingSource.INSTAGRAM, label: "INSTAGRAM" },
-  { value: BookingSource.IN_PERSON, label: "IN_PERSON" },
-  { value: BookingSource.OTHER, label: "OTHER" },
+  { value: BookingSource.WEB, label: "Web" },
+  { value: BookingSource.PHONE, label: "Telefon" },
+  { value: BookingSource.INSTAGRAM, label: "Instagram" },
+  { value: BookingSource.IN_PERSON, label: "Osobně" },
+  { value: BookingSource.OTHER, label: "Jiný" },
 ] as const;
 
 export function BookingSourceField({
@@ -37,7 +37,7 @@ export function BookingSourceField({
         </p>
         <h3 className="mt-2 text-lg font-semibold text-white">Odkud rezervace přišla</h3>
         <label className="mt-4 block">
-          <span className="text-sm font-medium text-white">Source</span>
+          <span className="text-sm font-medium text-white">Původ</span>
           <select
             value={source}
             onChange={(event) => onSourceChange(event.target.value as BookingSource)}
