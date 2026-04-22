@@ -83,7 +83,7 @@ function getSectionDescription(section: Exclude<AdminSectionSlug, "overview">, a
         ? "Struktura nabídky, která určuje přehlednost katalogu i veřejného webu."
         : "Lehký přehled kategorií, ve kterých se provoz může snadno orientovat.";
     case "uzivatele":
-      return "Sekce pouze pro majitele: správa přístupů, rolí a přechodných bootstrap účtů.";
+      return "Sekce pouze pro majitele: přehled přístupů, rolí a stavu účtů.";
     case "email-logy":
       return "Sekce pouze pro majitele: audit e-mailové komunikace, selhání a provozních incidentů.";
     case "nastaveni":
@@ -123,7 +123,7 @@ function getPanelDescription(section: Exclude<AdminSectionSlug, "overview">, are
 
   switch (section) {
     case "uzivatele":
-      return "Bootstrap přístupy jsou vidět vedle databázových účtů, aby vlastník neztratil kontrolu nad tím, kdo se do systému dostane.";
+      return "Přístupy jsou zobrazené lidským jazykem včetně role, stavu a dostupných akcí.";
     case "email-logy":
       return "Pomáhá odhalit problémy v potvrzovacích e-mailech dřív, než je pocítí klientka.";
     case "certifikaty":
@@ -142,7 +142,7 @@ function getEmptyDescription(section: Exclude<AdminSectionSlug, "overview">, are
 
   switch (section) {
     case "uzivatele":
-      return "Pokud ještě neexistují databázové admin účty, stále tu zůstávají viditelné bootstrap přístupy z env.";
+      return "Pokud ještě nejsou založené běžné účty, zůstanou tu přehledně vidět systémové přístupy.";
     case "email-logy":
       return "Email logy se založí při navázání nebo odeslání notifikačního workflow.";
     case "certifikaty":

@@ -1,8 +1,9 @@
 type AdminLoginFormProps = {
   errorMessage?: string;
+  infoMessage?: string;
 };
 
-export function AdminLoginForm({ errorMessage }: AdminLoginFormProps) {
+export function AdminLoginForm({ errorMessage, infoMessage }: AdminLoginFormProps) {
   return (
     <form
       action="/api/auth/login"
@@ -43,6 +44,12 @@ export function AdminLoginForm({ errorMessage }: AdminLoginFormProps) {
             placeholder="••••••••"
           />
         </label>
+
+        {infoMessage ? (
+          <p className="rounded-2xl border border-emerald-300/20 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-100">
+            {infoMessage}
+          </p>
+        ) : null}
 
         {errorMessage ? (
           <p className="rounded-2xl border border-red-300/20 bg-red-400/10 px-4 py-3 text-sm text-red-100">

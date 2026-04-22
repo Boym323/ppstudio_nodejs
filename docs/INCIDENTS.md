@@ -24,6 +24,9 @@ Evidence produkčních incidentů a jejich řešení.
 - Chyby Prisma klienta po změně schematu nebo po nasazení bez `db:generate`.
 - Selhání admin přihlášení kvůli špatnému `ADMIN_SESSION_SECRET` nebo bootstrap účtům.
 - Chybný role redirect nebo neočekávaný přístup `SALON` do owner-only sekcí.
+- Rozjezd owner-only sekce `Uživatelé / role`, kdy by se `SALON` dostal na `/admin/uzivatele` nebo by se v UI objevila jiná role než `OWNER` / `SALON`.
+- Chybně označené systémové přístupy nebo rozbitý stav `Pozvánka čeká` po nasazení migrace `AdminUser.invitedAt`.
+- Nefunkční aktivace pozvánky na `/admin/pozvanka/[token]` (expirace, použitý token, nebo chybějící migrace `AdminUserInviteToken`).
 - Veřejné kontaktní údaje nebo ceny ponechané v placeholder režimu po nasazení.
 - Nefunkční CTA odkazy mezi veřejným webem a rezervační částí.
 - Opakované `EmailLog.status = FAILED` po nasazení nové SMTP konfigurace.

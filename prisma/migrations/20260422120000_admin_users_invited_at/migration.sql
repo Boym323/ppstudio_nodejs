@@ -1,0 +1,2 @@
+ALTER TABLE "AdminUser"
+ADD COLUMN "invitedAt" TIMESTAMP(3);

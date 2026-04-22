@@ -147,12 +147,13 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
 
 ## Přihlášení Do Adminu
 - Admin login je dostupný na `/admin/prihlaseni`.
-- Pro bootstrap přihlášení se používají hodnoty:
+- Databázové účty vytvořené přes owner sekci `Uživatelé / role` se přihlašují vlastním heslem nastaveným přes pozvánku.
+- Pro systémový fallback přihlášení stále existují bootstrap hodnoty:
   - `ADMIN_OWNER_EMAIL`
   - `ADMIN_OWNER_PASSWORD`
   - `ADMIN_STAFF_EMAIL`
   - `ADMIN_STAFF_PASSWORD`
-- Env proměnné `ADMIN_STAFF_*` zatím bootstrapují lite admin účet, který se v databázi mapuje na roli `SALON`.
+- Env proměnné `ADMIN_STAFF_*` bootstrapují systémový účet role `SALON`.
 - Session je ukládaná do `httpOnly` cookie a podepisovaná pomocí `ADMIN_SESSION_SECRET`.
 - Po přihlášení aplikace přesměruje uživatele na domovskou admin cestu podle role:
   - `OWNER` -> `/admin`
@@ -184,6 +185,16 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
   - filtry umí omezit aktivní/neaktivní profily a přepnout řazení podle poslední návštěvy, počtu rezervací, jména nebo vytvoření
   - detail klientky ukazuje kontakty, poslední a budoucí termín, nejčastější službu a posledních 10 rezervací
   - interní poznámka se upravuje přímo v detailu klientky a po uložení se propisuje do obou admin oblastí
+- Sekce `Uživatelé / role` je nyní vyhrazená jen pro `OWNER` na `/admin/uzivatele`:
+  - obrazovka je rozdělená na hlavní blok `Uživatelé` a vedlejší read-only blok `Role a oprávnění`
+  - systém používá pouze dvě role `OWNER` a `SALON`; neexistuje žádná role `ADMIN`
+  - každý přístup ukazuje jméno, e-mail, roli, stav účtu, krátký helper text a dostupné akce
+  - stavy účtu jsou `Aktivní`, `Pozvánka čeká`, `Deaktivovaný` a `Systémový účet`
+  - systémové přístupy z env se v UI zobrazují pouze jako `Systémový účet` a zůstávají read-only bez technických detailů
+  - owner může u databázových účtů založit pozvánku, upravit jméno a e-mail, přepnout roli, deaktivovat nebo znovu aktivovat účet a otevřít detail
+  - akce `Pozvat uživatele` i `Znovu poslat pozvánku` odesílají reálný e-mail přes SMTP vrstvu
+  - pozvánka vede na route `/admin/pozvanka/[token]`, kde si uživatel nastaví heslo a dokončí aktivaci přístupu
+  - pokud SMTP dočasně selže, přístup se i tak uloží a UI zobrazí, že e-mail nebylo možné doručit
 
 ## Média a obrázky
 - Lokální filesystem adapter je v `src/lib/media/*`.

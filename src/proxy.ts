@@ -2,12 +2,17 @@ import { NextResponse, type NextRequest } from "next/server";
 import { buildAbsoluteUrl } from "@/lib/http/request-origin";
 
 const ADMIN_LOGIN_PATH = "/admin/prihlaseni";
+const ADMIN_INVITE_PATH_PREFIX = "/admin/pozvanka";
 const SESSION_COOKIE = "ppstudio-admin-session";
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (pathname === ADMIN_LOGIN_PATH) {
+    return NextResponse.next();
+  }
+
+  if (pathname.startsWith(ADMIN_INVITE_PATH_PREFIX)) {
     return NextResponse.next();
   }
 

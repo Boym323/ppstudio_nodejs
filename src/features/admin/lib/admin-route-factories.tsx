@@ -9,6 +9,7 @@ import { AdminSettingsPage } from "@/features/admin/components/admin-settings-pa
 import { AdminCertificatesPage } from "@/features/admin/components/admin-certificates-page";
 import { AdminClientDetailPage } from "@/features/admin/components/admin-client-detail-page";
 import { AdminClientsPage } from "@/features/admin/components/admin-clients-page";
+import { AdminUsersPage } from "@/features/admin/components/admin-users-page";
 import { AdminServiceCategoriesPage } from "@/features/admin/components/admin-service-categories-page";
 import { AdminServicesPage } from "@/features/admin/components/admin-services-page";
 import { AdminWeeklyPlannerPage } from "@/features/admin/components/admin-weekly-planner-page";
@@ -113,6 +114,10 @@ export function createAdminSectionRoute(area: AdminArea) {
           }}
         />
       );
+    }
+
+    if (section === "uzivatele") {
+      return <AdminUsersPage />;
     }
 
     return <AdminSectionPage area={area} section={section} />;

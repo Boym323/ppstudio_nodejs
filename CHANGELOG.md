@@ -7,9 +7,21 @@ Formát je inspirovaný Keep a Changelog.
 ## [Unreleased]
 
 ### Changed
+- Owner sekce `Uživatelé / role` byla kompletně přepracovaná z technického placeholderu na skutečnou správu přístupů pro malé studio: používá jen role `OWNER` a `SALON`, lidské stavy účtů a read-only označení `Systémový účet` místo bootstrap/env slovníku.
+- Admin přihlášení nyní preferuje databázové účty s `passwordHash` a bootstrap env účty používá jen jako fallback pro systémové přístupy.
+- Invite flow v sekci `Uživatelé / role` byl dotažený na kompletní aktivaci přístupu: owner posílá pozvánku, příjemce nastaví heslo na veřejné invite URL a poté se přihlásí standardním loginem.
+- Akce `Znovu poslat pozvánku` v řádku uživatele už neběží přes row-level server action binding, ale přes dedikovaný owner API endpoint, takže vrací spolehlivou success/error odpověď i v klientském seznamu.
 - Finální cleanup pass veřejného confirmation flow zkrátil duplicity v hero copy, zpřesnil CTA na `Požádat o změnu`, doplnil službu do hlavního přehledu rezervace a zjednodušil kontaktní texty.
 
 ### Added
+- Novou owner-only obrazovku `Uživatelé / role` s rozdělením na hlavní seznam přístupů a vedlejší read-only blok `Role a oprávnění`.
+- Komponenty `AdminUsersPage`, `AdminUsersWorkspace`, `UsersList`, `UserRow`, `InviteUserDialog`, `RoleCards`, `RoleBadge` a `AccountStatusBadge`.
+- Server actions pro založení pozvánky, úpravu jména/e-mailu, přepnutí role, deaktivaci/aktivaci účtu, obnovení čekající pozvánky a aktivaci pozvánky přes nastavení hesla.
+- Migraci `20260422120000_admin_users_invited_at`, která přidává pole `AdminUser.invitedAt` pro čitelný stav `Pozvánka čeká`.
+- Migraci `20260422170000_admin_invite_token_v1` s modelem `AdminUserInviteToken` pro jednorázové a expirující aktivace pozvánek.
+- Veřejnou route `/admin/pozvanka/[token]` a komponentu `AdminInviteActivationForm` pro bezpečné nastavení hesla po přijetí pozvánky.
+- Password helper `src/lib/auth/password.ts` (scrypt hash + verify) pro DB admin účty.
+- ADR 0029 pro rozhodnutí kolem jednoduché owner-only správy přístupů bez role `ADMIN` a bez granular permissions.
 - Prémiovější potvrzovací vrstvu veřejné rezervace: success screen už není jen jeden souhrnný card, ale jasný confirmation flow se samostatným status blokem, přehledem služby / termínu / kódu, blokem `Co bude následovat`, akční sekcí a odděleným kontaktem.
 - Novou klientskou komponentu `BookingConfirmationPanel` pro post-submit stav rezervace včetně reálného CTA `Přidat do kalendáře`, sekundární akce `Požádat o změnu` přes předvyplněný kontakt do studia a destruktivního self-service storna.
 - Výrazně přepracovanou šablonu `booking-confirmation-v1`, která kopíruje stejnou hierarchii jako web confirmation screen místo jednoho dlouhého textového e-mailového cardu.

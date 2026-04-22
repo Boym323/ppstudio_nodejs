@@ -73,6 +73,13 @@ Postup nasazení aplikace do produkce.
      - propsání kontaktů do footeru a `/kontakt`
      - propsání storno limitu do `/faq` a `/storno-podminky`
      - propsání booking limitů do `/rezervace`
+   - owner sekci `/admin/uzivatele`:
+     - seznam přístupů ukazuje jen role `OWNER` a `SALON`
+     - systémové účty jsou read-only a zobrazují se jako `Systémový účet`
+     - založení nové pozvánky vytvoří účet se stavem `Pozvánka čeká`
+     - pozvánka dorazí na e-mail a odkaz vede na `/admin/pozvanka/[token]`
+     - aktivace pozvánky dovolí nastavit heslo a následně přihlášení přes `/admin/prihlaseni`
+     - akce `Přepnout na OWNER/SALON`, `Deaktivovat` a `Znovu aktivovat` se ihned propšou do seznamu
   - certifikátový modul na `/admin/certifikaty` a `/admin/provoz/certifikaty`:
      - upload podporovaného obrázku
      - smazání certifikátu
@@ -132,6 +139,8 @@ sudo /var/www/ppstudio/deploy/deploy.sh
 - Migrace `20260418220000_email_outbox_worker` doplňuje sloupce pro outbox, claimování a retry e-mailových jobů.
 - Migrace `20260419103000_service_public_bookability` přidává sloupec `Service.isPubliclyBookable`; po deployi ověř, že `/rezervace`, `/sluzby` a `/cenik` zobrazují jen správné služby a že admin sekce `Služby` funguje v owner i salon oblasti.
 - Migrace `20260421113000_public_pricing_metadata` rozšiřuje katalog služeb a kategorií o veřejná pricing metadata; po deployi ověř `/cenik`, `/sluzby`, detail služby a admin formuláře `Služby` + `Kategorie služeb`.
+- Migrace `20260422120000_admin_users_invited_at` přidává `AdminUser.invitedAt`; po deployi ověř owner sekci `/admin/uzivatele`, stav `Pozvánka čeká` a existující DB účty bez vyplněného `invitedAt`.
+- Migrace `20260422170000_admin_invite_token_v1` přidává tabulku `AdminUserInviteToken`; po deployi ověř jednorázové použití pozvánky, expiraci a revokaci starších tokenů při novém odeslání.
 - Pokud je databáze v divergentním stavu a `prisma migrate dev` by nabízelo reset, neprováděj ho naslepo. Pro tuto migraci lze bezpečně použít `npx prisma db execute --file prisma/migrations/20260421113000_public_pricing_metadata/migration.sql` a až potom ověřit build.
 - Migrace `20260419140000_site_settings_singleton` přidává tabulku `SiteSettings`; po deployi ověř, že se `/admin/nastaveni` otevře bez chyby a že první render bezpečně založí výchozí singleton záznam.
 - Migrace `20260419230000_media_storage_v1` přidává tabulku `MediaAsset` a enumy pro lokální media storage; po deployi ověř zápis souboru do upload rootu a načtení přes `/media/*`.

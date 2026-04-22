@@ -1,5 +1,4 @@
 import {
-  AdminRole,
   BookingActionTokenType,
   AvailabilitySlotStatus,
   BookingStatus,
@@ -17,7 +16,7 @@ import {
   getBookingSourceLabel,
   getBookingStatusLabel,
 } from "@/features/admin/lib/admin-booking";
-import { listBootstrapAdminUsers, type BootstrapAdminUser } from "@/lib/auth/session";
+import { listBootstrapAdminUsers } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 
 const formatDate = new Intl.DateTimeFormat("cs-CZ", {
@@ -283,7 +282,7 @@ export async function getAdminOverviewData(area: AdminArea) {
             {
               label: "Admin účty",
               value: String(adminUsers + listBootstrapAdminUsers().length),
-              detail: "Součet DB uživatelů a bootstrap přístupů.",
+              detail: "Součet databázových a systémových přístupů.",
             },
             {
               label: "Chybné e-maily",
@@ -336,7 +335,7 @@ export async function getAdminSectionData(section: AdminSectionSlug, area: Admin
     case "kategorie-sluzeb":
       return getCategoriesData(area);
     case "uzivatele":
-      return getUsersData();
+      throw new Error("Sekce uzivatele ma vlastni specializovanou stranku.");
     case "email-logy":
       return getEmailLogsData();
     case "nastaveni":
@@ -581,44 +580,6 @@ async function getCategoriesData(area: AdminArea) {
           : category.description ?? "Kategorie zatím nemá doplněný popis.",
       badge: category.isActive ? "Aktivní" : "Skryté",
     })),
-  };
-}
-
-async function getUsersData() {
-  const [dbUsers, bootstrapUsers] = await Promise.all([
-    prisma.adminUser.findMany({
-      orderBy: [{ role: "asc" }, { createdAt: "desc" }],
-      take: 12,
-    }),
-    Promise.resolve(listBootstrapAdminUsers()),
-  ]);
-
-  return {
-    stats: [
-      { label: "DB uživatelé", value: String(dbUsers.length), tone: "accent" as const },
-      { label: "Bootstrap účty", value: String(bootstrapUsers.length) },
-    ],
-    items: [
-      ...dbUsers.map((user) => ({
-        id: user.id,
-        title: user.name,
-        meta: `${user.email} • ${user.role === AdminRole.OWNER ? "ADMIN" : "SALON"}`,
-        description: `Aktivní: ${user.isActive ? "ano" : "ne"} • poslední login ${formatDateTimeLabel(user.lastLoginAt)}`,
-        badge: user.role === AdminRole.OWNER ? "ADMIN" : "SALON",
-      })),
-      ...bootstrapUsers.map((user) => mapBootstrapUser(user)),
-    ],
-  };
-}
-
-function mapBootstrapUser(user: BootstrapAdminUser) {
-  return {
-    id: user.id,
-    title: `${user.name} (bootstrap)`,
-    meta: `${user.email} • ${user.role === AdminRole.OWNER ? "ADMIN" : "SALON"}`,
-    description:
-      "Přístup načítaný z env proměnných. V další iteraci ho lze nahradit plnou DB správou uživatelů.",
-    badge: user.role === AdminRole.OWNER ? "ADMIN" : "SALON",
   };
 }
 

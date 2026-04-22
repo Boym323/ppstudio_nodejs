@@ -108,14 +108,31 @@ model AdminUser {
   role                      AdminRole
   passwordHash              String?
   isActive                  Boolean                @default(true)
+  invitedAt                 DateTime?
   lastLoginAt               DateTime?
   createdAt                 DateTime               @default(now())
   updatedAt                 DateTime               @updatedAt
+  inviteTokens              AdminUserInviteToken[]
   createdAvailabilitySlots  AvailabilitySlot[]     @relation("AvailabilitySlotCreatedBy")
   createdBookings           Booking[]              @relation("BookingCreatedBy")
   bookingStatusHistoryItems BookingStatusHistory[] @relation("BookingStatusHistoryActor")
   updatedSettings           Setting[]              @relation("SettingUpdatedBy")
   updatedSiteSettings       SiteSettings[]         @relation("SiteSettingsUpdatedBy")
+}
+
+model AdminUserInviteToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  user      AdminUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+  @@index([expiresAt, usedAt, revokedAt])
 }
 
 model ServiceCategory {

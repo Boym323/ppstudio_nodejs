@@ -38,4 +38,9 @@ Sem patří krátké záznamy architektonických rozhodnutí.
 - `0022-admin-booking-detail-operations-v2.md`
 - `0023-admin-weekly-planner-workspace-v3.md`
 - `0024-admin-operational-dashboard-v1.md`
+- `0025-public-booking-flow-v2.md`
 - `0026-public-about-page-conversion-v1.md`
+- `0026-public-pricing-layout-v2.md`
+- `0027-public-pricing-metadata-in-catalog.md`
+- `0028-public-booking-confirmation-layout-v1.md`
+- `0029-admin-users-access-management-v1.md`

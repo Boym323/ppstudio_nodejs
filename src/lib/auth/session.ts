@@ -5,6 +5,8 @@ import { redirect } from "next/navigation";
 
 import { env } from "@/config/env";
 import { type AdminArea, getAdminHomeHref } from "@/config/navigation";
+import { verifyPassword } from "@/lib/auth/password";
+import { prisma } from "@/lib/prisma";
 
 const COOKIE_NAME = "ppstudio-admin-session";
 const SESSION_MAX_AGE = 60 * 60 * 12;
@@ -41,6 +43,47 @@ export type BootstrapAdminUser = (typeof bootstrapUsers)[number];
 
 export async function authenticateAdmin(email: string, password: string) {
   const normalizedEmail = email.trim().toLowerCase();
+  const dbUser = await prisma.adminUser.findUnique({
+    where: {
+      email: normalizedEmail,
+    },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      role: true,
+      isActive: true,
+      passwordHash: true,
+    },
+  });
+
+  if (dbUser?.passwordHash) {
+    if (!dbUser.isActive) {
+      return null;
+    }
+
+    const isPasswordValid = await verifyPassword(password, dbUser.passwordHash);
+
+    if (!isPasswordValid) {
+      return null;
+    }
+
+    await prisma.adminUser.update({
+      where: {
+        id: dbUser.id,
+      },
+      data: {
+        lastLoginAt: new Date(),
+      },
+    });
+
+    return {
+      id: dbUser.id,
+      email: dbUser.email,
+      name: dbUser.name,
+      role: dbUser.role,
+    };
+  }
 
   const user = bootstrapUsers.find(
     (candidate) =>

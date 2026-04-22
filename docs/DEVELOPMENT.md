@@ -84,6 +84,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - `OWNER` na `/admin/*`
   - `SALON` na `/admin/provoz/*`
 - Neplatná nebo zakázaná admin sekce se neřeší jen skrytím v menu; routa se validuje server-side přes `src/features/admin/lib/admin-guards.ts`.
+- Sekce `Uživatelé / role` má vlastní owner-only route workflow v `src/features/admin/components/admin-users-page.tsx`; už nepoužívá generický placeholder renderer z `admin-section-page.tsx`.
 
 ## Admin Informační Architektura
 - Sekce `volne-terminy` je znovu aktivní jako týdenní planner nad 30min gridem.
@@ -108,6 +109,20 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - `src/features/admin/components/admin-booking-detail-page.tsx` skládá detail rezervace jako serverový read layout; v aktuální verzi používá pět bloků `sticky header -> souhrn -> akce -> poznámky -> historie` a nemá znovu vracet paralelní souhrnné sekce se stejným obsahem.
 - `src/features/admin/components/admin-booking-status-form.tsx` zůstává malou klientskou vrstvou jen pro interaktivní výběr akce a submit server action; při dalších úpravách nenechávej zbytečně růst klientský bundle mimo tenhle formulář.
 - `src/features/admin/components/admin-booking-note-form.tsx` je oddělená klientská vrstva jen pro samostatnou editaci interní poznámky rezervace; drž ji bez dalších provozních rozhodnutí nebo statusové logiky.
+- `src/features/admin/lib/admin-users.ts` je serverový read model pro owner-only správu přístupů; skládá dohromady DB účty a systémové přístupy z bootstrap env vrstvy.
+- Pro klientsky bezpečné badge a texty kolem rolí/stavů používej `src/features/admin/lib/admin-user-presentation.ts`; nesahej pro runtime helpery do serverového read modelu, jinak se do klienta natáhne Prisma nebo session vrstva.
+- `AdminUser` má volitelné pole `invitedAt`, které drží čitelný stav `Pozvánka čeká` v owner UI.
+- Databázové přístupy používají heslo uložené v `AdminUser.passwordHash`; hash/verify helper je v `src/lib/auth/password.ts`.
+- Pozvánky používají model `AdminUserInviteToken` (hash tokenu, expirace, použití, revokace) a route `/admin/pozvanka/[token]`.
+- Server actions pro owner správu přístupů jsou v `src/features/admin/actions/admin-user-actions.ts`:
+  - `saveAdminUserAccessAction` pro založení pozvánky nebo úpravu jména/e-mailu; při nové pozvánce zároveň odesílá invite e-mail
+  - `changeAdminUserRoleAction` pro jednoduché přepnutí mezi `OWNER` a `SALON`
+  - `setAdminUserActiveAction` pro deaktivaci / opětovnou aktivaci
+  - `resendAdminUserInviteAction` zůstává server action vrstva pro sdílenou logiku, ale UI resend v řádku uživatele je záměrně napojené přes API route `src/app/api/admin/users/resend-invite/route.ts`, aby bylo spolehlivé i v klientském list row workflow
+- Invite e-mail je záměrně posílaný přímo ze server action přes `sendEmail`, aby owner viděl výsledek hned po kliknutí bez čekání na background worker.
+- Dokončení pozvánky řeší `activateAdminInviteAction` a klientská komponenta `AdminInviteActivationForm`; po úspěchu login stránka zobrazuje informační stav `invite=activated`.
+- UI sekce `Uživatelé / role` je rozdělené do menších komponent `AdminUsersWorkspace`, `UsersList`, `UserRow`, `InviteUserDialog`, `RoleCards`, `RoleBadge` a `AccountStatusBadge`.
+- Systémové účty se v UI vědomě nepopsují jako bootstrap nebo env účty; tenhle slovník zůstává jen v technické dokumentaci a implementaci auth vrstvy.
 - Sekce `Rezervace` má vlastní workflow v `src/features/admin/components/admin-bookings-page.tsx` a už neběží přes generický placeholder renderer.
 - `src/features/admin/lib/admin-data.ts` pro rezervace vrací explicitní řádkový read model (`title`, `serviceName`, `scheduledDateLabel`, `scheduledTimeLabel`, `status`, `sourceLabel`, `contactLabel`, `availableActions`) místo obecného `title/meta/description`.
 - `src/features/admin/components/admin-bookings-quick-actions.tsx` je záměrně velmi malá klientská vrstva jen pro inline akce `Potvrdit` a `Zrušit`; složitější workflow dál patří do detailu rezervace.
