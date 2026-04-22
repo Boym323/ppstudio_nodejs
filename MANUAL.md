@@ -391,6 +391,14 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
   - po potvrzení zruší rezervaci a zapíše audit, ale jen pokud rezervace ještě splňuje globální storno limit ze settings
   - uloží storno potvrzení do `EmailLog` pro worker nebo do `SENT` v log režimu
 
+## Řešení Problémů (Troubleshooting)
+- Chyba `Route "... " used params.slug. params is a Promise` v Next.js 16 znamená, že route používá starý synchronní přístup k dynamickým parametrům.
+- Oprava:
+  - v `page.tsx` a `generateMetadata` typuj `params` jako `Promise<{ ... }>`
+  - nejdřív proveď `const { slug } = await params` (nebo odpovídající pole)
+  - až potom parametr použij v DB dotazech nebo renderu
+- Referenční implementace v projektu: [`src/app/(public)/sluzby/[slug]/page.tsx`](/var/www/ppstudio/src/app/(public)/sluzby/[slug]/page.tsx).
+
 ## Provozní Poznámky
 - `proxy.ts` filtruje nepřihlášené požadavky na `/admin/*`.
 - Finální autorizace probíhá server-side v admin layoutu a stránkách.

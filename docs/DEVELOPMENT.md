@@ -36,6 +36,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 ## Veřejný Web
 - Každá veřejná stránka má vlastní route a metadata.
 - Detail služby běží na `sluzby/[slug]` a čerpá z request-time DB read modelu, aby admin změny byly vidět bez rebuildů.
+- V Next.js 16 mají dynamické route props asynchronní API; v `page.tsx` a `generateMetadata` proto typuj `params` jako `Promise<...>` a čti je přes `await params` (jinak vzniká chyba `sync-dynamic-apis`).
 - Veřejný web drží dva zdroje obsahu:
   - marketingové bloky, FAQ a právní texty jsou dál centralizované v `src/content/public-site.ts`
   - služby a ceník berou data z DB přes `src/features/public/lib/public-services.ts`

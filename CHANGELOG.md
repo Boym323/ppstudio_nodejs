@@ -7,6 +7,7 @@ Formát je inspirovaný Keep a Changelog.
 ## [Unreleased]
 
 ### Changed
+- Opraven detail služby `/sluzby/[slug]` pro Next.js 16 async dynamic APIs: route `params` je nově čtené jako `Promise` (`await params`) v `generateMetadata` i ve stránce, takže už nevzniká runtime chyba `sync-dynamic-apis`.
 - Formulář detailu služby v adminu teď jasněji rozlišuje fallback texty od veřejné prezentace: blok `Text pro orientaci` byl přejmenovaný na `Základní popisy (fallback)`, pole popisují reálné použití v rezervaci/webu a veřejné texty explicitně uvádějí vyšší prioritu.
 - Mobilní admin drawer už při otevření nenechává prosvítat horní sticky lištu s tlačítkem `Menu`, takže se navigace vizuálně nebije s vlastním obsahem draweru.
 - Mobilní layout admin sekce `Rezervace` už nepůsobí jako zmenšená desktop tabulka; řádky se na malých displejích skládají do dvousloupcové karty s čitelnějším kontaktem a plnošířkovým footerem pro `Potvrdit`, `Zrušit` a `Otevřít`.

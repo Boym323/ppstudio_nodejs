@@ -5,8 +5,11 @@ import { notFound } from 'next/navigation';
 import { getPublicServiceBySlug } from '@/features/public/lib/public-services';
 import { ServiceDetailPage, buildPageMetadata } from '@/features/public/components/public-site';
 
-export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
-  const service = await getPublicServiceBySlug(params.slug);
+type PageParams = Promise<{ slug: string }>;
+
+export async function generateMetadata({ params }: { params: PageParams }): Promise<Metadata> {
+  const { slug } = await params;
+  const service = await getPublicServiceBySlug(slug);
 
   if (!service) {
     return buildPageMetadata({
@@ -21,10 +24,11 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   });
 }
 
-export default async function Page({ params }: { params: { slug: string } }) {
+export default async function Page({ params }: { params: PageParams }) {
   await connection();
 
-  const service = await getPublicServiceBySlug(params.slug);
+  const { slug } = await params;
+  const service = await getPublicServiceBySlug(slug);
 
   if (!service) {
     notFound();
