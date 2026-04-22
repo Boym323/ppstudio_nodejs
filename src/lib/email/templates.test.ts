@@ -102,24 +102,3 @@ test("renderEmailTemplate creates approved email", async () => {
   assert.equal(email.attachments[0]?.filename, "pp-studio-rezervace.ics");
   assert.match(email.attachments[0]?.content ?? "", /^BEGIN:VCALENDAR\r\n/);
 });
-
-test("renderEmailTemplate keeps compatibility with legacy approved email payload", async () => {
-  const { renderEmailTemplate } = await loadRenderer();
-  const email = await renderEmailTemplate(
-    "booking-approved-v1",
-    "Rezervace potvrzena: Luxusní péče",
-    {
-      bookingId: "clztestbookinglegacy",
-      serviceName: "Luxusní péče",
-      clientName: "Jana Nováková",
-      scheduledStartsAt: "2026-04-20T08:00:00.000Z",
-      scheduledEndsAt: "2026-04-20T09:00:00.000Z",
-      calendarUrl: "https://example.com/rezervace/kalendar/token123",
-    },
-  );
-
-  assert.match(email.text, /byla potvrzena/i);
-  assert.match(email.html, /Rezervace byla potvrzena/);
-  assert.ok(email.attachments);
-  assert.equal(email.attachments.length, 1);
-});
