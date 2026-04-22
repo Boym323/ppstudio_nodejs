@@ -115,6 +115,12 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
 - Kontaktní krok přidává průběžnou inline validaci i helper text, co se stane po odeslání.
 - Souhrn umožňuje upravit službu, termín i kontakt přímo z pravého panelu bez vracení přes předchozí kroky.
 - Na mobilu je booking doplněný o sticky CTA lištu, která podle stavu výběru vede na další akci nebo rovnou na odeslání.
+- Po úspěšném odeslání se zobrazí samostatný confirmation flow místo jednoho souhrnného cardu:
+  - status blok `Rezervace přijata`
+  - hlavní detail se službou, datem, časem a referenčním kódem
+  - stručný blok `Co bude následovat`
+  - akce `Přidat do kalendáře`, `Požádat o změnu` a `Zrušit rezervaci`
+  - samostatný kontakt na studio až pod hlavními informacemi
 - Rezervační stránka je renderovaná dynamicky při requestu, takže nově publikované nebo obsazené sloty jsou vidět bez dalšího buildu.
 - Hero, sekce `O mně` a základní service copy jsou už přepsané do klidnějšího a osobnějšího tónu; další jemné úpravy je vhodné dělat centrálně v obsahové vrstvě nebo v DB copy mapě služeb.
 - Stránka `/kontakt` má nově silnější orientaci na rychlou akci:
@@ -326,6 +332,12 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
   - zapíše audit změny stavu
   - připraví storno token a e-mailový log s informací o přijetí rezervace
   - uloží e-mail jako `PENDING` v background režimu nebo `SENT` v log režimu
+- Confirmation screen i potvrzovací e-mail sdílejí stejnou obsahovou hierarchii:
+  - jasný stav rezervace
+  - dominantní termín
+  - oddělený blok dalších kroků
+  - akce mimo informační copy
+  - kontakt až jako spodní podpůrná sekce
 - Pokud se termín mezitím obsadí, služba přestane být aktivní nebo slot přestane odpovídat délce služby, uživatel dostane konkrétnější chybu místo obecného selhání.
 - Veřejný submit je lehce rate-limitený podle IP a e-mailu; opakované pokusy v krátkém čase skončí blokací s user-friendly hláškou.
 - Krok 2 už skrývá i sloty, které jsou pro vybranou službu příliš krátké.

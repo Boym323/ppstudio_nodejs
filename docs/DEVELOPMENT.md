@@ -26,6 +26,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - `CategorySelect` pro první rozhodnutí nad kategoriemi
   - `SuggestedSlots` pro nejbližší jedním klikem rezervovatelné časy
   - `StickyCTA` pro mobilní pokračování / submit bez ztráty kontextu
+  - `BookingConfirmationPanel` pro post-submit stav se status blokem, dominantním termínem, CTA a kontaktem
 - `src/app/robots.ts` a `src/app/sitemap.ts` používají metadata route API v App Routeru.
 - Veřejně dostupná nahraná média se servírují přes route handler `src/app/media/[kind]/[[...path]]/route.ts`, ne přes `public/` repozitáře.
 - `next.config.ts` používá `allowedDevOrigins` pro lokální LAN vývoj na `192.168.0.143`; bez toho Next.js 16 z jiného zařízení zablokuje dev assety a HMR endpoint `/_next/webpack-hmr`.
@@ -224,6 +225,16 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Krok 2 generuje konkrétní starty po 30 minutách uvnitř slotu a zobrazuje jen ty, které se při aktuální kapacitě nekryjí s existujícími aktivními rezervacemi.
 - Krok 2 veřejného booking flow drž jako rychlý decision flow: doporučené termíny nahoře, kalendář jako fallback a pod ním větší tlačítka konkrétních časů; detail termínu patří až do souhrnu v pravém panelu.
 - Kontaktní krok používá lehkou klientskou inline validaci jen jako UX vrstvu; server-side validace v `create-public-booking.ts` zůstává autoritativní.
+- Success stav veřejného booking flow drž jako vlastní confirmation layout, ne jako prodloužený souhrn:
+  - horní status blok jen pro stav rezervace
+  - hlavní detail rezervace ukazuje samostatně službu, termín, čas i referenční kód
+  - samostatná dominantní karta termínu
+  - stručný blok `Co bude následovat`
+  - akční řada oddělená od vysvětlujícího textu
+  - kontakt na studio až v posledním bloku
+- `createPublicBooking()` vrací pro confirmation vrstvu i `scheduledStartsAt`, `scheduledEndsAt` a `cancellationUrl`, aby web i e-mail nemusely domýšlet další akce z neúplných dat.
+- `BookingConfirmationPanel` používá dočasný secondary CTA `Požádat o změnu` přes předvyplněný `mailto:` odkaz; to je záměrný placeholder pro budoucí self-service manage/reschedule endpoint.
+- Primární CTA `Přidat do kalendáře` generuje `.ics` soubor na klientu, takže nevyžaduje nový veřejný route handler ani odhalení interního booking identifikátoru.
 - Transformaci slotů pro krok 2 drž mimo JSX v helperu `src/features/booking/lib/booking-time-slots.ts`; UI komponenty mají dostávat už připravené `TimeSlotOption[]` a skupiny z `groupSlotsByDayPeriod()`.
 - Kalendářní denní klíče v kroku 2 (`YYYY-MM-DD`) generuj locale-agnosticky přes `Intl.DateTimeFormat(...).formatToParts()`; nepoužívej `format()` jako zdroj klíče, protože pořadí/oddělovače se liší mezi prostředími a může rozbít mapování měsíců/dnů.
 - U kalendářních gridů v kroku 2 drž explicitní `gridTemplateColumns: repeat(7, minmax(0, 1fr))` přímo v komponentě jako runtime pojistku; samotná utility třída nemusí v některých prostředích stačit.
@@ -231,6 +242,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - provider řeší SMTP transport
   - templates renderují obsah z `EmailLog.templateKey`
   - worker claimuje `EmailLog` řádky v background režimu a delivery aktualizuje `EmailLog.status`, `provider`, `providerMessageId`, `attemptCount`, `nextAttemptAt` a `errorMessage`
+- Potvrzovací e-mail `booking-confirmation-v1` má držet stejnou informační hierarchii jako web confirmation screen: stav -> služba / termín / kód -> další kroky -> akce -> kontakt, bez duplicitního úvodního textu mimo hero blok.
 
 ## Migrační Strategie
 - Stávající bootstrap migrace rozšiřujeme inkrementálně, ne přepisem historie.

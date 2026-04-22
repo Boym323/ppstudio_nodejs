@@ -1,3 +1,4 @@
+import type { getPublicSalonProfile } from "@/lib/site-settings";
 import { Container } from "@/components/ui/container";
 import { SectionHeading } from "@/components/ui/section-heading";
 import type { PublicBookingCatalog } from "@/features/booking/lib/booking-public";
@@ -7,9 +8,10 @@ import { BookingFlow } from "./booking-flow";
 type BookingPageProps = {
   catalog: PublicBookingCatalog;
   initialSelectedServiceSlug?: string;
+  salonProfile: Awaited<ReturnType<typeof getPublicSalonProfile>>;
 };
 
-export function BookingPage({ catalog, initialSelectedServiceSlug }: BookingPageProps) {
+export function BookingPage({ catalog, initialSelectedServiceSlug, salonProfile }: BookingPageProps) {
   const hasServices = catalog.services.length > 0;
   const hasSlots = catalog.slots.length > 0;
 
@@ -41,7 +43,11 @@ export function BookingPage({ catalog, initialSelectedServiceSlug }: BookingPage
             </p>
           </section>
         ) : (
-          <BookingFlow catalog={catalog} initialSelectedServiceSlug={initialSelectedServiceSlug} />
+          <BookingFlow
+            catalog={catalog}
+            initialSelectedServiceSlug={initialSelectedServiceSlug}
+            salonProfile={salonProfile}
+          />
         )}
       </Container>
     </div>

@@ -6,6 +6,7 @@ import { useActionState, useEffect, useMemo, useRef, useState, type MutableRefOb
 import { createPublicBookingAction } from "@/features/booking/actions/create-public-booking";
 import { initialPublicBookingActionState } from "@/features/booking/actions/public-booking-action-state";
 import type { PublicBookingCatalog } from "@/features/booking/lib/booking-public";
+import type { getPublicSalonProfile } from "@/lib/site-settings";
 import {
   buildSlotTimeOptions,
   groupSlotsByDayPeriod,
@@ -14,6 +15,7 @@ import {
 import { cn } from "@/lib/utils";
 
 import { BookingSubmitButton } from "./booking-submit-button";
+import { BookingConfirmationPanel } from "./booking-confirmation-panel";
 import { CategorySelect } from "./category-select";
 import { StickyCTA } from "./sticky-cta";
 import { SuggestedSlots } from "./suggested-slots";
@@ -22,6 +24,7 @@ import { TimeSlotGroup } from "./time-slot-group";
 type BookingFlowProps = {
   catalog: PublicBookingCatalog;
   initialSelectedServiceSlug?: string;
+  salonProfile: Awaited<ReturnType<typeof getPublicSalonProfile>>;
 };
 
 type ContactFieldKey = "fullName" | "email" | "phone";
@@ -226,7 +229,7 @@ function buildContactFieldErrors(values: Record<ContactFieldKey, string>) {
   };
 }
 
-export function BookingFlow({ catalog, initialSelectedServiceSlug }: BookingFlowProps) {
+export function BookingFlow({ catalog, initialSelectedServiceSlug, salonProfile }: BookingFlowProps) {
   const [serverState, formAction] = useActionState(
     createPublicBookingAction,
     initialPublicBookingActionState,
@@ -655,46 +658,14 @@ export function BookingFlow({ catalog, initialSelectedServiceSlug }: BookingFlow
 
   if (serverState.status === "success" && serverState.confirmation) {
     return (
-      <section className="rounded-[var(--radius-panel)] border border-[var(--color-accent-soft)]/50 bg-white p-8 shadow-[var(--shadow-panel)]">
-        <p className="text-xs font-semibold uppercase tracking-[0.32em] text-[var(--color-accent)]">
-          Rezervace přijata
-        </p>
-        <h3 className="mt-5 font-display text-4xl text-[var(--color-foreground)]">
-          Děkujeme, {serverState.confirmation.clientName}.
-        </h3>
-        <p className="mt-4 max-w-2xl text-base leading-7 text-[var(--color-muted)]">
-          Rezervaci jsme přijali ke schválení. Jakmile ji potvrdíme, pošleme vám e-mail s dalším
-          postupem a připomenutím termínu.
-        </p>
-        <dl className="mt-8 grid gap-4 sm:grid-cols-2">
-          <div className="rounded-3xl border border-black/6 bg-[var(--color-surface)]/45 p-5">
-            <dt className="text-xs uppercase tracking-[0.2em] text-[var(--color-muted)]">
-              Referenční kód
-            </dt>
-            <dd className="mt-2 text-lg font-semibold text-[var(--color-foreground)]">
-              {serverState.confirmation.referenceCode}
-            </dd>
-          </div>
-          <div className="rounded-3xl border border-black/6 bg-[var(--color-surface)]/45 p-5">
-            <dt className="text-xs uppercase tracking-[0.2em] text-[var(--color-muted)]">Služba</dt>
-            <dd className="mt-2 text-lg font-semibold text-[var(--color-foreground)]">
-              {serverState.confirmation.serviceName}
-            </dd>
-          </div>
-          <div className="rounded-3xl border border-black/6 bg-[var(--color-surface)]/45 p-5 sm:col-span-2">
-            <dt className="text-xs uppercase tracking-[0.2em] text-[var(--color-muted)]">Termín</dt>
-            <dd className="mt-2 text-lg font-semibold text-[var(--color-foreground)]">
-              {serverState.confirmation.scheduledAtLabel}
-            </dd>
-          </div>
-          <div className="rounded-3xl border border-black/6 bg-[var(--color-surface)]/45 p-5 sm:col-span-2">
-            <dt className="text-xs uppercase tracking-[0.2em] text-[var(--color-muted)]">Kontakt</dt>
-            <dd className="mt-2 text-lg font-semibold text-[var(--color-foreground)]">
-              {serverState.confirmation.clientEmail}
-            </dd>
-          </div>
-        </dl>
-      </section>
+      <BookingConfirmationPanel
+        confirmation={serverState.confirmation}
+        salonContact={{
+          name: salonProfile.name,
+          email: salonProfile.email,
+          phone: salonProfile.phone,
+        }}
+      />
     );
   }
 

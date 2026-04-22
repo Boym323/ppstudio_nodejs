@@ -1,7 +1,11 @@
 import { z } from "zod";
 
 import { env } from "@/config/env";
-import { formatBookingDateLabel } from "@/features/booking/lib/booking-format";
+import {
+  formatBookingCalendarDate,
+  formatBookingDateLabel,
+  formatBookingTimeRange,
+} from "@/features/booking/lib/booking-format";
 import { getEmailBrandingSettings, getPublicSalonProfile } from "@/lib/site-settings";
 
 const bookingConfirmationPayloadSchema = z.object({
@@ -55,26 +59,80 @@ function escapeHtml(value: string) {
     .replaceAll("'", "&#39;");
 }
 
+function buildEmailButton({
+  href,
+  label,
+  variant = "secondary",
+}: {
+  href: string;
+  label: string;
+  variant?: "primary" | "secondary" | "destructive";
+}) {
+  const styles =
+    variant === "primary"
+      ? "background:#1f1714;color:#ffffff;border:1px solid #1f1714;"
+      : variant === "destructive"
+        ? "background:#fff4f2;color:#b03c2e;border:1px solid #f3d3cd;"
+        : "background:#f6efe8;color:#1f1714;border:1px solid rgba(33,23,20,0.08);";
+
+  return `<a href="${escapeHtml(href)}" style="display:inline-block;padding:14px 22px;border-radius:999px;font-size:13px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;text-decoration:none;${styles}">${escapeHtml(label)}</a>`;
+}
+
+function buildManageReservationMailto({
+  brandEmail,
+  referenceCode,
+  clientName,
+  serviceName,
+  bookingDate,
+  bookingTime,
+}: {
+  brandEmail: string;
+  referenceCode: string;
+  clientName: string;
+  serviceName: string;
+  bookingDate: string;
+  bookingTime: string;
+}) {
+  const subject = `Žádost o změnu rezervace ${referenceCode}`;
+  const body = [
+    "Dobrý den,",
+    "",
+    `prosím o změnu rezervace ${referenceCode}.`,
+    `Klientka: ${clientName}`,
+    `Služba: ${serviceName}`,
+    `Termín: ${bookingDate}, ${bookingTime}`,
+    "",
+    "Děkuji.",
+  ].join("\n");
+
+  return `mailto:${brandEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+}
+
 function buildEmailShell(
   brand: { name: string; email: string; phone: string; footerText?: string | null },
   title: string,
   intro: string,
   body: string,
+  options?: {
+    includeFooter?: boolean;
+  },
 ) {
   return `
     <div style="background:#f7f1eb;padding:32px 16px;font-family:Arial,sans-serif;color:#2e241f;">
       <div style="max-width:640px;margin:0 auto;background:#ffffff;border-radius:24px;padding:32px;box-shadow:0 20px 60px rgba(42,29,21,0.08);">
         <p style="margin:0 0 12px;font-size:12px;letter-spacing:0.24em;text-transform:uppercase;color:#9e7f65;">${escapeHtml(brand.name)}</p>
-        <h1 style="margin:0 0 16px;font-size:30px;line-height:1.15;font-family:Georgia,serif;color:#1f1714;">${escapeHtml(title)}</h1>
-        <p style="margin:0 0 24px;font-size:16px;line-height:1.7;color:#5b4c44;">${escapeHtml(intro)}</p>
+        ${title ? `<h1 style="margin:0 0 16px;font-size:30px;line-height:1.15;font-family:Georgia,serif;color:#1f1714;">${escapeHtml(title)}</h1>` : ""}
+        ${intro ? `<p style="margin:0 0 24px;font-size:16px;line-height:1.7;color:#5b4c44;">${escapeHtml(intro)}</p>` : ""}
         ${body}
-        <p style="margin:32px 0 0;font-size:14px;line-height:1.7;color:#5b4c44;">
-          Pokud budete potřebovat pomoci, napište nám na
-          <a href="mailto:${escapeHtml(brand.email)}" style="color:#1f1714;">${escapeHtml(brand.email)}</a>
-          nebo zavolejte na
-          <a href="tel:${escapeHtml(brand.phone)}" style="color:#1f1714;">${escapeHtml(brand.phone)}</a>.
-        </p>
-        ${brand.footerText ? `<p style="margin:20px 0 0;font-size:13px;line-height:1.7;color:#5b4c44;">${escapeHtml(brand.footerText)}</p>` : ""}
+        ${options?.includeFooter === false ? "" : `
+          <p style="margin:32px 0 0;font-size:14px;line-height:1.7;color:#5b4c44;">
+            Pokud budete potřebovat pomoci, napište nám na
+            <a href="mailto:${escapeHtml(brand.email)}" style="color:#1f1714;">${escapeHtml(brand.email)}</a>
+            nebo zavolejte na
+            <a href="tel:${escapeHtml(brand.phone)}" style="color:#1f1714;">${escapeHtml(brand.phone)}</a>.
+          </p>
+          ${brand.footerText ? `<p style="margin:20px 0 0;font-size:13px;line-height:1.7;color:#5b4c44;">${escapeHtml(brand.footerText)}</p>` : ""}
+        `}
       </div>
     </div>
   `.trim();
@@ -114,43 +172,101 @@ export async function renderEmailTemplate(
   switch (templateKey) {
     case "booking-confirmation-v1": {
       const data = bookingConfirmationPayloadSchema.parse(payload);
-      const scheduledAtLabel = formatBookingDateLabel(
-        new Date(data.scheduledStartsAt),
-        new Date(data.scheduledEndsAt),
-      );
+      const scheduledStartsAt = new Date(data.scheduledStartsAt);
+      const scheduledEndsAt = new Date(data.scheduledEndsAt);
+      const bookingDate = formatBookingCalendarDate(scheduledStartsAt);
+      const bookingTime = formatBookingTimeRange(scheduledStartsAt, scheduledEndsAt);
+      const referenceCode = data.bookingId.slice(-8).toUpperCase();
+      const manageReservationUrl = buildManageReservationMailto({
+        brandEmail: brand.email,
+        referenceCode,
+        clientName: data.clientName,
+        serviceName: data.serviceName,
+        bookingDate,
+        bookingTime,
+      });
 
       const text = [
         `Dobrý den, ${data.clientName},`,
         "",
-        `vaši rezervaci služby ${data.serviceName} jsme přijali ke schválení.`,
-        `Termín: ${scheduledAtLabel}`,
-        `Referenční kód: ${data.bookingId.slice(-8).toUpperCase()}`,
+        "Rezervace přijata",
+        `Vaši rezervaci služby ${data.serviceName} jsme přijali ke schválení.`,
         "",
-        `Pokud potřebujete rezervaci stáhnout, použijte storno odkaz: ${data.cancellationUrl}`,
+        `Služba: ${data.serviceName}`,
+        `Termín: ${bookingDate}`,
+        `Čas: ${bookingTime}`,
+        `Referenční kód: ${referenceCode}`,
         "",
-        `${brand.name}`,
-        `${brand.email} | ${brand.phone}`,
+        "Co bude následovat:",
+        "Potvrzení přijde dalším e-mailem a kdyby bylo potřeba něco upřesnit, ozveme se.",
+        "",
+        `Požádat o změnu: ${manageReservationUrl}`,
+        `Zrušení rezervace: ${data.cancellationUrl}`,
+        "",
+        "Potřebujete pomoc?",
+        `${brand.email}`,
+        `${brand.phone}`,
       ].join("\n");
 
       const html = buildEmailShell(
         brand,
-        "Rezervace přijata",
-        `Vaši rezervaci služby ${data.serviceName} jsme přijali ke schválení.`,
+        "",
+        "",
         `
-          <div style="border:1px solid rgba(33,23,20,0.08);border-radius:18px;padding:20px;background:#fbf7f3;">
-            <p style="margin:0 0 8px;font-size:13px;text-transform:uppercase;letter-spacing:0.16em;color:#9e7f65;">Termín</p>
-            <p style="margin:0;font-size:18px;line-height:1.6;color:#1f1714;"><strong>${escapeHtml(scheduledAtLabel)}</strong></p>
-            <p style="margin:16px 0 0;font-size:14px;line-height:1.7;color:#5b4c44;">Referenční kód: <strong>${escapeHtml(data.bookingId.slice(-8).toUpperCase())}</strong></p>
+          <div style="border:1px solid rgba(33,23,20,0.08);border-radius:24px;padding:24px;background:linear-gradient(135deg,#231814,#46342a);color:#ffffff;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+              <tr>
+                <td style="vertical-align:top;padding-right:16px;">
+                  <p style="margin:0;font-size:12px;letter-spacing:0.24em;text-transform:uppercase;color:rgba(232,213,192,0.78);">PP Studio</p>
+                  <h2 style="margin:18px 0 0;font-size:32px;line-height:1.12;font-family:Georgia,serif;color:#ffffff;">Rezervace přijata</h2>
+                  <p style="margin:12px 0 0;font-size:15px;line-height:1.7;color:rgba(255,255,255,0.74);">Vaši rezervaci jsme přijali ke schválení.</p>
+                </td>
+                <td style="width:150px;vertical-align:top;">
+                  <div style="border:1px solid rgba(255,255,255,0.12);border-radius:999px;padding:12px 14px;background:rgba(255,255,255,0.08);">
+                    <p style="margin:0;font-size:11px;letter-spacing:0.16em;text-transform:uppercase;color:rgba(255,255,255,0.54);">Stav rezervace</p>
+                    <p style="margin:8px 0 0;font-size:14px;font-weight:600;color:#ffffff;">Čeká na potvrzení</p>
+                  </div>
+                </td>
+              </tr>
+            </table>
           </div>
-          <p style="margin:24px 0 0;font-size:15px;line-height:1.7;color:#5b4c44;">
-            Pokud potřebujete rezervaci stáhnout, použijte bezpečný storno odkaz:
-          </p>
-          <p style="margin:16px 0 0;">
-            <a href="${escapeHtml(data.cancellationUrl)}" style="display:inline-block;padding:14px 22px;border-radius:999px;background:#1f1714;color:#ffffff;text-decoration:none;font-weight:600;">
-              Zrušit rezervaci
-            </a>
-          </p>
+          <div style="margin-top:20px;border:1px solid rgba(33,23,20,0.08);border-radius:22px;padding:24px;background:#fbf7f3;">
+            <p style="margin:0;font-size:12px;letter-spacing:0.2em;text-transform:uppercase;color:#9e7f65;">Služba</p>
+            <p style="margin:12px 0 0;font-size:19px;line-height:1.6;color:#1f1714;"><strong>${escapeHtml(data.serviceName)}</strong></p>
+            <p style="margin:18px 0 0;font-size:12px;letter-spacing:0.2em;text-transform:uppercase;color:#9e7f65;">Termín</p>
+            <p style="margin:12px 0 0;font-size:31px;line-height:1.16;font-family:Georgia,serif;color:#1f1714;"><strong>${escapeHtml(bookingDate)}</strong></p>
+            <p style="margin:10px 0 0;font-size:28px;line-height:1.2;font-weight:700;color:#1f1714;">${escapeHtml(bookingTime)}</p>
+            <p style="margin:18px 0 0;font-size:13px;line-height:1.7;color:#5b4c44;">Referenční kód: <strong>${escapeHtml(referenceCode)}</strong></p>
+          </div>
+          <div style="margin-top:20px;border:1px solid rgba(33,23,20,0.08);border-radius:20px;padding:20px;background:#ffffff;">
+            <p style="margin:0;font-size:12px;letter-spacing:0.2em;text-transform:uppercase;color:#9e7f65;">Co bude následovat</p>
+            <p style="margin:12px 0 0;font-size:15px;line-height:1.7;color:#5b4c44;">Potvrzení přijde dalším e-mailem a kdyby bylo potřeba něco upřesnit, ozveme se.</p>
+          </div>
+          <div style="margin-top:20px;border:1px solid rgba(33,23,20,0.08);border-radius:20px;padding:20px;background:#ffffff;">
+            <p style="margin:0 0 14px;font-size:12px;letter-spacing:0.2em;text-transform:uppercase;color:#9e7f65;">Další kroky</p>
+            <div style="font-size:0;line-height:0;">
+              <div style="display:inline-block;margin:0 10px 10px 0;">${buildEmailButton({
+                href: manageReservationUrl,
+                label: "Požádat o změnu",
+                variant: "primary",
+              })}</div>
+              <div style="display:inline-block;margin:0 10px 10px 0;">${buildEmailButton({
+                href: data.cancellationUrl,
+                label: "Zrušit rezervaci",
+                variant: "destructive",
+              })}</div>
+            </div>
+            <p style="margin:6px 0 0;font-size:13px;line-height:1.7;color:#7a675c;">Požádat o změnu zatím otevře předvyplněný e-mail do studia s referencí rezervace.</p>
+          </div>
+          <div style="margin-top:20px;border:1px solid rgba(33,23,20,0.08);border-radius:20px;padding:20px;background:#ffffff;">
+            <p style="margin:0;font-size:12px;letter-spacing:0.2em;text-transform:uppercase;color:#9e7f65;">Potřebujete pomoc?</p>
+            <p style="margin:12px 0 0;font-size:16px;line-height:1.8;color:#1f1714;">
+              <a href="mailto:${escapeHtml(brand.email)}" style="color:#1f1714;text-decoration:none;">${escapeHtml(brand.email)}</a><br />
+              <a href="tel:${escapeHtml(brand.phone)}" style="color:#1f1714;text-decoration:none;">${escapeHtml(brand.phone)}</a>
+            </p>
+          </div>
         `,
+        { includeFooter: false },
       );
 
       return { subject, html, text };

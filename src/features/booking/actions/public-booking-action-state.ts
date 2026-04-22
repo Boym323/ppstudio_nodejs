@@ -8,9 +8,12 @@ export type PublicBookingActionState = {
     bookingId: string;
     referenceCode: string;
     serviceName: string;
+    scheduledStartsAt: string;
+    scheduledEndsAt: string;
     scheduledAtLabel: string;
     clientName: string;
     clientEmail: string;
+    cancellationUrl: string;
     emailDeliveryStatus: "queued" | "logged" | "skipped";
   };
 };

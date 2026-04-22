@@ -80,9 +80,12 @@ export type CreatePublicBookingResult = {
   bookingId: string;
   referenceCode: string;
   serviceName: string;
+  scheduledStartsAt: string;
+  scheduledEndsAt: string;
   scheduledAtLabel: string;
   clientName: string;
   clientEmail: string;
+  cancellationUrl: string;
   emailDeliveryStatus: "queued" | "logged" | "skipped";
 };
 
@@ -703,12 +706,15 @@ export async function createPublicBooking(
             bookingId: booking.id,
             referenceCode: booking.id.slice(-8).toUpperCase(),
             serviceName: service.name,
+            scheduledStartsAt: booking.scheduledStartsAt.toISOString(),
+            scheduledEndsAt: booking.scheduledEndsAt.toISOString(),
             scheduledAtLabel: formatBookingDateLabel(
               booking.scheduledStartsAt,
               booking.scheduledEndsAt,
             ),
             clientName: normalizedFullName,
             clientEmail: normalizedEmail,
+            cancellationUrl,
           };
         },
         {
@@ -719,9 +725,12 @@ export async function createPublicBooking(
         bookingId: transactionResult.bookingId,
         referenceCode: transactionResult.referenceCode,
         serviceName: transactionResult.serviceName,
+        scheduledStartsAt: transactionResult.scheduledStartsAt,
+        scheduledEndsAt: transactionResult.scheduledEndsAt,
         scheduledAtLabel: transactionResult.scheduledAtLabel,
         clientName: transactionResult.clientName,
         clientEmail: transactionResult.clientEmail,
+        cancellationUrl: transactionResult.cancellationUrl,
         emailDeliveryStatus:
           env.EMAIL_DELIVERY_MODE === "background" ? "queued" : "logged",
       };

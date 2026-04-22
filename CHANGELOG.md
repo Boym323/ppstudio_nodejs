@@ -6,7 +6,14 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+### Changed
+- Finální cleanup pass veřejného confirmation flow zkrátil duplicity v hero copy, zpřesnil CTA na `Požádat o změnu`, doplnil službu do hlavního přehledu rezervace a zjednodušil kontaktní texty.
+
 ### Added
+- Prémiovější potvrzovací vrstvu veřejné rezervace: success screen už není jen jeden souhrnný card, ale jasný confirmation flow se samostatným status blokem, přehledem služby / termínu / kódu, blokem `Co bude následovat`, akční sekcí a odděleným kontaktem.
+- Novou klientskou komponentu `BookingConfirmationPanel` pro post-submit stav rezervace včetně reálného CTA `Přidat do kalendáře`, sekundární akce `Požádat o změnu` přes předvyplněný kontakt do studia a destruktivního self-service storna.
+- Výrazně přepracovanou šablonu `booking-confirmation-v1`, která kopíruje stejnou hierarchii jako web confirmation screen místo jednoho dlouhého textového e-mailového cardu.
+- ADR 0028 pro rozhodnutí kolem hierarchie a akčního toku potvrzení veřejné rezervace.
 - Rozšíření katalogu `Service` a `ServiceCategory` o veřejná pricing metadata pro `/cenik`, `/sluzby` a detail služby: `publicName`, `publicIntro`, `seoDescription`, `pricingShortDescription`, `pricingBadge`, `pricingDescription`, `pricingLayout`, `pricingIconKey`, `pricingSortOrder`.
 - Admin formuláře `Služby` a `Kategorie služeb` pro správu těchto veřejných metadata bez zásahu do kódu.
 - Databázovou migraci `20260421113000_public_pricing_metadata` a rozšířený import `scripts/import-services.mjs`, který umí nová public/pricing pole načítat z JSON.
