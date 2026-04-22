@@ -91,9 +91,13 @@ test("renderEmailTemplate creates approved email", async () => {
       clientName: "Jana Nováková",
       scheduledStartsAt: "2026-04-20T08:00:00.000Z",
       scheduledEndsAt: "2026-04-20T09:00:00.000Z",
+      calendarUrl: "https://example.com/api/bookings/calendar/token-ics.ics",
     },
   );
 
   assert.match(email.text, /byla potvrzena/i);
+  assert.match(email.text, /Přidat do kalendáře/);
+  assert.match(email.text, /token-ics\.ics/);
   assert.match(email.html, /Rezervace byla potvrzena/);
+  assert.match(email.html, /Přidat do kalendáře/);
 });

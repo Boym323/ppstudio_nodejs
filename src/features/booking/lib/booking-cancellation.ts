@@ -282,6 +282,17 @@ export async function cancelPublicBookingByToken(rawToken: string): Promise<Canc
         },
       });
 
+      await tx.bookingActionToken.updateMany({
+        where: {
+          bookingId: lockedToken.bookingId,
+          type: BookingActionTokenType.CALENDAR,
+          revokedAt: null,
+        },
+        data: {
+          revokedAt: now,
+        },
+      });
+
       await tx.bookingStatusHistory.create({
         data: {
           bookingId: lockedToken.booking.id,

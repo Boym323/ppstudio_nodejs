@@ -43,6 +43,7 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
 - Vertikální spacing veřejných sekcí je sjednocený do rytmu `py-10 / sm:py-14 / lg:py-16`; větší rozestupy používej jen pro obsahově výrazné bloky.
 - Rezervační vrstva stojí na ručně vypisovaných termínech přes `AvailabilitySlot`, ne na pevné otevírací době.
 - Pending rezervace lze nově potvrdit nebo zrušit přímo z provozního e-mailu přes bezpečné jednorázové odkazy s mezikrokem potvrzení na veřejné route `/rezervace/akce/[intent]/[token]`.
+- Po potvrzení rezervace zákaznice dostává i zákaznický `.ics` odkaz na `/api/bookings/calendar/[token].ics`; jde o jednu konkrétní kalendářovou událost pro jeden potvrzený termín, ne o subscription feed.
 - Owner může v `/admin/nastaveni` nově zapnout chráněný Apple Calendar subscription feed na `/api/calendar/owner.ics?token=...`; feed je read-only, bere jen potvrzené rezervace a aplikace zůstává jediným source of truth.
 - Admin má dva směry použití:
   - full admin na `/admin/*` pro roli `OWNER`
@@ -121,14 +122,15 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
   - status blok `Rezervace přijata`
   - hlavní detail se službou, datem, časem a referenčním kódem
   - stručný blok `Co bude následovat`
-  - akce `Přidat do kalendáře`, `Požádat o změnu` a `Zrušit rezervaci`
+  - akce `Požádat o změnu` a `Zrušit rezervaci`
   - samostatný kontakt na studio až pod hlavními informacemi
 - Provozní e-mail o nové rezervaci teď obsahuje tři akce:
   - `Schválit rezervaci`
   - `Zrušit rezervaci`
   - `Otevřít v administraci`
 - Emailové approve/reject odkazy neprovedou změnu hned po otevření; vždy nejdřív zobrazí kontrolní obrazovku s přehledem rezervace a až následně potvrzovací CTA.
-- Po schválení nebo zrušení z e-mailu systém automaticky založí návazný klientský e-mail s výsledkem rezervace.
+- Po potvrzení rezervace systém automaticky založí návazný klientský e-mail s výsledkem rezervace a CTA `Přidat do kalendáře` na samostatný `.ics` endpoint.
+- Kalendářový `.ics` odkaz je aktivní jen pro stav `CONFIRMED`; pending confirmation screen ho záměrně nenabízí a po zrušení rezervace se už dál aktivně nepoužívá.
 - Rezervační stránka je renderovaná dynamicky při requestu, takže nově publikované nebo obsazené sloty jsou vidět bez dalšího buildu.
 - Hero, sekce `O mně` a základní service copy jsou už přepsané do klidnějšího a osobnějšího tónu; další jemné úpravy je vhodné dělat centrálně v obsahové vrstvě nebo v DB copy mapě služeb.
 - Stránka `/kontakt` má nově silnější orientaci na rychlou akci:
@@ -347,6 +349,7 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
 - `BookingStatusHistory` slouží jako audit změn stavu a rozlišuje akci uživatele, klienta nebo systému.
 - Admin detail rezervace zobrazuje historii změn jako provozní timeline, takže salon i owner vidí, kdo a kdy stav upravil.
 - `BookingActionToken` ukládá pouze hash tokenu pro storno a přesun termínu, nikdy ne surovou hodnotu tokenu.
+- Stejný model `BookingActionToken` nově používáme i pro zákaznický calendar link typu `CALENDAR`; raw token se skládá jen do URL v potvrzovacím e-mailu, v DB zůstává pouze hash.
 - `EmailLog` umožňuje trasovat odeslané i neúspěšné e-maily navázané na klienta, rezervaci a případný token.
 - Owner-only sekce `Email logy` je provozní observability obrazovka pro pending frontu, retry pokusy a poslední chyby workeru.
 - Detail konkrétního e-mailu na `/admin/email-logy/[emailLogId]` ukazuje payload, poslední chybu, vazby na rezervaci a klientku a nabízí ruční retry nebo uvolnění zaseknutého jobu.

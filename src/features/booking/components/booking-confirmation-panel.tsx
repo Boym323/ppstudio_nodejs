@@ -35,29 +35,6 @@ export function BookingConfirmationPanel({
     timeRange,
   });
 
-  const handleAddToCalendar = () => {
-    const icsContent = buildCalendarInvite({
-      title: `${salonContact.name} - ${confirmation.serviceName}`,
-      description: [
-        `Rezervace u ${salonContact.name}`,
-        `Reference: ${confirmation.referenceCode}`,
-        `Kontakt: ${salonContact.email}${salonContact.phone ? ` | ${salonContact.phone}` : ""}`,
-      ].join("\\n"),
-      startsAt: scheduledStartsAt,
-      endsAt: scheduledEndsAt,
-    });
-    const blob = new Blob([icsContent], { type: "text/calendar;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-
-    link.href = url;
-    link.download = `pp-studio-${confirmation.referenceCode.toLowerCase()}.ics`;
-    document.body.append(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(url);
-  };
-
   return (
     <section className="space-y-5 sm:space-y-6">
       <section className="relative overflow-hidden rounded-[2rem] border border-[var(--color-accent-soft)]/45 bg-[linear-gradient(135deg,rgba(34,22,18,0.98),rgba(57,41,34,0.92))] p-7 text-white shadow-[0_24px_70px_rgba(23,15,11,0.24)] sm:p-9">
@@ -134,16 +111,9 @@ export function BookingConfirmationPanel({
 
       <section className="rounded-[1.75rem] border border-black/6 bg-white p-6 shadow-[var(--shadow-panel)] sm:p-7">
         <div className="flex flex-col gap-4 lg:flex-row lg:flex-wrap">
-          <button
-            type="button"
-            onClick={handleAddToCalendar}
-            className="inline-flex min-h-13 flex-1 items-center justify-center rounded-full bg-[var(--color-foreground)] px-6 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-white transition hover:bg-[#2c221d] sm:text-sm"
-          >
-            Přidat do kalendáře
-          </button>
           <a
             href={manageReservationUrl}
-            className="inline-flex min-h-13 flex-1 items-center justify-center rounded-full border border-black/10 bg-[var(--color-surface)]/52 px-6 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-foreground)] transition hover:border-black/20 hover:bg-white sm:text-sm"
+            className="inline-flex min-h-13 flex-1 items-center justify-center rounded-full bg-[var(--color-foreground)] px-6 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-white transition hover:bg-[#2c221d] sm:text-sm"
           >
             Požádat o změnu
           </a>
@@ -212,55 +182,6 @@ function buildManageReservationUrl({
   ].join("\n");
 
   return `mailto:${encodeURIComponent(salonEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-}
-
-function buildCalendarInvite({
-  title,
-  description,
-  startsAt,
-  endsAt,
-}: {
-  title: string;
-  description: string;
-  startsAt: Date;
-  endsAt: Date;
-}) {
-  const dtStamp = formatIcsDate(new Date());
-  const dtStart = formatIcsDate(startsAt);
-  const dtEnd = formatIcsDate(endsAt);
-  const uid = `${dtStart}-${dtEnd}@ppstudio.cz`;
-
-  return [
-    "BEGIN:VCALENDAR",
-    "VERSION:2.0",
-    "PRODID:-//PP Studio//Booking Confirmation//CS",
-    "CALSCALE:GREGORIAN",
-    "BEGIN:VEVENT",
-    `UID:${uid}`,
-    `DTSTAMP:${dtStamp}`,
-    `DTSTART:${dtStart}`,
-    `DTEND:${dtEnd}`,
-    `SUMMARY:${escapeIcsText(title)}`,
-    `DESCRIPTION:${escapeIcsText(description)}`,
-    "END:VEVENT",
-    "END:VCALENDAR",
-  ].join("\r\n");
-}
-
-function formatIcsDate(value: Date) {
-  return value
-    .toISOString()
-    .replaceAll("-", "")
-    .replaceAll(":", "")
-    .replace(/\.\d{3}Z$/, "Z");
-}
-
-function escapeIcsText(value: string) {
-  return value
-    .replaceAll("\\", "\\\\")
-    .replaceAll(";", "\\;")
-    .replaceAll(",", "\\,")
-    .replaceAll("\n", "\\n");
 }
 
 function SuccessIcon() {

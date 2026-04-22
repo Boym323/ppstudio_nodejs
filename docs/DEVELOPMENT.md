@@ -23,6 +23,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Veřejné booking flow používá server-loaded page + klientský wizard + server action pro finální zápis.
 - Veřejné booking routy nově obsahují i bezpečný provozní action flow `/rezervace/akce/[intent]/[token]`, který renderuje serverovou validaci tokenu a klientský potvrzovací panel nad server action submittem.
 - Veřejné API nyní obsahuje i route handler `/api/calendar/owner.ics`, který vrací chráněný `.ics` feed pro Apple Calendar subscription; endpoint je veřejný jen přes tajný token v URL a nepoužívá session auth.
+- Veřejné API nově obsahuje i route handler `/api/bookings/calendar/[token].ics`, který vrací jednu konkrétní `.ics` událost pro zákaznici po potvrzení rezervace.
 - `/rezervace` používá `connection()` a renderuje se request-time, aby ručně publikované sloty nebyly zafixované do build outputu.
 - Klientské UX booking flow je soustředěné v `src/features/booking/components/booking-flow.tsx`, ale rychlé decision bloky jsou rozsekané do menších komponent:
   - `CategorySelect` pro první rozhodnutí nad kategoriemi
@@ -223,7 +224,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - `Service` nově odděluje obecnou aktivitu (`isActive`) od veřejné rezervovatelnosti (`isPubliclyBookable`); public booking flow vyžaduje obě podmínky a aktivní kategorii.
 - `Booking` drží i reschedule chain přes self-relation, což zjednodušuje reporting i provozní dohled nad přesunutými termíny.
 - `BookingStatusHistory` drží auditní stopu změn stavu včetně aktéra a strukturovaných metadat.
-- `BookingActionToken` ukládá hash tokenu, expiraci a použití/revokaci pro bezpečné self-service storno nebo přesun termínu.
+- `BookingActionToken` ukládá hash tokenu, expiraci a použití/revokaci pro bezpečné self-service storno, provozní email akce a zákaznický calendar event.
 - `CalendarFeed` drží owner subscription feed jako samostatnou entitu mimo `SiteSettings`; ukládá scope, aktivaci, rotační salt a audit času změny.
 - Kalendářový token se neukládá jako raw secret do DB. URL se odvozuje serverově z `CalendarFeed.id`, `tokenSalt` a `ADMIN_SESSION_SECRET`, takže:
   - admin může odkaz zkopírovat kdykoli
@@ -234,8 +235,9 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - line folding po 75 bajtech
   - `VTIMEZONE` blok pro `Europe/Prague`
   - oddělený mapper `Booking -> VEVENT`
-- Stejný model `BookingActionToken` teď obsluhuje i owner/provoz email akce `APPROVE` a `REJECT`; do e-mailu se posílá jen raw token, v DB zůstává hash a auditní čas použití nebo revokace.
+- Stejný model `BookingActionToken` teď obsluhuje i owner/provoz email akce `APPROVE` a `REJECT` a zákaznický `CALENDAR`; do e-mailu se posílá jen raw token, v DB zůstává hash a auditní čas použití nebo revokace.
 - Serverová doménová vrstva pro email akce je v `src/features/booking/lib/booking-email-actions.ts`; drží validaci intentu, serializable transakci, změnu stavu, audit a založení klientského `EmailLog`.
+- Serverová doménová vrstva `src/features/calendar/lib/booking-calendar-event.ts` řeší validaci calendar tokenu, mapování bookingu na jeden `VEVENT` a generování zákaznického `.ics` payloadu.
 - `EmailLog` je připravený na notifikační workflow a troubleshooting komunikace s klientem.
 - Legacy `Setting` zůstává v databázi jako obecné key-value úložiště pro budoucí interní potřeby, ale produkční admin sekce `Nastavení` stojí na explicitním singleton modelu `SiteSettings`.
 - `src/lib/site-settings.ts` je centrální read vrstva pro veřejné kontakty, booking pravidla a e-mailový branding; zároveň bezpečně bootstrapuje výchozí singleton záznam.
@@ -268,7 +270,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - kontakt na studio až v posledním bloku
 - `createPublicBooking()` vrací pro confirmation vrstvu i `scheduledStartsAt`, `scheduledEndsAt` a `cancellationUrl`, aby web i e-mail nemusely domýšlet další akce z neúplných dat.
 - `BookingConfirmationPanel` používá dočasný secondary CTA `Požádat o změnu` přes předvyplněný `mailto:` odkaz; to je záměrný placeholder pro budoucí self-service manage/reschedule endpoint.
-- Primární CTA `Přidat do kalendáře` generuje `.ics` soubor na klientu, takže nevyžaduje nový veřejný route handler ani odhalení interního booking identifikátoru.
+- Pending confirmation screen po odeslání rezervace záměrně nenabízí `Přidat do kalendáře`; kalendářový link je dostupný až v emailu `booking-approved-v1` po přechodu rezervace do `CONFIRMED`.
 - Transformaci slotů pro krok 2 drž mimo JSX v helperu `src/features/booking/lib/booking-time-slots.ts`; UI komponenty mají dostávat už připravené `TimeSlotOption[]` a skupiny z `groupSlotsByDayPeriod()`.
 - Kalendářní denní klíče v kroku 2 (`YYYY-MM-DD`) generuj locale-agnosticky přes `Intl.DateTimeFormat(...).formatToParts()`; nepoužívej `format()` jako zdroj klíče, protože pořadí/oddělovače se liší mezi prostředími a může rozbít mapování měsíců/dnů.
 - U kalendářních gridů v kroku 2 drž explicitní `gridTemplateColumns: repeat(7, minmax(0, 1fr))` přímo v komponentě jako runtime pojistku; samotná utility třída nemusí v některých prostředích stačit.
@@ -277,6 +279,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - templates renderují obsah z `EmailLog.templateKey`
   - worker claimuje `EmailLog` řádky v background režimu a delivery aktualizuje `EmailLog.status`, `provider`, `providerMessageId`, `attemptCount`, `nextAttemptAt` a `errorMessage`
 - Potvrzovací e-mail `booking-confirmation-v1` má držet stejnou informační hierarchii jako web confirmation screen: stav -> služba / termín / kód -> další kroky -> akce -> kontakt, bez duplicitního úvodního textu mimo hero blok.
+- Potvrzovací e-mail `booking-approved-v1` nově obsahuje krátký blok s CTA `Přidat do kalendáře`; URL vede na `/api/bookings/calendar/[token].ics` a token nesmí být znovupoužitý pro storno nebo jinou mutaci rezervace.
 
 ## Migrační Strategie
 - Stávající bootstrap migrace rozšiřujeme inkrementálně, ne přepisem historie.

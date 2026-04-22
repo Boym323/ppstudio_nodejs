@@ -49,6 +49,7 @@ enum BookingActionTokenType {
   RESCHEDULE
   APPROVE
   REJECT
+  CALENDAR
 }
 
 enum EmailLogStatus {

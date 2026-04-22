@@ -1,0 +1,1 @@
+ALTER TYPE "BookingActionTokenType" ADD VALUE IF NOT EXISTS 'CALENDAR';

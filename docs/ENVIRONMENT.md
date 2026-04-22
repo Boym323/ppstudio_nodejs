@@ -39,10 +39,13 @@ Dokumentace proměnných prostředí pro lokální vývoj i produkci.
 - Pokud je `EMAIL_DELIVERY_MODE=background`, jsou `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD` a `SMTP_FROM_EMAIL` povinné už při startu aplikace.
 - Pokud je `EMAIL_DELIVERY_MODE=background`, admin pole `emailSenderEmail` v sekci `Nastavení` musí odpovídat `SMTP_FROM_EMAIL`; jinak aplikace změnu odmítne, aby se předešlo selhání doručování.
 - `NEXT_PUBLIC_APP_URL` je kritická i pro provozní approve/reject odkazy v e-mailu; pokud míří na špatný host nebo schéma, owner email akce povedou na neplatnou URL.
+- `NEXT_PUBLIC_APP_URL` je stejně kritická i pro zákaznický `.ics` odkaz `/api/bookings/calendar/[token].ics`; pokud míří na špatný host nebo schéma, CTA `Přidat do kalendáře` v potvrzovacím e-mailu povede na neplatnou URL.
 - `NEXT_PUBLIC_APP_URL` je stejně kritická i pro owner ICS subscription feed; z této hodnoty se skládá kopírovatelný Apple Calendar odkaz v adminu.
 - Nový approve/reject email flow nepřidává žádnou novou env proměnnou; využívá existující `NEXT_PUBLIC_APP_URL`, `ADMIN_SESSION_SECRET` a e-mailovou konfiguraci.
+- Zákaznický `.ics` event také nepřidává novou env proměnnou; používá stejné `NEXT_PUBLIC_APP_URL` a hashovaný `BookingActionToken`.
 - Kalendářový feed také nepřidává novou env proměnnou; bezpečnost stojí na existujících `NEXT_PUBLIC_APP_URL` a `ADMIN_SESSION_SECRET`.
 - Pokud měníš `ADMIN_SESSION_SECRET`, zneplatníš tím existující admin session a zároveň i starší odvozené ICS subscription URL. Po takové změně je potřeba v `/admin/nastaveni` feed znovu zkontrolovat a případně rotovat.
+- Změna `ADMIN_SESSION_SECRET` sama o sobě nezneplatní už vydané zákaznické calendar tokeny, protože ty jsou ukládané jako hash v `BookingActionToken`; pokud je chceš po bezpečnostním incidentu stáhnout, revokují se přes změnu stavu rezervace nebo ruční zásah do tokenů.
 - Pro SMTP produkci je doporučené `SMTP_SECURE=auto`; port `465`/`2465` se přepne na implicit TLS, `587`/`2587` na STARTTLS.
 - `EMAIL_DELIVERY_MODE=log` je vhodný pro lokální vývoj, testovací rollout a safe-mode při produkčním incidentu s SMTP.
 - Po změně `prisma/schema.prisma` už `npm run dev` a `npm run build` automaticky obnoví generovaný Prisma klient, ale při ruční práci s CLI je stále bezpečné spustit i `npm run db:generate`.

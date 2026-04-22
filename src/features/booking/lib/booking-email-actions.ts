@@ -16,6 +16,11 @@ import {
   type BookingEmailActionIntent,
   hashBookingActionToken,
 } from "@/features/booking/lib/booking-action-tokens";
+import {
+  buildBookingActionToken,
+  buildBookingCalendarExpiry,
+  buildBookingCalendarUrl,
+} from "@/features/booking/lib/booking-action-tokens";
 import { formatBookingDateLabel } from "@/features/booking/lib/booking-format";
 import { prisma } from "@/lib/prisma";
 
@@ -88,6 +93,20 @@ export type PerformBookingEmailActionResult =
       emailDeliveryStatus: "queued" | "logged";
     })
   | BookingEmailActionTerminalState;
+
+function buildBookingApprovedEmailPayload(
+  booking: NonNullable<LoadedBookingActionToken["booking"]>,
+  calendarUrl: string,
+) {
+  return {
+    bookingId: booking.id,
+    serviceName: booking.serviceNameSnapshot,
+    clientName: booking.clientNameSnapshot,
+    scheduledStartsAt: booking.scheduledStartsAt.toISOString(),
+    scheduledEndsAt: booking.scheduledEndsAt.toISOString(),
+    calendarUrl,
+  };
+}
 
 function getActionTokenType(intent: BookingEmailActionIntent) {
   return intent === "approve" ? BookingActionTokenType.APPROVE : BookingActionTokenType.REJECT;
@@ -406,6 +425,54 @@ export async function performBookingEmailAction(
         },
       });
 
+      let bookingApprovedPayload:
+        | ReturnType<typeof buildBookingApprovedEmailPayload>
+        | {
+            bookingId: string;
+            serviceName: string;
+            clientName: string;
+            scheduledStartsAt: string;
+            scheduledEndsAt: string;
+          };
+
+      if (targetStatus === BookingStatus.CONFIRMED) {
+        const calendarToken = buildBookingActionToken();
+
+        await tx.bookingActionToken.create({
+          data: {
+            bookingId: lockedToken.bookingId,
+            type: BookingActionTokenType.CALENDAR,
+            tokenHash: calendarToken.tokenHash,
+            expiresAt: buildBookingCalendarExpiry(now),
+            lastSentAt: now,
+          },
+        });
+
+        bookingApprovedPayload = buildBookingApprovedEmailPayload(
+          lockedToken.booking!,
+          buildBookingCalendarUrl(calendarToken.rawToken),
+        );
+      } else {
+        bookingApprovedPayload = {
+          bookingId: lockedToken.booking!.id,
+          serviceName: lockedToken.booking!.serviceNameSnapshot,
+          clientName: lockedToken.booking!.clientNameSnapshot,
+          scheduledStartsAt: lockedToken.booking!.scheduledStartsAt.toISOString(),
+          scheduledEndsAt: lockedToken.booking!.scheduledEndsAt.toISOString(),
+        };
+
+        await tx.bookingActionToken.updateMany({
+          where: {
+            bookingId: lockedToken.bookingId,
+            type: BookingActionTokenType.CALENDAR,
+            revokedAt: null,
+          },
+          data: {
+            revokedAt: now,
+          },
+        });
+      }
+
       await tx.emailLog.create({
         data: {
           bookingId: lockedToken.bookingId,
@@ -427,13 +494,7 @@ export async function performBookingEmailAction(
               : `Rezervace nebyla potvrzena: ${lockedToken.booking?.serviceNameSnapshot ?? ""}`,
           templateKey:
             targetStatus === BookingStatus.CONFIRMED ? "booking-approved-v1" : "booking-rejected-v1",
-          payload: {
-            bookingId: lockedToken.booking?.id,
-            serviceName: lockedToken.booking?.serviceNameSnapshot,
-            clientName: lockedToken.booking?.clientNameSnapshot,
-            scheduledStartsAt: lockedToken.booking?.scheduledStartsAt.toISOString(),
-            scheduledEndsAt: lockedToken.booking?.scheduledEndsAt.toISOString(),
-          },
+          payload: bookingApprovedPayload,
           provider: env.EMAIL_DELIVERY_MODE === "background" ? undefined : "log",
           sentAt: env.EMAIL_DELIVERY_MODE === "background" ? undefined : now,
         },

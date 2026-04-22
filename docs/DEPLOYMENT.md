@@ -103,6 +103,12 @@ Postup nasazení aplikace do produkce.
     - jednorázové použití odkazu
     - bezpečný stav po opětovném otevření stejného odkazu
     - korektní klientský email po schválení i zrušení
+  - klientský potvrzovací e-mail po `CONFIRMED`:
+    - obsahuje CTA `Přidat do kalendáře`
+    - CTA vede na `/api/bookings/calendar/[token].ics`
+    - endpoint vrací `text/calendar; charset=utf-8`
+    - `.ics` vrací jeden `VEVENT` s `TZID=Europe/Prague`
+    - po zrušení rezervace stejný link vrací 404
   - doručení admin notifikačního e-mailu na `notificationAdminEmail`
   - zpracování email workerem nebo potvrzený `EmailLog` v log režimu
   - načtení testovacího veřejného media URL `/media/<kind>/...`
@@ -155,6 +161,7 @@ sudo /var/www/ppstudio/deploy/deploy.sh
 - Migrace `20260422120000_admin_users_invited_at` přidává `AdminUser.invitedAt`; po deployi ověř owner sekci `/admin/uzivatele`, stav `Pozvánka čeká` a existující DB účty bez vyplněného `invitedAt`.
 - Migrace `20260422170000_admin_invite_token_v1` přidává tabulku `AdminUserInviteToken`; po deployi ověř jednorázové použití pozvánky, expiraci a revokaci starších tokenů při novém odeslání.
 - Migrace `20260422201500_booking_email_actions_v1` rozšiřuje enum `BookingActionTokenType` o `APPROVE` a `REJECT`; po deployi ověř vytvoření nových tokenů při veřejné rezervaci a funkčnost email route `/rezervace/akce/[intent]/[token]`.
+- Migrace `20260422194500_booking_calendar_event_v1` rozšiřuje enum `BookingActionTokenType` o `CALENDAR`; po deployi ověř potvrzovací klientský e-mail, endpoint `/api/bookings/calendar/[token].ics` a revokaci linku po zrušení rezervace.
 - Migrace `20260422193000_calendar_feed_v1` přidává tabulku `CalendarFeed`; po deployi ověř owner sekci `/admin/nastaveni`, zapnutí feedu a úspěšný fetch `/api/calendar/owner.ics?token=...`.
 - Pokud je databáze v divergentním stavu a `prisma migrate dev` by nabízelo reset, neprováděj ho naslepo. Pro tuto migraci lze bezpečně použít `npx prisma db execute --file prisma/migrations/20260421113000_public_pricing_metadata/migration.sql` a až potom ověřit build.
 - Migrace `20260419140000_site_settings_singleton` přidává tabulku `SiteSettings`; po deployi ověř, že se `/admin/nastaveni` otevře bez chyby a že první render bezpečně založí výchozí singleton záznam.

@@ -7,6 +7,9 @@ Formát je inspirovaný Keep a Changelog.
 ## [Unreleased]
 
 ### Changed
+- Zákaznický potvrzovací e-mail po stavu `CONFIRMED` nově obsahuje CTA `Přidat do kalendáře`, které vede na jednorázový `.ics` endpoint pro konkrétní rezervaci; pending confirmation screen už kalendář nenabízí před potvrzením.
+- Nový customer calendar flow používá samostatný hashovaný `BookingActionToken` typu `CALENDAR`, takže odkaz do kalendáře není svázaný se storno oprávněním a po zrušení rezervace se revokuje.
+- Veřejný endpoint `/api/bookings/calendar/[token].ics` vrací právě jeden `VEVENT` jen pro rezervace ve stavu `CONFIRMED`; `PENDING`, `CANCELLED`, `COMPLETED` a `NO_SHOW` vracejí nedostupný stav.
 - Owner sekce `Nastavení` nově obsahuje i blok `Kalendář`, kde majitelka bezpečně zapíná, vypíná, kopíruje a rotuje Apple Calendar subscription feed bez zásahu do databáze nebo deploye.
 - Chráněný kalendářový endpoint `/api/calendar/owner.ics` vrací standardní iCalendar feed jen pro potvrzené rezervace (`CONFIRMED`); čekající a zrušené rezervace se do subscription kalendáře záměrně nepropisují.
 - Provozní e-mail o nové rezervaci nyní obsahuje bezpečné CTA `Schválit rezervaci`, `Zrušit rezervaci` a `Otevřít v administraci`, takže majitel nebo provoz může pending rezervaci zpracovat přímo z e-mailu bez předchozího otevření adminu.
@@ -21,6 +24,9 @@ Formát je inspirovaný Keep a Changelog.
 - Finální cleanup pass veřejného confirmation flow zkrátil duplicity v hero copy, zpřesnil CTA na `Požádat o změnu`, doplnil službu do hlavního přehledu rezervace a zjednodušil kontaktní texty.
 
 ### Added
+- Migraci `20260422194500_booking_calendar_event_v1`, která rozšiřuje enum `BookingActionTokenType` o `CALENDAR`.
+- Route handler `/api/bookings/calendar/[token].ics` a serverovou vrstvu `src/features/calendar/lib/booking-calendar-event.ts` pro jednu konkrétní klientskou `.ics` událost.
+- ADR 0032 pro rozhodnutí kolem zákaznické `.ics` události po potvrzení rezervace.
 - Migraci `20260422193000_calendar_feed_v1` s modelem `CalendarFeed` pro owner-only ICS subscription feed, aktivaci/deaktivaci a bezpečnou rotaci tokenu.
 - Serverovou kalendářovou vrstvu `src/features/calendar/lib/*` pro odvozený podepsaný token, validaci feedu, mapování rezervace na `VEVENT` a generování validního `.ics` obsahu s `Europe/Prague` timezone blokem.
 - Veřejný route handler `/api/calendar/owner.ics` pro read-only Apple Calendar / iCloud subscription nad potvrzenými rezervacemi.
@@ -35,7 +41,7 @@ Formát je inspirovaný Keep a Changelog.
 - Password helper `src/lib/auth/password.ts` (scrypt hash + verify) pro DB admin účty.
 - ADR 0029 pro rozhodnutí kolem jednoduché owner-only správy přístupů bez role `ADMIN` a bez granular permissions.
 - Prémiovější potvrzovací vrstvu veřejné rezervace: success screen už není jen jeden souhrnný card, ale jasný confirmation flow se samostatným status blokem, přehledem služby / termínu / kódu, blokem `Co bude následovat`, akční sekcí a odděleným kontaktem.
-- Novou klientskou komponentu `BookingConfirmationPanel` pro post-submit stav rezervace včetně reálného CTA `Přidat do kalendáře`, sekundární akce `Požádat o změnu` přes předvyplněný kontakt do studia a destruktivního self-service storna.
+- Novou klientskou komponentu `BookingConfirmationPanel` pro post-submit stav rezervace se sekundární akcí `Požádat o změnu` přes předvyplněný kontakt do studia a destruktivním self-service stornem; kalendářové CTA se nově nabízí až v potvrzovacím e-mailu po `CONFIRMED`.
 - Výrazně přepracovanou šablonu `booking-confirmation-v1`, která kopíruje stejnou hierarchii jako web confirmation screen místo jednoho dlouhého textového e-mailového cardu.
 - ADR 0028 pro rozhodnutí kolem hierarchie a akčního toku potvrzení veřejné rezervace.
 - Rozšíření katalogu `Service` a `ServiceCategory` o veřejná pricing metadata pro `/cenik`, `/sluzby` a detail služby: `publicName`, `publicIntro`, `seoDescription`, `pricingShortDescription`, `pricingBadge`, `pricingDescription`, `pricingLayout`, `pricingIconKey`, `pricingSortOrder`.

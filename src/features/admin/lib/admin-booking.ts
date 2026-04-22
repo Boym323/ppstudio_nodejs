@@ -1,6 +1,19 @@
-import { BookingActorType, BookingSource, BookingStatus } from "@prisma/client";
+import {
+  BookingActionTokenType,
+  BookingActorType,
+  BookingSource,
+  BookingStatus,
+  EmailLogStatus,
+  EmailLogType,
+} from "@prisma/client";
 
+import { env } from "@/config/env";
 import { type AdminArea } from "@/config/navigation";
+import {
+  buildBookingActionToken,
+  buildBookingCalendarExpiry,
+  buildBookingCalendarUrl,
+} from "@/features/booking/lib/booking-action-tokens";
 import { prisma } from "@/lib/prisma";
 
 const formatDateTime = new Intl.DateTimeFormat("cs-CZ", {
@@ -263,6 +276,12 @@ export async function applyAdminBookingStatusChange({
       select: {
         id: true,
         status: true,
+        clientId: true,
+        clientNameSnapshot: true,
+        clientEmailSnapshot: true,
+        serviceNameSnapshot: true,
+        scheduledStartsAt: true,
+        scheduledEndsAt: true,
       },
     });
 
@@ -304,6 +323,59 @@ export async function applyAdminBookingStatusChange({
         },
       },
     });
+
+    if (targetStatus === BookingStatus.CONFIRMED) {
+      const calendarToken = buildBookingActionToken();
+
+      await tx.bookingActionToken.create({
+        data: {
+          bookingId: booking.id,
+          type: BookingActionTokenType.CALENDAR,
+          tokenHash: calendarToken.tokenHash,
+          expiresAt: buildBookingCalendarExpiry(now),
+          lastSentAt: now,
+        },
+      });
+
+      await tx.emailLog.create({
+        data: {
+          bookingId: booking.id,
+          clientId: booking.clientId,
+          type: EmailLogType.BOOKING_CONFIRMED,
+          status: env.EMAIL_DELIVERY_MODE === "background" ? undefined : EmailLogStatus.SENT,
+          attemptCount: env.EMAIL_DELIVERY_MODE === "background" ? undefined : 1,
+          nextAttemptAt: env.EMAIL_DELIVERY_MODE === "background" ? now : undefined,
+          processingStartedAt: null,
+          processingToken: null,
+          recipientEmail: booking.clientEmailSnapshot,
+          subject: `Rezervace potvrzena: ${booking.serviceNameSnapshot}`,
+          templateKey: "booking-approved-v1",
+          payload: {
+            bookingId: booking.id,
+            serviceName: booking.serviceNameSnapshot,
+            clientName: booking.clientNameSnapshot,
+            scheduledStartsAt: booking.scheduledStartsAt.toISOString(),
+            scheduledEndsAt: booking.scheduledEndsAt.toISOString(),
+            calendarUrl: buildBookingCalendarUrl(calendarToken.rawToken),
+          },
+          provider: env.EMAIL_DELIVERY_MODE === "background" ? undefined : "log",
+          sentAt: env.EMAIL_DELIVERY_MODE === "background" ? undefined : now,
+        },
+      });
+    }
+
+    if (targetStatus === BookingStatus.CANCELLED) {
+      await tx.bookingActionToken.updateMany({
+        where: {
+          bookingId: booking.id,
+          type: BookingActionTokenType.CALENDAR,
+          revokedAt: null,
+        },
+        data: {
+          revokedAt: now,
+        },
+      });
+    }
 
     return { status: "success" as const };
   });
