@@ -13,7 +13,10 @@ import {
 import { env } from "@/config/env";
 import {
   buildBookingActionToken,
+  buildBookingActionExpiry,
   buildBookingCancellationUrl,
+  buildBookingEmailActionExpiry,
+  buildBookingEmailActionUrl,
 } from "@/features/booking/lib/booking-action-tokens";
 import { formatBookingDateLabel } from "@/features/booking/lib/booking-format";
 import { prisma } from "@/lib/prisma";
@@ -24,7 +27,6 @@ import {
 } from "@/lib/site-settings";
 
 const ACTIVE_BOOKING_STATUSES = [BookingStatus.PENDING, BookingStatus.CONFIRMED] as const;
-const CANCELLATION_TOKEN_TTL_DAYS = 30;
 const MAX_BOOKING_TRANSACTION_RETRIES = 3;
 const EDITABLE_SLOT_CAPACITY = 1;
 
@@ -629,21 +631,43 @@ export async function createPublicBooking(
           });
 
           const cancellationToken = buildBookingActionToken();
+          const approveToken = buildBookingActionToken();
+          const rejectToken = buildBookingActionToken();
           const cancellationUrl = buildBookingCancellationUrl(cancellationToken.rawToken);
-          const expiresAt = new Date(
-            now.getTime() + CANCELLATION_TOKEN_TTL_DAYS * 24 * 60 * 60 * 1000,
-          );
+          const approveUrl = buildBookingEmailActionUrl("approve", approveToken.rawToken);
+          const rejectUrl = buildBookingEmailActionUrl("reject", rejectToken.rawToken);
+          const adminUrl = `${env.NEXT_PUBLIC_APP_URL}/admin/rezervace/${booking.id}`;
 
           const actionToken = await tx.bookingActionToken.create({
             data: {
               bookingId: booking.id,
               type: BookingActionTokenType.CANCEL,
               tokenHash: cancellationToken.tokenHash,
-              expiresAt,
+              expiresAt: buildBookingActionExpiry(now),
+              lastSentAt: now,
             },
             select: {
               id: true,
             },
+          });
+
+          await tx.bookingActionToken.createMany({
+            data: [
+              {
+                bookingId: booking.id,
+                type: BookingActionTokenType.APPROVE,
+                tokenHash: approveToken.tokenHash,
+                expiresAt: buildBookingEmailActionExpiry(now),
+                lastSentAt: now,
+              },
+              {
+                bookingId: booking.id,
+                type: BookingActionTokenType.REJECT,
+                tokenHash: rejectToken.tokenHash,
+                expiresAt: buildBookingEmailActionExpiry(now),
+                lastSentAt: now,
+              },
+            ],
           });
 
           await tx.emailLog.create({
@@ -695,6 +719,9 @@ export async function createPublicBooking(
                   clientPhone: normalizedPhone,
                   scheduledStartsAt: booking.scheduledStartsAt.toISOString(),
                   scheduledEndsAt: booking.scheduledEndsAt.toISOString(),
+                  approveUrl,
+                  rejectUrl,
+                  adminUrl,
                 },
                 provider: env.EMAIL_DELIVERY_MODE === "background" ? undefined : "log",
                 sentAt: env.EMAIL_DELIVERY_MODE === "background" ? undefined : now,

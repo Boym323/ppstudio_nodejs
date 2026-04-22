@@ -127,6 +127,10 @@ function actionTokenTypeLabel(type: BookingActionTokenType) {
       return "Storno token";
     case BookingActionTokenType.RESCHEDULE:
       return "Přesun termínu";
+    case BookingActionTokenType.APPROVE:
+      return "Schválení z e-mailu";
+    case BookingActionTokenType.REJECT:
+      return "Zrušení z e-mailu";
   }
 }
 

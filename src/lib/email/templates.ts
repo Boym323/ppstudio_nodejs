@@ -25,6 +25,22 @@ const bookingCancelledPayloadSchema = z.object({
   scheduledEndsAt: z.string().datetime(),
 });
 
+const bookingApprovedPayloadSchema = z.object({
+  bookingId: z.string().min(1),
+  serviceName: z.string().min(1),
+  clientName: z.string().min(1),
+  scheduledStartsAt: z.string().datetime(),
+  scheduledEndsAt: z.string().datetime(),
+});
+
+const bookingRejectedPayloadSchema = z.object({
+  bookingId: z.string().min(1),
+  serviceName: z.string().min(1),
+  clientName: z.string().min(1),
+  scheduledStartsAt: z.string().datetime(),
+  scheduledEndsAt: z.string().datetime(),
+});
+
 const adminBookingNotificationPayloadSchema = z.object({
   bookingId: z.string().min(1),
   serviceName: z.string().min(1),
@@ -33,6 +49,9 @@ const adminBookingNotificationPayloadSchema = z.object({
   clientPhone: z.string().optional().nullable(),
   scheduledStartsAt: z.string().datetime(),
   scheduledEndsAt: z.string().datetime(),
+  approveUrl: z.url(),
+  rejectUrl: z.url(),
+  adminUrl: z.url(),
 });
 
 const adminBookingCancelledPayloadSchema = z.object({
@@ -310,6 +329,83 @@ export async function renderEmailTemplate(
 
       return { subject, html, text };
     }
+    case "booking-approved-v1": {
+      const data = bookingApprovedPayloadSchema.parse(payload);
+      const scheduledAtLabel = formatBookingDateLabel(
+        new Date(data.scheduledStartsAt),
+        new Date(data.scheduledEndsAt),
+      );
+
+      const text = [
+        `Dobrý den, ${data.clientName},`,
+        "",
+        `vaše rezervace služby ${data.serviceName} byla potvrzena.`,
+        `Termín: ${scheduledAtLabel}`,
+        `Referenční kód: ${data.bookingId.slice(-8).toUpperCase()}`,
+        "",
+        "Pokud budete potřebovat termín upravit, ozvěte se prosím studiu.",
+        "",
+        `${brand.name}`,
+        `${brand.email} | ${brand.phone}`,
+      ].join("\n");
+
+      const html = buildEmailShell(
+        brand,
+        "Rezervace byla potvrzena",
+        `Vaše rezervace služby ${data.serviceName} je potvrzená.`,
+        `
+          <div style="border:1px solid rgba(33,23,20,0.08);border-radius:18px;padding:20px;background:#fbf7f3;">
+            <p style="margin:0 0 8px;font-size:13px;text-transform:uppercase;letter-spacing:0.16em;color:#9e7f65;">Termín</p>
+            <p style="margin:0;font-size:18px;line-height:1.6;color:#1f1714;"><strong>${escapeHtml(scheduledAtLabel)}</strong></p>
+            <p style="margin:16px 0 0;font-size:14px;line-height:1.7;color:#5b4c44;">Referenční kód: <strong>${escapeHtml(data.bookingId.slice(-8).toUpperCase())}</strong></p>
+          </div>
+          <p style="margin:24px 0 0;font-size:15px;line-height:1.7;color:#5b4c44;">
+            Pokud budete potřebovat s termínem pomoci, napište nám nebo zavolejte. Rádi s vámi domluvíme další postup.
+          </p>
+        `,
+      );
+
+      return { subject, html, text };
+    }
+    case "booking-rejected-v1": {
+      const data = bookingRejectedPayloadSchema.parse(payload);
+      const scheduledAtLabel = formatBookingDateLabel(
+        new Date(data.scheduledStartsAt),
+        new Date(data.scheduledEndsAt),
+      );
+
+      const text = [
+        `Dobrý den, ${data.clientName},`,
+        "",
+        `rezervaci služby ${data.serviceName} se tentokrát nepodařilo potvrdit.`,
+        `Původní požadovaný termín: ${scheduledAtLabel}`,
+        `Referenční kód: ${data.bookingId.slice(-8).toUpperCase()}`,
+        "",
+        `Pro nový termín navštivte ${env.NEXT_PUBLIC_APP_URL}/rezervace nebo se ozvěte přímo studiu.`,
+        "",
+        `${brand.name}`,
+        `${brand.email} | ${brand.phone}`,
+      ].join("\n");
+
+      const html = buildEmailShell(
+        brand,
+        "Rezervaci se tentokrát nepodařilo potvrdit",
+        `Požadovaný termín služby ${data.serviceName} jsme uzavřeli bez potvrzení.`,
+        `
+          <div style="border:1px solid rgba(33,23,20,0.08);border-radius:18px;padding:20px;background:#fbf7f3;">
+            <p style="margin:0 0 8px;font-size:13px;text-transform:uppercase;letter-spacing:0.16em;color:#9e7f65;">Původní termín</p>
+            <p style="margin:0;font-size:18px;line-height:1.6;color:#1f1714;"><strong>${escapeHtml(scheduledAtLabel)}</strong></p>
+            <p style="margin:16px 0 0;font-size:14px;line-height:1.7;color:#5b4c44;">Referenční kód: <strong>${escapeHtml(data.bookingId.slice(-8).toUpperCase())}</strong></p>
+          </div>
+          <p style="margin:24px 0 0;font-size:15px;line-height:1.7;color:#5b4c44;">
+            Nový termín si můžete kdykoli vybrat znovu na
+            <a href="${escapeHtml(`${env.NEXT_PUBLIC_APP_URL}/rezervace`)}" style="color:#1f1714;"> ${escapeHtml(env.NEXT_PUBLIC_APP_URL)}/rezervace</a>.
+          </p>
+        `,
+      );
+
+      return { subject, html, text };
+    }
     case "admin-booking-notification-v1": {
       const data = adminBookingNotificationPayloadSchema.parse(payload);
       const scheduledAtLabel = formatBookingDateLabel(
@@ -324,6 +420,10 @@ export async function renderEmailTemplate(
         phoneLine,
         `Termín: ${scheduledAtLabel}`,
         `Reference: ${data.bookingId.slice(-8).toUpperCase()}`,
+        "",
+        `Schválit rezervaci: ${data.approveUrl}`,
+        `Zrušit rezervaci: ${data.rejectUrl}`,
+        `Otevřít v administraci: ${data.adminUrl}`,
       ].join("\n");
 
       const html = buildEmailShell(
@@ -337,6 +437,29 @@ export async function renderEmailTemplate(
             <p style="margin:12px 0 0;font-size:14px;line-height:1.7;color:#5b4c44;">${escapeHtml(data.clientEmail)}</p>
             <p style="margin:4px 0 0;font-size:14px;line-height:1.7;color:#5b4c44;">${escapeHtml(phoneLine)}</p>
             <p style="margin:16px 0 0;font-size:14px;line-height:1.7;color:#5b4c44;">Termín: <strong>${escapeHtml(scheduledAtLabel)}</strong></p>
+          </div>
+          <div style="margin-top:20px;border:1px solid rgba(33,23,20,0.08);border-radius:20px;padding:20px;background:#ffffff;">
+            <p style="margin:0 0 14px;font-size:12px;letter-spacing:0.2em;text-transform:uppercase;color:#9e7f65;">Rychlé zpracování</p>
+            <div style="font-size:0;line-height:0;">
+              <div style="display:inline-block;margin:0 10px 10px 0;">${buildEmailButton({
+                href: data.approveUrl,
+                label: "Schválit rezervaci",
+                variant: "primary",
+              })}</div>
+              <div style="display:inline-block;margin:0 10px 10px 0;">${buildEmailButton({
+                href: data.rejectUrl,
+                label: "Zrušit rezervaci",
+                variant: "destructive",
+              })}</div>
+              <div style="display:inline-block;margin:0 10px 10px 0;">${buildEmailButton({
+                href: data.adminUrl,
+                label: "Otevřít v administraci",
+                variant: "secondary",
+              })}</div>
+            </div>
+            <p style="margin:10px 0 0;font-size:13px;line-height:1.7;color:#7a675c;">
+              Akční odkazy vedou nejdřív na potvrzovací mezikrok, takže rezervaci neschválíte ani nezrušíte omylem jedním kliknutím.
+            </p>
           </div>
         `,
       );

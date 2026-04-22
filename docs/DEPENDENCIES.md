@@ -18,6 +18,7 @@ Seznam důležitých knihoven a důvod jejich použití.
 - `image-size`: čtení rozměrů lokálně uložených obrázků pro metadata `MediaAsset`.
 - `dotenv`: načtení `.env` pro Prisma CLI konfiguraci.
 - vestavěný Node.js `crypto`: generování a hashování action tokenů pro booking workflow bez další závislosti.
+- Pro nové provozní approve/reject odkazy jsme nepřidávali žádnou další knihovnu; bezpečnost flow dál stojí na existujícím Node.js `crypto`, Prisma transakcích a Next.js App Router server actions.
 - Booking submission audit využívá stejnou Prisma vrstvu a nezavádí další knihovnu pro rate limiting ani logování.
 
 ## Kvalita kódu

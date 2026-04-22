@@ -95,6 +95,12 @@ Postup nasazení aplikace do produkce.
   - sticky CTA lištu na mobilu a editaci jednotlivých bloků přímo ze souhrnu
   - zápis `EmailLog` ve stavu `PENDING` v background režimu nebo `SENT` v log režimu
   - funkční storno odkaz
+  - provozní email akce `Schválit rezervaci` / `Zrušit rezervaci`:
+    - otevření confirmation screen na `/rezervace/akce/[intent]/[token]`
+    - korektní result screen po potvrzení
+    - jednorázové použití odkazu
+    - bezpečný stav po opětovném otevření stejného odkazu
+    - korektní klientský email po schválení i zrušení
   - doručení admin notifikačního e-mailu na `notificationAdminEmail`
   - zpracování email workerem nebo potvrzený `EmailLog` v log režimu
   - načtení testovacího veřejného media URL `/media/<kind>/...`
@@ -141,6 +147,7 @@ sudo /var/www/ppstudio/deploy/deploy.sh
 - Migrace `20260421113000_public_pricing_metadata` rozšiřuje katalog služeb a kategorií o veřejná pricing metadata; po deployi ověř `/cenik`, `/sluzby`, detail služby a admin formuláře `Služby` + `Kategorie služeb`.
 - Migrace `20260422120000_admin_users_invited_at` přidává `AdminUser.invitedAt`; po deployi ověř owner sekci `/admin/uzivatele`, stav `Pozvánka čeká` a existující DB účty bez vyplněného `invitedAt`.
 - Migrace `20260422170000_admin_invite_token_v1` přidává tabulku `AdminUserInviteToken`; po deployi ověř jednorázové použití pozvánky, expiraci a revokaci starších tokenů při novém odeslání.
+- Migrace `20260422201500_booking_email_actions_v1` rozšiřuje enum `BookingActionTokenType` o `APPROVE` a `REJECT`; po deployi ověř vytvoření nových tokenů při veřejné rezervaci a funkčnost email route `/rezervace/akce/[intent]/[token]`.
 - Pokud je databáze v divergentním stavu a `prisma migrate dev` by nabízelo reset, neprováděj ho naslepo. Pro tuto migraci lze bezpečně použít `npx prisma db execute --file prisma/migrations/20260421113000_public_pricing_metadata/migration.sql` a až potom ověřit build.
 - Migrace `20260419140000_site_settings_singleton` přidává tabulku `SiteSettings`; po deployi ověř, že se `/admin/nastaveni` otevře bez chyby a že první render bezpečně založí výchozí singleton záznam.
 - Migrace `20260419230000_media_storage_v1` přidává tabulku `MediaAsset` a enumy pro lokální media storage; po deployi ověř zápis souboru do upload rootu a načtení přes `/media/*`.

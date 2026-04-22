@@ -21,6 +21,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - `(admin)` pro backoffice.
 - Další vnitřní route group `(protected)` uvnitř adminu chrání sekce vyžadující session.
 - Veřejné booking flow používá server-loaded page + klientský wizard + server action pro finální zápis.
+- Veřejné booking routy nově obsahují i bezpečný provozní action flow `/rezervace/akce/[intent]/[token]`, který renderuje serverovou validaci tokenu a klientský potvrzovací panel nad server action submittem.
 - `/rezervace` používá `connection()` a renderuje se request-time, aby ručně publikované sloty nebyly zafixované do build outputu.
 - Klientské UX booking flow je soustředěné v `src/features/booking/components/booking-flow.tsx`, ale rychlé decision bloky jsou rozsekané do menších komponent:
   - `CategorySelect` pro první rozhodnutí nad kategoriemi
@@ -217,6 +218,8 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - `Booking` drží i reschedule chain přes self-relation, což zjednodušuje reporting i provozní dohled nad přesunutými termíny.
 - `BookingStatusHistory` drží auditní stopu změn stavu včetně aktéra a strukturovaných metadat.
 - `BookingActionToken` ukládá hash tokenu, expiraci a použití/revokaci pro bezpečné self-service storno nebo přesun termínu.
+- Stejný model `BookingActionToken` teď obsluhuje i owner/provoz email akce `APPROVE` a `REJECT`; do e-mailu se posílá jen raw token, v DB zůstává hash a auditní čas použití nebo revokace.
+- Serverová doménová vrstva pro email akce je v `src/features/booking/lib/booking-email-actions.ts`; drží validaci intentu, serializable transakci, změnu stavu, audit a založení klientského `EmailLog`.
 - `EmailLog` je připravený na notifikační workflow a troubleshooting komunikace s klientem.
 - Legacy `Setting` zůstává v databázi jako obecné key-value úložiště pro budoucí interní potřeby, ale produkční admin sekce `Nastavení` stojí na explicitním singleton modelu `SiteSettings`.
 - `src/lib/site-settings.ts` je centrální read vrstva pro veřejné kontakty, booking pravidla a e-mailový branding; zároveň bezpečně bootstrapuje výchozí singleton záznam.

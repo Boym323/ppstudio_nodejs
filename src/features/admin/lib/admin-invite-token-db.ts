@@ -56,7 +56,7 @@ type InviteTokenWithUser = InviteTokenRecord & {
 };
 
 function getInviteTokenDelegate(): InviteTokenDelegate | null {
-  const candidate = (prisma as Prisma.PrismaClient & {
+  const candidate = (prisma as typeof prisma & {
     adminUserInviteToken?: InviteTokenDelegate;
   }).adminUserInviteToken;
 

@@ -47,6 +47,8 @@ enum BookingActorType {
 enum BookingActionTokenType {
   CANCEL
   RESCHEDULE
+  APPROVE
+  REJECT
 }
 
 enum EmailLogStatus {

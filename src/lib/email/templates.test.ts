@@ -53,3 +53,47 @@ test("renderEmailTemplate creates cancellation email with booking reference", as
   assert.match(email.text, /5678/i);
   assert.match(email.html, /Rezervace byla zrušena/);
 });
+
+test("renderEmailTemplate creates admin notification email with action links", async () => {
+  const { renderEmailTemplate } = await loadRenderer();
+  const email = await renderEmailTemplate(
+    "admin-booking-notification-v1",
+    "Nová rezervace: Luxusní péče",
+    {
+      bookingId: "clztestbooking9999",
+      serviceName: "Luxusní péče",
+      clientName: "Jana Nováková",
+      clientEmail: "jana@example.com",
+      clientPhone: "+420777123456",
+      scheduledStartsAt: "2026-04-20T08:00:00.000Z",
+      scheduledEndsAt: "2026-04-20T09:00:00.000Z",
+      approveUrl: "https://example.com/rezervace/akce/approve/token-approve",
+      rejectUrl: "https://example.com/rezervace/akce/reject/token-reject",
+      adminUrl: "https://example.com/admin/rezervace/clztestbooking9999",
+    },
+  );
+
+  assert.equal(email.subject, "Nová rezervace: Luxusní péče");
+  assert.match(email.text, /token-approve/);
+  assert.match(email.text, /token-reject/);
+  assert.match(email.html, /Schválit rezervaci/);
+  assert.match(email.html, /Otevřít v administraci/);
+});
+
+test("renderEmailTemplate creates approved email", async () => {
+  const { renderEmailTemplate } = await loadRenderer();
+  const email = await renderEmailTemplate(
+    "booking-approved-v1",
+    "Rezervace potvrzena: Luxusní péče",
+    {
+      bookingId: "clztestbookingapprove",
+      serviceName: "Luxusní péče",
+      clientName: "Jana Nováková",
+      scheduledStartsAt: "2026-04-20T08:00:00.000Z",
+      scheduledEndsAt: "2026-04-20T09:00:00.000Z",
+    },
+  );
+
+  assert.match(email.text, /byla potvrzena/i);
+  assert.match(email.html, /Rezervace byla potvrzena/);
+});

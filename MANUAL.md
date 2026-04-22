@@ -42,6 +42,7 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
 - Veřejné stránky drží jednotný šířkový rytmus přes sdílený `Container` (`max-w-7xl`); při úpravách layoutu nepřidávej další globální zúžení sekcí přes `mx-auto max-w-*`.
 - Vertikální spacing veřejných sekcí je sjednocený do rytmu `py-10 / sm:py-14 / lg:py-16`; větší rozestupy používej jen pro obsahově výrazné bloky.
 - Rezervační vrstva stojí na ručně vypisovaných termínech přes `AvailabilitySlot`, ne na pevné otevírací době.
+- Pending rezervace lze nově potvrdit nebo zrušit přímo z provozního e-mailu přes bezpečné jednorázové odkazy s mezikrokem potvrzení na veřejné route `/rezervace/akce/[intent]/[token]`.
 - Admin má dva směry použití:
   - full admin na `/admin/*` pro roli `OWNER`
   - lite admin na `/admin/provoz/*` pro roli `SALON`
@@ -121,6 +122,12 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
   - stručný blok `Co bude následovat`
   - akce `Přidat do kalendáře`, `Požádat o změnu` a `Zrušit rezervaci`
   - samostatný kontakt na studio až pod hlavními informacemi
+- Provozní e-mail o nové rezervaci teď obsahuje tři akce:
+  - `Schválit rezervaci`
+  - `Zrušit rezervaci`
+  - `Otevřít v administraci`
+- Emailové approve/reject odkazy neprovedou změnu hned po otevření; vždy nejdřív zobrazí kontrolní obrazovku s přehledem rezervace a až následně potvrzovací CTA.
+- Po schválení nebo zrušení z e-mailu systém automaticky založí návazný klientský e-mail s výsledkem rezervace.
 - Rezervační stránka je renderovaná dynamicky při requestu, takže nově publikované nebo obsazené sloty jsou vidět bez dalšího buildu.
 - Hero, sekce `O mně` a základní service copy jsou už přepsané do klidnějšího a osobnějšího tónu; další jemné úpravy je vhodné dělat centrálně v obsahové vrstvě nebo v DB copy mapě služeb.
 - Stránka `/kontakt` má nově silnější orientaci na rychlou akci:

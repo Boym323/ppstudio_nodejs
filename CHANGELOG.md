@@ -7,6 +7,10 @@ Formát je inspirovaný Keep a Changelog.
 ## [Unreleased]
 
 ### Changed
+- Provozní e-mail o nové rezervaci nyní obsahuje bezpečné CTA `Schválit rezervaci`, `Zrušit rezervaci` a `Otevřít v administraci`, takže majitel nebo provoz může pending rezervaci zpracovat přímo z e-mailu bez předchozího otevření adminu.
+- Nový token-based flow pro email akce používá hashovaný `BookingActionToken` typu `APPROVE` / `REJECT`, expiraci, jednorázové použití, revokaci souvisejících tokenů a audit metadat v `BookingStatusHistory`.
+- Přibyla veřejná noindex route `/rezervace/akce/[intent]/[token]` s potvrzovacím mezikrokem, result screenem a bezpečnými error stavy pro neplatný, expirovaný nebo už použitý odkaz.
+- Schválení z e-mailu nově mění rezervaci na `CONFIRMED`, zrušení na `CANCELLED`, a obě akce automaticky zakládají správný návazný klientský e-mail (`booking-approved-v1` / `booking-rejected-v1`).
 - Owner sekce `Uživatelé / role` byla kompletně přepracovaná z technického placeholderu na skutečnou správu přístupů pro malé studio: používá jen role `OWNER` a `SALON`, lidské stavy účtů a read-only označení `Systémový účet` místo bootstrap/env slovníku.
 - Admin přihlášení nyní preferuje databázové účty s `passwordHash` a bootstrap env účty používá jen jako fallback pro systémové přístupy.
 - Invite flow v sekci `Uživatelé / role` byl dotažený na kompletní aktivaci přístupu: owner posílá pozvánku, příjemce nastaví heslo na veřejné invite URL a poté se přihlásí standardním loginem.
