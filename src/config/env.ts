@@ -15,10 +15,7 @@ const serverEnvSchema = z
     EMAIL_DELIVERY_MODE: z.enum(["log", "background"]).default("log"),
     SMTP_HOST: z.string().trim().optional(),
     SMTP_PORT: z.coerce.number().int().positive().optional(),
-    SMTP_SECURE: z
-      .enum(["true", "false"])
-      .default("false")
-      .transform((value) => value === "true"),
+    SMTP_SECURE: z.enum(["auto", "true", "false"]).default("auto"),
     SMTP_USER: z.string().trim().optional(),
     SMTP_PASSWORD: z.string().trim().optional(),
     SMTP_FROM_EMAIL: z.email().optional(),

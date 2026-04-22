@@ -11,6 +11,7 @@ Formát je inspirovaný Keep a Changelog.
 - Admin přihlášení nyní preferuje databázové účty s `passwordHash` a bootstrap env účty používá jen jako fallback pro systémové přístupy.
 - Invite flow v sekci `Uživatelé / role` byl dotažený na kompletní aktivaci přístupu: owner posílá pozvánku, příjemce nastaví heslo na veřejné invite URL a poté se přihlásí standardním loginem.
 - Akce `Znovu poslat pozvánku` v řádku uživatele už neběží přes row-level server action binding, ale přes dedikovaný owner API endpoint, takže vrací spolehlivou success/error odpověď i v klientském seznamu.
+- SMTP transport pro background e-mail worker teď defaultně používá `SMTP_SECURE=auto`, takže port 465/2465 přepne na implicit TLS a 587/2587 na STARTTLS; low-level OpenSSL `wrong version number` chyba je po novém překladu nahlášená s čitelnějším hintem na mismatch portu a TLS režimu.
 - Finální cleanup pass veřejného confirmation flow zkrátil duplicity v hero copy, zpřesnil CTA na `Požádat o změnu`, doplnil službu do hlavního přehledu rezervace a zjednodušil kontaktní texty.
 
 ### Added

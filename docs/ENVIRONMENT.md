@@ -22,7 +22,7 @@ Dokumentace proměnných prostředí pro lokální vývoj i produkci.
 - `EMAIL_DELIVERY_MODE`: režim e-mailové delivery (`log`, `background`).
 - `SMTP_HOST`: SMTP hostname pro produkční odesílání.
 - `SMTP_PORT`: SMTP port.
-- `SMTP_SECURE`: `true` pro implicitní TLS, jinak `false`.
+- `SMTP_SECURE`: `auto` pro volbu podle portu, `true` pro implicitní TLS, `false` pro explicitní STARTTLS nebo plain transport podle provideru.
 - `SMTP_USER`: SMTP login.
 - `SMTP_PASSWORD`: SMTP heslo nebo app password.
 - `SMTP_FROM_EMAIL`: adresa odesílatele.
@@ -38,6 +38,7 @@ Dokumentace proměnných prostředí pro lokální vývoj i produkci.
 - Bootstrap přístupy se v owner sekci `Uživatelé / role` zobrazují lidským jazykem jako `Systémový účet`; UI záměrně neukazuje `env`, `bootstrap` ani jiné technické implementační detaily jako hlavní obsah.
 - Pokud je `EMAIL_DELIVERY_MODE=background`, jsou `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD` a `SMTP_FROM_EMAIL` povinné už při startu aplikace.
 - Pokud je `EMAIL_DELIVERY_MODE=background`, admin pole `emailSenderEmail` v sekci `Nastavení` musí odpovídat `SMTP_FROM_EMAIL`; jinak aplikace změnu odmítne, aby se předešlo selhání doručování.
+- Pro SMTP produkci je doporučené `SMTP_SECURE=auto`; port `465`/`2465` se přepne na implicit TLS, `587`/`2587` na STARTTLS.
 - `EMAIL_DELIVERY_MODE=log` je vhodný pro lokální vývoj, testovací rollout a safe-mode při produkčním incidentu s SMTP.
 - Po změně `prisma/schema.prisma` už `npm run dev` a `npm run build` automaticky obnoví generovaný Prisma klient, ale při ruční práci s CLI je stále bezpečné spustit i `npm run db:generate`.
 - Slot admin CRUD nezavádí žádné nové env proměnné; spoléhá na stávající session, databázi a bootstrap admin účty.
