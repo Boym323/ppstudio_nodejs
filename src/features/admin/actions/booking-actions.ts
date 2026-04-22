@@ -459,6 +459,7 @@ export async function createManualBookingAction(
       includeCalendarAttachment:
         (parsed.data.submitMode === "create-and-send" || parsed.data.sendClientEmail === "1")
         && parsed.data.includeCalendarAttachment === "1",
+      deliverEmailImmediately: parsed.data.submitMode === "create-and-send",
     });
     const booking = await prisma.booking.findUnique({
       where: {

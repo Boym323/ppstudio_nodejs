@@ -2,7 +2,7 @@
 
 import { BookingSource, BookingStatus } from "@prisma/client";
 import Link from "next/link";
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { type AdminArea } from "@/config/navigation";
@@ -29,10 +29,12 @@ export function CreateManualBookingDrawer({
 }: CreateManualBookingDrawerProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const [showSuccessBanner, setShowSuccessBanner] = useState(false);
   const [serverState, formAction] = useActionState(
     createManualBookingAction,
     initialCreateManualBookingActionState,
   );
+  const previousStatus = useRef(serverState.status);
   const [clientQuery, setClientQuery] = useState("");
   const [selectedClientId, setSelectedClientId] = useState("");
   const [fullName, setFullName] = useState("");
@@ -62,9 +64,14 @@ export function CreateManualBookingDrawer({
     : null;
 
   useEffect(() => {
-    if (serverState.status === "success") {
+    if (previousStatus.current !== "success" && serverState.status === "success") {
+      resetForm();
+      setOpen(false);
+      setShowSuccessBanner(true);
       router.refresh();
     }
+
+    previousStatus.current = serverState.status;
   }, [router, serverState.status]);
 
   function resetForm() {
@@ -94,12 +101,44 @@ export function CreateManualBookingDrawer({
       <div className="flex items-center justify-end">
         <button
           type="button"
-          onClick={() => setOpen(true)}
+          onClick={() => {
+            setShowSuccessBanner(false);
+            setOpen(true);
+          }}
           className="rounded-full bg-[var(--color-accent)] px-4 py-2.5 text-sm font-semibold text-[var(--color-accent-contrast)] transition hover:brightness-105"
         >
           Přidat rezervaci
         </button>
       </div>
+
+      {!open && showSuccessBanner && serverState.status === "success" ? (
+        <div className="mt-3 rounded-[1rem] border border-emerald-300/18 bg-emerald-500/10 px-4 py-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <p className="text-sm font-medium text-emerald-50">{serverState.successMessage}</p>
+              {serverState.manualOverrideWarning ? (
+                <p className="mt-1 text-sm leading-6 text-emerald-100/80">{serverState.manualOverrideWarning}</p>
+              ) : null}
+              {createdBookingHref ? (
+                <Link
+                  href={createdBookingHref}
+                  className="mt-2 inline-flex text-sm font-medium text-white underline underline-offset-4"
+                >
+                  Otevřít detail rezervace
+                </Link>
+              ) : null}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowSuccessBanner(false)}
+              className="rounded-full border border-white/10 px-3 py-1.5 text-sm text-white/78 transition hover:border-white/18 hover:bg-white/6"
+            >
+              Zavřít
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       {open ? (
         <div className="fixed inset-0 z-50">

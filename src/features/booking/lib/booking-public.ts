@@ -19,6 +19,7 @@ import {
   buildBookingEmailActionUrl,
 } from "@/features/booking/lib/booking-action-tokens";
 import { formatBookingDateLabel } from "@/features/booking/lib/booking-format";
+import { deliverEmailLog } from "@/lib/email/delivery";
 import { prisma } from "@/lib/prisma";
 import {
   getBookingPolicySettings,
@@ -107,6 +108,7 @@ export type CreateManualBookingInput = {
   actorUserId: string | null;
   sendClientEmail: boolean;
   includeCalendarAttachment: boolean;
+  deliverEmailImmediately?: boolean;
 };
 
 export type CreateManualBookingResult = CreatePublicBookingResult & {
@@ -307,6 +309,7 @@ type SharedCreateBookingResult = {
   clientName: string;
   clientEmail: string;
   cancellationUrl: string;
+  createdEmailLogIds: string[];
   emailDeliveryStatus: "queued" | "logged" | "skipped";
   status: "PENDING" | "CONFIRMED";
   manualOverride: boolean;
@@ -631,6 +634,7 @@ async function createNotificationEmailLogs(
     adminNotificationEmail: string;
   },
 ) {
+  const createdEmailLogIds: string[] = [];
   const cancellationToken = buildBookingActionToken();
   const actionToken = await tx.bookingActionToken.create({
     data: {
@@ -648,7 +652,7 @@ async function createNotificationEmailLogs(
   const cancellationUrl = buildBookingCancellationUrl(cancellationToken.rawToken);
 
   if (input.sendClientEmail) {
-    await tx.emailLog.create({
+    const clientEmailLog = await tx.emailLog.create({
       data: {
         bookingId: input.bookingId,
         clientId: input.clientId,
@@ -690,6 +694,7 @@ async function createNotificationEmailLogs(
         sentAt: env.EMAIL_DELIVERY_MODE === "background" ? undefined : input.now,
       },
     });
+    createdEmailLogIds.push(clientEmailLog.id);
   }
 
   if (
@@ -722,7 +727,7 @@ async function createNotificationEmailLogs(
       ],
     });
 
-    await tx.emailLog.create({
+    const adminEmailLog = await tx.emailLog.create({
       data: {
         bookingId: input.bookingId,
         clientId: input.clientId,
@@ -751,10 +756,12 @@ async function createNotificationEmailLogs(
         sentAt: env.EMAIL_DELIVERY_MODE === "background" ? undefined : input.now,
       },
     });
+    createdEmailLogIds.push(adminEmailLog.id);
   }
 
   return {
     cancellationUrl,
+    createdEmailLogIds,
   };
 }
 
@@ -1100,6 +1107,7 @@ async function createBookingWithEngine(
             clientName: normalizedFullName,
             clientEmail: normalizedEmail,
             cancellationUrl: notifications.cancellationUrl,
+            createdEmailLogIds: notifications.createdEmailLogIds,
             emailDeliveryStatus:
               input.sendClientEmail || input.sendAdminNotification
                 ? env.EMAIL_DELIVERY_MODE === "background"
@@ -1114,6 +1122,12 @@ async function createBookingWithEngine(
           isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
         },
       );
+
+      if (input.isManual && input.sendClientEmail && input.deliverEmailImmediately) {
+        for (const emailLogId of transactionResult.createdEmailLogIds) {
+          await deliverEmailLog(emailLogId);
+        }
+      }
 
       return transactionResult;
     } catch (error) {
@@ -1313,6 +1327,7 @@ export async function createManualBooking(
     },
     sendClientEmail: input.sendClientEmail,
     includeCalendarAttachment: input.includeCalendarAttachment,
+    deliverEmailImmediately: input.deliverEmailImmediately,
     sendAdminNotification: false,
   });
 }

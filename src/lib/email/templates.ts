@@ -33,6 +33,9 @@ const bookingApprovedPayloadSchema = z.object({
   scheduledStartsAt: z.string().datetime(),
   scheduledEndsAt: z.string().datetime(),
   includeCalendarAttachment: z.boolean().optional(),
+  // Backward compatibility for older queued logs created before the
+  // calendar attachment flow replaced the direct calendar link.
+  calendarUrl: z.string().optional().nullable(),
 });
 
 const bookingRejectedPayloadSchema = z.object({
