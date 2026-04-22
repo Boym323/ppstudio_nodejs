@@ -43,6 +43,7 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
 - Vertikální spacing veřejných sekcí je sjednocený do rytmu `py-10 / sm:py-14 / lg:py-16`; větší rozestupy používej jen pro obsahově výrazné bloky.
 - Rezervační vrstva stojí na ručně vypisovaných termínech přes `AvailabilitySlot`, ne na pevné otevírací době.
 - Pending rezervace lze nově potvrdit nebo zrušit přímo z provozního e-mailu přes bezpečné jednorázové odkazy s mezikrokem potvrzení na veřejné route `/rezervace/akce/[intent]/[token]`.
+- Owner může v `/admin/nastaveni` nově zapnout chráněný Apple Calendar subscription feed na `/api/calendar/owner.ics?token=...`; feed je read-only, bere jen potvrzené rezervace a aplikace zůstává jediným source of truth.
 - Admin má dva směry použití:
   - full admin na `/admin/*` pro roli `OWNER`
   - lite admin na `/admin/provoz/*` pro roli `SALON`
@@ -172,6 +173,16 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
   - Rezervace
   - Volné termíny
   - Klienti
+- Owner sekce `Nastavení` nově obsahuje i blok `Kalendář`:
+  - zapnutí feedu
+  - zkopírování subscription URL
+  - rotaci tokenu
+  - vypnutí feedu
+  - stručný návod pro Apple Kalendář / iCloud subscription
+- ICS feed je určený jen jako přehled pro majitelku:
+  - ukazuje pouze rezervace ve stavu `CONFIRMED`
+  - neumožňuje editaci ani obousměrnou synchronizaci
+  - po rotaci nebo vypnutí starý odkaz přestane fungovat
 - Sekce `Přehled` na `/admin` a `/admin/provoz` je nyní operativní dashboard dne:
   - layout je rozdělený na hlavní pracovní plochu a pravý sidebar; levý navigační sidebar zůstává součástí shellu
   - nahoře je velká karta `Dnes` s počtem dnešních rezervací, informací za kolik začíná další termín a blokem `Další klientka`

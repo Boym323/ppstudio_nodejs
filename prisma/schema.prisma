@@ -103,6 +103,10 @@ enum PricingIconKey {
   SPARK
 }
 
+enum CalendarFeedScope {
+  OWNER_BOOKINGS
+}
+
 model AdminUser {
   id                        String                 @id @default(cuid())
   email                     String                 @unique
@@ -118,6 +122,7 @@ model AdminUser {
   createdAvailabilitySlots  AvailabilitySlot[]     @relation("AvailabilitySlotCreatedBy")
   createdBookings           Booking[]              @relation("BookingCreatedBy")
   bookingStatusHistoryItems BookingStatusHistory[] @relation("BookingStatusHistoryActor")
+  updatedCalendarFeeds      CalendarFeed[]         @relation("CalendarFeedUpdatedBy")
   updatedSettings           Setting[]              @relation("SettingUpdatedBy")
   updatedSiteSettings       SiteSettings[]         @relation("SiteSettingsUpdatedBy")
 }
@@ -417,6 +422,21 @@ model SiteSettings {
   createdAt                  DateTime   @default(now())
   updatedAt                  DateTime   @updatedAt
   updatedByUser              AdminUser? @relation("SiteSettingsUpdatedBy", fields: [updatedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([updatedByUserId])
+}
+
+model CalendarFeed {
+  id              String            @id @default(cuid())
+  scope           CalendarFeedScope @unique
+  tokenSalt       String
+  isActive        Boolean           @default(false)
+  rotatedAt       DateTime?
+  revokedAt       DateTime?
+  updatedByUserId String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  updatedByUser   AdminUser?        @relation("CalendarFeedUpdatedBy", fields: [updatedByUserId], references: [id], onDelete: SetNull)
 
   @@index([updatedByUserId])
 }

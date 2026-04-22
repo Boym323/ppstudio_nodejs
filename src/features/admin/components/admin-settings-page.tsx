@@ -1,6 +1,7 @@
 import { AdminPageShell, AdminPanel } from "@/features/admin/components/admin-page-shell";
 
 import { AdminBookingSettingsForm } from "./admin-booking-settings-form";
+import { AdminCalendarSettingsForm } from "./admin-calendar-settings-form";
 import { AdminEmailSettingsForm } from "./admin-email-settings-form";
 import { AdminSalonSettingsForm } from "./admin-salon-settings-form";
 
@@ -23,6 +24,14 @@ export function AdminSettingsPage({
     emailSenderEmail: string;
     emailFooterText: string | null;
     updatedAt: string;
+    calendarFeed: {
+      isActive: boolean;
+      subscriptionUrl: string | null;
+      updatedAtLabel: string;
+      rotatedAtLabel: string | null;
+      revokedAtLabel: string | null;
+      updatedByName: string | null;
+    };
   };
 }) {
   return (
@@ -39,7 +48,7 @@ export function AdminSettingsPage({
         },
       ]}
     >
-      <section className="grid gap-3 rounded-[1.5rem] border border-white/8 bg-white/4 p-4 sm:grid-cols-3 sm:gap-4">
+      <section className="grid gap-3 rounded-[1.5rem] border border-white/8 bg-white/4 p-4 sm:grid-cols-2 sm:gap-4 xl:grid-cols-4">
         <article className="rounded-[1.2rem] border border-white/8 bg-black/10 p-4">
           <p className="text-xs uppercase tracking-[0.24em] text-white/45">Salon</p>
           <p className="mt-2 text-sm leading-6 text-white/72">Název, adresa, telefon, e-mail a Instagram.</p>
@@ -51,6 +60,10 @@ export function AdminSettingsPage({
         <article className="rounded-[1.2rem] border border-white/8 bg-black/10 p-4">
           <p className="text-xs uppercase tracking-[0.24em] text-white/45">E-maily</p>
           <p className="mt-2 text-sm leading-6 text-white/72">Upozornění, odesílatel a krátká patička.</p>
+        </article>
+        <article className="rounded-[1.2rem] border border-white/8 bg-black/10 p-4">
+          <p className="text-xs uppercase tracking-[0.24em] text-white/45">Kalendář</p>
+          <p className="mt-2 text-sm leading-6 text-white/72">Chráněný Apple Calendar feed s potvrzenými rezervacemi.</p>
         </article>
       </section>
 
@@ -74,6 +87,13 @@ export function AdminSettingsPage({
           description="Základní komunikace směrem ke klientce a provozu."
         >
           <AdminEmailSettingsForm settings={settings} />
+        </AdminPanel>
+
+        <AdminPanel
+          title="Kalendář"
+          description="Bezpečný odebíraný `.ics` kalendář pro Apple Kalendář a iCloud."
+        >
+          <AdminCalendarSettingsForm feed={settings.calendarFeed} />
         </AdminPanel>
       </div>
     </AdminPageShell>

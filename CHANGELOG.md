@@ -7,6 +7,8 @@ Formát je inspirovaný Keep a Changelog.
 ## [Unreleased]
 
 ### Changed
+- Owner sekce `Nastavení` nově obsahuje i blok `Kalendář`, kde majitelka bezpečně zapíná, vypíná, kopíruje a rotuje Apple Calendar subscription feed bez zásahu do databáze nebo deploye.
+- Chráněný kalendářový endpoint `/api/calendar/owner.ics` vrací standardní iCalendar feed jen pro potvrzené rezervace (`CONFIRMED`); čekající a zrušené rezervace se do subscription kalendáře záměrně nepropisují.
 - Provozní e-mail o nové rezervaci nyní obsahuje bezpečné CTA `Schválit rezervaci`, `Zrušit rezervaci` a `Otevřít v administraci`, takže majitel nebo provoz může pending rezervaci zpracovat přímo z e-mailu bez předchozího otevření adminu.
 - Nový token-based flow pro email akce používá hashovaný `BookingActionToken` typu `APPROVE` / `REJECT`, expiraci, jednorázové použití, revokaci souvisejících tokenů a audit metadat v `BookingStatusHistory`.
 - Přibyla veřejná noindex route `/rezervace/akce/[intent]/[token]` s potvrzovacím mezikrokem, result screenem a bezpečnými error stavy pro neplatný, expirovaný nebo už použitý odkaz.
@@ -19,6 +21,11 @@ Formát je inspirovaný Keep a Changelog.
 - Finální cleanup pass veřejného confirmation flow zkrátil duplicity v hero copy, zpřesnil CTA na `Požádat o změnu`, doplnil službu do hlavního přehledu rezervace a zjednodušil kontaktní texty.
 
 ### Added
+- Migraci `20260422193000_calendar_feed_v1` s modelem `CalendarFeed` pro owner-only ICS subscription feed, aktivaci/deaktivaci a bezpečnou rotaci tokenu.
+- Serverovou kalendářovou vrstvu `src/features/calendar/lib/*` pro odvozený podepsaný token, validaci feedu, mapování rezervace na `VEVENT` a generování validního `.ics` obsahu s `Europe/Prague` timezone blokem.
+- Veřejný route handler `/api/calendar/owner.ics` pro read-only Apple Calendar / iCloud subscription nad potvrzenými rezervacemi.
+- Owner admin UI `AdminCalendarSettingsForm` v sekci `Nastavení` s akcemi `Kopírovat odkaz`, `Obnovit token` a `Vypnout feed`.
+- ADR 0031 pro rozhodnutí kolem chráněného ICS feedu jako jednostranného read-only přehledu rezervací.
 - Novou owner-only obrazovku `Uživatelé / role` s rozdělením na hlavní seznam přístupů a vedlejší read-only blok `Role a oprávnění`.
 - Komponenty `AdminUsersPage`, `AdminUsersWorkspace`, `UsersList`, `UserRow`, `InviteUserDialog`, `RoleCards`, `RoleBadge` a `AccountStatusBadge`.
 - Server actions pro založení pozvánky, úpravu jména/e-mailu, přepnutí role, deaktivaci/aktivaci účtu, obnovení čekající pozvánky a aktivaci pozvánky přes nastavení hesla.

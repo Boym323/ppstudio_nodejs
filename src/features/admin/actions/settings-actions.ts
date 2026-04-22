@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { CalendarFeedScope } from "@prisma/client";
 
 import { env } from "@/config/env";
 import { requireAdminSectionAccess } from "@/features/admin/lib/admin-guards";
@@ -9,6 +10,11 @@ import {
   updateEmailSettingsSchema,
   updateSalonSettingsSchema,
 } from "@/features/admin/lib/admin-settings-validation";
+import {
+  activateCalendarFeed,
+  deactivateCalendarFeed,
+  rotateCalendarFeed,
+} from "@/features/calendar/lib/calendar-feed-service";
 import { prisma } from "@/lib/prisma";
 import {
   getSiteSettings,
@@ -17,6 +23,7 @@ import {
 } from "@/lib/site-settings";
 
 import { type UpdateBookingSettingsActionState } from "./update-booking-settings-action-state";
+import { type UpdateCalendarFeedActionState } from "./update-calendar-feed-action-state";
 import { type UpdateEmailSettingsActionState } from "./update-email-settings-action-state";
 import { type UpdateSalonSettingsActionState } from "./update-salon-settings-action-state";
 
@@ -37,6 +44,11 @@ function revalidateSettingsPaths() {
   ]) {
     revalidatePath(path);
   }
+}
+
+function revalidateCalendarFeedAdminPaths() {
+  revalidatePath("/admin/nastaveni");
+  revalidatePath("/admin");
 }
 
 async function getActorUserId() {
@@ -229,5 +241,50 @@ export async function updateEmailSettingsAction(
   return {
     status: "success",
     successMessage: "E-mailová nastavení jsou uložená.",
+  };
+}
+
+export async function updateCalendarFeedAction(
+  _previousState: UpdateCalendarFeedActionState,
+  formData: FormData,
+): Promise<UpdateCalendarFeedActionState> {
+  const intentValue = formData.get("intent");
+  const intent = typeof intentValue === "string" ? intentValue.trim() : "";
+
+  if (intent !== "activate" && intent !== "rotate" && intent !== "deactivate") {
+    return {
+      status: "error",
+      formError: "Neznámá akce kalendáře.",
+    };
+  }
+
+  const actorUserId = await getActorUserId();
+
+  if (intent === "activate") {
+    await activateCalendarFeed(CalendarFeedScope.OWNER_BOOKINGS, actorUserId);
+    revalidateCalendarFeedAdminPaths();
+
+    return {
+      status: "success",
+      successMessage: "Kalendářový feed je aktivní a připravený ke zkopírování do Apple Kalendáře.",
+    };
+  }
+
+  if (intent === "rotate") {
+    await rotateCalendarFeed(CalendarFeedScope.OWNER_BOOKINGS, actorUserId);
+    revalidateCalendarFeedAdminPaths();
+
+    return {
+      status: "success",
+      successMessage: "Kalendářový odkaz byl obnovený. Starý subscription link už neplatí.",
+    };
+  }
+
+  await deactivateCalendarFeed(CalendarFeedScope.OWNER_BOOKINGS, actorUserId);
+  revalidateCalendarFeedAdminPaths();
+
+  return {
+    status: "success",
+    successMessage: "Kalendářový feed je vypnutý. Dosavadní subscription link už nefunguje.",
   };
 }

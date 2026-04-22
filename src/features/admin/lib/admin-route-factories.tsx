@@ -13,6 +13,7 @@ import { AdminUsersPage } from "@/features/admin/components/admin-users-page";
 import { AdminServiceCategoriesPage } from "@/features/admin/components/admin-service-categories-page";
 import { AdminServicesPage } from "@/features/admin/components/admin-services-page";
 import { AdminWeeklyPlannerPage } from "@/features/admin/components/admin-weekly-planner-page";
+import { getOwnerCalendarFeedAdminState } from "@/features/calendar/lib/calendar-feed-service";
 import { getSiteSettings } from "@/lib/site-settings";
 import { requireAdminArea } from "@/lib/auth/session";
 
@@ -84,14 +85,18 @@ export function createAdminSectionRoute(area: AdminArea) {
     }
 
     if (section === "nastaveni") {
-      const settings = await getSiteSettings();
-      const formattedUpdatedAt = new Intl.DateTimeFormat("cs-CZ", {
+      const [settings, calendarFeed] = await Promise.all([
+        getSiteSettings(),
+        getOwnerCalendarFeedAdminState(),
+      ]);
+      const formatDateTime = new Intl.DateTimeFormat("cs-CZ", {
         day: "numeric",
         month: "numeric",
         year: "numeric",
         hour: "2-digit",
         minute: "2-digit",
-      }).format(settings.updatedAt);
+      });
+      const formattedUpdatedAt = formatDateTime.format(settings.updatedAt);
 
       return (
         <AdminSettingsPage
@@ -111,6 +116,14 @@ export function createAdminSectionRoute(area: AdminArea) {
             emailSenderEmail: settings.emailSenderEmail,
             emailFooterText: settings.emailFooterText,
             updatedAt: formattedUpdatedAt,
+            calendarFeed: {
+              isActive: calendarFeed.isActive,
+              subscriptionUrl: calendarFeed.subscriptionUrl,
+              updatedAtLabel: formatDateTime.format(calendarFeed.updatedAt),
+              rotatedAtLabel: calendarFeed.rotatedAt ? formatDateTime.format(calendarFeed.rotatedAt) : null,
+              revokedAtLabel: calendarFeed.revokedAt ? formatDateTime.format(calendarFeed.revokedAt) : null,
+              updatedByName: calendarFeed.updatedByName,
+            },
           }}
         />
       );
