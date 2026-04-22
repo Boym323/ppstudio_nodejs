@@ -163,7 +163,7 @@ function DashboardBadge({
 
 export function DashboardPage({ data }: DashboardPageProps) {
   return (
-    <div className="mx-auto min-h-[calc(100vh-3rem)] max-w-[1600px] px-2 py-1 lg:px-1">
+    <div className="mx-auto min-h-[calc(100vh-3rem)] max-w-[1600px] px-0.5 py-0.5 sm:px-1 sm:py-1 lg:px-1">
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_332px] 2xl:grid-cols-[minmax(0,1fr)_336px]">
         <main className="min-w-0 space-y-6">
           <TodayHeroCard data={data} />
@@ -180,7 +180,7 @@ export function DashboardPage({ data }: DashboardPageProps) {
 
 export function TodayHeroCard({ data }: DashboardPageProps) {
   return (
-    <Card className="overflow-hidden p-7 xl:p-8">
+    <Card className="overflow-hidden p-5 sm:p-6 xl:p-8">
       <div className="relative">
         <div className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-[radial-gradient(circle_at_top_left,rgba(110,86,207,0.22),transparent_48%),radial-gradient(circle_at_top_right,rgba(190,160,120,0.14),transparent_34%)]" />
 
@@ -190,16 +190,16 @@ export function TodayHeroCard({ data }: DashboardPageProps) {
               <p className="text-sm font-medium tracking-[0.04em] text-[var(--color-accent-soft)]">
                 {data.todayLabel}
               </p>
-              <div className="flex items-end gap-4">
-                <span className="text-7xl font-bold leading-none text-white xl:text-[5.5rem]">
+              <div className="flex flex-wrap items-end gap-x-4 gap-y-2">
+                <span className="text-6xl font-bold leading-none text-white sm:text-7xl xl:text-[5.5rem]">
                   {data.todayBookingsCount}
                 </span>
-                <span className="pb-3 text-base text-white/52">rezervace</span>
+                <span className="pb-2 text-sm text-white/52 sm:pb-3 sm:text-base">rezervace</span>
               </div>
               <p className="max-w-xl text-base text-white/68">{data.nextReservationSummary}</p>
             </div>
 
-            <div className="flex flex-wrap gap-3 pt-1">
+            <div className="flex flex-col gap-3 pt-1 sm:flex-row sm:flex-wrap">
               <DashboardButton
                 href={data.timelineFooterHref}
                 label="Otevřít dnešní plán"
@@ -226,7 +226,7 @@ export function TodayHeroCard({ data }: DashboardPageProps) {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2.5">
+                <div className="grid gap-2.5 sm:grid-cols-2">
                   <DashboardButton href={data.nextClient.detailHref} label="Detail" />
                   <DashboardButton
                     href={data.nextClient.editHref}
@@ -267,7 +267,7 @@ export function AlertsRow({ data }: DashboardPageProps) {
     <div className={cn("grid gap-4", data.alerts.length === 1 ? "grid-cols-1" : "md:grid-cols-3")}>
       {data.alerts.map((alert) => (
         <Card key={alert.id} className={cn("p-[1.125rem]", toneStyles[alert.tone])}>
-          <div className="flex items-start justify-between gap-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div className="flex min-w-0 items-start gap-3">
               <span className="mt-0.5 rounded-xl border border-current/15 bg-black/10 p-2.5">
                 <DashboardIcon name={toneIcons[alert.tone]} className="size-4" />
@@ -277,7 +277,7 @@ export function AlertsRow({ data }: DashboardPageProps) {
 
             <Link
               href={alert.href}
-              className="shrink-0 rounded-lg border border-current/20 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-current transition hover:bg-black/10"
+              className="inline-flex min-h-10 items-center justify-center self-start rounded-lg border border-current/20 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-current transition hover:bg-black/10 sm:min-h-0 sm:self-auto"
             >
               Otevřít
             </Link>
@@ -290,7 +290,7 @@ export function AlertsRow({ data }: DashboardPageProps) {
 
 export function TodayTimeline({ data }: DashboardPageProps) {
   return (
-    <Card className="p-6 xl:p-7">
+    <Card className="p-5 sm:p-6 xl:p-7">
       <div className="border-b border-white/7 pb-4">
         <h2 className="text-[1.35rem] font-semibold text-white">Dnešní plán</h2>
       </div>
@@ -301,7 +301,7 @@ export function TodayTimeline({ data }: DashboardPageProps) {
             <div
               key={item.id}
               className={cn(
-                "grid gap-4 py-5 md:grid-cols-[132px_minmax(0,1fr)_auto] md:items-center md:gap-5",
+                "grid gap-3 py-4 sm:gap-4 md:grid-cols-[132px_minmax(0,1fr)_auto] md:items-center md:gap-5 md:py-5",
                 index < data.timelineItems.length - 1 && "border-b border-white/5",
               )}
             >
@@ -316,7 +316,7 @@ export function TodayTimeline({ data }: DashboardPageProps) {
                 <p className="truncate pt-1 text-sm text-white/48">{item.subtitle}</p>
               </div>
 
-              <div className="flex items-center justify-start gap-3 md:justify-end">
+              <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-3 md:justify-end">
                 <DashboardBadge tone={item.badge === "VOLNE" ? "green" : "purple"}>
                   {item.badge === "VOLNE" ? "VOLNÉ" : "REZERVACE"}
                 </DashboardBadge>
@@ -366,7 +366,7 @@ export function KPIGrid({ data }: DashboardPageProps) {
 
 export function RightSidebar({ data }: DashboardPageProps) {
   return (
-    <aside className="space-y-5">
+    <aside className="space-y-5 xl:sticky xl:top-5">
       <QuickStats data={data} />
 
       <Card className="p-5.5">
@@ -394,7 +394,7 @@ export function RightSidebar({ data }: DashboardPageProps) {
 
 export function QuickStats({ data }: DashboardPageProps) {
   return (
-    <div className="grid grid-cols-2 gap-4">
+    <div className="grid gap-4 sm:grid-cols-2">
       {data.quickStats.map((item) => (
         <Card key={item.label} className="p-[1.125rem]">
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/38">
@@ -425,7 +425,7 @@ export function UpcomingSlots({ data }: DashboardPageProps) {
                 index < data.upcomingSlots.length - 1 && "border-b border-white/5",
               )}
             >
-              <div className="flex items-start justify-between gap-3">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                   <p className="text-sm font-medium leading-6 text-white">{slot.dateTimeLabel}</p>
                   <p className="mt-1 text-xs text-white/48">{slot.capacityLabel}</p>
@@ -466,12 +466,12 @@ export function QuickActions({ data }: DashboardPageProps) {
         <h2 className="text-base font-semibold text-white">Rychlé akce</h2>
       </div>
 
-      <div className="grid grid-cols-2 gap-3.5 pt-4.5">
+      <div className="grid gap-3.5 pt-4.5 sm:grid-cols-2">
         {data.quickActions.map((action) => (
           <Link
             key={action.id}
             href={action.href}
-            className="group flex min-h-32 flex-col justify-between rounded-[1.15rem] border border-white/8 bg-white/[0.035] p-[1.125rem] transition hover:border-[var(--color-accent)]/28 hover:bg-white/[0.06]"
+            className="group flex min-h-28 flex-col justify-between rounded-[1.15rem] border border-white/8 bg-white/[0.035] p-[1.125rem] transition hover:border-[var(--color-accent)]/28 hover:bg-white/[0.06] sm:min-h-32"
           >
             <span className="flex size-11 items-center justify-center rounded-xl border border-white/10 bg-black/20 text-[var(--color-accent-soft)] transition group-hover:border-[var(--color-accent)]/25">
               <DashboardIcon name={action.icon} className="size-4" />

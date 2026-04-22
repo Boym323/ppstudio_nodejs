@@ -18,7 +18,12 @@ export function AdminShell({ children, currentRole, userName }: AdminShellProps)
 
   return (
     <div className="min-h-screen overflow-x-clip bg-[var(--color-admin-background)] text-[var(--color-admin-foreground)]">
-      <div className="sticky top-0 z-40 border-b border-white/8 bg-[rgba(16,15,17,0.92)] px-4 py-3 backdrop-blur-xl lg:hidden">
+      <div
+        className={cn(
+          "sticky top-0 z-40 border-b border-white/8 bg-[rgba(16,15,17,0.92)] px-4 py-3 backdrop-blur-xl transition lg:hidden",
+          mobileSidebarOpen && "pointer-events-none opacity-0",
+        )}
+      >
         <div className="flex items-center justify-between gap-3">
           <div>
             <p className="text-[10px] uppercase tracking-[0.28em] text-white/42">PP Studio Admin</p>
@@ -36,7 +41,7 @@ export function AdminShell({ children, currentRole, userName }: AdminShellProps)
 
       <div
         className={cn(
-          "mx-auto grid min-h-screen w-full items-start gap-4 px-4 py-4 sm:px-6 sm:py-6 lg:gap-6 lg:px-6 lg:py-5 xl:px-7",
+          "mx-auto grid min-h-screen w-full items-start gap-4 px-3 py-3 sm:px-6 sm:py-6 lg:gap-6 lg:px-6 lg:py-5 xl:px-7",
           "max-w-[min(100%,1860px)] lg:grid-cols-[224px_minmax(0,1fr)] xl:grid-cols-[228px_minmax(0,1fr)]",
         )}
       >
@@ -64,7 +69,7 @@ export function AdminShell({ children, currentRole, userName }: AdminShellProps)
       >
         <aside
           className={cn(
-            "absolute left-0 top-0 flex h-full w-[min(88vw,320px)] flex-col border-r border-white/10 bg-[#131116] px-4 py-4 shadow-[0_18px_48px_rgba(0,0,0,0.35)] transition",
+            "absolute left-0 top-0 flex h-full w-[min(92vw,360px)] flex-col border-r border-white/10 bg-[#131116] px-4 py-4 shadow-[0_18px_48px_rgba(0,0,0,0.35)] transition",
             mobileSidebarOpen ? "translate-x-0" : "-translate-x-full",
           )}
           onClick={(event) => event.stopPropagation()}

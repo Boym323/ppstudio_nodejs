@@ -7,6 +7,9 @@ Formát je inspirovaný Keep a Changelog.
 ## [Unreleased]
 
 ### Changed
+- Mobilní admin drawer už při otevření nenechává prosvítat horní sticky lištu s tlačítkem `Menu`, takže se navigace vizuálně nebije s vlastním obsahem draweru.
+- Mobilní layout admin sekce `Rezervace` už nepůsobí jako zmenšená desktop tabulka; řádky se na malých displejích skládají do dvousloupcové karty s čitelnějším kontaktem a plnošířkovým footerem pro `Potvrdit`, `Zrušit` a `Otevřít`.
+- Mobilní admin dashboard a navigace dostaly další compression pass: hero CTA se na telefonu skládají pod sebe, alerty a timeline mají čitelnější stack, quick actions už netvoří dvě příliš úzké karty vedle sebe a drawer menu má o něco pohodlnější šířku i tap targety.
 - `BookingSource` už nově nepopisuje roli admina, ale skutečný původ rezervace (`WEB`, `PHONE`, `INSTAGRAM`, `IN_PERSON`, `OTHER`); role a audit zůstávají v `createdByUserId` a `BookingStatusHistory`.
 - Rezervační doména byla rozšířená o sdílené create jádro pro public i admin vstup, takže ruční rezervace používá stejné validace služby, slotu, kolizí, klientky a navazujících e-mailů jako veřejný booking.
 - Šablona `booking-approved-v1` umí nově volitelně vypnout `.ics` přílohu, aby admin mohl rozhodnout, jestli při ručním potvrzení klientce pošle i kalendářovou událost.

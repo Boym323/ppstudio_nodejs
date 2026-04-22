@@ -40,7 +40,7 @@ export function AdminSidebarNav({
         </p>
       </div>
 
-      <nav className="mt-3 grid gap-1">
+      <nav className="mt-3 grid gap-1.5">
         {navigation.map((item) => {
           const isActive =
             pathname === item.href ||
@@ -53,7 +53,7 @@ export function AdminSidebarNav({
               key={item.href}
               href={item.href}
               className={cn(
-                "rounded-xl border px-3 py-2.5 transition",
+                "rounded-xl border px-3 py-3 transition",
                 isActive
                   ? "border-[var(--color-accent)]/36 bg-[rgba(190,160,120,0.1)] text-white shadow-[0_8px_20px_rgba(0,0,0,0.18)]"
                   : "border-transparent text-white/54 hover:border-white/6 hover:bg-white/[0.035] hover:text-white/84",

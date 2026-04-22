@@ -108,6 +108,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - pravý sidebar stats / pending / upcoming slots / quick actions
 - `admin-section-page.tsx` dál obsluhuje generické nebo sekundární sekce; overview už na něj nenavazuje.
 - Druhé kolo visual polish overview je čistě prezentační: neměň read model ani sekce, pokud ladíš jen proporce, spacing, typografii nebo card rhythm.
+- Pro mobilní breakpointy overview dashboardu preferuj single-column stack před zmenšováním desktop kompozice: CTA pod sebe, alert CTA na vlastní řádek a quick actions až od `sm` do dvou sloupců.
 - `src/features/admin/components/admin-booking-detail-page.tsx` skládá detail rezervace jako serverový read layout; v aktuální verzi používá pět bloků `sticky header -> souhrn -> akce -> poznámky -> historie` a nemá znovu vracet paralelní souhrnné sekce se stejným obsahem.
 - `src/features/admin/components/admin-booking-status-form.tsx` zůstává malou klientskou vrstvou jen pro interaktivní výběr akce a submit server action; při dalších úpravách nenechávej zbytečně růst klientský bundle mimo tenhle formulář.
 - `src/features/admin/components/admin-booking-note-form.tsx` je oddělená klientská vrstva jen pro samostatnou editaci interní poznámky rezervace; drž ji bez dalších provozních rozhodnutí nebo statusové logiky.
@@ -128,6 +129,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Sekce `Rezervace` má vlastní workflow v `src/features/admin/components/admin-bookings-page.tsx` a už neběží přes generický placeholder renderer.
 - `src/features/admin/lib/admin-data.ts` pro rezervace vrací explicitní řádkový read model (`title`, `serviceName`, `scheduledDateLabel`, `scheduledTimeLabel`, `status`, `sourceLabel`, `contactLabel`, `availableActions`) místo obecného `title/meta/description`.
 - `src/features/admin/components/admin-bookings-quick-actions.tsx` je záměrně velmi malá klientská vrstva jen pro inline akce `Potvrdit` a `Zrušit`; složitější workflow dál patří do detailu rezervace.
+- Na mobilu drž `admin-bookings-page.tsx` jako samostatný card pattern, ne jako smrštěnou desktop tabulku: dvě metadata vedle sebe, název a kontakt přes celou šířku a footer akcí přes celý řádek.
 - Horní statistiky sekce `Rezervace` jsou záměrně kompaktní v jedné řadě, ne ve vysokých kartách; při dalších úpravách hustoty drž prioritu na počtu viditelných řádků.
 - Sticky header rezervačního seznamu je součást provozního UX; při změnách shell layoutu ověř, že zůstane čitelný i při delším scrollu.
 - Sekce `Služby` má vlastní workflow v `src/features/admin/components/admin-services-page.tsx` a už neběží přes generický placeholder renderer.
@@ -193,6 +195,8 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - `src/components/layout/admin-shell.tsx` (šířky sloupců, sticky sidebar, anti-overflow)
   - `src/features/admin/components/admin-page-shell.tsx` (responzivní nadpisy, stat karty, spacing pro sekce mimo overview)
   - `src/features/admin/components/admin-dashboard-page.tsx` (přesná hierarchie a hustota overview dashboardu)
+- Mobilní drawer navigace v `admin-shell.tsx` má zůstat široká na pohodlné tap targety; při dalších úpravách ji nestlačuj pod aktuální `min(92vw, 360px)` bez konkrétního důvodu.
+- Při otevřeném mobile draweru v `admin-shell.tsx` schovávej horní sticky bar; poloprůhledný overlay jinak nechává prosvítat `Menu` header a vizuálně se pere s navigací.
 
 ## Konvence
 - Route soubory držet tenké, byznys logiku přesouvat do `features`, `content` a `lib`.

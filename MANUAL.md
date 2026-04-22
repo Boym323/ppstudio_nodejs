@@ -175,6 +175,7 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
   - Rezervace
   - Volné termíny
   - Klienti
+- Mobilní admin navigace používá vlastní drawer; při jeho otevření se horní lišta dočasně schová, aby se menu nepřekrývalo s vlastním obsahem.
 - Owner sekce `Nastavení` nově obsahuje i blok `Kalendář`:
   - zapnutí feedu
   - zkopírování subscription URL
@@ -191,11 +192,13 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
   - pod ní jsou jen krátké alerty, které vyžadují akci; pokud nic nehoří, zobrazí se jediná zelená karta `Vše je v pořádku`
   - střed stránky drží `Dnešní plán` s mixem rezervací a volných oken, aby bylo během pár sekund jasné, co se dnes děje
   - pravý sidebar soustředí rychlý přehled, počty čekajících potvrzení, nejbližší publikované sloty pro dnes/zítra a 4 rychlé akce
+  - na mobilu dashboard přepíná do jednoho svislého proudu: hero CTA jsou pod sebou, alerty a timeline mají vlastní akční řádek a quick actions už neskládají dvě úzké karty vedle sebe
   - data jsou server-rendered a připravená na další napojení, ale bez přidání nové klientské state vrstvy
   - druhé kolo UI polish posunulo dashboard blíž desktop workspace režimu: hero karta je výraznější, timeline má silnější vertikální rytmus, pravý sidebar méně štěpí plochu a spodní KPI zůstávají záměrně sekundární
 - Sekce `Rezervace` je nyní přepracovaná jako kompaktní pracovní seznam na `/admin/rezervace` a `/admin/provoz/rezervace`:
   - místo vysokých karet používá hustý řádkový grid se sloupci `Rezervace`, `Čas`, `Status`, `Zdroj`, `Kontakt`, `Akce`
   - každá rezervace drží klientku + službu a datum + čas ve dvou krátkých řádcích bez zbytečné výšky
+  - na mobilu se každá položka skládá do dvousloupcové karty s názvem přes celou šířku, přehlednými metadaty a plnošířkovým footerem pro akce
   - horní statistiky jsou zmenšené do jedné souhrnné řady místo velkých karet
   - hlavička seznamu zůstává sticky při scrollu, takže jsou sloupce stále čitelné
   - přímo v řádku jsou rychlé akce `Potvrdit`, `Zrušit` a `Otevřít`; na menších šířkách fungují jako plný footer pod řádkem a od `lg` výše mají úsporný vlastní sloupec s kompaktnější kapslí

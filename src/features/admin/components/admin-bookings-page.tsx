@@ -58,11 +58,11 @@ export function AdminBookingsPage({ area, data }: AdminBookingsPageProps) {
                 <article
                   key={booking.id}
                   className={cn(
-                    "grid gap-2 px-4 py-2.5 transition-colors hover:bg-white/[0.03] md:items-center",
+                    "grid grid-cols-2 gap-3 px-4 py-4 transition-colors hover:bg-white/[0.03] md:items-center md:gap-2 md:py-2.5",
                     columnLayout,
                   )}
                 >
-                  <InfoCell label="Rezervace">
+                  <InfoCell label="Rezervace" className="col-span-2">
                     <p className="truncate text-[15px] font-medium leading-5 text-white">
                       {booking.title}
                     </p>
@@ -77,7 +77,7 @@ export function AdminBookingsPage({ area, data }: AdminBookingsPageProps) {
                   </InfoCell>
 
                   <InfoCell label="Status" className="md:justify-self-center">
-                    <div className="flex w-full justify-center rounded-full px-2 py-1.5">
+                    <div className="flex w-full justify-start rounded-full py-1 md:px-2 md:py-1.5 md:justify-center">
                       <StatusBadge status={booking.status}>{booking.statusLabel}</StatusBadge>
                     </div>
                   </InfoCell>
@@ -88,11 +88,13 @@ export function AdminBookingsPage({ area, data }: AdminBookingsPageProps) {
                     </span>
                   </InfoCell>
 
-                  <InfoCell label="Kontakt">
-                    <p className="truncate text-sm font-medium text-white/84">{booking.contactLabel}</p>
+                  <InfoCell label="Kontakt" className="col-span-2 md:col-span-1">
+                    <p className="break-words text-sm font-medium text-white/84 md:truncate">
+                      {booking.contactLabel}
+                    </p>
                   </InfoCell>
 
-                  <div className="min-w-0 md:col-span-full md:mt-1 md:border-t md:border-white/8 md:pt-2 lg:col-span-1 lg:col-start-6 lg:row-start-1 lg:mt-0 lg:w-fit lg:justify-self-end lg:border-0 lg:pt-0">
+                  <div className="col-span-2 min-w-0 border-t border-white/8 pt-3 md:col-span-full md:mt-1 md:pt-2 lg:col-span-1 lg:col-start-6 lg:row-start-1 lg:mt-0 lg:w-fit lg:justify-self-end lg:border-0 lg:pt-0">
                     <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/38 lg:hidden">
                       Akce
                     </p>
