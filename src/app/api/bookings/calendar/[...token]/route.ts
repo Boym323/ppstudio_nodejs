@@ -1,4 +1,7 @@
-import { resolveBookingCalendarAccess, buildBookingCalendarIcs } from "@/features/calendar/lib/booking-calendar-event";
+import {
+  buildBookingCalendarIcs,
+  resolveBookingCalendarAccess,
+} from "@/features/calendar/lib/booking-calendar-event";
 
 export const dynamic = "force-dynamic";
 
@@ -13,15 +16,22 @@ function buildUnavailableCalendarResponse() {
   });
 }
 
-export async function GET(
-  _request: Request,
-  context: {
-    params: Promise<{
-      token?: string;
-    }>;
-  },
-) {
-  const { token } = await context.params;
+function extractCalendarToken(pathname: string) {
+  const match = pathname.match(/^\/api\/bookings\/calendar\/(.+)$/);
+  const rawValue = match?.[1] ? decodeURIComponent(match[1]) : null;
+
+  if (!rawValue) {
+    return null;
+  }
+
+  return rawValue.endsWith(".ics")
+    ? rawValue.slice(0, -4)
+    : rawValue;
+}
+
+export async function GET(request: Request) {
+  const token = extractCalendarToken(new URL(request.url).pathname);
+
   if (!token) {
     return buildUnavailableCalendarResponse();
   }
@@ -39,7 +49,7 @@ export async function GET(
     status: 200,
     headers: {
       "Content-Type": "text/calendar; charset=utf-8",
-      "Content-Disposition": `inline; filename="${filename}"`,
+      "Content-Disposition": `inline; filename=\"${filename}\"`,
       "Cache-Control": "private, no-store",
       "X-Robots-Tag": "noindex, nofollow, noarchive",
     },

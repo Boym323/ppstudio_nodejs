@@ -104,11 +104,9 @@ Postup nasazení aplikace do produkce.
     - bezpečný stav po opětovném otevření stejného odkazu
     - korektní klientský email po schválení i zrušení
   - klientský potvrzovací e-mail po `CONFIRMED`:
-    - obsahuje CTA `Přidat do kalendáře`
-    - CTA vede na `/api/bookings/calendar/[token].ics`
-    - endpoint vrací `text/calendar; charset=utf-8`
-    - `.ics` vrací jeden `VEVENT` s `TZID=Europe/Prague`
-    - po zrušení rezervace stejný link vrací 404
+    - obsahuje přílohu `pp-studio-rezervace.ics`
+    - příloha obsahuje jeden `VEVENT` s `TZID=Europe/Prague`
+    - potvrzovací email se korektně doručí i s attachmentem přes SMTP
   - doručení admin notifikačního e-mailu na `notificationAdminEmail`
   - zpracování email workerem nebo potvrzený `EmailLog` v log režimu
   - načtení testovacího veřejného media URL `/media/<kind>/...`
@@ -161,7 +159,7 @@ sudo /var/www/ppstudio/deploy/deploy.sh
 - Migrace `20260422120000_admin_users_invited_at` přidává `AdminUser.invitedAt`; po deployi ověř owner sekci `/admin/uzivatele`, stav `Pozvánka čeká` a existující DB účty bez vyplněného `invitedAt`.
 - Migrace `20260422170000_admin_invite_token_v1` přidává tabulku `AdminUserInviteToken`; po deployi ověř jednorázové použití pozvánky, expiraci a revokaci starších tokenů při novém odeslání.
 - Migrace `20260422201500_booking_email_actions_v1` rozšiřuje enum `BookingActionTokenType` o `APPROVE` a `REJECT`; po deployi ověř vytvoření nových tokenů při veřejné rezervaci a funkčnost email route `/rezervace/akce/[intent]/[token]`.
-- Migrace `20260422194500_booking_calendar_event_v1` rozšiřuje enum `BookingActionTokenType` o `CALENDAR`; po deployi ověř potvrzovací klientský e-mail, endpoint `/api/bookings/calendar/[token].ics` a revokaci linku po zrušení rezervace.
+- Migrace `20260422194500_booking_calendar_event_v1` rozšiřuje enum `BookingActionTokenType` o `CALENDAR`; po deployi ověř, že schema je aktuální. Klientský kalendář už ale potvrzovací email posílá jako `.ics` přílohu, ne jako klikací link.
 - Migrace `20260422193000_calendar_feed_v1` přidává tabulku `CalendarFeed`; po deployi ověř owner sekci `/admin/nastaveni`, zapnutí feedu a úspěšný fetch `/api/calendar/owner.ics?token=...`.
 - Pokud je databáze v divergentním stavu a `prisma migrate dev` by nabízelo reset, neprováděj ho naslepo. Pro tuto migraci lze bezpečně použít `npx prisma db execute --file prisma/migrations/20260421113000_public_pricing_metadata/migration.sql` a až potom ověřit build.
 - Migrace `20260419140000_site_settings_singleton` přidává tabulku `SiteSettings`; po deployi ověř, že se `/admin/nastaveni` otevře bez chyby a že první render bezpečně založí výchozí singleton záznam.
@@ -190,7 +188,7 @@ sudo /var/www/ppstudio/deploy/deploy.sh
 - Když worker hlásí TLS chybu typu `wrong version number`, zkontroluj, že `SMTP_SECURE` odpovídá portu. Pro Resend a podobné providery je nejbezpečnější `SMTP_SECURE=auto`.
 - Reverzní proxy by měla korektně předávat `x-forwarded-for`, aby submission audit a rate limiting pracovaly smysluplně.
 - I když `npm run build` dnes předem volá `prisma generate`, v release checklistu necháváme explicitní `npm run db:generate`, protože chrání i jiné skripty a ruční servisní zásahy.
-- `allowedDevOrigins` je čistě development nastavení pro `next dev`; produkční deploy ani `next start` na něm nestojí. Pokud někdo řeší vzdálené testování přes LAN, upravuje se `next.config.ts`, ne produkční env.
+- `allowedDevOrigins` je čistě development nastavení pro `next dev`; produkční deploy ani `next start` na něm nestojí. Pokud někdo řeší vzdálené testování přes LAN nebo přes Synology reverse proxy na `ppstudio.cz`, upravuje se `next.config.ts`, ne produkční env.
 - Upload root není build artefakt. Při deployi se nemaže a má být zálohovaný samostatně od repozitáře i databáze.
 - Veřejná média se publikují přes `/media/*`, takže reverse proxy nemusí mapovat fyzickou cestu upload adresáře přímo do document rootu.
 

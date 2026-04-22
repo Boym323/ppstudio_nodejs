@@ -1,5 +1,3 @@
-import "server-only";
-
 import { BookingActionTokenType, BookingStatus } from "@prisma/client";
 
 import { env } from "@/config/env";
@@ -194,6 +192,53 @@ export async function buildBookingCalendarIcs(booking: {
         dtStamp: booking.confirmedAt ?? booking.updatedAt,
         lastModified: booking.updatedAt,
         sequence: Math.max(0, Math.floor(booking.updatedAt.getTime() / 1000)),
+      },
+    ],
+  });
+}
+
+export async function buildBookingCalendarIcsFromPayload(input: {
+  bookingId: string;
+  serviceName: string;
+  scheduledStartsAt: Date;
+  scheduledEndsAt: Date;
+}) {
+  const settings = await getSiteSettings().catch(() => ({
+    salonName: env.NEXT_PUBLIC_APP_NAME,
+    addressLine: "Masarykova 12",
+    city: "Brno",
+    postalCode: "602 00",
+    phone: "+420 777 000 000",
+    contactEmail: "hello@ppstudio.cz",
+  }));
+  const uidHost = getCalendarEventUidHost();
+  const location = `${settings.salonName}, ${getSalonAddressLine(settings)}`;
+  const referenceCode = input.bookingId.slice(-8).toUpperCase();
+
+  return buildCalendarIcs({
+    productId: "-//PP Studio//Booking Event//CS",
+    name: `${settings.salonName} • rezervace klientky`,
+    description: "Jednotlivá potvrzená rezervace salonu PP Studio pro osobní kalendář klientky.",
+    events: [
+      {
+        uid: `${input.bookingId}@${uidHost}`,
+        summary: `${settings.salonName} – ${input.serviceName}`,
+        description: buildBookingCalendarDescription({
+          serviceName: input.serviceName,
+          scheduledStartsAt: input.scheduledStartsAt,
+          scheduledEndsAt: input.scheduledEndsAt,
+          salonName: settings.salonName,
+          phone: settings.phone,
+          email: settings.contactEmail,
+          referenceCode,
+        }),
+        location,
+        status: "CONFIRMED",
+        startsAt: input.scheduledStartsAt,
+        endsAt: input.scheduledEndsAt,
+        dtStamp: new Date(),
+        lastModified: new Date(),
+        sequence: Math.max(0, Math.floor(Date.now() / 1000)),
       },
     ],
   });

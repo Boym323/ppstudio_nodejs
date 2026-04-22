@@ -23,7 +23,6 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Veřejné booking flow používá server-loaded page + klientský wizard + server action pro finální zápis.
 - Veřejné booking routy nově obsahují i bezpečný provozní action flow `/rezervace/akce/[intent]/[token]`, který renderuje serverovou validaci tokenu a klientský potvrzovací panel nad server action submittem.
 - Veřejné API nyní obsahuje i route handler `/api/calendar/owner.ics`, který vrací chráněný `.ics` feed pro Apple Calendar subscription; endpoint je veřejný jen přes tajný token v URL a nepoužívá session auth.
-- Veřejné API nově obsahuje i route handler `/api/bookings/calendar/[token].ics`, který vrací jednu konkrétní `.ics` událost pro zákaznici po potvrzení rezervace.
 - `/rezervace` používá `connection()` a renderuje se request-time, aby ručně publikované sloty nebyly zafixované do build outputu.
 - Klientské UX booking flow je soustředěné v `src/features/booking/components/booking-flow.tsx`, ale rychlé decision bloky jsou rozsekané do menších komponent:
   - `CategorySelect` pro první rozhodnutí nad kategoriemi
@@ -32,7 +31,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - `BookingConfirmationPanel` pro post-submit stav se status blokem, dominantním termínem, CTA a kontaktem
 - `src/app/robots.ts` a `src/app/sitemap.ts` používají metadata route API v App Routeru.
 - Veřejně dostupná nahraná média se servírují přes route handler `src/app/media/[kind]/[[...path]]/route.ts`, ne přes `public/` repozitáře.
-- `next.config.ts` používá `allowedDevOrigins` pro lokální LAN vývoj na `192.168.0.143`; bez toho Next.js 16 z jiného zařízení zablokuje dev assety a HMR endpoint `/_next/webpack-hmr`.
+- `next.config.ts` používá `allowedDevOrigins` pro lokální LAN vývoj na `192.168.0.143` i pro public dev test přes `ppstudio.cz` / `www.ppstudio.cz`; bez toho Next.js 16 z jiného zařízení nebo přes reverse proxy zablokuje dev assety a HMR endpoint `/_next/webpack-hmr`.
 
 ## Veřejný Web
 - Každá veřejná stránka má vlastní route a metadata.
@@ -270,7 +269,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - kontakt na studio až v posledním bloku
 - `createPublicBooking()` vrací pro confirmation vrstvu i `scheduledStartsAt`, `scheduledEndsAt` a `cancellationUrl`, aby web i e-mail nemusely domýšlet další akce z neúplných dat.
 - `BookingConfirmationPanel` používá dočasný secondary CTA `Požádat o změnu` přes předvyplněný `mailto:` odkaz; to je záměrný placeholder pro budoucí self-service manage/reschedule endpoint.
-- Pending confirmation screen po odeslání rezervace záměrně nenabízí `Přidat do kalendáře`; kalendářový link je dostupný až v emailu `booking-approved-v1` po přechodu rezervace do `CONFIRMED`.
+- Pending confirmation screen po odeslání rezervace záměrně nenabízí `Přidat do kalendáře`; kalendářová událost se přikládá až do emailu `booking-approved-v1` po přechodu rezervace do `CONFIRMED`.
 - Transformaci slotů pro krok 2 drž mimo JSX v helperu `src/features/booking/lib/booking-time-slots.ts`; UI komponenty mají dostávat už připravené `TimeSlotOption[]` a skupiny z `groupSlotsByDayPeriod()`.
 - Kalendářní denní klíče v kroku 2 (`YYYY-MM-DD`) generuj locale-agnosticky přes `Intl.DateTimeFormat(...).formatToParts()`; nepoužívej `format()` jako zdroj klíče, protože pořadí/oddělovače se liší mezi prostředími a může rozbít mapování měsíců/dnů.
 - U kalendářních gridů v kroku 2 drž explicitní `gridTemplateColumns: repeat(7, minmax(0, 1fr))` přímo v komponentě jako runtime pojistku; samotná utility třída nemusí v některých prostředích stačit.
@@ -279,7 +278,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - templates renderují obsah z `EmailLog.templateKey`
   - worker claimuje `EmailLog` řádky v background režimu a delivery aktualizuje `EmailLog.status`, `provider`, `providerMessageId`, `attemptCount`, `nextAttemptAt` a `errorMessage`
 - Potvrzovací e-mail `booking-confirmation-v1` má držet stejnou informační hierarchii jako web confirmation screen: stav -> služba / termín / kód -> další kroky -> akce -> kontakt, bez duplicitního úvodního textu mimo hero blok.
-- Potvrzovací e-mail `booking-approved-v1` nově obsahuje krátký blok s CTA `Přidat do kalendáře`; URL vede na `/api/bookings/calendar/[token].ics` a token nesmí být znovupoužitý pro storno nebo jinou mutaci rezervace.
+- Potvrzovací e-mail `booking-approved-v1` nově přikládá soubor `pp-studio-rezervace.ics`; attachment se generuje serverově při renderu šablony z payloadu `bookingId + serviceName + scheduledStartsAt + scheduledEndsAt`.
 
 ## Migrační Strategie
 - Stávající bootstrap migrace rozšiřujeme inkrementálně, ne přepisem historie.
@@ -335,6 +334,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - kompaktní řádkový layout bez návratu k vysokým kartám
   - sticky header sloupců při scrollu
   - inline akce `Potvrdit` a `Zrušit` bez otevření detailu
+  - ověření, že akce na menších šířkách fungují jako full-width footer a od `lg` se vrací do úsporného vlastního sloupce
   - správné schování neplatné rychlé akce podle aktuálního stavu rezervace
   - barevné badge pro `čeká`, `hotovo`, `zrušeno` a čitelnost kontaktu i zdroje v hustém řádku
   - detail rezervace s novým sticky headerem, jedním souhrnným panelem a kompaktní akční zónou

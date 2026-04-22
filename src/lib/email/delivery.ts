@@ -59,6 +59,7 @@ export async function deliverEmailLog(emailLogId: string): Promise<EmailLogDeliv
       subject: rendered.subject,
       text: rendered.text,
       html: rendered.html,
+      attachments: rendered.attachments,
     });
 
     await prisma.emailLog.update({

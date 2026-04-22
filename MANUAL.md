@@ -43,7 +43,7 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
 - Vertikální spacing veřejných sekcí je sjednocený do rytmu `py-10 / sm:py-14 / lg:py-16`; větší rozestupy používej jen pro obsahově výrazné bloky.
 - Rezervační vrstva stojí na ručně vypisovaných termínech přes `AvailabilitySlot`, ne na pevné otevírací době.
 - Pending rezervace lze nově potvrdit nebo zrušit přímo z provozního e-mailu přes bezpečné jednorázové odkazy s mezikrokem potvrzení na veřejné route `/rezervace/akce/[intent]/[token]`.
-- Po potvrzení rezervace zákaznice dostává i zákaznický `.ics` odkaz na `/api/bookings/calendar/[token].ics`; jde o jednu konkrétní kalendářovou událost pro jeden potvrzený termín, ne o subscription feed.
+- Po potvrzení rezervace zákaznice dostává v potvrzovacím e-mailu `.ics` přílohu s jednou konkrétní kalendářovou událostí pro potvrzený termín, ne subscription feed.
 - Owner může v `/admin/nastaveni` nově zapnout chráněný Apple Calendar subscription feed na `/api/calendar/owner.ics?token=...`; feed je read-only, bere jen potvrzené rezervace a aplikace zůstává jediným source of truth.
 - Admin má dva směry použití:
   - full admin na `/admin/*` pro roli `OWNER`
@@ -84,7 +84,7 @@ npm run db:migrate
 
 ### Lokální vývoj z jiného zařízení v LAN
 - Next.js 16 v dev režimu blokuje cross-origin přístup k dev assetům a HMR endpointům, pokud origin výslovně nepovolíš.
-- Projekt proto v `next.config.ts` povoluje `allowedDevOrigins` pro lokální host `192.168.0.143`, aby šel dev server otevřít i z jiného zařízení v domácí nebo interní síti.
+- Projekt proto v `next.config.ts` povoluje `allowedDevOrigins` pro lokální host `192.168.0.143` i veřejnou doménu `ppstudio.cz` / `www.ppstudio.cz`, aby šel dev server otevřít i přes Synology reverse proxy nebo z jiného zařízení v síti.
 - Po změně `allowedDevOrigins` je potřeba restartovat `npm run dev`.
 - Pokud budeš používat jiný hostname nebo IP, doplň ho do `allowedDevOrigins` a změnu zapiš i do dokumentace.
 
@@ -129,8 +129,8 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
   - `Zrušit rezervaci`
   - `Otevřít v administraci`
 - Emailové approve/reject odkazy neprovedou změnu hned po otevření; vždy nejdřív zobrazí kontrolní obrazovku s přehledem rezervace a až následně potvrzovací CTA.
-- Po potvrzení rezervace systém automaticky založí návazný klientský e-mail s výsledkem rezervace a CTA `Přidat do kalendáře` na samostatný `.ics` endpoint.
-- Kalendářový `.ics` odkaz je aktivní jen pro stav `CONFIRMED`; pending confirmation screen ho záměrně nenabízí a po zrušení rezervace se už dál aktivně nepoužívá.
+- Po potvrzení rezervace systém automaticky založí návazný klientský e-mail s výsledkem rezervace a přiloženou `.ics` událostí pro osobní kalendář klientky.
+- Pending confirmation screen kalendář záměrně nenabízí; `.ics` příloha patří až k e-mailu po přechodu rezervace do `CONFIRMED`.
 - Rezervační stránka je renderovaná dynamicky při requestu, takže nově publikované nebo obsazené sloty jsou vidět bez dalšího buildu.
 - Hero, sekce `O mně` a základní service copy jsou už přepsané do klidnějšího a osobnějšího tónu; další jemné úpravy je vhodné dělat centrálně v obsahové vrstvě nebo v DB copy mapě služeb.
 - Stránka `/kontakt` má nově silnější orientaci na rychlou akci:
@@ -198,7 +198,7 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
   - každá rezervace drží klientku + službu a datum + čas ve dvou krátkých řádcích bez zbytečné výšky
   - horní statistiky jsou zmenšené do jedné souhrnné řady místo velkých karet
   - hlavička seznamu zůstává sticky při scrollu, takže jsou sloupce stále čitelné
-  - přímo v řádku jsou rychlé akce `Potvrdit`, `Zrušit` a `Detail`; složitější práce dál patří do detailu rezervace
+  - přímo v řádku jsou rychlé akce `Potvrdit`, `Zrušit` a `Detail`; na menších šířkách fungují jako plný footer pod řádkem a od `lg` výše mají úsporný vlastní sloupec s kompaktnější kapslí
   - stav se zobrazuje přes barevné badge, aby bylo na první pohled vidět, co čeká, co je hotové a co je zrušené
 - Sekce `Klienti` je nyní produkčně použitelná pro obě role na `/admin/klienti`, `/admin/provoz/klienti` a v detailu na `/admin/klienti/[clientId]`, `/admin/provoz/klienti/[clientId]`:
   - seznam podporuje hledání přes jméno, e-mail, telefon i interní poznámku
@@ -349,7 +349,6 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
 - `BookingStatusHistory` slouží jako audit změn stavu a rozlišuje akci uživatele, klienta nebo systému.
 - Admin detail rezervace zobrazuje historii změn jako provozní timeline, takže salon i owner vidí, kdo a kdy stav upravil.
 - `BookingActionToken` ukládá pouze hash tokenu pro storno a přesun termínu, nikdy ne surovou hodnotu tokenu.
-- Stejný model `BookingActionToken` nově používáme i pro zákaznický calendar link typu `CALENDAR`; raw token se skládá jen do URL v potvrzovacím e-mailu, v DB zůstává pouze hash.
 - `EmailLog` umožňuje trasovat odeslané i neúspěšné e-maily navázané na klienta, rezervaci a případný token.
 - Owner-only sekce `Email logy` je provozní observability obrazovka pro pending frontu, retry pokusy a poslední chyby workeru.
 - Detail konkrétního e-mailu na `/admin/email-logy/[emailLogId]` ukazuje payload, poslední chybu, vazby na rezervaci a klientku a nabízí ruční retry nebo uvolnění zaseknutého jobu.

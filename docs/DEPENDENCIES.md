@@ -20,7 +20,7 @@ Seznam důležitých knihoven a důvod jejich použití.
 - vestavěný Node.js `crypto`: generování a hashování action tokenů pro booking workflow bez další závislosti.
 - vestavěný Node.js `crypto` také nově podepisuje odvozené tokeny pro chráněný owner ICS feed; nebyla přidána žádná externí iCalendar nebo calendar auth knihovna.
 - Pro nové provozní approve/reject odkazy jsme nepřidávali žádnou další knihovnu; bezpečnost flow dál stojí na existujícím Node.js `crypto`, Prisma transakcích a Next.js App Router server actions.
-- Ani zákaznický `.ics` event po potvrzení rezervace nepřidává novou knihovnu; používá stejný Node.js `crypto`, stávající model `BookingActionToken` a lokální iCalendar utility.
+- Ani zákaznická `.ics` příloha po potvrzení rezervace nepřidává novou knihovnu; používá lokální iCalendar utility a stávající SMTP vrstvu přes `nodemailer`.
 - Booking submission audit využívá stejnou Prisma vrstvu a nezavádí další knihovnu pro rate limiting ani logování.
 
 ## Kvalita kódu
@@ -51,7 +51,7 @@ Seznam důležitých knihoven a důvod jejich použití.
 - `Json` pole ve `Setting`, `BookingStatusHistory` a `EmailLog` ponechávají prostor pro evoluci bez destruktivních migrací.
 - Admin sekce `Nastavení` a singleton `SiteSettings` byly doplněné bez nové knihovny; zůstáváme na stávajícím stacku Next.js, React, Prisma a Zod.
 - Owner ICS feed pro Apple Kalendář byl přidaný bez nové závislosti; generování `.ics`, escapování i line folding běží v lokální utilitě nad standardním Node/TypeScript stackem.
-- Jednotlivý zákaznický `.ics` endpoint `/api/bookings/calendar/[token].ics` používá stejnou lokální iCalendar utilitu; nepřidávali jsme Google SDK, `.ics` generator balík ani novou mail knihovnu pro attachment-only flow.
+- Klientská `.ics` příloha používá stejnou lokální iCalendar utilitu; nepřidávali jsme Google SDK, `.ics` generator balík ani novou mail knihovnu.
 - Admin role-aware dashboardy používají jen existující Next.js, Prisma a React primitives; nepřidávali jsme další admin UI knihovnu ani CMS vrstvu.
 - Nový operativní admin dashboard overview také běží bez nové ikonové nebo chart knihovny; používá Tailwind utility classes, lokální SVG ikony a serverový read model nad existující Prisma vrstvou.
 - Konsolidace owner/salon admin route wrapperů do shared factory patternu proběhla bez přidání nové knihovny.

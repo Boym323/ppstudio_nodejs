@@ -16,11 +16,6 @@ import {
   type BookingEmailActionIntent,
   hashBookingActionToken,
 } from "@/features/booking/lib/booking-action-tokens";
-import {
-  buildBookingActionToken,
-  buildBookingCalendarExpiry,
-  buildBookingCalendarUrl,
-} from "@/features/booking/lib/booking-action-tokens";
 import { formatBookingDateLabel } from "@/features/booking/lib/booking-format";
 import { prisma } from "@/lib/prisma";
 
@@ -96,7 +91,6 @@ export type PerformBookingEmailActionResult =
 
 function buildBookingApprovedEmailPayload(
   booking: NonNullable<LoadedBookingActionToken["booking"]>,
-  calendarUrl: string,
 ) {
   return {
     bookingId: booking.id,
@@ -104,7 +98,6 @@ function buildBookingApprovedEmailPayload(
     clientName: booking.clientNameSnapshot,
     scheduledStartsAt: booking.scheduledStartsAt.toISOString(),
     scheduledEndsAt: booking.scheduledEndsAt.toISOString(),
-    calendarUrl,
   };
 }
 
@@ -436,22 +429,7 @@ export async function performBookingEmailAction(
           };
 
       if (targetStatus === BookingStatus.CONFIRMED) {
-        const calendarToken = buildBookingActionToken();
-
-        await tx.bookingActionToken.create({
-          data: {
-            bookingId: lockedToken.bookingId,
-            type: BookingActionTokenType.CALENDAR,
-            tokenHash: calendarToken.tokenHash,
-            expiresAt: buildBookingCalendarExpiry(now),
-            lastSentAt: now,
-          },
-        });
-
-        bookingApprovedPayload = buildBookingApprovedEmailPayload(
-          lockedToken.booking!,
-          buildBookingCalendarUrl(calendarToken.rawToken),
-        );
+        bookingApprovedPayload = buildBookingApprovedEmailPayload(lockedToken.booking!);
       } else {
         bookingApprovedPayload = {
           bookingId: lockedToken.booking!.id,
@@ -460,17 +438,6 @@ export async function performBookingEmailAction(
           scheduledStartsAt: lockedToken.booking!.scheduledStartsAt.toISOString(),
           scheduledEndsAt: lockedToken.booking!.scheduledEndsAt.toISOString(),
         };
-
-        await tx.bookingActionToken.updateMany({
-          where: {
-            bookingId: lockedToken.bookingId,
-            type: BookingActionTokenType.CALENDAR,
-            revokedAt: null,
-          },
-          data: {
-            revokedAt: now,
-          },
-        });
       }
 
       await tx.emailLog.create({

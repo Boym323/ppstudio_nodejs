@@ -35,3 +35,24 @@ test("SMTP secure mode still respects explicit overrides", async () => {
   assert.equal(resolveSmtpSecureMode(587, "true"), true);
   assert.equal(resolveSmtpSecureMode(465, "false"), false);
 });
+
+test("sendEmail in log mode accepts attachments", async () => {
+  const { sendEmail } = await loadProvider();
+
+  const result = await sendEmail({
+    to: "jana@example.com",
+    subject: "Test",
+    text: "Hello",
+    html: "<p>Hello</p>",
+    attachments: [
+      {
+        filename: "pp-studio-rezervace.ics",
+        content: "BEGIN:VCALENDAR\r\nEND:VCALENDAR\r\n",
+        contentType: "text/calendar; charset=utf-8",
+      },
+    ],
+  });
+
+  assert.equal(result.provider, "log");
+  assert.match(result.messageId ?? "", /^log-/);
+});

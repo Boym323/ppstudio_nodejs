@@ -1,5 +1,4 @@
 import {
-  BookingActionTokenType,
   BookingActorType,
   BookingSource,
   BookingStatus,
@@ -9,11 +8,6 @@ import {
 
 import { env } from "@/config/env";
 import { type AdminArea } from "@/config/navigation";
-import {
-  buildBookingActionToken,
-  buildBookingCalendarExpiry,
-  buildBookingCalendarUrl,
-} from "@/features/booking/lib/booking-action-tokens";
 import { prisma } from "@/lib/prisma";
 
 const formatDateTime = new Intl.DateTimeFormat("cs-CZ", {
@@ -325,18 +319,6 @@ export async function applyAdminBookingStatusChange({
     });
 
     if (targetStatus === BookingStatus.CONFIRMED) {
-      const calendarToken = buildBookingActionToken();
-
-      await tx.bookingActionToken.create({
-        data: {
-          bookingId: booking.id,
-          type: BookingActionTokenType.CALENDAR,
-          tokenHash: calendarToken.tokenHash,
-          expiresAt: buildBookingCalendarExpiry(now),
-          lastSentAt: now,
-        },
-      });
-
       await tx.emailLog.create({
         data: {
           bookingId: booking.id,
@@ -356,23 +338,9 @@ export async function applyAdminBookingStatusChange({
             clientName: booking.clientNameSnapshot,
             scheduledStartsAt: booking.scheduledStartsAt.toISOString(),
             scheduledEndsAt: booking.scheduledEndsAt.toISOString(),
-            calendarUrl: buildBookingCalendarUrl(calendarToken.rawToken),
           },
           provider: env.EMAIL_DELIVERY_MODE === "background" ? undefined : "log",
           sentAt: env.EMAIL_DELIVERY_MODE === "background" ? undefined : now,
-        },
-      });
-    }
-
-    if (targetStatus === BookingStatus.CANCELLED) {
-      await tx.bookingActionToken.updateMany({
-        where: {
-          bookingId: booking.id,
-          type: BookingActionTokenType.CALENDAR,
-          revokedAt: null,
-        },
-        data: {
-          revokedAt: now,
         },
       });
     }

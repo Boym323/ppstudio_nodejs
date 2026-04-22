@@ -13,7 +13,7 @@ type AdminBookingsPageProps = {
 };
 
 const columnLayout =
-  "md:grid-cols-[minmax(15rem,2fr)_minmax(10rem,1fr)_minmax(7rem,0.8fr)_minmax(8.5rem,0.9fr)_minmax(10rem,1fr)_minmax(11.75rem,11.75rem)]";
+  "md:grid-cols-[minmax(15rem,2fr)_minmax(10rem,1fr)_minmax(7rem,0.8fr)_minmax(8.5rem,0.9fr)_minmax(10rem,1fr)] lg:grid-cols-[minmax(15rem,2fr)_minmax(10rem,1fr)_minmax(7rem,0.8fr)_minmax(8.5rem,0.9fr)_minmax(10rem,1fr)_minmax(11.75rem,11.75rem)]";
 
 export function AdminBookingsPage({ area, data }: AdminBookingsPageProps) {
   return (
@@ -47,7 +47,7 @@ export function AdminBookingsPage({ area, data }: AdminBookingsPageProps) {
               <span>Status</span>
               <span>Zdroj</span>
               <span>Kontakt</span>
-              <span className="text-right">Akce</span>
+              <span className="hidden text-right lg:block">Akce</span>
             </div>
 
             <div className="divide-y divide-white/8">
@@ -87,11 +87,11 @@ export function AdminBookingsPage({ area, data }: AdminBookingsPageProps) {
                     <p className="truncate text-sm font-medium text-white/84">{booking.contactLabel}</p>
                   </InfoCell>
 
-                  <div className="min-w-0">
-                    <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/38 md:hidden">
+                  <div className="min-w-0 md:col-span-full md:mt-1 md:border-t md:border-white/8 md:pt-2 lg:col-span-1 lg:col-start-6 lg:row-start-1 lg:mt-0 lg:w-fit lg:justify-self-end lg:border-0 lg:pt-0">
+                    <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/38 lg:hidden">
                       Akce
                     </p>
-                    <div className="md:justify-self-end">
+                    <div className="w-full lg:w-fit">
                       <AdminBookingsQuickActions
                         area={area}
                         bookingId={booking.id}

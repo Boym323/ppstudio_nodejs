@@ -7,9 +7,8 @@ Formát je inspirovaný Keep a Changelog.
 ## [Unreleased]
 
 ### Changed
-- Zákaznický potvrzovací e-mail po stavu `CONFIRMED` nově obsahuje CTA `Přidat do kalendáře`, které vede na jednorázový `.ics` endpoint pro konkrétní rezervaci; pending confirmation screen už kalendář nenabízí před potvrzením.
-- Nový customer calendar flow používá samostatný hashovaný `BookingActionToken` typu `CALENDAR`, takže odkaz do kalendáře není svázaný se storno oprávněním a po zrušení rezervace se revokuje.
-- Veřejný endpoint `/api/bookings/calendar/[token].ics` vrací právě jeden `VEVENT` jen pro rezervace ve stavu `CONFIRMED`; `PENDING`, `CANCELLED`, `COMPLETED` a `NO_SHOW` vracejí nedostupný stav.
+- Sekce `Rezervace` v adminu teď na menších šířkách zobrazuje rychlé akce jako plný footer pod řádkem rezervace a od `lg` výše je vrací do úsporného vlastního sloupce s kompaktnější kapslí, takže tlačítka už nemizí mimo viditelnou plochu.
+- Zákaznický potvrzovací e-mail po stavu `CONFIRMED` nově posílá kalendář jako `.ics` přílohu místo CTA odkazu; pending confirmation screen už kalendář nenabízí před potvrzením.
 - Owner sekce `Nastavení` nově obsahuje i blok `Kalendář`, kde majitelka bezpečně zapíná, vypíná, kopíruje a rotuje Apple Calendar subscription feed bez zásahu do databáze nebo deploye.
 - Chráněný kalendářový endpoint `/api/calendar/owner.ics` vrací standardní iCalendar feed jen pro potvrzené rezervace (`CONFIRMED`); čekající a zrušené rezervace se do subscription kalendáře záměrně nepropisují.
 - Provozní e-mail o nové rezervaci nyní obsahuje bezpečné CTA `Schválit rezervaci`, `Zrušit rezervaci` a `Otevřít v administraci`, takže majitel nebo provoz může pending rezervaci zpracovat přímo z e-mailu bez předchozího otevření adminu.
@@ -25,7 +24,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Added
 - Migraci `20260422194500_booking_calendar_event_v1`, která rozšiřuje enum `BookingActionTokenType` o `CALENDAR`.
-- Route handler `/api/bookings/calendar/[token].ics` a serverovou vrstvu `src/features/calendar/lib/booking-calendar-event.ts` pro jednu konkrétní klientskou `.ics` událost.
+- Rozšíření email delivery vrstvy o přílohy a serverovou vrstvu `src/features/calendar/lib/booking-calendar-event.ts` pro generování klientské `.ics` přílohy.
 - ADR 0032 pro rozhodnutí kolem zákaznické `.ics` události po potvrzení rezervace.
 - Migraci `20260422193000_calendar_feed_v1` s modelem `CalendarFeed` pro owner-only ICS subscription feed, aktivaci/deaktivaci a bezpečnou rotaci tokenu.
 - Serverovou kalendářovou vrstvu `src/features/calendar/lib/*` pro odvozený podepsaný token, validaci feedu, mapování rezervace na `VEVENT` a generování validního `.ics` obsahu s `Europe/Prague` timezone blokem.

@@ -91,13 +91,14 @@ test("renderEmailTemplate creates approved email", async () => {
       clientName: "Jana Nováková",
       scheduledStartsAt: "2026-04-20T08:00:00.000Z",
       scheduledEndsAt: "2026-04-20T09:00:00.000Z",
-      calendarUrl: "https://example.com/api/bookings/calendar/token-ics.ics",
     },
   );
 
   assert.match(email.text, /byla potvrzena/i);
-  assert.match(email.text, /Přidat do kalendáře/);
-  assert.match(email.text, /token-ics\.ics/);
+  assert.match(email.text, /přiložené kalendářové události/i);
   assert.match(email.html, /Rezervace byla potvrzena/);
-  assert.match(email.html, /Přidat do kalendáře/);
+  assert.ok(email.attachments);
+  assert.equal(email.attachments.length, 1);
+  assert.equal(email.attachments[0]?.filename, "pp-studio-rezervace.ics");
+  assert.match(email.attachments[0]?.content ?? "", /^BEGIN:VCALENDAR\r\n/);
 });

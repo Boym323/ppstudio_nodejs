@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { env } from "@/config/env";
+import { buildBookingCalendarIcsFromPayload } from "@/features/calendar/lib/booking-calendar-event";
 import {
   formatBookingCalendarDate,
   formatBookingDateLabel,
@@ -31,7 +32,6 @@ const bookingApprovedPayloadSchema = z.object({
   clientName: z.string().min(1),
   scheduledStartsAt: z.string().datetime(),
   scheduledEndsAt: z.string().datetime(),
-  calendarUrl: z.url(),
 });
 
 const bookingRejectedPayloadSchema = z.object({
@@ -68,6 +68,11 @@ export type RenderedEmailTemplate = {
   subject: string;
   html: string;
   text: string;
+  attachments?: Array<{
+    filename: string;
+    content: string;
+    contentType: string;
+  }>;
 };
 
 function escapeHtml(value: string) {
@@ -332,10 +337,15 @@ export async function renderEmailTemplate(
     }
     case "booking-approved-v1": {
       const data = bookingApprovedPayloadSchema.parse(payload);
-      const scheduledAtLabel = formatBookingDateLabel(
-        new Date(data.scheduledStartsAt),
-        new Date(data.scheduledEndsAt),
-      );
+      const scheduledStartsAt = new Date(data.scheduledStartsAt);
+      const scheduledEndsAt = new Date(data.scheduledEndsAt);
+      const scheduledAtLabel = formatBookingDateLabel(scheduledStartsAt, scheduledEndsAt);
+      const calendarAttachment = await buildBookingCalendarIcsFromPayload({
+        bookingId: data.bookingId,
+        serviceName: data.serviceName,
+        scheduledStartsAt,
+        scheduledEndsAt,
+      });
 
       const text = [
         `Dobrý den, ${data.clientName},`,
@@ -344,8 +354,7 @@ export async function renderEmailTemplate(
         `Termín: ${scheduledAtLabel}`,
         `Referenční kód: ${data.bookingId.slice(-8).toUpperCase()}`,
         "",
-        "Termín si můžete uložit i do svého kalendáře.",
-        `Přidat do kalendáře: ${data.calendarUrl}`,
+        "Termín najdete také v přiložené kalendářové události.",
         "",
         "Pokud budete potřebovat termín upravit, ozvěte se prosím studiu.",
         "",
@@ -363,21 +372,27 @@ export async function renderEmailTemplate(
             <p style="margin:0;font-size:18px;line-height:1.6;color:#1f1714;"><strong>${escapeHtml(scheduledAtLabel)}</strong></p>
             <p style="margin:16px 0 0;font-size:14px;line-height:1.7;color:#5b4c44;">Referenční kód: <strong>${escapeHtml(data.bookingId.slice(-8).toUpperCase())}</strong></p>
           </div>
-          <div style="margin-top:20px;border:1px solid rgba(33,23,20,0.08);border-radius:20px;padding:20px;background:#ffffff;">
-            <p style="margin:0;font-size:15px;line-height:1.7;color:#5b4c44;">Termín si můžete uložit i do svého kalendáře.</p>
-            <div style="margin-top:16px;">${buildEmailButton({
-              href: data.calendarUrl,
-              label: "Přidat do kalendáře",
-              variant: "primary",
-            })}</div>
-          </div>
+          <p style="margin:24px 0 0;font-size:15px;line-height:1.7;color:#5b4c44;">
+            Termín najdete také v přiložené kalendářové události.
+          </p>
           <p style="margin:24px 0 0;font-size:15px;line-height:1.7;color:#5b4c44;">
             Pokud budete potřebovat s termínem pomoci, napište nám nebo zavolejte. Rádi s vámi domluvíme další postup.
           </p>
         `,
       );
 
-      return { subject, html, text };
+      return {
+        subject,
+        html,
+        text,
+        attachments: [
+          {
+            filename: "pp-studio-rezervace.ics",
+            content: calendarAttachment,
+            contentType: "text/calendar; charset=utf-8",
+          },
+        ],
+      };
     }
     case "booking-rejected-v1": {
       const data = bookingRejectedPayloadSchema.parse(payload);

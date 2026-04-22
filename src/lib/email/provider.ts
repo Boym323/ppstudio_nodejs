@@ -9,6 +9,11 @@ export type EmailDeliveryMessage = {
   subject: string;
   html: string;
   text: string;
+  attachments?: Array<{
+    filename: string;
+    content: string;
+    contentType: string;
+  }>;
 };
 
 export type EmailDeliveryResult = {
@@ -89,6 +94,7 @@ export async function sendEmail(message: EmailDeliveryMessage): Promise<EmailDel
       to: message.to,
       subject: message.subject,
       messageId,
+      attachments: message.attachments?.map((attachment) => attachment.filename) ?? [],
     });
 
     return {
@@ -118,6 +124,7 @@ export async function sendEmail(message: EmailDeliveryMessage): Promise<EmailDel
       subject: message.subject,
       text: message.text,
       html: message.html,
+      attachments: message.attachments,
     });
   } catch (error) {
     throw getSmtpTransportHint(error) ?? error;

@@ -17,42 +17,39 @@ Současně potřebujeme zachovat:
 
 ## Rozhodnutí
 
-Zavedli jsme samostatný `.ics` endpoint pro jednu rezervaci na route `/api/bookings/calendar/[token].ics`.
+Zavedli jsme generování jedné `.ics` přílohy přímo do potvrzovacího e-mailu `booking-approved-v1`.
 
 ### Klíčové body
 
-- Endpoint vrací právě jeden `VEVENT` pro jednu rezervaci.
-- Event je dostupný jen pro rezervace ve stavu `CONFIRMED`.
-- Rezervace v `PENDING`, `CANCELLED`, `COMPLETED` a `NO_SHOW` event nevracejí.
-- Přístup je chráněný samostatným tokenem `BookingActionTokenType.CALENDAR`.
-- Potvrzovací email `booking-approved-v1` obsahuje CTA `Přidat do kalendáře`.
+- Příloha obsahuje právě jeden `VEVENT` pro jednu rezervaci.
+- Event se generuje jen pro rezervace ve stavu `CONFIRMED`.
+- Rezervace v `PENDING`, `CANCELLED`, `COMPLETED` a `NO_SHOW` přílohu neposílají.
+- Potvrzovací email `booking-approved-v1` obsahuje `.ics` attachment `pp-studio-rezervace.ics`.
 - Veřejný pending confirmation screen už kalendářové CTA nenabízí.
 
 ## Bezpečnostní model
 
-- Pro zákaznický `.ics` event nepoužíváme `Booking.id` ani storno token.
-- Pro potvrzenou rezervaci se vytváří samostatný hashovaný `BookingActionToken` typu `CALENDAR`.
-- Do DB ukládáme jen hash tokenu, ne raw hodnotu.
-- URL se skládá serverově přes `NEXT_PUBLIC_APP_URL` a raw token se posílá jen do potvrzovacího e-mailu.
-- Endpoint vrací `404` i pro neplatný token nebo nepovolený stav, aby zbytečně nepotvrzoval existenci rezervace.
-- Při zrušení rezervace se calendar token revokuje.
+- Pro zákaznický kalendář už nepoužíváme veřejný link ani token.
+- `.ics` obsah odchází jen jako příloha potvrzovacího e-mailu pro konkrétní rezervaci.
+- Attachment vzniká serverově při renderu `booking-approved-v1` ze snapshotu rezervace.
+- Nedochází k odhalení veřejné route ani dalšího read-only přístupu k rezervaci.
 
 ## Proč tato varianta
 
 ### Výhody
 
 - Zákaznice dostane přesně to, co potřebuje: jeden termín, ne další feed.
-- Kalendářový odkaz neuděluje právo rezervaci měnit nebo rušit.
-- Bezpečnost je oddělená od storno workflow.
+- Odpadají problémy s routováním klikacího `.ics` odkazu v různých klientech.
+- Není potřeba držet další veřejnou URL ani token lifecycle.
 - Apple Calendar dostává standardní iCalendar payload s `VTIMEZONE` blokem pro `Europe/Prague`.
 - Nepřidáváme novou knihovnu ani externí kalendářovou službu.
 
 ### Nezvolené alternativy
 
-- Reuse storno tokenu:
-  - zamítnuto, protože read-only kalendářový link by zároveň nesl oprávnění rezervaci rušit
 - Generování `.ics` už v pending confirmation screenu:
   - zamítnuto, protože by si klientka ukládala nepotvrzený termín
+- Zákaznický klikací endpoint:
+  - opuštěno ve prospěch přílohy, protože attachment je spolehlivější a jednodušší pro klientský use-case
 - Zákaznický subscription feed:
   - zamítnuto, zbytečně složité a mimo scope
 
@@ -79,9 +76,6 @@ Zavedli jsme samostatný `.ics` endpoint pro jednu rezervaci na route `/api/book
 
 ## Dopady
 
-- Přibyla migrace `20260422194500_booking_calendar_event_v1`.
-- `BookingActionToken` nově obsluhuje i typ `CALENDAR`.
-- Přibyl route handler `src/app/api/bookings/calendar/[token].ics/route.ts`.
 - Přibyla serverová služba `src/features/calendar/lib/booking-calendar-event.ts`.
-- Potvrzovací e-mail `booking-approved-v1` nově nese CTA `Přidat do kalendáře`.
+- Potvrzovací e-mail `booking-approved-v1` nově nese `.ics` přílohu.
 - Pending confirmation screen po odeslání rezervace už kalendářovou akci nenabízí.
