@@ -99,7 +99,6 @@ const createManualBookingSchema = z.object({
         value === BookingStatus.PENDING || value === BookingStatus.CONFIRMED,
       "Vyberte stav rezervace.",
     ),
-  sendClientEmail: z.enum(["0", "1"]).optional().default("0"),
   includeCalendarAttachment: z.enum(["0", "1"]).optional().default("0"),
   submitMode: z.enum(["create", "create-and-send"]),
 });
@@ -388,7 +387,6 @@ export async function createManualBookingAction(
     internalNote: readFormString(formData, "internalNote"),
     source: readFormString(formData, "source"),
     bookingStatus: readFormString(formData, "bookingStatus"),
-    sendClientEmail: readFormString(formData, "sendClientEmail") || "0",
     includeCalendarAttachment: readFormString(formData, "includeCalendarAttachment") || "0",
     submitMode: readFormString(formData, "submitMode"),
   });
@@ -454,10 +452,9 @@ export async function createManualBookingAction(
       source: parsed.data.source,
       status: parsed.data.bookingStatus as "PENDING" | "CONFIRMED",
       actorUserId,
-      sendClientEmail:
-        parsed.data.submitMode === "create-and-send" || parsed.data.sendClientEmail === "1",
+      sendClientEmail: parsed.data.submitMode === "create-and-send",
       includeCalendarAttachment:
-        (parsed.data.submitMode === "create-and-send" || parsed.data.sendClientEmail === "1")
+        parsed.data.submitMode === "create-and-send"
         && parsed.data.includeCalendarAttachment === "1",
       deliverEmailImmediately: parsed.data.submitMode === "create-and-send",
     });
@@ -476,7 +473,7 @@ export async function createManualBookingAction(
       status: "success",
       createdBookingId: result.bookingId,
       successMessage:
-        parsed.data.submitMode === "create-and-send" || parsed.data.sendClientEmail === "1"
+        parsed.data.submitMode === "create-and-send"
           ? "Rezervace je vytvořená a navazující potvrzení se propsalo do emailového flow."
           : "Rezervace je vytvořená bez odbočení mimo hlavní booking engine.",
       manualOverrideWarning: result.manualOverride

@@ -52,7 +52,6 @@ export function CreateManualBookingDrawer({
   const [bookingStatus, setBookingStatus] = useState<"PENDING" | "CONFIRMED">(
     BookingStatus.CONFIRMED,
   );
-  const [sendClientEmail, setSendClientEmail] = useState(false);
   const [includeCalendarAttachment, setIncludeCalendarAttachment] = useState(true);
   const [clientNote, setClientNote] = useState("");
   const [internalNote, setInternalNote] = useState("");
@@ -90,7 +89,6 @@ export function CreateManualBookingDrawer({
     setManualTime("");
     setSource(BookingSource.PHONE);
     setBookingStatus(BookingStatus.CONFIRMED);
-    setSendClientEmail(false);
     setIncludeCalendarAttachment(true);
     setClientNote("");
     setInternalNote("");
@@ -181,7 +179,6 @@ export function CreateManualBookingDrawer({
                 <input type="hidden" name="clientProfileNote" value={clientProfileNote} />
                 <input type="hidden" name="source" value={source} />
                 <input type="hidden" name="bookingStatus" value={bookingStatus} />
-                <input type="hidden" name="sendClientEmail" value={sendClientEmail ? "1" : "0"} />
                 <input type="hidden" name="includeCalendarAttachment" value={includeCalendarAttachment ? "1" : "0"} />
                 <input type="hidden" name="clientNote" value={clientNote} />
                 <input type="hidden" name="internalNote" value={internalNote} />
@@ -298,8 +295,6 @@ export function CreateManualBookingDrawer({
                     />
 
                     <BookingNotificationOptions
-                      sendClientEmail={sendClientEmail}
-                      onSendClientEmailChange={setSendClientEmail}
                       includeCalendarAttachment={includeCalendarAttachment}
                       onIncludeCalendarAttachmentChange={setIncludeCalendarAttachment}
                     />

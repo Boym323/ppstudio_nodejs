@@ -1,15 +1,11 @@
 "use client";
 
 type BookingNotificationOptionsProps = {
-  sendClientEmail: boolean;
-  onSendClientEmailChange: (value: boolean) => void;
   includeCalendarAttachment: boolean;
   onIncludeCalendarAttachmentChange: (value: boolean) => void;
 };
 
 export function BookingNotificationOptions({
-  sendClientEmail,
-  onSendClientEmailChange,
   includeCalendarAttachment,
   onIncludeCalendarAttachmentChange,
 }: BookingNotificationOptionsProps) {
@@ -21,17 +17,10 @@ export function BookingNotificationOptions({
       <h3 className="mt-2 text-lg font-semibold text-white">Klientský e-mail a kalendář</h3>
       <div className="mt-4 grid gap-2">
         <CheckboxRow
-          checked={sendClientEmail}
-          label="Poslat potvrzovací e-mail"
-          description="Použije se stejné emailové flow jako u běžné rezervace."
-          onChange={onSendClientEmailChange}
-        />
-        <CheckboxRow
           checked={includeCalendarAttachment}
           label="Přidat .ics událost"
-          description="U potvrzené rezervace přidá klientce kalendářovou přílohu."
+          description="Použije se při volbě „Vytvořit a poslat potvrzení“."
           onChange={onIncludeCalendarAttachmentChange}
-          disabled={!sendClientEmail}
         />
       </div>
     </section>
