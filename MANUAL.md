@@ -254,6 +254,7 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
   - v kartách jsou rychlé akce `aktivovat/deaktivovat`, `veřejná/interní`, `duplikovat` a jednoduché posuny v pořadí
   - každá karta ukazuje provozní kontext, stavové badge a upozornění na problematické stavy
   - formulář podporuje `Uložit` i `Uložit a zavřít` a novou službu lze založit přes jasné CTA `Nová služba`
+  - v detailu služby je blok `Základní popisy (fallback)` určený pro texty do rezervačního flow a záložní veřejný obsah; blok `Veřejná prezentace` má na webu vyšší prioritu
   - na mobilu se detail otevírá samostatně, aby admin nebyl dlouhý a nepohodlný
   - veřejný booking flow bere službu jen pokud je `isActive = true`, `isPubliclyBookable = true` a její kategorie je aktivní
 - Sekce `Kategorie služeb` je nyní produkčně použitelná pro obě role na `/admin/kategorie-sluzeb` a `/admin/provoz/kategorie-sluzeb`:

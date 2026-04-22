@@ -7,6 +7,7 @@ Formát je inspirovaný Keep a Changelog.
 ## [Unreleased]
 
 ### Changed
+- Formulář detailu služby v adminu teď jasněji rozlišuje fallback texty od veřejné prezentace: blok `Text pro orientaci` byl přejmenovaný na `Základní popisy (fallback)`, pole popisují reálné použití v rezervaci/webu a veřejné texty explicitně uvádějí vyšší prioritu.
 - Mobilní admin drawer už při otevření nenechává prosvítat horní sticky lištu s tlačítkem `Menu`, takže se navigace vizuálně nebije s vlastním obsahem draweru.
 - Mobilní layout admin sekce `Rezervace` už nepůsobí jako zmenšená desktop tabulka; řádky se na malých displejích skládají do dvousloupcové karty s čitelnějším kontaktem a plnošířkovým footerem pro `Potvrdit`, `Zrušit` a `Otevřít`.
 - Mobilní admin dashboard a navigace dostaly další compression pass: hero CTA se na telefonu skládají pod sebe, alerty a timeline mají čitelnější stack, quick actions už netvoří dvě příliš úzké karty vedle sebe a drawer menu má o něco pohodlnější šířku i tap targety.

@@ -255,28 +255,28 @@ export function AdminServiceForm(props: EditServiceFormProps | CreateServiceForm
       </SectionBlock>
 
       <SectionBlock
-        title="Text pro orientaci"
-        description="Krátký popis pomáhá v seznamu. Delší text používejte jen tam, kde opravdu zvyšuje jistotu klientky."
+        title="Základní popisy (fallback)"
+        description="Používá se v rezervačním flow a jako záloha pro veřejný web, když níže chybí veřejné texty."
       >
         <div className="grid gap-4">
-          <Field label="Krátký popis" error={serverState.fieldErrors?.shortDescription}>
+          <Field label="Krátký popis (rezervace + fallback)" error={serverState.fieldErrors?.shortDescription}>
             <textarea
               name="shortDescription"
               rows={2}
               maxLength={240}
               defaultValue={props.mode === "create" ? props.initialValues.shortDescription : props.service.shortDescription ?? ""}
-              placeholder="Krátká věta pro orientaci v nabídce."
+              placeholder="Jedna věta, která se ukáže při výběru služby v rezervaci."
               className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm leading-6 text-white outline-none transition placeholder:text-white/32 focus:border-[var(--color-accent)]/60"
             />
           </Field>
 
-          <Field label="Detailní popis" error={serverState.fieldErrors?.description}>
+          <Field label="Detailní popis (fallback pro web)" error={serverState.fieldErrors?.description}>
             <textarea
               name="description"
               rows={4}
               maxLength={4000}
               defaultValue={props.mode === "create" ? props.initialValues.description : props.service.description ?? ""}
-              placeholder="Delší vysvětlení jen tehdy, když klientce skutečně pomůže s rozhodnutím."
+              placeholder="Delší popis jako záloha, když není vyplněný veřejný úvod."
               className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm leading-6 text-white outline-none transition placeholder:text-white/32 focus:border-[var(--color-accent)]/60"
             />
           </Field>
@@ -285,7 +285,7 @@ export function AdminServiceForm(props: EditServiceFormProps | CreateServiceForm
 
       <SectionBlock
         title="Veřejná prezentace"
-        description="Tato vrstva řídí veřejný web a ceník, aniž by bylo nutné přepisovat interní katalogové názvy."
+        description="Tato vrstva řídí veřejný web a ceník. Má přednost před fallback texty z bloku výše."
       >
         <div className="grid gap-4">
           <Field label="Veřejný název" error={serverState.fieldErrors?.publicName}>
