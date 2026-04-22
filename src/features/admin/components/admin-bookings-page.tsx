@@ -73,8 +73,10 @@ export function AdminBookingsPage({ area, data }: AdminBookingsPageProps) {
                     <p className="text-xs text-white/56">{booking.scheduledDateLabel}</p>
                   </InfoCell>
 
-                  <InfoCell label="Status">
-                    <StatusBadge status={booking.status}>{booking.statusLabel}</StatusBadge>
+                  <InfoCell label="Status" className="md:justify-self-center">
+                    <div className="flex w-full justify-center rounded-full px-2 py-1.5">
+                      <StatusBadge status={booking.status}>{booking.statusLabel}</StatusBadge>
+                    </div>
                   </InfoCell>
 
                   <InfoCell label="Zdroj">
@@ -143,12 +145,14 @@ function CompactStatsBar({
 function InfoCell({
   label,
   children,
+  className,
 }: {
   label: string;
   children: React.ReactNode;
+  className?: string;
 }) {
   return (
-    <div className="min-w-0">
+    <div className={cn("min-w-0", className)}>
       <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/38 md:hidden">
         {label}
       </p>
@@ -167,7 +171,7 @@ function StatusBadge({
   return (
     <span
       className={cn(
-        "inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold tracking-[0.01em]",
+        "inline-flex min-h-8 max-w-full items-center justify-center whitespace-nowrap rounded-full border px-3 py-1.5 text-center text-[11px] font-semibold leading-4 tracking-[0.01em]",
         getStatusClassName(status),
       )}
     >
@@ -183,7 +187,7 @@ function getStatusClassName(status: BookingStatus) {
     case BookingStatus.COMPLETED:
       return "border-emerald-300/35 bg-emerald-400/12 text-emerald-100";
     case BookingStatus.CANCELLED:
-      return "border-white/12 bg-white/6 text-white/62";
+      return "border-red-300/22 bg-red-400/10 text-red-100";
     case BookingStatus.CONFIRMED:
       return "border-sky-300/30 bg-sky-400/12 text-sky-100";
     case BookingStatus.NO_SHOW:

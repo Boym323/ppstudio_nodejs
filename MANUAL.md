@@ -198,7 +198,9 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
   - každá rezervace drží klientku + službu a datum + čas ve dvou krátkých řádcích bez zbytečné výšky
   - horní statistiky jsou zmenšené do jedné souhrnné řady místo velkých karet
   - hlavička seznamu zůstává sticky při scrollu, takže jsou sloupce stále čitelné
-  - přímo v řádku jsou rychlé akce `Potvrdit`, `Zrušit` a `Detail`; na menších šířkách fungují jako plný footer pod řádkem a od `lg` výše mají úsporný vlastní sloupec s kompaktnější kapslí
+  - přímo v řádku jsou rychlé akce `Potvrdit`, `Zrušit` a `Otevřít`; na menších šířkách fungují jako plný footer pod řádkem a od `lg` výše mají úsporný vlastní sloupec s kompaktnější kapslí
+  - sloupec `Status` je centrovaný jako samostatný grid item, aby badge seděly přesně pod hlavičku
+  - `Zrušená` rezervace má ve sloupci `Status` jen lehce červený tón pro rychlé rozpoznání
   - stav se zobrazuje přes barevné badge, aby bylo na první pohled vidět, co čeká, co je hotové a co je zrušené
 - Sekce `Klienti` je nyní produkčně použitelná pro obě role na `/admin/klienti`, `/admin/provoz/klienti` a v detailu na `/admin/klienti/[clientId]`, `/admin/provoz/klienti/[clientId]`:
   - seznam podporuje hledání přes jméno, e-mail, telefon i interní poznámku

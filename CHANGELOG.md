@@ -7,7 +7,7 @@ Formát je inspirovaný Keep a Changelog.
 ## [Unreleased]
 
 ### Changed
-- Sekce `Rezervace` v adminu teď na menších šířkách zobrazuje rychlé akce jako plný footer pod řádkem rezervace a od `lg` výše je vrací do úsporného vlastního sloupce s kompaktnější kapslí, takže tlačítka už nemizí mimo viditelnou plochu.
+- Sekce `Rezervace` v adminu teď na menších šířkách zobrazuje rychlé akce jako plný footer pod řádkem rezervace a od `lg` výše je vrací do úsporného vlastního sloupce s kompaktnější kapslí; sloupec `Status` je centrovaný jako samostatný grid item, `CANCELLED` má jen lehce červený tón a CTA `Detail` je zkrácené na `Otevřít`.
 - Zákaznický potvrzovací e-mail po stavu `CONFIRMED` nově posílá kalendář jako `.ics` přílohu místo CTA odkazu; pending confirmation screen už kalendář nenabízí před potvrzením.
 - Owner sekce `Nastavení` nově obsahuje i blok `Kalendář`, kde majitelka bezpečně zapíná, vypíná, kopíruje a rotuje Apple Calendar subscription feed bez zásahu do databáze nebo deploye.
 - Chráněný kalendářový endpoint `/api/calendar/owner.ics` vrací standardní iCalendar feed jen pro potvrzené rezervace (`CONFIRMED`); čekající a zrušené rezervace se do subscription kalendáře záměrně nepropisují.

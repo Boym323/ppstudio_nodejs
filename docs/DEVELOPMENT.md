@@ -333,7 +333,9 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - `/admin/rezervace` i `/admin/provoz/rezervace` na desktopu a mobilu
   - kompaktní řádkový layout bez návratu k vysokým kartám
   - sticky header sloupců při scrollu
-  - inline akce `Potvrdit` a `Zrušit` bez otevření detailu
+  - inline akce `Potvrdit` a `Zrušit` bez otevření detailu a zkrácené CTA `Otevřít`
+  - sloupec `Status` jako samostatný centrovaný grid item
+  - `CANCELLED` se ve sloupci `Status` jen lehce podbarvuje červeně pro rychlejší skenování
   - ověření, že akce na menších šířkách fungují jako full-width footer a od `lg` se vrací do úsporného vlastního sloupce
   - správné schování neplatné rychlé akce podle aktuálního stavu rezervace
   - barevné badge pro `čeká`, `hotovo`, `zrušeno` a čitelnost kontaktu i zdroje v hustém řádku

@@ -55,7 +55,7 @@ export function AdminBookingsQuickActions({
           href={href}
           className="inline-flex shrink-0 min-h-8 items-center rounded-full border border-white/12 px-3 py-1 text-[11px] font-medium text-white/72 transition hover:border-white/24 hover:bg-white/7 hover:text-white lg:min-h-7 lg:px-2 lg:py-0.5 lg:text-[10px]"
         >
-          Detail
+          Otevřít
         </Link>
       </form>
 
