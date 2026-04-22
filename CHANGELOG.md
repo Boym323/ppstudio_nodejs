@@ -7,6 +7,9 @@ Formát je inspirovaný Keep a Changelog.
 ## [Unreleased]
 
 ### Changed
+- `BookingSource` už nově nepopisuje roli admina, ale skutečný původ rezervace (`WEB`, `PHONE`, `INSTAGRAM`, `IN_PERSON`, `OTHER`); role a audit zůstávají v `createdByUserId` a `BookingStatusHistory`.
+- Rezervační doména byla rozšířená o sdílené create jádro pro public i admin vstup, takže ruční rezervace používá stejné validace služby, slotu, kolizí, klientky a navazujících e-mailů jako veřejný booking.
+- Šablona `booking-approved-v1` umí nově volitelně vypnout `.ics` přílohu, aby admin mohl rozhodnout, jestli při ručním potvrzení klientce pošle i kalendářovou událost.
 - Sekce `Rezervace` v adminu teď na menších šířkách zobrazuje rychlé akce jako plný footer pod řádkem rezervace a od `lg` výše je vrací do úsporného vlastního sloupce s kompaktnější kapslí; sloupec `Status` je centrovaný jako samostatný grid item, `CANCELLED` má jen lehce červený tón a CTA `Detail` je zkrácené na `Otevřít`.
 - Zákaznický potvrzovací e-mail po stavu `CONFIRMED` nově posílá kalendář jako `.ics` přílohu místo CTA odkazu; pending confirmation screen už kalendář nenabízí před potvrzením.
 - Owner sekce `Nastavení` nově obsahuje i blok `Kalendář`, kde majitelka bezpečně zapíná, vypíná, kopíruje a rotuje Apple Calendar subscription feed bez zásahu do databáze nebo deploye.
@@ -23,6 +26,11 @@ Formát je inspirovaný Keep a Changelog.
 - Finální cleanup pass veřejného confirmation flow zkrátil duplicity v hero copy, zpřesnil CTA na `Požádat o změnu`, doplnil službu do hlavního přehledu rezervace a zjednodušil kontaktní texty.
 
 ### Added
+- Migraci `20260422230500_manual_booking_admin_v1`, která přidává `Booking.isManual`, `Booking.manualOverride` a převádí enum `BookingSource` ze starých rolových hodnot na nový provozní seznam původů rezervace.
+- Produkční ruční vytvoření rezervace v admin sekci `Rezervace` přes pravý drawer `CreateManualBookingDrawer`.
+- Nové admin komponenty `BookingClientSelector`, `BookingServiceSelector`, `BookingTimeSelector`, `BookingSourceField`, `BookingNotificationOptions` a `BookingInternalNoteField`.
+- Server action `createManualBookingAction`, která přes stejné booking jádro jako veřejný web zakládá ruční rezervaci, řeší deduplikaci klientky, interní výjimku mimo veřejnou dostupnost a revalidaci souvisejících admin/public cest.
+- ADR 0033 pro rozhodnutí kolem ručního admin vytvoření rezervace nad sdíleným booking enginem.
 - Migraci `20260422194500_booking_calendar_event_v1`, která rozšiřuje enum `BookingActionTokenType` o `CALENDAR`.
 - Rozšíření email delivery vrstvy o přílohy a serverovou vrstvu `src/features/calendar/lib/booking-calendar-event.ts` pro generování klientské `.ics` přílohy.
 - ADR 0032 pro rozhodnutí kolem zákaznické `.ics` události po potvrzení rezervace.

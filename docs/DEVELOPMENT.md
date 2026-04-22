@@ -179,6 +179,9 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - `src/features/admin/components/admin-email-log-detail-page.tsx` a route `/admin/email-logy/[emailLogId]` přidávají detail jednoho logu s payloadem, chybou a operacemi pro ruční retry nebo uvolnění zaseknutého jobu.
 - Po úspěšné akci detail vrací server-rendered flash banner přes query parametr, aby obsluha viděla okamžitou zpětnou vazbu bez client state.
 - `src/features/admin/lib/admin-data.ts` je čistá serverová read vrstva pro admin dashboardy a sekce.
+- Admin sekce `Rezervace` už neřeší jen list/detail/stavové akce; obsahuje i plnohodnotný drawer `CreateManualBookingDrawer` s provozním formulářem pro ruční vytvoření rezervace.
+- Drawer je rozdělený do menších komponent (`BookingClientSelector`, `BookingServiceSelector`, `BookingTimeSelector`, `BookingSourceField`, `BookingNotificationOptions`, `BookingInternalNoteField`), aby šel stejný workflow později otevřít i z detailu klientky nebo z kalendáře.
+- `src/features/admin/actions/booking-actions.ts` nově obsahuje i server action `createManualBookingAction`; pořád je to jen adaptér, skutečný create engine zůstává ve feature vrstvě booking domény.
 - Operativní overview dashboard má vlastní read model mimo `admin-data.ts`, aby se layout dneška a sekundární sekce nevyvíjely ve stejné obecné struktuře.
 - Lite admin záměrně nepoužívá technický jazyk ani sekce typu nastavení, email logy nebo správa uživatelů.
 - Pro `SALON` držíme kratší menu a na úvodní obrazovce zviditelňujeme dnešní rezervace, nejbližší termíny a rychlé akce pro přidání slotu nebo otevření rezervace.
@@ -216,6 +219,11 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - `AvailabilitySlot` má explicitní `serviceRestrictionMode`, takže admin rozhraní pozná rozdíl mezi slotem bez omezení a slotem, který čeká na výběr služeb.
 - Vazba `AvailabilitySlotService` umožňuje omezit slot jen na vybrané služby bez zabetonování schématu na jednu službu na slot.
 - Veřejný booking flow rezervuje konkrétní interval uvnitř `AvailabilitySlot` podle vybraného `startsAt` a délky služby; planner proto při ukládání půlhodiny stále skládá do souvislých oken.
+- Ruční admin booking používá stejné create jádro jako veřejný booking; rozdíl je jen ve vstupu, volitelných notifikacích a metadatach rezervace.
+- Model `Booking` nyní nese:
+  - `source` jako skutečný původ rezervace (`WEB`, `PHONE`, `INSTAGRAM`, `IN_PERSON`, `OTHER`)
+  - `isManual` pro rozlišení admin vytvoření
+  - `manualOverride` pro audit interní výjimky mimo veřejnou dostupnost
 - Planner přímo upravuje jen jednoduché publikované sloty bez rezervací, bez poznámek, bez omezení služeb a s kapacitou `1`; ostatní zůstávají v UI viditelné jako uzamčené nebo neaktivní.
 - Pokud slot obsahuje rezervaci jen v části intervalu (např. booking 09:00-09:30 v okně 08:00-14:00), planner ho ve vizualizaci dělí na rezervovanou část a chráněný zbytek, aby celý interval nezmizel z mřížky.
 - Import kategorií a služeb je řešený jako JSON upsert přes `scripts/import-services.mjs`; identity záznamů drží `slug`.

@@ -202,6 +202,11 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
   - sloupec `Status` je centrovaný jako samostatný grid item, aby badge seděly přesně pod hlavičku
   - `Zrušená` rezervace má ve sloupci `Status` jen lehce červený tón pro rychlé rozpoznání
   - stav se zobrazuje přes barevné badge, aby bylo na první pohled vidět, co čeká, co je hotové a co je zrušené
+  - toolbar nově obsahuje CTA `Přidat rezervaci`, které pro `OWNER` i `SALON` otevírá pravý drawer pro plnohodnotné ruční vytvoření rezervace
+  - ruční rezervace stále vzniká jako běžný `Booking`; používá stejnou doménovou create logiku jako veřejný booking a ukládá jen doplňková metadata `source`, `isManual`, `manualOverride`, `createdByUserId`
+  - drawer umí vyhledat nebo propojit existující klientku podle jména, telefonu i e-mailu, případně rovnou založit novou
+  - termín lze založit buď ze slotů respektujících veřejnou dostupnost, nebo ručně přes datum a čas; pokud ruční čas neleží ve veřejné dostupnosti, systém upozorní na interní výjimku a uloží ji auditovaně
+  - sticky footer nabízí `Vytvořit rezervaci` a `Vytvořit a poslat potvrzení`; při odeslání e-mailu se používá stejné email/log/ICS flow jako u běžných rezervací
 - Sekce `Klienti` je nyní produkčně použitelná pro obě role na `/admin/klienti`, `/admin/provoz/klienti` a v detailu na `/admin/klienti/[clientId]`, `/admin/provoz/klienti/[clientId]`:
   - seznam podporuje hledání přes jméno, e-mail, telefon i interní poznámku
   - filtry umí omezit aktivní/neaktivní profily a přepnout řazení podle poslední návštěvy, počtu rezervací, jména nebo vytvoření

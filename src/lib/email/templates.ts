@@ -32,6 +32,7 @@ const bookingApprovedPayloadSchema = z.object({
   clientName: z.string().min(1),
   scheduledStartsAt: z.string().datetime(),
   scheduledEndsAt: z.string().datetime(),
+  includeCalendarAttachment: z.boolean().optional(),
 });
 
 const bookingRejectedPayloadSchema = z.object({
@@ -340,12 +341,15 @@ export async function renderEmailTemplate(
       const scheduledStartsAt = new Date(data.scheduledStartsAt);
       const scheduledEndsAt = new Date(data.scheduledEndsAt);
       const scheduledAtLabel = formatBookingDateLabel(scheduledStartsAt, scheduledEndsAt);
-      const calendarAttachment = await buildBookingCalendarIcsFromPayload({
-        bookingId: data.bookingId,
-        serviceName: data.serviceName,
-        scheduledStartsAt,
-        scheduledEndsAt,
-      });
+      const includeCalendarAttachment = data.includeCalendarAttachment ?? true;
+      const calendarAttachment = includeCalendarAttachment
+        ? await buildBookingCalendarIcsFromPayload({
+            bookingId: data.bookingId,
+            serviceName: data.serviceName,
+            scheduledStartsAt,
+            scheduledEndsAt,
+          })
+        : null;
 
       const text = [
         `Dobrý den, ${data.clientName},`,
@@ -354,8 +358,12 @@ export async function renderEmailTemplate(
         `Termín: ${scheduledAtLabel}`,
         `Referenční kód: ${data.bookingId.slice(-8).toUpperCase()}`,
         "",
-        "Termín najdete také v přiložené kalendářové události.",
-        "",
+        ...(includeCalendarAttachment
+          ? [
+              "Termín najdete také v přiložené kalendářové události.",
+              "",
+            ]
+          : []),
         "Pokud budete potřebovat termín upravit, ozvěte se prosím studiu.",
         "",
         `${brand.name}`,
@@ -372,9 +380,11 @@ export async function renderEmailTemplate(
             <p style="margin:0;font-size:18px;line-height:1.6;color:#1f1714;"><strong>${escapeHtml(scheduledAtLabel)}</strong></p>
             <p style="margin:16px 0 0;font-size:14px;line-height:1.7;color:#5b4c44;">Referenční kód: <strong>${escapeHtml(data.bookingId.slice(-8).toUpperCase())}</strong></p>
           </div>
+          ${includeCalendarAttachment ? `
           <p style="margin:24px 0 0;font-size:15px;line-height:1.7;color:#5b4c44;">
             Termín najdete také v přiložené kalendářové události.
           </p>
+          ` : ""}
           <p style="margin:24px 0 0;font-size:15px;line-height:1.7;color:#5b4c44;">
             Pokud budete potřebovat s termínem pomoci, napište nám nebo zavolejte. Rádi s vámi domluvíme další postup.
           </p>
@@ -385,13 +395,15 @@ export async function renderEmailTemplate(
         subject,
         html,
         text,
-        attachments: [
-          {
-            filename: "pp-studio-rezervace.ics",
-            content: calendarAttachment,
-            contentType: "text/calendar; charset=utf-8",
-          },
-        ],
+        attachments: calendarAttachment
+          ? [
+              {
+                filename: "pp-studio-rezervace.ics",
+                content: calendarAttachment,
+                contentType: "text/calendar; charset=utf-8",
+              },
+            ]
+          : undefined,
       };
     }
     case "booking-rejected-v1": {

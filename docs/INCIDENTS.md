@@ -40,6 +40,9 @@ Evidence produkčních incidentů a jejich řešení.
 - Rezervace mimo stav `CONFIRMED` omylem zobrazené v owner kalendáři; feed má být jen read-only provozní přehled potvrzených termínů.
 - Opakované použití stejného email akčního odkazu, které musí bezpečně skončit stavem `už zpracováno`, ne druhou změnou rezervace.
 - Rezervace potvrzená nebo zrušená jinou cestou ještě před otevřením email akce; confirmation screen musí vrátit korektní stav `už potvrzeno` / `už zrušeno`, ne 500.
+- Ruční rezervace vytvořená mimo veřejnou dostupnost bez viditelného warningu nebo bez nastavení `manualOverride`; provoz pak ztratí auditní stopu, proč termín neodpovídal veřejným slotům.
+- Nasazení kódu ruční rezervace bez aplikované migrace `20260422230500_manual_booking_admin_v1`, což by způsobilo chyby nad chybějícími sloupci `Booking.isManual` / `Booking.manualOverride` nebo nad neaktuálním enum `BookingSource`.
+- Staré hodnoty enumu `BookingSource` (`PUBLIC_WEB`, `OWNER_ADMIN`, `SALON_ADMIN`) ponechané v DB po nepovedené migraci; list/detail rezervací pak budou padat na neplatném mapování zdroje.
 - Worker běžící bez SMTP přístupu nebo bez `EMAIL_DELIVERY_MODE=background` a zůstávající fronta `PENDING` logů.
 - Omylem spuštěné `prisma migrate dev` na produkčním serveru místo `prisma migrate deploy`.
 - Pokus o vytvoření nebo editaci překrývajícího se slotu, který by měl skončit user-friendly validační chybou místo neošetřeného 500.

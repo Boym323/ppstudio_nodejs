@@ -101,12 +101,16 @@ export function getBookingStatusLabel(status: BookingStatus) {
 
 export function getBookingSourceLabel(source: BookingSource) {
   switch (source) {
-    case BookingSource.PUBLIC_WEB:
-      return "Webová rezervace";
-    case BookingSource.OWNER_ADMIN:
-      return "Vytvořeno v adminu";
-    case BookingSource.SALON_ADMIN:
-      return "Vytvořeno provozem";
+    case BookingSource.WEB:
+      return "Web";
+    case BookingSource.PHONE:
+      return "Telefon";
+    case BookingSource.INSTAGRAM:
+      return "Instagram";
+    case BookingSource.IN_PERSON:
+      return "Osobně";
+    case BookingSource.OTHER:
+      return "Jiný původ";
   }
 }
 
@@ -187,6 +191,10 @@ function getHistorySourceLabel(metadata: unknown) {
       return "Akce detailu";
     case "admin-booking-note-v1":
       return "Interní poznámka";
+    case "admin-manual-booking-v1":
+      return "Ruční vytvoření";
+    case "public-booking-request-v1":
+      return "Veřejný booking";
     default:
       return null;
   }

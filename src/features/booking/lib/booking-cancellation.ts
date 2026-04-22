@@ -289,7 +289,7 @@ export async function cancelPublicBookingByToken(rawToken: string): Promise<Canc
           actorType: BookingActorType.CLIENT,
           reason: "public-cancellation-flow-v1",
           metadata: {
-            source: BookingSource.PUBLIC_WEB,
+            source: BookingSource.WEB,
             via: "cancellation-token",
           },
         },

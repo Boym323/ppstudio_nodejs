@@ -16,6 +16,7 @@ import {
   getBookingSourceLabel,
   getBookingStatusLabel,
 } from "@/features/admin/lib/admin-booking";
+import { getPublicBookingCatalog } from "@/features/booking/lib/booking-public";
 import { listBootstrapAdminUsers } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 
@@ -369,6 +370,23 @@ export type ReservationsDashboardData = {
     href: string;
     availableActions: ReturnType<typeof getAdminBookingActionOptions>;
   }>;
+  manualBooking: {
+    services: Array<{
+      id: string;
+      categoryName: string;
+      name: string;
+      durationMinutes: number;
+      priceFromCzk: number | null;
+    }>;
+    slots: Awaited<ReturnType<typeof getPublicBookingCatalog>>["slots"];
+    clients: Array<{
+      id: string;
+      fullName: string;
+      email: string;
+      phone: string | null;
+      internalNote: string | null;
+    }>;
+  };
 };
 
 async function getReservationsData(area: AdminArea) {
@@ -376,7 +394,7 @@ async function getReservationsData(area: AdminArea) {
   const todayStart = new Date(now);
   todayStart.setHours(0, 0, 0, 0);
 
-  const [today, pending, confirmed, completed, cancelled, items] = await Promise.all([
+  const [today, pending, confirmed, completed, cancelled, items, bookingCatalog, clients] = await Promise.all([
     prisma.booking.count({
       where: {
         scheduledStartsAt: { gte: todayStart },
@@ -394,6 +412,20 @@ async function getReservationsData(area: AdminArea) {
       include: {
         client: { select: { fullName: true, phone: true } },
         service: { select: { name: true } },
+      },
+    }),
+    getPublicBookingCatalog(),
+    prisma.client.findMany({
+      where: {
+        isActive: true,
+      },
+      orderBy: [{ lastBookedAt: "desc" }, { fullName: "asc" }],
+      select: {
+        id: true,
+        fullName: true,
+        email: true,
+        phone: true,
+        internalNote: true,
       },
     }),
   ]);
@@ -419,6 +451,17 @@ async function getReservationsData(area: AdminArea) {
       href: getAdminBookingHref(area, booking.id),
       availableActions: getAdminBookingActionOptions(booking.status),
     })),
+    manualBooking: {
+      services: bookingCatalog.services.map((service) => ({
+        id: service.id,
+        categoryName: service.categoryName,
+        name: service.name,
+        durationMinutes: service.durationMinutes,
+        priceFromCzk: service.priceFromCzk,
+      })),
+      slots: bookingCatalog.slots,
+      clients,
+    },
   } satisfies ReservationsDashboardData;
 }
 

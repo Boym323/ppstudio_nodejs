@@ -405,7 +405,7 @@ export async function performBookingEmailAction(
           actorType: BookingActorType.SYSTEM,
           reason: intent === "approve" ? "owner-email-approve-v1" : "owner-email-reject-v1",
           metadata: {
-            source: BookingSource.PUBLIC_WEB,
+            source: BookingSource.WEB,
             via: "owner-email-action-token",
             intent,
             tokenId: lockedToken.id,

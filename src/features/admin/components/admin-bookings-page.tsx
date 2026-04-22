@@ -5,6 +5,7 @@ import { type ReservationsDashboardData } from "@/features/admin/lib/admin-data"
 import { cn } from "@/lib/utils";
 
 import { AdminBookingsQuickActions } from "./admin-bookings-quick-actions";
+import { CreateManualBookingDrawer } from "./create-manual-booking-drawer";
 import { AdminPageShell, AdminPanel } from "./admin-page-shell";
 
 type AdminBookingsPageProps = {
@@ -27,6 +28,8 @@ export function AdminBookingsPage({ area, data }: AdminBookingsPageProps) {
       }
       compact={area === "salon"}
     >
+      <CreateManualBookingDrawer area={area} data={data.manualBooking} />
+
       <CompactStatsBar stats={data.stats} />
 
       <AdminPanel

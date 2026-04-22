@@ -33,9 +33,11 @@ enum BookingStatus {
 }
 
 enum BookingSource {
-  PUBLIC_WEB
-  OWNER_ADMIN
-  SALON_ADMIN
+  WEB
+  PHONE
+  INSTAGRAM
+  IN_PERSON
+  OTHER
 }
 
 enum BookingActorType {
@@ -251,7 +253,9 @@ model Booking {
   clientId                 String
   slotId                   String
   serviceId                String
-  source                   BookingSource          @default(PUBLIC_WEB)
+  source                   BookingSource          @default(WEB)
+  isManual                 Boolean                @default(false)
+  manualOverride           Boolean                @default(false)
   status                   BookingStatus          @default(PENDING)
   clientNameSnapshot       String
   clientEmailSnapshot      String
