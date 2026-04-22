@@ -60,6 +60,21 @@ function hashSubmissionFingerprint(value: string) {
   return createHash("sha256").update(`${env.ADMIN_SESSION_SECRET}:${value}`).digest("hex");
 }
 
+function isBookingSchemaDriftError(error: unknown) {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  const message = error.message;
+
+  return (
+    message.includes("BookingActionTokenType")
+    || message.includes("APPROVE")
+    || message.includes("REJECT")
+    || message.includes("invalid input value for enum")
+  );
+}
+
 function extractClientIp(requestHeaders: Headers) {
   const forwardedFor = requestHeaders.get("x-forwarded-for");
 
@@ -284,6 +299,28 @@ export async function createPublicBookingAction(
         formError: error.message,
         errorCode: error.code,
         suggestedStep: error.suggestedStep,
+      };
+    }
+
+    if (isBookingSchemaDriftError(error)) {
+      console.error("Public booking action failed due to schema drift", error);
+
+      await writeSubmissionLog({
+        outcome: BookingSubmissionOutcome.FAILED,
+        ipHash: submissionMetadata.ipHash,
+        emailHash,
+        userAgent: submissionMetadata.userAgent,
+        serviceId: parsed.success ? parsed.data.serviceId : undefined,
+        slotId: parsed.success ? parsed.data.slotId : undefined,
+        failureCode: "SCHEMA_MISMATCH",
+        failureReason: "Databáze nemá aplikované migrace pro nové booking action tokeny.",
+      });
+
+      return {
+        status: "error",
+        formError: "Rezervaci teď nelze dokončit kvůli neaplikované databázové migraci. Aplikujte prosím poslední migrace a zkuste to znovu.",
+        errorCode: "UNEXPECTED_ERROR",
+        suggestedStep: 4,
       };
     }
 
