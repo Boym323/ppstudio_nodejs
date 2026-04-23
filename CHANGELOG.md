@@ -109,7 +109,7 @@ Formát je inspirovaný Keep a Changelog.
 - Lokální brand assety `public/brand/ppstudio-logo.png` a `public/brand/ppstudio-portrait.jpg` pro homepage hero.
 - Skript `npm run db:check-migrations`, který před deployem kontroluje otevřené failed/incomplete záznamy v `_prisma_migrations`.
 - Produkční owner-only sekci `Nastavení` s rozdělením na bloky `Salon`, `Rezervace` a `E-maily a notifikace`.
-- Explicitní singleton model `SiteSettings` a bootstrap read vrstvu místo původního spoléhání na generické key-value `Setting`.
+- Explicitní singleton model `SiteSettings`; veřejné read cesty nyní používají bezpečný fallback bez DB zápisu a bootstrap singletonu zůstává jen v owner admin workflow `Nastavení`.
 - Server action a Zod validační vrstvu pro bezpečnou správu veřejných kontaktů, globálních booking pravidel a e-mailového senderu.
 - Admin notifikační e-maily o nové a zrušené rezervaci posílané na konfigurovatelnou provozní adresu.
 - ADR 0016 pro rozhodnutí kolem scope admin sekce `Nastavení` a volby explicitního singleton modelu.

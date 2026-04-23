@@ -257,7 +257,8 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Reminder template `booking-reminder-24h-v1` je krátký, bez `.ics`, a používá nový storno token přímo v payloadu reminder e-mailu.
 - Idempotence reminderu stojí na kombinaci `Booking.reminder24hSentAt`, transakčního claimu kandidátky a existence jediného reminder `EmailLog`; při SMTP failu se reminder nepřegeneruje jako nový job, ale zůstává v auditním logu pro retry.
 - Legacy `Setting` zůstává v databázi jako obecné key-value úložiště pro budoucí interní potřeby, ale produkční admin sekce `Nastavení` stojí na explicitním singleton modelu `SiteSettings`.
-- `src/lib/site-settings.ts` je centrální read vrstva pro veřejné kontakty, booking pravidla a e-mailový branding; zároveň bezpečně bootstrapuje výchozí singleton záznam.
+- `src/lib/site-settings.ts` je centrální read vrstva pro veřejné kontakty, booking pravidla a e-mailový branding; veřejné a e-mailové read cesty už do DB nezapisují a při chybě nebo chybějícím singletonu spadnou na bezpečné defaulty z env/content vrstvy.
+- Bootstrap `SiteSettings` singletonu zůstává záměrně jen v owner admin workflow `Nastavení` přes explicitní `ensureSiteSettings()`, takže public metadata, e-mail šablony ani testy nespouštějí write path při obyčejném čtení.
 - `SiteSettings` drží jen skutečně globální provozní hodnoty. Technické env proměnné jako SMTP host/port, `NEXT_PUBLIC_APP_URL` nebo `ADMIN_SESSION_SECRET` se do adminu záměrně nepřenášejí.
 - `MediaAsset` je obecný metadata model pro certifikáty, fotky prostor, reference i další obsahové obrázky; binární obsah zůstává na lokálním filesystemu mimo DB.
 - Filesystem layout médií má tvar `<MEDIA_STORAGE_ROOT>/<visibility>/<kind>/<year>/<month>/<storedFilename>`.

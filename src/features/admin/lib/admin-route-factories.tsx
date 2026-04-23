@@ -14,7 +14,7 @@ import { AdminServiceCategoriesPage } from "@/features/admin/components/admin-se
 import { AdminServicesPage } from "@/features/admin/components/admin-services-page";
 import { AdminWeeklyPlannerPage } from "@/features/admin/components/admin-weekly-planner-page";
 import { getOwnerCalendarFeedAdminState } from "@/features/calendar/lib/calendar-feed-service";
-import { getSiteSettings } from "@/lib/site-settings";
+import { ensureSiteSettings } from "@/lib/site-settings";
 import { requireAdminArea } from "@/lib/auth/session";
 
 import { getAdminBookingDetailData } from "./admin-booking";
@@ -86,7 +86,7 @@ export function createAdminSectionRoute(area: AdminArea) {
 
     if (section === "nastaveni") {
       const [settings, calendarFeed] = await Promise.all([
-        getSiteSettings(),
+        ensureSiteSettings(),
         getOwnerCalendarFeedAdminState(),
       ]);
       const formatDateTime = new Intl.DateTimeFormat("cs-CZ", {

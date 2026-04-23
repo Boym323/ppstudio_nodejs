@@ -17,7 +17,7 @@ import {
 } from "@/features/calendar/lib/calendar-feed-service";
 import { prisma } from "@/lib/prisma";
 import {
-  getSiteSettings,
+  ensureSiteSettings,
   isSenderEmailAllowedBySmtpPolicy,
   SITE_SETTINGS_ID,
 } from "@/lib/site-settings";
@@ -101,7 +101,7 @@ export async function updateSalonSettingsAction(
   }
 
   const actorUserId = await getActorUserId();
-  const currentSettings = await getSiteSettings();
+  const currentSettings = await ensureSiteSettings();
 
   await prisma.siteSettings.upsert({
     where: { id: SITE_SETTINGS_ID },
@@ -152,7 +152,7 @@ export async function updateBookingSettingsAction(
   }
 
   const actorUserId = await getActorUserId();
-  const currentSettings = await getSiteSettings();
+  const currentSettings = await ensureSiteSettings();
 
   await prisma.siteSettings.upsert({
     where: { id: SITE_SETTINGS_ID },
@@ -203,7 +203,7 @@ export async function updateEmailSettingsAction(
   }
 
   const actorUserId = await getActorUserId();
-  const currentSettings = await getSiteSettings();
+  const currentSettings = await ensureSiteSettings();
 
   if (!isSenderEmailAllowedBySmtpPolicy(parsed.data.emailSenderEmail)) {
     return {
