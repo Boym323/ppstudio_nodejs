@@ -49,6 +49,8 @@ type LoadedManageToken = {
   };
 };
 
+export type BookingManagementTokenRecord = LoadedManageToken | null;
+
 export type PublicBookingManagementPageState =
   | (BookingManageDetails & {
       status: "ready";
@@ -151,8 +153,8 @@ async function findManageToken(tokenHash: string) {
   });
 }
 
-function resolveManageState(
-  token: LoadedManageToken | null,
+export function resolvePublicBookingManagementState(
+  token: BookingManagementTokenRecord,
   cancellationHours: number,
 ): PublicBookingManagementBlockedState | { status: "ready"; token: LoadedManageToken } {
   if (!token) {
@@ -245,7 +247,7 @@ export async function getPublicBookingManagementPageState(
     findManageToken(tokenHash),
     getBookingPolicySettings(),
   ]);
-  const resolved = resolveManageState(token, bookingPolicy.cancellationHours);
+  const resolved = resolvePublicBookingManagementState(token, bookingPolicy.cancellationHours);
 
   if (resolved.status !== "ready") {
     return resolved;
@@ -289,7 +291,7 @@ export async function reschedulePublicBookingByToken(input: {
     findManageToken(tokenHash),
     getBookingPolicySettings(),
   ]);
-  const resolved = resolveManageState(token, bookingPolicy.cancellationHours);
+  const resolved = resolvePublicBookingManagementState(token, bookingPolicy.cancellationHours);
 
   if (resolved.status !== "ready") {
     return resolved;
