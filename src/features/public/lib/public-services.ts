@@ -26,7 +26,6 @@ type PublicPricingCategoryRow = Prisma.ServiceCategoryGetPayload<{
       select: {
         slug: true;
         name: true;
-        publicName: true;
         publicIntro: true;
         pricingShortDescription: true;
         pricingBadge: true;
@@ -72,7 +71,7 @@ function buildServiceIntro(service: PublicServiceRow) {
   return (
     service.publicIntro ??
     service.description ??
-    `Klidná péče pro službu ${resolveServiceName(service).toLowerCase()}, navržená tak, aby byla srozumitelná i při rychlém rozhodnutí.`
+    `Klidná péče pro službu ${service.name.toLowerCase()}, navržená tak, aby byla srozumitelná i při rychlém rozhodnutí.`
   );
 }
 
@@ -80,16 +79,12 @@ function buildServiceDetail(service: PublicServiceRow) {
   return (
     service.description ??
     service.publicIntro ??
-    `Služba ${resolveServiceName(service).toLowerCase()} je připravená jako pečlivě vedená návštěva s důrazem na komfort a jasný výsledek.`
+    `Služba ${service.name.toLowerCase()} je připravená jako pečlivě vedená návštěva s důrazem na komfort a jasný výsledek.`
   );
 }
 
-function resolveServiceName(service: { name: string; publicName: string | null }) {
-  return service.publicName ?? service.name;
-}
-
 function buildIdealFor(service: PublicServiceRow) {
-  const publicName = resolveServiceName(service);
+  const serviceName = service.name;
   const categoryLabel = getCategoryLabel(service.category);
 
   switch (categoryLabel) {
@@ -97,30 +92,30 @@ function buildIdealFor(service: PublicServiceRow) {
       return [
         "pleť, která potřebuje vyčistit, zklidnit nebo podpořit rovnováhu",
         "návštěvu zvolenou podle aktuální kondice pleti",
-        `${publicName.toLowerCase()} jako pravidelnou péči i promyšlený restart`,
+        `${serviceName.toLowerCase()} jako pravidelnou péči i promyšlený restart`,
       ];
     case "Řasy a obočí":
     case "Barvení a úprava":
       return [
         "výraz očí a obočí, který chcete sjednotit a zpřesnit",
         "ženy, které chtějí mít upravený rám obličeje bez velké námahy",
-        `${publicName.toLowerCase()} jako praktickou součást pravidelné úpravy`,
+        `${serviceName.toLowerCase()} jako praktickou součást pravidelné úpravy`,
       ];
     case "Masáže":
       return [
         "chvíle, kdy potřebujete uvolnit napětí a zpomalit",
         "péči zaměřenou na odlehčení a regeneraci",
-        `${publicName.toLowerCase()} jako pečující reset během náročnějšího období`,
+        `${serviceName.toLowerCase()} jako pečující reset během náročnějšího období`,
       ];
     case "Líčení":
       return [
         "běžný den, pracovní schůzku i společenskou událost",
         "ženy, které chtějí styl přizpůsobený vlastnímu typu",
-        `${publicName.toLowerCase()} bez dojmu přetížení nebo cizí masky`,
+        `${serviceName.toLowerCase()} bez dojmu přetížení nebo cizí masky`,
       ];
     default:
       return [
-        `klientky hledající ${publicName.toLowerCase()}`,
+        `klientky hledající ${serviceName.toLowerCase()}`,
         "návštěvu vedenou klidně a přehledně",
         "službu s jasně popsaným průběhem",
       ];
@@ -204,13 +199,13 @@ function buildResults(service: PublicServiceRow) {
 }
 
 function buildPlaceholderBrief(service: PublicServiceRow) {
-  return `Autentický detail ${resolveServiceName(service).toLowerCase()} v prostoru salonu, jemné světlo, čisté prostředí a minimum stock vzhledu.`;
+  return `Autentický detail ${service.name.toLowerCase()} v prostoru salonu, jemné světlo, čisté prostředí a minimum stock vzhledu.`;
 }
 
 function mapService(service: PublicServiceRow): Service {
   return {
     slug: service.slug,
-    name: resolveServiceName(service),
+    name: service.name,
     category: getCategoryLabel(service.category),
     priceFrom: formatPrice(service.priceFromCzk),
     duration: `${service.durationMinutes} min`,
@@ -236,7 +231,7 @@ function mapPricingCategory(category: PublicPricingCategoryRow): PublicPricingCa
     iconKey: category.pricingIconKey,
     items: category.services.map((service) => ({
       slug: service.slug,
-      name: resolveServiceName(service),
+      name: service.name,
       description:
         service.pricingShortDescription ??
         service.publicIntro ??
@@ -296,7 +291,6 @@ export async function getPublicPricingCatalog(): Promise<PublicPricingCategory[]
         select: {
           slug: true,
           name: true,
-          publicName: true,
           publicIntro: true,
           pricingShortDescription: true,
           pricingBadge: true,

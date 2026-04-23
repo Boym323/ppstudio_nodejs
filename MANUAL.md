@@ -40,7 +40,7 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
 - Reálné služby z DB dostávají veřejnou copy vrstvu v `src/features/public/lib/public-services.ts`, ale její metadata už nevznikají z lokálních map; čtou se přímo z rozšířeného katalogu služeb a kategorií.
 - Ceník na `/cenik` má vlastní modul v `src/features/public/components/pricing-page.tsx` a je rozdělený do jasné kompozice `hero -> category chips -> hlavní sekce -> menší grid sekce -> finální CTA`.
 - Katalog služeb a kategorií teď nese i veřejná pricing metadata:
-  - služba: `publicName`, `publicIntro`, `seoDescription`, `pricingShortDescription`, `pricingBadge`
+  - služba: `publicIntro`, `seoDescription`, `pricingShortDescription`, `pricingBadge` (název je sjednocený v poli `name` pro web i rezervace)
   - kategorie: `publicName`, `pricingDescription`, `pricingLayout`, `pricingIconKey`, `pricingSortOrder`
 - Admin sekce `Služby` a `Kategorie služeb` tato metadata umí upravovat bez zásahu do databáze nebo kódu.
 - Ceník už nepoužívá vedlejší blok s poznámkami; detail služby zůstává místem pro doplňující vysvětlení.
@@ -102,7 +102,7 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
 ```
 - Import očekává strukturu:
   - `categories[]` s poli `name`, `slug`, `description`, `publicName`, `pricingDescription`, `pricingLayout`, `pricingIconKey`, `sortOrder`, `pricingSortOrder`, `isActive`
-  - `services[]` s poli `name`, `slug`, `categorySlug`, `publicName`, `publicIntro`, `seoDescription`, `pricingShortDescription`, `pricingBadge`, `durationMinutes`, `priceFromCzk`, `description`, `shortDescription` (legacy, volitelné), `sortOrder`, `isActive`
+  - `services[]` s poli `name`, `slug`, `categorySlug`, `publicIntro`, `seoDescription`, `pricingShortDescription`, `pricingBadge`, `durationMinutes`, `priceFromCzk`, `description`, `shortDescription` (legacy, volitelné), `publicName` (legacy, volitelné), `sortOrder`, `isActive`
 - Pokud starý web exportuje data v jiném formátu, je potřeba je před importem namapovat do této struktury.
 - Pro tvoje aktuální kategorie je připravený vzor v `scripts/old-web-categories.json`.
 - Pro tvoje aktuální služby je připravený vzor v `scripts/old-web-services.json`.

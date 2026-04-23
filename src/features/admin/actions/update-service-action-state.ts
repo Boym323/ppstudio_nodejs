@@ -5,7 +5,6 @@ export type UpdateServiceActionState = {
   fieldErrors?: Partial<
     Record<
       | "name"
-      | "publicName"
       | "description"
       | "publicIntro"
       | "seoDescription"

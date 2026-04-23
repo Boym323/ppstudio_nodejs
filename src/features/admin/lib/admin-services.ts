@@ -74,7 +74,6 @@ function buildServiceWhere(filters: ReturnType<typeof normalizeSearchParams>): P
   if (filters.query) {
     where.OR = [
       { name: { contains: filters.query, mode: "insensitive" } },
-      { publicName: { contains: filters.query, mode: "insensitive" } },
       { slug: { contains: filters.query, mode: "insensitive" } },
       { shortDescription: { contains: filters.query, mode: "insensitive" } },
       { publicIntro: { contains: filters.query, mode: "insensitive" } },
@@ -105,7 +104,6 @@ function buildServiceOrderBy(sort: ServiceListSortValue): Prisma.ServiceOrderByW
 function describeServiceWarnings(service: {
   isActive: boolean;
   isPubliclyBookable: boolean;
-  publicName: string | null;
   priceFromCzk: number | null;
   publicIntro: string | null;
   pricingShortDescription: string | null;
@@ -125,10 +123,6 @@ function describeServiceWarnings(service: {
 
   if (service.priceFromCzk === null) {
     warnings.push("Chybí cena.");
-  }
-
-  if (service.isPubliclyBookable && !service.publicName) {
-    warnings.push("Veřejná služba zatím používá jen interní název.");
   }
 
   if (service.isPubliclyBookable && (!service.publicIntro || service.publicIntro.trim().length < 12)) {

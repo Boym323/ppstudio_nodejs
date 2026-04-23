@@ -53,7 +53,6 @@ export async function AdminServicesPage({
         categories={data.categories}
         initialValues={{
           name: "",
-          publicName: "",
           description: "",
           publicIntro: "",
           seoDescription: "",
@@ -74,7 +73,6 @@ export async function AdminServicesPage({
         service={{
           id: data.selectedService.id,
           name: data.selectedService.name,
-          publicName: data.selectedService.publicName,
           description: data.selectedService.description,
           publicIntro: data.selectedService.publicIntro,
           seoDescription: data.selectedService.seoDescription,

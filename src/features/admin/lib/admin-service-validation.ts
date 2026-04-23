@@ -29,17 +29,16 @@ export const updateServiceSchema = z.object({
   intent: z.enum(["save", "save-close"]).optional(),
   categoryId: z.string().trim().min(1, "Vyberte kategorii služby.").max(64),
   name: z.string().trim().min(2, "Název služby musí mít alespoň 2 znaky.").max(120, "Název služby je příliš dlouhý."),
-  publicName: z.string().trim().max(120, "Veřejný název je příliš dlouhý.").optional().or(z.literal("")),
   description: z.string().trim().max(4000, "Detailní popis je příliš dlouhý.").optional().or(z.literal("")),
-  publicIntro: z.string().trim().max(400, "Veřejný úvod je příliš dlouhý.").optional().or(z.literal("")),
-  seoDescription: z.string().trim().max(240, "SEO popis je příliš dlouhý.").optional().or(z.literal("")),
+  publicIntro: z.string().trim().max(400, "Krátký popis (web + rezervace) je příliš dlouhý.").optional().or(z.literal("")),
+  seoDescription: z.string().trim().max(240, "Popis pro Google je příliš dlouhý.").optional().or(z.literal("")),
   pricingShortDescription: z
     .string()
     .trim()
     .max(240, "Krátký popis do ceníku je příliš dlouhý.")
     .optional()
     .or(z.literal("")),
-  pricingBadge: z.string().trim().max(40, "Badge je příliš dlouhý.").optional().or(z.literal("")),
+  pricingBadge: z.string().trim().max(40, "Štítek do ceníku je příliš dlouhý.").optional().or(z.literal("")),
   durationMinutes: z.coerce
     .number({ error: "Délku zadejte v minutách." })
     .int("Délka musí být celé číslo.")
@@ -75,17 +74,16 @@ export const createServiceSchema = z.object({
   returnTo: z.string().trim().min(1).max(400).optional(),
   categoryId: z.string().trim().min(1, "Vyberte kategorii služby.").max(64),
   name: z.string().trim().min(2, "Název služby musí mít alespoň 2 znaky.").max(120, "Název služby je příliš dlouhý."),
-  publicName: z.string().trim().max(120, "Veřejný název je příliš dlouhý.").optional().or(z.literal("")),
   description: z.string().trim().max(4000, "Detailní popis je příliš dlouhý.").optional().or(z.literal("")),
-  publicIntro: z.string().trim().max(400, "Veřejný úvod je příliš dlouhý.").optional().or(z.literal("")),
-  seoDescription: z.string().trim().max(240, "SEO popis je příliš dlouhý.").optional().or(z.literal("")),
+  publicIntro: z.string().trim().max(400, "Krátký popis (web + rezervace) je příliš dlouhý.").optional().or(z.literal("")),
+  seoDescription: z.string().trim().max(240, "Popis pro Google je příliš dlouhý.").optional().or(z.literal("")),
   pricingShortDescription: z
     .string()
     .trim()
     .max(240, "Krátký popis do ceníku je příliš dlouhý.")
     .optional()
     .or(z.literal("")),
-  pricingBadge: z.string().trim().max(40, "Badge je příliš dlouhý.").optional().or(z.literal("")),
+  pricingBadge: z.string().trim().max(40, "Štítek do ceníku je příliš dlouhý.").optional().or(z.literal("")),
   durationMinutes: z.coerce
     .number({ error: "Délku zadejte v minutách." })
     .int("Délka musí být celé číslo.")

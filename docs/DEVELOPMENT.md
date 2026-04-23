@@ -41,7 +41,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - marketingové bloky, FAQ a právní texty jsou dál centralizované v `src/content/public-site.ts`
   - služby a ceník berou data z DB přes `src/features/public/lib/public-services.ts`
 - `src/features/public/lib/public-services.ts` nyní zároveň funguje jako thin read model nad rozšířeným katalogem:
-  - `Service` nese `publicName`, `publicIntro`, `seoDescription`, `pricingShortDescription`, `pricingBadge`
+  - `Service` nese `publicIntro`, `seoDescription`, `pricingShortDescription`, `pricingBadge`; název služby je sjednocený v `Service.name`
   - `ServiceCategory` nese `publicName`, `pricingDescription`, `pricingLayout`, `pricingIconKey`, `pricingSortOrder`
   - fallbacky pořád existují, ale primární zdroj veřejné copy už je databáze, ne lokální slug mapy
 - Ceník na `/cenik` má vlastní skladbu v `src/features/public/components/pricing-page.tsx`; obecný `public-site.tsx` už neobsahuje pricing-specific layout logiku.
@@ -69,7 +69,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Pro konzistentní spacing preferuj na veřejných stránkách vertikální rytmus `py-10 / sm:py-14 / lg:py-16`; větší rozestupy používej jen tam, kde mají jasný obsahový důvod (např. hero nebo výrazný CTA blok).
 - Placeholder obsah musí být jasně odlišen od finálních produkčních textů.
 - Pokud je interní název služby příliš technický nebo exportovaný ze starého webu, nepřepisuj DB záznam jen kvůli public copy; preferuj public override v read modelu.
-- Pro public override už preferuj přímo pole v katalogu (`Service.publicName`, `Service.publicIntro`, `ServiceCategory.publicName`, `ServiceCategory.pricingDescription`); lokální fallback v read modelu má být jen záchranná síť, ne primární workflow.
+- Pro public override už preferuj přímo pole v katalogu (`Service.publicIntro`, `ServiceCategory.publicName`, `ServiceCategory.pricingDescription`); lokální fallback v read modelu má být jen záchranná síť, ne primární workflow.
 - CTA na rezervaci držet konzistentně v headeru, hero sekcích a kontextových blocích.
 - U homepage copy preferovat strukturu, která se už historicky osvědčila: jasný lokální hero claim, dvě primární akce (rezervace + ceník) a blok „nejste si jistá výběrem“, který snižuje bariéru první rezervace.
 - Pokud homepage potřebuje logo/fotku majitelky, nastav to v `homepageContent` (`logoImage`, `portraitImage`) a používej lokální soubory z `public/brand`, aby nebyla závislost na externím hostingu.
