@@ -134,6 +134,7 @@ model AdminUser {
   createdAvailabilitySlots  AvailabilitySlot[]     @relation("AvailabilitySlotCreatedBy")
   createdBookings           Booking[]              @relation("BookingCreatedBy")
   bookingStatusHistoryItems BookingStatusHistory[] @relation("BookingStatusHistoryActor")
+  bookingRescheduleLogs     BookingRescheduleLog[] @relation("BookingRescheduleLogActor")
   updatedCalendarFeeds      CalendarFeed[]         @relation("CalendarFeedUpdatedBy")
   updatedSettings           Setting[]              @relation("SettingUpdatedBy")
   updatedSiteSettings       SiteSettings[]         @relation("SiteSettingsUpdatedBy")
@@ -282,10 +283,12 @@ model Booking {
   clientNote               String?
   internalNote             String?
   confirmedAt              DateTime?
+  reminder24hQueuedAt      DateTime?
   reminder24hSentAt        DateTime?
   cancelledAt              DateTime?
   completedAt              DateTime?
   rescheduledAt            DateTime?
+  rescheduleCount          Int                    @default(0)
   rescheduledFromBookingId String?                @unique
   createdByUserId          String?
   createdAt                DateTime               @default(now())
@@ -297,6 +300,7 @@ model Booking {
   rescheduledFromBooking   Booking?               @relation("BookingRescheduleChain", fields: [rescheduledFromBookingId], references: [id], onDelete: SetNull)
   rescheduledToBooking     Booking?               @relation("BookingRescheduleChain")
   statusHistory            BookingStatusHistory[]
+  rescheduleLogs           BookingRescheduleLog[]
   actionTokens             BookingActionToken[]
   emailLogs                EmailLog[]
   submissionLogs           BookingSubmissionLog[]
@@ -306,10 +310,30 @@ model Booking {
   @@index([serviceId, scheduledStartsAt])
   @@index([status, scheduledStartsAt])
   @@index([status, reminder24hSentAt, scheduledStartsAt])
+  @@index([status, reminder24hQueuedAt, scheduledStartsAt])
   @@index([source, createdAt])
   @@index([acquisitionSource, createdAt])
   @@index([createdByUserId])
   @@index([rescheduledAt])
+}
+
+model BookingRescheduleLog {
+  id              String     @id @default(cuid())
+  bookingId       String
+  oldStartAt      DateTime
+  oldEndAt        DateTime
+  newStartAt      DateTime
+  newEndAt        DateTime
+  changedByUserId String?
+  changedByClient Boolean    @default(false)
+  reason          String?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  booking         Booking    @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  changedByUser   AdminUser? @relation("BookingRescheduleLogActor", fields: [changedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([bookingId, createdAt])
+  @@index([changedByUserId, createdAt])
 }
 
 model BookingStatusHistory {

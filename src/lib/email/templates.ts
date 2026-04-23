@@ -44,6 +44,18 @@ const bookingReminder24hPayloadSchema = z.object({
   cancellationUrl: z.url(),
 });
 
+const bookingRescheduledPayloadSchema = z.object({
+  bookingId: z.string().min(1),
+  serviceName: z.string().min(1),
+  clientName: z.string().min(1),
+  previousStartsAt: z.string().datetime(),
+  previousEndsAt: z.string().datetime(),
+  scheduledStartsAt: z.string().datetime(),
+  scheduledEndsAt: z.string().datetime(),
+  cancellationUrl: z.url(),
+  includeCalendarAttachment: z.boolean().optional(),
+});
+
 const bookingRejectedPayloadSchema = z.object({
   bookingId: z.string().min(1),
   serviceName: z.string().min(1),
@@ -460,6 +472,85 @@ export async function renderEmailTemplate(
       );
 
       return { subject, html, text };
+    }
+    case "booking-rescheduled-v1": {
+      const data = bookingRescheduledPayloadSchema.parse(payload);
+      const previousStartsAt = new Date(data.previousStartsAt);
+      const previousEndsAt = new Date(data.previousEndsAt);
+      const scheduledStartsAt = new Date(data.scheduledStartsAt);
+      const scheduledEndsAt = new Date(data.scheduledEndsAt);
+      const previousLabel = formatBookingDateLabel(previousStartsAt, previousEndsAt);
+      const updatedLabel = formatBookingDateLabel(scheduledStartsAt, scheduledEndsAt);
+      const includeCalendarAttachment = data.includeCalendarAttachment ?? true;
+      const calendarAttachment = includeCalendarAttachment
+        ? await buildBookingCalendarIcsFromPayload({
+            bookingId: data.bookingId,
+            serviceName: data.serviceName,
+            scheduledStartsAt,
+            scheduledEndsAt,
+          })
+        : null;
+
+      const text = [
+        `Dobrý den, ${data.clientName},`,
+        "",
+        `termín rezervace služby ${data.serviceName} byl změněn.`,
+        `Původní termín: ${previousLabel}`,
+        `Nový termín: ${updatedLabel}`,
+        `Místo: ${salonProfile.addressLine}`,
+        "",
+        ...(includeCalendarAttachment
+          ? [
+              "Aktualizovaný termín najdete také v přiložené kalendářové události.",
+              "",
+            ]
+          : []),
+        `Zrušit rezervaci: ${data.cancellationUrl}`,
+        "",
+        `${brand.name}`,
+        `${brand.email} | ${brand.phone}`,
+      ].join("\n");
+
+      const html = buildEmailShell(
+        brand,
+        "Termín rezervace byl změněn",
+        `Rezervaci služby ${data.serviceName} jsme přesunuli na nový čas.`,
+        `
+          <div style="border:1px solid rgba(33,23,20,0.08);border-radius:18px;padding:20px;background:#fbf7f3;">
+            <p style="margin:0 0 8px;font-size:13px;text-transform:uppercase;letter-spacing:0.16em;color:#9e7f65;">Nový termín</p>
+            <p style="margin:0;font-size:18px;line-height:1.6;color:#1f1714;"><strong>${escapeHtml(updatedLabel)}</strong></p>
+            <p style="margin:14px 0 0;font-size:13px;text-transform:uppercase;letter-spacing:0.16em;color:#9e7f65;">Původně</p>
+            <p style="margin:8px 0 0;font-size:15px;line-height:1.7;color:#5b4c44;">${escapeHtml(previousLabel)}</p>
+            <p style="margin:14px 0 0;font-size:13px;text-transform:uppercase;letter-spacing:0.16em;color:#9e7f65;">Místo</p>
+            <p style="margin:8px 0 0;font-size:15px;line-height:1.7;color:#5b4c44;">${escapeHtml(salonProfile.addressLine)}</p>
+          </div>
+          ${includeCalendarAttachment ? `
+          <p style="margin:24px 0 0;font-size:15px;line-height:1.7;color:#5b4c44;">
+            Aktualizovaný termín najdete také v přiložené kalendářové události.
+          </p>
+          ` : ""}
+          <div style="margin-top:24px;">${buildEmailButton({
+            href: data.cancellationUrl,
+            label: "Zrušit rezervaci",
+            variant: "secondary",
+          })}</div>
+        `,
+      );
+
+      return {
+        subject,
+        html,
+        text,
+        attachments: calendarAttachment
+          ? [
+              {
+                filename: "pp-studio-rezervace.ics",
+                content: calendarAttachment,
+                contentType: "text/calendar; charset=utf-8",
+              },
+            ]
+          : undefined,
+      };
     }
     case "booking-rejected-v1": {
       const data = bookingRejectedPayloadSchema.parse(payload);

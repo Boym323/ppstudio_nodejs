@@ -65,15 +65,11 @@ export async function getBookingsFor24hReminder(now = new Date()): Promise<Booki
       clientEmailSnapshot: {
         not: "",
       },
+      reminder24hQueuedAt: null,
       reminder24hSentAt: null,
       scheduledStartsAt: {
         gte: windowStart,
         lte: windowEnd,
-      },
-      emailLogs: {
-        none: {
-          type: EmailLogType.BOOKING_REMINDER,
-        },
       },
     },
     orderBy: {
@@ -110,15 +106,10 @@ async function claimNextBookingFor24hReminder(
     FROM "Booking" AS booking
     WHERE booking."status" = ${BookingStatus.CONFIRMED}
       AND trim(booking."clientEmailSnapshot") <> ''
+      AND booking."reminder24hQueuedAt" IS NULL
       AND booking."reminder24hSentAt" IS NULL
       AND booking."scheduledStartsAt" >= ${windowStart}
       AND booking."scheduledStartsAt" <= ${windowEnd}
-      AND NOT EXISTS (
-        SELECT 1
-        FROM "EmailLog" AS email_log
-        WHERE email_log."bookingId" = booking."id"
-          AND email_log."type" = ${EmailLogType.BOOKING_REMINDER}
-      )
       ${buildExcludedBookingIdsClause(excludedBookingIds)}
     ORDER BY booking."scheduledStartsAt" ASC, booking."createdAt" ASC
     LIMIT 1
@@ -220,7 +211,17 @@ export async function enqueueBookingReminder24hJobs(
               id: booking.id,
             },
             data: {
+              reminder24hQueuedAt: now,
               reminder24hSentAt: now,
+            },
+          });
+        } else {
+          await tx.booking.update({
+            where: {
+              id: booking.id,
+            },
+            data: {
+              reminder24hQueuedAt: now,
             },
           });
         }
@@ -257,6 +258,7 @@ export async function markBookingReminder24hSent(bookingId: string, sentAt: Date
       reminder24hSentAt: null,
     },
     data: {
+      reminder24hQueuedAt: sentAt,
       reminder24hSentAt: sentAt,
     },
   });

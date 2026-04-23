@@ -47,6 +47,9 @@ Evidence produkčních incidentů a jejich řešení.
 - Worker běžící bez SMTP přístupu nebo bez `EMAIL_DELIVERY_MODE=background` a zůstávající fronta `PENDING` logů.
 - Zastavený `email:worker`, kvůli kterému se nově nejen nedoručují pending e-maily, ale ani nevznikají 24h reminder joby pro zítřejší potvrzené rezervace.
 - Reminder omylem odeslaný po storno nebo přesunu rezervace; worker má před sendem vždy znovu ověřit `Booking.status`, `scheduledStartsAt` a `reminder24hSentAt`.
+- Přesun termínu uložený bez auditního logu nebo bez navýšení `Booking.rescheduleCount`; reschedule flow musí vždy zapisovat `BookingRescheduleLog` i metadata posledního přesunu.
+- Přesun termínu provedený, ale starý interní override slot zůstal viset jako `DRAFT` a dál blokuje původní čas; doménová služba musí orphanovaný override slot uvolnit.
+- Přesun termínu provedený, ale klientský e-mail `BOOKING_RESCHEDULED` se nezaložil; změna rezervace má i v takovém případě zůstat uložená a chyba musí být jen zalogovaná pro provozní dohled.
 - Omylem spuštěné `prisma migrate dev` na produkčním serveru místo `prisma migrate deploy`.
 - Pokus o vytvoření nebo editaci překrývajícího se slotu, který by měl skončit user-friendly validační chybou místo neošetřeného 500.
 - Slot omylem snížený pod počet aktivních rezervací nebo archivovaný navzdory aktivní rezervaci.

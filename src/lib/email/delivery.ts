@@ -14,6 +14,16 @@ export type EmailLogDeliveryOutcome = {
   errorMessage?: string;
 };
 
+function readReminderScheduledStartsAt(payload: unknown) {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    return null;
+  }
+
+  const scheduledStartsAt = "scheduledStartsAt" in payload ? payload.scheduledStartsAt : null;
+
+  return typeof scheduledStartsAt === "string" ? scheduledStartsAt : null;
+}
+
 function getErrorMessage(error: unknown) {
   if (error instanceof Error) {
     return error.message;
@@ -65,10 +75,15 @@ export async function deliverEmailLog(emailLogId: string): Promise<EmailLogDeliv
         scheduledStartsAt: true,
       },
     });
+    const reminderScheduledStartsAt = readReminderScheduledStartsAt(emailLog.payload);
     const preflight = evaluateBookingReminderDelivery({
       bookingStatus: booking?.status ?? null,
       reminder24hSentAt: booking?.reminder24hSentAt ?? null,
-      scheduledStartsAt: booking?.scheduledStartsAt ?? null,
+      scheduledStartsAt:
+        reminderScheduledStartsAt && booking?.scheduledStartsAt
+        && reminderScheduledStartsAt !== booking.scheduledStartsAt.toISOString()
+          ? null
+          : booking?.scheduledStartsAt ?? null,
     });
 
     if (!preflight.shouldSend) {

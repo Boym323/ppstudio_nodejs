@@ -31,6 +31,7 @@ Seznam důležitých knihoven a důvod jejich použití.
 - Pro nové provozní approve/reject odkazy jsme nepřidávali žádnou další knihovnu; bezpečnost flow dál stojí na existujícím Node.js `crypto`, Prisma transakcích a Next.js App Router server actions.
 - Ani zákaznická `.ics` příloha po potvrzení rezervace nepřidává novou knihovnu; používá lokální iCalendar utility a stávající SMTP vrstvu přes `nodemailer`.
 - Jediný 24h reminder rezervací také nepřidává novou knihovnu; scheduler, token workflow i outbox zápis používají stávající Next.js/Prisma/Node stack a existující `email:worker`.
+- Admin přesun termínu také nepřidává novou knihovnu; drawer UI, auditní log i doménová validace běží čistě na stávajícím stacku Next.js, React, Prisma a Zod.
 - Ruční vytvoření rezervace v adminu také nepřidává novou knihovnu; drawer, deduplikace klientky i sdílené create jádro běží čistě na stávajícím stacku Next.js, React, Prisma a Zod.
 - Booking submission audit využívá stejnou Prisma vrstvu a nezavádí další knihovnu pro rate limiting ani logování.
 

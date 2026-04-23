@@ -54,12 +54,14 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
 - Pending rezervace lze nově potvrdit nebo zrušit přímo z provozního e-mailu přes bezpečné jednorázové odkazy s mezikrokem potvrzení na veřejné route `/rezervace/akce/[intent]/[token]`.
 - Po potvrzení rezervace zákaznice dostává v potvrzovacím e-mailu `.ics` přílohu s jednou konkrétní kalendářovou událostí pro potvrzený termín, ne subscription feed.
 - Owner může v `/admin/nastaveni` nově zapnout chráněný Apple Calendar subscription feed na `/api/calendar/owner.ics?token=...`; feed je read-only, bere jen potvrzené rezervace a aplikace zůstává jediným source of truth.
+- Admin detail rezervace nově podporuje samostatnou akci `Přesunout termín`; booking zůstává stejným záznamem, ale změna projde backend validací, auditním logem, resetem reminder návaznosti a volitelným klientským e-mailem `Termín byl změněn`.
 - Admin má dva směry použití:
   - full admin na `/admin/*` pro roli `OWNER`
   - lite admin na `/admin/provoz/*` pro roli `SALON`
 - Obě rozhraní sdílejí stejné doménové entity, ale liší se navigací i hustotou UI:
   - `OWNER` vidí strategické a technické sekce navíc
   - `SALON` vidí jen provozní sekce a jednodušší copy bez technických pojmů
+- Přesun termínu má pro `OWNER` i `SALON` stejné chování; role mění jen administrativní cestu, ne business logiku reschedule flow.
 - Prisma schema v1 už pokrývá:
   - admin uživatele a role
   - kategorie služeb a služby včetně samostatné veřejné rezervovatelnosti
@@ -380,8 +382,9 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
 - Kategorie a služby jsou samostatné DB entity, které se dnes plní přes import nebo admin správu, ne přes hardcoded seed.
 - `Service.isPubliclyBookable` odděluje interně aktivní službu od služby skutečně nabízené ve veřejné rezervaci.
 - `Booking` drží snapshot klienta, služby i času, takže pozdější změny ceníku nebo názvů služeb nepoškodí historická data.
-- `Booking` navíc drží vazbu na předchozí rezervaci při reschedule a na DB úrovni blokuje jen přesně duplicitní aktivní booking stejného klienta ve stejném intervalu (stejný slot, stejný začátek, stejný konec).
-- `Booking.reminder24hSentAt` drží informaci, že klientský 24h reminder už byl úspěšně uzavřený; v background režimu až po skutečném `SENT`, v log režimu při uzavření outbox záznamu.
+- `Booking` drží metadata posledního přesunu (`rescheduledAt`, `rescheduleCount`) a reminder queue stav (`reminder24hQueuedAt`, `reminder24hSentAt`); historický self-relation chain zůstává jen jako legacy pole a nové reschedule flow ho nepoužívá.
+- `BookingRescheduleLog` je samostatná auditní tabulka pro přesuny termínu s původním a novým intervalem, aktérem a volitelným důvodem změny.
+- `Booking.reminder24hSentAt` drží informaci, že klientský 24h reminder už byl úspěšně uzavřený; `Booking.reminder24hQueuedAt` zase brání duplicitnímu enqueue stejného reminderu pro aktuální termín.
 - `Booking` nově ukládá i akviziční metadata (`acquisitionSource`, `acquisitionReferrerHost`, `acquisitionUtmSource`, `acquisitionUtmMedium`, `acquisitionUtmCampaign`) odvozená z `utm_*` a referrer hostu.
 - `BookingStatusHistory` slouží jako audit změn stavu a rozlišuje akci uživatele, klienta nebo systému.
 - Admin detail rezervace zobrazuje historii změn jako provozní timeline, takže salon i owner vidí, kdo a kdy stav upravil.
@@ -421,6 +424,14 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
   - uloží storno potvrzení do `EmailLog` pro worker nebo do `SENT` v log režimu
 
 ## Řešení Problémů (Troubleshooting)
+- Pokud se rezervace přesune, ale klientce nepřijde e-mail o změně termínu:
+  - zkontrolujte v admin sekci `Email logy`, jestli vznikl záznam `BOOKING_RESCHEDULED`
+  - pokud log nevznikl, hledejte v server logu chybu `Booking reschedule notification enqueue failed`
+  - samotný přesun termínu i auditní historie zůstávají uložené, protože e-mail se zakládá až po úspěšném commitnutí změny rezervace
+- Pokud po přesunu nevzniká nový 24h reminder:
+  - ověřte, že booking má po přesunu `reminder24hQueuedAt = null` a `reminder24hSentAt = null`
+  - spusťte `npm run email:worker:once`
+  - zkontrolujte, že nový termín leží v reminder okně `23h-25h` od aktuálního času
 - Chyba `Route "... " used params.slug. params is a Promise` v Next.js 16 znamená, že route používá starý synchronní přístup k dynamickým parametrům.
 - Oprava:
   - v `page.tsx` a `generateMetadata` typuj `params` jako `Promise<{ ... }>`
@@ -441,6 +452,7 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
 - Rezervační část má vlastní error boundary a loading fallback, takže výpadek booking vrstvy nepoškodí celý web.
 - Background e-mail worker lze spustit přes `npm run email:worker` jako samostatný proces; pro jednorázové dohnání fronty je k dispozici `npm run email:worker:once`.
 - Stejný `email:worker` nově každých 5 minut i skenuje potvrzené rezervace v okně `23h-25h` před termínem a zapisuje jeden reminder `EmailLog` typu `BOOKING_REMINDER`.
+- Po přesunu termínu resetuje doménová akce `rescheduleBooking(...)` oba reminder markery, takže se starý reminder neposílá pro původní termín a nový čas může znovu projít standardním enqueue flow.
 - Před produkční aplikací migrací je k dispozici `npm run db:check-migrations`, který odhalí otevřené failed/incomplete záznamy v `_prisma_migrations`.
 - Pro systemd provoz použij [`deploy/systemd/ppstudio-web.service`](/var/www/ppstudio/deploy/systemd/ppstudio-web.service) pro hlavní app a [`deploy/systemd/ppstudio-email-worker.service`](/var/www/ppstudio/deploy/systemd/ppstudio-email-worker.service) pro worker.
 - Systemd `.example` šablony s poznámkami k `User`/`Group` jsou v [`deploy/systemd/ppstudio-web.service.example`](/var/www/ppstudio/deploy/systemd/ppstudio-web.service.example) a [`deploy/systemd/ppstudio-email-worker.service.example`](/var/www/ppstudio/deploy/systemd/ppstudio-email-worker.service.example).

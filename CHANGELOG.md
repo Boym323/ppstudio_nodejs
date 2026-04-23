@@ -7,6 +7,9 @@ Formát je inspirovaný Keep a Changelog.
 ## [Unreleased]
 
 ### Changed
+- Admin detail rezervace nově obsahuje samostatný drawer `Přesunout termín`; přesun už není tichá editace času, ale řízená doménová akce se stejnou validací slotů a interních výjimek jako veřejný booking a ruční admin booking.
+- Historie detailu rezervace se rozšířila ze samotných stavových změn na sjednocenou timeline stavů a přesunů termínu, takže je vidět původní i nový čas, aktér změny a volitelný důvod.
+- Reminder architektura už při výběru 24h kandidátek nestojí na samotné existenci reminder email logu; nově používá `Booking.reminder24hQueuedAt`, takže přesun termínu resetuje reminder návaznost pro nový čas bez paralelní reminder pipeline.
 - Stránka `/faq` prošla úplným UX a copy refactorem: hero teď jemně uklidňuje nejistotu před první návštěvou, pravý brand box nahradil praktický kontakt do studia a samotný obsah je nově rozdělený do tematických accordion sekcí `Rezervace`, `První návštěva`, `Praktické otázky`, `Komfort a průběh`, `Organizace` a `Storno`.
 - Stránka `/storno-podminky` prošla kompletním UX a copy refactorem: hero teď používá finální stručný text, vpravo má praktický box `Jak zrušit rezervaci`, pod ním jsou tři rychle skenovatelné karty s hlavními pravidly a šest krátkých sekcí s konkrétními, ale měkčími podmínkami pro změnu termínu, no-show, zpoždění, zálohy i storno ze strany salonu; stránka zároveň nově výslovně říká, že rezervaci lze upravit i přes odkaz v potvrzení rezervace a reminderu.
 - Stránka `/obchodni-podminky` prošla kompletním refactorem z draftového placeholderu na plnohodnotnou právní stránku: hero nově používá finální copy a praktický blok poskytovatele, pod ním je obsahová navigace a devět stručných sekcí pro rezervace, storno, cenu, průběh služby, odpovědnost, reklamace, poukazy a závěrečná ustanovení.
@@ -55,6 +58,11 @@ Formát je inspirovaný Keep a Changelog.
 - Finální cleanup pass veřejného confirmation flow zkrátil duplicity v hero copy, zpřesnil CTA na `Požádat o změnu`, doplnil službu do hlavního přehledu rezervace a zjednodušil kontaktní texty.
 
 ### Added
+- Migraci `20260423113000_booking_reschedule_logs_v1`, která přidává `Booking.reminder24hQueuedAt`, `Booking.rescheduleCount` a novou auditní tabulku `BookingRescheduleLog`.
+- Doménovou službu `src/features/booking/lib/booking-rescheduling.ts` pro centrální backend flow `rescheduleBooking(...)` včetně validace nového termínu, concurrency guardu, cleanupu starého interního override slotu a navazujícího klientského email logu `BOOKING_RESCHEDULED`.
+- Nové admin komponenty `RescheduleBookingButton` a `BookingRescheduleTimeSelector` pro specializovaný drawer s výběrem z dostupných slotů, ručním zadáním času, důvodem změny a sticky footerem.
+- Novou e-mailovou šablonu `booking-rescheduled-v1` pro oznámení klientce o změně termínu včetně nového času, místa, storno odkazu a volitelné `.ics` přílohy.
+- ADR 0037 pro rozhodnutí kolem admin reschedule flow nad jedním bookingem místo vytváření reschedule chainu mezi dvěma rezervacemi.
 - Migraci `20260423100000_booking_reminder_24h_v1`, která přidává `Booking.reminder24hSentAt` a index pro výběr 24h reminder kandidátek.
 - Doménovou vrstvu `src/features/booking/lib/booking-reminders.ts` pro výběr kandidátek, transakční enqueue reminder jobů a označení doručeného reminderu.
 - Novou e-mailovou šablonu `booking-reminder-24h-v1` bez `.ics` přílohy a s CTA `Zrušit rezervaci` / `Kontaktovat studio`.

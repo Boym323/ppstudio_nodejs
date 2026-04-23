@@ -124,7 +124,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - `admin-section-page.tsx` dál obsluhuje generické nebo sekundární sekce; overview už na něj nenavazuje.
 - Druhé kolo visual polish overview je čistě prezentační: neměň read model ani sekce, pokud ladíš jen proporce, spacing, typografii nebo card rhythm.
 - Pro mobilní breakpointy overview dashboardu preferuj single-column stack před zmenšováním desktop kompozice: CTA pod sebe, alert CTA na vlastní řádek a quick actions až od `sm` do dvou sloupců.
-- `src/features/admin/components/admin-booking-detail-page.tsx` skládá detail rezervace jako serverový read layout; v aktuální verzi používá pět bloků `sticky header -> souhrn -> akce -> poznámky -> historie` a nemá znovu vracet paralelní souhrnné sekce se stejným obsahem.
+- `src/features/admin/components/admin-booking-detail-page.tsx` skládá detail rezervace jako serverový read layout; v aktuální verzi používá pět bloků `sticky header -> souhrn -> akce -> poznámky -> historie`, obsahuje samostatný drawer `Přesunout termín` a nemá znovu vracet paralelní souhrnné sekce se stejným obsahem.
 - `src/features/admin/components/admin-booking-status-form.tsx` zůstává malou klientskou vrstvou jen pro interaktivní výběr akce a submit server action; při dalších úpravách nenechávej zbytečně růst klientský bundle mimo tenhle formulář.
 - `src/features/admin/components/admin-booking-note-form.tsx` je oddělená klientská vrstva jen pro samostatnou editaci interní poznámky rezervace; drž ji bez dalších provozních rozhodnutí nebo statusové logiky.
 - `src/features/admin/lib/admin-users.ts` je serverový read model pro owner-only správu přístupů; skládá dohromady DB účty a systémové přístupy z bootstrap env vrstvy.
@@ -253,7 +253,8 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Import kategorií a služeb je řešený jako JSON upsert přes `scripts/import-services.mjs`; identity záznamů drží `slug`.
 - `Booking` ukládá snapshot jména služby, ceny a času, takže historické rezervace zůstanou konzistentní i po úpravě katalogu.
 - `Service` nově odděluje obecnou aktivitu (`isActive`) od veřejné rezervovatelnosti (`isPubliclyBookable`); public booking flow vyžaduje obě podmínky a aktivní kategorii.
-- `Booking` drží i reschedule chain přes self-relation, což zjednodušuje reporting i provozní dohled nad přesunutými termíny.
+- `Booking` drží metadata posledního přesunu (`rescheduledAt`, `rescheduleCount`) a reminder queue stavu (`reminder24hQueuedAt`, `reminder24hSentAt`); historický self-relation chain zůstává ve schématu jen jako legacy pole a nové reschedule flow ho nepoužívá.
+- `BookingRescheduleLog` je samostatný auditní model pro doménovou akci přesunu termínu; ukládá původní a nový interval, aktéra a volitelný důvod změny.
 - `BookingStatusHistory` drží auditní stopu změn stavu včetně aktéra a strukturovaných metadat.
 - `BookingActionToken` ukládá hash tokenu, expiraci a použití/revokaci pro bezpečné self-service storno, provozní email akce a zákaznický calendar event.
 - `CalendarFeed` drží owner subscription feed jako samostatnou entitu mimo `SiteSettings`; ukládá scope, aktivaci, rotační salt a audit času změny.
@@ -270,10 +271,10 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Serverová doménová vrstva pro email akce je v `src/features/booking/lib/booking-email-actions.ts`; drží validaci intentu, serializable transakci, změnu stavu, audit a založení klientského `EmailLog`.
 - Serverová doménová vrstva `src/features/calendar/lib/booking-calendar-event.ts` řeší validaci calendar tokenu, mapování bookingu na jeden `VEVENT` a generování zákaznického `.ics` payloadu.
 - `EmailLog` je připravený na notifikační workflow a troubleshooting komunikace s klientem.
-- 24h reminder rezervací je v `src/features/booking/lib/booking-reminders.ts`; výběr kandidátek je omezený na `CONFIRMED` bookingy s e-mailem, `reminder24hSentAt = null` a startem mezi `now + 23h` a `now + 25h`.
+- 24h reminder rezervací je v `src/features/booking/lib/booking-reminders.ts`; výběr kandidátek je omezený na `CONFIRMED` bookingy s e-mailem, `reminder24hQueuedAt = null`, `reminder24hSentAt = null` a startem mezi `now + 23h` a `now + 25h`.
 - Reminder scheduler neběží jako zvláštní služba; `src/lib/email/worker.ts` ho spouští uvnitř existujícího `email:worker` procesu každých 5 minut a vytváří pouze `EmailLog`, nikdy neodesílá SMTP přímo.
 - Reminder template `booking-reminder-24h-v1` je krátký, bez `.ics`, a používá nový storno token přímo v payloadu reminder e-mailu; copy a layout mají držet lidský tón, rychlou scanovatelnost a CTA hierarchii `kontakt jako první volba, storno jako sekundární akce`.
-- Idempotence reminderu stojí na kombinaci `Booking.reminder24hSentAt`, transakčního claimu kandidátky a existence jediného reminder `EmailLog`; při SMTP failu se reminder nepřegeneruje jako nový job, ale zůstává v auditním logu pro retry.
+- Idempotence reminderu stojí na kombinaci `Booking.reminder24hQueuedAt`, `Booking.reminder24hSentAt` a transakčního claimu kandidátky; při přesunu termínu reschedule flow queue marker resetuje, aby se reminder mohl navázat na nový čas bez duplikace starého jobu.
 - Legacy `Setting` zůstává v databázi jako obecné key-value úložiště pro budoucí interní potřeby, ale produkční admin sekce `Nastavení` stojí na explicitním singleton modelu `SiteSettings`.
 - `src/lib/site-settings.ts` je centrální read vrstva pro veřejné kontakty, booking pravidla a e-mailový branding; veřejné a e-mailové read cesty už do DB nezapisují a při chybě nebo chybějícím singletonu spadnou na bezpečné defaulty z env/content vrstvy.
 - Bootstrap `SiteSettings` singletonu zůstává záměrně jen v owner admin workflow `Nastavení` přes explicitní `ensureSiteSettings()`, takže public metadata, e-mail šablony ani testy nespouštějí write path při obyčejném čtení.
@@ -331,10 +332,11 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - převádí single-service sloty na M:N omezení služeb
 - Migrace `20260418193000_booking_model_review_fixes` doplňuje minimální provozní ochrany:
   - explicitní režim omezení služeb na slotu
-  - reschedule chain pro rezervace
+  - historický reschedule chain pro rezervace (dnes už jen legacy pole)
   - původní unique ochranu proti duplicitní rezervaci stejného klienta do stejného slotu (později nahrazenou přesnější variantou na úroveň konkrétního intervalu)
   - PostgreSQL exclusion constraint proti překrývajícím se aktivním slotům
 - Migrace `20260420153000_booking_exact_duplicate_active` nahrazuje široké `UNIQUE(slotId, clientId)` za partial unique index `Booking_exact_duplicate_active_key`, který blokuje jen přesně duplicitní aktivní interval (`slotId + clientId + scheduledStartsAt + scheduledEndsAt` při `status IN (PENDING, CONFIRMED)`).
+- Migrace `20260423113000_booking_reschedule_logs_v1` přidává `Booking.reminder24hQueuedAt`, `Booking.rescheduleCount` a nový auditní model `BookingRescheduleLog` pro doménovou akci přesunu termínu.
 - Nové slot admin workflow nevyžadovalo další migraci; navazuje přímo na už existující schema a constrainty.
 - Migrace `20260419103000_service_public_bookability` přidává `Service.isPubliclyBookable` a backfilluje ho podle dosavadního `isActive`, aby se zachovalo chování migrovaných služeb.
 - Při další iteraci booking workflow preferuj nové migrace nad ruční editací starších SQL souborů.

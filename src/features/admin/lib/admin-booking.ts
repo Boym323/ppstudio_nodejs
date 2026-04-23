@@ -9,6 +9,8 @@ import {
 
 import { env } from "@/config/env";
 import { type AdminArea } from "@/config/navigation";
+import { getPublicBookingCatalog } from "@/features/booking/lib/booking-public";
+import { formatBookingDateLabel } from "@/features/booking/lib/booking-format";
 import { prisma } from "@/lib/prisma";
 
 const formatDateTime = new Intl.DateTimeFormat("cs-CZ", {
@@ -48,16 +50,30 @@ export type AdminBookingDetailData = {
   acquisitionLabel: string | null;
   clientNote: string | null;
   internalNote: string | null;
+  rescheduleCount: number;
+  rescheduledAtLabel: string | null;
   availableActions: AdminBookingActionOption[];
   historyItems: Array<{
     id: string;
-    statusLabel: string;
+    kind: "status" | "reschedule";
+    badgeLabel: string;
+    badgeTone: BookingStatus | "RESCHEDULED";
+    description: string;
     actorLabel: string;
     createdAtLabel: string;
     reason: string | null;
     note: string | null;
     sourceLabel: string | null;
   }>;
+  reschedule: {
+    enabled: boolean;
+    serviceId: string;
+    serviceDurationMinutes: number;
+    currentStartsAt: string;
+    currentEndsAt: string;
+    expectedUpdatedAt: string;
+    slots: Awaited<ReturnType<typeof getPublicBookingCatalog>>["slots"];
+  };
 };
 
 type ApplyAdminBookingStatusChangeInput = {
@@ -182,7 +198,7 @@ function formatDateTimeLabel(value: Date | null | undefined) {
   return formatDateTime.format(value);
 }
 
-function formatBookingDateLabel(startsAt: Date, endsAt: Date) {
+function formatAdminBookingDateLabel(startsAt: Date, endsAt: Date) {
   return `${formatDateTimeLabel(startsAt)} - ${new Intl.DateTimeFormat("cs-CZ", {
     hour: "2-digit",
     minute: "2-digit",
@@ -227,30 +243,72 @@ export async function getAdminBookingDetailData(
   area: AdminArea,
   bookingId: string,
 ): Promise<AdminBookingDetailData | null> {
-  const booking = await prisma.booking.findUnique({
-    where: { id: bookingId },
-    include: {
-      client: {
-        select: {
-          fullName: true,
-          email: true,
-          phone: true,
+  const [booking, bookingCatalog] = await Promise.all([
+    prisma.booking.findUnique({
+      where: { id: bookingId },
+      include: {
+        client: {
+          select: {
+            fullName: true,
+            email: true,
+            phone: true,
+          },
         },
-      },
-      statusHistory: {
-        orderBy: { createdAt: "desc" },
-        include: {
-          actorUser: {
-            select: { name: true },
+        statusHistory: {
+          orderBy: { createdAt: "desc" },
+          include: {
+            actorUser: {
+              select: { name: true },
+            },
+          },
+        },
+        rescheduleLogs: {
+          orderBy: { createdAt: "desc" },
+          include: {
+            changedByUser: {
+              select: {
+                name: true,
+              },
+            },
           },
         },
       },
-    },
-  });
+    }),
+    getPublicBookingCatalog(),
+  ]);
 
   if (!booking) {
     return null;
   }
+
+  const historyItems = [
+    ...booking.statusHistory.map((historyItem) => ({
+      id: historyItem.id,
+      kind: "status" as const,
+      badgeLabel: getBookingStatusLabel(historyItem.status),
+      badgeTone: historyItem.status,
+      description: `Stav rezervace je „${getBookingStatusLabel(historyItem.status)}“.`,
+      actorLabel: getActorLabel(historyItem.actorType, historyItem.actorUser?.name),
+      createdAtLabel: formatDateTimeLabel(historyItem.createdAt),
+      reason: historyItem.reason,
+      note: historyItem.note,
+      sourceLabel: getHistorySourceLabel(historyItem.metadata),
+      createdAt: historyItem.createdAt,
+    })),
+    ...booking.rescheduleLogs.map((log) => ({
+      id: log.id,
+      kind: "reschedule" as const,
+      badgeLabel: "Přesun termínu",
+      badgeTone: "RESCHEDULED" as const,
+      description: `Z ${formatBookingDateLabel(log.oldStartAt, log.oldEndAt)} na ${formatBookingDateLabel(log.newStartAt, log.newEndAt)}.`,
+      actorLabel: log.changedByClient ? "Klientka" : getActorLabel(BookingActorType.USER, log.changedByUser?.name),
+      createdAtLabel: formatDateTimeLabel(log.createdAt),
+      reason: log.reason,
+      note: null,
+      sourceLabel: "Doménová akce reschedule",
+      createdAt: log.createdAt,
+    })),
+  ].sort((left, right) => right.createdAt.getTime() - left.createdAt.getTime());
 
   return {
     id: booking.id,
@@ -258,7 +316,7 @@ export async function getAdminBookingDetailData(
     title: `${booking.clientNameSnapshot} • ${booking.serviceNameSnapshot}`,
     status: booking.status,
     statusLabel: getBookingStatusLabel(booking.status),
-    scheduledAtLabel: formatBookingDateLabel(booking.scheduledStartsAt, booking.scheduledEndsAt),
+    scheduledAtLabel: formatAdminBookingDateLabel(booking.scheduledStartsAt, booking.scheduledEndsAt),
     createdAtLabel: formatDateTimeLabel(booking.createdAt),
     updatedAtLabel: formatDateTimeLabel(booking.updatedAt),
     clientName: booking.client.fullName,
@@ -269,16 +327,30 @@ export async function getAdminBookingDetailData(
     acquisitionLabel: getBookingAcquisitionLabel(booking.acquisitionSource),
     clientNote: booking.clientNote,
     internalNote: booking.internalNote,
+    rescheduleCount: booking.rescheduleCount,
+    rescheduledAtLabel: booking.rescheduledAt ? formatDateTimeLabel(booking.rescheduledAt) : null,
     availableActions: getAdminBookingActionOptions(booking.status),
-    historyItems: booking.statusHistory.map((historyItem) => ({
-      id: historyItem.id,
-      statusLabel: getBookingStatusLabel(historyItem.status),
-      actorLabel: getActorLabel(historyItem.actorType, historyItem.actorUser?.name),
-      createdAtLabel: formatDateTimeLabel(historyItem.createdAt),
-      reason: historyItem.reason,
-      note: historyItem.note,
-      sourceLabel: getHistorySourceLabel(historyItem.metadata),
+    historyItems: historyItems.map((item) => ({
+      id: item.id,
+      kind: item.kind,
+      badgeLabel: item.badgeLabel,
+      badgeTone: item.badgeTone,
+      description: item.description,
+      actorLabel: item.actorLabel,
+      createdAtLabel: item.createdAtLabel,
+      reason: item.reason,
+      note: item.note,
+      sourceLabel: item.sourceLabel,
     })),
+    reschedule: {
+      enabled: booking.status === BookingStatus.PENDING || booking.status === BookingStatus.CONFIRMED,
+      serviceId: booking.serviceId,
+      serviceDurationMinutes: booking.serviceDurationMinutes,
+      currentStartsAt: booking.scheduledStartsAt.toISOString(),
+      currentEndsAt: booking.scheduledEndsAt.toISOString(),
+      expectedUpdatedAt: booking.updatedAt.toISOString(),
+      slots: bookingCatalog.slots,
+    },
   };
 }
 

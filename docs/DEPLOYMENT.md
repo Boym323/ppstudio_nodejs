@@ -92,6 +92,12 @@ Postup nasazení aplikace do produkce.
   - vytvoření testovací rezervace
   - propsání nové rezervace nebo změny slotu do overview dashboardu bez potřeby buildu nebo manuálního refresh flow navíc
   - `/admin/rezervace` a `/admin/provoz/rezervace`: kompaktní řádkový seznam, sticky header a inline akce `Potvrdit` / `Zrušit`
+  - detail rezervace:
+    - otevření draweru `Přesunout termín`
+    - výběr nového času ze slotů i ručně
+    - vznik auditního záznamu v historii detailu
+    - korektní warning při interní výjimce mimo veřejnou dostupnost
+    - založení `BOOKING_RESCHEDULED` v email logu při zapnutém oznámení
   - pravý drawer `Přidat rezervaci` v `/admin/rezervace` i `/admin/provoz/rezervace`:
     - vyhledání existující klientky podle jména / telefonu / e-mailu
     - založení nové klientky
@@ -138,6 +144,7 @@ Postup nasazení aplikace do produkce.
 9. Pokud běžíš v self-hosted režimu bez připraveného SMTP, nech dočasně `EMAIL_DELIVERY_MODE=log`, ať booking flow neblokuje start produkce.
 10. Pro produkci spusť zvlášť `npm run email:worker` jako samostatný proces nebo službu.
 11. Po nasazení reminder změny ověř, že worker běží nepřetržitě; bez něj se reminder joby neenqueueují ani nedoručují.
+12. Po nasazení reschedule změny ověř, že přesun resetuje `reminder24hQueuedAt` a `reminder24hSentAt`, aby se reminder správně navázal na nový termín.
 
 ### Systemd
 - Doporučený web unit je v [`deploy/systemd/ppstudio-web.service`](/var/www/ppstudio/deploy/systemd/ppstudio-web.service).
@@ -171,6 +178,7 @@ sudo /var/www/ppstudio/deploy/deploy.sh
 - Migrace `20260422170000_admin_invite_token_v1` přidává tabulku `AdminUserInviteToken`; po deployi ověř jednorázové použití pozvánky, expiraci a revokaci starších tokenů při novém odeslání.
 - Migrace `20260422201500_booking_email_actions_v1` rozšiřuje enum `BookingActionTokenType` o `APPROVE` a `REJECT`; po deployi ověř vytvoření nových tokenů při veřejné rezervaci a funkčnost email route `/rezervace/akce/[intent]/[token]`.
 - Migrace `20260422230500_manual_booking_admin_v1` přidává `Booking.isManual`, `Booking.manualOverride` a převádí `BookingSource` na nové provozní hodnoty; po deployi ověř `/admin/rezervace`, `/admin/provoz/rezervace`, ruční vytvoření rezervace a správné labely zdroje v listu i detailu.
+- Migrace `20260423113000_booking_reschedule_logs_v1` přidává `Booking.reminder24hQueuedAt`, `Booking.rescheduleCount` a tabulku `BookingRescheduleLog`; po deployi ověř detail rezervace, auditní historii přesunu a nové reminder markery po změně termínu.
 - Migrace `20260422194500_booking_calendar_event_v1` rozšiřuje enum `BookingActionTokenType` o `CALENDAR`; po deployi ověř, že schema je aktuální. Klientský kalendář už ale potvrzovací email posílá jako `.ics` přílohu, ne jako klikací link.
 - Migrace `20260422193000_calendar_feed_v1` přidává tabulku `CalendarFeed`; po deployi ověř owner sekci `/admin/nastaveni`, zapnutí feedu a úspěšný fetch `/api/calendar/owner.ics?token=...`.
 - Pokud je databáze v divergentním stavu a `prisma migrate dev` by nabízelo reset, neprováděj ho naslepo. Pro tuto migraci lze bezpečně použít `npx prisma db execute --file prisma/migrations/20260421113000_public_pricing_metadata/migration.sql` a až potom ověřit build.

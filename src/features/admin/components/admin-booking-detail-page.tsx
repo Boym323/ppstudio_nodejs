@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { AdminBookingNoteForm } from "./admin-booking-note-form";
 import { AdminBookingStatusForm } from "./admin-booking-status-form";
 import { AdminPanel } from "./admin-page-shell";
+import { RescheduleBookingButton } from "./reschedule-booking-button";
 
 type AdminBookingDetailPageProps = {
   data: AdminBookingDetailData;
@@ -72,6 +73,11 @@ export function AdminBookingDetailPage({ data }: AdminBookingDetailPageProps) {
           <SummaryItem label="Termín" value={data.scheduledAtLabel} />
           <SummaryItem label="Zdroj" value={data.sourceLabel} />
           {data.acquisitionLabel ? <SummaryItem label="Akvizice" value={data.acquisitionLabel} /> : null}
+          <SummaryItem
+            label="Přesuny"
+            value={data.rescheduleCount > 0 ? `${data.rescheduleCount}×` : "Bez přesunu"}
+            detail={data.rescheduleCount > 0 && data.rescheduledAtLabel ? `Naposledy ${data.rescheduledAtLabel}` : undefined}
+          />
           <SummaryItem label="Naposledy změněno" value={data.updatedAtLabel} />
           <SummaryItem label="Vytvořeno" value={data.createdAtLabel} />
           <SummaryItem label="Telefon" value={data.clientPhone} />
@@ -85,6 +91,21 @@ export function AdminBookingDetailPage({ data }: AdminBookingDetailPageProps) {
         denseHeader
       >
         <div className="space-y-2.5">
+          {data.reschedule.enabled ? (
+            <RescheduleBookingButton
+              area={data.area}
+              bookingId={data.id}
+              serviceId={data.reschedule.serviceId}
+              serviceName={data.serviceName}
+              serviceDurationMinutes={data.reschedule.serviceDurationMinutes}
+              currentScheduledAtLabel={data.scheduledAtLabel}
+              currentStartsAt={data.reschedule.currentStartsAt}
+              expectedUpdatedAt={data.reschedule.expectedUpdatedAt}
+              rescheduleCount={data.rescheduleCount}
+              slots={data.reschedule.slots}
+            />
+          ) : null}
+
           <AdminBookingStatusForm
             area={data.area}
             bookingId={data.id}
@@ -143,8 +164,8 @@ export function AdminBookingDetailPage({ data }: AdminBookingDetailPageProps) {
                         Krok {data.historyItems.length - index}
                       </p>
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className={cn(getHistoryStatusBadgeClassName(item.statusLabel), "text-[0.68rem]")}>
-                          {item.statusLabel}
+                        <span className={cn(getHistoryBadgeClassName(item.badgeTone), "text-[0.68rem]")}>
+                          {item.badgeLabel}
                         </span>
                         {item.sourceLabel ? (
                           <span className="rounded-full border border-white/8 px-2.5 py-1 text-[0.68rem] uppercase tracking-[0.16em] text-white/46">
@@ -155,6 +176,7 @@ export function AdminBookingDetailPage({ data }: AdminBookingDetailPageProps) {
                       <p className="text-sm text-white/54">
                         {item.actorLabel} • {item.createdAtLabel}
                       </p>
+                      <p className="text-sm leading-5 text-white/72">{item.description}</p>
                     </div>
                   </div>
 
@@ -284,21 +306,12 @@ function getStatusBadgeClassName(status: AdminBookingDetailData["status"]) {
   }
 }
 
-function getHistoryStatusBadgeClassName(statusLabel: string) {
-  switch (statusLabel) {
-    case "Čeká na potvrzení":
-      return getStatusBadgeClassName("PENDING");
-    case "Potvrzená":
-      return getStatusBadgeClassName("CONFIRMED");
-    case "Zrušená":
-      return getStatusBadgeClassName("CANCELLED");
-    case "Hotovo":
-      return getStatusBadgeClassName("COMPLETED");
-    case "Nedorazila":
-      return getStatusBadgeClassName("NO_SHOW");
-    default:
-      return getStatusBadgeClassName("PENDING");
+function getHistoryBadgeClassName(status: AdminBookingDetailData["historyItems"][number]["badgeTone"]) {
+  if (status === "RESCHEDULED") {
+    return "inline-flex rounded-full border border-[var(--color-accent)]/35 bg-[rgba(190,160,120,0.14)] px-2.5 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-[var(--color-accent-soft)]";
   }
+
+  return getStatusBadgeClassName(status);
 }
 
 function getStatusContextClassName(status: AdminBookingDetailData["status"]) {

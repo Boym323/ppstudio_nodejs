@@ -130,3 +130,30 @@ test("renderEmailTemplate creates 24h reminder email without calendar attachment
   assert.match(email.html, /Ozvat se studiu/);
   assert.equal(email.attachments, undefined);
 });
+
+test("renderEmailTemplate creates reschedule email with updated term and calendar attachment", async () => {
+  const { renderEmailTemplate } = await loadRenderer();
+  const email = await renderEmailTemplate(
+    "booking-rescheduled-v1",
+    "Změna termínu rezervace: Luxusní péče",
+    {
+      bookingId: "clztestbookingrescheduled",
+      serviceName: "Luxusní péče",
+      clientName: "Jana Nováková",
+      previousStartsAt: "2026-04-24T08:00:00.000Z",
+      previousEndsAt: "2026-04-24T09:00:00.000Z",
+      scheduledStartsAt: "2026-04-25T10:00:00.000Z",
+      scheduledEndsAt: "2026-04-25T11:00:00.000Z",
+      cancellationUrl: "https://example.com/rezervace/storno/token-rescheduled",
+      includeCalendarAttachment: true,
+    },
+  );
+
+  assert.equal(email.subject, "Změna termínu rezervace: Luxusní péče");
+  assert.match(email.text, /Původní termín:/);
+  assert.match(email.text, /Nový termín:/);
+  assert.match(email.text, /token-rescheduled/);
+  assert.match(email.html, /Termín rezervace byl změněn/);
+  assert.ok(email.attachments);
+  assert.equal(email.attachments.length, 1);
+});
