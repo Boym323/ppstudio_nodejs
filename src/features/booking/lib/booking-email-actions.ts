@@ -13,6 +13,9 @@ import {
 import { env } from "@/config/env";
 import { getAdminBookingHref, getBookingStatusLabel } from "@/features/admin/lib/admin-booking";
 import {
+  buildBookingActionExpiry,
+  buildBookingActionToken,
+  buildBookingManagementUrl,
   type BookingEmailActionIntent,
   hashBookingActionToken,
 } from "@/features/booking/lib/booking-action-tokens";
@@ -90,6 +93,7 @@ export type PerformBookingEmailActionResult =
 
 function buildBookingApprovedEmailPayload(
   booking: NonNullable<LoadedBookingActionToken["booking"]>,
+  manageReservationUrl: string,
 ) {
   return {
     bookingId: booking.id,
@@ -97,6 +101,7 @@ function buildBookingApprovedEmailPayload(
     clientName: booking.clientNameSnapshot,
     scheduledStartsAt: booking.scheduledStartsAt.toISOString(),
     scheduledEndsAt: booking.scheduledEndsAt.toISOString(),
+    manageReservationUrl,
   };
 }
 
@@ -427,7 +432,22 @@ export async function performBookingEmailAction(
           };
 
       if (targetStatus === BookingStatus.CONFIRMED) {
-        bookingApprovedPayload = buildBookingApprovedEmailPayload(lockedToken.booking!);
+        const manageToken = buildBookingActionToken();
+
+        await tx.bookingActionToken.create({
+          data: {
+            bookingId: lockedToken.bookingId,
+            type: BookingActionTokenType.RESCHEDULE,
+            tokenHash: manageToken.tokenHash,
+            expiresAt: buildBookingActionExpiry(now),
+            lastSentAt: now,
+          },
+        });
+
+        bookingApprovedPayload = buildBookingApprovedEmailPayload(
+          lockedToken.booking!,
+          buildBookingManagementUrl(manageToken.rawToken),
+        );
       } else {
         bookingApprovedPayload = {
           bookingId: lockedToken.booking!.id,

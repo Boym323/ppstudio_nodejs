@@ -26,12 +26,15 @@ test("renderEmailTemplate creates confirmation email with cancellation link", as
       clientName: "Jana Nováková",
       scheduledStartsAt: "2026-04-20T08:00:00.000Z",
       scheduledEndsAt: "2026-04-20T09:00:00.000Z",
+      manageReservationUrl: "https://example.com/rezervace/sprava/token-manage",
       cancellationUrl: "https://example.com/rezervace/storno/token123",
     },
   );
 
   assert.equal(email.subject, "Potvrzení rezervace: Luxusní péče");
+  assert.match(email.text, /token-manage/);
   assert.match(email.text, /token123/);
+  assert.match(email.html, /Změnit termín/);
   assert.match(email.html, /Zrušit rezervaci/);
 });
 
@@ -91,12 +94,15 @@ test("renderEmailTemplate creates approved email", async () => {
       clientName: "Jana Nováková",
       scheduledStartsAt: "2026-04-20T08:00:00.000Z",
       scheduledEndsAt: "2026-04-20T09:00:00.000Z",
+      manageReservationUrl: "https://example.com/rezervace/sprava/token-approved",
     },
   );
 
   assert.match(email.text, /byla potvrzena/i);
+  assert.match(email.text, /token-approved/);
   assert.match(email.text, /přiložené kalendářové události/i);
   assert.match(email.html, /Rezervace byla potvrzena/);
+  assert.match(email.html, /Změnit termín/);
   assert.ok(email.attachments);
   assert.equal(email.attachments.length, 1);
   assert.equal(email.attachments[0]?.filename, "pp-studio-rezervace.ics");
@@ -114,6 +120,7 @@ test("renderEmailTemplate creates 24h reminder email without calendar attachment
       clientName: "Jana Nováková",
       scheduledStartsAt: "2026-04-24T08:00:00.000Z",
       scheduledEndsAt: "2026-04-24T09:00:00.000Z",
+      manageReservationUrl: "https://example.com/rezervace/sprava/token-reminder",
       cancellationUrl: "https://example.com/rezervace/storno/token-reminder",
     },
   );
@@ -122,6 +129,7 @@ test("renderEmailTemplate creates 24h reminder email without calendar attachment
   assert.match(email.text, /zítra máte rezervaci v PP Studiu/i);
   assert.match(email.text, /Jen krátká připomínka vašeho zítřejšího termínu/i);
   assert.match(email.text, /Kde nás najdete:/i);
+  assert.match(email.text, /Změnit termín/);
   assert.match(email.text, /Ozvat se studiu/);
   assert.match(email.text, /Zrušit rezervaci/);
   assert.match(email.text, /Pokud by se cokoliv změnilo, dejte nám prosím vědět co nejdříve/i);
@@ -144,6 +152,7 @@ test("renderEmailTemplate creates reschedule email with updated term and calenda
       previousEndsAt: "2026-04-24T09:00:00.000Z",
       scheduledStartsAt: "2026-04-25T10:00:00.000Z",
       scheduledEndsAt: "2026-04-25T11:00:00.000Z",
+      manageReservationUrl: "https://example.com/rezervace/sprava/token-rescheduled-manage",
       cancellationUrl: "https://example.com/rezervace/storno/token-rescheduled",
       includeCalendarAttachment: true,
     },
@@ -152,6 +161,7 @@ test("renderEmailTemplate creates reschedule email with updated term and calenda
   assert.equal(email.subject, "Změna termínu rezervace: Luxusní péče");
   assert.match(email.text, /Původní termín:/);
   assert.match(email.text, /Nový termín:/);
+  assert.match(email.text, /token-rescheduled-manage/);
   assert.match(email.text, /token-rescheduled/);
   assert.match(email.html, /Termín rezervace byl změněn/);
   assert.ok(email.attachments);

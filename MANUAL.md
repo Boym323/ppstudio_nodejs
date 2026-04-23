@@ -139,7 +139,7 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
   - status blok `Rezervace přijata`
   - hlavní detail se službou, datem, časem a referenčním kódem
   - stručný blok `Co bude následovat`
-  - akce `Požádat o změnu` a `Zrušit rezervaci`
+  - akce `Změnit termín` a `Zrušit rezervaci`
   - samostatný kontakt na studio až pod hlavními informacemi
 - Provozní e-mail o nové rezervaci teď obsahuje tři akce:
   - `Schválit rezervaci`
@@ -395,6 +395,7 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
 - `BookingStatusHistory` slouží jako audit změn stavu a rozlišuje akci uživatele, klienta nebo systému.
 - Admin detail rezervace zobrazuje historii změn jako provozní timeline, takže salon i owner vidí, kdo a kdy stav upravil.
 - `BookingActionToken` ukládá pouze hash tokenu pro storno a přesun termínu, nikdy ne surovou hodnotu tokenu.
+- Klientský manage flow `/rezervace/sprava/[token]` přijímá jen hashovaný token typu `RESCHEDULE`; bez validního tokenu neukáže žádná data rezervace.
 - `EmailLog` umožňuje trasovat odeslané i neúspěšné e-maily navázané na klienta, rezervaci a případný token.
 - Owner-only sekce `Email logy` je provozní observability obrazovka pro pending frontu, retry pokusy a poslední chyby workeru.
 - Detail konkrétního e-mailu na `/admin/email-logy/[emailLogId]` ukazuje payload, poslední chybu, vazby na rezervaci a klientku a nabízí ruční retry nebo uvolnění zaseknutého jobu.
@@ -428,6 +429,12 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
   - zobrazí bezpečný potvrzovací krok
   - po potvrzení zruší rezervaci a zapíše audit, ale jen pokud rezervace ještě splňuje globální storno limit ze settings
   - uloží storno potvrzení do `EmailLog` pro worker nebo do `SENT` v log režimu
+- `/rezervace/sprava/[token]` je produkční self-service změna termínu:
+  - ověří hash tokenu typu `RESCHEDULE` server-side
+  - ukáže službu, aktuální termín, stav rezervace a CTA pro změnu nebo storno
+  - nabídne jen veřejně dostupné nové časy pro stejnou službu a délku
+  - online změnu zablokuje při zrušené/uzavřené rezervaci, neplatném tokenu nebo méně než `bookingCancellationHours` před termínem
+  - po potvrzení volá stejné `rescheduleBooking(...)` jako admin detail a do historie zapisuje `changedByClient = true`
 
 ## Řešení Problémů (Troubleshooting)
 - Pokud se rezervace přesune, ale klientce nepřijde e-mail o změně termínu:

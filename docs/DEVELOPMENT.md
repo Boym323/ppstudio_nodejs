@@ -256,7 +256,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - `Booking` drží metadata posledního přesunu (`rescheduledAt`, `rescheduleCount`) a reminder queue stavu (`reminder24hQueuedAt`, `reminder24hSentAt`); historický self-relation chain zůstává ve schématu jen jako legacy pole a nové reschedule flow ho nepoužívá.
 - `BookingRescheduleLog` je samostatný auditní model pro doménovou akci přesunu termínu; ukládá původní a nový interval, aktéra a volitelný důvod změny.
 - `BookingStatusHistory` drží auditní stopu změn stavu včetně aktéra a strukturovaných metadat.
-- `BookingActionToken` ukládá hash tokenu, expiraci a použití/revokaci pro bezpečné self-service storno, provozní email akce a zákaznický calendar event.
+- `BookingActionToken` ukládá hash tokenu, expiraci a použití/revokaci pro bezpečné self-service storno, self-service změnu termínu, provozní email akce a zákaznický calendar event.
 - `CalendarFeed` drží owner subscription feed jako samostatnou entitu mimo `SiteSettings`; ukládá scope, aktivaci, rotační salt a audit času změny.
 - Kalendářový token se neukládá jako raw secret do DB. URL se odvozuje serverově z `CalendarFeed.id`, `tokenSalt` a `ADMIN_SESSION_SECRET`, takže:
   - admin může odkaz zkopírovat kdykoli
@@ -273,7 +273,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - `EmailLog` je připravený na notifikační workflow a troubleshooting komunikace s klientem.
 - 24h reminder rezervací je v `src/features/booking/lib/booking-reminders.ts`; výběr kandidátek je omezený na `CONFIRMED` bookingy s e-mailem, `reminder24hQueuedAt = null`, `reminder24hSentAt = null` a startem mezi `now + 23h` a `now + 25h`.
 - Reminder scheduler neběží jako zvláštní služba; `src/lib/email/worker.ts` ho spouští uvnitř existujícího `email:worker` procesu každých 5 minut a vytváří pouze `EmailLog`, nikdy neodesílá SMTP přímo.
-- Reminder template `booking-reminder-24h-v1` je krátký, bez `.ics`, a používá nový storno token přímo v payloadu reminder e-mailu; copy a layout mají držet lidský tón, rychlou scanovatelnost a CTA hierarchii `kontakt jako první volba, storno jako sekundární akce`.
+- Reminder template `booking-reminder-24h-v1` je krátký, bez `.ics`, a používá dvojici bezpečných tokenů pro `Změnit termín` a `Zrušit rezervaci`; copy a layout mají držet lidský tón a rychlou scanovatelnost.
 - Idempotence reminderu stojí na kombinaci `Booking.reminder24hQueuedAt`, `Booking.reminder24hSentAt` a transakčního claimu kandidátky; při přesunu termínu reschedule flow queue marker resetuje, aby se reminder mohl navázat na nový čas bez duplikace starého jobu.
 - Legacy `Setting` zůstává v databázi jako obecné key-value úložiště pro budoucí interní potřeby, ale produkční admin sekce `Nastavení` stojí na explicitním singleton modelu `SiteSettings`.
 - `src/lib/site-settings.ts` je centrální read vrstva pro veřejné kontakty, booking pravidla a e-mailový branding; veřejné a e-mailové read cesty už do DB nezapisují a při chybě nebo chybějícím singletonu spadnou na bezpečné defaulty z env/content vrstvy.
@@ -310,7 +310,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - akční řada oddělená od vysvětlujícího textu
   - kontakt na studio až v posledním bloku
 - `createPublicBooking()` vrací pro confirmation vrstvu i `scheduledStartsAt`, `scheduledEndsAt` a `cancellationUrl`, aby web i e-mail nemusely domýšlet další akce z neúplných dat.
-- `BookingConfirmationPanel` používá dočasný secondary CTA `Požádat o změnu` přes předvyplněný `mailto:` odkaz; to je záměrný placeholder pro budoucí self-service manage/reschedule endpoint.
+- `BookingConfirmationPanel` už používá produkční CTA `Změnit termín` vedoucí na `/rezervace/sprava/[token]`; veřejný post-submit screen i navazující e-maily tak sdílejí stejný secure manage entrypoint.
 - Pending confirmation screen po odeslání rezervace záměrně nenabízí `Přidat do kalendáře`; kalendářová událost se přikládá až do emailu `booking-approved-v1` po přechodu rezervace do `CONFIRMED`.
 - Transformaci slotů pro krok 2 drž mimo JSX v helperu `src/features/booking/lib/booking-time-slots.ts`; UI komponenty mají dostávat už připravené `TimeSlotOption[]` a skupiny z `groupSlotsByDayPeriod()`.
 - Kalendářní denní klíče v kroku 2 (`YYYY-MM-DD`) generuj locale-agnosticky přes `Intl.DateTimeFormat(...).formatToParts()`; nepoužívej `format()` jako zdroj klíče, protože pořadí/oddělovače se liší mezi prostředími a může rozbít mapování měsíců/dnů.
@@ -320,6 +320,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - templates renderují obsah z `EmailLog.templateKey`
   - worker claimuje `EmailLog` řádky v background režimu a delivery aktualizuje `EmailLog.status`, `provider`, `providerMessageId`, `attemptCount`, `nextAttemptAt` a `errorMessage`
 - Potvrzovací e-mail `booking-confirmation-v1` má držet stejnou informační hierarchii jako web confirmation screen: stav -> služba / termín -> další kroky -> akce -> kontakt, bez duplicitního úvodního textu mimo hero blok.
+- `booking-confirmation-v1`, `booking-approved-v1`, `booking-reminder-24h-v1` i `booking-rescheduled-v1` teď dostávají `manageReservationUrl`; token se generuje per e-mail/send a do DB se ukládá jen jeho hash.
 - Referenční kód rezervace už se v klientském flow záměrně nepoužívá; veřejný web, e-maily i `.ics` popis komunikují jen službu, termín a konkrétní akce přes tokenizované odkazy.
 - Potvrzovací e-mail `booking-approved-v1` nově přikládá soubor `pp-studio-rezervace.ics`; attachment se generuje serverově při renderu šablony z payloadu `bookingId + serviceName + scheduledStartsAt + scheduledEndsAt`.
 
@@ -448,6 +449,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - `ADMIN_SESSION_SECRET` musí mít minimálně 32 znaků.
 - Admin routy nikdy neodemykat jen na základě klientského stavu.
 - Cancel/reschedule tokeny generovat jako náhodné tajné hodnoty, do DB ukládat pouze jejich hash.
+- Self-service reschedule nikdy nesmí přijímat veřejné `bookingId`; jediná veřejná cesta k rezervaci je přes validní `RESCHEDULE` token a server-side znovuověření stavu i časového limitu.
 - E-mail a telefon normalizovat na vstupu server-side ještě před zápisem do `Client` a `Booking`.
 - Při veřejné rezervaci zamknout slot v transakci a znovu ověřit kapacitu až těsně před vytvořením `Booking`.
 - Při serializable konfliktu nebo deadlocku booking flow transakci krátce retryne místo okamžitého pádu na generickou chybu.

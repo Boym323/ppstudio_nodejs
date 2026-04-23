@@ -179,6 +179,7 @@ sudo /var/www/ppstudio/deploy/deploy.sh
 - Migrace `20260422201500_booking_email_actions_v1` rozšiřuje enum `BookingActionTokenType` o `APPROVE` a `REJECT`; po deployi ověř vytvoření nových tokenů při veřejné rezervaci a funkčnost email route `/rezervace/akce/[intent]/[token]`.
 - Migrace `20260422230500_manual_booking_admin_v1` přidává `Booking.isManual`, `Booking.manualOverride` a převádí `BookingSource` na nové provozní hodnoty; po deployi ověř `/admin/rezervace`, `/admin/provoz/rezervace`, ruční vytvoření rezervace a správné labely zdroje v listu i detailu.
 - Migrace `20260423113000_booking_reschedule_logs_v1` přidává `Booking.reminder24hQueuedAt`, `Booking.rescheduleCount` a tabulku `BookingRescheduleLog`; po deployi ověř detail rezervace, auditní historii přesunu a nové reminder markery po změně termínu.
+- Klientský self-service manage/reschedule flow nevyžaduje novou migraci; po deployi ale ověř `/rezervace/sprava/[token]`, confirmation CTA `Změnit termín`, reminder CTA `Změnit termín` a zápis `changedByClient = true` do `BookingRescheduleLog`.
 - Migrace `20260422194500_booking_calendar_event_v1` rozšiřuje enum `BookingActionTokenType` o `CALENDAR`; po deployi ověř, že schema je aktuální. Klientský kalendář už ale potvrzovací email posílá jako `.ics` přílohu, ne jako klikací link.
 - Migrace `20260422193000_calendar_feed_v1` přidává tabulku `CalendarFeed`; po deployi ověř owner sekci `/admin/nastaveni`, zapnutí feedu a úspěšný fetch `/api/calendar/owner.ics?token=...`.
 - Pokud je databáze v divergentním stavu a `prisma migrate dev` by nabízelo reset, neprováděj ho naslepo. Pro tuto migraci lze bezpečně použít `npx prisma db execute --file prisma/migrations/20260421113000_public_pricing_metadata/migration.sql` a až potom ověřit build.
@@ -205,6 +206,7 @@ sudo /var/www/ppstudio/deploy/deploy.sh
 - Aplikace nevyžaduje externí queue; e-maily se ve v1 ukládají do PostgreSQL outboxu a worker je vytahuje na pozadí.
 - Pro menší self-hosted provoz stačí běžný SMTP účet s app passwordem, běžící worker a monitoring `EmailLog` v owner adminu.
 - `email:worker` nově zajišťuje dvě věci: enqueue 24h reminderů i samotné doručování `EmailLog`. Pokud worker stojí, stojí obě části flow.
+- Pokud worker stojí, klientský self-service přesun sice změní termín v DB, ale potvrzovací e-mail o změně zůstane jen ve frontě nebo se nedoručí; smoke test po deployi má vždy ověřit i vznik `BOOKING_RESCHEDULED`.
 - Pokud SMTP dočasně nefunguje, přepni na `EMAIL_DELIVERY_MODE=log`; booking a storno zůstanou funkční a e-mailové pokusy se dál auditují.
 - Když worker hlásí TLS chybu typu `wrong version number`, zkontroluj, že `SMTP_SECURE` odpovídá portu. Pro Resend a podobné providery je nejbezpečnější `SMTP_SECURE=auto`.
 - Reverzní proxy by měla korektně předávat `x-forwarded-for`, aby submission audit a rate limiting pracovaly smysluplně.

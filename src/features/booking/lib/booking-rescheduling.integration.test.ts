@@ -243,6 +243,7 @@ dbTest("rescheduleBooking updates the existing booking, writes audit history and
       new Date(new Date(seed.newStartAt).getTime() + 60 * 60 * 1000).toISOString(),
     );
     assert.equal(rescheduleLog.changedByUserId, seed.actorUserId);
+    assert.equal(rescheduleLog.changedByClient, false);
     assert.equal(rescheduleLog.reason, "Klientka volala a chtěla pozdější čas.");
 
     const emailLog = await prisma.emailLog.findFirstOrThrow({
@@ -269,6 +270,37 @@ dbTest("rescheduleBooking updates the existing booking, writes audit history and
     });
 
     assert.equal(oldSlotStillExists, null);
+  } finally {
+    await cleanupSeed(seed);
+  }
+});
+
+dbTest("rescheduleBooking writes client-originated audit flag for self-service changes", async () => {
+  const seed = await createSeed();
+  const { prisma, rescheduleBooking } = await loadModules();
+
+  try {
+    await rescheduleBooking({
+      bookingId: seed.bookingId,
+      slotId: seed.newSlotId,
+      newStartAt: seed.newStartAt,
+      changedByUserId: null,
+      changedByClient: true,
+      notifyClient: false,
+      expectedUpdatedAt: seed.bookingUpdatedAt,
+    });
+
+    const rescheduleLog = await prisma.bookingRescheduleLog.findFirstOrThrow({
+      where: { bookingId: seed.bookingId },
+      orderBy: { createdAt: "desc" },
+      select: {
+        changedByUserId: true,
+        changedByClient: true,
+      },
+    });
+
+    assert.equal(rescheduleLog.changedByUserId, null);
+    assert.equal(rescheduleLog.changedByClient, true);
   } finally {
     await cleanupSeed(seed);
   }

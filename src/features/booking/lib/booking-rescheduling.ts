@@ -13,12 +13,12 @@ import {
   buildBookingActionExpiry,
   buildBookingActionToken,
   buildBookingCancellationUrl,
+  buildBookingManagementUrl,
 } from "@/features/booking/lib/booking-action-tokens";
 import { formatBookingDateLabel } from "@/features/booking/lib/booking-format";
 import { prisma } from "@/lib/prisma";
 import { getBookingPolicySettings, isBookingWithinWindow } from "@/lib/site-settings";
 
-const RESCHEDULABLE_BOOKING_STATUSES = [BookingStatus.PENDING, BookingStatus.CONFIRMED] as const;
 const ACTIVE_BOOKING_STATUSES = [BookingStatus.PENDING, BookingStatus.CONFIRMED] as const;
 const MAX_BOOKING_TRANSACTION_RETRIES = 3;
 const EDITABLE_SLOT_CAPACITY = 1;
@@ -62,6 +62,7 @@ export type RescheduleBookingInput = {
   slotId?: string;
   reason?: string | null;
   changedByUserId: string | null;
+  changedByClient?: boolean;
   notifyClient: boolean;
   includeCalendarAttachment?: boolean;
   expectedUpdatedAt?: string;
@@ -76,26 +77,6 @@ export type RescheduleBookingResult = {
   rescheduleCount: number;
   manualOverride: boolean;
   notificationStatus: "queued" | "logged" | "skipped" | "failed";
-};
-
-type BookingRecord = {
-  id: string;
-  status: BookingStatus;
-  slotId: string;
-  serviceId: string;
-  serviceDurationMinutes: number;
-  serviceNameSnapshot: string;
-  scheduledStartsAt: Date;
-  scheduledEndsAt: Date;
-  clientId: string;
-  clientNameSnapshot: string;
-  clientEmailSnapshot: string;
-  clientPhoneSnapshot: string | null;
-  clientNote: string | null;
-  manualOverride: boolean;
-  updatedAt: Date;
-  rescheduleCount: number;
-  slot: BookingSlotRecord;
 };
 
 type BookingSlotRecord = {
@@ -342,17 +323,28 @@ async function queueBookingRescheduledNotification(input: {
   includeCalendarAttachment: boolean;
 }) {
   const now = new Date();
+  const manageToken = buildBookingActionToken();
   const cancellationToken = buildBookingActionToken();
   const actionToken = await prisma.bookingActionToken.create({
+    data: {
+      bookingId: input.bookingId,
+      type: BookingActionTokenType.RESCHEDULE,
+      tokenHash: manageToken.tokenHash,
+      expiresAt: buildBookingActionExpiry(now),
+      lastSentAt: now,
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  await prisma.bookingActionToken.create({
     data: {
       bookingId: input.bookingId,
       type: BookingActionTokenType.CANCEL,
       tokenHash: cancellationToken.tokenHash,
       expiresAt: buildBookingActionExpiry(now),
       lastSentAt: now,
-    },
-    select: {
-      id: true,
     },
   });
 
@@ -378,6 +370,7 @@ async function queueBookingRescheduledNotification(input: {
         previousEndsAt: input.previousEndsAt.toISOString(),
         scheduledStartsAt: input.scheduledStartsAt.toISOString(),
         scheduledEndsAt: input.scheduledEndsAt.toISOString(),
+        manageReservationUrl: buildBookingManagementUrl(manageToken.rawToken),
         cancellationUrl: buildBookingCancellationUrl(cancellationToken.rawToken),
         includeCalendarAttachment: input.includeCalendarAttachment,
       },
@@ -723,7 +716,7 @@ async function rescheduleBookingInTransaction(
       newStartAt: requestedStartsAt,
       newEndAt: requestedEndsAt,
       changedByUserId: input.changedByUserId,
-      changedByClient: false,
+      changedByClient: input.changedByClient ?? false,
       reason: normalizedReason,
     },
   });

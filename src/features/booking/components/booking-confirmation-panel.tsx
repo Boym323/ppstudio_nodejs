@@ -10,6 +10,7 @@ type BookingConfirmationPanelProps = {
     scheduledStartsAt: string;
     scheduledEndsAt: string;
     clientName: string;
+    manageReservationUrl: string;
     cancellationUrl: string;
   };
   salonContact: {
@@ -94,24 +95,12 @@ export function BookingConfirmationPanel({
 
       <section className="rounded-[1.75rem] border border-black/6 bg-white p-6 shadow-[var(--shadow-panel)] sm:p-7">
         <div className="flex flex-col gap-4 lg:flex-row lg:flex-wrap">
-          <ObfuscatedEmailLink
-            email={salonContact.email}
-            subject={`Žádost o změnu rezervace: ${confirmation.serviceName}`}
-            body={[
-              'Dobrý den,',
-              '',
-              'prosím o změnu rezervace.',
-              `Klientka: ${confirmation.clientName}`,
-              `Služba: ${confirmation.serviceName}`,
-              `Termín: ${calendarDate}, ${timeRange}`,
-              '',
-              'Děkuji.',
-            ].join('\n')}
-            ariaLabel="Požádat o změnu rezervace e-mailem"
+          <a
+            href={confirmation.manageReservationUrl}
             className="inline-flex min-h-13 flex-1 items-center justify-center rounded-full bg-[var(--color-foreground)] px-6 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-white transition hover:bg-[#2c221d] sm:text-sm"
           >
-            Požádat o změnu
-          </ObfuscatedEmailLink>
+            Změnit termín
+          </a>
           <a
             href={confirmation.cancellationUrl}
             className="inline-flex min-h-13 flex-1 items-center justify-center rounded-full border border-red-200 bg-red-50 px-6 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-red-700 transition hover:border-red-300 hover:bg-red-100 sm:text-sm"
@@ -120,7 +109,7 @@ export function BookingConfirmationPanel({
           </a>
         </div>
         <p className="mt-4 text-sm leading-6 text-[var(--color-muted)]">
-          Požádat o změnu zatím otevře předvyplněný e-mail do studia s detaily termínu.
+          Přes bezpečný odkaz si můžete sama vybrat nový volný termín nebo rezervaci zrušit.
         </p>
       </section>
 

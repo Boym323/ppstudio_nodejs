@@ -13,6 +13,7 @@ import {
   buildBookingActionExpiry,
   buildBookingActionToken,
   buildBookingCancellationUrl,
+  buildBookingManagementUrl,
 } from "./booking-action-tokens";
 
 const BOOKING_REMINDER_24H_TARGET_HOURS = 24;
@@ -162,14 +163,16 @@ export async function enqueueBookingReminder24hJobs(
 
         claimedBookingId = booking.id;
 
+        const manageToken = buildBookingActionToken();
         const cancellationToken = buildBookingActionToken();
+        const manageReservationUrl = buildBookingManagementUrl(manageToken.rawToken);
         const cancellationUrl = buildBookingCancellationUrl(cancellationToken.rawToken);
 
-        const cancellationActionToken = await tx.bookingActionToken.create({
+        const manageActionToken = await tx.bookingActionToken.create({
           data: {
             bookingId: booking.id,
-            type: BookingActionTokenType.CANCEL,
-            tokenHash: cancellationToken.tokenHash,
+            type: BookingActionTokenType.RESCHEDULE,
+            tokenHash: manageToken.tokenHash,
             expiresAt: buildBookingActionExpiry(now),
             lastSentAt: now,
           },
@@ -178,11 +181,21 @@ export async function enqueueBookingReminder24hJobs(
           },
         });
 
+        await tx.bookingActionToken.create({
+          data: {
+            bookingId: booking.id,
+            type: BookingActionTokenType.CANCEL,
+            tokenHash: cancellationToken.tokenHash,
+            expiresAt: buildBookingActionExpiry(now),
+            lastSentAt: now,
+          },
+        });
+
         await tx.emailLog.create({
           data: {
             bookingId: booking.id,
             clientId: booking.clientId,
-            actionTokenId: cancellationActionToken.id,
+            actionTokenId: manageActionToken.id,
             type: EmailLogType.BOOKING_REMINDER,
             status: env.EMAIL_DELIVERY_MODE === "background" ? undefined : EmailLogStatus.SENT,
             attemptCount: env.EMAIL_DELIVERY_MODE === "background" ? undefined : 1,
@@ -198,6 +211,7 @@ export async function enqueueBookingReminder24hJobs(
               clientName: booking.clientNameSnapshot,
               scheduledStartsAt: booking.scheduledStartsAt.toISOString(),
               scheduledEndsAt: booking.scheduledEndsAt.toISOString(),
+              manageReservationUrl,
               cancellationUrl,
             },
             provider: env.EMAIL_DELIVERY_MODE === "background" ? undefined : "log",

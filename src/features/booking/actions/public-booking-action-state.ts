@@ -12,6 +12,7 @@ export type PublicBookingActionState = {
     scheduledAtLabel: string;
     clientName: string;
     clientEmail: string;
+    manageReservationUrl: string;
     cancellationUrl: string;
     emailDeliveryStatus: "queued" | "logged" | "skipped";
   };

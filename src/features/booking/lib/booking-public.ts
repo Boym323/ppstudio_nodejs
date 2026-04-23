@@ -18,6 +18,7 @@ import {
   buildBookingCancellationUrl,
   buildBookingEmailActionExpiry,
   buildBookingEmailActionUrl,
+  buildBookingManagementUrl,
 } from "@/features/booking/lib/booking-action-tokens";
 import { formatBookingDateLabel } from "@/features/booking/lib/booking-format";
 import { deliverEmailLog } from "@/lib/email/delivery";
@@ -95,6 +96,7 @@ export type CreatePublicBookingResult = {
   scheduledAtLabel: string;
   clientName: string;
   clientEmail: string;
+  manageReservationUrl: string;
   cancellationUrl: string;
   emailDeliveryStatus: "queued" | "logged" | "skipped";
 };
@@ -322,6 +324,7 @@ type SharedCreateBookingResult = {
   scheduledAtLabel: string;
   clientName: string;
   clientEmail: string;
+  manageReservationUrl: string;
   cancellationUrl: string;
   createdEmailLogIds: string[];
   emailDeliveryStatus: "queued" | "logged" | "skipped";
@@ -639,7 +642,6 @@ async function createNotificationEmailLogs(
     serviceName: string;
     scheduledStartsAt: Date;
     scheduledEndsAt: Date;
-    cancellationUrl: string;
     now: Date;
     status: "PENDING" | "CONFIRMED";
     sendClientEmail: boolean;
@@ -649,12 +651,13 @@ async function createNotificationEmailLogs(
   },
 ) {
   const createdEmailLogIds: string[] = [];
+  const rescheduleToken = buildBookingActionToken();
   const cancellationToken = buildBookingActionToken();
-  const actionToken = await tx.bookingActionToken.create({
+  const rescheduleActionToken = await tx.bookingActionToken.create({
     data: {
       bookingId: input.bookingId,
-      type: BookingActionTokenType.CANCEL,
-      tokenHash: cancellationToken.tokenHash,
+      type: BookingActionTokenType.RESCHEDULE,
+      tokenHash: rescheduleToken.tokenHash,
       expiresAt: buildBookingActionExpiry(input.now),
       lastSentAt: input.sendClientEmail ? input.now : null,
     },
@@ -663,6 +666,17 @@ async function createNotificationEmailLogs(
     },
   });
 
+  await tx.bookingActionToken.create({
+    data: {
+      bookingId: input.bookingId,
+      type: BookingActionTokenType.CANCEL,
+      tokenHash: cancellationToken.tokenHash,
+      expiresAt: buildBookingActionExpiry(input.now),
+      lastSentAt: input.sendClientEmail ? input.now : null,
+    },
+  });
+
+  const manageReservationUrl = buildBookingManagementUrl(rescheduleToken.rawToken);
   const cancellationUrl = buildBookingCancellationUrl(cancellationToken.rawToken);
 
   if (input.sendClientEmail) {
@@ -670,7 +684,7 @@ async function createNotificationEmailLogs(
       data: {
         bookingId: input.bookingId,
         clientId: input.clientId,
-        actionTokenId: actionToken.id,
+        actionTokenId: rescheduleActionToken.id,
         type: EmailLogType.BOOKING_CONFIRMED,
         status: env.EMAIL_DELIVERY_MODE === "background" ? undefined : EmailLogStatus.SENT,
         attemptCount: env.EMAIL_DELIVERY_MODE === "background" ? undefined : 1,
@@ -694,6 +708,7 @@ async function createNotificationEmailLogs(
                 clientName: input.clientName,
                 scheduledStartsAt: input.scheduledStartsAt.toISOString(),
                 scheduledEndsAt: input.scheduledEndsAt.toISOString(),
+                manageReservationUrl,
                 includeCalendarAttachment: input.includeCalendarAttachment,
               }
             : {
@@ -702,6 +717,7 @@ async function createNotificationEmailLogs(
                 clientName: input.clientName,
                 scheduledStartsAt: input.scheduledStartsAt.toISOString(),
                 scheduledEndsAt: input.scheduledEndsAt.toISOString(),
+                manageReservationUrl,
                 cancellationUrl,
               },
         provider: env.EMAIL_DELIVERY_MODE === "background" ? undefined : "log",
@@ -774,6 +790,7 @@ async function createNotificationEmailLogs(
   }
 
   return {
+    manageReservationUrl,
     cancellationUrl,
     createdEmailLogIds,
   };
@@ -1109,7 +1126,6 @@ async function createBookingWithEngine(
             serviceName: service.name,
             scheduledStartsAt: booking.scheduledStartsAt,
             scheduledEndsAt: booking.scheduledEndsAt,
-            cancellationUrl: "",
             now,
             status: input.status,
             sendClientEmail: input.sendClientEmail,
@@ -1129,6 +1145,7 @@ async function createBookingWithEngine(
             ),
             clientName: normalizedFullName,
             clientEmail: normalizedEmail,
+            manageReservationUrl: notifications.manageReservationUrl,
             cancellationUrl: notifications.cancellationUrl,
             createdEmailLogIds: notifications.createdEmailLogIds,
             emailDeliveryStatus:
@@ -1322,6 +1339,7 @@ export async function createPublicBooking(
     scheduledAtLabel: result.scheduledAtLabel,
     clientName: result.clientName,
     clientEmail: result.clientEmail,
+    manageReservationUrl: result.manageReservationUrl,
     cancellationUrl: result.cancellationUrl,
     emailDeliveryStatus: result.emailDeliveryStatus,
   };

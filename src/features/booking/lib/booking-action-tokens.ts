@@ -37,6 +37,10 @@ export function buildBookingCancellationUrl(rawToken: string) {
   return `${env.NEXT_PUBLIC_APP_URL}/rezervace/storno/${rawToken}`;
 }
 
+export function buildBookingManagementUrl(rawToken: string) {
+  return `${env.NEXT_PUBLIC_APP_URL}/rezervace/sprava/${rawToken}`;
+}
+
 export function buildBookingEmailActionUrl(intent: BookingEmailActionIntent, rawToken: string) {
   return `${env.NEXT_PUBLIC_APP_URL}/rezervace/akce/${intent}/${rawToken}`;
 }

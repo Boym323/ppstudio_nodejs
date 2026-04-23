@@ -51,3 +51,5 @@ Sem patří krátké záznamy architektonických rozhodnutí.
 - `0034-booking-reminder-24h-v1.md`
 - `0035-public-terms-page-legal-layout-v1.md`
 - `0036-public-cancellation-policy-page-v1.md`
+- `0037-admin-booking-reschedule-v1.md`
+- `0038-public-booking-manage-reschedule-v1.md`
