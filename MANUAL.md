@@ -77,6 +77,12 @@ npm run db:generate
 npm run dev
 ```
 
+Pro DB-backed integrační test reschedule flow je připravený i samostatný příkaz:
+
+```bash
+npm run test:db:booking
+```
+
 Pokud databáze ještě neobsahuje schema nebo přibyly nové migrace:
 
 ```bash

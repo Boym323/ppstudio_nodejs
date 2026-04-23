@@ -10,6 +10,7 @@
     "start": "next start",
     "lint": "eslint",
     "test": "node --import tsx --test src/**/*.test.ts",
+    "test:db:booking": "RUN_DB_INTEGRATION_TESTS=1 node --import tsx --test src/features/booking/lib/booking-rescheduling.integration.test.ts",
     "email:worker": "tsx scripts/email-delivery-worker.ts",
     "email:worker:once": "tsx scripts/email-delivery-worker.ts --once",
     "db:generate": "prisma generate",

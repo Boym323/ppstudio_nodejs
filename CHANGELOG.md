@@ -58,6 +58,8 @@ Formát je inspirovaný Keep a Changelog.
 - Finální cleanup pass veřejného confirmation flow zkrátil duplicity v hero copy, zpřesnil CTA na `Požádat o změnu`, doplnil službu do hlavního přehledu rezervace a zjednodušil kontaktní texty.
 
 ### Added
+- DB-backed integrační testy pro `rescheduleBooking(...)`, které ověřují úspěšný přesun, auditní log, reset reminder markerů, cleanup starého override slotu i blokaci kolizí a uzavřených stavů; testy jsou záměrně gateované přes `RUN_DB_INTEGRATION_TESTS=1`.
+- Přibyl script `npm run test:db:booking`, který spouští DB-backed integrační testy pro reschedule flow jedním příkazem.
 - Migraci `20260423113000_booking_reschedule_logs_v1`, která přidává `Booking.reminder24hQueuedAt`, `Booking.rescheduleCount` a novou auditní tabulku `BookingRescheduleLog`.
 - Doménovou službu `src/features/booking/lib/booking-rescheduling.ts` pro centrální backend flow `rescheduleBooking(...)` včetně validace nového termínu, concurrency guardu, cleanupu starého interního override slotu a navazujícího klientského email logu `BOOKING_RESCHEDULED`.
 - Nové admin komponenty `RescheduleBookingButton` a `BookingRescheduleTimeSelector` pro specializovaný drawer s výběrem z dostupných slotů, ručním zadáním času, důvodem změny a sticky footerem.

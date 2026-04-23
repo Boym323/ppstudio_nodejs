@@ -346,6 +346,8 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - `npm run lint`
   - `npm run test`
   - `npm run build`
+- Pro DB-backed integrační test booking reschedule flow je připravený i:
+  - `npm run test:db:booking`
 - `npm run dev` i `npm run build` nyní před startem automaticky spouští `prisma generate`, takže po změně Prisma schématu nevznikne rozjezd mezi generovaným klientem a runtime admin obrazovkami.
 - Pokud měníš e-mail delivery, ověř i `npm run email:worker:once`.
 - Po změně reminder flow ručně ověř i:
