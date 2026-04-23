@@ -1,6 +1,8 @@
 "use client";
 
+import { ObfuscatedEmailLink } from "@/components/ui/obfuscated-email-link";
 import { formatBookingCalendarDate, formatBookingTimeRange } from "@/features/booking/lib/booking-format";
+import { formatObfuscatedEmail } from "@/lib/email-obfuscation";
 
 type BookingConfirmationPanelProps = {
   confirmation: {
@@ -25,13 +27,6 @@ export function BookingConfirmationPanel({
   const scheduledEndsAt = new Date(confirmation.scheduledEndsAt);
   const calendarDate = formatBookingCalendarDate(scheduledStartsAt);
   const timeRange = formatBookingTimeRange(scheduledStartsAt, scheduledEndsAt);
-  const manageReservationUrl = buildManageReservationUrl({
-    salonEmail: salonContact.email,
-    clientName: confirmation.clientName,
-    serviceName: confirmation.serviceName,
-    dateLabel: calendarDate,
-    timeRange,
-  });
 
   return (
     <section className="space-y-5 sm:space-y-6">
@@ -99,12 +94,24 @@ export function BookingConfirmationPanel({
 
       <section className="rounded-[1.75rem] border border-black/6 bg-white p-6 shadow-[var(--shadow-panel)] sm:p-7">
         <div className="flex flex-col gap-4 lg:flex-row lg:flex-wrap">
-          <a
-            href={manageReservationUrl}
+          <ObfuscatedEmailLink
+            email={salonContact.email}
+            subject={`Žádost o změnu rezervace: ${confirmation.serviceName}`}
+            body={[
+              'Dobrý den,',
+              '',
+              'prosím o změnu rezervace.',
+              `Klientka: ${confirmation.clientName}`,
+              `Služba: ${confirmation.serviceName}`,
+              `Termín: ${calendarDate}, ${timeRange}`,
+              '',
+              'Děkuji.',
+            ].join('\n')}
+            ariaLabel="Požádat o změnu rezervace e-mailem"
             className="inline-flex min-h-13 flex-1 items-center justify-center rounded-full bg-[var(--color-foreground)] px-6 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-white transition hover:bg-[#2c221d] sm:text-sm"
           >
             Požádat o změnu
-          </a>
+          </ObfuscatedEmailLink>
           <a
             href={confirmation.cancellationUrl}
             className="inline-flex min-h-13 flex-1 items-center justify-center rounded-full border border-red-200 bg-red-50 px-6 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-red-700 transition hover:border-red-300 hover:bg-red-100 sm:text-sm"
@@ -122,13 +129,14 @@ export function BookingConfirmationPanel({
           Potřebujete pomoc?
         </p>
         <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-          <a
-            href={`mailto:${salonContact.email}`}
+          <ObfuscatedEmailLink
+            email={salonContact.email}
+            ariaLabel="Napsat e-mail do studia"
             className="inline-flex min-h-11 items-center gap-3 rounded-full border border-black/10 bg-[var(--color-surface)]/45 px-4 py-2 text-[15px] font-medium text-[var(--color-foreground)] transition hover:border-black/20 hover:bg-white"
           >
             <MailIcon />
-            {salonContact.email}
-          </a>
+            {formatObfuscatedEmail(salonContact.email)}
+          </ObfuscatedEmailLink>
           <a
             href={`tel:${salonContact.phone}`}
             className="inline-flex min-h-11 items-center gap-3 rounded-full border border-black/10 bg-[var(--color-surface)]/45 px-4 py-2 text-[15px] font-medium text-[var(--color-foreground)] transition hover:border-black/20 hover:bg-white"
@@ -140,34 +148,6 @@ export function BookingConfirmationPanel({
       </section>
     </section>
   );
-}
-
-function buildManageReservationUrl({
-  salonEmail,
-  clientName,
-  serviceName,
-  dateLabel,
-  timeRange,
-}: {
-  salonEmail: string;
-  clientName: string;
-  serviceName: string;
-  dateLabel: string;
-  timeRange: string;
-}) {
-  const subject = `Žádost o změnu rezervace: ${serviceName}`;
-  const body = [
-    "Dobrý den,",
-    "",
-    "prosím o změnu rezervace.",
-    `Klientka: ${clientName}`,
-    `Služba: ${serviceName}`,
-    `Termín: ${dateLabel}, ${timeRange}`,
-    "",
-    "Děkuji.",
-  ].join("\n");
-
-  return `mailto:${encodeURIComponent(salonEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }
 
 function SuccessIcon() {

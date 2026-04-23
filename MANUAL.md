@@ -142,8 +142,12 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
   - na desktopu používá kompaktní 3sloupcové rozložení `brand -> navigace + informace -> kontakt`
   - na mobilu se skládá pod sebe v pořadí `brand -> navigace -> informace -> kontakt`
   - navigace a právní odkazy jsou oddělené do dvou samostatně nadepsaných skupin, ne do jednoho dlouhého seznamu
-  - kontakt má vlastní opticky silnější blok s klikacími odkazy `tel:` a `mailto:`
+  - kontakt má vlastní opticky silnější blok s adresou a klikacími odkazy `tel:` a `mailto:`
   - spodní mikrořádek drží jen copyright a nemá přebírat roli další navigace
+- Veřejné e-mailové odkazy jsou jemně obfuskované:
+  - text se zobrazuje ve tvaru `lokalni-cast [at] domena`
+  - skutečný `mailto:` odkaz se skládá až na klientu po načtení stránky
+  - pro návštěvnici zůstává chování stejné, ale jednoduché scrapery nevidí čistý e-mail přímo v HTML
 - Stránka `/kontakt` má nově silnější orientaci na rychlou akci:
   - hero drží text + CTA vlevo a vyhrazený placeholder prostor pro budoucí fotografii vpravo
   - spodní část kontaktu kombinuje mapový náhled a quick contact blok s telefonem, e-mailem, Instagramem a údajem o provozovateli

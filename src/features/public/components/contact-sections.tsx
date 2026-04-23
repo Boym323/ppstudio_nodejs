@@ -1,7 +1,9 @@
 import Link from 'next/link';
 
+import { ObfuscatedEmailLink } from '@/components/ui/obfuscated-email-link';
 import { Container } from '@/components/ui/container';
 import { type ContactItem } from '@/content/public-site';
+import { formatObfuscatedEmail } from '@/lib/email-obfuscation';
 
 function getSafeTelHref(phone: string) {
   return `tel:${phone.replace(/\s+/g, '')}`;
@@ -89,12 +91,13 @@ export function ContactHero({ title, description, phone, email, instagramUrl }: 
             >
               Rezervovat termín
             </Link>
-            <a
-              href={`mailto:${email}`}
+            <ObfuscatedEmailLink
+              email={email}
+              ariaLabel="Napsat e-mail do studia"
               className="inline-flex min-h-13 items-center justify-center rounded-full border border-black/10 bg-white/75 px-7 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-foreground)] hover:border-black/20 hover:bg-white sm:text-sm"
             >
               Napsat do studia
-            </a>
+            </ObfuscatedEmailLink>
           </div>
           <div className="flex flex-wrap gap-2.5">
             <a
@@ -104,13 +107,14 @@ export function ContactHero({ title, description, phone, email, instagramUrl }: 
               <ContactIconPhone />
               <span>{phone}</span>
             </a>
-            <a
-              href={`mailto:${email}`}
+            <ObfuscatedEmailLink
+              email={email}
+              ariaLabel="Napsat e-mail do studia"
               className="inline-flex min-h-11 items-center gap-2 rounded-full border border-black/10 bg-white/70 px-4 py-2 text-[13px] leading-6 text-[var(--color-foreground)] hover:border-black/20 hover:bg-white"
             >
               <ContactIconMessage />
-              <span>{email}</span>
-            </a>
+              <span>{formatObfuscatedEmail(email)}</span>
+            </ObfuscatedEmailLink>
             {instagramUrl && instagramValue ? (
               <a
                 href={instagramUrl}
@@ -264,19 +268,19 @@ export function QuickContactCard({
             <p className="mt-0.5 text-[15px] leading-6 text-[var(--color-foreground)]">{phone}</p>
           </div>
         </a>
-        <a
-          href={`mailto:${email}`}
+        <ObfuscatedEmailLink
+          email={email}
           className="flex items-center gap-3 rounded-2xl border border-[#eadfd2] bg-[#fcf7f1] px-4 py-3.5 transition hover:border-black/15 hover:bg-[#fbf4ec]"
-          aria-label={`E-mail ${email}`}
+          ariaLabel="Napsat e-mail do studia"
         >
           <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-black/10 bg-white text-[var(--color-foreground)]">
             <ContactIconMessage />
           </span>
           <div className="min-w-0">
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-accent)]">E-mail</p>
-            <p className="mt-0.5 text-[15px] leading-6 text-[var(--color-foreground)]">{email}</p>
+            <p className="mt-0.5 text-[15px] leading-6 text-[var(--color-foreground)]">{formatObfuscatedEmail(email)}</p>
           </div>
-        </a>
+        </ObfuscatedEmailLink>
         {instagramUrl ? (
           <a
             href={instagramUrl}
@@ -321,13 +325,13 @@ export function ContactMobileStickyCTA({ phone, email }: ContactMobileStickyCTAP
         >
           <ContactIconPhone />
         </a>
-        <a
-          href={`mailto:${email}`}
+        <ObfuscatedEmailLink
+          email={email}
           aria-label="Napsat do studia"
           className="inline-flex min-h-12 min-w-12 items-center justify-center rounded-full border border-black/10 bg-white text-[var(--color-foreground)]"
         >
           <ContactIconMessage />
-        </a>
+        </ObfuscatedEmailLink>
       </div>
     </div>
   );
