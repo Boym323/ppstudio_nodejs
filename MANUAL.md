@@ -138,6 +138,12 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
 - Pending confirmation screen kalendář záměrně nenabízí; `.ics` příloha patří až k e-mailu po přechodu rezervace do `CONFIRMED`.
 - Rezervační stránka je renderovaná dynamicky při requestu, takže nově publikované nebo obsazené sloty jsou vidět bez dalšího buildu.
 - Hero, sekce `O mně` a základní service copy jsou už přepsané do klidnějšího a osobnějšího tónu; další jemné úpravy je vhodné dělat centrálně v obsahové vrstvě nebo v DB copy mapě služeb.
+- Veřejný footer je záměrně klidný informační blok, ne marketingová patka:
+  - na desktopu používá kompaktní 3sloupcové rozložení `brand -> navigace + informace -> kontakt`
+  - na mobilu se skládá pod sebe v pořadí `brand -> navigace -> informace -> kontakt`
+  - navigace a právní odkazy jsou oddělené do dvou samostatně nadepsaných skupin, ne do jednoho dlouhého seznamu
+  - kontakt má vlastní opticky silnější blok s klikacími odkazy `tel:` a `mailto:`
+  - spodní mikrořádek drží jen copyright a nemá přebírat roli další navigace
 - Stránka `/kontakt` má nově silnější orientaci na rychlou akci:
   - hero drží text + CTA vlevo a vyhrazený placeholder prostor pro budoucí fotografii vpravo
   - spodní část kontaktu kombinuje mapový náhled a quick contact blok s telefonem, e-mailem, Instagramem a údajem o provozovateli

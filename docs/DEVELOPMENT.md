@@ -67,6 +67,11 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Certifikace na `/o-mne` berou public data z `src/features/public/lib/public-certificates.ts`, ale UI je záměrně připravené i na nulový stav pomocí placeholder karet v `AboutCertificatesGallery`.
 - Pro konzistentní vizuální rytmus napříč veřejnými stránkami drž hlavní obsah v jednotném wrapperu `Container` (`max-w-7xl`) a vyhýbej se dalším globálním zúžením přes `mx-auto max-w-*` na úrovni celé sekce.
 - Pro konzistentní spacing preferuj na veřejných stránkách vertikální rytmus `py-10 / sm:py-14 / lg:py-16`; větší rozestupy používej jen tam, kde mají jasný obsahový důvod (např. hero nebo výrazný CTA blok).
+- `src/components/layout/site-footer.tsx` má být kompaktní informační footer:
+  - drž rozdělení na 3 desktop bloky `brand -> navigace/informace -> kontakt`
+  - uprostřed vždy zachovej dvě oddělené skupiny odkazů `Navigace` a `Informace`
+  - kontakt má mít vyšší vizuální váhu než běžné linky, ale bez CTA nebo promo copy
+  - při dalších úpravách preferuj práci s `gap`, `max-width`, typografickou vahou a jemným border/shadow rytmem místo přidávání dalších obsahových bloků
 - Placeholder obsah musí být jasně odlišen od finálních produkčních textů.
 - Pokud je interní název služby příliš technický nebo exportovaný ze starého webu, nepřepisuj DB záznam jen kvůli public copy; preferuj public override v read modelu.
 - Pro public override už preferuj přímo pole v katalogu (`Service.publicIntro`, `ServiceCategory.publicName`, `ServiceCategory.pricingDescription`); lokální fallback v read modelu má být jen záchranná síť, ne primární workflow.
