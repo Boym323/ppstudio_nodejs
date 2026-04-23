@@ -349,6 +349,10 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - `npm run build`
 - Pro DB-backed integrační test booking reschedule flow je připravený i:
   - `npm run test:db:booking`
+- Pro rychlé unit ověření bezpečné veřejné správy rezervace a reschedule domény můžeš spustit i:
+  - `node --import tsx --test src/features/booking/lib/booking-management.test.ts`
+  - `node --import tsx --test src/features/booking/lib/booking-rescheduling.test.ts`
+- `src/features/booking/lib/booking-management.ts` a `src/features/booking/lib/booking-rescheduling.ts` mají záměrně malé dependency factories `createBookingManagementApi(...)` a `createBookingReschedulingApi(...)`; slouží jen jako test seam pro mocknutí Prisma/notifikačních závislostí a nemají být druhým produkčním entrypointem s odlišnou business logikou.
 - `npm run dev` i `npm run build` nyní před startem automaticky spouští `prisma generate`, takže po změně Prisma schématu nevznikne rozjezd mezi generovaným klientem a runtime admin obrazovkami.
 - Pokud měníš e-mail delivery, ověř i `npm run email:worker:once`.
 - Po změně reminder flow ručně ověř i:

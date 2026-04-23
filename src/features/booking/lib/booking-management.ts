@@ -239,82 +239,112 @@ async function issueCancellationUrl(bookingId: string, now = new Date()) {
   return buildBookingCancellationUrl(cancellationToken.rawToken);
 }
 
-export async function getPublicBookingManagementPageState(
-  rawToken: string,
-): Promise<PublicBookingManagementPageState> {
-  const tokenHash = hashBookingActionToken(rawToken);
-  const [token, bookingPolicy] = await Promise.all([
-    findManageToken(tokenHash),
-    getBookingPolicySettings(),
-  ]);
-  const resolved = resolvePublicBookingManagementState(token, bookingPolicy.cancellationHours);
+type BookingManagementDependencies = {
+  findManageToken: typeof findManageToken;
+  getBookingPolicySettings: typeof getBookingPolicySettings;
+  getPublicBookingCatalog: typeof getPublicBookingCatalog;
+  issueCancellationUrl: typeof issueCancellationUrl;
+  rescheduleBooking: typeof rescheduleBooking;
+};
 
-  if (resolved.status !== "ready") {
-    return resolved;
-  }
+const defaultBookingManagementDependencies: BookingManagementDependencies = {
+  findManageToken,
+  getBookingPolicySettings,
+  getPublicBookingCatalog,
+  issueCancellationUrl,
+  rescheduleBooking,
+};
 
-  const [catalog, cancellationUrl] = await Promise.all([
-    getPublicBookingCatalog(),
-    issueCancellationUrl(resolved.token.booking.id),
-  ]);
-
+export function createBookingManagementApi(
+  dependencies: BookingManagementDependencies = defaultBookingManagementDependencies,
+) {
   return {
-    status: "ready",
-    bookingId: resolved.token.booking.id,
-    serviceId: resolved.token.booking.serviceId,
-    serviceName: resolved.token.booking.serviceNameSnapshot,
-    serviceDurationMinutes: resolved.token.booking.serviceDurationMinutes,
-    clientName: resolved.token.booking.clientNameSnapshot,
-    scheduledAtLabel: formatBookingDateLabel(
-      resolved.token.booking.scheduledStartsAt,
-      resolved.token.booking.scheduledEndsAt,
-    ),
-    statusLabel: getBookingStatusLabel(resolved.token.booking.status),
-    scheduledStartsAt: resolved.token.booking.scheduledStartsAt.toISOString(),
-    scheduledEndsAt: resolved.token.booking.scheduledEndsAt.toISOString(),
-    expectedUpdatedAt: resolved.token.booking.updatedAt.toISOString(),
-    expiresAt: resolved.token.expiresAt.toISOString(),
-    cancellationHours: bookingPolicy.cancellationHours,
-    cancellationUrl,
-    slots: catalog.slots,
+    async getPublicBookingManagementPageState(
+      rawToken: string,
+    ): Promise<PublicBookingManagementPageState> {
+      const tokenHash = hashBookingActionToken(rawToken);
+      const [token, bookingPolicy] = await Promise.all([
+        dependencies.findManageToken(tokenHash),
+        dependencies.getBookingPolicySettings(),
+      ]);
+      const resolved = resolvePublicBookingManagementState(token, bookingPolicy.cancellationHours);
+
+      if (resolved.status !== "ready") {
+        return resolved;
+      }
+
+      const [catalog, cancellationUrl] = await Promise.all([
+        dependencies.getPublicBookingCatalog(),
+        dependencies.issueCancellationUrl(resolved.token.booking.id),
+      ]);
+
+      return {
+        status: "ready",
+        bookingId: resolved.token.booking.id,
+        serviceId: resolved.token.booking.serviceId,
+        serviceName: resolved.token.booking.serviceNameSnapshot,
+        serviceDurationMinutes: resolved.token.booking.serviceDurationMinutes,
+        clientName: resolved.token.booking.clientNameSnapshot,
+        scheduledAtLabel: formatBookingDateLabel(
+          resolved.token.booking.scheduledStartsAt,
+          resolved.token.booking.scheduledEndsAt,
+        ),
+        statusLabel: getBookingStatusLabel(resolved.token.booking.status),
+        scheduledStartsAt: resolved.token.booking.scheduledStartsAt.toISOString(),
+        scheduledEndsAt: resolved.token.booking.scheduledEndsAt.toISOString(),
+        expectedUpdatedAt: resolved.token.booking.updatedAt.toISOString(),
+        expiresAt: resolved.token.expiresAt.toISOString(),
+        cancellationHours: bookingPolicy.cancellationHours,
+        cancellationUrl,
+        slots: catalog.slots,
+      };
+    },
+
+    async reschedulePublicBookingByToken(input: {
+      token: string;
+      slotId: string;
+      newStartAt: string;
+      expectedUpdatedAt: string;
+    }): Promise<PublicBookingManageRescheduleResult> {
+      const tokenHash = hashBookingActionToken(input.token);
+      const [token, bookingPolicy] = await Promise.all([
+        dependencies.findManageToken(tokenHash),
+        dependencies.getBookingPolicySettings(),
+      ]);
+      const resolved = resolvePublicBookingManagementState(token, bookingPolicy.cancellationHours);
+
+      if (resolved.status !== "ready") {
+        return resolved;
+      }
+
+      const result = await dependencies.rescheduleBooking({
+        bookingId: resolved.token.booking.id,
+        slotId: input.slotId,
+        newStartAt: input.newStartAt,
+        changedByUserId: null,
+        changedByClient: true,
+        notifyClient: true,
+        includeCalendarAttachment: true,
+        expectedUpdatedAt: input.expectedUpdatedAt,
+      });
+
+      return {
+        status: "rescheduled",
+        bookingId: resolved.token.booking.id,
+        serviceName: resolved.token.booking.serviceNameSnapshot,
+        clientName: resolved.token.booking.clientNameSnapshot,
+        previousScheduledAtLabel: result.previousScheduledAtLabel,
+        scheduledAtLabel: result.scheduledAtLabel,
+        notificationStatus: result.notificationStatus,
+      };
+    },
   };
 }
 
-export async function reschedulePublicBookingByToken(input: {
-  token: string;
-  slotId: string;
-  newStartAt: string;
-  expectedUpdatedAt: string;
-}): Promise<PublicBookingManageRescheduleResult> {
-  const tokenHash = hashBookingActionToken(input.token);
-  const [token, bookingPolicy] = await Promise.all([
-    findManageToken(tokenHash),
-    getBookingPolicySettings(),
-  ]);
-  const resolved = resolvePublicBookingManagementState(token, bookingPolicy.cancellationHours);
+const bookingManagementApi = createBookingManagementApi();
 
-  if (resolved.status !== "ready") {
-    return resolved;
-  }
+export const getPublicBookingManagementPageState =
+  bookingManagementApi.getPublicBookingManagementPageState;
 
-  const result = await rescheduleBooking({
-    bookingId: resolved.token.booking.id,
-    slotId: input.slotId,
-    newStartAt: input.newStartAt,
-    changedByUserId: null,
-    changedByClient: true,
-    notifyClient: true,
-    includeCalendarAttachment: true,
-    expectedUpdatedAt: input.expectedUpdatedAt,
-  });
-
-  return {
-    status: "rescheduled",
-    bookingId: resolved.token.booking.id,
-    serviceName: resolved.token.booking.serviceNameSnapshot,
-    clientName: resolved.token.booking.clientNameSnapshot,
-    previousScheduledAtLabel: result.previousScheduledAtLabel,
-    scheduledAtLabel: result.scheduledAtLabel,
-    notificationStatus: result.notificationStatus,
-  };
-}
+export const reschedulePublicBookingByToken =
+  bookingManagementApi.reschedulePublicBookingByToken;

@@ -110,6 +110,13 @@ type RescheduleTransactionResult = {
   rescheduleCount: number;
 };
 
+type BookingReschedulingDependencies = {
+  prisma: typeof prisma;
+  getBookingPolicySettings: typeof getBookingPolicySettings;
+  isBookingWithinWindow: typeof isBookingWithinWindow;
+  queueBookingRescheduledNotification: typeof queueBookingRescheduledNotification;
+};
+
 function normalizeWhitespace(value: string) {
   return value.trim().replace(/\s+/g, " ");
 }
@@ -383,6 +390,7 @@ async function queueBookingRescheduledNotification(input: {
 }
 
 async function rescheduleBookingInTransaction(
+  dependencies: BookingReschedulingDependencies,
   tx: Prisma.TransactionClient,
   input: RescheduleBookingInput,
   requestedStartsAt: Date,
@@ -500,9 +508,9 @@ async function rescheduleBookingInTransaction(
     );
   }
 
-  const bookingPolicy = await getBookingPolicySettings();
+  const bookingPolicy = await dependencies.getBookingPolicySettings();
   const now = new Date();
-  const isWithinPublicWindow = isBookingWithinWindow(
+  const isWithinPublicWindow = dependencies.isBookingWithinWindow(
     requestedStartsAt,
     now,
     bookingPolicy.minAdvanceHours,
@@ -740,92 +748,109 @@ async function rescheduleBookingInTransaction(
   } satisfies RescheduleTransactionResult;
 }
 
-export async function rescheduleBooking(
-  input: RescheduleBookingInput,
-): Promise<RescheduleBookingResult> {
-  const requestedStartsAt = new Date(input.newStartAt);
+const defaultBookingReschedulingDependencies: BookingReschedulingDependencies = {
+  prisma,
+  getBookingPolicySettings,
+  isBookingWithinWindow,
+  queueBookingRescheduledNotification,
+};
 
-  if (Number.isNaN(requestedStartsAt.getTime())) {
-    throw new BookingRescheduleError(
-      bookingRescheduleErrorCodes.invalidDateTime,
-      "Vyplňte platný nový datum a čas rezervace.",
-      "newTime",
-    );
-  }
+export function createBookingReschedulingApi(
+  dependencies: BookingReschedulingDependencies = defaultBookingReschedulingDependencies,
+) {
+  return {
+    async rescheduleBooking(
+      input: RescheduleBookingInput,
+    ): Promise<RescheduleBookingResult> {
+      const requestedStartsAt = new Date(input.newStartAt);
 
-  for (let attempt = 1; attempt <= MAX_BOOKING_TRANSACTION_RETRIES; attempt += 1) {
-    try {
-      const transactionResult = await prisma.$transaction(
-        async (tx) => rescheduleBookingInTransaction(tx, input, requestedStartsAt),
-        {
-          isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
-        },
-      );
+      if (Number.isNaN(requestedStartsAt.getTime())) {
+        throw new BookingRescheduleError(
+          bookingRescheduleErrorCodes.invalidDateTime,
+          "Vyplňte platný nový datum a čas rezervace.",
+          "newTime",
+        );
+      }
 
-      let notificationStatus: RescheduleBookingResult["notificationStatus"] = "skipped";
-
-      if (input.notifyClient && transactionResult.clientEmail.trim().length > 0) {
+      for (let attempt = 1; attempt <= MAX_BOOKING_TRANSACTION_RETRIES; attempt += 1) {
         try {
-          notificationStatus = await queueBookingRescheduledNotification({
+          const transactionResult = await dependencies.prisma.$transaction(
+            async (tx) => rescheduleBookingInTransaction(dependencies, tx, input, requestedStartsAt),
+            {
+              isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+            },
+          );
+
+          let notificationStatus: RescheduleBookingResult["notificationStatus"] = "skipped";
+
+          if (input.notifyClient && transactionResult.clientEmail.trim().length > 0) {
+            try {
+              notificationStatus = await dependencies.queueBookingRescheduledNotification({
+                bookingId: transactionResult.bookingId,
+                clientId: transactionResult.clientId,
+                clientEmail: transactionResult.clientEmail,
+                clientName: transactionResult.clientName,
+                serviceName: transactionResult.serviceName,
+                previousStartsAt: transactionResult.previousStartsAt,
+                previousEndsAt: transactionResult.previousEndsAt,
+                scheduledStartsAt: transactionResult.scheduledStartsAt,
+                scheduledEndsAt: transactionResult.scheduledEndsAt,
+                includeCalendarAttachment: input.includeCalendarAttachment ?? true,
+              });
+            } catch (error) {
+              notificationStatus = "failed";
+              console.error("Booking reschedule notification enqueue failed", {
+                bookingId: transactionResult.bookingId,
+                error,
+              });
+            }
+          }
+
+          return {
             bookingId: transactionResult.bookingId,
-            clientId: transactionResult.clientId,
-            clientEmail: transactionResult.clientEmail,
-            clientName: transactionResult.clientName,
-            serviceName: transactionResult.serviceName,
-            previousStartsAt: transactionResult.previousStartsAt,
-            previousEndsAt: transactionResult.previousEndsAt,
-            scheduledStartsAt: transactionResult.scheduledStartsAt,
-            scheduledEndsAt: transactionResult.scheduledEndsAt,
-            includeCalendarAttachment: input.includeCalendarAttachment ?? true,
-          });
+            scheduledStartsAt: transactionResult.scheduledStartsAt.toISOString(),
+            scheduledEndsAt: transactionResult.scheduledEndsAt.toISOString(),
+            scheduledAtLabel: formatBookingDateLabel(
+              transactionResult.scheduledStartsAt,
+              transactionResult.scheduledEndsAt,
+            ),
+            previousScheduledAtLabel: formatBookingDateLabel(
+              transactionResult.previousStartsAt,
+              transactionResult.previousEndsAt,
+            ),
+            rescheduleCount: transactionResult.rescheduleCount,
+            manualOverride: transactionResult.manualOverride,
+            notificationStatus,
+          };
         } catch (error) {
-          notificationStatus = "failed";
-          console.error("Booking reschedule notification enqueue failed", {
-            bookingId: transactionResult.bookingId,
-            error,
-          });
+          if (error instanceof BookingRescheduleError) {
+            throw error;
+          }
+
+          if (isRetryablePrismaError(error) && attempt < MAX_BOOKING_TRANSACTION_RETRIES) {
+            continue;
+          }
+
+          if (error instanceof Prisma.PrismaClientKnownRequestError) {
+            const mappedError = mapKnownPrismaError(error);
+
+            if (mappedError) {
+              throw mappedError;
+            }
+          }
+
+          throw error;
         }
       }
 
-      return {
-        bookingId: transactionResult.bookingId,
-        scheduledStartsAt: transactionResult.scheduledStartsAt.toISOString(),
-        scheduledEndsAt: transactionResult.scheduledEndsAt.toISOString(),
-        scheduledAtLabel: formatBookingDateLabel(
-          transactionResult.scheduledStartsAt,
-          transactionResult.scheduledEndsAt,
-        ),
-        previousScheduledAtLabel: formatBookingDateLabel(
-          transactionResult.previousStartsAt,
-          transactionResult.previousEndsAt,
-        ),
-        rescheduleCount: transactionResult.rescheduleCount,
-        manualOverride: transactionResult.manualOverride,
-        notificationStatus,
-      };
-    } catch (error) {
-      if (error instanceof BookingRescheduleError) {
-        throw error;
-      }
-
-      if (isRetryablePrismaError(error) && attempt < MAX_BOOKING_TRANSACTION_RETRIES) {
-        continue;
-      }
-
-      if (error instanceof Prisma.PrismaClientKnownRequestError) {
-        const mappedError = mapKnownPrismaError(error);
-
-        if (mappedError) {
-          throw mappedError;
-        }
-      }
-
-      throw error;
-    }
-  }
-
-  throw new BookingRescheduleError(
-    bookingRescheduleErrorCodes.temporaryFailure,
-    "Přesun se teď nepodařilo dokončit kvůli souběžné změně. Zkuste to prosím znovu.",
-  );
+      throw new BookingRescheduleError(
+        bookingRescheduleErrorCodes.temporaryFailure,
+        "Přesun se teď nepodařilo dokončit kvůli souběžné změně. Zkuste to prosím znovu.",
+      );
+    },
+  };
 }
+
+const bookingReschedulingApi = createBookingReschedulingApi();
+
+export const rescheduleBooking = bookingReschedulingApi.rescheduleBooking;

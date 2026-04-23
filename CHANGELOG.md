@@ -10,6 +10,7 @@ Formát je inspirovaný Keep a Changelog.
 - Self-service přesun používá stejné backend jádro `rescheduleBooking(...)` jako admin detail; validace slotu, kontrola kolizí, reset reminder markerů, auditní log i návazný e-mail běží nad jedním flow bez paralelní „lehké“ varianty.
 - `BookingRescheduleLog.changedByClient` se nově plní i z veřejného flow, takže v admin historii zůstává vidět, že změnu provedla sama klientka bez přihlášeného uživatele.
 - Klientské e-maily `booking-confirmation-v1`, `booking-approved-v1`, `booking-reminder-24h-v1` a `booking-rescheduled-v1` teď posílají bezpečný odkaz `Změnit termín`; původní placeholder `Požádat o změnu` přes `mailto:` byl odstraněn z web confirmation screenu i z e-mailů.
+- Přibyly čisté unit testy pro veřejnou booking-management vrstvu a doménový `rescheduleBooking(...)`; pokrývají token-bound přístup, explicitní validaci stavů `PENDING` / `CONFIRMED` / `CANCELLED` / `COMPLETED` / `NO_SHOW`, kolize, stejné termíny, duration guard, optimistic concurrency, audit log i návazné notifikační volání bez DB integrace.
 
 ### Changed
 - Admin detail rezervace nově obsahuje samostatný drawer `Přesunout termín`; přesun už není tichá editace času, ale řízená doménová akce se stejnou validací slotů a interních výjimek jako veřejný booking a ruční admin booking.
