@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, Playfair_Display } from "next/font/google";
+import { Suspense } from "react";
 
 import { siteConfig } from "@/config/site";
 import { BookingAcquisitionTracker } from "@/features/booking/components/booking-acquisition-tracker";
@@ -78,7 +79,9 @@ export default function RootLayout({
       className={`${displayFont.variable} ${sansFont.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <BookingAcquisitionTracker />
+        <Suspense fallback={null}>
+          <BookingAcquisitionTracker />
+        </Suspense>
         {children}
       </body>
     </html>
