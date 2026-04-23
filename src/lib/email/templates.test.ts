@@ -119,8 +119,14 @@ test("renderEmailTemplate creates 24h reminder email without calendar attachment
   );
 
   assert.equal(email.subject, "Připomínka rezervace - zítra v PP Studio");
+  assert.match(email.text, /zítra máte rezervaci v PP Studiu/i);
+  assert.match(email.text, /Jen krátká připomínka vašeho zítřejšího termínu/i);
+  assert.match(email.text, /Kde nás najdete:/i);
+  assert.match(email.text, /Ozvat se studiu/);
   assert.match(email.text, /Zrušit rezervaci/);
-  assert.match(email.text, /Kontaktovat studio/);
-  assert.match(email.html, /Připomínka rezervace na zítra/);
+  assert.match(email.text, /Pokud by se cokoliv změnilo, dejte nám prosím vědět co nejdříve/i);
+  assert.match(email.html, /Zítra máte rezervaci v PP Studiu/);
+  assert.match(email.html, /Nemůžete dorazit\?/);
+  assert.match(email.html, /Ozvat se studiu/);
   assert.equal(email.attachments, undefined);
 });

@@ -254,7 +254,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - `EmailLog` je připravený na notifikační workflow a troubleshooting komunikace s klientem.
 - 24h reminder rezervací je v `src/features/booking/lib/booking-reminders.ts`; výběr kandidátek je omezený na `CONFIRMED` bookingy s e-mailem, `reminder24hSentAt = null` a startem mezi `now + 23h` a `now + 25h`.
 - Reminder scheduler neběží jako zvláštní služba; `src/lib/email/worker.ts` ho spouští uvnitř existujícího `email:worker` procesu každých 5 minut a vytváří pouze `EmailLog`, nikdy neodesílá SMTP přímo.
-- Reminder template `booking-reminder-24h-v1` je krátký, bez `.ics`, a používá nový storno token přímo v payloadu reminder e-mailu.
+- Reminder template `booking-reminder-24h-v1` je krátký, bez `.ics`, a používá nový storno token přímo v payloadu reminder e-mailu; copy a layout mají držet lidský tón, rychlou scanovatelnost a CTA hierarchii `kontakt jako první volba, storno jako sekundární akce`.
 - Idempotence reminderu stojí na kombinaci `Booking.reminder24hSentAt`, transakčního claimu kandidátky a existence jediného reminder `EmailLog`; při SMTP failu se reminder nepřegeneruje jako nový job, ale zůstává v auditním logu pro retry.
 - Legacy `Setting` zůstává v databázi jako obecné key-value úložiště pro budoucí interní potřeby, ale produkční admin sekce `Nastavení` stojí na explicitním singleton modelu `SiteSettings`.
 - `src/lib/site-settings.ts` je centrální read vrstva pro veřejné kontakty, booking pravidla a e-mailový branding; veřejné a e-mailové read cesty už do DB nezapisují a při chybě nebo chybějícím singletonu spadnou na bezpečné defaulty z env/content vrstvy.

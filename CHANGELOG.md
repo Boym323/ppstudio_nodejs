@@ -7,6 +7,7 @@ Formát je inspirovaný Keep a Changelog.
 ## [Unreleased]
 
 ### Changed
+- Klientský reminder e-mail `booking-reminder-24h-v1` prošel UX/copy refactorem: headline a intro jsou lidštější, detail rezervace má jasnější hierarchii `služba -> datum a čas -> kde nás najdete`, CTA sekce nově vede primárně ke kontaktu se studiem a storno už není vizuálně dominantní.
 - Referenční kód rezervace byl úplně odstraněný z veřejného booking flow, storno screenů, provozních email action screenů, klientských e-mailů i zákaznické `.ics` události; komunikace se teď opírá jen o službu, termín a tokenizované odkazy.
 - Dokumentace stacku byla zpřesněná podle aktuálního `package.json`: `next` `16.2.4`, `react/react-dom` `19.2.4`, `prisma/@prisma/client/@prisma/adapter-pg` `7.7.0`; zároveň byl v `MANUAL.md` sjednocený popis detailu služby na request-time DB režim.
 - Opraven Turbopack/NFT tracing u route `/media/[kind]/[[...path]]`: media storage path operace jsou nově anotované přes `turbopackIgnore`, takže `next build` už nehlásí warning `Encountered unexpected file in NFT list` a netraceuje celý projekt.

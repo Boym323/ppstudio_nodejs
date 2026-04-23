@@ -415,15 +415,17 @@ export async function renderEmailTemplate(
       const text = [
         `Dobrý den, ${data.clientName},`,
         "",
-        "připomínáme vaši zítřejší rezervaci v PP Studio.",
+        "zítra máte rezervaci v PP Studiu.",
+        "Jen krátká připomínka vašeho zítřejšího termínu.",
         "",
         `Služba: ${data.serviceName}`,
-        `Datum: ${bookingDate}`,
-        `Čas: ${bookingTime}`,
-        `Místo: ${salonProfile.addressLine}`,
+        `Datum a čas: ${bookingDate}, ${bookingTime}`,
+        `Kde nás najdete: ${salonProfile.addressLine}`,
         "",
+        "Nemůžete dorazit?",
+        `Ozvat se studiu: ${contactStudioUrl}`,
         `Zrušit rezervaci: ${data.cancellationUrl}`,
-        `Kontaktovat studio: ${contactStudioUrl}`,
+        "Pokud by se cokoliv změnilo, dejte nám prosím vědět co nejdříve.",
         "",
         `${brand.name}`,
         `${brand.email} | ${brand.phone}`,
@@ -431,32 +433,28 @@ export async function renderEmailTemplate(
 
       const html = buildEmailShell(
         brand,
-        "Připomínka rezervace na zítra",
-        `Zítra vás čeká ${data.serviceName}. Posíláme rychlé připomenutí termínu.`,
+        "Zítra máte rezervaci v PP Studiu",
+        "Jen krátká připomínka vašeho zítřejšího termínu.",
         `
-          <div style="border:1px solid rgba(33,23,20,0.08);border-radius:20px;padding:22px;background:#fbf7f3;">
-            <p style="margin:0;font-size:12px;letter-spacing:0.2em;text-transform:uppercase;color:#9e7f65;">Služba</p>
-            <p style="margin:10px 0 0;font-size:20px;line-height:1.5;color:#1f1714;"><strong>${escapeHtml(data.serviceName)}</strong></p>
-            <p style="margin:18px 0 0;font-size:12px;letter-spacing:0.2em;text-transform:uppercase;color:#9e7f65;">Datum a čas</p>
-            <p style="margin:10px 0 0;font-size:18px;line-height:1.6;color:#1f1714;"><strong>${escapeHtml(bookingDate)}</strong><br />${escapeHtml(bookingTime)}</p>
-            <p style="margin:18px 0 0;font-size:12px;letter-spacing:0.2em;text-transform:uppercase;color:#9e7f65;">Místo</p>
-            <p style="margin:10px 0 0;font-size:15px;line-height:1.7;color:#5b4c44;">${escapeHtml(salonProfile.addressLine)}</p>
+          <div style="padding:0 0 4px;">
+            <p style="margin:0;font-size:22px;line-height:1.4;color:#1f1714;"><strong>${escapeHtml(data.serviceName)}</strong></p>
+            <p style="margin:10px 0 0;font-size:17px;line-height:1.6;color:#1f1714;"><strong>${escapeHtml(bookingDate)}</strong><br />${escapeHtml(bookingTime)}</p>
+            <p style="margin:14px 0 0;font-size:12px;letter-spacing:0.16em;text-transform:uppercase;color:#9e7f65;">Kde nás najdete</p>
+            <p style="margin:8px 0 0;font-size:15px;line-height:1.7;color:#5b4c44;">${escapeHtml(salonProfile.addressLine)}</p>
           </div>
-          <div style="margin-top:20px;border:1px solid rgba(33,23,20,0.08);border-radius:20px;padding:20px;background:#ffffff;">
-            <p style="margin:0 0 14px;font-size:12px;letter-spacing:0.2em;text-transform:uppercase;color:#9e7f65;">Potřebujete změnu?</p>
-            <div style="font-size:0;line-height:0;">
-              <div style="display:inline-block;margin:0 10px 10px 0;">${buildEmailButton({
-                href: data.cancellationUrl,
-                label: "Zrušit rezervaci",
-                variant: "destructive",
-              })}</div>
-              <div style="display:inline-block;margin:0 10px 10px 0;">${buildEmailButton({
-                href: contactStudioUrl,
-                label: "Kontaktovat studio",
-                variant: "primary",
-              })}</div>
-            </div>
-            <p style="margin:8px 0 0;font-size:13px;line-height:1.7;color:#7a675c;">Pokud potřebujete s termínem pomoci, ozvěte se nám co nejdřív.</p>
+          <div style="margin-top:24px;padding:20px 0 0;border-top:1px solid rgba(33,23,20,0.08);">
+            <p style="margin:0 0 14px;font-size:18px;line-height:1.5;color:#1f1714;"><strong>Nemůžete dorazit?</strong></p>
+            <div style="margin:0 0 12px;">${buildEmailButton({
+              href: contactStudioUrl,
+              label: "Ozvat se studiu",
+              variant: "primary",
+            })}</div>
+            <div style="margin:0 0 12px;">${buildEmailButton({
+              href: data.cancellationUrl,
+              label: "Zrušit rezervaci",
+              variant: "secondary",
+            })}</div>
+            <p style="margin:0;font-size:14px;line-height:1.7;color:#7a675c;">Pokud by se cokoliv změnilo, dejte nám prosím vědět co nejdříve.</p>
           </div>
         `,
       );

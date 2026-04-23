@@ -13,7 +13,7 @@ Rezervační systém už používá `EmailLog` outbox a samostatný `email:worke
 - Scheduler nikdy neposílá e-mail přímo. V transakci pouze vytvoří reminder `EmailLog` typu `BOOKING_REMINDER` a navázaný `BookingActionToken` pro storno link.
 - Před skutečným doručením worker reminder znovu preflightově ověří, že rezervace je stále `CONFIRMED`, ještě nezačala a nebyla už označená jako připomenutá.
 - `reminder24hSentAt` se v `background` režimu nastavuje až po úspěšném `SENT`; v `log` režimu se nastaví při uzavření reminder `EmailLog`, protože k reálnému SMTP odeslání nedochází.
-- Reminder šablona `booking-reminder-24h-v1` je krátká, bez `.ics` přílohy, se CTA `Zrušit rezervaci` a `Kontaktovat studio`.
+- Reminder šablona `booking-reminder-24h-v1` je krátká, bez `.ics` přílohy, s lidským headline a hierarchií `služba -> datum a čas -> kde nás najdete`; v CTA sekci vede nejdřív kontakt na studio a storno zůstává jen jako sekundární akce.
 
 ## Důsledky
 - Idempotence stojí na kombinaci `Booking.reminder24hSentAt`, transakčního claimu kandidátky a existence reminder `EmailLog`.
