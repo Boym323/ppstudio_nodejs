@@ -39,11 +39,11 @@ export function getMediaStorageRoot() {
 }
 
 export function getMediaVisibilityRoot(visibility: MediaAssetVisibility) {
-  return path.join(getMediaStorageRoot(), mediaRootDirectoryMap[visibility]);
+  return path.join(/* turbopackIgnore: true */ getMediaStorageRoot(), mediaRootDirectoryMap[visibility]);
 }
 
 export function getMediaTempRoot() {
-  return path.join(getMediaStorageRoot(), MEDIA_TEMP_SEGMENT);
+  return path.join(/* turbopackIgnore: true */ getMediaStorageRoot(), MEDIA_TEMP_SEGMENT);
 }
 
 export function getMediaKindDirectory(kind: MediaAssetKind) {

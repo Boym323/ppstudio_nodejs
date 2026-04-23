@@ -75,7 +75,7 @@ class LocalMediaStorageAdapter implements MediaStorageAdapter {
         mkdir(getMediaStorageRoot(), { recursive: true }),
         mkdir(getMediaTempRoot(), { recursive: true }),
         ...mediaVisibilities.map((visibility) =>
-          mkdir(path.join(getMediaStorageRoot(), mediaRootDirectoryMap[visibility]), {
+          mkdir(path.join(/* turbopackIgnore: true */ getMediaStorageRoot(), mediaRootDirectoryMap[visibility]), {
             recursive: true,
           }),
         ),

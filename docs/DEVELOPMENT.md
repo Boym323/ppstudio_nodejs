@@ -263,6 +263,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - `MediaAsset` je obecný metadata model pro certifikáty, fotky prostor, reference i další obsahové obrázky; binární obsah zůstává na lokálním filesystemu mimo DB.
 - Filesystem layout médií má tvar `<MEDIA_STORAGE_ROOT>/<visibility>/<kind>/<year>/<month>/<storedFilename>`.
 - `src/lib/media/local-media-storage.ts` je adapter pro lokální filesystem; business vrstva přes něj neřeší konkrétní `fs` operace ani fyzické cesty.
+- Route `/media/[kind]/[[...path]]` používá v media path helperu a storage adapteru cílené `turbopackIgnore` anotace u dynamických `path.resolve/path.join`; cílem je zabránit tomu, aby Next.js 16 Turbopack NFT tracer při buildu omylem zahrnoval celý projekt.
 - `src/lib/media/media-validation.ts` centralizuje kontrolu MIME typu, přípony a maximální velikosti souboru.
 - `src/lib/media/media-filename.ts` generuje bezpečný název z původního jména a náhodného suffixu, takže nehrozí přepisování souborů se stejným názvem.
 - `src/features/booking/lib/booking-public.ts` je veřejný write model pro rezervace a drží i ochranu proti souběžnému obsazení slotu.

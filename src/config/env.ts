@@ -59,4 +59,4 @@ export const env = parsed.data;
 export const mediaStorageRoot =
   env.MEDIA_STORAGE_ROOT && env.MEDIA_STORAGE_ROOT.length > 0
     ? path.resolve(env.MEDIA_STORAGE_ROOT)
-    : path.resolve(/* turbopackIgnore: true */ process.cwd(), "..", "ppstudio-uploads");
+    : path.resolve("..", "ppstudio-uploads");

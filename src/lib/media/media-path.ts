@@ -40,7 +40,7 @@ export function resolveMediaAbsolutePath(
 ) {
   const normalizedPath = assertSafeStoragePath(storagePath).join(path.sep);
   const root = getMediaVisibilityRoot(visibility);
-  const absolutePath = path.resolve(root, normalizedPath);
+  const absolutePath = path.resolve(/* turbopackIgnore: true */ root, normalizedPath);
 
   if (!absolutePath.startsWith(`${root}${path.sep}`)) {
     throw new Error('MEDIA_STORAGE_PATH_INVALID');

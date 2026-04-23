@@ -7,6 +7,7 @@ Formát je inspirovaný Keep a Changelog.
 ## [Unreleased]
 
 ### Changed
+- Opraven Turbopack/NFT tracing u route `/media/[kind]/[[...path]]`: media storage path operace jsou nově anotované přes `turbopackIgnore`, takže `next build` už nehlásí warning `Encountered unexpected file in NFT list` a netraceuje celý projekt.
 - `email:worker` nově kromě doručování `EmailLog` také každých 5 minut skenuje potvrzené rezervace v okně `23h-25h` před termínem a enqueueuje jediný reminder `BOOKING_REMINDER` do stejného outbox flow.
 - Delivery vrstva před odesláním reminderu znovu kontroluje stav rezervace; zrušený, přesunutý nebo už uzavřený reminder se označí jako `system-skip` místo reálného odeslání.
 - Opraven detail služby `/sluzby/[slug]` pro Next.js 16 async dynamic APIs: route `params` je nově čtené jako `Promise` (`await params`) v `generateMetadata` i ve stránce, takže už nevzniká runtime chyba `sync-dynamic-apis`.
