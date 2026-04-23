@@ -12,6 +12,7 @@ import {
 import { type AdminArea, type AdminSectionSlug } from "@/config/navigation";
 import {
   getAdminBookingActionOptions,
+  getBookingAcquisitionLabel,
   getAdminBookingHref,
   getBookingSourceLabel,
   getBookingStatusLabel,
@@ -446,7 +447,9 @@ async function getReservationsData(area: AdminArea) {
       scheduledTimeLabel: `${formatTime.format(booking.scheduledStartsAt)} - ${formatTime.format(booking.scheduledEndsAt)}`,
       status: booking.status,
       statusLabel: getBookingStatusLabel(booking.status),
-      sourceLabel: getBookingSourceLabel(booking.source),
+      sourceLabel: [getBookingSourceLabel(booking.source), getBookingAcquisitionLabel(booking.acquisitionSource)]
+        .filter(Boolean)
+        .join(" • "),
       contactLabel: booking.client.phone ?? booking.clientEmailSnapshot,
       href: getAdminBookingHref(area, booking.id),
       availableActions: getAdminBookingActionOptions(booking.status),

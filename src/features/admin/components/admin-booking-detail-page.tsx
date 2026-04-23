@@ -71,6 +71,7 @@ export function AdminBookingDetailPage({ data }: AdminBookingDetailPageProps) {
           <SummaryItem label="Služba" value={data.serviceName} />
           <SummaryItem label="Termín" value={data.scheduledAtLabel} />
           <SummaryItem label="Zdroj" value={data.sourceLabel} />
+          {data.acquisitionLabel ? <SummaryItem label="Akvizice" value={data.acquisitionLabel} /> : null}
           <SummaryItem label="Naposledy změněno" value={data.updatedAtLabel} />
           <SummaryItem label="Vytvořeno" value={data.createdAtLabel} />
           <SummaryItem label="Telefon" value={data.clientPhone} />

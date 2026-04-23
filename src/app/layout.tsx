@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Playfair_Display } from "next/font/google";
 
 import { siteConfig } from "@/config/site";
+import { BookingAcquisitionTracker } from "@/features/booking/components/booking-acquisition-tracker";
 import { getPublicSalonProfile } from "@/lib/site-settings";
 
 import "./globals.css";
@@ -76,7 +77,10 @@ export default function RootLayout({
       data-scroll-behavior="smooth"
       className={`${displayFont.variable} ${sansFont.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <BookingAcquisitionTracker />
+        {children}
+      </body>
     </html>
   );
 }

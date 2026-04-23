@@ -2,11 +2,15 @@
 
 import { BookingSubmissionOutcome, Prisma } from "@prisma/client";
 import { createHash } from "node:crypto";
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { z } from "zod";
 
 import { env } from "@/config/env";
 import { prisma } from "@/lib/prisma";
+import {
+  BOOKING_ACQUISITION_COOKIE,
+  parseBookingAcquisitionCookie,
+} from "@/features/booking/lib/booking-acquisition";
 import {
   createPublicBooking,
   isValidNormalizedClientPhone,
@@ -164,6 +168,10 @@ export async function createPublicBookingAction(
   formData: FormData,
 ): Promise<PublicBookingActionState> {
   const requestHeaders = await headers();
+  const cookieStore = await cookies();
+  const acquisitionData = parseBookingAcquisitionCookie(
+    cookieStore.get(BOOKING_ACQUISITION_COOKIE)?.value,
+  );
   const submissionMetadata = getSubmissionMetadata(requestHeaders);
   const parsed = publicBookingSchema.safeParse({
     serviceId: readFormString(formData, "serviceId"),
@@ -193,6 +201,7 @@ export async function createPublicBookingAction(
       metadata: {
         ipAttempts,
         emailFailures,
+        acquisition: acquisitionData,
       },
     });
 
@@ -224,6 +233,7 @@ export async function createPublicBookingAction(
           phone: fieldErrors.phone?.[0],
           clientNote: fieldErrors.clientNote?.[0],
         },
+        acquisition: acquisitionData,
       },
     });
 
@@ -258,6 +268,7 @@ export async function createPublicBookingAction(
       email: normalizeClientEmail(parsed.data.email),
       phone: normalizeClientPhone(parsed.data.phone || undefined),
       clientNote: parsed.data.clientNote || undefined,
+      acquisition: acquisitionData,
     });
 
     await writeSubmissionLog({
@@ -271,6 +282,7 @@ export async function createPublicBookingAction(
       metadata: {
         referenceCode: result.referenceCode,
         startsAt: parsed.data.startsAt,
+        acquisition: acquisitionData,
       },
     });
 
@@ -291,6 +303,7 @@ export async function createPublicBookingAction(
         failureReason: error.message,
         metadata: {
           suggestedStep: error.suggestedStep,
+          acquisition: acquisitionData,
         },
       });
 
@@ -314,6 +327,9 @@ export async function createPublicBookingAction(
         slotId: parsed.success ? parsed.data.slotId : undefined,
         failureCode: "SCHEMA_MISMATCH",
         failureReason: "Databáze nemá aplikované migrace pro nové booking action tokeny.",
+        metadata: {
+          acquisition: acquisitionData,
+        },
       });
 
       return {
@@ -335,6 +351,9 @@ export async function createPublicBookingAction(
       slotId: parsed.success ? parsed.data.slotId : undefined,
       failureCode: "UNEXPECTED_ERROR",
       failureReason: "Rezervaci se teď nepodařilo potvrdit. Zkuste to prosím znovu za chvíli.",
+      metadata: {
+        acquisition: acquisitionData,
+      },
     });
 
     return {

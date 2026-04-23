@@ -205,6 +205,7 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
   - sloupec `Status` je centrovaný jako samostatný grid item, aby badge seděly přesně pod hlavičku
   - `Zrušená` rezervace má ve sloupci `Status` jen lehce červený tón pro rychlé rozpoznání
   - stav se zobrazuje přes barevné badge, aby bylo na první pohled vidět, co čeká, co je hotové a co je zrušené
+  - sloupec `Zdroj` kombinuje provozní původ rezervace (`Web`, `Telefon`, ...) a akviziční zdroj (`Google`, `Facebook`, `Instagram`, `Firmy.cz/Seznam`, `Direct`, `Other`), pokud je dostupný
   - toolbar nově obsahuje CTA `Přidat rezervaci`, které pro `OWNER` i `SALON` otevírá pravý drawer pro plnohodnotné ruční vytvoření rezervace
   - ruční rezervace stále vzniká jako běžný `Booking`; používá stejnou doménovou create logiku jako veřejný booking a ukládá jen doplňková metadata `source`, `isManual`, `manualOverride`, `createdByUserId`
   - drawer umí vyhledat nebo propojit existující klientku podle jména, telefonu i e-mailu, případně rovnou založit novou
@@ -357,6 +358,7 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
 - `Service.isPubliclyBookable` odděluje interně aktivní službu od služby skutečně nabízené ve veřejné rezervaci.
 - `Booking` drží snapshot klienta, služby i času, takže pozdější změny ceníku nebo názvů služeb nepoškodí historická data.
 - `Booking` navíc drží vazbu na předchozí rezervaci při reschedule a na DB úrovni blokuje jen přesně duplicitní aktivní booking stejného klienta ve stejném intervalu (stejný slot, stejný začátek, stejný konec).
+- `Booking` nově ukládá i akviziční metadata (`acquisitionSource`, `acquisitionReferrerHost`, `acquisitionUtmSource`, `acquisitionUtmMedium`, `acquisitionUtmCampaign`) odvozená z `utm_*` a referrer hostu.
 - `BookingStatusHistory` slouží jako audit změn stavu a rozlišuje akci uživatele, klienta nebo systému.
 - Admin detail rezervace zobrazuje historii změn jako provozní timeline, takže salon i owner vidí, kdo a kdy stav upravil.
 - `BookingActionToken` ukládá pouze hash tokenu pro storno a přesun termínu, nikdy ne surovou hodnotu tokenu.
@@ -371,6 +373,7 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
   - znovu validuje službu a termín server-side
   - naváže nebo vytvoří klienta podle e-mailu
   - vytvoří rezervaci se stavem `PENDING` (čeká na schválení) a se snapshotem služby a času
+  - k veřejné rezervaci uloží i akviziční zdroj z cookie trackeru (`ppstudio-booking-acq`)
   - zapíše audit změny stavu
   - připraví storno token a e-mailový log s informací o přijetí rezervace
   - uloží e-mail jako `PENDING` v background režimu nebo `SENT` v log režimu

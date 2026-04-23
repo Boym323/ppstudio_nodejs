@@ -261,6 +261,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - `src/lib/media/media-validation.ts` centralizuje kontrolu MIME typu, přípony a maximální velikosti souboru.
 - `src/lib/media/media-filename.ts` generuje bezpečný název z původního jména a náhodného suffixu, takže nehrozí přepisování souborů se stejným názvem.
 - `src/features/booking/lib/booking-public.ts` je veřejný write model pro rezervace a drží i ochranu proti souběžnému obsazení slotu.
+- Veřejný booking write model ukládá k rezervaci i akviziční metadata (`acquisitionSource`, `acquisitionReferrerHost`, `acquisitionUtmSource`, `acquisitionUtmMedium`, `acquisitionUtmCampaign`), pokud jsou dostupná.
 - Veřejná rezervace se po submitu vytváří jako `BookingStatus.PENDING`; potvrzení (`CONFIRMED`) je provozní krok z adminu.
 - Pokud veřejná rezervace zabere jen část delšího slotu s kapacitou `1`, booking write model slot v transakci automaticky rozdělí na rezervovaný úsek a zbylé volné fragmenty, aby admin planner zůstal editovatelný po samostatných blocích.
 - `src/features/booking/lib/booking-cancellation.ts` drží veřejné storno workflow nad hashovaným action tokenem.
@@ -274,6 +275,8 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Krok 2 generuje konkrétní starty po 30 minutách uvnitř slotu a zobrazuje jen ty, které se při aktuální kapacitě nekryjí s existujícími aktivními rezervacemi.
 - Krok 2 veřejného booking flow drž jako rychlý decision flow: doporučené termíny nahoře, kalendář jako fallback a pod ním větší tlačítka konkrétních časů; detail termínu patří až do souhrnu v pravém panelu.
 - Kontaktní krok používá lehkou klientskou inline validaci jen jako UX vrstvu; server-side validace v `create-public-booking.ts` zůstává autoritativní.
+- `create-public-booking.ts` kromě IP/user-agent auditu načítá i cookie `ppstudio-booking-acq` a propsává akviziční kontext do `Booking` i `BookingSubmissionLog.metadata`.
+- Klientský tracker `src/features/booking/components/booking-acquisition-tracker.tsx` běží v root layoutu, sbírá `utm_*` + externí `document.referrer`, normalizuje je a ukládá do cookie `ppstudio-booking-acq` (`SameSite=Lax`, 30 dní).
 - Success stav veřejného booking flow drž jako vlastní confirmation layout, ne jako prodloužený souhrn:
   - horní status blok jen pro stav rezervace
   - hlavní detail rezervace ukazuje samostatně službu, termín, čas i referenční kód

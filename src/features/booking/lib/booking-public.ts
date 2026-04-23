@@ -2,6 +2,7 @@ import {
   AvailabilitySlotServiceRestrictionMode,
   AvailabilitySlotStatus,
   BookingActorType,
+  BookingAcquisitionSource,
   BookingActionTokenType,
   BookingSource,
   BookingStatus,
@@ -77,6 +78,13 @@ export type CreatePublicBookingInput = {
   email: string;
   phone?: string;
   clientNote?: string;
+  acquisition: {
+    source: BookingAcquisitionSource;
+    utmSource: string | null;
+    utmMedium: string | null;
+    utmCampaign: string | null;
+    referrerHost: string | null;
+  };
 };
 
 export type CreatePublicBookingResult = {
@@ -296,7 +304,15 @@ type SharedCreateBookingInput = {
   historyMetadata?: Prisma.InputJsonValue;
   sendClientEmail: boolean;
   includeCalendarAttachment: boolean;
+  deliverEmailImmediately?: boolean;
   sendAdminNotification: boolean;
+  acquisition?: {
+    source: BookingAcquisitionSource;
+    utmSource: string | null;
+    utmMedium: string | null;
+    utmCampaign: string | null;
+    referrerHost: string | null;
+  };
 };
 
 type SharedCreateBookingResult = {
@@ -1030,6 +1046,11 @@ async function createBookingWithEngine(
               slotId: resolvedSlot.id,
               serviceId: service.id,
               source: input.source,
+              acquisitionSource: input.acquisition?.source ?? null,
+              acquisitionReferrerHost: input.acquisition?.referrerHost ?? null,
+              acquisitionUtmSource: input.acquisition?.utmSource ?? null,
+              acquisitionUtmMedium: input.acquisition?.utmMedium ?? null,
+              acquisitionUtmCampaign: input.acquisition?.utmCampaign ?? null,
               isManual: input.isManual,
               manualOverride,
               status: input.status,
@@ -1072,6 +1093,11 @@ async function createBookingWithEngine(
                 source: input.source,
                 isManual: input.isManual,
                 manualOverride,
+                acquisitionSource: input.acquisition?.source ?? null,
+                acquisitionReferrerHost: input.acquisition?.referrerHost ?? null,
+                acquisitionUtmSource: input.acquisition?.utmSource ?? null,
+                acquisitionUtmMedium: input.acquisition?.utmMedium ?? null,
+                acquisitionUtmCampaign: input.acquisition?.utmCampaign ?? null,
               },
             },
           });
@@ -1279,10 +1305,16 @@ export async function createPublicBooking(
     historyReason: "public-booking-request-v1",
     historyMetadata: {
       source: "public-booking-request-v1",
+      acquisitionSource: input.acquisition.source,
+      acquisitionReferrerHost: input.acquisition.referrerHost,
+      acquisitionUtmSource: input.acquisition.utmSource,
+      acquisitionUtmMedium: input.acquisition.utmMedium,
+      acquisitionUtmCampaign: input.acquisition.utmCampaign,
     },
     sendClientEmail: true,
     includeCalendarAttachment: false,
     sendAdminNotification: true,
+    acquisition: input.acquisition,
   });
 
   return {

@@ -40,6 +40,15 @@ enum BookingSource {
   OTHER
 }
 
+enum BookingAcquisitionSource {
+  DIRECT
+  FACEBOOK
+  GOOGLE
+  INSTAGRAM
+  FIRMY_CZ
+  OTHER
+}
+
 enum BookingActorType {
   USER
   CLIENT
@@ -254,6 +263,11 @@ model Booking {
   slotId                   String
   serviceId                String
   source                   BookingSource          @default(WEB)
+  acquisitionSource        BookingAcquisitionSource?
+  acquisitionReferrerHost  String?
+  acquisitionUtmSource     String?
+  acquisitionUtmMedium     String?
+  acquisitionUtmCampaign   String?
   isManual                 Boolean                @default(false)
   manualOverride           Boolean                @default(false)
   status                   BookingStatus          @default(PENDING)
@@ -291,6 +305,7 @@ model Booking {
   @@index([serviceId, scheduledStartsAt])
   @@index([status, scheduledStartsAt])
   @@index([source, createdAt])
+  @@index([acquisitionSource, createdAt])
   @@index([createdByUserId])
   @@index([rescheduledAt])
 }

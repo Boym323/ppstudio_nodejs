@@ -1,5 +1,6 @@
 import {
   BookingActorType,
+  BookingAcquisitionSource,
   BookingSource,
   BookingStatus,
   EmailLogStatus,
@@ -44,6 +45,7 @@ export type AdminBookingDetailData = {
   clientPhone: string;
   serviceName: string;
   sourceLabel: string;
+  acquisitionLabel: string | null;
   clientNote: string | null;
   internalNote: string | null;
   availableActions: AdminBookingActionOption[];
@@ -111,6 +113,27 @@ export function getBookingSourceLabel(source: BookingSource) {
       return "Osobně";
     case BookingSource.OTHER:
       return "Jiný původ";
+  }
+}
+
+export function getBookingAcquisitionLabel(source: BookingAcquisitionSource | null) {
+  if (!source) {
+    return null;
+  }
+
+  switch (source) {
+    case "DIRECT":
+      return "Direct / bez kampaně";
+    case "FACEBOOK":
+      return "Facebook";
+    case "GOOGLE":
+      return "Google";
+    case "INSTAGRAM":
+      return "Instagram";
+    case "FIRMY_CZ":
+      return "Firmy.cz / Seznam";
+    case "OTHER":
+      return "Jiný akviziční zdroj";
   }
 }
 
@@ -243,6 +266,7 @@ export async function getAdminBookingDetailData(
     clientPhone: booking.clientPhoneSnapshot ?? booking.client.phone ?? "Telefon není vyplněný",
     serviceName: booking.serviceNameSnapshot,
     sourceLabel: getBookingSourceLabel(booking.source),
+    acquisitionLabel: getBookingAcquisitionLabel(booking.acquisitionSource),
     clientNote: booking.clientNote,
     internalNote: booking.internalNote,
     availableActions: getAdminBookingActionOptions(booking.status),
