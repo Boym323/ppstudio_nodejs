@@ -136,7 +136,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Sekce `Služby` má vlastní workflow v `src/features/admin/components/admin-services-page.tsx` a už neběží přes generický placeholder renderer.
 - `src/features/admin/lib/admin-services.ts` drží serverový read model pro seznam, provozní warningy, detail služby a předvyplněný create flow.
 - `src/features/admin/actions/service-actions.ts` nově obsluhuje create, update, duplikaci, quick toggles a reorder; validace zůstává v `src/features/admin/lib/admin-service-validation.ts`.
-- Ve formuláři detailu služby (`admin-service-form.tsx`) jsou texty rozdělené na `Základní popisy (fallback)` a `Veřejná prezentace`; veřejná vrstva má na webu přednost a fallback se používá hlavně pro rezervační flow a záložní copy.
+- Ve formuláři detailu služby (`admin-service-form.tsx`) je textová vrstva sjednocená pod `Veřejná prezentace`; `publicIntro` je jediný zdroj krátkého textu pro web i rezervační flow, aby se stejný copy neudržoval ve dvou polích.
 - Sekce `Kategorie služeb` má vlastní workflow v `src/features/admin/components/admin-service-categories-page.tsx` a stejně jako `Služby` obchází generický placeholder renderer.
 - `src/features/admin/lib/admin-service-categories.ts` drží serverový read model pro seznam, warningy, detail kategorie a počty navázaných služeb podle stavu.
 - Nové UI komponenty pro workflow kategorií jsou v `src/components/admin/categories/`:

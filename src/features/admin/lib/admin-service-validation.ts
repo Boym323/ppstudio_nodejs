@@ -30,7 +30,6 @@ export const updateServiceSchema = z.object({
   categoryId: z.string().trim().min(1, "Vyberte kategorii služby.").max(64),
   name: z.string().trim().min(2, "Název služby musí mít alespoň 2 znaky.").max(120, "Název služby je příliš dlouhý."),
   publicName: z.string().trim().max(120, "Veřejný název je příliš dlouhý.").optional().or(z.literal("")),
-  shortDescription: z.string().trim().max(240, "Krátký popis je příliš dlouhý.").optional().or(z.literal("")),
   description: z.string().trim().max(4000, "Detailní popis je příliš dlouhý.").optional().or(z.literal("")),
   publicIntro: z.string().trim().max(400, "Veřejný úvod je příliš dlouhý.").optional().or(z.literal("")),
   seoDescription: z.string().trim().max(240, "SEO popis je příliš dlouhý.").optional().or(z.literal("")),
@@ -61,6 +60,14 @@ export const updateServiceSchema = z.object({
     .max(9999, "Pořadí je příliš vysoké."),
   isActive: z.boolean(),
   isPubliclyBookable: z.boolean(),
+}).superRefine((value, ctx) => {
+  if (value.isPubliclyBookable && (!value.publicIntro || value.publicIntro.trim().length < 12)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["publicIntro"],
+      message: "Veřejně rezervovatelná služba potřebuje srozumitelný veřejný úvod (alespoň 12 znaků).",
+    });
+  }
 });
 
 export const createServiceSchema = z.object({
@@ -69,7 +76,6 @@ export const createServiceSchema = z.object({
   categoryId: z.string().trim().min(1, "Vyberte kategorii služby.").max(64),
   name: z.string().trim().min(2, "Název služby musí mít alespoň 2 znaky.").max(120, "Název služby je příliš dlouhý."),
   publicName: z.string().trim().max(120, "Veřejný název je příliš dlouhý.").optional().or(z.literal("")),
-  shortDescription: z.string().trim().max(240, "Krátký popis je příliš dlouhý.").optional().or(z.literal("")),
   description: z.string().trim().max(4000, "Detailní popis je příliš dlouhý.").optional().or(z.literal("")),
   publicIntro: z.string().trim().max(400, "Veřejný úvod je příliš dlouhý.").optional().or(z.literal("")),
   seoDescription: z.string().trim().max(240, "SEO popis je příliš dlouhý.").optional().or(z.literal("")),
@@ -95,6 +101,14 @@ export const createServiceSchema = z.object({
   ]),
   isActive: z.boolean(),
   isPubliclyBookable: z.boolean(),
+}).superRefine((value, ctx) => {
+  if (value.isPubliclyBookable && (!value.publicIntro || value.publicIntro.trim().length < 12)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["publicIntro"],
+      message: "Veřejně rezervovatelná služba potřebuje srozumitelný veřejný úvod (alespoň 12 znaků).",
+    });
+  }
 });
 
 export type ServiceListSortValue = (typeof serviceListSortValues)[number];

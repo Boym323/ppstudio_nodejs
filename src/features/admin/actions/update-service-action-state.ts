@@ -6,7 +6,6 @@ export type UpdateServiceActionState = {
     Record<
       | "name"
       | "publicName"
-      | "shortDescription"
       | "description"
       | "publicIntro"
       | "seoDescription"

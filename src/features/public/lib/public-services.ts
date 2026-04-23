@@ -71,7 +71,6 @@ function getCategoryLabel(category: { name: string; publicName: string | null })
 function buildServiceIntro(service: PublicServiceRow) {
   return (
     service.publicIntro ??
-    service.shortDescription ??
     service.description ??
     `Klidná péče pro službu ${resolveServiceName(service).toLowerCase()}, navržená tak, aby byla srozumitelná i při rychlém rozhodnutí.`
   );
@@ -81,7 +80,6 @@ function buildServiceDetail(service: PublicServiceRow) {
   return (
     service.description ??
     service.publicIntro ??
-    service.shortDescription ??
     `Služba ${resolveServiceName(service).toLowerCase()} je připravená jako pečlivě vedená návštěva s důrazem na komfort a jasný výsledek.`
   );
 }

@@ -107,7 +107,6 @@ function describeServiceWarnings(service: {
   isPubliclyBookable: boolean;
   publicName: string | null;
   priceFromCzk: number | null;
-  shortDescription: string | null;
   publicIntro: string | null;
   pricingShortDescription: string | null;
   category: {
@@ -128,16 +127,12 @@ function describeServiceWarnings(service: {
     warnings.push("Chybí cena.");
   }
 
-  if (!service.shortDescription || service.shortDescription.trim().length < 12) {
-    warnings.push("Krátký popis je příliš stručný nebo chybí.");
-  }
-
   if (service.isPubliclyBookable && !service.publicName) {
     warnings.push("Veřejná služba zatím používá jen interní název.");
   }
 
-  if (service.isPubliclyBookable && !service.publicIntro) {
-    warnings.push("Veřejné službě chybí úvod pro web.");
+  if (service.isPubliclyBookable && (!service.publicIntro || service.publicIntro.trim().length < 12)) {
+    warnings.push("Veřejné službě chybí srozumitelný úvod pro web i rezervaci.");
   }
 
   if (service.isPubliclyBookable && !service.pricingShortDescription) {

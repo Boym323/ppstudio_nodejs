@@ -1207,7 +1207,7 @@ export async function getPublicBookingCatalog(): Promise<PublicBookingCatalog> {
         id: true,
         name: true,
         slug: true,
-        shortDescription: true,
+        publicIntro: true,
         durationMinutes: true,
         priceFromCzk: true,
         category: {
@@ -1259,7 +1259,7 @@ export async function getPublicBookingCatalog(): Promise<PublicBookingCatalog> {
       categoryName: service.category.name,
       name: service.name,
       slug: service.slug,
-      shortDescription: service.shortDescription,
+      shortDescription: service.publicIntro,
       durationMinutes: service.durationMinutes,
       priceFromCzk: service.priceFromCzk,
     })),

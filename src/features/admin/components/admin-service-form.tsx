@@ -34,7 +34,6 @@ type EditServiceFormProps = BaseServiceFormProps & {
     id: string;
     name: string;
     publicName: string | null;
-    shortDescription: string | null;
     description: string | null;
     publicIntro: string | null;
     seoDescription: string | null;
@@ -63,7 +62,6 @@ type CreateServiceFormProps = BaseServiceFormProps & {
   initialValues: {
     name: string;
     publicName: string;
-    shortDescription: string;
     description: string;
     publicIntro: string;
     seoDescription: string;
@@ -255,37 +253,8 @@ export function AdminServiceForm(props: EditServiceFormProps | CreateServiceForm
       </SectionBlock>
 
       <SectionBlock
-        title="Základní popisy (fallback)"
-        description="Používá se v rezervačním flow a jako záloha pro veřejný web, když níže chybí veřejné texty."
-      >
-        <div className="grid gap-4">
-          <Field label="Krátký popis (rezervace + fallback)" error={serverState.fieldErrors?.shortDescription}>
-            <textarea
-              name="shortDescription"
-              rows={2}
-              maxLength={240}
-              defaultValue={props.mode === "create" ? props.initialValues.shortDescription : props.service.shortDescription ?? ""}
-              placeholder="Jedna věta, která se ukáže při výběru služby v rezervaci."
-              className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm leading-6 text-white outline-none transition placeholder:text-white/32 focus:border-[var(--color-accent)]/60"
-            />
-          </Field>
-
-          <Field label="Detailní popis (fallback pro web)" error={serverState.fieldErrors?.description}>
-            <textarea
-              name="description"
-              rows={4}
-              maxLength={4000}
-              defaultValue={props.mode === "create" ? props.initialValues.description : props.service.description ?? ""}
-              placeholder="Delší popis jako záloha, když není vyplněný veřejný úvod."
-              className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm leading-6 text-white outline-none transition placeholder:text-white/32 focus:border-[var(--color-accent)]/60"
-            />
-          </Field>
-        </div>
-      </SectionBlock>
-
-      <SectionBlock
         title="Veřejná prezentace"
-        description="Tato vrstva řídí veřejný web a ceník. Má přednost před fallback texty z bloku výše."
+        description="Jeden zdroj textu pro web i rezervaci: veřejný úvod se používá v seznamech služeb i v kroku výběru služby. Detailní text níže je volitelný a slouží pro delší popis na webu."
       >
         <div className="grid gap-4">
           <Field label="Veřejný název" error={serverState.fieldErrors?.publicName}>
@@ -305,7 +274,18 @@ export function AdminServiceForm(props: EditServiceFormProps | CreateServiceForm
               rows={3}
               maxLength={400}
               defaultValue={props.mode === "create" ? props.initialValues.publicIntro : props.service.publicIntro ?? ""}
-              placeholder="Krátký úvod pro veřejný web, detail služby a seznamy."
+              placeholder="Hlavní krátký text služby. Zobrazí se na webu i v rezervačním kroku výběru služby."
+              className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm leading-6 text-white outline-none transition placeholder:text-white/32 focus:border-[var(--color-accent)]/60"
+            />
+          </Field>
+
+          <Field label="Detailní popis služby (volitelný)" error={serverState.fieldErrors?.description}>
+            <textarea
+              name="description"
+              rows={4}
+              maxLength={4000}
+              defaultValue={props.mode === "create" ? props.initialValues.description : props.service.description ?? ""}
+              placeholder="Delší text pro detail služby na webu."
               className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm leading-6 text-white outline-none transition placeholder:text-white/32 focus:border-[var(--color-accent)]/60"
             />
           </Field>
