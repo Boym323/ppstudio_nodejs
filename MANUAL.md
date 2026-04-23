@@ -21,6 +21,11 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
 
 ## Aktuální Stav Projektu
 - Projekt běží na Next.js 16 App Routeru se strukturou oddělenou na public web, booking a admin.
+- Aktuální runtime stack podle `package.json`:
+  - `next` `16.2.4`
+  - `react` `19.2.4`
+  - `react-dom` `19.2.4`
+  - `prisma` + `@prisma/client` `7.7.0`
 - Veřejná část aktuálně pokrývá:
   - homepage
   - služby a detail služby
@@ -104,7 +109,7 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
 
 ## Veřejný Web
 - Navigace vede na klíčové konverzní a důvěryhodnostní stránky místo jedné přetížené homepage.
-- Detail služby je staticky generovaný z centrálního katalogu služeb.
+- Detail služby je renderovaný v request-time režimu nad DB katalogem služeb, takže změny z adminu nečekají na nový build.
 - `/rezervace` nyní obsahuje produkční V1 flow:
   - výběr kategorie služby a následně konkrétní služby
   - výběr konkrétního času v rámci ručně publikovaného volného okna

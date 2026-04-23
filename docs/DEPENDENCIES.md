@@ -2,6 +2,15 @@
 
 Seznam důležitých knihoven a důvod jejich použití.
 
+## Aktuální verze stacku
+- Zdroj pravdy je `package.json` v kořeni projektu.
+- `next`: `16.2.4`
+- `react`: `19.2.4`
+- `react-dom`: `19.2.4`
+- `prisma`: `^7.7.0` (runtime používá `7.7.0`)
+- `@prisma/client`: `^7.7.0` (runtime používá `7.7.0`)
+- `@prisma/adapter-pg`: `^7.7.0` (runtime používá `7.7.0`)
+
 ## Core
 - `next`: framework aplikace.
 - `react`: UI knihovna.
