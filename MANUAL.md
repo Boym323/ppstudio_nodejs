@@ -142,8 +142,10 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
   - na desktopu používá kompaktní 3sloupcové rozložení `brand -> navigace + informace -> kontakt`
   - na mobilu se skládá pod sebe v pořadí `brand -> navigace -> informace -> kontakt`
   - navigace a právní odkazy jsou oddělené do dvou samostatně nadepsaných skupin, ne do jednoho dlouhého seznamu
-  - kontakt má vlastní opticky silnější blok s adresou a klikacími odkazy `tel:` a `mailto:`
+  - kontakt má vlastní opticky silnější blok s adresou a klikacími odkazy `tel:` a `mailto:`; telefon i e-mail se zobrazují přímo a bez textové obfuscace
   - spodní mikrořádek drží jen copyright a nemá přebírat roli další navigace
+- Stránka `/gdpr` už není placeholder kostra; používá právní informační skladbu `hero s kontaktem správce -> obsahová navigace -> tematické sekce`.
+- GDPR sekce v `src/content/public-site.ts` teď počítají s jemně bohatším modelem (`id`, odstavce, seznamové body, volitelná poznámka), aby šla stránka rozšířit bez přepisování layoutu.
 - Veřejné e-mailové odkazy jsou jemně obfuskované:
   - text se zobrazuje ve tvaru `lokalni-cast [at] domena`
   - skutečný `mailto:` odkaz se skládá až na klientu po načtení stránky

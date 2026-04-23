@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import type { ReactNode } from 'react';
 import Image from 'next/image';
 import type { Metadata } from 'next';
 
@@ -33,6 +34,7 @@ function PublicHero({
   portraitImage,
   primaryCta,
   secondaryCta,
+  aside,
 }: {
   eyebrow: string;
   title: string;
@@ -43,6 +45,7 @@ function PublicHero({
   portraitImage?: { src: string; alt: string; width: number; height: number };
   primaryCta?: { href: string; label: string };
   secondaryCta?: { href: string; label: string };
+  aside?: ReactNode;
 }) {
   const isHomepageStyle = Boolean(logoImage && portraitImage);
 
@@ -92,20 +95,20 @@ function PublicHero({
           {(primaryCta || secondaryCta) && (
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
               {primaryCta ? (
-                <Link
+                <ActionLink
                   href={primaryCta.href}
                   className="inline-flex min-h-13 items-center justify-center rounded-full bg-[var(--color-foreground)] px-7 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-white hover:bg-[#2c221d] sm:text-sm"
                 >
                   {primaryCta.label}
-                </Link>
+                </ActionLink>
               ) : null}
               {secondaryCta ? (
-                <Link
+                <ActionLink
                   href={secondaryCta.href}
                   className="inline-flex min-h-13 items-center justify-center rounded-full border border-black/10 bg-white/75 px-7 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-foreground)] hover:border-black/20 hover:bg-white sm:text-sm"
                 >
                   {secondaryCta.label}
-                </Link>
+                </ActionLink>
               ) : null}
             </div>
           )}
@@ -125,6 +128,8 @@ function PublicHero({
                 priority
               />
             </div>
+          ) : aside ? (
+            <div className="w-full">{aside}</div>
           ) : (
             <div className="rounded-[calc(var(--radius-panel)-0.25rem)] border border-white/75 bg-white/82 p-5 shadow-[var(--shadow-panel)] backdrop-blur sm:p-6">
               <p className="text-[11px] font-semibold uppercase tracking-[0.32em] text-[var(--color-accent)]">
@@ -138,6 +143,30 @@ function PublicHero({
         </div>
       </Container>
     </section>
+  );
+}
+
+function ActionLink({
+  href,
+  className,
+  children,
+}: {
+  href: string;
+  className: string;
+  children: ReactNode;
+}) {
+  if (/^(mailto:|tel:|https?:\/\/)/.test(href)) {
+    return (
+      <a href={href} className={className}>
+        {children}
+      </a>
+    );
+  }
+
+  return (
+    <Link href={href} className={className}>
+      {children}
+    </Link>
   );
 }
 
@@ -274,18 +303,95 @@ function PricingServiceRow({ service }: { service: Service }) {
 
 function LegalSections({ sections }: { sections: LegalSection[] }) {
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-5">
       {sections.map((section) => (
-        <section key={section.title} className="rounded-[calc(var(--radius-panel)-0.5rem)] border border-black/6 bg-white p-5 shadow-[var(--shadow-panel)] sm:p-6">
+        <section
+          key={section.id ?? section.title}
+          id={section.id}
+          className="scroll-mt-28 rounded-[calc(var(--radius-panel)-0.5rem)] border border-black/6 bg-white p-5 shadow-[var(--shadow-panel)] sm:p-6"
+        >
           <h2 className="font-display text-2xl leading-[1.1] text-[var(--color-foreground)] sm:text-3xl">{section.title}</h2>
           <div className="mt-4 space-y-4 text-[15px] leading-7 text-[var(--color-muted)] sm:text-base">
             {section.paragraphs.map((paragraph) => (
               <p key={paragraph}>{paragraph}</p>
             ))}
+            {section.items?.length ? (
+              <ul className="grid gap-3 border-t border-black/6 pt-4 text-[14px] leading-6 text-[var(--color-muted)] sm:text-[15px]">
+                {section.items.map((item) => (
+                  <li key={item} className="flex items-start gap-3">
+                    <span aria-hidden="true" className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--color-accent)]" />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+            {section.note ? (
+              <p className="rounded-2xl bg-[var(--color-surface)] px-4 py-3 text-[14px] leading-6 text-[var(--color-accent-contrast)] sm:text-[15px]">
+                {section.note}
+              </p>
+            ) : null}
           </div>
         </section>
       ))}
     </div>
+  );
+}
+
+function LegalHeroAside({
+  eyebrow,
+  title,
+  description,
+  items,
+}: {
+  eyebrow: string;
+  title: string;
+  description?: string;
+  items: Array<{ label: string; value: string; href?: string }>;
+}) {
+  return (
+    <aside className="h-full rounded-[calc(var(--radius-panel)-0.25rem)] border border-white/75 bg-white/82 p-5 shadow-[var(--shadow-panel)] backdrop-blur sm:p-6">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.32em] text-[var(--color-accent)]">{eyebrow}</p>
+      <h2 className="mt-4 font-display text-2xl leading-[1.12] text-[var(--color-foreground)] sm:text-3xl">{title}</h2>
+      {description ? <p className="mt-3 text-[14px] leading-6 text-[var(--color-muted)] sm:text-[15px]">{description}</p> : null}
+      <dl className="mt-6 grid gap-3">
+        {items.map((item) => (
+          <div key={`${item.label}-${item.value}`} className="rounded-2xl border border-black/[0.06] bg-white/70 px-4 py-3">
+            <dt className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-muted)]">{item.label}</dt>
+            <dd className="mt-2 text-[15px] leading-6 text-[var(--color-foreground)]">
+              {item.href ? (
+                <a href={item.href} className="underline-offset-4 hover:underline">
+                  {item.value}
+                </a>
+              ) : (
+                item.value
+              )}
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </aside>
+  );
+}
+
+function LegalToc({ items }: { items: Array<{ id: string; label: string }> }) {
+  return (
+    <nav
+      aria-label="Obsah stránky"
+      className="rounded-[calc(var(--radius-panel)-0.5rem)] border border-black/6 bg-white px-4 py-4 shadow-[var(--shadow-panel)] sm:px-5"
+    >
+      <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-accent)]">Obsah stránky</p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {items.map((item) => (
+          <a
+            key={item.id}
+            href={`#${item.id}`}
+            className="rounded-full border border-black/10 bg-[var(--color-surface)] px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-accent-contrast)] hover:border-black/15 hover:bg-[#f3e7da] sm:text-[12px]"
+          >
+            {item.label}
+          </a>
+        ))}
+      </div>
+    </nav>
   );
 }
 
@@ -582,17 +688,39 @@ export function LegalPage({
   title,
   description,
   sections,
+  secondaryCta = { href: '/kontakt', label: 'Kontaktovat studio' },
+  heroAside,
+  showTableOfContents = false,
 }: {
   eyebrow: string;
   title: string;
   description: string;
   sections: LegalSection[];
+  secondaryCta?: { href: string; label: string };
+  heroAside?: {
+    eyebrow: string;
+    title: string;
+    description?: string;
+    items: Array<{ label: string; value: string; href?: string }>;
+  };
+  showTableOfContents?: boolean;
 }) {
+  const tableOfContentsItems = sections
+    .filter((section): section is LegalSection & { id: string } => Boolean(section.id))
+    .map((section) => ({ id: section.id, label: section.title }));
+
   return (
-    <div className="pb-8 sm:pb-12">
-      <PublicHero eyebrow={eyebrow} title={title} description={description} secondaryCta={{ href: '/kontakt', label: 'Potřebuji upřesnění' }} />
-      <section className="py-10 sm:py-14 lg:py-16">
-        <Container className="space-y-6">
+    <div className="pb-6 sm:pb-10">
+      <PublicHero
+        eyebrow={eyebrow}
+        title={title}
+        description={description}
+        secondaryCta={secondaryCta}
+        aside={heroAside ? <LegalHeroAside {...heroAside} /> : undefined}
+      />
+      <section className="py-8 sm:py-10 lg:py-12">
+        <Container className="space-y-4 sm:space-y-5">
+          {showTableOfContents && tableOfContentsItems.length ? <LegalToc items={tableOfContentsItems} /> : null}
           <LegalSections sections={sections} />
         </Container>
       </section>

@@ -30,8 +30,11 @@ export type FaqItem = {
 };
 
 export type LegalSection = {
+  id?: string;
   title: string;
   paragraphs: string[];
+  items?: string[];
+  note?: string;
 };
 
 export type ContactItem = {
@@ -419,24 +422,97 @@ export function buildLegalContent(cancellationHours: number) {
   gdpr: {
     title: 'GDPR a ochrana osobních údajů',
     intro:
-      'Níže je připravená editovatelná struktura pro zásady zpracování osobních údajů. Text je potřeba finalizovat podle konkrétních procesů salonu, používaných nástrojů a retenčních lhůt.',
+      'Osobní údaje zpracováváme jen v rozsahu, který je potřeba pro rezervaci termínu, běžnou komunikaci s klientkou a splnění zákonných povinností. Níže najdete přehled, jak s údaji v PP Studiu pracujeme.',
     sections: [
       {
-        title: 'Jaké údaje zpracováváme',
+        id: 'spravce',
+        title: 'Správce osobních údajů',
         paragraphs: [
-          'Typicky jde o jméno, telefon, e-mail, údaje spojené s rezervací termínu a případně provozní poznámky potřebné pro bezpečné poskytnutí služby.',
-          'Zdravotní nebo citlivé údaje zpracovávejte jen tehdy, pokud jsou skutečně nutné a máte k tomu odpovídající právní základ a interní proces.',
+          'Správcem osobních údajů je PP Studio. To znamená, že určujeme, za jakým účelem a jakým způsobem jsou osobní údaje při provozu studia používány.',
+          'Pokud budete potřebovat cokoliv vysvětlit nebo si uplatnit některé ze svých práv, můžete nás kontaktovat prostřednictvím uvedených kontaktních údajů.',
         ],
       },
       {
-        title: 'Účel a doba uchování',
+        id: 'jake-udaje',
+        title: 'Jaké údaje zpracováváme',
         paragraphs: [
-          'Údaje slouží především k vyřízení rezervace, komunikaci s klientkou a splnění zákonných povinností.',
-          'Retenční dobu je vhodné doplnit zvlášť pro účetní doklady, historii rezervací a marketingovou komunikaci.',
+          'Rozsah zpracovávaných údajů se odvíjí od toho, jakou službu využíváte a jak spolu komunikujeme. Vždy se snažíme pracovat jen s tím, co je pro provoz studia skutečně potřebné.',
+        ],
+        items: [
+          'jméno a příjmení',
+          'telefonní číslo',
+          'e-mailová adresa',
+          'údaje spojené s rezervací termínu a vybranou službou',
+          'provozní poznámky, pokud jsou nezbytné pro bezpečné a správné poskytnutí služby',
         ],
       },
+      {
+        id: 'ucely',
+        title: 'Pro jaké účely údaje používáme',
+        paragraphs: [
+          'Osobní údaje nepoužíváme bezdůvodně. Každé zpracování má svůj praktický a zákonný důvod.',
+        ],
+        items: [
+          'vyřízení rezervace a potvrzení domluveného termínu',
+          'komunikace před návštěvou i po ní, pokud je to potřeba',
+          'vedení základní provozní evidence a návazné administrativy',
+          'plnění zákonných povinností, zejména v oblasti účetnictví a daňových dokladů',
+        ],
+      },
+      {
+        id: 'uchovani',
+        title: 'Jak dlouho údaje uchováváme',
+        paragraphs: [
+          'Údaje neuchováváme déle, než je potřeba. Konkrétní doba se liší podle typu záznamu a důvodu, proč byl vytvořen.',
+        ],
+        items: [
+          'rezervace a související provozní údaje po dobu nezbytnou pro organizaci termínu, řešení změn a běžnou návaznou evidenci',
+          'běžnou e-mailovou nebo telefonickou komunikaci po dobu potřebnou k dořešení dotazu nebo rezervace',
+          'účetní a daňové doklady po dobu stanovenou právními předpisy',
+          'marketingovou komunikaci pouze pokud by byla vedena na základě souhlasu, a to po dobu jeho trvání nebo do odvolání',
+        ],
+        note:
+          'Pokud některé údaje musíme uchovat déle kvůli právní povinnosti nebo ochraně oprávněných zájmů, děje se tak jen v nezbytném rozsahu.',
+      },
+      {
+        id: 'zpristupneni',
+        title: 'Komu mohou být údaje zpřístupněny',
+        paragraphs: [
+          'K osobním údajům mají přístup jen osoby a služby, které je potřebují pro zajištění chodu studia. Vždy jen v nezbytném rozsahu.',
+        ],
+        items: [
+          'poskytovatel webu a hostingu',
+          'poskytovatel e-mailových a komunikačních služeb',
+          'účetní nebo daňový poradce, pokud je to nutné pro splnění zákonných povinností',
+          'orgány veřejné moci, pokud to ukládá právní předpis',
+        ],
+      },
+      {
+        id: 'prava',
+        title: 'Jaká máte práva',
+        paragraphs: [
+          'Ve vztahu ke svým osobním údajům máte práva, která můžete kdykoli uplatnit. Na váš dotaz nebo žádost odpovíme bez zbytečného odkladu.',
+        ],
+        items: [
+          'právo na přístup k osobním údajům',
+          'právo na opravu nepřesných nebo neaktuálních údajů',
+          'právo na výmaz, pokud už údaje nejsou potřebné nebo pro jejich zpracování není důvod',
+          'právo na omezení zpracování v případech stanovených právními předpisy',
+          'právo vznést námitku proti zpracování, pokud je založené na oprávněném zájmu',
+          'právo podat stížnost u Úřadu pro ochranu osobních údajů',
+        ],
+      },
+      {
+        id: 'kontakt',
+        title: 'Jak nás kontaktovat',
+        paragraphs: [
+          'Pokud máte otázku ke zpracování osobních údajů nebo chcete uplatnit některé ze svých práv, napište nám e-mail nebo zavolejte. Nejrychlejší je ozvat se přes kontaktní údaje uvedené výše na této stránce.',
+        ],
+        note:
+          'Uděláme maximum pro to, aby komunikace byla srozumitelná, věcná a bez zbytečně složitých formalit.',
+      },
     ],
-    },
+  },
   };
 }
 

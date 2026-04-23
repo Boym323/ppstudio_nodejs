@@ -7,6 +7,9 @@ Formát je inspirovaný Keep a Changelog.
 ## [Unreleased]
 
 ### Changed
+- GDPR stránka `/gdpr` prošla úplným obsahovým a UX refactorem: hero už nepůsobí jako interní draft, vpravo nově zobrazuje praktický box správce osobních údajů a pod ním následuje plná právní osnova se sekcemi pro účely, dobu uchování, příjemce údajů, práva subjektu i závěrečný kontakt.
+- Generická veřejná komponenta `LegalPage` už umí vedle textového hero i užitečný informační aside, lehkou anchor navigaci a bohatší právní sekce se seznamy a zvýrazněnou poznámkou, takže stejné UX páky můžeme použít i u dalších právních stránek bez dalšího přepisu.
+- Ve footeru zůstává klikací e-mailový kontakt, ale zobrazuje se už v běžném čitelném tvaru místo textu `[...] [at] [...]`; cílem je přímější a důvěryhodnější kontakt pro návštěvnici.
 - Opraveno rozhraní server/client kolem obfuskovaného e-mailu: `formatObfuscatedEmail` je nově ve sdíleném server-safe helperu `src/lib/email-obfuscation.ts`, takže server komponenty (např. footer) už nevolají funkci z klientského modulu.
 - Veřejné e-mailové odkazy na webu teď používají jemnou obfuscaci: footer, kontaktní stránka i booking confirmation panel už nevypisují ani nerenderují surový `mailto:` odkaz přímo v HTML, ale skládají ho až v klientu přes sdílený helper a návštěvnici dál nechávají e-mail otevřít jedním klikem.
 - Veřejný footer prošel informačním redesignem bez změny brand směru: nově používá kompaktnější 3sloupcovou skladbu `brand -> navigace/informace -> kontakt`, odděluje hlavní a právní odkazy do dvou nadepsaných skupin a ve vlastním kontaktním bloku nově ukazuje adresu, telefon i e-mail.

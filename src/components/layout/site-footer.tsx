@@ -1,7 +1,6 @@
 import Link from 'next/link';
 
 import { footerNavigation, mainNavigation } from '@/config/navigation';
-import { formatObfuscatedEmail } from '@/lib/email-obfuscation';
 import { getPublicSalonProfile } from '@/lib/site-settings';
 
 import { ObfuscatedEmailLink } from '../ui/obfuscated-email-link';
@@ -76,7 +75,7 @@ export async function SiteFooter() {
                 className="inline-flex min-h-11 min-w-0 items-center gap-3 rounded-2xl border border-black/[0.06] bg-white/55 px-4 py-3 text-[0.95rem] font-medium not-italic text-[var(--color-foreground)] shadow-[0_8px_24px_rgba(34,22,12,0.04)] hover:border-black/10 hover:bg-white/78"
               >
                 <MailIcon />
-                <span className="break-words">{formatObfuscatedEmail(salonProfile.email)}</span>
+                <span className="break-words">{salonProfile.email}</span>
               </ObfuscatedEmailLink>
             </address>
           </section>

@@ -71,11 +71,14 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - drž rozdělení na 3 desktop bloky `brand -> navigace/informace -> kontakt`
   - uprostřed vždy zachovej dvě oddělené skupiny odkazů `Navigace` a `Informace`
   - kontakt má mít vyšší vizuální váhu než běžné linky, ale bez CTA nebo promo copy; obsahuje adresu, telefon a e-mail
+  - ve footeru zobrazuj e-mail i telefon v přirozeně čitelném tvaru; nepoužívej textový zápis `info [at] ...`
   - při dalších úpravách preferuj práci s `gap`, `max-width`, typografickou vahou a jemným border/shadow rytmem místo přidávání dalších obsahových bloků
 - Veřejné e-mailové odkazy nepoužívej jako surový `mailto:` přímo v SSR markupu; pro footer, kontaktní stránku a další veřejné kontaktní prvky používej `src/components/ui/obfuscated-email-link.tsx`, který:
-  - zobrazuje obfuskovaný text `local [at] domain`
+  - může zobrazit obfuskovaný text `local [at] domain` nebo plný čitelný e-mail podle kontextu UI
   - skládá skutečný `mailto:` až v klientu
   - umí i předvyplněný `subject` a `body` pro provozní e-mailové akce
+- Právní stránky ve `src/features/public/components/public-site.tsx` mohou nově používat rozšířenou skladbu `hero + aside + anchor TOC + sekce`; pro právní texty proto preferuj strukturovaný obsah v `src/content/public-site.ts` místo dlouhých monolitických odstavců.
+- Model `LegalSection` podporuje `id`, seznamové body a volitelnou poznámku. U GDPR a podobných stránek tím drž kratší odstavce, lepší scanovatelnost a jasné anchor odkazy.
 - Placeholder obsah musí být jasně odlišen od finálních produkčních textů.
 - Pokud je interní název služby příliš technický nebo exportovaný ze starého webu, nepřepisuj DB záznam jen kvůli public copy; preferuj public override v read modelu.
 - Pro public override už preferuj přímo pole v katalogu (`Service.publicIntro`, `ServiceCategory.publicName`, `ServiceCategory.pricingDescription`); lokální fallback v read modelu má být jen záchranná síť, ne primární workflow.
