@@ -89,7 +89,6 @@ export type CreatePublicBookingInput = {
 
 export type CreatePublicBookingResult = {
   bookingId: string;
-  referenceCode: string;
   serviceName: string;
   scheduledStartsAt: string;
   scheduledEndsAt: string;
@@ -317,7 +316,6 @@ type SharedCreateBookingInput = {
 
 type SharedCreateBookingResult = {
   bookingId: string;
-  referenceCode: string;
   serviceName: string;
   scheduledStartsAt: string;
   scheduledEndsAt: string;
@@ -1122,7 +1120,6 @@ async function createBookingWithEngine(
 
           return {
             bookingId: booking.id,
-            referenceCode: booking.id.slice(-8).toUpperCase(),
             serviceName: service.name,
             scheduledStartsAt: booking.scheduledStartsAt.toISOString(),
             scheduledEndsAt: booking.scheduledEndsAt.toISOString(),
@@ -1319,7 +1316,6 @@ export async function createPublicBooking(
 
   return {
     bookingId: result.bookingId,
-    referenceCode: result.referenceCode,
     serviceName: result.serviceName,
     scheduledStartsAt: result.scheduledStartsAt,
     scheduledEndsAt: result.scheduledEndsAt,

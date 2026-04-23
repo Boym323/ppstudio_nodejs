@@ -44,7 +44,6 @@ type LoadedBookingActionToken = {
 
 type BookingEmailActionDetails = {
   bookingId: string;
-  referenceCode: string;
   serviceName: string;
   clientName: string;
   scheduledAtLabel: string;
@@ -142,7 +141,6 @@ function getAdminOverviewUrl() {
 function toActionDetails(booking: NonNullable<LoadedBookingActionToken["booking"]>): BookingEmailActionDetails {
   return {
     bookingId: booking.id,
-    referenceCode: booking.id.slice(-8).toUpperCase(),
     serviceName: booking.serviceNameSnapshot,
     clientName: booking.clientNameSnapshot,
     scheduledAtLabel: formatBookingDateLabel(booking.scheduledStartsAt, booking.scheduledEndsAt),

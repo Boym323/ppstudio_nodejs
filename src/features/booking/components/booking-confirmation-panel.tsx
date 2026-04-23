@@ -4,7 +4,6 @@ import { formatBookingCalendarDate, formatBookingTimeRange } from "@/features/bo
 
 type BookingConfirmationPanelProps = {
   confirmation: {
-    referenceCode: string;
     serviceName: string;
     scheduledStartsAt: string;
     scheduledEndsAt: string;
@@ -28,7 +27,6 @@ export function BookingConfirmationPanel({
   const timeRange = formatBookingTimeRange(scheduledStartsAt, scheduledEndsAt);
   const manageReservationUrl = buildManageReservationUrl({
     salonEmail: salonContact.email,
-    referenceCode: confirmation.referenceCode,
     clientName: confirmation.clientName,
     serviceName: confirmation.serviceName,
     dateLabel: calendarDate,
@@ -67,34 +65,24 @@ export function BookingConfirmationPanel({
       </section>
 
       <section className="rounded-[2rem] border border-[var(--color-accent-soft)]/35 bg-white p-7 shadow-[var(--shadow-panel)] sm:p-9">
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_15rem] lg:items-start">
-          <div className="space-y-5">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[var(--color-accent)]">
-                Služba
-              </p>
-              <p className="mt-3 text-xl font-semibold tracking-[-0.02em] text-[var(--color-foreground)] sm:text-[1.35rem]">
-                {confirmation.serviceName}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[var(--color-accent)]">
-                Termín
-              </p>
-              <p className="mt-3 font-display text-3xl leading-tight text-[var(--color-foreground)] sm:text-[2.7rem]">
-                {calendarDate}
-              </p>
-              <p className="mt-3 text-2xl font-semibold tracking-[-0.02em] text-[var(--color-foreground)] sm:text-[2.15rem]">
-                {timeRange}
-              </p>
-            </div>
-          </div>
-          <div className="rounded-[1.6rem] border border-black/6 bg-[var(--color-surface)]/55 px-5 py-4">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--color-muted)]">
-              Referenční kód
+        <div className="space-y-5">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[var(--color-accent)]">
+              Služba
             </p>
-            <p className="mt-2 text-lg font-semibold text-[var(--color-foreground)]">
-              {confirmation.referenceCode}
+            <p className="mt-3 text-xl font-semibold tracking-[-0.02em] text-[var(--color-foreground)] sm:text-[1.35rem]">
+              {confirmation.serviceName}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[var(--color-accent)]">
+              Termín
+            </p>
+            <p className="mt-3 font-display text-3xl leading-tight text-[var(--color-foreground)] sm:text-[2.7rem]">
+              {calendarDate}
+            </p>
+            <p className="mt-3 text-2xl font-semibold tracking-[-0.02em] text-[var(--color-foreground)] sm:text-[2.15rem]">
+              {timeRange}
             </p>
           </div>
         </div>
@@ -125,7 +113,7 @@ export function BookingConfirmationPanel({
           </a>
         </div>
         <p className="mt-4 text-sm leading-6 text-[var(--color-muted)]">
-          Požádat o změnu zatím otevře předvyplněný e-mail do studia s referencí rezervace.
+          Požádat o změnu zatím otevře předvyplněný e-mail do studia s detaily termínu.
         </p>
       </section>
 
@@ -156,24 +144,22 @@ export function BookingConfirmationPanel({
 
 function buildManageReservationUrl({
   salonEmail,
-  referenceCode,
   clientName,
   serviceName,
   dateLabel,
   timeRange,
 }: {
   salonEmail: string;
-  referenceCode: string;
   clientName: string;
   serviceName: string;
   dateLabel: string;
   timeRange: string;
 }) {
-  const subject = `Žádost o změnu rezervace ${referenceCode}`;
+  const subject = `Žádost o změnu rezervace: ${serviceName}`;
   const body = [
     "Dobrý den,",
     "",
-    `prosím o změnu rezervace ${referenceCode}.`,
+    "prosím o změnu rezervace.",
     `Klientka: ${clientName}`,
     `Služba: ${serviceName}`,
     `Termín: ${dateLabel}, ${timeRange}`,

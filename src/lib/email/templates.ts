@@ -115,24 +115,22 @@ function buildEmailButton({
 
 function buildManageReservationMailto({
   brandEmail,
-  referenceCode,
   clientName,
   serviceName,
   bookingDate,
   bookingTime,
 }: {
   brandEmail: string;
-  referenceCode: string;
   clientName: string;
   serviceName: string;
   bookingDate: string;
   bookingTime: string;
 }) {
-  const subject = `Žádost o změnu rezervace ${referenceCode}`;
+  const subject = `Žádost o změnu rezervace: ${serviceName}`;
   const body = [
     "Dobrý den,",
     "",
-    `prosím o změnu rezervace ${referenceCode}.`,
+    "prosím o změnu rezervace.",
     `Klientka: ${clientName}`,
     `Služba: ${serviceName}`,
     `Termín: ${bookingDate}, ${bookingTime}`,
@@ -211,10 +209,8 @@ export async function renderEmailTemplate(
       const scheduledEndsAt = new Date(data.scheduledEndsAt);
       const bookingDate = formatBookingCalendarDate(scheduledStartsAt);
       const bookingTime = formatBookingTimeRange(scheduledStartsAt, scheduledEndsAt);
-      const referenceCode = data.bookingId.slice(-8).toUpperCase();
       const manageReservationUrl = buildManageReservationMailto({
         brandEmail: brand.email,
-        referenceCode,
         clientName: data.clientName,
         serviceName: data.serviceName,
         bookingDate,
@@ -230,8 +226,6 @@ export async function renderEmailTemplate(
         `Služba: ${data.serviceName}`,
         `Termín: ${bookingDate}`,
         `Čas: ${bookingTime}`,
-        `Referenční kód: ${referenceCode}`,
-        "",
         "Co bude následovat:",
         "Potvrzení přijde dalším e-mailem a kdyby bylo potřeba něco upřesnit, ozveme se.",
         "",
@@ -271,7 +265,6 @@ export async function renderEmailTemplate(
             <p style="margin:18px 0 0;font-size:12px;letter-spacing:0.2em;text-transform:uppercase;color:#9e7f65;">Termín</p>
             <p style="margin:12px 0 0;font-size:31px;line-height:1.16;font-family:Georgia,serif;color:#1f1714;"><strong>${escapeHtml(bookingDate)}</strong></p>
             <p style="margin:10px 0 0;font-size:28px;line-height:1.2;font-weight:700;color:#1f1714;">${escapeHtml(bookingTime)}</p>
-            <p style="margin:18px 0 0;font-size:13px;line-height:1.7;color:#5b4c44;">Referenční kód: <strong>${escapeHtml(referenceCode)}</strong></p>
           </div>
           <div style="margin-top:20px;border:1px solid rgba(33,23,20,0.08);border-radius:20px;padding:20px;background:#ffffff;">
             <p style="margin:0;font-size:12px;letter-spacing:0.2em;text-transform:uppercase;color:#9e7f65;">Co bude následovat</p>
@@ -291,7 +284,7 @@ export async function renderEmailTemplate(
                 variant: "destructive",
               })}</div>
             </div>
-            <p style="margin:6px 0 0;font-size:13px;line-height:1.7;color:#7a675c;">Požádat o změnu zatím otevře předvyplněný e-mail do studia s referencí rezervace.</p>
+            <p style="margin:6px 0 0;font-size:13px;line-height:1.7;color:#7a675c;">Požádat o změnu zatím otevře předvyplněný e-mail do studia s detaily termínu.</p>
           </div>
           <div style="margin-top:20px;border:1px solid rgba(33,23,20,0.08);border-radius:20px;padding:20px;background:#ffffff;">
             <p style="margin:0;font-size:12px;letter-spacing:0.2em;text-transform:uppercase;color:#9e7f65;">Potřebujete pomoc?</p>
@@ -318,7 +311,6 @@ export async function renderEmailTemplate(
         "",
         `vaše rezervace služby ${data.serviceName} byla zrušená.`,
         `Původní termín: ${scheduledAtLabel}`,
-        `Referenční kód: ${data.bookingId.slice(-8).toUpperCase()}`,
         "",
         `Pro nový termín navštivte ${env.NEXT_PUBLIC_APP_URL}/rezervace`,
         "",
@@ -334,7 +326,6 @@ export async function renderEmailTemplate(
           <div style="border:1px solid rgba(33,23,20,0.08);border-radius:18px;padding:20px;background:#fbf7f3;">
             <p style="margin:0 0 8px;font-size:13px;text-transform:uppercase;letter-spacing:0.16em;color:#9e7f65;">Původní termín</p>
             <p style="margin:0;font-size:18px;line-height:1.6;color:#1f1714;"><strong>${escapeHtml(scheduledAtLabel)}</strong></p>
-            <p style="margin:16px 0 0;font-size:14px;line-height:1.7;color:#5b4c44;">Referenční kód: <strong>${escapeHtml(data.bookingId.slice(-8).toUpperCase())}</strong></p>
           </div>
           <p style="margin:24px 0 0;font-size:15px;line-height:1.7;color:#5b4c44;">
             Nový termín si můžete kdykoli vybrat znovu na
@@ -365,7 +356,6 @@ export async function renderEmailTemplate(
         "",
         `vaše rezervace služby ${data.serviceName} byla potvrzena.`,
         `Termín: ${scheduledAtLabel}`,
-        `Referenční kód: ${data.bookingId.slice(-8).toUpperCase()}`,
         "",
         ...(includeCalendarAttachment
           ? [
@@ -387,7 +377,6 @@ export async function renderEmailTemplate(
           <div style="border:1px solid rgba(33,23,20,0.08);border-radius:18px;padding:20px;background:#fbf7f3;">
             <p style="margin:0 0 8px;font-size:13px;text-transform:uppercase;letter-spacing:0.16em;color:#9e7f65;">Termín</p>
             <p style="margin:0;font-size:18px;line-height:1.6;color:#1f1714;"><strong>${escapeHtml(scheduledAtLabel)}</strong></p>
-            <p style="margin:16px 0 0;font-size:14px;line-height:1.7;color:#5b4c44;">Referenční kód: <strong>${escapeHtml(data.bookingId.slice(-8).toUpperCase())}</strong></p>
           </div>
           ${includeCalendarAttachment ? `
           <p style="margin:24px 0 0;font-size:15px;line-height:1.7;color:#5b4c44;">
@@ -421,8 +410,7 @@ export async function renderEmailTemplate(
       const scheduledEndsAt = new Date(data.scheduledEndsAt);
       const bookingDate = formatBookingCalendarDate(scheduledStartsAt);
       const bookingTime = formatBookingTimeRange(scheduledStartsAt, scheduledEndsAt);
-      const referenceCode = data.bookingId.slice(-8).toUpperCase();
-      const contactStudioUrl = `mailto:${brand.email}?subject=${encodeURIComponent(`Dotaz k rezervaci ${referenceCode}`)}`;
+      const contactStudioUrl = `mailto:${brand.email}?subject=${encodeURIComponent(`Dotaz k rezervaci: ${data.serviceName}`)}`;
 
       const text = [
         `Dobrý den, ${data.clientName},`,
@@ -433,7 +421,6 @@ export async function renderEmailTemplate(
         `Datum: ${bookingDate}`,
         `Čas: ${bookingTime}`,
         `Místo: ${salonProfile.addressLine}`,
-        `Referenční kód: ${referenceCode}`,
         "",
         `Zrušit rezervaci: ${data.cancellationUrl}`,
         `Kontaktovat studio: ${contactStudioUrl}`,
@@ -454,7 +441,6 @@ export async function renderEmailTemplate(
             <p style="margin:10px 0 0;font-size:18px;line-height:1.6;color:#1f1714;"><strong>${escapeHtml(bookingDate)}</strong><br />${escapeHtml(bookingTime)}</p>
             <p style="margin:18px 0 0;font-size:12px;letter-spacing:0.2em;text-transform:uppercase;color:#9e7f65;">Místo</p>
             <p style="margin:10px 0 0;font-size:15px;line-height:1.7;color:#5b4c44;">${escapeHtml(salonProfile.addressLine)}</p>
-            <p style="margin:18px 0 0;font-size:13px;line-height:1.7;color:#5b4c44;">Referenční kód: <strong>${escapeHtml(referenceCode)}</strong></p>
           </div>
           <div style="margin-top:20px;border:1px solid rgba(33,23,20,0.08);border-radius:20px;padding:20px;background:#ffffff;">
             <p style="margin:0 0 14px;font-size:12px;letter-spacing:0.2em;text-transform:uppercase;color:#9e7f65;">Potřebujete změnu?</p>
@@ -489,7 +475,6 @@ export async function renderEmailTemplate(
         "",
         `rezervaci služby ${data.serviceName} se tentokrát nepodařilo potvrdit.`,
         `Původní požadovaný termín: ${scheduledAtLabel}`,
-        `Referenční kód: ${data.bookingId.slice(-8).toUpperCase()}`,
         "",
         `Pro nový termín navštivte ${env.NEXT_PUBLIC_APP_URL}/rezervace nebo se ozvěte přímo studiu.`,
         "",
@@ -505,7 +490,6 @@ export async function renderEmailTemplate(
           <div style="border:1px solid rgba(33,23,20,0.08);border-radius:18px;padding:20px;background:#fbf7f3;">
             <p style="margin:0 0 8px;font-size:13px;text-transform:uppercase;letter-spacing:0.16em;color:#9e7f65;">Původní termín</p>
             <p style="margin:0;font-size:18px;line-height:1.6;color:#1f1714;"><strong>${escapeHtml(scheduledAtLabel)}</strong></p>
-            <p style="margin:16px 0 0;font-size:14px;line-height:1.7;color:#5b4c44;">Referenční kód: <strong>${escapeHtml(data.bookingId.slice(-8).toUpperCase())}</strong></p>
           </div>
           <p style="margin:24px 0 0;font-size:15px;line-height:1.7;color:#5b4c44;">
             Nový termín si můžete kdykoli vybrat znovu na
@@ -529,7 +513,6 @@ export async function renderEmailTemplate(
         `E-mail: ${data.clientEmail}`,
         phoneLine,
         `Termín: ${scheduledAtLabel}`,
-        `Reference: ${data.bookingId.slice(-8).toUpperCase()}`,
         "",
         `Schválit rezervaci: ${data.approveUrl}`,
         `Zrušit rezervaci: ${data.rejectUrl}`,
@@ -587,7 +570,6 @@ export async function renderEmailTemplate(
         `Klientka: ${data.clientName}`,
         `E-mail: ${data.clientEmail}`,
         `Původní termín: ${scheduledAtLabel}`,
-        `Reference: ${data.bookingId.slice(-8).toUpperCase()}`,
       ].join("\n");
 
       const html = buildEmailShell(

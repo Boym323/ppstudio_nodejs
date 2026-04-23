@@ -56,7 +56,6 @@ function buildBookingCalendarDescription(input: {
   salonName: string;
   phone: string;
   email: string;
-  referenceCode: string;
   clientNote?: string | null;
 }) {
   const lines = [
@@ -65,7 +64,6 @@ function buildBookingCalendarDescription(input: {
     `Studio: ${input.salonName}`,
     `Telefon: ${input.phone}`,
     `E-mail: ${input.email}`,
-    `Reference: ${input.referenceCode}`,
   ];
 
   if (input.clientNote) {
@@ -165,7 +163,6 @@ export async function buildBookingCalendarIcs(booking: {
   const settings = await getSiteSettings();
   const uidHost = getCalendarEventUidHost();
   const location = `${settings.salonName}, ${getSalonAddressLine(settings)}`;
-  const referenceCode = booking.id.slice(-8).toUpperCase();
 
   return buildCalendarIcs({
     productId: "-//PP Studio//Booking Event//CS",
@@ -182,7 +179,6 @@ export async function buildBookingCalendarIcs(booking: {
           salonName: settings.salonName,
           phone: settings.phone,
           email: settings.contactEmail,
-          referenceCode,
           clientNote: booking.clientNote,
         }),
         location,
@@ -213,7 +209,6 @@ export async function buildBookingCalendarIcsFromPayload(input: {
   }));
   const uidHost = getCalendarEventUidHost();
   const location = `${settings.salonName}, ${getSalonAddressLine(settings)}`;
-  const referenceCode = input.bookingId.slice(-8).toUpperCase();
 
   return buildCalendarIcs({
     productId: "-//PP Studio//Booking Event//CS",
@@ -230,7 +225,6 @@ export async function buildBookingCalendarIcsFromPayload(input: {
           salonName: settings.salonName,
           phone: settings.phone,
           email: settings.contactEmail,
-          referenceCode,
         }),
         location,
         status: "CONFIRMED",

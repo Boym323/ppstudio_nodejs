@@ -39,13 +39,11 @@ function StatusCard({
 }
 
 function SummaryGrid({
-  referenceCode,
   serviceName,
   clientName,
   scheduledAtLabel,
   currentStatusLabel,
 }: {
-  referenceCode?: string;
   serviceName?: string;
   clientName?: string;
   scheduledAtLabel?: string;
@@ -53,10 +51,6 @@ function SummaryGrid({
 }) {
   return (
     <dl className="grid gap-4 sm:grid-cols-2">
-      <div className="rounded-3xl border border-black/6 bg-[var(--color-surface)]/45 p-5">
-        <dt className="text-xs uppercase tracking-[0.2em] text-[var(--color-muted)]">Reference</dt>
-        <dd className="mt-2 text-lg font-semibold text-[var(--color-foreground)]">{referenceCode}</dd>
-      </div>
       <div className="rounded-3xl border border-black/6 bg-[var(--color-surface)]/45 p-5">
         <dt className="text-xs uppercase tracking-[0.2em] text-[var(--color-muted)]">Aktuální stav</dt>
         <dd className="mt-2 text-lg font-semibold text-[var(--color-foreground)]">{currentStatusLabel}</dd>

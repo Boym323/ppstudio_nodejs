@@ -280,7 +280,6 @@ export async function createPublicBookingAction(
       serviceId: parsed.data.serviceId,
       slotId: parsed.data.slotId,
       metadata: {
-        referenceCode: result.referenceCode,
         startsAt: parsed.data.startsAt,
         acquisition: acquisitionData,
       },

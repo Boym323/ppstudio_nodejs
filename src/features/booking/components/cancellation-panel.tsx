@@ -72,20 +72,12 @@ export function CancellationPanel({ token, initialState }: CancellationPanelProp
 
       <dl className="mt-8 grid gap-4 sm:grid-cols-2">
         <div className="rounded-3xl border border-black/6 bg-[var(--color-surface)]/45 p-5">
-          <dt className="text-xs uppercase tracking-[0.2em] text-[var(--color-muted)]">
-            Referenční kód
-          </dt>
-          <dd className="mt-2 text-lg font-semibold text-[var(--color-foreground)]">
-            {initialState.referenceCode}
-          </dd>
-        </div>
-        <div className="rounded-3xl border border-black/6 bg-[var(--color-surface)]/45 p-5">
           <dt className="text-xs uppercase tracking-[0.2em] text-[var(--color-muted)]">Služba</dt>
           <dd className="mt-2 text-lg font-semibold text-[var(--color-foreground)]">
             {initialState.serviceName}
           </dd>
         </div>
-        <div className="rounded-3xl border border-black/6 bg-[var(--color-surface)]/45 p-5 sm:col-span-2">
+        <div className="rounded-3xl border border-black/6 bg-[var(--color-surface)]/45 p-5">
           <dt className="text-xs uppercase tracking-[0.2em] text-[var(--color-muted)]">Termín</dt>
           <dd className="mt-2 text-lg font-semibold text-[var(--color-foreground)]">
             {initialState.scheduledAtLabel}

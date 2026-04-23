@@ -35,7 +35,7 @@ test("renderEmailTemplate creates confirmation email with cancellation link", as
   assert.match(email.html, /Zrušit rezervaci/);
 });
 
-test("renderEmailTemplate creates cancellation email with booking reference", async () => {
+test("renderEmailTemplate creates cancellation email without booking reference", async () => {
   const { renderEmailTemplate } = await loadRenderer();
   const email = await renderEmailTemplate(
     "booking-cancelled-v1",
@@ -50,8 +50,8 @@ test("renderEmailTemplate creates cancellation email with booking reference", as
   );
 
   assert.equal(email.subject, "Storno potvrzeno: Luxusní péče");
-  assert.match(email.text, /5678/i);
   assert.match(email.html, /Rezervace byla zrušena/);
+  assert.doesNotMatch(email.text, /Referenční kód/i);
 });
 
 test("renderEmailTemplate creates admin notification email with action links", async () => {

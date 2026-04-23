@@ -300,7 +300,8 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - provider řeší SMTP transport
   - templates renderují obsah z `EmailLog.templateKey`
   - worker claimuje `EmailLog` řádky v background režimu a delivery aktualizuje `EmailLog.status`, `provider`, `providerMessageId`, `attemptCount`, `nextAttemptAt` a `errorMessage`
-- Potvrzovací e-mail `booking-confirmation-v1` má držet stejnou informační hierarchii jako web confirmation screen: stav -> služba / termín / kód -> další kroky -> akce -> kontakt, bez duplicitního úvodního textu mimo hero blok.
+- Potvrzovací e-mail `booking-confirmation-v1` má držet stejnou informační hierarchii jako web confirmation screen: stav -> služba / termín -> další kroky -> akce -> kontakt, bez duplicitního úvodního textu mimo hero blok.
+- Referenční kód rezervace už se v klientském flow záměrně nepoužívá; veřejný web, e-maily i `.ics` popis komunikují jen službu, termín a konkrétní akce přes tokenizované odkazy.
 - Potvrzovací e-mail `booking-approved-v1` nově přikládá soubor `pp-studio-rezervace.ics`; attachment se generuje serverově při renderu šablony z payloadu `bookingId + serviceName + scheduledStartsAt + scheduledEndsAt`.
 
 ## Migrační Strategie

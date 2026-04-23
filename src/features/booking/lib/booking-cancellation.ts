@@ -24,7 +24,6 @@ const CANCELLABLE_BOOKING_STATUSES: BookingStatus[] = [
 ];
 
 type CancellationPageStateBase = {
-  referenceCode?: string;
   serviceName?: string;
   clientName?: string;
   scheduledAtLabel?: string;
@@ -43,7 +42,6 @@ export type PublicCancellationPageState =
 export type CancelPublicBookingResult =
   | {
       status: "cancelled";
-      referenceCode: string;
       serviceName: string;
       clientName: string;
       scheduledAtLabel: string;
@@ -52,7 +50,6 @@ export type CancelPublicBookingResult =
   | {
       status: "already_cancelled" | "expired" | "invalid" | "not_cancellable";
       message: string;
-      referenceCode?: string;
       serviceName?: string;
       clientName?: string;
       scheduledAtLabel?: string;
@@ -80,7 +77,6 @@ type LoadedCancellationToken = {
 
 function toCancellationDetails(token: LoadedCancellationToken) {
   return {
-    referenceCode: token.booking.id.slice(-8).toUpperCase(),
     serviceName: token.booking.serviceNameSnapshot,
     clientName: token.booking.clientNameSnapshot,
     scheduledAtLabel: formatBookingDateLabel(
