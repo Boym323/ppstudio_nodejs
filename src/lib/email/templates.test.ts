@@ -102,3 +102,25 @@ test("renderEmailTemplate creates approved email", async () => {
   assert.equal(email.attachments[0]?.filename, "pp-studio-rezervace.ics");
   assert.match(email.attachments[0]?.content ?? "", /^BEGIN:VCALENDAR\r\n/);
 });
+
+test("renderEmailTemplate creates 24h reminder email without calendar attachment", async () => {
+  const { renderEmailTemplate } = await loadRenderer();
+  const email = await renderEmailTemplate(
+    "booking-reminder-24h-v1",
+    "Připomínka rezervace - zítra v PP Studio",
+    {
+      bookingId: "clztestbookingremind",
+      serviceName: "Luxusní péče",
+      clientName: "Jana Nováková",
+      scheduledStartsAt: "2026-04-24T08:00:00.000Z",
+      scheduledEndsAt: "2026-04-24T09:00:00.000Z",
+      cancellationUrl: "https://example.com/rezervace/storno/token-reminder",
+    },
+  );
+
+  assert.equal(email.subject, "Připomínka rezervace - zítra v PP Studio");
+  assert.match(email.text, /Zrušit rezervaci/);
+  assert.match(email.text, /Kontaktovat studio/);
+  assert.match(email.html, /Připomínka rezervace na zítra/);
+  assert.equal(email.attachments, undefined);
+});

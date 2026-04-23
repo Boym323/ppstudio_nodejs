@@ -7,6 +7,8 @@ Formát je inspirovaný Keep a Changelog.
 ## [Unreleased]
 
 ### Changed
+- `email:worker` nově kromě doručování `EmailLog` také každých 5 minut skenuje potvrzené rezervace v okně `23h-25h` před termínem a enqueueuje jediný reminder `BOOKING_REMINDER` do stejného outbox flow.
+- Delivery vrstva před odesláním reminderu znovu kontroluje stav rezervace; zrušený, přesunutý nebo už uzavřený reminder se označí jako `system-skip` místo reálného odeslání.
 - Opraven detail služby `/sluzby/[slug]` pro Next.js 16 async dynamic APIs: route `params` je nově čtené jako `Promise` (`await params`) v `generateMetadata` i ve stránce, takže už nevzniká runtime chyba `sync-dynamic-apis`.
 - Veřejné rezervace nově evidují akviziční zdroj (`Google`, `Facebook`, `Instagram`, `Firmy.cz/Seznam`, `Direct`, `Other`) odvozený z `utm_*` a referrer hostu; data se ukládají k rezervaci i do `BookingSubmissionLog` metadata a v adminu se ukazují v seznamu i detailu rezervace.
 - Formulář detailu služby v adminu teď jasněji rozlišuje fallback texty od veřejné prezentace: blok `Text pro orientaci` byl přejmenovaný na `Základní popisy (fallback)`, pole popisují reálné použití v rezervaci/webu a veřejné texty explicitně uvádějí vyšší prioritu.
@@ -32,6 +34,10 @@ Formát je inspirovaný Keep a Changelog.
 - Finální cleanup pass veřejného confirmation flow zkrátil duplicity v hero copy, zpřesnil CTA na `Požádat o změnu`, doplnil službu do hlavního přehledu rezervace a zjednodušil kontaktní texty.
 
 ### Added
+- Migraci `20260423100000_booking_reminder_24h_v1`, která přidává `Booking.reminder24hSentAt` a index pro výběr 24h reminder kandidátek.
+- Doménovou vrstvu `src/features/booking/lib/booking-reminders.ts` pro výběr kandidátek, transakční enqueue reminder jobů a označení doručeného reminderu.
+- Novou e-mailovou šablonu `booking-reminder-24h-v1` bez `.ics` přílohy a s CTA `Zrušit rezervaci` / `Kontaktovat studio`.
+- ADR 0034 pro rozhodnutí kolem jediného 24h reminderu napojeného na stávající `email:worker`.
 - Migraci `20260422230500_manual_booking_admin_v1`, která přidává `Booking.isManual`, `Booking.manualOverride` a převádí enum `BookingSource` ze starých rolových hodnot na nový provozní seznam původů rezervace.
 - Produkční ruční vytvoření rezervace v admin sekci `Rezervace` přes pravý drawer `CreateManualBookingDrawer`.
 - Nové admin komponenty `BookingClientSelector`, `BookingServiceSelector`, `BookingTimeSelector`, `BookingSourceField`, `BookingNotificationOptions` a `BookingInternalNoteField`.

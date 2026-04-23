@@ -1,6 +1,10 @@
 import { EmailLogStatus, Prisma } from "@prisma/client";
 import { randomUUID } from "node:crypto";
 
+import {
+  BOOKING_REMINDER_SCAN_INTERVAL_MS,
+  enqueueBookingReminder24hJobs,
+} from "@/features/booking/lib/booking-reminders";
 import { deliverEmailLog } from "@/lib/email/delivery";
 import { prisma } from "@/lib/prisma";
 
@@ -78,8 +82,30 @@ export async function runEmailDeliveryWorkerOnce() {
   return processed;
 }
 
+export async function runBookingReminderSchedulerOnce(now = new Date()) {
+  const result = await enqueueBookingReminder24hJobs(now);
+
+  console.info("Booking reminder 24h scan finished", {
+    at: now.toISOString(),
+    foundBookings: result.foundBookings,
+    enqueued: result.enqueued,
+    failed: result.failed,
+  });
+
+  return result;
+}
+
 export async function startEmailDeliveryWorker() {
+  let nextReminderScanAt = 0;
+
   while (true) {
+    const now = Date.now();
+
+    if (now >= nextReminderScanAt) {
+      await runBookingReminderSchedulerOnce(new Date(now));
+      nextReminderScanAt = now + BOOKING_REMINDER_SCAN_INTERVAL_MS;
+    }
+
     const processed = await runEmailDeliveryWorkerOnce();
 
     if (processed === 0) {

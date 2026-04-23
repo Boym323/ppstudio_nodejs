@@ -44,6 +44,8 @@ Evidence produkčních incidentů a jejich řešení.
 - Nasazení kódu ruční rezervace bez aplikované migrace `20260422230500_manual_booking_admin_v1`, což by způsobilo chyby nad chybějícími sloupci `Booking.isManual` / `Booking.manualOverride` nebo nad neaktuálním enum `BookingSource`.
 - Staré hodnoty enumu `BookingSource` (`PUBLIC_WEB`, `OWNER_ADMIN`, `SALON_ADMIN`) ponechané v DB po nepovedené migraci; list/detail rezervací pak budou padat na neplatném mapování zdroje.
 - Worker běžící bez SMTP přístupu nebo bez `EMAIL_DELIVERY_MODE=background` a zůstávající fronta `PENDING` logů.
+- Zastavený `email:worker`, kvůli kterému se nově nejen nedoručují pending e-maily, ale ani nevznikají 24h reminder joby pro zítřejší potvrzené rezervace.
+- Reminder omylem odeslaný po storno nebo přesunu rezervace; worker má před sendem vždy znovu ověřit `Booking.status`, `scheduledStartsAt` a `reminder24hSentAt`.
 - Omylem spuštěné `prisma migrate dev` na produkčním serveru místo `prisma migrate deploy`.
 - Pokus o vytvoření nebo editaci překrývajícího se slotu, který by měl skončit user-friendly validační chybou místo neošetřeného 500.
 - Slot omylem snížený pod počet aktivních rezervací nebo archivovaný navzdory aktivní rezervaci.

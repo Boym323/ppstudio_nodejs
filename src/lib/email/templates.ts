@@ -35,6 +35,15 @@ const bookingApprovedPayloadSchema = z.object({
   includeCalendarAttachment: z.boolean().optional(),
 });
 
+const bookingReminder24hPayloadSchema = z.object({
+  bookingId: z.string().min(1),
+  serviceName: z.string().min(1),
+  clientName: z.string().min(1),
+  scheduledStartsAt: z.string().datetime(),
+  scheduledEndsAt: z.string().datetime(),
+  cancellationUrl: z.url(),
+});
+
 const bookingRejectedPayloadSchema = z.object({
   bookingId: z.string().min(1),
   serviceName: z.string().min(1),
@@ -405,6 +414,68 @@ export async function renderEmailTemplate(
             ]
           : undefined,
       };
+    }
+    case "booking-reminder-24h-v1": {
+      const data = bookingReminder24hPayloadSchema.parse(payload);
+      const scheduledStartsAt = new Date(data.scheduledStartsAt);
+      const scheduledEndsAt = new Date(data.scheduledEndsAt);
+      const bookingDate = formatBookingCalendarDate(scheduledStartsAt);
+      const bookingTime = formatBookingTimeRange(scheduledStartsAt, scheduledEndsAt);
+      const referenceCode = data.bookingId.slice(-8).toUpperCase();
+      const contactStudioUrl = `mailto:${brand.email}?subject=${encodeURIComponent(`Dotaz k rezervaci ${referenceCode}`)}`;
+
+      const text = [
+        `Dobrý den, ${data.clientName},`,
+        "",
+        "připomínáme vaši zítřejší rezervaci v PP Studio.",
+        "",
+        `Služba: ${data.serviceName}`,
+        `Datum: ${bookingDate}`,
+        `Čas: ${bookingTime}`,
+        `Místo: ${salonProfile.addressLine}`,
+        `Referenční kód: ${referenceCode}`,
+        "",
+        `Zrušit rezervaci: ${data.cancellationUrl}`,
+        `Kontaktovat studio: ${contactStudioUrl}`,
+        "",
+        `${brand.name}`,
+        `${brand.email} | ${brand.phone}`,
+      ].join("\n");
+
+      const html = buildEmailShell(
+        brand,
+        "Připomínka rezervace na zítra",
+        `Zítra vás čeká ${data.serviceName}. Posíláme rychlé připomenutí termínu.`,
+        `
+          <div style="border:1px solid rgba(33,23,20,0.08);border-radius:20px;padding:22px;background:#fbf7f3;">
+            <p style="margin:0;font-size:12px;letter-spacing:0.2em;text-transform:uppercase;color:#9e7f65;">Služba</p>
+            <p style="margin:10px 0 0;font-size:20px;line-height:1.5;color:#1f1714;"><strong>${escapeHtml(data.serviceName)}</strong></p>
+            <p style="margin:18px 0 0;font-size:12px;letter-spacing:0.2em;text-transform:uppercase;color:#9e7f65;">Datum a čas</p>
+            <p style="margin:10px 0 0;font-size:18px;line-height:1.6;color:#1f1714;"><strong>${escapeHtml(bookingDate)}</strong><br />${escapeHtml(bookingTime)}</p>
+            <p style="margin:18px 0 0;font-size:12px;letter-spacing:0.2em;text-transform:uppercase;color:#9e7f65;">Místo</p>
+            <p style="margin:10px 0 0;font-size:15px;line-height:1.7;color:#5b4c44;">${escapeHtml(salonProfile.addressLine)}</p>
+            <p style="margin:18px 0 0;font-size:13px;line-height:1.7;color:#5b4c44;">Referenční kód: <strong>${escapeHtml(referenceCode)}</strong></p>
+          </div>
+          <div style="margin-top:20px;border:1px solid rgba(33,23,20,0.08);border-radius:20px;padding:20px;background:#ffffff;">
+            <p style="margin:0 0 14px;font-size:12px;letter-spacing:0.2em;text-transform:uppercase;color:#9e7f65;">Potřebujete změnu?</p>
+            <div style="font-size:0;line-height:0;">
+              <div style="display:inline-block;margin:0 10px 10px 0;">${buildEmailButton({
+                href: data.cancellationUrl,
+                label: "Zrušit rezervaci",
+                variant: "destructive",
+              })}</div>
+              <div style="display:inline-block;margin:0 10px 10px 0;">${buildEmailButton({
+                href: contactStudioUrl,
+                label: "Kontaktovat studio",
+                variant: "primary",
+              })}</div>
+            </div>
+            <p style="margin:8px 0 0;font-size:13px;line-height:1.7;color:#7a675c;">Pokud potřebujete s termínem pomoci, ozvěte se nám co nejdřív.</p>
+          </div>
+        `,
+      );
+
+      return { subject, html, text };
     }
     case "booking-rejected-v1": {
       const data = bookingRejectedPayloadSchema.parse(payload);

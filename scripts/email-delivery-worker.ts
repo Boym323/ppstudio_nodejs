@@ -1,11 +1,16 @@
 import "dotenv/config";
 
-import { startEmailDeliveryWorker, runEmailDeliveryWorkerOnce } from "@/lib/email/worker";
+import {
+  runBookingReminderSchedulerOnce,
+  runEmailDeliveryWorkerOnce,
+  startEmailDeliveryWorker,
+} from "@/lib/email/worker";
 
 async function main() {
   const once = process.argv.includes("--once");
 
   if (once) {
+    await runBookingReminderSchedulerOnce();
     const processed = await runEmailDeliveryWorkerOnce();
     console.log(`Processed ${processed} email jobs.`);
     return;

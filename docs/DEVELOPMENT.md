@@ -252,6 +252,10 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Serverová doménová vrstva pro email akce je v `src/features/booking/lib/booking-email-actions.ts`; drží validaci intentu, serializable transakci, změnu stavu, audit a založení klientského `EmailLog`.
 - Serverová doménová vrstva `src/features/calendar/lib/booking-calendar-event.ts` řeší validaci calendar tokenu, mapování bookingu na jeden `VEVENT` a generování zákaznického `.ics` payloadu.
 - `EmailLog` je připravený na notifikační workflow a troubleshooting komunikace s klientem.
+- 24h reminder rezervací je v `src/features/booking/lib/booking-reminders.ts`; výběr kandidátek je omezený na `CONFIRMED` bookingy s e-mailem, `reminder24hSentAt = null` a startem mezi `now + 23h` a `now + 25h`.
+- Reminder scheduler neběží jako zvláštní služba; `src/lib/email/worker.ts` ho spouští uvnitř existujícího `email:worker` procesu každých 5 minut a vytváří pouze `EmailLog`, nikdy neodesílá SMTP přímo.
+- Reminder template `booking-reminder-24h-v1` je krátký, bez `.ics`, a používá nový storno token přímo v payloadu reminder e-mailu.
+- Idempotence reminderu stojí na kombinaci `Booking.reminder24hSentAt`, transakčního claimu kandidátky a existence jediného reminder `EmailLog`; při SMTP failu se reminder nepřegeneruje jako nový job, ale zůstává v auditním logu pro retry.
 - Legacy `Setting` zůstává v databázi jako obecné key-value úložiště pro budoucí interní potřeby, ale produkční admin sekce `Nastavení` stojí na explicitním singleton modelu `SiteSettings`.
 - `src/lib/site-settings.ts` je centrální read vrstva pro veřejné kontakty, booking pravidla a e-mailový branding; zároveň bezpečně bootstrapuje výchozí singleton záznam.
 - `SiteSettings` drží jen skutečně globální provozní hodnoty. Technické env proměnné jako SMTP host/port, `NEXT_PUBLIC_APP_URL` nebo `ADMIN_SESSION_SECRET` se do adminu záměrně nepřenášejí.
@@ -321,6 +325,10 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - `npm run build`
 - `npm run dev` i `npm run build` nyní před startem automaticky spouští `prisma generate`, takže po změně Prisma schématu nevznikne rozjezd mezi generovaným klientem a runtime admin obrazovkami.
 - Pokud měníš e-mail delivery, ověř i `npm run email:worker:once`.
+- Po změně reminder flow ručně ověř i:
+  - že `npm run email:worker:once` zapíše reminder kandidátky do `EmailLog`
+  - že reminder e-mail nevytváří `.ics` attachment
+  - že storno nebo přesun rezervace mezi enqueue a sendem skončí `system-skip`, ne reálným odesláním
 - Před aplikací migrací v prostředí, kde už běžela produkční data, spusť `npm run db:check-migrations`; script zkontroluje otevřené failed/incomplete záznamy v `_prisma_migrations`.
 - Při změně veřejného webu navíc ručně ověř:
 - Po změně veřejného booking flow ručně ověř i:

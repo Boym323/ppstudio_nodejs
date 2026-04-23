@@ -1,5 +1,9 @@
-import { EmailLogStatus } from "@prisma/client";
+import { EmailLogStatus, EmailLogType } from "@prisma/client";
 
+import {
+  evaluateBookingReminderDelivery,
+  markBookingReminder24hSent,
+} from "@/features/booking/lib/booking-reminders";
 import { prisma } from "@/lib/prisma";
 import { sendEmail } from "@/lib/email/provider";
 import { getEmailDeliveryRetryDelayMs, getMaxEmailDeliveryAttempts } from "@/lib/email/retry";
@@ -32,6 +36,8 @@ export async function deliverEmailLog(emailLogId: string): Promise<EmailLogDeliv
       templateKey: true,
       payload: true,
       processingStartedAt: true,
+      type: true,
+      bookingId: true,
     },
   });
 
@@ -46,6 +52,46 @@ export async function deliverEmailLog(emailLogId: string): Promise<EmailLogDeliv
     return {
       status: "skipped",
     };
+  }
+
+  if (emailLog.type === EmailLogType.BOOKING_REMINDER && emailLog.bookingId) {
+    const booking = await prisma.booking.findUnique({
+      where: {
+        id: emailLog.bookingId,
+      },
+      select: {
+        status: true,
+        reminder24hSentAt: true,
+        scheduledStartsAt: true,
+      },
+    });
+    const preflight = evaluateBookingReminderDelivery({
+      bookingStatus: booking?.status ?? null,
+      reminder24hSentAt: booking?.reminder24hSentAt ?? null,
+      scheduledStartsAt: booking?.scheduledStartsAt ?? null,
+    });
+
+    if (!preflight.shouldSend) {
+      await prisma.emailLog.update({
+        where: {
+          id: emailLog.id,
+        },
+        data: {
+          status: EmailLogStatus.SENT,
+          provider: "system-skip",
+          sentAt: new Date(),
+          processingStartedAt: null,
+          processingToken: null,
+          nextAttemptAt: new Date(),
+          errorMessage: preflight.reason ?? "Reminder delivery skipped.",
+        },
+      });
+
+      return {
+        status: "skipped",
+        errorMessage: preflight.reason,
+      };
+    }
   }
 
   try {
@@ -77,6 +123,10 @@ export async function deliverEmailLog(emailLogId: string): Promise<EmailLogDeliv
         errorMessage: null,
       },
     });
+
+    if (emailLog.type === EmailLogType.BOOKING_REMINDER && emailLog.bookingId) {
+      await markBookingReminder24hSent(emailLog.bookingId, new Date());
+    }
 
     return {
       status: "sent",

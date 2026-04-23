@@ -358,6 +358,7 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
 - `Service.isPubliclyBookable` odděluje interně aktivní službu od služby skutečně nabízené ve veřejné rezervaci.
 - `Booking` drží snapshot klienta, služby i času, takže pozdější změny ceníku nebo názvů služeb nepoškodí historická data.
 - `Booking` navíc drží vazbu na předchozí rezervaci při reschedule a na DB úrovni blokuje jen přesně duplicitní aktivní booking stejného klienta ve stejném intervalu (stejný slot, stejný začátek, stejný konec).
+- `Booking.reminder24hSentAt` drží informaci, že klientský 24h reminder už byl úspěšně uzavřený; v background režimu až po skutečném `SENT`, v log režimu při uzavření outbox záznamu.
 - `Booking` nově ukládá i akviziční metadata (`acquisitionSource`, `acquisitionReferrerHost`, `acquisitionUtmSource`, `acquisitionUtmMedium`, `acquisitionUtmCampaign`) odvozená z `utm_*` a referrer hostu.
 - `BookingStatusHistory` slouží jako audit změn stavu a rozlišuje akci uživatele, klienta nebo systému.
 - Admin detail rezervace zobrazuje historii změn jako provozní timeline, takže salon i owner vidí, kdo a kdy stav upravil.
@@ -413,6 +414,7 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
 - Root metadata branding (`applicationName`, title template a OpenGraph `siteName`) se načítá z `SiteSettings.salonName`; canonical URL base zůstává technicky na `NEXT_PUBLIC_APP_URL`.
 - Rezervační část má vlastní error boundary a loading fallback, takže výpadek booking vrstvy nepoškodí celý web.
 - Background e-mail worker lze spustit přes `npm run email:worker` jako samostatný proces; pro jednorázové dohnání fronty je k dispozici `npm run email:worker:once`.
+- Stejný `email:worker` nově každých 5 minut i skenuje potvrzené rezervace v okně `23h-25h` před termínem a zapisuje jeden reminder `EmailLog` typu `BOOKING_REMINDER`.
 - Před produkční aplikací migrací je k dispozici `npm run db:check-migrations`, který odhalí otevřené failed/incomplete záznamy v `_prisma_migrations`.
 - Pro systemd provoz použij [`deploy/systemd/ppstudio-web.service`](/var/www/ppstudio/deploy/systemd/ppstudio-web.service) pro hlavní app a [`deploy/systemd/ppstudio-email-worker.service`](/var/www/ppstudio/deploy/systemd/ppstudio-email-worker.service) pro worker.
 - Systemd `.example` šablony s poznámkami k `User`/`Group` jsou v [`deploy/systemd/ppstudio-web.service.example`](/var/www/ppstudio/deploy/systemd/ppstudio-web.service.example) a [`deploy/systemd/ppstudio-email-worker.service.example`](/var/www/ppstudio/deploy/systemd/ppstudio-email-worker.service.example).

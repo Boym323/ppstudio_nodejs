@@ -58,6 +58,7 @@ Dokumentace proměnných prostředí pro lokální vývoj i produkci.
 - Operativní redesign admin overview dashboardu také nepřidává nové env proměnné; nové metriky a timeline berou data jen ze stávajících modelů `Booking`, `AvailabilitySlot`, `Client`, `ServiceCategory`, `Service` a `EmailLog`.
 - Admin sekce `Nastavení` také nepřidává nové env proměnné; kontaktní údaje, booking pravidla a e-mailový branding ukládá do DB modelu `SiteSettings`.
 - Přestavba sekce `Uživatelé / role` ani invite aktivace nepřidává nové env proměnné; používá existující `ADMIN_SESSION_SECRET` (hash tokenů) a `NEXT_PUBLIC_APP_URL` (link v pozvánce), plus DB pole `AdminUser.invitedAt` a tabulku `AdminUserInviteToken`.
+- Reminder systém 24 hodin před termínem nepřidává novou env proměnnou; používá existující `EMAIL_DELIVERY_MODE`, `NEXT_PUBLIC_APP_URL` a SMTP konfiguraci stejného `email:worker`.
 - Do admin sekce `Nastavení` záměrně nepatří technické hodnoty jako `NEXT_PUBLIC_APP_URL`, `ADMIN_SESSION_SECRET`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER` nebo `SMTP_PASSWORD`.
 - `MEDIA_STORAGE_ROOT` je infrastrukturní proměnná, ne business nastavení. Nepatří do adminu a má se spravovat na úrovni serveru nebo deploy konfigurace.
 - Doporučená produkční cesta je mimo repo i mimo `.next`, například `/var/www/ppstudio-uploads`.

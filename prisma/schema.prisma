@@ -282,6 +282,7 @@ model Booking {
   clientNote               String?
   internalNote             String?
   confirmedAt              DateTime?
+  reminder24hSentAt        DateTime?
   cancelledAt              DateTime?
   completedAt              DateTime?
   rescheduledAt            DateTime?
@@ -304,6 +305,7 @@ model Booking {
   @@index([clientId, createdAt])
   @@index([serviceId, scheduledStartsAt])
   @@index([status, scheduledStartsAt])
+  @@index([status, reminder24hSentAt, scheduledStartsAt])
   @@index([source, createdAt])
   @@index([acquisitionSource, createdAt])
   @@index([createdByUserId])
