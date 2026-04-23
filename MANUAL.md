@@ -39,6 +39,8 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
 - Veřejný obsah je centralizovaný v `src/content/public-site.ts`, aby šly texty a hlavní brand copy měnit bez zásahu do layout komponent.
 - `/storno-podminky` už nepoužívá jen generický právní text; stránka má vlastní akční skladbu `hero -> kontaktní box -> rychlý přehled pravidel -> krátké sekce`, aby klientka během pár sekund viděla co dělat a jaké dopady má pozdní storno nebo no-show.
 - Copy na `/storno-podminky` je nyní záměrně měkčí: zdůrazňuje včasné oznámení a provozní dopad pozdního zrušení, ale automaticky nekomunikuje storno poplatek; zároveň výslovně odkazuje i na storno link v potvrzení rezervace a 24h reminderu.
+- FAQ na `/faq` už není plochý seznam několika otázek; stránka nově používá skladbu `hero s jemným CTA -> pravý kontaktní box -> rychlá sekční navigace -> tematické accordion bloky`.
+- FAQ copy je záměrně orientované na rozhodnutí před první návštěvou: řeší výběr služby, průběh první návštěvy, praktické detaily, komfort, organizaci i stručné storno shrnutí s odkazem na samostatnou stránku podmínek.
 - Reálné služby z DB dostávají veřejnou copy vrstvu v `src/features/public/lib/public-services.ts`, ale její metadata už nevznikají z lokálních map; čtou se přímo z rozšířeného katalogu služeb a kategorií.
 - Ceník na `/cenik` má vlastní modul v `src/features/public/components/pricing-page.tsx` a je rozdělený do jasné kompozice `hero -> category chips -> hlavní sekce -> menší grid sekce -> finální CTA`.
 - Katalog služeb a kategorií teď nese i veřejná pricing metadata:

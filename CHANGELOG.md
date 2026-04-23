@@ -7,6 +7,7 @@ Formát je inspirovaný Keep a Changelog.
 ## [Unreleased]
 
 ### Changed
+- Stránka `/faq` prošla úplným UX a copy refactorem: hero teď jemně uklidňuje nejistotu před první návštěvou, pravý brand box nahradil praktický kontakt do studia a samotný obsah je nově rozdělený do tematických accordion sekcí `Rezervace`, `První návštěva`, `Praktické otázky`, `Komfort a průběh`, `Organizace` a `Storno`.
 - Stránka `/storno-podminky` prošla kompletním UX a copy refactorem: hero teď používá finální stručný text, vpravo má praktický box `Jak zrušit rezervaci`, pod ním jsou tři rychle skenovatelné karty s hlavními pravidly a šest krátkých sekcí s konkrétními, ale měkčími podmínkami pro změnu termínu, no-show, zpoždění, zálohy i storno ze strany salonu; stránka zároveň nově výslovně říká, že rezervaci lze upravit i přes odkaz v potvrzení rezervace a reminderu.
 - Stránka `/obchodni-podminky` prošla kompletním refactorem z draftového placeholderu na plnohodnotnou právní stránku: hero nově používá finální copy a praktický blok poskytovatele, pod ním je obsahová navigace a devět stručných sekcí pro rezervace, storno, cenu, průběh služby, odpovědnost, reklamace, poukazy a závěrečná ustanovení.
 - `LegalPage` dostala jemný CTA prompt v hero a kompaktnější rytmus právních karet; `LegalSection` zároveň nově podporuje volitelný `eyebrow`, takže delší právní texty zůstávají dobře skenovatelné bez rozbití sdíleného layoutu.

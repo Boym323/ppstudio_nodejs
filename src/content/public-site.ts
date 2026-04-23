@@ -27,6 +27,15 @@ export type Service = {
 export type FaqItem = {
   question: string;
   answer: string;
+  linkLabel?: string;
+  linkHref?: string;
+};
+
+export type FaqSection = {
+  id: string;
+  title: string;
+  description: string;
+  items: FaqItem[];
 };
 
 export type LegalSection = {
@@ -371,31 +380,125 @@ export const contactItems = buildContactItems({
   instagramUrl: null,
 });
 
-export function buildFaqItems(cancellationHours: number): FaqItem[] {
+export function buildFaqSections(cancellationHours: number): FaqSection[] {
   return [
     {
-      question: 'Jak funguje rezervace termínu?',
-      answer:
-        'Volné termíny vypisuji průběžně. V rezervačním přehledu tak uvidíte jen časy, které jsou opravdu k dispozici.',
+      id: 'rezervace',
+      title: 'Rezervace',
+      description: 'Krátce a prakticky: jak si vybrat termín a co dělat, když si nejste jistá službou.',
+      items: [
+        {
+          question: 'Jak funguje rezervace termínu?',
+          answer:
+            'Volné termíny vypisuji průběžně. V rezervačním přehledu proto uvidíte jen časy, které jsou opravdu k dispozici.',
+        },
+        {
+          question: 'Mohu rezervaci změnit?',
+          answer:
+            'Ano. Jakmile víte, že vám termín nevyhovuje, ozvěte se co nejdříve a zkusíme spolu najít jiný čas.',
+        },
+        {
+          question: 'Co když si nejsem jistá výběrem služby?',
+          answer:
+            'To je úplně v pořádku. Vyberte nejbližší variantu a před začátkem vše spolu krátce doladíme podle toho, co právě potřebujete.',
+        },
+      ],
     },
     {
-      question: 'Je možné službu při rezervaci ještě upřesnit?',
-      answer:
-        'Ano. Pokud si nejste jistá výběrem, zvolte nejbližší variantu a při návštěvě vše společně doladíme.',
+      id: 'prvni-navsteva',
+      title: 'První návštěva',
+      description: 'Odpovědi pro chvíli, kdy jdete poprvé a nechcete tápat v tom, co vás čeká.',
+      items: [
+        {
+          question: 'Co mě čeká při první návštěvě?',
+          answer:
+            'Na začátku si krátce řekneme, co řešíte a co od návštěvy čekáte. Pak už navážeme samotným ošetřením a na závěr dostanete doporučení pro další péči.',
+        },
+        {
+          question: 'Mohu přijít, i když nemám zkušenosti?',
+          answer:
+            'Ano, nemusíte se bát. Vše vysvětlím průběžně tak, abyste se cítila v klidu i bez předchozí zkušenosti.',
+        },
+        {
+          question: 'Musím vědět přesně, co chci?',
+          answer:
+            'Ne. Pokud si nejste jistá, stačí říct, co byste chtěla zlepšit nebo jaký výsledek očekáváte. Vhodný postup pak zvolíme spolu.',
+        },
+      ],
     },
     {
-      question: 'Jak je to se storno podmínkami?',
-      answer: `Rezervaci je možné zrušit nebo přesunout alespoň ${cancellationHours} hodin předem. Přesné znění je vždy dostupné na samostatné stránce storno podmínek.`,
+      id: 'prakticke-otazky',
+      title: 'Praktické otázky',
+      description: 'To nejdůležitější před odchodem z domu, abyste věděla, co čekat a co vůbec řešit nemusíte.',
+      items: [
+        {
+          question: 'Jak dlouho ošetření trvá?',
+          answer:
+            'Podle zvolené služby obvykle počítejte přibližně s 45 až 120 minutami. Orientační délku vždy uvidíte už při výběru termínu.',
+        },
+        {
+          question: 'Mohu přijít nalíčená?',
+          answer:
+            'Ano, klidně přijďte tak, jak běžně chodíte. Před ošetřením vše potřebné šetrně odlíčíme.',
+        },
+        {
+          question: 'Co si vzít s sebou?',
+          answer:
+            'Nic speciálního nepotřebujete. Stačí přijít v klidu na domluvený čas, o vše ostatní bude postaráno.',
+        },
+      ],
     },
     {
-      question: 'Mohu přijít i na první konzultaci bez předchozí zkušenosti?',
-      answer:
-        'Ano. Pokud jdete poprvé, ráda vás péčí provedu tak, abyste se mohla rozhodovat s klidem a jistotou.',
+      id: 'komfort-a-prubeh',
+      title: 'Komfort a průběh',
+      description: 'Nejčastější obavy kolem pohodlí, citlivosti a toho, jak se během návštěvy budete cítit.',
+      items: [
+        {
+          question: 'Bolí ošetření?',
+          answer:
+            'Ve většině případů je ošetření šetrné a komfortní. Pokud by vám cokoliv nebylo příjemné, průběh hned upravíme.',
+        },
+        {
+          question: 'Je ošetření vhodné pro citlivou pleť?',
+          answer:
+            'Citlivost pleti vždy bereme v úvahu. Pokud víte o reakcích, alergiích nebo aktuálním podráždění, řekneme si to předem a péči přizpůsobíme.',
+        },
+      ],
+    },
+    {
+      id: 'organizace',
+      title: 'Organizace',
+      description: 'Malé provozní situace, které se stávají běžně a není potřeba z nich mít stres.',
+      items: [
+        {
+          question: 'Co když se opozdím?',
+          answer:
+            'Když to půjde, počkáme na vás. Při větším zpoždění ale může být potřeba službu zkrátit nebo domluvit jiný termín, aby nenavazovaly další rezervace.',
+        },
+        {
+          question: 'Jak probíhá platba?',
+          answer:
+            'Platba probíhá po ošetření, buď v hotovosti, nebo pomocí QR platby.',
+        },
+      ],
+    },
+    {
+      id: 'storno',
+      title: 'Storno',
+      description: 'Jasné a stručné shrnutí pro případ, že potřebujete termín změnit nebo zrušit.',
+      items: [
+        {
+          question: 'Jak je to se storno podmínkami?',
+          answer: `Rezervaci je možné zrušit nebo přesunout alespoň ${cancellationHours} hodin předem. Když víte, že nedorazíte, dejte prosím vědět co nejdříve.`,
+          linkLabel: 'Zobrazit storno podmínky',
+          linkHref: '/storno-podminky',
+        },
+      ],
     },
   ];
 }
 
-export const faqItems = buildFaqItems(48);
+export const faqSections = buildFaqSections(48);
 
 export function buildCancellationPageContent(input: {
   cancellationHours: number;

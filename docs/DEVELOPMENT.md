@@ -40,6 +40,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Veřejný web drží dva zdroje obsahu:
   - marketingové bloky, FAQ a právní texty jsou dál centralizované v `src/content/public-site.ts`
   - služby a ceník berou data z DB přes `src/features/public/lib/public-services.ts`
+- FAQ už používá strukturovaný model `FaqSection -> FaqItem`; při dalších úpravách preferuj tematické skupiny a krátké odpovědi před jedním plochým seznamem dlouhých textů.
 - `src/features/public/lib/public-services.ts` nyní zároveň funguje jako thin read model nad rozšířeným katalogem:
   - `Service` nese `publicIntro`, `seoDescription`, `pricingShortDescription`, `pricingBadge`; název služby je sjednocený v `Service.name`
   - `ServiceCategory` nese `publicName`, `pricingDescription`, `pricingLayout`, `pricingIconKey`, `pricingSortOrder`
@@ -50,6 +51,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Ceník už nepoužívá doprovodný blok s poznámkami.
 - Úvodní stránka používá stejný DB katalog pro featured služby, aby odkazy z homepage mířily na aktuální slugs.
 - Reusable page sekce jsou ve `src/features/public/components/public-site.tsx`.
+- FAQ layout v `src/features/public/components/public-site.tsx` je záměrně server-rendered bez další klientské state vrstvy; pro rozbalování odpovědí preferuje nativní `details/summary`, aby zůstal lehký a dobře kliknutelný i na mobilu.
 - Kontaktní stránka má vlastní modulární sekce v `src/features/public/components/contact-sections.tsx`:
   - `ContactHero`
   - `ContactMapPreviewCard`

@@ -2,7 +2,7 @@ import { FaqPage, buildPageMetadata } from '@/features/public/components/public-
 
 export const metadata = buildPageMetadata({
   title: 'FAQ',
-  description: 'Nejčastější otázky ke službám, první návštěvě, rezervaci a základním provozním pravidlům salonu.',
+  description: 'Praktické odpovědi k rezervaci, první návštěvě, komfortu i storno podmínkám, které pomáhají rozhodnout se bez nejistoty.',
 });
 
 export default function Page() {
