@@ -50,6 +50,7 @@ Seznam důležitých knihoven a důvod jejich použití.
 - Nová veřejná část byla postavená bez dalších UI knihoven nebo animačních balíků.
 - Cílem je nízká složitost, rychlý render a co nejmenší závislostní povrch pro marketingový web.
 - Redesign stránky `/o-mne` také nepřidává žádnou novou závislost; hero, CTA, galerie certifikátů i placeholder stavy běží čistě na stávajícím stacku Next.js, React, Tailwind a lokálních SVG/CSS efektech.
+- Refaktor stránky `/obchodni-podminky` také nepřidává žádnou novou závislost; finální právní copy, hero aside i obsahová navigace zůstávají na existujících public komponentách a Tailwind utilitách.
 
 ## Poznámky k datové vrstvě
 - Prisma schema v1 používá enumy pro role, stavy slotů, stavy rezervací a e-mailové workflow.

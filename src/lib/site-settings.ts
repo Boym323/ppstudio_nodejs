@@ -4,6 +4,8 @@ import { env } from "@/config/env";
 import { prisma } from "@/lib/prisma";
 
 export const SITE_SETTINGS_ID = "site-settings";
+const DEFAULT_OPERATOR_NAME = "Pavlína Pomykalová";
+const DEFAULT_BUSINESS_ID = "234 275 66";
 
 export type SiteSettingsRecord = {
   id: string;
@@ -109,6 +111,8 @@ export async function getPublicSalonProfile() {
 
   return {
     name: settings.salonName,
+    operatorName: DEFAULT_OPERATOR_NAME,
+    businessId: DEFAULT_BUSINESS_ID,
     phone: settings.phone,
     email: settings.contactEmail,
     instagramUrl: settings.instagramUrl,

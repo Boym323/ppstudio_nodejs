@@ -7,6 +7,10 @@ Formát je inspirovaný Keep a Changelog.
 ## [Unreleased]
 
 ### Changed
+- Stránka `/storno-podminky` prošla kompletním UX a copy refactorem: hero teď používá finální stručný text, vpravo má praktický box `Jak zrušit rezervaci`, pod ním jsou tři rychle skenovatelné karty s hlavními pravidly a šest krátkých sekcí s konkrétními, ale měkčími podmínkami pro změnu termínu, no-show, zpoždění, zálohy i storno ze strany salonu; stránka zároveň nově výslovně říká, že rezervaci lze upravit i přes odkaz v potvrzení rezervace a reminderu.
+- Stránka `/obchodni-podminky` prošla kompletním refactorem z draftového placeholderu na plnohodnotnou právní stránku: hero nově používá finální copy a praktický blok poskytovatele, pod ním je obsahová navigace a devět stručných sekcí pro rezervace, storno, cenu, průběh služby, odpovědnost, reklamace, poukazy a závěrečná ustanovení.
+- `LegalPage` dostala jemný CTA prompt v hero a kompaktnější rytmus právních karet; `LegalSection` zároveň nově podporuje volitelný `eyebrow`, takže delší právní texty zůstávají dobře skenovatelné bez rozbití sdíleného layoutu.
+- Veřejný profil salonu nově vrací i provozní identitu (`operatorName`, `businessId`), takže kontaktní a právní stránky už neskládají jméno provozovatelky a IČ z natvrdo zapsaných lokálních hodnot.
 - GDPR stránka `/gdpr` prošla úplným obsahovým a UX refactorem: hero už nepůsobí jako interní draft, vpravo nově zobrazuje praktický box správce osobních údajů a pod ním následuje plná právní osnova se sekcemi pro účely, dobu uchování, příjemce údajů, práva subjektu i závěrečný kontakt.
 - Generická veřejná komponenta `LegalPage` už umí vedle textového hero i užitečný informační aside, lehkou anchor navigaci a bohatší právní sekce se seznamy a zvýrazněnou poznámkou, takže stejné UX páky můžeme použít i u dalších právních stránek bez dalšího přepisu.
 - Ve footeru zůstává klikací e-mailový kontakt, ale zobrazuje se už v běžném čitelném tvaru místo textu `[...] [at] [...]`; cílem je přímější a důvěryhodnější kontakt pro návštěvnici.

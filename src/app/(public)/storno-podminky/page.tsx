@@ -1,4 +1,8 @@
-import { LegalPage, buildPageMetadata, getLegalPages } from '@/features/public/components/public-site';
+import {
+  CancellationPolicyPage,
+  buildPageMetadata,
+  getCancellationPageContent,
+} from '@/features/public/components/public-site';
 
 export const metadata = buildPageMetadata({
   title: 'Storno podmínky',
@@ -6,14 +10,7 @@ export const metadata = buildPageMetadata({
 });
 
 export default async function Page() {
-  const legalPages = await getLegalPages();
+  const content = await getCancellationPageContent();
 
-  return (
-    <LegalPage
-      eyebrow="Právní a provozní informace"
-      title={legalPages.cancellation.title}
-      description={legalPages.cancellation.intro}
-      sections={legalPages.cancellation.sections}
-    />
-  );
+  return <CancellationPolicyPage content={content} />;
 }

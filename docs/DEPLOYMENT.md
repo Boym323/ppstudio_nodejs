@@ -27,6 +27,7 @@ Postup nasazení aplikace do produkce.
    - služby a detail služby
    - kontakt
    - FAQ a právní stránky
+     - `/obchodni-podminky`: hero CTA, blok poskytovatele a obsahová navigace
    - CTA na rezervaci
 14. Projdi ruční QA admin částí:
    - login redirect pro `OWNER` a `SALON`
@@ -74,6 +75,7 @@ Postup nasazení aplikace do produkce.
      - po rotaci kalendáře starý subscription odkaz vrací 404 a nový vrací `text/calendar; charset=utf-8`
      - propsání kontaktů do footeru a `/kontakt`
      - propsání storno limitu do `/faq` a `/storno-podminky`
+     - na `/storno-podminky` správné kontakty v hero boxu `Jak zrušit rezervaci` a správné hodnoty v kartách hlavních pravidel
      - propsání booking limitů do `/rezervace`
    - owner sekci `/admin/uzivatele`:
      - seznam přístupů ukazuje jen role `OWNER` a `SALON`

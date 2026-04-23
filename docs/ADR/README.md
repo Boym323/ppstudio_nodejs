@@ -44,3 +44,10 @@ Sem patří krátké záznamy architektonických rozhodnutí.
 - `0027-public-pricing-metadata-in-catalog.md`
 - `0028-public-booking-confirmation-layout-v1.md`
 - `0029-admin-users-access-management-v1.md`
+- `0030-booking-owner-email-actions-v1.md`
+- `0031-owner-bookings-ics-feed-v1.md`
+- `0032-booking-customer-ics-event-v1.md`
+- `0033-admin-manual-booking-v1.md`
+- `0034-booking-reminder-24h-v1.md`
+- `0035-public-terms-page-legal-layout-v1.md`
+- `0036-public-cancellation-policy-page-v1.md`

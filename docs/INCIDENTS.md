@@ -28,6 +28,7 @@ Evidence produkčních incidentů a jejich řešení.
 - Chybně označené systémové přístupy nebo rozbitý stav `Pozvánka čeká` po nasazení migrace `AdminUser.invitedAt`.
 - Nefunkční aktivace pozvánky na `/admin/pozvanka/[token]` (expirace, použitý token, nebo chybějící migrace `AdminUserInviteToken`).
 - Veřejné kontaktní údaje nebo ceny ponechané v placeholder režimu po nasazení.
+- Právní stránka `/obchodni-podminky` ponechaná v draft nebo placeholder režimu; po release musí působit jako finální provozní dokument, ne jako interní návrh.
 - Nefunkční CTA odkazy mezi veřejným webem a rezervační částí.
 - Opakované `EmailLog.status = FAILED` po nasazení nové SMTP konfigurace.
 - Nefunkční storno odkazy kvůli špatnému `NEXT_PUBLIC_APP_URL` nebo proxy přepisu hosta.
@@ -81,3 +82,4 @@ Evidence produkčních incidentů a jejich řešení.
 - Mobilní nebo tabletový inspektor dne, který překryje grid bez možnosti rychlého zavření nebo neukáže vybraný blok po tapnutí.
 - Day workspace otevírající špatný slot po změně filtru stavu nebo týdne.
 - Owner-only sekce `Nastavení` má dopad i na veřejný web a e-mailovou komunikaci; po každé změně je potřeba rychlá smoke kontrola footeru, `/kontakt`, `/faq`, `/storno-podminky` a `/rezervace`.
+- Storno stránka publikovaná se správným limitem hodin, ale se starými kontakty nebo opačným významem summary karet; po změně `SiteSettings` vždy ověř hero box `Jak zrušit rezervaci` i text `více než / méně než X hodin`.

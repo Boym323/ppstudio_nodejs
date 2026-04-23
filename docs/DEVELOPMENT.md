@@ -218,6 +218,10 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Server-side validaci preferovat před klientskými závislostmi.
 - Nezakládat univerzální `utils` složky ve feature vrstvách bez jasné potřeby.
 - U veřejného webu nepřidávat efektní animace bez jasného UX důvodu.
+- Většinu právních stránek drž na sdílené `LegalPage` skladbě; finální texty a pořadí sekcí patří do `src/content/public-site.ts`, ne do rout nebo nahodilých JSX bloků.
+- Výjimkou je `/storno-podminky`, které používá specializovanou `CancellationPolicyPage`, protože potřebuje akční hero, praktický kontaktní box a rychlý přehled pravidel ještě před detailními sekcemi.
+- Pokud upravuješ copy storna, drž ho věcně a konkrétně, ale nestrkej do něj tvrdší sankce, které salon reálně neuplatňuje; kanály pro akci mají vždy zmiňovat telefon, e-mail a podle kontextu i odkaz v potvrzení rezervace / reminderu.
+- Pokud právní stránka potřebuje číslovanou osnovu, používej u `LegalSection` pole `eyebrow` místo ručního číslování přímo v layout komponentě.
 - Booking mutations držet ve feature service vrstvě a server action používat jen jako tenký vstupní adaptér.
 - Admin změny stavu rezervace validovat server-side proti povoleným přechodům a nikdy je neřídit jen podle toho, co UI zrovna nabízí v selectu.
 - U admin katalogu služeb a kategorií preferuj query-driven vstup do workflow (`mode`, `mobileDetail`) před zaváděním nové routy, pokud cílem není nový samostatný workflow.

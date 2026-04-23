@@ -4,12 +4,14 @@ import Image from 'next/image';
 import type { Metadata } from 'next';
 
 import {
+  buildCancellationPageContent,
   buildContactItems,
   buildFaqItems,
   buildLegalContent,
   buildTrustMetrics,
   homepageContent,
   services,
+  type CancellationPageContent,
   type LegalSection,
   type Service,
   type TrustMetric,
@@ -28,6 +30,7 @@ function PublicHero({
   eyebrow,
   title,
   description,
+  ctaPrompt,
   benefits,
   ctaNote,
   logoImage,
@@ -39,6 +42,7 @@ function PublicHero({
   eyebrow: string;
   title: string;
   description: string;
+  ctaPrompt?: string;
   benefits?: string[];
   ctaNote?: string;
   logoImage?: { src: string; alt: string; width: number; height: number };
@@ -93,23 +97,26 @@ function PublicHero({
             ) : null}
           </div>
           {(primaryCta || secondaryCta) && (
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-              {primaryCta ? (
-                <ActionLink
-                  href={primaryCta.href}
-                  className="inline-flex min-h-13 items-center justify-center rounded-full bg-[var(--color-foreground)] px-7 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-white hover:bg-[#2c221d] sm:text-sm"
-                >
-                  {primaryCta.label}
-                </ActionLink>
-              ) : null}
-              {secondaryCta ? (
-                <ActionLink
-                  href={secondaryCta.href}
-                  className="inline-flex min-h-13 items-center justify-center rounded-full border border-black/10 bg-white/75 px-7 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-foreground)] hover:border-black/20 hover:bg-white sm:text-sm"
-                >
-                  {secondaryCta.label}
-                </ActionLink>
-              ) : null}
+            <div className="space-y-3">
+              {ctaPrompt ? <p className="text-sm leading-6 text-[var(--color-accent-contrast)] sm:text-[15px]">{ctaPrompt}</p> : null}
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                {primaryCta ? (
+                  <ActionLink
+                    href={primaryCta.href}
+                    className="inline-flex min-h-13 items-center justify-center rounded-full bg-[var(--color-foreground)] px-7 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-white hover:bg-[#2c221d] sm:text-sm"
+                  >
+                    {primaryCta.label}
+                  </ActionLink>
+                ) : null}
+                {secondaryCta ? (
+                  <ActionLink
+                    href={secondaryCta.href}
+                    className="inline-flex min-h-13 items-center justify-center rounded-full border border-black/10 bg-white/75 px-7 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-foreground)] hover:border-black/20 hover:bg-white sm:text-sm"
+                  >
+                    {secondaryCta.label}
+                  </ActionLink>
+                ) : null}
+              </div>
             </div>
           )}
           {isHomepageStyle && ctaNote ? (
@@ -303,20 +310,23 @@ function PricingServiceRow({ service }: { service: Service }) {
 
 function LegalSections({ sections }: { sections: LegalSection[] }) {
   return (
-    <div className="space-y-4 sm:space-y-5">
+    <div className="space-y-3 sm:space-y-4">
       {sections.map((section) => (
         <section
           key={section.id ?? section.title}
           id={section.id}
-          className="scroll-mt-28 rounded-[calc(var(--radius-panel)-0.5rem)] border border-black/6 bg-white p-5 shadow-[var(--shadow-panel)] sm:p-6"
+          className="scroll-mt-28 rounded-[calc(var(--radius-panel)-0.55rem)] border border-black/6 bg-white p-5 shadow-[var(--shadow-panel)] sm:p-6"
         >
-          <h2 className="font-display text-2xl leading-[1.1] text-[var(--color-foreground)] sm:text-3xl">{section.title}</h2>
-          <div className="mt-4 space-y-4 text-[15px] leading-7 text-[var(--color-muted)] sm:text-base">
+          {section.eyebrow ? (
+            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--color-accent)]">{section.eyebrow}</p>
+          ) : null}
+          <h2 className="mt-2 font-display text-[1.75rem] leading-[1.08] text-[var(--color-foreground)] sm:text-[2rem]">{section.title}</h2>
+          <div className="mt-4 space-y-3.5 text-[15px] leading-7 text-[var(--color-muted)] sm:text-base">
             {section.paragraphs.map((paragraph) => (
               <p key={paragraph}>{paragraph}</p>
             ))}
             {section.items?.length ? (
-              <ul className="grid gap-3 border-t border-black/6 pt-4 text-[14px] leading-6 text-[var(--color-muted)] sm:text-[15px]">
+              <ul className="grid gap-2.5 border-t border-black/6 pt-4 text-[14px] leading-6 text-[var(--color-muted)] sm:text-[15px]">
                 {section.items.map((item) => (
                   <li key={item} className="flex items-start gap-3">
                     <span aria-hidden="true" className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--color-accent)]" />
@@ -392,6 +402,71 @@ function LegalToc({ items }: { items: Array<{ id: string; label: string }> }) {
         ))}
       </div>
     </nav>
+  );
+}
+
+function CancellationSummary({
+  title,
+  items,
+}: {
+  title: string;
+  items: CancellationPageContent['summaryCards'];
+}) {
+  return (
+    <section className="py-4 sm:py-6">
+      <Container className="space-y-4">
+        <div className="flex items-center justify-between gap-4">
+          <h2 className="font-display text-2xl leading-[1.08] text-[var(--color-foreground)] sm:text-[2rem]">{title}</h2>
+        </div>
+        <div className="grid gap-3 lg:grid-cols-3">
+          {items.map((item) => (
+            <article
+              key={`${item.title}-${item.value}`}
+              className="rounded-[calc(var(--radius-panel)-0.45rem)] border border-[#d8c9b8] bg-[#fcf9f5] p-5 shadow-[0_16px_38px_rgba(75,49,31,0.05)] sm:p-6"
+            >
+              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-accent)]">{item.title}</p>
+              <p className="mt-3 font-display text-[1.6rem] leading-[1.02] text-[var(--color-foreground)] sm:text-[1.9rem]">{item.value}</p>
+              <p className="mt-3 text-[14px] leading-6 text-[var(--color-muted)] sm:text-[15px]">{item.description}</p>
+            </article>
+          ))}
+        </div>
+      </Container>
+    </section>
+  );
+}
+
+function CancellationContactAside({
+  title,
+  description,
+  note,
+  items,
+}: {
+  title: string;
+  description: string;
+  note: string;
+  items: CancellationPageContent['contactItems'];
+}) {
+  return (
+    <aside className="h-full rounded-[calc(var(--radius-panel)-0.25rem)] border border-white/75 bg-white/88 p-5 shadow-[var(--shadow-panel)] backdrop-blur sm:p-6">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.32em] text-[var(--color-accent)]">Prakticky</p>
+      <h2 className="mt-4 font-display text-2xl leading-[1.08] text-[var(--color-foreground)] sm:text-3xl">{title}</h2>
+      <p className="mt-3 text-[14px] leading-6 text-[var(--color-muted)] sm:text-[15px]">{description}</p>
+      <div className="mt-6 grid gap-3">
+        {items.map((item) => (
+          <a
+            key={`${item.label}-${item.value}`}
+            href={item.href}
+            className="rounded-2xl border border-black/[0.06] bg-[var(--color-surface)] px-4 py-3 transition hover:border-black/10 hover:bg-[#f4eadf]"
+          >
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-muted)]">{item.label}</p>
+            <p className="mt-2 text-[15px] leading-6 text-[var(--color-foreground)]">{item.value}</p>
+          </a>
+        ))}
+      </div>
+      <p className="mt-5 rounded-2xl bg-[var(--color-surface)] px-4 py-3 text-[14px] leading-6 text-[var(--color-accent-contrast)] sm:text-[15px]">
+        {note}
+      </p>
+    </aside>
   );
 }
 
@@ -645,8 +720,8 @@ export async function ContactPage() {
             phone={salonProfile.phone}
             email={salonProfile.email}
             instagramUrl={salonProfile.instagramUrl}
-            operatorName="Pavlína Pomykalová"
-            operatorId="234 275 66"
+            operatorName={salonProfile.operatorName}
+            operatorId={salonProfile.businessId}
             openingHours="Po-Pá: Dle objednávek"
           />
         </Container>
@@ -687,6 +762,7 @@ export function LegalPage({
   eyebrow,
   title,
   description,
+  ctaPrompt,
   sections,
   secondaryCta = { href: '/kontakt', label: 'Kontaktovat studio' },
   heroAside,
@@ -695,6 +771,7 @@ export function LegalPage({
   eyebrow: string;
   title: string;
   description: string;
+  ctaPrompt?: string;
   sections: LegalSection[];
   secondaryCta?: { href: string; label: string };
   heroAside?: {
@@ -715,6 +792,7 @@ export function LegalPage({
         eyebrow={eyebrow}
         title={title}
         description={description}
+        ctaPrompt={ctaPrompt}
         secondaryCta={secondaryCta}
         aside={heroAside ? <LegalHeroAside {...heroAside} /> : undefined}
       />
@@ -722,6 +800,42 @@ export function LegalPage({
         <Container className="space-y-4 sm:space-y-5">
           {showTableOfContents && tableOfContentsItems.length ? <LegalToc items={tableOfContentsItems} /> : null}
           <LegalSections sections={sections} />
+        </Container>
+      </section>
+    </div>
+  );
+}
+
+export function CancellationPolicyPage({ content }: { content: CancellationPageContent }) {
+  const tableOfContentsItems = content.sections
+    .filter((section): section is LegalSection & { id: string } => Boolean(section.id))
+    .map((section) => ({ id: section.id, label: section.title }));
+
+  return (
+    <div className="pb-8 sm:pb-12">
+      <PublicHero
+        eyebrow="Právní a provozní informace"
+        title={content.title}
+        description={content.intro}
+        ctaPrompt={content.ctaPrompt}
+        secondaryCta={{ href: '/kontakt', label: 'Kontaktovat studio' }}
+        aside={(
+          <CancellationContactAside
+            title={content.contactCardTitle}
+            description={content.contactCardDescription}
+            note={content.contactCardNote}
+            items={content.contactItems}
+          />
+        )}
+      />
+      <CancellationSummary title={content.summaryTitle} items={content.summaryCards} />
+      <section className="py-6 sm:py-8 lg:py-10">
+        <Container className="space-y-4 sm:space-y-5">
+          <LegalToc items={tableOfContentsItems} />
+          <LegalSections sections={content.sections} />
+          <div className="rounded-[calc(var(--radius-panel)-0.45rem)] border border-[#d8c9b8] bg-[#f7efe5] px-5 py-4 text-[14px] leading-6 text-[var(--color-accent-contrast)] shadow-[0_16px_38px_rgba(75,49,31,0.05)] sm:px-6 sm:py-5 sm:text-[15px]">
+            {content.footerNote}
+          </div>
         </Container>
       </section>
     </div>
@@ -737,4 +851,17 @@ export async function getLegalPages() {
     terms: legalContent.terms,
     gdpr: legalContent.gdpr,
   };
+}
+
+export async function getCancellationPageContent() {
+  const [bookingPolicy, salonProfile] = await Promise.all([
+    getBookingPolicySettings(),
+    getPublicSalonProfile(),
+  ]);
+
+  return buildCancellationPageContent({
+    cancellationHours: bookingPolicy.cancellationHours,
+    phone: salonProfile.phone,
+    email: salonProfile.email,
+  });
 }

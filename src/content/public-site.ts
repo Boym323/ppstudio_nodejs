@@ -31,10 +31,31 @@ export type FaqItem = {
 
 export type LegalSection = {
   id?: string;
+  eyebrow?: string;
   title: string;
   paragraphs: string[];
   items?: string[];
   note?: string;
+};
+
+export type LegalSummaryCard = {
+  title: string;
+  value: string;
+  description: string;
+};
+
+export type CancellationPageContent = {
+  title: string;
+  intro: string;
+  ctaPrompt: string;
+  contactCardTitle: string;
+  contactCardDescription: string;
+  contactCardNote: string;
+  contactItems: Array<{ label: string; value: string; href: string }>;
+  summaryTitle: string;
+  summaryCards: LegalSummaryCard[];
+  sections: LegalSection[];
+  footerNote: string;
 };
 
 export type ContactItem = {
@@ -376,50 +397,252 @@ export function buildFaqItems(cancellationHours: number): FaqItem[] {
 
 export const faqItems = buildFaqItems(48);
 
+export function buildCancellationPageContent(input: {
+  cancellationHours: number;
+  phone: string;
+  email: string;
+}): CancellationPageContent {
+  return {
+    title: 'Storno podmínky',
+    intro: 'Zde najdete podmínky pro změnu a zrušení rezervace v PP Studiu.',
+    ctaPrompt: 'Potřebujete změnit termín?',
+    contactCardTitle: 'Jak zrušit rezervaci',
+    contactCardDescription: 'Rezervaci můžete zrušit telefonicky, e-mailem nebo přes odkaz v potvrzení rezervace a reminderu.',
+    contactCardNote: 'Jakmile víte, že termín nevyužijete, dejte nám vědět co nejdříve. Uvolněný čas můžeme nabídnout další klientce.',
+    contactItems: [
+      {
+        label: 'Telefon',
+        value: input.phone,
+        href: `tel:${input.phone.replace(/\s+/g, '')}`,
+      },
+      {
+        label: 'E-mail',
+        value: input.email,
+        href: `mailto:${input.email}`,
+      },
+    ],
+    summaryTitle: 'Nejdůležitější pravidla',
+    summaryCards: [
+      {
+        title: 'Včasné zrušení',
+        value: `Více než ${input.cancellationHours} h předem`,
+        description: 'Zrušení nebo změna termínu je bez poplatku.',
+      },
+      {
+        title: 'Pozdní storno',
+        value: `Méně než ${input.cancellationHours} h předem`,
+        description: 'Prosíme o co nejrychlejší informaci. Pozdní zrušení komplikuje obsazení uvolněného času.',
+      },
+      {
+        title: 'Nedostavení se',
+        value: 'Bez omluvy',
+        description: 'Pokud se situace opakuje, může být další rezervace potvrzena až po předchozí domluvě.',
+      },
+    ],
+    sections: [
+      {
+        id: 'jak-zrusit-nebo-zmenit-rezervaci',
+        eyebrow: '1. Co udělat',
+        title: 'Jak zrušit nebo změnit rezervaci',
+        paragraphs: [
+          'Pro změnu nebo zrušení termínu nás můžete kontaktovat telefonicky nebo e-mailem. Rezervaci lze zrušit také přes odkaz, který posíláme v potvrzení rezervace a v reminderu před termínem.',
+        ],
+        items: [
+          `telefon: ${input.phone}`,
+          `e-mail: ${input.email}`,
+          'odkaz pro zrušení nebo úpravu najdete také v potvrzení rezervace a v reminderu',
+          'čím dříve se ozvete, tím snáz nabídneme náhradní termín nebo uvolníme místo další klientce',
+        ],
+      },
+      {
+        id: 'zruseni-a-zmena-terminu',
+        eyebrow: '2. Termín',
+        title: 'Zrušení a změna termínu',
+        paragraphs: [
+          `Při zrušení nebo přesunu více než ${input.cancellationHours} hodin před začátkem termínu je změna bez omezení.`,
+          `Pokud potřebujete termín zrušit méně než ${input.cancellationHours} hodin předem, dejte nám prosím vědět co nejdříve. Storno poplatek nyní neúčtujeme, ale pozdní změna nám obvykle už neumožní nabídnout termín další klientce.`,
+        ],
+        note: 'Vyhrazený čas držíme pouze pro vaši návštěvu. Pozdní zrušení už obvykle nedokážeme obsadit jinou rezervací.',
+      },
+      {
+        id: 'nedostaveni-se',
+        eyebrow: '3. No-show',
+        title: 'Nedostavení se bez omluvy',
+        paragraphs: [
+          'Pokud na potvrzený termín nepřijdete a nedáte nám předem vědět, bereme to jako nevyužitý rezervovaný čas.',
+          'Při opakovaném nedostavení bez omluvy může být další rezervace potvrzena až po předchozí domluvě nebo se zálohou.',
+        ],
+      },
+      {
+        id: 'zpozdeni',
+        eyebrow: '4. Dochvilnost',
+        title: 'Zpoždění',
+        paragraphs: [
+          'Při pozdním příchodu službu zkrátíme tak, aby nebyl narušen další provoz studia.',
+          'Cena služby zůstává stejná i v případě, že kvůli zpoždění nebude možné provést péči v plném rozsahu.',
+        ],
+      },
+      {
+        id: 'zalohy',
+        eyebrow: '5. Záloha',
+        title: 'Zálohy',
+        paragraphs: [
+          'U delších, blokovaných nebo opakovaně přesouvaných termínů může být předem domluvena záloha na rezervaci.',
+          'Pokud by byla u konkrétní služby nebo termínu záloha požadována, vždy to klientce řekneme předem při potvrzení rezervace.',
+        ],
+      },
+      {
+        id: 'zruseni-ze-strany-salonu',
+        eyebrow: '6. Provoz studia',
+        title: 'Zrušení ze strany salonu',
+        paragraphs: [
+          'Pokud musíme termín zrušit z důvodu nemoci, provozní kolize nebo technického problému, ozveme se vám co nejdříve.',
+          'V takové situaci vždy nabídneme náhradní termín nebo jiný nejbližší možný postup podle aktuální kapacity.',
+        ],
+      },
+    ],
+    footerNote: 'Pokud víte, že termín nestihnete, nečekejte prosím na poslední chvíli. Krátká zpráva nebo rychlý telefonát pomůže nám i dalším klientkám.',
+  };
+}
+
 export function buildLegalContent(cancellationHours: number) {
   return {
     cancellation: {
       title: 'Storno podmínky',
-      intro:
-        'Níže uvedený text je produkčně použitelná struktura připravená pro právní a provozní doplnění podle reálného fungování salonu.',
+      intro: 'Zde najdete podmínky pro změnu a zrušení rezervace v PP Studiu.',
       sections: [
         {
-          title: 'Rušení a změna termínu',
+          id: 'zruseni-a-zmena-terminu',
+          eyebrow: 'Změna rezervace',
+          title: 'Zrušení a změna termínu',
           paragraphs: [
-            `Rezervovaný termín je možné bez sankce zrušit nebo přesunout nejpozději ${cancellationHours} hodin před jeho začátkem.`,
-            `Při zrušení méně než ${cancellationHours} hodin předem může salon uplatnit storno poplatek podle typu rezervované služby nebo zálohy.`,
+            `Rezervaci je možné zrušit nebo přesunout více než ${cancellationHours} hodin před začátkem termínu bez omezení.`,
+            `Pokud klientka ruší termín méně než ${cancellationHours} hodin předem, studio žádá o co nejrychlejší informaci. Storno poplatek se v tuto chvíli automaticky neuplatňuje.`,
           ],
+          note: 'Pro změnu nebo zrušení termínu lze využít kontakt na studio i odkaz zaslaný v potvrzení rezervace nebo v reminderu.',
         },
         {
+          id: 'nedostaveni-se',
+          eyebrow: 'No-show',
           title: 'Nedostavení se',
           paragraphs: [
-            'Pokud se klientka na rezervovaný termín bez omluvy nedostaví, může být při další rezervaci vyžadována záloha nebo může být rezervace odmítnuta.',
+            'Pokud se klientka na potvrzený termín bez omluvy nedostaví, vzniká studiu nevyužitý rezervovaný čas.',
+            'Při opakovaném nedostavení může studio další rezervaci potvrdit až po předchozí domluvě nebo po vyžádání zálohy.',
           ],
         },
       ],
     },
-  terms: {
-    title: 'Obchodní podmínky',
-    intro:
-      'Tato stránka slouží jako přehledný základ pro budoucí finální obchodní podmínky. Doporučuji ji před spuštěním zkontrolovat s právníkem nebo alespoň doplnit přesné identifikační údaje.',
-    sections: [
-      {
-        title: 'Poskytovatel služeb',
-        paragraphs: [
-          'Do této části doplňte obchodní jméno, IČO, sídlo, kontaktní e-mail a telefon.',
-          'Pokud salon funguje jako fyzická osoba podnikající, uveďte i informaci o zápisu v příslušném rejstříku, pokud je relevantní.',
-        ],
-      },
-      {
-        title: 'Vznik rezervace',
-        paragraphs: [
-          'Rezervace vzniká potvrzením vybraného termínu prostřednictvím rezervačního systému nebo individuální domluvou, kterou salon následně potvrdí.',
-          'Salon si vyhrazuje právo upravit nabídku služeb, ceny a dostupné termíny, pokud to vyžaduje provozní situace.',
-        ],
-      },
-    ],
-  },
-  gdpr: {
+    terms: {
+      title: 'Obchodní podmínky',
+      intro:
+        'Tyto obchodní podmínky upravují rezervaci a poskytování služeb v PP Studiu. Najdete zde informace o objednání, storno podmínkách a průběhu služeb.',
+      sections: [
+        {
+          id: 'poskytovatel-sluzeb',
+          eyebrow: '1. Poskytovatel služeb',
+          title: 'Identifikace studia a kontaktní údaje',
+          paragraphs: [
+            'Tyto obchodní podmínky upravují poskytování kosmetických a souvisejících služeb ve studiu PP Studio. Smluvní vztah vzniká mezi klientkou a provozovatelkou studia při potvrzení rezervace.',
+            'Kontaktní údaje studia jsou uvedené v horním informačním bloku této stránky a na stránce Kontakt. Studio komunikuje především e-mailem a telefonicky.',
+          ],
+        },
+        {
+          id: 'objednani-sluzeb',
+          eyebrow: '2. Objednání služeb',
+          title: 'Jak vzniká rezervace',
+          paragraphs: [
+            'Službu je možné objednat online přes webový rezervační formulář, telefonicky nebo osobně podle aktuální dostupnosti termínů.',
+            'Rezervace je platná okamžikem, kdy studio zvolený termín potvrdí. Potvrzená rezervace je závazná pro obě strany.',
+          ],
+          items: [
+            'při online objednání klientka vyplní nezbytné kontaktní údaje',
+            'při telefonické nebo osobní domluvě může studio potvrzení zaslat následně e-mailem nebo zprávou',
+            'klientka odpovídá za správnost uvedeného telefonu a e-mailu',
+          ],
+        },
+        {
+          id: 'zmena-a-zruseni-rezervace',
+          eyebrow: '3. Změna a zrušení rezervace',
+          title: 'Storno a přesun termínu',
+          paragraphs: [
+            `Rezervaci je možné zrušit nebo přesunout nejpozději ${cancellationHours} hodin před začátkem termínu. Nejrychlejší je využít kontaktní údaje studia nebo storno odkaz, pokud byl u rezervace zaslán.`,
+            `Při zrušení méně než ${cancellationHours} hodin předem, při opakovaném pozdním rušení nebo při nedostavení se bez omluvy může studio požadovat zálohu na další rezervaci nebo další termín nepotvrdit.`,
+          ],
+          note:
+            'Pokud se dostanete do nenadálé situace, ozvěte se co nejdříve. Cílem je najít férové řešení a zároveň chránit vyhrazený čas studia.',
+        },
+        {
+          id: 'cena-a-platba',
+          eyebrow: '4. Cena a platba',
+          title: 'Aktuální ceny a úhrada služeb',
+          paragraphs: [
+            'Ceny služeb se řídí aktuálním ceníkem zveřejněným na webu nebo sděleným při objednání. U časově náročnějších nebo individuálně upravených služeb může být cena upřesněna před zahájením ošetření.',
+            'Úhrada probíhá po poskytnutí služby způsobem, který studio v danou chvíli umožňuje. Pokud je u konkrétní rezervace požadována záloha, klientka o tom bude informována předem.',
+          ],
+          items: [
+            'ceny mohou být průběžně upravovány bez zpětného dopadu na již potvrzené termíny',
+            'akční nebo zvýhodněné nabídky nelze zpětně kombinovat, pokud není výslovně uvedeno jinak',
+          ],
+        },
+        {
+          id: 'prubeh-sluzby',
+          eyebrow: '5. Průběh služby',
+          title: 'Dochvilnost a provozní pravidla',
+          paragraphs: [
+            'Klientka je povinna dostavit se na sjednaný termín včas. Pozdní příchod může vést ke zkrácení služby, aby nebyl narušen navazující provoz studia.',
+            'Studio si vyhrazuje právo službu neposkytnout nebo ji upravit, pokud by její bezpečné provedení neodpovídalo aktuálnímu stavu klientky, hygienickým pravidlům nebo rozsahu rezervovaného času.',
+          ],
+          items: [
+            'na termín doporučujeme přijít bez zbytečného předstihu i bez výrazného zpoždění',
+            'doprovod je vhodné konzultovat předem, zejména u delších nebo klidových procedur',
+            'během návštěvy je potřeba respektovat hygienická a provozní pravidla studia',
+          ],
+        },
+        {
+          id: 'zdravotni-stav-a-odpovednost',
+          eyebrow: '6. Zdravotní stav a odpovědnost',
+          title: 'Informace důležité pro bezpečné ošetření',
+          paragraphs: [
+            'Klientka je povinna před zahájením služby pravdivě informovat studio o zdravotních omezeních, alergiích, kožních problémech, těhotenství nebo jiných skutečnostech, které mohou mít vliv na průběh ošetření.',
+            'Studio nenese odpovědnost za komplikace nebo nespokojenost se službou, pokud klientka podstatné informace zamlčela nebo nedodržela následná doporučení po ošetření.',
+          ],
+          note:
+            'Pokud si nejste jistá vhodností služby, doporučujeme se ozvat ještě před rezervací. Krátká konzultace často předejde zbytečnému zklamání i zdravotnímu riziku.',
+        },
+        {
+          id: 'reklamace',
+          eyebrow: '7. Reklamace',
+          title: 'Jak řešit nespokojenost nebo výhrady',
+          paragraphs: [
+            'Pokud nejste s průběhem nebo výsledkem služby spokojená, kontaktujte studio bez zbytečného odkladu. Reklamace se řeší individuálně s ohledem na charakter služby a okolnosti konkrétní návštěvy.',
+            'Studio se zavazuje reklamaci posoudit v přiměřené lhůtě a navrhnout další postup, například kontrolní návštěvu, úpravu výsledku nebo jiné férové řešení podle povahy situace.',
+          ],
+          items: [
+            'pro rychlé vyřízení doporučujeme připojit popis problému a případně aktuální fotografii',
+            'reklamaci je vhodné uplatnit e-mailem nebo telefonicky přes kontakty uvedené na této stránce',
+          ],
+        },
+        {
+          id: 'darkove-poukazy',
+          eyebrow: '8. Dárkové poukazy',
+          title: 'Podmínky použití poukazů',
+          paragraphs: [
+            'Pokud studio vydá dárkový poukaz, lze jej využít pouze v době jeho platnosti a za podmínek uvedených na poukazu nebo při jeho vystavení.',
+            'Dárkový poukaz nelze směnit za hotovost. Pokud není dohodnuto jinak, nevyčerpaná hodnota se neproplácí a po uplynutí platnosti poukaz bez náhrady zaniká.',
+          ],
+        },
+        {
+          id: 'zaverecna-ustanoveni',
+          eyebrow: '9. Závěrečná ustanovení',
+          title: 'Platnost a změny podmínek',
+          paragraphs: [
+            'Tyto obchodní podmínky nabývají účinnosti dne 23. 4. 2026. Studio si vyhrazuje právo je přiměřeně aktualizovat, pokud se změní provozní nastavení, rezervační proces nebo zákonné požadavky.',
+            'Pro konkrétní rezervaci vždy platí znění obchodních podmínek účinné v den potvrzení daného termínu, pokud se studio s klientkou výslovně nedohodne jinak.',
+          ],
+        },
+      ],
+    },
+    gdpr: {
     title: 'GDPR a ochrana osobních údajů',
     intro:
       'Osobní údaje zpracováváme jen v rozsahu, který je potřeba pro rezervaci termínu, běžnou komunikaci s klientkou a splnění zákonných povinností. Níže najdete přehled, jak s údaji v PP Studiu pracujeme.',
