@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-process.env.NODE_ENV ??= "test";
+import { CalendarFeedScope } from "@prisma/client";
+
+(process.env as Record<string, string | undefined>).NODE_ENV ??= "test";
 process.env.NEXT_PUBLIC_APP_NAME ??= "PP Studio";
 process.env.NEXT_PUBLIC_APP_URL ??= "https://ppstudio.cz";
 process.env.DATABASE_URL ??= "postgresql://ppstudio:ppstudio@localhost:5432/ppstudio";
@@ -23,7 +25,7 @@ test("calendar feed token is stable until rotation and validates against feed sa
   const tokenSalt = buildCalendarFeedTokenSalt();
   const feed = {
     id: "cm1234567890abcdef123456",
-    scope: "OWNER_BOOKINGS",
+    scope: CalendarFeedScope.OWNER_BOOKINGS,
     tokenSalt,
     isActive: true,
   };
