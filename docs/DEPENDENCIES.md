@@ -26,6 +26,7 @@ Seznam důležitých knihoven a důvod jejich použití.
 - `jose`: podpis a verifikace admin session.
 - `nodemailer`: SMTP transport pro potvrzení rezervace a storno e-maily.
 - `image-size`: čtení rozměrů lokálně uložených obrázků pro metadata `MediaAsset`.
+- `sharp`: lehká server-side image pipeline pro varianty `optimized` a `thumbnail` při uploadu přes Media Library.
 - `dotenv`: načtení `.env` pro Prisma CLI konfiguraci.
 - vestavěný Node.js `crypto`: generování a hashování action tokenů pro booking workflow bez další závislosti.
 - vestavěný Node.js `crypto` také nově podepisuje odvozené tokeny pro chráněný owner ICS feed; nebyla přidána žádná externí iCalendar nebo calendar auth knihovna.
@@ -81,7 +82,7 @@ Seznam důležitých knihoven a důvod jejich použití.
 - Rozšíření katalogu o public/pricing metadata zůstává čistě v současném stacku Prisma + Next.js server actions; nepřidává CMS, feature flag službu ani externí content backend.
 - Přepracované workflow `Služby` a `Kategorie služeb` (create CTA, quick actions, reorder, warningy, mobilní list/detail flow) zůstává bez nové UI nebo drag-and-drop závislosti; běží čistě na stávajícím stacku Next.js, React, Prisma a Zod.
 - Nový dark workspace `Kategorie služeb` používá jen React 19 primitives (`useActionState`, `useOptimistic`, `startTransition`) a nepřidává žádný drawer, icon ani form helper balík.
-- Lokální media storage vrstva zůstává na stávajícím stacku Next.js, Prisma a Node filesystemu; nová závislost `image-size` řeší jen rozměry obrázků bez zavádění těžšího image pipeline řešení.
+- Lokální media storage vrstva zůstává na stávajícím stacku Next.js, Prisma a Node filesystemu; `sharp` přidává jen lehkou upload-time optimalizaci bez CDN a bez komplexního responsive image systému.
 
 ## Pravidla aktualizací
 - Minimálně 1x měsíčně zkontrolovat bezpečnostní a major update.

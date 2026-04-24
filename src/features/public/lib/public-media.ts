@@ -20,8 +20,8 @@ function mapPublicImageAsset(
     title: asset.title,
     altText: asset.altText ?? asset.title ?? fallbackAltText,
     imageUrl: asset.publicUrl,
-    width: asset.width,
-    height: asset.height,
+    width: asset.optimizedWidth ?? asset.width,
+    height: asset.optimizedHeight ?? asset.height,
   };
 }
 

@@ -24,7 +24,21 @@ export type MediaImageMetadata = {
   height: number | null;
 };
 
+export type MediaVariantName = 'optimized' | 'thumbnail';
+
 export type PreparedMediaFile = ValidatedMediaFile & {
+  storedFilename: string;
+  storagePath: string;
+};
+
+export type MediaVariantFile = {
+  variant: MediaVariantName;
+  buffer: Buffer;
+  mimeType: string;
+  extension: string;
+  sizeBytes: number;
+  width: number | null;
+  height: number | null;
   storedFilename: string;
   storagePath: string;
 };

@@ -10,9 +10,9 @@ import {
   mediaVisibilities,
   mediaRootDirectoryMap,
 } from '@/lib/media/media-config';
-import { buildStoredFilename } from '@/lib/media/media-filename';
+import { buildStoredFilename, buildVariantStoredFilename } from '@/lib/media/media-filename';
 import { resolveMediaAbsolutePath } from '@/lib/media/media-path';
-import type { MediaFileRecord, PreparedMediaFile, ValidatedMediaFile } from '@/lib/media/media-types';
+import type { MediaFileRecord, MediaVariantFile, PreparedMediaFile, ValidatedMediaFile } from '@/lib/media/media-types';
 
 export interface MediaStorageAdapter {
   prepareFile(input: {
@@ -21,7 +21,18 @@ export interface MediaStorageAdapter {
     visibility: MediaAssetVisibility;
     createdAt?: Date;
   }): PreparedMediaFile;
+  prepareVariantFile(input: {
+    variant: MediaVariantFile['variant'];
+    source: PreparedMediaFile;
+    buffer: Buffer;
+    mimeType: string;
+    extension: string;
+    sizeBytes: number;
+    width: number | null;
+    height: number | null;
+  }): MediaVariantFile;
   writeFile(file: PreparedMediaFile & { visibility: MediaAssetVisibility }): Promise<void>;
+  writeVariantFile(file: MediaVariantFile & { visibility: MediaAssetVisibility }): Promise<void>;
   deleteFile(file: MediaFileRecord): Promise<void>;
   readFile(visibility: MediaAssetVisibility, storagePath: string): Promise<Buffer>;
   ensureBaseDirectories(): Promise<void>;
@@ -51,7 +62,45 @@ class LocalMediaStorageAdapter implements MediaStorageAdapter {
     };
   }
 
+  prepareVariantFile(input: {
+    variant: MediaVariantFile['variant'];
+    source: PreparedMediaFile;
+    buffer: Buffer;
+    mimeType: string;
+    extension: string;
+    sizeBytes: number;
+    width: number | null;
+    height: number | null;
+  }): MediaVariantFile {
+    const storedFilename = buildVariantStoredFilename(
+      input.source.storedFilename,
+      input.variant,
+      input.extension,
+    );
+    const storagePath = input.source.storagePath.replace(input.source.storedFilename, storedFilename);
+
+    return {
+      variant: input.variant,
+      buffer: input.buffer,
+      mimeType: input.mimeType,
+      extension: input.extension,
+      sizeBytes: input.sizeBytes,
+      width: input.width,
+      height: input.height,
+      storedFilename,
+      storagePath,
+    };
+  }
+
   async writeFile(file: PreparedMediaFile & { visibility: MediaAssetVisibility }) {
+    const absolutePath = resolveMediaAbsolutePath(file.visibility, file.storagePath);
+    const directoryPath = path.dirname(absolutePath);
+
+    await mkdir(directoryPath, { recursive: true });
+    await writeFile(absolutePath, file.buffer, { flag: 'wx' });
+  }
+
+  async writeVariantFile(file: MediaVariantFile & { visibility: MediaAssetVisibility }) {
     const absolutePath = resolveMediaAbsolutePath(file.visibility, file.storagePath);
     const directoryPath = path.dirname(absolutePath);
 

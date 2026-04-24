@@ -20,3 +20,10 @@ export function buildStoredFilename(originalFilename: string, extension: string)
 
   return `${safeBase}-${uniqueSuffix}.${extension}`;
 }
+
+export function buildVariantStoredFilename(storedFilename: string, variant: string, extension: string) {
+  const dotIndex = storedFilename.lastIndexOf('.');
+  const basename = dotIndex > 0 ? storedFilename.slice(0, dotIndex) : storedFilename;
+
+  return `${basename}-${variant}.${extension}`;
+}

@@ -19,7 +19,7 @@ export async function getPublicCertificates(): Promise<PublicCertificate[]> {
     title: asset.title,
     alt: asset.altText,
     imageUrl: asset.publicUrl,
-    width: asset.width,
-    height: asset.height,
+    width: asset.optimizedWidth ?? asset.width,
+    height: asset.optimizedHeight ?? asset.height,
   }));
 }

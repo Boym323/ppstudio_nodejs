@@ -30,6 +30,15 @@ test('buildStoredFilename creates a safe unique filename', async () => {
   assert.match(storedFilename, /^certifikat-pavlina-2026-[a-f0-9]{12}\.jpg$/);
 });
 
+test('buildVariantStoredFilename appends a stable variant suffix', async () => {
+  const { buildVariantStoredFilename } = await loadMediaFilenameHelpers();
+
+  assert.equal(
+    buildVariantStoredFilename('certifikat-pavlina-a1b2c3d4e5f6.jpg', 'thumbnail', 'jpg'),
+    'certifikat-pavlina-a1b2c3d4e5f6-thumbnail.jpg',
+  );
+});
+
 test('assertSafeStoragePath accepts expected media layout', async () => {
   const { assertSafeStoragePath } = await loadMediaPathHelpers();
 

@@ -3,6 +3,7 @@ import { MediaAssetKind, MediaAssetVisibility, MediaType } from '@prisma/client'
 import { buildMediaPublicUrl } from '@/lib/media/media-config';
 import { readImageMetadata } from '@/lib/media/media-image';
 import { localMediaStorage } from '@/lib/media/local-media-storage';
+import { createMediaVariants } from '@/lib/media/media-pipeline';
 import type { MediaUploadInput } from '@/lib/media/media-types';
 import { validateMediaFile } from '@/lib/media/media-validation';
 
@@ -36,10 +37,21 @@ function visibilityForPublished(isPublished: boolean) {
   return isPublished ? MediaAssetVisibility.PUBLIC : MediaAssetVisibility.PRIVATE;
 }
 
-function withPublicUrl<T extends { isPublished: boolean; url: string }>(asset: T) {
+function withPublicUrl<
+  T extends {
+    isPublished: boolean;
+    url: string;
+    optimizedUrl: string | null;
+    thumbnailUrl: string | null;
+  },
+>(asset: T) {
   return {
     ...asset,
-    publicUrl: asset.isPublished ? asset.url : null,
+    publicUrl: asset.isPublished ? asset.optimizedUrl ?? asset.url : null,
+    thumbnailPublicUrl: asset.isPublished
+      ? asset.thumbnailUrl ?? asset.optimizedUrl ?? asset.url
+      : null,
+    originalPublicUrl: asset.isPublished ? asset.url : null,
   };
 }
 
@@ -55,13 +67,37 @@ export async function createMedia(input: MediaUploadInput) {
     type: input.type,
     visibility,
   });
-  const imageMetadata = readImageMetadata(validatedFile.buffer, validatedFile.mimeType);
   const url = buildMediaPublicUrl(preparedFile.storagePath);
+  const imageMetadata = readImageMetadata(validatedFile.buffer, validatedFile.mimeType);
+  const variantPayloads = await createMediaVariants(validatedFile);
+  const preparedVariants = variantPayloads.map((variant) =>
+    localMediaStorage.prepareVariantFile({
+      variant: variant.variant,
+      source: preparedFile,
+      buffer: variant.buffer,
+      mimeType: variant.mimeType,
+      extension: variant.extension,
+      sizeBytes: variant.sizeBytes,
+      width: variant.width,
+      height: variant.height,
+    }),
+  );
 
   await localMediaStorage.writeFile({
     ...preparedFile,
     visibility,
   });
+  await Promise.all(
+    preparedVariants.map((variant) =>
+      localMediaStorage.writeVariantFile({
+        ...variant,
+        visibility,
+      }),
+    ),
+  );
+
+  const optimizedVariant = preparedVariants.find((variant) => variant.variant === 'optimized') ?? null;
+  const thumbnailVariant = preparedVariants.find((variant) => variant.variant === 'thumbnail') ?? null;
 
   try {
     const asset = await createMediaAsset({
@@ -83,18 +119,41 @@ export async function createMedia(input: MediaUploadInput) {
       title: normalizeMediaText(input.title),
       storagePath: preparedFile.storagePath,
       url,
+      optimizedStoragePath: optimizedVariant?.storagePath ?? null,
+      optimizedUrl: optimizedVariant ? buildMediaPublicUrl(optimizedVariant.storagePath) : null,
+      optimizedMimeType: optimizedVariant?.mimeType ?? null,
+      optimizedWidth: optimizedVariant?.width ?? null,
+      optimizedHeight: optimizedVariant?.height ?? null,
+      optimizedSize: optimizedVariant?.sizeBytes ?? null,
+      thumbnailStoragePath: thumbnailVariant?.storagePath ?? null,
+      thumbnailUrl: thumbnailVariant ? buildMediaPublicUrl(thumbnailVariant.storagePath) : null,
+      thumbnailMimeType: thumbnailVariant?.mimeType ?? null,
+      thumbnailWidth: thumbnailVariant?.width ?? null,
+      thumbnailHeight: thumbnailVariant?.height ?? null,
+      thumbnailSize: thumbnailVariant?.sizeBytes ?? null,
       isPublished,
     });
 
     return withPublicUrl(asset);
   } catch (error) {
-    await localMediaStorage.deleteFile({
-      visibility,
-      storagePath: preparedFile.storagePath,
-      storedFilename: preparedFile.storedFilename,
-      mimeType: preparedFile.mimeType,
-      sizeBytes: preparedFile.sizeBytes,
-    });
+    await Promise.all([
+      localMediaStorage.deleteFile({
+        visibility,
+        storagePath: preparedFile.storagePath,
+        storedFilename: preparedFile.storedFilename,
+        mimeType: preparedFile.mimeType,
+        sizeBytes: preparedFile.sizeBytes,
+      }),
+      ...preparedVariants.map((variant) =>
+        localMediaStorage.deleteFile({
+          visibility,
+          storagePath: variant.storagePath,
+          storedFilename: variant.storedFilename,
+          mimeType: variant.mimeType,
+          sizeBytes: variant.sizeBytes,
+        }),
+      ),
+    ]);
 
     throw error;
   }
@@ -107,7 +166,12 @@ export async function listMedia(type?: MediaType) {
 
 export async function listPublishedMedia(type?: MediaType) {
   const assets = await listPublicMediaAssets(type);
-  return assets.map((asset) => ({ ...asset, publicUrl: asset.url }));
+  return assets.map((asset) => ({
+    ...asset,
+    publicUrl: asset.optimizedUrl ?? asset.url,
+    thumbnailPublicUrl: asset.thumbnailUrl ?? asset.optimizedUrl ?? asset.url,
+    originalPublicUrl: asset.url,
+  }));
 }
 
 export async function updateMedia(
@@ -148,6 +212,24 @@ export async function deleteMedia(id: string) {
     mimeType: asset.mimeType,
     sizeBytes: asset.sizeBytes,
   });
+  if (asset.optimizedStoragePath && asset.optimizedMimeType && asset.optimizedSize) {
+    await localMediaStorage.deleteFile({
+      visibility: asset.visibility,
+      storagePath: asset.optimizedStoragePath,
+      storedFilename: asset.optimizedStoragePath.split('/').pop() ?? asset.storedFilename,
+      mimeType: asset.optimizedMimeType,
+      sizeBytes: asset.optimizedSize,
+    });
+  }
+  if (asset.thumbnailStoragePath && asset.thumbnailMimeType && asset.thumbnailSize) {
+    await localMediaStorage.deleteFile({
+      visibility: asset.visibility,
+      storagePath: asset.thumbnailStoragePath,
+      storedFilename: asset.thumbnailStoragePath.split('/').pop() ?? asset.storedFilename,
+      mimeType: asset.thumbnailMimeType,
+      sizeBytes: asset.thumbnailSize,
+    });
+  }
 
   await deleteMediaAsset(asset.id);
 }

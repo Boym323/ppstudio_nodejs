@@ -15,7 +15,11 @@ export async function getPublicMediaAssetByTypeAndPath(type: MediaType, storageP
     where: {
       type,
       isPublished: true,
-      storagePath,
+      OR: [
+        { storagePath },
+        { optimizedStoragePath: storagePath },
+        { thumbnailStoragePath: storagePath },
+      ],
     },
   });
 }
@@ -24,7 +28,11 @@ export async function getPublicMediaAssetByPath(storagePath: string) {
   return prisma.mediaAsset.findFirst({
     where: {
       isPublished: true,
-      storagePath,
+      OR: [
+        { storagePath },
+        { optimizedStoragePath: storagePath },
+        { thumbnailStoragePath: storagePath },
+      ],
     },
   });
 }

@@ -246,9 +246,9 @@ export function MediaCard({ area, asset }: { area: AdminArea; asset: MediaAssetI
   return (
     <article className="overflow-hidden rounded-[1.35rem] border border-white/10 bg-white/5">
       <div className="relative h-44 overflow-hidden border-b border-white/10 bg-black/20">
-        {asset.publicUrl ? (
+        {asset.thumbnailPublicUrl ? (
           <Image
-            src={asset.publicUrl}
+            src={asset.thumbnailPublicUrl}
             alt={asset.altText ?? asset.title ?? asset.fileName}
             fill
             className="object-cover"

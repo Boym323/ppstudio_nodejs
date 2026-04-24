@@ -133,6 +133,11 @@ npm run db:migrate
   - `temp/` pro budoucí drafty nebo přechodné upload workflow
 - Veřejná média se zobrazují přes URL vrstvu `/media/<kind>/...`, ne přímým odkazem na fyzickou cestu.
 - Statické assety verzované v repozitáři (`public/brand`) a uploady z adminu jsou dvě rozdílné věci; nové admin obrázky mají jít přes media storage vrstvu.
+- Pro JPEG/PNG/WebP uploady nyní vzniká lehká server-side image pipeline přes `sharp`:
+  - originál se dál ukládá jako původní soubor
+  - `optimized` varianta se generuje s auto-rotate podle EXIF, max šířkou 1920 px a rozumnou kompresí
+  - `thumbnail` varianta se generuje pro admin grid s cílovou šířkou kolem 400 px
+  - veřejný web čte `optimizedUrl`, admin grid čte `thumbnailUrl` a starší média bez variant padají zpět na původní `url`
 
 ### Lokální vývoj z jiného zařízení v LAN
 - Next.js 16 v dev režimu blokuje cross-origin přístup k dev assetům a HMR endpointům, pokud origin výslovně nepovolíš.

@@ -89,6 +89,7 @@ Postup nasazení aplikace do produkce.
   - modul `Média webu` na `/admin/media` a `/admin/provoz/media` (legacy `/admin/certifikaty` a `/admin/provoz/certifikaty` se přesměrují):
      - veřejná stránka `/studio` zobrazí jen publikované fotky typu `SALON_PHOTO`
      - upload podporovaného obrázku s výběrem typu
+     - pro JPEG/PNG/WebP vzniká při uploadu i `optimized` a `thumbnail` varianta přes `sharp`
      - editace titulku, alt textu, typu a publish/unpublish
      - smazání média
      - propsání publikovaných certifikátů na `/o-mne`

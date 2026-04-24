@@ -6,6 +6,10 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Media Library upload nyní pro JPEG/PNG/WebP generuje přes `sharp` tři úrovně souboru: původní originál, `optimized` variantu do 1920 px a `thumbnail` variantu kolem 400 px pro admin grid.
+- `MediaAsset` nově ukládá i variantová pole `optimized*` a `thumbnail*`; veřejný web používá `optimizedUrl`, admin grid `thumbnailUrl` a starší média bez variant automaticky padají zpět na původní `url`.
+- Media route `/media/[kind]/[[...path]]` nyní umí bezpečně obsloužit i optimalizované a thumbnail soubory podle konkrétní variantové cesty uložené v databázi.
+
 - Veřejné stránky now používají centrální `MediaAsset` read model i mimo certifikace: `/o-mne` bere hero z `MediaType.PORTRAIT`, homepage bere hero portrét z `MediaType.PORTRAIT` s fallbackem na brand asset a `/kontakt` bere hero z první publikované `MediaType.SALON_PHOTO`.
 - Admin grid `Média webu` nyní u každého assetu jasně ukazuje typ, publish stav a text `Použití`, aby bylo vidět, kde se obrázek na webu propisuje.
 - Přibyl sdílený public media helper pro publikované obrázky podle typu; `MediaType.GENERAL` má připravený read model pro budoucí hero/CTA bannery bez dalšího upload systému.

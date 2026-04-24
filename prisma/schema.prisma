@@ -514,6 +514,18 @@ model MediaAsset {
   title            String?
   storagePath      String               @unique
   url              String
+  optimizedStoragePath String?          @unique
+  optimizedUrl     String?
+  optimizedMimeType String?
+  optimizedWidth   Int?
+  optimizedHeight  Int?
+  optimizedSize    Int?
+  thumbnailStoragePath String?          @unique
+  thumbnailUrl     String?
+  thumbnailMimeType String?
+  thumbnailWidth   Int?
+  thumbnailHeight  Int?
+  thumbnailSize    Int?
   sortOrder        Int?
   isPublished      Boolean              @default(true)
   createdAt        DateTime             @default(now())

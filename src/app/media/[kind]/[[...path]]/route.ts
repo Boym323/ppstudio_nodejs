@@ -14,6 +14,45 @@ const publicMediaTypes = new Map<string, MediaType>([
   ['content', MediaType.GENERAL],
 ]);
 
+function resolveAssetVariant(
+  asset: Awaited<ReturnType<typeof getPublicMediaAssetByPath>>,
+  storagePath: string,
+) {
+  if (!asset) {
+    return null;
+  }
+
+  if (
+    asset.thumbnailStoragePath === storagePath &&
+    asset.thumbnailMimeType &&
+    asset.thumbnailSize
+  ) {
+    return {
+      storagePath: asset.thumbnailStoragePath,
+      mimeType: asset.thumbnailMimeType,
+      size: asset.thumbnailSize,
+    };
+  }
+
+  if (
+    asset.optimizedStoragePath === storagePath &&
+    asset.optimizedMimeType &&
+    asset.optimizedSize
+  ) {
+    return {
+      storagePath: asset.optimizedStoragePath,
+      mimeType: asset.optimizedMimeType,
+      size: asset.optimizedSize,
+    };
+  }
+
+  return {
+    storagePath: asset.storagePath,
+    mimeType: asset.mimeType,
+    size: asset.size,
+  };
+}
+
 export async function GET(
   _request: Request,
   context: { params: Promise<{ kind: string; path?: string[] }> },
@@ -39,15 +78,21 @@ export async function GET(
     return NextResponse.json({ message: 'Soubor nebyl nalezen.' }, { status: 404 });
   }
 
+  const variant = resolveAssetVariant(asset, storagePath);
+
+  if (!variant) {
+    return NextResponse.json({ message: 'Soubor nebyl nalezen.' }, { status: 404 });
+  }
+
   try {
-    const file = await localMediaStorage.readFile(asset.visibility, asset.storagePath);
+    const file = await localMediaStorage.readFile(asset.visibility, variant.storagePath);
 
     return new NextResponse(file, {
       headers: {
-        'Content-Type': asset.mimeType,
+        'Content-Type': variant.mimeType,
         'Cache-Control': 'public, max-age=31536000, immutable',
-        'Content-Length': String(asset.size),
-        'Content-Disposition': `inline; filename="${asset.storedFilename}"`,
+        'Content-Length': String(variant.size),
+        'Content-Disposition': `inline; filename="${variant.storagePath.split('/').pop() ?? asset.storedFilename}"`,
         'X-Content-Type-Options': 'nosniff',
       },
     });

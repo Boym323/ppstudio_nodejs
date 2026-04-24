@@ -299,9 +299,11 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - `SiteSettings` drží jen skutečně globální provozní hodnoty. Technické env proměnné jako SMTP host/port, `NEXT_PUBLIC_APP_URL` nebo `ADMIN_SESSION_SECRET` se do adminu záměrně nepřenášejí.
 - `MediaAsset` je obecný metadata model pro certifikáty, fotky prostor, reference i další obsahové obrázky; binární obsah zůstává na lokálním filesystemu mimo DB.
 - Veřejná stránka `/studio` používá read model `src/features/public/lib/public-studio-photos.ts`, který smí vracet jen `MediaType.SALON_PHOTO` s `isPublished = true`; komponenty stránky jsou v `src/features/public/components/studio/studio-page.tsx`.
-- Filesystem layout médií má tvar `<MEDIA_STORAGE_ROOT>/<visibility>/<kind>/<year>/<month>/<storedFilename>`.
+- Filesystem layout médií má tvar `<MEDIA_STORAGE_ROOT>/<visibility>/<kind>/<year>/<month>/<storedFilename>`; varianty `optimized` a `thumbnail` zůstávají ve stejné složce a liší se suffixem v názvu souboru.
 - `src/lib/media/local-media-storage.ts` je adapter pro lokální filesystem; business vrstva přes něj neřeší konkrétní `fs` operace ani fyzické cesty.
+- `src/lib/media/media-pipeline.ts` drží lehkou server-side pipeline nad `sharp`; pro JPEG/PNG/WebP dělá EXIF auto-rotate, `optimized` variantu (max 1920 px) a `thumbnail` variantu (cca 400 px) bez zavádění CDN nebo komplexního responsive systému.
 - Route `/media/[kind]/[[...path]]` používá v media path helperu a storage adapteru cílené `turbopackIgnore` anotace u dynamických `path.resolve/path.join`; cílem je zabránit tomu, aby Next.js 16 Turbopack NFT tracer při buildu omylem zahrnoval celý projekt.
+- Route `/media/[kind]/[[...path]]` nyní umí vrátit originál i varianty `optimized` / `thumbnail` podle konkrétní storage path uložené v `MediaAsset`; starší záznamy bez variant fungují dál přes fallback na původní `storagePath`.
 - `src/lib/media/media-validation.ts` centralizuje kontrolu MIME typu, přípony a maximální velikosti souboru.
 - `src/lib/media/media-filename.ts` generuje bezpečný název z původního jména a náhodného suffixu, takže nehrozí přepisování souborů se stejným názvem.
 - `src/features/booking/lib/booking-public.ts` je veřejný write model pro rezervace a drží i ochranu proti souběžnému obsazení slotu.
