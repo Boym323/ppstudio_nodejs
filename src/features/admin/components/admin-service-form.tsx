@@ -53,6 +53,16 @@ type EditServiceFormProps = BaseServiceFormProps & {
       allowedAvailabilitySlots: number;
     };
     warnings: string[];
+    priceChangeLogs: Array<{
+      id: string;
+      oldPriceFromCzk: number | null;
+      newPriceFromCzk: number | null;
+      createdAtLabel: string;
+      changedByUser: {
+        name: string;
+        email: string;
+      } | null;
+    }>;
   };
 };
 
@@ -340,6 +350,36 @@ export function AdminServiceForm(props: EditServiceFormProps | CreateServiceForm
           </Field>
         </div>
       </SectionBlock>
+
+      {props.mode === "edit" ? (
+        <SectionBlock
+          title="Historie ceny"
+          description="Poslední auditní změny ceny služby včetně času a aktéra."
+        >
+          {props.service.priceChangeLogs.length > 0 ? (
+            <div className="grid gap-3">
+              {props.service.priceChangeLogs.map((log) => (
+                <div
+                  key={log.id}
+                  className="rounded-[1.1rem] border border-white/8 bg-black/20 px-4 py-3 text-sm text-white/72"
+                >
+                  <p className="font-medium text-white">
+                    {formatServicePrice(log.oldPriceFromCzk)} -&gt; {formatServicePrice(log.newPriceFromCzk)}
+                  </p>
+                  <p className="mt-1 leading-6">
+                    {log.createdAtLabel} •{" "}
+                    {log.changedByUser?.name || log.changedByUser?.email || "Systém / neznámý uživatel"}
+                  </p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm leading-6 text-white/62">
+              Zatím bez zaznamenané změny ceny. Audit vzniká až při skutečné úpravě pole cena.
+            </p>
+          )}
+        </SectionBlock>
+      ) : null}
 
       <SectionBlock
         title="Google (SEO)"

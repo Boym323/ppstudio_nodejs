@@ -9,6 +9,14 @@ import {
 } from "@/features/admin/lib/admin-service-validation";
 import { prisma } from "@/lib/prisma";
 
+const formatDateTime = new Intl.DateTimeFormat("cs-CZ", {
+  day: "numeric",
+  month: "numeric",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+});
+
 function normalizeSearchParams(searchParams?: Record<string, string | string[] | undefined>) {
   const parsed = serviceListSearchParamsSchema.safeParse({
     query: typeof searchParams?.query === "string" ? searchParams.query : undefined,
@@ -247,8 +255,35 @@ export async function getAdminServicesPageData(
               allowedAvailabilitySlots: true,
             },
           },
+          priceChangeLogs: {
+            orderBy: {
+              createdAt: "desc",
+            },
+            take: 10,
+            include: {
+              changedByUser: {
+                select: {
+                  name: true,
+                  email: true,
+                },
+              },
+            },
+          },
         },
       })
+    : null;
+
+  const selectedServiceWithAudit = selectedService
+    ? {
+        ...selectedService,
+        priceChangeLogs: selectedService.priceChangeLogs.map((log) => ({
+          id: log.id,
+          oldPriceFromCzk: log.oldPriceFromCzk,
+          newPriceFromCzk: log.newPriceFromCzk,
+          createdAtLabel: formatDateTime.format(log.createdAt),
+          changedByUser: log.changedByUser,
+        })),
+      }
     : null;
 
   const problematicCount = servicesWithMeta.filter((service) => service.problemCount > 0).length;
@@ -290,7 +325,7 @@ export async function getAdminServicesPageData(
     stats,
     services: servicesWithMeta,
     categories,
-    selectedService,
+    selectedService: selectedServiceWithAudit,
     draftCategoryId:
       filters.category && categories.some((category) => category.id === filters.category)
         ? filters.category

@@ -354,6 +354,7 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
   - v detailu služby je jediný obsahový blok `Veřejná prezentace`; pole `Veřejný úvod` je zdrojem textu pro web i rezervační krok výběru služby, takže se stejný text neudržuje duplicitně
   - detail se otevírá jako pravý overlay drawer (desktop i mobil), takže seznam zůstává viditelný v pozadí a obsluha neztrácí kontext
   - skutečná změna ceny v detailu služby zapisuje audit do `ServicePriceChangeLog`, takže lze dohledat původní i novou cenu, čas a admin aktéra
+  - detail služby zároveň ukazuje sekci `Historie ceny` s posledními auditními změnami, takže není nutné kvůli běžnému dohledání chodit přímo do databáze
   - veřejný booking flow bere službu jen pokud je `isActive = true`, `isPubliclyBookable = true` a její kategorie je aktivní
 - Sekce `Kategorie služeb` je nyní produkčně použitelná pro obě role na `/admin/kategorie-sluzeb` a `/admin/provoz/kategorie-sluzeb`:
   - horní přehled používá kompaktní souhrnnou lištu místo vysokých stat karet

@@ -105,6 +105,7 @@ export async function AdminServicesPage({
           category: data.selectedService.category,
           _count: data.selectedService._count,
           warnings: data.services.find((service) => service.id === data.selectedService?.id)?.warnings ?? [],
+          priceChangeLogs: data.selectedService.priceChangeLogs,
         }}
         categories={data.categories}
       />
