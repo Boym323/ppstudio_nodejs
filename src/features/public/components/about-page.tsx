@@ -111,7 +111,6 @@ function WhyChooseMeSection() {
         <SectionHeading
           eyebrow={whyChooseMe.eyebrow}
           title={whyChooseMe.title}
-          description="Stručně a jasně: co klientky na péči v PP Studiu oceňují nejvíc už od první návštěvy."
         />
 
         <div className="grid items-stretch gap-4 md:grid-cols-2 xl:gap-5">
