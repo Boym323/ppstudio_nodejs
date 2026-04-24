@@ -37,6 +37,7 @@ Formát je inspirovaný Keep a Changelog.
 
 - Přibyla veřejná stránka `/studio` s hero, galerií, pocitovým blokem, orientačním kontaktním CTA a finální rezervací; hlavní navigace i sitemap nově obsahují položku `Studio`.
 - Stránka `/studio` načítá fotky přes `MediaType.SALON_PHOTO` a `isPublished = true`; pokud zatím nejsou nahrané žádné fotky, zobrazí klidný placeholder místo prázdné galerie.
+- Stránka `/studio` je dočasně vypnutá: route vrací `404` přes `notFound()`, odkaz `Studio` je schovaný z hlavní navigace a URL je odstraněná ze sitemap.
 
 - Admin sekce `Certifikáty` byla zobecněná na modul `Média webu`; UI nově nabízí upload obrázku, filtr typů, grid karet, editaci titulku, alt textu, typu a publikace.
 - Modul `Média webu` nyní běží na adresách `/admin/media` a `/admin/provoz/media`.
