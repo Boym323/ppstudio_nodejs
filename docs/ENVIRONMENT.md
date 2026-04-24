@@ -62,6 +62,7 @@ Dokumentace proměnných prostředí pro lokální vývoj i produkci.
 - Přepnutí `BookingSource` na nové provozní enum hodnoty (`WEB`, `PHONE`, `INSTAGRAM`, `IN_PERSON`, `OTHER`) je čistě databázová a aplikační změna, ne nová env konfigurace.
 - Refaktor veřejného výběru časů v `/rezervace` také nezavádí žádné nové env proměnné; jde čistě o klientskou UI vrstvu nad existujícím booking catalogem.
 - Admin sekce `Služby` také nepřidává nové env proměnné; používá stávající databázi, session a Prisma klient.
+- Audit změn cen služeb také nepřidává nové env proměnné; používá stávající databázi, admin session a Prisma klient.
 - Přepracované admin workflow `Služby` a `Kategorie služeb` také nepřidává nové env proměnné; create, quick actions, mobilní detail i varování běží čistě nad existující databází, session a Prisma klientem.
 - Sjednocení detailů `Služby` a `Kategorie služeb` do pravého overlay draweru i na desktopu také nepřidává nové env proměnné; jde čistě o klientské/UI chování nad existujícími route query a server actions.
 - Operativní redesign admin overview dashboardu také nepřidává nové env proměnné; nové metriky a timeline berou data jen ze stávajících modelů `Booking`, `AvailabilitySlot`, `Client`, `ServiceCategory`, `Service` a `EmailLog`.

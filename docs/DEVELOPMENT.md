@@ -167,6 +167,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Sekce `Služby` má vlastní workflow v `src/features/admin/components/admin-services-page.tsx` a už neběží přes generický placeholder renderer.
 - `src/features/admin/lib/admin-services.ts` drží serverový read model pro seznam, provozní warningy, detail služby a předvyplněný create flow.
 - `src/features/admin/actions/service-actions.ts` nově obsluhuje create, update, duplikaci, quick toggles a reorder; validace zůstává v `src/features/admin/lib/admin-service-validation.ts`.
+- Editace služby při skutečné změně `priceFromCzk` zapisuje audit do `ServicePriceChangeLog`; aktér se mapuje z admin session e-mailu na reálné `AdminUser.id`, stejně jako u jiných provozních mutací.
 - Ve formuláři detailu služby (`admin-service-form.tsx`) je textová vrstva sjednocená pod `Veřejná prezentace`; `publicIntro` je jediný zdroj krátkého textu pro web i rezervační flow, aby se stejný copy neudržoval ve dvou polích.
 - Aktuální seznam služeb je záměrně group-first a compact-first:
   - `admin-services-list.tsx` skládá služby do kategorií
@@ -285,6 +286,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - `Booking` drží metadata posledního přesunu (`rescheduledAt`, `rescheduleCount`) a reminder queue stavu (`reminder24hQueuedAt`, `reminder24hSentAt`); historický self-relation chain zůstává ve schématu jen jako legacy pole a nové reschedule flow ho nepoužívá.
 - `BookingRescheduleLog` je samostatný auditní model pro doménovou akci přesunu termínu; ukládá původní a nový interval, aktéra a volitelný důvod změny.
 - `BookingStatusHistory` drží auditní stopu změn stavu včetně aktéra a strukturovaných metadat.
+- `ServicePriceChangeLog` drží auditní stopu změn ceníku služeb v adminu; zapisuje jen skutečné změny `priceFromCzk`, ne každý save formuláře.
 - `BookingActionToken` ukládá hash tokenu, expiraci a použití/revokaci pro bezpečné self-service storno, self-service změnu termínu, provozní email akce a zákaznický calendar event.
 - `CalendarFeed` drží owner subscription feed jako samostatnou entitu mimo `SiteSettings`; ukládá scope, aktivaci, rotační salt a audit času změny.
 - Kalendářový token se neukládá jako raw secret do DB. URL se odvozuje serverově z `CalendarFeed.id`, `tokenSalt` a `ADMIN_SESSION_SECRET`, takže:
@@ -374,6 +376,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - PostgreSQL exclusion constraint proti překrývajícím se aktivním slotům
 - Migrace `20260420153000_booking_exact_duplicate_active` nahrazuje široké `UNIQUE(slotId, clientId)` za partial unique index `Booking_exact_duplicate_active_key`, který blokuje jen přesně duplicitní aktivní interval (`slotId + clientId + scheduledStartsAt + scheduledEndsAt` při `status IN (PENDING, CONFIRMED)`).
 - Migrace `20260423113000_booking_reschedule_logs_v1` přidává `Booking.reminder24hQueuedAt`, `Booking.rescheduleCount` a nový auditní model `BookingRescheduleLog` pro doménovou akci přesunu termínu.
+- Migrace `20260424103000_service_price_change_log_v1` přidává auditní model `ServicePriceChangeLog` pro změny cen služeb v adminu.
 - Nové slot admin workflow nevyžadovalo další migraci; navazuje přímo na už existující schema a constrainty.
 - Migrace `20260419103000_service_public_bookability` přidává `Service.isPubliclyBookable` a backfilluje ho podle dosavadního `isActive`, aby se zachovalo chování migrovaných služeb.
 - Při další iteraci booking workflow preferuj nové migrace nad ruční editací starších SQL souborů.

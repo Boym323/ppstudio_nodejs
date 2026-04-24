@@ -91,6 +91,22 @@ async function buildDuplicateServiceName(name: string) {
   return `${baseName} ${Date.now()}`;
 }
 
+async function resolveServiceActorUserId(email: string) {
+  const dbUser = await prisma.adminUser.findFirst({
+    where: {
+      email: {
+        equals: email.trim(),
+        mode: "insensitive",
+      },
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  return dbUser?.id ?? null;
+}
+
 async function reorderServicesWithinCategory(categoryId: string, movedServiceId: string, direction: "up" | "down") {
   return prisma.$transaction(async (tx) => {
     const services = await tx.service.findMany({
@@ -268,12 +284,14 @@ export async function updateServiceAction(
   const area = parsed.data.area as AdminArea;
   const basePath = getServiceBasePath(area);
   const returnTo = safeReturnPath(parsed.data.returnTo, basePath);
-  await requireAdminSectionAccess(area, "sluzby");
+  const session = await requireAdminSectionAccess(area, "sluzby");
+  const actorUserId = await resolveServiceActorUserId(session.email);
+  const nextPriceFromCzk = parsed.data.priceFromCzk === "" ? null : parsed.data.priceFromCzk;
 
   const [service, category] = await Promise.all([
     prisma.service.findUnique({
       where: { id: parsed.data.serviceId },
-      select: { id: true },
+      select: { id: true, priceFromCzk: true },
     }),
     prisma.serviceCategory.findUnique({
       where: { id: parsed.data.categoryId },
@@ -298,24 +316,37 @@ export async function updateServiceAction(
     };
   }
 
-  await prisma.service.update({
-    where: { id: parsed.data.serviceId },
-    data: {
-      categoryId: parsed.data.categoryId,
-      name: parsed.data.name,
-      publicName: null,
-      shortDescription: null,
-      description: parsed.data.description || null,
-      publicIntro: parsed.data.publicIntro || null,
-      seoDescription: parsed.data.seoDescription || null,
-      pricingShortDescription: parsed.data.pricingShortDescription || null,
-      pricingBadge: parsed.data.pricingBadge || null,
-      durationMinutes: parsed.data.durationMinutes,
-      priceFromCzk: parsed.data.priceFromCzk === "" ? null : parsed.data.priceFromCzk,
-      sortOrder: parsed.data.sortOrder,
-      isActive: parsed.data.isActive,
-      isPubliclyBookable: parsed.data.isPubliclyBookable,
-    },
+  await prisma.$transaction(async (tx) => {
+    await tx.service.update({
+      where: { id: parsed.data.serviceId },
+      data: {
+        categoryId: parsed.data.categoryId,
+        name: parsed.data.name,
+        publicName: null,
+        shortDescription: null,
+        description: parsed.data.description || null,
+        publicIntro: parsed.data.publicIntro || null,
+        seoDescription: parsed.data.seoDescription || null,
+        pricingShortDescription: parsed.data.pricingShortDescription || null,
+        pricingBadge: parsed.data.pricingBadge || null,
+        durationMinutes: parsed.data.durationMinutes,
+        priceFromCzk: nextPriceFromCzk,
+        sortOrder: parsed.data.sortOrder,
+        isActive: parsed.data.isActive,
+        isPubliclyBookable: parsed.data.isPubliclyBookable,
+      },
+    });
+
+    if (service.priceFromCzk !== nextPriceFromCzk) {
+      await tx.servicePriceChangeLog.create({
+        data: {
+          serviceId: service.id,
+          changedByUserId: actorUserId,
+          oldPriceFromCzk: service.priceFromCzk,
+          newPriceFromCzk: nextPriceFromCzk,
+        },
+      });
+    }
   });
 
   revalidateServicePaths(area);

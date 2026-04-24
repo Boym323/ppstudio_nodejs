@@ -129,24 +129,25 @@ enum CalendarFeedScope {
 }
 
 model AdminUser {
-  id                        String                 @id @default(cuid())
-  email                     String                 @unique
+  id                        String                  @id @default(cuid())
+  email                     String                  @unique
   name                      String
   role                      AdminRole
   passwordHash              String?
-  isActive                  Boolean                @default(true)
+  isActive                  Boolean                 @default(true)
   invitedAt                 DateTime?
   lastLoginAt               DateTime?
-  createdAt                 DateTime               @default(now())
-  updatedAt                 DateTime               @updatedAt
+  createdAt                 DateTime                @default(now())
+  updatedAt                 DateTime                @updatedAt
   inviteTokens              AdminUserInviteToken[]
-  createdAvailabilitySlots  AvailabilitySlot[]     @relation("AvailabilitySlotCreatedBy")
-  createdBookings           Booking[]              @relation("BookingCreatedBy")
-  bookingStatusHistoryItems BookingStatusHistory[] @relation("BookingStatusHistoryActor")
-  bookingRescheduleLogs     BookingRescheduleLog[] @relation("BookingRescheduleLogActor")
-  updatedCalendarFeeds      CalendarFeed[]         @relation("CalendarFeedUpdatedBy")
-  updatedSettings           Setting[]              @relation("SettingUpdatedBy")
-  updatedSiteSettings       SiteSettings[]         @relation("SiteSettingsUpdatedBy")
+  createdAvailabilitySlots  AvailabilitySlot[]      @relation("AvailabilitySlotCreatedBy")
+  createdBookings           Booking[]               @relation("BookingCreatedBy")
+  bookingStatusHistoryItems BookingStatusHistory[]  @relation("BookingStatusHistoryActor")
+  bookingRescheduleLogs     BookingRescheduleLog[]  @relation("BookingRescheduleLogActor")
+  servicePriceChangeLogs    ServicePriceChangeLog[] @relation("ServicePriceChangeLogActor")
+  updatedCalendarFeeds      CalendarFeed[]          @relation("CalendarFeedUpdatedBy")
+  updatedSettings           Setting[]               @relation("SettingUpdatedBy")
+  updatedSiteSettings       SiteSettings[]          @relation("SiteSettingsUpdatedBy")
 }
 
 model AdminUserInviteToken {
@@ -207,9 +208,25 @@ model Service {
   allowedAvailabilitySlots AvailabilitySlotService[]
   bookings                 Booking[]
   submissionLogs           BookingSubmissionLog[]
+  priceChangeLogs          ServicePriceChangeLog[]
 
   @@index([categoryId, isActive, isPubliclyBookable, sortOrder])
   @@index([isActive, isPubliclyBookable, sortOrder])
+}
+
+model ServicePriceChangeLog {
+  id              String     @id @default(cuid())
+  serviceId       String
+  changedByUserId String?
+  oldPriceFromCzk Int?
+  newPriceFromCzk Int?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  service         Service    @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  changedByUser   AdminUser? @relation("ServicePriceChangeLogActor", fields: [changedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([serviceId, createdAt])
+  @@index([changedByUserId, createdAt])
 }
 
 model AvailabilitySlot {
@@ -250,17 +267,17 @@ model AvailabilitySlotService {
 }
 
 model Client {
-  id           String     @id @default(cuid())
-  fullName     String
-  email        String     @unique
-  phone        String?
-  internalNote String?
-  isActive     Boolean    @default(true)
-  lastBookedAt DateTime?
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
-  bookings     Booking[]
-  emailLogs    EmailLog[]
+  id             String                 @id @default(cuid())
+  fullName       String
+  email          String                 @unique
+  phone          String?
+  internalNote   String?
+  isActive       Boolean                @default(true)
+  lastBookedAt   DateTime?
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+  bookings       Booking[]
+  emailLogs      EmailLog[]
   submissionLogs BookingSubmissionLog[]
 
   @@index([phone])
@@ -268,19 +285,19 @@ model Client {
 }
 
 model Booking {
-  id                       String                 @id @default(cuid())
+  id                       String                    @id @default(cuid())
   clientId                 String
   slotId                   String
   serviceId                String
-  source                   BookingSource          @default(WEB)
+  source                   BookingSource             @default(WEB)
   acquisitionSource        BookingAcquisitionSource?
   acquisitionReferrerHost  String?
   acquisitionUtmSource     String?
   acquisitionUtmMedium     String?
   acquisitionUtmCampaign   String?
-  isManual                 Boolean                @default(false)
-  manualOverride           Boolean                @default(false)
-  status                   BookingStatus          @default(PENDING)
+  isManual                 Boolean                   @default(false)
+  manualOverride           Boolean                   @default(false)
+  status                   BookingStatus             @default(PENDING)
   clientNameSnapshot       String
   clientEmailSnapshot      String
   clientPhoneSnapshot      String?
@@ -297,17 +314,17 @@ model Booking {
   cancelledAt              DateTime?
   completedAt              DateTime?
   rescheduledAt            DateTime?
-  rescheduleCount          Int                    @default(0)
-  rescheduledFromBookingId String?                @unique
+  rescheduleCount          Int                       @default(0)
+  rescheduledFromBookingId String?                   @unique
   createdByUserId          String?
-  createdAt                DateTime               @default(now())
-  updatedAt                DateTime               @updatedAt
-  client                   Client                 @relation(fields: [clientId], references: [id], onDelete: Restrict)
-  slot                     AvailabilitySlot       @relation(fields: [slotId], references: [id], onDelete: Restrict)
-  service                  Service                @relation(fields: [serviceId], references: [id], onDelete: Restrict)
-  createdByUser            AdminUser?             @relation("BookingCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
-  rescheduledFromBooking   Booking?               @relation("BookingRescheduleChain", fields: [rescheduledFromBookingId], references: [id], onDelete: SetNull)
-  rescheduledToBooking     Booking?               @relation("BookingRescheduleChain")
+  createdAt                DateTime                  @default(now())
+  updatedAt                DateTime                  @updatedAt
+  client                   Client                    @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  slot                     AvailabilitySlot          @relation(fields: [slotId], references: [id], onDelete: Restrict)
+  service                  Service                   @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  createdByUser            AdminUser?                @relation("BookingCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  rescheduledFromBooking   Booking?                  @relation("BookingRescheduleChain", fields: [rescheduledFromBookingId], references: [id], onDelete: SetNull)
+  rescheduledToBooking     Booking?                  @relation("BookingRescheduleChain")
   statusHistory            BookingStatusHistory[]
   rescheduleLogs           BookingRescheduleLog[]
   actionTokens             BookingActionToken[]
@@ -382,29 +399,29 @@ model BookingActionToken {
 }
 
 model EmailLog {
-  id                String              @id @default(cuid())
-  bookingId         String?
-  clientId          String?
-  actionTokenId     String?
-  type              EmailLogType
-  status            EmailLogStatus      @default(PENDING)
-  attemptCount      Int                 @default(0)
-  nextAttemptAt     DateTime            @default(now())
+  id                  String              @id @default(cuid())
+  bookingId           String?
+  clientId            String?
+  actionTokenId       String?
+  type                EmailLogType
+  status              EmailLogStatus      @default(PENDING)
+  attemptCount        Int                 @default(0)
+  nextAttemptAt       DateTime            @default(now())
   processingStartedAt DateTime?
-  processingToken   String?
-  recipientEmail    String
-  subject           String
-  templateKey       String
-  payload           Json?
-  provider          String?
-  providerMessageId String?
-  errorMessage      String?
-  sentAt            DateTime?
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime            @updatedAt
-  booking           Booking?            @relation(fields: [bookingId], references: [id], onDelete: SetNull)
-  client            Client?             @relation(fields: [clientId], references: [id], onDelete: SetNull)
-  actionToken       BookingActionToken? @relation(fields: [actionTokenId], references: [id], onDelete: SetNull)
+  processingToken     String?
+  recipientEmail      String
+  subject             String
+  templateKey         String
+  payload             Json?
+  provider            String?
+  providerMessageId   String?
+  errorMessage        String?
+  sentAt              DateTime?
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  booking             Booking?            @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  client              Client?             @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  actionToken         BookingActionToken? @relation(fields: [actionTokenId], references: [id], onDelete: SetNull)
 
   @@index([bookingId, createdAt])
   @@index([clientId, createdAt])
@@ -416,24 +433,24 @@ model EmailLog {
 }
 
 model BookingSubmissionLog {
-  id           String                   @id @default(cuid())
-  bookingId    String?
-  clientId     String?
-  serviceId    String?
-  slotId       String?
-  ipHash       String?
-  emailHash    String?
-  outcome      BookingSubmissionOutcome
-  failureCode  String?
+  id            String                   @id @default(cuid())
+  bookingId     String?
+  clientId      String?
+  serviceId     String?
+  slotId        String?
+  ipHash        String?
+  emailHash     String?
+  outcome       BookingSubmissionOutcome
+  failureCode   String?
   failureReason String?
-  userAgent    String?
-  metadata     Json?
-  createdAt    DateTime                 @default(now())
-  updatedAt    DateTime                 @updatedAt
-  booking      Booking?                 @relation(fields: [bookingId], references: [id], onDelete: SetNull)
-  client       Client?                  @relation(fields: [clientId], references: [id], onDelete: SetNull)
-  service      Service?                 @relation(fields: [serviceId], references: [id], onDelete: SetNull)
-  slot         AvailabilitySlot?        @relation(fields: [slotId], references: [id], onDelete: SetNull)
+  userAgent     String?
+  metadata      Json?
+  createdAt     DateTime                 @default(now())
+  updatedAt     DateTime                 @updatedAt
+  booking       Booking?                 @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  client        Client?                  @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  service       Service?                 @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+  slot          AvailabilitySlot?        @relation(fields: [slotId], references: [id], onDelete: SetNull)
 
   @@index([bookingId, createdAt])
   @@index([clientId, createdAt])
@@ -458,25 +475,25 @@ model Setting {
 }
 
 model SiteSettings {
-  id                         String     @id @default("site-settings")
-  salonName                  String
-  addressLine                String
-  city                       String
-  postalCode                 String
-  phone                      String
-  contactEmail               String
-  instagramUrl               String?
-  bookingMinAdvanceHours     Int        @default(2)
-  bookingMaxAdvanceDays      Int        @default(90)
-  bookingCancellationHours   Int        @default(48)
-  notificationAdminEmail     String
-  emailSenderName            String
-  emailSenderEmail           String
-  emailFooterText            String?
-  updatedByUserId            String?
-  createdAt                  DateTime   @default(now())
-  updatedAt                  DateTime   @updatedAt
-  updatedByUser              AdminUser? @relation("SiteSettingsUpdatedBy", fields: [updatedByUserId], references: [id], onDelete: SetNull)
+  id                       String     @id @default("site-settings")
+  salonName                String
+  addressLine              String
+  city                     String
+  postalCode               String
+  phone                    String
+  contactEmail             String
+  instagramUrl             String?
+  bookingMinAdvanceHours   Int        @default(2)
+  bookingMaxAdvanceDays    Int        @default(90)
+  bookingCancellationHours Int        @default(48)
+  notificationAdminEmail   String
+  emailSenderName          String
+  emailSenderEmail         String
+  emailFooterText          String?
+  updatedByUserId          String?
+  createdAt                DateTime   @default(now())
+  updatedAt                DateTime   @updatedAt
+  updatedByUser            AdminUser? @relation("SiteSettingsUpdatedBy", fields: [updatedByUserId], references: [id], onDelete: SetNull)
 
   @@index([updatedByUserId])
 }
@@ -497,41 +514,41 @@ model CalendarFeed {
 }
 
 model MediaAsset {
-  id               String               @id @default(cuid())
-  storageProvider  MediaStorageProvider @default(LOCAL)
-  visibility       MediaAssetVisibility @default(PUBLIC)
-  kind             MediaAssetKind
-  type             MediaType            @default(CERTIFICATE)
-  originalFilename String
-  fileName         String
-  storedFilename   String
-  mimeType         String
-  extension        String
-  sizeBytes        Int
-  size             Int
-  width            Int?
-  height           Int?
-  alt              String?
-  altText          String?
-  title            String?
-  storagePath      String               @unique
-  url              String
-  optimizedStoragePath String?          @unique
-  optimizedUrl     String?
-  optimizedMimeType String?
-  optimizedWidth   Int?
-  optimizedHeight  Int?
-  optimizedSize    Int?
-  thumbnailStoragePath String?          @unique
-  thumbnailUrl     String?
-  thumbnailMimeType String?
-  thumbnailWidth   Int?
-  thumbnailHeight  Int?
-  thumbnailSize    Int?
-  sortOrder        Int?
-  isPublished      Boolean              @default(true)
-  createdAt        DateTime             @default(now())
-  updatedAt        DateTime             @updatedAt
+  id                   String               @id @default(cuid())
+  storageProvider      MediaStorageProvider @default(LOCAL)
+  visibility           MediaAssetVisibility @default(PUBLIC)
+  kind                 MediaAssetKind
+  type                 MediaType            @default(CERTIFICATE)
+  originalFilename     String
+  fileName             String
+  storedFilename       String
+  mimeType             String
+  extension            String
+  sizeBytes            Int
+  size                 Int
+  width                Int?
+  height               Int?
+  alt                  String?
+  altText              String?
+  title                String?
+  storagePath          String               @unique
+  url                  String
+  optimizedStoragePath String?              @unique
+  optimizedUrl         String?
+  optimizedMimeType    String?
+  optimizedWidth       Int?
+  optimizedHeight      Int?
+  optimizedSize        Int?
+  thumbnailStoragePath String?              @unique
+  thumbnailUrl         String?
+  thumbnailMimeType    String?
+  thumbnailWidth       Int?
+  thumbnailHeight      Int?
+  thumbnailSize        Int?
+  sortOrder            Int?
+  isPublished          Boolean              @default(true)
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
 
   @@index([type, isPublished, sortOrder])
   @@index([type, createdAt])

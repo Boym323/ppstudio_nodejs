@@ -353,6 +353,7 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
   - při přepnutí mezi službami se detail vždy přenačte podle skutečně vybrané položky (nepřebírá hodnoty z předchozí karty)
   - v detailu služby je jediný obsahový blok `Veřejná prezentace`; pole `Veřejný úvod` je zdrojem textu pro web i rezervační krok výběru služby, takže se stejný text neudržuje duplicitně
   - detail se otevírá jako pravý overlay drawer (desktop i mobil), takže seznam zůstává viditelný v pozadí a obsluha neztrácí kontext
+  - skutečná změna ceny v detailu služby zapisuje audit do `ServicePriceChangeLog`, takže lze dohledat původní i novou cenu, čas a admin aktéra
   - veřejný booking flow bere službu jen pokud je `isActive = true`, `isPubliclyBookable = true` a její kategorie je aktivní
 - Sekce `Kategorie služeb` je nyní produkčně použitelná pro obě role na `/admin/kategorie-sluzeb` a `/admin/provoz/kategorie-sluzeb`:
   - horní přehled používá kompaktní souhrnnou lištu místo vysokých stat karet
@@ -459,6 +460,7 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
 - `Booking.reminder24hSentAt` drží informaci, že klientský 24h reminder už byl úspěšně uzavřený; `Booking.reminder24hQueuedAt` zase brání duplicitnímu enqueue stejného reminderu pro aktuální termín.
 - `Booking` nově ukládá i akviziční metadata (`acquisitionSource`, `acquisitionReferrerHost`, `acquisitionUtmSource`, `acquisitionUtmMedium`, `acquisitionUtmCampaign`) odvozená z `utm_*` a referrer hostu.
 - `BookingStatusHistory` slouží jako audit změn stavu a rozlišuje akci uživatele, klienta nebo systému.
+- `ServicePriceChangeLog` je samostatná auditní tabulka pro změny `Service.priceFromCzk`; ukládá starou a novou cenu, aktéra a čas změny.
 - Admin detail rezervace zobrazuje historii změn jako provozní timeline, takže salon i owner vidí, kdo a kdy stav upravil.
 - `BookingActionToken` ukládá pouze hash tokenu pro storno a přesun termínu, nikdy ne surovou hodnotu tokenu.
 - Klientský manage flow `/rezervace/sprava/[token]` přijímá jen hashovaný token typu `RESCHEDULE`; bez validního tokenu neukáže žádná data rezervace.
@@ -511,6 +513,10 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
   - ověřte, že booking má po přesunu `reminder24hQueuedAt = null` a `reminder24hSentAt = null`
   - spusťte `npm run email:worker:once`
   - zkontrolujte, že nový termín leží v reminder okně `23h-25h` od aktuálního času
+- Pokud se v adminu změnila cena služby a potřebujete dohledat, kdo zásah provedl:
+  - ověřte, že je nasazená migrace `20260424103000_service_price_change_log_v1`
+  - hledejte záznam v `ServicePriceChangeLog` podle `serviceId` a času změny
+  - historické rezervace zůstanou konzistentní, protože `Booking` dál drží vlastní `servicePriceFromCzk` snapshot
 - Chyba `Route "... " used params.slug. params is a Promise` v Next.js 16 znamená, že route používá starý synchronní přístup k dynamickým parametrům.
 - Oprava:
   - v `page.tsx` a `generateMetadata` typuj `params` jako `Promise<{ ... }>`

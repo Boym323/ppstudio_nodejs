@@ -6,6 +6,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Přibyl audit změn cen služeb přes novou tabulku `ServicePriceChangeLog`; admin editace služby nyní při skutečné změně `priceFromCzk` ukládá původní a novou cenu, aktéra a čas změny.
+- Migrace `20260424103000_service_price_change_log_v1` přidává perzistentní auditní stopu pro změny ceníku bez zapisování cen do obecných aplikačních logů.
 - Admin sekce `Služby` prošla zásadním UX refaktorem seznamu: vysoké karty nahradil kompaktní group-first layout podle kategorií s hustšími řádky služeb.
 - Každá kategorie v seznamu `Služby` nově zobrazuje počet položek a jde samostatně sbalit/rozbalit; název kategorie už se neopakuje u každé služby.
 - Základní řádek služby je zkrácený na název, délku, cenu, statusy, rezervace a rychlé akce; `operationalContext`, warning detail, slotová omezení a pořadí jsou až v rozbalení řádku.

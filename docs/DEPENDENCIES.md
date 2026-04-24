@@ -37,6 +37,7 @@ Seznam důležitých knihoven a důvod jejich použití.
 - Klientský self-service přesun termínu také nepřidává novou knihovnu; veřejná manage route, secure token flow a potvrzovací panel běží čistě na stávajícím stacku Next.js, React, Prisma a Zod.
 - Ruční vytvoření rezervace v adminu také nepřidává novou knihovnu; drawer, deduplikace klientky i sdílené create jádro běží čistě na stávajícím stacku Next.js, React, Prisma a Zod.
 - Booking submission audit využívá stejnou Prisma vrstvu a nezavádí další knihovnu pro rate limiting ani logování.
+- Audit změn cen služeb také nepřidává novou závislost; používá stávající Prisma model, admin session mapování a server actions.
 - Admin login rate limit také nepřidává novou závislost; používá stávající Prisma model `BookingSubmissionLog` a vestavěný Node.js `crypto` pro hash fingerprintů.
 - Stabilizační refaktor `booking-public`, `booking-flow` a `admin-slots` také nepřidává žádnou novou runtime ani dev dependency; jde čistě o přesun stávající logiky do menších interních modulů.
 - Modul `Média webu` také nepřidává žádnou novou závislost; upload, metadata, filtr typů i publish stav běží na stávajícím stacku Next.js, React, Prisma, Zod, Node filesystem a `image-size`.
@@ -72,6 +73,7 @@ Seznam důležitých knihoven a důvod jejich použití.
 - Pro bezpečné storno a přesun termínu není potřeba další knihovna; token workflow je navržený na úrovni DB přes hash + expiraci.
 - E-mailové šablony i delivery vrstva zůstávají jednoduché a nepřidávají queue službu mimo PostgreSQL outbox.
 - `Json` pole ve `Setting`, `BookingStatusHistory` a `EmailLog` ponechávají prostor pro evoluci bez destruktivních migrací.
+- Audit ceníku je záměrně samostatný relační model `ServicePriceChangeLog`, ne další `Json` blob v `Service`, aby šlo změny filtrovat a řadit bez parsování payloadu.
 - Admin sekce `Nastavení` a singleton `SiteSettings` byly doplněné bez nové knihovny; zůstáváme na stávajícím stacku Next.js, React, Prisma a Zod.
 - Owner ICS feed pro Apple Kalendář byl přidaný bez nové závislosti; generování `.ics`, escapování i line folding běží v lokální utilitě nad standardním Node/TypeScript stackem.
 - Klientská `.ics` příloha používá stejnou lokální iCalendar utilitu; nepřidávali jsme Google SDK, `.ics` generator balík ani novou mail knihovnu.
