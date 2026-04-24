@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import Link from 'next/link';
 
 import { ObfuscatedEmailLink } from '@/components/ui/obfuscated-email-link';
@@ -45,6 +46,12 @@ type ContactHeroProps = {
   phone: string;
   email: string;
   instagramUrl: string | null;
+  photo?: {
+    src: string;
+    alt: string;
+    width: number;
+    height: number;
+  } | null;
 };
 
 function ContactHeroPhotoPlaceholder() {
@@ -70,7 +77,7 @@ function ContactHeroPhotoPlaceholder() {
   );
 }
 
-export function ContactHero({ title, description, phone, email, instagramUrl }: ContactHeroProps) {
+export function ContactHero({ title, description, phone, email, instagramUrl, photo }: ContactHeroProps) {
   const instagramValue = instagramUrl?.replace(/^https?:\/\/(www\.)?/i, '') ?? null;
 
   return (
@@ -129,7 +136,20 @@ export function ContactHero({ title, description, phone, email, instagramUrl }: 
           </div>
         </div>
         <aside className="flex">
-          <ContactHeroPhotoPlaceholder />
+          {photo ? (
+            <div className="relative w-full overflow-hidden rounded-[calc(var(--radius-panel)-0.25rem)] border border-white/75 bg-white/70 shadow-[var(--shadow-panel)]">
+              <Image
+                src={photo.src}
+                alt={photo.alt}
+                width={photo.width}
+                height={photo.height}
+                className="h-[14rem] w-full object-cover object-center sm:h-[17rem]"
+                priority
+              />
+            </div>
+          ) : (
+            <ContactHeroPhotoPlaceholder />
+          )}
         </aside>
       </Container>
     </section>

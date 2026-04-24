@@ -51,3 +51,16 @@ export function getMediaTypeLabel(type: MediaType) {
       return 'Obecné';
   }
 }
+
+export function getMediaUsageLabel(type: MediaType) {
+  switch (type) {
+    case MediaType.CERTIFICATE:
+      return 'O mně: sekce Certifikace';
+    case MediaType.SALON_PHOTO:
+      return 'Studio, Kontakt a případně homepage';
+    case MediaType.PORTRAIT:
+      return 'O mně a hero profil Pavlíny';
+    case MediaType.GENERAL:
+      return 'Budoucí hero, CTA a bannery';
+  }
+}

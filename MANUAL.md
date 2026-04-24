@@ -225,6 +225,11 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
   - galerie načítá pouze publikované záznamy `MediaType.SALON_PHOTO`
   - bez nahraných fotek se zobrazí klidný placeholder, aby stránka nezůstala prázdná ani rozbitá
   - navazující bloky krátce popisují atmosféru, adresu a finální cestu k rezervaci nebo kontaktu
+- Veřejné napojení modulu `Média webu` je nyní centrální:
+  - `/o-mne` načítá certifikáty přes `MediaType.CERTIFICATE` a hero portrét přes první publikovaný `MediaType.PORTRAIT`
+  - homepage používá první publikovaný `MediaType.PORTRAIT` v hero, jinak padá zpět na verzovaný brand asset
+  - `/kontakt` a `/studio` používají publikované `MediaType.SALON_PHOTO`; `/kontakt` bere první fotku jako hero, `/studio` používá první fotku pro hero a celý publikovaný seznam pro galerii
+  - `MediaType.GENERAL` má připravený public read model pro budoucí hero, CTA a bannerové bloky, ale zatím není připojený do konkrétní stránky
 - Certifikáty, fotky prostor, reference a další budoucí obsahové obrázky mají sdílený základ přes `MediaAsset` a lokální upload storage.
 
 ## Přihlášení Do Adminu

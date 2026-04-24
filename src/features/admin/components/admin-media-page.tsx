@@ -4,7 +4,12 @@ import { MediaType } from '@prisma/client';
 
 import { type AdminArea } from '@/config/navigation';
 import { deleteMediaAction, updateMediaAction, uploadMediaAction } from '@/features/admin/actions/media-actions';
-import { getMediaAdminPath, getMediaTypeLabel, mediaFilterSchema } from '@/features/admin/lib/admin-media-validation';
+import {
+  getMediaAdminPath,
+  getMediaTypeLabel,
+  getMediaUsageLabel,
+  mediaFilterSchema,
+} from '@/features/admin/lib/admin-media-validation';
 import { AdminPageShell, AdminPanel } from '@/features/admin/components/admin-page-shell';
 import { listMedia } from '@/features/media/lib/media-library';
 
@@ -259,13 +264,14 @@ export function MediaCard({ area, asset }: { area: AdminArea; asset: MediaAssetI
           <div className="flex items-start justify-between gap-3">
             <h4 className="break-all text-base font-medium text-white">{asset.title ?? asset.fileName}</h4>
             <span className="shrink-0 rounded-full border border-white/10 bg-white/8 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-white/70">
-              {asset.isPublished ? 'Public' : 'Draft'}
+              {asset.isPublished ? 'Publikováno' : 'Nepublikováno'}
             </span>
           </div>
           <p className="mt-1 break-all text-xs text-white/50">{asset.fileName}</p>
           <p className="mt-2 text-sm text-white/62">
             {getMediaTypeLabel(asset.type)} • {asset.width && asset.height ? `${asset.width} x ${asset.height}` : 'Rozměry neznámé'} • {formatBytes(asset.size)}
           </p>
+          <p className="mt-2 text-sm text-white/72">Použití: {getMediaUsageLabel(asset.type)}</p>
         </div>
 
         <div className="flex flex-wrap gap-2">

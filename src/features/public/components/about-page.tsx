@@ -9,9 +9,18 @@ import {
   type AboutCertificateGalleryItem,
 } from '@/features/public/components/about-certificates-gallery';
 import { type PublicCertificate } from '@/features/public/lib/public-certificates';
+import { type PublicImageAsset } from '@/features/public/lib/public-media';
 
-function HeroSection() {
+function HeroSection({ portrait }: { portrait: PublicImageAsset | null }) {
   const { profile } = aboutContent;
+  const heroImage = portrait
+    ? {
+        src: portrait.imageUrl,
+        alt: portrait.altText,
+        width: portrait.width ?? 640,
+        height: portrait.height ?? 960,
+      }
+    : profile.image;
 
   return (
     <section className="relative isolate overflow-hidden border-b border-black/5 bg-[radial-gradient(circle_at_top_left,rgba(226,205,182,0.5),transparent_32%),linear-gradient(180deg,#f8f2eb_0%,#f5ede4_48%,#f8f3ed_100%)]">
@@ -55,13 +64,13 @@ function HeroSection() {
         </div>
 
         <aside className="flex">
-          {profile.image ? (
+          {heroImage ? (
             <div className="relative w-full overflow-hidden rounded-[var(--radius-panel)] border border-white/80 bg-white/70 shadow-[var(--shadow-panel)] backdrop-blur lg:max-w-[34rem] lg:justify-self-end">
               <Image
-                src={profile.image.src}
-                alt={profile.image.alt}
-                width={profile.image.width}
-                height={profile.image.height}
+                src={heroImage.src}
+                alt={heroImage.alt}
+                width={heroImage.width}
+                height={heroImage.height}
                 className="h-[21rem] w-full object-cover object-center sm:h-[28rem] lg:h-[33rem]"
                 priority
               />
@@ -255,10 +264,16 @@ function CertificationsSection({ certificates }: { certificates: PublicCertifica
   );
 }
 
-export function AboutPage({ certificates }: { certificates: PublicCertificate[] }) {
+export function AboutPage({
+  certificates,
+  portrait,
+}: {
+  certificates: PublicCertificate[];
+  portrait: PublicImageAsset | null;
+}) {
   return (
     <div className="overflow-hidden pb-6 sm:pb-10">
-      <HeroSection />
+      <HeroSection portrait={portrait} />
       <WhyChooseMeSection />
       <StorySection />
       <ApproachSection />

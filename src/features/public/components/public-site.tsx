@@ -26,6 +26,8 @@ import {
   ContactMobileStickyCTA,
   QuickContactCard,
 } from '@/features/public/components/contact-sections';
+import { getPrimaryPublicPortrait } from '@/features/public/lib/public-media';
+import { getPublicStudioPhotos } from '@/features/public/lib/public-studio-photos';
 import { getBookingPolicySettings, getPublicSalonProfile } from '@/lib/site-settings';
 
 function PublicHero({
@@ -584,11 +586,23 @@ export function buildPageMetadata({
 
 export async function PublicHomePage({ featuredServices = services.slice(0, 3) }: { featuredServices?: Service[] } = {}) {
   const bookingPolicy = await getBookingPolicySettings();
+  const portrait = await getPrimaryPublicPortrait();
   const trustMetrics = buildTrustMetrics(bookingPolicy.cancellationHours);
+  const heroContent = {
+    ...homepageContent,
+    portraitImage: portrait
+      ? {
+          src: portrait.imageUrl,
+          alt: portrait.altText,
+          width: portrait.width ?? homepageContent.portraitImage.width,
+          height: portrait.height ?? homepageContent.portraitImage.height,
+        }
+      : homepageContent.portraitImage,
+  };
 
   return (
     <div className="pb-8 sm:pb-12">
-      <PublicHero {...homepageContent} />
+      <PublicHero {...heroContent} />
       <TrustStrip metrics={trustMetrics} />
 
       <section className="py-10 sm:py-14 lg:py-16">
@@ -792,7 +806,10 @@ export function PricingPage({ services: catalogServices = services }: { services
 }
 
 export async function ContactPage() {
-  const salonProfile = await getPublicSalonProfile();
+  const [salonProfile, studioPhotos] = await Promise.all([
+    getPublicSalonProfile(),
+    getPublicStudioPhotos(),
+  ]);
   const contactItems = buildContactItems({
     phone: salonProfile.phone,
     email: salonProfile.email,
@@ -800,6 +817,7 @@ export async function ContactPage() {
     instagramUrl: salonProfile.instagramUrl,
   });
   const addressItem = contactItems.find((item) => item.label === 'Adresa salonu');
+  const heroPhoto = studioPhotos[0] ?? null;
 
   return (
     <div className="pb-24 sm:pb-12">
@@ -809,6 +827,16 @@ export async function ContactPage() {
         phone={salonProfile.phone}
         email={salonProfile.email}
         instagramUrl={salonProfile.instagramUrl}
+        photo={
+          heroPhoto
+            ? {
+                src: heroPhoto.imageUrl,
+                alt: heroPhoto.altText,
+                width: heroPhoto.width ?? 1280,
+                height: heroPhoto.height ?? 960,
+              }
+            : null
+        }
       />
       <section id="kontaktni-karty" className="py-8 sm:py-12 lg:py-14">
         <Container className="grid gap-6 lg:grid-cols-[1fr_0.95fr]">

@@ -6,6 +6,10 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Veřejné stránky now používají centrální `MediaAsset` read model i mimo certifikace: `/o-mne` bere hero z `MediaType.PORTRAIT`, homepage bere hero portrét z `MediaType.PORTRAIT` s fallbackem na brand asset a `/kontakt` bere hero z první publikované `MediaType.SALON_PHOTO`.
+- Admin grid `Média webu` nyní u každého assetu jasně ukazuje typ, publish stav a text `Použití`, aby bylo vidět, kde se obrázek na webu propisuje.
+- Přibyl sdílený public media helper pro publikované obrázky podle typu; `MediaType.GENERAL` má připravený read model pro budoucí hero/CTA bannery bez dalšího upload systému.
+
 - Přibyla veřejná stránka `/studio` s hero, galerií, pocitovým blokem, orientačním kontaktním CTA a finální rezervací; hlavní navigace i sitemap nově obsahují položku `Studio`.
 - Stránka `/studio` načítá fotky přes `MediaType.SALON_PHOTO` a `isPublished = true`; pokud zatím nejsou nahrané žádné fotky, zobrazí klidný placeholder místo prázdné galerie.
 

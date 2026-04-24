@@ -1,25 +1,9 @@
 import { MediaType } from '@prisma/client';
 
-import { getPublishedMediaLibraryByType } from '@/features/media/lib/media-library';
+import { getPublicImageAssetsByType, type PublicImageAsset } from '@/features/public/lib/public-media';
 
-export type PublicStudioPhoto = {
-  id: string;
-  title: string | null;
-  altText: string;
-  imageUrl: string;
-  width: number | null;
-  height: number | null;
-};
+export type PublicStudioPhoto = PublicImageAsset;
 
 export async function getPublicStudioPhotos(): Promise<PublicStudioPhoto[]> {
-  const assets = await getPublishedMediaLibraryByType(MediaType.SALON_PHOTO);
-
-  return assets.map((asset, index) => ({
-    id: asset.id,
-    title: asset.title,
-    altText: asset.altText ?? asset.title ?? `Fotografie studia PP Studio ${index + 1}`,
-    imageUrl: asset.publicUrl,
-    width: asset.width,
-    height: asset.height,
-  }));
+  return getPublicImageAssetsByType(MediaType.SALON_PHOTO, 'Fotografie studia PP Studio');
 }

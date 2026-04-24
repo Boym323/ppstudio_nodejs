@@ -190,6 +190,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - `src/features/admin/actions/client-actions.ts` je tenký server action adaptér pro editaci interní poznámky klientky; validace zůstává v `src/features/admin/lib/admin-client-validation.ts`.
 - Sekce `Média webu` má vlastní workflow v `src/features/admin/components/admin-media-page.tsx` a je dostupná v owner i salon oblasti na `/admin/media` a `/admin/provoz/media`; legacy URL `/admin/certifikaty` a `/admin/provoz/certifikaty` se přesměrují.
 - Server action adaptéry pro média jsou v `src/features/admin/actions/media-actions.ts`; validace vstupu je v `src/features/admin/lib/admin-media-validation.ts`. Staré certifikátové entrypointy zůstávají jako kompatibilní re-exporty.
+- Admin karty médií mají kromě typu a publish stavu i text `Použití`, aby obsluha rovnou viděla, zda asset patří do `O mně`, `Studia`, `Kontaktu` nebo budoucích hero/banner bloků.
 - Sekce `Nastavení` má vlastní workflow v `src/features/admin/components/admin-settings-page.tsx` a už neběží přes generický placeholder renderer.
 - Formuláře pro `Salon`, `Rezervace` a `E-maily a notifikace` jsou oddělené do samostatných client komponent a server action adaptérů v `src/features/admin/actions/settings-actions.ts`.
 - Sekce `Nastavení` nově obsahuje i owner-only kalendářový workflow:
@@ -309,6 +310,8 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Pokud veřejná rezervace zabere jen část delšího slotu s kapacitou `1`, booking write model slot v transakci automaticky rozdělí na rezervovaný úsek a zbylé volné fragmenty, aby admin planner zůstal editovatelný po samostatných blocích.
 - `src/features/booking/lib/booking-cancellation.ts` drží veřejné storno workflow nad hashovaným action tokenem.
 - `src/features/public/lib/public-certificates.ts` je veřejný read model certifikátů pro stránku `/o-mne`; smí vracet jen `MediaType.CERTIFICATE` a `isPublished = true`.
+- `src/features/public/lib/public-media.ts` drží sdílené read helpery pro publikované obrázky podle typu; aktuálně z něj čte hero portrét na homepage a `/o-mne`, a je připravený i pro budoucí `MediaType.GENERAL`.
+- `src/features/public/lib/public-studio-photos.ts` je veřejný read model fotek studia; používá ho `/studio` pro hero + galerii a `/kontakt` pro hero fotografii.
 - `src/features/public/lib/public-studio-photos.ts` je veřejný read model fotek studia pro stránku `/studio`; bez dat musí UI zobrazit placeholder a nesmí vytvářet duplicitní správu obrázků mimo modul `Média webu`.
 - Veřejný booking flow vrací doménové chybové kódy a doporučený krok formuláře, takže UI může zobrazit přesnější recovery stav bez duplikace serverové logiky.
 - Veřejný booking submit má lehký rate limit podle IP a e-mailu a zapisuje auditní log pokusů, blokací a selhání pro provozní troubleshooting.
