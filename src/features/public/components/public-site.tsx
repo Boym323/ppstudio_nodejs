@@ -321,7 +321,7 @@ function ServiceCard({ service }: { service: Service }) {
       <p className="mt-4 flex-1 text-[15px] leading-7 text-[var(--color-muted)]">{service.intro}</p>
       <div className="mt-6 space-y-4 border-t border-black/6 pt-5 sm:flex sm:items-end sm:justify-between sm:gap-4 sm:space-y-0">
         <div className="space-y-1">
-          <p className="text-sm text-[var(--color-muted)]">Od {service.priceFrom}</p>
+          <p className="text-sm text-[var(--color-muted)]">{service.priceFrom}</p>
           <p className="text-sm text-[var(--color-muted)]">{service.duration}</p>
         </div>
         <Link
