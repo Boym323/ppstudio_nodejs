@@ -297,6 +297,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Bootstrap `SiteSettings` singletonu zůstává záměrně jen v owner admin workflow `Nastavení` přes explicitní `ensureSiteSettings()`, takže public metadata, e-mail šablony ani testy nespouštějí write path při obyčejném čtení.
 - `SiteSettings` drží jen skutečně globální provozní hodnoty. Technické env proměnné jako SMTP host/port, `NEXT_PUBLIC_APP_URL` nebo `ADMIN_SESSION_SECRET` se do adminu záměrně nepřenášejí.
 - `MediaAsset` je obecný metadata model pro certifikáty, fotky prostor, reference i další obsahové obrázky; binární obsah zůstává na lokálním filesystemu mimo DB.
+- Veřejná stránka `/studio` používá read model `src/features/public/lib/public-studio-photos.ts`, který smí vracet jen `MediaType.SALON_PHOTO` s `isPublished = true`; komponenty stránky jsou v `src/features/public/components/studio/studio-page.tsx`.
 - Filesystem layout médií má tvar `<MEDIA_STORAGE_ROOT>/<visibility>/<kind>/<year>/<month>/<storedFilename>`.
 - `src/lib/media/local-media-storage.ts` je adapter pro lokální filesystem; business vrstva přes něj neřeší konkrétní `fs` operace ani fyzické cesty.
 - Route `/media/[kind]/[[...path]]` používá v media path helperu a storage adapteru cílené `turbopackIgnore` anotace u dynamických `path.resolve/path.join`; cílem je zabránit tomu, aby Next.js 16 Turbopack NFT tracer při buildu omylem zahrnoval celý projekt.
@@ -308,6 +309,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Pokud veřejná rezervace zabere jen část delšího slotu s kapacitou `1`, booking write model slot v transakci automaticky rozdělí na rezervovaný úsek a zbylé volné fragmenty, aby admin planner zůstal editovatelný po samostatných blocích.
 - `src/features/booking/lib/booking-cancellation.ts` drží veřejné storno workflow nad hashovaným action tokenem.
 - `src/features/public/lib/public-certificates.ts` je veřejný read model certifikátů pro stránku `/o-mne`; smí vracet jen `MediaType.CERTIFICATE` a `isPublished = true`.
+- `src/features/public/lib/public-studio-photos.ts` je veřejný read model fotek studia pro stránku `/studio`; bez dat musí UI zobrazit placeholder a nesmí vytvářet duplicitní správu obrázků mimo modul `Média webu`.
 - Veřejný booking flow vrací doménové chybové kódy a doporučený krok formuláře, takže UI může zobrazit přesnější recovery stav bez duplikace serverové logiky.
 - Veřejný booking submit má lehký rate limit podle IP a e-mailu a zapisuje auditní log pokusů, blokací a selhání pro provozní troubleshooting.
 - Krok 2 veřejného booking flow filtruje sloty i podle délky služby, aby se krátké sloty neukazovaly až v posledním kroku.

@@ -219,6 +219,12 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
 - Homepage hero lze obsahově ladit blíž původnímu webu přes `homepageContent` (`benefits`, `ctaNote`) bez zásahu do routy.
 - Hero na homepage je záměrně klidnější: portrét je menší a pravý sloupec nepoužívá doprovodné mini boxy.
 - CTA na rezervaci je dostupné v hlavičce, hero sekcích i obsahových blocích.
+- Stránka `/studio` představuje prostředí PP Studia před první návštěvou:
+  - navigace používá název `Studio`
+  - hero má dvě CTA `Rezervovat termín` a `Kontakt` a jako úvodní vizuál bere první publikovanou fotku studia
+  - galerie načítá pouze publikované záznamy `MediaType.SALON_PHOTO`
+  - bez nahraných fotek se zobrazí klidný placeholder, aby stránka nezůstala prázdná ani rozbitá
+  - navazující bloky krátce popisují atmosféru, adresu a finální cestu k rezervaci nebo kontaktu
 - Certifikáty, fotky prostor, reference a další budoucí obsahové obrázky mají sdílený základ přes `MediaAsset` a lokální upload storage.
 
 ## Přihlášení Do Adminu
@@ -308,8 +314,10 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
   - admin upload, editaci a mazání přes `/admin/media` a `/admin/provoz/media`; staré `/admin/certifikaty` a `/admin/provoz/certifikaty` se přesměrují na nové cesty
   - typy `CERTIFICATE`, `SALON_PHOTO`, `PORTRAIT` a `GENERAL`
   - veřejné zobrazení certifikátů v sekci `Certifikace` na stránce `/o-mne`
+  - veřejné zobrazení publikovaných fotek studia na stránce `/studio`
   - backend napojený na `createMedia()`, `listMedia()`, `updateMedia()` a `deleteMedia()`
   - stránka `/o-mne` bere pouze `MediaType.CERTIFICATE` a `isPublished = true`
+  - stránka `/studio` bere pouze `MediaType.SALON_PHOTO` a `isPublished = true`
 
 ## Provoz a zálohy
 - Zálohuj databázi i upload root; jedna bez druhé nestačí pro úplnou obnovu médií.

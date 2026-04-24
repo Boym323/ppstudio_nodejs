@@ -16,12 +16,13 @@ Zachováme existující model `MediaAsset`, ale zobecníme jeho aplikační API 
 
 Do modelu přidáváme nová obecná pole `fileName`, `url`, `size`, `altText`, `sortOrder` a `isPublished`. Legacy storage pole (`kind`, `visibility`, `originalFilename`, `sizeBytes`, `alt`, `storagePath`) zatím nemažeme, protože zajišťují bezpečné mapování existujících souborů a nedestruktivní migraci.
 
-Admin UI se jmenuje `Média webu` a běží na `/admin/media` a `/admin/provoz/media`; legacy routy `/admin/certifikaty` a `/admin/provoz/certifikaty` zůstávají jako redirect. Certifikáty jsou pouze jeden typ média a veřejná stránka `/o-mne` smí číst jen `MediaType.CERTIFICATE` s `isPublished = true`.
+Admin UI se jmenuje `Média webu` a běží na `/admin/media` a `/admin/provoz/media`; legacy routy `/admin/certifikaty` a `/admin/provoz/certifikaty` zůstávají jako redirect. Certifikáty jsou pouze jeden typ média a veřejná stránka `/o-mne` smí číst jen `MediaType.CERTIFICATE` s `isPublished = true`. Veřejná stránka `/studio` používá stejný princip pro fotky studia: čte jen `MediaType.SALON_PHOTO` s `isPublished = true` a při prázdném výsledku vykreslí prezentační fallback.
 
 ## Důsledky
 - Existující certifikáty se při migraci zpětně mapují na `type = CERTIFICATE`, `isPublished = true` pro původní veřejné záznamy a zachovanou URL `/media/certificates/...`.
 - Nové služby `createMedia`, `listMedia`, `updateMedia` a `deleteMedia` jsou kanonické API pro admin media workflow.
 - UI je jednoduché: upload, filtr typů, grid karet, editace titulku, alt textu, typu a publish/unpublish.
+- Prezentační stránky mají používat úzké read modely nad konkrétním `MediaType`; nesmí kvůli galerii zavádět vlastní upload ani paralelní CMS.
 - Budoucí rozšíření má přidávat nové typy přes enum a prezentační read modely, ne přes další izolované certifikátové moduly.
 
 ## Bezpečný postup migrace

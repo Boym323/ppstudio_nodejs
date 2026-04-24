@@ -28,6 +28,7 @@ Postup nasazení aplikace do produkce.
    - kontakt
    - FAQ a právní stránky
      - `/obchodni-podminky`: hero CTA, blok poskytovatele a obsahová navigace
+     - `/studio`: hero, galerie publikovaných fotek studia z modulu `Média webu`, fallback bez fotek a finální CTA
    - CTA na rezervaci
 14. Projdi ruční QA admin částí:
    - login redirect pro `OWNER` a `SALON`
@@ -86,6 +87,7 @@ Postup nasazení aplikace do produkce.
      - aktivace pozvánky dovolí nastavit heslo a následně přihlášení přes `/admin/prihlaseni`
      - akce `Přepnout na OWNER/SALON`, `Deaktivovat` a `Znovu aktivovat` se ihned propšou do seznamu
   - modul `Média webu` na `/admin/media` a `/admin/provoz/media` (legacy `/admin/certifikaty` a `/admin/provoz/certifikaty` se přesměrují):
+     - veřejná stránka `/studio` zobrazí jen publikované fotky typu `SALON_PHOTO`
      - upload podporovaného obrázku s výběrem typu
      - editace titulku, alt textu, typu a publish/unpublish
      - smazání média
