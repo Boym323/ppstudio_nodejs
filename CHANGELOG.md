@@ -322,6 +322,7 @@ Formát je inspirovaný Keep a Changelog.
 - Dokumentace byla srovnaná s aktuálním kódem: týdenní planner, `EMAIL_DELIVERY_MODE=background` a produkční migrace přes `prisma migrate deploy`.
 
 ### Fixed
+- Unit test `src/features/booking/lib/booking-management.test.ts` už nehlásí ESLint warning `@typescript-eslint/no-unused-vars`; byl odstraněn nepoužitý import `BookingStatus`.
 - Import admin overview stránky na `DashboardPage` nyní používá absolutní alias `@/features/...`, takže v dev režimu už nedochází k chybě `Module not found: Can't resolve './admin-dashboard-page'`.
 - Planner už neukládá každé kliknutí okamžitě na server; změny se nejdřív drží v lokálním konceptu týdne, takže při rychlé práci neodskakuje layout ani denní kontext vpravo.
 - Admin shell a sidebar v sekci planneru už nemají zbytečně velkou vizuální váhu; hlavní prostor dostala týdenní mřížka a mobilní navigace se přesunula do draweru.
