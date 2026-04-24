@@ -468,7 +468,7 @@ export function MediaEditDialog({
       <summary className="list-none rounded-full border border-white/12 bg-white/8 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/12 [&::-webkit-details-marker]:hidden">
         Upravit
       </summary>
-      <div className="absolute left-0 top-full z-10 mt-2 w-[min(24rem,calc(100vw-2.5rem))] rounded-[1.25rem] border border-white/12 bg-[#15100d] p-4 shadow-[0_24px_70px_rgba(0,0,0,0.45)]">
+      <div className="mt-2 w-full rounded-[1.1rem] border border-white/12 bg-[#15100d] p-4 shadow-[0_16px_45px_rgba(0,0,0,0.35)]">
         <div className="mb-3 border-b border-white/10 pb-3">
           <p className="text-sm font-semibold text-white">Upravit médium</p>
           <p className="mt-1 text-xs text-white/52">Změňte typ, texty nebo publikaci bez technických detailů.</p>
