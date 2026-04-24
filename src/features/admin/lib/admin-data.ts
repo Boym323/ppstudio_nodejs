@@ -146,7 +146,6 @@ export function getAdminSectionTitle(slug: AdminSectionSlug) {
     case "klienti":
       return "Klienti";
     case "media":
-    case "certifikaty":
       return "Média webu";
     case "sluzby":
       return "Služby";
@@ -335,7 +334,6 @@ export async function getAdminSectionData(section: AdminSectionSlug, area: Admin
     case "klienti":
       return getClientsData(area);
     case "media":
-    case "certifikaty":
       return getCertificatesData(area);
     case "sluzby":
       return getServicesData(area);

@@ -14,7 +14,6 @@ const sectionSlugs = new Set<AdminSectionSlug>([
   "volne-terminy",
   "klienti",
   "media",
-  "certifikaty",
   "sluzby",
   "kategorie-sluzeb",
   "uzivatele",

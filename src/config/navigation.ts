@@ -24,7 +24,6 @@ export type AdminSectionSlug =
   | "volne-terminy"
   | "klienti"
   | "media"
-  | "certifikaty"
   | "sluzby"
   | "kategorie-sluzeb"
   | "uzivatele"

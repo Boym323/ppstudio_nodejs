@@ -29,8 +29,6 @@ export const mediaUploadPolicy = {
     ['image/jpeg', ['jpg', 'jpeg']],
     ['image/png', ['png']],
     ['image/webp', ['webp']],
-    ['image/gif', ['gif']],
-    ['image/svg+xml', ['svg']],
   ]),
 };
 

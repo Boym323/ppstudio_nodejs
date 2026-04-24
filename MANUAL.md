@@ -315,13 +315,13 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
 - Lokální filesystem adapter je v `src/lib/media/*`.
 - Sdílená feature service pro budoucí owner/salon upload workflow je v `src/features/media/lib/media-library.ts`.
 - Metadata se ukládají do tabulky `MediaAsset`, zatímco binární soubor zůstává na filesystemu.
-- Podporované typy jsou aktuálně obrázky `jpg`, `jpeg`, `png`, `webp`, `gif`, `svg`.
+- Podporované typy jsou aktuálně obrázky `jpg`, `jpeg`, `png`, `webp`.
 - Maximální velikost souboru je 8 MB.
 - Název souboru se skládá ze slugifikovaného původního jména a náhodného suffixu, takže nedochází k přepisování stejně pojmenovaných uploadů.
 - Relativní storage path má tvar `certificates/2026/04/moje-fotka-a1b2c3d4e5f6.webp`; další typy používají vlastní kořenovou složku, např. `spaces/`, `portraits/` nebo `general/`.
 - Pro budoucí private média už existuje fyzické oddělení v `private/`, ale veřejný přístup je zatím implementovaný jen pro `PUBLIC` assety.
 - Modul `Média webu` má první produkční napojení:
-  - admin upload, editaci a mazání přes `/admin/media` a `/admin/provoz/media`; staré `/admin/certifikaty` a `/admin/provoz/certifikaty` se přesměrují na nové cesty
+  - admin upload, editaci a mazání přes `/admin/media` a `/admin/provoz/media`
   - typy `CERTIFICATE`, `SALON_PHOTO`, `PORTRAIT` a `GENERAL`
   - veřejné zobrazení certifikátů v sekci `Certifikace` na stránce `/o-mne`
   - veřejné zobrazení publikovaných fotek studia na stránce `/studio`

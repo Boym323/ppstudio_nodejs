@@ -9,6 +9,8 @@ Formát je inspirovaný Keep a Changelog.
 - Media Library upload nyní pro JPEG/PNG/WebP generuje přes `sharp` tři úrovně souboru: původní originál, `optimized` variantu do 1920 px a `thumbnail` variantu kolem 400 px pro admin grid.
 - `MediaAsset` nově ukládá i variantová pole `optimized*` a `thumbnail*`; veřejný web používá `optimizedUrl`, admin grid `thumbnailUrl` a starší média bez variant automaticky padají zpět na původní `url`.
 - Media route `/media/[kind]/[[...path]]` nyní umí bezpečně obsloužit i optimalizované a thumbnail soubory podle konkrétní variantové cesty uložené v databázi.
+- Admin sekce už pracuje jen s novým modulem `Média webu`; legacy slug `certifikaty` byl odstraněn z routingu a URL `/admin/certifikaty` ani `/admin/provoz/certifikaty` už nejsou podporované.
+- Upload policy pro média je zjednodušená jen na formáty `JPG/PNG/WEBP`, aby odpovídala nové server-side image pipeline přes `sharp`.
 
 - Veřejné stránky now používají centrální `MediaAsset` read model i mimo certifikace: `/o-mne` bere hero z `MediaType.PORTRAIT`, homepage bere hero portrét z `MediaType.PORTRAIT` s fallbackem na brand asset a `/kontakt` bere hero z první publikované `MediaType.SALON_PHOTO`.
 - Admin grid `Média webu` nyní u každého assetu jasně ukazuje typ, publish stav a text `Použití`, aby bylo vidět, kde se obrázek na webu propisuje.
@@ -18,7 +20,7 @@ Formát je inspirovaný Keep a Changelog.
 - Stránka `/studio` načítá fotky přes `MediaType.SALON_PHOTO` a `isPublished = true`; pokud zatím nejsou nahrané žádné fotky, zobrazí klidný placeholder místo prázdné galerie.
 
 - Admin sekce `Certifikáty` byla zobecněná na modul `Média webu`; UI nově nabízí upload obrázku, filtr typů, grid karet, editaci titulku, alt textu, typu a publikace.
-- Modul `Média webu` nyní běží na nových adresách `/admin/media` a `/admin/provoz/media`; původní `/admin/certifikaty` a `/admin/provoz/certifikaty` jsou ponechané jako redirect kvůli kompatibilitě.
+- Modul `Média webu` nyní běží na adresách `/admin/media` a `/admin/provoz/media`.
 - Prisma model `MediaAsset` má nový obecný enum `MediaType` (`CERTIFICATE`, `SALON_PHOTO`, `PORTRAIT`, `GENERAL`) a nová pole `fileName`, `url`, `size`, `altText`, `sortOrder`, `isPublished`; legacy storage pole zůstávají kvůli bezpečné kompatibilitě.
 - Veřejná stránka `/o-mne` dál načítá pouze publikované certifikáty, nově přes `MediaType.CERTIFICATE` a `isPublished = true`.
 

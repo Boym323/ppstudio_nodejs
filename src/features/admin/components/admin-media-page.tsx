@@ -51,7 +51,7 @@ function flashMessage(flash: string | undefined) {
     case 'media-upload-invalid-type':
       return {
         tone: 'error' as const,
-        message: 'Nepodporovaný typ souboru. Použijte JPG, PNG, WEBP, GIF nebo SVG.',
+        message: 'Nepodporovaný typ souboru. Použijte JPG, PNG nebo WEBP.',
       };
     case 'media-upload-failed':
       return { tone: 'error' as const, message: 'Nahrání selhalo. Zkuste to prosím znovu.' };
@@ -144,7 +144,7 @@ export function MediaUploadForm({ area }: { area: AdminArea }) {
           <input
             type="file"
             name="file"
-            accept="image/jpeg,image/png,image/webp,image/gif,image/svg+xml"
+            accept="image/jpeg,image/png,image/webp"
             className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm text-white file:mr-3 file:rounded-full file:border-0 file:bg-[var(--color-accent)] file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-[var(--color-accent-contrast)]"
           />
         </label>
@@ -362,5 +362,3 @@ export function MediaEditDialog({ area, asset }: { area: AdminArea; asset: Media
     </details>
   );
 }
-
-export const AdminCertificatesPage = AdminMediaPage;

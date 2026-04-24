@@ -86,7 +86,7 @@ Postup nasazení aplikace do produkce.
      - pozvánka dorazí na e-mail a odkaz vede na `/admin/pozvanka/[token]`
      - aktivace pozvánky dovolí nastavit heslo a následně přihlášení přes `/admin/prihlaseni`
      - akce `Přepnout na OWNER/SALON`, `Deaktivovat` a `Znovu aktivovat` se ihned propšou do seznamu
-  - modul `Média webu` na `/admin/media` a `/admin/provoz/media` (legacy `/admin/certifikaty` a `/admin/provoz/certifikaty` se přesměrují):
+  - modul `Média webu` na `/admin/media` a `/admin/provoz/media`:
      - veřejná stránka `/studio` zobrazí jen publikované fotky typu `SALON_PHOTO`
      - upload podporovaného obrázku s výběrem typu
      - pro JPEG/PNG/WebP vzniká při uploadu i `optimized` a `thumbnail` varianta přes `sharp`
