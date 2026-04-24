@@ -250,8 +250,9 @@ export function MediaCard({ area, asset }: { area: AdminArea; asset: MediaAssetI
           <Image
             src={asset.thumbnailPublicUrl}
             alt={asset.altText ?? asset.title ?? asset.fileName}
-            fill
-            className="object-cover"
+            width={asset.thumbnailWidth ?? asset.optimizedWidth ?? asset.width ?? 400}
+            height={asset.thumbnailHeight ?? asset.optimizedHeight ?? asset.height ?? 300}
+            className="h-full w-full object-cover"
             sizes="(min-width: 1536px) 20vw, (min-width: 768px) 35vw, 90vw"
           />
         ) : (
