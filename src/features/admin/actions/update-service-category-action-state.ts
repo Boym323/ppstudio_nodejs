@@ -5,7 +5,6 @@ export type UpdateServiceCategoryActionState = {
   category?: {
     id: string;
     name: string;
-    publicName: string | null;
     description: string | null;
     pricingDescription: string | null;
     pricingLayout: "LIST" | "GRID";
@@ -16,7 +15,7 @@ export type UpdateServiceCategoryActionState = {
   };
   fieldErrors?: Partial<
     Record<
-      "name" | "publicName" | "description" | "pricingDescription" | "pricingLayout" | "pricingIconKey" | "sortOrder" | "pricingSortOrder",
+      "name" | "description" | "pricingDescription" | "pricingLayout" | "pricingIconKey" | "sortOrder" | "pricingSortOrder",
       string
     >
   >;

@@ -24,13 +24,13 @@ Do `Service` přidáváme:
 
 Do `ServiceCategory` přidáváme:
 
-- `publicName`
 - `pricingDescription`
 - `pricingLayout`
 - `pricingIconKey`
 - `pricingSortOrder`
 
 Admin formuláře `Služby` a `Kategorie služeb` tato pole přímo upravují.
+Poznámka po následném cleanupu: u kategorií se veřejný název nakonec neosvědčil, takže aktivně používáme jen `name`; databázové `publicName` zůstává už jen jako legacy pole kvůli kompatibilitě starších dat.
 
 Public read model:
 

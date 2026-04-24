@@ -35,12 +35,6 @@ export const updateServiceCategorySchema = z.object({
     .trim()
     .min(2, "Název kategorie musí mít alespoň 2 znaky.")
     .max(120, "Název kategorie je příliš dlouhý."),
-  publicName: z
-    .string()
-    .trim()
-    .max(120, "Veřejný název kategorie je příliš dlouhý.")
-    .optional()
-    .or(z.literal("")),
   description: z
     .string()
     .trim()
@@ -76,12 +70,6 @@ export const createServiceCategorySchema = z.object({
     .trim()
     .min(2, "Název kategorie musí mít alespoň 2 znaky.")
     .max(120, "Název kategorie je příliš dlouhý."),
-  publicName: z
-    .string()
-    .trim()
-    .max(120, "Veřejný název kategorie je příliš dlouhý.")
-    .optional()
-    .or(z.literal("")),
   description: z
     .string()
     .trim()

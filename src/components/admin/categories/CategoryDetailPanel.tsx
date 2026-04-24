@@ -28,7 +28,6 @@ type BaseProps = {
   onSaved?: (category: {
     id: string;
     name: string;
-    publicName: string | null;
     description: string | null;
     pricingDescription: string | null;
     pricingLayout: "LIST" | "GRID";
@@ -63,6 +62,7 @@ export function CategoryDetailPanel(props: Props) {
   const [descriptionLength, setDescriptionLength] = useState(
     props.mode === "create" ? 0 : (props.category.description ?? "").length,
   );
+  const formKey = props.mode === "create" ? "create" : props.category.id;
 
   useEffect(() => {
     if (
@@ -123,7 +123,7 @@ export function CategoryDetailPanel(props: Props) {
       </header>
 
       <form
-        key={props.mode === "create" ? "create" : props.category.id}
+        key={formKey}
         action={formAction}
         className="flex min-h-0 flex-1 flex-col"
       >
@@ -189,17 +189,6 @@ export function CategoryDetailPanel(props: Props) {
                   placeholder="Volitelné. Pomáhá jen tam, kde usnadní rychlou orientaci."
                 />
                 <div className="mt-2 text-right text-xs text-white/34">{descriptionLength}/160</div>
-              </Field>
-
-              <Field label="Veřejný název" error={serverState.fieldErrors?.publicName} className="sm:col-span-2">
-                <input
-                  type="text"
-                  name="publicName"
-                  maxLength={120}
-                  defaultValue={props.mode === "create" ? "" : props.category.publicName ?? ""}
-                  className={fieldClassName}
-                  placeholder="Např. Řasy a obočí"
-                />
               </Field>
             </PanelSection>
 

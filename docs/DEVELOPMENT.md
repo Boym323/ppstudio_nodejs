@@ -48,7 +48,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - FAQ už používá strukturovaný model `FaqSection -> FaqItem`; při dalších úpravách preferuj tematické skupiny a krátké odpovědi před jedním plochým seznamem dlouhých textů.
 - `src/features/public/lib/public-services.ts` nyní zároveň funguje jako thin read model nad rozšířeným katalogem:
   - `Service` nese `publicIntro`, `seoDescription`, `pricingShortDescription`, `pricingBadge`; název služby je sjednocený v `Service.name`
-  - `ServiceCategory` nese `publicName`, `pricingDescription`, `pricingLayout`, `pricingIconKey`, `pricingSortOrder`
+  - `ServiceCategory` nese `pricingDescription`, `pricingLayout`, `pricingIconKey`, `pricingSortOrder`; název kategorie je sjednocený v `ServiceCategory.name`
   - fallbacky pořád existují, ale primární zdroj veřejné copy už je databáze, ne lokální slug mapy
 - Ceník na `/cenik` má vlastní skladbu v `src/features/public/components/pricing-page.tsx`; obecný `public-site.tsx` už neobsahuje pricing-specific layout logiku.
 - Pricing modul je rozdělený na komponenty `PricingHero`, `CategoryChips`, `PricingSection`, `PricingItem`, `PricingGridSection` a `PricingCTA`, aby šlo věrně ladit spacing a hierarchii bez zásahu do ostatních veřejných stránek.
@@ -88,7 +88,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Model `LegalSection` podporuje `id`, seznamové body a volitelnou poznámku. U GDPR a podobných stránek tím drž kratší odstavce, lepší scanovatelnost a jasné anchor odkazy.
 - Placeholder obsah musí být jasně odlišen od finálních produkčních textů.
 - Pokud je interní název služby příliš technický nebo exportovaný ze starého webu, nepřepisuj DB záznam jen kvůli public copy; preferuj public override v read modelu.
-- Pro public override už preferuj přímo pole v katalogu (`Service.publicIntro`, `ServiceCategory.publicName`, `ServiceCategory.pricingDescription`); lokální fallback v read modelu má být jen záchranná síť, ne primární workflow.
+- Pro public override už preferuj přímo pole v katalogu (`Service.publicIntro`, `ServiceCategory.pricingDescription`); lokální fallback v read modelu má být jen záchranná síť, ne primární workflow.
 - CTA na rezervaci držet konzistentně v headeru, hero sekcích a kontextových blocích.
 - U homepage copy preferovat strukturu, která se už historicky osvědčila: jasný lokální hero claim, dvě primární akce (rezervace + ceník) a blok „nejste si jistá výběrem“, který snižuje bariéru první rezervace.
 - Pokud homepage potřebuje logo/fotku majitelky, nastav to v `homepageContent` (`logoImage`, `portraitImage`) a používej lokální soubory z `public/brand`, aby nebyla závislost na externím hostingu.
@@ -183,6 +183,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - `CategoryStats.tsx` renderuje kompaktní souhrnnou lištu
   - `CategoryRow.tsx` drží hustší řádkový layout s akcemi vpravo
   - `CategoryDetailPanel.tsx` je klasický formulářový detail se sticky footrem, ne vysoký card stack
+  - `CategoryDetailPanel.tsx` už neobsahuje samostatné pole `Veřejný název`; kategorie se napříč adminem a veřejným katalogem opírá jen o `name`
 - `src/features/admin/actions/service-category-actions.ts` nově obsluhuje create, update, optimistic quick toggles, inline reorder i bezpečné mazání prázdné kategorie; validace zůstává v `src/features/admin/lib/admin-service-category-validation.ts`.
 - `src/features/admin/components/admin-booking-detail-page.tsx` a route dvojice `/admin/rezervace/[bookingId]` + `/admin/provoz/rezervace/[bookingId]` drží první produkční workflow pro práci s rezervací.
 - Sekce `Klienti` má vlastní workflow v `src/features/admin/components/admin-clients-page.tsx` a už neběží přes generický placeholder renderer.

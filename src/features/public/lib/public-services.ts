@@ -14,7 +14,6 @@ type PublicServiceRow = Prisma.ServiceGetPayload<{
     category: {
       select: {
         name: true;
-        publicName: true;
       };
     };
   };
@@ -63,8 +62,8 @@ function formatPrice(value: number | null) {
   return priceFormatter.format(value);
 }
 
-function getCategoryLabel(category: { name: string; publicName: string | null }) {
-  return category.publicName ?? category.name;
+function getCategoryLabel(category: { name: string }) {
+  return category.name;
 }
 
 function buildServiceIntro(service: PublicServiceRow) {
@@ -222,7 +221,7 @@ function mapService(service: PublicServiceRow): Service {
 function mapPricingCategory(category: PublicPricingCategoryRow): PublicPricingCategory {
   return {
     id: category.slug,
-    label: category.publicName ?? category.name,
+    label: category.name,
     summary:
       category.pricingDescription ??
       category.description ??
@@ -260,7 +259,6 @@ export async function getPublicServices(): Promise<Service[]> {
       category: {
         select: {
           name: true,
-          publicName: true,
         },
       },
     },
@@ -320,7 +318,6 @@ export async function getPublicServiceBySlug(slug: string): Promise<Service | nu
       category: {
         select: {
           name: true,
-          publicName: true,
         },
       },
     },

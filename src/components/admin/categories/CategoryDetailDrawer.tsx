@@ -26,7 +26,6 @@ export function CategoryDetailDrawer({
   onSaved?: (category: {
     id: string;
     name: string;
-    publicName: string | null;
     description: string | null;
     pricingDescription: string | null;
     pricingLayout: "LIST" | "GRID";

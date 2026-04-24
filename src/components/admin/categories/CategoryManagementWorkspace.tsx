@@ -35,7 +35,6 @@ type OptimisticAction =
       category: {
         id: string;
         name: string;
-        publicName: string | null;
         description: string | null;
         pricingDescription: string | null;
         pricingLayout: "LIST" | "GRID";
@@ -97,7 +96,6 @@ function categoryReducer(state: CategoryRecord[], action: OptimisticAction) {
         const nextCategory = {
           ...category,
           name: action.category.name,
-          publicName: action.category.publicName,
           description: action.category.description,
           pricingDescription: action.category.pricingDescription,
           pricingLayout: action.category.pricingLayout,
@@ -168,7 +166,6 @@ export function CategoryManagementWorkspace({
   const handleSaved = (category: {
     id: string;
     name: string;
-    publicName: string | null;
     description: string | null;
     pricingDescription: string | null;
     pricingLayout: "LIST" | "GRID";

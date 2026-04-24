@@ -45,7 +45,7 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
 - Ceník na `/cenik` má vlastní modul v `src/features/public/components/pricing-page.tsx` a je rozdělený do jasné kompozice `hero -> category chips -> hlavní sekce -> menší grid sekce -> finální CTA`.
 - Katalog služeb a kategorií teď nese i veřejná pricing metadata:
   - služba: `publicIntro`, `seoDescription`, `pricingShortDescription`, `pricingBadge` (název je sjednocený v poli `name` pro web i rezervace)
-  - kategorie: `publicName`, `pricingDescription`, `pricingLayout`, `pricingIconKey`, `pricingSortOrder`
+  - kategorie: `pricingDescription`, `pricingLayout`, `pricingIconKey`, `pricingSortOrder` (název je sjednocený v poli `name`; legacy `publicName` se už nepoužívá)
 - Admin sekce `Služby` a `Kategorie služeb` tato metadata umí upravovat bez zásahu do databáze nebo kódu.
 - Ceník už nepoužívá vedlejší blok s poznámkami; detail služby zůstává místem pro doplňující vysvětlení.
 - Veřejné stránky drží jednotný šířkový rytmus přes sdílený `Container` (`max-w-7xl`); při úpravách layoutu nepřidávej další globální zúžení sekcí přes `mx-auto max-w-*`.
@@ -152,7 +152,7 @@ node scripts/import-services.mjs --file scripts/services.import.example.json --d
 node scripts/import-services.mjs --file path/to/old-web-services.json
 ```
 - Import očekává strukturu:
-  - `categories[]` s poli `name`, `slug`, `description`, `publicName`, `pricingDescription`, `pricingLayout`, `pricingIconKey`, `sortOrder`, `pricingSortOrder`, `isActive`
+  - `categories[]` s poli `name`, `slug`, `description`, `pricingDescription`, `pricingLayout`, `pricingIconKey`, `sortOrder`, `pricingSortOrder`, `isActive`
   - `services[]` s poli `name`, `slug`, `categorySlug`, `publicIntro`, `seoDescription`, `pricingShortDescription`, `pricingBadge`, `durationMinutes`, `priceFromCzk`, `description`, `shortDescription` (legacy, volitelné), `publicName` (legacy, volitelné), `sortOrder`, `isActive`
 - Pokud starý web exportuje data v jiném formátu, je potřeba je před importem namapovat do této struktury.
 - Pro tvoje aktuální kategorie je připravený vzor v `scripts/old-web-categories.json`.
@@ -359,7 +359,8 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
   - problémové kategorie mají zvýrazněný warning stav a jemně odlišený border
   - přímo v seznamu jsou rychlé akce `aktivovat/deaktivovat`, `otevřít detail`, `zobrazit služby` a posuny v pořadí
   - přepnutí aktivního stavu a posun v pořadí probíhá okamžitě optimistic UI přes server action bez reloadu
-  - editor umožňuje upravit název, volitelný popis, pořadí a aktivní stav; navíc nabízí CTA `Vytvořit službu` a `Otevřít služby této kategorie`
+  - editor umožňuje upravit název, volitelný popis, pořadí a aktivní stav; kategorie už nemá samostatný `Veřejný název`, web i ceník vždy používají `Název kategorie`
+  - detail dál nabízí CTA `Vytvořit službu` a `Otevřít služby této kategorie`
   - novou kategorii lze založit přes jasné CTA `+ Nová kategorie`; na mobilu se detail otevírá jako samostatný full-screen drawer
   - mazání je povolené jen pro prázdné kategorie bez služeb; jinak je doporučené kategorii pouze vypnout
   - změna pořadí nebo aktivity se promítá do adminu, veřejných výpisů `/sluzby` a `/cenik` i do veřejného booking flow

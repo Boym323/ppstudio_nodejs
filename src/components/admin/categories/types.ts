@@ -22,7 +22,6 @@ export type CategoryCounts = {
 export type CategoryRecord = {
   id: string;
   name: string;
-  publicName: string | null;
   description: string | null;
   pricingDescription: string | null;
   pricingLayout: "LIST" | "GRID";

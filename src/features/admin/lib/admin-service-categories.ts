@@ -61,7 +61,6 @@ function buildCategoryWhere(
   if (filters.query) {
     where.OR = [
       { name: { contains: filters.query, mode: "insensitive" } },
-      { publicName: { contains: filters.query, mode: "insensitive" } },
       { slug: { contains: filters.query, mode: "insensitive" } },
       { description: { contains: filters.query, mode: "insensitive" } },
       { pricingDescription: { contains: filters.query, mode: "insensitive" } },

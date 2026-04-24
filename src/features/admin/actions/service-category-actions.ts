@@ -130,7 +130,6 @@ export async function createServiceCategoryAction(
     area: readFormString(formData, "area"),
     returnTo: readFormString(formData, "returnTo"),
     name: readFormString(formData, "name"),
-    publicName: readFormString(formData, "publicName"),
     description: readFormString(formData, "description"),
     pricingDescription: readFormString(formData, "pricingDescription"),
     pricingLayout: readFormString(formData, "pricingLayout"),
@@ -148,7 +147,6 @@ export async function createServiceCategoryAction(
       formError: "Novou kategorii je potřeba ještě doplnit nebo opravit.",
       fieldErrors: {
         name: fieldErrors.name?.[0],
-        publicName: fieldErrors.publicName?.[0],
         description: fieldErrors.description?.[0],
         pricingDescription: fieldErrors.pricingDescription?.[0],
         pricingLayout: fieldErrors.pricingLayout?.[0],
@@ -167,7 +165,7 @@ export async function createServiceCategoryAction(
     data: {
       slug,
       name: parsed.data.name,
-      publicName: parsed.data.publicName || null,
+      publicName: null,
       description: parsed.data.description || null,
       pricingDescription: parsed.data.pricingDescription || null,
       pricingLayout: parsed.data.pricingLayout,
@@ -200,7 +198,6 @@ export async function updateServiceCategoryAction(
     returnTo: readFormString(formData, "returnTo"),
     intent: readFormString(formData, "intent") || undefined,
     name: readFormString(formData, "name"),
-    publicName: readFormString(formData, "publicName"),
     description: readFormString(formData, "description"),
     pricingDescription: readFormString(formData, "pricingDescription"),
     pricingLayout: readFormString(formData, "pricingLayout"),
@@ -218,7 +215,6 @@ export async function updateServiceCategoryAction(
       formError: "Formulář potřebuje doplnit nebo opravit.",
       fieldErrors: {
         name: fieldErrors.name?.[0],
-        publicName: fieldErrors.publicName?.[0],
         description: fieldErrors.description?.[0],
         pricingDescription: fieldErrors.pricingDescription?.[0],
         pricingLayout: fieldErrors.pricingLayout?.[0],
@@ -257,7 +253,7 @@ export async function updateServiceCategoryAction(
     where: { id: parsed.data.categoryId },
     data: {
       name: parsed.data.name,
-      publicName: parsed.data.publicName || null,
+      publicName: null,
       description: parsed.data.description || null,
       pricingDescription: parsed.data.pricingDescription || null,
       pricingLayout: parsed.data.pricingLayout,
@@ -284,7 +280,6 @@ export async function updateServiceCategoryAction(
     category: {
       id: parsed.data.categoryId,
       name: parsed.data.name,
-      publicName: parsed.data.publicName || null,
       description: parsed.data.description || null,
       pricingDescription: parsed.data.pricingDescription || null,
       pricingLayout: parsed.data.pricingLayout,
