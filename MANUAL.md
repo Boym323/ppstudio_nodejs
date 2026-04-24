@@ -55,6 +55,7 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
 - Po potvrzení rezervace zákaznice dostává v potvrzovacím e-mailu `.ics` přílohu s jednou konkrétní kalendářovou událostí pro potvrzený termín, ne subscription feed.
 - Owner může v `/admin/nastaveni` nově zapnout chráněný Apple Calendar subscription feed na `/api/calendar/owner.ics?token=...`; feed je read-only, bere jen potvrzené rezervace a aplikace zůstává jediným source of truth.
 - Admin detail rezervace nově podporuje samostatnou akci `Přesunout termín`; booking zůstává stejným záznamem, ale změna projde backend validací, auditním logem, resetem reminder návaznosti a volitelným klientským e-mailem `Termín byl změněn`.
+- Veřejný manage flow `/rezervace/sprava/[token]` má nově DB integrační coverage nad reálným Prisma wiringem; testy ověřují token access, self-service storno, self-service přesun i hlavní auditní a notifikační side effects bez browser E2E vrstvy.
 - Admin má dva směry použití:
   - full admin na `/admin/*` pro roli `OWNER`
   - lite admin na `/admin/provoz/*` pro roli `SALON`
@@ -77,11 +78,15 @@ npm run db:generate
 npm run dev
 ```
 
-Pro DB-backed integrační test reschedule flow je připravený i samostatný příkaz:
+Pro DB-backed integrační testy booking domény je připravený i samostatný příkaz:
 
 ```bash
 npm run test:db:booking
 ```
+
+Aktuálně pokrývá:
+- `src/features/booking/lib/booking-rescheduling.integration.test.ts`
+- `src/features/booking/lib/booking-management.integration.test.ts`
 
 Pro rychlé unit ověření veřejné správy rezervace a reschedule pravidel jsou v repozitáři i cílené testy bez DB:
 

@@ -347,12 +347,14 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - `npm run lint`
   - `npm run test`
   - `npm run build`
-- Pro DB-backed integrační test booking reschedule flow je připravený i:
+- Pro DB-backed integrační testy booking domény je připravený i:
   - `npm run test:db:booking`
+- `npm run test:db:booking` aktuálně spouští jak centrální `booking-rescheduling.integration.test.ts`, tak veřejný `booking-management.integration.test.ts`.
 - Pro rychlé unit ověření bezpečné veřejné správy rezervace a reschedule domény můžeš spustit i:
   - `node --import tsx --test src/features/booking/lib/booking-management.test.ts`
   - `node --import tsx --test src/features/booking/lib/booking-rescheduling.test.ts`
 - `src/features/booking/lib/booking-management.ts` a `src/features/booking/lib/booking-rescheduling.ts` mají záměrně malé dependency factories `createBookingManagementApi(...)` a `createBookingReschedulingApi(...)`; slouží jen jako test seam pro mocknutí Prisma/notifikačních závislostí a nemají být druhým produkčním entrypointem s odlišnou business logikou.
+- Veřejný klientský reschedule nesmí obcházet pravidla přes admin-style manual override; integrační test pro `/rezervace/sprava/[token]` musí ověřovat i odmítnutí termínu mimo online okno, stejného termínu, kolize a terminal stavů bez zápisu historie nebo email side effects.
 - `npm run dev` i `npm run build` nyní před startem automaticky spouští `prisma generate`, takže po změně Prisma schématu nevznikne rozjezd mezi generovaným klientem a runtime admin obrazovkami.
 - Pokud měníš e-mail delivery, ověř i `npm run email:worker:once`.
 - Po změně reminder flow ručně ověř i:

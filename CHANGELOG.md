@@ -11,8 +11,11 @@ Formát je inspirovaný Keep a Changelog.
 - `BookingRescheduleLog.changedByClient` se nově plní i z veřejného flow, takže v admin historii zůstává vidět, že změnu provedla sama klientka bez přihlášeného uživatele.
 - Klientské e-maily `booking-confirmation-v1`, `booking-approved-v1`, `booking-reminder-24h-v1` a `booking-rescheduled-v1` teď posílají bezpečný odkaz `Změnit termín`; původní placeholder `Požádat o změnu` přes `mailto:` byl odstraněn z web confirmation screenu i z e-mailů.
 - Přibyly čisté unit testy pro veřejnou booking-management vrstvu a doménový `rescheduleBooking(...)`; pokrývají token-bound přístup, explicitní validaci stavů `PENDING` / `CONFIRMED` / `CANCELLED` / `COMPLETED` / `NO_SHOW`, kolize, stejné termíny, duration guard, optimistic concurrency, audit log i návazné notifikační volání bez DB integrace.
+- Přibyly DB-backed integrační testy pro veřejný booking-management flow, které přes skutečné Prisma wiring ověřují token access, self-service storno, self-service přesun, reminder reset, audit/history zápisy, email orchestrace i odmítnutí neplatných tokenů, kolizí, terminal stavů a pokusů o přesun mimo online okno.
 
 ### Changed
+- `npm run test:db:booking` nově spouští všechny booking DB integrační testy (`*.integration.test.ts`), takže jedním příkazem ověří jak centrální reschedule engine, tak veřejný token-based manage flow.
+- Veřejný klientský přesun termínu už nesmí propadnout do admin-style manual override větve; pokus o přesun mimo online okno nebo mimo veřejně dostupný slot se teď zastaví na service vrstvě bezpečnou business chybou.
 - Admin detail rezervace nově obsahuje samostatný drawer `Přesunout termín`; přesun už není tichá editace času, ale řízená doménová akce se stejnou validací slotů a interních výjimek jako veřejný booking a ruční admin booking.
 - Historie detailu rezervace se rozšířila ze samotných stavových změn na sjednocenou timeline stavů a přesunů termínu, takže je vidět původní i nový čas, aktér změny a volitelný důvod.
 - Reminder architektura už při výběru 24h kandidátek nestojí na samotné existenci reminder email logu; nově používá `Booking.reminder24hQueuedAt`, takže přesun termínu resetuje reminder návaznost pro nový čas bez paralelní reminder pipeline.

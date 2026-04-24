@@ -625,6 +625,22 @@ async function rescheduleBookingInTransaction(
     manualOverride = true;
   }
 
+  if (input.changedByClient && !isWithinPublicWindow) {
+    throw new BookingRescheduleError(
+      bookingRescheduleErrorCodes.slotNotAllowed,
+      "Vybraný termín už není dostupný pro online přesun.",
+      "slot",
+    );
+  }
+
+  if (input.changedByClient && manualOverride) {
+    throw new BookingRescheduleError(
+      bookingRescheduleErrorCodes.slotNotAllowed,
+      "Vybraný termín není dostupný pro online přesun.",
+      "slot",
+    );
+  }
+
   const activeBookingCount = await tx.booking.count({
     where: {
       id: {
