@@ -25,17 +25,17 @@ async function loadMediaPathHelpers() {
 
 test('buildStoredFilename creates a safe unique filename', async () => {
   const { buildStoredFilename } = await loadMediaFilenameHelpers();
-  const storedFilename = buildStoredFilename('Certifikát Pavlína 2026.JPG', 'jpg');
+  const storedFilename = buildStoredFilename('jpg');
 
-  assert.match(storedFilename, /^certifikat-pavlina-2026-[a-f0-9]{12}\.jpg$/);
+  assert.match(storedFilename, /^[a-f0-9]{12}-original\.jpg$/);
 });
 
 test('buildVariantStoredFilename appends a stable variant suffix', async () => {
   const { buildVariantStoredFilename } = await loadMediaFilenameHelpers();
 
   assert.equal(
-    buildVariantStoredFilename('certifikat-pavlina-a1b2c3d4e5f6.jpg', 'thumbnail', 'jpg'),
-    'certifikat-pavlina-a1b2c3d4e5f6-thumbnail.jpg',
+    buildVariantStoredFilename('a1b2c3d4e5f6-original.jpg', 'thumbnail', 'jpg'),
+    'a1b2c3d4e5f6-thumbnail.jpg',
   );
 });
 
@@ -43,8 +43,8 @@ test('assertSafeStoragePath accepts expected media layout', async () => {
   const { assertSafeStoragePath } = await loadMediaPathHelpers();
 
   assert.deepEqual(
-    assertSafeStoragePath('certificates/2026/04/certificate-a1b2c3d4e5f6.jpg'),
-    ['certificates', '2026', '04', 'certificate-a1b2c3d4e5f6.jpg'],
+    assertSafeStoragePath('certificates/2026/04/a1b2c3d4e5f6-original.jpg'),
+    ['certificates', '2026', '04', 'a1b2c3d4e5f6-original.jpg'],
   );
 });
 

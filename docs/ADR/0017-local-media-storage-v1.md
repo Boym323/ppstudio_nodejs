@@ -14,11 +14,11 @@ Zavádíme sdílenou media storage vrstvu se třemi oddělenými částmi:
 
 1. Filesystem adapter v `src/lib/media/*`
 - lokální storage root je mimo repo a konfiguruje se přes `MEDIA_STORAGE_ROOT`
-- pokud proměnná chybí, výchozí cesta je `../ppstudio-uploads` relativně k projektu
-- veřejná a neveřejná média se fyzicky oddělují do `public/` a `private/`
+- pokud proměnná chybí, výchozí cesta je `/var/www/ppstudio/uploads`
+- nové uploady se fyzicky ukládají do `public/`; historické `private/` cesty zůstávají jen jako legacy kompatibilita
 - storage root má navíc připravený `temp/` prostor pro budoucí drafty nebo přechodné uploady
-- soubory se ukládají pod logické doménové složky `certificates/`, `spaces/`, `references/`, `content/`
-- finální relativní cesta má tvar `kind/YYYY/MM/safe-randomized-filename.ext`
+- soubory se ukládají pod logické doménové složky `certificates/`, `spaces/`, `portraits/`, `general/`
+- finální relativní cesta má tvar `type/YYYY/MM/<assetId>-<variant>.<ext>`
 
 2. Metadata model `MediaAsset` v Prisma
 - metadata jsou v tabulce `MediaAsset`
@@ -28,7 +28,7 @@ Zavádíme sdílenou media storage vrstvu se třemi oddělenými částmi:
 
 3. Veřejné servírování přes App Router route handler
 - veřejné soubory nejdou přímo z `public/` repozitáře
-- route `/media/[kind]/...` validuje cestu, ověří existenci veřejného `MediaAsset` záznamu a až potom načte lokální soubor
+- route `/media/public/[kind]/...` je kanonická pro nové uploady; legacy `/media/[kind]/...` zůstává kvůli starším záznamům
 - tím nezabetonujeme URL na náhodné projektové cesty a necháváme si prostor pro budoucí private media flow
 
 ## Alternativy
@@ -48,9 +48,9 @@ Zavádíme sdílenou media storage vrstvu se třemi oddělenými částmi:
 
 ## Důsledky
 - Deploy a backup checklist musí nově počítat s adresářem uploadů a jeho právy.
-- Veřejný web dostává stabilní URL vrstvu `/media/*`, která není vázaná na fyzické umístění souborů.
+- Veřejný web dostává stabilní URL vrstvu `/media/public/*` a legacy `/media/*`, která není vázaná na fyzické umístění souborů.
 - Budoucí admin moduly budou používat shared feature service místo přímé práce s `fs`.
-- Private média ještě nemají hotovou veřejnou autorizovanou distribuci, ale fyzické i datové oddělení pro ni už existuje.
+- Detailní upload pipeline a fallback pravidla dál rozvíjí ADR `0042-media-upload-strategy-v1.md`.
 
 ## Stav
 schváleno

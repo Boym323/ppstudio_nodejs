@@ -1,9 +1,11 @@
 import { MediaAssetKind, MediaAssetVisibility, MediaType } from '@prisma/client';
 
 import { buildMediaPublicUrl } from '@/lib/media/media-config';
-import { readImageMetadata } from '@/lib/media/media-image';
 import { localMediaStorage } from '@/lib/media/local-media-storage';
-import { createMediaVariants } from '@/lib/media/media-pipeline';
+import {
+  createMediaVariants,
+  normalizeOriginalMediaImage,
+} from '@/lib/media/media-pipeline';
 import type { MediaUploadInput } from '@/lib/media/media-types';
 import { validateMediaFile } from '@/lib/media/media-validation';
 
@@ -33,10 +35,6 @@ function legacyKindForType(type: MediaType) {
   }
 }
 
-function visibilityForPublished(isPublished: boolean) {
-  return isPublished ? MediaAssetVisibility.PUBLIC : MediaAssetVisibility.PRIVATE;
-}
-
 function withPublicUrl<
   T extends {
     isPublished: boolean;
@@ -57,19 +55,25 @@ function withPublicUrl<
 
 export async function createMedia(input: MediaUploadInput) {
   const isPublished = input.isPublished ?? true;
-  const visibility = input.visibility ?? visibilityForPublished(isPublished);
+  const visibility = MediaAssetVisibility.PUBLIC;
   const validatedFile = await validateMediaFile(input.file);
+  const normalizedOriginal = await normalizeOriginalMediaImage(validatedFile);
 
   await localMediaStorage.ensureBaseDirectories();
 
   const preparedFile = localMediaStorage.prepareFile({
-    file: validatedFile,
+    file: {
+      ...validatedFile,
+      buffer: normalizedOriginal.buffer,
+      mimeType: normalizedOriginal.mimeType,
+      extension: normalizedOriginal.extension,
+      sizeBytes: normalizedOriginal.sizeBytes,
+    },
     type: input.type,
     visibility,
   });
   const url = buildMediaPublicUrl(preparedFile.storagePath);
-  const imageMetadata = readImageMetadata(validatedFile.buffer, validatedFile.mimeType);
-  const variantPayloads = await createMediaVariants(validatedFile);
+  const variantPayloads = await createMediaVariants(normalizedOriginal);
   const preparedVariants = variantPayloads.map((variant) =>
     localMediaStorage.prepareVariantFile({
       variant: variant.variant,
@@ -106,14 +110,14 @@ export async function createMedia(input: MediaUploadInput) {
       visibility,
       storageProvider: 'LOCAL',
       originalFilename: validatedFile.originalFilename,
-      fileName: validatedFile.originalFilename,
+      fileName: preparedFile.storedFilename,
       storedFilename: preparedFile.storedFilename,
-      mimeType: validatedFile.mimeType,
-      extension: validatedFile.extension,
-      sizeBytes: validatedFile.sizeBytes,
-      size: validatedFile.sizeBytes,
-      width: imageMetadata.width,
-      height: imageMetadata.height,
+      mimeType: preparedFile.mimeType,
+      extension: preparedFile.extension,
+      sizeBytes: preparedFile.sizeBytes,
+      size: preparedFile.sizeBytes,
+      width: normalizedOriginal.width,
+      height: normalizedOriginal.height,
       alt: normalizeMediaText(input.altText),
       altText: normalizeMediaText(input.altText),
       title: normalizeMediaText(input.title),
@@ -189,9 +193,7 @@ export async function updateMedia(
     ...(input.altText !== undefined
       ? { altText: normalizeMediaText(input.altText), alt: normalizeMediaText(input.altText) }
       : {}),
-    ...(input.isPublished !== undefined
-      ? { isPublished: input.isPublished, visibility: visibilityForPublished(input.isPublished) }
-      : {}),
+    ...(input.isPublished !== undefined ? { isPublished: input.isPublished } : {}),
   };
 
   const asset = await updateMediaAsset(id, data);

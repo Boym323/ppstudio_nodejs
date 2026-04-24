@@ -5,7 +5,7 @@ Postup nasazení aplikace do produkce.
 ## Release checklist
 1. `npm ci`
 2. Ověř správné produkční env proměnné (`DATABASE_URL`, `ADMIN_SESSION_SECRET`, admin bootstrap účty, email delivery, worker, `MEDIA_STORAGE_ROOT`)
-3. Ověř existenci a práva k upload rootu; web proces musí umět zapisovat do `MEDIA_STORAGE_ROOT` nebo do výchozí cesty `../ppstudio-uploads`.
+3. Ověř existenci a práva k upload rootu; web proces musí umět zapisovat do `MEDIA_STORAGE_ROOT` nebo do výchozí cesty `/var/www/ppstudio/uploads`.
 4. Zálohuj databázi, pokud release obsahuje novou Prisma migraci.
 5. Zálohuj nebo snapshotuj upload root, pokud release mění práci s médii nebo cleanup logiku.
 6. `npm run db:generate`
@@ -89,7 +89,7 @@ Postup nasazení aplikace do produkce.
   - modul `Média webu` na `/admin/media` a `/admin/provoz/media`:
      - veřejná stránka `/studio` zobrazí jen publikované fotky typu `SALON_PHOTO`
      - upload podporovaného obrázku s výběrem typu
-     - pro JPEG/PNG/WebP vzniká při uploadu i `optimized` a `thumbnail` varianta přes `sharp`
+     - pro JPEG/PNG/WebP vzniká při uploadu originál s EXIF normalizací a k němu `optimized` + `thumbnail` varianta přes `sharp`
      - editace titulku, alt textu, typu a publish/unpublish
      - smazání média
      - propsání publikovaných certifikátů na `/o-mne`
@@ -131,7 +131,7 @@ Postup nasazení aplikace do produkce.
     - potvrzovací email se korektně doručí i s attachmentem přes SMTP
   - doručení admin notifikačního e-mailu na `notificationAdminEmail`
   - zpracování email workerem nebo potvrzený `EmailLog` v log režimu
-  - načtení testovacího veřejného media URL `/media/<kind>/...`
+  - načtení testovacího veřejného media URL `/media/public/<kind>/...` nebo legacy `/media/<kind>/...`
   - otevření `/api/calendar/owner.ics?token=...`:
     - validní `VCALENDAR` hlavička
     - `Content-Type: text/calendar; charset=utf-8`
@@ -145,7 +145,7 @@ Postup nasazení aplikace do produkce.
 4. Kontrola historie migrací (`npm run db:check-migrations`).
 5. Aplikace databázových změn (`npx prisma migrate deploy`).
 6. Build (`npm run build`).
-7. Připrav nebo ověř existenci upload rootu mimo repo, například `/var/www/ppstudio-uploads`, včetně práv pro web proces.
+7. Připrav nebo ověř existenci upload rootu `/var/www/ppstudio/uploads` včetně práv pro web proces.
 8. Restart procesu aplikace.
 9. Pokud běžíš v self-hosted režimu bez připraveného SMTP, nech dočasně `EMAIL_DELIVERY_MODE=log`, ať booking flow neblokuje start produkce.
 10. Pro produkci spusť zvlášť `npm run email:worker` jako samostatný proces nebo službu.
@@ -190,7 +190,7 @@ sudo /var/www/ppstudio/deploy/deploy.sh
 - Migrace `20260422193000_calendar_feed_v1` přidává tabulku `CalendarFeed`; po deployi ověř owner sekci `/admin/nastaveni`, zapnutí feedu a úspěšný fetch `/api/calendar/owner.ics?token=...`.
 - Pokud je databáze v divergentním stavu a `prisma migrate dev` by nabízelo reset, neprováděj ho naslepo. Pro tuto migraci lze bezpečně použít `npx prisma db execute --file prisma/migrations/20260421113000_public_pricing_metadata/migration.sql` a až potom ověřit build.
 - Migrace `20260419140000_site_settings_singleton` přidává tabulku `SiteSettings`; po deployi ověř, že se `/admin/nastaveni` otevře bez chyby a že owner workflow `Nastavení` bezpečně založí výchozí singleton záznam i na prázdné DB.
-- Migrace `20260419230000_media_storage_v1` přidává tabulku `MediaAsset` a enumy pro lokální media storage; po deployi ověř zápis souboru do upload rootu a načtení přes `/media/*`.
+- Migrace `20260419230000_media_storage_v1` přidává tabulku `MediaAsset` a enumy pro lokální media storage; po deployi ověř zápis souboru do upload rootu a načtení přes `/media/public/*` nebo legacy `/media/*`.
 - Admin workflow kategorií služeb nevyžaduje novou DB migraci; navazuje na existující model `ServiceCategory`.
 - Přepracované admin workflow služeb a kategorií nevyžaduje novou DB migraci; změna je čistě v read modelech, server actions a UI vrstvách.
 - Nový layout sekce `Kategorie služeb` také nevyžaduje novou DB migraci; změna zůstává čistě v komponentách, read modelu a server actions nad existujícím `ServiceCategory`.
@@ -220,7 +220,7 @@ sudo /var/www/ppstudio/deploy/deploy.sh
 - I když `npm run build` dnes předem volá `prisma generate`, v release checklistu necháváme explicitní `npm run db:generate`, protože chrání i jiné skripty a ruční servisní zásahy.
 - `allowedDevOrigins` je čistě development nastavení pro `next dev`; produkční deploy ani `next start` na něm nestojí. Pokud někdo řeší vzdálené testování přes LAN nebo přes Synology reverse proxy na `ppstudio.cz`, upravuje se `next.config.ts`, ne produkční env.
 - Upload root není build artefakt. Při deployi se nemaže a má být zálohovaný samostatně od repozitáře i databáze.
-- Veřejná média se publikují přes `/media/*`, takže reverse proxy nemusí mapovat fyzickou cestu upload adresáře přímo do document rootu.
+- Veřejná média se publikují přes `/media/public/*` a legacy `/media/*`, takže reverse proxy nemusí mapovat fyzickou cestu upload adresáře přímo do document rootu.
 
 ## Dodatečná QA pro týdenní planner
 - Ověř všechny route varianty:

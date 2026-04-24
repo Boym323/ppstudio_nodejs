@@ -571,7 +571,7 @@ async function getCertificatesData(area: AdminArea) {
       description: area === "owner"
         ? `Nahráno ${formatDateLabel(asset.createdAt)} • soubor ${asset.storedFilename}`
         : `Nahráno ${formatDateLabel(asset.createdAt)}`,
-      badge: asset.isPublished ? "Veřejné" : "Soukromé",
+      badge: asset.isPublished ? "Veřejné" : "Nepublikováno",
     })),
   };
 }

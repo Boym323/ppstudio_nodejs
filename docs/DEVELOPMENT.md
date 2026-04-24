@@ -299,13 +299,14 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - `SiteSettings` drží jen skutečně globální provozní hodnoty. Technické env proměnné jako SMTP host/port, `NEXT_PUBLIC_APP_URL` nebo `ADMIN_SESSION_SECRET` se do adminu záměrně nepřenášejí.
 - `MediaAsset` je obecný metadata model pro certifikáty, fotky prostor, reference i další obsahové obrázky; binární obsah zůstává na lokálním filesystemu mimo DB.
 - Veřejná stránka `/studio` používá read model `src/features/public/lib/public-studio-photos.ts`, který smí vracet jen `MediaType.SALON_PHOTO` s `isPublished = true`; komponenty stránky jsou v `src/features/public/components/studio/studio-page.tsx`.
-- Filesystem layout médií má tvar `<MEDIA_STORAGE_ROOT>/<visibility>/<kind>/<year>/<month>/<storedFilename>`; varianty `optimized` a `thumbnail` zůstávají ve stejné složce a liší se suffixem v názvu souboru.
+- Filesystem layout médií má pro nové uploady tvar `<MEDIA_STORAGE_ROOT>/public/<type>/<year>/<month>/<assetId>-<variant>.<ext>`; používáme fixní `YYYY/MM`, bez jednorázových složek a bez názvů od uživatele v `storedFilename`.
 - `src/lib/media/local-media-storage.ts` je adapter pro lokální filesystem; business vrstva přes něj neřeší konkrétní `fs` operace ani fyzické cesty.
-- `src/lib/media/media-pipeline.ts` drží lehkou server-side pipeline nad `sharp`; pro JPEG/PNG/WebP dělá EXIF auto-rotate, `optimized` variantu (max 1920 px) a `thumbnail` variantu (cca 400 px) bez zavádění CDN nebo komplexního responsive systému.
+- `src/lib/media/media-pipeline.ts` drží lehkou server-side pipeline nad `sharp`; pro JPEG/PNG/WebP dělá EXIF auto-rotate už na ukládaném originálu, `optimized` variantu (max 1920 px) a `thumbnail` variantu (cca 400 px) bez zavádění CDN nebo komplexního responsive systému.
 - Route `/media/[kind]/[[...path]]` používá v media path helperu a storage adapteru cílené `turbopackIgnore` anotace u dynamických `path.resolve/path.join`; cílem je zabránit tomu, aby Next.js 16 Turbopack NFT tracer při buildu omylem zahrnoval celý projekt.
-- Route `/media/[kind]/[[...path]]` nyní umí vrátit originál i varianty `optimized` / `thumbnail` podle konkrétní storage path uložené v `MediaAsset`; starší záznamy bez variant fungují dál přes fallback na původní `storagePath`.
+- Kanonická veřejná URL pro nové uploady je `/media/public/<type>/YYYY/MM/<filename>`; legacy route `/media/[kind]/[[...path]]` zůstává kvůli starším médiím.
+- Route pro média umí vrátit originál i varianty `optimized` / `thumbnail` podle konkrétní storage path uložené v `MediaAsset`; starší záznamy bez variant fungují dál přes fallback na původní `storagePath`.
 - `src/lib/media/media-validation.ts` centralizuje kontrolu MIME typu, přípony a maximální velikosti souboru.
-- `src/lib/media/media-filename.ts` generuje bezpečný název z původního jména a náhodného suffixu, takže nehrozí přepisování souborů se stejným názvem.
+- `src/lib/media/media-filename.ts` generuje krátký náhodný asset key a stabilní suffixy `original`, `optimized`, `thumbnail`, takže naming zůstává konzistentní a připravený na další varianty.
 - `src/features/booking/lib/booking-public.ts` je veřejný write model pro rezervace a drží i ochranu proti souběžnému obsazení slotu.
 - Veřejný booking write model ukládá k rezervaci i akviziční metadata (`acquisitionSource`, `acquisitionReferrerHost`, `acquisitionUtmSource`, `acquisitionUtmMedium`, `acquisitionUtmCampaign`), pokud jsou dostupná.
 - Veřejná rezervace se po submitu vytváří jako `BookingStatus.PENDING`; potvrzení (`CONFIRMED`) je provozní krok z adminu.
@@ -467,7 +468,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Při úpravě lokálního dev serveru nebo `next.config.ts` ručně ověř i otevření aplikace z vedlejšího zařízení v LAN; pokud browser hlásí blokaci `/_next/webpack-hmr`, zkontroluj `allowedDevOrigins` a restartuj dev server.
 - Po změně media vrstvy ručně ověř i:
   - vytvoření upload rootu v `MEDIA_STORAGE_ROOT`
-  - úspěšné uložení veřejného obrázku a jeho dostupnost přes `/media/<kind>/...`
+  - úspěšné uložení veřejného obrázku a jeho dostupnost přes `/media/public/<kind>/...` nebo legacy `/media/<kind>/...`
   - odmítnutí nepodporovaného MIME typu a příliš velkého souboru
   - smazání assetu v DB i na filesystemu
 - Po změně certifikátového workflow ručně ověř i:

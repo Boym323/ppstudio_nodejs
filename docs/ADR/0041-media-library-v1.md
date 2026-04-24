@@ -18,6 +18,8 @@ Do modelu přidáváme nová obecná pole `fileName`, `url`, `size`, `altText`, 
 
 Admin UI se jmenuje `Média webu` a běží na `/admin/media` a `/admin/provoz/media`. Certifikáty jsou pouze jeden typ média a veřejná stránka `/o-mne` smí číst jen `MediaType.CERTIFICATE` s `isPublished = true`. Veřejná stránka `/studio` používá stejný princip pro fotky studia: čte jen `MediaType.SALON_PHOTO` s `isPublished = true` a při prázdném výsledku vykreslí prezentační fallback.
 
+Detailní naming, URL a variantová strategie pro další růst je zpřesněná v ADR `0042-media-upload-strategy-v1.md`.
+
 ## Důsledky
 - Existující certifikáty se při migraci zpětně mapují na `type = CERTIFICATE`, `isPublished = true` pro původní veřejné záznamy a zachovanou URL `/media/certificates/...`.
 - Nové služby `createMedia`, `listMedia`, `updateMedia` a `deleteMedia` jsou kanonické API pro admin media workflow.

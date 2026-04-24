@@ -19,6 +19,15 @@ export type ValidatedMediaFile = {
   originalFilename: string;
 };
 
+export type PreparedImageBuffer = {
+  buffer: Buffer;
+  mimeType: string;
+  extension: string;
+  sizeBytes: number;
+  width: number | null;
+  height: number | null;
+};
+
 export type MediaImageMetadata = {
   width: number | null;
   height: number | null;

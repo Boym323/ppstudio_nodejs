@@ -47,7 +47,7 @@ class LocalMediaStorageAdapter implements MediaStorageAdapter {
     createdAt?: Date;
   }): PreparedMediaFile {
     const createdAt = input.createdAt ?? new Date();
-    const storedFilename = buildStoredFilename(input.file.originalFilename, input.file.extension);
+    const storedFilename = buildStoredFilename(input.file.extension);
     const storagePath = buildMediaStoragePath({
       type: input.type,
       visibility: input.visibility,

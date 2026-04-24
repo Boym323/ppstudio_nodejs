@@ -28,7 +28,7 @@ Dokumentace proměnných prostředí pro lokální vývoj i produkci.
 - `SMTP_FROM_EMAIL`: adresa odesílatele.
 - `SMTP_FROM_NAME`: jméno odesílatele zobrazované klientovi.
 - `SMTP_REPLY_TO`: volitelná reply-to adresa.
-- `MEDIA_STORAGE_ROOT`: volitelná absolutní cesta k lokálnímu root adresáři pro nahraná média; pokud chybí, aplikace použije `../ppstudio-uploads` vedle repozitáře.
+- `MEDIA_STORAGE_ROOT`: volitelná absolutní cesta k lokálnímu root adresáři pro nahraná média; pokud chybí, aplikace použije `/var/www/ppstudio/uploads`.
 
 ## Poznámky
 - Bootstrap admin přístupy slouží jako startovní vrstva projektu a měly by být později nahrazené databázovým managementem uživatelů.
@@ -56,7 +56,7 @@ Dokumentace proměnných prostředí pro lokální vývoj i produkci.
 - Ruční vytvoření rezervace v adminu také nepřidává nové env proměnné; používá stejné `NEXT_PUBLIC_APP_URL`, `ADMIN_SESSION_SECRET`, DB schéma a e-mailovou konfiguraci jako veřejný booking.
 - Stabilizační refaktor `booking-public`, `booking-flow` a `admin-slots` nepřidává žádné nové env proměnné; veřejné entrypointy i provozní konfigurace zůstávají beze změny.
 - Modul `Média webu` nepřidává žádnou novou env proměnnou; dál používá existující `MEDIA_STORAGE_ROOT` pro lokální storage mimo repozitář.
-- Veřejná stránka `/studio` nepřidává žádnou novou env proměnnou; fotky studia čte přes stávající `MediaAsset` metadata a veřejné `/media/*` URL.
+- Veřejná stránka `/studio` nepřidává žádnou novou env proměnnou; fotky studia čte přes stávající `MediaAsset` metadata a veřejné `/media/public/*` URL, se zachovanou kompatibilitou pro starší `/media/*`.
 - Přepnutí `BookingSource` na nové provozní enum hodnoty (`WEB`, `PHONE`, `INSTAGRAM`, `IN_PERSON`, `OTHER`) je čistě databázová a aplikační změna, ne nová env konfigurace.
 - Refaktor veřejného výběru časů v `/rezervace` také nezavádí žádné nové env proměnné; jde čistě o klientskou UI vrstvu nad existujícím booking catalogem.
 - Admin sekce `Služby` také nepřidává nové env proměnné; používá stávající databázi, session a Prisma klient.
@@ -69,8 +69,8 @@ Dokumentace proměnných prostředí pro lokální vývoj i produkci.
 - Klientský self-service přesun termínu také nepřidává novou env proměnnou; stojí na stejném `NEXT_PUBLIC_APP_URL`, hashovaných `BookingActionToken`, DB schématu a e-mailovém workeru.
 - Do admin sekce `Nastavení` záměrně nepatří technické hodnoty jako `NEXT_PUBLIC_APP_URL`, `ADMIN_SESSION_SECRET`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER` nebo `SMTP_PASSWORD`.
 - `MEDIA_STORAGE_ROOT` je infrastrukturní proměnná, ne business nastavení. Nepatří do adminu a má se spravovat na úrovni serveru nebo deploy konfigurace.
-- Doporučená produkční cesta je mimo repo i mimo `.next`, například `/var/www/ppstudio-uploads`.
-- Aplikace uvnitř storage rootu sama odděluje `public/`, `private/` a připravený `temp/` prostor pro budoucí drafty nebo přechodné uploady; veřejné soubory pak servíruje přes URL vrstvu `/media/*`.
+- Výchozí i doporučená produkční cesta v tomto projektu je `/var/www/ppstudio/uploads`.
+- Aplikace uvnitř storage rootu používá pro nové uploady kanonickou větev `public/<type>/YYYY/MM/`; veřejné soubory pak servíruje přes stabilní URL vrstvu `/media/public/*`.
 - Refaktor owner/salon admin route wrapperů na sdílené factory funkce nezavádí žádné nové env proměnné.
 - Povolené LAN originy pro Next.js dev server nejsou env proměnné; udržují se přímo v `next.config.ts` přes `allowedDevOrigins` a po změně vyžadují restart `npm run dev`.
 - Playwright E2E testy používají volitelné CLI-only proměnné `PLAYWRIGHT_PORT` a `PLAYWRIGHT_BASE_URL`; nejsou součástí runtime validace aplikace. Pokud nejsou nastavené, testy použijí `http://127.0.0.1:3100` a samy nastaví `NEXT_PUBLIC_APP_URL` pro lokální `next start` server.

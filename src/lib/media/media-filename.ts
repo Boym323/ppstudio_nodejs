@@ -1,29 +1,19 @@
-import { randomUUID } from 'node:crypto';
+import { randomBytes } from 'node:crypto';
 
-function slugifyFilenameBase(value: string) {
-  return value
-    .normalize('NFKD')
-    .replace(/[^\w\s-]/g, '')
-    .trim()
-    .toLowerCase()
-    .replace(/[_\s]+/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '')
-    .slice(0, 48);
+function buildMediaFileKey() {
+  return randomBytes(8).toString('hex').slice(0, 12);
 }
 
-export function buildStoredFilename(originalFilename: string, extension: string) {
-  const dotIndex = originalFilename.lastIndexOf('.');
-  const basename = dotIndex > 0 ? originalFilename.slice(0, dotIndex) : originalFilename;
-  const safeBase = slugifyFilenameBase(basename) || 'media';
-  const uniqueSuffix = randomUUID().replace(/-/g, '').slice(0, 12);
-
-  return `${safeBase}-${uniqueSuffix}.${extension}`;
+export function buildStoredFilename(extension: string) {
+  return `${buildMediaFileKey()}-original.${extension}`;
 }
 
 export function buildVariantStoredFilename(storedFilename: string, variant: string, extension: string) {
   const dotIndex = storedFilename.lastIndexOf('.');
   const basename = dotIndex > 0 ? storedFilename.slice(0, dotIndex) : storedFilename;
+  const baseWithoutOriginal = basename.endsWith('-original')
+    ? basename.slice(0, -'-original'.length)
+    : basename;
 
-  return `${basename}-${variant}.${extension}`;
+  return `${baseWithoutOriginal}-${variant}.${extension}`;
 }

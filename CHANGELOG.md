@@ -6,6 +6,10 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Media Library má sjednocenou storage strategii pro nové uploady: výchozí root je `/var/www/ppstudio/uploads`, soubory jdou vždy do `public/{type}/YYYY/MM` a veřejná kanonická URL je `/media/public/{type}/YYYY/MM/{assetId}-{variant}.{ext}`.
+- Naming uploadů už nepoužívá původní jména souborů; `storedFilename` se generuje jako krátký asset key se suffixy `original`, `optimized`, `thumbnail`.
+- Publish/unpublish už neřídí filesystem: nové uploady se vždy ukládají do `public/`, `isPublished` zůstává čistě databázový flag a legacy route `/media/[kind]/[[...path]]` zůstává kvůli starším médiím.
+- Originál se při uploadu nově také normalizuje přes `sharp.rotate()`, takže DB metadata `width`, `height`, `size`, `mimeType` odpovídají skutečně uloženému archivnímu souboru.
 - Media Library upload nyní pro JPEG/PNG/WebP generuje přes `sharp` tři úrovně souboru: původní originál, `optimized` variantu do 1920 px a `thumbnail` variantu kolem 400 px pro admin grid.
 - `MediaAsset` nově ukládá i variantová pole `optimized*` a `thumbnail*`; veřejný web používá `optimizedUrl`, admin grid `thumbnailUrl` a starší média bez variant automaticky padají zpět na původní `url`.
 - Media route `/media/[kind]/[[...path]]` nyní umí bezpečně obsloužit i optimalizované a thumbnail soubory podle konkrétní variantové cesty uložené v databázi.
@@ -175,7 +179,7 @@ Formát je inspirovaný Keep a Changelog.
 - Sdílenou infrastrukturní vrstvu `src/lib/media/*` pro validaci souborů, generování názvů, bezpečné cesty a lokální filesystem adapter.
 - Sdílenou feature service `src/features/media/lib/media-library.ts` pro budoucí owner/salon upload workflow bez duplikace.
 - Veřejný route handler `/media/[kind]/[[...path]]`, který servíruje jen veřejné assety evidované v databázi.
-- Volitelnou env proměnnou `MEDIA_STORAGE_ROOT` s výchozí cestou `../ppstudio-uploads` mimo repo a mimo build artefakty.
+- Volitelnou env proměnnou `MEDIA_STORAGE_ROOT` s výchozí cestou `/var/www/ppstudio/uploads` mimo repo a mimo build artefakty.
 - ADR 0017 pro architektonické rozhodnutí kolem lokálního media storage.
 - Základní testy pro bezpečné názvy souborů, storage path validaci a upload validační vrstvu.
 - Lokální brand assety `public/brand/ppstudio-logo.png` a `public/brand/ppstudio-portrait.jpg` pro homepage hero.

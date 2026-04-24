@@ -1,6 +1,10 @@
 import sharp from 'sharp';
 
-import type { MediaVariantName, ValidatedMediaFile } from '@/lib/media/media-types';
+import type {
+  MediaVariantName,
+  PreparedImageBuffer,
+  ValidatedMediaFile,
+} from '@/lib/media/media-types';
 
 const pipelineMimeTypes = new Set(['image/jpeg', 'image/png', 'image/webp']);
 
@@ -17,42 +21,64 @@ function getOutputExtension(mimeType: string) {
   }
 }
 
-function applyEncoder(image: sharp.Sharp, mimeType: string) {
+function applyEncoder(image: sharp.Sharp, mimeType: string, quality: number) {
   switch (mimeType) {
     case 'image/jpeg':
-      return image.jpeg({ quality: 82, mozjpeg: true });
+      return image.jpeg({ quality, mozjpeg: true });
     case 'image/png':
-      return image.png({ compressionLevel: 9, palette: true, quality: 82 });
+      return image.png({ compressionLevel: 9 });
     case 'image/webp':
-      return image.webp({ quality: 82 });
+      return image.webp({ quality });
     default:
       return image;
   }
 }
 
-async function buildVariantBuffer(
-  file: ValidatedMediaFile,
-  variant: MediaVariantName,
-  width: number,
-) {
-  const image = sharp(file.buffer, { animated: false }).rotate().resize({
-    width,
-    withoutEnlargement: true,
-    fit: 'inside',
-  });
+async function buildImageBuffer(input: {
+  buffer: Buffer;
+  mimeType: string;
+  width?: number;
+  quality: number;
+}): Promise<PreparedImageBuffer> {
+  const image = sharp(input.buffer, { animated: false }).rotate();
 
-  const encoded = applyEncoder(image, file.mimeType);
+  if (input.width) {
+    image.resize({
+      width: input.width,
+      withoutEnlargement: true,
+      fit: 'inside',
+    });
+  }
+
+  const encoded = applyEncoder(image, input.mimeType, input.quality);
   const buffer = await encoded.toBuffer();
   const metadata = await sharp(buffer, { animated: false }).metadata();
 
   return {
-    variant,
     buffer,
-    mimeType: file.mimeType,
-    extension: getOutputExtension(file.mimeType) ?? file.extension,
+    mimeType: input.mimeType,
+    extension: getOutputExtension(input.mimeType) ?? 'bin',
     sizeBytes: buffer.byteLength,
     width: metadata.width ?? null,
     height: metadata.height ?? null,
+  };
+}
+
+async function buildVariantBuffer(
+  file: PreparedImageBuffer,
+  variant: MediaVariantName,
+  width: number,
+) {
+  const rendered = await buildImageBuffer({
+    buffer: file.buffer,
+    mimeType: file.mimeType,
+    width,
+    quality: 80,
+  });
+
+  return {
+    variant,
+    ...rendered,
   };
 }
 
@@ -60,7 +86,28 @@ export function supportsMediaVariants(mimeType: string) {
   return pipelineMimeTypes.has(mimeType);
 }
 
-export async function createMediaVariants(file: ValidatedMediaFile) {
+export async function normalizeOriginalMediaImage(
+  file: ValidatedMediaFile,
+): Promise<PreparedImageBuffer> {
+  if (!supportsMediaVariants(file.mimeType)) {
+    return {
+      buffer: file.buffer,
+      mimeType: file.mimeType,
+      extension: file.extension,
+      sizeBytes: file.sizeBytes,
+      width: null,
+      height: null,
+    };
+  }
+
+  return buildImageBuffer({
+    buffer: file.buffer,
+    mimeType: file.mimeType,
+    quality: 100,
+  });
+}
+
+export async function createMediaVariants(file: PreparedImageBuffer) {
   if (!supportsMediaVariants(file.mimeType)) {
     return [];
   }

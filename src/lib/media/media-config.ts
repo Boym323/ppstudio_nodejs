@@ -5,6 +5,7 @@ import type { MediaAssetVisibility, MediaType } from '@prisma/client';
 import { mediaStorageRoot } from '@/config/env';
 
 export const MEDIA_PUBLIC_BASE_PATH = '/media';
+export const MEDIA_PUBLIC_SCOPE_SEGMENT = 'public';
 export const MEDIA_TEMP_SEGMENT = 'temp';
 
 export const mediaTypes = ['CERTIFICATE', 'SALON_PHOTO', 'PORTRAIT', 'GENERAL'] as const;
@@ -62,5 +63,5 @@ export function buildMediaStoragePath(input: {
 }
 
 export function buildMediaPublicUrl(storagePath: string) {
-  return `${MEDIA_PUBLIC_BASE_PATH}/${storagePath}`;
+  return `${MEDIA_PUBLIC_BASE_PATH}/${MEDIA_PUBLIC_SCOPE_SEGMENT}/${storagePath}`;
 }

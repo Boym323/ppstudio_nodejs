@@ -126,15 +126,14 @@ npm run db:migrate
 
 ### Lokální media storage
 - Upload root se nastavuje přes `MEDIA_STORAGE_ROOT`.
-- Pokud proměnná není vyplněná, aplikace použije výchozí cestu `../ppstudio-uploads` vedle repozitáře.
+- Pokud proměnná není vyplněná, aplikace použije výchozí cestu `/var/www/ppstudio/uploads`.
 - Uvnitř rootu aplikace odděluje:
   - `public/` pro veřejně čitelná média
-  - `private/` pro budoucí neveřejné soubory
   - `temp/` pro budoucí drafty nebo přechodné upload workflow
-- Veřejná média se zobrazují přes URL vrstvu `/media/<kind>/...`, ne přímým odkazem na fyzickou cestu.
+- Veřejná média se zobrazují přes URL vrstvu `/media/public/<type>/YYYY/MM/<filename>`, ne přímým odkazem na fyzickou cestu.
 - Statické assety verzované v repozitáři (`public/brand`) a uploady z adminu jsou dvě rozdílné věci; nové admin obrázky mají jít přes media storage vrstvu.
 - Pro JPEG/PNG/WebP uploady nyní vzniká lehká server-side image pipeline přes `sharp`:
-  - originál se dál ukládá jako původní soubor
+  - originál se při zápisu normalizuje přes EXIF auto-rotate a ukládá se jako `{assetId}-original.<ext>`
   - `optimized` varianta se generuje s auto-rotate podle EXIF, max šířkou 1920 px a rozumnou kompresí
   - `thumbnail` varianta se generuje pro admin grid s cílovou šířkou kolem 400 px
   - veřejný web čte `optimizedUrl`, admin grid čte `thumbnailUrl` a starší média bez variant padají zpět na původní `url`
@@ -317,9 +316,9 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
 - Metadata se ukládají do tabulky `MediaAsset`, zatímco binární soubor zůstává na filesystemu.
 - Podporované typy jsou aktuálně obrázky `jpg`, `jpeg`, `png`, `webp`.
 - Maximální velikost souboru je 8 MB.
-- Název souboru se skládá ze slugifikovaného původního jména a náhodného suffixu, takže nedochází k přepisování stejně pojmenovaných uploadů.
-- Relativní storage path má tvar `certificates/2026/04/moje-fotka-a1b2c3d4e5f6.webp`; další typy používají vlastní kořenovou složku, např. `spaces/`, `portraits/` nebo `general/`.
-- Pro budoucí private média už existuje fyzické oddělení v `private/`, ale veřejný přístup je zatím implementovaný jen pro `PUBLIC` assety.
+- Každý upload dostane krátký generovaný identifikátor a ukládá se jako `{id}-original.<ext>`, `{id}-optimized.<ext>` a `{id}-thumbnail.<ext>` bez použití původního názvu souboru.
+- Relativní storage path má tvar `certificates/2026/04/<id>-original.<ext>`; další typy používají kořeny `spaces/`, `portraits/` nebo `general/`.
+- Publikace je řízená jen přes `MediaAsset.isPublished`; nové uploady se nepřesouvají mezi `public/private`.
 - Modul `Média webu` má první produkční napojení:
   - admin upload, editaci a mazání přes `/admin/media` a `/admin/provoz/media`
   - typy `CERTIFICATE`, `SALON_PHOTO`, `PORTRAIT` a `GENERAL`
@@ -335,7 +334,7 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
 - Pokud upload začne selhávat, první kontrola má být:
   - existence cesty z `MEDIA_STORAGE_ROOT`
   - práva procesu k zápisu
-  - dostupnost veřejné URL `/media/*`
+  - dostupnost veřejné URL `/media/public/*` nebo legacy `/media/*`
   - Služby
   - Kategorie služeb
 - Sekce `Služby` je nyní provozně použitelná pro obě role na `/admin/sluzby` a `/admin/provoz/sluzby`:
