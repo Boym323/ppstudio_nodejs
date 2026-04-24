@@ -252,6 +252,7 @@ export function MediaCard({ area, asset }: { area: AdminArea; asset: MediaAssetI
             alt={asset.altText ?? asset.title ?? asset.fileName}
             width={asset.thumbnailWidth ?? asset.optimizedWidth ?? asset.width ?? 400}
             height={asset.thumbnailHeight ?? asset.optimizedHeight ?? asset.height ?? 300}
+            loading="eager"
             className="h-full w-full object-cover"
             sizes="(min-width: 1536px) 20vw, (min-width: 768px) 35vw, 90vw"
           />
