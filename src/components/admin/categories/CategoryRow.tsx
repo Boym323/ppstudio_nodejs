@@ -63,7 +63,7 @@ export function CategoryRow({
 
         <div>
           <p className="text-[11px] uppercase tracking-[0.24em] text-white/30">Pořadí</p>
-          <p className="mt-2 text-[1.05rem] font-medium text-white">#{Math.max(1, Math.round(category.sortOrder / 10))}</p>
+          <p className="mt-2 text-[1.05rem] font-medium text-white">{category.sortOrder}</p>
         </div>
 
         <div>
