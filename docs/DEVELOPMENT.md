@@ -427,6 +427,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - timeline historie s důvodem, poznámkou a zdrojem změny, pokud je k dispozici
   - přepnutí `Veřejně rezervovatelná` a dopad na `/rezervace`
   - změnu délky služby a skrytí slotů, které jsou po změně kratší než služba
+  - přepínání editace mezi službami z různých kategorií a správné předvyplnění konkrétní vybrané služby
   - editaci služby v neaktivní kategorii a očekávané skrytí z veřejného bookingu
 - Po změně admin kategorií služeb ručně ověř i:
   - `/admin/kategorie-sluzeb` i `/admin/provoz/kategorie-sluzeb` na desktopu a mobilu

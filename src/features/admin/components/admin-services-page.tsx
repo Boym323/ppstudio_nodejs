@@ -47,6 +47,7 @@ export async function AdminServicesPage({
   const detailContent =
     data.filters.mode === "create" ? (
       <AdminServiceForm
+        key="service-form-create"
         mode="create"
         area={area}
         returnTo={returnTo}
@@ -67,6 +68,7 @@ export async function AdminServicesPage({
       />
     ) : data.selectedService ? (
       <AdminServiceForm
+        key={`service-form-edit-${data.selectedService.id}`}
         mode="edit"
         area={area}
         returnTo={returnTo}

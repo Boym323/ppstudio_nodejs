@@ -342,6 +342,7 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
   - v kartách jsou rychlé akce `aktivovat/deaktivovat`, `veřejná/interní`, `duplikovat` a jednoduché posuny v pořadí
   - každá karta ukazuje provozní kontext, stavové badge a upozornění na problematické stavy
   - formulář podporuje `Uložit` i `Uložit a zavřít` a novou službu lze založit přes jasné CTA `Nová služba`
+  - při přepnutí mezi službami se detail vždy přenačte podle skutečně vybrané položky (nepřebírá hodnoty z předchozí karty)
   - v detailu služby je jediný obsahový blok `Veřejná prezentace`; pole `Veřejný úvod` je zdrojem textu pro web i rezervační krok výběru služby, takže se stejný text neudržuje duplicitně
   - na mobilu se detail otevírá samostatně, aby admin nebyl dlouhý a nepohodlný
   - veřejný booking flow bere službu jen pokud je `isActive = true`, `isPubliclyBookable = true` a její kategorie je aktivní

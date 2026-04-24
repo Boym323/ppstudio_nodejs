@@ -48,6 +48,7 @@ Formát je inspirovaný Keep a Changelog.
 - Přibyly DB-backed integrační testy pro veřejný booking-management flow, které přes skutečné Prisma wiring ověřují token access, self-service storno, self-service přesun, reminder reset, audit/history zápisy, email orchestrace i odmítnutí neplatných tokenů, kolizí, terminal stavů a pokusů o přesun mimo online okno.
 
 ### Changed
+- Opravená editace služby v admin sekci `Služby`: detail formuláře se při přepnutí na jinou službu remountuje podle `serviceId`, takže se už nepřenášejí staré `defaultValue` z první položky seznamu.
 - Login stránka `/admin/prihlaseni` nově mapuje chybu `error=rate_limited` na čitelnou hlášku pro obsluhu.
 - `npm test` nově explicitně zapíná `RUN_DB_INTEGRATION_TESTS=1`, takže běžný test run už neskipuje booking DB integrační scénáře a verifikace není falešně zelená jen na unit vrstvách.
 - `npm run test:db:booking` nově spouští všechny booking DB integrační testy (`*.integration.test.ts`), takže jedním příkazem ověří jak centrální reschedule engine, tak veřejný token-based manage flow.
