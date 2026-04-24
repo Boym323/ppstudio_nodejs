@@ -5,7 +5,6 @@ import { type AdminArea } from "@/config/navigation";
 import { DAY_CELLS, dateToCellIndex, timeFormatter } from "./time";
 import {
   type PlannerDay,
-  type PlannerInterval,
   type TimeRange,
   PlannerMutationError,
 } from "./types";

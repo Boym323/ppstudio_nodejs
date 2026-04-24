@@ -529,7 +529,6 @@ export function BookingFlow({ catalog, initialSelectedServiceSlug, salonProfile 
               selectedTimeOptionKey={selectedTimeOptionKey}
               availableMonths={availableMonths}
               effectiveVisibleMonthKey={effectiveVisibleMonthKey}
-              availableDateKeys={availableDateKeys}
               calendarCells={calendarCells}
               availableSlotsByDate={availableSlotsByDate}
               effectiveSelectedDateKey={effectiveSelectedDateKey}

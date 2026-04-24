@@ -11,7 +11,6 @@ import {
   dateLabelFormatter,
   dayNumberFormatter,
   formatDateKey,
-  getDayBounds,
   monthDayFormatter,
   monthOnlyFormatter,
   monthTitleFormatter,

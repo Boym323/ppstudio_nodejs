@@ -28,7 +28,6 @@ type BookingTermStepProps = {
   selectedTimeOptionKey: string;
   availableMonths: string[];
   effectiveVisibleMonthKey: string;
-  availableDateKeys: string[];
   calendarCells: Array<string | null>;
   availableSlotsByDate: Map<string, TimeSlotOption[]>;
   effectiveSelectedDateKey: string;
@@ -52,7 +51,6 @@ export function BookingTermStep({
   selectedTimeOptionKey,
   availableMonths,
   effectiveVisibleMonthKey,
-  availableDateKeys,
   calendarCells,
   availableSlotsByDate,
   effectiveSelectedDateKey,
