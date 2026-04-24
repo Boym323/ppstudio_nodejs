@@ -201,6 +201,13 @@ export async function AdminServicesPage({
           />
 
           <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-[1rem] border border-white/8 bg-white/[0.035] px-4 py-3 text-sm text-white/64">
+            <p><span className="text-white">Aktivní:</span> provozně zapnutá služba</p>
+            <p><span className="text-white">Neaktivní:</span> zůstává jen v evidenci</p>
+            <p><span className="text-white">Veřejná:</span> může ji vybrat klientka</p>
+            <p><span className="text-white">Interní:</span> jen pro interní práci</p>
+          </div>
+
+          <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-[1rem] border border-white/8 bg-white/[0.035] px-4 py-3 text-sm text-white/64">
             <p><span className="text-white">V seznamu:</span> {data.services.length}</p>
             <p><span className="text-white">Skupin:</span> {new Set(data.services.map((service) => service.category.id)).size}</p>
             <p><span className="text-white">Viditelné:</span> {data.services.filter((service) => service.isEffectivelyVisible).length}</p>
