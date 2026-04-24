@@ -113,6 +113,7 @@ export function CategoryRow({
           </button>
           <Link
             href={servicesHref}
+            prefetch={false}
             className="inline-flex h-10 items-center rounded-xl border border-white/10 px-4 text-sm text-white/78 transition hover:border-white/20 hover:bg-white/8"
           >
             Služby

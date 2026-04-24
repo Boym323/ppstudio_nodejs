@@ -295,12 +295,14 @@ export function CategoryDetailPanel(props: Props) {
                 <div className="mt-4 flex flex-wrap gap-3">
                   <Link
                     href={createServiceHref}
+                    prefetch={false}
                     className="inline-flex min-h-11 items-center rounded-xl bg-[var(--color-accent)] px-4 text-sm font-semibold text-[var(--color-accent-contrast)] transition hover:brightness-105"
                   >
                     + Vytvořit službu v této kategorii
                   </Link>
                   <Link
                     href={servicesHref}
+                    prefetch={false}
                     className="inline-flex min-h-11 items-center rounded-xl border border-white/10 px-4 text-sm text-white/78 transition hover:border-white/18 hover:bg-white/8"
                   >
                     Otevřít služby této kategorie
@@ -338,6 +340,7 @@ export function CategoryDetailPanel(props: Props) {
                   <div className="border-t border-white/8 px-3 py-2">
                     <Link
                       href={servicesHref}
+                      prefetch={false}
                       className="flex items-center justify-center gap-2 rounded-xl bg-white/[0.03] px-4 py-3 text-sm font-medium text-[var(--color-accent-soft)] transition hover:bg-white/[0.05]"
                     >
                       <span className="text-base">+</span>
