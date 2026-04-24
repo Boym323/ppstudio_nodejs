@@ -8,7 +8,6 @@ import {
 } from "@/features/admin/actions/service-category-actions";
 
 import { CategoryDetailDrawer } from "./CategoryDetailDrawer";
-import { CategoryDetailPanel } from "./CategoryDetailPanel";
 import { CategoryFilters } from "./CategoryFilters";
 import { CategoryList } from "./CategoryList";
 import { CategoryStats } from "./CategoryStats";
@@ -145,7 +144,9 @@ export function CategoryManagementWorkspace({
     selectedCategory?.id ?? categories[0]?.id ?? null,
   );
   const [detailMode, setDetailMode] = useState<"create" | "edit">(initialMode === "create" ? "create" : "edit");
-  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(initialMobileDetail);
+  const [detailDrawerOpen, setDetailDrawerOpen] = useState(
+    initialMobileDetail || initialMode === "create",
+  );
   const [pendingMap, setPendingMap] = useState<Record<string, string | undefined>>({});
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -160,7 +161,7 @@ export function CategoryManagementWorkspace({
   const handleSelect = (categoryId: string) => {
     setSelectedCategoryId(categoryId);
     setDetailMode("edit");
-    setMobileDrawerOpen(true);
+    setDetailDrawerOpen(true);
   };
 
   const handleSaved = (category: {
@@ -239,7 +240,7 @@ export function CategoryManagementWorkspace({
           type="button"
           onClick={() => {
             setDetailMode("create");
-            setMobileDrawerOpen(true);
+            setDetailDrawerOpen(true);
           }}
           className="inline-flex rounded-xl bg-[var(--color-accent)] px-5 py-3 text-sm font-semibold text-[var(--color-accent-contrast)] transition hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/60"
         >
@@ -269,62 +270,33 @@ export function CategoryManagementWorkspace({
         ) : null}
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_460px] 2xl:grid-cols-[minmax(0,1.08fr)_480px]">
-        <section className="space-y-4">
-          <div className="grid gap-3 rounded-[1.6rem] border border-white/10 bg-white/[0.035] p-4 text-sm text-white/66 sm:grid-cols-4">
-            <p><span className="text-white">V seznamu:</span> {optimisticCategories.length}</p>
-            <p><span className="text-white">Aktivní:</span> {optimisticCategories.filter((category) => category.isActive).length}</p>
-            <p><span className="text-white">Prázdné:</span> {optimisticCategories.filter((category) => category.counts.total === 0).length}</p>
-            <p><span className="text-white">S upozorněním:</span> {optimisticCategories.filter((category) => category.warnings.length > 0).length}</p>
-          </div>
-
-          <CategoryList
-            categories={optimisticCategories}
-            selectedCategoryId={detailMode === "edit" ? selectedCategoryId : undefined}
-            servicesPath={servicesPath}
-            pendingMap={pendingMap}
-            onSelect={handleSelect}
-            onToggleActive={handleToggleActive}
-            onMove={handleMove}
-          />
-        </section>
-
-        <div className="hidden xl:block">
-          {detailMode === "create" ? (
-            <CategoryDetailPanel
-              mode="create"
-              area={area}
-              returnTo={returnTo}
-              servicesPath={servicesPath}
-            />
-          ) : detailCategory ? (
-            <CategoryDetailPanel
-              mode="edit"
-              area={area}
-              returnTo={returnTo}
-              servicesPath={servicesPath}
-              category={detailCategory}
-              isActionPending={Boolean(selectedCategoryId && pendingMap[selectedCategoryId])}
-              onToggleActive={(nextValue) => handleToggleActive(detailCategory.id, nextValue)}
-              onSaved={handleSaved}
-              onDeactivate={() => handleToggleActive(detailCategory.id, false)}
-            />
-          ) : (
-            <div className="rounded-[1.85rem] border border-dashed border-white/14 bg-white/[0.03] p-6 text-sm leading-6 text-white/60">
-              Vyberte kategorii ze seznamu vlevo nebo založte novou.
-            </div>
-          )}
+      <div className="space-y-4">
+        <div className="grid gap-3 rounded-[1.6rem] border border-white/10 bg-white/[0.035] p-4 text-sm text-white/66 sm:grid-cols-4">
+          <p><span className="text-white">V seznamu:</span> {optimisticCategories.length}</p>
+          <p><span className="text-white">Aktivní:</span> {optimisticCategories.filter((category) => category.isActive).length}</p>
+          <p><span className="text-white">Prázdné:</span> {optimisticCategories.filter((category) => category.counts.total === 0).length}</p>
+          <p><span className="text-white">S upozorněním:</span> {optimisticCategories.filter((category) => category.warnings.length > 0).length}</p>
         </div>
+
+        <CategoryList
+          categories={optimisticCategories}
+          selectedCategoryId={detailMode === "edit" ? selectedCategoryId : undefined}
+          servicesPath={servicesPath}
+          pendingMap={pendingMap}
+          onSelect={handleSelect}
+          onToggleActive={handleToggleActive}
+          onMove={handleMove}
+        />
       </div>
 
       <CategoryDetailDrawer
-        open={mobileDrawerOpen}
+        open={detailDrawerOpen}
         mode={detailMode}
         area={area}
         returnTo={returnTo}
         servicesPath={servicesPath}
         category={detailCategory}
-        onClose={() => setMobileDrawerOpen(false)}
+        onClose={() => setDetailDrawerOpen(false)}
         onSaved={handleSaved}
         isActionPending={Boolean(selectedCategoryId && pendingMap[selectedCategoryId])}
         onToggleActive={

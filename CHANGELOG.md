@@ -9,6 +9,8 @@ Formát je inspirovaný Keep a Changelog.
 - Portréty jsou nově rozdělené na cíle `PORTRAIT_HOME` (homepage hero) a `PORTRAIT_ABOUT` (`/o-mne` hero), takže každá stránka může používat vlastní obrázek bez nového upload systému.
 - Veřejné read modely mají bezpečný fallback: když chybí cílený portrét, homepage i `/o-mne` dál použijí legacy `PORTRAIT`.
 - Admin `Média webu` nyní nabízí samostatné typy `Portrét: Homepage`, `Portrét: O mně` a `Portrét: Legacy (obě stránky)` v uploadu, editaci, filtrech i badge použití.
+- Admin sekce `Služby` nově otevírá detail/editaci jako pravý overlay drawer i na desktopu; původní fixní pravý panel byl odstraněný, seznam zůstává hlavní pracovní plochou.
+- Admin sekce `Kategorie služeb` sjednotila detail na pravý overlay drawer pro desktop i mobil; původní desktop `sticky detail` panel byl odstraněný.
 - `Média webu` v adminu prošla UX refaktorem bez změny storage strategie nebo datového modelu: kratší header, kompaktní statistiky `Celkem médií / Publikováno / Skryto / Certifikáty`, výraznější upload panel a hustší responsive grid karet.
 - Upload panel nově používá klikací dropzónu s výběrem souboru, krátkou nápovědu pro `JPG/PNG/WebP` a kompaktní pole pro typ, titulek a alt text v jednom pracovním bloku.
 - Filtry médií jsou teď tabs s počty pro `Vše`, `Certifikáty`, `Prostory`, `Portrét Homepage`, `Portrét O mně`, `Portrét Legacy` a `Obecné`; po uploadu, editaci, publish/unpublish i smazání se zachovává aktivní filtr.
@@ -55,6 +57,8 @@ Formát je inspirovaný Keep a Changelog.
 - Přibyly DB-backed integrační testy pro veřejný booking-management flow, které přes skutečné Prisma wiring ověřují token access, self-service storno, self-service přesun, reminder reset, audit/history zápisy, email orchestrace i odmítnutí neplatných tokenů, kolizí, terminal stavů a pokusů o přesun mimo online okno.
 
 ### Changed
+- Opravené otevření draweru v admin sekci `Služby`: desktop detail se už neotevře automaticky po načtení stránky bez explicitního `serviceId`; otevře se až po kliknutí na detail nebo při `mode=create`.
+- Opravené výchozí otevření draweru v admin sekci `Kategorie služeb`: detail se po načtení neotevírá automaticky jen kvůli defaultně vybrané kategorii.
 - Opravená editace služby v admin sekci `Služby`: detail formuláře se při přepnutí na jinou službu remountuje podle `serviceId`, takže se už nepřenášejí staré `defaultValue` z první položky seznamu.
 - Login stránka `/admin/prihlaseni` nově mapuje chybu `error=rate_limited` na čitelnou hlášku pro obsluhu.
 - `npm test` nově explicitně zapíná `RUN_DB_INTEGRATION_TESTS=1`, takže běžný test run už neskipuje booking DB integrační scénáře a verifikace není falešně zelená jen na unit vrstvách.

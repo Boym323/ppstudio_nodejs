@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { AdminPageShell, AdminPanel } from "@/features/admin/components/admin-page-shell";
 import { AdminServiceForm } from "@/features/admin/components/admin-service-form";
 import { AdminServicesList } from "@/features/admin/components/admin-services-list";
@@ -43,6 +45,19 @@ export async function AdminServicesPage({
   const showMobileDetail = data.filters.mobileDetail === "1" || data.filters.mode === "create";
   const selectedServiceVisible =
     Boolean(data.selectedService) && data.services.some((service) => service.id === data.selectedService?.id);
+  const showDetailDrawer = data.filters.mode === "create" || Boolean(data.filters.serviceId);
+  const drawerTitle =
+    data.filters.mode === "create"
+      ? "Nová služba"
+      : data.selectedService
+        ? `Editace: ${data.selectedService.name}`
+        : "Editace služby";
+  const drawerDescription =
+    data.filters.mode === "create"
+      ? "Nová služba se po vytvoření rovnou otevře v detailu a zůstane v kontextu aktuálního seznamu."
+      : data.selectedService
+        ? `Kategorie ${data.selectedService.category.name} • ${data.selectedService.durationMinutes} min • ${formatServicePrice(data.selectedService.priceFromCzk)}`
+        : "Vyberte službu ze seznamu vlevo.";
 
   const detailContent =
     data.filters.mode === "create" ? (
@@ -168,7 +183,7 @@ export async function AdminServicesPage({
         )}
       </div>
 
-      <div className="hidden gap-6 xl:grid xl:grid-cols-[1.15fr_0.95fr]">
+      <div className="hidden xl:block">
         <AdminPanel
           title="Přehled služeb"
           description="Seznam je primárně provozní: filtrace, stavové kontexty a akce jsou hned po ruce."
@@ -206,27 +221,41 @@ export async function AdminServicesPage({
             />
           </div>
         </AdminPanel>
-
-        <AdminPanel
-          title={
-            data.filters.mode === "create"
-              ? "Nová služba"
-              : data.selectedService
-                ? `Editace: ${data.selectedService.name}`
-                : "Editace služby"
-          }
-          description={
-            data.filters.mode === "create"
-              ? "Nová služba se po vytvoření rovnou otevře v detailu a zůstane v kontextu aktuálního seznamu."
-              : data.selectedService
-                ? `Kategorie ${data.selectedService.category.name} • ${data.selectedService.durationMinutes} min • ${formatServicePrice(data.selectedService.priceFromCzk)}`
-                : "Vyberte službu ze seznamu vlevo."
-          }
-          compact={area === "salon"}
-        >
-          {detailContent}
-        </AdminPanel>
       </div>
+
+      {showDetailDrawer ? (
+        <div className="fixed inset-0 z-50 hidden xl:block">
+          <Link
+            aria-label="Zavřít detail služby"
+            href={returnTo}
+            className="absolute inset-0 bg-black/62 backdrop-blur-sm"
+          />
+          <aside className="absolute inset-y-0 right-0 w-full max-w-4xl overflow-hidden border-l border-white/10 bg-[#131116] shadow-[-20px_0_70px_rgba(0,0,0,0.45)]">
+            <div className="flex h-full flex-col">
+              <header className="flex items-start justify-between gap-4 border-b border-white/10 px-5 py-5 sm:px-6">
+                <div>
+                  <p className="text-[11px] uppercase tracking-[0.22em] text-[var(--color-accent-soft)]">
+                    Detail služby
+                  </p>
+                  <h2 className="mt-2 text-2xl font-display text-white">{drawerTitle}</h2>
+                  <p className="mt-2 max-w-2xl text-sm leading-6 text-white/66">{drawerDescription}</p>
+                </div>
+
+                <Link
+                  href={returnTo}
+                  className="rounded-full border border-white/10 px-3 py-2 text-sm text-white/74 transition hover:border-white/18 hover:bg-white/6"
+                >
+                  Zavřít
+                </Link>
+              </header>
+
+              <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6">
+                {detailContent}
+              </div>
+            </div>
+          </aside>
+        </div>
+      ) : null}
     </AdminPageShell>
   );
 }

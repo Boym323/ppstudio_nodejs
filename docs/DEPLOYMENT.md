@@ -43,7 +43,7 @@ Postup nasazení aplikace do produkce.
      - pravý sidebar ukazuje jen blízké publikované sloty pro dnes a zítra
      - rychlé akce vedou na správné owner/salon URL
    - sekci `Kategorie služeb` na `/admin/kategorie-sluzeb` a `/admin/provoz/kategorie-sluzeb`:
-     - desktopový sticky detail a mobilní full-screen drawer
+     - pravý overlay drawer detailu na desktopu i mobilu
      - vytvoření nové kategorie přes CTA
      - kombinaci search / stav / řazení / chip filtrů
      - změnu pořadí
@@ -58,7 +58,7 @@ Postup nasazení aplikace do produkce.
      - filtr podle kategorie
      - rychlé akce `aktivovat / deaktivovat`, `veřejná / interní`, `duplikovat`, `posunout`
      - warning stavy v kartách seznamu
-     - mobilní otevření detailu a návrat zpět na seznam
+     - otevření detailu služby do pravého overlay draweru a jeho zavření zpět na stejný filtrovaný seznam
    - slot workflow na `/admin/volne-terminy*` a `/admin/provoz/volne-terminy*`:
      - přepínání týdnů a zachování vybraného dne
      - zachování vybraného slotu po rychlé úpravě nebo změně stavu

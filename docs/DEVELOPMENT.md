@@ -410,7 +410,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - mobilní otevření detailu a návrat zpět na seznam
 - Po změně admin katalogu kategorií ručně ověř i:
   - `/admin/kategorie-sluzeb` i `/admin/provoz/kategorie-sluzeb` na desktopu a mobilu
-  - sticky detail panel na desktopu a drawer detail na mobilu
+  - pravý detail drawer na desktopu i mobilu
   - vytvoření nové kategorie přes CTA `+ Nová kategorie`
   - kombinaci fulltextu, stavu, řazení a chip filtrů
   - optimistic přepnutí aktivního stavu a posun nahoru/dolů
@@ -427,7 +427,11 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - barevné badge pro `čeká`, `hotovo`, `zrušeno` a čitelnost kontaktu i zdroje v hustém řádku
   - detail rezervace s novým sticky headerem, jedním souhrnným panelem a kompaktní akční zónou
   - samostatné uložení interní poznámky bez změny stavu a propsání do historie
-  - timeline historie s důvodem, poznámkou a zdrojem změny, pokud je k dispozici
+   - timeline historie s důvodem, poznámkou a zdrojem změny, pokud je k dispozici
+
+- Admin sekce `Služby` i `Kategorie služeb` nyní používají sjednocený pravý overlay drawer pattern i na desktopu:
+  - `Služby`: query-driven výběr služby nebo `mode=create` otevře pravý drawer nad seznamem
+  - `Kategorie`: list/detail workspace už nepoužívá sticky desktop panel; detail se otevírá přes `CategoryDetailDrawer` pro všechny breakpointy
   - přepnutí `Veřejně rezervovatelná` a dopad na `/rezervace`
   - změnu délky služby a skrytí slotů, které jsou po změně kratší než služba
   - přepínání editace mezi službami z různých kategorií a správné předvyplnění konkrétní vybrané služby

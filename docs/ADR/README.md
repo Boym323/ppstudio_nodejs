@@ -57,3 +57,4 @@ Sem patří krátké záznamy architektonických rozhodnutí.
 - `0040-stabilization-refactor-large-booking-admin-modules.md`
 - `0041-media-library-v1.md`
 - `0042-media-upload-strategy-v1.md`
+- `0043-admin-service-and-category-drawers-v1.md`

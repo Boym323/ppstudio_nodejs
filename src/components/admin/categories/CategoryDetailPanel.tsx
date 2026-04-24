@@ -83,7 +83,7 @@ export function CategoryDetailPanel(props: Props) {
       : `${props.servicesPath}?mode=create`;
 
   return (
-    <section className="flex h-full max-h-[calc(100dvh-1.5rem)] min-h-[40rem] flex-col overflow-hidden rounded-[1.7rem] border border-white/10 bg-[linear-gradient(180deg,rgba(22,27,34,0.98),rgba(12,16,22,0.99))] shadow-[0_30px_100px_rgba(0,0,0,0.36)] xl:max-h-[calc(100vh-2rem)]">
+    <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-[1.7rem] border border-white/10 bg-[linear-gradient(180deg,rgba(22,27,34,0.98),rgba(12,16,22,0.99))] shadow-[0_30px_100px_rgba(0,0,0,0.36)]">
       <header className="shrink-0 border-b border-white/8 px-6 pb-4 pt-5">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">

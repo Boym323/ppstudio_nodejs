@@ -84,6 +84,7 @@ Seznam důležitých knihoven a důvod jejich použití.
 - Rozšíření katalogu o public/pricing metadata zůstává čistě v současném stacku Prisma + Next.js server actions; nepřidává CMS, feature flag službu ani externí content backend.
 - Přepracované workflow `Služby` a `Kategorie služeb` (create CTA, quick actions, reorder, warningy, mobilní list/detail flow) zůstává bez nové UI nebo drag-and-drop závislosti; běží čistě na stávajícím stacku Next.js, React, Prisma a Zod.
 - Nový dark workspace `Kategorie služeb` používá jen React 19 primitives (`useActionState`, `useOptimistic`, `startTransition`) a nepřidává žádný drawer, icon ani form helper balík.
+- Přepnutí desktop detailů `Služby` a `Kategorie služeb` na pravý overlay drawer také nepřidává žádnou UI knihovnu; zůstáváme na lokálních React komponentech a Tailwind utilitách.
 - Lokální media storage vrstva zůstává na stávajícím stacku Next.js, Prisma a Node filesystemu; `sharp` přidává jen lehkou upload-time normalizaci a varianty bez CDN a bez komplexního responsive image systému.
 
 ## Pravidla aktualizací
