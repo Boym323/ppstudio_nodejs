@@ -70,6 +70,7 @@ Dokumentace proměnných prostředí pro lokální vývoj i produkci.
 - Aplikace uvnitř storage rootu sama odděluje `public/`, `private/` a připravený `temp/` prostor pro budoucí drafty nebo přechodné uploady; veřejné soubory pak servíruje přes URL vrstvu `/media/*`.
 - Refaktor owner/salon admin route wrapperů na sdílené factory funkce nezavádí žádné nové env proměnné.
 - Povolené LAN originy pro Next.js dev server nejsou env proměnné; udržují se přímo v `next.config.ts` přes `allowedDevOrigins` a po změně vyžadují restart `npm run dev`.
+- Playwright E2E testy používají volitelné CLI-only proměnné `PLAYWRIGHT_PORT` a `PLAYWRIGHT_BASE_URL`; nejsou součástí runtime validace aplikace. Pokud nejsou nastavené, testy použijí `http://127.0.0.1:3100` a samy nastaví `NEXT_PUBLIC_APP_URL` pro lokální `next start` server.
 
 ## Poznámka k týdennímu planneru slotů
 - Týdenní planner dostupností nepřidává žádné nové env proměnné.

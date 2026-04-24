@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 type SuggestedSlotsProps = {
   selectedKey: string;
   slots: TimeSlotOption[];
+  getAriaLabel?: (slot: TimeSlotOption) => string;
   formatDate: (value: string) => string;
   formatTime: (value: string) => string;
   onSelect: (slot: TimeSlotOption) => void;
@@ -14,6 +15,7 @@ type SuggestedSlotsProps = {
 export function SuggestedSlots({
   selectedKey,
   slots,
+  getAriaLabel,
   formatDate,
   formatTime,
   onSelect,
@@ -43,6 +45,7 @@ export function SuggestedSlots({
             <button
               key={slot.key}
               type="button"
+              aria-label={getAriaLabel?.(slot)}
               onClick={() => onSelect(slot)}
               className={cn(
                 "rounded-3xl border bg-white px-5 py-4 text-left transition-all duration-150",

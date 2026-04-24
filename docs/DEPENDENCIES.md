@@ -10,6 +10,7 @@ Seznam důležitých knihoven a důvod jejich použití.
 - `prisma`: `^7.7.0` (runtime používá `7.7.0`)
 - `@prisma/client`: `^7.7.0` (runtime používá `7.7.0`)
 - `@prisma/adapter-pg`: `^7.7.0` (runtime používá `7.7.0`)
+- `@playwright/test`: browser E2E test runner pro hlavní rezervační a admin flow.
 
 ## Core
 - `next`: framework aplikace.
@@ -42,6 +43,7 @@ Seznam důležitých knihoven a důvod jejich použití.
 - `eslint`: linting.
 - `eslint-config-next`: pravidla lintu pro Next.js.
 - `tsx`: lehký TypeScript runtime pro Node test runner a background worker skript.
+- `@playwright/test`: end-to-end ověření v reálném browseru nad lokálním Next.js serverem; testy používají izolované Prisma fixture data a nejsou součástí běžného `npm test`.
 
 ## Stylování
 - `tailwindcss`: utility-first CSS framework.

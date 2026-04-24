@@ -35,6 +35,21 @@ function formatTimeLabel(value: string) {
   }).format(new Date(value));
 }
 
+function formatDateKey(value: string) {
+  const date = new Date(value);
+  const parts = new Intl.DateTimeFormat("en-US", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    timeZone: "Europe/Prague",
+  }).formatToParts(date);
+  const year = parts.find((part) => part.type === "year")?.value;
+  const month = parts.find((part) => part.type === "month")?.value;
+  const day = parts.find((part) => part.type === "day")?.value;
+
+  return year && month && day ? `${year}-${month}-${day}` : value.slice(0, 10);
+}
+
 function StatusCard({
   eyebrow,
   title,
@@ -214,6 +229,7 @@ export function BookingManagementPanel({
                       <button
                         key={option.key}
                         type="button"
+                        aria-label={`Vybrat nový termín ${formatDateKey(option.startsAt)} ${formatTimeLabel(option.startsAt)}`}
                         onClick={() => {
                           setSelectedSlotId(option.slotId);
                           setSelectedStartsAt(option.startsAt);

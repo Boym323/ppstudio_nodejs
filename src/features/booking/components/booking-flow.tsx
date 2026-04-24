@@ -133,6 +133,10 @@ function getSlotDateKey(value: string) {
   return `${year}-${month}-${day}`;
 }
 
+function buildSlotAriaLabel(slot: TimeSlotOption) {
+  return `Vybrat termín ${getSlotDateKey(slot.startsAt)} ${formatSlotTime(slot.startsAt)}`;
+}
+
 function getSlotDayNumber(dateKey: string) {
   const dayValue = Number(dateKey.split("-")[2]);
 
@@ -865,6 +869,7 @@ export function BookingFlow({ catalog, initialSelectedServiceSlug, salonProfile 
                   <SuggestedSlots
                     selectedKey={selectedTimeOptionKey}
                     slots={suggestedSlots}
+                    getAriaLabel={buildSlotAriaLabel}
                     formatDate={formatSlotDate}
                     formatTime={formatSlotTime}
                     onSelect={selectSlot}
@@ -1009,6 +1014,7 @@ export function BookingFlow({ catalog, initialSelectedServiceSlug, salonProfile 
                         label={group.label}
                         slots={group.slots}
                         selectedKey={selectedTimeOptionKey}
+                        getAriaLabel={buildSlotAriaLabel}
                         formatTime={formatSlotTime}
                         onSelect={selectSlot}
                       />

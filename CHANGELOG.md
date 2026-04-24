@@ -8,6 +8,8 @@ Formát je inspirovaný Keep a Changelog.
 
 - Admin login `POST /api/auth/login` nově používá server-side rate limit podobný veřejné rezervaci: omezuje pokusy za časové okno podle IP hashe a počtu neúspěšných pokusů na e-mail hash.
 - Přibylo auditní logování admin login pokusů do `BookingSubmissionLog` s prefixem `ADMIN_LOGIN_*` (`SUCCESS`, `INVALID_PAYLOAD`, `INVALID_CREDENTIALS`, `RATE_LIMITED`).
+- Přibyla Playwright E2E vrstva pro hlavní booking cesty: veřejné vytvoření rezervace, veřejné storno přes token, veřejný přesun termínu přes token a owner potvrzení pending rezervace v adminu.
+- Nový script `npm run test:e2e` spouští browser testy proti lokálnímu Next.js dev serveru na samostatném portu a každý scénář si seeduje i uklízí vlastní unikátní Prisma data.
 
 - Přibyl token-based klientský self-service flow `/rezervace/sprava/[token]`, kde klientka bez přihlášení bezpečně uvidí svou rezervaci, dostupné nové termíny pro stejnou službu a až po potvrzení provede přesun.
 - Self-service přesun používá stejné backend jádro `rescheduleBooking(...)` jako admin detail; validace slotu, kontrola kolizí, reset reminder markerů, auditní log i návazný e-mail běží nad jedním flow bez paralelní „lehké“ varianty.

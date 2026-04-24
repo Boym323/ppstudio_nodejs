@@ -105,6 +105,14 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Neplatná nebo zakázaná admin sekce se neřeší jen skrytím v menu; routa se validuje server-side přes `src/features/admin/lib/admin-guards.ts`.
 - Sekce `Uživatelé / role` má vlastní owner-only route workflow v `src/features/admin/components/admin-users-page.tsx`; už nepoužívá generický placeholder renderer z `admin-section-page.tsx`.
 
+## Testovací Strategie
+- Unit a doménové integrační testy běží přes Node test runner (`npm test`).
+- DB-backed booking integrační scénáře lze spustit cíleně přes `npm run test:db:booking`.
+- Browser E2E testy běží přes Playwright (`npm run test:e2e`) v adresáři `tests/e2e`.
+- Playwright konfigurace používá lokální produkční `next start` server na `PLAYWRIGHT_PORT` (výchozí `3100`) a nastavuje `NEXT_PUBLIC_APP_URL` na stejný lokální origin pro runtime serveru.
+- E2E fixture helper seeduje unikátní služby, sloty, klienty, tokeny a dočasného owner uživatele přes Prisma; cleanup filtruje podle unikátního `runId`, aby testy nesahaly na ručně vytvořená data.
+- Aktuální E2E smoke coverage ověřuje veřejné vytvoření pending rezervace, self-service storno, self-service přesun a owner potvrzení rezervace v admin detailu.
+
 ## Admin Informační Architektura
 - Sekce `volne-terminy` je znovu aktivní jako týdenní planner nad 30min gridem.
 - Serverový read/persistence model je v `src/features/admin/lib/admin-slots.ts`.

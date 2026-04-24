@@ -80,6 +80,14 @@ npm run dev
 
 `npm test` nyní spouští i DB-backed integrační testy (nejsou skipnuté), takže běžná verifikace zahrnuje i booking integrační scénáře.
 
+Browser E2E vrstva používá Playwright a spouští se samostatně:
+
+```bash
+npm run test:e2e
+```
+
+E2E testy nejdřív vytvoří produkční build, startují lokální `next start` server na samostatném portu, přepínají e-mail delivery do `log` režimu a seedují izolovaná data pro veřejnou rezervaci, storno, přesun termínu a admin potvrzení rezervace. Při prvním spuštění na novém stroji může být potřeba doinstalovat Playwright browser přes `npx playwright install chromium`.
+
 Pro cílené spuštění pouze booking DB integračních testů je připravený i samostatný příkaz:
 
 ```bash

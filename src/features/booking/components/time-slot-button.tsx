@@ -3,6 +3,7 @@
 import { cn } from "@/lib/utils";
 
 type TimeSlotButtonProps = {
+  ariaLabel?: string;
   isDisabled?: boolean;
   isSelected?: boolean;
   label: string;
@@ -10,6 +11,7 @@ type TimeSlotButtonProps = {
 };
 
 export function TimeSlotButton({
+  ariaLabel,
   isDisabled = false,
   isSelected = false,
   label,
@@ -20,6 +22,7 @@ export function TimeSlotButton({
       type="button"
       disabled={isDisabled}
       onClick={onClick}
+      aria-label={ariaLabel}
       aria-pressed={isSelected}
       className={cn(
         "inline-flex min-h-14 items-center justify-center rounded-2xl border px-4 py-3 text-sm font-semibold transition-all duration-100 ease-out outline-none",

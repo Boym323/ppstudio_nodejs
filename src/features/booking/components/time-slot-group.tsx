@@ -9,6 +9,7 @@ type TimeSlotGroupProps = {
   onSelect: (slot: TimeSlotOption) => void;
   selectedKey: string;
   slots: TimeSlotOption[];
+  getAriaLabel?: (slot: TimeSlotOption) => string;
   formatTime: (value: string) => string;
 };
 
@@ -17,6 +18,7 @@ export function TimeSlotGroup({
   onSelect,
   selectedKey,
   slots,
+  getAriaLabel,
   formatTime,
 }: TimeSlotGroupProps) {
   return (
@@ -34,6 +36,7 @@ export function TimeSlotGroup({
         {slots.map((slot) => (
           <TimeSlotButton
             key={slot.key}
+            ariaLabel={getAriaLabel?.(slot)}
             label={formatTime(slot.startsAt)}
             isDisabled={slot.isDisabled}
             isSelected={slot.key === selectedKey}
