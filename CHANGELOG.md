@@ -6,6 +6,9 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Admin login `POST /api/auth/login` nově používá server-side rate limit podobný veřejné rezervaci: omezuje pokusy za časové okno podle IP hashe a počtu neúspěšných pokusů na e-mail hash.
+- Přibylo auditní logování admin login pokusů do `BookingSubmissionLog` s prefixem `ADMIN_LOGIN_*` (`SUCCESS`, `INVALID_PAYLOAD`, `INVALID_CREDENTIALS`, `RATE_LIMITED`).
+
 - Přibyl token-based klientský self-service flow `/rezervace/sprava/[token]`, kde klientka bez přihlášení bezpečně uvidí svou rezervaci, dostupné nové termíny pro stejnou službu a až po potvrzení provede přesun.
 - Self-service přesun používá stejné backend jádro `rescheduleBooking(...)` jako admin detail; validace slotu, kontrola kolizí, reset reminder markerů, auditní log i návazný e-mail běží nad jedním flow bez paralelní „lehké“ varianty.
 - `BookingRescheduleLog.changedByClient` se nově plní i z veřejného flow, takže v admin historii zůstává vidět, že změnu provedla sama klientka bez přihlášeného uživatele.
@@ -14,6 +17,7 @@ Formát je inspirovaný Keep a Changelog.
 - Přibyly DB-backed integrační testy pro veřejný booking-management flow, které přes skutečné Prisma wiring ověřují token access, self-service storno, self-service přesun, reminder reset, audit/history zápisy, email orchestrace i odmítnutí neplatných tokenů, kolizí, terminal stavů a pokusů o přesun mimo online okno.
 
 ### Changed
+- Login stránka `/admin/prihlaseni` nově mapuje chybu `error=rate_limited` na čitelnou hlášku pro obsluhu.
 - `npm test` nově explicitně zapíná `RUN_DB_INTEGRATION_TESTS=1`, takže běžný test run už neskipuje booking DB integrační scénáře a verifikace není falešně zelená jen na unit vrstvách.
 - `npm run test:db:booking` nově spouští všechny booking DB integrační testy (`*.integration.test.ts`), takže jedním příkazem ověří jak centrální reschedule engine, tak veřejný token-based manage flow.
 - Veřejný klientský přesun termínu už nesmí propadnout do admin-style manual override větve; pokus o přesun mimo online okno nebo mimo veřejně dostupný slot se teď zastaví na service vrstvě bezpečnou business chybou.

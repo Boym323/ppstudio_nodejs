@@ -202,6 +202,8 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
 
 ## Přihlášení Do Adminu
 - Admin login je dostupný na `/admin/prihlaseni`.
+- Login route `POST /api/auth/login` má nově server-side rate limit (okno 10 minut) nad hashovanou IP a hashovaným e-mailem, aby omezila brute-force pokusy.
+- Při překročení limitu se login ukončí bezpečným přesměrováním na `/admin/prihlaseni?error=rate_limited` bez založení session.
 - Databázové účty vytvořené přes owner sekci `Uživatelé / role` se přihlašují vlastním heslem nastaveným přes pozvánku.
 - Pro systémový fallback přihlášení stále existují bootstrap hodnoty:
   - `ADMIN_OWNER_EMAIL`

@@ -31,6 +31,7 @@ Postup nasazení aplikace do produkce.
    - CTA na rezervaci
 14. Projdi ruční QA admin částí:
    - login redirect pro `OWNER` a `SALON`
+   - opakované chybné přihlášení na `/admin/prihlaseni` po překročení limitu vrátí `error=rate_limited` a nepovolí session
    - dostupnost owner-only sekcí jen pro `OWNER`
    - stejné chování owner/salon párových route po refaktoru factory wrapperů (overview, section, booking detail, slot list/create/detail/edit)
    - lite admin navigaci a mobilní čitelnost na `/admin/provoz/*`
