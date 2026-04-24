@@ -126,6 +126,7 @@ export async function AdminServicesPage({
           : "Klidný provozní přehled, kde jde většina změn udělat rovnou ze seznamu."
       }
       stats={data.stats}
+      compactStats
       compact={area === "salon"}
     >
       <div className="xl:hidden">
@@ -154,6 +155,7 @@ export async function AdminServicesPage({
             title="Přehled služeb"
             description="Najděte službu, proveďte rychlé akce a detail otevírejte jen tehdy, když je to opravdu potřeba."
             compact={area === "salon"}
+            denseHeader
           >
             <AdminServicesToolbar
               currentPath={data.currentPath}
@@ -165,11 +167,11 @@ export async function AdminServicesPage({
 
             {data.selectedService && !selectedServiceVisible ? (
               <div className="mt-5 rounded-[1.25rem] border border-amber-300/20 bg-amber-400/10 px-4 py-3 text-sm leading-6 text-amber-50">
-                Vybraná služba není v aktuálním filtru. Detail lze stále otevřít přes tlačítko v kartě.
+                Vybraná služba není v aktuálním filtru. Detail lze stále otevřít přes akce v řádku.
               </div>
             ) : null}
 
-            <div className="mt-5">
+            <div className="mt-4">
               <AdminServicesList
                 area={area}
                 currentPath={data.currentPath}
@@ -188,6 +190,7 @@ export async function AdminServicesPage({
           title="Přehled služeb"
           description="Seznam je primárně provozní: filtrace, stavové kontexty a akce jsou hned po ruce."
           compact={area === "salon"}
+          denseHeader
         >
           <AdminServicesToolbar
             currentPath={data.currentPath}
@@ -197,11 +200,11 @@ export async function AdminServicesPage({
             selectedServiceName={data.selectedService?.name}
           />
 
-          <div className="mt-5 grid gap-3 text-sm text-white/64 sm:grid-cols-2 lg:grid-cols-4">
-            <p><span className="text-white">Služeb v seznamu:</span> {data.services.length}</p>
-            <p><span className="text-white">Kategorií:</span> {data.categories.length}</p>
-            <p><span className="text-white">Veřejně viditelných:</span> {data.services.filter((service) => service.isEffectivelyVisible).length}</p>
-            <p><span className="text-white">S upozorněním:</span> {data.services.filter((service) => service.warnings.length > 0).length}</p>
+          <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-[1rem] border border-white/8 bg-white/[0.035] px-4 py-3 text-sm text-white/64">
+            <p><span className="text-white">V seznamu:</span> {data.services.length}</p>
+            <p><span className="text-white">Skupin:</span> {new Set(data.services.map((service) => service.category.id)).size}</p>
+            <p><span className="text-white">Viditelné:</span> {data.services.filter((service) => service.isEffectivelyVisible).length}</p>
+            <p><span className="text-white">Upozornění:</span> {data.services.filter((service) => service.warnings.length > 0).length}</p>
           </div>
 
           {data.selectedService && !selectedServiceVisible ? (
@@ -210,7 +213,7 @@ export async function AdminServicesPage({
             </div>
           ) : null}
 
-          <div className="mt-5">
+          <div className="mt-4">
             <AdminServicesList
               area={area}
               currentPath={data.currentPath}

@@ -259,28 +259,28 @@ export async function getAdminServicesPageData(
     detail: string;
   }> = [
     {
-      label: "Aktivní služby",
+      label: "Aktivní",
       value: String(activeCount),
       tone: "accent",
-      detail: "Služby, které zůstávají k dispozici pro běžný provoz nebo další plánování.",
+      detail: "K dispozici pro běžný provoz.",
     },
     {
-      label: "Neaktivní služby",
+      label: "Neaktivní",
       value: String(inactiveCount),
       tone: "muted",
-      detail: "Dočasně vypnuté nebo historicky ponechané služby, které zůstávají v katalogu.",
+      detail: "Dočasně vypnuté nebo archivní.",
     },
     {
-      label: "Veřejně rezervovatelné",
+      label: "Veřejné",
       value: String(publicCount),
       tone: "default",
-      detail: "Služby označené pro veřejnou rezervaci, i když některé mohou být skryté přes stav nebo kategorii.",
+      detail: "Označené pro veřejnou rezervaci.",
     },
     {
-      label: "Jen interní / problémové",
+      label: "Interní / problémy",
       value: String(privateCount + problematicCount),
       tone: privateCount + problematicCount > 0 ? "accent" : "muted",
-      detail: "Součet interních služeb a položek, které si říkají o rychlou kontrolu.",
+      detail: "Interní položky a varování v seznamu.",
     },
   ];
 

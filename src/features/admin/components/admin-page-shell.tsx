@@ -73,12 +73,12 @@ export function AdminPageShell({
       </section>
 
       {stats?.length ? (
-        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <section className={cn("grid md:grid-cols-2 xl:grid-cols-4", compactStats ? "gap-3" : "gap-4")}>
           {stats.map((stat) => (
             <article
               key={stat.label}
               className={cn(
-                compactStats ? "rounded-[1.35rem] border p-4" : "rounded-[1.75rem] border p-5",
+                compactStats ? "rounded-[1.2rem] border px-4 py-3.5" : "rounded-[1.75rem] border p-5",
                 statToneStyles[stat.tone ?? "default"],
               )}
             >
@@ -86,13 +86,13 @@ export function AdminPageShell({
               <p
                 className={cn(
                   "break-words font-display",
-                  compactStats ? "mt-2 text-2xl sm:text-3xl" : "mt-4 text-3xl sm:text-4xl",
+                  compactStats ? "mt-1.5 text-[1.75rem] sm:text-[2rem]" : "mt-4 text-3xl sm:text-4xl",
                 )}
               >
                 {stat.value}
               </p>
               {stat.detail ? (
-                <p className={cn("text-sm leading-6 text-white/62", compactStats ? "mt-2" : "mt-3")}>
+                <p className={cn("text-sm text-white/62", compactStats ? "mt-1.5 leading-5" : "mt-3 leading-6")}>
                   {stat.detail}
                 </p>
               ) : null}

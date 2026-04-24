@@ -168,6 +168,14 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - `src/features/admin/lib/admin-services.ts` drží serverový read model pro seznam, provozní warningy, detail služby a předvyplněný create flow.
 - `src/features/admin/actions/service-actions.ts` nově obsluhuje create, update, duplikaci, quick toggles a reorder; validace zůstává v `src/features/admin/lib/admin-service-validation.ts`.
 - Ve formuláři detailu služby (`admin-service-form.tsx`) je textová vrstva sjednocená pod `Veřejná prezentace`; `publicIntro` je jediný zdroj krátkého textu pro web i rezervační flow, aby se stejný copy neudržoval ve dvou polích.
+- Aktuální seznam služeb je záměrně group-first a compact-first:
+  - `admin-services-list.tsx` skládá služby do kategorií
+  - `service-category-group.tsx` drží rozbalovací skupinu jedné kategorie
+  - `service-compact-row.tsx` renderuje hustý pracovní řádek služby
+  - `service-actions-menu.tsx` centralizuje row actions do menu `⋯`
+  - `service-status-badges.tsx` drží zjednodušené badge `Aktivní/Neaktivní`, `Veřejná/Interní`, volitelně `Skrytá`
+- Při dalších úpravách sekce `Služby` drž prioritu na hustotě seznamu: základní řádek nemá nést dlouhé vysvětlující texty ani plný seznam akcí.
+- Sekundární provozní kontext služby patří do rozbalené části řádku nebo do pravého detail draweru, ne do výchozího stavu seznamu.
 - Sekce `Kategorie služeb` má vlastní workflow v `src/features/admin/components/admin-service-categories-page.tsx` a stejně jako `Služby` obchází generický placeholder renderer.
 - `src/features/admin/lib/admin-service-categories.ts` drží serverový read model pro seznam, warningy, detail kategorie a počty navázaných služeb podle stavu.
 - Nové UI komponenty pro workflow kategorií jsou v `src/components/admin/categories/`:

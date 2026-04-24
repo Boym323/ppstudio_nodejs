@@ -47,6 +47,9 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
   - služba: `publicIntro`, `seoDescription`, `pricingShortDescription`, `pricingBadge` (název je sjednocený v poli `name` pro web i rezervace)
   - kategorie: `pricingDescription`, `pricingLayout`, `pricingIconKey`, `pricingSortOrder` (název je sjednocený v poli `name`; legacy `publicName` se už nepoužívá)
 - Admin sekce `Služby` a `Kategorie služeb` tato metadata umí upravovat bez zásahu do databáze nebo kódu.
+- Admin sekce `Služby` už nepoužívá vysoké katalogové karty; seznam je nově seskupený podle kategorií a funguje jako hustší provozní workspace.
+- Každá skupina kategorií v adminu ukazuje počet služeb a jde rozbalit/sbalit; samotná služba má kompaktní řádek a sekundární kontext je až v rozbalení nebo v pravém detail draweru.
+- Rychlé změny služby se v seznamu nově soustředí do malého menu `⋯` a na desktopu i do drobných inline toggle přepínačů pro aktivitu a veřejnost.
 - Ceník už nepoužívá vedlejší blok s poznámkami; detail služby zůstává místem pro doplňující vysvětlení.
 - Veřejné stránky drží jednotný šířkový rytmus přes sdílený `Container` (`max-w-7xl`); při úpravách layoutu nepřidávej další globální zúžení sekcí přes `mx-auto max-w-*`.
 - Vertikální spacing veřejných sekcí je sjednocený do rytmu `py-10 / sm:py-14 / lg:py-16`; větší rozestupy používej jen pro obsahově výrazné bloky.
@@ -64,6 +67,7 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
   - `OWNER` vidí strategické a technické sekce navíc
   - `SALON` vidí jen provozní sekce a jednodušší copy bez technických pojmů
 - Přesun termínu má pro `OWNER` i `SALON` stejné chování; role mění jen administrativní cestu, ne business logiku reschedule flow.
+- Filtrační lišta sekce `Služby` je na desktopu sticky a zůstává během scrollu po ruce; horní statistiky jsou záměrně menší, aby nepřebíraly roli hlavního obsahu.
 - Týdenní planner dostupností a veřejná booking service vrstva jsou po stabilizačním refaktoru modulární i v kódu, ale bez změny URL, exportů nebo databázového modelu.
 - Prisma schema v1 už pokrývá:
   - admin uživatele a role

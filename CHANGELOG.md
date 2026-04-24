@@ -6,6 +6,12 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Admin sekce `Služby` prošla zásadním UX refaktorem seznamu: vysoké karty nahradil kompaktní group-first layout podle kategorií s hustšími řádky služeb.
+- Každá kategorie v seznamu `Služby` nově zobrazuje počet položek a jde samostatně sbalit/rozbalit; název kategorie už se neopakuje u každé služby.
+- Základní řádek služby je zkrácený na název, délku, cenu, statusy, rezervace a rychlé akce; `operationalContext`, warning detail, slotová omezení a pořadí jsou až v rozbalení řádku.
+- Statusy v seznamu `Služby` jsou zjednodušené na malé badge `Aktivní/Neaktivní`, `Veřejná/Interní` a volitelně `Skrytá`.
+- Rychlé akce služby se přesunuly do compact menu `⋯`; běžné toggly aktivity a veřejnosti jsou na desktopu dostupné i jako malé inline přepínače přímo v řádku.
+- Filtry sekce `Služby` jsou kompaktnější a na desktopu sticky; horní statistiky i souhrnný řádek nad seznamem mají menší vizuální výšku.
 - Portréty jsou nově rozdělené na cíle `PORTRAIT_HOME` (homepage hero) a `PORTRAIT_ABOUT` (`/o-mne` hero), takže každá stránka může používat vlastní obrázek bez nového upload systému.
 - Veřejné read modely mají bezpečný fallback: když chybí cílený portrét, homepage i `/o-mne` dál použijí legacy `PORTRAIT`.
 - Admin `Média webu` nyní nabízí samostatné typy `Portrét: Homepage`, `Portrét: O mně` a `Portrét: Legacy (obě stránky)` v uploadu, editaci, filtrech i badge použití.
