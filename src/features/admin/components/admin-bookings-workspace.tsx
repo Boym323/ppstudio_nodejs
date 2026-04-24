@@ -15,7 +15,7 @@ type AdminBookingsWorkspaceProps = {
 };
 
 const columnLayout =
-  "md:grid-cols-[2.5rem_minmax(15rem,2fr)_minmax(10rem,1fr)_minmax(8rem,0.9fr)_minmax(7rem,0.7fr)_minmax(11rem,0.95fr)_minmax(13rem,auto)]";
+  "md:grid-cols-[2.5rem_minmax(15rem,2fr)_minmax(10rem,1fr)_minmax(10rem,1fr)_minmax(7rem,0.7fr)_minmax(11rem,0.95fr)_21rem]";
 
 export function AdminBookingsWorkspace({
   area,
@@ -76,7 +76,7 @@ export function AdminBookingsWorkspace({
             columnLayout,
           )}
         >
-          <span className="sr-only">Výběr</span>
+          <span aria-hidden="true" />
           <span>Rezervace</span>
           <span>Čas</span>
           <span>Status</span>
@@ -110,7 +110,7 @@ export function AdminBookingsWorkspace({
                 <p className="text-sm text-white/46">{group.items.length}</p>
               </div>
 
-              <div className="divide-y divide-white/8">
+              <div className="relative divide-y divide-white/8 before:hidden before:content-[''] md:before:block md:before:h-11">
                 {group.items.map((booking) => {
                   const rowIndex = rowIndexById.get(booking.id) ?? 0;
                   const selected = selectedIds.includes(booking.id);
@@ -177,7 +177,7 @@ export function AdminBookingsWorkspace({
                             <p className="mt-0.5 text-xs text-white/50">{booking.scheduledDateLabel}</p>
                           </InfoCell>
 
-                          <InfoCell className="md:justify-self-start">
+                          <InfoCell className="md:justify-self-center">
                             <StatusBadge status={booking.status} muted={booking.isMuted} pending={booking.isPending}>
                               {booking.statusLabel}
                             </StatusBadge>
@@ -191,7 +191,7 @@ export function AdminBookingsWorkspace({
                             <ContactBlock booking={booking} compact />
                           </InfoCell>
 
-                          <div className="justify-self-end self-center" data-row-interactive>
+                          <div className="justify-self-stretch self-center" data-row-interactive>
                             <AdminBookingsQuickActions
                               area={area}
                               bookingId={booking.id}
@@ -353,7 +353,7 @@ function StatusBadge({
   return (
     <span
       className={cn(
-        "inline-flex min-h-7 min-w-[7.25rem] max-w-full items-center justify-center whitespace-nowrap rounded-full border px-2.5 py-1 text-center text-[11px] font-semibold leading-4 tracking-[0.01em]",
+        "inline-flex min-h-7 min-w-[9.75rem] max-w-full items-center justify-center whitespace-nowrap rounded-full border px-2.5 py-1 text-center text-[11px] font-semibold leading-4 tracking-[0.01em]",
         getStatusClassName(status, muted ?? false, pending ?? false),
       )}
     >

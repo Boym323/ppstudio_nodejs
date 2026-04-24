@@ -48,7 +48,7 @@ export function AdminBookingsQuickActions({
     <div className="space-y-1">
       <form
         action={formAction}
-        className="flex w-full flex-wrap items-stretch justify-start gap-1"
+        className="flex w-full flex-wrap items-stretch justify-start gap-1 md:flex-nowrap md:justify-end"
         onClick={(event) => event.stopPropagation()}
       >
         <input type="hidden" name="area" value={area} />
