@@ -244,7 +244,7 @@ export function MediaGrid({ area, assets }: { area: AdminArea; assets: MediaAsse
 
 export function MediaCard({ area, asset }: { area: AdminArea; asset: MediaAssetItem }) {
   return (
-    <article className="overflow-hidden rounded-[1.35rem] border border-white/10 bg-white/5">
+    <article className="rounded-[1.35rem] border border-white/10 bg-white/5">
       <div className="relative h-44 overflow-hidden border-b border-white/10 bg-black/20">
         {asset.thumbnailPublicUrl ? (
           <Image
@@ -298,7 +298,7 @@ export function MediaEditDialog({ area, asset }: { area: AdminArea; asset: Media
       <summary className="list-none rounded-full border border-white/12 bg-white/8 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/12 [&::-webkit-details-marker]:hidden">
         Upravit
       </summary>
-      <div className="absolute left-0 z-20 mt-2 w-[min(22rem,calc(100vw-2rem))] rounded-[1.25rem] border border-white/12 bg-[#15100d] p-4 shadow-2xl">
+      <div className="mt-2 w-[min(22rem,calc(100vw-2rem))] rounded-[1.25rem] border border-white/12 bg-[#15100d] p-4 shadow-2xl">
         <form action={updateMediaAction} className="space-y-3">
           <input type="hidden" name="area" value={area} />
           <input type="hidden" name="assetId" value={asset.id} />
