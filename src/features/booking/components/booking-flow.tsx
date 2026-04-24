@@ -5,233 +5,30 @@ import { useActionState, useEffect, useMemo, useRef, useState, type MutableRefOb
 
 import { createPublicBookingAction } from "@/features/booking/actions/create-public-booking";
 import { initialPublicBookingActionState } from "@/features/booking/actions/public-booking-action-state";
-import type { PublicBookingCatalog } from "@/features/booking/lib/booking-public";
-import type { getPublicSalonProfile } from "@/lib/site-settings";
 import {
   buildSlotTimeOptions,
   groupSlotsByDayPeriod,
   type TimeSlotOption,
 } from "@/features/booking/lib/booking-time-slots";
-import { cn } from "@/lib/utils";
 
-import { BookingSubmitButton } from "./booking-submit-button";
 import { BookingConfirmationPanel } from "./booking-confirmation-panel";
-import { CategorySelect } from "./category-select";
 import { StickyCTA } from "./sticky-cta";
-import { SuggestedSlots } from "./suggested-slots";
-import { TimeSlotGroup } from "./time-slot-group";
-
-type BookingFlowProps = {
-  catalog: PublicBookingCatalog;
-  initialSelectedServiceSlug?: string;
-  salonProfile: Awaited<ReturnType<typeof getPublicSalonProfile>>;
-};
-
-type ContactFieldKey = "fullName" | "email" | "phone";
-
-const stepLabels = [
-  "Služba",
-  "Termín",
-  "Kontakt",
-  "Souhrn",
-] as const;
-const EMPTY_TIME_SLOTS: TimeSlotOption[] = [];
-const WEEKDAY_LABELS = ["Po", "Út", "St", "Čt", "Pá", "So", "Ne"] as const;
-const slotDateKeyFormatter = new Intl.DateTimeFormat("en-US", {
-  year: "numeric",
-  month: "2-digit",
-  day: "2-digit",
-  timeZone: "Europe/Prague",
-});
-const calendarGridColumnsStyle = {
-  gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
-} as const;
-
-function formatPrice(priceFromCzk: number | null) {
-  if (!priceFromCzk) {
-    return "Cena na vyžádání";
-  }
-
-  return new Intl.NumberFormat("cs-CZ", {
-    style: "currency",
-    currency: "CZK",
-    maximumFractionDigits: 0,
-  }).format(priceFromCzk);
-}
-
-function formatSlotDate(startsAt: string) {
-  return new Intl.DateTimeFormat("cs-CZ", {
-    weekday: "short",
-    day: "numeric",
-    month: "long",
-    timeZone: "Europe/Prague",
-  }).format(new Date(startsAt));
-}
-
-function formatSlotTime(value: string) {
-  return new Intl.DateTimeFormat("cs-CZ", {
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone: "Europe/Prague",
-  }).format(new Date(value));
-}
-
-function formatCalendarMonthLabel(monthKey: string) {
-  const [year, month] = monthKey.split("-").map((part) => Number(part));
-
-  if (!year || !month) {
-    return "";
-  }
-
-  return new Intl.DateTimeFormat("cs-CZ", {
-    month: "long",
-    year: "numeric",
-    timeZone: "Europe/Prague",
-  }).format(new Date(Date.UTC(year, month - 1, 1, 12, 0, 0)));
-}
-
-function formatDateKeyLabel(dateKey: string) {
-  const [year, month, day] = dateKey.split("-").map((part) => Number(part));
-
-  if (!year || !month || !day) {
-    return "";
-  }
-
-  return new Intl.DateTimeFormat("cs-CZ", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    timeZone: "Europe/Prague",
-  }).format(new Date(Date.UTC(year, month - 1, day, 12, 0, 0)));
-}
-
-function getSlotDateKey(value: string) {
-  const parsedValue = new Date(value);
-
-  if (Number.isNaN(parsedValue.getTime())) {
-    return "";
-  }
-
-  let year = "";
-  let month = "";
-  let day = "";
-
-  for (const part of slotDateKeyFormatter.formatToParts(parsedValue)) {
-    if (part.type === "year") {
-      year = part.value;
-    } else if (part.type === "month") {
-      month = part.value;
-    } else if (part.type === "day") {
-      day = part.value;
-    }
-  }
-
-  if (!year || !month || !day) {
-    return "";
-  }
-
-  return `${year}-${month}-${day}`;
-}
-
-function buildSlotAriaLabel(slot: TimeSlotOption) {
-  return `Vybrat termín ${getSlotDateKey(slot.startsAt)} ${formatSlotTime(slot.startsAt)}`;
-}
-
-function getSlotDayNumber(dateKey: string) {
-  const dayValue = Number(dateKey.split("-")[2]);
-
-  if (!Number.isInteger(dayValue) || dayValue < 1 || dayValue > 31) {
-    return "";
-  }
-
-  return String(dayValue);
-}
-
-function formatSlotDuration(startsAt: string, endsAt: string) {
-  const durationMinutes = Math.round((new Date(endsAt).getTime() - new Date(startsAt).getTime()) / (1000 * 60));
-  const hours = Math.floor(durationMinutes / 60);
-  const minutes = durationMinutes % 60;
-
-  if (hours > 0 && minutes > 0) {
-    return `${hours} h ${minutes} min`;
-  }
-
-  if (hours > 0) {
-    return `${hours} h`;
-  }
-
-  return `${minutes} min`;
-}
-
-function getSlotDurationMinutes(slot: PublicBookingCatalog["slots"][number]) {
-  return (new Date(slot.endsAt).getTime() - new Date(slot.startsAt).getTime()) / (1000 * 60);
-}
-
-function getCategoryKey(categoryName: string) {
-  return categoryName.toLocaleLowerCase("cs-CZ");
-}
-
-function normalizePhone(phone: string) {
-  const trimmed = phone.trim();
-  const hasInternationalPrefix = trimmed.startsWith("+");
-  const digitsOnly = trimmed.replace(/\D/g, "");
-
-  if (digitsOnly.length === 0) {
-    return "";
-  }
-
-  return `${hasInternationalPrefix ? "+" : ""}${digitsOnly}`;
-}
-
-function validateFullName(value: string) {
-  const trimmed = value.trim();
-
-  if (trimmed.length === 0) {
-    return "Vyplňte prosím jméno a příjmení.";
-  }
-
-  if (trimmed.length < 3 || trimmed.replace(/[^\p{L}]/gu, "").length < 2) {
-    return "Zadejte celé jméno a příjmení.";
-  }
-
-  return undefined;
-}
-
-function validateEmail(value: string) {
-  const trimmed = value.trim();
-
-  if (trimmed.length === 0) {
-    return "Vyplňte prosím e-mail.";
-  }
-
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
-    return "Zadejte platný e-mail.";
-  }
-
-  return undefined;
-}
-
-function validatePhone(value: string) {
-  const normalized = normalizePhone(value);
-
-  if (!normalized) {
-    return undefined;
-  }
-
-  if (!/^\+?\d{8,15}$/.test(normalized)) {
-    return "Telefon zadejte s 8 až 15 číslicemi, případně s úvodním +.";
-  }
-
-  return undefined;
-}
-
-function buildContactFieldErrors(values: Record<ContactFieldKey, string>) {
-  return {
-    fullName: validateFullName(values.fullName),
-    email: validateEmail(values.email),
-    phone: validatePhone(values.phone),
-  };
-}
+import { BookingContactStep } from "./booking-flow/contact-step";
+import {
+  buildContactFieldErrors,
+  EMPTY_TIME_SLOTS,
+  getCategoryKey,
+  getSlotDateKey,
+  getSlotDurationMinutes,
+  formatSlotDate,
+  formatSlotTime,
+  stepLabels,
+} from "./booking-flow/helpers";
+import { BookingProgressPanel } from "./booking-flow/progress-panel";
+import { BookingServiceStep } from "./booking-flow/service-step";
+import { BookingSummarySidebar } from "./booking-flow/summary-sidebar";
+import { BookingTermStep } from "./booking-flow/term-step";
+import type { BookingFlowProps, ContactFieldKey, ServiceCategory } from "./booking-flow/types";
 
 export function BookingFlow({ catalog, initialSelectedServiceSlug, salonProfile }: BookingFlowProps) {
   const [serverState, formAction] = useActionState(
@@ -454,7 +251,7 @@ export function BookingFlow({ catalog, initialSelectedServiceSlug, salonProfile 
   );
 
   const serviceCategories = useMemo(() => {
-    const grouped = new Map<string, { key: string; label: string; serviceCount: number }>();
+    const grouped = new Map<string, ServiceCategory>();
 
     for (const service of catalog.services) {
       const key = getCategoryKey(service.categoryName);
@@ -561,10 +358,7 @@ export function BookingFlow({ catalog, initialSelectedServiceSlug, salonProfile 
   );
 
   const availableMonths = useMemo(
-    () =>
-      Array.from(
-        new Set(availableDateKeys.map((dateKey) => dateKey.slice(0, 7))),
-      ).sort((monthA, monthB) => monthA.localeCompare(monthB)),
+    () => Array.from(new Set(availableDateKeys.map((dateKey) => dateKey.slice(0, 7)))).sort((monthA, monthB) => monthA.localeCompare(monthB)),
     [availableDateKeys],
   );
 
@@ -624,7 +418,6 @@ export function BookingFlow({ catalog, initialSelectedServiceSlug, salonProfile 
   const canGoToStep2 = Boolean(selectedService);
   const canGoToStep3 = canGoToStep2 && Boolean(selectedTimeOption && !selectedTimeOption.isDisabled);
   const canGoToStep4 = canGoToStep3 && !hasClientContactErrors && Boolean(fullName.trim() && email.trim());
-  const progressValue = Math.round((currentStep / stepLabels.length) * 100);
 
   const getDisplayedFieldError = (field: ContactFieldKey) => {
     if (touchedFields[field] && clientFieldErrors[field]) {
@@ -632,6 +425,12 @@ export function BookingFlow({ catalog, initialSelectedServiceSlug, salonProfile 
     }
 
     return serverState.fieldErrors?.[field];
+  };
+
+  const resetServiceDependentSelection = () => {
+    setSelectedTimeOptionKey("");
+    setSelectedDateKey("");
+    setVisibleMonthKey("");
   };
 
   const selectSlot = (slotOption: TimeSlotOption) => {
@@ -660,6 +459,17 @@ export function BookingFlow({ catalog, initialSelectedServiceSlug, salonProfile 
     setCurrentStep(4);
   };
 
+  const updateVisibleMonth = (nextMonthKey: string) => {
+    setVisibleMonthKey(nextMonthKey);
+    const firstDateInMonth = availableDateKeys.find((dateKey) =>
+      dateKey.startsWith(`${nextMonthKey}-`),
+    );
+    if (firstDateInMonth) {
+      setSelectedDateKey(firstDateInMonth);
+      setSelectedTimeOptionKey("");
+    }
+  };
+
   if (serverState.status === "success" && serverState.confirmation) {
     return (
       <BookingConfirmationPanel
@@ -681,613 +491,128 @@ export function BookingFlow({ catalog, initialSelectedServiceSlug, salonProfile 
 
       <div className="space-y-5 sm:space-y-6">
         <section className="rounded-[var(--radius-panel)] border border-black/6 bg-white p-5 shadow-[var(--shadow-panel)] sm:p-7 lg:p-8">
-          <div className="rounded-3xl border border-black/6 bg-[var(--color-surface)]/22 p-4 sm:p-5">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.32em] text-[var(--color-accent)]">
-                  Krok {currentStep} ze {stepLabels.length}
-                </p>
-                <p className="mt-2 text-sm font-medium text-[var(--color-foreground)]">
-                  Rezervace zabere zhruba minutu.
-                </p>
-              </div>
-              <p className="text-sm font-semibold text-[var(--color-muted)]">{progressValue} %</p>
-            </div>
-            <div className="mt-4 h-2 overflow-hidden rounded-full bg-black/6">
-              <div
-                className="h-full rounded-full bg-[var(--color-accent)] transition-[width] duration-300"
-                style={{ width: `${progressValue}%` }}
-              />
-            </div>
-            <div className="mt-4 flex flex-wrap gap-2">
-              {stepLabels.map((label, index) => {
-                const stepNumber = index + 1;
-
-                return (
-                  <div
-                    key={label}
-                    className={cn(
-                      "inline-flex items-center gap-2 rounded-full border px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.12em]",
-                      stepNumber <= currentStep
-                        ? "border-[var(--color-accent)] bg-white text-[var(--color-foreground)]"
-                        : "border-black/8 bg-[var(--color-surface)]/35 text-[var(--color-muted)]",
-                    )}
-                  >
-                    <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-[var(--color-surface)] text-[10px]">
-                      {stepNumber}
-                    </span>
-                    {label}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {serverState.formError ? (
-            <div className="mt-6 rounded-3xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-              {serverState.formError}
-            </div>
-          ) : null}
+          <BookingProgressPanel
+            currentStep={currentStep}
+            formError={serverState.formError}
+            stepLabels={stepLabels}
+          />
 
           <div className="mt-6 space-y-7 sm:mt-8 sm:space-y-8">
-            <div
-              ref={serviceStepSectionRef}
-              className={cn(
-                "space-y-5 rounded-3xl transition-all duration-300",
-                isServiceStepHighlighted
-                  ? "bg-[var(--color-surface-strong)]/20 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]"
-                  : "",
-              )}
-            >
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.32em] text-[var(--color-accent)]">
-                  Krok 1
-                </p>
-                <h3 className="mt-2 font-display text-3xl text-[var(--color-foreground)]">
-                  Vyberte službu
-                </h3>
-                <p className="mt-2 text-sm leading-6 text-[var(--color-muted)]">
-                  Nejdřív zvolte kategorii. Potom vám ukážeme jen konkrétní služby z ní.
-                </p>
-              </div>
+            <BookingServiceStep
+              sectionRef={serviceStepSectionRef}
+              highlighted={isServiceStepHighlighted}
+              categories={serviceCategories}
+              effectiveCategoryKey={effectiveCategoryKey}
+              visibleServices={visibleServices}
+              selectedServiceId={selectedServiceId}
+              serviceIdError={serverState.fieldErrors?.serviceId}
+              onCategorySelect={(categoryKey) => {
+                setSelectedCategoryKey(categoryKey);
+                setSelectedServiceId("");
+                resetServiceDependentSelection();
+                setCurrentStep(1);
+              }}
+              onServiceSelect={(serviceId) => {
+                setSelectedServiceId(serviceId);
+                resetServiceDependentSelection();
+                setCurrentStep(2);
+                focusTermStepSection();
+              }}
+            />
 
-              <CategorySelect
-                categories={serviceCategories}
-                selectedKey={effectiveCategoryKey}
-                onSelect={(categoryKey) => {
-                  setSelectedCategoryKey(categoryKey);
-                  setSelectedServiceId("");
+            <BookingTermStep
+              sectionRef={termStepSectionRef}
+              highlighted={isTermStepHighlighted}
+              selectedService={selectedService}
+              selectableTimeOptions={selectableTimeOptions}
+              suggestedSlots={suggestedSlots}
+              selectedTimeOptionKey={selectedTimeOptionKey}
+              availableMonths={availableMonths}
+              effectiveVisibleMonthKey={effectiveVisibleMonthKey}
+              availableDateKeys={availableDateKeys}
+              calendarCells={calendarCells}
+              availableSlotsByDate={availableSlotsByDate}
+              effectiveSelectedDateKey={effectiveSelectedDateKey}
+              selectedDateSlots={selectedDateSlots}
+              selectedDateSlotGroups={selectedDateSlotGroups}
+              canGoToStep3={canGoToStep3}
+              slotError={serverState.fieldErrors?.slotId ?? serverState.fieldErrors?.startsAt}
+              onContinue={() => {
+                setCurrentStep(3);
+                focusContactStepSection();
+              }}
+              onSlotSelect={selectSlot}
+              onSelectDate={(dateKey) => {
+                setSelectedDateKey(dateKey);
+                if (selectedSlotDateKey && selectedSlotDateKey !== dateKey) {
                   setSelectedTimeOptionKey("");
-                  setSelectedDateKey("");
-                  setVisibleMonthKey("");
-                  setCurrentStep(1);
-                }}
-              />
+                }
+              }}
+              onPreviousMonth={() => {
+                const monthIndex = availableMonths.indexOf(effectiveVisibleMonthKey);
+                if (monthIndex > 0) {
+                  updateVisibleMonth(availableMonths[monthIndex - 1] ?? "");
+                }
+              }}
+              onNextMonth={() => {
+                const monthIndex = availableMonths.indexOf(effectiveVisibleMonthKey);
+                if (monthIndex < availableMonths.length - 1) {
+                  updateVisibleMonth(availableMonths[monthIndex + 1] ?? "");
+                }
+              }}
+            />
 
-              <div className="grid gap-3">
-                {visibleServices.map((service) => {
-                  const isSelected = service.id === selectedServiceId;
-
-                  return (
-                    <button
-                      key={service.id}
-                      type="button"
-                      onClick={() => {
-                        setSelectedCategoryKey(getCategoryKey(service.categoryName));
-                        setSelectedServiceId(service.id);
-                        setSelectedTimeOptionKey("");
-                        setSelectedDateKey("");
-                        setVisibleMonthKey("");
-                        setCurrentStep(2);
-                        focusTermStepSection();
-                      }}
-                      className={cn(
-                        "rounded-3xl border p-5 text-left transition-all duration-150",
-                        isSelected
-                          ? "border-[var(--color-accent)] bg-[var(--color-surface-strong)]/45 shadow-[0_6px_14px_rgba(0,0,0,0.06)]"
-                          : "border-black/6 bg-[var(--color-surface)]/25 hover:bg-[var(--color-surface)]/45",
-                      )}
-                    >
-                      <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div>
-                          <p className="text-xs uppercase tracking-[0.22em] text-[var(--color-muted)]">
-                            {service.categoryName}
-                          </p>
-                          <h4 className="mt-2 font-display text-2xl text-[var(--color-foreground)]">
-                            {service.name}
-                          </h4>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-sm font-semibold text-[var(--color-foreground)]">
-                            {service.durationMinutes} min
-                          </p>
-                          <p className="mt-1 text-sm text-[var(--color-muted)]">
-                            {formatPrice(service.priceFromCzk)}
-                          </p>
-                        </div>
-                      </div>
-                      {service.shortDescription ? (
-                        <p className="mt-3 text-sm leading-6 text-[var(--color-muted)]">
-                          {service.shortDescription}
-                        </p>
-                      ) : null}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {serverState.fieldErrors?.serviceId ? (
-                <p className="text-sm text-red-700">{serverState.fieldErrors.serviceId}</p>
-              ) : null}
-            </div>
-
-            <div
-              ref={termStepSectionRef}
-              className={cn(
-                "space-y-4 rounded-3xl transition-all duration-300",
-                isTermStepHighlighted
-                  ? "bg-[var(--color-surface-strong)]/30 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]"
-                  : "",
-              )}
-            >
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.32em] text-[var(--color-accent)]">
-                    Krok 2
-                  </p>
-                  <h3 className="mt-2 font-display text-3xl text-[var(--color-foreground)]">
-                    Vyberte termín
-                  </h3>
-                  <p className="mt-2 text-sm leading-6 text-[var(--color-muted)]">
-                    Nejrychlejší je kliknout na nejbližší volný čas. Kalendář necháváme jako druhou možnost.
-                  </p>
-                </div>
-                {canGoToStep3 ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCurrentStep(3);
-                      focusContactStepSection();
-                    }}
-                    className="rounded-full border border-black/8 px-4 py-2 text-sm font-semibold text-[var(--color-foreground)]"
-                  >
-                    Pokračovat
-                  </button>
-                ) : null}
-              </div>
-
-              {!selectedService ? (
-                <div className="rounded-3xl border border-dashed border-black/10 bg-[var(--color-surface)]/20 px-5 py-6 text-sm text-[var(--color-muted)]">
-                  Nejprve vyberte službu. Pak zobrazíme jen kompatibilní termíny.
-                </div>
-              ) : selectableTimeOptions.length === 0 ? (
-                <div className="rounded-3xl border border-dashed border-black/10 bg-[var(--color-surface)]/20 px-5 py-6 text-sm text-[var(--color-muted)]">
-                  Pro tuto službu teď není publikovaný žádný volný termín s dostatečnou délkou.
-                </div>
-              ) : (
-                <div className="space-y-5">
-                  <SuggestedSlots
-                    selectedKey={selectedTimeOptionKey}
-                    slots={suggestedSlots}
-                    getAriaLabel={buildSlotAriaLabel}
-                    formatDate={formatSlotDate}
-                    formatTime={formatSlotTime}
-                    onSelect={selectSlot}
-                  />
-
-                  <div className="rounded-3xl border border-black/6 bg-[var(--color-surface)]/18 p-4 sm:p-5">
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--color-accent)]">
-                          Jiný termín
-                        </p>
-                        <p className="mt-2 text-sm font-medium text-[var(--color-foreground)]">
-                          {formatCalendarMonthLabel(effectiveVisibleMonthKey)}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const monthIndex = availableMonths.indexOf(effectiveVisibleMonthKey);
-                            if (monthIndex > 0) {
-                              const nextMonthKey = availableMonths[monthIndex - 1];
-                              setVisibleMonthKey(nextMonthKey);
-                              const firstDateInMonth = availableDateKeys.find((dateKey) =>
-                                dateKey.startsWith(`${nextMonthKey}-`),
-                              );
-                              if (firstDateInMonth) {
-                                setSelectedDateKey(firstDateInMonth);
-                                setSelectedTimeOptionKey("");
-                              }
-                            }
-                          }}
-                          disabled={availableMonths.indexOf(effectiveVisibleMonthKey) <= 0}
-                          className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-black/8 text-lg text-[var(--color-foreground)] disabled:opacity-40"
-                          aria-label="Předchozí měsíc"
-                        >
-                          ‹
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const monthIndex = availableMonths.indexOf(effectiveVisibleMonthKey);
-                            if (monthIndex < availableMonths.length - 1) {
-                              const nextMonthKey = availableMonths[monthIndex + 1];
-                              setVisibleMonthKey(nextMonthKey);
-                              const firstDateInMonth = availableDateKeys.find((dateKey) =>
-                                dateKey.startsWith(`${nextMonthKey}-`),
-                              );
-                              if (firstDateInMonth) {
-                                setSelectedDateKey(firstDateInMonth);
-                                setSelectedTimeOptionKey("");
-                              }
-                            }
-                          }}
-                          disabled={availableMonths.indexOf(effectiveVisibleMonthKey) >= availableMonths.length - 1}
-                          className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-black/8 text-lg text-[var(--color-foreground)] disabled:opacity-40"
-                          aria-label="Další měsíc"
-                        >
-                          ›
-                        </button>
-                      </div>
-                    </div>
-
-                    <div
-                      className="mt-4 grid gap-2 text-center text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-muted)]"
-                      style={calendarGridColumnsStyle}
-                    >
-                      {WEEKDAY_LABELS.map((dayLabel) => (
-                        <span key={dayLabel}>{dayLabel}</span>
-                      ))}
-                    </div>
-
-                    <div className="mt-3 grid gap-2" style={calendarGridColumnsStyle}>
-                      {calendarCells.map((dateKey, index) => {
-                        if (!dateKey) {
-                          return <div key={`calendar-empty-${index}`} className="h-12 rounded-2xl bg-[var(--color-surface)]/20" />;
-                        }
-
-                        const dateSlots = availableSlotsByDate.get(dateKey) ?? [];
-                        const hasSlots = dateSlots.length > 0;
-                        const hasSelectableSlots = dateSlots.some((slot) => !slot.isDisabled);
-                        const isSelectedDate = dateKey === effectiveSelectedDateKey;
-
-                        return (
-                          <button
-                            key={dateKey}
-                            type="button"
-                            onClick={() => {
-                              setSelectedDateKey(dateKey);
-                              if (selectedSlotDateKey && selectedSlotDateKey !== dateKey) {
-                                setSelectedTimeOptionKey("");
-                              }
-                            }}
-                            disabled={!hasSlots}
-                            className={cn(
-                              "relative h-12 rounded-2xl border text-sm font-semibold",
-                              hasSlots
-                                ? "border-black/8 bg-white text-[var(--color-foreground)] hover:bg-[var(--color-surface)]/35"
-                                : "border-transparent bg-[var(--color-surface)]/20 text-[var(--color-muted)]/50",
-                              !hasSelectableSlots && hasSlots
-                                ? "border-black/6 bg-[var(--color-surface)]/30 text-[var(--color-muted)]"
-                                : "",
-                              isSelectedDate && hasSlots
-                                ? "border-[var(--color-accent)] bg-[var(--color-surface-strong)]/45"
-                                : "",
-                            )}
-                            aria-label={`Vybrat den ${dateKey}`}
-                          >
-                            {getSlotDayNumber(dateKey)}
-                            {hasSelectableSlots ? (
-                              <span className="absolute bottom-1 left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full bg-[var(--color-accent)]" />
-                            ) : null}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <h4 className="text-base font-semibold text-[var(--color-foreground)]">
-                          Dostupné časy
-                        </h4>
-                        <p className="mt-1 text-sm text-[var(--color-muted)]">
-                          {effectiveSelectedDateKey
-                            ? formatDateKeyLabel(effectiveSelectedDateKey)
-                            : "Vyberte den v kalendáři."}
-                        </p>
-                      </div>
-                    </div>
-
-                    {selectedDateSlots.length === 0 ? (
-                      <div className="rounded-3xl border border-dashed border-black/10 bg-[var(--color-surface)]/20 px-5 py-6 text-sm text-[var(--color-muted)]">
-                        Vyberte v kalendáři den se zvýrazněným termínem.
-                      </div>
-                    ) : null}
-
-                    {selectedDateSlotGroups.map((group) => (
-                      <TimeSlotGroup
-                        key={group.key}
-                        label={group.label}
-                        slots={group.slots}
-                        selectedKey={selectedTimeOptionKey}
-                        getAriaLabel={buildSlotAriaLabel}
-                        formatTime={formatSlotTime}
-                        onSelect={selectSlot}
-                      />
-                    ))}
-
-                    {selectedDateSlots.length > 0 && selectedDateSlots.every((slot) => slot.isDisabled) ? (
-                      <div className="rounded-3xl border border-dashed border-black/10 bg-[var(--color-surface)]/20 px-5 py-6 text-sm text-[var(--color-muted)]">
-                        Pro vybraný den už nejsou volné žádné časy. Zkuste prosím jiný den.
-                      </div>
-                    ) : null}
-                  </div>
-                </div>
-              )}
-
-              {serverState.fieldErrors?.slotId || serverState.fieldErrors?.startsAt ? (
-                <p className="text-sm text-red-700">{serverState.fieldErrors.slotId ?? serverState.fieldErrors.startsAt}</p>
-              ) : null}
-            </div>
-
-            <div
-              ref={contactStepSectionRef}
-              className={cn(
-                "space-y-4 rounded-3xl transition-all duration-300",
-                isContactStepHighlighted
-                  ? "bg-[var(--color-surface-strong)]/25 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]"
-                  : "",
-              )}
-            >
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.32em] text-[var(--color-accent)]">
-                    Krok 3
-                  </p>
-                  <h3 className="mt-2 font-display text-3xl text-[var(--color-foreground)]">
-                    Kontaktní údaje
-                  </h3>
-                  <p className="mt-2 text-sm leading-6 text-[var(--color-muted)]">
-                    Po odeslání rezervaci ručně zkontrolujeme a pošleme potvrzení na e-mail.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={goToSummary}
-                  className="rounded-full border border-black/8 px-4 py-2 text-sm font-semibold text-[var(--color-foreground)]"
-                >
-                  Zobrazit souhrn
-                </button>
-              </div>
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                <label className="space-y-2 sm:col-span-2">
-                  <span className="text-sm font-semibold text-[var(--color-foreground)]">
-                    Jméno a příjmení
-                  </span>
-                  <input
-                    ref={firstContactInputRef}
-                    name="fullName"
-                    value={fullName}
-                    onBlur={() => setTouchedFields((current) => ({ ...current, fullName: true }))}
-                    onChange={(event) => setFullName(event.target.value)}
-                    aria-invalid={getDisplayedFieldError("fullName") ? true : undefined}
-                    className="min-h-12 w-full rounded-2xl border border-black/8 bg-white px-4 py-3 outline-none focus:border-[var(--color-accent)]"
-                    autoComplete="name"
-                  />
-                  <span className="text-xs text-[var(--color-muted)]">
-                    Uvedeme ho v potvrzení rezervace.
-                  </span>
-                  {getDisplayedFieldError("fullName") ? (
-                    <span className="block text-sm text-red-700">{getDisplayedFieldError("fullName")}</span>
-                  ) : null}
-                </label>
-
-                <label className="space-y-2">
-                  <span className="text-sm font-semibold text-[var(--color-foreground)]">E-mail</span>
-                  <input
-                    name="email"
-                    type="email"
-                    value={email}
-                    onBlur={() => setTouchedFields((current) => ({ ...current, email: true }))}
-                    onChange={(event) => setEmail(event.target.value)}
-                    aria-invalid={getDisplayedFieldError("email") ? true : undefined}
-                    className="min-h-12 w-full rounded-2xl border border-black/8 bg-white px-4 py-3 outline-none focus:border-[var(--color-accent)]"
-                    autoComplete="email"
-                  />
-                  <span className="text-xs text-[var(--color-muted)]">
-                    Sem pošleme potvrzení i případné upřesnění.
-                  </span>
-                  {getDisplayedFieldError("email") ? (
-                    <span className="block text-sm text-red-700">{getDisplayedFieldError("email")}</span>
-                  ) : null}
-                </label>
-
-                <label className="space-y-2">
-                  <span className="text-sm font-semibold text-[var(--color-foreground)]">
-                    Telefon
-                  </span>
-                  <input
-                    name="phone"
-                    type="tel"
-                    value={phone}
-                    onBlur={() => setTouchedFields((current) => ({ ...current, phone: true }))}
-                    onChange={(event) => setPhone(event.target.value)}
-                    aria-invalid={getDisplayedFieldError("phone") ? true : undefined}
-                    className="min-h-12 w-full rounded-2xl border border-black/8 bg-white px-4 py-3 outline-none focus:border-[var(--color-accent)]"
-                    autoComplete="tel"
-                  />
-                  <span className="text-xs text-[var(--color-muted)]">
-                    Hodí se, když bude potřeba rychlá domluva k termínu.
-                  </span>
-                  {getDisplayedFieldError("phone") ? (
-                    <span className="block text-sm text-red-700">{getDisplayedFieldError("phone")}</span>
-                  ) : null}
-                </label>
-
-                <label className="space-y-2 sm:col-span-2">
-                  <span className="text-sm font-semibold text-[var(--color-foreground)]">
-                    Poznámka k rezervaci
-                  </span>
-                  <textarea
-                    name="clientNote"
-                    value={clientNote}
-                    onChange={(event) => setClientNote(event.target.value)}
-                    rows={4}
-                    aria-invalid={serverState.fieldErrors?.clientNote ? true : undefined}
-                    className="w-full rounded-2xl border border-black/8 bg-white px-4 py-3 outline-none focus:border-[var(--color-accent)]"
-                  />
-                  <span className="text-xs text-[var(--color-muted)]">
-                    Nepovinné. Napište sem jen to, co je důležité vědět před návštěvou.
-                  </span>
-                  {serverState.fieldErrors?.clientNote ? (
-                    <span className="block text-sm text-red-700">{serverState.fieldErrors.clientNote}</span>
-                  ) : null}
-                </label>
-              </div>
-            </div>
+            <BookingContactStep
+              sectionRef={contactStepSectionRef}
+              firstContactInputRef={firstContactInputRef}
+              highlighted={isContactStepHighlighted}
+              fullName={fullName}
+              email={email}
+              phone={phone}
+              clientNote={clientNote}
+              clientNoteError={serverState.fieldErrors?.clientNote}
+              getDisplayedFieldError={getDisplayedFieldError}
+              onShowSummary={goToSummary}
+              onFullNameChange={setFullName}
+              onEmailChange={setEmail}
+              onPhoneChange={setPhone}
+              onClientNoteChange={setClientNote}
+              onFieldBlur={(field) => {
+                setTouchedFields((current) => ({ ...current, [field]: true }));
+              }}
+            />
           </div>
         </section>
       </div>
 
-      <aside className="lg:sticky lg:top-28 lg:self-start">
-        <section className="rounded-[var(--radius-panel)] border border-[var(--color-accent-soft)]/45 bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(231,213,195,0.52))] p-6 shadow-[var(--shadow-panel)] sm:p-8">
-          <p className="text-xs font-semibold uppercase tracking-[0.32em] text-[var(--color-accent)]">
-            Krok 4
-          </p>
-          <h3 className="mt-3 font-display text-3xl text-[var(--color-foreground)]">
-            Souhrn a potvrzení
-          </h3>
-
-          <div className="mt-6 space-y-4">
-            <div className="rounded-3xl border border-black/6 bg-white/80 p-5">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-xs uppercase tracking-[0.18em] text-[var(--color-muted)]">Služba</p>
-                  <p className="mt-2 text-lg font-semibold text-[var(--color-foreground)]">
-                    {selectedService ? selectedService.name : "Zatím nevybráno"}
-                  </p>
-                  {selectedService ? (
-                    <p className="mt-2 text-sm text-[var(--color-muted)]">
-                      {selectedService.durationMinutes} min • {formatPrice(selectedService.priceFromCzk)}
-                    </p>
-                  ) : null}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setCurrentStep(1);
-                    focusServiceStepSection();
-                  }}
-                  className="rounded-full border border-black/8 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--color-foreground)]"
-                >
-                  Upravit
-                </button>
-              </div>
-            </div>
-
-            <div
-              className={cn(
-                "rounded-3xl border bg-white/90 p-5",
-                selectedTimeOption
-                  ? "border-[var(--color-accent)]/40 shadow-[0_10px_24px_rgba(0,0,0,0.06)]"
-                  : "border-black/6",
-              )}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-xs uppercase tracking-[0.18em] text-[var(--color-muted)]">Termín</p>
-                  <p className="mt-3 text-base font-medium text-[var(--color-muted)]">
-                    {selectedTimeOption ? formatSlotDate(selectedTimeOption.startsAt) : "Zatím nevybráno"}
-                  </p>
-                  <p className="mt-2 text-3xl font-semibold text-[var(--color-foreground)]">
-                    {selectedTimeOption ? formatSlotTime(selectedTimeOption.startsAt) : "--:--"}
-                  </p>
-                  {selectedTimeOption ? (
-                    <div className="mt-3 space-y-1 text-sm text-[var(--color-muted)]">
-                      <p>Konec v {formatSlotTime(selectedTimeOption.endsAt)}</p>
-                      <p>Délka {formatSlotDuration(selectedTimeOption.startsAt, selectedTimeOption.endsAt)}</p>
-                      {selectedTimeOption.publicNote ? <p>{selectedTimeOption.publicNote}</p> : null}
-                    </div>
-                  ) : null}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setCurrentStep(2);
-                    focusTermStepSection();
-                  }}
-                  className="rounded-full border border-black/8 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--color-foreground)]"
-                >
-                  Upravit
-                </button>
-              </div>
-            </div>
-
-            <div className="rounded-3xl border border-black/6 bg-white/80 p-5">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-xs uppercase tracking-[0.18em] text-[var(--color-muted)]">Kontakt</p>
-                  <p className="mt-2 text-lg font-semibold text-[var(--color-foreground)]">
-                    {fullName.trim() || "Doplňte kontaktní údaje"}
-                  </p>
-                  {email.trim() ? <p className="mt-1 text-sm text-[var(--color-muted)]">{email.trim()}</p> : null}
-                  {phone.trim() ? <p className="mt-1 text-sm text-[var(--color-muted)]">{phone.trim()}</p> : null}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setCurrentStep(3);
-                    focusContactStepSection();
-                  }}
-                  className="rounded-full border border-black/8 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--color-foreground)]"
-                >
-                  Upravit
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-6 rounded-3xl border border-black/6 bg-white/80 p-5 text-sm leading-6 text-[var(--color-muted)]">
-            Po odeslání rezervaci zkontrolujeme, termín podržíme pro schválení a pošleme vám e-mail s
-            dalším postupem i storno odkazem.
-          </div>
-
-          {serverState.status === "error" && serverState.suggestedStep ? (
-            <p className="mt-4 text-sm text-[var(--color-muted)]">
-              Doporučený návrat ke kroku {serverState.suggestedStep}, kde je potřeba výběr nebo údaje upravit.
-            </p>
-          ) : null}
-
-          <div className="mt-6 hidden flex-wrap gap-3 lg:flex">
-            <BookingSubmitButton disabled={!canGoToStep4} />
-            {currentStep > 1 ? (
-              <button
-                type="button"
-                onClick={() => setCurrentStep(Math.max(currentStep - 1, 1))}
-                className="inline-flex min-h-12 items-center justify-center rounded-full border border-black/8 px-5 py-3 text-sm font-semibold text-[var(--color-foreground)]"
-              >
-                Zpět
-              </button>
-            ) : null}
-          </div>
-
-          {!canGoToStep4 ? (
-            <p className="mt-4 hidden text-sm text-[var(--color-muted)] lg:block">
-              Pro odeslání dokončete výběr služby, termínu a kontaktních údajů.
-            </p>
-          ) : null}
-        </section>
-      </aside>
+      <BookingSummarySidebar
+        currentStep={currentStep}
+        selectedService={selectedService}
+        selectedTimeOption={selectedTimeOption}
+        fullName={fullName}
+        email={email}
+        phone={phone}
+        canGoToStep4={canGoToStep4}
+        serverState={serverState}
+        onEditService={() => {
+          setCurrentStep(1);
+          focusServiceStepSection();
+        }}
+        onEditTerm={() => {
+          setCurrentStep(2);
+          focusTermStepSection();
+        }}
+        onEditContact={() => {
+          setCurrentStep(3);
+          focusContactStepSection();
+        }}
+        onStepBack={() => setCurrentStep(Math.max(currentStep - 1, 1))}
+      />
 
       {!selectedService ? null : !selectedTimeOption ? (
         <StickyCTA
           label="Vybrat termín"
-          note={selectedService ? `${selectedService.name} • ${selectedService.durationMinutes} min` : "Pokračujte výběrem termínu."}
+          note={`${selectedService.name} • ${selectedService.durationMinutes} min`}
           onClick={() => {
             setCurrentStep(2);
             focusTermStepSection();

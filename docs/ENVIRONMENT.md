@@ -54,6 +54,7 @@ Dokumentace proměnných prostředí pro lokální vývoj i produkci.
 - Po změně `prisma/schema.prisma` už `npm run dev` a `npm run build` automaticky obnoví generovaný Prisma klient, ale při ruční práci s CLI je stále bezpečné spustit i `npm run db:generate`.
 - Slot admin CRUD nezavádí žádné nové env proměnné; spoléhá na stávající session, databázi a bootstrap admin účty.
 - Ruční vytvoření rezervace v adminu také nepřidává nové env proměnné; používá stejné `NEXT_PUBLIC_APP_URL`, `ADMIN_SESSION_SECRET`, DB schéma a e-mailovou konfiguraci jako veřejný booking.
+- Stabilizační refaktor `booking-public`, `booking-flow` a `admin-slots` nepřidává žádné nové env proměnné; veřejné entrypointy i provozní konfigurace zůstávají beze změny.
 - Přepnutí `BookingSource` na nové provozní enum hodnoty (`WEB`, `PHONE`, `INSTAGRAM`, `IN_PERSON`, `OTHER`) je čistě databázová a aplikační změna, ne nová env konfigurace.
 - Refaktor veřejného výběru časů v `/rezervace` také nezavádí žádné nové env proměnné; jde čistě o klientskou UI vrstvu nad existujícím booking catalogem.
 - Admin sekce `Služby` také nepřidává nové env proměnné; používá stávající databázi, session a Prisma klient.

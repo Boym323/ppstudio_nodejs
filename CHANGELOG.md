@@ -6,6 +6,11 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Stabilizační refaktor největších booking/admin modulů bez změny chování: `src/features/booking/lib/booking-public.ts`, `src/features/booking/components/booking-flow.tsx` a `src/features/admin/lib/admin-slots.ts` jsou nově rozdělené na menší odpovědnostní moduly se zachovanými veřejnými exporty.
+- `booking-public` je nově rozdělený na `shared`, `catalog`, `engine` a `notifications`; původní soubor zůstal kompatibilní facade pro existující importy.
+- `booking-flow` je nově rozdělený na helpery, typy a samostatné komponenty pro progress panel, krok služby, krok termínu, krok kontaktu a pravý summary sidebar.
+- `admin-slots` je nově rozdělený na `time`, `helpers`, `queries`, `mutations` a `types`; původní `admin-slots.ts` dál slouží jako kompatibilní entrypoint.
+
 - Admin login `POST /api/auth/login` nově používá server-side rate limit podobný veřejné rezervaci: omezuje pokusy za časové okno podle IP hashe a počtu neúspěšných pokusů na e-mail hash.
 - Přibylo auditní logování admin login pokusů do `BookingSubmissionLog` s prefixem `ADMIN_LOGIN_*` (`SUCCESS`, `INVALID_PAYLOAD`, `INVALID_CREDENTIALS`, `RATE_LIMITED`).
 - Přibyla Playwright E2E vrstva pro hlavní booking cesty: veřejné vytvoření rezervace, veřejné storno přes token, veřejný přesun termínu přes token a owner potvrzení pending rezervace v adminu.

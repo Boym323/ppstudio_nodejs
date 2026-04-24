@@ -29,6 +29,11 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - `SuggestedSlots` pro nejbližší jedním klikem rezervovatelné časy
   - `StickyCTA` pro mobilní pokračování / submit bez ztráty kontextu
   - `BookingConfirmationPanel` pro post-submit stav se status blokem, dominantním termínem, CTA a kontaktem
+- Stabilizační refaktor z `2026-04-24` rozděluje dříve monolitické booking/admin soubory do menších interních modulů při zachování stávajících entrypointů:
+  - `src/features/booking/lib/booking-public.ts` je façade nad `booking-public/shared.ts`, `catalog.ts`, `engine.ts`, `notifications.ts`
+  - `src/features/booking/components/booking-flow.tsx` drží jen stav a orchestraci kroků; jednotlivé UI bloky jsou v `src/features/booking/components/booking-flow/*`
+  - `src/features/admin/lib/admin-slots.ts` je façade nad `admin-slots/time.ts`, `helpers.ts`, `queries.ts`, `mutations.ts`, `types.ts`
+- Při dalším refaktoru těchto oblastí drž kompatibilní veřejné exporty v původních entrypointech, aby se nerozbily existující importy v actions, routech a admin UI.
 - `src/app/robots.ts` a `src/app/sitemap.ts` používají metadata route API v App Routeru.
 - Veřejně dostupná nahraná média se servírují přes route handler `src/app/media/[kind]/[[...path]]/route.ts`, ne přes `public/` repozitáře.
 - `next.config.ts` používá `allowedDevOrigins` pro lokální LAN vývoj na `192.168.0.143` i pro public dev test přes `ppstudio.cz` / `www.ppstudio.cz`; bez toho Next.js 16 z jiného zařízení nebo přes reverse proxy zablokuje dev assety a HMR endpoint `/_next/webpack-hmr`.

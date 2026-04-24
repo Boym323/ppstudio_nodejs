@@ -112,6 +112,7 @@ Postup nasazení aplikace do produkce.
   - změnu dne v kalendářním fallbacku kroku 2 `/rezervace` a reset nevalidního vybraného času
   - větší grid časů na mobilu i desktopu včetně disabled stavů a návratu zpět ze souhrnu
   - sticky CTA lištu na mobilu a editaci jednotlivých bloků přímo ze souhrnu
+  - po stabilizačním refaktoru také rychlou smoke kontrolu veřejného booking flow a týdenního planneru, protože jejich implementace je nově rozdělená do více interních modulů se stejným chováním
   - zápis `EmailLog` ve stavu `PENDING` v background režimu nebo `SENT` v log režimu
   - funkční storno odkaz
   - provozní email akce `Schválit rezervaci` / `Zrušit rezervaci`:
@@ -189,6 +190,7 @@ sudo /var/www/ppstudio/deploy/deploy.sh
 - Admin workflow kategorií služeb nevyžaduje novou DB migraci; navazuje na existující model `ServiceCategory`.
 - Přepracované admin workflow služeb a kategorií nevyžaduje novou DB migraci; změna je čistě v read modelech, server actions a UI vrstvách.
 - Nový layout sekce `Kategorie služeb` také nevyžaduje novou DB migraci; změna zůstává čistě v komponentách, read modelu a server actions nad existujícím `ServiceCategory`.
+- Stabilizační refaktor `booking-public`, `booking-flow` a `admin-slots` také nevyžaduje novou DB migraci; změna je čistě strukturální a zachovává stejné veřejné exporty i databázové chování.
 - Před produkční aplikací migrace ověř data, která by mohla mít rezervaci bez přiřazené služby; tato migrace takové řádky záměrně odmítne.
 - Pokud v databázi existují duplicitní rezervace stejného klienta do stejného slotu, nová migrace se zastaví a vyžádá jejich ruční vyčištění.
 - Pokud nasazuješ jen frontend bez DB změn, `npx prisma migrate deploy` zůstává bezpečný no-op.

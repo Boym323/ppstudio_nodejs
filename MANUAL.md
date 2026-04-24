@@ -56,6 +56,7 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
 - Owner může v `/admin/nastaveni` nově zapnout chráněný Apple Calendar subscription feed na `/api/calendar/owner.ics?token=...`; feed je read-only, bere jen potvrzené rezervace a aplikace zůstává jediným source of truth.
 - Admin detail rezervace nově podporuje samostatnou akci `Přesunout termín`; booking zůstává stejným záznamem, ale změna projde backend validací, auditním logem, resetem reminder návaznosti a volitelným klientským e-mailem `Termín byl změněn`.
 - Veřejný manage flow `/rezervace/sprava/[token]` má nově DB integrační coverage nad reálným Prisma wiringem; testy ověřují token access, self-service storno, self-service přesun i hlavní auditní a notifikační side effects bez browser E2E vrstvy.
+- Implementačně je veřejný booking flow po stabilizačním refaktoru rozdělený do menších interních komponent (`progress panel`, `service step`, `term step`, `contact step`, `summary sidebar`), ale chování pro klientku zůstává stejné.
 - Admin má dva směry použití:
   - full admin na `/admin/*` pro roli `OWNER`
   - lite admin na `/admin/provoz/*` pro roli `SALON`
@@ -63,6 +64,7 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
   - `OWNER` vidí strategické a technické sekce navíc
   - `SALON` vidí jen provozní sekce a jednodušší copy bez technických pojmů
 - Přesun termínu má pro `OWNER` i `SALON` stejné chování; role mění jen administrativní cestu, ne business logiku reschedule flow.
+- Týdenní planner dostupností a veřejná booking service vrstva jsou po stabilizačním refaktoru modulární i v kódu, ale bez změny URL, exportů nebo databázového modelu.
 - Prisma schema v1 už pokrývá:
   - admin uživatele a role
   - kategorie služeb a služby včetně samostatné veřejné rezervovatelnosti

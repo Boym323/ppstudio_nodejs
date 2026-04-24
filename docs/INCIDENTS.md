@@ -68,6 +68,7 @@ Evidence produkčních incidentů a jejich řešení.
 - Sender e-mail upravený v admin sekci `Nastavení` na adresu, kterou SMTP provider ve skutečnosti nepovoluje; výsledek budou opakované `EmailLog.status = FAILED`.
 - Přehnaně přísný minimální předstih nebo příliš krátký horizont rezervace ve `SiteSettings`, kvůli kterému veřejný booking náhle schová skoro všechny sloty.
 - Rozbitý reset vybraného času při změně dne v kroku 2 `/rezervace`, kvůli kterému by souhrn nebo hidden inputs držely stale `startsAt` mimo aktuálně zobrazený den.
+- Regresní rozbití booking flow nebo týdenního planneru po čistě strukturálním refaktoru; po změnách v `booking-flow`, `booking-public` nebo `admin-slots` vždy ověř build, základní booking smoke flow a admin planner akce.
 - Storno limit nastavený příliš vysoko nebo omylem na `0`, což změní chování self-service storno odkazů.
 - Chybějící nebo nečitelný `MEDIA_STORAGE_ROOT`, kvůli kterému upload selže při zápisu nebo se veřejný asset fyzicky nikdy neuloží.
 - Upload root namountovaný do dočasného adresáře, který se smaže při deployi nebo restartu serveru.
