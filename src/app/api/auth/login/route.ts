@@ -21,90 +21,130 @@ const loginSchema = z.object({
   password: z.string().min(8),
 });
 
-export async function POST(request: Request) {
-  const formData = await request.formData();
-  const normalizedEmail = normalizeAdminLoginEmail(formData.get("email"));
-  const loginAttemptMetadata = getAdminLoginAttemptMetadata(request.headers, normalizedEmail);
+type AdminLoginRouteDependencies = {
+  authenticateAdmin: typeof authenticateAdmin;
+  createSessionToken: typeof createSessionToken;
+  getSessionCookie: typeof getSessionCookie;
+  getAdminLoginAttemptMetadata: typeof getAdminLoginAttemptMetadata;
+  getRecentAdminLoginAttemptCounts: typeof getRecentAdminLoginAttemptCounts;
+  isAdminLoginRateLimited: typeof isAdminLoginRateLimited;
+  normalizeAdminLoginEmail: typeof normalizeAdminLoginEmail;
+  writeAdminLoginAttemptLog: typeof writeAdminLoginAttemptLog;
+  buildAbsoluteUrl: typeof buildAbsoluteUrl;
+};
 
-  const { ipAttempts, emailFailures } = await getRecentAdminLoginAttemptCounts({
-    ipHash: loginAttemptMetadata.ipHash,
-    emailHash: loginAttemptMetadata.emailHash,
-  });
+const defaultAdminLoginRouteDependencies: AdminLoginRouteDependencies = {
+  authenticateAdmin,
+  createSessionToken,
+  getSessionCookie,
+  getAdminLoginAttemptMetadata,
+  getRecentAdminLoginAttemptCounts,
+  isAdminLoginRateLimited,
+  normalizeAdminLoginEmail,
+  writeAdminLoginAttemptLog,
+  buildAbsoluteUrl,
+};
 
-  if (isAdminLoginRateLimited({ ipAttempts, emailFailures })) {
-    await writeAdminLoginAttemptLog({
-      loginOutcome: "RATE_LIMITED",
-      ipHash: loginAttemptMetadata.ipHash,
-      emailHash: loginAttemptMetadata.emailHash,
-      userAgent: loginAttemptMetadata.userAgent,
-      metadata: {
-        ipAttempts,
-        emailFailures,
-      },
-    });
+export function createAdminLoginRouteApi(
+  dependencies: AdminLoginRouteDependencies = defaultAdminLoginRouteDependencies,
+) {
+  return {
+    async POST(request: Request) {
+      const formData = await request.formData();
+      const normalizedEmail = dependencies.normalizeAdminLoginEmail(formData.get("email"));
+      const loginAttemptMetadata = dependencies.getAdminLoginAttemptMetadata(
+        request.headers,
+        normalizedEmail,
+      );
 
-    return NextResponse.redirect(
-      buildAbsoluteUrl(request, "/admin/prihlaseni?error=rate_limited"),
-      303,
-    );
-  }
+      const { ipAttempts, emailFailures } = await dependencies.getRecentAdminLoginAttemptCounts({
+        ipHash: loginAttemptMetadata.ipHash,
+        emailHash: loginAttemptMetadata.emailHash,
+      });
 
-  const result = loginSchema.safeParse({
-    email: formData.get("email"),
-    password: formData.get("password"),
-  });
+      if (dependencies.isAdminLoginRateLimited({ ipAttempts, emailFailures })) {
+        await dependencies.writeAdminLoginAttemptLog({
+          loginOutcome: "RATE_LIMITED",
+          ipHash: loginAttemptMetadata.ipHash,
+          emailHash: loginAttemptMetadata.emailHash,
+          userAgent: loginAttemptMetadata.userAgent,
+          metadata: {
+            ipAttempts,
+            emailFailures,
+          },
+        });
 
-  if (!result.success) {
-    await writeAdminLoginAttemptLog({
-      loginOutcome: "INVALID_PAYLOAD",
-      ipHash: loginAttemptMetadata.ipHash,
-      emailHash: loginAttemptMetadata.emailHash,
-      userAgent: loginAttemptMetadata.userAgent,
-    });
+        return NextResponse.redirect(
+          dependencies.buildAbsoluteUrl(request, "/admin/prihlaseni?error=rate_limited"),
+          303,
+        );
+      }
 
-    return NextResponse.redirect(
-      buildAbsoluteUrl(request, "/admin/prihlaseni?error=invalid_payload"),
-      303,
-    );
-  }
+      const result = loginSchema.safeParse({
+        email: formData.get("email"),
+        password: formData.get("password"),
+      });
 
-  const authenticatedUser = await authenticateAdmin(result.data.email, result.data.password);
+      if (!result.success) {
+        await dependencies.writeAdminLoginAttemptLog({
+          loginOutcome: "INVALID_PAYLOAD",
+          ipHash: loginAttemptMetadata.ipHash,
+          emailHash: loginAttemptMetadata.emailHash,
+          userAgent: loginAttemptMetadata.userAgent,
+        });
 
-  if (!authenticatedUser) {
-    await writeAdminLoginAttemptLog({
-      loginOutcome: "INVALID_CREDENTIALS",
-      ipHash: loginAttemptMetadata.ipHash,
-      emailHash: loginAttemptMetadata.emailHash,
-      userAgent: loginAttemptMetadata.userAgent,
-    });
+        return NextResponse.redirect(
+          dependencies.buildAbsoluteUrl(request, "/admin/prihlaseni?error=invalid_payload"),
+          303,
+        );
+      }
 
-    return NextResponse.redirect(
-      buildAbsoluteUrl(request, "/admin/prihlaseni?error=invalid_credentials"),
-      303,
-    );
-  }
+      const authenticatedUser = await dependencies.authenticateAdmin(
+        result.data.email,
+        result.data.password,
+      );
 
-  const token = await createSessionToken({
-    sub: authenticatedUser.id,
-    email: authenticatedUser.email,
-    name: authenticatedUser.name,
-    role: authenticatedUser.role,
-  });
+      if (!authenticatedUser) {
+        await dependencies.writeAdminLoginAttemptLog({
+          loginOutcome: "INVALID_CREDENTIALS",
+          ipHash: loginAttemptMetadata.ipHash,
+          emailHash: loginAttemptMetadata.emailHash,
+          userAgent: loginAttemptMetadata.userAgent,
+        });
 
-  await writeAdminLoginAttemptLog({
-    loginOutcome: "SUCCESS",
-    ipHash: loginAttemptMetadata.ipHash,
-    emailHash: loginAttemptMetadata.emailHash,
-    userAgent: loginAttemptMetadata.userAgent,
-  });
+        return NextResponse.redirect(
+          dependencies.buildAbsoluteUrl(request, "/admin/prihlaseni?error=invalid_credentials"),
+          303,
+        );
+      }
 
-  const response = NextResponse.redirect(
-    buildAbsoluteUrl(request, getAdminHomeHref(authenticatedUser.role)),
-    303,
-  );
+      const token = await dependencies.createSessionToken({
+        sub: authenticatedUser.id,
+        email: authenticatedUser.email,
+        name: authenticatedUser.name,
+        role: authenticatedUser.role,
+      });
 
-  const sessionCookie = getSessionCookie();
-  response.cookies.set(sessionCookie.name, token, sessionCookie.options);
+      await dependencies.writeAdminLoginAttemptLog({
+        loginOutcome: "SUCCESS",
+        ipHash: loginAttemptMetadata.ipHash,
+        emailHash: loginAttemptMetadata.emailHash,
+        userAgent: loginAttemptMetadata.userAgent,
+      });
 
-  return response;
+      const response = NextResponse.redirect(
+        dependencies.buildAbsoluteUrl(request, getAdminHomeHref(authenticatedUser.role)),
+        303,
+      );
+
+      const sessionCookie = dependencies.getSessionCookie();
+      response.cookies.set(sessionCookie.name, token, sessionCookie.options);
+
+      return response;
+    },
+  };
 }
+
+const adminLoginRouteApi = createAdminLoginRouteApi();
+
+export const POST = adminLoginRouteApi.POST;
