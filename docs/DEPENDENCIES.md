@@ -38,6 +38,7 @@ Seznam důležitých knihoven a důvod jejich použití.
 - Booking submission audit využívá stejnou Prisma vrstvu a nezavádí další knihovnu pro rate limiting ani logování.
 - Admin login rate limit také nepřidává novou závislost; používá stávající Prisma model `BookingSubmissionLog` a vestavěný Node.js `crypto` pro hash fingerprintů.
 - Stabilizační refaktor `booking-public`, `booking-flow` a `admin-slots` také nepřidává žádnou novou runtime ani dev dependency; jde čistě o přesun stávající logiky do menších interních modulů.
+- Modul `Média webu` také nepřidává žádnou novou závislost; upload, metadata, filtr typů i publish stav běží na stávajícím stacku Next.js, React, Prisma, Zod, Node filesystem a `image-size`.
 
 ## Kvalita kódu
 - `typescript`: statická typová kontrola.

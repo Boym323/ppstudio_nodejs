@@ -1,4 +1,4 @@
-import { MediaAssetVisibility, type MediaAssetKind } from '@prisma/client';
+import { MediaAssetKind, MediaAssetVisibility, MediaType } from '@prisma/client';
 
 import { buildMediaPublicUrl } from '@/lib/media/media-config';
 import { readImageMetadata } from '@/lib/media/media-image';
@@ -10,8 +10,9 @@ import {
   createMediaAsset,
   deleteMediaAsset,
   getMediaAssetById,
-  listMediaAssetsByKind,
-  listPublicMediaAssetsByKind,
+  listMediaAssets,
+  listPublicMediaAssets,
+  updateMediaAsset,
 } from './media-asset-repository';
 
 export function normalizeMediaText(value: string | null | undefined) {
@@ -19,18 +20,43 @@ export function normalizeMediaText(value: string | null | undefined) {
   return normalized ? normalized : null;
 }
 
-export async function saveMediaAsset(input: MediaUploadInput) {
-  const visibility = input.visibility ?? MediaAssetVisibility.PUBLIC;
+function legacyKindForType(type: MediaType) {
+  switch (type) {
+    case MediaType.CERTIFICATE:
+      return MediaAssetKind.CERTIFICATE;
+    case MediaType.SALON_PHOTO:
+      return MediaAssetKind.SPACE;
+    case MediaType.PORTRAIT:
+    case MediaType.GENERAL:
+      return MediaAssetKind.CONTENT;
+  }
+}
+
+function visibilityForPublished(isPublished: boolean) {
+  return isPublished ? MediaAssetVisibility.PUBLIC : MediaAssetVisibility.PRIVATE;
+}
+
+function withPublicUrl<T extends { isPublished: boolean; url: string }>(asset: T) {
+  return {
+    ...asset,
+    publicUrl: asset.isPublished ? asset.url : null,
+  };
+}
+
+export async function createMedia(input: MediaUploadInput) {
+  const isPublished = input.isPublished ?? true;
+  const visibility = input.visibility ?? visibilityForPublished(isPublished);
   const validatedFile = await validateMediaFile(input.file);
 
   await localMediaStorage.ensureBaseDirectories();
 
   const preparedFile = localMediaStorage.prepareFile({
     file: validatedFile,
-    kind: input.kind,
+    type: input.type,
     visibility,
   });
   const imageMetadata = readImageMetadata(validatedFile.buffer, validatedFile.mimeType);
+  const url = buildMediaPublicUrl(preparedFile.storagePath);
 
   await localMediaStorage.writeFile({
     ...preparedFile,
@@ -39,32 +65,31 @@ export async function saveMediaAsset(input: MediaUploadInput) {
 
   try {
     const asset = await createMediaAsset({
-      kind: input.kind,
+      type: input.type,
+      kind: legacyKindForType(input.type),
       visibility,
       storageProvider: 'LOCAL',
       originalFilename: validatedFile.originalFilename,
+      fileName: validatedFile.originalFilename,
       storedFilename: preparedFile.storedFilename,
       mimeType: validatedFile.mimeType,
       extension: validatedFile.extension,
       sizeBytes: validatedFile.sizeBytes,
+      size: validatedFile.sizeBytes,
       width: imageMetadata.width,
       height: imageMetadata.height,
-      alt: normalizeMediaText(input.alt),
+      alt: normalizeMediaText(input.altText),
+      altText: normalizeMediaText(input.altText),
       title: normalizeMediaText(input.title),
       storagePath: preparedFile.storagePath,
+      url,
+      isPublished,
     });
 
-    return {
-      ...asset,
-      publicUrl:
-        asset.visibility === MediaAssetVisibility.PUBLIC
-          ? buildMediaPublicUrl(asset.storagePath)
-          : null,
-    };
+    return withPublicUrl(asset);
   } catch (error) {
     await localMediaStorage.deleteFile({
       visibility,
-      kind: input.kind,
       storagePath: preparedFile.storagePath,
       storedFilename: preparedFile.storedFilename,
       mimeType: preparedFile.mimeType,
@@ -75,7 +100,41 @@ export async function saveMediaAsset(input: MediaUploadInput) {
   }
 }
 
-export async function removeMediaAsset(id: string) {
+export async function listMedia(type?: MediaType) {
+  const assets = await listMediaAssets(type);
+  return assets.map(withPublicUrl);
+}
+
+export async function listPublishedMedia(type?: MediaType) {
+  const assets = await listPublicMediaAssets(type);
+  return assets.map((asset) => ({ ...asset, publicUrl: asset.url }));
+}
+
+export async function updateMedia(
+  id: string,
+  input: {
+    type?: MediaType;
+    title?: string | null;
+    altText?: string | null;
+    isPublished?: boolean;
+  },
+) {
+  const data = {
+    ...(input.type ? { type: input.type, kind: legacyKindForType(input.type) } : {}),
+    ...(input.title !== undefined ? { title: normalizeMediaText(input.title) } : {}),
+    ...(input.altText !== undefined
+      ? { altText: normalizeMediaText(input.altText), alt: normalizeMediaText(input.altText) }
+      : {}),
+    ...(input.isPublished !== undefined
+      ? { isPublished: input.isPublished, visibility: visibilityForPublished(input.isPublished) }
+      : {}),
+  };
+
+  const asset = await updateMediaAsset(id, data);
+  return withPublicUrl(asset);
+}
+
+export async function deleteMedia(id: string) {
   const asset = await getMediaAssetById(id);
 
   if (!asset) {
@@ -84,7 +143,6 @@ export async function removeMediaAsset(id: string) {
 
   await localMediaStorage.deleteFile({
     visibility: asset.visibility,
-    kind: asset.kind,
     storagePath: asset.storagePath,
     storedFilename: asset.storedFilename,
     mimeType: asset.mimeType,
@@ -94,38 +152,41 @@ export async function removeMediaAsset(id: string) {
   await deleteMediaAsset(asset.id);
 }
 
+export async function saveMediaAsset(input: MediaUploadInput) {
+  return createMedia(input);
+}
+
+export async function removeMediaAsset(id: string) {
+  return deleteMedia(id);
+}
+
 export async function replaceMediaAsset(id: string, input: MediaUploadInput) {
-  const nextAsset = await saveMediaAsset(input);
+  const nextAsset = await createMedia(input);
 
   try {
-    await removeMediaAsset(id);
+    await deleteMedia(id);
   } catch (error) {
-    await removeMediaAsset(nextAsset.id);
+    await deleteMedia(nextAsset.id);
     throw error;
   }
 
   return nextAsset;
 }
 
-export async function getMediaLibraryByKind(kind: MediaAssetKind) {
-  const assets = await listMediaAssetsByKind(kind);
-
-  return assets.map((asset) => ({
-    ...asset,
-    publicUrl:
-      asset.visibility === MediaAssetVisibility.PUBLIC
-        ? buildMediaPublicUrl(asset.storagePath)
-        : null,
-  }));
+export async function getMediaLibraryByType(type: MediaType) {
+  return listMedia(type);
 }
 
-export async function getPublicMediaLibraryByKind(kind: MediaAssetKind) {
-  const assets = await listPublicMediaAssetsByKind(kind);
+export async function getPublishedMediaLibraryByType(type: MediaType) {
+  return listPublishedMedia(type);
+}
 
-  return assets.map((asset) => ({
-    ...asset,
-    publicUrl: buildMediaPublicUrl(asset.storagePath),
-  }));
+export async function getMediaLibraryByKind(type: MediaType) {
+  return listMedia(type);
+}
+
+export async function getPublicMediaLibraryByKind(type: MediaType) {
+  return listPublishedMedia(type);
 }
 
 export async function ensureMediaStorageReady() {

@@ -85,10 +85,11 @@ Postup nasazení aplikace do produkce.
      - pozvánka dorazí na e-mail a odkaz vede na `/admin/pozvanka/[token]`
      - aktivace pozvánky dovolí nastavit heslo a následně přihlášení přes `/admin/prihlaseni`
      - akce `Přepnout na OWNER/SALON`, `Deaktivovat` a `Znovu aktivovat` se ihned propšou do seznamu
-  - certifikátový modul na `/admin/certifikaty` a `/admin/provoz/certifikaty`:
-     - upload podporovaného obrázku
-     - smazání certifikátu
-     - propsání změn na `/o-mne`
+  - modul `Média webu` na kompatibilních URL `/admin/certifikaty` a `/admin/provoz/certifikaty`:
+     - upload podporovaného obrázku s výběrem typu
+     - editace titulku, alt textu, typu a publish/unpublish
+     - smazání média
+     - propsání publikovaných certifikátů na `/o-mne`
 15. Ověř booking, email a media vrstvu:
   - vytvoření testovací rezervace
   - propsání nové rezervace nebo změny slotu do overview dashboardu bez potřeby buildu nebo manuálního refresh flow navíc

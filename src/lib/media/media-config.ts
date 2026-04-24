@@ -1,20 +1,20 @@
 import path from 'node:path';
 
-import type { MediaAssetKind, MediaAssetVisibility } from '@prisma/client';
+import type { MediaAssetVisibility, MediaType } from '@prisma/client';
 
 import { mediaStorageRoot } from '@/config/env';
 
 export const MEDIA_PUBLIC_BASE_PATH = '/media';
 export const MEDIA_TEMP_SEGMENT = 'temp';
 
-export const mediaAssetKinds = ['CERTIFICATE', 'SPACE', 'REFERENCE', 'CONTENT'] as const;
+export const mediaTypes = ['CERTIFICATE', 'SALON_PHOTO', 'PORTRAIT', 'GENERAL'] as const;
 
-export const mediaKindDirectoryMap = {
+export const mediaTypeDirectoryMap = {
   CERTIFICATE: 'certificates',
-  SPACE: 'spaces',
-  REFERENCE: 'references',
-  CONTENT: 'content',
-} satisfies Record<MediaAssetKind, string>;
+  SALON_PHOTO: 'spaces',
+  PORTRAIT: 'portraits',
+  GENERAL: 'general',
+} satisfies Record<MediaType, string>;
 
 export const mediaVisibilities = ['PUBLIC', 'PRIVATE'] as const;
 
@@ -46,17 +46,17 @@ export function getMediaTempRoot() {
   return path.join(/* turbopackIgnore: true */ getMediaStorageRoot(), MEDIA_TEMP_SEGMENT);
 }
 
-export function getMediaKindDirectory(kind: MediaAssetKind) {
-  return mediaKindDirectoryMap[kind];
+export function getMediaTypeDirectory(type: MediaType) {
+  return mediaTypeDirectoryMap[type];
 }
 
 export function buildMediaStoragePath(input: {
-  kind: MediaAssetKind;
+  type: MediaType;
   visibility: MediaAssetVisibility;
   storedFilename: string;
   createdAt: Date;
 }) {
-  const directory = getMediaKindDirectory(input.kind);
+  const directory = getMediaTypeDirectory(input.type);
   const year = String(input.createdAt.getUTCFullYear());
   const month = String(input.createdAt.getUTCMonth() + 1).padStart(2, '0');
 

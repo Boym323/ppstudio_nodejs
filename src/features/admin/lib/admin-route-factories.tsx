@@ -6,7 +6,7 @@ import { AdminBookingDetailPage } from "@/features/admin/components/admin-bookin
 import { AdminOverviewPage } from "@/features/admin/components/admin-overview-page";
 import { AdminSectionPage } from "@/features/admin/components/admin-section-page";
 import { AdminSettingsPage } from "@/features/admin/components/admin-settings-page";
-import { AdminCertificatesPage } from "@/features/admin/components/admin-certificates-page";
+import { AdminMediaPage } from "@/features/admin/components/admin-media-page";
 import { AdminClientDetailPage } from "@/features/admin/components/admin-client-detail-page";
 import { AdminClientsPage } from "@/features/admin/components/admin-clients-page";
 import { AdminUsersPage } from "@/features/admin/components/admin-users-page";
@@ -77,7 +77,7 @@ export function createAdminSectionRoute(area: AdminArea) {
     }
 
     if (section === "certifikaty") {
-      return <AdminCertificatesPage area={area} searchParams={await searchParams} />;
+      return <AdminMediaPage area={area} searchParams={await searchParams} />;
     }
 
     if (section === "klienti") {

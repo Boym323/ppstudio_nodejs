@@ -1,7 +1,7 @@
 import path from 'node:path';
 import { mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 
-import type { MediaAssetKind, MediaAssetVisibility } from '@prisma/client';
+import type { MediaAssetVisibility, MediaType } from '@prisma/client';
 
 import {
   buildMediaStoragePath,
@@ -17,7 +17,7 @@ import type { MediaFileRecord, PreparedMediaFile, ValidatedMediaFile } from '@/l
 export interface MediaStorageAdapter {
   prepareFile(input: {
     file: ValidatedMediaFile;
-    kind: MediaAssetKind;
+    type: MediaType;
     visibility: MediaAssetVisibility;
     createdAt?: Date;
   }): PreparedMediaFile;
@@ -31,14 +31,14 @@ export interface MediaStorageAdapter {
 class LocalMediaStorageAdapter implements MediaStorageAdapter {
   prepareFile(input: {
     file: ValidatedMediaFile;
-    kind: MediaAssetKind;
+    type: MediaType;
     visibility: MediaAssetVisibility;
     createdAt?: Date;
   }): PreparedMediaFile {
     const createdAt = input.createdAt ?? new Date();
     const storedFilename = buildStoredFilename(input.file.originalFilename, input.file.extension);
     const storagePath = buildMediaStoragePath({
-      kind: input.kind,
+      type: input.type,
       visibility: input.visibility,
       storedFilename,
       createdAt,

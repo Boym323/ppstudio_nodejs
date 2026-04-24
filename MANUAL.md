@@ -302,12 +302,14 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
 - Podporované typy jsou aktuálně obrázky `jpg`, `jpeg`, `png`, `webp`, `gif`, `svg`.
 - Maximální velikost souboru je 8 MB.
 - Název souboru se skládá ze slugifikovaného původního jména a náhodného suffixu, takže nedochází k přepisování stejně pojmenovaných uploadů.
-- Relativní storage path má tvar `certificates/2026/04/moje-fotka-a1b2c3d4e5f6.webp`.
+- Relativní storage path má tvar `certificates/2026/04/moje-fotka-a1b2c3d4e5f6.webp`; další typy používají vlastní kořenovou složku, např. `spaces/`, `portraits/` nebo `general/`.
 - Pro budoucí private média už existuje fyzické oddělení v `private/`, ale veřejný přístup je zatím implementovaný jen pro `PUBLIC` assety.
-- Certifikáty mají první produkční napojení:
-  - admin upload a mazání přes `/admin/certifikaty` a `/admin/provoz/certifikaty`
-  - veřejné zobrazení v sekci `Certifikace` na stránce `/o-mne`
-  - backend napojený na `saveMediaAsset()` a `MediaAssetKind.CERTIFICATE`
+- Modul `Média webu` má první produkční napojení:
+  - admin upload, editaci a mazání přes `/admin/certifikaty` a `/admin/provoz/certifikaty` se zachovanými routami kvůli kompatibilitě
+  - typy `CERTIFICATE`, `SALON_PHOTO`, `PORTRAIT` a `GENERAL`
+  - veřejné zobrazení certifikátů v sekci `Certifikace` na stránce `/o-mne`
+  - backend napojený na `createMedia()`, `listMedia()`, `updateMedia()` a `deleteMedia()`
+  - stránka `/o-mne` bere pouze `MediaType.CERTIFICATE` a `isPublished = true`
 
 ## Provoz a zálohy
 - Zálohuj databázi i upload root; jedna bez druhé nestačí pro úplnou obnovu médií.

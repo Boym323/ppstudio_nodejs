@@ -188,8 +188,8 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Sekce `Klienti` má vlastní workflow v `src/features/admin/components/admin-clients-page.tsx` a už neběží přes generický placeholder renderer.
 - `src/features/admin/lib/admin-clients.ts` drží serverový read model pro seznam klientek, filtry, detail klientky a napojení na historii rezervací.
 - `src/features/admin/actions/client-actions.ts` je tenký server action adaptér pro editaci interní poznámky klientky; validace zůstává v `src/features/admin/lib/admin-client-validation.ts`.
-- Sekce `Certifikáty` má vlastní workflow v `src/features/admin/components/admin-certificates-page.tsx` a je dostupná v owner i salon oblasti.
-- Server action adaptéry pro certifikáty jsou v `src/features/admin/actions/certificate-actions.ts`; validace vstupu je v `src/features/admin/lib/admin-certificate-validation.ts`.
+- Sekce `Média webu` má vlastní workflow v `src/features/admin/components/admin-media-page.tsx` a je dostupná v owner i salon oblasti přes kompatibilní URL `/admin/certifikaty` a `/admin/provoz/certifikaty`.
+- Server action adaptéry pro média jsou v `src/features/admin/actions/media-actions.ts`; validace vstupu je v `src/features/admin/lib/admin-media-validation.ts`. Staré certifikátové entrypointy zůstávají jako kompatibilní re-exporty.
 - Sekce `Nastavení` má vlastní workflow v `src/features/admin/components/admin-settings-page.tsx` a už neběží přes generický placeholder renderer.
 - Formuláře pro `Salon`, `Rezervace` a `E-maily a notifikace` jsou oddělené do samostatných client komponent a server action adaptérů v `src/features/admin/actions/settings-actions.ts`.
 - Sekce `Nastavení` nově obsahuje i owner-only kalendářový workflow:
@@ -307,7 +307,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Veřejná rezervace se po submitu vytváří jako `BookingStatus.PENDING`; potvrzení (`CONFIRMED`) je provozní krok z adminu.
 - Pokud veřejná rezervace zabere jen část delšího slotu s kapacitou `1`, booking write model slot v transakci automaticky rozdělí na rezervovaný úsek a zbylé volné fragmenty, aby admin planner zůstal editovatelný po samostatných blocích.
 - `src/features/booking/lib/booking-cancellation.ts` drží veřejné storno workflow nad hashovaným action tokenem.
-- `src/features/public/lib/public-certificates.ts` je veřejný read model certifikátů pro stránku `/o-mne`.
+- `src/features/public/lib/public-certificates.ts` je veřejný read model certifikátů pro stránku `/o-mne`; smí vracet jen `MediaType.CERTIFICATE` a `isPublished = true`.
 - Veřejný booking flow vrací doménové chybové kódy a doporučený krok formuláře, takže UI může zobrazit přesnější recovery stav bez duplikace serverové logiky.
 - Veřejný booking submit má lehký rate limit podle IP a e-mailu a zapisuje auditní log pokusů, blokací a selhání pro provozní troubleshooting.
 - Krok 2 veřejného booking flow filtruje sloty i podle délky služby, aby se krátké sloty neukazovaly až v posledním kroku.

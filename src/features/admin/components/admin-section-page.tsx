@@ -72,8 +72,8 @@ function getSectionDescription(section: Exclude<AdminSectionSlug, "overview">, a
         : "Praktický adresář klientek pro běžný provoz, komunikaci a orientaci v historii.";
     case "certifikaty":
       return owner
-        ? "Správa certifikátů publikovaných na veřejné stránce O mně."
-        : "Rychlý přístup k certifikátům viditelným na webu.";
+        ? "Jednoduchá správa obrázků pro web včetně certifikátů na stránce O mně."
+        : "Rychlý přístup k obrázkům viditelným na webu.";
     case "sluzby":
       return owner
         ? "Katalog služeb pro web, ceník i booking logiku včetně cen, délek a publikace."
@@ -101,7 +101,7 @@ function getPanelTitle(section: Exclude<AdminSectionSlug, "overview">, area: Adm
       case "klienti":
         return "Klientská karta";
       case "certifikaty":
-        return "Certifikace";
+        return "Média webu";
       case "sluzby":
         return "Aktuální nabídka";
       case "kategorie-sluzeb":
@@ -127,7 +127,7 @@ function getPanelDescription(section: Exclude<AdminSectionSlug, "overview">, are
     case "email-logy":
       return "Pomáhá odhalit problémy v potvrzovacích e-mailech dřív, než je pocítí klientka.";
     case "certifikaty":
-      return "Certifikáty jsou uložené lokálně mimo repo a metadata zůstávají v databázi.";
+      return "Obrázky jsou uložené lokálně mimo repo a metadata zůstávají v databázi.";
     case "nastaveni":
       return "Read model pro serverová nastavení. Změnové formuláře lze doplnit v navazující iteraci bez přestavby struktury.";
     default:
@@ -146,7 +146,7 @@ function getEmptyDescription(section: Exclude<AdminSectionSlug, "overview">, are
     case "email-logy":
       return "Email logy se založí při navázání nebo odeslání notifikačního workflow.";
     case "certifikaty":
-      return "Nahrajte první certifikát a sekce se hned propše i na veřejnou stránku O mně.";
+      return "Nahrajte první obrázek. Certifikáty se po publikaci hned propíšou na veřejnou stránku O mně.";
     case "nastaveni":
       return "Jakmile aplikace začne ukládat serverově spravované hodnoty do tabulky Setting, objeví se zde.";
     default:

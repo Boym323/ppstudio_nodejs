@@ -1,4 +1,4 @@
-import { type MediaAssetKind, type Prisma } from '@prisma/client';
+import { type MediaType, type Prisma } from '@prisma/client';
 
 import { prisma } from '@/lib/prisma';
 
@@ -10,33 +10,50 @@ export async function getMediaAssetById(id: string) {
   return prisma.mediaAsset.findUnique({ where: { id } });
 }
 
-export async function getPublicMediaAssetByKindAndPath(kind: MediaAssetKind, storagePath: string) {
+export async function getPublicMediaAssetByTypeAndPath(type: MediaType, storagePath: string) {
   return prisma.mediaAsset.findFirst({
     where: {
-      kind,
-      visibility: 'PUBLIC',
+      type,
+      isPublished: true,
       storagePath,
     },
   });
 }
 
-export async function listMediaAssetsByKind(kind: MediaAssetKind) {
-  return prisma.mediaAsset.findMany({
-    where: { kind },
-    orderBy: { createdAt: 'desc' },
+export async function getPublicMediaAssetByPath(storagePath: string) {
+  return prisma.mediaAsset.findFirst({
+    where: {
+      isPublished: true,
+      storagePath,
+    },
   });
 }
 
-export async function listPublicMediaAssetsByKind(kind: MediaAssetKind) {
+export async function listMediaAssets(type?: MediaType) {
+  return prisma.mediaAsset.findMany({
+    where: type ? { type } : undefined,
+    orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
+  });
+}
+
+export async function listPublicMediaAssets(type?: MediaType) {
   return prisma.mediaAsset.findMany({
     where: {
-      kind,
-      visibility: 'PUBLIC',
+      ...(type ? { type } : {}),
+      isPublished: true,
     },
-    orderBy: { createdAt: 'desc' },
+    orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
   });
+}
+
+export async function updateMediaAsset(id: string, data: Prisma.MediaAssetUncheckedUpdateInput) {
+  return prisma.mediaAsset.update({ where: { id }, data });
 }
 
 export async function deleteMediaAsset(id: string) {
   return prisma.mediaAsset.delete({ where: { id } });
 }
+
+export const getPublicMediaAssetByKindAndPath = getPublicMediaAssetByTypeAndPath;
+export const listMediaAssetsByKind = listMediaAssets;
+export const listPublicMediaAssetsByKind = listPublicMediaAssets;

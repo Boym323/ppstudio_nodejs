@@ -6,6 +6,10 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Admin sekce `Certifikáty` byla zobecněná na modul `Média webu` se zachovanými URL `/admin/certifikaty` a `/admin/provoz/certifikaty`; UI nově nabízí upload obrázku, filtr typů, grid karet, editaci titulku, alt textu, typu a publikace.
+- Prisma model `MediaAsset` má nový obecný enum `MediaType` (`CERTIFICATE`, `SALON_PHOTO`, `PORTRAIT`, `GENERAL`) a nová pole `fileName`, `url`, `size`, `altText`, `sortOrder`, `isPublished`; legacy storage pole zůstávají kvůli bezpečné kompatibilitě.
+- Veřejná stránka `/o-mne` dál načítá pouze publikované certifikáty, nově přes `MediaType.CERTIFICATE` a `isPublished = true`.
+
 - Stabilizační refaktor největších booking/admin modulů bez změny chování: `src/features/booking/lib/booking-public.ts`, `src/features/booking/components/booking-flow.tsx` a `src/features/admin/lib/admin-slots.ts` jsou nově rozdělené na menší odpovědnostní moduly se zachovanými veřejnými exporty.
 - `booking-public` je nově rozdělený na `shared`, `catalog`, `engine` a `notifications`; původní soubor zůstal kompatibilní facade pro existující importy.
 - `booking-flow` je nově rozdělený na helpery, typy a samostatné komponenty pro progress panel, krok služby, krok termínu, krok kontaktu a pravý summary sidebar.

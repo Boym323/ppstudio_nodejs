@@ -74,7 +74,7 @@ Evidence produkčních incidentů a jejich řešení.
 - Upload root namountovaný do dočasného adresáře, který se smaže při deployi nebo restartu serveru.
 - Nefunkční veřejné URL `/media/*` kvůli ručnímu zásahu do souborů na filesystemu bez odpovídajícího `MediaAsset` záznamu v DB.
 - Pokus o nahrání nepodporovaného typu souboru nebo souboru nad velikostní limit, který musí skončit validační chybou místo 500.
-- Certifikát nahraný v adminu, ale neviditelný na `/o-mne` kvůli chybějícímu `PUBLIC` záznamu nebo neplatné `storagePath`.
+- Certifikát nahraný v modulu `Média webu`, ale neviditelný na `/o-mne` kvůli jinému `MediaType` než `CERTIFICATE`, vypnutému `isPublished`, neplatné `storagePath` nebo chybějícímu souboru ve storage rootu.
 - Hlavní portrét na `/o-mne` nahrazený neexistujícím nebo nevhodně ořezaným assetem v `public/brand`, kvůli čemuž by hero ztratil důvěryhodnost nebo vizuální kvalitu na mobilu.
 - Stránka `/o-mne` publikovaná jen s placeholder certifikáty nebo pracovní fotografií i po finálním dodání brand assetů; před release je potřeba ověřit, že placeholder stavy nejsou omylem ponechané jako produkční finální řešení.
 

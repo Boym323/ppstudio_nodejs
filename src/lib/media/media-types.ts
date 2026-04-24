@@ -1,12 +1,13 @@
-import { MediaAssetKind, MediaAssetVisibility } from '@prisma/client';
+import { MediaAssetVisibility, MediaType } from '@prisma/client';
 
-export { MediaAssetKind, MediaAssetVisibility };
+export { MediaAssetVisibility, MediaType };
 
 export type MediaUploadInput = {
   file: File;
-  kind: MediaAssetKind;
+  type: MediaType;
   visibility?: MediaAssetVisibility;
-  alt?: string | null;
+  isPublished?: boolean;
+  altText?: string | null;
   title?: string | null;
 };
 
@@ -30,7 +31,6 @@ export type PreparedMediaFile = ValidatedMediaFile & {
 
 export type MediaFileRecord = {
   visibility: MediaAssetVisibility;
-  kind: MediaAssetKind;
   storagePath: string;
   storedFilename: string;
   mimeType: string;

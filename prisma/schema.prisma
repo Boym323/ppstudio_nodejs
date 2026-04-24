@@ -100,6 +100,13 @@ enum MediaAssetKind {
   CONTENT
 }
 
+enum MediaType {
+  CERTIFICATE
+  SALON_PHOTO
+  PORTRAIT
+  GENERAL
+}
+
 enum PricingLayout {
   LIST
   GRID
@@ -492,19 +499,28 @@ model MediaAsset {
   storageProvider  MediaStorageProvider @default(LOCAL)
   visibility       MediaAssetVisibility @default(PUBLIC)
   kind             MediaAssetKind
+  type             MediaType            @default(CERTIFICATE)
   originalFilename String
+  fileName         String
   storedFilename   String
   mimeType         String
   extension        String
   sizeBytes        Int
+  size             Int
   width            Int?
   height           Int?
   alt              String?
+  altText          String?
   title            String?
   storagePath      String               @unique
+  url              String
+  sortOrder        Int?
+  isPublished      Boolean              @default(true)
   createdAt        DateTime             @default(now())
   updatedAt        DateTime             @updatedAt
 
+  @@index([type, isPublished, sortOrder])
+  @@index([type, createdAt])
   @@index([kind, createdAt])
   @@index([visibility, kind, createdAt])
   @@index([storageProvider, kind, createdAt])

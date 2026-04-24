@@ -4,8 +4,7 @@ import {
   BookingStatus,
   EmailLogStatus,
   EmailLogType,
-  MediaAssetKind,
-  MediaAssetVisibility,
+  MediaType,
   Prisma,
 } from "@prisma/client";
 
@@ -147,7 +146,7 @@ export function getAdminSectionTitle(slug: AdminSectionSlug) {
     case "klienti":
       return "Klienti";
     case "certifikaty":
-      return "Certifikáty";
+      return "Média webu";
     case "sluzby":
       return "Služby";
     case "kategorie-sluzeb":
@@ -544,13 +543,13 @@ async function getCertificatesData(area: AdminArea) {
   const [publicCertificates, recentCertificates] = await Promise.all([
     prisma.mediaAsset.count({
       where: {
-        kind: MediaAssetKind.CERTIFICATE,
-        visibility: MediaAssetVisibility.PUBLIC,
+        type: MediaType.CERTIFICATE,
+        isPublished: true,
       },
     }),
     prisma.mediaAsset.findMany({
       where: {
-        kind: MediaAssetKind.CERTIFICATE,
+        type: MediaType.CERTIFICATE,
       },
       orderBy: { createdAt: "desc" },
       take: 8,
@@ -567,12 +566,12 @@ async function getCertificatesData(area: AdminArea) {
     ],
     items: recentCertificates.map((asset) => ({
       id: asset.id,
-      title: asset.title || asset.originalFilename,
-      meta: `${asset.mimeType} • ${Math.round(asset.sizeBytes / 1024)} KB`,
+      title: asset.title || asset.fileName,
+      meta: `${asset.mimeType} • ${Math.round(asset.size / 1024)} KB`,
       description: area === "owner"
         ? `Nahráno ${formatDateLabel(asset.createdAt)} • soubor ${asset.storedFilename}`
         : `Nahráno ${formatDateLabel(asset.createdAt)}`,
-      badge: asset.visibility === MediaAssetVisibility.PUBLIC ? "Veřejné" : "Soukromé",
+      badge: asset.isPublished ? "Veřejné" : "Soukromé",
     })),
   };
 }

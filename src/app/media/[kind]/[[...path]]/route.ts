@@ -1,15 +1,17 @@
-import { MediaAssetKind } from '@prisma/client';
+import { MediaType } from '@prisma/client';
 import { NextResponse } from 'next/server';
 
 import { localMediaStorage } from '@/lib/media/local-media-storage';
 import { assertSafeStoragePath } from '@/lib/media/media-path';
-import { getPublicMediaAssetByKindAndPath } from '@/features/media/lib/media-asset-repository';
+import { getPublicMediaAssetByPath } from '@/features/media/lib/media-asset-repository';
 
-const publicMediaKinds = new Map<string, MediaAssetKind>([
-  ['certificates', MediaAssetKind.CERTIFICATE],
-  ['spaces', MediaAssetKind.SPACE],
-  ['references', MediaAssetKind.REFERENCE],
-  ['content', MediaAssetKind.CONTENT],
+const publicMediaTypes = new Map<string, MediaType>([
+  ['certificates', MediaType.CERTIFICATE],
+  ['spaces', MediaType.SALON_PHOTO],
+  ['portraits', MediaType.PORTRAIT],
+  ['general', MediaType.GENERAL],
+  ['references', MediaType.GENERAL],
+  ['content', MediaType.GENERAL],
 ]);
 
 export async function GET(
@@ -17,9 +19,9 @@ export async function GET(
   context: { params: Promise<{ kind: string; path?: string[] }> },
 ) {
   const { kind, path = [] } = await context.params;
-  const mediaKind = publicMediaKinds.get(kind);
+  const mediaType = publicMediaTypes.get(kind);
 
-  if (!mediaKind || path.length === 0) {
+  if (!mediaType || path.length === 0) {
     return NextResponse.json({ message: 'Soubor nebyl nalezen.' }, { status: 404 });
   }
 
@@ -31,7 +33,7 @@ export async function GET(
     return NextResponse.json({ message: 'Neplatná cesta k médiu.' }, { status: 400 });
   }
 
-  const asset = await getPublicMediaAssetByKindAndPath(mediaKind, storagePath);
+  const asset = await getPublicMediaAssetByPath(storagePath);
 
   if (!asset) {
     return NextResponse.json({ message: 'Soubor nebyl nalezen.' }, { status: 404 });
@@ -44,7 +46,7 @@ export async function GET(
       headers: {
         'Content-Type': asset.mimeType,
         'Cache-Control': 'public, max-age=31536000, immutable',
-        'Content-Length': String(asset.sizeBytes),
+        'Content-Length': String(asset.size),
         'Content-Disposition': `inline; filename="${asset.storedFilename}"`,
         'X-Content-Type-Options': 'nosniff',
       },
