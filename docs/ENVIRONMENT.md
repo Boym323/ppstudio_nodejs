@@ -71,6 +71,7 @@ Dokumentace proměnných prostředí pro lokální vývoj i produkci.
 - Refaktor owner/salon admin route wrapperů na sdílené factory funkce nezavádí žádné nové env proměnné.
 - Povolené LAN originy pro Next.js dev server nejsou env proměnné; udržují se přímo v `next.config.ts` přes `allowedDevOrigins` a po změně vyžadují restart `npm run dev`.
 - Playwright E2E testy používají volitelné CLI-only proměnné `PLAYWRIGHT_PORT` a `PLAYWRIGHT_BASE_URL`; nejsou součástí runtime validace aplikace. Pokud nejsou nastavené, testy použijí `http://127.0.0.1:3100` a samy nastaví `NEXT_PUBLIC_APP_URL` pro lokální `next start` server.
+- GitHub Actions CI definuje testovací hodnoty `NEXT_PUBLIC_APP_URL`, admin účtů, `DATABASE_URL`, `SHADOW_DATABASE_URL` a `EMAIL_DELIVERY_MODE=log` přímo ve workflow. Produkční secrets se pro CI testy nepoužívají.
 
 ## Poznámka k týdennímu planneru slotů
 - Týdenní planner dostupností nepřidává žádné nové env proměnné.

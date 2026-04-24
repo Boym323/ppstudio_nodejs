@@ -1,0 +1,81 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Lint, Test, Build, E2E
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: ppstudio
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d ppstudio"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      NEXT_PUBLIC_APP_NAME: PP Studio
+      NEXT_PUBLIC_APP_URL: http://127.0.0.1:3100
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/ppstudio?schema=public
+      SHADOW_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/ppstudio_shadow?schema=public
+      ADMIN_SESSION_SECRET: ci-secret-value-with-at-least-32-characters
+      ADMIN_OWNER_EMAIL: owner@example.com
+      ADMIN_OWNER_PASSWORD: change-me-owner
+      ADMIN_STAFF_EMAIL: staff@example.com
+      ADMIN_STAFF_PASSWORD: change-me-staff
+      EMAIL_DELIVERY_MODE: log
+      SMTP_FROM_NAME: PP Studio
+      PLAYWRIGHT_PORT: 3100
+      PLAYWRIGHT_BASE_URL: http://127.0.0.1:3100
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Prepare database
+        run: |
+          npx prisma migrate deploy
+          npm run db:generate
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      - name: E2E
+        run: npm run test:e2e

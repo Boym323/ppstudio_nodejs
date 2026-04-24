@@ -88,6 +88,17 @@ npm run test:e2e
 
 E2E testy nejdřív vytvoří produkční build, startují lokální `next start` server na samostatném portu, přepínají e-mail delivery do `log` režimu a seedují izolovaná data pro veřejnou rezervaci, storno, přesun termínu a admin potvrzení rezervace. Při prvním spuštění na novém stroji může být potřeba doinstalovat Playwright browser přes `npx playwright install chromium`.
 
+GitHub Actions CI používá stejnou verifikační sadu automaticky na pull requestech a pushech do hlavních větví:
+
+```bash
+npm run lint
+npm test
+npm run build
+npm run test:e2e
+```
+
+Workflow si pro testy startuje PostgreSQL service container a používá bezpečné lokální/testovací env hodnoty bez reálného SMTP odesílání.
+
 Pro cílené spuštění pouze booking DB integračních testů je připravený i samostatný příkaz:
 
 ```bash

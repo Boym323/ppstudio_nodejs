@@ -112,6 +112,8 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Playwright konfigurace používá lokální produkční `next start` server na `PLAYWRIGHT_PORT` (výchozí `3100`) a nastavuje `NEXT_PUBLIC_APP_URL` na stejný lokální origin pro runtime serveru.
 - E2E fixture helper seeduje unikátní služby, sloty, klienty, tokeny a dočasného owner uživatele přes Prisma; cleanup filtruje podle unikátního `runId`, aby testy nesahaly na ručně vytvořená data.
 - Aktuální E2E smoke coverage ověřuje veřejné vytvoření pending rezervace, self-service storno, self-service přesun a owner potvrzení rezervace v admin detailu.
+- CI workflow `.github/workflows/ci.yml` běží na push do `main`/`master` a na pull requesty. Používá PostgreSQL service container, aplikuje Prisma migrace přes `prisma migrate deploy`, generuje Prisma klienta a postupně spouští `npm run lint`, `npm test`, `npm run build` a `npm run test:e2e`.
+- CI používá testovací env hodnoty přímo ve workflow a e-maily drží v `EMAIL_DELIVERY_MODE=log`, aby browser a DB testy nevytvářely reálné SMTP side effects.
 
 ## Admin Informační Architektura
 - Sekce `volne-terminy` je znovu aktivní jako týdenní planner nad 30min gridem.
