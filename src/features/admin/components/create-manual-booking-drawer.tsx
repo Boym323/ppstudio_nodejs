@@ -104,7 +104,7 @@ export function CreateManualBookingDrawer({
             setShowSuccessBanner(false);
             setOpen(true);
           }}
-          className="rounded-full bg-[var(--color-accent)] px-4 py-2.5 text-sm font-semibold text-[var(--color-accent-contrast)] transition hover:brightness-105"
+          className="rounded-full border border-[var(--color-accent)]/34 bg-[rgba(190,160,120,0.12)] px-4 py-2.5 text-sm font-semibold text-white transition hover:border-[var(--color-accent)]/46 hover:bg-[rgba(190,160,120,0.18)]"
         >
           Přidat rezervaci
         </button>

@@ -55,6 +55,9 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
 - Vertikální spacing veřejných sekcí je sjednocený do rytmu `py-10 / sm:py-14 / lg:py-16`; větší rozestupy používej jen pro obsahově výrazné bloky.
 - Rezervační vrstva stojí na ručně vypisovaných termínech přes `AvailabilitySlot`, ne na pevné otevírací době.
 - Pending rezervace lze nově potvrdit nebo zrušit přímo z provozního e-mailu přes bezpečné jednorázové odkazy s mezikrokem potvrzení na veřejné route `/rezervace/akce/[intent]/[token]`.
+- Admin sekce `Rezervace` dál zůstává kompaktní řádkový workspace, ale nově má klikací statistiky jako rychlé filtry, nízký toolbar filtrů a seskupení seznamu do bloků `Dnes`, `Zítra`, `Tento týden`, `Později`.
+- V pracovním seznamu je teď nejvýraznější čas rezervace; uzavřené stavy `Hotovo` a `Zrušená` mají menší vizuální váhu a inline akce se liší podle stavu rezervace.
+- Kontakt v řádku rezervace je praktický i na mobilu: telefon používá `tel:`, e-mail `mailto:` a mobilní zobrazení skládá compact card s pořadím `čas -> klientka -> služba -> stav`.
 - Po potvrzení rezervace zákaznice dostává v potvrzovacím e-mailu `.ics` přílohu s jednou konkrétní kalendářovou událostí pro potvrzený termín, ne subscription feed.
 - Owner může v `/admin/nastaveni` nově zapnout chráněný Apple Calendar subscription feed na `/api/calendar/owner.ics?token=...`; feed je read-only, bere jen potvrzené rezervace a aplikace zůstává jediným source of truth.
 - Admin detail rezervace nově podporuje samostatnou akci `Přesunout termín`; booking zůstává stejným záznamem, ale změna projde backend validací, auditním logem, resetem reminder návaznosti a volitelným klientským e-mailem `Termín byl změněn`.

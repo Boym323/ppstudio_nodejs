@@ -100,6 +100,7 @@ Postup nasazení aplikace do produkce.
   - vytvoření testovací rezervace
   - propsání nové rezervace nebo změny slotu do overview dashboardu bez potřeby buildu nebo manuálního refresh flow navíc
   - `/admin/rezervace` a `/admin/provoz/rezervace`: kompaktní řádkový seznam, sticky header a inline akce `Potvrdit` / `Zrušit`
+  - `/admin/rezervace` a `/admin/provoz/rezervace`: klikací statistiky jako rychlé filtry, toolbar `hledat / stav / zdroj / datum`, seskupení `Dnes / Zítra / Tento týden / Později`, tlumené řádky `Hotovo` a `Zrušená` a mobilní compact cards
   - detail rezervace:
     - otevření draweru `Přesunout termín`
     - výběr nového času ze slotů i ručně

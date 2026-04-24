@@ -1,5 +1,6 @@
 "use client";
 
+import { BookingStatus } from "@prisma/client";
 import Link from "next/link";
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
@@ -13,18 +14,18 @@ type AdminBookingsQuickActionsProps = {
   area: AdminArea;
   bookingId: string;
   href: string;
+  status: BookingStatus;
   availableActions: Array<{
     value: string;
     label: string;
   }>;
 };
 
-const quickActionOrder = ["CONFIRMED", "CANCELLED"] as const;
-
 export function AdminBookingsQuickActions({
   area,
   bookingId,
   href,
+  status,
   availableActions,
 }: AdminBookingsQuickActionsProps) {
   const [serverState, formAction] = useActionState(
@@ -32,28 +33,26 @@ export function AdminBookingsQuickActions({
     initialUpdateBookingStatusActionState,
   );
 
-  const quickActions = quickActionOrder
-    .map((value) => availableActions.find((action) => action.value === value))
-    .filter((action): action is NonNullable<(typeof availableActions)[number]> => Boolean(action));
+  const quickActions = getQuickActions(status, availableActions);
 
   return (
     <div className="space-y-1">
       <form
         action={formAction}
-        className="flex w-full flex-wrap items-stretch justify-start gap-1 rounded-[1rem] border border-white/8 bg-white/[0.03] p-1 lg:w-fit lg:items-center lg:justify-end lg:rounded-full lg:gap-0.5 lg:p-0.5"
+        className="flex w-full flex-wrap items-stretch justify-start gap-1"
       >
         <input type="hidden" name="area" value={area} />
         <input type="hidden" name="bookingId" value={bookingId} />
 
         {quickActions.map((action) => (
-          <QuickSubmitButton key={action.value} value={action.value}>
+          <QuickSubmitButton key={action.value} value={action.value} kind={action.value}>
             {action.value === "CONFIRMED" ? "Potvrdit" : "Zrušit"}
           </QuickSubmitButton>
         ))}
 
         <Link
           href={href}
-          className="inline-flex min-h-8 min-w-[6.25rem] flex-1 items-center justify-center rounded-[0.85rem] border border-white/12 px-3 py-1 text-[11px] font-medium text-white/72 transition hover:border-white/24 hover:bg-white/7 hover:text-white lg:min-h-7 lg:min-w-0 lg:flex-none lg:rounded-full lg:px-2 lg:py-0.5 lg:text-[10px]"
+          className="inline-flex min-h-8 min-w-[5.5rem] items-center justify-center rounded-full border border-white/12 px-3 py-1 text-[11px] font-medium text-white/72 transition hover:border-white/24 hover:bg-white/7 hover:text-white"
         >
           Otevřít
         </Link>
@@ -68,9 +67,11 @@ export function AdminBookingsQuickActions({
 
 function QuickSubmitButton({
   value,
+  kind,
   children,
 }: {
   value: string;
+  kind: string;
   children: React.ReactNode;
 }) {
   const { pending } = useFormStatus();
@@ -82,13 +83,36 @@ function QuickSubmitButton({
       value={value}
       disabled={pending}
       className={cn(
-        "inline-flex min-h-8 min-w-[6.25rem] flex-1 items-center justify-center rounded-[0.85rem] border px-3 py-1 text-[11px] font-medium transition disabled:cursor-not-allowed disabled:opacity-60 lg:min-h-7 lg:min-w-0 lg:flex-none lg:rounded-full lg:px-2 lg:py-0.5 lg:text-[10px]",
-        value === "CONFIRMED"
-          ? "border-amber-300/45 bg-amber-400/12 text-amber-100 hover:bg-amber-400/18"
-          : "border-red-300/35 bg-red-400/10 text-red-100 hover:bg-red-400/16",
+        "inline-flex min-h-8 min-w-[5.5rem] items-center justify-center rounded-full border px-3 py-1 text-[11px] font-medium transition disabled:cursor-not-allowed disabled:opacity-60",
+        kind === "CONFIRMED"
+          ? "border-amber-300/55 bg-amber-400/18 text-amber-50 hover:bg-amber-400/26"
+          : "border-white/12 bg-white/5 text-white/74 hover:border-red-300/35 hover:bg-red-400/12 hover:text-red-50",
       )}
     >
       {pending ? "Ukládám..." : children}
     </button>
   );
+}
+
+function getQuickActions(
+  status: BookingStatus,
+  availableActions: Array<{
+    value: string;
+    label: string;
+  }>,
+) {
+  const actionByValue = new Map(availableActions.map((action) => [action.value, action]));
+
+  switch (status) {
+    case BookingStatus.PENDING:
+      return ["CONFIRMED", "CANCELLED"]
+        .map((value) => actionByValue.get(value))
+        .filter((action): action is NonNullable<(typeof availableActions)[number]> => Boolean(action));
+    case BookingStatus.CONFIRMED:
+      return ["CANCELLED"]
+        .map((value) => actionByValue.get(value))
+        .filter((action): action is NonNullable<(typeof availableActions)[number]> => Boolean(action));
+    default:
+      return [];
+  }
 }

@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 
 import { type AdminArea } from "@/config/navigation";
 import { AdminBookingDetailPage } from "@/features/admin/components/admin-booking-detail-page";
+import { AdminBookingsPage } from "@/features/admin/components/admin-bookings-page";
 import { AdminOverviewPage } from "@/features/admin/components/admin-overview-page";
 import { AdminSectionPage } from "@/features/admin/components/admin-section-page";
 import { AdminSettingsPage } from "@/features/admin/components/admin-settings-page";
@@ -70,6 +71,10 @@ export function createAdminSectionRoute(area: AdminArea) {
 
     if (section === "sluzby") {
       return <AdminServicesPage area={area} searchParams={await searchParams} />;
+    }
+
+    if (section === "rezervace") {
+      return <AdminBookingsPage area={area} searchParams={await searchParams} />;
     }
 
     if (section === "kategorie-sluzeb") {
