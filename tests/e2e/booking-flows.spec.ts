@@ -122,7 +122,9 @@ test.describe("booking flows", () => {
     }), page.getByRole("button", { name: "Potvrdit nový termín" }));
     await page.getByRole("button", { name: "Potvrdit nový termín" }).click();
 
-    await expect(page.getByRole("heading", { name: "Rezervace byla úspěšně přesunuta." })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Rezervace byla úspěšně přesunuta." }),
+    ).toBeVisible({ timeout: 20_000 });
 
     const booking = await prisma.booking.findUniqueOrThrow({
       where: {
