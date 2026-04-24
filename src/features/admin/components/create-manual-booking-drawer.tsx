@@ -10,6 +10,7 @@ import {
   initialCreateManualBookingActionState,
 } from "@/features/admin/actions/create-manual-booking-action-state";
 import { createManualBookingAction } from "@/features/admin/actions/booking-actions";
+import { AdminEscapeKeyClose } from "@/features/admin/components/admin-drawer-escape-close";
 import { type ReservationsDashboardData } from "@/features/admin/lib/admin-data";
 import { BookingClientSelector } from "./booking-client-selector";
 import { BookingInternalNoteField } from "./booking-internal-note-field";
@@ -140,6 +141,7 @@ export function CreateManualBookingDrawer({
 
       {open ? (
         <div className="fixed inset-0 z-50">
+          <AdminEscapeKeyClose onEscape={() => setOpen(false)} />
           <div
             className="absolute inset-0 bg-black/62 backdrop-blur-sm"
             onClick={() => setOpen(false)}

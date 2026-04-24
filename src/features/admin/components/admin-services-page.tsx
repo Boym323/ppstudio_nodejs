@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { AdminPageShell, AdminPanel } from "@/features/admin/components/admin-page-shell";
+import { AdminDrawerEscapeClose } from "@/features/admin/components/admin-drawer-escape-close";
 import { AdminServiceForm } from "@/features/admin/components/admin-service-form";
 import { AdminServicesList } from "@/features/admin/components/admin-services-list";
 import { AdminServicesToolbar } from "@/features/admin/components/admin-services-toolbar";
@@ -235,6 +236,7 @@ export async function AdminServicesPage({
 
       {showDetailDrawer ? (
         <div className="fixed inset-0 z-50 hidden xl:block">
+          <AdminDrawerEscapeClose href={returnTo} />
           <Link
             aria-label="Zavřít detail služby"
             href={returnTo}

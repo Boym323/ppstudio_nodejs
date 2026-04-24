@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import type { PlannerDay } from "@/features/admin/lib/admin-slots";
 import { cn } from "@/lib/utils";
+import { AdminEscapeKeyClose } from "@/features/admin/components/admin-drawer-escape-close";
 
 const PLANNER_START_HOUR = 6;
 const PLANNER_END_HOUR = 20;
@@ -681,6 +682,7 @@ export function MobileInspectorSheet({
       )}
       aria-hidden={!open}
     >
+      <AdminEscapeKeyClose onEscape={onClose} enabled={open} />
       <div
         className={cn(
           "absolute inset-0 bg-black/55 backdrop-blur-sm transition",

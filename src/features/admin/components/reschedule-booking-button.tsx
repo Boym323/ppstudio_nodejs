@@ -9,6 +9,7 @@ import { rescheduleBookingAction } from "@/features/admin/actions/booking-action
 import {
   initialRescheduleBookingActionState,
 } from "@/features/admin/actions/reschedule-booking-action-state";
+import { AdminEscapeKeyClose } from "@/features/admin/components/admin-drawer-escape-close";
 import { BookingRescheduleTimeSelector } from "./booking-reschedule-time-selector";
 
 type SlotCatalogItem = {
@@ -158,6 +159,7 @@ export function RescheduleBookingButton({
 
       {open ? (
         <div className="fixed inset-0 z-50">
+          <AdminEscapeKeyClose onEscape={() => setOpen(false)} />
           <div className="absolute inset-0 bg-black/62 backdrop-blur-sm" onClick={() => setOpen(false)} />
           <div className="absolute inset-y-0 right-0 w-full max-w-3xl overflow-hidden border-l border-white/10 bg-[#131116] shadow-[-20px_0_70px_rgba(0,0,0,0.45)]">
             <div className="flex h-full flex-col">

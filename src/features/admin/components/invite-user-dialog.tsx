@@ -7,6 +7,7 @@ import {
   type AdminUserAccessActionState,
 } from "@/features/admin/actions/update-admin-user-access-action-state";
 import { saveAdminUserAccessAction } from "@/features/admin/actions/admin-user-actions";
+import { AdminEscapeKeyClose } from "@/features/admin/components/admin-drawer-escape-close";
 import { cn } from "@/lib/utils";
 
 type InviteUserDialogProps = {
@@ -50,6 +51,7 @@ export function InviteUserDialog({
 
   return (
     <div className="fixed inset-0 z-50">
+      <AdminEscapeKeyClose onEscape={onClose} />
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
       <div className="absolute inset-x-0 bottom-0 top-auto mx-auto max-w-2xl px-4 pb-4 pt-10 sm:bottom-auto sm:left-1/2 sm:top-1/2 sm:w-full sm:-translate-x-1/2 sm:-translate-y-1/2 sm:px-6 sm:pb-0">
         <div className="rounded-[1.7rem] border border-white/10 bg-[#131116] p-5 shadow-[0_20px_70px_rgba(0,0,0,0.45)] sm:p-6">

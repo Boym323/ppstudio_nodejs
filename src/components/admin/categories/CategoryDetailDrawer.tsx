@@ -1,5 +1,7 @@
 "use client";
 
+import { AdminEscapeKeyClose } from "@/features/admin/components/admin-drawer-escape-close";
+
 import { CategoryDetailPanel } from "./CategoryDetailPanel";
 import type { CategoryRecord } from "./types";
 
@@ -44,6 +46,7 @@ export function CategoryDetailDrawer({
 
   return (
     <div className="fixed inset-0 z-50">
+      <AdminEscapeKeyClose onEscape={onClose} />
       <div
         className="absolute inset-0 bg-black/62 backdrop-blur-sm"
         onClick={onClose}
