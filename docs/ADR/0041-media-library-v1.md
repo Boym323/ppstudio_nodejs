@@ -23,7 +23,7 @@ Detailní naming, URL a variantová strategie pro další růst je zpřesněná 
 ## Důsledky
 - Existující certifikáty se při migraci zpětně mapují na `type = CERTIFICATE`, `isPublished = true` pro původní veřejné záznamy a zachovanou URL `/media/certificates/...`.
 - Nové služby `createMedia`, `listMedia`, `updateMedia` a `deleteMedia` jsou kanonické API pro admin media workflow.
-- UI je jednoduché: upload, filtr typů, grid karet, editace titulku, alt textu, typu a publish/unpublish.
+- UI je jednoduché, ale pracovní: krátký header, kompaktní statistiky, upload panel s dropzónou, tabs s počty, grid karet, quick publish/unpublish a kompaktní editace titulku, alt textu, typu a publikace.
 - Prezentační stránky mají používat úzké read modely nad konkrétním `MediaType`; nesmí kvůli galerii zavádět vlastní upload ani paralelní CMS.
 - Budoucí rozšíření má přidávat nové typy přes enum a prezentační read modely, ne přes další izolované certifikátové moduly.
 

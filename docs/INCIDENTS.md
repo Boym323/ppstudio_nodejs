@@ -74,6 +74,7 @@ Evidence produkčních incidentů a jejich řešení.
 - Upload root namountovaný do dočasného adresáře, který se smaže při deployi nebo restartu serveru.
 - Nefunkční veřejné URL `/media/public/*` nebo legacy `/media/*` kvůli ručnímu zásahu do souborů na filesystemu bez odpovídajícího `MediaAsset` záznamu v DB.
 - Pokus o nahrání nepodporovaného typu souboru nebo souboru nad velikostní limit, který musí skončit validační chybou místo 500.
+- Admin `Média webu` po uploadu, editaci nebo publish/unpublish vrací obsluhu na špatný filtr, takže rychlá práce v knihovně působí chaoticky a je potřeba znovu ručně přepínat tabs.
 - Certifikát nahraný v modulu `Média webu`, ale neviditelný na `/o-mne` kvůli jinému `MediaType` než `CERTIFICATE`, vypnutému `isPublished`, neplatné `storagePath` nebo chybějícímu souboru ve storage rootu.
 - Fotka studia nahraná v modulu `Média webu`, ale neviditelná na `/studio` kvůli jinému `MediaType` než `SALON_PHOTO`, vypnutému `isPublished`, neplatné `storagePath` nebo chybějícímu souboru ve storage rootu.
 - Hlavní portrét na `/o-mne` nahrazený neexistujícím nebo nevhodně ořezaným assetem v `public/brand`, kvůli čemuž by hero ztratil důvěryhodnost nebo vizuální kvalitu na mobilu.

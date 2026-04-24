@@ -14,9 +14,15 @@ import {
 } from '@/features/admin/lib/admin-media-validation';
 import { createMedia, deleteMedia, updateMedia } from '@/features/media/lib/media-library';
 
-function flashUrl(area: 'owner' | 'salon', flash: string) {
+function flashUrl(area: 'owner' | 'salon', flash: string, redirectFilter?: 'ALL' | MediaType) {
   const basePath = getMediaAdminPath(area);
-  return `${basePath}?flash=${encodeURIComponent(flash)}`;
+  const searchParams = new URLSearchParams({ flash });
+
+  if (redirectFilter && redirectFilter !== 'ALL') {
+    searchParams.set('type', redirectFilter);
+  }
+
+  return `${basePath}?${searchParams.toString()}`;
 }
 
 function revalidateMediaPaths(area: 'owner' | 'salon') {
@@ -51,6 +57,7 @@ export async function uploadMediaAction(formData: FormData) {
     type: formData.get('type') ?? MediaType.CERTIFICATE,
     title: formData.get('title'),
     altText: formData.get('altText'),
+    redirectFilter: formData.get('redirectFilter') || undefined,
   });
 
   if (!parsed.success) {
@@ -62,7 +69,7 @@ export async function uploadMediaAction(formData: FormData) {
   const file = formData.get('file');
 
   if (!(file instanceof File) || file.size <= 0) {
-    redirect(flashUrl(parsed.data.area, 'media-upload-missing-file'));
+    redirect(flashUrl(parsed.data.area, 'media-upload-missing-file', parsed.data.redirectFilter));
   }
 
   try {
@@ -74,11 +81,11 @@ export async function uploadMediaAction(formData: FormData) {
       altText: normalizeOptionalText(parsed.data.altText),
     });
   } catch (error) {
-    redirect(flashUrl(parsed.data.area, mapUploadErrorToFlash(error)));
+    redirect(flashUrl(parsed.data.area, mapUploadErrorToFlash(error), parsed.data.redirectFilter));
   }
 
   revalidateMediaPaths(parsed.data.area);
-  redirect(flashUrl(parsed.data.area, 'media-upload-success'));
+  redirect(flashUrl(parsed.data.area, 'media-upload-success', parsed.data.redirectFilter));
 }
 
 export async function updateMediaAction(formData: FormData) {
@@ -89,6 +96,7 @@ export async function updateMediaAction(formData: FormData) {
     title: formData.get('title'),
     altText: formData.get('altText'),
     isPublished: formData.get('isPublished'),
+    redirectFilter: formData.get('redirectFilter') || undefined,
   });
 
   if (!parsed.success) {
@@ -105,13 +113,14 @@ export async function updateMediaAction(formData: FormData) {
   });
 
   revalidateMediaPaths(parsed.data.area);
-  redirect(flashUrl(parsed.data.area, 'media-update-success'));
+  redirect(flashUrl(parsed.data.area, 'media-update-success', parsed.data.redirectFilter));
 }
 
 export async function deleteMediaAction(formData: FormData) {
   const parsed = deleteMediaSchema.safeParse({
     area: formData.get('area'),
     assetId: formData.get('assetId'),
+    redirectFilter: formData.get('redirectFilter') || undefined,
   });
 
   if (!parsed.success) {
@@ -122,5 +131,5 @@ export async function deleteMediaAction(formData: FormData) {
   await deleteMedia(parsed.data.assetId);
 
   revalidateMediaPaths(parsed.data.area);
-  redirect(flashUrl(parsed.data.area, 'media-delete-success'));
+  redirect(flashUrl(parsed.data.area, 'media-delete-success', parsed.data.redirectFilter));
 }

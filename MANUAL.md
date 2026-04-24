@@ -322,6 +322,10 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
 - Modul `Média webu` má první produkční napojení:
   - admin upload, editaci a mazání přes `/admin/media` a `/admin/provoz/media`
   - typy `CERTIFICATE`, `SALON_PHOTO`, `PORTRAIT` a `GENERAL`
+  - admin UI je záměrně kompaktní pracovní nástroj: krátký header, 4 rychlé statistiky, upload panel s dropzónou, tabs s počty a hustší grid karet
+  - každá karta média ukazuje náhled, titulek nebo soubor, typ, publish stav, rozměry, velikost a zřetelné `Použití` + `Sekce`
+  - publish/unpublish jde přímo z karty bez otevírání editace; detailní změny zůstávají v kompaktním dialogu
+  - prázdná knihovna i prázdné filtry mají vlastní CTA zpět na upload panel
   - veřejné zobrazení certifikátů v sekci `Certifikace` na stránce `/o-mne`
   - veřejné zobrazení publikovaných fotek studia na stránce `/studio`
   - backend napojený na `createMedia()`, `listMedia()`, `updateMedia()` a `deleteMedia()`

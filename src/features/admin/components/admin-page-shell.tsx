@@ -14,6 +14,7 @@ type AdminPageShellProps = {
   title: string;
   description: string;
   stats?: StatItem[];
+  compactStats?: boolean;
   children?: React.ReactNode;
   compact?: boolean;
 };
@@ -50,6 +51,7 @@ export function AdminPageShell({
   title,
   description,
   stats,
+  compactStats = false,
   children,
   compact = false,
 }: AdminPageShellProps) {
@@ -76,14 +78,23 @@ export function AdminPageShell({
             <article
               key={stat.label}
               className={cn(
-                "rounded-[1.75rem] border p-5",
+                compactStats ? "rounded-[1.35rem] border p-4" : "rounded-[1.75rem] border p-5",
                 statToneStyles[stat.tone ?? "default"],
               )}
             >
               <p className="text-xs uppercase tracking-[0.24em] text-white/55">{stat.label}</p>
-              <p className="mt-4 break-words font-display text-3xl sm:text-4xl">{stat.value}</p>
+              <p
+                className={cn(
+                  "break-words font-display",
+                  compactStats ? "mt-2 text-2xl sm:text-3xl" : "mt-4 text-3xl sm:text-4xl",
+                )}
+              >
+                {stat.value}
+              </p>
               {stat.detail ? (
-                <p className="mt-3 text-sm leading-6 text-white/62">{stat.detail}</p>
+                <p className={cn("text-sm leading-6 text-white/62", compactStats ? "mt-2" : "mt-3")}>
+                  {stat.detail}
+                </p>
               ) : null}
             </article>
           ))}

@@ -6,6 +6,10 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- `Média webu` v adminu prošla UX refaktorem bez změny storage strategie nebo datového modelu: kratší header, kompaktní statistiky `Celkem médií / Publikováno / Skryto / Certifikáty`, výraznější upload panel a hustší responsive grid karet.
+- Upload panel nově používá klikací dropzónu s výběrem souboru, krátkou nápovědu pro `JPG/PNG/WebP` a kompaktní pole pro typ, titulek a alt text v jednom pracovním bloku.
+- Filtry médií jsou teď tabs s počty pro `Vše`, `Certifikáty`, `Prostory`, `Portréty` a `Obecné`; po uploadu, editaci, publish/unpublish i smazání se zachovává aktivní filtr.
+- Karty médií nově zdůrazňují náhled, název, badge typu, badge publikace, rozměry, velikost a použití; quick akce `Upravit`, `Publikovat/Skrýt` a `Odstranit` zrychlují běžnou správu bez nového upload systému.
 - Media Library má sjednocenou storage strategii pro nové uploady: výchozí root je `/var/www/ppstudio/uploads`, soubory jdou vždy do `public/{type}/YYYY/MM` a veřejná kanonická URL je `/media/public/{type}/YYYY/MM/{assetId}-{variant}.{ext}`.
 - Naming uploadů už nepoužívá původní jména souborů; `storedFilename` se generuje jako krátký asset key se suffixy `original`, `optimized`, `thumbnail`.
 - Publish/unpublish už neřídí filesystem: nové uploady se vždy ukládají do `public/`, `isPublished` zůstává čistě databázový flag a legacy route `/media/[kind]/[[...path]]` zůstává kvůli starším médiím.

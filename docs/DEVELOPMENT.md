@@ -190,7 +190,9 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - `src/features/admin/actions/client-actions.ts` je tenký server action adaptér pro editaci interní poznámky klientky; validace zůstává v `src/features/admin/lib/admin-client-validation.ts`.
 - Sekce `Média webu` má vlastní workflow v `src/features/admin/components/admin-media-page.tsx` a je dostupná v owner i salon oblasti na `/admin/media` a `/admin/provoz/media`.
 - Server action adaptéry pro média jsou v `src/features/admin/actions/media-actions.ts`; validace vstupu je v `src/features/admin/lib/admin-media-validation.ts`.
+- Sekci `Média webu` drž jako kompaktní pracovní plochu: krátký header, menší statistické boxy, upload panel s dropzónou, tabs s počty a hustší grid 2-3 karet podle šířky viewportu.
 - Admin karty médií mají kromě typu a publish stavu i text `Použití`, aby obsluha rovnou viděla, zda asset patří do `O mně`, `Studia`, `Kontaktu` nebo budoucích hero/banner bloků.
+- Quick publish/unpublish v knihovně má používat existující `updateMediaAction`; po mutaci zachovej aktivní filtr, aby se obsluha nevracela zbytečně na `Vše`.
 - Sekce `Nastavení` má vlastní workflow v `src/features/admin/components/admin-settings-page.tsx` a už neběží přes generický placeholder renderer.
 - Formuláře pro `Salon`, `Rezervace` a `E-maily a notifikace` jsou oddělené do samostatných client komponent a server action adaptérů v `src/features/admin/actions/settings-actions.ts`.
 - Sekce `Nastavení` nově obsahuje i owner-only kalendářový workflow:
@@ -474,6 +476,9 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - smazání assetu v DB i na filesystemu
 - Po změně certifikátového workflow ručně ověř i:
   - `/admin/media` a `/admin/provoz/media` na desktopu i mobilu
+  - tabs `Vše / Certifikáty / Prostory / Portréty / Obecné` včetně správných počtů
+  - quick akci `Publikovat` / `Skrýt` přímo na kartě a návrat do stejného filtru
+  - empty state pro prázdnou knihovnu i prázdný konkrétní filtr
   - upload certifikátu a okamžité propsání do `/o-mne`
   - smazání certifikátu a zmizení z adminu i veřejné stránky
 
