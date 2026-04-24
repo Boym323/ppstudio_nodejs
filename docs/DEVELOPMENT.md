@@ -347,6 +347,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - `npm run lint`
   - `npm run test`
   - `npm run build`
+- `npm run test` nově nastavuje `RUN_DB_INTEGRATION_TESTS=1`, takže integrační booking testy (`*.integration.test.ts`) už nejsou v běžném běhu skipnuté.
 - Pro DB-backed integrační testy booking domény je připravený i:
   - `npm run test:db:booking`
 - `npm run test:db:booking` aktuálně spouští jak centrální `booking-rescheduling.integration.test.ts`, tak veřejný `booking-management.integration.test.ts`.

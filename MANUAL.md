@@ -78,7 +78,9 @@ npm run db:generate
 npm run dev
 ```
 
-Pro DB-backed integrační testy booking domény je připravený i samostatný příkaz:
+`npm test` nyní spouští i DB-backed integrační testy (nejsou skipnuté), takže běžná verifikace zahrnuje i booking integrační scénáře.
+
+Pro cílené spuštění pouze booking DB integračních testů je připravený i samostatný příkaz:
 
 ```bash
 npm run test:db:booking

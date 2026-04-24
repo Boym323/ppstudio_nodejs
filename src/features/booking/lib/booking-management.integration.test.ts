@@ -86,6 +86,12 @@ function addDays(base: Date, days: number) {
   return addHours(base, days * 24);
 }
 
+function setUtcTime(base: Date, hour: number, minute: number) {
+  const value = new Date(base);
+  value.setUTCHours(hour, minute, 0, 0);
+  return value;
+}
+
 async function createSeed() {
   const {
     prisma,
@@ -97,32 +103,24 @@ async function createSeed() {
 
   const suffix = randomUUID().slice(0, 8);
   const now = new Date();
-  const manageableStartAt = addDays(now, 6);
-  manageableStartAt.setUTCMinutes(0, 0, 0);
+  const manageableStartAt = setUtcTime(addDays(now, 6), 18, 15);
   const manageableEndAt = addHours(manageableStartAt, 1);
-  const replacementStartAt = addDays(now, 8);
-  replacementStartAt.setUTCMinutes(0, 0, 0);
+  const replacementStartAt = setUtcTime(addDays(now, 8), 19, 15);
   const replacementEndAt = addHours(replacementStartAt, 1);
-  const conflictStartAt = addDays(now, 9);
-  conflictStartAt.setUTCMinutes(30, 0, 0);
+  const conflictStartAt = setUtcTime(addDays(now, 9), 20, 45);
   const conflictEndAt = addHours(conflictStartAt, 1);
-  const tooLateStartAt = addHours(now, 12);
-  tooLateStartAt.setUTCMinutes(0, 0, 0);
+  const tooLateStartAt = setUtcTime(addHours(now, 20), 21, 30);
   const tooLateEndAt = addHours(tooLateStartAt, 1);
   const outsideWindowStartAt = addHours(now, 1);
-  outsideWindowStartAt.setUTCMinutes(0, 0, 0);
+  outsideWindowStartAt.setUTCSeconds(0, 0);
   const outsideWindowEndAt = addHours(outsideWindowStartAt, 1);
-  const completedStartAt = addDays(now, 5);
-  completedStartAt.setUTCMinutes(0, 0, 0);
+  const completedStartAt = setUtcTime(addDays(now, 5), 17, 0);
   const completedEndAt = addHours(completedStartAt, 1);
-  const cancelledStartAt = addDays(now, 7);
-  cancelledStartAt.setUTCMinutes(0, 0, 0);
+  const cancelledStartAt = setUtcTime(addDays(now, 7), 18, 45);
   const cancelledEndAt = addHours(cancelledStartAt, 1);
-  const noShowStartAt = addDays(now, 4);
-  noShowStartAt.setUTCMinutes(0, 0, 0);
+  const noShowStartAt = setUtcTime(addDays(now, 4), 16, 30);
   const noShowEndAt = addHours(noShowStartAt, 1);
-  const otherBookingStartAt = addDays(now, 10);
-  otherBookingStartAt.setUTCMinutes(0, 0, 0);
+  const otherBookingStartAt = setUtcTime(addDays(now, 10), 19, 45);
   const otherBookingEndAt = addHours(otherBookingStartAt, 1);
 
   const actor = await prisma.adminUser.create({

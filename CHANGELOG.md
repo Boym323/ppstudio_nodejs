@@ -14,6 +14,7 @@ Formát je inspirovaný Keep a Changelog.
 - Přibyly DB-backed integrační testy pro veřejný booking-management flow, které přes skutečné Prisma wiring ověřují token access, self-service storno, self-service přesun, reminder reset, audit/history zápisy, email orchestrace i odmítnutí neplatných tokenů, kolizí, terminal stavů a pokusů o přesun mimo online okno.
 
 ### Changed
+- `npm test` nově explicitně zapíná `RUN_DB_INTEGRATION_TESTS=1`, takže běžný test run už neskipuje booking DB integrační scénáře a verifikace není falešně zelená jen na unit vrstvách.
 - `npm run test:db:booking` nově spouští všechny booking DB integrační testy (`*.integration.test.ts`), takže jedním příkazem ověří jak centrální reschedule engine, tak veřejný token-based manage flow.
 - Veřejný klientský přesun termínu už nesmí propadnout do admin-style manual override větve; pokus o přesun mimo online okno nebo mimo veřejně dostupný slot se teď zastaví na service vrstvě bezpečnou business chybou.
 - Admin detail rezervace nově obsahuje samostatný drawer `Přesunout termín`; přesun už není tichá editace času, ale řízená doménová akce se stejnou validací slotů a interních výjimek jako veřejný booking a ruční admin booking.
