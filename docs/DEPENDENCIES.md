@@ -41,6 +41,7 @@ Seznam důležitých knihoven a důvod jejich použití.
 - Stabilizační refaktor `booking-public`, `booking-flow` a `admin-slots` také nepřidává žádnou novou runtime ani dev dependency; jde čistě o přesun stávající logiky do menších interních modulů.
 - Modul `Média webu` také nepřidává žádnou novou závislost; upload, metadata, filtr typů i publish stav běží na stávajícím stacku Next.js, React, Prisma, Zod, Node filesystem a `image-size`.
 - UX refaktor `Média webu` také nepřidává žádnou novou závislost; dropzóna, tabs s počty, quick publish/unpublish i kompaktní edit dialog běží na stávajících React/Next primitives.
+- Rozdělení portrétů na `PORTRAIT_HOME` a `PORTRAIT_ABOUT` také nepřidává žádnou novou závislost; používá stávající `MediaAsset` model, Prisma enum a public media helpery.
 - Veřejná stránka `/studio` nepřidává žádnou novou závislost; galerii skládá z existující media vrstvy a `next/image`.
 
 ## Kvalita kódu

@@ -316,7 +316,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Pokud veřejná rezervace zabere jen část delšího slotu s kapacitou `1`, booking write model slot v transakci automaticky rozdělí na rezervovaný úsek a zbylé volné fragmenty, aby admin planner zůstal editovatelný po samostatných blocích.
 - `src/features/booking/lib/booking-cancellation.ts` drží veřejné storno workflow nad hashovaným action tokenem.
 - `src/features/public/lib/public-certificates.ts` je veřejný read model certifikátů pro stránku `/o-mne`; smí vracet jen `MediaType.CERTIFICATE` a `isPublished = true`.
-- `src/features/public/lib/public-media.ts` drží sdílené read helpery pro publikované obrázky podle typu; aktuálně z něj čte hero portrét na homepage a `/o-mne`, a je připravený i pro budoucí `MediaType.GENERAL`.
+- `src/features/public/lib/public-media.ts` drží sdílené read helpery pro publikované obrázky podle typu; homepage čte primárně `MediaType.PORTRAIT_HOME`, `/o-mne` primárně `MediaType.PORTRAIT_ABOUT` a obě cesty mají fallback na legacy `MediaType.PORTRAIT`.
 - `src/features/public/lib/public-studio-photos.ts` je veřejný read model fotek studia; používá ho `/studio` pro hero + galerii a `/kontakt` pro hero fotografii.
 - `src/features/public/lib/public-studio-photos.ts` je veřejný read model fotek studia pro stránku `/studio`; bez dat musí UI zobrazit placeholder a nesmí vytvářet duplicitní správu obrázků mimo modul `Média webu`.
 - Veřejný booking flow vrací doménové chybové kódy a doporučený krok formuláře, takže UI může zobrazit přesnější recovery stav bez duplikace serverové logiky.
@@ -477,7 +477,8 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - smazání assetu v DB i na filesystemu
 - Po změně certifikátového workflow ručně ověř i:
   - `/admin/media` a `/admin/provoz/media` na desktopu i mobilu
-  - tabs `Vše / Certifikáty / Prostory / Portréty / Obecné` včetně správných počtů
+  - tabs `Vše / Certifikáty / Prostory / Portrét Homepage / Portrét O mně / Portrét Legacy / Obecné` včetně správných počtů
+  - oddělený portrét pro homepage a `/o-mne` včetně fallbacku na legacy `PORTRAIT`
   - quick akci `Publikovat` / `Skrýt` přímo na kartě a návrat do stejného filtru
   - empty state pro prázdnou knihovnu i prázdný konkrétní filtr
   - upload certifikátu a okamžité propsání do `/o-mne`

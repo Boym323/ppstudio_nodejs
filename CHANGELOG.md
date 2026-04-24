@@ -6,9 +6,12 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Portréty jsou nově rozdělené na cíle `PORTRAIT_HOME` (homepage hero) a `PORTRAIT_ABOUT` (`/o-mne` hero), takže každá stránka může používat vlastní obrázek bez nového upload systému.
+- Veřejné read modely mají bezpečný fallback: když chybí cílený portrét, homepage i `/o-mne` dál použijí legacy `PORTRAIT`.
+- Admin `Média webu` nyní nabízí samostatné typy `Portrét: Homepage`, `Portrét: O mně` a `Portrét: Legacy (obě stránky)` v uploadu, editaci, filtrech i badge použití.
 - `Média webu` v adminu prošla UX refaktorem bez změny storage strategie nebo datového modelu: kratší header, kompaktní statistiky `Celkem médií / Publikováno / Skryto / Certifikáty`, výraznější upload panel a hustší responsive grid karet.
 - Upload panel nově používá klikací dropzónu s výběrem souboru, krátkou nápovědu pro `JPG/PNG/WebP` a kompaktní pole pro typ, titulek a alt text v jednom pracovním bloku.
-- Filtry médií jsou teď tabs s počty pro `Vše`, `Certifikáty`, `Prostory`, `Portréty` a `Obecné`; po uploadu, editaci, publish/unpublish i smazání se zachovává aktivní filtr.
+- Filtry médií jsou teď tabs s počty pro `Vše`, `Certifikáty`, `Prostory`, `Portrét Homepage`, `Portrét O mně`, `Portrét Legacy` a `Obecné`; po uploadu, editaci, publish/unpublish i smazání se zachovává aktivní filtr.
 - Karty médií nově zdůrazňují náhled, název, badge typu, badge publikace, rozměry, velikost a použití; quick akce `Upravit`, `Publikovat/Skrýt` a `Odstranit` zrychlují běžnou správu bez nového upload systému.
 - Media Library má sjednocenou storage strategii pro nové uploady: výchozí root je `/var/www/ppstudio/uploads`, soubory jdou vždy do `public/{type}/YYYY/MM` a veřejná kanonická URL je `/media/public/{type}/YYYY/MM/{assetId}-{variant}.{ext}`.
 - Naming uploadů už nepoužívá původní jména souborů; `storedFilename` se generuje jako krátký asset key se suffixy `original`, `optimized`, `thumbnail`.
@@ -20,7 +23,7 @@ Formát je inspirovaný Keep a Changelog.
 - Admin sekce už pracuje jen s novým modulem `Média webu`; legacy slug `certifikaty` byl odstraněn z routingu a URL `/admin/certifikaty` ani `/admin/provoz/certifikaty` už nejsou podporované.
 - Upload policy pro média je zjednodušená jen na formáty `JPG/PNG/WEBP`, aby odpovídala nové server-side image pipeline přes `sharp`.
 
-- Veřejné stránky now používají centrální `MediaAsset` read model i mimo certifikace: `/o-mne` bere hero z `MediaType.PORTRAIT`, homepage bere hero portrét z `MediaType.PORTRAIT` s fallbackem na brand asset a `/kontakt` bere hero z první publikované `MediaType.SALON_PHOTO`.
+- Veřejné stránky now používají centrální `MediaAsset` read model i mimo certifikace: `/o-mne` bere hero z `MediaType.PORTRAIT_ABOUT` (fallback `PORTRAIT`), homepage bere hero portrét z `MediaType.PORTRAIT_HOME` (fallback `PORTRAIT` a pak brand asset) a `/kontakt` bere hero z první publikované `MediaType.SALON_PHOTO`.
 - Admin grid `Média webu` nyní u každého assetu jasně ukazuje typ, publish stav a text `Použití`, aby bylo vidět, kde se obrázek na webu propisuje.
 - Přibyl sdílený public media helper pro publikované obrázky podle typu; `MediaType.GENERAL` má připravený read model pro budoucí hero/CTA bannery bez dalšího upload systému.
 
@@ -29,7 +32,7 @@ Formát je inspirovaný Keep a Changelog.
 
 - Admin sekce `Certifikáty` byla zobecněná na modul `Média webu`; UI nově nabízí upload obrázku, filtr typů, grid karet, editaci titulku, alt textu, typu a publikace.
 - Modul `Média webu` nyní běží na adresách `/admin/media` a `/admin/provoz/media`.
-- Prisma model `MediaAsset` má nový obecný enum `MediaType` (`CERTIFICATE`, `SALON_PHOTO`, `PORTRAIT`, `GENERAL`) a nová pole `fileName`, `url`, `size`, `altText`, `sortOrder`, `isPublished`; legacy storage pole zůstávají kvůli bezpečné kompatibilitě.
+- Prisma model `MediaAsset` má obecný enum `MediaType` (`CERTIFICATE`, `SALON_PHOTO`, `PORTRAIT_HOME`, `PORTRAIT_ABOUT`, `PORTRAIT`, `GENERAL`) a nová pole `fileName`, `url`, `size`, `altText`, `sortOrder`, `isPublished`; legacy storage pole zůstávají kvůli bezpečné kompatibilitě.
 - Veřejná stránka `/o-mne` dál načítá pouze publikované certifikáty, nově přes `MediaType.CERTIFICATE` a `isPublished = true`.
 
 - Stabilizační refaktor největších booking/admin modulů bez změny chování: `src/features/booking/lib/booking-public.ts`, `src/features/booking/components/booking-flow.tsx` a `src/features/admin/lib/admin-slots.ts` jsou nově rozdělené na menší odpovědnostní moduly se zachovanými veřejnými exporty.

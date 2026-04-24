@@ -21,14 +21,18 @@ const filterTabs: Array<{ value: FilterTabValue; label: string }> = [
   { value: 'ALL', label: 'Vše' },
   { value: MediaType.CERTIFICATE, label: 'Certifikáty' },
   { value: MediaType.SALON_PHOTO, label: 'Prostory' },
-  { value: MediaType.PORTRAIT, label: 'Portréty' },
+  { value: MediaType.PORTRAIT_HOME, label: 'Portrét Homepage' },
+  { value: MediaType.PORTRAIT_ABOUT, label: 'Portrét O mně' },
+  { value: MediaType.PORTRAIT, label: 'Portrét Legacy' },
   { value: MediaType.GENERAL, label: 'Obecné' },
 ];
 
 const mediaTypeOptions = [
   { value: MediaType.CERTIFICATE, label: 'Certifikáty' },
   { value: MediaType.SALON_PHOTO, label: 'Prostory' },
-  { value: MediaType.PORTRAIT, label: 'Portréty' },
+  { value: MediaType.PORTRAIT_HOME, label: 'Portrét: Homepage' },
+  { value: MediaType.PORTRAIT_ABOUT, label: 'Portrét: O mně' },
+  { value: MediaType.PORTRAIT, label: 'Portrét: Legacy (obě stránky)' },
   { value: MediaType.GENERAL, label: 'Obecné' },
 ] as const;
 
@@ -80,6 +84,8 @@ function buildFilterCounts(assets: MediaAssetItem[]) {
     [MediaType.CERTIFICATE]: assets.filter((asset) => asset.type === MediaType.CERTIFICATE).length,
     [MediaType.SALON_PHOTO]: assets.filter((asset) => asset.type === MediaType.SALON_PHOTO).length,
     [MediaType.PORTRAIT]: assets.filter((asset) => asset.type === MediaType.PORTRAIT).length,
+    [MediaType.PORTRAIT_HOME]: assets.filter((asset) => asset.type === MediaType.PORTRAIT_HOME).length,
+    [MediaType.PORTRAIT_ABOUT]: assets.filter((asset) => asset.type === MediaType.PORTRAIT_ABOUT).length,
     [MediaType.GENERAL]: assets.filter((asset) => asset.type === MediaType.GENERAL).length,
   } satisfies Record<FilterTabValue, number>;
 }
@@ -100,8 +106,20 @@ function getEmptyStateCopy(activeFilter: FilterTabValue) {
       };
     case MediaType.PORTRAIT:
       return {
-        title: 'Zatím nejsou nahrané žádné portréty',
-        description: 'Nahrajte portrét pro profilové a hero bloky na webu.',
+        title: 'Zatím nejsou nahrané žádné legacy portréty',
+        description: 'Legacy portrét se používá jako fallback pro homepage i stránku O mně.',
+        cta: 'Nahrát obrázek',
+      };
+    case MediaType.PORTRAIT_HOME:
+      return {
+        title: 'Zatím není nahraný portrét pro homepage',
+        description: 'Nahrajte portrét, který se zobrazí pouze v hero na homepage.',
+        cta: 'Nahrát obrázek',
+      };
+    case MediaType.PORTRAIT_ABOUT:
+      return {
+        title: 'Zatím není nahraný portrét pro stránku O mně',
+        description: 'Nahrajte portrét, který se zobrazí pouze v hero sekci O mně.',
         cta: 'Nahrát obrázek',
       };
     case MediaType.GENERAL:
@@ -127,6 +145,10 @@ function mediaBadgeClass(type: MediaType) {
       return 'border-cyan-300/20 bg-cyan-400/10 text-cyan-50';
     case MediaType.PORTRAIT:
       return 'border-fuchsia-300/20 bg-fuchsia-400/10 text-fuchsia-50';
+    case MediaType.PORTRAIT_HOME:
+      return 'border-violet-300/20 bg-violet-400/10 text-violet-50';
+    case MediaType.PORTRAIT_ABOUT:
+      return 'border-indigo-300/20 bg-indigo-400/10 text-indigo-50';
     case MediaType.GENERAL:
       return 'border-white/12 bg-white/7 text-white/76';
   }

@@ -230,8 +230,8 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
   - bez nahraných fotek se zobrazí klidný placeholder, aby stránka nezůstala prázdná ani rozbitá
   - navazující bloky krátce popisují atmosféru, adresu a finální cestu k rezervaci nebo kontaktu
 - Veřejné napojení modulu `Média webu` je nyní centrální:
-  - `/o-mne` načítá certifikáty přes `MediaType.CERTIFICATE` a hero portrét přes první publikovaný `MediaType.PORTRAIT`
-  - homepage používá první publikovaný `MediaType.PORTRAIT` v hero, jinak padá zpět na verzovaný brand asset
+  - `/o-mne` načítá certifikáty přes `MediaType.CERTIFICATE` a hero portrét primárně přes `MediaType.PORTRAIT_ABOUT`, s fallbackem na legacy `MediaType.PORTRAIT`
+  - homepage používá hero portrét primárně přes `MediaType.PORTRAIT_HOME`, s fallbackem na legacy `MediaType.PORTRAIT` a teprve pak na verzovaný brand asset
   - `/kontakt` a `/studio` používají publikované `MediaType.SALON_PHOTO`; `/kontakt` bere první fotku jako hero, `/studio` používá první fotku pro hero a celý publikovaný seznam pro galerii
   - `MediaType.GENERAL` má připravený public read model pro budoucí hero, CTA a bannerové bloky, ale zatím není připojený do konkrétní stránky
 - Certifikáty, fotky prostor, reference a další budoucí obsahové obrázky mají sdílený základ přes `MediaAsset` a lokální upload storage.
@@ -317,11 +317,11 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
 - Podporované typy jsou aktuálně obrázky `jpg`, `jpeg`, `png`, `webp`.
 - Maximální velikost souboru je 8 MB.
 - Každý upload dostane krátký generovaný identifikátor a ukládá se jako `{id}-original.<ext>`, `{id}-optimized.<ext>` a `{id}-thumbnail.<ext>` bez použití původního názvu souboru.
-- Relativní storage path má tvar `certificates/2026/04/<id>-original.<ext>`; další typy používají kořeny `spaces/`, `portraits/` nebo `general/`.
+- Relativní storage path má tvar `certificates/2026/04/<id>-original.<ext>`; další typy používají kořeny `spaces/`, `portraits/`, `portraits-home/`, `portraits-about/` nebo `general/`.
 - Publikace je řízená jen přes `MediaAsset.isPublished`; nové uploady se nepřesouvají mezi `public/private`.
 - Modul `Média webu` má první produkční napojení:
   - admin upload, editaci a mazání přes `/admin/media` a `/admin/provoz/media`
-  - typy `CERTIFICATE`, `SALON_PHOTO`, `PORTRAIT` a `GENERAL`
+  - typy `CERTIFICATE`, `SALON_PHOTO`, `PORTRAIT_HOME`, `PORTRAIT_ABOUT`, `PORTRAIT` (legacy fallback) a `GENERAL`
   - admin UI je záměrně kompaktní pracovní nástroj: krátký header, 4 rychlé statistiky, upload panel s dropzónou, tabs s počty a hustší grid karet
   - každá karta média ukazuje náhled, titulek nebo soubor, typ, publish stav, rozměry, velikost a zřetelné `Použití` + `Sekce`
   - publish/unpublish jde přímo z karty bez otevírání editace; detailní změny zůstávají v kompaktním dialogu

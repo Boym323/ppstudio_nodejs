@@ -30,6 +30,8 @@ function legacyKindForType(type: MediaType) {
     case MediaType.SALON_PHOTO:
       return MediaAssetKind.SPACE;
     case MediaType.PORTRAIT:
+    case MediaType.PORTRAIT_HOME:
+    case MediaType.PORTRAIT_ABOUT:
     case MediaType.GENERAL:
       return MediaAssetKind.CONTENT;
   }

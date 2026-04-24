@@ -8,12 +8,21 @@ export const MEDIA_PUBLIC_BASE_PATH = '/media';
 export const MEDIA_PUBLIC_SCOPE_SEGMENT = 'public';
 export const MEDIA_TEMP_SEGMENT = 'temp';
 
-export const mediaTypes = ['CERTIFICATE', 'SALON_PHOTO', 'PORTRAIT', 'GENERAL'] as const;
+export const mediaTypes = [
+  'CERTIFICATE',
+  'SALON_PHOTO',
+  'PORTRAIT',
+  'PORTRAIT_HOME',
+  'PORTRAIT_ABOUT',
+  'GENERAL',
+] as const;
 
 export const mediaTypeDirectoryMap = {
   CERTIFICATE: 'certificates',
   SALON_PHOTO: 'spaces',
   PORTRAIT: 'portraits',
+  PORTRAIT_HOME: 'portraits-home',
+  PORTRAIT_ABOUT: 'portraits-about',
   GENERAL: 'general',
 } satisfies Record<MediaType, string>;
 

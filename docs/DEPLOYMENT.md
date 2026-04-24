@@ -91,10 +91,11 @@ Postup nasazení aplikace do produkce.
      - upload podporovaného obrázku s výběrem typu
      - pro JPEG/PNG/WebP vzniká při uploadu originál s EXIF normalizací a k němu `optimized` + `thumbnail` varianta přes `sharp`
      - editace titulku, alt textu, typu a publish/unpublish
-     - tabs filtrů `Vše / Certifikáty / Prostory / Portréty / Obecné` se správnými počty
+     - tabs filtrů `Vše / Certifikáty / Prostory / Portrét Homepage / Portrét O mně / Portrét Legacy / Obecné` se správnými počty
      - quick publish/unpublish přímo na kartě média bez nutnosti otevírat editaci
      - smazání média
      - propsání publikovaných certifikátů na `/o-mne`
+     - oddělený portrét pro homepage (`PORTRAIT_HOME`) a `/o-mne` (`PORTRAIT_ABOUT`) s fallbackem na legacy `PORTRAIT`
 15. Ověř booking, email a media vrstvu:
   - vytvoření testovací rezervace
   - propsání nové rezervace nebo změny slotu do overview dashboardu bez potřeby buildu nebo manuálního refresh flow navíc

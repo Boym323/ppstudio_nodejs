@@ -12,11 +12,13 @@ Zachováme existující model `MediaAsset`, ale zobecníme jeho aplikační API 
 - `CERTIFICATE`
 - `SALON_PHOTO`
 - `PORTRAIT`
+- `PORTRAIT_HOME`
+- `PORTRAIT_ABOUT`
 - `GENERAL`
 
 Do modelu přidáváme nová obecná pole `fileName`, `url`, `size`, `altText`, `sortOrder` a `isPublished`. Legacy storage pole (`kind`, `visibility`, `originalFilename`, `sizeBytes`, `alt`, `storagePath`) zatím nemažeme, protože zajišťují bezpečné mapování existujících souborů a nedestruktivní migraci.
 
-Admin UI se jmenuje `Média webu` a běží na `/admin/media` a `/admin/provoz/media`. Certifikáty jsou pouze jeden typ média a veřejná stránka `/o-mne` smí číst jen `MediaType.CERTIFICATE` s `isPublished = true`. Veřejná stránka `/studio` používá stejný princip pro fotky studia: čte jen `MediaType.SALON_PHOTO` s `isPublished = true` a při prázdném výsledku vykreslí prezentační fallback.
+Admin UI se jmenuje `Média webu` a běží na `/admin/media` a `/admin/provoz/media`. Certifikáty jsou pouze jeden typ média a veřejná stránka `/o-mne` smí číst jen `MediaType.CERTIFICATE` s `isPublished = true`. Veřejná stránka `/studio` používá stejný princip pro fotky studia: čte jen `MediaType.SALON_PHOTO` s `isPublished = true` a při prázdném výsledku vykreslí prezentační fallback. Hero portréty jsou rozdělené na cíle `MediaType.PORTRAIT_HOME` a `MediaType.PORTRAIT_ABOUT`, přičemž legacy `MediaType.PORTRAIT` zůstává fallback kvůli kompatibilitě.
 
 Detailní naming, URL a variantová strategie pro další růst je zpřesněná v ADR `0042-media-upload-strategy-v1.md`.
 

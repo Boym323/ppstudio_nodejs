@@ -6,6 +6,8 @@ export const publicMediaTypes = new Map<string, MediaType>([
   ['certificates', MediaType.CERTIFICATE],
   ['spaces', MediaType.SALON_PHOTO],
   ['portraits', MediaType.PORTRAIT],
+  ['portraits-home', MediaType.PORTRAIT_HOME],
+  ['portraits-about', MediaType.PORTRAIT_ABOUT],
   ['general', MediaType.GENERAL],
   ['references', MediaType.GENERAL],
   ['content', MediaType.GENERAL],

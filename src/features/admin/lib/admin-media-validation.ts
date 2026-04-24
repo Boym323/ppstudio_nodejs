@@ -4,7 +4,14 @@ import { z } from 'zod';
 import { type AdminArea } from '@/config/navigation';
 
 export const adminAreaSchema = z.enum(['owner', 'salon']);
-const mediaTypeValues = ['CERTIFICATE', 'SALON_PHOTO', 'PORTRAIT', 'GENERAL'] as const;
+const mediaTypeValues = [
+  'CERTIFICATE',
+  'SALON_PHOTO',
+  'PORTRAIT',
+  'PORTRAIT_HOME',
+  'PORTRAIT_ABOUT',
+  'GENERAL',
+] as const;
 export const mediaTypeSchema = z.enum(mediaTypeValues);
 
 export const mediaFilterSchema = z.union([mediaTypeSchema, z.literal('ALL')]).default('ALL');
@@ -51,6 +58,10 @@ export function getMediaTypeLabel(type: MediaType) {
       return 'Prostory';
     case MediaType.PORTRAIT:
       return 'Portréty';
+    case MediaType.PORTRAIT_HOME:
+      return 'Portrét: Homepage';
+    case MediaType.PORTRAIT_ABOUT:
+      return 'Portrét: O mně';
     case MediaType.GENERAL:
       return 'Obecné';
   }
@@ -64,6 +75,10 @@ export function getMediaUsageLabel(type: MediaType) {
       return 'Použito: Studio a Kontakt';
     case MediaType.PORTRAIT:
       return 'Použito: O mně a homepage';
+    case MediaType.PORTRAIT_HOME:
+      return 'Použito: Homepage';
+    case MediaType.PORTRAIT_ABOUT:
+      return 'Použito: O mně';
     case MediaType.GENERAL:
       return 'Použito: připraveno pro bannery';
   }
@@ -77,6 +92,10 @@ export function getMediaUsageSectionLabel(type: MediaType) {
       return 'Sekce: Galerie prostor';
     case MediaType.PORTRAIT:
       return 'Sekce: Hero portrét';
+    case MediaType.PORTRAIT_HOME:
+      return 'Sekce: Homepage hero';
+    case MediaType.PORTRAIT_ABOUT:
+      return 'Sekce: O mně hero';
     case MediaType.GENERAL:
       return 'Sekce: Obecné bloky';
   }

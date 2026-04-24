@@ -57,6 +57,7 @@ Dokumentace proměnných prostředí pro lokální vývoj i produkci.
 - Stabilizační refaktor `booking-public`, `booking-flow` a `admin-slots` nepřidává žádné nové env proměnné; veřejné entrypointy i provozní konfigurace zůstávají beze změny.
 - Modul `Média webu` nepřidává žádnou novou env proměnnou; dál používá existující `MEDIA_STORAGE_ROOT` pro lokální storage mimo repozitář.
 - UX refaktor `Média webu` také nepřidává žádnou novou env proměnnou; kompaktní upload panel, quick publish/unpublish i tabs s počty používají stejnou storage a stejný aplikační model.
+- Rozdělení portrétů na `PORTRAIT_HOME` a `PORTRAIT_ABOUT` také nepřidává env proměnnou; jde čistě o databázový typ média a veřejný read fallback.
 - Veřejná stránka `/studio` nepřidává žádnou novou env proměnnou; fotky studia čte přes stávající `MediaAsset` metadata a veřejné `/media/public/*` URL, se zachovanou kompatibilitou pro starší `/media/*`.
 - Přepnutí `BookingSource` na nové provozní enum hodnoty (`WEB`, `PHONE`, `INSTAGRAM`, `IN_PERSON`, `OTHER`) je čistě databázová a aplikační změna, ne nová env konfigurace.
 - Refaktor veřejného výběru časů v `/rezervace` také nezavádí žádné nové env proměnné; jde čistě o klientskou UI vrstvu nad existujícím booking catalogem.

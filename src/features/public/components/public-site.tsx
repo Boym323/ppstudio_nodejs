@@ -26,7 +26,7 @@ import {
   ContactMobileStickyCTA,
   QuickContactCard,
 } from '@/features/public/components/contact-sections';
-import { getPrimaryPublicPortrait } from '@/features/public/lib/public-media';
+import { getPrimaryPublicHomePortrait } from '@/features/public/lib/public-media';
 import { getPublicStudioPhotos } from '@/features/public/lib/public-studio-photos';
 import { getBookingPolicySettings, getPublicSalonProfile } from '@/lib/site-settings';
 
@@ -586,7 +586,7 @@ export function buildPageMetadata({
 
 export async function PublicHomePage({ featuredServices = services.slice(0, 3) }: { featuredServices?: Service[] } = {}) {
   const bookingPolicy = await getBookingPolicySettings();
-  const portrait = await getPrimaryPublicPortrait();
+  const portrait = await getPrimaryPublicHomePortrait();
   const trustMetrics = buildTrustMetrics(bookingPolicy.cancellationHours);
   const heroContent = {
     ...homepageContent,
