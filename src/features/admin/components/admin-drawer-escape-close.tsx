@@ -1,11 +1,8 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
 
 export function AdminDrawerEscapeClose({ href }: { href: string }) {
-  const router = useRouter();
-
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key !== "Escape") {
@@ -13,7 +10,7 @@ export function AdminDrawerEscapeClose({ href }: { href: string }) {
       }
 
       event.preventDefault();
-      router.push(href);
+      window.location.assign(href);
     }
 
     window.addEventListener("keydown", handleKeyDown);
@@ -21,7 +18,7 @@ export function AdminDrawerEscapeClose({ href }: { href: string }) {
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [href, router]);
+  }, [href]);
 
   return null;
 }
