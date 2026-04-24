@@ -23,20 +23,22 @@ type BookingTokenOverrides = Partial<{
 }>;
 
 function buildToken(overrides: BookingTokenOverrides = {}) {
-  const scheduledStartsAt = overrides.scheduledStartsAt ?? new Date("2026-04-26T09:00:00.000Z");
+  const defaultScheduledStartsAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
+  defaultScheduledStartsAt.setUTCHours(9, 0, 0, 0);
+  const scheduledStartsAt = overrides.scheduledStartsAt ?? defaultScheduledStartsAt;
   const bookingId = overrides.bookingId ?? "booking-1";
 
   return {
     id: `token-${bookingId}`,
     bookingId,
     type: overrides.type ?? "RESCHEDULE",
-    expiresAt: overrides.expiresAt ?? new Date("2026-04-25T09:00:00.000Z"),
+    expiresAt: overrides.expiresAt ?? new Date(Date.now() + 15 * 24 * 60 * 60 * 1000),
     usedAt: overrides.usedAt ?? null,
     revokedAt: overrides.revokedAt ?? null,
     booking: {
       id: bookingId,
       status: overrides.bookingStatus ?? "CONFIRMED",
-      updatedAt: overrides.updatedAt ?? new Date("2026-04-23T09:00:00.000Z"),
+      updatedAt: overrides.updatedAt ?? new Date(Date.now() - 60 * 60 * 1000),
       serviceId: "service-1",
       serviceDurationMinutes: 60,
       serviceNameSnapshot: `Service for ${bookingId}`,

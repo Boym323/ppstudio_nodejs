@@ -51,11 +51,11 @@ async function loadModules() {
 async function createSeed() {
   const { prisma, BookingStatus, AvailabilitySlotStatus } = await loadModules();
   const suffix = randomUUID().slice(0, 8);
-  const offsetDays = Math.floor(Math.random() * 90);
-  const oldStartAt = new Date(Date.UTC(2026, 4, 10 + offsetDays, 8, 0, 0));
-  const oldEndAt = new Date(Date.UTC(2026, 4, 10 + offsetDays, 9, 0, 0));
-  const newStartAt = new Date(Date.UTC(2026, 4, 11 + offsetDays, 10, 0, 0));
-  const newEndAt = new Date(Date.UTC(2026, 4, 11 + offsetDays, 11, 30, 0));
+  const offsetDays = Math.floor(Math.random() * 45);
+  const oldStartAt = new Date(Date.UTC(2026, 4, 10 + offsetDays, 2, 13, 0));
+  const oldEndAt = new Date(Date.UTC(2026, 4, 10 + offsetDays, 3, 13, 0));
+  const newStartAt = new Date(Date.UTC(2026, 4, 11 + offsetDays, 3, 19, 0));
+  const newEndAt = new Date(Date.UTC(2026, 4, 11 + offsetDays, 4, 49, 0));
   const actor = await prisma.adminUser.create({
     data: {
       email: `reschedule-${suffix}@example.com`,

@@ -86,10 +86,97 @@ function addDays(base: Date, days: number) {
   return addHours(base, days * 24);
 }
 
-function setUtcTime(base: Date, hour: number, minute: number) {
-  const value = new Date(base);
-  value.setUTCHours(hour, minute, 0, 0);
-  return value;
+async function findFreeStartAt(
+  prisma: Awaited<ReturnType<typeof loadModules>>["prisma"],
+  {
+    earliest,
+    latest,
+    durationMinutes,
+    preferredHour,
+    preferredMinute,
+  }: {
+    earliest: Date;
+    latest: Date;
+    durationMinutes: number;
+    preferredHour: number;
+    preferredMinute: number;
+  },
+) {
+  const candidate = new Date(earliest);
+  candidate.setUTCSeconds(0, 0);
+
+  if (
+    candidate.getUTCHours() > preferredHour ||
+    (candidate.getUTCHours() === preferredHour && candidate.getUTCMinutes() > preferredMinute)
+  ) {
+    candidate.setUTCDate(candidate.getUTCDate() + 1);
+  }
+
+  candidate.setUTCHours(preferredHour, preferredMinute, 0, 0);
+
+  while (candidate < earliest) {
+    candidate.setUTCDate(candidate.getUTCDate() + 1);
+  }
+
+  while (candidate <= latest) {
+    const candidateEnd = addHours(candidate, durationMinutes / 60);
+    const overlappingCount = await prisma.availabilitySlot.count({
+      where: {
+        startsAt: {
+          lt: candidateEnd,
+        },
+        endsAt: {
+          gt: candidate,
+        },
+      },
+    });
+
+    if (overlappingCount === 0) {
+      return new Date(candidate);
+    }
+
+    candidate.setUTCDate(candidate.getUTCDate() + 1);
+  }
+
+  throw new Error("Could not find a free availability slot window for booking-management integration test.");
+}
+
+async function findFreeStartWithin(
+  prisma: Awaited<ReturnType<typeof loadModules>>["prisma"],
+  {
+    earliest,
+    latest,
+    durationMinutes,
+  }: {
+    earliest: Date;
+    latest: Date;
+    durationMinutes: number;
+  },
+) {
+  const candidate = new Date(earliest);
+  candidate.setUTCSeconds(0, 0);
+
+  while (candidate <= latest) {
+    const candidateEnd = addHours(candidate, durationMinutes / 60);
+    const overlappingCount = await prisma.availabilitySlot.count({
+      where: {
+        startsAt: {
+          lt: candidateEnd,
+        },
+        endsAt: {
+          gt: candidate,
+        },
+      },
+    });
+
+    if (overlappingCount === 0) {
+      return new Date(candidate);
+    }
+
+    candidate.setUTCMinutes(candidate.getUTCMinutes() + 5);
+  }
+
+  throw new Error("Could not find a near-term free availability slot window for booking-management integration test.");
 }
 
 async function createSeed() {
@@ -103,24 +190,75 @@ async function createSeed() {
 
   const suffix = randomUUID().slice(0, 8);
   const now = new Date();
-  const manageableStartAt = setUtcTime(addDays(now, 6), 18, 15);
+  const manageableStartAt = await findFreeStartAt(prisma, {
+    earliest: addDays(now, 6),
+    latest: addDays(now, 30),
+    durationMinutes: 60,
+    preferredHour: 2,
+    preferredMinute: 11,
+  });
   const manageableEndAt = addHours(manageableStartAt, 1);
-  const replacementStartAt = setUtcTime(addDays(now, 8), 19, 15);
+  const replacementStartAt = await findFreeStartAt(prisma, {
+    earliest: addDays(manageableStartAt, 2),
+    latest: addDays(manageableStartAt, 20),
+    durationMinutes: 60,
+    preferredHour: 3,
+    preferredMinute: 17,
+  });
   const replacementEndAt = addHours(replacementStartAt, 1);
-  const conflictStartAt = setUtcTime(addDays(now, 9), 20, 45);
+  const conflictStartAt = await findFreeStartAt(prisma, {
+    earliest: addDays(replacementStartAt, 1),
+    latest: addDays(replacementStartAt, 20),
+    durationMinutes: 60,
+    preferredHour: 4,
+    preferredMinute: 23,
+  });
   const conflictEndAt = addHours(conflictStartAt, 1);
-  const tooLateStartAt = setUtcTime(addHours(now, 20), 21, 30);
+  const tooLateStartAt = await findFreeStartAt(prisma, {
+    earliest: addHours(now, 3),
+    latest: addHours(now, 42),
+    durationMinutes: 60,
+    preferredHour: 22,
+    preferredMinute: 29,
+  });
   const tooLateEndAt = addHours(tooLateStartAt, 1);
-  const outsideWindowStartAt = addHours(now, 1);
-  outsideWindowStartAt.setUTCSeconds(0, 0);
+  const outsideWindowStartAt = await findFreeStartWithin(prisma, {
+    earliest: addHours(now, 0.1),
+    latest: addHours(now, 1.5),
+    durationMinutes: 60,
+  });
   const outsideWindowEndAt = addHours(outsideWindowStartAt, 1);
-  const completedStartAt = setUtcTime(addDays(now, 5), 17, 0);
+  const completedStartAt = await findFreeStartAt(prisma, {
+    earliest: addDays(now, 5),
+    latest: addDays(now, 30),
+    durationMinutes: 60,
+    preferredHour: 5,
+    preferredMinute: 31,
+  });
   const completedEndAt = addHours(completedStartAt, 1);
-  const cancelledStartAt = setUtcTime(addDays(now, 7), 18, 45);
+  const cancelledStartAt = await findFreeStartAt(prisma, {
+    earliest: addDays(now, 7),
+    latest: addDays(now, 30),
+    durationMinutes: 60,
+    preferredHour: 6,
+    preferredMinute: 37,
+  });
   const cancelledEndAt = addHours(cancelledStartAt, 1);
-  const noShowStartAt = setUtcTime(addDays(now, 4), 16, 30);
+  const noShowStartAt = await findFreeStartAt(prisma, {
+    earliest: addDays(now, 4),
+    latest: addDays(now, 30),
+    durationMinutes: 60,
+    preferredHour: 7,
+    preferredMinute: 43,
+  });
   const noShowEndAt = addHours(noShowStartAt, 1);
-  const otherBookingStartAt = setUtcTime(addDays(now, 10), 19, 45);
+  const otherBookingStartAt = await findFreeStartAt(prisma, {
+    earliest: addDays(now, 10),
+    latest: addDays(now, 35),
+    durationMinutes: 60,
+    preferredHour: 8,
+    preferredMinute: 49,
+  });
   const otherBookingEndAt = addHours(otherBookingStartAt, 1);
 
   const actor = await prisma.adminUser.create({
