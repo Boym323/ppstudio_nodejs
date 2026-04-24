@@ -18,13 +18,15 @@ Potřebujeme dál zachovat stejnou booking business logiku, detail rezervace, ru
 - Sekce `Rezervace` používá URL-driven filtry přes query params `query`, `status`, `source`, `stat`, `dateFrom`, `dateTo`.
 - Horní statistiky `Dnes a dál`, `Čeká`, `Potvrzené`, `Hotovo`, `Zrušené` jsou klikací a přepínají rychlý filtr seznamu; aktivní statistika je vizuálně zvýrazněná a druhý klik filtr zruší.
 - Nad seznamem je kompaktní toolbar s hledáním, stavem, zdrojem, datovým rozsahem, resetem filtrů a počtem výsledků.
-- Seznam se serverově seskupuje do bloků `Dnes`, `Zítra`, `Tento týden`, `Později` a fallback `Dříve`, aby byla časová priorita zřetelná bez změny datového modelu.
+- Seznam se serverově seskupuje do bloků `Dnes`, `Zítra`, `Později`, `Dříve`, aby byla časová priorita zřetelná bez změny datového modelu a bez další kognitivní vrstvy navíc.
 - Ve sloupci času má hlavní váhu časový rozsah; datum je jen sekundární text.
 - Řádky ve stavech `COMPLETED` a `CANCELLED` jsou záměrně tlumené přes nižší opacity a jemnější badge.
 - Inline akce jsou zredukované podle provozní priority:
   - `PENDING`: `Potvrdit`, `Zrušit`, `Otevřít`
   - `CONFIRMED`: `Zrušit`, `Otevřít`
   - uzavřené stavy: jen `Otevřít`
+- Samotný řádek rezervace funguje jako navigační target pro detail; checkbox, kontakt a row akce jsou explicitně oddělené interaktivní zóny.
+- Selection shell pro budoucí bulk akce (`Potvrdit vybrané`, `Zrušit vybrané`) je připravený v klientské vrstvě, ale zatím bez napojení na backend mutace.
 - Mobilní zobrazení používá compact card per reservation, ale stále nad stejným serverovým filtrem a stejnými row akcemi.
 
 ## Důsledky

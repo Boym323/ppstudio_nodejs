@@ -22,6 +22,7 @@ export function AdminBookingsToolbar({
   return (
     <Form
       action={currentPath}
+      scroll={false}
       className="rounded-[1rem] border border-white/8 bg-[#151219]/95 px-3 py-2.5 backdrop-blur"
     >
       <div className="grid gap-2 lg:grid-cols-[minmax(0,2.2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.9fr)_minmax(0,0.9fr)_auto]">

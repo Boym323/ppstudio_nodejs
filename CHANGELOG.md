@@ -10,6 +10,8 @@ Formát je inspirovaný Keep a Changelog.
 - Rezervační seznam se serverově seskupuje do bloků `Dnes`, `Zítra`, `Tento týden`, `Později` a `Dříve`, aby byla rychlejší orientace v dnešních a budoucích termínech.
 - Čas rezervace má v řádku vyšší vizuální prioritu než datum, uzavřené stavy `Hotovo` a `Zrušená` jsou záměrně tlumené a inline akce se nově liší podle stavu rezervace (`PENDING` / `CONFIRMED` / uzavřené stavy).
 - Mobilní zobrazení sekce `Rezervace` používá compact card per reservation se zachovanými rychlými akcemi a praktickými kontaktními odkazy `tel:` / `mailto:`.
+- Finální polish sekce `Rezervace` sjednotil horní statistiky do segmented filtru bez duplicitního CTA, zvýraznil skupinu `Dnes`, přidal pending-first prioritu v rámci skupin a připravil selection shell pro budoucí bulk akce.
+- Řádky rezervací jsou nově click-to-open s focus ringem, klávesami `Enter` / `↑` / `↓`, inline loading stavem u akcí a lehkým toast feedbackem po potvrzení nebo zrušení.
 - Přibyl audit změn cen služeb přes novou tabulku `ServicePriceChangeLog`; admin editace služby nyní při skutečné změně `priceFromCzk` ukládá původní a novou cenu, aktéra a čas změny.
 - Migrace `20260424103000_service_price_change_log_v1` přidává perzistentní auditní stopu pro změny ceníku bez zapisování cen do obecných aplikačních logů.
 - Detail služby v admin draweru nově ukazuje kompaktní sekci `Historie ceny` s posledními změnami ceny, časem a admin aktérem, takže audit je dostupný rovnou při editaci služby.

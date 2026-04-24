@@ -162,9 +162,11 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - `src/features/admin/lib/admin-data.ts` pro rezervace nově vrací URL-driven read model s filtry, klikacími statistikami, seskupenými bloky seznamu a explicitními kontaktními odkazy místo obecného `title/meta/description`.
 - Validace search parametrů pro pracovní přehled rezervací je v `src/features/admin/lib/admin-booking-list-validation.ts`; drží hodnoty pro `status`, `source` a klikací `stat`.
 - `src/features/admin/components/admin-bookings-toolbar.tsx` používá `next/form` nad stejnou route a má zůstat nízký a kompaktní i na desktopu.
+- `src/features/admin/components/admin-bookings-workspace.tsx` je klientská vrstva pro click-to-open řádky, keyboard navigaci, selection shell a lehký toast feedback; booking business logika zůstává na server action vrstvě.
 - `src/features/admin/components/admin-bookings-quick-actions.tsx` je záměrně velmi malá klientská vrstva pro inline akce podle stavu rezervace; složitější workflow dál patří do detailu rezervace.
 - Na mobilu drž `admin-bookings-page.tsx` jako samostatný compact card pattern s pořadím `čas -> klientka -> služba -> stav`, ne jako smrštěnou desktop tabulku.
-- Horní statistiky sekce `Rezervace` jsou záměrně kompaktní v jedné řadě a zároveň fungují jako rychlé filtry; při dalších úpravách hustoty drž prioritu na počtu viditelných řádků a jednoznačné aktivní statistice.
+- Horní statistiky sekce `Rezervace` jsou záměrně kompaktní segmented filter v jedné řadě; nepřidávej do nich další CTA ani sekundární texty typu `Filtrovat`.
+- Seskupení pracovního seznamu drž jen čtyři bloky `Dnes`, `Zítra`, `Později`, `Dříve`; `Dnes` má mít nejsilnější vizuální prioritu.
 - Sticky header rezervačního seznamu je součást provozního UX; při změnách shell layoutu ověř, že zůstane čitelný i při delším scrollu.
 - Sekce `Služby` má vlastní workflow v `src/features/admin/components/admin-services-page.tsx` a už neběží přes generický placeholder renderer.
 - `src/features/admin/lib/admin-services.ts` drží serverový read model pro seznam, provozní warningy, detail služby a předvyplněný create flow.

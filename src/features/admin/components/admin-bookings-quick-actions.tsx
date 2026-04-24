@@ -2,7 +2,7 @@
 
 import { BookingStatus } from "@prisma/client";
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef } from "react";
 import { useFormStatus } from "react-dom";
 
 import { type AdminArea } from "@/config/navigation";
@@ -15,6 +15,7 @@ type AdminBookingsQuickActionsProps = {
   bookingId: string;
   href: string;
   status: BookingStatus;
+  onSuccess?: (message: string) => void;
   availableActions: Array<{
     value: string;
     label: string;
@@ -26,33 +27,50 @@ export function AdminBookingsQuickActions({
   bookingId,
   href,
   status,
+  onSuccess,
   availableActions,
 }: AdminBookingsQuickActionsProps) {
   const [serverState, formAction] = useActionState(
     updateBookingStatusAction,
     initialUpdateBookingStatusActionState,
   );
+  const lastSubmittedAction = useRef<string | null>(null);
 
   const quickActions = getQuickActions(status, availableActions);
+
+  useEffect(() => {
+    if (serverState.status === "success" && onSuccess) {
+      onSuccess(resolveToastMessage(lastSubmittedAction.current));
+    }
+  }, [onSuccess, serverState.status]);
 
   return (
     <div className="space-y-1">
       <form
         action={formAction}
         className="flex w-full flex-wrap items-stretch justify-start gap-1"
+        onClick={(event) => event.stopPropagation()}
       >
         <input type="hidden" name="area" value={area} />
         <input type="hidden" name="bookingId" value={bookingId} />
 
         {quickActions.map((action) => (
-          <QuickSubmitButton key={action.value} value={action.value} kind={action.value}>
+          <QuickSubmitButton
+            key={action.value}
+            value={action.value}
+            kind={action.value}
+            onBeforeSubmit={() => {
+              lastSubmittedAction.current = action.value;
+            }}
+          >
             {action.value === "CONFIRMED" ? "Potvrdit" : "Zrušit"}
           </QuickSubmitButton>
         ))}
 
         <Link
           href={href}
-          className="inline-flex min-h-8 min-w-[5.5rem] items-center justify-center rounded-full border border-white/12 px-3 py-1 text-[11px] font-medium text-white/72 transition hover:border-white/24 hover:bg-white/7 hover:text-white"
+          onClick={(event) => event.stopPropagation()}
+          className="inline-flex min-h-8 min-w-[6rem] items-center justify-center rounded-full border border-white/12 px-3 py-1 text-[11px] font-medium text-white/72 transition hover:border-white/24 hover:bg-white/7 hover:text-white"
         >
           Otevřít
         </Link>
@@ -68,10 +86,12 @@ export function AdminBookingsQuickActions({
 function QuickSubmitButton({
   value,
   kind,
+  onBeforeSubmit,
   children,
 }: {
   value: string;
   kind: string;
+  onBeforeSubmit: () => void;
   children: React.ReactNode;
 }) {
   const { pending } = useFormStatus();
@@ -82,8 +102,12 @@ function QuickSubmitButton({
       name="targetStatus"
       value={value}
       disabled={pending}
+      onClick={(event) => {
+        event.stopPropagation();
+        onBeforeSubmit();
+      }}
       className={cn(
-        "inline-flex min-h-8 min-w-[5.5rem] items-center justify-center rounded-full border px-3 py-1 text-[11px] font-medium transition disabled:cursor-not-allowed disabled:opacity-60",
+        "inline-flex min-h-8 min-w-[6rem] items-center justify-center rounded-full border px-3 py-1 text-[11px] font-medium transition disabled:cursor-not-allowed disabled:opacity-60",
         kind === "CONFIRMED"
           ? "border-amber-300/55 bg-amber-400/18 text-amber-50 hover:bg-amber-400/26"
           : "border-white/12 bg-white/5 text-white/74 hover:border-red-300/35 hover:bg-red-400/12 hover:text-red-50",
@@ -114,5 +138,16 @@ function getQuickActions(
         .filter((action): action is NonNullable<(typeof availableActions)[number]> => Boolean(action));
     default:
       return [];
+  }
+}
+
+function resolveToastMessage(action: string | null) {
+  switch (action) {
+    case "CONFIRMED":
+      return "Rezervace potvrzena";
+    case "CANCELLED":
+      return "Rezervace zrušena";
+    default:
+      return "Změna rezervace byla uložena";
   }
 }

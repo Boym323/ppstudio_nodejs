@@ -55,7 +55,9 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
 - Vertikální spacing veřejných sekcí je sjednocený do rytmu `py-10 / sm:py-14 / lg:py-16`; větší rozestupy používej jen pro obsahově výrazné bloky.
 - Rezervační vrstva stojí na ručně vypisovaných termínech přes `AvailabilitySlot`, ne na pevné otevírací době.
 - Pending rezervace lze nově potvrdit nebo zrušit přímo z provozního e-mailu přes bezpečné jednorázové odkazy s mezikrokem potvrzení na veřejné route `/rezervace/akce/[intent]/[token]`.
-- Admin sekce `Rezervace` dál zůstává kompaktní řádkový workspace, ale nově má klikací statistiky jako rychlé filtry, nízký toolbar filtrů a seskupení seznamu do bloků `Dnes`, `Zítra`, `Tento týden`, `Později`.
+- Admin sekce `Rezervace` dál zůstává kompaktní řádkový workspace, ale nově má klikací statistiky jako rychlé filtry, nízký toolbar filtrů a seskupení seznamu do bloků `Dnes`, `Zítra`, `Později`, `Dříve`.
+- Finální production polish admin sekce `Rezervace` sjednotil horní statistiky do segmented filtru, zvýraznil sekci `Dnes`, posílil pending rezervace a přidal click-to-open řádky s klávesami `Enter`, `↑` a `↓`.
+- Pracovní seznam je sticky po dobu scrollu: filtr bar zůstává nahoře, hlavička tabulky drží kontext a akce v řádku vrací okamžitý inline feedback přes loading stav a toast.
 - V pracovním seznamu je teď nejvýraznější čas rezervace; uzavřené stavy `Hotovo` a `Zrušená` mají menší vizuální váhu a inline akce se liší podle stavu rezervace.
 - Kontakt v řádku rezervace je praktický i na mobilu: telefon používá `tel:`, e-mail `mailto:` a mobilní zobrazení skládá compact card s pořadím `čas -> klientka -> služba -> stav`.
 - Po potvrzení rezervace zákaznice dostává v potvrzovacím e-mailu `.ics` přílohu s jednou konkrétní kalendářovou událostí pro potvrzený termín, ne subscription feed.

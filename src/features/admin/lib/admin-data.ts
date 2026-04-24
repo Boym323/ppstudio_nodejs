@@ -390,6 +390,7 @@ export type ReservationsDashboardData = {
       id: string;
       title: string;
       serviceName: string;
+      scheduledStartsAtIso: string;
       scheduledDateLabel: string;
       scheduledDateShortLabel: string;
       scheduledTimeLabel: string;
@@ -404,6 +405,7 @@ export type ReservationsDashboardData = {
       href: string;
       availableActions: ReturnType<typeof getAdminBookingActionOptions>;
       isMuted: boolean;
+      isPending: boolean;
     }>;
   }>;
   manualBooking: {
@@ -570,20 +572,6 @@ function startOfTomorrow(todayStart: Date) {
   return value;
 }
 
-function startOfWeek(todayStart: Date) {
-  const value = new Date(todayStart);
-  const day = value.getDay();
-  const diff = day === 0 ? 6 : day - 1;
-  value.setDate(value.getDate() - diff);
-  return value;
-}
-
-function startOfNextWeek(weekStart: Date) {
-  const value = new Date(weekStart);
-  value.setDate(value.getDate() + 7);
-  return value;
-}
-
 function formatGroupDateLabel(value: Date) {
   return new Intl.DateTimeFormat("cs-CZ", {
     weekday: "long",
@@ -694,8 +682,6 @@ export async function getReservationsData(
 ) {
   const todayStart = startOfToday();
   const tomorrowStart = startOfTomorrow(todayStart);
-  const weekStart = startOfWeek(todayStart);
-  const nextWeekStart = startOfNextWeek(weekStart);
   const filters = normalizeReservationsSearchParams(searchParams);
   const where = buildReservationsWhere(filters);
   const currentPath = area === "owner" ? "/admin/rezervace" : "/admin/provoz/rezervace";
@@ -773,10 +759,6 @@ export async function getReservationsData(
         groupKey = "tomorrow";
         groupLabel = "Zítra";
         groupDetail = formatGroupDateLabel(startsAt);
-      } else if (startsAt < nextWeekStart) {
-        groupKey = "week";
-        groupLabel = "Tento týden";
-        groupDetail = `Do ${formatGroupDateLabel(new Date(nextWeekStart.getTime() - 1))}`;
       }
     }
 
@@ -793,6 +775,7 @@ export async function getReservationsData(
       id: booking.id,
       title: booking.client.fullName,
       serviceName: booking.serviceNameSnapshot,
+      scheduledStartsAtIso: booking.scheduledStartsAt.toISOString(),
       scheduledDateLabel: formatDateLabel(booking.scheduledStartsAt),
       scheduledDateShortLabel: formatGroupDateLabel(booking.scheduledStartsAt),
       scheduledTimeLabel: `${formatTime.format(booking.scheduledStartsAt)} - ${formatTime.format(booking.scheduledEndsAt)}`,
@@ -807,6 +790,7 @@ export async function getReservationsData(
       href: getAdminBookingHref(area, booking.id),
       availableActions: getAdminBookingActionOptions(booking.status),
       isMuted: booking.status === BookingStatus.COMPLETED || booking.status === BookingStatus.CANCELLED,
+      isPending: booking.status === BookingStatus.PENDING,
     });
   }
 
@@ -820,7 +804,7 @@ export async function getReservationsData(
       filters.dateTo,
   );
   const emptyState = describeReservationsEmptyState(filters, totalUnfilteredCount, totalCount);
-  const groupOrder = ["today", "tomorrow", "week", "later", "past"];
+  const groupOrder = ["today", "tomorrow", "later", "past"];
 
   return {
     currentPath,
@@ -873,9 +857,29 @@ export async function getReservationsData(
         isActive: filters.stat === "cancelled",
       },
     ],
-    groups: Array.from(groupedItems.values()).sort(
-      (left, right) => groupOrder.indexOf(left.key) - groupOrder.indexOf(right.key),
-    ),
+    groups: Array.from(groupedItems.values())
+      .map((group) => ({
+        ...group,
+        items: [...group.items].sort((left, right) => {
+          const priority = (item: (typeof group.items)[number]) => {
+            if (item.status === BookingStatus.PENDING) {
+              return 0;
+            }
+
+            if (item.status === BookingStatus.CONFIRMED) {
+              return 1;
+            }
+
+            return 2;
+          };
+
+          return (
+            priority(left) - priority(right) ||
+            left.scheduledStartsAtIso.localeCompare(right.scheduledStartsAtIso)
+          );
+        }),
+      }))
+      .sort((left, right) => groupOrder.indexOf(left.key) - groupOrder.indexOf(right.key)),
     manualBooking: {
       services: bookingCatalog.services.map((service) => ({
         id: service.id,
