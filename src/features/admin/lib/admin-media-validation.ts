@@ -36,7 +36,7 @@ export function normalizeOptionalText(value: string | undefined) {
 }
 
 export function getMediaAdminPath(area: AdminArea) {
-  return area === 'owner' ? '/admin/certifikaty' : '/admin/provoz/certifikaty';
+  return area === 'owner' ? '/admin/media' : '/admin/provoz/media';
 }
 
 export function getMediaTypeLabel(type: MediaType) {

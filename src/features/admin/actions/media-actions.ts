@@ -54,10 +54,10 @@ export async function uploadMediaAction(formData: FormData) {
   });
 
   if (!parsed.success) {
-    redirect('/admin/certifikaty?flash=media-upload-invalid-payload');
+    redirect('/admin/media?flash=media-upload-invalid-payload');
   }
 
-  await requireAdminSectionAccess(parsed.data.area, 'certifikaty');
+  await requireAdminSectionAccess(parsed.data.area, 'media');
 
   const file = formData.get('file');
 
@@ -92,10 +92,10 @@ export async function updateMediaAction(formData: FormData) {
   });
 
   if (!parsed.success) {
-    redirect('/admin/certifikaty?flash=media-update-invalid-payload');
+    redirect('/admin/media?flash=media-update-invalid-payload');
   }
 
-  await requireAdminSectionAccess(parsed.data.area, 'certifikaty');
+  await requireAdminSectionAccess(parsed.data.area, 'media');
 
   await updateMedia(parsed.data.assetId, {
     type: parsed.data.type,
@@ -115,10 +115,10 @@ export async function deleteMediaAction(formData: FormData) {
   });
 
   if (!parsed.success) {
-    redirect('/admin/certifikaty?flash=media-delete-invalid-payload');
+    redirect('/admin/media?flash=media-delete-invalid-payload');
   }
 
-  await requireAdminSectionAccess(parsed.data.area, 'certifikaty');
+  await requireAdminSectionAccess(parsed.data.area, 'media');
   await deleteMedia(parsed.data.assetId);
 
   revalidateMediaPaths(parsed.data.area);

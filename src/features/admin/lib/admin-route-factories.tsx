@@ -66,6 +66,10 @@ export function createAdminSectionRoute(area: AdminArea) {
       notFound();
     }
 
+    if (section === "certifikaty") {
+      redirect(area === "owner" ? "/admin/media" : "/admin/provoz/media");
+    }
+
     await requireAdminSectionAccess(area, section);
 
     if (section === "sluzby") {
@@ -76,7 +80,7 @@ export function createAdminSectionRoute(area: AdminArea) {
       return <AdminServiceCategoriesPage area={area} searchParams={await searchParams} />;
     }
 
-    if (section === "certifikaty") {
+    if (section === "media") {
       return <AdminMediaPage area={area} searchParams={await searchParams} />;
     }
 

@@ -305,7 +305,7 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
 - Relativní storage path má tvar `certificates/2026/04/moje-fotka-a1b2c3d4e5f6.webp`; další typy používají vlastní kořenovou složku, např. `spaces/`, `portraits/` nebo `general/`.
 - Pro budoucí private média už existuje fyzické oddělení v `private/`, ale veřejný přístup je zatím implementovaný jen pro `PUBLIC` assety.
 - Modul `Média webu` má první produkční napojení:
-  - admin upload, editaci a mazání přes `/admin/certifikaty` a `/admin/provoz/certifikaty` se zachovanými routami kvůli kompatibilitě
+  - admin upload, editaci a mazání přes `/admin/media` a `/admin/provoz/media`; staré `/admin/certifikaty` a `/admin/provoz/certifikaty` se přesměrují na nové cesty
   - typy `CERTIFICATE`, `SALON_PHOTO`, `PORTRAIT` a `GENERAL`
   - veřejné zobrazení certifikátů v sekci `Certifikace` na stránce `/o-mne`
   - backend napojený na `createMedia()`, `listMedia()`, `updateMedia()` a `deleteMedia()`

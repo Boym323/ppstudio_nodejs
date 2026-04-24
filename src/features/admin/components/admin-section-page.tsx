@@ -70,6 +70,7 @@ function getSectionDescription(section: Exclude<AdminSectionSlug, "overview">, a
       return owner
         ? "Historie klientely, aktivita a kontext pro vztah se salonem i reporting."
         : "Praktický adresář klientek pro běžný provoz, komunikaci a orientaci v historii.";
+    case "media":
     case "certifikaty":
       return owner
         ? "Jednoduchá správa obrázků pro web včetně certifikátů na stránce O mně."
@@ -100,6 +101,7 @@ function getPanelTitle(section: Exclude<AdminSectionSlug, "overview">, area: Adm
         return "Připravené sloty";
       case "klienti":
         return "Klientská karta";
+      case "media":
       case "certifikaty":
         return "Média webu";
       case "sluzby":
@@ -126,6 +128,7 @@ function getPanelDescription(section: Exclude<AdminSectionSlug, "overview">, are
       return "Přístupy jsou zobrazené lidským jazykem včetně role, stavu a dostupných akcí.";
     case "email-logy":
       return "Pomáhá odhalit problémy v potvrzovacích e-mailech dřív, než je pocítí klientka.";
+    case "media":
     case "certifikaty":
       return "Obrázky jsou uložené lokálně mimo repo a metadata zůstávají v databázi.";
     case "nastaveni":
@@ -145,6 +148,7 @@ function getEmptyDescription(section: Exclude<AdminSectionSlug, "overview">, are
       return "Pokud ještě nejsou založené běžné účty, zůstanou tu přehledně vidět systémové přístupy.";
     case "email-logy":
       return "Email logy se založí při navázání nebo odeslání notifikačního workflow.";
+    case "media":
     case "certifikaty":
       return "Nahrajte první obrázek. Certifikáty se po publikaci hned propíšou na veřejnou stránku O mně.";
     case "nastaveni":

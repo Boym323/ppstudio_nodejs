@@ -6,7 +6,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
-- Admin sekce `Certifikáty` byla zobecněná na modul `Média webu` se zachovanými URL `/admin/certifikaty` a `/admin/provoz/certifikaty`; UI nově nabízí upload obrázku, filtr typů, grid karet, editaci titulku, alt textu, typu a publikace.
+- Admin sekce `Certifikáty` byla zobecněná na modul `Média webu`; UI nově nabízí upload obrázku, filtr typů, grid karet, editaci titulku, alt textu, typu a publikace.
+- Modul `Média webu` nyní běží na nových adresách `/admin/media` a `/admin/provoz/media`; původní `/admin/certifikaty` a `/admin/provoz/certifikaty` jsou ponechané jako redirect kvůli kompatibilitě.
 - Prisma model `MediaAsset` má nový obecný enum `MediaType` (`CERTIFICATE`, `SALON_PHOTO`, `PORTRAIT`, `GENERAL`) a nová pole `fileName`, `url`, `size`, `altText`, `sortOrder`, `isPublished`; legacy storage pole zůstávají kvůli bezpečné kompatibilitě.
 - Veřejná stránka `/o-mne` dál načítá pouze publikované certifikáty, nově přes `MediaType.CERTIFICATE` a `isPublished = true`.
 

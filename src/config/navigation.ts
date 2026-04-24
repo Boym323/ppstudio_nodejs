@@ -22,6 +22,7 @@ export type AdminSectionSlug =
   | "rezervace"
   | "volne-terminy"
   | "klienti"
+  | "media"
   | "certifikaty"
   | "sluzby"
   | "kategorie-sluzeb"
@@ -65,9 +66,9 @@ const sharedSections = [
     salonDescription: "Rychlý přístup ke klientkám a jejich předchozím návštěvám.",
   },
   {
-    slug: "certifikaty",
-    ownerHref: "/admin/certifikaty",
-    salonHref: "/admin/provoz/certifikaty",
+    slug: "media",
+    ownerHref: "/admin/media",
+    salonHref: "/admin/provoz/media",
     label: "Média webu",
     salonLabel: "Média webu",
     description: "Jednoduchá správa obrázků pro web včetně certifikátů.",
