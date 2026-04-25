@@ -6,6 +6,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Playwright scénáře pro self-service přesun a owner potvrzení rezervace jsou odolnější vůči současnému UI: admin test používá aktuální pole `Volitelný důvod` a submit `Potvrdit rezervaci`, public reschedule flow už nespoléhá na přesný dynamický timestamp v accessible labelu slotu.
+
 - Admin overview dashboard na `/admin` a `/admin/provoz` prošel top-level UX refaktorem z přehledu metrik na skutečný provozní panel otázky `Co mám dnes udělat?`.
 - Horní část nově tvoří sjednocený blok `Dnešní provoz`, který spojuje datum, dominantní počet dnešních rezervací, další klientku, hlavní CTA a kompaktní sekci `Dnešní úkoly`.
 - `Čeká na potvrzení` se přesunulo z vedlejší KPI do výrazného akčního alertu nad dnešním plánem; duplicita počtu dnešních rezervací byla odstraněná z KPI i pravého panelu.

@@ -117,9 +117,14 @@ test.describe("booking flows", () => {
 
     await page.goto(`/rezervace/sprava/${fixture.manageToken}`);
     await expect(page.getByRole("heading", { name: "Vyberte si nový termín" })).toBeVisible();
-    await clickUntilEnabled(page.getByRole("button", {
-      name: `Vybrat nový termín ${fixture.slotLabels.rescheduleDateKey} ${fixture.slotLabels.rescheduleTime}`,
-    }), page.getByRole("button", { name: "Potvrdit nový termín" }));
+
+    const newTermsSection = page
+      .locator("section")
+      .filter({ has: page.getByText("Nové termíny") })
+      .first();
+    const firstAvailableSlot = newTermsSection.getByRole("button").first();
+
+    await clickUntilEnabled(firstAvailableSlot, page.getByRole("button", { name: "Potvrdit nový termín" }));
     await page.getByRole("button", { name: "Potvrdit nový termín" }).click();
 
     await expect(
@@ -153,8 +158,8 @@ test.describe("booking flows", () => {
 
     await page.goto(`/admin/rezervace/${fixture.bookingId}`);
     await page.getByRole("radio", { name: /Potvrdit/ }).click();
-    await page.getByLabel("Krátký důvod pro tým").fill("E2E potvrzení");
-    await page.getByRole("button", { name: "Uložit změnu" }).click();
+    await page.getByLabel("Volitelný důvod").fill("E2E potvrzení");
+    await page.getByRole("button", { name: "Potvrdit rezervaci" }).click();
 
     await expect(page.getByText("Změna byla uložená a propsala se i do historie rezervace.")).toBeVisible();
 
