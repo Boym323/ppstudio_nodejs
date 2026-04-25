@@ -246,6 +246,10 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Drawer je rozdělený do menších komponent (`BookingClientSelector`, `BookingServiceSelector`, `BookingTimeSelector`, `BookingSourceField`, `BookingNotificationOptions`, `BookingInternalNoteField`), aby šel stejný workflow později otevřít i z detailu klientky nebo z kalendáře.
 - `src/features/admin/actions/booking-actions.ts` nově obsahuje i server action `createManualBookingAction`; pořád je to jen adaptér, skutečný create engine zůstává ve feature vrstvě booking domény.
 - Operativní overview dashboard má vlastní read model mimo `admin-data.ts`, aby se layout dneška a sekundární sekce nevyvíjely ve stejné obecné struktuře.
+- Dashboard read model `src/features/admin/lib/admin-dashboard.ts` nově vrací i provozní priority `todayTasks`, akční alerty s prioritou (`primary / secondary / ok`), akční timeline položky a kompaktní `upcomingSlots`; overview už není primárně o obecných statistikách.
+- `src/features/admin/components/admin-dashboard-page.tsx` skládá overview v pořadí `Dnešní provoz -> alerty -> Dnešní plán -> KPI` a drží i serverový skeleton fallback `DashboardPageSkeleton`.
+- `src/features/admin/components/dashboard-today-timeline.tsx` je lehká client vrstva jen pro interaktivitu timeline: click-to-open řádky, inline rychlé akce rezervací, toast feedback a focus/hover chování; business logika zůstává v read modelu a existujících server actions.
+- `src/features/admin/components/admin-overview-page.tsx` používá `Suspense` nad async serverovým read modelem, takže overview umí zobrazit loading skeleton bez nové klientské state vrstvy.
 - Lite admin záměrně nepoužívá technický jazyk ani sekce typu nastavení, email logy nebo správa uživatelů.
 - Pro `SALON` držíme kratší menu a na úvodní obrazovce zviditelňujeme dnešní rezervace, nejbližší termíny a rychlé akce pro přidání slotu nebo otevření rezervace.
 - `salonAdminNavigation` se skládá ze stejné centrální definice sdílených sekcí jako owner navigace, aby route guardy, dostupné URL a menu nemohly časem ujet od sebe.

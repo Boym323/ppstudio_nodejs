@@ -6,6 +6,14 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Admin overview dashboard na `/admin` a `/admin/provoz` prošel top-level UX refaktorem z přehledu metrik na skutečný provozní panel otázky `Co mám dnes udělat?`.
+- Horní část nově tvoří sjednocený blok `Dnešní provoz`, který spojuje datum, dominantní počet dnešních rezervací, další klientku, hlavní CTA a kompaktní sekci `Dnešní úkoly`.
+- `Čeká na potvrzení` se přesunulo z vedlejší KPI do výrazného akčního alertu nad dnešním plánem; duplicita počtu dnešních rezervací byla odstraněná z KPI i pravého panelu.
+- `Dnešní plán` je nově mini timeline s click-to-open řádky, hover/focus stavy, rychlými akcemi pro rezervace, CTA pro volná okna a lehkým toast feedbackem po inline akci.
+- Pravý panel je zjednodušený jen na `Nejbližší volné sloty` a `Rychlé akce`; `Vytvořit rezervaci` je nyní jednoznačně primární CTA.
+- Overview page používá Suspense fallback se skeletonem, takže admin dashboard při serverovém načítání nezůstává prázdný.
+- ADR `0050-admin-dashboard-today-operations-panel-v2` popisuje posun z dashboardu metrik na denní rozhodovací panel bez změny booking enginu, slot logiky nebo API kontraktů.
+
 - Další hardening helperů pokračuje v `src/features/admin/lib/` a souvisejících booking modulech: label funkce mají explicitní návratové typy a fallbacky, aby TypeScript neodvozoval `string | undefined`.
 - Admin helpery v `src/features/admin/lib/` dostaly explicitní návratové typy a fallbacky u label funkcí, aby production build nespadl na `string | undefined` inference.
 - Detail email logu na `/admin/email-logy/[emailLogId]` prošel UX refaktorem z debug-first obrazovky na business + debug detail bez změny workeru, retry logiky, queue nebo payload kontraktu.

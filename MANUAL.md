@@ -282,13 +282,15 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
   - po rotaci nebo vypnutí starý odkaz přestane fungovat
 - Sekce `Přehled` na `/admin` a `/admin/provoz` je nyní operativní dashboard dne:
   - layout je rozdělený na hlavní pracovní plochu a pravý sidebar; levý navigační sidebar zůstává součástí shellu
-  - nahoře je velká karta `Dnes` s počtem dnešních rezervací, informací za kolik začíná další termín a blokem `Další klientka`
-  - pod ní jsou jen krátké alerty, které vyžadují akci; pokud nic nehoří, zobrazí se jediná zelená karta `Vše je v pořádku`
-  - střed stránky drží `Dnešní plán` s mixem rezervací a volných oken, aby bylo během pár sekund jasné, co se dnes děje
-  - pravý sidebar soustředí rychlý přehled, počty čekajících potvrzení, nejbližší publikované sloty pro dnes/zítra a 4 rychlé akce
-  - na mobilu dashboard přepíná do jednoho svislého proudu: hero CTA jsou pod sebou, alerty a timeline mají vlastní akční řádek a quick actions už neskládají dvě úzké karty vedle sebe
-  - data jsou server-rendered a připravená na další napojení, ale bez přidání nové klientské state vrstvy
-  - druhé kolo UI polish posunulo dashboard blíž desktop workspace režimu: hero karta je výraznější, timeline má silnější vertikální rytmus, pravý sidebar méně štěpí plochu a spodní KPI zůstávají záměrně sekundární
+  - nahoře je sjednocený blok `Dnešní provoz`, který v jednom cardu spojuje datum, dominantní počet dnešních rezervací, další klientku a hlavní CTA `Otevřít dnešní plán / Přidat termín / Detail rezervace`
+  - součástí hero bloku je i kompaktní sekce `Dnešní úkoly`, která shrnuje pending potvrzení, další klientku, dnešní volná okna a chybné e-maily
+  - pokud existují čekající potvrzení, dashboard je ukáže jako výrazný akční alert nad dnešním plánem; bez pending stavu zůstávají alerty menší a sekundární
+  - `Dnešní plán` je hlavní pracovní sekce: používá mini timeline s výrazným časem vlevo, odlišením `Rezervace / Volné okno`, hover/focus stavy, click-to-open řádky a rychlé akce přímo v každé položce
+  - rychlé akce rezervací používají stejné existující admin server actions jako seznam rezervací (`Potvrdit`, `Zrušit`, `Otevřít`) a po úspěchu ukazují lehký toast
+  - pravý sidebar je zjednodušený jen na `Nejbližší volné sloty` a `Rychlé akce`; primární CTA je vždy `Vytvořit rezervaci`
+  - spodní KPI už neopakují počet dnešních rezervací; zůstávají jen sekundární metriky `Dnes volná okna`, `Týdenní obsazenost`, `Týden volné sloty`, `Chybné e-maily`
+  - na mobilu dashboard přepíná do jednoho svislého proudu: hero, alerty, timeline, rychlé akce a až potom méně důležité KPI
+  - overview používá server-rendered Suspense fallback se skeletonem, takže při načítání nepůsobí jako prázdná stránka
 - Sekce `Rezervace` je nyní přepracovaná jako kompaktní pracovní seznam na `/admin/rezervace` a `/admin/provoz/rezervace`:
   - místo vysokých karet používá hustý řádkový grid se sloupci `Rezervace`, `Čas`, `Status`, `Zdroj`, `Kontakt`, `Akce`
   - každá rezervace drží klientku + službu a datum + čas ve dvou krátkých řádcích bez zbytečné výšky

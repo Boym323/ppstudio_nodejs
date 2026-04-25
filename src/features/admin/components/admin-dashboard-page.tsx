@@ -3,6 +3,7 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 
 import { type AdminDashboardData } from "../lib/admin-dashboard";
+import { DashboardTodayTimeline } from "./dashboard-today-timeline";
 
 type DashboardPageProps = {
   data: AdminDashboardData;
@@ -125,9 +126,9 @@ function DashboardButton({
     <Link
       href={href}
       className={cn(
-        "inline-flex items-center justify-center rounded-xl px-4 py-3 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/60",
+        "inline-flex min-h-11 items-center justify-center rounded-xl px-4 py-3 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/60",
         tone === "primary" &&
-          "border border-[var(--color-accent)]/50 bg-[rgba(110,86,207,0.2)] text-white shadow-[0_12px_28px_rgba(0,0,0,0.18)] hover:border-[var(--color-accent)]/70 hover:bg-[rgba(110,86,207,0.26)]",
+          "border border-[var(--color-accent)]/50 bg-[rgba(190,160,120,0.16)] text-white shadow-[0_12px_28px_rgba(0,0,0,0.18)] hover:border-[var(--color-accent)]/70 hover:bg-[rgba(190,160,120,0.24)]",
         tone === "secondary" &&
           "border border-white/9 bg-white/[0.045] text-white/88 hover:border-white/16 hover:bg-white/[0.08]",
         tone === "outline" &&
@@ -143,7 +144,7 @@ function DashboardBadge({
   tone,
   children,
 }: {
-  tone: "green" | "purple" | "gold";
+  tone: "green" | "purple" | "gold" | "warning";
   children: React.ReactNode;
 }) {
   return (
@@ -154,6 +155,7 @@ function DashboardBadge({
         tone === "purple" && "border-violet-400/25 bg-violet-400/10 text-violet-200",
         tone === "gold" &&
           "border-[var(--color-accent)]/30 bg-[rgba(190,160,120,0.12)] text-[var(--color-accent-soft)]",
+        tone === "warning" && "border-amber-300/30 bg-amber-400/10 text-amber-100",
       )}
     >
       {children}
@@ -164,12 +166,12 @@ function DashboardBadge({
 export function DashboardPage({ data }: DashboardPageProps) {
   return (
     <div className="mx-auto min-h-[calc(100vh-3rem)] max-w-[1600px] px-0.5 py-0.5 sm:px-1 sm:py-1 lg:px-1">
-      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_332px] 2xl:grid-cols-[minmax(0,1fr)_336px]">
+      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_320px] 2xl:grid-cols-[minmax(0,1fr)_336px]">
         <main className="min-w-0 space-y-6">
-          <TodayHeroCard data={data} />
-          <AlertsRow data={data} />
-          <TodayTimeline data={data} />
-          <KPIGrid data={data} />
+          <DashboardTodayHero data={data} />
+          <DashboardAttentionAlert data={data} />
+          <DashboardTodayTimelineSection data={data} />
+          <DashboardKpiGrid data={data} />
         </main>
 
         <RightSidebar data={data} />
@@ -178,79 +180,193 @@ export function DashboardPage({ data }: DashboardPageProps) {
   );
 }
 
-export function TodayHeroCard({ data }: DashboardPageProps) {
+export function DashboardTodayHero({ data }: DashboardPageProps) {
   return (
     <Card className="overflow-hidden p-5 sm:p-6 xl:p-8">
       <div className="relative">
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-[radial-gradient(circle_at_top_left,rgba(110,86,207,0.22),transparent_48%),radial-gradient(circle_at_top_right,rgba(190,160,120,0.14),transparent_34%)]" />
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-[radial-gradient(circle_at_top_left,rgba(190,160,120,0.18),transparent_46%),radial-gradient(circle_at_top_right,rgba(255,255,255,0.08),transparent_30%)]" />
 
-        <div className="relative flex flex-col gap-6 xl:grid xl:grid-cols-[minmax(0,1fr)_340px] xl:gap-7">
-          <div className="space-y-6">
-            <div className="space-y-3">
-              <p className="text-sm font-medium tracking-[0.04em] text-[var(--color-accent-soft)]">
-                {data.todayLabel}
-              </p>
-              <div className="flex flex-wrap items-end gap-x-4 gap-y-2">
-                <span className="text-6xl font-bold leading-none text-white sm:text-7xl xl:text-[5.5rem]">
-                  {data.todayBookingsCount}
-                </span>
-                <span className="pb-2 text-sm text-white/52 sm:pb-3 sm:text-base">rezervace</span>
-              </div>
-              <p className="max-w-xl text-base text-white/68">{data.nextReservationSummary}</p>
-            </div>
-
-            <div className="flex flex-col gap-3 pt-1 sm:flex-row sm:flex-wrap">
-              <DashboardButton
-                href={data.timelineFooterHref}
-                label="Otevřít dnešní plán"
-                tone="primary"
-              />
-              <DashboardButton href={`${data.timelineFooterHref}/novy`} label="Přidat termín" />
-            </div>
-          </div>
-
-          <div className="min-w-0 rounded-[1.5rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.07),rgba(255,255,255,0.03))] p-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-white/42">
-              Další klientka
-            </p>
-
-            {data.nextClient ? (
-              <div className="mt-5 space-y-5">
-                <div className="space-y-2">
-                  <p className="text-4xl font-bold tracking-tight text-white">
-                    {data.nextClient.timeLabel}
-                  </p>
-                  <div className="space-y-1.5">
-                    <p className="text-sm font-medium text-white/80">{data.nextClient.serviceName}</p>
-                    <p className="text-lg font-semibold text-white">{data.nextClient.clientName}</p>
-                  </div>
+        <div className="relative space-y-6">
+          <div className="flex flex-col gap-6 xl:grid xl:grid-cols-[minmax(0,1.25fr)_minmax(18rem,0.85fr)] xl:items-start xl:gap-7">
+            <div className="space-y-5">
+              <div className="space-y-3">
+                <p className="text-sm font-medium tracking-[0.04em] text-[var(--color-accent-soft)]">
+                  Dnešní provoz
+                </p>
+                <p className="text-lg font-medium text-white/76">{data.todayLabel}</p>
+                <div className="flex flex-wrap items-end gap-x-4 gap-y-2">
+                  <span className="text-6xl font-bold leading-none text-white sm:text-7xl xl:text-[5rem]">
+                    {data.todayBookingsCount}
+                  </span>
+                  <span className="pb-2 text-sm text-white/52 sm:pb-3 sm:text-base">
+                    {data.todayBookingsLabel}
+                  </span>
                 </div>
+                <p className="max-w-2xl text-base text-white/74">{data.todayStatusLabel}</p>
+                <p className="max-w-2xl text-sm text-white/54">{data.nextReservationSummary}</p>
+              </div>
 
-                <div className="grid gap-2.5 sm:grid-cols-2">
-                  <DashboardButton href={data.nextClient.detailHref} label="Detail" />
+              <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+                <DashboardButton
+                  href={data.timelineFooterHref}
+                  label="Otevřít dnešní plán"
+                  tone="primary"
+                />
+                <DashboardButton href={`${data.timelineFooterHref}/novy`} label="Přidat termín" />
+                {data.nextClient ? (
                   <DashboardButton
-                    href={data.nextClient.editHref}
-                    label="Upravit"
+                    href={data.nextClient.detailHref}
+                    label="Detail rezervace"
                     tone="outline"
                   />
-                </div>
+                ) : null}
               </div>
-            ) : (
-              <div className="mt-5 space-y-1.5">
-                <p className="text-base font-medium text-white">Zatím nic v pořadí</p>
-                <p className="text-sm leading-6 text-white/56">
-                  Jakmile přijde další dnešní rezervace, objeví se tady.
+            </div>
+
+            <div className="rounded-[1.45rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.07),rgba(255,255,255,0.03))] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-white/42">
+                  Další klientka
                 </p>
+                {data.nextClient ? (
+                  <DashboardBadge tone="warning">{data.nextClient.relativeLabel}</DashboardBadge>
+                ) : null}
               </div>
-            )}
+
+              {data.nextClient ? (
+                <div className="mt-5 space-y-5">
+                  <div className="space-y-2">
+                    <p className="text-4xl font-bold tracking-tight text-white">
+                      {data.nextClient.timeLabel}
+                    </p>
+                    <div className="space-y-1.5">
+                      <p className="text-sm font-medium text-white/76">
+                        {data.nextClient.serviceName}
+                      </p>
+                      <p className="text-lg font-semibold text-white">
+                        {data.nextClient.clientName}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-2.5 sm:grid-cols-2">
+                    <DashboardButton href={data.nextClient.detailHref} label="Detail" />
+                    <DashboardButton href={data.nextClient.editHref} label="Upravit" tone="outline" />
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-5 space-y-2">
+                  <p className="text-base font-medium text-white">Dnes je klidnější den.</p>
+                  <p className="text-sm leading-6 text-white/56">
+                    Jakmile přibude další dnešní rezervace, objeví se tady jako další krok.
+                  </p>
+                  <div className="pt-1">
+                    <DashboardButton href={`${data.timelineFooterHref}/novy`} label="Přidat termín" />
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
+
+          <DashboardTodayTasks data={data} />
         </div>
       </div>
     </Card>
   );
 }
 
-export function AlertsRow({ data }: DashboardPageProps) {
+export function DashboardTodayTasks({ data }: DashboardPageProps) {
+  return (
+    <div className="rounded-[1.3rem] border border-white/8 bg-black/18 p-4 sm:p-5">
+      <div className="flex flex-col gap-2 border-b border-white/7 pb-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/42">
+            Dnešní úkoly
+          </p>
+          <p className="mt-1 text-sm text-white/58">Krátké priority pro dnešní směnu.</p>
+        </div>
+      </div>
+
+      <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        {data.todayTasks.map((task) => (
+          <article
+            key={task.id}
+            className={cn(
+              "rounded-[1rem] border px-4 py-3",
+              task.tone === "warning" && "border-amber-300/16 bg-amber-400/8",
+              task.tone === "success" && "border-emerald-300/14 bg-emerald-400/8",
+              task.tone === "neutral" && "border-white/8 bg-white/[0.03]",
+            )}
+          >
+            <p className="text-sm font-medium leading-6 text-white">{task.label}</p>
+          </article>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export function DashboardAttentionAlert({ data }: DashboardPageProps) {
+  const primaryAlert = data.alerts.find((alert) => alert.emphasis === "primary") ?? null;
+  const secondaryAlerts = data.alerts.filter((alert) => alert.emphasis === "secondary");
+  const okAlert = data.alerts.find((alert) => alert.emphasis === "ok") ?? null;
+
+  return (
+    <div className="space-y-4">
+      {primaryAlert ? (
+        <Card className="border-amber-300/18 bg-[linear-gradient(135deg,rgba(120,53,15,0.25),rgba(24,24,27,0.92))] p-5 sm:p-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex min-w-0 items-start gap-3">
+              <span className="mt-0.5 rounded-xl border border-amber-300/20 bg-black/16 p-2.5 text-amber-100">
+                <DashboardIcon name="warning" className="size-5" />
+              </span>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-amber-100/68">
+                  Vyžaduje pozornost
+                </p>
+                <p className="mt-1 text-lg font-semibold text-amber-50">{primaryAlert.text}</p>
+                <p className="mt-1 text-sm text-amber-100/70">
+                  Otevři rezervace a zpracuj čekající potvrzení dřív, než půjdeš dál do dnešního rozvrhu.
+                </p>
+              </div>
+            </div>
+
+            <DashboardButton href={primaryAlert.href} label="Otevřít" tone="primary" />
+          </div>
+        </Card>
+      ) : null}
+
+      {secondaryAlerts.length > 0 ? (
+        <div className={cn("grid gap-4", secondaryAlerts.length > 1 ? "md:grid-cols-2" : "grid-cols-1")}>
+          {secondaryAlerts.map((alert) => (
+            <SecondaryAlertCard key={alert.id} tone={alert.tone} text={alert.text} href={alert.href} />
+          ))}
+        </div>
+      ) : null}
+
+      {!primaryAlert && !secondaryAlerts.length && okAlert ? (
+        <Card className="border-emerald-300/12 bg-emerald-500/8 p-4">
+          <div className="flex items-center gap-3 text-emerald-50">
+            <span className="rounded-xl border border-emerald-300/16 bg-black/12 p-2">
+              <DashboardIcon name="success" className="size-4" />
+            </span>
+            <p className="text-sm font-medium">{okAlert.text}</p>
+          </div>
+        </Card>
+      ) : null}
+    </div>
+  );
+}
+
+function SecondaryAlertCard({
+  tone,
+  text,
+  href,
+}: {
+  tone: "warning" | "problem" | "success";
+  text: string;
+  href: string;
+}) {
   const toneStyles = {
     warning: "border-amber-400/20 bg-amber-400/8 text-amber-100",
     problem: "border-orange-400/20 bg-orange-400/8 text-orange-100",
@@ -264,77 +380,54 @@ export function AlertsRow({ data }: DashboardPageProps) {
   } as const;
 
   return (
-    <div className={cn("grid gap-4", data.alerts.length === 1 ? "grid-cols-1" : "md:grid-cols-3")}>
-      {data.alerts.map((alert) => (
-        <Card key={alert.id} className={cn("p-[1.125rem]", toneStyles[alert.tone])}>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div className="flex min-w-0 items-start gap-3">
-              <span className="mt-0.5 rounded-xl border border-current/15 bg-black/10 p-2.5">
-                <DashboardIcon name={toneIcons[alert.tone]} className="size-4" />
-              </span>
-              <p className="text-[15px] font-medium leading-6">{alert.text}</p>
-            </div>
+    <Card key={text} className={cn("p-[1.125rem]", toneStyles[tone])}>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex min-w-0 items-start gap-3">
+          <span className="mt-0.5 rounded-xl border border-current/15 bg-black/10 p-2.5">
+            <DashboardIcon name={toneIcons[tone]} className="size-4" />
+          </span>
+          <p className="text-[15px] font-medium leading-6">{text}</p>
+        </div>
 
-            <Link
-              href={alert.href}
-              className="inline-flex min-h-10 items-center justify-center self-start rounded-lg border border-current/20 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-current transition hover:bg-black/10 sm:min-h-0 sm:self-auto"
-            >
-              Otevřít
-            </Link>
-          </div>
-        </Card>
-      ))}
-    </div>
+        <Link
+          href={href}
+          className="inline-flex min-h-10 items-center justify-center self-start rounded-lg border border-current/20 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-current transition hover:bg-black/10 sm:min-h-0 sm:self-auto"
+        >
+          Otevřít
+        </Link>
+      </div>
+    </Card>
   );
 }
 
-export function TodayTimeline({ data }: DashboardPageProps) {
+export function DashboardTodayTimelineSection({ data }: DashboardPageProps) {
   return (
-    <Card className="p-5 sm:p-6 xl:p-7">
-      <div className="border-b border-white/7 pb-4">
-        <h2 className="text-[1.35rem] font-semibold text-white">Dnešní plán</h2>
-      </div>
-
-      <div className="pt-3">
-        {data.timelineItems.length > 0 ? (
-          data.timelineItems.map((item, index) => (
-            <div
-              key={item.id}
-              className={cn(
-                "grid gap-3 py-4 sm:gap-4 md:grid-cols-[132px_minmax(0,1fr)_auto] md:items-center md:gap-5 md:py-5",
-                index < data.timelineItems.length - 1 && "border-b border-white/5",
-              )}
-            >
-              <div className="flex items-center">
-                <div className="relative pl-4 text-sm font-semibold tracking-[0.02em] text-white/80 before:absolute before:left-0 before:top-1/2 before:h-9 before:w-px before:-translate-y-1/2 before:bg-white/14">
-                  {item.timeLabel}
-                </div>
-              </div>
-
-              <div className="min-w-0">
-                <p className="truncate text-[15px] font-medium text-white">{item.title}</p>
-                <p className="truncate pt-1 text-sm text-white/48">{item.subtitle}</p>
-              </div>
-
-              <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-3 md:justify-end">
-                <DashboardBadge tone={item.badge === "VOLNE" ? "green" : "purple"}>
-                  {item.badge === "VOLNE" ? "VOLNÉ" : "REZERVACE"}
-                </DashboardBadge>
-                <DashboardButton href={item.href} label="Upravit" />
-              </div>
-            </div>
-          ))
-        ) : (
-          <div className="py-8">
-            <p className="text-base font-medium text-white">Dnešní plán je zatím prázdný.</p>
-            <p className="mt-2 text-sm text-white/58">
-              Přidej termín nebo otevři týdenní plán dostupností.
+    <Card className="overflow-hidden">
+      <div className="sticky top-3 z-10 border-b border-white/7 bg-[rgba(24,24,27,0.96)] px-5 py-4 backdrop-blur sm:px-6 xl:px-7">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-[1.35rem] font-semibold text-white">Dnešní plán</h2>
+            <p className="mt-1 text-sm text-white/56">
+              Hlavní pracovní plocha pro dnešek. Kliknutím na řádek otevřeš detail nebo úpravu.
             </p>
           </div>
-        )}
+          <DashboardBadge tone="gold">{data.todayLabel}</DashboardBadge>
+        </div>
       </div>
 
-      <div className="border-t border-white/7 pt-4">
+      {data.timelineItems.length > 0 ? (
+        <DashboardTodayTimeline area={data.area} items={data.timelineItems} />
+      ) : (
+        <div className="px-5 py-8 sm:px-6 xl:px-7">
+          <p className="text-base font-medium text-white">Dnes není naplánovaná žádná rezervace.</p>
+          <p className="mt-2 text-sm text-white/58">Přidej termín a připrav si dnešní dostupnost.</p>
+          <div className="mt-4">
+            <DashboardButton href={`${data.timelineFooterHref}/novy`} label="Přidat termín" />
+          </div>
+        </div>
+      )}
+
+      <div className="border-t border-white/7 px-5 py-4 sm:px-6 xl:px-7">
         <Link
           href={data.timelineFooterHref}
           className="text-sm font-medium text-[var(--color-accent-soft)] transition hover:text-white"
@@ -346,18 +439,19 @@ export function TodayTimeline({ data }: DashboardPageProps) {
   );
 }
 
-export function KPIGrid({ data }: DashboardPageProps) {
+export function DashboardKpiGrid({ data }: DashboardPageProps) {
   return (
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
       {data.kpis.map((item) => (
         <article
           key={item.label}
-          className="rounded-xl border border-white/5 bg-white/[0.025] p-4 shadow-none"
+          className="rounded-[1.2rem] border border-white/6 bg-white/[0.03] p-4 shadow-none"
         >
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/34">
             {item.label}
           </p>
           <p className="mt-2.5 text-2xl font-semibold text-white/88">{item.value}</p>
+          <p className="mt-2 text-xs text-white/46">{item.detail}</p>
         </article>
       ))}
     </div>
@@ -367,82 +461,50 @@ export function KPIGrid({ data }: DashboardPageProps) {
 export function RightSidebar({ data }: DashboardPageProps) {
   return (
     <aside className="space-y-5 xl:sticky xl:top-5">
-      <QuickStats data={data} />
-
-      <Card className="p-5.5">
-        <Link
-          href={data.pendingConfirmations.href}
-          className="flex items-center justify-between gap-4 transition hover:text-white"
-        >
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-white/45">
-              Čeká na potvrzení
-            </p>
-            <p className="mt-3 text-[2.6rem] font-bold leading-none text-white">
-              {data.pendingConfirmations.count}
-            </p>
-          </div>
-          <span className="text-2xl text-white/38">→</span>
-        </Link>
-      </Card>
-
-      <UpcomingSlots data={data} />
-      <QuickActions data={data} />
+      <DashboardAvailableSlots data={data} />
+      <DashboardQuickActions data={data} />
     </aside>
   );
 }
 
-export function QuickStats({ data }: DashboardPageProps) {
-  return (
-    <div className="grid gap-4 sm:grid-cols-2">
-      {data.quickStats.map((item) => (
-        <Card key={item.label} className="p-[1.125rem]">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/38">
-            {item.label}
-          </p>
-          <p className="mt-3 text-[1.9rem] font-bold leading-none text-white">{item.value}</p>
-          <p className="mt-2 text-xs text-white/46">{item.detail}</p>
-        </Card>
-      ))}
-    </div>
-  );
-}
-
-export function UpcomingSlots({ data }: DashboardPageProps) {
+export function DashboardAvailableSlots({ data }: DashboardPageProps) {
   return (
     <Card className="p-5.5">
       <div className="border-b border-white/7 pb-4">
         <h2 className="text-base font-semibold text-white">Nejbližší volné sloty</h2>
+        <p className="mt-1 text-sm text-white/52">Kompaktní přehled dnešních a zítřejších oken.</p>
       </div>
 
-      <div className="space-y-4 pt-4.5">
+      <div className="space-y-3.5 pt-4.5">
         {data.upcomingSlots.length > 0 ? (
           data.upcomingSlots.map((slot, index) => (
-            <div
+            <Link
               key={slot.id}
+              href={slot.href}
               className={cn(
-                "space-y-3.5 pb-4",
+                "group flex items-center justify-between gap-4 rounded-[1rem] px-3 py-3 transition hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/55",
                 index < data.upcomingSlots.length - 1 && "border-b border-white/5",
               )}
             >
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                <div>
-                  <p className="text-sm font-medium leading-6 text-white">{slot.dateTimeLabel}</p>
-                  <p className="mt-1 text-xs text-white/48">{slot.capacityLabel}</p>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <p className="text-lg font-semibold text-white">{slot.timeLabel}</p>
+                  <span className="text-xs uppercase tracking-[0.18em] text-white/38">
+                    {slot.dayLabel}
+                  </span>
                 </div>
-                <DashboardBadge tone="gold">{slot.badge}</DashboardBadge>
+                <p className="mt-1 text-sm text-white/54">{slot.metaLabel}</p>
               </div>
-              <DashboardButton href={slot.href} label="Upravit" />
-            </div>
+              <span className="text-xl text-white/32 transition group-hover:text-white/56">→</span>
+            </Link>
           ))
         ) : (
           <div>
-            <p className="text-sm font-medium text-white">
-              Na dnes ani zítra není volný publikovaný termín.
-            </p>
-            <p className="mt-2 text-sm text-white/58">
-              Další termíny přidej nebo otevři plán dostupnosti.
-            </p>
+            <p className="text-sm font-medium text-white">Dnes nejsou volná okna.</p>
+            <p className="mt-2 text-sm text-white/58">Uprav dostupnost nebo přidej další termín.</p>
+            <div className="mt-4">
+              <DashboardButton href={data.upcomingSlotsFooterHref} label="Upravit dostupnost" />
+            </div>
           </div>
         )}
       </div>
@@ -452,37 +514,106 @@ export function UpcomingSlots({ data }: DashboardPageProps) {
           href={data.upcomingSlotsFooterHref}
           className="text-sm font-medium text-[var(--color-accent-soft)] transition hover:text-white"
         >
-          Zobrazit další termíny
+          Zobrazit všechny termíny
         </Link>
       </div>
     </Card>
   );
 }
 
-export function QuickActions({ data }: DashboardPageProps) {
+export function DashboardQuickActions({ data }: DashboardPageProps) {
+  const [primaryAction, ...secondaryActions] = data.quickActions;
+
   return (
     <Card className="p-5.5">
       <div className="border-b border-white/7 pb-4">
         <h2 className="text-base font-semibold text-white">Rychlé akce</h2>
       </div>
 
-      <div className="grid gap-3.5 pt-4.5 sm:grid-cols-2">
-        {data.quickActions.map((action) => (
+      <div className="space-y-3.5 pt-4.5">
+        {primaryAction ? (
           <Link
-            key={action.id}
-            href={action.href}
-            className="group flex min-h-28 flex-col justify-between rounded-[1.15rem] border border-white/8 bg-white/[0.035] p-[1.125rem] transition hover:border-[var(--color-accent)]/28 hover:bg-white/[0.06] sm:min-h-32"
+            href={primaryAction.href}
+            className="group flex min-h-28 flex-col justify-between rounded-[1.2rem] border border-[var(--color-accent)]/28 bg-[rgba(190,160,120,0.12)] p-[1.125rem] transition hover:border-[var(--color-accent)]/42 hover:bg-[rgba(190,160,120,0.18)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/55"
           >
-            <span className="flex size-11 items-center justify-center rounded-xl border border-white/10 bg-black/20 text-[var(--color-accent-soft)] transition group-hover:border-[var(--color-accent)]/25">
-              <DashboardIcon name={action.icon} className="size-4" />
+            <span className="flex size-11 items-center justify-center rounded-xl border border-[var(--color-accent)]/18 bg-black/18 text-[var(--color-accent-soft)]">
+              <DashboardIcon name={primaryAction.icon} className="size-4" />
             </span>
             <div className="space-y-1">
-              <p className="text-sm font-semibold text-white">{action.label}</p>
-              <p className="text-xs leading-5 text-white/46">{action.description}</p>
+              <p className="text-sm font-semibold text-white">{primaryAction.label}</p>
+              <p className="text-xs leading-5 text-white/68">{primaryAction.description}</p>
             </div>
           </Link>
-        ))}
+        ) : null}
+
+        <div className="grid gap-3">
+          {secondaryActions.map((action) => (
+            <Link
+              key={action.id}
+              href={action.href}
+              className="group flex items-center gap-3 rounded-[1rem] border border-white/8 bg-white/[0.035] px-4 py-3 transition hover:border-white/14 hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/55"
+            >
+              <span className="flex size-10 items-center justify-center rounded-xl border border-white/10 bg-black/18 text-[var(--color-accent-soft)] transition group-hover:border-[var(--color-accent)]/25">
+                <DashboardIcon name={action.icon} className="size-4" />
+              </span>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-white">{action.label}</p>
+                <p className="text-xs leading-5 text-white/46">{action.description}</p>
+              </div>
+            </Link>
+          ))}
+        </div>
       </div>
     </Card>
+  );
+}
+
+export function DashboardPageSkeleton() {
+  return (
+    <div className="mx-auto min-h-[calc(100vh-3rem)] max-w-[1600px] animate-pulse px-0.5 py-0.5 sm:px-1 sm:py-1 lg:px-1">
+      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_320px] 2xl:grid-cols-[minmax(0,1fr)_336px]">
+        <main className="min-w-0 space-y-6">
+          <div className="rounded-[1.65rem] border border-white/7 bg-zinc-900/88 p-6">
+            <div className="h-5 w-28 rounded-full bg-white/10" />
+            <div className="mt-5 h-16 w-36 rounded-2xl bg-white/10" />
+            <div className="mt-4 h-4 w-64 rounded-full bg-white/10" />
+            <div className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+              {Array.from({ length: 4 }).map((_, index) => (
+                <div key={index} className="h-20 rounded-[1rem] bg-white/8" />
+              ))}
+            </div>
+          </div>
+
+          <div className="h-24 rounded-[1.65rem] border border-white/7 bg-zinc-900/88" />
+
+          <div className="rounded-[1.65rem] border border-white/7 bg-zinc-900/88">
+            <div className="h-24 border-b border-white/7 bg-white/[0.02]" />
+            <div className="space-y-0">
+              {Array.from({ length: 5 }).map((_, index) => (
+                <div
+                  key={index}
+                  className={cn(
+                    "grid gap-4 px-5 py-5 md:grid-cols-[132px_minmax(0,1fr)_auto]",
+                    index < 4 && "border-b border-white/5",
+                  )}
+                >
+                  <div className="h-6 rounded-full bg-white/8" />
+                  <div className="space-y-2">
+                    <div className="h-5 rounded-full bg-white/8" />
+                    <div className="h-4 w-2/3 rounded-full bg-white/8" />
+                  </div>
+                  <div className="h-10 w-40 rounded-full bg-white/8" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </main>
+
+        <aside className="space-y-5">
+          <div className="h-72 rounded-[1.65rem] border border-white/7 bg-zinc-900/88" />
+          <div className="h-80 rounded-[1.65rem] border border-white/7 bg-zinc-900/88" />
+        </aside>
+      </div>
+    </div>
   );
 }
