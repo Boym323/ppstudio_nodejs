@@ -6,6 +6,9 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Copy stránky `/o-mne` bylo nahrazené novým osobnějším textem o beauty cestě, důvodech výběru salonu, kosmetice FOR LIFE & MADAGA a nabídce ošetření.
+- Benefit karty v sekci `Proč si vybrat můj salon` nově podporují kromě titulku i krátký popis, aby šly zobrazit vysvětlující odrážky bez nového layoutu.
+
 - Playwright scénáře pro self-service přesun a owner potvrzení rezervace jsou odolnější vůči současnému UI: admin test používá aktuální pole `Volitelný důvod` a submit `Potvrdit rezervaci`, public reschedule flow už nespoléhá na přesný dynamický timestamp v accessible labelu slotu.
 
 - Admin overview dashboard na `/admin` a `/admin/provoz` prošel top-level UX refaktorem z přehledu metrik na skutečný provozní panel otázky `Co mám dnes udělat?`.

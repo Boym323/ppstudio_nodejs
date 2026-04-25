@@ -70,7 +70,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Další vizuální ladění `/o-mne` preferuje jemný polish přímo v těchto sekcích místo dalšího přestavování IA; hlavní páky jsou proporce gridů, padding, typografická síla a optické vyvážení spodního okraje stránky.
 - U finálního polish passu preferuj drobné úpravy `max-width`, `gap`, `line-height`, `hover` a `shadow` před zásahy do obsahu nebo dalšího členění sekcí.
 - Pokud stránka `O mně` potřebuje další micro tuning, drž se jen utility tříd v existujících komponentách `about-page.tsx` a `about-certificates-gallery.tsx`.
-- `aboutContent` v `src/content/public-site.ts` používá strukturovaný model (`profile`, `whyChooseMe`, `story`, `approach`, `expectations`, `cta`), aby bylo možné copy i CTA upravovat bez zásahu do layoutu.
+- `aboutContent` v `src/content/public-site.ts` používá strukturovaný model (`profile`, `whyChooseMe`, `story`, `approach`, `expectations`, `cta`), aby bylo možné copy i CTA upravovat bez zásahu do layoutu; položky `whyChooseMe.items` mohou mít vedle titulku i `description` pro vysvětlující benefit text.
 - Certifikace na `/o-mne` berou public data z `src/features/public/lib/public-certificates.ts`, ale UI je záměrně připravené i na nulový stav pomocí placeholder karet v `AboutCertificatesGallery`.
 - Pro konzistentní vizuální rytmus napříč veřejnými stránkami drž hlavní obsah v jednotném wrapperu `Container` (`max-w-7xl`) a vyhýbej se dalším globálním zúžením přes `mx-auto max-w-*` na úrovni celé sekce.
 - Pro konzistentní spacing preferuj na veřejných stránkách vertikální rytmus `py-10 / sm:py-14 / lg:py-16`; větší rozestupy používej jen tam, kde mají jasný obsahový důvod (např. hero nebo výrazný CTA blok).

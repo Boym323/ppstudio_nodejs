@@ -113,7 +113,7 @@ function WhyChooseMeSection() {
           title={whyChooseMe.title}
         />
 
-        <div className="grid items-stretch gap-4 md:grid-cols-2 xl:gap-5">
+        <div className="grid items-stretch gap-4 lg:grid-cols-3 xl:gap-5">
           {whyChooseMe.items.map((item, index) => (
             <article
               key={item.title}
@@ -125,6 +125,11 @@ function WhyChooseMeSection() {
               <h3 className="mt-4 max-w-[19rem] font-display text-[1.9rem] leading-[1.14] text-[var(--color-foreground)]">
                 {item.title}
               </h3>
+              {item.description ? (
+                <p className="mt-4 text-[15px] leading-7 text-[var(--color-muted)]">
+                  {item.description}
+                </p>
+              ) : null}
             </article>
           ))}
         </div>
