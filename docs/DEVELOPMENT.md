@@ -505,6 +505,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - editaci slotu s aktivní rezervací a blokaci neplatného snížení kapacity
   - archivaci pouze bez aktivní rezervace
 - Při úpravě lokálního dev serveru nebo `next.config.ts` ručně ověř i otevření aplikace z vedlejšího zařízení v LAN; pokud browser hlásí blokaci `/_next/webpack-hmr`, zkontroluj `allowedDevOrigins` a restartuj dev server.
+- Pokud `/admin/sluzby` v devu běží desítky sekund a browser hlásí `ChunkLoadError` na `/_next/static/chunks/...`, nejdřív ověř DB query stopu této stránky: list view nemá bez `serviceId` načítat detail služby, seznam má číst jen nezbytné sloupce a stavové počty musí jít přes jeden agregační dotaz (`groupBy`) místo více `count`.
 - Po změně media vrstvy ručně ověř i:
   - vytvoření upload rootu v `MEDIA_STORAGE_ROOT`
   - úspěšné uložení veřejného obrázku a jeho dostupnost přes `/media/public/<kind>/...` nebo legacy `/media/<kind>/...`

@@ -172,29 +172,31 @@ export async function getAdminServicesPageData(
   const filters = normalizeSearchParams(searchParams);
   const where = buildServiceWhere(filters);
 
-  const [
-    activeCount,
-    inactiveCount,
-    publicCount,
-    privateCount,
-    services,
-    categories,
-  ] = await Promise.all([
-    prisma.service.count({ where: { isActive: true } }),
-    prisma.service.count({ where: { isActive: false } }),
-    prisma.service.count({ where: { isPubliclyBookable: true } }),
-    prisma.service.count({ where: { isPubliclyBookable: false } }),
+  const [serviceCountsByState, services, categories] = await Promise.all([
+    prisma.service.groupBy({
+      by: ["isActive", "isPubliclyBookable"],
+      _count: {
+        _all: true,
+      },
+    }),
     prisma.service.findMany({
       where,
       orderBy: buildServiceOrderBy(filters.sort),
-      include: {
+      select: {
+        id: true,
+        name: true,
+        durationMinutes: true,
+        priceFromCzk: true,
+        sortOrder: true,
+        isActive: true,
+        isPubliclyBookable: true,
+        publicIntro: true,
+        pricingShortDescription: true,
         category: {
           select: {
             id: true,
             name: true,
-            publicName: true,
             isActive: true,
-            sortOrder: true,
           },
         },
         _count: {
@@ -222,6 +224,23 @@ export async function getAdminServicesPageData(
     }),
   ]);
 
+  const activeCount = serviceCountsByState.reduce(
+    (sum, row) => (row.isActive ? sum + row._count._all : sum),
+    0,
+  );
+  const inactiveCount = serviceCountsByState.reduce(
+    (sum, row) => (row.isActive ? sum : sum + row._count._all),
+    0,
+  );
+  const publicCount = serviceCountsByState.reduce(
+    (sum, row) => (row.isPubliclyBookable ? sum + row._count._all : sum),
+    0,
+  );
+  const privateCount = serviceCountsByState.reduce(
+    (sum, row) => (row.isPubliclyBookable ? sum : sum + row._count._all),
+    0,
+  );
+
   const servicesWithMeta = services.map((service) => {
     const warnings = describeServiceWarnings(service);
 
@@ -234,7 +253,7 @@ export async function getAdminServicesPageData(
     };
   });
 
-  const selectedServiceId = filters.mode === "create" ? undefined : filters.serviceId ?? servicesWithMeta[0]?.id;
+  const selectedServiceId = filters.mode === "create" ? undefined : filters.serviceId;
 
   const selectedService = selectedServiceId
     ? await prisma.service.findUnique({

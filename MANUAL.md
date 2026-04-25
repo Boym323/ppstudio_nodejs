@@ -538,6 +538,10 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
   - ověřte, že je nasazená migrace `20260424103000_service_price_change_log_v1`
   - hledejte záznam v `ServicePriceChangeLog` podle `serviceId` a času změny
   - historické rezervace zůstanou konzistentní, protože `Booking` dál drží vlastní `servicePriceFromCzk` snapshot
+- Pokud `/admin/sluzby` v devu vrací odpověď velmi pomalu a browser hází `ChunkLoadError` na Turbopack chunks:
+  - ověřte, že list view bez `serviceId` nenačítá detail služby
+  - ověřte, že seznam služeb načítá jen sloupce potřebné pro list
+  - ověřte, že stavové metriky běží přes jeden agregační dotaz (`groupBy`) místo více samostatných `count`
 - Chyba `Route "... " used params.slug. params is a Promise` v Next.js 16 znamená, že route používá starý synchronní přístup k dynamickým parametrům.
 - Oprava:
   - v `page.tsx` a `generateMetadata` typuj `params` jako `Promise<{ ... }>`

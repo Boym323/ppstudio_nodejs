@@ -462,6 +462,7 @@ Formát je inspirovaný Keep a Changelog.
 - Dynamické admin sekce `/admin/[section]`, `/admin/provoz/[section]` a `/admin/email-logy/[emailLogId]` už se renderují v admin shellu i při přímém otevření URL, takže se neresetuje vzhled na veřejný theme background.
 - Slot formuláře a server actions nyní zachytí nekonzistence dřív, než spadnou na DB constraintu: časové pořadí, překryvy, podstřelenou kapacitu i neplatné omezení služeb.
 - Slot status/delete akce nově vrací chybový flash kontext, takže obsluha hned vidí, proč akce neprošla.
+- Admin sekce `/admin/sluzby` už nespouští zbytečný detailový dotaz při čistém list view (`serviceId` není v URL), seznam služeb načítá jen potřebné sloupce a agregace stavů běží přes jeden `groupBy` dotaz místo čtyř samostatných `count`; tím se výrazně zkrátil serverový čas odpovědi v devu a omezily navazující Turbopack `ChunkLoadError` při dlouhém renderu.
 
 ### Removed
 - Výchozí create-next-app homepage.
