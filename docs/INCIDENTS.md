@@ -53,6 +53,8 @@ Evidence produkčních incidentů a jejich řešení.
 - Změna ceny služby uložená bez auditní stopy; admin editace musí při skutečné změně `priceFromCzk` vždy zapisovat `ServicePriceChangeLog` s původní a novou hodnotou.
 - Rezervační přehled vracející špatné nebo neaktivní filtry po kliknutí na statistický box; klik na aktivní box musí vždy umět vrátit seznam do výchozího stavu bez ruční editace URL.
 - Pracovní seznam rezervací bez vizuálního oddělení dnešních a budoucích termínů; po každém zásahu do read modelu nebo toolbaru ověř bloky `Dnes`, `Zítra`, `Později` a `Dříve`.
+- Detail rezervace po UX refaktoru schová hlavní akce pod fold nebo mimo sticky header; po každém zásahu ověř, že `termín + stav + rychlé akce` zůstávají viditelné bez dalšího scrollu.
+- Detail rezervace znovu smíchá reschedule flow do běžného status chooseru; `Přesunout termín` má zůstat samostatné CTA s vlastním drawerem, validací a historií.
 - Click-to-open řádek rezervace, který při práci s checkboxem, kontaktem nebo row akcemi omylem otevírá detail; interaktivní prvky uvnitř řádku musí propagaci zastavit.
 - Self-service přesun termínu zapsaný bez `changedByClient = true`; veřejný manage flow musí být v historii odlišitelný od admin přesunu.
 - Přesun termínu provedený, ale starý interní override slot zůstal viset jako `DRAFT` a dál blokuje původní čas; doménová služba musí orphanovaný override slot uvolnit.

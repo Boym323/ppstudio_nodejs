@@ -141,8 +141,14 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - `admin-section-page.tsx` dál obsluhuje generické nebo sekundární sekce; overview už na něj nenavazuje.
 - Druhé kolo visual polish overview je čistě prezentační: neměň read model ani sekce, pokud ladíš jen proporce, spacing, typografii nebo card rhythm.
 - Pro mobilní breakpointy overview dashboardu preferuj single-column stack před zmenšováním desktop kompozice: CTA pod sebe, alert CTA na vlastní řádek a quick actions až od `sm` do dvou sloupců.
-- `src/features/admin/components/admin-booking-detail-page.tsx` skládá detail rezervace jako serverový read layout; v aktuální verzi používá pět bloků `sticky header -> souhrn -> akce -> poznámky -> historie`, obsahuje samostatný drawer `Přesunout termín` a nemá znovu vracet paralelní souhrnné sekce se stejným obsahem.
-- `src/features/admin/components/admin-booking-status-form.tsx` zůstává malou klientskou vrstvou jen pro interaktivní výběr akce a submit server action; při dalších úpravách nenechávej zbytečně růst klientský bundle mimo tenhle formulář.
+- `src/features/admin/components/admin-booking-detail-page.tsx` skládá detail rezervace jako decision-first layout:
+  - sticky header s `klientka -> služba -> termín -> stav/zdroj -> rychlé akce`
+  - horní akční panel jako hlavní rozhodovací centrum
+  - levý sloupec `akce -> poznámky -> historie`
+  - pravý sloupec `souhrn -> technická metadata`
+  - na mobilu stejné pořadí bez bočního sloupce
+- Při dalších úpravách detailu rezervace drž vizuální prioritu `termín + klientka + stav -> další akce -> souhrn -> poznámky -> historie`; nenechávej zpět narůst dlouhé vysvětlující texty ani duplicity mezi headerem a souhrnem.
+- `src/features/admin/components/admin-booking-status-form.tsx` zůstává malou klientskou vrstvou jen pro action chooser a submit server action; reschedule zůstává oddělený v `RescheduleBookingButton` a při dalších úpravách nenechávej do chooseru vracet slotový nebo drawer flow.
 - `src/features/admin/components/admin-booking-note-form.tsx` je oddělená klientská vrstva jen pro samostatnou editaci interní poznámky rezervace; drž ji bez dalších provozních rozhodnutí nebo statusové logiky.
 - `src/features/admin/lib/admin-users.ts` je serverový read model pro owner-only správu přístupů; skládá dohromady DB účty a systémové přístupy z bootstrap env vrstvy.
 - Pro klientsky bezpečné badge a texty kolem rolí/stavů používej `src/features/admin/lib/admin-user-presentation.ts`; nesahej pro runtime helpery do serverového read modelu, jinak se do klienta natáhne Prisma nebo session vrstva.

@@ -61,3 +61,4 @@ Sem patří krátké záznamy architektonických rozhodnutí.
 - `0044-admin-services-list-density-v1.md`
 - `0045-service-price-change-audit-v1.md`
 - `0046-admin-booking-operations-worklist-v2.md`
+- `0047-admin-booking-detail-decision-panel-v1.md`

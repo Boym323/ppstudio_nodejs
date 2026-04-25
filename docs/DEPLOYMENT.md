@@ -102,6 +102,12 @@ Postup nasazení aplikace do produkce.
   - `/admin/rezervace` a `/admin/provoz/rezervace`: kompaktní řádkový seznam, sticky header a inline akce `Potvrdit` / `Zrušit`
   - `/admin/rezervace` a `/admin/provoz/rezervace`: segmented filtr statistik bez duplicitního CTA, toolbar `hledat / stav / zdroj / datum`, seskupení `Dnes / Zítra / Později / Dříve`, pending-first prioritu, click-to-open řádky, klávesy `Enter / ↑ / ↓`, tlumené řádky `Hotovo` a `Zrušená` a mobilní compact cards
   - detail rezervace:
+    - sticky header drží klientku, službu, termín, stav, zdroj a rychlé akce i při scrollu
+    - akční panel je hned pod headerem a podle stavu nabízí správný další krok (`Potvrdit`, `Hotovo`, `Zrušit`, `Nedorazila`)
+    - potvrď, že `Přesunout termín` zůstává oddělené CTA do draweru, ne součást běžného chooseru
+    - pravý summary card ukazuje kompaktně kontakt, službu, termín, zdroj, přesuny a auditní metadata
+    - poznámky jsou v jednom bloku (`Poznámka od klientky` + editovatelná interní poznámka)
+    - historie ukazuje nejdřív posledních 5 položek a umí rozbalit celý audit
     - otevření draweru `Přesunout termín`
     - výběr nového času ze slotů i ručně
     - vznik auditního záznamu v historii detailu

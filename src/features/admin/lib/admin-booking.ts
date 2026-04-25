@@ -160,25 +160,25 @@ export function getAdminBookingActionOptions(status: BookingStatus): AdminBookin
         return {
           value,
           label: "Potvrdit rezervaci",
-          description: "Rezervace přejde mezi potvrzené termíny.",
+          description: "Přesune rezervaci mezi potvrzené termíny.",
         };
       case BookingStatus.COMPLETED:
         return {
           value,
           label: "Označit jako hotové",
-          description: "Návštěva proběhla a rezervace je uzavřená.",
+          description: "Uzavře rezervaci jako hotovou.",
         };
       case BookingStatus.CANCELLED:
         return {
           value,
           label: "Zrušit rezervaci",
-          description: "Termín se uvolní a rezervace se přesune mezi zrušené.",
+          description: "Uvolní termín a přesune rezervaci mezi zrušené.",
         };
       case BookingStatus.NO_SHOW:
         return {
           value,
           label: "Označit jako nedorazila",
-          description: "Klientka měla potvrzený termín, ale nepřišla.",
+          description: "Uzavře rezervaci jako nedorazila.",
         };
       default:
         return {

@@ -6,6 +6,12 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Detail rezervace v adminu prošel zásadním UX refaktorem z dlouhé čtecí stránky na kompaktní rozhodovací panel.
+- Horní část detailu nově drží sticky header s klientkou, službou, výrazným termínem, stavem, zdrojem rezervace a rychlými akcemi `zavolat / e-mail / přesunout termín / zpět`.
+- Akční panel se přesunul hned pod header a používá zkrácený action chooser s primární akcí podle stavu rezervace; přesun termínu zůstává samostatné CTA do existujícího draweru.
+- Souhrn rezervace je nově v kompaktním dvousloupcovém bočním cardu, poznámky jsou sjednocené do jednoho bloku a historie ukazuje nejdřív posledních 5 položek s možností rozbalit zbytek.
+- OWNER i SALON mají v detailu stejné provozní možnosti; změna je čistě v IA, layoutu a copy, bez zásahu do booking engine, stavového modelu nebo databázové logiky.
+
 - Admin sekce `Rezervace` prošla dalším UX refaktorem pracovního přehledu: horní statistiky jsou nově klikací rychlé filtry a přehled používá kompaktní toolbar pro hledání, stav, zdroj a datumový rozsah.
 - Rezervační seznam se serverově seskupuje do bloků `Dnes`, `Zítra`, `Tento týden`, `Později` a `Dříve`, aby byla rychlejší orientace v dnešních a budoucích termínech.
 - Čas rezervace má v řádku vyšší vizuální prioritu než datum, uzavřené stavy `Hotovo` a `Zrušená` jsou záměrně tlumené a inline akce se nově liší podle stavu rezervace (`PENDING` / `CONFIRMED` / uzavřené stavy).
