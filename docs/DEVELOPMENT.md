@@ -236,7 +236,10 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - `src/features/admin/lib/admin-booking.ts` drží detailový read model, mapování povolených přechodů, samostatnou poznámkovou mutaci a zápis do `BookingStatusHistory` včetně jednoduchého mapování zdroje změny pro timeline.
 - `src/features/admin/components/admin-email-logs-page.tsx` nově staví owner-only stránku `Komunikace se zákaznicemi`, která dává přednost health stavu, krátkým business metrikám a seznamu posledních emailů před čistým technickým monitoringem.
 - `src/features/admin/components/admin-email-logs-workspace.tsx` drží business-first IA obrazovky: health panel, filtry, seznam posledních emailů s vazbou na rezervaci a spodní debug blok `Technický stav fronty`.
-- `src/features/admin/components/admin-email-log-detail-page.tsx` a route `/admin/email-logy/[emailLogId]` dál poskytují technický detail jednoho logu s payloadem, chybou a operacemi pro ruční retry nebo uvolnění zaseknutého jobu, nově ale i s čitelnějším error kontextem a odkazem na rezervaci.
+- `src/features/admin/components/admin-email-log-detail-page.tsx` a route `/admin/email-logy/[emailLogId]` jsou nově rozdělené do business-first bloků `EmailDetailHeader`, `EmailStatusBadge`, `EmailQuickActions`, `EmailSummaryGrid`, `EmailLinkedEntities`, `EmailErrorPanel` a `EmailTechnicalDetails`.
+- `src/features/admin/lib/admin-data.ts` pro detail emailu dopočítává jediný finální stav podle pravidel `sentAt -> Odesláno`, `PENDING + pokusy -> Retry`, `FAILED -> Selhalo`, jinak `Čeká`, aby se v UI nemohlo potkat současně `Odesláno` i `Retry`.
+- Technická data detailu zůstávají server-rendered bez nové client state logiky: rozbalení debug bloku i citlivých údajů používá nativní `details/summary`.
+- Payload a raw metadata se před zobrazením maskují podle klíčů typu `token`, `hash`, `secret`, `signature`, `key`, `code`; plná data zůstávají dostupná jen po rozbalení `Zobrazit citlivá data`.
 - Po úspěšné akci detail vrací server-rendered flash banner přes query parametr, aby obsluha viděla okamžitou zpětnou vazbu bez client state.
 - `src/features/admin/lib/admin-data.ts` je čistá serverová read vrstva pro admin dashboardy a sekce.
 - Admin sekce `Rezervace` už neřeší jen list/detail/stavové akce; obsahuje i plnohodnotný drawer `CreateManualBookingDrawer` s provozním formulářem pro ruční vytvoření rezervace.

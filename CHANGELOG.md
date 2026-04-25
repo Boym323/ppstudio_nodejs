@@ -6,6 +6,12 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Detail email logu na `/admin/email-logy/[emailLogId]` prošel UX refaktorem z debug-first obrazovky na business + debug detail bez změny workeru, retry logiky, queue nebo payload kontraktu.
+- Horní část detailu nově tvoří business header s názvem emailu, jednoznačným finálním stavem `Odesláno / Čeká / Retry / Selhalo`, příjemcem, klientkou, rezervací a klíčovým časem `Odesláno / Poslední pokus`.
+- Pod headerem jsou vždy viditelné rychlé akce `Zpět na přehled`, `Otevřít rezervaci` a podle stavu `Zkusit znovu`; copy pro nerelevantní retry nově říká `Email byl úspěšně odeslán, opakování není potřeba.`
+- Hlavní obsah detailu se rozdělil na kompaktní `Souhrn`, business sekci `Navázané záznamy`, čitelný panel poslední chyby a až spodní rozbalovací blok `Technické detaily` s maskovaným payloadem, raw daty a volbou `Zobrazit citlivá data`.
+- ADR `0049-admin-email-log-detail-business-debug-split-v1` popisuje oddělení business a technického pohledu detailu email logu.
+
 - Owner-only sekce `Email logy` prošla UX refaktorem z technického queue monitoringu na business-first přehled `Komunikace se zákaznicemi`.
 - Nahoře je nově health panel `OK / Warning / Error` podle failed, retry, pending fronty a poslední relevantní chyby, plus krátké metriky `Dnes odesláno`, `Za posledních 7 dní`, `Čeká na odeslání`, `Selhalo` a `Poslední odeslání`.
 - Hlavní obsah teď tvoří filtrovatelný seznam posledních emailů s badge typem/stavem, příjemcem, vazbou na rezervaci, časy, počtem pokusů, placeholdery pro tracking a akcemi `Otevřít rezervaci / Detail emailu / Zkusit znovu`.

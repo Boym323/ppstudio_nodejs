@@ -113,6 +113,66 @@ function retryStateLabel(
   return `Ve frontě • další pokus ${formatDateTimeLabel(nextAttemptAt)}`;
 }
 
+function getEmailDetailFinalStatus(
+  status: EmailLogStatus,
+  sentAt: Date | null,
+  processingStartedAt: Date | null,
+  attemptCount: number,
+  nextAttemptAt: Date | null,
+  updatedAt: Date,
+) {
+  if (sentAt) {
+    return {
+      value: "sent" as const,
+      label: "Odesláno",
+      detail: `Odesláno ${formatDateTimeLabel(sentAt)}`,
+      needsAttention: false,
+    };
+  }
+
+  if (attemptCount > 0 && status !== EmailLogStatus.FAILED) {
+    return {
+      value: "retry" as const,
+      label: "Retry",
+      detail: processingStartedAt
+        ? `Probíhá další pokus od ${formatDateTimeLabel(processingStartedAt)}`
+        : `Další pokus ${formatDateTimeLabel(nextAttemptAt)}`,
+      needsAttention: true,
+    };
+  }
+
+  if (status === EmailLogStatus.FAILED) {
+    return {
+      value: "failed" as const,
+      label: "Selhalo",
+      detail: `Poslední pokus ${formatDateTimeLabel(processingStartedAt ?? updatedAt)}`,
+      needsAttention: true,
+    };
+  }
+
+  return {
+    value: "pending" as const,
+    label: "Čeká",
+    detail: processingStartedAt
+      ? `První pokus běží od ${formatDateTimeLabel(processingStartedAt)}`
+      : `Ve frontě od ${formatDateTimeLabel(nextAttemptAt)}`,
+    needsAttention: false,
+  };
+}
+
+function getErrorSummary(errorMessage: string | null) {
+  if (!errorMessage) {
+    return null;
+  }
+
+  const summary = errorMessage
+    .split("\n")
+    .map((line) => line.trim())
+    .find((line) => line.length > 0);
+
+  return summary ?? "Chyba bez detailu.";
+}
+
 function emailTypeLabel(type: EmailLogType) {
   switch (type) {
     case EmailLogType.BOOKING_CREATED:
@@ -1134,10 +1194,15 @@ export type EmailLogDetailData = {
   id: string;
   status: EmailLogStatus;
   statusLabel: string;
+  finalStatus: "sent" | "pending" | "retry" | "failed";
+  finalStatusLabel: string;
+  finalStatusDetail: string;
+  statusNeedsAttention: boolean;
   type: EmailLogType;
   typeLabel: string;
   recipientEmail: string;
   subject: string;
+  businessTitle: string;
   templateKey: string;
   attemptCount: number;
   queueStateLabel: string;
@@ -1153,12 +1218,20 @@ export type EmailLogDetailData = {
   providerLabel: string;
   providerMessageIdLabel: string;
   errorMessage: string | null;
+  errorSummary: string | null;
   payload: Prisma.JsonValue | null;
   bookingSummary: string;
   bookingHref: string | null;
+  bookingTitle: string;
+  bookingScheduleLabel: string;
+  clientName: string;
   clientSummary: string;
+  actionTokenId: string | null;
+  actionTokenLabel: string;
   actionTokenSummary: string;
   lastAttemptLabel: string;
+  headerTimestampLabel: string;
+  headerTimestampTitle: string;
 };
 
 function getEmailRecentStatus(
@@ -1625,15 +1698,34 @@ export async function getEmailLogDetailData(emailLogId: string): Promise<EmailLo
   const isProcessing = processingStartedAt !== null;
   const isStuck =
     isProcessing && now.getTime() - processingStartedAt.getTime() > 10 * 60 * 1000;
+  const finalStatus = getEmailDetailFinalStatus(
+    emailLog.status,
+    emailLog.sentAt,
+    emailLog.processingStartedAt,
+    emailLog.attemptCount,
+    emailLog.nextAttemptAt,
+    emailLog.updatedAt,
+  );
+  const bookingTitle = emailLog.booking?.serviceNameSnapshot ?? "Bez navázané rezervace";
+  const bookingScheduleLabel = emailLog.booking
+    ? formatTimeRange(emailLog.booking.scheduledStartsAt, emailLog.booking.scheduledEndsAt)
+    : "Bez termínu rezervace";
+  const clientName = emailLog.booking?.clientNameSnapshot ?? emailLog.client?.fullName ?? "Bez klientky";
+  const lastAttemptLabel = formatDateTimeLabel(emailLog.sentAt ?? emailLog.updatedAt);
 
   return {
     id: emailLog.id,
     status: emailLog.status,
     statusLabel: statusLabel(emailLog.status),
+    finalStatus: finalStatus.value,
+    finalStatusLabel: finalStatus.label,
+    finalStatusDetail: finalStatus.detail,
+    statusNeedsAttention: finalStatus.needsAttention,
     type: emailLog.type,
     typeLabel: emailTypeLabel(emailLog.type),
     recipientEmail: emailLog.recipientEmail,
     subject: emailLog.subject,
+    businessTitle: emailLog.subject,
     templateKey: emailLog.templateKey,
     attemptCount: emailLog.attemptCount,
     queueStateLabel: retryStateLabel(
@@ -1653,18 +1745,26 @@ export async function getEmailLogDetailData(emailLogId: string): Promise<EmailLo
     providerLabel: emailLog.provider ?? "Bez providera",
     providerMessageIdLabel: emailLog.providerMessageId ?? "Bez message id",
     errorMessage: emailLog.errorMessage,
+    errorSummary: getErrorSummary(emailLog.errorMessage),
     payload: emailLog.payload,
     bookingSummary: emailLog.booking
-      ? `${emailLog.booking.clientNameSnapshot} • ${emailLog.booking.serviceNameSnapshot} • ${formatDateTimeLabel(emailLog.booking.scheduledStartsAt)} - ${formatTime.format(emailLog.booking.scheduledEndsAt)}`
+      ? `${emailLog.booking.clientNameSnapshot} • ${emailLog.booking.serviceNameSnapshot} • ${bookingScheduleLabel}`
       : "Bez navázané rezervace",
     bookingHref: emailLog.booking ? getAdminBookingHref("owner", emailLog.booking.id) : null,
+    bookingTitle,
+    bookingScheduleLabel,
+    clientName,
     clientSummary: emailLog.client
       ? `${emailLog.client.fullName} • ${emailLog.client.email}${emailLog.client.phone ? ` • ${emailLog.client.phone}` : ""}`
       : "Bez navázaného klienta",
+    actionTokenId: emailLog.actionToken?.id ?? null,
+    actionTokenLabel: emailLog.actionToken ? actionTokenTypeLabel(emailLog.actionToken.type) : "Bez navázaného action tokenu",
     actionTokenSummary: emailLog.actionToken
       ? `${actionTokenTypeLabel(emailLog.actionToken.type)} • expirace ${formatDateTimeLabel(emailLog.actionToken.expiresAt)}${emailLog.actionToken.usedAt ? ` • použito ${formatDateTimeLabel(emailLog.actionToken.usedAt)}` : ""}${emailLog.actionToken.revokedAt ? ` • zrušeno ${formatDateTimeLabel(emailLog.actionToken.revokedAt)}` : ""}`
       : "Bez navázaného action tokenu",
-    lastAttemptLabel: formatDateTimeLabel(emailLog.sentAt ?? emailLog.updatedAt),
+    lastAttemptLabel,
+    headerTimestampLabel: emailLog.sentAt ? formatDateTimeLabel(emailLog.sentAt) : lastAttemptLabel,
+    headerTimestampTitle: emailLog.sentAt ? "Odesláno" : "Poslední pokus",
   };
 }
 

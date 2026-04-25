@@ -479,7 +479,13 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
   - hlavní sekce `Poslední emaily` propojuje typ zprávy, stav, příjemce, vazbu na rezervaci, časy, pokusy a rychlé akce `Otevřít rezervaci / Detail emailu / Zkusit znovu`
   - tracking sloupce `Otevřeno` a `Kliknuto` jsou připravené jako UI placeholder bez falešných dat
   - původní pending/retry/error fronty zůstávají níž v debug bloku `Technický stav fronty`
-- Detail konkrétního e-mailu na `/admin/email-logy/[emailLogId]` ukazuje payload, poslední chybu, vazby na rezervaci a klientku, přímý odkaz na rezervaci a nabízí ruční retry nebo uvolnění zaseknutého jobu.
+- Detail konkrétního e-mailu na `/admin/email-logy/[emailLogId]` je nově business-first:
+  - nahoře ukazuje výrazný header s názvem emailu, jedním finálním stavem `Odesláno / Čeká / Retry / Selhalo`, příjemcem, klientkou, rezervací a klíčovým časem `Odesláno / Poslední pokus`
+  - hned pod headerem drží rychlé akce `Zpět na přehled`, `Otevřít rezervaci`, případně `Zkusit znovu` nebo `Uvolnit zaseknutý job`
+  - pravý sloupec tvoří kompaktní souhrn `Typ emailu / Šablona / Příjemce / Provider / Poslední pokus / Odesláno / Počet pokusů`
+  - levý sloupec drží navázané entity `Rezervace / Klientka / Token akce`; token je defaultně maskovaný a plně se ukáže až po kliknutí na `Zobrazit`
+  - payload, provider metadata a raw debug data jsou až dole v rozbalovacím bloku `Technické detaily`, defaultně zavřeném, s dalším rozbalením `Zobrazit citlivá data`
+  - pokud existuje chyba, detail ukáže nejdřív stručný čitelný popis a až pak rozbalitelný technický detail chyby
 - Po úspěšné akci se na detailu objeví krátká potvrzovací hláška, aby bylo zřejmé, že operace proběhla.
 - Veřejný booking flow po odeslání:
   - veřejný web `/`, `/sluzby`, `/cenik` a detail služby nyní čerpá z databáze v request-time
