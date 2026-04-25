@@ -111,6 +111,7 @@ function WhyChooseMeSection() {
         <SectionHeading
           eyebrow={whyChooseMe.eyebrow}
           title={whyChooseMe.title}
+          description={whyChooseMe.description}
         />
 
         <div className="grid items-stretch gap-4 lg:grid-cols-3 xl:gap-5">
@@ -120,7 +121,7 @@ function WhyChooseMeSection() {
               className="flex h-full flex-col rounded-[var(--radius-panel)] border border-black/6 bg-white p-6 shadow-[var(--shadow-panel)] shadow-black/5 transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_24px_60px_rgba(34,22,12,0.12)] sm:p-7"
             >
               <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-accent)]">
-                0{index + 1}
+                0{index + 1} —
               </p>
               <h3 className="mt-4 max-w-[19rem] font-display text-[1.9rem] leading-[1.14] text-[var(--color-foreground)]">
                 {item.title}
@@ -232,16 +233,16 @@ function buildCertificateGalleryItems(certificates: PublicCertificate[]): AboutC
   if (certificates.length > 0) {
     return certificates.map((certificate) => ({
       id: certificate.id,
-      title: certificate.title ?? 'Certifikát',
+      title: certificate.title ?? 'Odborné školení',
       hint: 'Klikněte pro zvětšení',
-      alt: certificate.alt ?? certificate.title ?? 'Certifikát',
+      alt: certificate.alt ?? certificate.title ?? 'Certifikát z odborného školení',
       imageUrl: certificate.imageUrl,
     }));
   }
 
   return Array.from({ length: 6 }, (_, index) => ({
     id: `placeholder-${index + 1}`,
-    title: 'Certifikát',
+    title: 'Odborné školení',
     hint: 'Klikněte pro zvětšení',
     alt: 'Placeholder certifikátu',
     imageUrl: null,
@@ -256,9 +257,9 @@ function CertificationsSection({ certificates }: { certificates: PublicCertifica
       <Container>
         <div className="rounded-[var(--radius-panel)] border border-black/6 bg-white p-5 shadow-[var(--shadow-panel)] sm:p-7 lg:p-8">
           <SectionHeading
-            eyebrow="Certifikace"
-            title="Odbornost průběžně rozvíjím na odborných školeních."
-            description="Certifikáty níže jsou výběr z průběžného vzdělávání, na kterém stavím svou každodenní praxi."
+            eyebrow="Vzdělávání"
+            title="Certifikace"
+            description="Odbornost průběžně rozvíjím na odborných školeních. Certifikáty níže jsou výběrem z kurzů a vzdělávání, na kterých stavím svou každodenní praxi."
           />
 
           <AboutCertificatesGallery certificates={items} />

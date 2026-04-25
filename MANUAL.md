@@ -199,7 +199,8 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
 - Po potvrzení rezervace systém automaticky založí návazný klientský e-mail s výsledkem rezervace a přiloženou `.ics` událostí pro osobní kalendář klientky.
 - Pending confirmation screen kalendář záměrně nenabízí; `.ics` příloha patří až k e-mailu po přechodu rezervace do `CONFIRMED`.
 - Rezervační stránka je renderovaná dynamicky při requestu, takže nově publikované nebo obsazené sloty jsou vidět bez dalšího buildu.
-- Hero, sekce `O mně` a základní service copy jsou už přepsané do klidnějšího a osobnějšího tónu; další jemné úpravy je vhodné dělat centrálně v obsahové vrstvě nebo v DB copy mapě služeb.
+- Hero, sekce `O mně` a základní service copy jsou přepsané do klidnějšího a osobnějšího tónu; u `/o-mne` se vyhýbej defenzivním formulacím o praxi, agresivním slibům a superlativům typu `dokonalý`, `špičkový` nebo `okamžité výsledky`.
+- Další jemné úpravy veřejné copy dělej centrálně v obsahové vrstvě `src/content/public-site.ts` nebo v DB copy mapě služeb, ne přímo v route souborech.
 - Veřejný footer je záměrně klidný informační blok, ne marketingová patka:
   - na desktopu používá kompaktní 3sloupcové rozložení `brand -> navigace + informace -> kontakt`
   - na mobilu se skládá pod sebe v pořadí `brand -> navigace -> informace -> kontakt`
@@ -221,14 +222,13 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
   - na mobilu je dole sticky CTA lišta s rychlou rezervací, voláním a e-mail kontaktem
 - Stránka `/o-mne` je nově poskládaná jako scan-friendly landing page:
   - výraznější hero s dvěma CTA a badge služeb
-  - stručná sekce „Proč právě PP Studio“
-  - kratší příběh, samostatný blok přístupu a obsahově silnější sekce „Co vás u mě čeká“
+  - stručná sekce „Proč klientky volí PP Studio“ s klidným podnadpisem a třemi konkrétními benefity
+  - civilnější příběh, samostatný blok přístupu a klidná sekce o kosmetice FOR LIFE & MADAGA
   - samostatná mřížka certifikací, která funguje i bez finálních admin dat díky placeholder kartám
-  - kontrastní finální CTA blok na konci stránky
-- Následný polish pass nad `/o-mne` už nemění strukturu ani copy; upravuje hlavně proporce hero, vnitřní spacing karet, rytmus sekcí a sílu finálního CTA.
+- Následný polish pass nad `/o-mne` už nemění strukturu; upravuje hlavně proporce hero, vnitřní spacing karet, rytmus sekcí a jemnou textovou hierarchii.
 - Finální UI polish ještě mírně navýšil váhu textového hero sloupce, sjednotil benefit boxy do stabilnější výšky a přidal jemné hover stavy pro benefit karty a certifikace.
 - Další doladění stránky `O mně` má už být jen přes drobné utility změny, ne přes nové bloky nebo přepis IA.
-- Texty a struktura stránky `O mně` jsou centralizované v `aboutContent`; layout počítá s polem `whyChooseMe` včetně volitelného popisu benefit karet, hero badge, CTA kartou i pozdějším napojením certifikací na admin data bez dalšího přepisu sekcí.
+- Texty a struktura stránky `O mně` jsou centralizované v `aboutContent`; layout počítá s polem `whyChooseMe` včetně volitelného podnadpisu sekce, popisu benefit karet, hero badge, CTA kartou i pozdějším napojením certifikací na admin data bez dalšího přepisu sekcí.
 - Homepage copy teď vědomě navazuje na konverzně funkční strukturu starého webu (`služba + lokalita`, rychlé CTA na rezervaci/ceník, sekce pro nejistý výběr služby), ale běží na současném komponentovém základu.
 - Homepage hero podporuje i vizuální brand prvky přes obsahový config (`logoImage`, `portraitImage` v `src/content/public-site.ts`); lokální assety jsou v `public/brand/`.
 - Homepage hero lze obsahově ladit blíž původnímu webu přes `homepageContent` (`benefits`, `ctaNote`) bez zásahu do routy.

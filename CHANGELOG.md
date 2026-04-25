@@ -6,8 +6,9 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
-- Copy stránky `/o-mne` bylo nahrazené novým osobnějším textem o beauty cestě, důvodech výběru salonu, kosmetice FOR LIFE & MADAGA a nabídce ošetření.
-- Benefit karty v sekci `Proč si vybrat můj salon` nově podporují kromě titulku i krátký popis, aby šly zobrazit vysvětlující odrážky bez nového layoutu.
+- Stránka `/o-mne` prošla copywritingovým refaktorem do klidnějšího, dospělejšího a méně marketingového tónu bez změny routingu, booking flow nebo admin napojení.
+- Hero, sekce benefitů, příběh, přístup, kosmetika FOR LIFE & MADAGA a certifikace mají nové civilnější texty; defenzivní formulace o nahrazování praxe a přehnané sliby byly odstraněné.
+- Benefit sekce `/o-mne` nově zobrazuje krátký podnadpis z `aboutContent.whyChooseMe.description`, aby textová hierarchie působila jasněji bez redesignu.
 
 - Playwright scénáře pro self-service přesun a owner potvrzení rezervace jsou odolnější vůči současnému UI: admin test používá aktuální pole `Volitelný důvod` a submit `Potvrdit rezervaci`, public reschedule flow už nespoléhá na přesný dynamický timestamp v accessible labelu slotu.
 

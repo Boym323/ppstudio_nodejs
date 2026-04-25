@@ -102,6 +102,7 @@ export type AboutBenefitItem = {
 export type AboutWhyChooseMeSection = {
   eyebrow: string;
   title: string;
+  description?: string;
   items: AboutBenefitItem[];
 };
 
@@ -250,9 +251,9 @@ export const homepageContent = {
 export const aboutContent: AboutContent = {
   profile: {
     eyebrow: 'O mně',
-    headline: 'Krása není jen o rysech,\nale o pocitu.',
+    headline: 'Péče, ve které se můžete cítit dobře',
     intro:
-      'Věřím, že krása není jen o dokonalých rysech, ale o pocitu, se kterým se každé ráno probouzíte.',
+      'V PP Studiu najdete klidný prostor pro kosmetické ošetření, lash & brow služby a masáž obličeje s osobním přístupem a přirozeným výsledkem.',
     primaryCta: { href: '/rezervace', label: 'Rezervovat termín' },
     secondaryCta: { href: '/kontakt', label: 'Napsat do studia' },
     badges: ['Lash lifting', 'Laminace obočí', 'Kosmetické ošetření', 'Lymfatická masáž obličeje'],
@@ -265,67 +266,68 @@ export const aboutContent: AboutContent = {
   },
   whyChooseMe: {
     eyebrow: 'Proč právě PP Studio',
-    title: 'Proč si vybrat můj salon?',
+    title: 'Proč klientky volí PP Studio',
+    description:
+      'Klidná péče, která šetří čas, respektuje vaši přirozenost a dává prostor odpočinku.',
     items: [
       {
-        title: 'Rána bez starostí',
+        title: 'Rána s méně starostmi',
         description:
-          'Díky laminaci obočí a lash liftingu ušetříte u zrcadla drahocenné minuty. Probudíte se upravená a přirozeně krásná.',
+          'Lash lifting a laminace obočí pomáhají upravit výraz tak, aby každodenní rutina byla jednodušší a rychlejší.',
       },
       {
-        title: 'Individuální přístup',
+        title: 'Doporučení podle vás',
         description:
-          'Ke každé z vás přistupuji s respektem a empatií. Doporučuji jen takové postupy, které mají skutečný výsledek a které vaše pleť opravdu potřebuje.',
+          'Každou službu vybírám podle aktuální potřeby pleti, vašeho stylu a výsledku, který vám má opravdu sedět.',
       },
       {
-        title: 'Harmonie těla i mysli',
+        title: 'Chvíle klidu pro vás',
         description:
-          'Věřím, že obličej je zrcadlem naší duše. Proto se u mě neřeší jen povrch, ale i vnitřní pohoda. Odcházet budete nejen krásnější, ale i odpočatá.',
+          'Péče u mě není jen o výsledku, ale i o průběhu. Chci, abyste se cítila příjemně od začátku do konce.',
       },
     ],
   },
   story: {
     eyebrow: 'Můj příběh',
-    title: 'Moje cesta do světa beauty se začala psát v roce 2024.',
+    title: 'Moje cesta v beauty oboru začala v roce 2024',
     paragraphs: [
-      'Od té doby jsem svou vášeň a estetické cítění přetavila v profesionální praxi, podloženou všemi potřebnými kvalifikacemi.',
-      'Do každého ošetření vkládám maximum - talent, preciznost a odhodlání neustále se zlepšovat.',
+      'Po získání potřebných kvalifikací jsem začala budovat PP Studio jako místo, kde má péče jasný smysl, klidný průběh a osobní přístup. Od začátku je pro mě důležité spojit pečlivou techniku s přirozeným výsledkem a prostředím, ve kterém se klientka cítí dobře.',
     ],
   },
   approach: {
     eyebrow: 'Můj přístup',
-    title: 'Několikaletou praxi v oboru nahrazuji obrovskou vášní, tvrdou dřinou a důrazem na detail.',
+    title: 'Můj přístup stojí na pečlivosti, klidu a osobním doporučení',
     intro:
-      'Každá klientka je pro mě jedinečná a mým cílem je, abyste se v mé péči cítila výjimečně.',
+      'Každé ošetření vedu s respektem k tomu, co vaše pleť i výraz skutečně potřebují. Nejde mi o rychlé univerzální řešení, ale o péči, která vám bude sedět v běžném dni.',
     values: [
       {
-        title: 'Talent',
-        description: 'Estetické cítění promítám do každého detailu, aby výsledek působil upraveně a přirozeně.',
+        title: 'Pečlivost',
+        description: 'Každé ošetření vedu s důrazem na detail, hygienu, komfort a přirozený výsledek.',
       },
       {
-        title: 'Preciznost',
-        description: 'Každé ošetření vedu pečlivě, s respektem k vaší pleti, výrazu i tomu, co opravdu potřebujete.',
+        title: 'Citlivý přístup',
+        description: 'Naslouchám tomu, co si přejete změnit, zvýraznit nebo zjednodušit v běžné péči.',
       },
       {
-        title: 'Odhodlání',
-        description: 'Neustále se zlepšuji, vzdělávám a hledám postupy, které dávají smysl v praxi i ve výsledku.',
+        title: 'Rozvoj',
+        description: 'Průběžně se vzdělávám a vybírám postupy, které mají smysl v praxi i ve výsledku.',
       },
     ],
   },
   expectations: {
-    eyebrow: 'Exkluzivní péče s českou tradicí',
-    title: 'Pracuji s kosmetikou FOR LIFE & MADAGA.',
+    eyebrow: 'FOR LIFE & MADAGA',
+    title: 'Profesionální péče s českou kosmetikou',
     paragraphs: [
-      'Tato špičková česká značka na francouzských základech je symbolem kvality, šetrnosti a okamžitých výsledků.',
-      'Na co se u mě můžete těšit?',
+      'Při kosmetických ošetřeních pracuji s českou značkou FOR LIFE & MADAGA, která staví na šetrnosti, kvalitních recepturách a profesionálním přístupu k pleti.',
+      'U mě se můžete těšit na:',
     ],
     items: [
-      'Profesionální kosmetické ošetření - hloubková péče šitá na míru vaší pleti.',
-      'Laminace obočí & Lash Lifting - pro dokonale upravený a přirozený pohled.',
-      'Uvolňovací lymfatická masáž obličeje - metoda, která pleť rozzáří, zbaví otoků a odplaví stres.',
+      'Kosmetické ošetření podle aktuální potřeby pleti.',
+      'Lash lifting a laminaci obočí pro upravený výraz.',
+      'Lymfatickou masáž obličeje pro uvolnění a lehkost.',
     ],
     closing:
-      'Do každého ošetření vkládám maximum a záleží mi na tom, abyste odcházela krásnější, odpočatá a s pocitem, že péče byla opravdu pro vás.',
+      'Cílem je péče, která působí upraveně, přirozeně a dává smysl právě vám.',
   },
   cta: {
     eyebrow: 'Rezervace',

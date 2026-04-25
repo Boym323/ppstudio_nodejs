@@ -24,6 +24,12 @@ Pro značku PP Studio potřebujeme stránku, která zůstane jemná, osobní a e
 - Certifikace zůstávají napojené na public read model admin uploadů, ale UI musí umět smysluplně renderovat i placeholder karty, pokud zatím nejsou nahrané reálné soubory.
 - Zůstáváme na stávajícím veřejném design systému: `Container`, měkké radiusy, jemné border, lehké stíny a konzistentní CTA styl.
 
+## Aktualizace 2026-04-25
+- Zachováváme modulární strukturu stránky, ale copy vedeme klidněji a méně marketingově.
+- Odstraňujeme defenzivní formulace o nahrazování praxe a nahrazujeme je sebevědomým popisem pečlivosti, klidu a osobního doporučení.
+- Sekce benefitů může zobrazit krátký podnadpis z `aboutContent.whyChooseMe.description`, aby se textová hierarchie dala zjemnit bez redesignu.
+- Certifikace dál čtou data z Media Library; fallback titulek reálného certifikátu bez názvu už není jen obecné `Certifikát`.
+
 ## Alternativy
 - Ponechat původní strukturu a pouze zkrátit texty: zamítnuto, protože hlavní problém byl v hierarchii a rozhodovacím toku, ne jen v délce copy.
 - Udělat z `/o-mne` minimalistickou informační stránku bez výrazného hero a bez opakovaných CTA: zamítnuto, protože stránka má aktivně podporovat rezervaci.
