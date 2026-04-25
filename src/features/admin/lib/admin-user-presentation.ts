@@ -6,7 +6,7 @@ export function getAdminRoleLabel(role: AdminRole) {
   return role === AdminRole.OWNER ? "OWNER" : "SALON";
 }
 
-export function getAccountStatusLabel(status: AdminAccountStatus) {
+export function getAccountStatusLabel(status: AdminAccountStatus): string {
   switch (status) {
     case "ACTIVE":
       return "Aktivní";
@@ -17,4 +17,6 @@ export function getAccountStatusLabel(status: AdminAccountStatus) {
     case "SYSTEM":
       return "Systémový účet";
   }
+
+  return String(status);
 }

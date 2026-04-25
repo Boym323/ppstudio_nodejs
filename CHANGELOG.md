@@ -6,6 +6,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Další hardening helperů pokračuje v `src/features/admin/lib/` a souvisejících booking modulech: label funkce mají explicitní návratové typy a fallbacky, aby TypeScript neodvozoval `string | undefined`.
 - Admin helpery v `src/features/admin/lib/` dostaly explicitní návratové typy a fallbacky u label funkcí, aby production build nespadl na `string | undefined` inference.
 - Detail email logu na `/admin/email-logy/[emailLogId]` prošel UX refaktorem z debug-first obrazovky na business + debug detail bez změny workeru, retry logiky, queue nebo payload kontraktu.
 - Horní část detailu nově tvoří business header s názvem emailu, jednoznačným finálním stavem `Odesláno / Čeká / Retry / Selhalo`, příjemcem, klientkou, rezervací a klíčovým časem `Odesláno / Poslední pokus`.
