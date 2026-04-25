@@ -102,7 +102,7 @@ export function getAdminBookingHref(area: AdminArea, bookingId: string) {
     : `/admin/provoz/rezervace/${bookingId}`;
 }
 
-export function getBookingStatusLabel(status: BookingStatus) {
+export function getBookingStatusLabel(status: BookingStatus): string {
   switch (status) {
     case BookingStatus.PENDING:
       return "Čeká na potvrzení";
@@ -115,9 +115,11 @@ export function getBookingStatusLabel(status: BookingStatus) {
     case BookingStatus.NO_SHOW:
       return "Nedorazila";
   }
+
+  return String(status);
 }
 
-export function getBookingSourceLabel(source: BookingSource) {
+export function getBookingSourceLabel(source: BookingSource): string {
   switch (source) {
     case BookingSource.WEB:
       return "Web";
@@ -130,9 +132,11 @@ export function getBookingSourceLabel(source: BookingSource) {
     case BookingSource.OTHER:
       return "Jiný původ";
   }
+
+  return String(source);
 }
 
-export function getBookingAcquisitionLabel(source: BookingAcquisitionSource | null) {
+export function getBookingAcquisitionLabel(source: BookingAcquisitionSource | null): string | null {
   if (!source) {
     return null;
   }
@@ -151,6 +155,8 @@ export function getBookingAcquisitionLabel(source: BookingAcquisitionSource | nu
     case "OTHER":
       return "Jiný akviziční zdroj";
   }
+
+  return String(source);
 }
 
 export function getAdminBookingActionOptions(status: BookingStatus): AdminBookingActionOption[] {
@@ -205,7 +211,7 @@ function formatAdminBookingDateLabel(startsAt: Date, endsAt: Date) {
   }).format(endsAt)}`;
 }
 
-function getActorLabel(actorType: BookingActorType, actorName?: string | null) {
+function getActorLabel(actorType: BookingActorType, actorName?: string | null): string {
   switch (actorType) {
     case BookingActorType.USER:
       return actorName ? `Admin • ${actorName}` : "Admin";
@@ -214,6 +220,8 @@ function getActorLabel(actorType: BookingActorType, actorName?: string | null) {
     case BookingActorType.SYSTEM:
       return "Systém";
   }
+
+  return String(actorType);
 }
 
 function getHistorySourceLabel(metadata: unknown) {

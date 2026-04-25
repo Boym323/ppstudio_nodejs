@@ -46,7 +46,7 @@ const formatDateTime = new Intl.DateTimeFormat("cs-CZ", {
   minute: "2-digit",
 });
 
-function formatDateLabel(value: Date | null | undefined) {
+function formatDateLabel(value: Date | null | undefined): string {
   if (!value) {
     return "Bez data";
   }
@@ -54,7 +54,7 @@ function formatDateLabel(value: Date | null | undefined) {
   return formatDate.format(value);
 }
 
-function formatDateTimeLabel(value: Date | null | undefined) {
+function formatDateTimeLabel(value: Date | null | undefined): string {
   if (!value) {
     return "Bez času";
   }
@@ -62,11 +62,11 @@ function formatDateTimeLabel(value: Date | null | undefined) {
   return formatDateTime.format(value);
 }
 
-function formatTimeRange(startsAt: Date, endsAt: Date) {
+function formatTimeRange(startsAt: Date, endsAt: Date): string {
   return `${formatDateTimeLabel(startsAt)} - ${formatTime.format(endsAt)}`;
 }
 
-function statusLabel(status: BookingStatus | AvailabilitySlotStatus | EmailLogStatus) {
+function statusLabel(status: BookingStatus | AvailabilitySlotStatus | EmailLogStatus): string {
   switch (status) {
     case BookingStatus.PENDING:
       return "Čeká";
@@ -101,7 +101,7 @@ function retryStateLabel(
   nextAttemptAt: Date | null,
   processingStartedAt: Date | null,
   attemptCount: number,
-) {
+): string {
   if (processingStartedAt) {
     return `Zpracovává se • pokus ${attemptCount}`;
   }
@@ -120,7 +120,12 @@ function getEmailDetailFinalStatus(
   attemptCount: number,
   nextAttemptAt: Date | null,
   updatedAt: Date,
-) {
+): {
+  value: "sent" | "pending" | "retry" | "failed";
+  label: string;
+  detail: string;
+  needsAttention: boolean;
+} {
   if (sentAt) {
     return {
       value: "sent" as const,
@@ -173,7 +178,7 @@ function getErrorSummary(errorMessage: string | null) {
   return summary ?? "Chyba bez detailu.";
 }
 
-function emailTypeLabel(type: EmailLogType) {
+function emailTypeLabel(type: EmailLogType): string {
   switch (type) {
     case EmailLogType.BOOKING_CREATED:
     case EmailLogType.BOOKING_CONFIRMED:
@@ -187,9 +192,11 @@ function emailTypeLabel(type: EmailLogType) {
     case EmailLogType.GENERIC:
       return "Obecný e-mail";
   }
+
+  return "Neznámý typ e-mailu";
 }
 
-function actionTokenTypeLabel(type: BookingActionTokenType) {
+function actionTokenTypeLabel(type: BookingActionTokenType): string {
   switch (type) {
     case BookingActionTokenType.CANCEL:
       return "Storno token";
@@ -200,6 +207,8 @@ function actionTokenTypeLabel(type: BookingActionTokenType) {
     case BookingActionTokenType.REJECT:
       return "Zrušení z e-mailu";
   }
+
+  return "Neznámý action token";
 }
 
 export function getAdminSectionTitle(slug: AdminSectionSlug) {
@@ -1262,7 +1271,7 @@ function getEmailRecentStatusLabel(
   status: EmailLogStatus,
   processingStartedAt: Date | null,
   attemptCount: number,
-) {
+): string {
   switch (getEmailRecentStatus(status, processingStartedAt, attemptCount)) {
     case "sent":
       return "Odesláno";
@@ -1297,7 +1306,7 @@ function getEmailTypeCategory(type: EmailLogType, templateKey: string): EmailRec
   }
 }
 
-function getEmailTypeCategoryLabel(type: EmailLogType, templateKey: string) {
+function getEmailTypeCategoryLabel(type: EmailLogType, templateKey: string): string {
   switch (getEmailTypeCategory(type, templateKey)) {
     case "booking_confirmation":
       return "Potvrzení rezervace";

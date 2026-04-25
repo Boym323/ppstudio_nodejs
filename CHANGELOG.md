@@ -6,6 +6,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Admin helpery v `src/features/admin/lib/` dostaly explicitní návratové typy a fallbacky u label funkcí, aby production build nespadl na `string | undefined` inference.
 - Detail email logu na `/admin/email-logy/[emailLogId]` prošel UX refaktorem z debug-first obrazovky na business + debug detail bez změny workeru, retry logiky, queue nebo payload kontraktu.
 - Horní část detailu nově tvoří business header s názvem emailu, jednoznačným finálním stavem `Odesláno / Čeká / Retry / Selhalo`, příjemcem, klientkou, rezervací a klíčovým časem `Odesláno / Poslední pokus`.
 - Pod headerem jsou vždy viditelné rychlé akce `Zpět na přehled`, `Otevřít rezervaci` a podle stavu `Zkusit znovu`; copy pro nerelevantní retry nově říká `Email byl úspěšně odeslán, opakování není potřeba.`
