@@ -473,8 +473,13 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
 - `BookingActionToken` ukládá pouze hash tokenu pro storno a přesun termínu, nikdy ne surovou hodnotu tokenu.
 - Klientský manage flow `/rezervace/sprava/[token]` přijímá jen hashovaný token typu `RESCHEDULE`; bez validního tokenu neukáže žádná data rezervace.
 - `EmailLog` umožňuje trasovat odeslané i neúspěšné e-maily navázané na klienta, rezervaci a případný token.
-- Owner-only sekce `Email logy` je provozní observability obrazovka pro pending frontu, retry pokusy a poslední chyby workeru.
-- Detail konkrétního e-mailu na `/admin/email-logy/[emailLogId]` ukazuje payload, poslední chybu, vazby na rezervaci a klientku a nabízí ruční retry nebo uvolnění zaseknutého jobu.
+- Owner-only sekce `Email logy` nyní funguje jako business-first přehled `Komunikace se zákaznicemi`:
+  - nahoře ukazuje health stav `OK / Warning / Error` podle failed, retry, pending fronty a poslední relevantní chyby
+  - krátké metriky shrnují `Dnes odesláno`, `Za posledních 7 dní`, `Čeká na odeslání`, `Selhalo` a `Poslední odeslání`
+  - hlavní sekce `Poslední emaily` propojuje typ zprávy, stav, příjemce, vazbu na rezervaci, časy, pokusy a rychlé akce `Otevřít rezervaci / Detail emailu / Zkusit znovu`
+  - tracking sloupce `Otevřeno` a `Kliknuto` jsou připravené jako UI placeholder bez falešných dat
+  - původní pending/retry/error fronty zůstávají níž v debug bloku `Technický stav fronty`
+- Detail konkrétního e-mailu na `/admin/email-logy/[emailLogId]` ukazuje payload, poslední chybu, vazby na rezervaci a klientku, přímý odkaz na rezervaci a nabízí ruční retry nebo uvolnění zaseknutého jobu.
 - Po úspěšné akci se na detailu objeví krátká potvrzovací hláška, aby bylo zřejmé, že operace proběhla.
 - Veřejný booking flow po odeslání:
   - veřejný web `/`, `/sluzby`, `/cenik` a detail služby nyní čerpá z databáze v request-time

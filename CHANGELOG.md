@@ -6,6 +6,12 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Owner-only sekce `Email logy` prošla UX refaktorem z technického queue monitoringu na business-first přehled `Komunikace se zákaznicemi`.
+- Nahoře je nově health panel `OK / Warning / Error` podle failed, retry, pending fronty a poslední relevantní chyby, plus krátké metriky `Dnes odesláno`, `Za posledních 7 dní`, `Čeká na odeslání`, `Selhalo` a `Poslední odeslání`.
+- Hlavní obsah teď tvoří filtrovatelný seznam posledních emailů s badge typem/stavem, příjemcem, vazbou na rezervaci, časy, počtem pokusů, placeholdery pro tracking a akcemi `Otevřít rezervaci / Detail emailu / Zkusit znovu`.
+- Původní sekce pending, retry a failed zůstaly zachované, ale přesunuly se níž do debug bloku `Technický stav fronty`; detail email logu zároveň doplnil přímý odkaz na rezervaci a srozumitelnější error kontext bez změny workeru nebo retry politiky.
+- ADR `0048-admin-email-communication-overview-v1` popisuje nové business-first čtení email observability nad existující tabulkou `EmailLog`.
+
 - Detail rezervace v adminu prošel zásadním UX refaktorem z dlouhé čtecí stránky na kompaktní rozhodovací panel.
 - Horní část detailu nově drží sticky header s klientkou, službou, výrazným termínem, stavem, zdrojem rezervace a rychlými akcemi `zavolat / e-mail / přesunout termín / zpět`.
 - Akční panel se přesunul hned pod header a používá zkrácený action chooser s primární akcí podle stavu rezervace; přesun termínu zůstává samostatné CTA do existujícího draweru.

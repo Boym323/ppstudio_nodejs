@@ -1068,13 +1068,63 @@ type EmailLogItem = {
   href?: string;
 };
 
+type EmailHealthTone = "ok" | "warning" | "error";
+
+type EmailRecentStatusValue = "sent" | "pending" | "processing" | "retry" | "failed";
+
+type EmailRecentTypeValue =
+  | "booking_confirmation"
+  | "reminder"
+  | "cancellation"
+  | "reschedule"
+  | "admin"
+  | "other";
+
 export type EmailLogsDashboardData = {
+  referenceNowIso: string;
+  health: {
+    tone: EmailHealthTone;
+    title: string;
+    helper: string;
+    summary: string;
+    latestError: string | null;
+  };
   stats: Array<{
     label: string;
     value: string;
     tone?: "default" | "accent" | "muted";
     detail?: string;
   }>;
+  recentEmails: Array<{
+    id: string;
+    typeLabel: string;
+    typeValue: EmailRecentTypeValue;
+    statusLabel: string;
+    statusValue: EmailRecentStatusValue;
+    recipientLabel: string;
+    recipientEmail: string;
+    bookingSummary: string | null;
+    bookingHref: string | null;
+    createdAtIso: string;
+    createdAtLabel: string;
+    sentAtLabel: string;
+    activityLabel: string;
+    attemptCount: number;
+    lastAttemptLabel: string;
+    nextAttemptLabel: string;
+    errorMessage: string | null;
+    trackingOpenedLabel: string;
+    trackingClickedLabel: string;
+    detailHref: string;
+    canRetry: boolean;
+  }>;
+  queueStats: Array<{
+    label: string;
+    value: string;
+    tone?: "default" | "accent" | "muted";
+    detail?: string;
+  }>;
+  workerSummary: string;
   pendingItems: EmailLogItem[];
   retryingItems: EmailLogItem[];
   failedItems: EmailLogItem[];
@@ -1105,18 +1155,171 @@ export type EmailLogDetailData = {
   errorMessage: string | null;
   payload: Prisma.JsonValue | null;
   bookingSummary: string;
+  bookingHref: string | null;
   clientSummary: string;
   actionTokenSummary: string;
+  lastAttemptLabel: string;
 };
+
+function getEmailRecentStatus(
+  status: EmailLogStatus,
+  processingStartedAt: Date | null,
+  attemptCount: number,
+): EmailRecentStatusValue {
+  if (status === EmailLogStatus.SENT) {
+    return "sent";
+  }
+
+  if (status === EmailLogStatus.FAILED) {
+    return "failed";
+  }
+
+  if (processingStartedAt) {
+    return "processing";
+  }
+
+  if (attemptCount > 0) {
+    return "retry";
+  }
+
+  return "pending";
+}
+
+function getEmailRecentStatusLabel(
+  status: EmailLogStatus,
+  processingStartedAt: Date | null,
+  attemptCount: number,
+) {
+  switch (getEmailRecentStatus(status, processingStartedAt, attemptCount)) {
+    case "sent":
+      return "Odesláno";
+    case "pending":
+      return "Čeká";
+    case "processing":
+      return "Zpracovává se";
+    case "retry":
+      return "Retry";
+    case "failed":
+      return "Selhalo";
+  }
+}
+
+function getEmailTypeCategory(type: EmailLogType, templateKey: string): EmailRecentTypeValue {
+  if (templateKey.startsWith("admin-")) {
+    return "admin";
+  }
+
+  switch (type) {
+    case EmailLogType.BOOKING_CREATED:
+    case EmailLogType.BOOKING_CONFIRMED:
+      return "booking_confirmation";
+    case EmailLogType.BOOKING_REMINDER:
+      return "reminder";
+    case EmailLogType.BOOKING_CANCELLED:
+      return "cancellation";
+    case EmailLogType.BOOKING_RESCHEDULED:
+      return "reschedule";
+    case EmailLogType.GENERIC:
+      return "other";
+  }
+}
+
+function getEmailTypeCategoryLabel(type: EmailLogType, templateKey: string) {
+  switch (getEmailTypeCategory(type, templateKey)) {
+    case "booking_confirmation":
+      return "Potvrzení rezervace";
+    case "reminder":
+      return "Reminder";
+    case "cancellation":
+      return "Zrušení";
+    case "reschedule":
+      return "Přesun termínu";
+    case "admin":
+      return "Admin notifikace";
+    case "other":
+      return "Ostatní";
+  }
+}
+
+function getEmailHealthState(input: {
+  pending: number;
+  retrying: number;
+  processing: number;
+  failed: number;
+  latestError: string | null;
+  lastSentLabel: string;
+}) {
+  if (input.failed > 0 || input.retrying > 0 || input.latestError) {
+    return {
+      tone: "error" as const,
+      title: "Problém s odesíláním emailů",
+      helper: "Některé zprávy selhaly nebo čekají na další pokus.",
+      summary: `${input.failed} selhalo • ${input.retrying} je v retry • poslední odeslání ${input.lastSentLabel}`,
+    };
+  }
+
+  if (input.pending > 0 || input.processing > 0) {
+    return {
+      tone: "warning" as const,
+      title: "Některé emaily čekají na zpracování",
+      helper: "Ve frontě jsou zprávy, které worker ještě nezpracoval.",
+      summary: `${input.pending} čeká ve frontě • ${input.processing} se právě zpracovává • poslední odeslání ${input.lastSentLabel}`,
+    };
+  }
+
+  return {
+    tone: "ok" as const,
+    title: "Emaily fungují správně",
+    helper: "Fronta je prázdná a poslední odeslání proběhlo bez chyby.",
+    summary: `Fronta je prázdná • poslední odeslání ${input.lastSentLabel}`,
+  };
+}
+
+function getWorkerSummary({
+  pending,
+  retrying,
+  processing,
+  failed,
+}: {
+  pending: number;
+  retrying: number;
+  processing: number;
+  failed: number;
+}) {
+  if (processing > 0) {
+    return `Worker právě drží ${processing} ${processing === 1 ? "zprávu" : processing < 5 ? "zprávy" : "zpráv"} v claimu.`;
+  }
+
+  if (pending > 0 || retrying > 0) {
+    return "Ve frontě jsou čekající zprávy, ale aktuálně není vidět aktivní claim workeru.";
+  }
+
+  if (failed > 0) {
+    return "Fronta je prázdná, ale zůstávají selhané záznamy k dořešení nebo ručnímu retry.";
+  }
+
+  return "Fronta je čistá a worker momentálně nedrží žádný aktivní job.";
+}
 
 async function getEmailLogsData(): Promise<EmailLogsDashboardData> {
   const now = new Date();
+  const todayStart = new Date(now);
+  todayStart.setHours(0, 0, 0, 0);
+  const tomorrowStart = new Date(todayStart);
+  tomorrowStart.setDate(tomorrowStart.getDate() + 1);
+  const sevenDayStart = new Date(todayStart);
+  sevenDayStart.setDate(sevenDayStart.getDate() - 6);
   const [
     pending,
     retrying,
     processing,
     sent,
     failed,
+    todaySent,
+    sevenDaySent,
+    lastSentLog,
+    latestErrorLog,
+    recentLogs,
     pendingItems,
     retryingItems,
     failedItems,
@@ -1143,6 +1346,64 @@ async function getEmailLogsData(): Promise<EmailLogsDashboardData> {
     }),
     prisma.emailLog.count({ where: { status: EmailLogStatus.SENT } }),
     prisma.emailLog.count({ where: { status: EmailLogStatus.FAILED } }),
+    prisma.emailLog.count({
+      where: {
+        status: EmailLogStatus.SENT,
+        sentAt: { gte: todayStart, lt: tomorrowStart },
+      },
+    }),
+    prisma.emailLog.count({
+      where: {
+        status: EmailLogStatus.SENT,
+        sentAt: { gte: sevenDayStart, lt: tomorrowStart },
+      },
+    }),
+    prisma.emailLog.findFirst({
+      where: {
+        status: EmailLogStatus.SENT,
+        sentAt: { not: null },
+      },
+      orderBy: { sentAt: "desc" },
+      select: {
+        sentAt: true,
+      },
+    }),
+    prisma.emailLog.findFirst({
+      where: {
+        errorMessage: { not: null },
+        OR: [
+          { status: EmailLogStatus.FAILED },
+          {
+            status: EmailLogStatus.PENDING,
+            attemptCount: { gt: 0 },
+          },
+        ],
+      },
+      orderBy: { updatedAt: "desc" },
+      select: {
+        errorMessage: true,
+      },
+    }),
+    prisma.emailLog.findMany({
+      orderBy: [{ createdAt: "desc" }],
+      take: 48,
+      include: {
+        booking: {
+          select: {
+            id: true,
+            clientNameSnapshot: true,
+            serviceNameSnapshot: true,
+            scheduledStartsAt: true,
+            scheduledEndsAt: true,
+          },
+        },
+        client: {
+          select: {
+            fullName: true,
+          },
+        },
+      },
+    }),
     prisma.emailLog.findMany({
       where: {
         status: EmailLogStatus.PENDING,
@@ -1179,37 +1440,119 @@ async function getEmailLogsData(): Promise<EmailLogsDashboardData> {
     }),
   ]);
 
+  const lastSentLabel = formatDateTimeLabel(lastSentLog?.sentAt);
+  const latestError = latestErrorLog?.errorMessage ?? null;
+  const waitingCount = pending + retrying + processing;
+  const health = getEmailHealthState({
+    pending,
+    retrying,
+    processing,
+    failed,
+    latestError,
+    lastSentLabel,
+  });
+
   return {
+    referenceNowIso: now.toISOString(),
+    health: {
+      ...health,
+      latestError,
+    },
     stats: [
+      {
+        label: "Dnes odesláno",
+        value: String(todaySent),
+        tone: "accent" as const,
+        detail: "Úspěšně odeslané zprávy od dnešní půlnoci.",
+      },
+      {
+        label: "Za posledních 7 dní",
+        value: String(sevenDaySent),
+        detail: "Součet úspěšně odeslaných zpráv za poslední týden.",
+      },
+      {
+        label: "Čeká na odeslání",
+        value: String(waitingCount),
+        tone: waitingCount > 0 ? ("accent" as const) : ("muted" as const),
+        detail: `${pending} ve frontě • ${retrying} retry • ${processing} se zpracovává`,
+      },
+      {
+        label: "Selhalo",
+        value: String(failed),
+        tone: failed > 0 ? ("accent" as const) : ("muted" as const),
+        detail: "Zprávy po vyčerpání retry nebo s neuzavřeným incidentem.",
+      },
+      {
+        label: "Poslední odeslání",
+        value: lastSentLabel,
+        detail: sent > 0 ? "Poslední úspěšně uzavřený email log." : "Zatím neevidujeme žádné odeslání.",
+      },
+    ],
+    recentEmails: recentLogs.map((log) => {
+      const recipientName = log.booking?.clientNameSnapshot ?? log.client?.fullName ?? "Bez jména";
+      const statusValue = getEmailRecentStatus(log.status, log.processingStartedAt, log.attemptCount);
+      const bookingSummary = log.booking
+        ? `${log.booking.clientNameSnapshot} • ${log.booking.serviceNameSnapshot} • ${formatDateTimeLabel(log.booking.scheduledStartsAt)} - ${formatTime.format(log.booking.scheduledEndsAt)}`
+        : null;
+
+      return {
+        id: log.id,
+        typeLabel: getEmailTypeCategoryLabel(log.type, log.templateKey),
+        typeValue: getEmailTypeCategory(log.type, log.templateKey),
+        statusLabel: getEmailRecentStatusLabel(log.status, log.processingStartedAt, log.attemptCount),
+        statusValue,
+        recipientLabel: recipientName === "Bez jména" ? log.recipientEmail : `${recipientName} • ${log.recipientEmail}`,
+        recipientEmail: log.recipientEmail,
+        bookingSummary,
+        bookingHref: log.booking ? getAdminBookingHref("owner", log.booking.id) : null,
+        createdAtIso: log.createdAt.toISOString(),
+        createdAtLabel: formatDateTimeLabel(log.createdAt),
+        sentAtLabel: formatDateTimeLabel(log.sentAt),
+        activityLabel:
+          log.status === EmailLogStatus.SENT && log.sentAt
+            ? `Odesláno ${formatDateTimeLabel(log.sentAt)}`
+            : `Vytvořeno ${formatDateTimeLabel(log.createdAt)}`,
+        attemptCount: log.attemptCount,
+        lastAttemptLabel: formatDateTimeLabel(log.sentAt ?? log.updatedAt),
+        nextAttemptLabel: formatDateTimeLabel(log.nextAttemptAt),
+        errorMessage: log.errorMessage,
+        trackingOpenedLabel: "Připraveno",
+        trackingClickedLabel: "Připraveno",
+        detailHref: `/admin/email-logy/${log.id}`,
+        canRetry: log.status !== EmailLogStatus.SENT && log.processingStartedAt === null,
+      };
+    }),
+    queueStats: [
       {
         label: "Ve frontě",
         value: String(pending),
-        tone: "accent" as const,
-        detail: "E-maily připravené k nejbližšímu zpracování.",
+        tone: pending > 0 ? ("accent" as const) : ("muted" as const),
+        detail: "První pokus čekající na další průchod workeru.",
       },
       {
-        label: "Retrying",
+        label: "Retry",
         value: String(retrying),
-        detail: "Pokusy, které worker vrátí na další retry.",
+        tone: retrying > 0 ? ("accent" as const) : ("muted" as const),
+        detail: "Zprávy s dočasnou chybou a plánovaným dalším pokusem.",
       },
       {
         label: "Zpracovává se",
         value: String(processing),
-        tone: "muted" as const,
-        detail: "Záznamy, které worker právě claimuje.",
+        tone: processing > 0 ? ("accent" as const) : ("muted" as const),
+        detail: "Claimnuté joby, které worker právě drží.",
       },
       {
-        label: "Odesláno",
+        label: "Celkem odesláno",
         value: String(sent),
-        detail: "Úspěšně doručené e-maily.",
-      },
-      {
-        label: "Chyby",
-        value: String(failed),
-        tone: failed > 0 ? ("accent" as const) : ("muted" as const),
-        detail: "Selhané záznamy po vyčerpání retry politiky.",
+        detail: "Auditní součet všech úspěšně doručených emailů.",
       },
     ],
+    workerSummary: getWorkerSummary({
+      pending,
+      retrying,
+      processing,
+      failed,
+    }),
     pendingItems: pendingItems.map((log) => ({
       id: log.id,
       title: `${log.subject} • ${log.recipientEmail}`,
@@ -1314,12 +1657,14 @@ export async function getEmailLogDetailData(emailLogId: string): Promise<EmailLo
     bookingSummary: emailLog.booking
       ? `${emailLog.booking.clientNameSnapshot} • ${emailLog.booking.serviceNameSnapshot} • ${formatDateTimeLabel(emailLog.booking.scheduledStartsAt)} - ${formatTime.format(emailLog.booking.scheduledEndsAt)}`
       : "Bez navázané rezervace",
+    bookingHref: emailLog.booking ? getAdminBookingHref("owner", emailLog.booking.id) : null,
     clientSummary: emailLog.client
       ? `${emailLog.client.fullName} • ${emailLog.client.email}${emailLog.client.phone ? ` • ${emailLog.client.phone}` : ""}`
       : "Bez navázaného klienta",
     actionTokenSummary: emailLog.actionToken
       ? `${actionTokenTypeLabel(emailLog.actionToken.type)} • expirace ${formatDateTimeLabel(emailLog.actionToken.expiresAt)}${emailLog.actionToken.usedAt ? ` • použito ${formatDateTimeLabel(emailLog.actionToken.usedAt)}` : ""}${emailLog.actionToken.revokedAt ? ` • zrušeno ${formatDateTimeLabel(emailLog.actionToken.revokedAt)}` : ""}`
       : "Bez navázaného action tokenu",
+    lastAttemptLabel: formatDateTimeLabel(emailLog.sentAt ?? emailLog.updatedAt),
   };
 }
 

@@ -234,8 +234,9 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - `src/features/admin/actions/booking-actions.ts` je tenký server action adaptér pro změnu stavu i samostatnou editaci interní poznámky rezervace; aktéra mapuje z admin session na reálné `AdminUser.id` podle e-mailu a při nenalezení používá `null`, aby zápis historie nenarazil na FK.
 - `src/features/admin/components/admin-booking-status-form.tsx` používá pro volbu změny stavu klikací akční karty (ne select); vybraná akce se okamžitě zvýrazní barvou podle typu změny a do server action se posílá přes hidden `targetStatus`.
 - `src/features/admin/lib/admin-booking.ts` drží detailový read model, mapování povolených přechodů, samostatnou poznámkovou mutaci a zápis do `BookingStatusHistory` včetně jednoduchého mapování zdroje změny pro timeline.
-- `src/features/admin/components/admin-email-logs-page.tsx` je owner-only observability obrazovka pro email frontu, retry pokusy a poslední chyby.
-- `src/features/admin/components/admin-email-log-detail-page.tsx` a route `/admin/email-logy/[emailLogId]` přidávají detail jednoho logu s payloadem, chybou a operacemi pro ruční retry nebo uvolnění zaseknutého jobu.
+- `src/features/admin/components/admin-email-logs-page.tsx` nově staví owner-only stránku `Komunikace se zákaznicemi`, která dává přednost health stavu, krátkým business metrikám a seznamu posledních emailů před čistým technickým monitoringem.
+- `src/features/admin/components/admin-email-logs-workspace.tsx` drží business-first IA obrazovky: health panel, filtry, seznam posledních emailů s vazbou na rezervaci a spodní debug blok `Technický stav fronty`.
+- `src/features/admin/components/admin-email-log-detail-page.tsx` a route `/admin/email-logy/[emailLogId]` dál poskytují technický detail jednoho logu s payloadem, chybou a operacemi pro ruční retry nebo uvolnění zaseknutého jobu, nově ale i s čitelnějším error kontextem a odkazem na rezervaci.
 - Po úspěšné akci detail vrací server-rendered flash banner přes query parametr, aby obsluha viděla okamžitou zpětnou vazbu bez client state.
 - `src/features/admin/lib/admin-data.ts` je čistá serverová read vrstva pro admin dashboardy a sekce.
 - Admin sekce `Rezervace` už neřeší jen list/detail/stavové akce; obsahuje i plnohodnotný drawer `CreateManualBookingDrawer` s provozním formulářem pro ruční vytvoření rezervace.

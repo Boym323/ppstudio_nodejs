@@ -62,3 +62,4 @@ Sem patří krátké záznamy architektonických rozhodnutí.
 - `0045-service-price-change-audit-v1.md`
 - `0046-admin-booking-operations-worklist-v2.md`
 - `0047-admin-booking-detail-decision-panel-v1.md`
+- `0048-admin-email-communication-overview-v1.md`

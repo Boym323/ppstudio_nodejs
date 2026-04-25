@@ -55,6 +55,15 @@ export function AdminEmailLogDetailPage({ data, flashMessage }: AdminEmailLogDet
           Zpět na přehled
         </Link>
 
+        {data.bookingHref ? (
+          <Link
+            href={data.bookingHref}
+            className="rounded-full border border-white/10 px-4 py-3 text-sm text-white/78 transition hover:border-white/30 hover:text-white"
+          >
+            Otevřít rezervaci
+          </Link>
+        ) : null}
+
         {data.canRetry ? (
           <form action={retryEmailLogAction}>
             <input type="hidden" name="emailLogId" value={data.id} />
@@ -88,6 +97,7 @@ export function AdminEmailLogDetailPage({ data, flashMessage }: AdminEmailLogDet
             <DetailRow label="Šablona" value={data.templateKey} />
             <DetailRow label="Provider" value={data.providerLabel} />
             <DetailRow label="Provider message id" value={data.providerMessageIdLabel} />
+            <DetailRow label="Poslední pokus" value={data.lastAttemptLabel} />
             <DetailRow label="Další pokus" value={data.nextAttemptLabel} />
             <DetailRow label="Zpracování od" value={data.processingStartedLabel} />
             <DetailRow label="Odesláno" value={data.sentAtLabel} />
@@ -98,7 +108,7 @@ export function AdminEmailLogDetailPage({ data, flashMessage }: AdminEmailLogDet
 
         <AdminPanel title="Navázané záznamy" description="Souvislosti, které pomáhají dohledat kontext při incidentu." compact>
           <div className="space-y-4">
-            <ContextBlock label="Rezervace" value={data.bookingSummary} />
+            <ContextBlock label="Rezervace" value={data.bookingSummary} href={data.bookingHref} />
             <ContextBlock label="Klientka" value={data.clientSummary} />
             <ContextBlock label="Token akce" value={data.actionTokenSummary} />
             <ContextBlock label="Stav fronty" value={data.queueStateLabel} />
@@ -111,7 +121,14 @@ export function AdminEmailLogDetailPage({ data, flashMessage }: AdminEmailLogDet
           </pre>
         </AdminPanel>
 
-        <AdminPanel title="Poslední chyba" description="Text chyby z posledního neúspěšného doručení." compact>
+        <AdminPanel title="Detail chyby" description="Chyba s provozním kontextem, aby bylo hned jasné koho a čeho se týká." compact>
+          <div className="grid gap-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <DetailRow label="Typ emailu" value={data.typeLabel} />
+              <DetailRow label="Pokusy" value={`${data.attemptCount}×`} />
+              <DetailRow label="Poslední pokus" value={data.lastAttemptLabel} />
+              <DetailRow label="Další plánovaný pokus" value={data.nextAttemptLabel} />
+            </div>
           {data.errorMessage ? (
             <pre className="whitespace-pre-wrap rounded-[1.25rem] border border-red-300/20 bg-red-400/10 p-4 text-sm leading-6 text-red-50">
               {data.errorMessage}
@@ -121,6 +138,7 @@ export function AdminEmailLogDetailPage({ data, flashMessage }: AdminEmailLogDet
               <p className="text-sm leading-6 text-white/68">Žádná chyba není uložená.</p>
             </div>
           )}
+          </div>
         </AdminPanel>
       </div>
     </AdminPageShell>
@@ -144,13 +162,22 @@ function DetailRow({ label, value }: DetailRowProps) {
 type ContextBlockProps = {
   label: string;
   value: string;
+  href?: string | null;
 };
 
-function ContextBlock({ label, value }: ContextBlockProps) {
+function ContextBlock({ label, value, href }: ContextBlockProps) {
   return (
     <div className="rounded-[1.25rem] border border-white/8 bg-white/5 p-4">
       <p className="text-xs uppercase tracking-[0.24em] text-white/52">{label}</p>
       <p className="mt-2 text-sm leading-6 text-white/82">{value}</p>
+      {href ? (
+        <Link
+          href={href}
+          className="mt-3 inline-flex rounded-full border border-white/10 px-3 py-1.5 text-xs font-medium text-white/74 transition hover:border-white/18 hover:text-white"
+        >
+          Otevřít rezervaci
+        </Link>
+      ) : null}
     </div>
   );
 }
