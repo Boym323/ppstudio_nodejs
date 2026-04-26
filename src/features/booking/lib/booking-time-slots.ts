@@ -19,6 +19,31 @@ export type TimeSlotGroupData = {
   slots: TimeSlotOption[];
 };
 
+function getSlotSegments(slot: PublicBookingCatalog["slots"][number]) {
+  return slot.segments?.length
+    ? slot.segments
+    : [{
+        id: slot.id,
+        startsAt: slot.startsAt,
+        endsAt: slot.endsAt,
+      }];
+}
+
+function resolveSlotIdForStart(
+  slot: PublicBookingCatalog["slots"][number],
+  startsAtMs: number,
+) {
+  const slotSegments = getSlotSegments(slot);
+  const matchingSegment = slotSegments.find((segment) => {
+    const segmentStartsAtMs = new Date(segment.startsAt).getTime();
+    const segmentEndsAtMs = new Date(segment.endsAt).getTime();
+
+    return startsAtMs >= segmentStartsAtMs && startsAtMs < segmentEndsAtMs;
+  });
+
+  return matchingSegment?.id ?? slot.id;
+}
+
 function getSlotStartTime(value: string) {
   return new Date(value).getTime();
 }
@@ -103,10 +128,11 @@ export function buildSlotTimeOptions(
     const remainingCapacity = Math.max(slot.capacity - activeOverlaps, 0);
     const startsAt = new Date(startsAtMs).toISOString();
     const endsAt = new Date(endsAtMs).toISOString();
+    const slotId = resolveSlotIdForStart(slot, startsAtMs);
 
     options.push({
-      key: `${slot.id}:${startsAt}`,
-      slotId: slot.id,
+      key: `${slotId}:${startsAt}`,
+      slotId,
       startsAt,
       endsAt,
       publicNote: slot.publicNote,

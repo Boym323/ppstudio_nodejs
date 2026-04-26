@@ -239,6 +239,57 @@ describe("state validation", () => {
     assert.equal(result.notificationStatus, "skipped");
   });
 
+  test("allows reschedule across adjacent published slots and uses the whole chain in conflict checks", async () => {
+    const harness = await createHarness({
+      booking: buildBooking({
+        serviceDurationMinutes: 120,
+      }),
+      requestedSlot: buildSlot({
+        id: "slot-new",
+        startsAt: new Date("2026-04-28T09:30:00.000Z"),
+        endsAt: new Date("2026-04-28T10:00:00.000Z"),
+      }),
+      overlappingSlots: [
+        buildSlot({
+          id: "slot-follow-up",
+          startsAt: new Date("2026-04-28T10:00:00.000Z"),
+          endsAt: new Date("2026-04-28T11:30:00.000Z"),
+        }),
+      ],
+    });
+
+    const result = await harness.api.rescheduleBooking({
+      bookingId: "booking-1",
+      slotId: "slot-new",
+      newStartAt: "2026-04-28T09:30:00.000Z",
+      changedByUserId: null,
+      changedByClient: true,
+      notifyClient: false,
+      expectedUpdatedAt: "2026-04-23T09:00:00.000Z",
+    });
+
+    assert.equal(result.bookingId, "booking-1");
+    assert.deepEqual(harness.calls.bookingCount[0], {
+      where: {
+        id: {
+          not: "booking-1",
+        },
+        status: {
+          in: [BookingStatus.PENDING, BookingStatus.CONFIRMED],
+        },
+        scheduledStartsAt: {
+          lt: new Date("2026-04-28T11:30:00.000Z"),
+        },
+        scheduledEndsAt: {
+          gt: new Date("2026-04-28T09:30:00.000Z"),
+        },
+        slotId: {
+          in: ["slot-new", "slot-follow-up"],
+        },
+      },
+    });
+  });
+
   test("rejects reschedule when booking is cancelled", async () => {
     const { bookingRescheduleErrorCodes } = await import("./booking-rescheduling");
     const harness = await createHarness({

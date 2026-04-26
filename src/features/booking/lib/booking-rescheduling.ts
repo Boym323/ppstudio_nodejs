@@ -16,6 +16,7 @@ import {
   buildBookingManagementUrl,
 } from "@/features/booking/lib/booking-action-tokens";
 import { formatBookingDateLabel } from "@/features/booking/lib/booking-format";
+import { resolvePublishedSlotCoverage } from "@/features/booking/lib/booking-slot-availability";
 import { prisma } from "@/lib/prisma";
 import { getBookingPolicySettings, isBookingWithinWindow } from "@/lib/site-settings";
 
@@ -119,10 +120,6 @@ type BookingReschedulingDependencies = {
 
 function normalizeWhitespace(value: string) {
   return value.trim().replace(/\s+/g, " ");
-}
-
-function doesSlotSupportServiceDuration(startsAt: Date, endsAt: Date, serviceDurationMinutes: number) {
-  return endsAt.getTime() - startsAt.getTime() >= serviceDurationMinutes * 60 * 1000;
 }
 
 function isRetryablePrismaError(error: unknown) {
@@ -561,19 +558,6 @@ async function rescheduleBookingInTransaction(
     orderBy: [{ startsAt: "asc" }],
   });
 
-  const possiblePublishedSlots = [requestedSlot, booking.slot, ...overlappingSlots]
-    .filter((slot): slot is BookingSlotRecord => Boolean(slot))
-    .filter(
-      (slot, index, collection) =>
-        collection.findIndex((candidate) => candidate.id === slot.id) === index,
-    )
-    .filter(
-      (slot) =>
-        slot.status === AvailabilitySlotStatus.PUBLISHED
-        && requestedStartsAt >= slot.startsAt
-        && requestedEndsAt <= slot.endsAt,
-    );
-
   const blockingSlots = overlappingSlots.filter((slot) => slot.status !== AvailabilitySlotStatus.PUBLISHED);
 
   if (blockingSlots.length > 0) {
@@ -584,40 +568,52 @@ async function rescheduleBookingInTransaction(
     );
   }
 
-  let resolvedSlot: BookingSlotRecord | null = requestedSlot ?? possiblePublishedSlots[0] ?? null;
+  const publishedCoverage = resolvePublishedSlotCoverage(
+    [requestedSlot, booking.slot, ...overlappingSlots]
+      .filter((slot): slot is BookingSlotRecord => Boolean(slot))
+      .filter(
+        (slot, index, collection) =>
+          collection.findIndex((candidate) => candidate.id === slot.id) === index,
+      ),
+    booking.serviceId,
+    requestedStartsAt,
+    requestedEndsAt,
+    requestedSlot?.id ?? booking.slot.id,
+  );
+
+  if (
+    requestedSlot &&
+    publishedCoverage === null &&
+    requestedStartsAt >= requestedSlot.startsAt &&
+    requestedStartsAt < requestedSlot.endsAt &&
+    requestedEndsAt > requestedSlot.endsAt
+  ) {
+    throw new BookingRescheduleError(
+      bookingRescheduleErrorCodes.slotTooShort,
+      "Vybraný slot už neodpovídá délce služby.",
+      "slot",
+    );
+  }
+
+  let resolvedSlot: BookingSlotRecord | null = requestedSlot ?? publishedCoverage?.anchor ?? null;
+  let resolvedCoverageSlots = publishedCoverage?.coverage ?? (resolvedSlot ? [resolvedSlot] : []);
   let manualOverride = false;
 
   if (resolvedSlot) {
-    if (!doesSlotSupportServiceDuration(resolvedSlot.startsAt, resolvedSlot.endsAt, booking.serviceDurationMinutes)) {
-      throw new BookingRescheduleError(
-        bookingRescheduleErrorCodes.slotTooShort,
-        "Vybraný slot už neodpovídá délce služby.",
-        "slot",
-      );
-    }
+    const coveredUntil = resolvedCoverageSlots.length > 0
+      ? resolvedCoverageSlots[resolvedCoverageSlots.length - 1]?.endsAt ?? resolvedSlot.endsAt
+      : resolvedSlot.endsAt;
 
-    if (requestedStartsAt < resolvedSlot.startsAt || requestedEndsAt > resolvedSlot.endsAt) {
+    if (requestedStartsAt < resolvedSlot.startsAt || requestedEndsAt > coveredUntil) {
       resolvedSlot = null;
+      resolvedCoverageSlots = [];
       manualOverride = true;
     } else {
-      const slotAllowsService = !(
-        resolvedSlot.serviceRestrictionMode === AvailabilitySlotServiceRestrictionMode.SELECTED
-        && !resolvedSlot.allowedServices.some((allowedService) => allowedService.serviceId === booking.serviceId)
-      );
       const isPubliclyAvailable =
-        resolvedSlot.status === AvailabilitySlotStatus.PUBLISHED
-        && isWithinPublicWindow
-        && slotAllowsService;
+        resolvedCoverageSlots.length > 0
+        && isWithinPublicWindow;
 
       if (!isPubliclyAvailable) {
-        if (!slotAllowsService) {
-          throw new BookingRescheduleError(
-            bookingRescheduleErrorCodes.slotNotAllowed,
-            "Vybraný slot není pro tuto službu dostupný.",
-            "slot",
-          );
-        }
-
         manualOverride = true;
       }
     }
@@ -658,12 +654,16 @@ async function rescheduleBookingInTransaction(
       ...(manualOverride || !resolvedSlot
         ? {}
         : {
-            slotId: resolvedSlot.id,
+            slotId: {
+              in: resolvedCoverageSlots.map((coverageSlot) => coverageSlot.id),
+            },
           }),
     },
   });
 
-  const allowedCapacity = manualOverride || !resolvedSlot ? 1 : resolvedSlot.capacity;
+  const allowedCapacity = manualOverride || !resolvedSlot
+    ? 1
+    : Math.min(...resolvedCoverageSlots.map((coverageSlot) => coverageSlot.capacity));
 
   if (activeBookingCount >= allowedCapacity) {
     throw new BookingRescheduleError(
@@ -707,7 +707,7 @@ async function rescheduleBookingInTransaction(
     });
   }
 
-  if (resolvedSlot.status === AvailabilitySlotStatus.PUBLISHED) {
+  if (resolvedSlot.status === AvailabilitySlotStatus.PUBLISHED && resolvedCoverageSlots.length === 1) {
     await splitSlotForEditing(tx, resolvedSlot, requestedStartsAt, requestedEndsAt);
   }
 

@@ -47,6 +47,11 @@ export type PublicBookingCatalog = {
       startsAt: string;
       endsAt: string;
     }>;
+    segments?: Array<{
+      id: string;
+      startsAt: string;
+      endsAt: string;
+    }>;
   }>;
 };
 

@@ -6,6 +6,9 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Veřejný booking katalog nově skládá navazující kompatibilní publikované sloty do delších souvislých oken, takže služby s delší délkou (např. 120 min) umí nabídnout termín i přes více po sobě jdoucích slotů místo čekání na jeden ručně vytvořený dlouhý blok.
+- Generátor časů v booking flow, self-service přesunu i admin výběru termínu nově kotví každou nabídnutou hodinu na skutečný podkladový segment, takže backend bezpečně pozná správný `slotId` i uvnitř sloučeného okna.
+- Backend vytvoření rezervace a přesunu termínu nově validuje souvislý řetězec publikovaných slotů bez mezer a konfliktů; kapacitu počítá přes všechny pokryté segmenty a zachovává původní chybu `slot je moc krátký`, pokud zvolený segment na délku služby nestačí.
 - Server-side Matomo Reporting API vrstva v `src/lib/analytics/matomo.ts` nově umí pro dashboard načíst návštěvy, goals, booking event funnel a referrery přes bezpečný server-only token s 300s revalidací a nulovými fallbacky.
 - Veřejné copy storno pravidla na homepage a ve FAQ je klidnější a srozumitelnější: původní technický blok `Storno okno` a věta o komunikaci pravidel nahradily formulace zaměřené na to, co klientka může udělat (`Změna nebo zrušení termínu`, `24 h předem`, stručnější FAQ odpověď).
 - 24h reminder enqueue window se posunulo z `23h-25h` na `25h-26h` před termínem, takže reminder s odkazy `Změnit termín` / `Zrušit rezervaci` nechodí až ve chvíli, kdy už online self-service naráží na 24h limit.

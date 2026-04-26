@@ -29,6 +29,11 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - `SuggestedSlots` pro nejbližší jedním klikem rezervovatelné časy
   - `StickyCTA` pro mobilní pokračování / submit bez ztráty kontextu
   - `BookingConfirmationPanel` pro post-submit stav se status blokem, dominantním termínem, CTA a kontaktem
+- Veřejný katalog slotů v `src/features/booking/lib/booking-public/catalog.ts` nově používá helper `booking-slot-availability.ts`, který:
+  - slučuje navazující kompatibilní publikované sloty do jednoho delšího veřejného okna,
+  - zachovává mapu původních segmentů pro správné `slotId` při submitu,
+  - počítá `bookedIntervals` podle skutečných aktivních rezervací překrývajících daný čas, ne jen podle relace `Booking.slotId`.
+- Stejný helper řeší i backend validaci souvislého pokrytí intervalu při `createBookingWithEngine(...)` a `rescheduleBooking(...)`; když upravuješ pravidla slotů, drž veřejný katalog a backend coverage logiku v sync.
 - Stabilizační refaktor z `2026-04-24` rozděluje dříve monolitické booking/admin soubory do menších interních modulů při zachování stávajících entrypointů:
   - `src/features/booking/lib/booking-public.ts` je façade nad `booking-public/shared.ts`, `catalog.ts`, `engine.ts`, `notifications.ts`
   - `src/features/booking/components/booking-flow.tsx` drží jen stav a orchestraci kroků; jednotlivé UI bloky jsou v `src/features/booking/components/booking-flow/*`

@@ -7,6 +7,7 @@ import {
   ACTIVE_BOOKING_STATUSES,
   type PublicBookingCatalog,
 } from "./shared";
+import { buildMergedPublicCatalogSlots } from "../booking-slot-availability";
 
 export async function getPublicBookingCatalog(): Promise<PublicBookingCatalog> {
   const now = new Date();
@@ -18,7 +19,7 @@ export async function getPublicBookingCatalog(): Promise<PublicBookingCatalog> {
     now.getTime() + bookingPolicy.maxAdvanceDays * 24 * 60 * 60 * 1000,
   );
 
-  const [services, slots] = await Promise.all([
+  const [services, slots, bookings] = await Promise.all([
     prisma.service.findMany({
       where: {
         isActive: true,
@@ -65,17 +66,23 @@ export async function getPublicBookingCatalog(): Promise<PublicBookingCatalog> {
             serviceId: true,
           },
         },
-        bookings: {
-          where: {
-            status: {
-              in: [...ACTIVE_BOOKING_STATUSES],
-            },
-          },
-          select: {
-            scheduledStartsAt: true,
-            scheduledEndsAt: true,
-          },
+      },
+    }),
+    prisma.booking.findMany({
+      where: {
+        status: {
+          in: [...ACTIVE_BOOKING_STATUSES],
         },
+        scheduledStartsAt: {
+          lt: bookingWindowEnd,
+        },
+        scheduledEndsAt: {
+          gt: bookingWindowStart,
+        },
+      },
+      select: {
+        scheduledStartsAt: true,
+        scheduledEndsAt: true,
       },
     }),
   ]);
@@ -90,20 +97,20 @@ export async function getPublicBookingCatalog(): Promise<PublicBookingCatalog> {
       durationMinutes: service.durationMinutes,
       priceFromCzk: service.priceFromCzk,
     })),
-    slots: slots
-      .map((slot) => ({
+    slots: buildMergedPublicCatalogSlots(
+      slots.map((slot) => ({
         id: slot.id,
-        startsAt: slot.startsAt.toISOString(),
-        endsAt: slot.endsAt.toISOString(),
+        startsAt: slot.startsAt,
+        endsAt: slot.endsAt,
         publicNote: slot.publicNote,
         capacity: slot.capacity,
         serviceRestrictionMode: slot.serviceRestrictionMode,
         allowedServiceIds: slot.allowedServices.map((allowedService) => allowedService.serviceId),
-        bookedIntervals: slot.bookings.map((booking) => ({
-          startsAt: booking.scheduledStartsAt.toISOString(),
-          endsAt: booking.scheduledEndsAt.toISOString(),
-        })),
-      }))
-      .filter((slot) => slot.capacity > 0),
+      })),
+      bookings.map((booking) => ({
+        startsAt: booking.scheduledStartsAt,
+        endsAt: booking.scheduledEndsAt,
+      })),
+    ),
   };
 }

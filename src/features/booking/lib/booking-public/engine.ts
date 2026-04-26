@@ -27,7 +27,6 @@ import {
   type SharedCreateBookingInput,
   type SharedCreateBookingResult,
   PublicBookingError,
-  doesSlotSupportServiceDuration,
   isRetryablePrismaError,
   isValidNormalizedClientPhone,
   mapKnownPrismaError,
@@ -36,6 +35,7 @@ import {
   normalizeWhitespace,
   publicBookingErrorCodes,
 } from "./shared";
+import { resolvePublishedSlotCoverage } from "../booking-slot-availability";
 
 async function loadServiceForBooking(
   tx: Prisma.TransactionClient,
@@ -414,15 +414,6 @@ export async function createBookingWithEngine(
             orderBy: [{ startsAt: "asc" }],
           });
 
-          const matchingPublishedSlot =
-            slot?.status === AvailabilitySlotStatus.PUBLISHED
-              ? slot
-              : overlappingSlots.find(
-                  (candidate) =>
-                    candidate.status === AvailabilitySlotStatus.PUBLISHED &&
-                    requestedStartsAt >= candidate.startsAt &&
-                    requestedEndsAt <= candidate.endsAt,
-                ) ?? null;
           const blockingSlots = overlappingSlots.filter(
             (candidate) => candidate.status !== AvailabilitySlotStatus.PUBLISHED,
           );
@@ -435,7 +426,32 @@ export async function createBookingWithEngine(
             );
           }
 
-          let resolvedSlot = slot ?? matchingPublishedSlot;
+          const publishedCoverage = resolvePublishedSlotCoverage(
+            [slot, ...overlappingSlots].filter(
+              (candidate): candidate is NonNullable<typeof candidate> => Boolean(candidate),
+            ),
+            service.id,
+            requestedStartsAt,
+            requestedEndsAt,
+            slot?.id,
+          );
+
+          if (
+            slot &&
+            publishedCoverage === null &&
+            requestedStartsAt >= slot.startsAt &&
+            requestedStartsAt < slot.endsAt &&
+            requestedEndsAt > slot.endsAt
+          ) {
+            throw new PublicBookingError(
+              publicBookingErrorCodes.slotTooShort,
+              "Vybraný termín už neodpovídá délce služby. Vyberte prosím jiný.",
+              2,
+            );
+          }
+
+          let resolvedSlot = slot ?? publishedCoverage?.anchor ?? null;
+          let resolvedCoverageSlots = publishedCoverage?.coverage ?? (resolvedSlot ? [resolvedSlot] : []);
           let manualOverride = false;
           const isWithinPublicWindow = isBookingWithinWindow(
             requestedStartsAt,
@@ -445,19 +461,11 @@ export async function createBookingWithEngine(
           );
 
           if (resolvedSlot) {
-            if (!doesSlotSupportServiceDuration(
-              resolvedSlot.startsAt,
-              resolvedSlot.endsAt,
-              service.durationMinutes,
-            )) {
-              throw new PublicBookingError(
-                publicBookingErrorCodes.slotTooShort,
-                "Vybraný termín už neodpovídá délce služby. Vyberte prosím jiný.",
-                2,
-              );
-            }
+            const coveredUntil = resolvedCoverageSlots.length > 0
+              ? resolvedCoverageSlots[resolvedCoverageSlots.length - 1]?.endsAt ?? resolvedSlot.endsAt
+              : resolvedSlot.endsAt;
 
-            if (requestedStartsAt < resolvedSlot.startsAt || requestedEndsAt > resolvedSlot.endsAt) {
+            if (requestedStartsAt < resolvedSlot.startsAt || requestedEndsAt > coveredUntil) {
               if (!input.allowManualOverride) {
                 throw new PublicBookingError(
                   publicBookingErrorCodes.slotUnavailable,
@@ -467,26 +475,18 @@ export async function createBookingWithEngine(
               }
 
               resolvedSlot = null;
+              resolvedCoverageSlots = [];
               manualOverride = true;
             } else {
-              const slotAllowsService = !(
-                resolvedSlot.serviceRestrictionMode === AvailabilitySlotServiceRestrictionMode.SELECTED &&
-                !resolvedSlot.allowedServices.some((allowedService) => allowedService.serviceId === service.id)
-              );
               const isPubliclyAvailable =
-                resolvedSlot.status === AvailabilitySlotStatus.PUBLISHED &&
-                isWithinPublicWindow &&
-                slotAllowsService;
+                resolvedCoverageSlots.length > 0 &&
+                isWithinPublicWindow;
 
               if (!isPubliclyAvailable) {
                 if (!input.allowManualOverride) {
                   throw new PublicBookingError(
-                    slotAllowsService
-                      ? publicBookingErrorCodes.slotUnavailable
-                      : publicBookingErrorCodes.slotNotAllowed,
-                    slotAllowsService
-                      ? "Vybraný termín už není dostupný."
-                      : "Vybraný termín není pro tuto službu dostupný.",
+                    publicBookingErrorCodes.slotUnavailable,
+                    "Vybraný termín už není dostupný.",
                     2,
                   );
                 }
@@ -518,12 +518,16 @@ export async function createBookingWithEngine(
               ...(manualOverride || !resolvedSlot
                 ? {}
                 : {
-                    slotId: resolvedSlot.id,
+                    slotId: {
+                      in: resolvedCoverageSlots.map((coverageSlot) => coverageSlot.id),
+                    },
                   }),
             },
           });
 
-          const allowedCapacity = manualOverride || !resolvedSlot ? 1 : resolvedSlot.capacity;
+          const allowedCapacity = manualOverride || !resolvedSlot
+            ? 1
+            : Math.min(...resolvedCoverageSlots.map((coverageSlot) => coverageSlot.capacity));
 
           if (activeBookingCount >= allowedCapacity) {
             throw new PublicBookingError(
@@ -630,7 +634,7 @@ export async function createBookingWithEngine(
             },
           });
 
-          if (resolvedSlot.status === AvailabilitySlotStatus.PUBLISHED) {
+          if (resolvedSlot.status === AvailabilitySlotStatus.PUBLISHED && resolvedCoverageSlots.length === 1) {
             await splitSlotForEditing(tx, resolvedSlot, requestedStartsAt, requestedEndsAt);
           }
 

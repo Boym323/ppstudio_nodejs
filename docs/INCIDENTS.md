@@ -80,6 +80,7 @@ Evidence produkčních incidentů a jejich řešení.
 - Overview dashboard zobrazující zastaralý počet dnešních rezervací nebo slotů po změně dat; overview musí zůstávat čistě server-rendered read model bez ručního cache layeru.
 - Sender e-mail upravený v admin sekci `Nastavení` na adresu, kterou SMTP provider ve skutečnosti nepovoluje; výsledek budou opakované `EmailLog.status = FAILED`.
 - Přehnaně přísný minimální předstih nebo příliš krátký horizont rezervace ve `SiteSettings`, kvůli kterému veřejný booking náhle schová skoro všechny sloty.
+- Delší služba nabízená až zbytečně pozdě, přestože v kalendáři vizuálně vypadá dost volného času; po zavedení chainingu navazujících slotů je potřeba při podobném hlášení ověřit, že sousední publikované sloty mají opravdu kompatibilní kapacitu, stejná service restrictions a žádnou mezeru mezi segmenty.
 - Rozbitý reset vybraného času při změně dne v kroku 2 `/rezervace`, kvůli kterému by souhrn nebo hidden inputs držely stale `startsAt` mimo aktuálně zobrazený den.
 - Regresní rozbití booking flow nebo týdenního planneru po čistě strukturálním refaktoru; po změnách v `booking-flow`, `booking-public` nebo `admin-slots` vždy ověř build, základní booking smoke flow a admin planner akce.
 - Storno limit nastavený příliš vysoko nebo omylem na `0`, což změní chování self-service storno odkazů.
