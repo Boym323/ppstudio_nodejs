@@ -6,6 +6,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Opraven self-service přesun termínu přes `/rezervace/sprava/[token]`: úspěšná server action už nerevaliduje aktuálně otevřenou veřejnou route, takže v Next.js 16 nezmizí potvrzovací heading kvůli route refreshi a E2E test zůstává stabilní.
 - Přibyl bezpečný CLI cleanup `npm run db:clear-booking-data`, který v dry-run režimu vypisuje počty booking/slot dat a s `-- --confirm` smaže testovací rezervace, termíny a navázané logy bez zásahu do služeb, admin účtů, settings nebo médií.
 - Analytics endpoint a widget teď rozlišují stav Matomo reportingu `ok / disabled / blocked / error`, takže dashboard při zamčeném nebo neplatném API tokenu neukazuje jen tiché nuly; přibyl i CLI check `npm run analytics:check`.
 - Matomo analytics pro admin dashboard nově vrací `sources` pole pro widget `Zdroje rezervací`; backend čte `Referrers.getCampaigns`, fallbackově mapuje `Referrers.getReferrerType` na business názvy a orientačně rozděluje dokončené rezervace podle podílu návštěv zdroje.

@@ -15,8 +15,7 @@ function readFormString(formData: FormData, key: string) {
   return typeof value === "string" ? value : "";
 }
 
-function revalidateBookingPaths(bookingId: string, token: string) {
-  revalidatePath(`/rezervace/sprava/${token}`);
+function revalidateBookingPaths(bookingId: string) {
   revalidatePath("/admin");
   revalidatePath("/admin/rezervace");
   revalidatePath(`/admin/rezervace/${bookingId}`);
@@ -73,7 +72,7 @@ export async function managePublicBookingAction(
       };
     }
 
-    revalidateBookingPaths(result.bookingId, token);
+    revalidateBookingPaths(result.bookingId);
 
     return {
       status: "success",

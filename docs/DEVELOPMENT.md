@@ -21,6 +21,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - `(admin)` pro backoffice.
 - Další vnitřní route group `(protected)` uvnitř adminu chrání sekce vyžadující session.
 - Veřejné booking flow používá server-loaded page + klientský wizard + server action pro finální zápis.
+- U `useActionState` flow na veřejných tokenových stránkách nerevaliduj právě otevřenou route jen kvůli cache invalidaci. V Next.js 16 to po server action může vyvolat route refresh a resetovat lokální success/error stav klientské komponenty dřív, než se vykreslí.
 - Veřejné booking routy nově obsahují i bezpečný provozní action flow `/rezervace/akce/[intent]/[token]`, který renderuje serverovou validaci tokenu a klientský potvrzovací panel nad server action submittem.
 - Veřejné API nyní obsahuje i route handler `/api/calendar/owner.ics`, který vrací chráněný `.ics` feed pro Apple Calendar subscription; endpoint je veřejný jen přes tajný token v URL a nepoužívá session auth.
 - `/rezervace` používá `connection()` a renderuje se request-time, aby ručně publikované sloty nebyly zafixované do build outputu.
