@@ -29,10 +29,10 @@ export function BookingPage({ catalog, initialSelectedServiceSlug, salonProfile 
         ) : !hasSlots ? (
           <section className="rounded-[var(--radius-panel)] border border-black/6 bg-white p-8 shadow-[var(--shadow-panel)]">
             <h3 className="font-display text-3xl text-[var(--color-foreground)]">
-              Momentálně nejsou publikované volné termíny
+              Momentálně nejsou vypsané volné termíny
             </h3>
             <p className="mt-4 max-w-2xl text-base leading-7 text-[var(--color-muted)]">
-              Admin může kdykoli ručně zveřejnit další sloty bez závislosti na pevné otevírací době.
+              Nové termíny zveřejňujeme průběžně. Podívejte se prosím znovu o něco později.
             </p>
           </section>
         ) : (
