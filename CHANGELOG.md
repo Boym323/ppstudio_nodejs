@@ -133,6 +133,7 @@ Formát je inspirovaný Keep a Changelog.
 - Přibyly DB-backed integrační testy pro veřejný booking-management flow, které přes skutečné Prisma wiring ověřují token access, self-service storno, self-service přesun, reminder reset, audit/history zápisy, email orchestrace i odmítnutí neplatných tokenů, kolizí, terminal stavů a pokusů o přesun mimo online okno.
 
 ### Changed
+- Email template renderer je backward-compatible vůči starším `EmailLog.payload` bez `manageReservationUrl`: šablony `booking-confirmation-v1`, `booking-approved-v1`, `booking-reminder-24h-v1` a `booking-rescheduled-v1` už na chybějícím poli nespadnou (`invalid_type`), pouze skryjí případné CTA `Změnit termín`.
 - Opravené otevření draweru v admin sekci `Služby`: desktop detail se už neotevře automaticky po načtení stránky bez explicitního `serviceId`; otevře se až po kliknutí na detail nebo při `mode=create`.
 - Opravené výchozí otevření draweru v admin sekci `Kategorie služeb`: detail se po načtení neotevírá automaticky jen kvůli defaultně vybrané kategorii.
 - Opravená editace služby v admin sekci `Služby`: detail formuláře se při přepnutí na jinou službu remountuje podle `serviceId`, takže se už nepřenášejí staré `defaultValue` z první položky seznamu.

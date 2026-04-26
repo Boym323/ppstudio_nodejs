@@ -544,6 +544,10 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
   - ověřte, že booking má po přesunu `reminder24hQueuedAt = null` a `reminder24hSentAt = null`
   - spusťte `npm run email:worker:once`
   - zkontrolujte, že nový termín leží v reminder okně `23h-25h` od aktuálního času
+- Pokud worker selhává na chybě `Invalid input: expected string, received undefined` s cestou `manageReservationUrl`:
+  - jde typicky o starší `EmailLog.payload`, který pole `manageReservationUrl` ještě neobsahuje
+  - aktuální renderer je backward-compatible a e-mail odešle i bez tohoto pole, jen bez CTA `Změnit termín`
+  - pokud chyba přetrvává, restartujte worker a ověřte, že běží nová verze aplikace
 - Pokud se v adminu změnila cena služby a potřebujete dohledat, kdo zásah provedl:
   - ověřte, že je nasazená migrace `20260424103000_service_price_change_log_v1`
   - hledejte záznam v `ServicePriceChangeLog` podle `serviceId` a času změny

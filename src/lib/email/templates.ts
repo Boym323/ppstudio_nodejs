@@ -15,8 +15,8 @@ const bookingConfirmationPayloadSchema = z.object({
   clientName: z.string().min(1),
   scheduledStartsAt: z.string().datetime(),
   scheduledEndsAt: z.string().datetime(),
-  manageReservationUrl: z.url(),
-  cancellationUrl: z.url(),
+  manageReservationUrl: z.url().optional(),
+  cancellationUrl: z.url().optional(),
 });
 
 const bookingCancelledPayloadSchema = z.object({
@@ -33,7 +33,7 @@ const bookingApprovedPayloadSchema = z.object({
   clientName: z.string().min(1),
   scheduledStartsAt: z.string().datetime(),
   scheduledEndsAt: z.string().datetime(),
-  manageReservationUrl: z.url(),
+  manageReservationUrl: z.url().optional(),
   includeCalendarAttachment: z.boolean().optional(),
 });
 
@@ -43,7 +43,7 @@ const bookingReminder24hPayloadSchema = z.object({
   clientName: z.string().min(1),
   scheduledStartsAt: z.string().datetime(),
   scheduledEndsAt: z.string().datetime(),
-  manageReservationUrl: z.url(),
+  manageReservationUrl: z.url().optional(),
   cancellationUrl: z.url(),
 });
 
@@ -55,7 +55,7 @@ const bookingRescheduledPayloadSchema = z.object({
   previousEndsAt: z.string().datetime(),
   scheduledStartsAt: z.string().datetime(),
   scheduledEndsAt: z.string().datetime(),
-  manageReservationUrl: z.url(),
+  manageReservationUrl: z.url().optional(),
   cancellationUrl: z.url(),
   includeCalendarAttachment: z.boolean().optional(),
 });
@@ -351,7 +351,9 @@ export async function renderEmailTemplate(
               "",
             ]
           : []),
-        `Změnit termín: ${data.manageReservationUrl}`,
+        ...(data.manageReservationUrl
+          ? [`Změnit termín: ${data.manageReservationUrl}`]
+          : []),
         "Pokud budete potřebovat s termínem pomoci, ozvěte se prosím studiu.",
         "",
         `${brand.name}`,
@@ -372,11 +374,13 @@ export async function renderEmailTemplate(
             Termín najdete také v přiložené kalendářové události.
           </p>
           ` : ""}
-          <div style="margin-top:24px;">${buildEmailButton({
-            href: data.manageReservationUrl,
-            label: "Změnit termín",
-            variant: "primary",
-          })}</div>
+          ${data.manageReservationUrl
+            ? `<div style="margin-top:24px;">${buildEmailButton({
+                href: data.manageReservationUrl,
+                label: "Změnit termín",
+                variant: "primary",
+              })}</div>`
+            : ""}
           <p style="margin:18px 0 0;font-size:15px;line-height:1.7;color:#5b4c44;">
             Pokud budete potřebovat s termínem pomoci, napište nám nebo zavolejte. Rádi s vámi domluvíme další postup.
           </p>
@@ -417,7 +421,9 @@ export async function renderEmailTemplate(
         `Kde nás najdete: ${salonProfile.addressLine}`,
         "",
         "Nemůžete dorazit?",
-        `Změnit termín: ${data.manageReservationUrl}`,
+        ...(data.manageReservationUrl
+          ? [`Změnit termín: ${data.manageReservationUrl}`]
+          : []),
         `Ozvat se studiu: ${contactStudioUrl}`,
         `Zrušit rezervaci: ${data.cancellationUrl}`,
         "Pokud by se cokoliv změnilo, dejte nám prosím vědět co nejdříve.",
@@ -439,11 +445,13 @@ export async function renderEmailTemplate(
           </div>
           <div style="margin-top:24px;padding:20px 0 0;border-top:1px solid rgba(33,23,20,0.08);">
             <p style="margin:0 0 14px;font-size:18px;line-height:1.5;color:#1f1714;"><strong>Nemůžete dorazit?</strong></p>
-            <div style="margin:0 0 12px;">${buildEmailButton({
-              href: data.manageReservationUrl,
-              label: "Změnit termín",
-              variant: "primary",
-            })}</div>
+            ${data.manageReservationUrl
+              ? `<div style="margin:0 0 12px;">${buildEmailButton({
+                  href: data.manageReservationUrl,
+                  label: "Změnit termín",
+                  variant: "primary",
+                })}</div>`
+              : ""}
             <div style="margin:0 0 12px;">${buildEmailButton({
               href: contactStudioUrl,
               label: "Ozvat se studiu",
@@ -493,7 +501,9 @@ export async function renderEmailTemplate(
               "",
             ]
           : []),
-        `Další změna termínu: ${data.manageReservationUrl}`,
+        ...(data.manageReservationUrl
+          ? [`Další změna termínu: ${data.manageReservationUrl}`]
+          : []),
         `Zrušit rezervaci: ${data.cancellationUrl}`,
         "",
         `${brand.name}`,
@@ -518,11 +528,13 @@ export async function renderEmailTemplate(
             Aktualizovaný termín najdete také v přiložené kalendářové události.
           </p>
           ` : ""}
-          <div style="margin-top:24px;">${buildEmailButton({
-            href: data.manageReservationUrl,
-            label: "Změnit termín",
-            variant: "primary",
-          })}</div>
+          ${data.manageReservationUrl
+            ? `<div style="margin-top:24px;">${buildEmailButton({
+                href: data.manageReservationUrl,
+                label: "Změnit termín",
+                variant: "primary",
+              })}</div>`
+            : ""}
           <div style="margin-top:24px;">${buildEmailButton({
             href: data.cancellationUrl,
             label: "Zrušit rezervaci",

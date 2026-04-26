@@ -39,6 +39,26 @@ test("renderEmailTemplate creates confirmation email without post-submit action 
   assert.doesNotMatch(email.html, /Zrušit rezervaci/);
 });
 
+test("renderEmailTemplate creates confirmation email for legacy payload without action urls", async () => {
+  const { renderEmailTemplate } = await loadRenderer();
+  const email = await renderEmailTemplate(
+    "booking-confirmation-v1",
+    "Potvrzení rezervace: Luxusní péče",
+    {
+      bookingId: "clztestbookinglegacy",
+      serviceName: "Luxusní péče",
+      clientName: "Jana Nováková",
+      scheduledStartsAt: "2026-04-20T08:00:00.000Z",
+      scheduledEndsAt: "2026-04-20T09:00:00.000Z",
+    },
+  );
+
+  assert.equal(email.subject, "Potvrzení rezervace: Luxusní péče");
+  assert.match(email.text, /Rezervace přijata/);
+  assert.doesNotMatch(email.text, /Změnit termín:/i);
+  assert.doesNotMatch(email.html, /Zrušit rezervaci/);
+});
+
 test("renderEmailTemplate creates cancellation email without booking reference", async () => {
   const { renderEmailTemplate } = await loadRenderer();
   const email = await renderEmailTemplate(
@@ -114,6 +134,26 @@ test("renderEmailTemplate creates approved email", async () => {
   assert.match(email.attachments[0]?.content ?? "", /^BEGIN:VCALENDAR\r\n/);
 });
 
+test("renderEmailTemplate creates approved email for legacy payload without manageReservationUrl", async () => {
+  const { renderEmailTemplate } = await loadRenderer();
+  const email = await renderEmailTemplate(
+    "booking-approved-v1",
+    "Rezervace potvrzena: Luxusní péče",
+    {
+      bookingId: "clztestbookingapprovelegacy",
+      serviceName: "Luxusní péče",
+      clientName: "Jana Nováková",
+      scheduledStartsAt: "2026-04-20T08:00:00.000Z",
+      scheduledEndsAt: "2026-04-20T09:00:00.000Z",
+    },
+  );
+
+  assert.match(email.text, /byla potvrzena/i);
+  assert.doesNotMatch(email.text, /Změnit termín:/i);
+  assert.doesNotMatch(email.html, /Změnit termín/);
+  assert.ok(email.attachments);
+});
+
 test("renderEmailTemplate creates 24h reminder email without calendar attachment", async () => {
   const { renderEmailTemplate } = await loadRenderer();
   const email = await renderEmailTemplate(
@@ -142,6 +182,27 @@ test("renderEmailTemplate creates 24h reminder email without calendar attachment
   assert.match(email.html, /Nemůžete dorazit\?/);
   assert.match(email.html, /Ozvat se studiu/);
   assert.equal(email.attachments, undefined);
+});
+
+test("renderEmailTemplate creates 24h reminder email for legacy payload without manageReservationUrl", async () => {
+  const { renderEmailTemplate } = await loadRenderer();
+  const email = await renderEmailTemplate(
+    "booking-reminder-24h-v1",
+    "Připomínka rezervace - zítra v PP Studio",
+    {
+      bookingId: "clztestbookingremindlegacy",
+      serviceName: "Luxusní péče",
+      clientName: "Jana Nováková",
+      scheduledStartsAt: "2026-04-24T08:00:00.000Z",
+      scheduledEndsAt: "2026-04-24T09:00:00.000Z",
+      cancellationUrl: "https://example.com/rezervace/storno/token-reminder",
+    },
+  );
+
+  assert.match(email.text, /zítra máte rezervaci v PP Studiu/i);
+  assert.doesNotMatch(email.text, /Změnit termín:/i);
+  assert.match(email.text, /Zrušit rezervaci:/i);
+  assert.doesNotMatch(email.html, /Změnit termín/);
 });
 
 test("renderEmailTemplate creates reschedule email with updated term and calendar attachment", async () => {
