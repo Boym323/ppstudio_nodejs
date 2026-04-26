@@ -1,0 +1,233 @@
+"use client";
+
+import { useEffect, useState } from "react";
+
+import { cn } from "@/lib/utils";
+
+export type AnalyticsDashboardData = {
+  visits: number;
+  conversions: number;
+  conversionRate: number;
+  topSource: string;
+  funnel: {
+    service: number;
+    date: number;
+    time: number;
+    created: number;
+  };
+};
+
+type AnalyticsWidgetProps = {
+  className?: string;
+};
+
+type AnalyticsWidgetState =
+  | { status: "loading" }
+  | { status: "error" }
+  | { status: "ready"; data: AnalyticsDashboardData };
+
+const numberFormatter = new Intl.NumberFormat("cs-CZ");
+const percentFormatter = new Intl.NumberFormat("cs-CZ", {
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 2,
+});
+
+function isAnalyticsDashboardData(value: unknown): value is AnalyticsDashboardData {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return false;
+  }
+
+  const candidate = value as Record<string, unknown>;
+  const funnel = candidate.funnel;
+
+  if (!funnel || typeof funnel !== "object" || Array.isArray(funnel)) {
+    return false;
+  }
+
+  const funnelCandidate = funnel as Record<string, unknown>;
+
+  return (
+    Number.isFinite(candidate.visits) &&
+    Number.isFinite(candidate.conversions) &&
+    Number.isFinite(candidate.conversionRate) &&
+    typeof candidate.topSource === "string" &&
+    Number.isFinite(funnelCandidate.service) &&
+    Number.isFinite(funnelCandidate.date) &&
+    Number.isFinite(funnelCandidate.time) &&
+    Number.isFinite(funnelCandidate.created)
+  );
+}
+
+function formatNumber(value: number) {
+  return numberFormatter.format(value);
+}
+
+function formatPercent(value: number) {
+  return `${percentFormatter.format(value)} %`;
+}
+
+function FunnelStep({
+  label,
+  value,
+  helper,
+}: {
+  label: string;
+  value: number;
+  helper?: string;
+}) {
+  return (
+    <div className="rounded-[1rem] border border-white/8 bg-black/18 px-4 py-3.5">
+      <p className="text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-white/42">
+        {label}
+      </p>
+      <p className="mt-2 text-2xl font-bold tracking-tight text-white">{formatNumber(value)}</p>
+      {helper ? <p className="mt-1 text-xs text-white/46">{helper}</p> : null}
+    </div>
+  );
+}
+
+export function AnalyticsWidget({ className }: AnalyticsWidgetProps) {
+  const [state, setState] = useState<AnalyticsWidgetState>({ status: "loading" });
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    async function loadAnalytics() {
+      try {
+        const response = await fetch("/api/admin/analytics", {
+          signal: controller.signal,
+        });
+
+        if (!response.ok) {
+          throw new Error("Analytics request failed.");
+        }
+
+        const payload: unknown = await response.json();
+
+        if (!isAnalyticsDashboardData(payload)) {
+          throw new Error("Analytics payload is invalid.");
+        }
+
+        setState({
+          status: "ready",
+          data: payload,
+        });
+      } catch (error) {
+        if (controller.signal.aborted) {
+          return;
+        }
+
+        if (process.env.NODE_ENV === "development") {
+          console.warn("Analytics widget failed to load.", error);
+        }
+
+        setState({ status: "error" });
+      }
+    }
+
+    void loadAnalytics();
+
+    return () => {
+      controller.abort();
+    };
+  }, []);
+
+  return (
+    <section
+      className={cn(
+        "rounded-[1.65rem] border border-white/8 bg-zinc-900/88 p-5 shadow-[0_18px_50px_rgba(0,0,0,0.18)] sm:p-6",
+        className,
+      )}
+    >
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-[0.72rem] font-semibold uppercase tracking-[0.24em] text-[var(--color-accent-soft)]">
+            Návštěvnost → rezervace
+          </p>
+          <p className="mt-2 text-sm leading-6 text-white/56">
+            Čistý přehled dnešního akvizičního výkonu bez grafů.
+          </p>
+        </div>
+      </div>
+
+      {state.status === "loading" ? (
+        <div className="mt-6 rounded-[1.15rem] border border-dashed border-white/12 bg-white/[0.03] px-4 py-5 text-sm text-white/62">
+          Načítání…
+        </div>
+      ) : null}
+
+      {state.status === "error" ? (
+        <div className="mt-6 rounded-[1.15rem] border border-red-300/18 bg-red-500/10 px-4 py-5 text-sm text-red-50">
+          Data nejsou dostupná
+        </div>
+      ) : null}
+
+      {state.status === "ready" ? (
+        <div className="mt-6 space-y-5">
+          <div className="grid gap-3 sm:grid-cols-3">
+            <article className="rounded-[1.1rem] border border-white/8 bg-white/[0.04] px-4 py-4">
+              <p className="text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-white/42">
+                Návštěvy
+              </p>
+              <p className="mt-2 text-3xl font-bold tracking-tight text-white">
+                {formatNumber(state.data.visits)}
+              </p>
+            </article>
+
+            <article className="rounded-[1.1rem] border border-white/8 bg-white/[0.04] px-4 py-4">
+              <p className="text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-white/42">
+                Rezervace
+              </p>
+              <p className="mt-2 text-3xl font-bold tracking-tight text-white">
+                {formatNumber(state.data.conversions)}
+              </p>
+            </article>
+
+            <article className="rounded-[1.1rem] border border-white/8 bg-white/[0.04] px-4 py-4">
+              <p className="text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-white/42">
+                Konverze %
+              </p>
+              <p className="mt-2 text-3xl font-bold tracking-tight text-white">
+                {formatPercent(state.data.conversionRate)}
+              </p>
+            </article>
+          </div>
+
+          <div className="rounded-[1.1rem] border border-white/8 bg-black/18 px-4 py-3.5">
+            <p className="text-sm text-white/72">
+              Top zdroj:{" "}
+              <span className="font-medium text-white">
+                {state.data.topSource.trim().length > 0 ? state.data.topSource : "—"}
+              </span>
+            </p>
+          </div>
+
+          <div className="rounded-[1.2rem] border border-white/8 bg-white/[0.035] p-4">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-[0.72rem] font-semibold uppercase tracking-[0.2em] text-white/42">
+                Funnel
+              </p>
+              <span className="text-xs text-white/42">
+                Datum: {formatNumber(state.data.funnel.date)}
+              </span>
+            </div>
+
+            <div className="mt-4 flex flex-col gap-2.5">
+              <FunnelStep label="Návštěva" value={state.data.visits} />
+              <div className="flex justify-center text-lg text-white/26">↓</div>
+              <FunnelStep label="Služba" value={state.data.funnel.service} />
+              <div className="flex justify-center text-lg text-white/26">↓</div>
+              <FunnelStep
+                label="Čas"
+                value={state.data.funnel.time}
+                helper={`Výběr data: ${formatNumber(state.data.funnel.date)}`}
+              />
+              <div className="flex justify-center text-lg text-white/26">↓</div>
+              <FunnelStep label="Rezervace" value={state.data.funnel.created} />
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </section>
+  );
+}

@@ -6,6 +6,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Přibyl klientský admin widget `AnalyticsWidget`, který načítá `/api/admin/analytics` a v kompaktní kartě ukazuje KPI `Návštěvy / Rezervace / Konverze %`, top source a jednoduchý vertikální funnel bez grafů.
 - Přibyl admin-protected endpoint `/api/admin/analytics`, který vrací server-side Matomo dashboard agregaci jako JSON s `revalidate = 300`; při interní chybě vrací bezpečný nulový fallback bez tokenu a bez PII.
 - Veřejný booking katalog nově skládá navazující kompatibilní publikované sloty do delších souvislých oken, takže služby s delší délkou (např. 120 min) umí nabídnout termín i přes více po sobě jdoucích slotů místo čekání na jeden ručně vytvořený dlouhý blok.
 - Generátor časů v booking flow, self-service přesunu i admin výběru termínu nově kotví každou nabídnutou hodinu na skutečný podkladový segment, takže backend bezpečně pozná správný `slotId` i uvnitř sloučeného okna.
