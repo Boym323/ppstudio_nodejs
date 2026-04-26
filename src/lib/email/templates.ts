@@ -138,25 +138,21 @@ function buildEmailActionButton({
   label: string;
   variant?: "primary" | "secondary" | "destructive";
 }) {
-  const textColor = variant === "primary" ? "#ffffff" : variant === "destructive" ? "#9f2f24" : "#1f1714";
-  const styles =
-    variant === "primary"
-      ? "background:#1f1714;color:#ffffff;border:1px solid #1f1714;"
-      : variant === "destructive"
-        ? "background:#fff7f5;color:#9f2f24;border:1px solid #f0d4cf;"
-        : "background:#f6efe8;color:#1f1714;border:1px solid #eaded4;";
+  const isPrimary = variant === "primary";
+  const isDestructive = variant === "destructive";
+  const backgroundColor = isPrimary ? "#1f1714" : isDestructive ? "#fff7f5" : "#f6efe8";
+  const borderColor = isPrimary ? "#1f1714" : isDestructive ? "#f0d4cf" : "#eaded4";
+  const textColor = isPrimary ? "#ffffff" : isDestructive ? "#9f2f24" : "#1f1714";
 
-  return `
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:0;">
-      <tr>
-        <td style="border-radius:8px;${styles}">
-          <a href="${escapeHtml(href)}" style="display:block;padding:13px 18px;font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:20px;font-weight:700;text-align:center;text-decoration:none;color:${textColor};white-space:normal;">
-            ${escapeHtml(label)}
-          </a>
-        </td>
-      </tr>
-    </table>
-  `.trim();
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:separate;border-spacing:0;margin:0;">
+    <tr>
+      <td align="center" bgcolor="${backgroundColor}" style="background:${backgroundColor};border:1px solid ${borderColor};border-radius:999px;">
+        <a href="${escapeHtml(href)}" style="display:block;padding:13px 18px;font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:20px;font-weight:700;letter-spacing:0;text-align:center;text-decoration:none;color:${textColor};white-space:normal;-webkit-text-size-adjust:100%;mso-line-height-rule:exactly;">
+          ${escapeHtml(label)}
+        </a>
+      </td>
+    </tr>
+  </table>`;
 }
 
 function buildEmailShell(
