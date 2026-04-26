@@ -330,7 +330,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Serverová doménová vrstva pro email akce je v `src/features/booking/lib/booking-email-actions.ts`; drží validaci intentu, serializable transakci, změnu stavu, audit a založení klientského `EmailLog`.
 - Serverová doménová vrstva `src/features/calendar/lib/booking-calendar-event.ts` řeší validaci calendar tokenu, mapování bookingu na jeden `VEVENT` a generování zákaznického `.ics` payloadu.
 - `EmailLog` je připravený na notifikační workflow a troubleshooting komunikace s klientem.
-- 24h reminder rezervací je v `src/features/booking/lib/booking-reminders.ts`; výběr kandidátek je omezený na `CONFIRMED` bookingy s e-mailem, `reminder24hQueuedAt = null`, `reminder24hSentAt = null` a startem mezi `now + 23h` a `now + 25h`.
+- 24h reminder rezervací je v `src/features/booking/lib/booking-reminders.ts`; výběr kandidátek je omezený na `CONFIRMED` bookingy s e-mailem, `reminder24hQueuedAt = null`, `reminder24hSentAt = null` a startem mezi `now + 25h` a `now + 26h`.
 - Reminder scheduler neběží jako zvláštní služba; `src/lib/email/worker.ts` ho spouští uvnitř existujícího `email:worker` procesu každých 5 minut a vytváří pouze `EmailLog`, nikdy neodesílá SMTP přímo.
 - Reminder template `booking-reminder-24h-v1` je krátký, bez `.ics`, a používá dvojici bezpečných tokenů pro `Změnit termín` a `Zrušit rezervaci`; copy a layout mají držet lidský tón a rychlou scanovatelnost.
 - Idempotence reminderu stojí na kombinaci `Booking.reminder24hQueuedAt`, `Booking.reminder24hSentAt` a transakčního claimu kandidátky; při přesunu termínu reschedule flow queue marker resetuje, aby se reminder mohl navázat na nový čas bez duplikace starého jobu.

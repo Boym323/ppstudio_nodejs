@@ -16,8 +16,8 @@ import {
   buildBookingManagementUrl,
 } from "./booking-action-tokens";
 
-const BOOKING_REMINDER_24H_TARGET_HOURS = 24;
-const BOOKING_REMINDER_24H_WINDOW_HOURS = 1;
+const BOOKING_REMINDER_24H_WINDOW_START_HOURS = 25;
+const BOOKING_REMINDER_24H_WINDOW_END_HOURS = 26;
 const BOOKING_REMINDER_24H_MAX_ITERATIONS = 1_000;
 
 export const BOOKING_REMINDER_SCAN_INTERVAL_MS = 5 * 60 * 1000;
@@ -45,10 +45,10 @@ export type EnqueueBookingReminder24hResult = {
 
 export function getBookingReminder24hWindow(now = new Date()): BookingReminder24hWindow {
   const windowStart = new Date(
-    now.getTime() + (BOOKING_REMINDER_24H_TARGET_HOURS - BOOKING_REMINDER_24H_WINDOW_HOURS) * 60 * 60 * 1000,
+    now.getTime() + BOOKING_REMINDER_24H_WINDOW_START_HOURS * 60 * 60 * 1000,
   );
   const windowEnd = new Date(
-    now.getTime() + (BOOKING_REMINDER_24H_TARGET_HOURS + BOOKING_REMINDER_24H_WINDOW_HOURS) * 60 * 60 * 1000,
+    now.getTime() + BOOKING_REMINDER_24H_WINDOW_END_HOURS * 60 * 60 * 1000,
   );
 
   return {
@@ -323,7 +323,7 @@ export function evaluateBookingReminderDelivery({
   }
 
   const latestAllowedStart = new Date(
-    now.getTime() + (BOOKING_REMINDER_24H_TARGET_HOURS + BOOKING_REMINDER_24H_WINDOW_HOURS) * 60 * 60 * 1000,
+    now.getTime() + BOOKING_REMINDER_24H_WINDOW_END_HOURS * 60 * 60 * 1000,
   );
 
   if (scheduledStartsAt > latestAllowedStart) {

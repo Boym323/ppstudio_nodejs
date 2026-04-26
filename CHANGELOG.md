@@ -6,6 +6,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- 24h reminder enqueue window se posunulo z `23h-25h` na `25h-26h` před termínem, takže reminder s odkazy `Změnit termín` / `Zrušit rezervaci` nechodí až ve chvíli, kdy už online self-service naráží na 24h limit.
 - Veřejná stránka `/rezervace/sprava/[token]` prošla UX refaktorem změny termínu: nový tok začíná kontextem a aktuální rezervací, pokračuje hybridním výběrem `nejbližší termíny + kalendář`, po výběru času scrolluje na potvrzení a storno odsouvá na konec jako slabý odkaz.
 - Self-service výběr termínu je mobilně kompaktnější: sloty jsou ve dvou sloupcích, kalendář má zvýrazněné dostupné dny, vybraný čas je ve sticky spodním souhrnu a potvrzení zůstává jedinou dominantní CTA.
 - Success stav po self-service přesunu už není jedna dlouhá věta přes široký panel; původní a nový termín se zobrazují jako dvě zarovnané souhrnné položky.
@@ -169,7 +170,7 @@ Formát je inspirovaný Keep a Changelog.
 - Referenční kód rezervace byl úplně odstraněný z veřejného booking flow, storno screenů, provozních email action screenů, klientských e-mailů i zákaznické `.ics` události; komunikace se teď opírá jen o službu, termín a tokenizované odkazy.
 - Dokumentace stacku byla zpřesněná podle aktuálního `package.json`: `next` `16.2.4`, `react/react-dom` `19.2.4`, `prisma/@prisma/client/@prisma/adapter-pg` `7.7.0`; zároveň byl v `MANUAL.md` sjednocený popis detailu služby na request-time DB režim.
 - Opraven Turbopack/NFT tracing u route `/media/[kind]/[[...path]]`: media storage path operace jsou nově anotované přes `turbopackIgnore`, takže `next build` už nehlásí warning `Encountered unexpected file in NFT list` a netraceuje celý projekt.
-- `email:worker` nově kromě doručování `EmailLog` také každých 5 minut skenuje potvrzené rezervace v okně `23h-25h` před termínem a enqueueuje jediný reminder `BOOKING_REMINDER` do stejného outbox flow.
+- `email:worker` nově kromě doručování `EmailLog` také každých 5 minut skenuje potvrzené rezervace v okně `25h-26h` před termínem a enqueueuje jediný reminder `BOOKING_REMINDER` do stejného outbox flow.
 - Delivery vrstva před odesláním reminderu znovu kontroluje stav rezervace; zrušený, přesunutý nebo už uzavřený reminder se označí jako `system-skip` místo reálného odeslání.
 - Opraven detail služby `/sluzby/[slug]` pro Next.js 16 async dynamic APIs: route `params` je nově čtené jako `Promise` (`await params`) v `generateMetadata` i ve stránce, takže už nevzniká runtime chyba `sync-dynamic-apis`.
 - Veřejné rezervace nově evidují akviziční zdroj (`Google`, `Facebook`, `Instagram`, `Firmy.cz/Seznam`, `Direct`, `Other`) odvozený z `utm_*` a referrer hostu; data se ukládají k rezervaci i do `BookingSubmissionLog` metadata a v adminu se ukazují v seznamu i detailu rezervace.

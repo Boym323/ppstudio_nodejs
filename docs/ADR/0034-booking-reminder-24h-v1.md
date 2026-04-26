@@ -8,7 +8,7 @@ Rezervační systém už používá `EmailLog` outbox a samostatný `email:worke
 
 ## Rozhodnutí
 - Přidáváme do `Booking` jediné pole `reminder24hSentAt`, které slouží jako trvalá informace, že reminder byl opravdu doručený nebo v log módu uzavřený.
-- Reminder vybírá jen `CONFIRMED` rezervace s vyplněným `clientEmailSnapshot`, `reminder24hSentAt = null` a začátkem v okně `now + 23h` až `now + 25h`.
+- Reminder vybírá jen `CONFIRMED` rezervace s vyplněným `clientEmailSnapshot`, `reminder24hSentAt = null` a začátkem v okně `now + 25h` až `now + 26h`, aby self-service změna/storno z reminderu nekončily na už uzavřeném 24h limitu.
 - Reminder scheduler běží uvnitř existujícího `email:worker` procesu každých 5 minut; nevzniká nový mail sender ani samostatná queue.
 - Scheduler nikdy neposílá e-mail přímo. V transakci pouze vytvoří reminder `EmailLog` typu `BOOKING_REMINDER` a navázaný `BookingActionToken` pro storno link.
 - Před skutečným doručením worker reminder znovu preflightově ověří, že rezervace je stále `CONFIRMED`, ještě nezačala a nebyla už označená jako připomenutá.

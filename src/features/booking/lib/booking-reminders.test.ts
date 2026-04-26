@@ -17,13 +17,13 @@ async function loadReminderModule() {
   return import("./booking-reminders");
 }
 
-test("getBookingReminder24hWindow returns a 23h to 25h selection window", async () => {
+test("getBookingReminder24hWindow returns a 25h to 26h selection window", async () => {
   const { getBookingReminder24hWindow } = await loadReminderModule();
   const now = new Date("2026-04-23T10:00:00.000Z");
   const window = getBookingReminder24hWindow(now);
 
-  assert.equal(window.windowStart.toISOString(), "2026-04-24T09:00:00.000Z");
-  assert.equal(window.windowEnd.toISOString(), "2026-04-24T11:00:00.000Z");
+  assert.equal(window.windowStart.toISOString(), "2026-04-24T11:00:00.000Z");
+  assert.equal(window.windowEnd.toISOString(), "2026-04-24T12:00:00.000Z");
 });
 
 test("evaluateBookingReminderDelivery allows confirmed bookings still in the reminder window", async () => {
@@ -31,7 +31,7 @@ test("evaluateBookingReminderDelivery allows confirmed bookings still in the rem
   const result = evaluateBookingReminderDelivery({
     bookingStatus: BookingStatus.CONFIRMED,
     reminder24hSentAt: null,
-    scheduledStartsAt: new Date("2026-04-24T09:30:00.000Z"),
+    scheduledStartsAt: new Date("2026-04-24T11:30:00.000Z"),
     now: new Date("2026-04-23T10:00:00.000Z"),
   });
 
@@ -43,7 +43,7 @@ test("evaluateBookingReminderDelivery blocks reminders for cancelled bookings", 
   const result = evaluateBookingReminderDelivery({
     bookingStatus: BookingStatus.CANCELLED,
     reminder24hSentAt: null,
-    scheduledStartsAt: new Date("2026-04-24T09:30:00.000Z"),
+    scheduledStartsAt: new Date("2026-04-24T11:30:00.000Z"),
     now: new Date("2026-04-23T10:00:00.000Z"),
   });
 
@@ -56,7 +56,7 @@ test("evaluateBookingReminderDelivery blocks reminders already marked as sent", 
   const result = evaluateBookingReminderDelivery({
     bookingStatus: BookingStatus.CONFIRMED,
     reminder24hSentAt: new Date("2026-04-23T10:05:00.000Z"),
-    scheduledStartsAt: new Date("2026-04-24T09:30:00.000Z"),
+    scheduledStartsAt: new Date("2026-04-24T11:30:00.000Z"),
     now: new Date("2026-04-23T10:00:00.000Z"),
   });
 

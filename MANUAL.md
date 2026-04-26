@@ -550,7 +550,7 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
 - Pokud po přesunu nevzniká nový 24h reminder:
   - ověřte, že booking má po přesunu `reminder24hQueuedAt = null` a `reminder24hSentAt = null`
   - spusťte `npm run email:worker:once`
-  - zkontrolujte, že nový termín leží v reminder okně `23h-25h` od aktuálního času
+  - zkontrolujte, že nový termín leží v reminder okně `25h-26h` od aktuálního času
 - Pokud worker selhává na chybě `Invalid input: expected string, received undefined` s cestou `manageReservationUrl`:
   - jde typicky o starší `EmailLog.payload`, který pole `manageReservationUrl` ještě neobsahuje
   - aktuální renderer je backward-compatible a e-mail odešle i bez tohoto pole, jen bez CTA `Změnit termín`
@@ -582,7 +582,7 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
 - Veřejné čtení `SiteSettings` už při renderu nezapisuje do DB; pokud singleton dočasně chybí nebo DB read selže, veřejný web a e-mailové šablony použijí bezpečné defaulty a bootstrap zápis zůstává jen v owner admin sekci `Nastavení`.
 - Rezervační část má vlastní error boundary a loading fallback, takže výpadek booking vrstvy nepoškodí celý web.
 - Background e-mail worker lze spustit přes `npm run email:worker` jako samostatný proces; pro jednorázové dohnání fronty je k dispozici `npm run email:worker:once`.
-- Stejný `email:worker` nově každých 5 minut i skenuje potvrzené rezervace v okně `23h-25h` před termínem a zapisuje jeden reminder `EmailLog` typu `BOOKING_REMINDER`.
+- Stejný `email:worker` nově každých 5 minut i skenuje potvrzené rezervace v okně `25h-26h` před termínem a zapisuje jeden reminder `EmailLog` typu `BOOKING_REMINDER`.
 - Po přesunu termínu resetuje doménová akce `rescheduleBooking(...)` oba reminder markery, takže se starý reminder neposílá pro původní termín a nový čas může znovu projít standardním enqueue flow.
 - Před produkční aplikací migrací je k dispozici `npm run db:check-migrations`, který odhalí otevřené failed/incomplete záznamy v `_prisma_migrations`.
 - Pro systemd provoz použij [`deploy/systemd/ppstudio-web.service`](/var/www/ppstudio/deploy/systemd/ppstudio-web.service) pro hlavní app a [`deploy/systemd/ppstudio-email-worker.service`](/var/www/ppstudio/deploy/systemd/ppstudio-email-worker.service) pro worker.
