@@ -15,7 +15,7 @@ async function loadRenderer() {
   return import("@/lib/email/templates");
 }
 
-test("renderEmailTemplate creates confirmation email with cancellation link", async () => {
+test("renderEmailTemplate creates confirmation email without post-submit action links", async () => {
   const { renderEmailTemplate } = await loadRenderer();
   const email = await renderEmailTemplate(
     "booking-confirmation-v1",
@@ -32,10 +32,11 @@ test("renderEmailTemplate creates confirmation email with cancellation link", as
   );
 
   assert.equal(email.subject, "Potvrzení rezervace: Luxusní péče");
-  assert.match(email.text, /token-manage/);
-  assert.match(email.text, /token123/);
-  assert.match(email.html, /Změnit termín/);
-  assert.match(email.html, /Zrušit rezervaci/);
+  assert.doesNotMatch(email.text, /token-manage/);
+  assert.doesNotMatch(email.text, /token123/);
+  assert.doesNotMatch(email.html, /Další kroky/i);
+  assert.doesNotMatch(email.html, /Změnit termín/);
+  assert.doesNotMatch(email.html, /Zrušit rezervaci/);
 });
 
 test("renderEmailTemplate creates cancellation email without booking reference", async () => {

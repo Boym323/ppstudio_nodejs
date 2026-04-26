@@ -240,9 +240,6 @@ export async function renderEmailTemplate(
         "Co bude následovat:",
         "Potvrzení přijde dalším e-mailem a kdyby bylo potřeba něco upřesnit, ozveme se.",
         "",
-        `Změnit termín: ${data.manageReservationUrl}`,
-        `Zrušení rezervace: ${data.cancellationUrl}`,
-        "",
         "Potřebujete pomoc?",
         `${brand.email}`,
         `${brand.phone}`,
@@ -280,22 +277,6 @@ export async function renderEmailTemplate(
           <div style="margin-top:20px;border:1px solid rgba(33,23,20,0.08);border-radius:20px;padding:20px;background:#ffffff;">
             <p style="margin:0;font-size:12px;letter-spacing:0.2em;text-transform:uppercase;color:#9e7f65;">Co bude následovat</p>
             <p style="margin:12px 0 0;font-size:15px;line-height:1.7;color:#5b4c44;">Potvrzení přijde dalším e-mailem a kdyby bylo potřeba něco upřesnit, ozveme se.</p>
-          </div>
-          <div style="margin-top:20px;border:1px solid rgba(33,23,20,0.08);border-radius:20px;padding:20px;background:#ffffff;">
-            <p style="margin:0 0 14px;font-size:12px;letter-spacing:0.2em;text-transform:uppercase;color:#9e7f65;">Další kroky</p>
-            <div style="font-size:0;line-height:0;">
-              <div style="display:inline-block;margin:0 10px 10px 0;">${buildEmailButton({
-                href: data.manageReservationUrl,
-                label: "Změnit termín",
-                variant: "primary",
-              })}</div>
-              <div style="display:inline-block;margin:0 10px 10px 0;">${buildEmailButton({
-                href: data.cancellationUrl,
-                label: "Zrušit rezervaci",
-                variant: "destructive",
-              })}</div>
-            </div>
-            <p style="margin:6px 0 0;font-size:13px;line-height:1.7;color:#7a675c;">Rezervaci můžete pohodlně přesunout na jiný volný termín, případně ji zrušit.</p>
           </div>
           <div style="margin-top:20px;border:1px solid rgba(33,23,20,0.08);border-radius:20px;padding:20px;background:#ffffff;">
             <p style="margin:0;font-size:12px;letter-spacing:0.2em;text-transform:uppercase;color:#9e7f65;">Potřebujete pomoc?</p>

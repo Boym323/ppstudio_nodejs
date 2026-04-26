@@ -6,6 +6,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Klientský potvrzovací e-mail `booking-confirmation-v1` už neobsahuje sekci `Další kroky`; CTA `Změnit termín` / `Zrušit rezervaci` i doprovodná věta byly odstraněné, aby e-mail po odeslání rezervace působil jako klidné potvrzení bez dalšího rozhodování.
 - Veřejný success screen po vytvoření rezervace je nově čisté uklidňující potvrzení: zachovává hero `Rezervace přijata`, stav `Čeká na finální potvrzení`, detail služby / data / času a stručně říká, co se stane dál.
 - Z confirmation panelu byl odstraněn blok `Potřebujete změnu?` včetně CTA `Změnit termín` a `Zrušit rezervaci`; post-submit obrazovka už nepůsobí jako další krok flow.
 - Intro rezervační stránky `Vyberte si termín...` se už po úspěšném submitu nezobrazuje nad confirmation panelem; zůstává jen v aktivním výběru termínu.

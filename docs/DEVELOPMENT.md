@@ -386,7 +386,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - templates renderují obsah z `EmailLog.templateKey`
   - worker claimuje `EmailLog` řádky v background režimu a delivery aktualizuje `EmailLog.status`, `provider`, `providerMessageId`, `attemptCount`, `nextAttemptAt` a `errorMessage`
 - Admin šablona `admin-booking-notification-v1` má zůstat email-safe a mobilně rozhodovací: inline styly, tabulková plnošířková CTA, Arial/Helvetica pro tlačítka, bez web fontů, bez přehnaného letter-spacing a bez dlouhého vysvětlování procesu. Neměň approve/reject tokenové URL ani `adminUrl`; `Přesunout termín` vede na existující detail rezervace v administraci.
-- Potvrzovací e-mail `booking-confirmation-v1` může nést bezpečné akce pro správu rezervace, ale webový post-submit confirmation screen má držet hierarchii bez CTA: stav -> služba / termín -> další kroky -> uklidnění -> kontakt.
+- Potvrzovací e-mail `booking-confirmation-v1` má stejně jako webový post-submit screen držet hierarchii bez CTA: stav -> služba / termín -> další kroky -> kontakt.
 - `booking-confirmation-v1`, `booking-approved-v1`, `booking-reminder-24h-v1` i `booking-rescheduled-v1` teď dostávají `manageReservationUrl`; token se generuje per e-mail/send a do DB se ukládá jen jeho hash.
 - Referenční kód rezervace už se v klientském flow záměrně nepoužívá; veřejný web, e-maily i `.ics` popis komunikují jen službu, termín a konkrétní akce přes tokenizované odkazy.
 - Potvrzovací e-mail `booking-approved-v1` nově přikládá soubor `pp-studio-rezervace.ics`; attachment se generuje serverově při renderu šablony z payloadu `bookingId + serviceName + scheduledStartsAt + scheduledEndsAt`.
