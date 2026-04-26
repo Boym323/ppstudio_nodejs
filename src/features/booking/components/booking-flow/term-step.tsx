@@ -83,7 +83,7 @@ export function BookingTermStep({
             Vyberte termín
           </h3>
           <p className="mt-2 text-sm leading-6 text-[var(--color-muted)]">
-            Nejrychlejší je kliknout na nejbližší volný čas. Kalendář necháváme jako druhou možnost.
+            Zvolte nejbližší volný čas, nebo si v kalendáři najděte jiný den.
           </p>
         </div>
         {canGoToStep3 ? (

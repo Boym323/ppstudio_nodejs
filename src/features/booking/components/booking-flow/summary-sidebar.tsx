@@ -47,7 +47,7 @@ export function BookingSummarySidebar({
           Krok 4
         </p>
         <h3 className="mt-2 font-display text-2xl text-[var(--color-foreground)] sm:mt-3 sm:text-3xl">
-          Kontrola a odeslání
+          Souhrn a potvrzení
         </h3>
 
         <div className="mt-4 space-y-3 sm:mt-6 sm:space-y-4">
@@ -131,8 +131,7 @@ export function BookingSummarySidebar({
         </div>
 
         <div className="mt-4 rounded-3xl border border-black/6 bg-white/80 p-4 text-sm leading-6 text-[var(--color-muted)] sm:mt-6 sm:p-5">
-          Jakmile rezervaci odešlete, ověříme dostupnost termínu a dáme vám vědět e-mailem. V něm najdete
-          i odkaz pro případnou změnu nebo zrušení.
+          Před odesláním si prosím zkontrolujte službu, termín a kontakt. Potvrzení pošleme e-mailem.
         </div>
 
         {serverState.status === "error" && serverState.suggestedStep ? (

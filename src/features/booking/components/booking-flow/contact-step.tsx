@@ -58,7 +58,7 @@ export function BookingContactStep({
             Kontaktní údaje
           </h3>
           <p className="mt-2 text-sm leading-6 text-[var(--color-muted)]">
-            Po odeslání rezervaci ručně zkontrolujeme a pošleme potvrzení na e-mail.
+            Doplňte kontakt, ať vám můžeme poslat potvrzení a případně se domluvit na detailech.
           </p>
         </div>
         <button

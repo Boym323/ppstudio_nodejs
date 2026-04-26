@@ -81,7 +81,7 @@ export function BookingServiceStep({
           Vyberte službu
         </h3>
         <p className="mt-2 text-sm leading-6 text-[var(--color-muted)]">
-          Nejdřív zvolte kategorii. Potom vám ukážeme jen konkrétní služby z ní.
+          Vyberte kategorii a poté konkrétní službu.
         </p>
       </div>
 
