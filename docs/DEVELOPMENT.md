@@ -61,7 +61,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Klientský e-mail `booking-approved-v1` se renderuje v `src/lib/email/templates.ts` a má zůstat krátký, email-safe a mobilně čitelný: potvrzení rezervace, termín, služba, viditelná adresa, připomenutí `.ics` přílohy, jednorázový kontakt na studio a sekundární odkazy na správu rezervace dole.
 - Veřejně dostupná nahraná média se servírují přes route handler `src/app/media/[kind]/[[...path]]/route.ts`, ne přes `public/` repozitáře.
 - `next.config.ts` používá `allowedDevOrigins` pro lokální LAN vývoj na `192.168.0.143` i pro public dev test přes `ppstudio.cz` / `www.ppstudio.cz`; bez toho Next.js 16 z jiného zařízení nebo přes reverse proxy zablokuje dev assety a HMR endpoint `/_next/webpack-hmr`.
-- `npm test` a `npm run test:db:booking` běží s `node -r ./src/test/register-server-only.cjs --import tsx --test ...`, takže plain Node test runner umí načíst `import "server-only"` bez zásahu do ostatních Next internals. Pokud přidáš další server-only moduly, použij tenhle sdílený hook místo lokálních per-test stubů.
+- `npm test` a `npm run test:db:booking` běží s `node --import ./src/test/register-server-only.mjs --import tsx --test ...`, takže plain Node test runner umí načíst `import "server-only"` bez zásahu do ostatních Next internals. Pokud přidáš další server-only moduly, použij tenhle sdílený hook místo lokálních per-test stubů.
 
 ## Veřejný Web
 - Každá veřejná stránka má vlastní route a metadata.

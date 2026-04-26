@@ -7,7 +7,7 @@ Formát je inspirovaný Keep a Changelog.
 ## [Unreleased]
 
 - Veřejná hláška v rezervacích pro stav bez volných termínů už nepoužívá interní admin wording; místo technické formulace vysvětluje zákaznici jednoduše, že nové termíny přibývají průběžně.
-- Přidána runtime závislost `server-only` a Node test runner teď před testy registruje cílený `-r ./src/test/register-server-only.cjs` hook, takže CI korektně načte server-only moduly i mimo Next bundler bez rozbití ostatních Next route testů.
+- Přidána runtime závislost `server-only` a Node test runner teď před testy registruje cílený `--import ./src/test/register-server-only.mjs` hook, takže CI korektně načte server-only moduly i mimo Next bundler bez rozbití ostatních Next route testů.
 - OWNER ma v `/admin/nastaveni` novy blok `Pushover notifikace`: uklada se per-user `UserNotificationSettings`, podporuje server-only `PUSHOVER_ENABLED` / `PUSHOVER_APP_TOKEN`, testovaci notifikaci, volitelne event typy pro rezervace/system a bezpecne Pushover odesilani s 30s in-memory rate limitem bez dopadu na booking, email ani reminder flow.
 - Opraven self-service přesun termínu přes `/rezervace/sprava/[token]`: úspěšná server action už nerevaliduje aktuálně otevřenou veřejnou route, takže v Next.js 16 nezmizí potvrzovací heading kvůli route refreshi a E2E test zůstává stabilní.
 - Přibyl bezpečný CLI cleanup `npm run db:clear-booking-data`, který v dry-run režimu vypisuje počty booking/slot dat a s `-- --confirm` smaže testovací rezervace, termíny a navázané logy bez zásahu do služeb, admin účtů, settings nebo médií.
