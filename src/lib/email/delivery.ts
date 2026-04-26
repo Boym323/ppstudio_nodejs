@@ -8,6 +8,7 @@ import { prisma } from "@/lib/prisma";
 import { sendEmail } from "@/lib/email/provider";
 import { getEmailDeliveryRetryDelayMs, getMaxEmailDeliveryAttempts } from "@/lib/email/retry";
 import { renderEmailTemplate } from "@/lib/email/templates";
+import { sendOwnerEmailFailurePushover } from "@/lib/notifications/pushover";
 
 export type EmailLogDeliveryOutcome = {
   status: "sent" | "failed" | "skipped";
@@ -166,6 +167,15 @@ export async function deliverEmailLog(emailLogId: string): Promise<EmailLogDeliv
         errorMessage,
       },
     });
+
+    if (!shouldRetry) {
+      await sendOwnerEmailFailurePushover({
+        emailLogId: emailLog.id,
+        bookingId: emailLog.bookingId,
+        emailType: emailLog.type,
+        isReminder: emailLog.type === EmailLogType.BOOKING_REMINDER,
+      });
+    }
 
     console.error("Email delivery failed", {
       emailLogId,

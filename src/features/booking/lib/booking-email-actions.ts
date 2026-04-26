@@ -21,6 +21,7 @@ import {
   hashBookingActionToken,
 } from "@/features/booking/lib/booking-action-tokens";
 import { formatBookingDateLabel } from "@/features/booking/lib/booking-format";
+import { sendOwnerBookingPushover } from "@/lib/notifications/pushover";
 import { prisma } from "@/lib/prisma";
 
 type BookingEmailActionTargetStatus = "CONFIRMED" | "CANCELLED";
@@ -517,6 +518,12 @@ export async function performBookingEmailAction(
   if (transactionResult.status !== "completed") {
     return transactionResult;
   }
+
+  await sendOwnerBookingPushover({
+    type: intent === "approve" ? "BOOKING_CONFIRMED" : "BOOKING_CANCELLED",
+    bookingId: transactionResult.details.bookingId,
+    sourceLabel: "Email akce",
+  });
 
   return {
     status: "completed",

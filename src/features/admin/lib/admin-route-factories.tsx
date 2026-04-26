@@ -17,6 +17,7 @@ import { AdminWeeklyPlannerPage } from "@/features/admin/components/admin-weekly
 import { getOwnerCalendarFeedAdminState } from "@/features/calendar/lib/calendar-feed-service";
 import { ensureSiteSettings } from "@/lib/site-settings";
 import { requireAdminArea } from "@/lib/auth/session";
+import { prisma } from "@/lib/prisma";
 
 import { getAdminBookingDetailData } from "./admin-booking";
 import { getAdminClientDetailData } from "./admin-clients";
@@ -90,9 +91,34 @@ export function createAdminSectionRoute(area: AdminArea) {
     }
 
     if (section === "nastaveni") {
-      const [settings, calendarFeed] = await Promise.all([
+      const session = await requireAdminSectionAccess(area, section);
+      const [settings, calendarFeed, ownerNotificationSettings] = await Promise.all([
         ensureSiteSettings(),
         getOwnerCalendarFeedAdminState(),
+        prisma.adminUser.findFirst({
+          where: {
+            email: {
+              equals: session.email.trim(),
+              mode: "insensitive",
+            },
+          },
+          select: {
+            notificationSettings: {
+              select: {
+                pushoverUserKey: true,
+                pushoverEnabled: true,
+                notifyNewBooking: true,
+                notifyBookingPending: true,
+                notifyBookingConfirmed: true,
+                notifyBookingCancelled: true,
+                notifyBookingRescheduled: true,
+                notifyEmailFailed: true,
+                notifyReminderFailed: true,
+                notifySystemErrors: true,
+              },
+            },
+          },
+        }),
       ]);
       const formatDateTime = new Intl.DateTimeFormat("cs-CZ", {
         day: "numeric",
@@ -128,6 +154,18 @@ export function createAdminSectionRoute(area: AdminArea) {
               rotatedAtLabel: calendarFeed.rotatedAt ? formatDateTime.format(calendarFeed.rotatedAt) : null,
               revokedAtLabel: calendarFeed.revokedAt ? formatDateTime.format(calendarFeed.revokedAt) : null,
               updatedByName: calendarFeed.updatedByName,
+            },
+            pushover: {
+              pushoverUserKey: ownerNotificationSettings?.notificationSettings?.pushoverUserKey ?? null,
+              pushoverEnabled: ownerNotificationSettings?.notificationSettings?.pushoverEnabled ?? false,
+              notifyNewBooking: ownerNotificationSettings?.notificationSettings?.notifyNewBooking ?? true,
+              notifyBookingPending: ownerNotificationSettings?.notificationSettings?.notifyBookingPending ?? true,
+              notifyBookingConfirmed: ownerNotificationSettings?.notificationSettings?.notifyBookingConfirmed ?? true,
+              notifyBookingCancelled: ownerNotificationSettings?.notificationSettings?.notifyBookingCancelled ?? true,
+              notifyBookingRescheduled: ownerNotificationSettings?.notificationSettings?.notifyBookingRescheduled ?? true,
+              notifyEmailFailed: ownerNotificationSettings?.notificationSettings?.notifyEmailFailed ?? true,
+              notifyReminderFailed: ownerNotificationSettings?.notificationSettings?.notifyReminderFailed ?? true,
+              notifySystemErrors: ownerNotificationSettings?.notificationSettings?.notifySystemErrors ?? true,
             },
           }}
         />

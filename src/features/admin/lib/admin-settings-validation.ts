@@ -76,3 +76,16 @@ export const updateEmailSettingsSchema = z.object({
     .optional()
     .or(z.literal("")),
 });
+
+export const updatePushoverSettingsSchema = z.object({
+  pushoverUserKey: z.string().trim().max(128, "Pushover User Key je příliš dlouhý.").optional().or(z.literal("")),
+  pushoverEnabled: z.boolean(),
+  notifyNewBooking: z.boolean(),
+  notifyBookingPending: z.boolean(),
+  notifyBookingConfirmed: z.boolean(),
+  notifyBookingCancelled: z.boolean(),
+  notifyBookingRescheduled: z.boolean(),
+  notifyEmailFailed: z.boolean(),
+  notifyReminderFailed: z.boolean(),
+  notifySystemErrors: z.boolean(),
+});

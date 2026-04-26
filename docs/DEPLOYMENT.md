@@ -4,7 +4,7 @@ Postup nasazení aplikace do produkce.
 
 ## Release checklist
 1. `npm ci`
-2. Ověř správné produkční env proměnné (`DATABASE_URL`, `ADMIN_SESSION_SECRET`, admin bootstrap účty, email delivery, worker, `MEDIA_STORAGE_ROOT`, volitelně `NEXT_PUBLIC_MATOMO_*` a serverové `MATOMO_*` pro dashboard reporting)
+2. Ověř správné produkční env proměnné (`DATABASE_URL`, `ADMIN_SESSION_SECRET`, admin bootstrap účty, email delivery, worker, `MEDIA_STORAGE_ROOT`, volitelně `NEXT_PUBLIC_MATOMO_*`, serverové `MATOMO_*` pro dashboard reporting a `PUSHOVER_ENABLED` / `PUSHOVER_APP_TOKEN` pro owner notifikace)
 3. Ověř existenci a práva k upload rootu; web proces musí umět zapisovat do `MEDIA_STORAGE_ROOT` nebo do výchozí cesty `/var/www/ppstudio/uploads`.
 4. Zálohuj databázi, pokud release obsahuje novou Prisma migraci.
 5. Zálohuj nebo snapshotuj upload root, pokud release mění práci s médii nebo cleanup logiku.
@@ -101,6 +101,10 @@ Postup nasazení aplikace do produkce.
      - propsání storno limitu do `/faq` a `/storno-podminky`
      - na `/storno-podminky` správné kontakty v hero boxu `Jak zrušit rezervaci` a správné hodnoty v kartách hlavních pravidel
      - propsání booking limitů do `/rezervace`
+     - blok `Pushover notifikace` je viditelný jen pro `OWNER`
+     - ulozeni Pushover User Key, zapnuti/vypnuti hlavniho toggle a jednotlivych event typu
+     - testovaci notifikace vrati jasny stav pro uspech, chybejici User Key, vypnuty `PUSHOVER_ENABLED` nebo chybejici `PUSHOVER_APP_TOKEN`
+     - `SALON` nema v navigaci ani route pristup k `/admin/nastaveni`
    - owner sekci `/admin/uzivatele`:
      - seznam přístupů ukazuje jen role `OWNER` a `SALON`
      - systémové účty jsou read-only a zobrazují se jako `Systémový účet`
@@ -174,6 +178,13 @@ Postup nasazení aplikace do produkce.
     - `Content-Type: text/calendar; charset=utf-8`
     - ve feedu jsou jen `CONFIRMED` rezervace
     - po zrušení nebo přepnutí rezervace mimo `CONFIRMED` event zmizí při dalším fetchi
+  - Pushover owner notifikace, pokud jsou v produkci zapnute:
+    - nova webova rezervace posle `NEW_BOOKING`
+    - manualni pending rezervace posle `BOOKING_PENDING`
+    - potvrzeni, zruseni a presun poslou prislusny booking event
+    - finalni selhani emailu/reminderu posle pouze jednu provozni chybu po vycerpani retry
+    - duplicitni submit/retry stejneho `bookingId` nebo `emailLogId` se v jednom procesu potlaci 30s rate limitem
+    - vypnuti nebo chyba Pushover API nema zmenit vysledek rezervace ani email workeru
 
 ## Nasazení
 1. Pull nové verze na server.

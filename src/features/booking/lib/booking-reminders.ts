@@ -7,6 +7,7 @@ import {
 } from "@prisma/client";
 
 import { env } from "@/config/env";
+import { sendOwnerPushover } from "@/lib/notifications/pushover";
 import { prisma } from "@/lib/prisma";
 
 import {
@@ -258,6 +259,17 @@ export async function enqueueBookingReminder24hJobs(
       console.error("Booking reminder 24h enqueue failed", {
         bookingId: claimedBookingId,
         error,
+      });
+
+      await sendOwnerPushover({
+        type: "REMINDER_FAILED",
+        title: "PP Studio - chyba reminderu",
+        message: "Nepodarilo se zalozit 24h reminder do emailove fronty.",
+        priority: 1,
+        context: {
+          contextId: claimedBookingId ?? `reminder-scan-${now.toISOString()}`,
+          bookingId: claimedBookingId,
+        },
       });
     }
   }

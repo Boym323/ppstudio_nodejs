@@ -148,6 +148,27 @@ model AdminUser {
   updatedCalendarFeeds      CalendarFeed[]          @relation("CalendarFeedUpdatedBy")
   updatedSettings           Setting[]               @relation("SettingUpdatedBy")
   updatedSiteSettings       SiteSettings[]          @relation("SiteSettingsUpdatedBy")
+  notificationSettings      UserNotificationSettings?
+}
+
+model UserNotificationSettings {
+  id                         String    @id @default(cuid())
+  userId                     String    @unique
+  pushoverUserKey            String?
+  pushoverEnabled            Boolean   @default(false)
+  notifyNewBooking           Boolean   @default(true)
+  notifyBookingConfirmed     Boolean   @default(true)
+  notifyBookingCancelled     Boolean   @default(true)
+  notifyBookingRescheduled   Boolean   @default(true)
+  notifyBookingPending       Boolean   @default(true)
+  notifyEmailFailed          Boolean   @default(true)
+  notifyReminderFailed       Boolean   @default(true)
+  notifySystemErrors         Boolean   @default(true)
+  createdAt                  DateTime  @default(now())
+  updatedAt                  DateTime  @updatedAt
+  user                       AdminUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([pushoverEnabled])
 }
 
 model AdminUserInviteToken {

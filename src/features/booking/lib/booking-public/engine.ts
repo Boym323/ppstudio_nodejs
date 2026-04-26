@@ -8,6 +8,7 @@ import {
 import { env } from "@/config/env";
 import { formatBookingDateLabel } from "@/features/booking/lib/booking-format";
 import { deliverEmailLog } from "@/lib/email/delivery";
+import { sendOwnerBookingPushover } from "@/lib/notifications/pushover";
 import { prisma } from "@/lib/prisma";
 import {
   getBookingPolicySettings,
@@ -713,6 +714,16 @@ export async function createBookingWithEngine(
           await deliverEmailLog(emailLogId);
         }
       }
+
+      await sendOwnerBookingPushover({
+        type: input.status === BookingStatus.CONFIRMED
+          ? "BOOKING_CONFIRMED"
+          : input.isManual
+            ? "BOOKING_PENDING"
+            : "NEW_BOOKING",
+        bookingId: transactionResult.bookingId,
+        sourceLabel: input.isManual ? input.source : "Web",
+      });
 
       return transactionResult;
     } catch (error) {

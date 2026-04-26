@@ -19,6 +19,7 @@ import {
   PublicBookingError,
 } from "@/features/booking/lib/booking-public";
 import { type PublicBookingActionState } from "@/features/booking/actions/public-booking-action-state";
+import { sendOwnerPushover } from "@/lib/notifications/pushover";
 
 function readFormString(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -340,6 +341,16 @@ export async function createPublicBookingAction(
     }
 
     console.error("Public booking action failed", error);
+
+    await sendOwnerPushover({
+      type: "SYSTEM_ERROR",
+      title: "PP Studio - systemova chyba",
+      message: "Verejne vytvoreni rezervace skoncilo neocekavanou chybou.",
+      priority: 1,
+      context: {
+        contextId: submissionMetadata.ipHash ?? parsed.data.slotId,
+      },
+    });
 
     await writeSubmissionLog({
       outcome: BookingSubmissionOutcome.FAILED,

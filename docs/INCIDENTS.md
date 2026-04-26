@@ -34,6 +34,10 @@ Evidence produkčních incidentů a jejich řešení.
 - Chybně zapnutý nebo rozbitý Matomo tracking, který by posílal admin nebo tokenové URL, duplicitní první pageview, PII v event name, nebo by chybou `_paq` ovlivnil booking flow; helper musí zůstat bezpečný no-op.
 - Rozbitý server-side Matomo dashboard reporting kvůli chybějícímu `MATOMO_AUTH_TOKEN`, špatnému `MATOMO_SITE_ID`, nedostupnému Reporting API nebo omylem veřejně vystavenému tokenu; UI má zůstat na nulových fallback hodnotách a token nesmí mít prefix `NEXT_PUBLIC_`.
 - Endpoint `/api/admin/analytics` omylem dostupný bez admin session nebo vracející detailní payload z Matomo; endpoint smí vracet jen agregovaná dashboard čísla bez PII a bez `token_auth`.
+- Rozbita Pushover konfigurace (`PUSHOVER_ENABLED=true` bez `PUSHOVER_APP_TOKEN`, spatny owner User Key nebo nedostupne Pushover API) nesmi rozbit rezervaci, potvrzeni, storno, presun, email worker ani reminder scan; spravne chovani je log + preskoceni nebo chybovy stav jen v testovacim tlacitku.
+- `SALON` omylem vidi Pushover nastaveni nebo prijima Pushover notifikaci; UI i serverovy dotaz musi zustat omezeny na `AdminRole.OWNER`.
+- Pushover zprava obsahuje telefon, raw token, citlivou poznamku klientky nebo cely payload; notifikace maji posilat jen sluzbu, termin, zdroj, typ chyby a odkaz do adminu.
+- Pushover spam pri retry nebo opakovanem submitu; stejne `type + bookingId/contextId/emailLogId` ma byt v jednom procesu potlaceno 30s in-memory rate limitem.
 - Opakované `EmailLog.status = FAILED` po nasazení nové SMTP konfigurace.
 - Nefunkční storno odkazy kvůli špatnému `NEXT_PUBLIC_APP_URL` nebo proxy přepisu hosta.
 - Nefunkční self-service odkaz `Změnit termín` kvůli špatnému `NEXT_PUBLIC_APP_URL`, rozbité route `/rezervace/sprava/[token]` nebo chybně generovanému `BookingActionTokenType.RESCHEDULE`.

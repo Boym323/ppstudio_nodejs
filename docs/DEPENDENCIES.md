@@ -13,6 +13,7 @@ Seznam důležitých knihoven a důvod jejich použití.
 - `@playwright/test`: browser E2E test runner pro hlavní rezervační a admin flow.
 - Matomo tracking nepřidává žádnou npm závislost; používá `next/script`, App Router navigation hooks a standardní `window._paq` frontu.
 - Server-side Matomo Reporting API vrstva také nepřidává žádnou npm závislost; používá vestavěný `fetch`, Next.js revalidation cache a lokální TypeScript normalizaci odpovědí.
+- Pushover notifikace nepridavaji zadnou npm zavislost; serverova integrace pouziva vestaveny `fetch`, `URLSearchParams`, Prisma a existujici Next.js server action pattern.
 
 ## Core
 - `next`: framework aplikace.
@@ -32,6 +33,7 @@ Seznam důležitých knihoven a důvod jejich použití.
 - `dotenv`: načtení `.env` pro Prisma CLI konfiguraci.
 - vestavěný Node.js `crypto`: generování a hashování action tokenů pro booking workflow bez další závislosti.
 - vestavěný Node.js `crypto` také nově podepisuje odvozené tokeny pro chráněný owner ICS feed; nebyla přidána žádná externí iCalendar nebo calendar auth knihovna.
+- Owner Pushover integrace byla pridana bez SDK baliku; POST na `https://api.pushover.net/1/messages.json` se sklada primo v server-only modulu a chyby se jen loguji.
 - Pro nové provozní approve/reject odkazy jsme nepřidávali žádnou další knihovnu; bezpečnost flow dál stojí na existujícím Node.js `crypto`, Prisma transakcích a Next.js App Router server actions.
 - Refaktor HTML šablony admin notifikace také nepřidává žádnou knihovnu; email-safe layout je ručně skládaný přes inline styly a prezentační tabulky.
 - Ani zákaznická `.ics` příloha po potvrzení rezervace nepřidává novou knihovnu; používá lokální iCalendar utility a stávající SMTP vrstvu přes `nodemailer`.

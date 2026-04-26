@@ -18,6 +18,8 @@ Dokumentace proměnných prostředí pro lokální vývoj i produkci.
 - `MATOMO_URL`: server-side URL Matomo instance pro Reporting API; typicky stejný origin jako veřejné Matomo, ale bez vystavení tokenu klientovi.
 - `MATOMO_SITE_ID`: server-side ID webu pro Reporting API.
 - `MATOMO_AUTH_TOKEN`: tajný Matomo Reporting API token pro dashboard agregace; nikdy nepoužívej prefix `NEXT_PUBLIC_`.
+- `PUSHOVER_ENABLED`: server-only globalni vypinac owner Pushover notifikaci; odesila se pouze pri presne hodnote `true`.
+- `PUSHOVER_APP_TOKEN`: server-only Pushover application token pro projekt; nikdy nepouzivej prefix `NEXT_PUBLIC_`.
 - `DATABASE_URL`: PostgreSQL connection string pro Prisma.
 - `SHADOW_DATABASE_URL`: pomocná databáze pro `prisma migrate dev` (lokální vývoj).
 - `ADMIN_SESSION_SECRET`: klíč pro podpis admin session cookie.
@@ -50,6 +52,8 @@ Dokumentace proměnných prostředí pro lokální vývoj i produkci.
 - Matomo konfigurace je volitelná: pokud `NEXT_PUBLIC_MATOMO_ENABLED` není přesně `true`, nebo chybí URL či site ID, tracking zůstane vypnutý. Protože jde o `NEXT_PUBLIC_*` proměnné, hodnoty se promítají do klientského bundle při buildu.
 - Server-side Matomo reporting konfigurace je oddělená od klientského trackingu: `MATOMO_URL`, `MATOMO_SITE_ID` a `MATOMO_AUTH_TOKEN` čte pouze server-only modul `src/lib/analytics/matomo.ts`. Pokud některá hodnota chybí, dashboard analytics vrací nulové hodnoty místo chyby do UI.
 - Matomo se nepoužívá v adminu, neposílá tokenové self-service URL a neukládá analytics eventy do databáze PP Studio.
+- Pushover konfigurace je oddelena na serverovy app token a per-owner User Key v DB. `PUSHOVER_ENABLED` a `PUSHOVER_APP_TOKEN` cte jen `src/lib/notifications/pushover.ts`; pri chybejici nebo vypnute konfiguraci se notifikace tise preskoci a hlavni booking/email flow pokracuje.
+- Pushover User Key se nespravuje v `.env`, ale v owner-only admin bloku `/admin/nastaveni -> Pushover notifikace`; ulozeny je v `UserNotificationSettings.pushoverUserKey` pro konkretni `AdminUser`.
 - Self-service změna termínu nepřidává nové env proměnné; pokud jsou `NEXT_PUBLIC_MATOMO_*` zapnuté, tokenová stránka může inicializovat Matomo kvůli bezpečným eventům, ale pageview s tokenem neodesílá.
 - `NEXT_PUBLIC_APP_URL` je stejně kritická i pro klientský self-service manage link `/rezervace/sprava/[token]`; pokud míří na špatný host nebo schéma, confirmation screen, potvrzovací e-mail i reminder povedou na neplatnou URL.
 - `NEXT_PUBLIC_APP_URL` je stejně kritická i pro zákaznický `.ics` odkaz `/api/bookings/calendar/[token].ics`; pokud míří na špatný host nebo schéma, CTA `Přidat do kalendáře` v potvrzovacím e-mailu povede na neplatnou URL.

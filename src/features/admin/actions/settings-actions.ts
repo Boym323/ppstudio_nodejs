@@ -8,6 +8,7 @@ import { requireAdminSectionAccess } from "@/features/admin/lib/admin-guards";
 import {
   updateBookingSettingsSchema,
   updateEmailSettingsSchema,
+  updatePushoverSettingsSchema,
   updateSalonSettingsSchema,
 } from "@/features/admin/lib/admin-settings-validation";
 import {
@@ -21,15 +22,24 @@ import {
   isSenderEmailAllowedBySmtpPolicy,
   SITE_SETTINGS_ID,
 } from "@/lib/site-settings";
+import { sendDirectOwnerPushover } from "@/lib/notifications/pushover";
 
 import { type UpdateBookingSettingsActionState } from "./update-booking-settings-action-state";
 import { type UpdateCalendarFeedActionState } from "./update-calendar-feed-action-state";
 import { type UpdateEmailSettingsActionState } from "./update-email-settings-action-state";
+import {
+  type TestPushoverActionState,
+  type UpdatePushoverSettingsActionState,
+} from "./update-pushover-settings-action-state";
 import { type UpdateSalonSettingsActionState } from "./update-salon-settings-action-state";
 
 function readFormString(formData: FormData, key: string) {
   const value = formData.get(key);
   return typeof value === "string" ? value : "";
+}
+
+function readFormBoolean(formData: FormData, key: string) {
+  return formData.get(key) === "1";
 }
 
 function revalidateSettingsPaths() {
@@ -66,6 +76,23 @@ async function getActorUserId() {
   });
 
   return dbUser?.id ?? null;
+}
+
+async function getCurrentOwnerDbUser() {
+  const session = await requireAdminSectionAccess("owner", "nastaveni");
+  const dbUser = await prisma.adminUser.findFirst({
+    where: {
+      email: {
+        equals: session.email.trim(),
+        mode: "insensitive",
+      },
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  return dbUser;
 }
 
 export async function updateSalonSettingsAction(
@@ -242,6 +269,136 @@ export async function updateEmailSettingsAction(
     status: "success",
     successMessage: "E-mailová nastavení jsou uložená.",
   };
+}
+
+export async function updatePushoverSettingsAction(
+  _previousState: UpdatePushoverSettingsActionState,
+  formData: FormData,
+): Promise<UpdatePushoverSettingsActionState> {
+  const parsed = updatePushoverSettingsSchema.safeParse({
+    pushoverUserKey: readFormString(formData, "pushoverUserKey"),
+    pushoverEnabled: readFormBoolean(formData, "pushoverEnabled"),
+    notifyNewBooking: readFormBoolean(formData, "notifyNewBooking"),
+    notifyBookingPending: readFormBoolean(formData, "notifyBookingPending"),
+    notifyBookingConfirmed: readFormBoolean(formData, "notifyBookingConfirmed"),
+    notifyBookingCancelled: readFormBoolean(formData, "notifyBookingCancelled"),
+    notifyBookingRescheduled: readFormBoolean(formData, "notifyBookingRescheduled"),
+    notifyEmailFailed: readFormBoolean(formData, "notifyEmailFailed"),
+    notifyReminderFailed: readFormBoolean(formData, "notifyReminderFailed"),
+    notifySystemErrors: readFormBoolean(formData, "notifySystemErrors"),
+  });
+
+  if (!parsed.success) {
+    const fieldErrors = parsed.error.flatten().fieldErrors;
+
+    return {
+      status: "error",
+      formError: "Zkontrolujte prosím Pushover nastavení.",
+      fieldErrors: {
+        pushoverUserKey: fieldErrors.pushoverUserKey?.[0],
+      },
+    };
+  }
+
+  const owner = await getCurrentOwnerDbUser();
+
+  if (!owner) {
+    return {
+      status: "error",
+      formError: "Pushover nastavení jde uložit jen k existujícímu OWNER účtu v databázi.",
+    };
+  }
+
+  if (parsed.data.pushoverEnabled && !parsed.data.pushoverUserKey?.trim()) {
+    return {
+      status: "error",
+      formError: "Pro zapnutí Pushover notifikací doplňte Pushover User Key.",
+      fieldErrors: {
+        pushoverUserKey: "Bez User Key není kam notifikaci poslat.",
+      },
+    };
+  }
+
+  await prisma.userNotificationSettings.upsert({
+    where: {
+      userId: owner.id,
+    },
+    update: {
+      ...parsed.data,
+      pushoverUserKey: parsed.data.pushoverUserKey?.trim() || null,
+    },
+    create: {
+      userId: owner.id,
+      ...parsed.data,
+      pushoverUserKey: parsed.data.pushoverUserKey?.trim() || null,
+    },
+  });
+
+  revalidatePath("/admin/nastaveni");
+
+  return {
+    status: "success",
+    successMessage: "Pushover notifikace jsou uložené.",
+  };
+}
+
+export async function sendPushoverTestAction(
+  _previousState: TestPushoverActionState,
+): Promise<TestPushoverActionState> {
+  void _previousState;
+
+  const owner = await getCurrentOwnerDbUser();
+
+  if (!owner) {
+    return {
+      status: "error",
+      formError: "Testovací notifikaci lze poslat jen existujícímu OWNER účtu.",
+    };
+  }
+
+  const result = await sendDirectOwnerPushover(owner.id, {
+    type: "SYSTEM_ERROR",
+    title: "PP Studio - test Pushover",
+    message: "Testovací notifikace z administrace PP Studio.",
+    url: `${env.NEXT_PUBLIC_APP_URL}/admin/nastaveni`,
+    priority: 0,
+    context: {
+      contextId: `test-${owner.id}`,
+    },
+  });
+
+  switch (result.status) {
+    case "sent":
+      return {
+        status: "success",
+        successMessage: "Testovací Pushover notifikace byla odeslaná.",
+      };
+    case "disabled":
+      return {
+        status: "error",
+        formError: "Pushover je vypnutý v serverové konfiguraci.",
+      };
+    case "missing-config":
+      return {
+        status: "error",
+        formError: "Chybí serverová konfigurace PUSHOVER_APP_TOKEN.",
+      };
+    case "missing-user-key":
+      return {
+        status: "error",
+        formError: "Nejdřív vyplňte Pushover User Key a nastavení uložte.",
+      };
+    case "not-owner":
+      return {
+        status: "error",
+        formError: "Testovací notifikace je dostupná pouze pro OWNER účet.",
+      };
+    case "failed":
+      return {
+        status: "error",
+        formError: "Pushover test selhal. Zkontrolujte User Key a serverové logy.",
+      };
+  }
 }
 
 export async function updateCalendarFeedAction(

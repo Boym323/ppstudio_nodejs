@@ -17,6 +17,7 @@ import {
 } from "@/features/booking/lib/booking-action-tokens";
 import { formatBookingDateLabel } from "@/features/booking/lib/booking-format";
 import { resolvePublishedSlotCoverage } from "@/features/booking/lib/booking-slot-availability";
+import { sendOwnerBookingPushover } from "@/lib/notifications/pushover";
 import { prisma } from "@/lib/prisma";
 import { getBookingPolicySettings, isBookingWithinWindow } from "@/lib/site-settings";
 
@@ -73,6 +74,8 @@ export type RescheduleBookingResult = {
   bookingId: string;
   scheduledStartsAt: string;
   scheduledEndsAt: string;
+  previousScheduledStartsAt: string;
+  previousScheduledEndsAt: string;
   scheduledAtLabel: string;
   previousScheduledAtLabel: string;
   rescheduleCount: number;
@@ -822,10 +825,20 @@ export function createBookingReschedulingApi(
             }
           }
 
+          await sendOwnerBookingPushover({
+            type: "BOOKING_RESCHEDULED",
+            bookingId: transactionResult.bookingId,
+            sourceLabel: input.changedByClient ? "Web" : "Admin",
+            previousStartsAt: transactionResult.previousStartsAt,
+            previousEndsAt: transactionResult.previousEndsAt,
+          });
+
           return {
             bookingId: transactionResult.bookingId,
             scheduledStartsAt: transactionResult.scheduledStartsAt.toISOString(),
             scheduledEndsAt: transactionResult.scheduledEndsAt.toISOString(),
+            previousScheduledStartsAt: transactionResult.previousStartsAt.toISOString(),
+            previousScheduledEndsAt: transactionResult.previousEndsAt.toISOString(),
             scheduledAtLabel: formatBookingDateLabel(
               transactionResult.scheduledStartsAt,
               transactionResult.scheduledEndsAt,

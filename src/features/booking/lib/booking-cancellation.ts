@@ -11,6 +11,7 @@ import {
 import { env } from "@/config/env";
 import { hashBookingActionToken } from "@/features/booking/lib/booking-action-tokens";
 import { formatBookingDateLabel } from "@/features/booking/lib/booking-format";
+import { sendOwnerBookingPushover } from "@/lib/notifications/pushover";
 import { prisma } from "@/lib/prisma";
 import {
   canClientCancelBooking,
@@ -77,6 +78,7 @@ type LoadedCancellationToken = {
 
 function toCancellationDetails(token: LoadedCancellationToken) {
   return {
+    bookingId: token.booking.id,
     serviceName: token.booking.serviceNameSnapshot,
     clientName: token.booking.clientNameSnapshot,
     scheduledAtLabel: formatBookingDateLabel(
@@ -358,6 +360,12 @@ export async function cancelPublicBookingByToken(rawToken: string): Promise<Canc
   if (transactionResult.status !== "ready") {
     return transactionResult;
   }
+
+  await sendOwnerBookingPushover({
+    type: "BOOKING_CANCELLED",
+    bookingId: transactionResult.details.bookingId,
+    sourceLabel: "Web",
+  });
 
   return {
     status: "cancelled",

@@ -6,6 +6,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- OWNER ma v `/admin/nastaveni` novy blok `Pushover notifikace`: uklada se per-user `UserNotificationSettings`, podporuje server-only `PUSHOVER_ENABLED` / `PUSHOVER_APP_TOKEN`, testovaci notifikaci, volitelne event typy pro rezervace/system a bezpecne Pushover odesilani s 30s in-memory rate limitem bez dopadu na booking, email ani reminder flow.
 - Opraven self-service přesun termínu přes `/rezervace/sprava/[token]`: úspěšná server action už nerevaliduje aktuálně otevřenou veřejnou route, takže v Next.js 16 nezmizí potvrzovací heading kvůli route refreshi a E2E test zůstává stabilní.
 - Přibyl bezpečný CLI cleanup `npm run db:clear-booking-data`, který v dry-run režimu vypisuje počty booking/slot dat a s `-- --confirm` smaže testovací rezervace, termíny a navázané logy bez zásahu do služeb, admin účtů, settings nebo médií.
 - Analytics endpoint a widget teď rozlišují stav Matomo reportingu `ok / disabled / blocked / error`, takže dashboard při zamčeném nebo neplatném API tokenu neukazuje jen tiché nuly; přibyl i CLI check `npm run analytics:check`.

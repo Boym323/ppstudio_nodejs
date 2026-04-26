@@ -3,6 +3,7 @@ import { AdminPageShell, AdminPanel } from "@/features/admin/components/admin-pa
 import { AdminBookingSettingsForm } from "./admin-booking-settings-form";
 import { AdminCalendarSettingsForm } from "./admin-calendar-settings-form";
 import { AdminEmailSettingsForm } from "./admin-email-settings-form";
+import { AdminPushoverSettingsForm } from "./admin-pushover-settings-form";
 import { AdminSalonSettingsForm } from "./admin-salon-settings-form";
 
 export function AdminSettingsPage({
@@ -31,6 +32,18 @@ export function AdminSettingsPage({
       rotatedAtLabel: string | null;
       revokedAtLabel: string | null;
       updatedByName: string | null;
+    };
+    pushover: {
+      pushoverUserKey: string | null;
+      pushoverEnabled: boolean;
+      notifyNewBooking: boolean;
+      notifyBookingPending: boolean;
+      notifyBookingConfirmed: boolean;
+      notifyBookingCancelled: boolean;
+      notifyBookingRescheduled: boolean;
+      notifyEmailFailed: boolean;
+      notifyReminderFailed: boolean;
+      notifySystemErrors: boolean;
     };
   };
 }) {
@@ -94,6 +107,13 @@ export function AdminSettingsPage({
           description="Bezpečný odebíraný `.ics` kalendář pro Apple Kalendář a iCloud."
         >
           <AdminCalendarSettingsForm feed={settings.calendarFeed} />
+        </AdminPanel>
+
+        <AdminPanel
+          title="Pushover notifikace"
+          description="Owner-only rychlá upozornění na rezervace a provozní chyby."
+        >
+          <AdminPushoverSettingsForm settings={settings.pushover} />
         </AdminPanel>
       </div>
     </AdminPageShell>

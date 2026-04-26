@@ -30,6 +30,7 @@ import {
 } from "@/features/booking/lib/booking-rescheduling";
 import { resolvePragueLocalDateTime } from "@/features/booking/lib/booking-local-time";
 import { requireAdminArea } from "@/lib/auth/session";
+import { sendOwnerBookingPushover } from "@/lib/notifications/pushover";
 import { prisma } from "@/lib/prisma";
 
 function readFormString(formData: FormData, key: string) {
@@ -248,6 +249,20 @@ export async function updateBookingStatusAction(
       status: "error",
       formError: `Rezervace už mezitím přešla do stavu „${getBookingStatusLabel(result.currentStatus)}“.`,
     };
+  }
+
+  if (
+    parsed.data.targetStatus === BookingStatus.CONFIRMED
+    || parsed.data.targetStatus === BookingStatus.CANCELLED
+  ) {
+    await sendOwnerBookingPushover({
+      type:
+        parsed.data.targetStatus === BookingStatus.CONFIRMED
+          ? "BOOKING_CONFIRMED"
+          : "BOOKING_CANCELLED",
+      bookingId: parsed.data.bookingId,
+      sourceLabel: "Admin",
+    });
   }
 
   revalidateBookingAdminPaths(parsed.data.bookingId);
