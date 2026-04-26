@@ -65,9 +65,10 @@ test.describe("booking flows", () => {
     await page.getByRole("button", { name: "Odeslat rezervaci" }).first().click();
 
     await expect(page.getByRole("heading", { name: "Rezervace přijata" })).toBeVisible();
+    await expect(page.getByText("Čeká na finální potvrzení")).toBeVisible();
     await expect(page.getByText(fixture.serviceName)).toBeVisible();
-    await expect(page.getByRole("link", { name: "Změnit termín" })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Zrušit rezervaci" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Změnit termín" })).toHaveCount(0);
+    await expect(page.getByRole("link", { name: "Zrušit rezervaci" })).toHaveCount(0);
 
     const booking = await prisma.booking.findFirstOrThrow({
       where: {
@@ -116,11 +117,11 @@ test.describe("booking flows", () => {
     fixtures.push(fixture);
 
     await page.goto(`/rezervace/sprava/${fixture.manageToken}`);
-    await expect(page.getByRole("heading", { name: "Vyberte si nový termín" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Změna termínu rezervace" })).toBeVisible();
 
     const newTermsSection = page
       .locator("section")
-      .filter({ has: page.getByText("Nové termíny") })
+      .filter({ has: page.getByRole("heading", { name: "Nejbližší dostupné termíny" }) })
       .first();
     const firstAvailableSlot = newTermsSection.getByRole("button").first();
 
