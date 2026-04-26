@@ -6,6 +6,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Sticky action bar v admin týdenním planneru už neobsahuje nefunkční tlačítko `Uložit koncept`; zůstávají akce `Zahodit` a `Publikovat změny`.
+- Koncept změn v planneru se nyní bere jako dočasný pracovní stav aktuální stránky a po refreshi bez publikace se neobnovuje.
 - Veřejný web a rezervační flow nově podporují Matomo analytics přes `NEXT_PUBLIC_MATOMO_*` env proměnné; tracking běží jen mimo admin, neposílá PII ani tokenové URL a používá bezpečný no-op helper.
 - App Router pageview tracking posílá klientské navigace bez duplicitního prvního pageview a booking flow posílá funnel eventy pro výběr služby, data, času, zahájení kontaktu a úspěšně vytvořenou rezervaci.
 - Hlavní veřejné CTA na rezervaci a kontakt posílají Matomo custom eventy bez ukládání analytics dat do databáze PP Studio.
@@ -220,7 +222,7 @@ Formát je inspirovaný Keep a Changelog.
 - Samostatný serverový read model `src/features/admin/lib/admin-dashboard.ts` a prezentační komponenty `DashboardPage`, `TodayHeroCard`, `AlertsRow`, `TodayTimeline`, `KPIGrid`, `RightSidebar`, `QuickStats`, `UpcomingSlots` a `QuickActions`.
 - ADR 0024 pro rozhodnutí, proč overview adminu funguje jako operativní workspace dne místo manažerského přehledu.
 - Třetí iteraci admin sekce `Volné termíny / Týdenní plán dostupností` s grid-first layoutem, užším sidebar shell layoutem, akčním inspektorem dne a mobilními drawery pro navigaci i detail.
-- Lokální draft workflow pro týdenní planner: klik výběru bloku, drag editace do konceptu, sticky action bar `Zahodit / Uložit koncept / Publikovat změny` a novou server action synchronizaci celého týdne při publikaci.
+- Lokální draft workflow pro týdenní planner: klik výběru bloku, drag editace do konceptu, sticky action bar `Zahodit / Publikovat změny` a novou server action synchronizaci celého týdne při publikaci.
 - ADR 0023 pro rozhodnutí kolem draft-first pracovního rozhraní planneru.
 - Samostatnou server action a kompaktní formulář pro interní poznámku rezervace, takže ji lze upravit i bez změny stavu a každá úprava se propíše do auditní historie.
 - ADR 0022 pro rozhodnutí kolem operativního redesignu detailu rezervace.

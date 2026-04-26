@@ -563,7 +563,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Ověř, že kliknutí do buňky jen vybere blok pro inspektor a samotnou změnu udělá až tažení nebo akce z inspektoru.
 - Ověř přidání delšího úseku tažením a následné sloučení do jednoho `AvailabilitySlot`.
 - Ověř odebrání části dostupnosti ze zeleného bloku a správné rozdělení na zbylé intervaly.
-- Ověř sticky action bar pro neuložené změny: `Zahodit`, `Uložit koncept`, `Publikovat změny`.
+- Ověř sticky action bar pro neuložené změny: `Zahodit`, `Publikovat změny`.
 - Ověř, že zásah do rezervace nebo omezeného slotu vrátí srozumitelnou chybu a nic nepřepíše.
 - Ověř, že slot s historickou rezervací (`CANCELLED`/`COMPLETED`/`NO_SHOW`) planner nebere jako editovatelný a interval zobrazí jako uzamčený.
 - Ověř kopírování dne, kopírování týdne, použití lokální šablony a obnovení uloženého konceptu po refreshi stejného týdne.

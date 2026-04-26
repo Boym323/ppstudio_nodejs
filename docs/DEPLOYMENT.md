@@ -252,5 +252,5 @@ sudo /var/www/ppstudio/deploy/deploy.sh
 - Ověř, že planner renderuje týdenní kalendář a že guardy rolí fungují stejně jako dřív.
 - Ověř, že kliknutí do gridu vybírá blok pro pravý inspektor a že teprve tažení nebo akce z inspektoru mění koncept.
 - Ověř přidání dostupnosti tažením, odebrání zeleného intervalu a copy day/week.
-- Ověř sticky action bar `Zahodit / Uložit koncept / Publikovat změny` včetně obnovení uloženého konceptu po refreshi stejného týdne.
+- Ověř sticky action bar `Zahodit / Publikovat změny` a že po refreshi bez publikace nejsou lokální změny týdne zachované.
 - Ověř, že pokus o zásah do rezervace skončí čitelnou chybou bez změny dat.

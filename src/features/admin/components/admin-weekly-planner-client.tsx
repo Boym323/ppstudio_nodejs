@@ -606,14 +606,6 @@ export function AdminWeeklyPlannerClient({
     setFeedback({ tone: "info", message: "Koncept týdne byl zahozen a planner se vrátil k publikovanému stavu." });
   }
 
-  function saveDraft() {
-    window.localStorage.setItem(
-      getDraftStorageKey(data.area, data.weekKey),
-      JSON.stringify(serializeDraft(workingDays)),
-    );
-    setFeedback({ tone: "success", message: "Koncept týdne je uložený lokálně v tomto zařízení." });
-  }
-
   function publishDraft() {
     startTransition(async () => {
       const result = await syncPlannerWeekDraftAction(data.area, {
@@ -777,7 +769,6 @@ export function AdminWeeklyPlannerClient({
         visible={hasUnsavedChanges}
         pending={isPending}
         onDiscard={discardDraft}
-        onSaveDraft={saveDraft}
         onPublish={publishDraft}
       />
     </div>

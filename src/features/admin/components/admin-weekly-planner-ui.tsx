@@ -716,13 +716,11 @@ export function StickyActionBar({
   visible,
   pending,
   onDiscard,
-  onSaveDraft,
   onPublish,
 }: {
   visible: boolean;
   pending: boolean;
   onDiscard: () => void;
-  onSaveDraft: () => void;
   onPublish: () => void;
 }) {
   return (
@@ -741,9 +739,6 @@ export function StickyActionBar({
           <div className="flex flex-wrap gap-2">
             <ActionButton tone="ghost" onClick={onDiscard} disabled={pending}>
               Zahodit
-            </ActionButton>
-            <ActionButton onClick={onSaveDraft} disabled={pending}>
-              Uložit koncept
             </ActionButton>
             <ActionButton tone="accent" onClick={onPublish} disabled={pending}>
               Publikovat změny

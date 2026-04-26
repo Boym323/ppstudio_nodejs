@@ -420,7 +420,7 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
   - automatické sloučení sousedních půlhodin do souvislých intervalů `AvailabilitySlot`
   - pravý akční inspektor dne s denním souhrnem, rychlými akcemi a detailem výběru z gridu
   - denní rychlé akce `zkopírovat den`, `nastavit den jako zavřeno`, `obnovit den z publikovaného stavu`
-  - spodní sticky bar pro `Zahodit`, `Uložit koncept` a `Publikovat změny`
+  - spodní sticky bar pro `Zahodit` a `Publikovat změny`
   - týdenní rychlé akce `zkopírovat týden na další` a lokální šablonu týdne uloženou v zařízení
   - zobrazení rezervací, omezených intervalů, neaktivních slotů a minulého času
   - server-side ochranu proti zásahu do rezervací, omezených slotů a překryvům
