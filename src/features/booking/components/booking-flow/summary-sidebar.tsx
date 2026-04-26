@@ -47,7 +47,7 @@ export function BookingSummarySidebar({
           Krok 4
         </p>
         <h3 className="mt-2 font-display text-2xl text-[var(--color-foreground)] sm:mt-3 sm:text-3xl">
-          Souhrn a potvrzení
+          Kontrola a odeslání
         </h3>
 
         <div className="mt-4 space-y-3 sm:mt-6 sm:space-y-4">

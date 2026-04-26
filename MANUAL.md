@@ -187,7 +187,7 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
 - Krok 2 nabízí starty po 30 minutách uvnitř dostupného okna a bere v úvahu délku služby i už obsazené intervaly.
 - Krok `Vyberte termín` používá větší a výraznější tlačítka časů s menší hustotou na řádek; detail termínu (`konec`, `délka`, případná poznámka) zůstává v souhrnu.
 - Kontaktní krok přidává průběžnou inline validaci i helper text, co se stane po odeslání.
-- Souhrn umožňuje upravit službu, termín i kontakt přímo z pravého panelu bez vracení přes předchozí kroky.
+- Krok `Kontrola a odeslání` umožňuje upravit službu, termín i kontakt přímo z pravého panelu bez vracení přes předchozí kroky.
 - Na mobilu je booking doplněný o sticky CTA lištu, která podle stavu výběru vede na další akci nebo rovnou na odeslání.
 - Po úspěšném odeslání se zobrazí samostatný confirmation flow místo jednoho souhrnného cardu:
   - status blok `Rezervace přijata`

@@ -6,6 +6,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Popisky kroků veřejné rezervace jsou sjednocené na `Výběr služby`, `Výběr termínu`, `Kontaktní údaje` a `Kontrola a odeslání`, aby progress panel i pravý souhrn používaly stejný slovník.
 - Veřejný rezervační formulář po změně kategorie ve kroku `Vyberte službu` automaticky plynule posune viewport na seznam dostupných služeb v dané kategorii, takže není potřeba ručně scrollovat na mobilu.
 - Mobilní auto-scroll po změně kategorie nově počítá offset podle skutečné výšky sticky hlavičky a přidává bezpečný odstup, takže první karta služby už nezůstává částečně schovaná pod horní navigací.
 - Sticky hlavička na stránce rezervace (`variant=booking`) je na mobilu kompaktnější, ale zachovává horní navigační lištu: nav odkazy jsou v užším horizontálním řádku, spacing je menší a brand/CTA jsou lehce zmenšené.

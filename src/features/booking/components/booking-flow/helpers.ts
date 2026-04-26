@@ -4,10 +4,10 @@ import type { TimeSlotOption } from "@/features/booking/lib/booking-time-slots";
 import type { ContactFieldKey } from "./types";
 
 export const stepLabels = [
-  "Služba",
-  "Termín",
-  "Kontakt",
-  "Souhrn",
+  "Výběr služby",
+  "Výběr termínu",
+  "Kontaktní údaje",
+  "Kontrola a odeslání",
 ] as const;
 
 export const EMPTY_TIME_SLOTS: TimeSlotOption[] = [];
