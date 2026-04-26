@@ -1,10 +1,7 @@
 import "dotenv/config";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import Module from "node:module";
-import path from "node:path";
 import test from "node:test";
-import { fileURLToPath } from "node:url";
 
 (process.env as Record<string, string | undefined>).NODE_ENV = "test";
 process.env.NEXT_PUBLIC_APP_NAME ??= "PP Studio";
@@ -18,25 +15,6 @@ process.env.ADMIN_STAFF_PASSWORD ??= "change-me-staff";
 process.env.EMAIL_DELIVERY_MODE ??= "log";
 
 const dbTest = process.env.RUN_DB_INTEGRATION_TESTS === "1" ? test : test.skip;
-const currentDir = path.dirname(fileURLToPath(import.meta.url));
-const serverOnlyStubPath = path.join(currentDir, "__test-support__", "server-only-stub.js");
-const moduleInternals = Module as typeof Module & {
-  _resolveFilename: (
-    request: string,
-    parent: unknown,
-    isMain: boolean,
-    options: unknown,
-  ) => string;
-};
-const originalResolveFilename = moduleInternals._resolveFilename.bind(Module);
-
-moduleInternals._resolveFilename = (request, parent, isMain, options) => {
-  if (request === "server-only") {
-    return serverOnlyStubPath;
-  }
-
-  return originalResolveFilename(request, parent, isMain, options);
-};
 
 type Seed = {
   actorUserId: string;

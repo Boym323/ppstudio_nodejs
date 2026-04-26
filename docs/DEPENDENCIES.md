@@ -30,6 +30,7 @@ Seznam důležitých knihoven a důvod jejich použití.
 - `nodemailer`: SMTP transport pro potvrzení rezervace a storno e-maily.
 - `image-size`: čtení rozměrů lokálně uložených obrázků pro metadata `MediaAsset`.
 - `sharp`: lehká server-side image pipeline pro EXIF-normalized originál a varianty `optimized` + `thumbnail` při uploadu přes Media Library.
+- `server-only`: marker balík doporučený Next.js dokumentací pro server-only moduly; v tomhle projektu je instalovaný i kvůli běhu `node --test` mimo Next bundler, kde před testy registrujeme malý resolver hook a mapujeme `server-only` na prázdný stub jen v testovacím procesu.
 - `dotenv`: načtení `.env` pro Prisma CLI konfiguraci.
 - vestavěný Node.js `crypto`: generování a hashování action tokenů pro booking workflow bez další závislosti.
 - vestavěný Node.js `crypto` také nově podepisuje odvozené tokeny pro chráněný owner ICS feed; nebyla přidána žádná externí iCalendar nebo calendar auth knihovna.
