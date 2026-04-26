@@ -6,6 +6,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Veřejné copy storno pravidla na homepage a ve FAQ je klidnější a srozumitelnější: původní technický blok `Storno okno` a věta o komunikaci pravidel nahradily formulace zaměřené na to, co klientka může udělat (`Změna nebo zrušení termínu`, `24 h předem`, stručnější FAQ odpověď).
 - 24h reminder enqueue window se posunulo z `23h-25h` na `25h-26h` před termínem, takže reminder s odkazy `Změnit termín` / `Zrušit rezervaci` nechodí až ve chvíli, kdy už online self-service naráží na 24h limit.
 - Veřejná stránka `/rezervace/sprava/[token]` prošla UX refaktorem změny termínu: nový tok začíná kontextem a aktuální rezervací, pokračuje hybridním výběrem `nejbližší termíny + kalendář`, po výběru času scrolluje na potvrzení a storno odsouvá na konec jako slabý odkaz.
 - Self-service výběr termínu je mobilně kompaktnější: sloty jsou ve dvou sloupcích, kalendář má zvýrazněné dostupné dny, vybraný čas je ve sticky spodním souhrnu a potvrzení zůstává jedinou dominantní CTA.

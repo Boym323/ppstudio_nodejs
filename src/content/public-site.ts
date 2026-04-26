@@ -168,9 +168,9 @@ export function buildTrustMetrics(cancellationHours: number): TrustMetric[] {
       description: 'Délky služeb jsou navržené realisticky, včetně času na konzultaci, ošetření i doporučení domácí péče.',
     },
     {
-      value: `${cancellationHours} h`,
-      label: 'Storno okno',
-      description: 'Pravidla storna jsou komunikovaná jemně, ale zcela jasně už při rozhodování o rezervaci.',
+      value: `${cancellationHours} h předem`,
+      label: 'Změna nebo zrušení termínu',
+      description: `Termín můžete upravit nebo zrušit nejpozději ${cancellationHours} předem.`,
     },
   ];
 }
@@ -502,7 +502,7 @@ export function buildFaqSections(cancellationHours: number): FaqSection[] {
       items: [
         {
           question: 'Jak je to se storno podmínkami?',
-          answer: `Rezervaci je možné zrušit nebo přesunout alespoň ${cancellationHours} hodin předem. Když víte, že nedorazíte, dejte prosím vědět co nejdříve.`,
+          answer: `Pokud by se vám termín nehodil, můžete ho upravit nebo zrušit nejpozději ${cancellationHours} hodin předem.`,
           linkLabel: 'Zobrazit storno podmínky',
           linkHref: '/storno-podminky',
         },

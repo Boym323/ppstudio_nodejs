@@ -52,6 +52,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Veřejný web drží dva zdroje obsahu:
   - marketingové bloky, FAQ a právní texty jsou dál centralizované v `src/content/public-site.ts`
   - služby a ceník berou data z DB přes `src/features/public/lib/public-services.ts`
+- Krátké storno shrnutí mimo samostatné právní stránky navrhuj jako prezentační microcopy, ne jako procesní nebo interní termínologii: pro homepage trust metriku a FAQ preferuj formulace orientované na akci klientky (`upravit nebo zrušit termín`, `nejpozději 24 hodin předem`) a drž je čitelné během 1-2 sekund.
 - FAQ už používá strukturovaný model `FaqSection -> FaqItem`; při dalších úpravách preferuj tematické skupiny a krátké odpovědi před jedním plochým seznamem dlouhých textů.
 - `src/features/public/lib/public-services.ts` nyní zároveň funguje jako thin read model nad rozšířeným katalogem:
   - `Service` nese `publicIntro`, `seoDescription`, `pricingShortDescription`, `pricingBadge`; název služby je sjednocený v `Service.name`
