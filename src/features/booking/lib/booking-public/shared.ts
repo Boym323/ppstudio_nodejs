@@ -91,7 +91,7 @@ export type CreateManualBookingInput = {
   slotId?: string;
   selectedClientId?: string;
   fullName: string;
-  email: string;
+  email?: string;
   phone?: string;
   clientProfileNote?: string;
   clientNote?: string;
@@ -271,7 +271,7 @@ export type BookingSlotRecord = {
 export type ClientResolutionInput = {
   selectedClientId?: string;
   fullName: string;
-  email: string;
+  email?: string;
   phone?: string;
   clientProfileNote?: string;
 };

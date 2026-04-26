@@ -6,6 +6,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Ruční rezervace v adminu už nevyžaduje e-mail klientky; nové klientky lze založit i jen se jménem a telefonem a potvrzovací e-mail se při chybějící adrese bezpečně přeskočí.
 - Veřejná hláška v rezervacích pro stav bez volných termínů už nepoužívá interní admin wording; místo technické formulace vysvětluje zákaznici jednoduše, že nové termíny přibývají průběžně.
 - Přidána runtime závislost `server-only` a Node test runner teď před testy registruje cílený `--import ./src/test/register-server-only.mjs` hook, takže CI korektně načte server-only moduly i mimo Next bundler bez rozbití ostatních Next route testů.
 - OWNER ma v `/admin/nastaveni` novy blok `Pushover notifikace`: uklada se per-user `UserNotificationSettings`, podporuje server-only `PUSHOVER_ENABLED` / `PUSHOVER_APP_TOKEN`, testovaci notifikaci, volitelne event typy pro rezervace/system a bezpecne Pushover odesilani s 30s in-memory rate limitem bez dopadu na booking, email ani reminder flow.

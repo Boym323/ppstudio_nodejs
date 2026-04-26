@@ -85,7 +85,13 @@ const createManualBookingSchema = z.object({
     .trim()
     .min(3, "Zadejte jméno a příjmení klientky.")
     .max(120, "Jméno je příliš dlouhé."),
-  email: z.email("Zadejte platný e-mail.").max(254, "E-mail je příliš dlouhý."),
+  email: z
+    .string()
+    .trim()
+    .max(254, "E-mail je příliš dlouhý.")
+    .refine((value) => value.length === 0 || z.email().safeParse(value).success, {
+      message: "Zadejte platný e-mail.",
+    }),
   phone: z
     .string()
     .trim()
@@ -428,7 +434,9 @@ export async function createManualBookingAction(
       createdBookingId: result.bookingId,
       successMessage:
         parsed.data.submitMode === "create-and-send"
-          ? "Rezervace je vytvořená a navazující potvrzení se propsalo do emailového flow."
+          ? result.emailDeliveryStatus === "skipped"
+            ? "Rezervace je vytvořená, ale potvrzovací e-mail jsme přeskočili, protože u klientky chybí e-mail."
+            : "Rezervace je vytvořená a navazující potvrzení se propsalo do emailového flow."
           : "Rezervace je vytvořená bez odbočení mimo hlavní booking engine.",
       manualOverrideWarning: result.manualOverride
         ? "Termín nebyl ve veřejné dostupnosti, takže rezervace byla uložená jako interní výjimka."

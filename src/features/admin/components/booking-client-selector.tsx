@@ -158,7 +158,7 @@ export function BookingClientSelector({
           error={fieldErrors?.fullName}
         />
         <Field
-          label="E-mail"
+          label="E-mail (volitelný)"
           type="email"
           value={email}
           onChange={onEmailChange}

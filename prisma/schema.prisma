@@ -290,7 +290,7 @@ model AvailabilitySlotService {
 model Client {
   id             String                 @id @default(cuid())
   fullName       String
-  email          String                 @unique
+  email          String?                @unique
   phone          String?
   internalNote   String?
   isActive       Boolean                @default(true)

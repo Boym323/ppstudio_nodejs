@@ -65,6 +65,7 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
 - Veřejné stránky drží jednotný šířkový rytmus přes sdílený `Container` (`max-w-7xl`); při úpravách layoutu nepřidávej další globální zúžení sekcí přes `mx-auto max-w-*`.
 - Vertikální spacing veřejných sekcí je sjednocený do rytmu `py-10 / sm:py-14 / lg:py-16`; větší rozestupy používej jen pro obsahově výrazné bloky.
 - Rezervační vrstva stojí na ručně vypisovaných termínech přes `AvailabilitySlot`, ne na pevné otevírací době.
+- Ruční rezervace v adminu nově dovoluje vytvořit klientku i bez e-mailu, což pokrývá rezervace z Instagramu, telefonu nebo osobní domluvy; pokud adresa chybí, klientské potvrzení se záměrně neposílá.
 - Pending rezervace lze nově potvrdit nebo zrušit přímo z provozního e-mailu přes bezpečné jednorázové odkazy s mezikrokem potvrzení na veřejné route `/rezervace/akce/[intent]/[token]`.
 - Admin sekce `Rezervace` dál zůstává kompaktní řádkový workspace, ale nově má klikací statistiky jako rychlé filtry, nízký toolbar filtrů a seskupení seznamu do bloků `Dnes`, `Zítra`, `Později`, `Dříve`.
 - Finální production polish admin sekce `Rezervace` sjednotil horní statistiky do segmented filtru, zvýraznil sekci `Dnes`, posílil pending rezervace a přidal click-to-open řádky s klávesami `Enter`, `↑` a `↓`.

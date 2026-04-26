@@ -55,6 +55,7 @@ function BookingDetailHeader({
   listHref: string;
 }) {
   const headerToneClassName = getHeaderToneClassName(data.status);
+  const clientEmailHref = data.clientEmail ? `mailto:${data.clientEmail}` : null;
 
   return (
     <section
@@ -99,7 +100,7 @@ function BookingDetailHeader({
 
           <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
             <QuickHeaderAction href={buildPhoneHref(data.clientPhone)} label="Zavolat klientce" />
-            <QuickHeaderAction href={`mailto:${data.clientEmail}`} label="Napsat e-mail" />
+            <QuickHeaderAction href={clientEmailHref} label="Napsat e-mail" muted={!clientEmailHref} />
             {data.reschedule.enabled ? (
               <RescheduleBookingButton
                 area={data.area}
@@ -183,7 +184,7 @@ function BookingSummaryCard({ data }: { data: AdminBookingDetailData }) {
     { label: "Stav", value: data.statusLabel, tone: "accent" as const },
     { label: "Klientka", value: data.clientName },
     { label: "Telefon", value: data.clientPhone, href: buildPhoneHref(data.clientPhone), tone: "strong" as const },
-    { label: "E-mail", value: data.clientEmail, href: `mailto:${data.clientEmail}` },
+    { label: "E-mail", value: data.clientEmail || "Bez e-mailu", href: data.clientEmail ? `mailto:${data.clientEmail}` : undefined },
     { label: "Služba", value: data.serviceName, tone: "strong" as const },
     { label: "Termín", value: data.scheduledAtLabel, tone: "strong" as const },
     { label: "Zdroj", value: data.sourceLabel },

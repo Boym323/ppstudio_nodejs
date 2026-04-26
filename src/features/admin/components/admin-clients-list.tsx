@@ -61,7 +61,7 @@ export function AdminClientsList({
             <div className="min-w-0 flex-1">
               <h3 className="text-base font-medium text-white sm:text-lg">{client.fullName}</h3>
               <p className="mt-1 text-sm leading-6 text-white/58">
-                {client.email}
+                {client.email || "Bez e-mailu"}
                 {client.phone ? ` • ${client.phone}` : ""}
               </p>
             </div>

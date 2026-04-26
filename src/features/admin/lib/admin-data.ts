@@ -958,7 +958,10 @@ export async function getReservationsData(
         priceFromCzk: service.priceFromCzk,
       })),
       slots: bookingCatalog.slots,
-      clients,
+      clients: clients.map((client) => ({
+        ...client,
+        email: client.email ?? "",
+      })),
     },
   } satisfies ReservationsDashboardData;
 }
@@ -1025,7 +1028,7 @@ async function getClientsData(area: AdminArea) {
     items: items.map((client) => ({
       id: client.id,
       title: client.fullName,
-      meta: `${client.email}${client.phone ? ` • ${client.phone}` : ""}`,
+      meta: `${client.email ?? "Bez e-mailu"}${client.phone ? ` • ${client.phone}` : ""}`,
       description:
         area === "owner"
           ? `Rezervací: ${client._count.bookings}. Poslední booking: ${formatDateLabel(client.lastBookedAt)}.`
@@ -1764,7 +1767,7 @@ export async function getEmailLogDetailData(emailLogId: string): Promise<EmailLo
     bookingScheduleLabel,
     clientName,
     clientSummary: emailLog.client
-      ? `${emailLog.client.fullName} • ${emailLog.client.email}${emailLog.client.phone ? ` • ${emailLog.client.phone}` : ""}`
+      ? `${emailLog.client.fullName} • ${emailLog.client.email ?? "Bez e-mailu"}${emailLog.client.phone ? ` • ${emailLog.client.phone}` : ""}`
       : "Bez navázaného klienta",
     actionTokenId: emailLog.actionToken?.id ?? null,
     actionTokenLabel: emailLog.actionToken ? actionTokenTypeLabel(emailLog.actionToken.type) : "Bez navázaného action tokenu",

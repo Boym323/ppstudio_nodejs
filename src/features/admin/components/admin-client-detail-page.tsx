@@ -12,6 +12,7 @@ type AdminClientDetailPageProps = {
 
 export function AdminClientDetailPage({ data }: AdminClientDetailPageProps) {
   const listHref = data.area === "owner" ? "/admin/klienti" : "/admin/provoz/klienti";
+  const hasEmail = data.email !== "Bez e-mailu";
 
   return (
     <AdminPageShell
@@ -102,7 +103,7 @@ export function AdminClientDetailPage({ data }: AdminClientDetailPageProps) {
                 label="Zavolat klientce"
                 value={data.phone}
               />
-              <ContactLink href={`mailto:${data.email}`} label="Napsat e-mail" value={data.email} />
+              <ContactLink href={hasEmail ? `mailto:${data.email}` : undefined} label="Napsat e-mail" value={data.email} />
             </div>
           </QuickActionCard>
 

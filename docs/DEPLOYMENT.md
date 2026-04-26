@@ -146,11 +146,13 @@ Postup nasazení aplikace do produkce.
   - pravý drawer `Přidat rezervaci` v `/admin/rezervace` i `/admin/provoz/rezervace`:
     - vyhledání existující klientky podle jména / telefonu / e-mailu
     - založení nové klientky
+    - založení nové klientky bez e-mailu
     - výběr služby a propsání délky/ceny
     - slotový výběr i ruční datum/čas
     - warning při interní výjimce mimo veřejnou dostupnost
     - vytvoření rezervace ve stavech `CONFIRMED` i `PENDING`
     - volitelné odeslání potvrzovacího e-mailu a `.ics` přílohy
+    - bez e-mailu se booking uloží a potvrzení se přeskočí bez chyby
   - přepnutí kategorie nebo služby v kroku 1 `/rezervace` a reset nevalidního vybraného času
   - sekci `Nejbližší dostupné termíny` a jednoklikový přechod na kontakt
   - změnu dne v kalendářním fallbacku kroku 2 `/rezervace` a reset nevalidního vybraného času
@@ -204,6 +206,7 @@ Postup nasazení aplikace do produkce.
 11. Po nasazení reminder změny ověř, že worker běží nepřetržitě; bez něj se reminder joby neenqueueují ani nedoručují.
 12. Po nasazení reschedule změny ověř, že přesun resetuje `reminder24hQueuedAt` a `reminder24hSentAt`, aby se reminder správně navázal na nový termín.
 13. Po změně booking e-mailových šablon odešli testovací novou rezervaci, potvrzení, reminder, přesun a storno; v Gmailu, iOS Mailu, Apple Mailu a Outlooku zkontroluj čitelnost 600px shellu, stackování CTA na mobilu, funkčnost approve/reject/admin/manage/cancel odkazů, jednorázový kontakt, formát času `09:30 – 10:30` a to, že `Zrušit rezervaci` není vizuálně dominantnější než potvrzení.
+14. Po nasazení migrace `20260426123000_client_email_nullable_for_manual_booking` ověř ruční booking i bez e-mailu, včetně seznamu klientek, detailu klientky a detailu rezervace bez neplatných `mailto:` odkazů.
 
 ### Systemd
 - Doporučený web unit je v [`deploy/systemd/ppstudio-web.service`](/var/www/ppstudio/deploy/systemd/ppstudio-web.service).

@@ -183,7 +183,10 @@ export async function getAdminClientsPageData(
         detail: "Klientky s návštěvou nebo bookingem v posledních 30 dnech.",
       },
     ],
-    clients,
+    clients: clients.map((client) => ({
+      ...client,
+      email: client.email ?? "",
+    })),
     currentPath: area === "owner" ? "/admin/klienti" : "/admin/provoz/klienti",
   };
 }
@@ -313,7 +316,7 @@ export async function getAdminClientDetailData(
     id: client.id,
     area,
     fullName: client.fullName,
-    email: client.email,
+    email: client.email ?? "Bez e-mailu",
     phone: client.phone ?? "Telefon není vyplněný",
     isActive: client.isActive,
     statusLabel: client.isActive ? "Aktivní" : "Neaktivní",

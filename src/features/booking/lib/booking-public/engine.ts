@@ -118,19 +118,11 @@ async function resolveClientForBooking(
   now: Date,
 ) {
   const normalizedFullName = normalizeWhitespace(input.fullName);
-  const normalizedEmail = normalizeClientEmail(input.email);
+  const normalizedEmail = input.email ? normalizeClientEmail(input.email) : undefined;
   const normalizedPhone = normalizeClientPhone(input.phone);
   const normalizedClientProfileNote = input.clientProfileNote
     ? normalizeWhitespace(input.clientProfileNote)
     : undefined;
-
-  if (!normalizedEmail) {
-    throw new PublicBookingError(
-      publicBookingErrorCodes.bookingConflict,
-      "Pro rezervaci je potřeba vyplnit e-mail klientky.",
-      3,
-    );
-  }
 
   if (input.selectedClientId) {
     const selectedClient = await tx.client.findUnique({
@@ -157,7 +149,7 @@ async function resolveClientForBooking(
       },
       data: {
         fullName: normalizedFullName,
-        email: normalizedEmail,
+        email: normalizedEmail ?? null,
         phone: normalizedPhone,
         isActive: true,
         lastBookedAt: now,
@@ -171,20 +163,22 @@ async function resolveClientForBooking(
     return {
       client: updatedClient,
       normalizedFullName,
-      normalizedEmail,
+      normalizedEmail: normalizedEmail ?? "",
       normalizedPhone,
     };
   }
 
-  const emailMatch = await tx.client.findUnique({
-    where: {
-      email: normalizedEmail,
-    },
-    select: {
-      id: true,
-      internalNote: true,
-    },
-  });
+  const emailMatch = normalizedEmail
+    ? await tx.client.findUnique({
+        where: {
+          email: normalizedEmail,
+        },
+        select: {
+          id: true,
+          internalNote: true,
+        },
+      })
+    : null;
   const phoneMatches = normalizedPhone
     ? await tx.client.findMany({
         where: {
@@ -242,7 +236,7 @@ async function resolveClientForBooking(
     return {
       client: updatedClient,
       normalizedFullName,
-      normalizedEmail,
+      normalizedEmail: normalizedEmail ?? "",
       normalizedPhone,
     };
   }
@@ -250,7 +244,7 @@ async function resolveClientForBooking(
   const createdClient = await tx.client.create({
     data: {
       fullName: normalizedFullName,
-      email: normalizedEmail,
+      email: normalizedEmail ?? null,
       phone: normalizedPhone,
       internalNote: normalizedClientProfileNote,
       isActive: true,
@@ -264,7 +258,7 @@ async function resolveClientForBooking(
   return {
     client: createdClient,
     normalizedFullName,
-    normalizedEmail,
+    normalizedEmail: normalizedEmail ?? "",
     normalizedPhone,
   };
 }
@@ -674,7 +668,7 @@ export async function createBookingWithEngine(
             scheduledEndsAt: booking.scheduledEndsAt,
             now,
             status: input.status,
-            sendClientEmail: input.sendClientEmail,
+            sendClientEmail: input.sendClientEmail && normalizedEmail.length > 0,
             includeCalendarAttachment: input.includeCalendarAttachment,
             sendAdminNotification: input.sendAdminNotification,
             adminNotificationEmail: emailBranding.notificationAdminEmail,
@@ -695,7 +689,7 @@ export async function createBookingWithEngine(
             cancellationUrl: notifications.cancellationUrl,
             createdEmailLogIds: notifications.createdEmailLogIds,
             emailDeliveryStatus:
-              input.sendClientEmail || input.sendAdminNotification
+              (input.sendClientEmail && normalizedEmail.length > 0) || input.sendAdminNotification
                 ? env.EMAIL_DELIVERY_MODE === "background"
                   ? "queued"
                   : "logged"

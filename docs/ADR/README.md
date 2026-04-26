@@ -70,3 +70,4 @@ Sem patří krátké záznamy architektonických rozhodnutí.
 - `0053-server-side-matomo-reporting-v1.md`
 - `0054-booking-contiguous-slot-chaining-v1.md`
 - `0055-owner-pushover-notifications-v1.md`
+- `0056-client-email-optional-for-manual-booking.md`
