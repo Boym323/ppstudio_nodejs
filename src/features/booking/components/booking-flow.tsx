@@ -3,6 +3,7 @@
 import { AvailabilitySlotServiceRestrictionMode } from "@prisma/client";
 import { useActionState, useEffect, useMemo, useRef, useState, type MutableRefObject } from "react";
 
+import { SectionHeading } from "@/components/ui/section-heading";
 import { createPublicBookingAction } from "@/features/booking/actions/create-public-booking";
 import { initialPublicBookingActionState } from "@/features/booking/actions/public-booking-action-state";
 import { trackMatomoEvent } from "@/features/analytics/matomo";
@@ -536,7 +537,14 @@ export function BookingFlow({ catalog, initialSelectedServiceSlug, salonProfile 
   }
 
   return (
-    <form action={formAction} className="grid gap-5 pb-28 sm:gap-6 lg:grid-cols-[1.15fr_0.85fr] lg:pb-0">
+    <>
+      <SectionHeading
+        eyebrow="Rezervace"
+        title="Vyberte si termín, který vám nejlépe vyhovuje."
+        description="Rezervace zabere jen chvilku. Nejdřív zvolíte službu, potom nejbližší termín a nakonec doplníte kontakt."
+      />
+
+      <form action={formAction} className="grid gap-5 pb-28 sm:gap-6 lg:grid-cols-[1.15fr_0.85fr] lg:pb-0">
       <input type="hidden" name="serviceId" value={selectedServiceId} />
       <input type="hidden" name="slotId" value={selectedTimeOption?.slotId ?? ""} />
       <input type="hidden" name="startsAt" value={selectedTimeOption?.startsAt ?? ""} />
@@ -696,6 +704,7 @@ export function BookingFlow({ catalog, initialSelectedServiceSlug, salonProfile 
           disabled={!canGoToStep4}
         />
       )}
-    </form>
+      </form>
+    </>
   );
 }

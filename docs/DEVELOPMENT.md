@@ -370,10 +370,12 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - hlavní detail rezervace ukazuje samostatně službu, datum a čas; čas zobrazuj s mezerami kolem pomlčky, například `09:30 – 10:30`
   - referenční kód nezobrazuj, dokud neexistuje samostatné business pole používané v adminu nebo klientské komunikaci
   - stručný blok `Co bude následovat` má říct, že potvrzení přijde e-mailem a studio se ozve při potřebě upřesnění
-  - akční blok `Potřebujete změnu?` drž odděleně od vysvětlujícího textu; `Změnit termín` je primární CTA a `Zrušit rezervaci` jen sekundární/destruktivní-light akce
+  - pod další kroky patří krátké uklidnění, že termín je rezervovaný a klientka nemusí dělat nic dalšího
+  - blok `Potřebujete změnu?`, CTA `Změnit termín` a CTA `Zrušit rezervaci` na post-submit screen nevracej; tahle obrazovka má flow uzavírat, ne otevírat další rozhodnutí
+  - intro aktivního flow `Vyberte si termín...` renderuj jen před formulářem, ne nad confirmation panelem po úspěšném submitu
   - kontakt na studio až v posledním bloku s akčním copy `Napište nám` / `Zavolejte`
 - `createPublicBooking()` vrací pro confirmation vrstvu i `scheduledStartsAt`, `scheduledEndsAt` a `cancellationUrl`, aby web i e-mail nemusely domýšlet další akce z neúplných dat.
-- `BookingConfirmationPanel` už používá produkční CTA `Změnit termín` vedoucí na `/rezervace/sprava/[token]`; veřejný post-submit screen i navazující e-maily tak sdílejí stejný secure manage entrypoint.
+- `BookingConfirmationPanel` tokenové manage/cancel odkazy z public action payloadu nemění ani negeneruje, ale na post-submit obrazovce je nezobrazuje; bezpečný manage entrypoint zůstává pro e-maily a detail rezervace.
 - Matomo event `Booking / Created` se posílá po success stavu v `BookingFlow` a chrání ho `createdBookingTrackedRef`; nepřidávej další odeslání přímo do `BookingConfirmationPanel`, aby nevznikaly duplicity při re-renderu.
 - Pending confirmation screen po odeslání rezervace záměrně nenabízí `Přidat do kalendáře`; kalendářová událost se přikládá až do emailu `booking-approved-v1` po přechodu rezervace do `CONFIRMED`.
 - Transformaci slotů pro krok 2 drž mimo JSX v helperu `src/features/booking/lib/booking-time-slots.ts`; UI komponenty mají dostávat už připravené `TimeSlotOption[]` a skupiny z `groupSlotsByDayPeriod()`.
@@ -384,7 +386,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - templates renderují obsah z `EmailLog.templateKey`
   - worker claimuje `EmailLog` řádky v background režimu a delivery aktualizuje `EmailLog.status`, `provider`, `providerMessageId`, `attemptCount`, `nextAttemptAt` a `errorMessage`
 - Admin šablona `admin-booking-notification-v1` má zůstat email-safe a mobilně rozhodovací: inline styly, tabulková plnošířková CTA, Arial/Helvetica pro tlačítka, bez web fontů, bez přehnaného letter-spacing a bez dlouhého vysvětlování procesu. Neměň approve/reject tokenové URL ani `adminUrl`; `Přesunout termín` vede na existující detail rezervace v administraci.
-- Potvrzovací e-mail `booking-confirmation-v1` má držet stejnou informační hierarchii jako web confirmation screen: stav -> služba / termín -> další kroky -> akce -> kontakt, bez duplicitního úvodního textu mimo hero blok.
+- Potvrzovací e-mail `booking-confirmation-v1` může nést bezpečné akce pro správu rezervace, ale webový post-submit confirmation screen má držet hierarchii bez CTA: stav -> služba / termín -> další kroky -> uklidnění -> kontakt.
 - `booking-confirmation-v1`, `booking-approved-v1`, `booking-reminder-24h-v1` i `booking-rescheduled-v1` teď dostávají `manageReservationUrl`; token se generuje per e-mail/send a do DB se ukládá jen jeho hash.
 - Referenční kód rezervace už se v klientském flow záměrně nepoužívá; veřejný web, e-maily i `.ics` popis komunikují jen službu, termín a konkrétní akce přes tokenizované odkazy.
 - Potvrzovací e-mail `booking-approved-v1` nově přikládá soubor `pp-studio-rezervace.ics`; attachment se generuje serverově při renderu šablony z payloadu `bookingId + serviceName + scheduledStartsAt + scheduledEndsAt`.

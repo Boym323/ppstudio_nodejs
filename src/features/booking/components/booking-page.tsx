@@ -1,6 +1,5 @@
 import type { getPublicSalonProfile } from "@/lib/site-settings";
 import { Container } from "@/components/ui/container";
-import { SectionHeading } from "@/components/ui/section-heading";
 import type { PublicBookingCatalog } from "@/features/booking/lib/booking-public";
 
 import { BookingFlow } from "./booking-flow";
@@ -18,12 +17,6 @@ export function BookingPage({ catalog, initialSelectedServiceSlug, salonProfile 
   return (
     <div className="py-12 sm:py-16">
       <Container className="space-y-12">
-        <SectionHeading
-          eyebrow="Rezervace"
-          title="Vyberte si termín, který vám nejlépe vyhovuje."
-          description="Rezervace zabere jen chvilku. Nejdřív zvolíte službu, potom nejbližší termín a nakonec doplníte kontakt."
-        />
-
         {!hasServices ? (
           <section className="rounded-[var(--radius-panel)] border border-black/6 bg-white p-8 shadow-[var(--shadow-panel)]">
             <h3 className="font-display text-3xl text-[var(--color-foreground)]">

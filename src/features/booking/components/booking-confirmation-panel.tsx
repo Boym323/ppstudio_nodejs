@@ -8,9 +8,6 @@ type BookingConfirmationPanelProps = {
     serviceName: string;
     scheduledStartsAt: string;
     scheduledEndsAt: string;
-    clientName: string;
-    manageReservationUrl: string;
-    cancellationUrl: string;
   };
   salonContact: {
     name: string;
@@ -93,35 +90,17 @@ export function BookingConfirmationPanel({
         <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--color-accent)]">
           Co bude následovat
         </p>
-        <p className="mt-3 max-w-2xl text-base leading-7 text-[var(--color-foreground)]/82">
-          Potvrzení vám zašleme e-mailem. Pokud by bylo potřeba něco upřesnit, ozveme se.
-          Do té doby je termín vedený jako čekající na potvrzení.
-        </p>
+        <div className="mt-3 max-w-2xl space-y-2 text-base leading-7 text-[var(--color-foreground)]/82">
+          <p>Potvrzení vám zašleme e-mailem.</p>
+          <p>Pokud by bylo potřeba něco upřesnit, ozveme se.</p>
+          <p>Do té doby je termín vedený jako čekající na potvrzení.</p>
+        </div>
       </section>
 
-      <section className="rounded-[1.75rem] border border-black/6 bg-white p-6 shadow-[var(--shadow-panel)] sm:p-7">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--color-accent)]">
-            Potřebujete změnu?
-          </p>
-          <p className="mt-3 max-w-2xl text-base leading-7 text-[var(--color-foreground)]/82">
-            Přes bezpečný odkaz můžete vybrat nový volný termín nebo rezervaci zrušit.
-          </p>
-        </div>
-        <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-          <a
-            href={confirmation.manageReservationUrl}
-            className="inline-flex min-h-13 flex-[1.15] items-center justify-center rounded-full bg-[var(--color-foreground)] px-6 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-white transition hover:bg-[#2c221d] sm:text-sm"
-          >
-            Změnit termín
-          </a>
-          <a
-            href={confirmation.cancellationUrl}
-            className="inline-flex min-h-13 flex-1 items-center justify-center rounded-full border border-red-200/80 bg-white px-6 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-red-700 transition hover:border-red-300 hover:bg-red-50 sm:text-sm"
-          >
-            Zrušit rezervaci
-          </a>
-        </div>
+      <section className="rounded-[1.75rem] border border-[var(--color-accent-soft)]/35 bg-white p-6 shadow-[var(--shadow-panel)] sm:p-7">
+        <p className="max-w-2xl text-base font-medium leading-7 text-[var(--color-foreground)]">
+          Termín je pro vás nyní rezervovaný a není potřeba dělat žádné další kroky.
+        </p>
       </section>
 
       <section className="rounded-[1.75rem] border border-black/6 bg-white p-6 sm:p-7">

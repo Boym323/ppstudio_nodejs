@@ -20,17 +20,16 @@ Nešlo o změnu business logiky rezervace, ale o přepracování informačního 
   - status blok nahoře
   - hlavní přehled se službou, termínem a časem
   - krátký blok `Co bude následovat`
-  - akční sekci oddělenou od textu
+  - uklidňující informaci bez další akce
   - kontaktní blok až pod hlavním obsahem
-- Veřejný booking payload se rozšíří o `scheduledStartsAt`, `scheduledEndsAt` a `cancellationUrl`, aby confirmation vrstva mohla skládat CTA bez dalšího dohledávání.
-- Primární webová akce bude `Přidat do kalendáře` přes klientsky generovaný `.ics` soubor.
-- Secondary CTA `Požádat o změnu` bude zatím realizované přes předvyplněný kontakt do studia; struktura i umístění ale počítají s budoucím napojením na samostatný self-service endpoint.
-- Destruktivní akce `Zrušit rezervaci` zůstává viditelná, ale nesmí být dominantnější než ostatní kroky.
+- Veřejný booking payload obsahuje `scheduledStartsAt`, `scheduledEndsAt` a tokenové odkazy, ale post-submit confirmation vrstva je nepoužívá jako CTA.
+- Pozdější aktualizace rozhodla, že post-submit screen nemá nabízet žádné manage/cancel CTA; změna a storno patří do e-mailu nebo detailu rezervace.
 
 ## Aktualizace 2026-04-26
 - Webový success screen drží headline `Rezervace přijata`, ale doprovodné copy jasně říká, že termín je předběžně rezervovaný a čeká na finální potvrzení.
 - Badge používá lidštější stav `Čeká na finální potvrzení`; blok `Co bude následovat` stručně říká, že potvrzení přijde e-mailem.
-- Akční sekce se jmenuje `Potřebujete změnu?`, vysvětluje bezpečný odkaz a drží `Změnit termín` jako primární CTA. `Zrušit rezervaci` zůstává dostupné, ale vizuálně sekundární.
+- Akční sekce `Potřebujete změnu?` byla odstraněná včetně CTA `Změnit termín` a `Zrušit rezervaci`; success screen má působit jako potvrzení a uzavření flow.
+- Pod blokem `Co bude následovat` je krátké uklidnění, že termín je nyní rezervovaný a klientka nemusí dělat další kroky.
 - Referenční kód se na confirmation screenu nezobrazuje, protože booking model nemá samostatný klientsky používaný reference-code atribut; interní `bookingId` se klientce neukazuje.
 - Matomo event `Booking / Created` zůstává v `BookingFlow` po success submitu a je chráněný `createdBookingTrackedRef`, takže confirmation panel neposílá další duplicitní event.
 
@@ -39,7 +38,7 @@ Nešlo o změnu business logiky rezervace, ale o přepracování informačního 
 ### Pozitivní
 - uživatelka do několika vteřin pochopí stav rezervace i přesný termín
 - confirmation screen nepůsobí jako zbytkový e-mailový card, ale jako skutečný stavový krok
-- CTA jsou jasně oddělené od informací a lépe připravují budoucí self-service správu rezervace
+- odstranění manage/cancel CTA snižuje nejistotu po odeslání rezervace
 - e-mail i web mluví stejnou hierarchií, což zvyšuje důvěryhodnost celého flow
 
 ### Negativní
@@ -50,4 +49,5 @@ Nešlo o změnu business logiky rezervace, ale o přepracování informačního 
 ## Alternativy
 - Zachovat stávající souhrnný card a upravit jen copy: zamítnuto, protože problém byl v hierarchii a informačním toku, ne jen ve wording změnách.
 - Udělat hlavní CTA storno a ostatní akce schovat pod text: zamítnuto, protože confirmation screen má podporovat další krok, ne zdůrazňovat zrušení.
-- Přidat pro `Přidat do kalendáře` nový veřejný route handler: zatím zamítnuto, protože klientský `.ics` export řeší potřebu bez rozšíření veřejného API.
+- Vrátit kalendářovou akci na pending screen: zamítnuto, protože `.ics` příloha patří až do e-mailu po přechodu rezervace do `CONFIRMED`.
+- Ponechat `Změnit termín` a `Zrušit rezervaci` přímo po submitu: zamítnuto, protože obrazovka má rezervaci uzavřít, ne vyvolávat další rozhodování.

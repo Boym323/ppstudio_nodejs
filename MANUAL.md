@@ -194,9 +194,11 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
   - jasný stav `Čeká na finální potvrzení` a věta, že termín je předběžně rezervovaný
   - hlavní detail se službou, datem a časem ve formátu s čitelnou pomlčkou, například `09:30 – 10:30`
   - stručný blok `Co bude následovat`
-  - akční blok `Potřebujete změnu?`, kde je `Změnit termín` primární a `Zrušit rezervaci` sekundární bezpečná akce
+  - uklidňující věta, že termín je nyní rezervovaný a klientka nemusí dělat další kroky
   - samostatný kontakt na studio až pod hlavními informacemi
   - referenční kód se nezobrazuje, dokud pro něj projekt nemá samostatné business pole používané v komunikaci
+  - nad confirmation panelem se nezobrazuje intro z aktivního výběru termínu (`Vyberte si termín...`)
+  - post-submit screen záměrně nezobrazuje akce `Změnit termín` ani `Zrušit rezervaci`; změny a storno patří do e-mailu nebo detailu rezervace, ne do uzavření flow
 - Provozní e-mail o nové rezervaci teď obsahuje tři akce:
   - `Potvrdit rezervaci`
   - `Přesunout termín`

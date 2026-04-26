@@ -6,12 +6,17 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Veřejný success screen po vytvoření rezervace je nově čisté uklidňující potvrzení: zachovává hero `Rezervace přijata`, stav `Čeká na finální potvrzení`, detail služby / data / času a stručně říká, co se stane dál.
+- Z confirmation panelu byl odstraněn blok `Potřebujete změnu?` včetně CTA `Změnit termín` a `Zrušit rezervaci`; post-submit obrazovka už nepůsobí jako další krok flow.
+- Intro rezervační stránky `Vyberte si termín...` se už po úspěšném submitu nezobrazuje nad confirmation panelem; zůstává jen v aktivním výběru termínu.
+- Confirmation panel doplnil krátký uklidňující blok `Termín je pro vás nyní rezervovaný...`, kontakt `Potřebujete pomoc?` zůstal poslední a Matomo event `Booking / Created` dál odchází pouze z `BookingFlow` po úspěšném submitu přes `createdBookingTrackedRef`.
+
 - Provozní e-mail o nové rezervaci je zkrácený na rozhodovací obsah `služba / termín / klientka / kontakt / rychlé akce` a už neobsahuje dlouhé vysvětlování bezpečnostního mezikroku.
 - Tlačítka v admin notifikaci jsou nově skládaná pod sebe přes email-safe tabulkové CTA, používají Arial/Helvetica bez letter-spacing a mají jasnou hierarchii `Potvrdit rezervaci` jako primary, `Přesunout termín` a `Otevřít v administraci` jako secondary a `Zrušit rezervaci` jako danger-light.
 - Text/plain fallback admin notifikace je stručný a zachovává stejné approve/reject/admin odkazy bez změny token workflow, email workeru nebo booking flow.
 
-- Veřejný success stav po odeslání rezervace má jasnější klidové copy: potvrzuje přijetí rezervace, předběžné držení termínu, čekání na finální e-mail a bezpečné možnosti změny nebo zrušení bez zásahu do booking API či tokenových odkazů.
-- Confirmation panel nově drží `Změnit termín` jako primární akci a `Zrušit rezervaci` jako sekundární danger-light volbu; referenční kód se nezobrazuje, protože projekt nemá samostatný klientský reference-code atribut.
+- Veřejný success stav po odeslání rezervace má jasnější klidové copy: potvrzuje přijetí rezervace, předběžné držení termínu a čekání na finální e-mail bez zásahu do booking API či tokenových odkazů.
+- Referenční kód se v confirmation panelu nezobrazuje, protože projekt nemá samostatný klientský reference-code atribut.
 
 - Sticky action bar v admin týdenním planneru už neobsahuje nefunkční tlačítko `Uložit koncept`; zůstávají akce `Zahodit` a `Publikovat změny`.
 - Koncept změn v planneru se nyní bere jako dočasný pracovní stav aktuální stránky a po refreshi bez publikace se neobnovuje.
