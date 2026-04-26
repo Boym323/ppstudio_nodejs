@@ -6,6 +6,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Stabilizovan E2E scenar self-service presunu terminu: Playwright test ma sirsi timeout jen pro tento krok a owner Pushover HTTP volani je ted omezene 3s timeoutem, aby pomale externi notifikace zbytecne nedrzely booking flow.
 - Opraven crash loop `ppstudio-email-worker`: Pushover implementace je oddelena do worker-safe modulu a Next.js `server-only` wrapper zustava jen pro app/runtime importy, takže PM2 worker uz pri startu nepada na nacitani `server-only`.
 - Ruční rezervace v adminu už nevyžaduje e-mail klientky; nové klientky lze založit i jen se jménem a telefonem a potvrzovací e-mail se při chybějící adrese bezpečně přeskočí.
 - Veřejná hláška v rezervacích pro stav bez volných termínů už nepoužívá interní admin wording; místo technické formulace vysvětluje zákaznici jednoduše, že nové termíny přibývají průběžně.

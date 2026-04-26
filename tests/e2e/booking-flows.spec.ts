@@ -113,6 +113,8 @@ test.describe("booking flows", () => {
   });
 
   test("client can reschedule a booking through a public token", async ({ page }) => {
+    test.setTimeout(60_000);
+
     const fixture = await createManagedBookingFixture();
     fixtures.push(fixture);
 
@@ -130,7 +132,7 @@ test.describe("booking flows", () => {
 
     await expect(
       page.getByRole("heading", { name: "Rezervace byla úspěšně přesunuta." }),
-    ).toBeVisible({ timeout: 20_000 });
+    ).toBeVisible({ timeout: 30_000 });
 
     const booking = await prisma.booking.findUniqueOrThrow({
       where: {

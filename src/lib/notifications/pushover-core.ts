@@ -39,6 +39,7 @@ type BookingPushoverEventType =
   | "BOOKING_RESCHEDULED";
 
 const PUSHOVER_ENDPOINT = "https://api.pushover.net/1/messages.json";
+const PUSHOVER_REQUEST_TIMEOUT_MS = 3_000;
 const RATE_LIMIT_WINDOW_MS = 30 * 1000;
 const recentEvents = new Map<string, number>();
 
@@ -148,6 +149,7 @@ async function postPushoverMessage({
       "content-type": "application/x-www-form-urlencoded",
     },
     body: payload,
+    signal: AbortSignal.timeout(PUSHOVER_REQUEST_TIMEOUT_MS),
   });
 
   if (!response.ok) {

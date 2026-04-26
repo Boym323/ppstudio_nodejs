@@ -118,7 +118,7 @@ Browser E2E vrstva používá Playwright a spouští se samostatně:
 npm run test:e2e
 ```
 
-E2E testy nejdřív vytvoří produkční build, startují lokální `next start` server na samostatném portu, přepínají e-mail delivery do `log` režimu a seedují izolovaná data pro veřejnou rezervaci, storno, přesun termínu a admin potvrzení rezervace. Při prvním spuštění na novém stroji může být potřeba doinstalovat Playwright browser přes `npx playwright install chromium`.
+E2E testy nejdřív vytvoří produkční build, startují lokální `next start` server na samostatném portu, přepínají e-mail delivery do `log` režimu a seedují izolovaná data pro veřejnou rezervaci, storno, přesun termínu a admin potvrzení rezervace. Self-service přesun termínu má v Playwrightu cíleně o něco širší timeout, protože čeká na plný server action roundtrip nad produkčním buildem. Při prvním spuštění na novém stroji může být potřeba doinstalovat Playwright browser přes `npx playwright install chromium`.
 
 GitHub Actions CI používá stejnou verifikační sadu automaticky na pull requestech a pushech do hlavních větví:
 
