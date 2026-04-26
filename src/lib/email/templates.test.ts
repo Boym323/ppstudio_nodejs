@@ -78,6 +78,28 @@ test("renderEmailTemplate creates cancellation email without booking reference",
   assert.doesNotMatch(email.text, /Referenční kód/i);
 });
 
+test("renderEmailTemplate creates rejected email in shared client layout", async () => {
+  const { renderEmailTemplate } = await loadRenderer();
+  const email = await renderEmailTemplate(
+    "booking-rejected-v1",
+    "Rezervaci se nepodařilo potvrdit: Luxusní péče",
+    {
+      bookingId: "clztestbookingrejected",
+      serviceName: "Luxusní péče",
+      clientName: "Jana Nováková",
+      scheduledStartsAt: "2026-04-20T08:00:00.000Z",
+      scheduledEndsAt: "2026-04-20T09:00:00.000Z",
+    },
+  );
+
+  assert.match(email.text, /Rezervaci se tentokrát nepodařilo potvrdit/);
+  assert.match(email.text, /Služba: Luxusní péče/);
+  assert.match(email.text, /Místo:\nPP Studio\nSadová 2, 760 01 Zlín/);
+  assert.match(email.text, /Napište nám: info@ppstudio\.cz/);
+  assert.match(email.html, /Vybrat nový termín/);
+  assert.doesNotMatch(email.html, /Pokud budete potřebovat pomoci/);
+});
+
 test("renderEmailTemplate creates admin notification email with action links", async () => {
   const { renderEmailTemplate } = await loadRenderer();
   const email = await renderEmailTemplate(
@@ -108,6 +130,28 @@ test("renderEmailTemplate creates admin notification email with action links", a
   assert.doesNotMatch(email.html, /letter-spacing:0\.08em/);
 });
 
+test("renderEmailTemplate creates admin cancellation email in operational layout", async () => {
+  const { renderEmailTemplate } = await loadRenderer();
+  const email = await renderEmailTemplate(
+    "admin-booking-cancelled-v1",
+    "Rezervace zrušena: Luxusní péče",
+    {
+      bookingId: "clztestbookingadmincancelled",
+      serviceName: "Luxusní péče",
+      clientName: "Jana Nováková",
+      clientEmail: "jana@example.com",
+      scheduledStartsAt: "2026-04-20T08:00:00.000Z",
+      scheduledEndsAt: "2026-04-20T09:00:00.000Z",
+    },
+  );
+
+  assert.match(email.text, /Rezervace zrušena/);
+  assert.match(email.text, /Služba: Luxusní péče/);
+  assert.match(email.text, /Email: jana@example\.com/);
+  assert.match(email.html, /Rezervace zrušena/);
+  assert.doesNotMatch(email.html, /Napište nám/);
+});
+
 test("renderEmailTemplate creates approved email", async () => {
   const { renderEmailTemplate } = await loadRenderer();
   const email = await renderEmailTemplate(
@@ -127,8 +171,9 @@ test("renderEmailTemplate creates approved email", async () => {
   assert.match(email.text, /byla potvrzena/i);
   assert.match(email.text, /token-approved/);
   assert.match(email.text, /token-approved-cancel/);
-  assert.match(email.text, /Termín:\n.+\n.+/);
-  assert.match(email.text, /Služba:\nLuxusní péče/);
+  assert.match(email.text, /Služba: Luxusní péče/);
+  assert.match(email.text, /Datum: .+/);
+  assert.match(email.text, /Čas: \d{2}:\d{2} – \d{2}:\d{2}/);
   assert.match(email.text, /Místo:\nPP Studio\nSadová 2, 760 01 Zlín/);
   assert.match(email.text, /přiložené kalendářové události/i);
   assert.match(email.text, /Napište nám: info@ppstudio\.cz/);
@@ -137,7 +182,7 @@ test("renderEmailTemplate creates approved email", async () => {
   assert.match(email.html, /Vaše rezervace je potvrzená\. Níže najdete termín, místo a možnosti pro případnou změnu\./);
   assert.match(email.html, /Sadová 2, 760 01 Zlín/);
   assert.match(email.html, /Zobrazit na mapě/);
-  assert.match(email.html, /Potřebujete pomoc\?/);
+  assert.match(email.html, /Kontakt/);
   assert.match(email.html, /Správa rezervace/);
   assert.match(email.html, /Změnit termín/);
   assert.match(email.html, /Zrušit rezervaci/);
@@ -187,16 +232,16 @@ test("renderEmailTemplate creates 24h reminder email without calendar attachment
   );
 
   assert.equal(email.subject, "Připomínka rezervace - zítra v PP Studio");
-  assert.match(email.text, /zítra máte rezervaci v PP Studiu/i);
-  assert.match(email.text, /Jen krátká připomínka vašeho zítřejšího termínu/i);
-  assert.match(email.text, /Kde nás najdete:/i);
+  assert.match(email.text, /Zítra máte rezervaci v PP Studiu/);
+  assert.match(email.text, /Připomínka vašeho zítřejšího termínu/i);
+  assert.match(email.text, /Místo:\nPP Studio\nSadová 2, 760 01 Zlín/);
   assert.match(email.text, /Změnit termín/);
-  assert.match(email.text, /Ozvat se studiu/);
   assert.match(email.text, /Zrušit rezervaci/);
-  assert.match(email.text, /Pokud by se cokoliv změnilo, dejte nám prosím vědět co nejdříve/i);
+  assert.match(email.text, /Napište nám: info@ppstudio\.cz/);
+  assert.match(email.text, /Zavolejte: \+420 732 856 036/);
   assert.match(email.html, /Zítra máte rezervaci v PP Studiu/);
-  assert.match(email.html, /Nemůžete dorazit\?/);
-  assert.match(email.html, /Ozvat se studiu/);
+  assert.match(email.html, /Potřebujete změnu\?/);
+  assert.doesNotMatch(email.html, /Ozvat se studiu/);
   assert.equal(email.attachments, undefined);
 });
 
@@ -215,7 +260,7 @@ test("renderEmailTemplate creates 24h reminder email for legacy payload without 
     },
   );
 
-  assert.match(email.text, /zítra máte rezervaci v PP Studiu/i);
+  assert.match(email.text, /Zítra máte rezervaci v PP Studiu/);
   assert.doesNotMatch(email.text, /Změnit termín:/i);
   assert.match(email.text, /Zrušit rezervaci:/i);
   assert.doesNotMatch(email.html, /Změnit termín/);
@@ -241,8 +286,9 @@ test("renderEmailTemplate creates reschedule email with updated term and calenda
   );
 
   assert.equal(email.subject, "Změna termínu rezervace: Luxusní péče");
-  assert.match(email.text, /Původní termín:/);
-  assert.match(email.text, /Nový termín:/);
+  assert.match(email.text, /Původně:/);
+  assert.match(email.text, /Datum:/);
+  assert.match(email.text, /Čas: \d{2}:\d{2} – \d{2}:\d{2}/);
   assert.match(email.text, /token-rescheduled-manage/);
   assert.match(email.text, /token-rescheduled/);
   assert.match(email.html, /Termín rezervace byl změněn/);

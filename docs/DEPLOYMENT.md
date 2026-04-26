@@ -148,6 +148,11 @@ Postup nasazení aplikace do produkce.
     - obsahuje přílohu `pp-studio-rezervace.ics`
     - příloha obsahuje jeden `VEVENT` s `TZID=Europe/Prague`
     - potvrzovací email se korektně doručí i s attachmentem přes SMTP
+    - HTML i text/plain používají jednotné bloky služba / datum / čas, místo `PP Studio, Sadová 2, 760 01 Zlín`, jeden kontakt a sekundární změnu/storno
+  - 24h reminder, změnu termínu, storno a admin notifikaci:
+    - ověř v Gmail desktop/mobile, iOS Mailu, Apple Mailu a pokud možno Outlooku
+    - žádné duplicitní kontaktní věty, žádné CTA `Ozvat se studiu` v reminderu
+    - tlačítka mají alespoň 44 px výšky, nelámou se a destruktivní akce není dominantní
   - doručení admin notifikačního e-mailu na `notificationAdminEmail`
   - zpracování email workerem nebo potvrzený `EmailLog` v log režimu
   - načtení testovacího veřejného media URL `/media/public/<kind>/...` nebo legacy `/media/<kind>/...`
@@ -170,7 +175,7 @@ Postup nasazení aplikace do produkce.
 10. Pro produkci spusť zvlášť `npm run email:worker` jako samostatný proces nebo službu.
 11. Po nasazení reminder změny ověř, že worker běží nepřetržitě; bez něj se reminder joby neenqueueují ani nedoručují.
 12. Po nasazení reschedule změny ověř, že přesun resetuje `reminder24hQueuedAt` a `reminder24hSentAt`, aby se reminder správně navázal na nový termín.
-13. Po změně admin e-mailové šablony odešli testovací novou rezervaci a v Gmailu, iOS Mailu, Apple Mailu a Outlooku zkontroluj hlavně čitelnost tlačítek, stackování CTA na mobilu, funkčnost approve/reject/admin odkazů a to, že `Zrušit rezervaci` není vizuálně dominantnější než potvrzení.
+13. Po změně booking e-mailových šablon odešli testovací novou rezervaci, potvrzení, reminder, přesun a storno; v Gmailu, iOS Mailu, Apple Mailu a Outlooku zkontroluj čitelnost 600px shellu, stackování CTA na mobilu, funkčnost approve/reject/admin/manage/cancel odkazů, jednorázový kontakt, formát času `09:30 – 10:30` a to, že `Zrušit rezervaci` není vizuálně dominantnější než potvrzení.
 
 ### Systemd
 - Doporučený web unit je v [`deploy/systemd/ppstudio-web.service`](/var/www/ppstudio/deploy/systemd/ppstudio-web.service).

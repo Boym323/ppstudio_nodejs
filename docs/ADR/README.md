@@ -64,3 +64,6 @@ Sem patří krátké záznamy architektonických rozhodnutí.
 - `0047-admin-booking-detail-decision-panel-v1.md`
 - `0048-admin-email-communication-overview-v1.md`
 - `0049-admin-email-log-detail-business-debug-split-v1.md`
+- `0050-admin-dashboard-today-operations-panel-v2.md`
+- `0051-public-matomo-analytics-v1.md`
+- `0052-booking-email-design-system-v1.md`

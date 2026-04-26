@@ -12,7 +12,7 @@ export function formatBookingCalendarDate(startsAt: Date) {
 export function formatBookingTimeRange(startsAt: Date, endsAt: Date) {
   const timeFormatter = getBookingTimeFormatter();
 
-  return `${timeFormatter.format(startsAt)}–${timeFormatter.format(endsAt)}`;
+  return `${timeFormatter.format(startsAt)} – ${timeFormatter.format(endsAt)}`;
 }
 
 function getBookingDateFormatter() {

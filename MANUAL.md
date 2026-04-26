@@ -207,7 +207,9 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
 - Provozní e-mail je určený pro rychlé mobilní rozhodnutí: nahoře je služba, datum, čas, klientka, e-mail a telefon jen pokud existuje; dlouhé vysvětlení akčních odkazů, technické údaje a duplicitní patička se v této šabloně nezobrazují.
 - Emailové approve/reject odkazy neprovedou změnu hned po otevření; vždy nejdřív zobrazí kontrolní obrazovku s přehledem rezervace a až následně potvrzovací CTA.
 - Po potvrzení rezervace systém automaticky založí návazný klientský e-mail s výsledkem rezervace a přiloženou `.ics` událostí pro osobní kalendář klientky.
-- Potvrzovací e-mail po finálním schválení rezervace je záměrně krátký a praktický: potvrzuje rezervaci, ukazuje termín, službu a místo `PP Studio, Sadová 2, 760 01 Zlín`, připomíná přiloženou kalendářovou událost a dole nenápadně nabízí změnu nebo zrušení, pokud jsou v payloadu dostupné bezpečné odkazy.
+- Booking e-maily mají jednotný klidný design: nahoře `PP Studio`, jasný headline, krátký úvod, karta se službou / datem / časem, místo, relevantní akce, jednorázový kontakt a decentní patička. Čas se zobrazuje jako `09:30 – 10:30`.
+- Potvrzovací e-mail po finálním schválení rezervace je záměrně krátký a praktický: potvrzuje rezervaci, ukazuje službu, termín a místo `PP Studio, Sadová 2, 760 01 Zlín`, připomíná přiloženou kalendářovou událost a dole nenápadně nabízí změnu nebo zrušení, pokud jsou v payloadu dostupné bezpečné odkazy.
+- Reminder 24 hodin před termínem neobsahuje samostatné CTA `Ozvat se studiu`; kontakt je jednou jako `Napište nám: info@ppstudio.cz` a `Zavolejte: +420 732 856 036`.
 - Pending confirmation screen kalendář záměrně nenabízí; `.ics` příloha patří až k e-mailu po přechodu rezervace do `CONFIRMED`.
 - Rezervační stránka je renderovaná dynamicky při requestu, takže nově publikované nebo obsazené sloty jsou vidět bez dalšího buildu.
 - Hero, sekce `O mně` a základní service copy jsou přepsané do klidnějšího a osobnějšího tónu; u `/o-mne` se vyhýbej defenzivním formulacím o praxi, agresivním slibům a superlativům typu `dokonalý`, `špičkový` nebo `okamžité výsledky`.
@@ -511,13 +513,13 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
   - zapíše audit změny stavu
   - připraví storno token a e-mailový log s informací o přijetí rezervace
   - uloží e-mail jako `PENDING` v background režimu nebo `SENT` v log režimu
-- Confirmation screen i potvrzovací e-mail sdílejí stejnou obsahovou hierarchii:
+- Confirmation screen a klientské booking e-maily sdílejí stejnou obsahovou hierarchii:
   - jasný stav rezervace
-  - dominantní termín
-  - oddělený blok dalších kroků
-  - akce mimo informační copy
-  - kontakt až jako spodní podpůrná sekce
-- 24h reminder e-mail má být ještě úspornější: nejdřív služba, pod ní datum a čas, potom `Kde nás najdete`; akční sekce má nejdřív nabídnout kontakt na studio a storno držet jen jako sekundární možnost.
+  - dominantní karta `služba / datum / čas`
+  - místo `PP Studio, Sadová 2, 760 01 Zlín`
+  - akce mimo informační copy a bez dominantního storna
+  - kontakt až jako spodní podpůrná sekce, pouze jednou
+- 24h reminder e-mail je úsporný: služba, datum, čas, místo, sekce `Potřebujete změnu?`, sekundární akce `Změnit termín` / `Zrušit rezervaci` a jednorázový kontakt.
 - Referenční kód rezervace už se v klientské komunikaci nezobrazuje; pro změnu nebo storno se používají konkrétní tokenizované odkazy a textové shrnutí služby s termínem.
 - Pokud se termín mezitím obsadí, služba přestane být aktivní nebo slot přestane odpovídat délce služby, uživatel dostane konkrétnější chybu místo obecného selhání.
 - Veřejný submit je lehce rate-limitený podle IP a e-mailu; opakované pokusy v krátkém čase skončí blokací s user-friendly hláškou.

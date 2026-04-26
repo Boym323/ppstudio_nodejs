@@ -35,6 +35,7 @@ Seznam důležitých knihoven a důvod jejich použití.
 - Refaktor HTML šablony admin notifikace také nepřidává žádnou knihovnu; email-safe layout je ručně skládaný přes inline styly a prezentační tabulky.
 - Ani zákaznická `.ics` příloha po potvrzení rezervace nepřidává novou knihovnu; používá lokální iCalendar utility a stávající SMTP vrstvu přes `nodemailer`.
 - UX/copy refaktor potvrzovacího klientského e-mailu `booking-approved-v1` také nepřidává novou knihovnu; layout dál používá ručně skládané email-safe HTML s inline styly a stávající `.ics` attachment pipeline.
+- Sjednocení booking e-mailů do jednoho design systému nepřidává žádnou knihovnu; HTML shell, karty, CTA i text/plain fallbacky zůstávají ručně skládané v `src/lib/email/templates.ts` nad existujícím Node/Prisma/Nodemailer stackem.
 - Jediný 24h reminder rezervací také nepřidává novou knihovnu; scheduler, token workflow i outbox zápis používají stávající Next.js/Prisma/Node stack a existující `email:worker`.
 - Admin přesun termínu také nepřidává novou knihovnu; drawer UI, auditní log i doménová validace běží čistě na stávajícím stacku Next.js, React, Prisma a Zod.
 - Refaktor detailu rezervace do decision panelu také nepřidává novou závislost; sticky header, action chooser, kompaktní summary card i zkrácená historie používají jen stávající Next.js App Router, React a Tailwind utility.

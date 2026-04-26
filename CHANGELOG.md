@@ -6,6 +6,10 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Všechny booking e-mailové šablony v `src/lib/email/templates.ts` jsou sjednocené do jednoho email-safe design systému: 600px shell, inline styly, tabulkové karty, jednotný detail `služba / datum / čas`, pevná adresa `PP Studio, Sadová 2, 760 01 Zlín`, jeden kontaktní blok a čitelný formát času `09:30 – 10:30`.
+- Klientské šablony `booking-confirmation-v1`, `booking-approved-v1`, `booking-reminder-24h-v1`, `booking-rescheduled-v1`, `booking-cancelled-v1` a `booking-rejected-v1` mají klidnější stručné text/plain i HTML varianty bez duplicitních vět o pomoci; reminder už neobsahuje samostatné CTA `Ozvat se studiu` a kontakt se zobrazuje pouze jednou.
+- CTA hierarchie e-mailů je sjednocená: klientské změny/storna jsou sekundární nebo textové odkazy, destruktivní akce používají tlumený danger-light styl a `admin-booking-notification-v1` drží jedinou primární akci `Potvrdit rezervaci`.
+- ADR `0052-booking-email-design-system-v1` popisuje pravidla pro další úpravy booking e-mailů bez zásahu do workeru, fronty, tokenů, ICS příloh nebo booking flow.
 - Klientský potvrzovací e-mail `booking-approved-v1` prošel UX/copy refaktorem: má jasnou hierarchii `termín / služba / místo / kalendář / pomoc / správa rezervace`, výrazně zobrazuje adresu PP Studio na Sadové 2 ve Zlíně, připomíná `.ics` přílohu a odkazy na změnu/storno drží dole jako sekundární textové akce.
 - Doprovodné texty kroků veřejné rezervace jsou civilnější a přesněji popisují výběr služby, termínu, kontaktu a závěrečnou kontrolu před odesláním.
 - Veřejný rezervační formulář po změně kategorie ve kroku `Vyberte službu` automaticky plynule posune viewport na seznam dostupných služeb v dané kategorii, takže není potřeba ručně scrollovat na mobilu.

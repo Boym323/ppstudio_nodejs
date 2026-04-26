@@ -4,7 +4,6 @@ import { env } from "@/config/env";
 import { buildBookingCalendarIcsFromPayload } from "@/features/calendar/lib/booking-calendar-event";
 import {
   formatBookingCalendarDate,
-  formatBookingDateLabel,
   formatBookingTimeRange,
 } from "@/features/booking/lib/booking-format";
 import { getEmailBrandingSettings, getPublicSalonProfile } from "@/lib/site-settings";
@@ -102,6 +101,17 @@ export type RenderedEmailTemplate = {
   }>;
 };
 
+const clientStudio = {
+  name: "PP Studio",
+  address: "Sadová 2, 760 01 Zlín",
+  email: "info@ppstudio.cz",
+  phone: "+420 732 856 036",
+};
+
+const clientStudioMapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+  `${clientStudio.name}, ${clientStudio.address}`,
+)}`;
+
 function escapeHtml(value: string) {
   return value
     .replaceAll("&", "&amp;")
@@ -109,6 +119,10 @@ function escapeHtml(value: string) {
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#39;");
+}
+
+function buildPhoneHref(phone: string) {
+  return `tel:${phone.replace(/[^\d+]/g, "")}`;
 }
 
 function buildEmailButton({
@@ -127,7 +141,7 @@ function buildEmailButton({
         ? "background:#fff4f2;color:#b03c2e;border:1px solid #f3d3cd;"
         : "background:#f6efe8;color:#1f1714;border:1px solid #eaded4;";
 
-  return `<a href="${escapeHtml(href)}" style="display:inline-block;padding:14px 22px;border-radius:8px;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:20px;font-weight:700;text-align:center;text-decoration:none;white-space:normal;${styles}">${escapeHtml(label)}</a>`;
+  return `<a href="${escapeHtml(href)}" style="display:inline-block;min-height:20px;padding:13px 20px;border-radius:8px;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:20px;font-weight:700;letter-spacing:0;text-align:center;text-decoration:none;white-space:normal;${styles}">${escapeHtml(label)}</a>`;
 }
 
 function buildEmailActionButton({
@@ -167,24 +181,112 @@ function buildEmailShell(
   },
 ) {
   return `
-    <div style="background:#f7f1eb;padding:32px 16px;font-family:Arial,sans-serif;color:#2e241f;">
-      <div style="max-width:${options?.maxWidthPx ?? 640}px;margin:0 auto;background:#ffffff;border-radius:24px;padding:32px;box-shadow:0 20px 60px rgba(42,29,21,0.08);">
-        <p style="margin:0 0 12px;font-size:12px;letter-spacing:0.24em;text-transform:uppercase;color:#9e7f65;">${escapeHtml(brand.name)}</p>
-        ${title ? `<h1 style="margin:0 0 16px;font-size:30px;line-height:1.15;font-family:Georgia,serif;color:#1f1714;">${escapeHtml(title)}</h1>` : ""}
-        ${intro ? `<p style="margin:0 0 24px;font-size:16px;line-height:1.7;color:#5b4c44;">${escapeHtml(intro)}</p>` : ""}
-        ${body}
-        ${options?.includeFooter === false ? "" : `
-          <p style="margin:32px 0 0;font-size:14px;line-height:1.7;color:#5b4c44;">
-            Pokud budete potřebovat pomoci, napište nám na
-            <a href="mailto:${escapeHtml(brand.email)}" style="color:#1f1714;">${escapeHtml(brand.email)}</a>
-            nebo zavolejte na
-            <a href="tel:${escapeHtml(brand.phone)}" style="color:#1f1714;">${escapeHtml(brand.phone)}</a>.
-          </p>
-          ${brand.footerText ? `<p style="margin:20px 0 0;font-size:13px;line-height:1.7;color:#5b4c44;">${escapeHtml(brand.footerText)}</p>` : ""}
-        `}
-      </div>
-    </div>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;border-collapse:collapse;background:#f7f1eb;">
+      <tr>
+        <td align="center" style="padding:28px 14px;font-family:Arial,Helvetica,sans-serif;color:#2e241f;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:${options?.maxWidthPx ?? 600}px;border-collapse:separate;border-spacing:0;background:#ffffff;border:1px solid #eaded4;border-radius:18px;">
+            <tr>
+              <td style="padding:28px 24px;">
+                <p style="margin:0 0 12px;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:16px;letter-spacing:0.12em;text-transform:uppercase;color:#9e7f65;">${escapeHtml(brand.name)}</p>
+                ${title ? `<h1 style="margin:0 0 14px;font-family:Georgia,'Times New Roman',serif;font-size:28px;line-height:34px;font-weight:700;color:#1f1714;">${escapeHtml(title)}</h1>` : ""}
+                ${intro ? `<p style="margin:0 0 22px;font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:25px;color:#5b4c44;">${escapeHtml(intro)}</p>` : ""}
+                ${body}
+                ${options?.includeFooter === false ? "" : `
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:28px;border-collapse:collapse;border-top:1px solid #eaded4;">
+                    <tr>
+                      <td style="padding-top:16px;">
+                        <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:21px;color:#8a7468;">${escapeHtml(clientStudio.name)}</p>
+                      </td>
+                    </tr>
+                  </table>
+                `}
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
   `.trim();
+}
+
+function buildEmailCard(body: string, background = "#fbf7f3") {
+  return `
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:separate;border-spacing:0;border:1px solid #eaded4;border-radius:14px;background:${background};">
+      <tr>
+        <td style="padding:18px 18px;">
+          ${body}
+        </td>
+      </tr>
+    </table>
+  `;
+}
+
+function buildEmailDetailRow(label: string, value: string) {
+  return `
+    <tr>
+      <td style="padding:12px 0;border-bottom:1px solid #eaded4;">
+        <p style="margin:0 0 5px;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:16px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#9e7f65;">${escapeHtml(label)}</p>
+        <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:17px;line-height:25px;color:#1f1714;"><strong>${escapeHtml(value)}</strong></p>
+      </td>
+    </tr>
+  `;
+}
+
+function buildBookingDetailCard({
+  serviceName,
+  bookingDate,
+  bookingTime,
+  extraRows = "",
+}: {
+  serviceName: string;
+  bookingDate: string;
+  bookingTime: string;
+  extraRows?: string;
+}) {
+  return buildEmailCard(`
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
+      ${buildEmailDetailRow("Služba", serviceName)}
+      ${buildEmailDetailRow("Datum", bookingDate)}
+      ${buildEmailDetailRow("Čas", bookingTime)}
+      ${extraRows}
+    </table>
+  `);
+}
+
+function buildClientLocationBlock() {
+  return buildEmailCard(`
+    <p style="margin:0 0 7px;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:16px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#9e7f65;">Místo</p>
+    <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:24px;color:#1f1714;"><strong>${escapeHtml(clientStudio.name)}</strong><br />${escapeHtml(clientStudio.address)}</p>
+    <p style="margin:10px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:21px;"><a href="${escapeHtml(clientStudioMapUrl)}" style="color:#1f1714;text-decoration:underline;">Zobrazit na mapě</a></p>
+  `, "#fffaf6");
+}
+
+function buildClientContactBlock() {
+  return buildEmailCard(`
+    <p style="margin:0 0 7px;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:16px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#9e7f65;">Kontakt</p>
+    <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:24px;color:#5b4c44;">
+      Napište nám: <a href="mailto:${escapeHtml(clientStudio.email)}" style="color:#1f1714;text-decoration:underline;">${escapeHtml(clientStudio.email)}</a><br />
+      Zavolejte: <a href="${escapeHtml(buildPhoneHref(clientStudio.phone))}" style="color:#1f1714;text-decoration:underline;">${escapeHtml(clientStudio.phone)}</a>
+    </p>
+  `, "#ffffff");
+}
+
+function buildClientActionLinks(manageReservationUrl?: string, cancellationUrl?: string) {
+  if (!manageReservationUrl && !cancellationUrl) {
+    return "";
+  }
+
+  return `
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:16px;border-collapse:collapse;border-top:1px solid #eaded4;">
+      <tr>
+        <td style="padding-top:14px;">
+          <p style="margin:0 0 8px;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:16px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#9e7f65;">Správa rezervace</p>
+          ${manageReservationUrl ? `<a href="${escapeHtml(manageReservationUrl)}" style="display:inline-block;margin:0 14px 8px 0;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:20px;font-weight:700;letter-spacing:0;color:#1f1714;text-decoration:underline;">Změnit termín</a>` : ""}
+          ${cancellationUrl ? `<a href="${escapeHtml(cancellationUrl)}" style="display:inline-block;margin:0 0 8px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:20px;font-weight:700;letter-spacing:0;color:#7f322a;text-decoration:underline;">Zrušit rezervaci</a>` : ""}
+        </td>
+      </tr>
+    </table>
+  `;
 }
 
 export async function renderEmailTemplate(
@@ -230,98 +332,98 @@ export async function renderEmailTemplate(
         `Dobrý den, ${data.clientName},`,
         "",
         "Rezervace přijata",
-        `Vaši rezervaci služby ${data.serviceName} jsme přijali ke schválení.`,
+        "Vaši rezervaci jsme přijali ke schválení. Finální potvrzení pošleme dalším e-mailem.",
         "",
         `Služba: ${data.serviceName}`,
-        `Termín: ${bookingDate}`,
+        `Datum: ${bookingDate}`,
         `Čas: ${bookingTime}`,
-        "Co bude následovat:",
-        "Potvrzení přijde dalším e-mailem a kdyby bylo potřeba něco upřesnit, ozveme se.",
         "",
-        "Potřebujete pomoc?",
-        `${brand.email}`,
-        `${brand.phone}`,
+        "Místo:",
+        clientStudio.name,
+        clientStudio.address,
+        `Zobrazit na mapě: ${clientStudioMapUrl}`,
+        "",
+        "Kontakt:",
+        `Napište nám: ${clientStudio.email}`,
+        `Zavolejte: ${clientStudio.phone}`,
       ].join("\n");
 
       const html = buildEmailShell(
         brand,
-        "",
-        "",
+        "Rezervace přijata",
+        "Vaši rezervaci jsme přijali ke schválení. Finální potvrzení pošleme dalším e-mailem.",
         `
-          <div style="border:1px solid rgba(33,23,20,0.08);border-radius:24px;padding:24px;background:linear-gradient(135deg,#231814,#46342a);color:#ffffff;">
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-              <tr>
-                <td style="vertical-align:top;padding-right:16px;">
-                  <p style="margin:0;font-size:12px;letter-spacing:0.24em;text-transform:uppercase;color:rgba(232,213,192,0.78);">PP Studio</p>
-                  <h2 style="margin:18px 0 0;font-size:32px;line-height:1.12;font-family:Georgia,serif;color:#ffffff;">Rezervace přijata</h2>
-                  <p style="margin:12px 0 0;font-size:15px;line-height:1.7;color:rgba(255,255,255,0.74);">Vaši rezervaci jsme přijali ke schválení.</p>
-                </td>
-                <td style="width:150px;vertical-align:top;">
-                  <div style="border:1px solid rgba(255,255,255,0.12);border-radius:999px;padding:12px 14px;background:rgba(255,255,255,0.08);">
-                    <p style="margin:0;font-size:11px;letter-spacing:0.16em;text-transform:uppercase;color:rgba(255,255,255,0.54);">Stav rezervace</p>
-                    <p style="margin:8px 0 0;font-size:14px;font-weight:600;color:#ffffff;">Čeká na potvrzení</p>
-                  </div>
-                </td>
-              </tr>
-            </table>
-          </div>
-          <div style="margin-top:20px;border:1px solid rgba(33,23,20,0.08);border-radius:22px;padding:24px;background:#fbf7f3;">
-            <p style="margin:0;font-size:12px;letter-spacing:0.2em;text-transform:uppercase;color:#9e7f65;">Služba</p>
-            <p style="margin:12px 0 0;font-size:19px;line-height:1.6;color:#1f1714;"><strong>${escapeHtml(data.serviceName)}</strong></p>
-            <p style="margin:18px 0 0;font-size:12px;letter-spacing:0.2em;text-transform:uppercase;color:#9e7f65;">Termín</p>
-            <p style="margin:12px 0 0;font-size:31px;line-height:1.16;font-family:Georgia,serif;color:#1f1714;"><strong>${escapeHtml(bookingDate)}</strong></p>
-            <p style="margin:10px 0 0;font-size:28px;line-height:1.2;font-weight:700;color:#1f1714;">${escapeHtml(bookingTime)}</p>
-          </div>
-          <div style="margin-top:20px;border:1px solid rgba(33,23,20,0.08);border-radius:20px;padding:20px;background:#ffffff;">
-            <p style="margin:0;font-size:12px;letter-spacing:0.2em;text-transform:uppercase;color:#9e7f65;">Co bude následovat</p>
-            <p style="margin:12px 0 0;font-size:15px;line-height:1.7;color:#5b4c44;">Potvrzení přijde dalším e-mailem a kdyby bylo potřeba něco upřesnit, ozveme se.</p>
-          </div>
-          <div style="margin-top:20px;border:1px solid rgba(33,23,20,0.08);border-radius:20px;padding:20px;background:#ffffff;">
-            <p style="margin:0;font-size:12px;letter-spacing:0.2em;text-transform:uppercase;color:#9e7f65;">Potřebujete pomoc?</p>
-            <p style="margin:12px 0 0;font-size:16px;line-height:1.8;color:#1f1714;">
-              <a href="mailto:${escapeHtml(brand.email)}" style="color:#1f1714;text-decoration:none;">${escapeHtml(brand.email)}</a><br />
-              <a href="tel:${escapeHtml(brand.phone)}" style="color:#1f1714;text-decoration:none;">${escapeHtml(brand.phone)}</a>
-            </p>
-          </div>
+          ${buildBookingDetailCard({
+            serviceName: data.serviceName,
+            bookingDate,
+            bookingTime,
+          })}
+          <div style="height:14px;line-height:14px;font-size:14px;">&nbsp;</div>
+          ${buildClientLocationBlock()}
+          <div style="height:14px;line-height:14px;font-size:14px;">&nbsp;</div>
+          ${buildClientContactBlock()}
         `,
-        { includeFooter: false },
+        { maxWidthPx: 600 },
       );
 
       return { subject, html, text };
     }
     case "booking-cancelled-v1": {
       const data = bookingCancelledPayloadSchema.parse(payload);
-      const scheduledAtLabel = formatBookingDateLabel(
-        new Date(data.scheduledStartsAt),
-        new Date(data.scheduledEndsAt),
-      );
+      const scheduledStartsAt = new Date(data.scheduledStartsAt);
+      const scheduledEndsAt = new Date(data.scheduledEndsAt);
+      const bookingDate = formatBookingCalendarDate(scheduledStartsAt);
+      const bookingTime = formatBookingTimeRange(scheduledStartsAt, scheduledEndsAt);
+      const newBookingUrl = `${env.NEXT_PUBLIC_APP_URL}/rezervace`;
 
       const text = [
         `Dobrý den, ${data.clientName},`,
         "",
-        `vaše rezervace služby ${data.serviceName} byla zrušená.`,
-        `Původní termín: ${scheduledAtLabel}`,
+        "Rezervace byla zrušena",
+        "Vaše rezervace je zrušená.",
         "",
-        `Pro nový termín navštivte ${env.NEXT_PUBLIC_APP_URL}/rezervace`,
+        `Služba: ${data.serviceName}`,
+        `Datum: ${bookingDate}`,
+        `Čas: ${bookingTime}`,
         "",
-        `${brand.name}`,
-        `${brand.email} | ${brand.phone}`,
+        "Místo:",
+        clientStudio.name,
+        clientStudio.address,
+        "",
+        `Nový termín: ${newBookingUrl}`,
+        "",
+        "Kontakt:",
+        `Napište nám: ${clientStudio.email}`,
+        `Zavolejte: ${clientStudio.phone}`,
       ].join("\n");
 
       const html = buildEmailShell(
         brand,
         "Rezervace byla zrušena",
-        `Storno rezervace služby ${data.serviceName} bylo úspěšně dokončeno.`,
+        "Vaše rezervace je zrušená.",
         `
-          <div style="border:1px solid rgba(33,23,20,0.08);border-radius:18px;padding:20px;background:#fbf7f3;">
-            <p style="margin:0 0 8px;font-size:13px;text-transform:uppercase;letter-spacing:0.16em;color:#9e7f65;">Původní termín</p>
-            <p style="margin:0;font-size:18px;line-height:1.6;color:#1f1714;"><strong>${escapeHtml(scheduledAtLabel)}</strong></p>
-          </div>
-          <p style="margin:24px 0 0;font-size:15px;line-height:1.7;color:#5b4c44;">
-            Nový termín si můžete kdykoli vybrat znovu na
-            <a href="${escapeHtml(`${env.NEXT_PUBLIC_APP_URL}/rezervace`)}" style="color:#1f1714;"> ${escapeHtml(env.NEXT_PUBLIC_APP_URL)}/rezervace</a>.
-          </p>
+          ${buildBookingDetailCard({
+            serviceName: data.serviceName,
+            bookingDate,
+            bookingTime,
+          })}
+          <div style="height:14px;line-height:14px;font-size:14px;">&nbsp;</div>
+          ${buildClientLocationBlock()}
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:16px;border-collapse:collapse;">
+            <tr>
+              <td>
+                ${buildEmailButton({
+                  href: newBookingUrl,
+                  label: "Vybrat nový termín",
+                  variant: "secondary",
+                })}
+              </td>
+            </tr>
+          </table>
+          <div style="height:14px;line-height:14px;font-size:14px;">&nbsp;</div>
+          ${buildClientContactBlock()}
         `,
+        { maxWidthPx: 600 },
       );
 
       return { subject, html, text };
@@ -333,13 +435,6 @@ export async function renderEmailTemplate(
       const bookingDate = formatBookingCalendarDate(scheduledStartsAt);
       const bookingTime = formatBookingTimeRange(scheduledStartsAt, scheduledEndsAt);
       const includeCalendarAttachment = data.includeCalendarAttachment ?? true;
-      const studioName = "PP Studio";
-      const studioAddress = "Sadová 2, 760 01 Zlín";
-      const studioEmail = "info@ppstudio.cz";
-      const studioPhone = "+420 732 856 036";
-      const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-        `${studioName}, ${studioAddress}`,
-      )}`;
       const calendarAttachment = includeCalendarAttachment
         ? await buildBookingCalendarIcsFromPayload({
             bookingId: data.bookingId,
@@ -355,39 +450,28 @@ export async function renderEmailTemplate(
         "Rezervace byla potvrzena",
         "Vaše rezervace je potvrzená. Níže najdete termín, místo a možnosti pro případnou změnu.",
         "",
-        "Termín:",
-        bookingDate,
-        bookingTime,
-        "",
-        "Služba:",
-        data.serviceName,
+        `Služba: ${data.serviceName}`,
+        `Datum: ${bookingDate}`,
+        `Čas: ${bookingTime}`,
         "",
         "Místo:",
-        studioName,
-        studioAddress,
-        `Zobrazit na mapě: ${mapUrl}`,
+        clientStudio.name,
+        clientStudio.address,
+        `Zobrazit na mapě: ${clientStudioMapUrl}`,
         "",
-        ...(includeCalendarAttachment
-          ? [
-              "Kalendář:",
-              "Termín najdete také v přiložené kalendářové události.",
-              "",
-            ]
-          : []),
-        "Potřebujete pomoc?",
-        `Napište nám: ${studioEmail}`,
-        `Zavolejte: ${studioPhone}`,
-        "",
+        ...(includeCalendarAttachment ? ["Termín najdete také v přiložené kalendářové události.", ""] : []),
         ...(data.manageReservationUrl || data.cancellationUrl
           ? [
-              "Správa rezervace:",
-              "Pokud se vám termín nebude hodit, můžete ho upravit nebo rezervaci zrušit.",
               ...(data.manageReservationUrl ? [`Změnit termín: ${data.manageReservationUrl}`] : []),
               ...(data.cancellationUrl ? [`Zrušit rezervaci: ${data.cancellationUrl}`] : []),
               "",
             ]
           : []),
-        studioName,
+        "Kontakt:",
+        `Napište nám: ${clientStudio.email}`,
+        `Zavolejte: ${clientStudio.phone}`,
+        "",
+        clientStudio.name,
       ].join("\n");
 
       const html = buildEmailShell(
@@ -395,46 +479,25 @@ export async function renderEmailTemplate(
         "Rezervace byla potvrzena",
         "Vaše rezervace je potvrzená. Níže najdete termín, místo a možnosti pro případnou změnu.",
         `
-          <div style="border:1px solid #eaded4;border-radius:18px;padding:20px;background:#fbf7f3;">
-            <p style="margin:0 0 8px;font-size:13px;text-transform:uppercase;letter-spacing:0.12em;color:#9e7f65;">Termín</p>
-            <p style="margin:0;font-size:22px;line-height:1.35;color:#1f1714;"><strong>${escapeHtml(bookingDate)}</strong></p>
-            <p style="margin:6px 0 0;font-size:20px;line-height:1.35;color:#1f1714;"><strong>${escapeHtml(bookingTime)}</strong></p>
-          </div>
-          <div style="margin-top:14px;border:1px solid #eaded4;border-radius:18px;padding:18px 20px;background:#ffffff;">
-            <p style="margin:0 0 8px;font-size:13px;text-transform:uppercase;letter-spacing:0.12em;color:#9e7f65;">Služba</p>
-            <p style="margin:0;font-size:17px;line-height:1.5;color:#1f1714;"><strong>${escapeHtml(data.serviceName)}</strong></p>
-          </div>
-          <div style="margin-top:14px;border:1px solid #eaded4;border-radius:18px;padding:18px 20px;background:#fffaf6;">
-            <p style="margin:0 0 8px;font-size:13px;text-transform:uppercase;letter-spacing:0.12em;color:#9e7f65;">Místo</p>
-            <p style="margin:0;font-size:18px;line-height:1.45;color:#1f1714;"><strong>${escapeHtml(studioName)}</strong><br />${escapeHtml(studioAddress)}</p>
-            <p style="margin:10px 0 0;font-size:15px;line-height:1.5;">
-              <a href="${escapeHtml(mapUrl)}" style="color:#1f1714;text-decoration:underline;">Zobrazit na mapě</a>
-            </p>
-          </div>
+          ${buildBookingDetailCard({
+            serviceName: data.serviceName,
+            bookingDate,
+            bookingTime,
+          })}
+          <div style="height:14px;line-height:14px;font-size:14px;">&nbsp;</div>
+          ${buildClientLocationBlock()}
           ${includeCalendarAttachment ? `
-          <div style="margin-top:18px;border-top:1px solid #eaded4;padding-top:18px;">
-            <p style="margin:0 0 6px;font-size:13px;text-transform:uppercase;letter-spacing:0.12em;color:#9e7f65;">Kalendář</p>
-            <p style="margin:0;font-size:15px;line-height:1.6;color:#5b4c44;">Termín najdete také v přiložené kalendářové události.</p>
-          </div>
+          <div style="height:14px;line-height:14px;font-size:14px;">&nbsp;</div>
+          ${buildEmailCard(`
+            <p style="margin:0 0 7px;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:16px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#9e7f65;">Kalendář</p>
+            <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:24px;color:#5b4c44;">Termín najdete také v přiložené kalendářové události.</p>
+          `, "#ffffff")}
           ` : ""}
-          <div style="margin-top:18px;border-top:1px solid #eaded4;padding-top:18px;">
-            <p style="margin:0 0 6px;font-size:13px;text-transform:uppercase;letter-spacing:0.12em;color:#9e7f65;">Potřebujete pomoc?</p>
-            <p style="margin:0;font-size:15px;line-height:1.7;color:#5b4c44;">
-              Napište nám: <a href="mailto:${escapeHtml(studioEmail)}" style="color:#1f1714;text-decoration:underline;">${escapeHtml(studioEmail)}</a><br />
-              Zavolejte: <a href="tel:+420732856036" style="color:#1f1714;text-decoration:underline;">${escapeHtml(studioPhone)}</a>
-            </p>
-          </div>
-          ${data.manageReservationUrl || data.cancellationUrl ? `
-          <div style="margin-top:22px;border-top:1px solid #eaded4;padding-top:18px;">
-            <p style="margin:0 0 6px;font-size:13px;text-transform:uppercase;letter-spacing:0.12em;color:#9e7f65;">Správa rezervace</p>
-            <p style="margin:0 0 12px;font-size:14px;line-height:1.6;color:#6d5a50;">Pokud se vám termín nebude hodit, můžete ho upravit nebo rezervaci zrušit.</p>
-            ${data.manageReservationUrl ? `<a href="${escapeHtml(data.manageReservationUrl)}" style="display:inline-block;margin:0 14px 8px 0;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:20px;font-weight:700;color:#1f1714;text-decoration:underline;">Změnit termín</a>` : ""}
-            ${data.cancellationUrl ? `<a href="${escapeHtml(data.cancellationUrl)}" style="display:inline-block;margin:0 0 8px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:20px;font-weight:700;color:#1f1714;text-decoration:underline;">Zrušit rezervaci</a>` : ""}
-          </div>
-          ` : ""}
+          ${buildClientActionLinks(data.manageReservationUrl, data.cancellationUrl)}
+          <div style="height:14px;line-height:14px;font-size:14px;">&nbsp;</div>
+          ${buildClientContactBlock()}
         `,
         {
-          includeFooter: false,
           maxWidthPx: 600,
         },
       );
@@ -460,63 +523,68 @@ export async function renderEmailTemplate(
       const scheduledEndsAt = new Date(data.scheduledEndsAt);
       const bookingDate = formatBookingCalendarDate(scheduledStartsAt);
       const bookingTime = formatBookingTimeRange(scheduledStartsAt, scheduledEndsAt);
-      const contactStudioUrl = `mailto:${brand.email}?subject=${encodeURIComponent(`Dotaz k rezervaci: ${data.serviceName}`)}`;
 
       const text = [
         `Dobrý den, ${data.clientName},`,
         "",
-        "zítra máte rezervaci v PP Studiu.",
-        "Jen krátká připomínka vašeho zítřejšího termínu.",
+        "Zítra máte rezervaci v PP Studiu",
+        "Připomínka vašeho zítřejšího termínu.",
         "",
         `Služba: ${data.serviceName}`,
-        `Datum a čas: ${bookingDate}, ${bookingTime}`,
-        `Kde nás najdete: ${salonProfile.addressLine}`,
+        `Datum: ${bookingDate}`,
+        `Čas: ${bookingTime}`,
         "",
-        "Nemůžete dorazit?",
+        "Místo:",
+        clientStudio.name,
+        clientStudio.address,
+        `Zobrazit na mapě: ${clientStudioMapUrl}`,
+        "",
+        "Potřebujete změnu?",
         ...(data.manageReservationUrl
           ? [`Změnit termín: ${data.manageReservationUrl}`]
           : []),
-        `Ozvat se studiu: ${contactStudioUrl}`,
         `Zrušit rezervaci: ${data.cancellationUrl}`,
-        "Pokud by se cokoliv změnilo, dejte nám prosím vědět co nejdříve.",
         "",
-        `${brand.name}`,
-        `${brand.email} | ${brand.phone}`,
+        "Kontakt:",
+        `Napište nám: ${clientStudio.email}`,
+        `Zavolejte: ${clientStudio.phone}`,
       ].join("\n");
 
       const html = buildEmailShell(
         brand,
         "Zítra máte rezervaci v PP Studiu",
-        "Jen krátká připomínka vašeho zítřejšího termínu.",
+        "Připomínka vašeho zítřejšího termínu.",
         `
-          <div style="padding:0 0 4px;">
-            <p style="margin:0;font-size:22px;line-height:1.4;color:#1f1714;"><strong>${escapeHtml(data.serviceName)}</strong></p>
-            <p style="margin:10px 0 0;font-size:17px;line-height:1.6;color:#1f1714;"><strong>${escapeHtml(bookingDate)}</strong><br />${escapeHtml(bookingTime)}</p>
-            <p style="margin:14px 0 0;font-size:12px;letter-spacing:0.16em;text-transform:uppercase;color:#9e7f65;">Kde nás najdete</p>
-            <p style="margin:8px 0 0;font-size:15px;line-height:1.7;color:#5b4c44;">${escapeHtml(salonProfile.addressLine)}</p>
-          </div>
-          <div style="margin-top:24px;padding:20px 0 0;border-top:1px solid rgba(33,23,20,0.08);">
-            <p style="margin:0 0 14px;font-size:18px;line-height:1.5;color:#1f1714;"><strong>Nemůžete dorazit?</strong></p>
+          ${buildBookingDetailCard({
+            serviceName: data.serviceName,
+            bookingDate,
+            bookingTime,
+          })}
+          <div style="height:14px;line-height:14px;font-size:14px;">&nbsp;</div>
+          ${buildClientLocationBlock()}
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:16px;border-collapse:collapse;border-top:1px solid #eaded4;">
+            <tr>
+              <td style="padding-top:14px;">
+                <p style="margin:0 0 12px;font-family:Arial,Helvetica,sans-serif;font-size:18px;line-height:24px;font-weight:700;color:#1f1714;">Potřebujete změnu?</p>
             ${data.manageReservationUrl
-              ? `<div style="margin:0 0 12px;">${buildEmailButton({
+              ? `<div style="margin:0 0 10px;">${buildEmailButton({
                   href: data.manageReservationUrl,
                   label: "Změnit termín",
-                  variant: "primary",
+                  variant: "secondary",
                 })}</div>`
               : ""}
-            <div style="margin:0 0 12px;">${buildEmailButton({
-              href: contactStudioUrl,
-              label: "Ozvat se studiu",
-              variant: "secondary",
-            })}</div>
-            <div style="margin:0 0 12px;">${buildEmailButton({
+            <div style="margin:0 0 10px;">${buildEmailButton({
               href: data.cancellationUrl,
               label: "Zrušit rezervaci",
-              variant: "secondary",
+              variant: "destructive",
             })}</div>
-            <p style="margin:0;font-size:14px;line-height:1.7;color:#7a675c;">Pokud by se cokoliv změnilo, dejte nám prosím vědět co nejdříve.</p>
-          </div>
+              </td>
+            </tr>
+          </table>
+          <div style="height:14px;line-height:14px;font-size:14px;">&nbsp;</div>
+          ${buildClientContactBlock()}
         `,
+        { maxWidthPx: 600 },
       );
 
       return { subject, html, text };
@@ -527,8 +595,10 @@ export async function renderEmailTemplate(
       const previousEndsAt = new Date(data.previousEndsAt);
       const scheduledStartsAt = new Date(data.scheduledStartsAt);
       const scheduledEndsAt = new Date(data.scheduledEndsAt);
-      const previousLabel = formatBookingDateLabel(previousStartsAt, previousEndsAt);
-      const updatedLabel = formatBookingDateLabel(scheduledStartsAt, scheduledEndsAt);
+      const previousDate = formatBookingCalendarDate(previousStartsAt);
+      const previousTime = formatBookingTimeRange(previousStartsAt, previousEndsAt);
+      const bookingDate = formatBookingCalendarDate(scheduledStartsAt);
+      const bookingTime = formatBookingTimeRange(scheduledStartsAt, scheduledEndsAt);
       const includeCalendarAttachment = data.includeCalendarAttachment ?? true;
       const calendarAttachment = includeCalendarAttachment
         ? await buildBookingCalendarIcsFromPayload({
@@ -542,14 +612,22 @@ export async function renderEmailTemplate(
       const text = [
         `Dobrý den, ${data.clientName},`,
         "",
-        `termín rezervace služby ${data.serviceName} byl změněn.`,
-        `Původní termín: ${previousLabel}`,
-        `Nový termín: ${updatedLabel}`,
-        `Místo: ${salonProfile.addressLine}`,
+        "Termín rezervace byl změněn",
+        "Rezervaci jsme přesunuli na nový čas.",
+        "",
+        `Služba: ${data.serviceName}`,
+        `Datum: ${bookingDate}`,
+        `Čas: ${bookingTime}`,
+        `Původně: ${previousDate}, ${previousTime}`,
+        "",
+        "Místo:",
+        clientStudio.name,
+        clientStudio.address,
+        `Zobrazit na mapě: ${clientStudioMapUrl}`,
         "",
         ...(includeCalendarAttachment
           ? [
-              "Aktualizovaný termín najdete také v přiložené kalendářové události.",
+              "Termín najdete také v přiložené kalendářové události.",
               "",
             ]
           : []),
@@ -558,41 +636,36 @@ export async function renderEmailTemplate(
           : []),
         `Zrušit rezervaci: ${data.cancellationUrl}`,
         "",
-        `${brand.name}`,
-        `${brand.email} | ${brand.phone}`,
+        "Kontakt:",
+        `Napište nám: ${clientStudio.email}`,
+        `Zavolejte: ${clientStudio.phone}`,
       ].join("\n");
 
       const html = buildEmailShell(
         brand,
         "Termín rezervace byl změněn",
-        `Rezervaci služby ${data.serviceName} jsme přesunuli na nový čas.`,
+        "Rezervaci jsme přesunuli na nový čas.",
         `
-          <div style="border:1px solid rgba(33,23,20,0.08);border-radius:18px;padding:20px;background:#fbf7f3;">
-            <p style="margin:0 0 8px;font-size:13px;text-transform:uppercase;letter-spacing:0.16em;color:#9e7f65;">Nový termín</p>
-            <p style="margin:0;font-size:18px;line-height:1.6;color:#1f1714;"><strong>${escapeHtml(updatedLabel)}</strong></p>
-            <p style="margin:14px 0 0;font-size:13px;text-transform:uppercase;letter-spacing:0.16em;color:#9e7f65;">Původně</p>
-            <p style="margin:8px 0 0;font-size:15px;line-height:1.7;color:#5b4c44;">${escapeHtml(previousLabel)}</p>
-            <p style="margin:14px 0 0;font-size:13px;text-transform:uppercase;letter-spacing:0.16em;color:#9e7f65;">Místo</p>
-            <p style="margin:8px 0 0;font-size:15px;line-height:1.7;color:#5b4c44;">${escapeHtml(salonProfile.addressLine)}</p>
-          </div>
+          ${buildBookingDetailCard({
+            serviceName: data.serviceName,
+            bookingDate,
+            bookingTime,
+            extraRows: buildEmailDetailRow("Původně", `${previousDate}, ${previousTime}`),
+          })}
+          <div style="height:14px;line-height:14px;font-size:14px;">&nbsp;</div>
+          ${buildClientLocationBlock()}
           ${includeCalendarAttachment ? `
-          <p style="margin:24px 0 0;font-size:15px;line-height:1.7;color:#5b4c44;">
-            Aktualizovaný termín najdete také v přiložené kalendářové události.
-          </p>
+          <div style="height:14px;line-height:14px;font-size:14px;">&nbsp;</div>
+          ${buildEmailCard(`
+            <p style="margin:0 0 7px;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:16px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#9e7f65;">Kalendář</p>
+            <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:24px;color:#5b4c44;">Termín najdete také v přiložené kalendářové události.</p>
+          `, "#ffffff")}
           ` : ""}
-          ${data.manageReservationUrl
-            ? `<div style="margin-top:24px;">${buildEmailButton({
-                href: data.manageReservationUrl,
-                label: "Změnit termín",
-                variant: "primary",
-              })}</div>`
-            : ""}
-          <div style="margin-top:24px;">${buildEmailButton({
-            href: data.cancellationUrl,
-            label: "Zrušit rezervaci",
-            variant: "secondary",
-          })}</div>
+          ${buildClientActionLinks(data.manageReservationUrl, data.cancellationUrl)}
+          <div style="height:14px;line-height:14px;font-size:14px;">&nbsp;</div>
+          ${buildClientContactBlock()}
         `,
+        { maxWidthPx: 600 },
       );
 
       return {
@@ -612,37 +685,60 @@ export async function renderEmailTemplate(
     }
     case "booking-rejected-v1": {
       const data = bookingRejectedPayloadSchema.parse(payload);
-      const scheduledAtLabel = formatBookingDateLabel(
-        new Date(data.scheduledStartsAt),
-        new Date(data.scheduledEndsAt),
-      );
+      const scheduledStartsAt = new Date(data.scheduledStartsAt);
+      const scheduledEndsAt = new Date(data.scheduledEndsAt);
+      const bookingDate = formatBookingCalendarDate(scheduledStartsAt);
+      const bookingTime = formatBookingTimeRange(scheduledStartsAt, scheduledEndsAt);
+      const newBookingUrl = `${env.NEXT_PUBLIC_APP_URL}/rezervace`;
 
       const text = [
         `Dobrý den, ${data.clientName},`,
         "",
-        `rezervaci služby ${data.serviceName} se tentokrát nepodařilo potvrdit.`,
-        `Původní požadovaný termín: ${scheduledAtLabel}`,
+        "Rezervaci se tentokrát nepodařilo potvrdit",
+        "Požadovaný termín už není dostupný.",
         "",
-        `Pro nový termín navštivte ${env.NEXT_PUBLIC_APP_URL}/rezervace nebo se ozvěte přímo studiu.`,
+        `Služba: ${data.serviceName}`,
+        `Datum: ${bookingDate}`,
+        `Čas: ${bookingTime}`,
         "",
-        `${brand.name}`,
-        `${brand.email} | ${brand.phone}`,
+        "Místo:",
+        clientStudio.name,
+        clientStudio.address,
+        "",
+        `Nový termín: ${newBookingUrl}`,
+        "",
+        "Kontakt:",
+        `Napište nám: ${clientStudio.email}`,
+        `Zavolejte: ${clientStudio.phone}`,
       ].join("\n");
 
       const html = buildEmailShell(
         brand,
         "Rezervaci se tentokrát nepodařilo potvrdit",
-        `Požadovaný termín služby ${data.serviceName} jsme uzavřeli bez potvrzení.`,
+        "Požadovaný termín už není dostupný.",
         `
-          <div style="border:1px solid rgba(33,23,20,0.08);border-radius:18px;padding:20px;background:#fbf7f3;">
-            <p style="margin:0 0 8px;font-size:13px;text-transform:uppercase;letter-spacing:0.16em;color:#9e7f65;">Původní termín</p>
-            <p style="margin:0;font-size:18px;line-height:1.6;color:#1f1714;"><strong>${escapeHtml(scheduledAtLabel)}</strong></p>
-          </div>
-          <p style="margin:24px 0 0;font-size:15px;line-height:1.7;color:#5b4c44;">
-            Nový termín si můžete kdykoli vybrat znovu na
-            <a href="${escapeHtml(`${env.NEXT_PUBLIC_APP_URL}/rezervace`)}" style="color:#1f1714;"> ${escapeHtml(env.NEXT_PUBLIC_APP_URL)}/rezervace</a>.
-          </p>
+          ${buildBookingDetailCard({
+            serviceName: data.serviceName,
+            bookingDate,
+            bookingTime,
+          })}
+          <div style="height:14px;line-height:14px;font-size:14px;">&nbsp;</div>
+          ${buildClientLocationBlock()}
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:16px;border-collapse:collapse;">
+            <tr>
+              <td>
+                ${buildEmailButton({
+                  href: newBookingUrl,
+                  label: "Vybrat nový termín",
+                  variant: "secondary",
+                })}
+              </td>
+            </tr>
+          </table>
+          <div style="height:14px;line-height:14px;font-size:14px;">&nbsp;</div>
+          ${buildClientContactBlock()}
         `,
+        { maxWidthPx: 600 },
       );
 
       return { subject, html, text };
@@ -672,7 +768,7 @@ export async function renderEmailTemplate(
       const html = buildEmailShell(
         brand,
         "Nová rezervace",
-        "Do systému přišla nová rezervace.",
+        "",
         `
           <div style="border:1px solid #eaded4;border-radius:12px;padding:20px;background:#fbf7f3;">
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
@@ -721,41 +817,45 @@ export async function renderEmailTemplate(
                 label: "Otevřít v administraci",
                 variant: "secondary",
               })}</div>
-            <p style="margin:14px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:20px;color:#7a675c;">
-              Vyberte další krok nebo otevřete rezervaci v administraci.
-            </p>
           </div>
         `,
-        { includeFooter: false },
+        { includeFooter: false, maxWidthPx: 600 },
       );
 
       return { subject, html, text };
     }
     case "admin-booking-cancelled-v1": {
       const data = adminBookingCancelledPayloadSchema.parse(payload);
-      const scheduledAtLabel = formatBookingDateLabel(
-        new Date(data.scheduledStartsAt),
-        new Date(data.scheduledEndsAt),
-      );
+      const scheduledStartsAt = new Date(data.scheduledStartsAt);
+      const scheduledEndsAt = new Date(data.scheduledEndsAt);
+      const bookingDate = formatBookingCalendarDate(scheduledStartsAt);
+      const bookingTime = formatBookingTimeRange(scheduledStartsAt, scheduledEndsAt);
       const text = [
-        `Rezervace služby ${data.serviceName} byla zrušena.`,
+        "Rezervace zrušena",
+        "",
+        `Služba: ${data.serviceName}`,
+        `Datum: ${bookingDate}`,
+        `Čas: ${bookingTime}`,
         `Klientka: ${data.clientName}`,
-        `E-mail: ${data.clientEmail}`,
-        `Původní termín: ${scheduledAtLabel}`,
+        `Email: ${data.clientEmail}`,
       ].join("\n");
 
       const html = buildEmailShell(
         brand,
         "Rezervace zrušena",
-        `Klientka ${data.clientName} zrušila rezervaci služby ${data.serviceName}.`,
+        "",
         `
-          <div style="border:1px solid rgba(33,23,20,0.08);border-radius:18px;padding:20px;background:#fbf7f3;">
-            <p style="margin:0 0 8px;font-size:13px;text-transform:uppercase;letter-spacing:0.16em;color:#9e7f65;">Původní termín</p>
-            <p style="margin:0;font-size:18px;line-height:1.6;color:#1f1714;"><strong>${escapeHtml(scheduledAtLabel)}</strong></p>
-            <p style="margin:16px 0 0;font-size:14px;line-height:1.7;color:#5b4c44;">Klientka: <strong>${escapeHtml(data.clientName)}</strong></p>
-            <p style="margin:4px 0 0;font-size:14px;line-height:1.7;color:#5b4c44;">${escapeHtml(data.clientEmail)}</p>
-          </div>
+          ${buildEmailCard(`
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
+              ${buildEmailDetailRow("Služba", data.serviceName)}
+              ${buildEmailDetailRow("Datum", bookingDate)}
+              ${buildEmailDetailRow("Čas", bookingTime)}
+              ${buildEmailDetailRow("Klientka", data.clientName)}
+              ${buildEmailDetailRow("Email", data.clientEmail)}
+            </table>
+          `)}
         `,
+        { includeFooter: false, maxWidthPx: 600 },
       );
 
       return { subject, html, text };
