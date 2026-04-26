@@ -6,6 +6,11 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Veřejný rezervační formulář po změně kategorie ve kroku `Vyberte službu` automaticky plynule posune viewport na seznam dostupných služeb v dané kategorii, takže není potřeba ručně scrollovat na mobilu.
+- Mobilní auto-scroll po změně kategorie nově počítá offset podle skutečné výšky sticky hlavičky a přidává bezpečný odstup, takže první karta služby už nezůstává částečně schovaná pod horní navigací.
+- Sticky hlavička na stránce rezervace (`variant=booking`) je na mobilu kompaktnější, ale zachovává horní navigační lištu: nav odkazy jsou v užším horizontálním řádku, spacing je menší a brand/CTA jsou lehce zmenšené.
+- V landscape mobilním zobrazení rezervace se sticky hlavička skládá do jednoho řádku bez redundantního CTA `Rezervace`; navigace se přesune vedle brandu a spodní sticky CTA má nižší padding i menší tlačítko.
+- Výběr nejbližšího termínu a mobilní karta `Termín` v souhrnu jsou kompaktnější: kratší mobilní paddingy, menší čas a doplňkové informace v jedné řádce místo vysokého bloku.
 - Admin e-mail `admin-booking-notification-v1` má stabilnější rendering CTA tlačítek v mobilních klientech: helper `buildEmailActionButton` používá jednodušší bulletproof table variantu s explicitní typografií (`letter-spacing: 0`, `mso-line-height-rule: exactly`) a bez překryvného textu.
 - Klientský potvrzovací e-mail `booking-confirmation-v1` už neobsahuje sekci `Další kroky`; CTA `Změnit termín` / `Zrušit rezervaci` i doprovodná věta byly odstraněné, aby e-mail po odeslání rezervace působil jako klidné potvrzení bez dalšího rozhodování.
 - Veřejný success screen po vytvoření rezervace je nově čisté uklidňující potvrzení: zachovává hero `Rezervace přijata`, stav `Čeká na finální potvrzení`, detail služby / data / času a stručně říká, co se stane dál.

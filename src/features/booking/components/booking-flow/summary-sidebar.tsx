@@ -42,24 +42,24 @@ export function BookingSummarySidebar({
 }: BookingSummarySidebarProps) {
   return (
     <aside className="lg:sticky lg:top-28 lg:self-start">
-      <section className="rounded-[var(--radius-panel)] border border-[var(--color-accent-soft)]/45 bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(231,213,195,0.52))] p-6 shadow-[var(--shadow-panel)] sm:p-8">
+      <section className="rounded-[var(--radius-panel)] border border-[var(--color-accent-soft)]/45 bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(231,213,195,0.52))] p-4 shadow-[var(--shadow-panel)] sm:p-8">
         <p className="text-xs font-semibold uppercase tracking-[0.32em] text-[var(--color-accent)]">
           Krok 4
         </p>
-        <h3 className="mt-3 font-display text-3xl text-[var(--color-foreground)]">
+        <h3 className="mt-2 font-display text-2xl text-[var(--color-foreground)] sm:mt-3 sm:text-3xl">
           Souhrn a potvrzení
         </h3>
 
-        <div className="mt-6 space-y-4">
-          <div className="rounded-3xl border border-black/6 bg-white/80 p-5">
+        <div className="mt-4 space-y-3 sm:mt-6 sm:space-y-4">
+          <div className="rounded-3xl border border-black/6 bg-white/80 p-4 sm:p-5">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="text-xs uppercase tracking-[0.18em] text-[var(--color-muted)]">Služba</p>
-                <p className="mt-2 text-lg font-semibold text-[var(--color-foreground)]">
+                <p className="mt-1.5 text-base font-semibold text-[var(--color-foreground)] sm:mt-2 sm:text-lg">
                   {selectedService ? selectedService.name : "Zatím nevybráno"}
                 </p>
                 {selectedService ? (
-                  <p className="mt-2 text-sm text-[var(--color-muted)]">
+                  <p className="mt-1.5 text-sm text-[var(--color-muted)] sm:mt-2">
                     {selectedService.durationMinutes} min • {formatPrice(selectedService.priceFromCzk)}
                   </p>
                 ) : null}
@@ -76,7 +76,7 @@ export function BookingSummarySidebar({
 
           <div
             className={cn(
-              "rounded-3xl border bg-white/90 p-5",
+              "rounded-3xl border bg-white/90 p-4 sm:p-5",
               selectedTimeOption
                 ? "border-[var(--color-accent)]/40 shadow-[0_10px_24px_rgba(0,0,0,0.06)]"
                 : "border-black/6",
@@ -85,16 +85,16 @@ export function BookingSummarySidebar({
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="text-xs uppercase tracking-[0.18em] text-[var(--color-muted)]">Termín</p>
-                <p className="mt-3 text-base font-medium text-[var(--color-muted)]">
+                <p className="mt-1.5 text-sm font-medium text-[var(--color-muted)] sm:mt-3 sm:text-base">
                   {selectedTimeOption ? formatSlotDate(selectedTimeOption.startsAt) : "Zatím nevybráno"}
                 </p>
-                <p className="mt-2 text-3xl font-semibold text-[var(--color-foreground)]">
+                <p className="mt-1 text-2xl font-semibold text-[var(--color-foreground)] sm:mt-2 sm:text-3xl">
                   {selectedTimeOption ? formatSlotTime(selectedTimeOption.startsAt) : "--:--"}
                 </p>
                 {selectedTimeOption ? (
-                  <div className="mt-3 space-y-1 text-sm text-[var(--color-muted)]">
-                    <p>Konec v {formatSlotTime(selectedTimeOption.endsAt)}</p>
-                    <p>Délka {formatSlotDuration(selectedTimeOption.startsAt, selectedTimeOption.endsAt)}</p>
+                  <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-sm text-[var(--color-muted)] sm:mt-3 sm:block sm:space-y-1">
+                    <p>Konec {formatSlotTime(selectedTimeOption.endsAt)}</p>
+                    <p>{formatSlotDuration(selectedTimeOption.startsAt, selectedTimeOption.endsAt)}</p>
                     {selectedTimeOption.publicNote ? <p>{selectedTimeOption.publicNote}</p> : null}
                   </div>
                 ) : null}
@@ -109,11 +109,11 @@ export function BookingSummarySidebar({
             </div>
           </div>
 
-          <div className="rounded-3xl border border-black/6 bg-white/80 p-5">
+          <div className="rounded-3xl border border-black/6 bg-white/80 p-4 sm:p-5">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="text-xs uppercase tracking-[0.18em] text-[var(--color-muted)]">Kontakt</p>
-                <p className="mt-2 text-lg font-semibold text-[var(--color-foreground)]">
+                <p className="mt-1.5 text-base font-semibold text-[var(--color-foreground)] sm:mt-2 sm:text-lg">
                   {fullName.trim() || "Doplňte kontaktní údaje"}
                 </p>
                 {email.trim() ? <p className="mt-1 text-sm text-[var(--color-muted)]">{email.trim()}</p> : null}
@@ -130,7 +130,7 @@ export function BookingSummarySidebar({
           </div>
         </div>
 
-        <div className="mt-6 rounded-3xl border border-black/6 bg-white/80 p-5 text-sm leading-6 text-[var(--color-muted)]">
+        <div className="mt-4 rounded-3xl border border-black/6 bg-white/80 p-4 text-sm leading-6 text-[var(--color-muted)] sm:mt-6 sm:p-5">
           Jakmile rezervaci odešlete, ověříme dostupnost termínu a dáme vám vědět e-mailem. V něm najdete
           i odkaz pro případnou změnu nebo zrušení.
         </div>

@@ -1,4 +1,4 @@
-import type { RefObject } from "react";
+import { useRef, type RefObject } from "react";
 
 import type { PublicBookingCatalog } from "@/features/booking/lib/booking-public";
 import { cn } from "@/lib/utils";
@@ -30,6 +30,39 @@ export function BookingServiceStep({
   onCategorySelect,
   onServiceSelect,
 }: BookingServiceStepProps) {
+  const servicesListRef = useRef<HTMLDivElement | null>(null);
+
+  const scrollToServices = () => {
+    const servicesList = servicesListRef.current;
+
+    if (!servicesList) {
+      return;
+    }
+
+    window.requestAnimationFrame(() => {
+      const rect = servicesList.getBoundingClientRect();
+      const stickyHeader = document.querySelector<HTMLElement>("header.sticky.top-0");
+      const fallbackOffset = window.innerWidth >= 1024 ? 112 : 88;
+      const headerOffset = stickyHeader
+        ? Math.max(0, stickyHeader.getBoundingClientRect().bottom)
+        : fallbackOffset;
+      const breathingSpace = window.innerWidth >= 1024 ? 16 : 20;
+      const topOffset = headerOffset + breathingSpace;
+      const isComfortablyVisible = rect.top >= topOffset && rect.bottom <= window.innerHeight - 24;
+
+      if (isComfortablyVisible) {
+        return;
+      }
+
+      const targetTop = window.scrollY + rect.top - topOffset;
+
+      window.scrollTo({
+        top: Math.max(0, targetTop),
+        behavior: "smooth",
+      });
+    });
+  };
+
   return (
     <div
       ref={sectionRef}
@@ -55,10 +88,17 @@ export function BookingServiceStep({
       <CategorySelect
         categories={categories}
         selectedKey={effectiveCategoryKey}
-        onSelect={onCategorySelect}
+        onSelect={(categoryKey) => {
+          const shouldScrollToServices = categoryKey !== effectiveCategoryKey;
+          onCategorySelect(categoryKey);
+
+          if (shouldScrollToServices) {
+            scrollToServices();
+          }
+        }}
       />
 
-      <div className="grid gap-3">
+      <div ref={servicesListRef} className="grid gap-3">
         {visibleServices.map((service) => {
           const isSelected = service.id === selectedServiceId;
 

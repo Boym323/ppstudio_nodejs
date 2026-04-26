@@ -111,3 +111,68 @@ img {
     @apply text-sm font-semibold uppercase tracking-[0.14em];
   }
 }
+
+@media (orientation: landscape) and (max-height: 540px) {
+  .site-header--booking .booking-header__container {
+    min-height: 3.25rem;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding-top: 0.35rem;
+    padding-bottom: 0.35rem;
+  }
+
+  .site-header--booking .booking-header__brand-row {
+    flex: 0 0 auto;
+    min-width: max-content;
+  }
+
+  .site-header--booking .booking-header__brand-title {
+    font-size: 1.05rem;
+    letter-spacing: 0.12em;
+  }
+
+  .site-header--booking .booking-header__brand-subtitle,
+  .site-header--booking .booking-header__reservation-cta {
+    display: none;
+  }
+
+  .site-header--booking .booking-header__nav {
+    flex: 1 1 auto;
+    justify-content: flex-end;
+    overflow-x: auto;
+    padding-bottom: 0;
+  }
+
+  .site-header--booking .booking-header__nav-link {
+    padding: 0.35rem 0.45rem;
+    font-size: 0.62rem;
+    letter-spacing: 0.12em;
+  }
+
+  .booking-sticky-cta {
+    padding: 0.45rem 0.75rem calc(0.45rem + env(safe-area-inset-bottom));
+  }
+
+  .booking-sticky-cta__inner {
+    gap: 0.625rem;
+  }
+
+  .booking-sticky-cta__label {
+    font-size: 0.82rem;
+    line-height: 1.2;
+  }
+
+  .booking-sticky-cta__note {
+    font-size: 0.74rem;
+    line-height: 1.2;
+  }
+
+  .booking-sticky-cta__button {
+    min-height: 2.5rem;
+    padding: 0.55rem 1.1rem;
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+  }
+}
