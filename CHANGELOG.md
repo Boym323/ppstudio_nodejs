@@ -6,6 +6,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Přibyl bezpečný CLI cleanup `npm run db:clear-booking-data`, který v dry-run režimu vypisuje počty booking/slot dat a s `-- --confirm` smaže testovací rezervace, termíny a navázané logy bez zásahu do služeb, admin účtů, settings nebo médií.
 - Analytics endpoint a widget teď rozlišují stav Matomo reportingu `ok / disabled / blocked / error`, takže dashboard při zamčeném nebo neplatném API tokenu neukazuje jen tiché nuly; přibyl i CLI check `npm run analytics:check`.
 - Matomo analytics pro admin dashboard nově vrací `sources` pole pro widget `Zdroje rezervací`; backend čte `Referrers.getCampaigns`, fallbackově mapuje `Referrers.getReferrerType` na business názvy a orientačně rozděluje dokončené rezervace podle podílu návštěv zdroje.
 - Admin dashboard `Přehled` nově obsahuje sekundární widget `Návštěvnost → rezervace` vložený až pod hlavní provozní bloky; načítá `/api/admin/analytics`, drží kompaktní KPI + funnel layout a umí stavy `loading / error / disabled`.

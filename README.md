@@ -115,6 +115,7 @@ Vývoj běží standardně na `http://localhost:3000`.
 - `npm run db:push` synchronizuje schema bez migrací
 - `npm run db:studio` otevře Prisma Studio
 - `npm run db:import-services` importuje katalog služeb
+- `npm run db:clear-booking-data` vypíše počty booking/slot dat a s `-- --confirm` je smaže bez zásahu do služeb, admin účtů a settings
 - `npm run email:worker` spustí e-mailový worker
 - `npm run email:worker:once` jednorázově zpracuje frontu e-mailů
 

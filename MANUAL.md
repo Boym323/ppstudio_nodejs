@@ -183,6 +183,16 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
 - Pro tvoje aktuální kategorie je připravený vzor v `scripts/old-web-categories.json`.
 - Pro tvoje aktuální služby je připravený vzor v `scripts/old-web-services.json`.
 
+### Vyčištění testovacích rezervací a termínů
+- Pro rychlý úklid testovacích provozních dat použij:
+```bash
+npm run db:clear-booking-data
+npm run db:clear-booking-data -- --confirm
+```
+- Skript v první fázi jen vypíše počty rezervací, slotů a navázaných logů. Ke skutečnému smazání je potřeba explicitní `--confirm`.
+- Mažou se `Booking`, `AvailabilitySlot`, jejich tokeny, historie, navázané e-mailové a submission logy a nakonec i osiřelé klientky bez aktivní vazby na rezervaci.
+- Katalog služeb a kategorií, admin účty, `SiteSettings`, `CalendarFeed` ani `MediaAsset` se nemažou.
+
 ## Veřejný Web
 - Navigace vede na klíčové konverzní a důvěryhodnostní stránky místo jedné přetížené homepage.
 - Detail služby je renderovaný v request-time režimu nad DB katalogem služeb, takže změny z adminu nečekají na nový build.

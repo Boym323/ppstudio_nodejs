@@ -322,6 +322,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Planner přímo upravuje jen jednoduché publikované sloty bez rezervací, bez poznámek, bez omezení služeb a s kapacitou `1`; ostatní zůstávají v UI viditelné jako uzamčené nebo neaktivní.
 - Pokud slot obsahuje rezervaci jen v části intervalu (např. booking 09:00-09:30 v okně 08:00-14:00), planner ho ve vizualizaci dělí na rezervovanou část a chráněný zbytek, aby celý interval nezmizel z mřížky.
 - Import kategorií a služeb je řešený jako JSON upsert přes `scripts/import-services.mjs`; identity záznamů drží `slug`.
+- Cleanup testovacích booking dat je záměrně oddělený od resetu celé DB: `scripts/clear-booking-data.mjs` maže rezervace, sloty a navázané provozní logy, ale nechává katalog služeb, admin účty, singleton settings i média.
 - `Booking` ukládá snapshot jména služby, ceny a času, takže historické rezervace zůstanou konzistentní i po úpravě katalogu.
 - `Service` nově odděluje obecnou aktivitu (`isActive`) od veřejné rezervovatelnosti (`isPubliclyBookable`); public booking flow vyžaduje obě podmínky a aktivní kategorii.
 - `Booking` drží metadata posledního přesunu (`rescheduledAt`, `rescheduleCount`) a reminder queue stavu (`reminder24hQueuedAt`, `reminder24hSentAt`); historický self-relation chain zůstává ve schématu jen jako legacy pole a nové reschedule flow ho nepoužívá.
