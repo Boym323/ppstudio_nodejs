@@ -38,6 +38,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Matomo client tracking je v `src/features/analytics/*` a inicializuje se přes `src/components/layout/site-shell.tsx`. Při lokálním vývoji nastav `NEXT_PUBLIC_MATOMO_ENABLED=true`, `NEXT_PUBLIC_MATOMO_URL` a `NEXT_PUBLIC_MATOMO_SITE_ID`; bez kompletní konfigurace je helper bezpečný no-op.
 - Pageview tracking v App Routeru poslouchá `usePathname()` a `useSearchParams()`, první render nechává na inicializačním Matomo scriptu a další klientské navigace posílá se sanitizovanou URL.
 - Funnel a CTA eventy se smí volat jen v client handlerech nebo efektech po úspěšné akci; neposílej jména, e-maily, telefony, poznámky, tokeny ani raw URL s citlivými parametry.
+- Klientský e-mail `booking-approved-v1` se renderuje v `src/lib/email/templates.ts` a má zůstat krátký, email-safe a mobilně čitelný: potvrzení rezervace, termín, služba, viditelná adresa, připomenutí `.ics` přílohy, jednorázový kontakt na studio a sekundární odkazy na správu rezervace dole.
 - Veřejně dostupná nahraná média se servírují přes route handler `src/app/media/[kind]/[[...path]]/route.ts`, ne přes `public/` repozitáře.
 - `next.config.ts` používá `allowedDevOrigins` pro lokální LAN vývoj na `192.168.0.143` i pro public dev test přes `ppstudio.cz` / `www.ppstudio.cz`; bez toho Next.js 16 z jiného zařízení nebo přes reverse proxy zablokuje dev assety a HMR endpoint `/_next/webpack-hmr`.
 

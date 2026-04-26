@@ -94,6 +94,7 @@ export async function createNotificationEmailLogs(
                 scheduledStartsAt: input.scheduledStartsAt.toISOString(),
                 scheduledEndsAt: input.scheduledEndsAt.toISOString(),
                 manageReservationUrl,
+                cancellationUrl,
                 includeCalendarAttachment: input.includeCalendarAttachment,
               }
             : {

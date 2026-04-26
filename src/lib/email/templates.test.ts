@@ -120,14 +120,28 @@ test("renderEmailTemplate creates approved email", async () => {
       scheduledStartsAt: "2026-04-20T08:00:00.000Z",
       scheduledEndsAt: "2026-04-20T09:00:00.000Z",
       manageReservationUrl: "https://example.com/rezervace/sprava/token-approved",
+      cancellationUrl: "https://example.com/rezervace/storno/token-approved-cancel",
     },
   );
 
   assert.match(email.text, /byla potvrzena/i);
   assert.match(email.text, /token-approved/);
+  assert.match(email.text, /token-approved-cancel/);
+  assert.match(email.text, /Termín:\n.+\n.+/);
+  assert.match(email.text, /Služba:\nLuxusní péče/);
+  assert.match(email.text, /Místo:\nPP Studio\nSadová 2, 760 01 Zlín/);
   assert.match(email.text, /přiložené kalendářové události/i);
+  assert.match(email.text, /Napište nám: info@ppstudio\.cz/);
+  assert.match(email.text, /Zavolejte: \+420 732 856 036/);
   assert.match(email.html, /Rezervace byla potvrzena/);
+  assert.match(email.html, /Vaše rezervace je potvrzená\. Níže najdete termín, místo a možnosti pro případnou změnu\./);
+  assert.match(email.html, /Sadová 2, 760 01 Zlín/);
+  assert.match(email.html, /Zobrazit na mapě/);
+  assert.match(email.html, /Potřebujete pomoc\?/);
+  assert.match(email.html, /Správa rezervace/);
   assert.match(email.html, /Změnit termín/);
+  assert.match(email.html, /Zrušit rezervaci/);
+  assert.doesNotMatch(email.html, /background:#1f1714;color:#ffffff/);
   assert.ok(email.attachments);
   assert.equal(email.attachments.length, 1);
   assert.equal(email.attachments[0]?.filename, "pp-studio-rezervace.ics");
@@ -150,7 +164,9 @@ test("renderEmailTemplate creates approved email for legacy payload without mana
 
   assert.match(email.text, /byla potvrzena/i);
   assert.doesNotMatch(email.text, /Změnit termín:/i);
+  assert.doesNotMatch(email.text, /Zrušit rezervaci:/i);
   assert.doesNotMatch(email.html, /Změnit termín/);
+  assert.doesNotMatch(email.html, /Zrušit rezervaci/);
   assert.ok(email.attachments);
 });
 

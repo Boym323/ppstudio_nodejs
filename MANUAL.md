@@ -207,6 +207,7 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
 - Provozní e-mail je určený pro rychlé mobilní rozhodnutí: nahoře je služba, datum, čas, klientka, e-mail a telefon jen pokud existuje; dlouhé vysvětlení akčních odkazů, technické údaje a duplicitní patička se v této šabloně nezobrazují.
 - Emailové approve/reject odkazy neprovedou změnu hned po otevření; vždy nejdřív zobrazí kontrolní obrazovku s přehledem rezervace a až následně potvrzovací CTA.
 - Po potvrzení rezervace systém automaticky založí návazný klientský e-mail s výsledkem rezervace a přiloženou `.ics` událostí pro osobní kalendář klientky.
+- Potvrzovací e-mail po finálním schválení rezervace je záměrně krátký a praktický: potvrzuje rezervaci, ukazuje termín, službu a místo `PP Studio, Sadová 2, 760 01 Zlín`, připomíná přiloženou kalendářovou událost a dole nenápadně nabízí změnu nebo zrušení, pokud jsou v payloadu dostupné bezpečné odkazy.
 - Pending confirmation screen kalendář záměrně nenabízí; `.ics` příloha patří až k e-mailu po přechodu rezervace do `CONFIRMED`.
 - Rezervační stránka je renderovaná dynamicky při requestu, takže nově publikované nebo obsazené sloty jsou vidět bez dalšího buildu.
 - Hero, sekce `O mně` a základní service copy jsou přepsané do klidnějšího a osobnějšího tónu; u `/o-mne` se vyhýbej defenzivním formulacím o praxi, agresivním slibům a superlativům typu `dokonalý`, `špičkový` nebo `okamžité výsledky`.

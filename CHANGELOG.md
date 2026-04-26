@@ -6,6 +6,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Klientský potvrzovací e-mail `booking-approved-v1` prošel UX/copy refaktorem: má jasnou hierarchii `termín / služba / místo / kalendář / pomoc / správa rezervace`, výrazně zobrazuje adresu PP Studio na Sadové 2 ve Zlíně, připomíná `.ics` přílohu a odkazy na změnu/storno drží dole jako sekundární textové akce.
 - Doprovodné texty kroků veřejné rezervace jsou civilnější a přesněji popisují výběr služby, termínu, kontaktu a závěrečnou kontrolu před odesláním.
 - Veřejný rezervační formulář po změně kategorie ve kroku `Vyberte službu` automaticky plynule posune viewport na seznam dostupných služeb v dané kategorii, takže není potřeba ručně scrollovat na mobilu.
 - Mobilní auto-scroll po změně kategorie nově počítá offset podle skutečné výšky sticky hlavičky a přidává bezpečný odstup, takže první karta služby už nezůstává částečně schovaná pod horní navigací.

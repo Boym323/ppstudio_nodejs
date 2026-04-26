@@ -34,6 +34,7 @@ const bookingApprovedPayloadSchema = z.object({
   scheduledStartsAt: z.string().datetime(),
   scheduledEndsAt: z.string().datetime(),
   manageReservationUrl: z.url().optional(),
+  cancellationUrl: z.url().optional(),
   includeCalendarAttachment: z.boolean().optional(),
 });
 
@@ -162,11 +163,12 @@ function buildEmailShell(
   body: string,
   options?: {
     includeFooter?: boolean;
+    maxWidthPx?: number;
   },
 ) {
   return `
     <div style="background:#f7f1eb;padding:32px 16px;font-family:Arial,sans-serif;color:#2e241f;">
-      <div style="max-width:640px;margin:0 auto;background:#ffffff;border-radius:24px;padding:32px;box-shadow:0 20px 60px rgba(42,29,21,0.08);">
+      <div style="max-width:${options?.maxWidthPx ?? 640}px;margin:0 auto;background:#ffffff;border-radius:24px;padding:32px;box-shadow:0 20px 60px rgba(42,29,21,0.08);">
         <p style="margin:0 0 12px;font-size:12px;letter-spacing:0.24em;text-transform:uppercase;color:#9e7f65;">${escapeHtml(brand.name)}</p>
         ${title ? `<h1 style="margin:0 0 16px;font-size:30px;line-height:1.15;font-family:Georgia,serif;color:#1f1714;">${escapeHtml(title)}</h1>` : ""}
         ${intro ? `<p style="margin:0 0 24px;font-size:16px;line-height:1.7;color:#5b4c44;">${escapeHtml(intro)}</p>` : ""}
@@ -328,8 +330,16 @@ export async function renderEmailTemplate(
       const data = bookingApprovedPayloadSchema.parse(payload);
       const scheduledStartsAt = new Date(data.scheduledStartsAt);
       const scheduledEndsAt = new Date(data.scheduledEndsAt);
-      const scheduledAtLabel = formatBookingDateLabel(scheduledStartsAt, scheduledEndsAt);
+      const bookingDate = formatBookingCalendarDate(scheduledStartsAt);
+      const bookingTime = formatBookingTimeRange(scheduledStartsAt, scheduledEndsAt);
       const includeCalendarAttachment = data.includeCalendarAttachment ?? true;
+      const studioName = "PP Studio";
+      const studioAddress = "Sadová 2, 760 01 Zlín";
+      const studioEmail = "info@ppstudio.cz";
+      const studioPhone = "+420 732 856 036";
+      const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+        `${studioName}, ${studioAddress}`,
+      )}`;
       const calendarAttachment = includeCalendarAttachment
         ? await buildBookingCalendarIcsFromPayload({
             bookingId: data.bookingId,
@@ -342,49 +352,91 @@ export async function renderEmailTemplate(
       const text = [
         `Dobrý den, ${data.clientName},`,
         "",
-        `vaše rezervace služby ${data.serviceName} byla potvrzena.`,
-        `Termín: ${scheduledAtLabel}`,
+        "Rezervace byla potvrzena",
+        "Vaše rezervace je potvrzená. Níže najdete termín, místo a možnosti pro případnou změnu.",
+        "",
+        "Termín:",
+        bookingDate,
+        bookingTime,
+        "",
+        "Služba:",
+        data.serviceName,
+        "",
+        "Místo:",
+        studioName,
+        studioAddress,
+        `Zobrazit na mapě: ${mapUrl}`,
         "",
         ...(includeCalendarAttachment
           ? [
+              "Kalendář:",
               "Termín najdete také v přiložené kalendářové události.",
               "",
             ]
           : []),
-        ...(data.manageReservationUrl
-          ? [`Změnit termín: ${data.manageReservationUrl}`]
-          : []),
-        "Pokud budete potřebovat s termínem pomoci, ozvěte se prosím studiu.",
+        "Potřebujete pomoc?",
+        `Napište nám: ${studioEmail}`,
+        `Zavolejte: ${studioPhone}`,
         "",
-        `${brand.name}`,
-        `${brand.email} | ${brand.phone}`,
+        ...(data.manageReservationUrl || data.cancellationUrl
+          ? [
+              "Správa rezervace:",
+              "Pokud se vám termín nebude hodit, můžete ho upravit nebo rezervaci zrušit.",
+              ...(data.manageReservationUrl ? [`Změnit termín: ${data.manageReservationUrl}`] : []),
+              ...(data.cancellationUrl ? [`Zrušit rezervaci: ${data.cancellationUrl}`] : []),
+              "",
+            ]
+          : []),
+        studioName,
       ].join("\n");
 
       const html = buildEmailShell(
         brand,
         "Rezervace byla potvrzena",
-        `Vaše rezervace služby ${data.serviceName} je potvrzená.`,
+        "Vaše rezervace je potvrzená. Níže najdete termín, místo a možnosti pro případnou změnu.",
         `
-          <div style="border:1px solid rgba(33,23,20,0.08);border-radius:18px;padding:20px;background:#fbf7f3;">
-            <p style="margin:0 0 8px;font-size:13px;text-transform:uppercase;letter-spacing:0.16em;color:#9e7f65;">Termín</p>
-            <p style="margin:0;font-size:18px;line-height:1.6;color:#1f1714;"><strong>${escapeHtml(scheduledAtLabel)}</strong></p>
+          <div style="border:1px solid #eaded4;border-radius:18px;padding:20px;background:#fbf7f3;">
+            <p style="margin:0 0 8px;font-size:13px;text-transform:uppercase;letter-spacing:0.12em;color:#9e7f65;">Termín</p>
+            <p style="margin:0;font-size:22px;line-height:1.35;color:#1f1714;"><strong>${escapeHtml(bookingDate)}</strong></p>
+            <p style="margin:6px 0 0;font-size:20px;line-height:1.35;color:#1f1714;"><strong>${escapeHtml(bookingTime)}</strong></p>
+          </div>
+          <div style="margin-top:14px;border:1px solid #eaded4;border-radius:18px;padding:18px 20px;background:#ffffff;">
+            <p style="margin:0 0 8px;font-size:13px;text-transform:uppercase;letter-spacing:0.12em;color:#9e7f65;">Služba</p>
+            <p style="margin:0;font-size:17px;line-height:1.5;color:#1f1714;"><strong>${escapeHtml(data.serviceName)}</strong></p>
+          </div>
+          <div style="margin-top:14px;border:1px solid #eaded4;border-radius:18px;padding:18px 20px;background:#fffaf6;">
+            <p style="margin:0 0 8px;font-size:13px;text-transform:uppercase;letter-spacing:0.12em;color:#9e7f65;">Místo</p>
+            <p style="margin:0;font-size:18px;line-height:1.45;color:#1f1714;"><strong>${escapeHtml(studioName)}</strong><br />${escapeHtml(studioAddress)}</p>
+            <p style="margin:10px 0 0;font-size:15px;line-height:1.5;">
+              <a href="${escapeHtml(mapUrl)}" style="color:#1f1714;text-decoration:underline;">Zobrazit na mapě</a>
+            </p>
           </div>
           ${includeCalendarAttachment ? `
-          <p style="margin:24px 0 0;font-size:15px;line-height:1.7;color:#5b4c44;">
-            Termín najdete také v přiložené kalendářové události.
-          </p>
+          <div style="margin-top:18px;border-top:1px solid #eaded4;padding-top:18px;">
+            <p style="margin:0 0 6px;font-size:13px;text-transform:uppercase;letter-spacing:0.12em;color:#9e7f65;">Kalendář</p>
+            <p style="margin:0;font-size:15px;line-height:1.6;color:#5b4c44;">Termín najdete také v přiložené kalendářové události.</p>
+          </div>
           ` : ""}
-          ${data.manageReservationUrl
-            ? `<div style="margin-top:24px;">${buildEmailButton({
-                href: data.manageReservationUrl,
-                label: "Změnit termín",
-                variant: "primary",
-              })}</div>`
-            : ""}
-          <p style="margin:18px 0 0;font-size:15px;line-height:1.7;color:#5b4c44;">
-            Pokud budete potřebovat s termínem pomoci, napište nám nebo zavolejte. Rádi s vámi domluvíme další postup.
-          </p>
+          <div style="margin-top:18px;border-top:1px solid #eaded4;padding-top:18px;">
+            <p style="margin:0 0 6px;font-size:13px;text-transform:uppercase;letter-spacing:0.12em;color:#9e7f65;">Potřebujete pomoc?</p>
+            <p style="margin:0;font-size:15px;line-height:1.7;color:#5b4c44;">
+              Napište nám: <a href="mailto:${escapeHtml(studioEmail)}" style="color:#1f1714;text-decoration:underline;">${escapeHtml(studioEmail)}</a><br />
+              Zavolejte: <a href="tel:+420732856036" style="color:#1f1714;text-decoration:underline;">${escapeHtml(studioPhone)}</a>
+            </p>
+          </div>
+          ${data.manageReservationUrl || data.cancellationUrl ? `
+          <div style="margin-top:22px;border-top:1px solid #eaded4;padding-top:18px;">
+            <p style="margin:0 0 6px;font-size:13px;text-transform:uppercase;letter-spacing:0.12em;color:#9e7f65;">Správa rezervace</p>
+            <p style="margin:0 0 12px;font-size:14px;line-height:1.6;color:#6d5a50;">Pokud se vám termín nebude hodit, můžete ho upravit nebo rezervaci zrušit.</p>
+            ${data.manageReservationUrl ? `<a href="${escapeHtml(data.manageReservationUrl)}" style="display:inline-block;margin:0 14px 8px 0;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:20px;font-weight:700;color:#1f1714;text-decoration:underline;">Změnit termín</a>` : ""}
+            ${data.cancellationUrl ? `<a href="${escapeHtml(data.cancellationUrl)}" style="display:inline-block;margin:0 0 8px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:20px;font-weight:700;color:#1f1714;text-decoration:underline;">Zrušit rezervaci</a>` : ""}
+          </div>
+          ` : ""}
         `,
+        {
+          includeFooter: false,
+          maxWidthPx: 600,
+        },
       );
 
       return {

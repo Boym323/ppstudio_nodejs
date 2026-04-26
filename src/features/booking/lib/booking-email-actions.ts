@@ -15,6 +15,7 @@ import { getAdminBookingHref, getBookingStatusLabel } from "@/features/admin/lib
 import {
   buildBookingActionExpiry,
   buildBookingActionToken,
+  buildBookingCancellationUrl,
   buildBookingManagementUrl,
   type BookingEmailActionIntent,
   hashBookingActionToken,
@@ -94,6 +95,7 @@ export type PerformBookingEmailActionResult =
 function buildBookingApprovedEmailPayload(
   booking: NonNullable<LoadedBookingActionToken["booking"]>,
   manageReservationUrl: string,
+  cancellationUrl: string,
 ) {
   return {
     bookingId: booking.id,
@@ -102,6 +104,7 @@ function buildBookingApprovedEmailPayload(
     scheduledStartsAt: booking.scheduledStartsAt.toISOString(),
     scheduledEndsAt: booking.scheduledEndsAt.toISOString(),
     manageReservationUrl,
+    cancellationUrl,
   };
 }
 
@@ -433,20 +436,33 @@ export async function performBookingEmailAction(
 
       if (targetStatus === BookingStatus.CONFIRMED) {
         const manageToken = buildBookingActionToken();
+        const cancellationToken = buildBookingActionToken();
 
-        await tx.bookingActionToken.create({
-          data: {
-            bookingId: lockedToken.bookingId,
-            type: BookingActionTokenType.RESCHEDULE,
-            tokenHash: manageToken.tokenHash,
-            expiresAt: buildBookingActionExpiry(now),
-            lastSentAt: now,
-          },
-        });
+        await Promise.all([
+          tx.bookingActionToken.create({
+            data: {
+              bookingId: lockedToken.bookingId,
+              type: BookingActionTokenType.RESCHEDULE,
+              tokenHash: manageToken.tokenHash,
+              expiresAt: buildBookingActionExpiry(now),
+              lastSentAt: now,
+            },
+          }),
+          tx.bookingActionToken.create({
+            data: {
+              bookingId: lockedToken.bookingId,
+              type: BookingActionTokenType.CANCEL,
+              tokenHash: cancellationToken.tokenHash,
+              expiresAt: buildBookingActionExpiry(now),
+              lastSentAt: now,
+            },
+          }),
+        ]);
 
         bookingApprovedPayload = buildBookingApprovedEmailPayload(
           lockedToken.booking!,
           buildBookingManagementUrl(manageToken.rawToken),
+          buildBookingCancellationUrl(cancellationToken.rawToken),
         );
       } else {
         bookingApprovedPayload = {

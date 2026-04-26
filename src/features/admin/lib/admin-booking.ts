@@ -1,4 +1,5 @@
 import {
+  BookingActionTokenType,
   BookingActorType,
   BookingAcquisitionSource,
   BookingSource,
@@ -9,6 +10,12 @@ import {
 
 import { env } from "@/config/env";
 import { type AdminArea } from "@/config/navigation";
+import {
+  buildBookingActionExpiry,
+  buildBookingActionToken,
+  buildBookingCancellationUrl,
+  buildBookingManagementUrl,
+} from "@/features/booking/lib/booking-action-tokens";
 import { getPublicBookingCatalog } from "@/features/booking/lib/booking-public";
 import { formatBookingDateLabel } from "@/features/booking/lib/booking-format";
 import { prisma } from "@/lib/prisma";
@@ -431,6 +438,30 @@ export async function applyAdminBookingStatusChange({
     });
 
     if (targetStatus === BookingStatus.CONFIRMED) {
+      const manageToken = buildBookingActionToken();
+      const cancellationToken = buildBookingActionToken();
+
+      await Promise.all([
+        tx.bookingActionToken.create({
+          data: {
+            bookingId: booking.id,
+            type: BookingActionTokenType.RESCHEDULE,
+            tokenHash: manageToken.tokenHash,
+            expiresAt: buildBookingActionExpiry(now),
+            lastSentAt: now,
+          },
+        }),
+        tx.bookingActionToken.create({
+          data: {
+            bookingId: booking.id,
+            type: BookingActionTokenType.CANCEL,
+            tokenHash: cancellationToken.tokenHash,
+            expiresAt: buildBookingActionExpiry(now),
+            lastSentAt: now,
+          },
+        }),
+      ]);
+
       await tx.emailLog.create({
         data: {
           bookingId: booking.id,
@@ -450,6 +481,8 @@ export async function applyAdminBookingStatusChange({
             clientName: booking.clientNameSnapshot,
             scheduledStartsAt: booking.scheduledStartsAt.toISOString(),
             scheduledEndsAt: booking.scheduledEndsAt.toISOString(),
+            manageReservationUrl: buildBookingManagementUrl(manageToken.rawToken),
+            cancellationUrl: buildBookingCancellationUrl(cancellationToken.rawToken),
           },
           provider: env.EMAIL_DELIVERY_MODE === "background" ? undefined : "log",
           sentAt: env.EMAIL_DELIVERY_MODE === "background" ? undefined : now,
