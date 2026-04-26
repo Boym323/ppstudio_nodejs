@@ -365,14 +365,16 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - `create-public-booking.ts` kromě IP/user-agent auditu načítá i cookie `ppstudio-booking-acq` a propsává akviziční kontext do `Booking` i `BookingSubmissionLog.metadata`.
 - Klientský tracker `src/features/booking/components/booking-acquisition-tracker.tsx` běží v root layoutu, sbírá `utm_*` + externí `document.referrer`, normalizuje je a ukládá do cookie `ppstudio-booking-acq` (`SameSite=Lax`, 30 dní).
 - Success stav veřejného booking flow drž jako vlastní confirmation layout, ne jako prodloužený souhrn:
-  - horní status blok jen pro stav rezervace
-  - hlavní detail rezervace ukazuje samostatně službu, termín, čas i referenční kód
-  - samostatná dominantní karta termínu
-  - stručný blok `Co bude následovat`
-  - akční řada oddělená od vysvětlujícího textu
-  - kontakt na studio až v posledním bloku
+  - horní status blok jen pro stav rezervace, s copy `Rezervace přijata` a `Čeká na finální potvrzení`
+  - hero text má výslovně říct, že termín je pro klientku předběžně rezervovaný
+  - hlavní detail rezervace ukazuje samostatně službu, datum a čas; čas zobrazuj s mezerami kolem pomlčky, například `09:30 – 10:30`
+  - referenční kód nezobrazuj, dokud neexistuje samostatné business pole používané v adminu nebo klientské komunikaci
+  - stručný blok `Co bude následovat` má říct, že potvrzení přijde e-mailem a studio se ozve při potřebě upřesnění
+  - akční blok `Potřebujete změnu?` drž odděleně od vysvětlujícího textu; `Změnit termín` je primární CTA a `Zrušit rezervaci` jen sekundární/destruktivní-light akce
+  - kontakt na studio až v posledním bloku s akčním copy `Napište nám` / `Zavolejte`
 - `createPublicBooking()` vrací pro confirmation vrstvu i `scheduledStartsAt`, `scheduledEndsAt` a `cancellationUrl`, aby web i e-mail nemusely domýšlet další akce z neúplných dat.
 - `BookingConfirmationPanel` už používá produkční CTA `Změnit termín` vedoucí na `/rezervace/sprava/[token]`; veřejný post-submit screen i navazující e-maily tak sdílejí stejný secure manage entrypoint.
+- Matomo event `Booking / Created` se posílá po success stavu v `BookingFlow` a chrání ho `createdBookingTrackedRef`; nepřidávej další odeslání přímo do `BookingConfirmationPanel`, aby nevznikaly duplicity při re-renderu.
 - Pending confirmation screen po odeslání rezervace záměrně nenabízí `Přidat do kalendáře`; kalendářová událost se přikládá až do emailu `booking-approved-v1` po přechodu rezervace do `CONFIRMED`.
 - Transformaci slotů pro krok 2 drž mimo JSX v helperu `src/features/booking/lib/booking-time-slots.ts`; UI komponenty mají dostávat už připravené `TimeSlotOption[]` a skupiny z `groupSlotsByDayPeriod()`.
 - Kalendářní denní klíče v kroku 2 (`YYYY-MM-DD`) generuj locale-agnosticky přes `Intl.DateTimeFormat(...).formatToParts()`; nepoužívej `format()` jako zdroj klíče, protože pořadí/oddělovače se liší mezi prostředími a může rozbít mapování měsíců/dnů.
@@ -381,6 +383,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - provider řeší SMTP transport
   - templates renderují obsah z `EmailLog.templateKey`
   - worker claimuje `EmailLog` řádky v background režimu a delivery aktualizuje `EmailLog.status`, `provider`, `providerMessageId`, `attemptCount`, `nextAttemptAt` a `errorMessage`
+- Admin šablona `admin-booking-notification-v1` má zůstat email-safe a mobilně rozhodovací: inline styly, tabulková plnošířková CTA, Arial/Helvetica pro tlačítka, bez web fontů, bez přehnaného letter-spacing a bez dlouhého vysvětlování procesu. Neměň approve/reject tokenové URL ani `adminUrl`; `Přesunout termín` vede na existující detail rezervace v administraci.
 - Potvrzovací e-mail `booking-confirmation-v1` má držet stejnou informační hierarchii jako web confirmation screen: stav -> služba / termín -> další kroky -> akce -> kontakt, bez duplicitního úvodního textu mimo hero blok.
 - `booking-confirmation-v1`, `booking-approved-v1`, `booking-reminder-24h-v1` i `booking-rescheduled-v1` teď dostávají `manageReservationUrl`; token se generuje per e-mail/send a do DB se ukládá jen jeho hash.
 - Referenční kód rezervace už se v klientském flow záměrně nepoužívá; veřejný web, e-maily i `.ics` popis komunikují jen službu, termín a konkrétní akce přes tokenizované odkazy.

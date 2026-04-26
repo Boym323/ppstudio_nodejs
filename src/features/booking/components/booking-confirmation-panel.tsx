@@ -2,7 +2,6 @@
 
 import { ObfuscatedEmailLink } from "@/components/ui/obfuscated-email-link";
 import { formatBookingCalendarDate, formatBookingTimeRange } from "@/features/booking/lib/booking-format";
-import { formatObfuscatedEmail } from "@/lib/email-obfuscation";
 
 type BookingConfirmationPanelProps = {
   confirmation: {
@@ -27,11 +26,12 @@ export function BookingConfirmationPanel({
   const scheduledStartsAt = new Date(confirmation.scheduledStartsAt);
   const scheduledEndsAt = new Date(confirmation.scheduledEndsAt);
   const calendarDate = formatBookingCalendarDate(scheduledStartsAt);
-  const timeRange = formatBookingTimeRange(scheduledStartsAt, scheduledEndsAt);
+  const timeRange = formatBookingTimeRange(scheduledStartsAt, scheduledEndsAt).replace("–", " – ");
+  const phoneHref = `tel:${salonContact.phone.replace(/[^\d+]/g, "")}`;
 
   return (
-    <section className="space-y-5 sm:space-y-6">
-      <section className="relative overflow-hidden rounded-[2rem] border border-[var(--color-accent-soft)]/45 bg-[linear-gradient(135deg,rgba(34,22,18,0.98),rgba(57,41,34,0.92))] p-7 text-white shadow-[0_24px_70px_rgba(23,15,11,0.24)] sm:p-9">
+    <section className="space-y-5 sm:space-y-7">
+      <section className="relative overflow-hidden rounded-[1.75rem] border border-[var(--color-accent-soft)]/45 bg-[linear-gradient(135deg,rgba(34,22,18,0.98),rgba(57,41,34,0.92))] p-7 text-white shadow-[0_24px_70px_rgba(23,15,11,0.24)] sm:p-9">
         <div className="absolute right-0 top-0 h-40 w-40 rounded-full bg-[rgba(232,213,192,0.14)] blur-3xl" />
         <div className="absolute left-[-3rem] top-12 h-28 w-28 rounded-full bg-white/6 blur-3xl" />
         <div className="relative flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
@@ -43,41 +43,46 @@ export function BookingConfirmationPanel({
               Rezervace přijata
             </h1>
             <p className="mt-3 max-w-xl text-base leading-7 text-white/74 sm:text-[1.02rem]">
-              Vaši rezervaci jsme přijali ke schválení.
+              Rezervaci jsme přijali a termín je pro vás předběžně rezervovaný.
             </p>
           </div>
-          <div className="inline-flex items-center gap-3 self-start rounded-full border border-white/12 bg-white/8 px-4 py-3 text-sm text-white/84 backdrop-blur">
-            <span className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/12 bg-white/10 text-[#f4e6d7]">
+          <div className="inline-flex items-center gap-3 self-start rounded-full border border-[#f4e6d7]/28 bg-[#f4e6d7]/12 px-4 py-3 text-sm text-white/88 backdrop-blur">
+            <span className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#f4e6d7]/24 bg-[#f4e6d7]/14 text-[#f4e6d7]">
               <SuccessIcon />
             </span>
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/56">
                 Stav rezervace
               </p>
-              <p className="mt-1 font-medium text-white">Čeká na potvrzení</p>
+              <p className="mt-1 font-medium text-white">Čeká na finální potvrzení</p>
             </div>
           </div>
         </div>
       </section>
 
-      <section className="rounded-[2rem] border border-[var(--color-accent-soft)]/35 bg-white p-7 shadow-[var(--shadow-panel)] sm:p-9">
-        <div className="space-y-5">
+      <section className="rounded-[1.75rem] border border-[var(--color-accent-soft)]/35 bg-white p-7 shadow-[var(--shadow-panel)] sm:p-9">
+        <div className="space-y-6">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[var(--color-accent)]">
+            <p className="text-sm font-semibold text-[var(--color-accent)]">
               Služba
             </p>
-            <p className="mt-3 text-xl font-semibold tracking-[-0.02em] text-[var(--color-foreground)] sm:text-[1.35rem]">
+            <p className="mt-2 text-xl font-semibold text-[var(--color-foreground)] sm:text-[1.35rem]">
               {confirmation.serviceName}
             </p>
           </div>
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[var(--color-accent)]">
-              Termín
+            <p className="text-sm font-semibold text-[var(--color-accent)]">
+              Datum
             </p>
             <p className="mt-3 font-display text-3xl leading-tight text-[var(--color-foreground)] sm:text-[2.7rem]">
               {calendarDate}
             </p>
-            <p className="mt-3 text-2xl font-semibold tracking-[-0.02em] text-[var(--color-foreground)] sm:text-[2.15rem]">
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-[var(--color-accent)]">
+              Čas
+            </p>
+            <p className="mt-2 text-xl font-semibold text-[var(--color-foreground)] sm:text-[1.7rem]">
               {timeRange}
             </p>
           </div>
@@ -89,28 +94,34 @@ export function BookingConfirmationPanel({
           Co bude následovat
         </p>
         <p className="mt-3 max-w-2xl text-base leading-7 text-[var(--color-foreground)]/82">
-          Potvrzení přijde dalším e-mailem a kdyby bylo potřeba něco upřesnit, ozveme se.
+          Potvrzení vám zašleme e-mailem. Pokud by bylo potřeba něco upřesnit, ozveme se.
+          Do té doby je termín vedený jako čekající na potvrzení.
         </p>
       </section>
 
       <section className="rounded-[1.75rem] border border-black/6 bg-white p-6 shadow-[var(--shadow-panel)] sm:p-7">
-        <div className="flex flex-col gap-4 lg:flex-row lg:flex-wrap">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--color-accent)]">
+            Potřebujete změnu?
+          </p>
+          <p className="mt-3 max-w-2xl text-base leading-7 text-[var(--color-foreground)]/82">
+            Přes bezpečný odkaz můžete vybrat nový volný termín nebo rezervaci zrušit.
+          </p>
+        </div>
+        <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
           <a
             href={confirmation.manageReservationUrl}
-            className="inline-flex min-h-13 flex-1 items-center justify-center rounded-full bg-[var(--color-foreground)] px-6 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-white transition hover:bg-[#2c221d] sm:text-sm"
+            className="inline-flex min-h-13 flex-[1.15] items-center justify-center rounded-full bg-[var(--color-foreground)] px-6 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-white transition hover:bg-[#2c221d] sm:text-sm"
           >
             Změnit termín
           </a>
           <a
             href={confirmation.cancellationUrl}
-            className="inline-flex min-h-13 flex-1 items-center justify-center rounded-full border border-red-200 bg-red-50 px-6 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-red-700 transition hover:border-red-300 hover:bg-red-100 sm:text-sm"
+            className="inline-flex min-h-13 flex-1 items-center justify-center rounded-full border border-red-200/80 bg-white px-6 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-red-700 transition hover:border-red-300 hover:bg-red-50 sm:text-sm"
           >
             Zrušit rezervaci
           </a>
         </div>
-        <p className="mt-4 text-sm leading-6 text-[var(--color-muted)]">
-          Rezervaci můžete pohodlně přesunout na jiný volný termín, případně ji zrušit.
-        </p>
       </section>
 
       <section className="rounded-[1.75rem] border border-black/6 bg-white p-6 sm:p-7">
@@ -124,13 +135,15 @@ export function BookingConfirmationPanel({
             className="inline-flex min-h-11 items-center gap-3 rounded-full border border-black/10 bg-[var(--color-surface)]/45 px-4 py-2 text-[15px] font-medium text-[var(--color-foreground)] transition hover:border-black/20 hover:bg-white"
           >
             <MailIcon />
-            {formatObfuscatedEmail(salonContact.email)}
+            <span className="text-[var(--color-muted)]">Napište nám:</span>
+            {salonContact.email}
           </ObfuscatedEmailLink>
           <a
-            href={`tel:${salonContact.phone}`}
+            href={phoneHref}
             className="inline-flex min-h-11 items-center gap-3 rounded-full border border-black/10 bg-[var(--color-surface)]/45 px-4 py-2 text-[15px] font-medium text-[var(--color-foreground)] transition hover:border-black/20 hover:bg-white"
           >
             <PhoneIcon />
+            <span className="text-[var(--color-muted)]">Zavolejte:</span>
             {salonContact.phone}
           </a>
         </div>

@@ -18,7 +18,7 @@ Nešlo o změnu business logiky rezervace, ale o přepracování informačního 
 - Success stav veřejné rezervace už nebude pokračováním souhrnu, ale samostatným confirmation layoutem.
 - Web confirmation screen i potvrzovací e-mail budou používat stejnou obsahovou hierarchii:
   - status blok nahoře
-  - hlavní přehled se službou, termínem, časem a referenčním kódem
+  - hlavní přehled se službou, termínem a časem
   - krátký blok `Co bude následovat`
   - akční sekci oddělenou od textu
   - kontaktní blok až pod hlavním obsahem
@@ -26,6 +26,13 @@ Nešlo o změnu business logiky rezervace, ale o přepracování informačního 
 - Primární webová akce bude `Přidat do kalendáře` přes klientsky generovaný `.ics` soubor.
 - Secondary CTA `Požádat o změnu` bude zatím realizované přes předvyplněný kontakt do studia; struktura i umístění ale počítají s budoucím napojením na samostatný self-service endpoint.
 - Destruktivní akce `Zrušit rezervaci` zůstává viditelná, ale nesmí být dominantnější než ostatní kroky.
+
+## Aktualizace 2026-04-26
+- Webový success screen drží headline `Rezervace přijata`, ale doprovodné copy jasně říká, že termín je předběžně rezervovaný a čeká na finální potvrzení.
+- Badge používá lidštější stav `Čeká na finální potvrzení`; blok `Co bude následovat` stručně říká, že potvrzení přijde e-mailem.
+- Akční sekce se jmenuje `Potřebujete změnu?`, vysvětluje bezpečný odkaz a drží `Změnit termín` jako primární CTA. `Zrušit rezervaci` zůstává dostupné, ale vizuálně sekundární.
+- Referenční kód se na confirmation screenu nezobrazuje, protože booking model nemá samostatný klientsky používaný reference-code atribut; interní `bookingId` se klientce neukazuje.
+- Matomo event `Booking / Created` zůstává v `BookingFlow` po success submitu a je chráněný `createdBookingTrackedRef`, takže confirmation panel neposílá další duplicitní event.
 
 ## Důsledky
 

@@ -170,6 +170,7 @@ Postup nasazení aplikace do produkce.
 10. Pro produkci spusť zvlášť `npm run email:worker` jako samostatný proces nebo službu.
 11. Po nasazení reminder změny ověř, že worker běží nepřetržitě; bez něj se reminder joby neenqueueují ani nedoručují.
 12. Po nasazení reschedule změny ověř, že přesun resetuje `reminder24hQueuedAt` a `reminder24hSentAt`, aby se reminder správně navázal na nový termín.
+13. Po změně admin e-mailové šablony odešli testovací novou rezervaci a v Gmailu, iOS Mailu, Apple Mailu a Outlooku zkontroluj hlavně čitelnost tlačítek, stackování CTA na mobilu, funkčnost approve/reject/admin odkazů a to, že `Zrušit rezervaci` není vizuálně dominantnější než potvrzení.
 
 ### Systemd
 - Doporučený web unit je v [`deploy/systemd/ppstudio-web.service`](/var/www/ppstudio/deploy/systemd/ppstudio-web.service).

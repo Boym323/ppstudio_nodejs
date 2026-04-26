@@ -50,6 +50,7 @@ Dokumentace proměnných prostředí pro lokální vývoj i produkci.
 - `NEXT_PUBLIC_APP_URL` je stejně kritická i pro zákaznický `.ics` odkaz `/api/bookings/calendar/[token].ics`; pokud míří na špatný host nebo schéma, CTA `Přidat do kalendáře` v potvrzovacím e-mailu povede na neplatnou URL.
 - `NEXT_PUBLIC_APP_URL` je stejně kritická i pro owner ICS subscription feed; z této hodnoty se skládá kopírovatelný Apple Calendar odkaz v adminu.
 - Nový approve/reject email flow nepřidává žádnou novou env proměnnou; využívá existující `NEXT_PUBLIC_APP_URL`, `ADMIN_SESSION_SECRET` a e-mailovou konfiguraci.
+- Refaktor admin notifikace o nové rezervaci nepřidává žádnou env proměnnou; pouze mění HTML/text prezentaci a dál používá stejné `NEXT_PUBLIC_APP_URL` pro approve/reject odkazy i otevření administrace.
 - Zákaznický `.ics` event také nepřidává novou env proměnnou; používá stejné `NEXT_PUBLIC_APP_URL` a hashovaný `BookingActionToken`.
 - Kalendářový feed také nepřidává novou env proměnnou; bezpečnost stojí na existujících `NEXT_PUBLIC_APP_URL` a `ADMIN_SESSION_SECRET`.
 - Pokud měníš `ADMIN_SESSION_SECRET`, zneplatníš tím existující admin session a zároveň i starší odvozené ICS subscription URL. Po takové změně je potřeba v `/admin/nastaveni` feed znovu zkontrolovat a případně rotovat.

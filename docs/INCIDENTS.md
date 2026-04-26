@@ -36,6 +36,7 @@ Evidence produkčních incidentů a jejich řešení.
 - Nefunkční storno odkazy kvůli špatnému `NEXT_PUBLIC_APP_URL` nebo proxy přepisu hosta.
 - Nefunkční self-service odkaz `Změnit termín` kvůli špatnému `NEXT_PUBLIC_APP_URL`, rozbité route `/rezervace/sprava/[token]` nebo chybně generovanému `BookingActionTokenType.RESCHEDULE`.
 - Nefunkční approve/reject odkazy v provozním e-mailu kvůli špatnému `NEXT_PUBLIC_APP_URL`, neaplikované migraci enumu `BookingActionTokenType` nebo rozbitému veřejnému routingu `/rezervace/akce/[intent]/[token]`.
+- Provozní e-mail o nové rezervaci nečitelný na mobilu nebo v Outlooku kvůli regresi v HTML šabloně; po zásahu do `admin-booking-notification-v1` vždy ověř stackovaná tlačítka, normální letter-spacing a danger-light vizuál storna.
 - Chybějící nebo poškozená `.ics` příloha v potvrzovacím klientském e-mailu kvůli chybě v renderu šablony `booking-approved-v1`, SMTP transportu nebo generování iCalendar obsahu.
 - Nefunkční owner kalendářový feed kvůli špatnému `NEXT_PUBLIC_APP_URL`, neaplikované migraci `CalendarFeed`, chybné rotaci tokenu nebo rozbité route `/api/calendar/owner.ics`.
 - Apple Calendar subscription vracející prázdný nebo nevalidní obsah kvůli chybě v ICS escapování, line folding nebo timezone mapování `Europe/Prague`.

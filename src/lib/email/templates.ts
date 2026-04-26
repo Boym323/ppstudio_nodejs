@@ -124,9 +124,39 @@ function buildEmailButton({
       ? "background:#1f1714;color:#ffffff;border:1px solid #1f1714;"
       : variant === "destructive"
         ? "background:#fff4f2;color:#b03c2e;border:1px solid #f3d3cd;"
-        : "background:#f6efe8;color:#1f1714;border:1px solid rgba(33,23,20,0.08);";
+        : "background:#f6efe8;color:#1f1714;border:1px solid #eaded4;";
 
-  return `<a href="${escapeHtml(href)}" style="display:inline-block;padding:14px 22px;border-radius:999px;font-size:13px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;text-decoration:none;${styles}">${escapeHtml(label)}</a>`;
+  return `<a href="${escapeHtml(href)}" style="display:inline-block;padding:14px 22px;border-radius:8px;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:20px;font-weight:700;text-align:center;text-decoration:none;white-space:normal;${styles}">${escapeHtml(label)}</a>`;
+}
+
+function buildEmailActionButton({
+  href,
+  label,
+  variant = "secondary",
+}: {
+  href: string;
+  label: string;
+  variant?: "primary" | "secondary" | "destructive";
+}) {
+  const textColor = variant === "primary" ? "#ffffff" : variant === "destructive" ? "#9f2f24" : "#1f1714";
+  const styles =
+    variant === "primary"
+      ? "background:#1f1714;color:#ffffff;border:1px solid #1f1714;"
+      : variant === "destructive"
+        ? "background:#fff7f5;color:#9f2f24;border:1px solid #f0d4cf;"
+        : "background:#f6efe8;color:#1f1714;border:1px solid #eaded4;";
+
+  return `
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:0;">
+      <tr>
+        <td style="border-radius:8px;${styles}">
+          <a href="${escapeHtml(href)}" style="display:block;padding:13px 18px;font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:20px;font-weight:700;text-align:center;text-decoration:none;color:${textColor};white-space:normal;">
+            ${escapeHtml(label)}
+          </a>
+        </td>
+      </tr>
+    </table>
+  `.trim();
 }
 
 function buildEmailShell(
@@ -578,59 +608,84 @@ export async function renderEmailTemplate(
     }
     case "admin-booking-notification-v1": {
       const data = adminBookingNotificationPayloadSchema.parse(payload);
-      const scheduledAtLabel = formatBookingDateLabel(
-        new Date(data.scheduledStartsAt),
-        new Date(data.scheduledEndsAt),
-      );
-      const phoneLine = data.clientPhone ? `Telefon: ${data.clientPhone}` : "Telefon: neuveden";
+      const scheduledStartsAt = new Date(data.scheduledStartsAt);
+      const scheduledEndsAt = new Date(data.scheduledEndsAt);
+      const bookingDate = formatBookingCalendarDate(scheduledStartsAt);
+      const bookingTime = formatBookingTimeRange(scheduledStartsAt, scheduledEndsAt);
+      const phoneLine = data.clientPhone ? `Telefon: ${data.clientPhone}` : null;
       const text = [
-        `Nová rezervace služby ${data.serviceName}.`,
-        `Klientka: ${data.clientName}`,
-        `E-mail: ${data.clientEmail}`,
-        phoneLine,
-        `Termín: ${scheduledAtLabel}`,
+        "Nová rezervace",
         "",
-        `Schválit rezervaci: ${data.approveUrl}`,
+        `Služba: ${data.serviceName}`,
+        `Termín: ${bookingDate}, ${bookingTime}`,
+        `Klientka: ${data.clientName}`,
+        `Email: ${data.clientEmail}`,
+        ...(phoneLine ? [phoneLine] : []),
+        "",
+        `Potvrdit rezervaci: ${data.approveUrl}`,
+        `Přesunout termín: ${data.adminUrl}`,
         `Zrušit rezervaci: ${data.rejectUrl}`,
-        `Otevřít v administraci: ${data.adminUrl}`,
+        `Administrace: ${data.adminUrl}`,
       ].join("\n");
 
       const html = buildEmailShell(
         brand,
         "Nová rezervace",
-        `Do systému přišla nová rezervace služby ${data.serviceName}.`,
+        "Do systému přišla nová rezervace.",
         `
-          <div style="border:1px solid rgba(33,23,20,0.08);border-radius:18px;padding:20px;background:#fbf7f3;">
-            <p style="margin:0 0 8px;font-size:13px;text-transform:uppercase;letter-spacing:0.16em;color:#9e7f65;">Klientka</p>
-            <p style="margin:0;font-size:18px;line-height:1.6;color:#1f1714;"><strong>${escapeHtml(data.clientName)}</strong></p>
-            <p style="margin:12px 0 0;font-size:14px;line-height:1.7;color:#5b4c44;">${escapeHtml(data.clientEmail)}</p>
-            <p style="margin:4px 0 0;font-size:14px;line-height:1.7;color:#5b4c44;">${escapeHtml(phoneLine)}</p>
-            <p style="margin:16px 0 0;font-size:14px;line-height:1.7;color:#5b4c44;">Termín: <strong>${escapeHtml(scheduledAtLabel)}</strong></p>
+          <div style="border:1px solid #eaded4;border-radius:12px;padding:20px;background:#fbf7f3;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
+              <tr>
+                <td style="padding:0 0 16px;border-bottom:1px solid #eaded4;">
+                  <p style="margin:0 0 6px;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:16px;font-weight:700;text-transform:uppercase;color:#9e7f65;">Služba</p>
+                  <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:20px;line-height:28px;color:#1f1714;"><strong>${escapeHtml(data.serviceName)}</strong></p>
+                </td>
+              </tr>
+              <tr>
+                <td style="padding:16px 0;border-bottom:1px solid #eaded4;">
+                  <p style="margin:0 0 6px;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:16px;font-weight:700;text-transform:uppercase;color:#9e7f65;">Termín</p>
+                  <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:18px;line-height:26px;color:#1f1714;"><strong>${escapeHtml(bookingDate)}</strong></p>
+                  <p style="margin:4px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:18px;line-height:26px;color:#1f1714;">${escapeHtml(bookingTime)}</p>
+                </td>
+              </tr>
+              <tr>
+                <td style="padding:16px 0 0;">
+                  <p style="margin:0 0 6px;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:16px;font-weight:700;text-transform:uppercase;color:#9e7f65;">Klientka</p>
+                  <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:18px;line-height:26px;color:#1f1714;"><strong>${escapeHtml(data.clientName)}</strong></p>
+                  <p style="margin:6px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:22px;color:#5b4c44;">${escapeHtml(data.clientEmail)}</p>
+                  ${data.clientPhone ? `<p style="margin:4px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:22px;color:#5b4c44;">${escapeHtml(data.clientPhone)}</p>` : ""}
+                </td>
+              </tr>
+            </table>
           </div>
-          <div style="margin-top:20px;border:1px solid rgba(33,23,20,0.08);border-radius:20px;padding:20px;background:#ffffff;">
-            <p style="margin:0 0 14px;font-size:12px;letter-spacing:0.2em;text-transform:uppercase;color:#9e7f65;">Rychlé zpracování</p>
-            <div style="font-size:0;line-height:0;">
-              <div style="display:inline-block;margin:0 10px 10px 0;">${buildEmailButton({
+          <div style="margin-top:18px;border:1px solid #eaded4;border-radius:12px;padding:20px;background:#ffffff;">
+            <p style="margin:0 0 14px;font-family:Arial,Helvetica,sans-serif;font-size:18px;line-height:24px;font-weight:700;color:#1f1714;">Rychlé akce</p>
+            <div style="margin:0 0 12px;">${buildEmailActionButton({
                 href: data.approveUrl,
-                label: "Schválit rezervaci",
+                label: "Potvrdit rezervaci",
                 variant: "primary",
               })}</div>
-              <div style="display:inline-block;margin:0 10px 10px 0;">${buildEmailButton({
+            <div style="margin:0 0 12px;">${buildEmailActionButton({
+                href: data.adminUrl,
+                label: "Přesunout termín",
+                variant: "secondary",
+              })}</div>
+            <div style="margin:0 0 12px;">${buildEmailActionButton({
                 href: data.rejectUrl,
                 label: "Zrušit rezervaci",
                 variant: "destructive",
               })}</div>
-              <div style="display:inline-block;margin:0 10px 10px 0;">${buildEmailButton({
+            <div style="margin:0;">${buildEmailActionButton({
                 href: data.adminUrl,
                 label: "Otevřít v administraci",
                 variant: "secondary",
               })}</div>
-            </div>
-            <p style="margin:10px 0 0;font-size:13px;line-height:1.7;color:#7a675c;">
-              Akční odkazy vedou nejdřív na potvrzovací mezikrok, takže rezervaci neschválíte ani nezrušíte omylem jedním kliknutím.
+            <p style="margin:14px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:20px;color:#7a675c;">
+              Vyberte další krok nebo otevřete rezervaci v administraci.
             </p>
           </div>
         `,
+        { includeFooter: false },
       );
 
       return { subject, html, text };

@@ -6,6 +6,13 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Provozní e-mail o nové rezervaci je zkrácený na rozhodovací obsah `služba / termín / klientka / kontakt / rychlé akce` a už neobsahuje dlouhé vysvětlování bezpečnostního mezikroku.
+- Tlačítka v admin notifikaci jsou nově skládaná pod sebe přes email-safe tabulkové CTA, používají Arial/Helvetica bez letter-spacing a mají jasnou hierarchii `Potvrdit rezervaci` jako primary, `Přesunout termín` a `Otevřít v administraci` jako secondary a `Zrušit rezervaci` jako danger-light.
+- Text/plain fallback admin notifikace je stručný a zachovává stejné approve/reject/admin odkazy bez změny token workflow, email workeru nebo booking flow.
+
+- Veřejný success stav po odeslání rezervace má jasnější klidové copy: potvrzuje přijetí rezervace, předběžné držení termínu, čekání na finální e-mail a bezpečné možnosti změny nebo zrušení bez zásahu do booking API či tokenových odkazů.
+- Confirmation panel nově drží `Změnit termín` jako primární akci a `Zrušit rezervaci` jako sekundární danger-light volbu; referenční kód se nezobrazuje, protože projekt nemá samostatný klientský reference-code atribut.
+
 - Sticky action bar v admin týdenním planneru už neobsahuje nefunkční tlačítko `Uložit koncept`; zůstávají akce `Zahodit` a `Publikovat změny`.
 - Koncept změn v planneru se nyní bere jako dočasný pracovní stav aktuální stránky a po refreshi bez publikace se neobnovuje.
 - Veřejný web a rezervační flow nově podporují Matomo analytics přes `NEXT_PUBLIC_MATOMO_*` env proměnné; tracking běží jen mimo admin, neposílá PII ani tokenové URL a používá bezpečný no-op helper.
@@ -160,7 +167,7 @@ Formát je inspirovaný Keep a Changelog.
 - Zákaznický potvrzovací e-mail po stavu `CONFIRMED` nově posílá kalendář jako `.ics` přílohu místo CTA odkazu; pending confirmation screen už kalendář nenabízí před potvrzením.
 - Owner sekce `Nastavení` nově obsahuje i blok `Kalendář`, kde majitelka bezpečně zapíná, vypíná, kopíruje a rotuje Apple Calendar subscription feed bez zásahu do databáze nebo deploye.
 - Chráněný kalendářový endpoint `/api/calendar/owner.ics` vrací standardní iCalendar feed jen pro potvrzené rezervace (`CONFIRMED`); čekající a zrušené rezervace se do subscription kalendáře záměrně nepropisují.
-- Provozní e-mail o nové rezervaci nyní obsahuje bezpečné CTA `Schválit rezervaci`, `Zrušit rezervaci` a `Otevřít v administraci`, takže majitel nebo provoz může pending rezervaci zpracovat přímo z e-mailu bez předchozího otevření adminu.
+- Provozní e-mail o nové rezervaci obsahuje bezpečné approve/reject/admin CTA, takže majitel nebo provoz může pending rezervaci zpracovat přímo z e-mailu bez předchozího otevření adminu.
 - Nový token-based flow pro email akce používá hashovaný `BookingActionToken` typu `APPROVE` / `REJECT`, expiraci, jednorázové použití, revokaci souvisejících tokenů a audit metadat v `BookingStatusHistory`.
 - Přibyla veřejná noindex route `/rezervace/akce/[intent]/[token]` s potvrzovacím mezikrokem, result screenem a bezpečnými error stavy pro neplatný, expirovaný nebo už použitý odkaz.
 - Schválení z e-mailu nově mění rezervaci na `CONFIRMED`, zrušení na `CANCELLED`, a obě akce automaticky zakládají správný návazný klientský e-mail (`booking-approved-v1` / `booking-rejected-v1`).

@@ -79,8 +79,12 @@ test("renderEmailTemplate creates admin notification email with action links", a
   assert.equal(email.subject, "Nová rezervace: Luxusní péče");
   assert.match(email.text, /token-approve/);
   assert.match(email.text, /token-reject/);
-  assert.match(email.html, /Schválit rezervaci/);
+  assert.match(email.text, /Přesunout termín: https:\/\/example.com\/admin\/rezervace\/clztestbooking9999/);
+  assert.match(email.html, /Potvrdit rezervaci/);
+  assert.match(email.html, /Přesunout termín/);
   assert.match(email.html, /Otevřít v administraci/);
+  assert.doesNotMatch(email.html, /Akční odkazy vedou/);
+  assert.doesNotMatch(email.html, /letter-spacing:0\.08em/);
 });
 
 test("renderEmailTemplate creates approved email", async () => {

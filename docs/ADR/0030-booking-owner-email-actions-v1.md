@@ -54,9 +54,11 @@ Zavedli jsme bezpečný email action flow nad existujícím modelem `BookingActi
   - provozní `APPROVE`
   - provozní `REJECT`
 - Admin notifikační e-mail obsahuje CTA:
-  - `Schválit rezervaci`
+  - `Potvrdit rezervaci`
+  - `Přesunout termín`
   - `Zrušit rezervaci`
   - `Otevřít v administraci`
+- Vizuální vrstva admin e-mailu je záměrně email-safe: krátká informační karta, plnošířková tabulková tlačítka, Arial/Helvetica na CTA a bez dlouhého vysvětlení bezpečnostního mezikroku. `Přesunout termín` otevírá existující admin detail rezervace, protože samostatný reschedule tokenový odkaz pro provozní e-mail není součástí tohoto flow.
 - Po schválení jde klientce e-mail `booking-approved-v1`.
 - Po zamítnutí jde klientce e-mail `booking-rejected-v1`.
 - Při deployi je nutné aplikovat migraci rozšiřující enum `BookingActionTokenType`.

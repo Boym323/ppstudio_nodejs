@@ -191,14 +191,18 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
 - Na mobilu je booking doplněný o sticky CTA lištu, která podle stavu výběru vede na další akci nebo rovnou na odeslání.
 - Po úspěšném odeslání se zobrazí samostatný confirmation flow místo jednoho souhrnného cardu:
   - status blok `Rezervace přijata`
-  - hlavní detail se službou, datem, časem a referenčním kódem
+  - jasný stav `Čeká na finální potvrzení` a věta, že termín je předběžně rezervovaný
+  - hlavní detail se službou, datem a časem ve formátu s čitelnou pomlčkou, například `09:30 – 10:30`
   - stručný blok `Co bude následovat`
-  - akce `Změnit termín` a `Zrušit rezervaci`
+  - akční blok `Potřebujete změnu?`, kde je `Změnit termín` primární a `Zrušit rezervaci` sekundární bezpečná akce
   - samostatný kontakt na studio až pod hlavními informacemi
+  - referenční kód se nezobrazuje, dokud pro něj projekt nemá samostatné business pole používané v komunikaci
 - Provozní e-mail o nové rezervaci teď obsahuje tři akce:
-  - `Schválit rezervaci`
+  - `Potvrdit rezervaci`
+  - `Přesunout termín`
   - `Zrušit rezervaci`
   - `Otevřít v administraci`
+- Provozní e-mail je určený pro rychlé mobilní rozhodnutí: nahoře je služba, datum, čas, klientka, e-mail a telefon jen pokud existuje; dlouhé vysvětlení akčních odkazů, technické údaje a duplicitní patička se v této šabloně nezobrazují.
 - Emailové approve/reject odkazy neprovedou změnu hned po otevření; vždy nejdřív zobrazí kontrolní obrazovku s přehledem rezervace a až následně potvrzovací CTA.
 - Po potvrzení rezervace systém automaticky založí návazný klientský e-mail s výsledkem rezervace a přiloženou `.ics` událostí pro osobní kalendář klientky.
 - Pending confirmation screen kalendář záměrně nenabízí; `.ics` příloha patří až k e-mailu po přechodu rezervace do `CONFIRMED`.
