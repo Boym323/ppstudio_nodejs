@@ -7,7 +7,7 @@ import {
 } from "@prisma/client";
 
 import { env } from "@/config/env";
-import { sendOwnerPushover } from "@/lib/notifications/pushover";
+import { sendOwnerPushover } from "@/lib/notifications/pushover-core";
 import { prisma } from "@/lib/prisma";
 
 import {

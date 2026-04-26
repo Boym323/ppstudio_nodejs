@@ -8,7 +8,7 @@ import { prisma } from "@/lib/prisma";
 import { sendEmail } from "@/lib/email/provider";
 import { getEmailDeliveryRetryDelayMs, getMaxEmailDeliveryAttempts } from "@/lib/email/retry";
 import { renderEmailTemplate } from "@/lib/email/templates";
-import { sendOwnerEmailFailurePushover } from "@/lib/notifications/pushover";
+import { sendOwnerEmailFailurePushover } from "@/lib/notifications/pushover-core";
 
 export type EmailLogDeliveryOutcome = {
   status: "sent" | "failed" | "skipped";

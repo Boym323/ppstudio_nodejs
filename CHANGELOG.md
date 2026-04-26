@@ -6,6 +6,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Opraven crash loop `ppstudio-email-worker`: Pushover implementace je oddelena do worker-safe modulu a Next.js `server-only` wrapper zustava jen pro app/runtime importy, takže PM2 worker uz pri startu nepada na nacitani `server-only`.
 - Ruční rezervace v adminu už nevyžaduje e-mail klientky; nové klientky lze založit i jen se jménem a telefonem a potvrzovací e-mail se při chybějící adrese bezpečně přeskočí.
 - Veřejná hláška v rezervacích pro stav bez volných termínů už nepoužívá interní admin wording; místo technické formulace vysvětluje zákaznici jednoduše, že nové termíny přibývají průběžně.
 - Přidána runtime závislost `server-only` a Node test runner teď před testy registruje cílený `--import ./src/test/register-server-only.mjs` hook, takže CI korektně načte server-only moduly i mimo Next bundler bez rozbití ostatních Next route testů.

@@ -18,6 +18,12 @@ Evidence produkčních incidentů a jejich řešení.
   Trvalá oprava: sloupec `clientPhoneSnapshot` je nullable; navíc byla přidána migrace `20260420130500_rename_booking_primary_key_constraint`, aby byl stav DB plně konzistentní se schématem.
   Preventivní opatření: před nasazením pouštět `npm run db:check-migrations` a po změnách schématu ověřit diff `prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --script`.
 - Ruční booking bez aplikované migrace `20260426123000_client_email_nullable_for_manual_booking`; admin formulář po releasu dovolí prázdný e-mail, ale DB by pořád odmítla novou klientku bez adresy. Po deploy booking CRM změn vždy ověř i skutečně nasazené Prisma migrace.
+- Datum a čas: 2026-04-26 21:40 CEST
+  Dopad (uživatelé/systém): `ppstudio-email-worker` běžel v PM2 crash loopu a zbytečně vytěžoval CPU; e-mail fronta a 24h reminder scan se nemohly spolehlivě spustit.
+  Příčina: worker přes `src/lib/email/delivery.ts` a `src/features/booking/lib/booking-reminders.ts` importoval Pushover modul s `import "server-only"`, který mimo Next.js bundler v plain Node procesu okamžitě vyhodí chybu.
+  Okamžité řešení: Pushover implementace byla oddělena do `src/lib/notifications/pushover-core.ts` a worker importy byly přepojené na worker-safe modul.
+  Trvalá oprava: `src/lib/notifications/pushover.ts` zůstává jen jako Next.js `server-only` wrapper; standalone skripty nesmí importovat wrapper, ale přímo `pushover-core`.
+  Preventivní opatření: po změnách Pushover, e-mail delivery nebo reminder scheduleru ověřit alespoň import/start worker vrstvy mimo Next.js runtime.
 
 ## Doporučené sledované oblasti
 - Cross-origin blokace Next.js dev assetů (`/_next/webpack-hmr`, overlay, refresh endpointy) při otevření lokálního dev serveru z jiného zařízení nebo hostname, který není v `allowedDevOrigins`.
