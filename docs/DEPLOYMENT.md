@@ -4,7 +4,7 @@ Postup nasazení aplikace do produkce.
 
 ## Release checklist
 1. `npm ci`
-2. Ověř správné produkční env proměnné (`DATABASE_URL`, `ADMIN_SESSION_SECRET`, admin bootstrap účty, email delivery, worker, `MEDIA_STORAGE_ROOT`, volitelně `NEXT_PUBLIC_MATOMO_*`)
+2. Ověř správné produkční env proměnné (`DATABASE_URL`, `ADMIN_SESSION_SECRET`, admin bootstrap účty, email delivery, worker, `MEDIA_STORAGE_ROOT`, volitelně `NEXT_PUBLIC_MATOMO_*` a serverové `MATOMO_*` pro dashboard reporting)
 3. Ověř existenci a práva k upload rootu; web proces musí umět zapisovat do `MEDIA_STORAGE_ROOT` nebo do výchozí cesty `/var/www/ppstudio/uploads`.
 4. Zálohuj databázi, pokud release obsahuje novou Prisma migraci.
 5. Zálohuj nebo snapshotuj upload root, pokud release mění práci s médii nebo cleanup logiku.
@@ -45,6 +45,7 @@ Postup nasazení aplikace do produkce.
      - booking funnel odešle eventy bez jména, e-mailu, telefonu, poznámky nebo tokenu
      - self-service změna termínu odešle jen eventy `Booking / Date selected` a `Booking / Time selected` bez tokenu nebo PII
      - v Matomo je ručně nastavený Goal `Booking created` pro custom event `Booking / Created`
+     - server-side dashboard reporting má nastavené `MATOMO_URL`, `MATOMO_SITE_ID` a `MATOMO_AUTH_TOKEN`, Reporting API token není dostupný v klientském bundle a při výpadku API dashboard zobrazí nulové fallbacky místo 500
 14. Projdi ruční QA admin částí:
    - login redirect pro `OWNER` a `SALON`
    - opakované chybné přihlášení na `/admin/prihlaseni` po překročení limitu vrátí `error=rate_limited` a nepovolí session

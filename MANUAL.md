@@ -25,6 +25,7 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
 - Matomo měří pageview veřejných stránek a booking flow včetně klientských App Router navigací, ale neposílá pageview pro `/admin`, `/api`, Next internals ani tokenové self-service route `/rezervace/sprava/*`, `/rezervace/storno/*`, `/rezervace/akce/*`.
 - Rezervační flow posílá pouze neosobní eventy `Booking / Service selected`, `Date selected`, `Time selected`, `Contact started` a po úspěchu `Created`; self-service změna termínu posílá bezpečné `Booking / Date selected` a `Booking / Time selected`. Jméno, e-mail, telefon, poznámka ani tokeny se do analytics neposílají.
 - V Matomo je potřeba ručně nastavit Goal: název `Booking created`, trigger `custom event`, category `Booking`, action `Created`.
+- Server-side dashboard analytics používají `MATOMO_URL`, `MATOMO_SITE_ID` a tajný `MATOMO_AUTH_TOKEN` v `src/lib/analytics/matomo.ts`; token není `NEXT_PUBLIC_*`, nepatří do klientského bundle a při chybě nebo chybějící konfiguraci vrací dashboard nulové fallbacky.
 - Aktuální runtime stack podle `package.json`:
   - `next` `16.2.4`
   - `react` `19.2.4`

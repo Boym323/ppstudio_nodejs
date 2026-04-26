@@ -67,3 +67,4 @@ Sem patří krátké záznamy architektonických rozhodnutí.
 - `0050-admin-dashboard-today-operations-panel-v2.md`
 - `0051-public-matomo-analytics-v1.md`
 - `0052-booking-email-design-system-v1.md`
+- `0053-server-side-matomo-reporting-v1.md`
