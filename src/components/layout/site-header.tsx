@@ -3,6 +3,7 @@
 import Link from 'next/link';
 
 import { mainNavigation } from '@/config/navigation';
+import { TrackedLink } from '@/features/analytics/tracked-link';
 import { cn } from '@/lib/utils';
 
 import { Container } from '../ui/container';
@@ -23,12 +24,13 @@ export function SiteHeader({ variant = 'public', brandName = 'PP Studio' }: Site
               COSMETICS &amp; LAMINATIONS
             </span>
           </Link>
-          <Link
+          <TrackedLink
             href="/rezervace"
+            tracking={{ kind: 'reservation', location: 'sticky CTA', page: 'header' }}
             className="button-text inline-flex min-h-11 items-center justify-center rounded-full bg-[var(--color-foreground)] px-5 text-white md:hidden"
           >
             Rezervace
-          </Link>
+          </TrackedLink>
         </div>
 
         <nav className="flex flex-wrap items-center gap-2 md:justify-center md:gap-3">
@@ -48,12 +50,13 @@ export function SiteHeader({ variant = 'public', brandName = 'PP Studio' }: Site
 
         <div className="hidden items-center gap-3 md:flex">
           {variant === 'public' ? (
-            <Link
+            <TrackedLink
               href="/rezervace"
+              tracking={{ kind: 'reservation', location: 'sticky CTA', page: 'header' }}
               className="button-text inline-flex min-h-11 items-center justify-center rounded-full bg-[var(--color-foreground)] px-5 text-white hover:bg-[#2c221d]"
             >
               Rezervovat termín
-            </Link>
+            </TrackedLink>
           ) : null}
         </div>
       </Container>

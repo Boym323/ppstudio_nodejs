@@ -1,9 +1,9 @@
 import Link from 'next/link';
 
 import { footerNavigation, mainNavigation } from '@/config/navigation';
+import { TrackedAnchor, TrackedEmailLink } from '@/features/analytics/tracked-link';
 import { getPublicSalonProfile } from '@/lib/site-settings';
 
-import { ObfuscatedEmailLink } from '../ui/obfuscated-email-link';
 import { Container } from '../ui/container';
 
 export async function SiteFooter() {
@@ -62,21 +62,23 @@ export async function SiteFooter() {
                 <PinIcon />
                 <span className="max-w-[24ch] leading-6 text-[var(--color-muted)]">{salonProfile.addressLine}</span>
               </div>
-              <a
+              <TrackedAnchor
                 href={phoneHref}
+                tracking={{ kind: 'contact', type: 'phone', location: 'footer' }}
                 className="inline-flex min-h-11 items-center gap-3 rounded-2xl border border-black/[0.06] bg-white/55 px-4 py-3 text-[0.95rem] font-medium not-italic text-[var(--color-foreground)] shadow-[0_8px_24px_rgba(34,22,12,0.04)] hover:border-black/10 hover:bg-white/78"
               >
                 <PhoneIcon />
                 <span>{salonProfile.phone}</span>
-              </a>
-              <ObfuscatedEmailLink
+              </TrackedAnchor>
+              <TrackedEmailLink
                 email={salonProfile.email}
                 ariaLabel="Napsat e-mail do studia"
+                tracking={{ kind: 'contact', type: 'email', location: 'footer' }}
                 className="inline-flex min-h-11 min-w-0 items-center gap-3 rounded-2xl border border-black/[0.06] bg-white/55 px-4 py-3 text-[0.95rem] font-medium not-italic text-[var(--color-foreground)] shadow-[0_8px_24px_rgba(34,22,12,0.04)] hover:border-black/10 hover:bg-white/78"
               >
                 <MailIcon />
                 <span className="break-words">{salonProfile.email}</span>
-              </ObfuscatedEmailLink>
+              </TrackedEmailLink>
             </address>
           </section>
         </div>

@@ -20,6 +20,7 @@ import {
 } from '@/content/public-site';
 import { Container } from '@/components/ui/container';
 import { SectionHeading } from '@/components/ui/section-heading';
+import { TrackedAnchor, TrackedLink } from '@/features/analytics/tracked-link';
 import {
   ContactHero,
   ContactMapPreviewCard,
@@ -107,6 +108,8 @@ function PublicHero({
                 {primaryCta ? (
                   <ActionLink
                     href={primaryCta.href}
+                    trackingLocation="hero"
+                    trackingPage={eyebrow.toLowerCase()}
                     className="inline-flex min-h-13 items-center justify-center rounded-full bg-[var(--color-foreground)] px-7 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-white hover:bg-[#2c221d] sm:text-sm"
                   >
                     {primaryCta.label}
@@ -115,6 +118,8 @@ function PublicHero({
                 {secondaryCta ? (
                   <ActionLink
                     href={secondaryCta.href}
+                    trackingLocation="hero"
+                    trackingPage={eyebrow.toLowerCase()}
                     className="inline-flex min-h-13 items-center justify-center rounded-full border border-black/10 bg-white/75 px-7 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-foreground)] hover:border-black/20 hover:bg-white sm:text-sm"
                   >
                     {secondaryCta.label}
@@ -160,17 +165,69 @@ function PublicHero({
 function ActionLink({
   href,
   className,
+  trackingLocation = "hero",
+  trackingPage = "public",
   children,
 }: {
   href: string;
   className: string;
+  trackingLocation?: string;
+  trackingPage?: string;
   children: ReactNode;
 }) {
-  if (/^(mailto:|tel:|https?:\/\/)/.test(href)) {
+  if (href.startsWith("mailto:")) {
+    return (
+      <TrackedAnchor
+        href={href}
+        tracking={{ kind: "contact", type: "email", location: trackingLocation }}
+        className={className}
+      >
+        {children}
+      </TrackedAnchor>
+    );
+  }
+
+  if (href.startsWith("tel:")) {
+    return (
+      <TrackedAnchor
+        href={href}
+        tracking={{ kind: "contact", type: "phone", location: trackingLocation }}
+        className={className}
+      >
+        {children}
+      </TrackedAnchor>
+    );
+  }
+
+  if (/^https?:\/\//.test(href)) {
     return (
       <a href={href} className={className}>
         {children}
       </a>
+    );
+  }
+
+  if (href.startsWith("/rezervace")) {
+    return (
+      <TrackedLink
+        href={href}
+        tracking={{ kind: "reservation", location: trackingLocation, page: trackingPage }}
+        className={className}
+      >
+        {children}
+      </TrackedLink>
+    );
+  }
+
+  if (href.startsWith("/kontakt")) {
+    return (
+      <TrackedLink
+        href={href}
+        tracking={{ kind: "contact", type: "contact form", location: trackingLocation }}
+        className={className}
+      >
+        {children}
+      </TrackedLink>
     );
   }
 
@@ -194,6 +251,8 @@ function FaqHeroAside() {
       <div className="mt-6">
         <ActionLink
           href="/kontakt"
+          trackingLocation="hero"
+          trackingPage="faq"
           className="inline-flex min-h-12 items-center justify-center rounded-full border border-black/10 bg-[var(--color-surface)] px-6 py-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-foreground)] hover:border-black/15 hover:bg-[#f3e7da] sm:text-sm"
         >
           Napsat do studia
@@ -245,6 +304,8 @@ function FaqAccordionItem({ item }: { item: FaqItem }) {
           <div className="mt-4">
             <ActionLink
               href={item.linkHref}
+              trackingLocation="faq"
+              trackingPage="faq"
               className="inline-flex min-h-11 items-center justify-center rounded-full border border-black/10 bg-white px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-foreground)] hover:border-black/20 hover:bg-[var(--color-surface)] sm:text-[12px]"
             >
               {item.linkLabel}

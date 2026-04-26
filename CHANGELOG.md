@@ -6,6 +6,10 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Veřejný web a rezervační flow nově podporují Matomo analytics přes `NEXT_PUBLIC_MATOMO_*` env proměnné; tracking běží jen mimo admin, neposílá PII ani tokenové URL a používá bezpečný no-op helper.
+- App Router pageview tracking posílá klientské navigace bez duplicitního prvního pageview a booking flow posílá funnel eventy pro výběr služby, data, času, zahájení kontaktu a úspěšně vytvořenou rezervaci.
+- Hlavní veřejné CTA na rezervaci a kontakt posílají Matomo custom eventy bez ukládání analytics dat do databáze PP Studio.
+
 - Stránka `/o-mne` prošla copywritingovým refaktorem do klidnějšího, dospělejšího a méně marketingového tónu bez změny routingu, booking flow nebo admin napojení.
 - Hero, sekce benefitů, příběh, přístup, kosmetika FOR LIFE & MADAGA a certifikace mají nové civilnější texty; defenzivní formulace o nahrazování praxe a přehnané sliby byly odstraněné.
 - Benefit sekce `/o-mne` nově zobrazuje krátký podnadpis z `aboutContent.whyChooseMe.description`, aby textová hierarchie působila jasněji bez redesignu.

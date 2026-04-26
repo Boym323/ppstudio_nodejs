@@ -4,7 +4,7 @@ Postup nasazení aplikace do produkce.
 
 ## Release checklist
 1. `npm ci`
-2. Ověř správné produkční env proměnné (`DATABASE_URL`, `ADMIN_SESSION_SECRET`, admin bootstrap účty, email delivery, worker, `MEDIA_STORAGE_ROOT`)
+2. Ověř správné produkční env proměnné (`DATABASE_URL`, `ADMIN_SESSION_SECRET`, admin bootstrap účty, email delivery, worker, `MEDIA_STORAGE_ROOT`, volitelně `NEXT_PUBLIC_MATOMO_*`)
 3. Ověř existenci a práva k upload rootu; web proces musí umět zapisovat do `MEDIA_STORAGE_ROOT` nebo do výchozí cesty `/var/www/ppstudio/uploads`.
 4. Zálohuj databázi, pokud release obsahuje novou Prisma migraci.
 5. Zálohuj nebo snapshotuj upload root, pokud release mění práci s médii nebo cleanup logiku.
@@ -30,6 +30,12 @@ Postup nasazení aplikace do produkce.
      - `/obchodni-podminky`: hero CTA, blok poskytovatele a obsahová navigace
      - `/studio`: hero, galerie publikovaných fotek studia z modulu `Média webu`, fallback bez fotek a finální CTA
    - CTA na rezervaci
+   - Matomo při zapnutých `NEXT_PUBLIC_MATOMO_*`:
+     - veřejná stránka načte `matomo.js`
+     - klientská navigace po veřejných stránkách odešle další pageview bez duplicitního prvního pageview
+     - `/admin`, `/api` a tokenové route `/rezervace/sprava/*`, `/rezervace/storno/*`, `/rezervace/akce/*` tracking nespustí
+     - booking funnel odešle eventy bez jména, e-mailu, telefonu, poznámky nebo tokenu
+     - v Matomo je ručně nastavený Goal `Booking created` pro custom event `Booking / Created`
 14. Projdi ruční QA admin částí:
    - login redirect pro `OWNER` a `SALON`
    - opakované chybné přihlášení na `/admin/prihlaseni` po překročení limitu vrátí `error=rate_limited` a nepovolí session

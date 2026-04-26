@@ -1,9 +1,9 @@
-import Link from 'next/link';
 import Image from 'next/image';
 
 import { aboutContent } from '@/content/public-site';
 import { Container } from '@/components/ui/container';
 import { SectionHeading } from '@/components/ui/section-heading';
+import { TrackedLink } from '@/features/analytics/tracked-link';
 import {
   AboutCertificatesGallery,
   type AboutCertificateGalleryItem,
@@ -37,18 +37,20 @@ function HeroSection({ portrait }: { portrait: PublicImageAsset | null }) {
           </div>
 
           <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-            <Link
+            <TrackedLink
               href={profile.primaryCta.href}
+              tracking={{ kind: 'reservation', location: 'o mně', page: 'o-mne' }}
               className="inline-flex min-h-14 items-center justify-center rounded-full bg-[var(--color-foreground)] px-7 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-white shadow-[0_16px_36px_rgba(34,22,12,0.14)] hover:bg-[#2c221d] sm:text-sm"
             >
               {profile.primaryCta.label}
-            </Link>
-            <Link
+            </TrackedLink>
+            <TrackedLink
               href={profile.secondaryCta.href}
+              tracking={{ kind: 'contact', type: 'contact form', location: 'o mně' }}
               className="inline-flex min-h-14 items-center justify-center rounded-full border border-black/10 bg-white/82 px-7 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-foreground)] hover:border-black/20 hover:bg-white sm:text-sm"
             >
               {profile.secondaryCta.label}
-            </Link>
+            </TrackedLink>
           </div>
 
           <div className="flex flex-wrap gap-2.5 pt-1">

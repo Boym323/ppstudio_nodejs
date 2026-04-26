@@ -35,6 +35,9 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - `src/features/admin/lib/admin-slots.ts` je façade nad `admin-slots/time.ts`, `helpers.ts`, `queries.ts`, `mutations.ts`, `types.ts`
 - Při dalším refaktoru těchto oblastí drž kompatibilní veřejné exporty v původních entrypointech, aby se nerozbily existující importy v actions, routech a admin UI.
 - `src/app/robots.ts` a `src/app/sitemap.ts` používají metadata route API v App Routeru.
+- Matomo client tracking je v `src/features/analytics/*` a inicializuje se přes `src/components/layout/site-shell.tsx`. Při lokálním vývoji nastav `NEXT_PUBLIC_MATOMO_ENABLED=true`, `NEXT_PUBLIC_MATOMO_URL` a `NEXT_PUBLIC_MATOMO_SITE_ID`; bez kompletní konfigurace je helper bezpečný no-op.
+- Pageview tracking v App Routeru poslouchá `usePathname()` a `useSearchParams()`, první render nechává na inicializačním Matomo scriptu a další klientské navigace posílá se sanitizovanou URL.
+- Funnel a CTA eventy se smí volat jen v client handlerech nebo efektech po úspěšné akci; neposílej jména, e-maily, telefony, poznámky, tokeny ani raw URL s citlivými parametry.
 - Veřejně dostupná nahraná média se servírují přes route handler `src/app/media/[kind]/[[...path]]/route.ts`, ne přes `public/` repozitáře.
 - `next.config.ts` používá `allowedDevOrigins` pro lokální LAN vývoj na `192.168.0.143` i pro public dev test přes `ppstudio.cz` / `www.ppstudio.cz`; bez toho Next.js 16 z jiného zařízení nebo přes reverse proxy zablokuje dev assety a HMR endpoint `/_next/webpack-hmr`.
 

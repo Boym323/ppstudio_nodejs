@@ -1,9 +1,8 @@
 import Image from 'next/image';
-import Link from 'next/link';
 
-import { ObfuscatedEmailLink } from '@/components/ui/obfuscated-email-link';
 import { Container } from '@/components/ui/container';
 import { type ContactItem } from '@/content/public-site';
+import { TrackedAnchor, TrackedEmailLink, TrackedLink } from '@/features/analytics/tracked-link';
 import { formatObfuscatedEmail } from '@/lib/email-obfuscation';
 
 function getSafeTelHref(phone: string) {
@@ -92,46 +91,51 @@ export function ContactHero({ title, description, phone, email, instagramUrl, ph
             <p className="max-w-2xl text-[15px] leading-7 text-[var(--color-muted)] sm:text-lg sm:leading-8">{description}</p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <Link
+            <TrackedLink
               href="/rezervace"
+              tracking={{ kind: 'reservation', location: 'kontakt', page: 'kontakt' }}
               className="inline-flex min-h-13 items-center justify-center rounded-full bg-[var(--color-foreground)] px-7 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-white hover:bg-[#2c221d] sm:text-sm"
             >
               Rezervovat termín
-            </Link>
-            <ObfuscatedEmailLink
+            </TrackedLink>
+            <TrackedEmailLink
               email={email}
               ariaLabel="Napsat e-mail do studia"
+              tracking={{ kind: 'contact', type: 'email', location: 'kontakt' }}
               className="inline-flex min-h-13 items-center justify-center rounded-full border border-black/10 bg-white/75 px-7 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-foreground)] hover:border-black/20 hover:bg-white sm:text-sm"
             >
               Napsat do studia
-            </ObfuscatedEmailLink>
+            </TrackedEmailLink>
           </div>
           <div className="flex flex-wrap gap-2.5">
-            <a
+            <TrackedAnchor
               href={getSafeTelHref(phone)}
+              tracking={{ kind: 'contact', type: 'phone', location: 'kontakt' }}
               className="inline-flex min-h-11 items-center gap-2 rounded-full border border-black/10 bg-white/70 px-4 py-2 text-[13px] leading-6 text-[var(--color-foreground)] hover:border-black/20 hover:bg-white"
             >
               <ContactIconPhone />
               <span>{phone}</span>
-            </a>
-            <ObfuscatedEmailLink
+            </TrackedAnchor>
+            <TrackedEmailLink
               email={email}
               ariaLabel="Napsat e-mail do studia"
+              tracking={{ kind: 'contact', type: 'email', location: 'kontakt' }}
               className="inline-flex min-h-11 items-center gap-2 rounded-full border border-black/10 bg-white/70 px-4 py-2 text-[13px] leading-6 text-[var(--color-foreground)] hover:border-black/20 hover:bg-white"
             >
               <ContactIconMessage />
               <span>{formatObfuscatedEmail(email)}</span>
-            </ObfuscatedEmailLink>
+            </TrackedEmailLink>
             {instagramUrl && instagramValue ? (
-              <a
+              <TrackedAnchor
                 href={instagramUrl}
+                tracking={{ kind: 'contact', type: 'instagram', location: 'kontakt' }}
                 target="_blank"
                 rel="noreferrer noopener"
                 className="inline-flex min-h-11 items-center gap-2 rounded-full border border-black/10 bg-white/70 px-4 py-2 text-[13px] leading-6 text-[var(--color-foreground)] hover:border-black/20 hover:bg-white"
               >
                 <ContactIconInstagram />
                 <span>{instagramValue}</span>
-              </a>
+              </TrackedAnchor>
             ) : null}
           </div>
         </div>
@@ -199,8 +203,9 @@ export function ContactMapPreviewCard({ address, href }: ContactMapPreviewCardPr
   const embedSrc = `https://www.google.com/maps?q=${encodeURIComponent(address)}&z=16&output=embed`;
 
   return (
-    <a
+    <TrackedAnchor
       href={href}
+      tracking={{ kind: 'contact', type: 'map', location: 'kontakt' }}
       target="_blank"
       rel="noreferrer noopener"
       className="group flex h-full flex-col overflow-hidden rounded-[var(--radius-panel)] border border-black/6 bg-white shadow-[var(--shadow-panel)] transition duration-200 hover:shadow-[0_20px_50px_rgba(64,42,26,0.12)]"
@@ -235,7 +240,7 @@ export function ContactMapPreviewCard({ address, href }: ContactMapPreviewCardPr
           </span>
         </div>
       </div>
-    </a>
+    </TrackedAnchor>
   );
 }
 
@@ -275,8 +280,9 @@ export function QuickContactCard({
         </div>
       </div>
       <div className="mt-5 space-y-3">
-        <a
+        <TrackedAnchor
           href={getSafeTelHref(phone)}
+          tracking={{ kind: 'contact', type: 'phone', location: 'kontakt' }}
           className="flex items-center gap-3 rounded-2xl border border-[#eadfd2] bg-[#fcf7f1] px-4 py-3.5 transition hover:border-black/15 hover:bg-[#fbf4ec]"
           aria-label={`Telefon ${phone}`}
         >
@@ -287,11 +293,12 @@ export function QuickContactCard({
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-accent)]">Telefon</p>
             <p className="mt-0.5 text-[15px] leading-6 text-[var(--color-foreground)]">{phone}</p>
           </div>
-        </a>
-        <ObfuscatedEmailLink
+        </TrackedAnchor>
+        <TrackedEmailLink
           email={email}
           className="flex items-center gap-3 rounded-2xl border border-[#eadfd2] bg-[#fcf7f1] px-4 py-3.5 transition hover:border-black/15 hover:bg-[#fbf4ec]"
           ariaLabel="Napsat e-mail do studia"
+          tracking={{ kind: 'contact', type: 'email', location: 'kontakt' }}
         >
           <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-black/10 bg-white text-[var(--color-foreground)]">
             <ContactIconMessage />
@@ -300,10 +307,11 @@ export function QuickContactCard({
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-accent)]">E-mail</p>
             <p className="mt-0.5 text-[15px] leading-6 text-[var(--color-foreground)]">{formatObfuscatedEmail(email)}</p>
           </div>
-        </ObfuscatedEmailLink>
+        </TrackedEmailLink>
         {instagramUrl ? (
-          <a
+          <TrackedAnchor
             href={instagramUrl}
+            tracking={{ kind: 'contact', type: 'instagram', location: 'kontakt' }}
             target="_blank"
             rel="noreferrer noopener"
             className="flex items-center gap-3 rounded-2xl border border-[#eadfd2] bg-[#fcf7f1] px-4 py-3.5 transition hover:border-black/15 hover:bg-[#fbf4ec]"
@@ -316,7 +324,7 @@ export function QuickContactCard({
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-accent)]">Instagram</p>
               <p className="mt-0.5 text-[15px] leading-6 text-[var(--color-foreground)]">{instagramValue}</p>
             </div>
-          </a>
+          </TrackedAnchor>
         ) : null}
       </div>
     </div>
@@ -332,26 +340,29 @@ export function ContactMobileStickyCTA({ phone, email }: ContactMobileStickyCTAP
   return (
     <div className="fixed inset-x-0 bottom-0 z-40 border-t border-black/8 bg-[#fffdf9]/95 px-3 py-3 backdrop-blur sm:hidden">
       <div className="mx-auto flex max-w-7xl items-center gap-2">
-        <Link
+        <TrackedLink
           href="/rezervace"
+          tracking={{ kind: 'reservation', location: 'sticky CTA', page: 'kontakt' }}
           className="inline-flex min-h-12 flex-1 items-center justify-center rounded-full bg-[var(--color-foreground)] px-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-white"
         >
           Rezervovat
-        </Link>
-        <a
+        </TrackedLink>
+        <TrackedAnchor
           href={getSafeTelHref(phone)}
+          tracking={{ kind: 'contact', type: 'phone', location: 'sticky CTA' }}
           aria-label="Zavolat do studia"
           className="inline-flex min-h-12 min-w-12 items-center justify-center rounded-full border border-black/10 bg-white text-[var(--color-foreground)]"
         >
           <ContactIconPhone />
-        </a>
-        <ObfuscatedEmailLink
+        </TrackedAnchor>
+        <TrackedEmailLink
           email={email}
           aria-label="Napsat do studia"
+          tracking={{ kind: 'contact', type: 'email', location: 'sticky CTA' }}
           className="inline-flex min-h-12 min-w-12 items-center justify-center rounded-full border border-black/10 bg-white text-[var(--color-foreground)]"
         >
           <ContactIconMessage />
-        </ObfuscatedEmailLink>
+        </TrackedEmailLink>
       </div>
     </div>
   );

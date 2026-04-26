@@ -11,6 +11,7 @@ Seznam důležitých knihoven a důvod jejich použití.
 - `@prisma/client`: `^7.7.0` (runtime používá `7.7.0`)
 - `@prisma/adapter-pg`: `^7.7.0` (runtime používá `7.7.0`)
 - `@playwright/test`: browser E2E test runner pro hlavní rezervační a admin flow.
+- Matomo tracking nepřidává žádnou npm závislost; používá `next/script`, App Router navigation hooks a standardní `window._paq` frontu.
 
 ## Core
 - `next`: framework aplikace.
@@ -46,6 +47,7 @@ Seznam důležitých knihoven a důvod jejich použití.
 - UX refaktor `Média webu` také nepřidává žádnou novou závislost; dropzóna, tabs s počty, quick publish/unpublish i kompaktní edit dialog běží na stávajících React/Next primitives.
 - Rozdělení portrétů na `PORTRAIT_HOME` a `PORTRAIT_ABOUT` také nepřidává žádnou novou závislost; používá stávající `MediaAsset` model, Prisma enum a public media helpery.
 - Veřejná stránka `/studio` nepřidává žádnou novou závislost; galerii skládá z existující media vrstvy a `next/image`.
+- Matomo integrace také nepřidává žádnou novou závislost; helper a CTA wrappers jsou lokální TypeScript/React moduly.
 
 ## Kvalita kódu
 - `typescript`: statická typová kontrola.

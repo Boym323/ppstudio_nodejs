@@ -5,6 +5,7 @@ import { useActionState, useEffect, useMemo, useRef, useState, type MutableRefOb
 
 import { createPublicBookingAction } from "@/features/booking/actions/create-public-booking";
 import { initialPublicBookingActionState } from "@/features/booking/actions/public-booking-action-state";
+import { trackMatomoEvent } from "@/features/analytics/matomo";
 import {
   buildSlotTimeOptions,
   groupSlotsByDayPeriod,
@@ -67,6 +68,8 @@ export function BookingFlow({ catalog, initialSelectedServiceSlug, salonProfile 
   const firstContactInputRef = useRef<HTMLInputElement | null>(null);
   const contactStepHighlightTimeoutRef = useRef<number | null>(null);
   const contactStepFocusTimeoutRef = useRef<number | null>(null);
+  const createdBookingTrackedRef = useRef(false);
+  const contactStartedTrackedRef = useRef(false);
 
   const focusSection = (
     sectionElement: HTMLDivElement | null,
@@ -431,6 +434,30 @@ export function BookingFlow({ catalog, initialSelectedServiceSlug, salonProfile 
     setSelectedTimeOptionKey("");
     setSelectedDateKey("");
     setVisibleMonthKey("");
+    contactStartedTrackedRef.current = false;
+  };
+
+  const getSelectedServiceEventName = () => {
+    if (!selectedService) {
+      return undefined;
+    }
+
+    return `${selectedService.categoryName} / ${selectedService.name}`;
+  };
+
+  const trackContactStarted = () => {
+    if (contactStartedTrackedRef.current) {
+      return;
+    }
+
+    const eventName = getSelectedServiceEventName();
+
+    if (!eventName) {
+      return;
+    }
+
+    contactStartedTrackedRef.current = true;
+    trackMatomoEvent("Booking", "Contact started", eventName);
   };
 
   const selectSlot = (slotOption: TimeSlotOption) => {
@@ -438,9 +465,20 @@ export function BookingFlow({ catalog, initialSelectedServiceSlug, salonProfile 
       return;
     }
 
-    setSelectedDateKey(getSlotDateKey(slotOption.startsAt));
+    const dateKey = getSlotDateKey(slotOption.startsAt);
+    const durationMinutes = selectedService?.durationMinutes;
+
+    setSelectedDateKey(dateKey);
     setSelectedTimeOptionKey(slotOption.key);
     setCurrentStep(3);
+    trackMatomoEvent("Booking", "Date selected", dateKey);
+    trackMatomoEvent(
+      "Booking",
+      "Time selected",
+      `${formatSlotTime(slotOption.startsAt)} / ${formatSlotTime(slotOption.endsAt)}`,
+      durationMinutes,
+    );
+    trackContactStarted();
     focusContactStepSection();
   };
 
@@ -458,6 +496,20 @@ export function BookingFlow({ catalog, initialSelectedServiceSlug, salonProfile 
 
     setCurrentStep(4);
   };
+
+  useEffect(() => {
+    if (serverState.status !== "success" || !serverState.confirmation || createdBookingTrackedRef.current) {
+      return;
+    }
+
+    createdBookingTrackedRef.current = true;
+    trackMatomoEvent(
+      "Booking",
+      "Created",
+      selectedService?.name ?? serverState.confirmation.serviceName,
+      selectedService?.priceFromCzk ?? undefined,
+    );
+  }, [selectedService?.name, selectedService?.priceFromCzk, serverState.confirmation, serverState.status]);
 
   const updateVisibleMonth = (nextMonthKey: string) => {
     setVisibleMonthKey(nextMonthKey);
@@ -513,9 +565,16 @@ export function BookingFlow({ catalog, initialSelectedServiceSlug, salonProfile 
                 setCurrentStep(1);
               }}
               onServiceSelect={(serviceId) => {
+                const service = servicesById.get(serviceId);
                 setSelectedServiceId(serviceId);
                 resetServiceDependentSelection();
                 setCurrentStep(2);
+                trackMatomoEvent(
+                  "Booking",
+                  "Service selected",
+                  service ? `${service.categoryName} / ${service.name}` : undefined,
+                  service?.priceFromCzk ?? undefined,
+                );
                 focusTermStepSection();
               }}
             />
@@ -538,11 +597,13 @@ export function BookingFlow({ catalog, initialSelectedServiceSlug, salonProfile 
               slotError={serverState.fieldErrors?.slotId ?? serverState.fieldErrors?.startsAt}
               onContinue={() => {
                 setCurrentStep(3);
+                trackContactStarted();
                 focusContactStepSection();
               }}
               onSlotSelect={selectSlot}
               onSelectDate={(dateKey) => {
                 setSelectedDateKey(dateKey);
+                trackMatomoEvent("Booking", "Date selected", dateKey);
                 if (selectedSlotDateKey && selectedSlotDateKey !== dateKey) {
                   setSelectedTimeOptionKey("");
                 }
@@ -623,6 +684,7 @@ export function BookingFlow({ catalog, initialSelectedServiceSlug, salonProfile 
           note={`${formatSlotDate(selectedTimeOption.startsAt)} • ${formatSlotTime(selectedTimeOption.startsAt)}`}
           onClick={() => {
             setCurrentStep(3);
+            trackContactStarted();
             focusContactStepSection();
           }}
         />

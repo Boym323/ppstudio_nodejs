@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { Container } from "@/components/ui/container";
+import { TrackedLink } from "@/features/analytics/tracked-link";
 import type { PublicPricingCategory } from "@/features/public/lib/public-services";
 
 type PricingIconProps = {
@@ -39,12 +40,13 @@ export function PricingHero() {
             </p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <Link
+            <TrackedLink
               href="/rezervace"
+              tracking={{ kind: "reservation", location: "ceník", page: "cenik" }}
               className="inline-flex min-h-13 items-center justify-center rounded-full bg-[var(--color-foreground)] px-7 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-white shadow-[0_12px_30px_rgba(24,19,16,0.14)] hover:bg-[#2b221d]"
             >
               Vybrat termín
-            </Link>
+            </TrackedLink>
             <Link
               href="/sluzby"
               className="inline-flex min-h-13 items-center justify-center rounded-full border border-black/10 bg-white/78 px-7 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-foreground)] shadow-[0_8px_24px_rgba(24,19,16,0.05)] hover:border-black/15 hover:bg-white"
@@ -144,12 +146,13 @@ export function PricingItem({ item }: { item: PublicPricingCategory["items"][num
         <p className="font-medium text-[1.35rem] tracking-[-0.02em] text-[var(--color-foreground)] lg:min-w-[6.5rem] lg:text-right">
           {item.price}
         </p>
-        <Link
+        <TrackedLink
           href={item.ctaHref}
+          tracking={{ kind: "reservation", location: "ceník", page: "cenik" }}
           className="inline-flex min-h-11 items-center justify-center rounded-full border border-[#eadbcc] bg-[#fbf3e9] px-5 text-sm font-medium text-[var(--color-foreground)] hover:border-[#dfc8af] hover:bg-[#f8ecdd] lg:min-w-[9.5rem]"
         >
           Vybrat termín
-        </Link>
+        </TrackedLink>
       </div>
     </article>
   );
@@ -193,12 +196,13 @@ export function PricingGridSection({ category }: { category: PublicPricingCatego
                 <p className="text-sm font-medium text-[var(--color-foreground)]/80">{item.duration}</p>
                 <p className="font-medium text-[1.25rem] tracking-[-0.02em] text-[var(--color-foreground)]">{item.price}</p>
               </div>
-              <Link
+              <TrackedLink
                 href={item.ctaHref}
+                tracking={{ kind: "reservation", location: "ceník", page: "cenik" }}
                 className="inline-flex min-h-11 items-center justify-center rounded-full border border-[#eadbcc] bg-[#fbf3e9] px-5 text-sm font-medium text-[var(--color-foreground)] hover:border-[#dfc8af] hover:bg-[#f8ecdd]"
               >
                 Vybrat termín
-              </Link>
+              </TrackedLink>
             </div>
           </article>
         ))}

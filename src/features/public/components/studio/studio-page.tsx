@@ -1,8 +1,8 @@
 import Image from 'next/image';
-import Link from 'next/link';
 
 import { Container } from '@/components/ui/container';
 import { SectionHeading } from '@/components/ui/section-heading';
+import { TrackedLink } from '@/features/analytics/tracked-link';
 import { getPublicSalonProfile } from '@/lib/site-settings';
 import type { PublicStudioPhoto } from '@/features/public/lib/public-studio-photos';
 
@@ -43,18 +43,20 @@ export function StudioHero({ photo }: { photo: PublicStudioPhoto | null }) {
           </div>
 
           <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-            <Link
+            <TrackedLink
               href="/rezervace"
+              tracking={{ kind: 'reservation', location: 'studio', page: 'studio' }}
               className="inline-flex min-h-14 items-center justify-center rounded-full bg-[var(--color-foreground)] px-7 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-white shadow-[0_16px_36px_rgba(34,22,12,0.14)] hover:bg-[#2c221d] sm:text-sm"
             >
               Rezervovat termín
-            </Link>
-            <Link
+            </TrackedLink>
+            <TrackedLink
               href="/kontakt"
+              tracking={{ kind: 'contact', type: 'contact form', location: 'studio' }}
               className="inline-flex min-h-14 items-center justify-center rounded-full border border-black/10 bg-white/82 px-7 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-foreground)] hover:border-black/20 hover:bg-white sm:text-sm"
             >
               Kontakt
-            </Link>
+            </TrackedLink>
           </div>
         </div>
 
@@ -163,12 +165,13 @@ export function StudioLocationCta({ addressLine }: { addressLine: string }) {
               Studio najdete na adrese {addressLine}. Pokud si nejste jistá cestou nebo vhodnou službou, napište a domluvíme se v klidu předem.
             </p>
           </div>
-          <Link
+          <TrackedLink
             href="/kontakt"
+            tracking={{ kind: 'contact', type: 'contact form', location: 'studio' }}
             className="inline-flex min-h-13 items-center justify-center rounded-full border border-black/10 bg-[var(--color-surface)] px-7 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-foreground)] hover:border-black/15 hover:bg-[#f3e7da] sm:text-sm"
           >
             Zobrazit kontakt
-          </Link>
+          </TrackedLink>
         </article>
       </Container>
     </section>
@@ -188,18 +191,20 @@ export function StudioFinalCta() {
               </h2>
             </div>
             <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-              <Link
+              <TrackedLink
                 href="/rezervace"
+                tracking={{ kind: 'reservation', location: 'studio', page: 'studio' }}
                 className="inline-flex min-h-13 items-center justify-center rounded-full bg-white px-7 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-foreground)] hover:bg-[#f8f2eb] sm:text-sm"
               >
                 Rezervovat termín
-              </Link>
-              <Link
+              </TrackedLink>
+              <TrackedLink
                 href="/kontakt"
+                tracking={{ kind: 'contact', type: 'contact form', location: 'studio' }}
                 className="inline-flex min-h-13 items-center justify-center rounded-full border border-white/25 bg-white/10 px-7 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-white hover:border-white/45 hover:bg-white/16 sm:text-sm"
               >
                 Napsat do studia
-              </Link>
+              </TrackedLink>
             </div>
           </div>
         </article>
