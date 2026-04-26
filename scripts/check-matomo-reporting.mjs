@@ -19,13 +19,30 @@ url.searchParams.set("format", "JSON");
 url.searchParams.set("token_auth", process.env.MATOMO_AUTH_TOKEN);
 
 const response = await fetch(url);
+const responseText = await response.text();
+
+let payload = null;
+
+try {
+  payload = JSON.parse(responseText);
+} catch {
+  payload = null;
+}
 
 if (!response.ok) {
+  if (
+    payload &&
+    typeof payload === "object" &&
+    !Array.isArray(payload) &&
+    payload.result === "error"
+  ) {
+    console.error(`Matomo reporting error: ${payload.message || `HTTP ${response.status}`}`);
+    process.exit(1);
+  }
+
   console.error(`Matomo reporting failed with HTTP ${response.status}.`);
   process.exit(1);
 }
-
-const payload = await response.json();
 
 if (
   payload &&
