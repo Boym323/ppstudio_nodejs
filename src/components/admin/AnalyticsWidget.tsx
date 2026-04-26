@@ -19,6 +19,7 @@ export type AnalyticsDashboardData = {
 
 type AnalyticsWidgetProps = {
   className?: string;
+  enabled?: boolean;
 };
 
 type AnalyticsWidgetState =
@@ -86,10 +87,17 @@ function FunnelStep({
   );
 }
 
-export function AnalyticsWidget({ className }: AnalyticsWidgetProps) {
+export function AnalyticsWidget({
+  className,
+  enabled = true,
+}: AnalyticsWidgetProps) {
   const [state, setState] = useState<AnalyticsWidgetState>({ status: "loading" });
 
   useEffect(() => {
+    if (!enabled) {
+      return;
+    }
+
     const controller = new AbortController();
 
     async function loadAnalytics() {
@@ -130,7 +138,7 @@ export function AnalyticsWidget({ className }: AnalyticsWidgetProps) {
     return () => {
       controller.abort();
     };
-  }, []);
+  }, [enabled]);
 
   return (
     <section
@@ -145,85 +153,95 @@ export function AnalyticsWidget({ className }: AnalyticsWidgetProps) {
             Návštěvnost → rezervace
           </p>
           <p className="mt-2 text-sm leading-6 text-white/56">
-            Čistý přehled dnešního akvizičního výkonu bez grafů.
+            Jak se návštěvy webu mění v rezervace.
           </p>
         </div>
       </div>
 
-      {state.status === "loading" ? (
+      {!enabled ? (
+        <div className="mt-6 rounded-[1.15rem] border border-white/10 bg-black/18 px-4 py-5 text-sm text-white/62">
+          Matomo není nakonfigurované.
+        </div>
+      ) : null}
+
+      {enabled && state.status === "loading" ? (
         <div className="mt-6 rounded-[1.15rem] border border-dashed border-white/12 bg-white/[0.03] px-4 py-5 text-sm text-white/62">
-          Načítání…
+          Načítání návštěvnosti…
         </div>
       ) : null}
 
-      {state.status === "error" ? (
+      {enabled && state.status === "error" ? (
         <div className="mt-6 rounded-[1.15rem] border border-red-300/18 bg-red-500/10 px-4 py-5 text-sm text-red-50">
-          Data nejsou dostupná
+          Data návštěvnosti nejsou dočasně dostupná.
         </div>
       ) : null}
 
-      {state.status === "ready" ? (
+      {enabled && state.status === "ready" ? (
         <div className="mt-6 space-y-5">
-          <div className="grid gap-3 sm:grid-cols-3">
-            <article className="rounded-[1.1rem] border border-white/8 bg-white/[0.04] px-4 py-4">
-              <p className="text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-white/42">
-                Návštěvy
-              </p>
-              <p className="mt-2 text-3xl font-bold tracking-tight text-white">
-                {formatNumber(state.data.visits)}
-              </p>
-            </article>
+          <div className="grid gap-5 xl:grid-cols-[minmax(0,1.05fr)_minmax(18rem,0.95fr)] xl:items-start">
+            <div className="space-y-4">
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                <article className="rounded-[1.1rem] border border-white/8 bg-white/[0.04] px-4 py-4">
+                  <p className="text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-white/42">
+                    Návštěvy
+                  </p>
+                  <p className="mt-2 text-3xl font-bold tracking-tight text-white">
+                    {formatNumber(state.data.visits)}
+                  </p>
+                </article>
 
-            <article className="rounded-[1.1rem] border border-white/8 bg-white/[0.04] px-4 py-4">
-              <p className="text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-white/42">
-                Rezervace
-              </p>
-              <p className="mt-2 text-3xl font-bold tracking-tight text-white">
-                {formatNumber(state.data.conversions)}
-              </p>
-            </article>
+                <article className="rounded-[1.1rem] border border-white/8 bg-white/[0.04] px-4 py-4">
+                  <p className="text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-white/42">
+                    Rezervace
+                  </p>
+                  <p className="mt-2 text-3xl font-bold tracking-tight text-white">
+                    {formatNumber(state.data.conversions)}
+                  </p>
+                </article>
 
-            <article className="rounded-[1.1rem] border border-white/8 bg-white/[0.04] px-4 py-4">
-              <p className="text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-white/42">
-                Konverze %
-              </p>
-              <p className="mt-2 text-3xl font-bold tracking-tight text-white">
-                {formatPercent(state.data.conversionRate)}
-              </p>
-            </article>
-          </div>
+                <article className="rounded-[1.1rem] border border-white/8 bg-white/[0.04] px-4 py-4 sm:col-span-2 xl:col-span-1">
+                  <p className="text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-white/42">
+                    Konverze %
+                  </p>
+                  <p className="mt-2 text-3xl font-bold tracking-tight text-white">
+                    {formatPercent(state.data.conversionRate)}
+                  </p>
+                </article>
+              </div>
 
-          <div className="rounded-[1.1rem] border border-white/8 bg-black/18 px-4 py-3.5">
-            <p className="text-sm text-white/72">
-              Top zdroj:{" "}
-              <span className="font-medium text-white">
-                {state.data.topSource.trim().length > 0 ? state.data.topSource : "—"}
-              </span>
-            </p>
-          </div>
-
-          <div className="rounded-[1.2rem] border border-white/8 bg-white/[0.035] p-4">
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-[0.72rem] font-semibold uppercase tracking-[0.2em] text-white/42">
-                Funnel
-              </p>
-              <span className="text-xs text-white/42">
-                Datum: {formatNumber(state.data.funnel.date)}
-              </span>
+              <div className="rounded-[1.1rem] border border-white/8 bg-black/18 px-4 py-3.5">
+                <p className="text-sm text-white/72">
+                  Top zdroj:{" "}
+                  <span className="font-medium text-white">
+                    {state.data.topSource.trim().length > 0 ? state.data.topSource : "—"}
+                  </span>
+                </p>
+              </div>
             </div>
 
-            <div className="mt-4 flex flex-col gap-2.5">
-              <FunnelStep label="Návštěva" value={state.data.visits} />
-              <div className="flex justify-center text-lg text-white/26">↓</div>
-              <FunnelStep label="Služba" value={state.data.funnel.service} />
-              <div className="flex justify-center text-lg text-white/26">↓</div>
-              <FunnelStep
-                label="Čas"
-                value={state.data.funnel.time}
-                helper={`Výběr data: ${formatNumber(state.data.funnel.date)}`}
-              />
-              <div className="flex justify-center text-lg text-white/26">↓</div>
-              <FunnelStep label="Rezervace" value={state.data.funnel.created} />
+            <div className="rounded-[1.2rem] border border-white/8 bg-white/[0.035] p-4">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-[0.72rem] font-semibold uppercase tracking-[0.2em] text-white/42">
+                  Funnel
+                </p>
+                <span className="text-xs text-white/42">
+                  Datum: {formatNumber(state.data.funnel.date)}
+                </span>
+              </div>
+
+              <div className="mt-4 flex flex-col gap-2.5">
+                <FunnelStep label="Návštěva" value={state.data.visits} />
+                <div className="flex justify-center text-lg text-white/26">↓</div>
+                <FunnelStep label="Služba" value={state.data.funnel.service} />
+                <div className="flex justify-center text-lg text-white/26">↓</div>
+                <FunnelStep
+                  label="Čas"
+                  value={state.data.funnel.time}
+                  helper={`Výběr data: ${formatNumber(state.data.funnel.date)}`}
+                />
+                <div className="flex justify-center text-lg text-white/26">↓</div>
+                <FunnelStep label="Rezervace" value={state.data.funnel.created} />
+              </div>
             </div>
           </div>
         </div>

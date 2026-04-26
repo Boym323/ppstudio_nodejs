@@ -28,6 +28,7 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
 - Server-side dashboard analytics používají `MATOMO_URL`, `MATOMO_SITE_ID` a tajný `MATOMO_AUTH_TOKEN` v `src/lib/analytics/matomo.ts`; token není `NEXT_PUBLIC_*`, nepatří do klientského bundle a při chybě nebo chybějící konfiguraci vrací dashboard nulové fallbacky.
 - Admin dashboard může tato data číst přes `/api/admin/analytics`; endpoint je přístupný jen pro přihlášené role `OWNER` a `SALON`, vrací pouze agregované počty bez PII a při interní chybě spadne na bezpečný JSON fallback.
 - Pro dashboard je připravená klientská komponenta `src/components/admin/AnalyticsWidget.tsx`; sama řeší `fetch('/api/admin/analytics')`, loading, error i kompaktní zobrazení funnelu bez grafů.
+- Widget `Návštěvnost → rezervace` je v admin přehledu záměrně až pod provozními bloky `alerty -> dnešní provoz -> dnešní plán -> rychlé akce`; slouží jako sekundární business přehled, ne jako hlavní osa dashboardu.
 - Aktuální runtime stack podle `package.json`:
   - `next` `16.2.4`
   - `react` `19.2.4`

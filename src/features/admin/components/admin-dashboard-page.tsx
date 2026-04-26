@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { AnalyticsWidget } from "@/components/admin/AnalyticsWidget";
+import { env } from "@/config/env";
 import { cn } from "@/lib/utils";
 
 import { type AdminDashboardData } from "../lib/admin-dashboard";
@@ -164,6 +166,10 @@ function DashboardBadge({
 }
 
 export function DashboardPage({ data }: DashboardPageProps) {
+  const analyticsEnabled = Boolean(
+    env.MATOMO_URL && env.MATOMO_SITE_ID && env.MATOMO_AUTH_TOKEN,
+  );
+
   return (
     <div className="mx-auto min-h-[calc(100vh-3rem)] max-w-[1600px] px-0.5 py-0.5 sm:px-1 sm:py-1 lg:px-1">
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_320px] 2xl:grid-cols-[minmax(0,1fr)_336px]">
@@ -172,6 +178,7 @@ export function DashboardPage({ data }: DashboardPageProps) {
           <DashboardAttentionAlert data={data} />
           <DashboardTodayTimelineSection data={data} />
           <DashboardKpiGrid data={data} />
+          <AnalyticsWidget enabled={analyticsEnabled} />
         </main>
 
         <RightSidebar data={data} />
