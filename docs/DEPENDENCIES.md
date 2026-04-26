@@ -40,6 +40,7 @@ Seznam důležitých knihoven a důvod jejich použití.
 - Admin přesun termínu také nepřidává novou knihovnu; drawer UI, auditní log i doménová validace běží čistě na stávajícím stacku Next.js, React, Prisma a Zod.
 - Refaktor detailu rezervace do decision panelu také nepřidává novou závislost; sticky header, action chooser, kompaktní summary card i zkrácená historie používají jen stávající Next.js App Router, React a Tailwind utility.
 - Klientský self-service přesun termínu také nepřidává novou knihovnu; veřejná manage route, secure token flow a potvrzovací panel běží čistě na stávajícím stacku Next.js, React, Prisma a Zod.
+- UX refaktor klientského self-service přesunu termínu také nepřidává novou knihovnu; hybridní seznam, kalendář, sticky mobilní souhrn, smooth scroll i Matomo eventy používají stávající React/Next primitives a lokální helpers.
 - Ruční vytvoření rezervace v adminu také nepřidává novou knihovnu; drawer, deduplikace klientky i sdílené create jádro běží čistě na stávajícím stacku Next.js, React, Prisma a Zod.
 - Booking submission audit využívá stejnou Prisma vrstvu a nezavádí další knihovnu pro rate limiting ani logování.
 - Audit změn cen služeb také nepřidává novou závislost; používá stávající Prisma model, admin session mapování a server actions.

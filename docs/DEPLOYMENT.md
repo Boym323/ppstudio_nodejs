@@ -30,11 +30,20 @@ Postup nasazení aplikace do produkce.
      - `/obchodni-podminky`: hero CTA, blok poskytovatele a obsahová navigace
      - `/studio`: hero, galerie publikovaných fotek studia z modulu `Média webu`, fallback bez fotek a finální CTA
    - CTA na rezervaci
+   - self-service změnu termínu `/rezervace/sprava/[token]`:
+     - hero říká `Změna termínu rezervace`
+     - aktuální rezervace má oddělenou službu, datum, čas a stav
+     - nejbližší termíny jsou primární chips a kalendář je až sekundární
+     - výběr dne scrolluje na sloty vybraného dne a výběr času scrolluje na potvrzení
+     - na mobilu jsou sloty ve 2 sloupcích, kalendář nemá horizontální scroll a vybraný termín je ve spodním sticky souhrnu
+     - `Zrušit rezervaci` je až na konci jako slabá akce
    - Matomo při zapnutých `NEXT_PUBLIC_MATOMO_*`:
      - veřejná stránka načte `matomo.js`
      - klientská navigace po veřejných stránkách odešle další pageview bez duplicitního prvního pageview
-     - `/admin`, `/api` a tokenové route `/rezervace/sprava/*`, `/rezervace/storno/*`, `/rezervace/akce/*` tracking nespustí
+     - `/admin`, `/api` a Next internals tracking nespustí
+     - tokenové route `/rezervace/sprava/*`, `/rezervace/storno/*`, `/rezervace/akce/*` neodešlou pageview s tokenem
      - booking funnel odešle eventy bez jména, e-mailu, telefonu, poznámky nebo tokenu
+     - self-service změna termínu odešle jen eventy `Booking / Date selected` a `Booking / Time selected` bez tokenu nebo PII
      - v Matomo je ručně nastavený Goal `Booking created` pro custom event `Booking / Created`
 14. Projdi ruční QA admin částí:
    - login redirect pro `OWNER` a `SALON`

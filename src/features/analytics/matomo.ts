@@ -47,7 +47,35 @@ export function shouldTrackMatomoPath(pathname: string) {
   );
 }
 
+export function shouldInitializeMatomo(pathname: string) {
+  if (!isMatomoConfigured()) {
+    return false;
+  }
+
+  return !(
+    pathname.startsWith("/admin") ||
+    pathname.startsWith("/api") ||
+    pathname.startsWith("/_next") ||
+    pathname.includes("/preview") ||
+    pathname.includes("/nahled") ||
+    pathname.includes("/lock") ||
+    pathname.includes("/zamk")
+  );
+}
+
 export function buildSafeMatomoPath(pathname: string, searchParams?: SearchParamsLike | null) {
+  if (pathname.startsWith("/rezervace/sprava/")) {
+    return "/rezervace/sprava/[token]";
+  }
+
+  if (pathname.startsWith("/rezervace/storno/")) {
+    return "/rezervace/storno/[token]";
+  }
+
+  if (pathname.startsWith("/rezervace/akce/")) {
+    return "/rezervace/akce/[intent]/[token]";
+  }
+
   if (!searchParams || searchParams.size === 0) {
     return pathname;
   }

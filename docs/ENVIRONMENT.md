@@ -46,6 +46,7 @@ Dokumentace proměnných prostředí pro lokální vývoj i produkci.
 - `NEXT_PUBLIC_APP_URL` je kritická i pro provozní approve/reject odkazy v e-mailu; pokud míří na špatný host nebo schéma, owner email akce povedou na neplatnou URL.
 - Matomo konfigurace je volitelná: pokud `NEXT_PUBLIC_MATOMO_ENABLED` není přesně `true`, nebo chybí URL či site ID, tracking zůstane vypnutý. Protože jde o `NEXT_PUBLIC_*` proměnné, hodnoty se promítají do klientského bundle při buildu.
 - Matomo se nepoužívá v adminu, neposílá tokenové self-service URL a neukládá analytics eventy do databáze PP Studio.
+- Self-service změna termínu nepřidává nové env proměnné; pokud jsou `NEXT_PUBLIC_MATOMO_*` zapnuté, tokenová stránka může inicializovat Matomo kvůli bezpečným eventům, ale pageview s tokenem neodesílá.
 - `NEXT_PUBLIC_APP_URL` je stejně kritická i pro klientský self-service manage link `/rezervace/sprava/[token]`; pokud míří na špatný host nebo schéma, confirmation screen, potvrzovací e-mail i reminder povedou na neplatnou URL.
 - `NEXT_PUBLIC_APP_URL` je stejně kritická i pro zákaznický `.ics` odkaz `/api/bookings/calendar/[token].ics`; pokud míří na špatný host nebo schéma, CTA `Přidat do kalendáře` v potvrzovacím e-mailu povede na neplatnou URL.
 - `NEXT_PUBLIC_APP_URL` je stejně kritická i pro owner ICS subscription feed; z této hodnoty se skládá kopírovatelný Apple Calendar odkaz v adminu.

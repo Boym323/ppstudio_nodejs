@@ -22,8 +22,8 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
 ## Aktuální Stav Projektu
 - Projekt běží na Next.js 16 App Routeru se strukturou oddělenou na public web, booking a admin.
 - Veřejný shell (`SiteShell`) inicializuje volitelný Matomo tracking přes `NEXT_PUBLIC_MATOMO_ENABLED`, `NEXT_PUBLIC_MATOMO_URL` a `NEXT_PUBLIC_MATOMO_SITE_ID`; admin route group tracking komponentu nepoužívá.
-- Matomo měří pageview veřejných stránek a booking flow včetně klientských App Router navigací, ale ignoruje `/admin`, `/api`, Next internals a tokenové self-service route `/rezervace/sprava/*`, `/rezervace/storno/*`, `/rezervace/akce/*`.
-- Rezervační flow posílá pouze neosobní eventy `Booking / Service selected`, `Date selected`, `Time selected`, `Contact started` a po úspěchu `Created`; jméno, e-mail, telefon, poznámka ani tokeny se do analytics neposílají.
+- Matomo měří pageview veřejných stránek a booking flow včetně klientských App Router navigací, ale neposílá pageview pro `/admin`, `/api`, Next internals ani tokenové self-service route `/rezervace/sprava/*`, `/rezervace/storno/*`, `/rezervace/akce/*`.
+- Rezervační flow posílá pouze neosobní eventy `Booking / Service selected`, `Date selected`, `Time selected`, `Contact started` a po úspěchu `Created`; self-service změna termínu posílá bezpečné `Booking / Date selected` a `Booking / Time selected`. Jméno, e-mail, telefon, poznámka ani tokeny se do analytics neposílají.
 - V Matomo je potřeba ručně nastavit Goal: název `Booking created`, trigger `custom event`, category `Booking`, action `Created`.
 - Aktuální runtime stack podle `package.json`:
   - `next` `16.2.4`
@@ -70,6 +70,7 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
 - Admin detail rezervace už nefunguje jako dlouhá informační stránka; nově je to rychlý rozhodovací panel se sticky hlavičkou, horním akčním blokem, kompaktním souhrnem v bočním sloupci a sjednoceným blokem poznámek.
 - Po otevření detailu je během pár sekund vidět klientka, služba, termín, stav a nejpravděpodobnější další akce; reschedule zůstává oddělený jako samostatný drawer a chování pro `OWNER` i `SALON` je stejné.
 - Veřejný manage flow `/rezervace/sprava/[token]` má nově DB integrační coverage nad reálným Prisma wiringem; testy ověřují token access, self-service storno, self-service přesun i hlavní auditní a notifikační side effects bez browser E2E vrstvy.
+- Veřejná stránka změny termínu je UX refaktorovaná do toku `kontext -> aktuální rezervace -> hybridní výběr termínu -> potvrzení -> sekundární storno`: nejbližší termíny jsou nahoře jako rychlé chips, kalendář slouží jako sekundární výběr dne a potvrzení je jediná dominantní CTA.
 - Implementačně je veřejný booking flow po stabilizačním refaktoru rozdělený do menších interních komponent (`progress panel`, `service step`, `term step`, `contact step`, `summary sidebar`), ale chování pro klientku zůstává stejné.
 - Admin má dva směry použití:
   - full admin na `/admin/*` pro roli `OWNER`
@@ -533,8 +534,11 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
   - uloží storno potvrzení do `EmailLog` pro worker nebo do `SENT` v log režimu
 - `/rezervace/sprava/[token]` je produkční self-service změna termínu:
   - ověří hash tokenu typu `RESCHEDULE` server-side
-  - ukáže službu, aktuální termín, stav rezervace a CTA pro změnu nebo storno
+  - ukáže službu, aktuální datum, čas ve formátu `13:30 – 14:00` a stav rezervace
   - nabídne jen veřejně dostupné nové časy pro stejnou službu a délku
+  - primárně zobrazuje nejbližší dostupné dny jako větší klikatelné chips a sekundárně kalendář se zvýrazněnými dny s dostupností
+  - po výběru dne zobrazí jen sloty pro tento den a po výběru času plynule posune klientku na potvrzení
+  - storno je až na konci stránky jako slabý textový odkaz, aby nekonkurovalo změně termínu
   - online změnu zablokuje při zrušené/uzavřené rezervaci, neplatném tokenu nebo méně než `bookingCancellationHours` před termínem
   - po potvrzení volá stejné `rescheduleBooking(...)` jako admin detail a do historie zapisuje `changedByClient = true`
 

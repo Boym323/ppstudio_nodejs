@@ -6,6 +6,10 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Veřejná stránka `/rezervace/sprava/[token]` prošla UX refaktorem změny termínu: nový tok začíná kontextem a aktuální rezervací, pokračuje hybridním výběrem `nejbližší termíny + kalendář`, po výběru času scrolluje na potvrzení a storno odsouvá na konec jako slabý odkaz.
+- Self-service výběr termínu je mobilně kompaktnější: sloty jsou ve dvou sloupcích, kalendář má zvýrazněné dostupné dny, vybraný čas je ve sticky spodním souhrnu a potvrzení zůstává jedinou dominantní CTA.
+- Success stav po self-service přesunu už není jedna dlouhá věta přes široký panel; původní a nový termín se zobrazují jako dvě zarovnané souhrnné položky.
+- Tokenové booking route dál neposílají Matomo pageview s tokenem, ale Matomo se na veřejném shellu umí inicializovat kvůli bezpečným self-service eventům `Booking / Date selected` a `Booking / Time selected` bez PII a bez volání při renderu.
 - Všechny booking e-mailové šablony v `src/lib/email/templates.ts` jsou sjednocené do jednoho email-safe design systému: 600px shell, inline styly, tabulkové karty, jednotný detail `služba / datum / čas`, pevná adresa `PP Studio, Sadová 2, 760 01 Zlín`, jeden kontaktní blok a čitelný formát času `09:30 – 10:30`.
 - Klientské šablony `booking-confirmation-v1`, `booking-approved-v1`, `booking-reminder-24h-v1`, `booking-rescheduled-v1`, `booking-cancelled-v1` a `booking-rejected-v1` mají klidnější stručné text/plain i HTML varianty bez duplicitních vět o pomoci; reminder už neobsahuje samostatné CTA `Ozvat se studiu` a kontakt se zobrazuje pouze jednou.
 - CTA hierarchie e-mailů je sjednocená: klientské změny/storna jsou sekundární nebo textové odkazy, destruktivní akce používají tlumený danger-light styl a `admin-booking-notification-v1` drží jedinou primární akci `Potvrdit rezervaci`.

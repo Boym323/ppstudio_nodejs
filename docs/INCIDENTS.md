@@ -35,6 +35,8 @@ Evidence produkčních incidentů a jejich řešení.
 - Opakované `EmailLog.status = FAILED` po nasazení nové SMTP konfigurace.
 - Nefunkční storno odkazy kvůli špatnému `NEXT_PUBLIC_APP_URL` nebo proxy přepisu hosta.
 - Nefunkční self-service odkaz `Změnit termín` kvůli špatnému `NEXT_PUBLIC_APP_URL`, rozbité route `/rezervace/sprava/[token]` nebo chybně generovanému `BookingActionTokenType.RESCHEDULE`.
+- Regrese UX self-service změny termínu, kdy se storno znovu objeví jako dominantní akce, kalendář předběhne nejbližší termíny, výběr slotu neaktualizuje potvrzení nebo na mobilu vznikne horizontální scroll.
+- Matomo na tokenové self-service stránce omylem odešle pageview s raw tokenem nebo duplicitní date/time event při renderu; eventy smějí vznikat jen z interakcí a bez PII.
 - Nefunkční approve/reject odkazy v provozním e-mailu kvůli špatnému `NEXT_PUBLIC_APP_URL`, neaplikované migraci enumu `BookingActionTokenType` nebo rozbitému veřejnému routingu `/rezervace/akce/[intent]/[token]`.
 - Provozní e-mail o nové rezervaci nečitelný na mobilu nebo v Outlooku kvůli regresi v HTML šabloně; po zásahu do `admin-booking-notification-v1` vždy ověř stackovaná tlačítka, normální letter-spacing a danger-light vizuál storna.
 - Regrese booking e-mailového design systému, kdy se vrátí duplicitní kontaktní věty, dominantní storno CTA, starý formát času bez mezer nebo chybějící adresa `PP Studio, Sadová 2, 760 01 Zlín`; po zásahu do `src/lib/email/templates.ts` ověř text/plain i HTML varianty všech booking šablon.
