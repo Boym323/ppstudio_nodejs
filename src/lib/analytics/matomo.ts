@@ -208,6 +208,10 @@ function getEventCount(events: MatomoEvent[], fullLabel: string) {
 function mapReferrerTypeLabel(label: string) {
   const normalizedLabel = label.trim().toLowerCase();
 
+  if (normalizedLabel.includes("campaign")) {
+    return "Kampaně";
+  }
+
   if (normalizedLabel.includes("social")) {
     return "Instagram";
   }
@@ -231,11 +235,18 @@ function mapCampaignLabel(label: string) {
   const trimmedLabel = label.trim();
   const normalizedLabel = trimmedLabel.toLowerCase();
 
-  if (normalizedLabel.includes("instagram") || normalizedLabel.includes("social")) {
+  if (
+    normalizedLabel === "ig" ||
+    normalizedLabel === "insta" ||
+    normalizedLabel.includes("instagram") ||
+    normalizedLabel.includes("social")
+  ) {
     return "Instagram";
   }
 
   if (
+    normalizedLabel === "firmy" ||
+    normalizedLabel === "firma" ||
     normalizedLabel.includes("firmy") ||
     normalizedLabel.includes("website") ||
     normalizedLabel.includes("catalog")
@@ -243,19 +254,24 @@ function mapCampaignLabel(label: string) {
     return "Firmy";
   }
 
-  if (normalizedLabel.includes("google") || normalizedLabel.includes("search")) {
+  if (
+    normalizedLabel === "google" ||
+    normalizedLabel === "gads" ||
+    normalizedLabel.includes("google") ||
+    normalizedLabel.includes("search")
+  ) {
     return "Google";
   }
 
-  if (normalizedLabel.includes("direct")) {
+  if (normalizedLabel === "direct" || normalizedLabel.includes("direct")) {
     return "Přímý vstup";
   }
 
-  if (normalizedLabel.includes("offline")) {
+  if (normalizedLabel === "offline" || normalizedLabel.includes("offline")) {
     return "Offline";
   }
 
-  return trimmedLabel || "Ostatní";
+  return null;
 }
 
 function buildSourceRows(
@@ -264,15 +280,32 @@ function buildSourceRows(
   createdCount: number,
 ): DashboardAnalyticsSource[] {
   const sourceVisits = new Map<string, number>();
-  const rows = campaigns.length > 0
-    ? campaigns.map((campaign) => ({
-        label: mapCampaignLabel(campaign.label),
-        visits: campaign.nb_visits,
-      }))
-    : referrers.map((referrer) => ({
-        label: mapReferrerTypeLabel(referrer.label),
-        visits: referrer.nb_visits,
-      }));
+  const mappedCampaignRows = campaigns
+    .map((campaign) => ({
+      label: mapCampaignLabel(campaign.label),
+      visits: campaign.nb_visits,
+    }))
+    .filter((campaign): campaign is { label: string; visits: number } => campaign.label !== null);
+  const totalMappedCampaignVisits = mappedCampaignRows.reduce((sum, campaign) => sum + campaign.visits, 0);
+  const totalCampaignVisits = campaigns.reduce((sum, campaign) => sum + campaign.nb_visits, 0);
+  const unknownCampaignVisits = Math.max(0, totalCampaignVisits - totalMappedCampaignVisits);
+  const rows = referrers
+    .filter((referrer) => !referrer.label.trim().toLowerCase().includes("campaign"))
+    .map((referrer) => ({
+      label: mapReferrerTypeLabel(referrer.label),
+      visits: referrer.nb_visits,
+    }));
+
+  if (mappedCampaignRows.length > 0) {
+    rows.push(...mappedCampaignRows);
+  }
+
+  if (unknownCampaignVisits > 0) {
+    rows.push({
+      label: "Kampaně",
+      visits: unknownCampaignVisits,
+    });
+  }
 
   for (const row of rows) {
     sourceVisits.set(row.label, (sourceVisits.get(row.label) ?? 0) + row.visits);
