@@ -16,6 +16,10 @@ Postup nasazení aplikace do produkce.
 11. Aktualizuj `CHANGELOG.md`
 12. Ověř aktuálnost dokumentace (`MANUAL.md`, `docs/*`)
 13. Projdi ruční QA veřejného webu na mobilu i desktopu:
+   - zkontroluj `robots.txt`:
+     - veřejný web vrací `Allow: /`
+     - admin a tokenové routy `/admin/*`, `/rezervace/storno/*`, `/rezervace/sprava/*`, `/rezervace/akce/*` zůstávají blokované
+     - `sitemap.xml` je uvedená v `robots.txt`
    - homepage
    - `/o-mne`:
      - výrazný hero s oběma CTA

@@ -527,3 +527,4 @@ Formát je inspirovaný Keep a Changelog.
   - `src/features/admin/components/admin-slot-detail-page.tsx`
   - `src/features/admin/actions/slot-actions.ts`
   - `src/features/admin/lib/admin-slot-repository.ts`
+- Produkční `robots.txt` už neomezuje crawl jen na vybrané veřejné sekce; celý veřejný web je nyní pro roboty otevřený přes `Allow: /`, zatímco admin a tokenové self-service routy (`/rezervace/storno/*`, `/rezervace/sprava/*`, `/rezervace/akce/*`) zůstávají blokované.

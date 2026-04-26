@@ -7,8 +7,16 @@ export default function robots(): MetadataRoute.Robots {
     rules: [
       {
         userAgent: "*",
-        allow: ["/", "/rezervace", "/sluzby", "/cenik", "/kontakt", "/o-mne", "/faq"],
-        disallow: ["/admin", "/admin/", "/admin/*", "/api/auth/*", "/rezervace/storno/*"],
+        allow: "/",
+        disallow: [
+          "/admin",
+          "/admin/",
+          "/admin/*",
+          "/api/auth/*",
+          "/rezervace/storno/*",
+          "/rezervace/sprava/*",
+          "/rezervace/akce/*",
+        ],
       },
     ],
     sitemap: `${siteConfig.url}/sitemap.xml`,

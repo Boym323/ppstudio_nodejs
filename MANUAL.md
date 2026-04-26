@@ -600,6 +600,7 @@ npm run db:clear-booking-data -- --confirm
 - Sloty s historickými rezervacemi nemažeme ani když už nejsou aktivní; pro zachování auditní stopy se místo toho archivují.
 - Po každé změně Prisma schematu je potřeba spustit alespoň `npm run db:generate`; při změně struktury DB i `npm run db:migrate`.
 - Technické SEO minimum je nyní pokryté přes globální metadata, `robots.ts` a `sitemap.ts`.
+- Produkční `robots.txt` pouští crawl celého veřejného webu přes `Allow: /`; neveřejné admin a tokenové routy zůstávají blokované, aby se neindexovaly citlivé odkazy.
 - Root metadata branding (`applicationName`, title template a OpenGraph `siteName`) se načítá z `SiteSettings.salonName`; canonical URL base zůstává technicky na `NEXT_PUBLIC_APP_URL`.
 - Veřejné čtení `SiteSettings` už při renderu nezapisuje do DB; pokud singleton dočasně chybí nebo DB read selže, veřejný web a e-mailové šablony použijí bezpečné defaulty a bootstrap zápis zůstává jen v owner admin sekci `Nastavení`.
 - Rezervační část má vlastní error boundary a loading fallback, takže výpadek booking vrstvy nepoškodí celý web.

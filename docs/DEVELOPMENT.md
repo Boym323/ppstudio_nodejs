@@ -41,6 +41,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - `src/features/admin/lib/admin-slots.ts` je façade nad `admin-slots/time.ts`, `helpers.ts`, `queries.ts`, `mutations.ts`, `types.ts`
 - Při dalším refaktoru těchto oblastí drž kompatibilní veřejné exporty v původních entrypointech, aby se nerozbily existující importy v actions, routech a admin UI.
 - `src/app/robots.ts` a `src/app/sitemap.ts` používají metadata route API v App Routeru.
+- `src/app/robots.ts` je v produkčním nastavení otevřený pro celý veřejný web (`Allow: /`); blokované mají zůstat jen neveřejné admin a tokenové self-service cesty.
 - Matomo client tracking je v `src/features/analytics/*` a inicializuje se přes `src/components/layout/site-shell.tsx`. Při lokálním vývoji nastav `NEXT_PUBLIC_MATOMO_ENABLED=true`, `NEXT_PUBLIC_MATOMO_URL` a `NEXT_PUBLIC_MATOMO_SITE_ID`; bez kompletní konfigurace je helper bezpečný no-op.
 - Pageview tracking v App Routeru poslouchá `usePathname()` a `useSearchParams()`, první render nechává na inicializačním Matomo scriptu a další klientské navigace posílá se sanitizovanou URL.
 - Tokenové self-service booking route (`/rezervace/sprava/*`, `/rezervace/storno/*`, `/rezervace/akce/*`) neposílají pageview s tokenem. `MatomoTracker` na nich může pouze inicializovat `_paq`, aby šly z klientských handlerů poslat bezpečné neosobní eventy bez raw URL.
