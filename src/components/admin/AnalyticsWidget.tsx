@@ -9,6 +9,11 @@ export type AnalyticsDashboardData = {
   conversions: number;
   conversionRate: number;
   topSource: string;
+  sources: {
+    label: string;
+    visits: number;
+    conversions: number;
+  }[];
   funnel: {
     service: number;
     date: number;
@@ -52,6 +57,16 @@ function isAnalyticsDashboardData(value: unknown): value is AnalyticsDashboardDa
     Number.isFinite(candidate.conversions) &&
     Number.isFinite(candidate.conversionRate) &&
     typeof candidate.topSource === "string" &&
+    Array.isArray(candidate.sources) &&
+    candidate.sources.every(
+      (source) =>
+        Boolean(source) &&
+        typeof source === "object" &&
+        !Array.isArray(source) &&
+        typeof (source as Record<string, unknown>).label === "string" &&
+        Number.isFinite((source as Record<string, unknown>).visits) &&
+        Number.isFinite((source as Record<string, unknown>).conversions),
+    ) &&
     Number.isFinite(funnelCandidate.service) &&
     Number.isFinite(funnelCandidate.date) &&
     Number.isFinite(funnelCandidate.time) &&
@@ -83,6 +98,37 @@ function FunnelStep({
       </p>
       <p className="mt-2 text-2xl font-bold tracking-tight text-white">{formatNumber(value)}</p>
       {helper ? <p className="mt-1 text-xs text-white/46">{helper}</p> : null}
+    </div>
+  );
+}
+
+function SourcesList({ sources }: { sources: AnalyticsDashboardData["sources"] }) {
+  if (sources.length === 0) {
+    return (
+      <p className="rounded-[1rem] border border-dashed border-white/12 bg-black/18 px-4 py-4 text-sm text-white/56">
+        Zatím nejsou dostupná data o zdrojích.
+      </p>
+    );
+  }
+
+  return (
+    <div className="divide-y divide-white/7 overflow-hidden rounded-[1rem] border border-white/8 bg-black/18">
+      {sources.map((source) => (
+        <div
+          key={source.label}
+          className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-4 py-3"
+        >
+          <div className="min-w-0">
+            <p className="truncate text-sm font-medium text-white">{source.label || "—"}</p>
+            <p className="mt-0.5 text-xs text-white/42">
+              {formatNumber(source.conversions)} rezervací
+            </p>
+          </div>
+          <p className="text-right text-lg font-semibold tabular-nums text-white">
+            {formatNumber(source.visits)}
+          </p>
+        </div>
+      ))}
     </div>
   );
 }
@@ -216,6 +262,16 @@ export function AnalyticsWidget({
                     {state.data.topSource.trim().length > 0 ? state.data.topSource : "—"}
                   </span>
                 </p>
+              </div>
+
+              <div className="rounded-[1.2rem] border border-white/8 bg-white/[0.035] p-4">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <p className="text-[0.72rem] font-semibold uppercase tracking-[0.2em] text-white/42">
+                    Zdroje rezervací
+                  </p>
+                  <span className="text-xs text-white/42">návštěvy</span>
+                </div>
+                <SourcesList sources={state.data.sources} />
               </div>
             </div>
 

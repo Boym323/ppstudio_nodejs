@@ -29,6 +29,7 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
 - Admin dashboard může tato data číst přes `/api/admin/analytics`; endpoint je přístupný jen pro přihlášené role `OWNER` a `SALON`, vrací pouze agregované počty bez PII a při interní chybě spadne na bezpečný JSON fallback.
 - Pro dashboard je připravená klientská komponenta `src/components/admin/AnalyticsWidget.tsx`; sama řeší `fetch('/api/admin/analytics')`, loading, error i kompaktní zobrazení funnelu bez grafů.
 - Widget `Návštěvnost → rezervace` je v admin přehledu záměrně až pod provozními bloky `alerty -> dnešní provoz -> dnešní plán -> rychlé akce`; slouží jako sekundární business přehled, ne jako hlavní osa dashboardu.
+- Sekce `Zdroje rezervací` v tomto widgetu kombinuje Matomo kampaně a referrer typy do business názvů `Instagram`, `Firmy`, `Google`, `Přímý vstup` nebo `Ostatní`; konverze jsou v první verzi orientační rozdělení podle podílu návštěv na dokončených `Booking / Created`.
 - Aktuální runtime stack podle `package.json`:
   - `next` `16.2.4`
   - `react` `19.2.4`

@@ -11,6 +11,7 @@ const analyticsFallback = {
   conversions: 0,
   conversionRate: 0,
   topSource: "—",
+  sources: [],
   funnel: {
     service: 0,
     date: 0,

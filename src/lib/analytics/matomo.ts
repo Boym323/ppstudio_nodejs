@@ -6,12 +6,20 @@ export type MatomoVisits = { nb_visits: number };
 export type MatomoGoal = { nb_conversions: number };
 export type MatomoEvent = { label: string; nb_events: number };
 export type MatomoReferrer = { label: string; nb_visits: number };
+export type MatomoCampaign = { label: string; nb_visits: number };
+
+export type DashboardAnalyticsSource = {
+  label: string;
+  visits: number;
+  conversions: number;
+};
 
 export type DashboardAnalytics = {
   visits: number;
   conversions: number;
   conversionRate: number;
   topSource: string;
+  sources: DashboardAnalyticsSource[];
   funnel: {
     service: number;
     date: number;
@@ -27,6 +35,7 @@ const DEFAULT_DASHBOARD_ANALYTICS: DashboardAnalytics = {
   conversions: 0,
   conversionRate: 0,
   topSource: "",
+  sources: [],
   funnel: {
     service: 0,
     date: 0,
@@ -46,7 +55,8 @@ type MatomoMethod =
   | "VisitsSummary.get"
   | "Goals.get"
   | "Events.getAction"
-  | "Referrers.getReferrerType";
+  | "Referrers.getReferrerType"
+  | "Referrers.getCampaigns";
 
 function getMatomoConfig() {
   if (!env.MATOMO_URL || !env.MATOMO_SITE_ID || !env.MATOMO_AUTH_TOKEN) {
@@ -155,6 +165,107 @@ function getEventCount(events: MatomoEvent[], fullLabel: string) {
     .reduce((sum, event) => sum + event.nb_events, 0);
 }
 
+function mapReferrerTypeLabel(label: string) {
+  const normalizedLabel = label.trim().toLowerCase();
+
+  if (normalizedLabel.includes("social")) {
+    return "Instagram";
+  }
+
+  if (normalizedLabel.includes("website") || normalizedLabel.includes("websites")) {
+    return "Firmy";
+  }
+
+  if (normalizedLabel.includes("search")) {
+    return "Google";
+  }
+
+  if (normalizedLabel.includes("direct")) {
+    return "Přímý vstup";
+  }
+
+  return label.trim() || "Ostatní";
+}
+
+function mapCampaignLabel(label: string) {
+  const trimmedLabel = label.trim();
+  const normalizedLabel = trimmedLabel.toLowerCase();
+
+  if (normalizedLabel.includes("instagram") || normalizedLabel.includes("social")) {
+    return "Instagram";
+  }
+
+  if (
+    normalizedLabel.includes("firmy") ||
+    normalizedLabel.includes("website") ||
+    normalizedLabel.includes("catalog")
+  ) {
+    return "Firmy";
+  }
+
+  if (normalizedLabel.includes("google") || normalizedLabel.includes("search")) {
+    return "Google";
+  }
+
+  if (normalizedLabel.includes("direct")) {
+    return "Přímý vstup";
+  }
+
+  if (normalizedLabel.includes("offline")) {
+    return "Offline";
+  }
+
+  return trimmedLabel || "Ostatní";
+}
+
+function buildSourceRows(
+  referrers: MatomoReferrer[],
+  campaigns: MatomoCampaign[],
+  createdCount: number,
+): DashboardAnalyticsSource[] {
+  const sourceVisits = new Map<string, number>();
+  const rows = campaigns.length > 0
+    ? campaigns.map((campaign) => ({
+        label: mapCampaignLabel(campaign.label),
+        visits: campaign.nb_visits,
+      }))
+    : referrers.map((referrer) => ({
+        label: mapReferrerTypeLabel(referrer.label),
+        visits: referrer.nb_visits,
+      }));
+
+  for (const row of rows) {
+    sourceVisits.set(row.label, (sourceVisits.get(row.label) ?? 0) + row.visits);
+  }
+
+  const totalSourceVisits = [...sourceVisits.values()].reduce((sum, visits) => sum + visits, 0);
+
+  const sources = [...sourceVisits.entries()]
+    .map(([label, visits]) => ({
+      label,
+      visits,
+      conversions:
+        totalSourceVisits > 0 ? Math.round((visits / totalSourceVisits) * createdCount) : 0,
+    }))
+    .sort((left, right) => right.visits - left.visits);
+
+  const visibleSources = sources.slice(0, 4);
+  const otherSources = sources.slice(4);
+
+  if (otherSources.length === 0) {
+    return visibleSources;
+  }
+
+  return [
+    ...visibleSources,
+    {
+      label: "Ostatní",
+      visits: otherSources.reduce((sum, source) => sum + source.visits, 0),
+      conversions: otherSources.reduce((sum, source) => sum + source.conversions, 0),
+    },
+  ];
+}
+
 export async function fetchVisits(): Promise<MatomoVisits> {
   return normalizeVisitsPayload(await fetchMatomoJson("VisitsSummary.get"));
 }
@@ -179,33 +290,44 @@ export async function fetchReferrers(): Promise<MatomoReferrer[]> {
   }));
 }
 
+export async function fetchCampaigns(): Promise<MatomoCampaign[]> {
+  return normalizeRows(await fetchMatomoJson("Referrers.getCampaigns"), (row) => ({
+    label: String(row.label ?? ""),
+    nb_visits: toFiniteNumber(row.nb_visits),
+  }));
+}
+
 export async function getDashboardAnalytics(): Promise<DashboardAnalytics> {
   try {
-    const [visitsSummary, goals, events, referrers] = await Promise.all([
+    const [visitsSummary, goals, events, referrers, campaigns] = await Promise.all([
       fetchVisits(),
       fetchGoals(),
       fetchEvents(),
       fetchReferrers(),
+      fetchCampaigns(),
     ]);
 
     const visits = visitsSummary.nb_visits;
     const conversions = goals.reduce((sum, goal) => sum + goal.nb_conversions, 0);
+    const funnel = {
+      service: getEventCount(events, bookingFunnelLabels.service),
+      date: getEventCount(events, bookingFunnelLabels.date),
+      time: getEventCount(events, bookingFunnelLabels.time),
+      created: getEventCount(events, bookingFunnelLabels.created),
+    };
     const topReferrer = referrers.reduce<MatomoReferrer | null>(
       (top, referrer) => (!top || referrer.nb_visits > top.nb_visits ? referrer : top),
       null,
     );
+    const sources = buildSourceRows(referrers, campaigns, funnel.created);
 
     return {
       visits,
       conversions,
       conversionRate: visits > 0 ? Math.round((conversions / visits) * 10000) / 100 : 0,
-      topSource: topReferrer?.label ?? "",
-      funnel: {
-        service: getEventCount(events, bookingFunnelLabels.service),
-        date: getEventCount(events, bookingFunnelLabels.date),
-        time: getEventCount(events, bookingFunnelLabels.time),
-        created: getEventCount(events, bookingFunnelLabels.created),
-      },
+      topSource: sources[0]?.label ?? (topReferrer ? mapReferrerTypeLabel(topReferrer.label) : ""),
+      sources,
+      funnel,
     };
   } catch (error) {
     if (process.env.NODE_ENV === "development") {
