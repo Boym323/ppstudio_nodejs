@@ -26,6 +26,7 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
 - Rezervační flow posílá pouze neosobní eventy `Booking / Service selected`, `Date selected`, `Time selected`, `Contact started` a po úspěchu `Created`; self-service změna termínu posílá bezpečné `Booking / Date selected` a `Booking / Time selected`. Jméno, e-mail, telefon, poznámka ani tokeny se do analytics neposílají.
 - V Matomo je potřeba ručně nastavit Goal: název `Booking created`, trigger `custom event`, category `Booking`, action `Created`.
 - Server-side dashboard analytics používají `MATOMO_URL`, `MATOMO_SITE_ID` a tajný `MATOMO_AUTH_TOKEN` v `src/lib/analytics/matomo.ts`; token není `NEXT_PUBLIC_*`, nepatří do klientského bundle a při chybě nebo chybějící konfiguraci vrací dashboard nulové fallbacky.
+- Admin dashboard může tato data číst přes `/api/admin/analytics`; endpoint je přístupný jen pro přihlášené role `OWNER` a `SALON`, vrací pouze agregované počty bez PII a při interní chybě spadne na bezpečný JSON fallback.
 - Aktuální runtime stack podle `package.json`:
   - `next` `16.2.4`
   - `react` `19.2.4`

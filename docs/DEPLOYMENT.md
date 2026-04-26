@@ -46,6 +46,7 @@ Postup nasazení aplikace do produkce.
      - self-service změna termínu odešle jen eventy `Booking / Date selected` a `Booking / Time selected` bez tokenu nebo PII
      - v Matomo je ručně nastavený Goal `Booking created` pro custom event `Booking / Created`
      - server-side dashboard reporting má nastavené `MATOMO_URL`, `MATOMO_SITE_ID` a `MATOMO_AUTH_TOKEN`, Reporting API token není dostupný v klientském bundle a při výpadku API dashboard zobrazí nulové fallbacky místo 500
+     - `/api/admin/analytics` vrací po přihlášení agregovaný JSON bez tokenu a bez PII; bez session vrací `403`
 14. Projdi ruční QA admin částí:
    - login redirect pro `OWNER` a `SALON`
    - opakované chybné přihlášení na `/admin/prihlaseni` po překročení limitu vrátí `error=rate_limited` a nepovolí session

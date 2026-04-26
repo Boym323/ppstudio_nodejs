@@ -33,6 +33,7 @@ Evidence produkčních incidentů a jejich řešení.
 - Nefunkční CTA odkazy mezi veřejným webem a rezervační částí.
 - Chybně zapnutý nebo rozbitý Matomo tracking, který by posílal admin nebo tokenové URL, duplicitní první pageview, PII v event name, nebo by chybou `_paq` ovlivnil booking flow; helper musí zůstat bezpečný no-op.
 - Rozbitý server-side Matomo dashboard reporting kvůli chybějícímu `MATOMO_AUTH_TOKEN`, špatnému `MATOMO_SITE_ID`, nedostupnému Reporting API nebo omylem veřejně vystavenému tokenu; UI má zůstat na nulových fallback hodnotách a token nesmí mít prefix `NEXT_PUBLIC_`.
+- Endpoint `/api/admin/analytics` omylem dostupný bez admin session nebo vracející detailní payload z Matomo; endpoint smí vracet jen agregovaná dashboard čísla bez PII a bez `token_auth`.
 - Opakované `EmailLog.status = FAILED` po nasazení nové SMTP konfigurace.
 - Nefunkční storno odkazy kvůli špatnému `NEXT_PUBLIC_APP_URL` nebo proxy přepisu hosta.
 - Nefunkční self-service odkaz `Změnit termín` kvůli špatnému `NEXT_PUBLIC_APP_URL`, rozbité route `/rezervace/sprava/[token]` nebo chybně generovanému `BookingActionTokenType.RESCHEDULE`.
