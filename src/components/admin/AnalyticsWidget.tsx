@@ -5,6 +5,8 @@ import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 
 export type AnalyticsDashboardData = {
+  reportingStatus: "ok" | "disabled" | "blocked" | "error";
+  reportingMessage?: string;
   visits: number;
   conversions: number;
   conversionRate: number;
@@ -56,6 +58,8 @@ function isAnalyticsDashboardData(value: unknown): value is AnalyticsDashboardDa
     Number.isFinite(candidate.visits) &&
     Number.isFinite(candidate.conversions) &&
     Number.isFinite(candidate.conversionRate) &&
+    ["ok", "disabled", "blocked", "error"].includes(String(candidate.reportingStatus)) &&
+    (candidate.reportingMessage === undefined || typeof candidate.reportingMessage === "string") &&
     typeof candidate.topSource === "string" &&
     Array.isArray(candidate.sources) &&
     candidate.sources.every(
@@ -223,6 +227,11 @@ export function AnalyticsWidget({
       ) : null}
 
       {enabled && state.status === "ready" ? (
+        state.data.reportingStatus !== "ok" ? (
+          <div className="mt-6 rounded-[1.15rem] border border-amber-300/18 bg-amber-400/10 px-4 py-5 text-sm text-amber-50">
+            {state.data.reportingMessage || "Matomo reporting není teď dostupný."}
+          </div>
+        ) : (
         <div className="mt-6 space-y-5">
           <div className="grid gap-5 xl:grid-cols-[minmax(0,1.05fr)_minmax(18rem,0.95fr)] xl:items-start">
             <div className="space-y-4">
@@ -301,6 +310,7 @@ export function AnalyticsWidget({
             </div>
           </div>
         </div>
+        )
       ) : null}
     </section>
   );

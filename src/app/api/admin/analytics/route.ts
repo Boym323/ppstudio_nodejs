@@ -1,12 +1,13 @@
 import { AdminRole } from "@prisma/client";
 import { NextResponse } from "next/server";
 
-import { getDashboardAnalytics } from "@/lib/analytics/matomo";
+import { getDashboardAnalytics, getMatomoReportingHealth } from "@/lib/analytics/matomo";
 import { getSession } from "@/lib/auth/session";
 
 export const revalidate = 300;
 
 const analyticsFallback = {
+  reportingStatus: "error",
   visits: 0,
   conversions: 0,
   conversionRate: 0,
@@ -34,9 +35,28 @@ export async function GET() {
   }
 
   try {
+    const reportingHealth = await getMatomoReportingHealth();
+
+    if (reportingHealth.status !== "ok") {
+      return NextResponse.json(
+        {
+          ...analyticsFallback,
+          reportingStatus: reportingHealth.status,
+          reportingMessage: reportingHealth.message,
+        },
+        { status: 200 },
+      );
+    }
+
     const analytics = await getDashboardAnalytics();
 
-    return NextResponse.json(analytics, { status: 200 });
+    return NextResponse.json(
+      {
+        ...analytics,
+        reportingStatus: "ok",
+      },
+      { status: 200 },
+    );
   } catch (error) {
     console.error("Admin analytics API failed", {
       adminUserId: session.sub,
@@ -44,6 +64,12 @@ export async function GET() {
       error,
     });
 
-    return NextResponse.json(analyticsFallback, { status: 200 });
+    return NextResponse.json(
+      {
+        ...analyticsFallback,
+        reportingMessage: "Matomo reporting je dočasně nedostupný.",
+      },
+      { status: 200 },
+    );
   }
 }

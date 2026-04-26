@@ -14,6 +14,13 @@ export type DashboardAnalyticsSource = {
   conversions: number;
 };
 
+export type MatomoReportingStatus = "ok" | "disabled" | "blocked" | "error";
+
+export type MatomoReportingHealth = {
+  status: MatomoReportingStatus;
+  message?: string;
+};
+
 export type DashboardAnalytics = {
   visits: number;
   conversions: number;
@@ -57,6 +64,11 @@ type MatomoMethod =
   | "Events.getAction"
   | "Referrers.getReferrerType"
   | "Referrers.getCampaigns";
+
+type MatomoApiErrorPayload = {
+  result: string;
+  message?: string;
+};
 
 function getMatomoConfig() {
   if (!env.MATOMO_URL || !env.MATOMO_SITE_ID || !env.MATOMO_AUTH_TOKEN) {
@@ -108,6 +120,24 @@ function toFiniteNumber(value: unknown) {
   return Number.isFinite(numberValue) ? numberValue : 0;
 }
 
+function isMatomoApiErrorPayload(value: unknown): value is MatomoApiErrorPayload {
+  return (
+    Boolean(value) &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    typeof (value as Record<string, unknown>).result === "string" &&
+    (value as Record<string, unknown>).result === "error"
+  );
+}
+
+function getMatomoErrorMessage(value: unknown) {
+  if (!isMatomoApiErrorPayload(value)) {
+    return null;
+  }
+
+  return value.message?.trim() || "Matomo reporting vrátil chybu.";
+}
+
 function normalizeVisitsPayload(payload: unknown): MatomoVisits {
   if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
     return DEFAULT_VISITS;
@@ -131,7 +161,7 @@ function normalizeRows<T>(
     .map(normalize);
 }
 
-async function fetchMatomoJson(method: MatomoMethod) {
+async function fetchMatomoJsonRaw(method: MatomoMethod) {
   const url = buildMatomoApiUrl(method);
 
   if (!url) {
@@ -155,6 +185,16 @@ async function fetchMatomoJson(method: MatomoMethod) {
 
     return null;
   }
+}
+
+async function fetchMatomoJson(method: MatomoMethod) {
+  const payload = await fetchMatomoJsonRaw(method);
+
+  if (getMatomoErrorMessage(payload)) {
+    return null;
+  }
+
+  return payload;
 }
 
 function getEventCount(events: MatomoEvent[], fullLabel: string) {
@@ -295,6 +335,42 @@ export async function fetchCampaigns(): Promise<MatomoCampaign[]> {
     label: String(row.label ?? ""),
     nb_visits: toFiniteNumber(row.nb_visits),
   }));
+}
+
+export async function getMatomoReportingHealth(): Promise<MatomoReportingHealth> {
+  if (!getMatomoConfig()) {
+    return {
+      status: "disabled",
+      message: "Matomo není nakonfigurované.",
+    };
+  }
+
+  const payload = await fetchMatomoJsonRaw("VisitsSummary.get");
+
+  if (payload === null) {
+    return {
+      status: "error",
+      message: "Matomo reporting je dočasně nedostupný.",
+    };
+  }
+
+  const errorMessage = getMatomoErrorMessage(payload);
+
+  if (!errorMessage) {
+    return { status: "ok" };
+  }
+
+  if (errorMessage.toLowerCase().includes("too many failed logins")) {
+    return {
+      status: "blocked",
+      message: "Matomo reporting je dočasně zablokovaný. Zkontroluj API token nebo lockout v Matomu.",
+    };
+  }
+
+  return {
+    status: "error",
+    message: "Matomo reporting vrátil chybu. Zkontroluj konfiguraci nebo oprávnění API tokenu.",
+  };
 }
 
 export async function getDashboardAnalytics(): Promise<DashboardAnalytics> {

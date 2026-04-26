@@ -48,6 +48,7 @@ Postup nasazení aplikace do produkce.
      - server-side dashboard reporting má nastavené `MATOMO_URL`, `MATOMO_SITE_ID` a `MATOMO_AUTH_TOKEN`, Reporting API token není dostupný v klientském bundle a při výpadku API dashboard zobrazí nulové fallbacky místo 500
      - `/api/admin/analytics` vrací po přihlášení agregovaný JSON bez tokenu a bez PII; bez session vrací `403`
      - admin widget `Zdroje rezervací` ukazuje jen business labely zdrojů a max. několik položek včetně případného `Ostatní`, bez raw Matomo payloadu
+     - `npm run analytics:check` vrací `status: ok` nebo srozumitelnou chybu reportingu; při lockoutu nebo neplatném tokenu musí dashboard ukázat provozní hlášku místo zavádějících nul
 14. Projdi ruční QA admin částí:
    - login redirect pro `OWNER` a `SALON`
    - opakované chybné přihlášení na `/admin/prihlaseni` po překročení limitu vrátí `error=rate_limited` a nepovolí session
