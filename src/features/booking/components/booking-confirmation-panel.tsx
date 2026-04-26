@@ -109,7 +109,7 @@ export function BookingConfirmationPanel({
           </a>
         </div>
         <p className="mt-4 text-sm leading-6 text-[var(--color-muted)]">
-          Přes bezpečný odkaz si můžete sama vybrat nový volný termín nebo rezervaci zrušit.
+          Rezervaci můžete pohodlně přesunout na jiný volný termín, případně ji zrušit.
         </p>
       </section>
 

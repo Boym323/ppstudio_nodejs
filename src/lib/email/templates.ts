@@ -265,7 +265,7 @@ export async function renderEmailTemplate(
                 variant: "destructive",
               })}</div>
             </div>
-            <p style="margin:6px 0 0;font-size:13px;line-height:1.7;color:#7a675c;">Přes bezpečný odkaz si můžete vybrat nový volný termín nebo rezervaci zrušit.</p>
+            <p style="margin:6px 0 0;font-size:13px;line-height:1.7;color:#7a675c;">Rezervaci můžete pohodlně přesunout na jiný volný termín, případně ji zrušit.</p>
           </div>
           <div style="margin-top:20px;border:1px solid rgba(33,23,20,0.08);border-radius:20px;padding:20px;background:#ffffff;">
             <p style="margin:0;font-size:12px;letter-spacing:0.2em;text-transform:uppercase;color:#9e7f65;">Potřebujete pomoc?</p>

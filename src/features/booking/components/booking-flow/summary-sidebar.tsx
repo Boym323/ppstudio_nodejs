@@ -131,8 +131,8 @@ export function BookingSummarySidebar({
         </div>
 
         <div className="mt-6 rounded-3xl border border-black/6 bg-white/80 p-5 text-sm leading-6 text-[var(--color-muted)]">
-          Po odeslání rezervaci zkontrolujeme, termín podržíme pro schválení a pošleme vám e-mail s
-          dalším postupem i storno odkazem.
+          Jakmile rezervaci odešlete, ověříme dostupnost termínu a dáme vám vědět e-mailem. V něm najdete
+          i odkaz pro případnou změnu nebo zrušení.
         </div>
 
         {serverState.status === "error" && serverState.suggestedStep ? (
