@@ -184,6 +184,11 @@ export async function getVoucherDetail(id: string) {
     typeLabel: formatVoucherType(voucher.type),
     statusLabel: formatVoucherStatus(effectiveStatus),
     valueLabel: formatVoucherValue(voucher),
+    remainingLabel: formatVoucherRemaining({
+      type: voucher.type,
+      remainingValueCzk: voucher.remainingValueCzk,
+      status: effectiveStatus,
+    }),
   };
 }
 

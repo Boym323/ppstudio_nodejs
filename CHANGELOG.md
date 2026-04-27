@@ -6,6 +6,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Přidán read-only admin detail voucheru pro OWNER i SALON na `/admin/vouchery/[voucherId]` a `/admin/provoz/vouchery/[voucherId]`: zobrazuje kód, typ, efektivní stav, platnosti, kupujícího/obdarovaného, hodnotu nebo snapshot služby, historii uplatnění a interní poznámku bez editace, rušení, mazání, PDF generování nebo uplatnění.
 - Přidána admin sekce `Vouchery` pro OWNER i SALON na `/admin/vouchery` a `/admin/provoz/vouchery`: seznam podporuje hledání přes `q`, filtr typu a efektivní filtr stavu včetně aplikačně počítané expirace.
 - Voucher read model nově vrací formátovaný zůstatek a při filtrování stavu používá efektivní `EXPIRED` pravidlo místo samotného DB statusu.
 - Přidána serverová doménová vrstva voucher systému bez UI: generování a normalizace kódů, české formátování stavů, Zod schémata, vytvoření hodnotového i službového voucheru, bezpečná public validace, transakční admin čerpání a základní read modely.

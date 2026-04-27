@@ -1,7 +1,7 @@
 import { Prisma, type VoucherStatus, type VoucherType } from "@prisma/client";
 
 import { type AdminArea } from "@/config/navigation";
-import { listVouchers } from "@/features/vouchers/lib/voucher-read-models";
+import { getVoucherDetail, listVouchers } from "@/features/vouchers/lib/voucher-read-models";
 import { prisma } from "@/lib/prisma";
 
 export type AdminVoucherTypeFilter = "all" | "value" | "service";
@@ -76,6 +76,8 @@ export function getAdminVoucherHref(area: AdminArea, voucherId: string) {
 export function getAdminVouchersHref(area: AdminArea) {
   return area === "owner" ? "/admin/vouchery" : "/admin/provoz/vouchery";
 }
+
+export type AdminVoucherDetailData = NonNullable<Awaited<ReturnType<typeof getAdminVoucherDetailData>>>;
 
 async function countVouchers(where: Prisma.Sql = Prisma.empty) {
   const rows = await prisma.$queryRaw<Array<{ count: number }>>(Prisma.sql`
@@ -154,5 +156,28 @@ export async function getAdminVouchersPageData(
         detail: `${redeemedCount} uplatněných, ${expiredCount} propadlých.`,
       },
     ],
+  };
+}
+
+export async function getAdminVoucherDetailData(area: AdminArea, voucherId: string) {
+  const voucher = await getVoucherDetail(voucherId);
+
+  if (!voucher) {
+    return null;
+  }
+
+  return {
+    ...voucher,
+    area,
+    listHref: getAdminVouchersHref(area),
+    detailHref: getAdminVoucherHref(area, voucher.id),
+    redemptions: voucher.redemptions.map((redemption) => ({
+      ...redemption,
+      bookingHref: redemption.booking
+        ? area === "owner"
+          ? `/admin/rezervace/${redemption.booking.id}`
+          : `/admin/provoz/rezervace/${redemption.booking.id}`
+        : null,
+    })),
   };
 }

@@ -9,6 +9,7 @@ import { AdminSectionPage } from "@/features/admin/components/admin-section-page
 import { AdminSettingsPage } from "@/features/admin/components/admin-settings-page";
 import { AdminMediaPage } from "@/features/admin/components/admin-media-page";
 import { AdminClientDetailPage } from "@/features/admin/components/admin-client-detail-page";
+import { AdminVoucherDetailPage } from "@/features/admin/components/admin-voucher-detail-page";
 import { AdminClientsPage } from "@/features/admin/components/admin-clients-page";
 import { AdminVouchersPage } from "@/features/admin/components/admin-vouchers-page";
 import { AdminUsersPage } from "@/features/admin/components/admin-users-page";
@@ -22,6 +23,7 @@ import { prisma } from "@/lib/prisma";
 
 import { getAdminBookingDetailData } from "./admin-booking";
 import { getAdminClientDetailData } from "./admin-clients";
+import { getAdminVoucherDetailData } from "./admin-vouchers";
 import { isAdminSectionSlug, requireAdminSectionAccess } from "./admin-guards";
 import { findSlotWeekContext } from "./admin-slots";
 
@@ -40,6 +42,10 @@ type AdminSlotParams = Promise<{
 
 type AdminClientDetailParams = Promise<{
   clientId: string;
+}>;
+
+type AdminVoucherDetailParams = Promise<{
+  voucherId: string;
 }>;
 
 type AdminSearchParams = Promise<{
@@ -200,6 +206,24 @@ export function createAdminClientDetailRoute(area: AdminArea) {
     }
 
     return <AdminClientDetailPage data={data} />;
+  };
+}
+
+export function createAdminVoucherDetailRoute(area: AdminArea) {
+  return async function AdminVoucherDetailRoute({
+    params,
+  }: {
+    params: AdminVoucherDetailParams;
+  }) {
+    await requireAdminSectionAccess(area, "vouchery");
+    const { voucherId } = await params;
+    const data = await getAdminVoucherDetailData(area, voucherId);
+
+    if (!data) {
+      notFound();
+    }
+
+    return <AdminVoucherDetailPage data={data} />;
   };
 }
 
