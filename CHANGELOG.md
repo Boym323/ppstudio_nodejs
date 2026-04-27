@@ -6,6 +6,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Sjednoceny fallback kontakty a globální SEO popis: `siteConfig`, veřejný content, `SiteSettings` fallback i e-mailová vrstva už nepoužívají placeholder `+420 777 000 000` / `hello@ppstudio.cz`, ale skutečné údaje PP Studia ve Zlíně.
 - Admin `src/proxy.ts` uz nepropousti `/admin/*` jen podle existence cookie: nove overuje podpis a expiraci session JWT, neplatnou cookie aktivne smaze a presmeruje na login.
 - Stabilizovan E2E scenar self-service presunu terminu: Playwright test ma sirsi timeout jen pro tento krok a owner Pushover HTTP volani je ted omezene 3s timeoutem, aby pomale externi notifikace zbytecne nedrzely booking flow.
 - Opraven crash loop `ppstudio-email-worker`: Pushover implementace je oddelena do worker-safe modulu a Next.js `server-only` wrapper zustava jen pro app/runtime importy, takže PM2 worker uz pri startu nepada na nacitani `server-only`.

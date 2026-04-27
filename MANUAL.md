@@ -47,6 +47,7 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
   - obchodní podmínky
   - GDPR
 - Veřejný obsah je centralizovaný v `src/content/public-site.ts`, aby šly texty a hlavní brand copy měnit bez zásahu do layout komponent.
+- Globální SEO popis a fallback kontakty používají skutečné údaje PP Studia: `info@ppstudio.cz`, `+420 732 856 036` a `Sadová 2, 760 01 Zlín`; placeholder kontakty se nemají vracet ani při chybě DB settings.
 - Stručná komunikace storno pravidla na homepage a ve FAQ má být benefit-first a klientsky srozumitelná: nepoužívej interní názvy typu `storno okno` ani procesní věty o tom, jak jsou pravidla komunikovaná; preferuj krátké formulace typu `Změna nebo zrušení termínu je možné nejpozději 24 hodin předem.` nebo kontextovou variantu se stejným významem.
 - `/storno-podminky` už nepoužívá jen generický právní text; stránka má vlastní akční skladbu `hero -> kontaktní box -> rychlý přehled pravidel -> krátké sekce`, aby klientka během pár sekund viděla co dělat a jaké dopady má pozdní storno nebo no-show.
 - Copy na `/storno-podminky` je nyní záměrně měkčí: zdůrazňuje včasné oznámení a provozní dopad pozdního zrušení, ale automaticky nekomunikuje storno poplatek; zároveň výslovně odkazuje i na storno link v potvrzení rezervace a 24h reminderu.

@@ -387,9 +387,9 @@ export function buildContactItems(input: {
 }
 
 export const contactItems = buildContactItems({
-  phone: '+420 777 000 000',
-  email: 'hello@ppstudio.cz',
-  addressLine: 'Masarykova 12, 602 00 Brno',
+  phone: '+420 732 856 036',
+  email: 'info@ppstudio.cz',
+  addressLine: 'Sadová 2, 760 01 Zlín',
   instagramUrl: null,
 });
 

@@ -105,7 +105,7 @@ export async function sendEmail(message: EmailDeliveryMessage): Promise<EmailDel
 
   const transporter = getTransporter();
   const emailBranding = await getEmailBrandingSettings();
-  const requestedSenderEmail = emailBranding.senderEmail || env.SMTP_FROM_EMAIL || "hello@ppstudio.cz";
+  const requestedSenderEmail = emailBranding.senderEmail || env.SMTP_FROM_EMAIL || "info@ppstudio.cz";
   const fromEmail = getSafeEnvelopeFromEmail(requestedSenderEmail);
 
   if (fromEmail !== requestedSenderEmail) {

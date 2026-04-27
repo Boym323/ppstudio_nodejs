@@ -9,7 +9,7 @@ export const metadata: Metadata = {
     absolute: 'PP Studio | Pavlína Pomykalová',
   },
   description:
-    'Moderní prezentační web pro kosmetický salon s důrazem na důvěru, čisté UX a silnou cestu k rezervaci.',
+    'PP Studio Pavlíny Pomykalové ve Zlíně nabízí kosmetická ošetření pleti, péči o řasy a obočí, depilaci, líčení a online rezervaci termínu.',
 };
 
 export default async function Page() {
