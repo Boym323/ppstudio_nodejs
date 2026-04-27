@@ -218,7 +218,7 @@ export function AdminVoucherForm({ data }: AdminVoucherFormProps) {
         <aside className="space-y-3 xl:sticky xl:top-24">
           <VoucherPreview preview={preview} message={message} />
 
-          <div className="rounded-[1.15rem] border border-white/8 bg-white/[0.035] p-3.5">
+          <div className="rounded-[1.15rem] border border-white/10 bg-[#181519] p-3.5 shadow-[0_18px_42px_rgba(0,0,0,0.22)]">
             <button
               type="submit"
               disabled={pending}
@@ -259,8 +259,8 @@ function TypeButton({
       className={cn(
         "min-h-28 rounded-[1.1rem] border px-4 py-3 text-left transition",
         active
-          ? "border-[var(--color-accent)]/55 bg-[rgba(190,160,120,0.13)] text-white shadow-[0_0_0_1px_rgba(190,160,120,0.08)]"
-          : "border-white/10 bg-black/16 text-white/68 hover:border-white/18 hover:bg-white/6",
+          ? "border-[var(--color-accent)]/60 bg-[rgba(190,160,120,0.18)] text-white shadow-[0_0_0_1px_rgba(190,160,120,0.12)]"
+          : "border-white/10 bg-[#171419] text-white/68 hover:border-white/18 hover:bg-[#1d1920]",
       )}
     >
       <span className="flex items-start justify-between gap-3">
@@ -288,14 +288,14 @@ function ServicePreview({
 }) {
   if (!service) {
     return (
-      <div className="rounded-[1.1rem] border border-dashed border-white/14 bg-white/4 p-4 text-sm leading-6 text-white/56">
+      <div className="rounded-[1.1rem] border border-dashed border-white/14 bg-[#171419] p-4 text-sm leading-6 text-white/62">
         Nejdřív založte nebo aktivujte službu v katalogu.
       </div>
     );
   }
 
   return (
-    <dl className="grid gap-2 rounded-[1.1rem] border border-white/8 bg-white/[0.035] p-3 text-sm">
+    <dl className="grid gap-2 rounded-[1.1rem] border border-white/8 bg-[#171419] p-3 text-sm">
       <PreviewRow label="Služba" value={service.publicName ?? service.name} />
       <PreviewRow label="Cena" value={service.priceFromCzk === null ? "Neuvedeno" : czkFormatter.format(service.priceFromCzk)} />
       <PreviewRow label="Délka" value={`${service.durationMinutes} min`} />
@@ -320,7 +320,7 @@ function SectionBlock({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-[1.2rem] border border-white/8 bg-white/[0.035] p-4">
+    <section className="rounded-[1.2rem] border border-white/8 bg-[#151317] p-4">
       <h3 className="mb-3 text-sm font-semibold text-white">{title}</h3>
       {children}
     </section>
@@ -362,7 +362,7 @@ function VoucherPreview({
   message: string;
 }) {
   return (
-    <section className="overflow-hidden rounded-[1.15rem] border border-[var(--color-accent)]/18 bg-[linear-gradient(145deg,rgba(190,160,120,0.14),rgba(255,255,255,0.035))]">
+    <section className="overflow-hidden rounded-[1.15rem] border border-[var(--color-accent)]/22 bg-[linear-gradient(145deg,rgba(190,160,120,0.18),rgba(21,19,23,0.98))] shadow-[0_18px_42px_rgba(0,0,0,0.22)]">
       <div className="border-b border-white/8 p-4">
         <p className="text-[0.64rem] uppercase tracking-[0.22em] text-[var(--color-accent-soft)]">
           Náhled voucheru
@@ -446,4 +446,4 @@ function formatDateInput(value: string) {
 }
 
 const inputClassName =
-  "mt-2 w-full rounded-[1rem] border border-white/10 bg-black/20 px-3.5 py-2.5 text-sm text-white outline-none transition placeholder:text-white/30 focus:border-[var(--color-accent)]/60";
+  "mt-2 w-full rounded-[1rem] border border-white/10 bg-[#0f0d12] px-3.5 py-2.5 text-sm text-white outline-none transition placeholder:text-white/35 focus:border-[var(--color-accent)]/65";

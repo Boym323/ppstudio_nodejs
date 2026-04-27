@@ -7,6 +7,7 @@
 
 ## Rozhodnutí
 - Přidáváme routy `/admin/vouchery/novy` pro OWNER a `/admin/provoz/vouchery/novy` pro SALON.
+- Statické voucher routy mají vlastní admin layout wrapper, aby vytvoření i detail běžely uvnitř standardního admin shellu, ne přímo nad veřejným světlým body pozadím.
 - Routy sdílí `createAdminVoucherCreateRoute(...)`, komponentu `src/features/admin/components/admin-voucher-form.tsx` a server action `createAdminVoucherAction(...)`.
 - Server action vždy ověřuje roli `OWNER` nebo `SALON`, validuje vstup přes existující voucher Zod schéma a pro typ `SERVICE` znovu kontroluje, že vybraná služba je aktivní.
 - Formulář výchozí na typ `VALUE`, předvyplní dnešní `validFrom` a `validUntil` plus 12 měsíců v timezone `Europe/Prague`.
