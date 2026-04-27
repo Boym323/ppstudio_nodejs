@@ -78,6 +78,26 @@ export function getAdminVouchersHref(area: AdminArea) {
 }
 
 export type AdminVoucherDetailData = NonNullable<Awaited<ReturnType<typeof getAdminVoucherDetailData>>>;
+export type AdminVoucherCreatePageData = Awaited<ReturnType<typeof getAdminVoucherCreatePageData>>;
+
+const pragueDateFormatter = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "Europe/Prague",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+
+function formatDateInputValue(value: Date) {
+  return pragueDateFormatter.format(value);
+}
+
+function addMonths(value: Date, months: number) {
+  const result = new Date(value);
+
+  result.setMonth(result.getMonth() + months);
+
+  return result;
+}
 
 async function countVouchers(where: Prisma.Sql = Prisma.empty) {
   const rows = await prisma.$queryRaw<Array<{ count: number }>>(Prisma.sql`
@@ -179,5 +199,44 @@ export async function getAdminVoucherDetailData(area: AdminArea, voucherId: stri
           : `/admin/provoz/rezervace/${redemption.booking.id}`
         : null,
     })),
+  };
+}
+
+export async function getAdminVoucherCreatePageData(area: AdminArea) {
+  const today = new Date();
+  const defaultValidUntil = addMonths(today, 12);
+  const services = await prisma.service.findMany({
+    where: {
+      isActive: true,
+    },
+    orderBy: [
+      { category: { sortOrder: "asc" } },
+      { sortOrder: "asc" },
+      { name: "asc" },
+    ],
+    select: {
+      id: true,
+      name: true,
+      publicName: true,
+      durationMinutes: true,
+      priceFromCzk: true,
+      category: {
+        select: {
+          name: true,
+          isActive: true,
+        },
+      },
+    },
+  });
+
+  return {
+    area,
+    listHref: getAdminVouchersHref(area),
+    services,
+    initialValues: {
+      type: "VALUE" as const,
+      validFrom: formatDateInputValue(today),
+      validUntil: formatDateInputValue(defaultValidUntil),
+    },
   };
 }

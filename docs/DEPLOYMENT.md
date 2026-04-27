@@ -97,6 +97,12 @@ Postup nasazení aplikace do produkce.
      - rychlou úpravu času bez kolize
      - blokaci a archivaci
      - zákaz smazání slotu s navázanou rezervací
+   - sekci `Vouchery` na `/admin/vouchery` a `/admin/provoz/vouchery`:
+     - tlačítko `Nový voucher` vede na správnou owner/salon route
+     - vytvoření hodnotového voucheru s částkou, platností a volitelným kupujícím
+     - vytvoření voucheru na aktivní službu a uložení snapshotu názvu, ceny a délky
+     - po vytvoření redirect na odpovídající detail voucheru
+     - neaktivní služby se v selectu ani server action nepovolí
    - owner sekci `/admin/email-logy` po každé změně Prisma schématu nebo e-mailové outbox vrstvy
    - owner sekci `/admin/nastaveni`:
      - uložení všech tří bloků

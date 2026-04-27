@@ -5,10 +5,12 @@ import { type AdminArea } from "@/config/navigation";
 import { AdminBookingDetailPage } from "@/features/admin/components/admin-booking-detail-page";
 import { AdminBookingsPage } from "@/features/admin/components/admin-bookings-page";
 import { AdminOverviewPage } from "@/features/admin/components/admin-overview-page";
+import { AdminPageShell, AdminPanel } from "@/features/admin/components/admin-page-shell";
 import { AdminSectionPage } from "@/features/admin/components/admin-section-page";
 import { AdminSettingsPage } from "@/features/admin/components/admin-settings-page";
 import { AdminMediaPage } from "@/features/admin/components/admin-media-page";
 import { AdminClientDetailPage } from "@/features/admin/components/admin-client-detail-page";
+import { AdminVoucherForm } from "@/features/admin/components/admin-voucher-form";
 import { AdminVoucherDetailPage } from "@/features/admin/components/admin-voucher-detail-page";
 import { AdminClientsPage } from "@/features/admin/components/admin-clients-page";
 import { AdminVouchersPage } from "@/features/admin/components/admin-vouchers-page";
@@ -23,7 +25,7 @@ import { prisma } from "@/lib/prisma";
 
 import { getAdminBookingDetailData } from "./admin-booking";
 import { getAdminClientDetailData } from "./admin-clients";
-import { getAdminVoucherDetailData } from "./admin-vouchers";
+import { getAdminVoucherCreatePageData, getAdminVoucherDetailData } from "./admin-vouchers";
 import { isAdminSectionSlug, requireAdminSectionAccess } from "./admin-guards";
 import { findSlotWeekContext } from "./admin-slots";
 
@@ -224,6 +226,31 @@ export function createAdminVoucherDetailRoute(area: AdminArea) {
     }
 
     return <AdminVoucherDetailPage data={data} />;
+  };
+}
+
+export function createAdminVoucherCreateRoute(area: AdminArea) {
+  return async function AdminVoucherCreateRoute() {
+    await requireAdminSectionAccess(area, "vouchery");
+    const data = await getAdminVoucherCreatePageData(area);
+
+    return (
+      <AdminPageShell
+        eyebrow={area === "owner" ? "Nový voucher" : "Provozní voucher"}
+        title="Vytvořit voucher"
+        description="Vystavení hodnotového poukazu nebo poukazu na aktivní službu. PDF a automatické odeslání e-mailem zatím nejsou součástí procesu."
+        compact={area === "salon"}
+      >
+        <AdminPanel
+          title="Nový voucher"
+          description="Vyplňte typ, hodnotu nebo službu, platnost a volitelné údaje kupujícího."
+          compact={area === "salon"}
+          denseHeader
+        >
+          <AdminVoucherForm data={data} />
+        </AdminPanel>
+      </AdminPageShell>
+    );
   };
 }
 

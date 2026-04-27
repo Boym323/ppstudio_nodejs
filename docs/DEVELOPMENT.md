@@ -80,6 +80,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - stránka používá `src/features/admin/lib/admin-vouchers.ts` jako read model a `src/features/admin/components/admin-vouchers-page.tsx` jako prezentační vrstvu,
   - query parametry jsou `q`, `type` a `status`; filtr stavu musí odpovídat efektivnímu voucher statusu, ne jen hodnotě uložené v DB.
 - Read-only detail voucheru běží přes konkrétní routy `/admin/vouchery/[voucherId]` a `/admin/provoz/vouchery/[voucherId]`, route factory `createAdminVoucherDetailRoute(...)`, admin wrapper `getAdminVoucherDetailData(...)` a komponentu `src/features/admin/components/admin-voucher-detail-page.tsx`.
+- Tvorba voucheru běží přes konkrétní routy `/admin/vouchery/novy` a `/admin/provoz/vouchery/novy`, route factory `createAdminVoucherCreateRoute(...)`, sdílený formulář `src/features/admin/components/admin-voucher-form.tsx` a server action `createAdminVoucherAction(...)`. Admin action vždy ověřuje roli `OWNER` nebo `SALON`, znovu validuje Zod schéma a pro `SERVICE` povolí jen aktivní službu.
 - Detail voucheru smí zobrazovat interní poznámku pouze v adminu; veřejné PDF ani veřejné ověření voucheru ji později nesmí číst z veřejného read modelu.
 - Při budoucím napojení voucherů do `/rezervace` veřejný submit nesmí odečítat zůstatek ani vytvářet `VoucherRedemption`; smí pouze uložit intent pole na `Booking`.
 

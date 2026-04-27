@@ -110,6 +110,7 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
   - skutečné čerpání vzniká pouze admin/server akcí, která zapisuje `VoucherRedemption`.
 - Admin evidence voucherů je dostupná pro `OWNER` na `/admin/vouchery` a pro `SALON` na `/admin/provoz/vouchery`.
 - Seznam voucherů podporuje hledání podle query parametru `q`, filtr typu `type=all|value|service` a filtr stavu `status=all|active|partially_redeemed|redeemed|expired|cancelled|draft`.
+- Nový voucher lze vytvořit přes `/admin/vouchery/novy` nebo `/admin/provoz/vouchery/novy`. Formulář podporuje hodnotový poukaz s částkou v Kč a poukaz na aktivní službu se snapshotem názvu, ceny a délky. Údaje kupujícího jsou volitelné a e-mail se zatím pouze ukládá pro budoucí ruční odeslání.
 - Detail voucheru je read-only na `/admin/vouchery/[voucherId]` a `/admin/provoz/vouchery/[voucherId]`. Ukazuje čitelný kód, typ, efektivní stav, platnosti, údaje kupujícího/obdarovaného, hodnotu nebo snapshot služby, historii uplatnění a interní poznámku. PDF, editace, rušení, mazání a uplatnění voucheru zatím nejsou dostupné.
 - Stav `Propadlý` v admin seznamu vychází z aplikačního efektivního pravidla: aktivní nebo částečně čerpaný voucher po `validUntil` se zobrazuje a filtruje jako propadlý, i když DB status ještě není `EXPIRED`.
 
