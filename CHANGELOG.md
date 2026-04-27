@@ -6,6 +6,9 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Přidána serverová doménová vrstva voucher systému bez UI: generování a normalizace kódů, české formátování stavů, Zod schémata, vytvoření hodnotového i službového voucheru, bezpečná public validace, transakční admin čerpání a základní read modely.
+- Voucher čerpání hodnotových poukazů nyní chrání zůstatek row lockem a podmíněným update; službové poukazy ukládají redemption snapshot služby a po uplatnění přechází do stavu `REDEEMED`.
+- Přibyla integrační doménová coverage pro voucher normalizaci, tvorbu, public validaci a admin redemption scénáře.
 - Přidán databázový základ voucher systému: Prisma enumy `VoucherType` / `VoucherStatus`, modely `Voucher` a `VoucherRedemption`, intent pole na `Booking` a vztahy na `Service` a `AdminUser`; veřejné booking UI, admin UI a PDF zatím zůstávají mimo rozsah.
 - Opraven `sitemap.xml`: `lastModified` už nepoužívá jednotné aktuální datum pro všechny URL. Detail služby nyní bere `Service.updatedAt`, zatímco statické stránky mají stabilní datum poslední obsahové revize; přehledové stránky `/sluzby` a `/cenik` se navíc aktualizují podle nejnovější změny ve službách.
 - Sjednoceny fallback kontakty a globální SEO popis: `siteConfig`, veřejný content, `SiteSettings` fallback i e-mailová vrstva už nepoužívají placeholder `+420 777 000 000` / `hello@ppstudio.cz`, ale skutečné údaje PP Studia ve Zlíně.

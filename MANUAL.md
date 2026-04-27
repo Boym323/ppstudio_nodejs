@@ -103,6 +103,11 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
   - klienty, rezervace a historii stavů
   - databázový základ dárkových voucherů (`Voucher`, `VoucherRedemption`) bez UI a bez veřejného zadávání
   - e-mailové logy, action tokeny, legacy `Setting`, singleton `SiteSettings` a metadata model `MediaAsset`
+- Voucher systém má připravenou serverovou business vrstvu bez uživatelského rozhraní:
+  - hodnotový voucher (`VALUE`) drží původní a zbývající hodnotu v Kč a může být čerpaný postupně,
+  - voucher na službu (`SERVICE`) drží snapshot služby v okamžiku vydání a po admin uplatnění se celý označí jako uplatněný,
+  - veřejná validace voucheru zatím pouze ověřuje použitelnost pro vybranou službu a nic neodečítá,
+  - skutečné čerpání vzniká pouze admin/server akcí, která zapisuje `VoucherRedemption`.
 
 ## Lokální Spuštění
 ```bash

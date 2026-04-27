@@ -72,3 +72,4 @@ Sem patří krátké záznamy architektonických rozhodnutí.
 - `0055-owner-pushover-notifications-v1.md`
 - `0056-client-email-optional-for-manual-booking.md`
 - `0057-voucher-database-foundation-v1.md`
+- `0058-voucher-server-domain-v1.md`

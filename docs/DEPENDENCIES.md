@@ -14,6 +14,7 @@ Seznam důležitých knihoven a důvod jejich použití.
 - Matomo tracking nepřidává žádnou npm závislost; používá `next/script`, App Router navigation hooks a standardní `window._paq` frontu.
 - Server-side Matomo Reporting API vrstva také nepřidává žádnou npm závislost; používá vestavěný `fetch`, Next.js revalidation cache a lokální TypeScript normalizaci odpovědí.
 - Pushover notifikace nepridavaji zadnou npm zavislost; serverova integrace pouziva vestaveny `fetch`, `URLSearchParams`, Prisma a existujici Next.js server action pattern.
+- Voucher business vrstva nepřidává žádnou npm závislost; kódy generuje přes vestavěný Node.js `crypto`, DB logiku řeší Prisma a vstupy validuje existující `zod`.
 
 ## Core
 - `next`: framework aplikace.

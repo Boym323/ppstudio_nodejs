@@ -58,6 +58,7 @@ Evidence produkčních incidentů a jejich řešení.
 - Apple Calendar subscription vracející prázdný nebo nevalidní obsah kvůli chybě v ICS escapování, line folding nebo timezone mapování `Europe/Prague`.
 - Zákaznická `.ics` událost posunutá o hodinu kvůli chybě v `DTSTART/DTEND` nebo chybějícímu `VTIMEZONE` bloku `Europe/Prague`.
 - Zákaznický `.ics` endpoint vracející event i pro `PENDING` nebo `CANCELLED` rezervaci; správně má být aktivní jen pro `CONFIRMED`.
+- Dvojí nebo chybné uplatnění voucheru: při incidentu porovnej `Voucher.remainingValueCzk`, `Voucher.status`, navázané `VoucherRedemption` záznamy a admin aktéra; public validace voucheru sama nikdy nemá vytvářet redemption ani odečítat zůstatek.
 - Rezervace mimo stav `CONFIRMED` omylem zobrazené v owner kalendáři; feed má být jen read-only provozní přehled potvrzených termínů.
 - Opakované použití stejného email akčního odkazu, které musí bezpečně skončit stavem `už zpracováno`, ne druhou změnou rezervace.
 - Rezervace potvrzená nebo zrušená jinou cestou ještě před otevřením email akce; confirmation screen musí vrátit korektní stav `už potvrzeno` / `už zrušeno`, ne 500.
