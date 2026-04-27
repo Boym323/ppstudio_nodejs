@@ -21,6 +21,7 @@ export type AdminSectionSlug =
   | "overview"
   | "rezervace"
   | "volne-terminy"
+  | "vouchery"
   | "klienti"
   | "media"
   | "sluzby"
@@ -54,6 +55,15 @@ const sharedSections = [
     salonLabel: "Termíny",
     description: "Ruční publikace a rychlá kontrola dostupných slotů.",
     salonDescription: "Rychlé přidání nového termínu a kontrola toho, co je volné.",
+  },
+  {
+    slug: "vouchery",
+    ownerHref: "/admin/vouchery",
+    salonHref: "/admin/provoz/vouchery",
+    label: "Vouchery",
+    salonLabel: "Vouchery",
+    description: "Evidence dárkových voucherů, jejich platnosti a zbývající hodnoty.",
+    salonDescription: "Rychlá kontrola voucherů, jejich stavu a zbývajícího čerpání.",
   },
   {
     slug: "klienti",

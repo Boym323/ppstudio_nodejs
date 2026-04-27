@@ -49,6 +49,18 @@ export function formatVoucherValue(voucher: {
   return price ? `${serviceName} (${price})` : serviceName;
 }
 
+export function formatVoucherRemaining(voucher: {
+  type: VoucherType;
+  remainingValueCzk: number | null;
+  status: VoucherStatus;
+}): string {
+  if (voucher.type === VoucherType.VALUE) {
+    return czkFormatter.format(voucher.remainingValueCzk ?? 0);
+  }
+
+  return voucher.status === VoucherStatus.REDEEMED ? "Vyčerpáno" : "1 služba";
+}
+
 export function getEffectiveVoucherStatus(
   voucher: {
     status: VoucherStatus;

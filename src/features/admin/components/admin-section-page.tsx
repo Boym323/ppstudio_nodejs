@@ -60,6 +60,10 @@ function getSectionDescription(section: Exclude<AdminSectionSlug, "overview">, a
       return owner
         ? "Ruční správa publikovaných slotů a kontrola kapacity pro veřejné rezervační flow."
         : "Jednoduchý přehled volných termínů bez technických detailů navíc.";
+    case "vouchery":
+      return owner
+        ? "Evidence vydaných voucherů, platností a zbývající hodnoty pro provozní kontrolu."
+        : "Rychlá kontrola voucherů a jejich použitelnosti pro běžný provoz.";
     case "klienti":
       return owner
         ? "Historie klientely, aktivita a kontext pro vztah se salonem i reporting."
@@ -92,6 +96,8 @@ function getPanelTitle(section: Exclude<AdminSectionSlug, "overview">, area: Adm
         return "Termíny k obsluze";
       case "volne-terminy":
         return "Připravené sloty";
+      case "vouchery":
+        return "Evidence voucherů";
       case "klienti":
         return "Klientská karta";
       case "media":

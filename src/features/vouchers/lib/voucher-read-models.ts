@@ -2,6 +2,7 @@ import { Prisma, VoucherStatus, VoucherType } from "@prisma/client";
 
 import { normalizeVoucherCode } from "@/features/vouchers/lib/voucher-code";
 import {
+  formatVoucherRemaining,
   formatVoucherStatus,
   formatVoucherType,
   formatVoucherValue,
@@ -14,70 +15,116 @@ export type VoucherListFilters = {
   type?: VoucherType | "all";
   status?: VoucherStatus | "all";
   take?: number;
+  now?: Date;
 };
 
-function buildVoucherWhere(filters: VoucherListFilters): Prisma.VoucherWhereInput {
-  const where: Prisma.VoucherWhereInput = {};
+function buildVoucherSqlWhere(filters: VoucherListFilters): Prisma.Sql {
+  const conditions: Prisma.Sql[] = [];
   const query = filters.query?.trim();
+  const now = filters.now ?? new Date();
 
   if (filters.type && filters.type !== "all") {
-    where.type = filters.type;
+    conditions.push(Prisma.sql`v."type" = ${filters.type}::"VoucherType"`);
   }
 
   if (filters.status && filters.status !== "all") {
-    where.status = filters.status;
+    if (filters.status === "EXPIRED") {
+      conditions.push(Prisma.sql`(
+        v."status" = 'EXPIRED'::"VoucherStatus"
+        OR (
+          v."status" IN ('ACTIVE'::"VoucherStatus", 'PARTIALLY_REDEEMED'::"VoucherStatus")
+          AND v."validUntil" < ${now}
+        )
+      )`);
+    } else if (filters.status === "ACTIVE" || filters.status === "PARTIALLY_REDEEMED") {
+      conditions.push(Prisma.sql`v."status" = ${filters.status}::"VoucherStatus"`);
+      conditions.push(Prisma.sql`(v."validUntil" IS NULL OR v."validUntil" >= ${now})`);
+    } else {
+      conditions.push(Prisma.sql`v."status" = ${filters.status}::"VoucherStatus"`);
+    }
   }
 
   if (query) {
-    where.OR = [
-      { code: { contains: query, mode: "insensitive" } },
-      { purchaserName: { contains: query, mode: "insensitive" } },
-      { purchaserEmail: { contains: query, mode: "insensitive" } },
-      { recipientName: { contains: query, mode: "insensitive" } },
-      { serviceNameSnapshot: { contains: query, mode: "insensitive" } },
-    ];
+    const likeQuery = `%${query}%`;
+    conditions.push(Prisma.sql`(
+      v."code" ILIKE ${likeQuery}
+      OR v."purchaserName" ILIKE ${likeQuery}
+      OR v."purchaserEmail" ILIKE ${likeQuery}
+      OR v."recipientName" ILIKE ${likeQuery}
+      OR v."serviceNameSnapshot" ILIKE ${likeQuery}
+    )`);
   }
 
-  return where;
+  return conditions.length > 0
+    ? Prisma.sql`WHERE ${Prisma.join(conditions, " AND ")}`
+    : Prisma.empty;
 }
 
 export async function listVouchers(filters: VoucherListFilters = {}) {
-  const vouchers = await prisma.voucher.findMany({
-    where: buildVoucherWhere(filters),
-    orderBy: [{ createdAt: "desc" }, { code: "asc" }],
-    take: Math.min(Math.max(filters.take ?? 50, 1), 200),
-    select: {
-      id: true,
-      code: true,
-      type: true,
-      status: true,
-      originalValueCzk: true,
-      remainingValueCzk: true,
-      serviceNameSnapshot: true,
-      servicePriceSnapshotCzk: true,
-      validFrom: true,
-      validUntil: true,
-      issuedAt: true,
-      createdAt: true,
-      recipientName: true,
-      purchaserName: true,
-      _count: {
-        select: {
-          redemptions: true,
-        },
-      },
-    },
-  });
+  const take = Math.min(Math.max(filters.take ?? 50, 1), 200);
+  const where = buildVoucherSqlWhere(filters);
+  const vouchers = await prisma.$queryRaw<
+    Array<{
+      id: string;
+      code: string;
+      type: VoucherType;
+      status: VoucherStatus;
+      originalValueCzk: number | null;
+      remainingValueCzk: number | null;
+      serviceNameSnapshot: string | null;
+      servicePriceSnapshotCzk: number | null;
+      validFrom: Date;
+      validUntil: Date | null;
+      issuedAt: Date | null;
+      createdAt: Date;
+      recipientName: string | null;
+      purchaserName: string | null;
+      redemptionsCount: number;
+    }>
+  >(Prisma.sql`
+    SELECT
+      v."id",
+      v."code",
+      v."type",
+      v."status",
+      v."originalValueCzk",
+      v."remainingValueCzk",
+      v."serviceNameSnapshot",
+      v."servicePriceSnapshotCzk",
+      v."validFrom",
+      v."validUntil",
+      v."issuedAt",
+      v."createdAt",
+      v."recipientName",
+      v."purchaserName",
+      (
+        SELECT COUNT(*)::int
+        FROM "VoucherRedemption" vr
+        WHERE vr."voucherId" = v."id"
+      ) AS "redemptionsCount"
+    FROM "Voucher" v
+    ${where}
+    ORDER BY v."createdAt" DESC, v."code" ASC
+    LIMIT ${take}
+  `);
 
   return vouchers.map((voucher) => {
     const effectiveStatus = getEffectiveVoucherStatus(voucher);
 
     return {
       ...voucher,
+      _count: {
+        redemptions: voucher.redemptionsCount,
+      },
       effectiveStatus,
       typeLabel: formatVoucherType(voucher.type),
       statusLabel: formatVoucherStatus(effectiveStatus),
       valueLabel: formatVoucherValue(voucher),
+      remainingLabel: formatVoucherRemaining({
+        type: voucher.type,
+        remainingValueCzk: voucher.remainingValueCzk,
+        status: effectiveStatus,
+      }),
     };
   });
 }

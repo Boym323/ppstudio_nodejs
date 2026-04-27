@@ -6,6 +6,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Přidána admin sekce `Vouchery` pro OWNER i SALON na `/admin/vouchery` a `/admin/provoz/vouchery`: seznam podporuje hledání přes `q`, filtr typu a efektivní filtr stavu včetně aplikačně počítané expirace.
+- Voucher read model nově vrací formátovaný zůstatek a při filtrování stavu používá efektivní `EXPIRED` pravidlo místo samotného DB statusu.
 - Přidána serverová doménová vrstva voucher systému bez UI: generování a normalizace kódů, české formátování stavů, Zod schémata, vytvoření hodnotového i službového voucheru, bezpečná public validace, transakční admin čerpání a základní read modely.
 - Voucher čerpání hodnotových poukazů nyní chrání zůstatek row lockem a podmíněným update; službové poukazy ukládají redemption snapshot služby a po uplatnění přechází do stavu `REDEEMED`.
 - Přibyla integrační doménová coverage pro voucher normalizaci, tvorbu, public validaci a admin redemption scénáře.

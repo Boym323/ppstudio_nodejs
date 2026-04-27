@@ -1,0 +1,158 @@
+import { Prisma, type VoucherStatus, type VoucherType } from "@prisma/client";
+
+import { type AdminArea } from "@/config/navigation";
+import { listVouchers } from "@/features/vouchers/lib/voucher-read-models";
+import { prisma } from "@/lib/prisma";
+
+export type AdminVoucherTypeFilter = "all" | "value" | "service";
+export type AdminVoucherStatusFilter =
+  | "all"
+  | "active"
+  | "partially_redeemed"
+  | "redeemed"
+  | "expired"
+  | "cancelled"
+  | "draft";
+
+export type AdminVoucherFilters = {
+  q: string;
+  type: AdminVoucherTypeFilter;
+  status: AdminVoucherStatusFilter;
+};
+
+const typeFilterToVoucherType: Record<Exclude<AdminVoucherTypeFilter, "all">, VoucherType> = {
+  value: "VALUE",
+  service: "SERVICE",
+};
+
+const statusFilterToVoucherStatus: Record<Exclude<AdminVoucherStatusFilter, "all">, VoucherStatus> = {
+  active: "ACTIVE",
+  partially_redeemed: "PARTIALLY_REDEEMED",
+  redeemed: "REDEEMED",
+  expired: "EXPIRED",
+  cancelled: "CANCELLED",
+  draft: "DRAFT",
+};
+
+function getSingleParam(value: string | string[] | undefined) {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function normalizeSearchParams(
+  searchParams?: Record<string, string | string[] | undefined>,
+): AdminVoucherFilters {
+  const type = getSingleParam(searchParams?.type);
+  const status = getSingleParam(searchParams?.status);
+
+  return {
+    q: getSingleParam(searchParams?.q).slice(0, 64),
+    type: isVoucherTypeFilter(type) ? type : "all",
+    status: isVoucherStatusFilter(status) ? status : "all",
+  };
+}
+
+function isVoucherTypeFilter(value: string): value is AdminVoucherTypeFilter {
+  return value === "all" || value === "value" || value === "service";
+}
+
+function isVoucherStatusFilter(value: string): value is AdminVoucherStatusFilter {
+  return (
+    value === "all" ||
+    value === "active" ||
+    value === "partially_redeemed" ||
+    value === "redeemed" ||
+    value === "expired" ||
+    value === "cancelled" ||
+    value === "draft"
+  );
+}
+
+export function getAdminVoucherHref(area: AdminArea, voucherId: string) {
+  return area === "owner"
+    ? `/admin/vouchery/${voucherId}`
+    : `/admin/provoz/vouchery/${voucherId}`;
+}
+
+export function getAdminVouchersHref(area: AdminArea) {
+  return area === "owner" ? "/admin/vouchery" : "/admin/provoz/vouchery";
+}
+
+async function countVouchers(where: Prisma.Sql = Prisma.empty) {
+  const rows = await prisma.$queryRaw<Array<{ count: number }>>(Prisma.sql`
+    SELECT COUNT(*)::int AS "count"
+    FROM "Voucher" v
+    ${where}
+  `);
+
+  return rows[0]?.count ?? 0;
+}
+
+export async function getAdminVouchersPageData(
+  area: AdminArea,
+  searchParams?: Record<string, string | string[] | undefined>,
+) {
+  const filters = normalizeSearchParams(searchParams);
+  const now = new Date();
+
+  const [totalCount, activeCount, partiallyRedeemedCount, redeemedCount, expiredCount, vouchers] =
+    await Promise.all([
+      countVouchers(),
+      countVouchers(Prisma.sql`
+        WHERE v."status" = 'ACTIVE'::"VoucherStatus"
+          AND (v."validUntil" IS NULL OR v."validUntil" >= ${now})
+      `),
+      countVouchers(Prisma.sql`
+        WHERE v."status" = 'PARTIALLY_REDEEMED'::"VoucherStatus"
+          AND (v."validUntil" IS NULL OR v."validUntil" >= ${now})
+      `),
+      countVouchers(Prisma.sql`WHERE v."status" = 'REDEEMED'::"VoucherStatus"`),
+      countVouchers(Prisma.sql`
+        WHERE v."status" = 'EXPIRED'::"VoucherStatus"
+          OR (
+            v."status" IN ('ACTIVE'::"VoucherStatus", 'PARTIALLY_REDEEMED'::"VoucherStatus")
+            AND v."validUntil" < ${now}
+          )
+      `),
+      listVouchers({
+        query: filters.q,
+        type: filters.type === "all" ? "all" : typeFilterToVoucherType[filters.type],
+        status: filters.status === "all" ? "all" : statusFilterToVoucherStatus[filters.status],
+        now,
+        take: 100,
+      }),
+    ]);
+
+  return {
+    area,
+    currentPath: getAdminVouchersHref(area),
+    filters,
+    vouchers: vouchers.map((voucher) => ({
+      ...voucher,
+      detailHref: getAdminVoucherHref(area, voucher.id),
+    })),
+    stats: [
+      {
+        label: "Voucherů celkem",
+        value: String(totalCount),
+        tone: "accent" as const,
+        detail: "Všechny vystavené i rozpracované vouchery v evidenci.",
+      },
+      {
+        label: "Aktivní",
+        value: String(activeCount),
+        detail: "Použitelné vouchery bez propadlé platnosti.",
+      },
+      {
+        label: "Částečně čerpané",
+        value: String(partiallyRedeemedCount),
+        detail: "Hodnotové poukazy se zbytkem k dalšímu uplatnění.",
+      },
+      {
+        label: "Uplatněné / propadlé",
+        value: String(redeemedCount + expiredCount),
+        tone: "muted" as const,
+        detail: `${redeemedCount} uplatněných, ${expiredCount} propadlých.`,
+      },
+    ],
+  };
+}

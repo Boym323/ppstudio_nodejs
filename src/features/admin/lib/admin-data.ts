@@ -219,6 +219,8 @@ export function getAdminSectionTitle(slug: AdminSectionSlug) {
       return "Rezervace";
     case "volne-terminy":
       return "Volné termíny";
+    case "vouchery":
+      return "Vouchery";
     case "klienti":
       return "Klienti";
     case "media":
@@ -407,6 +409,8 @@ export async function getAdminSectionData(section: AdminSectionSlug, area: Admin
       return getReservationsData(area);
     case "volne-terminy":
       return getSlotsData(area);
+    case "vouchery":
+      throw new Error("Sekce vouchery ma vlastni specializovanou stranku.");
     case "klienti":
       return getClientsData(area);
     case "media":

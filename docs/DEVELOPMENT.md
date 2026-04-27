@@ -68,12 +68,17 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Veřejně dostupná nahraná média se servírují přes route handler `src/app/media/[kind]/[[...path]]/route.ts`, ne přes `public/` repozitáře.
 - `next.config.ts` používá `allowedDevOrigins` pro lokální LAN vývoj na `192.168.0.143` i pro public dev test přes `ppstudio.cz` / `www.ppstudio.cz`; bez toho Next.js 16 z jiného zařízení nebo přes reverse proxy zablokuje dev assety a HMR endpoint `/_next/webpack-hmr`.
 - `npm test` a `npm run test:db:booking` běží s `node --import ./src/test/register-server-only.mjs --import tsx --test ...`, takže plain Node test runner umí načíst `import "server-only"` bez zásahu do ostatních Next internals. Pokud přidáš další server-only moduly, použij tenhle sdílený hook místo lokálních per-test stubů.
-- Voucher doména je v `src/features/vouchers` a zatím záměrně neobsahuje UI, PDF ani napojení do public booking flow. Entry body:
+- Voucher doména je v `src/features/vouchers` a zůstává oddělená od admin UI, PDF i public booking flow. Entry body:
   - `lib/voucher-code.ts` generuje a normalizuje kódy `PP-YYYY-XXXXXX`.
   - `lib/voucher-validation.ts` vrací bezpečný public validační výsledek bez citlivých polí.
   - `lib/voucher-redemption.ts` provádí admin uplatnění v transakci a zapisuje `VoucherRedemption`.
   - `actions/voucher-actions.ts` drží server-side funkce pro vytvoření, validaci a uplatnění bez klientských komponent.
 - Efektivní expirace voucheru je aplikační read pravidlo přes `getEffectiveVoucherStatus(...)`; validace ani read modely automaticky nepřepisují DB status na `EXPIRED`.
+- Admin seznam voucherů je první UI vrstva nad voucher doménou:
+  - route factory obsluhuje `/admin/vouchery` pro `OWNER` i `/admin/provoz/vouchery` pro `SALON`,
+  - navigace a guard berou `vouchery` jako sdílenou admin sekci,
+  - stránka používá `src/features/admin/lib/admin-vouchers.ts` jako read model a `src/features/admin/components/admin-vouchers-page.tsx` jako prezentační vrstvu,
+  - query parametry jsou `q`, `type` a `status`; filtr stavu musí odpovídat efektivnímu voucher statusu, ne jen hodnotě uložené v DB.
 - Při budoucím napojení voucherů do `/rezervace` veřejný submit nesmí odečítat zůstatek ani vytvářet `VoucherRedemption`; smí pouze uložit intent pole na `Booking`.
 
 ## Veřejný Web
@@ -173,6 +178,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Pravý panel planneru je akční inspektor dne; na menších breakpointech se otevírá jako `MobileInspectorSheet`.
 - `src/config/navigation.ts` drží centrální definici admin sekcí, slugů a navigace pro obě role.
 - `src/features/admin/components/admin-sidebar-nav.tsx` je klientská navigace s aktivním stavem podle pathname.
+- Sdílené admin sekce pro `OWNER` i `SALON` zahrnují také `vouchery`; pokud se přidává detail, tvorba nebo čerpání voucheru, zachovej paralelní URL tvar `/admin/vouchery/*` a `/admin/provoz/vouchery/*`, pokud role nemá být záměrně omezená.
 - `src/features/admin/components/admin-overview-page.tsx` je po redesignu jen tenký server wrapper; skutečný overview workspace skládá `src/features/admin/components/admin-dashboard-page.tsx`.
 - `src/features/admin/lib/admin-dashboard.ts` drží serverový read model pro operativní dashboard dne:
   - hero `Dnes`

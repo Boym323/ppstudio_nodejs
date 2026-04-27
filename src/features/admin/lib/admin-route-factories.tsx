@@ -10,6 +10,7 @@ import { AdminSettingsPage } from "@/features/admin/components/admin-settings-pa
 import { AdminMediaPage } from "@/features/admin/components/admin-media-page";
 import { AdminClientDetailPage } from "@/features/admin/components/admin-client-detail-page";
 import { AdminClientsPage } from "@/features/admin/components/admin-clients-page";
+import { AdminVouchersPage } from "@/features/admin/components/admin-vouchers-page";
 import { AdminUsersPage } from "@/features/admin/components/admin-users-page";
 import { AdminServiceCategoriesPage } from "@/features/admin/components/admin-service-categories-page";
 import { AdminServicesPage } from "@/features/admin/components/admin-services-page";
@@ -88,6 +89,10 @@ export function createAdminSectionRoute(area: AdminArea) {
 
     if (section === "klienti") {
       return <AdminClientsPage area={area} searchParams={await searchParams} />;
+    }
+
+    if (section === "vouchery") {
+      return <AdminVouchersPage area={area} searchParams={await searchParams} />;
     }
 
     if (section === "nastaveni") {
