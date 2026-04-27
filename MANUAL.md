@@ -480,7 +480,7 @@ npm run db:clear-booking-data -- --confirm
 - Každá změna stavu z detailu zapisuje položku do `BookingStatusHistory` včetně admin aktéra, důvodu a poznámky.
 - Aby se owner sekce `Email logy` neopírala o ručně zastaralý Prisma klient, `npm run dev` i `npm run build` si nyní předem samy spouštějí `prisma generate`.
 - Ochrana není řešená jen skrytím položek v menu:
-  - `proxy.ts` dál blokuje nepřihlášené vstupy
+  - `proxy.ts` na `/admin/*` validuje podpis i expiraci session JWT cookie (ne jen přítomnost); neplatnou cookie smaže a přesměruje na login
   - server-side guard helpery kontrolují oprávnění každé admin route
   - nedovolený vstup se přesměruje na domovskou admin stránku role nebo skončí `notFound` pro neplatnou sekci
 - Owner a salon route soubory nyní používají sdílené factory wrappery (`src/features/admin/lib/admin-route-factories.tsx`), takže URL i oprávnění zůstávají stejné, ale logika není duplikovaná.
@@ -595,7 +595,7 @@ npm run db:clear-booking-data -- --confirm
 - Referenční implementace v projektu: [`src/app/(public)/sluzby/[slug]/page.tsx`](/var/www/ppstudio/src/app/(public)/sluzby/[slug]/page.tsx).
 
 ## Provozní Poznámky
-- `proxy.ts` filtruje nepřihlášené požadavky na `/admin/*`.
+- `proxy.ts` filtruje požadavky na `/admin/*` podle platné session JWT cookie; neplatná/expirovaná cookie neprojde.
 - Finální autorizace probíhá server-side v admin layoutu a stránkách.
 - Prisma klient používá singleton pattern pro vývoj i produkci.
 - Databáze blokuje překrývající se aktivní sloty přes PostgreSQL exclusion constraint.

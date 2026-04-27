@@ -131,7 +131,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - `POST /api/auth/login` má server-side rate limit (10 minut, IP + e-mail hash) přes helper `src/lib/auth/admin-login-rate-limit.ts`.
 - Audit login pokusů (`SUCCESS`, `INVALID_PAYLOAD`, `INVALID_CREDENTIALS`, `RATE_LIMITED`) se zapisuje do `BookingSubmissionLog` s prefixem `ADMIN_LOGIN_*`.
 - Session payload je podepsaný JWT token v `httpOnly` cookie.
-- `src/proxy.ts` řeší rychlé odfiltrování nepřihlášených návštěv adminu.
+- `src/proxy.ts` řeší rychlý auth gate pro admin: u `/admin/*` ověřuje podpis a expiraci session JWT cookie, ne jen její existenci; neplatnou cookie smaže a přesměruje na login.
 - Role-based autorizace se dokončuje uvnitř serverových helperů v `src/lib/auth/session.ts`.
 - Lite admin účet se v aplikaci hlásí přes bootstrap env proměnné, ale nese databázovou roli `SALON`.
 - Pro role-based admin IA používáme dvě serverově chráněné oblasti:
