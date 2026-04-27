@@ -342,6 +342,10 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - `BookingRescheduleLog` je samostatný auditní model pro doménovou akci přesunu termínu; ukládá původní a nový interval, aktéra a volitelný důvod změny.
 - `BookingStatusHistory` drží auditní stopu změn stavu včetně aktéra a strukturovaných metadat.
 - `ServicePriceChangeLog` drží auditní stopu změn ceníku služeb v adminu; zapisuje jen skutečné změny `priceFromCzk`, ne každý save formuláře.
+- Voucher databázový základ je v migraci `20260427205720_add_vouchers`: `Voucher` eviduje dárkový voucher jako `VALUE` nebo `SERVICE`, stav, kupujícího/obdarovanou, hodnotu nebo snapshot služby a auditní vazbu na admin uživatele.
+- `VoucherRedemption` je jediný důkaz skutečného uplatnění voucheru; veřejné zadání voucheru má v budoucnu ukládat jen záměr, ne čerpání.
+- `Booking` má pro MVP voucher intent přímo na sobě přes `intendedVoucherId`, `intendedVoucherCodeSnapshot` a `intendedVoucherValidatedAt`; samostatný `BookingVoucherIntent` se zatím nezavádí.
+- Další business logiku voucherů drž pod `src/features/vouchers`; admin UI, public booking napojení a PDF generování nejsou součástí databázové foundation migrace.
 - `BookingActionToken` ukládá hash tokenu, expiraci a použití/revokaci pro bezpečné self-service storno, self-service změnu termínu, provozní email akce a zákaznický calendar event.
 - `CalendarFeed` drží owner subscription feed jako samostatnou entitu mimo `SiteSettings`; ukládá scope, aktivaci, rotační salt a audit času změny.
 - Kalendářový token se neukládá jako raw secret do DB. URL se odvozuje serverově z `CalendarFeed.id`, `tokenSalt` a `ADMIN_SESSION_SECRET`, takže:

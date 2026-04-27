@@ -55,6 +55,7 @@ Dokumentace proměnných prostředí pro lokální vývoj i produkci.
 - Pushover konfigurace je oddelena na serverovy app token a per-owner User Key v DB. `PUSHOVER_ENABLED` a `PUSHOVER_APP_TOKEN` cte jen `src/lib/notifications/pushover.ts`; pri chybejici nebo vypnute konfiguraci se notifikace tise preskoci a hlavni booking/email flow pokracuje.
 - Pushover User Key se nespravuje v `.env`, ale v owner-only admin bloku `/admin/nastaveni -> Pushover notifikace`; ulozeny je v `UserNotificationSettings.pushoverUserKey` pro konkretni `AdminUser`.
 - Self-service změna termínu nepřidává nové env proměnné; pokud jsou `NEXT_PUBLIC_MATOMO_*` zapnuté, tokenová stránka může inicializovat Matomo kvůli bezpečným eventům, ale pageview s tokenem neodesílá.
+- Databázový základ voucherů (`Voucher`, `VoucherRedemption` a intent pole na `Booking`) nepřidává žádnou novou env proměnnou; používá stávající `DATABASE_URL`, Prisma migrace a admin session až v budoucí aplikační vrstvě.
 - `NEXT_PUBLIC_APP_URL` je stejně kritická i pro klientský self-service manage link `/rezervace/sprava/[token]`; pokud míří na špatný host nebo schéma, confirmation screen, potvrzovací e-mail i reminder povedou na neplatnou URL.
 - `NEXT_PUBLIC_APP_URL` je stejně kritická i pro zákaznický `.ics` odkaz `/api/bookings/calendar/[token].ics`; pokud míří na špatný host nebo schéma, CTA `Přidat do kalendáře` v potvrzovacím e-mailu povede na neplatnou URL.
 - `NEXT_PUBLIC_APP_URL` je stejně kritická i pro owner ICS subscription feed; z této hodnoty se skládá kopírovatelný Apple Calendar odkaz v adminu.

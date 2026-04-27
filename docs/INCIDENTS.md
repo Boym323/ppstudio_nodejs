@@ -69,6 +69,8 @@ Evidence produkčních incidentů a jejich řešení.
 - Reminder omylem odeslaný po storno nebo přesunu rezervace; worker má před sendem vždy znovu ověřit `Booking.status`, `scheduledStartsAt` a `reminder24hSentAt`.
 - Přesun termínu uložený bez auditního logu nebo bez navýšení `Booking.rescheduleCount`; reschedule flow musí vždy zapisovat `BookingRescheduleLog` i metadata posledního přesunu.
 - Změna ceny služby uložená bez auditní stopy; admin editace musí při skutečné změně `priceFromCzk` vždy zapisovat `ServicePriceChangeLog` s původní a novou hodnotou.
+- Voucher chybně odečtený už při veřejné rezervaci; správné chování je jen intent na `Booking`, skutečné čerpání vzniká výhradně ručním admin zápisem `VoucherRedemption`.
+- Hodnotový voucher čerpaný souběžně bez transakční aktualizace `remainingValueCzk`; budoucí admin akce musí u `VALUE` voucherů zamykat/ověřit aktuální zůstatek a až potom vytvořit `VoucherRedemption`.
 - Rezervační přehled vracející špatné nebo neaktivní filtry po kliknutí na statistický box; klik na aktivní box musí vždy umět vrátit seznam do výchozího stavu bez ruční editace URL.
 - Pracovní seznam rezervací bez vizuálního oddělení dnešních a budoucích termínů; po každém zásahu do read modelu nebo toolbaru ověř bloky `Dnes`, `Zítra`, `Později` a `Dříve`.
 - Detail rezervace po UX refaktoru schová hlavní akce pod fold nebo mimo sticky header; po každém zásahu ověř, že `termín + stav + rychlé akce` zůstávají viditelné bez dalšího scrollu.

@@ -58,6 +58,7 @@ Seznam důležitých knihoven a důvod jejich použití.
 - Veřejná stránka `/studio` nepřidává žádnou novou závislost; galerii skládá z existující media vrstvy a `next/image`.
 - Matomo integrace také nepřidává žádnou novou závislost; helper a CTA wrappers jsou lokální TypeScript/React moduly.
 - Matomo dashboard reporting také nepřidává žádnou novou závislost; `src/lib/analytics/matomo.ts` je server-only wrapper nad Reporting API.
+- Databázový základ voucherů nepřidává žádnou novou závislost; jde čistě o Prisma modely, enumy, migraci a budoucí doménovou vrstvu v `src/features/vouchers`.
 
 ## Kvalita kódu
 - `typescript`: statická typová kontrola.

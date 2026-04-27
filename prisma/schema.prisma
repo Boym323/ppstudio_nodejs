@@ -128,45 +128,61 @@ enum CalendarFeedScope {
   OWNER_BOOKINGS
 }
 
+enum VoucherType {
+  VALUE
+  SERVICE
+}
+
+enum VoucherStatus {
+  DRAFT
+  ACTIVE
+  PARTIALLY_REDEEMED
+  REDEEMED
+  EXPIRED
+  CANCELLED
+}
+
 model AdminUser {
-  id                        String                  @id @default(cuid())
-  email                     String                  @unique
-  name                      String
-  role                      AdminRole
-  passwordHash              String?
-  isActive                  Boolean                 @default(true)
-  invitedAt                 DateTime?
-  lastLoginAt               DateTime?
-  createdAt                 DateTime                @default(now())
-  updatedAt                 DateTime                @updatedAt
-  inviteTokens              AdminUserInviteToken[]
-  createdAvailabilitySlots  AvailabilitySlot[]      @relation("AvailabilitySlotCreatedBy")
-  createdBookings           Booking[]               @relation("BookingCreatedBy")
-  bookingStatusHistoryItems BookingStatusHistory[]  @relation("BookingStatusHistoryActor")
-  bookingRescheduleLogs     BookingRescheduleLog[]  @relation("BookingRescheduleLogActor")
-  servicePriceChangeLogs    ServicePriceChangeLog[] @relation("ServicePriceChangeLogActor")
-  updatedCalendarFeeds      CalendarFeed[]          @relation("CalendarFeedUpdatedBy")
-  updatedSettings           Setting[]               @relation("SettingUpdatedBy")
-  updatedSiteSettings       SiteSettings[]          @relation("SiteSettingsUpdatedBy")
-  notificationSettings      UserNotificationSettings?
+  id                         String                    @id @default(cuid())
+  email                      String                    @unique
+  name                       String
+  role                       AdminRole
+  passwordHash               String?
+  isActive                   Boolean                   @default(true)
+  invitedAt                  DateTime?
+  lastLoginAt                DateTime?
+  createdAt                  DateTime                  @default(now())
+  updatedAt                  DateTime                  @updatedAt
+  inviteTokens               AdminUserInviteToken[]
+  createdAvailabilitySlots   AvailabilitySlot[]        @relation("AvailabilitySlotCreatedBy")
+  createdBookings            Booking[]                 @relation("BookingCreatedBy")
+  bookingStatusHistoryItems  BookingStatusHistory[]    @relation("BookingStatusHistoryActor")
+  bookingRescheduleLogs      BookingRescheduleLog[]    @relation("BookingRescheduleLogActor")
+  servicePriceChangeLogs     ServicePriceChangeLog[]   @relation("ServicePriceChangeLogActor")
+  updatedCalendarFeeds       CalendarFeed[]            @relation("CalendarFeedUpdatedBy")
+  updatedSettings            Setting[]                 @relation("SettingUpdatedBy")
+  updatedSiteSettings        SiteSettings[]            @relation("SiteSettingsUpdatedBy")
+  notificationSettings       UserNotificationSettings?
+  createdVouchers            Voucher[]                 @relation("AdminUserCreatedVouchers")
+  redeemedVoucherRedemptions VoucherRedemption[]       @relation("AdminUserRedeemedVoucherRedemptions")
 }
 
 model UserNotificationSettings {
-  id                         String    @id @default(cuid())
-  userId                     String    @unique
-  pushoverUserKey            String?
-  pushoverEnabled            Boolean   @default(false)
-  notifyNewBooking           Boolean   @default(true)
-  notifyBookingConfirmed     Boolean   @default(true)
-  notifyBookingCancelled     Boolean   @default(true)
-  notifyBookingRescheduled   Boolean   @default(true)
-  notifyBookingPending       Boolean   @default(true)
-  notifyEmailFailed          Boolean   @default(true)
-  notifyReminderFailed       Boolean   @default(true)
-  notifySystemErrors         Boolean   @default(true)
-  createdAt                  DateTime  @default(now())
-  updatedAt                  DateTime  @updatedAt
-  user                       AdminUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                       String    @id @default(cuid())
+  userId                   String    @unique
+  pushoverUserKey          String?
+  pushoverEnabled          Boolean   @default(false)
+  notifyNewBooking         Boolean   @default(true)
+  notifyBookingConfirmed   Boolean   @default(true)
+  notifyBookingCancelled   Boolean   @default(true)
+  notifyBookingRescheduled Boolean   @default(true)
+  notifyBookingPending     Boolean   @default(true)
+  notifyEmailFailed        Boolean   @default(true)
+  notifyReminderFailed     Boolean   @default(true)
+  notifySystemErrors       Boolean   @default(true)
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
+  user                     AdminUser @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([pushoverEnabled])
 }
@@ -230,6 +246,8 @@ model Service {
   bookings                 Booking[]
   submissionLogs           BookingSubmissionLog[]
   priceChangeLogs          ServicePriceChangeLog[]
+  vouchers                 Voucher[]                 @relation("ServiceVouchers")
+  voucherRedemptions       VoucherRedemption[]       @relation("ServiceVoucherRedemptions")
 
   @@index([categoryId, isActive, isPubliclyBookable, sortOrder])
   @@index([isActive, isPubliclyBookable, sortOrder])
@@ -306,51 +324,56 @@ model Client {
 }
 
 model Booking {
-  id                       String                    @id @default(cuid())
-  clientId                 String
-  slotId                   String
-  serviceId                String
-  source                   BookingSource             @default(WEB)
-  acquisitionSource        BookingAcquisitionSource?
-  acquisitionReferrerHost  String?
-  acquisitionUtmSource     String?
-  acquisitionUtmMedium     String?
-  acquisitionUtmCampaign   String?
-  isManual                 Boolean                   @default(false)
-  manualOverride           Boolean                   @default(false)
-  status                   BookingStatus             @default(PENDING)
-  clientNameSnapshot       String
-  clientEmailSnapshot      String
-  clientPhoneSnapshot      String?
-  serviceNameSnapshot      String
-  serviceDurationMinutes   Int
-  servicePriceFromCzk      Int?
-  scheduledStartsAt        DateTime
-  scheduledEndsAt          DateTime
-  clientNote               String?
-  internalNote             String?
-  confirmedAt              DateTime?
-  reminder24hQueuedAt      DateTime?
-  reminder24hSentAt        DateTime?
-  cancelledAt              DateTime?
-  completedAt              DateTime?
-  rescheduledAt            DateTime?
-  rescheduleCount          Int                       @default(0)
-  rescheduledFromBookingId String?                   @unique
-  createdByUserId          String?
-  createdAt                DateTime                  @default(now())
-  updatedAt                DateTime                  @updatedAt
-  client                   Client                    @relation(fields: [clientId], references: [id], onDelete: Restrict)
-  slot                     AvailabilitySlot          @relation(fields: [slotId], references: [id], onDelete: Restrict)
-  service                  Service                   @relation(fields: [serviceId], references: [id], onDelete: Restrict)
-  createdByUser            AdminUser?                @relation("BookingCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
-  rescheduledFromBooking   Booking?                  @relation("BookingRescheduleChain", fields: [rescheduledFromBookingId], references: [id], onDelete: SetNull)
-  rescheduledToBooking     Booking?                  @relation("BookingRescheduleChain")
-  statusHistory            BookingStatusHistory[]
-  rescheduleLogs           BookingRescheduleLog[]
-  actionTokens             BookingActionToken[]
-  emailLogs                EmailLog[]
-  submissionLogs           BookingSubmissionLog[]
+  id                          String                    @id @default(cuid())
+  clientId                    String
+  slotId                      String
+  serviceId                   String
+  source                      BookingSource             @default(WEB)
+  acquisitionSource           BookingAcquisitionSource?
+  acquisitionReferrerHost     String?
+  acquisitionUtmSource        String?
+  acquisitionUtmMedium        String?
+  acquisitionUtmCampaign      String?
+  isManual                    Boolean                   @default(false)
+  manualOverride              Boolean                   @default(false)
+  status                      BookingStatus             @default(PENDING)
+  clientNameSnapshot          String
+  clientEmailSnapshot         String
+  clientPhoneSnapshot         String?
+  serviceNameSnapshot         String
+  serviceDurationMinutes      Int
+  servicePriceFromCzk         Int?
+  scheduledStartsAt           DateTime
+  scheduledEndsAt             DateTime
+  clientNote                  String?
+  internalNote                String?
+  confirmedAt                 DateTime?
+  reminder24hQueuedAt         DateTime?
+  reminder24hSentAt           DateTime?
+  cancelledAt                 DateTime?
+  completedAt                 DateTime?
+  rescheduledAt               DateTime?
+  rescheduleCount             Int                       @default(0)
+  rescheduledFromBookingId    String?                   @unique
+  intendedVoucherId           String?
+  intendedVoucherCodeSnapshot String?
+  intendedVoucherValidatedAt  DateTime?
+  createdByUserId             String?
+  createdAt                   DateTime                  @default(now())
+  updatedAt                   DateTime                  @updatedAt
+  client                      Client                    @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  slot                        AvailabilitySlot          @relation(fields: [slotId], references: [id], onDelete: Restrict)
+  service                     Service                   @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  createdByUser               AdminUser?                @relation("BookingCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  rescheduledFromBooking      Booking?                  @relation("BookingRescheduleChain", fields: [rescheduledFromBookingId], references: [id], onDelete: SetNull)
+  rescheduledToBooking        Booking?                  @relation("BookingRescheduleChain")
+  intendedVoucher             Voucher?                  @relation("BookingIntendedVoucher", fields: [intendedVoucherId], references: [id], onDelete: SetNull)
+  statusHistory               BookingStatusHistory[]
+  rescheduleLogs              BookingRescheduleLog[]
+  actionTokens                BookingActionToken[]
+  emailLogs                   EmailLog[]
+  submissionLogs              BookingSubmissionLog[]
+  voucherRedemptions          VoucherRedemption[]
 
   @@index([slotId, status])
   @@index([clientId, createdAt])
@@ -361,7 +384,66 @@ model Booking {
   @@index([source, createdAt])
   @@index([acquisitionSource, createdAt])
   @@index([createdByUserId])
+  @@index([intendedVoucherId])
   @@index([rescheduledAt])
+}
+
+model Voucher {
+  id                      String              @id @default(cuid())
+  code                    String              @unique
+  type                    VoucherType
+  status                  VoucherStatus       @default(DRAFT)
+  purchaserName           String?
+  purchaserEmail          String?
+  recipientName           String?
+  message                 String?
+  originalValueCzk        Int?
+  remainingValueCzk       Int?
+  serviceId               String?
+  serviceNameSnapshot     String?
+  servicePriceSnapshotCzk Int?
+  serviceDurationSnapshot Int?
+  validFrom               DateTime            @default(now())
+  validUntil              DateTime?
+  issuedAt                DateTime?
+  cancelledAt             DateTime?
+  internalNote            String?
+  createdByUserId         String?
+  createdAt               DateTime            @default(now())
+  updatedAt               DateTime            @updatedAt
+  service                 Service?            @relation("ServiceVouchers", fields: [serviceId], references: [id], onDelete: SetNull)
+  createdByUser           AdminUser?          @relation("AdminUserCreatedVouchers", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  intendedBookings        Booking[]           @relation("BookingIntendedVoucher")
+  redemptions             VoucherRedemption[]
+
+  @@index([code])
+  @@index([status, validUntil])
+  @@index([type, status])
+  @@index([serviceId])
+  @@index([createdByUserId])
+}
+
+model VoucherRedemption {
+  id                  String     @id @default(cuid())
+  voucherId           String
+  bookingId           String?
+  amountCzk           Int?
+  serviceId           String?
+  serviceNameSnapshot String?
+  note                String?
+  redeemedByUserId    String?
+  redeemedAt          DateTime   @default(now())
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
+  voucher             Voucher    @relation(fields: [voucherId], references: [id], onDelete: Restrict)
+  booking             Booking?   @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  service             Service?   @relation("ServiceVoucherRedemptions", fields: [serviceId], references: [id], onDelete: SetNull)
+  redeemedByUser      AdminUser? @relation("AdminUserRedeemedVoucherRedemptions", fields: [redeemedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([voucherId, redeemedAt])
+  @@index([bookingId])
+  @@index([serviceId])
+  @@index([redeemedByUserId, redeemedAt])
 }
 
 model BookingRescheduleLog {

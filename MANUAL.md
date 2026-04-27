@@ -101,6 +101,7 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
   - kategorie služeb a služby včetně samostatné veřejné rezervovatelnosti
   - sloty s omezením na vybrané služby
   - klienty, rezervace a historii stavů
+  - databázový základ dárkových voucherů (`Voucher`, `VoucherRedemption`) bez UI a bez veřejného zadávání
   - e-mailové logy, action tokeny, legacy `Setting`, singleton `SiteSettings` a metadata model `MediaAsset`
 
 ## Lokální Spuštění
@@ -504,6 +505,7 @@ npm run db:clear-booking-data -- --confirm
 - Kategorie a služby jsou samostatné DB entity, které se dnes plní přes import nebo admin správu, ne přes hardcoded seed.
 - `Service.isPubliclyBookable` odděluje interně aktivní službu od služby skutečně nabízené ve veřejné rezervaci.
 - `Booking` drží snapshot klienta, služby i času, takže pozdější změny ceníku nebo názvů služeb nepoškodí historická data.
+- Voucher zadaný u rezervace má být jen záměr uložený na `Booking.intendedVoucherId` a snapshot polí; skutečné uplatnění voucheru smí vzniknout až admin zápisem do `VoucherRedemption`.
 - `Booking` drží metadata posledního přesunu (`rescheduledAt`, `rescheduleCount`) a reminder queue stav (`reminder24hQueuedAt`, `reminder24hSentAt`); historický self-relation chain zůstává jen jako legacy pole a nové reschedule flow ho nepoužívá.
 - `BookingRescheduleLog` je samostatná auditní tabulka pro přesuny termínu s původním a novým intervalem, aktérem a volitelným důvodem změny.
 - `Booking.reminder24hSentAt` drží informaci, že klientský 24h reminder už byl úspěšně uzavřený; `Booking.reminder24hQueuedAt` zase brání duplicitnímu enqueue stejného reminderu pro aktuální termín.
