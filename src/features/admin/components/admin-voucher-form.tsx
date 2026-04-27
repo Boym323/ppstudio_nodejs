@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { VoucherType } from "@prisma/client";
-import { useActionState, useState } from "react";
+import { useActionState, useMemo, useState } from "react";
 
 import {
   createAdminVoucherAction,
@@ -30,10 +30,29 @@ export function AdminVoucherForm({ data }: AdminVoucherFormProps) {
   );
   const [type, setType] = useState<VoucherType>(data.initialValues.type);
   const [serviceId, setServiceId] = useState(data.services[0]?.id ?? "");
+  const [originalValueCzk, setOriginalValueCzk] = useState("");
+  const [validFrom, setValidFrom] = useState(data.initialValues.validFrom);
+  const [validUntil, setValidUntil] = useState(data.initialValues.validUntil);
+  const [purchaserName, setPurchaserName] = useState("");
+  const [recipientName, setRecipientName] = useState("");
+  const [message, setMessage] = useState("");
   const selectedService = data.services.find((service) => service.id === serviceId) ?? null;
+  const preview = useMemo(
+    () =>
+      buildVoucherPreview({
+        type,
+        originalValueCzk,
+        selectedService,
+        validFrom,
+        validUntil,
+        purchaserName,
+        recipientName,
+      }),
+    [originalValueCzk, purchaserName, recipientName, selectedService, type, validFrom, validUntil],
+  );
 
   return (
-    <form action={formAction} className="space-y-5">
+    <form action={formAction} className="space-y-4">
       <input type="hidden" name="area" value={data.area} />
       <input type="hidden" name="type" value={type} />
 
@@ -43,143 +62,178 @@ export function AdminVoucherForm({ data }: AdminVoucherFormProps) {
         </div>
       ) : null}
 
-      <SectionBlock
-        title="Základ voucheru"
-        description="Typ, hodnota nebo služba a období, ve kterém půjde voucher použít."
-      >
-        <div className="grid gap-4">
-          <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-white/50">Typ voucheru</p>
-            <div className="mt-2 grid gap-2 sm:grid-cols-2">
-              <TypeButton
-                active={type === VoucherType.VALUE}
-                label="Hodnotový poukaz"
-                onClick={() => setType(VoucherType.VALUE)}
-              />
-              <TypeButton
-                active={type === VoucherType.SERVICE}
-                label="Poukaz na službu"
-                onClick={() => setType(VoucherType.SERVICE)}
-              />
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_20rem] xl:items-start">
+        <div className="min-w-0 space-y-3">
+          <SectionBlock title="Typ a hodnota">
+            <div>
+              <div className="grid gap-2 sm:grid-cols-2">
+                <TypeButton
+                  active={type === VoucherType.VALUE}
+                  label="Hodnotový poukaz"
+                  description="Částka v Kč, kterou lze čerpat postupně."
+                  badge="VALUE"
+                  onClick={() => setType(VoucherType.VALUE)}
+                />
+                <TypeButton
+                  active={type === VoucherType.SERVICE}
+                  label="Poukaz na službu"
+                  description="Jednorázové uplatnění na konkrétní aktivní službu."
+                  badge="SERVICE"
+                  onClick={() => setType(VoucherType.SERVICE)}
+                />
+              </div>
+              {serverState.fieldErrors?.type ? (
+                <p className="mt-2 text-sm text-red-300">{serverState.fieldErrors.type}</p>
+              ) : null}
             </div>
-            {serverState.fieldErrors?.type ? (
-              <p className="mt-2 text-sm text-red-300">{serverState.fieldErrors.type}</p>
-            ) : null}
-          </div>
 
-          {type === VoucherType.VALUE ? (
-            <Field label="Hodnota v Kč" error={serverState.fieldErrors?.originalValueCzk}>
-              <input
-                type="number"
-                name="originalValueCzk"
-                min={1}
-                step={50}
-                inputMode="numeric"
-                placeholder="Např. 1500"
-                className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none transition placeholder:text-white/32 focus:border-[var(--color-accent)]/60"
-              />
-            </Field>
-          ) : (
-            <div className="grid gap-4 lg:grid-cols-[1fr_0.85fr]">
-              <Field label="Aktivní služba" error={serverState.fieldErrors?.serviceId}>
-                <select
-                  name="serviceId"
-                  value={serviceId}
-                  onChange={(event) => setServiceId(event.target.value)}
-                  className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--color-accent)]/60"
-                >
-                  {data.services.length === 0 ? (
-                    <option value="" className="text-black">Žádná aktivní služba</option>
-                  ) : null}
-                  {data.services.map((service) => (
-                    <option key={service.id} value={service.id} className="text-black">
-                      {service.publicName ?? service.name}
-                    </option>
-                  ))}
-                </select>
+            {type === VoucherType.VALUE ? (
+              <Field label="Hodnota v Kč" error={serverState.fieldErrors?.originalValueCzk}>
+                <input
+                  type="number"
+                  name="originalValueCzk"
+                  min={1}
+                  step={50}
+                  inputMode="numeric"
+                  value={originalValueCzk}
+                  onChange={(event) => setOriginalValueCzk(event.target.value)}
+                  placeholder="Např. 1500"
+                  className={inputClassName}
+                />
+              </Field>
+            ) : (
+              <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_14rem]">
+                <Field label="Aktivní služba" error={serverState.fieldErrors?.serviceId}>
+                  <select
+                    name="serviceId"
+                    value={serviceId}
+                    onChange={(event) => setServiceId(event.target.value)}
+                    className={inputClassName}
+                  >
+                    {data.services.length === 0 ? (
+                      <option value="" className="text-black">Žádná aktivní služba</option>
+                    ) : null}
+                    {data.services.map((service) => (
+                      <option key={service.id} value={service.id} className="text-black">
+                        {service.publicName ?? service.name}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+
+                <ServicePreview service={selectedService} />
+              </div>
+            )}
+          </SectionBlock>
+
+          <SectionBlock title="Platnost">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field label="Platnost od" error={serverState.fieldErrors?.validFrom}>
+                <input
+                  type="date"
+                  name="validFrom"
+                  required
+                  value={validFrom}
+                  onChange={(event) => setValidFrom(event.target.value)}
+                  className={inputClassName}
+                />
               </Field>
 
-              <ServicePreview service={selectedService} />
+              <Field label="Platnost do" error={serverState.fieldErrors?.validUntil}>
+                <input
+                  type="date"
+                  name="validUntil"
+                  required
+                  value={validUntil}
+                  onChange={(event) => setValidUntil(event.target.value)}
+                  className={inputClassName}
+                />
+              </Field>
             </div>
-          )}
+          </SectionBlock>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Platnost od" error={serverState.fieldErrors?.validFrom}>
-              <input
-                type="date"
-                name="validFrom"
-                required
-                defaultValue={data.initialValues.validFrom}
-                className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--color-accent)]/60"
+          <SectionBlock title="Kupující a obdarovaný">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field label="Kupující" error={serverState.fieldErrors?.purchaserName}>
+                <input
+                  type="text"
+                  name="purchaserName"
+                  maxLength={160}
+                  value={purchaserName}
+                  onChange={(event) => setPurchaserName(event.target.value)}
+                  placeholder="Jméno kupujícího"
+                  className={inputClassName}
+                />
+              </Field>
+
+              <Field label="E-mail kupujícího" error={serverState.fieldErrors?.purchaserEmail}>
+                <input
+                  type="email"
+                  name="purchaserEmail"
+                  maxLength={240}
+                  placeholder="email@example.cz"
+                  className={inputClassName}
+                />
+              </Field>
+
+              <Field label="Obdarovaný" error={serverState.fieldErrors?.recipientName}>
+                <input
+                  type="text"
+                  name="recipientName"
+                  maxLength={160}
+                  value={recipientName}
+                  onChange={(event) => setRecipientName(event.target.value)}
+                  placeholder="Komu voucher patří"
+                  className={inputClassName}
+                />
+              </Field>
+
+              <Field label="Věnování" error={serverState.fieldErrors?.message}>
+                <input
+                  type="text"
+                  name="message"
+                  maxLength={1200}
+                  value={message}
+                  onChange={(event) => setMessage(event.target.value)}
+                  placeholder="Krátká zpráva na pozdější PDF"
+                  className={inputClassName}
+                />
+              </Field>
+            </div>
+          </SectionBlock>
+
+          <SectionBlock title="Interní poznámka">
+            <Field label="Poznámka jen pro administraci" error={serverState.fieldErrors?.internalNote}>
+              <textarea
+                name="internalNote"
+                rows={3}
+                maxLength={2000}
+                placeholder="Např. zaplaceno hotově, domluvené vyzvednutí, doplňující kontext."
+                className={cn(inputClassName, "min-h-24 resize-y leading-6")}
               />
             </Field>
+          </SectionBlock>
+        </div>
 
-            <Field label="Platnost do" error={serverState.fieldErrors?.validUntil}>
-              <input
-                type="date"
-                name="validUntil"
-                required
-                defaultValue={data.initialValues.validUntil}
-                className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--color-accent)]/60"
-              />
-            </Field>
+        <aside className="space-y-3 xl:sticky xl:top-24">
+          <VoucherPreview preview={preview} message={message} />
+
+          <div className="rounded-[1.15rem] border border-white/8 bg-white/[0.035] p-3.5">
+            <button
+              type="submit"
+              disabled={pending}
+              className="w-full rounded-full bg-[var(--color-accent)] px-5 py-3 text-sm font-semibold text-[var(--color-accent-contrast)] transition hover:brightness-105 disabled:cursor-wait disabled:opacity-70"
+            >
+              {pending ? "Vytvářím..." : "Vytvořit voucher"}
+            </button>
+            <Link
+              href={data.listHref}
+              className="mt-2 flex w-full items-center justify-center rounded-full border border-white/10 px-5 py-3 text-sm text-white/78 transition hover:border-white/18 hover:bg-white/6"
+            >
+              Zpět na seznam
+            </Link>
           </div>
-        </div>
-      </SectionBlock>
-
-      <SectionBlock
-        title="Kupující / budoucí odeslání e-mailem"
-        description="E-mail se zatím jen uloží pro pozdější funkci odeslání voucheru."
-      >
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Kupující jméno" error={serverState.fieldErrors?.purchaserName}>
-            <input
-              type="text"
-              name="purchaserName"
-              maxLength={160}
-              className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--color-accent)]/60"
-            />
-          </Field>
-
-          <Field label="Kupující e-mail" error={serverState.fieldErrors?.purchaserEmail}>
-            <input
-              type="email"
-              name="purchaserEmail"
-              maxLength={240}
-              className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--color-accent)]/60"
-            />
-          </Field>
-        </div>
-      </SectionBlock>
-
-      <SectionBlock
-        title="Interní poznámka"
-        description="Poznámka je viditelná jen v administraci."
-      >
-        <Field label="Interní poznámka" error={serverState.fieldErrors?.internalNote}>
-          <textarea
-            name="internalNote"
-            rows={5}
-            maxLength={2000}
-            className="mt-2 w-full resize-y rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm leading-6 text-white outline-none transition focus:border-[var(--color-accent)]/60"
-          />
-        </Field>
-      </SectionBlock>
-
-      <div className="flex flex-wrap items-center gap-3">
-        <button
-          type="submit"
-          disabled={pending}
-          className="rounded-full bg-[var(--color-accent)] px-5 py-3 text-sm font-semibold text-[var(--color-accent-contrast)] transition hover:brightness-105 disabled:cursor-wait disabled:opacity-70"
-        >
-          {pending ? "Vytvářím..." : "Vytvořit voucher"}
-        </button>
-        <Link
-          href={data.listHref}
-          className="rounded-full border border-white/10 px-5 py-3 text-sm text-white/78 transition hover:border-white/18 hover:bg-white/6"
-        >
-          Zpět na seznam
-        </Link>
+        </aside>
       </div>
     </form>
   );
@@ -188,10 +242,14 @@ export function AdminVoucherForm({ data }: AdminVoucherFormProps) {
 function TypeButton({
   active,
   label,
+  description,
+  badge,
   onClick,
 }: {
   active: boolean;
   label: string;
+  description: string;
+  badge: string;
   onClick: () => void;
 }) {
   return (
@@ -199,13 +257,26 @@ function TypeButton({
       type="button"
       onClick={onClick}
       className={cn(
-        "rounded-[1.1rem] border px-4 py-3 text-left text-sm font-medium transition",
+        "min-h-28 rounded-[1.1rem] border px-4 py-3 text-left transition",
         active
-          ? "border-[var(--color-accent)]/60 bg-[rgba(190,160,120,0.16)] text-white"
+          ? "border-[var(--color-accent)]/55 bg-[rgba(190,160,120,0.13)] text-white shadow-[0_0_0_1px_rgba(190,160,120,0.08)]"
           : "border-white/10 bg-black/16 text-white/68 hover:border-white/18 hover:bg-white/6",
       )}
     >
-      {label}
+      <span className="flex items-start justify-between gap-3">
+        <span className="text-sm font-semibold text-white">{label}</span>
+        <span
+          className={cn(
+            "rounded-full border px-2 py-0.5 text-[0.6rem] font-semibold uppercase tracking-[0.14em]",
+            active
+              ? "border-[var(--color-accent)]/45 text-[var(--color-accent-soft)]"
+              : "border-white/8 text-white/38",
+          )}
+        >
+          {badge}
+        </span>
+      </span>
+      <span className="mt-2 block text-sm leading-5 text-white/56">{description}</span>
     </button>
   );
 }
@@ -224,7 +295,7 @@ function ServicePreview({
   }
 
   return (
-    <dl className="grid gap-2 rounded-[1.1rem] border border-white/8 bg-white/5 p-4 text-sm">
+    <dl className="grid gap-2 rounded-[1.1rem] border border-white/8 bg-white/[0.035] p-3 text-sm">
       <PreviewRow label="Služba" value={service.publicName ?? service.name} />
       <PreviewRow label="Cena" value={service.priceFromCzk === null ? "Neuvedeno" : czkFormatter.format(service.priceFromCzk)} />
       <PreviewRow label="Délka" value={`${service.durationMinutes} min`} />
@@ -243,19 +314,14 @@ function PreviewRow({ label, value }: { label: string; value: string }) {
 
 function SectionBlock({
   title,
-  description,
   children,
 }: {
   title: string;
-  description: string;
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-[1.25rem] border border-white/8 bg-white/5 p-4 sm:p-5">
-      <div className="mb-4">
-        <h3 className="font-display text-xl text-white">{title}</h3>
-        <p className="mt-2 text-sm leading-6 text-white/60">{description}</p>
-      </div>
+    <section className="rounded-[1.2rem] border border-white/8 bg-white/[0.035] p-4">
+      <h3 className="mb-3 text-sm font-semibold text-white">{title}</h3>
       {children}
     </section>
   );
@@ -278,3 +344,106 @@ function Field({
     </label>
   );
 }
+
+type VoucherPreviewData = {
+  typeLabel: string;
+  headline: string;
+  subline: string;
+  validityLabel: string;
+  purchaserLabel: string;
+  recipientLabel: string;
+};
+
+function VoucherPreview({
+  preview,
+  message,
+}: {
+  preview: VoucherPreviewData;
+  message: string;
+}) {
+  return (
+    <section className="overflow-hidden rounded-[1.15rem] border border-[var(--color-accent)]/18 bg-[linear-gradient(145deg,rgba(190,160,120,0.14),rgba(255,255,255,0.035))]">
+      <div className="border-b border-white/8 p-4">
+        <p className="text-[0.64rem] uppercase tracking-[0.22em] text-[var(--color-accent-soft)]">
+          Náhled voucheru
+        </p>
+        <p className="mt-3 font-display text-2xl leading-tight text-white">{preview.headline}</p>
+        <p className="mt-2 text-sm leading-5 text-white/62">{preview.subline}</p>
+      </div>
+      <dl className="grid gap-2 p-4">
+        <PreviewRow label="Typ" value={preview.typeLabel} />
+        <PreviewRow label="Platnost" value={preview.validityLabel} />
+        <PreviewRow label="Kupující" value={preview.purchaserLabel} />
+        <PreviewRow label="Obdarovaný" value={preview.recipientLabel} />
+      </dl>
+      <div className="border-t border-white/8 px-4 py-3">
+        <p className="text-xs uppercase tracking-[0.18em] text-white/42">Věnování</p>
+        <p className="mt-1 text-sm leading-5 text-white/68">
+          {message.trim() || "Bez věnování"}
+        </p>
+      </div>
+    </section>
+  );
+}
+
+function buildVoucherPreview({
+  type,
+  originalValueCzk,
+  selectedService,
+  validFrom,
+  validUntil,
+  purchaserName,
+  recipientName,
+}: {
+  type: VoucherType;
+  originalValueCzk: string;
+  selectedService: AdminVoucherCreatePageData["services"][number] | null;
+  validFrom: string;
+  validUntil: string;
+  purchaserName: string;
+  recipientName: string;
+}): VoucherPreviewData {
+  if (type === VoucherType.SERVICE) {
+    const serviceName = selectedService?.publicName ?? selectedService?.name ?? "Vyberte službu";
+
+    return {
+      typeLabel: "Poukaz na službu",
+      headline: serviceName,
+      subline:
+        selectedService?.priceFromCzk === null || selectedService?.priceFromCzk === undefined
+          ? "Cena služby není vyplněná."
+          : `${czkFormatter.format(selectedService.priceFromCzk)} • ${selectedService.durationMinutes} min`,
+      validityLabel: formatDateRange(validFrom, validUntil),
+      purchaserLabel: purchaserName.trim() || "Neuvedeno",
+      recipientLabel: recipientName.trim() || "Neuvedeno",
+    };
+  }
+
+  const parsedValue = Number(originalValueCzk);
+
+  return {
+    typeLabel: "Hodnotový poukaz",
+    headline: Number.isFinite(parsedValue) && parsedValue > 0 ? czkFormatter.format(parsedValue) : "Zadejte hodnotu",
+    subline: "Čerpání po částkách při návštěvě v salonu.",
+    validityLabel: formatDateRange(validFrom, validUntil),
+    purchaserLabel: purchaserName.trim() || "Neuvedeno",
+    recipientLabel: recipientName.trim() || "Neuvedeno",
+  };
+}
+
+function formatDateRange(validFrom: string, validUntil: string) {
+  return `${formatDateInput(validFrom)} - ${formatDateInput(validUntil)}`;
+}
+
+function formatDateInput(value: string) {
+  if (!value) {
+    return "Nevyplněno";
+  }
+
+  const [year, month, day] = value.split("-");
+
+  return year && month && day ? `${Number(day)}. ${Number(month)}. ${year}` : value;
+}
+
+const inputClassName =
+  "mt-2 w-full rounded-[1rem] border border-white/10 bg-black/20 px-3.5 py-2.5 text-sm text-white outline-none transition placeholder:text-white/30 focus:border-[var(--color-accent)]/60";

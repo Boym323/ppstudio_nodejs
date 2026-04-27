@@ -15,7 +15,7 @@ Seznam důležitých knihoven a důvod jejich použití.
 - Server-side Matomo Reporting API vrstva také nepřidává žádnou npm závislost; používá vestavěný `fetch`, Next.js revalidation cache a lokální TypeScript normalizaci odpovědí.
 - Pushover notifikace nepridavaji zadnou npm zavislost; serverova integrace pouziva vestaveny `fetch`, `URLSearchParams`, Prisma a existujici Next.js server action pattern.
 - Voucher business vrstva nepřidává žádnou npm závislost; kódy generuje přes vestavěný Node.js `crypto`, DB logiku řeší Prisma a vstupy validuje existující `zod`.
-- Admin vytvoření voucheru nepřidává žádnou novou knihovnu; používá existující Next.js server actions, React `useActionState`, Prisma a voucher Zod schéma.
+- Admin vytvoření voucheru nepřidává žádnou novou knihovnu; používá existující Next.js server actions, React `useActionState` / lokální state pro živý náhled, Prisma a voucher Zod schéma.
 - Admin uplatnění voucheru v detailu rezervace nepřidává žádnou novou knihovnu; formulář používá React `useActionState`, server action používá existující Zod/Prisma vrstvu a transakční voucher doménu.
 
 ## Core

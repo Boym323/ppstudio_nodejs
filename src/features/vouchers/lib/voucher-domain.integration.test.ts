@@ -217,6 +217,28 @@ describe("voucher domain", () => {
     assert.match(voucher.code, /^PP-\d{4}-[A-Z2-9]{6}$/);
   });
 
+  dbTest("creates voucher with purchaser, recipient and message", async () => {
+    assert.ok(seed);
+    const { createVoucher } = await loadModules();
+
+    const voucher = await createVoucher(
+      {
+        type: VoucherType.VALUE,
+        originalValueCzk: 900,
+        purchaserName: "Marie Kupující",
+        purchaserEmail: "marie@example.com",
+        recipientName: "Jana Obdarovaná",
+        message: "Krásnou péči v PP Studiu.",
+      },
+      seed.actorUserId,
+    );
+
+    assert.equal(voucher.purchaserName, "Marie Kupující");
+    assert.equal(voucher.purchaserEmail, "marie@example.com");
+    assert.equal(voucher.recipientName, "Jana Obdarovaná");
+    assert.equal(voucher.message, "Krásnou péči v PP Studiu.");
+  });
+
   dbTest("creates SERVICE voucher with service snapshot", async () => {
     assert.ok(seed);
     const { createVoucher } = await loadModules();

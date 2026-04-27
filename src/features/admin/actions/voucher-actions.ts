@@ -64,6 +64,8 @@ export async function createAdminVoucherAction(
     validUntil: readFormString(formData, "validUntil"),
     purchaserName: readFormString(formData, "purchaserName"),
     purchaserEmail: readFormString(formData, "purchaserEmail"),
+    recipientName: readFormString(formData, "recipientName"),
+    message: readFormString(formData, "message"),
     internalNote: readFormString(formData, "internalNote"),
   });
 
@@ -81,6 +83,8 @@ export async function createAdminVoucherAction(
         validUntil: fieldErrors.validUntil?.[0],
         purchaserName: fieldErrors.purchaserName?.[0],
         purchaserEmail: fieldErrors.purchaserEmail?.[0],
+        recipientName: fieldErrors.recipientName?.[0],
+        message: fieldErrors.message?.[0],
         internalNote: fieldErrors.internalNote?.[0],
       },
     };

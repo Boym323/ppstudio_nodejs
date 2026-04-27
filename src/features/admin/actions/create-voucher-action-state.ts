@@ -10,6 +10,8 @@ export type CreateVoucherActionState = {
       | "validUntil"
       | "purchaserName"
       | "purchaserEmail"
+      | "recipientName"
+      | "message"
       | "internalNote",
       string
     >

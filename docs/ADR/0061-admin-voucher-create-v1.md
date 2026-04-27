@@ -10,7 +10,8 @@
 - Routy sdílí `createAdminVoucherCreateRoute(...)`, komponentu `src/features/admin/components/admin-voucher-form.tsx` a server action `createAdminVoucherAction(...)`.
 - Server action vždy ověřuje roli `OWNER` nebo `SALON`, validuje vstup přes existující voucher Zod schéma a pro typ `SERVICE` znovu kontroluje, že vybraná služba je aktivní.
 - Formulář výchozí na typ `VALUE`, předvyplní dnešní `validFrom` a `validUntil` plus 12 měsíců v timezone `Europe/Prague`.
-- Údaje kupujícího jsou volitelné; `purchaserEmail` se zatím pouze ukládá jako příprava pro budoucí ruční odeslání voucheru e-mailem.
+- Údaje kupujícího, obdarovaného a věnování jsou volitelné; `purchaserEmail` se zatím pouze ukládá jako příprava pro budoucí ruční odeslání voucheru e-mailem.
+- Formulář používá dvousloupcovou provozní skladbu s živým náhledem voucheru, aby obsluha před uložením viděla typ, hodnotu nebo službu, platnost a volitelné osobní údaje.
 - Po úspěšném vytvoření action přesměruje na detail ve stejné admin oblasti.
 
 ## Alternativy
