@@ -43,12 +43,14 @@ async function loadModules() {
     voucherActionsModule,
     voucherValidationModule,
     voucherRedemptionModule,
+    adminBookingModule,
   ] = await Promise.all([
     import("@/lib/prisma"),
     import("./voucher-code"),
     import("@/features/vouchers/actions/voucher-actions"),
     import("./voucher-validation"),
     import("./voucher-redemption"),
+    import("@/features/admin/lib/admin-booking"),
   ]);
 
   return {
@@ -58,6 +60,7 @@ async function loadModules() {
     validateVoucherForBookingInput: voucherValidationModule.validateVoucherForBookingInput,
     redeemVoucherForBooking: voucherRedemptionModule.redeemVoucherForBooking,
     VoucherRedemptionError: voucherRedemptionModule.VoucherRedemptionError,
+    getAdminBookingDetailData: adminBookingModule.getAdminBookingDetailData,
   };
 }
 
@@ -326,6 +329,29 @@ describe("voucher domain", () => {
     assert.equal(final.voucher.status, VoucherStatus.REDEEMED);
   });
 
+  dbTest("redeems VALUE voucher with a single full amount", async () => {
+    assert.ok(seed);
+    const { createVoucher, redeemVoucherForBooking } = await loadModules();
+    const voucher = await createVoucher(
+      {
+        type: VoucherType.VALUE,
+        originalValueCzk: 1200,
+      },
+      seed.actorUserId,
+    );
+
+    const result = await redeemVoucherForBooking({
+      voucherCode: voucher.code,
+      bookingId: seed.bookingIds[0],
+      amountCzk: 1200,
+      redeemedByUserId: seed.actorUserId,
+    });
+
+    assert.equal(result.voucher.remainingValueCzk, 0);
+    assert.equal(result.voucher.status, VoucherStatus.REDEEMED);
+    assert.equal(result.redemption.amountCzk, 1200);
+  });
+
   dbTest("redeems SERVICE voucher and blocks second redemption", async () => {
     assert.ok(seed);
     const { createVoucher, redeemVoucherForBooking, VoucherRedemptionError } = await loadModules();
@@ -356,5 +382,100 @@ describe("voucher domain", () => {
         }),
       (error) => error instanceof VoucherRedemptionError && error.code === "VOUCHER_NOT_REDEEMABLE",
     );
+  });
+
+  dbTest("rejects SERVICE voucher redemption for different service", async () => {
+    assert.ok(seed);
+    const { prisma, createVoucher, redeemVoucherForBooking, VoucherRedemptionError } = await loadModules();
+    const otherSlot = await prisma.availabilitySlot.create({
+      data: {
+        startsAt: new Date("2026-06-02T09:00:00.000Z"),
+        endsAt: new Date("2026-06-02T09:45:00.000Z"),
+        status: AvailabilitySlotStatus.PUBLISHED,
+        publishedAt: new Date("2026-05-01T09:00:00.000Z"),
+      },
+    });
+    const otherBooking = await prisma.booking.create({
+      data: {
+        clientId: seed.clientId,
+        slotId: otherSlot.id,
+        serviceId: seed.otherServiceId,
+        source: BookingSource.WEB,
+        status: BookingStatus.CONFIRMED,
+        clientNameSnapshot: "Jana Voucherová",
+        clientEmailSnapshot: "jana-voucher@example.com",
+        clientPhoneSnapshot: "+420777111222",
+        serviceNameSnapshot: "Úprava obočí",
+        serviceDurationMinutes: 45,
+        servicePriceFromCzk: 900,
+        scheduledStartsAt: otherSlot.startsAt,
+        scheduledEndsAt: otherSlot.endsAt,
+      },
+    });
+    const voucher = await createVoucher(
+      {
+        type: VoucherType.SERVICE,
+        serviceId: seed.serviceId,
+      },
+      seed.actorUserId,
+    );
+
+    try {
+      await assert.rejects(
+        () =>
+          redeemVoucherForBooking({
+            voucherCode: voucher.code,
+            bookingId: otherBooking.id,
+            redeemedByUserId: seed.actorUserId,
+          }),
+        (error) => error instanceof VoucherRedemptionError && error.code === "SERVICE_MISMATCH",
+      );
+    } finally {
+      await prisma.voucherRedemption.deleteMany({ where: { bookingId: otherBooking.id } });
+      await prisma.booking.delete({ where: { id: otherBooking.id } });
+      await prisma.availabilitySlot.delete({ where: { id: otherSlot.id } });
+    }
+  });
+
+  dbTest("blocks already redeemed VALUE voucher from a second use", async () => {
+    assert.ok(seed);
+    const { createVoucher, redeemVoucherForBooking, VoucherRedemptionError } = await loadModules();
+    const voucher = await createVoucher(
+      {
+        type: VoucherType.VALUE,
+        originalValueCzk: 500,
+      },
+      seed.actorUserId,
+    );
+
+    await redeemVoucherForBooking({
+      voucherCode: voucher.code,
+      bookingId: seed.bookingIds[0],
+      amountCzk: 500,
+      redeemedByUserId: seed.actorUserId,
+    });
+
+    await assert.rejects(
+      () =>
+        redeemVoucherForBooking({
+          voucherCode: voucher.code,
+          bookingId: seed.bookingIds[1],
+          amountCzk: 1,
+          redeemedByUserId: seed.actorUserId,
+        }),
+      (error) => error instanceof VoucherRedemptionError && error.code === "VOUCHER_NOT_REDEEMABLE",
+    );
+  });
+
+  dbTest("keeps admin booking detail usable without voucher", async () => {
+    assert.ok(seed);
+    const { getAdminBookingDetailData } = await loadModules();
+
+    const detail = await getAdminBookingDetailData("owner", seed.bookingIds[0]);
+
+    assert.ok(detail);
+    assert.equal(detail.voucher.intendedVoucher, null);
+    assert.equal(detail.voucher.intendedVoucherCodeSnapshot, null);
+    assert.ok(Array.isArray(detail.voucher.redemptions));
   });
 });

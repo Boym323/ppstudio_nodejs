@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 
 import { AdminBookingNoteForm } from "./admin-booking-note-form";
 import { AdminBookingStatusForm } from "./admin-booking-status-form";
+import { AdminBookingVoucherForm } from "./admin-booking-voucher-form";
 import { AdminPanel } from "./admin-page-shell";
 import { RescheduleBookingButton } from "./reschedule-booking-button";
 
@@ -27,6 +28,9 @@ export function AdminBookingDetailPage({ data }: AdminBookingDetailPageProps) {
       <div className="grid gap-3 xl:grid-cols-[minmax(0,1.5fr)_minmax(19rem,0.9fr)] xl:items-start">
         <div className="min-w-0 space-y-3">
           <BookingActionPanel data={data} statusContext={statusContext} />
+          <div id="booking-voucher">
+            <BookingVoucherPanel data={data} />
+          </div>
           <div id="booking-notes">
             <BookingNotesPanel data={data} />
           </div>
@@ -264,6 +268,123 @@ function BookingNotesPanel({ data }: { data: AdminBookingDetailData }) {
         </div>
       </div>
     </AdminPanel>
+  );
+}
+
+function BookingVoucherPanel({ data }: { data: AdminBookingDetailData }) {
+  const intendedVoucher = data.voucher.intendedVoucher;
+  const initialVoucherCode =
+    intendedVoucher?.code ?? data.voucher.intendedVoucherCodeSnapshot ?? "";
+  const hasRedemptions = data.voucher.redemptions.length > 0;
+
+  return (
+    <AdminPanel title="Voucher" compact={data.area === "salon"} denseHeader>
+      <div className="space-y-3">
+        {intendedVoucher ? (
+          <div className="rounded-[1rem] border border-[var(--color-accent)]/18 bg-[rgba(190,160,120,0.08)] p-3.5">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-[0.66rem] uppercase tracking-[0.18em] text-white/45">
+                  Klient zadal tento voucher při rezervaci.
+                </p>
+                <p className="mt-1 font-mono text-lg font-semibold tracking-[0.12em] text-white">
+                  {intendedVoucher.code}
+                </p>
+              </div>
+              <span className="rounded-full border border-white/10 bg-black/18 px-2.5 py-1 text-[0.64rem] font-semibold uppercase tracking-[0.16em] text-white/66">
+                {intendedVoucher.statusLabel}
+              </span>
+            </div>
+            <dl className="mt-3 grid gap-2 sm:grid-cols-3">
+              <VoucherMiniRow label="Typ" value={intendedVoucher.typeLabel} />
+              <VoucherMiniRow label="Hodnota / služba" value={intendedVoucher.valueLabel} />
+              <VoucherMiniRow label="Zbývá" value={intendedVoucher.remainingLabel} />
+            </dl>
+            <p className="mt-3 text-sm leading-5 text-white/64">{intendedVoucher.safeDescription}</p>
+            {data.voucher.intendedVoucherValidatedAtLabel ? (
+              <p className="mt-2 text-xs leading-4 text-white/42">
+                Ověřeno při zadání: {data.voucher.intendedVoucherValidatedAtLabel}
+              </p>
+            ) : null}
+          </div>
+        ) : data.voucher.intendedVoucherCodeSnapshot ? (
+          <div className="rounded-[1rem] border border-white/8 bg-white/[0.035] p-3.5">
+            <p className="text-sm leading-5 text-white/70">
+              U rezervace je uložený kód voucheru{" "}
+              <span className="font-mono text-white">{data.voucher.intendedVoucherCodeSnapshot}</span>,
+              ale není napojený na aktivní voucher v evidenci.
+            </p>
+          </div>
+        ) : (
+          <div className="rounded-[1rem] border border-dashed border-white/12 bg-white/[0.03] px-3.5 py-3">
+            <p className="text-sm text-white/64">K rezervaci není připojen žádný voucher.</p>
+          </div>
+        )}
+
+        <AdminBookingVoucherForm
+          area={data.area}
+          bookingId={data.id}
+          initialVoucherCode={initialVoucherCode}
+          intendedVoucherType={intendedVoucher?.type ?? null}
+          defaultAmountCzk={intendedVoucher?.defaultRedeemAmountCzk ?? data.servicePriceFromCzk}
+        />
+
+        <VoucherRedemptionsList redemptions={data.voucher.redemptions} hasRedemptions={hasRedemptions} />
+      </div>
+    </AdminPanel>
+  );
+}
+
+function VoucherMiniRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-[0.9rem] border border-white/8 bg-black/14 px-3 py-2">
+      <dt className="text-[0.62rem] uppercase tracking-[0.16em] text-white/42">{label}</dt>
+      <dd className="mt-1 text-sm leading-5 text-white/78">{value}</dd>
+    </div>
+  );
+}
+
+function VoucherRedemptionsList({
+  redemptions,
+  hasRedemptions,
+}: {
+  redemptions: AdminBookingDetailData["voucher"]["redemptions"];
+  hasRedemptions: boolean;
+}) {
+  if (!hasRedemptions) {
+    return (
+      <div className="rounded-[1rem] border border-white/8 bg-white/[0.03] px-3.5 py-3">
+        <p className="text-sm text-white/58">Historie uplatnění u této rezervace je zatím prázdná.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2.5">
+      <p className="text-[0.66rem] uppercase tracking-[0.18em] text-white/45">Historie uplatnění</p>
+      {redemptions.map((redemption) => (
+        <article key={redemption.id} className="rounded-[1rem] border border-white/8 bg-white/[0.035] px-3.5 py-3">
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <div>
+              <p className="font-mono text-sm font-semibold tracking-[0.1em] text-white">
+                {redemption.voucherCode}
+              </p>
+              <p className="mt-1 text-sm leading-5 text-white/62">
+                {redemption.voucherTypeLabel} • {redemption.redeemedAtLabel}
+              </p>
+            </div>
+            <span className="rounded-full border border-white/8 bg-black/14 px-2.5 py-1 text-[0.64rem] uppercase tracking-[0.16em] text-white/58">
+              {formatCzk(redemption.amountCzk)}
+            </span>
+          </div>
+          <dl className="mt-3 grid gap-2 sm:grid-cols-3">
+            <VoucherMiniRow label="Služba" value={redemption.serviceNameSnapshot ?? "Neuvedeno"} />
+            <VoucherMiniRow label="Uplatnil" value={redemption.redeemedByUserLabel} />
+            <VoucherMiniRow label="Poznámka" value={redemption.note ?? "Bez poznámky"} />
+          </dl>
+        </article>
+      ))}
+    </div>
   );
 }
 
@@ -559,4 +680,14 @@ function getStatusContext(data: AdminBookingDetailData) {
 function buildPhoneHref(phone: string) {
   const normalized = phone.replace(/[^+\d]/g, "");
   return normalized.length > 0 ? `tel:${normalized}` : null;
+}
+
+const czkFormatter = new Intl.NumberFormat("cs-CZ", {
+  maximumFractionDigits: 0,
+  style: "currency",
+  currency: "CZK",
+});
+
+function formatCzk(value: number | null | undefined) {
+  return typeof value === "number" ? czkFormatter.format(value) : "Bez částky";
 }

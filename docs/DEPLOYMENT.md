@@ -103,6 +103,12 @@ Postup nasazení aplikace do produkce.
      - vytvoření voucheru na aktivní službu a uložení snapshotu názvu, ceny a délky
      - po vytvoření redirect na odpovídající detail voucheru
      - neaktivní služby se v selectu ani server action nepovolí
+   - panel `Voucher` v detailu rezervace na `/admin/rezervace/[bookingId]` a `/admin/provoz/rezervace/[bookingId]`:
+     - rezervace bez voucheru ukazuje prázdný stav a dovolí ruční zadání kódu
+     - intended voucher předvyplní kód a ukazuje typ, efektivní stav a bezpečný popis
+     - hodnotový voucher vyžaduje částku a po částečném čerpání zůstane `PARTIALLY_REDEEMED`
+     - službový voucher lze uplatnit jen u odpovídající služby
+     - historie uplatnění zobrazí datum, částku nebo službu, aktéra a poznámku
    - owner sekci `/admin/email-logy` po každé změně Prisma schématu nebo e-mailové outbox vrstvy
    - owner sekci `/admin/nastaveni`:
      - uložení všech tří bloků

@@ -6,6 +6,8 @@ import {
   BookingStatus,
   EmailLogStatus,
   EmailLogType,
+  VoucherStatus,
+  VoucherType,
 } from "@prisma/client";
 
 import { env } from "@/config/env";
@@ -18,6 +20,13 @@ import {
 } from "@/features/booking/lib/booking-action-tokens";
 import { getPublicBookingCatalog } from "@/features/booking/lib/booking-public";
 import { formatBookingDateLabel } from "@/features/booking/lib/booking-format";
+import {
+  formatVoucherRemaining,
+  formatVoucherStatus,
+  formatVoucherType,
+  formatVoucherValue,
+  getEffectiveVoucherStatus,
+} from "@/features/vouchers/lib/voucher-format";
 import { prisma } from "@/lib/prisma";
 
 const formatDateTime = new Intl.DateTimeFormat("cs-CZ", {
@@ -52,7 +61,9 @@ export type AdminBookingDetailData = {
   clientName: string;
   clientEmail: string;
   clientPhone: string;
+  serviceId: string;
   serviceName: string;
+  servicePriceFromCzk: number | null;
   sourceLabel: string;
   acquisitionLabel: string | null;
   clientNote: string | null;
@@ -80,6 +91,38 @@ export type AdminBookingDetailData = {
     currentEndsAt: string;
     expectedUpdatedAt: string;
     slots: Awaited<ReturnType<typeof getPublicBookingCatalog>>["slots"];
+  };
+  voucher: {
+    intendedVoucherCodeSnapshot: string | null;
+    intendedVoucherValidatedAtLabel: string | null;
+    intendedVoucher: {
+      id: string;
+      code: string;
+      type: VoucherType;
+      typeLabel: string;
+      status: VoucherStatus;
+      effectiveStatus: VoucherStatus;
+      statusLabel: string;
+      valueLabel: string;
+      remainingLabel: string;
+      remainingValueCzk: number | null;
+      serviceId: string | null;
+      serviceNameSnapshot: string | null;
+      servicePriceSnapshotCzk: number | null;
+      safeDescription: string;
+      defaultRedeemAmountCzk: number | null;
+    } | null;
+    redemptions: Array<{
+      id: string;
+      voucherCode: string;
+      voucherType: VoucherType;
+      voucherTypeLabel: string;
+      amountCzk: number | null;
+      serviceNameSnapshot: string | null;
+      redeemedAtLabel: string;
+      redeemedByUserLabel: string;
+      note: string | null;
+    }>;
   };
 };
 
@@ -254,6 +297,40 @@ function getHistorySourceLabel(metadata: unknown) {
   }
 }
 
+function formatRedemptionUserLabel(user: { name: string; email: string } | null) {
+  if (!user) {
+    return "Neuvedeno";
+  }
+
+  return `${user.name} (${user.email})`;
+}
+
+function buildVoucherSafeDescription(voucher: {
+  type: VoucherType;
+  originalValueCzk: number | null;
+  remainingValueCzk: number | null;
+  serviceNameSnapshot: string | null;
+  servicePriceSnapshotCzk: number | null;
+}) {
+  if (voucher.type === VoucherType.VALUE) {
+    return `Hodnotový voucher, zbývá ${formatVoucherRemaining({
+      type: voucher.type,
+      remainingValueCzk: voucher.remainingValueCzk,
+      status: VoucherStatus.ACTIVE,
+    })}.`;
+  }
+
+  return `Voucher na službu ${voucher.serviceNameSnapshot ?? "bez uloženého názvu"}${
+    voucher.servicePriceSnapshotCzk ? ` v hodnotě ${czkFormatter.format(voucher.servicePriceSnapshotCzk)}` : ""
+  }.`;
+}
+
+const czkFormatter = new Intl.NumberFormat("cs-CZ", {
+  maximumFractionDigits: 0,
+  style: "currency",
+  currency: "CZK",
+});
+
 export async function getAdminBookingDetailData(
   area: AdminArea,
   bookingId: string,
@@ -283,6 +360,37 @@ export async function getAdminBookingDetailData(
             changedByUser: {
               select: {
                 name: true,
+              },
+            },
+          },
+        },
+        intendedVoucher: {
+          select: {
+            id: true,
+            code: true,
+            type: true,
+            status: true,
+            originalValueCzk: true,
+            remainingValueCzk: true,
+            serviceId: true,
+            serviceNameSnapshot: true,
+            servicePriceSnapshotCzk: true,
+            validUntil: true,
+          },
+        },
+        voucherRedemptions: {
+          orderBy: { redeemedAt: "desc" },
+          include: {
+            voucher: {
+              select: {
+                code: true,
+                type: true,
+              },
+            },
+            redeemedByUser: {
+              select: {
+                name: true,
+                email: true,
               },
             },
           },
@@ -337,7 +445,9 @@ export async function getAdminBookingDetailData(
     clientName: booking.client.fullName,
     clientEmail: booking.clientEmailSnapshot,
     clientPhone: booking.clientPhoneSnapshot ?? booking.client.phone ?? "Telefon není vyplněný",
+    serviceId: booking.serviceId,
     serviceName: booking.serviceNameSnapshot,
+    servicePriceFromCzk: booking.servicePriceFromCzk,
     sourceLabel: getBookingSourceLabel(booking.source),
     acquisitionLabel: getBookingAcquisitionLabel(booking.acquisitionSource),
     clientNote: booking.clientNote,
@@ -365,6 +475,48 @@ export async function getAdminBookingDetailData(
       currentEndsAt: booking.scheduledEndsAt.toISOString(),
       expectedUpdatedAt: booking.updatedAt.toISOString(),
       slots: bookingCatalog.slots,
+    },
+    voucher: {
+      intendedVoucherCodeSnapshot: booking.intendedVoucherCodeSnapshot,
+      intendedVoucherValidatedAtLabel: booking.intendedVoucherValidatedAt
+        ? formatDateTimeLabel(booking.intendedVoucherValidatedAt)
+        : null,
+      intendedVoucher: booking.intendedVoucher
+        ? {
+            id: booking.intendedVoucher.id,
+            code: booking.intendedVoucher.code,
+            type: booking.intendedVoucher.type,
+            typeLabel: formatVoucherType(booking.intendedVoucher.type),
+            status: booking.intendedVoucher.status,
+            effectiveStatus: getEffectiveVoucherStatus(booking.intendedVoucher),
+            statusLabel: formatVoucherStatus(getEffectiveVoucherStatus(booking.intendedVoucher)),
+            valueLabel: formatVoucherValue(booking.intendedVoucher),
+            remainingLabel: formatVoucherRemaining(booking.intendedVoucher),
+            remainingValueCzk: booking.intendedVoucher.remainingValueCzk,
+            serviceId: booking.intendedVoucher.serviceId,
+            serviceNameSnapshot: booking.intendedVoucher.serviceNameSnapshot,
+            servicePriceSnapshotCzk: booking.intendedVoucher.servicePriceSnapshotCzk,
+            safeDescription: buildVoucherSafeDescription(booking.intendedVoucher),
+            defaultRedeemAmountCzk:
+              booking.intendedVoucher.type === VoucherType.VALUE
+                ? Math.min(
+                    booking.intendedVoucher.remainingValueCzk ?? 0,
+                    booking.servicePriceFromCzk ?? booking.intendedVoucher.remainingValueCzk ?? 0,
+                  )
+                : booking.intendedVoucher.servicePriceSnapshotCzk ?? booking.servicePriceFromCzk,
+          }
+        : null,
+      redemptions: booking.voucherRedemptions.map((redemption) => ({
+        id: redemption.id,
+        voucherCode: redemption.voucher.code,
+        voucherType: redemption.voucher.type,
+        voucherTypeLabel: formatVoucherType(redemption.voucher.type),
+        amountCzk: redemption.amountCzk,
+        serviceNameSnapshot: redemption.serviceNameSnapshot,
+        redeemedAtLabel: formatDateTimeLabel(redemption.redeemedAt),
+        redeemedByUserLabel: formatRedemptionUserLabel(redemption.redeemedByUser),
+        note: redemption.note,
+      })),
     },
   };
 }

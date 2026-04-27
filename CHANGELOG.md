@@ -6,6 +6,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Admin detail rezervace nově obsahuje panel `Voucher` pro OWNER i SALON: ukazuje intended voucher z rezervace, umožňuje ručně zadat jiný kód, uplatnit hodnotový nebo službový voucher přes server action a zobrazit historii všech `VoucherRedemption` záznamů u rezervace bez storna čerpání.
 - Přidána tvorba voucheru v adminu pro OWNER i SALON na `/admin/vouchery/novy` a `/admin/provoz/vouchery/novy`: sdílený formulář umí hodnotový poukaz i poukaz na aktivní službu, ukládá volitelné údaje kupujícího a interní poznámku, serverově validuje vstup a po vytvoření přesměruje na detail voucheru.
 - Přidán read-only admin detail voucheru pro OWNER i SALON na `/admin/vouchery/[voucherId]` a `/admin/provoz/vouchery/[voucherId]`: zobrazuje kód, typ, efektivní stav, platnosti, kupujícího/obdarovaného, hodnotu nebo snapshot služby, historii uplatnění a interní poznámku bez editace, rušení, mazání, PDF generování nebo uplatnění.
 - Přidána admin sekce `Vouchery` pro OWNER i SALON na `/admin/vouchery` a `/admin/provoz/vouchery`: seznam podporuje hledání přes `q`, filtr typu a efektivní filtr stavu včetně aplikačně počítané expirace.

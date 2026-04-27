@@ -1,11 +1,12 @@
 "use server";
 
-import { BookingSource, BookingStatus } from "@prisma/client";
+import { AdminRole, BookingSource, BookingStatus } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { type AdminArea } from "@/config/navigation";
 import { type CreateManualBookingActionState } from "@/features/admin/actions/create-manual-booking-action-state";
+import { type RedeemBookingVoucherActionState } from "@/features/admin/actions/redeem-booking-voucher-action-state";
 import { type RescheduleBookingActionState } from "@/features/admin/actions/reschedule-booking-action-state";
 import { type UpdateBookingNoteActionState } from "@/features/admin/actions/update-booking-note-action-state";
 import { type UpdateBookingStatusActionState } from "@/features/admin/actions/update-booking-status-action-state";
@@ -29,7 +30,12 @@ import {
   rescheduleBooking,
 } from "@/features/booking/lib/booking-rescheduling";
 import { resolvePragueLocalDateTime } from "@/features/booking/lib/booking-local-time";
-import { requireAdminArea } from "@/lib/auth/session";
+import {
+  redeemVoucherForBooking,
+  VoucherRedemptionError,
+  voucherRedemptionErrorCodes,
+} from "@/features/vouchers/lib/voucher-redemption";
+import { requireAdminArea, requireRole } from "@/lib/auth/session";
 import { sendOwnerBookingPushover } from "@/lib/notifications/pushover";
 import { prisma } from "@/lib/prisma";
 
@@ -131,6 +137,21 @@ const rescheduleBookingSchema = z.object({
   includeCalendarAttachment: z.enum(["0", "1"]).optional().default("1"),
 });
 
+const redeemBookingVoucherSchema = z.object({
+  area: z.enum(["owner", "salon"]),
+  bookingId: z.string().trim().min(1).max(64),
+  voucherCode: z.string().trim().min(1, "Zadejte kód voucheru.").max(64, "Kód voucheru je příliš dlouhý."),
+  amountCzk: z.preprocess(
+    (value) => (value === "" || value === null ? undefined : value),
+    z.coerce
+      .number({ error: "Částku zadejte jako celé číslo v Kč." })
+      .int("Částka musí být celé číslo v Kč.")
+      .min(1, "Částka musí být vyšší než 0.")
+      .optional(),
+  ),
+  note: z.string().trim().max(2000, "Poznámka je příliš dlouhá.").optional().or(z.literal("")),
+});
+
 function revalidateBookingAdminPaths(bookingId: string) {
   const paths = [
     "/admin",
@@ -161,6 +182,51 @@ async function resolveBookingActorUserId(area: AdminArea) {
   });
 
   return dbUser?.id ?? null;
+}
+
+async function resolveVoucherRedemptionActorUserId(email: string) {
+  const dbUser = await prisma.adminUser.findFirst({
+    where: {
+      email: {
+        equals: email.trim(),
+        mode: "insensitive",
+      },
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  return dbUser?.id ?? null;
+}
+
+function resolveActionArea(role: AdminRole, requestedArea: AdminArea): AdminArea {
+  if (role === AdminRole.SALON) {
+    return "salon";
+  }
+
+  return requestedArea;
+}
+
+function getVoucherRedemptionFormError(error: VoucherRedemptionError) {
+  switch (error.code) {
+    case voucherRedemptionErrorCodes.voucherNotFound:
+      return "Voucher s tímto kódem se nepodařilo najít.";
+    case voucherRedemptionErrorCodes.bookingNotFound:
+      return "Rezervaci se nepodařilo najít.";
+    case voucherRedemptionErrorCodes.voucherNotRedeemable:
+      return "Voucher teď nejde uplatnit. Zkontrolujte jeho stav a platnost.";
+    case voucherRedemptionErrorCodes.amountRequired:
+      return "U hodnotového voucheru zadejte částku k uplatnění.";
+    case voucherRedemptionErrorCodes.insufficientRemainingValue:
+      return "Částka je vyšší než zbývající hodnota voucheru.";
+    case voucherRedemptionErrorCodes.serviceMismatch:
+      return "Tento voucher je vystavený na jinou službu než aktuální rezervace.";
+    case voucherRedemptionErrorCodes.concurrentRedemption:
+      return "Voucher se mezitím změnil. Obnovte detail rezervace a zkuste to znovu.";
+    default:
+      return "Voucher se nepodařilo uplatnit. Zkontrolujte kód a zkuste to znovu.";
+  }
 }
 
 function resolveManualStartsAt(dateValue: string, timeValue: string) {
@@ -323,6 +389,89 @@ export async function updateBookingNoteAction(
     successMessage: parsed.data.internalNote
       ? "Interní poznámka je uložená."
       : "Interní poznámka byla odstraněná.",
+  };
+}
+
+export async function redeemBookingVoucherAction(
+  _previousState: RedeemBookingVoucherActionState,
+  formData: FormData,
+): Promise<RedeemBookingVoucherActionState> {
+  const parsed = redeemBookingVoucherSchema.safeParse({
+    area: readFormString(formData, "area"),
+    bookingId: readFormString(formData, "bookingId"),
+    voucherCode: readFormString(formData, "voucherCode"),
+    amountCzk: readFormString(formData, "amountCzk"),
+    note: readFormString(formData, "note"),
+  });
+
+  if (!parsed.success) {
+    const fieldErrors = parsed.error.flatten().fieldErrors;
+
+    return {
+      status: "error",
+      formError: "Voucher je potřeba ještě doplnit nebo opravit.",
+      fieldErrors: {
+        voucherCode: fieldErrors.voucherCode?.[0],
+        amountCzk: fieldErrors.amountCzk?.[0],
+        note: fieldErrors.note?.[0],
+      },
+    };
+  }
+
+  const session = await requireRole([AdminRole.OWNER, AdminRole.SALON]);
+  const area = resolveActionArea(session.role, parsed.data.area as AdminArea);
+  const actorUserId = await resolveVoucherRedemptionActorUserId(session.email);
+
+  let redeemedVoucherId: string | null = null;
+
+  try {
+    const result = await redeemVoucherForBooking({
+      bookingId: parsed.data.bookingId,
+      voucherCode: parsed.data.voucherCode,
+      amountCzk: parsed.data.amountCzk,
+      redeemedByUserId: actorUserId,
+      note: parsed.data.note || undefined,
+    });
+
+    redeemedVoucherId = result.voucher.id;
+  } catch (error) {
+    if (error instanceof VoucherRedemptionError) {
+      return {
+        status: "error",
+        formError: getVoucherRedemptionFormError(error),
+        fieldErrors:
+          error.code === voucherRedemptionErrorCodes.amountRequired ||
+          error.code === voucherRedemptionErrorCodes.insufficientRemainingValue
+            ? { amountCzk: getVoucherRedemptionFormError(error) }
+            : error.code === voucherRedemptionErrorCodes.voucherNotFound
+              ? { voucherCode: getVoucherRedemptionFormError(error) }
+              : undefined,
+      };
+    }
+
+    console.error("Failed to redeem voucher for booking", error);
+
+    return {
+      status: "error",
+      formError: "Voucher se teď nepodařilo uplatnit. Zkuste to prosím znovu.",
+    };
+  }
+
+  revalidateBookingAdminPaths(parsed.data.bookingId);
+  revalidatePath("/admin/vouchery");
+  revalidatePath("/admin/provoz/vouchery");
+
+  if (redeemedVoucherId) {
+    revalidatePath(`/admin/vouchery/${redeemedVoucherId}`);
+    revalidatePath(`/admin/provoz/vouchery/${redeemedVoucherId}`);
+  }
+
+  return {
+    status: "success",
+    successMessage:
+      area === "salon"
+        ? "Voucher je uplatněný a propsal se do detailu rezervace."
+        : "Voucher je uplatněný a historie rezervace je aktuální.",
   };
 }
 
