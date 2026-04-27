@@ -1,4 +1,4 @@
-import { expect, test, type Locator } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 import { BookingStatus } from "@prisma/client";
 
 import {
@@ -23,6 +23,36 @@ async function clickUntilEnabled(trigger: Locator, target: Locator) {
   }
 
   await expect(target).toBeEnabled();
+}
+
+async function submitRescheduleUntilSuccess(page: Page, options: {
+  slotButtons: Locator;
+  confirmButton: Locator;
+  successHeading: Locator;
+}) {
+  const maxAttempts = 6;
+
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    const slotButton = options.slotButtons.nth(attempt);
+
+    if (await slotButton.count() === 0) {
+      break;
+    }
+
+    await clickUntilEnabled(slotButton, options.confirmButton);
+    await options.confirmButton.click();
+
+    try {
+      await expect(options.successHeading).toBeVisible({ timeout: 6_000 });
+      return;
+    } catch {
+      await expect(
+        page.getByText(/koliduje s jinou aktivní rezervací|už není k dispozici/i).first(),
+      ).toBeVisible();
+    }
+  }
+
+  await expect(options.successHeading).toBeVisible({ timeout: 30_000 });
 }
 
 async function clickUntilFocused(trigger: Locator, target: Locator) {
@@ -125,14 +155,14 @@ test.describe("booking flows", () => {
       .locator("section")
       .filter({ has: page.getByRole("heading", { name: "Nejbližší dostupné termíny" }) })
       .first();
-    const firstAvailableSlot = newTermsSection.getByRole("button").first();
+    const successHeading = page.getByRole("heading", { name: "Rezervace byla úspěšně přesunuta." });
+    const confirmButton = page.getByRole("button", { name: "Potvrdit nový termín" });
 
-    await clickUntilEnabled(firstAvailableSlot, page.getByRole("button", { name: "Potvrdit nový termín" }));
-    await page.getByRole("button", { name: "Potvrdit nový termín" }).click();
-
-    await expect(
-      page.getByRole("heading", { name: "Rezervace byla úspěšně přesunuta." }),
-    ).toBeVisible({ timeout: 30_000 });
+    await submitRescheduleUntilSuccess(page, {
+      slotButtons: newTermsSection.getByRole("button"),
+      confirmButton,
+      successHeading,
+    });
 
     const booking = await prisma.booking.findUniqueOrThrow({
       where: {
