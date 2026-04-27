@@ -6,6 +6,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Opraven `sitemap.xml`: `lastModified` už nepoužívá jednotné aktuální datum pro všechny URL. Detail služby nyní bere `Service.updatedAt`, zatímco statické stránky mají stabilní datum poslední obsahové revize; přehledové stránky `/sluzby` a `/cenik` se navíc aktualizují podle nejnovější změny ve službách.
 - Sjednoceny fallback kontakty a globální SEO popis: `siteConfig`, veřejný content, `SiteSettings` fallback i e-mailová vrstva už nepoužívají placeholder `+420 777 000 000` / `hello@ppstudio.cz`, ale skutečné údaje PP Studia ve Zlíně.
 - Admin `src/proxy.ts` uz nepropousti `/admin/*` jen podle existence cookie: nove overuje podpis a expiraci session JWT, neplatnou cookie aktivne smaze a presmeruje na login.
 - Stabilizovan E2E scenar self-service presunu terminu: Playwright test ma sirsi timeout jen pro tento krok a owner Pushover HTTP volani je ted omezene 3s timeoutem, aby pomale externi notifikace zbytecne nedrzely booking flow.

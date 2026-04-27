@@ -53,7 +53,7 @@ test("POST returns rate_limited redirect when attempt limit is exceeded", async 
       name: "ppstudio-admin-session",
       options: { httpOnly: true, sameSite: "lax" as const, secure: false, path: "/", maxAge: 3600 },
     }),
-    buildAbsoluteUrl: (_request, path) => `https://example.com${path}`,
+    buildAbsoluteUrl: (_request, path) => new URL(path, "https://example.com"),
   });
 
   const response = await api.POST(buildLoginRequest("owner@example.com", "super-safe-password"));
@@ -87,7 +87,7 @@ test("POST returns invalid_payload redirect for malformed form data", async () =
       name: "ppstudio-admin-session",
       options: { httpOnly: true, sameSite: "lax" as const, secure: false, path: "/", maxAge: 3600 },
     }),
-    buildAbsoluteUrl: (_request, path) => `https://example.com${path}`,
+    buildAbsoluteUrl: (_request, path) => new URL(path, "https://example.com"),
   });
 
   const response = await api.POST(buildLoginRequest("invalid-email", "short"));
@@ -121,7 +121,7 @@ test("POST returns invalid_credentials redirect for wrong credentials", async ()
       name: "ppstudio-admin-session",
       options: { httpOnly: true, sameSite: "lax" as const, secure: false, path: "/", maxAge: 3600 },
     }),
-    buildAbsoluteUrl: (_request, path) => `https://example.com${path}`,
+    buildAbsoluteUrl: (_request, path) => new URL(path, "https://example.com"),
   });
 
   const response = await api.POST(buildLoginRequest("owner@example.com", "wrong-password-value"));
@@ -161,7 +161,7 @@ test("POST sets session cookie and redirects to admin home after successful logi
       name: "ppstudio-admin-session",
       options: { httpOnly: true, sameSite: "lax" as const, secure: false, path: "/", maxAge: 43200 },
     }),
-    buildAbsoluteUrl: (_request, path) => `https://example.com${path}`,
+    buildAbsoluteUrl: (_request, path) => new URL(path, "https://example.com"),
   });
 
   const response = await api.POST(buildLoginRequest("owner@example.com", "super-safe-password"));

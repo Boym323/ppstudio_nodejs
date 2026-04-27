@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 
+import type { PublicBookingCatalog } from "./booking-public";
+
 process.env.NEXT_PUBLIC_APP_NAME ??= "PP Studio";
 process.env.NEXT_PUBLIC_APP_URL ??= "https://example.com";
 process.env.DATABASE_URL ??= "postgresql://postgres:postgres@localhost:5432/ppstudio?schema=public";
@@ -10,6 +12,11 @@ process.env.ADMIN_OWNER_PASSWORD ??= "change-me-owner";
 process.env.ADMIN_STAFF_EMAIL ??= "staff@example.com";
 process.env.ADMIN_STAFF_PASSWORD ??= "change-me-staff";
 process.env.EMAIL_DELIVERY_MODE ??= "log";
+
+const emptyCatalog: PublicBookingCatalog = {
+  services: [],
+  slots: [],
+};
 
 type BookingTokenOverrides = Partial<{
   bookingId: string;
@@ -60,7 +67,7 @@ describe("public token access", () => {
         return expectedToken;
       },
       getBookingPolicySettings: async () => ({ cancellationHours: 48, minAdvanceHours: 2, maxAdvanceDays: 90 }),
-      getPublicBookingCatalog: async () => ({ slots: [{ id: "slot-1" }] }),
+      getPublicBookingCatalog: async () => emptyCatalog,
       issueCancellationUrl: async (bookingId) => {
         assert.equal(bookingId, "booking-1");
         return "https://example.com/cancel/booking-1";
@@ -115,7 +122,7 @@ describe("public token access", () => {
     const api = createBookingManagementApi({
       findManageToken: async (tokenHash) => tokenMap.get(tokenHash) ?? null,
       getBookingPolicySettings: async () => ({ cancellationHours: 48, minAdvanceHours: 2, maxAdvanceDays: 90 }),
-      getPublicBookingCatalog: async () => ({ slots: [] }),
+      getPublicBookingCatalog: async () => emptyCatalog,
       issueCancellationUrl: async (bookingId) => `https://example.com/cancel/${bookingId}`,
       rescheduleBooking: async () => {
         throw new Error("rescheduleBooking should not be called");
@@ -235,7 +242,7 @@ describe("reschedule booking", () => {
     const api = createBookingManagementApi({
       findManageToken: async () => buildToken({ bookingId: "booking-1" }),
       getBookingPolicySettings: async () => ({ cancellationHours: 48, minAdvanceHours: 2, maxAdvanceDays: 90 }),
-      getPublicBookingCatalog: async () => ({ slots: [] }),
+      getPublicBookingCatalog: async () => emptyCatalog,
       issueCancellationUrl: async () => "https://example.com/cancel/booking-1",
       rescheduleBooking: async (input) => {
         rescheduleCalls.push(input as Record<string, unknown>);
@@ -243,6 +250,8 @@ describe("reschedule booking", () => {
           bookingId: "booking-1",
           scheduledStartsAt: "2026-04-28T09:00:00.000Z",
           scheduledEndsAt: "2026-04-28T10:00:00.000Z",
+          previousScheduledStartsAt: "2026-04-26T09:00:00.000Z",
+          previousScheduledEndsAt: "2026-04-26T10:00:00.000Z",
           scheduledAtLabel: "Po 28. 4. 2026 09:00-10:00",
           previousScheduledAtLabel: "So 26. 4. 2026 09:00-10:00",
           rescheduleCount: 1,
@@ -279,7 +288,7 @@ describe("reschedule booking", () => {
     const api = createBookingManagementApi({
       findManageToken: async () => null,
       getBookingPolicySettings: async () => ({ cancellationHours: 48, minAdvanceHours: 2, maxAdvanceDays: 90 }),
-      getPublicBookingCatalog: async () => ({ slots: [] }),
+      getPublicBookingCatalog: async () => emptyCatalog,
       issueCancellationUrl: async () => "https://example.com/cancel/booking-1",
       rescheduleBooking: async () => {
         rescheduleCalled = true;
@@ -304,7 +313,7 @@ describe("reschedule booking", () => {
     const api = createBookingManagementApi({
       findManageToken: async () => buildToken({ bookingStatus: "NO_SHOW" }),
       getBookingPolicySettings: async () => ({ cancellationHours: 48, minAdvanceHours: 2, maxAdvanceDays: 90 }),
-      getPublicBookingCatalog: async () => ({ slots: [] }),
+      getPublicBookingCatalog: async () => emptyCatalog,
       issueCancellationUrl: async () => "https://example.com/cancel/booking-1",
       rescheduleBooking: async () => {
         rescheduleCalled = true;

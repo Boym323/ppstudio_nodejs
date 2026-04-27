@@ -179,16 +179,17 @@ async function cleanupSeed(seed: Seed) {
 function assertApprovedEmailPayloadHasSelfServiceLinks(payload: unknown) {
   assert.equal(typeof payload, "object");
   assert.ok(payload && !Array.isArray(payload));
-  assert.ok("manageReservationUrl" in payload);
-  assert.ok("cancellationUrl" in payload);
+  const data = payload as Record<string, unknown>;
+  assert.ok("manageReservationUrl" in data);
+  assert.ok("cancellationUrl" in data);
 
-  const data = payload as {
+  const typedData = data as {
     manageReservationUrl: string;
     cancellationUrl: string;
   };
 
-  assert.match(data.manageReservationUrl, /\/rezervace\/sprava\//);
-  assert.match(data.cancellationUrl, /\/rezervace\/storno\//);
+  assert.match(typedData.manageReservationUrl, /\/rezervace\/sprava\//);
+  assert.match(typedData.cancellationUrl, /\/rezervace\/storno\//);
 }
 
 dbTest("applyAdminBookingStatusChange stores manage and cancellation links in approved email payload", async () => {
@@ -201,7 +202,7 @@ dbTest("applyAdminBookingStatusChange stores manage and cancellation links in ap
       targetStatus: "CONFIRMED",
       actorUserId: seed.actorUserId,
       reason: "Integration test confirmation",
-      internalNote: null,
+      internalNote: undefined,
     });
 
     assert.deepEqual(result, { status: "success" });

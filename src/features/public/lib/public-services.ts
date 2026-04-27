@@ -54,6 +54,11 @@ export type PublicPricingCategory = {
   items: PublicPricingItem[];
 };
 
+export type PublicServiceSitemapEntry = {
+  slug: string;
+  updatedAt: Date;
+};
+
 function formatPrice(value: number | null) {
   if (value === null) {
     return "Na dotaz";
@@ -324,4 +329,23 @@ export async function getPublicServiceBySlug(slug: string): Promise<Service | nu
   });
 
   return service ? mapService(service) : null;
+}
+
+export async function getPublicServiceSitemapEntries(): Promise<PublicServiceSitemapEntry[]> {
+  return prisma.service.findMany({
+    where: {
+      isActive: true,
+      isPubliclyBookable: true,
+      category: {
+        is: {
+          isActive: true,
+        },
+      },
+    },
+    orderBy: [{ category: { sortOrder: "asc" } }, { sortOrder: "asc" }, { name: "asc" }],
+    select: {
+      slug: true,
+      updatedAt: true,
+    },
+  });
 }

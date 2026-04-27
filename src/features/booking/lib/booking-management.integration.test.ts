@@ -1067,11 +1067,13 @@ describe("reschedule booking flow", () => {
 
       assert.equal(emailLog.templateKey, "booking-rescheduled-v1");
       assert.equal(typeof emailLog.payload, "object");
-      assert.ok(emailLog.payload && "manageReservationUrl" in emailLog.payload);
-      assert.ok(emailLog.payload && "cancellationUrl" in emailLog.payload);
-      assert.ok(emailLog.payload && "includeCalendarAttachment" in emailLog.payload);
+      assert.ok(emailLog.payload && typeof emailLog.payload === "object" && !Array.isArray(emailLog.payload));
+      const payload = emailLog.payload as Record<string, unknown>;
+      assert.ok("manageReservationUrl" in payload);
+      assert.ok("cancellationUrl" in payload);
+      assert.ok("includeCalendarAttachment" in payload);
       assert.equal(
-        (emailLog.payload as { includeCalendarAttachment: boolean }).includeCalendarAttachment,
+        (payload as { includeCalendarAttachment: boolean }).includeCalendarAttachment,
         true,
       );
 

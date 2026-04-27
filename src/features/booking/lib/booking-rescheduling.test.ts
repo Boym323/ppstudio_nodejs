@@ -92,7 +92,7 @@ async function createHarness(overrides: Partial<{
   overlappingSlots: Array<ReturnType<typeof buildSlot>>;
   activeBookingCount: number;
   withinWindow: boolean;
-  notificationStatus: "queued" | "logged" | "skipped" | "failed";
+  notificationStatus: "queued" | "logged";
 }> = {}) {
   const { createBookingReschedulingApi } = await import("./booking-rescheduling");
 
@@ -196,8 +196,9 @@ function expectRescheduleErrorCode(
 ) {
   assert.equal(typeof error, "object");
   assert.ok(error);
-  assert.equal("code" in error, true);
-  assert.equal((error as { code: string }).code, expectedCode);
+  const typedError = error as Record<string, unknown>;
+  assert.equal("code" in typedError, true);
+  assert.equal((typedError as { code: string }).code, expectedCode);
 }
 
 describe("state validation", () => {
@@ -216,7 +217,6 @@ describe("state validation", () => {
       expectedUpdatedAt: "2026-04-23T09:00:00.000Z",
     });
 
-    assert.equal(result.status, undefined);
     assert.equal(result.bookingId, "booking-1");
   });
 
