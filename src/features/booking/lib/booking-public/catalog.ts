@@ -9,7 +9,14 @@ import {
 } from "./shared";
 import { buildMergedPublicCatalogSlots } from "../booking-slot-availability";
 
-export async function getPublicBookingCatalog(): Promise<PublicBookingCatalog> {
+type PublicBookingCatalogOptions = {
+  includeServices?: boolean;
+};
+
+export async function getPublicBookingCatalog(
+  options: PublicBookingCatalogOptions = {},
+): Promise<PublicBookingCatalog> {
+  const includeServices = options.includeServices ?? true;
   const now = new Date();
   const bookingPolicy = await getBookingPolicySettings();
   const bookingWindowStart = new Date(
@@ -20,31 +27,33 @@ export async function getPublicBookingCatalog(): Promise<PublicBookingCatalog> {
   );
 
   const [services, slots, bookings] = await Promise.all([
-    prisma.service.findMany({
-      where: {
-        isActive: true,
-        isPubliclyBookable: true,
-        category: {
-          is: {
+    includeServices
+      ? prisma.service.findMany({
+          where: {
             isActive: true,
+            isPubliclyBookable: true,
+            category: {
+              is: {
+                isActive: true,
+              },
+            },
           },
-        },
-      },
-      orderBy: [{ category: { sortOrder: "asc" } }, { sortOrder: "asc" }, { name: "asc" }],
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        publicIntro: true,
-        durationMinutes: true,
-        priceFromCzk: true,
-        category: {
+          orderBy: [{ category: { sortOrder: "asc" } }, { sortOrder: "asc" }, { name: "asc" }],
           select: {
+            id: true,
             name: true,
+            slug: true,
+            publicIntro: true,
+            durationMinutes: true,
+            priceFromCzk: true,
+            category: {
+              select: {
+                name: true,
+              },
+            },
           },
-        },
-      },
-    }),
+        })
+      : Promise.resolve([]),
     prisma.availabilitySlot.findMany({
       where: {
         status: AvailabilitySlotStatus.PUBLISHED,
