@@ -73,11 +73,11 @@ const fontBoldLatinExtPath = path.join(
 );
 
 const colors = {
-  ink: rgb(0.12, 0.105, 0.095),
-  muted: rgb(0.43, 0.39, 0.35),
-  accent: rgb(0.72, 0.6, 0.43),
-  accentSoft: rgb(0.86, 0.78, 0.67),
-  guide: rgb(0.84, 0.79, 0.72),
+  ink: rgb(0.08, 0.072, 0.066),
+  muted: rgb(0.28, 0.255, 0.232),
+  accent: rgb(0.62, 0.49, 0.33),
+  accentSoft: rgb(0.76, 0.64, 0.5),
+  guide: rgb(0.68, 0.58, 0.46),
   background: rgb(0.965, 0.945, 0.915),
   paper: rgb(0.906, 0.855, 0.808),
   panel: rgb(0.985, 0.965, 0.935),
@@ -199,7 +199,7 @@ function drawPrintGuides(page: PDFPage) {
     thickness: 0.2,
     color: colors.guide,
     dashArray: [2, 3],
-    opacity: 0.38,
+    opacity: 0.42,
   });
 }
 
@@ -234,8 +234,8 @@ function drawVoucherDlPortrait(
     y: safeMargin - mm(1.5),
     width: VOUCHER_WIDTH_PT - (safeMargin - mm(1.5)) * 2,
     height: VOUCHER_HEIGHT_PT - (safeMargin - mm(1.5)) * 2,
-    borderColor: rgb(0.91, 0.85, 0.77),
-    borderWidth: 0.45,
+    borderColor: rgb(0.78, 0.65, 0.5),
+    borderWidth: 0.52,
   });
 
   const logoTopY = VOUCHER_HEIGHT_PT - mm(15);
@@ -261,9 +261,9 @@ function drawVoucherDlPortrait(
   page.drawLine({
     start: { x: centerX - mm(14), y: VOUCHER_HEIGHT_PT - mm(46) },
     end: { x: centerX + mm(14), y: VOUCHER_HEIGHT_PT - mm(46) },
-    thickness: 0.35,
+    thickness: 0.42,
     color: colors.accent,
-    opacity: 0.42,
+    opacity: 0.58,
   });
 
   drawCenteredText(page, "Dárkový poukaz", centerX, VOUCHER_HEIGHT_PT - mm(60), {
@@ -319,8 +319,8 @@ function drawVoucherDlPortrait(
     width: qrBoxSize,
     height: qrBoxSize,
     color: rgb(1, 0.995, 0.985),
-    borderColor: rgb(0.91, 0.86, 0.78),
-    borderWidth: 0.35,
+    borderColor: rgb(0.74, 0.62, 0.46),
+    borderWidth: 0.48,
   });
   page.drawImage(qrImage, {
     x: qrBoxX + mm(2.8),
@@ -381,9 +381,9 @@ function drawInfoBlock(
   page.drawLine({
     start: { x, y: y + mm(3.4) },
     end: { x: x + width, y: y + mm(3.4) },
-    thickness: 0.28,
+    thickness: 0.36,
     color: colors.accentSoft,
-    opacity: 0.45,
+    opacity: 0.7,
   });
   drawCenteredText(page, label, centerX, y, {
     fontPair: regularFont,
