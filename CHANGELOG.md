@@ -334,6 +334,7 @@ Formát je inspirovaný Keep a Changelog.
 - Produkční admin sekci `Klienti` pro `OWNER` i `SALON` s fulltextovým hledáním, filtry a řazením nad reálnými Prisma daty.
 - Samostatný detail klientky na `/admin/klienti/[clientId]` a `/admin/provoz/klienti/[clientId]` s kontakty, souhrnem historie a posledními rezervacemi.
 - Server action a validační vrstvu pro bezpečnou editaci interní poznámky klientky přímo z detailu.
+- Přehled klientů je teď kompaktnější: kratší statistiky, nižší toolbar a karty bez opakované věty u klientů bez interní poznámky.
 - ADR 0018 pro rozhodnutí kolem lehkého CRM workflow v admin sekci `Klienti`.
 - První konkrétní admin modul `Certifikáty` dostupný pro `OWNER` i `SALON` na `/admin/certifikaty` a `/admin/provoz/certifikaty`.
 - Server actions pro upload a smazání certifikátů napojené na `saveMediaAsset()` a `removeMediaAsset()`.

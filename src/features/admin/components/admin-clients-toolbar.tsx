@@ -11,16 +11,19 @@ export function AdminClientsToolbar({
   currentPath,
   filters,
 }: AdminClientsToolbarProps) {
+  const hasActiveFilters =
+    filters.query.trim().length > 0 || filters.status !== "all" || filters.sort !== "recent";
+
   return (
-    <form className="grid gap-3 rounded-[1.35rem] border border-white/8 bg-white/5 p-4 sm:grid-cols-2 xl:grid-cols-3">
+    <form className="grid gap-2 rounded-[1.2rem] border border-white/8 bg-white/5 p-3 sm:grid-cols-2 xl:grid-cols-3">
       <label className="block sm:col-span-2 xl:col-span-1">
-        <span className="text-xs uppercase tracking-[0.2em] text-white/50">Hledat</span>
+        <span className="text-[11px] uppercase tracking-[0.18em] text-white/48">Hledat</span>
         <input
           type="search"
           name="query"
           defaultValue={filters.query}
-          placeholder="Jméno, e-mail, telefon nebo poznámka"
-          className="mt-2 w-full rounded-[1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none transition placeholder:text-white/30 focus:border-[var(--color-accent)]/60"
+          placeholder="Jméno, e-mail, telefon, poznámka"
+          className="mt-1.5 w-full rounded-[0.95rem] border border-white/10 bg-black/20 px-3.5 py-2.5 text-sm text-white outline-none transition placeholder:text-white/30 focus:border-[var(--color-accent)]/60"
         />
       </label>
 
@@ -37,19 +40,21 @@ export function AdminClientsToolbar({
         <option value="created" className="text-black">Nově přidané</option>
       </SelectField>
 
-      <div className="flex flex-wrap items-center gap-3 sm:col-span-2 xl:col-span-3">
+      <div className="flex flex-wrap items-center gap-2 sm:col-span-2 xl:col-span-3">
         <button
           type="submit"
-          className="rounded-full bg-[var(--color-accent)] px-5 py-3 text-sm font-semibold text-[var(--color-accent-contrast)] transition hover:brightness-105"
+          className="rounded-full bg-[var(--color-accent)] px-4 py-2.5 text-sm font-semibold text-[var(--color-accent-contrast)] transition hover:brightness-105"
         >
           Filtrovat
         </button>
-        <a
-          href={currentPath}
-          className="rounded-full border border-white/10 px-5 py-3 text-sm text-white/80 transition hover:border-white/18 hover:bg-white/6"
-        >
-          Zrušit filtr
-        </a>
+        {hasActiveFilters ? (
+          <a
+            href={currentPath}
+            className="rounded-full border border-white/10 px-4 py-2.5 text-sm text-white/80 transition hover:border-white/18 hover:bg-white/6"
+          >
+            Zrušit filtr
+          </a>
+        ) : null}
       </div>
     </form>
   );
@@ -68,11 +73,11 @@ function SelectField({
 }) {
   return (
     <label className="block">
-      <span className="text-xs uppercase tracking-[0.2em] text-white/50">{label}</span>
+      <span className="text-[11px] uppercase tracking-[0.18em] text-white/48">{label}</span>
       <select
         name={name}
         defaultValue={defaultValue}
-        className="mt-2 w-full rounded-[1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--color-accent)]/60"
+        className="mt-1.5 w-full rounded-[0.95rem] border border-white/10 bg-black/20 px-3.5 py-2.5 text-sm text-white outline-none transition focus:border-[var(--color-accent)]/60"
       >
         {children}
       </select>

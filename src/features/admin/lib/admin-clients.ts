@@ -164,23 +164,23 @@ export async function getAdminClientsPageData(
         label: "Aktivní klienti",
         value: String(activeCount),
         tone: "accent" as const,
-        detail: "Klientky, které mají aktivní profil a zůstávají po ruce pro další práci.",
+        detail: "Profily připravené k další práci.",
       },
       {
         label: "Neaktivní klienti",
         value: String(inactiveCount),
         tone: "muted" as const,
-        detail: "Historické nebo dočasně vypnuté profily, které zůstávají dohledatelné.",
+        detail: "Skryté nebo dočasně vypnuté profily.",
       },
       {
         label: "S interní poznámkou",
         value: String(notedCount),
-        detail: "Profily, kde tým už zapsal provozní kontext nebo důležitou poznámku.",
+        detail: "Profily s uloženým provozním kontextem.",
       },
       {
         label: "Aktivní za 30 dní",
         value: String(recentCount),
-        detail: "Klientky s návštěvou nebo bookingem v posledních 30 dnech.",
+        detail: "Návštěva nebo booking za posledních 30 dní.",
       },
     ],
     clients: clients.map((client) => ({

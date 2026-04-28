@@ -288,6 +288,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - `src/features/admin/components/admin-booking-detail-page.tsx` a route dvojice `/admin/rezervace/[bookingId]` + `/admin/provoz/rezervace/[bookingId]` drží první produkční workflow pro práci s rezervací.
 - Sekce `Klienti` má vlastní workflow v `src/features/admin/components/admin-clients-page.tsx` a už neběží přes generický placeholder renderer.
 - `src/features/admin/lib/admin-clients.ts` drží serverový read model pro seznam klientek, filtry, detail klientky a napojení na historii rezervací.
+- Přehled klientů je záměrně kompaktní: horní statistiky jsou jen v nízké inline liště, toolbar je nižší a karty bez výplňového textu u klientů bez interní poznámky.
 - `src/features/admin/actions/client-actions.ts` je tenký server action adaptér pro editaci interní poznámky klientky; validace zůstává v `src/features/admin/lib/admin-client-validation.ts`.
 - Sekce `Média webu` má vlastní workflow v `src/features/admin/components/admin-media-page.tsx` a je dostupná v owner i salon oblasti na `/admin/media` a `/admin/provoz/media`.
 - Server action adaptéry pro média jsou v `src/features/admin/actions/media-actions.ts`; validace vstupu je v `src/features/admin/lib/admin-media-validation.ts`.

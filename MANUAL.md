@@ -380,6 +380,7 @@ npm run db:clear-booking-data -- --confirm
 - Sekce `Klienti` je nyní produkčně použitelná pro obě role na `/admin/klienti`, `/admin/provoz/klienti` a v detailu na `/admin/klienti/[clientId]`, `/admin/provoz/klienti/[clientId]`:
   - seznam podporuje hledání přes jméno, e-mail, telefon i interní poznámku
   - filtry umí omezit aktivní/neaktivní profily a přepnout řazení podle poslední návštěvy, počtu rezervací, jména nebo vytvoření
+  - hlavní přehled klientů je záměrně kompaktní: horní statistiky jsou jen v nízké inline liště, toolbar je hustší a karty jsou menší bez opakovaného textu u klientů bez poznámky
   - detail klientky ukazuje kontakty, poslední a budoucí termín, nejčastější službu a posledních 10 rezervací
   - interní poznámka se upravuje přímo v detailu klientky a po uložení se propisuje do obou admin oblastí
 - Sekce `Uživatelé / role` je nyní vyhrazená jen pro `OWNER` na `/admin/uzivatele`:
