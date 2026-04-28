@@ -79,7 +79,7 @@ const colors = {
   accentSoft: rgb(0.86, 0.78, 0.67),
   guide: rgb(0.84, 0.79, 0.72),
   background: rgb(0.965, 0.945, 0.915),
-  paper: rgb(1, 0.99, 0.965),
+  paper: rgb(0.906, 0.855, 0.808),
   panel: rgb(0.985, 0.965, 0.935),
 };
 
@@ -253,7 +253,7 @@ function drawVoucherDlPortrait(
     });
   }
 
-  drawCenteredText(page, "kosmetické studio Zlín", centerX, VOUCHER_HEIGHT_PT - mm(42), {
+  drawCenteredText(page, "COSMETICS & LAMINATIONS", centerX, VOUCHER_HEIGHT_PT - mm(42), {
     fontPair: regularFont,
     size: 8.4,
     color: colors.muted,
