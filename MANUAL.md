@@ -126,6 +126,7 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
 - Voucher email se loguje do `EmailLog` (typ `VOUCHER_SENT`) a pouziva stavajici email worker:
   - `EMAIL_DELIVERY_MODE=background`: záznam jde do fronty a worker ho odesle s retry politikou.
   - `EMAIL_DELIVERY_MODE=log`: záznam se oznaci jako odeslany v log rezimu bez SMTP odeslani.
+- Email worker pro PDF prilohu importuje worker-safe `src/features/vouchers/lib/voucher-pdf-core.ts`; Next.js wrapper `src/features/vouchers/lib/voucher-pdf.ts` zustava jen pro admin routy s `import "server-only"`.
 - Email vzdy obsahuje jen bezpecna data (typ, hodnota nebo sluzba, kod, platnost, overovaci URL, instrukce) a PDF prilohu `voucher-KOD.pdf`; nikdy neobsahuje `internalNote`, historii cerpani ani technicka ID.
 - PDF voucheru obsahuje pouze veřejně bezpečné údaje: samostatné logo z `Média webu` vybrané v `/admin/nastaveni`, případně textové logo `PP Studio`, typ a hodnotu/službu, kód, platnost, QR ověření, kontakty salonu a krátké podmínky podle typu voucheru. Neobsahuje jméno ani e-mail kupujícího, interní poznámku, historii uplatnění ani technická ID.
 - Veřejné ověření voucheru na `/vouchery/overeni` je `noindex` a není v sitemap. Platný voucher ukazuje jen bezpečná pole: kód, typ, zbývající hodnotu u `VALUE`, název služby ze snapshotu u `SERVICE` a platnost do. Neplatný voucher ukazuje pouze obecné bezpečné důvody: nenalezený, zatím neaktivní, uplatněný, propadlý, zrušený nebo bez dostupného zůstatku.

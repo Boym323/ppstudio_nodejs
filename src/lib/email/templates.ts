@@ -11,7 +11,7 @@ import {
   buildVoucherPdfFilename,
   buildVoucherVerificationUrl,
   generateVoucherPdf,
-} from "@/features/vouchers/lib/voucher-pdf";
+} from "@/features/vouchers/lib/voucher-pdf-core";
 import { getVoucherDetail } from "@/features/vouchers/lib/voucher-read-models";
 import { getEmailBrandingSettings, getPublicSalonProfile } from "@/lib/site-settings";
 

@@ -15,7 +15,7 @@ process.env.ADMIN_STAFF_PASSWORD ??= "change-me-staff";
 process.env.EMAIL_DELIVERY_MODE ??= "log";
 
 test("builds voucher PDF metadata helpers", async () => {
-  const { buildVoucherPdfFilename, buildVoucherVerificationUrl } = await import("./voucher-pdf");
+  const { buildVoucherPdfFilename, buildVoucherVerificationUrl } = await import("./voucher-pdf-core");
 
   assert.equal(buildVoucherPdfFilename("PP-2026-A7K9X2"), "voucher-PP-2026-A7K9X2.pdf");
   assert.equal(
@@ -25,7 +25,7 @@ test("builds voucher PDF metadata helpers", async () => {
 });
 
 test("generates a PDF document for a value voucher", async () => {
-  const { generateVoucherPdf } = await import("./voucher-pdf");
+  const { generateVoucherPdf } = await import("./voucher-pdf-core");
   const pdfBytes = await generateVoucherPdf(buildVoucherFixture());
 
   assert.equal(Buffer.from(pdfBytes).subarray(0, 4).toString("utf8"), "%PDF");
@@ -33,7 +33,7 @@ test("generates a PDF document for a value voucher", async () => {
 });
 
 test("generates a PDF document for a service voucher", async () => {
-  const { generateVoucherPdf } = await import("./voucher-pdf");
+  const { generateVoucherPdf } = await import("./voucher-pdf-core");
   const pdfBytes = await generateVoucherPdf(
     buildVoucherFixture({
       type: VoucherType.SERVICE,
@@ -46,14 +46,14 @@ test("generates a PDF document for a service voucher", async () => {
 });
 
 test("uses text logo fallback when voucher PDF logo is not configured", async () => {
-  const { resolveVoucherPdfLogo, VOUCHER_PDF_TEXT_LOGO } = await import("./voucher-pdf");
+  const { resolveVoucherPdfLogo, VOUCHER_PDF_TEXT_LOGO } = await import("./voucher-pdf-core");
   const logo = await resolveVoucherPdfLogo(null);
 
   assert.deepEqual(logo, { kind: "text", text: VOUCHER_PDF_TEXT_LOGO });
 });
 
 test("generates a PDF when configured voucher logo file is missing", async () => {
-  const { generateVoucherPdf } = await import("./voucher-pdf");
+  const { generateVoucherPdf } = await import("./voucher-pdf-core");
   const pdfBytes = await generateVoucherPdf(buildVoucherFixture(), {
     logoAsset: {
       id: "missing-logo",
@@ -72,7 +72,7 @@ test("generates a PDF when configured voucher logo file is missing", async () =>
 
 test("builds voucher PDF contact lines from salon settings", async () => {
   process.env.VOUCHER_PUBLIC_DOMAIN = "ppstudio.cz";
-  const { buildVoucherPdfContactLines } = await import("./voucher-pdf");
+  const { buildVoucherPdfContactLines } = await import("./voucher-pdf-core");
 
   const lines = buildVoucherPdfContactLines({
     addressLine: "Sadová 2",
@@ -86,7 +86,7 @@ test("builds voucher PDF contact lines from salon settings", async () => {
 });
 
 test("builds voucher PDF terms only for the voucher type", async () => {
-  const { buildVoucherPdfTerms } = await import("./voucher-pdf");
+  const { buildVoucherPdfTerms } = await import("./voucher-pdf-core");
   const valueTerms = buildVoucherPdfTerms({ type: VoucherType.VALUE });
   const serviceTerms = buildVoucherPdfTerms({ type: VoucherType.SERVICE });
   const valueText = valueTerms.join(" ");
@@ -105,7 +105,7 @@ test("builds voucher PDF terms only for the voucher type", async () => {
 });
 
 test("voucher PDF output does not expose internal note in plain text", async () => {
-  const { generateVoucherPdf } = await import("./voucher-pdf");
+  const { generateVoucherPdf } = await import("./voucher-pdf-core");
   const pdfBytes = await generateVoucherPdf(
     buildVoucherFixture({
       internalNote: "TOTO NESMI BYT VE VYSTUPU",

@@ -6,7 +6,7 @@
 - PDF nesmí obsahovat interní poznámky, e-mail kupujícího, historii čerpání ani technická ID.
 
 ## Rozhodnutí
-- PDF se generuje server-side přes `pdf-lib` v `src/features/vouchers/lib/voucher-pdf.ts`.
+- PDF se generuje server-side přes `pdf-lib` v worker-safe `src/features/vouchers/lib/voucher-pdf-core.ts`; `src/features/vouchers/lib/voucher-pdf.ts` zůstává jako Next.js wrapper se `import "server-only"`.
 - Routy jsou `/admin/vouchery/[voucherId]/pdf` a `/admin/provoz/vouchery/[voucherId]/pdf`.
 - Sdílený route handler ověřuje session a roli `OWNER` nebo `SALON` na serveru, načte aktuální voucher read model a vrací `application/pdf` jako attachment.
 - QR kód generuje `qrcode` a míří na veřejnou ověřovací URL `/vouchery/overeni?code=...` nad `siteConfig.url`.
@@ -28,6 +28,7 @@
 - Mazání nebo chybějící soubor vybraného média nesmí shodit generování PDF; fallback textové logo je součástí kontraktu.
 - QR URL musí zůstat funkční veřejná route, protože je vytištěná v už stažených PDF.
 - Runtime má nové lehké PDF/QR/font závislosti, ale žádný headless browser.
+- Standalone skripty a worker procesy musí používat `voucher-pdf-core.ts`; wrapper s `server-only` patří jen do Next.js runtime.
 
 ## Stav
 - schváleno
