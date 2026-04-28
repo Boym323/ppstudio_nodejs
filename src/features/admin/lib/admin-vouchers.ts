@@ -77,6 +77,10 @@ export function getAdminVoucherPdfHref(area: AdminArea, voucherId: string) {
   return `${getAdminVoucherHref(area, voucherId)}/pdf`;
 }
 
+export function getAdminVoucherPrintA4PdfHref(area: AdminArea, voucherId: string) {
+  return `${getAdminVoucherPdfHref(area, voucherId)}/tisk`;
+}
+
 export function getAdminVouchersHref(area: AdminArea) {
   return area === "owner" ? "/admin/vouchery" : "/admin/provoz/vouchery";
 }
@@ -196,6 +200,7 @@ export async function getAdminVoucherDetailData(area: AdminArea, voucherId: stri
     listHref: getAdminVouchersHref(area),
     detailHref: getAdminVoucherHref(area, voucher.id),
     pdfHref: getAdminVoucherPdfHref(area, voucher.id),
+    printA4PdfHref: getAdminVoucherPrintA4PdfHref(area, voucher.id),
     redemptions: voucher.redemptions.map((redemption) => ({
       ...redemption,
       bookingHref: redemption.booking

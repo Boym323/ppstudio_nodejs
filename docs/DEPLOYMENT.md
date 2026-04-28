@@ -103,7 +103,8 @@ Postup nasazení aplikace do produkce.
      - vytvoření voucheru na aktivní službu a uložení snapshotu názvu, ceny a délky
      - po vytvoření redirect na odpovídající detail voucheru
      - neaktivní služby se v selectu ani server action nepovolí
-     - v detailu voucheru tlačítko `Stáhnout PDF` stáhne `application/pdf` s filename `voucher-<kod>.pdf`
+     - v detailu voucheru tlačítko `Stáhnout voucher PDF` stáhne původní `application/pdf` s filename `voucher-<kod>.pdf`
+     - odkaz `Tisk A4` stáhne samostatné A4 PDF na výšku s voucherem v horní třetině, bílým zbytkem stránky mimo voucher a beze změny původního e-mailového/běžného voucher PDF výstupu
      - PDF obsahuje kód, platnost, hodnotu nebo službu, QR kód a neobsahuje e-mail kupujícího, interní poznámku, historii čerpání ani technická ID
      - QR odkaz `/vouchery/overeni?code=...` vrací veřejné noindex ověření voucheru bez 404
      - veřejné ověření platného hodnotového voucheru ukáže kód, typ, zůstatek a platnost; službový voucher ukáže kód, typ, snapshot služby a platnost

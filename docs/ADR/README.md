@@ -82,3 +82,4 @@ Sem patří krátké záznamy architektonických rozhodnutí.
 - `0065-public-voucher-verification-v1.md`
 - `0066-admin-booking-payment-summary-v1.md`
 - `0067-admin-voucher-email-delivery-v1.md`
+- `0068-voucher-a4-print-pdf-v1.md`

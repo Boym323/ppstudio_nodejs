@@ -100,7 +100,13 @@ export function AdminVoucherDetailPage({ data }: { data: AdminVoucherDetailData 
               href={data.pdfHref}
               className="rounded-full bg-[var(--color-accent)] px-4 py-3 text-sm font-semibold text-[var(--color-accent-contrast)] transition hover:brightness-105"
             >
-              Stáhnout PDF
+              Stáhnout voucher PDF
+            </Link>
+            <Link
+              href={data.printA4PdfHref}
+              className="rounded-full border border-[var(--color-accent)]/45 px-4 py-3 text-sm font-semibold text-[var(--color-accent)] transition hover:border-[var(--color-accent)] hover:bg-[var(--color-accent)]/10"
+            >
+              Tisk A4
             </Link>
           </div>
         </div>
