@@ -47,7 +47,7 @@ async function loadModules() {
   ] = await Promise.all([
     import("@/lib/prisma"),
     import("./voucher-code"),
-    import("@/features/vouchers/actions/voucher-actions"),
+    import("@/features/vouchers/lib/voucher-management"),
     import("./voucher-validation"),
     import("./voucher-redemption"),
     import("@/features/admin/lib/admin-booking"),

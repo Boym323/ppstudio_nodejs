@@ -27,7 +27,9 @@ test("builds voucher PDF metadata helpers", async () => {
 
 test("generates a PDF document for a value voucher", async () => {
   const { generateVoucherPdf } = await import("./voucher-pdf-core");
-  const pdfBytes = await generateVoucherPdf(buildVoucherFixture());
+  const pdfBytes = await generateVoucherPdf(buildVoucherFixture(), {
+    settings: buildTestSiteSettings(),
+  });
 
   assert.equal(Buffer.from(pdfBytes).subarray(0, 4).toString("utf8"), "%PDF");
   assert.ok(pdfBytes.length > 1_000);
@@ -40,6 +42,9 @@ test("generates a PDF document for a service voucher", async () => {
       type: VoucherType.SERVICE,
       serviceNameSnapshot: "Komplexní hloubkové ošetření pleti s liftingovou masáží a závěrečnou regenerací",
     }),
+    {
+      settings: buildTestSiteSettings(),
+    },
   );
 
   assert.equal(Buffer.from(pdfBytes).subarray(0, 4).toString("utf8"), "%PDF");
@@ -56,6 +61,7 @@ test("uses text logo fallback when voucher PDF logo is not configured", async ()
 test("generates a PDF when configured voucher logo file is missing", async () => {
   const { generateVoucherPdf } = await import("./voucher-pdf-core");
   const pdfBytes = await generateVoucherPdf(buildVoucherFixture(), {
+    settings: buildTestSiteSettings(),
     logoAsset: {
       id: "missing-logo",
       storageProvider: MediaStorageProvider.LOCAL,
@@ -111,6 +117,9 @@ test("voucher PDF output does not expose internal note in plain text", async () 
     buildVoucherFixture({
       internalNote: "TOTO NESMI BYT VE VYSTUPU",
     }),
+    {
+      settings: buildTestSiteSettings(),
+    },
   );
   const payload = Buffer.from(pdfBytes).toString("latin1");
 
@@ -146,7 +155,10 @@ test("builds A4 print voucher slots with expected millimetre dimensions", async 
 test("generates an A4 print PDF for the top voucher position", async () => {
   const { A4_HEIGHT_PT, A4_WIDTH_PT, generateVoucherPrintA4Pdf } = await import("./voucher-print-a4-pdf-core");
 
-  const pdfBytes = await generateVoucherPrintA4Pdf(buildVoucherFixture(), { logoAsset: null });
+  const pdfBytes = await generateVoucherPrintA4Pdf(buildVoucherFixture(), {
+    settings: buildTestSiteSettings(),
+    logoAsset: null,
+  });
   const pdf = await PDFDocument.load(pdfBytes);
   const page = pdf.getPage(0);
   const size = page.getSize();
@@ -167,6 +179,32 @@ function buildVoucherFixture(overrides: Partial<ReturnType<typeof buildBaseVouch
   return {
     ...buildBaseVoucherFixture(),
     ...overrides,
+  };
+}
+
+function buildTestSiteSettings() {
+  const now = new Date("2026-01-01T00:00:00.000Z");
+
+  return {
+    id: "site-settings",
+    salonName: "PP Studio",
+    addressLine: "Sadová 2",
+    city: "Zlín",
+    postalCode: "760 01",
+    phone: "+420 732 856 036",
+    contactEmail: "info@ppstudio.cz",
+    instagramUrl: "https://www.instagram.com/ppstudio.cz/",
+    bookingMinAdvanceHours: 2,
+    bookingMaxAdvanceDays: 90,
+    bookingCancellationHours: 48,
+    notificationAdminEmail: "owner@example.com",
+    emailSenderName: "PP Studio",
+    emailSenderEmail: "info@ppstudio.cz",
+    emailFooterText: null,
+    voucherPdfLogoMediaId: null,
+    updatedByUserId: null,
+    createdAt: now,
+    updatedAt: now,
   };
 }
 

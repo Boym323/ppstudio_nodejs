@@ -117,6 +117,7 @@ Evidence produkčních incidentů a jejich řešení.
 - Stránka `/o-mne` publikovaná jen s placeholder certifikáty nebo pracovní fotografií i po finálním dodání brand assetů; před release je potřeba ověřit, že placeholder stavy nejsou omylem ponechané jako produkční finální řešení.
 
 ## Preventivní poznámka
+- Historie Prisma migrací může obsahovat rollbacknuté záznamy `20260419140000_site_settings_singleton` a `20260419103000_service_public_bookability`. Jsou to známé záznamy ze staršího recover postupu; nemaž je ručně z `_prisma_migrations`. Za problém je považuj až tehdy, když `npm run db:check-migrations` neskončí stavem `Migration history check: OK`, nebo když `prisma migrate deploy` odmítne pokračovat.
 - Sekce `volne-terminy` je po resetu z `2026-04-19` záměrně minimalistická; incidentem je pouze neočekávaný pád route, ne absence starých planner funkcí.
 - Admin sekce `Email logy` je citlivá na rozjezd mezi Prisma schématem a generovaným klientem. Projekt proto nyní před `dev` i `build` automaticky spouští `prisma generate`.
 - Rozbitý týdenní planner po deployi: špatné zachování query parametrů `week/day/panel`, kvůli kterému se obsluha po akci vrací na jiný den nebo na výchozí týden.

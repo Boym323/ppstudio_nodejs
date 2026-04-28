@@ -7,6 +7,7 @@
 
 ## Rozhodnutí
 - Serverová doména voucherů je v `src/features/vouchers` rozdělená na kód voucheru, formátování, Zod schémata, veřejnou validaci, admin čerpání a read modely.
+- Mutační doménové helpery pro tvorbu/validaci/uplatnění jsou v `src/features/vouchers/lib/voucher-management.ts`, ne v `"use server"` modulu. Veřejně volatelné Server Actions smí vznikat až v admin vrstvě, kde se znovu ověřuje role.
 - Kódy mají tvar `PP-YYYY-XXXXXX`, používají nematoucí uppercase znaky a před zápisem ověřují unikátnost v DB.
 - Efektivní stav voucheru se počítá aplikačně: aktivní nebo částečně čerpaný voucher po `validUntil` se vrací jako `EXPIRED`, ale DB status se automaticky nepřepisuje.
 - Veřejná validace vrací jen bezpečný výsledek bez údajů o kupující, příjemci, interní poznámce nebo historii čerpání.

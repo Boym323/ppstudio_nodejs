@@ -6,6 +6,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Voucher mutace už nejsou exportované z `"use server"` doménového modulu: tvorba/validace/uplatnění se přesunuly do `src/features/vouchers/lib/voucher-management.ts` a veřejně volatelné server actions zůstávají jen v admin wrappers s explicitní autorizací.
+- Voucher PDF testy používají explicitní testovací `SiteSettings`, takže už nespouští zbytečný Prisma fallback dotaz na `SiteSettings` a nebublají falešné `prisma:error` logy.
 - Přidána samostatná tisková A4 varianta voucher PDF: nový `generateVoucherPrintA4Pdf(...)` generuje A4 na výšku s jedním otočeným DL voucherem v horním slotu, admin detail má nový odkaz `Tisk A4` a původní e-mailový/běžný `generateVoucherPdf(...)` zůstal beze změny.
 - Rozděleno generování voucher PDF na worker-safe core `src/features/vouchers/lib/voucher-pdf-core.ts` a Next.js wrapper `src/features/vouchers/lib/voucher-pdf.ts`; email worker už importuje core přímo a nepadá na `server-only`.
 - V detailu voucheru je nová read-only sekce `Odeslání e-mailem`, která z `EmailLog` typu `VOUCHER_SENT` ukazuje poslední stav, příjemce a stručnou historii posledních 5 pokusů včetně bezpečně zkrácené chyby.

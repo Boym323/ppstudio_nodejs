@@ -1,5 +1,3 @@
-"use server";
-
 import { Prisma, VoucherStatus, VoucherType } from "@prisma/client";
 
 import { generateVoucherCode } from "@/features/vouchers/lib/voucher-code";

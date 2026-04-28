@@ -73,7 +73,8 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - `lib/voucher-code.ts` generuje a normalizuje kódy `PP-YYYY-XXXXXX`.
   - `lib/voucher-validation.ts` vrací bezpečný public validační výsledek bez citlivých polí; `verifyVoucherPublic(...)` je určený pro samostatnou veřejnou kontrolu bez vazby na službu a bez jakéhokoli uplatnění.
   - `lib/voucher-redemption.ts` provádí admin uplatnění v transakci, zapisuje `VoucherRedemption` a blokuje další voucher na rezervaci, která už má alespoň jedno čerpání.
-  - `actions/voucher-actions.ts` drží server-side funkce pro vytvoření, validaci a uplatnění bez klientských komponent.
+  - `lib/voucher-management.ts` drží server-side doménové funkce pro vytvoření, validaci a uplatnění bez klientských komponent.
+- Voucher doménové moduly nesmí mít top-level `"use server"`. Veřejně volatelné server actions patří do `src/features/admin/actions/*`, kde každá action znovu ověřuje session a roli, než zavolá voucher doménu.
 - Efektivní expirace voucheru je aplikační read pravidlo přes `getEffectiveVoucherStatus(...)`; validace ani read modely automaticky nepřepisují DB status na `EXPIRED`.
 - Admin seznam voucherů je první UI vrstva nad voucher doménou:
   - route factory obsluhuje `/admin/vouchery` pro `OWNER` i `/admin/provoz/vouchery` pro `SALON`,

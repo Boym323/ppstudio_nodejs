@@ -10,7 +10,7 @@ import {
   getAdminVoucherHref,
   getAdminVouchersHref,
 } from "@/features/admin/lib/admin-vouchers";
-import { createVoucher } from "@/features/vouchers/actions/voucher-actions";
+import { createVoucher } from "@/features/vouchers/lib/voucher-management";
 import { createVoucherSchema } from "@/features/vouchers/schemas/voucher-schemas";
 import { requireRole } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
