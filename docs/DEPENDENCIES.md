@@ -18,6 +18,7 @@ Seznam důležitých knihoven a důvod jejich použití.
 - Admin vytvoření voucheru nepřidává žádnou novou knihovnu; používá existující Next.js server actions, React `useActionState` / lokální state pro živý náhled, Prisma a voucher Zod schéma.
 - Admin uplatnění voucheru v detailu rezervace nepřidává žádnou novou knihovnu; formulář používá React `useActionState`, server action používá existující Zod/Prisma vrstvu a transakční voucher doménu.
 - Veřejné intended zadání voucheru v booking flow nepřidává žádnou novou knihovnu; používá existující React wizard, Next.js server action, Prisma a voucher validační helper.
+- PDF generátor voucheru přidává runtime závislosti `pdf-lib`, `qrcode`, `@pdf-lib/fontkit` a `@fontsource/noto-sans` plus dev typy `@types/qrcode`. `pdf-lib` skládá PDF server-side bez headless browseru, `qrcode` generuje ověřovací QR kód a Noto Sans přes `fontkit` řeší českou diakritiku z licenčně jasného OFL font balíčku.
 
 ## Core
 - `next`: framework aplikace.

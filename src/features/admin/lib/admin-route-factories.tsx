@@ -238,7 +238,7 @@ export function createAdminVoucherCreateRoute(area: AdminArea) {
       <AdminPageShell
         eyebrow={area === "owner" ? "Nový voucher" : "Provozní voucher"}
         title="Vytvořit voucher"
-        description="Vystavení hodnotového poukazu nebo poukazu na aktivní službu. PDF a automatické odeslání e-mailem zatím nejsou součástí procesu."
+        description="Vystavení hodnotového poukazu nebo poukazu na aktivní službu. PDF je dostupné po vytvoření v detailu voucheru; automatické odeslání e-mailem zatím není součástí procesu."
         compact={area === "salon"}
       >
         <AdminPanel

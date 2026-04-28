@@ -59,6 +59,7 @@ Dokumentace proměnných prostředí pro lokální vývoj i produkci.
 - Serverová business vrstva voucherů také nepřidává žádnou novou env proměnnou; tvorba, validace i admin čerpání používají stávající Prisma připojení přes `DATABASE_URL`.
 - Admin formulář pro vytvoření voucheru nepřidává žádnou novou env proměnnou; používá stávající admin session, Prisma připojení a voucher doménovou vrstvu.
 - Admin uplatnění voucheru v detailu rezervace nepřidává žádnou novou env proměnnou; autorizace používá stávající admin session a role `OWNER` / `SALON`, persistence používá `DATABASE_URL`.
+- PDF generátor voucheru nepřidává žádnou novou env proměnnou; QR kód používá existující `NEXT_PUBLIC_APP_URL` přes `siteConfig.url`, takže produkční hodnota musí mířit na veřejný HTTPS origin PP Studia.
 - `NEXT_PUBLIC_APP_URL` je stejně kritická i pro klientský self-service manage link `/rezervace/sprava/[token]`; pokud míří na špatný host nebo schéma, confirmation screen, potvrzovací e-mail i reminder povedou na neplatnou URL.
 - `NEXT_PUBLIC_APP_URL` je stejně kritická i pro zákaznický `.ics` odkaz `/api/bookings/calendar/[token].ics`; pokud míří na špatný host nebo schéma, CTA `Přidat do kalendáře` v potvrzovacím e-mailu povede na neplatnou URL.
 - `NEXT_PUBLIC_APP_URL` je stejně kritická i pro owner ICS subscription feed; z této hodnoty se skládá kopírovatelný Apple Calendar odkaz v adminu.

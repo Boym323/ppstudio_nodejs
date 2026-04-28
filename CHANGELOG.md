@@ -6,6 +6,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Admin detail voucheru nově nabízí stažení PDF dárkového poukazu přes chráněné routy `/admin/vouchery/[voucherId]/pdf` a `/admin/provoz/vouchery/[voucherId]/pdf`. PDF se generuje server-side z aktuálních dat, obsahuje bezpečná veřejná pole a QR kód pro budoucí ověření voucheru.
 - Veřejné booking flow nově přijímá volitelný kód dárkového poukazu v kontaktním kroku. Server kód při vytvoření rezervace bezpečně ověří, uloží pouze `Booking.intendedVoucherId`, `intendedVoucherCodeSnapshot` a `intendedVoucherValidatedAt` a skutečné uplatnění nechává dál výhradně na admin detailu rezervace.
 - Hodnotové vouchery ve veřejné rezervaci zůstávají validní i při zůstatku nižším než cena služby, pokud je zůstatek kladný; veřejný flow nikdy nevytváří `VoucherRedemption`, nemění `remainingValueCzk` ani status voucheru.
 - Formulář pro vytvoření voucheru je přepracovaný do kompaktnějšího dvousloupcového workspace s živým náhledem, výraznější volbou typu, kratšími sekcemi a podporou obdarovaného a věnování.

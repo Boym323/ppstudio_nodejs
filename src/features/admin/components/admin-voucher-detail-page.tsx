@@ -42,7 +42,7 @@ export function AdminVoucherDetailPage({ data }: { data: AdminVoucherDetailData 
     <AdminPageShell
       eyebrow={data.area === "owner" ? "Detail voucheru" : "Provozní detail voucheru"}
       title={data.code}
-      description="Read-only detail voucheru pro kontrolu stavu, platnosti, kupujícího a historie čerpání. Úpravy, zrušení, PDF i uplatnění zatím nejsou součástí obrazovky."
+      description="Read-only detail voucheru pro kontrolu stavu, platnosti, kupujícího a historie čerpání. PDF lze stáhnout z aktuálních dat voucheru; úpravy, zrušení a uplatnění zůstávají mimo tuto obrazovku."
       stats={[
         {
           label: "Typ",
@@ -77,13 +77,12 @@ export function AdminVoucherDetailPage({ data }: { data: AdminVoucherDetailData 
         >
           Zpět na seznam
         </Link>
-        <button
-          type="button"
-          disabled
-          className="cursor-not-allowed rounded-full border border-white/8 bg-white/5 px-4 py-3 text-sm text-white/38"
+        <Link
+          href={data.pdfHref}
+          className="rounded-full bg-[var(--color-accent)] px-4 py-3 text-sm font-semibold text-[var(--color-accent-contrast)] transition hover:brightness-105"
         >
           Stáhnout PDF
-        </button>
+        </Link>
       </div>
 
       <section className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">

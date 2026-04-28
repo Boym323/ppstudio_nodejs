@@ -93,7 +93,7 @@ export function AdminVoucherForm({ data }: AdminVoucherFormProps) {
                   type="number"
                   name="originalValueCzk"
                   min={1}
-                  step={50}
+                  step={1}
                   inputMode="numeric"
                   value={originalValueCzk}
                   onChange={(event) => setOriginalValueCzk(event.target.value)}

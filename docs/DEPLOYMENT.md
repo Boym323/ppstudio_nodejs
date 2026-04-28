@@ -103,6 +103,8 @@ Postup nasazení aplikace do produkce.
      - vytvoření voucheru na aktivní službu a uložení snapshotu názvu, ceny a délky
      - po vytvoření redirect na odpovídající detail voucheru
      - neaktivní služby se v selectu ani server action nepovolí
+     - v detailu voucheru tlačítko `Stáhnout PDF` stáhne `application/pdf` s filename `voucher-<kod>.pdf`
+     - PDF obsahuje kód, platnost, hodnotu nebo službu, QR kód a neobsahuje e-mail kupujícího, interní poznámku, historii čerpání ani technická ID
    - panel `Voucher` v detailu rezervace na `/admin/rezervace/[bookingId]` a `/admin/provoz/rezervace/[bookingId]`:
      - rezervace bez voucheru ukazuje prázdný stav a dovolí ruční zadání kódu
      - intended voucher předvyplní kód a ukazuje typ, efektivní stav a bezpečný popis
