@@ -6,6 +6,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Stabilizováno veřejné vytvoření rezervace při souběžném DB provozu: retry pro serializační konflikt Prisma `P2034` byl navýšen z `3` na `5` pokusů a mezi pokusy je krátký lineární backoff, aby CI i produkční provoz méně padaly na náhodný write/deadlock konflikt.
 - Finální polish layoutu PDF voucheru: horní blok logo/subtitle je bez překryvů, nadpis `Dárkový poukaz` začíná až pod brand blokem s větším odsazením, QR a kontaktní patička mají čistší rozestupy a dlouhé názvy služeb se bezpečně zalamují bez kolize s QR sloupcem.
 - PDF voucher má samostatně nastavitelné logo přes existující Média webu: `SiteSettings.voucherPdfLogoMediaId` odkazuje na `MediaAsset`, PDF čte jen lokální PNG/JPEG soubor a při chybějícím nebo nepodporovaném logu použije textové `PP Studio`.
 - PDF voucher má upravený dárkový layout s kontakty salonu ze `SiteSettings`, QR ověřením a typově správnými podmínkami: hodnotový poukaz zobrazuje postupné čerpání, službový poukaz jen pravidlo pro uvedenou službu.

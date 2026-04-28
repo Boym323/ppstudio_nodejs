@@ -573,6 +573,7 @@ npm run db:clear-booking-data -- --confirm
 - 24h reminder e-mail je úsporný: služba, datum, čas, místo, sekce `Potřebujete změnu?`, sekundární akce `Změnit termín` / `Zrušit rezervaci` a jednorázový kontakt.
 - Referenční kód rezervace už se v klientské komunikaci nezobrazuje; pro změnu nebo storno se používají konkrétní tokenizované odkazy a textové shrnutí služby s termínem.
 - Pokud se termín mezitím obsadí, služba přestane být aktivní nebo slot přestane odpovídat délce služby, uživatel dostane konkrétnější chybu místo obecného selhání.
+- Při krátkodobém DB konfliktu (`Prisma P2034`, např. serializační/write konflikt) veřejné vytvoření rezervace transakci automaticky zopakuje až 5× s krátkým backoff, aby flow méně padal na náhodné souběhy.
 - Veřejný submit je lehce rate-limitený podle IP a e-mailu; opakované pokusy v krátkém čase skončí blokací s user-friendly hláškou.
 - Krok 2 už skrývá i sloty, které jsou pro vybranou službu příliš krátké.
 - Server při odeslání rezervace navíc kontroluje i zvolený `startsAt`, takže klientka nemůže odeslat čas mimo hranice slotu ani čas kolidující s už existující rezervací.

@@ -38,6 +38,13 @@ import {
 } from "./shared";
 import { resolvePublishedSlotCoverage } from "../booking-slot-availability";
 
+function waitForRetryBackoff(attempt: number) {
+  const backoffMs = Math.min(25 * attempt, 100);
+  return new Promise((resolve) => {
+    setTimeout(resolve, backoffMs);
+  });
+}
+
 async function loadServiceForBooking(
   tx: Prisma.TransactionClient,
   serviceId: string,
@@ -732,6 +739,7 @@ export async function createBookingWithEngine(
       }
 
       if (isRetryablePrismaError(error) && attempt < MAX_BOOKING_TRANSACTION_RETRIES) {
+        await waitForRetryBackoff(attempt);
         continue;
       }
 

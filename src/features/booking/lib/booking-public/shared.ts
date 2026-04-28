@@ -9,7 +9,7 @@ import {
 } from "@prisma/client";
 
 export const ACTIVE_BOOKING_STATUSES = [BookingStatus.PENDING, BookingStatus.CONFIRMED] as const;
-export const MAX_BOOKING_TRANSACTION_RETRIES = 3;
+export const MAX_BOOKING_TRANSACTION_RETRIES = 5;
 export const EDITABLE_SLOT_CAPACITY = 1;
 
 export const publicBookingErrorCodes = {
