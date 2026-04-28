@@ -105,7 +105,9 @@ Postup nasazení aplikace do produkce.
      - neaktivní služby se v selectu ani server action nepovolí
      - v detailu voucheru tlačítko `Stáhnout PDF` stáhne `application/pdf` s filename `voucher-<kod>.pdf`
      - PDF obsahuje kód, platnost, hodnotu nebo službu, QR kód a neobsahuje e-mail kupujícího, interní poznámku, historii čerpání ani technická ID
-     - QR odkaz `/vouchery/overeni?code=...` vrací veřejné ověření voucheru bez 404
+     - QR odkaz `/vouchery/overeni?code=...` vrací veřejné noindex ověření voucheru bez 404
+     - veřejné ověření platného hodnotového voucheru ukáže kód, typ, zůstatek a platnost; službový voucher ukáže kód, typ, snapshot služby a platnost
+     - veřejné ověření neplatného voucheru ukáže jen bezpečný důvod a při reloadu nemění `remainingValueCzk`, `Voucher.status` ani nevytváří `VoucherRedemption`
    - panel `Voucher` v detailu rezervace na `/admin/rezervace/[bookingId]` a `/admin/provoz/rezervace/[bookingId]`:
      - rezervace bez voucheru ukazuje prázdný stav a dovolí ruční zadání kódu
      - intended voucher předvyplní kód a ukazuje typ, efektivní stav a bezpečný popis

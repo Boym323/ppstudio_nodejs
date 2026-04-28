@@ -76,3 +76,7 @@ Sem patří krátké záznamy architektonických rozhodnutí.
 - `0059-admin-voucher-list-v1.md`
 - `0060-admin-voucher-detail-v1.md`
 - `0061-admin-voucher-create-v1.md`
+- `0062-admin-booking-voucher-redemption-v1.md`
+- `0063-public-booking-intended-voucher-v1.md`
+- `0064-voucher-pdf-generator-v1.md`
+- `0065-public-voucher-verification-v1.md`

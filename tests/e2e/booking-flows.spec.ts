@@ -6,6 +6,7 @@ import {
   createAdminFixture,
   createManagedBookingFixture,
   createPublicBookingFixture,
+  createPublicVoucherFixture,
   prisma,
   type E2eFixture,
 } from "./helpers/fixtures";
@@ -116,6 +117,23 @@ test.describe("booking flows", () => {
       "REJECT",
       "RESCHEDULE",
     ]);
+  });
+
+  test("public visitor can verify a voucher code safely", async ({ page }) => {
+    const fixture = await createPublicVoucherFixture();
+    fixtures.push(fixture);
+
+    await page.goto(`/vouchery/overeni?code=${fixture.voucherCode}`);
+
+    await expect(page.getByRole("heading", { name: "Ověření dárkového poukazu" })).toBeVisible();
+    await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/);
+    await expect(page.getByLabel("Kód voucheru")).toHaveValue(fixture.voucherCode ?? "");
+    await expect(page.getByText("Voucher je platný")).toBeVisible();
+    await expect(page.getByText("Hodnotový poukaz")).toBeVisible();
+    await expect(page.getByText(/1\s*500\s*Kč/)).toBeVisible();
+    await expect(page.getByText(fixture.voucherCode ?? "")).toBeVisible();
+    await expect(page.getByText("secret.example.test")).toHaveCount(0);
+    await expect(page.getByText("E2E tajná poznámka")).toHaveCount(0);
   });
 
   test("client can cancel a booking through a public token", async ({ page }) => {

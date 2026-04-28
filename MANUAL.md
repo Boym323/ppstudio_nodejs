@@ -83,6 +83,7 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
 - Admin detail rezervace má panel `Voucher`: pokud booking nese `intendedVoucherId` nebo `intendedVoucherCodeSnapshot`, obsluha vidí kód, typ, efektivní stav a bezpečný popis; zároveň může zadat kód ručně, u hodnotového voucheru doplnit částku a voucher uplatnit při návštěvě v salonu.
 - Veřejné booking flow v kontaktním kroku nabízí volitelné pole `Kód voucheru`. Pokud je prázdné, rezervace pokračuje beze změny; pokud je vyplněné, server kód při vytvoření rezervace ověří a uloží ho jen jako intended voucher na `Booking`.
 - Skutečné čerpání voucheru v provozu vzniká pouze serverovou admin akcí v detailu rezervace, která zapisuje `VoucherRedemption`; samotné veřejné zadání nebo intent na `Booking` zůstatek nikdy neodečítá.
+- Veřejná stránka `/vouchery/overeni` slouží jen ke kontrole platnosti kódu z poukazu nebo QR odkazu `/vouchery/overeni?code=...`. Formulář vždy dovolí kód změnit a znovu ověřit; výsledek se počítá server-side po normalizaci kódu.
 - Po otevření detailu je během pár sekund vidět klientka, služba, termín, stav a nejpravděpodobnější další akce; reschedule zůstává oddělený jako samostatný drawer a chování pro `OWNER` i `SALON` je stejné.
 - Veřejný manage flow `/rezervace/sprava/[token]` má nově DB integrační coverage nad reálným Prisma wiringem; testy ověřují token access, self-service storno, self-service přesun i hlavní auditní a notifikační side effects bez browser E2E vrstvy.
 - Self-service přesun přes `/rezervace/sprava/[token]` po úspěchu záměrně nerevaliduje právě otevřenou veřejnou route; v Next.js 16 by route refresh po server action mohl přemountovat klientský panel a smazat lokální success stav dřív, než se ukáže uživatelce.
@@ -117,6 +118,8 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
 - Nový voucher lze vytvořit přes `/admin/vouchery/novy` nebo `/admin/provoz/vouchery/novy`. Formulář podporuje hodnotový poukaz s částkou v Kč a poukaz na aktivní službu se snapshotem názvu, ceny a délky. Údaje kupujícího, obdarovaného a věnování jsou volitelné; e-mail kupujícího se zatím pouze ukládá pro budoucí ruční odeslání. Pravý souhrn slouží jen jako živý provozní náhled před uložením.
 - Detail voucheru je read-only na `/admin/vouchery/[voucherId]` a `/admin/provoz/vouchery/[voucherId]`. Ukazuje čitelný kód, typ, efektivní stav, platnosti, údaje kupujícího/obdarovaného, hodnotu nebo snapshot služby, historii uplatnění a interní poznámku. Tlačítko `Stáhnout PDF` vede na `/admin/vouchery/[voucherId]/pdf` nebo `/admin/provoz/vouchery/[voucherId]/pdf` a stáhne aktuálně vygenerovaný dárkový poukaz. Editace, rušení a mazání zatím nejsou dostupné; provozní uplatnění probíhá z detailu konkrétní rezervace.
 - PDF voucheru obsahuje pouze veřejně bezpečné údaje: textové logo PP Studio, typ a hodnotu/službu, kód, platnost, případně smysluplné jméno kupujícího a krátké podmínky. Neobsahuje e-mail kupujícího, interní poznámku, historii uplatnění ani technická ID.
+- Veřejné ověření voucheru na `/vouchery/overeni` je `noindex` a není v sitemap. Platný voucher ukazuje jen bezpečná pole: kód, typ, zbývající hodnotu u `VALUE`, název služby ze snapshotu u `SERVICE` a platnost do. Neplatný voucher ukazuje pouze obecné bezpečné důvody: nenalezený, zatím neaktivní, uplatněný, propadlý, zrušený nebo bez dostupného zůstatku.
+- Veřejné ověření voucher nikdy neuplatňuje: nevytváří `VoucherRedemption`, nemění `remainingValueCzk` ani `Voucher.status`.
 - Stav `Propadlý` v admin seznamu vychází z aplikačního efektivního pravidla: aktivní nebo částečně čerpaný voucher po `validUntil` se zobrazuje a filtruje jako propadlý, i když DB status ještě není `EXPIRED`.
 
 ## Lokální Spuštění
@@ -521,6 +524,7 @@ npm run db:clear-booking-data -- --confirm
 - `Service.isPubliclyBookable` odděluje interně aktivní službu od služby skutečně nabízené ve veřejné rezervaci.
 - `Booking` drží snapshot klienta, služby i času, takže pozdější změny ceníku nebo názvů služeb nepoškodí historická data.
 - Voucher zadaný u rezervace má být jen záměr uložený na `Booking.intendedVoucherId` a snapshot polí; skutečné uplatnění voucheru smí vzniknout až admin zápisem do `VoucherRedemption`.
+- Samostatné veřejné ověření voucheru přes `/vouchery/overeni` smí pouze číst voucher přes bezpečný serverový helper a nesmí měnit žádná voucherová ani booking data.
 - `Booking` drží metadata posledního přesunu (`rescheduledAt`, `rescheduleCount`) a reminder queue stav (`reminder24hQueuedAt`, `reminder24hSentAt`); historický self-relation chain zůstává jen jako legacy pole a nové reschedule flow ho nepoužívá.
 - `BookingRescheduleLog` je samostatná auditní tabulka pro přesuny termínu s původním a novým intervalem, aktérem a volitelným důvodem změny.
 - `Booking.reminder24hSentAt` drží informaci, že klientský 24h reminder už byl úspěšně uzavřený; `Booking.reminder24hQueuedAt` zase brání duplicitnímu enqueue stejného reminderu pro aktuální termín.

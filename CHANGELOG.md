@@ -6,7 +6,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
-- Přidána veřejná stránka `/vouchery/overeni?code=...` pro bezpečné ověření voucheru z QR kódu v PDF; zobrazuje jen kód, typ, stav, hodnotu/službu, zůstatek a platnost bez kupujícího, interních poznámek nebo historie čerpání.
+- Přidána veřejná noindex stránka `/vouchery/overeni?code=...` pro bezpečné ověření voucheru z QR kódu v PDF; zobrazuje jen kód, typ, zbývající hodnotu u hodnotového poukazu, službu u službového poukazu a platnost bez kupujícího, interních poznámek, technických ID nebo historie čerpání.
+- Veřejné ověření voucheru má vlastní serverový helper `verifyVoucherPublic(...)`, který normalizuje kód, vrací bezpečné důvody neplatnosti a nikdy nevytváří `VoucherRedemption`, nemění zůstatek ani status voucheru.
 - Opraveno HTML ověření částky při tvorbě hodnotového voucheru; běžné celé částky jako `1500` už prohlížeč neblokuje kvůli kroku číselného pole.
 - Admin detail voucheru nově nabízí stažení PDF dárkového poukazu přes chráněné routy `/admin/vouchery/[voucherId]/pdf` a `/admin/provoz/vouchery/[voucherId]/pdf`. PDF se generuje server-side z aktuálních dat, obsahuje bezpečná veřejná pole a QR kód pro budoucí ověření voucheru.
 - Veřejné booking flow nově přijímá volitelný kód dárkového poukazu v kontaktním kroku. Server kód při vytvoření rezervace bezpečně ověří, uloží pouze `Booking.intendedVoucherId`, `intendedVoucherCodeSnapshot` a `intendedVoucherValidatedAt` a skutečné uplatnění nechává dál výhradně na admin detailu rezervace.

@@ -8,6 +8,8 @@ import {
   BookingActorType,
   BookingSource,
   BookingStatus,
+  VoucherStatus,
+  VoucherType,
 } from "@prisma/client";
 
 import {
@@ -24,6 +26,7 @@ export type E2eFixture = {
   categoryName: string;
   clientName: string;
   clientEmail: string;
+  voucherCode?: string;
   bookingId?: string;
   cancelToken?: string;
   manageToken?: string;
@@ -294,6 +297,42 @@ export async function createAdminFixture(runId: string) {
   return { email, password };
 }
 
+export async function createPublicVoucherFixture(): Promise<E2eFixture> {
+  const runId = buildRunId();
+  const voucherCode = `PP-2026-${runId.replace(/[^a-z0-9]/gi, "").slice(-10).toUpperCase()}`;
+
+  await prisma.voucher.create({
+    data: {
+      code: voucherCode,
+      type: VoucherType.VALUE,
+      status: VoucherStatus.ACTIVE,
+      purchaserEmail: `${runId}@secret.example.test`,
+      originalValueCzk: 1500,
+      remainingValueCzk: 1500,
+      validFrom: new Date("2026-01-01T00:00:00.000Z"),
+      validUntil: new Date("2026-12-31T23:59:59.000Z"),
+      issuedAt: new Date("2026-01-01T00:00:00.000Z"),
+      internalNote: `E2E tajná poznámka ${runId}`,
+    },
+  });
+
+  return {
+    runId,
+    voucherCode,
+    serviceName: "",
+    serviceSlug: "",
+    categoryName: "",
+    clientName: "",
+    clientEmail: "",
+    slotLabels: {
+      primaryDateKey: "",
+      primaryTime: "",
+      rescheduleDateKey: "",
+      rescheduleTime: "",
+    },
+  };
+}
+
 export async function cleanupE2eData(runId: string) {
   const services = await prisma.service.findMany({
     where: {
@@ -354,6 +393,23 @@ export async function cleanupE2eData(runId: string) {
     },
   });
   const slotIds = slots.map((slot) => slot.id);
+
+  await prisma.voucherRedemption.deleteMany({
+    where: {
+      voucher: {
+        internalNote: {
+          contains: runId,
+        },
+      },
+    },
+  });
+  await prisma.voucher.deleteMany({
+    where: {
+      internalNote: {
+        contains: runId,
+      },
+    },
+  });
 
   await prisma.emailLog.deleteMany({
     where: {

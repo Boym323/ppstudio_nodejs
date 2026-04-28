@@ -37,6 +37,20 @@ export type ValidateVoucherForBookingResult =
       reason: VoucherValidationReasonCode;
     };
 
+export type PublicVoucherVerificationResult =
+  | {
+      ok: true;
+      code: string;
+      type: VoucherType;
+      remainingValueCzk: number | null;
+      serviceNameSnapshot: string | null;
+      validUntil: Date | null;
+    }
+  | {
+      ok: false;
+      reason: VoucherValidationReasonCode;
+    };
+
 function getBlockedReason(status: VoucherStatus): VoucherValidationReasonCode | null {
   switch (status) {
     case VoucherStatus.DRAFT:
@@ -51,6 +65,63 @@ function getBlockedReason(status: VoucherStatus): VoucherValidationReasonCode | 
     case VoucherStatus.PARTIALLY_REDEEMED:
       return null;
   }
+}
+
+function isVoucherNotActiveYet(voucher: { validFrom: Date }, now: Date) {
+  return voucher.validFrom.getTime() > now.getTime();
+}
+
+export async function verifyVoucherPublic(input: {
+  code: string;
+  now?: Date;
+}): Promise<PublicVoucherVerificationResult> {
+  const code = normalizeVoucherCode(input.code);
+  const now = input.now ?? new Date();
+
+  if (!code) {
+    return { ok: false, reason: voucherValidationReasonCodes.invalidInput };
+  }
+
+  const voucher = await prisma.voucher.findUnique({
+    where: { code },
+    select: {
+      code: true,
+      type: true,
+      status: true,
+      remainingValueCzk: true,
+      serviceNameSnapshot: true,
+      validFrom: true,
+      validUntil: true,
+    },
+  });
+
+  if (!voucher) {
+    return { ok: false, reason: voucherValidationReasonCodes.notFound };
+  }
+
+  if (isVoucherNotActiveYet(voucher, now)) {
+    return { ok: false, reason: voucherValidationReasonCodes.draft };
+  }
+
+  const effectiveStatus = getEffectiveVoucherStatus(voucher, now);
+  const blockedReason = getBlockedReason(effectiveStatus);
+
+  if (blockedReason) {
+    return { ok: false, reason: blockedReason };
+  }
+
+  if (voucher.type === VoucherType.VALUE && (voucher.remainingValueCzk ?? 0) <= 0) {
+    return { ok: false, reason: voucherValidationReasonCodes.noRemainingValue };
+  }
+
+  return {
+    ok: true,
+    code: voucher.code,
+    type: voucher.type,
+    remainingValueCzk: voucher.type === VoucherType.VALUE ? (voucher.remainingValueCzk ?? 0) : null,
+    serviceNameSnapshot: voucher.type === VoucherType.SERVICE ? voucher.serviceNameSnapshot : null,
+    validUntil: voucher.validUntil,
+  };
 }
 
 export async function validateVoucherForBookingInput(input: {

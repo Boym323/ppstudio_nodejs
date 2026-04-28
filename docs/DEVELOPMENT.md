@@ -70,7 +70,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - `npm test` a `npm run test:db:booking` běží s `node --import ./src/test/register-server-only.mjs --import tsx --test ...`, takže plain Node test runner umí načíst `import "server-only"` bez zásahu do ostatních Next internals. Pokud přidáš další server-only moduly, použij tenhle sdílený hook místo lokálních per-test stubů.
 - Voucher doména je v `src/features/vouchers` a zůstává oddělená od admin UI, PDF i public booking flow. Entry body:
   - `lib/voucher-code.ts` generuje a normalizuje kódy `PP-YYYY-XXXXXX`.
-  - `lib/voucher-validation.ts` vrací bezpečný public validační výsledek bez citlivých polí.
+  - `lib/voucher-validation.ts` vrací bezpečný public validační výsledek bez citlivých polí; `verifyVoucherPublic(...)` je určený pro samostatnou veřejnou kontrolu bez vazby na službu a bez jakéhokoli uplatnění.
   - `lib/voucher-redemption.ts` provádí admin uplatnění v transakci a zapisuje `VoucherRedemption`.
   - `actions/voucher-actions.ts` drží server-side funkce pro vytvoření, validaci a uplatnění bez klientských komponent.
 - Efektivní expirace voucheru je aplikační read pravidlo přes `getEffectiveVoucherStatus(...)`; validace ani read modely automaticky nepřepisují DB status na `EXPIRED`.
@@ -87,7 +87,8 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Admin uplatnění voucheru u rezervace běží v detailu rezervace přes `src/features/admin/components/admin-booking-voucher-form.tsx` a server action `redeemBookingVoucherAction(...)` v `src/features/admin/actions/booking-actions.ts`. Action vždy ověřuje roli `OWNER` nebo `SALON`, volá výhradně doménové `redeemVoucherForBooking(...)`, vrací bezpečné hlášky a revaliduje owner i salon booking/voucher přehledy.
 - Read model `getAdminBookingDetailData(...)` smí pro panel `Voucher` vracet jen provozně bezpečná pole: intended voucher kód, typ, efektivní stav, bezpečný popis, doporučenou částku a historii redemptionů s aktérem. Technická ID nemají být primárním UI údajem.
 - Detail voucheru smí zobrazovat interní poznámku pouze v adminu; veřejné PDF ani veřejné ověření voucheru ji nesmí číst z veřejného read modelu.
-- Veřejné ověření voucheru běží na `/vouchery/overeni?code=...` a používá `getVoucherByCodeSafe(...)`. Smí vracet pouze bezpečná veřejná pole pro kontrolu kódu, typu, stavu, hodnoty/služby, zůstatku a platnosti; nesmí zobrazovat kupujícího, interní poznámku, technická ID ani historii čerpání.
+- Veřejné ověření voucheru běží na `/vouchery/overeni?code=...`, má `noindex` metadata a záměrně není v `sitemap.ts`. Používá `verifyVoucherPublic(...)`, smí zobrazit jen kód, typ, zbývající hodnotu u `VALUE`, název služby ze snapshotu u `SERVICE` a platnost do; neplatným kódům vrací pouze bezpečné důvody bez citlivých polí.
+- Route `/vouchery/overeni` je read-only: nesmí vytvářet `VoucherRedemption`, měnit `remainingValueCzk`, měnit `Voucher.status`, ukládat booking intent ani číst admin-only read model.
 - Veřejný submit `/rezervace` může přijmout volitelný `voucherCode`, ale nesmí odečítat zůstatek, měnit status voucheru ani vytvářet `VoucherRedemption`; smí pouze uložit `intendedVoucherId`, `intendedVoucherCodeSnapshot` a `intendedVoucherValidatedAt` na `Booking`.
 - `VALUE` voucher se ve veřejném flow považuje za použitelný při kladném `remainingValueCzk` bez ohledu na cenu služby; nižší zůstatek než cena není chyba a doplatek zůstává provozní záležitost při návštěvě.
 
