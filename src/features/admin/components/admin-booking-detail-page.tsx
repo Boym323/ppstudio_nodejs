@@ -334,12 +334,15 @@ function BookingVoucherPanel({ data }: { data: AdminBookingDetailData }) {
                 />
               </dl>
               {voucherForm ? (
-                <a
-                  href="#booking-voucher-form"
-                  className="mt-3 inline-flex min-h-10 items-center justify-center rounded-full border border-[var(--color-accent)]/24 bg-[var(--color-accent)]/10 px-3.5 py-2 text-sm font-semibold text-[var(--color-accent-soft)] transition hover:border-[var(--color-accent)]/38 hover:bg-[var(--color-accent)]/16"
-                >
-                  Uplatnit tento voucher
-                </a>
+                <div className="mt-3 border-t border-white/8 pt-3">
+                  <p className="text-sm font-medium text-white/82">Uplatnění voucheru</p>
+                  <p className="mt-1 text-sm leading-5 text-white/56">
+                    Voucher z rezervace je předvyplněný, stačí potvrdit případnou částku a uložení.
+                  </p>
+                  <div className="mt-3 rounded-[0.95rem] border border-white/8 bg-black/18 p-3">
+                    {voucherForm}
+                  </div>
+                </div>
               ) : null}
             </div>
           ) : data.voucher.intendedVoucherCodeSnapshot ? (
@@ -359,11 +362,7 @@ function BookingVoucherPanel({ data }: { data: AdminBookingDetailData }) {
           )}
         </div>
 
-        {voucherForm && hasVoucherIntent ? (
-          <div className="rounded-[0.95rem] border border-white/8 bg-white/[0.03] p-3">
-            {voucherForm}
-          </div>
-        ) : voucherForm ? (
+        {voucherForm && !hasVoucherIntent ? (
           <details className="group rounded-[0.95rem] border border-white/8 bg-white/[0.03]">
             <summary className="cursor-pointer list-none px-3.5 py-3 marker:hidden">
               <span className="inline-flex min-h-10 items-center justify-center rounded-full bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-[var(--color-accent-contrast)] transition group-open:hidden hover:brightness-105">
