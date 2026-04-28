@@ -172,6 +172,8 @@ Formát je inspirovaný Keep a Changelog.
 - Nový script `npm run test:e2e` spouští browser testy proti lokálnímu `next start` serveru na samostatném portu a každý scénář si seeduje i uklízí vlastní unikátní Prisma data.
 - Stabilizované booking test fixtures: unit testy už nepoužívají pevné datum těsně u aktuálního dne a DB integrační seed hledá nekolidující sloty vůči existujícím datům v lokální databázi.
 - Opraven flaky Playwright scénář `client can reschedule a booking through a public token`: test teď deterministicky vytvoří runtime kolizi na právě vybraném slotu, ověří uživatelskou chybu `Nový termín koliduje...`/`...není k dispozici` a následně přesune rezervaci na jiný volný čas.
+- DB integrační testy voucher booking flow už nesdílí společný seed mezi test casy: `booking-public-voucher.integration.test.ts` nyní vytváří a uklízí izolovaný seed per test a používá unikátní voucher kódy, čímž se odstranily náhodné transakční kolize mezi paralelními běhy.
+- Public storno flow přes token (`cancelPublicBookingByToken`) má bezpečný retry serializable transakce pro Prisma `P2034` write-conflict/deadlock; business výsledek storna i email logika zůstávají beze změny.
 - Přibyla GitHub Actions CI konfigurace `.github/workflows/ci.yml`, která nad PostgreSQL service containerem spouští lint, DB testy, production build a Playwright E2E.
 
 - Přibyl token-based klientský self-service flow `/rezervace/sprava/[token]`, kde klientka bez přihlášení bezpečně uvidí svou rezervaci, dostupné nové termíny pro stejnou službu a až po potvrzení provede přesun.

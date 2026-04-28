@@ -23,6 +23,7 @@ const CANCELLABLE_BOOKING_STATUSES: BookingStatus[] = [
   BookingStatus.PENDING,
   BookingStatus.CONFIRMED,
 ];
+const MAX_CANCELLATION_TRANSACTION_RETRIES = 3;
 
 type CancellationPageStateBase = {
   serviceName?: string;
@@ -86,6 +87,10 @@ function toCancellationDetails(token: LoadedCancellationToken) {
       token.booking.scheduledEndsAt,
     ),
   };
+}
+
+function isRetryablePrismaError(error: unknown) {
+  return error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2034";
 }
 
 async function findCancellationToken(tokenHash: string) {
@@ -202,8 +207,16 @@ export async function cancelPublicBookingByToken(rawToken: string): Promise<Canc
     getEmailBrandingSettings(),
   ]);
 
-  const transactionResult = await prisma.$transaction(
-    async (tx) => {
+  type CancellationTransactionResult =
+    | ReturnType<typeof resolveCancellationState>
+    | { status: "ready"; details: ReturnType<typeof toCancellationDetails> };
+
+  let transactionResult: CancellationTransactionResult | null = null;
+
+  for (let attempt = 1; attempt <= MAX_CANCELLATION_TRANSACTION_RETRIES; attempt += 1) {
+    try {
+      transactionResult = await prisma.$transaction(
+        async (tx) => {
       await tx.$queryRaw<{ id: string }[]>(Prisma.sql`
         SELECT "id"
         FROM "BookingActionToken"
@@ -347,15 +360,27 @@ export async function cancelPublicBookingByToken(rawToken: string): Promise<Canc
         });
       }
 
-      return {
-        status: "ready" as const,
-        details: toCancellationDetails(lockedToken),
-      };
-    },
-    {
-      isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
-    },
-  );
+          return {
+            status: "ready" as const,
+            details: toCancellationDetails(lockedToken),
+          };
+        },
+        {
+          isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+        },
+      );
+      break;
+    } catch (error) {
+      if (attempt < MAX_CANCELLATION_TRANSACTION_RETRIES && isRetryablePrismaError(error)) {
+        continue;
+      }
+      throw error;
+    }
+  }
+
+  if (!transactionResult) {
+    throw new Error("Cancellation transaction did not produce a result.");
+  }
 
   if (transactionResult.status !== "ready") {
     return transactionResult;

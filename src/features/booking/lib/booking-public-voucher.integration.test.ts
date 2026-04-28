@@ -1,7 +1,7 @@
 import "dotenv/config";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import test, { after, before, describe } from "node:test";
+import test, { describe } from "node:test";
 
 import {
   AvailabilitySlotStatus,
@@ -35,8 +35,6 @@ type SeedContext = {
   createdSlotIds: string[];
   createdVoucherIds: string[];
 };
-
-let seed: SeedContext | null = null;
 
 async function loadModules() {
   const [{ prisma }, bookingModule, adminBookingModule] = await Promise.all([
@@ -150,6 +148,16 @@ async function cleanupSeed(context: SeedContext) {
   await prisma.serviceCategory.deleteMany({ where: { id: context.categoryId } });
 }
 
+async function withSeed(run: (context: SeedContext) => Promise<void>) {
+  const context = await createSeed();
+
+  try {
+    await run(context);
+  } finally {
+    await cleanupSeed(context);
+  }
+}
+
 async function createSlot(context: SeedContext, offsetDays = context.createdSlotIds.length + 3) {
   const { prisma } = await loadModules();
   const startsAt = addDays(new Date(), offsetDays);
@@ -200,192 +208,188 @@ async function createVoucher(
   return voucher;
 }
 
-before(async () => {
-  if (process.env.RUN_DB_INTEGRATION_TESTS === "1") {
-    seed = await createSeed();
-  }
-});
-
-after(async () => {
-  if (seed) {
-    await cleanupSeed(seed);
-  }
-});
-
 describe("public booking intended voucher", () => {
   dbTest("creates public booking without voucher", async () => {
-    assert.ok(seed);
-    const { prisma, createPublicBooking } = await loadModules();
-    const slot = await createSlot(seed);
+    await withSeed(async (seed) => {
+      const { prisma, createPublicBooking } = await loadModules();
+      const slot = await createSlot(seed);
 
-    const result = await createPublicBooking(buildBookingInput(seed, slot));
-    seed.createdBookingIds.push(result.bookingId);
+      const result = await createPublicBooking(buildBookingInput(seed, slot));
+      seed.createdBookingIds.push(result.bookingId);
 
-    const booking = await prisma.booking.findUniqueOrThrow({ where: { id: result.bookingId } });
-    assert.equal(booking.intendedVoucherId, null);
-    assert.equal(booking.intendedVoucherCodeSnapshot, null);
-    assert.equal(booking.intendedVoucherValidatedAt, null);
+      const booking = await prisma.booking.findUniqueOrThrow({ where: { id: result.bookingId } });
+      assert.equal(booking.intendedVoucherId, null);
+      assert.equal(booking.intendedVoucherCodeSnapshot, null);
+      assert.equal(booking.intendedVoucherValidatedAt, null);
+    });
   });
 
   dbTest("stores valid VALUE voucher as intended voucher without redemption or balance changes", async () => {
-    assert.ok(seed);
-    const { prisma, createPublicBooking } = await loadModules();
-    const slot = await createSlot(seed);
-    const voucher = await createVoucher(seed, {
-      code: `PP-2026-${seed.suffix.toUpperCase().slice(0, 6)}`,
-      type: VoucherType.VALUE,
-      remainingValueCzk: 1000,
+    await withSeed(async (seed) => {
+      const { prisma, createPublicBooking } = await loadModules();
+      const slot = await createSlot(seed);
+      const voucher = await createVoucher(seed, {
+        code: `PP-2026-${randomUUID().replace(/-/g, "").slice(0, 6).toUpperCase()}`,
+        type: VoucherType.VALUE,
+        remainingValueCzk: 1000,
+      });
+
+      const result = await createPublicBooking(buildBookingInput(seed, slot, voucher.code));
+      seed.createdBookingIds.push(result.bookingId);
+
+      const [booking, unchangedVoucher, redemptionCount] = await Promise.all([
+        prisma.booking.findUniqueOrThrow({ where: { id: result.bookingId } }),
+        prisma.voucher.findUniqueOrThrow({ where: { id: voucher.id } }),
+        prisma.voucherRedemption.count({ where: { voucherId: voucher.id } }),
+      ]);
+
+      assert.equal(booking.intendedVoucherId, voucher.id);
+      assert.equal(booking.intendedVoucherCodeSnapshot, voucher.code);
+      assert.ok(booking.intendedVoucherValidatedAt);
+      assert.equal(unchangedVoucher.remainingValueCzk, 1000);
+      assert.equal(unchangedVoucher.status, VoucherStatus.ACTIVE);
+      assert.equal(redemptionCount, 0);
     });
-
-    const result = await createPublicBooking(buildBookingInput(seed, slot, voucher.code));
-    seed.createdBookingIds.push(result.bookingId);
-
-    const [booking, unchangedVoucher, redemptionCount] = await Promise.all([
-      prisma.booking.findUniqueOrThrow({ where: { id: result.bookingId } }),
-      prisma.voucher.findUniqueOrThrow({ where: { id: voucher.id } }),
-      prisma.voucherRedemption.count({ where: { voucherId: voucher.id } }),
-    ]);
-
-    assert.equal(booking.intendedVoucherId, voucher.id);
-    assert.equal(booking.intendedVoucherCodeSnapshot, voucher.code);
-    assert.ok(booking.intendedVoucherValidatedAt);
-    assert.equal(unchangedVoucher.remainingValueCzk, 1000);
-    assert.equal(unchangedVoucher.status, VoucherStatus.ACTIVE);
-    assert.equal(redemptionCount, 0);
   });
 
   dbTest("accepts partially redeemed VALUE voucher with positive balance below service price", async () => {
-    assert.ok(seed);
-    const { prisma, createPublicBooking } = await loadModules();
-    const slot = await createSlot(seed);
-    const voucher = await createVoucher(seed, {
-      code: `PP-2026-P${seed.suffix.toUpperCase().slice(0, 5)}`,
-      type: VoucherType.VALUE,
-      status: VoucherStatus.PARTIALLY_REDEEMED,
-      remainingValueCzk: 210,
+    await withSeed(async (seed) => {
+      const { prisma, createPublicBooking } = await loadModules();
+      const slot = await createSlot(seed);
+      const voucher = await createVoucher(seed, {
+        code: `PP-2026-P${randomUUID().replace(/-/g, "").slice(0, 5).toUpperCase()}`,
+        type: VoucherType.VALUE,
+        status: VoucherStatus.PARTIALLY_REDEEMED,
+        remainingValueCzk: 210,
+      });
+
+      const result = await createPublicBooking(buildBookingInput(seed, slot, voucher.code));
+      seed.createdBookingIds.push(result.bookingId);
+
+      const unchangedVoucher = await prisma.voucher.findUniqueOrThrow({ where: { id: voucher.id } });
+      assert.equal(result.intendedVoucherCode, voucher.code);
+      assert.equal(result.intendedVoucherType, VoucherType.VALUE);
+      assert.equal(unchangedVoucher.remainingValueCzk, 210);
+      assert.equal(unchangedVoucher.status, VoucherStatus.PARTIALLY_REDEEMED);
     });
-
-    const result = await createPublicBooking(buildBookingInput(seed, slot, voucher.code));
-    seed.createdBookingIds.push(result.bookingId);
-
-    const unchangedVoucher = await prisma.voucher.findUniqueOrThrow({ where: { id: voucher.id } });
-    assert.equal(result.intendedVoucherCode, voucher.code);
-    assert.equal(result.intendedVoucherType, VoucherType.VALUE);
-    assert.equal(unchangedVoucher.remainingValueCzk, 210);
-    assert.equal(unchangedVoucher.status, VoucherStatus.PARTIALLY_REDEEMED);
   });
 
   dbTest("rejects VALUE voucher with no remaining balance and does not create booking", async () => {
-    assert.ok(seed);
-    const { prisma, createPublicBooking, publicBookingErrorCodes } = await loadModules();
-    const slot = await createSlot(seed);
-    const voucher = await createVoucher(seed, {
-      code: `PP-2026-Z${seed.suffix.toUpperCase().slice(0, 5)}`,
-      type: VoucherType.VALUE,
-      status: VoucherStatus.PARTIALLY_REDEEMED,
-      remainingValueCzk: 0,
+    await withSeed(async (seed) => {
+      const { prisma, createPublicBooking, publicBookingErrorCodes } = await loadModules();
+      const slot = await createSlot(seed);
+      const voucher = await createVoucher(seed, {
+        code: `PP-2026-Z${randomUUID().replace(/-/g, "").slice(0, 5).toUpperCase()}`,
+        type: VoucherType.VALUE,
+        status: VoucherStatus.PARTIALLY_REDEEMED,
+        remainingValueCzk: 0,
+      });
+      const input = buildBookingInput(seed, slot, voucher.code);
+
+      await assert.rejects(
+        () => createPublicBooking(input),
+        (error) =>
+          error instanceof Error &&
+          "code" in error &&
+          error.code === publicBookingErrorCodes.voucherInvalid &&
+          error.message === "Voucher už nemá žádný dostupný zůstatek.",
+      );
+
+      assert.equal(await prisma.booking.count({ where: { clientEmailSnapshot: input.email } }), 0);
     });
-    const input = buildBookingInput(seed, slot, voucher.code);
-
-    await assert.rejects(
-      () => createPublicBooking(input),
-      (error) =>
-        error instanceof Error &&
-        "code" in error &&
-        error.code === publicBookingErrorCodes.voucherInvalid &&
-        error.message === "Voucher už nemá žádný dostupný zůstatek.",
-    );
-
-    assert.equal(await prisma.booking.count({ where: { clientEmailSnapshot: input.email } }), 0);
   });
 
   dbTest("stores valid SERVICE voucher for matching service", async () => {
-    assert.ok(seed);
-    const { prisma, createPublicBooking } = await loadModules();
-    const slot = await createSlot(seed);
-    const voucher = await createVoucher(seed, {
-      code: `PP-2026-S${seed.suffix.toUpperCase().slice(0, 5)}`,
-      type: VoucherType.SERVICE,
-      serviceId: seed.serviceId,
+    await withSeed(async (seed) => {
+      const { prisma, createPublicBooking } = await loadModules();
+      const slot = await createSlot(seed);
+      const voucher = await createVoucher(seed, {
+        code: `PP-2026-S${randomUUID().replace(/-/g, "").slice(0, 5).toUpperCase()}`,
+        type: VoucherType.SERVICE,
+        serviceId: seed.serviceId,
+      });
+
+      const result = await createPublicBooking(buildBookingInput(seed, slot, voucher.code));
+      seed.createdBookingIds.push(result.bookingId);
+
+      const booking = await prisma.booking.findUniqueOrThrow({ where: { id: result.bookingId } });
+      assert.equal(booking.intendedVoucherId, voucher.id);
+      assert.equal(result.intendedVoucherType, VoucherType.SERVICE);
     });
-
-    const result = await createPublicBooking(buildBookingInput(seed, slot, voucher.code));
-    seed.createdBookingIds.push(result.bookingId);
-
-    const booking = await prisma.booking.findUniqueOrThrow({ where: { id: result.bookingId } });
-    assert.equal(booking.intendedVoucherId, voucher.id);
-    assert.equal(result.intendedVoucherType, VoucherType.SERVICE);
   });
 
   dbTest("rejects SERVICE voucher for another service and does not create booking", async () => {
-    assert.ok(seed);
-    const { prisma, createPublicBooking, publicBookingErrorCodes } = await loadModules();
-    const slot = await createSlot(seed);
-    const voucher = await createVoucher(seed, {
-      code: `PP-2026-M${seed.suffix.toUpperCase().slice(0, 5)}`,
-      type: VoucherType.SERVICE,
-      serviceId: seed.otherServiceId,
+    await withSeed(async (seed) => {
+      const { prisma, createPublicBooking, publicBookingErrorCodes } = await loadModules();
+      const slot = await createSlot(seed);
+      const voucher = await createVoucher(seed, {
+        code: `PP-2026-M${randomUUID().replace(/-/g, "").slice(0, 5).toUpperCase()}`,
+        type: VoucherType.SERVICE,
+        serviceId: seed.otherServiceId,
+      });
+      const input = buildBookingInput(seed, slot, voucher.code);
+
+      await assert.rejects(
+        () => createPublicBooking(input),
+        (error) =>
+          error instanceof Error &&
+          "code" in error &&
+          error.code === publicBookingErrorCodes.voucherInvalid &&
+          error.message === "Tento voucher je určený pro jinou službu.",
+      );
+
+      assert.equal(await prisma.booking.count({ where: { clientEmailSnapshot: input.email } }), 0);
     });
-    const input = buildBookingInput(seed, slot, voucher.code);
-
-    await assert.rejects(
-      () => createPublicBooking(input),
-      (error) =>
-        error instanceof Error &&
-        "code" in error &&
-        error.code === publicBookingErrorCodes.voucherInvalid &&
-        error.message === "Tento voucher je určený pro jinou službu.",
-    );
-
-    assert.equal(await prisma.booking.count({ where: { clientEmailSnapshot: input.email } }), 0);
   });
 
   dbTest("admin booking detail exposes intended voucher after public booking", async () => {
-    assert.ok(seed);
-    const { getAdminBookingDetailData, createPublicBooking } = await loadModules();
-    const slot = await createSlot(seed);
-    const voucher = await createVoucher(seed, {
-      code: `PP-2026-D${seed.suffix.toUpperCase().slice(0, 5)}`,
-      type: VoucherType.VALUE,
-      remainingValueCzk: 500,
+    await withSeed(async (seed) => {
+      const { getAdminBookingDetailData, createPublicBooking } = await loadModules();
+      const slot = await createSlot(seed);
+      const voucher = await createVoucher(seed, {
+        code: `PP-2026-D${randomUUID().replace(/-/g, "").slice(0, 5).toUpperCase()}`,
+        type: VoucherType.VALUE,
+        remainingValueCzk: 500,
+      });
+
+      const result = await createPublicBooking(buildBookingInput(seed, slot, voucher.code));
+      seed.createdBookingIds.push(result.bookingId);
+
+      const detail = await getAdminBookingDetailData("owner", result.bookingId);
+      assert.ok(detail);
+      assert.equal(detail.status, BookingStatus.PENDING);
+      assert.equal(detail.voucher.intendedVoucher?.id, voucher.id);
+      assert.equal(detail.voucher.intendedVoucherCodeSnapshot, voucher.code);
+      assert.ok(detail.voucher.intendedVoucherValidatedAtLabel);
     });
-
-    const result = await createPublicBooking(buildBookingInput(seed, slot, voucher.code));
-    seed.createdBookingIds.push(result.bookingId);
-
-    const detail = await getAdminBookingDetailData("owner", result.bookingId);
-    assert.ok(detail);
-    assert.equal(detail.status, BookingStatus.PENDING);
-    assert.equal(detail.voucher.intendedVoucher?.id, voucher.id);
-    assert.equal(detail.voucher.intendedVoucherCodeSnapshot, voucher.code);
-    assert.ok(detail.voucher.intendedVoucherValidatedAtLabel);
   });
 
   dbTest("stores safe voucher text in public booking confirmation email payload", async () => {
-    assert.ok(seed);
-    const { prisma, createPublicBooking } = await loadModules();
-    const slot = await createSlot(seed);
-    const voucher = await createVoucher(seed, {
-      code: `PP-2026-E${seed.suffix.toUpperCase().slice(0, 5)}`,
-      type: VoucherType.VALUE,
-      remainingValueCzk: 800,
+    await withSeed(async (seed) => {
+      const { prisma, createPublicBooking } = await loadModules();
+      const slot = await createSlot(seed);
+      const voucher = await createVoucher(seed, {
+        code: `PP-2026-E${randomUUID().replace(/-/g, "").slice(0, 5).toUpperCase()}`,
+        type: VoucherType.VALUE,
+        remainingValueCzk: 800,
+      });
+
+      const result = await createPublicBooking(buildBookingInput(seed, slot, voucher.code));
+      seed.createdBookingIds.push(result.bookingId);
+
+      const emailLog = await prisma.emailLog.findFirstOrThrow({
+        where: {
+          bookingId: result.bookingId,
+          type: EmailLogType.BOOKING_CONFIRMED,
+          templateKey: "booking-confirmation-v1",
+        },
+        select: { payload: true },
+      });
+      const payload = emailLog.payload as Record<string, unknown>;
+
+      assert.equal(payload.intendedVoucherCode, voucher.code);
+      assert.equal("remainingValueCzk" in payload, false);
+      assert.equal("redeemedByUser" in payload, false);
     });
-
-    const result = await createPublicBooking(buildBookingInput(seed, slot, voucher.code));
-    seed.createdBookingIds.push(result.bookingId);
-
-    const emailLog = await prisma.emailLog.findFirstOrThrow({
-      where: {
-        bookingId: result.bookingId,
-        type: EmailLogType.BOOKING_CONFIRMED,
-        templateKey: "booking-confirmation-v1",
-      },
-      select: { payload: true },
-    });
-    const payload = emailLog.payload as Record<string, unknown>;
-
-    assert.equal(payload.intendedVoucherCode, voucher.code);
-    assert.equal("remainingValueCzk" in payload, false);
-    assert.equal("redeemedByUser" in payload, false);
   });
 });
