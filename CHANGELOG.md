@@ -6,6 +6,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Admin detail voucheru je teď kompaktnější: nahoře je jedna summary karta s kódem, stavem, typem, hodnotou nebo službou, platností, čerpáním a akcemi, duplicitní metriky zmizely a historie uplatnění je čitelnější na mobilu i desktopu.
 - Admin evidence voucherů má teď čitelnější seznam: create CTA je v hlavičce nad filtry, spacing filtrů je vzdušnější a na menších šířkách se místo široké tabulky používají kompaktní voucher karty.
 - Detail rezervace v adminu už u intended voucheru nepoužívá CTA `Uplatnit tento voucher` jako anchor skok na formulář níž na stránce. Formulář je nově vložený přímo do karty voucheru, takže obsluha zůstává ve stejném kontextu a klik nevyvolá jen nečekaný scroll.
 - Panel `Úhrada` v admin detailu rezervace má další UX polish: horní souhrn je teď kompaktní receipt-like blok s badge stavem úhrady, doplatek je nejsilnější vizuální prvek, dárkový poukaz je civilnější a historie úhrad je zkrácená na provozní řádky.
