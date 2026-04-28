@@ -173,10 +173,6 @@ export async function generateVoucherPdf(voucher: VoucherPdfData) {
   drawDetail(page, "Kód voucheru", voucher.code, leftX, detailsY, regularFont, boldFont);
   drawDetail(page, "Platnost do", voucher.validUntil ? dateFormatter.format(voucher.validUntil) : "Bez omezení", leftX + 170, detailsY, regularFont, boldFont);
 
-  if (shouldShowPurchaserName(voucher.purchaserName)) {
-    drawDetail(page, "Kupující", voucher.purchaserName?.trim() ?? "", leftX, detailsY - 48, regularFont, boldFont);
-  }
-
   page.drawRectangle({
     x: rightX - 10,
     y: 104,
@@ -220,12 +216,6 @@ export async function generateVoucherPdf(voucher: VoucherPdfData) {
   );
 
   return pdf.save();
-}
-
-function shouldShowPurchaserName(value: string | null) {
-  const trimmed = value?.trim();
-
-  return Boolean(trimmed && trimmed.length >= 2 && !trimmed.includes("@"));
 }
 
 function drawDetail(

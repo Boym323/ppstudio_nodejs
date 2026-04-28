@@ -6,6 +6,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- PDF voucher už nezobrazuje jméno kupujícího; výstup obsahuje jen kód, typ, hodnotu/službu, platnost, QR ověření a podmínky.
 - Admin voucher UI se teď soustředí na evidenci kupujícího: create formulář i detail schovávají obdarovaného a věnování, zatímco doménová vrstva zůstává beze změny.
 - Admin detail voucheru je teď kompaktnější: nahoře je jedna summary karta s kódem, stavem, typem, hodnotou nebo službou, platností, čerpáním a akcemi, duplicitní metriky zmizely a historie uplatnění je čitelnější na mobilu i desktopu.
 - Admin evidence voucherů má teď čitelnější seznam: create CTA je v hlavičce nad filtry, spacing filtrů je vzdušnější a na menších šířkách se místo široké tabulky používají kompaktní voucher karty.
