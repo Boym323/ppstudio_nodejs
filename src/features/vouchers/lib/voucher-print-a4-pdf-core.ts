@@ -20,10 +20,7 @@ import { getSiteSettings, type SiteSettingsRecord } from "@/lib/site-settings";
 
 type VoucherPdfData = NonNullable<Awaited<ReturnType<typeof getVoucherDetail>>>;
 
-export type VoucherPrintPosition = 1;
-
 type VoucherPrintA4PdfOptions = {
-  position?: VoucherPrintPosition;
   settings?: SiteSettingsRecord;
   logoAsset?: VoucherPdfLogoAsset | null;
 };
@@ -86,8 +83,7 @@ const colors = {
   panel: rgb(0.985, 0.965, 0.935),
 };
 
-const voucherPrintPosition: VoucherPrintPosition = 1;
-const voucherPrintSlotBottomY = mm(198);
+export const topSlotBottomY = mm(198);
 
 const dateFormatter = new Intl.DateTimeFormat("cs-CZ", {
   day: "numeric",
@@ -100,32 +96,22 @@ export function mm(value: number) {
   return value * MM_TO_PT;
 }
 
-export function isVoucherPrintPosition(value: number): value is VoucherPrintPosition {
-  return value === voucherPrintPosition;
-}
-
-export function getVoucherPrintSlotBox(position: VoucherPrintPosition = voucherPrintPosition) {
-  assertVoucherPrintPosition(position);
-
+export function getVoucherPrintSlotBox() {
   return {
     x: 0,
-    y: voucherPrintSlotBottomY,
+    y: topSlotBottomY,
     width: SLOT_WIDTH_PT,
     height: SLOT_HEIGHT_PT,
   };
 }
 
-export function buildVoucherPrintA4PdfFilename(code: string, position: VoucherPrintPosition = voucherPrintPosition) {
-  assertVoucherPrintPosition(position);
+export function buildVoucherPrintA4PdfFilename(code: string) {
   const safeCode = code.replace(/[^A-Za-z0-9-]/g, "");
 
   return `voucher-${safeCode || "PP"}-tisk-a4.pdf`;
 }
 
 export async function generateVoucherPrintA4Pdf(voucher: VoucherPdfData, options: VoucherPrintA4PdfOptions = {}) {
-  const position = options.position ?? voucherPrintPosition;
-  assertVoucherPrintPosition(position);
-
   const settings = options.settings ?? (await getSiteSettings());
   const logoAsset =
     options.logoAsset !== undefined
@@ -189,9 +175,7 @@ export async function generateVoucherPrintA4Pdf(voucher: VoucherPdfData, options
 
   const [embeddedPortraitPage] = await pdf.embedPdf(portraitBytes, [0]);
   const page = pdf.addPage([A4_WIDTH_PT, A4_HEIGHT_PT]);
-  const slot = getVoucherPrintSlotBox(position);
-
-  drawPrintGuides(page);
+  const slot = getVoucherPrintSlotBox();
 
   // pdf-lib rotates around the inserted page origin. Translating to the slot's
   // right-bottom corner before a 90deg rotation maps portrait 99x210 mm into
@@ -203,24 +187,19 @@ export async function generateVoucherPrintA4Pdf(voucher: VoucherPdfData, options
     height: VOUCHER_HEIGHT_PT,
     rotate: degrees(90),
   });
+  drawPrintGuides(page);
 
   return pdf.save();
 }
 
-function assertVoucherPrintPosition(position: number): asserts position is VoucherPrintPosition {
-  if (!isVoucherPrintPosition(position)) {
-    throw new RangeError("Neplatná tisková pozice voucheru. Tisková A4 varianta podporuje pouze pozici 1.");
-  }
-}
-
 function drawPrintGuides(page: PDFPage) {
   page.drawLine({
-    start: { x: mm(5), y: voucherPrintSlotBottomY },
-    end: { x: A4_WIDTH_PT - mm(5), y: voucherPrintSlotBottomY },
-    thickness: 0.35,
+    start: { x: 0, y: topSlotBottomY },
+    end: { x: A4_WIDTH_PT, y: topSlotBottomY },
+    thickness: 0.2,
     color: colors.guide,
     dashArray: [2, 3],
-    opacity: 0.55,
+    opacity: 0.38,
   });
 }
 
@@ -259,9 +238,9 @@ function drawVoucherDlPortrait(
     borderWidth: 0.45,
   });
 
-  const logoTopY = VOUCHER_HEIGHT_PT - mm(16);
-  const logoMaxWidth = mm(46);
-  const logoMaxHeight = mm(18);
+  const logoTopY = VOUCHER_HEIGHT_PT - mm(15);
+  const logoMaxWidth = mm(56);
+  const logoMaxHeight = mm(21);
 
   if (logoImage) {
     const logoBox = getContainedImageBox(logoImage, logoMaxWidth, logoMaxHeight);
@@ -269,30 +248,30 @@ function drawVoucherDlPortrait(
   } else {
     drawCenteredText(page, VOUCHER_PDF_TEXT_LOGO, centerX, logoTopY - mm(5), {
       fontPair: boldFont,
-      size: 15,
+      size: 16.5,
       color: colors.ink,
     });
   }
 
-  drawCenteredText(page, "kosmetické studio Zlín", centerX, VOUCHER_HEIGHT_PT - mm(39), {
+  drawCenteredText(page, "kosmetické studio Zlín", centerX, VOUCHER_HEIGHT_PT - mm(42), {
     fontPair: regularFont,
     size: 8.4,
     color: colors.muted,
   });
   page.drawLine({
-    start: { x: centerX - mm(16), y: VOUCHER_HEIGHT_PT - mm(47) },
-    end: { x: centerX + mm(16), y: VOUCHER_HEIGHT_PT - mm(47) },
-    thickness: 0.45,
+    start: { x: centerX - mm(14), y: VOUCHER_HEIGHT_PT - mm(46) },
+    end: { x: centerX + mm(14), y: VOUCHER_HEIGHT_PT - mm(46) },
+    thickness: 0.35,
     color: colors.accent,
-    opacity: 0.55,
+    opacity: 0.42,
   });
 
-  drawCenteredText(page, "Dárkový poukaz", centerX, VOUCHER_HEIGHT_PT - mm(61), {
+  drawCenteredText(page, "Dárkový poukaz", centerX, VOUCHER_HEIGHT_PT - mm(60), {
     fontPair: boldFont,
-    size: 20,
+    size: 17.5,
     color: colors.ink,
   });
-  drawWrappedText(page, "Dopřejte si chvíli péče, klidu a krásy.", safeMargin, VOUCHER_HEIGHT_PT - mm(72), contentWidth, {
+  drawWrappedText(page, "Dopřejte si chvíli péče, klidu a krásy.", safeMargin, VOUCHER_HEIGHT_PT - mm(70), contentWidth, {
     fontPair: regularFont,
     size: 8.2,
     lineHeight: 10,
@@ -306,72 +285,58 @@ function drawVoucherDlPortrait(
       ? formatVoucherValue(voucher)
       : voucher.serviceNameSnapshot ?? "Vybraná služba PP Studio";
 
-  drawCenteredText(page, mainLabel, centerX, VOUCHER_HEIGHT_PT - mm(91), {
+  drawCenteredText(page, mainLabel, centerX, VOUCHER_HEIGHT_PT - mm(90), {
     fontPair: regularFont,
     size: 8.1,
     color: colors.muted,
   });
-  drawWrappedText(page, mainValue, safeMargin + mm(2), VOUCHER_HEIGHT_PT - mm(103), contentWidth - mm(4), {
+  drawWrappedText(page, mainValue, safeMargin + mm(2), VOUCHER_HEIGHT_PT - mm(104), contentWidth - mm(4), {
     fontPair: boldFont,
-    size: voucher.type === VoucherType.VALUE ? 19 : 13.8,
-    lineHeight: voucher.type === VoucherType.VALUE ? 22 : 16,
+    size: voucher.type === VoucherType.VALUE ? 18.5 : 13.4,
+    lineHeight: voucher.type === VoucherType.VALUE ? 23 : 16.5,
     color: colors.ink,
     align: "center",
-    maxLines: voucher.type === VoucherType.VALUE ? 2 : 3,
+    maxLines: 2,
   });
 
-  const detailY = VOUCHER_HEIGHT_PT - mm(137);
-  drawSmallPanel(page, safeMargin, detailY, mm(39), mm(20), "Kód voucheru", voucher.code, regularFont, boldFont);
-  drawSmallPanel(
+  drawInfoBlock(
     page,
-    VOUCHER_WIDTH_PT - safeMargin - mm(39),
-    detailY,
-    mm(39),
-    mm(20),
+    centerX,
+    mm(84),
+    mm(50),
     "Platnost do",
     voucher.validUntil ? dateFormatter.format(voucher.validUntil) : "Bez omezení",
     regularFont,
     boldFont,
   );
 
-  const qrBoxSize = mm(38);
+  const qrBoxSize = mm(36);
   const qrBoxX = centerX - qrBoxSize / 2;
-  const qrBoxY = mm(36);
+  const qrBoxY = mm(38);
   page.drawRectangle({
     x: qrBoxX,
     y: qrBoxY,
     width: qrBoxSize,
     height: qrBoxSize,
-    color: colors.panel,
-    borderColor: rgb(0.88, 0.8, 0.7),
-    borderWidth: 0.65,
+    color: rgb(1, 0.995, 0.985),
+    borderColor: rgb(0.91, 0.86, 0.78),
+    borderWidth: 0.35,
   });
   page.drawImage(qrImage, {
-    x: qrBoxX + mm(3),
-    y: qrBoxY + mm(3),
-    width: qrBoxSize - mm(6),
-    height: qrBoxSize - mm(6),
-  });
-  drawCenteredText(page, "Ověření voucheru", centerX, qrBoxY - mm(5), {
-    fontPair: boldFont,
-    size: 8.1,
-    color: colors.ink,
-  });
-  drawWrappedText(page, "Naskenujte QR kód pro ověření platnosti.", safeMargin, qrBoxY - mm(11), contentWidth, {
-    fontPair: regularFont,
-    size: 7.2,
-    lineHeight: 8.6,
-    color: colors.muted,
-    align: "center",
-    maxLines: 2,
+    x: qrBoxX + mm(2.8),
+    y: qrBoxY + mm(2.8),
+    width: qrBoxSize - mm(5.6),
+    height: qrBoxSize - mm(5.6),
   });
 
-  const contactLines = buildVoucherPdfContactLines(settings);
+  drawInfoBlock(page, centerX, mm(29.2), mm(54), "Kód voucheru", voucher.code, regularFont, boldFont);
+
+  const contactLines = buildVoucherPrintContactLines(settings);
   contactLines.forEach((line, index) => {
-    drawWrappedText(page, line, safeMargin, mm(18) - index * mm(4.2), contentWidth, {
+    drawWrappedText(page, line, safeMargin, mm(13.5) - index * mm(4.7), contentWidth, {
       fontPair: regularFont,
-      size: 7.1,
-      lineHeight: 8.2,
+      size: 6.8,
+      lineHeight: 8.4,
       color: colors.muted,
       align: "center",
       maxLines: 1,
@@ -390,35 +355,45 @@ async function embedLogoImage(
   return pdf.embedJpg(logo.bytes);
 }
 
-function drawSmallPanel(
+function buildVoucherPrintContactLines(settings: SiteSettingsRecord) {
+  const [addressLine, contactLine] = buildVoucherPdfContactLines(settings);
+  const contactParts = contactLine?.split(" · ").map((part) => part.trim()).filter(Boolean) ?? [];
+  const [phone, email, domain] = contactParts;
+
+  return [
+    [addressLine, phone].filter(Boolean).join(" · "),
+    [email, domain].filter(Boolean).join(" · "),
+  ].filter(Boolean);
+}
+
+function drawInfoBlock(
   page: PDFPage,
-  x: number,
+  centerX: number,
   y: number,
   width: number,
-  height: number,
   label: string,
   value: string,
   regularFont: FontPair,
   boldFont: FontPair,
 ) {
-  page.drawRectangle({
-    x,
-    y,
-    width,
-    height,
-    color: colors.panel,
-    borderColor: rgb(0.9, 0.84, 0.76),
-    borderWidth: 0.45,
+  const x = centerX - width / 2;
+
+  page.drawLine({
+    start: { x, y: y + mm(3.4) },
+    end: { x: x + width, y: y + mm(3.4) },
+    thickness: 0.28,
+    color: colors.accentSoft,
+    opacity: 0.45,
   });
-  drawCenteredText(page, label, x + width / 2, y + height - mm(6.2), {
+  drawCenteredText(page, label, centerX, y, {
     fontPair: regularFont,
-    size: 6.9,
+    size: 6.8,
     color: colors.muted,
   });
-  drawWrappedText(page, value, x + mm(2), y + height - mm(12.5), width - mm(4), {
+  drawWrappedText(page, value, x, y - mm(6.1), width, {
     fontPair: boldFont,
-    size: 8.1,
-    lineHeight: 9,
+    size: 8.2,
+    lineHeight: 9.2,
     color: colors.ink,
     align: "center",
     maxLines: 2,

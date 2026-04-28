@@ -8,7 +8,7 @@
 ## Rozhodnutí
 - Stávající `generateVoucherPdf(...)` zůstává beze změny a dál slouží e-mailu i běžnému stažení.
 - Tisková varianta je samostatný worker-safe modul `src/features/vouchers/lib/voucher-print-a4-pdf-core.ts` s exportem `generateVoucherPrintA4Pdf(...)`.
-- Modul definuje rozměrové konstanty v mm/pt, typ `VoucherPrintPosition = 1`, validaci horní pozice a helper `getVoucherPrintSlotBox(...)`.
+- Modul definuje rozměrové konstanty v mm/pt, konstantu `topSlotBottomY = mm(198)` a helper `getVoucherPrintSlotBox(...)` bez parametru pozice.
 - Portrait DL voucher se nejdřív vykreslí do samostatné 99 x 210 mm PDF stránky a do finální A4 stránky se vloží jako embedded page otočená o 90 stupňů.
 - Admin má nové chráněné routy `/admin/vouchery/[voucherId]/pdf/tisk` a `/admin/provoz/vouchery/[voucherId]/pdf/tisk`; původní `/pdf` routy zůstávají zachované.
 - Detail voucheru zobrazuje původní akci `Stáhnout voucher PDF` a vedle ní samostatný odkaz `Tisk A4`.
@@ -20,7 +20,7 @@
 
 ## Důsledky
 - Tiskové PDF má vlastní layout a vlastní route handler; změny v něm nesmí měnit `generateVoucherPdf(...)`.
-- Testy ověřují A4 rozměr, horní slot souřadnice, odmítnutí jiné pozice a dostupnost stávajícího generátoru.
+- Testy ověřují A4 rozměr, horní slot souřadnice, generování bez povinného parametru pozice a dostupnost stávajícího generátoru.
 - Tisková varianta používá stejné bezpečné voucher údaje, stejné logo helpery, QR ověření a kontakty ze `SiteSettings`.
 - Do budoucna lze přidat hromadný A4 arch nebo jiné rozmístění, ale má to být samostatný export/endpoint, ne změna tohoto horního tiskového výstupu.
 

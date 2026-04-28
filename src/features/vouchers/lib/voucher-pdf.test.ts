@@ -132,13 +132,15 @@ test("builds A4 print voucher slots with expected millimetre dimensions", async 
     SLOT_WIDTH_PT,
     getVoucherPrintSlotBox,
     mm,
+    topSlotBottomY,
   } = await import("./voucher-print-a4-pdf-core");
 
   assert.equal(Math.round(A4_WIDTH_PT * 100), Math.round(mm(210) * 100));
   assert.equal(Math.round(A4_HEIGHT_PT * 100), Math.round(mm(297) * 100));
   assert.equal(Math.round(SLOT_WIDTH_PT * 100), Math.round(mm(210) * 100));
   assert.equal(Math.round(SLOT_HEIGHT_PT * 100), Math.round(mm(99) * 100));
-  assert.equal(Math.round(getVoucherPrintSlotBox(1).y * 100), Math.round(mm(198) * 100));
+  assert.equal(Math.round(topSlotBottomY * 100), Math.round(mm(198) * 100));
+  assert.equal(Math.round(getVoucherPrintSlotBox().y * 100), Math.round(mm(198) * 100));
 });
 
 test("generates an A4 print PDF for the top voucher position", async () => {
@@ -155,15 +157,10 @@ test("generates an A4 print PDF for the top voucher position", async () => {
   assert.equal(Math.round(size.height * 100), Math.round(A4_HEIGHT_PT * 100));
 });
 
-test("rejects an invalid A4 print voucher position", async () => {
-  const { generateVoucherPrintA4Pdf, isVoucherPrintPosition } = await import("./voucher-print-a4-pdf-core");
+test("A4 print voucher generator has no required position parameter", async () => {
+  const { generateVoucherPrintA4Pdf } = await import("./voucher-print-a4-pdf-core");
 
-  assert.equal(isVoucherPrintPosition(0), false);
-  assert.equal(isVoucherPrintPosition(2), false);
-  await assert.rejects(
-    generateVoucherPrintA4Pdf(buildVoucherFixture(), { position: 2 as 1, logoAsset: null }),
-    /Neplatná tisková pozice voucheru/,
-  );
+  assert.equal(generateVoucherPrintA4Pdf.length, 1);
 });
 
 function buildVoucherFixture(overrides: Partial<ReturnType<typeof buildBaseVoucherFixture>> = {}) {

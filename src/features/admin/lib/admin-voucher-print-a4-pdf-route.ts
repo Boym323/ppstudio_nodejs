@@ -35,7 +35,7 @@ export function createAdminVoucherPrintA4PdfRoute() {
       return new NextResponse("Voucher nebyl nalezen.", { status: 404 });
     }
 
-    const pdfBytes = await generateVoucherPrintA4Pdf(voucher, {});
+    const pdfBytes = await generateVoucherPrintA4Pdf(voucher);
 
     return new NextResponse(Buffer.from(pdfBytes), {
       status: 200,
