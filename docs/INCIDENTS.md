@@ -106,6 +106,7 @@ Evidence produkčních incidentů a jejich řešení.
 - Chybějící nebo nečitelný `MEDIA_STORAGE_ROOT`, kvůli kterému upload selže při zápisu nebo se veřejný asset fyzicky nikdy neuloží.
 - Upload root namountovaný do dočasného adresáře, který se smaže při deployi nebo restartu serveru.
 - Nefunkční veřejné URL `/media/public/*` nebo legacy `/media/*` kvůli ručnímu zásahu do souborů na filesystemu bez odpovídajícího `MediaAsset` záznamu v DB.
+- Chybějící nebo nepodporovaný soubor zvolený jako `Logo pro PDF vouchery` nesmí blokovat stažení voucheru; očekávaný stav je fallback textové logo `PP Studio`. Pokud obsluha čeká obrázek, zkontroluj `SiteSettings.voucherPdfLogoMediaId`, existenci navázaného `MediaAsset` a lokální soubor v `MEDIA_STORAGE_ROOT`.
 - Pokus o nahrání nepodporovaného typu souboru nebo souboru nad velikostní limit, který musí skončit validační chybou místo 500.
 - Admin `Média webu` po uploadu, editaci nebo publish/unpublish vrací obsluhu na špatný filtr, takže rychlá práce v knihovně působí chaoticky a je potřeba znovu ručně přepínat tabs.
 - Hero portrét na homepage nebo `/o-mne` neodpovídá očekávané stránce, protože je médium uložené pod špatným typem (`PORTRAIT_HOME` vs `PORTRAIT_ABOUT`) nebo chybí fallback na legacy `PORTRAIT`.

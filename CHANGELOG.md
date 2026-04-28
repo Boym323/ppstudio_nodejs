@@ -6,6 +6,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- PDF voucher má samostatně nastavitelné logo přes existující Média webu: `SiteSettings.voucherPdfLogoMediaId` odkazuje na `MediaAsset`, PDF čte jen lokální PNG/JPEG soubor a při chybějícím nebo nepodporovaném logu použije textové `PP Studio`.
+- PDF voucher má upravený dárkový layout s kontakty salonu ze `SiteSettings`, QR ověřením a typově správnými podmínkami: hodnotový poukaz zobrazuje postupné čerpání, službový poukaz jen pravidlo pro uvedenou službu.
 - PDF voucher už nezobrazuje jméno kupujícího; výstup obsahuje jen kód, typ, hodnotu/službu, platnost, QR ověření a podmínky.
 - Admin voucher UI se teď soustředí na evidenci kupujícího: create formulář i detail schovávají obdarovaného a věnování, zatímco doménová vrstva zůstává beze změny.
 - Admin detail voucheru je teď kompaktnější: nahoře je jedna summary karta s kódem, stavem, typem, hodnotou nebo službou, platností, čerpáním a akcemi, duplicitní metriky zmizely a historie uplatnění je čitelnější na mobilu i desktopu.

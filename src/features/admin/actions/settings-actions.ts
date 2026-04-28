@@ -107,6 +107,7 @@ export async function updateSalonSettingsAction(
     phone: readFormString(formData, "phone"),
     contactEmail: readFormString(formData, "contactEmail"),
     instagramUrl: readFormString(formData, "instagramUrl"),
+    voucherPdfLogoMediaId: readFormString(formData, "voucherPdfLogoMediaId"),
   });
 
   if (!parsed.success) {
@@ -123,18 +124,42 @@ export async function updateSalonSettingsAction(
         phone: fieldErrors.phone?.[0],
         contactEmail: fieldErrors.contactEmail?.[0],
         instagramUrl: fieldErrors.instagramUrl?.[0],
+        voucherPdfLogoMediaId: fieldErrors.voucherPdfLogoMediaId?.[0],
       },
     };
   }
 
   const actorUserId = await getActorUserId();
   const currentSettings = await ensureSiteSettings();
+  const voucherPdfLogoMediaId = parsed.data.voucherPdfLogoMediaId || null;
+
+  if (voucherPdfLogoMediaId) {
+    const logoAsset = await prisma.mediaAsset.findUnique({
+      where: {
+        id: voucherPdfLogoMediaId,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (!logoAsset) {
+      return {
+        status: "error",
+        formError: "Vybrané logo pro PDF vouchery už v médiích neexistuje.",
+        fieldErrors: {
+          voucherPdfLogoMediaId: "Vyberte existující médium nebo pole vyprázdněte.",
+        },
+      };
+    }
+  }
 
   await prisma.siteSettings.upsert({
     where: { id: SITE_SETTINGS_ID },
     update: {
       ...parsed.data,
       instagramUrl: parsed.data.instagramUrl || null,
+      voucherPdfLogoMediaId,
       updatedByUserId: actorUserId,
     },
     create: {
@@ -142,6 +167,7 @@ export async function updateSalonSettingsAction(
       ...parsed.data,
       id: SITE_SETTINGS_ID,
       instagramUrl: parsed.data.instagramUrl || null,
+      voucherPdfLogoMediaId,
       updatedByUserId: actorUserId,
     },
   });

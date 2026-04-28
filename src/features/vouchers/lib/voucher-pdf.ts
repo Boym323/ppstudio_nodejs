@@ -4,13 +4,16 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 
 import fontkit from "@pdf-lib/fontkit";
-import { VoucherType } from "@prisma/client";
-import { PDFDocument, type PDFFont, type PDFPage, rgb } from "pdf-lib";
+import { MediaAssetVisibility, MediaStorageProvider, VoucherType } from "@prisma/client";
+import { PDFDocument, type PDFFont, type PDFImage, type PDFPage, rgb } from "pdf-lib";
 import QRCode from "qrcode";
 
 import { siteConfig } from "@/config/site";
 import { formatVoucherValue } from "@/features/vouchers/lib/voucher-format";
 import { type getVoucherDetail } from "@/features/vouchers/lib/voucher-read-models";
+import { localMediaStorage } from "@/lib/media/local-media-storage";
+import { prisma } from "@/lib/prisma";
+import { getSalonAddressLine, getSiteSettings, type SiteSettingsRecord } from "@/lib/site-settings";
 
 type VoucherPdfData = NonNullable<Awaited<ReturnType<typeof getVoucherDetail>>>;
 
@@ -40,6 +43,34 @@ type FontPair = {
   primaryCharacters: Set<number>;
   fallbackCharacters: Set<number>;
 };
+
+export type VoucherPdfLogoAsset = {
+  id: string;
+  storageProvider: MediaStorageProvider;
+  visibility: MediaAssetVisibility;
+  mimeType: string;
+  storagePath: string;
+  optimizedStoragePath: string | null;
+  optimizedMimeType: string | null;
+};
+
+export type VoucherPdfLogo =
+  | {
+      kind: "image";
+      bytes: Buffer;
+      mimeType: string;
+    }
+  | {
+      kind: "text";
+      text: typeof VOUCHER_PDF_TEXT_LOGO;
+    };
+
+type VoucherPdfOptions = {
+  settings?: SiteSettingsRecord;
+  logoAsset?: VoucherPdfLogoAsset | null;
+};
+
+export const VOUCHER_PDF_TEXT_LOGO = "PP Studio";
 
 const colors = {
   ink: rgb(0.09, 0.075, 0.067),
@@ -71,7 +102,72 @@ export function buildVoucherVerificationUrl(code: string, baseUrl = siteConfig.u
   return url.toString();
 }
 
-export async function generateVoucherPdf(voucher: VoucherPdfData) {
+export function buildVoucherPdfTerms(voucher: Pick<VoucherPdfData, "type">) {
+  const typedTerm =
+    voucher.type === VoucherType.VALUE
+      ? "Hodnotový poukaz lze čerpat postupně."
+      : "Poukaz na službu je určený pro uvedenou službu.";
+
+  return [
+    "Poukaz je možné uplatnit při rezervaci nebo osobně v salonu.",
+    "Poukaz není směnitelný za hotovost.",
+    typedTerm,
+  ];
+}
+
+export function buildVoucherPdfContactLines(
+  settings: Pick<SiteSettingsRecord, "addressLine" | "postalCode" | "city" | "phone" | "contactEmail">,
+) {
+  const hasAddress = [settings.addressLine, settings.postalCode, settings.city].some((value) => value.trim().length > 0);
+  const contactItems = [settings.phone.trim(), settings.contactEmail.trim(), formatSiteUrlForPdf(siteConfig.url)].filter(Boolean);
+
+  return [hasAddress ? getSalonAddressLine(settings).trim() : "", contactItems.join(" · ")].filter(Boolean);
+}
+
+export async function resolveVoucherPdfLogo(asset: VoucherPdfLogoAsset | null | undefined): Promise<VoucherPdfLogo> {
+  if (!asset || asset.storageProvider !== MediaStorageProvider.LOCAL) {
+    return { kind: "text", text: VOUCHER_PDF_TEXT_LOGO };
+  }
+
+  const storagePath = asset.optimizedStoragePath ?? asset.storagePath;
+  const mimeType = asset.optimizedMimeType ?? asset.mimeType;
+
+  if (!isPdfEmbeddableImage(mimeType)) {
+    return { kind: "text", text: VOUCHER_PDF_TEXT_LOGO };
+  }
+
+  try {
+    const bytes = await localMediaStorage.readFile(asset.visibility, storagePath);
+    return {
+      kind: "image",
+      bytes,
+      mimeType,
+    };
+  } catch {
+    return { kind: "text", text: VOUCHER_PDF_TEXT_LOGO };
+  }
+}
+
+export async function generateVoucherPdf(voucher: VoucherPdfData, options: VoucherPdfOptions = {}) {
+  const settings = options.settings ?? (await getSiteSettings());
+  const logoAsset =
+    options.logoAsset !== undefined
+      ? options.logoAsset
+      : settings.voucherPdfLogoMediaId
+        ? await prisma.mediaAsset.findUnique({
+            where: { id: settings.voucherPdfLogoMediaId },
+            select: {
+              id: true,
+              storageProvider: true,
+              visibility: true,
+              mimeType: true,
+              storagePath: true,
+              optimizedStoragePath: true,
+              optimizedMimeType: true,
+            },
+          })
+        : null;
+  const logo = await resolveVoucherPdfLogo(logoAsset);
   const [regularLatinBytes, regularLatinExtBytes, boldLatinBytes, boldLatinExtBytes, qrPngBytes] = await Promise.all([
     readFile(fontRegularLatinPath),
     readFile(fontRegularLatinExtPath),
@@ -103,6 +199,7 @@ export async function generateVoucherPdf(voucher: VoucherPdfData) {
   const regularFont = createFontPair(regularLatinFont, regularLatinExtFont);
   const boldFont = createFontPair(boldLatinFont, boldLatinExtFont);
   const qrImage = await pdf.embedPng(qrPngBytes);
+  const logoImage = logo.kind === "image" ? await embedLogoImage(pdf, logo).catch(() => null) : null;
   const page = pdf.addPage([pageWidth, pageHeight]);
 
   page.drawRectangle({
@@ -132,23 +229,36 @@ export async function generateVoucherPdf(voucher: VoucherPdfData) {
 
   const leftX = margin + 34;
   const rightX = pageWidth - margin - 156;
-  const topY = pageHeight - margin - 46;
+  const topY = pageHeight - margin - 34;
+  const logoMaxWidth = 136;
+  const logoMaxHeight = 50;
+  const logoBox = logoImage ? getContainedImageBox(logoImage, logoMaxWidth, logoMaxHeight) : null;
+  const logoBottomY = logoBox ? topY - 2 - logoBox.height : topY - 4;
 
-  drawText(page, "PP Studio", leftX, topY, {
-    fontPair: boldFont,
-    size: 16,
-    color: colors.ink,
-  });
-  drawText(page, "Zlín", leftX, topY - 20, {
+  if (logoImage) {
+    drawContainedImage(page, logoImage, leftX, topY - 2, logoMaxWidth, logoMaxHeight);
+  } else {
+    drawText(page, VOUCHER_PDF_TEXT_LOGO, leftX, topY, {
+      fontPair: boldFont,
+      size: 17,
+      color: colors.ink,
+    });
+  }
+  drawText(page, "kosmetické studio Zlín", leftX, logoBottomY - 14, {
     fontPair: regularFont,
-    size: 9,
+    size: 8.5,
     color: colors.muted,
   });
 
-  drawText(page, "Dárkový poukaz", leftX, topY - 70, {
+  drawText(page, "Dárkový poukaz", leftX, topY - 86, {
     fontPair: boldFont,
     size: 34,
     color: colors.ink,
+  });
+  drawText(page, "Dopřejte si chvíli péče, klidu a krásy.", leftX, topY - 110, {
+    fontPair: regularFont,
+    size: 10,
+    color: colors.muted,
   });
 
   const mainLabel = voucher.type === VoucherType.VALUE ? "Hodnota poukazu" : "Poukaz na službu";
@@ -157,25 +267,25 @@ export async function generateVoucherPdf(voucher: VoucherPdfData) {
       ? formatVoucherValue(voucher)
       : voucher.serviceNameSnapshot ?? "Vybraná služba PP Studio";
 
-  drawText(page, mainLabel, leftX, topY - 116, {
+  drawText(page, mainLabel, leftX, topY - 146, {
     fontPair: regularFont,
     size: 10,
     color: colors.muted,
   });
-  drawWrappedText(page, mainValue, leftX, topY - 142, 312, {
+  drawWrappedText(page, mainValue, leftX, topY - 172, 312, {
     fontPair: boldFont,
     size: voucher.type === VoucherType.VALUE ? 30 : 22,
     lineHeight: voucher.type === VoucherType.VALUE ? 34 : 27,
     color: colors.ink,
   });
 
-  const detailsY = 129;
+  const detailsY = 112;
   drawDetail(page, "Kód voucheru", voucher.code, leftX, detailsY, regularFont, boldFont);
   drawDetail(page, "Platnost do", voucher.validUntil ? dateFormatter.format(voucher.validUntil) : "Bez omezení", leftX + 170, detailsY, regularFont, boldFont);
 
   page.drawRectangle({
     x: rightX - 10,
-    y: 104,
+    y: 116,
     width: 132,
     height: 132,
     color: colors.panel,
@@ -184,38 +294,84 @@ export async function generateVoucherPdf(voucher: VoucherPdfData) {
   });
   page.drawImage(qrImage, {
     x: rightX + 2,
-    y: 116,
+    y: 128,
     width: 108,
     height: 108,
   });
-  drawWrappedText(page, "Ověření voucheru", rightX - 2, 82, 116, {
-    fontPair: boldFont,
-    size: 9,
-    lineHeight: 11,
+  drawWrappedText(page, "Ověření voucheru", rightX - 2, 99, 116, {
+    fontPair: regularFont,
+    size: 8.2,
+    lineHeight: 10,
     color: colors.ink,
     align: "center",
   });
+  drawWrappedText(page, "Naskenujte QR kód pro ověření platnosti.", rightX - 6, 85, 124, {
+    fontPair: regularFont,
+    size: 7.2,
+    lineHeight: 9,
+    color: colors.muted,
+    align: "center",
+  });
 
-  drawWrappedText(
-    page,
-    [
-      "Poukaz je možné uplatnit při rezervaci nebo osobně v salonu.",
-      "Poukaz není směnitelný za hotovost.",
-      "Hodnotový poukaz lze čerpat postupně.",
-      "Poukaz na službu je určený pro uvedenou službu.",
-    ].join(" "),
-    leftX,
-    58,
-    470,
-    {
+  drawWrappedText(page, buildVoucherPdfTerms(voucher).join(" "), leftX, 76, 320, {
+    fontPair: regularFont,
+    size: 8,
+    lineHeight: 10.5,
+    color: colors.muted,
+  });
+
+  const contactLines = buildVoucherPdfContactLines(settings);
+  contactLines.forEach((line, index) => {
+    drawWrappedText(page, line, rightX - 88, 66 - index * 12, 208, {
       fontPair: regularFont,
-      size: 8.5,
-      lineHeight: 12,
+      size: 7.8,
+      lineHeight: 10,
       color: colors.muted,
-    },
-  );
+      align: "right",
+    });
+  });
 
   return pdf.save();
+}
+
+function isPdfEmbeddableImage(mimeType: string) {
+  return mimeType === "image/png" || mimeType === "image/jpeg" || mimeType === "image/jpg";
+}
+
+async function embedLogoImage(pdf: PDFDocument, logo: Extract<VoucherPdfLogo, { kind: "image" }>) {
+  if (logo.mimeType === "image/png") {
+    return pdf.embedPng(logo.bytes);
+  }
+
+  return pdf.embedJpg(logo.bytes);
+}
+
+function drawContainedImage(page: PDFPage, image: PDFImage, x: number, topY: number, maxWidth: number, maxHeight: number) {
+  const { width, height } = getContainedImageBox(image, maxWidth, maxHeight);
+
+  page.drawImage(image, {
+    x,
+    y: topY - height,
+    width,
+    height,
+  });
+}
+
+function getContainedImageBox(image: PDFImage, maxWidth: number, maxHeight: number) {
+  const scale = Math.min(maxWidth / image.width, maxHeight / image.height);
+
+  return {
+    width: image.width * scale,
+    height: image.height * scale,
+  };
+}
+
+function formatSiteUrlForPdf(url: string) {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return "ppstudio.cz";
+  }
 }
 
 function drawDetail(
@@ -262,7 +418,7 @@ function drawWrappedText(
     fontPair: FontPair;
     size: number;
     lineHeight: number;
-    align?: "left" | "center";
+    align?: "left" | "center" | "right";
   },
 ) {
   const words = text.split(/\s+/).filter(Boolean);
@@ -287,7 +443,12 @@ function drawWrappedText(
 
   lines.forEach((line, index) => {
     const lineWidth = measureText(line, options.fontPair, options.size);
-    const offsetX = options.align === "center" ? Math.max((maxWidth - lineWidth) / 2, 0) : 0;
+    const offsetX =
+      options.align === "center"
+        ? Math.max((maxWidth - lineWidth) / 2, 0)
+        : options.align === "right"
+          ? Math.max(maxWidth - lineWidth, 0)
+          : 0;
 
     drawTextLine(page, line, x + offsetX, y - index * options.lineHeight, {
       ...options,

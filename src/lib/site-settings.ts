@@ -23,6 +23,7 @@ export type SiteSettingsRecord = {
   emailSenderName: string;
   emailSenderEmail: string;
   emailFooterText: string | null;
+  voucherPdfLogoMediaId: string | null;
   updatedByUserId: string | null;
   createdAt: Date;
   updatedAt: Date;
@@ -46,6 +47,7 @@ function getDefaultSiteSettingsData() {
     emailSenderEmail: env.SMTP_FROM_EMAIL ?? "info@ppstudio.cz",
     emailFooterText:
       "Pokud budete potřebovat pomoci, napište nám nebo zavolejte. Rádi vám pomůžeme s výběrem i změnou termínu.",
+    voucherPdfLogoMediaId: null,
   };
 }
 

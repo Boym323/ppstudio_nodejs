@@ -17,6 +17,15 @@ export function AdminSettingsPage({
     phone: string;
     contactEmail: string;
     instagramUrl: string | null;
+    voucherPdfLogoMediaId: string | null;
+    voucherPdfLogoOptions: Array<{
+      id: string;
+      title: string | null;
+      originalFilename: string;
+      mimeType: string;
+      type: string;
+      thumbnailPublicUrl: string | null;
+    }>;
     bookingMinAdvanceHours: number;
     bookingMaxAdvanceDays: number;
     bookingCancellationHours: number;
@@ -64,7 +73,7 @@ export function AdminSettingsPage({
       <section className="grid gap-3 rounded-[1.5rem] border border-white/8 bg-white/4 p-4 sm:grid-cols-2 sm:gap-4 xl:grid-cols-4">
         <article className="rounded-[1.2rem] border border-white/8 bg-black/10 p-4">
           <p className="text-xs uppercase tracking-[0.24em] text-white/45">Salon</p>
-          <p className="mt-2 text-sm leading-6 text-white/72">Název, adresa, telefon, e-mail a Instagram.</p>
+          <p className="mt-2 text-sm leading-6 text-white/72">Kontakty salonu a samostatné logo pro PDF vouchery.</p>
         </article>
         <article className="rounded-[1.2rem] border border-white/8 bg-black/10 p-4">
           <p className="text-xs uppercase tracking-[0.24em] text-white/45">Rezervace</p>

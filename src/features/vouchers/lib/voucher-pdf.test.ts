@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { VoucherStatus, VoucherType } from "@prisma/client";
+import { MediaAssetVisibility, MediaStorageProvider, VoucherStatus, VoucherType } from "@prisma/client";
 
 process.env.NEXT_PUBLIC_APP_NAME ??= "PP Studio";
 process.env.NEXT_PUBLIC_APP_URL ??= "https://ppstudio.cz";
@@ -25,7 +25,70 @@ test("builds voucher PDF metadata helpers", async () => {
 
 test("generates a PDF document for a value voucher", async () => {
   const { generateVoucherPdf } = await import("./voucher-pdf");
-  const pdfBytes = await generateVoucherPdf({
+  const pdfBytes = await generateVoucherPdf(buildVoucherFixture());
+
+  assert.equal(Buffer.from(pdfBytes).subarray(0, 4).toString("utf8"), "%PDF");
+  assert.ok(pdfBytes.length > 1_000);
+});
+
+test("uses text logo fallback when voucher PDF logo is not configured", async () => {
+  const { resolveVoucherPdfLogo, VOUCHER_PDF_TEXT_LOGO } = await import("./voucher-pdf");
+  const logo = await resolveVoucherPdfLogo(null);
+
+  assert.deepEqual(logo, { kind: "text", text: VOUCHER_PDF_TEXT_LOGO });
+});
+
+test("generates a PDF when configured voucher logo file is missing", async () => {
+  const { generateVoucherPdf } = await import("./voucher-pdf");
+  const pdfBytes = await generateVoucherPdf(buildVoucherFixture(), {
+    logoAsset: {
+      id: "missing-logo",
+      storageProvider: MediaStorageProvider.LOCAL,
+      visibility: MediaAssetVisibility.PUBLIC,
+      mimeType: "image/png",
+      storagePath: "general/2099/01/missing-logo.png",
+      optimizedStoragePath: null,
+      optimizedMimeType: null,
+    },
+  });
+
+  assert.equal(Buffer.from(pdfBytes).subarray(0, 4).toString("utf8"), "%PDF");
+  assert.ok(pdfBytes.length > 1_000);
+});
+
+test("builds voucher PDF contact lines from salon settings", async () => {
+  const { buildVoucherPdfContactLines } = await import("./voucher-pdf");
+  const lines = buildVoucherPdfContactLines({
+    addressLine: "Sadová 2",
+    postalCode: "760 01",
+    city: "Zlín",
+    phone: "+420 732 856 036",
+    contactEmail: "info@ppstudio.cz",
+  });
+
+  assert.deepEqual(lines, ["Sadová 2, 760 01 Zlín", "+420 732 856 036 · info@ppstudio.cz · ppstudio.cz"]);
+});
+
+test("builds voucher PDF terms only for the voucher type", async () => {
+  const { buildVoucherPdfTerms } = await import("./voucher-pdf");
+  const valueTerms = buildVoucherPdfTerms({ type: VoucherType.VALUE }).join(" ");
+  const serviceTerms = buildVoucherPdfTerms({ type: VoucherType.SERVICE }).join(" ");
+
+  assert.match(valueTerms, /čerpat postupně/);
+  assert.doesNotMatch(valueTerms, /uvedenou službu/);
+  assert.match(serviceTerms, /uvedenou službu/);
+  assert.doesNotMatch(serviceTerms, /čerpat postupně/);
+});
+
+function buildVoucherFixture(overrides: Partial<ReturnType<typeof buildBaseVoucherFixture>> = {}) {
+  return {
+    ...buildBaseVoucherFixture(),
+    ...overrides,
+  };
+}
+
+function buildBaseVoucherFixture() {
+  return {
     id: "voucher-test",
     code: "PP-2026-A7K9X2",
     type: VoucherType.VALUE,
@@ -56,8 +119,5 @@ test("generates a PDF document for a value voucher", async () => {
     service: null,
     createdByUser: null,
     redemptions: [],
-  });
-
-  assert.equal(Buffer.from(pdfBytes).subarray(0, 4).toString("utf8"), "%PDF");
-  assert.ok(pdfBytes.length > 1_000);
-});
+  };
+}

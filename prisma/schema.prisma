@@ -578,7 +578,7 @@ model Setting {
 }
 
 model SiteSettings {
-  id                       String     @id @default("site-settings")
+  id                       String      @id @default("site-settings")
   salonName                String
   addressLine              String
   city                     String
@@ -586,19 +586,22 @@ model SiteSettings {
   phone                    String
   contactEmail             String
   instagramUrl             String?
-  bookingMinAdvanceHours   Int        @default(2)
-  bookingMaxAdvanceDays    Int        @default(90)
-  bookingCancellationHours Int        @default(48)
+  bookingMinAdvanceHours   Int         @default(2)
+  bookingMaxAdvanceDays    Int         @default(90)
+  bookingCancellationHours Int         @default(48)
   notificationAdminEmail   String
   emailSenderName          String
   emailSenderEmail         String
   emailFooterText          String?
+  voucherPdfLogoMediaId    String?
   updatedByUserId          String?
-  createdAt                DateTime   @default(now())
-  updatedAt                DateTime   @updatedAt
-  updatedByUser            AdminUser? @relation("SiteSettingsUpdatedBy", fields: [updatedByUserId], references: [id], onDelete: SetNull)
+  createdAt                DateTime    @default(now())
+  updatedAt                DateTime    @updatedAt
+  updatedByUser            AdminUser?  @relation("SiteSettingsUpdatedBy", fields: [updatedByUserId], references: [id], onDelete: SetNull)
+  voucherPdfLogoMedia      MediaAsset? @relation("SiteSettingsVoucherPdfLogo", fields: [voucherPdfLogoMediaId], references: [id], onDelete: SetNull)
 
   @@index([updatedByUserId])
+  @@index([voucherPdfLogoMediaId])
 }
 
 model CalendarFeed {
@@ -617,41 +620,42 @@ model CalendarFeed {
 }
 
 model MediaAsset {
-  id                   String               @id @default(cuid())
-  storageProvider      MediaStorageProvider @default(LOCAL)
-  visibility           MediaAssetVisibility @default(PUBLIC)
-  kind                 MediaAssetKind
-  type                 MediaType            @default(CERTIFICATE)
-  originalFilename     String
-  fileName             String
-  storedFilename       String
-  mimeType             String
-  extension            String
-  sizeBytes            Int
-  size                 Int
-  width                Int?
-  height               Int?
-  alt                  String?
-  altText              String?
-  title                String?
-  storagePath          String               @unique
-  url                  String
-  optimizedStoragePath String?              @unique
-  optimizedUrl         String?
-  optimizedMimeType    String?
-  optimizedWidth       Int?
-  optimizedHeight      Int?
-  optimizedSize        Int?
-  thumbnailStoragePath String?              @unique
-  thumbnailUrl         String?
-  thumbnailMimeType    String?
-  thumbnailWidth       Int?
-  thumbnailHeight      Int?
-  thumbnailSize        Int?
-  sortOrder            Int?
-  isPublished          Boolean              @default(true)
-  createdAt            DateTime             @default(now())
-  updatedAt            DateTime             @updatedAt
+  id                     String               @id @default(cuid())
+  storageProvider        MediaStorageProvider @default(LOCAL)
+  visibility             MediaAssetVisibility @default(PUBLIC)
+  kind                   MediaAssetKind
+  type                   MediaType            @default(CERTIFICATE)
+  originalFilename       String
+  fileName               String
+  storedFilename         String
+  mimeType               String
+  extension              String
+  sizeBytes              Int
+  size                   Int
+  width                  Int?
+  height                 Int?
+  alt                    String?
+  altText                String?
+  title                  String?
+  storagePath            String               @unique
+  url                    String
+  optimizedStoragePath   String?              @unique
+  optimizedUrl           String?
+  optimizedMimeType      String?
+  optimizedWidth         Int?
+  optimizedHeight        Int?
+  optimizedSize          Int?
+  thumbnailStoragePath   String?              @unique
+  thumbnailUrl           String?
+  thumbnailMimeType      String?
+  thumbnailWidth         Int?
+  thumbnailHeight        Int?
+  thumbnailSize          Int?
+  sortOrder              Int?
+  isPublished            Boolean              @default(true)
+  createdAt              DateTime             @default(now())
+  updatedAt              DateTime             @updatedAt
+  voucherPdfLogoSettings SiteSettings[]       @relation("SiteSettingsVoucherPdfLogo")
 
   @@index([type, isPublished, sortOrder])
   @@index([type, createdAt])

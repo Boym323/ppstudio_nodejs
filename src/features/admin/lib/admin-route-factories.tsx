@@ -19,6 +19,7 @@ import { AdminServiceCategoriesPage } from "@/features/admin/components/admin-se
 import { AdminServicesPage } from "@/features/admin/components/admin-services-page";
 import { AdminWeeklyPlannerPage } from "@/features/admin/components/admin-weekly-planner-page";
 import { getOwnerCalendarFeedAdminState } from "@/features/calendar/lib/calendar-feed-service";
+import { listMedia } from "@/features/media/lib/media-library";
 import { ensureSiteSettings } from "@/lib/site-settings";
 import { requireAdminArea } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
@@ -105,7 +106,7 @@ export function createAdminSectionRoute(area: AdminArea) {
 
     if (section === "nastaveni") {
       const session = await requireAdminSectionAccess(area, section);
-      const [settings, calendarFeed, ownerNotificationSettings] = await Promise.all([
+      const [settings, calendarFeed, ownerNotificationSettings, mediaAssets] = await Promise.all([
         ensureSiteSettings(),
         getOwnerCalendarFeedAdminState(),
         prisma.adminUser.findFirst({
@@ -132,6 +133,7 @@ export function createAdminSectionRoute(area: AdminArea) {
             },
           },
         }),
+        listMedia(),
       ]);
       const formatDateTime = new Intl.DateTimeFormat("cs-CZ", {
         day: "numeric",
@@ -152,6 +154,15 @@ export function createAdminSectionRoute(area: AdminArea) {
             phone: settings.phone,
             contactEmail: settings.contactEmail,
             instagramUrl: settings.instagramUrl,
+            voucherPdfLogoMediaId: settings.voucherPdfLogoMediaId,
+            voucherPdfLogoOptions: mediaAssets.map((asset) => ({
+              id: asset.id,
+              title: asset.title,
+              originalFilename: asset.originalFilename,
+              mimeType: asset.mimeType,
+              type: asset.type,
+              thumbnailPublicUrl: asset.thumbnailPublicUrl,
+            })),
             bookingMinAdvanceHours: settings.bookingMinAdvanceHours,
             bookingMaxAdvanceDays: settings.bookingMaxAdvanceDays,
             bookingCancellationHours: settings.bookingCancellationHours,

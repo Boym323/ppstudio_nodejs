@@ -12,15 +12,20 @@
 - QR kód generuje `qrcode` a míří na veřejnou ověřovací URL `/vouchery/overeni?code=...` nad `siteConfig.url`.
 - Veřejná ověřovací stránka používá bezpečný voucher read model a nezobrazuje kupujícího, interní poznámku, technická ID ani historii čerpání.
 - Česká diakritika je řešená přes `@pdf-lib/fontkit` a Noto Sans z `@fontsource/noto-sans`, ne přes commitovaný font soubor.
+- Logo pro PDF voucher je samostatná nullable reference `SiteSettings.voucherPdfLogoMediaId -> MediaAsset.id`. Spravuje se přes existující Média webu a výběr v `/admin/nastaveni`, nezávisle na logu webového layoutu.
+- Generátor smí načítat pouze lokální soubory z `MediaAsset.storagePath` / `optimizedStoragePath` přes existující media storage. PNG/JPEG se vloží do PDF, nepodporovaný nebo chybějící soubor spadne na textové logo `PP Studio`.
+- Kontakty ve spodní části PDF se berou ze `SiteSettings`; adresa se skládá přes `getSalonAddressLine(...)` a web z `siteConfig.url`.
 
 ## Alternativy
 - Puppeteer nebo jiné headless browser řešení: zamítnuto kvůli váze, deploy složitosti a zbytečně širokému runtime povrchu.
 - Ukládat PDF do DB nebo souborového úložiště: zamítnuto pro první verzi, protože poukaz má vždy odrážet aktuální data voucheru.
 - Použít jen standardní PDF fonty: zamítnuto, protože bezpečně nepokrývají českou diakritiku.
+- Zavést samostatné upload/storage workflow pro voucher logo: zamítnuto, protože `MediaAsset` už řeší metadata, lokální soubor i admin správu médií.
 
 ## Důsledky
 - PDF se generuje při každém stažení a není cacheované jako persistentní artefakt.
 - Úpravy obsahu PDF se drží ve voucher doméně a musí dál respektovat bezpečný veřejný výstup.
+- Mazání nebo chybějící soubor vybraného média nesmí shodit generování PDF; fallback textové logo je součástí kontraktu.
 - QR URL musí zůstat funkční veřejná route, protože je vytištěná v už stažených PDF.
 - Runtime má nové lehké PDF/QR/font závislosti, ale žádný headless browser.
 

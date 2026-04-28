@@ -270,6 +270,7 @@ sudo /var/www/ppstudio/deploy/deploy.sh
 - Pokud je databáze v divergentním stavu a `prisma migrate dev` by nabízelo reset, neprováděj ho naslepo. Pro tuto migraci lze bezpečně použít `npx prisma db execute --file prisma/migrations/20260421113000_public_pricing_metadata/migration.sql` a až potom ověřit build.
 - Migrace `20260419140000_site_settings_singleton` přidává tabulku `SiteSettings`; po deployi ověř, že se `/admin/nastaveni` otevře bez chyby a že owner workflow `Nastavení` bezpečně založí výchozí singleton záznam i na prázdné DB.
 - Migrace `20260419230000_media_storage_v1` přidává tabulku `MediaAsset` a enumy pro lokální media storage; po deployi ověř zápis souboru do upload rootu a načtení přes `/media/public/*` nebo legacy `/media/*`.
+- Migrace `20260428133959_voucher_pdf_logo_settings` přidává nullable `SiteSettings.voucherPdfLogoMediaId` s FK na `MediaAsset`; po deployi ověř `/admin/nastaveni`, výběr `Logo pro PDF vouchery` a stažení PDF voucheru s vybraným PNG/JPEG i bez nastaveného loga.
 - Admin workflow kategorií služeb nevyžaduje novou DB migraci; navazuje na existující model `ServiceCategory`.
 - Přepracované admin workflow služeb a kategorií nevyžaduje novou DB migraci; změna je čistě v read modelech, server actions a UI vrstvách.
 - Nový layout sekce `Kategorie služeb` také nevyžaduje novou DB migraci; změna zůstává čistě v komponentách, read modelu a server actions nad existujícím `ServiceCategory`.

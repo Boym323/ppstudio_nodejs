@@ -12,6 +12,7 @@ import {
   SettingsFormFooter,
   SettingsFormMessages,
   settingsControlClassName,
+  settingsSelectClassName,
   SettingsSection,
 } from "./admin-settings-form-ui";
 
@@ -26,6 +27,15 @@ export function AdminSalonSettingsForm({
     phone: string;
     contactEmail: string;
     instagramUrl: string | null;
+    voucherPdfLogoMediaId: string | null;
+    voucherPdfLogoOptions: Array<{
+      id: string;
+      title: string | null;
+      originalFilename: string;
+      mimeType: string;
+      type: string;
+      thumbnailPublicUrl: string | null;
+    }>;
   };
 }) {
   const [serverState, formAction] = useActionState(
@@ -136,6 +146,35 @@ export function AdminSalonSettingsForm({
             </SettingsField>
           </div>
         </div>
+      </SettingsSection>
+
+      <SettingsSection
+        title="PDF vouchery"
+        description="Vizuál dárkového poukazu může mít vlastní značku nezávisle na webu."
+      >
+        <SettingsField
+          label="Logo pro PDF vouchery"
+          hint="Použije se pouze v PDF dárkových voucherů. Může se lišit od loga na webu."
+          error={serverState.fieldErrors?.voucherPdfLogoMediaId}
+        >
+          <select
+            name="voucherPdfLogoMediaId"
+            defaultValue={settings.voucherPdfLogoMediaId ?? ""}
+            className={settingsSelectClassName}
+          >
+            <option value="">Textové logo PP Studio</option>
+            {settings.voucherPdfLogoOptions.map((asset) => (
+              <option key={asset.id} value={asset.id}>
+                {asset.title ?? asset.originalFilename} · {asset.mimeType}
+              </option>
+            ))}
+          </select>
+        </SettingsField>
+        <p className="mt-3 rounded-[1rem] border border-white/8 bg-black/10 px-4 py-3 text-sm leading-6 text-white/60">
+          {settings.voucherPdfLogoMediaId
+            ? "PDF použije vybrané médium, pokud je dostupné jako PNG nebo JPEG. U jiných formátů se bezpečně vrátí k textovému logu."
+            : "PDF použije textové logo PP Studio."}
+        </p>
       </SettingsSection>
 
       <SettingsFormFooter note="Po uložení se veřejné kontakty hned promítnou na webu i do e-mailů." />
