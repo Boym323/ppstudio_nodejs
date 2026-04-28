@@ -206,9 +206,12 @@ export async function getVoucherByCodeSafe(codeInput: string) {
       code: true,
       type: true,
       status: true,
+      originalValueCzk: true,
       remainingValueCzk: true,
       serviceId: true,
       serviceNameSnapshot: true,
+      servicePriceSnapshotCzk: true,
+      validFrom: true,
       validUntil: true,
     },
   });
@@ -224,5 +227,11 @@ export async function getVoucherByCodeSafe(codeInput: string) {
     effectiveStatus,
     typeLabel: formatVoucherType(voucher.type),
     statusLabel: formatVoucherStatus(effectiveStatus),
+    valueLabel: formatVoucherValue(voucher),
+    remainingLabel: formatVoucherRemaining({
+      type: voucher.type,
+      remainingValueCzk: voucher.remainingValueCzk,
+      status: effectiveStatus,
+    }),
   };
 }
