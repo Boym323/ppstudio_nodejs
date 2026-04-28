@@ -34,8 +34,6 @@ export function AdminVoucherForm({ data }: AdminVoucherFormProps) {
   const [validFrom, setValidFrom] = useState(data.initialValues.validFrom);
   const [validUntil, setValidUntil] = useState(data.initialValues.validUntil);
   const [purchaserName, setPurchaserName] = useState("");
-  const [recipientName, setRecipientName] = useState("");
-  const [message, setMessage] = useState("");
   const selectedService = data.services.find((service) => service.id === serviceId) ?? null;
   const preview = useMemo(
     () =>
@@ -46,9 +44,8 @@ export function AdminVoucherForm({ data }: AdminVoucherFormProps) {
         validFrom,
         validUntil,
         purchaserName,
-        recipientName,
       }),
-    [originalValueCzk, purchaserName, recipientName, selectedService, type, validFrom, validUntil],
+    [originalValueCzk, purchaserName, selectedService, type, validFrom, validUntil],
   );
 
   return (
@@ -152,7 +149,7 @@ export function AdminVoucherForm({ data }: AdminVoucherFormProps) {
             </div>
           </SectionBlock>
 
-          <SectionBlock title="Kupující a obdarovaný">
+          <SectionBlock title="Kupující">
             <div className="grid gap-3 sm:grid-cols-2">
               <Field label="Kupující" error={serverState.fieldErrors?.purchaserName}>
                 <input
@@ -175,30 +172,6 @@ export function AdminVoucherForm({ data }: AdminVoucherFormProps) {
                   className={inputClassName}
                 />
               </Field>
-
-              <Field label="Obdarovaný" error={serverState.fieldErrors?.recipientName}>
-                <input
-                  type="text"
-                  name="recipientName"
-                  maxLength={160}
-                  value={recipientName}
-                  onChange={(event) => setRecipientName(event.target.value)}
-                  placeholder="Komu voucher patří"
-                  className={inputClassName}
-                />
-              </Field>
-
-              <Field label="Věnování" error={serverState.fieldErrors?.message}>
-                <input
-                  type="text"
-                  name="message"
-                  maxLength={1200}
-                  value={message}
-                  onChange={(event) => setMessage(event.target.value)}
-                  placeholder="Krátká zpráva na pozdější PDF"
-                  className={inputClassName}
-                />
-              </Field>
             </div>
           </SectionBlock>
 
@@ -216,7 +189,7 @@ export function AdminVoucherForm({ data }: AdminVoucherFormProps) {
         </div>
 
         <aside className="space-y-3 xl:sticky xl:top-24">
-          <VoucherPreview preview={preview} message={message} />
+          <VoucherPreview preview={preview} />
 
           <div className="rounded-[1.15rem] border border-white/10 bg-[#181519] p-3.5 shadow-[0_18px_42px_rgba(0,0,0,0.22)]">
             <button
@@ -351,15 +324,12 @@ type VoucherPreviewData = {
   subline: string;
   validityLabel: string;
   purchaserLabel: string;
-  recipientLabel: string;
 };
 
 function VoucherPreview({
   preview,
-  message,
 }: {
   preview: VoucherPreviewData;
-  message: string;
 }) {
   return (
     <section className="overflow-hidden rounded-[1.15rem] border border-[var(--color-accent)]/22 bg-[linear-gradient(145deg,rgba(190,160,120,0.18),rgba(21,19,23,0.98))] shadow-[0_18px_42px_rgba(0,0,0,0.22)]">
@@ -374,14 +344,7 @@ function VoucherPreview({
         <PreviewRow label="Typ" value={preview.typeLabel} />
         <PreviewRow label="Platnost" value={preview.validityLabel} />
         <PreviewRow label="Kupující" value={preview.purchaserLabel} />
-        <PreviewRow label="Obdarovaný" value={preview.recipientLabel} />
       </dl>
-      <div className="border-t border-white/8 px-4 py-3">
-        <p className="text-xs uppercase tracking-[0.18em] text-white/42">Věnování</p>
-        <p className="mt-1 text-sm leading-5 text-white/68">
-          {message.trim() || "Bez věnování"}
-        </p>
-      </div>
     </section>
   );
 }
@@ -393,7 +356,6 @@ function buildVoucherPreview({
   validFrom,
   validUntil,
   purchaserName,
-  recipientName,
 }: {
   type: VoucherType;
   originalValueCzk: string;
@@ -401,7 +363,6 @@ function buildVoucherPreview({
   validFrom: string;
   validUntil: string;
   purchaserName: string;
-  recipientName: string;
 }): VoucherPreviewData {
   if (type === VoucherType.SERVICE) {
     const serviceName = selectedService?.publicName ?? selectedService?.name ?? "Vyberte službu";
@@ -415,7 +376,6 @@ function buildVoucherPreview({
           : `${czkFormatter.format(selectedService.priceFromCzk)} • ${selectedService.durationMinutes} min`,
       validityLabel: formatDateRange(validFrom, validUntil),
       purchaserLabel: purchaserName.trim() || "Neuvedeno",
-      recipientLabel: recipientName.trim() || "Neuvedeno",
     };
   }
 
@@ -427,7 +387,6 @@ function buildVoucherPreview({
     subline: "Čerpání po částkách při návštěvě v salonu.",
     validityLabel: formatDateRange(validFrom, validUntil),
     purchaserLabel: purchaserName.trim() || "Neuvedeno",
-    recipientLabel: recipientName.trim() || "Neuvedeno",
   };
 }
 

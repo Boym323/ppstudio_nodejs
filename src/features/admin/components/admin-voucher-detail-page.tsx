@@ -44,8 +44,6 @@ export function AdminVoucherDetailPage({ data }: { data: AdminVoucherDetailData 
   const buyerFields = buildPartyFields([
     { label: "Kupující", value: data.purchaserName },
     { label: "E-mail kupujícího", value: data.purchaserEmail },
-    { label: "Obdarovaný", value: data.recipientName },
-    { label: "Věnování", value: data.message },
   ]);
 
   return (
@@ -129,8 +127,8 @@ export function AdminVoucherDetailPage({ data }: { data: AdminVoucherDetailData 
         </AdminPanel>
 
         <AdminPanel
-          title="Kupující / obdarovaný"
-          description="Zobrazeny jsou jen vyplněné údaje."
+          title="Kupující"
+          description="Zobrazeny jsou jen vyplněné údaje o kupujícím."
           compact={data.area === "salon"}
           denseHeader
         >

@@ -84,9 +84,9 @@ export async function AdminVouchersPage({
     >
       <AdminVoucherStatsStrip stats={data.stats} />
 
-      <AdminPanel
+        <AdminPanel
         title="Seznam voucherů"
-        description="Hledání pracuje s kódem, obdarovaným, kupujícím i snapshotem služby."
+        description="Hledání pracuje s kódem, kupujícím a snapshotem služby."
         compact={area === "salon"}
         denseHeader
       >
@@ -175,7 +175,7 @@ function AdminVouchersToolbar({
             type="search"
             name="q"
             defaultValue={filters.q}
-            placeholder="Kód, obdarovaný nebo služba"
+            placeholder="Kód, kupující nebo služba"
             className={cn(
               "mt-2 w-full rounded-[1rem] border border-white/10 bg-black/20 px-4 py-3",
               "text-sm text-white outline-none transition placeholder:text-white/30",
