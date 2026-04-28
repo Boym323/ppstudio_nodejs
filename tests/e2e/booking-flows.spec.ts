@@ -1,5 +1,5 @@
-import { expect, test, type Locator, type Page } from "@playwright/test";
-import { BookingStatus } from "@prisma/client";
+import { expect, test, type Locator } from "@playwright/test";
+import { BookingSource, BookingStatus, BookingActorType } from "@prisma/client";
 
 import {
   cleanupE2eData,
@@ -24,36 +24,6 @@ async function clickUntilEnabled(trigger: Locator, target: Locator) {
   }
 
   await expect(target).toBeEnabled();
-}
-
-async function submitRescheduleUntilSuccess(page: Page, options: {
-  slotButtons: Locator;
-  confirmButton: Locator;
-  successHeading: Locator;
-}) {
-  const maxAttempts = 6;
-
-  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
-    const slotButton = options.slotButtons.nth(attempt);
-
-    if (await slotButton.count() === 0) {
-      break;
-    }
-
-    await clickUntilEnabled(slotButton, options.confirmButton);
-    await options.confirmButton.click();
-
-    try {
-      await expect(options.successHeading).toBeVisible({ timeout: 6_000 });
-      return;
-    } catch {
-      await expect(
-        page.getByText(/koliduje s jinou aktivní rezervací|už není k dispozici/i).first(),
-      ).toBeVisible();
-    }
-  }
-
-  await expect(options.successHeading).toBeVisible({ timeout: 30_000 });
 }
 
 async function clickUntilFocused(trigger: Locator, target: Locator) {
@@ -169,18 +139,77 @@ test.describe("booking flows", () => {
     await page.goto(`/rezervace/sprava/${fixture.manageToken}`);
     await expect(page.getByRole("heading", { name: "Změna termínu rezervace" })).toBeVisible();
 
-    const newTermsSection = page
-      .locator("section")
-      .filter({ has: page.getByRole("heading", { name: "Nejbližší dostupné termíny" }) })
+    const managedBooking = await prisma.booking.findUniqueOrThrow({
+      where: {
+        id: fixture.bookingId,
+      },
+      select: {
+        serviceId: true,
+        serviceDurationMinutes: true,
+        servicePriceFromCzk: true,
+      },
+    });
+
+    const selectedDaySection = page
+      .locator("div")
+      .filter({ has: page.getByRole("heading", { name: "Sloty pro vybraný den" }) })
       .first();
     const successHeading = page.getByRole("heading", { name: "Rezervace byla úspěšně přesunuta." });
     const confirmButton = page.getByRole("button", { name: "Potvrdit nový termín" });
-
-    await submitRescheduleUntilSuccess(page, {
-      slotButtons: newTermsSection.getByRole("button"),
+    const conflictMessage = page
+      .getByText(/(nový termín|vybraný (termín|slot)).*(koliduje|není k dispozici)/i)
+      .first();
+    const selectedDayButtons = selectedDaySection.getByRole("button", { name: /^Vybrat čas / });
+    await clickUntilEnabled(
+      selectedDayButtons.first(),
       confirmButton,
-      successHeading,
+    );
+    const selectedSlotId = await page.locator('input[name="slotId"]').inputValue();
+    const selectedStartIso = await page.locator('input[name="newStartAt"]').inputValue();
+    const selectedStart = new Date(selectedStartIso);
+    const selectedEnd = new Date(selectedStart.getTime() + managedBooking.serviceDurationMinutes * 60 * 1000);
+
+    const conflictClient = await prisma.client.create({
+      data: {
+        fullName: `E2E Runtime Kolize ${fixture.runId}`,
+        email: `${fixture.runId}-runtime-conflict@example.test`,
+        phone: "+420777000002",
+        lastBookedAt: selectedStart,
+      },
     });
+
+    await prisma.booking.create({
+      data: {
+        clientId: conflictClient.id,
+        slotId: selectedSlotId,
+        serviceId: managedBooking.serviceId,
+        source: BookingSource.WEB,
+        status: BookingStatus.CONFIRMED,
+        clientNameSnapshot: conflictClient.fullName,
+        clientEmailSnapshot: conflictClient.email ?? `${fixture.runId}-runtime-conflict@example.test`,
+        clientPhoneSnapshot: conflictClient.phone,
+        serviceNameSnapshot: fixture.serviceName,
+        serviceDurationMinutes: managedBooking.serviceDurationMinutes,
+        servicePriceFromCzk: managedBooking.servicePriceFromCzk,
+        scheduledStartsAt: selectedStart,
+        scheduledEndsAt: selectedEnd,
+        confirmedAt: new Date(),
+        statusHistory: {
+          create: {
+            status: BookingStatus.CONFIRMED,
+            actorType: BookingActorType.SYSTEM,
+            note: "E2E runtime conflict booking",
+          },
+        },
+      },
+    });
+
+    await confirmButton.click();
+    await expect(conflictMessage).toBeVisible();
+
+    await clickUntilEnabled(selectedDayButtons.nth(2), confirmButton);
+    await confirmButton.click();
+    await expect(successHeading).toBeVisible();
 
     const booking = await prisma.booking.findUniqueOrThrow({
       where: {

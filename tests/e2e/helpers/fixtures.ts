@@ -200,6 +200,9 @@ export async function createPublicBookingFixture(): Promise<E2eFixture> {
 
 export async function createManagedBookingFixture(
   status: BookingStatus = BookingStatus.CONFIRMED,
+  options?: {
+    createRescheduleConflict?: boolean;
+  },
 ): Promise<E2eFixture> {
   const runId = buildRunId();
   const catalog = await createCatalogFixture(runId);
@@ -240,6 +243,45 @@ export async function createManagedBookingFixture(
       },
     },
   });
+
+  if (options?.createRescheduleConflict) {
+    const conflictEmail = `${runId}-conflict@example.test`;
+    const conflictStart = addMinutes(catalog.primaryStart, catalog.service.durationMinutes);
+    const conflictClient = await prisma.client.create({
+      data: {
+        fullName: `E2E Kolize ${runId}`,
+        email: conflictEmail,
+        phone: "+420777000001",
+        lastBookedAt: conflictStart,
+      },
+    });
+
+    await prisma.booking.create({
+      data: {
+        clientId: conflictClient.id,
+        slotId: catalog.primarySlot.id,
+        serviceId: catalog.service.id,
+        source: BookingSource.WEB,
+        status: BookingStatus.CONFIRMED,
+        clientNameSnapshot: conflictClient.fullName,
+        clientEmailSnapshot: conflictEmail,
+        clientPhoneSnapshot: conflictClient.phone,
+        serviceNameSnapshot: catalog.service.name,
+        serviceDurationMinutes: catalog.service.durationMinutes,
+        servicePriceFromCzk: catalog.service.priceFromCzk,
+        scheduledStartsAt: conflictStart,
+        scheduledEndsAt: addMinutes(conflictStart, catalog.service.durationMinutes),
+        confirmedAt: new Date(),
+        statusHistory: {
+          create: {
+            status: BookingStatus.CONFIRMED,
+            actorType: BookingActorType.SYSTEM,
+            note: "E2E fixture conflict booking",
+          },
+        },
+      },
+    });
+  }
 
   const cancelToken = buildBookingActionToken();
   const manageToken = buildBookingActionToken();
