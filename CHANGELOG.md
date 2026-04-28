@@ -6,7 +6,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
-- Panel `Úhrada` v admin detailu rezervace má kompaktnější UI: settlement box ukazuje tři hlavní metriky vedle sebe s badge stavem úhrady, doplatek má nejvyšší vizuální prioritu a ruční voucher formulář se u rezervací bez uvedeného voucheru otevírá až po kliknutí na `+ Uplatnit voucher`.
+- Panel `Úhrada` v admin detailu rezervace má další UX polish: horní souhrn je teď kompaktní receipt-like blok s badge stavem úhrady, doplatek je nejsilnější vizuální prvek, dárkový poukaz je civilnější a historie úhrad je zkrácená na provozní řádky.
 - Panel `Voucher` v admin detailu rezervace je přejmenovaný na read-only panel `Úhrada`: nahoře počítá cenu služby, úhradu voucherem, zbývající doplatek a stav `Neuhrazeno / Částečně uhrazeno / Uhrazeno` čistě z existujícího `VoucherRedemption` bez nové payment tabulky.
 - Admin read model rezervace nově vrací `paymentSummary`; cenu bere ze snapshotu rezervace, fallbackově z aktuální ceny služby, voucherovou úhradu sčítá z `VoucherRedemption.amountCzk` a při neznámé ceně zobrazuje `Cena není nastavena` bez označení rezervace jako uhrazené.
 - Success hláška po uplatnění hodnotového voucheru nově upozorní na částečnou úhradu: pokud voucher pokryje méně než zadanou částku, zobrazí uplatněnou částku i zbývající doplatek mimo voucher.

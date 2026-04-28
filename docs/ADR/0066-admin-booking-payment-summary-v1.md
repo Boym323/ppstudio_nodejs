@@ -14,7 +14,7 @@
 - `remainingAmountCzk` je `max(totalPriceCzk - paidAmountCzk, 0)`, pokud je cena znama.
 - `paymentStatus` je `UNPAID`, `PARTIALLY_PAID` nebo `PAID` podle zaplacene castky a zbyvajiciho doplatku; pri nezname cene nesmi byt stav `PAID`.
 - Sekce `Darkovy poukaz` zustava v panelu a dal pouziva existujici `redeemBookingVoucherAction(...)` a `AdminBookingVoucherForm`.
-- UI panelu zustava bez nove business logiky: summary se zobrazuje jako kompaktni settlement box se tremi metrikami, stavem jako badge a vizualne zvyraznenym doplatkem. U rezervaci bez intended voucheru i bez redemptionu se formular zobrazi az po rozbaleni pres `+ Uplatnit voucher`.
+- UI panelu zustava bez nove business logiky: summary se zobrazuje jako kompaktní receipt-like blok se stavem jako badge a vizuálně nejvýraznějším doplatkem. Sekce `Dárkový poukaz` i historie úhrad jsou zhuštěné a u rezervací bez intended voucheru i bez redemptionu se formulář zobrazi až po rozbalení přes `+ Uplatnit voucher`.
 
 ## Alternativy
 - Pridat `BookingPayment` tabulku: zamitnuto, protoze aktualni cil je jen voucher settlement summary a projekt nema zadani pro hotovost/kartu.
