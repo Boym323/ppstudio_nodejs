@@ -161,23 +161,23 @@ export async function getAdminVouchersPageData(
         label: "Voucherů celkem",
         value: String(totalCount),
         tone: "accent" as const,
-        detail: "Všechny vystavené i rozpracované vouchery v evidenci.",
+        detail: "Všechny záznamy.",
       },
       {
         label: "Aktivní",
         value: String(activeCount),
-        detail: "Použitelné vouchery bez propadlé platnosti.",
+        detail: "Použitelné.",
       },
       {
         label: "Částečně čerpané",
         value: String(partiallyRedeemedCount),
-        detail: "Hodnotové poukazy se zbytkem k dalšímu uplatnění.",
+        detail: "Se zůstatkem.",
       },
       {
         label: "Uplatněné / propadlé",
         value: String(redeemedCount + expiredCount),
         tone: "muted" as const,
-        detail: `${redeemedCount} uplatněných, ${expiredCount} propadlých.`,
+        detail: "Uzavřené záznamy.",
       },
     ],
   };

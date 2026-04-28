@@ -78,6 +78,8 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - route factory obsluhuje `/admin/vouchery` pro `OWNER` i `/admin/provoz/vouchery` pro `SALON`,
   - navigace a guard berou `vouchery` jako sdílenou admin sekci,
   - stránka používá `src/features/admin/lib/admin-vouchers.ts` jako read model a `src/features/admin/components/admin-vouchers-page.tsx` jako prezentační vrstvu,
+  - desktop používá tabulku, menší šířky přecházejí na voucher karty,
+  - create CTA je oddělené v hlavičce nad filtrem a filtry `q`, `type`, `status` zůstávají URL-driven,
   - query parametry jsou `q`, `type` a `status`; filtr stavu musí odpovídat efektivnímu voucher statusu, ne jen hodnotě uložené v DB.
 - Statické voucher routy `/admin/vouchery/*` a `/admin/provoz/vouchery/*` mají vlastní `layout.tsx` exportující `AdminShellLayout`; nové statické admin routy mimo dynamický `[section]` wrapper musí dostat stejný layout, jinak se vykreslí mimo tmavý admin shell.
 - Read-only detail voucheru běží přes konkrétní routy `/admin/vouchery/[voucherId]` a `/admin/provoz/vouchery/[voucherId]`, route factory `createAdminVoucherDetailRoute(...)`, admin wrapper `getAdminVoucherDetailData(...)` a komponentu `src/features/admin/components/admin-voucher-detail-page.tsx`.

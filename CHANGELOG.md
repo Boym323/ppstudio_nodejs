@@ -6,6 +6,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Admin evidence voucherů má teď čitelnější seznam: create CTA je v hlavičce nad filtry, spacing filtrů je vzdušnější a na menších šířkách se místo široké tabulky používají kompaktní voucher karty.
 - Panel `Úhrada` v admin detailu rezervace má další UX polish: horní souhrn je teď kompaktní receipt-like blok s badge stavem úhrady, doplatek je nejsilnější vizuální prvek, dárkový poukaz je civilnější a historie úhrad je zkrácená na provozní řádky.
 - Panel `Voucher` v admin detailu rezervace je přejmenovaný na read-only panel `Úhrada`: nahoře počítá cenu služby, úhradu voucherem, zbývající doplatek a stav `Neuhrazeno / Částečně uhrazeno / Uhrazeno` čistě z existujícího `VoucherRedemption` bez nové payment tabulky.
 - Admin read model rezervace nově vrací `paymentSummary`; cenu bere ze snapshotu rezervace, fallbackově z aktuální ceny služby, voucherovou úhradu sčítá z `VoucherRedemption.amountCzk` a při neznámé ceně zobrazuje `Cena není nastavena` bez označení rezervace jako uhrazené.
