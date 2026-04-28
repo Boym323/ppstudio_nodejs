@@ -13,6 +13,7 @@ export default function robots(): MetadataRoute.Robots {
           "/admin/",
           "/admin/*",
           "/api/auth/*",
+          "/vouchery/overeni",
           "/rezervace/storno/*",
           "/rezervace/sprava/*",
           "/rezervace/akce/*",
