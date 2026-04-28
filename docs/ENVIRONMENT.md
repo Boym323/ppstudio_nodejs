@@ -59,6 +59,7 @@ Dokumentace proměnných prostředí pro lokální vývoj i produkci.
 - Serverová business vrstva voucherů také nepřidává žádnou novou env proměnnou; tvorba, validace i admin čerpání používají stávající Prisma připojení přes `DATABASE_URL`.
 - Admin formulář pro vytvoření voucheru nepřidává žádnou novou env proměnnou; používá stávající admin session, Prisma připojení a voucher doménovou vrstvu.
 - Admin uplatnění voucheru v detailu rezervace nepřidává žádnou novou env proměnnou; autorizace používá stávající admin session a role `OWNER` / `SALON`, persistence používá `DATABASE_URL`.
+- Read-only panel `Úhrada` v detailu rezervace nepřidává žádnou novou env proměnnou; summary se počítá request-time z `Booking`, `Service` a existujících `VoucherRedemption` záznamů přes stávající `DATABASE_URL`.
 - PDF generátor voucheru nepřidává žádnou novou env proměnnou; QR kód používá existující `NEXT_PUBLIC_APP_URL` přes `siteConfig.url`, takže produkční hodnota musí mířit na veřejný HTTPS origin PP Studia.
 - Veřejná stránka ověření voucheru `/vouchery/overeni` nepřidává žádnou novou env proměnnou; používá stávající `DATABASE_URL` a QR odkazy z PDF dál vznikají z `NEXT_PUBLIC_APP_URL`.
 - `NEXT_PUBLIC_APP_URL` je stejně kritická i pro klientský self-service manage link `/rezervace/sprava/[token]`; pokud míří na špatný host nebo schéma, confirmation screen, potvrzovací e-mail i reminder povedou na neplatnou URL.

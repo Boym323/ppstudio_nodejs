@@ -108,12 +108,15 @@ Postup nasazení aplikace do produkce.
      - QR odkaz `/vouchery/overeni?code=...` vrací veřejné noindex ověření voucheru bez 404
      - veřejné ověření platného hodnotového voucheru ukáže kód, typ, zůstatek a platnost; službový voucher ukáže kód, typ, snapshot služby a platnost
      - veřejné ověření neplatného voucheru ukáže jen bezpečný důvod a při reloadu nemění `remainingValueCzk`, `Voucher.status` ani nevytváří `VoucherRedemption`
-   - panel `Voucher` v detailu rezervace na `/admin/rezervace/[bookingId]` a `/admin/provoz/rezervace/[bookingId]`:
-     - rezervace bez voucheru ukazuje prázdný stav a dovolí ruční zadání kódu
+   - panel `Úhrada` v detailu rezervace na `/admin/rezervace/[bookingId]` a `/admin/provoz/rezervace/[bookingId]`:
+     - horní souhrn ukazuje cenu služby, uhrazeno voucherem, zbývá doplatit a stav úhrady `Neuhrazeno / Částečně uhrazeno / Uhrazeno`
+     - rezervace bez voucheru ukazuje prázdný stav v sekci `Dárkový poukaz` a dovolí ruční zadání kódu
      - intended voucher předvyplní kód a ukazuje typ, efektivní stav a bezpečný popis
+     - hodnotový voucher předvyplní doporučenou částku podle zůstatku voucheru a zbývajícího doplatku
      - hodnotový voucher vyžaduje částku a po částečném čerpání zůstane `PARTIALLY_REDEEMED`
      - službový voucher lze uplatnit jen u odpovídající služby
      - historie uplatnění zobrazí datum, částku nebo službu, aktéra a poznámku
+     - po existujícím redemptionu nebo nulovém doplatku se formulář dalšího voucheru nezobrazuje
    - owner sekci `/admin/email-logy` po každé změně Prisma schématu nebo e-mailové outbox vrstvy
    - owner sekci `/admin/nastaveni`:
      - uložení všech tří bloků

@@ -274,63 +274,90 @@ function BookingNotesPanel({ data }: { data: AdminBookingDetailData }) {
 
 function BookingVoucherPanel({ data }: { data: AdminBookingDetailData }) {
   const intendedVoucher = data.voucher.intendedVoucher;
+  const paymentSummary = data.voucher.paymentSummary;
   const initialVoucherCode =
     intendedVoucher?.code ?? data.voucher.intendedVoucherCodeSnapshot ?? "";
   const hasRedemptions = data.voucher.redemptions.length > 0;
-  const amountHint = getVoucherAmountHint(intendedVoucher, data.servicePriceFromCzk);
+  const canRedeemAnotherVoucher = !hasRedemptions && paymentSummary.remainingAmountCzk !== 0;
+  const amountHint = getVoucherAmountHint(intendedVoucher, paymentSummary.remainingAmountCzk);
 
   return (
-    <AdminPanel title="Voucher" compact={data.area === "salon"} denseHeader>
+    <AdminPanel title="Úhrada" compact={data.area === "salon"} denseHeader>
       <div className="space-y-3">
-        {intendedVoucher ? (
-          <div className="rounded-[1rem] border border-[var(--color-accent)]/18 bg-[rgba(190,160,120,0.08)] p-3.5">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div className="min-w-0">
-                <p className="text-[0.66rem] uppercase tracking-[0.18em] text-white/45">
-                  Klient zadal tento voucher při rezervaci.
-                </p>
-                <p className="mt-1 font-mono text-lg font-semibold tracking-[0.12em] text-white">
-                  {intendedVoucher.code}
-                </p>
-              </div>
-              <span className="rounded-full border border-white/10 bg-black/18 px-2.5 py-1 text-[0.64rem] font-semibold uppercase tracking-[0.16em] text-white/66">
-                {intendedVoucher.statusLabel}
-              </span>
-            </div>
-            <dl className="mt-3 grid gap-2 sm:grid-cols-3">
-              <VoucherMiniRow label="Typ" value={intendedVoucher.typeLabel} />
-              <VoucherMiniRow label="Hodnota / služba" value={intendedVoucher.valueLabel} />
-              <VoucherMiniRow label="Zbývá" value={intendedVoucher.remainingLabel} />
-            </dl>
-            <p className="mt-3 text-sm leading-5 text-white/64">{intendedVoucher.safeDescription}</p>
-            {data.voucher.intendedVoucherValidatedAtLabel ? (
-              <p className="mt-2 text-xs leading-4 text-white/42">
-                Ověřeno při zadání: {data.voucher.intendedVoucherValidatedAtLabel}
-              </p>
-            ) : null}
-          </div>
-        ) : data.voucher.intendedVoucherCodeSnapshot ? (
-          <div className="rounded-[1rem] border border-white/8 bg-white/[0.035] p-3.5">
-            <p className="text-sm leading-5 text-white/70">
-              U rezervace je uložený kód voucheru{" "}
-              <span className="font-mono text-white">{data.voucher.intendedVoucherCodeSnapshot}</span>,
-              ale není napojený na aktivní voucher v evidenci.
+        <PaymentSummaryBlock paymentSummary={paymentSummary} />
+
+        <div className="space-y-2">
+          <div>
+            <p className="text-[0.66rem] uppercase tracking-[0.18em] text-white/45">
+              Dárkový poukaz
+            </p>
+            <p className="mt-1 text-sm leading-5 text-white/58">
+              Voucher je jediný zdroj evidované úhrady; hotovost a karta se tu nezapisují.
             </p>
           </div>
+
+          {intendedVoucher ? (
+            <div className="rounded-[1rem] border border-[var(--color-accent)]/18 bg-[rgba(190,160,120,0.08)] p-3.5">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-[0.66rem] uppercase tracking-[0.18em] text-white/45">
+                    Klientka poukaz uvedla při rezervaci.
+                  </p>
+                  <p className="mt-1 font-mono text-lg font-semibold tracking-[0.12em] text-white">
+                    {intendedVoucher.code}
+                  </p>
+                </div>
+                <span className="rounded-full border border-white/10 bg-black/18 px-2.5 py-1 text-[0.64rem] font-semibold uppercase tracking-[0.16em] text-white/66">
+                  {intendedVoucher.statusLabel}
+                </span>
+              </div>
+              <dl className="mt-3 grid gap-2 sm:grid-cols-3">
+                <VoucherMiniRow label="Typ" value={intendedVoucher.typeLabel} />
+                <VoucherMiniRow label="Hodnota / služba" value={intendedVoucher.valueLabel} />
+                <VoucherMiniRow label="Zbývá" value={intendedVoucher.remainingLabel} />
+              </dl>
+              <p className="mt-3 text-sm leading-5 text-white/64">{intendedVoucher.safeDescription}</p>
+              {data.voucher.intendedVoucherValidatedAtLabel ? (
+                <p className="mt-2 text-xs leading-4 text-white/42">
+                  Ověřeno při zadání: {data.voucher.intendedVoucherValidatedAtLabel}
+                </p>
+              ) : null}
+            </div>
+          ) : data.voucher.intendedVoucherCodeSnapshot ? (
+            <div className="rounded-[1rem] border border-white/8 bg-white/[0.035] p-3.5">
+              <p className="text-sm leading-5 text-white/70">
+                U rezervace je uložený kód voucheru{" "}
+                <span className="font-mono text-white">{data.voucher.intendedVoucherCodeSnapshot}</span>,
+                ale není napojený na aktivní voucher v evidenci.
+              </p>
+            </div>
+          ) : (
+            <div className="rounded-[1rem] border border-dashed border-white/12 bg-white/[0.03] px-3.5 py-3">
+              <p className="text-sm text-white/64">
+                K rezervaci není připojen žádný voucher. Pokud klientka poukaz přinese, zadejte kód ručně níže.
+              </p>
+            </div>
+          )}
+        </div>
+
+        {canRedeemAnotherVoucher ? (
+          <AdminBookingVoucherForm
+            area={data.area}
+            bookingId={data.id}
+            initialVoucherCode={initialVoucherCode}
+            intendedVoucherType={intendedVoucher?.type ?? null}
+            defaultAmountCzk={intendedVoucher?.defaultRedeemAmountCzk ?? paymentSummary.remainingAmountCzk}
+            amountHint={amountHint}
+          />
         ) : (
-          <div className="rounded-[1rem] border border-dashed border-white/12 bg-white/[0.03] px-3.5 py-3">
-            <p className="text-sm text-white/64">K rezervaci není připojen žádný voucher.</p>
+          <div className="rounded-[1rem] border border-white/8 bg-white/[0.03] px-3.5 py-3">
+            <p className="text-sm leading-5 text-white/58">
+              {hasRedemptions
+                ? "Voucher už je u této rezervace uplatněný, další voucher nepřidáváme."
+                : "Rezervace je podle voucherové úhrady dorovnaná, další voucher není potřeba."}
+            </p>
           </div>
         )}
-
-        <AdminBookingVoucherForm
-          area={data.area}
-          bookingId={data.id}
-          initialVoucherCode={initialVoucherCode}
-          intendedVoucherType={intendedVoucher?.type ?? null}
-          defaultAmountCzk={intendedVoucher?.defaultRedeemAmountCzk ?? data.servicePriceFromCzk}
-          amountHint={amountHint}
-        />
 
         <VoucherRedemptionsList redemptions={data.voucher.redemptions} hasRedemptions={hasRedemptions} />
       </div>
@@ -338,9 +365,54 @@ function BookingVoucherPanel({ data }: { data: AdminBookingDetailData }) {
   );
 }
 
+function PaymentSummaryBlock({
+  paymentSummary,
+}: {
+  paymentSummary: AdminBookingDetailData["voucher"]["paymentSummary"];
+}) {
+  const items = [
+    {
+      label: "Cena služby",
+      value: paymentSummary.totalPriceCzk === null ? "Cena není nastavena" : formatCzk(paymentSummary.totalPriceCzk),
+    },
+    { label: "Uhrazeno voucherem", value: formatCzk(paymentSummary.voucherPaidCzk) },
+    {
+      label: "Zbývá doplatit",
+      value:
+        paymentSummary.remainingAmountCzk === null
+          ? "Nelze spočítat"
+          : formatCzk(paymentSummary.remainingAmountCzk),
+    },
+    {
+      label: "Stav úhrady",
+      value: paymentSummary.paymentStatusLabel,
+      tone: paymentSummary.paymentStatus,
+    },
+  ];
+
+  return (
+    <dl className="grid gap-2 md:grid-cols-4">
+      {items.map((item) => (
+        <div
+          key={item.label}
+          className={cn(
+            "rounded-[1rem] border px-3.5 py-3",
+            item.tone
+              ? getPaymentStatusCardClassName(item.tone)
+              : "border-white/8 bg-white/[0.035]",
+          )}
+        >
+          <dt className="text-[0.62rem] uppercase tracking-[0.16em] text-white/42">{item.label}</dt>
+          <dd className="mt-1 text-sm font-semibold leading-5 text-white/86">{item.value}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
 function getVoucherAmountHint(
   voucher: AdminBookingDetailData["voucher"]["intendedVoucher"],
-  servicePriceFromCzk: number | null,
+  remainingAmountCzk: number | null,
 ) {
   if (!voucher || voucher.type !== VoucherType.VALUE) {
     return null;
@@ -348,7 +420,7 @@ function getVoucherAmountHint(
 
   const remainingValueCzk = voucher.remainingValueCzk ?? 0;
 
-  if (remainingValueCzk <= 0 || !servicePriceFromCzk || remainingValueCzk >= servicePriceFromCzk) {
+  if (remainingValueCzk <= 0 || remainingAmountCzk === null || remainingValueCzk >= remainingAmountCzk) {
     return null;
   }
 
@@ -630,6 +702,19 @@ function getHistoryBadgeClassName(status: AdminBookingDetailData["historyItems"]
   }
 
   return getStatusBadgeClassName(status);
+}
+
+function getPaymentStatusCardClassName(
+  status: AdminBookingDetailData["voucher"]["paymentSummary"]["paymentStatus"],
+) {
+  switch (status) {
+    case "PAID":
+      return "border-emerald-300/18 bg-emerald-500/10";
+    case "PARTIALLY_PAID":
+      return "border-amber-300/18 bg-amber-500/10";
+    case "UNPAID":
+      return "border-white/8 bg-white/[0.035]";
+  }
 }
 
 function getStatusContextClassName(tone: "pending" | "confirmed" | "closed" | "neutral") {

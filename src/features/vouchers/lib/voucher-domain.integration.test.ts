@@ -574,5 +574,93 @@ describe("voucher domain", () => {
     assert.equal(detail.voucher.intendedVoucher, null);
     assert.equal(detail.voucher.intendedVoucherCodeSnapshot, null);
     assert.ok(Array.isArray(detail.voucher.redemptions));
+    assert.equal(detail.voucher.paymentSummary.totalPriceCzk, 1200);
+    assert.equal(detail.voucher.paymentSummary.voucherPaidCzk, 0);
+    assert.equal(detail.voucher.paymentSummary.paidAmountCzk, 0);
+    assert.equal(detail.voucher.paymentSummary.remainingAmountCzk, 1200);
+    assert.equal(detail.voucher.paymentSummary.paymentStatus, "UNPAID");
+  });
+
+  dbTest("shows partially paid admin booking detail after VALUE voucher redemption", async () => {
+    assert.ok(seed);
+    const { createVoucher, redeemVoucherForBooking, getAdminBookingDetailData } = await loadModules();
+    const voucher = await createVoucher(
+      {
+        type: VoucherType.VALUE,
+        originalValueCzk: 500,
+      },
+      seed.actorUserId,
+    );
+
+    await redeemVoucherForBooking({
+      voucherCode: voucher.code,
+      bookingId: seed.bookingIds[0],
+      amountCzk: 500,
+      redeemedByUserId: seed.actorUserId,
+    });
+
+    const detail = await getAdminBookingDetailData("owner", seed.bookingIds[0]);
+
+    assert.ok(detail);
+    assert.equal(detail.voucher.paymentSummary.totalPriceCzk, 1200);
+    assert.equal(detail.voucher.paymentSummary.voucherPaidCzk, 500);
+    assert.equal(detail.voucher.paymentSummary.paidAmountCzk, 500);
+    assert.equal(detail.voucher.paymentSummary.remainingAmountCzk, 700);
+    assert.equal(detail.voucher.paymentSummary.paymentStatus, "PARTIALLY_PAID");
+  });
+
+  dbTest("shows paid admin booking detail after full VALUE voucher redemption", async () => {
+    assert.ok(seed);
+    const { createVoucher, redeemVoucherForBooking, getAdminBookingDetailData } = await loadModules();
+    const voucher = await createVoucher(
+      {
+        type: VoucherType.VALUE,
+        originalValueCzk: 1200,
+      },
+      seed.actorUserId,
+    );
+
+    await redeemVoucherForBooking({
+      voucherCode: voucher.code,
+      bookingId: seed.bookingIds[1],
+      amountCzk: 1200,
+      redeemedByUserId: seed.actorUserId,
+    });
+
+    const detail = await getAdminBookingDetailData("owner", seed.bookingIds[1]);
+
+    assert.ok(detail);
+    assert.equal(detail.voucher.paymentSummary.totalPriceCzk, 1200);
+    assert.equal(detail.voucher.paymentSummary.voucherPaidCzk, 1200);
+    assert.equal(detail.voucher.paymentSummary.paidAmountCzk, 1200);
+    assert.equal(detail.voucher.paymentSummary.remainingAmountCzk, 0);
+    assert.equal(detail.voucher.paymentSummary.paymentStatus, "PAID");
+  });
+
+  dbTest("shows paid admin booking detail after SERVICE voucher redemption matching service price", async () => {
+    assert.ok(seed);
+    const { createVoucher, redeemVoucherForBooking, getAdminBookingDetailData } = await loadModules();
+    const voucher = await createVoucher(
+      {
+        type: VoucherType.SERVICE,
+        serviceId: seed.serviceId,
+      },
+      seed.actorUserId,
+    );
+
+    await redeemVoucherForBooking({
+      voucherCode: voucher.code,
+      bookingId: seed.bookingIds[2],
+      redeemedByUserId: seed.actorUserId,
+    });
+
+    const detail = await getAdminBookingDetailData("owner", seed.bookingIds[2]);
+
+    assert.ok(detail);
+    assert.equal(detail.voucher.paymentSummary.totalPriceCzk, 1200);
+    assert.equal(detail.voucher.paymentSummary.voucherPaidCzk, 1200);
+    assert.equal(detail.voucher.paymentSummary.paidAmountCzk, 1200);
+    assert.equal(detail.voucher.paymentSummary.remainingAmountCzk, 0);
+    assert.equal(detail.voucher.paymentSummary.paymentStatus, "PAID");
   });
 });

@@ -80,3 +80,4 @@ Sem patří krátké záznamy architektonických rozhodnutí.
 - `0063-public-booking-intended-voucher-v1.md`
 - `0064-voucher-pdf-generator-v1.md`
 - `0065-public-voucher-verification-v1.md`
+- `0066-admin-booking-payment-summary-v1.md`

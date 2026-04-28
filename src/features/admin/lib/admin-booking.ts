@@ -49,6 +49,8 @@ export type AdminBookingActionOption = {
   description: string;
 };
 
+export type AdminBookingPaymentStatus = "UNPAID" | "PARTIALLY_PAID" | "PAID";
+
 export type AdminBookingDetailData = {
   id: string;
   area: AdminArea;
@@ -93,6 +95,14 @@ export type AdminBookingDetailData = {
     slots: Awaited<ReturnType<typeof getPublicBookingCatalog>>["slots"];
   };
   voucher: {
+    paymentSummary: {
+      totalPriceCzk: number | null;
+      voucherPaidCzk: number;
+      paidAmountCzk: number;
+      remainingAmountCzk: number | null;
+      paymentStatus: AdminBookingPaymentStatus;
+      paymentStatusLabel: string;
+    };
     intendedVoucherCodeSnapshot: string | null;
     intendedVoucherValidatedAtLabel: string | null;
     intendedVoucher: {
@@ -331,6 +341,58 @@ const czkFormatter = new Intl.NumberFormat("cs-CZ", {
   currency: "CZK",
 });
 
+export function getAdminBookingPaymentStatusLabel(status: AdminBookingPaymentStatus): string {
+  switch (status) {
+    case "UNPAID":
+      return "Neuhrazeno";
+    case "PARTIALLY_PAID":
+      return "Částečně uhrazeno";
+    case "PAID":
+      return "Uhrazeno";
+  }
+}
+
+function buildPaymentSummary({
+  totalPriceCzk,
+  voucherPaidCzk,
+}: {
+  totalPriceCzk: number | null;
+  voucherPaidCzk: number;
+}): AdminBookingDetailData["voucher"]["paymentSummary"] {
+  const paidAmountCzk = voucherPaidCzk;
+
+  if (totalPriceCzk === null) {
+    const paymentStatus: AdminBookingPaymentStatus =
+      paidAmountCzk > 0 ? "PARTIALLY_PAID" : "UNPAID";
+
+    return {
+      totalPriceCzk,
+      voucherPaidCzk,
+      paidAmountCzk,
+      remainingAmountCzk: null,
+      paymentStatus,
+      paymentStatusLabel: getAdminBookingPaymentStatusLabel(paymentStatus),
+    };
+  }
+
+  const remainingAmountCzk = Math.max(totalPriceCzk - paidAmountCzk, 0);
+  const paymentStatus: AdminBookingPaymentStatus =
+    remainingAmountCzk === 0
+      ? "PAID"
+      : paidAmountCzk > 0
+        ? "PARTIALLY_PAID"
+        : "UNPAID";
+
+  return {
+    totalPriceCzk,
+    voucherPaidCzk,
+    paidAmountCzk,
+    remainingAmountCzk,
+    paymentStatus,
+    paymentStatusLabel: getAdminBookingPaymentStatusLabel(paymentStatus),
+  };
+}
+
 export async function getAdminBookingDetailData(
   area: AdminArea,
   bookingId: string,
@@ -344,6 +406,11 @@ export async function getAdminBookingDetailData(
             fullName: true,
             email: true,
             phone: true,
+          },
+        },
+        service: {
+          select: {
+            priceFromCzk: true,
           },
         },
         statusHistory: {
@@ -432,6 +499,12 @@ export async function getAdminBookingDetailData(
       createdAt: log.createdAt,
     })),
   ].sort((left, right) => right.createdAt.getTime() - left.createdAt.getTime());
+  const totalPriceCzk = booking.servicePriceFromCzk ?? booking.service.priceFromCzk;
+  const voucherPaidCzk = booking.voucherRedemptions.reduce(
+    (total, redemption) => total + (redemption.amountCzk ?? 0),
+    0,
+  );
+  const paymentSummary = buildPaymentSummary({ totalPriceCzk, voucherPaidCzk });
 
   return {
     id: booking.id,
@@ -477,6 +550,7 @@ export async function getAdminBookingDetailData(
       slots: bookingCatalog.slots,
     },
     voucher: {
+      paymentSummary,
       intendedVoucherCodeSnapshot: booking.intendedVoucherCodeSnapshot,
       intendedVoucherValidatedAtLabel: booking.intendedVoucherValidatedAt
         ? formatDateTimeLabel(booking.intendedVoucherValidatedAt)
@@ -501,9 +575,9 @@ export async function getAdminBookingDetailData(
               booking.intendedVoucher.type === VoucherType.VALUE
                 ? Math.min(
                     booking.intendedVoucher.remainingValueCzk ?? 0,
-                    booking.servicePriceFromCzk ?? booking.intendedVoucher.remainingValueCzk ?? 0,
+                    paymentSummary.remainingAmountCzk ?? 0,
                   )
-                : booking.intendedVoucher.servicePriceSnapshotCzk ?? booking.servicePriceFromCzk,
+                : booking.intendedVoucher.servicePriceSnapshotCzk ?? totalPriceCzk,
           }
         : null,
       redemptions: booking.voucherRedemptions.map((redemption) => ({

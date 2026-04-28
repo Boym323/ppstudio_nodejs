@@ -6,6 +6,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Panel `Voucher` v admin detailu rezervace je přejmenovaný na read-only panel `Úhrada`: nahoře počítá cenu služby, úhradu voucherem, zbývající doplatek a stav `Neuhrazeno / Částečně uhrazeno / Uhrazeno` čistě z existujícího `VoucherRedemption` bez nové payment tabulky.
+- Admin read model rezervace nově vrací `paymentSummary`; cenu bere ze snapshotu rezervace, fallbackově z aktuální ceny služby, voucherovou úhradu sčítá z `VoucherRedemption.amountCzk` a při neznámé ceně zobrazuje `Cena není nastavena` bez označení rezervace jako uhrazené.
 - Success hláška po uplatnění hodnotového voucheru nově upozorní na částečnou úhradu: pokud voucher pokryje méně než zadanou částku, zobrazí uplatněnou částku i zbývající doplatek mimo voucher.
 - Admin uplatnění hodnotového voucheru už při ručním zadání kódu neblokuje rezervaci s dražší službou než zůstatek voucheru; pokud zadaná částka převyšuje zůstatek, automaticky se uplatní dostupná zbývající hodnota voucheru.
 - Admin uplatnění hodnotového voucheru má srozumitelnější chování při dražší službě než zůstatek voucheru: formulář u intended voucheru vysvětlí částečnou úhradu a serverová hláška říká, že se má zadat maximálně zbývající hodnota voucheru.
