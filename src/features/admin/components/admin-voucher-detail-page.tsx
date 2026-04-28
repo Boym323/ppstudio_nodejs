@@ -45,6 +45,7 @@ export function AdminVoucherDetailPage({ data }: { data: AdminVoucherDetailData 
     { label: "Kupující", value: data.purchaserName },
     { label: "E-mail kupujícího", value: data.purchaserEmail },
   ]);
+  const issuedCreatedRows = buildIssuedCreatedRows(data.issuedAt, data.createdAt);
 
   return (
     <AdminPageShell
@@ -60,9 +61,6 @@ export function AdminVoucherDetailPage({ data }: { data: AdminVoucherDetailData 
               <AdminStatePill tone={getVoucherStatusPillTone(data.effectiveStatus)}>
                 {data.statusLabel}
               </AdminStatePill>
-              <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs uppercase tracking-[0.2em] text-white/62">
-                {data.typeLabel}
-              </span>
             </div>
 
             <div className="space-y-2">
@@ -70,18 +68,11 @@ export function AdminVoucherDetailPage({ data }: { data: AdminVoucherDetailData 
                 {data.code}
               </p>
               <p className="max-w-3xl text-sm leading-7 text-white/70">
-                {summaryValueLabel}
-                {data.type === VoucherType.VALUE ? " · hodnotový voucher" : " · službový voucher"}
+                {data.typeLabel} · {summaryValueLabel}
               </p>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              <SummaryMetric label="Typ voucheru" value={data.typeLabel} />
-              <SummaryMetric
-                label={data.type === VoucherType.VALUE ? "Hodnota" : "Služba"}
-                value={summaryValueLabel}
-                tone="strong"
-              />
+            <div className="grid gap-3 sm:grid-cols-2 xl:max-w-3xl">
               <SummaryMetric
                 label="Platnost"
                 value={`${formatDateLabel(data.validFrom)} až ${formatDateLabel(data.validUntil)}`}
@@ -116,8 +107,9 @@ export function AdminVoucherDetailPage({ data }: { data: AdminVoucherDetailData 
           <dl className="grid gap-3 sm:grid-cols-2">
             <DetailRow label="Platnost od" value={formatDateLabel(data.validFrom)} />
             <DetailRow label="Platnost do" value={formatDateLabel(data.validUntil)} />
-            <DetailRow label="Vystaveno" value={formatDateTimeLabel(data.issuedAt)} />
-            <DetailRow label="Vytvořeno" value={formatDateTimeLabel(data.createdAt)} />
+            {issuedCreatedRows.map((row) => (
+              <DetailRow key={row.label} label={row.label} value={row.value} />
+            ))}
             <DetailRow
               label="Vytvořil"
               value={formatUserLabel(data.createdByUser)}
@@ -128,7 +120,7 @@ export function AdminVoucherDetailPage({ data }: { data: AdminVoucherDetailData 
 
         <AdminPanel
           title="Kupující"
-          description="Zobrazeny jsou jen vyplněné údaje o kupujícím."
+          description="Údaje pro budoucí odeslání voucheru e-mailem."
           compact={data.area === "salon"}
           denseHeader
         >
@@ -382,6 +374,24 @@ function buildPartyFields(fields: Array<{ label: string; value: string | null | 
     }));
 }
 
+function buildIssuedCreatedRows(issuedAt: Date | null | undefined, createdAt: Date) {
+  if (!issuedAt) {
+    return [{ label: "Vytvořeno", value: formatDateTimeLabel(createdAt) }];
+  }
+
+  const rows = [{ label: "Vystaveno", value: formatDateTimeLabel(issuedAt) }];
+
+  if (!areDatesPracticallySame(issuedAt, createdAt)) {
+    rows.push({ label: "Vytvořeno", value: formatDateTimeLabel(createdAt) });
+  }
+
+  return rows;
+}
+
+function areDatesPracticallySame(left: Date, right: Date) {
+  return Math.abs(left.getTime() - right.getTime()) < 60_000;
+}
+
 function formatVoucherBalanceLabel(redemptionsCount: number, remainingValueCzk: number | null | undefined) {
   const remaining = formatCzk(remainingValueCzk);
 
@@ -463,7 +473,7 @@ function DetailRow({
   return (
     <div className="rounded-[1.15rem] border border-white/8 bg-white/5 p-4">
       <dt className="text-xs uppercase tracking-[0.22em] text-white/48">{label}</dt>
-      <dd className={cn("mt-2 text-sm leading-6", tone === "muted" ? "text-white/42" : "text-white/86")}>
+      <dd className={cn("mt-2 break-words whitespace-normal text-sm leading-6", tone === "muted" ? "text-white/42" : "text-white/86")}>
         {value}
       </dd>
     </div>
