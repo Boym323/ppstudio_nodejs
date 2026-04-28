@@ -11,7 +11,7 @@ export type EmailDeliveryMessage = {
   text: string;
   attachments?: Array<{
     filename: string;
-    content: string;
+    content: string | Buffer;
     contentType: string;
   }>;
 };

@@ -61,6 +61,7 @@ const typeBadgeStyles = {
   reminder: "border-sky-300/25 bg-sky-400/10 text-sky-50",
   cancellation: "border-rose-300/25 bg-rose-400/10 text-rose-50",
   reschedule: "border-violet-300/25 bg-violet-400/10 text-violet-50",
+  voucher: "border-amber-300/25 bg-amber-400/10 text-amber-50",
   admin: "border-white/12 bg-white/8 text-white/86",
   other: "border-white/10 bg-black/20 text-white/72",
 } as const;

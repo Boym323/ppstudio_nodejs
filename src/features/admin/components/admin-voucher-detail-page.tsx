@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { VoucherStatus, VoucherType } from "@prisma/client";
 
+import { AdminVoucherEmailPanel } from "@/features/admin/components/admin-voucher-email-panel";
 import { AdminPageShell, AdminPanel } from "@/features/admin/components/admin-page-shell";
 import { AdminStatePill } from "@/features/admin/components/admin-state-pill";
 import { type AdminVoucherDetailData } from "@/features/admin/lib/admin-vouchers";
@@ -45,13 +46,16 @@ export function AdminVoucherDetailPage({ data }: { data: AdminVoucherDetailData 
     { label: "Kupující", value: data.purchaserName },
     { label: "E-mail kupujícího", value: data.purchaserEmail },
   ]);
+  const canSendEmail =
+    data.effectiveStatus === VoucherStatus.ACTIVE
+    || data.effectiveStatus === VoucherStatus.PARTIALLY_REDEEMED;
   const issuedCreatedRows = buildIssuedCreatedRows(data.issuedAt, data.createdAt);
 
   return (
     <AdminPageShell
       eyebrow={data.area === "owner" ? "Dárkové vouchery" : "Provozní evidence"}
       title={data.area === "owner" ? "Detail voucheru" : "Provozní detail voucheru"}
-      description="Read-only detail voucheru s aktuálními daty, historií čerpání a stažením PDF."
+      description="Detail voucheru s aktuálními daty, historií čerpání, stažením PDF a ručním odesláním e-mailem."
       compact={data.area === "salon"}
     >
       <section className="rounded-[var(--radius-panel)] border border-white/10 bg-[linear-gradient(145deg,rgba(255,255,255,0.10),rgba(255,255,255,0.03))] p-5 sm:p-6">
@@ -135,6 +139,18 @@ export function AdminVoucherDetailPage({ data }: { data: AdminVoucherDetailData 
               ))}
             </dl>
           )}
+
+          <div className="mt-4">
+            <AdminVoucherEmailPanel
+              area={data.area}
+              voucherId={data.id}
+              canSend={canSendEmail}
+              blockedMessage="Voucher v tomto stavu nelze odeslat e-mailem."
+              defaultRecipientEmail={data.purchaserEmail?.trim() ?? ""}
+              defaultSubject="Dárkový poukaz PP Studio"
+              defaultMessage="Dobrý den, v příloze zasíláme dárkový poukaz PP Studio."
+            />
+          </div>
         </AdminPanel>
       </div>
 

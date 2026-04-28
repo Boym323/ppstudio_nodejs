@@ -6,6 +6,9 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- V admin detailu voucheru (`/admin/vouchery/[voucherId]` a `/admin/provoz/vouchery/[voucherId]`) pribyla rucni akce `Poslat e-mailem`: obsluha muze otevrit panel, upravit prijemce/predmet/zpravu a explicitne odeslat voucher pouze manualnim potvrzenim.
+- Odeslani voucheru pouziva existujici email outbox/worker workflow pres `EmailLog` s novym typem `EmailLogType.VOUCHER_SENT` a sablonou `voucher-sent-v1`; v `EMAIL_DELIVERY_MODE=background` se zapisuje do fronty s retry, v `log` modu se bez SMTP odeslani zaloguje jako odeslane.
+- Voucher email obsahuje bezpecna data (typ, hodnota nebo sluzba, kod, platnost, overovaci URL, instrukce) a pripojuje PDF vygenerovane server-side pres existujici `generateVoucherPdf(...)` helper jako prilohu `voucher-KOD.pdf` (`application/pdf`) bez interni poznamky a bez historie cerpani.
 - Opraven kontakt ve voucher PDF pro CI/runtime hosty: textová doména už nebere slepě `NEXT_PUBLIC_APP_URL` hostname. Nově má prioritu `VOUCHER_PUBLIC_DOMAIN` -> `NEXT_PUBLIC_SITE_DOMAIN` -> bezpečný veřejný hostname z `NEXT_PUBLIC_APP_URL`; localhost/privátní IP se do kontaktu nevypisují.
 - Veřejné ověření voucheru `/vouchery/overeni` je nově chráněné server-side rate limitem podle IP hashe (okno 10 minut, limit 10 pokusů), zapisuje auditní stopu do `BookingSubmissionLog` s prefixem `PUBLIC_VOUCHER_VERIFY_*` a při překročení vrací bezpečnou hlášku bez prozrazení detailu.
 - Stabilizováno veřejné vytvoření rezervace při souběžném DB provozu: retry pro serializační konflikt Prisma `P2034` byl navýšen z `3` na `5` pokusů a mezi pokusy je krátký lineární backoff, aby CI i produkční provoz méně padaly na náhodný write/deadlock konflikt.

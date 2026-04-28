@@ -189,6 +189,8 @@ function emailTypeLabel(type: EmailLogType): string {
       return "Přesun termínu";
     case EmailLogType.BOOKING_REMINDER:
       return "Připomínka termínu";
+    case EmailLogType.VOUCHER_SENT:
+      return "Odeslání voucheru";
     case EmailLogType.GENERIC:
       return "Obecný e-mail";
   }
@@ -1153,6 +1155,7 @@ type EmailRecentTypeValue =
   | "reminder"
   | "cancellation"
   | "reschedule"
+  | "voucher"
   | "admin"
   | "other";
 
@@ -1308,6 +1311,8 @@ function getEmailTypeCategory(type: EmailLogType, templateKey: string): EmailRec
       return "cancellation";
     case EmailLogType.BOOKING_RESCHEDULED:
       return "reschedule";
+    case EmailLogType.VOUCHER_SENT:
+      return "voucher";
     case EmailLogType.GENERIC:
       return "other";
   }
@@ -1323,6 +1328,8 @@ function getEmailTypeCategoryLabel(type: EmailLogType, templateKey: string): str
       return "Zrušení";
     case "reschedule":
       return "Přesun termínu";
+    case "voucher":
+      return "Voucher";
     case "admin":
       return "Admin notifikace";
     case "other":

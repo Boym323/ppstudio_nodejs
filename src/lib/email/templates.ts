@@ -6,6 +6,13 @@ import {
   formatBookingCalendarDate,
   formatBookingTimeRange,
 } from "@/features/booking/lib/booking-format";
+import { buildVoucherEmailTemplate } from "@/features/vouchers/lib/voucher-email-template";
+import {
+  buildVoucherPdfFilename,
+  buildVoucherVerificationUrl,
+  generateVoucherPdf,
+} from "@/features/vouchers/lib/voucher-pdf";
+import { getVoucherDetail } from "@/features/vouchers/lib/voucher-read-models";
 import { getEmailBrandingSettings, getPublicSalonProfile } from "@/lib/site-settings";
 
 const bookingConfirmationPayloadSchema = z.object({
@@ -93,13 +100,18 @@ const adminBookingCancelledPayloadSchema = z.object({
   scheduledEndsAt: z.string().datetime(),
 });
 
+const voucherSentPayloadSchema = z.object({
+  voucherId: z.string().min(1),
+  message: z.string().trim().max(2000).optional(),
+});
+
 export type RenderedEmailTemplate = {
   subject: string;
   html: string;
   text: string;
   attachments?: Array<{
     filename: string;
-    content: string;
+    content: string | Buffer;
     contentType: string;
   }>;
 };
@@ -907,6 +919,33 @@ export async function renderEmailTemplate(
       );
 
       return { subject, html, text };
+    }
+    case "voucher-sent-v1": {
+      const data = voucherSentPayloadSchema.parse(payload);
+      const voucher = await getVoucherDetail(data.voucherId);
+
+      if (!voucher) {
+        throw new Error("Voucher pro e-mail nebyl nalezen.");
+      }
+
+      const pdfBytes = await generateVoucherPdf(voucher);
+      const verificationUrl = buildVoucherVerificationUrl(voucher.code);
+      const voucherEmail = buildVoucherEmailTemplate({
+        subject,
+        customMessage: data.message,
+        voucher,
+        salon: {
+          name: brand.name,
+          addressLine: salonProfile.addressLine,
+          phone: brand.phone,
+          email: brand.email,
+        },
+        verificationUrl,
+        pdfFilename: buildVoucherPdfFilename(voucher.code),
+        pdfBytes,
+      });
+
+      return voucherEmail;
     }
     default:
       throw new Error(`Unsupported email template: ${templateKey}`);
