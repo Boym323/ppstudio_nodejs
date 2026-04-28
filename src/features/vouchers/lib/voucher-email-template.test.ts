@@ -8,7 +8,6 @@ import { buildVoucherEmailTemplate } from "@/features/vouchers/lib/voucher-email
 function buildBaseInput(type: VoucherType) {
   return {
     subject: "Dárkový poukaz PP Studio",
-    customMessage: "Dobrý den, v příloze zasíláme dárkový poukaz PP Studio.",
     voucher: {
       type,
       code: "PP-2026-ZFUJ8U",
@@ -39,6 +38,8 @@ test("buildVoucherEmailTemplate creates VALUE voucher email with safe details", 
   assert.match(template.text, /Kód voucheru: PP-2026-ZFUJ8U/);
   assert.match(template.text, /Platnost do:/);
   assert.match(template.text, /vouchery\/overeni\?code=PP-2026-ZFUJ8U/);
+  assert.match(template.text, /^Dobrý den,\n\nv příloze zasíláme dárkový poukaz PP Studio\./m);
+  assert.match(template.text, /ppstudio\.cz/);
   assert.doesNotMatch(template.text, /internalNote/i);
 });
 

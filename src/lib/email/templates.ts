@@ -102,7 +102,6 @@ const adminBookingCancelledPayloadSchema = z.object({
 
 const voucherSentPayloadSchema = z.object({
   voucherId: z.string().min(1),
-  message: z.string().trim().max(2000).optional(),
 });
 
 export type RenderedEmailTemplate = {
@@ -932,7 +931,6 @@ export async function renderEmailTemplate(
       const verificationUrl = buildVoucherVerificationUrl(voucher.code);
       const voucherEmail = buildVoucherEmailTemplate({
         subject,
-        customMessage: data.message,
         voucher,
         salon: {
           name: brand.name,

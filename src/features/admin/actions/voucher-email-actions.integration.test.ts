@@ -60,7 +60,6 @@ dbTest("queueVoucherEmailLog rejects invalid recipient email", async () => {
     voucherId: "voucher-1",
     recipientEmail: "not-an-email",
     subject: "Dárkový poukaz PP Studio",
-    message: "Dobrý den, v příloze zasíláme dárkový poukaz PP Studio.",
   });
 
   assert.equal(result.status, "error");
@@ -101,7 +100,6 @@ dbTest("queueVoucherEmailLog rejects non-sendable voucher states", async () => {
         voucherId: voucher.id,
         recipientEmail: "recipient@example.com",
         subject: "Dárkový poukaz PP Studio",
-        message: "Dobrý den, v příloze zasíláme dárkový poukaz PP Studio.",
       });
 
       assert.equal(result.status, "error");
@@ -130,7 +128,6 @@ dbTest("queueVoucherEmailLog enqueues ACTIVE voucher and creates EmailLog entry"
       voucherId: voucher.id,
       recipientEmail: "voucher-recipient@example.com",
       subject: "Dárkový poukaz PP Studio",
-      message: "Dobrý den, v příloze zasíláme dárkový poukaz PP Studio.",
     });
 
     assert.equal(result.status, "success");

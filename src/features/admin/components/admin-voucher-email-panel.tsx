@@ -17,7 +17,6 @@ type AdminVoucherEmailPanelProps = {
   blockedMessage: string;
   defaultRecipientEmail: string;
   defaultSubject: string;
-  defaultMessage: string;
 };
 
 export function AdminVoucherEmailPanel({
@@ -27,7 +26,6 @@ export function AdminVoucherEmailPanel({
   blockedMessage,
   defaultRecipientEmail,
   defaultSubject,
-  defaultMessage,
 }: AdminVoucherEmailPanelProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [serverState, formAction] = useActionState(
@@ -108,20 +106,6 @@ export function AdminVoucherEmailPanel({
             />
             {serverState.fieldErrors?.subject ? (
               <p className="mt-2 text-sm text-red-300">{serverState.fieldErrors.subject}</p>
-            ) : null}
-          </label>
-
-          <label className="block">
-            <span className="text-sm font-medium text-white">Krátká zpráva</span>
-            <textarea
-              name="message"
-              defaultValue={defaultMessage}
-              rows={4}
-              maxLength={2000}
-              className={cn(inputClassName, "min-h-28 resize-y leading-6")}
-            />
-            {serverState.fieldErrors?.message ? (
-              <p className="mt-2 text-sm text-red-300">{serverState.fieldErrors.message}</p>
             ) : null}
           </label>
 

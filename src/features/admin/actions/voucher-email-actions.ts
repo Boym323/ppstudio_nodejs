@@ -19,7 +19,6 @@ const sendVoucherEmailSchema = z.object({
   voucherId: z.string().trim().min(1, "Voucher je potřeba vybrat."),
   recipientEmail: z.email("Zadejte platný e-mail příjemce.").max(254, "E-mail je příliš dlouhý."),
   subject: z.string().trim().min(1, "Doplňte předmět e-mailu.").max(160, "Předmět je příliš dlouhý."),
-  message: z.string().trim().min(1, "Doplňte krátkou zprávu.").max(2000, "Zpráva je příliš dlouhá."),
 });
 
 type QueueVoucherEmailResult =
@@ -30,10 +29,10 @@ type QueueVoucherEmailResult =
       voucherCode: string;
     }
   | {
-      status: "error";
-      formError: string;
-      fieldErrors?: Partial<Record<"voucherId" | "recipientEmail" | "subject" | "message", string>>;
-    };
+    status: "error";
+    formError: string;
+    fieldErrors?: Partial<Record<"voucherId" | "recipientEmail" | "subject", string>>;
+  };
 
 function readFormString(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -70,7 +69,6 @@ export async function queueVoucherEmailLog(input: unknown, now = new Date()): Pr
         voucherId: fieldErrors.voucherId?.[0],
         recipientEmail: fieldErrors.recipientEmail?.[0],
         subject: fieldErrors.subject?.[0],
-        message: fieldErrors.message?.[0],
       },
     };
   }
@@ -125,7 +123,6 @@ export async function queueVoucherEmailLog(input: unknown, now = new Date()): Pr
       templateKey: "voucher-sent-v1",
       payload: {
         voucherId: voucher.id,
-        message: parsed.data.message,
       },
       provider: inBackgroundMode ? undefined : "log",
       sentAt: inBackgroundMode ? undefined : now,
@@ -152,7 +149,6 @@ export async function sendVoucherEmailAction(
       voucherId: readFormString(formData, "voucherId"),
       recipientEmail: readFormString(formData, "recipientEmail"),
       subject: readFormString(formData, "subject"),
-      message: readFormString(formData, "message"),
     });
 
     if (result.status === "error") {

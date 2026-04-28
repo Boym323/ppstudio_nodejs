@@ -148,7 +148,6 @@ export function AdminVoucherDetailPage({ data }: { data: AdminVoucherDetailData 
               blockedMessage="Voucher v tomto stavu nelze odeslat e-mailem."
               defaultRecipientEmail={data.purchaserEmail?.trim() ?? ""}
               defaultSubject="Dárkový poukaz PP Studio"
-              defaultMessage="Dobrý den, v příloze zasíláme dárkový poukaz PP Studio."
             />
           </div>
         </AdminPanel>

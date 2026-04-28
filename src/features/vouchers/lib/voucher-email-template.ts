@@ -15,7 +15,6 @@ const czkFormatter = new Intl.NumberFormat("cs-CZ", {
 
 type VoucherEmailTemplateInput = {
   subject: string;
-  customMessage?: string | null;
   voucher: {
     type: VoucherType;
     code: string;
@@ -76,10 +75,6 @@ function formatVoucherMainLabel(input: VoucherEmailTemplateInput["voucher"]) {
     return "Služba není uvedena";
   }
 
-  if (typeof input.servicePriceSnapshotCzk === "number") {
-    return `${serviceName} (${czkFormatter.format(input.servicePriceSnapshotCzk)})`;
-  }
-
   return serviceName;
 }
 
@@ -98,8 +93,21 @@ function buildDetailRow(label: string, value: string) {
   `;
 }
 
+function resolveWebsiteDomain(verificationUrl: string) {
+  try {
+    const hostname = new URL(verificationUrl).hostname.trim().toLowerCase();
+    if (!hostname) {
+      return "ppstudio.cz";
+    }
+
+    return hostname.replace(/^www\./, "");
+  } catch {
+    return "ppstudio.cz";
+  }
+}
+
 export function buildVoucherEmailTemplate(input: VoucherEmailTemplateInput): VoucherEmailTemplateOutput {
-  const customMessage = input.customMessage?.trim() || "Dobrý den, v příloze zasíláme dárkový poukaz PP Studio.";
+  const websiteDomain = resolveWebsiteDomain(input.verificationUrl);
   const voucherTypeLabel = formatVoucherTypeLabel(input.voucher.type);
   const voucherMainLabel = formatVoucherMainLabel(input.voucher);
   const voucherMainFieldLabel = input.voucher.type === VoucherType.VALUE ? "Hodnota" : "Služba";
@@ -109,23 +117,29 @@ export function buildVoucherEmailTemplate(input: VoucherEmailTemplateInput): Vou
     input.salon.addressLine.trim(),
     input.salon.phone.trim(),
     input.salon.email.trim(),
+    websiteDomain,
   ].filter((value) => value.length > 0);
+
+  const introLine = "v příloze zasíláme dárkový poukaz PP Studio.";
+  const redemptionLine = "Poukaz můžete uplatnit při online rezervaci nebo osobně v salonu.";
+  const verificationLeadLine = "Platnost poukazu si můžete ověřit zde:";
+  const closingLine = "Těšíme se na Vaši návštěvu.";
 
   const text = [
     "Dobrý den,",
     "",
-    customMessage,
+    introLine,
     "",
     `Typ poukazu: ${voucherTypeLabel}`,
     `${voucherMainFieldLabel}: ${voucherMainLabel}`,
     `Kód voucheru: ${input.voucher.code}`,
     `Platnost do: ${validUntilLabel}`,
     "",
-    "Poukaz můžete uplatnit při online rezervaci nebo osobně v salonu.",
-    "Platnost poukazu si můžete ověřit zde:",
+    redemptionLine,
+    verificationLeadLine,
     input.verificationUrl,
     "",
-    "Těšíme se na Vaši návštěvu.",
+    closingLine,
     "",
     ...contactRows,
   ].join("\n");
@@ -138,7 +152,7 @@ export function buildVoucherEmailTemplate(input: VoucherEmailTemplateInput): Vou
             <tr>
               <td style="padding:28px 24px;">
                 <p style="margin:0 0 10px;font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:25px;color:#5b4c44;">Dobrý den,</p>
-                <p style="margin:0 0 20px;font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:25px;color:#5b4c44;">${escapeHtml(customMessage)}</p>
+                <p style="margin:0 0 20px;font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:25px;color:#5b4c44;">${escapeHtml(introLine)}</p>
 
                 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:separate;border-spacing:0;border:1px solid #eaded4;border-radius:14px;background:#fbf7f3;">
                   <tr>
@@ -153,9 +167,9 @@ export function buildVoucherEmailTemplate(input: VoucherEmailTemplateInput): Vou
                   </tr>
                 </table>
 
-                <p style="margin:18px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:24px;color:#5b4c44;">Poukaz můžete uplatnit při online rezervaci nebo osobně v salonu.</p>
-                <p style="margin:14px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:24px;color:#5b4c44;">Platnost poukazu si můžete ověřit zde:<br /><a href="${escapeHtml(input.verificationUrl)}" style="color:#1f1714;text-decoration:underline;">${escapeHtml(input.verificationUrl)}</a></p>
-                <p style="margin:18px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:24px;color:#5b4c44;">Těšíme se na Vaši návštěvu.</p>
+                <p style="margin:18px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:24px;color:#5b4c44;">${escapeHtml(redemptionLine)}</p>
+                <p style="margin:14px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:24px;color:#5b4c44;">${escapeHtml(verificationLeadLine)}<br /><a href="${escapeHtml(input.verificationUrl)}" style="color:#1f1714;text-decoration:underline;">${escapeHtml(input.verificationUrl)}</a></p>
+                <p style="margin:18px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:24px;color:#5b4c44;">${escapeHtml(closingLine)}</p>
                 <p style="margin:18px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:22px;color:#5b4c44;">${contactRows.map((row) => escapeHtml(row)).join("<br />")}</p>
               </td>
             </tr>
