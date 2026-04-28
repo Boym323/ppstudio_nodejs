@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { VoucherType } from "@prisma/client";
+import { headers } from "next/headers";
 
 import { Container } from "@/components/ui/container";
 import { normalizeVoucherCode } from "@/features/vouchers/lib/voucher-code";
@@ -9,6 +10,12 @@ import {
   type PublicVoucherVerificationResult,
   type VoucherValidationReasonCode,
 } from "@/features/vouchers/lib/voucher-validation";
+import {
+  getRecentVoucherPublicVerificationAttemptCount,
+  getVoucherPublicVerificationMetadata,
+  isVoucherPublicVerificationRateLimited,
+  writeVoucherPublicVerificationAttemptLog,
+} from "@/features/vouchers/lib/voucher-public-verification-rate-limit";
 
 export const metadata: Metadata = {
   title: "Ověření dárkového poukazu | PP Studio",
@@ -33,7 +40,7 @@ type VoucherVerificationViewResult =
   | PublicVoucherVerificationResult
   | {
       ok: false;
-      reason: "UNKNOWN";
+      reason: "UNKNOWN" | "RATE_LIMITED";
     };
 
 const dateFormatter = new Intl.DateTimeFormat("cs-CZ", {
@@ -53,9 +60,10 @@ export default async function VoucherVerificationPage({
   searchParams,
 }: VoucherVerificationPageProps) {
   const { code: codeParam } = await searchParams;
+  const requestHeaders = await headers();
   const codeInput = Array.isArray(codeParam) ? codeParam[0] : codeParam;
   const normalizedCode = normalizeVoucherCode(codeInput ?? "");
-  const result = normalizedCode ? await loadVerificationResult(normalizedCode) : null;
+  const result = normalizedCode ? await loadVerificationResult(normalizedCode, requestHeaders) : null;
 
   return (
     <section className="border-b border-black/5 bg-[linear-gradient(180deg,#f8f2eb_0%,#fffaf4_100%)]">
@@ -127,7 +135,11 @@ function VerificationResult({
       <div className="mt-5 rounded-[1.25rem] border border-amber-200 bg-amber-50 px-4 py-3 text-amber-950">
         <p className="text-sm font-semibold">Voucher se nepodařilo ověřit</p>
         <p className="mt-1 text-sm leading-6 opacity-85">
-          {result.reason === "UNKNOWN" ? getUnknownVerificationMessage() : getPublicReasonMessage(result.reason)}
+          {result.reason === "UNKNOWN"
+            ? getUnknownVerificationMessage()
+            : result.reason === "RATE_LIMITED"
+              ? getRateLimitedVerificationMessage()
+              : getPublicReasonMessage(result.reason)}
         </p>
       </div>
     );
@@ -205,11 +217,48 @@ function getPublicReasonMessage(reason: VoucherValidationReasonCode) {
   }
 }
 
-async function loadVerificationResult(code: string): Promise<VoucherVerificationViewResult> {
+async function loadVerificationResult(code: string, requestHeaders: Headers): Promise<VoucherVerificationViewResult> {
+  const requestMetadata = getVoucherPublicVerificationMetadata(requestHeaders);
+  const ipAttempts = await getRecentVoucherPublicVerificationAttemptCount(requestMetadata.ipHash);
+
+  if (isVoucherPublicVerificationRateLimited(ipAttempts)) {
+    await writeVoucherPublicVerificationAttemptLog({
+      auditOutcome: "RATE_LIMITED",
+      ipHash: requestMetadata.ipHash,
+      userAgent: requestMetadata.userAgent,
+      metadata: {
+        ipAttempts,
+      },
+    });
+
+    return { ok: false, reason: "RATE_LIMITED" };
+  }
+
   try {
-    return await verifyVoucherPublic({ code });
+    const verificationResult = await verifyVoucherPublic({ code });
+
+    await writeVoucherPublicVerificationAttemptLog({
+      auditOutcome:
+        verificationResult.ok ? "SUCCESS" : "NOT_FOUND_OR_INVALID",
+      ipHash: requestMetadata.ipHash,
+      userAgent: requestMetadata.userAgent,
+      metadata: {
+        ipAttempts,
+      },
+    });
+
+    return verificationResult;
   } catch (error) {
     console.error("Public voucher verification failed", error);
+
+    await writeVoucherPublicVerificationAttemptLog({
+      auditOutcome: "UNKNOWN_ERROR",
+      ipHash: requestMetadata.ipHash,
+      userAgent: requestMetadata.userAgent,
+      metadata: {
+        ipAttempts,
+      },
+    });
 
     return { ok: false, reason: "UNKNOWN" };
   }
@@ -217,6 +266,10 @@ async function loadVerificationResult(code: string): Promise<VoucherVerification
 
 function getUnknownVerificationMessage() {
   return "Ověření teď není dostupné. Zkuste to prosím znovu později.";
+}
+
+function getRateLimitedVerificationMessage() {
+  return "Příliš mnoho pokusů o ověření. Počkejte prosím chvíli a zkuste to znovu.";
 }
 
 function formatCurrency(value: number) {

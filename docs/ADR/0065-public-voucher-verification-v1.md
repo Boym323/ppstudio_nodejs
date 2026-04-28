@@ -10,6 +10,7 @@
 - Veřejná route je `/vouchery/overeni` v public App Router části a přijímá volitelný query parametr `code`.
 - Stránka má `noindex` metadata a není zařazená do `sitemap.ts`.
 - Serverová validace běží přes `verifyVoucherPublic(...)` v `src/features/vouchers/lib/voucher-validation.ts`.
+- Route má server-side rate limit helper `src/features/vouchers/lib/voucher-public-verification-rate-limit.ts` nad `BookingSubmissionLog` (IP hash, 10 minut, max 10 pokusů) a audit outcome prefix `PUBLIC_VOUCHER_VERIFY_*`.
 - Helper normalizuje kód, čte jen bezpečný select voucheru a vrací union výsledek `ok: true/false`.
 - Platný výsledek smí ukázat jen kód, typ, zbývající hodnotu u hodnotového poukazu, název služby ze snapshotu u službového poukazu a platnost do.
 - Neplatný výsledek smí ukázat pouze bezpečné důvody: nenalezený, zatím neaktivní, uplatněný, propadlý, zrušený nebo bez dostupného zůstatku.
@@ -18,11 +19,13 @@
 - Použít admin detail read model: zamítnuto, protože obsahuje interní poznámky, historii čerpání, uživatele a další provozní data.
 - Použít booking validační helper: zamítnuto pro tuto route, protože vyžaduje `serviceId` a řeší i service mismatch, což samostatné ověření z QR kódu nepotřebuje.
 - Vracet detailní technický stav chyby: zamítnuto, protože veřejná stránka nemá prozrazovat interní chyby ani citlivé kontexty.
+- Spoléhat jen na reverse proxy/WAF bez aplikačního guardu: zamítnuto, protože veřejné ověření je snadný brute-force vektor a potřebuje i interní auditní stopu.
 
 ## Důsledky
 - Veřejné ověření je čistě read-only a nikdy nevytváří `VoucherRedemption`, nemění `remainingValueCzk` ani `Voucher.status`.
 - Pokud se rozšíří veřejně povolená pole voucheru, musí se změnit explicitní safe helper i testy.
 - QR odkazy z už stažených PDF zůstávají funkční, ale stránka se neindexuje.
+- Při překročení limitu stránka vrací obecnou bezpečnou hlášku a neprozrazuje existenci konkrétního voucheru.
 
 ## Stav
 - schváleno

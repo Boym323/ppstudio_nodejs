@@ -62,6 +62,7 @@ Dokumentace proměnných prostředí pro lokální vývoj i produkci.
 - Read-only panel `Úhrada` v detailu rezervace nepřidává žádnou novou env proměnnou; summary se počítá request-time z `Booking`, `Service` a existujících `VoucherRedemption` záznamů přes stávající `DATABASE_URL`.
 - PDF generátor voucheru nepřidává žádnou novou env proměnnou; QR kód používá existující `NEXT_PUBLIC_APP_URL` přes `siteConfig.url`, takže produkční hodnota musí mířit na veřejný HTTPS origin PP Studia.
 - Veřejná stránka ověření voucheru `/vouchery/overeni` nepřidává žádnou novou env proměnnou; používá stávající `DATABASE_URL` a QR odkazy z PDF dál vznikají z `NEXT_PUBLIC_APP_URL`.
+- Rate limit pro `/vouchery/overeni` nepřidává novou env proměnnou; limity jsou zatím fixované v `src/features/vouchers/lib/voucher-public-verification-rate-limit.ts` (okno 10 minut, IP limit 10).
 - `NEXT_PUBLIC_APP_URL` je stejně kritická i pro klientský self-service manage link `/rezervace/sprava/[token]`; pokud míří na špatný host nebo schéma, confirmation screen, potvrzovací e-mail i reminder povedou na neplatnou URL.
 - `NEXT_PUBLIC_APP_URL` je stejně kritická i pro zákaznický `.ics` odkaz `/api/bookings/calendar/[token].ics`; pokud míří na špatný host nebo schéma, CTA `Přidat do kalendáře` v potvrzovacím e-mailu povede na neplatnou URL.
 - `NEXT_PUBLIC_APP_URL` je stejně kritická i pro owner ICS subscription feed; z této hodnoty se skládá kopírovatelný Apple Calendar odkaz v adminu.
