@@ -12,6 +12,7 @@ export const voucherRedemptionErrorCodes = {
   invalidInput: "INVALID_INPUT",
   voucherNotFound: "VOUCHER_NOT_FOUND",
   bookingNotFound: "BOOKING_NOT_FOUND",
+  bookingAlreadyRedeemed: "BOOKING_ALREADY_REDEEMED",
   voucherNotRedeemable: "VOUCHER_NOT_REDEEMABLE",
   amountRequired: "AMOUNT_REQUIRED",
   insufficientRemainingValue: "INSUFFICIENT_REMAINING_VALUE",
@@ -80,8 +81,19 @@ export async function redeemVoucherForBooking(input: RedeemVoucherInput) {
 
     assertRedeemable(getEffectiveVoucherStatus(currentVoucher));
 
+    const [lockedBooking] = await tx.$queryRaw<Array<{ id: string }>>(Prisma.sql`
+      SELECT "id"
+      FROM "Booking"
+      WHERE "id" = ${parsed.data.bookingId}
+      FOR UPDATE
+    `);
+
+    if (!lockedBooking) {
+      throw new VoucherRedemptionError(voucherRedemptionErrorCodes.bookingNotFound, "Booking was not found.");
+    }
+
     const booking = await tx.booking.findUnique({
-      where: { id: parsed.data.bookingId },
+      where: { id: lockedBooking.id },
       select: {
         id: true,
         serviceId: true,
@@ -100,6 +112,18 @@ export async function redeemVoucherForBooking(input: RedeemVoucherInput) {
 
     if (!booking) {
       throw new VoucherRedemptionError(voucherRedemptionErrorCodes.bookingNotFound, "Booking was not found.");
+    }
+
+    const existingRedemption = await tx.voucherRedemption.findFirst({
+      where: { bookingId: booking.id },
+      select: { id: true },
+    });
+
+    if (existingRedemption) {
+      throw new VoucherRedemptionError(
+        voucherRedemptionErrorCodes.bookingAlreadyRedeemed,
+        "Booking already has a redeemed voucher.",
+      );
     }
 
     if (currentVoucher.type === VoucherType.VALUE) {

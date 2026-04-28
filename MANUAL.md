@@ -80,7 +80,7 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
 - Pushover kod je rozdeleny na Next.js wrapper `src/lib/notifications/pushover.ts` se `server-only` markerem a worker-safe implementaci `src/lib/notifications/pushover-core.ts`, kterou smi nacitat standalone `email:worker` pres `tsx`.
 - Admin detail rezervace nově podporuje samostatnou akci `Přesunout termín`; booking zůstává stejným záznamem, ale změna projde backend validací, auditním logem, resetem reminder návaznosti a volitelným klientským e-mailem `Termín byl změněn`.
 - Admin detail rezervace už nefunguje jako dlouhá informační stránka; nově je to rychlý rozhodovací panel se sticky hlavičkou, horním akčním blokem, kompaktním souhrnem v bočním sloupci a sjednoceným blokem poznámek.
-- Admin detail rezervace má panel `Voucher`: pokud booking nese `intendedVoucherId` nebo `intendedVoucherCodeSnapshot`, obsluha vidí kód, typ, efektivní stav a bezpečný popis; zároveň může zadat kód ručně, u hodnotového voucheru doplnit částku a voucher uplatnit při návštěvě v salonu.
+- Admin detail rezervace má panel `Voucher`: pokud booking nese `intendedVoucherId` nebo `intendedVoucherCodeSnapshot`, obsluha vidí kód, typ, efektivní stav a bezpečný popis; zároveň může zadat kód ručně, u hodnotového voucheru doplnit částku a voucher uplatnit při návštěvě v salonu. Jakmile je na rezervaci jeden voucher skutečně uplatněný, další voucher už na stejnou rezervaci přidat nejde.
 - Veřejné booking flow v kontaktním kroku nabízí volitelné pole `Kód voucheru`. Pokud je prázdné, rezervace pokračuje beze změny; pokud je vyplněné, server kód při vytvoření rezervace ověří a uloží ho jen jako intended voucher na `Booking`.
 - Skutečné čerpání voucheru v provozu vzniká pouze serverovou admin akcí v detailu rezervace, která zapisuje `VoucherRedemption`; samotné veřejné zadání nebo intent na `Booking` zůstatek nikdy neodečítá.
 - Veřejná stránka `/vouchery/overeni` slouží jen ke kontrole platnosti kódu z poukazu nebo QR odkazu `/vouchery/overeni?code=...`. Formulář vždy dovolí kód změnit a znovu ověřit; výsledek se počítá server-side po normalizaci kódu.
@@ -111,7 +111,7 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
   - hodnotový voucher (`VALUE`) drží původní a zbývající hodnotu v Kč a může být čerpaný postupně,
   - voucher na službu (`SERVICE`) drží snapshot služby v okamžiku vydání a po admin uplatnění se celý označí jako uplatněný,
   - veřejná validace voucheru při rezervaci pouze ověřuje použitelnost pro vybranou službu a nic neodečítá,
-  - skutečné čerpání vzniká pouze admin/server akcí, která zapisuje `VoucherRedemption`.
+  - skutečné čerpání vzniká pouze admin/server akcí, která zapisuje `VoucherRedemption`; jedna rezervace smí mít nejvýše jeden uplatněný voucher.
 - Admin evidence voucherů je dostupná pro `OWNER` na `/admin/vouchery` a pro `SALON` na `/admin/provoz/vouchery`.
 - Všechny voucher routy včetně detailu a vytvoření běží uvnitř standardního tmavého admin shellu; pokud voucher obrazovka vypadá světle nebo bez navigace, chybí příslušný route layout.
 - Seznam voucherů podporuje hledání podle query parametru `q`, filtr typu `type=all|value|service` a filtr stavu `status=all|active|partially_redeemed|redeemed|expired|cancelled|draft`.

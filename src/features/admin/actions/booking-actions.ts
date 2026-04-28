@@ -214,6 +214,8 @@ function getVoucherRedemptionFormError(error: VoucherRedemptionError) {
       return "Voucher s tímto kódem se nepodařilo najít.";
     case voucherRedemptionErrorCodes.bookingNotFound:
       return "Rezervaci se nepodařilo najít.";
+    case voucherRedemptionErrorCodes.bookingAlreadyRedeemed:
+      return "Na této rezervaci už je voucher uplatněný. Další voucher už nejde přidat.";
     case voucherRedemptionErrorCodes.voucherNotRedeemable:
       return "Voucher teď nejde uplatnit. Zkontrolujte jeho stav a platnost.";
     case voucherRedemptionErrorCodes.amountRequired:
@@ -441,7 +443,8 @@ export async function redeemBookingVoucherAction(
         formError: getVoucherRedemptionFormError(error),
         fieldErrors:
           error.code === voucherRedemptionErrorCodes.amountRequired ||
-          error.code === voucherRedemptionErrorCodes.insufficientRemainingValue
+          error.code === voucherRedemptionErrorCodes.insufficientRemainingValue ||
+          error.code === voucherRedemptionErrorCodes.bookingAlreadyRedeemed
             ? { amountCzk: getVoucherRedemptionFormError(error) }
             : error.code === voucherRedemptionErrorCodes.voucherNotFound
               ? { voucherCode: getVoucherRedemptionFormError(error) }

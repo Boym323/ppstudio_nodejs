@@ -1,7 +1,7 @@
 import "dotenv/config";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import test, { after, before, describe } from "node:test";
+import test, { after, afterEach, before, describe } from "node:test";
 
 import {
   AdminRole,
@@ -183,6 +183,21 @@ async function cleanupSeed(context: TestContext) {
 before(async () => {
   if (process.env.RUN_DB_INTEGRATION_TESTS === "1") {
     seed = await createSeed();
+  }
+});
+
+afterEach(async () => {
+  if (seed) {
+    const { prisma } = await loadModules();
+
+    await prisma.voucherRedemption.deleteMany({
+      where: {
+        OR: [
+          { bookingId: { in: seed.bookingIds } },
+          { redeemedByUserId: seed.actorUserId },
+        ],
+      },
+    });
   }
 });
 
@@ -372,6 +387,43 @@ describe("voucher domain", () => {
     assert.equal(result.voucher.remainingValueCzk, 0);
     assert.equal(result.voucher.status, VoucherStatus.REDEEMED);
     assert.equal(result.redemption.amountCzk, 1200);
+  });
+
+  dbTest("blocks another voucher redemption on an already paid booking", async () => {
+    assert.ok(seed);
+    const { createVoucher, redeemVoucherForBooking, VoucherRedemptionError } = await loadModules();
+    const firstVoucher = await createVoucher(
+      {
+        type: VoucherType.VALUE,
+        originalValueCzk: 500,
+      },
+      seed.actorUserId,
+    );
+    const secondVoucher = await createVoucher(
+      {
+        type: VoucherType.VALUE,
+        originalValueCzk: 500,
+      },
+      seed.actorUserId,
+    );
+
+    await redeemVoucherForBooking({
+      voucherCode: firstVoucher.code,
+      bookingId: seed.bookingIds[0],
+      amountCzk: 500,
+      redeemedByUserId: seed.actorUserId,
+    });
+
+    await assert.rejects(
+      () =>
+        redeemVoucherForBooking({
+          voucherCode: secondVoucher.code,
+          bookingId: seed.bookingIds[0],
+          amountCzk: 500,
+          redeemedByUserId: seed.actorUserId,
+        }),
+      (error) => error instanceof VoucherRedemptionError && error.code === "BOOKING_ALREADY_REDEEMED",
+    );
   });
 
   dbTest("redeems SERVICE voucher and blocks second redemption", async () => {
