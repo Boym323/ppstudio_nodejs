@@ -279,49 +279,73 @@ function BookingVoucherPanel({ data }: { data: AdminBookingDetailData }) {
     intendedVoucher?.code ?? data.voucher.intendedVoucherCodeSnapshot ?? "";
   const hasRedemptions = data.voucher.redemptions.length > 0;
   const canRedeemAnotherVoucher = !hasRedemptions && paymentSummary.remainingAmountCzk !== 0;
+  const hasVoucherIntent = Boolean(intendedVoucher || data.voucher.intendedVoucherCodeSnapshot);
   const amountHint = getVoucherAmountHint(intendedVoucher, paymentSummary.remainingAmountCzk);
+  const voucherForm = canRedeemAnotherVoucher ? (
+    <AdminBookingVoucherForm
+      id="booking-voucher-form"
+      area={data.area}
+      bookingId={data.id}
+      initialVoucherCode={initialVoucherCode}
+      intendedVoucherType={intendedVoucher?.type ?? null}
+      defaultAmountCzk={intendedVoucher?.defaultRedeemAmountCzk ?? paymentSummary.remainingAmountCzk}
+      amountHint={amountHint}
+    />
+  ) : null;
 
   return (
     <AdminPanel title="Úhrada" compact={data.area === "salon"} denseHeader>
       <div className="space-y-3">
         <PaymentSummaryBlock paymentSummary={paymentSummary} />
+        <p className="text-xs leading-4 text-white/42">
+          V této verzi evidujeme pouze úhrady voucherem.
+        </p>
 
         <div className="space-y-2">
-          <div>
-            <p className="text-[0.66rem] uppercase tracking-[0.18em] text-white/45">
-              Dárkový poukaz
-            </p>
-            <p className="mt-1 text-sm leading-5 text-white/58">
-              Voucher je jediný zdroj evidované úhrady; hotovost a karta se tu nezapisují.
-            </p>
-          </div>
+          <p className="text-[0.66rem] uppercase tracking-[0.18em] text-white/45">Dárkový poukaz</p>
 
           {intendedVoucher ? (
             <div className="rounded-[1rem] border border-[var(--color-accent)]/18 bg-[rgba(190,160,120,0.08)] p-3.5">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-[0.66rem] uppercase tracking-[0.18em] text-white/45">
-                    Klientka poukaz uvedla při rezervaci.
+                    Klientka uvedla poukaz při rezervaci
                   </p>
                   <p className="mt-1 font-mono text-lg font-semibold tracking-[0.12em] text-white">
                     {intendedVoucher.code}
                   </p>
                 </div>
-                <span className="rounded-full border border-white/10 bg-black/18 px-2.5 py-1 text-[0.64rem] font-semibold uppercase tracking-[0.16em] text-white/66">
-                  {intendedVoucher.statusLabel}
-                </span>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="rounded-full border border-white/10 bg-black/18 px-2.5 py-1 text-[0.64rem] font-semibold uppercase tracking-[0.16em] text-white/66">
+                    {intendedVoucher.typeLabel}
+                  </span>
+                  <span className="rounded-full border border-white/10 bg-black/18 px-2.5 py-1 text-[0.64rem] font-semibold uppercase tracking-[0.16em] text-white/66">
+                    {intendedVoucher.statusLabel}
+                  </span>
+                </div>
               </div>
-              <dl className="mt-3 grid gap-2 sm:grid-cols-3">
-                <VoucherMiniRow label="Typ" value={intendedVoucher.typeLabel} />
+              <dl className="mt-3 grid gap-2 sm:grid-cols-2">
                 <VoucherMiniRow label="Hodnota / služba" value={intendedVoucher.valueLabel} />
                 <VoucherMiniRow label="Zbývá" value={intendedVoucher.remainingLabel} />
               </dl>
-              <p className="mt-3 text-sm leading-5 text-white/64">{intendedVoucher.safeDescription}</p>
-              {data.voucher.intendedVoucherValidatedAtLabel ? (
-                <p className="mt-2 text-xs leading-4 text-white/42">
-                  Ověřeno při zadání: {data.voucher.intendedVoucherValidatedAtLabel}
-                </p>
-              ) : null}
+              <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                  <p className="text-sm leading-5 text-white/64">{intendedVoucher.safeDescription}</p>
+                  {data.voucher.intendedVoucherValidatedAtLabel ? (
+                    <p className="mt-1.5 text-xs leading-4 text-white/42">
+                      Ověřeno při zadání: {data.voucher.intendedVoucherValidatedAtLabel}
+                    </p>
+                  ) : null}
+                </div>
+                {voucherForm ? (
+                  <a
+                    href="#booking-voucher-form"
+                    className="inline-flex min-h-10 shrink-0 items-center justify-center rounded-full border border-[var(--color-accent)]/28 bg-[var(--color-accent)]/12 px-3.5 py-2 text-sm font-semibold text-[var(--color-accent-soft)] transition hover:border-[var(--color-accent)]/42 hover:bg-[var(--color-accent)]/18"
+                  >
+                    Uplatnit tento voucher
+                  </a>
+                ) : null}
+              </div>
             </div>
           ) : data.voucher.intendedVoucherCodeSnapshot ? (
             <div className="rounded-[1rem] border border-white/8 bg-white/[0.035] p-3.5">
@@ -334,21 +358,28 @@ function BookingVoucherPanel({ data }: { data: AdminBookingDetailData }) {
           ) : (
             <div className="rounded-[1rem] border border-dashed border-white/12 bg-white/[0.03] px-3.5 py-3">
               <p className="text-sm text-white/64">
-                K rezervaci není připojen žádný voucher. Pokud klientka poukaz přinese, zadejte kód ručně níže.
+                K rezervaci není připojen žádný voucher.
               </p>
             </div>
           )}
         </div>
 
-        {canRedeemAnotherVoucher ? (
-          <AdminBookingVoucherForm
-            area={data.area}
-            bookingId={data.id}
-            initialVoucherCode={initialVoucherCode}
-            intendedVoucherType={intendedVoucher?.type ?? null}
-            defaultAmountCzk={intendedVoucher?.defaultRedeemAmountCzk ?? paymentSummary.remainingAmountCzk}
-            amountHint={amountHint}
-          />
+        {voucherForm && hasVoucherIntent ? (
+          <div className="rounded-[1rem] border border-white/8 bg-white/[0.03] p-3.5">
+            {voucherForm}
+          </div>
+        ) : voucherForm ? (
+          <details className="group rounded-[1rem] border border-white/8 bg-white/[0.03]">
+            <summary className="cursor-pointer list-none px-3.5 py-3 marker:hidden">
+              <span className="inline-flex min-h-10 items-center justify-center rounded-full bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-[var(--color-accent-contrast)] transition group-open:hidden hover:brightness-105">
+                + Uplatnit voucher
+              </span>
+              <span className="hidden text-sm font-medium text-white/78 group-open:inline">
+                Uplatnění voucheru
+              </span>
+            </summary>
+            <div className="border-t border-white/8 px-3.5 py-3">{voucherForm}</div>
+          </details>
         ) : (
           <div className="rounded-[1rem] border border-white/8 bg-white/[0.03] px-3.5 py-3">
             <p className="text-sm leading-5 text-white/58">
@@ -382,31 +413,42 @@ function PaymentSummaryBlock({
         paymentSummary.remainingAmountCzk === null
           ? "Nelze spočítat"
           : formatCzk(paymentSummary.remainingAmountCzk),
-    },
-    {
-      label: "Stav úhrady",
-      value: paymentSummary.paymentStatusLabel,
-      tone: paymentSummary.paymentStatus,
+      emphasis: true,
     },
   ];
 
   return (
-    <dl className="grid gap-2 md:grid-cols-4">
-      {items.map((item) => (
-        <div
-          key={item.label}
-          className={cn(
-            "rounded-[1rem] border px-3.5 py-3",
-            item.tone
-              ? getPaymentStatusCardClassName(item.tone)
-              : "border-white/8 bg-white/[0.035]",
-          )}
-        >
-          <dt className="text-[0.62rem] uppercase tracking-[0.16em] text-white/42">{item.label}</dt>
-          <dd className="mt-1 text-sm font-semibold leading-5 text-white/86">{item.value}</dd>
-        </div>
-      ))}
-    </dl>
+    <div className="rounded-[1rem] border border-white/8 bg-white/[0.035] p-3">
+      <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2">
+        <p className="text-[0.62rem] uppercase tracking-[0.16em] text-white/42">Platební souhrn</p>
+        <span className={getPaymentStatusBadgeClassName(paymentSummary.paymentStatus)}>
+          {paymentSummary.paymentStatusLabel}
+        </span>
+      </div>
+      <dl className="grid gap-2 md:grid-cols-3">
+        {items.map((item) => (
+          <div
+            key={item.label}
+            className={cn(
+              "rounded-[0.85rem] border px-3 py-2.5",
+              item.emphasis
+                ? "border-[var(--color-accent)]/26 bg-[rgba(190,160,120,0.11)]"
+                : "border-white/8 bg-black/14",
+            )}
+          >
+            <dt className="text-[0.62rem] uppercase tracking-[0.16em] text-white/42">{item.label}</dt>
+            <dd
+              className={cn(
+                "mt-1 font-semibold leading-5",
+                item.emphasis ? "text-lg text-white" : "text-sm text-white/82",
+              )}
+            >
+              {item.value}
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </div>
   );
 }
 
@@ -446,14 +488,15 @@ function VoucherRedemptionsList({
   if (!hasRedemptions) {
     return (
       <div className="rounded-[1rem] border border-white/8 bg-white/[0.03] px-3.5 py-3">
-        <p className="text-sm text-white/58">Historie uplatnění u této rezervace je zatím prázdná.</p>
+        <p className="text-[0.66rem] uppercase tracking-[0.18em] text-white/45">Historie úhrad</p>
+        <p className="mt-1 text-sm text-white/58">Zatím zde není evidovaná žádná úhrada.</p>
       </div>
     );
   }
 
   return (
     <div className="space-y-2.5">
-      <p className="text-[0.66rem] uppercase tracking-[0.18em] text-white/45">Historie uplatnění</p>
+      <p className="text-[0.66rem] uppercase tracking-[0.18em] text-white/45">Historie úhrad</p>
       {redemptions.map((redemption) => (
         <article key={redemption.id} className="rounded-[1rem] border border-white/8 bg-white/[0.035] px-3.5 py-3">
           <div className="flex flex-wrap items-start justify-between gap-2">
@@ -704,16 +747,16 @@ function getHistoryBadgeClassName(status: AdminBookingDetailData["historyItems"]
   return getStatusBadgeClassName(status);
 }
 
-function getPaymentStatusCardClassName(
+function getPaymentStatusBadgeClassName(
   status: AdminBookingDetailData["voucher"]["paymentSummary"]["paymentStatus"],
 ) {
   switch (status) {
     case "PAID":
-      return "border-emerald-300/18 bg-emerald-500/10";
+      return "inline-flex rounded-full border border-emerald-300/35 bg-emerald-500/12 px-2.5 py-1 text-[0.64rem] font-semibold uppercase tracking-[0.16em] text-emerald-100";
     case "PARTIALLY_PAID":
-      return "border-amber-300/18 bg-amber-500/10";
+      return "inline-flex rounded-full border border-amber-300/35 bg-amber-500/12 px-2.5 py-1 text-[0.64rem] font-semibold uppercase tracking-[0.16em] text-amber-100";
     case "UNPAID":
-      return "border-white/8 bg-white/[0.035]";
+      return "inline-flex rounded-full border border-white/12 bg-white/8 px-2.5 py-1 text-[0.64rem] font-semibold uppercase tracking-[0.16em] text-white/72";
   }
 }
 
