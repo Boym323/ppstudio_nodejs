@@ -155,7 +155,7 @@ export function AdminVoucherDetailPage({ data }: { data: AdminVoucherDetailData 
 
       <AdminPanel
         title="Odeslání e-mailem"
-        description="Stručná historie posledních pokusů odeslání voucheru e-mailem."
+        description="Poslední pokusy o odeslání voucheru."
         compact={data.area === "salon"}
         denseHeader
       >
@@ -287,49 +287,44 @@ function VoucherEmailHistory({
       <dl className="grid gap-3 lg:grid-cols-3">
         <SummaryMetric label="Poslední stav" value={formatEmailHistoryStatus(latest.status)} />
         <SummaryMetric label="Poslední příjemce" value={latest.recipientEmail} />
-        <SummaryMetric
-          label="Datum posledního pokusu / odeslání"
-          value={formatDateTimeLabel(latest.sentAt ?? latest.createdAt)}
-        />
+        <SummaryMetric label="Poslední pokus" value={formatDateTimeLabel(latest.sentAt ?? latest.createdAt)} />
       </dl>
 
-      <div className="grid gap-3">
+      <div className="overflow-hidden rounded-[1.1rem] border border-white/8 bg-white/[0.03]">
         {emailHistory.map((entry) => {
           const occurredAt = entry.sentAt ?? entry.createdAt;
 
           return (
-            <article key={entry.id} className="rounded-[1.1rem] border border-white/8 bg-white/5 p-4">
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                <div className="min-w-0">
-                  <p className="text-base font-medium text-white">{formatDateTimeLabel(occurredAt)}</p>
-                  <p className="mt-1 break-words text-sm leading-6 text-white/58">{entry.recipientEmail}</p>
+            <article
+              key={entry.id}
+              className="border-t border-white/8 px-4 py-3 first:border-t-0"
+            >
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0 space-y-1">
+                  <p className="text-sm font-medium text-white">
+                    {formatDateTimeLabel(occurredAt)} · {entry.recipientEmail}
+                  </p>
+                  {entry.errorMessage ? (
+                    <p className="text-sm leading-6 text-red-100">{entry.errorMessage}</p>
+                  ) : null}
                 </div>
-                <span
-                  className={cn(
-                    "inline-flex w-fit items-center rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em]",
-                    getEmailHistoryStatusClassName(entry.status),
-                  )}
-                >
-                  {formatEmailHistoryStatus(entry.status)}
-                </span>
-              </div>
 
-              {entry.errorMessage ? (
-                <p className="mt-3 rounded-[0.95rem] border border-red-300/10 bg-red-500/10 px-3 py-2 text-sm leading-6 text-red-100">
-                  {entry.errorMessage}
-                </p>
-              ) : null}
-
-              <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-                <p className="text-xs uppercase tracking-[0.16em] text-white/42">
-                  {entry.sentAt ? "Odesláno" : "Vytvořeno"}
-                </p>
-                <Link
-                  href={`/admin/email-logy/${entry.id}`}
-                  className="text-sm font-medium text-[var(--color-accent)] transition hover:brightness-110"
-                >
-                  Detail v email logu
-                </Link>
+                <div className="flex items-center gap-3 sm:shrink-0 sm:justify-end">
+                  <span
+                    className={cn(
+                      "inline-flex w-fit items-center rounded-full border px-3 py-1 text-xs font-semibold",
+                      getEmailHistoryStatusClassName(entry.status),
+                    )}
+                  >
+                    {formatEmailHistoryStatus(entry.status)}
+                  </span>
+                  <Link
+                    href={`/admin/email-logy/${entry.id}`}
+                    className="text-sm font-medium text-[var(--color-accent)] transition hover:brightness-110"
+                  >
+                    Detail
+                  </Link>
+                </div>
               </div>
             </article>
           );
@@ -605,7 +600,7 @@ function formatEmailHistoryStatus(status: AdminVoucherDetailData["emailHistory"]
     case "SENT":
       return "Odesláno";
     case "FAILED":
-      return "Chyba odeslání";
+      return "Chyba";
   }
 }
 

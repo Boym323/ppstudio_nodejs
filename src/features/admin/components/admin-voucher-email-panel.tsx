@@ -37,7 +37,7 @@ export function AdminVoucherEmailPanel({
     <section className="rounded-[1.1rem] border border-white/8 bg-white/5 p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-sm font-semibold text-white">Poslat e-mailem</p>
+          <p className="text-sm font-semibold text-white">Odeslat voucher</p>
           <p className="mt-1 text-sm leading-6 text-white/62">
             Voucher se odešle pouze po potvrzení formuláře.
           </p>
