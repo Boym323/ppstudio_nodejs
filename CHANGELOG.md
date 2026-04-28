@@ -6,6 +6,9 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Success hláška po uplatnění hodnotového voucheru nově upozorní na částečnou úhradu: pokud voucher pokryje méně než zadanou částku, zobrazí uplatněnou částku i zbývající doplatek mimo voucher.
+- Admin uplatnění hodnotového voucheru už při ručním zadání kódu neblokuje rezervaci s dražší službou než zůstatek voucheru; pokud zadaná částka převyšuje zůstatek, automaticky se uplatní dostupná zbývající hodnota voucheru.
+- Admin uplatnění hodnotového voucheru má srozumitelnější chování při dražší službě než zůstatek voucheru: formulář u intended voucheru vysvětlí částečnou úhradu a serverová hláška říká, že se má zadat maximálně zbývající hodnota voucheru.
 - Admin uplatnění voucheru nově blokuje druhý voucher na stejné rezervaci. Jakmile má rezervace zapsaný `VoucherRedemption`, další pokus vrátí bezpečnou hlášku, že voucher už je na rezervaci uplatněný.
 - Opraveno uplatnění voucheru v admin detailu rezervace: pole `Částka k uplatnění` už nepoužívá `step=50` s `min=1` (kombinace blokovala běžné částky jako `1200` nativní browser hláškou „zadejte platnou hodnotu“); nově přijímá celé Kč po 1.
 - Přidána veřejná noindex stránka `/vouchery/overeni?code=...` pro bezpečné ověření voucheru z QR kódu v PDF; zobrazuje jen kód, typ, zbývající hodnotu u hodnotového poukazu, službu u službového poukazu a platnost bez kupujícího, interních poznámek, technických ID nebo historie čerpání.

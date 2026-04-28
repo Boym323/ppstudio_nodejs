@@ -221,7 +221,7 @@ function getVoucherRedemptionFormError(error: VoucherRedemptionError) {
     case voucherRedemptionErrorCodes.amountRequired:
       return "U hodnotového voucheru zadejte částku k uplatnění.";
     case voucherRedemptionErrorCodes.insufficientRemainingValue:
-      return "Částka je vyšší než zbývající hodnota voucheru.";
+      return "Voucher nemá tak vysoký zůstatek. Zadejte maximálně zbývající hodnotu voucheru; zbytek ceny se doplatí mimo voucher.";
     case voucherRedemptionErrorCodes.serviceMismatch:
       return "Tento voucher je vystavený na jinou službu než aktuální rezervace.";
     case voucherRedemptionErrorCodes.concurrentRedemption:
@@ -229,6 +229,36 @@ function getVoucherRedemptionFormError(error: VoucherRedemptionError) {
     default:
       return "Voucher se nepodařilo uplatnit. Zkontrolujte kód a zkuste to znovu.";
   }
+}
+
+const czkFormatter = new Intl.NumberFormat("cs-CZ", {
+  maximumFractionDigits: 0,
+  style: "currency",
+  currency: "CZK",
+});
+
+function formatCzk(value: number) {
+  return czkFormatter.format(value);
+}
+
+function getVoucherRedemptionSuccessMessage(
+  area: AdminArea,
+  requestedAmountCzk: number | undefined,
+  redeemedAmountCzk: number | null,
+) {
+  if (
+    typeof requestedAmountCzk === "number" &&
+    typeof redeemedAmountCzk === "number" &&
+    redeemedAmountCzk < requestedAmountCzk
+  ) {
+    const remainingAmountCzk = requestedAmountCzk - redeemedAmountCzk;
+
+    return `Voucher je uplatněný ve výši ${formatCzk(redeemedAmountCzk)}. Nepokrývá celou zadanou částku; zbývá doplatek ${formatCzk(remainingAmountCzk)} mimo voucher.`;
+  }
+
+  return area === "salon"
+    ? "Voucher je uplatněný a propsal se do detailu rezervace."
+    : "Voucher je uplatněný a historie rezervace je aktuální.";
 }
 
 function resolveManualStartsAt(dateValue: string, timeValue: string) {
@@ -425,6 +455,7 @@ export async function redeemBookingVoucherAction(
   const actorUserId = await resolveVoucherRedemptionActorUserId(session.email);
 
   let redeemedVoucherId: string | null = null;
+  let redeemedAmountCzk: number | null = null;
 
   try {
     const result = await redeemVoucherForBooking({
@@ -436,6 +467,7 @@ export async function redeemBookingVoucherAction(
     });
 
     redeemedVoucherId = result.voucher.id;
+    redeemedAmountCzk = result.redemption.amountCzk;
   } catch (error) {
     if (error instanceof VoucherRedemptionError) {
       return {
@@ -471,10 +503,11 @@ export async function redeemBookingVoucherAction(
 
   return {
     status: "success",
-    successMessage:
-      area === "salon"
-        ? "Voucher je uplatněný a propsal se do detailu rezervace."
-        : "Voucher je uplatněný a historie rezervace je aktuální.",
+    successMessage: getVoucherRedemptionSuccessMessage(
+      area,
+      parsed.data.amountCzk,
+      redeemedAmountCzk,
+    ),
   };
 }
 

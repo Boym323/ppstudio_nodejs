@@ -14,6 +14,7 @@ type AdminBookingVoucherFormProps = {
   initialVoucherCode: string;
   intendedVoucherType: VoucherType | null;
   defaultAmountCzk: number | null;
+  amountHint?: string | null;
 };
 
 export function AdminBookingVoucherForm({
@@ -22,6 +23,7 @@ export function AdminBookingVoucherForm({
   initialVoucherCode,
   intendedVoucherType,
   defaultAmountCzk,
+  amountHint,
 }: AdminBookingVoucherFormProps) {
   const [serverState, formAction] = useActionState(
     redeemBookingVoucherAction,
@@ -75,6 +77,9 @@ export function AdminBookingVoucherForm({
               placeholder="Např. 1200"
               className="mt-2 w-full rounded-[1rem] border border-white/8 bg-black/20 px-3.5 py-2.5 text-sm text-white outline-none transition placeholder:text-white/30 focus:border-[var(--color-accent)]/55"
             />
+            {amountHint ? (
+              <p className="mt-2 text-sm leading-5 text-white/48">{amountHint}</p>
+            ) : null}
             {serverState.fieldErrors?.amountCzk ? (
               <p className="mt-2 text-sm text-red-300">{serverState.fieldErrors.amountCzk}</p>
             ) : null}

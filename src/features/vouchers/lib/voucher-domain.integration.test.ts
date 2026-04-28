@@ -389,6 +389,29 @@ describe("voucher domain", () => {
     assert.equal(result.redemption.amountCzk, 1200);
   });
 
+  dbTest("redeems remaining VALUE balance when requested amount is higher", async () => {
+    assert.ok(seed);
+    const { createVoucher, redeemVoucherForBooking } = await loadModules();
+    const voucher = await createVoucher(
+      {
+        type: VoucherType.VALUE,
+        originalValueCzk: 500,
+      },
+      seed.actorUserId,
+    );
+
+    const result = await redeemVoucherForBooking({
+      voucherCode: voucher.code,
+      bookingId: seed.bookingIds[0],
+      amountCzk: 1200,
+      redeemedByUserId: seed.actorUserId,
+    });
+
+    assert.equal(result.voucher.remainingValueCzk, 0);
+    assert.equal(result.voucher.status, VoucherStatus.REDEEMED);
+    assert.equal(result.redemption.amountCzk, 500);
+  });
+
   dbTest("blocks another voucher redemption on an already paid booking", async () => {
     assert.ok(seed);
     const { createVoucher, redeemVoucherForBooking, VoucherRedemptionError } = await loadModules();

@@ -127,20 +127,21 @@ export async function redeemVoucherForBooking(input: RedeemVoucherInput) {
     }
 
     if (currentVoucher.type === VoucherType.VALUE) {
-      const amountCzk = parsed.data.amountCzk;
+      const requestedAmountCzk = parsed.data.amountCzk;
       const remainingValueCzk = currentVoucher.remainingValueCzk ?? 0;
 
-      if (!amountCzk) {
+      if (!requestedAmountCzk) {
         throw new VoucherRedemptionError(voucherRedemptionErrorCodes.amountRequired, "Amount is required.");
       }
 
-      if (amountCzk > remainingValueCzk) {
+      if (remainingValueCzk <= 0) {
         throw new VoucherRedemptionError(
           voucherRedemptionErrorCodes.insufficientRemainingValue,
-          "Voucher does not have enough remaining value.",
+          "Voucher does not have any remaining value.",
         );
       }
 
+      const amountCzk = Math.min(requestedAmountCzk, remainingValueCzk);
       const nextRemainingValueCzk = remainingValueCzk - amountCzk;
       const nextStatus =
         nextRemainingValueCzk > 0 ? VoucherStatus.PARTIALLY_REDEEMED : VoucherStatus.REDEEMED;

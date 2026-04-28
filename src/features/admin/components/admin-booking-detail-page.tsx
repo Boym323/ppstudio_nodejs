@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { VoucherType } from "@prisma/client";
 
 import { type AdminBookingDetailData } from "@/features/admin/lib/admin-booking";
 import { cn } from "@/lib/utils";
@@ -276,6 +277,7 @@ function BookingVoucherPanel({ data }: { data: AdminBookingDetailData }) {
   const initialVoucherCode =
     intendedVoucher?.code ?? data.voucher.intendedVoucherCodeSnapshot ?? "";
   const hasRedemptions = data.voucher.redemptions.length > 0;
+  const amountHint = getVoucherAmountHint(intendedVoucher, data.servicePriceFromCzk);
 
   return (
     <AdminPanel title="Voucher" compact={data.area === "salon"} denseHeader>
@@ -327,12 +329,30 @@ function BookingVoucherPanel({ data }: { data: AdminBookingDetailData }) {
           initialVoucherCode={initialVoucherCode}
           intendedVoucherType={intendedVoucher?.type ?? null}
           defaultAmountCzk={intendedVoucher?.defaultRedeemAmountCzk ?? data.servicePriceFromCzk}
+          amountHint={amountHint}
         />
 
         <VoucherRedemptionsList redemptions={data.voucher.redemptions} hasRedemptions={hasRedemptions} />
       </div>
     </AdminPanel>
   );
+}
+
+function getVoucherAmountHint(
+  voucher: AdminBookingDetailData["voucher"]["intendedVoucher"],
+  servicePriceFromCzk: number | null,
+) {
+  if (!voucher || voucher.type !== VoucherType.VALUE) {
+    return null;
+  }
+
+  const remainingValueCzk = voucher.remainingValueCzk ?? 0;
+
+  if (remainingValueCzk <= 0 || !servicePriceFromCzk || remainingValueCzk >= servicePriceFromCzk) {
+    return null;
+  }
+
+  return `Voucher pokryje maximálně ${formatCzk(remainingValueCzk)}. Zbytek ceny služby se doplatí mimo voucher.`;
 }
 
 function VoucherMiniRow({ label, value }: { label: string; value: string }) {
