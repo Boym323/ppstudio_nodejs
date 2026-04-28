@@ -290,12 +290,12 @@ function RedemptionsList({
                   {redemption.bookingHref ? (
                     <Link
                       href={redemption.bookingHref}
-                      className="inline-flex max-w-full rounded-full border border-white/10 px-3 py-1.5 text-sm text-white/76 transition hover:border-white/20 hover:text-white"
+                      className="group block max-w-full rounded-[1rem] border border-white/10 bg-white/[0.03] px-3.5 py-3 transition hover:border-white/20 hover:bg-white/[0.05]"
                     >
-                      {formatBookingLabel(redemption.booking)}
+                      <BookingCell booking={redemption.booking} interactive />
                     </Link>
                   ) : (
-                    formatBookingLabel(redemption.booking)
+                    <BookingCell booking={redemption.booking} />
                   )}
                 </td>
                 <td className="px-4 py-4 text-sm leading-6 text-white/86">
@@ -422,6 +422,35 @@ function formatRedemptionAmountServiceLabel(
   }
 
   return "Bez údajů";
+}
+
+function BookingCell({
+  booking,
+  interactive = false,
+}: {
+  booking: AdminVoucherDetailData["redemptions"][number]["booking"];
+  interactive?: boolean;
+}) {
+  if (!booking) {
+    return <span className="text-white/42">Nevyplněno</span>;
+  }
+
+  return (
+    <div className="min-w-0 space-y-1">
+      <p
+        className={cn(
+          "truncate text-sm font-medium",
+          interactive ? "text-white/88 transition group-hover:text-white" : "text-white/88",
+        )}
+      >
+        {booking.clientNameSnapshot}
+      </p>
+      <p className="truncate text-sm text-white/58">{booking.serviceNameSnapshot}</p>
+      <p className="text-xs uppercase tracking-[0.14em] text-white/42">
+        {formatDateTimeLabel(booking.scheduledStartsAt)}
+      </p>
+    </div>
+  );
 }
 
 function DetailRow({
