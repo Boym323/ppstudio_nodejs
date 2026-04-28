@@ -69,7 +69,7 @@ export function AdminBookingVoucherForm({
               type="number"
               name="amountCzk"
               min={1}
-              step={50}
+              step={1}
               inputMode="numeric"
               defaultValue={defaultAmountCzk && defaultAmountCzk > 0 ? defaultAmountCzk : undefined}
               placeholder="Např. 1200"

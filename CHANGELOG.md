@@ -6,6 +6,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Opraveno uplatnění voucheru v admin detailu rezervace: pole `Částka k uplatnění` už nepoužívá `step=50` s `min=1` (kombinace blokovala běžné částky jako `1200` nativní browser hláškou „zadejte platnou hodnotu“); nově přijímá celé Kč po 1.
 - Přidána veřejná noindex stránka `/vouchery/overeni?code=...` pro bezpečné ověření voucheru z QR kódu v PDF; zobrazuje jen kód, typ, zbývající hodnotu u hodnotového poukazu, službu u službového poukazu a platnost bez kupujícího, interních poznámek, technických ID nebo historie čerpání.
 - Veřejné ověření voucheru má vlastní serverový helper `verifyVoucherPublic(...)`, který normalizuje kód, vrací bezpečné důvody neplatnosti a nikdy nevytváří `VoucherRedemption`, nemění zůstatek ani status voucheru.
 - Opraveno HTML ověření částky při tvorbě hodnotového voucheru; běžné celé částky jako `1500` už prohlížeč neblokuje kvůli kroku číselného pole.
