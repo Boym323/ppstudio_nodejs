@@ -633,6 +633,7 @@ npm run db:clear-booking-data -- --confirm
 - `sitemap.ts` nepoužívá jednotné „teď“ (`new Date()`) pro všechny URL: detail služby má `lastModified` z `Service.updatedAt`, statické stránky mají stabilní datum poslední obsahové revize.
 - Produkční `robots.txt` pouští crawl celého veřejného webu přes `Allow: /`; neveřejné admin a tokenové routy zůstávají blokované, aby se neindexovaly citlivé odkazy.
 - Root metadata branding (`applicationName`, title template a OpenGraph `siteName`) se načítá z `SiteSettings.salonName`; canonical URL base zůstává technicky na `NEXT_PUBLIC_APP_URL`.
+- Voucher PDF kontaktní doména je od runtime URL oddělená: použij `VOUCHER_PUBLIC_DOMAIN` (priorita) nebo `NEXT_PUBLIC_SITE_DOMAIN`; fallback na `NEXT_PUBLIC_APP_URL` hostname se použije jen pro bezpečně veřejné hosty.
 - Veřejné čtení `SiteSettings` už při renderu nezapisuje do DB; pokud singleton dočasně chybí nebo DB read selže, veřejný web a e-mailové šablony použijí bezpečné defaulty a bootstrap zápis zůstává jen v owner admin sekci `Nastavení`.
 - Rezervační část má vlastní error boundary a loading fallback, takže výpadek booking vrstvy nepoškodí celý web.
 - Background e-mail worker lze spustit přes `npm run email:worker` jako samostatný proces; pro jednorázové dohnání fronty je k dispozici `npm run email:worker:once`.

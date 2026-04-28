@@ -6,6 +6,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Opraven kontakt ve voucher PDF pro CI/runtime hosty: textová doména už nebere slepě `NEXT_PUBLIC_APP_URL` hostname. Nově má prioritu `VOUCHER_PUBLIC_DOMAIN` -> `NEXT_PUBLIC_SITE_DOMAIN` -> bezpečný veřejný hostname z `NEXT_PUBLIC_APP_URL`; localhost/privátní IP se do kontaktu nevypisují.
 - Veřejné ověření voucheru `/vouchery/overeni` je nově chráněné server-side rate limitem podle IP hashe (okno 10 minut, limit 10 pokusů), zapisuje auditní stopu do `BookingSubmissionLog` s prefixem `PUBLIC_VOUCHER_VERIFY_*` a při překročení vrací bezpečnou hlášku bez prozrazení detailu.
 - Stabilizováno veřejné vytvoření rezervace při souběžném DB provozu: retry pro serializační konflikt Prisma `P2034` byl navýšen z `3` na `5` pokusů a mezi pokusy je krátký lineární backoff, aby CI i produkční provoz méně padaly na náhodný write/deadlock konflikt.
 - Finální polish layoutu PDF voucheru: horní blok logo/subtitle je bez překryvů, nadpis `Dárkový poukaz` začíná až pod brand blokem s větším odsazením, QR a kontaktní patička mají čistší rozestupy a dlouhé názvy služeb se bezpečně zalamují bez kolize s QR sloupcem.

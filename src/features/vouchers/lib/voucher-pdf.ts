@@ -8,6 +8,7 @@ import { MediaAssetVisibility, MediaStorageProvider, VoucherType } from "@prisma
 import { PDFDocument, type PDFFont, type PDFImage, type PDFPage, rgb } from "pdf-lib";
 import QRCode from "qrcode";
 
+import { env } from "@/config/env";
 import { siteConfig } from "@/config/site";
 import { formatVoucherValue } from "@/features/vouchers/lib/voucher-format";
 import { type getVoucherDetail } from "@/features/vouchers/lib/voucher-read-models";
@@ -119,7 +120,7 @@ export function buildVoucherPdfContactLines(
   settings: Pick<SiteSettingsRecord, "addressLine" | "postalCode" | "city" | "phone" | "contactEmail">,
 ) {
   const hasAddress = [settings.addressLine, settings.postalCode, settings.city].some((value) => value.trim().length > 0);
-  const contactItems = [settings.phone.trim(), settings.contactEmail.trim(), formatSiteUrlForPdf(siteConfig.url)].filter(Boolean);
+  const contactItems = [settings.phone.trim(), settings.contactEmail.trim(), resolveVoucherPublicDomain()].filter(Boolean);
 
   return [hasAddress ? getSalonAddressLine(settings).trim() : "", contactItems.join(" · ")].filter(Boolean);
 }
@@ -377,8 +378,71 @@ function formatSiteUrlForPdf(url: string) {
   try {
     return new URL(url).hostname.replace(/^www\./, "");
   } catch {
-    return "ppstudio.cz";
+    return "";
   }
+}
+
+function resolveVoucherPublicDomain() {
+  const explicitDomain = sanitizePublicDomain(env.VOUCHER_PUBLIC_DOMAIN) ?? sanitizePublicDomain(env.NEXT_PUBLIC_SITE_DOMAIN);
+
+  if (explicitDomain) {
+    return explicitDomain;
+  }
+
+  const appDomain = sanitizePublicDomain(formatSiteUrlForPdf(siteConfig.url));
+  return appDomain ?? "";
+}
+
+function sanitizePublicDomain(value: string | null | undefined) {
+  const trimmed = value?.trim().toLowerCase();
+
+  if (!trimmed) {
+    return null;
+  }
+
+  const withoutProtocol = trimmed.replace(/^https?:\/\//, "").replace(/\/.*$/, "").replace(/^www\./, "");
+
+  if (!withoutProtocol || withoutProtocol === "localhost") {
+    return null;
+  }
+
+  if (withoutProtocol.includes(":")) {
+    return null;
+  }
+
+  if (isPrivateIpv4(withoutProtocol) || withoutProtocol === "::1") {
+    return null;
+  }
+
+  return withoutProtocol;
+}
+
+function isPrivateIpv4(hostname: string) {
+  const ipv4Match = hostname.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
+
+  if (!ipv4Match) {
+    return false;
+  }
+
+  const [a, b, c, d] = ipv4Match.slice(1).map((part) => Number(part));
+
+  if ([a, b, c, d].some((part) => Number.isNaN(part) || part < 0 || part > 255)) {
+    return false;
+  }
+
+  if (a === 10 || a === 127) {
+    return true;
+  }
+
+  if (a === 192 && b === 168) {
+    return true;
+  }
+
+  if (a === 172 && b >= 16 && b <= 31) {
+    return true;
+  }
+
+  return false;
 }
 
 function drawDetail(

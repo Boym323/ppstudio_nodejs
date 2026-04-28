@@ -6,6 +6,8 @@ const serverEnvSchema = z
     NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
     NEXT_PUBLIC_APP_NAME: z.string().min(1).default("PP Studio"),
     NEXT_PUBLIC_APP_URL: z.url(),
+    NEXT_PUBLIC_SITE_DOMAIN: z.string().trim().min(1).optional(),
+    VOUCHER_PUBLIC_DOMAIN: z.string().trim().min(1).optional(),
     NEXT_PUBLIC_MATOMO_ENABLED: z.enum(["true", "false"]).optional().default("false"),
     NEXT_PUBLIC_MATOMO_URL: z.url().optional(),
     NEXT_PUBLIC_MATOMO_SITE_ID: z.string().trim().min(1).optional(),

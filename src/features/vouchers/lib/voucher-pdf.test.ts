@@ -5,6 +5,7 @@ import { MediaAssetVisibility, MediaStorageProvider, VoucherStatus, VoucherType 
 
 process.env.NEXT_PUBLIC_APP_NAME ??= "PP Studio";
 process.env.NEXT_PUBLIC_APP_URL ??= "https://ppstudio.cz";
+process.env.NEXT_PUBLIC_SITE_DOMAIN ??= "ppstudio.cz";
 process.env.DATABASE_URL ??= "postgresql://postgres:postgres@localhost:5432/ppstudio?schema=public";
 process.env.ADMIN_SESSION_SECRET ??= "test-secret-value-with-at-least-32-chars";
 process.env.ADMIN_OWNER_EMAIL ??= "owner@example.com";
@@ -70,7 +71,9 @@ test("generates a PDF when configured voucher logo file is missing", async () =>
 });
 
 test("builds voucher PDF contact lines from salon settings", async () => {
+  process.env.VOUCHER_PUBLIC_DOMAIN = "ppstudio.cz";
   const { buildVoucherPdfContactLines } = await import("./voucher-pdf");
+
   const lines = buildVoucherPdfContactLines({
     addressLine: "Sadová 2",
     postalCode: "760 01",

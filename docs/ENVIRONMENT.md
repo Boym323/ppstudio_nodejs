@@ -12,6 +12,8 @@ Dokumentace proměnných prostředí pro lokální vývoj i produkci.
 - `NODE_ENV`: režim běhu (`development`, `production`).
 - `NEXT_PUBLIC_APP_NAME`: veřejný název značky.
 - `NEXT_PUBLIC_APP_URL`: veřejná URL aplikace, používá se i pro metadata a canonical základ webu.
+- `NEXT_PUBLIC_SITE_DOMAIN`: volitelná veřejná doména webu bez schématu (např. `ppstudio.cz`), preferovaná pro textové zobrazení domény ve voucher PDF kontaktech.
+- `VOUCHER_PUBLIC_DOMAIN`: volitelná explicitní doména pouze pro voucher PDF kontakty; má prioritu nad `NEXT_PUBLIC_SITE_DOMAIN`.
 - `NEXT_PUBLIC_MATOMO_ENABLED`: zapnutí veřejného Matomo trackingu; tracking běží pouze při přesné hodnotě `true`.
 - `NEXT_PUBLIC_MATOMO_URL`: veřejná URL Matomo instance včetně schématu, například `https://matomo.example.cz/`.
 - `NEXT_PUBLIC_MATOMO_SITE_ID`: ID webu v Matomo.
@@ -60,7 +62,8 @@ Dokumentace proměnných prostředí pro lokální vývoj i produkci.
 - Admin formulář pro vytvoření voucheru nepřidává žádnou novou env proměnnou; používá stávající admin session, Prisma připojení a voucher doménovou vrstvu.
 - Admin uplatnění voucheru v detailu rezervace nepřidává žádnou novou env proměnnou; autorizace používá stávající admin session a role `OWNER` / `SALON`, persistence používá `DATABASE_URL`.
 - Read-only panel `Úhrada` v detailu rezervace nepřidává žádnou novou env proměnnou; summary se počítá request-time z `Booking`, `Service` a existujících `VoucherRedemption` záznamů přes stávající `DATABASE_URL`.
-- PDF generátor voucheru nepřidává žádnou novou env proměnnou; QR kód používá existující `NEXT_PUBLIC_APP_URL` přes `siteConfig.url`, takže produkční hodnota musí mířit na veřejný HTTPS origin PP Studia.
+- QR kód ve voucher PDF dál používá `NEXT_PUBLIC_APP_URL` přes `siteConfig.url`, takže produkční hodnota musí mířit na veřejný HTTPS origin PP Studia.
+- Textová doména v kontaktním řádku voucher PDF je oddělená od runtime hostu: priorita je `VOUCHER_PUBLIC_DOMAIN` -> `NEXT_PUBLIC_SITE_DOMAIN` -> hostname z `NEXT_PUBLIC_APP_URL` jen pokud je bezpečně veřejný (ne localhost ani privátní IP). Když bezpečný host chybí, doména se do kontaktu nevypíše.
 - Veřejná stránka ověření voucheru `/vouchery/overeni` nepřidává žádnou novou env proměnnou; používá stávající `DATABASE_URL` a QR odkazy z PDF dál vznikají z `NEXT_PUBLIC_APP_URL`.
 - Rate limit pro `/vouchery/overeni` nepřidává novou env proměnnou; limity jsou zatím fixované v `src/features/vouchers/lib/voucher-public-verification-rate-limit.ts` (okno 10 minut, IP limit 10).
 - `NEXT_PUBLIC_APP_URL` je stejně kritická i pro klientský self-service manage link `/rezervace/sprava/[token]`; pokud míří na špatný host nebo schéma, confirmation screen, potvrzovací e-mail i reminder povedou na neplatnou URL.
