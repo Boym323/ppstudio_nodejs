@@ -6,6 +6,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- V detailu voucheru je nová read-only sekce `Odeslání e-mailem`, která z `EmailLog` typu `VOUCHER_SENT` ukazuje poslední stav, příjemce a stručnou historii posledních 5 pokusů včetně bezpečně zkrácené chyby.
 - V admin detailu voucheru (`/admin/vouchery/[voucherId]` a `/admin/provoz/vouchery/[voucherId]`) pribyla rucni akce `Poslat e-mailem`: obsluha muze otevrit panel, upravit prijemce/predmet a explicitne odeslat voucher pouze manualnim potvrzenim; telo e-mailu je pevne podle schvalene sablony.
 - Odeslani voucheru pouziva existujici email outbox/worker workflow pres `EmailLog` s novym typem `EmailLogType.VOUCHER_SENT` a sablonou `voucher-sent-v1`; v `EMAIL_DELIVERY_MODE=background` se zapisuje do fronty s retry, v `log` modu se bez SMTP odeslani zaloguje jako odeslane.
 - Voucher email obsahuje bezpecna data (typ, hodnota nebo sluzba, kod, platnost, overovaci URL, instrukce) a pripojuje PDF vygenerovane server-side pres existujici `generateVoucherPdf(...)` helper jako prilohu `voucher-KOD.pdf` (`application/pdf`) bez interni poznamky a bez historie cerpani.

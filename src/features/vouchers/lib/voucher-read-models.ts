@@ -1,4 +1,4 @@
-import { Prisma, VoucherStatus, VoucherType } from "@prisma/client";
+import { EmailLogType, Prisma, VoucherStatus, VoucherType } from "@prisma/client";
 
 import { normalizeVoucherCode } from "@/features/vouchers/lib/voucher-code";
 import {
@@ -177,6 +177,7 @@ export async function getVoucherDetail(id: string) {
   }
 
   const effectiveStatus = getEffectiveVoucherStatus(voucher);
+  const emailHistory = await loadVoucherEmailHistory(voucher.id);
 
   return {
     ...voucher,
@@ -189,7 +190,65 @@ export async function getVoucherDetail(id: string) {
       remainingValueCzk: voucher.remainingValueCzk,
       status: effectiveStatus,
     }),
+    emailHistory,
   };
+}
+
+async function loadVoucherEmailHistory(voucherId: string) {
+  try {
+    const logs = await prisma.emailLog.findMany({
+      where: {
+        type: EmailLogType.VOUCHER_SENT,
+        payload: {
+          path: ["voucherId"],
+          equals: voucherId,
+        },
+      },
+      orderBy: [{ createdAt: "desc" }],
+      take: 5,
+      select: {
+        id: true,
+        recipientEmail: true,
+        status: true,
+        createdAt: true,
+        sentAt: true,
+        errorMessage: true,
+      },
+    });
+
+    return logs.map((log) => ({
+      id: log.id,
+      recipientEmail: log.recipientEmail,
+      status: log.status,
+      createdAt: log.createdAt,
+      sentAt: log.sentAt,
+      errorMessage: summarizeEmailError(log.errorMessage),
+    }));
+  } catch (error) {
+    console.error("Failed to load voucher email history", {
+      voucherId,
+      error,
+    });
+
+    return [];
+  }
+}
+
+function summarizeEmailError(errorMessage: string | null) {
+  if (!errorMessage) {
+    return null;
+  }
+
+  const summary = errorMessage
+    .split("\n")
+    .map((line) => line.trim())
+    .find((line) => line.length > 0);
+
+  if (!summary) {
+    return null;
+  }
+
+  return summary.length > 160 ? `${summary.slice(0, 157)}...` : summary;
 }
 
 export async function getVoucherByCodeSafe(codeInput: string) {

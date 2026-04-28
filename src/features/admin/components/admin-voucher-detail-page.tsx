@@ -55,7 +55,7 @@ export function AdminVoucherDetailPage({ data }: { data: AdminVoucherDetailData 
     <AdminPageShell
       eyebrow={data.area === "owner" ? "Dárkové vouchery" : "Provozní evidence"}
       title={data.area === "owner" ? "Detail voucheru" : "Provozní detail voucheru"}
-      description="Detail voucheru s aktuálními daty, historií čerpání, stažením PDF a ručním odesláním e-mailem."
+      description="Detail voucheru s aktuálními daty, historií čerpání, odesláním e-mailem a stažením PDF."
       compact={data.area === "salon"}
     >
       <section className="rounded-[var(--radius-panel)] border border-white/10 bg-[linear-gradient(145deg,rgba(255,255,255,0.10),rgba(255,255,255,0.03))] p-5 sm:p-6">
@@ -152,6 +152,15 @@ export function AdminVoucherDetailPage({ data }: { data: AdminVoucherDetailData 
           </div>
         </AdminPanel>
       </div>
+
+      <AdminPanel
+        title="Odeslání e-mailem"
+        description="Stručná historie posledních pokusů odeslání voucheru e-mailem."
+        compact={data.area === "salon"}
+        denseHeader
+      >
+        <VoucherEmailHistory emailHistory={data.emailHistory} />
+      </AdminPanel>
 
       <div className="grid gap-6 xl:grid-cols-[1fr_1fr]">
         <AdminPanel
@@ -255,6 +264,78 @@ function ServiceSummary({ data }: { data: AdminVoucherDetailData }) {
         tone={linkedServiceName ? "default" : "muted"}
       />
     </dl>
+  );
+}
+
+function VoucherEmailHistory({
+  emailHistory,
+}: {
+  emailHistory: AdminVoucherDetailData["emailHistory"];
+}) {
+  if (emailHistory.length === 0) {
+    return (
+      <div className="rounded-[1.25rem] border border-dashed border-white/14 bg-white/4 p-5">
+        <p className="text-sm leading-6 text-white/68">Voucher zatím nebyl e-mailem odeslán.</p>
+      </div>
+    );
+  }
+
+  const latest = emailHistory[0];
+
+  return (
+    <div className="space-y-4">
+      <dl className="grid gap-3 lg:grid-cols-3">
+        <SummaryMetric label="Poslední stav" value={formatEmailHistoryStatus(latest.status)} />
+        <SummaryMetric label="Poslední příjemce" value={latest.recipientEmail} />
+        <SummaryMetric
+          label="Datum posledního pokusu / odeslání"
+          value={formatDateTimeLabel(latest.sentAt ?? latest.createdAt)}
+        />
+      </dl>
+
+      <div className="grid gap-3">
+        {emailHistory.map((entry) => {
+          const occurredAt = entry.sentAt ?? entry.createdAt;
+
+          return (
+            <article key={entry.id} className="rounded-[1.1rem] border border-white/8 bg-white/5 p-4">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0">
+                  <p className="text-base font-medium text-white">{formatDateTimeLabel(occurredAt)}</p>
+                  <p className="mt-1 break-words text-sm leading-6 text-white/58">{entry.recipientEmail}</p>
+                </div>
+                <span
+                  className={cn(
+                    "inline-flex w-fit items-center rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em]",
+                    getEmailHistoryStatusClassName(entry.status),
+                  )}
+                >
+                  {formatEmailHistoryStatus(entry.status)}
+                </span>
+              </div>
+
+              {entry.errorMessage ? (
+                <p className="mt-3 rounded-[0.95rem] border border-red-300/10 bg-red-500/10 px-3 py-2 text-sm leading-6 text-red-100">
+                  {entry.errorMessage}
+                </p>
+              ) : null}
+
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+                <p className="text-xs uppercase tracking-[0.16em] text-white/42">
+                  {entry.sentAt ? "Odesláno" : "Vytvořeno"}
+                </p>
+                <Link
+                  href={`/admin/email-logy/${entry.id}`}
+                  className="text-sm font-medium text-[var(--color-accent)] transition hover:brightness-110"
+                >
+                  Detail v email logu
+                </Link>
+              </div>
+            </article>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
@@ -515,6 +596,28 @@ function formatDateLabel(value: Date | null | undefined) {
 
 function formatDateTimeLabel(value: Date | null | undefined) {
   return value ? dateTimeFormatter.format(value) : "Nevyplněno";
+}
+
+function formatEmailHistoryStatus(status: AdminVoucherDetailData["emailHistory"][number]["status"]) {
+  switch (status) {
+    case "PENDING":
+      return "Čeká na odeslání";
+    case "SENT":
+      return "Odesláno";
+    case "FAILED":
+      return "Chyba odeslání";
+  }
+}
+
+function getEmailHistoryStatusClassName(status: AdminVoucherDetailData["emailHistory"][number]["status"]) {
+  switch (status) {
+    case "PENDING":
+      return "border-amber-300/15 bg-amber-400/10 text-amber-100";
+    case "SENT":
+      return "border-emerald-300/15 bg-emerald-400/10 text-emerald-100";
+    case "FAILED":
+      return "border-red-300/15 bg-red-400/10 text-red-100";
+  }
 }
 
 function formatOptional(value: string | null | undefined) {
