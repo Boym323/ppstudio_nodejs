@@ -16,6 +16,7 @@ const bookingConfirmationPayloadSchema = z.object({
   scheduledEndsAt: z.string().datetime(),
   manageReservationUrl: z.url().optional(),
   cancellationUrl: z.url().optional(),
+  intendedVoucherCode: z.string().min(1).optional(),
 });
 
 const bookingCancelledPayloadSchema = z.object({
@@ -24,6 +25,7 @@ const bookingCancelledPayloadSchema = z.object({
   clientName: z.string().min(1),
   scheduledStartsAt: z.string().datetime(),
   scheduledEndsAt: z.string().datetime(),
+  intendedVoucherCode: z.string().min(1).optional(),
 });
 
 const bookingApprovedPayloadSchema = z.object({
@@ -35,6 +37,7 @@ const bookingApprovedPayloadSchema = z.object({
   manageReservationUrl: z.url().optional(),
   cancellationUrl: z.url().optional(),
   includeCalendarAttachment: z.boolean().optional(),
+  intendedVoucherCode: z.string().min(1).optional(),
 });
 
 const bookingReminder24hPayloadSchema = z.object({
@@ -337,6 +340,13 @@ export async function renderEmailTemplate(
         `Služba: ${data.serviceName}`,
         `Datum: ${bookingDate}`,
         `Čas: ${bookingTime}`,
+        ...(data.intendedVoucherCode
+          ? [
+              "",
+              `Dárkový poukaz: ${data.intendedVoucherCode}`,
+              "U rezervace jste uvedla dárkový poukaz. Poukaz bude ověřen a uplatněn při návštěvě v salonu.",
+            ]
+          : []),
         "",
         "Místo:",
         clientStudio.name,
@@ -358,6 +368,14 @@ export async function renderEmailTemplate(
             bookingDate,
             bookingTime,
           })}
+          ${data.intendedVoucherCode ? `
+          <div style="height:14px;line-height:14px;font-size:14px;">&nbsp;</div>
+          ${buildEmailCard(`
+            <p style="margin:0 0 7px;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:16px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#9e7f65;">Dárkový poukaz</p>
+            <p style="margin:0 0 7px;font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:22px;font-weight:700;color:#1f1714;">${escapeHtml(data.intendedVoucherCode)}</p>
+            <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:24px;color:#5b4c44;">U rezervace jste uvedla dárkový poukaz. Poukaz bude ověřen a uplatněn při návštěvě v salonu.</p>
+          `, "#ffffff")}
+          ` : ""}
           <div style="height:14px;line-height:14px;font-size:14px;">&nbsp;</div>
           ${buildClientLocationBlock()}
           <div style="height:14px;line-height:14px;font-size:14px;">&nbsp;</div>
@@ -385,6 +403,13 @@ export async function renderEmailTemplate(
         `Služba: ${data.serviceName}`,
         `Datum: ${bookingDate}`,
         `Čas: ${bookingTime}`,
+        ...(data.intendedVoucherCode
+          ? [
+              "",
+              `Dárkový poukaz: ${data.intendedVoucherCode}`,
+              "U rezervace jste uvedla dárkový poukaz. Poukaz bude ověřen a uplatněn při návštěvě v salonu.",
+            ]
+          : []),
         "",
         "Místo:",
         clientStudio.name,
@@ -407,6 +432,14 @@ export async function renderEmailTemplate(
             bookingDate,
             bookingTime,
           })}
+          ${data.intendedVoucherCode ? `
+          <div style="height:14px;line-height:14px;font-size:14px;">&nbsp;</div>
+          ${buildEmailCard(`
+            <p style="margin:0 0 7px;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:16px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#9e7f65;">Dárkový poukaz</p>
+            <p style="margin:0 0 7px;font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:22px;font-weight:700;color:#1f1714;">${escapeHtml(data.intendedVoucherCode)}</p>
+            <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:24px;color:#5b4c44;">U rezervace jste uvedla dárkový poukaz. Poukaz bude ověřen a uplatněn při návštěvě v salonu.</p>
+          `, "#ffffff")}
+          ` : ""}
           <div style="height:14px;line-height:14px;font-size:14px;">&nbsp;</div>
           ${buildClientLocationBlock()}
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:16px;border-collapse:collapse;">
@@ -453,6 +486,13 @@ export async function renderEmailTemplate(
         `Služba: ${data.serviceName}`,
         `Datum: ${bookingDate}`,
         `Čas: ${bookingTime}`,
+        ...(data.intendedVoucherCode
+          ? [
+              "",
+              `Dárkový poukaz: ${data.intendedVoucherCode}`,
+              "U rezervace jste uvedla dárkový poukaz. Poukaz bude ověřen a uplatněn při návštěvě v salonu.",
+            ]
+          : []),
         "",
         "Místo:",
         clientStudio.name,
@@ -484,6 +524,14 @@ export async function renderEmailTemplate(
             bookingDate,
             bookingTime,
           })}
+          ${data.intendedVoucherCode ? `
+          <div style="height:14px;line-height:14px;font-size:14px;">&nbsp;</div>
+          ${buildEmailCard(`
+            <p style="margin:0 0 7px;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:16px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#9e7f65;">Dárkový poukaz</p>
+            <p style="margin:0 0 7px;font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:22px;font-weight:700;color:#1f1714;">${escapeHtml(data.intendedVoucherCode)}</p>
+            <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:24px;color:#5b4c44;">U rezervace jste uvedla dárkový poukaz. Poukaz bude ověřen a uplatněn při návštěvě v salonu.</p>
+          `, "#ffffff")}
+          ` : ""}
           <div style="height:14px;line-height:14px;font-size:14px;">&nbsp;</div>
           ${buildClientLocationBlock()}
           ${includeCalendarAttachment ? `

@@ -4,7 +4,16 @@ import {
   BookingStatus,
 } from "@prisma/client";
 
+import {
+  validateVoucherForBookingInput,
+  voucherValidationReasonCodes,
+} from "@/features/vouchers/lib/voucher-validation";
+
 import { createBookingWithEngine } from "./booking-public/engine";
+import {
+  PublicBookingError,
+  publicBookingErrorCodes,
+} from "./booking-public/shared";
 
 export {
   PublicBookingError,
@@ -30,9 +39,47 @@ import type {
   CreatePublicBookingResult,
 } from "./booking-public/shared";
 
+function getPublicVoucherValidationMessage(reason: string) {
+  switch (reason) {
+    case voucherValidationReasonCodes.notFound:
+      return "Voucher nebyl nalezen.";
+    case voucherValidationReasonCodes.draft:
+      return "Voucher zatím není aktivní.";
+    case voucherValidationReasonCodes.cancelled:
+      return "Voucher se nepodařilo ověřit. Zkontrolujte prosím kód.";
+    case voucherValidationReasonCodes.redeemed:
+      return "Voucher už byl uplatněn.";
+    case voucherValidationReasonCodes.expired:
+      return "Voucher je propadlý.";
+    case voucherValidationReasonCodes.serviceMismatch:
+      return "Tento voucher je určený pro jinou službu.";
+    case voucherValidationReasonCodes.noRemainingValue:
+      return "Voucher už nemá žádný dostupný zůstatek.";
+    case voucherValidationReasonCodes.invalidInput:
+    default:
+      return "Voucher se nepodařilo ověřit. Zkontrolujte prosím kód.";
+  }
+}
+
 export async function createPublicBooking(
   input: CreatePublicBookingInput,
 ): Promise<CreatePublicBookingResult> {
+  const normalizedVoucherCodeInput = input.voucherCode?.trim() ?? "";
+  const intendedVoucher = normalizedVoucherCodeInput
+    ? await validateVoucherForBookingInput({
+        code: normalizedVoucherCodeInput,
+        serviceId: input.serviceId,
+      })
+    : null;
+
+  if (intendedVoucher && !intendedVoucher.ok) {
+    throw new PublicBookingError(
+      publicBookingErrorCodes.voucherInvalid,
+      getPublicVoucherValidationMessage(intendedVoucher.reason),
+      3,
+    );
+  }
+
   const result = await createBookingWithEngine({
     serviceId: input.serviceId,
     slotId: input.slotId,
@@ -61,6 +108,13 @@ export async function createPublicBooking(
     includeCalendarAttachment: false,
     sendAdminNotification: true,
     acquisition: input.acquisition,
+    intendedVoucher: intendedVoucher?.ok
+      ? {
+          id: intendedVoucher.voucherId,
+          code: intendedVoucher.code,
+          type: intendedVoucher.type,
+        }
+      : null,
   });
 
   return {
@@ -74,6 +128,8 @@ export async function createPublicBooking(
     manageReservationUrl: result.manageReservationUrl,
     cancellationUrl: result.cancellationUrl,
     emailDeliveryStatus: result.emailDeliveryStatus,
+    intendedVoucherCode: result.intendedVoucherCode,
+    intendedVoucherType: result.intendedVoucherType,
   };
 }
 

@@ -6,6 +6,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Veřejné booking flow nově přijímá volitelný kód dárkového poukazu v kontaktním kroku. Server kód při vytvoření rezervace bezpečně ověří, uloží pouze `Booking.intendedVoucherId`, `intendedVoucherCodeSnapshot` a `intendedVoucherValidatedAt` a skutečné uplatnění nechává dál výhradně na admin detailu rezervace.
+- Hodnotové vouchery ve veřejné rezervaci zůstávají validní i při zůstatku nižším než cena služby, pokud je zůstatek kladný; veřejný flow nikdy nevytváří `VoucherRedemption`, nemění `remainingValueCzk` ani status voucheru.
 - Formulář pro vytvoření voucheru je přepracovaný do kompaktnějšího dvousloupcového workspace s živým náhledem, výraznější volbou typu, kratšími sekcemi a podporou obdarovaného a věnování.
 - Opraveny statické voucher routy `/admin/vouchery/*` a `/admin/provoz/vouchery/*`, které nově používají stejný tmavý admin shell jako ostatní administrace; create formulář má navíc pevnější tmavé povrchy a čitelnější inputy.
 - Admin detail rezervace nově obsahuje panel `Voucher` pro OWNER i SALON: ukazuje intended voucher z rezervace, umožňuje ručně zadat jiný kód, uplatnit hodnotový nebo službový voucher přes server action a zobrazit historii všech `VoucherRedemption` záznamů u rezervace bez storna čerpání.

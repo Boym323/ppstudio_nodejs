@@ -18,6 +18,7 @@ export const publicBookingErrorCodes = {
   slotNotAllowed: "SLOT_NOT_ALLOWED",
   slotTooShort: "SLOT_TOO_SHORT",
   slotAlreadyBookedByClient: "SLOT_ALREADY_BOOKED_BY_CLIENT",
+  voucherInvalid: "VOUCHER_INVALID",
   bookingConflict: "BOOKING_CONFLICT",
   temporaryFailure: "TEMPORARY_FAILURE",
 } as const;
@@ -63,6 +64,7 @@ export type CreatePublicBookingInput = {
   email: string;
   phone?: string;
   clientNote?: string;
+  voucherCode?: string;
   acquisition: {
     source: BookingAcquisitionSource;
     utmSource: string | null;
@@ -83,6 +85,8 @@ export type CreatePublicBookingResult = {
   manageReservationUrl: string;
   cancellationUrl: string;
   emailDeliveryStatus: "queued" | "logged" | "skipped";
+  intendedVoucherCode?: string;
+  intendedVoucherType?: "VALUE" | "SERVICE";
 };
 
 export type CreateManualBookingInput = {
@@ -302,6 +306,11 @@ export type SharedCreateBookingInput = {
     utmCampaign: string | null;
     referrerHost: string | null;
   };
+  intendedVoucher?: {
+    id: string;
+    code: string;
+    type: "VALUE" | "SERVICE";
+  } | null;
 };
 
 export type SharedCreateBookingResult = {
@@ -318,4 +327,6 @@ export type SharedCreateBookingResult = {
   emailDeliveryStatus: "queued" | "logged" | "skipped";
   status: "PENDING" | "CONFIRMED";
   manualOverride: boolean;
+  intendedVoucherCode?: string;
+  intendedVoucherType?: "VALUE" | "SERVICE";
 };

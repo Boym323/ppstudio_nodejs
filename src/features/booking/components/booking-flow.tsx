@@ -50,6 +50,7 @@ export function BookingFlow({ catalog, initialSelectedServiceSlug, salonProfile 
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [clientNote, setClientNote] = useState("");
+  const [voucherCode, setVoucherCode] = useState("");
   const [currentStep, setCurrentStep] = useState(initialSelectedService ? 2 : 1);
   const [selectedDateKey, setSelectedDateKey] = useState("");
   const [visibleMonthKey, setVisibleMonthKey] = useState("");
@@ -639,12 +640,15 @@ export function BookingFlow({ catalog, initialSelectedServiceSlug, salonProfile 
               phone={phone}
               clientNote={clientNote}
               clientNoteError={serverState.fieldErrors?.clientNote}
+              voucherCode={voucherCode}
+              voucherCodeError={serverState.fieldErrors?.voucherCode}
               getDisplayedFieldError={getDisplayedFieldError}
               onShowSummary={goToSummary}
               onFullNameChange={setFullName}
               onEmailChange={setEmail}
               onPhoneChange={setPhone}
               onClientNoteChange={setClientNote}
+              onVoucherCodeChange={setVoucherCode}
               onFieldBlur={(field) => {
                 setTouchedFields((current) => ({ ...current, [field]: true }));
               }}
@@ -660,6 +664,7 @@ export function BookingFlow({ catalog, initialSelectedServiceSlug, salonProfile 
         fullName={fullName}
         email={email}
         phone={phone}
+        voucherCode={voucherCode}
         canGoToStep4={canGoToStep4}
         serverState={serverState}
         onEditService={() => {

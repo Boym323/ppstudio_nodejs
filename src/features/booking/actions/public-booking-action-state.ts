@@ -3,7 +3,7 @@ export type PublicBookingActionState = {
   formError?: string;
   errorCode?: string;
   suggestedStep?: 1 | 2 | 3 | 4;
-  fieldErrors?: Partial<Record<"serviceId" | "slotId" | "startsAt" | "fullName" | "email" | "phone" | "clientNote", string>>;
+  fieldErrors?: Partial<Record<"serviceId" | "slotId" | "startsAt" | "fullName" | "email" | "phone" | "clientNote" | "voucherCode", string>>;
   confirmation?: {
     bookingId: string;
     serviceName: string;
@@ -15,6 +15,8 @@ export type PublicBookingActionState = {
     manageReservationUrl: string;
     cancellationUrl: string;
     emailDeliveryStatus: "queued" | "logged" | "skipped";
+    intendedVoucherCode?: string;
+    intendedVoucherType?: "VALUE" | "SERVICE";
   };
 };
 

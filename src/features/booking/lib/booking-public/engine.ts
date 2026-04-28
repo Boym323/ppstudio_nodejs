@@ -621,6 +621,9 @@ export async function createBookingWithEngine(
               internalNote: normalizedInternalNote,
               confirmedAt: input.status === BookingStatus.CONFIRMED ? now : null,
               createdByUserId: input.actorUserId ?? null,
+              intendedVoucherId: input.intendedVoucher?.id ?? null,
+              intendedVoucherCodeSnapshot: input.intendedVoucher?.code ?? null,
+              intendedVoucherValidatedAt: input.intendedVoucher ? now : null,
             },
             select: {
               id: true,
@@ -672,6 +675,7 @@ export async function createBookingWithEngine(
             includeCalendarAttachment: input.includeCalendarAttachment,
             sendAdminNotification: input.sendAdminNotification,
             adminNotificationEmail: emailBranding.notificationAdminEmail,
+            intendedVoucherCode: input.intendedVoucher?.code,
           });
 
           return {
@@ -696,6 +700,8 @@ export async function createBookingWithEngine(
                 : "skipped",
             status: input.status,
             manualOverride,
+            intendedVoucherCode: input.intendedVoucher?.code,
+            intendedVoucherType: input.intendedVoucher?.type,
           } satisfies SharedCreateBookingResult;
         },
         {

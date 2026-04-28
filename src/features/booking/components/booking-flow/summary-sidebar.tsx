@@ -18,6 +18,7 @@ type BookingSummarySidebarProps = {
   fullName: string;
   email: string;
   phone: string;
+  voucherCode: string;
   canGoToStep4: boolean;
   serverState: PublicBookingActionState;
   onEditService: () => void;
@@ -33,6 +34,7 @@ export function BookingSummarySidebar({
   fullName,
   email,
   phone,
+  voucherCode,
   canGoToStep4,
   serverState,
   onEditService,
@@ -128,6 +130,18 @@ export function BookingSummarySidebar({
               </button>
             </div>
           </div>
+
+          {voucherCode.trim() ? (
+            <div className="rounded-3xl border border-[var(--color-accent)]/28 bg-white/80 p-4 sm:p-5">
+              <p className="text-xs uppercase tracking-[0.18em] text-[var(--color-muted)]">Dárkový poukaz</p>
+              <p className="mt-1.5 font-mono text-base font-semibold text-[var(--color-foreground)] sm:mt-2">
+                {voucherCode.trim()}
+              </p>
+              <p className="mt-2 text-sm leading-5 text-[var(--color-muted)]">
+                Poukaz bude zkontrolován a uplatněn při návštěvě v salonu.
+              </p>
+            </div>
+          ) : null}
         </div>
 
         <div className="mt-4 rounded-3xl border border-black/6 bg-white/80 p-4 text-sm leading-6 text-[var(--color-muted)] sm:mt-6 sm:p-5">

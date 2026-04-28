@@ -13,12 +13,15 @@ type BookingContactStepProps = {
   phone: string;
   clientNote: string;
   clientNoteError?: string;
+  voucherCode: string;
+  voucherCodeError?: string;
   getDisplayedFieldError: (field: ContactFieldKey) => string | undefined;
   onShowSummary: () => void;
   onFullNameChange: (value: string) => void;
   onEmailChange: (value: string) => void;
   onPhoneChange: (value: string) => void;
   onClientNoteChange: (value: string) => void;
+  onVoucherCodeChange: (value: string) => void;
   onFieldBlur: (field: ContactFieldKey) => void;
 };
 
@@ -31,12 +34,15 @@ export function BookingContactStep({
   phone,
   clientNote,
   clientNoteError,
+  voucherCode,
+  voucherCodeError,
   getDisplayedFieldError,
   onShowSummary,
   onFullNameChange,
   onEmailChange,
   onPhoneChange,
   onClientNoteChange,
+  onVoucherCodeChange,
   onFieldBlur,
 }: BookingContactStepProps) {
   return (
@@ -154,6 +160,34 @@ export function BookingContactStep({
             <span className="block text-sm text-red-700">{clientNoteError}</span>
           ) : null}
         </label>
+
+        <div className="space-y-3 rounded-2xl border border-[var(--color-accent-soft)]/45 bg-[var(--color-surface)]/28 p-4 sm:col-span-2">
+          <div>
+            <p className="text-sm font-semibold text-[var(--color-foreground)]">
+              Nevyužíváte dárkový poukaz?
+            </p>
+            <p className="mt-1 text-xs leading-5 text-[var(--color-muted)]">
+              Kód poukazu je volitelný. Poukaz bude ověřen a uplatněn až při návštěvě v salonu.
+            </p>
+          </div>
+          <label className="block space-y-2">
+            <span className="text-sm font-semibold text-[var(--color-foreground)]">
+              Kód voucheru
+            </span>
+            <input
+              name="voucherCode"
+              value={voucherCode}
+              onChange={(event) => onVoucherCodeChange(event.target.value)}
+              aria-invalid={voucherCodeError ? true : undefined}
+              className="min-h-12 w-full rounded-2xl border border-black/8 bg-white px-4 py-3 font-mono text-sm uppercase tracking-[0.08em] outline-none focus:border-[var(--color-accent)]"
+              autoComplete="off"
+              inputMode="text"
+            />
+            {voucherCodeError ? (
+              <span className="block text-sm text-red-700">{voucherCodeError}</span>
+            ) : null}
+          </label>
+        </div>
       </div>
     </div>
   );

@@ -17,6 +17,7 @@ import {
   normalizeClientEmail,
   normalizeClientPhone,
   PublicBookingError,
+  publicBookingErrorCodes,
 } from "@/features/booking/lib/booking-public";
 import { type PublicBookingActionState } from "@/features/booking/actions/public-booking-action-state";
 import { sendOwnerPushover } from "@/lib/notifications/pushover";
@@ -57,6 +58,12 @@ const publicBookingSchema = z.object({
     .string()
     .trim()
     .max(600, "Poznámka je příliš dlouhá.")
+    .optional()
+    .or(z.literal("")),
+  voucherCode: z
+    .string()
+    .trim()
+    .max(64, "Kód voucheru je příliš dlouhý.")
     .optional()
     .or(z.literal("")),
 });
@@ -182,6 +189,7 @@ export async function createPublicBookingAction(
     email: readFormString(formData, "email"),
     phone: readFormString(formData, "phone"),
     clientNote: readFormString(formData, "clientNote"),
+    voucherCode: readFormString(formData, "voucherCode"),
   });
   const normalizedEmailForAudit = normalizeClientEmail(readFormString(formData, "email"));
   const emailHash = normalizedEmailForAudit ? hashSubmissionFingerprint(normalizedEmailForAudit) : undefined;
@@ -233,6 +241,7 @@ export async function createPublicBookingAction(
           email: fieldErrors.email?.[0],
           phone: fieldErrors.phone?.[0],
           clientNote: fieldErrors.clientNote?.[0],
+          voucherCode: fieldErrors.voucherCode?.[0],
         },
         acquisition: acquisitionData,
       },
@@ -247,6 +256,8 @@ export async function createPublicBookingAction(
           ? 2
           : fieldErrors.fullName || fieldErrors.email || fieldErrors.phone || fieldErrors.clientNote
             ? 3
+            : fieldErrors.voucherCode
+              ? 3
             : 4,
       fieldErrors: {
         serviceId: fieldErrors.serviceId?.[0],
@@ -256,6 +267,7 @@ export async function createPublicBookingAction(
         email: fieldErrors.email?.[0],
         phone: fieldErrors.phone?.[0],
         clientNote: fieldErrors.clientNote?.[0],
+        voucherCode: fieldErrors.voucherCode?.[0],
       },
     };
   }
@@ -269,6 +281,7 @@ export async function createPublicBookingAction(
       email: normalizeClientEmail(parsed.data.email),
       phone: normalizeClientPhone(parsed.data.phone || undefined),
       clientNote: parsed.data.clientNote || undefined,
+      voucherCode: parsed.data.voucherCode || undefined,
       acquisition: acquisitionData,
     });
 
@@ -303,6 +316,7 @@ export async function createPublicBookingAction(
         failureReason: error.message,
         metadata: {
           suggestedStep: error.suggestedStep,
+          field: error.code === publicBookingErrorCodes.voucherInvalid ? "voucherCode" : undefined,
           acquisition: acquisitionData,
         },
       });
@@ -312,6 +326,10 @@ export async function createPublicBookingAction(
         formError: error.message,
         errorCode: error.code,
         suggestedStep: error.suggestedStep,
+        fieldErrors:
+          error.code === publicBookingErrorCodes.voucherInvalid
+            ? { voucherCode: error.message }
+            : undefined,
       };
     }
 

@@ -81,6 +81,7 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
 - Admin detail rezervace nově podporuje samostatnou akci `Přesunout termín`; booking zůstává stejným záznamem, ale změna projde backend validací, auditním logem, resetem reminder návaznosti a volitelným klientským e-mailem `Termín byl změněn`.
 - Admin detail rezervace už nefunguje jako dlouhá informační stránka; nově je to rychlý rozhodovací panel se sticky hlavičkou, horním akčním blokem, kompaktním souhrnem v bočním sloupci a sjednoceným blokem poznámek.
 - Admin detail rezervace má panel `Voucher`: pokud booking nese `intendedVoucherId` nebo `intendedVoucherCodeSnapshot`, obsluha vidí kód, typ, efektivní stav a bezpečný popis; zároveň může zadat kód ručně, u hodnotového voucheru doplnit částku a voucher uplatnit při návštěvě v salonu.
+- Veřejné booking flow v kontaktním kroku nabízí volitelné pole `Kód voucheru`. Pokud je prázdné, rezervace pokračuje beze změny; pokud je vyplněné, server kód při vytvoření rezervace ověří a uloží ho jen jako intended voucher na `Booking`.
 - Skutečné čerpání voucheru v provozu vzniká pouze serverovou admin akcí v detailu rezervace, která zapisuje `VoucherRedemption`; samotné veřejné zadání nebo intent na `Booking` zůstatek nikdy neodečítá.
 - Po otevření detailu je během pár sekund vidět klientka, služba, termín, stav a nejpravděpodobnější další akce; reschedule zůstává oddělený jako samostatný drawer a chování pro `OWNER` i `SALON` je stejné.
 - Veřejný manage flow `/rezervace/sprava/[token]` má nově DB integrační coverage nad reálným Prisma wiringem; testy ověřují token access, self-service storno, self-service přesun i hlavní auditní a notifikační side effects bez browser E2E vrstvy.
@@ -103,12 +104,12 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
   - kategorie služeb a služby včetně samostatné veřejné rezervovatelnosti
   - sloty s omezením na vybrané služby
   - klienty, rezervace a historii stavů
-  - databázový základ dárkových voucherů (`Voucher`, `VoucherRedemption`) bez UI a bez veřejného zadávání
+  - dárkové vouchery (`Voucher`, `VoucherRedemption`) včetně admin evidence, admin uplatnění a veřejného intended zadání při rezervaci
   - e-mailové logy, action tokeny, legacy `Setting`, singleton `SiteSettings` a metadata model `MediaAsset`
 - Voucher systém má připravenou serverovou business vrstvu a první admin read-only přehled:
   - hodnotový voucher (`VALUE`) drží původní a zbývající hodnotu v Kč a může být čerpaný postupně,
   - voucher na službu (`SERVICE`) drží snapshot služby v okamžiku vydání a po admin uplatnění se celý označí jako uplatněný,
-  - veřejná validace voucheru zatím pouze ověřuje použitelnost pro vybranou službu a nic neodečítá,
+  - veřejná validace voucheru při rezervaci pouze ověřuje použitelnost pro vybranou službu a nic neodečítá,
   - skutečné čerpání vzniká pouze admin/server akcí, která zapisuje `VoucherRedemption`.
 - Admin evidence voucherů je dostupná pro `OWNER` na `/admin/vouchery` a pro `SALON` na `/admin/provoz/vouchery`.
 - Všechny voucher routy včetně detailu a vytvoření běží uvnitř standardního tmavého admin shellu; pokud voucher obrazovka vypadá světle nebo bez navigace, chybí příslušný route layout.

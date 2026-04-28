@@ -33,6 +33,7 @@ export async function createNotificationEmailLogs(
     includeCalendarAttachment: boolean;
     sendAdminNotification: boolean;
     adminNotificationEmail: string;
+    intendedVoucherCode?: string;
   },
 ) {
   const createdEmailLogIds: string[] = [];
@@ -95,6 +96,7 @@ export async function createNotificationEmailLogs(
                 scheduledEndsAt: input.scheduledEndsAt.toISOString(),
                 manageReservationUrl,
                 cancellationUrl,
+                intendedVoucherCode: input.intendedVoucherCode,
                 includeCalendarAttachment: input.includeCalendarAttachment,
               }
             : {
@@ -105,6 +107,7 @@ export async function createNotificationEmailLogs(
                 scheduledEndsAt: input.scheduledEndsAt.toISOString(),
                 manageReservationUrl,
                 cancellationUrl,
+                intendedVoucherCode: input.intendedVoucherCode,
               },
         provider: env.EMAIL_DELIVERY_MODE === "background" ? undefined : "log",
         sentAt: env.EMAIL_DELIVERY_MODE === "background" ? undefined : input.now,

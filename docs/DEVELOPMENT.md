@@ -85,7 +85,8 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Admin uplatnění voucheru u rezervace běží v detailu rezervace přes `src/features/admin/components/admin-booking-voucher-form.tsx` a server action `redeemBookingVoucherAction(...)` v `src/features/admin/actions/booking-actions.ts`. Action vždy ověřuje roli `OWNER` nebo `SALON`, volá výhradně doménové `redeemVoucherForBooking(...)`, vrací bezpečné hlášky a revaliduje owner i salon booking/voucher přehledy.
 - Read model `getAdminBookingDetailData(...)` smí pro panel `Voucher` vracet jen provozně bezpečná pole: intended voucher kód, typ, efektivní stav, bezpečný popis, doporučenou částku a historii redemptionů s aktérem. Technická ID nemají být primárním UI údajem.
 - Detail voucheru smí zobrazovat interní poznámku pouze v adminu; veřejné PDF ani veřejné ověření voucheru ji později nesmí číst z veřejného read modelu.
-- Při budoucím napojení voucherů do `/rezervace` veřejný submit nesmí odečítat zůstatek ani vytvářet `VoucherRedemption`; smí pouze uložit intent pole na `Booking`.
+- Veřejný submit `/rezervace` může přijmout volitelný `voucherCode`, ale nesmí odečítat zůstatek, měnit status voucheru ani vytvářet `VoucherRedemption`; smí pouze uložit `intendedVoucherId`, `intendedVoucherCodeSnapshot` a `intendedVoucherValidatedAt` na `Booking`.
+- `VALUE` voucher se ve veřejném flow považuje za použitelný při kladném `remainingValueCzk` bez ohledu na cenu služby; nižší zůstatek než cena není chyba a doplatek zůstává provozní záležitost při návštěvě.
 
 ## Veřejný Web
 - Každá veřejná stránka má vlastní route a metadata.

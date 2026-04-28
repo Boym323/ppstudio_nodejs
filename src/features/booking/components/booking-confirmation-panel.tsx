@@ -8,6 +8,8 @@ type BookingConfirmationPanelProps = {
     serviceName: string;
     scheduledStartsAt: string;
     scheduledEndsAt: string;
+    intendedVoucherCode?: string;
+    intendedVoucherType?: "VALUE" | "SERVICE";
   };
   salonContact: {
     name: string;
@@ -83,6 +85,21 @@ export function BookingConfirmationPanel({
               {timeRange}
             </p>
           </div>
+          {confirmation.intendedVoucherCode ? (
+            <div>
+              <p className="text-sm font-semibold text-[var(--color-accent)]">
+                Dárkový poukaz
+              </p>
+              <p className="mt-2 font-mono text-lg font-semibold text-[var(--color-foreground)]">
+                {confirmation.intendedVoucherCode}
+              </p>
+              <p className="mt-2 text-sm leading-6 text-[var(--color-muted)]">
+                {confirmation.intendedVoucherType === "SERVICE"
+                  ? "Voucher je platný pro vybranou službu. Poukaz bude uplatněn při návštěvě v salonu."
+                  : "Voucher je platný. Poukaz bude uplatněn při návštěvě v salonu. Případný rozdíl doplatíte na místě."}
+              </p>
+            </div>
+          ) : null}
         </div>
       </section>
 
