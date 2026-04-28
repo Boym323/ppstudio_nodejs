@@ -226,8 +226,6 @@ function drawVoucherDlPortrait(
     width: VOUCHER_WIDTH_PT - mm(6),
     height: VOUCHER_HEIGHT_PT - mm(6),
     color: colors.paper,
-    borderColor: colors.accentSoft,
-    borderWidth: 0.9,
   });
   page.drawRectangle({
     x: safeMargin - mm(1.5),
