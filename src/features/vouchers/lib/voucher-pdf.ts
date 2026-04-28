@@ -106,7 +106,7 @@ export function buildVoucherPdfTerms(voucher: Pick<VoucherPdfData, "type">) {
   const typedTerm =
     voucher.type === VoucherType.VALUE
       ? "Hodnotový poukaz lze čerpat postupně."
-      : "Poukaz na službu je určený pro uvedenou službu.";
+      : "Poukaz je určený pro uvedenou službu.";
 
   return [
     "Poukaz je možné uplatnit při rezervaci nebo osobně v salonu.",
@@ -228,12 +228,17 @@ export async function generateVoucherPdf(voucher: VoucherPdfData, options: Vouch
   });
 
   const leftX = margin + 34;
-  const rightX = pageWidth - margin - 156;
+  const rightX = pageWidth - margin - 148;
   const topY = pageHeight - margin - 34;
-  const logoMaxWidth = 136;
-  const logoMaxHeight = 50;
+  const logoMaxWidth = 142;
+  const logoMaxHeight = 52;
   const logoBox = logoImage ? getContainedImageBox(logoImage, logoMaxWidth, logoMaxHeight) : null;
-  const logoBottomY = logoBox ? topY - 2 - logoBox.height : topY - 4;
+  const logoBlockHeight = logoBox ? logoBox.height : 22;
+  const subtitleSize = 8.6;
+  const subtitleGap = 12;
+  const subtitleY = topY - logoBlockHeight - subtitleGap;
+  const titleGap = 36;
+  const titleY = subtitleY - titleGap;
 
   if (logoImage) {
     drawContainedImage(page, logoImage, leftX, topY - 2, logoMaxWidth, logoMaxHeight);
@@ -244,18 +249,18 @@ export async function generateVoucherPdf(voucher: VoucherPdfData, options: Vouch
       color: colors.ink,
     });
   }
-  drawText(page, "kosmetické studio Zlín", leftX, logoBottomY - 14, {
+  drawText(page, "kosmetické studio Zlín", leftX, subtitleY, {
     fontPair: regularFont,
-    size: 8.5,
+    size: subtitleSize,
     color: colors.muted,
   });
 
-  drawText(page, "Dárkový poukaz", leftX, topY - 86, {
+  drawText(page, "Dárkový poukaz", leftX, titleY, {
     fontPair: boldFont,
     size: 34,
     color: colors.ink,
   });
-  drawText(page, "Dopřejte si chvíli péče, klidu a krásy.", leftX, topY - 110, {
+  drawText(page, "Dopřejte si chvíli péče, klidu a krásy.", leftX, titleY - 24, {
     fontPair: regularFont,
     size: 10,
     color: colors.muted,
@@ -267,25 +272,26 @@ export async function generateVoucherPdf(voucher: VoucherPdfData, options: Vouch
       ? formatVoucherValue(voucher)
       : voucher.serviceNameSnapshot ?? "Vybraná služba PP Studio";
 
-  drawText(page, mainLabel, leftX, topY - 146, {
+  drawText(page, mainLabel, leftX, titleY - 60, {
     fontPair: regularFont,
     size: 10,
     color: colors.muted,
   });
-  drawWrappedText(page, mainValue, leftX, topY - 172, 312, {
+  drawWrappedText(page, mainValue, leftX, titleY - 86, 300, {
     fontPair: boldFont,
     size: voucher.type === VoucherType.VALUE ? 30 : 22,
     lineHeight: voucher.type === VoucherType.VALUE ? 34 : 27,
     color: colors.ink,
+    maxLines: voucher.type === VoucherType.VALUE ? 2 : 3,
   });
 
-  const detailsY = 112;
+  const detailsY = 126;
   drawDetail(page, "Kód voucheru", voucher.code, leftX, detailsY, regularFont, boldFont);
   drawDetail(page, "Platnost do", voucher.validUntil ? dateFormatter.format(voucher.validUntil) : "Bez omezení", leftX + 170, detailsY, regularFont, boldFont);
 
   page.drawRectangle({
-    x: rightX - 10,
-    y: 116,
+    x: rightX - 8,
+    y: 126,
     width: 132,
     height: 132,
     color: colors.panel,
@@ -293,19 +299,19 @@ export async function generateVoucherPdf(voucher: VoucherPdfData, options: Vouch
     borderWidth: 0.8,
   });
   page.drawImage(qrImage, {
-    x: rightX + 2,
-    y: 128,
+    x: rightX + 4,
+    y: 138,
     width: 108,
     height: 108,
   });
-  drawWrappedText(page, "Ověření voucheru", rightX - 2, 99, 116, {
+  drawWrappedText(page, "Ověření voucheru", rightX - 2, 109, 116, {
     fontPair: regularFont,
     size: 8.2,
     lineHeight: 10,
     color: colors.ink,
     align: "center",
   });
-  drawWrappedText(page, "Naskenujte QR kód pro ověření platnosti.", rightX - 6, 85, 124, {
+  drawWrappedText(page, "Naskenujte QR kód pro ověření platnosti.", rightX - 6, 95, 124, {
     fontPair: regularFont,
     size: 7.2,
     lineHeight: 9,
@@ -313,16 +319,17 @@ export async function generateVoucherPdf(voucher: VoucherPdfData, options: Vouch
     align: "center",
   });
 
-  drawWrappedText(page, buildVoucherPdfTerms(voucher).join(" "), leftX, 76, 320, {
+  drawWrappedText(page, buildVoucherPdfTerms(voucher).join(" "), leftX, 90, 320, {
     fontPair: regularFont,
-    size: 8,
-    lineHeight: 10.5,
+    size: 7.9,
+    lineHeight: 10.2,
     color: colors.muted,
+    maxLines: 3,
   });
 
   const contactLines = buildVoucherPdfContactLines(settings);
   contactLines.forEach((line, index) => {
-    drawWrappedText(page, line, rightX - 88, 66 - index * 12, 208, {
+    drawWrappedText(page, line, rightX - 90, 58 - index * 12, 210, {
       fontPair: regularFont,
       size: 7.8,
       lineHeight: 10,
@@ -419,6 +426,7 @@ function drawWrappedText(
     size: number;
     lineHeight: number;
     align?: "left" | "center" | "right";
+    maxLines?: number;
   },
 ) {
   const words = text.split(/\s+/).filter(Boolean);
@@ -441,7 +449,9 @@ function drawWrappedText(
     lines.push(currentLine);
   }
 
-  lines.forEach((line, index) => {
+  const visibleLines = options.maxLines ? lines.slice(0, options.maxLines) : lines;
+
+  visibleLines.forEach((line, index) => {
     const lineWidth = measureText(line, options.fontPair, options.size);
     const offsetX =
       options.align === "center"

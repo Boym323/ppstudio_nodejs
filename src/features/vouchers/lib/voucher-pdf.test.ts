@@ -31,6 +31,19 @@ test("generates a PDF document for a value voucher", async () => {
   assert.ok(pdfBytes.length > 1_000);
 });
 
+test("generates a PDF document for a service voucher", async () => {
+  const { generateVoucherPdf } = await import("./voucher-pdf");
+  const pdfBytes = await generateVoucherPdf(
+    buildVoucherFixture({
+      type: VoucherType.SERVICE,
+      serviceNameSnapshot: "Komplexní hloubkové ošetření pleti s liftingovou masáží a závěrečnou regenerací",
+    }),
+  );
+
+  assert.equal(Buffer.from(pdfBytes).subarray(0, 4).toString("utf8"), "%PDF");
+  assert.ok(pdfBytes.length > 1_000);
+});
+
 test("uses text logo fallback when voucher PDF logo is not configured", async () => {
   const { resolveVoucherPdfLogo, VOUCHER_PDF_TEXT_LOGO } = await import("./voucher-pdf");
   const logo = await resolveVoucherPdfLogo(null);
@@ -71,13 +84,33 @@ test("builds voucher PDF contact lines from salon settings", async () => {
 
 test("builds voucher PDF terms only for the voucher type", async () => {
   const { buildVoucherPdfTerms } = await import("./voucher-pdf");
-  const valueTerms = buildVoucherPdfTerms({ type: VoucherType.VALUE }).join(" ");
-  const serviceTerms = buildVoucherPdfTerms({ type: VoucherType.SERVICE }).join(" ");
+  const valueTerms = buildVoucherPdfTerms({ type: VoucherType.VALUE });
+  const serviceTerms = buildVoucherPdfTerms({ type: VoucherType.SERVICE });
+  const valueText = valueTerms.join(" ");
+  const serviceText = serviceTerms.join(" ");
 
-  assert.match(valueTerms, /čerpat postupně/);
-  assert.doesNotMatch(valueTerms, /uvedenou službu/);
-  assert.match(serviceTerms, /uvedenou službu/);
-  assert.doesNotMatch(serviceTerms, /čerpat postupně/);
+  assert.equal(valueTerms[0], "Poukaz je možné uplatnit při rezervaci nebo osobně v salonu.");
+  assert.equal(valueTerms[1], "Poukaz není směnitelný za hotovost.");
+  assert.equal(valueTerms[2], "Hodnotový poukaz lze čerpat postupně.");
+  assert.equal(serviceTerms[0], "Poukaz je možné uplatnit při rezervaci nebo osobně v salonu.");
+  assert.equal(serviceTerms[1], "Poukaz není směnitelný za hotovost.");
+  assert.equal(serviceTerms[2], "Poukaz je určený pro uvedenou službu.");
+  assert.match(valueText, /čerpat postupně/);
+  assert.doesNotMatch(valueText, /uvedenou službu/);
+  assert.match(serviceText, /uvedenou službu/);
+  assert.doesNotMatch(serviceText, /čerpat postupně/);
+});
+
+test("voucher PDF output does not expose internal note in plain text", async () => {
+  const { generateVoucherPdf } = await import("./voucher-pdf");
+  const pdfBytes = await generateVoucherPdf(
+    buildVoucherFixture({
+      internalNote: "TOTO NESMI BYT VE VYSTUPU",
+    }),
+  );
+  const payload = Buffer.from(pdfBytes).toString("latin1");
+
+  assert.doesNotMatch(payload, /TOTO NESMI BYT VE VYSTUPU/);
 });
 
 function buildVoucherFixture(overrides: Partial<ReturnType<typeof buildBaseVoucherFixture>> = {}) {

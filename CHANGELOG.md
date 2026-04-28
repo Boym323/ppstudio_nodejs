@@ -6,6 +6,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Finální polish layoutu PDF voucheru: horní blok logo/subtitle je bez překryvů, nadpis `Dárkový poukaz` začíná až pod brand blokem s větším odsazením, QR a kontaktní patička mají čistší rozestupy a dlouhé názvy služeb se bezpečně zalamují bez kolize s QR sloupcem.
 - PDF voucher má samostatně nastavitelné logo přes existující Média webu: `SiteSettings.voucherPdfLogoMediaId` odkazuje na `MediaAsset`, PDF čte jen lokální PNG/JPEG soubor a při chybějícím nebo nepodporovaném logu použije textové `PP Studio`.
 - PDF voucher má upravený dárkový layout s kontakty salonu ze `SiteSettings`, QR ověřením a typově správnými podmínkami: hodnotový poukaz zobrazuje postupné čerpání, službový poukaz jen pravidlo pro uvedenou službu.
 - PDF voucher už nezobrazuje jméno kupujícího; výstup obsahuje jen kód, typ, hodnotu/službu, platnost, QR ověření a podmínky.
