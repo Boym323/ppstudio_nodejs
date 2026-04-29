@@ -6,6 +6,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Stabilizován Playwright scénář self-service přesunu po runtime kolizi: test po výběru náhradního slotu čeká na potvrzený `aria-pressed` stav i změnu hidden `newStartAt`, takže v CI neposílá omylem původní kolidující termín.
 - Admin dashboard widget `Návštěvnost → rezervace` je přepracovaný na poctivější denní business přehled: KPI rezervací teď používá stejný event `Booking / Created` jako funnel, zdroje jsou označené jako návštěvní zdroje s odhadem rezervací a funnel ukazuje procenta mezi kroky.
 - Mobilní admin planner `/admin/volne-terminy` už po výběru buňky správně přepíná dny, ukazuje všech 7 dní týdne bez schovaného horizontálního posunu, nemá horizontální scroll v editoru dne, buňky mají větší dotykovou plochu a čitelné accessible labely s časem a stavem.
 - Admin detail rezervace už při načítání reschedule slotů nepočítá celý veřejný katalog služeb: `getAdminBookingDetailData` nově volá `getPublicBookingCatalog({ includeServices: false })`, takže detail nepadá na cizí nekonzistenci v mapování `service.category.name` mimo svůj use-case.

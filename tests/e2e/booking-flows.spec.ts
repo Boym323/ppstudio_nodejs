@@ -11,11 +11,12 @@ import {
   type E2eFixture,
 } from "./helpers/fixtures";
 
-async function clickUntilEnabled(trigger: Locator, target: Locator) {
+async function clickUntilSelected(trigger: Locator, target: Locator) {
   for (let attempt = 0; attempt < 5; attempt += 1) {
     await trigger.click();
 
     try {
+      await expect(trigger).toHaveAttribute("aria-pressed", "true", { timeout: 1_000 });
       await expect(target).toBeEnabled({ timeout: 1_000 });
       return;
     } catch {
@@ -23,6 +24,7 @@ async function clickUntilEnabled(trigger: Locator, target: Locator) {
     }
   }
 
+  await expect(trigger).toHaveAttribute("aria-pressed", "true");
   await expect(target).toBeEnabled();
 }
 
@@ -160,7 +162,7 @@ test.describe("booking flows", () => {
       .getByText(/(nový termín|vybraný (termín|slot)).*(koliduje|není k dispozici)/i)
       .first();
     const selectedDayButtons = selectedDaySection.getByRole("button", { name: /^Vybrat čas / });
-    await clickUntilEnabled(
+    await clickUntilSelected(
       selectedDayButtons.first(),
       confirmButton,
     );
@@ -207,7 +209,8 @@ test.describe("booking flows", () => {
     await confirmButton.click();
     await expect(conflictMessage).toBeVisible();
 
-    await clickUntilEnabled(selectedDayButtons.nth(2), confirmButton);
+    await clickUntilSelected(selectedDayButtons.nth(2), confirmButton);
+    await expect(page.locator('input[name="newStartAt"]')).not.toHaveValue(selectedStartIso);
     await confirmButton.click();
     await expect(successHeading).toBeVisible();
 
