@@ -10,6 +10,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - `MAJOR`: nekompatibilní změna (API, route contract, data contract, provozní workflow vyžadující změnu postupu).
 - Při merge větší změny nejdřív aktualizuj `CHANGELOG.md` (`Unreleased`) a teprve při release proveď skutečný bump verze (`npm version patch|minor|major` nebo ekvivalentní manuální commit).
 - Verzi a changelog drž vždy konzistentně: release commit má obsahovat finální version bump a odpovídající release poznámky.
+- Pro standardní produkční rollout používej `./deploy/release.sh`; skript sjednocuje kroky `pull -> npm ci -> Prisma -> lint/build -> restart systemd služeb`.
 
 ## Architektura
 - `src/app` obsahuje pouze routy, layouty a route handlers.

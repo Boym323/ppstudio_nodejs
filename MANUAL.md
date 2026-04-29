@@ -19,6 +19,14 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
 - Při změně nasazení vždy aktualizuj sekci Build a nasazení.
 - Pokud přibude nová chyba a její fix, doplň ji do Troubleshooting.
 
+## Build a nasazení
+- Doporučený produkční rollout script je [`deploy/release.sh`](/var/www/ppstudio/deploy/release.sh).
+- Spouštěj z rootu repozitáře:
+  - `cd /var/www/ppstudio`
+  - `./deploy/release.sh`
+- Skript provede standardní release kroky (instalace závislostí, Prisma generate + migrate deploy, lint, build, restart `ppstudio-web` a `ppstudio-email-worker`).
+- Detailní release checklist a QA body zůstávají v [`docs/DEPLOYMENT.md`](/var/www/ppstudio/docs/DEPLOYMENT.md).
+
 ## Verzování (SemVer)
 - Projekt používá Semantic Versioning `MAJOR.MINOR.PATCH` v `package.json`.
 - Aktuální řada `0.x.y` znamená před prvním stabilním vydáním; i tak držíme stejnou disciplínu změn, jen s větší opatrností.

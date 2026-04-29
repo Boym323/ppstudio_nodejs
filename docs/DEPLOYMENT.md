@@ -234,6 +234,26 @@ Postup nasazení aplikace do produkce.
 13. Po změně booking e-mailových šablon odešli testovací novou rezervaci, potvrzení, reminder, přesun a storno; v Gmailu, iOS Mailu, Apple Mailu a Outlooku zkontroluj čitelnost 600px shellu, stackování CTA na mobilu, funkčnost approve/reject/admin/manage/cancel odkazů, jednorázový kontakt, formát času `09:30 – 10:30` a to, že `Zrušit rezervaci` není vizuálně dominantnější než potvrzení.
 14. Po nasazení migrace `20260426123000_client_email_nullable_for_manual_booking` ověř ruční booking i bez e-mailu, včetně seznamu klientek, detailu klientky a detailu rezervace bez neplatných `mailto:` odkazů.
 
+### Automatizovaný rollout skript
+- Pro běžný produkční rollout můžeš použít [`deploy/release.sh`](/var/www/ppstudio/deploy/release.sh).
+- Skript provede:
+  - kontrolu větve (výchozí `main`) a čistoty pracovního stromu
+  - `git pull --ff-only` (volitelně přeskočitelné)
+  - `npm ci`, `npm run db:generate`, `npm run db:check-migrations`, `npx prisma migrate deploy`
+  - `npm run lint` (volitelně přeskočitelné), `npm run build`
+  - restart `ppstudio-web` a `ppstudio-email-worker` + výpis statusu služeb
+- Příklad:
+```bash
+cd /var/www/ppstudio
+./deploy/release.sh
+```
+- Užitečné volby:
+  - `--branch <name>`: nastav očekávanou release větev
+  - `--skip-pull`: přeskočí `git pull --ff-only`
+  - `--skip-lint`: přeskočí lint krok
+  - `--allow-dirty`: povolí spuštění i s necommitnutými změnami
+  - `--yes`: bez interaktivního potvrzení
+
 ### Systemd
 - Doporučený web unit je v [`deploy/systemd/ppstudio-web.service`](/var/www/ppstudio/deploy/systemd/ppstudio-web.service).
 - Doporučený worker unit je v [`deploy/systemd/ppstudio-email-worker.service`](/var/www/ppstudio/deploy/systemd/ppstudio-email-worker.service).
