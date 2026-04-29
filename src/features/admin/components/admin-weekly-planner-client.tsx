@@ -442,6 +442,12 @@ export function AdminWeeklyPlannerClient({
     );
   }
 
+  function selectPlannerDay() {
+    setPendingInteraction(null);
+    setSelectedSelection(null);
+    setMobileInspectorOpen(false);
+  }
+
   function handleCellStart(day: PlannerDay, cellIndex: number) {
     const tone = getCellTone(day, cellIndex);
 
@@ -704,6 +710,7 @@ export function AdminWeeklyPlannerClient({
             selectedDayKey={selectedDay.dateKey}
             baseHref={data.baseHref}
             weekKey={data.weekKey}
+            onSelectDay={selectPlannerDay}
           />
 
           <MobileDayGrid
@@ -725,6 +732,7 @@ export function AdminWeeklyPlannerClient({
             selectedDayKey={selectedDay.dateKey}
             baseHref={data.baseHref}
             weekKey={data.weekKey}
+            onSelectDay={selectPlannerDay}
           />
         </div>
 

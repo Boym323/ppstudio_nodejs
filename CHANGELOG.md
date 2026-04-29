@@ -6,6 +6,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Mobilní admin planner `/admin/volne-terminy` už po výběru buňky správně přepíná dny, ukazuje všech 7 dní týdne bez schovaného horizontálního posunu, nemá horizontální scroll v editoru dne, buňky mají větší dotykovou plochu a čitelné accessible labely s časem a stavem.
 - Admin detail rezervace už při načítání reschedule slotů nepočítá celý veřejný katalog služeb: `getAdminBookingDetailData` nově volá `getPublicBookingCatalog({ includeServices: false })`, takže detail nepadá na cizí nekonzistenci v mapování `service.category.name` mimo svůj use-case.
 - Voucher mutace už nejsou exportované z `"use server"` doménového modulu: tvorba/validace/uplatnění se přesunuly do `src/features/vouchers/lib/voucher-management.ts` a veřejně volatelné server actions zůstávají jen v admin wrappers s explicitní autorizací.
 - Voucher PDF testy používají explicitní testovací `SiteSettings`, takže už nespouští zbytečný Prisma fallback dotaz na `SiteSettings` a nebublají falešné `prisma:error` logy.

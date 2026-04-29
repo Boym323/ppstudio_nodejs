@@ -8,7 +8,7 @@ const PLANNER_START_HOUR = 6;
 const PLANNER_END_HOUR = 20;
 const PLANNER_CELL_COUNT = (PLANNER_END_HOUR - PLANNER_START_HOUR) * 2;
 const PLANNER_DESKTOP_ROW_CLASS = "grid grid-rows-[repeat(28,minmax(0,1.2rem))] gap-y-1";
-const PLANNER_MOBILE_ROW_CLASS = "grid grid-rows-[repeat(28,minmax(0,1.5rem))] gap-y-1.5";
+const PLANNER_MOBILE_ROW_CLASS = "grid grid-rows-[repeat(28,minmax(0,2rem))] gap-y-1.5";
 
 export type CellTone = "available" | "booked" | "locked" | "inactive" | "past" | "empty";
 
@@ -100,6 +100,30 @@ export function formatRangeLabel(startCell: number, endCell: number) {
 
 function getSummaryLine(day: PlannerDay) {
   return `${day.availableIntervals.length} volná okna, ${day.bookings.length} rezervací, ${day.lockedIntervals.length} omezení`;
+}
+
+function getToneLabel(tone: CellTone) {
+  if (tone === "available") {
+    return "volný blok";
+  }
+
+  if (tone === "booked") {
+    return "rezervace";
+  }
+
+  if (tone === "locked") {
+    return "omezení";
+  }
+
+  if (tone === "inactive") {
+    return "neaktivní čas";
+  }
+
+  if (tone === "past") {
+    return "minulý čas";
+  }
+
+  return "prázdný blok";
 }
 
 function ActionButton({
@@ -281,29 +305,33 @@ export function MobileDayPicker({
   selectedDayKey,
   baseHref,
   weekKey,
+  onSelectDay,
 }: {
   days: PlannerDay[];
   selectedDayKey: string;
   baseHref: string;
   weekKey: string;
+  onSelectDay: (dayKey: string) => void;
 }) {
   return (
     <div className="lg:hidden">
-      <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
+      <div className="grid grid-cols-7 gap-1 sm:gap-2">
         {days.map((day) => (
           <Link
             key={day.dateKey}
             href={getDayActionHref(baseHref, weekKey, day.dateKey)}
+            onClick={() => onSelectDay(day.dateKey)}
+            aria-label={`${day.label}, ${day.availableIntervals.length} volná okna`}
             className={cn(
-              "min-w-[7.75rem] shrink-0 rounded-[1rem] border px-3 py-3",
+              "min-w-0 rounded-[0.9rem] border px-1.5 py-2.5 text-center",
               day.dateKey === selectedDayKey
                 ? "border-[var(--color-accent)]/45 bg-[rgba(190,160,120,0.14)]"
                 : "border-white/10 bg-white/[0.04]",
             )}
           >
-            <p className="text-[10px] uppercase tracking-[0.24em] text-white/46">{day.shortLabel}</p>
-            <p className="mt-1 text-2xl font-semibold text-white">{day.dayNumber}</p>
-            <p className="mt-1 text-xs text-white/58">{day.availableIntervals.length} volná okna</p>
+            <p className="text-[10px] uppercase text-white/46">{day.shortLabel}</p>
+            <p className="mt-1 text-xl font-semibold leading-none text-white">{day.dayNumber}</p>
+            <p className="mt-1 text-[10px] leading-none text-white/58">{day.availableIntervals.length} okna</p>
           </Link>
         ))}
       </div>
@@ -344,21 +372,25 @@ function isCellHighlighted(
 export function GridCell({
   tone,
   selected,
+  label,
   onPointerDown,
   onPointerMove,
 }: {
   tone: CellTone;
   selected: boolean;
+  label: string;
   onPointerDown: () => void;
   onPointerMove: (event: React.PointerEvent<HTMLButtonElement>) => void;
 }) {
   return (
     <button
       type="button"
+      aria-label={label}
+      aria-pressed={selected}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       className={cn(
-        "h-6 w-full rounded-[0.65rem] border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/70 lg:h-[1.2rem]",
+        "h-8 w-full rounded-[0.65rem] border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/70 lg:h-[1.2rem]",
         tone === "available" && "border-emerald-300/25 bg-emerald-300/66 hover:bg-emerald-300/82",
         tone === "booked" && "cursor-default border-rose-300/30 bg-rose-300/70",
         tone === "locked" && "cursor-default border-amber-200/24 bg-amber-200/42",
@@ -381,6 +413,7 @@ export function DesktopWeekGrid({
   selectedDayKey,
   baseHref,
   weekKey,
+  onSelectDay,
 }: {
   days: PlannerDay[];
   timeLabels: string[];
@@ -391,6 +424,7 @@ export function DesktopWeekGrid({
   selectedDayKey: string;
   baseHref: string;
   weekKey: string;
+  onSelectDay: (dayKey: string) => void;
 }) {
   const rowIndexes = Array.from({ length: PLANNER_CELL_COUNT }, (_, index) => index);
 
@@ -404,6 +438,7 @@ export function DesktopWeekGrid({
               <Link
                 key={day.dateKey}
                 href={getDayActionHref(baseHref, weekKey, day.dateKey)}
+                onClick={() => onSelectDay(day.dateKey)}
                 className={cn(
                   "rounded-[1rem] border px-3 py-3 text-left transition",
                   day.dateKey === selectedDayKey
@@ -434,13 +469,20 @@ export function DesktopWeekGrid({
             {days.map((day) => (
               <div key={day.dateKey} className={cn(PLANNER_DESKTOP_ROW_CLASS, "pt-1")}>
                 {rowIndexes.map((cellIndex) => (
+                  (() => {
+                    const tone = getCellTone(day, cellIndex);
+
+                    return (
                   <GridCell
                     key={`${day.dateKey}-${cellIndex}`}
-                    tone={getCellTone(day, cellIndex)}
+                    tone={tone}
                     selected={isCellHighlighted(day.dateKey, cellIndex, draft, selectedSelection)}
+                    label={`${day.label}, ${formatRangeLabel(cellIndex, cellIndex + 1)}, ${getToneLabel(tone)}`}
                     onPointerDown={() => onCellStart(day, cellIndex)}
                     onPointerMove={(event) => onCellMove(day.dateKey, cellIndex, event.buttons)}
                   />
+                    );
+                  })()
                 ))}
               </div>
             ))}
@@ -470,16 +512,16 @@ export function MobileDayGrid({
 
   return (
     <div className="overflow-hidden rounded-[1.3rem] border border-white/8 bg-[#131116] lg:hidden">
-      <div className="overflow-x-auto px-4 py-4">
-        <div className="min-w-[320px]">
+      <div className="px-3 py-4 sm:px-4">
+        <div className="min-w-0">
           <p className="text-[10px] uppercase tracking-[0.24em] text-white/42">Vybraný den</p>
-          <div className="mt-2 flex items-end justify-between gap-3">
+          <div className="mt-2 flex min-w-0 flex-col gap-1 sm:flex-row sm:items-end sm:justify-between sm:gap-3">
             <h4 className="text-2xl font-semibold text-white">{day.label}</h4>
-            <p className="text-xs text-white/50">{getSummaryLine(day)}</p>
+            <p className="text-xs leading-5 text-white/50 sm:text-right">{getSummaryLine(day)}</p>
           </div>
           <p className="mt-2 text-sm leading-6 text-white/58">Klepnutím vybíráte blok, tažením měníte běžnou dostupnost.</p>
 
-          <div className={cn("mt-4 grid grid-cols-[48px_minmax(280px,1fr)] gap-x-3", PLANNER_MOBILE_ROW_CLASS)}>
+          <div className={cn("mt-4 grid grid-cols-[3rem_minmax(0,1fr)] gap-x-3", PLANNER_MOBILE_ROW_CLASS)}>
             {rowIndexes.map((cellIndex) => (
               <div key={`${day.dateKey}-${cellIndex}`} className="contents">
                 <div className="pt-1 text-[10px] uppercase tracking-[0.14em] text-white/38">
@@ -488,6 +530,7 @@ export function MobileDayGrid({
                 <GridCell
                   tone={getCellTone(day, cellIndex)}
                   selected={isCellHighlighted(day.dateKey, cellIndex, draft, selectedSelection)}
+                  label={`${day.label}, ${formatRangeLabel(cellIndex, cellIndex + 1)}, ${getToneLabel(getCellTone(day, cellIndex))}`}
                   onPointerDown={() => onCellStart(day, cellIndex)}
                   onPointerMove={(event) => onCellMove(day.dateKey, cellIndex, event.buttons)}
                 />
@@ -674,27 +717,24 @@ export function MobileInspectorSheet({
   onClose: () => void;
   children: React.ReactNode;
 }) {
+  if (!open) {
+    return null;
+  }
+
   return (
     <div
-      className={cn(
-        "fixed inset-0 z-50 xl:hidden",
-        open ? "pointer-events-auto" : "pointer-events-none",
-      )}
-      aria-hidden={!open}
+      className="fixed inset-0 z-50 xl:hidden"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Inspektor dne"
     >
       <AdminEscapeKeyClose onEscape={onClose} enabled={open} />
       <div
-        className={cn(
-          "absolute inset-0 bg-black/55 backdrop-blur-sm transition",
-          open ? "opacity-100" : "opacity-0",
-        )}
+        className="absolute inset-0 bg-black/55 opacity-100 backdrop-blur-sm transition"
         onClick={onClose}
       />
       <div
-        className={cn(
-          "absolute bottom-0 left-0 right-0 max-h-[86vh] overflow-y-auto rounded-t-[1.6rem] border border-white/10 bg-[#111015] p-4 shadow-[0_-16px_40px_rgba(0,0,0,0.35)] transition",
-          open ? "translate-y-0" : "translate-y-full",
-        )}
+        className="absolute bottom-0 left-0 right-0 max-h-[86vh] translate-y-0 overflow-y-auto rounded-t-[1.6rem] border border-white/10 bg-[#111015] p-4 shadow-[0_-16px_40px_rgba(0,0,0,0.35)] transition"
       >
         <div className="mb-4 flex items-center justify-between gap-3">
           <p className="text-sm font-medium text-white">Inspektor dne</p>

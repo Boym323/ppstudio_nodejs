@@ -487,6 +487,8 @@ npm run db:clear-booking-data -- --confirm
   - kliknutím výběr konkrétního bloku a tažením přidání nebo odebrání dostupnosti přímo v mřížce
   - automatické sloučení sousedních půlhodin do souvislých intervalů `AvailabilitySlot`
   - pravý akční inspektor dne s denním souhrnem, rychlými akcemi a detailem výběru z gridu
+  - mobilní přepínač všech 7 dní najednou a editor jednoho dne bez horizontálního scrollu
+  - přepnutí dne na mobilu čistí aktuální výběr buňky, ale nechává zachovaný nepublikovaný koncept týdne
   - denní rychlé akce `zkopírovat den`, `nastavit den jako zavřeno`, `obnovit den z publikovaného stavu`
   - spodní sticky bar pro `Zahodit` a `Publikovat změny`
   - týdenní rychlé akce `zkopírovat týden na další` a lokální šablonu týdne uloženou v zařízení

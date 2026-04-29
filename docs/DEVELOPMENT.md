@@ -640,7 +640,10 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 
 ## Týdenní plánování slotů
 - Hlavní workflow běží na `/admin/volne-terminy` a `/admin/provoz/volne-terminy`.
-- Mobil nepoužívá celou stěnu velkých denních karet; týden vybírá přes kompaktní horizontální přepínač dnů a jeden přímý editor vybraného dne.
+- Mobil nepoužívá celou stěnu velkých denních karet; týden vybírá přes kompaktní sedmidenní přepínač a jeden přímý editor vybraného dne.
+- Přepnutí dne musí vždy zahodit jen aktuální UI výběr buňky a zavřít mobilní inspektor; koncept týdne zůstává zachovaný.
+- Mobilní planner nesmí schovávat dny týdne za neviditelný horizontální posun. Všech 7 dní má být vidět najednou a samotná půlhodinová mřížka se musí vejít do viewportu.
+- Buňky v gridu jsou skutečná tlačítka s accessible labelem `den + čas + stav`, aby šly ovládat a testovat bez závislosti na barvě.
 - Route `novy`, `[slotId]` a `[slotId]/upravit` jsou zachované kvůli kompatibilitě URL, ale přesměrují obsluhu zpět do planneru ve správném týdnu.
 - Mřížka používá 28 půlhodinových buněk na den (okno `06:00-20:00`).
 - Výpočet začátku týdne musí vycházet z lokálního kalendářního dne `Europe/Prague` (pondělí jako první den), ne z `getUTCDay()` nad UTC půlnocí.
@@ -657,6 +660,8 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 ## Ruční QA pro planner
 - Ověř owner i salon variantu `/admin/volne-terminy` a `/admin/provoz/volne-terminy`.
 - Ověř, že kliknutí do buňky jen vybere blok pro inspektor a samotnou změnu udělá až tažení nebo akce z inspektoru.
+- Na mobilu ověř, že po výběru buňky lze přepnout na jiný den a nadpis editoru odpovídá URL parametru `day`.
+- Na mobilu ověř přidání a odebrání jednoho půlhodinového bloku přes inspektor bez horizontálního scrollu editoru dne.
 - Ověř přidání delšího úseku tažením a následné sloučení do jednoho `AvailabilitySlot`.
 - Ověř odebrání části dostupnosti ze zeleného bloku a správné rozdělení na zbylé intervaly.
 - Ověř sticky action bar pro neuložené změny: `Zahodit`, `Publikovat změny`.
