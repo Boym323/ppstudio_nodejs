@@ -208,6 +208,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - DB-backed booking integrační scénáře lze spustit cíleně přes `npm run test:db:booking`.
 - Browser E2E testy běží přes Playwright (`npm run test:e2e`) v adresáři `tests/e2e`.
 - Reschedule scenar `client can reschedule a booking through a public token` ma zamerne sirsi test timeout nez ostatni scenare, protoze overuje plny self-service submit a success render nad produkcnim `next start` serverem.
+- Pri finalnim cekani na success heading je timeout zamerne navyseny na `30_000 ms`; pri nezdaru test navic vypise posledni viditelnou chybu formulare, aby CI log hned ukazal, jestli slo o konflikt slotu, validaci nebo obecny save error.
 - Playwright konfigurace používá lokální produkční `next start` server na `PLAYWRIGHT_PORT` (výchozí `3100`) a nastavuje `NEXT_PUBLIC_APP_URL` na stejný lokální origin pro runtime serveru.
 - E2E fixture helper seeduje unikátní služby, sloty, klienty, tokeny a dočasného owner uživatele přes Prisma; cleanup filtruje podle unikátního `runId`, aby testy nesahaly na ručně vytvořená data.
 - Aktuální E2E smoke coverage ověřuje veřejné vytvoření pending rezervace, self-service storno, self-service přesun a owner potvrzení rezervace v admin detailu.

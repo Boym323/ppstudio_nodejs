@@ -212,7 +212,20 @@ test.describe("booking flows", () => {
     await clickUntilSelected(selectedDayButtons.nth(2), confirmButton);
     await expect(page.locator('input[name="newStartAt"]')).not.toHaveValue(selectedStartIso);
     await confirmButton.click();
-    await expect(successHeading).toBeVisible();
+    try {
+      await expect(successHeading).toBeVisible({ timeout: 30_000 });
+    } catch (error) {
+      const formError = (await page.locator("text=Změnu termínu se teď nepodařilo uložit. Zkuste to prosím znovu.").count()) > 0
+        ? "Změnu termínu se teď nepodařilo uložit. Zkuste to prosím znovu."
+        : (await page.locator("text=Vyberte prosím nový termín a potvrďte změnu.").count()) > 0
+          ? "Vyberte prosím nový termín a potvrďte změnu."
+          : (await conflictMessage.count()) > 0
+            ? await conflictMessage.first().innerText()
+            : "Neznámý stav formuláře bez success headingu.";
+      throw new Error(`Reschedule success heading se neukázal. Poslední stav formuláře: ${formError}`, {
+        cause: error,
+      });
+    }
 
     const booking = await prisma.booking.findUniqueOrThrow({
       where: {
