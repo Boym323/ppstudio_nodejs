@@ -2,6 +2,15 @@
 
 Tento dokument slouží jako detailní technická dokumentace vývoje.
 
+## Verzování a release disciplína
+- `package.json` používá SemVer `MAJOR.MINOR.PATCH`; aktuální `0.1.0` je pre-stable řada.
+- Praktické pravidlo pro tento projekt:
+  - `PATCH`: bugfix, interní refaktor bez změny kontraktu, performance tuning bez změny chování API/UI kontraktu.
+  - `MINOR`: nová funkce nebo rozšíření existující funkce zpětně kompatibilním způsobem.
+  - `MAJOR`: nekompatibilní změna (API, route contract, data contract, provozní workflow vyžadující změnu postupu).
+- Při merge větší změny nejdřív aktualizuj `CHANGELOG.md` (`Unreleased`) a teprve při release proveď skutečný bump verze (`npm version patch|minor|major` nebo ekvivalentní manuální commit).
+- Verzi a changelog drž vždy konzistentně: release commit má obsahovat finální version bump a odpovídající release poznámky.
+
 ## Architektura
 - `src/app` obsahuje pouze routy, layouty a route handlers.
 - `src/components` drží čistě sdílené stavební prvky.

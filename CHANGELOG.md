@@ -6,6 +6,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Zavedena jednotná politika verzování (SemVer) pro `package.json`: jasná pravidla pro `PATCH`/`MINOR`/`MAJOR`, povinná vazba na `CHANGELOG.md` a release commit s atomickou změnou verze i release poznámek.
 - Homepage public shell má menší klientský bundle: `SiteHeader` je znovu server komponenta bez `TrackedLink` hydratační vrstvy, footer používá jen `ObfuscatedEmailLink` bez Matomo CTA wrapperů a Matomo skripty se načítají přes `lazyOnload` místo `afterInteractive`.
 - Ve veřejném rezervačním flow je lehčí scroll navádění po výběru kategorie služby: `service-step` už při výpočtu cílové pozice nečte geometrii sticky headeru z DOM, ale používá stabilní breakpoint offsety, což snižuje riziko vynuceného reflow.
 - Homepage hero upravuje LCP prioritu: logo používá `next/image` `preload`, portrait už není prioritní a stín loga je jemnější, aby se zkrátilo render delay hlavního prvku.

@@ -19,6 +19,15 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
 - Při změně nasazení vždy aktualizuj sekci Build a nasazení.
 - Pokud přibude nová chyba a její fix, doplň ji do Troubleshooting.
 
+## Verzování (SemVer)
+- Projekt používá Semantic Versioning `MAJOR.MINOR.PATCH` v `package.json`.
+- Aktuální řada `0.x.y` znamená před prvním stabilním vydáním; i tak držíme stejnou disciplínu změn, jen s větší opatrností.
+- `PATCH` (`0.1.0 -> 0.1.1`) zvyšuj při opravách chyb, interním refaktoru bez změny chování a technických úpravách bez dopadu na veřejné rozhraní.
+- `MINOR` (`0.1.0 -> 0.2.0`) zvyšuj při přidání nové funkce nebo rozšíření existující funkcionality zpětně kompatibilním způsobem.
+- `MAJOR` (`0.1.0 -> 1.0.0` nebo `1.x.y -> 2.0.0`) zvyšuj při nekompatibilní změně API, datového kontraktu, routingu nebo provozního chování, které vyžaduje zásah uživatele/operátora.
+- Každé zvýšení verze musí mít odpovídající záznam v `CHANGELOG.md` pod sekcí `Unreleased`.
+- Před release se verze v `package.json` a `package-lock.json` mění atomicky jedním commitem společně s finální podobou release poznámek.
+
 ## Aktuální Stav Projektu
 - Projekt běží na Next.js 16 App Routeru se strukturou oddělenou na public web, booking a admin.
 - Veřejný shell (`SiteShell`) inicializuje volitelný Matomo tracking přes `NEXT_PUBLIC_MATOMO_ENABLED`, `NEXT_PUBLIC_MATOMO_URL` a `NEXT_PUBLIC_MATOMO_SITE_ID`; admin route group tracking komponentu nepoužívá.
