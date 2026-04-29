@@ -41,11 +41,7 @@ export function BookingServiceStep({
 
     window.requestAnimationFrame(() => {
       const rect = servicesList.getBoundingClientRect();
-      const stickyHeader = document.querySelector<HTMLElement>("header.sticky.top-0");
-      const fallbackOffset = window.innerWidth >= 1024 ? 112 : 88;
-      const headerOffset = stickyHeader
-        ? Math.max(0, stickyHeader.getBoundingClientRect().bottom)
-        : fallbackOffset;
+      const headerOffset = window.innerWidth >= 1024 ? 112 : 88;
       const breathingSpace = window.innerWidth >= 1024 ? 16 : 20;
       const topOffset = headerOffset + breathingSpace;
       const isComfortablyVisible = rect.top >= topOffset && rect.bottom <= window.innerHeight - 24;

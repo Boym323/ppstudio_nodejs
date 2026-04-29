@@ -7,6 +7,7 @@ Formát je inspirovaný Keep a Changelog.
 ## [Unreleased]
 
 - Homepage public shell má menší klientský bundle: `SiteHeader` je znovu server komponenta bez `TrackedLink` hydratační vrstvy, footer používá jen `ObfuscatedEmailLink` bez Matomo CTA wrapperů a Matomo skripty se načítají přes `lazyOnload` místo `afterInteractive`.
+- Ve veřejném rezervačním flow je lehčí scroll navádění po výběru kategorie služby: `service-step` už při výpočtu cílové pozice nečte geometrii sticky headeru z DOM, ale používá stabilní breakpoint offsety, což snižuje riziko vynuceného reflow.
 - Admin přihlášení má civilnější netechnické copy, neutrální e-mailový placeholder a výraznější `focus-visible` stav pro klávesnicové ovládání.
 - Homepage SEO title drží lokální hledací frázi `Kosmetický salon Zlín`, aby technické SEO opravy nezhoršily dosavadní Google snippet.
 - Opraveno technické SEO veřejných stránek: per-page metadata teď nastavují vlastní canonical URL, OpenGraph URL a Twitter metadata, root layout už nenutí canonical homepage na všechny podstránky.
