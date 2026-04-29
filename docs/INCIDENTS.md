@@ -30,6 +30,7 @@ Evidence produkčních incidentů a jejich řešení.
 - Neplatné nebo chybějící env proměnné při startu aplikace.
 - Chyby Prisma klienta po změně schematu nebo po nasazení bez `db:generate`.
 - Selhání admin přihlášení kvůli špatnému `ADMIN_SESSION_SECRET` nebo bootstrap účtům.
+- Admin login/logout redirect nebo proxy přesměrování mířící na cizí doménu po podvrženém `Host` / `x-forwarded-host`; okamžitě ověř `NEXT_PUBLIC_APP_URL`, `NEXT_PUBLIC_SITE_DOMAIN`, `VOUCHER_PUBLIC_DOMAIN`, reverse proxy hlavičky a helper `src/lib/http/request-origin.ts`.
 - Brute-force pokusy na `/api/auth/login` bez aktivace rate limit ochrany (`error=rate_limited` se po sérii špatných pokusů neobjeví).
 - Chybný role redirect nebo neočekávaný přístup `SALON` do owner-only sekcí.
 - Rozjezd owner-only sekce `Uživatelé / role`, kdy by se `SALON` dostal na `/admin/uzivatele` nebo by se v UI objevila jiná role než `OWNER` / `SALON`.
