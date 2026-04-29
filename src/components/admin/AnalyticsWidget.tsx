@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 export type AnalyticsDashboardData = {
   reportingStatus: "ok" | "disabled" | "blocked" | "error";
   reportingMessage?: string;
+  periodLabel: string;
   visits: number;
   conversions: number;
   conversionRate: number;
@@ -60,6 +61,7 @@ function isAnalyticsDashboardData(value: unknown): value is AnalyticsDashboardDa
     Number.isFinite(candidate.conversionRate) &&
     ["ok", "disabled", "blocked", "error"].includes(String(candidate.reportingStatus)) &&
     (candidate.reportingMessage === undefined || typeof candidate.reportingMessage === "string") &&
+    typeof candidate.periodLabel === "string" &&
     typeof candidate.topSource === "string" &&
     Array.isArray(candidate.sources) &&
     candidate.sources.every(
@@ -86,20 +88,33 @@ function formatPercent(value: number) {
   return `${percentFormatter.format(value)} %`;
 }
 
+function formatStepRate(value: number, previousValue: number) {
+  if (previousValue <= 0) {
+    return "—";
+  }
+
+  return formatPercent(Math.round((value / previousValue) * 10000) / 100);
+}
+
 function FunnelStep({
   label,
   value,
   helper,
+  rate,
 }: {
   label: string;
   value: number;
   helper?: string;
+  rate?: string;
 }) {
   return (
     <div className="rounded-[1rem] border border-white/8 bg-black/18 px-4 py-3.5">
-      <p className="text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-white/42">
-        {label}
-      </p>
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-white/42">
+          {label}
+        </p>
+        {rate ? <span className="text-xs font-medium tabular-nums text-white/46">{rate}</span> : null}
+      </div>
       <p className="mt-2 text-2xl font-bold tracking-tight text-white">{formatNumber(value)}</p>
       {helper ? <p className="mt-1 text-xs text-white/46">{helper}</p> : null}
     </div>
@@ -125,7 +140,7 @@ function SourcesList({ sources }: { sources: AnalyticsDashboardData["sources"] }
           <div className="min-w-0">
             <p className="truncate text-sm font-medium text-white">{source.label || "—"}</p>
             <p className="mt-0.5 text-xs text-white/42">
-              {formatNumber(source.conversions)} rezervací
+              odhad {formatNumber(source.conversions)} rezervací
             </p>
           </div>
           <p className="text-right text-lg font-semibold tabular-nums text-white">
@@ -203,7 +218,7 @@ export function AnalyticsWidget({
             Návštěvnost → rezervace
           </p>
           <p className="mt-2 text-sm leading-6 text-white/56">
-            Jak se návštěvy webu mění v rezervace.
+            Dnešní neosobní signály z webu a rezervačního flow.
           </p>
         </div>
       </div>
@@ -232,84 +247,109 @@ export function AnalyticsWidget({
             {state.data.reportingMessage || "Matomo reporting není teď dostupný."}
           </div>
         ) : (
-        <div className="mt-6 space-y-5">
-          <div className="grid gap-5 xl:grid-cols-[minmax(0,1.05fr)_minmax(18rem,0.95fr)] xl:items-start">
-            <div className="space-y-4">
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                <article className="rounded-[1.1rem] border border-white/8 bg-white/[0.04] px-4 py-4">
-                  <p className="text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-white/42">
-                    Návštěvy
-                  </p>
-                  <p className="mt-2 text-3xl font-bold tracking-tight text-white">
-                    {formatNumber(state.data.visits)}
-                  </p>
-                </article>
+          <div className="mt-6 space-y-5">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-white/62">
+                {state.data.periodLabel || "Dnes"}
+              </span>
+              <span className="rounded-full border border-white/10 bg-black/18 px-3 py-1.5 text-xs text-white/46">
+                Dokončené odeslání rezervace
+              </span>
+            </div>
 
-                <article className="rounded-[1.1rem] border border-white/8 bg-white/[0.04] px-4 py-4">
-                  <p className="text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-white/42">
-                    Rezervace
-                  </p>
-                  <p className="mt-2 text-3xl font-bold tracking-tight text-white">
-                    {formatNumber(state.data.conversions)}
-                  </p>
-                </article>
+            <div className="grid gap-5 xl:grid-cols-[minmax(0,1.05fr)_minmax(18rem,0.95fr)] xl:items-start">
+              <div className="space-y-4">
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                  <article className="rounded-[1.1rem] border border-white/8 bg-white/[0.04] px-4 py-4">
+                    <p className="text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-white/42">
+                      Návštěvy
+                    </p>
+                    <p className="mt-2 text-3xl font-bold tracking-tight text-white">
+                      {formatNumber(state.data.visits)}
+                    </p>
+                  </article>
 
-                <article className="rounded-[1.1rem] border border-white/8 bg-white/[0.04] px-4 py-4 sm:col-span-2 xl:col-span-1">
-                  <p className="text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-white/42">
-                    Konverze %
-                  </p>
-                  <p className="mt-2 text-3xl font-bold tracking-tight text-white">
-                    {formatPercent(state.data.conversionRate)}
-                  </p>
-                </article>
-              </div>
+                  <article className="rounded-[1.1rem] border border-white/8 bg-white/[0.04] px-4 py-4">
+                    <p className="text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-white/42">
+                      Rezervace
+                    </p>
+                    <p className="mt-2 text-3xl font-bold tracking-tight text-white">
+                      {formatNumber(state.data.conversions)}
+                    </p>
+                  </article>
 
-              <div className="rounded-[1.1rem] border border-white/8 bg-black/18 px-4 py-3.5">
-                <p className="text-sm text-white/72">
-                  Top zdroj:{" "}
-                  <span className="font-medium text-white">
-                    {state.data.topSource.trim().length > 0 ? state.data.topSource : "—"}
-                  </span>
-                </p>
+                  <article className="rounded-[1.1rem] border border-white/8 bg-white/[0.04] px-4 py-4 sm:col-span-2 xl:col-span-1">
+                    <p className="text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-white/42">
+                      Míra rezervace
+                    </p>
+                    <p className="mt-2 text-3xl font-bold tracking-tight text-white">
+                      {formatPercent(state.data.conversionRate)}
+                    </p>
+                  </article>
+                </div>
+
+                <div className="rounded-[1.1rem] border border-white/8 bg-black/18 px-4 py-3.5">
+                  <p className="text-sm text-white/72">
+                    Nejsilnější zdroj návštěv:{" "}
+                    <span className="font-medium text-white">
+                      {state.data.topSource.trim().length > 0 ? state.data.topSource : "—"}
+                    </span>
+                  </p>
+                  <p className="mt-1 text-xs leading-5 text-white/42">
+                    Zdroj rezervace je orientační odhad podle podílu návštěv, ne přesná atribuce.
+                  </p>
+                </div>
+
+                <div className="rounded-[1.2rem] border border-white/8 bg-white/[0.035] p-4">
+                  <div className="mb-3 flex items-center justify-between gap-3">
+                    <p className="text-[0.72rem] font-semibold uppercase tracking-[0.2em] text-white/42">
+                      Zdroje návštěv
+                    </p>
+                    <span className="text-xs text-white/42">návštěvy / odhad</span>
+                  </div>
+                  <SourcesList sources={state.data.sources} />
+                </div>
               </div>
 
               <div className="rounded-[1.2rem] border border-white/8 bg-white/[0.035] p-4">
-                <div className="mb-3 flex items-center justify-between gap-3">
+                <div className="flex items-center justify-between gap-3">
                   <p className="text-[0.72rem] font-semibold uppercase tracking-[0.2em] text-white/42">
-                    Zdroje rezervací
+                    Rezervační funnel
                   </p>
-                  <span className="text-xs text-white/42">návštěvy</span>
+                  <span className="text-xs text-white/42">podíl z předchozího kroku</span>
                 </div>
-                <SourcesList sources={state.data.sources} />
-              </div>
-            </div>
 
-            <div className="rounded-[1.2rem] border border-white/8 bg-white/[0.035] p-4">
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-[0.72rem] font-semibold uppercase tracking-[0.2em] text-white/42">
-                  Funnel
-                </p>
-                <span className="text-xs text-white/42">
-                  Datum: {formatNumber(state.data.funnel.date)}
-                </span>
-              </div>
-
-              <div className="mt-4 flex flex-col gap-2.5">
-                <FunnelStep label="Návštěva" value={state.data.visits} />
-                <div className="flex justify-center text-lg text-white/26">↓</div>
-                <FunnelStep label="Služba" value={state.data.funnel.service} />
-                <div className="flex justify-center text-lg text-white/26">↓</div>
-                <FunnelStep
-                  label="Čas"
-                  value={state.data.funnel.time}
-                  helper={`Výběr data: ${formatNumber(state.data.funnel.date)}`}
-                />
-                <div className="flex justify-center text-lg text-white/26">↓</div>
-                <FunnelStep label="Rezervace" value={state.data.funnel.created} />
+                <div className="mt-4 flex flex-col gap-2.5">
+                  <FunnelStep label="Návštěva" value={state.data.visits} />
+                  <div className="flex justify-center text-lg text-white/26">↓</div>
+                  <FunnelStep
+                    label="Služba"
+                    value={state.data.funnel.service}
+                    rate={formatStepRate(state.data.funnel.service, state.data.visits)}
+                  />
+                  <div className="flex justify-center text-lg text-white/26">↓</div>
+                  <FunnelStep
+                    label="Datum"
+                    value={state.data.funnel.date}
+                    rate={formatStepRate(state.data.funnel.date, state.data.funnel.service)}
+                  />
+                  <div className="flex justify-center text-lg text-white/26">↓</div>
+                  <FunnelStep
+                    label="Čas"
+                    value={state.data.funnel.time}
+                    rate={formatStepRate(state.data.funnel.time, state.data.funnel.date)}
+                  />
+                  <div className="flex justify-center text-lg text-white/26">↓</div>
+                  <FunnelStep
+                    label="Rezervace"
+                    value={state.data.funnel.created}
+                    rate={formatStepRate(state.data.funnel.created, state.data.funnel.time)}
+                    helper="Dokončené odeslání formuláře."
+                  />
+                </div>
               </div>
             </div>
           </div>
-        </div>
         )
       ) : null}
     </section>

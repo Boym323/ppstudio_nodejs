@@ -8,6 +8,7 @@ export const revalidate = 300;
 
 const analyticsFallback = {
   reportingStatus: "error",
+  periodLabel: "Dnes",
   visits: 0,
   conversions: 0,
   conversionRate: 0,

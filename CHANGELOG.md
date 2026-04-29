@@ -6,6 +6,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Admin dashboard widget `Návštěvnost → rezervace` je přepracovaný na poctivější denní business přehled: KPI rezervací teď používá stejný event `Booking / Created` jako funnel, zdroje jsou označené jako návštěvní zdroje s odhadem rezervací a funnel ukazuje procenta mezi kroky.
 - Mobilní admin planner `/admin/volne-terminy` už po výběru buňky správně přepíná dny, ukazuje všech 7 dní týdne bez schovaného horizontálního posunu, nemá horizontální scroll v editoru dne, buňky mají větší dotykovou plochu a čitelné accessible labely s časem a stavem.
 - Admin detail rezervace už při načítání reschedule slotů nepočítá celý veřejný katalog služeb: `getAdminBookingDetailData` nově volá `getPublicBookingCatalog({ includeServices: false })`, takže detail nepadá na cizí nekonzistenci v mapování `service.category.name` mimo svůj use-case.
 - Voucher mutace už nejsou exportované z `"use server"` doménového modulu: tvorba/validace/uplatnění se přesunuly do `src/features/vouchers/lib/voucher-management.ts` a veřejně volatelné server actions zůstávají jen v admin wrappers s explicitní autorizací.
@@ -64,7 +65,7 @@ Formát je inspirovaný Keep a Changelog.
 - Opraven self-service přesun termínu přes `/rezervace/sprava/[token]`: úspěšná server action už nerevaliduje aktuálně otevřenou veřejnou route, takže v Next.js 16 nezmizí potvrzovací heading kvůli route refreshi a E2E test zůstává stabilní.
 - Přibyl bezpečný CLI cleanup `npm run db:clear-booking-data`, který v dry-run režimu vypisuje počty booking/slot dat a s `-- --confirm` smaže testovací rezervace, termíny a navázané logy bez zásahu do služeb, admin účtů, settings nebo médií.
 - Analytics endpoint a widget teď rozlišují stav Matomo reportingu `ok / disabled / blocked / error`, takže dashboard při zamčeném nebo neplatném API tokenu neukazuje jen tiché nuly; přibyl i CLI check `npm run analytics:check`.
-- Matomo analytics pro admin dashboard nově vrací `sources` pole pro widget `Zdroje rezervací`; backend čte `Referrers.getCampaigns`, fallbackově mapuje `Referrers.getReferrerType` na business názvy a orientačně rozděluje dokončené rezervace podle podílu návštěv zdroje.
+- Matomo analytics pro admin dashboard nově vrací `sources` pole pro návštěvní zdroje; backend čte `Referrers.getCampaigns`, fallbackově mapuje `Referrers.getReferrerType` na business názvy a orientačně rozděluje dokončené rezervace podle podílu návštěv zdroje.
 - Admin dashboard `Přehled` nově obsahuje sekundární widget `Návštěvnost → rezervace` vložený až pod hlavní provozní bloky; načítá `/api/admin/analytics`, drží kompaktní KPI + funnel layout a umí stavy `loading / error / disabled`.
 - Přibyl klientský admin widget `AnalyticsWidget`, který načítá `/api/admin/analytics` a v kompaktní kartě ukazuje KPI `Návštěvy / Rezervace / Konverze %`, top source a jednoduchý vertikální funnel bez grafů.
 - Přibyl admin-protected endpoint `/api/admin/analytics`, který vrací server-side Matomo dashboard agregaci jako JSON s `revalidate = 300`; při interní chybě vrací bezpečný nulový fallback bez tokenu a bez PII.

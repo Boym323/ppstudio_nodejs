@@ -3,7 +3,6 @@ import "server-only";
 import { env } from "@/config/env";
 
 export type MatomoVisits = { nb_visits: number };
-export type MatomoGoal = { nb_conversions: number };
 export type MatomoEvent = { label: string; nb_events: number };
 export type MatomoReferrer = { label: string; nb_visits: number };
 export type MatomoCampaign = { label: string; nb_visits: number };
@@ -22,6 +21,7 @@ export type MatomoReportingHealth = {
 };
 
 export type DashboardAnalytics = {
+  periodLabel: string;
   visits: number;
   conversions: number;
   conversionRate: number;
@@ -36,8 +36,10 @@ export type DashboardAnalytics = {
 };
 
 const MATOMO_REVALIDATE_SECONDS = 300;
+const DASHBOARD_ANALYTICS_PERIOD_LABEL = "Dnes";
 const DEFAULT_VISITS: MatomoVisits = { nb_visits: 0 };
 const DEFAULT_DASHBOARD_ANALYTICS: DashboardAnalytics = {
+  periodLabel: DASHBOARD_ANALYTICS_PERIOD_LABEL,
   visits: 0,
   conversions: 0,
   conversionRate: 0,
@@ -60,7 +62,6 @@ const bookingFunnelLabels = {
 
 type MatomoMethod =
   | "VisitsSummary.get"
-  | "Goals.get"
   | "Events.getAction"
   | "Referrers.getReferrerType"
   | "Referrers.getCampaigns";
@@ -343,12 +344,6 @@ export async function fetchVisits(): Promise<MatomoVisits> {
   return normalizeVisitsPayload(await fetchMatomoJson("VisitsSummary.get"));
 }
 
-export async function fetchGoals(): Promise<MatomoGoal[]> {
-  return normalizeRows(await fetchMatomoJson("Goals.get"), (row) => ({
-    nb_conversions: toFiniteNumber(row.nb_conversions),
-  }));
-}
-
 export async function fetchEvents(): Promise<MatomoEvent[]> {
   return normalizeRows(await fetchMatomoJson("Events.getAction"), (row) => ({
     label: String(row.label ?? ""),
@@ -408,22 +403,21 @@ export async function getMatomoReportingHealth(): Promise<MatomoReportingHealth>
 
 export async function getDashboardAnalytics(): Promise<DashboardAnalytics> {
   try {
-    const [visitsSummary, goals, events, referrers, campaigns] = await Promise.all([
+    const [visitsSummary, events, referrers, campaigns] = await Promise.all([
       fetchVisits(),
-      fetchGoals(),
       fetchEvents(),
       fetchReferrers(),
       fetchCampaigns(),
     ]);
 
     const visits = visitsSummary.nb_visits;
-    const conversions = goals.reduce((sum, goal) => sum + goal.nb_conversions, 0);
     const funnel = {
       service: getEventCount(events, bookingFunnelLabels.service),
       date: getEventCount(events, bookingFunnelLabels.date),
       time: getEventCount(events, bookingFunnelLabels.time),
       created: getEventCount(events, bookingFunnelLabels.created),
     };
+    const conversions = funnel.created;
     const topReferrer = referrers.reduce<MatomoReferrer | null>(
       (top, referrer) => (!top || referrer.nb_visits > top.nb_visits ? referrer : top),
       null,
@@ -431,6 +425,7 @@ export async function getDashboardAnalytics(): Promise<DashboardAnalytics> {
     const sources = buildSourceRows(referrers, campaigns, funnel.created);
 
     return {
+      periodLabel: DASHBOARD_ANALYTICS_PERIOD_LABEL,
       visits,
       conversions,
       conversionRate: visits > 0 ? Math.round((conversions / visits) * 10000) / 100 : 0,

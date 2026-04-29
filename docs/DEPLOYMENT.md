@@ -50,10 +50,10 @@ Postup nasazení aplikace do produkce.
      - tokenové route `/rezervace/sprava/*`, `/rezervace/storno/*`, `/rezervace/akce/*` neodešlou pageview s tokenem
      - booking funnel odešle eventy bez jména, e-mailu, telefonu, poznámky nebo tokenu
      - self-service změna termínu odešle jen eventy `Booking / Date selected` a `Booking / Time selected` bez tokenu nebo PII
-     - v Matomo je ručně nastavený Goal `Booking created` pro custom event `Booking / Created`
+     - volitelný Matomo Goal `Booking created` pro custom event `Booking / Created` slouží jen pro Matomo UI; admin dashboard bere počet rezervací přímo z eventu
      - server-side dashboard reporting má nastavené `MATOMO_URL`, `MATOMO_SITE_ID` a `MATOMO_AUTH_TOKEN`, Reporting API token není dostupný v klientském bundle a při výpadku API dashboard zobrazí nulové fallbacky místo 500
      - `/api/admin/analytics` vrací po přihlášení agregovaný JSON bez tokenu a bez PII; bez session vrací `403`
-     - admin widget `Zdroje rezervací` ukazuje jen business labely zdrojů a max. několik položek včetně případného `Ostatní`, bez raw Matomo payloadu
+     - admin widget `Zdroje návštěv` ukazuje jen business labely zdrojů a max. několik položek včetně případného `Ostatní`, bez raw Matomo payloadu; rezervace u zdrojů jsou označené jako odhad
      - `npm run analytics:check` vrací `status: ok` nebo srozumitelnou chybu reportingu; při lockoutu nebo neplatném tokenu musí dashboard ukázat provozní hlášku místo zavádějících nul
 15. Projdi ruční QA admin částí:
    - login redirect pro `OWNER` a `SALON`
