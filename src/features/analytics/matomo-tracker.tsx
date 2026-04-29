@@ -60,7 +60,7 @@ export function MatomoTracker() {
     <>
       <Script
         id="matomo-init"
-        strategy="afterInteractive"
+        strategy="lazyOnload"
         dangerouslySetInnerHTML={{
           __html: `
             window._paq = window._paq || [];
@@ -72,7 +72,7 @@ export function MatomoTracker() {
           `,
         }}
       />
-      <Script id="matomo-script" src={`${trackerUrl}matomo.js`} strategy="afterInteractive" />
+      <Script id="matomo-script" src={`${trackerUrl}matomo.js`} strategy="lazyOnload" />
     </>
   );
 }

@@ -48,6 +48,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - `src/config/site.ts` drží globální fallback SEO popis a kontakty pro metadata a technické routy. Udržuj ho věcný k PP Studiu ve Zlíně a nepoužívej placeholder kontakty; produkční fallback je `info@ppstudio.cz`, `+420 732 856 036` a `Sadová 2, 760 01 Zlín`.
 - `src/app/robots.ts` je v produkčním nastavení otevřený pro celý veřejný web (`Allow: /`); blokované mají zůstat jen neveřejné admin a tokenové self-service cesty. Noindex veřejné stránky bez tokenu v path neblokuj v `robots.txt`, aby si robot mohl přečíst jejich metadata.
 - Matomo client tracking je v `src/features/analytics/*` a inicializuje se přes `src/components/layout/site-shell.tsx`. Při lokálním vývoji nastav `NEXT_PUBLIC_MATOMO_ENABLED=true`, `NEXT_PUBLIC_MATOMO_URL` a `NEXT_PUBLIC_MATOMO_SITE_ID`; bez kompletní konfigurace je helper bezpečný no-op.
+- `MatomoTracker` má používat `next/script` strategii `lazyOnload`, protože veřejný web nepotřebuje analytics inicializaci v kritickém renderu; cílem je menší TBT a nižší unused JS na homepage.
 - Pageview tracking v App Routeru poslouchá `usePathname()` a `useSearchParams()`, první render nechává na inicializačním Matomo scriptu a další klientské navigace posílá se sanitizovanou URL.
 - Tokenové self-service booking route (`/rezervace/sprava/*`, `/rezervace/storno/*`, `/rezervace/akce/*`) neposílají pageview s tokenem. `MatomoTracker` na nich může pouze inicializovat `_paq`, aby šly z klientských handlerů poslat bezpečné neosobní eventy bez raw URL.
 - Funnel a CTA eventy se smí volat jen v client handlerech nebo efektech po úspěšné akci; neposílej jména, e-maily, telefony, poznámky, tokeny ani raw URL s citlivými parametry.
@@ -159,6 +160,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - uprostřed vždy zachovej dvě oddělené skupiny odkazů `Navigace` a `Informace`
   - kontakt má mít vyšší vizuální váhu než běžné linky, ale bez CTA nebo promo copy; obsahuje adresu, telefon a e-mail
   - ve footeru zobrazuj e-mail i telefon v přirozeně čitelném tvaru; nepoužívej textový zápis `info [at] ...`
+  - footer i header udržuj server-rendered všude, kde to jde; kvůli trackingu nepřepínej celý shell na klientský rendering
   - při dalších úpravách preferuj práci s `gap`, `max-width`, typografickou vahou a jemným border/shadow rytmem místo přidávání dalších obsahových bloků
 - Veřejné e-mailové odkazy nepoužívej jako surový `mailto:` přímo v SSR markupu; pro footer, kontaktní stránku a další veřejné kontaktní prvky používej `src/components/ui/obfuscated-email-link.tsx`, který:
   - může zobrazit obfuskovaný text `local [at] domain` nebo plný čitelný e-mail podle kontextu UI
