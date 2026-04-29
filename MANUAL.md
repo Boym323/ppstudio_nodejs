@@ -23,6 +23,7 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
 - Projekt běží na Next.js 16 App Routeru se strukturou oddělenou na public web, booking a admin.
 - Veřejný shell (`SiteShell`) inicializuje volitelný Matomo tracking přes `NEXT_PUBLIC_MATOMO_ENABLED`, `NEXT_PUBLIC_MATOMO_URL` a `NEXT_PUBLIC_MATOMO_SITE_ID`; admin route group tracking komponentu nepoužívá.
 - Matomo skript na veřejném webu je záměrně odložený přes `lazyOnload`, aby se homepage nejdřív vykreslila s minimem klientské práce na hlavním vlákně.
+- Homepage hero preferuje jako LCP kandidát logo: je preloadované přes `next/image`, zatímco portrait běží bez priority, aby první vykreslení nebylo bržděné konkurenčním načítáním.
 - Matomo měří pageview veřejných stránek a booking flow včetně klientských App Router navigací, ale neposílá pageview pro `/admin`, `/api`, Next internals ani tokenové self-service route `/rezervace/sprava/*`, `/rezervace/storno/*`, `/rezervace/akce/*`.
 - Rezervační flow posílá pouze neosobní eventy `Booking / Service selected`, `Date selected`, `Time selected`, `Contact started` a po úspěchu `Created`; self-service změna termínu posílá bezpečné `Booking / Date selected` a `Booking / Time selected`. Jméno, e-mail, telefon, poznámka ani tokeny se do analytics neposílají.
 - V Matomo lze ručně nastavit Goal pro vlastní Matomo přehledy: název `Booking created`, trigger `custom event`, category `Booking`, action `Created`. Admin widget ale hlavní počet rezervací bere přímo z eventu `Booking / Created`, aby KPI a funnel držely stejnou definici.

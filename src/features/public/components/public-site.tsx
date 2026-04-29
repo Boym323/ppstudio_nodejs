@@ -74,8 +74,8 @@ function PublicHero({
                   alt={logoImage.alt}
                   fill
                   sizes="(min-width: 640px) 176px, 150px"
-                  className="object-contain drop-shadow-[0_8px_20px_rgba(23,19,17,0.2)]"
-                  priority
+                  className="object-contain drop-shadow-[0_4px_10px_rgba(23,19,17,0.14)]"
+                  preload
                 />
               </div>
             ) : null}
@@ -142,7 +142,7 @@ function PublicHero({
                 width={portraitImage.width}
                 height={portraitImage.height}
                 className="h-[16rem] w-full object-cover object-center sm:h-[20rem] lg:h-[24rem]"
-                priority
+                loading="eager"
               />
             </div>
           ) : aside ? (
