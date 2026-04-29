@@ -7,6 +7,7 @@ Formát je inspirovaný Keep a Changelog.
 ## [Unreleased]
 
 - Admin přihlášení má civilnější netechnické copy, neutrální e-mailový placeholder a výraznější `focus-visible` stav pro klávesnicové ovládání.
+- Homepage SEO title drží lokální hledací frázi `Kosmetický salon Zlín`, aby technické SEO opravy nezhoršily dosavadní Google snippet.
 - Opraveno technické SEO veřejných stránek: per-page metadata teď nastavují vlastní canonical URL, OpenGraph URL a Twitter metadata, root layout už nenutí canonical homepage na všechny podstránky.
 - Přidána JSON-LD strukturovaná data pro salon (`BeautySalon`/`WebSite`) a detail služby (`Service`/`BreadcrumbList`); veřejné noindex ověření voucheru už není blokované v `robots.txt`, aby si robot mohl přečíst `noindex`.
 - Veřejný katalog služeb a sitemap nově vynechávají aktivní/bookable služby bez veřejného obsahu, takže se do indexovatelných URL nedostanou technické nebo rozpracované záznamy.

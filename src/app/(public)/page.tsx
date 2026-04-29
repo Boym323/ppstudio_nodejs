@@ -4,7 +4,7 @@ import { PublicHomePage, buildPageMetadata } from '@/features/public/components/
 import { getPublicServices } from '@/features/public/lib/public-services';
 
 export const metadata = buildPageMetadata({
-  title: 'PP Studio | Pavlína Pomykalová',
+  title: 'PP Studio - Kosmetický salon Zlín',
   description:
     'PP Studio Pavlíny Pomykalové ve Zlíně nabízí kosmetická ošetření pleti, péči o řasy a obočí, depilaci, líčení a online rezervaci termínu.',
   path: '/',
