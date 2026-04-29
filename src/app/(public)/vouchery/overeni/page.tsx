@@ -18,7 +18,7 @@ import {
 } from "@/features/vouchers/lib/voucher-public-verification-rate-limit";
 
 export const metadata: Metadata = {
-  title: "Ověření dárkového poukazu | PP Studio",
+  title: "Ověření dárkového poukazu",
   description: "Veřejné ověření platnosti dárkového poukazu PP Studio.",
   robots: {
     index: false,

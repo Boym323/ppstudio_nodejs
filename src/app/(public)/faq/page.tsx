@@ -3,6 +3,7 @@ import { FaqPage, buildPageMetadata } from '@/features/public/components/public-
 export const metadata = buildPageMetadata({
   title: 'FAQ',
   description: 'Praktické odpovědi k rezervaci, první návštěvě, komfortu i storno podmínkám, které pomáhají rozhodnout se bez nejistoty.',
+  path: '/faq',
 });
 
 export default function Page() {

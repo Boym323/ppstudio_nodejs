@@ -59,6 +59,17 @@ export type PublicServiceSitemapEntry = {
   updatedAt: Date;
 };
 
+const publicServiceVisibilityWhere = {
+  isActive: true,
+  isPubliclyBookable: true,
+  OR: [
+    { publicIntro: { not: null } },
+    { description: { not: null } },
+    { seoDescription: { not: null } },
+    { pricingShortDescription: { not: null } },
+  ],
+} satisfies Prisma.ServiceWhereInput;
+
 function formatPrice(value: number | null) {
   if (value === null) {
     return "Na dotaz";
@@ -251,8 +262,7 @@ function mapPricingCategory(category: PublicPricingCategoryRow): PublicPricingCa
 export async function getPublicServices(): Promise<Service[]> {
   const services = await prisma.service.findMany({
     where: {
-      isActive: true,
-      isPubliclyBookable: true,
+      ...publicServiceVisibilityWhere,
       category: {
         is: {
           isActive: true,
@@ -278,8 +288,7 @@ export async function getPublicPricingCatalog(): Promise<PublicPricingCategory[]
       isActive: true,
       services: {
         some: {
-          isActive: true,
-          isPubliclyBookable: true,
+          ...publicServiceVisibilityWhere,
         },
       },
     },
@@ -287,8 +296,7 @@ export async function getPublicPricingCatalog(): Promise<PublicPricingCategory[]
     include: {
       services: {
         where: {
-          isActive: true,
-          isPubliclyBookable: true,
+          ...publicServiceVisibilityWhere,
         },
         orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
         select: {
@@ -310,9 +318,8 @@ export async function getPublicPricingCatalog(): Promise<PublicPricingCategory[]
 export async function getPublicServiceBySlug(slug: string): Promise<Service | null> {
   const service = await prisma.service.findFirst({
     where: {
+      ...publicServiceVisibilityWhere,
       slug,
-      isActive: true,
-      isPubliclyBookable: true,
       category: {
         is: {
           isActive: true,
@@ -334,8 +341,7 @@ export async function getPublicServiceBySlug(slug: string): Promise<Service | nu
 export async function getPublicServiceSitemapEntries(): Promise<PublicServiceSitemapEntry[]> {
   return prisma.service.findMany({
     where: {
-      isActive: true,
-      isPubliclyBookable: true,
+      ...publicServiceVisibilityWhere,
       category: {
         is: {
           isActive: true,

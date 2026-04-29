@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import Image from 'next/image';
 import type { Metadata } from 'next';
 
+import { siteConfig } from '@/config/site';
 import {
   buildCancellationPageContent,
   buildContactItems,
@@ -635,13 +636,46 @@ function CancellationContactAside({
 export function buildPageMetadata({
   title,
   description,
+  path,
+  absoluteTitle = false,
 }: {
   title: string;
   description: string;
+  path: string;
+  absoluteTitle?: boolean;
 }): Metadata {
+  const canonicalPath = path === '/' ? '/' : path.replace(/\/+$/, '');
+  const absoluteUrl = new URL(canonicalPath, siteConfig.url).toString();
+  const metadataTitle = absoluteTitle ? title : `${title} | ${siteConfig.name}`;
+
   return {
-    title,
+    title: absoluteTitle ? { absolute: title } : title,
     description,
+    alternates: {
+      canonical: canonicalPath,
+    },
+    openGraph: {
+      title: metadataTitle,
+      description,
+      url: absoluteUrl,
+      siteName: siteConfig.name,
+      locale: siteConfig.locale,
+      type: 'website',
+      images: [
+        {
+          url: '/brand/ppstudio-logo.png',
+          width: 1031,
+          height: 1030,
+          alt: siteConfig.name,
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: metadataTitle,
+      description,
+      images: ['/brand/ppstudio-logo.png'],
+    },
   };
 }
 

@@ -4,6 +4,7 @@ import { getPublicSalonProfile } from '@/lib/site-settings';
 export const metadata = buildPageMetadata({
   title: 'Obchodní podmínky',
   description: 'Přehled obchodních podmínek PP Studia včetně rezervací, storna, plateb, průběhu služeb a reklamací.',
+  path: '/obchodni-podminky',
 });
 
 export default async function Page() {

@@ -44,9 +44,6 @@ export async function generateMetadata(): Promise<Metadata> {
     authors: [{ name: brandName }],
     creator: brandName,
     publisher: brandName,
-    alternates: {
-      canonical: "/",
-    },
     robots: {
       index: true,
       follow: true,

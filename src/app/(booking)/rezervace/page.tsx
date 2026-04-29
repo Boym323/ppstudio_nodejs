@@ -3,12 +3,14 @@ import { connection } from "next/server";
 
 import { getPublicBookingCatalog } from "@/features/booking/lib/booking-public";
 import { BookingPage } from "@/features/booking/components/booking-page";
+import { buildPageMetadata } from "@/features/public/components/public-site";
 import { getPublicSalonProfile } from "@/lib/site-settings";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = buildPageMetadata({
   title: "Rezervace",
   description: "Online rezervace s rychlým výběrem služby, nejbližších termínů a potvrzením po schválení.",
-};
+  path: "/rezervace",
+});
 
 export default async function ReservationPage({
   searchParams,

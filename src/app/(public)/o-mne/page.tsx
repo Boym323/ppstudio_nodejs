@@ -7,6 +7,7 @@ import { getPrimaryPublicAboutPortrait } from '@/features/public/lib/public-medi
 export const metadata = buildPageMetadata({
   title: 'O mně',
   description: 'Poznejte příběh a přístup Pavlíny Pomykalové v PP Studiu.',
+  path: '/o-mne',
 });
 
 export default async function Page() {

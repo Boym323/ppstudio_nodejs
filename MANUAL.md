@@ -640,9 +640,11 @@ npm run db:clear-booking-data -- --confirm
 - Databáze blokuje překrývající se aktivní sloty přes PostgreSQL exclusion constraint.
 - Sloty s historickými rezervacemi nemažeme ani když už nejsou aktivní; pro zachování auditní stopy se místo toho archivují.
 - Po každé změně Prisma schematu je potřeba spustit alespoň `npm run db:generate`; při změně struktury DB i `npm run db:migrate`.
-- Technické SEO minimum je nyní pokryté přes globální metadata, `robots.ts` a `sitemap.ts`.
+- Technické SEO minimum je nyní pokryté přes globální metadata, per-page metadata, `robots.ts`, `sitemap.ts` a JSON-LD.
+- Veřejné stránky staví metadata přes `buildPageMetadata(...)` a každá musí předat vlastní `path`; canonical a OpenGraph URL nesmí zůstávat na homepage pro všechny podstránky.
+- Veřejný layout vkládá JSON-LD `BeautySalon`/`WebSite`; detail služby přidává `Service` a `BreadcrumbList` JSON-LD.
 - `sitemap.ts` nepoužívá jednotné „teď“ (`new Date()`) pro všechny URL: detail služby má `lastModified` z `Service.updatedAt`, statické stránky mají stabilní datum poslední obsahové revize.
-- Produkční `robots.txt` pouští crawl celého veřejného webu přes `Allow: /`; neveřejné admin a tokenové routy zůstávají blokované, aby se neindexovaly citlivé odkazy.
+- Produkční `robots.txt` pouští crawl celého veřejného webu přes `Allow: /`; neveřejné admin a tokenové routy zůstávají blokované, aby se neindexovaly citlivé odkazy. Veřejné noindex stránky, které nemají token v path, necháváme crawl přístupné, aby si roboti mohli přečíst `noindex`.
 - Root metadata branding (`applicationName`, title template a OpenGraph `siteName`) se načítá z `SiteSettings.salonName`; canonical URL base zůstává technicky na `NEXT_PUBLIC_APP_URL`.
 - Voucher PDF kontaktní doména je od runtime URL oddělená: použij `VOUCHER_PUBLIC_DOMAIN` (priorita) nebo `NEXT_PUBLIC_SITE_DOMAIN`; fallback na `NEXT_PUBLIC_APP_URL` hostname se použije jen pro bezpečně veřejné hosty.
 - Veřejné čtení `SiteSettings` už při renderu nezapisuje do DB; pokud singleton dočasně chybí nebo DB read selže, veřejný web a e-mailové šablony použijí bezpečné defaulty a bootstrap zápis zůstává jen v owner admin sekci `Nastavení`.

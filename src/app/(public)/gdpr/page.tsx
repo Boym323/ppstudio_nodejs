@@ -4,6 +4,7 @@ import { getPublicSalonProfile } from '@/lib/site-settings';
 export const metadata = buildPageMetadata({
   title: 'GDPR',
   description: 'Přehled zásad zpracování osobních údajů v PP Studiu včetně účelů, doby uchování a kontaktu pro dotazy.',
+  path: '/gdpr',
 });
 
 export default async function Page() {

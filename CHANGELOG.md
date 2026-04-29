@@ -6,6 +6,9 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Opraveno technické SEO veřejných stránek: per-page metadata teď nastavují vlastní canonical URL, OpenGraph URL a Twitter metadata, root layout už nenutí canonical homepage na všechny podstránky.
+- Přidána JSON-LD strukturovaná data pro salon (`BeautySalon`/`WebSite`) a detail služby (`Service`/`BreadcrumbList`); veřejné noindex ověření voucheru už není blokované v `robots.txt`, aby si robot mohl přečíst `noindex`.
+- Veřejný katalog služeb a sitemap nově vynechávají aktivní/bookable služby bez veřejného obsahu, takže se do indexovatelných URL nedostanou technické nebo rozpracované záznamy.
 - Stabilizován Playwright scénář self-service přesunu po runtime kolizi: test po výběru náhradního slotu čeká na potvrzený `aria-pressed` stav i změnu hidden `newStartAt`, takže v CI neposílá omylem původní kolidující termín.
 - Admin dashboard widget `Návštěvnost → rezervace` je přepracovaný na poctivější denní business přehled: KPI rezervací teď používá stejný event `Booking / Created` jako funnel, zdroje jsou označené jako návštěvní zdroje s odhadem rezervací a funnel ukazuje procenta mezi kroky.
 - Mobilní admin planner `/admin/volne-terminy` už po výběru buňky správně přepíná dny, ukazuje všech 7 dní týdne bez schovaného horizontálního posunu, nemá horizontální scroll v editoru dne, buňky mají větší dotykovou plochu a čitelné accessible labely s časem a stavem.

@@ -7,6 +7,7 @@ import { getPublicPricingCatalog } from "@/features/public/lib/public-services";
 export const metadata = buildPageMetadata({
   title: 'Ceník',
   description: 'Přehledný ceník kosmetických služeb navržený pro rychlé rozhodnutí a pohodlné čtení na mobilu.',
+  path: '/cenik',
 });
 
 export default async function Page() {

@@ -6,6 +6,7 @@ import { getPublicServices } from '@/features/public/lib/public-services';
 export const metadata = buildPageMetadata({
   title: 'Služby',
   description: 'Přehled kosmetických služeb s důrazem na srozumitelnost, důvěru a jednoduchý výběr vhodné péče.',
+  path: '/sluzby',
 });
 
 export default async function Page() {

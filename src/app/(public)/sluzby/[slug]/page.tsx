@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 
 import { getPublicServiceBySlug } from '@/features/public/lib/public-services';
 import { ServiceDetailPage, buildPageMetadata } from '@/features/public/components/public-site';
+import { SeoJsonLd, buildServiceJsonLd } from '@/features/public/components/seo-json-ld';
 
 type PageParams = Promise<{ slug: string }>;
 
@@ -15,12 +16,14 @@ export async function generateMetadata({ params }: { params: PageParams }): Prom
     return buildPageMetadata({
       title: 'Služba nebyla nalezena',
       description: 'Požadovaný detail služby nebyl nalezen.',
+      path: `/sluzby/${slug}`,
     });
   }
 
   return buildPageMetadata({
     title: service.name,
     description: service.seoDescription,
+    path: `/sluzby/${service.slug}`,
   });
 }
 
@@ -34,5 +37,10 @@ export default async function Page({ params }: { params: PageParams }) {
     notFound();
   }
 
-  return <ServiceDetailPage service={service} />;
+  return (
+    <>
+      <SeoJsonLd data={buildServiceJsonLd(service)} />
+      <ServiceDetailPage service={service} />
+    </>
+  );
 }

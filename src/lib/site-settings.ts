@@ -123,6 +123,8 @@ export async function getPublicSalonProfile() {
   };
 }
 
+export type PublicSalonProfile = Awaited<ReturnType<typeof getPublicSalonProfile>>;
+
 export async function getBookingPolicySettings() {
   const settings = await getSiteSettings();
 

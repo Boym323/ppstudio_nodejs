@@ -22,6 +22,9 @@ Postup nasazení aplikace do produkce.
      - veřejný web vrací `Allow: /`
      - admin a tokenové routy `/admin/*`, `/rezervace/storno/*`, `/rezervace/sprava/*`, `/rezervace/akce/*` zůstávají blokované
      - `sitemap.xml` je uvedená v `robots.txt`
+     - veřejné noindex stránky bez tokenu v path nejsou blokované v `robots.txt`
+     - podstránky mají vlastní canonical URL a OpenGraph URL, ne canonical homepage
+     - veřejné stránky obsahují JSON-LD pro salon a detail služby obsahuje JSON-LD služby
    - homepage
    - `/o-mne`:
      - výrazný hero s oběma CTA

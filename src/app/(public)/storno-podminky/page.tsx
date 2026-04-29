@@ -7,6 +7,7 @@ import {
 export const metadata = buildPageMetadata({
   title: 'Storno podmínky',
   description: 'Jasně formulované podmínky rušení a přesunu rezervací pro kosmetický salon.',
+  path: '/storno-podminky',
 });
 
 export default async function Page() {
