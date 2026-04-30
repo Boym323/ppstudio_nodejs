@@ -196,7 +196,9 @@ export type AdminClientDetailData = {
   area: AdminArea;
   fullName: string;
   email: string;
+  emailHref: string | null;
   phone: string;
+  phoneHref: string | null;
   isActive: boolean;
   statusLabel: string;
   createdAtLabel: string;
@@ -205,6 +207,7 @@ export type AdminClientDetailData = {
   nextBookingLabel: string;
   totalBookings: number;
   completedBookings: number;
+  cancelledBookings: number;
   noShowBookings: number;
   upcomingBookings: number;
   favoriteServiceName: string;
@@ -212,6 +215,7 @@ export type AdminClientDetailData = {
   bookings: Array<{
     id: string;
     serviceName: string;
+    status: BookingStatus;
     statusLabel: string;
     sourceLabel: string;
     scheduledAtLabel: string;
@@ -226,7 +230,16 @@ export async function getAdminClientDetailData(
 ): Promise<AdminClientDetailData | null> {
   const now = new Date();
 
-  const [client, nextBooking, completedBookings, noShowBookings, upcomingBookings, favoriteService] =
+  const [
+    client,
+    nextBooking,
+    lastCompletedBooking,
+    completedBookings,
+    cancelledBookings,
+    noShowBookings,
+    upcomingBookings,
+    favoriteService,
+  ] =
     await Promise.all([
       prisma.client.findUnique({
         where: { id: clientId },
@@ -268,10 +281,26 @@ export async function getAdminClientDetailData(
           scheduledEndsAt: true,
         },
       }),
+      prisma.booking.findFirst({
+        where: {
+          clientId,
+          status: BookingStatus.COMPLETED,
+        },
+        orderBy: { scheduledStartsAt: "desc" },
+        select: {
+          scheduledStartsAt: true,
+        },
+      }),
       prisma.booking.count({
         where: {
           clientId,
           status: BookingStatus.COMPLETED,
+        },
+      }),
+      prisma.booking.count({
+        where: {
+          clientId,
+          status: BookingStatus.CANCELLED,
         },
       }),
       prisma.booking.count({
@@ -312,22 +341,28 @@ export async function getAdminClientDetailData(
     return null;
   }
 
+  const normalizedPhone = normalizePhoneHref(client.phone);
+  const normalizedEmail = normalizeEmailHref(client.email);
+
   return {
     id: client.id,
     area,
     fullName: client.fullName,
     email: client.email ?? "Bez e-mailu",
+    emailHref: normalizedEmail,
     phone: client.phone ?? "Telefon není vyplněný",
+    phoneHref: normalizedPhone,
     isActive: client.isActive,
     statusLabel: client.isActive ? "Aktivní" : "Neaktivní",
     createdAtLabel: formatDateTimeLabel(client.createdAt),
     updatedAtLabel: formatDateTimeLabel(client.updatedAt),
-    lastBookedAtLabel: formatDateLabel(client.lastBookedAt),
+    lastBookedAtLabel: formatDateLabel(lastCompletedBooking?.scheduledStartsAt),
     nextBookingLabel: nextBooking
       ? formatBookingDateLabel(nextBooking.scheduledStartsAt, nextBooking.scheduledEndsAt)
       : "Bez budoucího termínu",
     totalBookings: client._count.bookings,
     completedBookings,
+    cancelledBookings,
     noShowBookings,
     upcomingBookings,
     favoriteServiceName: favoriteService[0]?.serviceNameSnapshot ?? "Zatím bez historie",
@@ -335,6 +370,7 @@ export async function getAdminClientDetailData(
     bookings: client.bookings.map((booking) => ({
       id: booking.id,
       serviceName: booking.serviceNameSnapshot,
+      status: booking.status,
       statusLabel: getBookingStatusLabel(booking.status),
       sourceLabel: getBookingSourceLabel(booking.source),
       scheduledAtLabel: formatBookingDateLabel(booking.scheduledStartsAt, booking.scheduledEndsAt),
@@ -342,4 +378,16 @@ export async function getAdminClientDetailData(
       href: getAdminBookingHref(area, booking.id),
     })),
   };
+}
+
+function normalizePhoneHref(phone: string | null) {
+  const normalized = phone?.replace(/[^+\d]/g, "") ?? "";
+
+  return normalized.length > 0 ? `tel:${normalized}` : null;
+}
+
+function normalizeEmailHref(email: string | null) {
+  const normalized = email?.trim() ?? "";
+
+  return normalized.length > 0 ? `mailto:${normalized}` : null;
 }

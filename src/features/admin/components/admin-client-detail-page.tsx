@@ -1,288 +1,378 @@
+import { BookingStatus } from "@prisma/client";
 import Link from "next/link";
+import { type ReactNode } from "react";
 
 import { type AdminClientDetailData } from "@/features/admin/lib/admin-clients";
 import { cn } from "@/lib/utils";
 
 import { AdminClientNoteForm } from "./admin-client-note-form";
-import { AdminPageShell, AdminPanel } from "./admin-page-shell";
+import { AdminPanel } from "./admin-page-shell";
 
 type AdminClientDetailPageProps = {
   data: AdminClientDetailData;
 };
 
+type ActionLinkProps = {
+  href: string | null;
+  children: ReactNode;
+  variant?: "primary" | "secondary";
+};
+
 export function AdminClientDetailPage({ data }: AdminClientDetailPageProps) {
-  const listHref = data.area === "owner" ? "/admin/klienti" : "/admin/provoz/klienti";
-  const hasEmail = data.email !== "Bez e-mailu";
-
   return (
-    <AdminPageShell
-      eyebrow={data.area === "owner" ? "Detail klienta" : "Detail klientky"}
-      title={data.fullName}
-      description={data.area === "owner"
-        ? "Klientská karta s kontaktem, historií a interním provozním kontextem."
-        : "Rychlá karta klientky pro běžný provoz a navázání na předchozí návštěvy."}
-      stats={[
-        {
-          label: "Stav profilu",
-          value: data.statusLabel,
-          tone: data.isActive ? "accent" : "muted",
-          detail: "Profil zůstává navázaný na rezervace a interní poznámky.",
-        },
-        {
-          label: "Rezervací celkem",
-          value: String(data.totalBookings),
-          detail: `Dokončené ${data.completedBookings} • Nedorazila ${data.noShowBookings}`,
-        },
-        {
-          label: "Poslední návštěva",
-          value: data.lastBookedAtLabel,
-          detail: `Budoucí termíny ${data.upcomingBookings}`,
-        },
-        {
-          label: "Nejčastější služba",
-          value: data.favoriteServiceName,
-          detail: data.nextBookingLabel,
-        },
-      ]}
-      compact={data.area === "salon"}
-    >
-      <div className="flex flex-wrap items-center gap-3">
-        <Link
-          href={listHref}
-          className="rounded-full border border-white/10 px-4 py-3 text-sm text-white/78 transition hover:border-white/30 hover:text-white"
-        >
-          Zpět na klienty
-        </Link>
-        <Link
-          href={data.area === "owner" ? `/admin/klienti/${data.id}` : `/admin/provoz/klienti/${data.id}`}
-          className="rounded-full border border-white/10 px-4 py-3 text-sm text-white/78 transition hover:border-white/30 hover:text-white"
-        >
-          Obnovit detail
-        </Link>
-      </div>
+    <div className="min-w-0 space-y-5">
+      <ClientDetailHeader data={data} />
+      <ClientKpiCards data={data} />
 
-      <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-        <div className="rounded-[var(--radius-panel)] border border-white/10 bg-[linear-gradient(145deg,rgba(255,255,255,0.10),rgba(255,255,255,0.03))] p-6">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div className="max-w-2xl">
-              <span className={getClientBadgeClassName(data.isActive)}>
-                {data.statusLabel}
-              </span>
-              <h3 className="mt-4 font-display text-3xl text-white sm:text-4xl">
-                {data.fullName}
-              </h3>
-              <p className="mt-3 text-sm leading-7 text-white/74 sm:text-base">
-                Poslední návštěva {data.lastBookedAtLabel}. Další termín {data.nextBookingLabel.toLowerCase()}.
-              </p>
-            </div>
-
-            <div className="min-w-[14rem] rounded-[1.4rem] border border-white/10 bg-black/20 p-4">
-              <p className="text-xs uppercase tracking-[0.24em] text-white/52">Operační souhrn</p>
-              <p className="mt-3 text-base font-medium text-white">{data.favoriteServiceName}</p>
-              <p className="mt-2 text-sm leading-6 text-white/66">
-                Nejčastější služba podle dosavadní historie rezervací.
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-6 grid gap-3 sm:grid-cols-3">
-            <SummaryTile label="Kontakt" value={data.email} detail={data.phone} />
-            <SummaryTile label="Další termín" value={data.nextBookingLabel} />
-            <SummaryTile label="Profil založen" value={data.createdAtLabel} detail={data.updatedAtLabel} />
-          </div>
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,2fr)_minmax(19rem,1fr)]">
+        <div className="space-y-5">
+          <ClientVisitHistory data={data} />
+          <ClientInternalNoteCard data={data} />
         </div>
 
-        <div className="grid gap-4">
-          <QuickActionCard
-            title="Rychlý kontakt"
-            description="Telefon a e-mail zůstávají po ruce bez hledání v rezervacích."
-          >
-            <div className="grid gap-3">
-              <ContactLink
-                href={data.phone !== "Telefon není vyplněný" ? buildPhoneHref(data.phone) : undefined}
-                label="Zavolat klientce"
-                value={data.phone}
-              />
-              <ContactLink href={hasEmail ? `mailto:${data.email}` : undefined} label="Napsat e-mail" value={data.email} />
-            </div>
-          </QuickActionCard>
-
-          <QuickActionCard
-            title="Profil klientky"
-            description="Základní metadata bez přepínání mezi obrazovkami."
-          >
-            <dl className="grid gap-3">
-              <MetaRow label="Vytvořeno" value={data.createdAtLabel} />
-              <MetaRow label="Naposledy upraveno" value={data.updatedAtLabel} />
-              <MetaRow label="Poslední návštěva" value={data.lastBookedAtLabel} />
-            </dl>
-          </QuickActionCard>
-        </div>
-      </section>
-
-      <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
-        <AdminPanel
-          title="Klientská karta"
-          description="Základní kontext pro orientaci, zavolání nebo navázání na předchozí péči."
-          compact={data.area === "salon"}
-        >
-          <div className="grid gap-4 sm:grid-cols-2">
-            <DetailRow label="Jméno" value={data.fullName} />
-            <DetailRow label="E-mail" value={data.email} />
-            <DetailRow label="Telefon" value={data.phone} />
-            <DetailRow label="Další termín" value={data.nextBookingLabel} />
-            <DetailRow label="Rezervací celkem" value={String(data.totalBookings)} />
-            <DetailRow label="Nejčastější služba" value={data.favoriteServiceName} />
-          </div>
-        </AdminPanel>
-
-        <AdminPanel
-          title="Interní poznámka"
-          description="Krátký provozní kontext, který zůstává jen pro tým."
-          compact={data.area === "salon"}
-        >
-          <AdminClientNoteForm
-            area={data.area}
-            clientId={data.id}
-            initialValue={data.internalNote}
-          />
-        </AdminPanel>
-
-        <AdminPanel
-          title="Poslední rezervace"
-          description="Nejnovější termíny s rychlou cestou do detailu rezervace."
-          compact={data.area === "salon"}
-        >
-          {data.bookings.length > 0 ? (
-            <div className="grid gap-4">
-              {data.bookings.map((booking) => (
-                <Link
-                  key={booking.id}
-                  href={booking.href}
-                  className="block rounded-[1.35rem] border border-white/8 bg-white/5 p-4 transition hover:border-white/16 hover:bg-white/7"
-                >
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div className="max-w-2xl">
-                      <h4 className="text-base font-medium text-white">{booking.serviceName}</h4>
-                      <p className="mt-1 text-sm leading-6 text-white/58">
-                        {booking.scheduledAtLabel}
-                      </p>
-                    </div>
-                    <span className="rounded-full border border-[var(--color-accent)]/40 px-3 py-1 text-xs uppercase tracking-[0.2em] text-[var(--color-accent-soft)]">
-                      {booking.statusLabel}
-                    </span>
-                  </div>
-                  <p className="mt-3 text-sm leading-6 text-white/72">
-                    {booking.sourceLabel} • {booking.noteSummary}
-                  </p>
-                </Link>
-              ))}
-            </div>
-          ) : (
-            <div className="rounded-[1.25rem] border border-dashed border-white/14 bg-white/4 p-5">
-              <p className="text-sm leading-6 text-white/68">Klientka zatím nemá žádnou rezervaci.</p>
-            </div>
-          )}
-        </AdminPanel>
+        <aside className="space-y-5">
+          <ClientContactCard data={data} />
+          <ClientOverviewCard data={data} />
+          <ClientProfileMetadata data={data} />
+        </aside>
       </div>
-    </AdminPageShell>
-  );
-}
-
-function DetailRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-[1.25rem] border border-white/8 bg-white/5 p-4">
-      <dt className="text-xs uppercase tracking-[0.24em] text-white/52">{label}</dt>
-      <dd className="mt-2 text-sm leading-6 text-white/88">{value}</dd>
     </div>
   );
 }
 
-function SummaryTile({
+function ClientDetailHeader({ data }: { data: AdminClientDetailData }) {
+  const listHref = data.area === "owner" ? "/admin/klienti" : "/admin/provoz/klienti";
+  const detailHref = data.area === "owner" ? `/admin/klienti/${data.id}` : `/admin/provoz/klienti/${data.id}`;
+  const bookingsHref = data.area === "owner" ? "/admin/rezervace" : "/admin/provoz/rezervace";
+
+  return (
+    <section className="rounded-[var(--radius-panel)] border border-white/10 bg-white/6 p-5 backdrop-blur-xl sm:p-7">
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-end">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-3">
+            <p className="text-xs uppercase tracking-[0.35em] text-[var(--color-accent-soft)]">
+              Detail klienta
+            </p>
+            <span className={getClientBadgeClassName(data.isActive)}>{data.statusLabel}</span>
+          </div>
+
+          <h1 className="mt-4 break-words font-display text-3xl text-white sm:text-4xl xl:text-5xl">
+            {data.fullName}
+          </h1>
+          <p className="mt-4 max-w-3xl text-sm leading-7 text-white/72 sm:text-base">
+            {buildHeaderSubtitle(data)}
+          </p>
+        </div>
+
+        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+          <ActionLink href={bookingsHref} variant="primary">Vytvořit rezervaci</ActionLink>
+          <ActionLink href={data.phoneHref}>Zavolat</ActionLink>
+          <ActionLink href={data.emailHref}>Napsat e-mail</ActionLink>
+          <ActionLink href={detailHref}>Obnovit detail</ActionLink>
+        </div>
+      </div>
+
+      <div className="mt-5">
+        <Link
+          href={listHref}
+          className="inline-flex rounded-full border border-white/10 px-4 py-2.5 text-sm text-white/76 transition hover:border-white/24 hover:bg-white/6 hover:text-white"
+        >
+          Zpět na klienty
+        </Link>
+      </div>
+    </section>
+  );
+}
+
+function ClientKpiCards({ data }: { data: AdminClientDetailData }) {
+  return (
+    <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+      <KpiCard
+        label="Stav profilu"
+        value={data.statusLabel}
+        detail={data.isActive ? "Profil je připravený pro další provoz." : "Profil je vedený jako neaktivní."}
+        tone={data.isActive ? "active" : "muted"}
+      />
+      <KpiCard
+        label="Rezervací celkem"
+        value={String(data.totalBookings)}
+        detail={`Hotovo ${data.completedBookings} · zrušené ${data.cancelledBookings} · nedorazila ${data.noShowBookings}`}
+      />
+      <KpiCard label="Poslední návštěva" value={formatMissingDate(data.lastBookedAtLabel, "Zatím není")} />
+      <KpiCard
+        label="Další termín"
+        value={data.nextBookingLabel}
+        detail={
+          data.upcomingBookings > 1
+            ? `Budoucí termíny celkem ${data.upcomingBookings}`
+            : data.upcomingBookings === 1
+              ? "Jeden budoucí termín."
+              : "Klientka zatím nemá naplánovanou další návštěvu."
+        }
+      />
+    </section>
+  );
+}
+
+function ClientVisitHistory({ data }: { data: AdminClientDetailData }) {
+  const bookingsHref = data.area === "owner" ? "/admin/rezervace" : "/admin/provoz/rezervace";
+
+  return (
+    <AdminPanel
+      title="Historie návštěv"
+      description="Nejnovější rezervace s rychlou cestou do detailu."
+      compact={data.area === "salon"}
+      denseHeader
+    >
+      {data.bookings.length > 0 ? (
+        <div className="grid gap-3">
+          {data.bookings.map((booking) => (
+            <article
+              key={booking.id}
+              className="rounded-[1.15rem] border border-white/8 bg-white/[0.045] p-4"
+            >
+              <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h4 className="text-base font-medium text-white">{booking.serviceName}</h4>
+                    <span className={getBookingBadgeClassName(booking.status)}>{booking.statusLabel}</span>
+                  </div>
+                  <p className="mt-1 text-sm leading-6 text-white/60">{booking.scheduledAtLabel}</p>
+                  <p className="mt-2 text-sm leading-6 text-white/72">
+                    {booking.sourceLabel} · {booking.noteSummary}
+                  </p>
+                </div>
+
+                <Link
+                  href={booking.href}
+                  className="inline-flex min-h-9 items-center justify-center rounded-full border border-white/10 px-3.5 py-2 text-sm font-medium text-white/78 transition hover:border-white/22 hover:bg-white/7 hover:text-white"
+                >
+                  Otevřít detail
+                </Link>
+              </div>
+            </article>
+          ))}
+        </div>
+      ) : (
+        <div className="rounded-[1.25rem] border border-dashed border-white/14 bg-white/4 p-5">
+          <p className="text-sm leading-6 text-white/70">Klientka zatím nemá žádnou rezervaci.</p>
+          <Link
+            href={bookingsHref}
+            className="mt-4 inline-flex rounded-full bg-[var(--color-accent)] px-4 py-2.5 text-sm font-semibold text-[var(--color-accent-contrast)] transition hover:brightness-105"
+          >
+            Vytvořit rezervaci
+          </Link>
+        </div>
+      )}
+    </AdminPanel>
+  );
+}
+
+function ClientInternalNoteCard({ data }: { data: AdminClientDetailData }) {
+  return (
+    <AdminPanel
+      title="Interní poznámka"
+      description="Interní poznámka je viditelná pouze pro tým."
+      compact={data.area === "salon"}
+      denseHeader
+    >
+      <AdminClientNoteForm area={data.area} clientId={data.id} initialValue={data.internalNote} />
+    </AdminPanel>
+  );
+}
+
+function ClientContactCard({ data }: { data: AdminClientDetailData }) {
+  return (
+    <SideCard title="Kontakt">
+      <div className="space-y-3">
+        <ContactRow label="E-mail" value={data.email} href={data.emailHref} />
+        <ContactRow label="Telefon" value={data.phone} href={data.phoneHref} />
+        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
+          <ActionLink href={data.phoneHref}>Zavolat</ActionLink>
+          <ActionLink href={data.emailHref}>Napsat e-mail</ActionLink>
+        </div>
+      </div>
+    </SideCard>
+  );
+}
+
+function ClientOverviewCard({ data }: { data: AdminClientDetailData }) {
+  return (
+    <SideCard title="Přehled klientky">
+      <dl className="space-y-2">
+        <CompactMetaRow label="Rezervací celkem" value={String(data.totalBookings)} />
+        <CompactMetaRow label="Nejčastější služba" value={data.favoriteServiceName} />
+        <CompactMetaRow label="Poslední návštěva" value={formatMissingDate(data.lastBookedAtLabel, "Zatím není")} />
+        <CompactMetaRow label="Další termín" value={data.nextBookingLabel} />
+        <CompactMetaRow label="Budoucí termíny" value={String(data.upcomingBookings)} />
+      </dl>
+    </SideCard>
+  );
+}
+
+function ClientProfileMetadata({ data }: { data: AdminClientDetailData }) {
+  return (
+    <SideCard title="Profilová metadata" muted>
+      <dl className="space-y-2">
+        <CompactMetaRow label="Vytvořeno" value={data.createdAtLabel} muted />
+        <CompactMetaRow label="Naposledy upraveno" value={data.updatedAtLabel} muted />
+      </dl>
+    </SideCard>
+  );
+}
+
+function KpiCard({
   label,
   value,
   detail,
+  tone = "default",
 }: {
   label: string;
   value: string;
   detail?: string;
+  tone?: "default" | "active" | "muted";
 }) {
   return (
-    <div className="rounded-[1.2rem] border border-white/10 bg-black/16 p-4">
-      <p className="text-xs uppercase tracking-[0.24em] text-white/48">{label}</p>
-      <p className="mt-3 text-sm leading-6 text-white">{value}</p>
-      {detail ? (
-        <p className="mt-2 text-sm leading-6 text-white/56">{detail}</p>
-      ) : null}
-    </div>
+    <article
+      className={cn(
+        "rounded-[1.35rem] border p-4",
+        tone === "active"
+          ? "border-emerald-300/28 bg-emerald-400/10"
+          : tone === "muted"
+            ? "border-white/8 bg-white/4"
+            : "border-white/10 bg-black/10",
+      )}
+    >
+      <p className="text-xs uppercase tracking-[0.22em] text-white/52">{label}</p>
+      <p className="mt-3 break-words font-display text-2xl text-white sm:text-[1.7rem]">{value}</p>
+      {detail ? <p className="mt-2 text-sm leading-5 text-white/58">{detail}</p> : null}
+    </article>
   );
 }
 
-function QuickActionCard({
+function SideCard({
   title,
-  description,
   children,
+  muted = false,
 }: {
   title: string;
-  description: string;
-  children: React.ReactNode;
+  children: ReactNode;
+  muted?: boolean;
 }) {
   return (
-    <div className="rounded-[1.4rem] border border-white/10 bg-black/14 p-4">
-      <p className="text-base font-medium text-white">{title}</p>
-      <p className="mt-2 text-sm leading-6 text-white/62">{description}</p>
+    <section
+      className={cn(
+        "rounded-[1.35rem] border p-4",
+        muted ? "border-white/8 bg-black/8" : "border-white/10 bg-black/12",
+      )}
+    >
+      <h3 className="font-display text-[1.35rem] text-white">{title}</h3>
       <div className="mt-4">{children}</div>
-    </div>
+    </section>
   );
 }
 
-function ContactLink({
-  href,
-  label,
-  value,
-}: {
-  href?: string;
-  label: string;
-  value: string;
-}) {
+function ContactRow({ label, value, href }: { label: string; value: string; href: string | null }) {
+  const content = (
+    <>
+      <dt className="text-xs uppercase tracking-[0.2em] text-white/46">{label}</dt>
+      <dd className="mt-1 break-words text-sm leading-6 text-white/84">{value}</dd>
+    </>
+  );
+
   if (!href) {
-    return (
-      <div className="rounded-[1.1rem] border border-white/10 bg-white/5 px-4 py-3">
-        <p className="text-xs uppercase tracking-[0.2em] text-white/48">{label}</p>
-        <p className="mt-2 text-sm text-white/72">{value}</p>
-      </div>
-    );
+    return <div className="rounded-[1rem] border border-white/8 bg-white/5 px-4 py-3">{content}</div>;
   }
 
   return (
     <a
       href={href}
-      className="rounded-[1.1rem] border border-white/10 bg-white/5 px-4 py-3 transition hover:border-white/18 hover:bg-white/7"
+      className="block rounded-[1rem] border border-white/8 bg-white/5 px-4 py-3 transition hover:border-white/18 hover:bg-white/7"
     >
-      <p className="text-xs uppercase tracking-[0.2em] text-white/48">{label}</p>
-      <p className="mt-2 text-sm text-white/88">{value}</p>
+      {content}
     </a>
   );
 }
 
-function MetaRow({ label, value }: { label: string; value: string }) {
+function CompactMetaRow({
+  label,
+  value,
+  muted = false,
+}: {
+  label: string;
+  value: string;
+  muted?: boolean;
+}) {
   return (
-    <div className="rounded-[1rem] border border-white/8 bg-white/5 px-4 py-3">
-      <dt className="text-xs uppercase tracking-[0.2em] text-white/48">{label}</dt>
-      <dd className="mt-2 text-sm text-white/84">{value}</dd>
+    <div className="rounded-[0.95rem] border border-white/8 bg-white/[0.035] px-3.5 py-3">
+      <dt className="text-[0.68rem] uppercase tracking-[0.18em] text-white/42">{label}</dt>
+      <dd className={cn("mt-1 text-sm leading-6", muted ? "text-white/62" : "text-white/84")}>{value}</dd>
     </div>
   );
 }
 
-function buildPhoneHref(phone: string) {
-  return `tel:${phone.replace(/\s+/g, "")}`;
+function ActionLink({ href, children, variant = "secondary" }: ActionLinkProps) {
+  if (!href) {
+    return (
+      <span className="inline-flex min-h-10 items-center justify-center rounded-full border border-white/8 px-4 py-2 text-sm font-medium text-white/32">
+        {children}
+      </span>
+    );
+  }
+
+  const isPrimary = variant === "primary";
+  const className = isPrimary
+    ? "inline-flex min-h-10 items-center justify-center rounded-full bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-[var(--color-accent-contrast)] transition hover:brightness-105"
+    : "inline-flex min-h-10 items-center justify-center rounded-full border border-white/10 px-4 py-2 text-sm font-medium text-white/78 transition hover:border-white/22 hover:bg-white/7 hover:text-white";
+
+  if (href.startsWith("mailto:") || href.startsWith("tel:")) {
+    return (
+      <a href={href} className={className}>
+        {children}
+      </a>
+    );
+  }
+
+  return (
+    <Link href={href} className={className}>
+      {children}
+    </Link>
+  );
+}
+
+function buildHeaderSubtitle(data: AdminClientDetailData) {
+  const lastVisit = formatMissingDate(data.lastBookedAtLabel, "zatím není");
+  const nextVisit = data.nextBookingLabel === "Bez budoucího termínu"
+    ? "bez budoucího termínu"
+    : `další termín ${data.nextBookingLabel}`;
+
+  return `Poslední návštěva ${lastVisit} · ${nextVisit}`;
+}
+
+function formatMissingDate(value: string, fallback: string) {
+  return value === "Bez data" ? fallback : value;
 }
 
 function getClientBadgeClassName(isActive: boolean) {
   return cn(
-    "inline-flex rounded-full border px-3 py-1 text-xs uppercase tracking-[0.22em]",
+    "inline-flex rounded-full border px-3 py-1 text-xs uppercase tracking-[0.18em]",
     isActive
       ? "border-emerald-300/40 bg-emerald-500/15 text-emerald-100"
       : "border-white/10 bg-white/8 text-white/64",
+  );
+}
+
+function getBookingBadgeClassName(status: BookingStatus) {
+  return cn(
+    "inline-flex rounded-full border px-2.5 py-1 text-[0.68rem] uppercase tracking-[0.15em]",
+    status === BookingStatus.COMPLETED
+      ? "border-emerald-300/30 bg-emerald-400/10 text-emerald-100"
+      : status === BookingStatus.CONFIRMED
+        ? "border-[var(--color-accent)]/40 bg-[rgba(190,160,120,0.12)] text-[var(--color-accent-soft)]"
+        : status === BookingStatus.PENDING
+          ? "border-amber-300/30 bg-amber-400/10 text-amber-100"
+          : status === BookingStatus.NO_SHOW
+            ? "border-red-300/26 bg-red-400/10 text-red-100"
+            : "border-white/10 bg-white/6 text-white/58",
   );
 }

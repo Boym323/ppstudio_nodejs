@@ -45,11 +45,11 @@ export function AdminClientNoteForm({
           rows={6}
           maxLength={1000}
           defaultValue={initialValue}
-          placeholder="Např. citlivost na čas, preferovaný kontakt nebo drobný provozní kontext pro tým."
+          placeholder="Např. preferovaný kontakt, citlivost na čas, reakce po ošetření nebo provozní domluva."
           className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm leading-6 text-white outline-none transition placeholder:text-white/32 focus:border-[var(--color-accent)]/60"
         />
         <span className="mt-2 block text-xs leading-5 text-white/46">
-          Poznámka zůstává interní a pomáhá rychle navázat na předchozí komunikaci.
+          Interní poznámka je viditelná pouze pro tým.
         </span>
         {serverState.fieldErrors?.internalNote ? (
           <p className="mt-2 text-sm text-red-300">{serverState.fieldErrors.internalNote}</p>

@@ -84,3 +84,4 @@ Sem patří krátké záznamy architektonických rozhodnutí.
 - `0067-admin-voucher-email-delivery-v1.md`
 - `0068-voucher-a4-print-pdf-v1.md`
 - `0069-versioning-and-release-policy-v1.md`
+- `0070-admin-client-detail-operations-v2.md`

@@ -6,6 +6,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Admin detail klientky už nebere `Poslední návštěvu` z aktivity profilu při vytvoření rezervace; nově ji odvozuje jen z dokončených rezervací, takže klientka s budoucím nebo zatím neuzavřeným termínem nefiguruje jako návštěva.
+- Admin detail klientky je zkrácený na provozní CRM obrazovku: nahoře má jméno, stav, poslední/další návštěvu a rychlé akce, KPI už neopakují nejčastější službu jako velkou kartu a hlavní obsah je rozdělený na historii návštěv, interní poznámku, kontakt, přehled klientky a tlumená profilová metadata.
 - Admin dashboard v dnešní timeline zobrazuje dokončené dnešní rezervace jako `Hotovo` a nevytváří z minulých úseků falešná volná okna po označení služby za hotovou.
 - Admin sekce `Volné termíny` nově zobrazuje dokončené rezervace v denním planneru jako tlumené cyan `Hotovo`, aby historicky obsazený čas nevypadal jako nejasné technické omezení ani jako zelená dostupnost.
 - Inspektor výběru v gridu `Volné termíny` rozlišuje dokončenou rezervaci a místo obecného textu o rezervovaném čase vysvětluje, že jde o historickou hotovou návštěvu.
