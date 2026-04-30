@@ -4,7 +4,7 @@ import { SignJWT } from "jose";
 import { NextRequest } from "next/server";
 
 process.env.NEXT_PUBLIC_APP_NAME ??= "PP Studio";
-process.env.NEXT_PUBLIC_APP_URL ??= "https://example.com";
+process.env.NEXT_PUBLIC_APP_URL = "https://example.com";
 process.env.DATABASE_URL ??= "postgresql://postgres:postgres@localhost:5432/ppstudio?schema=public";
 process.env.ADMIN_SESSION_SECRET ??= "test-secret-value-with-at-least-32-chars";
 process.env.ADMIN_OWNER_EMAIL ??= "owner@example.com";
