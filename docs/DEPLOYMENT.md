@@ -238,6 +238,8 @@ Postup nasazení aplikace do produkce.
 - Pro běžný produkční rollout můžeš použít [`deploy/release.sh`](/var/www/ppstudio/deploy/release.sh).
 - Skript provede:
   - kontrolu větve (výchozí `main`) a čistoty pracovního stromu
+  - fail-fast kontrolu, že systemd zná `ppstudio-web.service` a `ppstudio-email-worker.service`
+  - fail-fast kontrolu, že stejné appky už neběží přes legacy PM2
   - `git pull --ff-only` (volitelně přeskočitelné)
   - `npm ci`, `npm run db:generate`, `npm run db:check-migrations`, `npx prisma migrate deploy`
   - `npm run lint` (volitelně přeskočitelné), `npm run build`
@@ -253,6 +255,14 @@ cd /var/www/ppstudio
   - `--skip-lint`: přeskočí lint krok
   - `--allow-dirty`: povolí spuštění i s necommitnutými změnami
   - `--yes`: bez interaktivního potvrzení
+- Pokud release skončí hned hláškou o chybějícím `ppstudio-web.service` nebo `ppstudio-email-worker.service`, server ještě nemá nainstalované produkční units; spusť `sudo /var/www/ppstudio/deploy/deploy.sh` a release opakuj.
+- Pokud release skončí hláškou o legacy PM2 procesech, server ještě běží ve smíšeném režimu. Přepni ho na systemd:
+```bash
+pm2 delete ppstudio-web ppstudio-email-worker
+pm2 save --force
+systemctl disable --now pm2-root.service
+```
+- Teprve potom release opakuj.
 
 ### Systemd
 - Doporučený web unit je v [`deploy/systemd/ppstudio-web.service`](/var/www/ppstudio/deploy/systemd/ppstudio-web.service).
@@ -270,6 +280,8 @@ systemctl enable --now ppstudio-email-worker
 ```bash
 sudo /var/www/ppstudio/deploy/deploy.sh
 ```
+- `deploy/release.sh` s touto instalací počítá a bez ní záměrně nepokračuje do dlouhého buildu, aby neskončil až na finálním restartu.
+- Pokud server historicky běžel přes PM2, vypni staré `ppstudio-web` a `ppstudio-email-worker` procesy ještě před prvním systemd restartem; jinak web skončí na `EADDRINUSE` a worker poběží duplicitně.
 
 ### Docker Compose
 - Pro container deployment je připravený [`deploy/docker-compose.email-worker.yml`](/var/www/ppstudio/deploy/docker-compose.email-worker.yml).

@@ -30,6 +30,10 @@ log() {
   printf '[release] %s\n' "$*"
 }
 
+unit_file_name() {
+  printf '%s.service' "$1"
+}
+
 require_cmd() {
   if ! command -v "$1" >/dev/null 2>&1; then
     echo "Chybí požadovaný příkaz: $1" >&2
@@ -43,7 +47,7 @@ confirm_or_exit() {
   fi
 
   echo
-  echo "Nasazení poběží v ${REPO_DIR} a restartuje služby ${WEB_UNIT_NAME}/${WORKER_UNIT_NAME}."
+  echo "Nasazení poběží v ${REPO_DIR} a restartuje služby $(unit_file_name "${WEB_UNIT_NAME}")/$(unit_file_name "${WORKER_UNIT_NAME}")."
   read -r -p "Pokračovat? [yes/N]: " response
   if [[ "${response}" != "yes" ]]; then
     echo "Nasazení zrušeno."
@@ -55,6 +59,44 @@ check_root_permissions_hint() {
   if ! sudo -n true >/dev/null 2>&1; then
     echo "Poznámka: restart služeb bude vyžadovat sudo heslo." >&2
   fi
+}
+
+ensure_unit_installed() {
+  local unit_name="$1"
+  local unit_file
+  local load_state
+
+  unit_file="$(unit_file_name "${unit_name}")"
+  load_state="$(systemctl show -p LoadState --value "${unit_file}" 2>/dev/null || true)"
+
+  if [[ "${load_state}" == "loaded" ]]; then
+    return
+  fi
+
+  echo "Systemd unit ${unit_file} není na serveru nainstalovaná (LoadState=${load_state:-unknown})." >&2
+  echo "Nejdřív spusť jednorázovou instalaci unitů:" >&2
+  echo "  sudo ${REPO_DIR}/deploy/deploy.sh" >&2
+  exit 1
+}
+
+ensure_no_pm2_conflicts() {
+  local pm2_list
+
+  if ! command -v pm2 >/dev/null 2>&1; then
+    return
+  fi
+
+  pm2_list="$(pm2 jlist 2>/dev/null || true)"
+  if [[ "${pm2_list}" != *"\"name\":\"${WEB_UNIT_NAME}\""* ]] && [[ "${pm2_list}" != *"\"name\":\"${WORKER_UNIT_NAME}\""* ]]; then
+    return
+  fi
+
+  echo "Na serveru pořád běží legacy PM2 procesy ${WEB_UNIT_NAME}/${WORKER_UNIT_NAME}, které kolidují se systemd rolloutem." >&2
+  echo "Nejdřív převeď provoz jen na systemd:" >&2
+  echo "  pm2 delete ${WEB_UNIT_NAME} ${WORKER_UNIT_NAME}" >&2
+  echo "  pm2 save --force" >&2
+  echo "  systemctl disable --now pm2-root.service" >&2
+  exit 1
 }
 
 parse_args() {
@@ -118,6 +160,10 @@ run_release() {
     echo "Working tree není čistý. Commitni změny, nebo použij --allow-dirty." >&2
     exit 1
   fi
+
+  ensure_unit_installed "${WEB_UNIT_NAME}"
+  ensure_unit_installed "${WORKER_UNIT_NAME}"
+  ensure_no_pm2_conflicts
 
   confirm_or_exit
   check_root_permissions_hint

@@ -11,6 +11,12 @@ Evidence produkčních incidentů a jejich řešení.
 - Preventivní opatření
 
 ## Incidenty
+- Datum a čas: 2026-04-30 19:45 CEST
+  Dopad (uživatelé/systém): release doběhl přes migrace, lint i build, ale skončil chybou při restartu `ppstudio-web.service`; nová verze tak zůstala nenasazená do běžících procesů a rollout se musel ručně dohledávat.
+  Příčina: server neměl nainstalované systemd units z `deploy/systemd/*` a současně mu zůstal legacy PM2 runtime; `deploy/release.sh` tehdy neověřoval ani přítomnost unitů, ani konflikt dvou process managerů.
+  Okamžité řešení: nainstalovat units přes `sudo /var/www/ppstudio/deploy/deploy.sh`, odstranit `ppstudio-web` / `ppstudio-email-worker` z PM2, uložit prázdný PM2 dump a vypnout `pm2-root.service`.
+  Trvalá oprava: `deploy/release.sh` nově fail-fast kontroluje `LoadState` pro `ppstudio-web.service` a `ppstudio-email-worker.service` ještě před `npm ci`/buildem a při nalezených PM2 procesech vypíše přesný převod na čistý systemd provoz.
+  Preventivní opatření: na novém serveru nebo po obnově `/etc/systemd/system` vždy nejdřív spustit `deploy/deploy.sh`; při migraci z PM2 nejdřív odstraň staré `ppstudio-*` procesy a vypni `pm2-root.service`, jinak hrozí `EADDRINUSE` nebo duplicitní worker.
 - Datum a čas: 2026-04-20 14:46 CEST
   Dopad (uživatelé/systém): veřejné odeslání formuláře `/rezervace` mohlo skončit obecnou chybou `UNEXPECTED_ERROR` místo potvrzení rezervace, pokud klientka nevyplnila telefon.
   Příčina: drift mezi Prisma modelem a DB schématem; `Booking.clientPhoneSnapshot` byl v DB `NOT NULL`, ale aplikační logika ho používá jako volitelné pole.
@@ -119,6 +125,8 @@ Evidence produkčních incidentů a jejich řešení.
 
 ## Preventivní poznámka
 - Historie Prisma migrací může obsahovat rollbacknuté záznamy `20260419140000_site_settings_singleton` a `20260419103000_service_public_bookability`. Jsou to známé záznamy ze staršího recover postupu; nemaž je ručně z `_prisma_migrations`. Za problém je považuj až tehdy, když `npm run db:check-migrations` neskončí stavem `Migration history check: OK`, nebo když `prisma migrate deploy` odmítne pokračovat.
+- Release helper očekává nainstalované systemd units `ppstudio-web.service` a `ppstudio-email-worker.service`; po provisioning/recovery serveru je nejdřív zaveď přes `sudo /var/www/ppstudio/deploy/deploy.sh`, jinak se nový release záměrně zastaví před `npm ci`.
+- Produkční provoz `ppstudio` už nemá běžet současně přes PM2 i systemd. Smíšený stav způsobí buď port konflikt na `3000`, nebo dvojitý běh email workeru.
 - Sekce `volne-terminy` je po resetu z `2026-04-19` záměrně minimalistická; incidentem je pouze neočekávaný pád route, ne absence starých planner funkcí.
 - Admin sekce `Email logy` je citlivá na rozjezd mezi Prisma schématem a generovaným klientem. Projekt proto nyní před `dev` i `build` automaticky spouští `prisma generate`.
 - Rozbitý týdenní planner po deployi: špatné zachování query parametrů `week/day/panel`, kvůli kterému se obsluha po akci vrací na jiný den nebo na výchozí týden.

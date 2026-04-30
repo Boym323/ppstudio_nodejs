@@ -24,6 +24,8 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
 - Spouštěj z rootu repozitáře:
   - `cd /var/www/ppstudio`
   - `./deploy/release.sh`
+- Skript před releasem ověří, že na serveru existují units `ppstudio-web.service` a `ppstudio-email-worker.service`; pokud chybí, skončí s návodem na `sudo /var/www/ppstudio/deploy/deploy.sh`.
+- Skript také hlídá, že stejné procesy neběží ještě přes legacy PM2; při konfliktu vypíše převod na čistý systemd provoz (`pm2 delete ...`, `pm2 save --force`, `systemctl disable --now pm2-root.service`).
 - Skript provede standardní release kroky (instalace závislostí, Prisma generate + migrate deploy, lint, build, restart `ppstudio-web` a `ppstudio-email-worker`).
 - Detailní release checklist a QA body zůstávají v [`docs/DEPLOYMENT.md`](/var/www/ppstudio/docs/DEPLOYMENT.md).
 

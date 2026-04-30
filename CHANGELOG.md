@@ -6,6 +6,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- `deploy/release.sh` nově fail-fast kontroluje, že jsou na serveru nainstalované systemd units `ppstudio-web.service` a `ppstudio-email-worker.service`, a zároveň blokuje rollout při běžících legacy PM2 procesech `ppstudio-web` / `ppstudio-email-worker`; při driftu vypíše konkrétní převod na čistý systemd provoz místo pádu až po buildu při restartu nebo port konfliktu.
 - Admin login/logout redirecty nově ignorují nedůvěryhodné `x-forwarded-host` / request host hodnoty a při neznámém hostu používají kanonické `NEXT_PUBLIC_APP_URL`, aby reverse proxy hlavička nemohla změnit cílový origin přesměrování.
 - Stabilizován flaky Playwright krok u self-service přesunu termínu: čekání na success heading má delší timeout a při selhání test vypíše konkrétní poslední stav formuláře (konflikt, validační chyba, obecná chyba), takže CI pád je rychleji diagnostikovatelný.
 - Přidán produkční rollout helper `deploy/release.sh`, který sjednocuje bezpečný deploy flow (`git pull --ff-only`, `npm ci`, Prisma generate + migrate deploy, lint/build, restart `ppstudio-web` a `ppstudio-email-worker`) a má guardy pro větev, dirty working tree a interaktivní potvrzení.
