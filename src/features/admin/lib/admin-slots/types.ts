@@ -12,7 +12,7 @@ export type PlannerInterval = {
   startCell: number;
   endCell: number;
   label: string;
-  status: "available" | "booked" | "inactive" | "locked";
+  status: "available" | "booked" | "completed" | "inactive" | "locked";
   bookingCount: number;
   canEdit: boolean;
   detail: string;
@@ -46,6 +46,7 @@ export type PlannerDay = {
   cells: {
     available: boolean[];
     booked: boolean[];
+    completed: boolean[];
     inactive: boolean[];
     locked: boolean[];
     past: boolean[];

@@ -535,6 +535,9 @@ npm run db:clear-booking-data -- --confirm
   - `PENDING/CONFIRMED -> CANCELLED`
   - `CONFIRMED -> NO_SHOW`
 - Akce `CONFIRMED -> COMPLETED` je dostupná až po skončení naplánovaného termínu (`scheduledEndsAt`); budoucí potvrzená rezervace proto nemůže omylem přestat blokovat kapacitu a objevit se v dashboardu jako volné okno.
+- Dnešní dashboard timeline zobrazuje i dokončené dnešní rezervace jako tlumené `Hotovo`; volná okna se počítají jen od aktuálního času dopředu, takže minulý úsek po hotové službě nevypadá jako nově dostupný termín.
+- Sekce `Volné termíny` v denním planneru zobrazuje také dokončené rezervace jako tlumené cyan `Hotovo`, takže historicky obsazený čas zůstává čitelný místo anonymního technického omezení a nesplývá se zelenou dostupností.
+- Inspektor výběru v gridu u hotové rezervace používá historický text a odkazuje obsluhu na detail rezervace místo obecné hlášky o rezervovaném čase.
 - Volba akce v bloku `Změna stavu` je řešená přes klikací karty místo selectu; aktivní karta je barevně zvýrazněná podle typu akce (potvrzení zeleně, zrušení červeně), aby obsluha hned viděla, co je vybrané.
 - Blok `Změna stavu` nově předvybírá nejčastější další krok a pod výběrem ukazuje krátké shrnutí dopadu akce, takže je menší riziko chybného uložení ve spěchu.
 - Každá změna stavu z detailu zapisuje položku do `BookingStatusHistory` včetně admin aktéra, důvodu a poznámky.

@@ -161,6 +161,8 @@ Postup nasazení aplikace do produkce.
     - sticky header drží klientku, službu, termín, stav, zdroj a rychlé akce i při scrollu
     - akční panel je hned pod headerem a podle stavu nabízí správný další krok (`Potvrdit`, `Hotovo`, `Zrušit`, `Nedorazila`)
     - u budoucí potvrzené rezervace se `Hotovo` nenabízí a serverový submit ho odmítne; akce je dostupná až po skončení termínu
+    - po označení dnešní služby jako `Hotovo` zůstane rezervace v timeline viditelná a minulý úsek se nezačne tvářit jako volné okno
+    - v sekci `Volné termíny` je dokončená rezervace vidět jako tlumené `Hotovo`, ne jen jako nejasný zamčený interval
     - potvrď, že `Přesunout termín` zůstává oddělené CTA do draweru, ne součást běžného chooseru
     - pravý summary card ukazuje kompaktně kontakt, službu, termín, zdroj, přesuny a auditní metadata
     - poznámky jsou v jednom bloku (`Poznámka od klientky` + editovatelná interní poznámka)

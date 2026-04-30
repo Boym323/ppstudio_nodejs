@@ -63,7 +63,7 @@ export function AdminBookingsQuickActions({
               lastSubmittedAction.current = action.value;
             }}
           >
-            {action.value === "CONFIRMED" ? "Potvrdit" : "Zrušit"}
+            Potvrdit
           </QuickSubmitButton>
         ))}
 
@@ -129,11 +129,7 @@ function getQuickActions(
 
   switch (status) {
     case BookingStatus.PENDING:
-      return ["CONFIRMED", "CANCELLED"]
-        .map((value) => actionByValue.get(value))
-        .filter((action): action is NonNullable<(typeof availableActions)[number]> => Boolean(action));
-    case BookingStatus.CONFIRMED:
-      return ["CANCELLED"]
+      return ["CONFIRMED"]
         .map((value) => actionByValue.get(value))
         .filter((action): action is NonNullable<(typeof availableActions)[number]> => Boolean(action));
     default:

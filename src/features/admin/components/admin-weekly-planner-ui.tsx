@@ -1,3 +1,4 @@
+import { BookingStatus } from "@prisma/client";
 import Link from "next/link";
 
 import type { PlannerDay } from "@/features/admin/lib/admin-slots";
@@ -10,7 +11,7 @@ const PLANNER_CELL_COUNT = (PLANNER_END_HOUR - PLANNER_START_HOUR) * 2;
 const PLANNER_DESKTOP_ROW_CLASS = "grid grid-rows-[repeat(28,minmax(0,1.2rem))] gap-y-1";
 const PLANNER_MOBILE_ROW_CLASS = "grid grid-rows-[repeat(28,minmax(0,2rem))] gap-y-1.5";
 
-export type CellTone = "available" | "booked" | "locked" | "inactive" | "past" | "empty";
+export type CellTone = "available" | "booked" | "completed" | "locked" | "inactive" | "past" | "empty";
 
 export type DraftSelection = {
   dateKey: string;
@@ -25,6 +26,7 @@ export type PlannerSelection = {
   endCell: number;
   tone: CellTone;
   editable: boolean;
+  bookingStatus?: BookingStatus;
 };
 
 export type WeeklyTemplateInput = Array<{
@@ -38,6 +40,10 @@ export type WeeklyTemplateInput = Array<{
 export function getCellTone(day: PlannerDay, cellIndex: number): CellTone {
   if (day.cells.booked[cellIndex]) {
     return "booked";
+  }
+
+  if (day.cells.completed[cellIndex]) {
+    return "completed";
   }
 
   if (day.cells.locked[cellIndex]) {
@@ -113,6 +119,10 @@ function getToneLabel(tone: CellTone) {
 
   if (tone === "locked") {
     return "omezení";
+  }
+
+  if (tone === "completed") {
+    return "hotovo";
   }
 
   if (tone === "inactive") {
@@ -267,6 +277,7 @@ export function PlannerLegend({ legend }: { legend: Array<{ tone: CellTone | "pa
             "rounded-full border px-2.5 py-1 text-[11px] uppercase tracking-[0.16em]",
             item.tone === "available" && "border-emerald-300/35 bg-emerald-300/15 text-white/86",
             item.tone === "booked" && "border-rose-300/35 bg-rose-300/16 text-white/86",
+            item.tone === "completed" && "border-cyan-300/30 bg-cyan-300/14 text-white/86",
             item.tone === "locked" && "border-amber-200/30 bg-amber-200/16 text-white/86",
             item.tone === "inactive" && "border-slate-300/22 bg-slate-300/12 text-white/82",
             item.tone === "past" && "border-white/10 bg-white/6 text-white/70",
@@ -393,6 +404,7 @@ export function GridCell({
         "h-8 w-full rounded-[0.65rem] border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/70 lg:h-[1.2rem]",
         tone === "available" && "border-emerald-300/25 bg-emerald-300/66 hover:bg-emerald-300/82",
         tone === "booked" && "cursor-default border-rose-300/30 bg-rose-300/70",
+        tone === "completed" && "cursor-default border-cyan-300/30 bg-cyan-300/60",
         tone === "locked" && "cursor-default border-amber-200/24 bg-amber-200/42",
         tone === "inactive" && "cursor-default border-slate-300/16 bg-slate-300/24",
         tone === "past" && "cursor-default border-white/6 bg-white/[0.04]",
@@ -637,6 +649,7 @@ export function DayInspector({
                 {selection.tone === "available" && "Vybraný blok běžné dostupnosti."}
                 {selection.tone === "empty" && "Prázdné místo připravené k doplnění."}
                 {selection.tone === "booked" && "Rezervovaný čas je jen pro orientaci a zůstává chráněný."}
+                {selection.tone === "completed" && "Dokončená rezervace zůstává v plánu pro přehled historie."}
                 {selection.tone === "locked" && "Omezený nebo technický interval nelze upravit přímo z planneru."}
                 {selection.tone === "inactive" && "Neaktivní interval zůstává mimo rychlou editaci."}
                 {selection.tone === "past" && "Minulý čas už není možné měnit."}
@@ -647,7 +660,11 @@ export function DayInspector({
                 {selection.tone === "available" ? "Odebrat vybraný blok" : "Přidat vybraný blok"}
               </ActionButton>
             ) : (
-              <p className="text-sm text-white/52">Tento blok je chráněný a nelze ho z inspektoru upravit.</p>
+              <p className="text-sm text-white/52">
+                {selection.tone === "completed"
+                  ? "Hotovou rezervaci upravíte v detailu rezervace, ne v inspektoru dostupnosti."
+                  : "Tento blok je chráněný a nelze ho z inspektoru upravit."}
+              </p>
             )}
           </div>
         ) : (
@@ -686,9 +703,21 @@ export function DayInspector({
             day.bookings.map((booking) => (
               <div
                 key={booking.id}
-                className="rounded-[0.95rem] border border-rose-300/18 bg-rose-300/10 px-3 py-2.5 text-sm text-white/86"
+                className={cn(
+                  "rounded-[0.95rem] border px-3 py-2.5 text-sm text-white/86",
+                  booking.status === BookingStatus.COMPLETED
+                    ? "border-cyan-300/18 bg-cyan-300/8"
+                    : "border-rose-300/18 bg-rose-300/10",
+                )}
               >
-                <p className="font-medium">{booking.label}</p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="font-medium">{booking.label}</p>
+                  {booking.status === BookingStatus.COMPLETED ? (
+                    <span className="rounded-full border border-cyan-300/22 bg-cyan-300/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-100/82">
+                      Hotovo
+                    </span>
+                  ) : null}
+                </div>
                 <p className="mt-1 text-white/58">{booking.clientName} • {booking.serviceName}</p>
               </div>
             ))

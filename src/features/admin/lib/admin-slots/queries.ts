@@ -44,7 +44,11 @@ import {
   type TimeRange,
 } from "./types";
 
-const ACTIVE_BOOKING_STATUSES = [BookingStatus.PENDING, BookingStatus.CONFIRMED] as const;
+const PLANNER_BOOKING_STATUSES = [
+  BookingStatus.PENDING,
+  BookingStatus.CONFIRMED,
+  BookingStatus.COMPLETED,
+] as const;
 
 export async function getAdminPlannerWeek(area: AdminArea, week?: string | null): Promise<PlannerWeekData> {
   const weekStart = resolveWeekStart(week);
@@ -94,7 +98,7 @@ export async function getAdminPlannerWeek(area: AdminArea, week?: string | null)
           gt: weekStart,
         },
         status: {
-          in: [...ACTIVE_BOOKING_STATUSES],
+          in: [...PLANNER_BOOKING_STATUSES],
         },
       },
       orderBy: [{ scheduledStartsAt: "asc" }],
@@ -302,7 +306,16 @@ export async function getAdminPlannerWeek(area: AdminArea, week?: string | null)
         label: interval.label,
       }));
 
-    const bookedCells = buildCellsMap(dayBookings);
+    const bookedCells = buildCellsMap(
+      dayBookings.filter(
+        (booking) =>
+          booking.status === BookingStatus.PENDING ||
+          booking.status === BookingStatus.CONFIRMED,
+      ),
+    );
+    const completedCells = buildCellsMap(
+      dayBookings.filter((booking) => booking.status === BookingStatus.COMPLETED),
+    );
     const availableCells = buildCellsMap(availableIntervals);
     const inactiveCells = buildCellsMap(intervals.filter((interval) => interval.status === "inactive"));
     const lockedCells = buildCellsMap(intervals.filter((interval) => interval.status === "locked"));
@@ -335,6 +348,7 @@ export async function getAdminPlannerWeek(area: AdminArea, week?: string | null)
       cells: {
         available: availableCells,
         booked: bookedCells,
+        completed: completedCells,
         inactive: inactiveCells,
         locked: lockedCells,
         past: pastCells,
@@ -373,6 +387,7 @@ export async function getAdminPlannerWeek(area: AdminArea, week?: string | null)
     legend: [
       { tone: "available", label: "Dostupnost" },
       { tone: "booked", label: "Rezervace" },
+      { tone: "completed", label: "Hotovo" },
       { tone: "locked", label: "Omezené" },
       { tone: "inactive", label: "Neaktivní" },
       { tone: "past", label: "Minulý čas" },

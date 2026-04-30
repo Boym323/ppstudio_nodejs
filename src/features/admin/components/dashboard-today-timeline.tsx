@@ -73,7 +73,9 @@ export function DashboardTodayTimeline({ area, items }: DashboardTodayTimelinePr
                       isBooking
                         ? item.bookingStatus === "PENDING"
                           ? "border-amber-300/35 bg-amber-400/12 text-amber-100"
-                          : "border-violet-400/25 bg-violet-400/10 text-violet-200"
+                          : item.bookingStatus === "COMPLETED"
+                            ? "border-emerald-300/22 bg-emerald-400/8 text-emerald-100/78"
+                            : "border-violet-400/25 bg-violet-400/10 text-violet-200"
                         : "border-emerald-400/25 bg-emerald-400/10 text-emerald-200",
                     )}
                   >

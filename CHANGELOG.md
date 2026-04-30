@@ -6,6 +6,9 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Admin dashboard v dnešní timeline zobrazuje dokončené dnešní rezervace jako `Hotovo` a nevytváří z minulých úseků falešná volná okna po označení služby za hotovou.
+- Admin sekce `Volné termíny` nově zobrazuje dokončené rezervace v denním planneru jako tlumené cyan `Hotovo`, aby historicky obsazený čas nevypadal jako nejasné technické omezení ani jako zelená dostupnost.
+- Inspektor výběru v gridu `Volné termíny` rozlišuje dokončenou rezervaci a místo obecného textu o rezervovaném čase vysvětluje, že jde o historickou hotovou návštěvu.
 - Admin rezervaci lze nově označit jako `Hotovo` až po skončení naplánovaného termínu; budoucí potvrzená rezervace tak omylem nepřestane blokovat kapacitu a dashboard ji nezačne ukazovat jako volné okno.
 - `deploy/release.sh` nově fail-fast kontroluje, že jsou na serveru nainstalované systemd units `ppstudio-web.service` a `ppstudio-email-worker.service`, a zároveň blokuje rollout při běžících legacy PM2 procesech `ppstudio-web` / `ppstudio-email-worker`; při driftu vypíše konkrétní převod na čistý systemd provoz místo pádu až po buildu při restartu nebo port konfliktu.
 - Admin login/logout redirecty nově ignorují nedůvěryhodné `x-forwarded-host` / request host hodnoty a při neznámém hostu používají kanonické `NEXT_PUBLIC_APP_URL`, aby reverse proxy hlavička nemohla změnit cílový origin přesměrování.

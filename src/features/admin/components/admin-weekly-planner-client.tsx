@@ -172,6 +172,7 @@ function cloneWeekDays(days: PlannerDay[]) {
     cells: {
       available: [...day.cells.available],
       booked: [...day.cells.booked],
+      completed: [...day.cells.completed],
       inactive: [...day.cells.inactive],
       locked: [...day.cells.locked],
       past: [...day.cells.past],
@@ -183,6 +184,10 @@ function cloneWeekDays(days: PlannerDay[]) {
 function getBlockedMessage(tone: CellTone) {
   if (tone === "booked") {
     return "Rezervace zůstává chráněná a z planneru ji nelze přepsat.";
+  }
+
+  if (tone === "completed") {
+    return "Hotová rezervace zůstává v přehledu dne a nejde ji měnit přímo v planneru.";
   }
 
   if (tone === "past") {
@@ -214,8 +219,9 @@ function findSelectionAtCell(day: PlannerDay, cellIndex: number): PlannerSelecti
       dateKey: day.dateKey,
       startCell: booking.startCell,
       endCell: booking.endCell,
-      tone: "booked",
+      tone: booking.status === "COMPLETED" ? "completed" : "booked",
       editable: false,
+      bookingStatus: booking.status,
     };
   }
 

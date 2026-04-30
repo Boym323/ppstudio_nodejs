@@ -12,6 +12,11 @@ const ACTIVE_BOOKING_STATUSES: BookingStatus[] = [
   BookingStatus.PENDING,
   BookingStatus.CONFIRMED,
 ];
+const TIMELINE_BOOKING_STATUSES: BookingStatus[] = [
+  BookingStatus.PENDING,
+  BookingStatus.CONFIRMED,
+  BookingStatus.COMPLETED,
+];
 const ACTIVE_SLOT_STATUSES: AvailabilitySlotStatus[] = [
   AvailabilitySlotStatus.DRAFT,
   AvailabilitySlotStatus.PUBLISHED,
@@ -199,7 +204,7 @@ function getWeekBounds(now: Date) {
   return { weekStart, weekEnd };
 }
 
-function buildTimelineItems(
+export function buildTimelineItems(
   area: AdminArea,
   now: Date,
   slots: Array<{
@@ -225,23 +230,33 @@ function buildTimelineItems(
     );
     let cursor = slot.startsAt;
 
+    const pushFreeWindow = (startsAt: Date, endsAt: Date, idSuffix: string) => {
+      const effectiveStartsAt = startsAt.getTime() < now.getTime() ? now : startsAt;
+
+      if (effectiveStartsAt.getTime() >= endsAt.getTime()) {
+        return;
+      }
+
+      items.push({
+        id: `${slot.id}-free-${idSuffix}`,
+        kind: "free",
+        sortTime: effectiveStartsAt.getTime(),
+        timeLabel: `${timeFormatter.format(effectiveStartsAt)} - ${timeFormatter.format(endsAt)}`,
+        title: "Volné okno",
+        subtitle:
+          endsAt.getTime() > now.getTime()
+            ? `Kapacita ${slot.capacity} • připravené pro další rezervaci`
+            : `Kapacita ${slot.capacity} • historické volno`,
+        badge: "VOLNE",
+        href: getSlotEditHref(area, slot.id),
+        createHref: getBookingsHref(area),
+        editHref: getSlotEditHref(area, slot.id),
+      });
+    };
+
     for (const booking of bookings) {
       if (booking.scheduledStartsAt.getTime() > cursor.getTime()) {
-        items.push({
-          id: `${slot.id}-free-${cursor.toISOString()}`,
-          kind: "free",
-          sortTime: cursor.getTime(),
-          timeLabel: `${timeFormatter.format(cursor)} - ${timeFormatter.format(booking.scheduledStartsAt)}`,
-          title: "Volné okno",
-          subtitle:
-            booking.scheduledStartsAt.getTime() > now.getTime()
-              ? `${formatRelativeTime(booking.scheduledStartsAt, now)} do další rezervace`
-              : `Kapacita ${slot.capacity} • připravené pro další rezervaci`,
-          badge: "VOLNE",
-          href: getSlotEditHref(area, slot.id),
-          createHref: getBookingsHref(area),
-          editHref: getSlotEditHref(area, slot.id),
-        });
+        pushFreeWindow(cursor, booking.scheduledStartsAt, cursor.toISOString());
       }
 
       items.push({
@@ -267,18 +282,7 @@ function buildTimelineItems(
     }
 
     if (cursor.getTime() < slot.endsAt.getTime()) {
-      items.push({
-        id: `${slot.id}-free-${slot.endsAt.toISOString()}`,
-        kind: "free",
-        sortTime: cursor.getTime(),
-        timeLabel: `${timeFormatter.format(cursor)} - ${timeFormatter.format(slot.endsAt)}`,
-        title: "Volné okno",
-        subtitle: `Kapacita ${slot.capacity} • připravené pro další rezervaci`,
-        badge: "VOLNE",
-        href: getSlotEditHref(area, slot.id),
-        createHref: getBookingsHref(area),
-        editHref: getSlotEditHref(area, slot.id),
-      });
+      pushFreeWindow(cursor, slot.endsAt, slot.endsAt.toISOString());
     }
   }
 
@@ -403,7 +407,7 @@ export async function getAdminDashboardData(area: AdminArea): Promise<AdminDashb
         endsAt: true,
         capacity: true,
         bookings: {
-          where: { status: { in: ACTIVE_BOOKING_STATUSES } },
+          where: { status: { in: TIMELINE_BOOKING_STATUSES } },
           orderBy: { scheduledStartsAt: "asc" },
           select: {
             id: true,
