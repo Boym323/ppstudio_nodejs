@@ -863,7 +863,9 @@ export async function getReservationsData(
       secondaryContactLabel: contacts.secondaryContactLabel,
       secondaryContactHref: contacts.secondaryContactHref,
       href: getAdminBookingHref(area, booking.id),
-      availableActions: getAdminBookingActionOptions(booking.status),
+      availableActions: getAdminBookingActionOptions(booking.status, {
+        scheduledEndsAt: booking.scheduledEndsAt,
+      }),
       isMuted: booking.status === BookingStatus.COMPLETED || booking.status === BookingStatus.CANCELLED,
       isPending: booking.status === BookingStatus.PENDING,
     });

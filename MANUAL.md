@@ -534,6 +534,7 @@ npm run db:clear-booking-data -- --confirm
   - `CONFIRMED -> COMPLETED`
   - `PENDING/CONFIRMED -> CANCELLED`
   - `CONFIRMED -> NO_SHOW`
+- Akce `CONFIRMED -> COMPLETED` je dostupná až po skončení naplánovaného termínu (`scheduledEndsAt`); budoucí potvrzená rezervace proto nemůže omylem přestat blokovat kapacitu a objevit se v dashboardu jako volné okno.
 - Volba akce v bloku `Změna stavu` je řešená přes klikací karty místo selectu; aktivní karta je barevně zvýrazněná podle typu akce (potvrzení zeleně, zrušení červeně), aby obsluha hned viděla, co je vybrané.
 - Blok `Změna stavu` nově předvybírá nejčastější další krok a pod výběrem ukazuje krátké shrnutí dopadu akce, takže je menší riziko chybného uložení ve spěchu.
 - Každá změna stavu z detailu zapisuje položku do `BookingStatusHistory` včetně admin aktéra, důvodu a poznámky.

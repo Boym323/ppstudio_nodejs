@@ -144,6 +144,11 @@ type ApplyAdminBookingStatusChangeInput = {
   internalNote?: string;
 };
 
+type AdminBookingActionContext = {
+  scheduledEndsAt?: Date | null;
+  now?: Date;
+};
+
 const allowedTransitions: Record<BookingStatus, AdminBookingActionValue[]> = {
   [BookingStatus.PENDING]: [BookingStatus.CONFIRMED, BookingStatus.CANCELLED],
   [BookingStatus.CONFIRMED]: [
@@ -219,8 +224,23 @@ export function getBookingAcquisitionLabel(source: BookingAcquisitionSource | nu
   return String(source);
 }
 
-export function getAdminBookingActionOptions(status: BookingStatus): AdminBookingActionOption[] {
-  return allowedTransitions[status].map((value) => {
+export function canCompleteBookingAt(scheduledEndsAt: Date, now = new Date()) {
+  return scheduledEndsAt.getTime() <= now.getTime();
+}
+
+export function getAdminBookingActionOptions(
+  status: BookingStatus,
+  context: AdminBookingActionContext = {},
+): AdminBookingActionOption[] {
+  const now = context.now ?? new Date();
+
+  return allowedTransitions[status].filter((value) => {
+    if (value !== BookingStatus.COMPLETED || !context.scheduledEndsAt) {
+      return true;
+    }
+
+    return canCompleteBookingAt(context.scheduledEndsAt, now);
+  }).map((value) => {
     switch (value) {
       case BookingStatus.CONFIRMED:
         return {
@@ -527,7 +547,9 @@ export async function getAdminBookingDetailData(
     internalNote: booking.internalNote,
     rescheduleCount: booking.rescheduleCount,
     rescheduledAtLabel: booking.rescheduledAt ? formatDateTimeLabel(booking.rescheduledAt) : null,
-    availableActions: getAdminBookingActionOptions(booking.status),
+    availableActions: getAdminBookingActionOptions(booking.status, {
+      scheduledEndsAt: booking.scheduledEndsAt,
+    }),
     historyItems: historyItems.map((item) => ({
       id: item.id,
       kind: item.kind,
@@ -636,6 +658,13 @@ export async function applyAdminBookingStatusChange({
     }
 
     const now = new Date();
+    if (targetStatus === BookingStatus.COMPLETED && !canCompleteBookingAt(booking.scheduledEndsAt, now)) {
+      return {
+        status: "completion-too-early" as const,
+        scheduledEndsAt: booking.scheduledEndsAt,
+      };
+    }
+
     await tx.booking.update({
       where: { id: booking.id },
       data: {

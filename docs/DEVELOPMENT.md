@@ -45,6 +45,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - slučuje navazující kompatibilní publikované sloty do jednoho delšího veřejného okna,
   - zachovává mapu původních segmentů pro správné `slotId` při submitu,
   - počítá `bookedIntervals` podle skutečných aktivních rezervací překrývajících daný čas, ne jen podle relace `Booking.slotId`.
+- Stav rezervace `COMPLETED` je provozní uzávěrka po proběhlé návštěvě, ne nástroj pro předběžné odbavení. Admin akce `Hotovo` smí projít až po `scheduledEndsAt`, protože aktivní blokace kapacity a dashboardové volné úseky počítají jen `PENDING` a `CONFIRMED`.
 - Stejný helper řeší i backend validaci souvislého pokrytí intervalu při `createBookingWithEngine(...)` a `rescheduleBooking(...)`; když upravuješ pravidla slotů, drž veřejný katalog a backend coverage logiku v sync.
 - Stabilizační refaktor z `2026-04-24` rozděluje dříve monolitické booking/admin soubory do menších interních modulů při zachování stávajících entrypointů:
   - `src/features/booking/lib/booking-public.ts` je façade nad `booking-public/shared.ts`, `catalog.ts`, `engine.ts`, `notifications.ts`

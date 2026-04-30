@@ -355,6 +355,13 @@ export async function updateBookingStatusAction(
     };
   }
 
+  if (result.status === "completion-too-early") {
+    return {
+      status: "error",
+      formError: "Rezervaci lze označit jako hotovou až po skončení naplánovaného termínu.",
+    };
+  }
+
   if (
     parsed.data.targetStatus === BookingStatus.CONFIRMED
     || parsed.data.targetStatus === BookingStatus.CANCELLED

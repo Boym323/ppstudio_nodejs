@@ -256,7 +256,9 @@ function buildTimelineItems(
         bookingId: booking.id,
         bookingStatus: booking.status,
         bookingStatusLabel: getBookingStatusLabel(booking.status),
-        availableActions: getAdminBookingActionOptions(booking.status),
+        availableActions: getAdminBookingActionOptions(booking.status, {
+          scheduledEndsAt: booking.scheduledEndsAt,
+        }),
       });
 
       if (booking.scheduledEndsAt.getTime() > cursor.getTime()) {
