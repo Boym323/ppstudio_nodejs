@@ -6,6 +6,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Opraveny TypeScript test typy mimo dashboard: `voucher-domain.integration.test.ts` nyní předává kompletní voucher metadata (`purchaserName`, `recipientName`, `message`, `internalNote`) a `note` při redeem voláních, `templates.test.ts` bezpečně převádí obsah přílohy na string a `request-origin.test.ts` nastavuje `NODE_ENV` bez zápisu do readonly env property.
 - Admin dashboard `Přehled` je zjednodušený na kompaktní denní provozní cockpit: vysoký hero nahradila nízká operační lišta, alerty a KPI jsou zhuštěné do stripů, dnešní plán má nižší řádky, rychlé akce jsou v 2x2 gridu a analytika zůstává defaultně zavřená.
 - Admin detail klientky má kompaktnější vizuální hustotu: menší hlavičku, nižší KPI karty, zhuštěné pravé karty, kratší řádky historie a nižší formulář interní poznámky.
 - Admin detail klientky už nebere `Poslední návštěvu` z aktivity profilu při vytvoření rezervace; nově ji odvozuje jen z dokončených rezervací, takže klientka s budoucím nebo zatím neuzavřeným termínem nefiguruje jako návštěva.

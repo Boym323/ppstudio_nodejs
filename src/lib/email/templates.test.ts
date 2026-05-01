@@ -190,7 +190,7 @@ test("renderEmailTemplate creates approved email", async () => {
   assert.ok(email.attachments);
   assert.equal(email.attachments.length, 1);
   assert.equal(email.attachments[0]?.filename, "pp-studio-rezervace.ics");
-  assert.match(email.attachments[0]?.content ?? "", /^BEGIN:VCALENDAR\r\n/);
+  assert.match(String(email.attachments[0]?.content ?? ""), /^BEGIN:VCALENDAR\r\n/);
 });
 
 test("renderEmailTemplate creates approved email for legacy payload without manageReservationUrl", async () => {

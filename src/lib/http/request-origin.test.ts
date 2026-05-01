@@ -4,7 +4,7 @@ import test from "node:test";
 process.env.NEXT_PUBLIC_APP_URL = "https://example.com";
 process.env.NEXT_PUBLIC_SITE_DOMAIN = "ppstudio.cz";
 process.env.VOUCHER_PUBLIC_DOMAIN = "vouchery.ppstudio.cz";
-process.env.NODE_ENV = "production";
+Object.assign(process.env, { NODE_ENV: "production" });
 
 test("buildAbsoluteUrl rejects untrusted forwarded hosts", async () => {
   const { buildAbsoluteUrl } = await import("./request-origin");

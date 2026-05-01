@@ -35,6 +35,12 @@ type TestContext = {
 };
 
 let seed: TestContext | null = null;
+const baseVoucherMeta = {
+  purchaserName: undefined,
+  recipientName: undefined,
+  message: undefined,
+  internalNote: undefined,
+};
 
 async function loadModules() {
   const [
@@ -216,14 +222,16 @@ describe("voucher domain", () => {
 
   dbTest("creates VALUE voucher with remaining value", async () => {
     assert.ok(seed);
+    const context = seed;
     const { createVoucher } = await loadModules();
 
     const voucher = await createVoucher(
       {
         type: VoucherType.VALUE,
+        ...baseVoucherMeta,
         originalValueCzk: 1500,
       },
-      seed.actorUserId,
+      context.actorUserId,
     );
 
     assert.equal(voucher.status, VoucherStatus.ACTIVE);
@@ -234,18 +242,20 @@ describe("voucher domain", () => {
 
   dbTest("creates voucher with purchaser, recipient and message", async () => {
     assert.ok(seed);
+    const context = seed;
     const { createVoucher } = await loadModules();
 
     const voucher = await createVoucher(
       {
         type: VoucherType.VALUE,
+        ...baseVoucherMeta,
         originalValueCzk: 900,
         purchaserName: "Marie Kupující",
         purchaserEmail: "marie@example.com",
         recipientName: "Jana Obdarovaná",
         message: "Krásnou péči v PP Studiu.",
       },
-      seed.actorUserId,
+      context.actorUserId,
     );
 
     assert.equal(voucher.purchaserName, "Marie Kupující");
@@ -256,18 +266,20 @@ describe("voucher domain", () => {
 
   dbTest("creates SERVICE voucher with service snapshot", async () => {
     assert.ok(seed);
+    const context = seed;
     const { createVoucher } = await loadModules();
 
     const voucher = await createVoucher(
       {
         type: VoucherType.SERVICE,
-        serviceId: seed.serviceId,
+        ...baseVoucherMeta,
+        serviceId: context.serviceId,
       },
-      seed.actorUserId,
+      context.actorUserId,
     );
 
     assert.equal(voucher.status, VoucherStatus.ACTIVE);
-    assert.equal(voucher.serviceId, seed.serviceId);
+    assert.equal(voucher.serviceId, context.serviceId);
     assert.equal(voucher.serviceNameSnapshot, "Lash lifting public");
     assert.equal(voucher.servicePriceSnapshotCzk, 1200);
     assert.equal(voucher.serviceDurationSnapshot, 60);
@@ -276,18 +288,20 @@ describe("voucher domain", () => {
 
   dbTest("validates VALUE voucher for booking", async () => {
     assert.ok(seed);
+    const context = seed;
     const { createVoucher, validateVoucherForBookingInput } = await loadModules();
     const voucher = await createVoucher(
       {
         type: VoucherType.VALUE,
+        ...baseVoucherMeta,
         originalValueCzk: 800,
       },
-      seed.actorUserId,
+      context.actorUserId,
     );
 
     const result = await validateVoucherForBookingInput({
       code: voucher.code,
-      serviceId: seed.serviceId,
+      serviceId: context.serviceId,
     });
 
     assert.equal(result.ok, true);
@@ -296,18 +310,20 @@ describe("voucher domain", () => {
 
   dbTest("validates SERVICE voucher for matching service", async () => {
     assert.ok(seed);
+    const context = seed;
     const { createVoucher, validateVoucherForBookingInput } = await loadModules();
     const voucher = await createVoucher(
       {
         type: VoucherType.SERVICE,
-        serviceId: seed.serviceId,
+        ...baseVoucherMeta,
+        serviceId: context.serviceId,
       },
-      seed.actorUserId,
+      context.actorUserId,
     );
 
     const result = await validateVoucherForBookingInput({
       code: voucher.code,
-      serviceId: seed.serviceId,
+      serviceId: context.serviceId,
     });
 
     assert.equal(result.ok, true);
@@ -316,18 +332,20 @@ describe("voucher domain", () => {
 
   dbTest("rejects SERVICE voucher for different service", async () => {
     assert.ok(seed);
+    const context = seed;
     const { createVoucher, validateVoucherForBookingInput } = await loadModules();
     const voucher = await createVoucher(
       {
         type: VoucherType.SERVICE,
-        serviceId: seed.serviceId,
+        ...baseVoucherMeta,
+        serviceId: context.serviceId,
       },
-      seed.actorUserId,
+      context.actorUserId,
     );
 
     const result = await validateVoucherForBookingInput({
       code: voucher.code,
-      serviceId: seed.otherServiceId,
+      serviceId: context.otherServiceId,
     });
 
     assert.deepEqual(result, { ok: false, reason: "SERVICE_MISMATCH" });
@@ -335,20 +353,23 @@ describe("voucher domain", () => {
 
   dbTest("redeems VALUE voucher partially and then to zero", async () => {
     assert.ok(seed);
+    const context = seed;
     const { createVoucher, redeemVoucherForBooking } = await loadModules();
     const voucher = await createVoucher(
       {
         type: VoucherType.VALUE,
+        ...baseVoucherMeta,
         originalValueCzk: 1000,
       },
-      seed.actorUserId,
+      context.actorUserId,
     );
 
     const partial = await redeemVoucherForBooking({
       voucherCode: voucher.code,
-      bookingId: seed.bookingIds[0],
+      bookingId: context.bookingIds[0],
       amountCzk: 400,
-      redeemedByUserId: seed.actorUserId,
+      redeemedByUserId: context.actorUserId,
+      note: undefined,
     });
 
     assert.equal(partial.voucher.remainingValueCzk, 600);
@@ -357,9 +378,10 @@ describe("voucher domain", () => {
 
     const final = await redeemVoucherForBooking({
       voucherCode: voucher.code,
-      bookingId: seed.bookingIds[1],
+      bookingId: context.bookingIds[1],
       amountCzk: 600,
-      redeemedByUserId: seed.actorUserId,
+      redeemedByUserId: context.actorUserId,
+      note: undefined,
     });
 
     assert.equal(final.voucher.remainingValueCzk, 0);
@@ -368,20 +390,23 @@ describe("voucher domain", () => {
 
   dbTest("redeems VALUE voucher with a single full amount", async () => {
     assert.ok(seed);
+    const context = seed;
     const { createVoucher, redeemVoucherForBooking } = await loadModules();
     const voucher = await createVoucher(
       {
         type: VoucherType.VALUE,
+        ...baseVoucherMeta,
         originalValueCzk: 1200,
       },
-      seed.actorUserId,
+      context.actorUserId,
     );
 
     const result = await redeemVoucherForBooking({
       voucherCode: voucher.code,
-      bookingId: seed.bookingIds[0],
+      bookingId: context.bookingIds[0],
       amountCzk: 1200,
-      redeemedByUserId: seed.actorUserId,
+      redeemedByUserId: context.actorUserId,
+      note: undefined,
     });
 
     assert.equal(result.voucher.remainingValueCzk, 0);
@@ -391,20 +416,23 @@ describe("voucher domain", () => {
 
   dbTest("redeems remaining VALUE balance when requested amount is higher", async () => {
     assert.ok(seed);
+    const context = seed;
     const { createVoucher, redeemVoucherForBooking } = await loadModules();
     const voucher = await createVoucher(
       {
         type: VoucherType.VALUE,
+        ...baseVoucherMeta,
         originalValueCzk: 500,
       },
-      seed.actorUserId,
+      context.actorUserId,
     );
 
     const result = await redeemVoucherForBooking({
       voucherCode: voucher.code,
-      bookingId: seed.bookingIds[0],
+      bookingId: context.bookingIds[0],
       amountCzk: 1200,
-      redeemedByUserId: seed.actorUserId,
+      redeemedByUserId: context.actorUserId,
+      note: undefined,
     });
 
     assert.equal(result.voucher.remainingValueCzk, 0);
@@ -414,36 +442,41 @@ describe("voucher domain", () => {
 
   dbTest("blocks another voucher redemption on an already paid booking", async () => {
     assert.ok(seed);
+    const context = seed;
     const { createVoucher, redeemVoucherForBooking, VoucherRedemptionError } = await loadModules();
     const firstVoucher = await createVoucher(
       {
         type: VoucherType.VALUE,
+        ...baseVoucherMeta,
         originalValueCzk: 500,
       },
-      seed.actorUserId,
+      context.actorUserId,
     );
     const secondVoucher = await createVoucher(
       {
         type: VoucherType.VALUE,
+        ...baseVoucherMeta,
         originalValueCzk: 500,
       },
-      seed.actorUserId,
+      context.actorUserId,
     );
 
     await redeemVoucherForBooking({
       voucherCode: firstVoucher.code,
-      bookingId: seed.bookingIds[0],
+      bookingId: context.bookingIds[0],
       amountCzk: 500,
-      redeemedByUserId: seed.actorUserId,
+      redeemedByUserId: context.actorUserId,
+      note: undefined,
     });
 
     await assert.rejects(
       () =>
         redeemVoucherForBooking({
           voucherCode: secondVoucher.code,
-          bookingId: seed.bookingIds[0],
+          bookingId: context.bookingIds[0],
           amountCzk: 500,
-          redeemedByUserId: seed.actorUserId,
+          redeemedByUserId: context.actorUserId,
+      note: undefined,
         }),
       (error) => error instanceof VoucherRedemptionError && error.code === "BOOKING_ALREADY_REDEEMED",
     );
@@ -451,19 +484,22 @@ describe("voucher domain", () => {
 
   dbTest("redeems SERVICE voucher and blocks second redemption", async () => {
     assert.ok(seed);
+    const context = seed;
     const { createVoucher, redeemVoucherForBooking, VoucherRedemptionError } = await loadModules();
     const voucher = await createVoucher(
       {
         type: VoucherType.SERVICE,
-        serviceId: seed.serviceId,
+        ...baseVoucherMeta,
+        serviceId: context.serviceId,
       },
-      seed.actorUserId,
+      context.actorUserId,
     );
 
     const result = await redeemVoucherForBooking({
       voucherCode: voucher.code,
-      bookingId: seed.bookingIds[2],
-      redeemedByUserId: seed.actorUserId,
+      bookingId: context.bookingIds[2],
+      redeemedByUserId: context.actorUserId,
+      note: undefined,
     });
 
     assert.equal(result.voucher.status, VoucherStatus.REDEEMED);
@@ -474,8 +510,9 @@ describe("voucher domain", () => {
       () =>
         redeemVoucherForBooking({
           voucherCode: voucher.code,
-          bookingId: seed.bookingIds[3],
-          redeemedByUserId: seed.actorUserId,
+          bookingId: context.bookingIds[3],
+          redeemedByUserId: context.actorUserId,
+      note: undefined,
         }),
       (error) => error instanceof VoucherRedemptionError && error.code === "VOUCHER_NOT_REDEEMABLE",
     );
@@ -483,6 +520,7 @@ describe("voucher domain", () => {
 
   dbTest("rejects SERVICE voucher redemption for different service", async () => {
     assert.ok(seed);
+    const context = seed;
     const { prisma, createVoucher, redeemVoucherForBooking, VoucherRedemptionError } = await loadModules();
     const otherSlot = await prisma.availabilitySlot.create({
       data: {
@@ -494,9 +532,9 @@ describe("voucher domain", () => {
     });
     const otherBooking = await prisma.booking.create({
       data: {
-        clientId: seed.clientId,
+        clientId: context.clientId,
         slotId: otherSlot.id,
-        serviceId: seed.otherServiceId,
+        serviceId: context.otherServiceId,
         source: BookingSource.WEB,
         status: BookingStatus.CONFIRMED,
         clientNameSnapshot: "Jana Voucherová",
@@ -512,9 +550,10 @@ describe("voucher domain", () => {
     const voucher = await createVoucher(
       {
         type: VoucherType.SERVICE,
-        serviceId: seed.serviceId,
+        ...baseVoucherMeta,
+        serviceId: context.serviceId,
       },
-      seed.actorUserId,
+      context.actorUserId,
     );
 
     try {
@@ -523,7 +562,8 @@ describe("voucher domain", () => {
           redeemVoucherForBooking({
             voucherCode: voucher.code,
             bookingId: otherBooking.id,
-            redeemedByUserId: seed.actorUserId,
+            redeemedByUserId: context.actorUserId,
+      note: undefined,
           }),
         (error) => error instanceof VoucherRedemptionError && error.code === "SERVICE_MISMATCH",
       );
@@ -536,29 +576,33 @@ describe("voucher domain", () => {
 
   dbTest("blocks already redeemed VALUE voucher from a second use", async () => {
     assert.ok(seed);
+    const context = seed;
     const { createVoucher, redeemVoucherForBooking, VoucherRedemptionError } = await loadModules();
     const voucher = await createVoucher(
       {
         type: VoucherType.VALUE,
+        ...baseVoucherMeta,
         originalValueCzk: 500,
       },
-      seed.actorUserId,
+      context.actorUserId,
     );
 
     await redeemVoucherForBooking({
       voucherCode: voucher.code,
-      bookingId: seed.bookingIds[0],
+      bookingId: context.bookingIds[0],
       amountCzk: 500,
-      redeemedByUserId: seed.actorUserId,
+      redeemedByUserId: context.actorUserId,
+      note: undefined,
     });
 
     await assert.rejects(
       () =>
         redeemVoucherForBooking({
           voucherCode: voucher.code,
-          bookingId: seed.bookingIds[1],
+          bookingId: context.bookingIds[1],
           amountCzk: 1,
-          redeemedByUserId: seed.actorUserId,
+          redeemedByUserId: context.actorUserId,
+      note: undefined,
         }),
       (error) => error instanceof VoucherRedemptionError && error.code === "VOUCHER_NOT_REDEEMABLE",
     );
@@ -566,9 +610,10 @@ describe("voucher domain", () => {
 
   dbTest("keeps admin booking detail usable without voucher", async () => {
     assert.ok(seed);
+    const context = seed;
     const { getAdminBookingDetailData } = await loadModules();
 
-    const detail = await getAdminBookingDetailData("owner", seed.bookingIds[0]);
+    const detail = await getAdminBookingDetailData("owner", context.bookingIds[0]);
 
     assert.ok(detail);
     assert.equal(detail.voucher.intendedVoucher, null);
@@ -583,23 +628,26 @@ describe("voucher domain", () => {
 
   dbTest("shows partially paid admin booking detail after VALUE voucher redemption", async () => {
     assert.ok(seed);
+    const context = seed;
     const { createVoucher, redeemVoucherForBooking, getAdminBookingDetailData } = await loadModules();
     const voucher = await createVoucher(
       {
         type: VoucherType.VALUE,
+        ...baseVoucherMeta,
         originalValueCzk: 500,
       },
-      seed.actorUserId,
+      context.actorUserId,
     );
 
     await redeemVoucherForBooking({
       voucherCode: voucher.code,
-      bookingId: seed.bookingIds[0],
+      bookingId: context.bookingIds[0],
       amountCzk: 500,
-      redeemedByUserId: seed.actorUserId,
+      redeemedByUserId: context.actorUserId,
+      note: undefined,
     });
 
-    const detail = await getAdminBookingDetailData("owner", seed.bookingIds[0]);
+    const detail = await getAdminBookingDetailData("owner", context.bookingIds[0]);
 
     assert.ok(detail);
     assert.equal(detail.voucher.paymentSummary.totalPriceCzk, 1200);
@@ -611,23 +659,26 @@ describe("voucher domain", () => {
 
   dbTest("shows paid admin booking detail after full VALUE voucher redemption", async () => {
     assert.ok(seed);
+    const context = seed;
     const { createVoucher, redeemVoucherForBooking, getAdminBookingDetailData } = await loadModules();
     const voucher = await createVoucher(
       {
         type: VoucherType.VALUE,
+        ...baseVoucherMeta,
         originalValueCzk: 1200,
       },
-      seed.actorUserId,
+      context.actorUserId,
     );
 
     await redeemVoucherForBooking({
       voucherCode: voucher.code,
-      bookingId: seed.bookingIds[1],
+      bookingId: context.bookingIds[1],
       amountCzk: 1200,
-      redeemedByUserId: seed.actorUserId,
+      redeemedByUserId: context.actorUserId,
+      note: undefined,
     });
 
-    const detail = await getAdminBookingDetailData("owner", seed.bookingIds[1]);
+    const detail = await getAdminBookingDetailData("owner", context.bookingIds[1]);
 
     assert.ok(detail);
     assert.equal(detail.voucher.paymentSummary.totalPriceCzk, 1200);
@@ -639,22 +690,25 @@ describe("voucher domain", () => {
 
   dbTest("shows paid admin booking detail after SERVICE voucher redemption matching service price", async () => {
     assert.ok(seed);
+    const context = seed;
     const { createVoucher, redeemVoucherForBooking, getAdminBookingDetailData } = await loadModules();
     const voucher = await createVoucher(
       {
         type: VoucherType.SERVICE,
-        serviceId: seed.serviceId,
+        ...baseVoucherMeta,
+        serviceId: context.serviceId,
       },
-      seed.actorUserId,
+      context.actorUserId,
     );
 
     await redeemVoucherForBooking({
       voucherCode: voucher.code,
-      bookingId: seed.bookingIds[2],
-      redeemedByUserId: seed.actorUserId,
+      bookingId: context.bookingIds[2],
+      redeemedByUserId: context.actorUserId,
+      note: undefined,
     });
 
-    const detail = await getAdminBookingDetailData("owner", seed.bookingIds[2]);
+    const detail = await getAdminBookingDetailData("owner", context.bookingIds[2]);
 
     assert.ok(detail);
     assert.equal(detail.voucher.paymentSummary.totalPriceCzk, 1200);

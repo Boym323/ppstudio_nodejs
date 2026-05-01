@@ -93,6 +93,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - `lib/voucher-redemption.ts` provádí admin uplatnění v transakci, zapisuje `VoucherRedemption` a blokuje další voucher na rezervaci, která už má alespoň jedno čerpání.
   - `lib/voucher-management.ts` drží server-side doménové funkce pro vytvoření, validaci a uplatnění bez klientských komponent.
 - Voucher doménové moduly nesmí mít top-level `"use server"`. Veřejně volatelné server actions patří do `src/features/admin/actions/*`, kde každá action znovu ověřuje session a roli, než zavolá voucher doménu.
+- `CreateVoucherInput` a `RedeemVoucherInput` jsou inferované ze Zod schémat s transformacemi `optionalText`, takže v testech je potřeba explicitně předávat i klíče, které mají být prázdné (`undefined`) - typicky `purchaserName`, `recipientName`, `message`, `internalNote` a `note`.
 - Efektivní expirace voucheru je aplikační read pravidlo přes `getEffectiveVoucherStatus(...)`; validace ani read modely automaticky nepřepisují DB status na `EXPIRED`.
 - Admin seznam voucherů je první UI vrstva nad voucher doménou:
   - route factory obsluhuje `/admin/vouchery` pro `OWNER` i `/admin/provoz/vouchery` pro `SALON`,
