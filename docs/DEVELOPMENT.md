@@ -101,6 +101,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - stránka používá `src/features/admin/lib/admin-vouchers.ts` jako read model a `src/features/admin/components/admin-vouchers-page.tsx` jako prezentační vrstvu,
   - desktop používá skutečnou kompaktní tabulku jako primární fokus a menší šířky přecházejí na voucher karty,
   - create CTA je v nízké page header liště vpravo, metriky jsou v nízkém stripu a filtry `q`, `type`, `status` zůstávají URL-driven,
+  - KPI strip je serverový read-model souhrn: `Zbývá k uplatnění` sčítá jen otevřené `VALUE` zůstatky a počet otevřených `SERVICE` voucherů, `Brzy expirují` sleduje otevřené vouchery s `validUntil` do 30 dnů,
   - badge stavů musí být vizuálně součástí řádku ve sloupci `Stav`; nevyváděj je mimo tabulku ani z nich nedělej druhotný seznam,
   - query parametry jsou `q`, `type` a `status`; filtr stavu musí odpovídat efektivnímu voucher statusu, ne jen hodnotě uložené v DB.
 - Statické voucher routy `/admin/vouchery/*` a `/admin/provoz/vouchery/*` mají vlastní `layout.tsx` exportující `AdminShellLayout`; nové statické admin routy mimo dynamický `[section]` wrapper musí dostat stejný layout, jinak se vykreslí mimo tmavý admin shell.

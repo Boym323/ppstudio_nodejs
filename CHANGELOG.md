@@ -6,7 +6,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
-- Admin seznam voucherů je zhuštěný do provoznější evidence: velká hero karta se změnila na nízkou stránkovou hlavičku s CTA `Nový voucher` vpravo, horní statistiky jsou v nízkém čtyřsloupcovém stripu `Voucherů celkem / Aktivní / Částečně čerpané / Uzavřené`, filtry jsou na desktopu v jednom řádku a desktopový hlavní obsah tvoří kompaktní tabulka se sloupci `Kód / Typ / Voucher / Čerpání a zůstatek / Stav / Platnost / Akce`.
+- Admin seznam voucherů je zhuštěný do provoznější evidence: velká hero karta se změnila na nízkou stránkovou hlavičku s CTA `Nový voucher` vpravo, horní statistiky jsou v nízkém čtyřsloupcovém stripu, filtry jsou na desktopu v jednom řádku a desktopový hlavní obsah tvoří kompaktní tabulka se sloupci `Kód / Typ / Voucher / Čerpání a zůstatek / Stav / Platnost / Akce`.
+- KPI pás voucherů je nově provoznější: místo čistých stavových počtů ukazuje `Zbývá k uplatnění`, `Otevřené vouchery`, `Brzy expirují` a `Uzavřené`; souhrn zbývající práce sčítá jen otevřené hodnotové zůstatky a počet otevřených službových voucherů.
 - Stavové badge voucherů už jsou ukotvené přímo ve sloupci `Stav`, nepoužívají přehnaný uppercase tracking a `Propadlý` má samostatný varovný tón; mobil dál přechází do kompaktních karet se stejnou informační prioritou.
 - Admin detail voucheru je přepracovaný do kompaktnějšího provozního layoutu: horní summary karta nově soustředí kód, typ, stav, platnost, čerpání a akce `Stáhnout PDF / Tisk A4 / Poslat e-mailem`, karty `Detaily` + `Hodnota / služba` se sloučily do `Parametry voucheru` a blok `Kupující + odeslání` sjednotil kontakt, disabled stavy i ruční potvrzení e-mailu.
 - Sekce `Poslední e-mailové pokusy` a `Historie uplatnění` jsou nižší a méně roztahané; empty states zůstávají krátké a detail voucheru už nezobrazuje přetrvávající text `Rendering...` po načtení.

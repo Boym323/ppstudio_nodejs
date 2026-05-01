@@ -140,6 +140,7 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
 - Admin evidence voucherů je dostupná pro `OWNER` na `/admin/vouchery` a pro `SALON` na `/admin/provoz/vouchery`.
 - Seznam voucherů je na desktopu kompaktní tabulka se sloupci `Kód`, `Typ`, `Voucher`, `Čerpání / zůstatek`, `Stav`, `Platnost` a `Akce`; na menších šířkách přechází do nízkých karet.
 - Horní část seznamu používá nízkou stránkovou hlavičku s CTA `Nový voucher` vpravo a ještě nižší metric strip `Voucherů celkem / Aktivní / Částečně čerpané / Uzavřené`; filtr `q / type / status` je dál URL-driven.
+- KPI pás seznamu voucherů je provozní souhrn, ne jen evidence stavů: ukazuje `Zbývá k uplatnění`, `Otevřené vouchery`, `Brzy expirují` a `Uzavřené`. Součet `Zbývá k uplatnění` zahrnuje jen otevřené vouchery.
 - Stavové badge voucherů patří přímo do sloupce `Stav`; `Aktivní` je zelený, `Částečně čerpaný` zlatý, `Uplatněný` tlumený a `Propadlý` varovný.
 - Všechny voucher routy včetně detailu a vytvoření běží uvnitř standardního tmavého admin shellu; pokud voucher obrazovka vypadá světle nebo bez navigace, chybí příslušný route layout.
 - Seznam voucherů podporuje hledání podle query parametru `q`, filtr typu `type=all|value|service` a filtr stavu `status=all|active|partially_redeemed|redeemed|expired|cancelled|draft`.

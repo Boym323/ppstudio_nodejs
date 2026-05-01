@@ -170,15 +170,21 @@ function AdminVoucherStatsStrip({ stats }: { stats: AdminVoucherStats }) {
             key={stat.label}
             className={cn(
               "min-w-0 rounded-[0.8rem] px-2.5 py-1.5 sm:px-3",
+              stat.tone === "warning"
+                ? "bg-rose-400/[0.06]"
+                : stat.tone === "accent"
+                  ? "bg-[rgba(190,160,120,0.08)]"
+                  : undefined,
               index > 0 ? "border-t border-white/8 sm:border-l sm:border-t-0" : "",
             )}
           >
             <p className="truncate text-[10px] font-medium uppercase tracking-[0.14em] text-white/42">
               {stat.label}
             </p>
-            <p className="mt-1 font-display text-[1.5rem] leading-none text-white sm:text-[1.6rem]">
+            <p className="mt-1 whitespace-nowrap font-display text-[1.32rem] leading-none text-white sm:text-[1.5rem]">
               {stat.value}
             </p>
+            {stat.detail ? <p className="mt-1 truncate text-[10px] text-white/42">{stat.detail}</p> : null}
           </article>
         ))}
       </div>

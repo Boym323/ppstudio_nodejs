@@ -94,6 +94,11 @@ const pragueDateFormatter = new Intl.DateTimeFormat("en-CA", {
   month: "2-digit",
   day: "2-digit",
 });
+const moneyFormatter = new Intl.NumberFormat("cs-CZ", {
+  maximumFractionDigits: 0,
+  style: "currency",
+  currency: "CZK",
+});
 
 function formatDateInputValue(value: Date) {
   return pragueDateFormatter.format(value);
@@ -117,23 +122,59 @@ async function countVouchers(where: Prisma.Sql = Prisma.empty) {
   return rows[0]?.count ?? 0;
 }
 
+function addDays(value: Date, days: number) {
+  const result = new Date(value);
+
+  result.setDate(result.getDate() + days);
+
+  return result;
+}
+
+function formatRemainingWorkload(valueCzk: number, serviceCount: number) {
+  const parts: string[] = [];
+
+  if (valueCzk > 0 || serviceCount === 0) {
+    parts.push(moneyFormatter.format(valueCzk));
+  }
+
+  if (serviceCount > 0) {
+    const serviceLabel =
+      serviceCount === 1 ? "služba" : serviceCount >= 2 && serviceCount <= 4 ? "služby" : "služeb";
+
+    parts.push(`${serviceCount} ${serviceLabel}`);
+  }
+
+  return parts.join(" + ");
+}
+
 export async function getAdminVouchersPageData(
   area: AdminArea,
   searchParams?: Record<string, string | string[] | undefined>,
 ) {
   const filters = normalizeSearchParams(searchParams);
   const now = new Date();
+  const soonThreshold = addDays(now, 30);
 
-  const [totalCount, activeCount, partiallyRedeemedCount, redeemedCount, expiredCount, cancelledCount, vouchers] =
+  const [
+    openCount,
+    soonExpiringCount,
+    redeemedCount,
+    expiredCount,
+    cancelledCount,
+    remainingValueResult,
+    remainingServiceCount,
+    vouchers,
+  ] =
     await Promise.all([
-      countVouchers(),
       countVouchers(Prisma.sql`
-        WHERE v."status" = 'ACTIVE'::"VoucherStatus"
+        WHERE v."status" IN ('ACTIVE'::"VoucherStatus", 'PARTIALLY_REDEEMED'::"VoucherStatus")
           AND (v."validUntil" IS NULL OR v."validUntil" >= ${now})
       `),
       countVouchers(Prisma.sql`
-        WHERE v."status" = 'PARTIALLY_REDEEMED'::"VoucherStatus"
-          AND (v."validUntil" IS NULL OR v."validUntil" >= ${now})
+        WHERE v."status" IN ('ACTIVE'::"VoucherStatus", 'PARTIALLY_REDEEMED'::"VoucherStatus")
+          AND v."validUntil" IS NOT NULL
+          AND v."validUntil" >= ${now}
+          AND v."validUntil" <= ${soonThreshold}
       `),
       countVouchers(Prisma.sql`WHERE v."status" = 'REDEEMED'::"VoucherStatus"`),
       countVouchers(Prisma.sql`
@@ -144,6 +185,18 @@ export async function getAdminVouchersPageData(
           )
       `),
       countVouchers(Prisma.sql`WHERE v."status" = 'CANCELLED'::"VoucherStatus"`),
+      prisma.$queryRaw<Array<{ remainingValueCzk: number }>>(Prisma.sql`
+        SELECT COALESCE(SUM(v."remainingValueCzk"), 0)::int AS "remainingValueCzk"
+        FROM "Voucher" v
+        WHERE v."type" = 'VALUE'::"VoucherType"
+          AND v."status" IN ('ACTIVE'::"VoucherStatus", 'PARTIALLY_REDEEMED'::"VoucherStatus")
+          AND (v."validUntil" IS NULL OR v."validUntil" >= ${now})
+      `),
+      countVouchers(Prisma.sql`
+        WHERE v."type" = 'SERVICE'::"VoucherType"
+          AND v."status" IN ('ACTIVE'::"VoucherStatus", 'PARTIALLY_REDEEMED'::"VoucherStatus")
+          AND (v."validUntil" IS NULL OR v."validUntil" >= ${now})
+      `),
       listVouchers({
         query: filters.q,
         type: filters.type === "all" ? "all" : typeFilterToVoucherType[filters.type],
@@ -152,6 +205,9 @@ export async function getAdminVouchersPageData(
         take: 100,
       }),
     ]);
+
+  const remainingValueCzk = remainingValueResult[0]?.remainingValueCzk ?? 0;
+  const remainingWorkload = formatRemainingWorkload(remainingValueCzk, remainingServiceCount);
 
   return {
     area,
@@ -163,22 +219,27 @@ export async function getAdminVouchersPageData(
     })),
     stats: [
       {
-        label: "Voucherů celkem",
-        value: String(totalCount),
+        label: "Zbývá k uplatnění",
+        value: remainingWorkload,
         tone: "accent" as const,
+        detail: openCount > 0 ? "Jen otevřené vouchery" : "Bez otevřených voucherů",
       },
       {
-        label: "Aktivní",
-        value: String(activeCount),
+        label: "Otevřené vouchery",
+        value: String(openCount),
+        detail: "Aktivní a částečně čerpané",
       },
       {
-        label: "Částečně čerpané",
-        value: String(partiallyRedeemedCount),
+        label: "Brzy expirují",
+        value: String(soonExpiringCount),
+        tone: soonExpiringCount > 0 ? ("warning" as const) : undefined,
+        detail: "Do 30 dnů",
       },
       {
         label: "Uzavřené",
         value: String(redeemedCount + expiredCount + cancelledCount),
         tone: "muted" as const,
+        detail: "Uplatněné, propadlé, zrušené",
       },
     ],
   };
