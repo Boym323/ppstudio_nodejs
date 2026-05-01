@@ -6,6 +6,9 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Admin sekce `Rezervace` prošla dalším provozním density refaktorem: vysoký hero nahradila nízká hlavička s CTA `Přidat rezervaci`, rychlé filtry a formulářové filtry se sloučily do jednoho pracovního panelu a pod ně přibyl tenký KPI strip `Čeká na potvrzení / Dnes / Tento týden / Bez kontaktu`.
+- Pracovní seznam rezervací se nově serverově seskupuje do `Čeká na potvrzení / Nadcházející / Minulé`, čekající rezervace jsou vždy nahoře, mají jemný levý akcent a desktopová tabulka je kompaktnější se sloupci `Rezervace / Termín / Status / Zdroj / Kontakt / Akce`.
+- Text pro chybějící kontakt je v seznamu rezervací zjemněný na `bez kontaktu`; empty state teď používá jednotné hlášení `Nenalezeny žádné rezervace.` se zkratkou na zrušení filtrů nebo ruční přidání rezervace.
 - Admin planner už nepovažuje `CANCELLED` booking za blokaci běžné dostupnosti; plain published slot bez aktivní nebo dokončené návštěvy zůstane editovatelný místo falešného `Omezené`.
 - Přidán provozní helper `scripts/repair-legacy-chained-slots.mjs`, který v dry-runu vyhledá staré plain published anchor sloty po dřívějším contiguous chainingu a umí bezpečně rozseknout jen jednoduché případy s jedinou navázanou rezervací; složitější případy nechává ve `skipped` výstupu pro ruční kontrolu.
 - Opraven edge case mezi contiguous slot chainingem a admin plannerem: když nová rezervace nebo přesun použije navazující publikované sloty, booking engine teď správně rozseká i krajní coverage segmenty, takže volný zbytek na začátku nebo konci řetězce zůstane v planneru jako běžná dostupnost místo falešného `Omezené`.

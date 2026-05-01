@@ -10,7 +10,7 @@ type StatItem = {
 };
 
 type AdminPageShellProps = {
-  eyebrow: string;
+  eyebrow?: string;
   title: string;
   description: string;
   headerActions?: React.ReactNode;
@@ -64,19 +64,26 @@ export function AdminPageShell({
       <section
         className={cn(
           "rounded-[var(--radius-panel)] border border-white/10 bg-white/6 backdrop-blur-xl",
-          denseIntro ? "px-4 py-3.5 sm:px-5 sm:py-4" : "p-5 sm:p-7",
+          denseIntro ? "px-4 py-3 sm:px-5 sm:py-3.5" : "p-5 sm:p-7",
         )}
       >
         <div className={cn("flex gap-4", denseIntro ? "items-center justify-between" : "flex-col")}>
           <div className="min-w-0">
-            <p className={cn("text-xs uppercase text-[var(--color-accent-soft)]", denseIntro ? "tracking-[0.28em]" : "tracking-[0.35em]")}>
-              {eyebrow}
-            </p>
+            {eyebrow ? (
+              <p
+                className={cn(
+                  "text-xs uppercase text-[var(--color-accent-soft)]",
+                  denseIntro ? "tracking-[0.28em]" : "tracking-[0.35em]",
+                )}
+              >
+                {eyebrow}
+              </p>
+            ) : null}
             <h2
               className={cn(
                 "font-display text-white",
                 denseIntro
-                  ? "mt-1 text-[1.85rem] leading-none sm:text-[2rem]"
+                  ? "text-[1.55rem] leading-none sm:text-[1.7rem]"
                   : compact
                     ? "mt-4 text-3xl sm:text-4xl"
                     : "mt-4 text-3xl sm:text-4xl xl:text-5xl",
@@ -87,7 +94,9 @@ export function AdminPageShell({
             <p
               className={cn(
                 "max-w-3xl text-white/72",
-                denseIntro ? "mt-1.5 text-sm leading-5" : "mt-4 text-sm leading-7 sm:text-base",
+                denseIntro
+                  ? cn(eyebrow ? "mt-1.5" : "mt-1", "text-sm leading-5")
+                  : "mt-4 text-sm leading-7 sm:text-base",
               )}
             >
               {description}

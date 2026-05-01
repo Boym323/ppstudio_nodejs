@@ -1,9 +1,7 @@
-import Link from "next/link";
 import { Suspense } from "react";
 
 import { type AdminArea } from "@/config/navigation";
 import { getReservationsData, type ReservationsDashboardData } from "@/features/admin/lib/admin-data";
-import { cn } from "@/lib/utils";
 
 import { AdminBookingsToolbar } from "./admin-bookings-toolbar";
 import { AdminBookingsWorkspace } from "./admin-bookings-workspace";
@@ -36,27 +34,17 @@ async function AdminBookingsPageContent({
 
   return (
     <AdminPageShell
-      eyebrow={area === "owner" ? "Full Admin sekce" : "Provozní sekce"}
       title="Rezervace"
-      description={
-        area === "owner"
-          ? "Provozní přehled pro rychlé potvrzení, storno, detail rezervace a ruční přidání termínu bez zbytečného přemýšlení."
-          : "Denní pracovní seznam rezervací s jasnou prioritou a jedním klikem k akci."
-      }
+      description="Provozní přehled rezervací, potvrzení a ručního přidání."
+      headerActions={<CreateManualBookingDrawer area={area} data={data.manualBooking} />}
       compact={area === "salon"}
+      denseIntro
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          <CompactStatsBar stats={data.stats} />
-        </div>
-        <div className="shrink-0">
-          <CreateManualBookingDrawer area={area} data={data.manualBooking} />
-        </div>
-      </div>
+      <CompactKpiStrip kpis={data.kpis} />
 
       <AdminPanel
-        title={area === "owner" ? "Pracovní seznam rezervací" : "Rezervace k obsluze"}
-        description="Nejdřív filtr, potom důležité rezervace a hned vedle akce. Bez návratu ke kartám."
+        title={area === "owner" ? "Pracovní seznam" : "Rezervace k obsluze"}
+        description="Čekající rezervace zůstávají nahoře, filtry i akce jsou v jednom pracovním toku."
         compact
         denseHeader
       >
@@ -66,6 +54,7 @@ async function AdminBookingsPageContent({
               currentPath={data.currentPath}
               filters={data.filters}
               resultCount={data.summary.totalCount}
+              stats={data.stats}
             />
           </div>
 
@@ -80,28 +69,23 @@ async function AdminBookingsPageContent({
   );
 }
 
-function CompactStatsBar({
-  stats,
+function CompactKpiStrip({
+  kpis,
 }: {
-  stats: ReservationsDashboardData["stats"];
+  kpis: ReservationsDashboardData["kpis"];
 }) {
   return (
-    <section className="flex flex-wrap gap-2">
-      {stats.map((stat) => (
-        <Link
-          key={stat.key}
-          href={stat.href}
-          scroll={false}
-          className={cn(
-            "inline-flex min-h-11 items-center rounded-full border px-4 py-2 text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/45",
-            stat.isActive
-              ? "border-[var(--color-accent)]/52 bg-[rgba(190,160,120,0.18)] text-white shadow-[0_0_0_1px_rgba(190,160,120,0.18)]"
-              : "border-white/10 bg-black/12 text-white/78 hover:border-white/18 hover:bg-white/6 hover:text-white",
-          )}
+    <section className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+      {kpis.map((kpi) => (
+        <article
+          key={kpi.key}
+          className="flex min-h-14 items-center justify-between rounded-[1rem] border border-white/10 bg-white/[0.045] px-3.5 py-2.5"
         >
-          <span className="font-medium">{stat.label}</span>
-          <span className="ml-2 text-white/58">({stat.value})</span>
-        </Link>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/48">
+            {kpi.label}
+          </p>
+          <p className="font-display text-xl text-white">{kpi.value}</p>
+        </article>
       ))}
     </section>
   );
@@ -114,12 +98,7 @@ function EmptyState({
   area: AdminArea;
   data: ReservationsDashboardData;
 }) {
-  const emptyTitle =
-    data.summary.emptyState === "pending"
-      ? "Žádné čekající rezervace."
-      : data.summary.emptyState === "filtered"
-        ? "Filtrům teď nic neodpovídá."
-        : "Zatím tu nejsou žádné rezervace.";
+  const emptyTitle = "Nenalezeny žádné rezervace.";
 
   const emptyDescription =
     data.summary.emptyState === "pending"
@@ -150,16 +129,16 @@ function EmptyState({
 function AdminBookingsPageSkeleton({ area }: { area: AdminArea }) {
   return (
     <AdminPageShell
-      eyebrow={area === "owner" ? "Full Admin sekce" : "Provozní sekce"}
       title="Rezervace"
       description="Načítám pracovní přehled rezervací."
       compact={area === "salon"}
+      denseIntro
     >
-      <div className="flex flex-wrap gap-2">
-        {Array.from({ length: 5 }).map((_, index) => (
+      <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, index) => (
           <div
             key={index}
-            className="h-11 w-36 animate-pulse rounded-full border border-white/8 bg-white/6"
+            className="h-14 animate-pulse rounded-[1rem] border border-white/8 bg-white/6"
           />
         ))}
       </div>
@@ -172,8 +151,13 @@ function AdminBookingsPageSkeleton({ area }: { area: AdminArea }) {
       >
         <div className="space-y-4">
           <div className="rounded-[1rem] border border-white/8 bg-[#151219]/95 px-3 py-3">
-            <div className="grid gap-2 lg:grid-cols-6">
-              {Array.from({ length: 6 }).map((_, index) => (
+            <div className="flex flex-wrap gap-2 border-b border-white/8 pb-3">
+              {Array.from({ length: 5 }).map((_, index) => (
+                <div key={index} className="h-9 w-28 animate-pulse rounded-full bg-white/6" />
+              ))}
+            </div>
+            <div className="mt-3 grid gap-2 lg:grid-cols-7">
+              {Array.from({ length: 7 }).map((_, index) => (
                 <div key={index} className="h-10 animate-pulse rounded-[0.9rem] bg-white/6" />
               ))}
             </div>

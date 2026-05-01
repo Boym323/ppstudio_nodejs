@@ -457,6 +457,11 @@ export type ReservationsDashboardData = {
     href: string;
     isActive: boolean;
   }>;
+  kpis: Array<{
+    key: "pending" | "today" | "week" | "missing-contact";
+    label: string;
+    value: string;
+  }>;
   groups: Array<{
     key: string;
     label: string;
@@ -647,6 +652,20 @@ function startOfTomorrow(todayStart: Date) {
   return value;
 }
 
+function startOfWeek(todayStart: Date) {
+  const value = new Date(todayStart);
+  const day = value.getDay();
+  const offset = day === 0 ? 6 : day - 1;
+  value.setDate(value.getDate() - offset);
+  return value;
+}
+
+function startOfNextWeek(weekStart: Date) {
+  const value = new Date(weekStart);
+  value.setDate(value.getDate() + 7);
+  return value;
+}
+
 function formatGroupDateLabel(value: Date) {
   return new Intl.DateTimeFormat("cs-CZ", {
     weekday: "long",
@@ -757,11 +776,26 @@ export async function getReservationsData(
 ) {
   const todayStart = startOfToday();
   const tomorrowStart = startOfTomorrow(todayStart);
+  const weekStart = startOfWeek(todayStart);
+  const nextWeekStart = startOfNextWeek(weekStart);
   const filters = normalizeReservationsSearchParams(searchParams);
   const where = buildReservationsWhere(filters);
   const currentPath = area === "owner" ? "/admin/rezervace" : "/admin/provoz/rezervace";
 
-  const [today, pending, confirmed, completed, cancelled, totalUnfilteredCount, items, bookingCatalog, clients] =
+  const [
+    today,
+    pending,
+    confirmed,
+    completed,
+    cancelled,
+    todayKpi,
+    weekKpi,
+    missingContactKpi,
+    totalUnfilteredCount,
+    items,
+    bookingCatalog,
+    clients,
+  ] =
     await Promise.all([
     prisma.booking.count({
       where: {
@@ -773,6 +807,37 @@ export async function getReservationsData(
     prisma.booking.count({ where: { status: BookingStatus.CONFIRMED } }),
     prisma.booking.count({ where: { status: BookingStatus.COMPLETED } }),
     prisma.booking.count({ where: { status: BookingStatus.CANCELLED } }),
+    prisma.booking.count({
+      where: {
+        scheduledStartsAt: {
+          gte: todayStart,
+          lt: tomorrowStart,
+        },
+      },
+    }),
+    prisma.booking.count({
+      where: {
+        scheduledStartsAt: {
+          gte: weekStart,
+          lt: nextWeekStart,
+        },
+      },
+    }),
+    prisma.booking.count({
+      where: {
+        AND: [
+          {
+            clientEmailSnapshot: "",
+          },
+          {
+            OR: [
+              { clientPhoneSnapshot: null },
+              { clientPhoneSnapshot: "" },
+            ],
+          },
+        ],
+      },
+    }),
     prisma.booking.count(),
     prisma.booking.findMany({
       orderBy: { scheduledStartsAt: "asc" },
@@ -814,27 +879,23 @@ export async function getReservationsData(
     const sourceLabel = getBookingSourceLabel(booking.source);
     const acquisitionLabel = getBookingAcquisitionLabel(booking.acquisitionSource);
 
-    let groupKey = "later";
-    let groupLabel = "Později";
-    let groupDetail = "Budoucí rezervace mimo nejbližší dny.";
+    let groupKey = "upcoming";
+    let groupLabel = "Nadcházející";
+    let groupDetail = "Potvrzené a další aktivní rezervace od dneška dál.";
 
-    if (startsAt < todayStart) {
+    if (booking.status === BookingStatus.PENDING) {
+      groupKey = "pending";
+      groupLabel = "Čeká na potvrzení";
+      groupDetail = "Rezervace vyžadující rychlé provozní rozhodnutí.";
+    } else if (
+      startsAt < todayStart ||
+      booking.status === BookingStatus.COMPLETED ||
+      booking.status === BookingStatus.CANCELLED ||
+      booking.status === BookingStatus.NO_SHOW
+    ) {
       groupKey = "past";
-      groupLabel = "Dříve";
-      groupDetail = "Minulé rezervace pro dohledání a kontrolu.";
-    } else if (startsAt < tomorrowStart) {
-      groupKey = "today";
-      groupLabel = "Dnes";
-      groupDetail = formatGroupDateLabel(startsAt);
-    } else {
-      const dayAfterTomorrow = new Date(tomorrowStart);
-      dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 1);
-
-      if (startsAt < dayAfterTomorrow) {
-        groupKey = "tomorrow";
-        groupLabel = "Zítra";
-        groupDetail = formatGroupDateLabel(startsAt);
-      }
+      groupLabel = "Minulé";
+      groupDetail = "Hotové, zrušené a historické rezervace pro dohledání.";
     }
 
     if (!groupedItems.has(groupKey)) {
@@ -881,7 +942,7 @@ export async function getReservationsData(
       filters.dateTo,
   );
   const emptyState = describeReservationsEmptyState(filters, totalUnfilteredCount, totalCount);
-  const groupOrder = ["today", "tomorrow", "later", "past"];
+  const groupOrder = ["pending", "upcoming", "past"];
 
   return {
     currentPath,
@@ -934,6 +995,28 @@ export async function getReservationsData(
         isActive: filters.stat === "cancelled",
       },
     ],
+    kpis: [
+      {
+        key: "pending",
+        label: "Čeká na potvrzení",
+        value: String(pending),
+      },
+      {
+        key: "today",
+        label: "Dnes",
+        value: String(todayKpi),
+      },
+      {
+        key: "week",
+        label: "Tento týden",
+        value: String(weekKpi),
+      },
+      {
+        key: "missing-contact",
+        label: "Bez kontaktu",
+        value: String(missingContactKpi),
+      },
+    ],
     groups: Array.from(groupedItems.values())
       .map((group) => ({
         ...group,
@@ -956,7 +1039,8 @@ export async function getReservationsData(
           );
         }),
       }))
-      .sort((left, right) => groupOrder.indexOf(left.key) - groupOrder.indexOf(right.key)),
+      .sort((left, right) => groupOrder.indexOf(left.key) - groupOrder.indexOf(right.key))
+      .filter((group) => group.items.length > 0),
     manualBooking: {
       services: bookingCatalog.services.map((service) => ({
         id: service.id,

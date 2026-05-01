@@ -90,10 +90,10 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
 - Rezervační vrstva stojí na ručně vypisovaných termínech přes `AvailabilitySlot`, ne na pevné otevírací době.
 - Ruční rezervace v adminu nově dovoluje vytvořit klientku i bez e-mailu, což pokrývá rezervace z Instagramu, telefonu nebo osobní domluvy; pokud adresa chybí, klientské potvrzení se záměrně neposílá.
 - Pending rezervace lze nově potvrdit nebo zrušit přímo z provozního e-mailu přes bezpečné jednorázové odkazy s mezikrokem potvrzení na veřejné route `/rezervace/akce/[intent]/[token]`.
-- Admin sekce `Rezervace` dál zůstává kompaktní řádkový workspace, ale nově má klikací statistiky jako rychlé filtry, nízký toolbar filtrů a seskupení seznamu do bloků `Dnes`, `Zítra`, `Později`, `Dříve`.
-- Finální production polish admin sekce `Rezervace` sjednotil horní statistiky do segmented filtru, zvýraznil sekci `Dnes`, posílil pending rezervace a přidal click-to-open řádky s klávesami `Enter`, `↑` a `↓`.
+- Admin sekce `Rezervace` používá nízkou stránkovou hlavičku s CTA `Přidat rezervaci`, jeden společný horní panel pro rychlé i detailní filtry a tenký KPI strip `Čeká na potvrzení / Dnes / Tento týden / Bez kontaktu`.
+- Pracovní seznam rezervací je nově serverově seskupený do bloků `Čeká na potvrzení`, `Nadcházející` a `Minulé`; čekající rezervace jsou vždy nahoře a v tabulce mají jen jemné warning zvýraznění s levým akcentem.
 - Pracovní seznam je sticky po dobu scrollu: filtr bar zůstává nahoře, hlavička tabulky drží kontext a akce v řádku vrací okamžitý inline feedback přes loading stav a toast.
-- V pracovním seznamu je teď nejvýraznější čas rezervace; uzavřené stavy `Hotovo` a `Zrušená` mají menší vizuální váhu a inline akce se liší podle stavu rezervace.
+- V pracovním seznamu je teď nejvýraznější čas rezervace; uzavřené stavy `Hotovo` a `Zrušená` mají menší vizuální váhu, inline akce se liší podle stavu rezervace a chybějící kontakt se zobrazuje neutrálně jako `bez kontaktu`.
 - Kontakt v řádku rezervace je praktický i na mobilu: telefon používá `tel:`, e-mail `mailto:` a mobilní zobrazení skládá compact card s pořadím `čas -> klientka -> služba -> stav`.
 - Admin detail klientky na `/admin/klienti/[clientId]` a `/admin/provoz/klienti/[clientId]` je provozní CRM karta: nahoře odpovídá kdo je klientka, jak ji kontaktovat, kdy byla naposledy a jestli má další termín; historie návštěv a interní poznámka jsou vlevo, kontakt, přehled klientky a tlumená metadata vpravo.
 - Po potvrzení rezervace zákaznice dostává v potvrzovacím e-mailu `.ics` přílohu s jednou konkrétní kalendářovou událostí pro potvrzený termín, ne subscription feed.

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { type AdminArea } from "@/config/navigation";
 import { type ReservationsDashboardData } from "@/features/admin/lib/admin-data";
@@ -15,42 +15,21 @@ type AdminBookingsWorkspaceProps = {
 };
 
 const columnLayout =
-  "md:grid-cols-[2.5rem_minmax(15rem,2fr)_minmax(10rem,1fr)_minmax(10rem,1fr)_minmax(7rem,0.7fr)_minmax(11rem,0.95fr)_21rem]";
+  "md:grid-cols-[minmax(14rem,2fr)_minmax(9rem,0.95fr)_minmax(8.5rem,0.9fr)_minmax(6rem,0.7fr)_minmax(11rem,1.05fr)_minmax(10rem,0.95fr)]";
 
 export function AdminBookingsWorkspace({
   area,
   data,
 }: AdminBookingsWorkspaceProps) {
   const router = useRouter();
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const rowRefs = useRef<Array<HTMLDivElement | null>>([]);
-
-  const flatRows = useMemo(
-    () =>
-      data.groups.flatMap((group) =>
-        group.items.map((item) => ({
-          item,
-        })),
-      ),
-    [data.groups],
-  );
-  const rowIndexById = useMemo(
-    () => new Map(flatRows.map((row, index) => [row.item.id, index])),
-    [flatRows],
-  );
+  const flatRows = data.groups.flatMap((group) => group.items);
+  const rowIndexById = new Map(flatRows.map((item, index) => [item.id, index]));
 
   function moveFocus(index: number) {
     const next = rowRefs.current[index];
     next?.focus();
-  }
-
-  function toggleSelected(bookingId: string) {
-    setSelectedIds((current) =>
-      current.includes(bookingId)
-        ? current.filter((value) => value !== bookingId)
-        : [...current, bookingId],
-    );
   }
 
   useEffect(() => {
@@ -67,18 +46,15 @@ export function AdminBookingsWorkspace({
 
   return (
     <div className="space-y-4">
-      <BulkToolbar selectedCount={selectedIds.length} />
-
       <div className="overflow-hidden rounded-[1.35rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.015))] shadow-[0_18px_50px_rgba(0,0,0,0.18)]">
         <div
           className={cn(
-            "sticky top-[5.6rem] z-20 hidden items-center gap-2 border-b border-white/10 bg-[rgba(10,9,8,0.96)] px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-white/40 backdrop-blur md:grid",
+            "sticky top-[5.1rem] z-20 hidden items-center gap-3 border-b border-white/10 bg-[rgba(10,9,8,0.96)] px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-white/40 backdrop-blur md:grid",
             columnLayout,
           )}
         >
-          <span aria-hidden="true" />
           <span>Rezervace</span>
-          <span>Čas</span>
+          <span>Termín</span>
           <span>Status</span>
           <span>Zdroj</span>
           <span>Kontakt</span>
@@ -91,7 +67,7 @@ export function AdminBookingsWorkspace({
               <div
                 className={cn(
                   "flex items-center justify-between gap-3 border-b border-white/8 px-4 py-2.5",
-                  group.key === "today"
+                  group.key === "pending"
                     ? "bg-[linear-gradient(90deg,rgba(190,160,120,0.14),rgba(255,255,255,0.04))]"
                     : "bg-white/[0.03]",
                 )}
@@ -100,7 +76,7 @@ export function AdminBookingsWorkspace({
                   <p
                     className={cn(
                       "text-xs font-semibold uppercase tracking-[0.2em]",
-                      group.key === "today" ? "text-amber-100" : "text-[var(--color-accent-soft)]",
+                      group.key === "pending" ? "text-amber-100" : "text-[var(--color-accent-soft)]",
                     )}
                   >
                     {group.label}
@@ -113,20 +89,25 @@ export function AdminBookingsWorkspace({
               <div className="relative divide-y divide-white/8 before:hidden before:content-[''] md:before:block md:before:h-11">
                 {group.items.map((booking) => {
                   const rowIndex = rowIndexById.get(booking.id) ?? 0;
-                  const selected = selectedIds.includes(booking.id);
 
                   return (
                     <article
                       key={booking.id}
                       className={cn(
-                        "transition-colors",
+                        "relative transition-colors",
                         booking.isPending
-                          ? "bg-amber-400/[0.06]"
+                          ? "bg-amber-400/[0.05]"
                           : booking.isMuted
                             ? "bg-white/[0.015] text-white/70"
                             : "hover:bg-white/[0.03]",
                       )}
                     >
+                      {booking.isPending ? (
+                        <span
+                          aria-hidden="true"
+                          className="absolute inset-y-0 left-0 w-[3px] bg-amber-300/60"
+                        />
+                      ) : null}
                       <div
                         ref={(element) => {
                           rowRefs.current[rowIndex] = element;
@@ -157,12 +138,7 @@ export function AdminBookingsWorkspace({
                           booking.isMuted && "opacity-70",
                         )}
                       >
-                        <div className={cn("hidden items-center gap-2 px-4 py-2.5 md:grid", columnLayout)}>
-                          <CheckboxCell
-                            selected={selected}
-                            onToggle={() => toggleSelected(booking.id)}
-                          />
-
+                        <div className={cn("hidden items-center gap-3 px-4 py-2.5 md:grid", columnLayout)}>
                           <InfoCell>
                             <p className="truncate text-[15px] font-medium leading-5 text-white">
                               {booking.title}
@@ -171,13 +147,13 @@ export function AdminBookingsWorkspace({
                           </InfoCell>
 
                           <InfoCell>
-                            <p className="text-base font-semibold leading-5 text-white">
+                            <p className="text-sm font-semibold leading-5 text-white">
                               {booking.scheduledTimeLabel}
                             </p>
                             <p className="mt-0.5 text-xs text-white/50">{booking.scheduledDateLabel}</p>
                           </InfoCell>
 
-                          <InfoCell className="md:justify-self-center">
+                          <InfoCell>
                             <StatusBadge status={booking.status} muted={booking.isMuted} pending={booking.isPending}>
                               {booking.statusLabel}
                             </StatusBadge>
@@ -205,18 +181,11 @@ export function AdminBookingsWorkspace({
 
                         <div className={cn("px-4 py-3 md:hidden", booking.isMuted && "opacity-75")}>
                           <div className="flex items-start justify-between gap-3">
-                            <div className="flex items-start gap-3">
-                              <CheckboxCell
-                                selected={selected}
-                                onToggle={() => toggleSelected(booking.id)}
-                                mobile
-                              />
-                              <div className="min-w-0">
-                                <p className="text-base font-semibold leading-5 text-white">
-                                  {booking.scheduledTimeLabel}
-                                </p>
-                                <p className="mt-0.5 text-xs text-white/50">{booking.scheduledDateShortLabel}</p>
-                              </div>
+                            <div className="min-w-0">
+                              <p className="text-sm font-semibold leading-5 text-white">
+                                {booking.scheduledTimeLabel}
+                              </p>
+                              <p className="mt-0.5 text-xs text-white/50">{booking.scheduledDateShortLabel}</p>
                             </div>
 
                             <StatusBadge status={booking.status} muted={booking.isMuted} pending={booking.isPending}>
@@ -263,72 +232,6 @@ export function AdminBookingsWorkspace({
   );
 }
 
-function BulkToolbar({ selectedCount }: { selectedCount: number }) {
-  return (
-    <div
-      className={cn(
-        "sticky top-3 z-20 overflow-hidden rounded-[1rem] border border-white/8 bg-[#151219]/95 backdrop-blur transition-all",
-        selectedCount > 0 ? "max-h-28 px-3 py-2.5 opacity-100" : "max-h-0 px-3 py-0 opacity-0",
-      )}
-      aria-hidden={selectedCount === 0}
-    >
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-white/76">
-          Vybráno: <span className="font-semibold text-white">{selectedCount}</span>
-        </p>
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            disabled
-            className="rounded-full border border-white/10 px-4 py-2 text-sm text-white/46"
-          >
-            Potvrdit vybrané
-          </button>
-          <button
-            type="button"
-            disabled
-            className="rounded-full border border-white/10 px-4 py-2 text-sm text-white/46"
-          >
-            Zrušit vybrané
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function CheckboxCell({
-  selected,
-  onToggle,
-  mobile = false,
-}: {
-  selected: boolean;
-  onToggle: () => void;
-  mobile?: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      aria-pressed={selected}
-      data-row-interactive
-      onClick={(event) => {
-        event.stopPropagation();
-        onToggle();
-      }}
-      className={cn(
-        "inline-flex shrink-0 items-center justify-center rounded-md border transition",
-        mobile ? "mt-0.5 h-5 w-5" : "h-5 w-5",
-        selected
-          ? "border-[var(--color-accent)]/55 bg-[rgba(190,160,120,0.22)]"
-          : "border-white/16 bg-white/[0.03] hover:border-white/26 hover:bg-white/[0.06]",
-      )}
-    >
-      <span className="sr-only">Vybrat rezervaci</span>
-      {selected ? <span className="h-2 w-2 rounded-full bg-white" /> : null}
-    </button>
-  );
-}
-
 function InfoCell({
   children,
   className,
@@ -353,7 +256,7 @@ function StatusBadge({
   return (
     <span
       className={cn(
-        "inline-flex min-h-7 min-w-[9.75rem] max-w-full items-center justify-center whitespace-nowrap rounded-full border px-2.5 py-1 text-center text-[11px] font-semibold leading-4 tracking-[0.01em]",
+        "inline-flex min-h-7 min-w-[7.75rem] max-w-full items-center justify-center whitespace-nowrap rounded-full border px-2.5 py-1 text-center text-[11px] font-semibold leading-4 tracking-[0.01em]",
         getStatusClassName(status, muted ?? false, pending ?? false),
       )}
     >
@@ -405,7 +308,7 @@ function ContactBlock({
           <span className="truncate">{booking.primaryContactLabel}</span>
         </a>
       ) : (
-        <p className="text-sm text-white/42">Kontakt chybí</p>
+        <p className="text-sm text-white/42">bez kontaktu</p>
       )}
     </div>
   );

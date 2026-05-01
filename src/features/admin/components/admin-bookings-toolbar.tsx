@@ -1,6 +1,9 @@
 import Form from "next/form";
+import Link from "next/link";
 
 import { bookingListSourceValues, bookingListStatusValues } from "@/features/admin/lib/admin-booking-list-validation";
+import { type ReservationsDashboardData } from "@/features/admin/lib/admin-data";
+import { cn } from "@/lib/utils";
 
 type AdminBookingsToolbarProps = {
   currentPath: string;
@@ -12,20 +15,41 @@ type AdminBookingsToolbarProps = {
     dateTo: string;
   };
   resultCount: number;
+  stats: ReservationsDashboardData["stats"];
 };
 
 export function AdminBookingsToolbar({
   currentPath,
   filters,
   resultCount,
+  stats,
 }: AdminBookingsToolbarProps) {
   return (
     <Form
       action={currentPath}
       scroll={false}
-      className="rounded-[1rem] border border-white/8 bg-[#151219]/95 px-3 py-2.5 backdrop-blur"
+      className="rounded-[1.2rem] border border-white/10 bg-[#151219]/95 px-3 py-3 backdrop-blur"
     >
-      <div className="grid gap-2 lg:grid-cols-[minmax(0,2.2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.9fr)_minmax(0,0.9fr)_auto]">
+      <div className="flex flex-wrap gap-2 border-b border-white/8 pb-3">
+        {stats.map((stat) => (
+          <Link
+            key={stat.key}
+            href={stat.href}
+            scroll={false}
+            className={cn(
+              "inline-flex min-h-9 items-center rounded-full border px-3 py-1.5 text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/45",
+              stat.isActive
+                ? "border-[var(--color-accent)]/52 bg-[rgba(190,160,120,0.18)] text-white shadow-[0_0_0_1px_rgba(190,160,120,0.18)]"
+                : "border-white/10 bg-black/12 text-white/78 hover:border-white/18 hover:bg-white/6 hover:text-white",
+            )}
+          >
+            <span className="font-medium">{stat.label}</span>
+            <span className="ml-2 text-white/58">({stat.value})</span>
+          </Link>
+        ))}
+      </div>
+
+      <div className="mt-3 grid gap-2 lg:grid-cols-[minmax(0,2.2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.95fr)_minmax(0,0.95fr)_auto_auto]">
         <label className="block">
           <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/42">
             Hledat
@@ -60,7 +84,7 @@ export function AdminBookingsToolbar({
         <DateField name="dateFrom" label="Od" defaultValue={filters.dateFrom} />
         <DateField name="dateTo" label="Do" defaultValue={filters.dateTo} />
 
-        <div className="flex flex-wrap items-end gap-2 lg:justify-end">
+        <div className="flex flex-wrap items-end gap-2 lg:col-span-2 lg:justify-end">
           <button
             type="submit"
             className="inline-flex h-10 items-center rounded-full border border-[var(--color-accent)]/45 bg-[var(--color-accent)]/16 px-4 text-sm font-semibold text-[var(--color-accent-contrast)] transition hover:bg-[var(--color-accent)]/24"
@@ -76,12 +100,12 @@ export function AdminBookingsToolbar({
         </div>
       </div>
 
-      <div className="mt-2 flex flex-wrap items-center justify-between gap-2 border-t border-white/8 pt-2 text-sm text-white/58">
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-white/8 pt-2 text-sm text-white/58">
         <p>
           Výsledky: <span className="font-medium text-white">{resultCount}</span>
         </p>
         <p className="text-xs text-white/44">
-          Rychlý filtr bez změny booking logiky nebo detail workflow.
+          Rychlé filtry a detailní omezení drží jeden společný pracovní panel.
         </p>
       </div>
     </Form>
