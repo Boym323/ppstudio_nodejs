@@ -590,6 +590,7 @@ Formát je inspirovaný Keep a Changelog.
 - Planner grid už negeneruje extra řádky bez časových popisků; výška mřížky se nyní primárně řídí `timeLabels` (pracovní okno), a ne nekonzistentní délkou buněk v payloadu.
 - Opravené Next.js 16 `use server` chyby: server action soubory už exportují pouze `async` funkce; initial action state objekty byly přesunuté do samostatných modulů pro client komponenty.
 - Root layout nově obsahuje `data-scroll-behavior=\"smooth\"`, takže při zapnutém `scroll-behavior: smooth` na `<html>` už nevzniká runtime warning při route přechodech.
+- Planner inspektor už nehlásí React warning o duplicitním key (`4-5`) u seznamu `Volná okna`; klíče položek se nyní skládají z `dateKey + range + index`, takže zůstanou unikátní i při duplicitních fragmentovaných intervalech v read modelu.
 - Planner grid už negeneruje přesažené prázdné řádky při rozjezdu mezi počtem `timeLabels` a počtem buněk v datech dne; vykreslení je nyní svázané s reálným počtem dostupných buněk.
 - Planner kalendář už nemůže zmizet při nekonzistenci dat z klienta/serveru; počet vykreslených řádků se bere bezpečně z dostupného maxima (`timeLabels` vs. `cells`) místo průniku.
 - Výpočet začátku týdne v planneru už nepoužívá UTC den týdne, ale lokální kalendářní den (Praha), takže týden se znovu otevírá správně od pondělí místo posunu na úterý.
