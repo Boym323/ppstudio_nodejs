@@ -6,6 +6,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Admin dashboard `Přehled` je zjednodušený na kompaktní denní provozní cockpit: vysoký hero nahradila nízká operační lišta, alerty a KPI jsou zhuštěné do stripů, dnešní plán má nižší řádky, rychlé akce jsou v 2x2 gridu a analytika zůstává defaultně zavřená.
+- Admin detail klientky má kompaktnější vizuální hustotu: menší hlavičku, nižší KPI karty, zhuštěné pravé karty, kratší řádky historie a nižší formulář interní poznámky.
 - Admin detail klientky už nebere `Poslední návštěvu` z aktivity profilu při vytvoření rezervace; nově ji odvozuje jen z dokončených rezervací, takže klientka s budoucím nebo zatím neuzavřeným termínem nefiguruje jako návštěva.
 - Admin detail klientky je zkrácený na provozní CRM obrazovku: nahoře má jméno, stav, poslední/další návštěvu a rychlé akce, KPI už neopakují nejčastější službu jako velkou kartu a hlavní obsah je rozdělený na historii návštěv, interní poznámku, kontakt, přehled klientky a tlumená profilová metadata.
 - Admin dashboard v dnešní timeline zobrazuje dokončené dnešní rezervace jako `Hotovo` a nevytváří z minulých úseků falešná volná okna po označení služby za hotovou.

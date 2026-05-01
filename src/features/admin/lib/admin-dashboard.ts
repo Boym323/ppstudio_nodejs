@@ -117,6 +117,17 @@ type DashboardTodayTask = {
   tone: DashboardTaskTone;
 };
 
+export type DashboardTodayPlanItem = {
+  id: string;
+  timeLabel: string;
+  serviceName: string;
+  clientName: string;
+  statusLabel: string;
+  href: string;
+  isCurrent: boolean;
+  isCompleted: boolean;
+};
+
 export type DashboardUpcomingSlot = {
   id: string;
   dayLabel: string;
@@ -131,29 +142,6 @@ function capitalize(value: string) {
 
 function formatDayLabel(date: Date) {
   return capitalize(dayLabelFormatter.format(date));
-}
-
-function formatMinutesUntil(target: Date, now: Date) {
-  const diffMs = target.getTime() - now.getTime();
-
-  if (diffMs <= 0) {
-    return "další rezervace právě začíná";
-  }
-
-  const totalMinutes = Math.round(diffMs / 60000);
-
-  if (totalMinutes < 60) {
-    return `další rezervace za ${totalMinutes} min`;
-  }
-
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
-
-  if (minutes === 0) {
-    return `další rezervace za ${hours} h`;
-  }
-
-  return `další rezervace za ${hours} h ${minutes} min`;
 }
 
 function getSlotEditHref(area: AdminArea, slotId: string) {
@@ -329,9 +317,11 @@ export type AdminDashboardData = {
   todayBookingsCount: number;
   todayBookingsLabel: string;
   nextReservationSummary: string;
+  currentReservationSummary: string | null;
   todayStatusLabel: string;
   nextClient: {
     timeLabel: string;
+    timeRangeLabel: string;
     relativeLabel: string;
     serviceName: string;
     clientName: string;
@@ -344,19 +334,30 @@ export type AdminDashboardData = {
     tone: DashboardAlertTone;
     text: string;
     href: string;
+    actionLabel: string;
     emphasis: "primary" | "secondary" | "ok";
   }>;
+  todayPlanItems: DashboardTodayPlanItem[];
   timelineItems: DashboardTimelineItem[];
   timelineFooterHref: string;
+  createBookingHref: string;
+  addSlotHref: string;
   kpis: Array<{
     label: string;
     value: string;
     detail: string;
   }>;
+  weekSummary: {
+    occupancyLabel: string;
+    freeSlotsLabel: string;
+    bookingsLabel: string;
+  };
   pendingConfirmations: {
     count: number;
     href: string;
   };
+  hasPublishedSlotsTodayOrTomorrow: boolean;
+  hasFreeWindowsToday: boolean;
   upcomingSlots: DashboardUpcomingSlot[];
   upcomingSlotsFooterHref: string;
   quickActions: Array<{
@@ -372,6 +373,10 @@ export async function getAdminDashboardData(area: AdminArea): Promise<AdminDashb
   const now = new Date();
   const { todayStart, tomorrowStart, dayAfterTomorrowStart } = getTodayBounds(now);
   const { weekStart, weekEnd } = getWeekBounds(now);
+
+  const bookingsHref = getBookingsHref(area);
+  const plannerHref = getPlannerHref(area);
+  const clientsHref = getClientsHref(area);
 
   const [
     todayBookings,
@@ -448,11 +453,11 @@ export async function getAdminDashboardData(area: AdminArea): Promise<AdminDashb
     }),
     prisma.availabilitySlot.findMany({
       where: {
-        startsAt: { gte: now, lt: dayAfterTomorrowStart },
+        startsAt: { gte: now, lt: weekEnd },
         status: AvailabilitySlotStatus.PUBLISHED,
       },
       orderBy: { startsAt: "asc" },
-      take: 6,
+      take: 8,
       select: {
         id: true,
         startsAt: true,
@@ -466,13 +471,43 @@ export async function getAdminDashboardData(area: AdminArea): Promise<AdminDashb
     }),
   ]);
 
+  const safeText = (value: string, fallback: string) => {
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : fallback;
+  };
+
+  const currentTodayBooking =
+    todayBookings.find(
+      (booking) =>
+        booking.scheduledStartsAt.getTime() <= now.getTime() &&
+        booking.scheduledEndsAt.getTime() > now.getTime(),
+    ) ?? null;
   const nextTodayBooking =
     todayBookings.find((booking) => booking.scheduledStartsAt.getTime() >= now.getTime()) ?? null;
   const timelineItems = buildTimelineItems(area, now, todaySlots);
+  const todayPlanItems: DashboardTodayPlanItem[] = timelineItems
+    .filter((item): item is Extract<DashboardTimelineItem, { kind: "booking" }> => item.kind === "booking")
+    .map((item) => ({
+      id: item.id,
+      timeLabel: item.timeLabel,
+      serviceName: safeText(item.title, "Služba není uvedená"),
+      clientName: safeText(item.subtitle, "Klientka není uvedená"),
+      statusLabel: item.bookingStatusLabel,
+      href: item.href,
+      isCurrent: item.id === currentTodayBooking?.id,
+      isCompleted: item.bookingStatus === BookingStatus.COMPLETED,
+    }));
   const freeWindowCount = timelineItems.filter((item) => item.badge === "VOLNE").length;
   const weekOccupancy = getWeekOccupancy(weekSlots);
   const weekFreeSlots = weekSlots.filter((slot) => slot.bookings.length < slot.capacity).length;
+  const weekBookingsCount = weekSlots.reduce((total, slot) => total + slot.bookings.length, 0);
   const upcomingFreeSlots = nearbyPublishedSlots.filter((slot) => slot.bookings.length < slot.capacity);
+  const hasPublishedSlotsTodayOrTomorrow = upcomingFreeSlots.some(
+    (slot) => slot.startsAt >= todayStart && slot.startsAt < dayAfterTomorrowStart,
+  );
+  const hasFreeWindowsToday = upcomingFreeSlots.some(
+    (slot) => slot.startsAt >= todayStart && slot.startsAt < tomorrowStart,
+  );
 
   const alerts: AdminDashboardData["alerts"] = [];
 
@@ -485,8 +520,9 @@ export async function getAdminDashboardData(area: AdminArea): Promise<AdminDashb
         "rezervace čeká na potvrzení",
         "rezervace čekají na potvrzení",
         "rezervací čeká na potvrzení",
-      )}`,
-      href: getBookingsHref(area),
+      )}.`,
+      href: bookingsHref,
+      actionLabel: "Otevřít rezervace",
       emphasis: "primary",
     });
   }
@@ -495,18 +531,25 @@ export async function getAdminDashboardData(area: AdminArea): Promise<AdminDashb
     alerts.push({
       id: "email-failures",
       tone: "problem",
-      text: `${failedEmails} e-mailů potřebuje kontrolu`,
-      href: area === "owner" ? "/admin/email-logy" : getBookingsHref(area),
+      text: `${failedEmails} ${formatCountLabel(
+        failedEmails,
+        "e-mail se nepodařilo odeslat",
+        "e-maily se nepodařilo odeslat",
+        "e-mailů se nepodařilo odeslat",
+      )}.`,
+      href: area === "owner" ? "/admin/email-logy" : bookingsHref,
+      actionLabel: area === "owner" ? "Otevřít e-mail logy" : "Otevřít rezervace",
       emphasis: "secondary",
     });
   }
 
-  if (upcomingFreeSlots.length === 0) {
+  if (!hasPublishedSlotsTodayOrTomorrow) {
     alerts.push({
       id: "nearby-slots",
       tone: "problem",
-      text: "Na dnes a zítra není publikovaný žádný volný termín",
-      href: getPlannerHref(area),
+      text: "Na dnes a zítra není publikovaný žádný volný termín.",
+      href: plannerHref,
+      actionLabel: "Upravit dostupnost",
       emphasis: "secondary",
     });
   }
@@ -515,8 +558,9 @@ export async function getAdminDashboardData(area: AdminArea): Promise<AdminDashb
     alerts.push({
       id: "all-good",
       tone: "success",
-      text: "Všechny rezervace jsou zpracované.",
-      href: getBookingsHref(area),
+      text: "Vše je připravené. Žádná položka teď nevyžaduje pozornost.",
+      href: bookingsHref,
+      actionLabel: "Otevřít rezervace",
       emphasis: "ok",
     });
   }
@@ -576,37 +620,60 @@ export async function getAdminDashboardData(area: AdminArea): Promise<AdminDashb
       "rezervace",
       "rezervací",
     ),
+    currentReservationSummary: currentTodayBooking
+      ? `Právě probíhá: ${timeFormatter.format(
+          currentTodayBooking.scheduledStartsAt,
+        )}–${timeFormatter.format(currentTodayBooking.scheduledEndsAt)} ${safeText(
+          currentTodayBooking.serviceNameSnapshot,
+          "Služba není uvedená",
+        )}.`
+      : null,
     nextReservationSummary: nextTodayBooking
-      ? formatMinutesUntil(nextTodayBooking.scheduledStartsAt, now)
+      ? `Další rezervace: ${timeFormatter.format(nextTodayBooking.scheduledStartsAt)}–${timeFormatter.format(
+          nextTodayBooking.scheduledEndsAt,
+        )} ${safeText(nextTodayBooking.serviceNameSnapshot, "Služba není uvedená")}.`
       : todayBookings.length > 0
-        ? "dnešní rezervace už běží"
-        : "zatím bez rezervace na dnešek",
+        ? "Další klientka dnes už není."
+        : "Dnes zatím není naplánovaná žádná rezervace.",
     todayStatusLabel:
       todayBookings.length > 0
-        ? `Dnes je naplánováno ${todayBookings.length} ${formatCountLabel(
-            todayBookings.length,
-            "aktivní rezervace",
-            "aktivní rezervace",
-            "aktivních rezervací",
-          )}.`
-        : "Dnes není naplánovaná žádná rezervace.",
+        ? todayBookings.length === 1
+          ? "Dnes je naplánovaná 1 aktivní rezervace."
+          : `Dnes jsou naplánované ${todayBookings.length} ${formatCountLabel(
+              todayBookings.length,
+              "aktivní rezervace",
+              "aktivní rezervace",
+              "aktivních rezervací",
+            )}.`
+        : "Dnes zatím není naplánovaná žádná rezervace.",
     nextClient: nextTodayBooking
       ? {
           timeLabel: timeFormatter.format(nextTodayBooking.scheduledStartsAt),
+          timeRangeLabel: `${timeFormatter.format(nextTodayBooking.scheduledStartsAt)}–${timeFormatter.format(
+            nextTodayBooking.scheduledEndsAt,
+          )}`,
           relativeLabel: formatRelativeTime(nextTodayBooking.scheduledStartsAt, now),
-          serviceName: nextTodayBooking.serviceNameSnapshot,
-          clientName: nextTodayBooking.clientNameSnapshot,
+          serviceName: safeText(nextTodayBooking.serviceNameSnapshot, "Služba není uvedená"),
+          clientName: safeText(nextTodayBooking.clientNameSnapshot, "Klientka není uvedená"),
           detailHref: getAdminBookingHref(area, nextTodayBooking.id),
           editHref: getAdminBookingHref(area, nextTodayBooking.id),
         }
       : null,
     todayTasks,
     alerts,
+    todayPlanItems,
     timelineItems,
-    timelineFooterHref: getPlannerHref(area),
+    timelineFooterHref: plannerHref,
+    createBookingHref: bookingsHref,
+    addSlotHref: `${plannerHref}/novy`,
     kpis: [
       {
-        label: "Dnes volná okna",
+        label: "Dnes rezervace",
+        value: String(todayBookings.length),
+        detail: "aktivní dnešní rezervace",
+      },
+      {
+        label: "Volná okna dnes",
         value: String(freeWindowCount),
         detail: "v dnešním rozvrhu",
       },
@@ -616,23 +683,39 @@ export async function getAdminDashboardData(area: AdminArea): Promise<AdminDashb
         detail: "podle minut a kapacity",
       },
       {
-        label: "Týden volné sloty",
+        label: "Volné sloty tento týden",
         value: String(weekFreeSlots),
         detail: "sloty se zbývající kapacitou",
       },
-      {
-        label: "Chybné e-maily",
-        value: String(failedEmails),
-        detail: failedEmails > 0 ? "potřebují kontrolu" : "bez chyb ve frontě",
-      },
     ],
+    weekSummary: {
+      occupancyLabel: `${weekOccupancy} %`,
+      freeSlotsLabel: `${weekFreeSlots} ${formatCountLabel(
+        weekFreeSlots,
+        "volný slot",
+        "volné sloty",
+        "volných slotů",
+      )}`,
+      bookingsLabel: `${weekBookingsCount} ${formatCountLabel(
+        weekBookingsCount,
+        "rezervace",
+        "rezervace",
+        "rezervací",
+      )}`,
+    },
     pendingConfirmations: {
       count: pendingBookings,
-      href: getBookingsHref(area),
+      href: bookingsHref,
     },
+    hasPublishedSlotsTodayOrTomorrow,
+    hasFreeWindowsToday,
     upcomingSlots: upcomingFreeSlots.map((slot) => {
       const prefix =
-        slot.startsAt >= todayStart && slot.startsAt < tomorrowStart ? "Dnes" : "Zítra";
+        slot.startsAt >= todayStart && slot.startsAt < tomorrowStart
+          ? "Dnes"
+          : slot.startsAt >= tomorrowStart && slot.startsAt < dayAfterTomorrowStart
+            ? "Zítra"
+            : formatDayLabel(slot.startsAt);
       const remainingCapacity = Math.max(slot.capacity - slot.bookings.length, 0);
 
       return {
@@ -643,34 +726,34 @@ export async function getAdminDashboardData(area: AdminArea): Promise<AdminDashb
         href: getSlotEditHref(area, slot.id),
       };
     }),
-    upcomingSlotsFooterHref: getPlannerHref(area),
+    upcomingSlotsFooterHref: plannerHref,
     quickActions: [
       {
         id: "create-booking",
         label: "Vytvořit rezervaci",
-        description: "Otevřít rezervace",
-        href: getBookingsHref(area),
+        description: "Nový termín pro klientku",
+        href: bookingsHref,
         icon: "booking",
       },
       {
-        id: "add-slot",
-        label: "Přidat termín",
-        description: "Nový slot",
-        href: `${getPlannerHref(area)}/novy`,
-        icon: "plus",
+        id: "bookings",
+        label: "Otevřít rezervace",
+        description: "Seznam a potvrzení",
+        href: bookingsHref,
+        icon: "calendar",
       },
       {
-        id: "edit-availability",
+        id: "availability",
         label: "Upravit dostupnost",
-        description: "Týdenní plán",
-        href: getPlannerHref(area),
+        description: "Volné termíny",
+        href: plannerHref,
         icon: "calendar",
       },
       {
         id: "clients",
         label: "Klienti",
-        description: "CRM přehled",
-        href: getClientsHref(area),
+        description: "Kontakty a historie",
+        href: clientsHref,
         icon: "clients",
       },
     ],

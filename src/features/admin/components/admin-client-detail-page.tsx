@@ -20,17 +20,17 @@ type ActionLinkProps = {
 
 export function AdminClientDetailPage({ data }: AdminClientDetailPageProps) {
   return (
-    <div className="min-w-0 space-y-5">
+    <div className="min-w-0 space-y-4">
       <ClientDetailHeader data={data} />
       <ClientKpiCards data={data} />
 
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,2fr)_minmax(19rem,1fr)]">
-        <div className="space-y-5">
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)]">
+        <div className="space-y-4">
           <ClientVisitHistory data={data} />
           <ClientInternalNoteCard data={data} />
         </div>
 
-        <aside className="space-y-5">
+        <aside className="space-y-4">
           <ClientContactCard data={data} />
           <ClientOverviewCard data={data} />
           <ClientProfileMetadata data={data} />
@@ -46,20 +46,20 @@ function ClientDetailHeader({ data }: { data: AdminClientDetailData }) {
   const bookingsHref = data.area === "owner" ? "/admin/rezervace" : "/admin/provoz/rezervace";
 
   return (
-    <section className="rounded-[var(--radius-panel)] border border-white/10 bg-white/6 p-5 backdrop-blur-xl sm:p-7">
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-end">
+    <section className="rounded-[1.4rem] border border-white/10 bg-white/6 p-4 backdrop-blur-xl sm:p-5">
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-end">
         <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-3">
-            <p className="text-xs uppercase tracking-[0.35em] text-[var(--color-accent-soft)]">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-[0.68rem] uppercase tracking-[0.28em] text-[var(--color-accent-soft)]">
               Detail klienta
             </p>
             <span className={getClientBadgeClassName(data.isActive)}>{data.statusLabel}</span>
           </div>
 
-          <h1 className="mt-4 break-words font-display text-3xl text-white sm:text-4xl xl:text-5xl">
+          <h1 className="mt-3 break-words font-display text-[1.9rem] leading-tight text-white sm:text-[2.35rem] xl:text-[2.65rem]">
             {data.fullName}
           </h1>
-          <p className="mt-4 max-w-3xl text-sm leading-7 text-white/72 sm:text-base">
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-white/70">
             {buildHeaderSubtitle(data)}
           </p>
         </div>
@@ -72,10 +72,10 @@ function ClientDetailHeader({ data }: { data: AdminClientDetailData }) {
         </div>
       </div>
 
-      <div className="mt-5">
+      <div className="mt-4">
         <Link
           href={listHref}
-          className="inline-flex rounded-full border border-white/10 px-4 py-2.5 text-sm text-white/76 transition hover:border-white/24 hover:bg-white/6 hover:text-white"
+          className="inline-flex rounded-full border border-white/10 px-3.5 py-2 text-sm text-white/76 transition hover:border-white/24 hover:bg-white/6 hover:text-white"
         >
           Zpět na klienty
         </Link>
@@ -86,7 +86,7 @@ function ClientDetailHeader({ data }: { data: AdminClientDetailData }) {
 
 function ClientKpiCards({ data }: { data: AdminClientDetailData }) {
   return (
-    <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+    <section className="grid gap-2.5 md:grid-cols-2 xl:grid-cols-4">
       <KpiCard
         label="Stav profilu"
         value={data.statusLabel}
@@ -121,7 +121,7 @@ function ClientVisitHistory({ data }: { data: AdminClientDetailData }) {
     <AdminPanel
       title="Historie návštěv"
       description="Nejnovější rezervace s rychlou cestou do detailu."
-      compact={data.area === "salon"}
+      compact
       denseHeader
     >
       {data.bookings.length > 0 ? (
@@ -129,23 +129,23 @@ function ClientVisitHistory({ data }: { data: AdminClientDetailData }) {
           {data.bookings.map((booking) => (
             <article
               key={booking.id}
-              className="rounded-[1.15rem] border border-white/8 bg-white/[0.045] p-4"
+              className="rounded-[1rem] border border-white/8 bg-white/[0.045] p-3.5"
             >
-              <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
+              <div className="grid gap-2.5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <h4 className="text-base font-medium text-white">{booking.serviceName}</h4>
+                    <h4 className="text-sm font-medium text-white sm:text-[0.95rem]">{booking.serviceName}</h4>
                     <span className={getBookingBadgeClassName(booking.status)}>{booking.statusLabel}</span>
                   </div>
-                  <p className="mt-1 text-sm leading-6 text-white/60">{booking.scheduledAtLabel}</p>
-                  <p className="mt-2 text-sm leading-6 text-white/72">
+                  <p className="mt-1 text-xs leading-5 text-white/58 sm:text-sm">{booking.scheduledAtLabel}</p>
+                  <p className="mt-1.5 text-sm leading-5 text-white/70">
                     {booking.sourceLabel} · {booking.noteSummary}
                   </p>
                 </div>
 
                 <Link
                   href={booking.href}
-                  className="inline-flex min-h-9 items-center justify-center rounded-full border border-white/10 px-3.5 py-2 text-sm font-medium text-white/78 transition hover:border-white/22 hover:bg-white/7 hover:text-white"
+                  className="inline-flex min-h-8 items-center justify-center rounded-full border border-white/10 px-3 py-1.5 text-xs font-medium text-white/78 transition hover:border-white/22 hover:bg-white/7 hover:text-white sm:text-sm"
                 >
                   Otevřít detail
                 </Link>
@@ -154,11 +154,11 @@ function ClientVisitHistory({ data }: { data: AdminClientDetailData }) {
           ))}
         </div>
       ) : (
-        <div className="rounded-[1.25rem] border border-dashed border-white/14 bg-white/4 p-5">
-          <p className="text-sm leading-6 text-white/70">Klientka zatím nemá žádnou rezervaci.</p>
+        <div className="rounded-[1rem] border border-dashed border-white/14 bg-white/4 p-4">
+          <p className="text-sm leading-5 text-white/70">Klientka zatím nemá žádnou rezervaci.</p>
           <Link
             href={bookingsHref}
-            className="mt-4 inline-flex rounded-full bg-[var(--color-accent)] px-4 py-2.5 text-sm font-semibold text-[var(--color-accent-contrast)] transition hover:brightness-105"
+            className="mt-3 inline-flex rounded-full bg-[var(--color-accent)] px-3.5 py-2 text-sm font-semibold text-[var(--color-accent-contrast)] transition hover:brightness-105"
           >
             Vytvořit rezervaci
           </Link>
@@ -173,7 +173,7 @@ function ClientInternalNoteCard({ data }: { data: AdminClientDetailData }) {
     <AdminPanel
       title="Interní poznámka"
       description="Interní poznámka je viditelná pouze pro tým."
-      compact={data.area === "salon"}
+      compact
       denseHeader
     >
       <AdminClientNoteForm area={data.area} clientId={data.id} initialValue={data.internalNote} />
@@ -184,7 +184,7 @@ function ClientInternalNoteCard({ data }: { data: AdminClientDetailData }) {
 function ClientContactCard({ data }: { data: AdminClientDetailData }) {
   return (
     <SideCard title="Kontakt">
-      <div className="space-y-3">
+      <div className="space-y-2.5">
         <ContactRow label="E-mail" value={data.email} href={data.emailHref} />
         <ContactRow label="Telefon" value={data.phone} href={data.phoneHref} />
         <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
@@ -235,7 +235,7 @@ function KpiCard({
   return (
     <article
       className={cn(
-        "rounded-[1.35rem] border p-4",
+        "rounded-[1rem] border px-3.5 py-3",
         tone === "active"
           ? "border-emerald-300/28 bg-emerald-400/10"
           : tone === "muted"
@@ -243,9 +243,9 @@ function KpiCard({
             : "border-white/10 bg-black/10",
       )}
     >
-      <p className="text-xs uppercase tracking-[0.22em] text-white/52">{label}</p>
-      <p className="mt-3 break-words font-display text-2xl text-white sm:text-[1.7rem]">{value}</p>
-      {detail ? <p className="mt-2 text-sm leading-5 text-white/58">{detail}</p> : null}
+      <p className="text-[0.68rem] uppercase tracking-[0.18em] text-white/50">{label}</p>
+      <p className="mt-2 break-words font-display text-xl leading-tight text-white sm:text-[1.35rem]">{value}</p>
+      {detail ? <p className="mt-1.5 text-xs leading-5 text-white/56 sm:text-sm">{detail}</p> : null}
     </article>
   );
 }
@@ -262,12 +262,12 @@ function SideCard({
   return (
     <section
       className={cn(
-        "rounded-[1.35rem] border p-4",
+        "rounded-[1rem] border p-3.5",
         muted ? "border-white/8 bg-black/8" : "border-white/10 bg-black/12",
       )}
     >
-      <h3 className="font-display text-[1.35rem] text-white">{title}</h3>
-      <div className="mt-4">{children}</div>
+      <h3 className="font-display text-[1.15rem] leading-tight text-white">{title}</h3>
+      <div className="mt-3">{children}</div>
     </section>
   );
 }
@@ -275,19 +275,19 @@ function SideCard({
 function ContactRow({ label, value, href }: { label: string; value: string; href: string | null }) {
   const content = (
     <>
-      <dt className="text-xs uppercase tracking-[0.2em] text-white/46">{label}</dt>
-      <dd className="mt-1 break-words text-sm leading-6 text-white/84">{value}</dd>
+      <dt className="text-[0.68rem] uppercase tracking-[0.18em] text-white/44">{label}</dt>
+      <dd className="mt-1 break-words text-sm leading-5 text-white/82">{value}</dd>
     </>
   );
 
   if (!href) {
-    return <div className="rounded-[1rem] border border-white/8 bg-white/5 px-4 py-3">{content}</div>;
+    return <div className="rounded-[0.9rem] border border-white/8 bg-white/5 px-3.5 py-2.5">{content}</div>;
   }
 
   return (
     <a
       href={href}
-      className="block rounded-[1rem] border border-white/8 bg-white/5 px-4 py-3 transition hover:border-white/18 hover:bg-white/7"
+      className="block rounded-[0.9rem] border border-white/8 bg-white/5 px-3.5 py-2.5 transition hover:border-white/18 hover:bg-white/7"
     >
       {content}
     </a>
@@ -304,9 +304,9 @@ function CompactMetaRow({
   muted?: boolean;
 }) {
   return (
-    <div className="rounded-[0.95rem] border border-white/8 bg-white/[0.035] px-3.5 py-3">
-      <dt className="text-[0.68rem] uppercase tracking-[0.18em] text-white/42">{label}</dt>
-      <dd className={cn("mt-1 text-sm leading-6", muted ? "text-white/62" : "text-white/84")}>{value}</dd>
+    <div className="rounded-[0.85rem] border border-white/8 bg-white/[0.035] px-3 py-2.5">
+      <dt className="text-[0.66rem] uppercase tracking-[0.16em] text-white/42">{label}</dt>
+      <dd className={cn("mt-1 text-sm leading-5", muted ? "text-white/60" : "text-white/82")}>{value}</dd>
     </div>
   );
 }
@@ -314,7 +314,7 @@ function CompactMetaRow({
 function ActionLink({ href, children, variant = "secondary" }: ActionLinkProps) {
   if (!href) {
     return (
-      <span className="inline-flex min-h-10 items-center justify-center rounded-full border border-white/8 px-4 py-2 text-sm font-medium text-white/32">
+      <span className="inline-flex min-h-9 items-center justify-center rounded-full border border-white/8 px-3.5 py-1.5 text-sm font-medium text-white/32">
         {children}
       </span>
     );
@@ -322,8 +322,8 @@ function ActionLink({ href, children, variant = "secondary" }: ActionLinkProps) 
 
   const isPrimary = variant === "primary";
   const className = isPrimary
-    ? "inline-flex min-h-10 items-center justify-center rounded-full bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-[var(--color-accent-contrast)] transition hover:brightness-105"
-    : "inline-flex min-h-10 items-center justify-center rounded-full border border-white/10 px-4 py-2 text-sm font-medium text-white/78 transition hover:border-white/22 hover:bg-white/7 hover:text-white";
+    ? "inline-flex min-h-9 items-center justify-center rounded-full bg-[var(--color-accent)] px-3.5 py-1.5 text-sm font-semibold text-[var(--color-accent-contrast)] transition hover:brightness-105"
+    : "inline-flex min-h-9 items-center justify-center rounded-full border border-white/10 px-3.5 py-1.5 text-sm font-medium text-white/78 transition hover:border-white/22 hover:bg-white/7 hover:text-white";
 
   if (href.startsWith("mailto:") || href.startsWith("tel:")) {
     return (
@@ -355,7 +355,7 @@ function formatMissingDate(value: string, fallback: string) {
 
 function getClientBadgeClassName(isActive: boolean) {
   return cn(
-    "inline-flex rounded-full border px-3 py-1 text-xs uppercase tracking-[0.18em]",
+    "inline-flex rounded-full border px-2.5 py-0.5 text-[0.68rem] uppercase tracking-[0.16em]",
     isActive
       ? "border-emerald-300/40 bg-emerald-500/15 text-emerald-100"
       : "border-white/10 bg-white/8 text-white/64",
@@ -364,7 +364,7 @@ function getClientBadgeClassName(isActive: boolean) {
 
 function getBookingBadgeClassName(status: BookingStatus) {
   return cn(
-    "inline-flex rounded-full border px-2.5 py-1 text-[0.68rem] uppercase tracking-[0.15em]",
+    "inline-flex rounded-full border px-2 py-0.5 text-[0.64rem] uppercase tracking-[0.14em]",
     status === BookingStatus.COMPLETED
       ? "border-emerald-300/30 bg-emerald-400/10 text-emerald-100"
       : status === BookingStatus.CONFIRMED

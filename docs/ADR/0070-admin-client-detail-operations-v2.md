@@ -17,6 +17,7 @@ Detail klientky v adminu obsahoval správná data, ale opakoval jméno, kontakt,
 - Kontaktní akce používají `mailto:` a `tel:` jen při dostupné hodnotě; při chybějícím kontaktu se vykreslí neaktivní akce bez neplatného odkazu.
 - Do KPI se doplňuje počet zrušených rezervací jako další bezpečná agregace nad existujícím stavem `BookingStatus.CANCELLED`.
 - `Poslední návštěva` se v detailu odvozuje z poslední rezervace ve stavu `COMPLETED`, ne z `Client.lastBookedAt`; toto pole znamená aktivitu profilu při rezervaci a může předbíhat skutečnou návštěvu.
+- Vizuální hustota detailu má být blíž provoznímu workspace než profilové landing stránce: nižší header, kompaktní KPI, zhuštěné řádky historie a kratší interní poznámka.
 
 ## Důsledky
 

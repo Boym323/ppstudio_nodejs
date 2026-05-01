@@ -13,6 +13,7 @@ Seznam důležitých knihoven a důvod jejich použití.
 - `@playwright/test`: browser E2E test runner pro hlavní rezervační a admin flow.
 - Matomo tracking nepřidává žádnou npm závislost; používá `next/script`, App Router navigation hooks a standardní `window._paq` frontu.
 - Server-side Matomo Reporting API vrstva také nepřidává žádnou npm závislost; používá vestavěný `fetch`, Next.js revalidation cache a lokální TypeScript normalizaci odpovědí.
+- Admin dashboard cockpit nepřidává žádnou npm závislost; jde o úpravu serverového read modelu, React/Tailwind prezentačních komponent a stávajícího Matomo widgetu.
 - Pushover notifikace nepridavaji zadnou npm zavislost; serverova integrace pouziva vestaveny `fetch`, `URLSearchParams`, Prisma a existujici Next.js server action pattern.
 - Voucher business vrstva nepřidává žádnou npm závislost; kódy generuje přes vestavěný Node.js `crypto`, DB logiku řeší Prisma a vstupy validuje existující `zod`.
 - Ruční odesílání voucheru e-mailem nepřidává žádnou npm závislost; používá stávající `EmailLog` outbox, existující worker, `nodemailer` provider a worker-safe PDF core `src/features/vouchers/lib/voucher-pdf-core.ts`.

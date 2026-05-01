@@ -22,7 +22,7 @@ export function AdminClientNoteForm({
   );
 
   return (
-    <form action={formAction} className="space-y-4">
+    <form action={formAction} className="space-y-3">
       <input type="hidden" name="area" value={area} />
       <input type="hidden" name="clientId" value={clientId} />
 
@@ -42,11 +42,11 @@ export function AdminClientNoteForm({
         <span className="text-sm font-medium text-white">Interní poznámka</span>
         <textarea
           name="internalNote"
-          rows={6}
+          rows={4}
           maxLength={1000}
           defaultValue={initialValue}
           placeholder="Např. preferovaný kontakt, citlivost na čas, reakce po ošetření nebo provozní domluva."
-          className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm leading-6 text-white outline-none transition placeholder:text-white/32 focus:border-[var(--color-accent)]/60"
+          className="mt-2 w-full rounded-[1rem] border border-white/10 bg-black/20 px-3.5 py-2.5 text-sm leading-6 text-white outline-none transition placeholder:text-white/32 focus:border-[var(--color-accent)]/60"
         />
         <span className="mt-2 block text-xs leading-5 text-white/46">
           Interní poznámka je viditelná pouze pro tým.
@@ -67,7 +67,7 @@ function SubmitButton() {
   return (
     <button
       type="submit"
-      className="rounded-full bg-[var(--color-accent)] px-5 py-3 text-sm font-semibold text-[var(--color-accent-contrast)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-70"
+      className="rounded-full bg-[var(--color-accent)] px-4 py-2.5 text-sm font-semibold text-[var(--color-accent-contrast)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-70"
       disabled={pending}
     >
       {pending ? "Ukládám poznámku..." : "Uložit poznámku"}

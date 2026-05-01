@@ -5,7 +5,6 @@ import { env } from "@/config/env";
 import { cn } from "@/lib/utils";
 
 import { type AdminDashboardData } from "../lib/admin-dashboard";
-import { DashboardTodayTimeline } from "./dashboard-today-timeline";
 
 type DashboardPageProps = {
   data: AdminDashboardData;
@@ -106,7 +105,7 @@ function Card({
   return (
     <section
       className={cn(
-        "rounded-[1.65rem] border border-white/7 bg-zinc-900/88 shadow-[0_18px_50px_rgba(0,0,0,0.18)]",
+        "rounded-[1.05rem] border border-white/7 bg-zinc-900/88 shadow-[0_12px_32px_rgba(0,0,0,0.16)]",
         className,
       )}
     >
@@ -128,9 +127,9 @@ function DashboardButton({
     <Link
       href={href}
       className={cn(
-        "inline-flex min-h-11 items-center justify-center rounded-xl px-4 py-3 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/60",
+        "inline-flex min-h-9 items-center justify-center rounded-lg px-3 py-2 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/60",
         tone === "primary" &&
-          "border border-[var(--color-accent)]/50 bg-[rgba(190,160,120,0.16)] text-white shadow-[0_12px_28px_rgba(0,0,0,0.18)] hover:border-[var(--color-accent)]/70 hover:bg-[rgba(190,160,120,0.24)]",
+          "border border-[var(--color-accent)]/50 bg-[rgba(190,160,120,0.16)] text-white shadow-[0_8px_20px_rgba(0,0,0,0.16)] hover:border-[var(--color-accent)]/70 hover:bg-[rgba(190,160,120,0.24)]",
         tone === "secondary" &&
           "border border-white/9 bg-white/[0.045] text-white/88 hover:border-white/16 hover:bg-white/[0.08]",
         tone === "outline" &&
@@ -165,6 +164,32 @@ function DashboardBadge({
   );
 }
 
+function getCompactTodayStatus(data: AdminDashboardData) {
+  if (data.todayBookingsCount === 0) {
+    return "Žádná aktivní rezervace";
+  }
+
+  if (data.todayBookingsCount === 1) {
+    return "1 aktivní rezervace";
+  }
+
+  return `${data.todayBookingsCount} aktivní rezervace`;
+}
+
+function getCompactNextStatus(data: AdminDashboardData) {
+  if (data.nextClient) {
+    return `další ${data.nextClient.timeRangeLabel}`;
+  }
+
+  return data.todayBookingsCount > 0 ? "další klientka dnes už není" : "dnes zatím bez rezervace";
+}
+
+function getCompactCurrentStatus(value: string) {
+  return value
+    .replace(/^Právě probíhá:\s*/u, "Právě probíhá ")
+    .replace(/\.$/u, "");
+}
+
 export function DashboardPage({ data }: DashboardPageProps) {
   const analyticsEnabled = Boolean(
     env.MATOMO_URL && env.MATOMO_SITE_ID && env.MATOMO_AUTH_TOKEN,
@@ -172,16 +197,19 @@ export function DashboardPage({ data }: DashboardPageProps) {
 
   return (
     <div className="mx-auto min-h-[calc(100vh-3rem)] max-w-[1600px] px-0.5 py-0.5 sm:px-1 sm:py-1 lg:px-1">
-      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_320px] 2xl:grid-cols-[minmax(0,1fr)_336px]">
-        <main className="min-w-0 space-y-6">
-          <DashboardTodayHero data={data} />
-          <DashboardAttentionAlert data={data} />
-          <DashboardTodayTimelineSection data={data} />
-          <DashboardKpiGrid data={data} />
-          <AnalyticsWidget enabled={analyticsEnabled} />
-        </main>
+      <div className="space-y-4">
+        <DashboardTodayHero data={data} />
+        <DashboardAttentionAlert data={data} />
+        <DashboardKpiGrid data={data} />
 
-        <RightSidebar data={data} />
+        <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)]">
+          <main className="min-w-0 space-y-4">
+            <DashboardTodayTimelineSection data={data} />
+            <DashboardAvailableSlots data={data} />
+          </main>
+
+          <RightSidebar data={data} analyticsEnabled={analyticsEnabled} />
+        </div>
       </div>
     </div>
   );
@@ -189,93 +217,49 @@ export function DashboardPage({ data }: DashboardPageProps) {
 
 export function DashboardTodayHero({ data }: DashboardPageProps) {
   return (
-    <Card className="overflow-hidden p-5 sm:p-6 xl:p-8">
-      <div className="relative">
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-[radial-gradient(circle_at_top_left,rgba(190,160,120,0.18),transparent_46%),radial-gradient(circle_at_top_right,rgba(255,255,255,0.08),transparent_30%)]" />
-
-        <div className="relative space-y-6">
-          <div className="flex flex-col gap-6 xl:grid xl:grid-cols-[minmax(0,1.25fr)_minmax(18rem,0.85fr)] xl:items-start xl:gap-7">
-            <div className="space-y-5">
-              <div className="space-y-3">
-                <p className="text-sm font-medium tracking-[0.04em] text-[var(--color-accent-soft)]">
-                  Dnešní provoz
-                </p>
-                <p className="text-lg font-medium text-white/76">{data.todayLabel}</p>
-                <div className="flex flex-wrap items-end gap-x-4 gap-y-2">
-                  <span className="text-6xl font-bold leading-none text-white sm:text-7xl xl:text-[5rem]">
-                    {data.todayBookingsCount}
-                  </span>
-                  <span className="pb-2 text-sm text-white/52 sm:pb-3 sm:text-base">
-                    {data.todayBookingsLabel}
-                  </span>
-                </div>
-                <p className="max-w-2xl text-base text-white/74">{data.todayStatusLabel}</p>
-                <p className="max-w-2xl text-sm text-white/54">{data.nextReservationSummary}</p>
-              </div>
-
-              <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-                <DashboardButton
-                  href={data.timelineFooterHref}
-                  label="Otevřít dnešní plán"
-                  tone="primary"
-                />
-                <DashboardButton href={`${data.timelineFooterHref}/novy`} label="Přidat termín" />
-                {data.nextClient ? (
-                  <DashboardButton
-                    href={data.nextClient.detailHref}
-                    label="Detail rezervace"
-                    tone="outline"
-                  />
-                ) : null}
-              </div>
-            </div>
-
-            <div className="rounded-[1.45rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.07),rgba(255,255,255,0.03))] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-white/42">
-                  Další klientka
-                </p>
-                {data.nextClient ? (
-                  <DashboardBadge tone="warning">{data.nextClient.relativeLabel}</DashboardBadge>
-                ) : null}
-              </div>
-
-              {data.nextClient ? (
-                <div className="mt-5 space-y-5">
-                  <div className="space-y-2">
-                    <p className="text-4xl font-bold tracking-tight text-white">
-                      {data.nextClient.timeLabel}
-                    </p>
-                    <div className="space-y-1.5">
-                      <p className="text-sm font-medium text-white/76">
-                        {data.nextClient.serviceName}
-                      </p>
-                      <p className="text-lg font-semibold text-white">
-                        {data.nextClient.clientName}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="grid gap-2.5 sm:grid-cols-2">
-                    <DashboardButton href={data.nextClient.detailHref} label="Detail" />
-                    <DashboardButton href={data.nextClient.editHref} label="Upravit" tone="outline" />
-                  </div>
-                </div>
-              ) : (
-                <div className="mt-5 space-y-2">
-                  <p className="text-base font-medium text-white">Dnes je klidnější den.</p>
-                  <p className="text-sm leading-6 text-white/56">
-                    Jakmile přibude další dnešní rezervace, objeví se tady jako další krok.
-                  </p>
-                  <div className="pt-1">
-                    <DashboardButton href={`${data.timelineFooterHref}/novy`} label="Přidat termín" />
-                  </div>
-                </div>
-              )}
-            </div>
+    <Card className="overflow-hidden p-4">
+      <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-center">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <h1 className="text-base font-semibold text-white">Dnešní provoz</h1>
+            <span className="text-sm font-medium text-white/52">{data.todayLabel}</span>
           </div>
 
-          <DashboardTodayTasks data={data} />
+          <p className="mt-1 truncate text-sm text-white/72">
+            {getCompactTodayStatus(data)} · {getCompactNextStatus(data)}
+          </p>
+
+          {data.currentReservationSummary ? (
+            <p className="mt-1 truncate text-sm font-medium text-[var(--color-accent-soft)]">
+              {getCompactCurrentStatus(data.currentReservationSummary)}
+            </p>
+          ) : null}
+        </div>
+
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap xl:justify-end">
+          {data.nextClient ? (
+            <Link
+              href={data.nextClient.detailHref}
+              className="flex min-h-12 min-w-0 items-center justify-between gap-3 rounded-lg border border-white/9 bg-white/[0.035] px-3 py-2 transition hover:border-[var(--color-accent)]/28 hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/55 sm:min-w-[17rem]"
+            >
+              <span className="min-w-0">
+                <span className="block text-[11px] font-semibold uppercase tracking-[0.16em] text-white/38">
+                  Další rezervace
+                </span>
+                <span className="block truncate text-sm font-medium text-white">
+                  {data.nextClient.timeRangeLabel} · {data.nextClient.serviceName}
+                </span>
+                <span className="block truncate text-xs text-white/52">{data.nextClient.clientName}</span>
+              </span>
+              <span className="text-xs font-semibold text-[var(--color-accent-soft)]">Otevřít</span>
+            </Link>
+          ) : null}
+
+          <div className="flex flex-wrap gap-2">
+            <DashboardButton href={data.createBookingHref} label="Vytvořit rezervaci" tone="primary" />
+            <DashboardButton href={data.timelineFooterHref} label="Dnešní plán" />
+            <DashboardButton href={data.upcomingSlotsFooterHref} label="Dostupnost" />
+          </div>
         </div>
       </div>
     </Card>
@@ -314,54 +298,55 @@ export function DashboardTodayTasks({ data }: DashboardPageProps) {
 }
 
 export function DashboardAttentionAlert({ data }: DashboardPageProps) {
-  const primaryAlert = data.alerts.find((alert) => alert.emphasis === "primary") ?? null;
-  const secondaryAlerts = data.alerts.filter((alert) => alert.emphasis === "secondary");
+  const actionableAlerts = data.alerts.filter((alert) => alert.emphasis !== "ok");
   const okAlert = data.alerts.find((alert) => alert.emphasis === "ok") ?? null;
 
   return (
-    <div className="space-y-4">
-      {primaryAlert ? (
-        <Card className="border-amber-300/18 bg-[linear-gradient(135deg,rgba(120,53,15,0.25),rgba(24,24,27,0.92))] p-5 sm:p-6">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex min-w-0 items-start gap-3">
-              <span className="mt-0.5 rounded-xl border border-amber-300/20 bg-black/16 p-2.5 text-amber-100">
-                <DashboardIcon name="warning" className="size-5" />
-              </span>
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-amber-100/68">
-                  Vyžaduje pozornost
-                </p>
-                <p className="mt-1 text-lg font-semibold text-amber-50">{primaryAlert.text}</p>
-                <p className="mt-1 text-sm text-amber-100/70">
-                  Otevři rezervace a zpracuj čekající potvrzení dřív, než půjdeš dál do dnešního rozvrhu.
-                </p>
-              </div>
-            </div>
+    <Card
+      className={cn(
+        "p-3.5 sm:p-4",
+        actionableAlerts.length > 0
+          ? "border-amber-300/16 bg-[linear-gradient(135deg,rgba(120,53,15,0.18),rgba(24,24,27,0.92))]"
+          : "border-emerald-300/12 bg-emerald-500/8",
+      )}
+    >
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+        <div className="flex shrink-0 items-center gap-2">
+        <span
+          className={cn(
+            "rounded-lg border p-2",
+            actionableAlerts.length > 0
+              ? "border-amber-300/18 bg-black/14 text-amber-100"
+              : "border-emerald-300/16 bg-black/12 text-emerald-100",
+          )}
+        >
+          <DashboardIcon
+            name={actionableAlerts.length > 0 ? "warning" : "success"}
+            className="size-4"
+          />
+        </span>
+          <h2 className="text-sm font-semibold text-white">Vyžaduje pozornost</h2>
+        </div>
 
-            <DashboardButton href={primaryAlert.href} label="Otevřít" tone="primary" />
-          </div>
-        </Card>
-      ) : null}
-
-      {secondaryAlerts.length > 0 ? (
-        <div className={cn("grid gap-4", secondaryAlerts.length > 1 ? "md:grid-cols-2" : "grid-cols-1")}>
-          {secondaryAlerts.map((alert) => (
-            <SecondaryAlertCard key={alert.id} tone={alert.tone} text={alert.text} href={alert.href} />
+      {actionableAlerts.length > 0 ? (
+          <div className="grid min-w-0 flex-1 gap-2 md:grid-cols-3">
+          {actionableAlerts.map((alert) => (
+            <SecondaryAlertCard
+              key={alert.id}
+              tone={alert.tone}
+              text={alert.text}
+              href={alert.href}
+              actionLabel={alert.actionLabel}
+            />
           ))}
         </div>
-      ) : null}
-
-      {!primaryAlert && !secondaryAlerts.length && okAlert ? (
-        <Card className="border-emerald-300/12 bg-emerald-500/8 p-4">
-          <div className="flex items-center gap-3 text-emerald-50">
-            <span className="rounded-xl border border-emerald-300/16 bg-black/12 p-2">
-              <DashboardIcon name="success" className="size-4" />
-            </span>
-            <p className="text-sm font-medium">{okAlert.text}</p>
-          </div>
-        </Card>
-      ) : null}
-    </div>
+      ) : (
+          <p className="min-w-0 flex-1 text-sm font-medium text-emerald-50">
+          {okAlert?.text ?? "Vše je připravené. Žádná položka teď nevyžaduje pozornost."}
+        </p>
+      )}
+      </div>
+    </Card>
   );
 }
 
@@ -369,10 +354,12 @@ function SecondaryAlertCard({
   tone,
   text,
   href,
+  actionLabel,
 }: {
   tone: "warning" | "problem" | "success";
   text: string;
   href: string;
+  actionLabel: string;
 }) {
   const toneStyles = {
     warning: "border-amber-400/20 bg-amber-400/8 text-amber-100",
@@ -387,59 +374,93 @@ function SecondaryAlertCard({
   } as const;
 
   return (
-    <Card key={text} className={cn("p-[1.125rem]", toneStyles[tone])}>
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex min-w-0 items-start gap-3">
-          <span className="mt-0.5 rounded-xl border border-current/15 bg-black/10 p-2.5">
+    <article className={cn("rounded-lg border px-3 py-2", toneStyles[tone])}>
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="rounded-lg border border-current/15 bg-black/10 p-1.5">
             <DashboardIcon name={toneIcons[tone]} className="size-4" />
           </span>
-          <p className="text-[15px] font-medium leading-6">{text}</p>
+          <p className="truncate text-sm font-medium">{text}</p>
         </div>
 
         <Link
           href={href}
-          className="inline-flex min-h-10 items-center justify-center self-start rounded-lg border border-current/20 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-current transition hover:bg-black/10 sm:min-h-0 sm:self-auto"
+          className="inline-flex min-h-8 shrink-0 items-center justify-center rounded-md border border-current/20 px-2.5 py-1 text-xs font-semibold text-current transition hover:bg-black/10"
         >
-          Otevřít
+          {alertActionLabel(actionLabel)}
         </Link>
       </div>
-    </Card>
+    </article>
   );
+}
+
+function alertActionLabel(label: string) {
+  return label.includes("Upravit") ? "Upravit" : "Otevřít";
 }
 
 export function DashboardTodayTimelineSection({ data }: DashboardPageProps) {
   return (
     <Card className="overflow-hidden">
-      <div className="sticky top-3 z-10 border-b border-white/7 bg-[rgba(24,24,27,0.96)] px-5 py-4 backdrop-blur sm:px-6 xl:px-7">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="border-b border-white/7 px-4 py-3">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h2 className="text-[1.35rem] font-semibold text-white">Dnešní plán</h2>
-            <p className="mt-1 text-sm text-white/56">
-              Hlavní pracovní plocha pro dnešek. Kliknutím na řádek otevřeš detail nebo úpravu.
-            </p>
+            <h2 className="text-base font-semibold text-white">Dnešní plán</h2>
           </div>
           <DashboardBadge tone="gold">{data.todayLabel}</DashboardBadge>
         </div>
       </div>
 
-      {data.timelineItems.length > 0 ? (
-        <DashboardTodayTimeline area={data.area} items={data.timelineItems} />
+      {data.todayPlanItems.length > 0 ? (
+        <div className="px-3 py-1.5 sm:px-4">
+          {data.todayPlanItems.map((item, index) => (
+            <Link
+              key={item.id}
+              href={item.href}
+              className={cn(
+                "grid min-h-14 gap-2 rounded-lg px-2.5 py-2.5 transition hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/55 sm:px-3 md:grid-cols-[112px_minmax(0,1fr)_auto] md:items-center",
+                index < data.todayPlanItems.length - 1 && "border-b border-white/5",
+                item.isCurrent && "border border-[var(--color-accent)]/24 bg-[rgba(190,160,120,0.10)]",
+                item.isCompleted && "opacity-68",
+              )}
+            >
+              <p className="text-sm font-semibold tracking-[0.02em] text-white/82">{item.timeLabel}</p>
+              <div className="min-w-0">
+                <p className="truncate text-[15px] font-medium text-white">{item.serviceName}</p>
+                <p className="truncate text-xs text-white/50">{item.clientName}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <span
+                  className={cn(
+                    "rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em]",
+                    item.isCompleted
+                      ? "border-emerald-300/18 bg-emerald-400/7 text-emerald-100/70"
+                      : item.isCurrent
+                        ? "border-[var(--color-accent)]/35 bg-[rgba(190,160,120,0.14)] text-[var(--color-accent-soft)]"
+                        : "border-violet-400/25 bg-violet-400/10 text-violet-200",
+                  )}
+                >
+                  {item.statusLabel}
+                </span>
+                <span className="text-sm font-medium text-[var(--color-accent-soft)]">Otevřít</span>
+              </div>
+            </Link>
+          ))}
+        </div>
       ) : (
-        <div className="px-5 py-8 sm:px-6 xl:px-7">
-          <p className="text-base font-medium text-white">Dnes není naplánovaná žádná rezervace.</p>
-          <p className="mt-2 text-sm text-white/58">Přidej termín a připrav si dnešní dostupnost.</p>
-          <div className="mt-4">
-            <DashboardButton href={`${data.timelineFooterHref}/novy`} label="Přidat termín" />
+        <div className="px-4 py-5">
+          <p className="text-base font-medium text-white">Dnes zatím není žádná rezervace.</p>
+          <div className="mt-3">
+            <DashboardButton href={data.createBookingHref} label="Vytvořit rezervaci" />
           </div>
         </div>
       )}
 
-      <div className="border-t border-white/7 px-5 py-4 sm:px-6 xl:px-7">
+      <div className="border-t border-white/7 px-4 py-3">
         <Link
           href={data.timelineFooterHref}
           className="text-sm font-medium text-[var(--color-accent-soft)] transition hover:text-white"
         >
-          Zobrazit celý den v rozvrhu
+          Otevřít dnešní plán
         </Link>
       </div>
     </Card>
@@ -448,75 +469,98 @@ export function DashboardTodayTimelineSection({ data }: DashboardPageProps) {
 
 export function DashboardKpiGrid({ data }: DashboardPageProps) {
   return (
-    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      {data.kpis.map((item) => (
+    <Card className="grid gap-0 overflow-hidden sm:grid-cols-2 xl:grid-cols-4">
+      {data.kpis.map((item, index) => (
         <article
           key={item.label}
-          className="rounded-[1.2rem] border border-white/6 bg-white/[0.03] p-4 shadow-none"
+          className={cn(
+            "border-white/7 px-4 py-3",
+            index < data.kpis.length - 1 && "border-b",
+            index % 2 === 1 && "sm:border-l",
+            index > 1 && "sm:border-b-0",
+            index > 0 && "xl:border-l",
+            "xl:border-b-0",
+          )}
         >
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/34">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/34">
             {item.label}
           </p>
-          <p className="mt-2.5 text-2xl font-semibold text-white/88">{item.value}</p>
-          <p className="mt-2 text-xs text-white/46">{item.detail}</p>
+          <p className="mt-1 text-2xl font-semibold text-white/88">{item.value}</p>
         </article>
       ))}
-    </div>
+    </Card>
   );
 }
 
-export function RightSidebar({ data }: DashboardPageProps) {
+export function RightSidebar({
+  data,
+  analyticsEnabled,
+}: DashboardPageProps & { analyticsEnabled: boolean }) {
   return (
-    <aside className="space-y-5 xl:sticky xl:top-5">
-      <DashboardAvailableSlots data={data} />
+    <aside className="space-y-4 xl:sticky xl:top-4">
       <DashboardQuickActions data={data} />
+      <DashboardWeekSummary data={data} />
+      <AnalyticsWidget enabled={analyticsEnabled} />
     </aside>
   );
 }
 
 export function DashboardAvailableSlots({ data }: DashboardPageProps) {
   return (
-    <Card className="p-5.5">
-      <div className="border-b border-white/7 pb-4">
-        <h2 className="text-base font-semibold text-white">Nejbližší volné sloty</h2>
-        <p className="mt-1 text-sm text-white/52">Kompaktní přehled dnešních a zítřejších oken.</p>
+    <Card className="p-4">
+      <div className="border-b border-white/7 pb-3">
+        <h2 className="text-base font-semibold text-white">Nejbližší volné termíny</h2>
       </div>
 
-      <div className="space-y-3.5 pt-4.5">
+      <div className="space-y-2.5 pt-3">
         {data.upcomingSlots.length > 0 ? (
-          data.upcomingSlots.map((slot, index) => (
-            <Link
-              key={slot.id}
-              href={slot.href}
-              className={cn(
-                "group flex items-center justify-between gap-4 rounded-[1rem] px-3 py-3 transition hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/55",
-                index < data.upcomingSlots.length - 1 && "border-b border-white/5",
-              )}
-            >
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <p className="text-lg font-semibold text-white">{slot.timeLabel}</p>
-                  <span className="text-xs uppercase tracking-[0.18em] text-white/38">
-                    {slot.dayLabel}
-                  </span>
+          <>
+            {!data.hasFreeWindowsToday ? (
+              <p className="rounded-lg border border-white/8 bg-black/16 px-3 py-2.5 text-sm font-medium text-white/72">
+                {data.hasPublishedSlotsTodayOrTomorrow
+                  ? "Dnes nejsou volná okna."
+                  : "Dnes ani zítra není publikovaný volný termín."}
+              </p>
+            ) : null}
+
+            {data.upcomingSlots.map((slot, index) => (
+              <Link
+                key={slot.id}
+                href={slot.href}
+                className={cn(
+                  "group flex items-center justify-between gap-4 rounded-lg px-3 py-2.5 transition hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/55",
+                  index < data.upcomingSlots.length - 1 && "border-b border-white/5",
+                )}
+              >
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="text-base font-semibold text-white">{slot.timeLabel}</p>
+                    <span className="text-xs uppercase tracking-[0.18em] text-white/38">
+                      {slot.dayLabel}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-sm text-white/54">{slot.metaLabel}</p>
                 </div>
-                <p className="mt-1 text-sm text-white/54">{slot.metaLabel}</p>
-              </div>
-              <span className="text-xl text-white/32 transition group-hover:text-white/56">→</span>
-            </Link>
-          ))
+                <span className="text-xl text-white/32 transition group-hover:text-white/56">→</span>
+              </Link>
+            ))}
+          </>
         ) : (
           <div>
-            <p className="text-sm font-medium text-white">Dnes nejsou volná okna.</p>
-            <p className="mt-2 text-sm text-white/58">Uprav dostupnost nebo přidej další termín.</p>
-            <div className="mt-4">
+            <p className="text-sm font-medium text-white">
+              {data.hasPublishedSlotsTodayOrTomorrow
+                ? "Dnes nejsou volná okna."
+                : "Dnes ani zítra není publikovaný volný termín."}
+            </p>
+            <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
               <DashboardButton href={data.upcomingSlotsFooterHref} label="Upravit dostupnost" />
+              <DashboardButton href={data.addSlotHref} label="Přidat termín" tone="outline" />
             </div>
           </div>
         )}
       </div>
 
-      <div className="border-t border-white/7 pt-4">
+      <div className="border-t border-white/7 pt-3">
         <Link
           href={data.upcomingSlotsFooterHref}
           className="text-sm font-medium text-[var(--color-accent-soft)] transition hover:text-white"
@@ -529,49 +573,74 @@ export function DashboardAvailableSlots({ data }: DashboardPageProps) {
 }
 
 export function DashboardQuickActions({ data }: DashboardPageProps) {
-  const [primaryAction, ...secondaryActions] = data.quickActions;
-
   return (
-    <Card className="p-5.5">
-      <div className="border-b border-white/7 pb-4">
+    <Card className="p-4">
+      <div className="border-b border-white/7 pb-3">
         <h2 className="text-base font-semibold text-white">Rychlé akce</h2>
       </div>
 
-      <div className="space-y-3.5 pt-4.5">
-        {primaryAction ? (
-          <Link
-            href={primaryAction.href}
-            className="group flex min-h-28 flex-col justify-between rounded-[1.2rem] border border-[var(--color-accent)]/28 bg-[rgba(190,160,120,0.12)] p-[1.125rem] transition hover:border-[var(--color-accent)]/42 hover:bg-[rgba(190,160,120,0.18)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/55"
-          >
-            <span className="flex size-11 items-center justify-center rounded-xl border border-[var(--color-accent)]/18 bg-black/18 text-[var(--color-accent-soft)]">
-              <DashboardIcon name={primaryAction.icon} className="size-4" />
-            </span>
-            <div className="space-y-1">
-              <p className="text-sm font-semibold text-white">{primaryAction.label}</p>
-              <p className="text-xs leading-5 text-white/68">{primaryAction.description}</p>
-            </div>
-          </Link>
-        ) : null}
-
-        <div className="grid gap-3">
-          {secondaryActions.map((action) => (
+      <div className="grid grid-cols-2 gap-2 pt-3">
+          {data.quickActions.map((action) => (
             <Link
               key={action.id}
               href={action.href}
-              className="group flex items-center gap-3 rounded-[1rem] border border-white/8 bg-white/[0.035] px-4 py-3 transition hover:border-white/14 hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/55"
+              className={cn(
+                "group flex min-h-12 items-center gap-2 rounded-lg border px-3 py-2 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/55",
+                action.id === "create-booking"
+                  ? "border-[var(--color-accent)]/28 bg-[rgba(190,160,120,0.12)] hover:border-[var(--color-accent)]/42 hover:bg-[rgba(190,160,120,0.18)]"
+                  : "border-white/8 bg-white/[0.035] hover:border-white/14 hover:bg-white/[0.06]",
+              )}
             >
-              <span className="flex size-10 items-center justify-center rounded-xl border border-white/10 bg-black/18 text-[var(--color-accent-soft)] transition group-hover:border-[var(--color-accent)]/25">
+              <span className="flex size-7 shrink-0 items-center justify-center rounded-md border border-white/10 bg-black/18 text-[var(--color-accent-soft)] transition group-hover:border-[var(--color-accent)]/25">
                 <DashboardIcon name={action.icon} className="size-4" />
               </span>
               <div className="min-w-0">
-                <p className="text-sm font-semibold text-white">{action.label}</p>
-                <p className="text-xs leading-5 text-white/46">{action.description}</p>
+                <p className="truncate text-sm font-semibold text-white">{quickActionLabel(action.id)}</p>
               </div>
             </Link>
           ))}
-        </div>
       </div>
     </Card>
+  );
+}
+
+function quickActionLabel(id: string) {
+  switch (id) {
+    case "create-booking":
+      return "Vytvořit";
+    case "bookings":
+      return "Rezervace";
+    case "availability":
+      return "Dostupnost";
+    case "clients":
+      return "Klienti";
+    default:
+      return "Otevřít";
+  }
+}
+
+export function DashboardWeekSummary({ data }: DashboardPageProps) {
+  return (
+    <Card className="p-4">
+      <div className="border-b border-white/7 pb-3">
+        <h2 className="text-base font-semibold text-white">Tento týden</h2>
+      </div>
+
+      <div className="grid gap-2 pt-3">
+        <SummaryRow label="Obsazenost" value={data.weekSummary.occupancyLabel} />
+        <SummaryRow label="Volné sloty" value={data.weekSummary.freeSlotsLabel} />
+        <SummaryRow label="Rezervace" value={data.weekSummary.bookingsLabel} />
+      </div>
+    </Card>
+  );
+}
+
+function SummaryRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex min-h-9 items-center justify-between gap-4 rounded-lg border border-white/8 bg-white/[0.035] px-3 py-2">
+      <p className="text-sm text-white/58">{label}</p>
+      <p className="text-sm font-semibold text-white">{value}</p>
+    </div>
   );
 }
 

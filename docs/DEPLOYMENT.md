@@ -65,14 +65,14 @@ Postup nasazení aplikace do produkce.
    - stejné chování owner/salon párových route po refaktoru factory wrapperů (overview, section, booking detail, slot list/create/detail/edit)
    - lite admin navigaci a mobilní čitelnost na `/admin/provoz/*`
    - overview dashboard na `/admin` a `/admin/provoz`:
-     - horní blok `Dnešní provoz` ukazuje datum, dominantní počet dnešních rezervací, další klientku a CTA `Otevřít dnešní plán / Přidat termín / Detail rezervace`
-     - blok `Dnešní úkoly` odpovídá aktuálním datům pro pending potvrzení, další klientku, dnešní volná okna a chybné e-maily
-     - pending potvrzení se při nenulovém stavu zobrazí jako výrazný alert nad dnešním plánem; bez pending stavu se dashboard nechová agresivně
-     - `Dnešní plán` kombinuje rezervace a volná okna bez rozbitých časů nebo duplicit a řádky reagují na hover, click-to-open i inline akce
-     - rychlé akce rezervací v timeline fungují (`Potvrdit`, `Zrušit`, `Otevřít`) a po úspěchu ukážou toast
-     - pravý sidebar ukazuje jen nejbližší skutečně volné sloty pro dnes a zítra a samostatný blok `Rychlé akce`
-     - `Vytvořit rezervaci` je v pravém panelu nejvýraznější CTA a ostatní akce zůstávají sekundární
-     - spodní KPI neopakují počet dnešních rezervací; zobrazují jen sekundární provozní metriky
+     - horní blok `Dnešní provoz` ukazuje datum, počet dnešních aktivních rezervací, právě probíhající nebo další rezervaci a CTA `Vytvořit rezervaci / Otevřít dnešní plán / Upravit dostupnost`
+     - horní blok je nízká operační lišta, ne vysoký hero s velkým číslem
+     - sekce `Vyžaduje pozornost` slučuje pending rezervace, chybějící publikovanou dostupnost dnes/zítra a chybné e-maily; při nulovém stavu ukazuje klidné potvrzení
+     - KPI jsou jeden kompaktní metric strip: `Dnes rezervace`, `Volná okna dnes`, `Týdenní obsazenost`, `Volné sloty tento týden`; nulové e-mailové chyby nejsou samostatná KPI karta
+     - `Dnešní plán` ukazuje pouze dnešní rezervace jako kompaktní seznam, právě probíhající termín decentně zvýrazní a nulový stav nabízí `Vytvořit rezervaci`
+     - `Nejbližší volné termíny` neduplikuje dnešní volná okna a při chybějící dostupnosti pro dnes/zítra ukazuje akce `Upravit dostupnost` a `Přidat termín`
+     - pravý sloupec obsahuje 2x2 rychlé akce, kompaktní `Tento týden` a nízkou kartu `Výkon webu`
+     - detailní zdroje návštěv a funnel nejsou viditelné v hlavním pohledu; jsou až pod rozbalením `Zobrazit analytiku`
    - sekci `Kategorie služeb` na `/admin/kategorie-sluzeb` a `/admin/provoz/kategorie-sluzeb`:
      - pravý overlay drawer detailu na desktopu i mobilu
      - vytvoření nové kategorie přes CTA
