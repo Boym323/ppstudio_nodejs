@@ -176,6 +176,18 @@ npm run db:generate
 npm run dev
 ```
 
+Pokud `next dev` spadne na Turbopack cache chybu typu `Failed to restore task data` nebo chybějící `.sst` soubor v `.next/dev/cache/turbopack`, spusť:
+
+```bash
+npm run dev:clean
+```
+
+Fallback režim bez Turbopacku:
+
+```bash
+npm run dev:webpack
+```
+
 `npm test` nyní spouští i DB-backed integrační testy (nejsou skipnuté), takže běžná verifikace zahrnuje i booking integrační scénáře.
 
 Browser E2E vrstva používá Playwright a spouští se samostatně:

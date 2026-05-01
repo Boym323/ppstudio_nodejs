@@ -123,10 +123,11 @@ export async function AdminServicesPage({
       eyebrow={area === "owner" ? "Katalog služeb" : "Provozní nabídka"}
       title="Služby"
       description="Rychlá správa nabídky pro web, ceník i interní provoz."
+      denseIntro
       headerActions={
         <a
           href={createHref}
-          className="inline-flex rounded-full bg-[var(--color-accent)] px-4 py-2.5 text-sm font-semibold text-[var(--color-accent-contrast)] transition hover:brightness-105"
+          className="inline-flex rounded-full bg-[var(--color-accent)] px-3.5 py-2 text-sm font-semibold text-[var(--color-accent-contrast)] transition hover:brightness-105"
         >
           Nová služba
         </a>
@@ -162,6 +163,7 @@ export async function AdminServicesPage({
             title="Přehled služeb"
             compact={area === "salon"}
             denseHeader
+            tighter
           >
             <AdminServicesToolbar
               currentPath={data.currentPath}
@@ -170,7 +172,7 @@ export async function AdminServicesPage({
               selectedServiceName={data.selectedService?.name}
             />
 
-            <div className="mt-4 rounded-[1rem] border border-white/8 bg-white/[0.035] px-4 py-3 text-sm text-white/70">
+            <div className="mt-3 rounded-[1rem] border border-white/8 bg-white/[0.035] px-4 py-2.5 text-sm text-white/70">
               <p>
                 V seznamu: {data.summary.listed} · Skupin: {data.summary.categories} · Viditelné: {data.summary.visible} · Upozornění: {data.summary.warnings}
               </p>
@@ -183,7 +185,7 @@ export async function AdminServicesPage({
               </div>
             ) : null}
 
-            <div className="mt-4">
+            <div className="mt-3">
               <AdminServicesList
                 area={area}
                 currentPath={data.currentPath}
@@ -199,11 +201,12 @@ export async function AdminServicesPage({
       </div>
 
       <div className="hidden xl:block">
-        <AdminPanel
-          title="Přehled služeb"
-          compact={area === "salon"}
-          denseHeader
-        >
+          <AdminPanel
+            title="Přehled služeb"
+            compact={area === "salon"}
+            denseHeader
+            tighter
+          >
           <AdminServicesToolbar
             currentPath={data.currentPath}
             filters={data.filters}
@@ -211,7 +214,7 @@ export async function AdminServicesPage({
             selectedServiceName={data.selectedService?.name}
           />
 
-          <div className="mt-4 rounded-[1rem] border border-white/8 bg-white/[0.035] px-4 py-3 text-sm text-white/70">
+          <div className="mt-3 rounded-[1rem] border border-white/8 bg-white/[0.035] px-4 py-2.5 text-sm text-white/70">
             <p>
               V seznamu: {data.summary.listed} · Skupin: {data.summary.categories} · Viditelné: {data.summary.visible} · Upozornění: {data.summary.warnings}
             </p>
@@ -224,7 +227,7 @@ export async function AdminServicesPage({
             </div>
           ) : null}
 
-          <div className="mt-4">
+          <div className="mt-3">
             <AdminServicesList
               area={area}
               currentPath={data.currentPath}

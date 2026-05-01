@@ -42,8 +42,8 @@ export function ServiceCategoryGroup({
     .join(" · ");
 
   return (
-    <details className="group rounded-[1.2rem] border border-white/8 bg-white/[0.04]" open={defaultOpen}>
-      <summary className="list-none cursor-pointer px-4 py-3 [&::-webkit-details-marker]:hidden">
+    <details className="group rounded-[1.1rem] border border-white/8 bg-white/[0.04]" open={defaultOpen}>
+      <summary className="list-none cursor-pointer px-4 py-2.5 [&::-webkit-details-marker]:hidden">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="min-w-0">
             <h3 className="text-sm font-semibold text-white sm:text-base">{category.name}</h3>
@@ -62,8 +62,8 @@ export function ServiceCategoryGroup({
         </div>
       </summary>
 
-      <div className="border-t border-white/8 p-2 sm:p-3">
-        <div className="space-y-1.5">
+      <div className="border-t border-white/8 p-2">
+        <div className="space-y-1">
           {category.services.map((service) => (
             <ServiceCompactRow
               key={service.id}

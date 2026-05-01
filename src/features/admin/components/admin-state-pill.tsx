@@ -14,11 +14,13 @@ export function AdminStatePill({
   children,
   className,
   title,
+  nativeTitle,
 }: {
   tone: AdminStateTone;
   children: React.ReactNode;
   className?: string;
   title?: string;
+  nativeTitle?: string;
 }) {
   return (
     <span className={cn("relative inline-flex", title ? "group" : undefined)}>
@@ -30,6 +32,7 @@ export function AdminStatePill({
           className,
         )}
         aria-label={title}
+        title={nativeTitle}
         tabIndex={title ? 0 : undefined}
       >
         {children}

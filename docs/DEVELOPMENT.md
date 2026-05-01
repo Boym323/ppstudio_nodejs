@@ -12,6 +12,12 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Verzi a changelog drž vždy konzistentně: release commit má obsahovat finální version bump a odpovídající release poznámky.
 - Pro standardní produkční rollout používej `./deploy/release.sh`; skript sjednocuje kroky `pull -> npm ci -> Prisma -> lint/build -> restart systemd služeb`, předem ověří nainstalované units `ppstudio-web.service` a `ppstudio-email-worker.service` a zastaví se i při nalezených legacy PM2 procesech `ppstudio-web` / `ppstudio-email-worker`.
 
+## Dev runtime a cache
+- Výchozí `npm run dev` používá Next.js 16 dev server.
+- Pokud dev server spadne na poškozené Turbopack cache (`Failed to restore task data`, chybějící `.sst` v `.next/dev/cache/turbopack`), použij:
+  - `npm run dev:clean` (smaže `.next` a znovu spustí dev server)
+  - `npm run dev:webpack` (fallback bez Turbopacku, vhodné při opakovaných pádech cache)
+
 ## Architektura
 - `src/app` obsahuje pouze routy, layouty a route handlers.
 - `src/components` drží čistě sdílené stavební prvky.

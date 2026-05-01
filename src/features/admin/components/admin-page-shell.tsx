@@ -28,6 +28,7 @@ type AdminPanelProps = {
   children: React.ReactNode;
   compact?: boolean;
   denseHeader?: boolean;
+  tighter?: boolean;
 };
 
 type AdminKeyValueListProps = {
@@ -62,7 +63,7 @@ export function AdminPageShell({
   denseIntro = false,
 }: AdminPageShellProps) {
   return (
-    <div className="min-w-0 space-y-6">
+    <div className={cn("min-w-0", denseIntro ? "space-y-4" : "space-y-6")}>
       <section
         className={cn(
           "rounded-[var(--radius-panel)] border border-white/10 bg-white/6 backdrop-blur-xl",
@@ -110,7 +111,12 @@ export function AdminPageShell({
       </section>
 
       {stats?.length ? (
-        <section className={cn("grid md:grid-cols-2 xl:grid-cols-4", compactStats ? "gap-3" : "gap-4")}>
+        <section
+          className={cn(
+            "grid md:grid-cols-2 xl:grid-cols-4",
+            compactStats ? (slimStats ? "gap-2.5" : "gap-3") : "gap-4",
+          )}
+        >
           {stats.map((stat) => (
             <article
               key={stat.label}
@@ -168,30 +174,36 @@ export function AdminPanel({
   children,
   compact = false,
   denseHeader = false,
+  tighter = false,
 }: AdminPanelProps) {
   return (
     <section
       className={cn(
         "rounded-[var(--radius-panel)] border border-white/10 bg-black/10",
-        compact ? "p-5" : "p-6",
+        tighter ? "p-4 sm:p-4.5" : compact ? "p-5" : "p-6",
       )}
     >
-      <div className={cn("border-b border-white/10", denseHeader ? "pb-3" : "pb-4")}>
+      <div className={cn("border-b border-white/10", tighter ? "pb-2.5" : denseHeader ? "pb-3" : "pb-4")}>
         <h3
           className={cn(
             "font-display text-white",
-            denseHeader ? "text-[1.4rem] sm:text-[1.55rem]" : "text-2xl sm:text-3xl",
+            tighter ? "text-[1.2rem] sm:text-[1.3rem]" : denseHeader ? "text-[1.4rem] sm:text-[1.55rem]" : "text-2xl sm:text-3xl",
           )}
         >
           {title}
         </h3>
         {description ? (
-          <p className={cn("max-w-3xl text-sm text-white/66", denseHeader ? "mt-2 leading-5" : "mt-3 leading-6")}>
+          <p
+            className={cn(
+              "max-w-3xl text-sm text-white/66",
+              tighter ? "mt-1.5 leading-5" : denseHeader ? "mt-2 leading-5" : "mt-3 leading-6",
+            )}
+          >
             {description}
           </p>
         ) : null}
       </div>
-      <div className={denseHeader ? "pt-3" : "pt-4"}>{children}</div>
+      <div className={tighter ? "pt-2.5" : denseHeader ? "pt-3" : "pt-4"}>{children}</div>
     </section>
   );
 }

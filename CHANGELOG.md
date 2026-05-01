@@ -6,6 +6,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Přidány dev helper skripty `clean`, `dev:clean` a `dev:webpack` pro rychlé řešení pádů Next.js 16 Turbopack cache (`Failed to restore task data`, chybějící `.sst` v `.next/dev/cache/turbopack`) bez ručního mazání adresářů.
 - Admin sekce `Klienti` prošla CRM density refaktorem: nízká hlavička, provozní KPI `Klientů/Klientek celkem`, `Nové za 30 dní`, `Bez kontaktu`, `S poznámkou`, rychlé filtry `S rezervací`, `Bez rezervace`, `Bez kontaktu`, `S poznámkou`, `Nové za 30 dní` a kompaktní tabulkový seznam se zkrácenými kontakty.
 - Admin sekce `Rezervace` prošla dalším provozním density refaktorem: vysoký hero nahradila nízká hlavička s CTA `Přidat rezervaci`, rychlé filtry a formulářové filtry se sloučily do jednoho pracovního panelu a pod ně přibyl tenký KPI strip `Čeká na potvrzení / Dnes / Tento týden / Bez kontaktu`.
 - Admin sekce `Služby` dostala finální density pass běžného katalogu: KPI strip se zkrátil na `Veřejné služby / Kategorie / Interní / skryté / Vyžaduje kontrolu`, seznamová hlavička používá kratší copy, souhrnný řádek explicitně komunikuje skrytí systémových/testovacích položek a kategorie ukazují kompaktní provozní počty.

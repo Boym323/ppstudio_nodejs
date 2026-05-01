@@ -11,6 +11,12 @@ Evidence produkčních incidentů a jejich řešení.
 - Preventivní opatření
 
 ## Incidenty
+- Datum a čas: 2026-05-01 10:20 CEST
+  Dopad (uživatelé/systém): lokální vývojový server padal během práce v `/admin` a přerušoval hot reload.
+  Příčina: poškozená Turbopack dev cache (`.next/dev/cache/turbopack`), chybějící `.sst` soubory při obnově task databáze.
+  Okamžité řešení: zastavit dev server, vyčistit `.next` a spustit znovu (`npm run dev:clean`); při opakování použít fallback `npm run dev:webpack`.
+  Trvalá oprava: do `package.json` přidány skripty `clean`, `dev:clean` a `dev:webpack`, dokumentace doplněna o postup.
+  Preventivní opatření: při prvních známkách Turbopack cache chyb neřešit symptomaticky po souborech, ale rovnou resetovat `.next`; při nestabilitě dočasně přepnout na webpack dev mód.
 - Datum a čas: 2026-04-30 19:45 CEST
   Dopad (uživatelé/systém): release doběhl přes migrace, lint i build, ale skončil chybou při restartu `ppstudio-web.service`; nová verze tak zůstala nenasazená do běžících procesů a rollout se musel ručně dohledávat.
   Příčina: server neměl nainstalované systemd units z `deploy/systemd/*` a současně mu zůstal legacy PM2 runtime; `deploy/release.sh` tehdy neověřoval ani přítomnost unitů, ani konflikt dvou process managerů.

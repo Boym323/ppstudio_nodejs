@@ -26,10 +26,10 @@ export function AdminServicesToolbar({
   selectedServiceName,
 }: AdminServicesToolbarProps) {
   return (
-    <form className="rounded-[1.1rem] border border-white/8 bg-[#161219]/95 p-3 backdrop-blur xl:sticky xl:top-3 xl:z-20">
+    <form className="rounded-[1rem] border border-white/8 bg-[#161219]/95 p-2.5 backdrop-blur xl:sticky xl:top-3 xl:z-20">
         {filters.serviceId ? <input type="hidden" name="serviceId" value={filters.serviceId} /> : null}
 
-        <div className="mb-3 flex flex-wrap items-center gap-2 border-b border-white/8 pb-3">
+        <div className="mb-2.5 flex flex-wrap items-center gap-2 border-b border-white/8 pb-2.5">
           <span className="rounded-full border border-[var(--color-accent)]/28 bg-[rgba(190,160,120,0.08)] px-2.5 py-1 text-[11px] uppercase tracking-[0.16em] text-[var(--color-accent-soft)]">
             Běžný katalog
           </span>
@@ -50,7 +50,7 @@ export function AdminServicesToolbar({
           </details>
         </div>
 
-        <div className="grid gap-3 lg:grid-cols-[minmax(0,2.1fr)_repeat(4,minmax(0,1fr))]">
+        <div className="grid gap-2.5 lg:grid-cols-[minmax(0,2.1fr)_repeat(4,minmax(0,1fr))]">
           <label className="block">
             <span className="text-[11px] uppercase tracking-[0.18em] text-white/46">Hledat</span>
             <input
@@ -58,7 +58,7 @@ export function AdminServicesToolbar({
               name="query"
               defaultValue={filters.query}
               placeholder="Název, kategorie nebo text"
-              className="mt-1.5 w-full rounded-[0.95rem] border border-white/10 bg-black/20 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/30 focus:border-[var(--color-accent)]/60"
+              className="mt-1 w-full rounded-[0.9rem] border border-white/10 bg-black/20 px-3 py-2 text-sm text-white outline-none transition placeholder:text-white/30 focus:border-[var(--color-accent)]/60"
             />
           </label>
 
@@ -92,7 +92,7 @@ export function AdminServicesToolbar({
           </SelectField>
         </div>
 
-        <div className="mt-3 flex flex-col gap-2 border-t border-white/8 pt-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mt-2.5 flex flex-col gap-2 border-t border-white/8 pt-2.5 sm:flex-row sm:items-center sm:justify-between">
           {selectedServiceName ? (
             <p className="text-sm text-white/62">
               Otevřená služba: <span className="text-white">{selectedServiceName}</span>
@@ -102,13 +102,13 @@ export function AdminServicesToolbar({
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="submit"
-              className="rounded-full bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-[var(--color-accent-contrast)] transition hover:brightness-105"
+              className="rounded-full bg-[var(--color-accent)] px-4 py-1.5 text-sm font-semibold text-[var(--color-accent-contrast)] transition hover:brightness-105"
             >
               Filtrovat
             </button>
             <a
               href={currentPath}
-              className="rounded-full border border-white/10 px-4 py-2 text-sm text-white/80 transition hover:border-white/18 hover:bg-white/6"
+              className="rounded-full border border-white/10 px-4 py-1.5 text-sm text-white/80 transition hover:border-white/18 hover:bg-white/6"
             >
               Zrušit filtr
             </a>
@@ -135,7 +135,7 @@ function SelectField({
       <select
         name={name}
         defaultValue={defaultValue}
-        className="mt-1.5 w-full rounded-[0.95rem] border border-white/10 bg-black/20 px-3 py-2.5 text-sm text-white outline-none transition focus:border-[var(--color-accent)]/60"
+        className="mt-1 w-full rounded-[0.9rem] border border-white/10 bg-black/20 px-3 py-2 text-sm text-white outline-none transition focus:border-[var(--color-accent)]/60"
       >
         {children}
       </select>

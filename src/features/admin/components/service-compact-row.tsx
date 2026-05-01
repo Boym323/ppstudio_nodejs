@@ -63,6 +63,7 @@ export function ServiceCompactRow({
               isEffectivelyVisible={service.isEffectivelyVisible}
               compact
               showHiddenState={false}
+              showTooltip={false}
             />
             {hasWarnings ? (
               <span className="rounded-full border border-amber-300/25 bg-amber-400/10 px-2 py-0.5 text-[11px] text-amber-100">
