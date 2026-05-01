@@ -137,6 +137,7 @@ Evidence produkčních incidentů a jejich řešení.
 - Sticky draft bar nebo badge `Neuloženo`, které zůstávají viset i po návratu ke stejnému týdennímu stavu; indikace se má odvozovat z reálného diffu proti serverovým dnům, ne jen z ručně přepínaného flagu.
 - Batch create vytvářející jen část série: tohle nesmí nastat; workflow má běžet transakčně all-or-nothing.
 - Mobilní planner s nečitelnými touch targety nebo horizontálním scrollem v kartách dnů.
+- Regrese planner density passu, kdy se do horní části vrátí duplicita data týdne, vysoký hero nebo rozpad pravého panelu zpět do mnoha malých boxů; po dalších úpravách vždy ověř, že prioritu má grid a detail výběru zůstává soustředěný v jednom kompaktním panelu.
 - Mobilní nebo tabletový inspektor dne, který překryje grid bez možnosti rychlého zavření nebo neukáže vybraný blok po tapnutí.
 - Day workspace otevírající špatný slot po změně filtru stavu nebo týdne.
 - Owner-only sekce `Nastavení` má dopad i na veřejný web a e-mailovou komunikaci; po každé změně je potřeba rychlá smoke kontrola footeru, `/kontakt`, `/faq`, `/storno-podminky` a `/rezervace`.

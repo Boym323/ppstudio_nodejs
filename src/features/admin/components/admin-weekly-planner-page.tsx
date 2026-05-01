@@ -21,19 +21,21 @@ export async function AdminWeeklyPlannerPage({ area, week, day }: AdminWeeklyPla
 
   return (
     <section className="space-y-4">
-      <header className="rounded-[1.35rem] border border-white/8 bg-white/[0.04] px-4 py-4 sm:px-5">
-        <div className="flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
-          <div className="space-y-1.5">
+      <header className="rounded-[1.2rem] border border-white/8 bg-white/[0.04] px-4 py-3 sm:px-5">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div className="min-w-0 space-y-1">
             <p className="text-[11px] uppercase tracking-[0.28em] text-[var(--color-accent-soft)]">
               {area === "owner" ? "Volné termíny" : "Plán provozu"}
             </p>
-            <h2 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">{data.title}</h2>
-            <p className="max-w-3xl text-sm leading-6 text-white/58">
-              Hlavní práce probíhá přímo v týdenní mřížce. Kliknutí vybírá blok, tažení upravuje dostupnost a rezervace zůstávají jen pro orientaci.
-            </p>
-          </div>
-          <div className="rounded-full border border-white/10 bg-black/15 px-4 py-2 text-sm text-white/72">
-            {data.weekRangeLabel}
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="text-xl font-semibold tracking-tight text-white sm:text-2xl">{data.title}</h2>
+              <span
+                className="inline-flex rounded-full border border-white/10 bg-black/20 px-2.5 py-1 text-[11px] text-white/60"
+                title="Hlavní práce probíhá přímo v týdenní mřížce. Kliknutí vybírá blok, tažení upravuje dostupnost a rezervace zůstávají jen pro orientaci."
+              >
+                Kliknutí vybírá, tažení upravuje
+              </span>
+            </div>
           </div>
         </div>
       </header>

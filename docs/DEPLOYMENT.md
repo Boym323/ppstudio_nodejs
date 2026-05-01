@@ -92,6 +92,10 @@ Postup nasazení aplikace do produkce.
      - otevření detailu služby do pravého overlay draweru a jeho zavření zpět na stejný filtrovaný seznam
    - slot workflow na `/admin/volne-terminy*` a `/admin/provoz/volne-terminy*`:
      - přepínání týdnů a zachování vybraného dne
+     - horní stránková hlavička zůstává nízká a datum týdne se ukazuje jen jednou v planner toolbaru vedle navigace týdne
+     - toolbar drží kompaktně `zpět / Tento týden / vpřed / datum rozsahu / Kopírovat týden / Šablony` bez velkých prázdných mezer
+     - pravý panel je sloučený do karet `Inspektor dne`, `Akce dne` a `Detail výběru`; legenda je až sekundární rozbalovací sekce u detailu
+     - levá časová osa je dobře čitelná, celé hodiny mají jemně výraznější horizontální rytmus a vybraný den i blok jsou na první pohled rozeznatelné
      - zachování vybraného slotu po rychlé úpravě nebo změně stavu
      - filtr stavu v planneru
      - vytvoření slotu

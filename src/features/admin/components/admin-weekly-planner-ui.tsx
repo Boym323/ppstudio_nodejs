@@ -105,7 +105,7 @@ export function formatRangeLabel(startCell: number, endCell: number) {
 }
 
 function getSummaryLine(day: PlannerDay) {
-  return `${day.availableIntervals.length} volná okna, ${day.bookings.length} rezervací, ${day.lockedIntervals.length} omezení`;
+  return `${day.availableIntervals.length} volných oken · ${day.bookings.length} rezervací · ${day.lockedIntervals.length} omezení`;
 }
 
 function getToneLabel(tone: CellTone) {
@@ -136,6 +136,69 @@ function getToneLabel(tone: CellTone) {
   return "prázdný blok";
 }
 
+function getSelectionToneLabel(tone: CellTone) {
+  if (tone === "available") {
+    return "Dostupnost";
+  }
+
+  if (tone === "booked") {
+    return "Rezervace";
+  }
+
+  if (tone === "completed") {
+    return "Hotovo";
+  }
+
+  if (tone === "locked") {
+    return "Omezené";
+  }
+
+  if (tone === "inactive") {
+    return "Neaktivní";
+  }
+
+  if (tone === "past") {
+    return "Minulý čas";
+  }
+
+  return "Prázdný blok";
+}
+
+function getSelectionInterval(
+  day: PlannerDay,
+  selection: PlannerSelection | null,
+) {
+  if (!selection || selection.dateKey !== day.dateKey) {
+    return null;
+  }
+
+  return (
+    day.intervals.find(
+      (interval) =>
+        interval.startCell === selection.startCell && interval.endCell === selection.endCell,
+    ) ??
+    day.intervals.find(
+      (interval) =>
+        selection.startCell >= interval.startCell && selection.endCell <= interval.endCell,
+    ) ??
+    null
+  );
+}
+
+function getSelectionBooking(day: PlannerDay, selection: PlannerSelection | null) {
+  if (!selection || selection.dateKey !== day.dateKey) {
+    return null;
+  }
+
+  return (
+    day.bookings.find(
+      (booking) =>
+        booking.startCell === selection.startCell && booking.endCell === selection.endCell,
+    ) ??
+    null
+  );
+}
+
 function ActionButton({
   children,
   tone = "default",
@@ -147,7 +210,7 @@ function ActionButton({
     <button
       {...props}
       className={cn(
-        "inline-flex items-center justify-center rounded-full px-4 py-2.5 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50",
+        "inline-flex items-center justify-center rounded-full px-3.5 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50",
         tone === "accent" && "border border-[var(--color-accent)]/42 bg-[rgba(190,160,120,0.15)] text-white",
         tone === "default" && "border border-white/10 bg-white/[0.06] text-white/84",
         tone === "ghost" && "border border-transparent bg-transparent text-white/60 hover:text-white/84",
@@ -190,17 +253,23 @@ export function WeekToolbar({
   pending: boolean;
 }) {
   return (
-    <div className="rounded-[1.3rem] border border-white/8 bg-white/[0.04] px-4 py-4">
-      <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-        <div className="space-y-3">
+    <div className="rounded-[1.2rem] border border-white/8 bg-white/[0.04] px-3.5 py-3.5 sm:px-4">
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex flex-wrap items-center gap-2">
-            <p className="text-[11px] uppercase tracking-[0.24em] text-white/44">{title}</p>
+            <p className="text-[11px] uppercase tracking-[0.24em] text-white/40">{title}</p>
             {hasUnsavedChanges ? (
-              <span className="rounded-full border border-[var(--color-accent)]/30 bg-[rgba(190,160,120,0.12)] px-2.5 py-1 text-[11px] uppercase tracking-[0.18em] text-white/76">
+              <span className="rounded-full border border-[var(--color-accent)]/30 bg-[rgba(190,160,120,0.12)] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-white/76">
                 Neuloženo
               </span>
             ) : null}
           </div>
+          <ActionButton className="xl:hidden" onClick={onOpenInspector}>
+            Inspektor dne
+          </ActionButton>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 xl:flex-nowrap">
           <div className="flex flex-wrap items-center gap-2">
             <Link
               href={`${baseHref}?week=${previousWeekKey}&day=${currentDayKey}`}
@@ -222,20 +291,19 @@ export function WeekToolbar({
             >
               →
             </Link>
+            <p className="rounded-full border border-white/10 bg-black/20 px-3.5 py-2 text-sm font-medium text-white/88">
+              {weekRangeLabel}
+            </p>
           </div>
-          <div>
-            <p className="text-xl font-semibold tracking-tight text-white sm:text-2xl">{weekRangeLabel}</p>
-          </div>
-        </div>
 
-        <div className="flex flex-wrap items-center gap-2 xl:justify-end">
+          <div className="flex flex-wrap items-center gap-2 xl:ml-auto">
           <ActionButton onClick={onCopyWeek} disabled={pending}>
             Kopírovat týden
           </ActionButton>
 
           <details className="group relative">
             <summary className="list-none">
-              <span className="inline-flex cursor-pointer items-center justify-center rounded-full border border-white/10 bg-white/[0.06] px-4 py-2.5 text-sm font-medium text-white/84">
+              <span className="inline-flex cursor-pointer items-center justify-center rounded-full border border-white/10 bg-white/[0.06] px-3.5 py-2 text-sm font-medium text-white/84">
                 Šablony ▾
               </span>
             </summary>
@@ -257,10 +325,7 @@ export function WeekToolbar({
               </button>
             </div>
           </details>
-
-          <ActionButton className="xl:hidden" onClick={onOpenInspector}>
-            Inspektor dne
-          </ActionButton>
+          </div>
         </div>
       </div>
     </div>
@@ -274,7 +339,7 @@ export function PlannerLegend({ legend }: { legend: Array<{ tone: CellTone | "pa
         <span
           key={item.label}
           className={cn(
-            "rounded-full border px-2.5 py-1 text-[11px] uppercase tracking-[0.16em]",
+            "rounded-full border px-2.5 py-1 text-[10px] font-medium text-white/82",
             item.tone === "available" && "border-emerald-300/35 bg-emerald-300/15 text-white/86",
             item.tone === "booked" && "border-rose-300/35 bg-rose-300/16 text-white/86",
             item.tone === "completed" && "border-cyan-300/30 bg-cyan-300/14 text-white/86",
@@ -383,12 +448,14 @@ function isCellHighlighted(
 export function GridCell({
   tone,
   selected,
+  hourBoundary,
   label,
   onPointerDown,
   onPointerMove,
 }: {
   tone: CellTone;
   selected: boolean;
+  hourBoundary: boolean;
   label: string;
   onPointerDown: () => void;
   onPointerMove: (event: React.PointerEvent<HTMLButtonElement>) => void;
@@ -402,6 +469,7 @@ export function GridCell({
       onPointerMove={onPointerMove}
       className={cn(
         "h-8 w-full rounded-[0.65rem] border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/70 lg:h-[1.2rem]",
+        hourBoundary ? "border-t-white/22" : "border-t-white/10",
         tone === "available" && "border-emerald-300/25 bg-emerald-300/66 hover:bg-emerald-300/82",
         tone === "booked" && "cursor-default border-rose-300/30 bg-rose-300/70",
         tone === "completed" && "cursor-default border-cyan-300/30 bg-cyan-300/60",
@@ -409,7 +477,8 @@ export function GridCell({
         tone === "inactive" && "cursor-default border-slate-300/16 bg-slate-300/24",
         tone === "past" && "cursor-default border-white/6 bg-white/[0.04]",
         tone === "empty" && "border-white/10 bg-white/[0.07] hover:bg-white/[0.11]",
-        selected && "ring-2 ring-[var(--color-accent)]/85 ring-offset-1 ring-offset-[#141217]",
+        selected &&
+          "z-10 scale-[1.01] border-[var(--color-accent)]/70 ring-2 ring-[var(--color-accent)]/90 ring-offset-1 ring-offset-[#141217] shadow-[0_0_0_1px_rgba(190,160,120,0.22),0_12px_24px_rgba(0,0,0,0.28)]",
       )}
     />
   );
@@ -454,11 +523,18 @@ export function DesktopWeekGrid({
                 className={cn(
                   "rounded-[1rem] border px-3 py-3 text-left transition",
                   day.dateKey === selectedDayKey
-                    ? "border-[var(--color-accent)]/46 bg-[rgba(190,160,120,0.12)]"
+                    ? "border-[var(--color-accent)]/55 bg-[rgba(190,160,120,0.12)] shadow-[inset_0_0_0_1px_rgba(190,160,120,0.18)]"
                     : "border-white/8 bg-white/[0.03] hover:border-white/14 hover:bg-white/[0.05]",
                 )}
               >
-                <p className="text-[10px] uppercase tracking-[0.24em] text-white/44">{day.shortLabel}</p>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-[10px] uppercase tracking-[0.24em] text-white/44">{day.shortLabel}</p>
+                  {day.dateKey === selectedDayKey ? (
+                    <span className="rounded-full border border-[var(--color-accent)]/36 bg-[rgba(190,160,120,0.12)] px-2 py-0.5 text-[10px] font-medium text-white/80">
+                      Vybráno
+                    </span>
+                  ) : null}
+                </div>
                 <div className="mt-2 flex items-end justify-between gap-3">
                   <p className="text-3xl font-semibold leading-none text-white">{day.dayNumber}</p>
                   <p className="text-xs text-white/44">{day.monthLabel}</p>
@@ -471,7 +547,10 @@ export function DesktopWeekGrid({
               {rowIndexes.map((cellIndex) => (
                 <div
                   key={`label-${cellIndex}`}
-                  className="flex h-[1.2rem] items-start text-[10px] uppercase tracking-[0.16em] text-white/32"
+                  className={cn(
+                    "flex h-[1.2rem] items-start border-t text-[10px] uppercase tracking-[0.16em]",
+                    cellIndex % 2 === 0 ? "border-white/16 text-white/58" : "border-white/7 text-white/26",
+                  )}
                 >
                   {cellIndex % 2 === 0 ? timeLabels[cellIndex] ?? formatRangeLabel(cellIndex, cellIndex + 1).slice(0, 5) : ""}
                 </div>
@@ -489,6 +568,7 @@ export function DesktopWeekGrid({
                     key={`${day.dateKey}-${cellIndex}`}
                     tone={tone}
                     selected={isCellHighlighted(day.dateKey, cellIndex, draft, selectedSelection)}
+                    hourBoundary={cellIndex % 2 === 0}
                     label={`${day.label}, ${formatRangeLabel(cellIndex, cellIndex + 1)}, ${getToneLabel(tone)}`}
                     onPointerDown={() => onCellStart(day, cellIndex)}
                     onPointerMove={(event) => onCellMove(day.dateKey, cellIndex, event.buttons)}
@@ -536,12 +616,18 @@ export function MobileDayGrid({
           <div className={cn("mt-4 grid grid-cols-[3rem_minmax(0,1fr)] gap-x-3", PLANNER_MOBILE_ROW_CLASS)}>
             {rowIndexes.map((cellIndex) => (
               <div key={`${day.dateKey}-${cellIndex}`} className="contents">
-                <div className="pt-1 text-[10px] uppercase tracking-[0.14em] text-white/38">
+                <div
+                  className={cn(
+                    "border-t pt-1 text-[10px] uppercase tracking-[0.14em]",
+                    cellIndex % 2 === 0 ? "border-white/16 text-white/58" : "border-white/7 text-white/26",
+                  )}
+                >
                   {cellIndex % 2 === 0 ? timeLabels[cellIndex] ?? formatRangeLabel(cellIndex, cellIndex + 1).slice(0, 5) : ""}
                 </div>
                 <GridCell
                   tone={getCellTone(day, cellIndex)}
                   selected={isCellHighlighted(day.dateKey, cellIndex, draft, selectedSelection)}
+                  hourBoundary={cellIndex % 2 === 0}
                   label={`${day.label}, ${formatRangeLabel(cellIndex, cellIndex + 1)}, ${getToneLabel(getCellTone(day, cellIndex))}`}
                   onPointerDown={() => onCellStart(day, cellIndex)}
                   onPointerMove={(event) => onCellMove(day.dateKey, cellIndex, event.buttons)}
@@ -582,42 +668,52 @@ export function DayInspector({
   onResetDay: () => void;
   pending: boolean;
 }) {
+  const activeSelection = selection && selection.dateKey === day.dateKey ? selection : null;
+  const selectionInterval = getSelectionInterval(day, activeSelection);
+  const selectionBooking = getSelectionBooking(day, activeSelection);
+  const isDayClosed = !day.isPast && day.availableIntervals.length === 0;
+
   return (
     <div className="space-y-4">
-      <div className="rounded-[1.25rem] border border-white/8 bg-white/[0.04] p-4">
+      <div className="rounded-[1.2rem] border border-white/8 bg-white/[0.04] p-4">
         <div className="flex items-start justify-between gap-3">
-          <div>
+          <div className="space-y-2">
             <p className="text-[10px] uppercase tracking-[0.24em] text-white/42">Inspektor dne</p>
-            <h4 className="mt-2 text-2xl font-semibold text-white">{day.label}</h4>
-            <p className="mt-2 text-sm text-white/58">{getSummaryLine(day)}</p>
+            <h4 className="text-xl font-semibold text-white">{day.label}</h4>
+            <p className="text-sm text-white/60">{getSummaryLine(day)}</p>
           </div>
           {hasUnsavedChanges ? (
-            <span className="rounded-full border border-[var(--color-accent)]/30 bg-[rgba(190,160,120,0.12)] px-2.5 py-1 text-[11px] uppercase tracking-[0.16em] text-white/76">
+            <span className="rounded-full border border-[var(--color-accent)]/30 bg-[rgba(190,160,120,0.12)] px-2.5 py-1 text-[10px] uppercase tracking-[0.16em] text-white/76">
               koncept
             </span>
           ) : null}
         </div>
+        {isDayClosed ? (
+          <div className="mt-3 rounded-[0.95rem] border border-[var(--color-accent)]/22 bg-[rgba(190,160,120,0.09)] px-3 py-2 text-sm text-white/80">
+            Den je aktuálně bez volných oken.
+          </div>
+        ) : null}
       </div>
 
-      <div className="rounded-[1.25rem] border border-white/8 bg-white/[0.03] p-4">
-        <p className="text-[10px] uppercase tracking-[0.24em] text-white/42">Hlavní akce dne</p>
+      <div className="rounded-[1.2rem] border border-white/8 bg-white/[0.03] p-4">
+        <p className="text-[10px] uppercase tracking-[0.24em] text-white/42">Akce dne</p>
         <div className="mt-3 grid gap-2">
           <ActionButton tone="accent" onClick={onClearDay} disabled={pending}>
             Označit den jako zavřeno
           </ActionButton>
           <ActionButton tone="default" onClick={onClearDay} disabled={pending}>
-            Vymazat dostupnost dne
+            Vymazat dostupnost
           </ActionButton>
-          <div className="rounded-[1rem] border border-white/8 bg-black/15 p-3">
+          <div className="rounded-[0.95rem] border border-white/8 bg-black/15 p-3">
             <label className="text-[10px] uppercase tracking-[0.22em] text-white/42" htmlFor="copy-day-select">
               Kopírovat rozvrh z jiného dne
             </label>
-            <div className="mt-3 flex gap-2">
+            <div className="mt-2 flex gap-2">
               <select
                 id="copy-day-select"
                 value={copyTargetKey}
                 onChange={(event) => onCopyTargetChange(event.target.value)}
-                className="min-w-0 flex-1 rounded-full border border-white/10 bg-[#171417] px-4 py-2.5 text-sm text-white outline-none"
+                className="min-w-0 flex-1 rounded-full border border-white/10 bg-[#171417] px-3.5 py-2 text-sm text-white outline-none"
               >
                 <option value="">Vyberte den</option>
                 {days
@@ -639,98 +735,127 @@ export function DayInspector({
         </div>
       </div>
 
-      <div className="rounded-[1.25rem] border border-white/8 bg-white/[0.03] p-4">
-        <p className="text-[10px] uppercase tracking-[0.24em] text-white/42">Detail výběru z gridu</p>
-        {selection && selection.dateKey === day.dateKey ? (
+      <div className="rounded-[1.2rem] border border-white/8 bg-white/[0.03] p-4">
+        <p className="text-[10px] uppercase tracking-[0.24em] text-white/42">Detail výběru</p>
+        {activeSelection ? (
           <div className="mt-3 space-y-3">
-            <div className="rounded-[1rem] border border-white/8 bg-black/15 p-3">
-              <p className="text-sm font-medium text-white">{formatRangeLabel(selection.startCell, selection.endCell)}</p>
-              <p className="mt-1 text-sm text-white/58">
-                {selection.tone === "available" && "Vybraný blok běžné dostupnosti."}
-                {selection.tone === "empty" && "Prázdné místo připravené k doplnění."}
-                {selection.tone === "booked" && "Rezervovaný čas je jen pro orientaci a zůstává chráněný."}
-                {selection.tone === "completed" && "Dokončená rezervace zůstává v plánu pro přehled historie."}
-                {selection.tone === "locked" && "Omezený nebo technický interval nelze upravit přímo z planneru."}
-                {selection.tone === "inactive" && "Neaktivní interval zůstává mimo rychlou editaci."}
-                {selection.tone === "past" && "Minulý čas už není možné měnit."}
+            <div className="rounded-[0.95rem] border border-white/8 bg-black/15 p-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-sm font-medium text-white">{day.label}</p>
+                <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-medium text-white/70">
+                  {getSelectionToneLabel(activeSelection.tone)}
+                </span>
+              </div>
+              <p className="mt-2 text-base font-semibold text-white">
+                {formatRangeLabel(activeSelection.startCell, activeSelection.endCell)}
               </p>
+              <div className="mt-3 space-y-1 text-sm text-white/58">
+                <p>
+                  {activeSelection.tone === "available" && "Vybraný blok běžné dostupnosti."}
+                  {activeSelection.tone === "empty" && "Prázdné místo připravené k doplnění."}
+                  {activeSelection.tone === "booked" && "Rezervovaný čas je jen pro orientaci a zůstává chráněný."}
+                  {activeSelection.tone === "completed" && "Dokončená rezervace zůstává v plánu pro přehled historie."}
+                  {activeSelection.tone === "locked" && "Omezený nebo technický interval nelze upravit přímo z planneru."}
+                  {activeSelection.tone === "inactive" && "Neaktivní interval zůstává mimo rychlou editaci."}
+                  {activeSelection.tone === "past" && "Minulý čas už není možné měnit."}
+                </p>
+                {selectionBooking ? (
+                  <p>{selectionBooking.clientName} · {selectionBooking.serviceName}</p>
+                ) : null}
+                {selectionInterval ? <p>{selectionInterval.detail}</p> : null}
+                {selectionInterval && selectionInterval.bookingCount > 0 ? (
+                  <p>Kapacita obsazena: {selectionInterval.bookingCount}</p>
+                ) : null}
+              </div>
             </div>
-            {selection.editable ? (
-              <ActionButton tone={selection.tone === "available" ? "danger" : "accent"} onClick={onApplySelection} disabled={pending}>
-                {selection.tone === "available" ? "Odebrat vybraný blok" : "Přidat vybraný blok"}
+            {activeSelection.editable ? (
+              <ActionButton
+                tone={activeSelection.tone === "available" ? "danger" : "accent"}
+                onClick={onApplySelection}
+                disabled={pending}
+              >
+                {activeSelection.tone === "available" ? "Odebrat vybraný blok" : "Přidat vybraný blok"}
               </ActionButton>
             ) : (
               <p className="text-sm text-white/52">
-                {selection.tone === "completed"
+                {activeSelection.tone === "completed"
                   ? "Hotovou rezervaci upravíte v detailu rezervace, ne v inspektoru dostupnosti."
                   : "Tento blok je chráněný a nelze ho z inspektoru upravit."}
               </p>
             )}
           </div>
         ) : (
-          <p className="mt-3 text-sm leading-6 text-white/56">
-            Vyberte blok v mřížce. Jedno kliknutí zvýrazní konkrétní úsek, tažení vytvoří nebo upraví dostupnost.
-          </p>
+          <div className="mt-3 rounded-[0.95rem] border border-dashed border-white/10 bg-black/10 px-3 py-3">
+            <p className="text-sm text-white/74">Vyberte blok v mřížce.</p>
+            <p className="mt-1 text-sm leading-6 text-white/52">
+              Kliknutí vybere úsek, tažení vytvoří nebo upraví dostupnost.
+            </p>
+          </div>
         )}
-      </div>
 
-      <div className="rounded-[1.25rem] border border-white/8 bg-white/[0.03] p-4">
-        <div className="flex items-center justify-between gap-3">
-          <p className="text-[10px] uppercase tracking-[0.24em] text-white/42">Volná okna</p>
-          <p className="text-xs text-white/46">{day.availableIntervals.length} bloků</p>
-        </div>
-        <div className="mt-3 space-y-2">
-          {day.availableIntervals.length > 0 ? (
-            day.availableIntervals.map((interval) => (
-              <div
-                key={`${interval.startCell}-${interval.endCell}`}
-                className="flex items-center justify-between rounded-[0.9rem] border border-emerald-300/18 bg-emerald-300/10 px-3 py-2 text-left"
-              >
-                <span className="text-sm text-white/88">{interval.label}</span>
-                <span className="text-xs text-white/54">rychlá editace v gridu</span>
-              </div>
-            ))
-          ) : (
-            <p className="text-sm text-white/54">Žádná běžná dostupnost.</p>
-          )}
-        </div>
-      </div>
+        <div className="mt-4 space-y-4 border-t border-white/8 pt-4">
+          <div>
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-[10px] uppercase tracking-[0.24em] text-white/42">Volná okna</p>
+              <p className="text-xs text-white/46">{day.availableIntervals.length} bloků</p>
+            </div>
+            <div className="mt-2 space-y-2">
+              {day.availableIntervals.length > 0 ? (
+                day.availableIntervals.map((interval) => (
+                  <div
+                    key={`${interval.startCell}-${interval.endCell}`}
+                    className="flex items-center justify-between rounded-[0.9rem] border border-emerald-300/18 bg-emerald-300/10 px-3 py-2 text-left"
+                  >
+                    <span className="text-sm text-white/88">{interval.label}</span>
+                    <span className="text-xs text-white/54">rychlá editace</span>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-white/54">Žádná běžná dostupnost.</p>
+              )}
+            </div>
+          </div>
 
-      <div className="rounded-[1.25rem] border border-white/8 bg-white/[0.03] p-4">
-        <p className="text-[10px] uppercase tracking-[0.24em] text-white/42">Rezervace</p>
-        <div className="mt-3 space-y-2">
-          {day.bookings.length > 0 ? (
-            day.bookings.map((booking) => (
-              <div
-                key={booking.id}
-                className={cn(
-                  "rounded-[0.95rem] border px-3 py-2.5 text-sm text-white/86",
-                  booking.status === BookingStatus.COMPLETED
-                    ? "border-cyan-300/18 bg-cyan-300/8"
-                    : "border-rose-300/18 bg-rose-300/10",
-                )}
-              >
-                <div className="flex flex-wrap items-center gap-2">
-                  <p className="font-medium">{booking.label}</p>
-                  {booking.status === BookingStatus.COMPLETED ? (
-                    <span className="rounded-full border border-cyan-300/22 bg-cyan-300/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-100/82">
-                      Hotovo
-                    </span>
-                  ) : null}
-                </div>
-                <p className="mt-1 text-white/58">{booking.clientName} • {booking.serviceName}</p>
-              </div>
-            ))
-          ) : (
-            <p className="text-sm text-white/48">Bez rezervací.</p>
-          )}
-        </div>
-      </div>
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.24em] text-white/42">Rezervace</p>
+            <div className="mt-2 space-y-2">
+              {day.bookings.length > 0 ? (
+                day.bookings.map((booking) => (
+                  <div
+                    key={booking.id}
+                    className={cn(
+                      "rounded-[0.95rem] border px-3 py-2.5 text-sm text-white/86",
+                      booking.status === BookingStatus.COMPLETED
+                        ? "border-cyan-300/18 bg-cyan-300/8"
+                        : "border-rose-300/18 bg-rose-300/10",
+                    )}
+                  >
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="font-medium">{booking.label}</p>
+                      {booking.status === BookingStatus.COMPLETED ? (
+                        <span className="rounded-full border border-cyan-300/22 bg-cyan-300/10 px-2 py-0.5 text-[10px] font-medium text-cyan-100/82">
+                          Hotovo
+                        </span>
+                      ) : null}
+                    </div>
+                    <p className="mt-1 text-white/58">{booking.clientName} • {booking.serviceName}</p>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-white/48">Bez rezervací.</p>
+              )}
+            </div>
+          </div>
 
-      <div className="rounded-[1.25rem] border border-white/8 bg-white/[0.03] p-4">
-        <p className="text-[10px] uppercase tracking-[0.24em] text-white/42">Stavy v mřížce</p>
-        <div className="mt-3">
-          <PlannerLegend legend={legend} />
+          <details className="group rounded-[0.95rem] border border-white/8 bg-black/10 px-3 py-2.5">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-[10px] uppercase tracking-[0.24em] text-white/42">
+              Legenda
+              <span className="text-white/30 transition group-open:rotate-180">⌄</span>
+            </summary>
+            <div className="mt-3">
+              <PlannerLegend legend={legend} />
+            </div>
+          </details>
         </div>
       </div>
     </div>

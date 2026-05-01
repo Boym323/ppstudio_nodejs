@@ -6,6 +6,9 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Admin planner `Volné termíny / Týdenní plán dostupností` prošel UX density passem bez změny business logiky: horní hero je nově nízká hlavička s krátkou nápovědou, datum týdne se zobrazuje už jen jednou v toolbaru, hlavní lišta je hustší a pravý panel se sloučil do tří kompaktních karet `Inspektor dne / Akce dne / Detail výběru`.
+- Legenda stavů v planneru už není samostatná výrazná karta; přesunula se do rozbalovací sekce v `Detailu výběru` a používá menší badge, aby hlavní pozornost zůstala na gridu.
+- Týdenní grid dostupností má čitelnější časovou osu: celé hodiny mají výraznější horizontální rytmus, časové štítky vlevo vyšší kontrast a vybraný den i blok jsou v tmavém premium adminu jasněji zvýrazněné bez zahlcení textem.
 - Admin seznam voucherů je zhuštěný do provoznější evidence: velká hero karta se změnila na nízkou stránkovou hlavičku s CTA `Nový voucher` vpravo, horní statistiky jsou v nízkém čtyřsloupcovém stripu, filtry jsou na desktopu v jednom řádku a desktopový hlavní obsah tvoří kompaktní tabulka se sloupci `Kód / Typ / Voucher / Čerpání a zůstatek / Stav / Platnost / Akce`.
 - KPI pás voucherů je nově provoznější: místo čistých stavových počtů ukazuje `Zbývá k uplatnění`, `Otevřené vouchery`, `Brzy expirují` a `Uzavřené`; souhrn zbývající práce sčítá jen otevřené hodnotové zůstatky a počet otevřených službových voucherů.
 - Stavové badge voucherů už jsou ukotvené přímo ve sloupci `Stav`, nepoužívají přehnaný uppercase tracking a `Propadlý` má samostatný varovný tón; mobil dál přechází do kompaktních karet se stejnou informační prioritou.
