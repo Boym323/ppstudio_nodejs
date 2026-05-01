@@ -37,6 +37,9 @@ export type E2eFixture = {
     primaryTime: string;
     rescheduleDateKey: string;
     rescheduleTime: string;
+    rescheduleConflictButtonLabel: string;
+    rescheduleSuccessButtonLabel: string;
+    rescheduleSuccessStartAt: string;
   };
 };
 
@@ -84,6 +87,19 @@ function formatPragueDateKey(value: Date) {
   }
 
   return `${year}-${month}-${day}`;
+}
+
+function formatPragueLongDateLabel(value: Date) {
+  return new Intl.DateTimeFormat("cs-CZ", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    timeZone: "Europe/Prague",
+  }).format(value);
+}
+
+function formatPragueTimeRange(startsAt: Date, endsAt: Date) {
+  return `${formatPragueTime(startsAt)} – ${formatPragueTime(endsAt)}`;
 }
 
 function buildRunId() {
@@ -181,6 +197,9 @@ async function createCatalogFixture(runId: string) {
 export async function createPublicBookingFixture(): Promise<E2eFixture> {
   const runId = buildRunId();
   const catalog = await createCatalogFixture(runId);
+  const rescheduleSuccessStart = addMinutes(catalog.rescheduleStart, 60);
+  const rescheduleSuccessEnd = addMinutes(rescheduleSuccessStart, catalog.service.durationMinutes);
+  const rescheduleDateLabel = formatPragueLongDateLabel(catalog.rescheduleStart);
 
   return {
     runId,
@@ -194,6 +213,9 @@ export async function createPublicBookingFixture(): Promise<E2eFixture> {
       primaryTime: formatPragueTime(catalog.primaryStart),
       rescheduleDateKey: formatPragueDateKey(catalog.rescheduleStart),
       rescheduleTime: formatPragueTime(catalog.rescheduleStart),
+      rescheduleConflictButtonLabel: `Vybrat čas ${formatPragueTimeRange(catalog.rescheduleStart, addMinutes(catalog.rescheduleStart, catalog.service.durationMinutes))} dne ${rescheduleDateLabel}`,
+      rescheduleSuccessButtonLabel: `Vybrat čas ${formatPragueTimeRange(rescheduleSuccessStart, rescheduleSuccessEnd)} dne ${rescheduleDateLabel}`,
+      rescheduleSuccessStartAt: rescheduleSuccessStart.toISOString(),
     },
   };
 }
@@ -208,6 +230,9 @@ export async function createManagedBookingFixture(
   const catalog = await createCatalogFixture(runId);
   const clientName = `E2E Klientka ${runId}`;
   const clientEmail = `${runId}@example.test`;
+  const rescheduleSuccessStart = addMinutes(catalog.rescheduleStart, 60);
+  const rescheduleSuccessEnd = addMinutes(rescheduleSuccessStart, catalog.service.durationMinutes);
+  const rescheduleDateLabel = formatPragueLongDateLabel(catalog.rescheduleStart);
 
   const client = await prisma.client.create({
     data: {
@@ -318,6 +343,9 @@ export async function createManagedBookingFixture(
       primaryTime: formatPragueTime(catalog.primaryStart),
       rescheduleDateKey: formatPragueDateKey(catalog.rescheduleStart),
       rescheduleTime: formatPragueTime(catalog.rescheduleStart),
+      rescheduleConflictButtonLabel: `Vybrat čas ${formatPragueTimeRange(catalog.rescheduleStart, addMinutes(catalog.rescheduleStart, catalog.service.durationMinutes))} dne ${rescheduleDateLabel}`,
+      rescheduleSuccessButtonLabel: `Vybrat čas ${formatPragueTimeRange(rescheduleSuccessStart, rescheduleSuccessEnd)} dne ${rescheduleDateLabel}`,
+      rescheduleSuccessStartAt: rescheduleSuccessStart.toISOString(),
     },
   };
 }
@@ -371,6 +399,9 @@ export async function createPublicVoucherFixture(): Promise<E2eFixture> {
       primaryTime: "",
       rescheduleDateKey: "",
       rescheduleTime: "",
+      rescheduleConflictButtonLabel: "",
+      rescheduleSuccessButtonLabel: "",
+      rescheduleSuccessStartAt: "",
     },
   };
 }

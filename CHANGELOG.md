@@ -6,6 +6,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Playwright scénář `client can reschedule a booking through a public token` už po ověření konfliktu nevolí náhradní termín podle pořadí tlačítek; fixture nově exportuje explicitní label kolizního i úspěšného slotu a test přepíná na deterministický nekolizní čas stabilní v CI i lokálně.
 - Kontaktní stránka nově používá v hero sekci reálnou publikovanou fotku interiéru studia jako pravý vizuál, s předepsaným `title` a detailním `alt` textem pro PP Studio ve Zlíně; render zůstal responzivní, nepřetéká mimo layout a na mobilu přirozeně padá pod text.
 - Přidány dev helper skripty `clean`, `dev:clean` a `dev:webpack` pro rychlé řešení pádů Next.js 16 Turbopack cache (`Failed to restore task data`, chybějící `.sst` v `.next/dev/cache/turbopack`) bez ručního mazání adresářů.
 - Admin sekce `Klienti` prošla CRM density refaktorem: nízká hlavička, provozní KPI `Klientů/Klientek celkem`, `Nové za 30 dní`, `Bez kontaktu`, `S poznámkou`, rychlé filtry `S rezervací`, `Bez rezervace`, `Bez kontaktu`, `S poznámkou`, `Nové za 30 dní` a kompaktní tabulkový seznam se zkrácenými kontakty.

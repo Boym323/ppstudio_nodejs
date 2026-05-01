@@ -152,18 +152,13 @@ test.describe("booking flows", () => {
       },
     });
 
-    const selectedDaySection = page
-      .locator("div")
-      .filter({ has: page.getByRole("heading", { name: "Sloty pro vybraný den" }) })
-      .first();
     const successHeading = page.getByRole("heading", { name: "Rezervace byla úspěšně přesunuta." });
     const confirmButton = page.getByRole("button", { name: "Potvrdit nový termín" });
     const conflictMessage = page
       .getByText(/(nový termín|vybraný (termín|slot)).*(koliduje|není k dispozici)/i)
       .first();
-    const selectedDayButtons = selectedDaySection.getByRole("button", { name: /^Vybrat čas / });
     await clickUntilSelected(
-      selectedDayButtons.first(),
+      page.getByRole("button", { name: fixture.slotLabels.rescheduleConflictButtonLabel }).first(),
       confirmButton,
     );
     const selectedSlotId = await page.locator('input[name="slotId"]').inputValue();
@@ -209,7 +204,11 @@ test.describe("booking flows", () => {
     await confirmButton.click();
     await expect(conflictMessage).toBeVisible();
 
-    await clickUntilSelected(selectedDayButtons.nth(2), confirmButton);
+    await clickUntilSelected(
+      page.getByRole("button", { name: fixture.slotLabels.rescheduleSuccessButtonLabel }).first(),
+      confirmButton,
+    );
+    await expect(page.locator('input[name="newStartAt"]')).toHaveValue(fixture.slotLabels.rescheduleSuccessStartAt);
     await expect(page.locator('input[name="newStartAt"]')).not.toHaveValue(selectedStartIso);
     await confirmButton.click();
     try {
