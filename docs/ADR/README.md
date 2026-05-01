@@ -85,3 +85,8 @@ Sem patří krátké záznamy architektonických rozhodnutí.
 - `0068-voucher-a4-print-pdf-v1.md`
 - `0069-versioning-and-release-policy-v1.md`
 - `0070-admin-client-detail-operations-v2.md`
+- `0071-admin-dashboard-daily-cockpit-v3.md`
+- `0072-admin-voucher-detail-operations-layout-v2.md`
+- `0073-admin-voucher-list-density-v2.md`
+- `0074-admin-booking-list-density-v3.md`
+- `0075-admin-client-list-crm-density-v2.md`

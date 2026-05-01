@@ -6,6 +6,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Admin sekce `Klienti` prošla CRM density refaktorem: nízká hlavička, provozní KPI `Klientů/Klientek celkem`, `Nové za 30 dní`, `Bez kontaktu`, `S poznámkou`, rychlé filtry `S rezervací`, `Bez rezervace`, `Bez kontaktu`, `S poznámkou`, `Nové za 30 dní` a kompaktní tabulkový seznam se zkrácenými kontakty.
 - Admin sekce `Rezervace` prošla dalším provozním density refaktorem: vysoký hero nahradila nízká hlavička s CTA `Přidat rezervaci`, rychlé filtry a formulářové filtry se sloučily do jednoho pracovního panelu a pod ně přibyl tenký KPI strip `Čeká na potvrzení / Dnes / Tento týden / Bez kontaktu`.
 - Pracovní seznam rezervací se nově serverově seskupuje do `Čeká na potvrzení / Nadcházející / Minulé`, čekající rezervace jsou vždy nahoře, mají jemný levý akcent a desktopová tabulka je kompaktnější se sloupci `Rezervace / Termín / Status / Zdroj / Kontakt / Akce`.
 - Text pro chybějící kontakt je v seznamu rezervací zjemněný na `bez kontaktu`; empty state teď používá jednotné hlášení `Nenalezeny žádné rezervace.` se zkratkou na zrušení filtrů nebo ruční přidání rezervace.

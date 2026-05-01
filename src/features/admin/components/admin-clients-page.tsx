@@ -15,21 +15,16 @@ export async function AdminClientsPage({
 
   return (
     <AdminPageShell
-      eyebrow={area === "owner" ? "Klientská databáze" : "Provozní klientky"}
-      title={area === "owner" ? "Klienti" : "Klientky"}
-      description={
-        area === "owner"
-          ? "Rychlý seznam kontaktů, rezervací a poznámek."
-          : "Rychlý adresář klientek pro běžný provoz."
-      }
-      compact={area === "salon"}
+      eyebrow="Klientská databáze"
+      title="Klienti"
+      description="Rychlý seznam kontaktů, rezervací a poznámek."
+      denseIntro
     >
       <div className="grid gap-4">
         <ClientsStatsStrip stats={data.stats} />
 
         <AdminPanel
           title="Seznam klientů"
-          description="Najdi klienta podle jména, kontaktu nebo poznámky."
           denseHeader
           compact={area === "salon"}
         >
@@ -37,12 +32,12 @@ export async function AdminClientsPage({
 
           <div className="mt-4 grid gap-2 text-sm text-white/62 sm:grid-cols-3">
             <p><span className="text-white">V seznamu:</span> {data.clients.length}</p>
-            <p><span className="text-white">Aktivní filtr:</span> {labelForStatus(data.filters.status)}</p>
+            <p><span className="text-white">Filtr:</span> {labelForQuickFilter(data.filters.quick)} · {labelForStatus(data.filters.status)}</p>
             <p><span className="text-white">Řazení:</span> {labelForSort(data.filters.sort)}</p>
           </div>
 
           <div className="mt-4">
-            <AdminClientsList area={area} clients={data.clients} />
+            <AdminClientsList area={area} clients={data.clients} resetHref={data.currentPath} />
           </div>
         </AdminPanel>
       </div>
@@ -58,30 +53,14 @@ function ClientsStatsStrip({
     value: string;
   }>;
 }) {
-  const compactStats = stats.map((stat) => {
-    switch (stat.label) {
-      case "Aktivní klienti":
-        return { label: "Aktivní", value: stat.value };
-      case "Neaktivní klienti":
-        return { label: "Neaktivní", value: stat.value };
-      case "S interní poznámkou":
-        return { label: "S poznámkou", value: stat.value };
-      case "Aktivní za 30 dní":
-        return { label: "Aktivní za 30 dní", value: stat.value };
-      default:
-        return stat;
-    }
-  });
-
   return (
-    <section className="rounded-[1.1rem] border border-white/8 bg-white/4 px-4 py-2.5 text-sm text-white/70">
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-        {compactStats.map((stat, index) => (
-          <span key={stat.label} className="inline-flex items-center gap-2 whitespace-nowrap">
-            <span className="text-white/58">{stat.label}</span>
-            <span className="font-medium text-white">{stat.value}</span>
-            {index < compactStats.length - 1 ? <span className="text-white/28">·</span> : null}
-          </span>
+    <section className="rounded-[1.1rem] border border-white/8 bg-white/4 px-4 py-3 text-sm text-white/70">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {stats.map((stat) => (
+          <div key={stat.label} className="min-w-0">
+            <p className="truncate text-[11px] uppercase tracking-[0.18em] text-white/48">{stat.label}</p>
+            <p className="mt-1 font-display text-2xl leading-none text-white">{stat.value}</p>
+          </div>
         ))}
       </div>
     </section>
@@ -94,6 +73,23 @@ function labelForStatus(status: string) {
       return "jen aktivní";
     case "inactive":
       return "jen neaktivní";
+    default:
+      return "vše";
+  }
+}
+
+function labelForQuickFilter(quickFilter: string) {
+  switch (quickFilter) {
+    case "with_booking":
+      return "s rezervací";
+    case "without_booking":
+      return "bez rezervace";
+    case "no_contact":
+      return "bez kontaktu";
+    case "noted":
+      return "s poznámkou";
+    case "new_30":
+      return "nové za 30 dní";
     default:
       return "vše";
   }

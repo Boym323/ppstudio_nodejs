@@ -331,7 +331,9 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - `src/features/admin/components/admin-booking-detail-page.tsx` a route dvojice `/admin/rezervace/[bookingId]` + `/admin/provoz/rezervace/[bookingId]` drží první produkční workflow pro práci s rezervací.
 - Sekce `Klienti` má vlastní workflow v `src/features/admin/components/admin-clients-page.tsx` a už neběží přes generický placeholder renderer.
 - `src/features/admin/lib/admin-clients.ts` drží serverový read model pro seznam klientek, filtry, detail klientky a napojení na historii rezervací.
-- Přehled klientů je záměrně kompaktní: horní statistiky jsou jen v nízké inline liště, toolbar je nižší a karty bez výplňového textu u klientů bez interní poznámky.
+- Přehled klientů je záměrně CRM-kompaktní: horní statistiky jsou nízký 4položkový strip (`celkem`, `nové za 30 dní`, `bez kontaktu`, `s poznámkou`), quick filtry se ukládají do `quick` search parametru a kombinují se se stávajícím hledáním, stavem i řazením.
+- Desktopový seznam klientů drž jako tabulkový pracovní seznam, ne jako card dump; dlouhé e-maily a technické názvy musí zůstat v `truncate` kontejnerech. Chybějící kontakt rozlišuj explicitně na `bez e-mailu`, `bez telefonu` a `bez kontaktu`.
+- Testovací klientské profily se v seznamu pouze označují badge `test` podle bezpečných signálů v read modelu (`example.com`, `Voucher Klientka`, `Kolize`, `booking-voucher`, `client-collision`); nepřidávej mazání ani destruktivní bulk akce.
 - `src/features/admin/actions/client-actions.ts` je tenký server action adaptér pro editaci interní poznámky klientky; validace zůstává v `src/features/admin/lib/admin-client-validation.ts`.
 - Sekce `Média webu` má vlastní workflow v `src/features/admin/components/admin-media-page.tsx` a je dostupná v owner i salon oblasti na `/admin/media` a `/admin/provoz/media`.
 - Server action adaptéry pro média jsou v `src/features/admin/actions/media-actions.ts`; validace vstupu je v `src/features/admin/lib/admin-media-validation.ts`.

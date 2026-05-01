@@ -413,7 +413,11 @@ npm run db:clear-booking-data -- --confirm
 - Sekce `Klienti` je nyní produkčně použitelná pro obě role na `/admin/klienti`, `/admin/provoz/klienti` a v detailu na `/admin/klienti/[clientId]`, `/admin/provoz/klienti/[clientId]`:
   - seznam podporuje hledání přes jméno, e-mail, telefon i interní poznámku
   - filtry umí omezit aktivní/neaktivní profily a přepnout řazení podle poslední návštěvy, počtu rezervací, jména nebo vytvoření
-  - hlavní přehled klientů je záměrně kompaktní: horní statistiky jsou jen v nízké inline liště, toolbar je hustší a karty jsou menší bez opakovaného textu u klientů bez poznámky
+  - rychlé filtry přepínají provozní řezy `Vše`, `S rezervací`, `Bez rezervace`, `Bez kontaktu`, `S poznámkou` a `Nové za 30 dní`
+  - hlavní přehled klientů je záměrně kompaktní: horní statistiky ukazují celkový počet, nové profily za 30 dní, profily bez kontaktu a profily s poznámkou v nízkém stripu
+  - desktopový seznam je tabulkový CRM přehled se sloupci `Klientka`, `Kontakt`, `Rezervace`, `Poslední návštěva`, `Poznámka`, `Stav`, `Akce`; na mobilu se skládá do kompaktních karet
+  - chybějící kontakt rozlišuje `bez e-mailu`, `bez telefonu` a `bez kontaktu`; dlouhé e-maily i technické názvy jsou zkrácené přes ellipsis
+  - testovací profily podle bezpečných signálů (`example.com`, voucher/collision názvy nebo e-maily) se pouze jemně označí badge `test`, nikdy nemažou
   - detail klientky ukazuje kontakty, poslední a budoucí termín, nejčastější službu a posledních 10 rezervací
   - interní poznámka se upravuje přímo v detailu klientky a po uložení se propisuje do obou admin oblastí
 - Sekce `Uživatelé / role` je nyní vyhrazená jen pro `OWNER` na `/admin/uzivatele`:

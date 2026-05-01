@@ -3,6 +3,7 @@ import { BookingStatus, Prisma } from "@prisma/client";
 import { type AdminArea } from "@/config/navigation";
 import {
   clientListSearchParamsSchema,
+  type ClientListQuickFilterValue,
   type ClientListSortValue,
   type ClientListStatusValue,
 } from "@/features/admin/lib/admin-client-validation";
@@ -55,12 +56,14 @@ function normalizeSearchParams(searchParams?: Record<string, string | string[] |
     query: typeof searchParams?.query === "string" ? searchParams.query : undefined,
     status: typeof searchParams?.status === "string" ? searchParams.status : undefined,
     sort: typeof searchParams?.sort === "string" ? searchParams.sort : undefined,
+    quick: typeof searchParams?.quick === "string" ? searchParams.quick : undefined,
   });
 
   const defaults = {
     query: "",
     status: "all" as ClientListStatusValue,
     sort: "recent" as ClientListSortValue,
+    quick: "all" as ClientListQuickFilterValue,
   };
 
   if (!parsed.success) {
@@ -71,11 +74,46 @@ function normalizeSearchParams(searchParams?: Record<string, string | string[] |
     query: parsed.data.query ?? defaults.query,
     status: parsed.data.status ?? defaults.status,
     sort: parsed.data.sort ?? defaults.sort,
+    quick: parsed.data.quick ?? defaults.quick,
   };
 }
 
-function buildClientWhere(filters: ReturnType<typeof normalizeSearchParams>): Prisma.ClientWhereInput {
+function hasInternalNoteWhere(): Prisma.ClientWhereInput {
+  return {
+    AND: [
+      {
+        internalNote: {
+          not: null,
+        },
+      },
+      {
+        internalNote: {
+          not: "",
+        },
+      },
+    ],
+  };
+}
+
+function hasNoContactWhere(): Prisma.ClientWhereInput {
+  return {
+    AND: [
+      {
+        OR: [{ email: null }, { email: "" }],
+      },
+      {
+        OR: [{ phone: null }, { phone: "" }],
+      },
+    ],
+  };
+}
+
+function buildClientWhere(
+  filters: ReturnType<typeof normalizeSearchParams>,
+  recentThreshold: Date,
+): Prisma.ClientWhereInput {
   const where: Prisma.ClientWhereInput = {};
+  const andFilters: Prisma.ClientWhereInput[] = [];
 
   if (filters.status === "active") {
     where.isActive = true;
@@ -92,6 +130,43 @@ function buildClientWhere(filters: ReturnType<typeof normalizeSearchParams>): Pr
       { phone: { contains: filters.query, mode: "insensitive" } },
       { internalNote: { contains: filters.query, mode: "insensitive" } },
     ];
+  }
+
+  switch (filters.quick) {
+    case "with_booking":
+      andFilters.push({
+        bookings: {
+          some: {},
+        },
+      });
+      break;
+    case "without_booking":
+      andFilters.push({
+        bookings: {
+          none: {},
+        },
+      });
+      break;
+    case "no_contact":
+      andFilters.push(hasNoContactWhere());
+      break;
+    case "noted":
+      andFilters.push(hasInternalNoteWhere());
+      break;
+    case "new_30":
+      andFilters.push({
+        createdAt: {
+          gte: recentThreshold,
+        },
+      });
+      break;
+    case "all":
+    default:
+      break;
+  }
+
+  if (andFilters.length > 0) {
+    where.AND = andFilters;
   }
 
   return where;
@@ -122,20 +197,21 @@ export async function getAdminClientsPageData(
   searchParams?: Record<string, string | string[] | undefined>,
 ) {
   const filters = normalizeSearchParams(searchParams);
-  const where = buildClientWhere(filters);
   const recentThreshold = new Date();
   recentThreshold.setDate(recentThreshold.getDate() - 30);
+  const where = buildClientWhere(filters, recentThreshold);
 
-  const [activeCount, inactiveCount, notedCount, recentCount, clients] = await Promise.all([
-    prisma.client.count({ where: { isActive: true } }),
-    prisma.client.count({ where: { isActive: false } }),
+  const [totalCount, newCount, noContactCount, notedCount, activeRecentCount, clients] = await Promise.all([
+    prisma.client.count(),
     prisma.client.count({
       where: {
-        internalNote: {
-          not: null,
+        createdAt: {
+          gte: recentThreshold,
         },
       },
     }),
+    prisma.client.count({ where: hasNoContactWhere() }),
+    prisma.client.count({ where: hasInternalNoteWhere() }),
     prisma.client.count({
       where: {
         lastBookedAt: {
@@ -161,34 +237,48 @@ export async function getAdminClientsPageData(
     filters,
     stats: [
       {
-        label: "Aktivní klienti",
-        value: String(activeCount),
+        label: area === "owner" ? "Klientů celkem" : "Klientek celkem",
+        value: String(totalCount),
         tone: "accent" as const,
-        detail: "Profily připravené k další práci.",
+        detail: "Všechny profily v databázi.",
       },
       {
-        label: "Neaktivní klienti",
-        value: String(inactiveCount),
-        tone: "muted" as const,
-        detail: "Skryté nebo dočasně vypnuté profily.",
+        label: "Nové za 30 dní",
+        value: String(newCount),
+        detail: activeRecentCount > newCount
+          ? `Aktivní za 30 dní: ${activeRecentCount}`
+          : "Nově založené profily.",
       },
       {
-        label: "S interní poznámkou",
+        label: "Bez kontaktu",
+        value: String(noContactCount),
+        tone: noContactCount > 0 ? ("muted" as const) : undefined,
+        detail: "Bez e-mailu i telefonu.",
+      },
+      {
+        label: "S poznámkou",
         value: String(notedCount),
-        detail: "Profily s uloženým provozním kontextem.",
-      },
-      {
-        label: "Aktivní za 30 dní",
-        value: String(recentCount),
-        detail: "Návštěva nebo booking za posledních 30 dní.",
+        detail: "Profily s interním kontextem.",
       },
     ],
     clients: clients.map((client) => ({
       ...client,
       email: client.email ?? "",
+      isTestRecord: isTestClientRecord(client.fullName, client.email),
     })),
     currentPath: area === "owner" ? "/admin/klienti" : "/admin/provoz/klienti",
   };
+}
+
+function isTestClientRecord(fullName: string, email: string | null) {
+  const normalizedName = fullName.toLocaleLowerCase("cs-CZ");
+  const normalizedEmail = (email ?? "").toLocaleLowerCase("cs-CZ");
+
+  return normalizedEmail.endsWith("@example.com")
+    || normalizedName.includes("voucher klientka")
+    || normalizedName.includes("kolize")
+    || normalizedEmail.includes("booking-voucher")
+    || normalizedEmail.includes("client-collision");
 }
 
 export type AdminClientDetailData = {
