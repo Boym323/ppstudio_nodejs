@@ -50,6 +50,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - opravuje jen plain published anchor sloty s jedinou navázanou rezervací,
   - umí vytvořit jen bezpečný `before` a/nebo `after` fragment bez zásahu do booking FK,
   - případy s více bookingy na jednom slotu nechává jako `skipped`, protože tam už nejde bez doménového rozhodnutí garantovat bezpečný automatický split.
+- Pro editovatelnost plain published slotu v planneru neber `CANCELLED` booking jako blokující. Blokovat dál mají aktivní rezervace a historicky uzavřené návštěvy, které vysvětlují obsazený nebo chráněný čas v read modelu.
 - Stav rezervace `COMPLETED` je provozní uzávěrka po proběhlé návštěvě, ne nástroj pro předběžné odbavení. Admin akce `Hotovo` smí projít až po `scheduledEndsAt`, protože aktivní blokace kapacity a dashboardové volné úseky počítají jen `PENDING` a `CONFIRMED`.
 - Dashboardová timeline dne načítá pro zobrazení i `COMPLETED`, aby hotové návštěvy zůstaly v dnešním plánu viditelné. Výpočet volných oken ale ořezává začátek na aktuální čas, takže minulá dostupnost se nikdy nepropíše jako akční volný termín.
 - Admin planner `Volné termíny` načítá pro zobrazení `PENDING`, `CONFIRMED` i `COMPLETED`; dokončené rezervace jsou vizuálně tlumené, ale stále vysvětlují, proč historický úsek není běžná editovatelná dostupnost.

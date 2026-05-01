@@ -1,4 +1,4 @@
-import { AvailabilitySlotServiceRestrictionMode, AvailabilitySlotStatus } from "@prisma/client";
+import { AvailabilitySlotServiceRestrictionMode, AvailabilitySlotStatus, BookingStatus } from "@prisma/client";
 
 import { type AdminArea } from "@/config/navigation";
 
@@ -104,7 +104,7 @@ export function isPlainEditableSlot(slot: {
   internalNote: string | null;
   serviceRestrictionMode: AvailabilitySlotServiceRestrictionMode;
   allowedServices: Array<{ serviceId: string }>;
-  bookings: Array<{ id: string }>;
+  bookings: Array<{ id: string; status: BookingStatus }>;
 }) {
   return (
     slot.capacity === EDITABLE_SLOT_CAPACITY &&
@@ -112,7 +112,7 @@ export function isPlainEditableSlot(slot: {
     slot.internalNote === null &&
     slot.serviceRestrictionMode === AvailabilitySlotServiceRestrictionMode.ANY &&
     slot.allowedServices.length === 0 &&
-    slot.bookings.length === 0
+    !slot.bookings.some((booking) => booking.status !== BookingStatus.CANCELLED)
   );
 }
 
@@ -175,7 +175,7 @@ export function isEditablePlannerSlot(slot: {
   internalNote: string | null;
   serviceRestrictionMode: AvailabilitySlotServiceRestrictionMode;
   allowedServices: Array<{ serviceId: string }>;
-  bookings: Array<{ id: string }>;
+  bookings: Array<{ id: string; status: BookingStatus }>;
 }) {
   return slot.status === AvailabilitySlotStatus.PUBLISHED && isPlainEditableSlot(slot);
 }

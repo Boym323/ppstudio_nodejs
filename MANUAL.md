@@ -128,6 +128,7 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
 - Filtrační lišta sekce `Služby` je na desktopu sticky a zůstává během scrollu po ruce; horní statistiky jsou záměrně menší, aby nepřebíraly roli hlavního obsahu.
 - Sekce `Volné termíny / Týdenní plán dostupností` drží grid-first provozní workflow: horní hlavička je nízká, datum týdne se ukazuje jen v planner toolbaru a pravý panel je zhuštěný do tří bloků `Inspektor dne`, `Akce dne` a `Detail výběru`.
 - V planneru má legenda stavů zůstat sekundární a sbalená u detailu výběru; čitelnost času se zvyšuje spíš kontrastem levé osy, jemným zvýrazněním celých hodin a jasnějším selected stavem než dalšími vysvětlovacími kartami.
+- `CANCELLED` booking už v planneru sám o sobě nedělá z plain published slotu chráněný interval. Pokud na slotu nezůstává aktivní nebo dokončená návštěva ani jiné omezení, má se zobrazit jako běžná editovatelná dostupnost.
 - Týdenní planner dostupností a veřejná booking service vrstva jsou po stabilizačním refaktoru modulární i v kódu, ale bez změny URL, exportů nebo databázového modelu.
 - Prisma schema v1 už pokrývá:
   - admin uživatele a role
