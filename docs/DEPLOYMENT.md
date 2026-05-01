@@ -202,6 +202,7 @@ Postup nasazení aplikace do produkce.
   - sticky CTA lištu na mobilu a editaci jednotlivých bloků přímo ze souhrnu
   - po stabilizačním refaktoru také rychlou smoke kontrolu veřejného booking flow a týdenního planneru, protože jejich implementace je nově rozdělená do více interních modulů se stejným chováním
   - při rezervaci nebo přesunu přes navazující publikované sloty ověř, že volný okraj na začátku nebo konci coverage řetězce nezůstane v planneru jako `Omezené`, ale jako běžně editovatelná dostupnost
+  - pokud QA najde starý nerozsekaný anchor slot vzniklý ještě před fixem chainingu, nejdřív spusť `node scripts/repair-legacy-chained-slots.mjs` jako dry-run; `--apply` používej jen pro jednoduché single-booking případy, které script sám označí jako `repairable`
   - zápis `EmailLog` ve stavu `PENDING` v background režimu nebo `SENT` v log režimu
   - funkční storno odkaz
   - provozní email akce `Schválit rezervaci` / `Zrušit rezervaci`:

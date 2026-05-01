@@ -46,6 +46,10 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - zachovává mapu původních segmentů pro správné `slotId` při submitu,
   - počítá `bookedIntervals` podle skutečných aktivních rezervací překrývajících daný čas, ne jen podle relace `Booking.slotId`.
 - Při vytvoření rezervace nebo přesunu nad coverage řetězcem už nestačí rozřezat jen single-slot případ. Když booking začíná uprostřed prvního segmentu nebo končí uprostřed posledního segmentu, engine musí rozdělit i tyto krajní coverage sloty, jinak admin planner falešně vykreslí volný okraj jako `locked` remainder.
+- Pro dočištění starších dat je v `scripts/repair-legacy-chained-slots.mjs` záměrně konzervativní repair flow:
+  - opravuje jen plain published anchor sloty s jedinou navázanou rezervací,
+  - umí vytvořit jen bezpečný `before` a/nebo `after` fragment bez zásahu do booking FK,
+  - případy s více bookingy na jednom slotu nechává jako `skipped`, protože tam už nejde bez doménového rozhodnutí garantovat bezpečný automatický split.
 - Stav rezervace `COMPLETED` je provozní uzávěrka po proběhlé návštěvě, ne nástroj pro předběžné odbavení. Admin akce `Hotovo` smí projít až po `scheduledEndsAt`, protože aktivní blokace kapacity a dashboardové volné úseky počítají jen `PENDING` a `CONFIRMED`.
 - Dashboardová timeline dne načítá pro zobrazení i `COMPLETED`, aby hotové návštěvy zůstaly v dnešním plánu viditelné. Výpočet volných oken ale ořezává začátek na aktuální čas, takže minulá dostupnost se nikdy nepropíše jako akční volný termín.
 - Admin planner `Volné termíny` načítá pro zobrazení `PENDING`, `CONFIRMED` i `COMPLETED`; dokončené rezervace jsou vizuálně tlumené, ale stále vysvětlují, proč historický úsek není běžná editovatelná dostupnost.

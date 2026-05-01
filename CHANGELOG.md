@@ -6,6 +6,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Přidán provozní helper `scripts/repair-legacy-chained-slots.mjs`, který v dry-runu vyhledá staré plain published anchor sloty po dřívějším contiguous chainingu a umí bezpečně rozseknout jen jednoduché případy s jedinou navázanou rezervací; složitější případy nechává ve `skipped` výstupu pro ruční kontrolu.
 - Opraven edge case mezi contiguous slot chainingem a admin plannerem: když nová rezervace nebo přesun použije navazující publikované sloty, booking engine teď správně rozseká i krajní coverage segmenty, takže volný zbytek na začátku nebo konci řetězce zůstane v planneru jako běžná dostupnost místo falešného `Omezené`.
 - Admin planner `Volné termíny / Týdenní plán dostupností` prošel UX density passem bez změny business logiky: horní hero je nově nízká hlavička s krátkou nápovědou, datum týdne se zobrazuje už jen jednou v toolbaru, hlavní lišta je hustší a pravý panel se sloučil do tří kompaktních karet `Inspektor dne / Akce dne / Detail výběru`.
 - Legenda stavů v planneru už není samostatná výrazná karta; přesunula se do rozbalovací sekce v `Detailu výběru` a používá menší badge, aby hlavní pozornost zůstala na gridu.

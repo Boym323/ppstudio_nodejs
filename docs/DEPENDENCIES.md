@@ -21,6 +21,7 @@ Seznam důležitých knihoven a důvod jejich použití.
 - UX refaktor admin detailu voucheru nepřidává žádnou npm závislost; jde jen o přeskupení existujících serverových read modelů, klientského e-mailového panelu a Tailwind layoutu.
 - UX density pass admin planneru `Volné termíny` nepřidává žádnou npm závislost; jde čistě o úpravu existujících React/Tailwind komponent, layoutu toolbaru, pravého inspektoru a kontrastu gridu.
 - Oprava fragmentace chained booking slotů pro admin planner nepřidává žádnou npm závislost; používá stávající Prisma transakce a sdílenou coverage logiku.
+- Repair helper `scripts/repair-legacy-chained-slots.mjs` nepřidává žádnou npm závislost; používá stávající `pg` driver a `DATABASE_URL`.
 - Admin vytvoření voucheru nepřidává žádnou novou knihovnu; používá existující Next.js server actions, React `useActionState` / lokální state pro živý náhled, Prisma a voucher Zod schéma.
 - Admin uplatnění voucheru v detailu rezervace nepřidává žádnou novou knihovnu; formulář používá React `useActionState`, server action používá existující Zod/Prisma vrstvu a transakční voucher doménu.
 - Read-only payment summary v admin detailu rezervace nepřidává žádnou novou knihovnu ani payment SDK; jde o TypeScript výpočet nad Prisma read modelem a existujícími `VoucherRedemption` daty.
