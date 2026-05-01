@@ -30,174 +30,149 @@ const czkFormatter = new Intl.NumberFormat("cs-CZ", {
 type DetailRowTone = "default" | "muted";
 
 export function AdminVoucherDetailPage({ data }: { data: AdminVoucherDetailData }) {
-  const redeemedValueCzk =
-    data.type === VoucherType.VALUE
-      ? Math.max((data.originalValueCzk ?? 0) - (data.remainingValueCzk ?? 0), 0)
-      : null;
-  const summaryValueLabel =
-    data.type === VoucherType.VALUE
-      ? formatCzk(data.originalValueCzk)
-      : formatOptional(data.serviceNameSnapshot);
   const summaryBalanceLabel =
     data.type === VoucherType.VALUE
       ? formatVoucherBalanceLabel(data.redemptions.length, data.remainingValueCzk)
       : formatServiceVoucherBalanceLabel(data.redemptions.length);
-  const buyerFields = buildPartyFields([
-    { label: "Kupující", value: data.purchaserName },
-    { label: "E-mail kupujícího", value: data.purchaserEmail },
-  ]);
-  const canSendEmail =
-    data.effectiveStatus === VoucherStatus.ACTIVE
-    || data.effectiveStatus === VoucherStatus.PARTIALLY_REDEEMED;
-  const issuedCreatedRows = buildIssuedCreatedRows(data.issuedAt, data.createdAt);
+  const canSendInStatus =
+    data.effectiveStatus === VoucherStatus.ACTIVE || data.effectiveStatus === VoucherStatus.PARTIALLY_REDEEMED;
+  const hasPurchaserEmail = Boolean(data.purchaserEmail?.trim());
+  const canSendEmail = canSendInStatus && hasPurchaserEmail;
+  const blockedSendMessage = !hasPurchaserEmail
+    ? "Voucher nemá vyplněný e-mail kupujícího."
+    : "Voucher v tomto stavu nelze odeslat e-mailem.";
+  const summaryTypeLabel = buildSummaryTypeLabel(data);
+  const parameterRows = buildParameterRows(data);
+  const purchaserRows = buildPurchaserRows(data);
 
   return (
     <AdminPageShell
       eyebrow={data.area === "owner" ? "Dárkové vouchery" : "Provozní evidence"}
       title={data.area === "owner" ? "Detail voucheru" : "Provozní detail voucheru"}
-      description="Detail voucheru s aktuálními daty, historií čerpání, odesláním e-mailem a stažením PDF."
+      description="Kompaktní provozní detail voucheru s platností, čerpáním, odesláním a historií uplatnění."
       compact={data.area === "salon"}
     >
-      <section className="rounded-[var(--radius-panel)] border border-white/10 bg-[linear-gradient(145deg,rgba(255,255,255,0.10),rgba(255,255,255,0.03))] p-5 sm:p-6">
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-          <div className="min-w-0 flex-1 space-y-4">
-            <div className="flex flex-wrap items-center gap-2">
-              <AdminStatePill tone={getVoucherStatusPillTone(data.effectiveStatus)}>
-                {data.statusLabel}
-              </AdminStatePill>
+      <section className="rounded-[var(--radius-panel)] border border-white/10 bg-[linear-gradient(145deg,rgba(255,255,255,0.10),rgba(255,255,255,0.03))] p-4 sm:p-5">
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="min-w-0 flex-1 space-y-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-xs uppercase tracking-[0.24em] text-white/42">Voucher</p>
+                <span className="text-white/28">•</span>
+                <p className="text-sm text-white/60">{summaryTypeLabel}</p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3">
+                <p className="font-mono text-2xl font-semibold tracking-[0.14em] text-white sm:text-3xl">
+                  {data.code}
+                </p>
+                <AdminStatePill tone={getVoucherStatusPillTone(data.effectiveStatus)}>
+                  {data.statusLabel}
+                </AdminStatePill>
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <p className="font-mono text-3xl font-semibold tracking-[0.14em] text-white sm:text-4xl">
-                {data.code}
-              </p>
-              <p className="max-w-3xl text-sm leading-7 text-white/70">
-                {data.typeLabel} · {summaryValueLabel}
-              </p>
-            </div>
+            <Link
+              href={data.listHref}
+              className="rounded-full border border-white/10 px-3.5 py-2 text-sm text-white/78 transition hover:border-white/30 hover:text-white"
+            >
+              Zpět na seznam
+            </Link>
+          </div>
 
-            <div className="grid gap-3 sm:grid-cols-2 xl:max-w-3xl">
+          <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+            <div className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
               <SummaryMetric
                 label="Platnost"
-                value={`${formatDateLabel(data.validFrom)} až ${formatDateLabel(data.validUntil)}`}
+                value={formatDateRangeLabel(data.validFrom, data.validUntil)}
               />
               <SummaryMetric
                 label="Čerpání / zůstatek"
                 value={summaryBalanceLabel}
                 tone={data.type === VoucherType.VALUE && (data.remainingValueCzk ?? 0) > 0 ? "accent" : "default"}
               />
+              <SummaryMetric
+                label={data.type === VoucherType.VALUE ? "Cena při vystavení" : "Služba při vystavení"}
+                value={data.type === VoucherType.VALUE ? formatCzk(data.originalValueCzk) : formatOptional(data.serviceNameSnapshot)}
+              />
             </div>
-          </div>
 
-          <div className="flex flex-wrap items-center gap-3 lg:justify-end">
-            <Link
-              href={data.listHref}
-              className="rounded-full border border-white/10 px-4 py-3 text-sm text-white/78 transition hover:border-white/30 hover:text-white"
-            >
-              Zpět na seznam
-            </Link>
-            <Link
-              href={data.pdfHref}
-              className="rounded-full bg-[var(--color-accent)] px-4 py-3 text-sm font-semibold text-[var(--color-accent-contrast)] transition hover:brightness-105"
-            >
-              Stáhnout voucher PDF
-            </Link>
-            <Link
-              href={data.printA4PdfHref}
-              className="rounded-full border border-[var(--color-accent)]/45 px-4 py-3 text-sm font-semibold text-[var(--color-accent)] transition hover:border-[var(--color-accent)] hover:bg-[var(--color-accent)]/10"
-            >
-              Tisk A4
-            </Link>
+            <div className="flex flex-wrap items-center gap-2.5 lg:justify-end">
+              <Link
+                href={data.pdfHref}
+                className="rounded-full bg-[var(--color-accent)] px-4 py-2.5 text-sm font-semibold text-[var(--color-accent-contrast)] transition hover:brightness-105"
+              >
+                Stáhnout PDF
+              </Link>
+              <Link
+                href={data.printA4PdfHref}
+                className="rounded-full border border-[var(--color-accent)]/45 px-4 py-2.5 text-sm font-semibold text-[var(--color-accent)] transition hover:border-[var(--color-accent)] hover:bg-[var(--color-accent)]/10"
+              >
+                Tisk A4
+              </Link>
+              <a
+                href="#voucher-email-panel"
+                className="rounded-full border border-white/10 px-4 py-2.5 text-sm font-semibold text-white/86 transition hover:border-white/20 hover:bg-white/6"
+              >
+                Poslat e-mailem
+              </a>
+            </div>
           </div>
         </div>
       </section>
 
-      <div className="grid gap-6 xl:grid-cols-[1fr_1fr]">
-        <AdminPanel title="Detaily" description="Základní provozní údaje o voucheru." compact={data.area === "salon"} denseHeader>
-          <dl className="grid gap-3 sm:grid-cols-2">
-            <DetailRow label="Platnost od" value={formatDateLabel(data.validFrom)} />
-            <DetailRow label="Platnost do" value={formatDateLabel(data.validUntil)} />
-            {issuedCreatedRows.map((row) => (
-              <DetailRow key={row.label} label={row.label} value={row.value} />
-            ))}
-            <DetailRow
-              label="Vytvořil"
-              value={formatUserLabel(data.createdByUser)}
-              tone={data.createdByUser ? "default" : "muted"}
-            />
-          </dl>
-        </AdminPanel>
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.65fr)_minmax(20rem,1fr)] xl:items-start">
+        <div className="space-y-4">
+          <AdminPanel
+            title="Parametry voucheru"
+            description="Původní snapshot a provozní metadata voucheru."
+            compact={data.area === "salon"}
+            denseHeader
+          >
+            <CompactDefinitionList rows={parameterRows} />
+          </AdminPanel>
 
-        <AdminPanel
-          title="Kupující"
-          description="Údaje pro budoucí odeslání voucheru e-mailem."
-          compact={data.area === "salon"}
-          denseHeader
-        >
-          {buyerFields.length === 0 ? (
-            <p className="rounded-[1.1rem] border border-dashed border-white/12 bg-white/4 px-4 py-5 text-sm leading-6 text-white/58">
-              Zatím nejsou vyplněné žádné údaje.
-            </p>
-          ) : (
-            <dl className="grid gap-3 sm:grid-cols-2">
-              {buyerFields.map((field) => (
-                <DetailRow key={field.label} label={field.label} value={field.value} />
-              ))}
-            </dl>
-          )}
+          <AdminPanel
+            title="Historie uplatnění"
+            description="Datum, služba nebo částka, rezervace, kdo uplatnil a poznámka."
+            compact={data.area === "salon"}
+            denseHeader
+          >
+            <RedemptionsList redemptions={data.redemptions} />
+          </AdminPanel>
+        </div>
 
-          <div className="mt-4">
-            <AdminVoucherEmailPanel
-              area={data.area}
-              voucherId={data.id}
-              canSend={canSendEmail}
-              blockedMessage="Voucher v tomto stavu nelze odeslat e-mailem."
-              defaultRecipientEmail={data.purchaserEmail?.trim() ?? ""}
-              defaultSubject="Dárkový poukaz PP Studio"
-            />
-          </div>
-        </AdminPanel>
-      </div>
+        <div className="space-y-4">
+          <AdminPanel
+            title="Kupující a odeslání"
+            description="Kontaktní údaje a ruční odeslání voucheru e-mailem."
+            compact={data.area === "salon"}
+            denseHeader
+          >
+            <div className="space-y-4">
+              <CompactDefinitionList rows={purchaserRows} />
 
-      <AdminPanel
-        title="Odeslání e-mailem"
-        description="Poslední pokusy o odeslání voucheru."
-        compact={data.area === "salon"}
-        denseHeader
-      >
-        <VoucherEmailHistory emailHistory={data.emailHistory} />
-      </AdminPanel>
+              <AdminVoucherEmailPanel
+                panelId="voucher-email-panel"
+                area={data.area}
+                voucherId={data.id}
+                canSend={canSendEmail}
+                blockedMessage={blockedSendMessage}
+                defaultRecipientEmail={data.purchaserEmail?.trim() ?? ""}
+                defaultSubject="Dárkový poukaz PP Studio"
+              />
+            </div>
+          </AdminPanel>
 
-      <div className="grid gap-6 xl:grid-cols-[1fr_1fr]">
-        <AdminPanel
-          title="Hodnota / služba"
-          description={
-            data.type === VoucherType.VALUE
-              ? "Přehled zůstatku hodnotového voucheru."
-              : "Snapshot služby při vystavení voucheru."
-          }
-          compact={data.area === "salon"}
-          denseHeader
-        >
-          {data.type === VoucherType.VALUE ? (
-            <ValueSummary
-              originalValueCzk={data.originalValueCzk}
-              remainingValueCzk={data.remainingValueCzk}
-              redeemedValueCzk={redeemedValueCzk}
-            />
-          ) : (
-            <ServiceSummary data={data} />
-          )}
-        </AdminPanel>
-
-        <AdminPanel
-          title="Historie uplatnění"
-          description="Datum, částka nebo služba, rezervace, kdo uplatnil a poznámka."
-          compact={data.area === "salon"}
-          denseHeader
-        >
-          <RedemptionsList redemptions={data.redemptions} />
-        </AdminPanel>
+          <AdminPanel
+            title="Poslední e-mailové pokusy"
+            description="Krátký přehled posledních pokusů o doručení voucheru."
+            compact={data.area === "salon"}
+            denseHeader
+          >
+            <VoucherEmailHistory area={data.area} emailHistory={data.emailHistory} />
+          </AdminPanel>
+        </div>
       </div>
 
       {data.internalNote?.trim() ? (
@@ -207,7 +182,7 @@ export function AdminVoucherDetailPage({ data }: { data: AdminVoucherDetailData 
           compact={data.area === "salon"}
           denseHeader
         >
-          <div className="rounded-[1.1rem] border border-white/8 bg-white/5 p-4">
+          <div className="rounded-[1rem] border border-white/8 bg-white/5 p-3.5">
             <p className="whitespace-pre-wrap text-sm leading-6 text-white/82">
               {data.internalNote.trim()}
             </p>
@@ -218,124 +193,164 @@ export function AdminVoucherDetailPage({ data }: { data: AdminVoucherDetailData 
   );
 }
 
-function ValueSummary({
-  originalValueCzk,
-  remainingValueCzk,
-  redeemedValueCzk,
+function buildSummaryTypeLabel(data: AdminVoucherDetailData) {
+  if (data.type === VoucherType.SERVICE && data.serviceNameSnapshot?.trim()) {
+    return `${data.typeLabel} · ${data.serviceNameSnapshot.trim()}`;
+  }
+
+  return data.typeLabel;
+}
+
+function buildParameterRows(data: AdminVoucherDetailData) {
+  const issuedPrice = resolveIssuedPrice(data);
+  const linkedServiceName = data.service ? data.service.publicName ?? data.service.name : null;
+
+  return [
+    { label: "Platnost od", value: formatDateLabel(data.validFrom) },
+    { label: "Platnost do", value: formatDateLabel(data.validUntil) },
+    {
+      label: "Vystaveno",
+      value: data.issuedAt ? formatDateTimeLabel(data.issuedAt) : "Nevyplněno",
+      tone: data.issuedAt ? "default" : "muted",
+    },
+    { label: "Vytvořeno", value: formatDateTimeLabel(data.createdAt) },
+    {
+      label: "Vytvořil",
+      value: formatUserLabel(data.createdByUser),
+      tone: data.createdByUser ? "default" : "muted",
+    },
+    {
+      label: "Služba při vystavení",
+      value: formatOptional(data.serviceNameSnapshot),
+      tone: data.serviceNameSnapshot?.trim() ? "default" : "muted",
+    },
+    {
+      label: "Cena při vystavení",
+      value: formatCzk(issuedPrice),
+      tone: issuedPrice === null ? "muted" : "default",
+    },
+    {
+      label: "Délka při vystavení",
+      value: formatDuration(data.serviceDurationSnapshot),
+      tone: data.serviceDurationSnapshot === null ? "muted" : "default",
+    },
+    {
+      label: "Aktuální služba",
+      value: formatOptional(linkedServiceName),
+      tone: linkedServiceName ? "default" : "muted",
+    },
+  ] satisfies Array<{ label: string; value: string; tone?: DetailRowTone }>;
+}
+
+function buildPurchaserRows(data: AdminVoucherDetailData) {
+  return [
+    {
+      label: "Jméno kupujícího",
+      value: formatOptional(data.purchaserName),
+      tone: data.purchaserName?.trim() ? "default" : "muted",
+    },
+    {
+      label: "E-mail kupujícího",
+      value: formatOptional(data.purchaserEmail),
+      tone: data.purchaserEmail?.trim() ? "default" : "muted",
+    },
+  ] satisfies Array<{ label: string; value: string; tone?: DetailRowTone }>;
+}
+
+function resolveIssuedPrice(data: AdminVoucherDetailData) {
+  if (data.type === VoucherType.VALUE) {
+    return data.originalValueCzk;
+  }
+
+  return data.servicePriceSnapshotCzk;
+}
+
+function CompactDefinitionList({
+  rows,
 }: {
-  originalValueCzk: number | null;
-  remainingValueCzk: number | null;
-  redeemedValueCzk: number | null;
+  rows: Array<{ label: string; value: string; tone?: DetailRowTone }>;
 }) {
   return (
-    <dl className="grid gap-3 sm:grid-cols-3">
-      <DetailRow
-        label="Původní hodnota"
-        value={formatCzk(originalValueCzk)}
-        tone={originalValueCzk === null ? "muted" : "default"}
-      />
-      <DetailRow
-        label="Zbývá"
-        value={formatCzk(remainingValueCzk)}
-        tone={remainingValueCzk === null ? "muted" : "default"}
-      />
-      <DetailRow label="Vyčerpáno" value={formatCzk(redeemedValueCzk)} />
+    <dl className="grid gap-x-5 gap-y-3 sm:grid-cols-2">
+      {rows.map((row) => (
+        <CompactDetailRow key={row.label} label={row.label} value={row.value} tone={row.tone} />
+      ))}
     </dl>
   );
 }
 
-function ServiceSummary({ data }: { data: AdminVoucherDetailData }) {
-  const linkedServiceName = data.service ? data.service.publicName ?? data.service.name : null;
-
+function CompactDetailRow({
+  label,
+  value,
+  tone = "default",
+}: {
+  label: string;
+  value: string;
+  tone?: DetailRowTone;
+}) {
   return (
-    <dl className="grid gap-3 sm:grid-cols-2">
-      <DetailRow
-        label="Služba při vystavení"
-        value={formatOptional(data.serviceNameSnapshot)}
-        tone={data.serviceNameSnapshot ? "default" : "muted"}
-      />
-      <DetailRow
-        label="Cena při vystavení"
-        value={formatCzk(data.servicePriceSnapshotCzk)}
-        tone={data.servicePriceSnapshotCzk === null ? "muted" : "default"}
-      />
-      <DetailRow
-        label="Délka při vystavení"
-        value={formatDuration(data.serviceDurationSnapshot)}
-        tone={data.serviceDurationSnapshot === null ? "muted" : "default"}
-      />
-      <DetailRow
-        label="Aktuální služba"
-        value={formatOptional(linkedServiceName)}
-        tone={linkedServiceName ? "default" : "muted"}
-      />
-    </dl>
+    <div className="border-b border-white/6 pb-2.5 last:border-b-0 sm:last:border-b sm:[&:nth-last-child(-n+2)]:border-b-0">
+      <dt className="text-[0.68rem] uppercase tracking-[0.18em] text-white/42">{label}</dt>
+      <dd className={cn("mt-1.5 break-words text-sm leading-5", tone === "muted" ? "text-white/42" : "text-white/84")}>
+        {value}
+      </dd>
+    </div>
   );
 }
 
 function VoucherEmailHistory({
+  area,
   emailHistory,
 }: {
+  area: AdminVoucherDetailData["area"];
   emailHistory: AdminVoucherDetailData["emailHistory"];
 }) {
   if (emailHistory.length === 0) {
     return (
-      <div className="rounded-[1.25rem] border border-dashed border-white/14 bg-white/4 p-5">
-        <p className="text-sm leading-6 text-white/68">Voucher zatím nebyl e-mailem odeslán.</p>
+      <div className="rounded-[1rem] border border-dashed border-white/12 bg-white/4 px-4 py-4">
+        <p className="text-sm leading-5 text-white/68">Voucher zatím nebyl e-mailem odeslán.</p>
       </div>
     );
   }
 
-  const latest = emailHistory[0];
-
   return (
-    <div className="space-y-4">
-      <dl className="grid gap-3 lg:grid-cols-3">
-        <SummaryMetric label="Poslední stav" value={formatEmailHistoryStatus(latest.status)} />
-        <SummaryMetric label="Poslední příjemce" value={latest.recipientEmail} />
-        <SummaryMetric label="Poslední pokus" value={formatDateTimeLabel(latest.sentAt ?? latest.createdAt)} />
-      </dl>
+    <div className="overflow-hidden rounded-[1rem] border border-white/8 bg-white/[0.03]">
+      {emailHistory.map((entry) => {
+        const occurredAt = entry.sentAt ?? entry.createdAt;
+        const detailHref = area === "owner" ? `/admin/email-logy/${entry.id}` : `/admin/provoz/email-logy/${entry.id}`;
 
-      <div className="overflow-hidden rounded-[1.1rem] border border-white/8 bg-white/[0.03]">
-        {emailHistory.map((entry) => {
-          const occurredAt = entry.sentAt ?? entry.createdAt;
-
-          return (
-            <article
-              key={entry.id}
-              className="border-t border-white/8 px-4 py-3 first:border-t-0"
-            >
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <div className="min-w-0 space-y-1">
-                  <p className="text-sm font-medium text-white">
-                    {formatDateTimeLabel(occurredAt)} · {entry.recipientEmail}
-                  </p>
-                  {entry.errorMessage ? (
-                    <p className="text-sm leading-6 text-red-100">{entry.errorMessage}</p>
-                  ) : null}
-                </div>
-
-                <div className="flex items-center gap-3 sm:shrink-0 sm:justify-end">
-                  <span
-                    className={cn(
-                      "inline-flex w-fit items-center rounded-full border px-3 py-1 text-xs font-semibold",
-                      getEmailHistoryStatusClassName(entry.status),
-                    )}
-                  >
-                    {formatEmailHistoryStatus(entry.status)}
-                  </span>
-                  <Link
-                    href={`/admin/email-logy/${entry.id}`}
-                    className="text-sm font-medium text-[var(--color-accent)] transition hover:brightness-110"
-                  >
-                    Detail
-                  </Link>
-                </div>
+        return (
+          <article key={entry.id} className="border-t border-white/8 px-3.5 py-3 first:border-t-0">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+              <div className="min-w-0 space-y-1">
+                <p className="text-sm font-medium text-white">
+                  {formatDateTimeLabel(occurredAt)} · {entry.recipientEmail}
+                </p>
+                {entry.errorMessage ? (
+                  <p className="text-sm leading-5 text-red-100/88">{entry.errorMessage}</p>
+                ) : null}
               </div>
-            </article>
-          );
-        })}
-      </div>
+
+              <div className="flex items-center gap-2.5 sm:shrink-0">
+                <span
+                  className={cn(
+                    "inline-flex w-fit items-center rounded-full border px-2.5 py-1 text-[0.7rem] font-semibold uppercase tracking-[0.14em]",
+                    getEmailHistoryStatusClassName(entry.status),
+                  )}
+                >
+                  {formatEmailHistoryStatus(entry.status)}
+                </span>
+                <Link
+                  href={detailHref}
+                  className="text-sm font-medium text-[var(--color-accent)] transition hover:brightness-110"
+                >
+                  Detail
+                </Link>
+              </div>
+            </div>
+          </article>
+        );
+      })}
     </div>
   );
 }
@@ -347,37 +362,37 @@ function RedemptionsList({
 }) {
   if (redemptions.length === 0) {
     return (
-      <div className="rounded-[1.25rem] border border-dashed border-white/14 bg-white/4 p-5">
-        <p className="text-sm leading-6 text-white/68">Voucher zatím nebyl uplatněn.</p>
+      <div className="rounded-[1rem] border border-dashed border-white/12 bg-white/4 px-4 py-4">
+        <p className="text-sm leading-5 text-white/68">Voucher zatím nebyl uplatněn.</p>
       </div>
     );
   }
 
   return (
     <>
-      <div className="hidden overflow-hidden rounded-[1.1rem] border border-white/8 md:block">
+      <div className="hidden overflow-hidden rounded-[1rem] border border-white/8 md:block">
         <table className="min-w-full border-separate border-spacing-0">
           <thead className="bg-white/4">
-            <tr className="text-left text-xs uppercase tracking-[0.18em] text-white/48">
-              <th className="px-4 py-3 font-medium">Datum</th>
-              <th className="px-4 py-3 font-medium">Částka / služba</th>
-              <th className="px-4 py-3 font-medium">Rezervace</th>
-              <th className="px-4 py-3 font-medium">Uplatnil</th>
-              <th className="px-4 py-3 font-medium">Poznámka</th>
+            <tr className="text-left text-[0.68rem] uppercase tracking-[0.18em] text-white/48">
+              <th className="px-3.5 py-2.5 font-medium">Datum</th>
+              <th className="px-3.5 py-2.5 font-medium">Služba / částka</th>
+              <th className="px-3.5 py-2.5 font-medium">Rezervace</th>
+              <th className="px-3.5 py-2.5 font-medium">Uplatnil</th>
+              <th className="px-3.5 py-2.5 font-medium">Poznámka</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-white/8 bg-white/[0.03]">
             {redemptions.map((redemption) => (
               <tr key={redemption.id} className="align-top">
-                <td className="px-4 py-4 text-sm text-white/86">{formatDateTimeLabel(redemption.redeemedAt)}</td>
-                <td className="px-4 py-4 text-sm leading-6 text-white/86">
+                <td className="px-3.5 py-3 text-sm text-white/86">{formatDateTimeLabel(redemption.redeemedAt)}</td>
+                <td className="px-3.5 py-3 text-sm leading-5 text-white/86">
                   {formatRedemptionAmountServiceLabel(redemption.amountCzk, redemption.serviceNameSnapshot)}
                 </td>
-                <td className="px-4 py-4 text-sm leading-6 text-white/86">
+                <td className="px-3.5 py-3 text-sm leading-5 text-white/86">
                   {redemption.bookingHref ? (
                     <Link
                       href={redemption.bookingHref}
-                      className="group block max-w-full rounded-[1rem] border border-white/10 bg-white/[0.03] px-3.5 py-3 transition hover:border-white/20 hover:bg-white/[0.05]"
+                      className="group block max-w-full rounded-[0.95rem] border border-white/10 bg-white/[0.03] px-3 py-2.5 transition hover:border-white/20 hover:bg-white/[0.05]"
                     >
                       <BookingCell booking={redemption.booking} interactive />
                     </Link>
@@ -385,10 +400,10 @@ function RedemptionsList({
                     <BookingCell booking={redemption.booking} />
                   )}
                 </td>
-                <td className="px-4 py-4 text-sm leading-6 text-white/86">
+                <td className="px-3.5 py-3 text-sm leading-5 text-white/86">
                   {formatUserLabel(redemption.redeemedByUser)}
                 </td>
-                <td className="px-4 py-4 text-sm leading-6 text-white/64">{formatOptional(redemption.note)}</td>
+                <td className="px-3.5 py-3 text-sm leading-5 text-white/64">{formatOptional(redemption.note)}</td>
               </tr>
             ))}
           </tbody>
@@ -397,11 +412,11 @@ function RedemptionsList({
 
       <div className="grid gap-3 md:hidden">
         {redemptions.map((redemption) => (
-          <article key={redemption.id} className="rounded-[1.1rem] border border-white/8 bg-white/5 p-4">
+          <article key={redemption.id} className="rounded-[1rem] border border-white/8 bg-white/5 p-3.5">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-base font-medium text-white">{formatDateTimeLabel(redemption.redeemedAt)}</p>
-                <p className="mt-1 text-sm leading-6 text-white/58">
+                <p className="text-sm font-medium text-white">{formatDateTimeLabel(redemption.redeemedAt)}</p>
+                <p className="mt-1 text-sm leading-5 text-white/58">
                   {formatRedemptionAmountServiceLabel(redemption.amountCzk, redemption.serviceNameSnapshot)}
                 </p>
               </div>
@@ -414,18 +429,18 @@ function RedemptionsList({
                 </Link>
               ) : null}
             </div>
-            <dl className="mt-4 grid gap-3">
-              <DetailRow
+            <dl className="mt-3 grid gap-3">
+              <CompactDetailRow
                 label="Rezervace"
                 value={formatBookingLabel(redemption.booking)}
                 tone={redemption.booking ? "default" : "muted"}
               />
-              <DetailRow
+              <CompactDetailRow
                 label="Uplatnil"
                 value={formatUserLabel(redemption.redeemedByUser)}
                 tone={redemption.redeemedByUser ? "default" : "muted"}
               />
-              <DetailRow
+              <CompactDetailRow
                 label="Poznámka"
                 value={formatOptional(redemption.note)}
                 tone={redemption.note ? "default" : "muted"}
@@ -455,56 +470,33 @@ function SummaryMetric({
         : "border-white/8 bg-white/5";
 
   return (
-    <div className={cn("rounded-[1.1rem] border p-3.5", toneClassName)}>
+    <div className={cn("rounded-[1rem] border p-3", toneClassName)}>
       <p className="text-[0.65rem] uppercase tracking-[0.18em] text-white/48">{label}</p>
-      <p className="mt-2 break-words text-sm leading-6 text-white/86">{value}</p>
+      <p className="mt-1.5 break-words text-sm leading-5 text-white/86">{value}</p>
     </div>
   );
 }
 
-function buildPartyFields(fields: Array<{ label: string; value: string | null | undefined }>) {
-  return fields
-    .filter((field) => field.value?.trim())
-    .map((field) => ({
-      label: field.label,
-      value: field.value!.trim(),
-    }));
-}
-
-function buildIssuedCreatedRows(issuedAt: Date | null | undefined, createdAt: Date) {
-  if (!issuedAt) {
-    return [{ label: "Vytvořeno", value: formatDateTimeLabel(createdAt) }];
-  }
-
-  const rows = [{ label: "Vystaveno", value: formatDateTimeLabel(issuedAt) }];
-
-  if (!areDatesPracticallySame(issuedAt, createdAt)) {
-    rows.push({ label: "Vytvořeno", value: formatDateTimeLabel(createdAt) });
-  }
-
-  return rows;
-}
-
-function areDatesPracticallySame(left: Date, right: Date) {
-  return Math.abs(left.getTime() - right.getTime()) < 60_000;
+function formatDateRangeLabel(validFrom: Date, validUntil: Date | null | undefined) {
+  return `${formatDateLabel(validFrom)} – ${formatDateLabel(validUntil)}`;
 }
 
 function formatVoucherBalanceLabel(redemptionsCount: number, remainingValueCzk: number | null | undefined) {
   const remaining = formatCzk(remainingValueCzk);
 
   if (remainingValueCzk === null || remaining === "Nevyplněno") {
-    return `${redemptionsCount}× • neznámý zůstatek`;
+    return `${redemptionsCount}× · neznámý zůstatek`;
   }
 
-  return `${redemptionsCount}× • zbývá ${remaining}`;
+  return `${redemptionsCount}× · zbývá ${remaining}`;
 }
 
 function formatServiceVoucherBalanceLabel(redemptionsCount: number) {
   if (redemptionsCount === 0) {
-    return "0× • zatím nevyužito";
+    return "0× · zatím nevyužito";
   }
 
-  return `${redemptionsCount}× • bez zůstatku`;
+  return `${redemptionsCount}× · bez zůstatku`;
 }
 
 function formatRedemptionAmountServiceLabel(
@@ -558,25 +550,6 @@ function BookingCell({
   );
 }
 
-function DetailRow({
-  label,
-  value,
-  tone = "default",
-}: {
-  label: string;
-  value: string;
-  tone?: DetailRowTone;
-}) {
-  return (
-    <div className="rounded-[1.15rem] border border-white/8 bg-white/5 p-4">
-      <dt className="text-xs uppercase tracking-[0.22em] text-white/48">{label}</dt>
-      <dd className={cn("mt-2 break-words whitespace-normal text-sm leading-6", tone === "muted" ? "text-white/42" : "text-white/86")}>
-        {value}
-      </dd>
-    </div>
-  );
-}
-
 function getVoucherStatusPillTone(status: VoucherStatus): "active" | "muted" | "accent" {
   switch (status) {
     case VoucherStatus.ACTIVE:
@@ -602,7 +575,7 @@ function formatDateTimeLabel(value: Date | null | undefined) {
 function formatEmailHistoryStatus(status: AdminVoucherDetailData["emailHistory"][number]["status"]) {
   switch (status) {
     case "PENDING":
-      return "Čeká na odeslání";
+      return "Čeká";
     case "SENT":
       return "Odesláno";
     case "FAILED":
@@ -648,5 +621,5 @@ function formatBookingLabel(
     return "Nevyplněno";
   }
 
-  return `${booking.clientNameSnapshot} • ${booking.serviceNameSnapshot} • ${formatDateTimeLabel(booking.scheduledStartsAt)}`;
+  return `${booking.clientNameSnapshot} · ${booking.serviceNameSnapshot} · ${formatDateTimeLabel(booking.scheduledStartsAt)}`;
 }

@@ -125,6 +125,7 @@ Evidence produkčních incidentů a jejich řešení.
 - Stránka `/o-mne` publikovaná jen s placeholder certifikáty nebo pracovní fotografií i po finálním dodání brand assetů; před release je potřeba ověřit, že placeholder stavy nejsou omylem ponechané jako produkční finální řešení.
 
 ## Preventivní poznámka
+- Přetrvávající text `Rendering...` na admin detailu voucheru po dokončení načtení je UI regrese; voucher detail má používat loading stav jen během skutečného fetch/render přechodu a v klidovém stavu ukazovat už jen finální summary a provozní panely.
 - Historie Prisma migrací může obsahovat rollbacknuté záznamy `20260419140000_site_settings_singleton` a `20260419103000_service_public_bookability`. Jsou to známé záznamy ze staršího recover postupu; nemaž je ručně z `_prisma_migrations`. Za problém je považuj až tehdy, když `npm run db:check-migrations` neskončí stavem `Migration history check: OK`, nebo když `prisma migrate deploy` odmítne pokračovat.
 - Release helper očekává nainstalované systemd units `ppstudio-web.service` a `ppstudio-email-worker.service`; po provisioning/recovery serveru je nejdřív zaveď přes `sudo /var/www/ppstudio/deploy/deploy.sh`, jinak se nový release záměrně zastaví před `npm ci`.
 - Produkční provoz `ppstudio` už nemá běžet současně přes PM2 i systemd. Smíšený stav způsobí buď port konflikt na `3000`, nebo dvojitý běh email workeru.

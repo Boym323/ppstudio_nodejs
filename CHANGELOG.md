@@ -6,6 +6,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Admin detail voucheru je přepracovaný do kompaktnějšího provozního layoutu: horní summary karta nově soustředí kód, typ, stav, platnost, čerpání a akce `Stáhnout PDF / Tisk A4 / Poslat e-mailem`, karty `Detaily` + `Hodnota / služba` se sloučily do `Parametry voucheru` a blok `Kupující + odeslání` sjednotil kontakt, disabled stavy i ruční potvrzení e-mailu.
+- Sekce `Poslední e-mailové pokusy` a `Historie uplatnění` jsou nižší a méně roztahané; empty states zůstávají krátké a detail voucheru už nezobrazuje přetrvávající text `Rendering...` po načtení.
 - Opraveny TypeScript test typy mimo dashboard: `voucher-domain.integration.test.ts` nyní předává kompletní voucher metadata (`purchaserName`, `recipientName`, `message`, `internalNote`) a `note` při redeem voláních, `templates.test.ts` bezpečně převádí obsah přílohy na string a `request-origin.test.ts` nastavuje `NODE_ENV` bez zápisu do readonly env property.
 - Admin dashboard `Přehled` je zjednodušený na kompaktní denní provozní cockpit: vysoký hero nahradila nízká operační lišta, alerty a KPI jsou zhuštěné do stripů, dnešní plán má nižší řádky, rychlé akce jsou v 2x2 gridu a analytika zůstává defaultně zavřená.
 - Admin detail klientky má kompaktnější vizuální hustotu: menší hlavičku, nižší KPI karty, zhuštěné pravé karty, kratší řádky historie a nižší formulář interní poznámky.

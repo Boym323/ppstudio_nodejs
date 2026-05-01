@@ -108,6 +108,10 @@ Postup nasazení aplikace do produkce.
      - po vytvoření redirect na odpovídající detail voucheru
      - neaktivní služby se v selectu ani server action nepovolí
      - v detailu voucheru tlačítko `Stáhnout voucher PDF` stáhne původní `application/pdf` s filename `voucher-<kod>.pdf`
+     - detail voucheru nemá po načtení zobrazovat text `Rendering...`; loading indikace smí být vidět jen při skutečném načítání
+     - summary karta je kompaktní a akce `Stáhnout PDF / Tisk A4 / Poslat e-mailem` jsou na desktopu v jedné řadě
+     - karty `Detaily` a `Hodnota / služba` jsou sloučené do `Parametry voucheru`
+     - karty `Kupující`, `Odeslat voucher` a základní stav odeslání jsou sloučené do `Kupující a odeslání`
      - odkaz `Tisk A4` stáhne samostatné A4 PDF na výšku s voucherem v horní třetině, bílým zbytkem stránky mimo voucher a beze změny původního e-mailového/běžného voucher PDF výstupu
      - PDF obsahuje kód, platnost, hodnotu nebo službu, QR kód a neobsahuje e-mail kupujícího, interní poznámku, historii čerpání ani technická ID
      - QR odkaz `/vouchery/overeni?code=...` vrací veřejné noindex ověření voucheru bez 404

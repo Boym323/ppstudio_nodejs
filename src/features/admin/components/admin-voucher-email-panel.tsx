@@ -17,6 +17,8 @@ type AdminVoucherEmailPanelProps = {
   blockedMessage: string;
   defaultRecipientEmail: string;
   defaultSubject: string;
+  className?: string;
+  panelId?: string;
 };
 
 export function AdminVoucherEmailPanel({
@@ -26,6 +28,8 @@ export function AdminVoucherEmailPanel({
   blockedMessage,
   defaultRecipientEmail,
   defaultSubject,
+  className,
+  panelId,
 }: AdminVoucherEmailPanelProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [serverState, formAction] = useActionState(
@@ -34,12 +38,15 @@ export function AdminVoucherEmailPanel({
   );
 
   return (
-    <section className="rounded-[1.1rem] border border-white/8 bg-white/5 p-4">
+    <section
+      id={panelId}
+      className={cn("rounded-[1rem] border border-white/8 bg-white/5 p-3.5 sm:p-4", className)}
+    >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-sm font-semibold text-white">Odeslat voucher</p>
-          <p className="mt-1 text-sm leading-6 text-white/62">
-            Voucher se odešle pouze po potvrzení formuláře.
+          <p className="mt-1 text-sm leading-5 text-white/62">
+            Voucher se odešle až po potvrzení.
           </p>
         </div>
         <button
@@ -58,7 +65,7 @@ export function AdminVoucherEmailPanel({
       </div>
 
       {!canSend ? (
-        <p className="mt-3 rounded-[0.95rem] border border-white/10 bg-black/18 px-3 py-2 text-sm leading-6 text-white/70">
+        <p className="mt-3 rounded-[0.9rem] border border-white/10 bg-black/18 px-3 py-2 text-sm leading-5 text-white/70">
           {blockedMessage}
         </p>
       ) : null}
