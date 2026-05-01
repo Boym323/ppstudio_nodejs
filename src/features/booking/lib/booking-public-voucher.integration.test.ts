@@ -33,6 +33,7 @@ type SeedContext = {
   otherServiceId: string;
   createdBookingIds: string[];
   createdSlotIds: string[];
+  cleanupSlotWindows: Array<{ startsAt: Date; endsAt: Date }>;
   createdVoucherIds: string[];
 };
 
@@ -118,6 +119,7 @@ async function createSeed(): Promise<SeedContext> {
     otherServiceId: otherService.id,
     createdBookingIds: [],
     createdSlotIds: [],
+    cleanupSlotWindows: [],
     createdVoucherIds: [],
   };
 }
@@ -137,6 +139,15 @@ async function cleanupSeed(context: SeedContext) {
   await prisma.booking.deleteMany({ where: { id: { in: context.createdBookingIds } } });
   await prisma.voucher.deleteMany({ where: { id: { in: context.createdVoucherIds } } });
   await prisma.availabilitySlot.deleteMany({ where: { id: { in: context.createdSlotIds } } });
+  if (context.cleanupSlotWindows.length > 0) {
+    await prisma.availabilitySlot.deleteMany({
+      where: {
+        OR: context.cleanupSlotWindows.map((window) => ({
+          startsAt: { gte: window.startsAt, lt: window.endsAt },
+        })),
+      },
+    });
+  }
   await prisma.client.deleteMany({
     where: {
       email: {
@@ -163,6 +174,27 @@ async function createSlot(context: SeedContext, offsetDays = context.createdSlot
   const startsAt = addDays(new Date(), offsetDays);
   startsAt.setUTCHours(9 + (context.createdSlotIds.length % 6), 0, 0, 0);
   const endsAt = new Date(startsAt.getTime() + 60 * 60 * 1000);
+  const slot = await prisma.availabilitySlot.create({
+    data: {
+      startsAt,
+      endsAt,
+      status: AvailabilitySlotStatus.PUBLISHED,
+      publishedAt: new Date(),
+    },
+  });
+
+  context.createdSlotIds.push(slot.id);
+
+  return slot;
+}
+
+async function createPublishedSlot(
+  context: SeedContext,
+  startsAt: Date,
+  durationMinutes: number,
+) {
+  const { prisma } = await loadModules();
+  const endsAt = new Date(startsAt.getTime() + durationMinutes * 60 * 1000);
   const slot = await prisma.availabilitySlot.create({
     data: {
       startsAt,
@@ -221,6 +253,85 @@ describe("public booking intended voucher", () => {
       assert.equal(booking.intendedVoucherId, null);
       assert.equal(booking.intendedVoucherCodeSnapshot, null);
       assert.equal(booking.intendedVoucherValidatedAt, null);
+    });
+  });
+
+  dbTest("splits chained published coverage so planner keeps free edge fragments editable", async () => {
+    await withSeed(async (seed) => {
+      const { prisma, createPublicBooking } = await loadModules();
+
+      const service = await prisma.service.update({
+        where: { id: seed.serviceId },
+        data: { durationMinutes: 90 },
+        select: { id: true },
+      });
+
+      const slotDayOffset = 5 + (parseInt(seed.suffix.slice(0, 2), 16) % 20);
+      const slotHourOffset = 6 + (parseInt(seed.suffix.slice(2, 4), 16) % 8);
+      const firstStart = addDays(new Date(), slotDayOffset);
+      firstStart.setUTCHours(slotHourOffset, 0, 0, 0);
+      seed.cleanupSlotWindows.push({
+        startsAt: firstStart,
+        endsAt: new Date(firstStart.getTime() + 2 * 60 * 60 * 1000),
+      });
+      const firstSlot = await createPublishedSlot(seed, firstStart, 60);
+      await createPublishedSlot(seed, new Date(firstStart.getTime() + 60 * 60 * 1000), 60);
+
+      const bookingStart = new Date(firstStart.getTime() + 30 * 60 * 1000);
+      const result = await createPublicBooking({
+        ...buildBookingInput(seed, { id: firstSlot.id, startsAt: bookingStart }),
+        serviceId: service.id,
+        startsAt: bookingStart.toISOString(),
+      });
+      seed.createdBookingIds.push(result.bookingId);
+
+      const slots = await prisma.availabilitySlot.findMany({
+        where: {
+          startsAt: {
+            gte: firstStart,
+            lt: new Date(firstStart.getTime() + 2 * 60 * 60 * 1000),
+          },
+        },
+        orderBy: { startsAt: "asc" },
+        select: {
+          id: true,
+          startsAt: true,
+          endsAt: true,
+          status: true,
+        },
+      });
+
+      assert.deepEqual(
+        slots.map((slot) => ({
+          startsAt: slot.startsAt.toISOString(),
+          endsAt: slot.endsAt.toISOString(),
+          status: slot.status,
+        })),
+        [
+          {
+            startsAt: firstStart.toISOString(),
+            endsAt: bookingStart.toISOString(),
+            status: AvailabilitySlotStatus.PUBLISHED,
+          },
+          {
+            startsAt: bookingStart.toISOString(),
+            endsAt: new Date(firstStart.getTime() + 60 * 60 * 1000).toISOString(),
+            status: AvailabilitySlotStatus.PUBLISHED,
+          },
+          {
+            startsAt: new Date(firstStart.getTime() + 60 * 60 * 1000).toISOString(),
+            endsAt: new Date(firstStart.getTime() + 120 * 60 * 1000).toISOString(),
+            status: AvailabilitySlotStatus.PUBLISHED,
+            },
+        ],
+      );
+
+      const booking = await prisma.booking.findUniqueOrThrow({
+        where: { id: result.bookingId },
+        select: { slotId: true },
+      });
+
+      assert.equal(booking.slotId, firstSlot.id);
     });
   });
 

@@ -115,6 +115,7 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
 - Veřejná stránka změny termínu je UX refaktorovaná do toku `kontext -> aktuální rezervace -> hybridní výběr termínu -> potvrzení -> sekundární storno`: nejbližší termíny jsou nahoře jako rychlé chips, kalendář slouží jako sekundární výběr dne a potvrzení je jediná dominantní CTA.
 - Veřejná booking dostupnost už není omezená jen na jeden fyzický `AvailabilitySlot`; pokud na sebe publikované sloty bez mezery navazují a mají stejná veřejná pravidla, katalog je složí do jednoho delšího okna a delší služby se tak mohou rezervovat i přes více sousedních segmentů.
 - Uvnitř takto složeného okna systém stále drží správný podkladový `slotId` pro vybraný start času a backend při vytvoření nebo přesunu termínu ověřuje celý souvislý řetězec segmentů bez mezer, blokací a kapacitních kolizí.
+- Když rezervace využije jen část takového navazujícího řetězce, engine nově rozseká i krajní segmenty coverage, aby admin planner ukazoval skutečně volné okraje jako normální dostupnost a ne jako technicky chráněný zbytek slotu.
 - Implementačně je veřejný booking flow po stabilizačním refaktoru rozdělený do menších interních komponent (`progress panel`, `service step`, `term step`, `contact step`, `summary sidebar`), ale chování pro klientku zůstává stejné.
 - Admin má dva směry použití:
   - full admin na `/admin/*` pro roli `OWNER`

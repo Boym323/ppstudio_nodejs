@@ -335,6 +335,33 @@ async function splitSlotForEditing(
   }
 }
 
+async function splitCoverageSlotsForEditing(
+  tx: Prisma.TransactionClient,
+  coverageSlots: BookingSlotRecord[],
+  requestedStartsAt: Date,
+  requestedEndsAt: Date,
+) {
+  if (coverageSlots.length === 0) {
+    return;
+  }
+
+  if (coverageSlots.length === 1) {
+    await splitSlotForEditing(tx, coverageSlots[0], requestedStartsAt, requestedEndsAt);
+    return;
+  }
+
+  const firstSlot = coverageSlots[0];
+  const lastSlot = coverageSlots[coverageSlots.length - 1];
+
+  if (firstSlot && requestedStartsAt.getTime() > firstSlot.startsAt.getTime()) {
+    await splitSlotForEditing(tx, firstSlot, requestedStartsAt, firstSlot.endsAt);
+  }
+
+  if (lastSlot && requestedEndsAt.getTime() < lastSlot.endsAt.getTime()) {
+    await splitSlotForEditing(tx, lastSlot, lastSlot.startsAt, requestedEndsAt);
+  }
+}
+
 export async function createBookingWithEngine(
   input: SharedCreateBookingInput,
 ): Promise<SharedCreateBookingResult> {
@@ -639,8 +666,13 @@ export async function createBookingWithEngine(
             },
           });
 
-          if (resolvedSlot.status === AvailabilitySlotStatus.PUBLISHED && resolvedCoverageSlots.length === 1) {
-            await splitSlotForEditing(tx, resolvedSlot, requestedStartsAt, requestedEndsAt);
+          if (resolvedSlot.status === AvailabilitySlotStatus.PUBLISHED) {
+            await splitCoverageSlotsForEditing(
+              tx,
+              resolvedCoverageSlots.length > 0 ? resolvedCoverageSlots : [resolvedSlot],
+              requestedStartsAt,
+              requestedEndsAt,
+            );
           }
 
           await tx.bookingStatusHistory.create({

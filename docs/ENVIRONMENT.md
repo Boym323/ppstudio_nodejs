@@ -119,6 +119,7 @@ Dokumentace proměnných prostředí pro lokální vývoj i produkci.
 ## Poznámka k týdennímu planneru slotů
 - Týdenní planner dostupností nepřidává žádné nové env proměnné.
 - UX density pass planneru také nepřidává žádné nové env proměnné; kompaktnější header, toolbar, sloučený inspektor a čitelnější grid jsou čistě prezentační změna nad existujícím planner flow.
+- Oprava fragmentace chained slotů pro admin planner také nepřidává žádné nové env proměnné; jde čistě o serverovou booking/reschedule logiku nad stávajícím `DATABASE_URL`.
 - Přímá editace v 30min gridu, lokální koncept týdne, copy day/week i lokální šablona týdne používají stejné existující základy:
   - `DATABASE_URL`
   - `ADMIN_SESSION_SECRET`
