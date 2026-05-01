@@ -926,7 +926,8 @@ export async function ContactPage() {
           heroPhoto
             ? {
                 src: heroPhoto.imageUrl,
-                alt: heroPhoto.altText,
+                title: 'Soukromé místo pro chvíli péče',
+                alt: 'Světlý interiér PP Studia ve Zlíně s béžovými křesly, zrcadlem, stolkem, zlatými detaily a pokojovými rostlinami.',
                 width: heroPhoto.width ?? 1280,
                 height: heroPhoto.height ?? 960,
               }

@@ -47,6 +47,7 @@ type ContactHeroProps = {
   instagramUrl: string | null;
   photo?: {
     src: string;
+    title?: string;
     alt: string;
     width: number;
     height: number;
@@ -141,14 +142,19 @@ export function ContactHero({ title, description, phone, email, instagramUrl, ph
         </div>
         <aside className="flex">
           {photo ? (
-            <div className="relative w-full overflow-hidden rounded-[calc(var(--radius-panel)-0.25rem)] border border-white/75 bg-white/70 shadow-[var(--shadow-panel)]">
+            <div className="relative w-full overflow-hidden rounded-[var(--radius-panel)] border border-white/80 bg-white/85 shadow-[var(--shadow-panel)]">
               <Image
                 src={photo.src}
+                title={photo.title}
                 alt={photo.alt}
-                width={photo.width}
-                height={photo.height}
-                className="h-[14rem] w-full object-cover object-center sm:h-[17rem]"
-                priority
+                fill
+                sizes="(min-width: 1024px) 44vw, (min-width: 640px) 88vw, 100vw"
+                loading="eager"
+                className="object-cover object-center"
+              />
+              <div
+                className="pointer-events-none relative aspect-[4/3] w-full sm:aspect-[5/4] lg:aspect-[4/3]"
+                aria-hidden
               />
             </div>
           ) : (
