@@ -124,7 +124,7 @@ export async function getAdminVouchersPageData(
   const filters = normalizeSearchParams(searchParams);
   const now = new Date();
 
-  const [totalCount, activeCount, partiallyRedeemedCount, redeemedCount, expiredCount, vouchers] =
+  const [totalCount, activeCount, partiallyRedeemedCount, redeemedCount, expiredCount, cancelledCount, vouchers] =
     await Promise.all([
       countVouchers(),
       countVouchers(Prisma.sql`
@@ -143,6 +143,7 @@ export async function getAdminVouchersPageData(
             AND v."validUntil" < ${now}
           )
       `),
+      countVouchers(Prisma.sql`WHERE v."status" = 'CANCELLED'::"VoucherStatus"`),
       listVouchers({
         query: filters.q,
         type: filters.type === "all" ? "all" : typeFilterToVoucherType[filters.type],
@@ -165,23 +166,19 @@ export async function getAdminVouchersPageData(
         label: "Voucherů celkem",
         value: String(totalCount),
         tone: "accent" as const,
-        detail: "Všechny záznamy.",
       },
       {
         label: "Aktivní",
         value: String(activeCount),
-        detail: "Použitelné.",
       },
       {
         label: "Částečně čerpané",
         value: String(partiallyRedeemedCount),
-        detail: "Se zůstatkem.",
       },
       {
-        label: "Uplatněné / propadlé",
-        value: String(redeemedCount + expiredCount),
+        label: "Uzavřené",
+        value: String(redeemedCount + expiredCount + cancelledCount),
         tone: "muted" as const,
-        detail: "Uzavřené záznamy.",
       },
     ],
   };

@@ -102,6 +102,10 @@ Postup nasazení aplikace do produkce.
      - blokaci a archivaci
      - zákaz smazání slotu s navázanou rezervací
    - sekci `Vouchery` na `/admin/vouchery` a `/admin/provoz/vouchery`:
+     - horní metric strip ukazuje `Voucherů celkem`, `Aktivní`, `Částečně čerpané` a `Uzavřené` v jedné nízké kartě
+     - filtry `Hledat / Typ / Stav / Filtrovat / Zrušit` jsou na desktopu v jednom řádku a zůstávají URL-driven
+     - desktopová tabulka používá sloupce `Kód / Typ / Voucher / Čerpání / zůstatek / Stav / Platnost / Akce`
+     - badge `Aktivní`, `Částečně čerpaný`, `Uplatněný` a `Propadlý` jsou přímo ve sloupci `Stav`, nelámou se přes více řádků a nepůsobí odděleně od řádku
      - tlačítko `Nový voucher` vede na správnou owner/salon route
      - vytvoření hodnotového voucheru s částkou, platností a volitelným kupujícím
      - vytvoření voucheru na aktivní službu a uložení snapshotu názvu, ceny a délky

@@ -68,6 +68,7 @@ Dokumentace proměnných prostředí pro lokální vývoj i produkci.
 - Textová doména v kontaktním řádku voucher PDF je oddělená od runtime hostu: priorita je `VOUCHER_PUBLIC_DOMAIN` -> `NEXT_PUBLIC_SITE_DOMAIN` -> hostname z `NEXT_PUBLIC_APP_URL` jen pokud je bezpečně veřejný (ne localhost ani privátní IP). Když bezpečný host chybí, doména se do kontaktu nevypíše.
 - Veřejná stránka ověření voucheru `/vouchery/overeni` nepřidává žádnou novou env proměnnou; používá stávající `DATABASE_URL` a QR odkazy z PDF dál vznikají z `NEXT_PUBLIC_APP_URL`.
 - Rucni odeslani voucheru e-mailem z admin detailu nepridava zadnou novou env promennou; pouziva existujici `EMAIL_DELIVERY_MODE`, `SMTP_*` konfiguraci a email worker/outbox flow.
+- Kompaktní refaktor admin seznamu voucherů nepřidává žádnou novou env proměnnou; metric strip, hustší filtry i tabulka se stavovými badge jsou čistě UI změna nad existujícím voucher read modelem.
 - Kompaktní provozní refaktor detailu voucheru nepřidává žádnou novou env proměnnou; summary karta, sloučené panely i odstranění přetrvávajícího `Rendering...` textu jsou čistě UI změna nad existujícím read modelem.
 - Tisková A4 varianta voucher PDF nepřidává žádnou novou env proměnnou; používá stejné `NEXT_PUBLIC_APP_URL`, `VOUCHER_PUBLIC_DOMAIN` / `NEXT_PUBLIC_SITE_DOMAIN`, `SiteSettings` kontakty a `voucherPdfLogoMediaId` jako původní PDF voucher.
 - Rate limit pro `/vouchery/overeni` nepřidává novou env proměnnou; limity jsou zatím fixované v `src/features/vouchers/lib/voucher-public-verification-rate-limit.ts` (okno 10 minut, IP limit 10).

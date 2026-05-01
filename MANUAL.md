@@ -138,7 +138,9 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
   - veřejná validace voucheru při rezervaci pouze ověřuje použitelnost pro vybranou službu a nic neodečítá,
   - skutečné čerpání vzniká pouze admin/server akcí, která zapisuje `VoucherRedemption`; jedna rezervace smí mít nejvýše jeden uplatněný voucher.
 - Admin evidence voucherů je dostupná pro `OWNER` na `/admin/vouchery` a pro `SALON` na `/admin/provoz/vouchery`.
-- Seznam voucherů je na desktopu tabulkový a na menších šířkách přechází do karet; create CTA je v hlavičce nad filtry a filtr `q / type / status` zůstává URL-driven.
+- Seznam voucherů je na desktopu kompaktní tabulka se sloupci `Kód`, `Typ`, `Voucher`, `Čerpání / zůstatek`, `Stav`, `Platnost` a `Akce`; na menších šířkách přechází do nízkých karet.
+- Horní část seznamu používá nízkou stránkovou hlavičku s CTA `Nový voucher` vpravo a ještě nižší metric strip `Voucherů celkem / Aktivní / Částečně čerpané / Uzavřené`; filtr `q / type / status` je dál URL-driven.
+- Stavové badge voucherů patří přímo do sloupce `Stav`; `Aktivní` je zelený, `Částečně čerpaný` zlatý, `Uplatněný` tlumený a `Propadlý` varovný.
 - Všechny voucher routy včetně detailu a vytvoření běží uvnitř standardního tmavého admin shellu; pokud voucher obrazovka vypadá světle nebo bez navigace, chybí příslušný route layout.
 - Seznam voucherů podporuje hledání podle query parametru `q`, filtr typu `type=all|value|service` a filtr stavu `status=all|active|partially_redeemed|redeemed|expired|cancelled|draft`.
 - Nový voucher lze vytvořit přes `/admin/vouchery/novy` nebo `/admin/provoz/vouchery/novy`. Formulář podporuje hodnotový poukaz s částkou v Kč a poukaz na aktivní službu se snapshotem názvu, ceny a délky. Admin UI se soustředí na evidenci kupujícího a jeho e-mailu; obdarovaný a věnování se v této verzi ve formuláři nezobrazují. Pravý souhrn slouží jen jako živý provozní náhled před uložením.
