@@ -25,6 +25,7 @@ export type AdminServiceListItem = {
 type AdminServicesListProps = {
   area: "owner" | "salon";
   currentPath: string;
+  createHref: string;
   currentServiceId?: string;
   queryString: string;
   returnTo: string;
@@ -64,6 +65,7 @@ function groupServicesByCategory(services: AdminServiceListItem[]) {
 export function AdminServicesList({
   area,
   currentPath,
+  createHref,
   currentServiceId,
   queryString,
   returnTo,
@@ -72,10 +74,21 @@ export function AdminServicesList({
   if (services.length === 0) {
     return (
       <div className="rounded-[1.3rem] border border-dashed border-white/14 bg-white/4 p-4">
-        <p className="text-base font-medium text-white">Filtru zatím nic neodpovídá.</p>
-        <p className="mt-1.5 text-sm leading-6 text-white/62">
-          Zkuste upravit hledání, kategorii nebo přepnout stav služby a veřejnou rezervovatelnost.
-        </p>
+        <p className="text-base font-medium text-white">Nenalezeny žádné služby.</p>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <a
+            href={currentPath}
+            className="rounded-full border border-white/10 px-4 py-2 text-sm text-white/80 transition hover:border-white/18 hover:bg-white/6"
+          >
+            Zrušit filtr
+          </a>
+          <a
+            href={createHref}
+            className="rounded-full bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-[var(--color-accent-contrast)] transition hover:brightness-105"
+          >
+            Nová služba
+          </a>
+        </div>
       </div>
     );
   }

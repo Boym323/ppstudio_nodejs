@@ -16,6 +16,7 @@ type AdminPageShellProps = {
   headerActions?: React.ReactNode;
   stats?: StatItem[];
   compactStats?: boolean;
+  slimStats?: boolean;
   children?: React.ReactNode;
   compact?: boolean;
   denseIntro?: boolean;
@@ -55,6 +56,7 @@ export function AdminPageShell({
   headerActions,
   stats,
   compactStats = false,
+  slimStats = false,
   children,
   compact = false,
   denseIntro = false,
@@ -113,21 +115,40 @@ export function AdminPageShell({
             <article
               key={stat.label}
               className={cn(
-                compactStats ? "rounded-[1.2rem] border px-4 py-3.5" : "rounded-[1.75rem] border p-5",
+                compactStats
+                  ? slimStats
+                    ? "rounded-[1.1rem] border px-4 py-2.5"
+                    : "rounded-[1.2rem] border px-4 py-3.5"
+                  : "rounded-[1.75rem] border p-5",
                 statToneStyles[stat.tone ?? "default"],
               )}
             >
-              <p className="text-xs uppercase tracking-[0.24em] text-white/55">{stat.label}</p>
+              <p className={cn("uppercase tracking-[0.24em] text-white/55", slimStats ? "text-[10px]" : "text-xs")}>
+                {stat.label}
+              </p>
               <p
                 className={cn(
                   "break-words font-display",
-                  compactStats ? "mt-1.5 text-[1.75rem] sm:text-[2rem]" : "mt-4 text-3xl sm:text-4xl",
+                  compactStats
+                    ? slimStats
+                      ? "mt-1 text-[1.45rem] leading-none sm:text-[1.7rem]"
+                      : "mt-1.5 text-[1.75rem] sm:text-[2rem]"
+                    : "mt-4 text-3xl sm:text-4xl",
                 )}
               >
                 {stat.value}
               </p>
               {stat.detail ? (
-                <p className={cn("text-sm text-white/62", compactStats ? "mt-1.5 leading-5" : "mt-3 leading-6")}>
+                <p
+                  className={cn(
+                    "text-white/62",
+                    compactStats
+                      ? slimStats
+                        ? "mt-1 text-[11px] leading-4"
+                        : "mt-1.5 text-sm leading-5"
+                      : "mt-3 text-sm leading-6",
+                  )}
+                >
                   {stat.detail}
                 </p>
               ) : null}

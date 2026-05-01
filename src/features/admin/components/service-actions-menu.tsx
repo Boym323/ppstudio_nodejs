@@ -29,7 +29,7 @@ export function ServiceActionsMenu({
   return (
     <details className="group relative">
       <summary className="flex list-none justify-end [&::-webkit-details-marker]:hidden">
-        <span className="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-white/10 bg-white/6 text-lg text-white/76 transition hover:border-white/18 hover:bg-white/10">
+        <span className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border border-white/10 bg-white/6 text-lg text-white/76 transition hover:border-white/18 hover:bg-white/10">
           ⋯
         </span>
       </summary>

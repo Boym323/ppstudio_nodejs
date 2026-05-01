@@ -5,11 +5,13 @@ export function ServiceStatusBadges({
   isPubliclyBookable,
   isEffectivelyVisible,
   compact = false,
+  showHiddenState = true,
 }: {
   isActive: boolean;
   isPubliclyBookable: boolean;
   isEffectivelyVisible: boolean;
   compact?: boolean;
+  showHiddenState?: boolean;
 }) {
   const pillClassName = compact
     ? "px-2.5 py-0.5 text-[11px] normal-case tracking-normal"
@@ -39,7 +41,7 @@ export function ServiceStatusBadges({
       >
         {isPubliclyBookable ? "Veřejná" : "Interní"}
       </AdminStatePill>
-      {!isEffectivelyVisible ? (
+      {showHiddenState && !isEffectivelyVisible ? (
         <AdminStatePill
           tone="muted"
           className={pillClassName}

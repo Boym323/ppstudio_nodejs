@@ -1,10 +1,6 @@
 import Link from "next/link";
 
 import { type AdminArea } from "@/config/navigation";
-import {
-  toggleServiceActiveAction,
-  toggleServiceBookableAction,
-} from "@/features/admin/actions/service-actions";
 import { type AdminServiceListItem } from "@/features/admin/components/admin-services-list";
 import { ServiceActionsMenu } from "@/features/admin/components/service-actions-menu";
 import { ServiceStatusBadges } from "@/features/admin/components/service-status-badges";
@@ -42,58 +38,40 @@ export function ServiceCompactRow({
       open={isSelected}
     >
       <summary className="list-none [&::-webkit-details-marker]:hidden">
-        <div className="flex items-start gap-3 px-3 py-3 sm:px-4">
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-              <Link
-                href={detailHref}
-                className="truncate text-sm font-semibold text-white transition hover:text-[var(--color-accent-soft)] sm:text-[0.97rem]"
-              >
-                {service.name}
-              </Link>
-              <div className="flex flex-wrap items-center gap-2 text-xs text-white/62 sm:text-sm">
-                <span>{service.durationMinutes} min</span>
-                <span className="hidden text-white/20 sm:inline">|</span>
-                <span>{formatServicePrice(service.priceFromCzk)}</span>
-                <span className="hidden text-white/20 lg:inline">|</span>
-                <span>Rezervace: {service._count.bookings}</span>
-              </div>
-            </div>
-
-            <div className="mt-2 flex flex-wrap items-center gap-2">
-              <ServiceStatusBadges
-                isActive={service.isActive}
-                isPubliclyBookable={service.isPubliclyBookable}
-                isEffectivelyVisible={service.isEffectivelyVisible}
-                compact
-              />
-              {hasWarnings ? (
-                <span className="rounded-full border border-amber-300/25 bg-amber-400/10 px-2.5 py-0.5 text-[11px] text-amber-100">
-                  Upozornění {service.warnings.length}
-                </span>
-              ) : null}
-            </div>
+        <div className="grid gap-2 px-3 py-2.5 sm:px-4 xl:grid-cols-[minmax(0,1.8fr)_78px_110px_108px_auto_auto_auto] xl:items-center xl:gap-3">
+          <div className="min-w-0">
+            <Link
+              href={detailHref}
+              className="block truncate text-sm font-semibold text-white transition hover:text-[var(--color-accent-soft)] sm:text-[0.97rem]"
+              title={service.name}
+            >
+              {service.name}
+            </Link>
+            <p className="mt-0.5 text-xs text-white/50 xl:hidden">
+              {service.durationMinutes} min · {formatServicePrice(service.priceFromCzk)} · {service._count.bookings} rezervací
+            </p>
           </div>
 
-          <div className="flex items-start gap-2">
-            <div className="hidden items-center gap-2 lg:flex">
-              <InlineToggleForm
-                action={toggleServiceActiveAction}
-                area={area}
-                serviceId={service.id}
-                returnTo={returnTo}
-                active={service.isActive}
-                label={service.isActive ? "Aktivní" : "Neaktivní"}
-              />
-              <InlineToggleForm
-                action={toggleServiceBookableAction}
-                area={area}
-                serviceId={service.id}
-                returnTo={returnTo}
-                active={service.isPubliclyBookable}
-                label={service.isPubliclyBookable ? "Veřejná" : "Interní"}
-              />
-            </div>
+          <p className="hidden text-sm text-white/64 xl:block">{service.durationMinutes} min</p>
+          <p className="hidden text-sm text-white/64 xl:block">{formatServicePrice(service.priceFromCzk)}</p>
+          <p className="hidden text-sm text-white/64 xl:block">{service._count.bookings} rezervací</p>
+
+          <div className="flex flex-wrap items-center gap-2 xl:flex-nowrap">
+            <ServiceStatusBadges
+              isActive={service.isActive}
+              isPubliclyBookable={service.isPubliclyBookable}
+              isEffectivelyVisible={service.isEffectivelyVisible}
+              compact
+              showHiddenState={false}
+            />
+            {hasWarnings ? (
+              <span className="rounded-full border border-amber-300/25 bg-amber-400/10 px-2 py-0.5 text-[11px] text-amber-100">
+                Upoz. {service.warnings.length}
+              </span>
+            ) : null}
+          </div>
+
+          <div className="flex items-center justify-end gap-2 xl:col-start-7 xl:row-start-1">
             <Link
               href={mobileDetailHref}
               className="inline-flex rounded-full border border-white/10 px-3 py-2 text-xs text-white/74 transition hover:border-white/18 hover:bg-white/6 xl:hidden"
@@ -130,40 +108,5 @@ export function ServiceCompactRow({
         ) : null}
       </div>
     </details>
-  );
-}
-
-function InlineToggleForm({
-  action,
-  area,
-  serviceId,
-  returnTo,
-  active,
-  label,
-}: {
-  action: (formData: FormData) => Promise<void>;
-  area: AdminArea;
-  serviceId: string;
-  returnTo: string;
-  active: boolean;
-  label: string;
-}) {
-  return (
-    <form action={action}>
-      <input type="hidden" name="area" value={area} />
-      <input type="hidden" name="serviceId" value={serviceId} />
-      <input type="hidden" name="returnTo" value={returnTo} />
-      <button
-        type="submit"
-        className={cn(
-          "rounded-full border px-3 py-1.5 text-xs transition",
-          active
-            ? "border-[var(--color-accent)]/35 bg-[rgba(190,160,120,0.1)] text-[var(--color-accent-soft)]"
-            : "border-white/10 bg-white/5 text-white/58 hover:border-white/18 hover:bg-white/8",
-        )}
-      >
-        {label}
-      </button>
-    </form>
   );
 }

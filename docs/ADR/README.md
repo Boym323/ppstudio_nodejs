@@ -90,3 +90,4 @@ Sem patří krátké záznamy architektonických rozhodnutí.
 - `0073-admin-voucher-list-density-v2.md`
 - `0074-admin-booking-list-density-v3.md`
 - `0075-admin-client-list-crm-density-v2.md`
+- `0076-admin-services-catalog-density-v3.md`

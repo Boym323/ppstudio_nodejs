@@ -309,6 +309,8 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - `service-compact-row.tsx` renderuje hustý pracovní řádek služby
   - `service-actions-menu.tsx` centralizuje row actions do menu `⋯`
   - `service-status-badges.tsx` drží zjednodušené badge `Aktivní/Neaktivní`, `Veřejná/Interní`, volitelně `Skrytá`
+- KPI strip sekce `Služby` se musí počítat jen z aktuálně filtrovaného běžného katalogu, ne z celé databáze. Aktuální provozní definice je `Veřejné služby` = efektivně viditelné položky, `Kategorie` = počet kategorií v aktuálním pohledu, `Interní / skryté` = položky neaktivní nebo neveřejné v aktuálním pohledu, `Vyžaduje kontrolu` = položky s reálným warningem.
+- Toolbar seznamu služeb má zůstat co nejkratší: bez duplicitního mezititulku, bez druhého CTA a se scope běžného katalogu komunikovaným jen přes malé pills. Legenda stavů patří do drobného rozbalovacího prvku `Legenda stavů`, ne do samostatného vysokého bloku nad filtry.
 - Při dalších úpravách sekce `Služby` drž prioritu na hustotě seznamu: základní řádek nemá nést dlouhé vysvětlující texty ani plný seznam akcí.
 - Sekundární provozní kontext služby patří do rozbalené části řádku nebo do pravého detail draweru, ne do výchozího stavu seznamu.
 - Sekce `Kategorie služeb` má vlastní workflow v `src/features/admin/components/admin-service-categories-page.tsx` a stejně jako `Služby` obchází generický placeholder renderer.

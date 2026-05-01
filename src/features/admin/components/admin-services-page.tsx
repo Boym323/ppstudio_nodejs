@@ -122,13 +122,18 @@ export async function AdminServicesPage({
     <AdminPageShell
       eyebrow={area === "owner" ? "Katalog služeb" : "Provozní nabídka"}
       title="Služby"
-      description={
-        area === "owner"
-          ? "Rychlá správa nabídky pro web, ceník i interní provoz bez zbytečného přepínání mezi stránkami."
-          : "Klidný provozní přehled, kde jde většina změn udělat rovnou ze seznamu."
+      description="Rychlá správa nabídky pro web, ceník i interní provoz."
+      headerActions={
+        <a
+          href={createHref}
+          className="inline-flex rounded-full bg-[var(--color-accent)] px-4 py-2.5 text-sm font-semibold text-[var(--color-accent-contrast)] transition hover:brightness-105"
+        >
+          Nová služba
+        </a>
       }
       stats={data.stats}
       compactStats
+      slimStats
       compact={area === "salon"}
     >
       <div className="xl:hidden">
@@ -155,17 +160,22 @@ export async function AdminServicesPage({
         ) : (
           <AdminPanel
             title="Přehled služeb"
-            description="Najděte službu, proveďte rychlé akce a detail otevírejte jen tehdy, když je to opravdu potřeba."
             compact={area === "salon"}
             denseHeader
           >
             <AdminServicesToolbar
               currentPath={data.currentPath}
-              createHref={createHref}
               filters={data.filters}
               categories={data.categories}
               selectedServiceName={data.selectedService?.name}
             />
+
+            <div className="mt-4 rounded-[1rem] border border-white/8 bg-white/[0.035] px-4 py-3 text-sm text-white/70">
+              <p>
+                V seznamu: {data.summary.listed} · Skupin: {data.summary.categories} · Viditelné: {data.summary.visible} · Upozornění: {data.summary.warnings}
+              </p>
+              <p className="mt-1 text-xs text-white/50">{data.catalogScopeNotice}</p>
+            </div>
 
             {data.selectedService && !selectedServiceVisible ? (
               <div className="mt-5 rounded-[1.25rem] border border-amber-300/20 bg-amber-400/10 px-4 py-3 text-sm leading-6 text-amber-50">
@@ -177,6 +187,7 @@ export async function AdminServicesPage({
               <AdminServicesList
                 area={area}
                 currentPath={data.currentPath}
+                createHref={createHref}
                 currentServiceId={data.selectedService?.id}
                 queryString={queryString}
                 returnTo={returnTo}
@@ -190,30 +201,21 @@ export async function AdminServicesPage({
       <div className="hidden xl:block">
         <AdminPanel
           title="Přehled služeb"
-          description="Seznam je primárně provozní: filtrace, stavové kontexty a akce jsou hned po ruce."
           compact={area === "salon"}
           denseHeader
         >
           <AdminServicesToolbar
             currentPath={data.currentPath}
-            createHref={createHref}
             filters={data.filters}
             categories={data.categories}
             selectedServiceName={data.selectedService?.name}
           />
 
-          <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-[1rem] border border-white/8 bg-white/[0.035] px-4 py-3 text-sm text-white/64">
-            <p><span className="text-white">Aktivní:</span> provozně zapnutá služba</p>
-            <p><span className="text-white">Neaktivní:</span> zůstává jen v evidenci</p>
-            <p><span className="text-white">Veřejná:</span> může ji vybrat klientka</p>
-            <p><span className="text-white">Interní:</span> jen pro interní práci</p>
-          </div>
-
-          <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-[1rem] border border-white/8 bg-white/[0.035] px-4 py-3 text-sm text-white/64">
-            <p><span className="text-white">V seznamu:</span> {data.services.length}</p>
-            <p><span className="text-white">Skupin:</span> {new Set(data.services.map((service) => service.category.id)).size}</p>
-            <p><span className="text-white">Viditelné:</span> {data.services.filter((service) => service.isEffectivelyVisible).length}</p>
-            <p><span className="text-white">Upozornění:</span> {data.services.filter((service) => service.warnings.length > 0).length}</p>
+          <div className="mt-4 rounded-[1rem] border border-white/8 bg-white/[0.035] px-4 py-3 text-sm text-white/70">
+            <p>
+              V seznamu: {data.summary.listed} · Skupin: {data.summary.categories} · Viditelné: {data.summary.visible} · Upozornění: {data.summary.warnings}
+            </p>
+            <p className="mt-1 text-xs text-white/50">{data.catalogScopeNotice}</p>
           </div>
 
           {data.selectedService && !selectedServiceVisible ? (
@@ -226,6 +228,7 @@ export async function AdminServicesPage({
             <AdminServicesList
               area={area}
               currentPath={data.currentPath}
+              createHref={createHref}
               currentServiceId={data.selectedService?.id}
               queryString={queryString}
               returnTo={returnTo}

@@ -172,13 +172,7 @@ export async function getAdminServicesPageData(
   const filters = normalizeSearchParams(searchParams);
   const where = buildServiceWhere(filters);
 
-  const [serviceCountsByState, services, categories] = await Promise.all([
-    prisma.service.groupBy({
-      by: ["isActive", "isPubliclyBookable"],
-      _count: {
-        _all: true,
-      },
-    }),
+  const [services, categories] = await Promise.all([
     prisma.service.findMany({
       where,
       orderBy: buildServiceOrderBy(filters.sort),
@@ -223,23 +217,6 @@ export async function getAdminServicesPageData(
       },
     }),
   ]);
-
-  const activeCount = serviceCountsByState.reduce(
-    (sum, row) => (row.isActive ? sum + row._count._all : sum),
-    0,
-  );
-  const inactiveCount = serviceCountsByState.reduce(
-    (sum, row) => (row.isActive ? sum : sum + row._count._all),
-    0,
-  );
-  const publicCount = serviceCountsByState.reduce(
-    (sum, row) => (row.isPubliclyBookable ? sum + row._count._all : sum),
-    0,
-  );
-  const privateCount = serviceCountsByState.reduce(
-    (sum, row) => (row.isPubliclyBookable ? sum : sum + row._count._all),
-    0,
-  );
 
   const servicesWithMeta = services.map((service) => {
     const warnings = describeServiceWarnings(service);
@@ -305,7 +282,18 @@ export async function getAdminServicesPageData(
       }
     : null;
 
+  const publicServicesCount = servicesWithMeta.filter((service) => service.isEffectivelyVisible).length;
+  const currentCategoryCount = new Set(servicesWithMeta.map((service) => service.category.id)).size;
+  const internalOrHiddenCount = servicesWithMeta.filter(
+    (service) => !service.isActive || !service.isPubliclyBookable,
+  ).length;
   const problematicCount = servicesWithMeta.filter((service) => service.problemCount > 0).length;
+  const summary = {
+    listed: servicesWithMeta.length,
+    categories: currentCategoryCount,
+    visible: publicServicesCount,
+    warnings: problematicCount,
+  };
   const stats: Array<{
     label: string;
     value: string;
@@ -313,28 +301,28 @@ export async function getAdminServicesPageData(
     detail: string;
   }> = [
     {
-      label: "Aktivní",
-      value: String(activeCount),
+      label: "Veřejné služby",
+      value: String(publicServicesCount),
       tone: "accent",
-      detail: "K dispozici pro běžný provoz.",
+      detail: "veřejně dostupné",
     },
     {
-      label: "Neaktivní",
-      value: String(inactiveCount),
-      tone: "muted",
-      detail: "Dočasně vypnuté nebo archivní.",
-    },
-    {
-      label: "Veřejné",
-      value: String(publicCount),
+      label: "Kategorie",
+      value: String(currentCategoryCount),
       tone: "default",
-      detail: "Označené pro veřejnou rezervaci.",
+      detail: "skupiny katalogu",
     },
     {
-      label: "Interní / problémy",
-      value: String(privateCount + problematicCount),
-      tone: privateCount + problematicCount > 0 ? "accent" : "muted",
-      detail: "Interní položky a varování v seznamu.",
+      label: "Interní / skryté",
+      value: String(internalOrHiddenCount),
+      tone: internalOrHiddenCount > 0 ? "muted" : "default",
+      detail: "interní nebo skryté",
+    },
+    {
+      label: "Vyžaduje kontrolu",
+      value: String(problematicCount),
+      tone: problematicCount > 0 ? "accent" : "muted",
+      detail: "k opravě",
     },
   ];
 
@@ -342,6 +330,8 @@ export async function getAdminServicesPageData(
     area,
     filters,
     stats,
+    summary,
+    catalogScopeNotice: "Systémové/testovací položky jsou skryté.",
     services: servicesWithMeta,
     categories,
     selectedService: selectedServiceWithAudit,
