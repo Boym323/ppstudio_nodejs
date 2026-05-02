@@ -141,44 +141,6 @@ async function findFreeStartAt(
   throw new Error("Could not find a free availability slot window for booking-management integration test.");
 }
 
-async function findFreeStartWithin(
-  prisma: Awaited<ReturnType<typeof loadModules>>["prisma"],
-  {
-    earliest,
-    latest,
-    durationMinutes,
-  }: {
-    earliest: Date;
-    latest: Date;
-    durationMinutes: number;
-  },
-) {
-  const candidate = new Date(earliest);
-  candidate.setUTCSeconds(0, 0);
-
-  while (candidate <= latest) {
-    const candidateEnd = addHours(candidate, durationMinutes / 60);
-    const overlappingCount = await prisma.availabilitySlot.count({
-      where: {
-        startsAt: {
-          lt: candidateEnd,
-        },
-        endsAt: {
-          gt: candidate,
-        },
-      },
-    });
-
-    if (overlappingCount === 0) {
-      return new Date(candidate);
-    }
-
-    candidate.setUTCMinutes(candidate.getUTCMinutes() + 5);
-  }
-
-  throw new Error("Could not find a near-term free availability slot window for booking-management integration test.");
-}
-
 async function createSeed() {
   const {
     prisma,
@@ -222,10 +184,12 @@ async function createSeed() {
     preferredMinute: 29,
   });
   const tooLateEndAt = addHours(tooLateStartAt, 1);
-  const outsideWindowStartAt = await findFreeStartWithin(prisma, {
-    earliest: addHours(now, 0.1),
-    latest: addHours(now, 1.5),
+  const outsideWindowStartAt = await findFreeStartAt(prisma, {
+    earliest: addDays(now, 91),
+    latest: addDays(now, 120),
     durationMinutes: 60,
+    preferredHour: 9,
+    preferredMinute: 53,
   });
   const outsideWindowEndAt = addHours(outsideWindowStartAt, 1);
   const completedStartAt = await findFreeStartAt(prisma, {
