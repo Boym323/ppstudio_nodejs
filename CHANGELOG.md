@@ -6,6 +6,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Booking transakční retry nově rozpoznává i Prisma 7 PG adapter `DriverAdapterError` s `TransactionWriteConflict`, takže CI ani produkční souběhy nekončí předčasně mimo existující retry smyčku.
 - Admin výběr slotu v ruční rezervaci a přesunu rezervace má nově jednoznačné accessible labely s datumem i časovým rozsahem; E2E test prefillu klientky už proto nekliká na první shodný čas v předchozím dni.
 - Opravené zobrazení draweru `Ruční rezervace`: při otevření z přehledu rezervací nebo z detailu klientky se panel nově renderuje přes React portal do `document.body`, takže už není ořezaný nebo vizuálně schovaný uvnitř hlavičky stránky.
 - Detail klientky v adminu i provozu nově vede tlačítkem `Vytvořit rezervaci` na existující ruční booking flow `/admin/.../rezervace?create=1&clientId=...`; drawer se otevře s předvyplněnou klientkou pro `OWNER` i `SALON`, neplatný `clientId` zobrazí jemný fallback a booking validace dostupnosti/překryvů zůstávají beze změny.

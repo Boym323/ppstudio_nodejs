@@ -90,7 +90,27 @@ function toCancellationDetails(token: LoadedCancellationToken) {
 }
 
 function isRetryablePrismaError(error: unknown) {
-  return error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2034";
+  const driverAdapterCause =
+    typeof error === "object" && error !== null && "cause" in error
+      ? (error as { cause?: unknown }).cause
+      : null;
+
+  return (
+    (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2034"
+    ) ||
+    (
+      typeof error === "object" &&
+      error !== null &&
+      "name" in error &&
+      error.name === "DriverAdapterError" &&
+      typeof driverAdapterCause === "object" &&
+      driverAdapterCause !== null &&
+      "kind" in driverAdapterCause &&
+      driverAdapterCause.kind === "TransactionWriteConflict"
+    )
+  );
 }
 
 async function findCancellationToken(tokenHash: string) {
