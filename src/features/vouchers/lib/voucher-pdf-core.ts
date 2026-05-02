@@ -248,7 +248,7 @@ export async function generateVoucherPdf(voucher: VoucherPdfData, options: Vouch
       color: colors.ink,
     });
   }
-  drawText(page, "kosmetické studio Zlín", leftX, subtitleY, {
+  drawText(page, "COSMETICS & LAMINATIONS", leftX, subtitleY, {
     fontPair: regularFont,
     size: subtitleSize,
     color: colors.muted,
