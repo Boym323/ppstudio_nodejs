@@ -11,12 +11,13 @@ Detail klientky v adminu obsahoval správná data, ale opakoval jméno, kontakt,
 - Read model `getAdminClientDetailData(...)` dál používá existující entity `Client` a `Booking`; nepřidává se DB migrace ani nové pole pro preference.
 - Obrazovka je rozdělena na:
   - horní hlavičku s klientkou, stavem profilu, poslední/další návštěvou a rychlými akcemi
-  - čtyři KPI karty bez samostatné velké karty pro nejčastější službu
+  - pět kompaktních KPI dlaždic pro poslední návštěvu, příští návštěvu, hodnotu služeb, uhrazeno a neuhrazeno
   - levý sloupec `Historie návštěv` a `Interní poznámka`
-  - pravý sloupec `Kontakt`, `Přehled klientky` a tlumená `Profilová metadata`
+  - pravý sloupec `Kontakt`, zkrácený `Přehled klientky` a tlumená `Profilová metadata`
 - Kontaktní akce používají `mailto:` a `tel:` jen při dostupné hodnotě; při chybějícím kontaktu se vykreslí neaktivní akce bez neplatného odkazu.
 - Do KPI se doplňuje počet zrušených rezervací jako další bezpečná agregace nad existujícím stavem `BookingStatus.CANCELLED`.
 - `Poslední návštěva` se v detailu odvozuje z poslední rezervace ve stavu `COMPLETED`, ne z `Client.lastBookedAt`; toto pole znamená aktivitu profilu při rezervaci a může předbíhat skutečnou návštěvu.
+- `Neuhrazeno` v CRM souhrnu nesmí prezentovat budoucí aktivní rezervace jako dluh klientky; zahrnuje jen dokončené rezervace nebo aktivní rezervace se začátkem v minulosti, zatímco `Uhrazeno` dál ukazuje reálně evidované platby a voucherová čerpání.
 - Vizuální hustota detailu má být blíž provoznímu workspace než profilové landing stránce: nižší header, kompaktní KPI, zhuštěné řádky historie a kratší interní poznámka.
 
 ## Důsledky

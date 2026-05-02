@@ -84,18 +84,58 @@ test("getClientCrmSummary finds nearest future active booking as next visit", ()
   assert.equal(summary.activeBookings, 2);
 });
 
-test("getClientCrmSummary counts partially paid booking", () => {
+test("getClientCrmSummary does not count future confirmed booking as unpaid", () => {
   const summary = getClientCrmSummary([
     booking({
       status: BookingStatus.CONFIRMED,
-      servicePriceFromCzk: 1_500,
-      voucherRedemptions: [{ amountCzk: 400 }],
-      payments: [{ amountCzk: 600 }],
+      servicePriceFromCzk: 1_450,
     }),
   ], { now });
 
-  assert.equal(summary.paidCzk, 1_000);
-  assert.equal(summary.unpaidCzk, 500);
+  assert.equal(summary.paidCzk, 0);
+  assert.equal(summary.unpaidCzk, 0);
+});
+
+test("getClientCrmSummary counts future confirmed payment as paid without unpaid debt", () => {
+  const summary = getClientCrmSummary([
+    booking({
+      status: BookingStatus.CONFIRMED,
+      servicePriceFromCzk: 1_450,
+      payments: [{ amountCzk: 500 }],
+    }),
+  ], { now });
+
+  assert.equal(summary.paidCzk, 500);
+  assert.equal(summary.unpaidCzk, 0);
+});
+
+test("getClientCrmSummary counts completed unpaid booking as unpaid", () => {
+  const summary = getClientCrmSummary([
+    booking({
+      status: BookingStatus.COMPLETED,
+      servicePriceFromCzk: 1_450,
+      scheduledStartsAt: new Date("2026-04-30T10:00:00.000Z"),
+      scheduledEndsAt: new Date("2026-04-30T11:00:00.000Z"),
+    }),
+  ], { now });
+
+  assert.equal(summary.paidCzk, 0);
+  assert.equal(summary.unpaidCzk, 1_450);
+});
+
+test("getClientCrmSummary counts completed partially paid booking as unpaid remainder", () => {
+  const summary = getClientCrmSummary([
+    booking({
+      status: BookingStatus.COMPLETED,
+      servicePriceFromCzk: 1_450,
+      scheduledStartsAt: new Date("2026-04-30T10:00:00.000Z"),
+      scheduledEndsAt: new Date("2026-04-30T11:00:00.000Z"),
+      payments: [{ amountCzk: 500 }],
+    }),
+  ], { now });
+
+  assert.equal(summary.paidCzk, 500);
+  assert.equal(summary.unpaidCzk, 950);
 });
 
 test("getClientCrmSummary clamps overpaid booking unpaid value to zero", () => {
@@ -114,7 +154,7 @@ test("getClientCrmSummary clamps overpaid booking unpaid value to zero", () => {
   assert.equal(summary.unpaidCzk, 0);
 });
 
-test("getClientCrmSummary excludes cancelled bookings from unpaid total", () => {
+test("getClientCrmSummary excludes cancelled and no-show bookings from unpaid total", () => {
   const summary = getClientCrmSummary([
     booking({
       status: BookingStatus.CANCELLED,
@@ -122,9 +162,32 @@ test("getClientCrmSummary excludes cancelled bookings from unpaid total", () => 
       voucherRedemptions: [],
       payments: [],
     }),
+    booking({
+      id: "no-show",
+      status: BookingStatus.NO_SHOW,
+      servicePriceFromCzk: 1_500,
+      scheduledStartsAt: new Date("2026-04-30T10:00:00.000Z"),
+      scheduledEndsAt: new Date("2026-04-30T11:00:00.000Z"),
+    }),
   ], { now });
 
   assert.equal(summary.paidCzk, 0);
   assert.equal(summary.unpaidCzk, 0);
   assert.equal(summary.cancelledBookings, 1);
+  assert.equal(summary.noShowBookings, 1);
+});
+
+test("getClientCrmSummary counts past active booking as unpaid if not closed yet", () => {
+  const summary = getClientCrmSummary([
+    booking({
+      status: BookingStatus.CONFIRMED,
+      servicePriceFromCzk: 1_300,
+      scheduledStartsAt: new Date("2026-05-01T10:00:00.000Z"),
+      scheduledEndsAt: new Date("2026-05-01T11:00:00.000Z"),
+      payments: [{ amountCzk: 300 }],
+    }),
+  ], { now });
+
+  assert.equal(summary.paidCzk, 300);
+  assert.equal(summary.unpaidCzk, 1_000);
 });

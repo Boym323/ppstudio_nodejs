@@ -314,7 +314,7 @@ export type AdminClientDetailData = {
     statusLabel: string;
     sourceLabel: string;
     scheduledAtLabel: string;
-    noteSummary: string;
+    noteSummary: string | null;
     href: string;
   }>;
 };
@@ -494,7 +494,7 @@ export async function getAdminClientDetailData(
       statusLabel: getBookingStatusLabel(booking.status),
       sourceLabel: getBookingSourceLabel(booking.source),
       scheduledAtLabel: formatBookingDateLabel(booking.scheduledStartsAt, booking.scheduledEndsAt),
-      noteSummary: booking.internalNote ?? booking.clientNote ?? "Bez doplňující poznámky.",
+      noteSummary: booking.internalNote ?? booking.clientNote,
       href: getAdminBookingHref(area, booking.id),
     })),
   };

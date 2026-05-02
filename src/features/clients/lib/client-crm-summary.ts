@@ -7,12 +7,6 @@ const ACTIVE_BOOKING_STATUSES = new Set<BookingStatus>([
   BookingStatus.CONFIRMED,
 ]);
 
-const PAYMENT_RELEVANT_STATUSES = new Set<BookingStatus>([
-  BookingStatus.PENDING,
-  BookingStatus.CONFIRMED,
-  BookingStatus.COMPLETED,
-]);
-
 type ClientCrmSummaryPaymentItem = {
   amountCzk?: number | null;
 };
@@ -62,10 +56,6 @@ export function getClientCrmSummary(
 
   const paymentTotals = bookings.reduce(
     (totals, booking) => {
-      if (!PAYMENT_RELEVANT_STATUSES.has(booking.status)) {
-        return totals;
-      }
-
       const paymentSummary = getBookingPaymentSummary({
         totalPriceCzk: booking.servicePriceFromCzk,
         voucherRedemptions: booking.voucherRedemptions,
@@ -74,7 +64,7 @@ export function getClientCrmSummary(
 
       return {
         paidCzk: totals.paidCzk + paymentSummary.paidTotalCzk,
-        unpaidCzk: totals.unpaidCzk + paymentSummary.remainingCzk,
+        unpaidCzk: totals.unpaidCzk + (isUnpaidRelevantBooking(booking, now) ? paymentSummary.remainingCzk : 0),
       };
     },
     { paidCzk: 0, unpaidCzk: 0 },
@@ -112,4 +102,12 @@ function toCrmVisit(booking: ClientCrmSummaryBookingInput | undefined): ClientCr
 
 function countStatus(bookings: ClientCrmSummaryBookingInput[], status: BookingStatus) {
   return bookings.filter((booking) => booking.status === status).length;
+}
+
+function isUnpaidRelevantBooking(booking: ClientCrmSummaryBookingInput, now: Date) {
+  if (booking.status === BookingStatus.COMPLETED) {
+    return true;
+  }
+
+  return ACTIVE_BOOKING_STATUSES.has(booking.status) && booking.scheduledStartsAt < now;
 }
