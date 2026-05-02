@@ -7,6 +7,7 @@ Formát je inspirovaný Keep a Changelog.
 ## [Unreleased]
 
 - Kontaktní stránka rozšířila spodní sekci `Parkování` z jednoho obecného odstavce na 4 kompaktní tipy (`Hradská`, `Gahurova`, `Sadová`, `Kongresové centrum Zlín`) s orientační cenou pro běžnou návštěvu 90-120 minut, docházkou, stručnou poznámkou a funkčním odkazem `Navigovat`; blok zůstal pod mapou a quick contact částí.
+- Karta `Kongresové centrum Zlín` v parkování na `/kontakt` teď mluví přímo k nejčastějším návštěvám Po–Pá mezi 8:00–18:00: místo neurčitého rozpětí uvádí jako běžnou orientaci 70 Kč pro 90-120 minut ve všední den přes den.
 - Kontaktní stránka má kompaktnější mapový náhled, odkazuje na konkrétní firemní profil v Google Maps a pod celou kontaktní mřížkou doplnila informaci o parkování v okolí Sadové ulice.
 - Veřejné e-mailové kontakty jsou nově sjednocené na čitelný tvar s `@`; komponenta `ObfuscatedEmailLink` dál skládá skutečný `mailto:` až v klientu, ale už výchozím renderem ani kontaktní stránkou nemíchá `info(at)...` a `info@...`.
 - Dokumentace byla srovnána s aktuálním stavem plateb, CRM a voucher operací: `DEVELOPMENT.md`, `MANUAL.md` a navazující ADR už nepopisují panel úhrady ani detail voucheru jako čistě read-only workflow.

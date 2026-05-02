@@ -14,6 +14,7 @@
   - `Sadová` jako nejbližší variantu k salonu na adrese `Sadová 2, Zlín`
   - `Kongresové centrum Zlín` jako kryté komfortní parkování
 - Každá karta ukazuje badge, orientační docházku, orientační cenu pro 90-120 minut, jednu krátkou poznámku, doplňující menší řádek a odkaz `Navigovat` do externí mapy v nové kartě.
+- U `Kongresového centra Zlín` dáváme přednost srozumitelnosti před úplným rozepisováním variant: protože většina klientek přijede ve všední den přes den, karta komunikuje běžnou orientaci pro tento režim a levnější večerní nebo víkendové sazby nechává jen v doplňkovém řádku.
 - Pod kartami zůstává stručné upozornění, že ceny jsou orientační, plus decentní odkazy na oficiální sazebník Technických služeb Zlín a parkování Kongresového centra.
 - Další centrální možnosti (`Městské divadlo`, `Nad Tržnicí`, `Zlaté Jablko`) se smějí objevit jen v jedné doplňkové větě, ne jako samostatné karty.
 - Mapový preview card zůstává zaměřený na adresu a Google Maps odkaz; jeho výšku držíme kompaktní, aby spodní část kontaktu nepůsobila prázdně.

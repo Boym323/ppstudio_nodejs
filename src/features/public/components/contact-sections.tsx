@@ -284,7 +284,7 @@ const PARKING_TIPS: ParkingTip[] = [
     detail: '15 min zdarma · do 60 min 12 Kč',
     hoursLabel: 'Zpoplatněno',
     hoursValue: 'Po-Pá 8:00-19:00, So 7:00-13:00',
-    href: 'https://www.google.com/maps/search/?api=1&query=Hradsk%C3%A1+parkovi%C5%A1t%C4%9B+Zl%C3%ADn',
+    href: 'https://maps.app.goo.gl/ngkfx7mtddd64nAw8',
   },
   {
     badge: 'Kompromis',
@@ -295,7 +295,7 @@ const PARKING_TIPS: ParkingTip[] = [
     detail: 'do 30 min 20 Kč · do 60 min 30 Kč',
     hoursLabel: 'Zpoplatněno',
     hoursValue: 'Po-Pá 7:00-19:00, So 7:00-13:00',
-    href: 'https://www.google.com/maps/search/?api=1&query=Parkovi%C5%A1t%C4%9B+Gahurova+Zl%C3%ADn',
+    href: 'https://www.google.com/maps/place/Z%C3%A1chytn%C3%A9+parkovi%C5%A1t%C4%9B+Gahurova/@49.2248533,17.6588611,783m/data=!3m1!1e3!4m6!3m5!1s0x471373523e523039:0xb29a3531ed94329d!8m2!3d49.2248534!4d17.6615557!16s%2Fg%2F11cr_r_36l?entry=ttu&g_ep=EgoyMDI2MDQyOS4wIKXMDSoASAFQAw%3D%3D',
   },
   {
     badge: 'Nejblíže',
@@ -306,18 +306,18 @@ const PARKING_TIPS: ParkingTip[] = [
     detail: 'do 30 min 30 Kč · do 60 min 60 Kč',
     hoursLabel: 'Zpoplatněno',
     hoursValue: 'Po-Ne 7:00-21:00',
-    href: 'https://www.google.com/maps/search/?api=1&query=Sadov%C3%A1+2%2C+760+01+Zl%C3%ADn',
+    href: 'https://maps.app.goo.gl/AJcwaGwLPvt8QV6g6',
   },
   {
     badge: 'Kryté',
     name: 'Kongresové centrum Zlín',
     walk: '4-6 min pěšky',
-    price: '90-120 min: obvykle 50-70 Kč podle dne a času',
-    note: 'Podzemní parkování vhodné při špatném počasí.',
+    price: '90-120 min: obvykle 70 Kč ve všední den přes den',
+    note: 'Podzemní parkování vhodné při špatném počasí a běžné denní návštěvě.',
     detail: 'do 30 min zdarma · večer 20 Kč/h · víkend 25 Kč/h',
     hoursLabel: 'Otevřeno',
     hoursValue: '6:00-24:00',
-    href: 'https://www.google.com/maps/search/?api=1&query=Kongresov%C3%A9+centrum+Zl%C3%ADn+parkov%C3%A1n%C3%AD',
+    href: 'https://maps.app.goo.gl/84xMTqz1NKrjaBmL9',
   },
 ];
 
