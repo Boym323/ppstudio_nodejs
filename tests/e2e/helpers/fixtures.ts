@@ -38,12 +38,12 @@ export type E2eFixture = {
     primaryTime: string;
     rescheduleDateKey: string;
     rescheduleTime: string;
-      rescheduleConflictButtonLabel: string;
-      rescheduleSuccessButtonLabel: string;
-      rescheduleSuccessStartAt: string;
-      primaryStartAt: string;
-      rescheduleStartAt: string;
-    };
+    rescheduleConflictButtonLabel: string;
+    rescheduleSuccessButtonLabel: string;
+    rescheduleSuccessStartAt: string;
+    primaryStartAt: string;
+    rescheduleStartAt: string;
+  };
 };
 
 function slugify(value: string) {
@@ -145,7 +145,9 @@ async function createCatalogFixture(runId: string) {
   const primaryStart = futureUtcDate(45, 8);
   const primaryEnd = addMinutes(primaryStart, 180);
   const rescheduleStart = futureUtcDate(46, 9);
-  const rescheduleEnd = addMinutes(rescheduleStart, 180);
+  const rescheduleSuccessStart = addMinutes(rescheduleStart, service.durationMinutes);
+  const rescheduleEnd = addMinutes(rescheduleSuccessStart, service.durationMinutes);
+  const reschedulePublicNote = `E2E reschedule ${runId}`;
 
   const [primarySlot, rescheduleSlot] = await Promise.all([
     prisma.availabilitySlot.create({
@@ -167,12 +169,28 @@ async function createCatalogFixture(runId: string) {
     prisma.availabilitySlot.create({
       data: {
         startsAt: rescheduleStart,
+        endsAt: rescheduleSuccessStart,
+        capacity: 1,
+        status: AvailabilitySlotStatus.PUBLISHED,
+        serviceRestrictionMode: AvailabilitySlotServiceRestrictionMode.SELECTED,
+        publishedAt: new Date(),
+        publicNote: reschedulePublicNote,
+        allowedServices: {
+          create: {
+            serviceId: service.id,
+          },
+        },
+      },
+    }),
+    prisma.availabilitySlot.create({
+      data: {
+        startsAt: rescheduleSuccessStart,
         endsAt: rescheduleEnd,
         capacity: 1,
         status: AvailabilitySlotStatus.PUBLISHED,
         serviceRestrictionMode: AvailabilitySlotServiceRestrictionMode.SELECTED,
         publishedAt: new Date(),
-        publicNote: `E2E reschedule ${runId}`,
+        publicNote: reschedulePublicNote,
         allowedServices: {
           create: {
             serviceId: service.id,
