@@ -258,24 +258,153 @@ export function ContactMapPreviewCard({ address, href }: ContactMapPreviewCardPr
 }
 
 type ContactParkingInfoCardProps = {
-  parkingInfo: string;
+  parkingRateHref: string;
+  congressParkingHref: string;
 };
 
-export function ContactParkingInfoCard({ parkingInfo }: ContactParkingInfoCardProps) {
+type ParkingTip = {
+  badge: string;
+  name: string;
+  walk: string;
+  price: string;
+  note: string;
+  detail: string;
+  hoursLabel: string;
+  hoursValue: string;
+  href: string;
+};
+
+const PARKING_TIPS: ParkingTip[] = [
+  {
+    badge: 'Nejlevnější',
+    name: 'Hradská',
+    walk: '3-6 min pěšky',
+    price: '90-120 min: 36 Kč',
+    note: 'Dobrá volba, pokud nevadí krátká procházka.',
+    detail: '15 min zdarma · do 60 min 12 Kč',
+    hoursLabel: 'Zpoplatněno',
+    hoursValue: 'Po-Pá 8:00-19:00, So 7:00-13:00',
+    href: 'https://www.google.com/maps/search/?api=1&query=Hradsk%C3%A1+parkovi%C5%A1t%C4%9B+Zl%C3%ADn',
+  },
+  {
+    badge: 'Kompromis',
+    name: 'Gahurova',
+    walk: '3-5 min pěšky',
+    price: '90-120 min: 40 Kč',
+    note: 'Praktická varianta v centru s dobrým poměrem cena / vzdálenost.',
+    detail: 'do 30 min 20 Kč · do 60 min 30 Kč',
+    hoursLabel: 'Zpoplatněno',
+    hoursValue: 'Po-Pá 7:00-19:00, So 7:00-13:00',
+    href: 'https://www.google.com/maps/search/?api=1&query=Parkovi%C5%A1t%C4%9B+Gahurova+Zl%C3%ADn',
+  },
+  {
+    badge: 'Nejblíže',
+    name: 'Sadová',
+    walk: '1-2 min pěšky',
+    price: '90-120 min: 90 Kč',
+    note: 'Nejbližší, ale dražší varianta.',
+    detail: 'do 30 min 30 Kč · do 60 min 60 Kč',
+    hoursLabel: 'Zpoplatněno',
+    hoursValue: 'Po-Ne 7:00-21:00',
+    href: 'https://www.google.com/maps/search/?api=1&query=Sadov%C3%A1+2%2C+760+01+Zl%C3%ADn',
+  },
+  {
+    badge: 'Kryté',
+    name: 'Kongresové centrum Zlín',
+    walk: '4-6 min pěšky',
+    price: '90-120 min: obvykle 50-70 Kč podle dne a času',
+    note: 'Podzemní parkování vhodné při špatném počasí.',
+    detail: 'do 30 min zdarma · večer 20 Kč/h · víkend 25 Kč/h',
+    hoursLabel: 'Otevřeno',
+    hoursValue: '6:00-24:00',
+    href: 'https://www.google.com/maps/search/?api=1&query=Kongresov%C3%A9+centrum+Zl%C3%ADn+parkov%C3%A1n%C3%AD',
+  },
+];
+
+export function ContactParkingInfoCard({ parkingRateHref, congressParkingHref }: ContactParkingInfoCardProps) {
   return (
-    <div className="rounded-[var(--radius-panel)] border border-black/6 bg-white px-5 py-4 shadow-[var(--shadow-panel)] sm:px-6 sm:py-5">
-      <div className="flex items-start gap-3 sm:items-center">
+    <section
+      id="parkovani"
+      className="rounded-[var(--radius-panel)] border border-black/6 bg-white px-5 py-5 shadow-[var(--shadow-panel)] sm:px-6 sm:py-6"
+    >
+      <div className="flex items-start gap-3">
         <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-black/10 bg-[var(--color-surface)] text-[var(--color-foreground)]">
           <ContactIconParking />
         </span>
-        <div className="min-w-0 sm:flex sm:items-baseline sm:gap-6">
-          <p className="shrink-0 text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-accent)]">
-            Parkování
+        <div className="min-w-0 space-y-2">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-accent)]">Parkování</p>
+          <p className="max-w-3xl text-[15px] leading-6 text-[var(--color-muted)]">
+            Pokud přijedete autem, v okolí salonu najdete několik možností v docházkové vzdálenosti. Pro běžnou
+            návštěvu kolem 90-120 minut doporučujeme vybírat podle toho, jestli chcete parkovat nejlevněji, nejblíže,
+            nebo v krytém parkovišti.
           </p>
-          <p className="mt-1 text-[15px] leading-7 text-[var(--color-muted)] sm:mt-0">{parkingInfo}</p>
         </div>
       </div>
-    </div>
+      <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        {PARKING_TIPS.map((tip) => (
+          <article
+            key={tip.name}
+            className="flex h-full flex-col rounded-[calc(var(--radius-panel)-0.45rem)] border border-[#eadfd2] bg-[#fcf8f3] p-4"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <span className="inline-flex rounded-full border border-[#e3d5c7] bg-white px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--color-accent)]">
+                  {tip.badge}
+                </span>
+                <h3 className="mt-3 font-display text-[1.2rem] leading-[1.08] text-[var(--color-foreground)]">
+                  {tip.name}
+                </h3>
+              </div>
+              <TrackedAnchor
+                href={tip.href}
+                tracking={{ kind: 'contact', type: 'map', location: 'parkovani' }}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="shrink-0 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-foreground)] underline decoration-black/20 underline-offset-4 transition hover:decoration-black/60"
+              >
+                Navigovat
+              </TrackedAnchor>
+            </div>
+            <p className="mt-3 text-[13px] leading-5 text-[var(--color-muted)]">{tip.walk}</p>
+            <p className="mt-2 text-[15px] font-semibold leading-6 text-[var(--color-foreground)]">{tip.price}</p>
+            <p className="mt-2 text-[13px] leading-5 text-[var(--color-muted)]">{tip.note}</p>
+            <p className="mt-3 text-[12px] leading-5 text-[var(--color-muted)]">{tip.detail}</p>
+            <p className="mt-1 text-[12px] leading-5 text-[var(--color-muted)]">
+              <span className="font-medium text-[var(--color-foreground)]">{tip.hoursLabel}:</span> {tip.hoursValue}
+            </p>
+          </article>
+        ))}
+      </div>
+      <div className="mt-4 space-y-2 border-t border-[#eee2d6] pt-4">
+        <p className="text-[12px] leading-5 text-[var(--color-muted)]">
+          Ceny parkování jsou orientační a mohou se měnit. Aktuální sazbu si prosím ověřte v parkovacím automatu nebo
+          u provozovatele.
+        </p>
+        <div className="flex flex-wrap gap-x-4 gap-y-1 text-[12px] leading-5 text-[var(--color-muted)]">
+          <TrackedAnchor
+            href={parkingRateHref}
+            tracking={{ kind: 'contact', type: 'map', location: 'parkovani' }}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline decoration-black/15 underline-offset-4 transition hover:text-[var(--color-foreground)] hover:decoration-black/40"
+          >
+            Sazebník parkování ve Zlíně
+          </TrackedAnchor>
+          <TrackedAnchor
+            href={congressParkingHref}
+            tracking={{ kind: 'contact', type: 'map', location: 'parkovani' }}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline decoration-black/15 underline-offset-4 transition hover:text-[var(--color-foreground)] hover:decoration-black/40"
+          >
+            Parkování Kongresové centrum
+          </TrackedAnchor>
+        </div>
+        <p className="text-[12px] leading-5 text-[var(--color-muted)]">
+          Další možnosti v centru jsou například Městské divadlo, Nad Tržnicí nebo Zlaté Jablko.
+        </p>
+      </div>
+    </section>
   );
 }
 

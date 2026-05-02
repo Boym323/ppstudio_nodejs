@@ -190,8 +190,9 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - `ContactCard`
   - `ContactCTA`
   - `ContactMobileStickyCTA`
-- Kontakt data (`buildContactItems`) drží i provozní mikrocopy a Google Maps deep-link pro adresu; odkaz pro adresu má mířit na konkrétní firemní profil `Kosmetika | Pavlína Pomykalová`, zatímco iframe náhled může dál používat stabilní query podle adresy. Aktuální skladba stránky používá především kompaktní map preview, pravý quick contact panel a navazující full-width parkovací info.
-- `ContactParkingInfoCard` na `/kontakt` patří pod celou kontaktní mřížku, ne jen do levého sloupce. Text drž v klidné praktické rovině a neslibuj vyhrazené místo, pokud není ověřené.
+- Kontakt data (`buildContactItems`) drží i provozní mikrocopy a Google Maps deep-link pro adresu; odkaz pro adresu má mířit na konkrétní firemní profil `Kosmetika | Pavlína Pomykalová`, zatímco iframe náhled může dál používat stabilní query podle adresy. Aktuální skladba stránky používá především kompaktní map preview, pravý quick contact panel a navazující full-width parkovací sekci.
+- `ContactParkingInfoCard` na `/kontakt` patří pod celou kontaktní mřížku, ne jen do levého sloupce. Aktuálně renderuje 4 nízké tip cards (`Hradská`, `Gahurova`, `Sadová`, `Kongresové centrum Zlín`) s orientační cenou pro návštěvu 90-120 minut, krátkou poznámkou a odkazem `Navigovat`.
+- V parkovací sekci drž jen stručné doporučení podle ceny a pohodlí; nevracej se k dlouhé tabulce nebo plnému sazebníku. Další možnosti v centru (`Městské divadlo`, `Nad Tržnicí`, `Zlaté Jablko`) smí být zmíněné nanejvýš v jedné doplňkové větě, ne jako hlavní karty.
 - `ContactHero` má při přítomnosti fotky studia držet dvousloupcovou skladbu `text vlevo / obraz vpravo`, na mobilu přirozeně padá pod text a hero obrázek nesmí přetékat mimo panel. Pro Next.js 16 používej u above-the-fold kontakt hero obrázku `loading="eager"` a smysluplné `sizes`; nepřidávej zpět deprecated `priority`.
 - Stránka `/o-mne` už neběží jako jeden blok v `public-site.tsx`; vlastní skladba je v `src/features/public/components/about-page.tsx`.
 - Stránka `/o-mne` je rozdělená do sekcí `HeroSection`, `WhyChooseMeSection`, `StorySection`, `ApproachSection`, `WhatToExpectSection` a `CertificationsSection`, aby šlo pracovat s hierarchií bez monolitického JSX bloku.

@@ -914,8 +914,8 @@ export async function ContactPage() {
   });
   const addressItem = contactItems.find((item) => item.label === 'Adresa salonu');
   const heroPhoto = studioPhotos[0] ?? null;
-  const parkingInfo =
-    'Parkování je možné v okolí Sadové ulice. Pokud jedete autem, nechte si prosím pár minut rezervu na klidný příchod.';
+  const parkingRateHref = 'https://www.tszlin.cz/uploads/2026-02-27/Sazebn%C3%ADk%20parkovn%C3%A9ho%20platn%C3%BD%20od%201.3.2026%20%C4%8Distopis.pdf';
+  const congressParkingHref = 'https://kc-zlin.cz/24846-pro-navstevniky';
 
   return (
     <div className="pb-24 sm:pb-12">
@@ -950,7 +950,7 @@ export async function ContactPage() {
               openingHours="Po-Pá: Dle objednávek"
             />
           </div>
-          <ContactParkingInfoCard parkingInfo={parkingInfo} />
+          <ContactParkingInfoCard parkingRateHref={parkingRateHref} congressParkingHref={congressParkingHref} />
         </Container>
       </section>
       <ContactMobileStickyCTA phone={salonProfile.phone} email={salonProfile.email} />
