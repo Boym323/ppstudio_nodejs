@@ -63,6 +63,10 @@ function formatTimeLabel(value: string) {
   }).format(new Date(value));
 }
 
+function formatTimeRange(startsAt: string, endsAt: string) {
+  return `${formatTimeLabel(startsAt)} – ${formatTimeLabel(endsAt)}`;
+}
+
 function buildManualPreviewStartsAt(dateValue: string, timeValue: string) {
   if (!dateValue || !timeValue) {
     return "";
@@ -163,6 +167,7 @@ export function BookingTimeSelector({
                         <button
                           key={option.key}
                           type="button"
+                          aria-label={`Vybrat čas ${formatTimeRange(option.startsAt, option.endsAt)} dne ${formatDateLabel(option.startsAt)}`}
                           onClick={() => {
                             onSlotIdChange(option.slotId);
                             onStartsAtChange(option.startsAt);

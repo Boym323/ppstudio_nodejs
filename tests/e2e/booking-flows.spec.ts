@@ -281,7 +281,7 @@ test.describe("booking flows", () => {
     await expect(selectedClientCard(page).getByText(fixture.clientEmail)).toBeVisible();
 
     await page.getByLabel("Služba").selectOption({ label: fixture.serviceName });
-    await safeClick(page, page.getByRole("button", { name: fixture.slotLabels.rescheduleTime }).first());
+    await safeClick(page, page.getByRole("button", { name: fixture.slotLabels.rescheduleConflictButtonLabel }).first());
     await expect(page.locator('input[name="startsAt"]')).toHaveValue(fixture.slotLabels.rescheduleStartAt);
     await page.getByRole("button", { name: "Vytvořit rezervaci" }).last().click();
     await expect.poll(async () => prisma.booking.count({
