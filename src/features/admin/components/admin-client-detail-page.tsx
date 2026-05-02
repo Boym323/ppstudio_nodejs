@@ -85,31 +85,53 @@ function ClientDetailHeader({ data }: { data: AdminClientDetailData }) {
 }
 
 function ClientKpiCards({ data }: { data: AdminClientDetailData }) {
+  const { crmSummary } = data;
+
   return (
-    <section className="grid gap-2.5 md:grid-cols-2 xl:grid-cols-4">
-      <KpiCard
-        label="Stav profilu"
-        value={data.statusLabel}
-        detail={data.isActive ? "Profil je připravený pro další provoz." : "Profil je vedený jako neaktivní."}
-        tone={data.isActive ? "active" : "muted"}
-      />
-      <KpiCard
-        label="Rezervací celkem"
-        value={String(data.totalBookings)}
-        detail={`Hotovo ${data.completedBookings} · zrušené ${data.cancelledBookings} · nedorazila ${data.noShowBookings}`}
-      />
-      <KpiCard label="Poslední návštěva" value={formatMissingDate(data.lastBookedAtLabel, "Zatím není")} />
-      <KpiCard
-        label="Další termín"
-        value={data.nextBookingLabel}
-        detail={
-          data.upcomingBookings > 1
-            ? `Budoucí termíny celkem ${data.upcomingBookings}`
-            : data.upcomingBookings === 1
-              ? "Jeden budoucí termín."
-              : "Klientka zatím nemá naplánovanou další návštěvu."
-        }
-      />
+    <section className="rounded-[1.15rem] border border-white/10 bg-black/10 p-3.5 sm:p-4">
+      <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
+        <div>
+          <p className="text-[0.68rem] uppercase tracking-[0.22em] text-[var(--color-accent-soft)]">
+            Souhrn klientky
+          </p>
+          <h2 className="mt-1 font-display text-[1.25rem] leading-tight text-white">CRM souhrn</h2>
+        </div>
+        <span className={getClientBadgeClassName(data.isActive)}>{data.statusLabel}</span>
+      </div>
+
+      <div className="grid gap-2.5 md:grid-cols-2 xl:grid-cols-5">
+        <KpiCard
+          label="Poslední návštěva"
+          value={
+            crmSummary.lastVisit
+              ? formatBookingDateLabel(crmSummary.lastVisit.scheduledStartsAt, crmSummary.lastVisit.scheduledEndsAt)
+              : "Zatím bez dokončené návštěvy"
+          }
+          detail={crmSummary.lastVisit?.serviceName}
+        />
+        <KpiCard
+          label="Příští návštěva"
+          value={
+            crmSummary.nextVisit
+              ? formatBookingDateLabel(crmSummary.nextVisit.scheduledStartsAt, crmSummary.nextVisit.scheduledEndsAt)
+              : "Žádná naplánovaná návštěva"
+          }
+          detail={crmSummary.nextVisit?.serviceName}
+        />
+        <KpiCard label="Hodnota služeb" value={formatCzk(crmSummary.servicesValueCzk)} />
+        <KpiCard label="Uhrazeno" value={formatCzk(crmSummary.paidCzk)} tone="active" />
+        <KpiCard
+          label="Neuhrazeno"
+          value={formatCzk(crmSummary.unpaidCzk)}
+          tone={crmSummary.unpaidCzk > 0 ? "default" : "muted"}
+        />
+      </div>
+
+      <p className="mt-3 text-xs leading-5 text-white/52 sm:text-sm">
+        Rezervace celkem: {crmSummary.totalBookings} · Dokončené: {crmSummary.completedBookings} · Aktivní:{" "}
+        {crmSummary.activeBookings} · Zrušené: {crmSummary.cancelledBookings} · Nedorazila:{" "}
+        {crmSummary.noShowBookings}
+      </p>
     </section>
   );
 }
@@ -346,12 +368,35 @@ function ActionLink({ href, children, variant = "secondary" }: ActionLinkProps) 
 }
 
 function buildHeaderSubtitle(data: AdminClientDetailData) {
-  const lastVisit = formatMissingDate(data.lastBookedAtLabel, "zatím není");
-  const nextVisit = data.nextBookingLabel === "Bez budoucího termínu"
-    ? "bez budoucího termínu"
-    : `další termín ${data.nextBookingLabel}`;
+  const lastVisit = data.crmSummary.lastVisit
+    ? formatBookingDateLabel(data.crmSummary.lastVisit.scheduledStartsAt, data.crmSummary.lastVisit.scheduledEndsAt)
+    : "zatím bez dokončené návštěvy";
+  const nextVisit = data.crmSummary.nextVisit
+    ? `další termín ${formatBookingDateLabel(data.crmSummary.nextVisit.scheduledStartsAt, data.crmSummary.nextVisit.scheduledEndsAt)}`
+    : "bez budoucího termínu";
 
   return `Poslední návštěva ${lastVisit} · ${nextVisit}`;
+}
+
+function formatBookingDateLabel(startsAt: Date, endsAt: Date) {
+  return `${new Intl.DateTimeFormat("cs-CZ", {
+    day: "numeric",
+    month: "numeric",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(startsAt)} - ${new Intl.DateTimeFormat("cs-CZ", {
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(endsAt)}`;
+}
+
+function formatCzk(value: number) {
+  return new Intl.NumberFormat("cs-CZ", {
+    style: "currency",
+    currency: "CZK",
+    maximumFractionDigits: 0,
+  }).format(value);
 }
 
 function formatMissingDate(value: string, fallback: string) {

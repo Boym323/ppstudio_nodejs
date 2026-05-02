@@ -12,6 +12,10 @@ import {
   getBookingSourceLabel,
   getBookingStatusLabel,
 } from "@/features/admin/lib/admin-booking";
+import {
+  getClientCrmSummary,
+  type ClientCrmSummary,
+} from "@/features/clients/lib/client-crm-summary";
 import { prisma } from "@/lib/prisma";
 
 const formatDate = new Intl.DateTimeFormat("cs-CZ", {
@@ -301,6 +305,7 @@ export type AdminClientDetailData = {
   noShowBookings: number;
   upcomingBookings: number;
   favoriteServiceName: string;
+  crmSummary: ClientCrmSummary;
   internalNote: string;
   bookings: Array<{
     id: string;
@@ -329,6 +334,7 @@ export async function getAdminClientDetailData(
     noShowBookings,
     upcomingBookings,
     favoriteService,
+    crmBookings,
   ] =
     await Promise.all([
       prisma.client.findUnique({
@@ -425,6 +431,29 @@ export async function getAdminClientDetailData(
         },
         take: 1,
       }),
+      prisma.booking.findMany({
+        where: {
+          clientId,
+        },
+        select: {
+          id: true,
+          status: true,
+          serviceNameSnapshot: true,
+          servicePriceFromCzk: true,
+          scheduledStartsAt: true,
+          scheduledEndsAt: true,
+          voucherRedemptions: {
+            select: {
+              amountCzk: true,
+            },
+          },
+          payments: {
+            select: {
+              amountCzk: true,
+            },
+          },
+        },
+      }),
     ]);
 
   if (!client) {
@@ -456,6 +485,7 @@ export async function getAdminClientDetailData(
     noShowBookings,
     upcomingBookings,
     favoriteServiceName: favoriteService[0]?.serviceNameSnapshot ?? "Zatím bez historie",
+    crmSummary: getClientCrmSummary(crmBookings, { now }),
     internalNote: client.internalNote ?? "",
     bookings: client.bookings.map((booking) => ({
       id: booking.id,

@@ -27,6 +27,12 @@ Projekt už měl v databázi model `Client`, ale admin sekce `Klienti` zatím fu
   - editaci `Client.internalNote`
 - Uložení poznámky probíhá přes samostatnou server action s opětovnou autorizací podle admin oblasti.
 
+## Aktualizace 2026-05-02
+- Detail klientky rozšiřujeme o kompaktní blok `CRM souhrn` přímo pod identitou klientky a primárními akcemi.
+- Souhrn ukazuje poslední dokončenou návštěvu, nejbližší budoucí aktivní návštěvu, hodnotu dokončených služeb, uhrazeno, neuhrazeno a základní rozpad rezervací.
+- Platební část zůstává odvozená ze stejné logiky jako detail rezervace: helper `src/features/clients/lib/client-crm-summary.ts` používá `getBookingPaymentSummary(...)` nad `VoucherRedemption` a `BookingPayment`.
+- Do doplatků se započítávají jen stavy `PENDING`, `CONFIRMED` a `COMPLETED`; `CANCELLED` a `NO_SHOW` jsou v rozpadu vidět, ale nezvyšují neuhrazeno.
+
 ## Důsledky
 
 ### Pozitivní

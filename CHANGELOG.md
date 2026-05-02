@@ -6,6 +6,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Detail klientky v adminu a provozu má nový kompaktní `CRM souhrn`: poslední dokončenou návštěvu, nejbližší aktivní budoucí termín, hodnotu dokončených služeb, uhrazeno, neuhrazeno a rozpad rezervací; platební část používá stejný `getBookingPaymentSummary(...)` helper jako detail rezervace včetně běžných plateb mimo voucher.
 - Admin seznam `Klienti` nyní otevírá detail klientky kliknutím na celý řádek (desktop) i celou kartu (mobil), nejen přes samostatné tlačítko `Detail`.
 - Detail rezervace v sekci `Úhrada` nově eviduje běžné platby mimo voucher (`Hotově`, `Kartou`, `Převodem / QR`, `Jiné`) přes nový model `BookingPayment`; souhrn počítá voucher i ručně zapsané platby a rozlišuje `Neuhrazeno / Částečně uhrazeno / Uhrazeno / Přeplaceno`.
 - Booking transakční retry nově rozpoznává i Prisma 7 PG adapter `DriverAdapterError` s `TransactionWriteConflict`, takže CI ani produkční souběhy nekončí předčasně mimo existující retry smyčku.

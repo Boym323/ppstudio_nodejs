@@ -64,6 +64,7 @@ Postup nasazení aplikace do produkce.
   - dostupnost owner-only sekcí jen pro `OWNER`
   - stejné chování owner/salon párových route po refaktoru factory wrapperů (overview, section, booking detail, slot list/create/detail/edit)
   - detail klientky v owner i salon oblasti: CTA `Vytvořit rezervaci` otevře `/admin/.../rezervace?create=1&clientId=...` a drawer předvyplní správnou klientku nebo ukáže jemný fallback
+  - `CRM souhrn` v detailu klientky ukazuje poslední dokončenou návštěvu, nejbližší aktivní budoucí termín, hodnotu služeb, uhrazeno/neuhrazeno a rozpad rezervací; zrušené a no-show rezervace se nepočítají do doplatku
   - lite admin navigaci a mobilní čitelnost na `/admin/provoz/*`
    - overview dashboard na `/admin` a `/admin/provoz`:
      - horní blok `Dnešní provoz` ukazuje datum, počet dnešních aktivních rezervací, právě probíhající nebo další rezervaci a CTA `Vytvořit rezervaci / Otevřít dnešní plán / Upravit dostupnost`
