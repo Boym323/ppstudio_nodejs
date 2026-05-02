@@ -40,6 +40,7 @@ export type E2eFixture = {
     rescheduleTime: string;
     rescheduleConflictButtonLabel: string;
     rescheduleSuccessButtonLabel: string;
+    rescheduleSuccessSlotId: string;
     rescheduleSuccessStartAt: string;
     primaryStartAt: string;
     rescheduleStartAt: string;
@@ -149,7 +150,7 @@ async function createCatalogFixture(runId: string) {
   const rescheduleEnd = addMinutes(rescheduleSuccessStart, service.durationMinutes);
   const reschedulePublicNote = `E2E reschedule ${runId}`;
 
-  const [primarySlot, rescheduleSlot] = await Promise.all([
+  const [primarySlot, rescheduleSlot, rescheduleSuccessSlot] = await Promise.all([
     prisma.availabilitySlot.create({
       data: {
         startsAt: primaryStart,
@@ -207,6 +208,7 @@ async function createCatalogFixture(runId: string) {
     primaryStart,
     primaryEnd,
     rescheduleSlot,
+    rescheduleSuccessSlot,
     rescheduleStart,
     rescheduleEnd,
     categoryName,
@@ -236,6 +238,7 @@ export async function createPublicBookingFixture(): Promise<E2eFixture> {
       rescheduleTime: formatPragueTime(catalog.rescheduleStart),
       rescheduleConflictButtonLabel: `Vybrat čas ${formatPragueTimeRange(catalog.rescheduleStart, addMinutes(catalog.rescheduleStart, catalog.service.durationMinutes))} dne ${rescheduleDateLabel}`,
       rescheduleSuccessButtonLabel: `Vybrat čas ${formatPragueTimeRange(rescheduleSuccessStart, rescheduleSuccessEnd)} dne ${rescheduleDateLabel}`,
+      rescheduleSuccessSlotId: catalog.rescheduleSuccessSlot.id,
       rescheduleSuccessStartAt: rescheduleSuccessStart.toISOString(),
       primaryStartAt: catalog.primaryStart.toISOString(),
       rescheduleStartAt: catalog.rescheduleStart.toISOString(),
@@ -369,6 +372,7 @@ export async function createManagedBookingFixture(
       rescheduleTime: formatPragueTime(catalog.rescheduleStart),
       rescheduleConflictButtonLabel: `Vybrat čas ${formatPragueTimeRange(catalog.rescheduleStart, addMinutes(catalog.rescheduleStart, catalog.service.durationMinutes))} dne ${rescheduleDateLabel}`,
       rescheduleSuccessButtonLabel: `Vybrat čas ${formatPragueTimeRange(rescheduleSuccessStart, rescheduleSuccessEnd)} dne ${rescheduleDateLabel}`,
+      rescheduleSuccessSlotId: catalog.rescheduleSuccessSlot.id,
       rescheduleSuccessStartAt: rescheduleSuccessStart.toISOString(),
       primaryStartAt: catalog.primaryStart.toISOString(),
       rescheduleStartAt: catalog.rescheduleStart.toISOString(),
@@ -427,6 +431,7 @@ export async function createPublicVoucherFixture(): Promise<E2eFixture> {
       rescheduleTime: "",
       rescheduleConflictButtonLabel: "",
       rescheduleSuccessButtonLabel: "",
+      rescheduleSuccessSlotId: "",
       rescheduleSuccessStartAt: "",
       primaryStartAt: "",
       rescheduleStartAt: "",

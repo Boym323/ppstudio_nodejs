@@ -28,6 +28,19 @@ async function clickUntilSelected(trigger: Locator, target: Locator) {
   await expect(target).toBeEnabled();
 }
 
+async function expectSelectedRescheduleSlot(
+  page: Page,
+  expected: {
+    slotId: string;
+    startsAt: string;
+  },
+) {
+  await expect.poll(async () => ({
+    slotId: await page.locator('input[name="slotId"]').inputValue(),
+    startsAt: await page.locator('input[name="newStartAt"]').inputValue(),
+  })).toEqual(expected);
+}
+
 async function clickUntilFocused(trigger: Locator, target: Locator) {
   for (let attempt = 0; attempt < 5; attempt += 1) {
     await trigger.click();
@@ -224,8 +237,12 @@ test.describe("booking flows", () => {
       page.getByRole("button", { name: fixture.slotLabels.rescheduleSuccessButtonLabel }).first(),
       confirmButton,
     );
-    await expect(page.locator('input[name="newStartAt"]')).toHaveValue(fixture.slotLabels.rescheduleSuccessStartAt);
-    await expect(page.locator('input[name="newStartAt"]')).not.toHaveValue(selectedStartIso);
+    await expectSelectedRescheduleSlot(page, {
+      slotId: fixture.slotLabels.rescheduleSuccessSlotId,
+      startsAt: fixture.slotLabels.rescheduleSuccessStartAt,
+    });
+    expect(fixture.slotLabels.rescheduleSuccessStartAt).not.toBe(selectedStartIso);
+    expect(fixture.slotLabels.rescheduleSuccessSlotId).not.toBe(selectedSlotId);
     await confirmButton.click();
     try {
       await expect(successHeading).toBeVisible({ timeout: 30_000 });

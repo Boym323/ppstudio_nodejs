@@ -6,7 +6,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
-- E2E fixture pro self-service přesun teď seeduje kolizní a úspěšný náhradní termín jako samostatné navazující published sloty, takže runtime kolize v Playwright smoke testu nemůže omylem zablokovat i následný úspěšný submit ve stejném dlouhém slotu.
+- E2E fixture pro self-service přesun teď seeduje kolizní a úspěšný náhradní termín jako samostatné navazující published sloty a Playwright před druhým submittem čeká na shodu `slotId` i `newStartAt`; runtime kolize tak nemůže omylem zablokovat následný úspěšný submit ve stejném dlouhém slotu ani přes starý hidden `slotId`.
 - Detail klientky v adminu a provozu prošel dalším density passem: CRM souhrn je nižší v jednom kompaktním řádku, historie návštěv nemá vysvětlující podnadpis ani placeholder poznámky, interní poznámka neduplikuje nápovědu a pravý přehled už neopakuje poslední/další termín.
 - CRM metrika `Neuhrazeno` v detailu klientky už nezapočítává budoucí `PENDING`/`CONFIRMED` rezervace jako dluh; doplatek se sčítá jen z dokončených nebo minulých aktivních rezervací, zatímco `Uhrazeno` dál ukazuje skutečně evidované platby a voucherová čerpání.
 - Detail klientky v adminu a provozu má nový kompaktní `CRM souhrn`: poslední dokončenou návštěvu, nejbližší aktivní budoucí termín, hodnotu dokončených služeb, uhrazeno, neuhrazeno a rozpad rezervací; platební část používá stejný `getBookingPaymentSummary(...)` helper jako detail rezervace včetně běžných plateb mimo voucher.
