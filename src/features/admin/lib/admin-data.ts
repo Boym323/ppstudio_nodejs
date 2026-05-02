@@ -178,7 +178,15 @@ function getErrorSummary(errorMessage: string | null) {
   return summary ?? "Chyba bez detailu.";
 }
 
-function emailTypeLabel(type: EmailLogType): string {
+function emailTypeLabel(type: EmailLogType, templateKey: string): string {
+  if (templateKey === "booking-confirmation-v1") {
+    return "Přijetí rezervace";
+  }
+
+  if (templateKey === "booking-approved-v1") {
+    return "Potvrzení rezervace";
+  }
+
   switch (type) {
     case EmailLogType.BOOKING_CREATED:
     case EmailLogType.BOOKING_CONFIRMED:
@@ -1264,6 +1272,7 @@ type EmailHealthTone = "ok" | "warning" | "error";
 type EmailRecentStatusValue = "sent" | "pending" | "processing" | "retry" | "failed";
 
 type EmailRecentTypeValue =
+  | "booking_received"
   | "booking_confirmation"
   | "reminder"
   | "cancellation"
@@ -1414,6 +1423,14 @@ function getEmailTypeCategory(type: EmailLogType, templateKey: string): EmailRec
     return "admin";
   }
 
+  if (templateKey === "booking-confirmation-v1") {
+    return "booking_received";
+  }
+
+  if (templateKey === "booking-approved-v1") {
+    return "booking_confirmation";
+  }
+
   switch (type) {
     case EmailLogType.BOOKING_CREATED:
     case EmailLogType.BOOKING_CONFIRMED:
@@ -1433,6 +1450,8 @@ function getEmailTypeCategory(type: EmailLogType, templateKey: string): EmailRec
 
 function getEmailTypeCategoryLabel(type: EmailLogType, templateKey: string): string {
   switch (getEmailTypeCategory(type, templateKey)) {
+    case "booking_received":
+      return "Přijetí rezervace";
     case "booking_confirmation":
       return "Potvrzení rezervace";
     case "reminder":
@@ -1858,7 +1877,7 @@ export async function getEmailLogDetailData(emailLogId: string): Promise<EmailLo
     finalStatusDetail: finalStatus.detail,
     statusNeedsAttention: finalStatus.needsAttention,
     type: emailLog.type,
-    typeLabel: emailTypeLabel(emailLog.type),
+    typeLabel: emailTypeLabel(emailLog.type, emailLog.templateKey),
     recipientEmail: emailLog.recipientEmail,
     subject: emailLog.subject,
     businessTitle: emailLog.subject,

@@ -21,10 +21,12 @@ type EmailStatusFilterValue =
 
 type EmailTypeFilterValue =
   | "all"
+  | "booking_received"
   | "booking_confirmation"
   | "reminder"
   | "cancellation"
   | "reschedule"
+  | "voucher"
   | "admin"
   | "other";
 
@@ -57,6 +59,7 @@ const statusBadgeStyles = {
 } as const;
 
 const typeBadgeStyles = {
+  booking_received: "border-teal-300/25 bg-teal-400/10 text-teal-50",
   booking_confirmation: "border-[var(--color-accent)]/40 bg-[rgba(190,160,120,0.12)] text-[var(--color-accent-soft)]",
   reminder: "border-sky-300/25 bg-sky-400/10 text-sky-50",
   cancellation: "border-rose-300/25 bg-rose-400/10 text-rose-50",
@@ -254,10 +257,12 @@ function EmailFilters({
           onChange={(value) => setTypeFilter(value as EmailTypeFilterValue)}
         >
           <option value="all" className="text-black">Vše</option>
+          <option value="booking_received" className="text-black">Přijetí rezervace</option>
           <option value="booking_confirmation" className="text-black">Potvrzení rezervace</option>
           <option value="reminder" className="text-black">Reminder</option>
           <option value="cancellation" className="text-black">Zrušení</option>
           <option value="reschedule" className="text-black">Přesun termínu</option>
+          <option value="voucher" className="text-black">Voucher</option>
           <option value="admin" className="text-black">Admin notifikace</option>
           <option value="other" className="text-black">Ostatní</option>
         </FilterSelect>

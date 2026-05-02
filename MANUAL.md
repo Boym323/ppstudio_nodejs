@@ -620,6 +620,7 @@ npm run db:clear-booking-data -- --confirm
   - nahoře ukazuje health stav `OK / Warning / Error` podle failed, retry, pending fronty a poslední relevantní chyby
   - krátké metriky shrnují `Dnes odesláno`, `Za posledních 7 dní`, `Čeká na odeslání`, `Selhalo` a `Poslední odeslání`
   - hlavní sekce `Poslední emaily` propojuje typ zprávy, stav, příjemce, vazbu na rezervaci, časy, pokusy a rychlé akce `Otevřít rezervaci / Detail emailu / Zkusit znovu`
+  - badge typu rozlišuje `Přijetí rezervace` pro `booking-confirmation-v1` a finální `Potvrzení rezervace` pro `booking-approved-v1`
   - tracking sloupce `Otevřeno` a `Kliknuto` jsou připravené jako UI placeholder bez falešných dat
   - původní pending/retry/error fronty zůstávají níž v debug bloku `Technický stav fronty`
 - Detail konkrétního e-mailu na `/admin/email-logy/[emailLogId]` je nově business-first:

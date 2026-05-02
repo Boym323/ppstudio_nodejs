@@ -6,6 +6,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Admin sekce `Email logy` nyní rozlišuje badge `Přijetí rezervace` pro šablonu `booking-confirmation-v1` a finální `Potvrzení rezervace` pro `booking-approved-v1`; filtr typů e-mailů má stejné dělení.
 - Kontaktní stránka rozšířila spodní sekci `Parkování` z jednoho obecného odstavce na 4 kompaktní tipy (`Hradská`, `Gahurova`, `Sadová`, `Kongresové centrum Zlín`) s orientační cenou pro běžnou návštěvu 90-120 minut, docházkou, stručnou poznámkou a funkčním odkazem `Navigovat`; blok zůstal pod mapou a quick contact částí.
 - Karta `Kongresové centrum Zlín` v parkování na `/kontakt` teď mluví přímo k nejčastějším návštěvám Po–Pá mezi 8:00–18:00: místo neurčitého rozpětí uvádí jako běžnou orientaci 70 Kč pro 90-120 minut ve všední den přes den.
 - Kontaktní stránka má kompaktnější mapový náhled, odkazuje na konkrétní firemní profil v Google Maps a pod celou kontaktní mřížkou doplnila informaci o parkování v okolí Sadové ulice.
