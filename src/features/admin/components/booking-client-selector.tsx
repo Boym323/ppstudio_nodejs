@@ -8,6 +8,7 @@ type ClientOption = {
   email: string;
   phone: string | null;
   internalNote: string | null;
+  isActive: boolean;
 };
 
 type BookingClientSelectorProps = {
@@ -82,7 +83,7 @@ export function BookingClientSelector({
             onClick={onClearSelection}
             className="rounded-full border border-white/10 px-3 py-2 text-sm text-white/78 transition hover:border-white/18 hover:bg-white/6"
           >
-            Vytvořit novou klientku
+            Vybrat jinou klientku
           </button>
         ) : null}
       </div>
@@ -100,15 +101,18 @@ export function BookingClientSelector({
       </label>
 
       {selectedClient ? (
-        <div className="mt-4 rounded-[1rem] border border-emerald-300/20 bg-emerald-500/10 p-3.5">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-100/80">
-            Propojená klientka
+        <div className="mt-4 rounded-[1rem] border border-[var(--color-accent)]/16 bg-[rgba(190,160,120,0.08)] p-3.5">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-soft)]">
+            Vybraná klientka
           </p>
           <p className="mt-2 text-sm font-semibold text-white">{selectedClient.fullName}</p>
-          <p className="mt-1 text-sm text-white/70">
-            {selectedClient.email}
-            {selectedClient.phone ? ` • ${selectedClient.phone}` : ""}
-          </p>
+          {selectedClient.email ? <p className="mt-1 text-sm text-white/70">{selectedClient.email}</p> : null}
+          {selectedClient.phone ? <p className="mt-1 text-sm text-white/70">{selectedClient.phone}</p> : null}
+          {!selectedClient.isActive ? (
+            <p className="mt-2 text-xs font-medium uppercase tracking-[0.16em] text-amber-200/80">
+              Neaktivní klientka
+            </p>
+          ) : null}
           {selectedClient.internalNote ? (
             <p className="mt-2 text-sm leading-5 text-white/62">{selectedClient.internalNote}</p>
           ) : null}

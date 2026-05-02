@@ -1,7 +1,11 @@
 import { Suspense } from "react";
 
 import { type AdminArea } from "@/config/navigation";
-import { getReservationsData, type ReservationsDashboardData } from "@/features/admin/lib/admin-data";
+import {
+  getManualBookingClientById,
+  getReservationsData,
+  type ReservationsDashboardData,
+} from "@/features/admin/lib/admin-data";
 
 import { AdminBookingsToolbar } from "./admin-bookings-toolbar";
 import { AdminBookingsWorkspace } from "./admin-bookings-workspace";
@@ -31,12 +35,36 @@ async function AdminBookingsPageContent({
   searchParams,
 }: AdminBookingsPageProps) {
   const data = await getReservationsData(area, searchParams);
+  const requestedClientId = readSearchParam(searchParams, "clientId");
+  const shouldOpenCreateDrawer = readSearchParam(searchParams, "create") === "1" || requestedClientId.length > 0;
+  const activeClientMatch =
+    requestedClientId.length > 0
+      ? data.manualBooking.clients.find((client) => client.id === requestedClientId) ?? null
+      : null;
+  const prefilledClient =
+    activeClientMatch ?? (requestedClientId.length > 0 ? await getManualBookingClientById(requestedClientId) : null);
+  const prefillWarning =
+    requestedClientId.length === 0 || !shouldOpenCreateDrawer
+      ? null
+      : !prefilledClient
+        ? "Klientku se nepodařilo předvyplnit."
+        : !prefilledClient.isActive
+          ? "Klientka je neaktivní."
+          : null;
 
   return (
     <AdminPageShell
       title="Rezervace"
       description="Provozní přehled rezervací, potvrzení a ručního přidání."
-      headerActions={<CreateManualBookingDrawer area={area} data={data.manualBooking} />}
+      headerActions={
+        <CreateManualBookingDrawer
+          area={area}
+          data={data.manualBooking}
+          initialOpen={shouldOpenCreateDrawer}
+          prefilledClient={prefilledClient}
+          prefillWarning={prefillWarning}
+        />
+      }
       compact={area === "salon"}
       denseIntro
     >
@@ -124,6 +152,19 @@ function EmptyState({
       </div>
     </div>
   );
+}
+
+function readSearchParam(
+  searchParams: Record<string, string | string[] | undefined> | undefined,
+  key: string,
+) {
+  const value = searchParams?.[key];
+
+  if (typeof value === "string") {
+    return value.trim();
+  }
+
+  return Array.isArray(value) ? (value[0] ?? "").trim() : "";
 }
 
 function AdminBookingsPageSkeleton({ area }: { area: AdminArea }) {

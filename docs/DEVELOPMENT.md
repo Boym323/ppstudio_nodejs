@@ -63,6 +63,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - UX polish týdního planneru drž výslovně jako `density pass`, ne jako novou IA: hlavní priorita je plocha pro grid, datum týdne jen jednou v toolbaru, pravý panel ve 3 kartách a legenda jako malý sekundární prvek až u detailu výběru.
 - Pro další úpravy planneru preferuj jemné změny kontrastu a rytmu mřížky před přidáváním dalšího chrome: výraznější celé hodiny, subtilnější půlhodiny, jasnější selected day/block a minimum textu přímo uvnitř gridu.
 - Admin detail klientky je read-only provozní CRM pohled nad `getAdminClientDetailData(...)` plus samostatná server action pro `Client.internalNote`. Při úpravách neměň route kontrakt `/admin/klienti/[clientId]` / `/admin/provoz/klienti/[clientId]`, nepřidávej nová pole do Prisma schematu kvůli preferencím a drž rychlé akce jen nad existujícím telefonem/e-mailem s bezpečným disabled fallbackem. `Poslední návštěva` v detailu znamená poslední rezervaci ve stavu `COMPLETED`, ne `Client.lastBookedAt`, protože `lastBookedAt` se aktualizuje už při vytvoření rezervace. UI drž kompaktní jako provozní workspace: žádné hero měřítko, nižší KPI a krátké řádky historie.
+- Primární CTA `Vytvořit rezervaci` v detailu klientky musí pro `OWNER` i `SALON` vést do existujícího ručního booking workspace `/admin/.../rezervace?create=1&clientId=...`. Prefill klientky je jen UX zkratka: booking action i nadále musí projít stejnou server-side validací dostupnosti, překryvů, služeb, notifikací a audit trailu.
 - Stejný helper řeší i backend validaci souvislého pokrytí intervalu při `createBookingWithEngine(...)` a `rescheduleBooking(...)`; když upravuješ pravidla slotů, drž veřejný katalog a backend coverage logiku v sync.
 - Stabilizační refaktor z `2026-04-24` rozděluje dříve monolitické booking/admin soubory do menších interních modulů při zachování stávajících entrypointů:
   - `src/features/booking/lib/booking-public.ts` je façade nad `booking-public/shared.ts`, `catalog.ts`, `engine.ts`, `notifications.ts`
@@ -653,6 +654,9 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - přechod do detailu klientky a návrat zpět na seznam
   - uložení interní poznámky a propsání změny po refreshi do owner i salon oblasti
   - rychlé odkazy `tel:` a `mailto:` v detailu klientky
+  - CTA `Vytvořit rezervaci` z detailu klientky a otevření `/admin/.../rezervace?create=1&clientId=...`
+  - předvyplněný blok `Vybraná klientka`, fallback hlášku pro neplatné `clientId` a warning pro neaktivní klientku
+  - vytvoření ruční rezervace pro předvyplněnou klientku bez obejití kolizní validace
   - vytvoření kolizního slotu odmítnuté serverem
   - editaci slotu s aktivní rezervací a blokaci neplatného snížení kapacity
   - archivaci pouze bez aktivní rezervace

@@ -59,11 +59,12 @@ Postup nasazení aplikace do produkce.
      - admin widget `Zdroje návštěv` ukazuje jen business labely zdrojů a max. několik položek včetně případného `Ostatní`, bez raw Matomo payloadu; rezervace u zdrojů jsou označené jako odhad
      - `npm run analytics:check` vrací `status: ok` nebo srozumitelnou chybu reportingu; při lockoutu nebo neplatném tokenu musí dashboard ukázat provozní hlášku místo zavádějících nul
 15. Projdi ruční QA admin částí:
-   - login redirect pro `OWNER` a `SALON`
-   - opakované chybné přihlášení na `/admin/prihlaseni` po překročení limitu vrátí `error=rate_limited` a nepovolí session
-   - dostupnost owner-only sekcí jen pro `OWNER`
-   - stejné chování owner/salon párových route po refaktoru factory wrapperů (overview, section, booking detail, slot list/create/detail/edit)
-   - lite admin navigaci a mobilní čitelnost na `/admin/provoz/*`
+  - login redirect pro `OWNER` a `SALON`
+  - opakované chybné přihlášení na `/admin/prihlaseni` po překročení limitu vrátí `error=rate_limited` a nepovolí session
+  - dostupnost owner-only sekcí jen pro `OWNER`
+  - stejné chování owner/salon párových route po refaktoru factory wrapperů (overview, section, booking detail, slot list/create/detail/edit)
+  - detail klientky v owner i salon oblasti: CTA `Vytvořit rezervaci` otevře `/admin/.../rezervace?create=1&clientId=...` a drawer předvyplní správnou klientku nebo ukáže jemný fallback
+  - lite admin navigaci a mobilní čitelnost na `/admin/provoz/*`
    - overview dashboard na `/admin` a `/admin/provoz`:
      - horní blok `Dnešní provoz` ukazuje datum, počet dnešních aktivních rezervací, právě probíhající nebo další rezervaci a CTA `Vytvořit rezervaci / Otevřít dnešní plán / Upravit dostupnost`
      - horní blok je nízká operační lišta, ne vysoký hero s velkým číslem

@@ -26,6 +26,7 @@ export type E2eFixture = {
   categoryName: string;
   clientName: string;
   clientEmail: string;
+  clientId?: string;
   voucherCode?: string;
   bookingId?: string;
   cancelToken?: string;
@@ -37,10 +38,12 @@ export type E2eFixture = {
     primaryTime: string;
     rescheduleDateKey: string;
     rescheduleTime: string;
-    rescheduleConflictButtonLabel: string;
-    rescheduleSuccessButtonLabel: string;
-    rescheduleSuccessStartAt: string;
-  };
+      rescheduleConflictButtonLabel: string;
+      rescheduleSuccessButtonLabel: string;
+      rescheduleSuccessStartAt: string;
+      primaryStartAt: string;
+      rescheduleStartAt: string;
+    };
 };
 
 function slugify(value: string) {
@@ -216,6 +219,8 @@ export async function createPublicBookingFixture(): Promise<E2eFixture> {
       rescheduleConflictButtonLabel: `Vybrat čas ${formatPragueTimeRange(catalog.rescheduleStart, addMinutes(catalog.rescheduleStart, catalog.service.durationMinutes))} dne ${rescheduleDateLabel}`,
       rescheduleSuccessButtonLabel: `Vybrat čas ${formatPragueTimeRange(rescheduleSuccessStart, rescheduleSuccessEnd)} dne ${rescheduleDateLabel}`,
       rescheduleSuccessStartAt: rescheduleSuccessStart.toISOString(),
+      primaryStartAt: catalog.primaryStart.toISOString(),
+      rescheduleStartAt: catalog.rescheduleStart.toISOString(),
     },
   };
 }
@@ -335,6 +340,7 @@ export async function createManagedBookingFixture(
     categoryName: catalog.categoryName,
     clientName,
     clientEmail,
+    clientId: client.id,
     bookingId: booking.id,
     cancelToken: cancelToken.rawToken,
     manageToken: manageToken.rawToken,
@@ -346,19 +352,21 @@ export async function createManagedBookingFixture(
       rescheduleConflictButtonLabel: `Vybrat čas ${formatPragueTimeRange(catalog.rescheduleStart, addMinutes(catalog.rescheduleStart, catalog.service.durationMinutes))} dne ${rescheduleDateLabel}`,
       rescheduleSuccessButtonLabel: `Vybrat čas ${formatPragueTimeRange(rescheduleSuccessStart, rescheduleSuccessEnd)} dne ${rescheduleDateLabel}`,
       rescheduleSuccessStartAt: rescheduleSuccessStart.toISOString(),
+      primaryStartAt: catalog.primaryStart.toISOString(),
+      rescheduleStartAt: catalog.rescheduleStart.toISOString(),
     },
   };
 }
 
-export async function createAdminFixture(runId: string) {
+export async function createAdminFixture(runId: string, role: AdminRole = AdminRole.OWNER) {
   const password = `E2E-password-${runId}`;
-  const email = `${runId}-owner@example.test`;
+  const email = `${runId}-${role.toLowerCase()}@example.test`;
 
   await prisma.adminUser.create({
     data: {
       email,
-      name: `E2E Owner ${runId}`,
-      role: AdminRole.OWNER,
+      name: `E2E ${role} ${runId}`,
+      role,
       passwordHash: await hashPassword(password),
       isActive: true,
     },
@@ -402,6 +410,8 @@ export async function createPublicVoucherFixture(): Promise<E2eFixture> {
       rescheduleConflictButtonLabel: "",
       rescheduleSuccessButtonLabel: "",
       rescheduleSuccessStartAt: "",
+      primaryStartAt: "",
+      rescheduleStartAt: "",
     },
   };
 }

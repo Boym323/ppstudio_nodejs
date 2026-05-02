@@ -43,7 +43,7 @@ export function AdminClientDetailPage({ data }: AdminClientDetailPageProps) {
 function ClientDetailHeader({ data }: { data: AdminClientDetailData }) {
   const listHref = data.area === "owner" ? "/admin/klienti" : "/admin/provoz/klienti";
   const detailHref = data.area === "owner" ? `/admin/klienti/${data.id}` : `/admin/provoz/klienti/${data.id}`;
-  const bookingsHref = data.area === "owner" ? "/admin/rezervace" : "/admin/provoz/rezervace";
+  const createBookingHref = buildCreateBookingHref(data.area, data.id);
 
   return (
     <section className="rounded-[1.4rem] border border-white/10 bg-white/6 p-4 backdrop-blur-xl sm:p-5">
@@ -65,7 +65,7 @@ function ClientDetailHeader({ data }: { data: AdminClientDetailData }) {
         </div>
 
         <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-          <ActionLink href={bookingsHref} variant="primary">Vytvořit rezervaci</ActionLink>
+          <ActionLink href={createBookingHref} variant="primary">Vytvořit rezervaci</ActionLink>
           <ActionLink href={data.phoneHref}>Zavolat</ActionLink>
           <ActionLink href={data.emailHref}>Napsat e-mail</ActionLink>
           <ActionLink href={detailHref}>Obnovit detail</ActionLink>
@@ -115,7 +115,7 @@ function ClientKpiCards({ data }: { data: AdminClientDetailData }) {
 }
 
 function ClientVisitHistory({ data }: { data: AdminClientDetailData }) {
-  const bookingsHref = data.area === "owner" ? "/admin/rezervace" : "/admin/provoz/rezervace";
+  const createBookingHref = buildCreateBookingHref(data.area, data.id);
 
   return (
     <AdminPanel
@@ -157,7 +157,7 @@ function ClientVisitHistory({ data }: { data: AdminClientDetailData }) {
         <div className="rounded-[1rem] border border-dashed border-white/14 bg-white/4 p-4">
           <p className="text-sm leading-5 text-white/70">Klientka zatím nemá žádnou rezervaci.</p>
           <Link
-            href={bookingsHref}
+            href={createBookingHref}
             className="mt-3 inline-flex rounded-full bg-[var(--color-accent)] px-3.5 py-2 text-sm font-semibold text-[var(--color-accent-contrast)] transition hover:brightness-105"
           >
             Vytvořit rezervaci
@@ -166,6 +166,11 @@ function ClientVisitHistory({ data }: { data: AdminClientDetailData }) {
       )}
     </AdminPanel>
   );
+}
+
+function buildCreateBookingHref(area: AdminClientDetailData["area"], clientId: string) {
+  const basePath = area === "owner" ? "/admin/rezervace" : "/admin/provoz/rezervace";
+  return `${basePath}?create=1&clientId=${encodeURIComponent(clientId)}`;
 }
 
 function ClientInternalNoteCard({ data }: { data: AdminClientDetailData }) {

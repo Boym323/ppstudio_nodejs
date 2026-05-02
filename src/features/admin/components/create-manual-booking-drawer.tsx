@@ -2,8 +2,9 @@
 
 import { BookingSource, BookingStatus } from "@prisma/client";
 import Link from "next/link";
-import { useActionState, useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { createPortal } from "react-dom";
+import { useActionState, useCallback, useEffect, useRef, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import { type AdminArea } from "@/config/navigation";
 import {
@@ -22,14 +23,22 @@ import { BookingTimeSelector } from "./booking-time-selector";
 type CreateManualBookingDrawerProps = {
   area: AdminArea;
   data: ReservationsDashboardData["manualBooking"];
+  initialOpen?: boolean;
+  prefilledClient?: ReservationsDashboardData["manualBooking"]["clients"][number] | null;
+  prefillWarning?: string | null;
 };
 
 export function CreateManualBookingDrawer({
   area,
   data,
+  initialOpen = false,
+  prefilledClient = null,
+  prefillWarning = null,
 }: CreateManualBookingDrawerProps) {
   const router = useRouter();
-  const [open, setOpen] = useState(false);
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const [open, setOpen] = useState(initialOpen);
   const [showSuccessBanner, setShowSuccessBanner] = useState(false);
   const [serverState, formAction] = useActionState(
     createManualBookingAction,
@@ -37,11 +46,11 @@ export function CreateManualBookingDrawer({
   );
   const previousStatus = useRef(serverState.status);
   const [clientQuery, setClientQuery] = useState("");
-  const [selectedClientId, setSelectedClientId] = useState("");
-  const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
-  const [clientProfileNote, setClientProfileNote] = useState("");
+  const [selectedClientId, setSelectedClientId] = useState(prefilledClient?.id ?? "");
+  const [fullName, setFullName] = useState(prefilledClient?.fullName ?? "");
+  const [email, setEmail] = useState(prefilledClient?.email ?? "");
+  const [phone, setPhone] = useState(prefilledClient?.phone ?? "");
+  const [clientProfileNote, setClientProfileNote] = useState(prefilledClient?.internalNote ?? "");
   const [serviceSearch, setServiceSearch] = useState("");
   const [serviceId, setServiceId] = useState("");
   const [selectionMode, setSelectionMode] = useState<"slot" | "manual">("slot");
@@ -56,6 +65,11 @@ export function CreateManualBookingDrawer({
   const [includeCalendarAttachment, setIncludeCalendarAttachment] = useState(true);
   const [clientNote, setClientNote] = useState("");
   const [internalNote, setInternalNote] = useState("");
+  const [prefillNotice, setPrefillNotice] = useState(prefillWarning);
+  const canUsePortal = typeof window !== "undefined";
+  const availableClients = prefilledClient && !data.clients.some((client) => client.id === prefilledClient.id)
+    ? [prefilledClient, ...data.clients]
+    : data.clients;
 
   const createdBookingHref = serverState.createdBookingId
     ? area === "owner"
@@ -63,16 +77,26 @@ export function CreateManualBookingDrawer({
       : `/admin/provoz/rezervace/${serverState.createdBookingId}`
     : null;
 
+  const clearCreateBookingSearchParams = useCallback(() => {
+    const nextSearchParams = new URLSearchParams(searchParams.toString());
+    nextSearchParams.delete("create");
+    nextSearchParams.delete("clientId");
+    const nextHref = nextSearchParams.toString() ? `${pathname}?${nextSearchParams.toString()}` : pathname;
+
+    router.replace(nextHref);
+  }, [pathname, router, searchParams]);
+
   useEffect(() => {
     if (previousStatus.current !== "success" && serverState.status === "success") {
       resetForm();
       setOpen(false);
+      clearCreateBookingSearchParams();
       setShowSuccessBanner(true);
       router.refresh();
     }
 
     previousStatus.current = serverState.status;
-  }, [router, serverState.status]);
+  }, [clearCreateBookingSearchParams, router, serverState.status]);
 
   function resetForm() {
     setClientQuery("");
@@ -93,6 +117,13 @@ export function CreateManualBookingDrawer({
     setIncludeCalendarAttachment(true);
     setClientNote("");
     setInternalNote("");
+    setPrefillNotice(null);
+  }
+
+  function closeDrawer() {
+    resetForm();
+    setOpen(false);
+    clearCreateBookingSearchParams();
   }
 
   return (
@@ -139,12 +170,13 @@ export function CreateManualBookingDrawer({
         </div>
       ) : null}
 
-      {open ? (
-        <div className="fixed inset-0 z-50">
-          <AdminEscapeKeyClose onEscape={() => setOpen(false)} />
+      {canUsePortal && open
+        ? createPortal(
+        <div className="fixed inset-0 z-[90]">
+          <AdminEscapeKeyClose onEscape={closeDrawer} />
           <div
             className="absolute inset-0 bg-black/62 backdrop-blur-sm"
-            onClick={() => setOpen(false)}
+            onClick={closeDrawer}
           />
           <div className="absolute inset-y-0 right-0 w-full max-w-4xl overflow-hidden border-l border-white/10 bg-[#131116] shadow-[-20px_0_70px_rgba(0,0,0,0.45)]">
             <div className="flex h-full flex-col">
@@ -161,7 +193,7 @@ export function CreateManualBookingDrawer({
 
                 <button
                   type="button"
-                  onClick={() => setOpen(false)}
+                  onClick={closeDrawer}
                   className="rounded-full border border-white/10 px-3 py-2 text-sm text-white/74 transition hover:border-white/18 hover:bg-white/6"
                 >
                   Zavřít
@@ -207,14 +239,27 @@ export function CreateManualBookingDrawer({
                       </div>
                     ) : null}
 
+                    {prefillNotice ? (
+                      <div
+                        className={
+                          prefilledClient && !prefilledClient.isActive
+                            ? "rounded-[1rem] border border-amber-300/18 bg-amber-500/10 px-4 py-3 text-sm leading-6 text-amber-50"
+                            : "rounded-[1rem] border border-white/10 bg-white/[0.04] px-4 py-3 text-sm leading-6 text-white/74"
+                        }
+                      >
+                        {prefillNotice}
+                      </div>
+                    ) : null}
+
                     <BookingClientSelector
-                      clients={data.clients}
+                      clients={availableClients}
                       query={clientQuery}
                       onQueryChange={setClientQuery}
                       selectedClientId={selectedClientId}
                       onSelectClient={(clientId) => {
+                        setPrefillNotice(null);
                         setSelectedClientId(clientId);
-                        const selectedClient = data.clients.find((client) => client.id === clientId);
+                        const selectedClient = availableClients.find((client) => client.id === clientId);
 
                         if (!selectedClient) {
                           return;
@@ -226,6 +271,7 @@ export function CreateManualBookingDrawer({
                         setClientProfileNote(selectedClient.internalNote ?? "");
                       }}
                       onClearSelection={() => {
+                        setPrefillNotice(null);
                         setSelectedClientId("");
                         setFullName("");
                         setEmail("");
@@ -319,10 +365,7 @@ export function CreateManualBookingDrawer({
                     <div className="flex flex-col gap-2 sm:flex-row">
                       <button
                         type="button"
-                        onClick={() => {
-                          resetForm();
-                          setOpen(false);
-                        }}
+                        onClick={closeDrawer}
                         className="rounded-full border border-white/10 px-4 py-2.5 text-sm text-white/80 transition hover:border-white/18 hover:bg-white/6"
                       >
                         Zrušit
@@ -349,7 +392,8 @@ export function CreateManualBookingDrawer({
               </form>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       ) : null}
     </>
   );

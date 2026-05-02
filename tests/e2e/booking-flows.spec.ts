@@ -1,5 +1,5 @@
-import { expect, test, type Locator } from "@playwright/test";
-import { BookingSource, BookingStatus, BookingActorType } from "@prisma/client";
+import { expect, test, type Locator, type Page } from "@playwright/test";
+import { AdminRole, BookingActorType, BookingSource, BookingStatus } from "@prisma/client";
 
 import {
   cleanupE2eData,
@@ -41,6 +41,22 @@ async function clickUntilFocused(trigger: Locator, target: Locator) {
   }
 
   await expect(target).toBeFocused();
+}
+
+async function loginAdmin(page: Page, email: string, password: string) {
+  await page.goto("/admin/prihlaseni");
+  await page.getByLabel("E-mail").fill(email);
+  await page.getByLabel("Heslo").fill(password);
+  await page.getByRole("button", { name: "Přihlásit se" }).click();
+}
+
+function selectedClientCard(page: Page) {
+  return page.locator("section").filter({ hasText: "Vybraná klientka" }).first();
+}
+
+async function safeClick(page: Page, locator: Locator) {
+  await locator.dispatchEvent("click");
+  await page.waitForTimeout(100);
 }
 
 test.describe("booking flows", () => {
@@ -240,15 +256,151 @@ test.describe("booking flows", () => {
     expect(booking.rescheduleLogs.some((item) => item.changedByClient)).toBe(true);
   });
 
+  test("owner can open manual booking from client detail and create a booking for the prefilled client", async ({ page }) => {
+    const fixture = await createManagedBookingFixture();
+    const admin = await createAdminFixture(fixture.runId, AdminRole.OWNER);
+    fixtures.push(fixture);
+
+    await loginAdmin(page, admin.email, admin.password);
+    await expect(page).toHaveURL(/\/admin/);
+
+    await page.goto(`/admin/klienti/${fixture.clientId!}`);
+    const createBookingLink = page.getByRole("link", { name: "Vytvořit rezervaci" }).first();
+    await expect(createBookingLink).toHaveAttribute(
+      "href",
+      `/admin/rezervace?create=1&clientId=${fixture.clientId!}`,
+    );
+
+    await createBookingLink.click();
+    await expect(page).toHaveURL(
+      new RegExp(`/admin/rezervace\\?create=1&clientId=${fixture.clientId!}`),
+    );
+    await expect(page.getByRole("heading", { name: "Vytvořit rezervaci v administraci" })).toBeVisible();
+    await expect(page.getByText("Vybraná klientka")).toBeVisible();
+    await expect(selectedClientCard(page).getByText(fixture.clientName)).toBeVisible();
+    await expect(selectedClientCard(page).getByText(fixture.clientEmail)).toBeVisible();
+
+    await page.getByLabel("Služba").selectOption({ label: fixture.serviceName });
+    await safeClick(page, page.getByRole("button", { name: fixture.slotLabels.rescheduleTime }).first());
+    await expect(page.locator('input[name="startsAt"]')).toHaveValue(fixture.slotLabels.rescheduleStartAt);
+    await page.getByRole("button", { name: "Vytvořit rezervaci" }).last().click();
+    await expect.poll(async () => prisma.booking.count({
+      where: {
+        clientId: fixture.clientId!,
+        source: BookingSource.PHONE,
+        scheduledStartsAt: new Date(fixture.slotLabels.rescheduleStartAt),
+      },
+    })).toBe(1);
+
+    const booking = await prisma.booking.findFirstOrThrow({
+      where: {
+        clientId: fixture.clientId!,
+        source: BookingSource.PHONE,
+        scheduledStartsAt: new Date(fixture.slotLabels.rescheduleStartAt),
+      },
+    });
+
+    expect(booking.status).toBe(BookingStatus.CONFIRMED);
+  });
+
+  test("salon sees manual booking action on client detail and gets the same prefilled flow", async ({ page }) => {
+    const fixture = await createManagedBookingFixture();
+    const admin = await createAdminFixture(fixture.runId, AdminRole.SALON);
+    fixtures.push(fixture);
+
+    await loginAdmin(page, admin.email, admin.password);
+
+    await page.goto(`/admin/provoz/klienti/${fixture.clientId!}`);
+    const createBookingLink = page.getByRole("link", { name: "Vytvořit rezervaci" }).first();
+    await expect(createBookingLink).toHaveAttribute(
+      "href",
+      `/admin/provoz/rezervace?create=1&clientId=${fixture.clientId!}`,
+    );
+
+    await createBookingLink.click();
+    await expect(page).toHaveURL(
+      new RegExp(`/admin/provoz/rezervace\\?create=1&clientId=${fixture.clientId!}`),
+    );
+    await expect(page.getByRole("heading", { name: "Vytvořit rezervaci v administraci" })).toBeVisible();
+    await expect(page.getByText("Vybraná klientka")).toBeVisible();
+    await expect(selectedClientCard(page).getByText(fixture.clientName)).toBeVisible();
+  });
+
+  test("manual booking drawer stays usable without or with invalid clientId prefill", async ({ page }) => {
+    const fixture = await createManagedBookingFixture();
+    const admin = await createAdminFixture(fixture.runId, AdminRole.OWNER);
+    fixtures.push(fixture);
+
+    await loginAdmin(page, admin.email, admin.password);
+    await expect(page).toHaveURL(/\/admin/);
+
+    await page.goto("/admin/rezervace");
+    await expect(page.getByRole("heading", { name: "Vytvořit rezervaci v administraci" })).toHaveCount(0);
+    await page.getByRole("button", { name: "Přidat rezervaci" }).click();
+    await expect(page.getByRole("heading", { name: "Vytvořit rezervaci v administraci" })).toBeVisible();
+    await expect(page.getByText("Vybraná klientka")).toHaveCount(0);
+    await page.getByRole("button", { name: "Zrušit" }).click();
+
+    await page.goto("/admin/rezervace?create=1&clientId=missing-client");
+    await expect(page.getByRole("heading", { name: "Vytvořit rezervaci v administraci" })).toBeVisible();
+    await expect(page.getByText("Klientku se nepodařilo předvyplnit.")).toBeVisible();
+    await expect(page.getByText("Vybraná klientka")).toHaveCount(0);
+  });
+
+  test("manual booking prefill warns when the selected client is inactive", async ({ page }) => {
+    const fixture = await createManagedBookingFixture();
+    const admin = await createAdminFixture(fixture.runId, AdminRole.OWNER);
+    fixtures.push(fixture);
+
+    await prisma.client.update({
+      where: {
+        id: fixture.clientId!,
+      },
+      data: {
+        isActive: false,
+      },
+    });
+
+    await loginAdmin(page, admin.email, admin.password);
+    await expect(page).toHaveURL(/\/admin/);
+
+    await page.goto(`/admin/rezervace?create=1&clientId=${fixture.clientId!}`);
+    await expect(page.getByText("Klientka je neaktivní.")).toBeVisible();
+    await expect(selectedClientCard(page).getByText(fixture.clientName)).toBeVisible();
+  });
+
+  test("manual booking keeps overlap validation active for prefilled clients", async ({ page }) => {
+    const fixture = await createManagedBookingFixture();
+    const admin = await createAdminFixture(fixture.runId, AdminRole.OWNER);
+    fixtures.push(fixture);
+
+    await loginAdmin(page, admin.email, admin.password);
+    await expect(page).toHaveURL(/\/admin/);
+
+    await page.goto(`/admin/rezervace?create=1&clientId=${fixture.clientId!}`);
+    await page.getByLabel("Služba").selectOption({ label: fixture.serviceName });
+    await safeClick(page, page.getByRole("button", { name: "Ruční zadání" }));
+    await expect(page.getByLabel("Datum")).toBeVisible();
+    await page.getByLabel("Datum").fill(fixture.slotLabels.primaryDateKey);
+    await page.getByLabel("Čas od").fill(fixture.slotLabels.primaryTime);
+    await page.getByRole("button", { name: "Vytvořit rezervaci" }).last().click();
+
+    await expect(
+      page.getByText(/(koliduje|není k dispozici|obsazen)/i).first(),
+    ).toBeVisible();
+  });
+
+  test("guest cannot access admin manual booking flow", async ({ page }) => {
+    await page.goto("/admin/rezervace?create=1&clientId=missing-client");
+    await expect(page).toHaveURL(/\/admin\/prihlaseni/);
+  });
+
   test("owner can log in and confirm a pending booking", async ({ page }) => {
     const fixture = await createManagedBookingFixture(BookingStatus.PENDING);
     const admin = await createAdminFixture(fixture.runId);
     fixtures.push(fixture);
 
-    await page.goto("/admin/prihlaseni");
-    await page.getByLabel("E-mail").fill(admin.email);
-    await page.getByLabel("Heslo").fill(admin.password);
-    await page.getByRole("button", { name: "Přihlásit se" }).click();
+    await loginAdmin(page, admin.email, admin.password);
     await expect(page).toHaveURL(/\/admin/);
 
     await page.goto(`/admin/rezervace/${fixture.bookingId}`);
