@@ -209,7 +209,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - footer i header udržuj server-rendered všude, kde to jde; kvůli trackingu nepřepínej celý shell na klientský rendering
   - při dalších úpravách preferuj práci s `gap`, `max-width`, typografickou vahou a jemným border/shadow rytmem místo přidávání dalších obsahových bloků
 - Veřejné e-mailové odkazy nepoužívej jako surový `mailto:` přímo v SSR markupu; pro footer, kontaktní stránku a další veřejné kontaktní prvky používej `src/components/ui/obfuscated-email-link.tsx`, který:
-  - může zobrazit obfuskovaný text `local [at] domain` nebo plný čitelný e-mail podle kontextu UI
+  - má mít výchozí UI v plně čitelném tvaru s `@`; textový zápis `local [at] domain` používej jen když je to výslovně zamýšlené konkrétním UI copy
   - skládá skutečný `mailto:` až v klientu
   - umí i předvyplněný `subject` a `body` pro provozní e-mailové akce
 - Právní stránky ve `src/features/public/components/public-site.tsx` mohou nově používat rozšířenou skladbu `hero + aside + anchor TOC + sekce`; pro právní texty proto preferuj strukturovaný obsah v `src/content/public-site.ts` místo dlouhých monolitických odstavců.

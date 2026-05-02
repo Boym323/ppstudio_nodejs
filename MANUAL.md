@@ -43,6 +43,7 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
 - Veřejný shell (`SiteShell`) inicializuje volitelný Matomo tracking přes `NEXT_PUBLIC_MATOMO_ENABLED`, `NEXT_PUBLIC_MATOMO_URL` a `NEXT_PUBLIC_MATOMO_SITE_ID`; admin route group tracking komponentu nepoužívá.
 - Matomo skript na veřejném webu je záměrně odložený přes `lazyOnload`, aby se homepage nejdřív vykreslila s minimem klientské práce na hlavním vlákně.
 - Homepage hero preferuje jako LCP kandidát logo: je preloadované přes `next/image`, zatímco portrait běží bez priority, aby první vykreslení nebylo bržděné konkurenčním načítáním.
+- Veřejné kontaktní e-maily se uživatelkám zobrazují v běžném čitelném tvaru s `@`, ale veřejný web dál nesází surové `mailto:` přímo do SSR HTML; kontaktní odkazy se skládají až v klientu přes `ObfuscatedEmailLink`.
 - Matomo měří pageview veřejných stránek a booking flow včetně klientských App Router navigací, ale neposílá pageview pro `/admin`, `/api`, Next internals ani tokenové self-service route `/rezervace/sprava/*`, `/rezervace/storno/*`, `/rezervace/akce/*`.
 - Rezervační flow posílá pouze neosobní eventy `Booking / Service selected`, `Date selected`, `Time selected`, `Contact started` a po úspěchu `Created`; self-service změna termínu posílá bezpečné `Booking / Date selected` a `Booking / Time selected`. Jméno, e-mail, telefon, poznámka ani tokeny se do analytics neposílají.
 - V Matomo lze ručně nastavit Goal pro vlastní Matomo přehledy: název `Booking created`, trigger `custom event`, category `Booking`, action `Created`. Admin widget ale hlavní počet rezervací bere přímo z eventu `Booking / Created`, aby KPI a funnel držely stejnou definici.
@@ -336,7 +337,7 @@ npm run db:clear-booking-data -- --confirm
 - GDPR sekce v `src/content/public-site.ts` teď počítají s jemně bohatším modelem (`id`, odstavce, seznamové body, volitelná poznámka), aby šla stránka rozšířit bez přepisování layoutu.
 - Právní sekce v `src/content/public-site.ts` nově umí i volitelný `eyebrow`, takže dlouhé právní stránky drží čitelnou číslovanou hierarchii bez zavádění nové specializované page komponenty.
 - Veřejné e-mailové odkazy jsou jemně obfuskované:
-  - text se zobrazuje ve tvaru `lokalni-cast [at] domena`
+  - výchozí text se zobrazuje v běžném čitelném tvaru s `@`; textový zápis `lokalni-cast [at] domena` používej jen tam, kde je to vědomě zvolený copy pattern
   - skutečný `mailto:` odkaz se skládá až na klientu po načtení stránky
   - pro návštěvnici zůstává chování stejné, ale jednoduché scrapery nevidí čistý e-mail přímo v HTML
 - Stránka `/kontakt` má nově silnější orientaci na rychlou akci:

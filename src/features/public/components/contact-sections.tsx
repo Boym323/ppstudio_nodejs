@@ -3,7 +3,6 @@ import Image from 'next/image';
 import { Container } from '@/components/ui/container';
 import { type ContactItem } from '@/content/public-site';
 import { TrackedAnchor, TrackedEmailLink, TrackedLink } from '@/features/analytics/tracked-link';
-import { formatObfuscatedEmail } from '@/lib/email-obfuscation';
 
 function getSafeTelHref(phone: string) {
   return `tel:${phone.replace(/\s+/g, '')}`;
@@ -124,7 +123,7 @@ export function ContactHero({ title, description, phone, email, instagramUrl, ph
               className="inline-flex min-h-11 items-center gap-2 rounded-full border border-black/10 bg-white/70 px-4 py-2 text-[13px] leading-6 text-[var(--color-foreground)] hover:border-black/20 hover:bg-white"
             >
               <ContactIconMessage />
-              <span>{formatObfuscatedEmail(email)}</span>
+              <span>{email}</span>
             </TrackedEmailLink>
             {instagramUrl && instagramValue ? (
               <TrackedAnchor
@@ -311,7 +310,7 @@ export function QuickContactCard({
           </span>
           <div className="min-w-0">
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-accent)]">E-mail</p>
-            <p className="mt-0.5 text-[15px] leading-6 text-[var(--color-foreground)]">{formatObfuscatedEmail(email)}</p>
+            <p className="mt-0.5 text-[15px] leading-6 text-[var(--color-foreground)]">{email}</p>
           </div>
         </TrackedEmailLink>
         {instagramUrl ? (

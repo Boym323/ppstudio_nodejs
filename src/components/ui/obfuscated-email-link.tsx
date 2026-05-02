@@ -1,7 +1,5 @@
 'use client';
 
-import { formatObfuscatedEmail } from '@/lib/email-obfuscation';
-
 type ObfuscatedEmailLinkProps = Omit<
   React.AnchorHTMLAttributes<HTMLAnchorElement>,
   'children' | 'href'
@@ -60,7 +58,7 @@ export function ObfuscatedEmailLink({
         }
       }}
     >
-      {children ?? formatObfuscatedEmail(email)}
+      {children ?? email}
     </a>
   );
 }
