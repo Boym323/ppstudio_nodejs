@@ -70,9 +70,10 @@ export function AdminClientsList({
 
         <div className="divide-y divide-white/7">
           {clients.map((client) => (
-            <div
+            <Link
               key={client.id}
-              className="grid min-h-14 grid-cols-[minmax(160px,1.25fr)_minmax(190px,1.35fr)_90px_130px_105px_95px_82px] items-center gap-3 px-3 py-2.5 text-sm transition hover:bg-white/5"
+              href={getAdminClientHref(area, client.id)}
+              className="group grid min-h-14 grid-cols-[minmax(160px,1.25fr)_minmax(190px,1.35fr)_90px_130px_105px_95px_82px] items-center gap-3 px-3 py-2.5 text-sm transition hover:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--color-accent)]/60"
             >
               <div className="min-w-0">
                 <div className="flex min-w-0 items-center gap-2">
@@ -87,45 +88,47 @@ export function AdminClientsList({
               <p className="truncate text-white/68">{formatDateLabel(client.lastBookedAt).toLocaleLowerCase("cs-CZ")}</p>
               <NoteBadge hasNote={hasNote(client.internalNote)} />
               <StatusBadge isActive={client.isActive} />
-              <Link
-                href={getAdminClientHref(area, client.id)}
-                className="justify-self-end rounded-full border border-white/10 px-3 py-1.5 text-xs font-medium text-white/78 transition hover:border-[var(--color-accent)]/40 hover:bg-[rgba(190,160,120,0.10)] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/60"
+              <span
+                className="justify-self-end rounded-full border border-white/10 px-3 py-1.5 text-xs font-medium text-white/78 transition group-hover:border-[var(--color-accent)]/40 group-hover:bg-[rgba(190,160,120,0.10)] group-hover:text-white"
               >
                 Detail
-              </Link>
-            </div>
+              </span>
+            </Link>
           ))}
         </div>
       </div>
 
       <div className="grid gap-2 lg:hidden">
         {clients.map((client) => (
-          <article key={client.id} className="rounded-[1.05rem] border border-white/8 bg-white/5 p-3">
-            <div className="flex min-w-0 items-start justify-between gap-3">
-              <div className="min-w-0">
-                <div className="flex min-w-0 items-center gap-2">
-                  <h3 className="min-w-0 truncate text-base font-medium text-white">{client.fullName}</h3>
-                  {client.isTestRecord ? <TestBadge /> : null}
+          <Link
+            key={client.id}
+            href={getAdminClientHref(area, client.id)}
+            className="block rounded-[1.05rem] border border-white/8 bg-white/5 p-3 transition hover:bg-white/6 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/60"
+          >
+            <article>
+              <div className="flex min-w-0 items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <h3 className="min-w-0 truncate text-base font-medium text-white">{client.fullName}</h3>
+                    {client.isTestRecord ? <TestBadge /> : null}
+                  </div>
+                  <div className="mt-1">
+                    <ContactCell email={client.email} phone={client.phone} />
+                  </div>
                 </div>
-                <div className="mt-1">
-                  <ContactCell email={client.email} phone={client.phone} />
-                </div>
+                <StatusBadge isActive={client.isActive} />
               </div>
-              <StatusBadge isActive={client.isActive} />
-            </div>
 
-            <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
-              <MetaCell label="Rezervace" value={String(client._count.bookings)} />
-              <MetaCell label="Poslední návštěva" value={formatDateLabel(client.lastBookedAt).toLocaleLowerCase("cs-CZ")} />
-              <MetaCell label="Poznámka" value={hasNote(client.internalNote) ? "ano" : "bez poznámky"} />
-              <Link
-                href={getAdminClientHref(area, client.id)}
-                className="inline-flex items-center justify-center rounded-full border border-white/10 px-3 py-2 text-sm font-medium text-white/82 transition hover:border-[var(--color-accent)]/40 hover:bg-[rgba(190,160,120,0.10)]"
-              >
-                Detail
-              </Link>
-            </div>
-          </article>
+              <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
+                <MetaCell label="Rezervace" value={String(client._count.bookings)} />
+                <MetaCell label="Poslední návštěva" value={formatDateLabel(client.lastBookedAt).toLocaleLowerCase("cs-CZ")} />
+                <MetaCell label="Poznámka" value={hasNote(client.internalNote) ? "ano" : "bez poznámky"} />
+                <span className="inline-flex items-center justify-center rounded-full border border-white/10 px-3 py-2 text-sm font-medium text-white/82">
+                  Detail
+                </span>
+              </div>
+            </article>
+          </Link>
         ))}
       </div>
     </div>
