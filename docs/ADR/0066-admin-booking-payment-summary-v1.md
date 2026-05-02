@@ -28,4 +28,4 @@
 - Dalsi voucher se v UI nenabizi, pokud uz rezervace ma redemption nebo pokud `remainingAmountCzk` vychazi na `0`.
 
 ## Stav
-- schvaleno
+- nahrazeno ADR 0078 pro evidenci běžných plateb mimo voucher

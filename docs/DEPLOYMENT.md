@@ -128,7 +128,9 @@ Postup nasazení aplikace do produkce.
      - veřejné ověření platného hodnotového voucheru ukáže kód, typ, zůstatek a platnost; službový voucher ukáže kód, typ, snapshot služby a platnost
      - veřejné ověření neplatného voucheru ukáže jen bezpečný důvod a při reloadu nemění `remainingValueCzk`, `Voucher.status` ani nevytváří `VoucherRedemption`
    - panel `Úhrada` v detailu rezervace na `/admin/rezervace/[bookingId]` a `/admin/provoz/rezervace/[bookingId]`:
-     - horní souhrn ukazuje cenu služby, uhrazeno voucherem, zbývá doplatit a stav úhrady `Neuhrazeno / Částečně uhrazeno / Uhrazeno`
+     - horní souhrn ukazuje cenu služby, uhrazeno voucherem, uhrazeno mimo voucher, celkem uhrazeno, zbývá doplatit nebo přeplaceno a stav úhrady `Neuhrazeno / Částečně uhrazeno / Uhrazeno / Přeplaceno`
+     - `OWNER` i `SALON` umí zapsat platbu mimo voucher metodou `Hotově`, `Kartou`, `Převodem / QR` nebo `Jiné`
+     - `OWNER` vidí smazání platby mimo voucher a `SALON` tuto akci nevidí
      - rezervace bez voucheru ukazuje prázdný stav v sekci `Dárkový poukaz` a dovolí ruční zadání kódu
      - intended voucher předvyplní kód a ukazuje typ, efektivní stav a bezpečný popis
      - hodnotový voucher předvyplní doporučenou částku podle zůstatku voucheru a zbývajícího doplatku

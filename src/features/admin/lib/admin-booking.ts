@@ -1,7 +1,9 @@
 import {
+  AdminRole,
   BookingActionTokenType,
   BookingActorType,
   BookingAcquisitionSource,
+  BookingPaymentMethod,
   BookingSource,
   BookingStatus,
   EmailLogStatus,
@@ -20,6 +22,12 @@ import {
 } from "@/features/booking/lib/booking-action-tokens";
 import { getPublicBookingCatalog } from "@/features/booking/lib/booking-public";
 import { formatBookingDateLabel } from "@/features/booking/lib/booking-format";
+import {
+  BOOKING_PAYMENT_METHOD_LABELS,
+  BOOKING_PAYMENT_STATUS_LABELS,
+  getBookingPaymentSummary,
+  type BookingPaymentStatus,
+} from "@/features/bookings/lib/booking-payment-summary";
 import {
   formatVoucherRemaining,
   formatVoucherStatus,
@@ -49,7 +57,7 @@ export type AdminBookingActionOption = {
   description: string;
 };
 
-export type AdminBookingPaymentStatus = "UNPAID" | "PARTIALLY_PAID" | "PAID";
+export type AdminBookingPaymentStatus = BookingPaymentStatus;
 
 export type AdminBookingDetailData = {
   id: string;
@@ -102,7 +110,25 @@ export type AdminBookingDetailData = {
       remainingAmountCzk: number | null;
       paymentStatus: AdminBookingPaymentStatus;
       paymentStatusLabel: string;
+      directPaidCzk: number;
+      paidTotalCzk: number;
+      remainingCzk: number;
+      overpaidCzk: number;
+      status: AdminBookingPaymentStatus;
+      statusLabel: string;
     };
+    payments: Array<{
+      id: string;
+      amountCzk: number;
+      amountLabel: string;
+      method: BookingPaymentMethod;
+      methodLabel: string;
+      paidAt: string;
+      paidAtLabel: string;
+      note: string | null;
+      createdByUserLabel: string;
+      canDelete: boolean;
+    }>;
     intendedVoucherCodeSnapshot: string | null;
     intendedVoucherValidatedAtLabel: string | null;
     intendedVoucher: {
@@ -361,55 +387,42 @@ const czkFormatter = new Intl.NumberFormat("cs-CZ", {
   currency: "CZK",
 });
 
+function formatCzk(value: number | null | undefined) {
+  return czkFormatter.format(value ?? 0);
+}
+
 export function getAdminBookingPaymentStatusLabel(status: AdminBookingPaymentStatus): string {
-  switch (status) {
-    case "UNPAID":
-      return "Neuhrazeno";
-    case "PARTIALLY_PAID":
-      return "Částečně uhrazeno";
-    case "PAID":
-      return "Uhrazeno";
-  }
+  return BOOKING_PAYMENT_STATUS_LABELS[status];
 }
 
 function buildPaymentSummary({
   totalPriceCzk,
   voucherPaidCzk,
+  directPaidCzk,
 }: {
-  totalPriceCzk: number | null;
+  totalPriceCzk: number;
   voucherPaidCzk: number;
+  directPaidCzk: number;
 }): AdminBookingDetailData["voucher"]["paymentSummary"] {
-  const paidAmountCzk = voucherPaidCzk;
-
-  if (totalPriceCzk === null) {
-    const paymentStatus: AdminBookingPaymentStatus =
-      paidAmountCzk > 0 ? "PARTIALLY_PAID" : "UNPAID";
-
-    return {
-      totalPriceCzk,
-      voucherPaidCzk,
-      paidAmountCzk,
-      remainingAmountCzk: null,
-      paymentStatus,
-      paymentStatusLabel: getAdminBookingPaymentStatusLabel(paymentStatus),
-    };
-  }
-
-  const remainingAmountCzk = Math.max(totalPriceCzk - paidAmountCzk, 0);
-  const paymentStatus: AdminBookingPaymentStatus =
-    remainingAmountCzk === 0
-      ? "PAID"
-      : paidAmountCzk > 0
-        ? "PARTIALLY_PAID"
-        : "UNPAID";
+  const summary = getBookingPaymentSummary({
+    totalPriceCzk,
+    voucherRedemptions: [{ amountCzk: voucherPaidCzk }],
+    payments: [{ amountCzk: directPaidCzk }],
+  });
 
   return {
-    totalPriceCzk,
-    voucherPaidCzk,
-    paidAmountCzk,
-    remainingAmountCzk,
-    paymentStatus,
-    paymentStatusLabel: getAdminBookingPaymentStatusLabel(paymentStatus),
+    totalPriceCzk: summary.totalPriceCzk,
+    voucherPaidCzk: summary.voucherPaidCzk,
+    paidAmountCzk: summary.paidTotalCzk,
+    remainingAmountCzk: summary.remainingCzk,
+    paymentStatus: summary.status,
+    paymentStatusLabel: getAdminBookingPaymentStatusLabel(summary.status),
+    directPaidCzk: summary.directPaidCzk,
+    paidTotalCzk: summary.paidTotalCzk,
+    remainingCzk: summary.remainingCzk,
+    overpaidCzk: summary.overpaidCzk,
+    status: summary.status,
+    statusLabel: getAdminBookingPaymentStatusLabel(summary.status),
   };
 }
 
@@ -482,6 +495,21 @@ export async function getAdminBookingDetailData(
             },
           },
         },
+        payments: {
+          orderBy: {
+            paidAt: "desc",
+          },
+          include: {
+            createdByUser: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                role: true,
+              },
+            },
+          },
+        },
       },
     }),
     getPublicBookingCatalog({ includeServices: false }),
@@ -519,12 +547,20 @@ export async function getAdminBookingDetailData(
       createdAt: log.createdAt,
     })),
   ].sort((left, right) => right.createdAt.getTime() - left.createdAt.getTime());
-  const totalPriceCzk = booking.servicePriceFromCzk ?? booking.service.priceFromCzk;
+  const totalPriceCzk = Math.max(0, booking.servicePriceFromCzk ?? booking.service.priceFromCzk ?? 0);
   const voucherPaidCzk = booking.voucherRedemptions.reduce(
     (total, redemption) => total + (redemption.amountCzk ?? 0),
     0,
   );
-  const paymentSummary = buildPaymentSummary({ totalPriceCzk, voucherPaidCzk });
+  const directPaidCzk = booking.payments.reduce(
+    (total, payment) => total + payment.amountCzk,
+    0,
+  );
+  const paymentSummary = buildPaymentSummary({
+    totalPriceCzk,
+    voucherPaidCzk,
+    directPaidCzk,
+  });
 
   return {
     id: booking.id,
@@ -573,6 +609,18 @@ export async function getAdminBookingDetailData(
     },
     voucher: {
       paymentSummary,
+      payments: booking.payments.map((payment) => ({
+        id: payment.id,
+        amountCzk: payment.amountCzk,
+        amountLabel: formatCzk(payment.amountCzk),
+        method: payment.method,
+        methodLabel: BOOKING_PAYMENT_METHOD_LABELS[payment.method],
+        paidAt: payment.paidAt.toISOString(),
+        paidAtLabel: formatDateTimeLabel(payment.paidAt),
+        note: payment.note,
+        createdByUserLabel: formatBookingPaymentUserLabel(payment.createdByUser),
+        canDelete: area === "owner",
+      })),
       intendedVoucherCodeSnapshot: booking.intendedVoucherCodeSnapshot,
       intendedVoucherValidatedAtLabel: booking.intendedVoucherValidatedAt
         ? formatDateTimeLabel(booking.intendedVoucherValidatedAt)
@@ -615,6 +663,16 @@ export async function getAdminBookingDetailData(
       })),
     },
   };
+}
+
+function formatBookingPaymentUserLabel(
+  user: { name: string; email: string; role: AdminRole } | null,
+) {
+  if (!user) {
+    return "Neuvedeno";
+  }
+
+  return `${user.name} (${user.email})`;
 }
 
 export function canApplyAdminBookingTransition(

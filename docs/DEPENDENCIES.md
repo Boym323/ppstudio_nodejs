@@ -25,7 +25,7 @@ Seznam důležitých knihoven a důvod jejich použití.
 - Oprava planner read modelu pro `CANCELLED` bookingy nepřidává žádnou npm závislost; jde jen o úpravu stávající Prisma/Tailwind admin vrstvy.
 - Admin vytvoření voucheru nepřidává žádnou novou knihovnu; používá existující Next.js server actions, React `useActionState` / lokální state pro živý náhled, Prisma a voucher Zod schéma.
 - Admin uplatnění voucheru v detailu rezervace nepřidává žádnou novou knihovnu; formulář používá React `useActionState`, server action používá existující Zod/Prisma vrstvu a transakční voucher doménu.
-- Read-only payment summary v admin detailu rezervace nepřidává žádnou novou knihovnu ani payment SDK; jde o TypeScript výpočet nad Prisma read modelem a existujícími `VoucherRedemption` daty.
+- Evidence plateb a payment summary v admin detailu rezervace nepřidává žádnou novou knihovnu, payment SDK ani QR generátor; jde o TypeScript výpočet nad Prisma read modelem, existujícími `VoucherRedemption` daty a novým modelem `BookingPayment`.
 - Veřejné intended zadání voucheru v booking flow nepřidává žádnou novou knihovnu; používá existující React wizard, Next.js server action, Prisma a voucher validační helper.
 - Veřejné ověření voucheru na `/vouchery/overeni` nepřidává žádnou novou knihovnu; používá existující Next.js server component route, Prisma a serverový voucher validační helper.
 - PDF generátor voucheru přidává runtime závislosti `pdf-lib`, `qrcode`, `@pdf-lib/fontkit` a `@fontsource/noto-sans` plus dev typy `@types/qrcode`. `pdf-lib` skládá PDF server-side bez headless browseru, `qrcode` generuje ověřovací QR kód a Noto Sans přes `fontkit` řeší českou diakritiku z licenčně jasného OFL font balíčku.

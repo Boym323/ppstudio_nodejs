@@ -55,6 +55,13 @@ enum BookingActorType {
   SYSTEM
 }
 
+enum BookingPaymentMethod {
+  CASH
+  CARD
+  BANK_TRANSFER
+  OTHER
+}
+
 enum BookingActionTokenType {
   CANCEL
   RESCHEDULE
@@ -166,6 +173,7 @@ model AdminUser {
   notificationSettings       UserNotificationSettings?
   createdVouchers            Voucher[]                 @relation("AdminUserCreatedVouchers")
   redeemedVoucherRedemptions VoucherRedemption[]       @relation("AdminUserRedeemedVoucherRedemptions")
+  bookingPayments            BookingPayment[]          @relation("BookingPaymentCreatedBy")
 }
 
 model UserNotificationSettings {
@@ -375,6 +383,7 @@ model Booking {
   emailLogs                   EmailLog[]
   submissionLogs              BookingSubmissionLog[]
   voucherRedemptions          VoucherRedemption[]
+  payments                    BookingPayment[]
 
   @@index([slotId, status])
   @@index([clientId, createdAt])
@@ -387,6 +396,24 @@ model Booking {
   @@index([createdByUserId])
   @@index([intendedVoucherId])
   @@index([rescheduledAt])
+}
+
+model BookingPayment {
+  id              String               @id @default(cuid())
+  bookingId       String
+  amountCzk       Int
+  method          BookingPaymentMethod
+  paidAt          DateTime             @default(now())
+  note            String?
+  createdByUserId String?
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+  booking         Booking              @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  createdByUser   AdminUser?           @relation("BookingPaymentCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+
+  @@index([bookingId, paidAt])
+  @@index([method, paidAt])
+  @@index([createdByUserId])
 }
 
 model Voucher {

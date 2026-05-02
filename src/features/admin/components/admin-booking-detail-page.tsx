@@ -5,6 +5,10 @@ import { type AdminBookingDetailData } from "@/features/admin/lib/admin-booking"
 import { cn } from "@/lib/utils";
 
 import { AdminBookingNoteForm } from "./admin-booking-note-form";
+import {
+  AdminBookingPaymentForm,
+  DeleteBookingPaymentButton,
+} from "./admin-booking-payment-form";
 import { AdminBookingStatusForm } from "./admin-booking-status-form";
 import { AdminBookingVoucherForm } from "./admin-booking-voucher-form";
 import { AdminPanel } from "./admin-page-shell";
@@ -278,6 +282,7 @@ function BookingVoucherPanel({ data }: { data: AdminBookingDetailData }) {
   const initialVoucherCode =
     intendedVoucher?.code ?? data.voucher.intendedVoucherCodeSnapshot ?? "";
   const hasRedemptions = data.voucher.redemptions.length > 0;
+  const hasDirectPayments = data.voucher.payments.length > 0;
   const canRedeemAnotherVoucher = !hasRedemptions && paymentSummary.remainingAmountCzk !== 0;
   const hasVoucherIntent = Boolean(intendedVoucher || data.voucher.intendedVoucherCodeSnapshot);
   const amountHint = getVoucherAmountHint(intendedVoucher, paymentSummary.remainingAmountCzk);
@@ -298,7 +303,7 @@ function BookingVoucherPanel({ data }: { data: AdminBookingDetailData }) {
       <div className="space-y-2.5">
         <PaymentSummaryBlock paymentSummary={paymentSummary} />
         <p className="text-[0.72rem] leading-4 text-white/38">
-          V této verzi evidujeme pouze úhrady voucherem.
+          Evidence zahrnuje voucher i ručně zapsané platby hotově, kartou nebo převodem / QR.
         </p>
 
         <div className="space-y-2">
@@ -362,6 +367,13 @@ function BookingVoucherPanel({ data }: { data: AdminBookingDetailData }) {
           )}
         </div>
 
+        <DirectBookingPaymentsBlock
+          area={data.area}
+          bookingId={data.id}
+          payments={data.voucher.payments}
+          defaultAmountCzk={paymentSummary.remainingCzk}
+        />
+
         {voucherForm && !hasVoucherIntent ? (
           <details className="group rounded-[0.95rem] border border-white/8 bg-white/[0.03]">
             <summary className="cursor-pointer list-none px-3.5 py-3 marker:hidden">
@@ -379,12 +391,18 @@ function BookingVoucherPanel({ data }: { data: AdminBookingDetailData }) {
             <p className="text-sm leading-5 text-white/58">
               {hasRedemptions
                 ? "Voucher už je u této rezervace uplatněný, další voucher nepřidáváme."
-                : "Rezervace je podle voucherové úhrady dorovnaná, další voucher není potřeba."}
+                : "Rezervace je podle souhrnu úhrady dorovnaná, další voucher není potřeba."}
             </p>
           </div>
         )}
 
-        <VoucherRedemptionsList redemptions={data.voucher.redemptions} hasRedemptions={hasRedemptions} />
+        <VoucherRedemptionsList
+          redemptions={data.voucher.redemptions}
+          payments={data.voucher.payments}
+          hasPayments={hasRedemptions || hasDirectPayments}
+          area={data.area}
+          bookingId={data.id}
+        />
       </div>
     </AdminPanel>
   );
@@ -398,15 +416,14 @@ function PaymentSummaryBlock({
   const items = [
     {
       label: "Cena služby",
-      value: paymentSummary.totalPriceCzk === null ? "Cena není nastavena" : formatCzk(paymentSummary.totalPriceCzk),
+      value: formatCzk(paymentSummary.totalPriceCzk),
     },
     { label: "Uhrazeno voucherem", value: formatCzk(paymentSummary.voucherPaidCzk) },
+    { label: "Uhrazeno mimo voucher", value: formatCzk(paymentSummary.directPaidCzk) },
+    { label: "Celkem uhrazeno", value: formatCzk(paymentSummary.paidTotalCzk) },
     {
-      label: "Zbývá doplatit",
-      value:
-        paymentSummary.remainingAmountCzk === null
-          ? "Nelze spočítat"
-          : formatCzk(paymentSummary.remainingAmountCzk),
+      label: paymentSummary.overpaidCzk > 0 ? "Přeplaceno o" : "Zbývá doplatit",
+      value: formatCzk(paymentSummary.overpaidCzk > 0 ? paymentSummary.overpaidCzk : paymentSummary.remainingCzk),
       emphasis: true,
     },
   ];
@@ -421,7 +438,7 @@ function PaymentSummaryBlock({
           </p>
         </div>
         <span className={getPaymentStatusBadgeClassName(paymentSummary.paymentStatus)}>
-          {paymentSummary.paymentStatusLabel}
+          {paymentSummary.paymentStatusLabel.toLocaleUpperCase("cs-CZ")}
         </span>
       </div>
       <dl className="mt-3 divide-y divide-white/7 overflow-hidden rounded-[0.85rem] border border-white/8 bg-black/10">
@@ -461,6 +478,70 @@ function getVoucherAmountHint(
   return `Voucher pokryje maximálně ${formatCzk(remainingValueCzk)}. Zbytek ceny služby se doplatí mimo voucher.`;
 }
 
+function DirectBookingPaymentsBlock({
+  area,
+  bookingId,
+  payments,
+  defaultAmountCzk,
+}: {
+  area: AdminBookingDetailData["area"];
+  bookingId: string;
+  payments: AdminBookingDetailData["voucher"]["payments"];
+  defaultAmountCzk: number;
+}) {
+  return (
+    <div className="space-y-2">
+      <p className="text-sm font-medium text-white/74">Platby mimo voucher</p>
+
+      {payments.length === 0 ? (
+        <div className="rounded-[1rem] border border-dashed border-white/12 bg-white/[0.03] px-3.5 py-3">
+          <p className="text-sm text-white/64">
+            Zatím zde není evidovaná žádná platba mimo voucher.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {payments.map((payment) => (
+            <article
+              key={payment.id}
+              className="rounded-[0.95rem] border border-white/8 bg-white/[0.03] px-3.5 py-3"
+            >
+              <div className="flex flex-wrap items-start justify-between gap-2.5">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-white/90">
+                    {payment.amountLabel} · {payment.methodLabel} · {payment.paidAtLabel}
+                  </p>
+                  <p className="mt-1 text-sm text-white/58">
+                    Zapsal {payment.createdByUserLabel}
+                  </p>
+                  {payment.note ? (
+                    <p className="mt-1 text-sm leading-5 text-white/58">
+                      <span className="text-white/76">Poznámka:</span> {payment.note}
+                    </p>
+                  ) : null}
+                </div>
+                {payment.canDelete ? (
+                  <DeleteBookingPaymentButton
+                    area={area}
+                    bookingId={bookingId}
+                    paymentId={payment.id}
+                  />
+                ) : null}
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
+
+      <AdminBookingPaymentForm
+        area={area}
+        bookingId={bookingId}
+        defaultAmountCzk={defaultAmountCzk}
+      />
+    </div>
+  );
+}
+
 function VoucherMiniRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-[0.8rem] border border-white/8 bg-black/14 px-3 py-2">
@@ -472,12 +553,18 @@ function VoucherMiniRow({ label, value }: { label: string; value: string }) {
 
 function VoucherRedemptionsList({
   redemptions,
-  hasRedemptions,
+  payments,
+  hasPayments,
+  area,
+  bookingId,
 }: {
   redemptions: AdminBookingDetailData["voucher"]["redemptions"];
-  hasRedemptions: boolean;
+  payments: AdminBookingDetailData["voucher"]["payments"];
+  hasPayments: boolean;
+  area: AdminBookingDetailData["area"];
+  bookingId: string;
 }) {
-  if (!hasRedemptions) {
+  if (!hasPayments) {
     return (
       <div className="rounded-[0.95rem] border border-white/8 bg-white/[0.03] px-3.5 py-3">
         <p className="text-sm font-medium text-white/72">Historie úhrad</p>
@@ -506,6 +593,35 @@ function VoucherRedemptionsList({
           <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-white/58">
             <span>Uplatnil: {redemption.redeemedByUserLabel}</span>
             {redemption.note ? <span>• {redemption.note}</span> : null}
+          </div>
+        </article>
+      ))}
+      {payments.map((payment) => (
+        <article key={payment.id} className="rounded-[0.95rem] border border-white/8 bg-white/[0.03] px-3.5 py-3">
+          <div className="flex flex-wrap items-start justify-between gap-2.5">
+            <div className="min-w-0">
+              <p className="text-[0.72rem] leading-4 text-white/42">{payment.paidAtLabel}</p>
+              <p className="mt-1 text-sm font-semibold text-white">
+                {payment.methodLabel}
+              </p>
+              <p className="mt-1 text-sm text-white/65">Platba mimo voucher</p>
+            </div>
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <span className="rounded-full border border-white/8 bg-black/14 px-2.5 py-1 text-sm font-semibold text-white/88">
+                {payment.amountLabel}
+              </span>
+              {payment.canDelete ? (
+                <DeleteBookingPaymentButton
+                  area={area}
+                  bookingId={bookingId}
+                  paymentId={payment.id}
+                />
+              ) : null}
+            </div>
+          </div>
+          <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-white/58">
+            <span>Zapsal: {payment.createdByUserLabel}</span>
+            {payment.note ? <span>• {payment.note}</span> : null}
           </div>
         </article>
       ))}
@@ -741,6 +857,8 @@ function getPaymentStatusBadgeClassName(
   status: AdminBookingDetailData["voucher"]["paymentSummary"]["paymentStatus"],
 ) {
   switch (status) {
+    case "OVERPAID":
+      return "inline-flex rounded-full border border-cyan-300/35 bg-cyan-500/12 px-2.5 py-1 text-[0.64rem] font-semibold uppercase tracking-[0.14em] text-cyan-100";
     case "PAID":
       return "inline-flex rounded-full border border-emerald-300/35 bg-emerald-500/12 px-2.5 py-1 text-[0.64rem] font-semibold uppercase tracking-[0.14em] text-emerald-100";
     case "PARTIALLY_PAID":

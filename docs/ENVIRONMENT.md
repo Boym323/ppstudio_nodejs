@@ -64,7 +64,8 @@ Dokumentace proměnných prostředí pro lokální vývoj i produkci.
 - Serverová business vrstva voucherů také nepřidává žádnou novou env proměnnou; tvorba, validace i admin čerpání používají stávající Prisma připojení přes `DATABASE_URL`.
 - Admin formulář pro vytvoření voucheru nepřidává žádnou novou env proměnnou; používá stávající admin session, Prisma připojení a voucher doménovou vrstvu.
 - Admin uplatnění voucheru v detailu rezervace nepřidává žádnou novou env proměnnou; autorizace používá stávající admin session a role `OWNER` / `SALON`, persistence používá `DATABASE_URL`.
-- Read-only panel `Úhrada` v detailu rezervace nepřidává žádnou novou env proměnnou; summary se počítá request-time z `Booking`, `Service` a existujících `VoucherRedemption` záznamů přes stávající `DATABASE_URL`.
+- Panel `Úhrada` v detailu rezervace nepřidává žádnou novou env proměnnou; summary se počítá request-time z `Booking`, `Service`, existujících `VoucherRedemption` záznamů a nových `BookingPayment` plateb přes stávající `DATABASE_URL`.
+- Evidence plateb mimo voucher nepřidává žádnou platební bránu ani QR konfiguraci; metoda `Převodem / QR` je v této verzi pouze UI popisek enumu `BANK_TRANSFER`.
 - QR kód ve voucher PDF dál používá `NEXT_PUBLIC_APP_URL` přes `siteConfig.url`, takže produkční hodnota musí mířit na veřejný HTTPS origin PP Studia.
 - Textová doména v kontaktním řádku voucher PDF je oddělená od runtime hostu: priorita je `VOUCHER_PUBLIC_DOMAIN` -> `NEXT_PUBLIC_SITE_DOMAIN` -> hostname z `NEXT_PUBLIC_APP_URL` jen pokud je bezpečně veřejný (ne localhost ani privátní IP). Když bezpečný host chybí, doména se do kontaktu nevypíše.
 - Veřejná stránka ověření voucheru `/vouchery/overeni` nepřidává žádnou novou env proměnnou; používá stávající `DATABASE_URL` a QR odkazy z PDF dál vznikají z `NEXT_PUBLIC_APP_URL`.

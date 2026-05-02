@@ -6,6 +6,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Detail rezervace v sekci `Úhrada` nově eviduje běžné platby mimo voucher (`Hotově`, `Kartou`, `Převodem / QR`, `Jiné`) přes nový model `BookingPayment`; souhrn počítá voucher i ručně zapsané platby a rozlišuje `Neuhrazeno / Částečně uhrazeno / Uhrazeno / Přeplaceno`.
 - Booking transakční retry nově rozpoznává i Prisma 7 PG adapter `DriverAdapterError` s `TransactionWriteConflict`, takže CI ani produkční souběhy nekončí předčasně mimo existující retry smyčku.
 - Admin výběr slotu v ruční rezervaci a přesunu rezervace má nově jednoznačné accessible labely s datumem i časovým rozsahem; E2E test prefillu klientky už proto nekliká na první shodný čas v předchozím dni.
 - Opravené zobrazení draweru `Ruční rezervace`: při otevření z přehledu rezervací nebo z detailu klientky se panel nově renderuje přes React portal do `document.body`, takže už není ořezaný nebo vizuálně schovaný uvnitř hlavičky stránky.
