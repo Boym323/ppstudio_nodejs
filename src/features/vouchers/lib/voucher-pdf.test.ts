@@ -229,6 +229,9 @@ function buildBaseVoucherFixture() {
     validUntil: new Date("2026-12-31T00:00:00.000Z"),
     issuedAt: new Date("2026-01-01T00:00:00.000Z"),
     cancelledAt: null,
+    cancelledByUserId: null,
+    cancelReason: null,
+    updatedByUserId: null,
     purchaserName: "Marie Kupující",
     purchaserEmail: "marie@example.com",
     recipientName: null,
@@ -239,6 +242,8 @@ function buildBaseVoucherFixture() {
     updatedAt: new Date("2026-01-01T00:00:00.000Z"),
     service: null,
     createdByUser: null,
+    cancelledByUser: null,
+    updatedByUser: null,
     redemptions: [],
     emailHistory: [],
   };

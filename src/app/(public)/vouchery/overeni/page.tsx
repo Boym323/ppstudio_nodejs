@@ -207,7 +207,7 @@ function getPublicReasonMessage(reason: VoucherValidationReasonCode) {
     case voucherValidationReasonCodes.expired:
       return "Voucher je propadlý.";
     case voucherValidationReasonCodes.cancelled:
-      return "Voucher byl zrušen.";
+      return "Voucher není platný. Kontaktujte prosím salon.";
     case voucherValidationReasonCodes.noRemainingValue:
       return "Voucher nemá dostupný zůstatek.";
     case voucherValidationReasonCodes.notFound:

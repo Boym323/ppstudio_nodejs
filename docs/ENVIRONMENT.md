@@ -75,6 +75,7 @@ Dokumentace proměnných prostředí pro lokální vývoj i produkci.
 - Kompaktní provozní refaktor detailu voucheru nepřidává žádnou novou env proměnnou; summary karta, sloučené panely i odstranění přetrvávajícího `Rendering...` textu jsou čistě UI změna nad existujícím read modelem.
 - Tisková A4 varianta voucher PDF nepřidává žádnou novou env proměnnou; používá stejné `NEXT_PUBLIC_APP_URL`, `VOUCHER_PUBLIC_DOMAIN` / `NEXT_PUBLIC_SITE_DOMAIN`, `SiteSettings` kontakty a `voucherPdfLogoMediaId` jako původní PDF voucher.
 - Rate limit pro `/vouchery/overeni` nepřidává novou env proměnnou; limity jsou zatím fixované v `src/features/vouchers/lib/voucher-public-verification-rate-limit.ts` (okno 10 minut, IP limit 10).
+- Provozní editace a ruční zrušení voucheru nepřidává žádnou novou env proměnnou; používá stávající admin session, Prisma připojení přes `DATABASE_URL` a existující owner/salon admin routy.
 - `NEXT_PUBLIC_APP_URL` je stejně kritická i pro klientský self-service manage link `/rezervace/sprava/[token]`; pokud míří na špatný host nebo schéma, confirmation screen, potvrzovací e-mail i reminder povedou na neplatnou URL.
 - `NEXT_PUBLIC_APP_URL` je stejně kritická i pro zákaznický `.ics` odkaz `/api/bookings/calendar/[token].ics`; pokud míří na špatný host nebo schéma, CTA `Přidat do kalendáře` v potvrzovacím e-mailu povede na neplatnou URL.
 - `NEXT_PUBLIC_APP_URL` je stejně kritická i pro owner ICS subscription feed; z této hodnoty se skládá kopírovatelný Apple Calendar odkaz v adminu.

@@ -149,6 +149,20 @@ export async function getVoucherDetail(id: string) {
           email: true,
         },
       },
+      cancelledByUser: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+        },
+      },
+      updatedByUser: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+        },
+      },
       redemptions: {
         orderBy: { redeemedAt: "desc" },
         include: {

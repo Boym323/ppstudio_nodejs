@@ -2,6 +2,7 @@ import Link from "next/link";
 import { VoucherStatus, VoucherType } from "@prisma/client";
 
 import { AdminVoucherEmailPanel } from "@/features/admin/components/admin-voucher-email-panel";
+import { AdminVoucherOperationsPanel } from "@/features/admin/components/admin-voucher-operations-panel";
 import { AdminPageShell, AdminPanel } from "@/features/admin/components/admin-page-shell";
 import { AdminStatePill } from "@/features/admin/components/admin-state-pill";
 import { type AdminVoucherDetailData } from "@/features/admin/lib/admin-vouchers";
@@ -143,6 +144,41 @@ export function AdminVoucherDetailPage({ data }: { data: AdminVoucherDetailData 
         </div>
 
         <div className="space-y-4">
+          {data.status === VoucherStatus.CANCELLED ? (
+            <AdminPanel
+              title="Zrušení voucheru"
+              description="Provozní metadata ručního zrušení voucheru."
+              compact={data.area === "salon"}
+              denseHeader
+            >
+              <div className="rounded-[1rem] border border-red-300/20 bg-red-500/[0.06] p-3.5">
+                <dl className="grid gap-x-5 gap-y-3 sm:grid-cols-2">
+                  <CompactDetailRow label="Stav voucheru" value="ZRUŠENÝ" />
+                  <CompactDetailRow label="Zrušeno" value={formatDateTimeLabel(data.cancelledAt)} />
+                  <CompactDetailRow
+                    label="Zrušil/a"
+                    value={formatUserLabel(data.cancelledByUser)}
+                    tone={data.cancelledByUser ? "default" : "muted"}
+                  />
+                  <CompactDetailRow
+                    label="Důvod"
+                    value={formatOptional(data.cancelReason)}
+                    tone={data.cancelReason ? "default" : "muted"}
+                  />
+                </dl>
+              </div>
+            </AdminPanel>
+          ) : null}
+
+          <AdminPanel
+            title="Akce"
+            description="Bezpečná provozní editace a ruční zrušení bez mazání voucheru."
+            compact={data.area === "salon"}
+            denseHeader
+          >
+            <AdminVoucherOperationsPanel data={data} />
+          </AdminPanel>
+
           <AdminPanel
             title="Kupující a odeslání"
             description="Kontaktní údaje a ruční odeslání voucheru e-mailem."

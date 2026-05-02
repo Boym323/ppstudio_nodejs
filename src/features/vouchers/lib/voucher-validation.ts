@@ -99,15 +99,15 @@ export async function verifyVoucherPublic(input: {
     return { ok: false, reason: voucherValidationReasonCodes.notFound };
   }
 
-  if (isVoucherNotActiveYet(voucher, now)) {
-    return { ok: false, reason: voucherValidationReasonCodes.draft };
-  }
-
   const effectiveStatus = getEffectiveVoucherStatus(voucher, now);
   const blockedReason = getBlockedReason(effectiveStatus);
 
   if (blockedReason) {
     return { ok: false, reason: blockedReason };
+  }
+
+  if (isVoucherNotActiveYet(voucher, now)) {
+    return { ok: false, reason: voucherValidationReasonCodes.draft };
   }
 
   if (voucher.type === VoucherType.VALUE && (voucher.remainingValueCzk ?? 0) <= 0) {

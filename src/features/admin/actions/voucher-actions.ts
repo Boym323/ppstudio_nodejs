@@ -3,14 +3,23 @@
 import { AdminRole, VoucherType } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { z } from "zod";
 
 import { type AdminArea } from "@/config/navigation";
+import { type CancelVoucherActionState } from "@/features/admin/actions/cancel-voucher-action-state";
 import { type CreateVoucherActionState } from "@/features/admin/actions/create-voucher-action-state";
+import { type UpdateVoucherOperationalDetailsActionState } from "@/features/admin/actions/update-voucher-operational-details-action-state";
 import {
   getAdminVoucherHref,
   getAdminVouchersHref,
 } from "@/features/admin/lib/admin-vouchers";
 import { createVoucher } from "@/features/vouchers/lib/voucher-management";
+import {
+  cancelVoucherOperationally,
+  updateVoucherOperationalDetails,
+  VoucherOperationError,
+  voucherOperationErrorCodes,
+} from "@/features/vouchers/lib/voucher-operations";
 import { createVoucherSchema } from "@/features/vouchers/schemas/voucher-schemas";
 import { requireRole } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
@@ -47,6 +56,49 @@ async function resolveVoucherActorUserId(email: string) {
   });
 
   return dbUser?.id ?? null;
+}
+
+const optionalText = (maxLength: number, message: string) =>
+  z
+    .string()
+    .trim()
+    .max(maxLength, message)
+    .optional()
+    .or(z.literal(""))
+    .transform((value) => value || undefined);
+
+const optionalOperationalDate = z.preprocess(
+  (value) => (value === "" || value === null ? undefined : value),
+  z.coerce.date("Datum platnosti není platné.").optional(),
+);
+
+const updateVoucherOperationalDetailsSchema = z.object({
+  area: z.enum(["owner", "salon"]),
+  voucherId: z.string().trim().min(1, "Voucher je potřeba vybrat.").max(64),
+  purchaserName: optionalText(160, "Jméno kupujícího je příliš dlouhé."),
+  purchaserEmail: optionalText(240, "E-mail kupujícího je příliš dlouhý.").pipe(
+    z.email("E-mail kupujícího není platný.").optional(),
+  ),
+  validUntil: optionalOperationalDate,
+  internalNote: optionalText(2000, "Interní poznámka je příliš dlouhá."),
+});
+
+const cancelVoucherSchema = z.object({
+  area: z.enum(["owner", "salon"]),
+  voucherId: z.string().trim().min(1, "Voucher je potřeba vybrat.").max(64),
+  cancelReason: z
+    .string()
+    .trim()
+    .min(3, "Důvod zrušení musí mít alespoň 3 znaky.")
+    .max(500, "Důvod zrušení může mít maximálně 500 znaků."),
+});
+
+function revalidateVoucherPaths(area: AdminArea, voucherId: string) {
+  revalidatePath(getAdminVoucherHref(area, voucherId));
+  revalidatePath(getAdminVouchersHref(area));
+  revalidatePath("/admin/vouchery");
+  revalidatePath("/admin/provoz/vouchery");
+  revalidatePath("/vouchery/overeni");
 }
 
 export async function createAdminVoucherAction(
@@ -117,4 +169,131 @@ export async function createAdminVoucherAction(
 
   revalidatePath(getAdminVouchersHref(area));
   redirect(getAdminVoucherHref(area, voucher.id));
+}
+
+export async function updateVoucherOperationalDetailsAction(
+  _previousState: UpdateVoucherOperationalDetailsActionState,
+  formData: FormData,
+): Promise<UpdateVoucherOperationalDetailsActionState> {
+  const session = await requireRole([AdminRole.OWNER, AdminRole.SALON]);
+  const parsed = updateVoucherOperationalDetailsSchema.safeParse({
+    area: readArea(readFormString(formData, "area")),
+    voucherId: readFormString(formData, "voucherId"),
+    purchaserName: readFormString(formData, "purchaserName"),
+    purchaserEmail: readFormString(formData, "purchaserEmail"),
+    validUntil: readFormString(formData, "validUntil"),
+    internalNote: readFormString(formData, "internalNote"),
+  });
+
+  if (!parsed.success) {
+    const fieldErrors = parsed.error.flatten().fieldErrors;
+
+    return {
+      status: "error",
+      formError: "Provozní údaje je potřeba ještě doplnit nebo opravit.",
+      fieldErrors: {
+        purchaserName: fieldErrors.purchaserName?.[0],
+        purchaserEmail: fieldErrors.purchaserEmail?.[0],
+        validUntil: fieldErrors.validUntil?.[0],
+        internalNote: fieldErrors.internalNote?.[0],
+      },
+    };
+  }
+
+  const area = resolveActionArea(session.role, parsed.data.area);
+  const actorUserId = await resolveVoucherActorUserId(session.email);
+
+  try {
+    await updateVoucherOperationalDetails({
+      voucherId: parsed.data.voucherId,
+      purchaserName: parsed.data.purchaserName,
+      purchaserEmail: parsed.data.purchaserEmail,
+      validUntil: parsed.data.validUntil ?? null,
+      internalNote: parsed.data.internalNote,
+      updatedByUserId: actorUserId,
+    });
+  } catch (error) {
+    if (error instanceof VoucherOperationError && error.code === voucherOperationErrorCodes.voucherNotFound) {
+      return {
+        status: "error",
+        formError: "Voucher se nepodařilo najít.",
+      };
+    }
+
+    throw error;
+  }
+
+  revalidateVoucherPaths(area, parsed.data.voucherId);
+
+  return {
+    status: "success",
+    successMessage: "Provozní údaje voucheru jsou uložené.",
+  };
+}
+
+export async function cancelVoucherAction(
+  _previousState: CancelVoucherActionState,
+  formData: FormData,
+): Promise<CancelVoucherActionState> {
+  const session = await requireRole([AdminRole.OWNER, AdminRole.SALON]);
+  const parsed = cancelVoucherSchema.safeParse({
+    area: readArea(readFormString(formData, "area")),
+    voucherId: readFormString(formData, "voucherId"),
+    cancelReason: readFormString(formData, "cancelReason"),
+  });
+
+  if (!parsed.success) {
+    const fieldErrors = parsed.error.flatten().fieldErrors;
+
+    return {
+      status: "error",
+      formError: "Zrušení voucheru je potřeba ještě doplnit.",
+      fieldErrors: {
+        cancelReason: fieldErrors.cancelReason?.[0],
+      },
+    };
+  }
+
+  const area = resolveActionArea(session.role, parsed.data.area);
+  const actorUserId = await resolveVoucherActorUserId(session.email);
+
+  try {
+    await cancelVoucherOperationally({
+      voucherId: parsed.data.voucherId,
+      cancelReason: parsed.data.cancelReason,
+      actorUserId,
+    });
+  } catch (error) {
+    if (error instanceof VoucherOperationError) {
+      if (error.code === voucherOperationErrorCodes.voucherNotFound) {
+        return {
+          status: "error",
+          formError: "Voucher se nepodařilo najít.",
+        };
+      }
+
+      if (error.code === voucherOperationErrorCodes.voucherAlreadyCancelled) {
+        return {
+          status: "error",
+          formError: "Voucher už je zrušený.",
+        };
+      }
+
+      if (error.code === voucherOperationErrorCodes.voucherHasRedemptions) {
+        return {
+          status: "error",
+          formError: "Voucher už byl částečně nebo plně čerpán, proto ho nelze zrušit.",
+        };
+      }
+    }
+
+    throw error;
+  }
+
+  revalidateVoucherPaths(area, parsed.data.voucherId);
+
+  return {
+    status: "success",
+    successMessage: "Voucher je zrušený a nepůjde uplatnit.",
+  };
 }

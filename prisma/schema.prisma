@@ -172,6 +172,8 @@ model AdminUser {
   updatedSiteSettings        SiteSettings[]            @relation("SiteSettingsUpdatedBy")
   notificationSettings       UserNotificationSettings?
   createdVouchers            Voucher[]                 @relation("AdminUserCreatedVouchers")
+  cancelledVouchers          Voucher[]                 @relation("VoucherCancelledBy")
+  updatedVouchers            Voucher[]                 @relation("VoucherUpdatedBy")
   redeemedVoucherRedemptions VoucherRedemption[]       @relation("AdminUserRedeemedVoucherRedemptions")
   bookingPayments            BookingPayment[]          @relation("BookingPaymentCreatedBy")
 }
@@ -435,12 +437,17 @@ model Voucher {
   validUntil              DateTime?
   issuedAt                DateTime?
   cancelledAt             DateTime?
+  cancelledByUserId       String?
+  cancelReason            String?
+  updatedByUserId         String?
   internalNote            String?
   createdByUserId         String?
   createdAt               DateTime            @default(now())
   updatedAt               DateTime            @updatedAt
   service                 Service?            @relation("ServiceVouchers", fields: [serviceId], references: [id], onDelete: SetNull)
   createdByUser           AdminUser?          @relation("AdminUserCreatedVouchers", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  cancelledByUser         AdminUser?          @relation("VoucherCancelledBy", fields: [cancelledByUserId], references: [id], onDelete: SetNull)
+  updatedByUser           AdminUser?          @relation("VoucherUpdatedBy", fields: [updatedByUserId], references: [id], onDelete: SetNull)
   intendedBookings        Booking[]           @relation("BookingIntendedVoucher")
   redemptions             VoucherRedemption[]
 
@@ -449,6 +456,8 @@ model Voucher {
   @@index([type, status])
   @@index([serviceId])
   @@index([createdByUserId])
+  @@index([cancelledByUserId])
+  @@index([updatedByUserId])
 }
 
 model VoucherRedemption {

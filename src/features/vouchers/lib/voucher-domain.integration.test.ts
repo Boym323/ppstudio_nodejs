@@ -308,6 +308,52 @@ describe("voucher domain", () => {
     assert.equal(result.ok && result.remainingValueCzk, 800);
   });
 
+  dbTest("rejects cancelled voucher for booking validation and redemption", async () => {
+    assert.ok(seed);
+    const context = seed;
+    const {
+      prisma,
+      createVoucher,
+      validateVoucherForBookingInput,
+      redeemVoucherForBooking,
+      VoucherRedemptionError,
+    } = await loadModules();
+    const voucher = await createVoucher(
+      {
+        type: VoucherType.VALUE,
+        ...baseVoucherMeta,
+        originalValueCzk: 800,
+      },
+      context.actorUserId,
+    );
+    await prisma.voucher.update({
+      where: { id: voucher.id },
+      data: {
+        status: VoucherStatus.CANCELLED,
+        cancelReason: "Testovací zrušení",
+        cancelledByUserId: context.actorUserId,
+      },
+    });
+
+    const validation = await validateVoucherForBookingInput({
+      code: voucher.code,
+      serviceId: context.serviceId,
+    });
+
+    assert.deepEqual(validation, { ok: false, reason: "CANCELLED" });
+    await assert.rejects(
+      () =>
+        redeemVoucherForBooking({
+          voucherCode: voucher.code,
+          bookingId: context.bookingIds[0],
+          amountCzk: 800,
+          redeemedByUserId: context.actorUserId,
+          note: undefined,
+        }),
+      (error) => error instanceof VoucherRedemptionError && error.code === "VOUCHER_NOT_REDEEMABLE",
+    );
+  });
+
   dbTest("validates SERVICE voucher for matching service", async () => {
     assert.ok(seed);
     const context = seed;

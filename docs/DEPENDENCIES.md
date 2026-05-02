@@ -78,6 +78,7 @@ Seznam důležitých knihoven a důvod jejich použití.
 - Matomo integrace také nepřidává žádnou novou závislost; helper a CTA wrappers jsou lokální TypeScript/React moduly.
 - Matomo dashboard reporting také nepřidává žádnou novou závislost; `src/lib/analytics/matomo.ts` je server-only wrapper nad Reporting API.
 - Databázový základ voucherů nepřidává žádnou novou závislost; jde čistě o Prisma modely, enumy, migraci a budoucí doménovou vrstvu v `src/features/vouchers`.
+- Provozní editace a ruční zrušení voucheru nepřidává žádnou novou knihovnu; server actions a formuláře používají stávající Next.js App Router, React `useActionState`, Prisma a Zod.
 
 ## Kvalita kódu
 - `typescript`: statická typová kontrola.

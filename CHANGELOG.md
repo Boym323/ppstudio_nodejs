@@ -583,6 +583,9 @@ Formát je inspirovaný Keep a Changelog.
 - Dokumentace byla srovnaná s aktuálním kódem: týdenní planner, `EMAIL_DELIVERY_MODE=background` a produkční migrace přes `prisma migrate deploy`.
 
 ### Fixed
+- Admin detail voucheru nově podporuje bezpečnou provozní editaci kupujícího, e-mailu, platnosti a interní poznámky a ruční zrušení voucheru bez fyzického mazání.
+- Zrušený voucher se ukládá jako stav `CANCELLED` s `cancelledAt`, `cancelledByUserId`, `cancelReason` a `updatedByUserId`; OWNER i SALON mají pro tyto provozní akce stejná práva.
+- Veřejné ověření voucheru a admin uplatnění respektují stav `CANCELLED`; veřejnost vidí jen neutrální neplatný stav bez interního důvodu zrušení.
 - Unit test `src/features/booking/lib/booking-management.test.ts` už nehlásí ESLint warning `@typescript-eslint/no-unused-vars`; byl odstraněn nepoužitý import `BookingStatus`.
 - Import admin overview stránky na `DashboardPage` nyní používá absolutní alias `@/features/...`, takže v dev režimu už nedochází k chybě `Module not found: Can't resolve './admin-dashboard-page'`.
 - Planner už neukládá každé kliknutí okamžitě na server; změny se nejdřív drží v lokálním konceptu týdne, takže při rychlé práci neodskakuje layout ani denní kontext vpravo.

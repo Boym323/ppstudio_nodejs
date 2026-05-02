@@ -696,6 +696,10 @@ npm run db:clear-booking-data -- --confirm
 - Referenční implementace v projektu: [`src/app/(public)/sluzby/[slug]/page.tsx`](/var/www/ppstudio/src/app/(public)/sluzby/[slug]/page.tsx).
 
 ## Provozní Poznámky
+- V detailu voucheru lze v adminu upravit jen provozní údaje: jméno kupujícího, e-mail kupujícího, platnost do a interní poznámku. Kód, typ, hodnota, měna, služba, čerpání ani PDF identita se běžnou editací nemění.
+- Voucher se v adminu ruší destruktivní akcí `Zrušit voucher`, která vyžaduje důvod. Zrušení voucher nemaže, nastaví stav `CANCELLED`, čas zrušení, admin uživatele a důvod; zrušený voucher už nejde uplatnit.
+- Zrušení je povolené jen pro voucher bez čerpání. Částečně nebo plně čerpaný voucher se v první verzi neruší přes tuto akci.
+- OWNER i SALON mají u voucherů stejná provozní práva pro editaci a zrušení. Veřejné ověření zrušeného voucheru nikdy nezobrazuje interní důvod ani metadata zrušení.
 - `proxy.ts` filtruje požadavky na `/admin/*` podle platné session JWT cookie; neplatná/expirovaná cookie neprojde.
 - Finální autorizace probíhá server-side v admin layoutu a stránkách.
 - Prisma klient používá singleton pattern pro vývoj i produkci.

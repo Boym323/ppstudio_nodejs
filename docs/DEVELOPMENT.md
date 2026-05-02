@@ -645,6 +645,8 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - `npm run db:generate`
   - `npm run db:migrate`
   - `npx prisma validate --schema prisma/schema.prisma`
+- Po změně admin voucher detailu ručně ověř owner i salon variantu `/admin/vouchery/[voucherId]` a `/admin/provoz/vouchery/[voucherId]`: provozní editace smí ukládat jen kupujícího, e-mail, platnost a interní poznámku; zrušení musí vyžadovat důvod, odmítnout vouchery s čerpáním a po zrušení schovat opakovanou akci.
+- Po změně voucher ověření nebo čerpání ručně ověř, že `CANCELLED` má prioritu před expirací a zůstatkem, veřejná stránka `/vouchery/overeni` neukáže interní důvod zrušení a admin detail důvod zobrazí.
 - Po změně slot admin workflow ručně ověř i:
 - Po změně detailu rezervace ručně ověř i:
   - `/admin/rezervace/[bookingId]` a `/admin/provoz/rezervace/[bookingId]` na desktopu i mobilu

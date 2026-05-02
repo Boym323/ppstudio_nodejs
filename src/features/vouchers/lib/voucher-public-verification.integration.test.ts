@@ -216,6 +216,36 @@ describe("public voucher verification", () => {
     assert.deepEqual(result, { ok: false, reason: "EXPIRED" });
   });
 
+  dbTest("returns cancelled reason without exposing internal cancellation metadata", async () => {
+    assert.ok(seed);
+    const { verifyVoucherPublic } = await loadModules();
+    const voucher = await createTestVoucher(seed, {
+      codeSuffix: "CA",
+      type: VoucherType.VALUE,
+      status: VoucherStatus.CANCELLED,
+      internalNote: "Interní poznámka nesmí ven.",
+    });
+    const { prisma } = await loadModules();
+    await prisma.voucher.update({
+      where: { id: voucher.id },
+      data: {
+        cancelReason: "Chybně vystavený voucher",
+        cancelledByUserId: seed.actorUserId,
+      },
+    });
+
+    const result = await verifyVoucherPublic({
+      code: voucher.code,
+      now: new Date("2026-06-01T12:00:00.000Z"),
+    });
+    const serialized = JSON.stringify(result);
+
+    assert.deepEqual(result, { ok: false, reason: "CANCELLED" });
+    assert.equal(serialized.includes("Chybně vystavený voucher"), false);
+    assert.equal(serialized.includes(seed.actorUserId), false);
+    assert.equal(serialized.includes("Interní poznámka"), false);
+  });
+
   dbTest("does not expose purchaserEmail or internalNote", async () => {
     assert.ok(seed);
     const { verifyVoucherPublic } = await loadModules();
