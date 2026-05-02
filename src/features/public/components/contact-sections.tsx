@@ -235,18 +235,20 @@ export function ContactMapPreviewCard({ address, href }: ContactMapPreviewCardPr
         <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(248,242,235,0.08)_0%,rgba(248,242,235,0.14)_100%)]" />
         <div className="absolute inset-x-0 bottom-0 h-28 bg-[linear-gradient(180deg,rgba(248,242,235,0)_0%,rgba(248,242,235,0.78)_58%,#f8f2eb_100%)]" />
       </div>
-      <div className="flex flex-col gap-4 p-5 sm:p-6">
-        <div className="space-y-2">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--color-accent)]">Jak se k nám dostanete</p>
-          <p className="font-display text-[1.45rem] leading-[1.08] tracking-[-0.02em] text-[var(--color-foreground)] sm:text-[1.7rem]">
+      <div className="flex flex-col gap-3 p-4 sm:p-5">
+        <div className="flex flex-col gap-1.5 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4">
+          <p className="shrink-0 text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--color-accent)]">
+            Jak se k nám dostanete
+          </p>
+          <p className="font-display text-[1.25rem] leading-[1.08] text-[var(--color-foreground)] sm:text-[1.45rem]">
             {address}
           </p>
         </div>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <p className="max-w-md text-[15px] leading-7 text-[var(--color-muted)]">
+          <p className="max-w-md text-[14px] leading-6 text-[var(--color-muted)]">
             Otevřete trasu v Google Maps a dorazíte bez zbytečného hledání.
           </p>
-          <span className="inline-flex min-h-11 shrink-0 items-center justify-center self-start rounded-full border border-black/10 bg-[var(--color-surface)] px-5 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-foreground)] transition group-hover:border-black/20 group-hover:bg-[#f5ede4] sm:self-auto">
+          <span className="inline-flex min-h-10 shrink-0 items-center justify-center self-start rounded-full border border-black/10 bg-[var(--color-surface)] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-foreground)] transition group-hover:border-black/20 group-hover:bg-[#f5ede4] sm:self-auto">
             Otevřít mapu
           </span>
         </div>
