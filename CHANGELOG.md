@@ -6,6 +6,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Kontaktní stránka má kompaktnější mapový náhled, odkazuje na konkrétní firemní profil v Google Maps a pod celou kontaktní mřížkou doplnila informaci o parkování v okolí Sadové ulice.
 - Veřejné e-mailové kontakty jsou nově sjednocené na čitelný tvar s `@`; komponenta `ObfuscatedEmailLink` dál skládá skutečný `mailto:` až v klientu, ale už výchozím renderem ani kontaktní stránkou nemíchá `info(at)...` a `info@...`.
 - Dokumentace byla srovnána s aktuálním stavem plateb, CRM a voucher operací: `DEVELOPMENT.md`, `MANUAL.md` a navazující ADR už nepopisují panel úhrady ani detail voucheru jako čistě read-only workflow.
 - E2E fixture pro self-service přesun teď seeduje kolizní a úspěšný náhradní termín jako samostatné navazující published sloty a Playwright před druhým submittem čeká na shodu `slotId` i `newStartAt`; runtime kolize tak nemůže omylem zablokovat následný úspěšný submit ve stejném dlouhém slotu ani přes starý hidden `slotId`.

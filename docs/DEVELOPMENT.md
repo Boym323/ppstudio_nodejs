@@ -185,11 +185,13 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Kontaktní stránka má vlastní modulární sekce v `src/features/public/components/contact-sections.tsx`:
   - `ContactHero`
   - `ContactMapPreviewCard`
+  - `ContactParkingInfoCard`
   - `QuickContactCard`
   - `ContactCard`
   - `ContactCTA`
   - `ContactMobileStickyCTA`
-- Kontakt data (`buildContactItems`) drží i provozní mikrocopy a Google Maps deep-link pro adresu; aktuální skladba stránky používá především map preview a pravý quick contact panel.
+- Kontakt data (`buildContactItems`) drží i provozní mikrocopy a Google Maps deep-link pro adresu; odkaz pro adresu má mířit na konkrétní firemní profil `Kosmetika | Pavlína Pomykalová`, zatímco iframe náhled může dál používat stabilní query podle adresy. Aktuální skladba stránky používá především kompaktní map preview, pravý quick contact panel a navazující full-width parkovací info.
+- `ContactParkingInfoCard` na `/kontakt` patří pod celou kontaktní mřížku, ne jen do levého sloupce. Text drž v klidné praktické rovině a neslibuj vyhrazené místo, pokud není ověřené.
 - `ContactHero` má při přítomnosti fotky studia držet dvousloupcovou skladbu `text vlevo / obraz vpravo`, na mobilu přirozeně padá pod text a hero obrázek nesmí přetékat mimo panel. Pro Next.js 16 používej u above-the-fold kontakt hero obrázku `loading="eager"` a smysluplné `sizes`; nepřidávej zpět deprecated `priority`.
 - Stránka `/o-mne` už neběží jako jeden blok v `public-site.tsx`; vlastní skladba je v `src/features/public/components/about-page.tsx`.
 - Stránka `/o-mne` je rozdělená do sekcí `HeroSection`, `WhyChooseMeSection`, `StorySection`, `ApproachSection`, `WhatToExpectSection` a `CertificationsSection`, aby šlo pracovat s hierarchií bez monolitického JSX bloku.

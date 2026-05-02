@@ -38,6 +38,15 @@ function ContactIconInstagram() {
   );
 }
 
+function ContactIconParking() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M6 21V3h6.4a5.2 5.2 0 0 1 0 10.4H9.8" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9.8 13.4V21" />
+    </svg>
+  );
+}
+
 type ContactHeroProps = {
   title: string;
   description: string;
@@ -215,7 +224,7 @@ export function ContactMapPreviewCard({ address, href }: ContactMapPreviewCardPr
       rel="noreferrer noopener"
       className="group flex h-full flex-col overflow-hidden rounded-[var(--radius-panel)] border border-black/6 bg-white shadow-[var(--shadow-panel)] transition duration-200 hover:shadow-[0_20px_50px_rgba(64,42,26,0.12)]"
     >
-      <div className="relative h-72 overflow-hidden bg-[#efe4d8] sm:h-80 lg:h-[24rem]">
+      <div className="relative h-56 overflow-hidden bg-[#efe4d8] sm:h-64 lg:h-auto lg:min-h-72 lg:flex-1">
         <iframe
           title={`Mapa pro adresu ${address}`}
           src={embedSrc}
@@ -225,14 +234,11 @@ export function ContactMapPreviewCard({ address, href }: ContactMapPreviewCardPr
         />
         <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(248,242,235,0.08)_0%,rgba(248,242,235,0.14)_100%)]" />
         <div className="absolute inset-x-0 bottom-0 h-28 bg-[linear-gradient(180deg,rgba(248,242,235,0)_0%,rgba(248,242,235,0.78)_58%,#f8f2eb_100%)]" />
-        <div className="absolute left-5 top-5 rounded-full border border-white/70 bg-white/85 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-accent)] backdrop-blur">
-          Mapa
-        </div>
       </div>
-      <div className="flex flex-1 flex-col justify-between gap-5 p-5 sm:p-6">
-        <div className="space-y-2.5">
+      <div className="flex flex-col gap-4 p-5 sm:p-6">
+        <div className="space-y-2">
           <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--color-accent)]">Jak se k nám dostanete</p>
-          <p className="font-display text-[1.7rem] leading-[1.02] tracking-[-0.02em] text-[var(--color-foreground)] sm:text-[1.85rem]">
+          <p className="font-display text-[1.45rem] leading-[1.08] tracking-[-0.02em] text-[var(--color-foreground)] sm:text-[1.7rem]">
             {address}
           </p>
         </div>
@@ -246,6 +252,28 @@ export function ContactMapPreviewCard({ address, href }: ContactMapPreviewCardPr
         </div>
       </div>
     </TrackedAnchor>
+  );
+}
+
+type ContactParkingInfoCardProps = {
+  parkingInfo: string;
+};
+
+export function ContactParkingInfoCard({ parkingInfo }: ContactParkingInfoCardProps) {
+  return (
+    <div className="rounded-[var(--radius-panel)] border border-black/6 bg-white px-5 py-4 shadow-[var(--shadow-panel)] sm:px-6 sm:py-5">
+      <div className="flex items-start gap-3 sm:items-center">
+        <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-black/10 bg-[var(--color-surface)] text-[var(--color-foreground)]">
+          <ContactIconParking />
+        </span>
+        <div className="min-w-0 sm:flex sm:items-baseline sm:gap-6">
+          <p className="shrink-0 text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-accent)]">
+            Parkování
+          </p>
+          <p className="mt-1 text-[15px] leading-7 text-[var(--color-muted)] sm:mt-0">{parkingInfo}</p>
+        </div>
+      </div>
+    </div>
   );
 }
 

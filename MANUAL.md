@@ -342,7 +342,7 @@ npm run db:clear-booking-data -- --confirm
   - pro návštěvnici zůstává chování stejné, ale jednoduché scrapery nevidí čistý e-mail přímo v HTML
 - Stránka `/kontakt` má nově silnější orientaci na rychlou akci:
   - hero drží text + CTA vlevo a vyhrazený placeholder prostor pro budoucí fotografii vpravo
-  - spodní část kontaktu kombinuje mapový náhled a quick contact blok s telefonem, e-mailem, Instagramem a údajem o provozovateli
+  - spodní část kontaktu kombinuje kompaktní mapový náhled, quick contact blok s telefonem, e-mailem, Instagramem a údajem o provozovateli a pod nimi samostatný full-width blok parkování v okolí Sadové ulice
   - spodní CTA blok rozlišuje dvě cesty rozhodnutí (rovnou rezervace vs. nejdřív kontakt)
   - na mobilu je dole sticky CTA lišta s rychlou rezervací, voláním a e-mail kontaktem
 - Stránka `/o-mne` je nově poskládaná jako scan-friendly landing page:

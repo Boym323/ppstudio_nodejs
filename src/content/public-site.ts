@@ -345,8 +345,8 @@ export function buildContactItems(input: {
   addressLine: string;
   instagramUrl?: string | null;
 }): ContactItem[] {
-  const mapsQuery = encodeURIComponent(input.addressLine);
-  const mapsHref = `https://www.google.com/maps/search/?api=1&query=${mapsQuery}`;
+  const mapsHref =
+    'https://www.google.com/maps/place/Kosmetika+%7C+Pavl%C3%ADna+Pomykalov%C3%A1/@49.2243341,17.6666905,17z/data=!3m1!4b1!4m6!3m5!1s0x471373237e15d51f:0x512b1d491baa6ee7!8m2!3d49.2243341!4d17.6666905!16s%2Fg%2F11n56ny14y';
 
   return [
     {

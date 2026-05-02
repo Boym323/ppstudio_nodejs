@@ -25,6 +25,7 @@ import { TrackedAnchor, TrackedLink } from '@/features/analytics/tracked-link';
 import {
   ContactHero,
   ContactMapPreviewCard,
+  ContactParkingInfoCard,
   ContactMobileStickyCTA,
   QuickContactCard,
 } from '@/features/public/components/contact-sections';
@@ -913,6 +914,8 @@ export async function ContactPage() {
   });
   const addressItem = contactItems.find((item) => item.label === 'Adresa salonu');
   const heroPhoto = studioPhotos[0] ?? null;
+  const parkingInfo =
+    'Parkování je možné v okolí Sadové ulice. Pokud jedete autem, nechte si prosím pár minut rezervu na klidný příchod.';
 
   return (
     <div className="pb-24 sm:pb-12">
@@ -935,18 +938,19 @@ export async function ContactPage() {
         }
       />
       <section id="kontaktni-karty" className="py-8 sm:py-12 lg:py-14">
-        <Container className="grid gap-6 lg:grid-cols-[1fr_0.95fr]">
-          <div className="space-y-6">
+        <Container className="space-y-6">
+          <div className="grid gap-6 lg:grid-cols-[1fr_0.95fr] lg:items-stretch">
             {addressItem ? <ContactMapPreviewCard address={addressItem.value} href={addressItem.href ?? '#'} /> : null}
+            <QuickContactCard
+              phone={salonProfile.phone}
+              email={salonProfile.email}
+              instagramUrl={salonProfile.instagramUrl}
+              operatorName={salonProfile.operatorName}
+              operatorId={salonProfile.businessId}
+              openingHours="Po-Pá: Dle objednávek"
+            />
           </div>
-          <QuickContactCard
-            phone={salonProfile.phone}
-            email={salonProfile.email}
-            instagramUrl={salonProfile.instagramUrl}
-            operatorName={salonProfile.operatorName}
-            operatorId={salonProfile.businessId}
-            openingHours="Po-Pá: Dle objednávek"
-          />
+          <ContactParkingInfoCard parkingInfo={parkingInfo} />
         </Container>
       </section>
       <ContactMobileStickyCTA phone={salonProfile.phone} email={salonProfile.email} />
