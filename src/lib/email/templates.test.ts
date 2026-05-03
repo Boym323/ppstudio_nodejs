@@ -111,6 +111,7 @@ test("renderEmailTemplate creates admin notification email with action links", a
       clientName: "Jana Nováková",
       clientEmail: "jana@example.com",
       clientPhone: "+420777123456",
+      clientNote: "Mám alergii na lepidlo, prosím konzultaci před začátkem.",
       scheduledStartsAt: "2026-04-20T08:00:00.000Z",
       scheduledEndsAt: "2026-04-20T09:00:00.000Z",
       approveUrl: "https://example.com/rezervace/akce/approve/token-approve",
@@ -122,9 +123,12 @@ test("renderEmailTemplate creates admin notification email with action links", a
   assert.equal(email.subject, "Nová rezervace: Luxusní péče");
   assert.match(email.text, /token-approve/);
   assert.match(email.text, /token-reject/);
+  assert.match(email.text, /Poznámka od klientky: Mám alergii na lepidlo/);
   assert.match(email.text, /Přesunout termín: https:\/\/example.com\/admin\/rezervace\/clztestbooking9999/);
   assert.match(email.html, /Potvrdit rezervaci/);
   assert.match(email.html, /Přesunout termín/);
+  assert.match(email.html, /Poznámka od klientky/);
+  assert.match(email.html, /Mám alergii na lepidlo/);
   assert.match(email.html, /Otevřít v administraci/);
   assert.doesNotMatch(email.html, /Akční odkazy vedou/);
   assert.doesNotMatch(email.html, /letter-spacing:0\.08em/);

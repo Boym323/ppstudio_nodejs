@@ -24,6 +24,7 @@ export async function createNotificationEmailLogs(
     clientName: string;
     clientEmail: string;
     clientPhone?: string;
+    clientNote?: string;
     serviceName: string;
     scheduledStartsAt: Date;
     scheduledEndsAt: Date;
@@ -165,6 +166,7 @@ export async function createNotificationEmailLogs(
           clientName: input.clientName,
           clientEmail: input.clientEmail,
           clientPhone: input.clientPhone,
+          clientNote: input.clientNote,
           scheduledStartsAt: input.scheduledStartsAt.toISOString(),
           scheduledEndsAt: input.scheduledEndsAt.toISOString(),
           approveUrl,

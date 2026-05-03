@@ -6,6 +6,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Provozní admin e-mail `admin-booking-notification-v1` u nové čekající rezervace nově obsahuje `Poznámku od klientky`, pokud ji zákaznice ve veřejném formuláři nebo admin při ruční rezervaci vyplnil; klientské e-maily zůstávají bez této poznámky.
 - Z repozitáře byly odstraněny dva omylem verzované jednorázové Prisma debug skripty `.tmp-check-2026-05-04.ts` a `.tmp-check-2026-05-07.ts`, které sloužily jen pro ruční kontrolu slotů a rezervací k pevným datům a nebyly součástí aplikace ani build pipeline.
 - Detail emailu v admin sekci `Email logy` dostal stejný density pass jako hlavní přehled: nižší header, kratší copy, menší quick actions v jedné operativní liště, hustší souhrn, navázané entity místo vysokých karet používají kompaktní řádky a technické i error bloky jsou méně dominantní.
 - Admin sekce `Email logy` prošla dalším density passem: horní KPI jsou nižší, health box má kratší copy, filtry drží na desktopu jeden kompaktní řádek, hlavní seznam emailů schoval placeholder tracking sloupce do jemného badge `Tracking připraven`, `Další pokus` ukazuje jen u `Čeká/Retry` a technický stav fronty je nově méně dominantní ve sbaleném debug bloku.

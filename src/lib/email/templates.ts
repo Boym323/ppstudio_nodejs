@@ -84,6 +84,7 @@ const adminBookingNotificationPayloadSchema = z.object({
   clientName: z.string().min(1),
   clientEmail: z.string().email(),
   clientPhone: z.string().optional().nullable(),
+  clientNote: z.string().trim().max(600).optional().nullable(),
   scheduledStartsAt: z.string().datetime(),
   scheduledEndsAt: z.string().datetime(),
   approveUrl: z.url(),
@@ -809,6 +810,7 @@ export async function renderEmailTemplate(
       const bookingDate = formatBookingCalendarDate(scheduledStartsAt);
       const bookingTime = formatBookingTimeRange(scheduledStartsAt, scheduledEndsAt);
       const phoneLine = data.clientPhone ? `Telefon: ${data.clientPhone}` : null;
+      const clientNote = data.clientNote?.trim() || null;
       const text = [
         "Nová rezervace",
         "",
@@ -817,6 +819,7 @@ export async function renderEmailTemplate(
         `Klientka: ${data.clientName}`,
         `Email: ${data.clientEmail}`,
         ...(phoneLine ? [phoneLine] : []),
+        ...(clientNote ? ["", `Poznámka od klientky: ${clientNote}`] : []),
         "",
         `Potvrdit rezervaci: ${data.approveUrl}`,
         `Přesunout termín: ${data.adminUrl}`,
@@ -852,6 +855,14 @@ export async function renderEmailTemplate(
                   ${data.clientPhone ? `<p style="margin:4px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:22px;color:#5b4c44;">${escapeHtml(data.clientPhone)}</p>` : ""}
                 </td>
               </tr>
+              ${clientNote ? `
+              <tr>
+                <td style="padding:16px 0 0;border-top:1px solid #eaded4;">
+                  <p style="margin:0 0 6px;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:16px;font-weight:700;text-transform:uppercase;color:#9e7f65;">Poznámka od klientky</p>
+                  <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:23px;color:#5b4c44;">${escapeHtml(clientNote)}</p>
+                </td>
+              </tr>
+              ` : ""}
             </table>
           </div>
           <div style="margin-top:18px;border:1px solid #eaded4;border-radius:12px;padding:20px;background:#ffffff;">
