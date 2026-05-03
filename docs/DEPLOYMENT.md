@@ -14,7 +14,7 @@ Postup nasazení aplikace do produkce.
 8. `npx prisma migrate deploy`
 9. `npm run lint`
 10. `npm run build`
-11. Aktualizuj `CHANGELOG.md`
+11. Ověř, že `package.json`, `package-lock.json` a `CHANGELOG.md` obsahují stejnou release verzi.
 12. Ověř aktuálnost dokumentace (`MANUAL.md`, `docs/*`)
 13. Pokud release mění voucher doménu, ověř že je aplikovaná migrace `20260427205720_add_vouchers`; aktuální serverová business vrstva nepřidává další migraci, worker ani public route.
 14. Projdi ruční QA veřejného webu na mobilu i desktopu:
