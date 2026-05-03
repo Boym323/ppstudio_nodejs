@@ -1,5 +1,6 @@
 import { connection } from "next/server";
 
+import { SeoJsonLd, buildHomePageJsonLd } from "@/features/public/components/seo-json-ld";
 import { PublicHomePage, buildPageMetadata } from '@/features/public/components/public-site';
 import { getPublicServices } from '@/features/public/lib/public-services';
 
@@ -16,5 +17,10 @@ export default async function Page() {
 
   const services = await getPublicServices();
 
-  return <PublicHomePage featuredServices={services.slice(0, 3)} />;
+  return (
+    <>
+      <SeoJsonLd data={buildHomePageJsonLd()} />
+      <PublicHomePage featuredServices={services.slice(0, 3)} />
+    </>
+  );
 }

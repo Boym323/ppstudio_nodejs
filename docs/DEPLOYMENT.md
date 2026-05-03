@@ -24,7 +24,7 @@ Postup nasazení aplikace do produkce.
      - `sitemap.xml` je uvedená v `robots.txt`
      - veřejné noindex stránky bez tokenu v path nejsou blokované v `robots.txt`
      - podstránky mají vlastní canonical URL a OpenGraph URL, ne canonical homepage
-     - veřejné stránky obsahují JSON-LD pro salon a detail služby obsahuje JSON-LD služby
+     - veřejný layout obsahuje JSON-LD pro salon/web, homepage vlastní `WebPage` a detail služby `Service`/`BreadcrumbList`
    - homepage
    - `/o-mne`:
      - výrazný hero s oběma CTA

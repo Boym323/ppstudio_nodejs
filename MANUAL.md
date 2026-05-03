@@ -717,7 +717,7 @@ npm run db:clear-booking-data -- --confirm
 - Po každé změně Prisma schematu je potřeba spustit alespoň `npm run db:generate`; při změně struktury DB i `npm run db:migrate`.
 - Technické SEO minimum je nyní pokryté přes globální metadata, per-page metadata, `robots.ts`, `sitemap.ts` a JSON-LD.
 - Veřejné stránky staví metadata přes `buildPageMetadata(...)` a každá musí předat vlastní `path`; canonical a OpenGraph URL nesmí zůstávat na homepage pro všechny podstránky.
-- Veřejný layout vkládá JSON-LD `BeautySalon`/`WebSite`; detail služby přidává `Service` a `BreadcrumbList` JSON-LD.
+- Veřejný layout vkládá JSON-LD `BeautySalon`/`WebSite`, homepage vlastní `WebPage`; detail služby přidává `Service` a `BreadcrumbList` JSON-LD. `BeautySalon` obsahuje i `geo` souřadnice studia a `Service.offers` se vkládá jen při jasně číselné ceně.
 - `sitemap.ts` nepoužívá jednotné „teď“ (`new Date()`) pro všechny URL: detail služby má `lastModified` z `Service.updatedAt`, statické stránky mají stabilní datum poslední obsahové revize.
 - Produkční `robots.txt` pouští crawl celého veřejného webu přes `Allow: /`; neveřejné admin a tokenové routy zůstávají blokované, aby se neindexovaly citlivé odkazy. Veřejné noindex stránky, které nemají token v path, necháváme crawl přístupné, aby si roboti mohli přečíst `noindex`.
 - Root metadata branding (`applicationName`, title template a OpenGraph `siteName`) se načítá z `SiteSettings.salonName`; canonical URL base zůstává technicky na `NEXT_PUBLIC_APP_URL`.
