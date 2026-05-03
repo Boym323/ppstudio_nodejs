@@ -35,7 +35,7 @@ export function AboutCertificatesGallery({ certificates }: { certificates: About
 
   return (
     <>
-      <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:mt-10 lg:grid-cols-3 lg:gap-6">
+      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:mt-7 lg:grid-cols-3 lg:gap-5">
         {certificates.map((certificate) => (
           <article
             key={certificate.id}
@@ -51,7 +51,7 @@ export function AboutCertificatesGallery({ certificates }: { certificates: About
               className="block w-full text-left"
               aria-disabled={!certificate.imageUrl}
             >
-              <div className="relative h-56 w-full overflow-hidden bg-[linear-gradient(160deg,#f6eee5_0%,#f1e5d7_52%,#eadbc9_100%)] p-3 sm:h-60">
+              <div className="relative h-48 w-full overflow-hidden bg-[linear-gradient(160deg,#f6eee5_0%,#f1e5d7_52%,#eadbc9_100%)] p-3 sm:h-52 lg:h-56">
                 {certificate.imageUrl ? (
                   <Image
                     src={certificate.imageUrl}
@@ -75,8 +75,8 @@ export function AboutCertificatesGallery({ certificates }: { certificates: About
                   </div>
                 )}
               </div>
-              <div className="p-4 sm:p-5">
-                <h3 className="font-display text-[1.45rem] leading-[1.05] text-[var(--color-foreground)]">{certificate.title}</h3>
+              <div className="p-4">
+                <h3 className="font-display text-[1.35rem] leading-[1.06] text-[var(--color-foreground)]">{certificate.title}</h3>
                 <p className="mt-2 text-[13px] leading-6 text-[var(--color-muted)]">{certificate.hint}</p>
               </div>
             </button>

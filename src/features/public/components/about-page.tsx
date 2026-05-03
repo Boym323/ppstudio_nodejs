@@ -24,14 +24,14 @@ function HeroSection({ portrait }: { portrait: PublicImageAsset | null }) {
 
   return (
     <section className="relative isolate overflow-hidden border-b border-black/5 bg-[radial-gradient(circle_at_top_left,rgba(226,205,182,0.5),transparent_32%),linear-gradient(180deg,#f8f2eb_0%,#f5ede4_48%,#f8f3ed_100%)]">
-      <Container className="grid gap-8 py-10 sm:gap-10 sm:py-14 lg:grid-cols-[1.18fr_0.82fr] lg:items-center lg:gap-12 lg:py-20">
-        <div className="max-w-[48rem] space-y-8 lg:space-y-9">
-          <div className="space-y-6 sm:space-y-7">
+      <Container className="grid gap-7 py-9 sm:gap-9 sm:py-12 lg:grid-cols-[1.18fr_0.82fr] lg:items-center lg:gap-10 lg:py-16">
+        <div className="max-w-[48rem] space-y-6 lg:space-y-7">
+          <div className="space-y-5 sm:space-y-6">
             <p className="text-eyebrow tracking-[0.22em] text-[var(--color-accent)]">{profile.eyebrow}</p>
             <h1 className="max-w-[16ch] whitespace-pre-line font-display text-[2.8rem] leading-[0.98] tracking-tight text-[var(--color-foreground)] sm:max-w-[18ch] sm:text-[3.6rem] lg:max-w-[19ch] lg:text-[4.55rem]">
               {profile.headline}
             </h1>
-            <p className="max-w-[40rem] text-[15px] leading-7 text-[var(--color-muted)] sm:text-[1.1rem] sm:leading-8">
+            <p className="max-w-[40rem] text-[15px] leading-7 text-[var(--color-muted)] sm:text-[1.05rem] sm:leading-8">
               {profile.intro}
             </p>
           </div>
@@ -73,7 +73,7 @@ function HeroSection({ portrait }: { portrait: PublicImageAsset | null }) {
                 alt={heroImage.alt}
                 width={heroImage.width}
                 height={heroImage.height}
-                className="h-[21rem] w-full object-cover object-center sm:h-[28rem] lg:h-[33rem]"
+                className="h-[20rem] w-full object-cover object-center sm:h-[26rem] lg:h-[30rem]"
                 priority
               />
               <div className="absolute inset-x-0 bottom-0 h-40 bg-[linear-gradient(180deg,rgba(248,242,235,0)_0%,rgba(248,242,235,0.84)_70%,#f8f2eb_100%)]" />
@@ -83,7 +83,7 @@ function HeroSection({ portrait }: { portrait: PublicImageAsset | null }) {
             </div>
           ) : (
             <div className="w-full overflow-hidden rounded-[var(--radius-panel)] border border-white/75 bg-[linear-gradient(160deg,#f6eee5_0%,#f1e5d7_52%,#eadbc9_100%)] shadow-[var(--shadow-panel)]">
-              <div className="relative min-h-[21rem] px-6 py-6 sm:min-h-[27rem] sm:px-8 sm:py-8 lg:min-h-[34rem]">
+              <div className="relative min-h-[20rem] px-6 py-6 sm:min-h-[25rem] sm:px-8 sm:py-8 lg:min-h-[30rem]">
                 <div className="absolute left-[12%] top-[12%] h-20 w-20 rounded-full bg-white/30 blur-2xl" />
                 <div className="absolute right-[8%] top-[18%] h-28 w-28 rounded-full bg-[#e8d5c0]/45 blur-3xl" />
                 <div className="absolute inset-x-0 bottom-0 h-32 bg-[linear-gradient(180deg,rgba(248,242,235,0)_0%,rgba(248,242,235,0.82)_60%,#f8f2eb_100%)]" />
@@ -108,8 +108,8 @@ function WhyChooseMeSection() {
   const { whyChooseMe } = aboutContent;
 
   return (
-    <section className="py-9 sm:py-12 lg:py-14">
-      <Container className="space-y-6 sm:space-y-8">
+    <section className="py-8 sm:py-10 lg:py-11">
+      <Container className="space-y-5 sm:space-y-6">
         <SectionHeading
           eyebrow={whyChooseMe.eyebrow}
           title={whyChooseMe.title}
@@ -120,16 +120,16 @@ function WhyChooseMeSection() {
           {whyChooseMe.items.map((item, index) => (
             <article
               key={item.title}
-              className="flex h-full flex-col rounded-[var(--radius-panel)] border border-black/6 bg-white p-6 shadow-[var(--shadow-panel)] shadow-black/5 transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_24px_60px_rgba(34,22,12,0.12)] sm:p-7"
+              className="flex h-full flex-col rounded-[var(--radius-panel)] border border-black/6 bg-white p-5 shadow-[var(--shadow-panel)] shadow-black/5 transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_24px_60px_rgba(34,22,12,0.12)] sm:p-6"
             >
               <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-accent)]">
                 0{index + 1} —
               </p>
-              <h3 className="mt-4 max-w-[19rem] font-display text-[1.9rem] leading-[1.14] text-[var(--color-foreground)]">
+              <h3 className="mt-3 max-w-[19rem] font-display text-[1.75rem] leading-[1.12] text-[var(--color-foreground)]">
                 {item.title}
               </h3>
               {item.description ? (
-                <p className="mt-4 text-[15px] leading-7 text-[var(--color-muted)]">
+                <p className="mt-3 text-[15px] leading-7 text-[var(--color-muted)]">
                   {item.description}
                 </p>
               ) : null}
@@ -145,14 +145,14 @@ function StorySection() {
   const { story } = aboutContent;
 
   return (
-    <section className="py-9 sm:py-12 lg:py-14">
+    <section className="pt-8 pb-4 sm:pt-10 sm:pb-5 lg:pt-11 lg:pb-5">
       <Container>
-        <article className="rounded-[var(--radius-panel)] border border-black/5 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(250,244,236,0.92))] p-5 shadow-[var(--shadow-panel)] sm:p-7 lg:p-8">
-          <div className="grid gap-6 lg:grid-cols-[0.92fr_1.08fr] lg:gap-0">
-            <div className="lg:pr-8">
+        <article className="rounded-[var(--radius-panel)] border border-black/5 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(250,244,236,0.92))] p-5 shadow-[var(--shadow-panel)] sm:p-6 lg:p-7">
+          <div className="grid gap-5 lg:grid-cols-[0.9fr_1.1fr] lg:gap-0">
+            <div className="lg:pr-7">
               <SectionHeading eyebrow={story.eyebrow} title={story.title} />
             </div>
-            <div className="space-y-4 border-black/5 text-[15px] leading-7 text-[var(--color-muted)] sm:text-base lg:border-l lg:pl-10 xl:pl-12">
+            <div className="space-y-3 border-black/5 text-[15px] leading-7 text-[var(--color-muted)] sm:text-base lg:border-l lg:pl-8 xl:pl-10">
               {story.paragraphs.map((paragraph) => (
                 <p key={paragraph}>{paragraph}</p>
               ))}
@@ -168,24 +168,26 @@ function ApproachSection() {
   const { approach } = aboutContent;
 
   return (
-    <section className="py-9 sm:py-12 lg:py-14">
-      <Container className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr] lg:items-start lg:gap-8">
-        <div className="rounded-[var(--radius-panel)] border border-black/6 bg-white p-6 shadow-[var(--shadow-panel)] sm:p-7 lg:sticky lg:top-24">
+    <section className="pt-4 pb-8 sm:pt-5 sm:pb-10 lg:pt-5 lg:pb-11">
+      <Container className="grid gap-5 lg:grid-cols-[0.9fr_1.1fr] lg:items-start lg:gap-6">
+        <div className="rounded-[var(--radius-panel)] border border-black/6 bg-white p-5 shadow-[var(--shadow-panel)] sm:p-6 lg:sticky lg:top-24">
           <SectionHeading eyebrow={approach.eyebrow} title={approach.title} />
-          <p className="mt-6 max-w-xl text-[15px] leading-7 text-[var(--color-muted)] sm:text-base">
+          <p className="mt-4 max-w-xl text-[15px] leading-7 text-[var(--color-muted)] sm:text-base">
             {approach.intro}
           </p>
         </div>
 
-        <div className="grid gap-5">
+        <div className="grid gap-3.5 sm:gap-4">
           {approach.values.map((value) => (
             <article
               key={value.title}
-              className="rounded-[var(--radius-panel)] border border-[#e6dbcf] bg-[linear-gradient(180deg,#fffcf8_0%,#fbf4eb_100%)] p-6 shadow-[var(--shadow-panel)] shadow-black/5 transition duration-200 hover:-translate-y-0.5 hover:border-[#dfd0c0] hover:shadow-[0_24px_60px_rgba(34,22,12,0.1)] sm:p-7"
+              className="rounded-[var(--radius-panel)] border border-[#e6dbcf] bg-[linear-gradient(180deg,#fffcf8_0%,#fbf4eb_100%)] p-5 shadow-[var(--shadow-panel)] shadow-black/5 transition duration-200 hover:-translate-y-0.5 hover:border-[#dfd0c0] hover:shadow-[0_24px_60px_rgba(34,22,12,0.1)] sm:p-6"
             >
-              <div className="mb-4 h-1.5 w-16 rounded-full bg-[var(--color-accent)]/55" />
-              <h3 className="font-display text-[2.2rem] leading-[1.02] text-[var(--color-foreground)]">{value.title}</h3>
-              <p className="mt-4 max-w-2xl text-[15px] leading-7 text-[var(--color-muted)] sm:text-base">
+              <div className="mb-3 h-1.5 w-14 rounded-full bg-[var(--color-accent)]/55" />
+              <h3 className="font-display text-[1.85rem] leading-[1.04] text-[var(--color-foreground)] sm:text-[2rem]">
+                {value.title}
+              </h3>
+              <p className="mt-3 max-w-2xl text-[15px] leading-7 text-[var(--color-muted)] sm:text-base">
                 {value.description}
               </p>
             </article>
@@ -200,29 +202,29 @@ function WhatToExpectSection() {
   const { expectations } = aboutContent;
 
   return (
-    <section className="py-9 sm:py-12 lg:py-14">
+    <section className="py-8 sm:py-10 lg:py-11">
       <Container>
-        <div className="rounded-[var(--radius-panel)] border border-black/6 bg-white p-5 shadow-[var(--shadow-panel)] sm:p-7 lg:p-8">
+        <div className="rounded-[var(--radius-panel)] border border-black/6 bg-white p-5 shadow-[var(--shadow-panel)] sm:p-6 lg:p-7">
           <SectionHeading eyebrow={expectations.eyebrow} title={expectations.title} />
 
-          <div className="mt-5 space-y-4 text-[15px] leading-7 text-[var(--color-muted)] sm:text-base">
+          <div className="mt-4 space-y-3 text-[15px] leading-7 text-[var(--color-muted)] sm:text-base">
             {expectations.paragraphs.map((paragraph) => (
               <p key={paragraph}>{paragraph}</p>
             ))}
           </div>
 
-          <ul className="mt-6 flex flex-wrap gap-2.5">
+          <ul className="mt-5 flex flex-wrap gap-2">
             {expectations.items.map((item) => (
               <li
                 key={item}
-                className="rounded-full border border-[#e6dbcf] bg-[#fffcf8] px-3.5 py-2.5 text-[13px] leading-6 text-[var(--color-foreground)] sm:px-4 sm:text-[14px]"
+                className="rounded-full border border-[#e6dbcf] bg-[#fffcf8] px-3.5 py-2 text-[13px] leading-6 text-[var(--color-foreground)] sm:px-4 sm:text-[14px]"
               >
                 {item}
               </li>
             ))}
           </ul>
 
-          <p className="mt-6 max-w-3xl text-[15px] leading-7 text-[var(--color-muted)] sm:text-base">
+          <p className="mt-5 max-w-3xl text-[15px] leading-7 text-[var(--color-muted)] sm:text-base">
             {expectations.closing}
           </p>
         </div>
@@ -239,6 +241,8 @@ function buildCertificateGalleryItems(certificates: PublicCertificate[]): AboutC
       hint: 'Klikněte pro zvětšení',
       alt: certificate.alt ?? certificate.title ?? 'Certifikát z odborného školení',
       imageUrl: certificate.imageUrl,
+      width: certificate.width ?? 900,
+      height: certificate.height ?? 640,
     }));
   }
 
@@ -255,9 +259,9 @@ function CertificationsSection({ certificates }: { certificates: PublicCertifica
   const items = buildCertificateGalleryItems(certificates);
 
   return (
-    <section className="py-8 sm:py-12 lg:py-14">
+    <section className="py-8 sm:py-10 lg:py-11">
       <Container>
-        <div className="rounded-[var(--radius-panel)] border border-black/6 bg-white p-5 shadow-[var(--shadow-panel)] sm:p-7 lg:p-8">
+        <div className="rounded-[var(--radius-panel)] border border-black/6 bg-white p-5 shadow-[var(--shadow-panel)] sm:p-6 lg:p-7">
           <SectionHeading
             eyebrow="Vzdělávání"
             title="Certifikace"

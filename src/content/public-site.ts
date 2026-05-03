@@ -309,7 +309,7 @@ export const aboutContent: AboutContent = {
         description: 'Naslouchám tomu, co si přejete změnit, zvýraznit nebo zjednodušit v běžné péči.',
       },
       {
-        title: 'Rozvoj',
+        title: 'Odbornost',
         description: 'Průběžně se vzdělávám a vybírám postupy, které mají smysl v praxi i ve výsledku.',
       },
     ],
@@ -318,7 +318,7 @@ export const aboutContent: AboutContent = {
     eyebrow: 'FOR LIFE & MADAGA',
     title: 'Profesionální péče s českou kosmetikou',
     paragraphs: [
-      'Při kosmetických ošetřeních pracuji s českou značkou FOR LIFE & MADAGA, která staví na šetrnosti, kvalitních recepturách a profesionálním přístupu k pleti.',
+      'Při kosmetických ošetřeních pracuji s českou značkou FOR LIFE & MADAGA, kterou volím pro její šetrné receptury, profesionální péči a možnosti přizpůsobení aktuálním potřebám pleti.',
       'U mě se můžete těšit na:',
     ],
     items: [

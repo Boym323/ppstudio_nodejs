@@ -6,6 +6,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Veřejná stránka `/o-mne` prošla evolučním density passem: hero, benefit karty, návaznost `Můj příběh` / `Můj přístup`, FOR LIFE & MADAGA blok a certifikace mají menší vertikální rozestupy a paddingy bez změny vizuální identity; copy příběhu je sebevědomější, `Rozvoj` je přejmenovaný na `Odbornost` a text FOR LIFE & MADAGA mluví víc jako benefit pro klientku.
+
 ## [0.1.2] - 2026-05-03
 
 - Patch update CSS toolchain: `tailwindcss` a `@tailwindcss/postcss` byly zvednuty z `4.2.2` na `4.2.4` bez změny konfigurace nebo aplikační logiky.

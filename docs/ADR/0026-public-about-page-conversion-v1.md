@@ -30,6 +30,12 @@ Pro značku PP Studio potřebujeme stránku, která zůstane jemná, osobní a e
 - Sekce benefitů může zobrazit krátký podnadpis z `aboutContent.whyChooseMe.description`, aby se textová hierarchie dala zjemnit bez redesignu.
 - Certifikace dál čtou data z Media Library; fallback titulek reálného certifikátu bez názvu už není jen obecné `Certifikát`.
 
+## Aktualizace 2026-05-03
+- Stránka zůstává ve stejné modulární skladbě a vizuálním jazyce, ale layout je kompaktnější: hero je nižší, sekce mají menší vertikální odsazení, karty střídmější padding a certifikační náhledy menší výšku.
+- `Můj příběh` a `Můj přístup` zůstávají samostatné sekce, ale mají těsnější návaznost, aby působily jako jeden přirozený obsahový tok.
+- Copy příběhu už nezdůrazňuje krátkou praxi formulací „začala v roce 2024“; nově rámuje PP Studio jako cíleně budované klidné místo pro promyšlenou péči.
+- Hodnota `Rozvoj` je přejmenovaná na `Odbornost` a FOR LIFE & MADAGA copy je formulované víc jako přímý benefit pro klientku.
+
 ## Alternativy
 - Ponechat původní strukturu a pouze zkrátit texty: zamítnuto, protože hlavní problém byl v hierarchii a rozhodovacím toku, ne jen v délce copy.
 - Udělat z `/o-mne` minimalistickou informační stránku bez výrazného hero a bez opakovaných CTA: zamítnuto, protože stránka má aktivně podporovat rezervaci.
