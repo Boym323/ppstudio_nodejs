@@ -400,6 +400,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Dashboard read model `src/features/admin/lib/admin-dashboard.ts` nově vrací i provozní priority `todayTasks`, akční alerty s prioritou (`primary / secondary / ok`), akční timeline položky a kompaktní `upcomingSlots`; overview už není primárně o obecných statistikách.
 - `src/features/admin/components/admin-dashboard-page.tsx` skládá overview v pořadí `Dnešní provoz -> alerty -> KPI -> Dnešní plán / Nejbližší volné termíny -> pravý podpůrný sloupec` a drží i serverový skeleton fallback `DashboardPageSkeleton`.
 - `src/features/admin/components/dashboard-today-timeline.tsx` je lehká client vrstva jen pro interaktivitu timeline: click-to-open řádky, inline rychlé akce rezervací, toast feedback a focus/hover chování; business logika zůstává v read modelu a existujících server actions.
+- Dnešní dashboardový plán i rozšířená timeline zobrazují u dnešních rezervací existující poznámky s původem `Klientka` / `Interně`; bez poznámek nevypisuj placeholder, aby cockpit zůstal rychlý.
 - `src/features/admin/components/admin-overview-page.tsx` používá `Suspense` nad async serverovým read modelem, takže overview umí zobrazit loading skeleton bez nové klientské state vrstvy.
 - Lite admin záměrně nepoužívá technický jazyk ani sekce typu nastavení, email logy nebo správa uživatelů.
 - Pro `SALON` držíme kratší menu a na úvodní obrazovce zviditelňujeme dnešní rezervace, nejbližší termíny a rychlé akce pro přidání slotu nebo otevření rezervace.

@@ -6,6 +6,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Dnešní dashboardový plán i rozšířená timeline nově ukazují u dnešních rezervací existující poznámky s původem `Klientka` / `Interně`, aby byly důležité informace vidět před návštěvou bez otevírání detailu rezervace.
 - Detail klientky v historii návštěv nově rozlišuje poznámky rezervace podle původu (`Klientka` / `Interně`) a při vyplnění obou zobrazí obě místo dosavadního přebíjení `internalNote ?? clientNote`.
 - Provozní admin e-mail `admin-booking-notification-v1` u nové čekající rezervace nově obsahuje `Poznámku od klientky`, pokud ji zákaznice ve veřejném formuláři nebo admin při ruční rezervaci vyplnil; klientské e-maily zůstávají bez této poznámky.
 - Z repozitáře byly odstraněny dva omylem verzované jednorázové Prisma debug skripty `.tmp-check-2026-05-04.ts` a `.tmp-check-2026-05-07.ts`, které sloužily jen pro ruční kontrolu slotů a rezervací k pevným datům a nebyly součástí aplikace ani build pipeline.

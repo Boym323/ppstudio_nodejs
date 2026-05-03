@@ -415,6 +415,7 @@ npm run db:clear-booking-data -- --confirm
   - součástí hero bloku je i kompaktní sekce `Dnešní úkoly`, která shrnuje pending potvrzení, další klientku, dnešní volná okna a chybné e-maily
   - pokud existují čekající potvrzení, dashboard je ukáže jako výrazný akční alert nad dnešním plánem; bez pending stavu zůstávají alerty menší a sekundární
   - `Dnešní plán` je hlavní pracovní sekce: používá mini timeline s výrazným časem vlevo, odlišením `Rezervace / Volné okno`, hover/focus stavy, click-to-open řádky a rychlé akce přímo v každé položce
+  - pokud má dnešní rezervace poznámku, plán ji ukáže přímo u klientky s původem `Klientka` nebo `Interně`; rezervace bez poznámek zůstávají bez doplňkového řádku
   - rychlé akce rezervací používají stejné existující admin server actions jako seznam rezervací (`Potvrdit`, `Zrušit`, `Otevřít`) a po úspěchu ukazují lehký toast
   - pravý sidebar je zjednodušený jen na `Nejbližší volné sloty` a `Rychlé akce`; primární CTA je vždy `Vytvořit rezervaci`
   - spodní KPI už neopakují počet dnešních rezervací; zůstávají jen sekundární metriky `Dnes volná okna`, `Týdenní obsazenost`, `Týden volné sloty`, `Chybné e-maily`

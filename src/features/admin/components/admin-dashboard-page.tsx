@@ -427,6 +427,15 @@ export function DashboardTodayTimelineSection({ data }: DashboardPageProps) {
               <div className="min-w-0">
                 <p className="truncate text-[15px] font-medium text-white">{item.serviceName}</p>
                 <p className="truncate text-xs text-white/50">{item.clientName}</p>
+                {item.notes.length > 0 ? (
+                  <div className="mt-1 space-y-0.5">
+                    {item.notes.map((note) => (
+                      <p key={note.label} className="truncate text-xs leading-5 text-white/58">
+                        <span className="font-medium text-white/72">{note.label}:</span> {note.value}
+                      </p>
+                    ))}
+                  </div>
+                ) : null}
               </div>
               <div className="flex items-center gap-2">
                 <span

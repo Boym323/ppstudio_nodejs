@@ -35,6 +35,11 @@ const timeFormatter = new Intl.DateTimeFormat("cs-CZ", {
 
 type DashboardAlertTone = "warning" | "problem" | "success";
 
+type DashboardBookingNote = {
+  label: "Klientka" | "Interně";
+  value: string;
+};
+
 function formatCountLabel(count: number, singular: string, pluralFew: string, pluralMany: string) {
   const mod100 = count % 100;
 
@@ -91,6 +96,7 @@ export type DashboardTimelineItem =
       bookingId: string;
       bookingStatus: BookingStatus;
       bookingStatusLabel: string;
+      notes: DashboardBookingNote[];
       availableActions: Array<{
         value: string;
         label: string;
@@ -126,6 +132,7 @@ export type DashboardTodayPlanItem = {
   href: string;
   isCurrent: boolean;
   isCompleted: boolean;
+  notes: DashboardBookingNote[];
 };
 
 export type DashboardUpcomingSlot = {
@@ -179,6 +186,29 @@ function getTodayBounds(now: Date) {
   };
 }
 
+function buildDashboardBookingNotes(booking: {
+  clientNote: string | null;
+  internalNote: string | null;
+}) {
+  const notes: DashboardBookingNote[] = [];
+
+  if (booking.clientNote?.trim()) {
+    notes.push({
+      label: "Klientka",
+      value: booking.clientNote.trim(),
+    });
+  }
+
+  if (booking.internalNote?.trim()) {
+    notes.push({
+      label: "Interně",
+      value: booking.internalNote.trim(),
+    });
+  }
+
+  return notes;
+}
+
 function getWeekBounds(now: Date) {
   const weekStart = new Date(now);
   weekStart.setHours(0, 0, 0, 0);
@@ -207,6 +237,8 @@ export function buildTimelineItems(
       status: BookingStatus;
       serviceNameSnapshot: string;
       clientNameSnapshot: string;
+      clientNote: string | null;
+      internalNote: string | null;
     }>;
   }>,
 ) {
@@ -259,6 +291,7 @@ export function buildTimelineItems(
         bookingId: booking.id,
         bookingStatus: booking.status,
         bookingStatusLabel: getBookingStatusLabel(booking.status),
+        notes: buildDashboardBookingNotes(booking),
         availableActions: getAdminBookingActionOptions(booking.status, {
           scheduledEndsAt: booking.scheduledEndsAt,
         }),
@@ -398,6 +431,8 @@ export async function getAdminDashboardData(area: AdminArea): Promise<AdminDashb
         scheduledEndsAt: true,
         serviceNameSnapshot: true,
         clientNameSnapshot: true,
+        clientNote: true,
+        internalNote: true,
       },
     }),
     prisma.availabilitySlot.findMany({
@@ -421,6 +456,8 @@ export async function getAdminDashboardData(area: AdminArea): Promise<AdminDashb
             status: true,
             serviceNameSnapshot: true,
             clientNameSnapshot: true,
+            clientNote: true,
+            internalNote: true,
           },
         },
       },
@@ -496,6 +533,7 @@ export async function getAdminDashboardData(area: AdminArea): Promise<AdminDashb
       href: item.href,
       isCurrent: item.id === currentTodayBooking?.id,
       isCompleted: item.bookingStatus === BookingStatus.COMPLETED,
+      notes: item.notes,
     }));
   const freeWindowCount = timelineItems.filter((item) => item.badge === "VOLNE").length;
   const weekOccupancy = getWeekOccupancy(weekSlots);

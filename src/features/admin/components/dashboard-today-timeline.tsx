@@ -83,6 +83,15 @@ export function DashboardTodayTimeline({ area, items }: DashboardTodayTimelinePr
                   </span>
                 </div>
                 <p className="truncate pt-1 text-sm text-white/54">{item.subtitle}</p>
+                {isBooking && item.notes.length > 0 ? (
+                  <div className="mt-1.5 space-y-1">
+                    {item.notes.map((note) => (
+                      <p key={note.label} className="text-sm leading-5 text-white/62">
+                        <span className="font-medium text-white/78">{note.label}:</span> {note.value}
+                      </p>
+                    ))}
+                  </div>
+                ) : null}
               </div>
 
               <div
