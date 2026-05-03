@@ -570,7 +570,7 @@ export function buildCancellationPageContent(input: {
     ctaPrompt: 'Potřebujete změnit termín?',
     contactCardTitle: 'Jak zrušit rezervaci',
     contactCardDescription: 'Rezervaci můžete zrušit telefonicky, e-mailem nebo přes odkaz v potvrzení rezervace a reminderu.',
-    contactCardNote: 'Jakmile víte, že termín nevyužijete, dejte nám vědět co nejdříve. Uvolněný čas můžeme nabídnout další klientce.',
+    contactCardNote: 'Jakmile víte, že termín nevyužijete, dejte mi vědět co nejdříve. Uvolněný čas mohu nabídnout další klientce.',
     contactItems: [
       {
         label: 'Telefon',
@@ -607,13 +607,13 @@ export function buildCancellationPageContent(input: {
         eyebrow: '1. Co udělat',
         title: 'Jak zrušit nebo změnit rezervaci',
         paragraphs: [
-          'Pro změnu nebo zrušení termínu nás můžete kontaktovat telefonicky nebo e-mailem. Rezervaci lze zrušit také přes odkaz, který posíláme v potvrzení rezervace a v reminderu před termínem.',
+          'Pro změnu nebo zrušení termínu mě můžete kontaktovat telefonicky nebo e-mailem. Rezervaci lze zrušit také přes odkaz, který posílám v potvrzení rezervace a v reminderu před termínem.',
         ],
         items: [
           `telefon: ${input.phone}`,
           `e-mail: ${input.email}`,
           'odkaz pro zrušení nebo úpravu najdete také v potvrzení rezervace a v reminderu',
-          'čím dříve se ozvete, tím snáz nabídneme náhradní termín nebo uvolníme místo další klientce',
+          'čím dříve se ozvete, tím snáz nabídnu náhradní termín nebo uvolním místo další klientce',
         ],
       },
       {
@@ -622,16 +622,16 @@ export function buildCancellationPageContent(input: {
         title: 'Zrušení a změna termínu',
         paragraphs: [
           `Při zrušení nebo přesunu více než ${input.cancellationHours} hodin před začátkem termínu je změna bez omezení.`,
-          `Pokud potřebujete termín zrušit méně než ${input.cancellationHours} hodin předem, dejte nám prosím vědět co nejdříve. Storno poplatek nyní neúčtujeme, ale pozdní změna nám obvykle už neumožní nabídnout termín další klientce.`,
+          `Pokud potřebujete termín zrušit méně než ${input.cancellationHours} hodin předem, dejte mi prosím vědět co nejdříve. Storno poplatek nyní neúčtuji, ale pozdní změna mi obvykle už neumožní nabídnout termín další klientce.`,
         ],
-        note: 'Vyhrazený čas držíme pouze pro vaši návštěvu. Pozdní zrušení už obvykle nedokážeme obsadit jinou rezervací.',
+        note: 'Vyhrazený čas držím pouze pro vaši návštěvu. Pozdní zrušení už obvykle nedokážu obsadit jinou rezervací.',
       },
       {
         id: 'nedostaveni-se',
         eyebrow: '3. No-show',
         title: 'Nedostavení se bez omluvy',
         paragraphs: [
-          'Pokud na potvrzený termín nepřijdete a nedáte nám předem vědět, bereme to jako nevyužitý rezervovaný čas.',
+          'Pokud na potvrzený termín nepřijdete a nedáte mi předem vědět, beru to jako nevyužitý rezervovaný čas.',
           'Při opakovaném nedostavení bez omluvy může být další rezervace potvrzena až po předchozí domluvě nebo se zálohou.',
         ],
       },
@@ -640,7 +640,7 @@ export function buildCancellationPageContent(input: {
         eyebrow: '4. Dochvilnost',
         title: 'Zpoždění',
         paragraphs: [
-          'Při pozdním příchodu službu zkrátíme tak, aby nebyl narušen další provoz studia.',
+          'Při pozdním příchodu službu zkrátím tak, aby nebyl narušen další provoz studia.',
           'Cena služby zůstává stejná i v případě, že kvůli zpoždění nebude možné provést péči v plném rozsahu.',
         ],
       },
@@ -650,7 +650,7 @@ export function buildCancellationPageContent(input: {
         title: 'Zálohy',
         paragraphs: [
           'U delších, blokovaných nebo opakovaně přesouvaných termínů může být předem domluvena záloha na rezervaci.',
-          'Pokud by byla u konkrétní služby nebo termínu záloha požadována, vždy to klientce řekneme předem při potvrzení rezervace.',
+          'Pokud by byla u konkrétní služby nebo termínu záloha požadována, vždy to klientce řeknu předem při potvrzení rezervace.',
         ],
       },
       {
@@ -658,12 +658,12 @@ export function buildCancellationPageContent(input: {
         eyebrow: '6. Provoz studia',
         title: 'Zrušení ze strany salonu',
         paragraphs: [
-          'Pokud musíme termín zrušit z důvodu nemoci, provozní kolize nebo technického problému, ozveme se vám co nejdříve.',
-          'V takové situaci vždy nabídneme náhradní termín nebo jiný nejbližší možný postup podle aktuální kapacity.',
+          'Pokud musím termín zrušit z důvodu nemoci, provozní kolize nebo technického problému, ozvu se vám co nejdříve.',
+          'V takové situaci vždy nabídnu náhradní termín nebo jiný nejbližší možný postup podle aktuální kapacity.',
         ],
       },
     ],
-    footerNote: 'Pokud víte, že termín nestihnete, nečekejte prosím na poslední chvíli. Krátká zpráva nebo rychlý telefonát pomůže nám i dalším klientkám.',
+    footerNote: 'Pokud víte, že termín nestihnete, nečekejte prosím na poslední chvíli. Krátká zpráva nebo rychlý telefonát pomůže mně i dalším klientkám.',
   };
 }
 
@@ -807,21 +807,21 @@ export function buildLegalContent(cancellationHours: number) {
     gdpr: {
     title: 'GDPR a ochrana osobních údajů',
     intro:
-      'Osobní údaje zpracováváme jen v rozsahu, který je potřeba pro rezervaci termínu, běžnou komunikaci s klientkou a splnění zákonných povinností. Níže najdete přehled, jak s údaji v PP Studiu pracujeme.',
+      'Osobní údaje zpracovávám jen v rozsahu, který je potřeba pro rezervaci termínu, běžnou komunikaci s klientkou a splnění zákonných povinností. Níže najdete přehled, jak s údaji v PP Studiu pracuji.',
     sections: [
       {
         id: 'spravce',
         title: 'Správce osobních údajů',
         paragraphs: [
-          'Správcem osobních údajů je PP Studio. To znamená, že určujeme, za jakým účelem a jakým způsobem jsou osobní údaje při provozu studia používány.',
-          'Pokud budete potřebovat cokoliv vysvětlit nebo si uplatnit některé ze svých práv, můžete nás kontaktovat prostřednictvím uvedených kontaktních údajů.',
+          'Správcem osobních údajů je PP Studio. To znamená, že určuji, za jakým účelem a jakým způsobem jsou osobní údaje při provozu studia používány.',
+          'Pokud budete potřebovat cokoliv vysvětlit nebo si uplatnit některé ze svých práv, můžete mě kontaktovat prostřednictvím uvedených kontaktních údajů.',
         ],
       },
       {
         id: 'jake-udaje',
-        title: 'Jaké údaje zpracováváme',
+        title: 'Jaké údaje zpracovávám',
         paragraphs: [
-          'Rozsah zpracovávaných údajů se odvíjí od toho, jakou službu využíváte a jak spolu komunikujeme. Vždy se snažíme pracovat jen s tím, co je pro provoz studia skutečně potřebné.',
+          'Rozsah zpracovávaných údajů se odvíjí od toho, jakou službu využíváte a jak spolu komunikujeme. Vždy se snažím pracovat jen s tím, co je pro provoz studia skutečně potřebné.',
         ],
         items: [
           'jméno a příjmení',
@@ -833,9 +833,9 @@ export function buildLegalContent(cancellationHours: number) {
       },
       {
         id: 'ucely',
-        title: 'Pro jaké účely údaje používáme',
+        title: 'Pro jaké účely údaje používám',
         paragraphs: [
-          'Osobní údaje nepoužíváme bezdůvodně. Každé zpracování má svůj praktický a zákonný důvod.',
+          'Osobní údaje nepoužívám bezdůvodně. Každé zpracování má svůj praktický a zákonný důvod.',
         ],
         items: [
           'vyřízení rezervace a potvrzení domluveného termínu',
@@ -846,9 +846,9 @@ export function buildLegalContent(cancellationHours: number) {
       },
       {
         id: 'uchovani',
-        title: 'Jak dlouho údaje uchováváme',
+        title: 'Jak dlouho údaje uchovávám',
         paragraphs: [
-          'Údaje neuchováváme déle, než je potřeba. Konkrétní doba se liší podle typu záznamu a důvodu, proč byl vytvořen.',
+          'Údaje neuchovávám déle, než je potřeba. Konkrétní doba se liší podle typu záznamu a důvodu, proč byl vytvořen.',
         ],
         items: [
           'rezervace a související provozní údaje po dobu nezbytnou pro organizaci termínu, řešení změn a běžnou návaznou evidenci',
@@ -857,7 +857,7 @@ export function buildLegalContent(cancellationHours: number) {
           'marketingovou komunikaci pouze pokud by byla vedena na základě souhlasu, a to po dobu jeho trvání nebo do odvolání',
         ],
         note:
-          'Pokud některé údaje musíme uchovat déle kvůli právní povinnosti nebo ochraně oprávněných zájmů, děje se tak jen v nezbytném rozsahu.',
+          'Pokud některé údaje musím uchovat déle kvůli právní povinnosti nebo ochraně oprávněných zájmů, děje se tak jen v nezbytném rozsahu.',
       },
       {
         id: 'zpristupneni',
@@ -876,7 +876,7 @@ export function buildLegalContent(cancellationHours: number) {
         id: 'prava',
         title: 'Jaká máte práva',
         paragraphs: [
-          'Ve vztahu ke svým osobním údajům máte práva, která můžete kdykoli uplatnit. Na váš dotaz nebo žádost odpovíme bez zbytečného odkladu.',
+          'Ve vztahu ke svým osobním údajům máte práva, která můžete kdykoli uplatnit. Na váš dotaz nebo žádost odpovím bez zbytečného odkladu.',
         ],
         items: [
           'právo na přístup k osobním údajům',
@@ -889,12 +889,12 @@ export function buildLegalContent(cancellationHours: number) {
       },
       {
         id: 'kontakt',
-        title: 'Jak nás kontaktovat',
+        title: 'Jak mě kontaktovat',
         paragraphs: [
-          'Pokud máte otázku ke zpracování osobních údajů nebo chcete uplatnit některé ze svých práv, napište nám e-mail nebo zavolejte. Nejrychlejší je ozvat se přes kontaktní údaje uvedené výše na této stránce.',
+          'Pokud máte otázku ke zpracování osobních údajů nebo chcete uplatnit některé ze svých práv, napište mi e-mail nebo zavolejte. Nejrychlejší je ozvat se přes kontaktní údaje uvedené výše na této stránce.',
         ],
         note:
-          'Uděláme maximum pro to, aby komunikace byla srozumitelná, věcná a bez zbytečně složitých formalit.',
+          'Udělám maximum pro to, aby komunikace byla srozumitelná, věcná a bez zbytečně složitých formalit.',
       },
     ],
   },
