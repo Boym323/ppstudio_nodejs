@@ -6,6 +6,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Stránka `/studio` je nově prolinkovaná z veřejného webu přes `mainNavigation` (`header` i sekce `Navigace` ve footeru).
+- Veřejná route `/studio` je znovu publikovaná: `src/app/(public)/studio/page.tsx` už nevrací `notFound()`, ale načítá publikované fotky přes `getPublicStudioPhotos()` a renderuje `StudioPage`.
 - Veřejná stránka `/o-mne` prošla evolučním density passem: hero, benefit karty, návaznost `Můj příběh` / `Můj přístup`, FOR LIFE & MADAGA blok a certifikace mají menší vertikální rozestupy a paddingy bez změny vizuální identity; copy příběhu je sebevědomější, `Rozvoj` je přejmenovaný na `Odbornost` a text FOR LIFE & MADAGA mluví víc jako benefit pro klientku.
 
 ## [0.1.2] - 2026-05-03

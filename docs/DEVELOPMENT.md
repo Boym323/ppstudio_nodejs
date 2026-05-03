@@ -496,6 +496,8 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - `SiteSettings.voucherPdfLogoMediaId` je nullable FK na `MediaAsset` pro samostatné logo v PDF voucherech. Nejde o webové logo a nesmí zavádět nový storage systém ani remote asset načítání.
 - `MediaAsset` je obecný metadata model pro certifikáty, fotky prostor, reference i další obsahové obrázky; binární obsah zůstává na lokálním filesystemu mimo DB.
 - Veřejná stránka `/studio` používá read model `src/features/public/lib/public-studio-photos.ts`, který smí vracet jen `MediaType.SALON_PHOTO` s `isPublished = true`; komponenty stránky jsou v `src/features/public/components/studio/studio-page.tsx`.
+- Route `src/app/(public)/studio/page.tsx` je aktivní a renderuje `StudioPage` s daty z `getPublicStudioPhotos()`; stránka už není schovaná přes `notFound()`.
+- Prolinkování `/studio` do veřejného webu je řízené přes `mainNavigation` v `src/config/navigation.ts`; položka se automaticky propíše do `SiteHeader` i do footer sekce `Navigace`.
 - Filesystem layout médií má pro nové uploady tvar `<MEDIA_STORAGE_ROOT>/public/<type>/<year>/<month>/<assetId>-<variant>.<ext>`; používáme fixní `YYYY/MM`, bez jednorázových složek a bez názvů od uživatele v `storedFilename`.
 - `src/lib/media/local-media-storage.ts` je adapter pro lokální filesystem; business vrstva přes něj neřeší konkrétní `fs` operace ani fyzické cesty.
 - `src/lib/media/media-pipeline.ts` drží lehkou server-side pipeline nad `sharp`; pro JPEG/PNG/WebP dělá EXIF auto-rotate už na ukládaném originálu, `optimized` variantu (max 1920 px) a `thumbnail` variantu (cca 400 px) bez zavádění CDN nebo komplexního responsive systému.
