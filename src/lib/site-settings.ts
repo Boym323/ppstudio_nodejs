@@ -118,6 +118,9 @@ export async function getPublicSalonProfile() {
     phone: settings.phone,
     email: settings.contactEmail,
     instagramUrl: settings.instagramUrl,
+    streetAddress: settings.addressLine,
+    postalCode: settings.postalCode,
+    city: settings.city,
     addressLine: getSalonAddressLine(settings),
     bookingLabel: "Dle vypsaných termínů a individuální domluvy",
   };

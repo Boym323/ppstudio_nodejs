@@ -43,14 +43,14 @@ export function buildSalonJsonLd(profile: PublicSalonProfile) {
         priceRange: "CZK",
         address: {
           "@type": "PostalAddress",
-          streetAddress: "Sadova 2",
-          postalCode: "760 01",
-          addressLocality: "Zlin",
+          streetAddress: profile.streetAddress,
+          postalCode: profile.postalCode,
+          addressLocality: profile.city,
           addressCountry: "CZ",
         },
         areaServed: {
           "@type": "City",
-          name: "Zlin",
+          name: profile.city,
         },
         sameAs: profile.instagramUrl ? [profile.instagramUrl] : undefined,
       },
