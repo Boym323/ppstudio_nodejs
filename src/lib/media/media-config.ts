@@ -11,6 +11,7 @@ export const MEDIA_TEMP_SEGMENT = 'temp';
 export const mediaTypes = [
   'CERTIFICATE',
   'SALON_PHOTO',
+  'CONTACT_PHOTO',
   'PORTRAIT',
   'PORTRAIT_HOME',
   'PORTRAIT_ABOUT',
@@ -20,6 +21,7 @@ export const mediaTypes = [
 export const mediaTypeDirectoryMap = {
   CERTIFICATE: 'certificates',
   SALON_PHOTO: 'spaces',
+  CONTACT_PHOTO: 'contact',
   PORTRAIT: 'portraits',
   PORTRAIT_HOME: 'portraits-home',
   PORTRAIT_ABOUT: 'portraits-about',

@@ -512,9 +512,17 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Pokud veřejná rezervace zabere jen část delšího slotu s kapacitou `1`, booking write model slot v transakci automaticky rozdělí na rezervovaný úsek a zbylé volné fragmenty, aby admin planner zůstal editovatelný po samostatných blocích.
 - `src/features/booking/lib/booking-cancellation.ts` drží veřejné storno workflow nad hashovaným action tokenem.
 - `src/features/public/lib/public-certificates.ts` je veřejný read model certifikátů pro stránku `/o-mne`; smí vracet jen `MediaType.CERTIFICATE` a `isPublished = true`.
-- `src/features/public/lib/public-media.ts` drží sdílené read helpery pro publikované obrázky podle typu; homepage čte primárně `MediaType.PORTRAIT_HOME`, `/o-mne` primárně `MediaType.PORTRAIT_ABOUT` a obě cesty mají fallback na legacy `MediaType.PORTRAIT`.
+- `src/features/public/lib/public-media.ts` drží sdílené read helpery pro publikované obrázky podle typu; homepage čte `MediaType.PORTRAIT_HOME` a `/o-mne` čte `MediaType.PORTRAIT_ABOUT`; legacy `MediaType.PORTRAIT` už veřejný web nepoužívá.
 - `src/features/public/lib/public-studio-photos.ts` je veřejný read model fotek studia; používá ho `/studio` pro hero + galerii a `/kontakt` pro hero fotografii.
-- `src/features/public/lib/public-studio-photos.ts` je veřejný read model fotek studia pro stránku `/studio`; bez dat musí UI zobrazit placeholder a nesmí vytvářet duplicitní správu obrázků mimo modul `Média webu`.
+- `/studio` používá první dostupnou fotku jako hero a následující dostupné fotky jako galerii (max 6), aby se úvodní vizuál neopakoval.
+- Galerie `/studio` má responzivní grid pro 1-6 navazujících fotek; při prázdné galerii se sekce obrázků skryje a při chybějícím DB alt textu se používá `Fotografie prostoru PP Studio`.
+- `/kontakt` používá pouze `MediaType.CONTACT_PHOTO`; pokud kontaktní fotka chybí, hero zůstane u placeholderu a nesahá do `SALON_PHOTO`.
+- `src/features/public/lib/public-studio-photos.ts` při čtení `SALON_PHOTO` filtruje publikované záznamy i podle fyzické existence souboru ve storage (`optimizedStoragePath`/`storagePath`), takže veřejný web nezobrazuje broken image pro orphan DB záznamy.
+- Dev-only fallback pro `/studio` je povolený jen při `NODE_ENV=development` přes `public/dev/studio/*`; produkce vždy čte jen reálná média z DB/storage.
+- Admin media upload na aktivním filtru používá stejný `MediaType` jako výchozí hodnotu selectu; pro studio fotky tedy nejdřív otevři filtr `Prostory`.
+- Pro kontaktní hero fotku otevři v admin media filtr `Kontakt`; nový upload se tím založí jako `MediaType.CONTACT_PHOTO`.
+- `MediaAsset.sortOrder` je upravitelný v admin media formulářích a veřejný read model jej respektuje přes existující řazení `sortOrder ASC, createdAt DESC`.
+- Server actions pro média po uploadu, editaci, publish/unpublish i smazání revalidují `/studio` a `/kontakt`, protože obě stránky čtou veřejnou media knihovnu (`SALON_PHOTO` pro studio, `CONTACT_PHOTO` pro kontakt).
 - Veřejný booking flow vrací doménové chybové kódy a doporučený krok formuláře, takže UI může zobrazit přesnější recovery stav bez duplikace serverové logiky.
 - Veřejný booking submit má lehký rate limit podle IP a e-mailu a zapisuje auditní log pokusů, blokací a selhání pro provozní troubleshooting.
 - Krok 2 veřejného booking flow filtruje sloty i podle délky služby, aby se krátké sloty neukazovaly až v posledním kroku.
@@ -695,8 +703,8 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - smazání assetu v DB i na filesystemu
 - Po změně certifikátového workflow ručně ověř i:
   - `/admin/media` a `/admin/provoz/media` na desktopu i mobilu
-  - tabs `Vše / Certifikáty / Prostory / Portrét Homepage / Portrét O mně / Portrét Legacy / Obecné` včetně správných počtů
-  - oddělený portrét pro homepage a `/o-mne` včetně fallbacku na legacy `PORTRAIT`
+  - tabs `Vše / Certifikáty / Prostory / Kontakt / Portrét Homepage / Portrét O mně` včetně správných počtů
+  - oddělený portrét pro homepage a `/o-mne` bez legacy fallbacku
   - quick akci `Publikovat` / `Skrýt` přímo na kartě a návrat do stejného filtru
   - empty state pro prázdnou knihovnu i prázdný konkrétní filtr
   - upload certifikátu a okamžité propsání do `/o-mne`

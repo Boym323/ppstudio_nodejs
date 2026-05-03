@@ -134,9 +134,11 @@ Evidence produkčních incidentů a jejich řešení.
 - Tisková A4 varianta voucheru nesmí změnit e-mailovou PDF přílohu ani původní admin stažení. Při hlášení špatného tisku ověř nejdřív `/pdf/tisk`, A4 rozměr 210 x 297 mm, voucher v horní třetině a bílé pozadí mimo voucher; při hlášení změny e-mailového PDF porovnej, zda e-mail stále volá původní `generateVoucherPdf(...)`.
 - Pokus o nahrání nepodporovaného typu souboru nebo souboru nad velikostní limit, který musí skončit validační chybou místo 500.
 - Admin `Média webu` po uploadu, editaci nebo publish/unpublish vrací obsluhu na špatný filtr, takže rychlá práce v knihovně působí chaoticky a je potřeba znovu ručně přepínat tabs.
-- Hero portrét na homepage nebo `/o-mne` neodpovídá očekávané stránce, protože je médium uložené pod špatným typem (`PORTRAIT_HOME` vs `PORTRAIT_ABOUT`) nebo chybí fallback na legacy `PORTRAIT`.
+- Hero portrét na homepage nebo `/o-mne` neodpovídá očekávané stránce, protože je médium uložené pod špatným typem (`PORTRAIT_HOME` vs `PORTRAIT_ABOUT`); legacy `PORTRAIT` už veřejný web nepoužívá.
 - Certifikát nahraný v modulu `Média webu`, ale neviditelný na `/o-mne` kvůli jinému `MediaType` než `CERTIFICATE`, vypnutému `isPublished`, neplatné `storagePath` nebo chybějícímu souboru ve storage rootu.
 - Fotka studia nahraná v modulu `Média webu`, ale neviditelná na `/studio` kvůli jinému `MediaType` než `SALON_PHOTO`, vypnutému `isPublished`, neplatné `storagePath` nebo chybějícímu souboru ve storage rootu.
+- Broken image na `/studio` při publikovaném `SALON_PHOTO` záznamu bez fyzického souboru; read model má orphan asset přeskočit a UI nesmí renderovat prázdný rozbitý box.
+- Kontaktní stránka nemá hero fotku, protože nebyl nahraný žádný publikovaný `CONTACT_PHOTO`; očekávaný stav je placeholder, trvalá oprava je nahrát samostatnou fotku ve filtru `Kontakt`.
 - Hlavní portrét na `/o-mne` nahrazený neexistujícím nebo nevhodně ořezaným assetem v `public/brand`, kvůli čemuž by hero ztratil důvěryhodnost nebo vizuální kvalitu na mobilu.
 - Stránka `/o-mne` publikovaná jen s placeholder certifikáty nebo pracovní fotografií i po finálním dodání brand assetů; před release je potřeba ověřit, že placeholder stavy nejsou omylem ponechané jako produkční finální řešení.
 

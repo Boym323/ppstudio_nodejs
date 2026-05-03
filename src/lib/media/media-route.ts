@@ -5,6 +5,7 @@ import { getPublicMediaAssetByPath } from '@/features/media/lib/media-asset-repo
 export const publicMediaTypes = new Map<string, MediaType>([
   ['certificates', MediaType.CERTIFICATE],
   ['spaces', MediaType.SALON_PHOTO],
+  ['contact', MediaType.CONTACT_PHOTO],
   ['portraits', MediaType.PORTRAIT],
   ['portraits-home', MediaType.PORTRAIT_HOME],
   ['portraits-about', MediaType.PORTRAIT_ABOUT],

@@ -71,7 +71,7 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
   - obchodní podmínky
   - GDPR
 - Veřejný obsah je centralizovaný v `src/content/public-site.ts`, aby šly texty a hlavní brand copy měnit bez zásahu do layout komponent.
-- Hero sekce `/kontakt` používá první publikovanou veřejnou fotku studia z media knihovny (`SALON_PHOTO`) jako pravý above-the-fold vizuál; na kontaktu se pro ni přepisuje konkrétní `title` a `alt`, aby odpovídaly skutečnému interiéru a zůstaly stabilní i když se obecný media alt změní.
+- Hero sekce `/kontakt` používá samostatnou publikovanou fotku z media knihovny (`CONTACT_PHOTO`) jako pravý above-the-fold vizuál; pokud zatím není nahraná, zobrazí decentní placeholder a nesahá do fotek studia.
 - Globální SEO popis a fallback kontakty používají skutečné údaje PP Studia: `info@ppstudio.cz`, `+420 732 856 036` a `Sadová 2, 760 01 Zlín`; placeholder kontakty se nemají vracet ani při chybě DB settings.
 - Stručná komunikace storno pravidla na homepage a ve FAQ má být benefit-first a klientsky srozumitelná: nepoužívej interní názvy typu `storno okno` ani procesní věty o tom, jak jsou pravidla komunikovaná; preferuj krátké formulace typu `Změna nebo zrušení termínu je možné nejpozději 24 hodin předem.` nebo kontextovou variantu se stejným významem.
 - `/storno-podminky` už nepoužívá jen generický právní text; stránka má vlastní akční skladbu `hero -> kontaktní box -> rychlý přehled pravidel -> krátké sekce`, aby klientka během pár sekund viděla co dělat a jaké dopady má pozdní storno nebo no-show.
@@ -366,16 +366,21 @@ npm run db:clear-booking-data -- --confirm
 - CTA na rezervaci je dostupné v hlavičce, hero sekcích i obsahových blocích.
 - Stránka `/studio` představuje prostředí PP Studia před první návštěvou:
   - navigace používá název `Studio`
-  - hero má dvě CTA `Rezervovat termín` a `Kontakt` a jako úvodní vizuál bere první publikovanou fotku studia
-  - galerie načítá pouze publikované záznamy `MediaType.SALON_PHOTO`
-  - bez nahraných fotek se zobrazí klidný placeholder, aby stránka nezůstala prázdná ani rozbitá
+  - hero má nadpis `Klidné místo pro vaši péči`, dvě CTA `Rezervovat termín` a `Kontakt` a jako úvodní vizuál bere první publikovanou fotku studia
+  - galerie používá až další publikované fotky po hero (maximálně 6 kusů), takže se úvodní fotka v galerii neduplikuje; layout se přizpůsobuje i při 1-6 galerijních fotkách
+  - veřejný read model vrací jen publikované `MediaType.SALON_PHOTO` assety, u kterých existuje reálný soubor ve storage
+  - obsahové fotky studia používají `MediaAsset.altText`; při chybějícím alt textu se vypíše fallback `Fotografie prostoru PP Studio`
+  - pokud DB obsahuje publikovaný záznam bez fyzického souboru, asset se do `/studio` nezařadí a nevzniká broken image box
+  - ve `development` režimu je povolený fallback na lokální obrázky `public/dev/studio/*`; v produkci se fallback nikdy nepoužívá
   - navazující bloky krátce popisují atmosféru, adresu a finální cestu k rezervaci nebo kontaktu
 - Veřejné napojení modulu `Média webu` je nyní centrální:
-  - `/o-mne` načítá certifikáty přes `MediaType.CERTIFICATE` a hero portrét primárně přes `MediaType.PORTRAIT_ABOUT`, s fallbackem na legacy `MediaType.PORTRAIT`
-  - homepage používá hero portrét primárně přes `MediaType.PORTRAIT_HOME`, s fallbackem na legacy `MediaType.PORTRAIT` a teprve pak na verzovaný brand asset
-  - `/kontakt` a `/studio` používají publikované `MediaType.SALON_PHOTO`; `/kontakt` bere první fotku jako hero, `/studio` používá první fotku pro hero a celý publikovaný seznam pro galerii
-  - `MediaType.GENERAL` má připravený public read model pro budoucí hero, CTA a bannerové bloky, ale zatím není připojený do konkrétní stránky
+  - `/o-mne` načítá certifikáty přes `MediaType.CERTIFICATE` a hero portrét přes `MediaType.PORTRAIT_ABOUT`
+  - homepage používá hero portrét přes `MediaType.PORTRAIT_HOME`; pokud chybí, zůstává verzovaný brand asset
+  - `/studio` používá publikované `MediaType.SALON_PHOTO`; první dostupná fotka je hero a následující dostupné fotky tvoří galerii
+  - `/kontakt` používá pouze publikované `MediaType.CONTACT_PHOTO`; pokud není nahrané, zobrazí placeholder bez fotky studia
 - Certifikáty, fotky prostor, reference a další budoucí obsahové obrázky mají sdílený základ přes `MediaAsset` a lokální upload storage.
+- V admin modulu `Média webu` používej pro fotky studia tab `Prostory`; upload formulář v tomto tabu předvybere typ `SALON_PHOTO` a pole `Pořadí` určuje pořadí hero/galerie na `/studio`.
+- Pro samostatnou fotku na kontaktní stránce používej tab `Kontakt`; upload formulář v tomto tabu předvybere typ `CONTACT_PHOTO` a nejnižší `Pořadí` určuje aktivní hero fotku.
 
 ## Přihlášení Do Adminu
 - Admin login je dostupný na `/admin/prihlaseni`.
@@ -467,11 +472,11 @@ npm run db:clear-booking-data -- --confirm
 - Podporované typy jsou aktuálně obrázky `jpg`, `jpeg`, `png`, `webp`.
 - Maximální velikost souboru je 8 MB.
 - Každý upload dostane krátký generovaný identifikátor a ukládá se jako `{id}-original.<ext>`, `{id}-optimized.<ext>` a `{id}-thumbnail.<ext>` bez použití původního názvu souboru.
-- Relativní storage path má tvar `certificates/2026/04/<id>-original.<ext>`; další typy používají kořeny `spaces/`, `portraits/`, `portraits-home/`, `portraits-about/` nebo `general/`.
+- Relativní storage path má tvar `certificates/2026/04/<id>-original.<ext>`; běžné veřejné typy používají kořeny `spaces/`, `contact/`, `portraits-home/` nebo `portraits-about/`.
 - Publikace je řízená jen přes `MediaAsset.isPublished`; nové uploady se nepřesouvají mezi `public/private`.
 - Modul `Média webu` má první produkční napojení:
   - admin upload, editaci a mazání přes `/admin/media` a `/admin/provoz/media`
-  - typy `CERTIFICATE`, `SALON_PHOTO`, `PORTRAIT_HOME`, `PORTRAIT_ABOUT`, `PORTRAIT` (legacy fallback) a `GENERAL`
+  - běžné admin typy `CERTIFICATE`, `SALON_PHOTO`, `CONTACT_PHOTO`, `PORTRAIT_HOME` a `PORTRAIT_ABOUT`; legacy/nepoužívané typy `PORTRAIT` a `GENERAL` zůstávají jen v DB schématu kvůli kompatibilitě
   - admin UI je záměrně kompaktní pracovní nástroj: krátký header, 4 rychlé statistiky, upload panel s dropzónou, tabs s počty a hustší grid karet
   - každá karta média ukazuje náhled, titulek nebo soubor, typ, publish stav, rozměry, velikost a zřetelné `Použití` + `Sekce`
 - Logo pro PDF dárkové vouchery se nenahrává zvláštním workflow. Admin nejdřív nahraje PNG/JPEG do `Média webu` a potom ho vybere v `/admin/nastaveni` v poli `Logo pro PDF vouchery`; reference se ukládá do `SiteSettings.voucherPdfLogoMediaId`.

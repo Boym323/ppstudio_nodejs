@@ -36,15 +36,6 @@ export async function getPublicImageAssetsByType(
   );
 }
 
-export async function getPublicPortraits() {
-  return getPublicImageAssetsByType(MediaType.PORTRAIT, 'Portrét PP Studio');
-}
-
-export async function getPrimaryPublicPortrait() {
-  const portraits = await getPublicPortraits();
-  return portraits[0] ?? null;
-}
-
 export async function getPublicHomePortraits() {
   return getPublicImageAssetsByType(MediaType.PORTRAIT_HOME, 'Portrét homepage PP Studio');
 }
@@ -56,23 +47,11 @@ export async function getPublicAboutPortraits() {
 export async function getPrimaryPublicHomePortrait() {
   const portraits = await getPublicHomePortraits();
 
-  if (portraits.length > 0) {
-    return portraits[0];
-  }
-
-  return getPrimaryPublicPortrait();
+  return portraits[0] ?? null;
 }
 
 export async function getPrimaryPublicAboutPortrait() {
   const portraits = await getPublicAboutPortraits();
 
-  if (portraits.length > 0) {
-    return portraits[0];
-  }
-
-  return getPrimaryPublicPortrait();
-}
-
-export async function getPublicGeneralImages() {
-  return getPublicImageAssetsByType(MediaType.GENERAL, 'Obecný obrázek PP Studio');
+  return portraits[0] ?? null;
 }

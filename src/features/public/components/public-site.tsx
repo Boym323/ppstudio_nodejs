@@ -31,7 +31,7 @@ import {
 } from '@/features/public/components/contact-sections';
 import { buildFaqPageJsonLd, SeoJsonLd } from '@/features/public/components/seo-json-ld';
 import { getPrimaryPublicHomePortrait } from '@/features/public/lib/public-media';
-import { getPublicStudioPhotos } from '@/features/public/lib/public-studio-photos';
+import { getPrimaryPublicContactPhoto } from '@/features/public/lib/public-studio-photos';
 import { getBookingPolicySettings, getPublicSalonProfile } from '@/lib/site-settings';
 
 function PublicHero({
@@ -899,9 +899,9 @@ export function PricingPage({ services: catalogServices = services }: { services
 }
 
 export async function ContactPage() {
-  const [salonProfile, studioPhotos] = await Promise.all([
+  const [salonProfile, heroPhoto] = await Promise.all([
     getPublicSalonProfile(),
-    getPublicStudioPhotos(),
+    getPrimaryPublicContactPhoto(),
   ]);
   const contactItems = buildContactItems({
     phone: salonProfile.phone,
@@ -910,7 +910,6 @@ export async function ContactPage() {
     instagramUrl: salonProfile.instagramUrl,
   });
   const addressItem = contactItems.find((item) => item.label === 'Adresa salonu');
-  const heroPhoto = studioPhotos[0] ?? null;
   const parkingRateHref = 'https://www.tszlin.cz/uploads/2026-02-27/Sazebn%C3%ADk%20parkovn%C3%A9ho%20platn%C3%BD%20od%201.3.2026%20%C4%8Distopis.pdf';
   const congressParkingHref = 'https://kc-zlin.cz/24846-pro-navstevniky';
 
@@ -927,7 +926,7 @@ export async function ContactPage() {
             ? {
                 src: heroPhoto.imageUrl,
                 title: 'Soukromé místo pro chvíli péče',
-                alt: 'Světlý interiér PP Studia ve Zlíně s béžovými křesly, zrcadlem, stolkem, zlatými detaily a pokojovými rostlinami.',
+                alt: heroPhoto.altText,
                 width: heroPhoto.width ?? 1280,
                 height: heroPhoto.height ?? 960,
               }

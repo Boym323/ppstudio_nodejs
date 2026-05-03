@@ -97,6 +97,8 @@ Dokumentace proměnných prostředí pro lokální vývoj i produkci.
 - UX refaktor `Média webu` také nepřidává žádnou novou env proměnnou; kompaktní upload panel, quick publish/unpublish i tabs s počty používají stejnou storage a stejný aplikační model.
 - Rozdělení portrétů na `PORTRAIT_HOME` a `PORTRAIT_ABOUT` také nepřidává env proměnnou; jde čistě o databázový typ média a veřejný read fallback.
 - Veřejná stránka `/studio` nepřidává žádnou novou env proměnnou; fotky studia čte přes stávající `MediaAsset` metadata a veřejné `/media/public/*` URL, se zachovanou kompatibilitou pro starší `/media/*`.
+- Dev fallback fotek `/studio` (`public/dev/studio/*`) je aktivní jen při `NODE_ENV=development` a nepoužívá žádnou novou env proměnnou; v produkci se fallback automaticky vypíná.
+- Samostatná kontaktní hero fotka (`MediaType.CONTACT_PHOTO`) nepřidává žádnou env proměnnou; používá stejný `MEDIA_STORAGE_ROOT`, media route a Prisma model jako ostatní média.
 - Přepnutí `BookingSource` na nové provozní enum hodnoty (`WEB`, `PHONE`, `INSTAGRAM`, `IN_PERSON`, `OTHER`) je čistě databázová a aplikační změna, ne nová env konfigurace.
 - Refaktor veřejného výběru časů v `/rezervace` také nezavádí žádné nové env proměnné; jde čistě o klientskou UI vrstvu nad existujícím booking catalogem.
 - Admin sekce `Služby` také nepřidává nové env proměnné; používá stávající databázi, session a Prisma klient.

@@ -11,30 +11,30 @@ import {
   getMediaTypeLabel,
   getMediaUsageLabel,
   getMediaUsageSectionLabel,
+  contactPhotoMediaType,
   mediaFilterSchema,
 } from '@/features/admin/lib/admin-media-validation';
 import { listMedia } from '@/features/media/lib/media-library';
 
-type FilterTabValue = 'ALL' | MediaType;
+type VisibleMediaType = Exclude<MediaType, 'PORTRAIT' | 'GENERAL'>;
+type FilterTabValue = 'ALL' | VisibleMediaType;
 
 const filterTabs: Array<{ value: FilterTabValue; label: string }> = [
   { value: 'ALL', label: 'Vše' },
   { value: MediaType.CERTIFICATE, label: 'Certifikáty' },
   { value: MediaType.SALON_PHOTO, label: 'Prostory' },
+  { value: contactPhotoMediaType, label: 'Kontakt' },
   { value: MediaType.PORTRAIT_HOME, label: 'Portrét Homepage' },
   { value: MediaType.PORTRAIT_ABOUT, label: 'Portrét O mně' },
-  { value: MediaType.PORTRAIT, label: 'Portrét Legacy' },
-  { value: MediaType.GENERAL, label: 'Obecné' },
 ];
 
-const mediaTypeOptions = [
+const mediaTypeOptions: Array<{ value: VisibleMediaType; label: string }> = [
   { value: MediaType.CERTIFICATE, label: 'Certifikáty' },
   { value: MediaType.SALON_PHOTO, label: 'Prostory' },
+  { value: contactPhotoMediaType, label: 'Kontakt' },
   { value: MediaType.PORTRAIT_HOME, label: 'Portrét: Homepage' },
   { value: MediaType.PORTRAIT_ABOUT, label: 'Portrét: O mně' },
-  { value: MediaType.PORTRAIT, label: 'Portrét: Legacy (obě stránky)' },
-  { value: MediaType.GENERAL, label: 'Obecné' },
-] as const;
+];
 
 function formatBytes(value: number) {
   if (value < 1024) {
@@ -78,15 +78,18 @@ function flashMessage(flash: string | undefined) {
 
 type MediaAssetItem = Awaited<ReturnType<typeof listMedia>>[number];
 
+function isVisibleMediaManagerAsset(asset: MediaAssetItem) {
+  return asset.type !== MediaType.PORTRAIT && asset.type !== MediaType.GENERAL;
+}
+
 function buildFilterCounts(assets: MediaAssetItem[]) {
   return {
     ALL: assets.length,
     [MediaType.CERTIFICATE]: assets.filter((asset) => asset.type === MediaType.CERTIFICATE).length,
     [MediaType.SALON_PHOTO]: assets.filter((asset) => asset.type === MediaType.SALON_PHOTO).length,
-    [MediaType.PORTRAIT]: assets.filter((asset) => asset.type === MediaType.PORTRAIT).length,
+    [contactPhotoMediaType]: assets.filter((asset) => asset.type === contactPhotoMediaType).length,
     [MediaType.PORTRAIT_HOME]: assets.filter((asset) => asset.type === MediaType.PORTRAIT_HOME).length,
     [MediaType.PORTRAIT_ABOUT]: assets.filter((asset) => asset.type === MediaType.PORTRAIT_ABOUT).length,
-    [MediaType.GENERAL]: assets.filter((asset) => asset.type === MediaType.GENERAL).length,
   } satisfies Record<FilterTabValue, number>;
 }
 
@@ -101,13 +104,13 @@ function getEmptyStateCopy(activeFilter: FilterTabValue) {
     case MediaType.SALON_PHOTO:
       return {
         title: 'Zatím nejsou nahrané žádné fotky prostor',
-        description: 'Přidejte fotografie studia, které se pak propíšou do veřejných galerií.',
+        description: 'Přidejte fotografie studia, které se propíšou do veřejné stránky Studio.',
         cta: 'Nahrát obrázek',
       };
-    case MediaType.PORTRAIT:
+    case contactPhotoMediaType:
       return {
-        title: 'Zatím nejsou nahrané žádné legacy portréty',
-        description: 'Legacy portrét se používá jako fallback pro homepage i stránku O mně.',
+        title: 'Zatím není nahraná žádná fotka pro kontakt',
+        description: 'Přidejte samostatnou hero fotografii pro kontaktní stránku.',
         cta: 'Nahrát obrázek',
       };
     case MediaType.PORTRAIT_HOME:
@@ -120,12 +123,6 @@ function getEmptyStateCopy(activeFilter: FilterTabValue) {
       return {
         title: 'Zatím není nahraný portrét pro stránku O mně',
         description: 'Nahrajte portrét, který se zobrazí pouze v hero sekci O mně.',
-        cta: 'Nahrát obrázek',
-      };
-    case MediaType.GENERAL:
-      return {
-        title: 'Zatím nejsou nahrané žádné obecné obrázky',
-        description: 'Sem patří univerzální vizuály připravené pro další obsahové bloky.',
         cta: 'Nahrát obrázek',
       };
     default:
@@ -143,14 +140,29 @@ function mediaBadgeClass(type: MediaType) {
       return 'border-[var(--color-accent)]/30 bg-[rgba(190,160,120,0.12)] text-[var(--color-accent-soft)]';
     case MediaType.SALON_PHOTO:
       return 'border-cyan-300/20 bg-cyan-400/10 text-cyan-50';
-    case MediaType.PORTRAIT:
-      return 'border-fuchsia-300/20 bg-fuchsia-400/10 text-fuchsia-50';
+    case contactPhotoMediaType:
+      return 'border-teal-300/20 bg-teal-400/10 text-teal-50';
     case MediaType.PORTRAIT_HOME:
       return 'border-violet-300/20 bg-violet-400/10 text-violet-50';
     case MediaType.PORTRAIT_ABOUT:
       return 'border-indigo-300/20 bg-indigo-400/10 text-indigo-50';
     case MediaType.GENERAL:
       return 'border-white/12 bg-white/7 text-white/76';
+  }
+}
+
+function getUploadTitlePlaceholder(type: VisibleMediaType) {
+  switch (type) {
+    case MediaType.SALON_PHOTO:
+      return 'Např. Hlavní místnost studia';
+    case contactPhotoMediaType:
+      return 'Např. Hero fotka pro kontakt';
+    case MediaType.CERTIFICATE:
+      return 'Např. Lash Lifting Masterclass';
+    case MediaType.PORTRAIT_HOME:
+      return 'Např. Portrét pro homepage';
+    case MediaType.PORTRAIT_ABOUT:
+      return 'Např. Portrét pro stránku O mně';
   }
 }
 
@@ -165,11 +177,12 @@ export async function AdminMediaPage({
   const rawType = typeof searchParams?.type === 'string' ? searchParams.type : 'ALL';
   const activeFilter = mediaFilterSchema.safeParse(rawType).success ? mediaFilterSchema.parse(rawType) : 'ALL';
   const allAssets = await listMedia();
-  const assets = activeFilter === 'ALL' ? allAssets : allAssets.filter((asset) => asset.type === activeFilter);
+  const visibleAssets = allAssets.filter(isVisibleMediaManagerAsset);
+  const assets = activeFilter === 'ALL' ? visibleAssets : visibleAssets.filter((asset) => asset.type === activeFilter);
   const notification = flashMessage(flash);
-  const counts = buildFilterCounts(allAssets);
-  const publishedCount = allAssets.filter((asset) => asset.isPublished).length;
-  const hiddenCount = allAssets.length - publishedCount;
+  const counts = buildFilterCounts(visibleAssets);
+  const publishedCount = visibleAssets.filter((asset) => asset.isPublished).length;
+  const hiddenCount = visibleAssets.length - publishedCount;
 
   return (
     <AdminPageShell
@@ -177,7 +190,7 @@ export async function AdminMediaPage({
       title="Média webu"
       description="Rychlá správa obrázků pro web. Certifikáty jsou jen jeden z typů médií, které tu můžete nahrát a spravovat."
       stats={[
-        { label: 'Celkem médií', value: String(allAssets.length), tone: 'default' },
+        { label: 'Celkem médií', value: String(visibleAssets.length), tone: 'default' },
         { label: 'Publikováno', value: String(publishedCount), tone: 'accent' },
         { label: 'Skryto', value: String(hiddenCount), tone: 'muted' },
         { label: 'Certifikáty', value: String(counts[MediaType.CERTIFICATE]), tone: 'default' },
@@ -214,6 +227,8 @@ export async function AdminMediaPage({
 }
 
 export function MediaUploadForm({ area, activeFilter }: { area: AdminArea; activeFilter: FilterTabValue }) {
+  const defaultUploadType = activeFilter === 'ALL' ? MediaType.CERTIFICATE : activeFilter;
+
   return (
     <AdminPanel
       title="Nahrát obrázek"
@@ -232,7 +247,7 @@ export function MediaUploadForm({ area, activeFilter }: { area: AdminArea; activ
             <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/55">Typ média</span>
             <select
               name="type"
-              defaultValue={MediaType.CERTIFICATE}
+              defaultValue={defaultUploadType}
               className="mt-2 w-full rounded-[1rem] border border-white/10 bg-black/20 px-3.5 py-2.5 text-sm text-white outline-none transition focus:border-[var(--color-accent)]/60"
             >
               {mediaTypeOptions.map((option) => (
@@ -250,21 +265,36 @@ export function MediaUploadForm({ area, activeFilter }: { area: AdminArea; activ
               name="title"
               maxLength={120}
               className="mt-2 w-full rounded-[1rem] border border-white/10 bg-black/20 px-3.5 py-2.5 text-sm text-white outline-none transition placeholder:text-white/32 focus:border-[var(--color-accent)]/60"
-              placeholder="Např. Lash Lifting Masterclass"
+              placeholder={getUploadTitlePlaceholder(defaultUploadType)}
             />
           </label>
         </div>
 
-        <label className="block">
-          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/55">Alt text</span>
-          <input
-            type="text"
-            name="altText"
-            maxLength={160}
-            className="mt-2 w-full rounded-[1rem] border border-white/10 bg-black/20 px-3.5 py-2.5 text-sm text-white outline-none transition placeholder:text-white/32 focus:border-[var(--color-accent)]/60"
-            placeholder="Krátký popis obrázku"
-          />
-        </label>
+        <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_9rem]">
+          <label className="block">
+            <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/55">Alt text</span>
+            <input
+              type="text"
+              name="altText"
+              maxLength={160}
+              className="mt-2 w-full rounded-[1rem] border border-white/10 bg-black/20 px-3.5 py-2.5 text-sm text-white outline-none transition placeholder:text-white/32 focus:border-[var(--color-accent)]/60"
+              placeholder="Krátký popis obrázku"
+            />
+          </label>
+
+          <label className="block">
+            <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/55">Pořadí</span>
+            <input
+              type="number"
+              name="sortOrder"
+              min={0}
+              max={10000}
+              step={1}
+              className="mt-2 w-full rounded-[1rem] border border-white/10 bg-black/20 px-3.5 py-2.5 text-sm text-white outline-none transition placeholder:text-white/32 focus:border-[var(--color-accent)]/60"
+              placeholder="10"
+            />
+          </label>
+        </div>
 
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-[1.1rem] border border-white/8 bg-white/[0.03] px-4 py-3">
           <p className="text-sm text-white/62">Výchozí publikace je zapnutá, po nahrání ji můžete jedním klikem skrýt.</p>
@@ -446,6 +476,7 @@ export function MediaCard({
             <input type="hidden" name="type" value={asset.type} />
             <input type="hidden" name="title" value={asset.title ?? ''} />
             <input type="hidden" name="altText" value={asset.altText ?? ''} />
+            <input type="hidden" name="sortOrder" value={asset.sortOrder ?? ''} />
             <input type="hidden" name="redirectFilter" value={activeFilter} />
             <input type="hidden" name="isPublished" value={asset.isPublished ? 'false' : 'true'} />
             <button
@@ -540,17 +571,33 @@ export function MediaEditDialog({
             />
           </label>
 
-          <label className="block">
-            <span className="text-xs font-semibold uppercase tracking-[0.14em] text-white/55">Publikace</span>
-            <select
-              name="isPublished"
-              defaultValue={asset.isPublished ? 'true' : 'false'}
-              className="mt-1.5 w-full rounded-[0.95rem] border border-white/10 bg-black/25 px-3 py-2.5 text-sm text-white outline-none focus:border-[var(--color-accent)]/60"
-            >
-              <option value="true">Publikováno</option>
-              <option value="false">Skryto</option>
-            </select>
-          </label>
+          <div className="grid gap-3 sm:grid-cols-[8rem_minmax(0,1fr)]">
+            <label className="block">
+              <span className="text-xs font-semibold uppercase tracking-[0.14em] text-white/55">Pořadí</span>
+              <input
+                type="number"
+                name="sortOrder"
+                min={0}
+                max={10000}
+                step={1}
+                defaultValue={asset.sortOrder ?? ''}
+                className="mt-1.5 w-full rounded-[0.95rem] border border-white/10 bg-black/25 px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/32 focus:border-[var(--color-accent)]/60"
+                placeholder="10"
+              />
+            </label>
+
+            <label className="block">
+              <span className="text-xs font-semibold uppercase tracking-[0.14em] text-white/55">Publikace</span>
+              <select
+                name="isPublished"
+                defaultValue={asset.isPublished ? 'true' : 'false'}
+                className="mt-1.5 w-full rounded-[0.95rem] border border-white/10 bg-black/25 px-3 py-2.5 text-sm text-white outline-none focus:border-[var(--color-accent)]/60"
+              >
+                <option key="published" value="true">Publikováno</option>
+                <option key="hidden" value="false">Skryto</option>
+              </select>
+            </label>
+          </div>
 
           <div className="flex justify-end pt-1">
             <button

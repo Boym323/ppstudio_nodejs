@@ -6,6 +6,17 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- `/studio` prošlo jemným density passem: desktopové a tabletové vertikální paddingy mezi hero, galerií, atmosférou, adresní kartou a spodním CTA jsou kratší bez změny textů, médií nebo struktury stránky.
+- `/studio` nově renderuje jen publikované `SALON_PHOTO` assety, které mají fyzicky dostupný soubor ve storage; rozbité DB záznamy už nevedou k broken image placeholderům.
+- `/studio` nyní používá první dostupnou fotku jako hero a další fotky (max 6) jako samostatnou galerii; pokud galerie data chybí, sekce se korektně skryje bez chybového boxu.
+- `/studio` má jemně upravené texty hero, galerie, atmosféry, lokace a spodního CTA; galerie nově lépe rozkládá 1-6 navazujících fotek bez duplikace hero záběru.
+- Studio fotografie bez DB alt textu používají bezpečný fallback `Fotografie prostoru PP Studio`.
+- Ve `development` režimu má `/studio` fallback na lokální statické fotky z `public/dev/studio/*`, takže stránka zůstává laditelná i bez produkčních médií v DB.
+- Admin upload v modulu `Média webu` nově na aktivním filtru předvybere stejný typ média, takže v tabu `Prostory` se fotky studia ukládají rovnou jako `SALON_PHOTO`.
+- Media formuláře doplnily volitelné pole `Pořadí` nad existujícím `MediaAsset.sortOrder`; veřejné stránky po uploadu, editaci i publish/unpublish revalidují také `/studio` a `/kontakt`.
+- `/kontakt` používá samostatný typ média `CONTACT_PHOTO` a při chybějící kontaktní fotce zobrazí placeholder místo fallbacku na fotku studia.
+- Admin media selecty pro typ média používají stabilní hodnotu `CONTACT_PHOTO`, aby dev runtime nehlásil React warning o chybějícím `key` u option prvků po přidání nového typu.
+- Media manager už v běžném UI nenabízí nepoužívané typy `PORTRAIT` (legacy) a `GENERAL`; veřejné portréty čtou jen cílené typy `PORTRAIT_HOME` a `PORTRAIT_ABOUT`.
 - Stránka `/studio` je nově prolinkovaná z veřejného webu přes `mainNavigation` (`header` i sekce `Navigace` ve footeru).
 - Veřejná route `/studio` je znovu publikovaná: `src/app/(public)/studio/page.tsx` už nevrací `notFound()`, ale načítá publikované fotky přes `getPublicStudioPhotos()` a renderuje `StudioPage`.
 - Veřejná stránka `/o-mne` prošla evolučním density passem: hero, benefit karty, návaznost `Můj příběh` / `Můj přístup`, FOR LIFE & MADAGA blok a certifikace mají menší vertikální rozestupy a paddingy bez změny vizuální identity; copy příběhu je sebevědomější, `Rozvoj` je přejmenovaný na `Odbornost` a text FOR LIFE & MADAGA mluví víc jako benefit pro klientku.
@@ -241,13 +252,13 @@ Formát je inspirovaný Keep a Changelog.
 - Rychlé akce služby se přesunuly do compact menu `⋯`; běžné toggly aktivity a veřejnosti jsou na desktopu dostupné i jako malé inline přepínače přímo v řádku.
 - Filtry sekce `Služby` jsou kompaktnější a na desktopu sticky; horní statistiky i souhrnný řádek nad seznamem mají menší vizuální výšku.
 - Portréty jsou nově rozdělené na cíle `PORTRAIT_HOME` (homepage hero) a `PORTRAIT_ABOUT` (`/o-mne` hero), takže každá stránka může používat vlastní obrázek bez nového upload systému.
-- Veřejné read modely mají bezpečný fallback: když chybí cílený portrét, homepage i `/o-mne` dál použijí legacy `PORTRAIT`.
-- Admin `Média webu` nyní nabízí samostatné typy `Portrét: Homepage`, `Portrét: O mně` a `Portrét: Legacy (obě stránky)` v uploadu, editaci, filtrech i badge použití.
+- Veřejné read modely pro portréty už nepoužívají legacy `PORTRAIT`; homepage čte `PORTRAIT_HOME` a `/o-mne` čte `PORTRAIT_ABOUT`.
+- Admin `Média webu` nyní v běžném workflow nabízí cílené typy `Portrét: Homepage` a `Portrét: O mně`; legacy `PORTRAIT` je z UI odstraněný.
 - Admin sekce `Služby` nově otevírá detail/editaci jako pravý overlay drawer i na desktopu; původní fixní pravý panel byl odstraněný, seznam zůstává hlavní pracovní plochou.
 - Admin sekce `Kategorie služeb` sjednotila detail na pravý overlay drawer pro desktop i mobil; původní desktop `sticky detail` panel byl odstraněný.
 - `Média webu` v adminu prošla UX refaktorem bez změny storage strategie nebo datového modelu: kratší header, kompaktní statistiky `Celkem médií / Publikováno / Skryto / Certifikáty`, výraznější upload panel a hustší responsive grid karet.
 - Upload panel nově používá klikací dropzónu s výběrem souboru, krátkou nápovědu pro `JPG/PNG/WebP` a kompaktní pole pro typ, titulek a alt text v jednom pracovním bloku.
-- Filtry médií jsou teď tabs s počty pro `Vše`, `Certifikáty`, `Prostory`, `Portrét Homepage`, `Portrét O mně`, `Portrét Legacy` a `Obecné`; po uploadu, editaci, publish/unpublish i smazání se zachovává aktivní filtr.
+- Filtry médií jsou teď tabs s počty pro `Vše`, `Certifikáty`, `Prostory`, `Kontakt`, `Portrét Homepage` a `Portrét O mně`; po uploadu, editaci, publish/unpublish i smazání se zachovává aktivní filtr.
 - Karty médií nově zdůrazňují náhled, název, badge typu, badge publikace, rozměry, velikost a použití; quick akce `Upravit`, `Publikovat/Skrýt` a `Odstranit` zrychlují běžnou správu bez nového upload systému.
 - Media Library má sjednocenou storage strategii pro nové uploady: výchozí root je `/var/www/ppstudio/uploads`, soubory jdou vždy do `public/{type}/YYYY/MM` a veřejná kanonická URL je `/media/public/{type}/YYYY/MM/{assetId}-{variant}.{ext}`.
 - Naming uploadů už nepoužívá původní jména souborů; `storedFilename` se generuje jako krátký asset key se suffixy `original`, `optimized`, `thumbnail`.
@@ -259,7 +270,7 @@ Formát je inspirovaný Keep a Changelog.
 - Admin sekce už pracuje jen s novým modulem `Média webu`; legacy slug `certifikaty` byl odstraněn z routingu a URL `/admin/certifikaty` ani `/admin/provoz/certifikaty` už nejsou podporované.
 - Upload policy pro média je zjednodušená jen na formáty `JPG/PNG/WEBP`, aby odpovídala nové server-side image pipeline přes `sharp`.
 
-- Veřejné stránky now používají centrální `MediaAsset` read model i mimo certifikace: `/o-mne` bere hero z `MediaType.PORTRAIT_ABOUT` (fallback `PORTRAIT`), homepage bere hero portrét z `MediaType.PORTRAIT_HOME` (fallback `PORTRAIT` a pak brand asset) a `/kontakt` bere hero z první publikované `MediaType.SALON_PHOTO`.
+- Veřejné stránky now používají centrální `MediaAsset` read model i mimo certifikace: `/o-mne` bere hero z `MediaType.PORTRAIT_ABOUT` (fallback `PORTRAIT`), homepage bere hero portrét z `MediaType.PORTRAIT_HOME` (fallback `PORTRAIT` a pak brand asset) a `/kontakt` bere hero pouze z `MediaType.CONTACT_PHOTO`.
 - Admin grid `Média webu` nyní u každého assetu jasně ukazuje typ, publish stav a text `Použití`, aby bylo vidět, kde se obrázek na webu propisuje.
 - Přibyl sdílený public media helper pro publikované obrázky podle typu; `MediaType.GENERAL` má připravený read model pro budoucí hero/CTA bannery bez dalšího upload systému.
 

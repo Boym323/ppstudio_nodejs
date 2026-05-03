@@ -9,6 +9,7 @@ export type MediaUploadInput = {
   isPublished?: boolean;
   altText?: string | null;
   title?: string | null;
+  sortOrder?: number | null;
 };
 
 export type ValidatedMediaFile = {

@@ -3,25 +3,24 @@ import Image from 'next/image';
 import { Container } from '@/components/ui/container';
 import { SectionHeading } from '@/components/ui/section-heading';
 import { TrackedLink } from '@/features/analytics/tracked-link';
-import { getPublicSalonProfile } from '@/lib/site-settings';
 import type { PublicStudioPhoto } from '@/features/public/lib/public-studio-photos';
 
 type StudioPageProps = {
   photos: PublicStudioPhoto[];
 };
 
-const highlights = ['klidné prostředí', 'osobní přístup', 'prostor bez spěchu', 'pohodlí při péči'];
+const highlights = ['Klidné prostředí', 'Osobní přístup', 'Prostor bez spěchu', 'Pohodlí při péči'];
 
-export async function StudioPage({ photos }: StudioPageProps) {
-  const salonProfile = await getPublicSalonProfile();
+export function StudioPage({ photos }: StudioPageProps) {
   const heroPhoto = photos[0] ?? null;
+  const galleryPhotos = photos.slice(1, 7);
 
   return (
-    <div className="overflow-hidden pb-8 sm:pb-12">
+    <div className="overflow-hidden pb-7 sm:pb-10">
       <StudioHero photo={heroPhoto} />
-      <StudioGallery photos={photos} />
+      <StudioGallery photos={galleryPhotos} />
       <StudioHighlights />
-      <StudioLocationCta addressLine={salonProfile.addressLine} />
+      <StudioLocationCta />
       <StudioFinalCta />
     </div>
   );
@@ -30,7 +29,7 @@ export async function StudioPage({ photos }: StudioPageProps) {
 export function StudioHero({ photo }: { photo: PublicStudioPhoto | null }) {
   return (
     <section className="relative isolate overflow-hidden border-b border-black/5 bg-[linear-gradient(180deg,#f8f2eb_0%,#f4eadf_52%,#f8f3ed_100%)]">
-      <Container className="grid gap-8 py-10 sm:gap-10 sm:py-14 lg:grid-cols-[1.03fr_0.97fr] lg:items-center lg:gap-12 lg:py-20">
+      <Container className="grid gap-8 py-10 sm:gap-9 sm:py-12 lg:grid-cols-[1.03fr_0.97fr] lg:items-center lg:gap-11 lg:py-16">
         <div className="max-w-[48rem] space-y-8">
           <div className="space-y-6">
             <p className="text-eyebrow tracking-[0.22em] text-[var(--color-accent)]">Studio</p>
@@ -38,7 +37,7 @@ export function StudioHero({ photo }: { photo: PublicStudioPhoto | null }) {
               Klidné místo pro vaši péči
             </h1>
             <p className="max-w-[42rem] text-[15px] leading-7 text-[var(--color-muted)] sm:text-[1.1rem] sm:leading-8">
-              Podívejte se, jak to u nás vypadá ještě před první návštěvou. PP Studio je komorní prostor pro péči o pleť, výraz i chvíli klidu bez zbytečného spěchu.
+              Podívejte se, jak to ve studiu vypadá ještě před první návštěvou. Čeká vás komorní prostor pro péči o pleť, úpravu výrazu i chvíli klidu bez zbytečného spěchu.
             </p>
           </div>
 
@@ -83,40 +82,79 @@ export function StudioHero({ photo }: { photo: PublicStudioPhoto | null }) {
   );
 }
 
+function getGalleryCardClassName(index: number, total: number) {
+  if (total === 1) {
+    return 'sm:col-span-2 lg:col-span-12';
+  }
+
+  if (total === 2) {
+    return 'lg:col-span-6';
+  }
+
+  if (total === 3) {
+    return index === 0 ? 'sm:col-span-2 lg:col-span-6' : 'lg:col-span-3';
+  }
+
+  if (total === 4) {
+    return 'lg:col-span-6';
+  }
+
+  if (total === 5) {
+    return index === 0 ? 'sm:col-span-2 lg:col-span-8' : 'lg:col-span-4';
+  }
+
+  return 'lg:col-span-4';
+}
+
+function getGalleryImageAspectClassName(index: number, total: number) {
+  if (total === 1) {
+    return 'aspect-[16/10] sm:aspect-[21/10]';
+  }
+
+  if (total === 3 && index === 0) {
+    return 'aspect-[16/10] sm:aspect-[21/10] lg:aspect-[16/10]';
+  }
+
+  if (total === 5 && index === 0) {
+    return 'aspect-[16/10] sm:aspect-[21/10] lg:aspect-[16/9]';
+  }
+
+  return 'aspect-[4/3] sm:aspect-[16/11] lg:aspect-[7/6]';
+}
+
 export function StudioGallery({ photos }: { photos: PublicStudioPhoto[] }) {
+  if (photos.length === 0) {
+    return null;
+  }
+
   return (
-    <section className="py-10 sm:py-14 lg:py-16">
-      <Container className="space-y-7 sm:space-y-9">
+    <section className="py-8 sm:py-12 lg:py-13">
+      <Container className="space-y-6 sm:space-y-8">
         <SectionHeading
           eyebrow="Fotogalerie studia"
-          title="Prostor, kde péče probíhá v klidu a osobně."
-          description="Krátký pohled do prostředí studia, aby první návštěva nepůsobila neznámě."
+          title="Nahlédněte do prostoru, kde péče probíhá v klidu a osobně."
+          description="Fotografie vám přiblíží prostředí studia ještě před první návštěvou."
         />
 
-        {photos.length > 0 ? (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-5">
-            {photos.map((photo, index) => (
-              <article
-                key={photo.id}
-                className={index === 0 ? 'sm:col-span-2 lg:col-span-1' : undefined}
-              >
-                <div className="relative aspect-[4/3] overflow-hidden rounded-[calc(var(--radius-panel)-0.45rem)] border border-white/80 bg-white shadow-[0_18px_50px_rgba(34,22,12,0.08)]">
-                  <Image
-                    src={photo.imageUrl}
-                    alt={photo.altText}
-                    fill
-                    sizes="(min-width: 1024px) 31vw, (min-width: 640px) 50vw, 100vw"
-                    className="object-cover object-center transition duration-500 hover:scale-[1.025]"
-                  />
-                </div>
-              </article>
-            ))}
-          </div>
-        ) : (
-          <div className="rounded-[var(--radius-panel)] border border-black/6 bg-white/82 p-4 shadow-[var(--shadow-panel)] sm:p-5">
-            <StudioPhotoPlaceholder className="min-h-[18rem] sm:min-h-[24rem]" label="Fotky studia budou brzy doplněné" />
-          </div>
-        )}
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-12 lg:gap-5">
+          {photos.map((photo, index) => (
+            <article
+              key={photo.id}
+              className={getGalleryCardClassName(index, photos.length)}
+            >
+              <div className="relative overflow-hidden rounded-[calc(var(--radius-panel)-0.45rem)] border border-white/80 bg-white shadow-[0_18px_50px_rgba(34,22,12,0.08)]">
+                <Image
+                  src={photo.imageUrl}
+                  alt={photo.altText}
+                  fill
+                  sizes="(min-width: 1024px) 62vw, (min-width: 640px) 50vw, 100vw"
+                  className="object-cover object-center transition duration-500 hover:scale-[1.025]"
+                />
+                <div className={getGalleryImageAspectClassName(index, photos.length)} />
+              </div>
+            </article>
+          ))}
+        </div>
       </Container>
     </section>
   );
@@ -124,12 +162,12 @@ export function StudioGallery({ photos }: { photos: PublicStudioPhoto[] }) {
 
 export function StudioHighlights() {
   return (
-    <section className="py-9 sm:py-12 lg:py-14">
+    <section className="py-8 sm:py-10 lg:py-12">
       <Container className="grid gap-6 lg:grid-cols-[0.8fr_1.2fr] lg:items-start">
         <SectionHeading
           eyebrow="Atmosféra"
           title="Co u nás najdete"
-          description="Místo navržené tak, aby péče měla svůj čas, soukromí a přirozený rytmus."
+          description="Místo, kde má péče svůj čas, soukromí a přirozený rytmus."
         />
         <div className="grid gap-4 sm:grid-cols-2">
           {highlights.map((item, index) => (
@@ -151,18 +189,30 @@ export function StudioHighlights() {
   );
 }
 
-export function StudioLocationCta({ addressLine }: { addressLine: string }) {
+function StudioPhotoPlaceholder({ className, label }: { className: string; label: string }) {
   return (
-    <section className="py-9 sm:py-12 lg:py-14">
+    <div className={`relative flex items-end overflow-hidden rounded-[calc(var(--radius-panel)-0.45rem)] bg-[linear-gradient(145deg,#f8efe5_0%,#efe0d0_54%,#f9f4ee_100%)] ${className}`}>
+      <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,255,255,0.18)_1px,transparent_1px),linear-gradient(180deg,rgba(255,255,255,0.18)_1px,transparent_1px)] bg-[length:4rem_4rem]" />
+      <div className="relative m-5 max-w-sm rounded-[1.5rem] border border-white/70 bg-white/72 p-5 shadow-[0_18px_48px_rgba(34,22,12,0.08)] backdrop-blur sm:m-6">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-accent)]">Studio</p>
+        <p className="mt-3 font-display text-2xl leading-[1.12] text-[var(--color-foreground)] sm:text-3xl">{label}</p>
+      </div>
+    </div>
+  );
+}
+
+export function StudioLocationCta() {
+  return (
+    <section className="py-8 sm:py-10 lg:py-12">
       <Container>
         <article className="grid gap-6 rounded-[var(--radius-panel)] border border-black/6 bg-white p-6 shadow-[var(--shadow-panel)] sm:p-7 lg:grid-cols-[1fr_auto] lg:items-center lg:p-8">
           <div>
             <p className="text-eyebrow text-[var(--color-accent)]">Kde nás najdete</p>
             <h2 className="mt-3 font-display text-[2rem] leading-[1.08] text-[var(--color-foreground)] sm:text-[2.6rem]">
-              Snadná cesta do klidného studia.
+              Najdete nás na Sadové 2 ve Zlíně.
             </h2>
             <p className="mt-4 max-w-2xl text-[15px] leading-7 text-[var(--color-muted)] sm:text-base">
-              Studio najdete na adrese {addressLine}. Pokud si nejste jistá cestou nebo vhodnou službou, napište a domluvíme se v klidu předem.
+              Pokud si nejste jistá cestou nebo výběrem služby, napište — vše spolu v klidu domluvíme předem.
             </p>
           </div>
           <TrackedLink
@@ -180,14 +230,14 @@ export function StudioLocationCta({ addressLine }: { addressLine: string }) {
 
 export function StudioFinalCta() {
   return (
-    <section className="py-9 sm:py-12 lg:py-14">
+    <section className="py-8 sm:py-10 lg:py-12">
       <Container>
         <article className="rounded-[var(--radius-panel)] border border-[#2c221d]/10 bg-[linear-gradient(135deg,#211915_0%,#3a2a22_58%,#6c4d38_100%)] p-6 text-white shadow-[0_28px_80px_rgba(34,22,12,0.18)] sm:p-8 lg:p-10">
           <div className="grid gap-6 lg:grid-cols-[1fr_auto] lg:items-center">
             <div>
               <p className="text-eyebrow text-[#dbc2a5]">Rezervace</p>
               <h2 className="mt-3 max-w-xl font-display text-[2.35rem] leading-[1.02] sm:text-[3.2rem]">
-                Chcete si vybrat termín?
+                Až budete připravená, vyberte si termín.
               </h2>
             </div>
             <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
@@ -210,17 +260,5 @@ export function StudioFinalCta() {
         </article>
       </Container>
     </section>
-  );
-}
-
-function StudioPhotoPlaceholder({ className, label }: { className: string; label: string }) {
-  return (
-    <div className={`relative flex items-end overflow-hidden rounded-[calc(var(--radius-panel)-0.45rem)] bg-[linear-gradient(145deg,#f8efe5_0%,#efe0d0_54%,#f9f4ee_100%)] ${className}`}>
-      <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,255,255,0.18)_1px,transparent_1px),linear-gradient(180deg,rgba(255,255,255,0.18)_1px,transparent_1px)] bg-[length:4rem_4rem]" />
-      <div className="relative m-5 max-w-sm rounded-[1.5rem] border border-white/70 bg-white/72 p-5 shadow-[0_18px_48px_rgba(34,22,12,0.08)] backdrop-blur sm:m-6">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-accent)]">Studio</p>
-        <p className="mt-3 font-display text-2xl leading-[1.12] text-[var(--color-foreground)] sm:text-3xl">{label}</p>
-      </div>
-    </div>
   );
 }

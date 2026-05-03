@@ -78,6 +78,8 @@ Seznam důležitých knihoven a důvod jejich použití.
 - UX refaktor `Média webu` také nepřidává žádnou novou závislost; dropzóna, tabs s počty, quick publish/unpublish i kompaktní edit dialog běží na stávajících React/Next primitives.
 - Rozdělení portrétů na `PORTRAIT_HOME` a `PORTRAIT_ABOUT` také nepřidává žádnou novou závislost; používá stávající `MediaAsset` model, Prisma enum a public media helpery.
 - Veřejná stránka `/studio` nepřidává žádnou novou závislost; galerii skládá z existující media vrstvy a `next/image`.
+- Hardening `/studio` proti orphan media záznamům nepřidává žádnou novou závislost; používá stávající `localMediaStorage` a Node `fs` pro dev-only fallback `public/dev/studio/*`.
+- Samostatný typ média pro `/kontakt` nepřidává žádnou novou závislost; jde pouze o rozšíření Prisma enumu `MediaType` a existující media vrstvy.
 - Matomo integrace také nepřidává žádnou novou závislost; helper a CTA wrappers jsou lokální TypeScript/React moduly.
 - FAQPage JSON-LD a rozšířená FAQ stránka nepřidávají žádnou novou závislost; schema se generuje lokálním helperem a accordion zůstává na nativním HTML `details/summary`.
 - Matomo dashboard reporting také nepřidává žádnou novou závislost; `src/lib/analytics/matomo.ts` je server-only wrapper nad Reporting API.

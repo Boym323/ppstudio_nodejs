@@ -26,7 +26,7 @@ function flashUrl(area: 'owner' | 'salon', flash: string, redirectFilter?: 'ALL'
 }
 
 function revalidateMediaPaths(area: 'owner' | 'salon') {
-  for (const path of [getMediaAdminPath(area), '/admin', '/admin/provoz', '/o-mne', '/o-salonu']) {
+  for (const path of [getMediaAdminPath(area), '/admin', '/admin/provoz', '/', '/kontakt', '/studio', '/o-mne', '/o-salonu']) {
     revalidatePath(path);
   }
 }
@@ -57,6 +57,7 @@ export async function uploadMediaAction(formData: FormData) {
     type: formData.get('type') ?? MediaType.CERTIFICATE,
     title: formData.get('title'),
     altText: formData.get('altText'),
+    sortOrder: formData.get('sortOrder'),
     redirectFilter: formData.get('redirectFilter') || undefined,
   });
 
@@ -79,6 +80,7 @@ export async function uploadMediaAction(formData: FormData) {
       isPublished: true,
       title: normalizeOptionalText(parsed.data.title),
       altText: normalizeOptionalText(parsed.data.altText),
+      sortOrder: parsed.data.sortOrder ?? null,
     });
   } catch (error) {
     redirect(flashUrl(parsed.data.area, mapUploadErrorToFlash(error), parsed.data.redirectFilter));
@@ -95,6 +97,7 @@ export async function updateMediaAction(formData: FormData) {
     type: formData.get('type'),
     title: formData.get('title'),
     altText: formData.get('altText'),
+    sortOrder: formData.get('sortOrder'),
     isPublished: formData.get('isPublished'),
     redirectFilter: formData.get('redirectFilter') || undefined,
   });
@@ -110,6 +113,7 @@ export async function updateMediaAction(formData: FormData) {
     title: normalizeOptionalText(parsed.data.title),
     altText: normalizeOptionalText(parsed.data.altText),
     isPublished: parsed.data.isPublished,
+    sortOrder: parsed.data.sortOrder ?? null,
   });
 
   revalidateMediaPaths(parsed.data.area);

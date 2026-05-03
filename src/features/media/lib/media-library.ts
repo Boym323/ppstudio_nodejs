@@ -28,6 +28,7 @@ function legacyKindForType(type: MediaType) {
     case MediaType.CERTIFICATE:
       return MediaAssetKind.CERTIFICATE;
     case MediaType.SALON_PHOTO:
+    case MediaType.CONTACT_PHOTO:
       return MediaAssetKind.SPACE;
     case MediaType.PORTRAIT:
     case MediaType.PORTRAIT_HOME:
@@ -123,6 +124,7 @@ export async function createMedia(input: MediaUploadInput) {
       alt: normalizeMediaText(input.altText),
       altText: normalizeMediaText(input.altText),
       title: normalizeMediaText(input.title),
+      sortOrder: input.sortOrder ?? null,
       storagePath: preparedFile.storagePath,
       url,
       optimizedStoragePath: optimizedVariant?.storagePath ?? null,
@@ -187,6 +189,7 @@ export async function updateMedia(
     title?: string | null;
     altText?: string | null;
     isPublished?: boolean;
+    sortOrder?: number | null;
   },
 ) {
   const data = {
@@ -196,6 +199,7 @@ export async function updateMedia(
       ? { altText: normalizeMediaText(input.altText), alt: normalizeMediaText(input.altText) }
       : {}),
     ...(input.isPublished !== undefined ? { isPublished: input.isPublished } : {}),
+    ...(input.sortOrder !== undefined ? { sortOrder: input.sortOrder } : {}),
   };
 
   const asset = await updateMediaAsset(id, data);

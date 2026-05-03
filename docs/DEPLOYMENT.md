@@ -38,6 +38,8 @@ Postup nasazení aplikace do produkce.
    - FAQ a právní stránky
      - `/obchodni-podminky`: hero CTA, blok poskytovatele a obsahová navigace
      - `/studio`: hero, galerie publikovaných fotek studia z modulu `Média webu`, fallback bez fotek a finální CTA
+     - `/studio`: při existenci publikovaného `SALON_PHOTO` záznamu bez fyzického souboru se obrázek nesmí renderovat jako broken image; orphan záznam má být bezpečně přeskočen
+     - `/kontakt`: hero fotka se bere pouze z publikovaného `CONTACT_PHOTO`; pokud chybí, stránka zobrazí placeholder bez fotky studia
    - CTA na rezervaci
    - self-service změnu termínu `/rezervace/sprava/[token]`:
      - hero říká `Změna termínu rezervace`
@@ -162,14 +164,17 @@ Postup nasazení aplikace do produkce.
      - akce `Přepnout na OWNER/SALON`, `Deaktivovat` a `Znovu aktivovat` se ihned propšou do seznamu
   - modul `Média webu` na `/admin/media` a `/admin/provoz/media`:
      - veřejná stránka `/studio` zobrazí jen publikované fotky typu `SALON_PHOTO`
+     - ve filtru `Prostory` upload předvybere typ `SALON_PHOTO` a volitelné pole `Pořadí` určuje pořadí hero/galerie
+     - ve filtru `Kontakt` upload předvybere typ `CONTACT_PHOTO` a volitelné pole `Pořadí` určuje kontaktní hero fotku
+     - po uploadu nebo publish/unpublish se po další návštěvě aktualizuje `/studio` i `/kontakt`
      - upload podporovaného obrázku s výběrem typu
      - pro JPEG/PNG/WebP vzniká při uploadu originál s EXIF normalizací a k němu `optimized` + `thumbnail` varianta přes `sharp`
      - editace titulku, alt textu, typu a publish/unpublish
-     - tabs filtrů `Vše / Certifikáty / Prostory / Portrét Homepage / Portrét O mně / Portrét Legacy / Obecné` se správnými počty
+     - tabs filtrů `Vše / Certifikáty / Prostory / Kontakt / Portrét Homepage / Portrét O mně` se správnými počty
      - quick publish/unpublish přímo na kartě média bez nutnosti otevírat editaci
      - smazání média
      - propsání publikovaných certifikátů na `/o-mne`
-     - oddělený portrét pro homepage (`PORTRAIT_HOME`) a `/o-mne` (`PORTRAIT_ABOUT`) s fallbackem na legacy `PORTRAIT`
+     - oddělený portrét pro homepage (`PORTRAIT_HOME`) a `/o-mne` (`PORTRAIT_ABOUT`) bez legacy fallbacku
 15. Ověř booking, email a media vrstvu:
   - vytvoření testovací rezervace
   - propsání nové rezervace nebo změny slotu do overview dashboardu bez potřeby buildu nebo manuálního refresh flow navíc
