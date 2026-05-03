@@ -9,6 +9,8 @@ export type AboutCertificateGalleryItem = {
   hint: string;
   alt: string;
   imageUrl?: string | null;
+  width?: number;
+  height?: number;
 };
 
 export function AboutCertificatesGallery({ certificates }: { certificates: AboutCertificateGalleryItem[] }) {
@@ -35,7 +37,7 @@ export function AboutCertificatesGallery({ certificates }: { certificates: About
 
   return (
     <>
-      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:mt-7 lg:grid-cols-3 lg:gap-5">
+      <div className="mt-6 grid gap-3.5 sm:grid-cols-2 lg:mt-7 lg:grid-cols-3 xl:grid-cols-5">
         {certificates.map((certificate) => (
           <article
             key={certificate.id}
@@ -51,17 +53,18 @@ export function AboutCertificatesGallery({ certificates }: { certificates: About
               className="block w-full text-left"
               aria-disabled={!certificate.imageUrl}
             >
-              <div className="relative h-48 w-full overflow-hidden bg-[linear-gradient(160deg,#f6eee5_0%,#f1e5d7_52%,#eadbc9_100%)] p-3 sm:h-52 lg:h-56">
+              <div className="flex h-44 w-full items-center justify-center overflow-hidden bg-[linear-gradient(160deg,#f6eee5_0%,#f1e5d7_52%,#eadbc9_100%)] p-3 sm:h-48 lg:h-52 xl:h-44">
                 {certificate.imageUrl ? (
                   <Image
                     src={certificate.imageUrl}
                     alt={certificate.alt}
-                    fill
-                    sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
-                    className="object-contain p-3 transition duration-300 group-hover:scale-[1.015]"
+                    width={certificate.width ?? 900}
+                    height={certificate.height ?? 640}
+                    sizes="(min-width: 1280px) 18vw, (min-width: 1024px) 31vw, (min-width: 640px) 50vw, 100vw"
+                    className="h-auto max-h-full w-auto max-w-full object-contain transition duration-300 group-hover:scale-[1.015]"
                   />
                 ) : (
-                  <div className="relative flex h-full items-end rounded-[1.35rem] border border-white/60 bg-white/50 p-4">
+                  <div className="relative flex h-full w-full items-end rounded-[1.1rem] border border-white/60 bg-white/50 p-4">
                     <div className="absolute left-[10%] top-[14%] h-16 w-16 rounded-full bg-white/40 blur-2xl" />
                     <div className="absolute right-[8%] top-[20%] h-24 w-24 rounded-full bg-[#e8d5c0]/45 blur-3xl" />
                     <div className="relative space-y-2">
@@ -75,9 +78,11 @@ export function AboutCertificatesGallery({ certificates }: { certificates: About
                   </div>
                 )}
               </div>
-              <div className="p-4">
-                <h3 className="font-display text-[1.35rem] leading-[1.06] text-[var(--color-foreground)]">{certificate.title}</h3>
-                <p className="mt-2 text-[13px] leading-6 text-[var(--color-muted)]">{certificate.hint}</p>
+              <div className="p-3.5">
+                <h3 className="font-display text-[1.15rem] leading-[1.08] text-[var(--color-foreground)] sm:text-[1.25rem]">
+                  {certificate.title}
+                </h3>
+                <p className="mt-1.5 text-[12px] leading-5 text-[var(--color-muted)]">{certificate.hint}</p>
               </div>
             </button>
           </article>
