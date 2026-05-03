@@ -6,6 +6,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Patch update CSS toolchain: `tailwindcss` a `@tailwindcss/postcss` byly zvednuty z `4.2.2` na `4.2.4` bez změny konfigurace nebo aplikační logiky.
 - Celý `/admin/*` strom má nově explicitní `noindex,nofollow` přes App Router metadata v admin layoutu; `robots.txt` blokace adminu zůstává jako crawl ochrana.
 - FAQ stránka doplnila konkrétní odpovědi k doporučené frekvenci kosmetiky, citlivosti úpravy obočí, výdrži barvení obočí, citlivé pleti a příchodu s make-upem.
 - Pravý box hero sekce na `/faq` už neopakuje kontakt CTA; nově funguje jako informační karta `První návštěva` s jemným odkazem na příslušnou FAQ sekci.
