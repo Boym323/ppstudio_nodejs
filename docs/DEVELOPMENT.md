@@ -184,6 +184,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Úvodní stránka používá stejný DB katalog pro featured služby, aby odkazy z homepage mířily na aktuální slugs.
 - Reusable page sekce jsou ve `src/features/public/components/public-site.tsx`.
 - FAQ layout v `src/features/public/components/public-site.tsx` je záměrně server-rendered bez další klientské state vrstvy; pro rozbalování odpovědí preferuje nativní `details/summary`, aby zůstal lehký a dobře kliknutelný i na mobilu.
+- Pravý box ve FAQ hero nemá opakovat kontaktní CTA z levé části; slouží jako klidný informační panel k první návštěvě s nanejvýš nenápadným anchor odkazem na `#prvni-navsteva`.
 - Rychlá orientace FAQ používá anchor odkazy na sekce, globální smooth scroll a mobilní tap targety alespoň kolem 44 px; při dalších úpravách drž odkazy dostatečně velké i při delších českých názvech.
 - U homepage hero drž jako preloadovaný LCP kandidát pouze logo (`next/image` `preload`); portrait nemá mít stejnou prioritu, aby nebral bandwidth/render budget prvním pixelům loga.
 - Kontaktní stránka má vlastní modulární sekce v `src/features/public/components/contact-sections.tsx`:

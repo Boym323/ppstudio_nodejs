@@ -244,23 +244,19 @@ function ActionLink({
 function FaqHeroAside() {
   return (
     <aside className="h-full rounded-[calc(var(--radius-panel)-0.25rem)] border border-white/75 bg-white/88 p-5 shadow-[var(--shadow-panel)] backdrop-blur sm:p-6">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.32em] text-[var(--color-accent)]">Kontakt</p>
+      <p className="text-[11px] font-semibold uppercase tracking-[0.32em] text-[var(--color-accent)]">První návštěva</p>
       <h2 className="mt-4 font-display text-2xl leading-[1.08] text-[var(--color-foreground)] sm:text-3xl">
-        Máte otázku, kterou jste nenašla?
+        Nemusíte vědět přesně, co zvolit.
       </h2>
       <p className="mt-3 text-[14px] leading-6 text-[var(--color-muted)] sm:text-[15px]">
-        Napište do studia. Ráda vám pomohu s výběrem služby i s tím, co očekávat při první návštěvě.
+        Stačí popsat, co řešíte, a službu společně doladíme podle aktuálního stavu pleti a cíle návštěvy.
       </p>
-      <div className="mt-6">
-        <ActionLink
-          href="/kontakt"
-          trackingLocation="hero"
-          trackingPage="faq"
-          className="inline-flex min-h-12 items-center justify-center rounded-full border border-black/10 bg-[var(--color-surface)] px-6 py-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-foreground)] hover:border-black/15 hover:bg-[#f3e7da] sm:text-sm"
-        >
-          Napsat do studia
-        </ActionLink>
-      </div>
+      <a
+        href="#prvni-navsteva"
+        className="mt-6 inline-flex text-[12px] font-semibold uppercase tracking-[0.14em] text-[var(--color-accent-contrast)] underline decoration-[var(--color-accent)]/45 underline-offset-4 hover:text-[var(--color-accent)] hover:decoration-[var(--color-accent)] sm:text-[13px]"
+      >
+        Přejít na první návštěvu
+      </a>
     </aside>
   );
 }
