@@ -23,7 +23,7 @@ Přitom nechceme měnit samotný `email:worker`, retry politiku ani queue mechan
 - Hlavní obsah tvoří filtrovatelný seznam posledních emailů s vazbou na rezervaci, stavem, typem, příjemcem, časem a akcemi.
 - Hlavní seznam schovává placeholder tracking data mimo hlavní sloupce a meta `Další pokus` ukazuje jen tam, kde je operativně relevantní.
 - Technické bloky `Pending fronta`, `Retry pokusy` a `Poslední chyby` zůstávají dostupné, ale až ve spodní debug sekci `Technický stav fronty`, která může být defaultně sbalená do krátkého souhrnu.
-- Detail email logu zůstává technický, ale doplňuje srozumitelnější error kontext a přímý odkaz na rezervaci.
+- Detail email logu zůstává technický, ale doplňuje srozumitelnější error kontext, přímý odkaz na rezervaci a stejný kompaktní provozní layout jako seznam.
 
 ## Alternativy
 

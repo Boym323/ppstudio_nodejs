@@ -29,6 +29,7 @@ type AdminPanelProps = {
   compact?: boolean;
   denseHeader?: boolean;
   tighter?: boolean;
+  className?: string;
 };
 
 type AdminKeyValueListProps = {
@@ -175,12 +176,14 @@ export function AdminPanel({
   compact = false,
   denseHeader = false,
   tighter = false,
+  className,
 }: AdminPanelProps) {
   return (
     <section
       className={cn(
         "rounded-[var(--radius-panel)] border border-white/10 bg-black/10",
         tighter ? "p-4 sm:p-4.5" : compact ? "p-5" : "p-6",
+        className,
       )}
     >
       <div className={cn("border-b border-white/10", tighter ? "pb-2.5" : denseHeader ? "pb-3" : "pb-4")}>

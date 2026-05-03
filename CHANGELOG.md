@@ -6,6 +6,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Detail emailu v admin sekci `Email logy` dostal stejný density pass jako hlavní přehled: nižší header, kratší copy, menší quick actions v jedné operativní liště, hustší souhrn, navázané entity místo vysokých karet používají kompaktní řádky a technické i error bloky jsou méně dominantní.
 - Admin sekce `Email logy` prošla dalším density passem: horní KPI jsou nižší, health box má kratší copy, filtry drží na desktopu jeden kompaktní řádek, hlavní seznam emailů schoval placeholder tracking sloupce do jemného badge `Tracking připraven`, `Další pokus` ukazuje jen u `Čeká/Retry` a technický stav fronty je nově méně dominantní ve sbaleném debug bloku.
 - Admin sekce `Email logy` nyní rozlišuje badge `Přijetí rezervace` pro šablonu `booking-confirmation-v1` a finální `Potvrzení rezervace` pro `booking-approved-v1`; filtr typů e-mailů má stejné dělení.
 - Kontaktní stránka rozšířila spodní sekci `Parkování` z jednoho obecného odstavce na 4 kompaktní tipy (`Hradská`, `Gahurova`, `Sadová`, `Kongresové centrum Zlín`) s orientační cenou pro běžnou návštěvu 90-120 minut, docházkou, stručnou poznámkou a funkčním odkazem `Navigovat`; blok zůstal pod mapou a quick contact částí.

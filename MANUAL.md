@@ -626,12 +626,12 @@ npm run db:clear-booking-data -- --confirm
   - `Další pokus` se v hlavním seznamu ukazuje jen u stavů `Čeká` a `Retry`
   - původní pending/retry/error fronty zůstávají níž v debug bloku `Technický stav fronty`, který je defaultně sbalený do kompaktního souhrnu
 - Detail konkrétního e-mailu na `/admin/email-logy/[emailLogId]` je nově business-first:
-  - nahoře ukazuje výrazný header s názvem emailu, jedním finálním stavem `Odesláno / Čeká / Retry / Selhalo`, příjemcem, klientkou, rezervací a klíčovým časem `Odesláno / Poslední pokus`
-  - hned pod headerem drží rychlé akce `Zpět na přehled`, `Otevřít rezervaci`, případně `Zkusit znovu` nebo `Uvolnit zaseknutý job`
-  - pravý sloupec tvoří kompaktní souhrn `Typ emailu / Šablona / Příjemce / Provider / Poslední pokus / Odesláno / Počet pokusů`
-  - levý sloupec drží navázané entity `Rezervace / Klientka / Token akce`; token je defaultně maskovaný a plně se ukáže až po kliknutí na `Zobrazit`
-  - payload, provider metadata a raw debug data jsou až dole v rozbalovacím bloku `Technické detaily`, defaultně zavřeném, s dalším rozbalením `Zobrazit citlivá data`
-  - pokud existuje chyba, detail ukáže nejdřív stručný čitelný popis a až pak rozbalitelný technický detail chyby
+  - nahoře ukazuje kompaktnější header s názvem emailu, jedním finálním stavem `Odesláno / Čeká / Retry / Selhalo`, příjemcem, klientkou, rezervací a klíčovým časem `Odesláno / Poslední pokus`
+  - hned pod headerem drží zhuštěné rychlé akce `Zpět na přehled`, `Otevřít rezervaci`, případně `Zkusit znovu` nebo `Uvolnit zaseknutý job` v nízké operativní liště
+  - pravý sloupec tvoří hustší souhrn `Typ emailu / Šablona / Příjemce / Provider / Poslední pokus / Odesláno / Počet pokusů`
+  - levý sloupec drží navázané entity `Rezervace / Klientka / Token akce` jako kompaktní řádky; token je defaultně maskovaný a plně se ukáže až po kliknutí na `Zobrazit`
+  - payload, provider metadata a raw debug data jsou až dole v nižším rozbalovacím bloku `Technické detaily`, defaultně zavřeném, s dalším rozbalením `Zobrazit citlivá data`
+  - pokud existuje chyba, detail ukáže nejdřív stručný čitelný popis a až pak kompaktní rozbalitelný technický detail chyby
 - Po úspěšné akci se na detailu objeví krátká potvrzovací hláška, aby bylo zřejmé, že operace proběhla.
 - Veřejný booking flow po odeslání:
   - veřejný web `/`, `/sluzby`, `/cenik` a detail služby nyní čerpá z databáze v request-time
