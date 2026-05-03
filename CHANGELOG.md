@@ -7,6 +7,7 @@ Formát je inspirovaný Keep a Changelog.
 ## [Unreleased]
 
 - JSON-LD `BeautySalon` už nepoužívá napevno zapsanou adresu bez diakritiky; `PostalAddress` a obsluhované město se skládají z veřejného profilu salonu / `SiteSettings`.
+- JSON-LD detailu služby má sjednocené `areaServed` podle veřejného profilu salonu a české breadcrumb názvy `Domů` / `Služby`.
 - Dnešní dashboardový plán i rozšířená timeline nově ukazují u dnešních rezervací existující poznámky s původem `Klientka` / `Interně`, aby byly důležité informace vidět před návštěvou bez otevírání detailu rezervace.
 - Detail klientky v historii návštěv nově rozlišuje poznámky rezervace podle původu (`Klientka` / `Interně`) a při vyplnění obou zobrazí obě místo dosavadního přebíjení `internalNote ?? clientNote`.
 - Provozní admin e-mail `admin-booking-notification-v1` u nové čekající rezervace nově obsahuje `Poznámku od klientky`, pokud ji zákaznice ve veřejném formuláři nebo admin při ruční rezervaci vyplnil; klientské e-maily zůstávají bez této poznámky.

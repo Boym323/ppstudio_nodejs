@@ -68,7 +68,7 @@ export function buildSalonJsonLd(profile: PublicSalonProfile) {
   };
 }
 
-export function buildServiceJsonLd(service: Service) {
+export function buildServiceJsonLd(service: Service, profile: Pick<PublicSalonProfile, "city">) {
   const pageUrl = `${siteConfig.url}/sluzby/${service.slug}`;
   const price = parseCzkPrice(service.priceFrom);
 
@@ -86,7 +86,7 @@ export function buildServiceJsonLd(service: Service) {
         },
         areaServed: {
           "@type": "City",
-          name: "Zlin",
+          name: profile.city,
         },
         offers: {
           "@type": "Offer",
@@ -103,13 +103,13 @@ export function buildServiceJsonLd(service: Service) {
           {
             "@type": "ListItem",
             position: 1,
-            name: "Domu",
+            name: "Domů",
             item: siteConfig.url,
           },
           {
             "@type": "ListItem",
             position: 2,
-            name: "Sluzby",
+            name: "Služby",
             item: `${siteConfig.url}/sluzby`,
           },
           {

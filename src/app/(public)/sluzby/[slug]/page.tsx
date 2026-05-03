@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation';
 import { getPublicServiceBySlug } from '@/features/public/lib/public-services';
 import { ServiceDetailPage, buildPageMetadata } from '@/features/public/components/public-site';
 import { SeoJsonLd, buildServiceJsonLd } from '@/features/public/components/seo-json-ld';
+import { getPublicSalonProfile } from '@/lib/site-settings';
 
 type PageParams = Promise<{ slug: string }>;
 
@@ -37,9 +38,11 @@ export default async function Page({ params }: { params: PageParams }) {
     notFound();
   }
 
+  const salonProfile = await getPublicSalonProfile();
+
   return (
     <>
-      <SeoJsonLd data={buildServiceJsonLd(service)} />
+      <SeoJsonLd data={buildServiceJsonLd(service, salonProfile)} />
       <ServiceDetailPage service={service} />
     </>
   );
