@@ -130,16 +130,17 @@ export function AdminEmailLogsWorkspace({ data }: AdminEmailLogsWorkspaceProps) 
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <EmailHealthPanel data={data} />
 
       <AdminPanel
         title="Poslední emaily"
-        description="Hlavní pracovní seznam pro rychlou kontrolu, komu email odešel, kde čeká a kde je potřeba zásah."
+        description="Přehled posledních emailů a jejich stavu."
         compact
         denseHeader
+        tighter
       >
-        <div className="space-y-4">
+        <div className="space-y-3">
           <EmailFilters
             resultCount={filteredEmails.length}
             searchQuery={searchQuery}
@@ -163,9 +164,9 @@ export function AdminEmailLogsWorkspace({ data }: AdminEmailLogsWorkspaceProps) 
 function EmailHealthPanel({ data }: { data: EmailLogsDashboardData }) {
   return (
     <section
-      className={`rounded-[var(--radius-panel)] border p-5 backdrop-blur-xl sm:p-6 ${healthToneStyles[data.health.tone]}`}
+      className={`rounded-[var(--radius-panel)] border p-4 backdrop-blur-xl sm:p-5 ${healthToneStyles[data.health.tone]}`}
     >
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-[0.68rem] uppercase tracking-[0.24em] text-white/52">
@@ -181,18 +182,18 @@ function EmailHealthPanel({ data }: { data: EmailLogsDashboardData }) {
                   : "Error"}
             </span>
           </div>
-          <h3 className="mt-3 font-display text-[1.7rem] leading-tight text-white sm:text-[2rem]">
+          <h3 className="mt-2.5 font-display text-[1.45rem] leading-tight text-white sm:text-[1.75rem]">
             {data.health.title}
           </h3>
-          <p className="mt-2 text-sm leading-6 text-white/76">{data.health.helper}</p>
-          <p className="mt-3 text-sm leading-6 text-white/88">{data.health.summary}</p>
+          <p className="mt-1.5 text-sm leading-5 text-white/76">{data.health.helper}</p>
+          <p className="mt-2 text-sm leading-5 text-white/88">{data.health.summary}</p>
         </div>
 
-        <div className="min-w-0 max-w-xl rounded-[1.25rem] border border-white/10 bg-black/20 p-4">
+        <div className="min-w-0 max-w-xl rounded-[1rem] border border-white/10 bg-black/20 p-3.5">
           <p className="text-[0.68rem] uppercase tracking-[0.18em] text-white/46">
             Poslední relevantní chyba
           </p>
-          <p className="mt-2 text-sm leading-6 text-white/84">
+          <p className="mt-1.5 text-sm leading-5 text-white/84">
             {data.health.latestError ?? "Aktuálně bez aktivní chyby v retry nebo failed stavu."}
           </p>
         </div>
@@ -224,7 +225,7 @@ function EmailFilters({
 }) {
   return (
     <div className="rounded-[1rem] border border-white/8 bg-[#151219]/95 px-3 py-2.5 backdrop-blur">
-      <div className="grid gap-2 lg:grid-cols-[minmax(0,2.2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.9fr)_auto]">
+      <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-[minmax(0,2.4fr)_minmax(10rem,0.95fr)_minmax(11rem,1fr)_minmax(8rem,0.8fr)_auto] xl:items-end">
         <label className="block">
           <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/42">
             Hledání
@@ -278,7 +279,7 @@ function EmailFilters({
           <option value="30d" className="text-black">30 dní</option>
         </FilterSelect>
 
-        <div className="flex items-end justify-end">
+        <div className="flex items-end justify-end xl:justify-start">
           <button
             type="button"
             onClick={() => {
@@ -298,7 +299,6 @@ function EmailFilters({
         <p>
           Výsledky: <span className="font-medium text-white">{resultCount}</span>
         </p>
-        <p className="text-xs text-white/44">Tracking sloupce jsou připravené pro pozdější doplnění.</p>
       </div>
     </div>
   );
@@ -348,52 +348,53 @@ function RecentEmailList({
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2.5">
       {emails.map((email) => (
         <article
           key={email.id}
-          className="rounded-[1.25rem] border border-white/8 bg-white/5 p-4"
+          className="rounded-[1.1rem] border border-white/8 bg-white/5 px-3.5 py-3"
         >
-          <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+          <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
                 <EmailTypeBadge label={email.typeLabel} tone={email.typeValue} />
                 <EmailStatusBadge label={email.statusLabel} tone={email.statusValue} />
+                <EmailTrackingBadge email={email} />
               </div>
 
-              <div className="mt-3 grid gap-3 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_auto]">
+              <div className="mt-2.5 grid gap-3 xl:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)_minmax(18rem,0.95fr)]">
                 <div className="min-w-0">
                   <p className="text-[0.66rem] uppercase tracking-[0.18em] text-white/42">Klientka / příjemce</p>
-                  <p className="mt-1 text-sm font-medium leading-6 text-white">{email.recipientLabel}</p>
-                  <p className="mt-1 text-sm leading-6 text-white/58">{email.activityLabel}</p>
+                  <p className="mt-1 text-sm font-medium leading-5 text-white">{email.recipientLabel}</p>
+                  <p className="mt-0.5 text-sm leading-5 text-white/58">{email.activityLabel}</p>
                 </div>
 
                 <div className="min-w-0">
                   <p className="text-[0.66rem] uppercase tracking-[0.18em] text-white/42">Související rezervace</p>
                   {email.bookingSummary ? (
                     <div className="mt-1 flex flex-wrap items-center gap-2">
-                      <p className="text-sm leading-6 text-white/84">{email.bookingSummary}</p>
+                      <p className="text-sm leading-5 text-white/84">{email.bookingSummary}</p>
                       {email.bookingHref ? (
                         <Link
                           href={email.bookingHref}
-                          className="rounded-full border border-white/10 px-3 py-1 text-xs font-medium text-white/74 transition hover:border-white/18 hover:text-white"
+                          className="rounded-full border border-white/10 px-2.5 py-1 text-[11px] font-medium text-white/74 transition hover:border-white/18 hover:text-white"
                         >
                           Otevřít rezervaci
                         </Link>
                       ) : null}
                     </div>
                   ) : (
-                    <p className="mt-1 text-sm leading-6 text-white/58">Bez navázané rezervace</p>
+                    <p className="mt-1 text-sm leading-5 text-white/58">Bez rezervace</p>
                   )}
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:min-w-[20rem]">
+                <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 xl:min-w-[18rem]">
                   <CompactMeta label="Vytvořeno" value={email.createdAtLabel} />
                   <CompactMeta label="Odesláno" value={email.sentAtLabel} />
                   <CompactMeta label="Pokusy" value={`${email.attemptCount}×`} />
-                  <CompactMeta label="Otevřeno" value={email.trackingOpenedLabel} />
-                  <CompactMeta label="Kliknuto" value={email.trackingClickedLabel} />
-                  <CompactMeta label="Další pokus" value={email.nextAttemptLabel} />
+                  {email.statusValue === "pending" || email.statusValue === "retry" ? (
+                    <CompactMeta label="Další pokus" value={email.nextAttemptLabel} />
+                  ) : null}
                 </div>
               </div>
 
@@ -402,18 +403,18 @@ function RecentEmailList({
               ) : null}
             </div>
 
-            <div className="flex shrink-0 flex-wrap gap-2 xl:w-[12rem] xl:flex-col">
+            <div className="flex shrink-0 flex-wrap gap-2 xl:w-[11rem] xl:flex-col">
               {email.bookingHref ? (
                 <Link
                   href={email.bookingHref}
-                  className="inline-flex items-center justify-center rounded-full border border-white/10 px-4 py-2.5 text-sm text-white/78 transition hover:border-white/18 hover:text-white"
+                  className="inline-flex items-center justify-center rounded-full border border-white/10 px-3.5 py-2 text-sm text-white/78 transition hover:border-white/18 hover:text-white"
                 >
                   Otevřít rezervaci
                 </Link>
               ) : null}
               <Link
                 href={email.detailHref}
-                className="inline-flex items-center justify-center rounded-full border border-white/10 px-4 py-2.5 text-sm text-white/78 transition hover:border-white/18 hover:text-white"
+                className="inline-flex items-center justify-center rounded-full border border-white/10 px-3.5 py-2 text-sm text-white/78 transition hover:border-white/18 hover:text-white"
               >
                 Detail emailu
               </Link>
@@ -422,7 +423,7 @@ function RecentEmailList({
                   <input type="hidden" name="emailLogId" value={email.id} />
                   <button
                     type="submit"
-                    className="inline-flex w-full items-center justify-center rounded-full bg-[var(--color-accent)] px-4 py-2.5 text-sm font-semibold text-[var(--color-accent-contrast)] transition hover:brightness-105"
+                    className="inline-flex w-full items-center justify-center rounded-full bg-[var(--color-accent)] px-3.5 py-2 text-sm font-semibold text-[var(--color-accent-contrast)] transition hover:brightness-105"
                   >
                     Zkusit znovu
                   </button>
@@ -438,10 +439,26 @@ function RecentEmailList({
 
 function CompactMeta({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-[0.95rem] border border-white/8 bg-black/18 px-3 py-2">
+    <div className="rounded-[0.9rem] border border-white/8 bg-black/18 px-2.5 py-2">
       <p className="text-[0.62rem] uppercase tracking-[0.16em] text-white/38">{label}</p>
-      <p className="mt-1 text-xs leading-5 text-white/84">{value}</p>
+      <p className="mt-0.5 text-xs leading-[1.15rem] text-white/84">{value}</p>
     </div>
+  );
+}
+
+function EmailTrackingBadge({
+  email,
+}: {
+  email: AdminEmailLogsWorkspaceProps["data"]["recentEmails"][number];
+}) {
+  if (email.trackingOpenedLabel !== "Připraveno" || email.trackingClickedLabel !== "Připraveno") {
+    return null;
+  }
+
+  return (
+    <span className="rounded-full border border-white/10 bg-black/20 px-2.5 py-1 text-[0.62rem] font-medium text-white/54">
+      Tracking připraven
+    </span>
   );
 }
 
@@ -451,17 +468,19 @@ function EmailErrorDetail({
   email: AdminEmailLogsWorkspaceProps["data"]["recentEmails"][number];
 }) {
   return (
-    <div className="mt-4 rounded-[1rem] border border-red-300/18 bg-red-400/8 p-4">
+    <div className="mt-3 rounded-[1rem] border border-red-300/18 bg-red-400/8 p-3.5">
       <div className="grid gap-3 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
         <div>
           <p className="text-[0.66rem] uppercase tracking-[0.18em] text-red-50/70">Poslední chyba</p>
-          <p className="mt-2 text-sm leading-6 text-red-50">{email.errorMessage}</p>
+          <p className="mt-1.5 text-sm leading-5 text-red-50">{email.errorMessage}</p>
         </div>
         <div className="grid gap-2 sm:grid-cols-2">
           <CompactMeta label="Typ emailu" value={email.typeLabel} />
           <CompactMeta label="Příjemce" value={email.recipientEmail} />
           <CompactMeta label="Poslední pokus" value={email.lastAttemptLabel} />
-          <CompactMeta label="Další plánovaný pokus" value={email.nextAttemptLabel} />
+          {email.statusValue === "retry" || email.statusValue === "pending" ? (
+            <CompactMeta label="Další pokus" value={email.nextAttemptLabel} />
+          ) : null}
         </div>
       </div>
     </div>
@@ -501,59 +520,82 @@ function EmailTypeBadge({
 }
 
 function EmailQueueDebugSection({ data }: { data: EmailLogsDashboardData }) {
+  const queueHeadline =
+    data.pendingItems.length === 0 && data.retryingItems.length === 0 && data.failedItems.length === 0
+      ? "Fronta čistá"
+      : "Fronta aktivní";
+
   return (
     <AdminPanel
       title="Technický stav fronty"
-      description="Debug blok pro pending frontu, retry, chyby a průběžný stav workeru. Běžný provoz může zůstat nahoře u business přehledu."
+      description="Kompaktní souhrn fronty a workeru."
       compact
       denseHeader
+      tighter
     >
-      <div className="space-y-4">
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          {data.queueStats.map((stat) => (
-            <article
-              key={stat.label}
-              className={`rounded-[1rem] border px-4 py-3 ${queueStatToneStyles[stat.tone ?? "default"]}`}
-            >
-              <p className="text-[0.62rem] uppercase tracking-[0.16em] text-white/40">{stat.label}</p>
-              <p className="mt-2 font-display text-[1.8rem] leading-none">{stat.value}</p>
-              {stat.detail ? (
-                <p className="mt-2 text-sm leading-5 text-white/60">{stat.detail}</p>
-              ) : null}
-            </article>
-          ))}
+      <div className="space-y-3">
+        <div className="rounded-[1rem] border border-white/8 bg-black/20 px-3.5 py-3">
+          <p className="text-sm text-white/82">
+            {queueHeadline} {" · "}Retry {data.retryingItems.length} {" · "}Failed{" "}
+            {data.failedItems.length} {" · "}
+            {data.workerSummary}
+          </p>
         </div>
 
-        <div className="rounded-[1rem] border border-white/8 bg-black/20 p-4">
-          <p className="text-[0.66rem] uppercase tracking-[0.18em] text-white/42">Worker stav</p>
-          <p className="mt-2 text-sm leading-6 text-white/82">{data.workerSummary}</p>
-        </div>
+        <details className="group rounded-[1rem] border border-white/8 bg-white/[0.03]">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3.5 py-3 text-sm font-medium text-white/78 [&::-webkit-details-marker]:hidden">
+            <span>Detail fronty</span>
+            <span className="text-xs text-white/46 transition group-open:rotate-180">⌄</span>
+          </summary>
 
-        <div className="grid gap-4 xl:grid-cols-3">
-          <AdminPanel title="Pending fronta" description="Zprávy čekající na první průchod workeru." compact denseHeader>
-            <AdminKeyValueList
-              items={data.pendingItems}
-              emptyTitle="Žádné emaily nečekají na odeslání."
-              emptyDescription="Fronta je momentálně čistá."
-            />
-          </AdminPanel>
+          <div className="space-y-3 border-t border-white/8 px-3.5 py-3">
+            <div className="grid gap-2.5 md:grid-cols-2 xl:grid-cols-4">
+              {data.queueStats.map((stat) => (
+                <article
+                  key={stat.label}
+                  className={`rounded-[0.95rem] border px-3 py-2.5 ${queueStatToneStyles[stat.tone ?? "default"]}`}
+                >
+                  <p className="text-[0.62rem] uppercase tracking-[0.16em] text-white/40">{stat.label}</p>
+                  <p className="mt-1.5 font-display text-[1.45rem] leading-none">{stat.value}</p>
+                  {stat.detail ? (
+                    <p className="mt-1.5 text-xs leading-5 text-white/60">{stat.detail}</p>
+                  ) : null}
+                </article>
+              ))}
+            </div>
 
-          <AdminPanel title="Retry pokusy" description="Zprávy s naplánovaným dalším pokusem." compact denseHeader>
-            <AdminKeyValueList
-              items={data.retryingItems}
-              emptyTitle="Žádné emaily nečekají na opakovaný pokus."
-              emptyDescription="Aktuálně nevidíme žádný retry backlog."
-            />
-          </AdminPanel>
+            <div className="rounded-[0.95rem] border border-white/8 bg-black/20 p-3">
+              <p className="text-[0.66rem] uppercase tracking-[0.18em] text-white/42">Worker stav</p>
+              <p className="mt-1.5 text-sm leading-5 text-white/82">{data.workerSummary}</p>
+            </div>
 
-          <AdminPanel title="Poslední chyby" description="Selhané záznamy, které potřebují kontrolu nebo ruční zásah." compact denseHeader>
-            <AdminKeyValueList
-              items={data.failedItems}
-              emptyTitle="Žádné selhané emaily."
-              emptyDescription="Poslední doručování proběhlo bez failu."
-            />
-          </AdminPanel>
-        </div>
+            <div className="grid gap-3 xl:grid-cols-3">
+              <AdminPanel title="Pending fronta" description="Čeká na první průchod." compact denseHeader tighter>
+                <AdminKeyValueList
+                  items={data.pendingItems}
+                  emptyTitle="Žádné pending emaily."
+                  emptyDescription="Fronta je čistá."
+                />
+              </AdminPanel>
+
+              <AdminPanel title="Retry pokusy" description="Čekají na další pokus." compact denseHeader tighter>
+                <AdminKeyValueList
+                  items={data.retryingItems}
+                  emptyTitle="Žádné retry emaily."
+                  emptyDescription="Retry fronta je prázdná."
+                />
+              </AdminPanel>
+
+              <AdminPanel title="Poslední chyby" description="Záznamy ke kontrole." compact denseHeader tighter>
+                <AdminKeyValueList
+                  items={data.failedItems}
+                  emptyTitle="Žádné failed emaily."
+                  emptyDescription="Bez čerstvých chyb."
+                />
+              </AdminPanel>
+            </div>
+          </div>
+        </details>
       </div>
     </AdminPanel>
   );

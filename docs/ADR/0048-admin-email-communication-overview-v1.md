@@ -21,7 +21,8 @@ Přitom nechceme měnit samotný `email:worker`, retry politiku ani queue mechan
   - selhalo
   - poslední odeslání
 - Hlavní obsah tvoří filtrovatelný seznam posledních emailů s vazbou na rezervaci, stavem, typem, příjemcem, časem a akcemi.
-- Technické bloky `Pending fronta`, `Retry pokusy` a `Poslední chyby` zůstávají dostupné, ale až ve spodní debug sekci `Technický stav fronty`.
+- Hlavní seznam schovává placeholder tracking data mimo hlavní sloupce a meta `Další pokus` ukazuje jen tam, kde je operativně relevantní.
+- Technické bloky `Pending fronta`, `Retry pokusy` a `Poslední chyby` zůstávají dostupné, ale až ve spodní debug sekci `Technický stav fronty`, která může být defaultně sbalená do krátkého souhrnu.
 - Detail email logu zůstává technický, ale doplňuje srozumitelnější error kontext a přímý odkaz na rezervaci.
 
 ## Alternativy
@@ -38,7 +39,7 @@ Přitom nechceme měnit samotný `email:worker`, retry politiku ani queue mechan
 - Owner získá do 3 sekund rychlou odpověď, zda komunikace funguje a co případně řešit.
 - Stránka lépe propojuje email log s reálnou rezervací a klientkou.
 - Debug informace nezmizí, jen se přesunou níž a nepřebijí hlavní provozní přehled.
-- Tracking sloupce `Otevřeno` a `Kliknuto` jsou připravené jako UI placeholder bez falešných dat.
+- Tracking sloupce `Otevřeno` a `Kliknuto` zůstávají připravené pro budoucí data, ale v hlavním seznamu nejsou dominantní placeholder položkou.
 
 ## Stav
 

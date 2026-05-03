@@ -618,11 +618,13 @@ npm run db:clear-booking-data -- --confirm
 - `EmailLog` umožňuje trasovat odeslané i neúspěšné e-maily navázané na klienta, rezervaci a případný token.
 - Owner-only sekce `Email logy` nyní funguje jako business-first přehled `Komunikace se zákaznicemi`:
   - nahoře ukazuje health stav `OK / Warning / Error` podle failed, retry, pending fronty a poslední relevantní chyby
-  - krátké metriky shrnují `Dnes odesláno`, `Za posledních 7 dní`, `Čeká na odeslání`, `Selhalo` a `Poslední odeslání`
+  - krátké metriky shrnují `Dnes odesláno`, `Za posledních 7 dní`, `Čeká na odeslání`, `Selhalo` a `Poslední odeslání` v nižším KPI stripu
+  - health copy zůstává stručné; při čistém stavu používá text `Emaily fungují správně` a krátké vysvětlení o prázdné frontě
   - hlavní sekce `Poslední emaily` propojuje typ zprávy, stav, příjemce, vazbu na rezervaci, časy, pokusy a rychlé akce `Otevřít rezervaci / Detail emailu / Zkusit znovu`
   - badge typu rozlišuje `Přijetí rezervace` pro `booking-confirmation-v1` a finální `Potvrzení rezervace` pro `booking-approved-v1`
-  - tracking sloupce `Otevřeno` a `Kliknuto` jsou připravené jako UI placeholder bez falešných dat
-  - původní pending/retry/error fronty zůstávají níž v debug bloku `Technický stav fronty`
+  - tracking placeholdery `Otevřeno` a `Kliknuto` už nejsou v hlavním seznamu jako samostatné sloupce; místo nich může řádek ukázat jen jemný badge `Tracking připraven`
+  - `Další pokus` se v hlavním seznamu ukazuje jen u stavů `Čeká` a `Retry`
+  - původní pending/retry/error fronty zůstávají níž v debug bloku `Technický stav fronty`, který je defaultně sbalený do kompaktního souhrnu
 - Detail konkrétního e-mailu na `/admin/email-logy/[emailLogId]` je nově business-first:
   - nahoře ukazuje výrazný header s názvem emailu, jedním finálním stavem `Odesláno / Čeká / Retry / Selhalo`, příjemcem, klientkou, rezervací a klíčovým časem `Odesláno / Poslední pokus`
   - hned pod headerem drží rychlé akce `Zpět na přehled`, `Otevřít rezervaci`, případně `Zkusit znovu` nebo `Uvolnit zaseknutý job`

@@ -16,10 +16,12 @@ export function AdminEmailLogsPage({ area, data }: AdminEmailLogsPageProps) {
       title="Komunikace se zákaznicemi"
       description={
         area === "owner"
-          ? "Během pár sekund ukáže, jestli emailová komunikace funguje, co odešlo naposledy a kde je potřeba zásah."
+          ? "Rychlý přehled, jestli emaily fungují, co odešlo naposledy a kde je potřeba zásah."
           : "Zjednodušený přehled e-mailů není v provozní sekci dostupný."
       }
       stats={data.stats}
+      compactStats
+      slimStats
       compact={area === "salon"}
     >
       <AdminEmailLogsWorkspace data={data} />
