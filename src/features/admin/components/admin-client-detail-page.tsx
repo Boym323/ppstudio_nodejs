@@ -160,8 +160,14 @@ function ClientVisitHistory({ data }: { data: AdminClientDetailData }) {
                   <p className="mt-1 text-xs leading-5 text-white/58 sm:text-sm">
                     {booking.scheduledAtLabel} · {booking.sourceLabel}
                   </p>
-                  {booking.noteSummary ? (
-                    <p className="mt-1 text-sm leading-5 text-white/70">{booking.noteSummary}</p>
+                  {booking.notes.length > 0 ? (
+                    <div className="mt-1.5 space-y-1">
+                      {booking.notes.map((note) => (
+                        <p key={note.label} className="text-sm leading-5 text-white/70">
+                          <span className="font-medium text-white/84">{note.label}:</span> {note.value}
+                        </p>
+                      ))}
+                    </div>
                   ) : null}
                 </div>
 

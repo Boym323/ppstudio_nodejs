@@ -314,10 +314,36 @@ export type AdminClientDetailData = {
     statusLabel: string;
     sourceLabel: string;
     scheduledAtLabel: string;
-    noteSummary: string | null;
+    notes: Array<{
+      label: "Klientka" | "Interně";
+      value: string;
+    }>;
     href: string;
   }>;
 };
+
+function buildClientVisitNotes(booking: {
+  clientNote: string | null;
+  internalNote: string | null;
+}) {
+  const notes: AdminClientDetailData["bookings"][number]["notes"] = [];
+
+  if (booking.clientNote?.trim()) {
+    notes.push({
+      label: "Klientka",
+      value: booking.clientNote.trim(),
+    });
+  }
+
+  if (booking.internalNote?.trim()) {
+    notes.push({
+      label: "Interně",
+      value: booking.internalNote.trim(),
+    });
+  }
+
+  return notes;
+}
 
 export async function getAdminClientDetailData(
   area: AdminArea,
@@ -494,7 +520,7 @@ export async function getAdminClientDetailData(
       statusLabel: getBookingStatusLabel(booking.status),
       sourceLabel: getBookingSourceLabel(booking.source),
       scheduledAtLabel: formatBookingDateLabel(booking.scheduledStartsAt, booking.scheduledEndsAt),
-      noteSummary: booking.internalNote ?? booking.clientNote,
+      notes: buildClientVisitNotes(booking),
       href: getAdminBookingHref(area, booking.id),
     })),
   };
