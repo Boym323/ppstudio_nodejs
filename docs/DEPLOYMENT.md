@@ -146,6 +146,7 @@ Postup nasazení aplikace do produkce.
      - po rotaci kalendáře starý subscription odkaz vrací 404 a nový vrací `text/calendar; charset=utf-8`
      - propsání kontaktů do footeru a `/kontakt`
      - propsání storno limitu do `/faq` a `/storno-podminky`
+     - `/faq` po nasazení obsahuje viditelné otázky v HTML a `FAQPage` JSON-LD se stejnými otázkami/odpověďmi
      - na `/storno-podminky` správné kontakty v hero boxu `Jak zrušit rezervaci` a správné hodnoty v kartách hlavních pravidel
      - propsání booking limitů do `/rezervace`
      - blok `Pushover notifikace` je viditelný jen pro `OWNER`

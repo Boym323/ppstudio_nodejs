@@ -68,6 +68,7 @@ Dokumentace proměnných prostředí pro lokální vývoj i produkci.
 - `CRM souhrn` v detailu klientky nepřidává žádnou novou env proměnnou; počítá se request-time z rezervací klientky, `VoucherRedemption` a `BookingPayment` přes stávající `DATABASE_URL`.
 - Evidence plateb mimo voucher nepřidává žádnou platební bránu ani QR konfiguraci; metoda `Převodem / QR` je v této verzi pouze UI popisek enumu `BANK_TRANSFER`.
 - QR kód ve voucher PDF dál používá `NEXT_PUBLIC_APP_URL` přes `siteConfig.url`, takže produkční hodnota musí mířit na veřejný HTTPS origin PP Studia.
+- FAQPage JSON-LD pro `/faq` používá veřejný origin ze stávajícího `NEXT_PUBLIC_APP_URL`; změna FAQ nepřidává žádné nové env proměnné.
 - Textová doména v kontaktním řádku voucher PDF je oddělená od runtime hostu: priorita je `VOUCHER_PUBLIC_DOMAIN` -> `NEXT_PUBLIC_SITE_DOMAIN` -> hostname z `NEXT_PUBLIC_APP_URL` jen pokud je bezpečně veřejný (ne localhost ani privátní IP). Když bezpečný host chybí, doména se do kontaktu nevypíše.
 - Veřejná stránka ověření voucheru `/vouchery/overeni` nepřidává žádnou novou env proměnnou; používá stávající `DATABASE_URL` a QR odkazy z PDF dál vznikají z `NEXT_PUBLIC_APP_URL`.
 - Rucni odeslani voucheru e-mailem z admin detailu nepridava zadnou novou env promennou; pouziva existujici `EMAIL_DELIVERY_MODE`, `SMTP_*` konfiguraci a email worker/outbox flow.

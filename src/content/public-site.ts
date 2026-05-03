@@ -403,17 +403,22 @@ export function buildFaqSections(cancellationHours: number): FaqSection[] {
         {
           question: 'Jak funguje rezervace termínu?',
           answer:
-            'Volné termíny vypisuji průběžně. V rezervačním přehledu proto uvidíte jen časy, které jsou opravdu k dispozici.',
+            'Volné termíny vypisuji průběžně a v rezervačním přehledu uvidíte jen časy, které jsou opravdu k dispozici. Po odeslání rezervace vám studio termín ještě potvrdí, aby bylo vše jasné a bez nejistoty.',
+        },
+        {
+          question: 'Mohu se objednat i bez přesného výběru služby?',
+          answer:
+            'Ano. Pokud si nejste jistá, vyberte službu, která je vašemu přání nejblíže, a do poznámky klidně napište, s čím potřebujete poradit. Před začátkem návštěvy vše společně doladíme.',
+        },
+        {
+          question: 'Kdy mi přijde potvrzení rezervace?',
+          answer:
+            'Po odeslání rezervace dostanete zprávu, že studio váš požadavek přijalo. Finální potvrzení přijde po kontrole termínu, obvykle co nejdříve během provozního dne.',
         },
         {
           question: 'Mohu rezervaci změnit?',
           answer:
-            'Ano. Jakmile víte, že vám termín nevyhovuje, ozvěte se co nejdříve a zkusíme spolu najít jiný čas.',
-        },
-        {
-          question: 'Co když si nejsem jistá výběrem služby?',
-          answer:
-            'To je úplně v pořádku. Vyberte nejbližší variantu a před začátkem vše spolu krátce doladíme podle toho, co právě potřebujete.',
+            'Ano. Jakmile víte, že vám termín nevyhovuje, ozvěte se prosím co nejdříve a zkusíme spolu najít jiný čas. Čím dříve dáte vědět, tím snáz se podaří termín upravit.',
         },
       ],
     },
@@ -425,7 +430,7 @@ export function buildFaqSections(cancellationHours: number): FaqSection[] {
         {
           question: 'Co mě čeká při první návštěvě?',
           answer:
-            'Na začátku si krátce řekneme, co řešíte a co od návštěvy čekáte. Pak už navážeme samotným ošetřením a na závěr dostanete doporučení pro další péči.',
+            'Na začátku si v klidu řekneme, co řešíte, jaká je vaše běžná péče a co od návštěvy čekáte. Potom navážeme samotným ošetřením a na závěr dostanete jednoduché doporučení pro domácí péči.',
         },
         {
           question: 'Mohu přijít, i když nemám zkušenosti?',
@@ -436,6 +441,11 @@ export function buildFaqSections(cancellationHours: number): FaqSection[] {
           question: 'Musím vědět přesně, co chci?',
           answer:
             'Ne. Pokud si nejste jistá, stačí říct, co byste chtěla zlepšit nebo jaký výsledek očekáváte. Vhodný postup pak zvolíme spolu.',
+        },
+        {
+          question: 'Mohu službu na místě upravit podle stavu pleti?',
+          answer:
+            'Ano, pokud to dává smysl pro vaši pleť i časovou rezervu. Před ošetřením společně zhodnotíme aktuální stav a domluvíme péči tak, aby byla příjemná a bezpečná.',
         },
       ],
     },
@@ -459,6 +469,20 @@ export function buildFaqSections(cancellationHours: number): FaqSection[] {
           answer:
             'Nic speciálního nepotřebujete. Stačí přijít v klidu na domluvený čas, o vše ostatní bude postaráno.',
         },
+        {
+          question: 'Kde přesně studio najdu?',
+          answer:
+            'PP Studio najdete na adrese Sadová 2, 760 01 Zlín. Na kontaktní stránce je připravený odkaz do Google Maps, abyste si mohla trasu pohodlně otevřít ještě před cestou.',
+          linkLabel: 'Otevřít kontakt',
+          linkHref: '/kontakt',
+        },
+        {
+          question: 'Dá se u studia zaparkovat?',
+          answer:
+            'Ano, v okolí Sadové ulice je několik veřejných možností parkování. Na kontaktní stránce najdete krátké doporučení podle vzdálenosti, ceny a pohodlí včetně orientačních sazeb.',
+          linkLabel: 'Zobrazit parkování',
+          linkHref: '/kontakt#parkovani',
+        },
       ],
     },
     {
@@ -469,7 +493,7 @@ export function buildFaqSections(cancellationHours: number): FaqSection[] {
         {
           question: 'Bolí ošetření?',
           answer:
-            'Ve většině případů je ošetření šetrné a komfortní. Pokud by vám cokoliv nebylo příjemné, průběh hned upravíme.',
+            'Ve většině případů je ošetření šetrné a komfortní. Pokud by vám cokoliv nebylo příjemné, stačí říct a průběh hned upravíme.',
         },
         {
           question: 'Je ošetření vhodné pro citlivou pleť?',
@@ -491,7 +515,14 @@ export function buildFaqSections(cancellationHours: number): FaqSection[] {
         {
           question: 'Jak probíhá platba?',
           answer:
-            'Platba probíhá po ošetření, buď v hotovosti, nebo pomocí QR platby.',
+            'Platba probíhá po ošetření – hotově nebo pomocí QR platby.',
+        },
+        {
+          question: 'Je možné koupit dárkový voucher?',
+          answer:
+            'Ano, dárkový voucher je možné vystavit na konkrétní službu nebo podle individuální domluvy. Nejrychlejší je napsat do studia a společně doladíme hodnotu i způsob předání.',
+          linkLabel: 'Napsat do studia',
+          linkHref: '/kontakt',
         },
       ],
     },

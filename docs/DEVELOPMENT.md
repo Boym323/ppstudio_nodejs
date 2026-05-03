@@ -171,6 +171,8 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - služby a ceník berou data z DB přes `src/features/public/lib/public-services.ts`
 - Krátké storno shrnutí mimo samostatné právní stránky navrhuj jako prezentační microcopy, ne jako procesní nebo interní termínologii: pro homepage trust metriku a FAQ preferuj formulace orientované na akci klientky (`upravit nebo zrušit termín`, `nejpozději 24 hodin předem`) a drž je čitelné během 1-2 sekund.
 - FAQ už používá strukturovaný model `FaqSection -> FaqItem`; při dalších úpravách preferuj tematické skupiny a krátké odpovědi před jedním plochým seznamem dlouhých textů.
+- FAQ stránka renderuje odpovědi serverově přes nativní `details/summary`; nepřidávej klientskou state vrstvu, která by odpovědi vkládala do DOM až po kliknutí.
+- `FAQPage` JSON-LD staví `buildFaqPageJsonLd(...)` ze stejného seznamu sekcí jako stránka. Při úpravě FAQ nejdřív změň viditelný `FaqItem` a až z něj nech vzniknout strukturovaná data, aby se schema nikdy nerozjelo s obsahem stránky.
 - `src/features/public/lib/public-services.ts` nyní zároveň funguje jako thin read model nad rozšířeným katalogem:
   - `Service` nese `publicIntro`, `seoDescription`, `pricingShortDescription`, `pricingBadge`; název služby je sjednocený v `Service.name`
   - `ServiceCategory` nese `pricingDescription`, `pricingLayout`, `pricingIconKey`, `pricingSortOrder`; název kategorie je sjednocený v `ServiceCategory.name`
@@ -182,6 +184,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Úvodní stránka používá stejný DB katalog pro featured služby, aby odkazy z homepage mířily na aktuální slugs.
 - Reusable page sekce jsou ve `src/features/public/components/public-site.tsx`.
 - FAQ layout v `src/features/public/components/public-site.tsx` je záměrně server-rendered bez další klientské state vrstvy; pro rozbalování odpovědí preferuje nativní `details/summary`, aby zůstal lehký a dobře kliknutelný i na mobilu.
+- Rychlá orientace FAQ používá anchor odkazy na sekce, globální smooth scroll a mobilní tap targety alespoň kolem 44 px; při dalších úpravách drž odkazy dostatečně velké i při delších českých názvech.
 - U homepage hero drž jako preloadovaný LCP kandidát pouze logo (`next/image` `preload`); portrait nemá mít stejnou prioritu, aby nebral bandwidth/render budget prvním pixelům loga.
 - Kontaktní stránka má vlastní modulární sekce v `src/features/public/components/contact-sections.tsx`:
   - `ContactHero`

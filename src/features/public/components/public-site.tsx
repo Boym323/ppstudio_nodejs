@@ -29,6 +29,7 @@ import {
   ContactMobileStickyCTA,
   QuickContactCard,
 } from '@/features/public/components/contact-sections';
+import { buildFaqPageJsonLd, SeoJsonLd } from '@/features/public/components/seo-json-ld';
 import { getPrimaryPublicHomePortrait } from '@/features/public/lib/public-media';
 import { getPublicStudioPhotos } from '@/features/public/lib/public-studio-photos';
 import { getBookingPolicySettings, getPublicSalonProfile } from '@/lib/site-settings';
@@ -276,7 +277,7 @@ function FaqSectionNav({ sections }: { sections: FaqSection[] }) {
           <a
             key={section.id}
             href={`#${section.id}`}
-            className="rounded-full border border-black/10 bg-white px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-accent-contrast)] hover:border-black/15 hover:bg-[#f7efe5] sm:text-[12px]"
+            className="inline-flex min-h-11 items-center rounded-full border border-black/10 bg-white px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-accent-contrast)] hover:border-black/15 hover:bg-[#f7efe5] sm:min-h-10 sm:px-3 sm:py-2 sm:text-[12px]"
           >
             {section.title}
           </a>
@@ -972,6 +973,7 @@ export async function FaqPage() {
         secondaryCta={{ href: '/kontakt', label: 'Napsat do studia' }}
         aside={<FaqHeroAside />}
       />
+      <SeoJsonLd data={buildFaqPageJsonLd(faqSections)} />
       <section className="py-10 sm:py-14 lg:py-16">
         <Container className="space-y-6 sm:space-y-8">
           <FaqSectionNav sections={faqSections} />

@@ -6,6 +6,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- FAQ stránka má konkrétnější odpovědi pro rezervaci, první návštěvu a praktickou orientaci, nově pokrývá potvrzení rezervace, objednání bez přesného výběru služby, úpravu péče podle stavu pleti, dárkové vouchery, adresu studia a parkování přes `/kontakt#parkovani`.
+- `/faq` nově generuje `FAQPage` JSON-LD ze stejného serverově renderovaného seznamu otázek jako viditelná stránka; accordion dál používá nativní `details/summary` a rychlá orientace má větší mobilní tap targety.
 - JSON-LD `BeautySalon` už nepoužívá napevno zapsanou adresu bez diakritiky; `PostalAddress` a obsluhované město se skládají z veřejného profilu salonu / `SiteSettings`.
 - JSON-LD detailu služby má sjednocené `areaServed` podle veřejného profilu salonu a české breadcrumb názvy `Domů` / `Služby`.
 - JSON-LD pro veřejný web má lokálnější `BeautySalon` profil s `priceRange: "$$"`, popisem a `ReserveAction`; homepage dostala samostatný `WebPage` payload a detail služby doplňuje `url`/`inLanguage`, přičemž `Offer` vzniká jen z jasně číselné ceny.

@@ -1,8 +1,8 @@
 import { FaqPage, buildPageMetadata } from '@/features/public/components/public-site';
 
 export const metadata = buildPageMetadata({
-  title: 'FAQ',
-  description: 'Praktické odpovědi k rezervaci, první návštěvě, komfortu i storno podmínkám, které pomáhají rozhodnout se bez nejistoty.',
+  title: 'FAQ | Časté otázky',
+  description: 'Praktické odpovědi k rezervaci, první návštěvě, výběru služby, parkování, voucherům i storno podmínkám v PP Studiu ve Zlíně.',
   path: '/faq',
 });
 

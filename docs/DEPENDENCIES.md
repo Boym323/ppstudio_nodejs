@@ -76,6 +76,7 @@ Seznam důležitých knihoven a důvod jejich použití.
 - Rozdělení portrétů na `PORTRAIT_HOME` a `PORTRAIT_ABOUT` také nepřidává žádnou novou závislost; používá stávající `MediaAsset` model, Prisma enum a public media helpery.
 - Veřejná stránka `/studio` nepřidává žádnou novou závislost; galerii skládá z existující media vrstvy a `next/image`.
 - Matomo integrace také nepřidává žádnou novou závislost; helper a CTA wrappers jsou lokální TypeScript/React moduly.
+- FAQPage JSON-LD a rozšířená FAQ stránka nepřidávají žádnou novou závislost; schema se generuje lokálním helperem a accordion zůstává na nativním HTML `details/summary`.
 - Matomo dashboard reporting také nepřidává žádnou novou závislost; `src/lib/analytics/matomo.ts` je server-only wrapper nad Reporting API.
 - Databázový základ voucherů nepřidává žádnou novou závislost; jde čistě o Prisma modely, enumy, migraci a budoucí doménovou vrstvu v `src/features/vouchers`.
 - Provozní editace a ruční zrušení voucheru nepřidává žádnou novou knihovnu; server actions a formuláře používají stávající Next.js App Router, React `useActionState`, Prisma a Zod.

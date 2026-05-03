@@ -156,4 +156,5 @@ Evidence produkčních incidentů a jejich řešení.
 - Mobilní nebo tabletový inspektor dne, který překryje grid bez možnosti rychlého zavření nebo neukáže vybraný blok po tapnutí.
 - Day workspace otevírající špatný slot po změně filtru stavu nebo týdne.
 - Owner-only sekce `Nastavení` má dopad i na veřejný web a e-mailovou komunikaci; po každé změně je potřeba rychlá smoke kontrola footeru, `/kontakt`, `/faq`, `/storno-podminky` a `/rezervace`.
+- FAQ schema drift: po změně FAQ ověř, že `FAQPage` JSON-LD vzniká ze stejných `FaqItem` jako viditelná stránka a neobsahuje skryté nebo staré otázky.
 - Storno stránka publikovaná se správným limitem hodin, ale se starými kontakty nebo opačným významem summary karet; po změně `SiteSettings` vždy ověř hero box `Jak zrušit rezervaci` i text `více než / méně než X hodin`.

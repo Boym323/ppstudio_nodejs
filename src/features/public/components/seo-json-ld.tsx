@@ -1,5 +1,5 @@
 import { siteConfig } from "@/config/site";
-import type { Service } from "@/content/public-site";
+import type { FaqSection, Service } from "@/content/public-site";
 import type { PublicSalonProfile } from "@/lib/site-settings";
 
 type JsonLdValue =
@@ -99,6 +99,27 @@ export function buildHomePageJsonLd() {
       "@id": `${siteConfig.url}/#business`,
     },
     inLanguage: "cs-CZ",
+  };
+}
+
+export function buildFaqPageJsonLd(sections: FaqSection[]) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "@id": `${siteConfig.url}/faq#faqpage`,
+    url: `${siteConfig.url}/faq`,
+    name: "FAQ | PP Studio",
+    inLanguage: "cs-CZ",
+    mainEntity: sections.flatMap((section) =>
+      section.items.map((item) => ({
+        "@type": "Question",
+        name: item.question,
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: item.answer,
+        },
+      })),
+    ),
   };
 }
 
