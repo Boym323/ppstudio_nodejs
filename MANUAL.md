@@ -31,7 +31,7 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
 
 ## Verzování (SemVer)
 - Projekt používá Semantic Versioning `MAJOR.MINOR.PATCH` v `package.json`.
-- Aktuální release je `0.1.2`; řada `0.x.y` znamená před prvním stabilním vydáním, ale i tak držíme stejnou disciplínu změn.
+- Aktuální release je `0.1.3`; řada `0.x.y` znamená před prvním stabilním vydáním, ale i tak držíme stejnou disciplínu změn.
 - `PATCH` (`0.1.0 -> 0.1.1`) zvyšuj při opravách chyb, interním refaktoru bez změny chování a technických úpravách bez dopadu na veřejné rozhraní.
 - `MINOR` (`0.1.0 -> 0.2.0`) zvyšuj při přidání nové funkce nebo rozšíření existující funkcionality zpětně kompatibilním způsobem.
 - `MAJOR` (`0.1.0 -> 1.0.0` nebo `1.x.y -> 2.0.0`) zvyšuj při nekompatibilní změně API, datového kontraktu, routingu nebo provozního chování, které vyžaduje zásah uživatele/operátora.

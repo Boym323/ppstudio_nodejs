@@ -6,6 +6,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-05-03
+
 - `/studio` prošlo jemným density passem: desktopové a tabletové vertikální paddingy mezi hero, galerií, atmosférou, adresní kartou a spodním CTA jsou kratší bez změny textů, médií nebo struktury stránky.
 - `/studio` nově renderuje jen publikované `SALON_PHOTO` assety, které mají fyzicky dostupný soubor ve storage; rozbité DB záznamy už nevedou k broken image placeholderům.
 - `/studio` nyní používá první dostupnou fotku jako hero a další fotky (max 6) jako samostatnou galerii; pokud galerie data chybí, sekce se korektně skryje bez chybového boxu.

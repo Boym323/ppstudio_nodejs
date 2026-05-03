@@ -3,7 +3,7 @@
 Tento dokument slouží jako detailní technická dokumentace vývoje.
 
 ## Verzování a release disciplína
-- `package.json` používá SemVer `MAJOR.MINOR.PATCH`; aktuální release je `0.1.2` v pre-stable řadě.
+- `package.json` používá SemVer `MAJOR.MINOR.PATCH`; aktuální release je `0.1.3` v pre-stable řadě.
 - Praktické pravidlo pro tento projekt:
   - `PATCH`: bugfix, interní refaktor bez změny kontraktu, performance tuning bez změny chování API/UI kontraktu.
   - `MINOR`: nová funkce nebo rozšíření existující funkce zpětně kompatibilním způsobem.
