@@ -447,6 +447,11 @@ export function buildFaqSections(cancellationHours: number): FaqSection[] {
           answer:
             'Ano, pokud to dává smysl pro vaši pleť i časovou rezervu. Před ošetřením společně zhodnotíme aktuální stav a domluvíme péči tak, aby byla příjemná a bezpečná.',
         },
+        {
+          question: 'Jak často chodit na kosmetiku?',
+          answer:
+            'Záleží na typu pleti, cíli péče i domácí rutině. U pravidelné péče se často osvědčuje návštěva přibližně jednou za 4 až 6 týdnů, ale přesnější rytmus domluvíme podle toho, co vaše pleť aktuálně potřebuje.',
+        },
       ],
     },
     {
@@ -460,7 +465,7 @@ export function buildFaqSections(cancellationHours: number): FaqSection[] {
             'Podle zvolené služby obvykle počítejte přibližně s 45 až 120 minutami. Orientační délku vždy uvidíte už při výběru termínu.',
         },
         {
-          question: 'Mohu přijít nalíčená?',
+          question: 'Můžu přijít nalíčená?',
           answer:
             'Ano, klidně přijďte tak, jak běžně chodíte. Před ošetřením vše potřebné šetrně odlíčíme.',
         },
@@ -496,9 +501,19 @@ export function buildFaqSections(cancellationHours: number): FaqSection[] {
             'Ve většině případů je ošetření šetrné a komfortní. Pokud by vám cokoliv nebylo příjemné, stačí říct a průběh hned upravíme.',
         },
         {
-          question: 'Je ošetření vhodné pro citlivou pleť?',
+          question: 'Bolí úprava obočí?',
           answer:
-            'Citlivost pleti vždy bereme v úvahu. Pokud víte o reakcích, alergiích nebo aktuálním podráždění, řekneme si to předem a péči přizpůsobíme.',
+            'Úprava obočí může být lehce citlivá hlavně při vytrhávání chloupků, ale pracuji šetrně a průběžně sleduji vaše pohodlí. Pokud víte, že jste citlivější, řekněte mi to předem a postup přizpůsobíme.',
+        },
+        {
+          question: 'Jak dlouho vydrží barvení obočí?',
+          answer:
+            'Obvykle počítejte přibližně s 2 až 4 týdny. Výdrž ovlivňuje typ pokožky, domácí péče, odličování i to, jak rychle se obočí přirozeně obnovuje.',
+        },
+        {
+          question: 'Je kosmetické ošetření vhodné pro citlivou pleť?',
+          answer:
+            'Ano, jen je potřeba citlivost zohlednit už při konzultaci. Pokud víte o reakcích, alergiích nebo aktuálním podráždění, řekneme si to předem a zvolíme jemnější postup i vhodné přípravky.',
         },
       ],
     },

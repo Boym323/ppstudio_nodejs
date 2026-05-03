@@ -9,6 +9,7 @@
 ## Decision
 
 - FAQ obsah zůstává v `src/content/public-site.ts` jako `FaqSection -> FaqItem` a drží tematické sekce `Rezervace`, `První návštěva`, `Praktické otázky`, `Komfort a průběh`, `Organizace` a `Storno`.
+- Obsah zahrnuje i konkrétní salonní dotazy k frekvenci kosmetiky, příchodu s make-upem, citlivé pleti, úpravě obočí a výdrži barvení obočí, protože tyto otázky snižují nejistotu před rezervací.
 - Accordion dál používá nativní `details/summary`, takže odpovědi jsou přítomné v DOM hned při renderu stránky.
 - `FAQPage` JSON-LD generujeme pomocí `buildFaqPageJsonLd(...)` ze stejného seznamu `FaqItem`, který renderuje stránka.
 - Pravý box v hero sekci neplní roli dalšího kontaktního CTA; podporuje rozhodnutí před první návštěvou a odkazuje jen nenápadně na sekci `#prvni-navsteva`.

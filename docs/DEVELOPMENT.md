@@ -173,6 +173,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - FAQ už používá strukturovaný model `FaqSection -> FaqItem`; při dalších úpravách preferuj tematické skupiny a krátké odpovědi před jedním plochým seznamem dlouhých textů.
 - FAQ stránka renderuje odpovědi serverově přes nativní `details/summary`; nepřidávej klientskou state vrstvu, která by odpovědi vkládala do DOM až po kliknutí.
 - `FAQPage` JSON-LD staví `buildFaqPageJsonLd(...)` ze stejného seznamu sekcí jako stránka. Při úpravě FAQ nejdřív změň viditelný `FaqItem` a až z něj nech vzniknout strukturovaná data, aby se schema nikdy nerozjelo s obsahem stránky.
+- Praktické FAQ má pokrývat i opakující se salonní dotazy kolem frekvence kosmetiky, příchodu s make-upem, citlivé pleti, úpravy obočí a výdrže barvení obočí; drž odpovědi konkrétní, ale bez medicínských slibů.
 - `src/features/public/lib/public-services.ts` nyní zároveň funguje jako thin read model nad rozšířeným katalogem:
   - `Service` nese `publicIntro`, `seoDescription`, `pricingShortDescription`, `pricingBadge`; název služby je sjednocený v `Service.name`
   - `ServiceCategory` nese `pricingDescription`, `pricingLayout`, `pricingIconKey`, `pricingSortOrder`; název kategorie je sjednocený v `ServiceCategory.name`

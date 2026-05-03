@@ -6,6 +6,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- FAQ stránka doplnila konkrétní odpovědi k doporučené frekvenci kosmetiky, citlivosti úpravy obočí, výdrži barvení obočí, citlivé pleti a příchodu s make-upem.
 - Pravý box hero sekce na `/faq` už neopakuje kontakt CTA; nově funguje jako informační karta `První návštěva` s jemným odkazem na příslušnou FAQ sekci.
 - FAQ stránka má konkrétnější odpovědi pro rezervaci, první návštěvu a praktickou orientaci, nově pokrývá potvrzení rezervace, objednání bez přesného výběru služby, úpravu péče podle stavu pleti, dárkové vouchery, adresu studia a parkování přes `/kontakt#parkovani`.
 - `/faq` nově generuje `FAQPage` JSON-LD ze stejného serverově renderovaného seznamu otázek jako viditelná stránka; accordion dál používá nativní `details/summary` a rychlá orientace má větší mobilní tap targety.

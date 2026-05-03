@@ -79,7 +79,7 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
 - FAQ na `/faq` už není plochý seznam několika otázek; stránka používá skladbu `hero s jemným CTA -> pravý informační box první návštěvy -> rychlá sekční navigace -> tematické accordion bloky`.
 - FAQ copy je záměrně orientované na rozhodnutí před první návštěvou: řeší výběr služby, průběh první návštěvy, praktické detaily, komfort, organizaci i stručné storno shrnutí s odkazem na samostatnou stránku podmínek.
 - FAQ odpovědi zůstávají serverově vypsané v HTML přes nativní `details/summary`; JSON-LD `FAQPage` se skládá ze stejného `FaqSection -> FaqItem` modelu a nesmí obsahovat otázky, které nejsou na stránce reálně vidět.
-- FAQ pokrývá i praktické rozhodovací otázky před rezervací: objednání bez přesného výběru služby, potvrzení rezervace, úpravu péče podle stavu pleti, dárkové vouchery, adresu studia a odkaz na parkování na `/kontakt#parkovani`.
+- FAQ pokrývá i praktické rozhodovací otázky před rezervací: objednání bez přesného výběru služby, potvrzení rezervace, úpravu péče podle stavu pleti, doporučenou frekvenci kosmetiky, příchod s make-upem, citlivou pleť, běžnou citlivost úpravy obočí, výdrž barvení obočí, dárkové vouchery, adresu studia a odkaz na parkování na `/kontakt#parkovani`.
 - Reálné služby z DB dostávají veřejnou copy vrstvu v `src/features/public/lib/public-services.ts`, ale její metadata už nevznikají z lokálních map; čtou se přímo z rozšířeného katalogu služeb a kategorií.
 - Ceník na `/cenik` má vlastní modul v `src/features/public/components/pricing-page.tsx` a je rozdělený do jasné kompozice `hero -> category chips -> hlavní sekce -> menší grid sekce -> finální CTA`.
 - Katalog služeb a kategorií teď nese i veřejná pricing metadata:
