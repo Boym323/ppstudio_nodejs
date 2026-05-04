@@ -99,6 +99,7 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
 - Ruční rezervace v adminu nově dovoluje vytvořit klientku i bez e-mailu, což pokrývá rezervace z Instagramu, telefonu nebo osobní domluvy; pokud adresa chybí, klientské potvrzení se záměrně neposílá.
 - Pending rezervace lze nově potvrdit nebo zrušit přímo z provozního e-mailu přes bezpečné jednorázové odkazy s mezikrokem potvrzení na veřejné route `/rezervace/akce/[intent]/[token]`.
 - Admin sekce `Rezervace` používá nízkou stránkovou hlavičku s CTA `Přidat rezervaci`, jeden společný horní panel pro rychlé i detailní filtry a tenký KPI strip `Čeká na potvrzení / Dnes / Tento týden / Bez kontaktu`.
+- Mobilní toolbar rezervací musí zůstat uvnitř pracovní karty: formulářové položky používají `min-w-0`, nativní date inputy nesmí roztlačit grid a kompaktní admin panel má na telefonu menší boční padding.
 - Pracovní seznam rezervací je nově serverově seskupený do bloků `Čeká na potvrzení`, `Nadcházející` a `Minulé`; čekající rezervace jsou vždy nahoře a v tabulce mají jen jemné warning zvýraznění s levým akcentem.
 - Pracovní seznam je sticky po dobu scrollu: filtr bar zůstává nahoře, hlavička tabulky drží kontext a akce v řádku vrací okamžitý inline feedback přes loading stav a toast.
 - V pracovním seznamu je teď nejvýraznější čas rezervace; uzavřené stavy `Hotovo` a `Zrušená` mají menší vizuální váhu, inline akce se liší podle stavu rezervace a chybějící kontakt se zobrazuje neutrálně jako `bez kontaktu`.

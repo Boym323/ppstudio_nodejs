@@ -28,7 +28,7 @@ export function AdminBookingsToolbar({
     <Form
       action={currentPath}
       scroll={false}
-      className="rounded-[1.2rem] border border-white/10 bg-[#151219]/95 px-3 py-3 backdrop-blur"
+      className="min-w-0 rounded-[1.2rem] border border-white/10 bg-[#151219]/95 px-3 py-3 backdrop-blur"
     >
       <div className="flex flex-wrap gap-2 border-b border-white/8 pb-3">
         {stats.map((stat) => (
@@ -49,8 +49,8 @@ export function AdminBookingsToolbar({
         ))}
       </div>
 
-      <div className="mt-3 grid gap-2 lg:grid-cols-[minmax(0,2.2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.95fr)_minmax(0,0.95fr)_auto_auto]">
-        <label className="block">
+      <div className="mt-3 grid min-w-0 gap-2 lg:grid-cols-[minmax(0,2.2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.95fr)_minmax(0,0.95fr)_auto_auto]">
+        <label className="block min-w-0">
           <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/42">
             Hledat
           </span>
@@ -59,7 +59,7 @@ export function AdminBookingsToolbar({
             name="query"
             defaultValue={filters.query}
             placeholder="Klientka, email, telefon, služba"
-            className="mt-1.5 h-10 w-full rounded-[0.9rem] border border-white/10 bg-black/20 px-3 text-sm text-white outline-none transition placeholder:text-white/28 focus:border-[var(--color-accent)]/60"
+            className="mt-1.5 h-10 min-w-0 w-full rounded-[0.9rem] border border-white/10 bg-black/20 px-3 text-sm text-white outline-none transition placeholder:text-white/28 focus:border-[var(--color-accent)]/60"
           />
         </label>
 
@@ -84,16 +84,16 @@ export function AdminBookingsToolbar({
         <DateField name="dateFrom" label="Od" defaultValue={filters.dateFrom} />
         <DateField name="dateTo" label="Do" defaultValue={filters.dateTo} />
 
-        <div className="flex flex-wrap items-end gap-2 lg:col-span-2 lg:justify-end">
+        <div className="flex min-w-0 flex-wrap items-end gap-2 lg:col-span-2 lg:justify-end">
           <button
             type="submit"
-            className="inline-flex h-10 items-center rounded-full border border-[var(--color-accent)]/45 bg-[var(--color-accent)]/16 px-4 text-sm font-semibold text-[var(--color-accent-contrast)] transition hover:bg-[var(--color-accent)]/24"
+            className="inline-flex h-10 min-w-0 items-center rounded-full border border-[var(--color-accent)]/45 bg-[var(--color-accent)]/16 px-4 text-sm font-semibold text-[var(--color-accent-contrast)] transition hover:bg-[var(--color-accent)]/24"
           >
             Filtrovat
           </button>
           <a
             href={currentPath}
-            className="inline-flex h-10 items-center rounded-full border border-white/10 px-4 text-sm text-white/74 transition hover:border-white/18 hover:bg-white/6 hover:text-white"
+            className="inline-flex h-10 min-w-0 items-center rounded-full border border-white/10 px-4 text-sm text-white/74 transition hover:border-white/18 hover:bg-white/6 hover:text-white"
           >
             Zrušit filtry
           </a>
@@ -124,14 +124,14 @@ function SelectField({
   children: React.ReactNode;
 }) {
   return (
-    <label className="block">
+    <label className="block min-w-0">
       <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/42">
         {label}
       </span>
       <select
         name={name}
         defaultValue={defaultValue}
-        className="mt-1.5 h-10 w-full rounded-[0.9rem] border border-white/10 bg-black/20 px-3 text-sm text-white outline-none transition focus:border-[var(--color-accent)]/60"
+        className="mt-1.5 h-10 min-w-0 w-full rounded-[0.9rem] border border-white/10 bg-black/20 px-3 text-sm text-white outline-none transition focus:border-[var(--color-accent)]/60"
       >
         {children}
       </select>
@@ -149,7 +149,7 @@ function DateField({
   defaultValue: string;
 }) {
   return (
-    <label className="block">
+    <label className="block min-w-0">
       <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/42">
         {label}
       </span>
@@ -157,7 +157,7 @@ function DateField({
         type="date"
         name={name}
         defaultValue={defaultValue}
-        className="mt-1.5 h-10 w-full rounded-[0.9rem] border border-white/10 bg-black/20 px-3 text-sm text-white outline-none transition focus:border-[var(--color-accent)]/60"
+        className="mt-1.5 h-10 min-w-0 w-full rounded-[0.9rem] border border-white/10 bg-black/20 px-3 text-sm text-white outline-none transition focus:border-[var(--color-accent)]/60"
       />
     </label>
   );

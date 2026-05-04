@@ -6,6 +6,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Admin sekce `Rezervace` má opravené mobilní zobrazení filtračního panelu: formulářové prvky se smršťují do šířky pracovní karty a nativní date inputy už neroztlačují layout mimo viewport.
 - Veřejné ověření voucheru `/vouchery/overeni` má srozumitelnější QR úvod, upravenou hlášku platného poukazu a po úspěšném ověření jemné CTA na rezervaci nebo e-mail studiu; QR parametr `code`, server-side ověření a bezpečný read-only výstup zůstaly beze změny.
 
 ## [0.1.3] - 2026-05-03

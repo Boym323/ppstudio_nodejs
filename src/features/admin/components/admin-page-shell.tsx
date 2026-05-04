@@ -182,7 +182,7 @@ export function AdminPanel({
     <section
       className={cn(
         "rounded-[var(--radius-panel)] border border-white/10 bg-black/10",
-        tighter ? "p-4 sm:p-4.5" : compact ? "p-5" : "p-6",
+        tighter ? "p-4 sm:p-4.5" : compact ? "p-3.5 sm:p-5" : "p-4 sm:p-6",
         className,
       )}
     >
