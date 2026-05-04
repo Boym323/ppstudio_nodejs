@@ -6,6 +6,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Veřejné ověření voucheru `/vouchery/overeni` má srozumitelnější QR úvod, upravenou hlášku platného poukazu a po úspěšném ověření jemné CTA na rezervaci nebo e-mail studiu; QR parametr `code`, server-side ověření a bezpečný read-only výstup zůstaly beze změny.
+
 ## [0.1.3] - 2026-05-03
 
 - `/studio` prošlo jemným density passem: desktopové a tabletové vertikální paddingy mezi hero, galerií, atmosférou, adresní kartou a spodním CTA jsou kratší bez změny textů, médií nebo struktury stránky.

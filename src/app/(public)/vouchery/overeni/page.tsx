@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { VoucherType } from "@prisma/client";
 import { headers } from "next/headers";
+import Link from "next/link";
 
 import { Container } from "@/components/ui/container";
 import { normalizeVoucherCode } from "@/features/vouchers/lib/voucher-code";
@@ -16,6 +17,7 @@ import {
   isVoucherPublicVerificationRateLimited,
   writeVoucherPublicVerificationAttemptLog,
 } from "@/features/vouchers/lib/voucher-public-verification-rate-limit";
+import { getPublicSalonProfile } from "@/lib/site-settings";
 
 export const metadata: Metadata = {
   title: "Ověření dárkového poukazu",
@@ -63,7 +65,11 @@ export default async function VoucherVerificationPage({
   const requestHeaders = await headers();
   const codeInput = Array.isArray(codeParam) ? codeParam[0] : codeParam;
   const normalizedCode = normalizeVoucherCode(codeInput ?? "");
-  const result = normalizedCode ? await loadVerificationResult(normalizedCode, requestHeaders) : null;
+  const [result, salonProfile] = await Promise.all([
+    normalizedCode ? loadVerificationResult(normalizedCode, requestHeaders) : Promise.resolve(null),
+    getPublicSalonProfile(),
+  ]);
+  const studioMessageHref = `mailto:${salonProfile.email}?subject=${encodeURIComponent("Domluva termínu k dárkovému poukazu")}`;
 
   return (
     <section className="border-b border-black/5 bg-[linear-gradient(180deg,#f8f2eb_0%,#fffaf4_100%)]">
@@ -76,11 +82,11 @@ export default async function VoucherVerificationPage({
             Ověření dárkového poukazu
           </h1>
           <p className="mt-4 max-w-2xl text-base leading-8 text-[var(--color-muted)]">
-            Zadejte kód z poukazu a ověřte, jestli je v PP Studiu stále platný. Veřejná kontrola pouze čte stav voucheru a nic z něj neodečítá.
+            Naskenovaný poukaz si zde můžete ověřit. Pokud se kód nepředvyplnil, zadejte ho ručně z dárkového poukazu. Ověření pouze čte stav poukazu a nic z něj neodečítá.
           </p>
 
           <div className="mt-8 rounded-[calc(var(--radius-panel)-0.25rem)] border border-black/8 bg-white/86 p-5 shadow-[var(--shadow-panel)] sm:p-6">
-            <form action="/vouchery/overeni" className="flex flex-col gap-3 sm:flex-row">
+            <form action="/vouchery/overeni" className="flex flex-col gap-4 sm:flex-row sm:items-end">
               <label className="min-w-0 flex-1">
                 <span className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--color-muted)]">
                   Kód voucheru
@@ -96,13 +102,13 @@ export default async function VoucherVerificationPage({
               </label>
               <button
                 type="submit"
-                className="mt-6 rounded-full bg-[var(--color-foreground)] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#2c221d] sm:self-end"
+                className="w-full rounded-full bg-[var(--color-foreground)] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#2c221d] sm:w-auto"
               >
                 Ověřit
               </button>
             </form>
 
-            <VerificationResult result={result} />
+            <VerificationResult result={result} studioMessageHref={studioMessageHref} />
 
             <p className="mt-6 border-t border-black/8 pt-5 text-sm leading-6 text-[var(--color-muted)]">
               Veřejné ověření nezobrazuje kupujícího, e-mail, interní poznámky, historii čerpání, rezervace ani technická ID.
@@ -116,8 +122,10 @@ export default async function VoucherVerificationPage({
 
 function VerificationResult({
   result,
+  studioMessageHref,
 }: {
   result: VoucherVerificationViewResult | null;
+  studioMessageHref: string;
 }) {
   if (!result) {
     return (
@@ -150,7 +158,7 @@ function VerificationResult({
       <div className="rounded-[1.25rem] border border-emerald-200 bg-emerald-50 px-4 py-3 text-emerald-950">
         <p className="text-sm font-semibold">Voucher je platný</p>
         <p className="mt-1 text-sm leading-6 opacity-85">
-          Kód je v evidenci PP Studia a je možné ho použít při návštěvě salonu.
+          Tento poukaz je v evidenci PP Studia a můžete ho uplatnit při návštěvě.
         </p>
       </div>
 
@@ -164,6 +172,26 @@ function VerificationResult({
         )}
         <VerificationRow label="Platnost do" value={formatDate(result.validUntil)} />
       </dl>
+
+      <div className="rounded-[1.25rem] border border-black/8 bg-[#fffaf4] px-4 py-4 sm:px-5">
+        <p className="text-sm font-semibold leading-6 text-[var(--color-foreground)]">
+          Chcete si domluvit termín pro uplatnění poukazu?
+        </p>
+        <div className="mt-3 flex flex-col gap-3 sm:flex-row">
+          <Link
+            href="/rezervace"
+            className="inline-flex min-h-11 items-center justify-center rounded-full bg-[var(--color-foreground)] px-5 py-3 text-center text-sm font-semibold text-white transition hover:bg-[#2c221d]"
+          >
+            Rezervovat termín
+          </Link>
+          <a
+            href={studioMessageHref}
+            className="inline-flex min-h-11 items-center justify-center rounded-full border border-black/12 bg-white px-5 py-3 text-center text-sm font-semibold text-[var(--color-foreground)] transition hover:border-[var(--color-accent)]"
+          >
+            Napsat do studia
+          </a>
+        </div>
+      </div>
     </div>
   );
 }
