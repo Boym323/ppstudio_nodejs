@@ -110,6 +110,19 @@ function buildRunId() {
   return `e2e-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
+function buildScheduleOffset(runId: string) {
+  let hash = 0;
+
+  for (const character of runId) {
+    hash = (hash * 31 + character.charCodeAt(0)) >>> 0;
+  }
+
+  return {
+    dayOffset: hash % 21,
+    timeOffsetMinutes: Math.floor(hash / 21) % 8 * 90,
+  };
+}
+
 async function createCatalogFixture(runId: string) {
   const categoryName = `E2E kategorie ${runId}`;
   const serviceName = `E2E služba ${runId}`;
@@ -143,9 +156,16 @@ async function createCatalogFixture(runId: string) {
     },
   });
 
-  const primaryStart = futureUtcDate(45, 8);
+  const scheduleOffset = buildScheduleOffset(runId);
+  const primaryStart = addMinutes(
+    futureUtcDate(45 + scheduleOffset.dayOffset, 8),
+    scheduleOffset.timeOffsetMinutes,
+  );
   const primaryEnd = addMinutes(primaryStart, 180);
-  const rescheduleStart = futureUtcDate(46, 9);
+  const rescheduleStart = addMinutes(
+    futureUtcDate(46 + scheduleOffset.dayOffset, 9),
+    scheduleOffset.timeOffsetMinutes,
+  );
   const rescheduleSuccessStart = addMinutes(rescheduleStart, service.durationMinutes);
   const rescheduleEnd = addMinutes(rescheduleSuccessStart, service.durationMinutes);
   const reschedulePublicNote = `E2E reschedule ${runId}`;
