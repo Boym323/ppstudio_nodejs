@@ -111,6 +111,16 @@ function buildRunId() {
   return `e2e-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
+function hashRunId(runId: string) {
+  let hash = 0;
+
+  for (const character of runId) {
+    hash = (hash * 31 + character.charCodeAt(0)) >>> 0;
+  }
+
+  return hash;
+}
+
 function roundUpToHalfHour(value: Date) {
   const copy = new Date(value);
   copy.setUTCSeconds(0, 0);
@@ -140,6 +150,12 @@ function buildPolicySafeStart(minLeadHours: number) {
   }
 
   return candidate;
+}
+
+function isAvailabilitySlotWindowConflict(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+
+  return message.includes("AvailabilitySlot_active_time_window_excl");
 }
 
 async function createCatalogFixture(runId: string) {
@@ -191,68 +207,100 @@ async function createCatalogFixture(runId: string) {
   const cancellationHours = siteSettings?.bookingCancellationHours ?? 48;
   const baseLeadHours = Math.max(minAdvanceHours + 3, cancellationHours + 3);
   const maxWindowEnd = addMinutes(new Date(), maxAdvanceDays * 24 * 60);
-  const maxSafeStart = addMinutes(maxWindowEnd, -6 * 60);
-  const candidateStart = buildPolicySafeStart(baseLeadHours);
-  const primaryStart = candidateStart <= maxSafeStart
-    ? candidateStart
+  const maxSafeStart = addMinutes(maxWindowEnd, -(26 * 60 + service.durationMinutes));
+  const baseStart = buildPolicySafeStart(baseLeadHours);
+  const firstCandidate = baseStart <= maxSafeStart
+    ? baseStart
     : roundUpToHalfHour(maxSafeStart);
-  const primaryEnd = addMinutes(primaryStart, 180);
-  const rescheduleStart = addMinutes(primaryStart, 24 * 60);
-  const rescheduleSuccessStart = addMinutes(rescheduleStart, service.durationMinutes);
-  const rescheduleEnd = addMinutes(rescheduleSuccessStart, service.durationMinutes);
+  const runOffset = hashRunId(runId) % 48;
   const rescheduleConflictPublicNote = `E2E reschedule conflict ${runId}`;
   const rescheduleSuccessPublicNote = `E2E reschedule success ${runId}`;
+  let primarySlot;
+  let rescheduleSlot;
+  let rescheduleSuccessSlot;
+  let primaryStart = firstCandidate;
+  let primaryEnd = addMinutes(primaryStart, 180);
+  let rescheduleStart = addMinutes(primaryStart, 24 * 60);
+  let rescheduleSuccessStart = addMinutes(rescheduleStart, service.durationMinutes);
+  let rescheduleEnd = addMinutes(rescheduleSuccessStart, service.durationMinutes);
 
-  const [primarySlot, rescheduleSlot, rescheduleSuccessSlot] = await Promise.all([
-    prisma.availabilitySlot.create({
-      data: {
-        startsAt: primaryStart,
-        endsAt: primaryEnd,
-        capacity: 1,
-        status: AvailabilitySlotStatus.PUBLISHED,
-        serviceRestrictionMode: AvailabilitySlotServiceRestrictionMode.SELECTED,
-        publishedAt: new Date(),
-        publicNote: `E2E primary ${runId}`,
-        allowedServices: {
-          create: {
-            serviceId: service.id,
+  for (let attempt = 0; attempt < 96; attempt += 1) {
+    const candidateOffset = (runOffset + attempt) * 4 * 60;
+    primaryStart = addMinutes(firstCandidate, candidateOffset);
+
+    if (primaryStart > maxSafeStart) {
+      primaryStart = addMinutes(firstCandidate, ((runOffset + attempt) % 48) * 4 * 60);
+    }
+
+    primaryEnd = addMinutes(primaryStart, 180);
+    rescheduleStart = addMinutes(primaryStart, 24 * 60);
+    rescheduleSuccessStart = addMinutes(rescheduleStart, service.durationMinutes);
+    rescheduleEnd = addMinutes(rescheduleSuccessStart, service.durationMinutes);
+
+    try {
+      [primarySlot, rescheduleSlot, rescheduleSuccessSlot] = await prisma.$transaction(async (tx) => {
+        const createdPrimarySlot = await tx.availabilitySlot.create({
+          data: {
+            startsAt: primaryStart,
+            endsAt: primaryEnd,
+            capacity: 1,
+            status: AvailabilitySlotStatus.PUBLISHED,
+            serviceRestrictionMode: AvailabilitySlotServiceRestrictionMode.SELECTED,
+            publishedAt: new Date(),
+            publicNote: `E2E primary ${runId}`,
+            allowedServices: {
+              create: {
+                serviceId: service.id,
+              },
+            },
           },
-        },
-      },
-    }),
-    prisma.availabilitySlot.create({
-      data: {
-        startsAt: rescheduleStart,
-        endsAt: rescheduleSuccessStart,
-        capacity: 1,
-        status: AvailabilitySlotStatus.PUBLISHED,
-        serviceRestrictionMode: AvailabilitySlotServiceRestrictionMode.SELECTED,
-        publishedAt: new Date(),
-        publicNote: rescheduleConflictPublicNote,
-        allowedServices: {
-          create: {
-            serviceId: service.id,
+        });
+        const createdRescheduleSlot = await tx.availabilitySlot.create({
+          data: {
+            startsAt: rescheduleStart,
+            endsAt: rescheduleSuccessStart,
+            capacity: 1,
+            status: AvailabilitySlotStatus.PUBLISHED,
+            serviceRestrictionMode: AvailabilitySlotServiceRestrictionMode.SELECTED,
+            publishedAt: new Date(),
+            publicNote: rescheduleConflictPublicNote,
+            allowedServices: {
+              create: {
+                serviceId: service.id,
+              },
+            },
           },
-        },
-      },
-    }),
-    prisma.availabilitySlot.create({
-      data: {
-        startsAt: rescheduleSuccessStart,
-        endsAt: rescheduleEnd,
-        capacity: 1,
-        status: AvailabilitySlotStatus.PUBLISHED,
-        serviceRestrictionMode: AvailabilitySlotServiceRestrictionMode.SELECTED,
-        publishedAt: new Date(),
-        publicNote: rescheduleSuccessPublicNote,
-        allowedServices: {
-          create: {
-            serviceId: service.id,
+        });
+        const createdRescheduleSuccessSlot = await tx.availabilitySlot.create({
+          data: {
+            startsAt: rescheduleSuccessStart,
+            endsAt: rescheduleEnd,
+            capacity: 1,
+            status: AvailabilitySlotStatus.PUBLISHED,
+            serviceRestrictionMode: AvailabilitySlotServiceRestrictionMode.SELECTED,
+            publishedAt: new Date(),
+            publicNote: rescheduleSuccessPublicNote,
+            allowedServices: {
+              create: {
+                serviceId: service.id,
+              },
+            },
           },
-        },
-      },
-    }),
-  ]);
+        });
+
+        return [createdPrimarySlot, createdRescheduleSlot, createdRescheduleSuccessSlot];
+      });
+      break;
+    } catch (error) {
+      if (!isAvailabilitySlotWindowConflict(error) || attempt === 95) {
+        throw error;
+      }
+    }
+  }
+
+  if (!primarySlot || !rescheduleSlot || !rescheduleSuccessSlot) {
+    throw new Error(`Could not create non-overlapping E2E availability slots for ${runId}.`);
+  }
 
   return {
     category,

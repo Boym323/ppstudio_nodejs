@@ -12,6 +12,7 @@ Formát je inspirovaný Keep a Changelog.
 - Doplněna integrační regrese admin planneru: publikace konceptu přes existující rezervaci zachová rezervovaný interval a znovu uloží jen okolní editovatelná volná okna.
 - Doplněna Playwright smoke E2E vrstva pro hlavní veřejné stránky, detail služby, bezpečné chybové stavy utility rout, `robots.txt`/`sitemap.xml`, protected admin redirect a základní OWNER/SALON backoffice routy.
 - Stabilizován E2E self-service přesun na půlnočních hranách: fixture label úspěšného slotu používá datum skutečného začátku náhradního termínu a seedované časy jsou kotvené do denního policy-safe okna, takže CI nekliká na stale slot se stejným textem.
+- E2E booking fixture při paralelním běhu workerů vytváří availability sloty transakčně a při DB konfliktu `AvailabilitySlot_active_time_window_excl` zkusí další hashovaný časový kandidát, takže více speců už nespadne na překryvu seedovaných slotů.
 - E2E assertion ruční rezervace počítá i s aktuální validační hláškou `Tento konkrétní čas už má klientka v systému rezervovaný.`, takže test dál ověřuje backend overlap validaci bez vazby na starší znění copy.
 
 ## [0.1.8] - 2026-05-05
