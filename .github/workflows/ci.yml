@@ -15,7 +15,7 @@ jobs:
   quality:
     name: Lint, Test, Build, E2E
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 40
 
     services:
       postgres:
@@ -78,4 +78,4 @@ jobs:
         run: npm run build
 
       - name: E2E
-        run: npm run test:e2e
+        run: npx playwright test

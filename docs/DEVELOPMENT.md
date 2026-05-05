@@ -265,6 +265,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - `site-smoke.spec.ts` ověřuje základní dostupnost veřejných rout, sitemap/robots kontrakt, bezpečné chybové stavy veřejných utility rout, auth redirect protected adminu a načtení hlavních OWNER/SALON sekcí bez plošného klikání každé akce.
 - Regrese ranního planner problému je krytá integračním testem `admin-slots/mutations.integration.test.ts`: publikace konceptu přes den s existující rezervací musí rezervovaný interval zachovat a přepsat jen běžnou dostupnost před/po něm.
 - Browser E2E testy běží přes Playwright (`npm run test:e2e`) v adresáři `tests/e2e`.
+- CI po samostatném `npm run build` spouští E2E přímo přes `npx playwright test`, aby se kvůli `pretest:e2e` neprováděl druhý identický build.
 - Reschedule scenar `client can reschedule a booking through a public token` ma zamerne sirsi test timeout nez ostatni scenare, protoze overuje plny self-service submit a success render nad produkcnim `next start` serverem.
 - Pri finalnim cekani na success heading je timeout zamerne navyseny na `30_000 ms`; pri nezdaru test navic vypise posledni viditelnou chybu formulare, aby CI log hned ukazal, jestli slo o konflikt slotu, validaci nebo obecny save error.
 - Playwright konfigurace používá lokální produkční `next start` server na `PLAYWRIGHT_PORT` (výchozí `3100`) a nastavuje `NEXT_PUBLIC_APP_URL` na stejný lokální origin pro runtime serveru.
