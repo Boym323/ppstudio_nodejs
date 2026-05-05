@@ -11,23 +11,6 @@ import {
   type E2eFixture,
 } from "./helpers/fixtures";
 
-async function clickUntilSelected(trigger: Locator, target: Locator) {
-  for (let attempt = 0; attempt < 5; attempt += 1) {
-    await trigger.click();
-
-    try {
-      await expect(trigger).toHaveAttribute("aria-pressed", "true", { timeout: 1_000 });
-      await expect(target).toBeEnabled({ timeout: 1_000 });
-      return;
-    } catch {
-      await trigger.page().waitForTimeout(250);
-    }
-  }
-
-  await expect(trigger).toHaveAttribute("aria-pressed", "true");
-  await expect(target).toBeEnabled();
-}
-
 async function selectSlotById(
   page: Page,
   slotButtonLabel: string,
