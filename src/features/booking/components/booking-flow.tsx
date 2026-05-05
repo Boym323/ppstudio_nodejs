@@ -3,7 +3,6 @@
 import { AvailabilitySlotServiceRestrictionMode } from "@prisma/client";
 import { useActionState, useEffect, useMemo, useRef, useState, type MutableRefObject } from "react";
 
-import { SectionHeading } from "@/components/ui/section-heading";
 import { createPublicBookingAction } from "@/features/booking/actions/create-public-booking";
 import { initialPublicBookingActionState } from "@/features/booking/actions/public-booking-action-state";
 import { trackMatomoEvent } from "@/features/analytics/matomo";
@@ -539,11 +538,17 @@ export function BookingFlow({ catalog, initialSelectedServiceSlug, salonProfile 
 
   return (
     <>
-      <SectionHeading
-        eyebrow="Rezervace"
-        title="Vyberte si termín, který vám nejlépe vyhovuje."
-        description="Rezervace zabere jen chvilku. Nejdřív zvolíte službu, potom nejbližší termín a nakonec doplníte kontakt."
-      />
+      <div className="space-y-3">
+        <p className="text-eyebrow text-[var(--color-accent)]">Rezervace</p>
+        <div className="space-y-4">
+          <h1 className="heading-section text-[var(--color-foreground)]">
+            Vyberte si termín, který vám nejlépe vyhovuje.
+          </h1>
+          <p className="text-body max-w-2xl text-[var(--color-muted)]">
+            Rezervace zabere jen chvilku. Nejdřív zvolíte službu, potom nejbližší termín a nakonec doplníte kontakt.
+          </p>
+        </div>
+      </div>
 
       <form action={formAction} className="grid gap-5 pb-28 sm:gap-6 lg:grid-cols-[1.15fr_0.85fr] lg:pb-0">
       <input type="hidden" name="serviceId" value={selectedServiceId} />

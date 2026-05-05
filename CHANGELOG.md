@@ -6,6 +6,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Rezervační stránka `/rezervace` má hlavní nadpis `Vyberte si termín, který vám nejlépe vyhovuje.` jako skutečné `h1`; vizuální podoba zůstala stejná, zlepšila se sémantika stránky pro přístupnost a SEO.
 - Veřejné e-mailové odkazy přes `ObfuscatedEmailLink` už se nevykreslují jako `#`, ale rovnou jako funkční `mailto:` odkazy i v serverovém HTML; kontakt, footer i potvrzovací obrazovky tak otevírají e-mailového klienta bez závislosti na hydrataci.
 
 ## [0.1.7] - 2026-05-05
