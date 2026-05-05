@@ -48,11 +48,31 @@ export function SiteHeader({ variant = 'public', brandName = 'PP Studio' }: Site
 
         <nav
           className={cn(
-            "booking-header__nav flex items-center md:justify-center md:gap-3",
+            "booking-header__nav grid w-full grid-cols-3 gap-1.5 md:hidden",
             isBookingVariant
-              ? "-mx-1 gap-1 overflow-x-auto pb-0.5 md:mx-0 md:overflow-visible md:pb-0"
-              : "flex-wrap gap-2",
+              ? "pb-0.5"
+              : "",
           )}
+          aria-label="Hlavní navigace"
+        >
+          {mainNavigation.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={cn(
+                'booking-header__nav-link whitespace-nowrap rounded-full border border-black/[0.04] bg-white/35 px-2 py-2 text-center text-[0.68rem] font-semibold uppercase leading-none tracking-[0.1em] transition-colors',
+                'text-[var(--color-muted)] hover:border-black/10 hover:bg-white/70 hover:text-[var(--color-foreground)]',
+                isBookingVariant ? "py-1.5 text-[0.62rem]" : "",
+              )}
+            >
+              {item.label}
+            </Link>
+          ))}
+        </nav>
+
+        <nav
+          className="booking-header__nav hidden items-center justify-center gap-3 md:flex"
+          aria-label="Hlavní navigace"
         >
           {mainNavigation.map((item) => (
             <Link
@@ -61,7 +81,6 @@ export function SiteHeader({ variant = 'public', brandName = 'PP Studio' }: Site
               className={cn(
                 'booking-header__nav-link button-text shrink-0 rounded-full px-3 py-2 tracking-[0.15em] transition-colors',
                 'text-[var(--color-muted)] hover:bg-white/70 hover:text-[var(--color-foreground)]',
-                isBookingVariant ? "px-2.5 py-1.5 text-[0.68rem] md:px-3 md:py-2 md:text-[inherit]" : "",
               )}
             >
               {item.label}
