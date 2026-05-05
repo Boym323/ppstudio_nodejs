@@ -91,12 +91,21 @@ async function replaceDayWithIntervals(
   actorUserId: string | null,
   dateKey: string,
   intervals: TimeRange[],
+  options: {
+    lockedConflict?: "reject" | "preserve";
+    conflictMessage?: string;
+  } = {},
 ) {
   const state = await getEditableDayState(tx, dateKey);
+  const lockedConflict = options.lockedConflict ?? "reject";
 
-  if (intervals.some((interval) => intersectsAny(interval, state.lockedIntervals))) {
+  if (
+    lockedConflict === "reject" &&
+    intervals.some((interval) => intersectsAny(interval, state.lockedIntervals))
+  ) {
     throw new PlannerMutationError(
-      "Kopírovaný rozvrh zasahuje do rezervací nebo omezených intervalů v cílovém dni.",
+      options.conflictMessage ??
+        "Kopírovaný rozvrh zasahuje do rezervací nebo omezených intervalů v cílovém dni.",
     );
   }
 
@@ -110,7 +119,13 @@ async function replaceDayWithIntervals(
     });
   }
 
-  const merged = mergeIntervals(intervals);
+  const merged =
+    lockedConflict === "preserve"
+      ? state.lockedIntervals.reduce(
+          (currentIntervals, lockedInterval) => subtractIntervals(currentIntervals, lockedInterval),
+          mergeIntervals(intervals),
+        )
+      : mergeIntervals(intervals);
 
   if (merged.length > 0) {
     await tx.availabilitySlot.createMany({
@@ -381,7 +396,9 @@ export async function syncPlannerWeekDraft(
         return getCellRangeBounds(day.dateKey, interval.startCell, interval.endCell);
       });
 
-      await replaceDayWithIntervals(tx, input.actorUserId, day.dateKey, intervals);
+      await replaceDayWithIntervals(tx, input.actorUserId, day.dateKey, intervals, {
+        lockedConflict: "preserve",
+      });
     }
   }, {
     isolationLevel: Prisma.TransactionIsolationLevel.Serializable,

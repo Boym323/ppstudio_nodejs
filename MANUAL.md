@@ -575,6 +575,7 @@ npm run db:clear-booking-data -- --confirm
 - 30min mřížka slouží jen jako editace v admin UI. Do databáze se ukládají souvislé intervaly `startsAt`-`endsAt`, aby zůstala kompatibilita s veřejným booking flow i delšími službami.
 - Neuložené změny se drží lokálně jako koncept týdne pro dané zařízení a týden; do databáze se propíšou až přes akci `Publikovat změny`.
 - Publikace konceptu týdne je tolerantní vůči drobně poškozenému/stale lokálnímu draftu: intervaly se před uložením normalizují na mřížku `06:00-20:00` (`0..28` půlhodinových buněk), prázdné úseky se ignorují a překryvy se sloučí.
+- Pokud se mezi načtením stránky a publikací objeví nebo zůstane v DB rezervace/omezení, publikace konceptu ji zachová a běžnou dostupnost uloží jen mimo tento chráněný čas.
 - Planner přímo neupravuje sloty, které už obsahují rezervace, omezení služeb, poznámky nebo jinou kapacitu než `1`; takové intervaly jsou v kalendáři vidět jako omezené a zůstávají chráněné.
 - Za „obsahují rezervace“ se počítají i historické vazby (`CANCELLED`, `COMPLETED`, `NO_SHOW`), protože slot s navázaným booking záznamem nejde mazat přes FK `Booking.slotId -> AvailabilitySlot.id`.
 - Výchozí týden v planneru je počítaný nad lokálním datem `Europe/Prague`, takže týden vždy začíná pondělím i kolem časových posunů.
