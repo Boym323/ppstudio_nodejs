@@ -6,7 +6,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
-- Zatím bez položek.
+- Veřejný web má upravenou klientskou copy tak, aby mluvila za jednu provozovatelku salonu tam, kde to zní přirozeně; společné domlouvání služby s klientkou a studio jako místo zůstávají zachované.
 
 ## [0.1.6] - 2026-05-05
 

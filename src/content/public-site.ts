@@ -418,7 +418,7 @@ export function buildFaqSections(cancellationHours: number): FaqSection[] {
         {
           question: 'Mohu rezervaci změnit?',
           answer:
-            'Ano. Jakmile víte, že vám termín nevyhovuje, ozvěte se prosím co nejdříve a zkusíme spolu najít jiný čas. Čím dříve dáte vědět, tím snáz se podaří termín upravit.',
+            'Ano. Jakmile víte, že vám termín nevyhovuje, ozvěte se mi prosím co nejdříve a zkusíme spolu najít jiný čas. Čím dříve dáte vědět, tím snáz se podaří termín upravit.',
         },
       ],
     },
@@ -430,7 +430,7 @@ export function buildFaqSections(cancellationHours: number): FaqSection[] {
         {
           question: 'Co mě čeká při první návštěvě?',
           answer:
-            'Na začátku si v klidu řekneme, co řešíte, jaká je vaše běžná péče a co od návštěvy čekáte. Potom navážeme samotným ošetřením a na závěr dostanete jednoduché doporučení pro domácí péči.',
+            'Na začátku si v klidu řekneme, co řešíte, jaká je vaše běžná péče a co od návštěvy čekáte. Potom navážu samotným ošetřením a na závěr dostanete jednoduché doporučení pro domácí péči.',
         },
         {
           question: 'Mohu přijít, i když nemám zkušenosti?',
@@ -450,7 +450,7 @@ export function buildFaqSections(cancellationHours: number): FaqSection[] {
         {
           question: 'Jak často chodit na kosmetiku?',
           answer:
-            'Záleží na typu pleti, cíli péče i domácí rutině. U pravidelné péče se často osvědčuje návštěva přibližně jednou za 4 až 6 týdnů, ale přesnější rytmus domluvíme podle toho, co vaše pleť aktuálně potřebuje.',
+            'Záleží na typu pleti, cíli péče i domácí rutině. U pravidelné péče se často osvědčuje návštěva přibližně jednou za 4 až 6 týdnů, ale přesnější rytmus doporučím podle toho, co vaše pleť aktuálně potřebuje.',
         },
       ],
     },
@@ -467,7 +467,7 @@ export function buildFaqSections(cancellationHours: number): FaqSection[] {
         {
           question: 'Můžu přijít nalíčená?',
           answer:
-            'Ano, klidně přijďte tak, jak běžně chodíte. Před ošetřením vše potřebné šetrně odlíčíme.',
+            'Ano, klidně přijďte tak, jak běžně chodíte. Před ošetřením vše potřebné šetrně odlíčím.',
         },
         {
           question: 'Co si vzít s sebou?',
@@ -498,7 +498,7 @@ export function buildFaqSections(cancellationHours: number): FaqSection[] {
         {
           question: 'Bolí ošetření?',
           answer:
-            'Ve většině případů je ošetření šetrné a komfortní. Pokud by vám cokoliv nebylo příjemné, stačí říct a průběh hned upravíme.',
+            'Ve většině případů je ošetření šetrné a komfortní. Pokud by vám cokoliv nebylo příjemné, stačí říct a průběh hned upravím.',
         },
         {
           question: 'Bolí úprava obočí?',
@@ -513,7 +513,7 @@ export function buildFaqSections(cancellationHours: number): FaqSection[] {
         {
           question: 'Je kosmetické ošetření vhodné pro citlivou pleť?',
           answer:
-            'Ano, jen je potřeba citlivost zohlednit už při konzultaci. Pokud víte o reakcích, alergiích nebo aktuálním podráždění, řekneme si to předem a zvolíme jemnější postup i vhodné přípravky.',
+            'Ano, jen je potřeba citlivost zohlednit už při konzultaci. Pokud víte o reakcích, alergiích nebo aktuálním podráždění, řekneme si to předem a zvolím jemnější postup i vhodné přípravky.',
         },
       ],
     },
@@ -525,7 +525,7 @@ export function buildFaqSections(cancellationHours: number): FaqSection[] {
         {
           question: 'Co když se opozdím?',
           answer:
-            'Když to půjde, počkáme na vás. Při větším zpoždění ale může být potřeba službu zkrátit nebo domluvit jiný termín, aby nenavazovaly další rezervace.',
+            'Když to půjde, počkám na vás. Při větším zpoždění ale může být potřeba službu zkrátit nebo domluvit jiný termín, aby nenavazovaly další rezervace.',
         },
         {
           question: 'Jak probíhá platba?',
@@ -593,7 +593,7 @@ export function buildCancellationPageContent(input: {
       {
         title: 'Pozdní storno',
         value: `Méně než ${input.cancellationHours} h předem`,
-        description: 'Prosíme o co nejrychlejší informaci. Pozdní zrušení komplikuje obsazení uvolněného času.',
+        description: 'Prosím o co nejrychlejší informaci. Pozdní zrušení komplikuje obsazení uvolněného času.',
       },
       {
         title: 'Nedostavení se',
@@ -755,7 +755,7 @@ export function buildLegalContent(cancellationHours: number) {
             'Studio si vyhrazuje právo službu neposkytnout nebo ji upravit, pokud by její bezpečné provedení neodpovídalo aktuálnímu stavu klientky, hygienickým pravidlům nebo rozsahu rezervovaného času.',
           ],
           items: [
-            'na termín doporučujeme přijít bez zbytečného předstihu i bez výrazného zpoždění',
+            'na termín doporučuji přijít bez zbytečného předstihu i bez výrazného zpoždění',
             'doprovod je vhodné konzultovat předem, zejména u delších nebo klidových procedur',
             'během návštěvy je potřeba respektovat hygienická a provozní pravidla studia',
           ],
@@ -769,7 +769,7 @@ export function buildLegalContent(cancellationHours: number) {
             'Studio nenese odpovědnost za komplikace nebo nespokojenost se službou, pokud klientka podstatné informace zamlčela nebo nedodržela následná doporučení po ošetření.',
           ],
           note:
-            'Pokud si nejste jistá vhodností služby, doporučujeme se ozvat ještě před rezervací. Krátká konzultace často předejde zbytečnému zklamání i zdravotnímu riziku.',
+            'Pokud si nejste jistá vhodností služby, doporučuji se ozvat ještě před rezervací. Krátká konzultace často předejde zbytečnému zklamání i zdravotnímu riziku.',
         },
         {
           id: 'reklamace',
@@ -780,7 +780,7 @@ export function buildLegalContent(cancellationHours: number) {
             'Studio se zavazuje reklamaci posoudit v přiměřené lhůtě a navrhnout další postup, například kontrolní návštěvu, úpravu výsledku nebo jiné férové řešení podle povahy situace.',
           ],
           items: [
-            'pro rychlé vyřízení doporučujeme připojit popis problému a případně aktuální fotografii',
+            'pro rychlé vyřízení doporučuji připojit popis problému a případně aktuální fotografii',
             'reklamaci je vhodné uplatnit e-mailem nebo telefonicky přes kontakty uvedené na této stránce',
           ],
         },

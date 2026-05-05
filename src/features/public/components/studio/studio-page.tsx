@@ -166,7 +166,7 @@ export function StudioHighlights() {
       <Container className="grid gap-6 lg:grid-cols-[0.8fr_1.2fr] lg:items-start">
         <SectionHeading
           eyebrow="Atmosféra"
-          title="Co u nás najdete"
+          title="Co ve studiu najdete"
           description="Místo, kde má péče svůj čas, soukromí a přirozený rytmus."
         />
         <div className="grid gap-4 sm:grid-cols-2">

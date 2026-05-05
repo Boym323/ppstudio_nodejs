@@ -71,6 +71,7 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
   - obchodní podmínky
   - GDPR
 - Veřejný obsah je centralizovaný v `src/content/public-site.ts`, aby šly texty a hlavní brand copy měnit bez zásahu do layout komponent.
+- Klientská copy veřejného webu má reflektovat, že salon provozuje jedna osoba. Jednotné číslo používej tam, kde mluví přímo provozovatelka (`doporučuji`, `pošlu`, `můžete mě kontaktovat`); přirozené společné formulace s klientkou (`společně doladíme`) a studio jako místo (`k nám`) zůstávají v pořádku.
 - Hero sekce `/kontakt` používá samostatnou publikovanou fotku z media knihovny (`CONTACT_PHOTO`) jako pravý above-the-fold vizuál; pokud zatím není nahraná, zobrazí decentní placeholder a nesahá do fotek studia.
 - Globální SEO popis a fallback kontakty používají skutečné údaje PP Studia: `info@ppstudio.cz`, `+420 732 856 036` a `Sadová 2, 760 01 Zlín`; placeholder kontakty se nemají vracet ani při chybě DB settings.
 - Stručná komunikace storno pravidla na homepage a ve FAQ má být benefit-first a klientsky srozumitelná: nepoužívej interní názvy typu `storno okno` ani procesní věty o tom, jak jsou pravidla komunikovaná; preferuj krátké formulace typu `Změna nebo zrušení termínu je možné nejpozději 24 hodin předem.` nebo kontextovou variantu se stejným významem.

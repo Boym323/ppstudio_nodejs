@@ -22,7 +22,7 @@ export default async function Page() {
       heroAside={{
         eyebrow: 'Kontakt správce',
         title: 'Správce osobních údajů',
-        description: 'Pokud máte dotaz ke zpracování osobních údajů, můžete nás kontaktovat.',
+        description: 'Pokud máte dotaz ke zpracování osobních údajů, můžete mě kontaktovat.',
         items: [
           { label: 'Studio', value: salonProfile.name },
           { label: 'Adresa', value: salonProfile.addressLine },
