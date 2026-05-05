@@ -6,6 +6,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Přidán statický ověřovací soubor `seznam-wmt-cjKzOuv71FG0TOfkMT7WBqHwAXFWhvum.txt` pro Seznam Webmaster na kořen veřejného webu.
 - Mobilní veřejný header zobrazuje všech šest veřejných sekcí jako čitelnou kompaktní mřížku `2 × 3`; primární `Rezervace` zůstává jako samostatné CTA a desktopová navigace dál používá plnou pill podobu.
 - Rezervační stránka `/rezervace` má hlavní nadpis `Vyberte si termín, který vám nejlépe vyhovuje.` jako skutečné `h1`; vizuální podoba zůstala stejná, zlepšila se sémantika stránky pro přístupnost a SEO.
 - Veřejné e-mailové odkazy přes `ObfuscatedEmailLink` už se nevykreslují jako `#`, ale rovnou jako funkční `mailto:` odkazy i v serverovém HTML; kontakt, footer i potvrzovací obrazovky tak otevírají e-mailového klienta bez závislosti na hydrataci.

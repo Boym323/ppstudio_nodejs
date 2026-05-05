@@ -25,6 +25,7 @@ Postup nasazení aplikace do produkce.
      - veřejné noindex stránky bez tokenu v path nejsou blokované v `robots.txt`
      - podstránky mají vlastní canonical URL a OpenGraph URL, ne canonical homepage
      - veřejný layout obsahuje JSON-LD pro salon/web, homepage vlastní `WebPage` a detail služby `Service`/`BreadcrumbList`
+     - ověřovací soubor Seznam Webmasteru je dostupný na `/seznam-wmt-cjKzOuv71FG0TOfkMT7WBqHwAXFWhvum.txt`
    - homepage
    - `/o-mne`:
      - výrazný hero s oběma CTA
