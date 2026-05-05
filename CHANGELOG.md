@@ -6,6 +6,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Veřejné e-mailové odkazy přes `ObfuscatedEmailLink` už se nevykreslují jako `#`, ale rovnou jako funkční `mailto:` odkazy i v serverovém HTML; kontakt, footer i potvrzovací obrazovky tak otevírají e-mailového klienta bez závislosti na hydrataci.
+
 ## [0.1.7] - 2026-05-05
 
 - Veřejný web má upravenou klientskou copy tak, aby mluvila za jednu provozovatelku salonu tam, kde to zní přirozeně; společné domlouvání služby s klientkou a studio jako místo zůstávají zachované.

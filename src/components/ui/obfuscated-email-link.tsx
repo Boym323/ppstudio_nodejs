@@ -37,25 +37,14 @@ export function ObfuscatedEmailLink({
   ...props
 }: ObfuscatedEmailLinkProps) {
   const mailtoHref = buildMailtoHref(email, subject, body);
-  const href = typeof window === 'undefined' ? '#' : mailtoHref;
 
   return (
     <a
       {...props}
-      href={href}
-      suppressHydrationWarning
+      href={mailtoHref}
       aria-label={ariaLabel ?? 'Napsat e-mail'}
       onClick={(event) => {
         onClick?.(event);
-
-        if (event.defaultPrevented) {
-          return;
-        }
-
-        if (href === '#') {
-          event.preventDefault();
-          window.location.href = mailtoHref;
-        }
       }}
     >
       {children ?? email}
