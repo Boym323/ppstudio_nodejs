@@ -207,9 +207,9 @@ export function StudioLocationCta() {
       <Container>
         <article className="grid gap-6 rounded-[var(--radius-panel)] border border-black/6 bg-white p-6 shadow-[var(--shadow-panel)] sm:p-7 lg:grid-cols-[1fr_auto] lg:items-center lg:p-8">
           <div>
-            <p className="text-eyebrow text-[var(--color-accent)]">Kde nás najdete</p>
+            <p className="text-eyebrow text-[var(--color-accent)]">Kde studio najdete</p>
             <h2 className="mt-3 font-display text-[2rem] leading-[1.08] text-[var(--color-foreground)] sm:text-[2.6rem]">
-              Najdete nás na Sadové 2 ve Zlíně.
+              PP Studio najdete na Sadové 2 ve Zlíně.
             </h2>
             <p className="mt-4 max-w-2xl text-[15px] leading-7 text-[var(--color-muted)] sm:text-base">
               Pokud si nejste jistá cestou nebo výběrem služby, napište — vše spolu v klidu domluvíme předem.
