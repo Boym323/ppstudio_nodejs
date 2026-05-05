@@ -129,6 +129,19 @@ function roundUpToHalfHour(value: Date) {
   return copy;
 }
 
+function buildPolicySafeStart(minLeadHours: number) {
+  const minStart = addMinutes(new Date(), minLeadHours * 60);
+  let daysFromNow = Math.max(1, Math.ceil(minLeadHours / 24));
+  let candidate = futureUtcDate(daysFromNow, 8);
+
+  while (candidate < minStart) {
+    daysFromNow += 1;
+    candidate = futureUtcDate(daysFromNow, 8);
+  }
+
+  return candidate;
+}
+
 async function createCatalogFixture(runId: string) {
   const categoryName = `E2E kategorie ${runId}`;
   const serviceName = `E2E služba ${runId}`;
@@ -174,17 +187,12 @@ async function createCatalogFixture(runId: string) {
   const maxAdvanceDays = siteSettings?.bookingMaxAdvanceDays ?? 90;
   const cancellationHours = siteSettings?.bookingCancellationHours ?? 48;
   const baseLeadHours = Math.max(minAdvanceHours + 3, cancellationHours + 3);
-  const candidateStart = addMinutes(new Date(), baseLeadHours * 60);
-  const fallbackStart = futureUtcDate(1, 9);
   const maxWindowEnd = addMinutes(new Date(), maxAdvanceDays * 24 * 60);
   const maxSafeStart = addMinutes(maxWindowEnd, -6 * 60);
-  const resolvedStart =
-    candidateStart <= maxSafeStart
-      ? candidateStart
-      : maxSafeStart;
-  const primaryStart = roundUpToHalfHour(
-    resolvedStart > new Date() ? resolvedStart : fallbackStart,
-  );
+  const candidateStart = buildPolicySafeStart(baseLeadHours);
+  const primaryStart = candidateStart <= maxSafeStart
+    ? candidateStart
+    : roundUpToHalfHour(maxSafeStart);
   const primaryEnd = addMinutes(primaryStart, 180);
   const rescheduleStart = addMinutes(primaryStart, 24 * 60);
   const rescheduleSuccessStart = addMinutes(rescheduleStart, service.durationMinutes);
@@ -265,6 +273,7 @@ export async function createPublicBookingFixture(): Promise<E2eFixture> {
   const rescheduleSuccessStart = addMinutes(catalog.rescheduleStart, 60);
   const rescheduleSuccessEnd = addMinutes(rescheduleSuccessStart, catalog.service.durationMinutes);
   const rescheduleDateLabel = formatPragueLongDateLabel(catalog.rescheduleStart);
+  const rescheduleSuccessDateLabel = formatPragueLongDateLabel(rescheduleSuccessStart);
 
   return {
     runId,
@@ -280,7 +289,7 @@ export async function createPublicBookingFixture(): Promise<E2eFixture> {
       rescheduleTime: formatPragueTime(catalog.rescheduleStart),
       rescheduleConflictButtonLabel: `Vybrat čas ${formatPragueTimeRange(catalog.rescheduleStart, addMinutes(catalog.rescheduleStart, catalog.service.durationMinutes))} dne ${rescheduleDateLabel}`,
       rescheduleConflictSlotId: catalog.rescheduleSlot.id,
-      rescheduleSuccessButtonLabel: `Vybrat čas ${formatPragueTimeRange(rescheduleSuccessStart, rescheduleSuccessEnd)} dne ${rescheduleDateLabel}`,
+      rescheduleSuccessButtonLabel: `Vybrat čas ${formatPragueTimeRange(rescheduleSuccessStart, rescheduleSuccessEnd)} dne ${rescheduleSuccessDateLabel}`,
       rescheduleSuccessSlotId: catalog.rescheduleSuccessSlot.id,
       rescheduleSuccessStartAt: rescheduleSuccessStart.toISOString(),
       primaryStartAt: catalog.primaryStart.toISOString(),
@@ -302,6 +311,7 @@ export async function createManagedBookingFixture(
   const rescheduleSuccessStart = addMinutes(catalog.rescheduleStart, 60);
   const rescheduleSuccessEnd = addMinutes(rescheduleSuccessStart, catalog.service.durationMinutes);
   const rescheduleDateLabel = formatPragueLongDateLabel(catalog.rescheduleStart);
+  const rescheduleSuccessDateLabel = formatPragueLongDateLabel(rescheduleSuccessStart);
 
   const client = await prisma.client.create({
     data: {
@@ -415,7 +425,7 @@ export async function createManagedBookingFixture(
       rescheduleTime: formatPragueTime(catalog.rescheduleStart),
       rescheduleConflictButtonLabel: `Vybrat čas ${formatPragueTimeRange(catalog.rescheduleStart, addMinutes(catalog.rescheduleStart, catalog.service.durationMinutes))} dne ${rescheduleDateLabel}`,
       rescheduleConflictSlotId: catalog.rescheduleSlot.id,
-      rescheduleSuccessButtonLabel: `Vybrat čas ${formatPragueTimeRange(rescheduleSuccessStart, rescheduleSuccessEnd)} dne ${rescheduleDateLabel}`,
+      rescheduleSuccessButtonLabel: `Vybrat čas ${formatPragueTimeRange(rescheduleSuccessStart, rescheduleSuccessEnd)} dne ${rescheduleSuccessDateLabel}`,
       rescheduleSuccessSlotId: catalog.rescheduleSuccessSlot.id,
       rescheduleSuccessStartAt: rescheduleSuccessStart.toISOString(),
       primaryStartAt: catalog.primaryStart.toISOString(),

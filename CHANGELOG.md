@@ -6,6 +6,9 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Stabilizován E2E self-service přesun na půlnočních hranách: fixture label úspěšného slotu používá datum skutečného začátku náhradního termínu a seedované časy jsou kotvené do denního policy-safe okna, takže CI nekliká na stale slot se stejným textem.
+- E2E assertion ruční rezervace počítá i s aktuální validační hláškou `Tento konkrétní čas už má klientka v systému rezervovaný.`, takže test dál ověřuje backend overlap validaci bez vazby na starší znění copy.
+
 ## [0.1.8] - 2026-05-05
 
 - Přidán statický ověřovací soubor `seznam-wmt-cjKzOuv71FG0TOfkMT7WBqHwAXFWhvum.txt` pro Seznam Webmaster na kořen veřejného webu.
