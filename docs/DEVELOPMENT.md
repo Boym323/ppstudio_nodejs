@@ -78,6 +78,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - `src/app/robots.ts` a `src/app/sitemap.ts` používají metadata route API v App Routeru.
 - `src/app/sitemap.ts` musí nastavovat realistické `lastModified` hodnoty: detail služeb z `Service.updatedAt`, statické stránky ze stabilního data poslední obsahové revize (ne plošně `new Date()` pro všechny URL).
 - Veřejné stránky používají `buildPageMetadata(...)` a vždy předávají vlastní `path`; helper z něj skládá canonical, OpenGraph URL a Twitter metadata. Nevkládej globální canonical do root layoutu, protože by ho zdědily podstránky.
+- Playwright smoke test pro veřejné stránky ověřuje canonical a `og:url` proti aktuálnímu runtime originu. Discovery test zároveň hlídá `Host`/`Sitemap` v `robots.txt`, sitemap `<loc>` na stejném originu a absenci historické `http://ppstudio.cz` URL.
 - Stránka `/o-mne` je v `src/features/public/components/about-page.tsx` záměrně vedená jako klidná premium landing page, ale density pass z `2026-05-03` drží kompaktnější rytmus: menší section `py`, střídmější card padding, těsnější návaznost bloků `Můj příběh` a `Můj přístup`, kompaktnější FOR LIFE & MADAGA pills a nižší certifikační gallery. Při dalších úpravách zachovej obsahovou skladbu a CTA routy z `aboutContent`, nevracej stránku do roztahaného hero/card rytmu.
 - Strukturovaná data jsou v `src/features/public/components/seo-json-ld.tsx`: veřejný layout vkládá `BeautySalon`/`WebSite`, homepage vkládá vlastní `WebPage` a detail služby vkládá `Service`/`BreadcrumbList`. JSON-LD se serializuje přes `JSON.stringify(...).replace(/</g, "\\u003c")`; adresa salonu v `BeautySalon` a `areaServed` u služby se berou z `getPublicSalonProfile()` / `SiteSettings`, aby držely stejnou hodnotu jako veřejný kontakt. `BeautySalon` navíc obsahuje `geo` s přesnými souřadnicemi studia. `Service.offers` se generuje jen pro jasně číselnou cenu služby.
 - `src/config/site.ts` drží globální fallback SEO popis a kontakty pro metadata a technické routy. Udržuj ho věcný k PP Studiu ve Zlíně a nepoužívej placeholder kontakty; produkční fallback je `info@ppstudio.cz`, `+420 732 856 036` a `Sadová 2, 760 01 Zlín`.
@@ -258,6 +259,11 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 ## Testovací Strategie
 - Unit a doménové integrační testy běží přes Node test runner (`npm test`).
 - DB-backed booking integrační scénáře lze spustit cíleně přes `npm run test:db:booking`.
+- Playwright E2E sada (`npm run test:e2e`) má dvě vrstvy:
+  - `booking-flows.spec.ts` ověřuje kritické rezervační a provozní workflow nad reálnými fixture daty.
+  - `voucher-flows.spec.ts` ověřuje provozní lifecycle hodnotového voucheru přes browser: vytvoření v adminu, chráněné stažení PDF a otevření předvyplněného panelu pro ruční odeslání e-mailu. Samotné zařazení e-mail logu kryje integrační test `voucher-email-actions.integration.test.ts`.
+  - `site-smoke.spec.ts` ověřuje základní dostupnost veřejných rout, sitemap/robots kontrakt, bezpečné chybové stavy veřejných utility rout, auth redirect protected adminu a načtení hlavních OWNER/SALON sekcí bez plošného klikání každé akce.
+- Regrese ranního planner problému je krytá integračním testem `admin-slots/mutations.integration.test.ts`: publikace konceptu přes den s existující rezervací musí rezervovaný interval zachovat a přepsat jen běžnou dostupnost před/po něm.
 - Browser E2E testy běží přes Playwright (`npm run test:e2e`) v adresáři `tests/e2e`.
 - Reschedule scenar `client can reschedule a booking through a public token` ma zamerne sirsi test timeout nez ostatni scenare, protoze overuje plny self-service submit a success render nad produkcnim `next start` serverem.
 - Pri finalnim cekani na success heading je timeout zamerne navyseny na `30_000 ms`; pri nezdaru test navic vypise posledni viditelnou chybu formulare, aby CI log hned ukazal, jestli slo o konflikt slotu, validaci nebo obecny save error.

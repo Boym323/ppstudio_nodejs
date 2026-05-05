@@ -22,6 +22,7 @@ Postup nasazení aplikace do produkce.
      - veřejný web vrací `Allow: /`
      - admin a tokenové routy `/admin/*`, `/rezervace/storno/*`, `/rezervace/sprava/*`, `/rezervace/akce/*` zůstávají blokované
      - `sitemap.xml` je uvedená v `robots.txt`
+     - `Host`, `Sitemap` a všechny sitemap `<loc>` hodnoty používají produkční HTTPS origin `https://ppstudio.cz`, ne `http://ppstudio.cz`
      - veřejné noindex stránky bez tokenu v path nejsou blokované v `robots.txt`
      - podstránky mají vlastní canonical URL a OpenGraph URL, ne canonical homepage
      - veřejný layout obsahuje JSON-LD pro salon/web, homepage vlastní `WebPage` a detail služby `Service`/`BreadcrumbList`

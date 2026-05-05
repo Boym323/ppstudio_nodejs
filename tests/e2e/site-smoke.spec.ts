@@ -1,0 +1,199 @@
+import { expect, test, type Page } from "@playwright/test";
+import { AdminRole } from "@prisma/client";
+
+import {
+  cleanupE2eData,
+  createAdminFixture,
+  createPublicBookingFixture,
+  type E2eFixture,
+} from "./helpers/fixtures";
+
+async function loginAdmin(page: Page, email: string, password: string) {
+  await page.goto("/admin/prihlaseni");
+  await page.getByLabel("E-mail").fill(email);
+  await page.getByLabel("Heslo").fill(password);
+  await page.getByRole("button", { name: "Přihlásit se" }).click();
+  await expect(page).toHaveURL(/\/admin/);
+}
+
+async function expectPageReady(page: Page, path: string, heading: RegExp | string) {
+  await page.goto(path);
+  await expect(page.getByRole("heading", { name: heading }).first()).toBeVisible();
+  await expect(page.locator('meta[name="robots"]')).not.toHaveAttribute("content", /noindex/i);
+
+  const currentUrl = new URL(page.url());
+  const expectedCanonicalPath = currentUrl.pathname === "/" ? "" : currentUrl.pathname;
+  const canonical = page.locator('link[rel="canonical"]');
+  const canonicalHref = await canonical.getAttribute("href");
+
+  expect(canonicalHref).toBeTruthy();
+  expect(canonicalHref).not.toContain("http://ppstudio.cz");
+  expect(new URL(canonicalHref ?? "https://invalid.example").pathname).toBe(expectedCanonicalPath || "/");
+  await expect(page.locator('meta[property="og:url"]')).toHaveAttribute("content", canonicalHref ?? "");
+}
+
+test.describe("public site smoke coverage", () => {
+  let fixtures: E2eFixture[] = [];
+
+  test.afterEach(async () => {
+    await Promise.all(fixtures.map((fixture) => cleanupE2eData(fixture.runId)));
+    fixtures = [];
+  });
+
+  test("public visitor can open every main public page and a service detail", async ({ page }) => {
+    const fixture = await createPublicBookingFixture();
+    fixtures.push(fixture);
+
+    const publicPages: Array<{ path: string; heading: RegExp | string }> = [
+      { path: "/", heading: "PP Studio" },
+      { path: "/sluzby", heading: "Péče rozdělená podle toho, co právě hledáte." },
+      { path: "/cenik", heading: "Ceny přehledně a bez zbytečného hledání." },
+      { path: "/o-mne", heading: "Péče, ve které se můžete cítit dobře" },
+      { path: "/studio", heading: "Klidné místo pro vaši péči" },
+      { path: "/kontakt", heading: "Pokud si nejste jistá, napište mi." },
+      { path: "/faq", heading: "Odpovědi na otázky, které klientce pomáhají rozhodnout se bez nejistoty." },
+      { path: "/storno-podminky", heading: /storno/i },
+      { path: "/obchodni-podminky", heading: /obchodní podmínky/i },
+      { path: "/gdpr", heading: /gdpr|osobních údajů/i },
+      { path: `/sluzby/${fixture.serviceSlug}`, heading: fixture.serviceName },
+    ];
+
+    for (const item of publicPages) {
+      await expectPageReady(page, item.path, item.heading);
+      await expect(page.getByRole("link", { name: /Rezervace|Rezervovat|Vybrat termín|Najít volný termín/i }).first())
+        .toBeVisible();
+    }
+
+    await page.goto("/o-salonu");
+    await expect(page).toHaveURL(/\/o-mne/);
+    await expect(page.getByRole("heading", { name: "Péče, ve které se můžete cítit dobře" })).toBeVisible();
+
+    await page.goto("/vouchery/overeni");
+    await expect(page.getByRole("heading", { name: "Ověření dárkového poukazu" })).toBeVisible();
+    await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/i);
+  });
+
+  test("technical public discovery routes stay available and keep private paths out", async ({ request }) => {
+    const [robotsResponse, sitemapResponse] = await Promise.all([
+      request.get("/robots.txt"),
+      request.get("/sitemap.xml"),
+    ]);
+
+    expect(robotsResponse.ok()).toBe(true);
+    expect(sitemapResponse.ok()).toBe(true);
+
+    const robots = await robotsResponse.text();
+    const sitemap = await sitemapResponse.text();
+    const host = robots.match(/^Host: (?<url>.+)$/m)?.groups?.url;
+    const sitemapUrl = robots.match(/^Sitemap: (?<url>.+)$/m)?.groups?.url;
+
+    expect(host).toBeTruthy();
+    expect(sitemapUrl).toBeTruthy();
+
+    expect(robots).toContain("Disallow: /admin");
+    expect(robots).toContain("Disallow: /rezervace/sprava");
+    expect(host).not.toBe("http://ppstudio.cz");
+    expect(sitemapUrl).toBe(`${host}/sitemap.xml`);
+    expect(sitemap).toContain("<loc>");
+    expect(sitemap).toContain(`<loc>${host}`);
+    expect(sitemap).toContain("/sluzby");
+    expect(sitemap).not.toContain("http://ppstudio.cz");
+    expect(sitemap).not.toContain("/admin");
+    expect(sitemap).not.toContain("/rezervace/sprava");
+  });
+
+  test("public error and private utility routes fail safely", async ({ page }) => {
+    await page.goto("/sluzby/neexistujici-e2e-sluzba");
+    await expect(page.getByRole("heading", { name: "404" })).toBeVisible();
+
+    await page.goto("/rezervace/sprava/neplatny-e2e-token");
+    await expect(page.getByRole("heading", { name: "Tuto rezervaci teď nelze změnit online." }))
+      .toBeVisible();
+    await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/i);
+
+    await page.goto("/rezervace/storno/neplatny-e2e-token");
+    await expect(page.getByRole("heading", { name: "Tuhle rezervaci už nelze zrušit online." }))
+      .toBeVisible();
+    await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/i);
+
+    await page.goto("/admin/vouchery/neexistujici-e2e-voucher/pdf");
+    await expect(page).toHaveURL(/\/admin\/prihlaseni/);
+    await expect(page.getByRole("heading", { name: "Přihlášení do správy salonu" })).toBeVisible();
+  });
+});
+
+test.describe("admin site smoke coverage", () => {
+  let fixtures: E2eFixture[] = [];
+
+  test.afterEach(async () => {
+    await Promise.all(fixtures.map((fixture) => cleanupE2eData(fixture.runId)));
+    fixtures = [];
+  });
+
+  test("guest is redirected from protected owner and salon workspaces", async ({ page }) => {
+    for (const path of ["/admin", "/admin/rezervace", "/admin/provoz", "/admin/provoz/rezervace"]) {
+      await page.goto(path);
+      await expect(page).toHaveURL(/\/admin\/prihlaseni/);
+      await expect(page.getByRole("heading", { name: "Přihlášení do správy salonu" })).toBeVisible();
+    }
+  });
+
+  test("owner can open the core backoffice sections", async ({ page }) => {
+    const fixture = await createPublicBookingFixture();
+    const admin = await createAdminFixture(fixture.runId, AdminRole.OWNER);
+    fixtures.push(fixture);
+
+    await loginAdmin(page, admin.email, admin.password);
+
+    const ownerPages: Array<{ path: string; heading: RegExp | string }> = [
+      { path: "/admin", heading: "Dnešní provoz" },
+      { path: "/admin/rezervace", heading: "Rezervace" },
+      { path: "/admin/volne-terminy", heading: /Týden|Volné termíny/ },
+      { path: "/admin/vouchery", heading: "Vouchery" },
+      { path: "/admin/vouchery/novy", heading: "Vytvořit voucher" },
+      { path: "/admin/klienti", heading: "Klienti" },
+      { path: "/admin/media", heading: "Média webu" },
+      { path: "/admin/sluzby", heading: "Služby" },
+      { path: "/admin/kategorie-sluzeb", heading: "Kategorie služeb" },
+      { path: "/admin/uzivatele", heading: "Uživatelé / role" },
+      { path: "/admin/email-logy", heading: "Komunikace se zákaznicemi" },
+      { path: "/admin/nastaveni", heading: "Nastavení" },
+    ];
+
+    for (const item of ownerPages) {
+      await page.goto(item.path);
+      await expect(page.getByRole("heading", { name: item.heading }).first()).toBeVisible();
+      await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/i);
+    }
+  });
+
+  test("salon role can open the operational workspace but not owner-only sections", async ({ page }) => {
+    const fixture = await createPublicBookingFixture();
+    const admin = await createAdminFixture(fixture.runId, AdminRole.SALON);
+    fixtures.push(fixture);
+
+    await loginAdmin(page, admin.email, admin.password);
+
+    const salonPages: Array<{ path: string; heading: RegExp | string }> = [
+      { path: "/admin/provoz", heading: "Dnešní provoz" },
+      { path: "/admin/provoz/rezervace", heading: "Rezervace" },
+      { path: "/admin/provoz/volne-terminy", heading: /Týden|Plán provozu/ },
+      { path: "/admin/provoz/vouchery", heading: "Vouchery" },
+      { path: "/admin/provoz/vouchery/novy", heading: "Vytvořit voucher" },
+      { path: "/admin/provoz/klienti", heading: "Klienti" },
+      { path: "/admin/provoz/media", heading: "Média webu" },
+      { path: "/admin/provoz/sluzby", heading: "Služby" },
+      { path: "/admin/provoz/kategorie-sluzeb", heading: "Kategorie služeb" },
+    ];
+
+    for (const item of salonPages) {
+      await page.goto(item.path);
+      await expect(page.getByRole("heading", { name: item.heading }).first()).toBeVisible();
+      await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/i);
+    }
+
+    await page.goto("/admin/nastaveni");
+    await expect(page).toHaveURL(/\/admin\/provoz/);
+    await expect(page.getByRole("heading", { name: "Dnešní provoz" })).toBeVisible();
+  });
+});
