@@ -231,7 +231,7 @@ test.describe("booking flows", () => {
       },
     });
 
-    await prisma.booking.create({
+    const runtimeConflictBooking = await prisma.booking.create({
       data: {
         clientId: conflictClient.id,
         slotId: selectedSlotId,
@@ -259,6 +259,15 @@ test.describe("booking flows", () => {
 
     await confirmButton.click();
     await expect(conflictMessage).toBeVisible();
+    await prisma.booking.update({
+      where: {
+        id: runtimeConflictBooking.id,
+      },
+      data: {
+        status: BookingStatus.CANCELLED,
+        cancelledAt: new Date(),
+      },
+    });
 
     await selectSlotById(
       page,

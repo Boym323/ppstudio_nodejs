@@ -189,7 +189,8 @@ async function createCatalogFixture(runId: string) {
   const rescheduleStart = addMinutes(primaryStart, 24 * 60);
   const rescheduleSuccessStart = addMinutes(rescheduleStart, service.durationMinutes);
   const rescheduleEnd = addMinutes(rescheduleSuccessStart, service.durationMinutes);
-  const reschedulePublicNote = `E2E reschedule ${runId}`;
+  const rescheduleConflictPublicNote = `E2E reschedule conflict ${runId}`;
+  const rescheduleSuccessPublicNote = `E2E reschedule success ${runId}`;
 
   const [primarySlot, rescheduleSlot, rescheduleSuccessSlot] = await Promise.all([
     prisma.availabilitySlot.create({
@@ -216,7 +217,7 @@ async function createCatalogFixture(runId: string) {
         status: AvailabilitySlotStatus.PUBLISHED,
         serviceRestrictionMode: AvailabilitySlotServiceRestrictionMode.SELECTED,
         publishedAt: new Date(),
-        publicNote: reschedulePublicNote,
+        publicNote: rescheduleConflictPublicNote,
         allowedServices: {
           create: {
             serviceId: service.id,
@@ -232,7 +233,7 @@ async function createCatalogFixture(runId: string) {
         status: AvailabilitySlotStatus.PUBLISHED,
         serviceRestrictionMode: AvailabilitySlotServiceRestrictionMode.SELECTED,
         publishedAt: new Date(),
-        publicNote: reschedulePublicNote,
+        publicNote: rescheduleSuccessPublicNote,
         allowedServices: {
           create: {
             serviceId: service.id,
