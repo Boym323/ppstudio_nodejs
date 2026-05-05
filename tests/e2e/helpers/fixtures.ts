@@ -39,6 +39,7 @@ export type E2eFixture = {
     rescheduleDateKey: string;
     rescheduleTime: string;
     rescheduleConflictButtonLabel: string;
+    rescheduleConflictSlotId: string;
     rescheduleSuccessButtonLabel: string;
     rescheduleSuccessSlotId: string;
     rescheduleSuccessStartAt: string;
@@ -110,17 +111,22 @@ function buildRunId() {
   return `e2e-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
-function buildScheduleOffset(runId: string) {
-  let hash = 0;
+function roundUpToHalfHour(value: Date) {
+  const copy = new Date(value);
+  copy.setUTCSeconds(0, 0);
+  const minutes = copy.getUTCMinutes();
 
-  for (const character of runId) {
-    hash = (hash * 31 + character.charCodeAt(0)) >>> 0;
+  if (minutes === 0 || minutes === 30) {
+    return copy;
   }
 
-  return {
-    dayOffset: hash % 21,
-    timeOffsetMinutes: Math.floor(hash / 21) % 8 * 90,
-  };
+  if (minutes < 30) {
+    copy.setUTCMinutes(30, 0, 0);
+    return copy;
+  }
+
+  copy.setUTCHours(copy.getUTCHours() + 1, 0, 0, 0);
+  return copy;
 }
 
 async function createCatalogFixture(runId: string) {
@@ -156,16 +162,31 @@ async function createCatalogFixture(runId: string) {
     },
   });
 
-  const scheduleOffset = buildScheduleOffset(runId);
-  const primaryStart = addMinutes(
-    futureUtcDate(45 + scheduleOffset.dayOffset, 8),
-    scheduleOffset.timeOffsetMinutes,
+  const siteSettings = await prisma.siteSettings.findUnique({
+    where: { id: "site-settings" },
+    select: {
+      bookingMinAdvanceHours: true,
+      bookingMaxAdvanceDays: true,
+      bookingCancellationHours: true,
+    },
+  });
+  const minAdvanceHours = siteSettings?.bookingMinAdvanceHours ?? 2;
+  const maxAdvanceDays = siteSettings?.bookingMaxAdvanceDays ?? 90;
+  const cancellationHours = siteSettings?.bookingCancellationHours ?? 48;
+  const baseLeadHours = Math.max(minAdvanceHours + 3, cancellationHours + 3);
+  const candidateStart = addMinutes(new Date(), baseLeadHours * 60);
+  const fallbackStart = futureUtcDate(1, 9);
+  const maxWindowEnd = addMinutes(new Date(), maxAdvanceDays * 24 * 60);
+  const maxSafeStart = addMinutes(maxWindowEnd, -6 * 60);
+  const resolvedStart =
+    candidateStart <= maxSafeStart
+      ? candidateStart
+      : maxSafeStart;
+  const primaryStart = roundUpToHalfHour(
+    resolvedStart > new Date() ? resolvedStart : fallbackStart,
   );
   const primaryEnd = addMinutes(primaryStart, 180);
-  const rescheduleStart = addMinutes(
-    futureUtcDate(46 + scheduleOffset.dayOffset, 9),
-    scheduleOffset.timeOffsetMinutes,
-  );
+  const rescheduleStart = addMinutes(primaryStart, 24 * 60);
   const rescheduleSuccessStart = addMinutes(rescheduleStart, service.durationMinutes);
   const rescheduleEnd = addMinutes(rescheduleSuccessStart, service.durationMinutes);
   const reschedulePublicNote = `E2E reschedule ${runId}`;
@@ -257,6 +278,7 @@ export async function createPublicBookingFixture(): Promise<E2eFixture> {
       rescheduleDateKey: formatPragueDateKey(catalog.rescheduleStart),
       rescheduleTime: formatPragueTime(catalog.rescheduleStart),
       rescheduleConflictButtonLabel: `Vybrat čas ${formatPragueTimeRange(catalog.rescheduleStart, addMinutes(catalog.rescheduleStart, catalog.service.durationMinutes))} dne ${rescheduleDateLabel}`,
+      rescheduleConflictSlotId: catalog.rescheduleSlot.id,
       rescheduleSuccessButtonLabel: `Vybrat čas ${formatPragueTimeRange(rescheduleSuccessStart, rescheduleSuccessEnd)} dne ${rescheduleDateLabel}`,
       rescheduleSuccessSlotId: catalog.rescheduleSuccessSlot.id,
       rescheduleSuccessStartAt: rescheduleSuccessStart.toISOString(),
@@ -391,6 +413,7 @@ export async function createManagedBookingFixture(
       rescheduleDateKey: formatPragueDateKey(catalog.rescheduleStart),
       rescheduleTime: formatPragueTime(catalog.rescheduleStart),
       rescheduleConflictButtonLabel: `Vybrat čas ${formatPragueTimeRange(catalog.rescheduleStart, addMinutes(catalog.rescheduleStart, catalog.service.durationMinutes))} dne ${rescheduleDateLabel}`,
+      rescheduleConflictSlotId: catalog.rescheduleSlot.id,
       rescheduleSuccessButtonLabel: `Vybrat čas ${formatPragueTimeRange(rescheduleSuccessStart, rescheduleSuccessEnd)} dne ${rescheduleDateLabel}`,
       rescheduleSuccessSlotId: catalog.rescheduleSuccessSlot.id,
       rescheduleSuccessStartAt: rescheduleSuccessStart.toISOString(),
@@ -450,6 +473,7 @@ export async function createPublicVoucherFixture(): Promise<E2eFixture> {
       rescheduleDateKey: "",
       rescheduleTime: "",
       rescheduleConflictButtonLabel: "",
+      rescheduleConflictSlotId: "",
       rescheduleSuccessButtonLabel: "",
       rescheduleSuccessSlotId: "",
       rescheduleSuccessStartAt: "",

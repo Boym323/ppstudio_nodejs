@@ -28,6 +28,31 @@ async function clickUntilSelected(trigger: Locator, target: Locator) {
   await expect(target).toBeEnabled();
 }
 
+async function selectSlotById(
+  page: Page,
+  slotButtonLabel: string,
+  expectedSlotId: string,
+  actionButton: Locator,
+) {
+  const candidates = page.getByRole("button", { name: slotButtonLabel });
+  const count = await candidates.count();
+
+  for (let index = 0; index < count; index += 1) {
+    const candidate = candidates.nth(index);
+    await candidate.click();
+    await page.waitForTimeout(100);
+
+    const selectedSlotId = await page.locator('input[name="slotId"]').inputValue();
+    if (selectedSlotId === expectedSlotId && (await actionButton.isEnabled())) {
+      return;
+    }
+  }
+
+  throw new Error(
+    `Nepodařilo se vybrat očekávaný slot ${expectedSlotId} pro tlačítko \"${slotButtonLabel}\".`,
+  );
+}
+
 async function expectSelectedRescheduleSlot(
   page: Page,
   expected: {
@@ -186,8 +211,10 @@ test.describe("booking flows", () => {
     const conflictMessage = page
       .getByText(/(nový termín|vybraný (termín|slot)).*(koliduje|není k dispozici)/i)
       .first();
-    await clickUntilSelected(
-      page.getByRole("button", { name: fixture.slotLabels.rescheduleConflictButtonLabel }).first(),
+    await selectSlotById(
+      page,
+      fixture.slotLabels.rescheduleConflictButtonLabel,
+      fixture.slotLabels.rescheduleConflictSlotId,
       confirmButton,
     );
     const selectedSlotId = await page.locator('input[name="slotId"]').inputValue();
@@ -233,8 +260,10 @@ test.describe("booking flows", () => {
     await confirmButton.click();
     await expect(conflictMessage).toBeVisible();
 
-    await clickUntilSelected(
-      page.getByRole("button", { name: fixture.slotLabels.rescheduleSuccessButtonLabel }).first(),
+    await selectSlotById(
+      page,
+      fixture.slotLabels.rescheduleSuccessButtonLabel,
+      fixture.slotLabels.rescheduleSuccessSlotId,
       confirmButton,
     );
     await expectSelectedRescheduleSlot(page, {
@@ -298,7 +327,13 @@ test.describe("booking flows", () => {
     await expect(selectedClientCard(page).getByText(fixture.clientEmail)).toBeVisible();
 
     await page.getByLabel("Služba").selectOption({ label: fixture.serviceName });
-    await safeClick(page, page.getByRole("button", { name: fixture.slotLabels.rescheduleConflictButtonLabel }).first());
+    const createButton = page.getByRole("button", { name: "Vytvořit rezervaci" }).last();
+    await selectSlotById(
+      page,
+      fixture.slotLabels.rescheduleConflictButtonLabel,
+      fixture.slotLabels.rescheduleConflictSlotId,
+      createButton,
+    );
     await expect(page.locator('input[name="startsAt"]')).toHaveValue(fixture.slotLabels.rescheduleStartAt);
     await page.getByRole("button", { name: "Vytvořit rezervaci" }).last().click();
     await expect.poll(async () => prisma.booking.count({

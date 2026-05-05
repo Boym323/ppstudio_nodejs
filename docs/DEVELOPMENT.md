@@ -51,7 +51,8 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - slučuje navazující kompatibilní publikované sloty do jednoho delšího veřejného okna,
   - zachovává mapu původních segmentů pro správné `slotId` při submitu,
   - počítá `bookedIntervals` podle skutečných aktivních rezervací překrývajících daný čas, ne jen podle relace `Booking.slotId`.
-- Playwright booking fixture v `tests/e2e/helpers/fixtures.ts` záměrně rozkládá seedované sloty podle `runId` do více budoucích dní a časů. Veřejný katalog počítá obsazenost podle časového překryvu aktivních rezervací, takže pevně sdílený termín by byl citlivý na stale E2E data po přerušeném CI běhu.
+- Playwright booking fixture v `tests/e2e/helpers/fixtures.ts` seeduje termíny dynamicky podle aktuální booking policy (`bookingMinAdvanceHours`, `bookingMaxAdvanceDays`, `bookingCancellationHours`), aby testované self-service scenáře vždy běžely uvnitř skutečného online okna pro rezervaci/storno/přesun.
+- U E2E výběru slotů nepočítej s unikátním textovým labelem času; při stejných časech v různých blocích je selector podle textu (`.first()`) flaky. V testech ověřuj vybraný hidden `slotId` proti očekávané fixture hodnotě.
 - Při vytvoření rezervace nebo přesunu nad coverage řetězcem už nestačí rozřezat jen single-slot případ. Když booking začíná uprostřed prvního segmentu nebo končí uprostřed posledního segmentu, engine musí rozdělit i tyto krajní coverage sloty, jinak admin planner falešně vykreslí volný okraj jako `locked` remainder.
 - Pro dočištění starších dat je v `scripts/repair-legacy-chained-slots.mjs` záměrně konzervativní repair flow:
   - opravuje jen plain published anchor sloty s jedinou navázanou rezervací,

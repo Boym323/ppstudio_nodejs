@@ -8,6 +8,12 @@ Formát je inspirovaný Keep a Changelog.
 
 - Zatím bez položek.
 
+## [0.1.6] - 2026-05-05
+
+- Stabilizovány Playwright E2E booking scénáře pro CI:
+  - fixture sloty se nově seedují dynamicky podle aktuálního booking policy okna (`bookingMinAdvanceHours` / `bookingMaxAdvanceDays` / `bookingCancellationHours`), aby self-service storno/přesun nekončil mimo povolené online okno,
+  - testy už nevybírají sloty jen přes textový label a `.first()`, ale deterministicky ověřují očekávaný `slotId`, což odstraňuje flaky pády při více shodných časových tlačítkách.
+
 ## [0.1.5] - 2026-05-05
 
 - Admin týdenní planner je odolnější při publikaci konceptu: klient i server nyní sanitizují intervaly draftu (ořez na rozsah mřížky `0..28`, odfiltrování prázdných úseků, sloučení překryvů) a tím brání falešnému pádu na hlášce `Koncept týdne už není platný` při mazání dostupnosti (např. 08:00-14:00).
