@@ -749,6 +749,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - zbylé jednoduché publikované sloty smaže a znovu založí jako minimální sadu souvislých intervalů
 - Copy day/week přenáší jen běžnou dostupnost; rezervace ani omezené intervaly se nekopírují.
 - Jednoduchá týdenní šablona i týdenní koncept jsou uložené lokálně v prohlížeči, takže nevyžadují novou tabulku ani další env; draft se klíčuje podle `area + weekKey`.
+- Před publikací týdne sanitizuj draft intervaly i na klientu i na serveru: drž integer buňky `0..28`, zahazuj prázdné intervaly (`endCell <= startCell`) a mergeuj překryvy. Tím se zabrání tomu, aby stale nebo poškozený draft skončil generickou chybou `Koncept týdne už není platný`.
 
 ## Ruční QA pro planner
 - Ověř owner i salon variantu `/admin/volne-terminy` a `/admin/provoz/volne-terminy`.

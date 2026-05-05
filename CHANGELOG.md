@@ -6,6 +6,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Admin týdenní planner je odolnější při publikaci konceptu: klient i server nyní sanitizují intervaly draftu (ořez na rozsah mřížky `0..28`, odfiltrování prázdných úseků, sloučení překryvů) a tím brání falešnému pádu na hlášce `Koncept týdne už není platný` při mazání dostupnosti (např. 08:00-14:00).
 - Playwright E2E fixture pro booking flow nově rozkládá seedované termíny podle `runId` do širšího rozpětí budoucích dní a časů; self-service přesun tak v CI nekoliduje se stale aktivními E2E rezervacemi ze starších nedočištěných běhů.
 - Admin sekce `Rezervace` má opravené mobilní zobrazení filtračního panelu: formulářové prvky se smršťují do šířky pracovní karty a nativní date inputy už neroztlačují layout mimo viewport.
 - Veřejné ověření voucheru `/vouchery/overeni` má srozumitelnější QR úvod, upravenou hlášku platného poukazu a po úspěšném ověření jemné CTA na rezervaci nebo e-mail studiu; QR parametr `code`, server-side ověření a bezpečný read-only výstup zůstaly beze změny.

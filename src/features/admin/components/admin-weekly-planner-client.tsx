@@ -29,6 +29,7 @@ import {
 
 const TEMPLATE_STORAGE_KEY = "ppstudio-admin-weekly-template-v2";
 const DRAFT_STORAGE_PREFIX = "ppstudio-admin-weekly-draft-v1";
+const PLANNER_DAY_CELLS = 28;
 
 type AdminWeeklyPlannerClientProps = {
   data: PlannerWeekData;
@@ -270,6 +271,31 @@ function serializeDraft(days: PlannerDay[]) {
   }));
 }
 
+function sanitizeIntervals(intervals: Array<{ startCell: number; endCell: number }>) {
+  const normalized = intervals
+    .map((interval) => ({
+      startCell: Math.max(0, Math.min(PLANNER_DAY_CELLS, Math.trunc(interval.startCell))),
+      endCell: Math.max(0, Math.min(PLANNER_DAY_CELLS, Math.trunc(interval.endCell))),
+    }))
+    .filter((interval) => interval.endCell > interval.startCell)
+    .sort((left, right) => left.startCell - right.startCell);
+
+  const merged: Array<{ startCell: number; endCell: number }> = [];
+
+  for (const interval of normalized) {
+    const last = merged[merged.length - 1];
+
+    if (!last || interval.startCell > last.endCell) {
+      merged.push(interval);
+      continue;
+    }
+
+    last.endCell = Math.max(last.endCell, interval.endCell);
+  }
+
+  return merged;
+}
+
 function getInitialPlannerState(data: PlannerWeekData): {
   days: PlannerDay[];
   feedback: FeedbackState | null;
@@ -305,7 +331,7 @@ function getInitialPlannerState(data: PlannerWeekData): {
 
         return patchDayAvailableIntervals(
           day,
-          savedDay.intervals.map((interval) => ({
+          sanitizeIntervals(savedDay.intervals).map((interval) => ({
             startCell: interval.startCell,
             endCell: interval.endCell,
             label: formatRangeLabel(interval.startCell, interval.endCell),
@@ -620,9 +646,13 @@ export function AdminWeeklyPlannerClient({
 
   function publishDraft() {
     startTransition(async () => {
+      const sanitizedDays = serializeDraft(workingDays).map((day) => ({
+        dateKey: day.dateKey,
+        intervals: sanitizeIntervals(day.intervals),
+      }));
       const result = await syncPlannerWeekDraftAction(data.area, {
         weekKey: data.weekKey,
-        days: serializeDraft(workingDays),
+        days: sanitizedDays,
       });
 
       setFeedback({ tone: result.ok ? "success" : "error", message: result.message });

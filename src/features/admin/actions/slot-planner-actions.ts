@@ -75,6 +75,31 @@ const weeklyDraftSchema = z.object({
   ),
 });
 
+function sanitizeDraftIntervals(intervals: Array<{ startCell: number; endCell: number }>) {
+  const normalized = intervals
+    .map((interval) => ({
+      startCell: Math.max(0, Math.min(PLANNER_DAY_CELLS, Math.trunc(interval.startCell))),
+      endCell: Math.max(0, Math.min(PLANNER_DAY_CELLS, Math.trunc(interval.endCell))),
+    }))
+    .filter((interval) => interval.endCell > interval.startCell)
+    .sort((left, right) => left.startCell - right.startCell);
+
+  const merged: Array<{ startCell: number; endCell: number }> = [];
+
+  for (const interval of normalized) {
+    const last = merged[merged.length - 1];
+
+    if (!last || interval.startCell > last.endCell) {
+      merged.push(interval);
+      continue;
+    }
+
+    last.endCell = Math.max(last.endCell, interval.endCell);
+  }
+
+  return merged;
+}
+
 function getPlannerPaths(area: AdminArea) {
   const rootPath = area === "owner" ? "/admin/volne-terminy" : "/admin/provoz/volne-terminy";
 
@@ -271,11 +296,59 @@ export async function syncPlannerWeekDraftAction(
   const parsed = weeklyDraftSchema.safeParse(rawInput);
 
   if (!parsed.success) {
-    return {
-      ok: false,
-      message: "Koncept týdne už není platný. Zkuste změny vytvořit znovu.",
-      weekKey: "",
+    const fallback = z
+      .object({
+        weekKey: z.string(),
+        days: z.array(
+          z.object({
+            dateKey: z.string(),
+            intervals: z.array(
+              z.object({
+                startCell: z.coerce.number(),
+                endCell: z.coerce.number(),
+              }),
+            ),
+          }),
+        ),
+      })
+      .safeParse(rawInput);
+
+    if (!fallback.success) {
+      return {
+        ok: false,
+        message: "Koncept týdne už není platný. Zkuste změny vytvořit znovu.",
+        weekKey: "",
+      };
+    }
+
+    const recoveredPayload = {
+      weekKey: fallback.data.weekKey,
+      days: fallback.data.days.map((day) => ({
+        dateKey: day.dateKey,
+        intervals: sanitizeDraftIntervals(day.intervals),
+      })),
     };
+    const recoveredParsed = weeklyDraftSchema.safeParse(recoveredPayload);
+
+    if (!recoveredParsed.success) {
+      return {
+        ok: false,
+        message: "Koncept týdne už není platný. Zkuste změny vytvořit znovu.",
+        weekKey: "",
+      };
+    }
+
+    try {
+      const result = await syncPlannerWeekDraft(area, {
+        weekKey: recoveredParsed.data.weekKey,
+        days: recoveredParsed.data.days as WeeklyDraftInput,
+        actorUserId: access.actorUserId,
+      });
+      revalidatePlanner(area);
+      return result;
+    } catch (error) {
+      return mapPlannerError(error, "Koncept týdne se teď nepodařilo publikovat.");
+    }
   }
 
   try {
