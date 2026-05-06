@@ -6,6 +6,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [0.1.9] - 2026-05-06
+
 - CI workflow už po samostatném buildu spouští Playwright přímo přes `npx playwright test`, aby se E2E build neopakoval; timeout jobu byl navýšen pro rozšířenou testovací sadu.
 - Rozšířena Playwright smoke kontrola technického SEO: veřejné stránky ověřují canonical/OG URL proti aktuálnímu originu a `robots.txt`/`sitemap.xml` hlídají kanonický sitemap origin bez staré `http://ppstudio.cz` varianty.
 - Doplněn Playwright E2E scénář voucher lifecycle: owner vytvoří hodnotový voucher, ověří chráněné PDF a otevře předvyplněný panel pro ruční odeslání e-mailu.
