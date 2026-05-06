@@ -1,5 +1,7 @@
 import "dotenv/config";
 
+import { randomBytes } from "crypto";
+
 import {
   AdminRole,
   AvailabilitySlotServiceRestrictionMode,
@@ -108,7 +110,7 @@ function formatPragueTimeRange(startsAt: Date, endsAt: Date) {
 }
 
 function buildRunId() {
-  return `e2e-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  return `e2e-${Date.now()}-${randomBytes(4).toString("hex")}`;
 }
 
 function hashRunId(runId: string) {
