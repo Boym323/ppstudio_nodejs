@@ -2,6 +2,11 @@
 
 Postup nasazení aplikace do produkce.
 
+## Artefakty a zavislosti
+- `node_modules` nesmi byt soucasti Git repozitare ani release ZIP/TAR artefaktu.
+- Build/deploy host musi vzdy instalovat zavislosti z cisteho checkoutu pomoci `npm ci` podle `package-lock.json`.
+- Pokud dojde k prenosu projektu mezi stroji, prenasi se zdrojove soubory + lockfile, ne predinstalovane zavislosti.
+
 ## Release checklist
 1. `npm ci`
 2. Ověř správné produkční env proměnné (`DATABASE_URL`, `ADMIN_SESSION_SECRET`, admin bootstrap účty, email delivery, worker, `MEDIA_STORAGE_ROOT`, volitelně `NEXT_PUBLIC_MATOMO_*`, serverové `MATOMO_*` pro dashboard reporting a `PUSHOVER_ENABLED` / `PUSHOVER_APP_TOKEN` pro owner notifikace)

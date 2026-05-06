@@ -5,6 +5,7 @@ Všechny důležité změny v tomto projektu se zapisují do tohoto souboru.
 Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
+- Provozni hygiene zavislosti: z pracovního ZIP prenosu byla odstranena rozpracovana slozka `node_modules`; dokumentace nasazeni a zavislosti ted explicitne vyzaduje cisty serverovy install pres `npm ci` z `package-lock.json` a zakazuje pribalovat `node_modules` do repozitare/artefaktu.
 
 ## [0.1.9] - 2026-05-06
 

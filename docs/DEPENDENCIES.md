@@ -135,6 +135,8 @@ Seznam důležitých knihoven a důvod jejich použití.
 - Před major updatem ověřit kompatibilitu a sepsat dopad.
 
 ## Provozní poznámka
+- `node_modules` neni distributovany artefakt. Do repozitare ani prenosovych ZIP/TAR balicku nepatri.
+- Reprodukovatelna instalace zavislosti na serveru je pouze `npm ci` z aktualniho `package-lock.json`.
 - `npm run dev` a `npm run build` nyní automaticky spouštějí `prisma generate`, aby admin sekce nepoužívaly zastaralý Prisma klient po změnách schématu `EmailLog` a dalších modelů.
 - Týdenní planner dostupností, batch create, inline quick edit slotu i sekundární day workspace byly implementované bez nové závislosti; zůstáváme na stávajícím stacku Next.js, React, Prisma a Zod.
 - Synchronizace publikovaného konceptu týdne používá novou server action nad existující Prisma vrstvou; nepřibyla žádná fronta, websocket vrstva ani další persistence systém.
