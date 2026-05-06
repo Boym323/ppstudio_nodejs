@@ -2,13 +2,23 @@
 
 Produkční web kosmetického studia s veřejnou prezentací, rezervačním flow a odděleným admin rozhraním pro role `OWNER` a `SALON`.
 
-## Co projekt dnes umí
+README slouží jako rychlý GitHub rozcestník. Detailní provozní a vývojová dokumentace je vedená přímo v repozitáři v `MANUAL.md` a `docs/*`, ne jako primární GitHub Wiki.
+
+## Aktuální stav
 
 - veřejný web: homepage, služby, detail služby, ceník, studio, o mně, kontakt, FAQ a právní stránky
 - rezervační flow na `/rezervace` nad ručně publikovanými sloty
 - self-service správa rezervace přes veřejné tokenové routy pro změnu termínu a storno
-- admin pro owner i provoz se sekcemi rezervací, volných termínů, služeb, kategorií, klientů, médií a nastavení
-- e-mailovou frontu, auditní historii rezervací a owner kalendářový `.ics` feed
+- admin pro owner i provoz se sekcemi rezervací, volných termínů, služeb, kategorií, klientů, médií, voucherů a nastavení
+- evidence plateb rezervací, voucher lifecycle, PDF voucher a ruční e-mailové odeslání voucheru
+- e-mailová fronta, auditní historie rezervací, owner `.ics` calendar feed a volitelný Matomo reporting pro dashboard
+
+## Co je důležité vědět
+
+- Tohle není "běžný Next.js projekt". Před změnou App Routeru nebo framework API si ověř relevantní guide v `node_modules/next/dist/docs/`.
+- Route soubory mají zůstat tenké; business logika patří do `src/features`, infrastruktura do `src/lib`.
+- Veřejné texty a část brand copy jsou v `src/content/public-site.ts`, ale katalog služeb, pricing metadata a část veřejného obsahu už bere data z DB read modelů.
+- Dokumentace se udržuje v repu společně s kódem; GitHub Wiki není v tomhle projektu zdroj pravdy.
 
 ## Stack
 
@@ -18,6 +28,8 @@ Produkční web kosmetického studia s veřejnou prezentací, rezervačním flow
 - Prisma 7 + PostgreSQL
 - Zod validace na serveru
 - Nodemailer pro e-mailový worker
+- Playwright + Node test runner
+- Matomo Reporting API
 
 ## Struktura projektu
 
@@ -57,6 +69,7 @@ docs/
 - `/rezervace/sprava/[token]` veřejná správa rezervace
 - `/rezervace/storno/[token]` veřejné storno
 - `/rezervace/akce/[intent]/[token]` potvrzovací akce z provozních e-mailů
+- `/vouchery/overeni?code=...` veřejné read-only ověření voucheru
 - `/admin/prihlaseni` admin login
 - `/admin/*` owner admin
 - `/admin/provoz/*` lite admin pro roli `SALON`
@@ -81,9 +94,12 @@ Projekt už pokrývá hlavní provozní entity:
 - `AvailabilitySlot`
 - `Client`
 - `Booking`
+- `BookingPayment`
 - `BookingStatusHistory`
 - `BookingActionToken`
 - `BookingSubmissionLog`
+- `Voucher`
+- `VoucherRedemption`
 - `EmailLog`
 - `SiteSettings`
 - `MediaAsset`
@@ -100,6 +116,12 @@ npm run dev
 
 Vývoj běží standardně na `http://localhost:3000`.
 
+Když dev server spadne na poškozenou Next/Turbopack cache, pomůže:
+
+```bash
+npm run dev:clean
+```
+
 ## Skripty
 
 - `npm run dev` spustí vývojový server
@@ -108,6 +130,7 @@ Vývoj běží standardně na `http://localhost:3000`.
 - `npm run lint` spustí ESLint
 - `npm run test` spustí integrační testy nad Node test runnerem
 - `npm run test:e2e` spustí Playwright E2E testy
+- `npm run analytics:check` ověří server-side Matomo reporting
 - `npm run test:db:booking` spustí booking DB integrační testy
 - `npm run db:generate` vygeneruje Prisma Client
 - `npm run db:migrate` spustí `prisma migrate dev`
@@ -121,12 +144,21 @@ Vývoj běží standardně na `http://localhost:3000`.
 
 Pro produkci používej Prisma deploy flow přes `npx prisma migrate deploy`. Lokální `npm run db:migrate` je určené pro vývoj.
 
-## Vývojové poznámky
+## Dokumentační rozcestník
 
-- Tohle není "běžný Next.js projekt". Před větší změnou v App Routeru si ověř relevantní guide v `node_modules/next/dist/docs/`.
-- Route soubory mají zůstat tenké; business logika patří do `src/features` a infrastruktura do `src/lib`.
-- Veřejný obsah je rozdělený mezi `src/content/public-site.ts` a DB read modely ve `src/features/public/lib`.
-- Média se ukládají mimo repo a servírují se přes route handlery v `src/app/media`.
+- `MANUAL.md`: provozní a uživatelský přehled projektu
+- `docs/DEVELOPMENT.md`: technické konvence, architektura a workflow
+- `docs/ENVIRONMENT.md`: env proměnné
+- `docs/DEPLOYMENT.md`: release a produkční nasazení
+- `docs/DEPENDENCIES.md`: přehled hlavních závislostí
+- `docs/INCIDENTS.md`: provozní incidenty a troubleshooting
+- `docs/ADR/*`: architektonická rozhodnutí
+
+## Nasazení
+
+- Doporučený produkční rollout je `./deploy/release.sh`.
+- Skript dělá `git pull --ff-only`, `npm ci`, Prisma generate + migrate deploy, `lint`, `build` a restart `ppstudio-web` / `ppstudio-email-worker`.
+- Release checklist a QA body jsou v `docs/DEPLOYMENT.md`.
 
 ## Dokumentace
 
