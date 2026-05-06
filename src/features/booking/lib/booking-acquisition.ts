@@ -45,11 +45,18 @@ function sanitizePathValue(value: unknown) {
 
   const trimmed = value.trim();
 
-  if (!trimmed.startsWith("/")) {
+  if (!trimmed.startsWith("/") || trimmed.startsWith("//") || trimmed.includes("\\")) {
     return "/";
   }
 
-  return trimmed.slice(0, 512);
+  try {
+    const parsed = new URL(trimmed, "https://ppstudio.local");
+    const relativePath = `${parsed.pathname}${parsed.search}${parsed.hash}`;
+
+    return relativePath.startsWith("/") && !relativePath.startsWith("//") ? relativePath.slice(0, 512) : "/";
+  } catch {
+    return "/";
+  }
 }
 
 function sanitizeIsoDateValue(value: unknown, fallbackIso: string) {
@@ -69,11 +76,26 @@ function normalizeHost(value: unknown) {
   }
 
   try {
-    const parsed = new URL(`https://${sanitized}`);
-    return parsed.hostname.toLowerCase();
+    const parsed = new URL(sanitized.includes("://") ? sanitized : `https://${sanitized}`);
+    const hostname = parsed.hostname.toLowerCase();
+
+    return hostname.length > 0 ? hostname : undefined;
   } catch {
-    return sanitized.replace(/^https?:\/\//, "").replace(/\/$/, "");
+    return undefined;
   }
+}
+
+function hostMatchesDomain(host: string, domain: string) {
+  return host === domain || host.endsWith(`.${domain}`);
+}
+
+function hostMatchesGoogleDomain(host: string) {
+  if (hostMatchesDomain(host, "google.com")) {
+    return true;
+  }
+
+  const googleCountryDomainPattern = /(^|\.)google\.[a-z]{2,3}(\.[a-z]{2})?$/;
+  return googleCountryDomainPattern.test(host);
 }
 
 function classifyKnownSourceByUtm(utmSource?: string) {
@@ -105,19 +127,23 @@ function classifyKnownSourceByHost(referrerHost?: string) {
     return undefined;
   }
 
-  if (referrerHost.includes("facebook.com") || referrerHost.includes("fb.com") || referrerHost.includes("m.facebook")) {
+  if (hostMatchesDomain(referrerHost, "facebook.com") || hostMatchesDomain(referrerHost, "fb.com")) {
     return "FACEBOOK" as const;
   }
 
-  if (referrerHost.includes("instagram.com")) {
+  if (hostMatchesDomain(referrerHost, "instagram.com")) {
     return "INSTAGRAM" as const;
   }
 
-  if (referrerHost.includes("google.")) {
+  if (hostMatchesGoogleDomain(referrerHost)) {
     return "GOOGLE" as const;
   }
 
-  if (referrerHost.includes("firmy.cz") || referrerHost.includes("mapy.cz") || referrerHost.includes("seznam.cz")) {
+  if (
+    hostMatchesDomain(referrerHost, "firmy.cz") ||
+    hostMatchesDomain(referrerHost, "mapy.cz") ||
+    hostMatchesDomain(referrerHost, "seznam.cz")
+  ) {
     return "FIRMY_CZ" as const;
   }
 

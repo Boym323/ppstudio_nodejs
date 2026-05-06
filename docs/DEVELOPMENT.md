@@ -547,6 +547,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Kontaktní krok používá lehkou klientskou inline validaci jen jako UX vrstvu; server-side validace v `create-public-booking.ts` zůstává autoritativní.
 - `create-public-booking.ts` kromě IP/user-agent auditu načítá i cookie `ppstudio-booking-acq` a propsává akviziční kontext do `Booking` i `BookingSubmissionLog.metadata`.
 - Klientský tracker `src/features/booking/components/booking-acquisition-tracker.tsx` běží v root layoutu, sbírá `utm_*` + externí `document.referrer`, normalizuje je a ukládá do cookie `ppstudio-booking-acq` (`SameSite=Lax`, 30 dní).
+- Akviziční cookie ukládá pouze relativní `landingPath`; scheme-relative hodnoty typu `//host/path` a backslash varianty se zahazují na `/`. Referrer hosty se klasifikují jen přes přesnou doménu nebo subdoménu, ne přes volný substring.
 - Success stav veřejného booking flow drž jako vlastní confirmation layout, ne jako prodloužený souhrn:
   - horní status blok jen pro stav rezervace, s copy `Rezervace přijata` a `Čeká na finální potvrzení`
   - hero text má výslovně říct, že termín je pro klientku předběžně rezervovaný
