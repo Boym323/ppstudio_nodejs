@@ -197,6 +197,7 @@ export async function redeemVoucherForBooking(input: RedeemVoucherInput) {
       booking.service.publicName ??
       booking.serviceNameSnapshot ??
       booking.service.name;
+    // SERVICE voucher is a right to the service, not a value discount on the booking final price.
     const amountCzk = currentVoucher.servicePriceSnapshotCzk ?? booking.servicePriceFromCzk ?? booking.service.priceFromCzk;
 
     const [updatedVoucher, redemption] = await Promise.all([

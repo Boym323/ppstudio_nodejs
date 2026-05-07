@@ -12,9 +12,11 @@
 - Úprava ceny je dostupná pro `OWNER` i `SALON`, protože jde o běžný provozní zásah v detailu rezervace.
 - Rozdílná finální cena vyžaduje důvod. Prázdná hodnota nebo částka shodná s ceníkovým snapshotem úpravu ruší.
 - `BookingPayment` dál eviduje pouze skutečně přijaté platby mimo voucher. Voucherové čerpání dál zůstává ve `VoucherRedemption`.
+- `SERVICE` voucher je nárok na konkrétní službu, ne hodnotová sleva. Při čerpání se proto dál zapisuje podle snapshotu služby na voucheru a individuální cena rezervace nemění jeho redeem částku.
 
 ## Důsledky
-- Platební summary, doporučená částka pro voucher a `CRM souhrn` počítají z finální ceny rezervace.
+- Platební summary, doporučená částka pro `VALUE` voucher a `CRM souhrn` počítají z finální ceny rezervace.
+- Doporučená částka se u `SERVICE` voucheru nezadává; doména ověřuje shodu služby a neporovnává cenu rezervace.
 - Sleva se v UI ukazuje jako rozdíl mezi ceníkovou cenou a cenou k úhradě, ne jako záporná platba.
 - Reporting `Uhrazeno` zůstává čistý: sčítá jen voucherová čerpání a skutečně zapsané platby.
 - Release obsahuje Prisma migraci `20260507103000_booking_final_price_v1`.

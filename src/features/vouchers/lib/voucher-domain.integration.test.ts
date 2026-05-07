@@ -564,6 +564,64 @@ describe("voucher domain", () => {
     );
   });
 
+  dbTest("redeems SERVICE voucher by service snapshot when booking has final price", async () => {
+    assert.ok(seed);
+    const context = seed;
+    const { prisma, createVoucher, redeemVoucherForBooking } = await loadModules();
+    const slot = await prisma.availabilitySlot.create({
+      data: {
+        startsAt: new Date("2026-06-03T09:00:00.000Z"),
+        endsAt: new Date("2026-06-03T10:00:00.000Z"),
+        status: AvailabilitySlotStatus.PUBLISHED,
+        publishedAt: new Date("2026-05-01T09:00:00.000Z"),
+      },
+    });
+    const booking = await prisma.booking.create({
+      data: {
+        clientId: context.clientId,
+        slotId: slot.id,
+        serviceId: context.serviceId,
+        source: BookingSource.WEB,
+        status: BookingStatus.CONFIRMED,
+        clientNameSnapshot: "Jana Voucherová",
+        clientEmailSnapshot: "jana-voucher@example.com",
+        clientPhoneSnapshot: "+420777111222",
+        serviceNameSnapshot: "Lash lifting public",
+        serviceDurationMinutes: 60,
+        servicePriceFromCzk: 1200,
+        finalPriceCzk: 900,
+        priceAdjustmentReason: "Testovací individuální cena",
+        scheduledStartsAt: slot.startsAt,
+        scheduledEndsAt: slot.endsAt,
+      },
+    });
+    const voucher = await createVoucher(
+      {
+        type: VoucherType.SERVICE,
+        ...baseVoucherMeta,
+        serviceId: context.serviceId,
+      },
+      context.actorUserId,
+    );
+
+    try {
+      const result = await redeemVoucherForBooking({
+        voucherCode: voucher.code,
+        bookingId: booking.id,
+        redeemedByUserId: context.actorUserId,
+        note: undefined,
+      });
+
+      assert.equal(result.voucher.status, VoucherStatus.REDEEMED);
+      assert.equal(result.redemption.amountCzk, 1200);
+      assert.equal(result.redemption.serviceNameSnapshot, "Lash lifting public");
+    } finally {
+      await prisma.voucherRedemption.deleteMany({ where: { bookingId: booking.id } });
+      await prisma.booking.delete({ where: { id: booking.id } });
+      await prisma.availabilitySlot.delete({ where: { id: slot.id } });
+    }
+  });
+
   dbTest("rejects SERVICE voucher redemption for different service", async () => {
     assert.ok(seed);
     const context = seed;

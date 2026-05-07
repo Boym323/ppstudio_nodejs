@@ -146,7 +146,7 @@ Postup nasazení aplikace do produkce.
      - intended voucher předvyplní kód a ukazuje typ, efektivní stav a bezpečný popis
      - hodnotový voucher předvyplní doporučenou částku podle zůstatku voucheru a zbývajícího doplatku
      - hodnotový voucher vyžaduje částku a po částečném čerpání zůstane `PARTIALLY_REDEEMED`
-     - službový voucher lze uplatnit jen u odpovídající služby
+     - službový voucher lze uplatnit jen u odpovídající služby a individuální cena rezervace nemění jeho čerpání
      - historie uplatnění zobrazí datum, částku nebo službu, aktéra a poznámku
      - po existujícím redemptionu nebo nulovém doplatku se formulář dalšího voucheru nezobrazuje
    - owner sekci `/admin/email-logy` po každé změně Prisma schématu nebo e-mailové outbox vrstvy
