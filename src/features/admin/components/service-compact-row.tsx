@@ -38,7 +38,7 @@ export function ServiceCompactRow({
       open={isSelected}
     >
       <summary className="list-none [&::-webkit-details-marker]:hidden">
-        <div className="grid gap-2 px-3 py-2.5 sm:px-4 xl:grid-cols-[minmax(0,1.8fr)_78px_110px_108px_auto_auto_auto] xl:items-center xl:gap-3">
+        <div className="grid gap-2 px-3 py-2.5 sm:px-4 xl:grid-cols-[minmax(0,1.8fr)_78px_110px_118px_286px_44px] xl:items-center xl:gap-3">
           <div className="min-w-0">
             <Link
               href={detailHref}
@@ -56,7 +56,7 @@ export function ServiceCompactRow({
           <p className="hidden text-sm text-white/64 xl:block">{formatServicePrice(service.priceFromCzk)}</p>
           <p className="hidden text-sm text-white/64 xl:block">{service._count.bookings} rezervací</p>
 
-          <div className="flex flex-wrap items-center gap-2 xl:flex-nowrap">
+          <div className="flex flex-wrap items-center gap-2 xl:w-[286px] xl:flex-nowrap xl:justify-end xl:justify-self-end">
             <ServiceStatusBadges
               isActive={service.isActive}
               isPubliclyBookable={service.isPubliclyBookable}
@@ -77,7 +77,7 @@ export function ServiceCompactRow({
             ) : null}
           </div>
 
-          <div className="flex items-center justify-end gap-2 xl:col-start-7 xl:row-start-1">
+          <div className="flex items-center justify-end gap-2 xl:col-start-6 xl:row-start-1">
             <Link
               href={mobileDetailHref}
               className="inline-flex rounded-full border border-white/10 px-3 py-2 text-xs text-white/74 transition hover:border-white/18 hover:bg-white/6 xl:hidden"

@@ -6,6 +6,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Admin seznam služeb má zarovnaný stavový badge blok v kompaktních řádcích, takže volitelný štítek `Homepage` neposouvá `Aktivní` / `Veřejná` mezi jednotlivými službami.
 - Služby mají nový ruční výběr pro homepage (`Zobrazit v doporučených službách` + `Pořadí na homepage`); úvodní stránka zobrazuje maximálně první tři aktivní veřejné vybrané služby a při prázdném výběru zachová katalogový fallback.
 - Homepage už neoznačuje první tři katalogové položky jako `Nejoblíbenější služby`; sekce používá přesnější copy `Doporučené služby`.
 - Admin seznam a detail rezervací nově jasně oddělují `Kanál rezervace` (`Web`, `Telefon`, `Instagram zpráva`, `Osobně`) od akvizičního původu (`Odkud přišla` z UTM/referreru jako `Google`, `Instagram`, `Firmy.cz / Seznam`, `Direct`). Seznam u webových rezervací zobrazuje vedle kanálu i akviziční štítek, aby `Instagram` z UTM nepůsobil jako samostatný ne-webový zdroj.
