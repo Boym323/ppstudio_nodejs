@@ -302,10 +302,17 @@ function BookingVoucherPanel({ data }: { data: AdminBookingDetailData }) {
   return (
     <AdminPanel title="Úhrada" compact={data.area === "salon"} denseHeader>
       <div className="space-y-2.5">
-        <BookingPriceBlock data={data} />
         <PaymentSummaryBlock paymentSummary={paymentSummary} />
+        <div className="rounded-[0.95rem] border border-white/8 bg-black/14 p-2.5 sm:p-3">
+          <p className="px-0.5 text-[0.68rem] uppercase tracking-[0.16em] text-white/42">
+            Nastavení ceny rezervace
+          </p>
+          <div className="mt-2">
+            <BookingPriceBlock data={data} />
+          </div>
+        </div>
         <p className="text-[0.72rem] leading-4 text-white/38">
-          Evidence zahrnuje individuální cenu rezervace, voucher i ručně zapsané platby hotově, kartou nebo převodem / QR.
+          Přehled počítá individuální cenu rezervace, voucher i ručně zapsané platby.
         </p>
 
         <div className="space-y-2">
@@ -402,8 +409,6 @@ function BookingVoucherPanel({ data }: { data: AdminBookingDetailData }) {
           redemptions={data.voucher.redemptions}
           payments={data.voucher.payments}
           hasPayments={hasRedemptions || hasDirectPayments}
-          area={data.area}
-          bookingId={data.id}
         />
       </div>
     </AdminPanel>
@@ -415,45 +420,53 @@ function PaymentSummaryBlock({
 }: {
   paymentSummary: AdminBookingDetailData["voucher"]["paymentSummary"];
 }) {
+  const statusHeadline = getPaymentStatusHeadline(paymentSummary);
+  const statusDetail = getPaymentStatusDetail(paymentSummary);
   const items = [
     {
       label: "Cena k úhradě",
       value: formatCzk(paymentSummary.totalPriceCzk),
     },
-    { label: "Uhrazeno voucherem", value: formatCzk(paymentSummary.voucherPaidCzk) },
-    { label: "Uhrazeno mimo voucher", value: formatCzk(paymentSummary.directPaidCzk) },
-    { label: "Celkem uhrazeno", value: formatCzk(paymentSummary.paidTotalCzk) },
+    { label: "Uhrazeno celkem", value: formatCzk(paymentSummary.paidTotalCzk) },
+    { label: "Voucher", value: formatCzk(paymentSummary.voucherPaidCzk) },
+    { label: "Mimo voucher", value: formatCzk(paymentSummary.directPaidCzk) },
     {
-      label: paymentSummary.overpaidCzk > 0 ? "Přeplaceno o" : "Zbývá doplatit",
+      label: paymentSummary.overpaidCzk > 0 ? "Přeplatek" : "Doplatek",
       value: formatCzk(paymentSummary.overpaidCzk > 0 ? paymentSummary.overpaidCzk : paymentSummary.remainingCzk),
       emphasis: true,
     },
   ];
 
   return (
-    <div className="rounded-[0.95rem] border border-white/8 bg-[rgba(255,255,255,0.03)] p-3">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-sm font-medium text-white/82">Platební souhrn</p>
-          <p className="mt-1 text-[0.75rem] leading-4 text-white/42">
-            Přehled úhrady pro rychlou kontrolu doplatku.
-          </p>
+    <div className="rounded-[0.95rem] border border-[var(--color-accent)]/26 bg-[rgba(190,160,120,0.07)] p-3">
+      <div className={getPaymentStatusPanelClassName(paymentSummary.paymentStatus)}>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-[0.66rem] uppercase tracking-[0.16em] text-white/50">Stav úhrady</p>
+            <p className="mt-1 text-[1.2rem] font-semibold leading-tight text-white sm:text-[1.34rem]">
+              {statusHeadline}
+            </p>
+            <p className="mt-1 text-sm text-white/64">{statusDetail}</p>
+          </div>
+          <span className={getPaymentStatusBadgeClassName(paymentSummary.paymentStatus)}>
+            {paymentSummary.paymentStatusLabel.toLocaleUpperCase("cs-CZ")}
+          </span>
         </div>
-        <span className={getPaymentStatusBadgeClassName(paymentSummary.paymentStatus)}>
-          {paymentSummary.paymentStatusLabel.toLocaleUpperCase("cs-CZ")}
-        </span>
       </div>
-      <dl className="mt-3 divide-y divide-white/7 overflow-hidden rounded-[0.85rem] border border-white/8 bg-black/10">
+
+      <dl className="mt-3 grid gap-2 sm:grid-cols-2">
         {items.map((item) => (
           <div
             key={item.label}
             className={cn(
-              "grid gap-1 px-3 py-2.5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:gap-4",
-              item.emphasis ? "bg-[rgba(190,160,120,0.08)]" : "bg-transparent",
+              "rounded-[0.8rem] border px-3 py-2.5",
+              item.emphasis
+                ? "border-[var(--color-accent)]/24 bg-[rgba(190,160,120,0.12)]"
+                : "border-white/8 bg-black/14",
             )}
           >
-            <dt className="text-sm text-white/60">{item.label}</dt>
-            <dd className={cn("text-right font-semibold", item.emphasis ? "text-[1.05rem] text-white" : "text-sm text-white/85")}>
+            <dt className="text-[0.72rem] leading-4 text-white/48">{item.label}</dt>
+            <dd className={cn("mt-1 font-semibold", item.emphasis ? "text-[1.08rem] text-white" : "text-sm text-white/86")}>
               {item.value}
             </dd>
           </div>
@@ -623,19 +636,15 @@ function VoucherRedemptionsList({
   redemptions,
   payments,
   hasPayments,
-  area,
-  bookingId,
 }: {
   redemptions: AdminBookingDetailData["voucher"]["redemptions"];
   payments: AdminBookingDetailData["voucher"]["payments"];
   hasPayments: boolean;
-  area: AdminBookingDetailData["area"];
-  bookingId: string;
 }) {
   if (!hasPayments) {
     return (
       <div className="rounded-[0.95rem] border border-white/8 bg-white/[0.03] px-3.5 py-3">
-        <p className="text-sm font-medium text-white/72">Historie úhrad</p>
+        <p className="text-sm font-medium text-white/62">Přehled úhrad</p>
         <p className="mt-1 text-sm text-white/58">Zatím zde není evidovaná žádná úhrada.</p>
       </div>
     );
@@ -643,7 +652,9 @@ function VoucherRedemptionsList({
 
   return (
     <div className="space-y-2">
-      <p className="text-sm font-medium text-white/72">Historie úhrad</p>
+      <p className="text-[0.78rem] font-medium uppercase tracking-[0.12em] text-white/54">
+        Přehled úhrad
+      </p>
       {redemptions.map((redemption) => (
         <article key={redemption.id} className="rounded-[0.95rem] border border-white/8 bg-white/[0.03] px-3.5 py-3">
           <div className="flex flex-wrap items-start justify-between gap-2.5">
@@ -674,18 +685,9 @@ function VoucherRedemptionsList({
               </p>
               <p className="mt-1 text-sm text-white/65">Platba mimo voucher</p>
             </div>
-            <div className="flex flex-wrap items-center justify-end gap-2">
-              <span className="rounded-full border border-white/8 bg-black/14 px-2.5 py-1 text-sm font-semibold text-white/88">
-                {payment.amountLabel}
-              </span>
-              {payment.canDelete ? (
-                <DeleteBookingPaymentButton
-                  area={area}
-                  bookingId={bookingId}
-                  paymentId={payment.id}
-                />
-              ) : null}
-            </div>
+            <span className="rounded-full border border-white/8 bg-black/14 px-2.5 py-1 text-sm font-semibold text-white/88">
+              {payment.amountLabel}
+            </span>
           </div>
           <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-white/58">
             <span>Zapsal: {payment.createdByUserLabel}</span>
@@ -695,6 +697,42 @@ function VoucherRedemptionsList({
       ))}
     </div>
   );
+}
+
+function getPaymentStatusHeadline(
+  paymentSummary: AdminBookingDetailData["voucher"]["paymentSummary"],
+) {
+  if (paymentSummary.paymentStatus === "OVERPAID") {
+    return `Přeplaceno o ${formatCzk(paymentSummary.overpaidCzk)}`;
+  }
+
+  if (paymentSummary.paymentStatus === "PARTIALLY_PAID") {
+    return `Zbývá doplatit ${formatCzk(paymentSummary.remainingCzk)}`;
+  }
+
+  if (paymentSummary.paymentStatus === "UNPAID") {
+    return "Bez úhrady";
+  }
+
+  return "Zaplaceno";
+}
+
+function getPaymentStatusDetail(
+  paymentSummary: AdminBookingDetailData["voucher"]["paymentSummary"],
+) {
+  if (paymentSummary.paymentStatus === "UNPAID") {
+    return `K úhradě je ${formatCzk(paymentSummary.totalPriceCzk)}.`;
+  }
+
+  if (paymentSummary.paymentStatus === "OVERPAID") {
+    return `Uhrazeno ${formatCzk(paymentSummary.paidTotalCzk)} při ceně ${formatCzk(paymentSummary.totalPriceCzk)}.`;
+  }
+
+  if (paymentSummary.paymentStatus === "PARTIALLY_PAID") {
+    return `Uhrazeno ${formatCzk(paymentSummary.paidTotalCzk)} z ${formatCzk(paymentSummary.totalPriceCzk)}.`;
+  }
+
+  return `Celá částka ${formatCzk(paymentSummary.totalPriceCzk)} je uhrazená.`;
 }
 
 function BookingHistoryTimeline({
@@ -933,6 +971,21 @@ function getPaymentStatusBadgeClassName(
       return "inline-flex rounded-full border border-amber-300/35 bg-amber-500/12 px-2.5 py-1 text-[0.64rem] font-semibold uppercase tracking-[0.14em] text-amber-100";
     case "UNPAID":
       return "inline-flex rounded-full border border-white/12 bg-white/8 px-2.5 py-1 text-[0.64rem] font-semibold uppercase tracking-[0.14em] text-white/72";
+  }
+}
+
+function getPaymentStatusPanelClassName(
+  status: AdminBookingDetailData["voucher"]["paymentSummary"]["paymentStatus"],
+) {
+  switch (status) {
+    case "OVERPAID":
+      return "rounded-[0.9rem] border border-cyan-300/26 bg-cyan-500/10 px-3 py-2.5";
+    case "PAID":
+      return "rounded-[0.9rem] border border-emerald-300/26 bg-emerald-500/10 px-3 py-2.5";
+    case "PARTIALLY_PAID":
+      return "rounded-[0.9rem] border border-amber-300/26 bg-amber-500/10 px-3 py-2.5";
+    case "UNPAID":
+      return "rounded-[0.9rem] border border-white/12 bg-black/24 px-3 py-2.5";
   }
 }
 
