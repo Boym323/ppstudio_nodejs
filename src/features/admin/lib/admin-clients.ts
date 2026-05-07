@@ -16,6 +16,10 @@ import {
   getClientCrmSummary,
   type ClientCrmSummary,
 } from "@/features/clients/lib/client-crm-summary";
+import {
+  buildClientPhoneHref,
+  formatClientPhoneForDisplay,
+} from "@/features/booking/lib/client-phone";
 import { prisma } from "@/lib/prisma";
 
 const formatDate = new Intl.DateTimeFormat("cs-CZ", {
@@ -487,7 +491,7 @@ export async function getAdminClientDetailData(
     return null;
   }
 
-  const normalizedPhone = normalizePhoneHref(client.phone);
+  const normalizedPhone = buildClientPhoneHref(client.phone);
   const normalizedEmail = normalizeEmailHref(client.email);
 
   return {
@@ -496,7 +500,7 @@ export async function getAdminClientDetailData(
     fullName: client.fullName,
     email: client.email ?? "Bez e-mailu",
     emailHref: normalizedEmail,
-    phone: client.phone ?? "Telefon není vyplněný",
+    phone: client.phone ? formatClientPhoneForDisplay(client.phone) : "Telefon není vyplněný",
     phoneHref: normalizedPhone,
     isActive: client.isActive,
     statusLabel: client.isActive ? "Aktivní" : "Neaktivní",
@@ -525,12 +529,6 @@ export async function getAdminClientDetailData(
       href: getAdminBookingHref(area, booking.id),
     })),
   };
-}
-
-function normalizePhoneHref(phone: string | null) {
-  const normalized = phone?.replace(/[^+\d]/g, "") ?? "";
-
-  return normalized.length > 0 ? `tel:${normalized}` : null;
 }
 
 function normalizeEmailHref(email: string | null) {

@@ -1,5 +1,6 @@
 "use client";
 
+import { formatClientPhoneForDisplay } from "@/features/booking/lib/client-phone";
 import { cn } from "@/lib/utils";
 
 type ClientOption = {
@@ -107,7 +108,7 @@ export function BookingClientSelector({
           </p>
           <p className="mt-2 text-sm font-semibold text-white">{selectedClient.fullName}</p>
           {selectedClient.email ? <p className="mt-1 text-sm text-white/70">{selectedClient.email}</p> : null}
-          {selectedClient.phone ? <p className="mt-1 text-sm text-white/70">{selectedClient.phone}</p> : null}
+          {selectedClient.phone ? <p className="mt-1 text-sm text-white/70">{formatClientPhoneForDisplay(selectedClient.phone)}</p> : null}
           {!selectedClient.isActive ? (
             <p className="mt-2 text-xs font-medium uppercase tracking-[0.16em] text-amber-200/80">
               Neaktivní klientka
@@ -137,7 +138,7 @@ export function BookingClientSelector({
                 <p className="text-sm font-medium text-white">{client.fullName}</p>
                 <p className="mt-1 text-sm text-white/68">
                   {client.email}
-                  {client.phone ? ` • ${client.phone}` : ""}
+                  {client.phone ? ` • ${formatClientPhoneForDisplay(client.phone)}` : ""}
                 </p>
               </button>
             );
@@ -173,7 +174,7 @@ export function BookingClientSelector({
           label="Telefon"
           value={phone}
           onChange={onPhoneChange}
-          placeholder="+420 777 123 456"
+          placeholder="777 123 456"
           error={fieldErrors?.phone}
         />
         <label className="block md:col-span-2">

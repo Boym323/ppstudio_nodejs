@@ -8,6 +8,15 @@ import {
   Prisma,
 } from "@prisma/client";
 
+export {
+  buildClientPhoneHref,
+  CLIENT_PHONE_FORMAT_MESSAGE,
+  formatClientPhoneForDisplay,
+  isValidClientPhoneInput,
+  isValidNormalizedClientPhone,
+  normalizeClientPhone,
+} from "@/features/booking/lib/client-phone";
+
 export const ACTIVE_BOOKING_STATUSES = [BookingStatus.PENDING, BookingStatus.CONFIRMED] as const;
 export const MAX_BOOKING_TRANSACTION_RETRIES = 5;
 export const EDITABLE_SLOT_CAPACITY = 1;
@@ -139,31 +148,6 @@ export function normalizeWhitespace(value: string) {
 
 export function normalizeClientEmail(email: string) {
   return normalizeWhitespace(email).toLowerCase();
-}
-
-export function normalizeClientPhone(phone?: string) {
-  if (!phone) {
-    return undefined;
-  }
-
-  const trimmed = normalizeWhitespace(phone);
-  const hasInternationalPrefix = trimmed.startsWith("+");
-  const digitsOnly = trimmed.replace(/\D/g, "");
-
-  if (digitsOnly.length === 0) {
-    return undefined;
-  }
-
-  const normalized = `${hasInternationalPrefix ? "+" : ""}${digitsOnly}`;
-  return normalized.length > 0 ? normalized : undefined;
-}
-
-export function isValidNormalizedClientPhone(phone?: string) {
-  if (!phone) {
-    return true;
-  }
-
-  return /^\+?\d{8,15}$/.test(phone);
 }
 
 export function doesSlotSupportServiceDuration(

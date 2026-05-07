@@ -16,7 +16,11 @@ import {
 } from "./booking-public/shared";
 
 export {
+  CLIENT_PHONE_FORMAT_MESSAGE,
   PublicBookingError,
+  buildClientPhoneHref,
+  formatClientPhoneForDisplay,
+  isValidClientPhoneInput,
   isValidNormalizedClientPhone,
   normalizeClientEmail,
   normalizeClientPhone,

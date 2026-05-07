@@ -8,6 +8,7 @@ Dokumentace proměnných prostředí pro lokální vývoj i produkci.
 - Runtime proměnné používané aplikací se validují při startu přes `src/config/env.ts`.
 - CLI-only proměnné pro Prisma, například `SHADOW_DATABASE_URL`, načítá `prisma.config.ts` a nevalidují se při startu Next.js serveru.
 - Prefill klientky pro admin ruční rezervaci používá jen query parametry `create=1` a `clientId` na existujících admin route; tahle změna nepřidává žádnou novou env proměnnou.
+- Normalizace telefonu klientky je čistě aplikační validace ve sdílených TypeScript helperech a nepřidává žádnou env proměnnou ani databázovou migraci.
 
 ## Přehled
 - `NODE_ENV`: režim běhu (`development`, `production`).

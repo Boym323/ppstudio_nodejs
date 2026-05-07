@@ -41,6 +41,7 @@ Evidence produkčních incidentů a jejich řešení.
 - Cross-origin blokace Next.js dev assetů (`/_next/webpack-hmr`, overlay, refresh endpointy) při otevření lokálního dev serveru z jiného zařízení nebo hostname, který není v `allowedDevOrigins`.
 - Neplatné nebo chybějící env proměnné při startu aplikace.
 - Chyby Prisma klienta po změně schematu nebo po nasazení bez `db:generate`.
+- Regrese normalizace telefonu klientky: ověř `src/features/booking/lib/client-phone.ts`, server action validaci veřejné i ruční rezervace a uložené hodnoty v `Client.phone` / `Booking.clientPhoneSnapshot`; text ani HTML se nesmí potichu očistit na platné číslo.
 - Selhání admin přihlášení kvůli špatnému `ADMIN_SESSION_SECRET` nebo bootstrap účtům.
 - Admin login/logout redirect nebo proxy přesměrování mířící na cizí doménu po podvrženém `Host` / `x-forwarded-host`; okamžitě ověř `NEXT_PUBLIC_APP_URL`, `NEXT_PUBLIC_SITE_DOMAIN`, `VOUCHER_PUBLIC_DOMAIN`, reverse proxy hlavičky a helper `src/lib/http/request-origin.ts`.
 - Brute-force pokusy na `/api/auth/login` bez aktivace rate limit ochrany (`error=rate_limited` se po sérii špatných pokusů neobjeví).

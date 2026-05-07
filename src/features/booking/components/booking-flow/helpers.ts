@@ -1,4 +1,8 @@
 import type { PublicBookingCatalog } from "@/features/booking/lib/booking-public";
+import {
+  CLIENT_PHONE_FORMAT_MESSAGE,
+  isValidClientPhoneInput,
+} from "@/features/booking/lib/client-phone";
 import type { TimeSlotOption } from "@/features/booking/lib/booking-time-slots";
 
 import type { ContactFieldKey } from "./types";
@@ -146,18 +150,6 @@ export function getCategoryKey(categoryName: string) {
   return categoryName.toLocaleLowerCase("cs-CZ");
 }
 
-function normalizePhone(phone: string) {
-  const trimmed = phone.trim();
-  const hasInternationalPrefix = trimmed.startsWith("+");
-  const digitsOnly = trimmed.replace(/\D/g, "");
-
-  if (digitsOnly.length === 0) {
-    return "";
-  }
-
-  return `${hasInternationalPrefix ? "+" : ""}${digitsOnly}`;
-}
-
 function validateFullName(value: string) {
   const trimmed = value.trim();
 
@@ -187,14 +179,14 @@ function validateEmail(value: string) {
 }
 
 function validatePhone(value: string) {
-  const normalized = normalizePhone(value);
+  const trimmed = value.trim();
 
-  if (!normalized) {
+  if (!trimmed) {
     return undefined;
   }
 
-  if (!/^\+?\d{8,15}$/.test(normalized)) {
-    return "Telefon zadejte s 8 až 15 číslicemi, případně s úvodním +.";
+  if (!isValidClientPhoneInput(trimmed)) {
+    return CLIENT_PHONE_FORMAT_MESSAGE;
   }
 
   return undefined;

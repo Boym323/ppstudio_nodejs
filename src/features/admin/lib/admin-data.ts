@@ -24,6 +24,10 @@ import {
   type BookingListStatusValue,
 } from "@/features/admin/lib/admin-booking-list-validation";
 import { getPublicBookingCatalog } from "@/features/booking/lib/booking-public";
+import {
+  buildClientPhoneHref,
+  formatClientPhoneForDisplay,
+} from "@/features/booking/lib/client-phone";
 import { listBootstrapAdminUsers } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 
@@ -787,8 +791,8 @@ function buildBookingContacts(booking: {
 
   if (phone) {
     return {
-      primaryContactLabel: phone,
-      primaryContactHref: `tel:${phone.replace(/\s+/g, "")}`,
+      primaryContactLabel: formatClientPhoneForDisplay(phone),
+      primaryContactHref: buildClientPhoneHref(phone),
       secondaryContactLabel: email || null,
       secondaryContactHref: email ? `mailto:${email}` : null,
     };
@@ -1198,7 +1202,7 @@ async function getClientsData(area: AdminArea) {
     items: items.map((client) => ({
       id: client.id,
       title: client.fullName,
-      meta: `${client.email ?? "Bez e-mailu"}${client.phone ? ` • ${client.phone}` : ""}`,
+      meta: `${client.email ?? "Bez e-mailu"}${client.phone ? ` • ${formatClientPhoneForDisplay(client.phone)}` : ""}`,
       description:
         area === "owner"
           ? `Rezervací: ${client._count.bookings}. Poslední booking: ${formatDateLabel(client.lastBookedAt)}.`
@@ -1953,7 +1957,7 @@ export async function getEmailLogDetailData(emailLogId: string): Promise<EmailLo
     bookingScheduleLabel,
     clientName,
     clientSummary: emailLog.client
-      ? `${emailLog.client.fullName} • ${emailLog.client.email ?? "Bez e-mailu"}${emailLog.client.phone ? ` • ${emailLog.client.phone}` : ""}`
+      ? `${emailLog.client.fullName} • ${emailLog.client.email ?? "Bez e-mailu"}${emailLog.client.phone ? ` • ${formatClientPhoneForDisplay(emailLog.client.phone)}` : ""}`
       : "Bez navázaného klienta",
     actionTokenId: emailLog.actionToken?.id ?? null,
     actionTokenLabel: emailLog.actionToken ? actionTokenTypeLabel(emailLog.actionToken.type) : "Bez navázaného action tokenu",

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { VoucherType } from "@prisma/client";
 
 import { type AdminBookingDetailData } from "@/features/admin/lib/admin-booking";
+import { buildClientPhoneHref } from "@/features/booking/lib/client-phone";
 import { cn } from "@/lib/utils";
 
 import { AdminBookingNoteForm } from "./admin-booking-note-form";
@@ -1040,8 +1041,7 @@ function getStatusContext(data: AdminBookingDetailData) {
 }
 
 function buildPhoneHref(phone: string) {
-  const normalized = phone.replace(/[^+\d]/g, "");
-  return normalized.length > 0 ? `tel:${normalized}` : null;
+  return buildClientPhoneHref(phone);
 }
 
 const czkFormatter = new Intl.NumberFormat("cs-CZ", {

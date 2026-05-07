@@ -732,6 +732,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Cancel/reschedule tokeny generovat jako náhodné tajné hodnoty, do DB ukládat pouze jejich hash.
 - Self-service reschedule nikdy nesmí přijímat veřejné `bookingId`; jediná veřejná cesta k rezervaci je přes validní `RESCHEDULE` token a server-side znovuověření stavu i časového limitu.
 - E-mail a telefon normalizovat na vstupu server-side ještě před zápisem do `Client` a `Booking`.
+- Telefon klientky ukládej jen přes sdílené helpery v `src/features/booking/lib/client-phone.ts`: prázdná hodnota je povolená, českých 9 číslic se normalizuje na `+420...`, prefix `00` na `+`, explicitní mezinárodní předvolba se respektuje a raw vstup s písmeny/HTML nesmí projít ani přes server action, ani přes booking engine.
 - Při veřejné rezervaci zamknout slot v transakci a znovu ověřit kapacitu až těsně před vytvořením `Booking`.
 - Při serializable konfliktu nebo deadlocku booking flow transakci krátce retryne místo okamžitého pádu na generickou chybu.
 - Server-side validace musí znovu ověřit i to, že délka vybrané služby reálně odpovídá délce slotu.

@@ -27,9 +27,10 @@ import {
   type LockedSlotRow,
   type SharedCreateBookingInput,
   type SharedCreateBookingResult,
+  CLIENT_PHONE_FORMAT_MESSAGE,
   PublicBookingError,
   isRetryablePrismaError,
-  isValidNormalizedClientPhone,
+  isValidClientPhoneInput,
   mapKnownPrismaError,
   normalizeClientEmail,
   normalizeClientPhone,
@@ -382,10 +383,10 @@ export async function createBookingWithEngine(
     );
   }
 
-  if (!isValidNormalizedClientPhone(normalizeClientPhone(input.client.phone))) {
+  if (!isValidClientPhoneInput(input.client.phone)) {
     throw new PublicBookingError(
       publicBookingErrorCodes.bookingConflict,
-      "Zadejte telefon ve formátu s 8 až 15 číslicemi, případně s úvodním +.",
+      CLIENT_PHONE_FORMAT_MESSAGE,
       3,
     );
   }

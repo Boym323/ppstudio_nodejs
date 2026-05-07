@@ -69,6 +69,7 @@ Seznam důležitých knihoven a důvod jejich použití.
 - UX refaktor klientského self-service přesunu termínu také nepřidává novou knihovnu; hybridní seznam, kalendář, sticky mobilní souhrn, smooth scroll i Matomo eventy používají stávající React/Next primitives a lokální helpers.
 - Prefill klientky z admin detailu do ruční rezervace také nepřidává novou knihovnu; používá jen existující Next.js App Router search params, serverové read modely, React state a stávající booking drawer/action workflow.
 - Ruční vytvoření rezervace v adminu také nepřidává novou knihovnu; drawer, deduplikace klientky i sdílené create jádro běží čistě na stávajícím stacku Next.js, React, Prisma a Zod.
+- Normalizace a čitelné zobrazení telefonu klientky nepřidává žádnou novou knihovnu; pravidla jsou lokální TypeScript helper nad existující server-side validací.
 - Uvolnění e-mailu u ruční rezervace také nepřidává novou knihovnu; změna stojí jen na Prisma migraci, Zod validaci a úpravě sdíleného booking engine.
 - Booking submission audit využívá stejnou Prisma vrstvu a nezavádí další knihovnu pro rate limiting ani logování.
 - Audit změn cen služeb také nepřidává novou závislost; používá stávající Prisma model, admin session mapování a server actions.

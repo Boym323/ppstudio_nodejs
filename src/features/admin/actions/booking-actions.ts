@@ -20,8 +20,9 @@ import {
   updateAdminBookingInternalNote,
 } from "@/features/admin/lib/admin-booking";
 import {
+  CLIENT_PHONE_FORMAT_MESSAGE,
   createManualBooking,
-  isValidNormalizedClientPhone,
+  isValidClientPhoneInput,
   normalizeClientPhone,
   PublicBookingError,
 } from "@/features/booking/lib/booking-public";
@@ -118,8 +119,8 @@ const createManualBookingSchema = z.object({
     .string()
     .trim()
     .max(32, "Telefon je příliš dlouhý.")
-    .refine((value) => value.length === 0 || isValidNormalizedClientPhone(normalizeClientPhone(value)), {
-      message: "Telefon zadejte s 8 až 15 číslicemi, případně s úvodním +.",
+    .refine((value) => isValidClientPhoneInput(value), {
+      message: CLIENT_PHONE_FORMAT_MESSAGE,
     })
     .optional()
     .or(z.literal("")),
@@ -705,7 +706,7 @@ export async function createManualBookingAction(
       selectedClientId: parsed.data.selectedClientId || undefined,
       fullName: parsed.data.fullName,
       email: parsed.data.email,
-      phone: parsed.data.phone || undefined,
+      phone: normalizeClientPhone(parsed.data.phone || undefined),
       clientProfileNote: parsed.data.clientProfileNote || undefined,
       clientNote: parsed.data.clientNote || undefined,
       internalNote: parsed.data.internalNote || undefined,

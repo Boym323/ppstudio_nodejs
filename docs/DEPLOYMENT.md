@@ -61,6 +61,7 @@ Postup nasazení aplikace do produkce.
      - `/admin`, `/api` a Next internals tracking nespustí
      - tokenové route `/rezervace/sprava/*`, `/rezervace/storno/*`, `/rezervace/akce/*` neodešlou pageview s tokenem
      - booking funnel odešle eventy bez jména, e-mailu, telefonu, poznámky nebo tokenu
+     - veřejná rezervace uloží telefon `777 123 456` jako `+420777123456`, zobrazí ho v adminu čitelně a odmítne textový/HTML telefon s uživatelskou hláškou
      - self-service změna termínu odešle jen eventy `Booking / Date selected` a `Booking / Time selected` bez tokenu nebo PII
      - volitelný Matomo Goal `Booking created` pro custom event `Booking / Created` slouží jen pro Matomo UI; admin dashboard bere počet rezervací přímo z eventu
      - server-side dashboard reporting má nastavené `MATOMO_URL`, `MATOMO_SITE_ID` a `MATOMO_AUTH_TOKEN`, Reporting API token není dostupný v klientském bundle a při výpadku API dashboard zobrazí nulové fallbacky místo 500

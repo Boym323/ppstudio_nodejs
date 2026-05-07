@@ -7,6 +7,7 @@ Formát je inspirovaný Keep a Changelog.
 ## [Unreleased]
 
 - Admin sekce `Rezervace` nově odděluje proběhlé aktivní rezervace do horní sekce `K uzavření`: jakmile termín skončil a rezervace je pořád `Čeká` nebo `Potvrzená`, vystoupí nad běžný pracovní seznam, aby šla rychle označit jako hotová, zrušená nebo no-show.
+- Telefon klientky z veřejné i ruční rezervace se nově server-side ukládá v jednotném mezinárodním tvaru bez mezer (`+420777123456`); česká 9místná čísla se doplní na `+420`, prefix `00` se převede na `+` a text/HTML vstup validace odmítne.
 
 ## [0.2.0] - 2026-05-07
 

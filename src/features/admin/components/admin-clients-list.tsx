@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { getAdminClientHref } from "@/features/admin/lib/admin-clients";
+import { formatClientPhoneForDisplay } from "@/features/booking/lib/client-phone";
 import { cn } from "@/lib/utils";
 import { type AdminArea } from "@/config/navigation";
 
@@ -163,7 +164,7 @@ function ContactCell({
         {hasEmail ? email : "bez e-mailu"}
       </p>
       <p className={cn("truncate text-xs", hasPhone ? "text-white/58" : "text-white/36")}>
-        {hasPhone ? phone : "bez telefonu"}
+        {hasPhone ? formatClientPhoneForDisplay(phone) : "bez telefonu"}
       </p>
     </div>
   );

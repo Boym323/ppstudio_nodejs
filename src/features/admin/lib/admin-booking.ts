@@ -22,6 +22,7 @@ import {
 } from "@/features/booking/lib/booking-action-tokens";
 import { getPublicBookingCatalog } from "@/features/booking/lib/booking-public";
 import { formatBookingDateLabel } from "@/features/booking/lib/booking-format";
+import { formatClientPhoneForDisplay } from "@/features/booking/lib/client-phone";
 import {
   BOOKING_PAYMENT_METHOD_LABELS,
   BOOKING_PAYMENT_STATUS_LABELS,
@@ -580,6 +581,7 @@ export async function getAdminBookingDetailData(
     voucherPaidCzk,
     directPaidCzk,
   });
+  const clientPhone = booking.clientPhoneSnapshot ?? booking.client.phone;
 
   return {
     id: booking.id,
@@ -592,7 +594,7 @@ export async function getAdminBookingDetailData(
     updatedAtLabel: formatDateTimeLabel(booking.updatedAt),
     clientName: booking.client.fullName,
     clientEmail: booking.clientEmailSnapshot,
-    clientPhone: booking.clientPhoneSnapshot ?? booking.client.phone ?? "Telefon není vyplněný",
+    clientPhone: clientPhone ? formatClientPhoneForDisplay(clientPhone) : "Telefon není vyplněný",
     serviceId: booking.serviceId,
     serviceName: booking.serviceNameSnapshot,
     servicePriceFromCzk: booking.servicePriceFromCzk,

@@ -129,6 +129,7 @@ export function BookingContactStep({
             value={phone}
             onBlur={() => onFieldBlur("phone")}
             onChange={(event) => onPhoneChange(event.target.value)}
+            placeholder="777 123 456"
             aria-invalid={getDisplayedFieldError("phone") ? true : undefined}
             className="min-h-12 w-full rounded-2xl border border-black/8 bg-white px-4 py-3 outline-none focus:border-[var(--color-accent)]"
             autoComplete="tel"

@@ -12,8 +12,9 @@ import {
   parseBookingAcquisitionCookie,
 } from "@/features/booking/lib/booking-acquisition";
 import {
+  CLIENT_PHONE_FORMAT_MESSAGE,
   createPublicBooking,
-  isValidNormalizedClientPhone,
+  isValidClientPhoneInput,
   normalizeClientEmail,
   normalizeClientPhone,
   PublicBookingError,
@@ -49,8 +50,8 @@ const publicBookingSchema = z.object({
     .string()
     .trim()
     .max(32, "Telefon je příliš dlouhý.")
-    .refine((value) => value.length === 0 || isValidNormalizedClientPhone(normalizeClientPhone(value)), {
-      message: "Telefon zadejte s 8 až 15 číslicemi, případně s úvodním +.",
+    .refine((value) => isValidClientPhoneInput(value), {
+      message: CLIENT_PHONE_FORMAT_MESSAGE,
     })
     .optional()
     .or(z.literal("")),
