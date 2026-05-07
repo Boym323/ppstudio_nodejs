@@ -18,6 +18,7 @@ Potřebujeme dál zachovat stejnou booking business logiku, detail rezervace, ru
 - Sekce `Rezervace` používá URL-driven filtry přes query params `query`, `status`, `source`, `stat`, `dateFrom`, `dateTo`.
 - Horní statistiky `Dnes a dál`, `Čeká`, `Potvrzené`, `Hotovo`, `Zrušené` jsou klikací a přepínají rychlý filtr seznamu; aktivní statistika je vizuálně zvýrazněná a druhý klik filtr zruší.
 - Nad seznamem je kompaktní toolbar s hledáním, stavem, zdrojem, datovým rozsahem, resetem filtrů a počtem výsledků.
+- Popisek zdroje v UI se rozděluje na `Kanál rezervace` a akviziční `Odkud přišla`: `source` filtr dál pracuje s kanálem vytvoření (`WEB`, `PHONE`, `INSTAGRAM`, `IN_PERSON`, `OTHER`), zatímco UTM/referrer původ se zobrazuje jako sekundární akviziční štítek v seznamu a v detailu rezervace.
 - Seznam se serverově seskupuje do bloků `Dnes`, `Zítra`, `Později`, `Dříve`, aby byla časová priorita zřetelná bez změny datového modelu a bez další kognitivní vrstvy navíc.
 - Ve sloupci času má hlavní váhu časový rozsah; datum je jen sekundární text.
 - Řádky ve stavech `COMPLETED` a `CANCELLED` jsou záměrně tlumené přes nižší opacity a jemnější badge.

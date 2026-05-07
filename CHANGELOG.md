@@ -6,6 +6,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Admin seznam a detail rezervací nově jasně oddělují `Kanál rezervace` (`Web`, `Telefon`, `Instagram zpráva`, `Osobně`) od akvizičního původu (`Odkud přišla` z UTM/referreru jako `Google`, `Instagram`, `Firmy.cz / Seznam`, `Direct`). Seznam u webových rezervací zobrazuje vedle kanálu i akviziční štítek, aby `Instagram` z UTM nepůsobil jako samostatný ne-webový zdroj.
+
 ## [0.2.1] - 2026-05-07
 
 - Admin sekce `Rezervace` nově odděluje proběhlé aktivní rezervace do horní sekce `K uzavření`: jakmile termín skončil a rezervace je pořád `Čeká` nebo `Potvrzená`, vystoupí nad běžný pracovní seznam, aby šla rychle označit jako hotová, zrušená nebo no-show.

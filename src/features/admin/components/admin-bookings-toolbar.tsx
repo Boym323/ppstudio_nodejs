@@ -72,11 +72,11 @@ export function AdminBookingsToolbar({
           <option value="no_show" className="text-black">Nedorazila</option>
         </SelectField>
 
-        <SelectField name="source" label="Zdroj" defaultValue={filters.source}>
+        <SelectField name="source" label="Kanál rezervace" defaultValue={filters.source}>
           <option value="all" className="text-black">Vše</option>
           <option value="web" className="text-black">Web</option>
           <option value="phone" className="text-black">Telefon</option>
-          <option value="instagram" className="text-black">Instagram</option>
+          <option value="instagram" className="text-black">Instagram zpráva</option>
           <option value="in_person" className="text-black">Osobně</option>
           <option value="other" className="text-black">Ostatní</option>
         </SelectField>

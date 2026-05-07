@@ -15,7 +15,7 @@ type AdminBookingsWorkspaceProps = {
 };
 
 const columnLayout =
-  "md:grid-cols-[minmax(14rem,2fr)_minmax(9rem,0.95fr)_minmax(8.5rem,0.9fr)_minmax(6rem,0.7fr)_minmax(11rem,1.05fr)_minmax(10rem,0.95fr)]";
+  "md:grid-cols-[minmax(14rem,2fr)_minmax(9rem,0.95fr)_minmax(8.5rem,0.9fr)_minmax(8.5rem,0.82fr)_minmax(11rem,1.05fr)_minmax(10rem,0.95fr)]";
 
 export function AdminBookingsWorkspace({
   area,
@@ -56,7 +56,7 @@ export function AdminBookingsWorkspace({
           <span>Rezervace</span>
           <span>Termín</span>
           <span>Status</span>
-          <span>Zdroj</span>
+          <span>Kanál / odkud</span>
           <span>Kontakt</span>
           <span className="text-right">Akce</span>
         </div>
@@ -172,7 +172,7 @@ export function AdminBookingsWorkspace({
                           </InfoCell>
 
                           <InfoCell>
-                            <SourceBadge muted={booking.isMuted}>{booking.sourceLabel}</SourceBadge>
+                            <SourceBlock booking={booking} />
                           </InfoCell>
 
                           <InfoCell>
@@ -211,7 +211,7 @@ export function AdminBookingsWorkspace({
                           </div>
 
                           <div className="mt-3 flex flex-wrap items-center gap-2">
-                            <SourceBadge muted={booking.isMuted}>{booking.sourceLabel}</SourceBadge>
+                            <SourceBlock booking={booking} />
                           </div>
 
                           <div className="mt-3">
@@ -293,6 +293,29 @@ function SourceBadge({
     >
       {children}
     </span>
+  );
+}
+
+function SourceBlock({
+  booking,
+}: {
+  booking: ReservationsDashboardData["groups"][number]["items"][number];
+}) {
+  return (
+    <div className="min-w-0 space-y-1">
+      <SourceBadge muted={booking.isMuted}>{booking.sourceLabel}</SourceBadge>
+      {booking.acquisitionLabel ? (
+        <p
+          className={cn(
+            "truncate text-[11px] leading-4 text-white/48",
+            booking.isMuted && "text-white/36",
+          )}
+          title={`Odkud přišla: ${booking.acquisitionLabel}`}
+        >
+          z {booking.acquisitionLabel}
+        </p>
+      ) : null}
+    </div>
   );
 }
 

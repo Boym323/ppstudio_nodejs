@@ -95,7 +95,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - API endpoint `src/app/api/admin/analytics/route.ts` vrací tuto agregaci jako JSON. Route je chráněná přes `getSession()` a pustí jen role `OWNER` / `SALON`; bez session vrací `403`, při interní chybě vrací `200` s bezpečným nulovým fallbackem a em dash `topSource`.
 - `src/components/admin/AnalyticsWidget.tsx` je klientská komponenta pro admin dashboard. Na mountu volá `fetch('/api/admin/analytics')`, validuje shape payloadu v runtime, zobrazuje `Načítání…` / `Data nejsou dostupná` a po úspěchu vykreslí jen kompaktní souhrn `Výkon webu` (`návštěvy dnes`, `rezervace dnes`, `míra rezervace`). Detail zdrojů a funnel kroků je dostupný až v rozbalení `Zobrazit analytiku`, aby hlavní cockpit neukazoval matoucí procenta jako primární provozní signál.
 - `DashboardPage` je kompaktní denní provozní cockpit. Priorita stránky je `Dnešní provoz -> Vyžaduje pozornost -> provozní KPI -> Dnešní plán / Nejbližší volné termíny -> Rychlé akce / Tento týden / Výkon webu`; horní provozní blok má fungovat jako nízká operační lišta, KPI jako jeden metric strip a pravý sloupec jako krátký podpůrný panel. Disabled stav `Matomo není nakonfigurované.` se rozhoduje na serveru podle přítomnosti `MATOMO_URL`, `MATOMO_SITE_ID` a `MATOMO_AUTH_TOKEN`; klient kvůli tomu nečte žádný secret.
-- Admin sekce `Rezervace` po density refaktoru používá jeden horní control panel: quick stats (`stat` query param) a formulářové filtry `query/status/source/dateFrom/dateTo` sdílejí stejnou kartu a dál zůstávají plně URL-driven.
+- Admin sekce `Rezervace` po density refaktoru používá jeden horní control panel: quick stats (`stat` query param) a formulářové filtry `query/status/source/dateFrom/dateTo` sdílejí stejnou kartu a dál zůstávají plně URL-driven. `source` filtr je kanál vytvoření rezervace, ne UTM/referrer akvizice.
 - Mobilní layout tohoto control panelu je citlivý na implicitní minimální šířku CSS grid items a nativních `input[type="date"]`. Labely, inputy/selecty i akční řádek proto drž `min-w-0`; nepřidávej pevné mobilní šířky, které by znovu vytvořily horizontální přetok v admin shellu.
 - Rezervační KPI strip se počítá serverově v `getReservationsData(...)` bez nového persistence modelu:
   - `Čeká na potvrzení`: `Booking.status = PENDING`
@@ -330,7 +330,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Systémové účty se v UI vědomě nepopsují jako bootstrap nebo env účty; tenhle slovník zůstává jen v technické dokumentaci a implementaci auth vrstvy.
 - Sekce `Rezervace` má vlastní workflow v `src/features/admin/components/admin-bookings-page.tsx` a už neběží přes generický placeholder renderer.
 - `src/features/admin/lib/admin-data.ts` pro rezervace nově vrací URL-driven read model s filtry, klikacími statistikami, seskupenými bloky seznamu a explicitními kontaktními odkazy místo obecného `title/meta/description`.
-- Validace search parametrů pro pracovní přehled rezervací je v `src/features/admin/lib/admin-booking-list-validation.ts`; drží hodnoty pro `status`, `source` a klikací `stat`.
+- Validace search parametrů pro pracovní přehled rezervací je v `src/features/admin/lib/admin-booking-list-validation.ts`; drží hodnoty pro `status`, `source` a klikací `stat`. `source` je kanál rezervace (`WEB`, `PHONE`, `INSTAGRAM`, `IN_PERSON`, `OTHER`), zatímco marketingový původ z UTM/referreru patří do `acquisition*` polí.
 - `src/features/admin/components/admin-bookings-toolbar.tsx` používá `next/form` nad stejnou route a má zůstat nízký a kompaktní i na desktopu.
 - `src/features/admin/components/admin-bookings-workspace.tsx` je klientská vrstva pro click-to-open řádky, keyboard navigaci, selection shell a lehký toast feedback; booking business logika zůstává na server action vrstvě.
 - `src/features/admin/components/admin-bookings-quick-actions.tsx` je záměrně velmi malá klientská vrstva pro inline akce podle stavu rezervace; složitější workflow dál patří do detailu rezervace.
@@ -467,7 +467,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Veřejný booking flow rezervuje konkrétní interval uvnitř `AvailabilitySlot` podle vybraného `startsAt` a délky služby; planner proto při ukládání půlhodiny stále skládá do souvislých oken.
 - Ruční admin booking používá stejné create jádro jako veřejný booking; rozdíl je jen ve vstupu, volitelných notifikacích a metadatach rezervace.
 - Model `Booking` nyní nese:
-  - `source` jako skutečný původ rezervace (`WEB`, `PHONE`, `INSTAGRAM`, `IN_PERSON`, `OTHER`)
+  - `source` jako kanál vytvoření rezervace (`WEB`, `PHONE`, `INSTAGRAM`, `IN_PERSON`, `OTHER`), kde `INSTAGRAM` znamená ruční rezervaci z Instagram zprávy, ne webovou návštěvu s UTM
   - `isManual` pro rozlišení admin vytvoření
   - `manualOverride` pro audit interní výjimky mimo veřejnou dostupnost
 - Planner přímo upravuje jen jednoduché publikované sloty bez rezervací, bez poznámek, bez omezení služeb a s kapacitou `1`; ostatní zůstávají v UI viditelné jako uzamčené nebo neaktivní.
@@ -521,7 +521,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - `src/lib/media/media-validation.ts` centralizuje kontrolu MIME typu, přípony a maximální velikosti souboru.
 - `src/lib/media/media-filename.ts` generuje krátký náhodný asset key a stabilní suffixy `original`, `optimized`, `thumbnail`, takže naming zůstává konzistentní a připravený na další varianty.
 - `src/features/booking/lib/booking-public.ts` je veřejný write model pro rezervace a drží i ochranu proti souběžnému obsazení slotu.
-- Veřejný booking write model ukládá k rezervaci i akviziční metadata (`acquisitionSource`, `acquisitionReferrerHost`, `acquisitionUtmSource`, `acquisitionUtmMedium`, `acquisitionUtmCampaign`), pokud jsou dostupná.
+- Veřejný booking write model ukládá k rezervaci i akviziční metadata (`acquisitionSource`, `acquisitionReferrerHost`, `acquisitionUtmSource`, `acquisitionUtmMedium`, `acquisitionUtmCampaign`), pokud jsou dostupná. Admin UI je má prezentovat jako `Odkud přišla`, aby se nemíchala s kanálem `Web`.
 - Veřejná rezervace se po submitu vytváří jako `BookingStatus.PENDING`; potvrzení (`CONFIRMED`) je provozní krok z adminu.
 - Pokud veřejná rezervace zabere jen část delšího slotu s kapacitou `1`, booking write model slot v transakci automaticky rozdělí na rezervovaný úsek a zbylé volné fragmenty, aby admin planner zůstal editovatelný po samostatných blocích.
 - `src/features/booking/lib/booking-cancellation.ts` drží veřejné storno workflow nad hashovaným action tokenem.

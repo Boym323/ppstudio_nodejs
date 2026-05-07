@@ -198,7 +198,7 @@ function BookingSummaryCard({ data }: { data: AdminBookingDetailData }) {
     { label: "E-mail", value: data.clientEmail || "Bez e-mailu", href: data.clientEmail ? `mailto:${data.clientEmail}` : undefined },
     { label: "Služba", value: data.serviceName, tone: "strong" as const },
     { label: "Termín", value: data.scheduledAtLabel, tone: "strong" as const },
-    { label: "Zdroj", value: data.sourceLabel },
+    { label: "Kanál rezervace", value: data.sourceLabel },
     { label: "Přesuny", value: data.rescheduleCount > 0 ? `${data.rescheduleCount}×` : "0×" },
   ];
 
@@ -222,7 +222,7 @@ function BookingAuditCard({ data }: { data: AdminBookingDetailData }) {
       value: data.rescheduledAtLabel ?? "Zatím bez přesunu",
     },
     {
-      label: "Akvizice",
+      label: "Odkud přišla",
       value: data.acquisitionLabel ?? "Neuvedeno",
     },
   ];
