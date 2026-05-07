@@ -6,6 +6,10 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [0.1.11] - 2026-05-07
+
+- Release příprava bez funkčních změn: projektová verze navýšena na patch `0.1.11`.
+
 ## [0.1.10] - 2026-05-07
 
 - README bylo aktualizované jako přesnější GitHub rozcestník: nově shrnuje aktuální stav voucherů, plateb, analytics a deploymentu a explicitně říká, že hlavní dokumentace žije v repozitáři (`MANUAL.md`, `docs/*`), ne v GitHub Wiki.
