@@ -84,8 +84,8 @@ test.describe("public site smoke coverage", () => {
 
     const robots = await robotsResponse.text();
     const sitemap = await sitemapResponse.text();
-    const host = robots.match(/^Host: (?<url>.+)$/m)?.groups?.url;
-    const sitemapUrl = robots.match(/^Sitemap: (?<url>.+)$/m)?.groups?.url;
+    const host = robots.match(/^Host: (.+)$/m)?.[1];
+    const sitemapUrl = robots.match(/^Sitemap: (.+)$/m)?.[1];
 
     expect(host).toBeTruthy();
     expect(sitemapUrl).toBeTruthy();
