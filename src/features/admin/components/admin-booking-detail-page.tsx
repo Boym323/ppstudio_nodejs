@@ -285,7 +285,6 @@ function BookingVoucherPanel({ data }: { data: AdminBookingDetailData }) {
   const hasRedemptions = data.voucher.redemptions.length > 0;
   const hasDirectPayments = data.voucher.payments.length > 0;
   const canRedeemAnotherVoucher = !hasRedemptions && paymentSummary.remainingAmountCzk !== 0;
-  const hasVoucherIntent = Boolean(intendedVoucher || data.voucher.intendedVoucherCodeSnapshot);
   const amountHint = getVoucherAmountHint(intendedVoucher, paymentSummary.remainingAmountCzk);
   const voucherForm = canRedeemAnotherVoucher ? (
     <AdminBookingVoucherForm
@@ -303,14 +302,10 @@ function BookingVoucherPanel({ data }: { data: AdminBookingDetailData }) {
     <AdminPanel title="Úhrada" compact={data.area === "salon"} denseHeader>
       <div className="space-y-2.5">
         <PaymentSummaryBlock data={data} paymentSummary={paymentSummary} />
-        <p className="text-[0.72rem] leading-4 text-white/38">
-          Souhrn zahrnuje upravenou cenu, voucher i zapsané platby.
-        </p>
 
-        <DirectBookingPaymentsBlock
+        <AdminBookingPaymentForm
           area={data.area}
           bookingId={data.id}
-          payments={data.voucher.payments}
           defaultAmountCzk={paymentSummary.remainingCzk}
         />
 
@@ -359,45 +354,40 @@ function BookingVoucherPanel({ data }: { data: AdminBookingDetailData }) {
               ) : null}
             </div>
           ) : data.voucher.intendedVoucherCodeSnapshot ? (
-            <div className="rounded-[1rem] border border-white/8 bg-white/[0.035] p-3.5">
+            <div className="rounded-[0.95rem] border border-white/8 bg-white/[0.035] px-3.5 py-3">
               <p className="text-sm leading-5 text-white/70">
                 U rezervace je uložený kód voucheru{" "}
                 <span className="font-mono text-white">{data.voucher.intendedVoucherCodeSnapshot}</span>,
                 ale není napojený na aktivní voucher v evidenci.
               </p>
             </div>
+          ) : voucherForm ? (
+            <details className="group rounded-[0.95rem] border border-white/8 bg-white/[0.03]">
+              <summary className="cursor-pointer list-none px-3.5 py-3 marker:hidden">
+                <div className="flex flex-wrap items-center justify-between gap-2.5">
+                  <p className="text-sm text-white/64">K rezervaci není připojen žádný voucher.</p>
+                  <span className="inline-flex min-h-9 items-center justify-center rounded-full border border-white/18 bg-transparent px-3.5 py-1.5 text-sm font-semibold text-white/84 transition group-open:hidden hover:border-white/28 hover:bg-white/8 hover:text-white">
+                    + Uplatnit voucher
+                  </span>
+                  <span className="hidden text-sm font-medium text-white/78 group-open:inline">
+                    Uplatnění voucheru
+                  </span>
+                </div>
+              </summary>
+              <div className="border-t border-white/8 px-3.5 py-3">{voucherForm}</div>
+            </details>
           ) : (
-            <div className="rounded-[1rem] border border-dashed border-white/12 bg-white/[0.03] px-3.5 py-3">
+            <div className="rounded-[0.95rem] border border-white/8 bg-white/[0.03] px-3.5 py-3">
               <p className="text-sm text-white/64">
-                K rezervaci není připojen žádný voucher.
+                Rezervace je podle souhrnu úhrady dorovnaná, voucher není potřeba.
               </p>
             </div>
           )}
         </div>
 
-        {voucherForm && !hasVoucherIntent ? (
-          <details className="group rounded-[0.95rem] border border-white/8 bg-white/[0.03]">
-            <summary className="cursor-pointer list-none px-3.5 py-3 marker:hidden">
-              <span className="inline-flex min-h-10 items-center justify-center rounded-full border border-white/18 bg-transparent px-4 py-2 text-sm font-semibold text-white/84 transition group-open:hidden hover:border-white/28 hover:bg-white/8 hover:text-white">
-                + Uplatnit voucher
-              </span>
-              <span className="hidden text-sm font-medium text-white/78 group-open:inline">
-                Uplatnění voucheru
-              </span>
-            </summary>
-            <div className="border-t border-white/8 px-3.5 py-3">{voucherForm}</div>
-          </details>
-        ) : (
-          <div className="rounded-[1rem] border border-white/8 bg-white/[0.03] px-3.5 py-3">
-            <p className="text-sm leading-5 text-white/58">
-              {hasRedemptions
-                ? "Voucher už je u této rezervace uplatněný, další voucher nepřidáváme."
-                : "Rezervace je podle souhrnu úhrady dorovnaná, další voucher není potřeba."}
-            </p>
-          </div>
-        )}
-
         <VoucherRedemptionsList
+          area={data.area}
+          bookingId={data.id}
           redemptions={data.voucher.redemptions}
           payments={data.voucher.payments}
           hasPayments={hasRedemptions || hasDirectPayments}
@@ -463,6 +453,10 @@ function PaymentSummaryBlock({
           </div>
         ))}
       </dl>
+
+      <p className="mt-2 text-[0.72rem] leading-4 text-white/38">
+        Souhrn zahrnuje upravenou cenu, voucher i zapsané platby.
+      </p>
     </div>
   );
 }
@@ -601,70 +595,6 @@ function getVoucherAmountHint(
   return `Voucher pokryje maximálně ${formatCzk(remainingValueCzk)}. Zbytek ceny služby se doplatí mimo voucher.`;
 }
 
-function DirectBookingPaymentsBlock({
-  area,
-  bookingId,
-  payments,
-  defaultAmountCzk,
-}: {
-  area: AdminBookingDetailData["area"];
-  bookingId: string;
-  payments: AdminBookingDetailData["voucher"]["payments"];
-  defaultAmountCzk: number;
-}) {
-  return (
-    <div className="space-y-2">
-      <p className="text-sm font-medium text-white/74">Platby mimo voucher</p>
-
-      {payments.length === 0 ? (
-        <div className="rounded-[1rem] border border-dashed border-white/12 bg-white/[0.03] px-3.5 py-3">
-          <p className="text-sm text-white/64">
-            Zatím zde není evidovaná žádná platba mimo voucher.
-          </p>
-        </div>
-      ) : (
-        <div className="space-y-2">
-          {payments.map((payment) => (
-            <article
-              key={payment.id}
-              className="rounded-[0.95rem] border border-white/8 bg-white/[0.03] px-3.5 py-3"
-            >
-              <div className="flex flex-wrap items-start justify-between gap-2.5">
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-white/90">
-                    {payment.amountLabel} · {payment.methodLabel} · {payment.paidAtLabel}
-                  </p>
-                  <p className="mt-1 text-sm text-white/58">
-                    Zapsal {payment.createdByUserLabel}
-                  </p>
-                  {payment.note ? (
-                    <p className="mt-1 text-sm leading-5 text-white/58">
-                      <span className="text-white/76">Poznámka:</span> {payment.note}
-                    </p>
-                  ) : null}
-                </div>
-                {payment.canDelete ? (
-                  <DeleteBookingPaymentButton
-                    area={area}
-                    bookingId={bookingId}
-                    paymentId={payment.id}
-                  />
-                ) : null}
-              </div>
-            </article>
-          ))}
-        </div>
-      )}
-
-      <AdminBookingPaymentForm
-        area={area}
-        bookingId={bookingId}
-        defaultAmountCzk={defaultAmountCzk}
-      />
-    </div>
-  );
-}
-
 function VoucherMiniRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-[0.8rem] border border-white/8 bg-black/14 px-3 py-2">
@@ -675,10 +605,14 @@ function VoucherMiniRow({ label, value }: { label: string; value: string }) {
 }
 
 function VoucherRedemptionsList({
+  area,
+  bookingId,
   redemptions,
   payments,
   hasPayments,
 }: {
+  area: AdminBookingDetailData["area"];
+  bookingId: string;
   redemptions: AdminBookingDetailData["voucher"]["redemptions"];
   payments: AdminBookingDetailData["voucher"]["payments"];
   hasPayments: boolean;
@@ -727,9 +661,18 @@ function VoucherRedemptionsList({
               </p>
               <p className="mt-1 text-sm text-white/65">Platba mimo voucher</p>
             </div>
-            <span className="rounded-full border border-white/8 bg-black/14 px-2.5 py-1 text-sm font-semibold text-white/88">
-              {payment.amountLabel}
-            </span>
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <span className="rounded-full border border-white/8 bg-black/14 px-2.5 py-1 text-sm font-semibold text-white/88">
+                {payment.amountLabel}
+              </span>
+              {payment.canDelete ? (
+                <DeleteBookingPaymentButton
+                  area={area}
+                  bookingId={bookingId}
+                  paymentId={payment.id}
+                />
+              ) : null}
+            </div>
           </div>
           <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-white/58">
             <span>Zapsal: {payment.createdByUserLabel}</span>
