@@ -303,16 +303,8 @@ function BookingVoucherPanel({ data }: { data: AdminBookingDetailData }) {
     <AdminPanel title="Úhrada" compact={data.area === "salon"} denseHeader>
       <div className="space-y-2.5">
         <PaymentSummaryBlock paymentSummary={paymentSummary} />
-        <div className="rounded-[0.95rem] border border-white/8 bg-black/14 p-2.5 sm:p-3">
-          <p className="px-0.5 text-[0.68rem] uppercase tracking-[0.16em] text-white/42">
-            Nastavení ceny rezervace
-          </p>
-          <div className="mt-2">
-            <BookingPriceBlock data={data} />
-          </div>
-        </div>
         <p className="text-[0.72rem] leading-4 text-white/38">
-          Přehled počítá individuální cenu rezervace, voucher i ručně zapsané platby.
+          Souhrn zahrnuje upravenou cenu, voucher i zapsané platby.
         </p>
 
         <div className="space-y-2">
@@ -386,7 +378,7 @@ function BookingVoucherPanel({ data }: { data: AdminBookingDetailData }) {
         {voucherForm && !hasVoucherIntent ? (
           <details className="group rounded-[0.95rem] border border-white/8 bg-white/[0.03]">
             <summary className="cursor-pointer list-none px-3.5 py-3 marker:hidden">
-              <span className="inline-flex min-h-10 items-center justify-center rounded-full bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-[var(--color-accent-contrast)] transition group-open:hidden hover:brightness-105">
+              <span className="inline-flex min-h-10 items-center justify-center rounded-full border border-white/18 bg-transparent px-4 py-2 text-sm font-semibold text-white/84 transition group-open:hidden hover:border-white/28 hover:bg-white/8 hover:text-white">
                 + Uplatnit voucher
               </span>
               <span className="hidden text-sm font-medium text-white/78 group-open:inline">
@@ -410,6 +402,8 @@ function BookingVoucherPanel({ data }: { data: AdminBookingDetailData }) {
           payments={data.voucher.payments}
           hasPayments={hasRedemptions || hasDirectPayments}
         />
+
+        <BookingPriceBlock data={data} />
       </div>
     </AdminPanel>
   );
@@ -487,20 +481,20 @@ function BookingPriceBlock({ data }: { data: AdminBookingDetailData }) {
         : "Bez úpravy";
 
   return (
-    <div className="rounded-[0.95rem] border border-white/8 bg-[rgba(255,255,255,0.03)] p-3">
+    <div className="rounded-[0.95rem] border border-white/7 bg-white/[0.02] p-3">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-sm font-medium text-white/82">Cena rezervace</p>
-          <p className="mt-1 text-[0.75rem] leading-4 text-white/42">
-            Platební souhrn počítá z ceny k úhradě.
+          <p className="text-sm font-medium text-white/72">Cena rezervace</p>
+          <p className="mt-1 text-[0.75rem] leading-4 text-white/40">
+            Volitelná úprava výsledné ceny.
           </p>
         </div>
         <span
           className={cn(
             "rounded-full border px-2.5 py-1 text-[0.64rem] font-medium uppercase tracking-[0.14em]",
             hasAdjustment
-              ? "border-[var(--color-accent)]/24 bg-[rgba(190,160,120,0.12)] text-white/82"
-              : "border-white/10 bg-black/18 text-white/58",
+              ? "border-white/14 bg-white/[0.035] text-white/72"
+              : "border-white/10 bg-black/16 text-white/56",
           )}
         >
           {adjustmentLabel}
@@ -514,7 +508,7 @@ function BookingPriceBlock({ data }: { data: AdminBookingDetailData }) {
       </dl>
 
       {hasAdjustment ? (
-        <div className="mt-3 rounded-[0.85rem] border border-white/8 bg-black/12 px-3 py-2">
+        <div className="mt-3 rounded-[0.85rem] border border-white/7 bg-black/10 px-3 py-2">
           <p className="text-sm leading-5 text-white/64">
             <span className="text-white/82">Důvod:</span> {priceAdjustment.reason}
           </p>
@@ -643,9 +637,9 @@ function VoucherRedemptionsList({
 }) {
   if (!hasPayments) {
     return (
-      <div className="rounded-[0.95rem] border border-white/8 bg-white/[0.03] px-3.5 py-3">
-        <p className="text-sm font-medium text-white/62">Přehled úhrad</p>
-        <p className="mt-1 text-sm text-white/58">Zatím zde není evidovaná žádná úhrada.</p>
+      <div className="rounded-[0.95rem] border border-dashed border-white/10 bg-white/[0.02] px-3.5 py-3">
+        <p className="text-sm font-medium text-white/54">Přehled úhrad</p>
+        <p className="mt-1 text-sm text-white/50">Žádné úhrady zatím nejsou evidované.</p>
       </div>
     );
   }

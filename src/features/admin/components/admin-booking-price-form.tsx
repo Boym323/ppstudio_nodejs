@@ -28,7 +28,7 @@ export function AdminBookingPriceForm({
   return (
     <details className="group rounded-[0.95rem] border border-white/8 bg-white/[0.03]">
       <summary className="cursor-pointer list-none px-3.5 py-3 marker:hidden">
-        <span className="inline-flex min-h-10 items-center justify-center rounded-full bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-[var(--color-accent-contrast)] transition group-open:hidden hover:brightness-105">
+        <span className="inline-flex min-h-10 items-center justify-center rounded-full border border-white/16 bg-transparent px-4 py-2 text-sm font-semibold text-white/82 transition group-open:hidden hover:border-white/28 hover:bg-white/8 hover:text-white">
           Upravit cenu
         </span>
         <span className="hidden text-sm font-medium text-white/78 group-open:inline">
@@ -103,7 +103,7 @@ function SubmitPriceButton({ hasAdjustment }: { hasAdjustment: boolean }) {
     <button
       type="submit"
       disabled={pending}
-      className="inline-flex min-h-10 items-center justify-center rounded-full bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-[var(--color-accent-contrast)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-70"
+      className="inline-flex min-h-10 items-center justify-center rounded-full border border-white/16 bg-transparent px-4 py-2 text-sm font-semibold text-white/86 transition hover:border-white/30 hover:bg-white/8 hover:text-white disabled:cursor-not-allowed disabled:opacity-70"
     >
       {pending ? "Ukládám cenu..." : hasAdjustment ? "Uložit cenu" : "Nastavit cenu"}
     </button>
