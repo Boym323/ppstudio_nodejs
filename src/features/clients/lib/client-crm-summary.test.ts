@@ -16,6 +16,7 @@ function booking(overrides: Partial<ClientCrmSummaryBookingInput> = {}): ClientC
     status: overrides.status ?? BookingStatus.CONFIRMED,
     serviceNameSnapshot: overrides.serviceNameSnapshot ?? "Kosmetické ošetření",
     servicePriceFromCzk: overrides.servicePriceFromCzk ?? 1_200,
+    finalPriceCzk: overrides.finalPriceCzk,
     scheduledStartsAt: overrides.scheduledStartsAt ?? new Date("2026-05-03T10:00:00.000Z"),
     scheduledEndsAt: overrides.scheduledEndsAt ?? new Date("2026-05-03T11:00:00.000Z"),
     voucherRedemptions: overrides.voucherRedemptions ?? [],
@@ -136,6 +137,23 @@ test("getClientCrmSummary counts completed partially paid booking as unpaid rema
 
   assert.equal(summary.paidCzk, 500);
   assert.equal(summary.unpaidCzk, 950);
+});
+
+test("getClientCrmSummary uses final booking price for discounts", () => {
+  const summary = getClientCrmSummary([
+    booking({
+      status: BookingStatus.COMPLETED,
+      servicePriceFromCzk: 1_450,
+      finalPriceCzk: 1_000,
+      scheduledStartsAt: new Date("2026-04-30T10:00:00.000Z"),
+      scheduledEndsAt: new Date("2026-04-30T11:00:00.000Z"),
+      payments: [{ amountCzk: 1_000 }],
+    }),
+  ], { now });
+
+  assert.equal(summary.servicesValueCzk, 1_000);
+  assert.equal(summary.paidCzk, 1_000);
+  assert.equal(summary.unpaidCzk, 0);
 });
 
 test("getClientCrmSummary clamps overpaid booking unpaid value to zero", () => {

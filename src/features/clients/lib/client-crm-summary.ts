@@ -16,6 +16,7 @@ export type ClientCrmSummaryBookingInput = {
   status: BookingStatus;
   serviceNameSnapshot: string;
   servicePriceFromCzk?: number | null;
+  finalPriceCzk?: number | null;
   scheduledStartsAt: Date;
   scheduledEndsAt: Date;
   voucherRedemptions?: ClientCrmSummaryPaymentItem[];
@@ -57,7 +58,7 @@ export function getClientCrmSummary(
   const paymentTotals = bookings.reduce(
     (totals, booking) => {
       const paymentSummary = getBookingPaymentSummary({
-        totalPriceCzk: booking.servicePriceFromCzk,
+        totalPriceCzk: booking.finalPriceCzk ?? booking.servicePriceFromCzk,
         voucherRedemptions: booking.voucherRedemptions,
         payments: booking.payments,
       });
@@ -74,7 +75,11 @@ export function getClientCrmSummary(
     lastVisit: toCrmVisit(sortedCompletedPastBookings[0]),
     nextVisit: toCrmVisit(sortedFutureActiveBookings[0]),
     servicesValueCzk: bookings.reduce(
-      (total, booking) => total + (booking.status === BookingStatus.COMPLETED ? Math.max(0, booking.servicePriceFromCzk ?? 0) : 0),
+      (total, booking) =>
+        total +
+        (booking.status === BookingStatus.COMPLETED
+          ? Math.max(0, booking.finalPriceCzk ?? booking.servicePriceFromCzk ?? 0)
+          : 0),
       0,
     ),
     paidCzk: paymentTotals.paidCzk,

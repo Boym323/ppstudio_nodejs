@@ -177,6 +177,7 @@ model AdminUser {
   updatedVouchers            Voucher[]                 @relation("VoucherUpdatedBy")
   redeemedVoucherRedemptions VoucherRedemption[]       @relation("AdminUserRedeemedVoucherRedemptions")
   bookingPayments            BookingPayment[]          @relation("BookingPaymentCreatedBy")
+  adjustedBookingPrices       Booking[]                @relation("BookingPriceAdjustedBy")
 }
 
 model UserNotificationSettings {
@@ -355,6 +356,10 @@ model Booking {
   serviceNameSnapshot         String
   serviceDurationMinutes      Int
   servicePriceFromCzk         Int?
+  finalPriceCzk               Int?
+  priceAdjustmentReason       String?
+  priceAdjustedAt             DateTime?
+  priceAdjustedByUserId       String?
   scheduledStartsAt           DateTime
   scheduledEndsAt             DateTime
   clientNote                  String?
@@ -377,6 +382,7 @@ model Booking {
   slot                        AvailabilitySlot          @relation(fields: [slotId], references: [id], onDelete: Restrict)
   service                     Service                   @relation(fields: [serviceId], references: [id], onDelete: Restrict)
   createdByUser               AdminUser?                @relation("BookingCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  priceAdjustedByUser         AdminUser?                @relation("BookingPriceAdjustedBy", fields: [priceAdjustedByUserId], references: [id], onDelete: SetNull)
   rescheduledFromBooking      Booking?                  @relation("BookingRescheduleChain", fields: [rescheduledFromBookingId], references: [id], onDelete: SetNull)
   rescheduledToBooking        Booking?                  @relation("BookingRescheduleChain")
   intendedVoucher             Voucher?                  @relation("BookingIntendedVoucher", fields: [intendedVoucherId], references: [id], onDelete: SetNull)
@@ -397,6 +403,7 @@ model Booking {
   @@index([source, createdAt])
   @@index([acquisitionSource, createdAt])
   @@index([createdByUserId])
+  @@index([priceAdjustedByUserId])
   @@index([intendedVoucherId])
   @@index([rescheduledAt])
 }

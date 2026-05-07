@@ -9,6 +9,7 @@ import {
   AdminBookingPaymentForm,
   DeleteBookingPaymentButton,
 } from "./admin-booking-payment-form";
+import { AdminBookingPriceForm } from "./admin-booking-price-form";
 import { AdminBookingStatusForm } from "./admin-booking-status-form";
 import { AdminBookingVoucherForm } from "./admin-booking-voucher-form";
 import { AdminPanel } from "./admin-page-shell";
@@ -301,9 +302,10 @@ function BookingVoucherPanel({ data }: { data: AdminBookingDetailData }) {
   return (
     <AdminPanel title="Úhrada" compact={data.area === "salon"} denseHeader>
       <div className="space-y-2.5">
+        <BookingPriceBlock data={data} />
         <PaymentSummaryBlock paymentSummary={paymentSummary} />
         <p className="text-[0.72rem] leading-4 text-white/38">
-          Evidence zahrnuje voucher i ručně zapsané platby hotově, kartou nebo převodem / QR.
+          Evidence zahrnuje individuální cenu rezervace, voucher i ručně zapsané platby hotově, kartou nebo převodem / QR.
         </p>
 
         <div className="space-y-2">
@@ -415,7 +417,7 @@ function PaymentSummaryBlock({
 }) {
   const items = [
     {
-      label: "Cena služby",
+      label: "Cena k úhradě",
       value: formatCzk(paymentSummary.totalPriceCzk),
     },
     { label: "Uhrazeno voucherem", value: formatCzk(paymentSummary.voucherPaidCzk) },
@@ -457,6 +459,72 @@ function PaymentSummaryBlock({
           </div>
         ))}
       </dl>
+    </div>
+  );
+}
+
+function BookingPriceBlock({ data }: { data: AdminBookingDetailData }) {
+  const priceAdjustment = data.priceAdjustment;
+  const hasAdjustment = priceAdjustment.finalPriceCzk !== null;
+  const adjustmentLabel =
+    priceAdjustment.adjustmentCzk < 0
+      ? `Sleva ${formatCzk(Math.abs(priceAdjustment.adjustmentCzk))}`
+      : priceAdjustment.adjustmentCzk > 0
+        ? `Navýšení ${formatCzk(priceAdjustment.adjustmentCzk)}`
+        : "Bez úpravy";
+
+  return (
+    <div className="rounded-[0.95rem] border border-white/8 bg-[rgba(255,255,255,0.03)] p-3">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-sm font-medium text-white/82">Cena rezervace</p>
+          <p className="mt-1 text-[0.75rem] leading-4 text-white/42">
+            Platební souhrn počítá z ceny k úhradě.
+          </p>
+        </div>
+        <span
+          className={cn(
+            "rounded-full border px-2.5 py-1 text-[0.64rem] font-medium uppercase tracking-[0.14em]",
+            hasAdjustment
+              ? "border-[var(--color-accent)]/24 bg-[rgba(190,160,120,0.12)] text-white/82"
+              : "border-white/10 bg-black/18 text-white/58",
+          )}
+        >
+          {adjustmentLabel}
+        </span>
+      </div>
+
+      <dl className="mt-3 grid gap-2 sm:grid-cols-3">
+        <VoucherMiniRow label="Ceníková cena" value={formatCzk(priceAdjustment.basePriceCzk)} />
+        <VoucherMiniRow label="Cena k úhradě" value={formatCzk(data.effectivePriceCzk)} />
+        <VoucherMiniRow label="Rozdíl" value={adjustmentLabel} />
+      </dl>
+
+      {hasAdjustment ? (
+        <div className="mt-3 rounded-[0.85rem] border border-white/8 bg-black/12 px-3 py-2">
+          <p className="text-sm leading-5 text-white/64">
+            <span className="text-white/82">Důvod:</span> {priceAdjustment.reason}
+          </p>
+          {priceAdjustment.adjustedAtLabel ? (
+            <p className="mt-1 text-xs leading-4 text-white/40">
+              Upraveno {priceAdjustment.adjustedAtLabel}
+              {priceAdjustment.adjustedByUserLabel ? ` · ${priceAdjustment.adjustedByUserLabel}` : ""}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+
+      {priceAdjustment.canUpdate ? (
+        <div className="mt-3">
+          <AdminBookingPriceForm
+            area={data.area}
+            bookingId={data.id}
+            basePriceCzk={priceAdjustment.basePriceCzk}
+            finalPriceCzk={priceAdjustment.finalPriceCzk}
+            reason={priceAdjustment.reason}
+          />
+        </div>
+      ) : null}
     </div>
   );
 }

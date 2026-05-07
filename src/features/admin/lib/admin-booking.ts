@@ -74,6 +74,16 @@ export type AdminBookingDetailData = {
   serviceId: string;
   serviceName: string;
   servicePriceFromCzk: number | null;
+  effectivePriceCzk: number;
+  priceAdjustment: {
+    finalPriceCzk: number | null;
+    basePriceCzk: number;
+    adjustmentCzk: number;
+    reason: string | null;
+    adjustedAtLabel: string | null;
+    adjustedByUserLabel: string | null;
+    canUpdate: boolean;
+  };
   sourceLabel: string;
   acquisitionLabel: string | null;
   clientNote: string | null;
@@ -510,6 +520,13 @@ export async function getAdminBookingDetailData(
             },
           },
         },
+        priceAdjustedByUser: {
+          select: {
+            name: true,
+            email: true,
+            role: true,
+          },
+        },
       },
     }),
     getPublicBookingCatalog({ includeServices: false }),
@@ -547,7 +564,9 @@ export async function getAdminBookingDetailData(
       createdAt: log.createdAt,
     })),
   ].sort((left, right) => right.createdAt.getTime() - left.createdAt.getTime());
-  const totalPriceCzk = Math.max(0, booking.servicePriceFromCzk ?? booking.service.priceFromCzk ?? 0);
+  const basePriceCzk = Math.max(0, booking.servicePriceFromCzk ?? booking.service.priceFromCzk ?? 0);
+  const effectivePriceCzk = Math.max(0, booking.finalPriceCzk ?? basePriceCzk);
+  const priceAdjustmentCzk = effectivePriceCzk - basePriceCzk;
   const voucherPaidCzk = booking.voucherRedemptions.reduce(
     (total, redemption) => total + (redemption.amountCzk ?? 0),
     0,
@@ -557,7 +576,7 @@ export async function getAdminBookingDetailData(
     0,
   );
   const paymentSummary = buildPaymentSummary({
-    totalPriceCzk,
+    totalPriceCzk: effectivePriceCzk,
     voucherPaidCzk,
     directPaidCzk,
   });
@@ -577,6 +596,16 @@ export async function getAdminBookingDetailData(
     serviceId: booking.serviceId,
     serviceName: booking.serviceNameSnapshot,
     servicePriceFromCzk: booking.servicePriceFromCzk,
+    effectivePriceCzk,
+    priceAdjustment: {
+      finalPriceCzk: booking.finalPriceCzk,
+      basePriceCzk,
+      adjustmentCzk: priceAdjustmentCzk,
+      reason: booking.priceAdjustmentReason,
+      adjustedAtLabel: booking.priceAdjustedAt ? formatDateTimeLabel(booking.priceAdjustedAt) : null,
+      adjustedByUserLabel: formatOptionalAdminUserLabel(booking.priceAdjustedByUser),
+      canUpdate: true,
+    },
     sourceLabel: getBookingSourceLabel(booking.source),
     acquisitionLabel: getBookingAcquisitionLabel(booking.acquisitionSource),
     clientNote: booking.clientNote,
@@ -647,7 +676,7 @@ export async function getAdminBookingDetailData(
                     booking.intendedVoucher.remainingValueCzk ?? 0,
                     paymentSummary.remainingAmountCzk ?? 0,
                   )
-                : booking.intendedVoucher.servicePriceSnapshotCzk ?? totalPriceCzk,
+                : booking.intendedVoucher.servicePriceSnapshotCzk ?? effectivePriceCzk,
           }
         : null,
       redemptions: booking.voucherRedemptions.map((redemption) => ({
@@ -673,6 +702,12 @@ function formatBookingPaymentUserLabel(
   }
 
   return `${user.name} (${user.email})`;
+}
+
+function formatOptionalAdminUserLabel(
+  user: { name: string; email: string; role: AdminRole } | null,
+) {
+  return user ? `${user.name} (${user.email})` : null;
 }
 
 export function canApplyAdminBookingTransition(

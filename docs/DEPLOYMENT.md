@@ -73,7 +73,7 @@ Postup nasazení aplikace do produkce.
   - dostupnost owner-only sekcí jen pro `OWNER`
   - stejné chování owner/salon párových route po refaktoru factory wrapperů (overview, section, booking detail, slot list/create/detail/edit)
   - detail klientky v owner i salon oblasti: CTA `Vytvořit rezervaci` otevře `/admin/.../rezervace?create=1&clientId=...` a drawer předvyplní správnou klientku nebo ukáže jemný fallback
-  - `CRM souhrn` v detailu klientky ukazuje poslední dokončenou návštěvu, nejbližší aktivní budoucí termín, hodnotu služeb, uhrazeno/neuhrazeno a rozpad rezervací; zrušené a no-show rezervace se nepočítají do doplatku
+  - `CRM souhrn` v detailu klientky ukazuje poslední dokončenou návštěvu, nejbližší aktivní budoucí termín, hodnotu služeb, uhrazeno/neuhrazeno a rozpad rezervací; zrušené a no-show rezervace se nepočítají do doplatku a individuální cena rezervace se počítá jako hodnota i základ doplatku
   - lite admin navigaci a mobilní čitelnost na `/admin/provoz/*`
    - overview dashboard na `/admin` a `/admin/provoz`:
      - horní blok `Dnešní provoz` ukazuje datum, počet dnešních aktivních rezervací, právě probíhající nebo další rezervaci a CTA `Vytvořit rezervaci / Otevřít dnešní plán / Upravit dostupnost`
@@ -138,7 +138,8 @@ Postup nasazení aplikace do produkce.
      - veřejné ověření platného hodnotového voucheru ukáže kód, typ, zůstatek a platnost; službový voucher ukáže kód, typ, snapshot služby a platnost
      - veřejné ověření neplatného voucheru ukáže jen bezpečný důvod a při reloadu nemění `remainingValueCzk`, `Voucher.status` ani nevytváří `VoucherRedemption`
    - panel `Úhrada` v detailu rezervace na `/admin/rezervace/[bookingId]` a `/admin/provoz/rezervace/[bookingId]`:
-     - horní souhrn ukazuje cenu služby, uhrazeno voucherem, uhrazeno mimo voucher, celkem uhrazeno, zbývá doplatit nebo přeplaceno a stav úhrady `Neuhrazeno / Částečně uhrazeno / Uhrazeno / Přeplaceno`
+     - horní souhrn ukazuje cenu k úhradě, uhrazeno voucherem, uhrazeno mimo voucher, celkem uhrazeno, zbývá doplatit nebo přeplaceno a stav úhrady `Neuhrazeno / Částečně uhrazeno / Uhrazeno / Přeplaceno`
+     - `OWNER` i `SALON` umí přes `Upravit cenu` nastavit individuální cenu rezervace s důvodem a prázdnou hodnotou ji vrátit na ceníkový snapshot
      - `OWNER` i `SALON` umí zapsat platbu mimo voucher metodou `Hotově`, `Kartou`, `Převodem / QR` nebo `Jiné`
      - `OWNER` vidí smazání platby mimo voucher a `SALON` tuto akci nevidí
      - rezervace bez voucheru ukazuje prázdný stav v sekci `Dárkový poukaz` a dovolí ruční zadání kódu

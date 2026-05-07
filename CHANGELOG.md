@@ -6,6 +6,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Detail rezervace v panelu `Úhrada` podporuje individuální cenu rezervace se zdůvodněním pro `OWNER` i `SALON`. Platební souhrn, voucher doplatek i CRM souhrn počítají z finální ceny rezervace, zatímco `BookingPayment` dál eviduje pouze skutečně přijaté platby mimo voucher.
+
 ## [0.1.11] - 2026-05-07
 
 - Release příprava bez funkčních změn: projektová verze navýšena na patch `0.1.11`.

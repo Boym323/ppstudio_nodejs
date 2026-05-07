@@ -64,8 +64,8 @@ Dokumentace proměnných prostředí pro lokální vývoj i produkci.
 - Serverová business vrstva voucherů také nepřidává žádnou novou env proměnnou; tvorba, validace i admin čerpání používají stávající Prisma připojení přes `DATABASE_URL`.
 - Admin formulář pro vytvoření voucheru nepřidává žádnou novou env proměnnou; používá stávající admin session, Prisma připojení a voucher doménovou vrstvu.
 - Admin uplatnění voucheru v detailu rezervace nepřidává žádnou novou env proměnnou; autorizace používá stávající admin session a role `OWNER` / `SALON`, persistence používá `DATABASE_URL`.
-- Panel `Úhrada` v detailu rezervace nepřidává žádnou novou env proměnnou; summary se počítá request-time z `Booking`, `Service`, existujících `VoucherRedemption` záznamů a nových `BookingPayment` plateb přes stávající `DATABASE_URL`.
-- `CRM souhrn` v detailu klientky nepřidává žádnou novou env proměnnou; počítá se request-time z rezervací klientky, `VoucherRedemption` a `BookingPayment` přes stávající `DATABASE_URL`.
+- Panel `Úhrada` v detailu rezervace nepřidává žádnou novou env proměnnou; summary se počítá request-time z `Booking.finalPriceCzk`, `Booking.servicePriceFromCzk`, `Service`, existujících `VoucherRedemption` záznamů a `BookingPayment` plateb přes stávající `DATABASE_URL`.
+- `CRM souhrn` v detailu klientky nepřidává žádnou novou env proměnnou; počítá se request-time z rezervací klientky včetně případné `Booking.finalPriceCzk`, `VoucherRedemption` a `BookingPayment` přes stávající `DATABASE_URL`.
 - Evidence plateb mimo voucher nepřidává žádnou platební bránu ani QR konfiguraci; metoda `Převodem / QR` je v této verzi pouze UI popisek enumu `BANK_TRANSFER`.
 - QR kód ve voucher PDF dál používá `NEXT_PUBLIC_APP_URL` přes `siteConfig.url`, takže produkční hodnota musí mířit na veřejný HTTPS origin PP Studia.
 - FAQPage JSON-LD pro `/faq` používá veřejný origin ze stávajícího `NEXT_PUBLIC_APP_URL`; změna FAQ nepřidává žádné nové env proměnné.

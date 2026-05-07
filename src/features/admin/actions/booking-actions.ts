@@ -9,6 +9,7 @@ import { type CreateManualBookingActionState } from "@/features/admin/actions/cr
 import { type RedeemBookingVoucherActionState } from "@/features/admin/actions/redeem-booking-voucher-action-state";
 import { type RescheduleBookingActionState } from "@/features/admin/actions/reschedule-booking-action-state";
 import { type UpdateBookingNoteActionState } from "@/features/admin/actions/update-booking-note-action-state";
+import { type UpdateBookingPriceActionState } from "@/features/admin/actions/update-booking-price-action-state";
 import { type UpdateBookingStatusActionState } from "@/features/admin/actions/update-booking-status-action-state";
 import {
   applyAdminBookingStatusChange,
@@ -75,6 +76,21 @@ const updateBookingNoteSchema = z.object({
   area: z.enum(["owner", "salon"]),
   bookingId: z.string().trim().min(1).max(64),
   internalNote: z.string().trim().max(1000, "Interní poznámka je příliš dlouhá."),
+});
+
+const updateBookingPriceSchema = z.object({
+  area: z.enum(["owner", "salon"]),
+  bookingId: z.string().trim().min(1).max(64),
+  finalPriceCzk: z.preprocess(
+    (value) => (value === "" || value === null ? null : value),
+    z.coerce
+      .number({ error: "Cenu zadejte jako celé číslo v Kč." })
+      .int("Cena musí být celé číslo v Kč.")
+      .min(0, "Cena nesmí být záporná.")
+      .max(100_000, "Cena je mimo běžný rozsah.")
+      .nullable(),
+  ),
+  priceAdjustmentReason: z.string().trim().max(500, "Důvod je příliš dlouhý.").optional().or(z.literal("")),
 });
 
 const createManualBookingSchema = z.object({
@@ -428,6 +444,98 @@ export async function updateBookingNoteAction(
     successMessage: parsed.data.internalNote
       ? "Interní poznámka je uložená."
       : "Interní poznámka byla odstraněná.",
+  };
+}
+
+export async function updateBookingPriceAction(
+  _previousState: UpdateBookingPriceActionState,
+  formData: FormData,
+): Promise<UpdateBookingPriceActionState> {
+  const parsed = updateBookingPriceSchema.safeParse({
+    area: readFormString(formData, "area"),
+    bookingId: readFormString(formData, "bookingId"),
+    finalPriceCzk: readFormString(formData, "finalPriceCzk"),
+    priceAdjustmentReason: readFormString(formData, "priceAdjustmentReason"),
+  });
+
+  if (!parsed.success) {
+    const fieldErrors = parsed.error.flatten().fieldErrors;
+
+    return {
+      status: "error",
+      formError: "Cenu rezervace je potřeba doplnit nebo opravit.",
+      fieldErrors: {
+        finalPriceCzk: fieldErrors.finalPriceCzk?.[0],
+        priceAdjustmentReason: fieldErrors.priceAdjustmentReason?.[0],
+      },
+    };
+  }
+
+  const session = await requireRole([AdminRole.OWNER, AdminRole.SALON]);
+  const booking = await prisma.booking.findUnique({
+    where: { id: parsed.data.bookingId },
+    select: {
+      id: true,
+      clientId: true,
+      servicePriceFromCzk: true,
+      service: {
+        select: {
+          priceFromCzk: true,
+        },
+      },
+    },
+  });
+
+  if (!booking) {
+    return {
+      status: "error",
+      formError: "Rezervaci se nepodařilo najít.",
+    };
+  }
+
+  const basePriceCzk = Math.max(0, booking.servicePriceFromCzk ?? booking.service.priceFromCzk ?? 0);
+  const nextFinalPriceCzk = parsed.data.finalPriceCzk;
+  const normalizedReason = parsed.data.priceAdjustmentReason?.trim() ?? "";
+  const clearsAdjustment = nextFinalPriceCzk === null || nextFinalPriceCzk === basePriceCzk;
+
+  if (!clearsAdjustment && normalizedReason.length === 0) {
+    return {
+      status: "error",
+      formError: "Upravená cena potřebuje krátký důvod.",
+      fieldErrors: {
+        priceAdjustmentReason: "Doplňte důvod úpravy ceny.",
+      },
+    };
+  }
+
+  const actorUserId = await resolveVoucherRedemptionActorUserId(session.email);
+
+  await prisma.booking.update({
+    where: { id: booking.id },
+    data: clearsAdjustment
+      ? {
+          finalPriceCzk: null,
+          priceAdjustmentReason: null,
+          priceAdjustedAt: null,
+          priceAdjustedByUserId: null,
+        }
+      : {
+          finalPriceCzk: nextFinalPriceCzk,
+          priceAdjustmentReason: normalizedReason,
+          priceAdjustedAt: new Date(),
+          priceAdjustedByUserId: actorUserId,
+        },
+  });
+
+  revalidateBookingAdminPaths(booking.id);
+  revalidatePath(`/admin/klienti/${booking.clientId}`);
+  revalidatePath(`/admin/provoz/klienti/${booking.clientId}`);
+
+  return {
+    status: "success",
+    successMessage: clearsAdjustment
+      ? "Individuální cena byla zrušená, rezervace znovu používá ceníkovou cenu."
+      : "Individuální cena rezervace je uložená.",
   };
 }
 

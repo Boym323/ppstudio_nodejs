@@ -466,6 +466,7 @@ export async function getAdminClientDetailData(
           status: true,
           serviceNameSnapshot: true,
           servicePriceFromCzk: true,
+          finalPriceCzk: true,
           scheduledStartsAt: true,
           scheduledEndsAt: true,
           voucherRedemptions: {
