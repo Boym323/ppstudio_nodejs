@@ -67,7 +67,9 @@ export function AdminBookingsWorkspace({
               <div
                 className={cn(
                   "flex items-center justify-between gap-3 border-b border-white/8 px-4 py-2.5",
-                  group.key === "pending"
+                  group.key === "needs_closure"
+                    ? "bg-[linear-gradient(90deg,rgba(244,114,86,0.16),rgba(255,255,255,0.04))]"
+                    : group.key === "pending"
                     ? "bg-[linear-gradient(90deg,rgba(190,160,120,0.14),rgba(255,255,255,0.04))]"
                     : "bg-white/[0.03]",
                 )}
@@ -76,7 +78,11 @@ export function AdminBookingsWorkspace({
                   <p
                     className={cn(
                       "text-xs font-semibold uppercase tracking-[0.2em]",
-                      group.key === "pending" ? "text-amber-100" : "text-[var(--color-accent-soft)]",
+                      group.key === "needs_closure"
+                        ? "text-orange-100"
+                        : group.key === "pending"
+                          ? "text-amber-100"
+                          : "text-[var(--color-accent-soft)]",
                     )}
                   >
                     {group.label}
@@ -95,17 +101,22 @@ export function AdminBookingsWorkspace({
                       key={booking.id}
                       className={cn(
                         "relative transition-colors",
-                        booking.isPending
+                        booking.needsClosure
+                          ? "bg-orange-400/[0.055]"
+                          : booking.isPending
                           ? "bg-amber-400/[0.05]"
                           : booking.isMuted
                             ? "bg-white/[0.015] text-white/70"
                             : "hover:bg-white/[0.03]",
                       )}
                     >
-                      {booking.isPending ? (
+                      {booking.needsClosure || booking.isPending ? (
                         <span
                           aria-hidden="true"
-                          className="absolute inset-y-0 left-0 w-[3px] bg-amber-300/60"
+                          className={cn(
+                            "absolute inset-y-0 left-0 w-[3px]",
+                            booking.needsClosure ? "bg-orange-300/70" : "bg-amber-300/60",
+                          )}
                         />
                       ) : null}
                       <div
@@ -134,6 +145,7 @@ export function AdminBookingsWorkspace({
                         }}
                         className={cn(
                           "cursor-pointer outline-none transition-colors focus-visible:bg-white/[0.05] focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/45 hover:bg-white/[0.03]",
+                          booking.needsClosure && "hover:bg-orange-400/[0.085]",
                           booking.isPending && "hover:bg-amber-400/[0.08]",
                           booking.isMuted && "opacity-70",
                         )}

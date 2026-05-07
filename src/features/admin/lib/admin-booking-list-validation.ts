@@ -19,6 +19,7 @@ export const bookingListSourceValues = [
 ] as const;
 
 export const bookingListStatValues = [
+  "needs_closure",
   "upcoming",
   "pending",
   "confirmed",

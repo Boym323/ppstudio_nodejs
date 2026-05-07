@@ -6,6 +6,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Admin sekce `Rezervace` nově odděluje proběhlé aktivní rezervace do horní sekce `K uzavření`: jakmile termín skončil a rezervace je pořád `Čeká` nebo `Potvrzená`, vystoupí nad běžný pracovní seznam, aby šla rychle označit jako hotová, zrušená nebo no-show.
+
 ## [0.2.0] - 2026-05-07
 
 - Admin detail rezervace v panelu `Úhrada` má kompaktnější souhrn: úprava ceny se otevírá přímo u položky `Cena k úhradě`, samostatný viditelný blok `Cena rezervace` zmizel z výchozího zobrazení, platby se nevypisují duplicitně mimo `Přehled úhrad` a prázdný voucher stav je spojený s akcí `+ Uplatnit voucher`.

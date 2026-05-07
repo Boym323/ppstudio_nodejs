@@ -38,6 +38,20 @@ const formatTime = new Intl.DateTimeFormat("cs-CZ", {
   minute: "2-digit",
 });
 
+const activeBookingStatuses = [BookingStatus.PENDING, BookingStatus.CONFIRMED] as const;
+
+function isActiveBookingStatus(status: BookingStatus) {
+  return status === BookingStatus.PENDING || status === BookingStatus.CONFIRMED;
+}
+
+function isClosedBookingStatus(status: BookingStatus) {
+  return (
+    status === BookingStatus.COMPLETED ||
+    status === BookingStatus.CANCELLED ||
+    status === BookingStatus.NO_SHOW
+  );
+}
+
 const formatDateTime = new Intl.DateTimeFormat("cs-CZ", {
   day: "numeric",
   month: "numeric",
@@ -494,6 +508,7 @@ export type ReservationsDashboardData = {
       availableActions: ReturnType<typeof getAdminBookingActionOptions>;
       isMuted: boolean;
       isPending: boolean;
+      needsClosure: boolean;
     }>;
   }>;
   manualBooking: {
@@ -624,6 +639,14 @@ function buildReservationsWhere(
     where.source = sourceFilter;
   }
 
+  if (filters.stat === "needs_closure") {
+    where.scheduledEndsAt = { lt: new Date() };
+
+    if (!statusFilter) {
+      where.status = { in: [...activeBookingStatuses] };
+    }
+  }
+
   if (filters.stat === "upcoming") {
     scheduledStartsAtFilter.gte = dateFrom ?? startOfToday();
   } else if (dateFrom) {
@@ -638,7 +661,7 @@ function buildReservationsWhere(
     where.scheduledStartsAt = scheduledStartsAtFilter;
   }
 
-  if (!statusFilter && filters.stat && filters.stat !== "upcoming") {
+  if (!statusFilter && filters.stat && filters.stat !== "needs_closure" && filters.stat !== "upcoming") {
     const statStatus = bookingStatusFromFilter(filters.stat);
 
     if (statStatus) {
@@ -784,6 +807,7 @@ export async function getReservationsData(
   searchParams?: Record<string, string | string[] | undefined>,
 ) {
   const todayStart = startOfToday();
+  const now = new Date();
   const tomorrowStart = startOfTomorrow(todayStart);
   const weekStart = startOfWeek(todayStart);
   const nextWeekStart = startOfNextWeek(weekStart);
@@ -793,6 +817,7 @@ export async function getReservationsData(
 
   const [
     today,
+    needsClosure,
     pending,
     confirmed,
     completed,
@@ -809,7 +834,13 @@ export async function getReservationsData(
     prisma.booking.count({
       where: {
         scheduledStartsAt: { gte: todayStart },
-        status: { in: [BookingStatus.PENDING, BookingStatus.CONFIRMED] },
+        status: { in: [...activeBookingStatuses] },
+      },
+    }),
+    prisma.booking.count({
+      where: {
+        scheduledEndsAt: { lt: now },
+        status: { in: [...activeBookingStatuses] },
       },
     }),
     prisma.booking.count({ where: { status: BookingStatus.PENDING } }),
@@ -892,16 +923,19 @@ export async function getReservationsData(
     let groupKey = "upcoming";
     let groupLabel = "Nadcházející";
     let groupDetail = "Potvrzené a další aktivní rezervace od dneška dál.";
+    const needsClosure = booking.scheduledEndsAt < now && isActiveBookingStatus(booking.status);
 
-    if (booking.status === BookingStatus.PENDING) {
+    if (needsClosure) {
+      groupKey = "needs_closure";
+      groupLabel = "K uzavření";
+      groupDetail = "Proběhlé rezervace, které ještě nejsou označené jako hotové, zrušené nebo no-show.";
+    } else if (booking.status === BookingStatus.PENDING) {
       groupKey = "pending";
       groupLabel = "Čeká na potvrzení";
       groupDetail = "Rezervace vyžadující rychlé provozní rozhodnutí.";
     } else if (
       startsAt < todayStart ||
-      booking.status === BookingStatus.COMPLETED ||
-      booking.status === BookingStatus.CANCELLED ||
-      booking.status === BookingStatus.NO_SHOW
+      isClosedBookingStatus(booking.status)
     ) {
       groupKey = "past";
       groupLabel = "Minulé";
@@ -939,6 +973,7 @@ export async function getReservationsData(
       }),
       isMuted: booking.status === BookingStatus.COMPLETED || booking.status === BookingStatus.CANCELLED,
       isPending: booking.status === BookingStatus.PENDING,
+      needsClosure,
     });
   }
 
@@ -952,7 +987,7 @@ export async function getReservationsData(
       filters.dateTo,
   );
   const emptyState = describeReservationsEmptyState(filters, totalUnfilteredCount, totalCount);
-  const groupOrder = ["pending", "upcoming", "past"];
+  const groupOrder = ["needs_closure", "pending", "upcoming", "past"];
 
   return {
     currentPath,
@@ -966,6 +1001,14 @@ export async function getReservationsData(
       emptyState,
     },
     stats: [
+      {
+        key: "needs_closure",
+        label: "K uzavření",
+        value: String(needsClosure),
+        tone: "accent" as const,
+        href: buildReservationsStatHref(currentPath, filters, "needs_closure"),
+        isActive: filters.stat === "needs_closure",
+      },
       {
         key: "upcoming",
         label: "Dnes a dál",
