@@ -681,6 +681,7 @@ export async function PublicHomePage({ featuredServices = services.slice(0, 3) }
   const bookingPolicy = await getBookingPolicySettings();
   const portrait = await getPrimaryPublicHomePortrait();
   const trustMetrics = buildTrustMetrics(bookingPolicy.cancellationHours);
+  const homepageServices = featuredServices.length > 0 ? featuredServices : services.slice(0, 3);
   const heroContent = {
     ...homepageContent,
     portraitImage: portrait
@@ -701,12 +702,12 @@ export async function PublicHomePage({ featuredServices = services.slice(0, 3) }
       <section className="py-10 sm:py-14 lg:py-16">
         <Container className="space-y-8 sm:space-y-10">
           <SectionHeading
-            eyebrow="Vybrané služby"
-            title="Nejoblíbenější služby přehledně: pro koho jsou, co přináší a kolik času zaberou."
+            eyebrow="Doporučené služby"
+            title="Služby, se kterými se dobře začíná: pro koho jsou, co přináší a kolik času zaberou."
             description="Ať řešíte pleť, řasy nebo obočí, cílem je jasná volba bez složitého rozhodování."
           />
           <div className="grid gap-6 lg:grid-cols-3">
-            {featuredServices.map((service) => (
+            {homepageServices.map((service) => (
               <ServiceCard key={service.slug} service={service} />
             ))}
           </div>

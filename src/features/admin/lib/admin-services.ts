@@ -112,6 +112,7 @@ function buildServiceOrderBy(sort: ServiceListSortValue): Prisma.ServiceOrderByW
 function describeServiceWarnings(service: {
   isActive: boolean;
   isPubliclyBookable: boolean;
+  isFeaturedOnHomepage: boolean;
   priceFromCzk: number | null;
   publicIntro: string | null;
   pricingShortDescription: string | null;
@@ -139,6 +140,10 @@ function describeServiceWarnings(service: {
 
   if (service.isPubliclyBookable && !service.pricingShortDescription) {
     warnings.push("Veřejné službě chybí krátký popis do ceníku.");
+  }
+
+  if (service.isFeaturedOnHomepage && (!service.isActive || !service.isPubliclyBookable || !service.category.isActive)) {
+    warnings.push("Je vybraná pro homepage, ale klientka ji teď na veřejném webu neuvidí.");
   }
 
   return warnings;
@@ -182,6 +187,8 @@ export async function getAdminServicesPageData(
         durationMinutes: true,
         priceFromCzk: true,
         sortOrder: true,
+        isFeaturedOnHomepage: true,
+        homepageSortOrder: true,
         isActive: true,
         isPubliclyBookable: true,
         publicIntro: true,

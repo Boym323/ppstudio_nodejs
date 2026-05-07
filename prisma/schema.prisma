@@ -177,7 +177,7 @@ model AdminUser {
   updatedVouchers            Voucher[]                 @relation("VoucherUpdatedBy")
   redeemedVoucherRedemptions VoucherRedemption[]       @relation("AdminUserRedeemedVoucherRedemptions")
   bookingPayments            BookingPayment[]          @relation("BookingPaymentCreatedBy")
-  adjustedBookingPrices       Booking[]                @relation("BookingPriceAdjustedBy")
+  adjustedBookingPrices      Booking[]                 @relation("BookingPriceAdjustedBy")
 }
 
 model UserNotificationSettings {
@@ -250,6 +250,8 @@ model Service {
   durationMinutes          Int
   priceFromCzk             Int?
   sortOrder                Int                       @default(0)
+  isFeaturedOnHomepage     Boolean                   @default(false)
+  homepageSortOrder        Int                       @default(0)
   isActive                 Boolean                   @default(true)
   isPubliclyBookable       Boolean                   @default(true)
   createdAt                DateTime                  @default(now())
@@ -264,6 +266,7 @@ model Service {
 
   @@index([categoryId, isActive, isPubliclyBookable, sortOrder])
   @@index([isActive, isPubliclyBookable, sortOrder])
+  @@index([isFeaturedOnHomepage, homepageSortOrder])
 }
 
 model ServicePriceChangeLog {

@@ -282,6 +282,55 @@ export async function getPublicServices(): Promise<Service[]> {
   return services.map(mapService);
 }
 
+export async function getHomepageFeaturedServices(limit = 3): Promise<Service[]> {
+  const featuredServices = await prisma.service.findMany({
+    where: {
+      ...publicServiceVisibilityWhere,
+      isFeaturedOnHomepage: true,
+      category: {
+        is: {
+          isActive: true,
+        },
+      },
+    },
+    orderBy: [{ homepageSortOrder: "asc" }, { category: { sortOrder: "asc" } }, { sortOrder: "asc" }, { name: "asc" }],
+    take: limit,
+    include: {
+      category: {
+        select: {
+          name: true,
+        },
+      },
+    },
+  });
+
+  if (featuredServices.length > 0) {
+    return featuredServices.map(mapService);
+  }
+
+  const fallbackServices = await prisma.service.findMany({
+    where: {
+      ...publicServiceVisibilityWhere,
+      category: {
+        is: {
+          isActive: true,
+        },
+      },
+    },
+    orderBy: [{ category: { sortOrder: "asc" } }, { sortOrder: "asc" }, { name: "asc" }],
+    take: limit,
+    include: {
+      category: {
+        select: {
+          name: true,
+        },
+      },
+    },
+  });
+
+  return fallbackServices.map(mapService);
+}
+
 export async function getPublicPricingCatalog(): Promise<PublicPricingCategory[]> {
   const categories = await prisma.serviceCategory.findMany({
     where: {

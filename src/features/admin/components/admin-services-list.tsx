@@ -6,6 +6,8 @@ export type AdminServiceListItem = {
   durationMinutes: number;
   priceFromCzk: number | null;
   sortOrder: number;
+  isFeaturedOnHomepage: boolean;
+  homepageSortOrder: number;
   isActive: boolean;
   isPubliclyBookable: boolean;
   isEffectivelyVisible: boolean;

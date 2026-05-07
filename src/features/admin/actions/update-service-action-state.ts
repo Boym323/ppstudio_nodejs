@@ -13,7 +13,8 @@ export type UpdateServiceActionState = {
       | "durationMinutes"
       | "priceFromCzk"
       | "categoryId"
-      | "sortOrder",
+      | "sortOrder"
+      | "homepageSortOrder",
       string
     >
   >;

@@ -127,6 +127,7 @@ Seznam důležitých knihoven a důvod jejich použití.
 - Invite aktivace a DB hesla pro admin přístupy byly přidané bez nové auth knihovny; tokeny i hash hesel běží na vestavěném Node.js `crypto` (`sha256`, `scrypt`).
 - Admin workflow pro služby (seznam, filtry, editace a validační vrstva) bylo doplněné čistě nad existujícím stackem Next.js, React, Prisma a Zod.
 - Rozšíření katalogu o public/pricing metadata zůstává čistě v současném stacku Prisma + Next.js server actions; nepřidává CMS, feature flag službu ani externí content backend.
+- Ruční výběr doporučených služeb pro homepage zůstává v modelu `Service` a admin server actions; nepřidává CMS ani externí personalizační nebo analytickou službu.
 - Přepracované workflow `Služby` a `Kategorie služeb` (create CTA, quick actions, reorder, warningy, mobilní list/detail flow) zůstává bez nové UI nebo drag-and-drop závislosti; běží čistě na stávajícím stacku Next.js, React, Prisma a Zod.
 - Nový dark workspace `Kategorie služeb` používá jen React 19 primitives (`useActionState`, `useOptimistic`, `startTransition`) a nepřidává žádný drawer, icon ani form helper balík.
 - Přepnutí desktop detailů `Služby` a `Kategorie služeb` na pravý overlay drawer také nepřidává žádnou UI knihovnu; zůstáváme na lokálních React komponentech a Tailwind utilitách.

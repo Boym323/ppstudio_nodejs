@@ -41,6 +41,8 @@ type EditServiceFormProps = BaseServiceFormProps & {
     durationMinutes: number;
     priceFromCzk: number | null;
     sortOrder: number;
+    isFeaturedOnHomepage: boolean;
+    homepageSortOrder: number;
     isActive: boolean;
     isPubliclyBookable: boolean;
     categoryId: string;
@@ -77,6 +79,8 @@ type CreateServiceFormProps = BaseServiceFormProps & {
     pricingBadge: string;
     durationMinutes: number;
     priceFromCzk: string;
+    isFeaturedOnHomepage: boolean;
+    homepageSortOrder: number;
     categoryId?: string;
     isActive: boolean;
     isPubliclyBookable: boolean;
@@ -128,6 +132,7 @@ export function AdminServiceForm(props: EditServiceFormProps | CreateServiceForm
             <AdminStatePill tone={props.service.isPubliclyBookable ? "active" : "muted"}>
               {props.service.isPubliclyBookable ? "Veřejná rezervace" : "Jen interní"}
             </AdminStatePill>
+            {props.service.isFeaturedOnHomepage ? <AdminStatePill tone="accent">Homepage #{props.service.homepageSortOrder}</AdminStatePill> : null}
             <AdminStatePill tone="accent">{formatServicePrice(props.service.priceFromCzk)}</AdminStatePill>
             <AdminStatePill tone="accent">{props.service.durationMinutes} min</AdminStatePill>
           </>
@@ -280,6 +285,34 @@ export function AdminServiceForm(props: EditServiceFormProps | CreateServiceForm
             title="Veřejně rezervovatelná"
             description="Použijte, když se má služba objevit klientkám na webu a v rezervačním flow."
           />
+        </div>
+      </SectionBlock>
+
+      <SectionBlock
+        title="Homepage"
+        description="Ruční výběr služeb pro sekci Doporučené služby na úvodní stránce. Homepage zobrazí maximálně první tři."
+      >
+        <div className="grid gap-4 sm:grid-cols-[minmax(0,1.25fr)_180px] sm:items-start">
+          <ToggleCard
+            name="isFeaturedOnHomepage"
+            defaultChecked={
+              props.mode === "create" ? props.initialValues.isFeaturedOnHomepage : props.service.isFeaturedOnHomepage
+            }
+            title="Zobrazit v doporučených službách"
+            description="Použijte pro služby, které chcete na homepage aktivně nabídnout jako dobrý začátek."
+          />
+          <Field label="Pořadí na homepage" error={serverState.fieldErrors?.homepageSortOrder}>
+            <input
+              type="number"
+              name="homepageSortOrder"
+              min={0}
+              max={9999}
+              step={1}
+              inputMode="numeric"
+              defaultValue={props.mode === "create" ? props.initialValues.homepageSortOrder : props.service.homepageSortOrder}
+              className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--color-accent)]/60"
+            />
+          </Field>
         </div>
       </SectionBlock>
 

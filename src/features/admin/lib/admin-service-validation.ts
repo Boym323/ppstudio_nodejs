@@ -57,6 +57,12 @@ export const updateServiceSchema = z.object({
     .int("Pořadí musí být celé číslo.")
     .min(0, "Pořadí nesmí být záporné.")
     .max(9999, "Pořadí je příliš vysoké."),
+  isFeaturedOnHomepage: z.boolean(),
+  homepageSortOrder: z.coerce
+    .number({ error: "Pořadí na homepage zadejte jako celé číslo." })
+    .int("Pořadí na homepage musí být celé číslo.")
+    .min(0, "Pořadí na homepage nesmí být záporné.")
+    .max(9999, "Pořadí na homepage je příliš vysoké."),
   isActive: z.boolean(),
   isPubliclyBookable: z.boolean(),
 }).superRefine((value, ctx) => {
@@ -65,6 +71,14 @@ export const updateServiceSchema = z.object({
       code: z.ZodIssueCode.custom,
       path: ["publicIntro"],
       message: "Veřejně rezervovatelná služba potřebuje srozumitelný veřejný úvod (alespoň 12 znaků).",
+    });
+  }
+
+  if (value.isFeaturedOnHomepage && (!value.isActive || !value.isPubliclyBookable)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["homepageSortOrder"],
+      message: "Na homepage vyberte jen aktivní veřejně rezervovatelnou službu.",
     });
   }
 });
@@ -97,6 +111,12 @@ export const createServiceSchema = z.object({
       .min(0, "Cena nesmí být záporná.")
       .max(50000, "Cena je neobvykle vysoká. Zkontrolujte prosím hodnotu."),
   ]),
+  isFeaturedOnHomepage: z.boolean(),
+  homepageSortOrder: z.coerce
+    .number({ error: "Pořadí na homepage zadejte jako celé číslo." })
+    .int("Pořadí na homepage musí být celé číslo.")
+    .min(0, "Pořadí na homepage nesmí být záporné.")
+    .max(9999, "Pořadí na homepage je příliš vysoké."),
   isActive: z.boolean(),
   isPubliclyBookable: z.boolean(),
 }).superRefine((value, ctx) => {
@@ -105,6 +125,14 @@ export const createServiceSchema = z.object({
       code: z.ZodIssueCode.custom,
       path: ["publicIntro"],
       message: "Veřejně rezervovatelná služba potřebuje srozumitelný veřejný úvod (alespoň 12 znaků).",
+    });
+  }
+
+  if (value.isFeaturedOnHomepage && (!value.isActive || !value.isPubliclyBookable)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["homepageSortOrder"],
+      message: "Na homepage vyberte jen aktivní veřejně rezervovatelnou službu.",
     });
   }
 });

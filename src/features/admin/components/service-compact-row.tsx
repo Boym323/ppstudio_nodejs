@@ -70,6 +70,11 @@ export function ServiceCompactRow({
                 Upoz. {service.warnings.length}
               </span>
             ) : null}
+            {service.isFeaturedOnHomepage ? (
+              <span className="rounded-full border border-[var(--color-accent)]/30 bg-[var(--color-accent)]/12 px-2 py-0.5 text-[11px] text-[var(--color-accent-soft)]">
+                Homepage
+              </span>
+            ) : null}
           </div>
 
           <div className="flex items-center justify-end gap-2 xl:col-start-7 xl:row-start-1">
@@ -95,6 +100,7 @@ export function ServiceCompactRow({
       <div className="border-t border-white/8 px-3 py-3 sm:px-4">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-white/58 sm:text-sm">
           <p>Pořadí #{service.sortOrder}</p>
+          {service.isFeaturedOnHomepage ? <p>Homepage #{service.homepageSortOrder}</p> : null}
           <p>Slotová omezení: {service._count.allowedAvailabilitySlots}</p>
           <p>{service.category.isActive ? "Kategorie aktivní" : "Kategorie vypnutá"}</p>
         </div>

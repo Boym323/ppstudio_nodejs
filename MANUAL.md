@@ -91,6 +91,7 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
 - Katalog služeb a kategorií teď nese i veřejná pricing metadata:
   - služba: `publicIntro`, `seoDescription`, `pricingShortDescription`, `pricingBadge` (název je sjednocený v poli `name` pro web i rezervace)
   - kategorie: `pricingDescription`, `pricingLayout`, `pricingIconKey`, `pricingSortOrder` (název je sjednocený v poli `name`; legacy `publicName` se už nepoužívá)
+- Homepage sekce `Doporučené služby` používá ruční výběr z katalogu: `Service.isFeaturedOnHomepage = true` a `homepageSortOrder`. Zobrazuje maximálně první tři aktivní veřejně rezervovatelné služby v aktivních kategoriích; pokud není vybraná žádná, zůstává fallback na první tři veřejné služby podle katalogového pořadí.
 - Admin sekce `Služby` a `Kategorie služeb` tato metadata umí upravovat bez zásahu do databáze nebo kódu.
 - Admin sekce `Služby` už nepoužívá vysoké katalogové karty; seznam je nově seskupený podle kategorií a funguje jako hustší provozní workspace.
 - Každá skupina kategorií v adminu ukazuje počet služeb a jde rozbalit/sbalit; samotná služba má kompaktní řádek a sekundární kontext je až v rozbalení nebo v pravém detail draweru.
@@ -512,6 +513,7 @@ npm run db:clear-booking-data -- --confirm
   - každá karta ukazuje provozní kontext, stavové badge a upozornění na problematické stavy
   - formulář podporuje `Uložit` i `Uložit a zavřít` a novou službu lze založit přes jasné CTA `Nová služba`
   - při přepnutí mezi službami se detail vždy přenačte podle skutečně vybrané položky (nepřebírá hodnoty z předchozí karty)
+  - v detailu služby lze ručně zapnout zobrazení na homepage a nastavit pořadí v sekci `Doporučené služby`
   - v detailu služby je jediný obsahový blok `Veřejná prezentace`; pole `Veřejný úvod` je zdrojem textu pro web i rezervační krok výběru služby, takže se stejný text neudržuje duplicitně
   - detail se otevírá jako pravý overlay drawer (desktop i mobil), takže seznam zůstává viditelný v pozadí a obsluha neztrácí kontext
   - skutečná změna ceny v detailu služby zapisuje audit do `ServicePriceChangeLog`, takže lze dohledat původní i novou cenu, čas a admin aktéra

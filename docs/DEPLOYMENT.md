@@ -332,6 +332,7 @@ sudo /var/www/ppstudio/deploy/deploy.sh
 - Migrace `20260418220000_email_outbox_worker` doplňuje sloupce pro outbox, claimování a retry e-mailových jobů.
 - Migrace `20260419103000_service_public_bookability` přidává sloupec `Service.isPubliclyBookable`; po deployi ověř, že `/rezervace`, `/sluzby` a `/cenik` zobrazují jen správné služby a že admin sekce `Služby` funguje v owner i salon oblasti.
 - Migrace `20260421113000_public_pricing_metadata` rozšiřuje katalog služeb a kategorií o veřejná pricing metadata; po deployi ověř `/cenik`, `/sluzby`, detail služby a admin formuláře `Služby` + `Kategorie služeb`.
+- Migrace `20260507143000_homepage_featured_services_v1` přidává ruční výběr doporučených služeb na homepage; po deployi ověř admin detail služby, nastavení `Zobrazit v doporučených službách`, pořadí a veřejnou homepage `/`.
 - Migrace `20260422120000_admin_users_invited_at` přidává `AdminUser.invitedAt`; po deployi ověř owner sekci `/admin/uzivatele`, stav `Pozvánka čeká` a existující DB účty bez vyplněného `invitedAt`.
 - Migrace `20260422170000_admin_invite_token_v1` přidává tabulku `AdminUserInviteToken`; po deployi ověř jednorázové použití pozvánky, expiraci a revokaci starších tokenů při novém odeslání.
 - Migrace `20260422201500_booking_email_actions_v1` rozšiřuje enum `BookingActionTokenType` o `APPROVE` a `REJECT`; po deployi ověř vytvoření nových tokenů při veřejné rezervaci a funkčnost email route `/rezervace/akce/[intent]/[token]`.

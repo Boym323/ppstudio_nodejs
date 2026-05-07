@@ -92,3 +92,4 @@ Sem patří krátké záznamy architektonických rozhodnutí.
 - `0075-admin-client-list-crm-density-v2.md`
 - `0076-admin-services-catalog-density-v3.md`
 - `0083-public-studio-media-hardening-v1.md`
+- `0087-homepage-featured-services-v1.md`

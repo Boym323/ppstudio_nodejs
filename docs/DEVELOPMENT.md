@@ -191,7 +191,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Pricing modul je rozdělený na komponenty `PricingHero`, `CategoryChips`, `PricingSection`, `PricingItem`, `PricingGridSection` a `PricingCTA`, aby šlo věrně ladit spacing a hierarchii bez zásahu do ostatních veřejných stránek.
 - `/cenik` už nečte prezentační metadata z lokálních map; route používá `getPublicPricingCatalog()` a dostává z DB hotové kategorie včetně badge, icon key a layoutu.
 - Ceník už nepoužívá doprovodný blok s poznámkami.
-- Úvodní stránka používá stejný DB katalog pro featured služby, aby odkazy z homepage mířily na aktuální slugs.
+- Úvodní stránka používá stejný DB katalog pro featured služby, aby odkazy z homepage mířily na aktuální slugs. Ruční výběr řídí `Service.isFeaturedOnHomepage` a `homepageSortOrder`; public read model bere maximálně tři aktivní veřejné služby v aktivních kategoriích a při prázdném výběru padá zpět na katalogové pořadí.
 - Reusable page sekce jsou ve `src/features/public/components/public-site.tsx`.
 - FAQ layout v `src/features/public/components/public-site.tsx` je záměrně server-rendered bez další klientské state vrstvy; pro rozbalování odpovědí preferuje nativní `details/summary`, aby zůstal lehký a dobře kliknutelný i na mobilu.
 - Pravý box ve FAQ hero nemá opakovat kontaktní CTA z levé části; slouží jako klidný informační panel k první návštěvě s nanejvýš nenápadným anchor odkazem na `#prvni-navsteva`.
@@ -342,6 +342,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - `src/features/admin/lib/admin-services.ts` drží serverový read model pro seznam, provozní warningy, detail služby a předvyplněný create flow.
 - `src/features/admin/actions/service-actions.ts` nově obsluhuje create, update, duplikaci, quick toggles a reorder; validace zůstává v `src/features/admin/lib/admin-service-validation.ts`.
 - Editace služby při skutečné změně `priceFromCzk` zapisuje audit do `ServicePriceChangeLog`; aktér se mapuje z admin session e-mailu na reálné `AdminUser.id`, stejně jako u jiných provozních mutací.
+- Detail služby obsahuje sekci `Homepage`, která ukládá `isFeaturedOnHomepage` a `homepageSortOrder`; tato pole neovlivňují booking flow ani ceník, jen výběr doporučených služeb na `/`.
 - `src/features/admin/lib/admin-services.ts` teď do detailového read modelu přibírá i posledních 10 `priceChangeLogs` včetně aktéra, aby drawer mohl audit ceny zobrazit bez další klientské fetch vrstvy.
 - Ve formuláři detailu služby (`admin-service-form.tsx`) je textová vrstva sjednocená pod `Veřejná prezentace`; `publicIntro` je jediný zdroj krátkého textu pro web i rezervační flow, aby se stejný copy neudržoval ve dvou polích.
 - Aktuální seznam služeb je záměrně group-first a compact-first:

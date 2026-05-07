@@ -78,6 +78,8 @@ export async function AdminServicesPage({
           durationMinutes: 60,
           priceFromCzk: "",
           categoryId: data.draftCategoryId,
+          isFeaturedOnHomepage: false,
+          homepageSortOrder: 10,
           isActive: true,
           isPubliclyBookable: true,
         }}
@@ -99,6 +101,8 @@ export async function AdminServicesPage({
           durationMinutes: data.selectedService.durationMinutes,
           priceFromCzk: data.selectedService.priceFromCzk,
           sortOrder: data.selectedService.sortOrder,
+          isFeaturedOnHomepage: data.selectedService.isFeaturedOnHomepage,
+          homepageSortOrder: data.selectedService.homepageSortOrder,
           isActive: data.selectedService.isActive,
           isPubliclyBookable: data.selectedService.isPubliclyBookable,
           categoryId: data.selectedService.categoryId,

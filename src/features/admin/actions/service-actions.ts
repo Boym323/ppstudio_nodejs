@@ -39,7 +39,7 @@ function getServiceBasePath(area: AdminArea) {
 function revalidateServicePaths(area: AdminArea) {
   const servicePath = getServiceBasePath(area);
 
-  for (const path of [servicePath, "/admin", "/admin/provoz", "/rezervace", "/sluzby", "/cenik"]) {
+  for (const path of [servicePath, "/admin", "/admin/provoz", "/", "/rezervace", "/sluzby", "/cenik"]) {
     revalidatePath(path);
   }
 }
@@ -158,6 +158,8 @@ export async function createServiceAction(
     pricingBadge: readFormString(formData, "pricingBadge"),
     durationMinutes: readFormString(formData, "durationMinutes"),
     priceFromCzk: readFormString(formData, "priceFromCzk"),
+    isFeaturedOnHomepage: readCheckbox(formData, "isFeaturedOnHomepage"),
+    homepageSortOrder: readFormString(formData, "homepageSortOrder"),
     isActive: readCheckbox(formData, "isActive"),
     isPubliclyBookable: readCheckbox(formData, "isPubliclyBookable"),
   });
@@ -178,6 +180,7 @@ export async function createServiceAction(
         durationMinutes: fieldErrors.durationMinutes?.[0],
         priceFromCzk: fieldErrors.priceFromCzk?.[0],
         categoryId: fieldErrors.categoryId?.[0],
+        homepageSortOrder: fieldErrors.homepageSortOrder?.[0],
       },
     };
   }
@@ -222,6 +225,8 @@ export async function createServiceAction(
       durationMinutes: parsed.data.durationMinutes,
       priceFromCzk: parsed.data.priceFromCzk === "" ? null : parsed.data.priceFromCzk,
       sortOrder: (maxSortOrder._max.sortOrder ?? 0) + 10,
+      isFeaturedOnHomepage: parsed.data.isFeaturedOnHomepage,
+      homepageSortOrder: parsed.data.homepageSortOrder,
       isActive: parsed.data.isActive,
       isPubliclyBookable: parsed.data.isPubliclyBookable,
     },
@@ -256,6 +261,8 @@ export async function updateServiceAction(
     durationMinutes: readFormString(formData, "durationMinutes"),
     priceFromCzk: readFormString(formData, "priceFromCzk"),
     sortOrder: readFormString(formData, "sortOrder"),
+    isFeaturedOnHomepage: readCheckbox(formData, "isFeaturedOnHomepage"),
+    homepageSortOrder: readFormString(formData, "homepageSortOrder"),
     isActive: readCheckbox(formData, "isActive"),
     isPubliclyBookable: readCheckbox(formData, "isPubliclyBookable"),
   });
@@ -277,6 +284,7 @@ export async function updateServiceAction(
         priceFromCzk: fieldErrors.priceFromCzk?.[0],
         categoryId: fieldErrors.categoryId?.[0],
         sortOrder: fieldErrors.sortOrder?.[0],
+        homepageSortOrder: fieldErrors.homepageSortOrder?.[0],
       },
     };
   }
@@ -332,6 +340,8 @@ export async function updateServiceAction(
         durationMinutes: parsed.data.durationMinutes,
         priceFromCzk: nextPriceFromCzk,
         sortOrder: parsed.data.sortOrder,
+        isFeaturedOnHomepage: parsed.data.isFeaturedOnHomepage,
+        homepageSortOrder: parsed.data.homepageSortOrder,
         isActive: parsed.data.isActive,
         isPubliclyBookable: parsed.data.isPubliclyBookable,
       },
@@ -433,6 +443,8 @@ export async function duplicateServiceAction(formData: FormData): Promise<void> 
       durationMinutes: true,
       priceFromCzk: true,
       sortOrder: true,
+      isFeaturedOnHomepage: true,
+      homepageSortOrder: true,
       isActive: true,
       isPubliclyBookable: true,
     },
@@ -463,6 +475,8 @@ export async function duplicateServiceAction(formData: FormData): Promise<void> 
         durationMinutes: source.durationMinutes,
         priceFromCzk: source.priceFromCzk,
         sortOrder: source.sortOrder + 1,
+        isFeaturedOnHomepage: false,
+        homepageSortOrder: source.homepageSortOrder,
         isActive: source.isActive,
         isPubliclyBookable: source.isPubliclyBookable,
       },
