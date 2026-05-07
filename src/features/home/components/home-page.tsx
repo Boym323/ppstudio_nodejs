@@ -30,7 +30,7 @@ export function HomePage() {
           <div className="space-y-8">
             <div className="space-y-5">
               <p className="text-eyebrow tracking-[0.18em] text-[var(--color-accent-soft)]">
-                Luxusní kosmetický salon
+                Kosmetický salon ve Zlíně
               </p>
               <h1 className="heading-hero max-w-4xl leading-[1.1] text-white">
                 Elegantní základ pro značku, rezervace i každodenní provoz salonu.

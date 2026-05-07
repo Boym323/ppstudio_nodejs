@@ -2,7 +2,7 @@ import { env } from "@/config/env";
 
 export const siteConfig = {
   name: env.NEXT_PUBLIC_APP_NAME,
-  title: "Luxusní kosmetický salon",
+  title: "Kosmetický salon ve Zlíně",
   description:
     "PP Studio Pavlíny Pomykalové ve Zlíně nabízí kosmetická ošetření pleti, péči o řasy a obočí, depilaci, líčení a online rezervaci termínu.",
   locale: "cs_CZ",
