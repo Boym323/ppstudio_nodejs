@@ -6,7 +6,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
-- Admin detail rezervace v panelu `Úhrada` má nově striktní vizuální prioritu: dominantní `Stav úhrady`, primární CTA `+ Zapsat platbu`, sekundární CTA `+ Uplatnit voucher`, tlumený blok `Cena rezervace` a jemnější prázdný stav `Přehled úhrad` s textem `Žádné úhrady zatím nejsou evidované.`
+- Admin detail rezervace v panelu `Úhrada` má kompaktnější souhrn: úprava ceny se otevírá přímo u položky `Cena k úhradě`, samostatný viditelný blok `Cena rezervace` zmizel z výchozího zobrazení a priorita je `Stav úhrady -> Cena k úhradě -> + Zapsat platbu -> + Uplatnit voucher -> Přehled úhrad`.
 - Detail rezervace v panelu `Úhrada` podporuje individuální cenu rezervace se zdůvodněním pro `OWNER` i `SALON`. Platební souhrn, hodnotový voucher doplatek i CRM souhrn počítají z finální ceny rezervace, zatímco službový voucher dál kryje konkrétní službu bez ohledu na individuální cenu a `BookingPayment` eviduje pouze skutečně přijaté platby mimo voucher.
 - Admin layout má vlastní title `Administrace | PP Studio`, takže název záložky už nepřebírá veřejný marketingový titulek.
 

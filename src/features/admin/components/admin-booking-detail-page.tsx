@@ -302,10 +302,17 @@ function BookingVoucherPanel({ data }: { data: AdminBookingDetailData }) {
   return (
     <AdminPanel title="Úhrada" compact={data.area === "salon"} denseHeader>
       <div className="space-y-2.5">
-        <PaymentSummaryBlock paymentSummary={paymentSummary} />
+        <PaymentSummaryBlock data={data} paymentSummary={paymentSummary} />
         <p className="text-[0.72rem] leading-4 text-white/38">
           Souhrn zahrnuje upravenou cenu, voucher i zapsané platby.
         </p>
+
+        <DirectBookingPaymentsBlock
+          area={data.area}
+          bookingId={data.id}
+          payments={data.voucher.payments}
+          defaultAmountCzk={paymentSummary.remainingCzk}
+        />
 
         <div className="space-y-2">
           <p className="text-sm font-medium text-white/74">Dárkový poukaz</p>
@@ -368,13 +375,6 @@ function BookingVoucherPanel({ data }: { data: AdminBookingDetailData }) {
           )}
         </div>
 
-        <DirectBookingPaymentsBlock
-          area={data.area}
-          bookingId={data.id}
-          payments={data.voucher.payments}
-          defaultAmountCzk={paymentSummary.remainingCzk}
-        />
-
         {voucherForm && !hasVoucherIntent ? (
           <details className="group rounded-[0.95rem] border border-white/8 bg-white/[0.03]">
             <summary className="cursor-pointer list-none px-3.5 py-3 marker:hidden">
@@ -402,25 +402,21 @@ function BookingVoucherPanel({ data }: { data: AdminBookingDetailData }) {
           payments={data.voucher.payments}
           hasPayments={hasRedemptions || hasDirectPayments}
         />
-
-        <BookingPriceBlock data={data} />
       </div>
     </AdminPanel>
   );
 }
 
 function PaymentSummaryBlock({
+  data,
   paymentSummary,
 }: {
+  data: AdminBookingDetailData;
   paymentSummary: AdminBookingDetailData["voucher"]["paymentSummary"];
 }) {
   const statusHeadline = getPaymentStatusHeadline(paymentSummary);
   const statusDetail = getPaymentStatusDetail(paymentSummary);
   const items = [
-    {
-      label: "Cena k úhradě",
-      value: formatCzk(paymentSummary.totalPriceCzk),
-    },
     { label: "Uhrazeno celkem", value: formatCzk(paymentSummary.paidTotalCzk) },
     { label: "Voucher", value: formatCzk(paymentSummary.voucherPaidCzk) },
     { label: "Mimo voucher", value: formatCzk(paymentSummary.directPaidCzk) },
@@ -449,6 +445,7 @@ function PaymentSummaryBlock({
       </div>
 
       <dl className="mt-3 grid gap-2 sm:grid-cols-2">
+        <PriceSummaryItem data={data} paymentSummary={paymentSummary} />
         {items.map((item) => (
           <div
             key={item.label}
@@ -470,70 +467,121 @@ function PaymentSummaryBlock({
   );
 }
 
-function BookingPriceBlock({ data }: { data: AdminBookingDetailData }) {
+function PriceSummaryItem({
+  data,
+  paymentSummary,
+}: {
+  data: AdminBookingDetailData;
+  paymentSummary: AdminBookingDetailData["voucher"]["paymentSummary"];
+}) {
   const priceAdjustment = data.priceAdjustment;
   const hasAdjustment = priceAdjustment.finalPriceCzk !== null;
   const adjustmentLabel =
-    priceAdjustment.adjustmentCzk < 0
-      ? `Sleva ${formatCzk(Math.abs(priceAdjustment.adjustmentCzk))}`
-      : priceAdjustment.adjustmentCzk > 0
-        ? `Navýšení ${formatCzk(priceAdjustment.adjustmentCzk)}`
-        : "Bez úpravy";
+    hasAdjustment ? `Upraveno z ${formatCzk(priceAdjustment.basePriceCzk)}` : "Bez úpravy";
+  const differenceLabel = getPriceDifferenceLabel(priceAdjustment.adjustmentCzk);
+  const cardClassName = cn(
+    "rounded-[0.8rem] border px-3 py-2.5",
+    hasAdjustment
+      ? "border-[var(--color-accent)]/20 bg-[rgba(190,160,120,0.1)]"
+      : "border-white/8 bg-black/14",
+  );
+
+  if (!priceAdjustment.canUpdate) {
+    return (
+      <div className={cardClassName}>
+        <dt className="flex flex-wrap items-center gap-1.5 text-[0.72rem] leading-4 text-white/48">
+          <span>Cena k úhradě</span>
+          <span className="rounded-full border border-white/10 bg-black/16 px-2 py-0.5 text-[0.6rem] font-medium uppercase tracking-[0.12em] text-white/52">
+            {adjustmentLabel}
+          </span>
+        </dt>
+        <dd className="mt-1 font-semibold text-sm text-white/86">
+          {formatCzk(paymentSummary.totalPriceCzk)}
+        </dd>
+      </div>
+    );
+  }
 
   return (
-    <div className="rounded-[0.95rem] border border-white/7 bg-white/[0.02] p-3">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p className="text-sm font-medium text-white/72">Cena rezervace</p>
-          <p className="mt-1 text-[0.75rem] leading-4 text-white/40">
-            Volitelná úprava výsledné ceny.
-          </p>
-        </div>
-        <span
-          className={cn(
-            "rounded-full border px-2.5 py-1 text-[0.64rem] font-medium uppercase tracking-[0.14em]",
-            hasAdjustment
-              ? "border-white/14 bg-white/[0.035] text-white/72"
-              : "border-white/10 bg-black/16 text-white/56",
-          )}
-        >
-          {adjustmentLabel}
-        </span>
-      </div>
+    <div className="sm:col-span-2">
+      <dt className="sr-only">Cena k úhradě</dt>
+      <dd>
+        <details className="group">
+          <summary className="cursor-pointer list-none marker:hidden">
+            <div className={cn(cardClassName, "transition group-open:rounded-b-none group-open:border-white/12")}>
+              <p className="flex flex-wrap items-center gap-1.5 text-[0.72rem] leading-4 text-white/48">
+                <span>Cena k úhradě</span>
+                <span
+                  className={cn(
+                    "rounded-full border px-2 py-0.5 text-[0.6rem] font-medium uppercase tracking-[0.12em]",
+                    hasAdjustment
+                      ? "border-[var(--color-accent)]/20 bg-[rgba(190,160,120,0.12)] text-white/70"
+                      : "border-white/10 bg-black/16 text-white/52",
+                  )}
+                >
+                  {adjustmentLabel}
+                </span>
+              </p>
+              <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+                <span className="text-sm font-semibold text-white/86">
+                  {formatCzk(paymentSummary.totalPriceCzk)}
+                </span>
+                <span className="inline-flex min-h-7 items-center justify-center rounded-full border border-white/14 bg-transparent px-3 py-1 text-[0.72rem] font-semibold text-white/72 transition group-open:hidden hover:border-white/28 hover:bg-white/8 hover:text-white">
+                  Upravit
+                </span>
+                <span className="hidden text-[0.72rem] font-medium text-white/62 group-open:inline">
+                  Úprava ceny
+                </span>
+              </div>
+            </div>
+          </summary>
 
-      <dl className="mt-3 grid gap-2 sm:grid-cols-3">
-        <VoucherMiniRow label="Ceníková cena" value={formatCzk(priceAdjustment.basePriceCzk)} />
-        <VoucherMiniRow label="Cena k úhradě" value={formatCzk(data.effectivePriceCzk)} />
-        <VoucherMiniRow label="Rozdíl" value={adjustmentLabel} />
-      </dl>
-
-      {hasAdjustment ? (
-        <div className="mt-3 rounded-[0.85rem] border border-white/7 bg-black/10 px-3 py-2">
-          <p className="text-sm leading-5 text-white/64">
-            <span className="text-white/82">Důvod:</span> {priceAdjustment.reason}
-          </p>
-          {priceAdjustment.adjustedAtLabel ? (
-            <p className="mt-1 text-xs leading-4 text-white/40">
-              Upraveno {priceAdjustment.adjustedAtLabel}
-              {priceAdjustment.adjustedByUserLabel ? ` · ${priceAdjustment.adjustedByUserLabel}` : ""}
-            </p>
-          ) : null}
-        </div>
-      ) : null}
-
-      {priceAdjustment.canUpdate ? (
-        <div className="mt-3">
-          <AdminBookingPriceForm
-            area={data.area}
-            bookingId={data.id}
-            basePriceCzk={priceAdjustment.basePriceCzk}
-            finalPriceCzk={priceAdjustment.finalPriceCzk}
-            reason={priceAdjustment.reason}
-          />
-        </div>
-      ) : null}
+          <div className="rounded-b-[0.8rem] border border-t-0 border-white/12 bg-black/14 px-3 py-3">
+            <dl className="grid gap-2 sm:grid-cols-3">
+              <VoucherMiniRow label="Ceníková cena" value={formatCzk(priceAdjustment.basePriceCzk)} />
+              <VoucherMiniRow label="Cena k úhradě" value={formatCzk(data.effectivePriceCzk)} />
+              <VoucherMiniRow label="Rozdíl" value={differenceLabel} />
+            </dl>
+            {hasAdjustment ? (
+              <div className="mt-3 rounded-[0.85rem] border border-white/7 bg-black/10 px-3 py-2">
+                <p className="text-sm leading-5 text-white/64">
+                  <span className="text-white/82">Důvod:</span> {priceAdjustment.reason}
+                </p>
+                {priceAdjustment.adjustedAtLabel ? (
+                  <p className="mt-1 text-xs leading-4 text-white/40">
+                    Upraveno {priceAdjustment.adjustedAtLabel}
+                    {priceAdjustment.adjustedByUserLabel ? ` · ${priceAdjustment.adjustedByUserLabel}` : ""}
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
+            <div className="mt-3 border-t border-white/8 pt-3">
+              <AdminBookingPriceForm
+                area={data.area}
+                bookingId={data.id}
+                basePriceCzk={priceAdjustment.basePriceCzk}
+                finalPriceCzk={priceAdjustment.finalPriceCzk}
+                reason={priceAdjustment.reason}
+                variant="fields"
+              />
+            </div>
+          </div>
+        </details>
+      </dd>
     </div>
   );
+}
+
+function getPriceDifferenceLabel(adjustmentCzk: number) {
+  if (adjustmentCzk < 0) {
+    return `Sleva ${formatCzk(Math.abs(adjustmentCzk))}`;
+  }
+
+  if (adjustmentCzk > 0) {
+    return `Navýšení ${formatCzk(adjustmentCzk)}`;
+  }
+
+  return "Bez úpravy";
 }
 
 function getVoucherAmountHint(
