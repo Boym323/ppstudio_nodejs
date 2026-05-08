@@ -41,6 +41,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - U `useActionState` flow na veřejných tokenových stránkách nerevaliduj právě otevřenou route jen kvůli cache invalidaci. V Next.js 16 to po server action může vyvolat route refresh a resetovat lokální success/error stav klientské komponenty dřív, než se vykreslí.
 - Veřejné booking routy nově obsahují i bezpečný provozní action flow `/rezervace/akce/[intent]/[token]`, který renderuje serverovou validaci tokenu a klientský potvrzovací panel nad server action submittem.
 - Veřejné API nyní obsahuje i route handler `/api/calendar/owner.ics`, který vrací chráněný `.ics` feed pro Apple Calendar subscription; endpoint je veřejný jen přes tajný token v URL a nepoužívá session auth.
+- Veřejné API obsahuje i route handler `GET /api/health` pro externí monitoring webu: endpoint dělá DB check (`SELECT 1`), čte stav email outbox fronty (`pending/retrying/processing/stale/failed`) a vrací agregovaný stav `ok|warning|error` + `alerts`; při `error` odpovídá HTTP `503`.
 - `/rezervace` používá `connection()` a renderuje se request-time, aby ručně publikované sloty nebyly zafixované do build outputu.
 - Klientské UX booking flow je soustředěné v `src/features/booking/components/booking-flow.tsx`, ale rychlé decision bloky jsou rozsekané do menších komponent:
   - `CategorySelect` pro první rozhodnutí nad kategoriemi

@@ -656,6 +656,11 @@ npm run db:clear-booking-data -- --confirm
 - `BookingActionToken` ukládá pouze hash tokenu pro storno a přesun termínu, nikdy ne surovou hodnotu tokenu.
 - Klientský manage flow `/rezervace/sprava/[token]` přijímá jen hashovaný token typu `RESCHEDULE`; bez validního tokenu neukáže žádná data rezervace.
 - `EmailLog` umožňuje trasovat odeslané i neúspěšné e-maily navázané na klienta, rezervaci a případný token.
+- Veřejný route handler `GET /api/health` vrací provozní health snapshot pro monitoring:
+  - stav `db` (rychlý `SELECT 1`)
+  - stav `emailWorker` (`ok`/`warning`/`error`) podle stale claimů, backlogu a failed logů
+  - stav `emailQueue` (`pending`, `retrying`, `processing`, `staleProcessing`, `failed`)
+  - pole `alerts` se seznamem aktivních problémů; při `status=error` vrací endpoint HTTP `503`
 - Owner-only sekce `Email logy` nyní funguje jako business-first přehled `Komunikace se zákaznicemi`:
   - nahoře ukazuje health stav `OK / Warning / Error` podle failed, retry, pending fronty a poslední relevantní chyby
   - krátké metriky shrnují `Dnes odesláno`, `Za posledních 7 dní`, `Čeká na odeslání`, `Selhalo` a `Poslední odeslání` v nižším KPI stripu

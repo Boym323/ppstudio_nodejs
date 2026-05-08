@@ -6,6 +6,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Přidán veřejný monitoring endpoint `GET /api/health`, který vrací stav webu/DB, souhrn email workeru a fronty (`pending`, `retrying`, `processing`, `staleProcessing`, `failed`) plus `alerts`; při chybovém stavu endpoint odpovídá HTTP `503`.
 - Stabilizován flaky Playwright scénář `client can reschedule a booking through a public token`: pokud fixture „success“ slot po očekávané runtime kolizi stále spadne na další kolizi (paralelní CI booking), test nyní automaticky zkouší další dostupné sloty, dokud nepotvrdí úspěšný přesun nebo nevypíše diagnostický stav formuláře.
 - Stabilizovány Playwright admin smoke testy `owner can open the core backoffice sections` a `salon role can open the operational workspace but not owner-only sections`: oba scénáře mají explicitní timeout `90_000 ms`, protože sekvenčně ověřují více admin rout a v CI překračovaly výchozí limit `45_000 ms` bez funkční regrese.
 - Hardened fallback výběr slotu v reschedule E2E scénáři: helper už nečeká tvrdě na `input[name="slotId"]` při mezistavech formuláře po kliknutí, ale při chybějícím/odpojeném inputu pokračuje dalším kandidátem a tím eliminuje timeouty `locator.inputValue`.
