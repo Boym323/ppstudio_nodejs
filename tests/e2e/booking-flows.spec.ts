@@ -57,7 +57,22 @@ async function submitRescheduleUntilSuccess(
     await candidate.click();
     await page.waitForTimeout(100);
 
-    const slotId = await page.locator('input[name="slotId"]').inputValue();
+    if ((await successHeading.count()) > 0) {
+      return;
+    }
+
+    const slotInput = page.locator('input[name="slotId"]');
+    if ((await slotInput.count()) === 0) {
+      continue;
+    }
+
+    let slotId: string;
+    try {
+      slotId = await slotInput.first().inputValue({ timeout: 1_000 });
+    } catch {
+      continue;
+    }
+
     if (attemptedSlotIds.has(slotId) || !(await confirmButton.isEnabled())) {
       continue;
     }
