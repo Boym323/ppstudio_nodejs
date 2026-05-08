@@ -6,6 +6,9 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [0.2.4] - 2026-05-08
+
+- Release příprava bez funkčních změn: projektová verze navýšena na patch `0.2.4`.
 - Booking a voucher e-maily nově berou název, adresu, telefon a e-mail salonu z `SiteSettings` přes `getPublicSalonProfile()` / `getEmailBrandingSettings()`; pevné údaje PP Studia zůstávají jen jako fallback a mapový odkaz se skládá z aktuálního názvu a adresy.
 - Klientské booking e-maily mají klidnější českou copy bez změny `templateKey`, payloadů, `EmailLog` modelu, workeru nebo pravidel `.ics` příloh; admin notifikace zůstává stručná a provozní.
 - Reminder `booking-reminder-24h-v1` má lidštější headline `Zítra se na vás těšíme`, kratší praktický úvod a předmět `Zítra se na vás těšíme v PP Studiu`.
