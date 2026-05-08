@@ -6,6 +6,9 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Stabilizován flaky Playwright scénář `client can reschedule a booking through a public token`: pokud fixture „success“ slot po očekávané runtime kolizi stále spadne na další kolizi (paralelní CI booking), test nyní automaticky zkouší další dostupné sloty, dokud nepotvrdí úspěšný přesun nebo nevypíše diagnostický stav formuláře.
+- Stabilizovány Playwright admin smoke testy `owner can open the core backoffice sections` a `salon role can open the operational workspace but not owner-only sections`: oba scénáře mají explicitní timeout `90_000 ms`, protože sekvenčně ověřují více admin rout a v CI překračovaly výchozí limit `45_000 ms` bez funkční regrese.
+
 ## [0.2.3] - 2026-05-08
 
 - Release příprava pro produkční nasazení: projektová verze navýšena na patch `0.2.3`.

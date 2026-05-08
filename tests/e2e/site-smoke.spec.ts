@@ -139,6 +139,8 @@ test.describe("admin site smoke coverage", () => {
   });
 
   test("owner can open the core backoffice sections", async ({ page }) => {
+    test.setTimeout(90_000);
+
     const fixture = await createPublicBookingFixture();
     const admin = await createAdminFixture(fixture.runId, AdminRole.OWNER);
     fixtures.push(fixture);
@@ -168,6 +170,8 @@ test.describe("admin site smoke coverage", () => {
   });
 
   test("salon role can open the operational workspace but not owner-only sections", async ({ page }) => {
+    test.setTimeout(90_000);
+
     const fixture = await createPublicBookingFixture();
     const admin = await createAdminFixture(fixture.runId, AdminRole.SALON);
     fixtures.push(fixture);
