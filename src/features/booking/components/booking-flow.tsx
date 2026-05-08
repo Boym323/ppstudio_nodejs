@@ -559,7 +559,6 @@ export function BookingFlow({ catalog, initialSelectedServiceSlug, salonProfile 
         <section className="rounded-[var(--radius-panel)] border border-black/6 bg-white p-5 shadow-[var(--shadow-panel)] sm:p-7 lg:p-8">
           <BookingProgressPanel
             currentStep={currentStep}
-            formError={serverState.formError}
             stepLabels={stepLabels}
           />
 
@@ -647,6 +646,11 @@ export function BookingFlow({ catalog, initialSelectedServiceSlug, salonProfile 
               clientNoteError={serverState.fieldErrors?.clientNote}
               voucherCode={voucherCode}
               voucherCodeError={serverState.fieldErrors?.voucherCode}
+              contactFormError={
+                serverState.status === "error" && serverState.suggestedStep === 3
+                  ? serverState.formError
+                  : undefined
+              }
               getDisplayedFieldError={getDisplayedFieldError}
               onShowSummary={goToSummary}
               onFullNameChange={setFullName}

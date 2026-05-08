@@ -6,6 +6,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Veřejné rezervační flow nově u kolizí klientských kontaktů (`BOOKING_CONFLICT` ve kroku kontaktu) zobrazuje zákaznicky srozumitelnou hlášku bez interní instrukce `vyberte profil ručně`; detailní technický důvod kolize zůstává zachovaný v interním audit logu.
+- Veřejné rezervační flow přesunulo chybovou hlášku kontaktu z horního progress panelu přímo do kroku `Kontaktní údaje` nad pole `E-mail` a `Telefon`, aby byla při opravě údajů viditelná bez návratu na začátek formuláře.
 - Admin seznam služeb má zarovnaný stavový badge blok v kompaktních řádcích, takže volitelný štítek `Homepage` neposouvá `Aktivní` / `Veřejná` mezi jednotlivými službami.
 - Služby mají nový ruční výběr pro homepage (`Zobrazit v doporučených službách` + `Pořadí na homepage`); úvodní stránka zobrazuje maximálně první tři aktivní veřejné vybrané služby a při prázdném výběru zachová katalogový fallback.
 - Homepage už neoznačuje první tři katalogové položky jako `Nejoblíbenější služby`; sekce používá přesnější copy `Doporučené služby`.

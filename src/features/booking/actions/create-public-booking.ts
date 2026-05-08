@@ -88,6 +88,14 @@ function isBookingSchemaDriftError(error: unknown) {
   );
 }
 
+function getPublicFacingBookingErrorMessage(error: PublicBookingError) {
+  if (error.code === publicBookingErrorCodes.bookingConflict && error.suggestedStep === 3) {
+    return "Údaje se nepodařilo ověřit. Zkontrolujte prosím e-mail a telefon, nebo nás kontaktujte a rezervaci rychle dokončíme společně.";
+  }
+
+  return error.message;
+}
+
 function extractClientIp(requestHeaders: Headers) {
   const forwardedFor = requestHeaders.get("x-forwarded-for");
 
@@ -306,6 +314,8 @@ export async function createPublicBookingAction(
     };
   } catch (error) {
     if (error instanceof PublicBookingError) {
+      const publicFormError = getPublicFacingBookingErrorMessage(error);
+
       await writeSubmissionLog({
         outcome: BookingSubmissionOutcome.FAILED,
         ipHash: submissionMetadata.ipHash,
@@ -324,12 +334,12 @@ export async function createPublicBookingAction(
 
       return {
         status: "error",
-        formError: error.message,
+        formError: publicFormError,
         errorCode: error.code,
         suggestedStep: error.suggestedStep,
         fieldErrors:
-          error.code === publicBookingErrorCodes.voucherInvalid
-            ? { voucherCode: error.message }
+          error.code === publicBookingErrorCodes.voucherInvalid && publicFormError
+            ? { voucherCode: publicFormError }
             : undefined,
       };
     }

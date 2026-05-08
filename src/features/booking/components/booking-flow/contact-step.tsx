@@ -1,5 +1,6 @@
 import type { RefObject } from "react";
 
+import { type PublicBookingActionState } from "@/features/booking/actions/public-booking-action-state";
 import { cn } from "@/lib/utils";
 
 import type { ContactFieldKey } from "./types";
@@ -15,6 +16,7 @@ type BookingContactStepProps = {
   clientNoteError?: string;
   voucherCode: string;
   voucherCodeError?: string;
+  contactFormError?: PublicBookingActionState["formError"];
   getDisplayedFieldError: (field: ContactFieldKey) => string | undefined;
   onShowSummary: () => void;
   onFullNameChange: (value: string) => void;
@@ -36,6 +38,7 @@ export function BookingContactStep({
   clientNoteError,
   voucherCode,
   voucherCodeError,
+  contactFormError,
   getDisplayedFieldError,
   onShowSummary,
   onFullNameChange,
@@ -98,6 +101,12 @@ export function BookingContactStep({
             <span className="block text-sm text-red-700">{getDisplayedFieldError("fullName")}</span>
           ) : null}
         </label>
+
+        {contactFormError ? (
+          <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 sm:col-span-2">
+            {contactFormError}
+          </div>
+        ) : null}
 
         <label className="space-y-2">
           <span className="text-sm font-semibold text-[var(--color-foreground)]">E-mail</span>
