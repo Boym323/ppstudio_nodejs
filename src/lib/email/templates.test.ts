@@ -288,14 +288,14 @@ test("renderEmailTemplate creates 24h reminder email without calendar attachment
   );
 
   assert.equal(email.subject, "Připomínka rezervace - zítra v PP Studio");
-  assert.match(email.text, /Zítra vás čeká rezervace/);
-  assert.match(email.text, /Připomínáme váš zítřejší termín/i);
+  assert.match(email.text, /Zítra se na vás těšíme/);
+  assert.match(email.text, /Jen krátce připomínáme váš termín/i);
   assert.match(email.text, /Místo:\nPP Studio\nSadová 2, 760 01 Zlín/);
   assert.match(email.text, /Změnit termín/);
   assert.match(email.text, /Zrušit rezervaci/);
   assert.match(email.text, /Napište nám: info@ppstudio\.cz/);
   assert.match(email.text, /Zavolejte: \+420 732 856 036/);
-  assert.match(email.html, /Zítra vás čeká rezervace/);
+  assert.match(email.html, /Zítra se na vás těšíme/);
   assert.match(email.html, /Potřebujete změnu\?/);
   assert.doesNotMatch(email.html, /Ozvat se studiu/);
   assert.equal(email.attachments, undefined);
@@ -316,7 +316,7 @@ test("renderEmailTemplate creates 24h reminder email for legacy payload without 
     },
   );
 
-  assert.match(email.text, /Zítra vás čeká rezervace/);
+  assert.match(email.text, /Zítra se na vás těšíme/);
   assert.doesNotMatch(email.text, /Změnit termín:/i);
   assert.match(email.text, /Zrušit rezervaci:/i);
   assert.doesNotMatch(email.html, /Změnit termín/);
