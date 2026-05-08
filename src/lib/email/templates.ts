@@ -152,6 +152,16 @@ function normalizeContactValue(value: string | null | undefined, fallback: strin
   return normalized && normalized.length > 0 ? normalized : fallback;
 }
 
+function buildReminderParkingUrl() {
+  const url = new URL("/kontakt", env.NEXT_PUBLIC_APP_URL);
+  url.searchParams.set("utm_source", "email");
+  url.searchParams.set("utm_medium", "booking_reminder");
+  url.searchParams.set("utm_campaign", "parking_info");
+  url.hash = "parkovani";
+
+  return url.toString();
+}
+
 function buildEmailSalonContact({
   salonProfile,
   emailBranding,
@@ -310,11 +320,12 @@ function buildBookingDetailCard({
   `);
 }
 
-function buildClientLocationBlock(salon: EmailSalonContact) {
+function buildClientLocationBlock(salon: EmailSalonContact, options?: { parkingUrl?: string }) {
   return buildEmailCard(`
     <p style="margin:0 0 7px;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:16px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#9e7f65;">Místo</p>
     <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:24px;color:#1f1714;"><strong>${escapeHtml(salon.name)}</strong><br />${escapeHtml(salon.address)}</p>
     <p style="margin:10px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:21px;"><a href="${escapeHtml(salon.mapUrl)}" style="color:#1f1714;text-decoration:underline;">Zobrazit na mapě</a></p>
+    ${options?.parkingUrl ? `<p style="margin:8px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:21px;color:#5b4c44;">Před cestou se můžete podívat i na <a href="${escapeHtml(options.parkingUrl)}" style="color:#1f1714;text-decoration:underline;">tipy k parkování u salonu</a>.</p>` : ""}
   `, "#fffaf6");
 }
 
@@ -626,6 +637,7 @@ export async function renderEmailTemplate(
       const scheduledEndsAt = new Date(data.scheduledEndsAt);
       const bookingDate = formatBookingCalendarDate(scheduledStartsAt);
       const bookingTime = formatBookingTimeRange(scheduledStartsAt, scheduledEndsAt);
+      const parkingUrl = buildReminderParkingUrl();
 
       const text = [
         `Dobrý den, ${data.clientName},`,
@@ -641,6 +653,7 @@ export async function renderEmailTemplate(
         salonContact.name,
         salonContact.address,
         `Zobrazit na mapě: ${salonContact.mapUrl}`,
+        `Parkování: ${parkingUrl}`,
         "",
         "Potřebujete změnu?",
         ...(data.manageReservationUrl
@@ -664,26 +677,8 @@ export async function renderEmailTemplate(
             bookingTime,
           })}
           <div style="height:14px;line-height:14px;font-size:14px;">&nbsp;</div>
-          ${buildClientLocationBlock(salonContact)}
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:16px;border-collapse:collapse;border-top:1px solid #eaded4;">
-            <tr>
-              <td style="padding-top:14px;">
-                <p style="margin:0 0 12px;font-family:Arial,Helvetica,sans-serif;font-size:18px;line-height:24px;font-weight:700;color:#1f1714;">Potřebujete změnu?</p>
-            ${data.manageReservationUrl
-              ? `<div style="margin:0 0 10px;">${buildEmailButton({
-                  href: data.manageReservationUrl,
-                  label: "Změnit termín",
-                  variant: "secondary",
-                })}</div>`
-              : ""}
-            <div style="margin:0 0 10px;">${buildEmailButton({
-              href: data.cancellationUrl,
-              label: "Zrušit rezervaci",
-              variant: "destructive",
-            })}</div>
-              </td>
-            </tr>
-          </table>
+          ${buildClientLocationBlock(salonContact, { parkingUrl })}
+          ${buildClientActionLinks(data.manageReservationUrl, data.cancellationUrl)}
           <div style="height:14px;line-height:14px;font-size:14px;">&nbsp;</div>
           ${buildClientContactBlock(salonContact)}
         `,

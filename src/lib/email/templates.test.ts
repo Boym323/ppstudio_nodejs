@@ -291,12 +291,21 @@ test("renderEmailTemplate creates 24h reminder email without calendar attachment
   assert.match(email.text, /Zítra se na vás těšíme/);
   assert.match(email.text, /Jen krátce připomínáme váš termín/i);
   assert.match(email.text, /Místo:\nPP Studio\nSadová 2, 760 01 Zlín/);
+  assert.match(
+    email.text,
+    /Parkování: https:\/\/example\.com\/kontakt\?utm_source=email&utm_medium=booking_reminder&utm_campaign=parking_info#parkovani/,
+  );
   assert.match(email.text, /Změnit termín/);
   assert.match(email.text, /Zrušit rezervaci/);
   assert.match(email.text, /Napište nám: info@ppstudio\.cz/);
   assert.match(email.text, /Zavolejte: \+420 732 856 036/);
   assert.match(email.html, /Zítra se na vás těšíme/);
-  assert.match(email.html, /Potřebujete změnu\?/);
+  assert.match(email.html, /tipy k parkování u salonu/);
+  assert.match(
+    email.html,
+    /https:\/\/example\.com\/kontakt\?utm_source=email&amp;utm_medium=booking_reminder&amp;utm_campaign=parking_info#parkovani/,
+  );
+  assert.match(email.html, /Správa rezervace/);
   assert.doesNotMatch(email.html, /Ozvat se studiu/);
   assert.equal(email.attachments, undefined);
 });

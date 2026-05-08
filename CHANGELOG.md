@@ -9,6 +9,8 @@ Formát je inspirovaný Keep a Changelog.
 - Booking a voucher e-maily nově berou název, adresu, telefon a e-mail salonu z `SiteSettings` přes `getPublicSalonProfile()` / `getEmailBrandingSettings()`; pevné údaje PP Studia zůstávají jen jako fallback a mapový odkaz se skládá z aktuálního názvu a adresy.
 - Klientské booking e-maily mají klidnější českou copy bez změny `templateKey`, payloadů, `EmailLog` modelu, workeru nebo pravidel `.ics` příloh; admin notifikace zůstává stručná a provozní.
 - Reminder `booking-reminder-24h-v1` má lidštější headline `Zítra se na vás těšíme`, kratší praktický úvod a předmět `Zítra se na vás těšíme v PP Studiu`.
+- Reminder `booking-reminder-24h-v1` nově používá stejný nenápadný linkový blok `Správa rezervace` jako ostatní klientské e-maily místo výrazných tlačítek.
+- Reminder `booking-reminder-24h-v1` doplnil u místa nenápadný odkaz na `/kontakt#parkovani` s bezpečnými UTM parametry `utm_source=email`, `utm_medium=booking_reminder` a `utm_campaign=parking_info`.
 - Přidán dev skript `npm run email:previews`, který generuje HTML náhledy booking/admin šablon do `tmp/email-previews` bez nové knihovny.
 - Opraveno kopírování dne/týdne v admin planneru přes změnu letního/zimního času; dostupnost se nově přenáší podle lokálních půlhodinových buněk `Europe/Prague`, ne podle milisekundového posunu.
 - Doplněny regresní testy pro zimní/letní salonové časy v planneru, veřejném booking flow, e-mailech a ICS přílohách.
