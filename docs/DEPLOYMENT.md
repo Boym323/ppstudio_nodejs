@@ -21,8 +21,9 @@ Postup nasazení aplikace do produkce.
 10. `npm run build`
 11. Ověř, že `package.json`, `package-lock.json` a `CHANGELOG.md` obsahují stejnou release verzi.
 12. Ověř aktuálnost dokumentace (`MANUAL.md`, `docs/*`)
-13. Pokud release mění voucher doménu, ověř že je aplikovaná migrace `20260427205720_add_vouchers`; aktuální serverová business vrstva nepřidává další migraci, worker ani public route.
-14. Projdi ruční QA veřejného webu na mobilu i desktopu:
+13. Pokud release mění e-mailové šablony, spusť `npm run email:previews` a ručně otevři soubory v `tmp/email-previews`; zkontroluj HTML i textovou variantu v testech, kontakty ze `SiteSettings`, `.ics` přílohu u potvrzení a absenci přílohy u reminderu.
+14. Pokud release mění voucher doménu, ověř že je aplikovaná migrace `20260427205720_add_vouchers`; aktuální serverová business vrstva nepřidává další migraci, worker ani public route.
+15. Projdi ruční QA veřejného webu na mobilu i desktopu:
    - zkontroluj `robots.txt`:
      - veřejný web vrací `Allow: /`
      - admin a tokenové routy `/admin/*`, `/rezervace/storno/*`, `/rezervace/sprava/*`, `/rezervace/akce/*` zůstávají blokované
@@ -68,7 +69,7 @@ Postup nasazení aplikace do produkce.
      - `/api/admin/analytics` vrací po přihlášení agregovaný JSON bez tokenu a bez PII; bez session vrací `403`
      - admin widget `Zdroje návštěv` ukazuje jen business labely zdrojů a max. několik položek včetně případného `Ostatní`, bez raw Matomo payloadu; rezervace u zdrojů jsou označené jako odhad
      - `npm run analytics:check` vrací `status: ok` nebo srozumitelnou chybu reportingu; při lockoutu nebo neplatném tokenu musí dashboard ukázat provozní hlášku místo zavádějících nul
-15. Projdi ruční QA admin částí:
+16. Projdi ruční QA admin částí:
   - login redirect pro `OWNER` a `SALON`
   - opakované chybné přihlášení na `/admin/prihlaseni` po překročení limitu vrátí `error=rate_limited` a nepovolí session
   - dostupnost owner-only sekcí jen pro `OWNER`

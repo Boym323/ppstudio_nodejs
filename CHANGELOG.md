@@ -6,6 +6,9 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Booking a voucher e-maily nově berou název, adresu, telefon a e-mail salonu z `SiteSettings` přes `getPublicSalonProfile()` / `getEmailBrandingSettings()`; pevné údaje PP Studia zůstávají jen jako fallback a mapový odkaz se skládá z aktuálního názvu a adresy.
+- Klientské booking e-maily mají klidnější českou copy bez změny `templateKey`, payloadů, `EmailLog` modelu, workeru nebo pravidel `.ics` příloh; admin notifikace zůstává stručná a provozní.
+- Přidán dev skript `npm run email:previews`, který generuje HTML náhledy booking/admin šablon do `tmp/email-previews` bez nové knihovny.
 - Opraveno kopírování dne/týdne v admin planneru přes změnu letního/zimního času; dostupnost se nově přenáší podle lokálních půlhodinových buněk `Europe/Prague`, ne podle milisekundového posunu.
 - Doplněny regresní testy pro zimní/letní salonové časy v planneru, veřejném booking flow, e-mailech a ICS přílohách.
 - Přidán Playwright E2E scénář `tests/e2e/planner-dst.spec.ts`, který v UI klikací cestou ověřuje kopírování dne přes jarní/podzimní DST změnu a kopírování týdne přes DST se zachováním lokálních hodin 09:00-10:00 v `Europe/Prague`.

@@ -21,6 +21,7 @@ Seznam důležitých knihoven a důvod jejich použití.
 - Voucher business vrstva nepřidává žádnou npm závislost; kódy generuje přes vestavěný Node.js `crypto`, DB logiku řeší Prisma a vstupy validuje existující `zod`.
 - UX refaktor admin seznamu voucherů nepřidává žádnou npm závislost; jde jen o úpravu stávající serverové read vrstvy, Tailwind layoutu a badge stylů.
 - Ruční odesílání voucheru e-mailem nepřidává žádnou npm závislost; používá stávající `EmailLog` outbox, existující worker, `nodemailer` provider a worker-safe PDF core `src/features/vouchers/lib/voucher-pdf-core.ts`.
+- Dev generování e-mailových náhledů nepřidává žádnou npm závislost; `npm run email:previews` používá stávající `tsx`, Node `fs/promises` a existující renderer `renderEmailTemplate(...)`.
 - UX refaktor admin detailu voucheru nepřidává žádnou npm závislost; jde jen o přeskupení existujících serverových read modelů, klientského e-mailového panelu a Tailwind layoutu.
 - UX density pass admin planneru `Volné termíny` nepřidává žádnou npm závislost; jde čistě o úpravu existujících React/Tailwind komponent, layoutu toolbaru, pravého inspektoru a kontrastu gridu.
 - Oprava fragmentace chained booking slotů pro admin planner nepřidává žádnou npm závislost; používá stávající Prisma transakce a sdílenou coverage logiku.
@@ -62,6 +63,7 @@ Seznam důležitých knihoven a důvod jejich použití.
 - Ani zákaznická `.ics` příloha po potvrzení rezervace nepřidává novou knihovnu; používá lokální iCalendar utility a stávající SMTP vrstvu přes `nodemailer`.
 - UX/copy refaktor potvrzovacího klientského e-mailu `booking-approved-v1` také nepřidává novou knihovnu; layout dál používá ručně skládané email-safe HTML s inline styly a stávající `.ics` attachment pipeline.
 - Sjednocení booking e-mailů do jednoho design systému nepřidává žádnou knihovnu; HTML shell, karty, CTA i text/plain fallbacky zůstávají ručně skládané v `src/lib/email/templates.ts` nad existujícím Node/Prisma/Nodemailer stackem.
+- Přepojení booking e-mailových kontaktů na `SiteSettings` nepřidává žádnou knihovnu; používá existující `getPublicSalonProfile()` / `getEmailBrandingSettings()` helpery a lokální HTML escapování.
 - Jediný 24h reminder rezervací také nepřidává novou knihovnu; scheduler, token workflow i outbox zápis používají stávající Next.js/Prisma/Node stack a existující `email:worker`.
 - Admin přesun termínu také nepřidává novou knihovnu; drawer UI, auditní log i doménová validace běží čistě na stávajícím stacku Next.js, React, Prisma a Zod.
 - Refaktor detailu rezervace do decision panelu také nepřidává novou závislost; sticky header, action chooser, kompaktní summary card i zkrácená historie používají jen stávající Next.js App Router, React a Tailwind utility.

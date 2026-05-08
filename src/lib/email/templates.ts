@@ -125,6 +125,14 @@ const clientStudio = {
 
 const clientStudioMapUrl = "https://maps.app.goo.gl/iRdsWbiX99fw3Q36A";
 
+type EmailSalonContact = {
+  name: string;
+  address: string;
+  email: string;
+  phone: string;
+  mapUrl: string;
+};
+
 function escapeHtml(value: string) {
   return value
     .replaceAll("&", "&amp;")
@@ -136,6 +144,42 @@ function escapeHtml(value: string) {
 
 function buildPhoneHref(phone: string) {
   return `tel:${phone.replace(/[^\d+]/g, "")}`;
+}
+
+function normalizeContactValue(value: string | null | undefined, fallback: string) {
+  const normalized = value?.trim();
+
+  return normalized && normalized.length > 0 ? normalized : fallback;
+}
+
+function buildEmailSalonContact({
+  salonProfile,
+  emailBranding,
+}: {
+  salonProfile: {
+    name?: string | null;
+    addressLine?: string | null;
+    email?: string | null;
+    phone?: string | null;
+  };
+  emailBranding: {
+    salonName?: string | null;
+    contactEmail?: string | null;
+    phone?: string | null;
+  };
+}): EmailSalonContact {
+  const name = normalizeContactValue(salonProfile.name ?? emailBranding.salonName, clientStudio.name);
+  const address = normalizeContactValue(salonProfile.addressLine, clientStudio.address);
+  const email = normalizeContactValue(salonProfile.email ?? emailBranding.contactEmail, clientStudio.email);
+  const phone = normalizeContactValue(salonProfile.phone ?? emailBranding.phone, clientStudio.phone);
+
+  return {
+    name,
+    address,
+    email,
+    phone,
+    mapUrl: clientStudioMapUrl,
+  };
 }
 
 function buildEmailButton({
@@ -208,7 +252,7 @@ function buildEmailShell(
                   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:28px;border-collapse:collapse;border-top:1px solid #eaded4;">
                     <tr>
                       <td style="padding-top:16px;">
-                        <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:21px;color:#8a7468;">${escapeHtml(clientStudio.name)}</p>
+                        <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:21px;color:#8a7468;">${escapeHtml(brand.name)}</p>
                       </td>
                     </tr>
                   </table>
@@ -266,20 +310,20 @@ function buildBookingDetailCard({
   `);
 }
 
-function buildClientLocationBlock() {
+function buildClientLocationBlock(salon: EmailSalonContact) {
   return buildEmailCard(`
     <p style="margin:0 0 7px;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:16px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#9e7f65;">Místo</p>
-    <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:24px;color:#1f1714;"><strong>${escapeHtml(clientStudio.name)}</strong><br />${escapeHtml(clientStudio.address)}</p>
-    <p style="margin:10px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:21px;"><a href="${escapeHtml(clientStudioMapUrl)}" style="color:#1f1714;text-decoration:underline;">Zobrazit na mapě</a></p>
+    <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:24px;color:#1f1714;"><strong>${escapeHtml(salon.name)}</strong><br />${escapeHtml(salon.address)}</p>
+    <p style="margin:10px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:21px;"><a href="${escapeHtml(salon.mapUrl)}" style="color:#1f1714;text-decoration:underline;">Zobrazit na mapě</a></p>
   `, "#fffaf6");
 }
 
-function buildClientContactBlock() {
+function buildClientContactBlock(salon: EmailSalonContact) {
   return buildEmailCard(`
     <p style="margin:0 0 7px;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:16px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#9e7f65;">Kontakt</p>
     <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:24px;color:#5b4c44;">
-      Napište nám: <a href="mailto:${escapeHtml(clientStudio.email)}" style="color:#1f1714;text-decoration:underline;">${escapeHtml(clientStudio.email)}</a><br />
-      Zavolejte: <a href="${escapeHtml(buildPhoneHref(clientStudio.phone))}" style="color:#1f1714;text-decoration:underline;">${escapeHtml(clientStudio.phone)}</a>
+      Napište nám: <a href="mailto:${escapeHtml(salon.email)}" style="color:#1f1714;text-decoration:underline;">${escapeHtml(salon.email)}</a><br />
+      Zavolejte: <a href="${escapeHtml(buildPhoneHref(salon.phone))}" style="color:#1f1714;text-decoration:underline;">${escapeHtml(salon.phone)}</a>
     </p>
   `, "#ffffff");
 }
@@ -328,10 +372,11 @@ export async function renderEmailTemplate(
   ]);
   const brand = {
     name: salonProfile.name,
-    email: salonProfile.email,
-    phone: salonProfile.phone,
+    email: emailBranding.contactEmail,
+    phone: emailBranding.phone,
     footerText: emailBranding.footerText,
   };
+  const salonContact = buildEmailSalonContact({ salonProfile, emailBranding });
 
   switch (templateKey) {
     case "booking-confirmation-v1": {
@@ -345,7 +390,7 @@ export async function renderEmailTemplate(
         `Dobrý den, ${data.clientName},`,
         "",
         "Rezervace přijata",
-        "Vaši rezervaci jsme přijali ke schválení. Finální potvrzení pošleme dalším e-mailem.",
+        "Děkujeme za rezervaci. Termín teď zkontrolujeme a finální potvrzení pošleme dalším e-mailem.",
         "",
         `Služba: ${data.serviceName}`,
         `Datum: ${bookingDate}`,
@@ -359,19 +404,19 @@ export async function renderEmailTemplate(
           : []),
         "",
         "Místo:",
-        clientStudio.name,
-        clientStudio.address,
-        `Zobrazit na mapě: ${clientStudioMapUrl}`,
+        salonContact.name,
+        salonContact.address,
+        `Zobrazit na mapě: ${salonContact.mapUrl}`,
         "",
         "Kontakt:",
-        `Napište nám: ${clientStudio.email}`,
-        `Zavolejte: ${clientStudio.phone}`,
+        `Napište nám: ${salonContact.email}`,
+        `Zavolejte: ${salonContact.phone}`,
       ].join("\n");
 
       const html = buildEmailShell(
         brand,
         "Rezervace přijata",
-        "Vaši rezervaci jsme přijali ke schválení. Finální potvrzení pošleme dalším e-mailem.",
+        "Děkujeme za rezervaci. Termín teď zkontrolujeme a finální potvrzení pošleme dalším e-mailem.",
         `
           ${buildBookingDetailCard({
             serviceName: data.serviceName,
@@ -387,9 +432,9 @@ export async function renderEmailTemplate(
           `, "#ffffff")}
           ` : ""}
           <div style="height:14px;line-height:14px;font-size:14px;">&nbsp;</div>
-          ${buildClientLocationBlock()}
+          ${buildClientLocationBlock(salonContact)}
           <div style="height:14px;line-height:14px;font-size:14px;">&nbsp;</div>
-          ${buildClientContactBlock()}
+          ${buildClientContactBlock(salonContact)}
         `,
         { maxWidthPx: 600 },
       );
@@ -408,7 +453,7 @@ export async function renderEmailTemplate(
         `Dobrý den, ${data.clientName},`,
         "",
         "Rezervace byla zrušena",
-        "Vaše rezervace je zrušená.",
+        "Vaši rezervaci jsme zrušili. Kdybyste si chtěla vybrat nový termín, můžete pokračovat přes odkaz níže.",
         "",
         `Služba: ${data.serviceName}`,
         `Datum: ${bookingDate}`,
@@ -422,20 +467,20 @@ export async function renderEmailTemplate(
           : []),
         "",
         "Místo:",
-        clientStudio.name,
-        clientStudio.address,
+        salonContact.name,
+        salonContact.address,
         "",
         `Nový termín: ${newBookingUrl}`,
         "",
         "Kontakt:",
-        `Napište nám: ${clientStudio.email}`,
-        `Zavolejte: ${clientStudio.phone}`,
+        `Napište nám: ${salonContact.email}`,
+        `Zavolejte: ${salonContact.phone}`,
       ].join("\n");
 
       const html = buildEmailShell(
         brand,
         "Rezervace byla zrušena",
-        "Vaše rezervace je zrušená.",
+        "Vaši rezervaci jsme zrušili. Kdybyste si chtěla vybrat nový termín, můžete pokračovat přes odkaz níže.",
         `
           ${buildBookingDetailCard({
             serviceName: data.serviceName,
@@ -451,7 +496,7 @@ export async function renderEmailTemplate(
           `, "#ffffff")}
           ` : ""}
           <div style="height:14px;line-height:14px;font-size:14px;">&nbsp;</div>
-          ${buildClientLocationBlock()}
+          ${buildClientLocationBlock(salonContact)}
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:16px;border-collapse:collapse;">
             <tr>
               <td>
@@ -464,7 +509,7 @@ export async function renderEmailTemplate(
             </tr>
           </table>
           <div style="height:14px;line-height:14px;font-size:14px;">&nbsp;</div>
-          ${buildClientContactBlock()}
+          ${buildClientContactBlock(salonContact)}
         `,
         { maxWidthPx: 600 },
       );
@@ -491,7 +536,7 @@ export async function renderEmailTemplate(
         `Dobrý den, ${data.clientName},`,
         "",
         "Rezervace byla potvrzena",
-        "Vaše rezervace je potvrzená. Níže najdete termín, místo a možnosti pro případnou změnu.",
+        "Termín máte potvrzený. Níže najdete praktické údaje k návštěvě a možnosti pro případnou změnu.",
         "",
         `Služba: ${data.serviceName}`,
         `Datum: ${bookingDate}`,
@@ -505,9 +550,9 @@ export async function renderEmailTemplate(
           : []),
         "",
         "Místo:",
-        clientStudio.name,
-        clientStudio.address,
-        `Zobrazit na mapě: ${clientStudioMapUrl}`,
+        salonContact.name,
+        salonContact.address,
+        `Zobrazit na mapě: ${salonContact.mapUrl}`,
         "",
         ...(includeCalendarAttachment ? ["Termín najdete také v přiložené kalendářové události.", ""] : []),
         ...(data.manageReservationUrl || data.cancellationUrl
@@ -518,16 +563,16 @@ export async function renderEmailTemplate(
             ]
           : []),
         "Kontakt:",
-        `Napište nám: ${clientStudio.email}`,
-        `Zavolejte: ${clientStudio.phone}`,
+        `Napište nám: ${salonContact.email}`,
+        `Zavolejte: ${salonContact.phone}`,
         "",
-        clientStudio.name,
+        salonContact.name,
       ].join("\n");
 
       const html = buildEmailShell(
         brand,
         "Rezervace byla potvrzena",
-        "Vaše rezervace je potvrzená. Níže najdete termín, místo a možnosti pro případnou změnu.",
+        "Termín máte potvrzený. Níže najdete praktické údaje k návštěvě a možnosti pro případnou změnu.",
         `
           ${buildBookingDetailCard({
             serviceName: data.serviceName,
@@ -543,7 +588,7 @@ export async function renderEmailTemplate(
           `, "#ffffff")}
           ` : ""}
           <div style="height:14px;line-height:14px;font-size:14px;">&nbsp;</div>
-          ${buildClientLocationBlock()}
+          ${buildClientLocationBlock(salonContact)}
           ${includeCalendarAttachment ? `
           <div style="height:14px;line-height:14px;font-size:14px;">&nbsp;</div>
           ${buildEmailCard(`
@@ -553,7 +598,7 @@ export async function renderEmailTemplate(
           ` : ""}
           ${buildClientActionLinks(data.manageReservationUrl, data.cancellationUrl)}
           <div style="height:14px;line-height:14px;font-size:14px;">&nbsp;</div>
-          ${buildClientContactBlock()}
+          ${buildClientContactBlock(salonContact)}
         `,
         {
           maxWidthPx: 600,
@@ -585,17 +630,17 @@ export async function renderEmailTemplate(
       const text = [
         `Dobrý den, ${data.clientName},`,
         "",
-        "Zítra máte rezervaci v PP Studiu",
-        "Připomínka vašeho zítřejšího termínu.",
+        "Zítra vás čeká rezervace",
+        "Připomínáme váš zítřejší termín. Níže najdete čas a adresu salonu.",
         "",
         `Služba: ${data.serviceName}`,
         `Datum: ${bookingDate}`,
         `Čas: ${bookingTime}`,
         "",
         "Místo:",
-        clientStudio.name,
-        clientStudio.address,
-        `Zobrazit na mapě: ${clientStudioMapUrl}`,
+        salonContact.name,
+        salonContact.address,
+        `Zobrazit na mapě: ${salonContact.mapUrl}`,
         "",
         "Potřebujete změnu?",
         ...(data.manageReservationUrl
@@ -604,14 +649,14 @@ export async function renderEmailTemplate(
         `Zrušit rezervaci: ${data.cancellationUrl}`,
         "",
         "Kontakt:",
-        `Napište nám: ${clientStudio.email}`,
-        `Zavolejte: ${clientStudio.phone}`,
+        `Napište nám: ${salonContact.email}`,
+        `Zavolejte: ${salonContact.phone}`,
       ].join("\n");
 
       const html = buildEmailShell(
         brand,
-        "Zítra máte rezervaci v PP Studiu",
-        "Připomínka vašeho zítřejšího termínu.",
+        "Zítra vás čeká rezervace",
+        "Připomínáme váš zítřejší termín. Níže najdete čas a adresu salonu.",
         `
           ${buildBookingDetailCard({
             serviceName: data.serviceName,
@@ -619,7 +664,7 @@ export async function renderEmailTemplate(
             bookingTime,
           })}
           <div style="height:14px;line-height:14px;font-size:14px;">&nbsp;</div>
-          ${buildClientLocationBlock()}
+          ${buildClientLocationBlock(salonContact)}
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:16px;border-collapse:collapse;border-top:1px solid #eaded4;">
             <tr>
               <td style="padding-top:14px;">
@@ -640,7 +685,7 @@ export async function renderEmailTemplate(
             </tr>
           </table>
           <div style="height:14px;line-height:14px;font-size:14px;">&nbsp;</div>
-          ${buildClientContactBlock()}
+          ${buildClientContactBlock(salonContact)}
         `,
         { maxWidthPx: 600 },
       );
@@ -671,7 +716,7 @@ export async function renderEmailTemplate(
         `Dobrý den, ${data.clientName},`,
         "",
         "Termín rezervace byl změněn",
-        "Rezervaci jsme přesunuli na nový čas.",
+        "Rezervaci jsme přesunuli na nový čas. Aktuální termín najdete níže.",
         "",
         `Služba: ${data.serviceName}`,
         `Datum: ${bookingDate}`,
@@ -679,9 +724,9 @@ export async function renderEmailTemplate(
         `Původně: ${previousDate}, ${previousTime}`,
         "",
         "Místo:",
-        clientStudio.name,
-        clientStudio.address,
-        `Zobrazit na mapě: ${clientStudioMapUrl}`,
+        salonContact.name,
+        salonContact.address,
+        `Zobrazit na mapě: ${salonContact.mapUrl}`,
         "",
         ...(includeCalendarAttachment
           ? [
@@ -695,14 +740,14 @@ export async function renderEmailTemplate(
         `Zrušit rezervaci: ${data.cancellationUrl}`,
         "",
         "Kontakt:",
-        `Napište nám: ${clientStudio.email}`,
-        `Zavolejte: ${clientStudio.phone}`,
+        `Napište nám: ${salonContact.email}`,
+        `Zavolejte: ${salonContact.phone}`,
       ].join("\n");
 
       const html = buildEmailShell(
         brand,
         "Termín rezervace byl změněn",
-        "Rezervaci jsme přesunuli na nový čas.",
+        "Rezervaci jsme přesunuli na nový čas. Aktuální termín najdete níže.",
         `
           ${buildBookingDetailCard({
             serviceName: data.serviceName,
@@ -711,7 +756,7 @@ export async function renderEmailTemplate(
             extraRows: buildEmailDetailRow("Původně", `${previousDate}, ${previousTime}`),
           })}
           <div style="height:14px;line-height:14px;font-size:14px;">&nbsp;</div>
-          ${buildClientLocationBlock()}
+          ${buildClientLocationBlock(salonContact)}
           ${includeCalendarAttachment ? `
           <div style="height:14px;line-height:14px;font-size:14px;">&nbsp;</div>
           ${buildEmailCard(`
@@ -721,7 +766,7 @@ export async function renderEmailTemplate(
           ` : ""}
           ${buildClientActionLinks(data.manageReservationUrl, data.cancellationUrl)}
           <div style="height:14px;line-height:14px;font-size:14px;">&nbsp;</div>
-          ${buildClientContactBlock()}
+          ${buildClientContactBlock(salonContact)}
         `,
         { maxWidthPx: 600 },
       );
@@ -753,27 +798,27 @@ export async function renderEmailTemplate(
         `Dobrý den, ${data.clientName},`,
         "",
         "Rezervaci se tentokrát nepodařilo potvrdit",
-        "Požadovaný termín už není dostupný.",
+        "Požadovaný termín už bohužel není dostupný. Můžete si vybrat jiný termín nebo se nám ozvat.",
         "",
         `Služba: ${data.serviceName}`,
         `Datum: ${bookingDate}`,
         `Čas: ${bookingTime}`,
         "",
         "Místo:",
-        clientStudio.name,
-        clientStudio.address,
+        salonContact.name,
+        salonContact.address,
         "",
         `Nový termín: ${newBookingUrl}`,
         "",
         "Kontakt:",
-        `Napište nám: ${clientStudio.email}`,
-        `Zavolejte: ${clientStudio.phone}`,
+        `Napište nám: ${salonContact.email}`,
+        `Zavolejte: ${salonContact.phone}`,
       ].join("\n");
 
       const html = buildEmailShell(
         brand,
         "Rezervaci se tentokrát nepodařilo potvrdit",
-        "Požadovaný termín už není dostupný.",
+        "Požadovaný termín už bohužel není dostupný. Můžete si vybrat jiný termín nebo se nám ozvat.",
         `
           ${buildBookingDetailCard({
             serviceName: data.serviceName,
@@ -781,7 +826,7 @@ export async function renderEmailTemplate(
             bookingTime,
           })}
           <div style="height:14px;line-height:14px;font-size:14px;">&nbsp;</div>
-          ${buildClientLocationBlock()}
+          ${buildClientLocationBlock(salonContact)}
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:16px;border-collapse:collapse;">
             <tr>
               <td>
@@ -794,7 +839,7 @@ export async function renderEmailTemplate(
             </tr>
           </table>
           <div style="height:14px;line-height:14px;font-size:14px;">&nbsp;</div>
-          ${buildClientContactBlock()}
+          ${buildClientContactBlock(salonContact)}
         `,
         { maxWidthPx: 600 },
       );

@@ -61,3 +61,21 @@ test("buildVoucherEmailTemplate attaches PDF with expected metadata", () => {
   assert.equal(template.attachments[0]?.contentType, "application/pdf");
   assert.equal(template.attachments[0]?.content.toString("utf8"), "%PDF-1.7");
 });
+
+test("buildVoucherEmailTemplate uses provided salon contact and keeps PDF attachment", () => {
+  const template = buildVoucherEmailTemplate({
+    ...buildBaseInput(VoucherType.VALUE),
+    salon: {
+      name: "Salon U Lípy",
+      addressLine: "Náměstí 1, 760 01 Zlín",
+      phone: "+420 777 111 222",
+      email: "recepce@example.cz",
+    },
+  });
+
+  assert.match(template.text, /dárkový poukaz Salon U Lípy/);
+  assert.match(template.text, /Náměstí 1, 760 01 Zlín/);
+  assert.match(template.html, /Salon U Lípy/);
+  assert.match(template.html, /recepce@example\.cz/);
+  assert.equal(template.attachments[0]?.contentType, "application/pdf");
+});

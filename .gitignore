@@ -43,3 +43,6 @@ backups/*
 
 playwright-report/
 test-results/
+
+# generated local previews
+/tmp/

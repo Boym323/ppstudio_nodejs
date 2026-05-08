@@ -120,7 +120,8 @@ export function buildVoucherEmailTemplate(input: VoucherEmailTemplateInput): Vou
     websiteDomain,
   ].filter((value) => value.length > 0);
 
-  const introLine = "v příloze zasíláme dárkový poukaz PP Studio.";
+  const salonName = input.salon.name.trim() || "PP Studio";
+  const introLine = `v příloze zasíláme dárkový poukaz ${salonName}.`;
   const redemptionLine = "Poukaz můžete uplatnit při online rezervaci nebo osobně v salonu.";
   const verificationLeadLine = "Platnost poukazu si můžete ověřit zde:";
   const closingLine = "Těšíme se na Vaši návštěvu.";

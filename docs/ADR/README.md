@@ -93,3 +93,4 @@ Sem patří krátké záznamy architektonických rozhodnutí.
 - `0076-admin-services-catalog-density-v3.md`
 - `0083-public-studio-media-hardening-v1.md`
 - `0087-homepage-featured-services-v1.md`
+- `0090-email-template-site-settings-contact-v1.md`
