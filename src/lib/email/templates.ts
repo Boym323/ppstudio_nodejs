@@ -123,9 +123,7 @@ const clientStudio = {
   phone: "+420 732 856 036",
 };
 
-const clientStudioMapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-  `${clientStudio.name}, ${clientStudio.address}`,
-)}`;
+const clientStudioMapUrl = "https://maps.app.goo.gl/iRdsWbiX99fw3Q36A";
 
 function escapeHtml(value: string) {
   return value
