@@ -33,9 +33,15 @@ type EditServiceFormProps = BaseServiceFormProps & {
   service: {
     id: string;
     name: string;
+    publicName: string | null;
     description: string | null;
     publicIntro: string | null;
+    seoTitle: string | null;
     seoDescription: string | null;
+    idealFor: string[];
+    includes: string[];
+    benefits: string[];
+    goodToKnow: string[];
     pricingShortDescription: string | null;
     pricingBadge: string | null;
     durationMinutes: number;
@@ -72,9 +78,15 @@ type CreateServiceFormProps = BaseServiceFormProps & {
   mode: "create";
   initialValues: {
     name: string;
+    publicName: string;
     description: string;
     publicIntro: string;
+    seoTitle: string;
     seoDescription: string;
+    idealFor: string[];
+    includes: string[];
+    benefits: string[];
+    goodToKnow: string[];
     pricingShortDescription: string;
     pricingBadge: string;
     durationMinutes: number;
@@ -86,6 +98,10 @@ type CreateServiceFormProps = BaseServiceFormProps & {
     isPubliclyBookable: boolean;
   };
 };
+
+function listToTextareaValue(items: string[] | null | undefined) {
+  return items?.join("\n") ?? "";
+}
 
 export function AdminServiceForm(props: EditServiceFormProps | CreateServiceFormProps) {
   const [serverState, formAction] = useActionState(
@@ -168,6 +184,19 @@ export function AdminServiceForm(props: EditServiceFormProps | CreateServiceForm
                 defaultValue={props.mode === "create" ? props.initialValues.name : props.service.name}
                 maxLength={120}
                 className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--color-accent)]/60"
+              />
+            </Field>
+          </div>
+
+          <div className="sm:col-span-2">
+            <Field label="Veřejný název" error={serverState.fieldErrors?.publicName}>
+              <input
+                type="text"
+                name="publicName"
+                maxLength={120}
+                defaultValue={props.mode === "create" ? props.initialValues.publicName : props.service.publicName ?? ""}
+                placeholder="Volitelné. Pokud zůstane prázdný, použije se název služby."
+                className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none transition placeholder:text-white/32 focus:border-[var(--color-accent)]/60"
               />
             </Field>
           </div>
@@ -346,6 +375,73 @@ export function AdminServiceForm(props: EditServiceFormProps | CreateServiceForm
       </SectionBlock>
 
       <SectionBlock
+        title="Strukturovaný detail"
+        description="Každý neprázdný řádek se uloží jako jeden bod. Text zůstává plain text a veřejný web ho bezpečně escapuje přes React."
+      >
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Pro koho je služba vhodná" error={serverState.fieldErrors?.idealFor}>
+            <textarea
+              name="idealFor"
+              rows={5}
+              maxLength={240 * 8}
+              defaultValue={
+                props.mode === "create"
+                  ? listToTextareaValue(props.initialValues.idealFor)
+                  : listToTextareaValue(props.service.idealFor)
+              }
+              placeholder="Jeden bod na řádek."
+              className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm leading-6 text-white outline-none transition placeholder:text-white/32 focus:border-[var(--color-accent)]/60"
+            />
+          </Field>
+
+          <Field label="Co služba obsahuje" error={serverState.fieldErrors?.includes}>
+            <textarea
+              name="includes"
+              rows={5}
+              maxLength={240 * 8}
+              defaultValue={
+                props.mode === "create"
+                  ? listToTextareaValue(props.initialValues.includes)
+                  : listToTextareaValue(props.service.includes)
+              }
+              placeholder="Jeden bod na řádek."
+              className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm leading-6 text-white outline-none transition placeholder:text-white/32 focus:border-[var(--color-accent)]/60"
+            />
+          </Field>
+
+          <Field label="Očekávaný přínos" error={serverState.fieldErrors?.benefits}>
+            <textarea
+              name="benefits"
+              rows={5}
+              maxLength={240 * 8}
+              defaultValue={
+                props.mode === "create"
+                  ? listToTextareaValue(props.initialValues.benefits)
+                  : listToTextareaValue(props.service.benefits)
+              }
+              placeholder="Jeden bod na řádek."
+              className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm leading-6 text-white outline-none transition placeholder:text-white/32 focus:border-[var(--color-accent)]/60"
+            />
+          </Field>
+
+          <Field label="Dobré vědět" error={serverState.fieldErrors?.goodToKnow}>
+            <textarea
+              name="goodToKnow"
+              rows={5}
+              maxLength={240 * 8}
+              defaultValue={
+                props.mode === "create"
+                  ? listToTextareaValue(props.initialValues.goodToKnow)
+                  : listToTextareaValue(props.service.goodToKnow)
+              }
+              placeholder="Jeden bod na řádek."
+              className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm leading-6 text-white outline-none transition placeholder:text-white/32 focus:border-[var(--color-accent)]/60"
+            />
+          </Field>
+        </div>
+      </SectionBlock>
+
+      <SectionBlock
         title="Ceník"
         description="Texty, které se zobrazují na stránce ceníku."
       >
@@ -416,18 +512,31 @@ export function AdminServiceForm(props: EditServiceFormProps | CreateServiceForm
 
       <SectionBlock
         title="Google (SEO)"
-        description="Volitelný popis pro výsledek ve vyhledávání Google na detailu služby."
+        description="Volitelný title a popis pro výsledek ve vyhledávání Google na detailu služby."
       >
-        <Field label="Popis pro Google (SEO meta)" error={serverState.fieldErrors?.seoDescription}>
-          <textarea
-            name="seoDescription"
-            rows={3}
-            maxLength={240}
-            defaultValue={props.mode === "create" ? props.initialValues.seoDescription : props.service.seoDescription ?? ""}
-            placeholder="Krátký popis, který se může zobrazit pod názvem stránky ve vyhledávání."
-            className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm leading-6 text-white outline-none transition placeholder:text-white/32 focus:border-[var(--color-accent)]/60"
-          />
-        </Field>
+        <div className="grid gap-4">
+          <Field label="SEO title" error={serverState.fieldErrors?.seoTitle}>
+            <input
+              type="text"
+              name="seoTitle"
+              maxLength={120}
+              defaultValue={props.mode === "create" ? props.initialValues.seoTitle : props.service.seoTitle ?? ""}
+              placeholder="Např. Lash lifting Zlín | PP Studio"
+              className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none transition placeholder:text-white/32 focus:border-[var(--color-accent)]/60"
+            />
+          </Field>
+
+          <Field label="Popis pro Google (SEO meta)" error={serverState.fieldErrors?.seoDescription}>
+            <textarea
+              name="seoDescription"
+              rows={3}
+              maxLength={240}
+              defaultValue={props.mode === "create" ? props.initialValues.seoDescription : props.service.seoDescription ?? ""}
+              placeholder="Krátký popis, který se může zobrazit pod názvem stránky ve vyhledávání."
+              className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm leading-6 text-white outline-none transition placeholder:text-white/32 focus:border-[var(--color-accent)]/60"
+            />
+          </Field>
+        </div>
       </SectionBlock>
 
       <SubmitButtons isCreate={props.mode === "create"} />

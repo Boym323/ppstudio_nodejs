@@ -6,6 +6,10 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Služby mají nová DB pole pro kompletní strukturovaný veřejný obsah (`seoTitle`, `idealFor`, `includes`, `benefits`, `goodToKnow`) a admin sekce `Služby` je umí vytvářet i upravovat bez zásahu do kódu.
+- Veřejný web, ceník, detail služby, homepage a rezervační flow čtou službovou copy z DB; `service-copy-overrides.ts` zůstává jen jako dočasný zdroj pro backfill nových DB polí.
+- Přibyl ruční bezpečný skript `npm run db:backfill-service-copy`, který po dry-runu a explicitním `--confirm` propíše podle stabilních slugů pouze nová strukturovaná pole služeb a SEO title.
+
 ## [0.2.2] - 2026-05-08
 
 - Release příprava bez funkčních změn: projektová verze navýšena na patch `0.2.2` pro produkční nasazení.

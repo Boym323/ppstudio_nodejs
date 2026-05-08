@@ -244,7 +244,12 @@ model Service {
   shortDescription         String?
   description              String?
   publicIntro              String?
+  seoTitle                 String?
   seoDescription           String?
+  idealFor                 String[]                  @default([])
+  includes                 String[]                  @default([])
+  benefits                 String[]                  @default([])
+  goodToKnow               String[]                  @default([])
   pricingShortDescription  String?
   pricingBadge             String?
   durationMinutes          Int

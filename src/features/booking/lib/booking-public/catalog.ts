@@ -42,6 +42,7 @@ export async function getPublicBookingCatalog(
           select: {
             id: true,
             name: true,
+            publicName: true,
             slug: true,
             publicIntro: true,
             durationMinutes: true,
@@ -100,7 +101,7 @@ export async function getPublicBookingCatalog(
     services: services.map((service) => ({
       id: service.id,
       categoryName: service.category.name,
-      name: service.name,
+      name: service.publicName || service.name,
       slug: service.slug,
       shortDescription: service.publicIntro,
       durationMinutes: service.durationMinutes,

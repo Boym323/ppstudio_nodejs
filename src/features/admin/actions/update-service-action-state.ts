@@ -5,9 +5,15 @@ export type UpdateServiceActionState = {
   fieldErrors?: Partial<
     Record<
       | "name"
+      | "publicName"
       | "description"
       | "publicIntro"
+      | "seoTitle"
       | "seoDescription"
+      | "idealFor"
+      | "includes"
+      | "benefits"
+      | "goodToKnow"
       | "pricingShortDescription"
       | "pricingBadge"
       | "durationMinutes"

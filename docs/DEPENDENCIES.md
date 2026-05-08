@@ -117,6 +117,7 @@ Seznam důležitých knihoven a důvod jejich použití.
 - E-mailové šablony i delivery vrstva zůstávají jednoduché a nepřidávají queue službu mimo PostgreSQL outbox.
 - `Json` pole ve `Setting`, `BookingStatusHistory` a `EmailLog` ponechávají prostor pro evoluci bez destruktivních migrací.
 - Audit ceníku je záměrně samostatný relační model `ServicePriceChangeLog`, ne další `Json` blob v `Service`, aby šlo změny filtrovat a řadit bez parsování payloadu.
+- Ruční backfill strukturovaných textů služeb v DB nepřidává žádnou novou knihovnu; `scripts/backfill-service-copy.ts` používá existující `tsx`, `dotenv`, Prisma klienta a `@prisma/adapter-pg`.
 - Admin sekce `Nastavení` a singleton `SiteSettings` byly doplněné bez nové knihovny; zůstáváme na stávajícím stacku Next.js, React, Prisma a Zod.
 - Owner ICS feed pro Apple Kalendář byl přidaný bez nové závislosti; generování `.ics`, escapování i line folding běží v lokální utilitě nad standardním Node/TypeScript stackem.
 - Klientská `.ics` příloha používá stejnou lokální iCalendar utilitu; nepřidávali jsme Google SDK, `.ics` generator balík ani novou mail knihovnu.

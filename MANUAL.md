@@ -86,7 +86,9 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
 - FAQ odpovědi zůstávají serverově vypsané v HTML přes nativní `details/summary`; JSON-LD `FAQPage` se skládá ze stejného `FaqSection -> FaqItem` modelu a nesmí obsahovat otázky, které nejsou na stránce reálně vidět.
 - FAQ pokrývá i praktické rozhodovací otázky před rezervací: objednání bez přesného výběru služby, potvrzení rezervace, úpravu péče podle stavu pleti, doporučenou frekvenci kosmetiky, příchod s make-upem, citlivou pleť, běžnou citlivost úpravy obočí, výdrž barvení obočí, dárkové vouchery, adresu studia a odkaz na parkování na `/kontakt#parkovani`.
 - Rezervační stránka `/rezervace` musí mít v HTML právě jeden hlavní `h1` nadpis pro veřejné booking flow; aktuálně je to text `Vyberte si termín, který vám nejlépe vyhovuje.` nad samotným formulářem.
-- Reálné služby z DB dostávají veřejnou copy vrstvu v `src/features/public/lib/public-services.ts`, ale její metadata už nevznikají z lokálních map; čtou se přímo z rozšířeného katalogu služeb a kategorií.
+- Reálné služby z DB dostávají veřejnou copy vrstvu v `src/features/public/lib/public-services.ts`, ale zdrojem pravdy je model `Service`.
+- Katalogová i veřejná textová data (`name`, `slug`, cena, délka, dostupnost, kategorie, pořadí, `publicIntro`, `description`, `pricingShortDescription`, `seoTitle`, `seoDescription`, `idealFor`, `includes`, `benefits`, `goodToKnow`) čte veřejný web z DB.
+- Rezervační výběr služby používá DB `publicIntro`; strukturovaný copy override podle slugu není trvalý zdroj obsahu a smí sloužit jen jako dočasný backfill zdroj.
 - Ceník na `/cenik` má vlastní modul v `src/features/public/components/pricing-page.tsx` a je rozdělený do jasné kompozice `hero -> category chips -> hlavní sekce -> menší grid sekce -> finální CTA`.
 - Katalog služeb a kategorií teď nese i veřejná pricing metadata:
   - služba: `publicIntro`, `seoDescription`, `pricingShortDescription`, `pricingBadge` (název je sjednocený v poli `name` pro web i rezervace)
@@ -288,6 +290,20 @@ node scripts/import-services.mjs --file path/to/old-web-services.json
 - Pokud starý web exportuje data v jiném formátu, je potřeba je před importem namapovat do této struktury.
 - Pro tvoje aktuální kategorie je připravený vzor v `scripts/old-web-categories.json`.
 - Pro tvoje aktuální služby je připravený vzor v `scripts/old-web-services.json`.
+
+### Backfill strukturovaných textů služeb v DB
+- Produkční DB se sama nezmění pouhou úpravou seedu nebo souboru `src/features/public/lib/service-copy-overrides.ts`; veřejný web bere obsah služeb z DB.
+- `service-copy-overrides.ts` je jen dočasný migrační zdroj pro naplnění nových polí `seoTitle`, `idealFor`, `includes`, `benefits` a `goodToKnow`.
+- Pro bezpečný backfill nových polí existuje ruční skript:
+```bash
+npm run db:backfill-service-copy -- --dry-run
+npm run db:backfill-service-copy -- --confirm
+```
+- První příkaz je dry-run: vypíše počet známých služeb, nalezené DB záznamy a pole, která by se měnila.
+- Ostré spuštění vyžaduje `--confirm` a před ním je povinná aktuální záloha produkční DB.
+- Skript hledá pouze známé služby podle stabilního `slug`, zastaví se při chybějícím známém slugu a nemění žádné neznámé služby.
+- Aktualizuje jen `Service.seoTitle`, `Service.idealFor`, `Service.includes`, `Service.benefits` a `Service.goodToKnow`; nemění ID, slug, název, cenu, délku, pořadí, aktivitu, veřejnou rezervovatelnost ani kategorii.
+- Starší textová pole `publicIntro`, `description`, `pricingShortDescription` a `seoDescription` upravuj přes admin nebo samostatně kontrolovaným DB updatem.
 
 ### Vyčištění testovacích rezervací a termínů
 - Pro rychlý úklid testovacích provozních dat použij:

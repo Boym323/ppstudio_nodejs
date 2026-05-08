@@ -25,6 +25,7 @@ type PublicPricingCategoryRow = Prisma.ServiceCategoryGetPayload<{
       select: {
         slug: true;
         name: true;
+        publicName: true;
         publicIntro: true;
         pricingShortDescription: true;
         pricingBadge: true;
@@ -82,24 +83,36 @@ function getCategoryLabel(category: { name: string }) {
   return category.name;
 }
 
+function getServiceDisplayName(service: { name: string; publicName: string | null }) {
+  return service.publicName || service.name;
+}
+
 function buildServiceIntro(service: PublicServiceRow) {
+  const serviceName = getServiceDisplayName(service);
+
   return (
     service.publicIntro ??
     service.description ??
-    `Klidná péče pro službu ${service.name.toLowerCase()}, navržená tak, aby byla srozumitelná i při rychlém rozhodnutí.`
+    `Klidná péče pro službu ${serviceName.toLowerCase()}, navržená tak, aby byla srozumitelná i při rychlém rozhodnutí.`
   );
 }
 
 function buildServiceDetail(service: PublicServiceRow) {
+  const serviceName = getServiceDisplayName(service);
+
   return (
     service.description ??
     service.publicIntro ??
-    `Služba ${service.name.toLowerCase()} je připravená jako pečlivě vedená návštěva s důrazem na komfort a jasný výsledek.`
+    `Služba ${serviceName.toLowerCase()} je připravená jako pečlivě vedená návštěva s důrazem na komfort a jasný výsledek.`
   );
 }
 
 function buildIdealFor(service: PublicServiceRow) {
-  const serviceName = service.name;
+  if (service.idealFor.length > 0) {
+    return service.idealFor;
+  }
+
+  const serviceName = getServiceDisplayName(service);
   const categoryLabel = getCategoryLabel(service.category);
 
   switch (categoryLabel) {
@@ -138,6 +151,10 @@ function buildIdealFor(service: PublicServiceRow) {
 }
 
 function buildIncludes(service: PublicServiceRow) {
+  if (service.includes.length > 0) {
+    return service.includes;
+  }
+
   const categoryLabel = getCategoryLabel(service.category);
 
   switch (categoryLabel) {
@@ -176,6 +193,10 @@ function buildIncludes(service: PublicServiceRow) {
 }
 
 function buildResults(service: PublicServiceRow) {
+  if (service.benefits.length > 0) {
+    return service.benefits;
+  }
+
   const categoryLabel = getCategoryLabel(service.category);
 
   switch (categoryLabel) {
@@ -214,13 +235,13 @@ function buildResults(service: PublicServiceRow) {
 }
 
 function buildPlaceholderBrief(service: PublicServiceRow) {
-  return `Autentický detail ${service.name.toLowerCase()} v prostoru salonu, jemné světlo, čisté prostředí a minimum stock vzhledu.`;
+  return `Autentický detail ${getServiceDisplayName(service).toLowerCase()} v prostoru salonu, jemné světlo, čisté prostředí a minimum stock vzhledu.`;
 }
 
 function mapService(service: PublicServiceRow): Service {
   return {
     slug: service.slug,
-    name: service.name,
+    name: getServiceDisplayName(service),
     category: getCategoryLabel(service.category),
     priceFrom: formatPrice(service.priceFromCzk),
     duration: `${service.durationMinutes} min`,
@@ -229,7 +250,9 @@ function mapService(service: PublicServiceRow): Service {
     idealFor: buildIdealFor(service),
     includes: buildIncludes(service),
     results: buildResults(service),
+    goodToKnow: service.goodToKnow.length > 0 ? service.goodToKnow : undefined,
     placeholderAssetBrief: buildPlaceholderBrief(service),
+    seoTitle: service.seoTitle ?? undefined,
     seoDescription: service.seoDescription ?? buildServiceIntro(service),
   };
 }
@@ -246,7 +269,7 @@ function mapPricingCategory(category: PublicPricingCategoryRow): PublicPricingCa
     iconKey: category.pricingIconKey,
     items: category.services.map((service) => ({
       slug: service.slug,
-      name: service.name,
+      name: getServiceDisplayName(service),
       description:
         service.pricingShortDescription ??
         service.publicIntro ??
@@ -274,6 +297,7 @@ export async function getPublicServices(): Promise<Service[]> {
       category: {
         select: {
           name: true,
+          publicName: true,
         },
       },
     },
@@ -351,6 +375,7 @@ export async function getPublicPricingCatalog(): Promise<PublicPricingCategory[]
         select: {
           slug: true,
           name: true,
+          publicName: true,
           publicIntro: true,
           pricingShortDescription: true,
           pricingBadge: true,

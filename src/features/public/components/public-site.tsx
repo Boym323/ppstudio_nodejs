@@ -829,7 +829,7 @@ export function ServiceDetailPage({ service }: { service: Service }) {
           <div className="space-y-6">
             <PlaceholderNote
               title="Dobré vědět"
-              items={[
+              items={service.goodToKnow ?? [
                 'pokud si nejste jistá výběrem, při návštěvě službu společně upřesníme',
                 'termín vyberete online během několika kroků',
                 'u delších návštěv je vždy prostor i na krátkou konzultaci',

@@ -351,6 +351,7 @@ sudo /var/www/ppstudio/deploy/deploy.sh
 - Admin workflow kategorií služeb nevyžaduje novou DB migraci; navazuje na existující model `ServiceCategory`.
 - Přepracované admin workflow služeb a kategorií nevyžaduje novou DB migraci; změna je čistě v read modelech, server actions a UI vrstvách.
 - Nový layout sekce `Kategorie služeb` také nevyžaduje novou DB migraci; změna zůstává čistě v komponentách, read modelu a server actions nad existujícím `ServiceCategory`.
+- Strukturované texty služeb vyžadují migraci `20260508120000_service_structured_public_copy_v1`. Před produkcí udělej zálohu DB, nasaď migrace přes `npx prisma migrate deploy`, spusť dry-run `npm run db:backfill-service-copy -- --dry-run` a teprve po kontrole výstupu použij `npm run db:backfill-service-copy -- --confirm`. Skript mění pouze `seoTitle`, `idealFor`, `includes`, `benefits` a `goodToKnow` podle známých slugů.
 - Stabilizační refaktor `booking-public`, `booking-flow` a `admin-slots` také nevyžaduje novou DB migraci; změna je čistě strukturální a zachovává stejné veřejné exporty i databázové chování.
 - Před produkční aplikací migrace ověř data, která by mohla mít rezervaci bez přiřazené služby; tato migrace takové řádky záměrně odmítne.
 - Pokud v databázi existují duplicitní rezervace stejného klienta do stejného slotu, nová migrace se zastaví a vyžádá jejich ruční vyčištění.

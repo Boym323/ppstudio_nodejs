@@ -235,8 +235,9 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Právní stránky ve `src/features/public/components/public-site.tsx` mohou nově používat rozšířenou skladbu `hero + aside + anchor TOC + sekce`; pro právní texty proto preferuj strukturovaný obsah v `src/content/public-site.ts` místo dlouhých monolitických odstavců.
 - Model `LegalSection` podporuje `id`, seznamové body a volitelnou poznámku. U GDPR a podobných stránek tím drž kratší odstavce, lepší scanovatelnost a jasné anchor odkazy.
 - Placeholder obsah musí být jasně odlišen od finálních produkčních textů.
-- Pokud je interní název služby příliš technický nebo exportovaný ze starého webu, nepřepisuj DB záznam jen kvůli public copy; preferuj public override v read modelu.
-- Pro public override už preferuj přímo pole v katalogu (`Service.publicIntro`, `ServiceCategory.pricingDescription`); lokální fallback v read modelu má být jen záchranná síť, ne primární workflow.
+- Pokud je interní název služby příliš technický nebo exportovaný ze starého webu, uprav veřejné texty v adminu služby místo přidávání trvalého override v read modelu.
+- Pro katalogová i veřejná metadata preferuj přímo pole v katalogu (`Service.publicIntro`, `Service.description`, `Service.pricingShortDescription`, `Service.seoTitle`, `Service.seoDescription`, `Service.idealFor`, `Service.includes`, `Service.benefits`, `Service.goodToKnow`, `ServiceCategory.pricingDescription`).
+- `src/features/public/lib/service-copy-overrides.ts` je pouze dočasný migrační/backfill zdroj podle `slug`; veřejný web ho nemá používat jako hlavní ani prioritní zdroj obsahu.
 - CTA na rezervaci držet konzistentně v headeru, hero sekcích a kontextových blocích.
 - U homepage copy preferovat strukturu, která se už historicky osvědčila: jasný lokální hero claim, dvě primární akce (rezervace + ceník) a blok „nejste si jistá výběrem“, který snižuje bariéru první rezervace.
 - Pokud homepage potřebuje logo/fotku majitelky, nastav to v `homepageContent` (`logoImage`, `portraitImage`) a používej lokální soubory z `public/brand`, aby nebyla závislost na externím hostingu.
@@ -474,6 +475,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Planner přímo upravuje jen jednoduché publikované sloty bez rezervací, bez poznámek, bez omezení služeb a s kapacitou `1`; ostatní zůstávají v UI viditelné jako uzamčené nebo neaktivní.
 - Pokud slot obsahuje rezervaci jen v části intervalu (např. booking 09:00-09:30 v okně 08:00-14:00), planner ho ve vizualizaci dělí na rezervovanou část a chráněný zbytek, aby celý interval nezmizel z mřížky.
 - Import kategorií a služeb je řešený jako JSON upsert přes `scripts/import-services.mjs`; identity záznamů drží `slug`.
+- Jednorázový backfill strukturované copy služeb v DB je oddělený od importu katalogu a běží přes `scripts/backfill-service-copy.ts`. Skript používá `DATABASE_URL`, defaultně dělá dry-run, ostrý zápis vyžaduje `--confirm`, hledá jen známé slugy z `service-copy-overrides.ts` a zapisuje pouze `seoTitle`, `idealFor`, `includes`, `benefits` a `goodToKnow`.
 - Cleanup testovacích booking dat je záměrně oddělený od resetu celé DB: `scripts/clear-booking-data.mjs` maže rezervace, sloty a navázané provozní logy, ale nechává katalog služeb, admin účty, singleton settings i média.
 - `Booking` ukládá snapshot jména služby, ceny a času, takže historické rezervace zůstanou konzistentní i po úpravě katalogu.
 - `Service` nově odděluje obecnou aktivitu (`isActive`) od veřejné rezervovatelnosti (`isPubliclyBookable`); public booking flow vyžaduje obě podmínky a aktivní kategorii.

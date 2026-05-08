@@ -22,7 +22,7 @@ export async function generateMetadata({ params }: { params: PageParams }): Prom
   }
 
   return buildPageMetadata({
-    title: service.name,
+    title: service.seoTitle ?? service.name,
     description: service.seoDescription,
     path: `/sluzby/${service.slug}`,
   });

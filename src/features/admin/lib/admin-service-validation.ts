@@ -11,6 +11,36 @@ export const pricingBadgeSuggestions = [
   "REGENERACE",
 ] as const;
 
+export const serviceStructuredListMaxItems = 8;
+export const serviceStructuredListItemMaxLength = 240;
+
+function parseStructuredListText(value: unknown) {
+  if (typeof value !== "string") {
+    return [];
+  }
+
+  return value
+    .split(/\r?\n/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function structuredListFieldSchema(label: string) {
+  return z.preprocess(
+    parseStructuredListText,
+    z
+      .array(
+        z
+          .string()
+          .max(
+            serviceStructuredListItemMaxLength,
+            `${label}: jeden bod může mít maximálně ${serviceStructuredListItemMaxLength} znaků.`,
+          ),
+      )
+      .max(serviceStructuredListMaxItems, `${label}: použijte maximálně ${serviceStructuredListMaxItems} bodů.`),
+  );
+}
+
 export const serviceListSearchParamsSchema = z.object({
   query: z.string().trim().max(120).optional(),
   status: z.enum(serviceListStatusValues).optional(),
@@ -29,9 +59,15 @@ export const updateServiceSchema = z.object({
   intent: z.enum(["save", "save-close"]).optional(),
   categoryId: z.string().trim().min(1, "Vyberte kategorii služby.").max(64),
   name: z.string().trim().min(2, "Název služby musí mít alespoň 2 znaky.").max(120, "Název služby je příliš dlouhý."),
+  publicName: z.string().trim().max(120, "Veřejný název služby je příliš dlouhý.").optional().or(z.literal("")),
   description: z.string().trim().max(4000, "Detailní popis je příliš dlouhý.").optional().or(z.literal("")),
   publicIntro: z.string().trim().max(400, "Krátký popis (web + rezervace) je příliš dlouhý.").optional().or(z.literal("")),
+  seoTitle: z.string().trim().max(120, "SEO title je příliš dlouhý.").optional().or(z.literal("")),
   seoDescription: z.string().trim().max(240, "Popis pro Google je příliš dlouhý.").optional().or(z.literal("")),
+  idealFor: structuredListFieldSchema("Pro koho je služba vhodná"),
+  includes: structuredListFieldSchema("Co služba obsahuje"),
+  benefits: structuredListFieldSchema("Očekávaný přínos"),
+  goodToKnow: structuredListFieldSchema("Dobré vědět"),
   pricingShortDescription: z
     .string()
     .trim()
@@ -88,9 +124,15 @@ export const createServiceSchema = z.object({
   returnTo: z.string().trim().min(1).max(400).optional(),
   categoryId: z.string().trim().min(1, "Vyberte kategorii služby.").max(64),
   name: z.string().trim().min(2, "Název služby musí mít alespoň 2 znaky.").max(120, "Název služby je příliš dlouhý."),
+  publicName: z.string().trim().max(120, "Veřejný název služby je příliš dlouhý.").optional().or(z.literal("")),
   description: z.string().trim().max(4000, "Detailní popis je příliš dlouhý.").optional().or(z.literal("")),
   publicIntro: z.string().trim().max(400, "Krátký popis (web + rezervace) je příliš dlouhý.").optional().or(z.literal("")),
+  seoTitle: z.string().trim().max(120, "SEO title je příliš dlouhý.").optional().or(z.literal("")),
   seoDescription: z.string().trim().max(240, "Popis pro Google je příliš dlouhý.").optional().or(z.literal("")),
+  idealFor: structuredListFieldSchema("Pro koho je služba vhodná"),
+  includes: structuredListFieldSchema("Co služba obsahuje"),
+  benefits: structuredListFieldSchema("Očekávaný přínos"),
+  goodToKnow: structuredListFieldSchema("Dobré vědět"),
   pricingShortDescription: z
     .string()
     .trim()

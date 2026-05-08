@@ -20,7 +20,9 @@ export type Service = {
   idealFor: string[];
   includes: string[];
   results: string[];
+  goodToKnow?: string[];
   placeholderAssetBrief: string;
+  seoTitle?: string;
   seoDescription: string;
 };
 
