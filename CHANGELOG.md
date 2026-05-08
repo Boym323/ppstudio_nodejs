@@ -6,6 +6,9 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-05-08
+
+- Release příprava bez funkčních změn: projektová verze navýšena na patch `0.2.2` pro produkční nasazení.
 - Veřejné rezervační flow nově u kolizí klientských kontaktů (`BOOKING_CONFLICT` ve kroku kontaktu) zobrazuje zákaznicky srozumitelnou hlášku bez interní instrukce `vyberte profil ručně`; detailní technický důvod kolize zůstává zachovaný v interním audit logu.
 - Veřejné rezervační flow přesunulo chybovou hlášku kontaktu z horního progress panelu přímo do kroku `Kontaktní údaje` nad pole `E-mail` a `Telefon`, aby byla při opravě údajů viditelná bez návratu na začátek formuláře.
 - Admin seznam služeb má zarovnaný stavový badge blok v kompaktních řádcích, takže volitelný štítek `Homepage` neposouvá `Aktivní` / `Veřejná` mezi jednotlivými službami.
