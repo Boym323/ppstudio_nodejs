@@ -44,6 +44,7 @@ const formatDateTime = new Intl.DateTimeFormat("cs-CZ", {
   year: "numeric",
   hour: "2-digit",
   minute: "2-digit",
+  timeZone: "Europe/Prague",
 });
 
 export type AdminBookingActionValue =
@@ -325,6 +326,7 @@ function formatAdminBookingDateLabel(startsAt: Date, endsAt: Date) {
   return `${formatDateTimeLabel(startsAt)} - ${new Intl.DateTimeFormat("cs-CZ", {
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: "Europe/Prague",
   }).format(endsAt)}`;
 }
 

@@ -392,3 +392,7 @@ sudo /var/www/ppstudio/deploy/deploy.sh
 - Ověř přidání dostupnosti tažením, odebrání zeleného intervalu a copy day/week.
 - Ověř sticky action bar `Zahodit / Publikovat změny` a že po refreshi bez publikace nejsou lokální změny týdne zachované.
 - Ověř, že pokus o zásah do rezervace skončí čitelnou chybou bez změny dat.
+
+## QA Pro Letní/Zimní Čas
+- Tento release nepřidává DB migraci ani novou knihovnu.
+- Po deployi ověř v admin planneru slot 09:00-10:00 pro zimní i letní datum, copy day/week přes poslední březnovou a říjnovou neděli, veřejné zobrazení termínu, potvrzovací e-mail a `.ics` přílohu.

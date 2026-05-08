@@ -20,6 +20,7 @@ import {
   formatDateKey,
   getCellRangeBounds,
   getDayBounds,
+  moveIntervalToDateKey,
   resolveWeekStart,
 } from "./time";
 import {
@@ -262,18 +263,12 @@ export async function copyPlannerDay(
 ): Promise<PlannerMutationResult> {
   await prisma.$transaction(async (tx) => {
     const sourceIntervals = await readEditableIntervalsForDate(tx, input.sourceDateKey);
-    const { startsAt: sourceDayStart } = getDayBounds(input.sourceDateKey);
-    const { startsAt: targetDayStart } = getDayBounds(input.targetDateKey);
-    const shiftMs = targetDayStart.getTime() - sourceDayStart.getTime();
 
     await replaceDayWithIntervals(
       tx,
       input.actorUserId,
       input.targetDateKey,
-      sourceIntervals.map((interval) => ({
-        startsAt: new Date(interval.startsAt.getTime() + shiftMs),
-        endsAt: new Date(interval.endsAt.getTime() + shiftMs),
-      })),
+      sourceIntervals.map((interval) => moveIntervalToDateKey(interval, input.targetDateKey)),
     );
   }, {
     isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
@@ -302,16 +297,12 @@ export async function copyPlannerWeek(
       const sourceDateKey = formatDateKey(addDays(sourceWeekStart, index));
       const targetDateKey = formatDateKey(addDays(targetWeekStart, index));
       const sourceIntervals = await readEditableIntervalsForDate(tx, sourceDateKey);
-      const shiftMs = getDayBounds(targetDateKey).startsAt.getTime() - getDayBounds(sourceDateKey).startsAt.getTime();
 
       await replaceDayWithIntervals(
         tx,
         input.actorUserId,
         targetDateKey,
-        sourceIntervals.map((interval) => ({
-          startsAt: new Date(interval.startsAt.getTime() + shiftMs),
-          endsAt: new Date(interval.endsAt.getTime() + shiftMs),
-        })),
+        sourceIntervals.map((interval) => moveIntervalToDateKey(interval, targetDateKey)),
       );
     }
   }, {

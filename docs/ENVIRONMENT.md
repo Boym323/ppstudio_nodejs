@@ -136,3 +136,4 @@ Dokumentace proměnných prostředí pro lokální vývoj i produkci.
   - `ADMIN_SESSION_SECRET`
   - bootstrap admin účty pro `OWNER` a `SALON`
 - Koncept týdne i týdenní šablona se ukládají do `localStorage` v browseru; nejsou to env proměnné ani sdílená serverová konfigurace.
+- Kontrola DST pro `Europe/Prague` nepřidává žádnou novou env proměnnou; timezone salonu zůstává konstantou v aplikačních helperech a nesmí být nahrazena serverovým lokálním timezone.

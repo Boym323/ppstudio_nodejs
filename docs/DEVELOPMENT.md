@@ -784,3 +784,10 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Ověř, že zásah do rezervace nebo omezeného slotu vrátí srozumitelnou chybu a nic nepřepíše.
 - Ověř, že slot s historickou rezervací (`CANCELLED`/`COMPLETED`/`NO_SHOW`) planner nebere jako editovatelný a interval zobrazí jako uzamčený.
 - Ověř kopírování dne, kopírování týdne, použití lokální šablony a obnovení uloženého konceptu po refreshi stejného týdne.
+
+## Prague Time And DST
+- Salon-facing time is `Europe/Prague`; do not rely on server local timezone or fixed `+01:00` / `+02:00` offsets.
+- Planner slot creation should use `dateKey + half-hour cell index` through `getCellRangeBounds(...)`.
+- Planner copy day/week must preserve local cells with `moveIntervalToDateKey(...)`, not blind `24h`/millisecond shifts across DST.
+- Public booking catalog may return UTC ISO strings, but all client display helpers must render with `timeZone: "Europe/Prague"`.
+- Regression tests for DST live in admin slot time helpers, booking formatting, public booking helpers, e-mail templates and ICS utilities.

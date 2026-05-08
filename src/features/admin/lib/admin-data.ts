@@ -23,6 +23,12 @@ import {
   type BookingListStatValue,
   type BookingListStatusValue,
 } from "@/features/admin/lib/admin-booking-list-validation";
+import {
+  addDays,
+  formatDateKey,
+  getDayBounds,
+  resolveWeekStart,
+} from "@/features/admin/lib/admin-slots/time";
 import { getPublicBookingCatalog } from "@/features/booking/lib/booking-public";
 import {
   buildClientPhoneHref,
@@ -35,11 +41,13 @@ const formatDate = new Intl.DateTimeFormat("cs-CZ", {
   day: "numeric",
   month: "numeric",
   year: "numeric",
+  timeZone: "Europe/Prague",
 });
 
 const formatTime = new Intl.DateTimeFormat("cs-CZ", {
   hour: "2-digit",
   minute: "2-digit",
+  timeZone: "Europe/Prague",
 });
 
 const activeBookingStatuses = [BookingStatus.PENDING, BookingStatus.CONFIRMED] as const;
@@ -62,6 +70,7 @@ const formatDateTime = new Intl.DateTimeFormat("cs-CZ", {
   year: "numeric",
   hour: "2-digit",
   minute: "2-digit",
+  timeZone: "Europe/Prague",
 });
 
 function formatDateLabel(value: Date | null | undefined): string {
@@ -268,10 +277,7 @@ export function getAdminSectionTitle(slug: AdminSectionSlug) {
 
 export async function getAdminOverviewData(area: AdminArea) {
   const now = new Date();
-  const todayStart = new Date(now);
-  todayStart.setHours(0, 0, 0, 0);
-  const tomorrowStart = new Date(todayStart);
-  tomorrowStart.setDate(tomorrowStart.getDate() + 1);
+  const { startsAt: todayStart, endsAt: tomorrowStart } = getDayBounds(formatDateKey(now));
 
   const [
     pendingBookings,
@@ -677,29 +683,19 @@ function buildReservationsWhere(
 }
 
 function startOfToday() {
-  const value = new Date();
-  value.setHours(0, 0, 0, 0);
-  return value;
+  return getDayBounds(formatDateKey(new Date())).startsAt;
 }
 
 function startOfTomorrow(todayStart: Date) {
-  const value = new Date(todayStart);
-  value.setDate(value.getDate() + 1);
-  return value;
+  return addDays(todayStart, 1);
 }
 
 function startOfWeek(todayStart: Date) {
-  const value = new Date(todayStart);
-  const day = value.getDay();
-  const offset = day === 0 ? 6 : day - 1;
-  value.setDate(value.getDate() - offset);
-  return value;
+  return resolveWeekStart(formatDateKey(todayStart));
 }
 
 function startOfNextWeek(weekStart: Date) {
-  const value = new Date(weekStart);
-  value.setDate(value.getDate() + 7);
-  return value;
+  return addDays(weekStart, 7);
 }
 
 function formatGroupDateLabel(value: Date) {
@@ -707,6 +703,7 @@ function formatGroupDateLabel(value: Date) {
     weekday: "long",
     day: "numeric",
     month: "numeric",
+    timeZone: "Europe/Prague",
   }).format(value);
 }
 
@@ -1578,12 +1575,8 @@ function getWorkerSummary({
 
 async function getEmailLogsData(): Promise<EmailLogsDashboardData> {
   const now = new Date();
-  const todayStart = new Date(now);
-  todayStart.setHours(0, 0, 0, 0);
-  const tomorrowStart = new Date(todayStart);
-  tomorrowStart.setDate(tomorrowStart.getDate() + 1);
-  const sevenDayStart = new Date(todayStart);
-  sevenDayStart.setDate(sevenDayStart.getDate() - 6);
+  const { startsAt: todayStart, endsAt: tomorrowStart } = getDayBounds(formatDateKey(now));
+  const sevenDayStart = addDays(todayStart, -6);
   const [
     pending,
     retrying,

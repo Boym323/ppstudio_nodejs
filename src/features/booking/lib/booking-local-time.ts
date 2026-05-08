@@ -48,6 +48,8 @@ export function pragueLocalDateTimeToUtc(
   hour: number,
   minute: number,
 ) {
+  // Salon time follows Europe/Prague DST rules, so fixed +1/+2 offsets would
+  // break around March/October transitions and for future tz database changes.
   let guess = new Date(Date.UTC(year, month - 1, day, hour, minute));
 
   for (let index = 0; index < 4; index += 1) {

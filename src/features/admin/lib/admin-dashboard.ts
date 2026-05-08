@@ -6,6 +6,12 @@ import {
   getAdminBookingHref,
   getBookingStatusLabel,
 } from "@/features/admin/lib/admin-booking";
+import {
+  addDays,
+  formatDateKey,
+  getDayBounds,
+  resolveWeekStart,
+} from "@/features/admin/lib/admin-slots/time";
 import { prisma } from "@/lib/prisma";
 
 const ACTIVE_BOOKING_STATUSES: BookingStatus[] = [
@@ -26,11 +32,13 @@ const dayLabelFormatter = new Intl.DateTimeFormat("cs-CZ", {
   weekday: "long",
   day: "numeric",
   month: "long",
+  timeZone: "Europe/Prague",
 });
 
 const timeFormatter = new Intl.DateTimeFormat("cs-CZ", {
   hour: "2-digit",
   minute: "2-digit",
+  timeZone: "Europe/Prague",
 });
 
 type DashboardAlertTone = "warning" | "problem" | "success";
@@ -170,14 +178,8 @@ function getClientsHref(area: AdminArea) {
 }
 
 function getTodayBounds(now: Date) {
-  const todayStart = new Date(now);
-  todayStart.setHours(0, 0, 0, 0);
-
-  const tomorrowStart = new Date(todayStart);
-  tomorrowStart.setDate(tomorrowStart.getDate() + 1);
-
-  const dayAfterTomorrowStart = new Date(tomorrowStart);
-  dayAfterTomorrowStart.setDate(dayAfterTomorrowStart.getDate() + 1);
+  const { startsAt: todayStart, endsAt: tomorrowStart } = getDayBounds(formatDateKey(now));
+  const dayAfterTomorrowStart = addDays(tomorrowStart, 1);
 
   return {
     todayStart,
@@ -210,14 +212,8 @@ function buildDashboardBookingNotes(booking: {
 }
 
 function getWeekBounds(now: Date) {
-  const weekStart = new Date(now);
-  weekStart.setHours(0, 0, 0, 0);
-  const day = weekStart.getDay();
-  const diff = day === 0 ? -6 : 1 - day;
-  weekStart.setDate(weekStart.getDate() + diff);
-
-  const weekEnd = new Date(weekStart);
-  weekEnd.setDate(weekEnd.getDate() + 7);
+  const weekStart = resolveWeekStart(formatDateKey(now));
+  const weekEnd = addDays(weekStart, 7);
 
   return { weekStart, weekEnd };
 }

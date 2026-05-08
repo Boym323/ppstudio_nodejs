@@ -129,7 +129,7 @@ export async function GET() {
 
   const workerStatus = workerHasErrors || workerStuck ? "error" : workerBacklog ? "warning" : "ok";
 
-  const status = dbStatus === "error" || workerStatus === "error" ? "error" : workerStatus === "warning" ? "warning" : "ok";
+  const status = workerStatus === "error" ? "error" : workerStatus === "warning" ? "warning" : "ok";
 
   return Response.json(
     {

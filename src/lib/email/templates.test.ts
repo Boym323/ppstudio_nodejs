@@ -197,6 +197,26 @@ test("renderEmailTemplate creates approved email", async () => {
   assert.match(String(email.attachments[0]?.content ?? ""), /^BEGIN:VCALENDAR\r\n/);
 });
 
+test("renderEmailTemplate keeps email and ICS appointment time in Prague across DST", async () => {
+  const { renderEmailTemplate } = await loadRenderer();
+  const email = await renderEmailTemplate(
+    "booking-approved-v1",
+    "Rezervace potvrzena: DST kontrola",
+    {
+      bookingId: "clztestbookingdst",
+      serviceName: "DST kontrola",
+      clientName: "Jana Nováková",
+      scheduledStartsAt: "2026-03-30T07:00:00.000Z",
+      scheduledEndsAt: "2026-03-30T08:00:00.000Z",
+    },
+  );
+  const attachment = String(email.attachments?.[0]?.content ?? "");
+
+  assert.match(email.text, /Čas: 09:00 – 10:00/);
+  assert.match(attachment, /DTSTART;TZID=Europe\/Prague:20260330T090000/);
+  assert.match(attachment, /DTEND;TZID=Europe\/Prague:20260330T100000/);
+});
+
 test("renderEmailTemplate creates approved email for legacy payload without manageReservationUrl", async () => {
   const { renderEmailTemplate } = await loadRenderer();
   const email = await renderEmailTemplate(

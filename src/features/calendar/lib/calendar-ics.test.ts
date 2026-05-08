@@ -30,6 +30,11 @@ test("calendar date formatting keeps UTC and Europe/Prague outputs explicit", ()
   assert.equal(formatCalendarPragueDateTime(value), "20260330T101500");
 });
 
+test("calendar date formatting keeps winter and summer salon hours stable", () => {
+  assert.equal(formatCalendarPragueDateTime(new Date("2026-01-15T08:00:00.000Z")), "20260115T090000");
+  assert.equal(formatCalendarPragueDateTime(new Date("2026-07-15T07:00:00.000Z")), "20260715T090000");
+});
+
 test("buildCalendarEvent outputs a Prague-tz VEVENT", () => {
   const event = buildCalendarEvent({
     uid: "booking-1@example.com",
@@ -50,6 +55,20 @@ test("buildCalendarEvent outputs a Prague-tz VEVENT", () => {
   assert.match(event, /DESCRIPTION:Klientka: Jana Nováková\\nTelefon: \+420 777 000 000/);
   assert.match(event, /STATUS:CONFIRMED/);
   assert.match(event, /END:VEVENT/);
+});
+
+test("buildCalendarEvent does not shift salon appointment by one hour around DST", () => {
+  const event = buildCalendarEvent({
+    uid: "booking-dst@example.com",
+    summary: "DST kontrola",
+    status: "CONFIRMED",
+    startsAt: new Date("2026-03-30T07:00:00.000Z"),
+    endsAt: new Date("2026-03-30T08:00:00.000Z"),
+    dtStamp: new Date("2026-03-29T10:00:00.000Z"),
+  });
+
+  assert.match(event, /DTSTART;TZID=Europe\/Prague:20260330T090000/);
+  assert.match(event, /DTEND;TZID=Europe\/Prague:20260330T100000/);
 });
 
 test("buildCalendarIcs wraps events in VCALENDAR", () => {

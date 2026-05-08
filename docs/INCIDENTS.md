@@ -162,3 +162,4 @@ Evidence produkčních incidentů a jejich řešení.
 - Owner-only sekce `Nastavení` má dopad i na veřejný web a e-mailovou komunikaci; po každé změně je potřeba rychlá smoke kontrola footeru, `/kontakt`, `/faq`, `/storno-podminky` a `/rezervace`.
 - FAQ schema drift: po změně FAQ ověř, že `FAQPage` JSON-LD vzniká ze stejných `FaqItem` jako viditelná stránka a neobsahuje skryté nebo staré otázky.
 - Storno stránka publikovaná se správným limitem hodin, ale se starými kontakty nebo opačným významem summary karet; po změně `SiteSettings` vždy ověř hero box `Jak zrušit rezervaci` i text `více než / méně než X hodin`.
+- Zákaznický nebo admin termín posunutý o hodinu kolem změny času: zkontroluj, zda se slot/kopie počítá přes lokální `dateKey + cell index` v `Europe/Prague`, zda UI/e-mail/ICS formátují s explicitním `timeZone: "Europe/Prague"`, a zda nebyl zaveden pevný offset nebo `24h` millisecond shift.

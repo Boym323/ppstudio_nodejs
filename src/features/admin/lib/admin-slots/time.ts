@@ -1,4 +1,4 @@
-const PRAGUE_TIME_ZONE = "Europe/Prague";
+export const PRAGUE_TIME_ZONE = "Europe/Prague";
 const HALF_HOUR_MINUTES = 30;
 const PLANNER_START_HOUR = 6;
 const PLANNER_END_HOUR = 20;
@@ -108,6 +108,8 @@ function pragueLocalDateTimeToUtc(
   hour = 0,
   minute = 0,
 ) {
+  // Salon time follows Europe/Prague DST rules, so fixed +1/+2 offsets would
+  // break around March/October transitions and for future tz database changes.
   let guess = new Date(Date.UTC(year, month - 1, day, hour, minute));
 
   for (let index = 0; index < 4; index += 1) {
@@ -179,6 +181,10 @@ export function getCellRangeBounds(dateKey: string, startCell: number, endCell: 
       endMinutes % 60,
     ),
   };
+}
+
+export function moveIntervalToDateKey(interval: { startsAt: Date; endsAt: Date }, targetDateKey: string) {
+  return getCellRangeBounds(targetDateKey, dateToCellIndex(interval.startsAt), dateToCellIndex(interval.endsAt));
 }
 
 export function addDays(date: Date, amount: number) {

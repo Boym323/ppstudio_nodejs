@@ -26,6 +26,7 @@ const formatDate = new Intl.DateTimeFormat("cs-CZ", {
   day: "numeric",
   month: "numeric",
   year: "numeric",
+  timeZone: "Europe/Prague",
 });
 
 const formatDateTime = new Intl.DateTimeFormat("cs-CZ", {
@@ -34,6 +35,7 @@ const formatDateTime = new Intl.DateTimeFormat("cs-CZ", {
   year: "numeric",
   hour: "2-digit",
   minute: "2-digit",
+  timeZone: "Europe/Prague",
 });
 
 function formatDateLabel(value: Date | null | undefined) {
@@ -56,6 +58,7 @@ function formatBookingDateLabel(startsAt: Date, endsAt: Date) {
   return `${formatDateTimeLabel(startsAt)} - ${new Intl.DateTimeFormat("cs-CZ", {
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: "Europe/Prague",
   }).format(endsAt)}`;
 }
 

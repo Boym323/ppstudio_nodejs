@@ -790,3 +790,9 @@ npm run db:clear-booking-data -- --confirm
 - Kliknutí nebo tažení přes zelené buňky dostupnost odebere nebo zkrátí.
 - Při ukládání se sousední půlhodiny automaticky sloučí do co nejmenšího počtu souvislých intervalů.
 - Planner nikdy nepřepisuje rezervace ani technicky složitější sloty; pokud by změna zasáhla do chráněného úseku, vrátí srozumitelnou chybu.
+
+## Kontrola Letního A Zimního Času
+- Salonové časy se berou jako `Europe/Prague`; v UI, e-mailech a ICS má termín 09:00-10:00 zůstat 09:00-10:00 v zimě i v létě.
+- Při kopírování dne nebo týdne v planneru se přenáší lokální půlhodinové buňky, ne pevný počet milisekund.
+- Ruční QA po změně časové logiky: vytvoř slot 09:00-10:00 v lednu a červenci, zkontroluj veřejný booking, potvrzovací e-mail i `.ics` přílohu.
+- Ruční QA kolem DST: zkopíruj den přes poslední březnovou neděli a poslední říjnovou neděli a ověř, že zůstaly stejné lokální hodiny.

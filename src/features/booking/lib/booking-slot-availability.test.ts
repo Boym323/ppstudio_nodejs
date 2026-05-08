@@ -56,6 +56,37 @@ describe("buildMergedPublicCatalogSlots", () => {
     assert.deepEqual(slots[0]?.segments?.map((segment) => segment.id), ["slot-1", "slot-2", "slot-3"]);
     assert.equal(slots[0]?.bookedIntervals.length, 1);
   });
+
+  test("returns UTC ISO instants that clients can render as Prague salon time", () => {
+    const [winterSlot, summerSlot] = buildMergedPublicCatalogSlots(
+      [
+        {
+          id: "winter-slot",
+          startsAt: new Date("2026-01-15T08:00:00.000Z"),
+          endsAt: new Date("2026-01-15T09:00:00.000Z"),
+          publicNote: null,
+          capacity: 1,
+          serviceRestrictionMode: AvailabilitySlotServiceRestrictionMode.ANY,
+          allowedServiceIds: [],
+        },
+        {
+          id: "summer-slot",
+          startsAt: new Date("2026-07-15T07:00:00.000Z"),
+          endsAt: new Date("2026-07-15T08:00:00.000Z"),
+          publicNote: null,
+          capacity: 1,
+          serviceRestrictionMode: AvailabilitySlotServiceRestrictionMode.ANY,
+          allowedServiceIds: [],
+        },
+      ],
+      [],
+    );
+
+    assert.equal(winterSlot?.startsAt, "2026-01-15T08:00:00.000Z");
+    assert.equal(winterSlot?.endsAt, "2026-01-15T09:00:00.000Z");
+    assert.equal(summerSlot?.startsAt, "2026-07-15T07:00:00.000Z");
+    assert.equal(summerSlot?.endsAt, "2026-07-15T08:00:00.000Z");
+  });
 });
 
 describe("buildSlotTimeOptions", () => {

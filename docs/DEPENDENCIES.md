@@ -146,3 +146,4 @@ Seznam důležitých knihoven a důvod jejich použití.
 - Synchronizace publikovaného konceptu týdne používá novou server action nad existující Prisma vrstvou; nepřibyla žádná fronta, websocket vrstva ani další persistence systém.
 - `dotenv` a `prisma/config` jsou potřeba i proto, že Prisma 7 CLI čte `DATABASE_URL` a `SHADOW_DATABASE_URL` mimo runtime validaci Next.js aplikace.
 - Týdenní planner dostupností byl postavený bez nové závislosti; zůstáváme na stávajícím stacku Next.js, React, Prisma a Zod.
+- DST hardening pro `Europe/Prague` nepřidává žádnou novou knihovnu; používá stávající `Intl.DateTimeFormat`, Prisma `DateTime` instants a lokální TypeScript helpery.
