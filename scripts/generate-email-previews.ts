@@ -45,7 +45,7 @@ const previews = [
   {
     filename: "03-pripominka-rezervace-zitra-v-pp-studio.html",
     templateKey: "booking-reminder-24h-v1",
-    subject: "Připomínka rezervace - zítra v PP Studio",
+    subject: "Zítra se na vás těšíme v PP Studiu",
     payload: {
       ...baseBookingPayload,
       cancellationUrl: "https://ppstudio.cz/rezervace/storno/preview",

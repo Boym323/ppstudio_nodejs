@@ -204,7 +204,7 @@ export async function enqueueBookingReminder24hJobs(
             processingStartedAt: null,
             processingToken: null,
             recipientEmail: booking.clientEmailSnapshot,
-            subject: "Připomínka rezervace - zítra v PP Studio",
+            subject: "Zítra se na vás těšíme v PP Studiu",
             templateKey: "booking-reminder-24h-v1",
             payload: {
               bookingId: booking.id,

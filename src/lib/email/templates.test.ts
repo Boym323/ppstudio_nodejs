@@ -275,7 +275,7 @@ test("renderEmailTemplate creates 24h reminder email without calendar attachment
   const { renderEmailTemplate } = await loadRenderer();
   const email = await renderEmailTemplate(
     "booking-reminder-24h-v1",
-    "Připomínka rezervace - zítra v PP Studio",
+    "Zítra se na vás těšíme v PP Studiu",
     {
       bookingId: "clztestbookingremind",
       serviceName: "Luxusní péče",
@@ -287,7 +287,7 @@ test("renderEmailTemplate creates 24h reminder email without calendar attachment
     },
   );
 
-  assert.equal(email.subject, "Připomínka rezervace - zítra v PP Studio");
+  assert.equal(email.subject, "Zítra se na vás těšíme v PP Studiu");
   assert.match(email.text, /Zítra se na vás těšíme/);
   assert.match(email.text, /Jen krátce připomínáme váš termín/i);
   assert.match(email.text, /Místo:\nPP Studio\nSadová 2, 760 01 Zlín/);
@@ -305,7 +305,7 @@ test("renderEmailTemplate creates 24h reminder email for legacy payload without 
   const { renderEmailTemplate } = await loadRenderer();
   const email = await renderEmailTemplate(
     "booking-reminder-24h-v1",
-    "Připomínka rezervace - zítra v PP Studio",
+    "Zítra se na vás těšíme v PP Studiu",
     {
       bookingId: "clztestbookingremindlegacy",
       serviceName: "Luxusní péče",
