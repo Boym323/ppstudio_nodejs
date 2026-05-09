@@ -3,6 +3,8 @@ import type { MetadataRoute } from "next";
 import { siteConfig } from "@/config/site";
 import { getPublicServiceSitemapEntries } from "@/features/public/lib/public-services";
 
+export const revalidate = 60 * 60 * 24;
+
 type StaticSitemapRoute = {
   route: string;
   changeFrequency: "weekly" | "monthly";

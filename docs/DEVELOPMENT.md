@@ -80,6 +80,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - `src/features/admin/lib/admin-slots.ts` je façade nad `admin-slots/time.ts`, `helpers.ts`, `queries.ts`, `mutations.ts`, `types.ts`
 - Při dalším refaktoru těchto oblastí drž kompatibilní veřejné exporty v původních entrypointech, aby se nerozbily existující importy v actions, routech a admin UI.
 - `src/app/robots.ts` a `src/app/sitemap.ts` používají metadata route API v App Routeru.
+- `src/app/sitemap.ts` je explicitně ISR metadata route (`export const revalidate = 86400`), takže se `sitemap.xml` generuje dynamicky a obnovuje nejvýše jednou denně bez plného redeploye.
 - `src/app/sitemap.ts` musí nastavovat realistické `lastModified` hodnoty: detail služeb z `Service.updatedAt`, statické stránky ze stabilního data poslední obsahové revize (ne plošně `new Date()` pro všechny URL).
 - Veřejné stránky používají `buildPageMetadata(...)` a vždy předávají vlastní `path`; helper z něj skládá canonical, OpenGraph URL a Twitter metadata. Nevkládej globální canonical do root layoutu, protože by ho zdědily podstránky.
 - Playwright smoke test pro veřejné stránky ověřuje canonical a `og:url` proti aktuálnímu runtime originu. Discovery test zároveň hlídá `Host`/`Sitemap` v `robots.txt`, sitemap `<loc>` na stejném originu a absenci historické `http://ppstudio.cz` URL.

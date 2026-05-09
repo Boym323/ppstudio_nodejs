@@ -769,6 +769,7 @@ npm run db:clear-booking-data -- --confirm
 - JSON-LD serializer čistí `undefined`, `null` a prázdné hodnoty, escapuje `<` pro bezpečné vložení do script tagu a ponechává českou diakritiku. Délka služby v JSON-LD používá ISO 8601 helper `durationMinutesToIsoDuration(...)`.
 - Web Vitals měří samostatná klientská komponenta `WebVitalsReporter` v public/booking `SiteShell`. Pokud je Matomo vypnuté nebo chybí konfigurace, reporting je no-op; při zapnutém Matomu odchází jen anonymní event `Web Vitals / <metric>` s ratingem a číselnou hodnotou.
 - `sitemap.ts` nepoužívá jednotné „teď“ (`new Date()`) pro všechny URL: detail služby má `lastModified` z `Service.updatedAt`, statické stránky mají stabilní datum poslední obsahové revize.
+- `sitemap.xml` běží jako Next.js metadata route s ISR revalidací (`revalidate = 86400`), takže se po změnách veřejných služeb průběžně regeneruje bez ručního zásahu.
 - Produkční `robots.txt` pouští crawl celého veřejného webu přes `Allow: /`; neveřejné admin a tokenové routy zůstávají blokované, aby se neindexovaly citlivé odkazy. Veřejné noindex stránky, které nemají token v path, necháváme crawl přístupné, aby si roboti mohli přečíst `noindex`.
 - Celý admin strom `/admin/*` má zároveň explicitní HTML metadata `robots: noindex,nofollow` v `src/app/(admin)/admin/layout.tsx`; `robots.txt` a stránkové metadata se záměrně doplňují.
 - Root metadata branding (`applicationName`, title template a OpenGraph `siteName`) se načítá z `SiteSettings.salonName`; canonical URL base zůstává technicky na `NEXT_PUBLIC_APP_URL`.
