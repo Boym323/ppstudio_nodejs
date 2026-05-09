@@ -6,6 +6,9 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [0.2.5] - 2026-05-09
+
+- Release příprava pro produkční nasazení: projektová verze navýšena na patch `0.2.5`.
 - JSON-LD helpery pro veřejné SEO byly sjednoceny na `buildLocalBusinessJsonLd(...)`, `buildServiceJsonLd(...)` a `durationMinutesToIsoDuration(...)`; detail služby nově doplňuje ISO 8601 délku, provider PP Studio a testované čištění prázdných hodnot před serializací.
 - Public/booking shell nově obsahuje malý `WebVitalsReporter`, který přes existující Matomo helper posílá anonymní Web Vitals eventy pouze při zapnuté Matomo konfiguraci.
 - Tisková A4 varianta voucheru už nemá žluté okraje kolem horního slotu: horní a boční 3mm trim se uvnitř rozměru voucheru dorovnává hlavní béžovou plochou voucheru, plocha mimo voucher zůstává bílý A4 papír, ořezová čára je posunutá na novou spodní hranu 201 mm a obsah voucheru včetně QR, loga, textů, fontů i rozložení zůstává beze změny.
