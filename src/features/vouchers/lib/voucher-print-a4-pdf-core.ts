@@ -173,11 +173,19 @@ function toPdfColor(input: ThemeColorInput) {
     return rgb(normalizeColorChannel(r), normalizeColorChannel(g), normalizeColorChannel(b));
   }
 
-  if (input.startsWith("#")) {
+  if (typeof input === "string" && isHexColor(input)) {
     return rgbFromHex(input);
   }
 
-  return rgbFromCssRgb(input);
+  if (typeof input === "string") {
+    return rgbFromCssRgb(input);
+  }
+
+  throw new Error("Unsupported voucher theme color input.");
+}
+
+function isHexColor(input: string): input is `#${string}` {
+  return input.startsWith("#");
 }
 
 function rgbFromHex(hex: `#${string}`) {
