@@ -45,7 +45,7 @@ test.describe("public site smoke coverage", () => {
     fixtures.push(fixture);
 
     const publicPages: Array<{ path: string; heading: RegExp | string }> = [
-      { path: "/", heading: "PP Studio" },
+      { path: "/", heading: "Kosmetika ve Zlíně" },
       { path: "/sluzby", heading: "Péče rozdělená podle toho, co právě hledáte." },
       { path: "/cenik", heading: "Ceny přehledně a bez zbytečného hledání." },
       { path: "/o-mne", heading: "Péče, ve které se můžete cítit dobře" },

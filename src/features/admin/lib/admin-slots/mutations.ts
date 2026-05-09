@@ -31,6 +31,60 @@ import {
   PlannerMutationError,
 } from "./types";
 
+const PLANNER_TRANSACTION_MAX_RETRIES = 4;
+const PLANNER_TRANSACTION_RETRY_DELAY_MS = 40;
+
+function isRetryablePrismaError(error: unknown) {
+  const driverAdapterCause =
+    typeof error === "object" && error !== null && "cause" in error
+      ? (error as { cause?: unknown }).cause
+      : null;
+
+  return (
+    (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2034"
+    ) ||
+    (
+      typeof error === "object" &&
+      error !== null &&
+      "name" in error &&
+      error.name === "DriverAdapterError" &&
+      typeof driverAdapterCause === "object" &&
+      driverAdapterCause !== null &&
+      "kind" in driverAdapterCause &&
+      driverAdapterCause.kind === "TransactionWriteConflict"
+    )
+  );
+}
+
+function waitForRetry(delayMs: number) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, delayMs);
+  });
+}
+
+async function runPlannerTransaction<T>(
+  operation: (tx: Prisma.TransactionClient) => Promise<T>,
+): Promise<T> {
+  let attempt = 0;
+
+  while (true) {
+    try {
+      return await prisma.$transaction(operation, {
+        isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+      });
+    } catch (error) {
+      if (!isRetryablePrismaError(error) || attempt >= PLANNER_TRANSACTION_MAX_RETRIES) {
+        throw error;
+      }
+
+      attempt += 1;
+      await waitForRetry(PLANNER_TRANSACTION_RETRY_DELAY_MS * attempt);
+    }
+  }
+}
+
 async function getEditableDayState(tx: Prisma.TransactionClient, dateKey: string) {
   const { startsAt: dayStart, endsAt: dayEnd } = getDayBounds(dateKey);
   const slots = await tx.availabilitySlot.findMany({
@@ -168,7 +222,7 @@ export async function applyAvailabilitySelection(
 
   const selection = getCellRangeBounds(input.dateKey, input.startCell, input.endCell);
 
-  await prisma.$transaction(async (tx) => {
+  await runPlannerTransaction(async (tx) => {
     const state = await getEditableDayState(tx, input.dateKey);
 
     if (intersectsAny(selection, state.lockedIntervals)) {
@@ -210,8 +264,6 @@ export async function applyAvailabilitySelection(
         })),
       });
     }
-  }, {
-    isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
   });
 
   return {
@@ -231,7 +283,7 @@ export async function clearPlannerDay(
     dateKey: string;
   },
 ): Promise<PlannerMutationResult> {
-  await prisma.$transaction(async (tx) => {
+  await runPlannerTransaction(async (tx) => {
     const state = await getEditableDayState(tx, input.dateKey);
 
     if (state.editableSlots.length > 0) {
@@ -261,7 +313,7 @@ export async function copyPlannerDay(
     actorUserId: string | null;
   },
 ): Promise<PlannerMutationResult> {
-  await prisma.$transaction(async (tx) => {
+  await runPlannerTransaction(async (tx) => {
     const sourceIntervals = await readEditableIntervalsForDate(tx, input.sourceDateKey);
 
     await replaceDayWithIntervals(
@@ -270,8 +322,6 @@ export async function copyPlannerDay(
       input.targetDateKey,
       sourceIntervals.map((interval) => moveIntervalToDateKey(interval, input.targetDateKey)),
     );
-  }, {
-    isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
   });
 
   return {
@@ -292,7 +342,7 @@ export async function copyPlannerWeek(
   const sourceWeekStart = resolveWeekStart(input.sourceWeekKey);
   const targetWeekStart = resolveWeekStart(input.targetWeekKey);
 
-  await prisma.$transaction(async (tx) => {
+  await runPlannerTransaction(async (tx) => {
     for (let index = 0; index < 7; index += 1) {
       const sourceDateKey = formatDateKey(addDays(sourceWeekStart, index));
       const targetDateKey = formatDateKey(addDays(targetWeekStart, index));
@@ -305,8 +355,6 @@ export async function copyPlannerWeek(
         sourceIntervals.map((interval) => moveIntervalToDateKey(interval, targetDateKey)),
       );
     }
-  }, {
-    isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
   });
 
   return {
@@ -326,7 +374,7 @@ export async function applyWeeklyTemplate(
 ): Promise<PlannerMutationResult> {
   const weekStart = resolveWeekStart(input.weekKey);
 
-  await prisma.$transaction(async (tx) => {
+  await runPlannerTransaction(async (tx) => {
     for (const dayTemplate of input.template) {
       if (dayTemplate.weekday < 0 || dayTemplate.weekday > 6) {
         throw new PlannerMutationError("Šablona týdne obsahuje neplatný den.");
@@ -346,8 +394,6 @@ export async function applyWeeklyTemplate(
 
       await replaceDayWithIntervals(tx, input.actorUserId, dateKey, intervals);
     }
-  }, {
-    isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
   });
 
   return {
@@ -370,7 +416,7 @@ export async function syncPlannerWeekDraft(
     Array.from({ length: 7 }, (_, index) => formatDateKey(addDays(weekStart, index))),
   );
 
-  await prisma.$transaction(async (tx) => {
+  await runPlannerTransaction(async (tx) => {
     for (const day of input.days) {
       if (!allowedDateKeys.has(day.dateKey)) {
         throw new PlannerMutationError("Koncept obsahuje den mimo aktuálně otevřený týden.");
@@ -391,8 +437,6 @@ export async function syncPlannerWeekDraft(
         lockedConflict: "preserve",
       });
     }
-  }, {
-    isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
   });
 
   return {

@@ -79,8 +79,20 @@ function formatPrice(value: number | null) {
   return priceFormatter.format(value);
 }
 
-function getCategoryLabel(category: { name: string }) {
-  return category.name;
+function getCategoryLabel(category: { name?: string | null; publicName?: string | null } | null) {
+  const publicLabel = category?.publicName?.trim();
+
+  if (publicLabel) {
+    return publicLabel;
+  }
+
+  const fallbackLabel = category?.name?.trim();
+
+  if (fallbackLabel) {
+    return fallbackLabel;
+  }
+
+  return "Služby salonu";
 }
 
 function getServiceDisplayName(service: { name: string; publicName: string | null }) {

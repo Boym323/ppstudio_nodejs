@@ -6,6 +6,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Admin planner mutace (`copy day/week`, `publish draft`, `apply template`, `selection`) nově automaticky opakují serializable transakce při Prisma `P2034` / `TransactionWriteConflict`, takže paralelní CI a provozní souběhy už nevyhazují náhodné pády při `deleteMany()` nad `AvailabilitySlot`.
+- Veřejné čtení služeb je odolnější proti krátkému závodu mezi více Prisma dotazy na službu a kategorii: pokud se při souběžném cleanupu dočasně vrátí `service.category = null`, homepage ani detail služby už nespadnou na `Cannot read properties of null (reading 'name')` a použijí bezpečný fallback štítek kategorie.
 - Sitemap metadata route je nyní explicitně ISR (`revalidate = 86400`) v `src/app/sitemap.ts`, takže `sitemap.xml` se dynamicky průběžně obnovuje bez nutnosti ručního přegenerování při každé změně veřejných služeb.
 - Opraven build fail `Invalid segment configuration export detected`: `src/app/sitemap.ts` už používá pro `revalidate` přímo číselný literál `86400` místo výrazu `60 * 60 * 24`, aby Next.js 16 správně aplikoval segment config při produkčním buildu.
 - Stabilizován DB integrační test `booking-rescheduling.integration.test.ts`: seed slotů už negeneruje termíny z úzkého náhodného okna, ale z UUID-odvozeného rozptylu v rámci online booking window, takže při paralelním CI běhu nedochází k náhodným kolizím na DB constraintu `AvailabilitySlot_active_time_window_excl`.
