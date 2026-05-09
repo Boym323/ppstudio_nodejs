@@ -247,6 +247,8 @@ Aktuálně pokrývá:
 - `src/features/booking/lib/booking-rescheduling.integration.test.ts`
 - `src/features/booking/lib/booking-management.integration.test.ts`
 
+U DB integračních seedů dostupnosti nepoužívej úzké fixní časové okno; při paralelním běhu CI to může náhodně kolidovat na `AvailabilitySlot_active_time_window_excl`. Bezpečnější je čas odvodit z UUID/hash rozptylu uvnitř booking window.
+
 Pro rychlé unit ověření veřejné správy rezervace a reschedule pravidel jsou v repozitáři i cílené testy bez DB:
 
 ```bash

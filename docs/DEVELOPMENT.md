@@ -619,6 +619,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - `npm run test`
   - `npm run build`
 - `npm run test` nově nastavuje `RUN_DB_INTEGRATION_TESTS=1`, takže integrační booking testy (`*.integration.test.ts`) už nejsou v běžném běhu skipnuté.
+- U DB integračních testů, které vytváří `AvailabilitySlot` řádky, neseeduj časy z malého fixního okna; při paralelním běhu to může náhodně narážet na `AvailabilitySlot_active_time_window_excl`. Preferuj UUID/hash odvozený časový rozptyl uvnitř aktuálního booking window.
 - Pro DB-backed integrační testy booking domény je připravený i:
   - `npm run test:db:booking`
 - `npm run test:db:booking` aktuálně spouští jak centrální `booking-rescheduling.integration.test.ts`, tak veřejný `booking-management.integration.test.ts`.

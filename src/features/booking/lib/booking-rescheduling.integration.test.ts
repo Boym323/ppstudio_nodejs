@@ -50,12 +50,19 @@ async function loadModules() {
 
 async function createSeed() {
   const { prisma, BookingStatus, AvailabilitySlotStatus } = await loadModules();
-  const suffix = randomUUID().slice(0, 8);
-  const offsetDays = Math.floor(Math.random() * 45);
-  const oldStartAt = new Date(Date.UTC(2026, 4, 10 + offsetDays, 2, 13, 0));
-  const oldEndAt = new Date(Date.UTC(2026, 4, 10 + offsetDays, 3, 13, 0));
-  const newStartAt = new Date(Date.UTC(2026, 4, 11 + offsetDays, 3, 19, 0));
-  const newEndAt = new Date(Date.UTC(2026, 4, 11 + offsetDays, 4, 49, 0));
+  const seedUuid = randomUUID();
+  const suffix = seedUuid.slice(0, 8);
+  const seedEntropy = Number.parseInt(seedUuid.replaceAll("-", "").slice(0, 8), 16);
+  const offsetDays = 10 + (seedEntropy % 45);
+  const offsetMinutes = seedEntropy % (8 * 60);
+  const oldStartAt = new Date();
+  oldStartAt.setUTCSeconds(0, 0);
+  oldStartAt.setUTCMinutes(offsetMinutes);
+  oldStartAt.setUTCHours(8 + Math.floor(offsetMinutes / 60));
+  oldStartAt.setUTCDate(oldStartAt.getUTCDate() + offsetDays);
+  const oldEndAt = new Date(oldStartAt.getTime() + 60 * 60 * 1000);
+  const newStartAt = new Date(oldStartAt.getTime() + 24 * 60 * 60 * 1000 + 66 * 60 * 1000);
+  const newEndAt = new Date(newStartAt.getTime() + 90 * 60 * 1000);
   const actor = await prisma.adminUser.create({
     data: {
       email: `reschedule-${suffix}@example.com`,

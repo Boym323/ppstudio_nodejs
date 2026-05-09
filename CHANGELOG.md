@@ -6,6 +6,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Stabilizován DB integrační test `booking-rescheduling.integration.test.ts`: seed slotů už negeneruje termíny z úzkého náhodného okna, ale z UUID-odvozeného rozptylu v rámci online booking window, takže při paralelním CI běhu nedochází k náhodným kolizím na DB constraintu `AvailabilitySlot_active_time_window_excl`.
+
 ## [0.2.5] - 2026-05-09
 
 - Release příprava pro produkční nasazení: projektová verze navýšena na patch `0.2.5`.
