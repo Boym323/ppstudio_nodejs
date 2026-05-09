@@ -7,6 +7,7 @@ Formát je inspirovaný Keep a Changelog.
 ## [Unreleased]
 
 - Sitemap metadata route je nyní explicitně ISR (`revalidate = 86400`) v `src/app/sitemap.ts`, takže `sitemap.xml` se dynamicky průběžně obnovuje bez nutnosti ručního přegenerování při každé změně veřejných služeb.
+- Opraven build fail `Invalid segment configuration export detected`: `src/app/sitemap.ts` už používá pro `revalidate` přímo číselný literál `86400` místo výrazu `60 * 60 * 24`, aby Next.js 16 správně aplikoval segment config při produkčním buildu.
 - Stabilizován DB integrační test `booking-rescheduling.integration.test.ts`: seed slotů už negeneruje termíny z úzkého náhodného okna, ale z UUID-odvozeného rozptylu v rámci online booking window, takže při paralelním CI běhu nedochází k náhodným kolizím na DB constraintu `AvailabilitySlot_active_time_window_excl`.
 - Stabilizován success feedback po publikaci admin planneru: klient si jednorázově přenese publish hlášku přes `sessionStorage` i po `router.refresh()`, takže E2E scénáře a obsluha už nenaráží na flaky zmizení textu `Změny týdne byly publikované do dostupností.` během rerenderu.
 

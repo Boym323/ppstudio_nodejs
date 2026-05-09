@@ -750,6 +750,11 @@ npm run db:clear-booking-data -- --confirm
   - nejdřív proveď `const { slug } = await params` (nebo odpovídající pole)
   - až potom parametr použij v DB dotazech nebo renderu
 - Referenční implementace v projektu: [`src/app/(public)/sluzby/[slug]/page.tsx`](/var/www/ppstudio/src/app/(public)/sluzby/[slug]/page.tsx).
+- Chyba build procesu `Invalid segment configuration export detected` znamená, že některý App Router segment config export není staticky analyzovatelný.
+- Oprava:
+  - v route souboru používej pro `revalidate`, `dynamic`, `fetchCache`, `runtime`, `preferredRegion`, `maxDuration` přímo literály nebo jiné staticky vyhodnotitelné hodnoty
+  - nepoužívej výrazy typu `60 * 60 * 24`; použij rovnou `86400`
+  - v tomto projektu je referenční oprava v [`src/app/sitemap.ts`](/var/www/ppstudio/src/app/sitemap.ts)
 
 ## Provozní Poznámky
 - V detailu voucheru lze v adminu upravit jen provozní údaje: jméno kupujícího, e-mail kupujícího, platnost do a interní poznámku. Kód, typ, hodnota, měna, služba, čerpání ani PDF identita se běžnou editací nemění.
