@@ -29,6 +29,7 @@ import {
 
 const TEMPLATE_STORAGE_KEY = "ppstudio-admin-weekly-template-v2";
 const DRAFT_STORAGE_PREFIX = "ppstudio-admin-weekly-draft-v1";
+const FEEDBACK_STORAGE_PREFIX = "ppstudio-admin-weekly-feedback-v1";
 const PLANNER_DAY_CELLS = 28;
 
 type AdminWeeklyPlannerClientProps = {
@@ -53,6 +54,50 @@ type PendingInteraction = {
 
 function getDraftStorageKey(area: PlannerWeekData["area"], weekKey: string) {
   return `${DRAFT_STORAGE_PREFIX}:${area}:${weekKey}`;
+}
+
+function getFeedbackStorageKey(area: PlannerWeekData["area"], weekKey: string) {
+  return `${FEEDBACK_STORAGE_PREFIX}:${area}:${weekKey}`;
+}
+
+function consumeStoredFeedback(area: PlannerWeekData["area"], weekKey: string): FeedbackState | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const storageKey = getFeedbackStorageKey(area, weekKey);
+  const storedFeedback = window.sessionStorage.getItem(storageKey);
+
+  if (!storedFeedback) {
+    return null;
+  }
+
+  window.sessionStorage.removeItem(storageKey);
+
+  try {
+    const parsed = JSON.parse(storedFeedback) as FeedbackState;
+
+    if (
+      parsed &&
+      (parsed.tone === "success" || parsed.tone === "error" || parsed.tone === "info") &&
+      typeof parsed.message === "string" &&
+      parsed.message.length > 0
+    ) {
+      return parsed;
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+}
+
+function persistFeedback(area: PlannerWeekData["area"], weekKey: string, feedback: FeedbackState) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.sessionStorage.setItem(getFeedbackStorageKey(area, weekKey), JSON.stringify(feedback));
 }
 
 function buildAvailableCells(intervals: Array<{ startCell: number; endCell: number }>) {
@@ -312,9 +357,11 @@ function getInitialPlannerState(data: PlannerWeekData): {
   const storedDraft = window.localStorage.getItem(getDraftStorageKey(data.area, data.weekKey));
 
   if (!storedDraft) {
+    const storedFeedback = consumeStoredFeedback(data.area, data.weekKey);
+
     return {
       days: nextDays,
-      feedback: null,
+      feedback: storedFeedback,
     };
   }
 
@@ -655,10 +702,12 @@ export function AdminWeeklyPlannerClient({
         days: sanitizedDays,
       });
 
-      setFeedback({ tone: result.ok ? "success" : "error", message: result.message });
+      const nextFeedback = { tone: result.ok ? "success" : "error", message: result.message } as FeedbackState;
+      setFeedback(nextFeedback);
 
       if (result.ok) {
         window.localStorage.removeItem(getDraftStorageKey(data.area, data.weekKey));
+        persistFeedback(data.area, data.weekKey, nextFeedback);
         router.replace(`${data.baseHref}?week=${data.weekKey}&day=${selectedDay.dateKey}`, { scroll: false });
         router.refresh();
       }

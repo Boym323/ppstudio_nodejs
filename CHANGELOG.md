@@ -7,6 +7,7 @@ Formát je inspirovaný Keep a Changelog.
 ## [Unreleased]
 
 - Stabilizován DB integrační test `booking-rescheduling.integration.test.ts`: seed slotů už negeneruje termíny z úzkého náhodného okna, ale z UUID-odvozeného rozptylu v rámci online booking window, takže při paralelním CI běhu nedochází k náhodným kolizím na DB constraintu `AvailabilitySlot_active_time_window_excl`.
+- Stabilizován success feedback po publikaci admin planneru: klient si jednorázově přenese publish hlášku přes `sessionStorage` i po `router.refresh()`, takže E2E scénáře a obsluha už nenaráží na flaky zmizení textu `Změny týdne byly publikované do dostupností.` během rerenderu.
 
 ## [0.2.5] - 2026-05-09
 
