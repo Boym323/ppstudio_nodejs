@@ -1,0 +1,126 @@
+import assert from "node:assert/strict";
+import { before, describe, test } from "node:test";
+
+import type { Service } from "@/content/public-site";
+import type { PublicSalonProfile } from "@/lib/site-settings";
+
+process.env.NEXT_PUBLIC_APP_NAME ??= "PP Studio";
+process.env.NEXT_PUBLIC_APP_URL ??= "https://ppstudio.cz";
+process.env.DATABASE_URL ??= "postgresql://test:test@127.0.0.1:5432/ppstudio_test";
+process.env.ADMIN_SESSION_SECRET ??= "test-secret-with-enough-length-123456";
+process.env.ADMIN_OWNER_EMAIL ??= "owner@example.com";
+process.env.ADMIN_OWNER_PASSWORD ??= "owner-password";
+process.env.ADMIN_STAFF_EMAIL ??= "salon@example.com";
+process.env.ADMIN_STAFF_PASSWORD ??= "salon-password";
+
+let buildLocalBusinessJsonLd: typeof import("./seo-json-ld")["buildLocalBusinessJsonLd"];
+let buildServiceJsonLd: typeof import("./seo-json-ld")["buildServiceJsonLd"];
+let durationMinutesToIsoDuration: typeof import("./seo-json-ld")["durationMinutesToIsoDuration"];
+let serializeJsonLd: typeof import("./seo-json-ld")["serializeJsonLd"];
+
+before(async () => {
+  const seoJsonLd = await import("./seo-json-ld");
+
+  buildLocalBusinessJsonLd = seoJsonLd.buildLocalBusinessJsonLd;
+  buildServiceJsonLd = seoJsonLd.buildServiceJsonLd;
+  durationMinutesToIsoDuration = seoJsonLd.durationMinutesToIsoDuration;
+  serializeJsonLd = seoJsonLd.serializeJsonLd;
+});
+
+const salonProfile = {
+  name: "PP Studio",
+  operatorName: "Pavlína Pomykalová",
+  businessId: "234 275 66",
+  phone: "+420 732 856 036",
+  email: "info@ppstudio.cz",
+  instagramUrl: "https://www.instagram.com/ppstudio.cz/",
+  streetAddress: "Sadová 2",
+  postalCode: "760 01",
+  city: "Zlín",
+  addressLine: "Sadová 2, 760 01 Zlín",
+  bookingLabel: "Dle vypsaných termínů a individuální domluvy",
+} satisfies PublicSalonProfile;
+
+const service = {
+  slug: "refresh-treatment-75-min",
+  name: "Čisticí ošetření pleti",
+  category: "Kosmetické ošetření",
+  priceFrom: "1 690 Kč",
+  duration: "75 min",
+  durationMinutes: 75,
+  intro: "Šetrné čištění a zklidnění pleti.",
+  description: "Viditelný veřejný popis služby.",
+  idealFor: ["citlivější pleť"],
+  includes: ["diagnostika"],
+  results: ["čistší pleť"],
+  placeholderAssetBrief: "Detail služby v salonu.",
+  seoDescription: "Čisticí ošetření pleti ve Zlíně se šetrným postupem.",
+} satisfies Service;
+
+describe("seo json-ld helpers", () => {
+  test("builds LocalBusiness/BeautySalon JSON-LD from salon profile", () => {
+    const jsonLd = buildLocalBusinessJsonLd(salonProfile);
+    const business = jsonLd["@graph"][0];
+
+    assert.equal(jsonLd["@context"], "https://schema.org");
+    assert.equal(business["@type"], "BeautySalon");
+    assert.equal(business.name, "PP Studio");
+    assert.equal(business.telephone, "+420 732 856 036");
+    assert.equal(business.email, "info@ppstudio.cz");
+    assert.equal(business.address.addressLocality, "Zlín");
+    assert.deepEqual(business.sameAs, ["https://www.instagram.com/ppstudio.cz/"]);
+  });
+
+  test("builds Service JSON-LD with offer, CZK currency and ISO duration", () => {
+    const jsonLd = buildServiceJsonLd(service, salonProfile);
+    const serviceNode = jsonLd["@graph"][0];
+
+    assert.equal(jsonLd["@context"], "https://schema.org");
+    assert.equal(serviceNode["@type"], "Service");
+    assert.equal(serviceNode.name, "Čisticí ošetření pleti");
+    assert.equal(serviceNode.description, "Čisticí ošetření pleti ve Zlíně se šetrným postupem.");
+    assert.equal(serviceNode.provider["@type"], "BeautySalon");
+    assert.equal(serviceNode.areaServed.name, "Zlín");
+    assert.equal(serviceNode.offers.price, "1690");
+    assert.equal(serviceNode.offers.priceCurrency, "CZK");
+    assert.equal(serviceNode.offers.availability, "https://schema.org/InStock");
+    assert.equal(serviceNode.duration, "PT75M");
+  });
+
+  test("keeps price as a schema-safe number string", () => {
+    const jsonLd = buildServiceJsonLd(service, salonProfile);
+    const price = jsonLd["@graph"][0].offers.price;
+
+    assert.equal(typeof price, "string");
+    assert.match(price, /^\d+$/);
+  });
+
+  test("converts 75 minutes to PT75M", () => {
+    assert.equal(durationMinutesToIsoDuration(75), "PT75M");
+  });
+
+  test("preserves Czech diacritics in serialized JSON-LD", () => {
+    const serialized = serializeJsonLd(buildServiceJsonLd(service, salonProfile));
+
+    assert.match(serialized, /Čisticí ošetření pleti/);
+    assert.match(serialized, /Zlín/);
+  });
+
+  test("omits undefined, null and empty values from serialized JSON-LD", () => {
+    const serialized = serializeJsonLd({
+      "@context": "https://schema.org",
+      name: "PP Studio",
+      missing: undefined,
+      nested: {
+        empty: undefined,
+        alsoEmpty: null,
+        visible: "Zlín",
+      },
+      array: ["hodnota", undefined, null, ""],
+    });
+
+    assert.doesNotMatch(serialized, /undefined|null|missing|alsoEmpty|empty/);
+    assert.match(serialized, /hodnota/);
+    assert.match(serialized, /Zlín/);
+  });
+});

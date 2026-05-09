@@ -55,6 +55,7 @@ Dokumentace proměnných prostředí pro lokální vývoj i produkci.
 - `NEXT_PUBLIC_APP_URL` je kritická i pro provozní approve/reject odkazy v e-mailu; pokud míří na špatný host nebo schéma, owner email akce povedou na neplatnou URL.
 - `NEXT_PUBLIC_APP_URL` je zároveň kanonický fallback origin pro admin redirecty. `x-forwarded-host` se použije jen tehdy, když odpovídá `NEXT_PUBLIC_APP_URL`, `NEXT_PUBLIC_SITE_DOMAIN` nebo `VOUCHER_PUBLIC_DOMAIN`; po změně veřejné domény zkontroluj všechny tyto hodnoty a reverse proxy nastavení.
 - Matomo konfigurace je volitelná: pokud `NEXT_PUBLIC_MATOMO_ENABLED` není přesně `true`, nebo chybí URL či site ID, tracking zůstane vypnutý. Protože jde o `NEXT_PUBLIC_*` proměnné, hodnoty se promítají do klientského bundle při buildu.
+- Web Vitals reporting nepřidává novou env proměnnou. Používá existující veřejnou Matomo konfiguraci `NEXT_PUBLIC_MATOMO_ENABLED`, `NEXT_PUBLIC_MATOMO_URL` a `NEXT_PUBLIC_MATOMO_SITE_ID`; bez ní je klientský reporter no-op.
 - Server-side Matomo reporting konfigurace je oddělená od klientského trackingu: `MATOMO_URL`, `MATOMO_SITE_ID` a `MATOMO_AUTH_TOKEN` čte pouze server-only modul `src/lib/analytics/matomo.ts`. Pokud některá hodnota chybí, dashboard analytics vrací nulové hodnoty místo chyby do UI.
 - Úprava admin dashboardu na denní provozní cockpit nepřidává žádnou novou env proměnnou; používá stávající Prisma data, admin session a volitelnou server-side Matomo konfiguraci.
 - Matomo se nepoužívá v adminu, neposílá tokenové self-service URL a neukládá analytics eventy do databáze PP Studio.

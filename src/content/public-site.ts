@@ -15,6 +15,7 @@ export type Service = {
   category: string;
   priceFrom: string;
   duration: string;
+  durationMinutes?: number;
   intro: string;
   description: string;
   idealFor: string[];
@@ -186,6 +187,7 @@ export const services: Service[] = [
     category: 'Péče o pleť',
     priceFrom: '1 690 Kč',
     duration: '75 min',
+    durationMinutes: 75,
     intro: 'Vyvážené ošetření pro klientky, které chtějí čistou, zklidněnou a viditelně svěží pleť bez agresivního zásahu.',
     description:
       'Procedura kombinuje úvodní diagnostiku, šetrné čištění, exfoliaci, cílené aktivní látky a závěrečnou péči podle aktuálního stavu pleti. Text je záměrně psaný jako realistický placeholder a před spuštěním má být nahrazen finálním brand voice salonu.',
@@ -201,6 +203,7 @@ export const services: Service[] = [
     category: 'Prémiové rituály',
     priceFrom: '2 290 Kč',
     duration: '90 min',
+    durationMinutes: 90,
     intro: 'Delší rituál zaměřený na komfort, liftingový efekt a podporu zdravě odpočatého vzhledu.',
     description:
       'Součástí je masážní technika, intenzivní sérum a maska zvolená podle potřeb pleti. Obsah je placeholder, ale struktura už odpovídá produkčnímu způsobu prezentace služby.',
@@ -216,6 +219,7 @@ export const services: Service[] = [
     category: 'Brow & lash',
     priceFrom: '1 290 Kč',
     duration: '60 min',
+    durationMinutes: 60,
     intro: 'Úprava pro upravený, ale přirozený výraz bez každodenního složitého stylingu.',
     description:
       'Služba je koncipovaná jako přehledný vstupní bod pro klientky, které chtějí zvýraznit obličej jemně a bez tvrdého efektu. Finální texty je vhodné později rozdělit podle konkrétní metodiky a používané kosmetiky.',

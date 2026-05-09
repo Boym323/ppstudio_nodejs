@@ -15,6 +15,7 @@ Seznam důležitých knihoven a důvod jejich použití.
 - `@prisma/adapter-pg`: `^7.7.0` (runtime používá `7.7.0`)
 - `@playwright/test`: browser E2E test runner pro hlavní rezervační a admin flow.
 - Matomo tracking nepřidává žádnou npm závislost; používá `next/script`, App Router navigation hooks a standardní `window._paq` frontu.
+- Veřejné JSON-LD a Web Vitals reporting nepřidávají žádnou novou runtime závislost; JSON-LD používá vlastní serializer a Web Vitals používají `next/web-vitals` dodávané Next.js.
 - Server-side Matomo Reporting API vrstva také nepřidává žádnou npm závislost; používá vestavěný `fetch`, Next.js revalidation cache a lokální TypeScript normalizaci odpovědí.
 - Admin dashboard cockpit nepřidává žádnou npm závislost; jde o úpravu serverového read modelu, React/Tailwind prezentačních komponent a stávajícího Matomo widgetu.
 - Pushover notifikace nepridavaji zadnou npm zavislost; serverova integrace pouziva vestaveny `fetch`, `URLSearchParams`, Prisma a existujici Next.js server action pattern.

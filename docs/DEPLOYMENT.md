@@ -22,8 +22,9 @@ Postup nasazení aplikace do produkce.
 11. Ověř, že `package.json`, `package-lock.json` a `CHANGELOG.md` obsahují stejnou release verzi.
 12. Ověř aktuálnost dokumentace (`MANUAL.md`, `docs/*`)
 13. Pokud release mění e-mailové šablony, spusť `npm run email:previews` a ručně otevři soubory v `tmp/email-previews`; zkontroluj HTML i textovou variantu v testech, kontakty ze `SiteSettings`, `.ics` přílohu u potvrzení a absenci přílohy u reminderu.
-14. Pokud release mění voucher doménu, ověř že je aplikovaná migrace `20260427205720_add_vouchers`; aktuální serverová business vrstva nepřidává další migraci, worker ani public route.
-15. Projdi ruční QA veřejného webu na mobilu i desktopu:
+14. Pokud release mění veřejné SEO JSON-LD, ověř homepage a jeden detail služby přes Google Rich Results Test nebo Schema Markup Validator; zkontroluj, že kontakt odpovídá viditelnému webu a Service schema neobsahuje recenze/ratingy.
+15. Pokud release mění voucher doménu, ověř že je aplikovaná migrace `20260427205720_add_vouchers`; aktuální serverová business vrstva nepřidává další migraci, worker ani public route.
+16. Projdi ruční QA veřejného webu na mobilu i desktopu:
    - zkontroluj `robots.txt`:
      - veřejný web vrací `Allow: /`
      - admin a tokenové routy `/admin/*`, `/rezervace/storno/*`, `/rezervace/sprava/*`, `/rezervace/akce/*` zůstávají blokované

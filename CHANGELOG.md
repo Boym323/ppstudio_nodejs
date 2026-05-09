@@ -6,6 +6,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- JSON-LD helpery pro veřejné SEO byly sjednoceny na `buildLocalBusinessJsonLd(...)`, `buildServiceJsonLd(...)` a `durationMinutesToIsoDuration(...)`; detail služby nově doplňuje ISO 8601 délku, provider PP Studio a testované čištění prázdných hodnot před serializací.
+- Public/booking shell nově obsahuje malý `WebVitalsReporter`, který přes existující Matomo helper posílá anonymní Web Vitals eventy pouze při zapnuté Matomo konfiguraci.
 - Tisková A4 varianta voucheru už nemá žluté okraje kolem horního slotu: horní a boční 3mm trim se uvnitř rozměru voucheru dorovnává hlavní béžovou plochou voucheru, plocha mimo voucher zůstává bílý A4 papír, ořezová čára je posunutá na novou spodní hranu 201 mm a obsah voucheru včetně QR, loga, textů, fontů i rozložení zůstává beze změny.
 - Refaktor `voucher-print-a4-pdf-core`: layoutové hodnoty jsou sjednocené v `VOUCHER_PRINT_LAYOUT` a kreslení voucheru je rozdělené na menší sekce (`drawVoucherBaseFrame`, `drawVoucherHeader`, `drawVoucherMainValue`, `drawVoucherFooter`, `drawVoucherQrBlock`) pro snazší orientaci a bezpečnější úpravy bez změny výsledného vzhledu.
 - `voucher-print-a4-pdf-core` nově podporuje definici barev ve formátu `#hex` i `rgb(...)` přes `VOUCHER_PRINT_THEME_INPUT`; interní helper je při generování převádí na `pdf-lib` barvy, takže ve VS Code funguje color picker přímo nad zdrojovou paletou.

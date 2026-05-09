@@ -245,6 +245,7 @@ function mapService(service: PublicServiceRow): Service {
     category: getCategoryLabel(service.category),
     priceFrom: formatPrice(service.priceFromCzk),
     duration: `${service.durationMinutes} min`,
+    durationMinutes: service.durationMinutes,
     intro: buildServiceIntro(service),
     description: buildServiceDetail(service),
     idealFor: buildIdealFor(service),

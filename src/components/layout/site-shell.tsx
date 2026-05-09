@@ -2,6 +2,7 @@ import { Suspense } from "react";
 
 import { getPublicSalonProfile } from "@/lib/site-settings";
 import { MatomoTracker } from "@/features/analytics/matomo-tracker";
+import { WebVitalsReporter } from "@/features/analytics/web-vitals-reporter";
 
 import { SiteFooter } from "./site-footer";
 import { SiteHeader } from "./site-header";
@@ -18,6 +19,7 @@ export async function SiteShell({ children, variant = "public" }: SiteShellProps
     <div className="flex min-h-screen flex-col bg-[var(--color-background)] overflow-x-clip">
       <Suspense fallback={null}>
         <MatomoTracker />
+        <WebVitalsReporter />
       </Suspense>
       <SiteHeader variant={variant} brandName={salonProfile.name} />
       <main className="flex-1">{children}</main>
