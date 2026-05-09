@@ -3,12 +3,13 @@
 ## Kontext
 - Existující voucher PDF se používá pro běžné stažení v adminu i jako příloha voucher e-mailu.
 - Pro fyzický tisk je potřeba samostatná A4 varianta, která nesmí změnit současný e-mailový ani běžný PDF layout.
-- Tiskový arch A4 na výšku má voucher umístěný v horním vodorovném DL slotu 210 x 99 mm; samotný voucher je navržený jako DL portrait 99 x 210 mm a do slotu se vkládá otočený o 90 stupňů.
+- Tiskový arch A4 na výšku má voucher umístěný v horním vodorovném DL slotu; samotný voucher je navržený jako DL portrait 99 x 210 mm a do slotu se vkládá otočený o 90 stupňů.
 
 ## Rozhodnutí
 - Stávající `generateVoucherPdf(...)` zůstává beze změny a dál slouží e-mailu i běžnému stažení.
 - Tisková varianta je samostatný worker-safe modul `src/features/vouchers/lib/voucher-print-a4-pdf-core.ts` s exportem `generateVoucherPrintA4Pdf(...)`.
-- Modul definuje rozměrové konstanty v mm/pt, konstantu `topSlotBottomY = mm(198)` a helper `getVoucherPrintSlotBox(...)` bez parametru pozice.
+- Modul definuje rozměrové konstanty v mm/pt, viditelný slot 210 x 96 mm, konstantu `topSlotBottomY = mm(201)` a helper `getVoucherPrintSlotBox(...)` bez parametru pozice.
+- Portrait artwork zůstává vložené z původní spodní pozice 198 mm, aby se nezměnilo rozložení obsahu voucheru; horní a boční 3mm trim se uvnitř čistých hran voucheru dorovnává hlavní béžovou plochou voucheru, zatímco plocha mimo voucher zůstává bílý A4 papír.
 - Portrait DL voucher se nejdřív vykreslí do samostatné 99 x 210 mm PDF stránky a do finální A4 stránky se vloží jako embedded page otočená o 90 stupňů.
 - Admin má nové chráněné routy `/admin/vouchery/[voucherId]/pdf/tisk` a `/admin/provoz/vouchery/[voucherId]/pdf/tisk`; původní `/pdf` routy zůstávají zachované.
 - Detail voucheru zobrazuje původní akci `Stáhnout voucher PDF` a vedle ní samostatný odkaz `Tisk A4`.

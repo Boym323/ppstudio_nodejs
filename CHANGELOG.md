@@ -6,6 +6,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Tisková A4 varianta voucheru už nemá žluté okraje kolem horního slotu: horní a boční 3mm trim se uvnitř rozměru voucheru dorovnává hlavní béžovou plochou voucheru, plocha mimo voucher zůstává bílý A4 papír, ořezová čára je posunutá na novou spodní hranu 201 mm a obsah voucheru včetně QR, loga, textů, fontů i rozložení zůstává beze změny.
+
 ## [0.2.4] - 2026-05-08
 
 - Release příprava bez funkčních změn: projektová verze navýšena na patch `0.2.4`.

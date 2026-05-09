@@ -147,9 +147,10 @@ test("builds A4 print voucher slots with expected millimetre dimensions", async 
   assert.equal(Math.round(A4_WIDTH_PT * 100), Math.round(mm(210) * 100));
   assert.equal(Math.round(A4_HEIGHT_PT * 100), Math.round(mm(297) * 100));
   assert.equal(Math.round(SLOT_WIDTH_PT * 100), Math.round(mm(210) * 100));
-  assert.equal(Math.round(SLOT_HEIGHT_PT * 100), Math.round(mm(99) * 100));
-  assert.equal(Math.round(topSlotBottomY * 100), Math.round(mm(198) * 100));
-  assert.equal(Math.round(getVoucherPrintSlotBox().y * 100), Math.round(mm(198) * 100));
+  assert.equal(Math.round(SLOT_HEIGHT_PT * 100), Math.round(mm(96) * 100));
+  assert.equal(Math.round(topSlotBottomY * 100), Math.round(mm(201) * 100));
+  assert.equal(Math.round(getVoucherPrintSlotBox().y * 100), Math.round(mm(201) * 100));
+  assert.equal(Math.round(getVoucherPrintSlotBox().height * 100), Math.round(mm(96) * 100));
 });
 
 test("generates an A4 print PDF for the top voucher position", async () => {

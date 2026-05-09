@@ -43,7 +43,7 @@ export const MM_TO_PT = 72 / 25.4;
 export const A4_WIDTH_MM = 210;
 export const A4_HEIGHT_MM = 297;
 export const SLOT_WIDTH_MM = 210;
-export const SLOT_HEIGHT_MM = 99;
+export const SLOT_HEIGHT_MM = 96;
 export const VOUCHER_WIDTH_MM = 99;
 export const VOUCHER_HEIGHT_MM = 210;
 
@@ -81,9 +81,14 @@ const colors = {
   background: rgb(0.965, 0.945, 0.915),
   paper: rgb(0.906, 0.855, 0.808),
   panel: rgb(0.985, 0.965, 0.935),
+  a4Paper: rgb(1, 1, 1),
+  voucherTrim: rgb(0.906, 0.855, 0.808),
 };
 
-export const topSlotBottomY = mm(198);
+const edgeTrimSize = mm(3);
+const voucherArtworkBottomY = mm(198);
+
+export const topSlotBottomY = voucherArtworkBottomY + edgeTrimSize;
 
 const dateFormatter = new Intl.DateTimeFormat("cs-CZ", {
   day: "numeric",
@@ -179,17 +184,51 @@ export async function generateVoucherPrintA4Pdf(voucher: VoucherPdfData, options
 
   // pdf-lib rotates around the inserted page origin. Translating to the slot's
   // right-bottom corner before a 90deg rotation maps portrait 99x210 mm into
-  // the horizontal 210x99 mm A4 slot without changing the portrait layout math.
+  // the horizontal A4 slot without changing the portrait layout math. The
+  // source artwork stays at the original size, while the outer 3mm trim is
+  // normalized to the voucher background inside the clean A4 cut area.
   page.drawPage(embeddedPortraitPage, {
     x: slot.x + slot.width,
-    y: slot.y,
+    y: voucherArtworkBottomY,
     width: VOUCHER_WIDTH_PT,
     height: VOUCHER_HEIGHT_PT,
     rotate: degrees(90),
   });
+  drawA4TrimMasks(page);
   drawPrintGuides(page);
 
   return pdf.save();
+}
+
+function drawA4TrimMasks(page: PDFPage) {
+  page.drawRectangle({
+    x: 0,
+    y: 0,
+    width: A4_WIDTH_PT,
+    height: topSlotBottomY,
+    color: colors.a4Paper,
+  });
+  page.drawRectangle({
+    x: 0,
+    y: topSlotBottomY,
+    width: edgeTrimSize,
+    height: A4_HEIGHT_PT - topSlotBottomY,
+    color: colors.voucherTrim,
+  });
+  page.drawRectangle({
+    x: A4_WIDTH_PT - edgeTrimSize,
+    y: topSlotBottomY,
+    width: edgeTrimSize,
+    height: A4_HEIGHT_PT - topSlotBottomY,
+    color: colors.voucherTrim,
+  });
+  page.drawRectangle({
+    x: 0,
+    y: A4_HEIGHT_PT - edgeTrimSize,
+    width: A4_WIDTH_PT,
+    height: edgeTrimSize,
+    color: colors.voucherTrim,
+  });
 }
 
 function drawPrintGuides(page: PDFPage) {
