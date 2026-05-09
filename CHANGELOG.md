@@ -7,6 +7,9 @@ Formát je inspirovaný Keep a Changelog.
 ## [Unreleased]
 
 - Tisková A4 varianta voucheru už nemá žluté okraje kolem horního slotu: horní a boční 3mm trim se uvnitř rozměru voucheru dorovnává hlavní béžovou plochou voucheru, plocha mimo voucher zůstává bílý A4 papír, ořezová čára je posunutá na novou spodní hranu 201 mm a obsah voucheru včetně QR, loga, textů, fontů i rozložení zůstává beze změny.
+- Refaktor `voucher-print-a4-pdf-core`: layoutové hodnoty jsou sjednocené v `VOUCHER_PRINT_LAYOUT` a kreslení voucheru je rozdělené na menší sekce (`drawVoucherBaseFrame`, `drawVoucherHeader`, `drawVoucherMainValue`, `drawVoucherFooter`, `drawVoucherQrBlock`) pro snazší orientaci a bezpečnější úpravy bez změny výsledného vzhledu.
+- `voucher-print-a4-pdf-core` nově podporuje definici barev ve formátu `#hex` i `rgb(...)` přes `VOUCHER_PRINT_THEME_INPUT`; interní helper je při generování převádí na `pdf-lib` barvy, takže ve VS Code funguje color picker přímo nad zdrojovou paletou.
+- Barevná paleta voucheru má české inline poznámky k významu jednotlivých klíčů a doplněné stručné komentáře k důležitým částem (QR barvy, layout konstanta, normalizace barevných kanálů) pro rychlejší orientaci při úpravách.
 
 ## [0.2.4] - 2026-05-08
 
