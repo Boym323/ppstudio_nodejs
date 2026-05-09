@@ -323,7 +323,7 @@ test.describe("booking flows", () => {
     const attemptedSlotIds = new Set([selectedSlotId, fixture.slotLabels.rescheduleSuccessSlotId]);
     try {
       await expect(successHeading).toBeVisible({ timeout: 30_000 });
-    } catch (error) {
+    } catch {
       await submitRescheduleUntilSuccess(
         page,
         confirmButton,
