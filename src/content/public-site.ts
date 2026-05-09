@@ -233,7 +233,7 @@ export const services: Service[] = [
 
 export const homepageContent = {
   eyebrow: 'Kosmetický salon Zlín',
-  title: 'PP Studio',
+  title: 'Kosmetický salon ve Zlíně',
   description:
     'Lash lifting, laminace obočí a ošetření pleti v příjemném prostředí s individuálním přístupem.',
   benefits: ['Příjemné prostředí', 'Individuální přístup', 'Online rezervace 24/7'],

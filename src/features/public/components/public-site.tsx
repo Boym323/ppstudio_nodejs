@@ -82,13 +82,7 @@ function PublicHero({
               </div>
             ) : null}
             <h1 className="max-w-3xl font-display text-[2.5rem] leading-[1.04] tracking-tight text-[var(--color-foreground)] sm:text-5xl lg:text-6xl">
-              {isHomepageStyle ? (
-                <>
-                  PP <span className="text-[var(--color-accent)]">Studio</span>
-                </>
-              ) : (
-                title
-              )}
+              {title}
             </h1>
             <p className="max-w-2xl text-[15px] leading-7 text-[var(--color-muted)] sm:text-lg sm:leading-8">{description}</p>
             {isHomepageStyle && benefits?.length ? (
