@@ -245,6 +245,7 @@ test.describe("booking flows", () => {
 
     await page.goto(`/rezervace?service=${inactiveFixture.serviceSlug}`);
     await expect(page.locator('input[name="serviceId"]')).toHaveValue("");
+    await page.locator('button[aria-pressed]').filter({ hasText: fallbackFixture.categoryName }).first().click();
     await expect(page.getByText(fallbackFixture.serviceName).first()).toBeVisible();
 
     await prisma.service.update({
@@ -259,6 +260,7 @@ test.describe("booking flows", () => {
 
     await page.goto(`/rezervace?service=${inactiveFixture.serviceSlug}`);
     await expect(page.locator('input[name="serviceId"]')).toHaveValue("");
+    await page.locator('button[aria-pressed]').filter({ hasText: fallbackFixture.categoryName }).first().click();
     await expect(page.getByText(fallbackFixture.serviceName).first()).toBeVisible();
   });
 

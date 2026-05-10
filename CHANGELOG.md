@@ -6,6 +6,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Stabilizován flaky Playwright scénář `inactive or non-public service slug is not preselected`: test už před ověřením fallback služby explicitně přepne na kategorii fallback fixture, takže nepadá na náhodném pořadí kategorií/služeb ve veřejném katalogu.
+
 ## [0.3.1] - 2026-05-10
 
 - Release příprava pro produkční nasazení: projektová verze navýšena na patch `0.3.1`.
