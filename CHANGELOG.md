@@ -6,6 +6,9 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-05-10
+
+- Release příprava pro produkční nasazení: projektová verze navýšena na minor `0.3.0`.
 - Bezpečnostní hardening administrace: session se po ověření JWT znovu kontroluje proti aktuálnímu DB uživateli, neaktivní admin session zneplatní a změna role se projeví při další autorizaci.
 - Bootstrap admin login přes `ADMIN_OWNER_*` / `ADMIN_STAFF_*` je nově výchozím nastavením vypnutý a vyžaduje explicitní recovery přepínač `ADMIN_BOOTSTRAP_ENABLED=true`.
 - Owner approve/reject odkazy z provozního e-mailu už nemění stav rezervace bez aktivní admin session; audit změny se zapisuje jako admin uživatel, ne systémová tokenová akce.

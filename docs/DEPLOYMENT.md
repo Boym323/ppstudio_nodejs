@@ -404,3 +404,11 @@ sudo /var/www/ppstudio/deploy/deploy.sh
 ## QA Pro Letní/Zimní Čas
 - Tento release nepřidává DB migraci ani novou knihovnu.
 - Po deployi ověř v admin planneru slot 09:00-10:00 pro zimní i letní datum, copy day/week přes poslední březnovou a říjnovou neděli, veřejné zobrazení termínu, potvrzovací e-mail a `.ics` přílohu.
+
+## QA Pro Release 0.3.0
+- Release `0.3.0` nepřidává DB migraci ani novou knihovnu; rollout má zůstat bezpečný přes standardní `npx prisma migrate deploy` jako no-op.
+- Po deployi ověř admin přihlášení pro existující DB účet, že neaktivní účet nebo změněná role se promítne po další autorizaci a že bootstrap env login funguje jen při dočasném `ADMIN_BOOTSTRAP_ENABLED=true`.
+- Ověř, že owner approve/reject odkazy z e-mailu bez aktivní admin session neprovedou změnu rezervace a po přihlášení se audit zapisuje jako konkrétní admin uživatel.
+- Ověř self-service a tokenové route (`/rezervace/sprava/*`, `/rezervace/storno/*`, `/rezervace/akce/*`, calendar feed), že vrací očekávaný obsah a současně posílají `Cache-Control: no-store` a `Referrer-Policy: no-referrer`.
+- Ověř admin mutace `copy day/week`, `publish draft`, `apply template` a výběrové akce v planneru při rychlém opakování nebo paralelním provozu; nemají náhodně padat na `P2034` / `TransactionWriteConflict`.
+- Ověř veřejnou homepage, detail služby a `sitemap.xml`; sitemap se má po buildu načíst bez chyby a běžet jako ISR metadata route s `revalidate = 86400`.
