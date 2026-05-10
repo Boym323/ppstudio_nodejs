@@ -6,6 +6,9 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-05-10
+
+- Release příprava pro produkční nasazení: projektová verze navýšena na patch `0.3.1`.
 - Dokumentace prostředí nově upozorňuje, že identita konkrétního serveru patří do lokální `.env` / deploy konfigurace, protože verzovaná dokumentace se synchronizuje i na produkci.
 - Veřejná rezervace podporuje marketingový query parametr `?service=<slug>` pro předvýběr služby z veřejného katalogu; neplatný, neaktivní nebo neveřejný slug se bezpečně ignoruje a detail služby vede na `/rezervace?service=<slug>`.
 
