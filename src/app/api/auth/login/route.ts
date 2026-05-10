@@ -19,6 +19,7 @@ import { buildAbsoluteUrl } from "@/lib/http/request-origin";
 const loginSchema = z.object({
   email: z.email(),
   password: z.string().min(8),
+  next: z.string().optional(),
 });
 
 type AdminLoginRouteDependencies = {
@@ -44,6 +45,26 @@ const defaultAdminLoginRouteDependencies: AdminLoginRouteDependencies = {
   writeAdminLoginAttemptLog,
   buildAbsoluteUrl,
 };
+
+function normalizeAdminLoginNextPath(value: FormDataEntryValue | null) {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+
+  const normalized = value.trim();
+
+  if (
+    !normalized ||
+    !normalized.startsWith("/") ||
+    normalized.startsWith("//") ||
+    normalized.includes("\\") ||
+    !normalized.startsWith("/admin")
+  ) {
+    return undefined;
+  }
+
+  return normalized;
+}
 
 export function createAdminLoginRouteApi(
   dependencies: AdminLoginRouteDependencies = defaultAdminLoginRouteDependencies,
@@ -83,6 +104,7 @@ export function createAdminLoginRouteApi(
       const result = loginSchema.safeParse({
         email: formData.get("email"),
         password: formData.get("password"),
+        next: normalizeAdminLoginNextPath(formData.get("next")),
       });
 
       if (!result.success) {
@@ -133,7 +155,10 @@ export function createAdminLoginRouteApi(
       });
 
       const response = NextResponse.redirect(
-        dependencies.buildAbsoluteUrl(request, getAdminHomeHref(authenticatedUser.role)),
+        dependencies.buildAbsoluteUrl(
+          request,
+          result.data.next ?? getAdminHomeHref(authenticatedUser.role),
+        ),
         303,
       );
 

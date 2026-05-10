@@ -5,6 +5,7 @@ import { Container } from "@/components/ui/container";
 import { BookingEmailActionPanel } from "@/features/booking/components/booking-email-action-panel";
 import type { BookingEmailActionIntent } from "@/features/booking/lib/booking-action-tokens";
 import { getBookingEmailActionPageState } from "@/features/booking/lib/booking-email-actions";
+import { getSession } from "@/lib/auth/session";
 
 export const metadata: Metadata = {
   title: "Zpracování rezervace",
@@ -33,12 +34,20 @@ export default async function BookingEmailActionPage({ params }: BookingEmailAct
     notFound();
   }
 
-  const state = await getBookingEmailActionPageState(intent, token);
+  const [state, session] = await Promise.all([
+    getBookingEmailActionPageState(intent, token),
+    getSession(),
+  ]);
 
   return (
     <div className="py-16 sm:py-20">
       <Container>
-        <BookingEmailActionPanel token={token} intent={intent} initialState={state} />
+        <BookingEmailActionPanel
+          token={token}
+          intent={intent}
+          initialState={state}
+          isAdminAuthenticated={Boolean(session)}
+        />
       </Container>
     </div>
   );

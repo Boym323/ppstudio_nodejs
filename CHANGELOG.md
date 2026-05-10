@@ -6,6 +6,10 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Bezpečnostní hardening administrace: session se po ověření JWT znovu kontroluje proti aktuálnímu DB uživateli, neaktivní admin session zneplatní a změna role se projeví při další autorizaci.
+- Bootstrap admin login přes `ADMIN_OWNER_*` / `ADMIN_STAFF_*` je nově výchozím nastavením vypnutý a vyžaduje explicitní recovery přepínač `ADMIN_BOOTSTRAP_ENABLED=true`.
+- Owner approve/reject odkazy z provozního e-mailu už nemění stav rezervace bez aktivní admin session; audit změny se zapisuje jako admin uživatel, ne systémová tokenová akce.
+- Přidány základní globální security headers a no-store/no-referrer hlavičky pro tokenové rezervace a kalendářové token route.
 - Admin planner mutace (`copy day/week`, `publish draft`, `apply template`, `selection`) nově automaticky opakují serializable transakce při Prisma `P2034` / `TransactionWriteConflict`, takže paralelní CI a provozní souběhy už nevyhazují náhodné pády při `deleteMany()` nad `AvailabilitySlot`.
 - Veřejné čtení služeb je odolnější proti krátkému závodu mezi více Prisma dotazy na službu a kategorii: pokud se při souběžném cleanupu dočasně vrátí `service.category = null`, homepage ani detail služby už nespadnou na `Cannot read properties of null (reading 'name')` a použijí bezpečný fallback štítek kategorie.
 - Sitemap metadata route je nyní explicitně ISR (`revalidate = 86400`) v `src/app/sitemap.ts`, takže `sitemap.xml` se dynamicky průběžně obnovuje bez nutnosti ručního přegenerování při každé změně veřejných služeb.

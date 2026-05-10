@@ -59,6 +59,7 @@ type BookingEmailActionDetails = {
 
 type BookingEmailActionTerminalState = Partial<BookingEmailActionDetails> & {
   status:
+    | "auth_required"
     | "invalid"
     | "expired"
     | "already_confirmed"
@@ -316,11 +317,25 @@ type PerformBookingEmailActionAudit = {
   userAgent?: string | null;
 };
 
+export type BookingEmailActionActor = {
+  userId: string | null;
+};
+
 export async function performBookingEmailAction(
   intent: BookingEmailActionIntent,
   rawToken: string,
   audit?: PerformBookingEmailActionAudit,
+  actor?: BookingEmailActionActor,
 ): Promise<PerformBookingEmailActionResult> {
+  if (!actor) {
+    return {
+      status: "auth_required",
+      intent,
+      title: "Nejdřív se přihlaste do administrace",
+      message: "Potvrzení nebo zrušení rezervace z e-mailového odkazu teď vyžaduje aktivní admin session.",
+    };
+  }
+
   const tokenHash = hashBookingActionToken(rawToken);
 
   const transactionResult = await prisma.$transaction(
@@ -409,11 +424,12 @@ export async function performBookingEmailAction(
         data: {
           bookingId: lockedToken.bookingId,
           status: targetStatus,
-          actorType: BookingActorType.SYSTEM,
+          actorType: BookingActorType.USER,
+          actorUserId: actor.userId,
           reason: intent === "approve" ? "owner-email-approve-v1" : "owner-email-reject-v1",
           metadata: {
             source: BookingSource.WEB,
-            via: "owner-email-action-token",
+            via: "owner-email-action-token-admin-session",
             intent,
             tokenId: lockedToken.id,
             tokenType: lockedToken.type,

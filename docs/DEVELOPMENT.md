@@ -262,8 +262,9 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Audit login pokusů (`SUCCESS`, `INVALID_PAYLOAD`, `INVALID_CREDENTIALS`, `RATE_LIMITED`) se zapisuje do `BookingSubmissionLog` s prefixem `ADMIN_LOGIN_*`.
 - Session payload je podepsaný JWT token v `httpOnly` cookie.
 - `src/proxy.ts` řeší rychlý auth gate pro admin: u `/admin/*` ověřuje podpis a expiraci session JWT cookie, ne jen její existenci; neplatnou cookie smaže a přesměruje na login.
-- Role-based autorizace se dokončuje uvnitř serverových helperů v `src/lib/auth/session.ts`.
-- Lite admin účet se v aplikaci hlásí přes bootstrap env proměnné, ale nese databázovou roli `SALON`.
+- Role-based autorizace se dokončuje uvnitř serverových helperů v `src/lib/auth/session.ts`; po ověření JWT se admin session znovu načítá z DB, neaktivní uživatel session zneplatní a aktuální role se bere z DB.
+- Lite admin účet se v aplikaci může hlásit přes bootstrap env proměnné pouze v recovery režimu `ADMIN_BOOTSTRAP_ENABLED=true`; běžný produkční provoz má používat DB účty.
+- Owner approve/reject odkazy z e-mailu už smějí změnit stav rezervace pouze po aktivní admin session. Tokenová stránka může zobrazit akci, ale server action před mutací znovu volá admin auth helper.
 - Pro role-based admin IA používáme dvě serverově chráněné oblasti:
   - `OWNER` na `/admin/*`
   - `SALON` na `/admin/provoz/*`

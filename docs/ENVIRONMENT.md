@@ -27,6 +27,7 @@ Dokumentace proměnných prostředí pro lokální vývoj i produkci.
 - `DATABASE_URL`: PostgreSQL connection string pro Prisma.
 - `SHADOW_DATABASE_URL`: pomocná databáze pro `prisma migrate dev` (lokální vývoj).
 - `ADMIN_SESSION_SECRET`: klíč pro podpis admin session cookie.
+- `ADMIN_BOOTSTRAP_ENABLED`: explicitní recovery přepínač pro bootstrap admin login. Výchozí hodnota je `false`; na produkci zapínej jen krátkodobě pro první založení nebo obnovu přístupu.
 - `ADMIN_OWNER_EMAIL`: bootstrap email pro owner admin účet.
 - `ADMIN_OWNER_PASSWORD`: bootstrap heslo pro owner admin účet.
 - `ADMIN_STAFF_EMAIL`: bootstrap email pro lite admin účet (role `SALON`).
@@ -43,13 +44,13 @@ Dokumentace proměnných prostředí pro lokální vývoj i produkci.
 - `MEDIA_STORAGE_ROOT`: volitelná absolutní cesta k lokálnímu root adresáři pro nahraná média; pokud chybí, aplikace použije `/var/www/ppstudio/uploads`.
 
 ## Poznámky
-- Bootstrap admin přístupy slouží jako startovní vrstva projektu a měly by být později nahrazené databázovým managementem uživatelů.
+- Bootstrap admin přístupy slouží jen jako startovní/recovery vrstva projektu. Login přes `ADMIN_OWNER_*` a `ADMIN_STAFF_*` funguje pouze při `ADMIN_BOOTSTRAP_ENABLED=true`; po založení nebo opravě DB admin účtů přepínač vrať na `false`.
 - V produkci používej silná hesla a unikátní `ADMIN_SESSION_SECRET`.
 - Veřejný obsah salonu není řízený env proměnnými; texty a placeholdery jsou centralizované v `src/content/public-site.ts`.
 - Provozní identita veřejného webu (jméno provozovatelky a IČ používané na `/kontakt` a `/obchodni-podminky`) aktuálně také není env konfigurace; je součástí sdíleného public profile helperu v `src/lib/site-settings.ts`.
 - Admin login rate limit nepřidává novou env proměnnou; limity jsou zatím fixované v `src/lib/auth/admin-login-rate-limit.ts` (okno 10 minut, IP limit 20, e-mail fail limit 6).
 - Hero fotografie pro `/o-mne` je aktuálně ručně verzovaný asset v `public/brand`; finální přepnutí na jiný soubor nevyžaduje novou env proměnnou, jen úpravu `aboutContent.profile.image`.
-- Bootstrap přístupy se v owner sekci `Uživatelé / role` zobrazují lidským jazykem jako `Systémový účet`; UI záměrně neukazuje `env`, `bootstrap` ani jiné technické implementační detaily jako hlavní obsah.
+- Bootstrap přístupy se v owner sekci `Uživatelé / role` zobrazují lidským jazykem jako `Systémový účet`; UI záměrně neukazuje `env`, `bootstrap` ani jiné technické implementační detaily jako hlavní obsah. Samotné použití bootstrap loginu zapisuje jen bezpečnou provozní informaci bez hesla.
 - Pokud je `EMAIL_DELIVERY_MODE=background`, jsou `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD` a `SMTP_FROM_EMAIL` povinné už při startu aplikace.
 - Pokud je `EMAIL_DELIVERY_MODE=background`, admin pole `emailSenderEmail` v sekci `Nastavení` musí odpovídat `SMTP_FROM_EMAIL`; jinak aplikace změnu odmítne, aby se předešlo selhání doručování.
 - `NEXT_PUBLIC_APP_URL` je kritická i pro provozní approve/reject odkazy v e-mailu; pokud míří na špatný host nebo schéma, owner email akce povedou na neplatnou URL.

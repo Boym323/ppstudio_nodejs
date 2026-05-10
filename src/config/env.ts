@@ -18,6 +18,7 @@ const serverEnvSchema = z
     PUSHOVER_APP_TOKEN: z.string().trim().optional(),
     DATABASE_URL: z.string().min(1),
     ADMIN_SESSION_SECRET: z.string().min(32),
+    ADMIN_BOOTSTRAP_ENABLED: z.enum(["true", "false"]).optional().default("false"),
     ADMIN_OWNER_EMAIL: z.email(),
     ADMIN_OWNER_PASSWORD: z.string().min(8),
     ADMIN_STAFF_EMAIL: z.email(),

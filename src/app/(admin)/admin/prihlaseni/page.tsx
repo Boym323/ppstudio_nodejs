@@ -8,6 +8,7 @@ type LoginPageProps = {
   searchParams: Promise<{
     error?: string;
     invite?: string;
+    next?: string;
   }>;
 };
 
@@ -21,6 +22,14 @@ const infoMap: Record<string, string> = {
   activated: "Heslo je nastavené. Teď se můžete přihlásit.",
 };
 
+function normalizeNextPath(value: string | undefined) {
+  if (!value || !value.startsWith("/") || value.startsWith("//") || value.includes("\\")) {
+    return undefined;
+  }
+
+  return value.startsWith("/admin") ? value : undefined;
+}
+
 export default async function AdminLoginPage({ searchParams }: LoginPageProps) {
   const session = await getSession();
 
@@ -31,11 +40,12 @@ export default async function AdminLoginPage({ searchParams }: LoginPageProps) {
   const params = await searchParams;
   const errorMessage = params.error ? errorMap[params.error] : undefined;
   const infoMessage = params.invite ? infoMap[params.invite] : undefined;
+  const nextPath = normalizeNextPath(params.next);
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(190,160,120,0.18),transparent_28%),linear-gradient(160deg,#111111_0%,#1b1714_45%,#281f19_100%)]">
       <div className="mx-auto flex min-h-screen w-full max-w-xl items-center px-5 py-16 sm:px-6">
-        <AdminLoginForm errorMessage={errorMessage} infoMessage={infoMessage} />
+        <AdminLoginForm errorMessage={errorMessage} infoMessage={infoMessage} nextPath={nextPath} />
       </div>
     </div>
   );

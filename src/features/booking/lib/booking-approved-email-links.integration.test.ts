@@ -232,10 +232,17 @@ dbTest("performBookingEmailAction approve stores manage and cancellation links i
 
   try {
     const { prisma, performBookingEmailAction } = await loadModules();
-    const result = await performBookingEmailAction("approve", seed.approveRawToken!, {
-      ipAddress: "127.0.0.1",
-      userAgent: "integration-test",
-    });
+    const result = await performBookingEmailAction(
+      "approve",
+      seed.approveRawToken!,
+      {
+        ipAddress: "127.0.0.1",
+        userAgent: "integration-test",
+      },
+      {
+        userId: seed.actorUserId,
+      },
+    );
 
     assert.equal(result.status, "completed");
 
@@ -254,6 +261,70 @@ dbTest("performBookingEmailAction approve stores manage and cancellation links i
 
     assert.ok(emailLog);
     assertApprovedEmailPayloadHasSelfServiceLinks(emailLog.payload);
+  } finally {
+    await cleanupSeed(seed);
+  }
+});
+
+dbTest("performBookingEmailAction without admin actor does not change booking status", async () => {
+  const seed = await createSeed({ withApproveToken: true });
+
+  try {
+    const { prisma, performBookingEmailAction, BookingStatus } = await loadModules();
+    const result = await performBookingEmailAction("approve", seed.approveRawToken!, {
+      ipAddress: "127.0.0.1",
+      userAgent: "integration-test",
+    });
+
+    assert.equal(result.status, "auth_required");
+
+    const booking = await prisma.booking.findUniqueOrThrow({
+      where: { id: seed.bookingId },
+      select: { status: true },
+    });
+    const token = await prisma.bookingActionToken.findFirstOrThrow({
+      where: { bookingId: seed.bookingId },
+      select: { usedAt: true },
+    });
+
+    assert.equal(booking.status, BookingStatus.PENDING);
+    assert.equal(token.usedAt, null);
+  } finally {
+    await cleanupSeed(seed);
+  }
+});
+
+dbTest("performBookingEmailAction with admin actor records a user audit entry", async () => {
+  const seed = await createSeed({ withApproveToken: true });
+
+  try {
+    const { prisma, performBookingEmailAction, BookingStatus } = await loadModules();
+    const result = await performBookingEmailAction(
+      "approve",
+      seed.approveRawToken!,
+      {
+        ipAddress: "127.0.0.1",
+        userAgent: "integration-test",
+      },
+      {
+        userId: seed.actorUserId,
+      },
+    );
+
+    assert.equal(result.status, "completed");
+
+    const booking = await prisma.booking.findUniqueOrThrow({
+      where: { id: seed.bookingId },
+      select: { status: true },
+    });
+    const history = await prisma.bookingStatusHistory.findFirstOrThrow({
+      where: { bookingId: seed.bookingId, status: BookingStatus.CONFIRMED },
+      select: { actorUserId: true, reason: true },
+    });
+
+    assert.equal(booking.status, BookingStatus.CONFIRMED);
+    assert.equal(history.actorUserId, seed.actorUserId);
+    assert.equal(history.reason, "owner-email-approve-v1");
   } finally {
     await cleanupSeed(seed);
   }

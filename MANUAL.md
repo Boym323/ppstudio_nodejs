@@ -419,12 +419,14 @@ npm run db:clear-booking-data -- --confirm
 - Login route `POST /api/auth/login` má nově server-side rate limit (okno 10 minut) nad hashovanou IP a hashovaným e-mailem, aby omezila brute-force pokusy.
 - Při překročení limitu se login ukončí bezpečným přesměrováním na `/admin/prihlaseni?error=rate_limited` bez založení session.
 - Databázové účty vytvořené přes owner sekci `Uživatelé / role` se přihlašují vlastním heslem nastaveným přes pozvánku.
-- Pro systémový fallback přihlášení stále existují bootstrap hodnoty:
+- Pro systémový recovery fallback přihlášení existují bootstrap hodnoty:
+  - `ADMIN_BOOTSTRAP_ENABLED`
   - `ADMIN_OWNER_EMAIL`
   - `ADMIN_OWNER_PASSWORD`
   - `ADMIN_STAFF_EMAIL`
   - `ADMIN_STAFF_PASSWORD`
 - Env proměnné `ADMIN_STAFF_*` bootstrapují systémový účet role `SALON`.
+- Bootstrap login je výchozím nastavením vypnutý a funguje jen při `ADMIN_BOOTSTRAP_ENABLED=true`; po prvním založení nebo obnově DB admin účtu vrať `ADMIN_BOOTSTRAP_ENABLED=false`.
 - Session je ukládaná do `httpOnly` cookie a podepisovaná pomocí `ADMIN_SESSION_SECRET`.
 - Po přihlášení aplikace přesměruje uživatele na domovskou admin cestu podle role:
   - `OWNER` -> `/admin`

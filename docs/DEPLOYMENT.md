@@ -9,7 +9,7 @@ Postup nasazení aplikace do produkce.
 
 ## Release checklist
 1. `npm ci`
-2. Ověř správné produkční env proměnné (`DATABASE_URL`, `ADMIN_SESSION_SECRET`, admin bootstrap účty, email delivery, worker, `MEDIA_STORAGE_ROOT`, volitelně `NEXT_PUBLIC_MATOMO_*`, serverové `MATOMO_*` pro dashboard reporting a `PUSHOVER_ENABLED` / `PUSHOVER_APP_TOKEN` pro owner notifikace)
+2. Ověř správné produkční env proměnné (`DATABASE_URL`, `ADMIN_SESSION_SECRET`, `ADMIN_BOOTSTRAP_ENABLED=false` mimo krátký recovery režim, admin bootstrap účty, email delivery, worker, `MEDIA_STORAGE_ROOT`, volitelně `NEXT_PUBLIC_MATOMO_*`, serverové `MATOMO_*` pro dashboard reporting a `PUSHOVER_ENABLED` / `PUSHOVER_APP_TOKEN` pro owner notifikace)
 3. Ověř existenci a práva k upload rootu; web proces musí umět zapisovat do `MEDIA_STORAGE_ROOT` nebo do výchozí cesty `/var/www/ppstudio/uploads`.
 4. Zálohuj databázi, pokud release obsahuje novou Prisma migraci.
 5. Zálohuj nebo snapshotuj upload root, pokud release mění práci s médii nebo cleanup logiku.
@@ -274,6 +274,11 @@ Postup nasazení aplikace do produkce.
 12. Po nasazení reschedule změny ověř, že přesun resetuje `reminder24hQueuedAt` a `reminder24hSentAt`, aby se reminder správně navázal na nový termín.
 13. Po změně booking e-mailových šablon odešli testovací novou rezervaci, potvrzení, reminder, přesun a storno; v Gmailu, iOS Mailu, Apple Mailu a Outlooku zkontroluj čitelnost 600px shellu, stackování CTA na mobilu, funkčnost approve/reject/admin/manage/cancel odkazů, jednorázový kontakt, formát času `09:30 – 10:30` a to, že `Zrušit rezervaci` není vizuálně dominantnější než potvrzení.
 14. Po nasazení migrace `20260426123000_client_email_nullable_for_manual_booking` ověř ruční booking i bez e-mailu, včetně seznamu klientek, detailu klientky a detailu rezervace bez neplatných `mailto:` odkazů.
+
+### Bootstrap Recovery
+- Bootstrap login přes `ADMIN_OWNER_EMAIL/PASSWORD` a `ADMIN_STAFF_EMAIL/PASSWORD` je výchozím nastavením vypnutý.
+- Pro první založení nebo obnovu přístupu nastav krátkodobě `ADMIN_BOOTSTRAP_ENABLED=true`, restartuj web proces, přihlas se, založ nebo oprav DB admin účet a přepni hodnotu zpět na `false`.
+- Bootstrap hesla nikdy nevypisuj do ticketů, logů ani changelogu. Po recovery zkontroluj, že běžné DB účty fungují a že bootstrap login je znovu odmítnutý.
 
 ### Automatizovaný rollout skript
 - Pro běžný produkční rollout můžeš použít [`deploy/release.sh`](/var/www/ppstudio/deploy/release.sh).

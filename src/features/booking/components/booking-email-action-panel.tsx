@@ -13,6 +13,7 @@ type BookingEmailActionPanelProps = {
   token: string;
   intent: BookingEmailActionIntent;
   initialState: BookingEmailActionPageState;
+  isAdminAuthenticated: boolean;
 };
 
 function StatusCard({
@@ -100,6 +101,7 @@ export function BookingEmailActionPanel({
   token,
   intent,
   initialState,
+  isAdminAuthenticated,
 }: BookingEmailActionPanelProps) {
   const [serverState, formAction] = useActionState(
     performBookingEmailActionAction,
@@ -153,6 +155,24 @@ export function BookingEmailActionPanel({
         eyebrow={intent === "approve" ? "Schválení rezervace" : "Zrušení rezervace"}
         title={initialState.title}
         description={initialState.message}
+      >
+        <SummaryGrid {...initialState} />
+        <div className="mt-8">
+          <ActionLinks
+            adminDetailUrl={initialState.adminDetailUrl}
+            adminOverviewUrl={initialState.adminOverviewUrl}
+          />
+        </div>
+      </StatusCard>
+    );
+  }
+
+  if (!isAdminAuthenticated) {
+    return (
+      <StatusCard
+        eyebrow={intent === "approve" ? "Schválení rezervace" : "Zrušení rezervace"}
+        title="Nejdřív se přihlaste do administrace"
+        description="E-mailový odkaz rezervaci pouze načte. Samotné potvrzení nebo zrušení je možné až s aktivní admin session."
       >
         <SummaryGrid {...initialState} />
         <div className="mt-8">

@@ -22,24 +22,36 @@ type SessionPayload = {
 
 export type AdminSession = SessionPayload;
 
-const bootstrapUsers = [
-  {
-    id: "bootstrap-owner",
-    email: env.ADMIN_OWNER_EMAIL,
-    password: env.ADMIN_OWNER_PASSWORD,
-    name: "Majitel",
-    role: AdminRole.OWNER,
-  },
-  {
-    id: "bootstrap-staff",
-    email: env.ADMIN_STAFF_EMAIL,
-    password: env.ADMIN_STAFF_PASSWORD,
-    name: "Provoz",
-    role: AdminRole.SALON,
-  },
-] as const;
+export type BootstrapAdminUser = {
+  id: "bootstrap-owner" | "bootstrap-staff";
+  email: string;
+  password: string;
+  name: string;
+  role: AdminRole;
+};
 
-export type BootstrapAdminUser = (typeof bootstrapUsers)[number];
+function getBootstrapUsers(): BootstrapAdminUser[] {
+  return [
+    {
+      id: "bootstrap-owner",
+      email: process.env.ADMIN_OWNER_EMAIL ?? env.ADMIN_OWNER_EMAIL,
+      password: process.env.ADMIN_OWNER_PASSWORD ?? env.ADMIN_OWNER_PASSWORD,
+      name: "Majitel",
+      role: AdminRole.OWNER,
+    },
+    {
+      id: "bootstrap-staff",
+      email: process.env.ADMIN_STAFF_EMAIL ?? env.ADMIN_STAFF_EMAIL,
+      password: process.env.ADMIN_STAFF_PASSWORD ?? env.ADMIN_STAFF_PASSWORD,
+      name: "Provoz",
+      role: AdminRole.SALON,
+    },
+  ];
+}
+
+function isBootstrapAdminLoginEnabled() {
+  return process.env.ADMIN_BOOTSTRAP_ENABLED === "true" || env.ADMIN_BOOTSTRAP_ENABLED === "true";
+}
 
 export async function authenticateAdmin(email: string, password: string) {
   const normalizedEmail = email.trim().toLowerCase();
@@ -85,7 +97,11 @@ export async function authenticateAdmin(email: string, password: string) {
     };
   }
 
-  const user = bootstrapUsers.find(
+  if (!isBootstrapAdminLoginEnabled()) {
+    return null;
+  }
+
+  const user = getBootstrapUsers().find(
     (candidate) =>
       candidate.email.trim().toLowerCase() === normalizedEmail &&
       candidate.password === password,
@@ -94,6 +110,11 @@ export async function authenticateAdmin(email: string, password: string) {
   if (!user) {
     return null;
   }
+
+  console.warn("Bootstrap admin login used", {
+    role: user.role,
+    mode: "recovery",
+  });
 
   return {
     id: user.id,
@@ -118,6 +139,44 @@ export async function verifySessionToken(token: string) {
   return payload as SessionPayload;
 }
 
+export async function resolveSessionFromTokenValue(token: string): Promise<AdminSession | null> {
+  let tokenPayload: SessionPayload;
+
+  try {
+    tokenPayload = await verifySessionToken(token);
+  } catch {
+    return null;
+  }
+
+  if (!tokenPayload.sub || tokenPayload.sub.startsWith("bootstrap-")) {
+    return null;
+  }
+
+  const dbUser = await prisma.adminUser.findUnique({
+    where: {
+      id: tokenPayload.sub,
+    },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      role: true,
+      isActive: true,
+    },
+  });
+
+  if (!dbUser?.isActive) {
+    return null;
+  }
+
+  return {
+    sub: dbUser.id,
+    email: dbUser.email,
+    name: dbUser.name,
+    role: dbUser.role,
+  };
+}
+
 export async function getSession() {
   const cookieStore = await cookies();
   const token = cookieStore.get(COOKIE_NAME)?.value;
@@ -126,11 +185,7 @@ export async function getSession() {
     return null;
   }
 
-  try {
-    return await verifySessionToken(token);
-  } catch {
-    return null;
-  }
+  return resolveSessionFromTokenValue(token);
 }
 
 export async function requireSession() {
@@ -162,7 +217,7 @@ export async function requireAdminArea(area: AdminArea) {
 }
 
 export function listBootstrapAdminUsers(): BootstrapAdminUser[] {
-  return [...bootstrapUsers];
+  return getBootstrapUsers();
 }
 
 export function getSessionCookie() {

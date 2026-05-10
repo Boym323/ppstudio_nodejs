@@ -43,7 +43,7 @@ Evidence produkčních incidentů a jejich řešení.
 - Chyby Prisma klienta po změně schematu nebo po nasazení bez `db:generate`.
 - Build chyba `Invalid segment configuration export detected` při `next build`; nejdřív zkontroluj App Router route segment config exporty (`revalidate`, `dynamic`, `fetchCache`, atd.), jestli nepoužívají neanalyzovatelné výrazy místo literálů.
 - Regrese normalizace telefonu klientky: ověř `src/features/booking/lib/client-phone.ts`, server action validaci veřejné i ruční rezervace a uložené hodnoty v `Client.phone` / `Booking.clientPhoneSnapshot`; text ani HTML se nesmí potichu očistit na platné číslo.
-- Selhání admin přihlášení kvůli špatnému `ADMIN_SESSION_SECRET` nebo bootstrap účtům.
+- Selhání admin přihlášení kvůli špatnému `ADMIN_SESSION_SECRET`, neaktivnímu DB účtu nebo vypnutému bootstrap recovery režimu. Bootstrap login na produkci funguje jen při dočasném `ADMIN_BOOTSTRAP_ENABLED=true`.
 - Admin login/logout redirect nebo proxy přesměrování mířící na cizí doménu po podvrženém `Host` / `x-forwarded-host`; okamžitě ověř `NEXT_PUBLIC_APP_URL`, `NEXT_PUBLIC_SITE_DOMAIN`, `VOUCHER_PUBLIC_DOMAIN`, reverse proxy hlavičky a helper `src/lib/http/request-origin.ts`.
 - Brute-force pokusy na `/api/auth/login` bez aktivace rate limit ochrany (`error=rate_limited` se po sérii špatných pokusů neobjeví).
 - Chybný role redirect nebo neočekávaný přístup `SALON` do owner-only sekcí.
@@ -68,6 +68,7 @@ Evidence produkčních incidentů a jejich řešení.
 - Regrese UX self-service změny termínu, kdy se storno znovu objeví jako dominantní akce, kalendář předběhne nejbližší termíny, výběr slotu neaktualizuje potvrzení nebo na mobilu vznikne horizontální scroll.
 - Matomo na tokenové self-service stránce omylem odešle pageview s raw tokenem nebo duplicitní date/time event při renderu; eventy smějí vznikat jen z interakcí a bez PII.
 - Nefunkční approve/reject odkazy v provozním e-mailu kvůli špatnému `NEXT_PUBLIC_APP_URL`, neaplikované migraci enumu `BookingActionTokenType` nebo rozbitému veřejnému routingu `/rezervace/akce/[intent]/[token]`.
+- Approve/reject e-mail odkaz otevřený bez admin session nesmí změnit stav rezervace; očekávané chování je výzva k přihlášení a mutace až po aktivní session.
 - Provozní e-mail o nové rezervaci nečitelný na mobilu nebo v Outlooku kvůli regresi v HTML šabloně; po zásahu do `admin-booking-notification-v1` vždy ověř stackovaná tlačítka, normální letter-spacing a danger-light vizuál storna.
 - Regrese booking e-mailového design systému, kdy se vrátí duplicitní kontaktní věty, dominantní storno CTA, starý formát času bez mezer nebo kontakt odpojený od `SiteSettings`; po zásahu do `src/lib/email/templates.ts` ověř text/plain i HTML varianty všech booking šablon, mapový odkaz z aktuální adresy, fallback PP Studia a náhledy přes `npm run email:previews`.
 - Chybějící nebo poškozená `.ics` příloha v potvrzovacím klientském e-mailu kvůli chybě v renderu šablony `booking-approved-v1`, SMTP transportu nebo generování iCalendar obsahu.

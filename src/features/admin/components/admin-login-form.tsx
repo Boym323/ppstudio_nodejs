@@ -1,9 +1,10 @@
 type AdminLoginFormProps = {
   errorMessage?: string;
   infoMessage?: string;
+  nextPath?: string;
 };
 
-export function AdminLoginForm({ errorMessage, infoMessage }: AdminLoginFormProps) {
+export function AdminLoginForm({ errorMessage, infoMessage, nextPath }: AdminLoginFormProps) {
   return (
     <form
       action="/api/auth/login"
@@ -23,6 +24,8 @@ export function AdminLoginForm({ errorMessage, infoMessage }: AdminLoginFormProp
       </div>
 
       <div className="mt-8 space-y-5">
+        {nextPath ? <input type="hidden" name="next" value={nextPath} /> : null}
+
         <label className="block space-y-2">
           <span className="text-sm text-white/78">E-mail</span>
           <input
