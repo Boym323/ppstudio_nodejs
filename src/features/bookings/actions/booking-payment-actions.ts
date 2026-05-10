@@ -1,6 +1,6 @@
 "use server";
 
-import { AdminRole, BookingPaymentMethod } from "@prisma/client";
+import { AdminRole, BookingActorType, BookingPaymentMethod } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
@@ -133,6 +133,61 @@ export async function createBookingPaymentAction(
   };
 }
 
+export async function deleteBookingPaymentWithAudit(input: {
+  bookingId: string;
+  paymentId: string;
+  deletedByUserId: string | null;
+  deletedAt?: Date;
+}) {
+  const deletedAt = input.deletedAt ?? new Date();
+
+  return prisma.$transaction(async (tx) => {
+    const payment = await tx.bookingPayment.findUnique({
+      where: { id: input.paymentId },
+      select: {
+        id: true,
+        bookingId: true,
+        amountCzk: true,
+        method: true,
+        booking: {
+          select: {
+            status: true,
+          },
+        },
+      },
+    });
+
+    if (!payment || payment.bookingId !== input.bookingId) {
+      return { status: "not-found" as const };
+    }
+
+    await tx.bookingPayment.delete({
+      where: { id: payment.id },
+    });
+
+    await tx.bookingStatusHistory.create({
+      data: {
+        bookingId: payment.bookingId,
+        status: payment.booking.status,
+        actorType: BookingActorType.USER,
+        actorUserId: input.deletedByUserId,
+        reason: "Platba odstraněna",
+        metadata: {
+          source: "admin-booking-payment-delete-v1",
+          bookingId: payment.bookingId,
+          paymentId: payment.id,
+          amount: payment.amountCzk,
+          method: payment.method,
+          deletedByUserId: input.deletedByUserId,
+          deletedAt: deletedAt.toISOString(),
+        },
+      },
+    });
+
+    return { status: "deleted" as const, bookingId: payment.bookingId };
+  });
+}
+
 export async function deleteBookingPaymentAction(
   _previousState: DeleteBookingPaymentActionState,
   formData: FormData,
@@ -150,28 +205,22 @@ export async function deleteBookingPaymentAction(
     };
   }
 
-  await requireRole([AdminRole.OWNER]);
-
-  const payment = await prisma.bookingPayment.findUnique({
-    where: { id: parsed.data.paymentId },
-    select: {
-      id: true,
-      bookingId: true,
-    },
+  const session = await requireRole([AdminRole.OWNER]);
+  const deletedByUserId = await resolveCurrentAdminUserId(session.email);
+  const result = await deleteBookingPaymentWithAudit({
+    bookingId: parsed.data.bookingId,
+    paymentId: parsed.data.paymentId,
+    deletedByUserId,
   });
 
-  if (!payment || payment.bookingId !== parsed.data.bookingId) {
+  if (result.status === "not-found") {
     return {
       status: "error",
       formError: "Platbu se nepodařilo najít u této rezervace.",
     };
   }
 
-  await prisma.bookingPayment.delete({
-    where: { id: payment.id },
-  });
-
-  revalidateBookingAdminPaths(payment.bookingId);
+  revalidateBookingAdminPaths(result.bookingId);
 
   return {
     status: "success",

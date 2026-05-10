@@ -67,6 +67,19 @@ dbTest("queueVoucherEmailLog rejects invalid recipient email", async () => {
   assert.match(result.fieldErrors?.recipientEmail ?? "", /platný e-mail/i);
 });
 
+dbTest("queueVoucherEmailLog rejects CRLF in subject", async () => {
+  const { queueVoucherEmailLog } = await loadModules();
+
+  const result = await queueVoucherEmailLog({
+    voucherId: "voucher-1",
+    recipientEmail: "recipient@example.com",
+    subject: "Dárkový poukaz\r\nBcc: attacker@example.com",
+  });
+
+  assert.equal(result.status, "error");
+  assert.match(result.fieldErrors?.subject ?? "", /nový řádek/i);
+});
+
 dbTest("queueVoucherEmailLog rejects non-sendable voucher states", async () => {
   const { prisma, queueVoucherEmailLog } = await loadModules();
   const suffix = randomUUID().slice(0, 8);

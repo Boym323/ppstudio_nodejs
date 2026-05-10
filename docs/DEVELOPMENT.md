@@ -543,6 +543,10 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Veřejná rezervace se po submitu vytváří jako `BookingStatus.PENDING`; potvrzení (`CONFIRMED`) je provozní krok z adminu.
 - Pokud veřejná rezervace zabere jen část delšího slotu s kapacitou `1`, booking write model slot v transakci automaticky rozdělí na rezervovaný úsek a zbylé volné fragmenty, aby admin planner zůstal editovatelný po samostatných blocích.
 - `src/features/booking/lib/booking-cancellation.ts` drží veřejné storno workflow nad hashovaným action tokenem.
+- GET načtení `/rezervace/sprava/[token]` nesmí vytvářet nový `CANCEL` token. Storno URL se vydává až při explicitní server action `startPublicBookingCancellationAction(...)`, protože DB záměrně drží jen hash tokenu a existující raw token nelze bezpečně rekonstruovat.
+- Mazání `BookingPayment` používej přes `deleteBookingPaymentWithAudit(...)`; kromě smazání platby zapisuje provozní audit do `BookingStatusHistory` s payment metadaty a admin aktérem.
+- Admin route handlery s mutací musí používat `isSameOriginAdminRequest(...)` nebo ekvivalentní `Origin`/`Host` kontrolu proti `NEXT_PUBLIC_APP_URL`; Server Actions zůstávají na vestavěné Next origin ochraně a existujícím session/role ověření.
+- E-mailové subject/from-name hodnoty validuj přes `src/lib/email/header.ts`. CRLF je zakázané, diakritika zůstává povolená a délkové limity řeší konkrétní formulář/schema.
 - `src/features/public/lib/public-certificates.ts` je veřejný read model certifikátů pro stránku `/o-mne`; smí vracet jen `MediaType.CERTIFICATE` a `isPublished = true`.
 - `src/features/public/lib/public-media.ts` drží sdílené read helpery pro publikované obrázky podle typu; homepage čte `MediaType.PORTRAIT_HOME` a `/o-mne` čte `MediaType.PORTRAIT_ABOUT`; legacy `MediaType.PORTRAIT` už veřejný web nepoužívá.
 - `src/features/public/lib/public-studio-photos.ts` je veřejný read model fotek studia; používá ho `/studio` pro hero + galerii a `/kontakt` pro hero fotografii.

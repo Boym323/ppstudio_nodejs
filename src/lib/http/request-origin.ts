@@ -45,6 +45,10 @@ function getConfiguredAppOrigin() {
   return new URL(process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").origin;
 }
 
+function getConfiguredAppHost() {
+  return normalizeDomainHost(process.env.NEXT_PUBLIC_APP_URL);
+}
+
 function getAllowedHosts() {
   const hosts = new Set<string>();
 
@@ -102,4 +106,28 @@ export function buildAbsoluteUrl(request: RequestLike, pathname: string): URL {
     (isTrustedHost(requestHost) ? requestUrl.origin : getConfiguredAppOrigin());
 
   return new URL(pathname, origin);
+}
+
+export function isSameOriginAdminRequest(request: RequestLike) {
+  const configuredOrigin = getConfiguredAppOrigin();
+  const configuredHost = getConfiguredAppHost();
+  const originHeader = request.headers.get("origin");
+  const hostHeader = normalizeHost(
+    getFirstHeaderValue(request.headers.get("x-forwarded-host"))
+    ?? request.headers.get("host"),
+  );
+
+  if (!configuredHost || hostHeader !== configuredHost) {
+    return false;
+  }
+
+  if (!originHeader) {
+    return false;
+  }
+
+  try {
+    return new URL(originHeader).origin === configuredOrigin;
+  } catch {
+    return false;
+  }
 }

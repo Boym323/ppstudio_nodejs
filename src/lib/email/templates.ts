@@ -14,6 +14,7 @@ import {
 } from "@/features/vouchers/lib/voucher-pdf-core";
 import { getVoucherDetail } from "@/features/vouchers/lib/voucher-read-models";
 import { getEmailBrandingSettings, getPublicSalonProfile } from "@/lib/site-settings";
+import { sanitizeEmailHeaderValue } from "@/lib/email/header";
 
 const bookingConfirmationPayloadSchema = z.object({
   bookingId: z.string().min(1),
@@ -362,6 +363,7 @@ export async function renderEmailTemplate(
   subject: string,
   payload: unknown,
 ): Promise<RenderedEmailTemplate> {
+  const safeSubject = sanitizeEmailHeaderValue(subject, "E-mail subject");
   const [salonProfile, emailBranding] = await Promise.all([
     getPublicSalonProfile().catch(() => ({
       name: env.NEXT_PUBLIC_APP_NAME,
@@ -450,7 +452,7 @@ export async function renderEmailTemplate(
         { maxWidthPx: 600 },
       );
 
-      return { subject, html, text };
+      return { subject: safeSubject, html, text };
     }
     case "booking-cancelled-v1": {
       const data = bookingCancelledPayloadSchema.parse(payload);
@@ -525,7 +527,7 @@ export async function renderEmailTemplate(
         { maxWidthPx: 600 },
       );
 
-      return { subject, html, text };
+      return { subject: safeSubject, html, text };
     }
     case "booking-approved-v1": {
       const data = bookingApprovedPayloadSchema.parse(payload);
@@ -617,7 +619,7 @@ export async function renderEmailTemplate(
       );
 
       return {
-        subject,
+        subject: safeSubject,
         html,
         text,
         attachments: calendarAttachment
@@ -685,7 +687,7 @@ export async function renderEmailTemplate(
         { maxWidthPx: 600 },
       );
 
-      return { subject, html, text };
+      return { subject: safeSubject, html, text };
     }
     case "booking-rescheduled-v1": {
       const data = bookingRescheduledPayloadSchema.parse(payload);
@@ -767,7 +769,7 @@ export async function renderEmailTemplate(
       );
 
       return {
-        subject,
+        subject: safeSubject,
         html,
         text,
         attachments: calendarAttachment
@@ -839,7 +841,7 @@ export async function renderEmailTemplate(
         { maxWidthPx: 600 },
       );
 
-      return { subject, html, text };
+      return { subject: safeSubject, html, text };
     }
     case "admin-booking-notification-v1": {
       const data = adminBookingNotificationPayloadSchema.parse(payload);
@@ -930,7 +932,7 @@ export async function renderEmailTemplate(
         { includeFooter: false, maxWidthPx: 600 },
       );
 
-      return { subject, html, text };
+      return { subject: safeSubject, html, text };
     }
     case "admin-booking-cancelled-v1": {
       const data = adminBookingCancelledPayloadSchema.parse(payload);
@@ -966,7 +968,7 @@ export async function renderEmailTemplate(
         { includeFooter: false, maxWidthPx: 600 },
       );
 
-      return { subject, html, text };
+      return { subject: safeSubject, html, text };
     }
     case "voucher-sent-v1": {
       const data = voucherSentPayloadSchema.parse(payload);
@@ -979,7 +981,7 @@ export async function renderEmailTemplate(
       const pdfBytes = await generateVoucherPdf(voucher);
       const verificationUrl = buildVoucherVerificationUrl(voucher.code);
       const voucherEmail = buildVoucherEmailTemplate({
-        subject,
+        subject: safeSubject,
         voucher,
         salon: {
           name: brand.name,

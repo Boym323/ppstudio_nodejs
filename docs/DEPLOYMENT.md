@@ -268,7 +268,7 @@ Postup nasazení aplikace do produkce.
 6. Build (`npm run build`).
 7. Připrav nebo ověř existenci upload rootu `/var/www/ppstudio/uploads` včetně práv pro web proces.
 8. Restart procesu aplikace.
-9. Pokud běžíš v self-hosted režimu bez připraveného SMTP, nech dočasně `EMAIL_DELIVERY_MODE=log`, ať booking flow neblokuje start produkce.
+9. Pokud běžíš v self-hosted režimu bez připraveného SMTP, nech dočasně `EMAIL_DELIVERY_MODE=log`, ať booking flow neblokuje start produkce; po ověření SMTP ho pro produkci vrať na `background`.
 10. Pro produkci spusť zvlášť `npm run email:worker` jako samostatný proces nebo službu.
 11. Po nasazení reminder změny ověř, že worker běží nepřetržitě; bez něj se reminder joby neenqueueují ani nedoručují.
 12. Po nasazení reschedule změny ověř, že přesun resetuje `reminder24hQueuedAt` a `reminder24hSentAt`, aby se reminder správně navázal na nový termín.

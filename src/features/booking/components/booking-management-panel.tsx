@@ -5,7 +5,10 @@ import { useActionState, useMemo, useRef, useState } from "react";
 import {
   initialManagePublicBookingActionState,
 } from "@/features/booking/actions/manage-public-booking-action-state";
-import { managePublicBookingAction } from "@/features/booking/actions/manage-public-booking";
+import {
+  managePublicBookingAction,
+  startPublicBookingCancellationAction,
+} from "@/features/booking/actions/manage-public-booking";
 import type { PublicBookingManagementPageState } from "@/features/booking/lib/booking-management";
 import { buildSlotTimeOptions, groupSlotsByDayPeriod } from "@/features/booking/lib/booking-time-slots";
 import type { TimeSlotOption } from "@/features/booking/lib/booking-time-slots";
@@ -680,12 +683,15 @@ export function BookingManagementPanel({
       </section>
 
       <section className="text-center">
-        <a
-          href={initialState.cancellationUrl}
-          className="inline-flex min-h-11 items-center justify-center rounded-full px-4 py-2 text-sm font-semibold text-[var(--color-muted)] underline-offset-4 transition hover:text-red-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-200"
-        >
-          Zrušit rezervaci
-        </a>
+        <form action={startPublicBookingCancellationAction}>
+          <input type="hidden" name="token" value={token} />
+          <button
+            type="submit"
+            className="inline-flex min-h-11 items-center justify-center rounded-full px-4 py-2 text-sm font-semibold text-[var(--color-muted)] underline-offset-4 transition hover:text-red-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-200"
+          >
+            Zrušit rezervaci
+          </button>
+        </form>
       </section>
 
       {selectedOption ? (

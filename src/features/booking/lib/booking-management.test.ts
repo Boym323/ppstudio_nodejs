@@ -68,9 +68,8 @@ describe("public token access", () => {
       },
       getBookingPolicySettings: async () => ({ cancellationHours: 48, minAdvanceHours: 2, maxAdvanceDays: 90 }),
       getPublicBookingCatalog: async () => emptyCatalog,
-      issueCancellationUrl: async (bookingId) => {
-        assert.equal(bookingId, "booking-1");
-        return "https://example.com/cancel/booking-1";
+      issueCancellationUrl: async () => {
+        throw new Error("GET page state must not issue cancellation tokens");
       },
       rescheduleBooking: async () => {
         throw new Error("rescheduleBooking should not be called");
@@ -84,7 +83,6 @@ describe("public token access", () => {
       assert.equal(result.bookingId, "booking-1");
       assert.equal(result.serviceName, "Service for booking-1");
       assert.equal(result.clientName, "Client for booking-1");
-      assert.equal(result.cancellationUrl, "https://example.com/cancel/booking-1");
     }
   });
 
@@ -123,7 +121,9 @@ describe("public token access", () => {
       findManageToken: async (tokenHash) => tokenMap.get(tokenHash) ?? null,
       getBookingPolicySettings: async () => ({ cancellationHours: 48, minAdvanceHours: 2, maxAdvanceDays: 90 }),
       getPublicBookingCatalog: async () => emptyCatalog,
-      issueCancellationUrl: async (bookingId) => `https://example.com/cancel/${bookingId}`,
+      issueCancellationUrl: async () => {
+        throw new Error("GET page state must not issue cancellation tokens");
+      },
       rescheduleBooking: async () => {
         throw new Error("rescheduleBooking should not be called");
       },
@@ -138,6 +138,31 @@ describe("public token access", () => {
       assert.equal(firstResult.bookingId, "booking-1");
       assert.equal(secondResult.bookingId, "booking-2");
       assert.notEqual(firstResult.bookingId, secondResult.bookingId);
+    }
+  });
+
+  test("issues cancellation URL only from explicit cancellation action", async () => {
+    const { createBookingManagementApi } = await import("./booking-management");
+    let issuedForBookingId: string | null = null;
+    const api = createBookingManagementApi({
+      findManageToken: async () => buildToken({ bookingId: "booking-1" }),
+      getBookingPolicySettings: async () => ({ cancellationHours: 48, minAdvanceHours: 2, maxAdvanceDays: 90 }),
+      getPublicBookingCatalog: async () => emptyCatalog,
+      issueCancellationUrl: async (bookingId) => {
+        issuedForBookingId = bookingId;
+        return "https://example.com/cancel/booking-1";
+      },
+      rescheduleBooking: async () => {
+        throw new Error("rescheduleBooking should not be called");
+      },
+    });
+
+    const result = await api.issuePublicCancellationUrlByManageToken("valid-token");
+
+    assert.equal(result.status, "issued");
+    assert.equal(issuedForBookingId, "booking-1");
+    if (result.status === "issued") {
+      assert.equal(result.cancellationUrl, "https://example.com/cancel/booking-1");
     }
   });
 

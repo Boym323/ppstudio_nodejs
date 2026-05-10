@@ -9,12 +9,23 @@ import {
 } from "@/features/admin/lib/admin-user-invite";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
+import { isSameOriginAdminRequest } from "@/lib/http/request-origin";
 
 const resendInviteSchema = z.object({
   userId: z.string().trim().min(1).max(64),
 });
 
 export async function POST(request: Request) {
+  if (!isSameOriginAdminRequest(request)) {
+    return NextResponse.json(
+      {
+        status: "error",
+        message: "Pozadavek neprosel kontrolou puvodu.",
+      },
+      { status: 403 },
+    );
+  }
+
   const session = await getSession();
 
   if (!session || session.role !== AdminRole.OWNER) {

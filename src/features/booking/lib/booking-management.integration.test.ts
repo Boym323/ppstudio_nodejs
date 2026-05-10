@@ -705,7 +705,6 @@ describe("public booking access", () => {
     const {
       prisma,
       getPublicBookingManagementPageState,
-      hashBookingActionToken,
       BookingActionTokenType,
     } = await loadModules();
 
@@ -723,25 +722,18 @@ describe("public booking access", () => {
       assert.match(result.statusLabel, /Potvrzená/i);
       assert.equal(result.scheduledStartsAt, seed.manageableStartAt);
       assert.ok(result.slots.some((slot) => slot.id === seed.replacementSlotId));
-      assert.match(result.cancellationUrl, /\/rezervace\/storno\//);
 
-      const issuedRawToken = result.cancellationUrl.split("/").at(-1);
-      assert.ok(issuedRawToken);
-
-      const issuedCancellationToken = await prisma.bookingActionToken.findUnique({
+      const issuedCancellationTokenCount = await prisma.bookingActionToken.count({
         where: {
-          tokenHash: hashBookingActionToken(issuedRawToken ?? ""),
-        },
-        select: {
-          bookingId: true,
-          type: true,
+          bookingId: seed.manageableBookingId,
+          type: BookingActionTokenType.CANCEL,
+          tokenHash: {
+            notIn: seed.createdTokenHashes,
+          },
         },
       });
 
-      assert.deepEqual(issuedCancellationToken, {
-        bookingId: seed.manageableBookingId,
-        type: BookingActionTokenType.CANCEL,
-      });
+      assert.equal(issuedCancellationTokenCount, 0);
     } finally {
       await cleanupSeed(seed);
     }

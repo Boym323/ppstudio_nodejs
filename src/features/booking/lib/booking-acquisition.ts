@@ -272,5 +272,7 @@ export function buildBookingAcquisitionCookieValue(input: {
 }
 
 export function buildBookingAcquisitionCookieHeader(cookieValue: string) {
-  return `${BOOKING_ACQUISITION_COOKIE}=${cookieValue}; Max-Age=${BOOKING_ACQUISITION_COOKIE_MAX_AGE_SECONDS}; Path=/; SameSite=Lax`;
+  const secureAttribute = process.env.NODE_ENV === "production" ? "; Secure" : "";
+
+  return `${BOOKING_ACQUISITION_COOKIE}=${cookieValue}; Max-Age=${BOOKING_ACQUISITION_COOKIE_MAX_AGE_SECONDS}; Path=/; SameSite=Lax${secureAttribute}`;
 }

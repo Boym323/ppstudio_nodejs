@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { buildBookingAcquisitionCookieValue, parseBookingAcquisitionCookie } from "./booking-acquisition";
+import {
+  buildBookingAcquisitionCookieHeader,
+  buildBookingAcquisitionCookieValue,
+  parseBookingAcquisitionCookie,
+} from "./booking-acquisition";
 
 function decodePayload(cookieValue: string) {
   return JSON.parse(decodeURIComponent(cookieValue)) as { landingPath: string };
@@ -75,4 +79,15 @@ test("parseBookingAcquisitionCookie keeps country Google domains without broad h
 
   assert.equal(parseBookingAcquisitionCookie(googleCookieValue).source, "GOOGLE");
   assert.equal(parseBookingAcquisitionCookie(spoofedCookieValue).source, "OTHER");
+});
+
+test("buildBookingAcquisitionCookieHeader adds Secure in production", () => {
+  const previousNodeEnv = process.env.NODE_ENV;
+  (process.env as Record<string, string | undefined>).NODE_ENV = "production";
+
+  try {
+    assert.match(buildBookingAcquisitionCookieHeader("value"), /; Secure$/);
+  } finally {
+    (process.env as Record<string, string | undefined>).NODE_ENV = previousNodeEnv;
+  }
 });

@@ -1,13 +1,17 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
 import { type ManagePublicBookingActionState } from "@/features/booking/actions/manage-public-booking-action-state";
 import {
   bookingRescheduleErrorCodes,
   BookingRescheduleError,
 } from "@/features/booking/lib/booking-rescheduling";
-import { reschedulePublicBookingByToken } from "@/features/booking/lib/booking-management";
+import {
+  issuePublicCancellationUrlByManageToken,
+  reschedulePublicBookingByToken,
+} from "@/features/booking/lib/booking-management";
 
 function readFormString(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -103,4 +107,20 @@ export async function managePublicBookingAction(
       formError: "Změnu termínu se teď nepodařilo uložit. Zkuste to prosím znovu.",
     };
   }
+}
+
+export async function startPublicBookingCancellationAction(formData: FormData) {
+  const token = readFormString(formData, "token").trim();
+
+  if (!token) {
+    redirect("/rezervace");
+  }
+
+  const result = await issuePublicCancellationUrlByManageToken(token);
+
+  if (result.status !== "issued") {
+    redirect("/rezervace");
+  }
+
+  redirect(result.cancellationUrl);
 }

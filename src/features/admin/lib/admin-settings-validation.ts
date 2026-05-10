@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { isSafeEmailHeaderValue } from "@/lib/email/header";
+
 const trimmedOptionalUrl = z
   .string()
   .trim()
@@ -68,7 +70,8 @@ export const updateEmailSettingsSchema = z.object({
     .string()
     .trim()
     .min(2, "Zadejte jméno odesílatele.")
-    .max(120, "Jméno odesílatele je příliš dlouhé."),
+    .max(120, "Jméno odesílatele je příliš dlouhé.")
+    .refine(isSafeEmailHeaderValue, "Jméno odesílatele nesmí obsahovat nový řádek."),
   emailSenderEmail: z.email("Zadejte platný e-mail odesílatele."),
   emailFooterText: z
     .string()

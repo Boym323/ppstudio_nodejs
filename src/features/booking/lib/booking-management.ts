@@ -66,7 +66,6 @@ export type PublicBookingManagementPageState =
       expectedUpdatedAt: string;
       expiresAt: string;
       cancellationHours: number;
-      cancellationUrl: string;
       slots: PublicBookingCatalog["slots"];
     })
   | (BookingManageDetails & {
@@ -273,10 +272,7 @@ export function createBookingManagementApi(
         return resolved;
       }
 
-      const [catalog, cancellationUrl] = await Promise.all([
-        dependencies.getPublicBookingCatalog(),
-        dependencies.issueCancellationUrl(resolved.token.booking.id),
-      ]);
+      const catalog = await dependencies.getPublicBookingCatalog();
 
       return {
         status: "ready",
@@ -295,8 +291,30 @@ export function createBookingManagementApi(
         expectedUpdatedAt: resolved.token.booking.updatedAt.toISOString(),
         expiresAt: resolved.token.expiresAt.toISOString(),
         cancellationHours: bookingPolicy.cancellationHours,
-        cancellationUrl,
         slots: catalog.slots,
+      };
+    },
+
+    async issuePublicCancellationUrlByManageToken(rawToken: string): Promise<
+      | { status: "issued"; cancellationUrl: string }
+      | PublicBookingManagementBlockedState
+    > {
+      const tokenHash = hashBookingActionToken(rawToken);
+      const [token, bookingPolicy] = await Promise.all([
+        dependencies.findManageToken(tokenHash),
+        dependencies.getBookingPolicySettings(),
+      ]);
+      const resolved = resolvePublicBookingManagementState(token, bookingPolicy.cancellationHours);
+
+      if (resolved.status !== "ready") {
+        return resolved;
+      }
+
+      const cancellationUrl = await dependencies.issueCancellationUrl(resolved.token.booking.id);
+
+      return {
+        status: "issued",
+        cancellationUrl,
       };
     },
 
@@ -348,3 +366,6 @@ export const getPublicBookingManagementPageState =
 
 export const reschedulePublicBookingByToken =
   bookingManagementApi.reschedulePublicBookingByToken;
+
+export const issuePublicCancellationUrlByManageToken =
+  bookingManagementApi.issuePublicCancellationUrlByManageToken;

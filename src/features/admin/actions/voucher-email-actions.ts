@@ -13,12 +13,18 @@ import {
 } from "@/features/admin/lib/admin-vouchers";
 import { getEffectiveVoucherStatus } from "@/features/vouchers/lib/voucher-format";
 import { requireRole } from "@/lib/auth/session";
+import { isSafeEmailHeaderValue, sanitizeEmailHeaderValue } from "@/lib/email/header";
 import { prisma } from "@/lib/prisma";
 
 const sendVoucherEmailSchema = z.object({
   voucherId: z.string().trim().min(1, "Voucher je potřeba vybrat."),
   recipientEmail: z.email("Zadejte platný e-mail příjemce.").max(254, "E-mail je příliš dlouhý."),
-  subject: z.string().trim().min(1, "Doplňte předmět e-mailu.").max(160, "Předmět je příliš dlouhý."),
+  subject: z
+    .string()
+    .trim()
+    .min(1, "Doplňte předmět e-mailu.")
+    .max(160, "Předmět je příliš dlouhý.")
+    .refine(isSafeEmailHeaderValue, "Předmět nesmí obsahovat nový řádek."),
 });
 
 type QueueVoucherEmailResult =
@@ -109,6 +115,7 @@ export async function queueVoucherEmailLog(input: unknown, now = new Date()): Pr
   }
 
   const inBackgroundMode = env.EMAIL_DELIVERY_MODE === "background";
+  const subject = sanitizeEmailHeaderValue(parsed.data.subject, "Voucher e-mail subject");
 
   await prisma.emailLog.create({
     data: {
@@ -119,7 +126,7 @@ export async function queueVoucherEmailLog(input: unknown, now = new Date()): Pr
       processingStartedAt: null,
       processingToken: null,
       recipientEmail: parsed.data.recipientEmail,
-      subject: parsed.data.subject,
+      subject,
       templateKey: "voucher-sent-v1",
       payload: {
         voucherId: voucher.id,

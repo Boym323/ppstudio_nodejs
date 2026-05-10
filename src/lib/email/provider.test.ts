@@ -56,3 +56,43 @@ test("sendEmail in log mode accepts attachments", async () => {
   assert.equal(result.provider, "log");
   assert.match(result.messageId ?? "", /^log-/);
 });
+
+test("sendEmail in log mode masks recipient and anonymizes subject", async () => {
+  const { sendEmail } = await loadProvider();
+  const originalInfo = console.info;
+  const calls: unknown[] = [];
+  console.info = (...args: unknown[]) => {
+    calls.push(args);
+  };
+
+  try {
+    await sendEmail({
+      to: "jana.novakova@example.com",
+      subject: "Citlivý předmět klientky",
+      text: "Hello",
+      html: "<p>Hello</p>",
+    });
+  } finally {
+    console.info = originalInfo;
+  }
+
+  assert.equal(calls.length, 1);
+  const [, metadata] = calls[0] as [string, { to: string; subject: { length: number; hash: string } }];
+  assert.equal(metadata.to, "ja***@example.com");
+  assert.equal(metadata.subject.length, "Citlivý předmět klientky".length);
+  assert.match(metadata.subject.hash, /^[a-f0-9]{12}$/);
+});
+
+test("sendEmail rejects CRLF in subject", async () => {
+  const { sendEmail } = await loadProvider();
+
+  await assert.rejects(
+    sendEmail({
+      to: "jana@example.com",
+      subject: "Test\r\nBcc: attacker@example.com",
+      text: "Hello",
+      html: "<p>Hello</p>",
+    }),
+    /nový řádek/i,
+  );
+});

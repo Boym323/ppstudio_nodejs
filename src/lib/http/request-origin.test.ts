@@ -42,3 +42,41 @@ test("buildAbsoluteUrl falls back to canonical origin for untrusted request host
     "https://example.com/admin/prihlaseni?next=%2Fadmin%2Frezervace",
   );
 });
+
+test("isSameOriginAdminRequest accepts matching origin and host", async () => {
+  const { isSameOriginAdminRequest } = await import("./request-origin");
+  const request = new Request("https://example.com/api/admin/users/resend-invite", {
+    method: "POST",
+    headers: {
+      host: "example.com",
+      origin: "https://example.com",
+    },
+  });
+
+  assert.equal(isSameOriginAdminRequest(request), true);
+});
+
+test("isSameOriginAdminRequest rejects mismatched origin", async () => {
+  const { isSameOriginAdminRequest } = await import("./request-origin");
+  const request = new Request("https://example.com/api/admin/users/resend-invite", {
+    method: "POST",
+    headers: {
+      host: "example.com",
+      origin: "https://evil.example",
+    },
+  });
+
+  assert.equal(isSameOriginAdminRequest(request), false);
+});
+
+test("isSameOriginAdminRequest rejects missing origin", async () => {
+  const { isSameOriginAdminRequest } = await import("./request-origin");
+  const request = new Request("https://example.com/api/admin/users/resend-invite", {
+    method: "POST",
+    headers: {
+      host: "example.com",
+    },
+  });
+
+  assert.equal(isSameOriginAdminRequest(request), false);
+});

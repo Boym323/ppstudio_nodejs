@@ -2,6 +2,11 @@ import nodemailer from "nodemailer";
 import type SMTPTransport from "nodemailer/lib/smtp-transport";
 
 import { env } from "@/config/env";
+import {
+  anonymizeEmailSubject,
+  maskEmailAddress,
+  sanitizeEmailHeaderValue,
+} from "@/lib/email/header";
 import { getEmailBrandingSettings, getSafeEnvelopeFromEmail } from "@/lib/site-settings";
 
 export type EmailDeliveryMessage = {
@@ -87,12 +92,15 @@ function getSmtpTransportHint(error: unknown) {
 }
 
 export async function sendEmail(message: EmailDeliveryMessage): Promise<EmailDeliveryResult> {
+  const subject = sanitizeEmailHeaderValue(message.subject, "E-mail subject");
+
   if (env.EMAIL_DELIVERY_MODE === "log") {
     const messageId = `log-${Date.now()}`;
+    const subjectLog = anonymizeEmailSubject(subject);
 
     console.info("Email delivery in log mode", {
-      to: message.to,
-      subject: message.subject,
+      to: maskEmailAddress(message.to),
+      subject: subjectLog,
       messageId,
       attachments: message.attachments?.map((attachment) => attachment.filename) ?? [],
     });
@@ -107,6 +115,7 @@ export async function sendEmail(message: EmailDeliveryMessage): Promise<EmailDel
   const emailBranding = await getEmailBrandingSettings();
   const requestedSenderEmail = emailBranding.senderEmail || env.SMTP_FROM_EMAIL || "info@ppstudio.cz";
   const fromEmail = getSafeEnvelopeFromEmail(requestedSenderEmail);
+  const fromName = sanitizeEmailHeaderValue(emailBranding.senderName, "E-mail sender name");
 
   if (fromEmail !== requestedSenderEmail) {
     console.warn("Sender email overridden by SMTP safety policy", {
@@ -118,10 +127,13 @@ export async function sendEmail(message: EmailDeliveryMessage): Promise<EmailDel
   let info;
   try {
     info = await transporter.sendMail({
-      from: `"${emailBranding.senderName}" <${fromEmail}>`,
+      from: {
+        name: fromName,
+        address: fromEmail,
+      },
       to: message.to,
       replyTo: env.SMTP_REPLY_TO ?? requestedSenderEmail ?? env.SMTP_FROM_EMAIL,
-      subject: message.subject,
+      subject,
       text: message.text,
       html: message.html,
       attachments: message.attachments,

@@ -662,7 +662,9 @@ npm run db:clear-booking-data -- --confirm
 - Admin detail rezervace zobrazuje historii změn jako provozní timeline, takže salon i owner vidí, kdo a kdy stav upravil.
 - `BookingActionToken` ukládá pouze hash tokenu pro storno a přesun termínu, nikdy ne surovou hodnotu tokenu.
 - Klientský manage flow `/rezervace/sprava/[token]` přijímá jen hashovaný token typu `RESCHEDULE`; bez validního tokenu neukáže žádná data rezervace.
+- Klientský manage flow při obyčejném načtení nevydává nový storno token. Tlačítko `Zrušit rezervaci` nejdřív přes server action vytvoří jednorázový `CANCEL` token a až potom přesměruje na potvrzovací storno stránku.
 - `EmailLog` umožňuje trasovat odeslané i neúspěšné e-maily navázané na klienta, rezervaci a případný token.
+- `EMAIL_DELIVERY_MODE=log` je jen vývojový/safe-mode režim; loguje maskovaného příjemce a anonymizovaný subject, ne plnou zákaznickou komunikaci.
 - Veřejný route handler `GET /api/health` vrací provozní health snapshot pro monitoring:
   - stav `db` (rychlý `SELECT 1`)
   - stav `emailWorker` (`ok`/`warning`/`error`) podle stale claimů, backlogu a failed logů
