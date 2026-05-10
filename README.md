@@ -138,9 +138,11 @@ npm run dev:clean
 - `npm run db:push` synchronizuje schema bez migrací
 - `npm run db:studio` otevře Prisma Studio
 - `npm run db:import-services` importuje katalog služeb
+- `npm run db:backfill-service-copy` provede backfill strukturovaných textů služeb (nejdřív používej `-- --dry-run`, teprve potom `-- --confirm`)
 - `npm run db:clear-booking-data` vypíše počty booking/slot dat a s `-- --confirm` je smaže bez zásahu do služeb, admin účtů a settings
 - `npm run email:worker` spustí e-mailový worker
 - `npm run email:worker:once` jednorázově zpracuje frontu e-mailů
+- `npm run email:previews` vygeneruje lokální HTML náhledy e-mailových šablon do `tmp/email-previews`
 
 Pro produkci používej Prisma deploy flow přes `npx prisma migrate deploy`. Lokální `npm run db:migrate` je určené pro vývoj.
 
@@ -157,7 +159,7 @@ Pro produkci používej Prisma deploy flow přes `npx prisma migrate deploy`. Lo
 ## Nasazení
 
 - Doporučený produkční rollout je `./deploy/release.sh`.
-- Skript dělá `git pull --ff-only`, `npm ci`, Prisma generate + migrate deploy, `lint`, `build` a restart `ppstudio-web` / `ppstudio-email-worker`.
+- Skript dělá `git pull --ff-only`, `npm ci`, `npm run db:generate`, `npm run db:check-migrations`, `npx prisma migrate deploy`, `lint`, `build` a restart `ppstudio-web` / `ppstudio-email-worker`.
 - Release checklist a QA body jsou v `docs/DEPLOYMENT.md`.
 
 ## Dokumentace
