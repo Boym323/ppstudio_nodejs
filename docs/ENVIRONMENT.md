@@ -46,6 +46,7 @@ Dokumentace proměnných prostředí pro lokální vývoj i produkci.
 ## Poznámky
 - Bootstrap admin přístupy slouží jen jako startovní/recovery vrstva projektu. Login přes `ADMIN_OWNER_*` a `ADMIN_STAFF_*` funguje pouze při `ADMIN_BOOTSTRAP_ENABLED=true`; po založení nebo opravě DB admin účtů přepínač vrať na `false`.
 - V produkci používej silná hesla a unikátní `ADMIN_SESSION_SECRET`.
+- Identita konkrétního serveru se nesmí zapisovat jako pevné tvrzení do verzované dokumentace, protože repozitář se synchronizuje i na produkci. Pro ověření prostředí vždy čti lokální `.env` a deploy konfiguraci na cílovém serveru; zejména `NODE_ENV`, `DATABASE_URL`, `NEXT_PUBLIC_APP_URL` a e-mailové proměnné.
 - Veřejný obsah salonu není řízený env proměnnými; texty a placeholdery jsou centralizované v `src/content/public-site.ts`.
 - Provozní identita veřejného webu (jméno provozovatelky a IČ používané na `/kontakt` a `/obchodni-podminky`) aktuálně také není env konfigurace; je součástí sdíleného public profile helperu v `src/lib/site-settings.ts`.
 - Admin login rate limit nepřidává novou env proměnnou; limity jsou zatím fixované v `src/lib/auth/admin-login-rate-limit.ts` (okno 10 minut, IP limit 20, e-mail fail limit 6).

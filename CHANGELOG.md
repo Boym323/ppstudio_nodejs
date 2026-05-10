@@ -6,6 +6,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Dokumentace prostředí nově upozorňuje, že identita konkrétního serveru patří do lokální `.env` / deploy konfigurace, protože verzovaná dokumentace se synchronizuje i na produkci.
+
 ## [0.3.0] - 2026-05-10
 
 - Release příprava pro produkční nasazení: projektová verze navýšena na minor `0.3.0`.
