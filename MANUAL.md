@@ -690,6 +690,8 @@ npm run db:clear-booking-data -- --confirm
 - Veřejný booking flow po odeslání:
   - veřejný web `/`, `/sluzby`, `/cenik` a detail služby nyní čerpá z databáze v request-time
   - admin změny se do něj promítnou bez rebuildů
+  - route `/rezervace` podporuje query parametr `service` ve tvaru `/rezervace?service=<slug>` pro marketingové deep linky na konkrétní službu
+  - předvýběr služby podle `service` slug funguje jen pro službu, která je v právě načteném veřejném katalogu; neplatný, neaktivní nebo neveřejný slug se bezpečně ignoruje
   - globální booking pravidla čte ze `SiteSettings`, ne z natvrdo zapsaných konstant
   - znovu validuje službu a termín server-side
   - naváže nebo vytvoří klienta podle e-mailu

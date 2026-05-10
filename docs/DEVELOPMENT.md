@@ -568,9 +568,11 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Krok 2 generuje konkrétní starty po 30 minutách uvnitř slotu a zobrazuje jen ty, které se při aktuální kapacitě nekryjí s existujícími aktivními rezervacemi.
 - Krok 2 veřejného booking flow drž jako rychlý decision flow: doporučené termíny nahoře, kalendář jako fallback a pod ním větší tlačítka konkrétních časů; detail termínu patří až do souhrnu v pravém panelu.
 - Kontaktní krok používá lehkou klientskou inline validaci jen jako UX vrstvu; server-side validace v `create-public-booking.ts` zůstává autoritativní.
+- Veřejná route `/rezervace` může dostat `?service=<slug>`; klient smí předvybrat jen službu, kterou najde v právě načteném veřejném katalogu. Nesmí vzniknout samostatná trust větev přes service ID nebo jiný bypass katalogu.
 - `create-public-booking.ts` kromě IP/user-agent auditu načítá i cookie `ppstudio-booking-acq` a propsává akviziční kontext do `Booking` i `BookingSubmissionLog.metadata`.
 - Klientský tracker `src/features/booking/components/booking-acquisition-tracker.tsx` běží v root layoutu, sbírá `utm_*` + externí `document.referrer`, normalizuje je a ukládá do cookie `ppstudio-booking-acq` (`SameSite=Lax`, 30 dní).
 - Akviziční cookie ukládá pouze relativní `landingPath`; scheme-relative hodnoty typu `//host/path` a backslash varianty se zahazují na `/`. Referrer hosty se klasifikují jen přes přesnou doménu nebo subdoménu, ne přes volný substring.
+- Pokud landing URL kombinuje `service` s `utm_*` nebo `mtm_*`, route ani klientský flow nesmí query přepsat; tracker má zachovat původní `landingPath` včetně marketingových parametrů.
 - Success stav veřejného booking flow drž jako vlastní confirmation layout, ne jako prodloužený souhrn:
   - horní status blok jen pro stav rezervace, s copy `Rezervace přijata` a `Čeká na finální potvrzení`
   - hero text má výslovně říct, že termín je pro klientku předběžně rezervovaný

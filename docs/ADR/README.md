@@ -94,3 +94,4 @@ Sem patří krátké záznamy architektonických rozhodnutí.
 - `0083-public-studio-media-hardening-v1.md`
 - `0087-homepage-featured-services-v1.md`
 - `0090-email-template-site-settings-contact-v1.md`
+- `0091-public-booking-service-query-prefill-v1.md`

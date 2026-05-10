@@ -150,6 +150,19 @@ export function getCategoryKey(categoryName: string) {
   return categoryName.toLocaleLowerCase("cs-CZ");
 }
 
+export function findInitialSelectedService(
+  services: PublicBookingCatalog["services"],
+  serviceSlug?: string,
+) {
+  const normalizedSlug = serviceSlug?.trim();
+
+  if (!normalizedSlug) {
+    return undefined;
+  }
+
+  return services.find((service) => service.slug === normalizedSlug);
+}
+
 function validateFullName(value: string) {
   const trimmed = value.trim();
 

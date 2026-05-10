@@ -18,6 +18,7 @@ import { BookingContactStep } from "./booking-flow/contact-step";
 import {
   buildContactFieldErrors,
   EMPTY_TIME_SLOTS,
+  findInitialSelectedService,
   getCategoryKey,
   getSlotDateKey,
   getSlotDurationMinutes,
@@ -36,9 +37,10 @@ export function BookingFlow({ catalog, initialSelectedServiceSlug, salonProfile 
     createPublicBookingAction,
     initialPublicBookingActionState,
   );
-  const initialSelectedService = initialSelectedServiceSlug
-    ? catalog.services.find((service) => service.slug === initialSelectedServiceSlug)
-    : undefined;
+  const initialSelectedService = findInitialSelectedService(
+    catalog.services,
+    initialSelectedServiceSlug,
+  );
   const initialCategoryKey = getCategoryKey(
     initialSelectedService?.categoryName ?? catalog.services[0]?.categoryName ?? "",
   );

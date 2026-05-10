@@ -7,6 +7,7 @@ Formát je inspirovaný Keep a Changelog.
 ## [Unreleased]
 
 - Dokumentace prostředí nově upozorňuje, že identita konkrétního serveru patří do lokální `.env` / deploy konfigurace, protože verzovaná dokumentace se synchronizuje i na produkci.
+- Veřejná rezervace podporuje marketingový query parametr `?service=<slug>` pro předvýběr služby z veřejného katalogu; neplatný, neaktivní nebo neveřejný slug se bezpečně ignoruje a detail služby vede na `/rezervace?service=<slug>`.
 
 ## [0.3.0] - 2026-05-10
 

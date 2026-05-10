@@ -183,6 +183,97 @@ test.describe("booking flows", () => {
     ]);
   });
 
+  test("valid service slug preselects the service and keeps marketing params intact", async ({ page }) => {
+    const fixture = await createPublicBookingFixture();
+    fixtures.push(fixture);
+
+    const service = await prisma.service.findFirstOrThrow({
+      where: {
+        slug: fixture.serviceSlug,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    await page.goto(
+      `/rezervace?service=${fixture.serviceSlug}&utm_source=instagram&utm_medium=social&mtm_campaign=jaro-2026`,
+    );
+
+    await expect(page.locator('input[name="serviceId"]')).toHaveValue(service.id);
+    await expect(page.getByText(fixture.serviceName).first()).toBeVisible();
+
+    const currentUrl = new URL(page.url());
+    expect(currentUrl.searchParams.get("service")).toBe(fixture.serviceSlug);
+    expect(currentUrl.searchParams.get("utm_source")).toBe("instagram");
+    expect(currentUrl.searchParams.get("utm_medium")).toBe("social");
+    expect(currentUrl.searchParams.get("mtm_campaign")).toBe("jaro-2026");
+  });
+
+  test("unknown service slug is ignored safely", async ({ page }) => {
+    const fixture = await createPublicBookingFixture();
+    fixtures.push(fixture);
+
+    await page.goto("/rezervace?service=neznamy-slug");
+
+    await expect(page.locator('input[name="serviceId"]')).toHaveValue("");
+    await expect(page.getByText(fixture.serviceName).first()).toBeVisible();
+  });
+
+  test("inactive or non-public service slug is not preselected", async ({ page }) => {
+    const inactiveFixture = await createPublicBookingFixture();
+    const fallbackFixture = await createPublicBookingFixture();
+    fixtures.push(inactiveFixture, fallbackFixture);
+
+    const targetService = await prisma.service.findFirstOrThrow({
+      where: {
+        slug: inactiveFixture.serviceSlug,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    await prisma.service.update({
+      where: {
+        id: targetService.id,
+      },
+      data: {
+        isActive: false,
+      },
+    });
+
+    await page.goto(`/rezervace?service=${inactiveFixture.serviceSlug}`);
+    await expect(page.locator('input[name="serviceId"]')).toHaveValue("");
+    await expect(page.getByText(fallbackFixture.serviceName).first()).toBeVisible();
+
+    await prisma.service.update({
+      where: {
+        id: targetService.id,
+      },
+      data: {
+        isActive: true,
+        isPubliclyBookable: false,
+      },
+    });
+
+    await page.goto(`/rezervace?service=${inactiveFixture.serviceSlug}`);
+    await expect(page.locator('input[name="serviceId"]')).toHaveValue("");
+    await expect(page.getByText(fallbackFixture.serviceName).first()).toBeVisible();
+  });
+
+  test("service detail links to booking with the service slug", async ({ page }) => {
+    const fixture = await createPublicBookingFixture();
+    fixtures.push(fixture);
+
+    await page.goto(`/sluzby/${fixture.serviceSlug}`);
+
+    await expect(page.getByRole("link", { name: "Rezervovat službu" })).toHaveAttribute(
+      "href",
+      `/rezervace?service=${fixture.serviceSlug}`,
+    );
+  });
+
   test("public visitor can verify a voucher code safely", async ({ page }) => {
     const fixture = await createPublicVoucherFixture();
     fixtures.push(fixture);

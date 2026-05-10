@@ -777,7 +777,7 @@ export function ServiceDetailPage({ service }: { service: Service }) {
         eyebrow={service.category}
         title={service.name}
         description={service.description}
-        primaryCta={{ href: '/rezervace', label: 'Rezervovat službu' }}
+        primaryCta={{ href: `/rezervace?service=${encodeURIComponent(service.slug)}`, label: 'Rezervovat službu' }}
         secondaryCta={{ href: '/sluzby', label: 'Zpět na služby' }}
       />
       <section className="py-10 sm:py-14 lg:py-16">

@@ -91,3 +91,18 @@ test("buildBookingAcquisitionCookieHeader adds Secure in production", () => {
     (process.env as Record<string, string | undefined>).NODE_ENV = previousNodeEnv;
   }
 });
+
+test("buildBookingAcquisitionCookieValue keeps service, utm and mtm query params in landingPath", () => {
+  const cookieValue = buildBookingAcquisitionCookieValue({
+    pathname: "/rezervace",
+    search: "?service=lash-lifting&utm_source=instagram&utm_medium=social&mtm_campaign=jaro-2026",
+    hostname: "ppstudio.cz",
+    referrer: "",
+  });
+
+  assert.ok(cookieValue);
+  assert.equal(
+    decodePayload(cookieValue).landingPath,
+    "/rezervace?service=lash-lifting&utm_source=instagram&utm_medium=social&mtm_campaign=jaro-2026",
+  );
+});
