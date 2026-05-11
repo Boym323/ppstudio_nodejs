@@ -6,6 +6,9 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-05-11
+
+- Release příprava pro produkční nasazení: projektová verze navýšena na patch `0.3.2`.
 - Stabilizován flaky Playwright scénář `inactive or non-public service slug is not preselected`: test už před ověřením fallback služby explicitně přepne na kategorii fallback fixture, takže nepadá na náhodném pořadí kategorií/služeb ve veřejném katalogu.
 - Dokumentace byla srovnána s aktuálním stavem release workflow a dostupných skriptů: README nyní obsahuje i `email:previews` a `db:backfill-service-copy`, a README/MANUAL/DEVELOPMENT explicitně uvádí krok `db:check-migrations` v produkčním rolloutu.
 - Opraven mobilní UX v admin sekci `Rezervace`: horní filtr panel už na mobilu není sticky, takže při scrollu nepřekrývá obsah seznamu; sticky chování zůstává od `md` breakpointu výš.
