@@ -8,6 +8,7 @@ Formát je inspirovaný Keep a Changelog.
 
 - Opraveno mobilní přetékání alertů v admin dashboardu (`Vyžaduje pozornost`): text se na úzkých viewports zalamuje místo ořezu mimo kartu a akční tlačítko se skládá pod text, takže blok zůstává čitelný bez horizontálního přesahu.
 - Admin dashboard už nezobrazuje sekci `Vyžaduje pozornost`, pokud nejsou žádné actionable alerty; při čistém stavu se blok úplně skryje místo zobrazování neutrální informace.
+- Dashboard `Vyžaduje pozornost` má rozšířenou sadu actionable alertů: upozornění na dnešní stav bez volného okna při aktivních rezervacích, na neuzavřené rezervace po konci termínu a na nízkou týdenní kapacitu (vysoká obsazenost + málo zbývajících slotů).
 
 ## [0.3.2] - 2026-05-11
 

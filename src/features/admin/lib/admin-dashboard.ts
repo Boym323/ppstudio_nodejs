@@ -542,6 +542,15 @@ export async function getAdminDashboardData(area: AdminArea): Promise<AdminDashb
   const hasFreeWindowsToday = upcomingFreeSlots.some(
     (slot) => slot.startsAt >= todayStart && slot.startsAt < tomorrowStart,
   );
+  const overdueActiveBookingsCount = todaySlots.reduce((count, slot) => {
+    return (
+      count +
+      slot.bookings.filter(
+        (booking) =>
+          booking.status !== BookingStatus.COMPLETED && booking.scheduledEndsAt.getTime() <= now.getTime(),
+      ).length
+    );
+  }, 0);
 
   const alerts: AdminDashboardData["alerts"] = [];
 
@@ -584,6 +593,49 @@ export async function getAdminDashboardData(area: AdminArea): Promise<AdminDashb
       text: "Na dnes a zítra není publikovaný žádný volný termín.",
       href: plannerHref,
       actionLabel: "Upravit dostupnost",
+      emphasis: "secondary",
+    });
+  }
+
+  if (todayBookings.length > 0 && !hasFreeWindowsToday) {
+    alerts.push({
+      id: "today-no-free-window",
+      tone: "warning",
+      text: "Dnes už není žádné volné okno pro další rezervaci.",
+      href: plannerHref,
+      actionLabel: "Upravit dostupnost",
+      emphasis: "secondary",
+    });
+  }
+
+  if (overdueActiveBookingsCount > 0) {
+    alerts.push({
+      id: "current-overdue",
+      tone: "problem",
+      text: `${overdueActiveBookingsCount} ${formatCountLabel(
+        overdueActiveBookingsCount,
+        "rezervace je po termínu a čeká na uzavření",
+        "rezervace jsou po termínu a čekají na uzavření",
+        "rezervací je po termínu a čeká na uzavření",
+      )}.`,
+      href: bookingsHref,
+      actionLabel: "Otevřít rezervace",
+      emphasis: "secondary",
+    });
+  }
+
+  if (weekOccupancy >= 80 && weekFreeSlots <= 3) {
+    alerts.push({
+      id: "week-capacity-low",
+      tone: "warning",
+      text: `Tento týden zbývají jen ${weekFreeSlots} ${formatCountLabel(
+        weekFreeSlots,
+        "volný slot",
+        "volné sloty",
+        "volných slotů",
+      )}.`,
+      href: plannerHref,
+      actionLabel: "Dnešní plán",
       emphasis: "secondary",
     });
   }
