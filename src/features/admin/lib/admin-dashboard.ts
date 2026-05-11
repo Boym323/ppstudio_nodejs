@@ -803,12 +803,14 @@ export async function getAdminDashboardData(area: AdminArea): Promise<AdminDashb
             ? "Zítra"
             : formatDayLabel(slot.startsAt);
       const remainingCapacity = Math.max(slot.capacity - slot.bookings.length, 0);
+      const metaLabel =
+        remainingCapacity <= 1 ? "volno" : `volno • kapacita ${remainingCapacity}`;
 
       return {
         id: slot.id,
         dayLabel: prefix,
         timeLabel: timeFormatter.format(slot.startsAt),
-        metaLabel: `volno • kapacita ${remainingCapacity}`,
+        metaLabel,
         href: getSlotEditHref(area, slot.id),
       };
     }),
