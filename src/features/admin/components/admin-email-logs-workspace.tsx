@@ -352,9 +352,9 @@ function RecentEmailList({
       {emails.map((email) => (
         <article
           key={email.id}
-          className="rounded-[1.1rem] border border-white/8 bg-white/5 px-3.5 py-3"
+          className="rounded-[1.1rem] border border-white/8 bg-white/5 px-3 py-2.5"
         >
-          <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+          <div className="flex flex-col gap-2.5 xl:grid xl:grid-cols-[minmax(0,1fr)_10.25rem] xl:items-start xl:gap-3">
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
                 <EmailTypeBadge label={email.typeLabel} tone={email.typeValue} />
@@ -362,33 +362,25 @@ function RecentEmailList({
                 <EmailTrackingBadge email={email} />
               </div>
 
-              <div className="mt-2.5 grid gap-3 xl:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)_minmax(18rem,0.95fr)]">
+              <div className="mt-2 grid gap-2.5 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1.1fr)_minmax(19rem,0.9fr)] xl:items-start">
                 <div className="min-w-0">
                   <p className="text-[0.66rem] uppercase tracking-[0.18em] text-white/42">Klientka / příjemce</p>
-                  <p className="mt-1 text-sm font-medium leading-5 text-white">{email.recipientLabel}</p>
-                  <p className="mt-0.5 text-sm leading-5 text-white/58">{email.activityLabel}</p>
+                  <p className="mt-0.5 text-sm font-medium leading-5 text-white">{email.recipientLabel}</p>
+                  <p className="text-sm leading-5 text-white/58">{email.activityLabel}</p>
                 </div>
 
                 <div className="min-w-0">
                   <p className="text-[0.66rem] uppercase tracking-[0.18em] text-white/42">Související rezervace</p>
                   {email.bookingSummary ? (
-                    <div className="mt-1 flex flex-wrap items-center gap-2">
+                    <div className="mt-0.5 flex flex-wrap items-center gap-2">
                       <p className="text-sm leading-5 text-white/84">{email.bookingSummary}</p>
-                      {email.bookingHref ? (
-                        <Link
-                          href={email.bookingHref}
-                          className="rounded-full border border-white/10 px-2.5 py-1 text-[11px] font-medium text-white/74 transition hover:border-white/18 hover:text-white"
-                        >
-                          Otevřít rezervaci
-                        </Link>
-                      ) : null}
                     </div>
                   ) : (
-                    <p className="mt-1 text-sm leading-5 text-white/58">Bez rezervace</p>
+                    <p className="mt-0.5 text-sm leading-5 text-white/58">Bez rezervace</p>
                   )}
                 </div>
 
-                <div className="grid grid-cols-[repeat(auto-fit,minmax(6.5rem,1fr))] gap-2.5 xl:min-w-[18rem]">
+                <div className="grid grid-cols-[repeat(auto-fit,minmax(6.25rem,1fr))] gap-2 xl:min-w-[18rem]">
                   <CompactMeta label="Vytvořeno" value={email.createdAtLabel} />
                   <CompactMeta label="Odesláno" value={email.sentAtLabel} />
                   <CompactMeta label="Pokusy" value={`${email.attemptCount}×`} />
@@ -403,18 +395,18 @@ function RecentEmailList({
               ) : null}
             </div>
 
-            <div className="flex shrink-0 flex-wrap gap-2 xl:w-[11rem] xl:flex-col">
+            <div className="flex shrink-0 flex-wrap gap-1.5 xl:w-[10.25rem] xl:flex-col xl:items-stretch xl:self-start xl:pt-7">
               {email.bookingHref ? (
                 <Link
                   href={email.bookingHref}
-                  className="inline-flex items-center justify-center rounded-full border border-white/10 px-3.5 py-2 text-sm text-white/78 transition hover:border-white/18 hover:text-white"
+                  className="inline-flex h-10 w-full items-center justify-center rounded-full border border-white/10 px-3.5 text-[0.92rem] font-medium text-white/78 transition hover:border-white/18 hover:text-white"
                 >
                   Otevřít rezervaci
                 </Link>
               ) : null}
               <Link
                 href={email.detailHref}
-                className="inline-flex items-center justify-center rounded-full border border-white/10 px-3.5 py-2 text-sm text-white/78 transition hover:border-white/18 hover:text-white"
+                className="inline-flex h-10 w-full items-center justify-center rounded-full border border-white/10 px-3.5 text-[0.92rem] font-medium text-white/78 transition hover:border-white/18 hover:text-white"
               >
                 Detail emailu
               </Link>
@@ -423,7 +415,7 @@ function RecentEmailList({
                   <input type="hidden" name="emailLogId" value={email.id} />
                   <button
                     type="submit"
-                    className="inline-flex w-full items-center justify-center rounded-full bg-[var(--color-accent)] px-3.5 py-2 text-sm font-semibold text-[var(--color-accent-contrast)] transition hover:brightness-105"
+                    className="inline-flex h-10 w-full items-center justify-center rounded-full bg-[var(--color-accent)] px-3.5 text-[0.92rem] font-semibold text-[var(--color-accent-contrast)] transition hover:brightness-105"
                   >
                     Zkusit znovu
                   </button>
@@ -439,9 +431,9 @@ function RecentEmailList({
 
 function CompactMeta({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-[0.9rem] border border-white/8 bg-black/18 px-2.5 py-2">
+    <div className="rounded-[0.8rem] border border-white/8 bg-black/18 px-2.5 py-1.5">
       <p className="whitespace-nowrap text-[0.58rem] uppercase tracking-[0.14em] text-white/38">{label}</p>
-      <p className="mt-0.5 text-xs leading-[1.15rem] text-white/84">{value}</p>
+      <p className="mt-0.5 text-xs leading-4 text-white/84">{value}</p>
     </div>
   );
 }

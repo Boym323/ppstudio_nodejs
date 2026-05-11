@@ -1760,7 +1760,7 @@ async function getEmailLogsData(): Promise<EmailLogsDashboardData> {
       const recipientName = log.booking?.clientNameSnapshot ?? log.client?.fullName ?? "Bez jména";
       const statusValue = getEmailRecentStatus(log.status, log.processingStartedAt, log.attemptCount);
       const bookingSummary = log.booking
-        ? `${log.booking.clientNameSnapshot} • ${log.booking.serviceNameSnapshot} • ${formatDateTimeLabel(log.booking.scheduledStartsAt)} - ${formatTime.format(log.booking.scheduledEndsAt)}`
+        ? `${log.booking.serviceNameSnapshot} • ${formatDateTimeLabel(log.booking.scheduledStartsAt)} - ${formatTime.format(log.booking.scheduledEndsAt)}`
         : null;
 
       return {
