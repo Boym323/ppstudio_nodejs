@@ -75,6 +75,7 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
 - Veřejný obsah je centralizovaný v `src/content/public-site.ts`, aby šly texty a hlavní brand copy měnit bez zásahu do layout komponent.
 - Klientská copy veřejného webu má reflektovat, že salon provozuje jedna osoba. Jednotné číslo používej tam, kde mluví přímo provozovatelka (`doporučuji`, `pošlu`, `můžete mě kontaktovat`); přirozené společné formulace s klientkou (`společně doladíme`) a studio jako místo (`k nám`) zůstávají v pořádku.
 - Mobilní veřejný header má ukázat všechny položky `mainNavigation` jako čitelnou mřížku `2 × 3` a samostatné CTA `Rezervace`; cílem je zachovat úplnou orientaci bez mačkání textu do jedné řádky.
+- Veřejný header používá desktop navigaci až od `lg`; `md` včetně iPad portrait zůstává v kompaktním tablet režimu (brand + CTA + mřížková navigace), aby se pravé CTA ani položky menu neusekávaly mimo viewport.
 - Hero sekce `/kontakt` používá samostatnou publikovanou fotku z media knihovny (`CONTACT_PHOTO`) jako pravý above-the-fold vizuál; pokud zatím není nahraná, zobrazí decentní placeholder a nesahá do fotek studia.
 - Globální SEO popis a fallback kontakty používají skutečné údaje PP Studia: `info@ppstudio.cz`, `+420 732 856 036` a `Sadová 2, 760 01 Zlín`; placeholder kontakty se nemají vracet ani při chybě DB settings.
 - Veřejné e-mailové odkazy používají `ObfuscatedEmailLink`, ale výsledné HTML musí vždy obsahovat skutečný `mailto:` odkaz; nepoužívej dočasné `href="#"`, protože kontakt musí fungovat i před hydratací klientského JS.

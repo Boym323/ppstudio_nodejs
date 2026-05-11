@@ -22,11 +22,11 @@ export function SiteHeader({ variant = 'public', brandName = 'PP Studio' }: Site
     >
       <Container
         className={cn(
-          "booking-header__container flex flex-col justify-center md:min-h-20 md:flex-row md:items-center md:justify-between md:py-0",
+          "booking-header__container flex flex-col justify-center lg:min-h-20 lg:flex-row lg:items-center lg:justify-between lg:py-0",
           isBookingVariant ? "min-h-14 gap-2 py-2.5" : "min-h-18 gap-4 py-4",
         )}
       >
-        <div className={cn("booking-header__brand-row flex items-center justify-between gap-4", isBookingVariant ? "md:py-2" : "")}>
+        <div className={cn("booking-header__brand-row flex items-center justify-between gap-4", isBookingVariant ? "lg:py-2" : "")}>
           <Link href="/" className="flex flex-col items-start text-[var(--color-foreground)]">
             <span className={cn("booking-header__brand-title font-display tracking-[0.14em]", isBookingVariant ? "text-[1.35rem]" : "text-[1.55rem]")}>
               {brandName}
@@ -38,7 +38,7 @@ export function SiteHeader({ variant = 'public', brandName = 'PP Studio' }: Site
           <Link
             href="/rezervace"
             className={cn(
-              "booking-header__reservation-cta button-text inline-flex items-center justify-center rounded-full bg-[var(--color-foreground)] text-white md:hidden",
+              "booking-header__reservation-cta button-text inline-flex items-center justify-center rounded-full bg-[var(--color-foreground)] text-white lg:hidden",
               isBookingVariant ? "min-h-10 px-4" : "min-h-11 px-5",
             )}
           >
@@ -48,7 +48,7 @@ export function SiteHeader({ variant = 'public', brandName = 'PP Studio' }: Site
 
         <nav
           className={cn(
-            "booking-header__nav grid w-full grid-cols-3 gap-1.5 md:hidden",
+            "booking-header__nav grid w-full grid-cols-3 gap-1.5 lg:hidden",
             isBookingVariant
               ? "pb-0.5"
               : "",
@@ -71,7 +71,7 @@ export function SiteHeader({ variant = 'public', brandName = 'PP Studio' }: Site
         </nav>
 
         <nav
-          className="booking-header__nav hidden items-center justify-center gap-3 md:flex"
+          className="booking-header__nav hidden items-center justify-center gap-3 lg:flex"
           aria-label="Hlavní navigace"
         >
           {mainNavigation.map((item) => (
@@ -88,7 +88,7 @@ export function SiteHeader({ variant = 'public', brandName = 'PP Studio' }: Site
           ))}
         </nav>
 
-        <div className="hidden items-center gap-3 md:flex">
+        <div className="hidden items-center gap-3 lg:flex">
           {!isBookingVariant ? (
             <Link
               href="/rezervace"
