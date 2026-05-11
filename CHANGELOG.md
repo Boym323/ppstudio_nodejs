@@ -6,6 +6,9 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Opraveno mobilní přetékání alertů v admin dashboardu (`Vyžaduje pozornost`): text se na úzkých viewports zalamuje místo ořezu mimo kartu a akční tlačítko se skládá pod text, takže blok zůstává čitelný bez horizontálního přesahu.
+- Admin dashboard už nezobrazuje sekci `Vyžaduje pozornost`, pokud nejsou žádné actionable alerty; při čistém stavu se blok úplně skryje místo zobrazování neutrální informace.
+
 ## [0.3.2] - 2026-05-11
 
 - Release příprava pro produkční nasazení: projektová verze navýšena na patch `0.3.2`.

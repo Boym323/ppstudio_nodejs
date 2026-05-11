@@ -299,37 +299,32 @@ export function DashboardTodayTasks({ data }: DashboardPageProps) {
 
 export function DashboardAttentionAlert({ data }: DashboardPageProps) {
   const actionableAlerts = data.alerts.filter((alert) => alert.emphasis !== "ok");
-  const okAlert = data.alerts.find((alert) => alert.emphasis === "ok") ?? null;
+
+  if (actionableAlerts.length === 0) {
+    return null;
+  }
 
   return (
     <Card
       className={cn(
-        "p-3.5 sm:p-4",
-        actionableAlerts.length > 0
-          ? "border-amber-300/16 bg-[linear-gradient(135deg,rgba(120,53,15,0.18),rgba(24,24,27,0.92))]"
-          : "border-emerald-300/12 bg-emerald-500/8",
+        "overflow-hidden p-3.5 sm:p-4",
+        "border-amber-300/16 bg-[linear-gradient(135deg,rgba(120,53,15,0.18),rgba(24,24,27,0.92))]",
       )}
     >
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
         <div className="flex shrink-0 items-center gap-2">
-        <span
-          className={cn(
-            "rounded-lg border p-2",
-            actionableAlerts.length > 0
-              ? "border-amber-300/18 bg-black/14 text-amber-100"
-              : "border-emerald-300/16 bg-black/12 text-emerald-100",
-          )}
-        >
-          <DashboardIcon
-            name={actionableAlerts.length > 0 ? "warning" : "success"}
-            className="size-4"
-          />
-        </span>
+          <span
+            className={cn(
+              "rounded-lg border p-2",
+              "border-amber-300/18 bg-black/14 text-amber-100",
+            )}
+          >
+            <DashboardIcon name="warning" className="size-4" />
+          </span>
           <h2 className="text-sm font-semibold text-white">Vyžaduje pozornost</h2>
         </div>
 
-      {actionableAlerts.length > 0 ? (
-          <div className="grid min-w-0 flex-1 gap-2 md:grid-cols-3">
+        <div className="grid min-w-0 flex-1 gap-2 md:grid-cols-3">
           {actionableAlerts.map((alert) => (
             <SecondaryAlertCard
               key={alert.id}
@@ -340,11 +335,6 @@ export function DashboardAttentionAlert({ data }: DashboardPageProps) {
             />
           ))}
         </div>
-      ) : (
-          <p className="min-w-0 flex-1 text-sm font-medium text-emerald-50">
-          {okAlert?.text ?? "Vše je připravené. Žádná položka teď nevyžaduje pozornost."}
-        </p>
-      )}
       </div>
     </Card>
   );
@@ -374,18 +364,18 @@ function SecondaryAlertCard({
   } as const;
 
   return (
-    <article className={cn("rounded-lg border px-3 py-2", toneStyles[tone])}>
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-2">
+    <article className={cn("min-w-0 overflow-hidden rounded-lg border px-3 py-2", toneStyles[tone])}>
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+        <div className="flex min-w-0 items-start gap-2">
           <span className="rounded-lg border border-current/15 bg-black/10 p-1.5">
             <DashboardIcon name={toneIcons[tone]} className="size-4" />
           </span>
-          <p className="truncate text-sm font-medium">{text}</p>
+          <p className="min-w-0 text-sm font-medium leading-5 break-words">{text}</p>
         </div>
 
         <Link
           href={href}
-          className="inline-flex min-h-8 shrink-0 items-center justify-center rounded-md border border-current/20 px-2.5 py-1 text-xs font-semibold text-current transition hover:bg-black/10"
+          className="inline-flex min-h-8 w-fit shrink-0 items-center justify-center rounded-md border border-current/20 px-2.5 py-1 text-xs font-semibold text-current transition hover:bg-black/10"
         >
           {alertActionLabel(actionLabel)}
         </Link>
