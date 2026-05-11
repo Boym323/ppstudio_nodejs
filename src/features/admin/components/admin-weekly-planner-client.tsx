@@ -49,6 +49,7 @@ type PendingInteraction = {
   hoverCell: number;
   mode: "add" | "remove";
   tone: CellTone;
+  pointerType: string;
   moved: boolean;
 };
 
@@ -442,6 +443,51 @@ export function AdminWeeklyPlannerClient({
     }
 
     const currentInteraction = pendingInteraction;
+    const shouldLockScroll =
+      currentInteraction.pointerType === "touch" || currentInteraction.pointerType === "pen";
+    const previousBodyOverscrollBehavior = document.body.style.overscrollBehavior;
+    const previousBodyTouchAction = document.body.style.touchAction;
+
+    if (shouldLockScroll) {
+      document.body.style.overscrollBehavior = "none";
+      document.body.style.touchAction = "none";
+    }
+
+    function handlePointerMove(event: PointerEvent) {
+      const effectivePointerType = event.pointerType || currentInteraction.pointerType;
+      const isMouseDrag = effectivePointerType === "mouse" && event.buttons === 1;
+      const isTouchLikeDrag = (effectivePointerType === "touch" || effectivePointerType === "pen") && event.buttons <= 1;
+
+      if (!isMouseDrag && !isTouchLikeDrag) {
+        return;
+      }
+
+      if (isTouchLikeDrag && event.cancelable) {
+        event.preventDefault();
+      }
+
+      const target = document.elementFromPoint(event.clientX, event.clientY);
+      const cellElement = target instanceof HTMLElement ? target.closest<HTMLElement>("[data-planner-cell='1']") : null;
+
+      if (!cellElement) {
+        return;
+      }
+
+      const dayKey = cellElement.dataset.dayKey;
+      const cellIndexValue = cellElement.dataset.cellIndex;
+
+      if (!dayKey || !cellIndexValue) {
+        return;
+      }
+
+      const cellIndex = Number.parseInt(cellIndexValue, 10);
+
+      if (!Number.isInteger(cellIndex)) {
+        return;
+      }
+
+      handleCellMove(dayKey, cellIndex, event.buttons, effectivePointerType);
+    }
 
     function handlePointerUp() {
       setPendingInteraction(null);
@@ -499,8 +545,16 @@ export function AdminWeeklyPlannerClient({
       setMobileInspectorOpen(true);
     }
 
+    window.addEventListener("pointermove", handlePointerMove, { passive: false });
     window.addEventListener("pointerup", handlePointerUp);
-    return () => window.removeEventListener("pointerup", handlePointerUp);
+    return () => {
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerUp);
+      if (shouldLockScroll) {
+        document.body.style.overscrollBehavior = previousBodyOverscrollBehavior;
+        document.body.style.touchAction = previousBodyTouchAction;
+      }
+    };
   }, [pendingInteraction, workingDays]);
 
   function updateDay(dateKey: string, updater: (day: PlannerDay) => PlannerDay | null) {
@@ -527,7 +581,7 @@ export function AdminWeeklyPlannerClient({
     setMobileInspectorOpen(false);
   }
 
-  function handleCellStart(day: PlannerDay, cellIndex: number) {
+  function handleCellStart(day: PlannerDay, cellIndex: number, pointerType: string) {
     const tone = getCellTone(day, cellIndex);
 
     setPendingInteraction({
@@ -536,17 +590,22 @@ export function AdminWeeklyPlannerClient({
       hoverCell: cellIndex,
       mode: tone === "available" ? "remove" : "add",
       tone,
+      pointerType,
       moved: false,
     });
   }
 
-  function handleCellMove(dayKey: string, cellIndex: number, buttons: number) {
-    if (buttons !== 1) {
-      return;
-    }
-
+  function handleCellMove(dayKey: string, cellIndex: number, buttons: number, pointerType: string) {
     setPendingInteraction((current) => {
       if (!current || current.dateKey !== dayKey || !isEditableTone(current.tone)) {
+        return current;
+      }
+
+      const effectivePointerType = pointerType || current.pointerType;
+      const isMouseDrag = effectivePointerType === "mouse" && buttons === 1;
+      const isTouchLikeDrag = (effectivePointerType === "touch" || effectivePointerType === "pen") && buttons <= 1;
+
+      if (!isMouseDrag && !isTouchLikeDrag) {
         return current;
       }
 
@@ -557,6 +616,7 @@ export function AdminWeeklyPlannerClient({
       return {
         ...current,
         hoverCell: cellIndex,
+        pointerType: effectivePointerType,
         moved: current.moved || current.anchorCell !== cellIndex,
       };
     });

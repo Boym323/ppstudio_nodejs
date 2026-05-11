@@ -6,6 +6,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Opraveno mobilní tažení v admin planneru `Volné termíny`: výběr buněk při drag gestu nově funguje konzistentně pro `touch/pen` pointery a buňky mají `touch-action: none`, takže se při tažení nepřebíjí výběr nativním scroll gestem.
 - Přehled `Nejbližší volné termíny` v admin dashboardu už u slotů se zbývající kapacitou `1` nezobrazuje redundantní text `kapacita 1`; metadata zůstávají jen jako `volno` a explicitní kapacita se ukáže až pro hodnoty `> 1`.
 - Opraveno mobilní přetékání alertů v admin dashboardu (`Vyžaduje pozornost`): text se na úzkých viewports zalamuje místo ořezu mimo kartu a akční tlačítko se skládá pod text, takže blok zůstává čitelný bez horizontálního přesahu.
 - Admin dashboard už nezobrazuje sekci `Vyžaduje pozornost`, pokud nejsou žádné actionable alerty; při čistém stavu se blok úplně skryje místo zobrazování neutrální informace.

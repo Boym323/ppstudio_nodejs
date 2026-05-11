@@ -594,6 +594,7 @@ npm run db:clear-booking-data -- --confirm
 - Slot workflow podporuje:
   - plánování po týdnech s hlavní plochou po dnech a 30min buňkách v pracovním okně `06:00-20:00`
   - kliknutím výběr konkrétního bloku a tažením přidání nebo odebrání dostupnosti přímo v mřížce
+  - na mobilu funguje tažení i přes dotyk/stylus (`touch`/`pen`), takže není nutné přepínat na desktop kvůli drag editaci
   - automatické sloučení sousedních půlhodin do souvislých intervalů `AvailabilitySlot`
   - pravý akční inspektor dne s denním souhrnem, rychlými akcemi a detailem výběru z gridu
   - mobilní přepínač všech 7 dní najednou a editor jednoho dne bez horizontálního scrollu

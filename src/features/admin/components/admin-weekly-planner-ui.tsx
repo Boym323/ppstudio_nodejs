@@ -450,6 +450,8 @@ export function GridCell({
   selected,
   hourBoundary,
   label,
+  dayKey,
+  cellIndex,
   onPointerDown,
   onPointerMove,
 }: {
@@ -457,18 +459,23 @@ export function GridCell({
   selected: boolean;
   hourBoundary: boolean;
   label: string;
-  onPointerDown: () => void;
+  dayKey: string;
+  cellIndex: number;
+  onPointerDown: (event: React.PointerEvent<HTMLButtonElement>) => void;
   onPointerMove: (event: React.PointerEvent<HTMLButtonElement>) => void;
 }) {
   return (
     <button
       type="button"
+      data-planner-cell="1"
+      data-day-key={dayKey}
+      data-cell-index={cellIndex}
       aria-label={label}
       aria-pressed={selected}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       className={cn(
-        "h-8 w-full rounded-[0.65rem] border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/70 lg:h-[1.2rem]",
+        "h-8 w-full touch-none select-none rounded-[0.65rem] border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/70 lg:h-[1.2rem]",
         hourBoundary ? "border-t-white/22" : "border-t-white/10",
         tone === "available" && "border-emerald-300/25 bg-emerald-300/66 hover:bg-emerald-300/82",
         tone === "booked" && "cursor-default border-rose-300/30 bg-rose-300/70",
@@ -500,8 +507,8 @@ export function DesktopWeekGrid({
   timeLabels: string[];
   draft: DraftSelection | null;
   selectedSelection: PlannerSelection | null;
-  onCellStart: (day: PlannerDay, cellIndex: number) => void;
-  onCellMove: (dayKey: string, cellIndex: number, buttons: number) => void;
+  onCellStart: (day: PlannerDay, cellIndex: number, pointerType: string) => void;
+  onCellMove: (dayKey: string, cellIndex: number, buttons: number, pointerType: string) => void;
   selectedDayKey: string;
   baseHref: string;
   weekKey: string;
@@ -570,8 +577,10 @@ export function DesktopWeekGrid({
                     selected={isCellHighlighted(day.dateKey, cellIndex, draft, selectedSelection)}
                     hourBoundary={cellIndex % 2 === 0}
                     label={`${day.label}, ${formatRangeLabel(cellIndex, cellIndex + 1)}, ${getToneLabel(tone)}`}
-                    onPointerDown={() => onCellStart(day, cellIndex)}
-                    onPointerMove={(event) => onCellMove(day.dateKey, cellIndex, event.buttons)}
+                    dayKey={day.dateKey}
+                    cellIndex={cellIndex}
+                    onPointerDown={(event) => onCellStart(day, cellIndex, event.pointerType)}
+                    onPointerMove={(event) => onCellMove(day.dateKey, cellIndex, event.buttons, event.pointerType)}
                   />
                     );
                   })()
@@ -597,8 +606,8 @@ export function MobileDayGrid({
   timeLabels: string[];
   draft: DraftSelection | null;
   selectedSelection: PlannerSelection | null;
-  onCellStart: (day: PlannerDay, cellIndex: number) => void;
-  onCellMove: (dayKey: string, cellIndex: number, buttons: number) => void;
+  onCellStart: (day: PlannerDay, cellIndex: number, pointerType: string) => void;
+  onCellMove: (dayKey: string, cellIndex: number, buttons: number, pointerType: string) => void;
 }) {
   const rowIndexes = Array.from({ length: PLANNER_CELL_COUNT }, (_, index) => index);
 
@@ -629,8 +638,10 @@ export function MobileDayGrid({
                   selected={isCellHighlighted(day.dateKey, cellIndex, draft, selectedSelection)}
                   hourBoundary={cellIndex % 2 === 0}
                   label={`${day.label}, ${formatRangeLabel(cellIndex, cellIndex + 1)}, ${getToneLabel(getCellTone(day, cellIndex))}`}
-                  onPointerDown={() => onCellStart(day, cellIndex)}
-                  onPointerMove={(event) => onCellMove(day.dateKey, cellIndex, event.buttons)}
+                  dayKey={day.dateKey}
+                  cellIndex={cellIndex}
+                  onPointerDown={(event) => onCellStart(day, cellIndex, event.pointerType)}
+                  onPointerMove={(event) => onCellMove(day.dateKey, cellIndex, event.buttons, event.pointerType)}
                 />
               </div>
             ))}
