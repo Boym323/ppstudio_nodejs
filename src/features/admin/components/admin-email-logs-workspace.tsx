@@ -388,7 +388,7 @@ function RecentEmailList({
                   )}
                 </div>
 
-                <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 xl:min-w-[18rem]">
+                <div className="grid grid-cols-[repeat(auto-fit,minmax(6.5rem,1fr))] gap-2.5 xl:min-w-[18rem]">
                   <CompactMeta label="Vytvořeno" value={email.createdAtLabel} />
                   <CompactMeta label="Odesláno" value={email.sentAtLabel} />
                   <CompactMeta label="Pokusy" value={`${email.attemptCount}×`} />
@@ -440,7 +440,7 @@ function RecentEmailList({
 function CompactMeta({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-[0.9rem] border border-white/8 bg-black/18 px-2.5 py-2">
-      <p className="text-[0.62rem] uppercase tracking-[0.16em] text-white/38">{label}</p>
+      <p className="whitespace-nowrap text-[0.58rem] uppercase tracking-[0.14em] text-white/38">{label}</p>
       <p className="mt-0.5 text-xs leading-[1.15rem] text-white/84">{value}</p>
     </div>
   );
