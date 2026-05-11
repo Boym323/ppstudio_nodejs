@@ -77,7 +77,7 @@ async function AdminBookingsPageContent({
         denseHeader
       >
         <div className="space-y-4">
-          <div className="sticky top-3 z-20 -mx-1 rounded-[1.1rem] px-1 py-1 backdrop-blur">
+          <div className="-mx-1 rounded-[1.1rem] px-1 py-1 md:sticky md:top-3 md:z-20 md:backdrop-blur">
             <AdminBookingsToolbar
               currentPath={data.currentPath}
               filters={data.filters}
