@@ -20,6 +20,7 @@ import {
   type TrustMetric,
 } from '@/content/public-site';
 import { Container } from '@/components/ui/container';
+import { Breadcrumbs, type BreadcrumbItem } from '@/components/ui/breadcrumbs';
 import { SectionHeading } from '@/components/ui/section-heading';
 import { TrackedAnchor, TrackedLink } from '@/features/analytics/tracked-link';
 import {
@@ -770,15 +771,30 @@ export function ServicesPage({ services: catalogServices = services }: { service
   );
 }
 
+export function buildServiceBreadcrumbItems(service: Pick<Service, "name">): BreadcrumbItem[] {
+  return [
+    { label: "Domů", href: "/" },
+    { label: "Služby", href: "/sluzby" },
+    { label: service.name },
+  ];
+}
+
 export function ServiceDetailPage({ service }: { service: Service }) {
+  const breadcrumbItems = buildServiceBreadcrumbItems(service);
+
   return (
     <div className="pb-8 sm:pb-12">
+      <div className="bg-[#f8f2eb]">
+        <Container className="py-5 sm:py-6">
+          <Breadcrumbs items={breadcrumbItems} />
+        </Container>
+      </div>
       <PublicHero
         eyebrow={service.category}
         title={service.name}
         description={service.description}
         primaryCta={{ href: `/rezervace?service=${encodeURIComponent(service.slug)}`, label: 'Rezervovat službu' }}
-        secondaryCta={{ href: '/sluzby', label: 'Zpět na služby' }}
+        secondaryCta={{ href: '/sluzby', label: 'Zpět na všechny služby' }}
       />
       <section className="py-10 sm:py-14 lg:py-16">
         <Container className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">

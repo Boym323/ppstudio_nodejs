@@ -3,8 +3,8 @@ import { connection } from "next/server";
 import { notFound } from 'next/navigation';
 
 import { getPublicServiceBySlug } from '@/features/public/lib/public-services';
-import { ServiceDetailPage, buildPageMetadata } from '@/features/public/components/public-site';
-import { SeoJsonLd, buildServiceJsonLd } from '@/features/public/components/seo-json-ld';
+import { ServiceDetailPage, buildPageMetadata, buildServiceBreadcrumbItems } from '@/features/public/components/public-site';
+import { SeoJsonLd, buildBreadcrumbListJsonLd, buildServiceJsonLd } from '@/features/public/components/seo-json-ld';
 import { getPublicSalonProfile } from '@/lib/site-settings';
 
 type PageParams = Promise<{ slug: string }>;
@@ -39,10 +39,12 @@ export default async function Page({ params }: { params: PageParams }) {
   }
 
   const salonProfile = await getPublicSalonProfile();
+  const breadcrumbItems = buildServiceBreadcrumbItems(service);
 
   return (
     <>
       <SeoJsonLd data={buildServiceJsonLd(service, salonProfile)} />
+      <SeoJsonLd data={buildBreadcrumbListJsonLd(breadcrumbItems)} />
       <ServiceDetailPage service={service} />
     </>
   );

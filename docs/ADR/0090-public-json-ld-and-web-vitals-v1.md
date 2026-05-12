@@ -13,6 +13,7 @@ Veřejný web PP Studia potřebuje udržovat strukturovaná data pro lokální k
 - JSON-LD se skládá přes `src/features/public/components/seo-json-ld.tsx` a vkládá se nativním `<script type="application/ld+json">` tagem přes sdílený serializer.
 - `buildLocalBusinessJsonLd(...)` používá veřejný profil salonu ze `SiteSettings` fallback vrstvy a negeneruje otevírací dobu, protože dostupnost salonu stojí na ručně vypsaných termínech, ne na pevné otevírací době.
 - Detail služby používá `buildServiceJsonLd(...)` s veřejným názvem, SEO popisem, canonical URL, providerem PP Studio, oblastí `Zlín`, nabídkou pouze při jasně číselné ceně a ISO 8601 délkou přes `durationMinutesToIsoDuration(...)`.
+- Drobečková navigace detailu služby se v HTML renderuje přes sdílenou komponentu `Breadcrumbs` a v JSON-LD samostatně přes `buildBreadcrumbListJsonLd(...)`, aby se `BreadcrumbList` neduplikoval uvnitř `Service` grafu a absolutní URL se skládaly jednotně ze `siteConfig.url`.
 - JSON-LD serializer před vložením čistí `undefined`, `null` a prázdné stringy a escapuje znak `<`; českou diakritiku nechává čitelnou.
 - Web Vitals se zachytávají v samostatné klientské komponentě `WebVitalsReporter` přes `useReportWebVitals` a posílají anonymní Matomo custom eventy `Web Vitals / <metric>` s ratingem a zaokrouhlenou hodnotou.
 

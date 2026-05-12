@@ -377,7 +377,7 @@ npm run db:clear-booking-data -- --confirm
 
 ## Veřejný Web
 - Navigace vede na klíčové konverzní a důvěryhodnostní stránky místo jedné přetížené homepage.
-- Detail služby je renderovaný v request-time režimu nad DB katalogem služeb, takže změny z adminu nečekají na nový build.
+- Detail služby je renderovaný v request-time režimu nad DB katalogem služeb, takže změny z adminu nečekají na nový build. Nad hero sekcí má viditelnou drobečkovou navigaci `Domů -> Služby -> Název služby` a sekundární odkaz zpět na přehled všech služeb.
 - `/rezervace` nyní obsahuje produkční V1 flow:
   - výběr kategorie služby a následně konkrétní služby
   - výběr konkrétního času v rámci ručně publikovaného volného okna
@@ -832,7 +832,7 @@ npm run db:clear-booking-data -- --confirm
 - Technické SEO minimum je nyní pokryté přes globální metadata, per-page metadata, `robots.ts`, `sitemap.ts` a JSON-LD.
 - Veřejné stránky staví metadata přes `buildPageMetadata(...)` a každá musí předat vlastní `path`; canonical a OpenGraph URL nesmí zůstávat na homepage pro všechny podstránky.
 - Smoke E2E kontroluje, že veřejné canonical/OG URL odpovídají aktuálnímu originu a že `robots.txt` se `sitemap.xml` nepouští historickou `http://ppstudio.cz` variantu; produkční canonical origin má zůstat `https://ppstudio.cz`.
-- Veřejný layout vkládá JSON-LD `BeautySalon`/`WebSite` přes `buildLocalBusinessJsonLd(...)`, homepage vlastní `WebPage`; detail služby přidává `Service` a `BreadcrumbList` JSON-LD přes `buildServiceJsonLd(...)`. `BeautySalon` obsahuje i `geo` souřadnice studia a `Service.offers` se vkládá jen při jasně číselné ceně.
+- Veřejný layout vkládá JSON-LD `BeautySalon`/`WebSite` přes `buildLocalBusinessJsonLd(...)`, homepage vlastní `WebPage`; detail služby přidává `Service` přes `buildServiceJsonLd(...)` a samostatný `BreadcrumbList` přes `buildBreadcrumbListJsonLd(...)`. `BeautySalon` obsahuje i `geo` souřadnice studia a `Service.offers` se vkládá jen při jasně číselné ceně.
 - JSON-LD serializer čistí `undefined`, `null` a prázdné hodnoty, escapuje `<` pro bezpečné vložení do script tagu a ponechává českou diakritiku. Délka služby v JSON-LD používá ISO 8601 helper `durationMinutesToIsoDuration(...)`.
 - Web Vitals měří samostatná klientská komponenta `WebVitalsReporter` v public/booking `SiteShell`. Pokud `NEXT_PUBLIC_WEB_VITALS_ENABLED` není `true`, komponenta se nespustí. Pokud je flag zapnutý, ale Matomo je vypnuté nebo chybí konfigurace, reporting zůstává no-op; při zapnutém Matomu odchází jen anonymní event `Web Vitals / <metric>` s ratingem a číselnou hodnotou.
 - `sitemap.ts` nepoužívá jednotné „teď“ (`new Date()`) pro všechny URL: detail služby má `lastModified` z `Service.updatedAt`, statické stránky mají stabilní datum poslední obsahové revize.

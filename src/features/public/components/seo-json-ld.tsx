@@ -15,6 +15,11 @@ type SeoJsonLdProps = {
   data: JsonLdValue;
 };
 
+type BreadcrumbJsonLdItem = {
+  label: string;
+  href?: string;
+};
+
 type BusinessProfile = Pick<
   PublicSalonProfile,
   "name" | "phone" | "email" | "instagramUrl" | "streetAddress" | "postalCode" | "city"
@@ -102,6 +107,19 @@ export function buildFaqPageJsonLd(sections: FaqSection[]) {
   };
 }
 
+export function buildBreadcrumbListJsonLd(items: BreadcrumbJsonLdItem[]) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: items.map((item, index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      name: item.label,
+      ...(item.href ? { item: buildAbsoluteSiteUrl(item.href) } : {}),
+    })),
+  };
+}
+
 export function buildServiceJsonLd(service: Service, profile: BusinessProfile) {
   const pageUrl = `${siteConfig.url}/sluzby/${service.slug}`;
   const price = parseCzkPrice(service.priceFrom);
@@ -135,30 +153,6 @@ export function buildServiceJsonLd(service: Service, profile: BusinessProfile) {
         },
         offers: offer,
         duration: durationMinutesToIsoDuration(durationMinutes),
-      },
-      {
-        "@type": "BreadcrumbList",
-        "@id": `${pageUrl}#breadcrumb`,
-        itemListElement: [
-          {
-            "@type": "ListItem",
-            position: 1,
-            name: "Domů",
-            item: siteConfig.url,
-          },
-          {
-            "@type": "ListItem",
-            position: 2,
-            name: "Služby",
-            item: `${siteConfig.url}/sluzby`,
-          },
-          {
-            "@type": "ListItem",
-            position: 3,
-            name: service.name,
-            item: pageUrl,
-          },
-        ],
       },
     ],
   };
@@ -229,6 +223,17 @@ function parseDurationMinutes(value: string) {
   const minutes = value.normalize("NFKC").match(/\d+/)?.[0];
 
   return minutes ? Number(minutes) : undefined;
+}
+
+function buildAbsoluteSiteUrl(href: string) {
+  if (/^https?:\/\//i.test(href)) {
+    return href;
+  }
+
+  const baseUrl = siteConfig.url.replace(/\/+$/, "");
+  const path = href === "/" ? "" : `/${href.replace(/^\/+/, "")}`;
+
+  return `${baseUrl}${path}`;
 }
 
 function compactJsonLd(value: JsonLdValue | null | undefined): JsonLdValue | undefined {
