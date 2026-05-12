@@ -5,6 +5,10 @@ Všechny důležité změny v tomto projektu se zapisují do tohoto souboru.
 Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
+
+## [0.3.4] - 2026-05-12
+
+- Release příprava pro produkční nasazení: projektová verze navýšena na patch `0.3.4`.
 - SEO/JSON-LD helpery nově používají kanonický origin `NEXT_PUBLIC_SITE_URL` (fallback `NEXT_PUBLIC_APP_URL`), takže `BreadcrumbList` i další structured data zůstávají produkčně kanonické i když CI/Playwright běží na `http://127.0.0.1:3100`.
 - Opraven regresní test `src/features/public/components/seo-json-ld.test.ts`: test explicitně simuluje CI split (`NEXT_PUBLIC_APP_URL=http://127.0.0.1:3100` + `NEXT_PUBLIC_SITE_URL=https://ppstudio.cz`) a dál ověřuje kanonické breadcrumb URL.
 
