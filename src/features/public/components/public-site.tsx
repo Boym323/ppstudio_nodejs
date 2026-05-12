@@ -656,7 +656,7 @@ export function buildPageMetadata({
       type: 'website',
       images: [
         {
-          url: '/brand/ppstudio-logo.png',
+          url: '/brand/ppstudio-og-logo.png',
           width: 1031,
           height: 1030,
           alt: siteConfig.name,
@@ -667,7 +667,7 @@ export function buildPageMetadata({
       card: 'summary_large_image',
       title: metadataTitle,
       description,
-      images: ['/brand/ppstudio-logo.png'],
+      images: ['/brand/ppstudio-og-logo.png'],
     },
   };
 }

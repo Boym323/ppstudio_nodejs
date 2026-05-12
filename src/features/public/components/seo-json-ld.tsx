@@ -28,7 +28,7 @@ type BusinessProfile = Pick<
 const SEO_BASE_URL = siteConfig.canonicalUrl;
 const BUSINESS_ID = `${SEO_BASE_URL}/#business`;
 const WEBSITE_ID = `${SEO_BASE_URL}/#website`;
-const LOGO_URL = `${SEO_BASE_URL}/brand/ppstudio-logo.png`;
+const LOGO_URL = `${SEO_BASE_URL}/brand/ppstudio-og-logo.png`;
 
 export function SeoJsonLd({ data }: SeoJsonLdProps) {
   return (

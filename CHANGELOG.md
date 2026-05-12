@@ -6,6 +6,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Open Graph i Twitter náhled používají nový asset `public/brand/ppstudio-og-logo.png`; stejný asset je nově i v JSON-LD `logo/image` (`BeautySalon`), zatímco původní `ppstudio-logo.png` zůstává pro ostatní UI použití.
 - Aktualizován framework `next` z `16.2.4` na `16.2.6` a `eslint-config-next` z `16.2.4` na `16.2.6` (patch upgrade v rámci Next.js 16).
 - Po upgradu závislostí byl ověřen produkční build (`npm run build`), lint (`npm run lint`) a testy (`npm test`); opakovaný běh testů skončil bez pádů (`# fail 0`).
 - Aktualizovány balíčky `prisma`, `@prisma/client` a `@prisma/adapter-pg` z `7.7.0` na `7.8.0`.
