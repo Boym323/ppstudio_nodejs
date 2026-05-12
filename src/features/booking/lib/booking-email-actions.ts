@@ -47,6 +47,8 @@ type LoadedBookingActionToken = {
   } | null;
 };
 
+export type BookingEmailActionTokenRecord = LoadedBookingActionToken | null;
+
 type BookingEmailActionDetails = {
   bookingId: string;
   serviceName: string;
@@ -275,8 +277,8 @@ function resolveNonReadyState(
   };
 }
 
-function resolvePageState(
-  token: LoadedBookingActionToken | null,
+export function resolveBookingEmailActionPageState(
+  token: BookingEmailActionTokenRecord,
   intent: BookingEmailActionIntent,
 ): BookingEmailActionPageState {
   if (
@@ -309,7 +311,7 @@ export async function getBookingEmailActionPageState(
   rawToken: string,
 ): Promise<BookingEmailActionPageState> {
   const token = await findActionToken(hashBookingActionToken(rawToken));
-  return resolvePageState(token, intent);
+  return resolveBookingEmailActionPageState(token, intent);
 }
 
 type PerformBookingEmailActionAudit = {
@@ -375,7 +377,7 @@ export async function performBookingEmailAction(
         },
       });
 
-      const state = resolvePageState(token, intent);
+      const state = resolveBookingEmailActionPageState(token, intent);
 
       if (state.status !== "ready") {
         return state;

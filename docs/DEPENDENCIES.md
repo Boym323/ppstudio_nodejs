@@ -14,6 +14,7 @@ Seznam důležitých knihoven a důvod jejich použití.
 - `@prisma/client`: `^7.7.0` (runtime používá `7.7.0`)
 - `@prisma/adapter-pg`: `^7.7.0` (runtime používá `7.7.0`)
 - `@playwright/test`: browser E2E test runner pro hlavní rezervační a admin flow.
+- `c8`: V8 coverage reporter nad stávajícím `node --test` setupem; generuje HTML/LCOV/JSON reporty bez nutnosti přechodu na jiný test runner.
 - Matomo tracking nepřidává žádnou npm závislost; používá `next/script`, App Router navigation hooks a standardní `window._paq` frontu.
 - Veřejné JSON-LD a Web Vitals reporting nepřidávají žádnou novou runtime závislost; JSON-LD používá vlastní serializer a Web Vitals používají `next/web-vitals` dodávané Next.js.
 - Server-side Matomo Reporting API vrstva také nepřidává žádnou npm závislost; používá vestavěný `fetch`, Next.js revalidation cache a lokální TypeScript normalizaci odpovědí.

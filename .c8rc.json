@@ -1,0 +1,21 @@
+{
+  "all": true,
+  "reporter": [
+    "text-summary",
+    "html",
+    "lcov",
+    "json-summary"
+  ],
+  "include": [
+    "src/features/booking/lib/**/*.ts",
+    "src/features/admin/lib/**/*.ts",
+    "src/features/admin/actions/**/*.ts",
+    "src/features/vouchers/lib/**/*.ts",
+    "src/lib/email/**/*.ts"
+  ],
+  "exclude": [
+    "src/**/*.test.ts",
+    "src/**/*.integration.test.ts",
+    "src/test/**"
+  ]
+}

@@ -29,6 +29,15 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
 - Skript provede standardní release kroky (`npm ci`, `npm run db:generate`, `npm run db:check-migrations`, `npx prisma migrate deploy`, `npm run lint`, `npm run build`, restart `ppstudio-web` a `ppstudio-email-worker`).
 - Detailní release checklist a QA body zůstávají v [`docs/DEPLOYMENT.md`](/var/www/ppstudio/docs/DEPLOYMENT.md).
 
+## Testování a coverage
+- `npm test` spouští celý Node test runner nad quoted globem `src/**/*.test.ts`; nejde už jen o shell-expanded podmnožinu jednoho souboru.
+- `npm run test:coverage` generuje report do `coverage/` a zaměřuje se na business logiku v `booking`, `admin`, `vouchers` a `lib/email`.
+- Výstupy jsou připravené pro lokální čtení i CI:
+  - HTML report v `coverage/index.html`
+  - LCOV data v `coverage/lcov.info`
+  - strojově čitelný souhrn v `coverage/coverage-summary.json`
+- Coverage běh je záměrně bez `RUN_DB_INTEGRATION_TESTS=1`, takže reprezentuje hlavně unit/business vrstvu; databázové integrační testy dál ověřuje samostatný `npm test`.
+
 ## Setup projektu krok za krokem
 1. Připrav Node.js 20+, npm 10+ a PostgreSQL 15+.
 2. Naklonuj repozitář a v rootu vytvoř `.env` z `.env.example`.

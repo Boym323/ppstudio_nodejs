@@ -6,6 +6,9 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Opraven test discovery pro `npm test`: Node runner teď dostává quoted glob `src/**/*.test.ts`, takže se místo jednoho souboru opravdu spouští celá unit/integration sada a coverage už odpovídá reálnému pokrytí.
+- Přidán coverage reporting nad business logikou přes `c8` a nový skript `npm run test:coverage`; generuje `coverage/` reporty ve formátech HTML, LCOV a `json-summary` pro booking, admin, voucher a e-mailové moduly.
+- Doplněny unit testy pro rozhodovací logiku owner e-mail akcí rezervace (`resolveBookingEmailActionPageState`) a pro admin dashboard timeline routing/notes, aby byla lépe pokrytá business vrstva rezervací, e-mailů a admin provozu.
 - README a provozní dokumentace byly rozšířeny o praktičtější onboarding: krokový setup projektu, doporučený deploy flow, základní SLA/monitoring minimum a ukázkový `.env` blok s vysvětlením hlavních proměnných.
 - Opraveno mobilní tažení v admin planneru `Volné termíny`: výběr buněk při drag gestu nově funguje konzistentně pro `touch/pen` pointery a buňky mají `touch-action: none`, takže se při tažení nepřebíjí výběr nativním scroll gestem.
 - Přehled `Nejbližší volné termíny` v admin dashboardu už u slotů se zbývající kapacitou `1` nezobrazuje redundantní text `kapacita 1`; metadata zůstávají jen jako `volno` a explicitní kapacita se ukáže až pro hodnoty `> 1`.

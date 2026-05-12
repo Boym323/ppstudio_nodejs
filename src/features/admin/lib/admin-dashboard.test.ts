@@ -74,3 +74,41 @@ test("buildTimelineItems clamps future free windows to now after completed booki
   assert.ok(freeWindow);
   assert.equal(freeWindow.sortTime, now.getTime());
 });
+
+test("buildTimelineItems trims notes and uses salon admin routes", async () => {
+  const { buildTimelineItems } = await import("./admin-dashboard");
+  const now = new Date("2026-04-30T07:00:00.000Z");
+  const items = buildTimelineItems("salon", now, [
+    {
+      id: "slot-2",
+      startsAt: new Date("2026-04-30T08:00:00.000Z"),
+      endsAt: new Date("2026-04-30T10:00:00.000Z"),
+      capacity: 1,
+      bookings: [
+        {
+          id: "booking-2",
+          scheduledStartsAt: new Date("2026-04-30T08:15:00.000Z"),
+          scheduledEndsAt: new Date("2026-04-30T09:00:00.000Z"),
+          status: BookingStatus.PENDING,
+          serviceNameSnapshot: "Barvení obočí",
+          clientNameSnapshot: "Petra Svobodova",
+          clientNote: "  Chci jemnější odstín.  ",
+          internalNote: "  Připravit patch test historii. ",
+        },
+      ],
+    },
+  ]);
+
+  const bookingItem = items.find((item) => item.kind === "booking");
+  const freeWindow = items.find((item) => item.kind === "free");
+
+  assert.ok(bookingItem);
+  assert.equal(bookingItem.href, "/admin/provoz/rezervace/booking-2");
+  assert.deepEqual(bookingItem.notes, [
+    { label: "Klientka", value: "Chci jemnější odstín." },
+    { label: "Interně", value: "Připravit patch test historii." },
+  ]);
+
+  assert.ok(freeWindow);
+  assert.equal(freeWindow.editHref, "/admin/provoz/volne-terminy/slot-2/upravit");
+});

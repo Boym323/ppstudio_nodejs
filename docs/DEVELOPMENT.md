@@ -18,6 +18,18 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - `npm run dev:clean` (smaže `.next` a znovu spustí dev server)
   - `npm run dev:webpack` (fallback bez Turbopacku, vhodné při opakovaných pádech cache)
 
+## Test runner a coverage
+- `npm test` používá Node test runner + `tsx` preload nad quoted globem `src/**/*.test.ts`; quoting je záměrný, protože bez něj Bash v defaultní konfiguraci expandoval jen část stromu a coverage pak nereprezentovala celé repo.
+- `npm run test:coverage` používá `c8` nad tím samým runnerem a ukládá výstupy do `coverage/`.
+- Coverage scope je záměrně business-first:
+  - `src/features/booking/lib/**/*.ts`
+  - `src/features/admin/lib/**/*.ts`
+  - `src/features/admin/actions/**/*.ts`
+  - `src/features/vouchers/lib/**/*.ts`
+  - `src/lib/email/**/*.ts`
+- Report generuje formáty `text-summary`, `html`, `lcov` a `json-summary`, takže se hodí jak pro lokální čtení, tak pro CI artefakty.
+- Coverage běh nezapíná `RUN_DB_INTEGRATION_TESTS=1`; díky tomu měří hlavně unit/business logiku a nespadne na prostředí bez lokální databáze. Plnou DB vrstvu dál ověřuje standardní `npm test`.
+
 ## Lokální setup workflow
 - Výchozí pořadí pro nový stroj nebo čistý checkout je:
   1. `cp .env.example .env`
