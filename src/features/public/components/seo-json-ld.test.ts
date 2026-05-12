@@ -5,7 +5,8 @@ import type { Service } from "@/content/public-site";
 import type { PublicSalonProfile } from "@/lib/site-settings";
 
 process.env.NEXT_PUBLIC_APP_NAME ??= "PP Studio";
-process.env.NEXT_PUBLIC_APP_URL ??= "https://ppstudio.cz";
+process.env.NEXT_PUBLIC_APP_URL ??= "http://127.0.0.1:3100";
+process.env.NEXT_PUBLIC_SITE_URL ??= "https://ppstudio.cz";
 process.env.DATABASE_URL ??= "postgresql://test:test@127.0.0.1:5432/ppstudio_test";
 process.env.ADMIN_SESSION_SECRET ??= "test-secret-with-enough-length-123456";
 process.env.ADMIN_OWNER_EMAIL ??= "owner@example.com";

@@ -25,9 +25,10 @@ type BusinessProfile = Pick<
   "name" | "phone" | "email" | "instagramUrl" | "streetAddress" | "postalCode" | "city"
 >;
 
-const BUSINESS_ID = `${siteConfig.url}/#business`;
-const WEBSITE_ID = `${siteConfig.url}/#website`;
-const LOGO_URL = `${siteConfig.url}/brand/ppstudio-logo.png`;
+const SEO_BASE_URL = siteConfig.canonicalUrl;
+const BUSINESS_ID = `${SEO_BASE_URL}/#business`;
+const WEBSITE_ID = `${SEO_BASE_URL}/#website`;
+const LOGO_URL = `${SEO_BASE_URL}/brand/ppstudio-logo.png`;
 
 export function SeoJsonLd({ data }: SeoJsonLdProps) {
   return (
@@ -55,7 +56,7 @@ export function buildLocalBusinessJsonLd(profile: BusinessProfile) {
         "@type": "WebSite",
         "@id": WEBSITE_ID,
         name: profile.name,
-        url: siteConfig.url,
+        url: SEO_BASE_URL,
         publisher: {
           "@id": BUSINESS_ID,
         },
@@ -73,8 +74,8 @@ export function buildHomePageJsonLd() {
   return {
     "@context": "https://schema.org",
     "@type": "WebPage",
-    "@id": `${siteConfig.url}/#webpage`,
-    url: siteConfig.url,
+    "@id": `${SEO_BASE_URL}/#webpage`,
+    url: SEO_BASE_URL,
     name: "PP Studio | Kosmetické studio Zlín",
     isPartOf: {
       "@id": WEBSITE_ID,
@@ -90,8 +91,8 @@ export function buildFaqPageJsonLd(sections: FaqSection[]) {
   return {
     "@context": "https://schema.org",
     "@type": "FAQPage",
-    "@id": `${siteConfig.url}/faq#faqpage`,
-    url: `${siteConfig.url}/faq`,
+    "@id": `${SEO_BASE_URL}/faq#faqpage`,
+    url: `${SEO_BASE_URL}/faq`,
     name: "FAQ | PP Studio",
     inLanguage: "cs-CZ",
     mainEntity: sections.flatMap((section) =>
@@ -121,7 +122,7 @@ export function buildBreadcrumbListJsonLd(items: BreadcrumbJsonLdItem[]) {
 }
 
 export function buildServiceJsonLd(service: Service, profile: BusinessProfile) {
-  const pageUrl = `${siteConfig.url}/sluzby/${service.slug}`;
+  const pageUrl = `${SEO_BASE_URL}/sluzby/${service.slug}`;
   const price = parseCzkPrice(service.priceFrom);
   const durationMinutes = service.durationMinutes ?? parseDurationMinutes(service.duration);
   const offer =
@@ -171,7 +172,7 @@ function buildLocalBusinessNode(profile: BusinessProfile) {
     "@type": "BeautySalon",
     "@id": BUSINESS_ID,
     name: profile.name,
-    url: siteConfig.url,
+    url: SEO_BASE_URL,
     image: LOGO_URL,
     logo: LOGO_URL,
     telephone: profile.phone,
@@ -200,7 +201,7 @@ function buildLocalBusinessNode(profile: BusinessProfile) {
       "@type": "ReserveAction",
       target: {
         "@type": "EntryPoint",
-        urlTemplate: `${siteConfig.url}/rezervace`,
+        urlTemplate: `${SEO_BASE_URL}/rezervace`,
         inLanguage: "cs-CZ",
       },
     },
@@ -230,7 +231,7 @@ function buildAbsoluteSiteUrl(href: string) {
     return href;
   }
 
-  const baseUrl = siteConfig.url.replace(/\/+$/, "");
+  const baseUrl = SEO_BASE_URL.replace(/\/+$/, "");
   const path = href === "/" ? "" : `/${href.replace(/^\/+/, "")}`;
 
   return `${baseUrl}${path}`;

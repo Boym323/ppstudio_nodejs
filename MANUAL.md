@@ -62,7 +62,8 @@ EMAIL_DELIVERY_MODE=log
 MEDIA_STORAGE_ROOT=/var/www/ppstudio-uploads
 ```
 
-- `NEXT_PUBLIC_APP_URL` je kanonická veřejná URL pro metadata, redirecty a e-mailové odkazy.
+- `NEXT_PUBLIC_APP_URL` je runtime URL aplikace pro redirecty a e-mailové odkazy.
+- `NEXT_PUBLIC_SITE_URL` je doporučená kanonická veřejná URL pro SEO metadata a JSON-LD (při chybějící hodnotě fallback na `NEXT_PUBLIC_APP_URL`).
 - `DATABASE_URL` je hlavní aplikační databáze.
 - `SHADOW_DATABASE_URL` používá Prisma při `migrate dev`.
 - `ADMIN_SESSION_SECRET` podepisuje admin session cookie a musí být unikátní pro prostředí.

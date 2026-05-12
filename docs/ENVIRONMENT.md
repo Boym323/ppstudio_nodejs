@@ -13,7 +13,8 @@ Dokumentace proměnných prostředí pro lokální vývoj i produkci.
 ## Přehled
 - `NODE_ENV`: režim běhu (`development`, `production`).
 - `NEXT_PUBLIC_APP_NAME`: veřejný název značky.
-- `NEXT_PUBLIC_APP_URL`: veřejná URL aplikace, používá se i pro metadata a canonical základ webu.
+- `NEXT_PUBLIC_APP_URL`: runtime URL aplikace (redirecty, e-mailové odkazy, interní origin kontroly, CI/Playwright base URL).
+- `NEXT_PUBLIC_SITE_URL`: volitelná kanonická veřejná URL webu pro SEO metadata/JSON-LD; pokud chybí, fallback je `NEXT_PUBLIC_APP_URL`.
 - `NEXT_PUBLIC_SITE_DOMAIN`: volitelná veřejná doména webu bez schématu (např. `ppstudio.cz`), preferovaná pro textové zobrazení domény ve voucher PDF kontaktech.
 - `VOUCHER_PUBLIC_DOMAIN`: volitelná explicitní doména pouze pro voucher PDF kontakty; má prioritu nad `NEXT_PUBLIC_SITE_DOMAIN`.
 - `NEXT_PUBLIC_MATOMO_ENABLED`: zapnutí veřejného Matomo trackingu; tracking běží pouze při přesné hodnotě `true`.
@@ -50,6 +51,7 @@ Dokumentace proměnných prostředí pro lokální vývoj i produkci.
 NODE_ENV=development
 NEXT_PUBLIC_APP_NAME=PP Studio
 NEXT_PUBLIC_APP_URL=http://localhost:3000
+NEXT_PUBLIC_SITE_URL=https://ppstudio.cz
 
 DATABASE_URL="postgresql://postgres:postgres@localhost:5432/ppstudio?schema=public"
 SHADOW_DATABASE_URL="postgresql://postgres:postgres@localhost:5432/ppstudio_shadow?schema=public"
@@ -84,6 +86,7 @@ Lokální doporučení:
 - Pokud je `EMAIL_DELIVERY_MODE=background`, jsou `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD` a `SMTP_FROM_EMAIL` povinné už při startu aplikace.
 - Pokud je `EMAIL_DELIVERY_MODE=background`, admin pole `emailSenderEmail` v sekci `Nastavení` musí odpovídat `SMTP_FROM_EMAIL`; jinak aplikace změnu odmítne, aby se předešlo selhání doručování.
 - `NEXT_PUBLIC_APP_URL` je kritická i pro provozní approve/reject odkazy v e-mailu; pokud míří na špatný host nebo schéma, owner email akce povedou na neplatnou URL.
+- `NEXT_PUBLIC_SITE_URL` je doporučené nastavit v CI/Playwright režimu, kde `NEXT_PUBLIC_APP_URL` míří na lokální testovací origin (např. `http://127.0.0.1:3100`), aby veřejné SEO canonical/JSON-LD URL zůstaly produkční (např. `https://ppstudio.cz`).
 - `NEXT_PUBLIC_APP_URL` je zároveň kanonický fallback origin pro admin redirecty. `x-forwarded-host` se použije jen tehdy, když odpovídá `NEXT_PUBLIC_APP_URL`, `NEXT_PUBLIC_SITE_DOMAIN` nebo `VOUCHER_PUBLIC_DOMAIN`; po změně veřejné domény zkontroluj všechny tyto hodnoty a reverse proxy nastavení.
 - Matomo konfigurace je volitelná: pokud `NEXT_PUBLIC_MATOMO_ENABLED` není přesně `true`, nebo chybí URL či site ID, tracking zůstane vypnutý. Protože jde o `NEXT_PUBLIC_*` proměnné, hodnoty se promítají do klientského bundle při buildu.
 - Web Vitals reporting má samostatný feature flag `NEXT_PUBLIC_WEB_VITALS_ENABLED` (default `true`). Pokud není přesně `true`, `WebVitalsReporter` se nespustí. Odeslání eventu je pořád závislé na veřejné Matomo konfiguraci `NEXT_PUBLIC_MATOMO_ENABLED`, `NEXT_PUBLIC_MATOMO_URL` a `NEXT_PUBLIC_MATOMO_SITE_ID`; bez ní je tracking helper no-op.
