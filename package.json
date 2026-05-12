@@ -1,6 +1,6 @@
 {
   "name": "ppstudio",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "private": true,
   "scripts": {
     "clean": "rm -rf .next",
@@ -61,7 +61,6 @@
     "c8": "^11.0.0",
     "dotenv": "^17.4.2",
     "eslint": "^9",
-    "c8": "^11.0.0",
     "eslint-config-next": "16.2.4",
     "prisma": "^7.7.0",
     "tailwindcss": "^4.2.4",

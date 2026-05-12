@@ -6,6 +6,9 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [0.3.3] - 2026-05-12
+
+- Release příprava pro produkční nasazení: projektová verze navýšena na patch `0.3.3`.
 - Detail služby `/sluzby/[slug]` má nově viditelnou drobečkovou navigaci, samostatný `BreadcrumbList` JSON-LD a jasnější sekundární odkaz zpět na přehled všech služeb.
 - Web Vitals reporting má nově samostatný env přepínač `NEXT_PUBLIC_WEB_VITALS_ENABLED` (default `true`), takže lze klientské měření zapnout/vypnout nezávisle na Matomo pageview trackingu.
 - Opraven test discovery pro `npm test`: Node runner teď dostává quoted glob `src/**/*.test.ts`, takže se místo jednoho souboru opravdu spouští celá unit/integration sada a coverage už odpovídá reálnému pokrytí.
