@@ -4,15 +4,15 @@ Seznam důležitých knihoven a důvod jejich použití.
 
 ## Aktuální verze stacku
 - Zdroj pravdy je `package.json` v kořeni projektu.
-- `next`: `16.2.4`
+- `next`: `16.2.6`
 - `react`: `19.2.4`
 - `react-dom`: `19.2.4`
 - `tailwindcss`: `^4.2.4` (runtime používá `4.2.4`)
 - `@tailwindcss/postcss`: `^4.2.4` (runtime používá `4.2.4`)
 - `postcss`: přímá závislost není pinovaná; resolvuje se přes `@tailwindcss/postcss` (`8.5.10`) a interně také přes `next` (`8.4.31`).
-- `prisma`: `^7.7.0` (runtime používá `7.7.0`)
-- `@prisma/client`: `^7.7.0` (runtime používá `7.7.0`)
-- `@prisma/adapter-pg`: `^7.7.0` (runtime používá `7.7.0`)
+- `prisma`: `^7.8.0` (runtime používá `7.8.0`)
+- `@prisma/client`: `^7.8.0` (runtime používá `7.8.0`)
+- `@prisma/adapter-pg`: `^7.8.0` (runtime používá `7.8.0`)
 - `@playwright/test`: browser E2E test runner pro hlavní rezervační a admin flow.
 - `c8`: V8 coverage reporter nad stávajícím `node --test` setupem; generuje HTML/LCOV/JSON reporty bez nutnosti přechodu na jiný test runner.
 - Matomo tracking nepřidává žádnou npm závislost; používá `next/script`, App Router navigation hooks a standardní `window._paq` frontu.

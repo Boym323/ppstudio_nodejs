@@ -6,6 +6,11 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Aktualizován framework `next` z `16.2.4` na `16.2.6` a `eslint-config-next` z `16.2.4` na `16.2.6` (patch upgrade v rámci Next.js 16).
+- Po upgradu závislostí byl ověřen produkční build (`npm run build`), lint (`npm run lint`) a testy (`npm test`); opakovaný běh testů skončil bez pádů (`# fail 0`).
+- Aktualizovány balíčky `prisma`, `@prisma/client` a `@prisma/adapter-pg` z `7.7.0` na `7.8.0`.
+- Po Prisma upgradu znovu ověřen průchod `prisma generate`, `npm run build`, `npm run lint` a `npm test` (`# fail 0`).
+
 ## [0.3.4] - 2026-05-12
 
 - Release příprava pro produkční nasazení: projektová verze navýšena na patch `0.3.4`.
