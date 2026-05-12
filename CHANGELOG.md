@@ -12,6 +12,7 @@ Formát je inspirovaný Keep a Changelog.
 
 - Release příprava pro produkční nasazení: projektová verze navýšena na patch `0.3.3`.
 - Detail služby `/sluzby/[slug]` má nově viditelnou drobečkovou navigaci, samostatný `BreadcrumbList` JSON-LD a jasnější sekundární odkaz zpět na přehled všech služeb.
+- ESLint už ignoruje generovaný `coverage/` výstup, takže `npm run lint` nehlásí warningy z lokálních coverage reportů.
 - Web Vitals reporting má nově samostatný env přepínač `NEXT_PUBLIC_WEB_VITALS_ENABLED` (default `true`), takže lze klientské měření zapnout/vypnout nezávisle na Matomo pageview trackingu.
 - Opraven test discovery pro `npm test`: Node runner teď dostává quoted glob `src/**/*.test.ts`, takže se místo jednoho souboru opravdu spouští celá unit/integration sada a coverage už odpovídá reálnému pokrytí.
 - Přidán coverage reporting nad business logikou přes `c8` a nový skript `npm run test:coverage`; generuje `coverage/` reporty ve formátech HTML, LCOV a `json-summary` pro booking, admin, voucher a e-mailové moduly.
