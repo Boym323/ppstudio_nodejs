@@ -657,8 +657,8 @@ export function buildPageMetadata({
       images: [
         {
           url: '/brand/ppstudio-og-logo.png',
-          width: 1031,
-          height: 1030,
+          width: 1200,
+          height: 630,
           alt: siteConfig.name,
         },
       ],
