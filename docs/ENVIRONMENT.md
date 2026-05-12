@@ -17,6 +17,7 @@ Dokumentace proměnných prostředí pro lokální vývoj i produkci.
 - `NEXT_PUBLIC_SITE_DOMAIN`: volitelná veřejná doména webu bez schématu (např. `ppstudio.cz`), preferovaná pro textové zobrazení domény ve voucher PDF kontaktech.
 - `VOUCHER_PUBLIC_DOMAIN`: volitelná explicitní doména pouze pro voucher PDF kontakty; má prioritu nad `NEXT_PUBLIC_SITE_DOMAIN`.
 - `NEXT_PUBLIC_MATOMO_ENABLED`: zapnutí veřejného Matomo trackingu; tracking běží pouze při přesné hodnotě `true`.
+- `NEXT_PUBLIC_WEB_VITALS_ENABLED`: zapnutí klientského sběru Web Vitals; měření běží pouze při přesné hodnotě `true`.
 - `NEXT_PUBLIC_MATOMO_URL`: veřejná URL Matomo instance včetně schématu, například `https://matomo.example.cz/`.
 - `NEXT_PUBLIC_MATOMO_SITE_ID`: ID webu v Matomo.
 - `MATOMO_URL`: server-side URL Matomo instance pro Reporting API; typicky stejný origin jako veřejné Matomo, ale bez vystavení tokenu klientovi.
@@ -85,7 +86,7 @@ Lokální doporučení:
 - `NEXT_PUBLIC_APP_URL` je kritická i pro provozní approve/reject odkazy v e-mailu; pokud míří na špatný host nebo schéma, owner email akce povedou na neplatnou URL.
 - `NEXT_PUBLIC_APP_URL` je zároveň kanonický fallback origin pro admin redirecty. `x-forwarded-host` se použije jen tehdy, když odpovídá `NEXT_PUBLIC_APP_URL`, `NEXT_PUBLIC_SITE_DOMAIN` nebo `VOUCHER_PUBLIC_DOMAIN`; po změně veřejné domény zkontroluj všechny tyto hodnoty a reverse proxy nastavení.
 - Matomo konfigurace je volitelná: pokud `NEXT_PUBLIC_MATOMO_ENABLED` není přesně `true`, nebo chybí URL či site ID, tracking zůstane vypnutý. Protože jde o `NEXT_PUBLIC_*` proměnné, hodnoty se promítají do klientského bundle při buildu.
-- Web Vitals reporting nepřidává novou env proměnnou. Používá existující veřejnou Matomo konfiguraci `NEXT_PUBLIC_MATOMO_ENABLED`, `NEXT_PUBLIC_MATOMO_URL` a `NEXT_PUBLIC_MATOMO_SITE_ID`; bez ní je klientský reporter no-op.
+- Web Vitals reporting má samostatný feature flag `NEXT_PUBLIC_WEB_VITALS_ENABLED` (default `true`). Pokud není přesně `true`, `WebVitalsReporter` se nespustí. Odeslání eventu je pořád závislé na veřejné Matomo konfiguraci `NEXT_PUBLIC_MATOMO_ENABLED`, `NEXT_PUBLIC_MATOMO_URL` a `NEXT_PUBLIC_MATOMO_SITE_ID`; bez ní je tracking helper no-op.
 - Server-side Matomo reporting konfigurace je oddělená od klientského trackingu: `MATOMO_URL`, `MATOMO_SITE_ID` a `MATOMO_AUTH_TOKEN` čte pouze server-only modul `src/lib/analytics/matomo.ts`. Pokud některá hodnota chybí, dashboard analytics vrací nulové hodnoty místo chyby do UI.
 - Úprava admin dashboardu na denní provozní cockpit nepřidává žádnou novou env proměnnou; používá stávající Prisma data, admin session a volitelnou server-side Matomo konfiguraci.
 - Matomo se nepoužívá v adminu, neposílá tokenové self-service URL a neukládá analytics eventy do databáze PP Studio.

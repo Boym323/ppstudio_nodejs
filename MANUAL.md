@@ -91,6 +91,7 @@ Detailní seznam všech env proměnných je v [`docs/ENVIRONMENT.md`](/var/www/p
 ## Aktuální Stav Projektu
 - Projekt běží na Next.js 16 App Routeru se strukturou oddělenou na public web, booking a admin.
 - Veřejný shell (`SiteShell`) inicializuje volitelný Matomo tracking přes `NEXT_PUBLIC_MATOMO_ENABLED`, `NEXT_PUBLIC_MATOMO_URL` a `NEXT_PUBLIC_MATOMO_SITE_ID`; admin route group tracking komponentu nepoužívá.
+- Web Vitals tracking má vlastní klientský feature flag `NEXT_PUBLIC_WEB_VITALS_ENABLED` (default `true`), takže měření lze vypnout nezávisle na pageview/event trackingu v Matomo.
 - Matomo skript na veřejném webu je záměrně odložený přes `lazyOnload`, aby se homepage nejdřív vykreslila s minimem klientské práce na hlavním vlákně.
 - Homepage hero preferuje jako LCP kandidát logo: je preloadované přes `next/image`, zatímco portrait běží bez priority, aby první vykreslení nebylo bržděné konkurenčním načítáním.
 - Veřejné kontaktní e-maily se uživatelkám zobrazují v běžném čitelném tvaru s `@`, ale veřejný web dál nesází surové `mailto:` přímo do SSR HTML; kontaktní odkazy se skládají až v klientu přes `ObfuscatedEmailLink`.
@@ -833,7 +834,7 @@ npm run db:clear-booking-data -- --confirm
 - Smoke E2E kontroluje, že veřejné canonical/OG URL odpovídají aktuálnímu originu a že `robots.txt` se `sitemap.xml` nepouští historickou `http://ppstudio.cz` variantu; produkční canonical origin má zůstat `https://ppstudio.cz`.
 - Veřejný layout vkládá JSON-LD `BeautySalon`/`WebSite` přes `buildLocalBusinessJsonLd(...)`, homepage vlastní `WebPage`; detail služby přidává `Service` a `BreadcrumbList` JSON-LD přes `buildServiceJsonLd(...)`. `BeautySalon` obsahuje i `geo` souřadnice studia a `Service.offers` se vkládá jen při jasně číselné ceně.
 - JSON-LD serializer čistí `undefined`, `null` a prázdné hodnoty, escapuje `<` pro bezpečné vložení do script tagu a ponechává českou diakritiku. Délka služby v JSON-LD používá ISO 8601 helper `durationMinutesToIsoDuration(...)`.
-- Web Vitals měří samostatná klientská komponenta `WebVitalsReporter` v public/booking `SiteShell`. Pokud je Matomo vypnuté nebo chybí konfigurace, reporting je no-op; při zapnutém Matomu odchází jen anonymní event `Web Vitals / <metric>` s ratingem a číselnou hodnotou.
+- Web Vitals měří samostatná klientská komponenta `WebVitalsReporter` v public/booking `SiteShell`. Pokud `NEXT_PUBLIC_WEB_VITALS_ENABLED` není `true`, komponenta se nespustí. Pokud je flag zapnutý, ale Matomo je vypnuté nebo chybí konfigurace, reporting zůstává no-op; při zapnutém Matomu odchází jen anonymní event `Web Vitals / <metric>` s ratingem a číselnou hodnotou.
 - `sitemap.ts` nepoužívá jednotné „teď“ (`new Date()`) pro všechny URL: detail služby má `lastModified` z `Service.updatedAt`, statické stránky mají stabilní datum poslední obsahové revize.
 - `sitemap.xml` běží jako Next.js metadata route s ISR revalidací (`revalidate = 86400`), takže se po změnách veřejných služeb průběžně regeneruje bez ručního zásahu.
 - Produkční `robots.txt` pouští crawl celého veřejného webu přes `Allow: /`; neveřejné admin a tokenové routy zůstávají blokované, aby se neindexovaly citlivé odkazy. Veřejné noindex stránky, které nemají token v path, necháváme crawl přístupné, aby si roboti mohli přečíst `noindex`.

@@ -13,7 +13,15 @@ const reportWebVital: ReportWebVitalsCallback = (metric) => {
 };
 
 export function WebVitalsReporter() {
-  useReportWebVitals(reportWebVital);
+  const isEnabled = process.env.NEXT_PUBLIC_WEB_VITALS_ENABLED === "true";
+
+  useReportWebVitals((metric) => {
+    if (!isEnabled) {
+      return;
+    }
+
+    reportWebVital(metric);
+  });
 
   return null;
 }

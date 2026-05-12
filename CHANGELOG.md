@@ -6,6 +6,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Web Vitals reporting má nově samostatný env přepínač `NEXT_PUBLIC_WEB_VITALS_ENABLED` (default `true`), takže lze klientské měření zapnout/vypnout nezávisle na Matomo pageview trackingu.
 - Opraven test discovery pro `npm test`: Node runner teď dostává quoted glob `src/**/*.test.ts`, takže se místo jednoho souboru opravdu spouští celá unit/integration sada a coverage už odpovídá reálnému pokrytí.
 - Přidán coverage reporting nad business logikou přes `c8` a nový skript `npm run test:coverage`; generuje `coverage/` reporty ve formátech HTML, LCOV a `json-summary` pro booking, admin, voucher a e-mailové moduly.
 - Doplněny unit testy pro rozhodovací logiku owner e-mail akcí rezervace (`resolveBookingEmailActionPageState`) a pro admin dashboard timeline routing/notes, aby byla lépe pokrytá business vrstva rezervací, e-mailů a admin provozu.
