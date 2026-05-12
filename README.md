@@ -106,6 +106,15 @@ Projekt už pokrývá hlavní provozní entity:
 
 ## Rychlý start
 
+### 1. Požadavky
+
+- Node.js 20+
+- npm 10+
+- PostgreSQL 15+
+- lokální přístup k zapisovatelnému adresáři pro `MEDIA_STORAGE_ROOT`
+
+### 2. Instalace a lokální setup krok za krokem
+
 ```bash
 npm install
 cp .env.example .env
@@ -115,6 +124,29 @@ npm run dev
 ```
 
 Vývoj běží standardně na `http://localhost:3000`.
+
+Praktický postup:
+
+1. Naklonuj repozitář a přejdi do rootu projektu.
+2. Vytvoř lokální `.env` z `.env.example`.
+3. Uprav minimálně `DATABASE_URL`, `SHADOW_DATABASE_URL`, `ADMIN_SESSION_SECRET` a lokální `NEXT_PUBLIC_APP_URL`.
+4. Připrav PostgreSQL databázi pro hlavní i shadow DB.
+5. Spusť `npm install`.
+6. Spusť `npm run db:migrate` pro lokální Prisma migrace.
+7. Spusť `npm run dev`.
+8. Otevři `http://localhost:3000`.
+
+### 3. První přihlášení do adminu
+
+- admin login je na `/admin/prihlaseni`
+- bootstrap přístupy přes `ADMIN_OWNER_*` a `ADMIN_STAFF_*` fungují jen při `ADMIN_BOOTSTRAP_ENABLED=true`
+- po prvním založení nebo opravě databázových admin účtů vrať `ADMIN_BOOTSTRAP_ENABLED=false`
+
+### 4. Lokální e-mail a analytics režim
+
+- pro bezpečný lokální vývoj je praktičtější `EMAIL_DELIVERY_MODE=log`
+- veřejný Matomo tracking nech ve vývoji vypnutý, dokud opravdu netestuješ analytics flow
+- pokud potřebuješ ověřit dashboard reporting, použij `npm run analytics:check`
 
 Když dev server spadne na poškozenou Next/Turbopack cache, pomůže:
 
@@ -146,6 +178,42 @@ npm run dev:clean
 
 Pro produkci používej Prisma deploy flow přes `npx prisma migrate deploy`. Lokální `npm run db:migrate` je určené pro vývoj.
 
+## Příklad `.env`
+
+Zkrácený příklad pro lokální vývoj:
+
+```dotenv
+NODE_ENV=development
+NEXT_PUBLIC_APP_NAME=PP Studio
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/ppstudio?schema=public"
+SHADOW_DATABASE_URL="postgresql://postgres:postgres@localhost:5432/ppstudio_shadow?schema=public"
+
+ADMIN_SESSION_SECRET=replace-with-long-random-secret-at-least-32-chars
+ADMIN_BOOTSTRAP_ENABLED=true
+ADMIN_OWNER_EMAIL=owner@example.com
+ADMIN_OWNER_PASSWORD=change-me-owner
+ADMIN_STAFF_EMAIL=staff@example.com
+ADMIN_STAFF_PASSWORD=change-me-staff
+
+EMAIL_DELIVERY_MODE=log
+
+MEDIA_STORAGE_ROOT=/var/www/ppstudio-uploads
+```
+
+Co je důležité:
+
+- `NEXT_PUBLIC_APP_URL`: veřejný základ URL pro metadata, redirecty a odkazy v e-mailech
+- `DATABASE_URL`: hlavní PostgreSQL databáze aplikace
+- `SHADOW_DATABASE_URL`: pomocná DB pro `prisma migrate dev` v lokálním vývoji
+- `ADMIN_SESSION_SECRET`: tajný klíč pro podpis admin session cookie; v produkci musí být dlouhý a unikátní
+- `ADMIN_BOOTSTRAP_ENABLED`: nouzový přepínač bootstrap loginu; v produkci má být běžně `false`
+- `EMAIL_DELIVERY_MODE=log`: bezpečný lokální režim bez reálného SMTP odesílání
+- `MEDIA_STORAGE_ROOT`: absolutní cesta mimo repo, kam se ukládají nahraná média
+
+Plný seznam proměnných a detailní vysvětlení je v `docs/ENVIRONMENT.md`.
+
 ## Dokumentační rozcestník
 
 - `MANUAL.md`: provozní a uživatelský přehled projektu
@@ -158,9 +226,37 @@ Pro produkci používej Prisma deploy flow přes `npx prisma migrate deploy`. Lo
 
 ## Nasazení
 
-- Doporučený produkční rollout je `./deploy/release.sh`.
-- Skript dělá `git pull --ff-only`, `npm ci`, `npm run db:generate`, `npm run db:check-migrations`, `npx prisma migrate deploy`, `lint`, `build` a restart `ppstudio-web` / `ppstudio-email-worker`.
-- Release checklist a QA body jsou v `docs/DEPLOYMENT.md`.
+### Doporučený deploy krok za krokem
+
+1. Na serveru měj čistý checkout repozitáře a správně nastavené `.env`.
+2. Ověř PostgreSQL připojení, SMTP konfiguraci, `MEDIA_STORAGE_ROOT` a `ADMIN_BOOTSTRAP_ENABLED=false`.
+3. Spusť `./deploy/release.sh`.
+4. Skript provede `git pull --ff-only`, `npm ci`, `npm run db:generate`, `npm run db:check-migrations`, `npx prisma migrate deploy`, `npm run lint`, `npm run build` a restart `ppstudio-web` / `ppstudio-email-worker`.
+5. Po releasu ověř `GET /api/health`, admin login, veřejnou homepage a testovací rezervaci.
+
+### Kdy použít detailní deployment docs
+
+- `docs/DEPLOYMENT.md` obsahuje plný release checklist a ruční QA
+- `MANUAL.md` shrnuje provozní rollout z pohledu údržby
+- `docs/ENVIRONMENT.md` rozepisuje produkční env proměnné
+
+## SLA a monitoring
+
+Projekt už má připravené stavební bloky pro základní provozní dohled:
+
+- `GET /api/health` vrací agregovaný stav webu, DB a e-mailové fronty
+- `npm run analytics:check` ověří server-side Matomo reporting
+- `ppstudio-web.service` a `ppstudio-email-worker.service` mají být pod systemd
+- admin dashboard umí ukázat provozní a analytické varování, ale není náhradou externího monitoringu
+
+Doporučené minimum:
+
+1. Externí HTTP check na `/api/health` s alarmem na HTTP `503` nebo timeout.
+2. Kontrola běhu obou systemd služeb.
+3. Alert na růst `failed/retrying/stale` e-mailů.
+4. Základní release SLA: po deployi ověřit homepage, admin login a vytvoření testovací rezervace.
+
+Pokud chcete mít v repu přímo popsaný provozní standard, navazující detaily jsou v `docs/DEPLOYMENT.md`, `docs/INCIDENTS.md` a `MANUAL.md`.
 
 ## Dokumentace
 

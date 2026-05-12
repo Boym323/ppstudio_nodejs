@@ -43,6 +43,34 @@ Dokumentace proměnných prostředí pro lokální vývoj i produkci.
 - `SMTP_REPLY_TO`: volitelná reply-to adresa.
 - `MEDIA_STORAGE_ROOT`: volitelná absolutní cesta k lokálnímu root adresáři pro nahraná média; pokud chybí, aplikace použije `/var/www/ppstudio/uploads`.
 
+## Doporučený lokální `.env` základ
+
+```dotenv
+NODE_ENV=development
+NEXT_PUBLIC_APP_NAME=PP Studio
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/ppstudio?schema=public"
+SHADOW_DATABASE_URL="postgresql://postgres:postgres@localhost:5432/ppstudio_shadow?schema=public"
+
+ADMIN_SESSION_SECRET=replace-with-long-random-secret-at-least-32-chars
+ADMIN_BOOTSTRAP_ENABLED=true
+ADMIN_OWNER_EMAIL=owner@example.com
+ADMIN_OWNER_PASSWORD=change-me-owner
+ADMIN_STAFF_EMAIL=staff@example.com
+ADMIN_STAFF_PASSWORD=change-me-staff
+
+EMAIL_DELIVERY_MODE=log
+MEDIA_STORAGE_ROOT=/var/www/ppstudio-uploads
+```
+
+Lokální doporučení:
+
+- `EMAIL_DELIVERY_MODE=log` je nejbezpečnější výchozí režim pro vývoj a testovací rollout.
+- `ADMIN_BOOTSTRAP_ENABLED=true` používej jen po dobu prvního přihlášení nebo recovery; po zřízení DB účtů vrať `false`.
+- `NEXT_PUBLIC_MATOMO_*`, `MATOMO_*` a `PUSHOVER_*` nech klidně vypnuté, pokud zrovna netestuješ analytics nebo notifikace.
+- `MEDIA_STORAGE_ROOT` drž mimo repozitář a ověř, že do něj má proces právo zapisovat.
+
 ## Poznámky
 - Bootstrap admin přístupy slouží jen jako startovní/recovery vrstva projektu. Login přes `ADMIN_OWNER_*` a `ADMIN_STAFF_*` funguje pouze při `ADMIN_BOOTSTRAP_ENABLED=true`; po založení nebo opravě DB admin účtů přepínač vrať na `false`.
 - V produkci používej silná hesla a unikátní `ADMIN_SESSION_SECRET`.

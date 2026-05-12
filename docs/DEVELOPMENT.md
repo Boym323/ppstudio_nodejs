@@ -18,6 +18,18 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - `npm run dev:clean` (smaže `.next` a znovu spustí dev server)
   - `npm run dev:webpack` (fallback bez Turbopacku, vhodné při opakovaných pádech cache)
 
+## Lokální setup workflow
+- Výchozí pořadí pro nový stroj nebo čistý checkout je:
+  1. `cp .env.example .env`
+  2. doplnit lokální `DATABASE_URL`, `SHADOW_DATABASE_URL`, `ADMIN_SESSION_SECRET`, `NEXT_PUBLIC_APP_URL`
+  3. `npm install`
+  4. `npm run db:generate`
+  5. `npm run db:migrate`
+  6. `npm run dev`
+- Pro lokální vývoj preferuj `EMAIL_DELIVERY_MODE=log`; reálné SMTP a veřejný Matomo tracking zapínej jen při cíleném integračním testu.
+- Bootstrap admin login přes `ADMIN_OWNER_*` a `ADMIN_STAFF_*` je recovery vrstva, ne výchozí dlouhodobý režim. Po založení databázových admin účtů vrať `ADMIN_BOOTSTRAP_ENABLED=false`.
+- README na GitHubu má fungovat jako rozcestník i rychlý onboarding. Když měníš setup, deploy nebo monitoring workflow, promítni změnu do `README.md` a udržuj v něm krokový postup, ne jen seznam odkazů.
+
 ## Architektura
 - `src/app` obsahuje pouze routy, layouty a route handlers.
 - `src/components` drží čistě sdílené stavební prvky.

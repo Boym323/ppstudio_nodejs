@@ -29,6 +29,47 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
 - Skript provede standardní release kroky (`npm ci`, `npm run db:generate`, `npm run db:check-migrations`, `npx prisma migrate deploy`, `npm run lint`, `npm run build`, restart `ppstudio-web` a `ppstudio-email-worker`).
 - Detailní release checklist a QA body zůstávají v [`docs/DEPLOYMENT.md`](/var/www/ppstudio/docs/DEPLOYMENT.md).
 
+## Setup projektu krok za krokem
+1. Připrav Node.js 20+, npm 10+ a PostgreSQL 15+.
+2. Naklonuj repozitář a v rootu vytvoř `.env` z `.env.example`.
+3. Nastav aspoň `DATABASE_URL`, `SHADOW_DATABASE_URL`, `ADMIN_SESSION_SECRET`, `NEXT_PUBLIC_APP_URL` a lokální `MEDIA_STORAGE_ROOT`.
+4. Pro lokální vývoj preferuj `EMAIL_DELIVERY_MODE=log`, aby se neposílaly reálné e-maily.
+5. Spusť `npm install`.
+6. Spusť `npm run db:generate`.
+7. Spusť `npm run db:migrate`.
+8. Spusť `npm run dev` a otevři `http://localhost:3000`.
+9. Pokud potřebuješ první admin přihlášení přes env účty, dočasně zapni `ADMIN_BOOTSTRAP_ENABLED=true`, přihlas se na `/admin/prihlaseni` a po založení databázových účtů přepínač vrať na `false`.
+
+## Příklad `.env` a význam hlavních proměnných
+
+```dotenv
+NODE_ENV=development
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/ppstudio?schema=public"
+SHADOW_DATABASE_URL="postgresql://postgres:postgres@localhost:5432/ppstudio_shadow?schema=public"
+ADMIN_SESSION_SECRET=replace-with-long-random-secret-at-least-32-chars
+ADMIN_BOOTSTRAP_ENABLED=true
+EMAIL_DELIVERY_MODE=log
+MEDIA_STORAGE_ROOT=/var/www/ppstudio-uploads
+```
+
+- `NEXT_PUBLIC_APP_URL` je kanonická veřejná URL pro metadata, redirecty a e-mailové odkazy.
+- `DATABASE_URL` je hlavní aplikační databáze.
+- `SHADOW_DATABASE_URL` používá Prisma při `migrate dev`.
+- `ADMIN_SESSION_SECRET` podepisuje admin session cookie a musí být unikátní pro prostředí.
+- `ADMIN_BOOTSTRAP_ENABLED` je recovery přepínač bootstrap loginu; běžný produkční stav je `false`.
+- `EMAIL_DELIVERY_MODE=log` je bezpečný lokální režim bez SMTP odesílání.
+- `MEDIA_STORAGE_ROOT` je zapisovatelná absolutní cesta mimo repo pro nahraná média.
+
+Detailní seznam všech env proměnných je v [`docs/ENVIRONMENT.md`](/var/www/ppstudio/docs/ENVIRONMENT.md).
+
+## Monitoring a provozní SLA minimum
+- Externí monitoring má pravidelně volat `GET /api/health`; při `503` nebo timeoutu ber stav jako incident.
+- Vedle webu sleduj i běh `ppstudio-web.service` a `ppstudio-email-worker.service`.
+- Pravidelně kontroluj, že e-mailová fronta nemá rostoucí `failed`, `retrying` nebo `stale` záznamy.
+- Po každém releasu proveď minimální smoke test: homepage, admin login a vytvoření testovací rezervace.
+- Pokud používáš Matomo reporting pro dashboard, po změně konfigurace nebo incidentu spusť `npm run analytics:check`.
+
 ## Verzování (SemVer)
 - Projekt používá Semantic Versioning `MAJOR.MINOR.PATCH` v `package.json`.
 - Aktuální release je `0.3.2`; řada `0.x.y` znamená před prvním stabilním vydáním, ale i tak držíme stejnou disciplínu změn.

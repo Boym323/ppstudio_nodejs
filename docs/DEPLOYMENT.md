@@ -259,6 +259,18 @@ Postup nasazení aplikace do produkce.
     - duplicitni submit/retry stejneho `bookingId` nebo `emailLogId` se v jednom procesu potlaci 30s rate limitem
     - vypnuti nebo chyba Pushover API nema zmenit vysledek rezervace ani email workeru
 
+## Doporučené monitoring minimum
+- Externí uptime check volej proti `GET /api/health`.
+- Alarm nastav minimálně na HTTP `503`, timeout a opakovaný `warning` stav.
+- Sleduj oba systemd procesy `ppstudio-web.service` a `ppstudio-email-worker.service`.
+- Při zapnutém Matomo dashboard reportingu měj po ruce i `npm run analytics:check` pro rychlou diagnostiku mimo UI.
+- Po incidentu s e-maily vždy zkontroluj outbox stavy `failed`, `retrying`, `processing` a `stale`.
+
+## Praktické SLA po releasu
+- Do několika minut po nasazení ověř homepage, `/api/health`, admin login a jeden základní booking smoke test.
+- Pokud release mění e-mail, voucher nebo analytics flow, rozšiř smoke test i o odpovídající provozní scénář.
+- Když `/api/health` hlásí `warning` nebo `error`, release nepovažuj za uzavřený, dokud není stav vysvětlený nebo opravený.
+
 ## Nasazení
 1. Pull nové verze na server.
 2. Instalace závislostí (`npm ci`).
