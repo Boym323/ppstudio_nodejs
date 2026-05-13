@@ -211,7 +211,7 @@ Detailní seznam všech env proměnných je v [`docs/ENVIRONMENT.md`](/var/www/p
 - Filtrační lišta sekce `Služby` je na desktopu sticky a zůstává během scrollu po ruce; horní statistiky jsou záměrně menší, aby nepřebíraly roli hlavního obsahu. Scope běžného katalogu se v toolbaru komunikuje jen přes malé pill stavy typu `Běžný katalog` a `Systémové skryté`.
 - Sekce `Volné termíny / Týdenní plán dostupností` drží grid-first provozní workflow: horní hlavička je nízká, datum týdne se ukazuje jen v planner toolbaru a pravý panel je zhuštěný do tří bloků `Inspektor dne`, `Akce dne` a `Detail výběru`.
 - V planneru má legenda stavů zůstat sekundární a sbalená u detailu výběru; čitelnost času se zvyšuje spíš kontrastem levé osy, jemným zvýrazněním celých hodin a jasnějším selected stavem než dalšími vysvětlovacími kartami.
-- `CANCELLED` booking už v planneru sám o sobě nedělá z plain published slotu chráněný interval. Pokud na slotu nezůstává aktivní nebo dokončená návštěva ani jiné omezení, má se zobrazit jako běžná editovatelná dostupnost.
+- Slot s jakoukoli navázanou rezervací, včetně `CANCELLED`, se v týdenním planneru nesmí tvářit jako běžně mazatelná dostupnost. Databáze drží vazbu `Booking.slotId` restriktivně, takže takový interval musí zůstat uzamčený nebo být řešen jiným provozním postupem než prostým smazáním v mřížce.
 - Týdenní planner dostupností a veřejná booking service vrstva jsou po stabilizačním refaktoru modulární i v kódu, ale bez změny URL, exportů nebo databázového modelu.
 - Prisma schema v1 už pokrývá:
   - admin uživatele a role

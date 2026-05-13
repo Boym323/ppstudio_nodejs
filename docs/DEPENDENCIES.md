@@ -29,6 +29,7 @@ Seznam důležitých knihoven a důvod jejich použití.
 - Oprava fragmentace chained booking slotů pro admin planner nepřidává žádnou npm závislost; používá stávající Prisma transakce a sdílenou coverage logiku.
 - Repair helper `scripts/repair-legacy-chained-slots.mjs` nepřidává žádnou npm závislost; používá stávající `pg` driver a `DATABASE_URL`.
 - Oprava planner read modelu pro `CANCELLED` bookingy nepřidává žádnou npm závislost; jde jen o úpravu stávající Prisma/Tailwind admin vrstvy.
+- Oprava publish draftu planneru pro sloty s historickou `CANCELLED` rezervací nepřidává žádnou npm závislost; mění jen doménové pravidlo editovatelnosti slotu a regresní DB testy nad existujícím Next.js/Prisma stackem.
 - Admin vytvoření voucheru nepřidává žádnou novou knihovnu; používá existující Next.js server actions, React `useActionState` / lokální state pro živý náhled, Prisma a voucher Zod schéma.
 - Admin uplatnění voucheru v detailu rezervace nepřidává žádnou novou knihovnu; formulář používá React `useActionState`, server action používá existující Zod/Prisma vrstvu a transakční voucher doménu.
 - Evidence plateb a payment summary v admin detailu rezervace nepřidává žádnou novou knihovnu, payment SDK ani QR generátor; jde o TypeScript výpočet nad Prisma read modelem, existujícími `VoucherRedemption` daty a novým modelem `BookingPayment`.

@@ -112,7 +112,7 @@ export function isPlainEditableSlot(slot: {
     slot.internalNote === null &&
     slot.serviceRestrictionMode === AvailabilitySlotServiceRestrictionMode.ANY &&
     slot.allowedServices.length === 0 &&
-    !slot.bookings.some((booking) => booking.status !== BookingStatus.CANCELLED)
+    slot.bookings.length === 0
   );
 }
 

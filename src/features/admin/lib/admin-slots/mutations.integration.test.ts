@@ -286,6 +286,162 @@ dbTest("syncPlannerWeekDraft preserves booked intervals while replacing editable
   }
 });
 
+dbTest("syncPlannerWeekDraft preserves slots that still have a cancelled booking relation", async () => {
+  const { prisma, syncPlannerWeekDraft, getCellRangeBounds } = await loadModules();
+  const suffix = randomUUID().slice(0, 8);
+  const actor = await prisma.adminUser.create({
+    data: {
+      email: `planner-cancelled-${suffix}@example.com`,
+      name: `Planner Cancelled ${suffix}`,
+      role: AdminRole.OWNER,
+      isActive: true,
+    },
+    select: { id: true },
+  });
+  const category = await prisma.serviceCategory.create({
+    data: {
+      name: `Planner cancelled category ${suffix}`,
+      slug: `planner-cancelled-category-${suffix}`,
+      isActive: true,
+    },
+    select: { id: true },
+  });
+  const service = await prisma.service.create({
+    data: {
+      categoryId: category.id,
+      name: `Planner cancelled service ${suffix}`,
+      slug: `planner-cancelled-service-${suffix}`,
+      durationMinutes: 60,
+      isActive: true,
+      isPubliclyBookable: true,
+    },
+    select: {
+      id: true,
+      name: true,
+      durationMinutes: true,
+    },
+  });
+  const client = await prisma.client.create({
+    data: {
+      fullName: `Planner zrusena ${suffix}`,
+      email: `planner-cancelled-client-${suffix}@example.com`,
+      phone: "+420777123456",
+      isActive: true,
+    },
+    select: {
+      id: true,
+      fullName: true,
+      email: true,
+      phone: true,
+    },
+  });
+  const dateKey = "2026-07-20";
+  const weekKey = dateKey;
+  const slotRange = getCellRangeBounds(dateKey, 16, 19);
+  const slot = await prisma.availabilitySlot.create({
+    data: {
+      startsAt: slotRange.startsAt,
+      endsAt: slotRange.endsAt,
+      capacity: 1,
+      status: AvailabilitySlotStatus.PUBLISHED,
+      serviceRestrictionMode: AvailabilitySlotServiceRestrictionMode.ANY,
+      publishedAt: new Date(),
+      createdByUserId: actor.id,
+    },
+    select: {
+      id: true,
+      startsAt: true,
+      endsAt: true,
+    },
+  });
+  const booking = await prisma.booking.create({
+    data: {
+      clientId: client.id,
+      slotId: slot.id,
+      serviceId: service.id,
+      source: BookingSource.PHONE,
+      isManual: true,
+      status: BookingStatus.CANCELLED,
+      clientNameSnapshot: client.fullName,
+      clientEmailSnapshot: client.email ?? `planner-cancelled-client-${suffix}@example.com`,
+      clientPhoneSnapshot: client.phone,
+      serviceNameSnapshot: service.name,
+      serviceDurationMinutes: service.durationMinutes,
+      scheduledStartsAt: slotRange.startsAt,
+      scheduledEndsAt: slotRange.endsAt,
+      cancelledAt: new Date(),
+      createdByUserId: actor.id,
+    },
+    select: { id: true },
+  });
+
+  try {
+    await syncPlannerWeekDraft("owner", {
+      weekKey,
+      actorUserId: actor.id,
+      days: [
+        {
+          dateKey,
+          intervals: [],
+        },
+      ],
+    });
+
+    const slots = await prisma.availabilitySlot.findMany({
+      where: {
+        createdByUserId: actor.id,
+      },
+      orderBy: {
+        startsAt: "asc",
+      },
+      select: {
+        id: true,
+        startsAt: true,
+        endsAt: true,
+        bookings: {
+          select: {
+            id: true,
+            status: true,
+          },
+        },
+      },
+    });
+
+    assert.deepEqual(
+      slots.map((currentSlot) => ({
+        id: currentSlot.id,
+        startsAt: currentSlot.startsAt.toISOString(),
+        endsAt: currentSlot.endsAt.toISOString(),
+        bookingStatuses: currentSlot.bookings.map((currentBooking) => currentBooking.status),
+      })),
+      [{
+        id: slot.id,
+        startsAt: slot.startsAt.toISOString(),
+        endsAt: slot.endsAt.toISOString(),
+        bookingStatuses: [BookingStatus.CANCELLED],
+      }],
+    );
+
+    const storedBooking = await prisma.booking.findUniqueOrThrow({
+      where: { id: booking.id },
+      select: {
+        slotId: true,
+        status: true,
+      },
+    });
+
+    assert.equal(storedBooking.slotId, slot.id);
+    assert.equal(storedBooking.status, BookingStatus.CANCELLED);
+  } finally {
+    await prisma.booking.deleteMany({ where: { id: booking.id } });
+    await prisma.availabilitySlot.deleteMany({ where: { createdByUserId: actor.id } });
+    await prisma.client.deleteMany({ where: { id: client.id } });
+    await prisma.service.deleteMany({ where: { id: service.id } });
+    await prisma.serviceCategory.deleteMany({ where: { id: category.id } });
+    await prisma.adminUser.deleteMany({ where: { id: actor.id } });
+  }
+});
+
 dbTest("copyPlannerDay preserves local hours over spring DST", async () => {
   const { prisma, copyPlannerDay, getCellRangeBounds } = await loadModules();
   const suffix = randomUUID().slice(0, 8);
