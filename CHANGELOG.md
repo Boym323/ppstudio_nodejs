@@ -6,6 +6,9 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [0.3.6] - 2026-05-13
+
+- Release příprava pro produkční nasazení: projektová verze navýšena na patch `0.3.6`.
 - Opraven pád publikace týdenního planneru při mazání volného okna navázaného na historicky zrušenou rezervaci: slot s jakoukoli existující vazbou `Booking` už planner nebere jako plain editovatelnou dostupnost, takže se při `Publikovat změny` nepokouší smazat DB záznam chráněný FK `Booking.slotId -> AvailabilitySlot`.
 - Přidán regresní DB integrační test pro publish draft nad slotem se `CANCELLED` bookingem, aby další úpravy planneru znovu nevrátily produkční chybu `Koncept týdne se teď nepodařilo publikovat.`.
 
