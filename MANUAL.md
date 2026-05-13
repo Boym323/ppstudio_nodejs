@@ -211,7 +211,7 @@ Detailní seznam všech env proměnných je v [`docs/ENVIRONMENT.md`](/var/www/p
 - Filtrační lišta sekce `Služby` je na desktopu sticky a zůstává během scrollu po ruce; horní statistiky jsou záměrně menší, aby nepřebíraly roli hlavního obsahu. Scope běžného katalogu se v toolbaru komunikuje jen přes malé pill stavy typu `Běžný katalog` a `Systémové skryté`.
 - Sekce `Volné termíny / Týdenní plán dostupností` drží grid-first provozní workflow: horní hlavička je nízká, datum týdne se ukazuje jen v planner toolbaru a pravý panel je zhuštěný do tří bloků `Inspektor dne`, `Akce dne` a `Detail výběru`.
 - V planneru má legenda stavů zůstat sekundární a sbalená u detailu výběru; čitelnost času se zvyšuje spíš kontrastem levé osy, jemným zvýrazněním celých hodin a jasnějším selected stavem než dalšími vysvětlovacími kartami.
-- Slot s jakoukoli navázanou rezervací, včetně `CANCELLED`, se v týdenním planneru nesmí tvářit jako běžně mazatelná dostupnost. Databáze drží vazbu `Booking.slotId` restriktivně, takže takový interval musí zůstat uzamčený nebo být řešen jiným provozním postupem než prostým smazáním v mřížce.
+- `CANCELLED` rezervace už v týdenním planneru nemá působit jako barevná nebo editační překážka. Historie zrušené rezervace se zachová v archivovaném slotu na pozadí, ale samotná mřížka má pro obsluhu ukazovat jen reálně důležitou dostupnost, aktivní rezervace a omezení.
 - Týdenní planner dostupností a veřejná booking service vrstva jsou po stabilizačním refaktoru modulární i v kódu, ale bez změny URL, exportů nebo databázového modelu.
 - Prisma schema v1 už pokrývá:
   - admin uživatele a role
@@ -668,7 +668,7 @@ npm run db:clear-booking-data -- --confirm
 - Publikace konceptu týdne je tolerantní vůči drobně poškozenému/stale lokálnímu draftu: intervaly se před uložením normalizují na mřížku `06:00-20:00` (`0..28` půlhodinových buněk), prázdné úseky se ignorují a překryvy se sloučí.
 - Pokud se mezi načtením stránky a publikací objeví nebo zůstane v DB rezervace/omezení, publikace konceptu ji zachová a běžnou dostupnost uloží jen mimo tento chráněný čas.
 - Planner přímo neupravuje sloty, které už obsahují rezervace, omezení služeb, poznámky nebo jinou kapacitu než `1`; takové intervaly jsou v kalendáři vidět jako omezené a zůstávají chráněné.
-- Za „obsahují rezervace“ se počítají i historické vazby (`CANCELLED`, `COMPLETED`, `NO_SHOW`), protože slot s navázaným booking záznamem nejde mazat přes FK `Booking.slotId -> AvailabilitySlot.id`.
+- Za „obsahují rezervace“ se pro rychlou planner editaci počítají hlavně aktivní nebo provozně relevantní vazby. `CANCELLED` historie se při publish mutaci přesouvá do archivovaného slotu na pozadí, takže obsluha v mřížce nevidí zbytečný blok jen kvůli storno minulosti.
 - Výchozí týden v planneru je počítaný nad lokálním datem `Europe/Prague`, takže týden vždy začíná pondělím i kolem časových posunů.
 - Při bootstrap přihlášení (`ADMIN_OWNER_*`, `ADMIN_STAFF_*`) se autor změny dostupnosti ukládá jen pokud existuje odpovídající záznam v tabulce `AdminUser`; jinak se použije `createdByUserId = null`, aby změna nespadla na FK.
 - Z detailu rezervace lze bezpečně změnit stav pouze v povolených krocích:

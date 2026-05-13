@@ -11,6 +11,7 @@ import {
   EDITABLE_SLOT_CAPACITY,
   ensureHalfHourCellIndex,
   intersectsAny,
+  isHiddenHistoricalCancelledSlot,
   isEditablePlannerSlot,
   mergeIntervals,
   subtractIntervals,
@@ -87,7 +88,7 @@ async function runPlannerTransaction<T>(
 
 async function getEditableDayState(tx: Prisma.TransactionClient, dateKey: string) {
   const { startsAt: dayStart, endsAt: dayEnd } = getDayBounds(dateKey);
-  const slots = await tx.availabilitySlot.findMany({
+  const rawSlots = await tx.availabilitySlot.findMany({
     where: {
       startsAt: {
         lt: dayEnd,
@@ -119,6 +120,7 @@ async function getEditableDayState(tx: Prisma.TransactionClient, dateKey: string
       },
     },
   });
+  const slots = rawSlots.filter((slot) => !isHiddenHistoricalCancelledSlot(slot));
 
   const editableSlots = slots.filter((slot) => isEditablePlannerSlot(slot));
   const lockedIntervals = slots
@@ -139,6 +141,41 @@ async function getEditableDayState(tx: Prisma.TransactionClient, dateKey: string
     editableIntervals,
     lockedIntervals,
   };
+}
+
+async function removeEditableSlots(
+  tx: Prisma.TransactionClient,
+  editableSlots: Awaited<ReturnType<typeof getEditableDayState>>["editableSlots"],
+) {
+  const deletableSlotIds = editableSlots
+    .filter((slot) => slot.bookings.length === 0)
+    .map((slot) => slot.id);
+  const archivalSlotIds = editableSlots
+    .filter((slot) => slot.bookings.length > 0)
+    .map((slot) => slot.id);
+
+  if (deletableSlotIds.length > 0) {
+    await tx.availabilitySlot.deleteMany({
+      where: {
+        id: {
+          in: deletableSlotIds,
+        },
+      },
+    });
+  }
+
+  if (archivalSlotIds.length > 0) {
+    await tx.availabilitySlot.updateMany({
+      where: {
+        id: {
+          in: archivalSlotIds,
+        },
+      },
+      data: {
+        status: AvailabilitySlotStatus.ARCHIVED,
+      },
+    });
+  }
 }
 
 async function replaceDayWithIntervals(
@@ -165,13 +202,7 @@ async function replaceDayWithIntervals(
   }
 
   if (state.editableSlots.length > 0) {
-    await tx.availabilitySlot.deleteMany({
-      where: {
-        id: {
-          in: state.editableSlots.map((slot) => slot.id),
-        },
-      },
-    });
+    await removeEditableSlots(tx, state.editableSlots);
   }
 
   const merged =
@@ -242,13 +273,7 @@ export async function applyAvailabilitySelection(
     }
 
     if (state.editableSlots.length > 0) {
-      await tx.availabilitySlot.deleteMany({
-        where: {
-          id: {
-            in: state.editableSlots.map((slot) => slot.id),
-          },
-        },
-      });
+      await removeEditableSlots(tx, state.editableSlots);
     }
 
     if (nextIntervals.length > 0) {
@@ -287,13 +312,7 @@ export async function clearPlannerDay(
     const state = await getEditableDayState(tx, input.dateKey);
 
     if (state.editableSlots.length > 0) {
-      await tx.availabilitySlot.deleteMany({
-        where: {
-          id: {
-            in: state.editableSlots.map((slot) => slot.id),
-          },
-        },
-      });
+      await removeEditableSlots(tx, state.editableSlots);
     }
   });
 

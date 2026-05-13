@@ -27,6 +27,7 @@ import {
   getBaseHref,
   getSummaryNote,
   intervalToCellRange,
+  isHiddenHistoricalCancelledSlot,
   isEditablePlannerSlot,
   isSameDateKey,
   mergeIntervals,
@@ -124,7 +125,12 @@ export async function getAdminPlannerWeek(area: AdminArea, week?: string | null)
     const isToday = isSameDateKey(dateKey, todayKey);
     const isPast = dayEnd <= now;
 
-    const daySlots = slots.filter((slot) => slot.startsAt < dayEnd && slot.endsAt > dayStart);
+    const daySlots = slots.filter(
+      (slot) =>
+        slot.startsAt < dayEnd &&
+        slot.endsAt > dayStart &&
+        !isHiddenHistoricalCancelledSlot(slot),
+    );
     const dayBookings = bookings
       .filter((booking) => booking.scheduledStartsAt < dayEnd && booking.scheduledEndsAt > dayStart)
       .map((booking) => {

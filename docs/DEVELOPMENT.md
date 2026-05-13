@@ -86,7 +86,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - opravuje jen plain published anchor sloty s jedinou navázanou rezervací,
   - umí vytvořit jen bezpečný `before` a/nebo `after` fragment bez zásahu do booking FK,
   - případy s více bookingy na jednom slotu nechává jako `skipped`, protože tam už nejde bez doménového rozhodnutí garantovat bezpečný automatický split.
-- Pro editovatelnost plain published slotu v planneru ber jako blokující jakoukoli existující vazbu `slot.bookings`, včetně `CANCELLED`. Důvod není jen read model: `Booking.slotId` má v DB `onDelete: Restrict`, takže publish draft nesmí označit takový slot za plain editovatelný a pokusit se ho smazat.
+- Pro editovatelnost plain published slotu v planneru neber `CANCELLED` booking jako blokující. Pokud na slotu nezůstává aktivní nebo dokončená návštěva ani jiné omezení, planner ho má ukázat jako běžnou dostupnost. Write model ale nesmí historický slot smazat natvrdo; při publish mutaci ho archivuje a případný nový aktivní interval založí zvlášť.
 - Stav rezervace `COMPLETED` je provozní uzávěrka po proběhlé návštěvě, ne nástroj pro předběžné odbavení. Admin akce `Hotovo` smí projít až po `scheduledEndsAt`, protože aktivní blokace kapacity a dashboardové volné úseky počítají jen `PENDING` a `CONFIRMED`.
 - Dashboardová timeline dne načítá pro zobrazení i `COMPLETED`, aby hotové návštěvy zůstaly v dnešním plánu viditelné. Výpočet volných oken ale ořezává začátek na aktuální čas, takže minulá dostupnost se nikdy nepropíše jako akční volný termín.
 - Admin planner `Volné termíny` načítá pro zobrazení `PENDING`, `CONFIRMED` i `COMPLETED`; dokončené rezervace jsou vizuálně tlumené, ale stále vysvětlují, proč historický úsek není běžná editovatelná dostupnost.
@@ -830,7 +830,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Ověř odebrání části dostupnosti ze zeleného bloku a správné rozdělení na zbylé intervaly.
 - Ověř sticky action bar pro neuložené změny: `Zahodit`, `Publikovat změny`.
 - Ověř, že zásah do rezervace nebo omezeného slotu vrátí srozumitelnou chybu a nic nepřepíše.
-- Ověř, že slot s historickou rezervací (`CANCELLED`/`COMPLETED`/`NO_SHOW`) planner nebere jako editovatelný a interval zobrazí jako uzamčený; publish draft pak nesmí spadnout ani když se obsluha pokusí den „vyčistit“ přes koncept týdne.
+- Ověř, že slot s `CANCELLED` rezervací planner neukazuje jako blokaci: před publishí se má tvářit jako běžná dostupnost, po vyčištění dne nesmí v mřížce zůstat jako šedý nebo uzamčený historický stín a publish draft nesmí spadnout.
 - Ověř kopírování dne, kopírování týdne, použití lokální šablony a obnovení uloženého konceptu po refreshi stejného týdne.
 
 ## Prague Time And DST

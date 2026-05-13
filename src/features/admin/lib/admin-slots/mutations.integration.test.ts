@@ -36,14 +36,16 @@ type SeedContext = {
 };
 
 async function loadModules() {
-  const [{ prisma }, plannerMutations, plannerTime] = await Promise.all([
+  const [{ prisma }, plannerMutations, plannerQueries, plannerTime] = await Promise.all([
     import("@/lib/prisma"),
     import("./mutations"),
+    import("./queries"),
     import("./time"),
   ]);
 
   return {
     prisma,
+    getAdminPlannerWeek: plannerQueries.getAdminPlannerWeek,
     syncPlannerWeekDraft: plannerMutations.syncPlannerWeekDraft,
     copyPlannerDay: plannerMutations.copyPlannerDay,
     copyPlannerWeek: plannerMutations.copyPlannerWeek,
@@ -287,7 +289,7 @@ dbTest("syncPlannerWeekDraft preserves booked intervals while replacing editable
 });
 
 dbTest("syncPlannerWeekDraft preserves slots that still have a cancelled booking relation", async () => {
-  const { prisma, syncPlannerWeekDraft, getCellRangeBounds } = await loadModules();
+  const { prisma, getAdminPlannerWeek, syncPlannerWeekDraft, getCellRangeBounds } = await loadModules();
   const suffix = randomUUID().slice(0, 8);
   const actor = await prisma.adminUser.create({
     data: {
@@ -376,6 +378,22 @@ dbTest("syncPlannerWeekDraft preserves slots that still have a cancelled booking
   });
 
   try {
+    const weekBeforePublish = await getAdminPlannerWeek("owner", weekKey);
+    const dayBeforePublish = weekBeforePublish.days.find((day) => day.dateKey === dateKey);
+
+    assert.ok(dayBeforePublish);
+    assert.deepEqual(
+      dayBeforePublish?.availableIntervals.map((interval) => ({
+        startCell: interval.startCell,
+        endCell: interval.endCell,
+      })),
+      [{
+        startCell: 16,
+        endCell: 19,
+      }],
+    );
+    assert.equal(dayBeforePublish?.lockedIntervals.length, 0);
+
     await syncPlannerWeekDraft("owner", {
       weekKey,
       actorUserId: actor.id,
@@ -410,16 +428,20 @@ dbTest("syncPlannerWeekDraft preserves slots that still have a cancelled booking
     assert.deepEqual(
       slots.map((currentSlot) => ({
         id: currentSlot.id,
+        status: currentSlot.bookings.length > 0 ? "historical" : "replacement",
         startsAt: currentSlot.startsAt.toISOString(),
         endsAt: currentSlot.endsAt.toISOString(),
         bookingStatuses: currentSlot.bookings.map((currentBooking) => currentBooking.status),
       })),
-      [{
-        id: slot.id,
-        startsAt: slot.startsAt.toISOString(),
-        endsAt: slot.endsAt.toISOString(),
-        bookingStatuses: [BookingStatus.CANCELLED],
-      }],
+      [
+        {
+          id: slot.id,
+          status: "historical",
+          startsAt: slot.startsAt.toISOString(),
+          endsAt: slot.endsAt.toISOString(),
+          bookingStatuses: [BookingStatus.CANCELLED],
+        },
+      ],
     );
 
     const storedBooking = await prisma.booking.findUniqueOrThrow({
@@ -432,6 +454,23 @@ dbTest("syncPlannerWeekDraft preserves slots that still have a cancelled booking
 
     assert.equal(storedBooking.slotId, slot.id);
     assert.equal(storedBooking.status, BookingStatus.CANCELLED);
+
+    const archivedSlot = await prisma.availabilitySlot.findUniqueOrThrow({
+      where: { id: slot.id },
+      select: {
+        status: true,
+      },
+    });
+
+    assert.equal(archivedSlot.status, AvailabilitySlotStatus.ARCHIVED);
+
+    const weekAfterPublish = await getAdminPlannerWeek("owner", weekKey);
+    const dayAfterPublish = weekAfterPublish.days.find((day) => day.dateKey === dateKey);
+
+    assert.ok(dayAfterPublish);
+    assert.equal(dayAfterPublish?.availableIntervals.length, 0);
+    assert.equal(dayAfterPublish?.lockedIntervals.length, 0);
+    assert.equal(dayAfterPublish?.bookings.length, 0);
   } finally {
     await prisma.booking.deleteMany({ where: { id: booking.id } });
     await prisma.availabilitySlot.deleteMany({ where: { createdByUserId: actor.id } });
