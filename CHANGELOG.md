@@ -9,6 +9,7 @@ Formát je inspirovaný Keep a Changelog.
 ## [0.3.6] - 2026-05-13
 
 - Release příprava pro produkční nasazení: projektová verze navýšena na patch `0.3.6`.
+- Ztišeno Prisma stderr logování v `NODE_ENV=test`: E2E a DB integrační testy už nevypisují zachycené retry konflikty jako `AvailabilitySlot_active_time_window_excl`, zatímco development dál loguje `warn`/`error` a production jen `error`.
 - Opraven pád publikace týdenního planneru při mazání volného okna navázaného na historicky zrušenou rezervaci: slot s jakoukoli existující vazbou `Booking` už planner nebere jako plain editovatelnou dostupnost, takže se při `Publikovat změny` nepokouší smazat DB záznam chráněný FK `Booking.slotId -> AvailabilitySlot`.
 - Přidán regresní DB integrační test pro publish draft nad slotem se `CANCELLED` bookingem, aby další úpravy planneru znovu nevrátily produkční chybu `Koncept týdne se teď nepodařilo publikovat.`.
 

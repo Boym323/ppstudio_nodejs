@@ -1,5 +1,5 @@
 import { PrismaPg } from "@prisma/adapter-pg";
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, type Prisma } from "@prisma/client";
 
 import { env } from "@/config/env";
 
@@ -9,10 +9,16 @@ const globalForPrisma = globalThis as unknown as {
 
 function createPrismaClient() {
   const adapter = new PrismaPg(env.DATABASE_URL);
+  const logLevels: Prisma.LogLevel[] =
+    process.env.NODE_ENV === "development"
+      ? ["warn", "error"]
+      : process.env.NODE_ENV === "production"
+        ? ["error"]
+        : [];
 
   return new PrismaClient({
     adapter,
-    log: process.env.NODE_ENV === "development" ? ["warn", "error"] : ["error"],
+    log: logLevels,
   });
 }
 
