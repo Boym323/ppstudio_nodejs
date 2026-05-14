@@ -6,6 +6,9 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [0.3.8] - 2026-05-14
+
+- Release příprava pro produkční nasazení: projektová verze navýšena na patch `0.3.8`.
 - Ve veřejném rezervačním formuláři klik na den v kalendáři nově přesune fokus na sekci `Dostupné časy`, takže po výběru data uživatelka hned pokračuje na seznam časů bez ručního dohledávání níž na stránce.
 
 ## [0.3.7] - 2026-05-13
