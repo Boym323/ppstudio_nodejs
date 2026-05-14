@@ -66,6 +66,7 @@ export function BookingFlow({ catalog, initialSelectedServiceSlug, salonProfile 
   const serviceStepSectionRef = useRef<HTMLDivElement | null>(null);
   const serviceStepHighlightTimeoutRef = useRef<number | null>(null);
   const termStepSectionRef = useRef<HTMLDivElement | null>(null);
+  const availableTimesSectionRef = useRef<HTMLDivElement | null>(null);
   const termStepHighlightTimeoutRef = useRef<number | null>(null);
   const contactStepSectionRef = useRef<HTMLDivElement | null>(null);
   const firstContactInputRef = useRef<HTMLInputElement | null>(null);
@@ -133,6 +134,38 @@ export function BookingFlow({ catalog, initialSelectedServiceSlug, salonProfile 
       termStepHighlightTimeoutRef,
       750,
     );
+  };
+
+  const focusAvailableTimesSection = () => {
+    const sectionElement = availableTimesSectionRef.current;
+
+    if (!sectionElement) {
+      return;
+    }
+
+    window.requestAnimationFrame(() => {
+      const rect = sectionElement.getBoundingClientRect();
+      const topSafeArea = 120;
+      const bottomSafeArea = 64;
+      const isComfortablyVisible =
+        rect.top >= topSafeArea && rect.bottom <= window.innerHeight - bottomSafeArea;
+
+      sectionElement.focus({ preventScroll: true });
+
+      if (isComfortablyVisible) {
+        return;
+      }
+
+      const desktopOffset = 104;
+      const mobileOffset = 72;
+      const targetTop =
+        window.scrollY + rect.top - (window.innerWidth >= 1024 ? desktopOffset : mobileOffset);
+
+      window.scrollTo({
+        top: Math.max(0, targetTop),
+        behavior: "smooth",
+      });
+    });
   };
 
   const focusContactStepSection = () => {
@@ -596,6 +629,7 @@ export function BookingFlow({ catalog, initialSelectedServiceSlug, salonProfile 
 
             <BookingTermStep
               sectionRef={termStepSectionRef}
+              availableTimesRef={availableTimesSectionRef}
               highlighted={isTermStepHighlighted}
               selectedService={selectedService}
               selectableTimeOptions={selectableTimeOptions}
@@ -622,6 +656,7 @@ export function BookingFlow({ catalog, initialSelectedServiceSlug, salonProfile 
                 if (selectedSlotDateKey && selectedSlotDateKey !== dateKey) {
                   setSelectedTimeOptionKey("");
                 }
+                focusAvailableTimesSection();
               }}
               onPreviousMonth={() => {
                 const monthIndex = availableMonths.indexOf(effectiveVisibleMonthKey);

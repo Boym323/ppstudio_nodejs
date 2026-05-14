@@ -19,6 +19,7 @@ import {
 
 type BookingTermStepProps = {
   sectionRef: RefObject<HTMLDivElement | null>;
+  availableTimesRef: RefObject<HTMLDivElement | null>;
   highlighted: boolean;
   selectedService?: {
     id: string;
@@ -44,6 +45,7 @@ type BookingTermStepProps = {
 
 export function BookingTermStep({
   sectionRef,
+  availableTimesRef,
   highlighted,
   selectedService,
   selectableTimeOptions,
@@ -198,7 +200,7 @@ export function BookingTermStep({
             </div>
           </div>
 
-          <div className="space-y-4">
+          <div ref={availableTimesRef} tabIndex={-1} className="space-y-4 outline-none">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <h4 className="text-base font-semibold text-[var(--color-foreground)]">
