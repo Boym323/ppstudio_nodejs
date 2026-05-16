@@ -227,11 +227,14 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Praktické FAQ má pokrývat i opakující se salonní dotazy kolem frekvence kosmetiky, příchodu s make-upem, citlivé pleti, úpravy obočí a výdrže barvení obočí; drž odpovědi konkrétní, ale bez medicínských slibů.
 - `src/features/public/lib/public-services.ts` nyní zároveň funguje jako thin read model nad rozšířeným katalogem:
   - `Service` nese `publicIntro`, `seoDescription`, `pricingShortDescription`, `pricingBadge`; název služby je sjednocený v `Service.name`
-  - `ServiceCategory` nese `pricingDescription`, `pricingLayout`, `pricingIconKey`, `pricingSortOrder`; název kategorie je sjednocený v `ServiceCategory.name`
+  - `ServiceCategory` nese `pricingDescription`, `pricingLayout`, `pricingIconKey`, `pricingSortOrder`; veřejný název kategorie jde z aktuálního `ServiceCategory.name`
   - fallbacky pořád existují, ale primární zdroj veřejné copy už je databáze, ne lokální slug mapy
 - Ceník na `/cenik` má vlastní skladbu v `src/features/public/components/pricing-page.tsx`; obecný `public-site.tsx` už neobsahuje pricing-specific layout logiku.
 - Pricing modul je rozdělený na komponenty `PricingHero`, `CategoryChips`, `PricingSection`, `PricingItem`, `PricingGridSection` a `PricingCTA`, aby šlo věrně ladit spacing a hierarchii bez zásahu do ostatních veřejných stránek.
 - `/cenik` už nečte prezentační metadata z lokálních map; route používá `getPublicPricingCatalog()` a dostává z DB hotové kategorie včetně badge, icon key a layoutu.
+- Pořadí kategorií na `/cenik` má být konzistentní s `/sluzby` a `/rezervace`: priorita je `ServiceCategory.sortOrder`, až potom `pricingSortOrder`.
+- Veřejné mapování kategorií je sdílené i pro booking katalog (`src/features/booking/lib/booking-public/catalog.ts`) přes stejné pole `ServiceCategory.name`, aby `/rezervace` používala stejný label jako `/sluzby` a `/cenik`.
+- Public pricing read model (`getPublicPricingCatalog`) validuje, že každá služba je v ceníku zařazená právě jednou kategorií; duplicita stejného `slug` přes více kategorií je tvrdá validační chyba.
 - Ceník už nepoužívá doprovodný blok s poznámkami.
 - Úvodní stránka používá stejný DB katalog pro featured služby, aby odkazy z homepage mířily na aktuální slugs. Ruční výběr řídí `Service.isFeaturedOnHomepage` a `homepageSortOrder`; public read model bere maximálně tři aktivní veřejné služby v aktivních kategoriích a při prázdném výběru padá zpět na katalogové pořadí.
 - Reusable page sekce jsou ve `src/features/public/components/public-site.tsx`.

@@ -79,13 +79,11 @@ function formatPrice(value: number | null) {
   return priceFormatter.format(value);
 }
 
-function getCategoryLabel(category: { name?: string | null; publicName?: string | null } | null) {
-  const publicLabel = category?.publicName?.trim();
+function getServiceDisplayName(service: { name: string; publicName: string | null }) {
+  return service.publicName || service.name;
+}
 
-  if (publicLabel) {
-    return publicLabel;
-  }
-
+function getCategoryLabel(category: { name?: string | null } | null) {
   const fallbackLabel = category?.name?.trim();
 
   if (fallbackLabel) {
@@ -93,10 +91,6 @@ function getCategoryLabel(category: { name?: string | null; publicName?: string 
   }
 
   return "Služby salonu";
-}
-
-function getServiceDisplayName(service: { name: string; publicName: string | null }) {
-  return service.publicName || service.name;
 }
 
 function buildServiceIntro(service: PublicServiceRow) {
@@ -273,7 +267,7 @@ function mapService(service: PublicServiceRow): Service {
 function mapPricingCategory(category: PublicPricingCategoryRow): PublicPricingCategory {
   return {
     id: category.slug,
-    label: category.name,
+    label: getCategoryLabel(category),
     summary:
       category.pricingDescription ??
       category.description ??
@@ -293,6 +287,24 @@ function mapPricingCategory(category: PublicPricingCategoryRow): PublicPricingCa
       ctaHref: `/rezervace?service=${encodeURIComponent(service.slug)}`,
     })),
   };
+}
+
+function assertUniquePricingServicePlacement(categories: PublicPricingCategory[]) {
+  const seenServiceToCategory = new Map<string, string>();
+
+  for (const category of categories) {
+    for (const item of category.items) {
+      const existingCategory = seenServiceToCategory.get(item.slug);
+
+      if (existingCategory) {
+        throw new Error(
+          `Služba "${item.slug}" je v ceníku zařazená ve více kategoriích: "${existingCategory}" a "${category.label}".`,
+        );
+      }
+
+      seenServiceToCategory.set(item.slug, category.label);
+    }
+  }
 }
 
 export async function getPublicServices(): Promise<Service[]> {
@@ -378,7 +390,7 @@ export async function getPublicPricingCatalog(): Promise<PublicPricingCategory[]
         },
       },
     },
-    orderBy: [{ pricingSortOrder: "asc" }, { sortOrder: "asc" }, { name: "asc" }],
+    orderBy: [{ sortOrder: "asc" }, { pricingSortOrder: "asc" }, { name: "asc" }],
     include: {
       services: {
         where: {
@@ -399,7 +411,10 @@ export async function getPublicPricingCatalog(): Promise<PublicPricingCategory[]
     },
   });
 
-  return categories.map(mapPricingCategory);
+  const pricingCategories = categories.map(mapPricingCategory);
+  assertUniquePricingServicePlacement(pricingCategories);
+
+  return pricingCategories;
 }
 
 export async function getPublicServiceBySlug(slug: string): Promise<Service | null> {

@@ -148,7 +148,9 @@ Detailní seznam všech env proměnných je v [`docs/ENVIRONMENT.md`](/var/www/p
 - Ceník na `/cenik` má vlastní modul v `src/features/public/components/pricing-page.tsx` a je rozdělený do jasné kompozice `hero -> category chips -> hlavní sekce -> menší grid sekce -> finální CTA`.
 - Katalog služeb a kategorií teď nese i veřejná pricing metadata:
   - služba: `publicIntro`, `seoDescription`, `pricingShortDescription`, `pricingBadge` (název je sjednocený v poli `name` pro web i rezervace)
-  - kategorie: `pricingDescription`, `pricingLayout`, `pricingIconKey`, `pricingSortOrder` (název je sjednocený v poli `name`; legacy `publicName` se už nepoužívá)
+  - kategorie: `pricingDescription`, `pricingLayout`, `pricingIconKey`, `pricingSortOrder`; veřejný web i booking používají aktuální `ServiceCategory.name`
+- `/sluzby`, `/cenik` i `/rezervace` musí používat stejné mapování kategorií nad aktuálním `ServiceCategory.name` a stejné pořadí podle `sortOrder`.
+- Public pricing read model má runtime guard: jedna služba (`slug`) smí být v ceníku právě jednou; duplicita přes více kategorií je validační chyba.
 - Homepage sekce `Doporučené služby` používá ruční výběr z katalogu: `Service.isFeaturedOnHomepage = true` a `homepageSortOrder`. Zobrazuje maximálně první tři aktivní veřejně rezervovatelné služby v aktivních kategoriích; pokud není vybraná žádná, zůstává fallback na první tři veřejné služby podle katalogového pořadí.
 - Admin sekce `Služby` a `Kategorie služeb` tato metadata umí upravovat bez zásahu do databáze nebo kódu.
 - Admin sekce `Služby` už nepoužívá vysoké katalogové karty; seznam je nově seskupený podle kategorií a funguje jako hustší provozní workspace.
