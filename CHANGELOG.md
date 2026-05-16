@@ -6,6 +6,10 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [0.3.10] - 2026-05-16
+
+- Release příprava pro produkční nasazení: projektová verze navýšena na patch `0.3.10`.
+
 ## [0.3.9] - 2026-05-16
 
 - Release příprava pro produkční nasazení: projektová verze navýšena na patch `0.3.9`.
