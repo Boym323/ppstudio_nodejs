@@ -173,7 +173,7 @@ export function buildTrustMetrics(cancellationHours: number): TrustMetric[] {
     {
       value: `${cancellationHours} h předem`,
       label: 'Změna nebo zrušení termínu',
-      description: `Termín můžete upravit nebo zrušit nejpozději ${cancellationHours} předem.`,
+      description: `Termín můžete upravit nebo zrušit nejpozději ${cancellationHours} hodin předem.`,
     },
   ];
 }
