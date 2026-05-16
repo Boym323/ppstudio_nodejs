@@ -5,6 +5,10 @@ Všechny důležité změny v tomto projektu se zapisují do tohoto souboru.
 Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
+
+## [0.3.9] - 2026-05-16
+
+- Release příprava pro produkční nasazení: projektová verze navýšena na patch `0.3.9`.
 - Opraven React warning v admin správě kategorií (`CategoryManagementWorkspace`): optimistic update (`applyOptimistic`) se nyní spouští uvnitř `startTransition`, takže mutace `toggle`/`move` už nehlásí `An optimistic state update occurred outside a transition or action`.
 - Sjednoceno mapování veřejných kategorií služeb mezi `/cenik`, `/sluzby` a `/rezervace` podle aktuálních DB dat (`ServiceCategory.name`), aby se stránky řídily stejným zdrojem pravdy.
 - Ceník na `/cenik` nově řadí kategorie primárně podle katalogového `sortOrder` (stejně jako služby/rezervace), s fallbackem na `pricingSortOrder`.
