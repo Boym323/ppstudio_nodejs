@@ -120,6 +120,7 @@ Evidence produkčních incidentů a jejich řešení.
 - Rozbitá quick action v admin sekci `Služby` nebo `Kategorie služeb`, která by po kliknutí nevrátila obsluhu do stejného filtrovaného kontextu; po změnách vždy ověř query-driven návrat na seznam.
 - Mobilní admin detail služeb nebo kategorií otevřený pod seznamem místo odděleného flow; po UI zásahu vždy ověř, že se na mobilu používá samostatný detailový režim.
 - Desktop admin detail služeb nebo kategorií vykreslený mimo pravý overlay drawer (regrese zpět na inline/sticky panel), kvůli čemuž obsluha ztratí sjednocené list/detail chování mezi desktopem a mobilem.
+- React warning `An optimistic state update occurred outside a transition or action` v admin UI je signál, že `useOptimistic` update běží mimo `startTransition`/action context; zkontroluj event helpery v klientských workspaces (`toggle/move/save` mutace) a optimistic dispatch obal do transition.
 - Overview dashboard zobrazující zastaralý počet dnešních rezervací nebo slotů po změně dat; overview musí zůstávat čistě server-rendered read model bez ručního cache layeru.
 - Sender e-mail upravený v admin sekci `Nastavení` na adresu, kterou SMTP provider ve skutečnosti nepovoluje; výsledek budou opakované `EmailLog.status = FAILED`.
 - Přehnaně přísný minimální předstih nebo příliš krátký horizont rezervace ve `SiteSettings`, kvůli kterému veřejný booking náhle schová skoro všechny sloty.

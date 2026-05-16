@@ -153,6 +153,7 @@ Detailní seznam všech env proměnných je v [`docs/ENVIRONMENT.md`](/var/www/p
 - Public pricing read model má runtime guard: jedna služba (`slug`) smí být v ceníku právě jednou; duplicita přes více kategorií je validační chyba.
 - Homepage sekce `Doporučené služby` používá ruční výběr z katalogu: `Service.isFeaturedOnHomepage = true` a `homepageSortOrder`. Zobrazuje maximálně první tři aktivní veřejně rezervovatelné služby v aktivních kategoriích; pokud není vybraná žádná, zůstává fallback na první tři veřejné služby podle katalogového pořadí.
 - Admin sekce `Služby` a `Kategorie služeb` tato metadata umí upravovat bez zásahu do databáze nebo kódu.
+- V klientských admin workspaces nad React `useOptimistic` (např. rychlé akce kategorií) musí optimistic dispatch běžet uvnitř `startTransition(...)`; volání mimo transition vyhazuje runtime warning a degraduje UX při rychlých mutacích.
 - Admin sekce `Služby` už nepoužívá vysoké katalogové karty; seznam je nově seskupený podle kategorií a funguje jako hustší provozní workspace.
 - Každá skupina kategorií v adminu ukazuje počet služeb a jde rozbalit/sbalit; samotná služba má kompaktní řádek a sekundární kontext je až v rozbalení nebo v pravém detail draweru.
 - KPI pás sekce `Služby` je nyní čistě katalogový souhrn aktuálního běžného pohledu: `Veřejné služby`, `Kategorie`, `Interní / skryté` a `Vyžaduje kontrolu`.

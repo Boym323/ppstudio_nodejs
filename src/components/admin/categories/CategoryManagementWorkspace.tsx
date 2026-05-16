@@ -180,7 +180,7 @@ export function CategoryManagementWorkspace({
     });
   };
 
-  const runOptimisticAction = async (
+  const runOptimisticAction = (
     categoryId: string,
     actionName: string,
     optimisticAction: OptimisticAction,
@@ -188,24 +188,27 @@ export function CategoryManagementWorkspace({
   ) => {
     setActionError(null);
     setPendingMap((current) => ({ ...current, [categoryId]: actionName }));
-    applyOptimistic(optimisticAction);
 
-    startTransition(async () => {
-      try {
-        const result = await serverAction();
+    startTransition(() => {
+      applyOptimistic(optimisticAction);
 
-        if (!result.ok) {
+      void (async () => {
+        try {
+          const result = await serverAction();
+
+          if (!result.ok) {
+            setActionError("Akci se nepodařilo dokončit. Zkuste ji prosím znovu.");
+          }
+        } catch {
           setActionError("Akci se nepodařilo dokončit. Zkuste ji prosím znovu.");
+        } finally {
+          setPendingMap((current) => {
+            const next = { ...current };
+            delete next[categoryId];
+            return next;
+          });
         }
-      } catch {
-        setActionError("Akci se nepodařilo dokončit. Zkuste ji prosím znovu.");
-      } finally {
-        setPendingMap((current) => {
-          const next = { ...current };
-          delete next[categoryId];
-          return next;
-        });
-      }
+      })();
     });
   };
 

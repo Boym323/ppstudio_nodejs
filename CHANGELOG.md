@@ -5,6 +5,7 @@ Všechny důležité změny v tomto projektu se zapisují do tohoto souboru.
 Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
+- Opraven React warning v admin správě kategorií (`CategoryManagementWorkspace`): optimistic update (`applyOptimistic`) se nyní spouští uvnitř `startTransition`, takže mutace `toggle`/`move` už nehlásí `An optimistic state update occurred outside a transition or action`.
 - Sjednoceno mapování veřejných kategorií služeb mezi `/cenik`, `/sluzby` a `/rezervace` podle aktuálních DB dat (`ServiceCategory.name`), aby se stránky řídily stejným zdrojem pravdy.
 - Ceník na `/cenik` nově řadí kategorie primárně podle katalogového `sortOrder` (stejně jako služby/rezervace), s fallbackem na `pricingSortOrder`.
 - Do public pricing read modelu byla přidána runtime validace, která hlídá, že jedna služba není v ceníku zařazená ve více kategoriích; při porušení vrací explicitní chybu.
