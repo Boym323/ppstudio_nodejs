@@ -877,3 +877,4 @@ Formát je inspirovaný Keep a Changelog.
   - `src/features/admin/actions/slot-actions.ts`
   - `src/features/admin/lib/admin-slot-repository.ts`
 - Produkční `robots.txt` už neomezuje crawl jen na vybrané veřejné sekce; celý veřejný web je nyní pro roboty otevřený přes `Allow: /`, zatímco admin a tokenové self-service routy (`/rezervace/storno/*`, `/rezervace/sprava/*`, `/rezervace/akce/*`) zůstávají blokované.
+- Mobilní detail rezervace v adminu už při potvrzení služby nepřekrývá první akční kartu sticky hlavičkou; booking header je sticky až od desktop breakpointu, takže CTA a stavový chooser zůstávají na telefonu plně čitelné.

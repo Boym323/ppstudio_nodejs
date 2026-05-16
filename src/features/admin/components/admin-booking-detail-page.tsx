@@ -71,7 +71,7 @@ function BookingDetailHeader({
   return (
     <section
       className={cn(
-        "sticky top-1.5 z-30 rounded-[var(--radius-panel)] border bg-[rgba(11,11,11,0.92)] p-3 backdrop-blur-xl sm:p-3.5",
+        "rounded-[var(--radius-panel)] border bg-[rgba(11,11,11,0.92)] p-3 backdrop-blur-xl lg:sticky lg:top-5 lg:z-30 sm:p-3.5",
         headerToneClassName,
       )}
     >

@@ -104,6 +104,7 @@ Evidence produkčních incidentů a jejich řešení.
 - Pracovní seznam rezervací bez vizuálního oddělení dnešních a budoucích termínů; po každém zásahu do read modelu nebo toolbaru ověř bloky `Dnes`, `Zítra`, `Později` a `Dříve`.
 - Detail rezervace po UX refaktoru schová hlavní akce pod fold nebo mimo sticky header; po každém zásahu ověř, že `termín + stav + rychlé akce` zůstávají viditelné bez dalšího scrollu.
 - Detail rezervace znovu smíchá reschedule flow do běžného status chooseru; `Přesunout termín` má zůstat samostatné CTA s vlastním drawerem, validací a historií.
+- Pokud se na telefonu vrátí překryv první akční karty v detailu rezervace, zkontroluj kombinaci sticky vrstev `AdminShell` mobile topbaru a booking detail headeru; mobil nemá mít dva na sobě aktivní sticky panely se stejným scroll kontextem.
 - Click-to-open řádek rezervace, který při práci s checkboxem, kontaktem nebo row akcemi omylem otevírá detail; interaktivní prvky uvnitř řádku musí propagaci zastavit.
 - Self-service přesun termínu zapsaný bez `changedByClient = true`; veřejný manage flow musí být v historii odlišitelný od admin přesunu.
 - Přesun termínu provedený, ale starý interní override slot zůstal viset jako `DRAFT` a dál blokuje původní čas; doménová služba musí orphanovaný override slot uvolnit.
