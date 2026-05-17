@@ -6,6 +6,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Odstraněna nepoužívaná legacy homepage komponenta `src/features/home/components/home-page.tsx` a duplicitní starý export `PricingPage` z `src/features/public/components/public-site.tsx`; veřejný ceník dál používá samostatnou komponentu `src/features/public/components/pricing-page.tsx`.
 - Ve fallback copy veřejných služeb (`src/content/public-site.ts`) byly odstraněny interní placeholder formulace; texty v `description` teď používají finální produkční tón PP Studia pro kosmetické studio ve Zlíně.
 - Opravená přístupnost anchor navigace v ceníku: `CategoryChips` už nenastavuje statické `aria-current="page"` na první položku, aby čtečky obrazovky nedostávaly zavádějící informaci o aktuální kategorii.
 - Veřejný booking kalendář v kroku `Vyberte termín` má přístupnější popisky dnů: `aria-label` tlačítek dne nově používá `formatDateKeyLabel` (např. `Vybrat den neděle 17. května`) místo technického ISO `YYYY-MM-DD`.
