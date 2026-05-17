@@ -532,7 +532,10 @@ export async function getAdminBookingDetailData(
         },
       },
     }),
-    getPublicBookingCatalog({ includeServices: false }),
+    getPublicBookingCatalog({
+      includeServices: false,
+      excludeBookingId: bookingId,
+    }),
   ]);
 
   if (!booking) {

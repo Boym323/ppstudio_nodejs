@@ -10,6 +10,7 @@ Formát je inspirovaný Keep a Changelog.
 
 - Release příprava pro produkční nasazení: projektová verze navýšena na patch `0.3.11`.
 - Self-service přesun rezervace přes `/rezervace/sprava/[token]` už při nabídce dostupných termínů nepočítá právě spravovanou rezervaci jako cizí obsazenost, takže klientka může posunout termín na dřívější začátek v navazujícím volném bloku před původním začátkem.
+- Admin detail rezervace používá pro drawer `Přesunout termín` stejný výpočet dostupnosti bez právě upravované rezervace, takže nabídne i 30min dřívější začátek, pokud ho spolu s původním slotem pokryje délka služby.
 - Backend coverage validace přesunu je tolerantnější k původnímu `slotId`: pokud nový čas začíná v předchozím publikovaném segmentu a pokračuje přes aktuální slot rezervace, vyhodnotí celý souvislý řetězec místo chybného odmítnutí kotvy.
 
 ## [0.3.10] - 2026-05-16
