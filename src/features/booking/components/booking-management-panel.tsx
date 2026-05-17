@@ -129,6 +129,10 @@ const weekdayLabels = ["Po", "Út", "St", "Čt", "Pá", "So", "Ne"] as const;
 const calendarGridStyle = {
   gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
 } as const;
+const bookingManagementScrollOptions = {
+  behavior: "instant",
+  block: "start",
+} satisfies ScrollIntoViewOptions;
 
 function StatusCard({
   eyebrow,
@@ -301,10 +305,7 @@ export function BookingManagementPanel({
     setVisibleMonthKey(getMonthKey(dateKey));
     trackDateSelected(dateKey);
     window.requestAnimationFrame(() => {
-      selectedDaySlotsRef.current?.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
+      selectedDaySlotsRef.current?.scrollIntoView(bookingManagementScrollOptions);
     });
   };
 
@@ -318,10 +319,7 @@ export function BookingManagementPanel({
     trackDateSelected(dateKey);
     trackTimeSelected(slot);
     window.requestAnimationFrame(() => {
-      confirmationRef.current?.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
+      confirmationRef.current?.scrollIntoView(bookingManagementScrollOptions);
     });
   };
 
@@ -567,7 +565,7 @@ export function BookingManagementPanel({
         <div
           ref={selectedDaySlotsRef}
           className={cn(
-            "mt-6 rounded-3xl border p-4 transition-all duration-300 sm:p-5",
+            "mt-6 scroll-mt-28 rounded-3xl border p-4 transition-all duration-300 sm:p-5 lg:scroll-mt-32",
             selectedDateSlots.length > 0
               ? "border-[var(--color-accent)]/20 bg-[var(--color-surface-strong)]/16"
               : "border-dashed border-black/10 bg-[var(--color-surface)]/20",
@@ -625,7 +623,7 @@ export function BookingManagementPanel({
 
       <section
         ref={confirmationRef}
-        className="rounded-[var(--radius-panel)] border border-black/6 bg-white p-5 shadow-[var(--shadow-panel)] sm:p-8"
+        className="scroll-mt-28 rounded-[var(--radius-panel)] border border-black/6 bg-white p-5 shadow-[var(--shadow-panel)] sm:p-8 lg:scroll-mt-32"
       >
         <p className="text-xs font-semibold uppercase tracking-[0.32em] text-[var(--color-accent)]">
           Potvrdit nový termín

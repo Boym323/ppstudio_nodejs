@@ -14,6 +14,7 @@ Formát je inspirovaný Keep a Changelog.
 - Opraven cleanup timeoutů v rezervačním flow (`booking-flow`): `useEffect` při unmountu čte aktuální hodnoty `*.current` timeout refů místo hodnot zachycených při mountu, po `clearTimeout` je navíc nulují; tím se spolehlivě čistí i timeouty nastavené později během života komponenty.
 - Opraveno přetékání dlouhých textů v admin detailu rezervace: success banner po `Přesunout termín`, auditní historie i souhrnové hodnoty typu e-mail/jméno se teď zalamují uvnitř karet místo horizontálního přesahu přes layout.
 - Opraven pád admin stránky `Média webu` při nahrání většího obrázku: Next.js `Server Actions` teď mají zvýšený `bodySizeLimit` na `10mb`, takže uploady do aplikačního limitu `8 MB` neselhávají ještě před vlastní validací formuláře.
+- Stabilizován veřejný self-service přesun rezervace: výběr dne a času teď skáče na cílové sekce okamžitě a s offsetem pro sticky header, takže vzdálenější sloty nezůstávají při E2E kliknutí mimo viewport nebo uprostřed smooth scroll animace.
 
 ## [0.3.11] - 2026-05-17
 
