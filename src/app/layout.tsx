@@ -26,7 +26,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const brandName = salonProfile.name || siteConfig.name;
 
   return {
-    metadataBase: new URL(siteConfig.url),
+    metadataBase: new URL(siteConfig.canonicalUrl),
     applicationName: brandName,
     title: {
       default: `${brandName} | ${siteConfig.title}`,
@@ -51,7 +51,7 @@ export async function generateMetadata(): Promise<Metadata> {
     openGraph: {
       title: `${brandName} | ${siteConfig.title}`,
       description: siteConfig.description,
-      url: siteConfig.url,
+      url: siteConfig.canonicalUrl,
       siteName: brandName,
       locale: siteConfig.locale,
       type: "website",

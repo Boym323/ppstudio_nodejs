@@ -3,7 +3,8 @@ import { before, test } from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
 
 process.env.NEXT_PUBLIC_APP_NAME ??= "PP Studio";
-process.env.NEXT_PUBLIC_APP_URL ??= "https://ppstudio.cz";
+process.env.NEXT_PUBLIC_APP_URL ??= "http://127.0.0.1:3100";
+process.env.NEXT_PUBLIC_SITE_URL ??= "https://ppstudio.cz";
 process.env.DATABASE_URL ??= "postgresql://test:test@127.0.0.1:5432/ppstudio_test";
 process.env.ADMIN_SESSION_SECRET ??= "test-secret-with-enough-length-123456";
 process.env.ADMIN_OWNER_EMAIL ??= "owner@example.com";
@@ -12,10 +13,23 @@ process.env.ADMIN_STAFF_EMAIL ??= "salon@example.com";
 process.env.ADMIN_STAFF_PASSWORD ??= "salon-password";
 
 let ServiceDetailPage: typeof import("./public-site")["ServiceDetailPage"];
+let buildPageMetadata: typeof import("./public-site")["buildPageMetadata"];
 
 before(async () => {
   const publicSiteModule = await import("./public-site");
   ServiceDetailPage = publicSiteModule.ServiceDetailPage;
+  buildPageMetadata = publicSiteModule.buildPageMetadata;
+});
+
+test("buildPageMetadata keeps canonical and OpenGraph URLs on public canonical origin", () => {
+  const metadata = buildPageMetadata({
+    title: "Služby",
+    description: "Kosmetické služby PP Studio.",
+    path: "/sluzby/",
+  });
+
+  assert.equal(metadata.alternates?.canonical, "https://ppstudio.cz/sluzby");
+  assert.equal(metadata.openGraph?.url, "https://ppstudio.cz/sluzby");
 });
 
 test("ServiceDetailPage points booking CTA to /rezervace?service=<slug>", () => {

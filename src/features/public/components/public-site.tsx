@@ -564,14 +564,14 @@ export function buildPageMetadata({
   absoluteTitle?: boolean;
 }): Metadata {
   const canonicalPath = path === '/' ? '/' : path.replace(/\/+$/, '');
-  const absoluteUrl = new URL(canonicalPath, siteConfig.url).toString();
+  const absoluteUrl = new URL(canonicalPath, siteConfig.canonicalUrl).toString();
   const metadataTitle = absoluteTitle ? title : `${title} | ${siteConfig.name}`;
 
   return {
     title: absoluteTitle ? { absolute: title } : title,
     description,
     alternates: {
-      canonical: canonicalPath,
+      canonical: absoluteUrl,
     },
     openGraph: {
       title: metadataTitle,
