@@ -9,22 +9,23 @@ type StaticSitemapRoute = {
   route: string;
   changeFrequency: "weekly" | "monthly";
   priority: number;
-  lastModified: Date;
   dependsOnServices?: boolean;
 };
 
+const STATIC_PAGE_LAST_MODIFIED = new Date("2026-04-27T00:00:00.000Z");
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticRoutes: StaticSitemapRoute[] = [
-    { route: "", changeFrequency: "weekly", priority: 1, lastModified: new Date("2026-04-27T00:00:00.000Z") },
-    { route: "/rezervace", changeFrequency: "monthly", priority: 0.9, lastModified: new Date("2026-04-27T00:00:00.000Z") },
-    { route: "/sluzby", changeFrequency: "monthly", priority: 0.7, lastModified: new Date("2026-04-27T00:00:00.000Z"), dependsOnServices: true },
-    { route: "/cenik", changeFrequency: "monthly", priority: 0.7, lastModified: new Date("2026-04-27T00:00:00.000Z"), dependsOnServices: true },
-    { route: "/o-mne", changeFrequency: "monthly", priority: 0.7, lastModified: new Date("2026-04-27T00:00:00.000Z") },
-    { route: "/kontakt", changeFrequency: "monthly", priority: 0.7, lastModified: new Date("2026-04-27T00:00:00.000Z") },
-    { route: "/faq", changeFrequency: "monthly", priority: 0.7, lastModified: new Date("2026-04-27T00:00:00.000Z") },
-    { route: "/storno-podminky", changeFrequency: "monthly", priority: 0.7, lastModified: new Date("2026-04-27T00:00:00.000Z") },
-    { route: "/obchodni-podminky", changeFrequency: "monthly", priority: 0.7, lastModified: new Date("2026-04-27T00:00:00.000Z") },
-    { route: "/gdpr", changeFrequency: "monthly", priority: 0.7, lastModified: new Date("2026-04-27T00:00:00.000Z") },
+    { route: "", changeFrequency: "weekly", priority: 1 },
+    { route: "/rezervace", changeFrequency: "monthly", priority: 0.9 },
+    { route: "/sluzby", changeFrequency: "monthly", priority: 0.7, dependsOnServices: true },
+    { route: "/cenik", changeFrequency: "monthly", priority: 0.7, dependsOnServices: true },
+    { route: "/o-mne", changeFrequency: "monthly", priority: 0.7 },
+    { route: "/kontakt", changeFrequency: "monthly", priority: 0.7 },
+    { route: "/faq", changeFrequency: "monthly", priority: 0.7 },
+    { route: "/storno-podminky", changeFrequency: "monthly", priority: 0.7 },
+    { route: "/obchodni-podminky", changeFrequency: "monthly", priority: 0.7 },
+    { route: "/gdpr", changeFrequency: "monthly", priority: 0.7 },
   ];
 
   const services = await getPublicServiceSitemapEntries();
@@ -36,7 +37,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   return [
     ...staticRoutes.map((item) => ({
       url: `${siteConfig.canonicalUrl}${item.route}`,
-      lastModified: item.dependsOnServices ? (latestServiceUpdate ?? item.lastModified) : item.lastModified,
+      lastModified: item.dependsOnServices ? (latestServiceUpdate ?? STATIC_PAGE_LAST_MODIFIED) : STATIC_PAGE_LAST_MODIFIED,
       changeFrequency: item.changeFrequency,
       priority: item.priority,
     })),
