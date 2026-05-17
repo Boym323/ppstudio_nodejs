@@ -35,13 +35,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   return [
     ...staticRoutes.map((item) => ({
-      url: `${siteConfig.url}${item.route}`,
+      url: `${siteConfig.canonicalUrl}${item.route}`,
       lastModified: item.dependsOnServices ? (latestServiceUpdate ?? item.lastModified) : item.lastModified,
       changeFrequency: item.changeFrequency,
       priority: item.priority,
     })),
     ...services.map((service) => ({
-      url: `${siteConfig.url}/sluzby/${service.slug}`,
+      url: `${siteConfig.canonicalUrl}/sluzby/${service.slug}`,
       lastModified: service.updatedAt,
       changeFrequency: "monthly" as const,
       priority: 0.75,

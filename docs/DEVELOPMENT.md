@@ -113,6 +113,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - `src/features/admin/lib/admin-slots.ts` je façade nad `admin-slots/time.ts`, `helpers.ts`, `queries.ts`, `mutations.ts`, `types.ts`
 - Při dalším refaktoru těchto oblastí drž kompatibilní veřejné exporty v původních entrypointech, aby se nerozbily existující importy v actions, routech a admin UI.
 - `src/app/robots.ts` a `src/app/sitemap.ts` používají metadata route API v App Routeru.
+- `robots.txt` i `sitemap.xml` musí skládat `Host`, `Sitemap` a `<loc>` URL přes kanonický SEO origin `siteConfig.canonicalUrl` (`NEXT_PUBLIC_SITE_URL` s fallbackem na `NEXT_PUBLIC_APP_URL`), aby byly technické SEO routy konzistentní s JSON-LD a page metadata.
 - `src/app/sitemap.ts` je explicitně ISR metadata route (`export const revalidate = 86400`), takže se `sitemap.xml` generuje dynamicky a obnovuje nejvýše jednou denně bez plného redeploye.
 - U Next.js 16 route segment config exportů (`revalidate`, `dynamic`, `fetchCache`, atd.) používej v route souboru přímo literál nebo jinou staticky analyzovatelnou hodnotu; výraz typu `60 * 60 * 24` může při `next build` skončit chybou `Invalid segment configuration export detected`.
 - `src/app/sitemap.ts` musí nastavovat realistické `lastModified` hodnoty: detail služeb z `Service.updatedAt`, statické stránky ze stabilního data poslední obsahové revize (ne plošně `new Date()` pro všechny URL).
