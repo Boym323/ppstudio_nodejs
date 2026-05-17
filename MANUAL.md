@@ -112,6 +112,7 @@ Detailní seznam všech env proměnných je v [`docs/ENVIRONMENT.md`](/var/www/p
 - Detailní zdroje návštěv a funnel jsou v dashboardu až v rozbalení `Zobrazit analytiku`, aby hlavní obrazovka nezobrazovala matoucí analytické hodnoty před provozními úkoly.
 - Sekce `Zdroje návštěv` v tomto widgetu kombinuje Matomo kampaně a referrer typy do business názvů `Instagram`, `Firmy`, `Google`, `Přímý vstup` nebo `Ostatní`; rezervace u zdrojů jsou výslovně jen orientační odhad podle podílu návštěv na dokončených `Booking / Created`, ne přesná atribuce.
 - Když je Matomo reporting rozbitý nebo zamčený, dashboard už neukazuje jen obecné nuly: `/api/admin/analytics` vrací i stav reportingu a widget vypíše provozní hlášku. Rychlá serverová kontrola funguje přes `npm run analytics:check`.
+- Admin detail rezervace musí i při dlouhém jménu, e-mailu nebo hlášce po přesunu termínu zalamovat text uvnitř karet; success bannery, historie i key/value souhrny nesmí horizontálně přetékat mimo panel.
 - Aktuální runtime stack podle `package.json`:
   - `next` `16.2.4`
   - `react` `19.2.4`

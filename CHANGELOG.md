@@ -6,6 +6,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Opraveno přetékání dlouhých textů v admin detailu rezervace: success banner po `Přesunout termín`, auditní historie i souhrnové hodnoty typu e-mail/jméno se teď zalamují uvnitř karet místo horizontálního přesahu přes layout.
+
 ## [0.3.11] - 2026-05-17
 
 - Release příprava pro produkční nasazení: projektová verze navýšena na patch `0.3.11`.

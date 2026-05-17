@@ -786,11 +786,11 @@ function SummaryRow({
       <dt className="text-[0.66rem] uppercase tracking-[0.18em] text-white/42">{label}</dt>
       <dd className={cn("min-w-0 text-sm leading-5", valueClassName)}>
         {href ? (
-          <a href={href} className="transition hover:text-white">
+          <a href={href} className="block break-words transition hover:text-white">
             {value}
           </a>
         ) : (
-          value
+          <span className="block break-words">{value}</span>
         )}
       </dd>
     </div>
@@ -835,7 +835,7 @@ function HistoryItem({
   return (
     <article className="rounded-[1rem] border border-white/8 bg-white/[0.035] px-3.5 py-3">
       <div className="flex flex-wrap items-start justify-between gap-2">
-        <div className="space-y-1">
+        <div className="min-w-0 space-y-1">
           <div className="flex flex-wrap items-center gap-2">
             <span className={cn(getHistoryBadgeClassName(item.badgeTone), "text-[0.64rem]")}>
               {item.badgeLabel}
@@ -847,20 +847,20 @@ function HistoryItem({
             ) : null}
           </div>
           <p className="text-sm font-medium text-white/88">{item.createdAtLabel}</p>
-          <p className="text-sm leading-5 text-white/66">
+          <p className="break-words text-sm leading-5 text-white/66">
             {item.actorLabel} • {item.description}
           </p>
         </div>
       </div>
 
       {item.reason ? (
-        <p className="mt-2 text-sm leading-5 text-white/58">
+        <p className="mt-2 break-words text-sm leading-5 text-white/58">
           <span className="text-white/78">Důvod:</span> {item.reason}
         </p>
       ) : null}
 
       {item.note ? (
-        <p className="mt-1 text-sm leading-5 text-white/58">
+        <p className="mt-1 break-words text-sm leading-5 text-white/58">
           <span className="text-white/78">Poznámka:</span> {item.note}
         </p>
       ) : null}

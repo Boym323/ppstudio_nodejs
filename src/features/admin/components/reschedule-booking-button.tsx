@@ -141,17 +141,21 @@ export function RescheduleBookingButton({
       {!open && showSuccessBanner && serverState.status === "success" ? (
         <div className="mt-3 rounded-[1rem] border border-emerald-300/18 bg-emerald-500/10 px-4 py-3">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <p className="text-sm font-medium text-emerald-50">{serverState.successMessage}</p>
+            <div className="min-w-0 flex-1">
+              <p className="break-words text-sm font-medium text-emerald-50">
+                {serverState.successMessage}
+              </p>
               {serverState.warningMessage ? (
-                <p className="mt-1 text-sm leading-6 text-emerald-100/80">{serverState.warningMessage}</p>
+                <p className="mt-1 break-words text-sm leading-6 text-emerald-100/80">
+                  {serverState.warningMessage}
+                </p>
               ) : null}
             </div>
 
             <button
               type="button"
               onClick={() => setShowSuccessBanner(false)}
-              className="rounded-full border border-white/10 px-3 py-1.5 text-sm text-white/78 transition hover:border-white/18 hover:bg-white/6"
+              className="shrink-0 self-start rounded-full border border-white/10 px-3 py-1.5 text-sm text-white/78 transition hover:border-white/18 hover:bg-white/6"
             >
               Zavřít
             </button>
