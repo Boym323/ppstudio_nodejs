@@ -166,8 +166,8 @@ test.describe("booking flows", () => {
       page.getByLabel("Jméno a příjmení"),
     );
     await page.getByLabel("Jméno a příjmení").fill(fixture.clientName);
-    await page.getByRole("textbox", { name: /E-mail Sem pošleme potvrzení/ }).fill(fixture.clientEmail);
-    await page.getByRole("textbox", { name: /Telefon Hodí se/ }).fill("+420 777 000 000");
+    await page.getByRole("textbox", { name: "E-mail" }).fill(fixture.clientEmail);
+    await page.getByRole("textbox", { name: "Telefon" }).fill("+420 777 000 000");
     await page.getByRole("button", { name: "Zobrazit souhrn" }).click();
     await page.getByRole("button", { name: "Odeslat rezervaci" }).first().click();
 
@@ -229,6 +229,7 @@ test.describe("booking flows", () => {
     await page.goto("/rezervace?service=neznamy-slug");
 
     await expect(page.locator('input[name="serviceId"]')).toHaveValue("");
+    await page.locator('button[aria-pressed]').filter({ hasText: fixture.categoryName }).first().click();
     await expect(page.getByText(fixture.serviceName).first()).toBeVisible();
   });
 

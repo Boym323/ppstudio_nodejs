@@ -32,6 +32,10 @@ function readFormString(formData: FormData, key: string) {
 const BOOKING_ATTEMPT_WINDOW_MS = 10 * 60 * 1000;
 const MAX_ATTEMPTS_PER_IP = 8;
 const MAX_FAILED_ATTEMPTS_PER_EMAIL = 3;
+const NON_PUBLIC_BOOKING_AUDIT_PREFIXES = [
+  "ADMIN_LOGIN_",
+  "PUBLIC_VOUCHER_VERIFY_",
+] as const;
 
 const publicBookingSchema = z.object({
   serviceId: z.string().trim().min(1, "Vyberte službu.").max(64, "Vyberte službu z nabídky."),
@@ -126,11 +130,19 @@ function getSubmissionMetadata(requestHeaders: Headers) {
 
 async function getRecentSubmissionCounts(ipHash?: string, emailHash?: string) {
   const windowStart = new Date(Date.now() - BOOKING_ATTEMPT_WINDOW_MS);
+  const publicBookingAuditScope = {
+    NOT: NON_PUBLIC_BOOKING_AUDIT_PREFIXES.map((prefix) => ({
+      failureCode: {
+        startsWith: prefix,
+      },
+    })),
+  } satisfies Prisma.BookingSubmissionLogWhereInput;
 
   const [ipAttempts, emailFailures] = await Promise.all([
     ipHash
       ? prisma.bookingSubmissionLog.count({
           where: {
+            ...publicBookingAuditScope,
             ipHash,
             createdAt: {
               gte: windowStart,
@@ -148,6 +160,7 @@ async function getRecentSubmissionCounts(ipHash?: string, emailHash?: string) {
     emailHash
       ? prisma.bookingSubmissionLog.count({
           where: {
+            ...publicBookingAuditScope,
             emailHash,
             createdAt: {
               gte: windowStart,

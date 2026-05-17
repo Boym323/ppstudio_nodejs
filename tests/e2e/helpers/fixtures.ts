@@ -123,6 +123,16 @@ function hashRunId(runId: string) {
   return hash;
 }
 
+async function resetE2eRecentAuditRateLimitState() {
+  await prisma.bookingSubmissionLog.deleteMany({
+    where: {
+      createdAt: {
+        gte: new Date(Date.now() - 10 * 60 * 1000),
+      },
+    },
+  });
+}
+
 function roundUpToHalfHour(value: Date) {
   const copy = new Date(value);
   copy.setUTCSeconds(0, 0);
@@ -321,6 +331,8 @@ async function createCatalogFixture(runId: string) {
 }
 
 export async function createPublicBookingFixture(): Promise<E2eFixture> {
+  await resetE2eRecentAuditRateLimitState();
+
   const runId = buildRunId();
   const catalog = await createCatalogFixture(runId);
   const rescheduleSuccessStart = addMinutes(catalog.rescheduleStart, 60);
@@ -357,6 +369,8 @@ export async function createManagedBookingFixture(
     createRescheduleConflict?: boolean;
   },
 ): Promise<E2eFixture> {
+  await resetE2eRecentAuditRateLimitState();
+
   const runId = buildRunId();
   const catalog = await createCatalogFixture(runId);
   const clientName = `E2E Klientka ${runId}`;
@@ -488,6 +502,8 @@ export async function createManagedBookingFixture(
 }
 
 export async function createAdminFixture(runId: string, role: AdminRole = AdminRole.OWNER) {
+  await resetE2eRecentAuditRateLimitState();
+
   const password = `E2E-password-${runId}`;
   const email = `${runId}-${role.toLowerCase()}@example.test`;
 
@@ -505,6 +521,8 @@ export async function createAdminFixture(runId: string, role: AdminRole = AdminR
 }
 
 export async function createPublicVoucherFixture(): Promise<E2eFixture> {
+  await resetE2eRecentAuditRateLimitState();
+
   const runId = buildRunId();
   const voucherCode = `PP-2026-${runId.replace(/[^a-z0-9]/gi, "").slice(-10).toUpperCase()}`;
 

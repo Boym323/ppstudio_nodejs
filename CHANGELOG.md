@@ -19,6 +19,8 @@ Formát je inspirovaný Keep a Changelog.
 - Opraveno přetékání dlouhých textů v admin detailu rezervace: success banner po `Přesunout termín`, auditní historie i souhrnové hodnoty typu e-mail/jméno se teď zalamují uvnitř karet místo horizontálního přesahu přes layout.
 - Opraven pád admin stránky `Média webu` při nahrání většího obrázku: Next.js `Server Actions` teď mají zvýšený `bodySizeLimit` na `10mb`, takže uploady do aplikačního limitu `8 MB` neselhávají ještě před vlastní validací formuláře.
 - Stabilizován veřejný self-service přesun rezervace: výběr dne a času teď skáče na cílové sekce přes sdílený offset vůči reálné sticky hlavičce a E2E helper před výběrem vzdálenějšího času otevře správný den v kalendáři, takže sloty nezůstávají mimo DOM, viewport nebo uprostřed smooth scroll animace.
+- Veřejný booking rate-limit už nepočítá audit záznamy admin přihlášení ani veřejného ověření voucheru; E2E fixture navíc čistí krátké auditní rate-limit okno, aby opakované lokální browser běhy neblokovaly další scénáře.
+- Zpevněny Playwright locatory veřejného booking flow: kontaktní pole se vyplňují přes aktuální textbox labely `E-mail`/`Telefon` a unknown-slug scénář si před kontrolou fixture služby otevře vlastní E2E kategorii.
 
 ## [0.3.11] - 2026-05-17
 
