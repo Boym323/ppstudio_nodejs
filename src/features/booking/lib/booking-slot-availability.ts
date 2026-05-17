@@ -189,11 +189,15 @@ export function resolvePublishedSlotCoverage<T extends PublishedCoverageSlot>(
     .filter((slot) => slotAllowsService(slot, serviceId))
     .sort((left, right) => left.startsAt.getTime() - right.startsAt.getTime());
 
+  const startContainingSlots = publishedSlots.filter(
+    (slot) => requestedStartsAt >= slot.startsAt && requestedStartsAt < slot.endsAt,
+  );
   const anchorCandidates = preferredSlotId
-    ? publishedSlots.filter((slot) => slot.id === preferredSlotId)
-    : publishedSlots.filter(
-        (slot) => requestedStartsAt >= slot.startsAt && requestedStartsAt < slot.endsAt,
-      );
+    ? [
+        ...publishedSlots.filter((slot) => slot.id === preferredSlotId),
+        ...startContainingSlots.filter((slot) => slot.id !== preferredSlotId),
+      ]
+    : startContainingSlots;
 
   for (const anchor of anchorCandidates) {
     if (requestedStartsAt < anchor.startsAt || requestedStartsAt >= anchor.endsAt) {

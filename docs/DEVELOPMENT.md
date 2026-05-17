@@ -78,6 +78,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - slučuje navazující kompatibilní publikované sloty do jednoho delšího veřejného okna,
   - zachovává mapu původních segmentů pro správné `slotId` při submitu,
   - počítá `bookedIntervals` podle skutečných aktivních rezervací překrývajících daný čas, ne jen podle relace `Booking.slotId`.
+- Tokenová správa rezervace (`/rezervace/sprava/[token]`) volá katalog s vynecháním právě spravované rezervace. Díky tomu může nabídnout i dřívější start v navazujícím volném bloku před původním termínem; serverová validace ale dál kontroluje celý coverage řetězec a všechny ostatní aktivní bookingy.
 - Playwright booking fixture v `tests/e2e/helpers/fixtures.ts` seeduje termíny dynamicky podle aktuální booking policy (`bookingMinAdvanceHours`, `bookingMaxAdvanceDays`, `bookingCancellationHours`), aby testované self-service scenáře vždy běžely uvnitř skutečného online okna pro rezervaci/storno/přesun.
 - Protože E2E suite běží napříč více specy se 2 workery, fixture sloty se nesmí spoléhat na jeden sdílený čas. `createCatalogFixture()` vytváří trojici availability slotů v transakci, start rozhazuje hashovaně podle `runId` a při `AvailabilitySlot_active_time_window_excl` zkusí další kandidát.
 - Test runtime (`NODE_ENV=test`) záměrně vypíná Prisma client stdout/stderr query error logy v `src/lib/prisma.ts`; zachycené a retrynuté seed konflikty by jinak šuměly ve výstupu E2E/DB testů, i když samotný test projde.
@@ -103,6 +104,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Seznam klientek v adminu je click-to-open: na desktopu otevírá detail celá tabulková řádka, na mobilu celá karta. Tlačítko/štítek `Detail` zůstává jen jako vizuální affordance stejné navigace.
 - Primární CTA `Vytvořit rezervaci` v detailu klientky musí pro `OWNER` i `SALON` vést do existujícího ručního booking workspace `/admin/.../rezervace?create=1&clientId=...`. Prefill klientky je jen UX zkratka: booking action i nadále musí projít stejnou server-side validací dostupnosti, překryvů, služeb, notifikací a audit trailu.
 - Stejný helper řeší i backend validaci souvislého pokrytí intervalu při `createBookingWithEngine(...)` a `rescheduleBooking(...)`; když upravuješ pravidla slotů, drž veřejný katalog a backend coverage logiku v sync.
+- Coverage validace musí umět spadnout z preferovaného `slotId` na segment, který skutečně obsahuje nový začátek. Tohle je důležité pro posun rezervace na dřívější start přes volný blok před původním termínem.
 - Stabilizační refaktor z `2026-04-24` rozděluje dříve monolitické booking/admin soubory do menších interních modulů při zachování stávajících entrypointů:
   - `src/features/booking/lib/booking-public.ts` je façade nad `booking-public/shared.ts`, `catalog.ts`, `engine.ts`, `notifications.ts`
   - `src/features/booking/components/booking-flow.tsx` drží jen stav a orchestraci kroků; jednotlivé UI bloky jsou v `src/features/booking/components/booking-flow/*`

@@ -11,6 +11,7 @@ import { buildMergedPublicCatalogSlots } from "../booking-slot-availability";
 
 type PublicBookingCatalogOptions = {
   includeServices?: boolean;
+  excludeBookingId?: string;
 };
 
 export async function getPublicBookingCatalog(
@@ -80,6 +81,11 @@ export async function getPublicBookingCatalog(
     }),
     prisma.booking.findMany({
       where: {
+        id: options.excludeBookingId
+          ? {
+              not: options.excludeBookingId,
+            }
+          : undefined,
         status: {
           in: [...ACTIVE_BOOKING_STATUSES],
         },

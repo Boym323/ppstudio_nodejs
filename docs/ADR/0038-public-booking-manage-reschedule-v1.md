@@ -11,6 +11,8 @@ Admin detail rezervace už má centrální doménovou akci `rescheduleBooking(..
 - Výběr termínu má model `nejbližší dostupné termíny -> kalendář -> sloty pro vybraný den`: rychlé chips jsou primární cesta, kalendář je fallback pro konkrétní den a po výběru času se bez redirectu scrolluje na potvrzení.
 - Online změna je povolená jen pro `PENDING` a `CONFIRMED` rezervace a jen do stejného limitu jako self-service storno (`SiteSettings.bookingCancellationHours`).
 - Klientský submit volá stejné `rescheduleBooking(...)` jako admin. Veřejná vrstva jen řeší token validaci, UI copy a mapování user-facing chyb.
+- Katalog dostupnosti pro manage screen vynechává právě spravovanou rezervaci z `bookedIntervals`, aby si klientka mohla vybrat i dřívější začátek, který začíná ve volném publikovaném bloku před původním termínem a pokračuje přes její dosavadní slot.
+- Backend coverage validace nesmí slepě odmítnout původní/preferovaný `slotId`, pokud nový začátek reálně leží v předchozím navazujícím segmentu; musí ověřit souvislý řetězec publikovaných slotů a kapacitu bez aktuální rezervace jako konfliktu.
 - Audit zůstává v `BookingRescheduleLog`, ale veřejný flow zapisuje `changedByClient = true` a `changedByUserId = null`.
 - Reminder, confirmation a reschedule e-maily nově generují bezpečný manage link `Změnit termín`; do DB se ukládá jen hash tokenu.
 - Matomo na tokenové manage route neposílá pageview s tokenem, ale klientské handlery mohou poslat neosobní eventy `Booking / Date selected` a `Booking / Time selected`.

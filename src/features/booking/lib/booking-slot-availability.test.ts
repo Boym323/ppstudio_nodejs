@@ -174,6 +174,37 @@ describe("resolvePublishedSlotCoverage", () => {
     assert.deepEqual(coverage?.coverage.map((slot) => slot.id), ["slot-2", "slot-3"]);
   });
 
+  test("falls back to the slot containing the requested start when the preferred slot is later", () => {
+    const coverage = resolvePublishedSlotCoverage(
+      [
+        {
+          id: "slot-before",
+          startsAt: new Date("2026-04-27T08:00:00.000Z"),
+          endsAt: new Date("2026-04-27T09:00:00.000Z"),
+          capacity: 1,
+          status: AvailabilitySlotStatus.PUBLISHED,
+          serviceRestrictionMode: AvailabilitySlotServiceRestrictionMode.ANY,
+          allowedServices: [],
+        },
+        {
+          id: "slot-current",
+          startsAt: new Date("2026-04-27T09:00:00.000Z"),
+          endsAt: new Date("2026-04-27T10:00:00.000Z"),
+          capacity: 1,
+          status: AvailabilitySlotStatus.PUBLISHED,
+          serviceRestrictionMode: AvailabilitySlotServiceRestrictionMode.ANY,
+          allowedServices: [],
+        },
+      ],
+      "service-1",
+      new Date("2026-04-27T08:30:00.000Z"),
+      new Date("2026-04-27T09:30:00.000Z"),
+      "slot-current",
+    );
+
+    assert.deepEqual(coverage?.coverage.map((slot) => slot.id), ["slot-before", "slot-current"]);
+  });
+
   test("rejects a gap between slots", () => {
     const coverage = resolvePublishedSlotCoverage(
       [

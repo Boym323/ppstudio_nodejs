@@ -272,7 +272,10 @@ export function createBookingManagementApi(
         return resolved;
       }
 
-      const catalog = await dependencies.getPublicBookingCatalog();
+      const catalog = await dependencies.getPublicBookingCatalog({
+        includeServices: false,
+        excludeBookingId: resolved.token.booking.id,
+      });
 
       return {
         status: "ready",

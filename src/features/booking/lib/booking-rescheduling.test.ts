@@ -290,6 +290,57 @@ describe("state validation", () => {
     });
   });
 
+  test("allows moving to an earlier start that uses the free slot before the current booking", async () => {
+    const harness = await createHarness({
+      booking: buildBooking({
+        slotId: "slot-current",
+        scheduledStartsAt: new Date("2026-04-28T10:00:00.000Z"),
+        scheduledEndsAt: new Date("2026-04-28T11:00:00.000Z"),
+        serviceDurationMinutes: 60,
+        slot: buildSlot({
+          id: "slot-current",
+          startsAt: new Date("2026-04-28T10:00:00.000Z"),
+          endsAt: new Date("2026-04-28T11:00:00.000Z"),
+        }),
+      }),
+      requestedSlot: null,
+      overlappingSlots: [
+        buildSlot({
+          id: "slot-before",
+          startsAt: new Date("2026-04-28T09:00:00.000Z"),
+          endsAt: new Date("2026-04-28T10:00:00.000Z"),
+        }),
+      ],
+    });
+
+    const result = await harness.api.rescheduleBooking({
+      bookingId: "booking-1",
+      slotId: "slot-current",
+      newStartAt: "2026-04-28T09:30:00.000Z",
+      changedByUserId: null,
+      changedByClient: true,
+      notifyClient: false,
+      expectedUpdatedAt: "2026-04-23T09:00:00.000Z",
+    });
+
+    assert.equal(result.scheduledStartsAt, "2026-04-28T09:30:00.000Z");
+    assert.equal(result.manualOverride, false);
+    assert.deepEqual(harness.calls.bookingUpdate[0]?.data, {
+      slotId: "slot-before",
+      scheduledStartsAt: new Date("2026-04-28T09:30:00.000Z"),
+      scheduledEndsAt: new Date("2026-04-28T10:30:00.000Z"),
+      manualOverride: false,
+      rescheduledAt: harness.calls.bookingUpdate[0]?.data
+        ? (harness.calls.bookingUpdate[0].data as { rescheduledAt: Date }).rescheduledAt
+        : undefined,
+      rescheduleCount: {
+        increment: 1,
+      },
+      reminder24hQueuedAt: null,
+      reminder24hSentAt: null,
+    });
+  });
+
   test("rejects reschedule when booking is cancelled", async () => {
     const { bookingRescheduleErrorCodes } = await import("./booking-rescheduling");
     const harness = await createHarness({

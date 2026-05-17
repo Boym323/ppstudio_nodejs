@@ -106,6 +106,109 @@ dbTest("getPublicBookingCatalog exposes only active publicly bookable services",
   }
 });
 
+dbTest("getPublicBookingCatalog can exclude the managed booking from booked intervals", async () => {
+  const { prisma, getPublicBookingCatalog } = await loadModules();
+  const suffix = randomUUID().slice(0, 8);
+
+  const category = await prisma.serviceCategory.create({
+    data: {
+      name: `Booking query exclude category ${suffix}`,
+      slug: `booking-query-exclude-category-${suffix}`,
+      isActive: true,
+    },
+    select: { id: true },
+  });
+  const service = await prisma.service.create({
+    data: {
+      categoryId: category.id,
+      name: `Booking query exclude ${suffix}`,
+      slug: `booking-query-exclude-${suffix}`,
+      durationMinutes: 60,
+      isActive: true,
+      isPubliclyBookable: true,
+    },
+    select: { id: true },
+  });
+  const client = await prisma.client.create({
+    data: {
+      fullName: `Klientka exclude ${suffix}`,
+      email: `booking-query-exclude-${suffix}@example.com`,
+      phone: "+420777123456",
+      isActive: true,
+    },
+    select: { id: true },
+  });
+
+  const startsAt = addDays(new Date(), 6);
+  startsAt.setUTCHours(9, 0, 0, 0);
+  const endsAt = new Date(startsAt.getTime() + 2 * 60 * 60 * 1000);
+  const bookingStartsAt = new Date(startsAt.getTime() + 60 * 60 * 1000);
+  const bookingEndsAt = new Date(bookingStartsAt.getTime() + 60 * 60 * 1000);
+
+  const slot = await prisma.availabilitySlot.create({
+    data: {
+      startsAt,
+      endsAt,
+      status: "PUBLISHED",
+      publishedAt: new Date(),
+    },
+    select: { id: true },
+  });
+  const booking = await prisma.booking.create({
+    data: {
+      clientId: client.id,
+      slotId: slot.id,
+      serviceId: service.id,
+      status: "CONFIRMED",
+      clientNameSnapshot: `Klientka exclude ${suffix}`,
+      clientEmailSnapshot: `booking-query-exclude-${suffix}@example.com`,
+      clientPhoneSnapshot: "+420777123456",
+      serviceNameSnapshot: `Booking query exclude ${suffix}`,
+      serviceDurationMinutes: 60,
+      scheduledStartsAt: bookingStartsAt,
+      scheduledEndsAt: bookingEndsAt,
+      confirmedAt: new Date(),
+    },
+    select: { id: true },
+  });
+
+  try {
+    const regularCatalog = await getPublicBookingCatalog({ includeServices: false });
+    const excludedCatalog = await getPublicBookingCatalog({
+      includeServices: false,
+      excludeBookingId: booking.id,
+    });
+
+    const regularSlot = regularCatalog.slots.find(
+      (catalogSlot) =>
+        catalogSlot.id === slot.id
+        || catalogSlot.segments?.some((segment) => segment.id === slot.id),
+    );
+    const excludedSlot = excludedCatalog.slots.find(
+      (catalogSlot) =>
+        catalogSlot.id === slot.id
+        || catalogSlot.segments?.some((segment) => segment.id === slot.id),
+    );
+
+    assert.ok(regularSlot?.bookedIntervals.some(
+      (interval) =>
+        interval.startsAt === bookingStartsAt.toISOString()
+        && interval.endsAt === bookingEndsAt.toISOString(),
+    ));
+    assert.equal(excludedSlot?.bookedIntervals.some(
+      (interval) =>
+        interval.startsAt === bookingStartsAt.toISOString()
+        && interval.endsAt === bookingEndsAt.toISOString(),
+    ), false);
+  } finally {
+    await prisma.booking.deleteMany({ where: { id: booking.id } });
+    await prisma.availabilitySlot.deleteMany({ where: { id: slot.id } });
+    await prisma.client.deleteMany({ where: { id: client.id } });
+    await prisma.service.deleteMany({ where: { id: service.id } });
+    await prisma.serviceCategory.deleteMany({ where: { id: category.id } });
+  }
+});
+
 dbTest("createPublicBooking keeps server-side service availability as source of truth", async () => {
   const { prisma, createPublicBooking, PublicBookingError, publicBookingErrorCodes } = await loadModules();
   const suffix = randomUUID().slice(0, 8);
