@@ -132,6 +132,7 @@ Evidence produkčních incidentů a jejich řešení.
 - `CANCELLED` booking nesmí v planneru zůstávat jako viditelná blokace ani po publish mutaci. Pokud se po storne v mřížce ukazuje barevný „technický“ blok nebo publish draft padá na hlášce `Koncept týdne se teď nepodařilo publikovat.`, zkontroluj, jestli write model místo prostého `deleteMany()` historický slot bezpečně archivuje a query vrstva archivovaný cancelled-only slot schovává.
 - Rozbitý reset vybraného času při změně dne v kroku 2 `/rezervace`, kvůli kterému by souhrn nebo hidden inputs držely stale `startsAt` mimo aktuálně zobrazený den.
 - Regresní rozbití booking flow nebo týdenního planneru po čistě strukturálním refaktoru; po změnách v `booking-flow`, `booking-public` nebo `admin-slots` vždy ověř build, základní booking smoke flow a admin planner akce.
+- Regrese přístupnosti kontaktního kroku `/rezervace`: po zásahu do `booking-flow/contact-step.tsx` zkontroluj explicitní label vazby, `aria-describedby` na nápovědy/chyby, live oznámení chyb a viditelný `focus-visible` stav při ovládání klávesnicí.
 - Storno limit nastavený příliš vysoko nebo omylem na `0`, což změní chování self-service storno odkazů.
 - Chybějící nebo nečitelný `MEDIA_STORAGE_ROOT`, kvůli kterému upload selže při zápisu nebo se veřejný asset fyzicky nikdy neuloží.
 - Upload root namountovaný do dočasného adresáře, který se smaže při deployi nebo restartu serveru.

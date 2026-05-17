@@ -96,6 +96,7 @@ Lokální doporučení:
 - Pushover konfigurace je oddelena na serverovy app token a per-owner User Key v DB. `PUSHOVER_ENABLED` a `PUSHOVER_APP_TOKEN` cte jen `src/lib/notifications/pushover.ts`; pri chybejici nebo vypnute konfiguraci se notifikace tise preskoci a hlavni booking/email flow pokracuje.
 - Pushover User Key se nespravuje v `.env`, ale v owner-only admin bloku `/admin/nastaveni -> Pushover notifikace`; ulozeny je v `UserNotificationSettings.pushoverUserKey` pro konkretni `AdminUser`.
 - Self-service změna termínu nepřidává nové env proměnné; pokud jsou `NEXT_PUBLIC_MATOMO_*` zapnuté, tokenová stránka může inicializovat Matomo kvůli bezpečným eventům, ale pageview s tokenem neodesílá.
+- Přístupnost kontaktního kroku veřejné rezervace nepřidává žádnou novou env proměnnou; jde o čistou React/Tailwind úpravu nad stávajícím booking flow.
 - Databázový základ voucherů (`Voucher`, `VoucherRedemption` a intent pole na `Booking`) nepřidává žádnou novou env proměnnou; používá stávající `DATABASE_URL`, Prisma migrace a admin session až v budoucí aplikační vrstvě.
 - Serverová business vrstva voucherů také nepřidává žádnou novou env proměnnou; tvorba, validace i admin čerpání používají stávající Prisma připojení přes `DATABASE_URL`.
 - Admin formulář pro vytvoření voucheru nepřidává žádnou novou env proměnnou; používá stávající admin session, Prisma připojení a voucher doménovou vrstvu.

@@ -223,6 +223,7 @@ Postup nasazení aplikace do produkce.
   - změnu dne v kalendářním fallbacku kroku 2 `/rezervace` a reset nevalidního vybraného času
   - větší grid časů na mobilu i desktopu včetně disabled stavů a návratu zpět ze souhrnu
   - sticky CTA lištu na mobilu a editaci jednotlivých bloků přímo ze souhrnu
+  - kontaktní krok klávesnicí: label klik/fokus funguje u všech polí, nápověda i chyba se vážou přes `aria-describedby`, chybové hlášky se oznámí a `focus-visible` ring je jasně viditelný
   - po stabilizačním refaktoru také rychlou smoke kontrolu veřejného booking flow a týdenního planneru, protože jejich implementace je nově rozdělená do více interních modulů se stejným chováním
   - při rezervaci nebo přesunu přes navazující publikované sloty ověř, že volný okraj na začátku nebo konci coverage řetězce nezůstane v planneru jako `Omezené`, ale jako běžně editovatelná dostupnost
   - pokud QA najde starý nerozsekaný anchor slot vzniklý ještě před fixem chainingu, nejdřív spusť `node scripts/repair-legacy-chained-slots.mjs` jako dry-run; `--apply` používej jen pro jednoduché single-booking případy, které script sám označí jako `repairable`
