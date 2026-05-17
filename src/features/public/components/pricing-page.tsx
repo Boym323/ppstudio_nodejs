@@ -72,7 +72,6 @@ export function CategoryChips({ categories }: { categories: PublicPricingCategor
               <a
                 key={category.id}
                 href={`#${category.id}`}
-                aria-current={index === 0 ? "page" : undefined}
                 className={[
                   "inline-flex shrink-0 items-center gap-3 rounded-full border px-5 py-3 text-sm font-medium",
                   index === 0
