@@ -70,6 +70,7 @@ MEDIA_STORAGE_ROOT=/var/www/ppstudio-uploads
 - `ADMIN_BOOTSTRAP_ENABLED` je recovery přepínač bootstrap loginu; běžný produkční stav je `false`.
 - `EMAIL_DELIVERY_MODE=log` je bezpečný lokální režim bez SMTP odesílání.
 - `MEDIA_STORAGE_ROOT` je zapisovatelná absolutní cesta mimo repo pro nahraná média.
+- Admin upload médií běží přes Next.js Server Actions. Aplikační limit obrázku je `8 MB`, ale `next.config.ts` drží request limit `10mb`, aby multipart overhead nesrazil legitimní upload ještě před serverovou validací.
 
 Detailní seznam všech env proměnných je v [`docs/ENVIRONMENT.md`](/var/www/ppstudio/docs/ENVIRONMENT.md).
 

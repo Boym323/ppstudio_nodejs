@@ -40,6 +40,13 @@ const tokenRouteHeaders = [
 
 const nextConfig: NextConfig = {
   allowedDevOrigins: ["192.168.0.143", "ppstudio.cz", "www.ppstudio.cz","192.168.0.150"],
+  experimental: {
+    serverActions: {
+      // Media uploads are validated to 8 MB in app code, but multipart form
+      // overhead would still hit the lower Next.js default request limit.
+      bodySizeLimit: "10mb",
+    },
+  },
   async headers() {
     return [
       {

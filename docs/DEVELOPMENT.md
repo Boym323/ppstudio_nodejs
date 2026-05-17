@@ -17,6 +17,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Pokud dev server spadne na poškozené Turbopack cache (`Failed to restore task data`, chybějící `.sst` v `.next/dev/cache/turbopack`), použij:
   - `npm run dev:clean` (smaže `.next` a znovu spustí dev server)
   - `npm run dev:webpack` (fallback bez Turbopacku, vhodné při opakovaných pádech cache)
+- Uploady souborů přes Server Actions respektují Next.js request body limit. Pro admin `Média webu` je v `next.config.ts` nastaveno `experimental.serverActions.bodySizeLimit = "10mb"`, protože samotný business limit obrázku je `8 MB` a multipart formulář přidává overhead navíc.
 
 ## Test runner a coverage
 - `npm test` používá Node test runner + `tsx` preload nad quoted globem `src/**/*.test.ts`; quoting je záměrný, protože bez něj Bash v defaultní konfiguraci expandoval jen část stromu a coverage pak nereprezentovala celé repo.
