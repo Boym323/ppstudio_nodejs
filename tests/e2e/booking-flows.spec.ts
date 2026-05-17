@@ -17,8 +17,20 @@ async function selectSlotById(
   expectedSlotId: string,
   actionButton: Locator,
 ) {
+  const exactSlotButton = page.getByRole("button", { name: slotButtonLabel });
+  const slotDateLabel = slotButtonLabel.match(/ dne (?<dateLabel>.+)$/)?.groups?.dateLabel;
+
+  if ((await exactSlotButton.count()) === 0 && slotDateLabel) {
+    const dateButton = page.getByRole("button", { name: `Vybrat den ${slotDateLabel}` });
+
+    if ((await dateButton.count()) > 0) {
+      await dateButton.click();
+      await expect(exactSlotButton.first()).toBeVisible();
+    }
+  }
+
   const selectors = [
-    page.getByRole("button", { name: slotButtonLabel }),
+    exactSlotButton,
     page.getByRole("button", { name: /^Vybrat čas / }),
   ];
 

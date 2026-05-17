@@ -129,10 +129,42 @@ const weekdayLabels = ["Po", "Út", "St", "Čt", "Pá", "So", "Ne"] as const;
 const calendarGridStyle = {
   gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
 } as const;
-const bookingManagementScrollOptions = {
-  behavior: "instant",
-  block: "start",
-} satisfies ScrollIntoViewOptions;
+
+function getBookingManagementStickyOffset() {
+  const bookingHeader = document.querySelector<HTMLElement>(".site-header--booking");
+  const headerHeight = bookingHeader?.getBoundingClientRect().height;
+
+  if (headerHeight) {
+    return Math.ceil(headerHeight) + 16;
+  }
+
+  return window.innerWidth >= 1024 ? 112 : 88;
+}
+
+function scrollBookingManagementTargetIntoView(target: HTMLElement | null) {
+  if (!target) {
+    return;
+  }
+
+  window.requestAnimationFrame(() => {
+    window.requestAnimationFrame(() => {
+      const rect = target.getBoundingClientRect();
+      const topOffset = getBookingManagementStickyOffset();
+      const bottomOffset = window.innerWidth >= 1024 ? 24 : 96;
+      const isComfortablyVisible =
+        rect.top >= topOffset && rect.bottom <= window.innerHeight - bottomOffset;
+
+      if (isComfortablyVisible) {
+        return;
+      }
+
+      window.scrollTo({
+        top: Math.max(0, window.scrollY + rect.top - topOffset),
+        behavior: "auto",
+      });
+    });
+  });
+}
 
 function StatusCard({
   eyebrow,
@@ -304,9 +336,7 @@ export function BookingManagementPanel({
     setSelectedDateKey(dateKey);
     setVisibleMonthKey(getMonthKey(dateKey));
     trackDateSelected(dateKey);
-    window.requestAnimationFrame(() => {
-      selectedDaySlotsRef.current?.scrollIntoView(bookingManagementScrollOptions);
-    });
+    scrollBookingManagementTargetIntoView(selectedDaySlotsRef.current);
   };
 
   const selectSlot = (slot: TimeSlotOption) => {
@@ -318,9 +348,7 @@ export function BookingManagementPanel({
     setSelectedStartsAt(slot.startsAt);
     trackDateSelected(dateKey);
     trackTimeSelected(slot);
-    window.requestAnimationFrame(() => {
-      confirmationRef.current?.scrollIntoView(bookingManagementScrollOptions);
-    });
+    scrollBookingManagementTargetIntoView(confirmationRef.current);
   };
 
   if (serverState.status === "success" && serverState.result) {
@@ -565,7 +593,7 @@ export function BookingManagementPanel({
         <div
           ref={selectedDaySlotsRef}
           className={cn(
-            "mt-6 scroll-mt-28 rounded-3xl border p-4 transition-all duration-300 sm:p-5 lg:scroll-mt-32",
+            "mt-6 scroll-mt-32 rounded-3xl border p-4 transition-all duration-300 sm:p-5 lg:scroll-mt-28",
             selectedDateSlots.length > 0
               ? "border-[var(--color-accent)]/20 bg-[var(--color-surface-strong)]/16"
               : "border-dashed border-black/10 bg-[var(--color-surface)]/20",
@@ -623,7 +651,7 @@ export function BookingManagementPanel({
 
       <section
         ref={confirmationRef}
-        className="scroll-mt-28 rounded-[var(--radius-panel)] border border-black/6 bg-white p-5 shadow-[var(--shadow-panel)] sm:p-8 lg:scroll-mt-32"
+        className="scroll-mt-32 rounded-[var(--radius-panel)] border border-black/6 bg-white p-5 shadow-[var(--shadow-panel)] sm:p-8 lg:scroll-mt-28"
       >
         <p className="text-xs font-semibold uppercase tracking-[0.32em] text-[var(--color-accent)]">
           Potvrdit nový termín
@@ -705,7 +733,7 @@ export function BookingManagementPanel({
             </div>
             <button
               type="button"
-              onClick={() => confirmationRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
+              onClick={() => scrollBookingManagementTargetIntoView(confirmationRef.current)}
               className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-full bg-[var(--color-foreground)] px-4 py-2 text-xs font-semibold text-white"
             >
               Potvrdit
