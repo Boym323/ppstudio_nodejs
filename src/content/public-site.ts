@@ -190,7 +190,7 @@ export const services: Service[] = [
     durationMinutes: 75,
     intro: 'Vyvážené ošetření pro klientky, které chtějí čistou, zklidněnou a viditelně svěží pleť bez agresivního zásahu.',
     description:
-      'Procedura kombinuje úvodní diagnostiku, šetrné čištění, exfoliaci, cílené aktivní látky a závěrečnou péči podle aktuálního stavu pleti. Text je záměrně psaný jako realistický placeholder a před spuštěním má být nahrazen finálním brand voice salonu.',
+      'Procedura kombinuje úvodní diagnostiku, šetrné čištění, exfoliaci, cílené aktivní látky a závěrečnou péči podle aktuálního stavu pleti. Každý krok upravuji podle toho, co vaše pleť právě potřebuje, aby výsledek působil čistě, klidně a přirozeně.',
     idealFor: ['smíšená a problematická pleť', 'unavený tón pleti', 'první návštěva se zaměřením na restart rutiny'],
     includes: ['odlíčení a diagnostika pleti', 'šetrná exfoliace nebo ultrazvuková špachtle', 'maska a závěrečný doporučený domácí režim'],
     results: ['pocit čistoty bez pnutí', 'sjednocenější vzhled pleti', 'jasnější doporučení další péče'],
@@ -206,7 +206,7 @@ export const services: Service[] = [
     durationMinutes: 90,
     intro: 'Delší rituál zaměřený na komfort, liftingový efekt a podporu zdravě odpočatého vzhledu.',
     description:
-      'Součástí je masážní technika, intenzivní sérum a maska zvolená podle potřeb pleti. Obsah je placeholder, ale struktura už odpovídá produkčnímu způsobu prezentace služby.',
+      'Součástí je masážní technika, intenzivní sérum a maska zvolená podle potřeb pleti. Ošetření je vedené jako klidný rituál, který propojuje viditelný efekt s příjemným odpočinkem.',
     idealFor: ['zralejší pleť', 'ztráta jasu a elasticity', 'klientky hledající delší relaxační zkušenost'],
     includes: ['úvodní konzultace', 'liftingová masáž obličeje a dekoltu', 'prémiová závěrečná péče'],
     results: ['odpočatější vzhled', 'komfort a jemnější textura pleti', 'silnější pocit luxusní péče'],
@@ -222,7 +222,7 @@ export const services: Service[] = [
     durationMinutes: 60,
     intro: 'Úprava pro upravený, ale přirozený výraz bez každodenního složitého stylingu.',
     description:
-      'Služba je koncipovaná jako přehledný vstupní bod pro klientky, které chtějí zvýraznit obličej jemně a bez tvrdého efektu. Finální texty je vhodné později rozdělit podle konkrétní metodiky a používané kosmetiky.',
+      'Služba je vhodná pro klientky, které chtějí zvýraznit obličej jemně a bez tvrdého efektu. Výsledek drží přirozený charakter a usnadní každodenní úpravu obočí i řas.',
     idealFor: ['nevýrazné nebo neposlušné obočí', 'řasy bez natočení', 'klientky preferující přirozený výsledek'],
     includes: ['konzultace vhodného tvaru a efektu', 'laminační postup', 'doporučení následné domácí péče'],
     results: ['výraznější rámování obličeje', 'jednodušší ranní rutina', 'upravený vzhled i bez make-upu'],

@@ -6,6 +6,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Ve fallback copy veřejných služeb (`src/content/public-site.ts`) byly odstraněny interní placeholder formulace; texty v `description` teď používají finální produkční tón PP Studia pro kosmetické studio ve Zlíně.
 - Opravená přístupnost anchor navigace v ceníku: `CategoryChips` už nenastavuje statické `aria-current="page"` na první položku, aby čtečky obrazovky nedostávaly zavádějící informaci o aktuální kategorii.
 - Veřejný booking kalendář v kroku `Vyberte termín` má přístupnější popisky dnů: `aria-label` tlačítek dne nově používá `formatDateKeyLabel` (např. `Vybrat den neděle 17. května`) místo technického ISO `YYYY-MM-DD`.
 - Den, který obsahuje jen disabled časy, už v booking kalendáři není klikací: tlačítko dne je semanticky `disabled`, takže klávesnice ani čtečka nenarazí na falešně interaktivní volbu bez dostupného času.

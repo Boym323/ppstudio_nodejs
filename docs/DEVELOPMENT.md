@@ -56,6 +56,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - `src/lib/media` drží infrastrukturní vrstvu pro lokální ukládání a čtení médií.
 - `src/config` drží metadata, navigaci a validované prostředí.
 - `src/content` drží editovatelná data veřejného webu odděleně od layoutu a route souborů.
+- Fallback texty ve `src/content/public-site.ts` musí působit jako finální veřejný obsah (bez interních výrazů typu placeholder/TODO), aby i při výpadku DB copy zůstal web důvěryhodný a produkčně použitelný.
 
 ## Route Strategie
 - `(public)` pro prezentační web.
