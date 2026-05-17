@@ -224,23 +224,22 @@ export function BookingFlow({ catalog, initialSelectedServiceSlug, salonProfile 
   };
 
   useEffect(() => {
-    const serviceStepHighlightTimeout = serviceStepHighlightTimeoutRef.current;
-    const termStepHighlightTimeout = termStepHighlightTimeoutRef.current;
-    const contactStepHighlightTimeout = contactStepHighlightTimeoutRef.current;
-    const contactStepFocusTimeout = contactStepFocusTimeoutRef.current;
-
     return () => {
-      if (serviceStepHighlightTimeout !== null) {
-        window.clearTimeout(serviceStepHighlightTimeout);
+      if (serviceStepHighlightTimeoutRef.current !== null) {
+        window.clearTimeout(serviceStepHighlightTimeoutRef.current);
+        serviceStepHighlightTimeoutRef.current = null;
       }
-      if (termStepHighlightTimeout !== null) {
-        window.clearTimeout(termStepHighlightTimeout);
+      if (termStepHighlightTimeoutRef.current !== null) {
+        window.clearTimeout(termStepHighlightTimeoutRef.current);
+        termStepHighlightTimeoutRef.current = null;
       }
-      if (contactStepHighlightTimeout !== null) {
-        window.clearTimeout(contactStepHighlightTimeout);
+      if (contactStepHighlightTimeoutRef.current !== null) {
+        window.clearTimeout(contactStepHighlightTimeoutRef.current);
+        contactStepHighlightTimeoutRef.current = null;
       }
-      if (contactStepFocusTimeout !== null) {
-        window.clearTimeout(contactStepFocusTimeout);
+      if (contactStepFocusTimeoutRef.current !== null) {
+        window.clearTimeout(contactStepFocusTimeoutRef.current);
+        contactStepFocusTimeoutRef.current = null;
       }
     };
   }, []);
