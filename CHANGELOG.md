@@ -6,6 +6,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Veřejné booking error stavy teď nabízejí konkrétní další krok: kontaktovat PP Studio ve Zlíně, zobrazit služby/ceník nebo se vrátit k výběru služby či termínu.
 - Sjednoceny veřejné canonical a OpenGraph URL: root metadata i `buildPageMetadata(...)` používají `siteConfig.canonicalUrl`, takže page metadata, JSON-LD, `robots.txt` a `sitemap.xml` sdílí stejný veřejný canonical origin.
 - Odstraněna nepoužívaná legacy homepage komponenta `src/features/home/components/home-page.tsx` a duplicitní starý export `PricingPage` z `src/features/public/components/public-site.tsx`; veřejný ceník dál používá samostatnou komponentu `src/features/public/components/pricing-page.tsx`.
 - Ve fallback copy veřejných služeb (`src/content/public-site.ts`) byly odstraněny interní placeholder formulace; texty v `description` teď používají finální produkční tón PP Studia pro kosmetické studio ve Zlíně.

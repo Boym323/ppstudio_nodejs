@@ -90,7 +90,7 @@ function isBookingSchemaDriftError(error: unknown) {
 
 function getPublicFacingBookingErrorMessage(error: PublicBookingError) {
   if (error.code === publicBookingErrorCodes.bookingConflict && error.suggestedStep === 3) {
-    return "Údaje se nepodařilo ověřit. Zkontrolujte prosím e-mail a telefon, nebo nás kontaktujte a rezervaci rychle dokončíme společně.";
+    return "Údaje se nepodařilo bezpečně ověřit. Zkontrolujte prosím e-mail a telefon, nebo kontaktujte PP Studio ve Zlíně a rezervaci dokončíme společně.";
   }
 
   return error.message;

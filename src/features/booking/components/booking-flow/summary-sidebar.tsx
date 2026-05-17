@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { type PublicBookingActionState } from "@/features/booking/actions/public-booking-action-state";
 import type { PublicBookingCatalog } from "@/features/booking/lib/booking-public";
 import type { TimeSlotOption } from "@/features/booking/lib/booking-time-slots";
@@ -10,6 +12,35 @@ import {
   formatSlotDuration,
   formatSlotTime,
 } from "./helpers";
+
+function getErrorActionLabel(suggestedStep?: 1 | 2 | 3 | 4) {
+  switch (suggestedStep) {
+    case 1:
+      return "Vrátit se k výběru služby";
+    case 2:
+      return "Vybrat jiný termín";
+    case 3:
+      return "Upravit kontakt";
+    default:
+      return "Zkontrolovat souhrn";
+  }
+}
+
+function getErrorGuidance(serverState: PublicBookingActionState) {
+  if (serverState.suggestedStep === 2) {
+    return "Termín se mohl mezitím obsadit nebo už neodpovídá vybrané službě. Vyberte prosím jiný čas, případně se ozvěte studiu a najdeme klidnou alternativu.";
+  }
+
+  if (serverState.suggestedStep === 1) {
+    return "Služba už nemusí být v online nabídce. Vraťte se k výběru, nebo si otevřete aktuální přehled služeb.";
+  }
+
+  if (serverState.suggestedStep === 3) {
+    return "Kontakt nebo voucher potřebuje doplnit tak, aby šla rezervace bezpečně potvrdit. Pokud spěcháte, studio ji s vámi dokončí osobně.";
+  }
+
+  return "Rezervaci se teď nepodařilo dokončit. Zkontrolujte prosím údaje, nebo kontaktujte PP Studio ve Zlíně.";
+}
 
 type BookingSummarySidebarProps = {
   currentStep: number;
@@ -42,6 +73,22 @@ export function BookingSummarySidebar({
   onEditContact,
   onStepBack,
 }: BookingSummarySidebarProps) {
+  const handleSuggestedStepClick = () => {
+    switch (serverState.suggestedStep) {
+      case 1:
+        onEditService();
+        break;
+      case 2:
+        onEditTerm();
+        break;
+      case 3:
+        onEditContact();
+        break;
+      default:
+        break;
+    }
+  };
+
   return (
     <aside className="lg:sticky lg:top-28 lg:self-start">
       <section className="rounded-[var(--radius-panel)] border border-[var(--color-accent-soft)]/45 bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(231,213,195,0.52))] p-4 shadow-[var(--shadow-panel)] sm:p-8">
@@ -149,9 +196,35 @@ export function BookingSummarySidebar({
         </div>
 
         {serverState.status === "error" && serverState.suggestedStep ? (
-          <p className="mt-4 text-sm text-[var(--color-muted)]">
-            Doporučený návrat ke kroku {serverState.suggestedStep}, kde je potřeba výběr nebo údaje upravit.
-          </p>
+          <div className="mt-4 rounded-3xl border border-red-200 bg-red-50/80 p-4 sm:p-5">
+            <p className="text-sm font-semibold text-red-800">
+              {serverState.formError ?? "Rezervaci se teď nepodařilo dokončit."}
+            </p>
+            <p className="mt-2 text-sm leading-6 text-red-700">
+              {getErrorGuidance(serverState)}
+            </p>
+            <div className="mt-4 flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={handleSuggestedStepClick}
+                className="inline-flex min-h-11 items-center justify-center rounded-full bg-[var(--color-foreground)] px-4 py-2.5 text-sm font-semibold text-white"
+              >
+                {getErrorActionLabel(serverState.suggestedStep)}
+              </button>
+              <Link
+                href="/kontakt"
+                className="inline-flex min-h-11 items-center justify-center rounded-full border border-red-200 bg-white px-4 py-2.5 text-sm font-semibold text-red-800"
+              >
+                Kontaktovat studio
+              </Link>
+              <Link
+                href="/cenik"
+                className="inline-flex min-h-11 items-center justify-center rounded-full border border-red-200 bg-white px-4 py-2.5 text-sm font-semibold text-red-800"
+              >
+                Zobrazit ceník
+              </Link>
+            </div>
+          </div>
         ) : null}
 
         <div className="mt-6 hidden flex-wrap gap-3 lg:flex">

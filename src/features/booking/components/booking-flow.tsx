@@ -648,6 +648,10 @@ export function BookingFlow({ catalog, initialSelectedServiceSlug, salonProfile 
                 trackContactStarted();
                 focusContactStepSection();
               }}
+              onReturnToServiceSelection={() => {
+                setCurrentStep(1);
+                focusServiceStepSection();
+              }}
               onSlotSelect={selectSlot}
               onSelectDate={(dateKey) => {
                 setSelectedDateKey(dateKey);

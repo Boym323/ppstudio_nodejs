@@ -1,4 +1,5 @@
 import type { RefObject } from "react";
+import Link from "next/link";
 
 import type { TimeSlotOption } from "@/features/booking/lib/booking-time-slots";
 import type { TimeSlotGroupData } from "@/features/booking/lib/booking-time-slots";
@@ -37,6 +38,7 @@ type BookingTermStepProps = {
   canGoToStep3: boolean;
   slotError?: string;
   onContinue: () => void;
+  onReturnToServiceSelection: () => void;
   onSlotSelect: (slot: TimeSlotOption) => void;
   onSelectDate: (dateKey: string) => void;
   onPreviousMonth: () => void;
@@ -61,6 +63,7 @@ export function BookingTermStep({
   canGoToStep3,
   slotError,
   onContinue,
+  onReturnToServiceSelection,
   onSlotSelect,
   onSelectDate,
   onPreviousMonth,
@@ -104,8 +107,32 @@ export function BookingTermStep({
           Nejprve vyberte službu. Pak zobrazíme jen kompatibilní termíny.
         </div>
       ) : selectableTimeOptions.length === 0 ? (
-        <div className="rounded-3xl border border-dashed border-black/10 bg-[var(--color-surface)]/20 px-5 py-6 text-sm text-[var(--color-muted)]">
-          Pro tuto službu teď není publikovaný žádný volný termín s dostatečnou délkou.
+        <div className="rounded-3xl border border-dashed border-black/10 bg-[var(--color-surface)]/20 px-5 py-6">
+          <p className="text-sm leading-6 text-[var(--color-muted)]">
+            Pro tuto službu teď není publikovaný volný termín s dostatečnou délkou. Ve studiu ve Zlíně vám rádi
+            doporučíme nejbližší vhodné okno, nebo můžete zkusit jinou službu z nabídky.
+          </p>
+          <div className="mt-4 flex flex-wrap gap-3">
+            <Link
+              href="/kontakt"
+              className="inline-flex min-h-11 items-center justify-center rounded-full bg-[var(--color-foreground)] px-4 py-2.5 text-sm font-semibold text-white"
+            >
+              Kontaktovat studio
+            </Link>
+            <button
+              type="button"
+              onClick={onReturnToServiceSelection}
+              className="inline-flex min-h-11 items-center justify-center rounded-full border border-black/8 px-4 py-2.5 text-sm font-semibold text-[var(--color-foreground)]"
+            >
+              Vrátit se k výběru
+            </button>
+            <Link
+              href="/cenik"
+              className="inline-flex min-h-11 items-center justify-center rounded-full border border-black/8 px-4 py-2.5 text-sm font-semibold text-[var(--color-foreground)]"
+            >
+              Zobrazit ceník
+            </Link>
+          </div>
         </div>
       ) : (
         <div className="space-y-5">

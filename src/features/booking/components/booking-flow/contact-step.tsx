@@ -1,4 +1,5 @@
 import type { RefObject } from "react";
+import Link from "next/link";
 
 import { type PublicBookingActionState } from "@/features/booking/actions/public-booking-action-state";
 import { cn } from "@/lib/utils";
@@ -104,7 +105,13 @@ export function BookingContactStep({
 
         {contactFormError ? (
           <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 sm:col-span-2">
-            {contactFormError}
+            <p>{contactFormError}</p>
+            <Link
+              href="/kontakt"
+              className="mt-3 inline-flex min-h-10 items-center justify-center rounded-full border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-800"
+            >
+              Kontaktovat studio
+            </Link>
           </div>
         ) : null}
 
