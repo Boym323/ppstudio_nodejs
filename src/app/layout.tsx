@@ -55,11 +55,20 @@ export async function generateMetadata(): Promise<Metadata> {
       siteName: brandName,
       locale: siteConfig.locale,
       type: "website",
+      images: [
+        {
+          url: "/brand/ppstudio-og-logo.png",
+          width: 1200,
+          height: 630,
+          alt: brandName,
+        },
+      ],
     },
     twitter: {
       card: "summary_large_image",
       title: `${brandName} | ${siteConfig.title}`,
       description: siteConfig.description,
+      images: ["/brand/ppstudio-og-logo.png"],
     },
   };
 }
