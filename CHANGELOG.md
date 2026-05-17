@@ -7,6 +7,8 @@ Formát je inspirovaný Keep a Changelog.
 ## [Unreleased]
 
 - Opravená přístupnost anchor navigace v ceníku: `CategoryChips` už nenastavuje statické `aria-current="page"` na první položku, aby čtečky obrazovky nedostávaly zavádějící informaci o aktuální kategorii.
+- Veřejný booking kalendář v kroku `Vyberte termín` má přístupnější popisky dnů: `aria-label` tlačítek dne nově používá `formatDateKeyLabel` (např. `Vybrat den neděle 17. května`) místo technického ISO `YYYY-MM-DD`.
+- Den, který obsahuje jen disabled časy, už v booking kalendáři není klikací: tlačítko dne je semanticky `disabled`, takže klávesnice ani čtečka nenarazí na falešně interaktivní volbu bez dostupného času.
 - Sjednocen canonical origin v technickém SEO: `src/app/robots.ts` a `src/app/sitemap.ts` používají pro `Host`, `Sitemap` i generované sitemap URL `siteConfig.canonicalUrl` místo `siteConfig.url`, aby byly konzistentní s JSON-LD a page metadata.
 - Opraven cleanup timeoutů v rezervačním flow (`booking-flow`): `useEffect` při unmountu čte aktuální hodnoty `*.current` timeout refů místo hodnot zachycených při mountu, po `clearTimeout` je navíc nulují; tím se spolehlivě čistí i timeouty nastavené později během života komponenty.
 - Opraveno přetékání dlouhých textů v admin detailu rezervace: success banner po `Přesunout termín`, auditní historie i souhrnové hodnoty typu e-mail/jméno se teď zalamují uvnitř karet místo horizontálního přesahu přes layout.

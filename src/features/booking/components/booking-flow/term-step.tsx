@@ -168,6 +168,7 @@ export function BookingTermStep({
                 const dateSlots = availableSlotsByDate.get(dateKey) ?? [];
                 const hasSlots = dateSlots.length > 0;
                 const hasSelectableSlots = dateSlots.some((slot) => !slot.isDisabled);
+                const isDaySelectable = hasSelectableSlots;
                 const isSelectedDate = dateKey === effectiveSelectedDateKey;
 
                 return (
@@ -175,7 +176,7 @@ export function BookingTermStep({
                     key={dateKey}
                     type="button"
                     onClick={() => onSelectDate(dateKey)}
-                    disabled={!hasSlots}
+                    disabled={!isDaySelectable}
                     className={cn(
                       "relative h-12 rounded-2xl border text-sm font-semibold",
                       hasSlots
@@ -188,7 +189,7 @@ export function BookingTermStep({
                         ? "border-[var(--color-accent)] bg-[var(--color-surface-strong)]/45"
                         : "",
                     )}
-                    aria-label={`Vybrat den ${dateKey}`}
+                    aria-label={`Vybrat den ${formatDateKeyLabel(dateKey)}`}
                   >
                     {getSlotDayNumber(dateKey)}
                     {hasSelectableSlots ? (

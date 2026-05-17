@@ -64,6 +64,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Další vnitřní route group `(protected)` uvnitř adminu chrání sekce vyžadující session.
 - Veřejné booking flow používá server-loaded page + klientský wizard + server action pro finální zápis.
 - Ve veřejném booking flow platí focus pravidlo: klik na den v kalendáři má převést fokus na sekci `Dostupné časy`, zatímco klik na konkrétní čas má převést fokus na první input kontaktního kroku. Při dalších UX úpravách tenhle sled zachovej, aby zůstal konzistentní pro klávesnici i mobilní scroll.
+- Dny v booking kalendáři bez jediného reálně volného času (`all slots disabled`) mají zůstat neinteraktivní (`disabled`) a `aria-label` dnů má používat lidský formát přes `formatDateKeyLabel(...)`, ne surové `YYYY-MM-DD`.
 - U `useActionState` flow na veřejných tokenových stránkách nerevaliduj právě otevřenou route jen kvůli cache invalidaci. V Next.js 16 to po server action může vyvolat route refresh a resetovat lokální success/error stav klientské komponenty dřív, než se vykreslí.
 - U `useOptimistic` (React 19 / Next.js 16) dispatchuj optimistic update pouze uvnitř `startTransition(...)` nebo action contextu. Přímé volání mimo transition v event helperu vede k runtime warningu `An optimistic state update occurred outside a transition or action`.
 - Veřejné booking routy nově obsahují i bezpečný provozní action flow `/rezervace/akce/[intent]/[token]`, který renderuje serverovou validaci tokenu a klientský potvrzovací panel nad server action submittem.
