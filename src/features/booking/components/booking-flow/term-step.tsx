@@ -73,7 +73,7 @@ export function BookingTermStep({
     <div
       ref={sectionRef}
       className={cn(
-        "space-y-4 rounded-3xl transition-all duration-300",
+        "space-y-4 rounded-3xl transition-all duration-300 p-3",
         highlighted
           ? "bg-[var(--color-surface-strong)]/30 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]"
           : "",
