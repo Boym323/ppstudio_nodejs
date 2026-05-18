@@ -6,6 +6,9 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [0.3.12] - 2026-05-18
+
+- Release příprava pro produkční nasazení: projektová verze navýšena na patch `0.3.12`.
 - Kontaktní krok veřejného booking flow má explicitně propojené popisky, nápovědy a chyby přes stabilní `id`/`htmlFor`/`aria-describedby`, chybové hlášky jsou oznamované asistivním technologiím a formulářové prvky mají výraznější `focus-visible` stav v akcentu PP Studia.
 - Veřejné booking error stavy teď nabízejí konkrétní další krok: kontaktovat PP Studio ve Zlíně, zobrazit služby/ceník nebo se vrátit k výběru služby či termínu.
 - Sjednoceny veřejné canonical a OpenGraph URL: root metadata i `buildPageMetadata(...)` používají `siteConfig.canonicalUrl`, takže page metadata, JSON-LD, `robots.txt` a `sitemap.xml` sdílí stejný veřejný canonical origin.
