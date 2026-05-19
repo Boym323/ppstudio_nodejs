@@ -59,6 +59,10 @@ function getAllowedHosts() {
   ]) {
     if (host) {
       hosts.add(host);
+      const alias = host.startsWith("www.") ? host.slice(4) : `www.${host}`;
+      if (alias.length > 0) {
+        hosts.add(alias);
+      }
     }
   }
 
@@ -117,7 +121,16 @@ export function isSameOriginAdminRequest(request: RequestLike) {
     ?? request.headers.get("host"),
   );
 
-  if (!configuredHost || hostHeader !== configuredHost) {
+  if (!configuredHost || !hostHeader) {
+    return false;
+  }
+
+  const configuredHostAliases = new Set<string>([
+    configuredHost,
+    configuredHost.startsWith("www.") ? configuredHost.slice(4) : `www.${configuredHost}`,
+  ]);
+
+  if (!configuredHostAliases.has(hostHeader)) {
     return false;
   }
 

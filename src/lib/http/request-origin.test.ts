@@ -33,6 +33,18 @@ test("buildAbsoluteUrl accepts configured forwarded host", async () => {
   assert.equal(buildAbsoluteUrl(request, "/admin").href, "https://ppstudio.cz/admin");
 });
 
+test("buildAbsoluteUrl accepts www alias of configured forwarded host", async () => {
+  const { buildAbsoluteUrl } = await import("./request-origin");
+  const request = new Request("https://internal.example/api/auth/login", {
+    headers: {
+      "x-forwarded-host": "www.ppstudio.cz",
+      "x-forwarded-proto": "https",
+    },
+  });
+
+  assert.equal(buildAbsoluteUrl(request, "/admin").href, "https://www.ppstudio.cz/admin");
+});
+
 test("buildAbsoluteUrl falls back to canonical origin for untrusted request host", async () => {
   const { buildAbsoluteUrl } = await import("./request-origin");
   const request = new Request("https://evil.example/admin/rezervace");
@@ -79,4 +91,17 @@ test("isSameOriginAdminRequest rejects missing origin", async () => {
   });
 
   assert.equal(isSameOriginAdminRequest(request), false);
+});
+
+test("isSameOriginAdminRequest accepts www alias host for configured origin", async () => {
+  const { isSameOriginAdminRequest } = await import("./request-origin");
+  const request = new Request("https://www.example.com/api/admin/users/resend-invite", {
+    method: "POST",
+    headers: {
+      host: "www.example.com",
+      origin: "https://example.com",
+    },
+  });
+
+  assert.equal(isSameOriginAdminRequest(request), true);
 });

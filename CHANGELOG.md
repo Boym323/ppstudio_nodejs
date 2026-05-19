@@ -6,6 +6,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 - Matomo tracking se nově automaticky vypíná pro přihlášené adminy i na veřejných stránkách: `SiteShell` server-side kontroluje cookie `ppstudio-admin-session` a `MatomoTracker` v tom případě nenačte init script ani `matomo.js`.
+- Opraven admin prefetch CORS regres: trusted host validace pro `buildAbsoluteUrl(...)` a same-origin admin kontrolu teď bere bezpečně i aliasy `apex <-> www`, takže RSC prefetch na `/admin/*?_rsc=...` při redirectu neskončí na cross-origin `Fetch API cannot load ... due to access control checks`.
 
 ## [0.3.12] - 2026-05-18
 
