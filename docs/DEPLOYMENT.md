@@ -62,6 +62,7 @@ Postup nasazení aplikace do produkce.
      - veřejná stránka načte `matomo.js`
      - klientská navigace po veřejných stránkách odešle další pageview bez duplicitního prvního pageview
      - `/admin`, `/api` a Next internals tracking nespustí
+     - při přihlášené admin session (`ppstudio-admin-session`) se na veřejných stránkách nenačte `matomo.js` ani init script
      - tokenové route `/rezervace/sprava/*`, `/rezervace/storno/*`, `/rezervace/akce/*` neodešlou pageview s tokenem
      - booking funnel odešle eventy bez jména, e-mailu, telefonu, poznámky nebo tokenu
      - veřejná rezervace uloží telefon `777 123 456` jako `+420777123456`, zobrazí ho v adminu čitelně a odmítne textový/HTML telefon s uživatelskou hláškou

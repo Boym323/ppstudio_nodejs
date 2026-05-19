@@ -5,6 +5,7 @@ Všechny důležité změny v tomto projektu se zapisují do tohoto souboru.
 Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
+- Matomo tracking se nově automaticky vypíná pro přihlášené adminy i na veřejných stránkách: `SiteShell` server-side kontroluje cookie `ppstudio-admin-session` a `MatomoTracker` v tom případě nenačte init script ani `matomo.js`.
 
 ## [0.3.12] - 2026-05-18
 

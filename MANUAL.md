@@ -92,7 +92,7 @@ Detailní seznam všech env proměnných je v [`docs/ENVIRONMENT.md`](/var/www/p
 
 ## Aktuální Stav Projektu
 - Projekt běží na Next.js 16 App Routeru se strukturou oddělenou na public web, booking a admin.
-- Veřejný shell (`SiteShell`) inicializuje volitelný Matomo tracking přes `NEXT_PUBLIC_MATOMO_ENABLED`, `NEXT_PUBLIC_MATOMO_URL` a `NEXT_PUBLIC_MATOMO_SITE_ID`; admin route group tracking komponentu nepoužívá.
+- Veřejný shell (`SiteShell`) inicializuje volitelný Matomo tracking přes `NEXT_PUBLIC_MATOMO_ENABLED`, `NEXT_PUBLIC_MATOMO_URL` a `NEXT_PUBLIC_MATOMO_SITE_ID`; admin route group tracking komponentu nepoužívá a při přítomné admin session cookie `ppstudio-admin-session` Matomo nenačítá ani na veřejných stránkách.
 - Web Vitals tracking má vlastní klientský feature flag `NEXT_PUBLIC_WEB_VITALS_ENABLED` (default `true`), takže měření lze vypnout nezávisle na pageview/event trackingu v Matomo.
 - Matomo skript na veřejném webu je záměrně odložený přes `lazyOnload`, aby se homepage nejdřív vykreslila s minimem klientské práce na hlavním vlákně.
 - Homepage hero preferuje jako LCP kandidát logo: je preloadované přes `next/image`, zatímco portrait běží bez priority, aby první vykreslení nebylo bržděné konkurenčním načítáním.

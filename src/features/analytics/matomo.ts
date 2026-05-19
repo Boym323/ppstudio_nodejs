@@ -63,6 +63,17 @@ export function shouldInitializeMatomo(pathname: string) {
   );
 }
 
+type ShouldInitializeMatomoTrackingOptions = {
+  disabled?: boolean;
+};
+
+export function shouldInitializeMatomoTracking(
+  pathname: string,
+  options?: ShouldInitializeMatomoTrackingOptions,
+) {
+  return !options?.disabled && shouldInitializeMatomo(pathname);
+}
+
 export function buildSafeMatomoPath(pathname: string, searchParams?: SearchParamsLike | null) {
   if (pathname.startsWith("/rezervace/sprava/")) {
     return "/rezervace/sprava/[token]";

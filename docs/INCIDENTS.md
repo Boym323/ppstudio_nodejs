@@ -55,6 +55,7 @@ Evidence produkčních incidentů a jejich řešení.
 - Právní stránka `/obchodni-podminky` ponechaná v draft nebo placeholder režimu; po release musí působit jako finální provozní dokument, ne jako interní návrh.
 - Nefunkční CTA odkazy mezi veřejným webem a rezervační částí.
 - Chybně zapnutý nebo rozbitý Matomo tracking, který by posílal admin nebo tokenové URL, duplicitní první pageview, PII v event name, nebo by chybou `_paq` ovlivnil booking flow; helper musí zůstat bezpečný no-op.
+- Přihlášený admin otevře veřejný web a Matomo se přesto načte; po změnách `SiteShell`/auth cookie vždy ověř, že při `ppstudio-admin-session` se `MatomoTracker` renderuje `disabled` a `matomo.js` se vůbec nenačte.
 - Rozbitý server-side Matomo dashboard reporting kvůli chybějícímu `MATOMO_AUTH_TOKEN`, špatnému `MATOMO_SITE_ID`, nedostupnému Reporting API nebo omylem veřejně vystavenému tokenu; UI má zůstat na nulových fallback hodnotách a token nesmí mít prefix `NEXT_PUBLIC_`.
 - Regrese admin dashboardu zpět do analyticky přeplněného pohledu: hlavní obrazovka má zůstat denní provozní cockpit a detailní zdroje návštěv nebo funnel mají být schované až v rozbalení `Zobrazit analytiku`.
 - Endpoint `/api/admin/analytics` omylem dostupný bez admin session nebo vracející detailní payload z Matomo; endpoint smí vracet jen agregovaná dashboard čísla bez PII a bez `token_auth`.

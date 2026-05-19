@@ -8,16 +8,20 @@ import {
   buildSafeMatomoPath,
   isMatomoConfigured,
   normalizeMatomoUrl,
-  shouldInitializeMatomo,
+  shouldInitializeMatomoTracking,
   shouldTrackMatomoPath,
 } from "./matomo";
 
-export function MatomoTracker() {
+type MatomoTrackerProps = {
+  disabled?: boolean;
+};
+
+export function MatomoTracker({ disabled = false }: MatomoTrackerProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const matomoUrl = process.env.NEXT_PUBLIC_MATOMO_URL;
   const siteId = process.env.NEXT_PUBLIC_MATOMO_SITE_ID;
-  const shouldInitialize = isMatomoConfigured() && shouldInitializeMatomo(pathname);
+  const shouldInitialize = isMatomoConfigured() && shouldInitializeMatomoTracking(pathname, { disabled });
   const shouldTrackPageview = shouldTrackMatomoPath(pathname);
   const initialPathname = useRef(pathname);
   const initialScriptTrackedPageview = useRef(shouldTrackPageview);
