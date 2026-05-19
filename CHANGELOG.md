@@ -5,6 +5,10 @@ Všechny důležité změny v tomto projektu se zapisují do tohoto souboru.
 Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
+
+## [0.3.13] - 2026-05-19
+
+- Release příprava pro produkční nasazení: projektová verze navýšena na patch `0.3.13`.
 - Matomo event taxonomy je sjednocená do češtiny: booking funnel a CTA eventy na veřejném webu i self-service správě rezervace nově používají názvy `Rezervace / ...` a dashboard reporting mapuje nové české labely se zpětnou kompatibilitou na starší anglické eventy.
 - Dokumentace analytics byla aktualizovaná o pravidlo, že nové Matomo eventy se mají pojmenovávat primárně česky (s výjimkou standardních technických termínů typu `Web Vitals`).
 - Rezervační kontaktní krok nově sleduje neosobní interakce s poli (`Kontakt pole fokus`, `Kontakt pole vyplnění začátek`, `Kontakt pole chyba`) a event `Rezervace / Kontakt zahájen` se nově spouští až při první interakci s kontaktním polem, ne už při výběru času.
