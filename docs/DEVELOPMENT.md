@@ -30,6 +30,10 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - `src/lib/email/**/*.ts`
 - Report generuje formáty `text-summary`, `html`, `lcov` a `json-summary`, takže se hodí jak pro lokální čtení, tak pro CI artefakty.
 - Coverage běh nezapíná `RUN_DB_INTEGRATION_TESTS=1`; díky tomu měří hlavně unit/business logiku a nespadne na prostředí bez lokální databáze. Plnou DB vrstvu dál ověřuje standardní `npm test`.
+- Pro rychlé navyšování coverage v admin vrstvě používej samostatné `*.test.ts` i pro akční state moduly (`src/features/admin/actions/*action-state.ts`), protože i tyto server action kontrakty jsou součástí veřejného chování UI formulářů.
+- U server actions v `src/features/admin/actions/*.ts` prioritně pokrývej validační early-return větve (invalid form payload) bez DB přístupu; je to stabilní low-flake vrstva, která rychle zavírá velké coverage mezery.
+- Stejný postup používej i pro `service-category-actions`: validační větve `create/update` vrací strukturovaný action state ještě před auth/DB, takže jsou vhodné pro rychlé unit testy s vysokým poměrem přínos/údržba.
+- Pro `booking-public/engine.ts` drž minimálně unit coverage early-fail větví bez DB závislostí (`invalid startsAt`, `invalid phone`), aby základní validační guardy nešly regresí obejít.
 
 ## Lokální setup workflow
 - Výchozí pořadí pro nový stroj nebo čistý checkout je:

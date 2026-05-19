@@ -6,6 +6,13 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Test coverage batch rozšířen o nové unit testy pro `admin action-state` moduly a early-fail validace v `booking-public/engine` (neplatný `startsAt`, neplatný telefon), aby se zvedlo pokrytí kritických low-coverage oblastí.
+- `npm run test:coverage` po doplnění testů: `Statements 29.22%` (6451/22073), `Branches 72.31%` (948/1311), `Functions 63.98%` (524/819), `Lines 29.22%` (6451/22073).
+- Test coverage batch 2 doplnil validační unit testy pro server actions (`client-actions`, `service-actions`, `booking-actions`, `settings-actions`) nad early error větvemi bez DB přístupu.
+- `npm run test:coverage` po batch 2: `Statements 33.04%` (7294/22073), `Branches 69.27%` (1035/1494), `Functions 62.72%` (589/939), `Lines 33.04%` (7294/22073).
+- Test coverage batch 3 rozšířil validační unit testy o `service-category-actions` (`createServiceCategoryAction`, `updateServiceCategoryAction`) pro malformed/incomplete payload větve před auth/DB.
+- `npm run test:coverage` po batch 3: `Statements 34.20%` (7551/22073), `Branches 68.88%` (1056/1533), `Functions 62.02%` (606/977), `Lines 34.20%` (7551/22073).
+
 ## [0.3.13] - 2026-05-19
 
 - Release příprava pro produkční nasazení: projektová verze navýšena na patch `0.3.13`.

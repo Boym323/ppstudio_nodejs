@@ -37,6 +37,9 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
   - LCOV data v `coverage/lcov.info`
   - strojově čitelný souhrn v `coverage/coverage-summary.json`
 - Coverage běh je záměrně bez `RUN_DB_INTEGRATION_TESTS=1`, takže reprezentuje hlavně unit/business vrstvu; databázové integrační testy dál ověřuje samostatný `npm test`.
+- Aktuální testovací batch (2026-05-19) doplnil unit testy pro `src/features/admin/actions/*action-state.ts` a early-fail validace v `src/features/booking/lib/booking-public/engine.ts` (`invalid startsAt`, `invalid phone`), aby se zlepšilo pokrytí nejnižších oblastí.
+- Navazující batch (2026-05-19) přidal validační unit testy pro server actions v `src/features/admin/actions/actions-validation.test.ts` (invalid form payloady pro `client-actions`, `service-actions`, `booking-actions`, `settings-actions`) a zvýšil coverage především v `admin/actions`.
+- Další rozšíření stejného validačního test souboru přidalo i pokrytí pro `service-category-actions` (`createServiceCategoryAction`, `updateServiceCategoryAction`) nad chybnými payloady, aby se dál zvedlo coverage v admin action vrstvě bez DB flaky závislostí.
 
 ## Setup projektu krok za krokem
 1. Připrav Node.js 20+, npm 10+ a PostgreSQL 15+.
