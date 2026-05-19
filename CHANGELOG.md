@@ -5,6 +5,10 @@ Všechny důležité změny v tomto projektu se zapisují do tohoto souboru.
 Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
+- Matomo event taxonomy je sjednocená do češtiny: booking funnel a CTA eventy na veřejném webu i self-service správě rezervace nově používají názvy `Rezervace / ...` a dashboard reporting mapuje nové české labely se zpětnou kompatibilitou na starší anglické eventy.
+- Dokumentace analytics byla aktualizovaná o pravidlo, že nové Matomo eventy se mají pojmenovávat primárně česky (s výjimkou standardních technických termínů typu `Web Vitals`).
+- Rezervační kontaktní krok nově sleduje neosobní interakce s poli (`Kontakt pole fokus`, `Kontakt pole vyplnění začátek`, `Kontakt pole chyba`) a event `Rezervace / Kontakt zahájen` se nově spouští až při první interakci s kontaktním polem, ne už při výběru času.
+- Admin analytics widget má nově mini sekci `Kvalita kontaktního kroku` (`zahájeno`, `fokus pole`, `začátek vyplnění`, `chyba pole`) a procenta počítaná vůči `Kontakt zahájen` z API payloadu `contactStepQuality`.
 - Matomo tracking se nově automaticky vypíná pro přihlášené adminy i na veřejných stránkách: `SiteShell` server-side kontroluje cookie `ppstudio-admin-session` a `MatomoTracker` v tom případě nenačte init script ani `matomo.js`.
 - Opraven admin prefetch CORS regres: trusted host validace pro `buildAbsoluteUrl(...)` a same-origin admin kontrolu teď bere bezpečně i aliasy `apex <-> www`, takže RSC prefetch na `/admin/*?_rsc=...` při redirectu neskončí na cross-origin `Fetch API cannot load ... due to access control checks`.
 
@@ -326,7 +330,7 @@ Formát je inspirovaný Keep a Changelog.
 - Přidána JSON-LD strukturovaná data pro salon (`BeautySalon`/`WebSite`) a detail služby (`Service`/`BreadcrumbList`); veřejné noindex ověření voucheru už není blokované v `robots.txt`, aby si robot mohl přečíst `noindex`.
 - Veřejný katalog služeb a sitemap nově vynechávají aktivní/bookable služby bez veřejného obsahu, takže se do indexovatelných URL nedostanou technické nebo rozpracované záznamy.
 - Stabilizován Playwright scénář self-service přesunu po runtime kolizi: test po výběru náhradního slotu čeká na potvrzený `aria-pressed` stav i změnu hidden `newStartAt`, takže v CI neposílá omylem původní kolidující termín.
-- Admin dashboard widget `Návštěvnost → rezervace` je přepracovaný na poctivější denní business přehled: KPI rezervací teď používá stejný event `Booking / Created` jako funnel, zdroje jsou označené jako návštěvní zdroje s odhadem rezervací a funnel ukazuje procenta mezi kroky.
+- Admin dashboard widget `Návštěvnost → rezervace` je přepracovaný na poctivější denní business přehled: KPI rezervací teď používá stejný event `Rezervace / Vytvořena` jako funnel, zdroje jsou označené jako návštěvní zdroje s odhadem rezervací a funnel ukazuje procenta mezi kroky.
 - Mobilní admin planner `/admin/volne-terminy` už po výběru buňky správně přepíná dny, ukazuje všech 7 dní týdne bez schovaného horizontálního posunu, nemá horizontální scroll v editoru dne, buňky mají větší dotykovou plochu a čitelné accessible labely s časem a stavem.
 - Admin detail rezervace už při načítání reschedule slotů nepočítá celý veřejný katalog služeb: `getAdminBookingDetailData` nově volá `getPublicBookingCatalog({ includeServices: false })`, takže detail nepadá na cizí nekonzistenci v mapování `service.category.name` mimo svůj use-case.
 - Voucher mutace už nejsou exportované z `"use server"` doménového modulu: tvorba/validace/uplatnění se přesunuly do `src/features/vouchers/lib/voucher-management.ts` a veřejně volatelné server actions zůstávají jen v admin wrappers s explicitní autorizací.
@@ -398,7 +402,7 @@ Formát je inspirovaný Keep a Changelog.
 - Veřejná stránka `/rezervace/sprava/[token]` prošla UX refaktorem změny termínu: nový tok začíná kontextem a aktuální rezervací, pokračuje hybridním výběrem `nejbližší termíny + kalendář`, po výběru času scrolluje na potvrzení a storno odsouvá na konec jako slabý odkaz.
 - Self-service výběr termínu je mobilně kompaktnější: sloty jsou ve dvou sloupcích, kalendář má zvýrazněné dostupné dny, vybraný čas je ve sticky spodním souhrnu a potvrzení zůstává jedinou dominantní CTA.
 - Success stav po self-service přesunu už není jedna dlouhá věta přes široký panel; původní a nový termín se zobrazují jako dvě zarovnané souhrnné položky.
-- Tokenové booking route dál neposílají Matomo pageview s tokenem, ale Matomo se na veřejném shellu umí inicializovat kvůli bezpečným self-service eventům `Booking / Date selected` a `Booking / Time selected` bez PII a bez volání při renderu.
+- Tokenové booking route dál neposílají Matomo pageview s tokenem, ale Matomo se na veřejném shellu umí inicializovat kvůli bezpečným self-service eventům `Rezervace / Datum vybráno` a `Rezervace / Čas vybrán` bez PII a bez volání při renderu.
 - Všechny booking e-mailové šablony v `src/lib/email/templates.ts` jsou sjednocené do jednoho email-safe design systému: 600px shell, inline styly, tabulkové karty, jednotný detail `služba / datum / čas`, pevná adresa `PP Studio, Sadová 2, 760 01 Zlín`, jeden kontaktní blok a čitelný formát času `09:30 – 10:30`.
 - Klientské šablony `booking-confirmation-v1`, `booking-approved-v1`, `booking-reminder-24h-v1`, `booking-rescheduled-v1`, `booking-cancelled-v1` a `booking-rejected-v1` mají klidnější stručné text/plain i HTML varianty bez duplicitních vět o pomoci; reminder už neobsahuje samostatné CTA `Ozvat se studiu` a kontakt se zobrazuje pouze jednou.
 - CTA hierarchie e-mailů je sjednocená: klientské změny/storna jsou sekundární nebo textové odkazy, destruktivní akce používají tlumený danger-light styl a `admin-booking-notification-v1` drží jedinou primární akci `Potvrdit rezervaci`.
@@ -415,7 +419,7 @@ Formát je inspirovaný Keep a Changelog.
 - Veřejný success screen po vytvoření rezervace je nově čisté uklidňující potvrzení: zachovává hero `Rezervace přijata`, stav `Čeká na finální potvrzení`, detail služby / data / času a stručně říká, co se stane dál.
 - Z confirmation panelu byl odstraněn blok `Potřebujete změnu?` včetně CTA `Změnit termín` a `Zrušit rezervaci`; post-submit obrazovka už nepůsobí jako další krok flow.
 - Intro rezervační stránky `Vyberte si termín...` se už po úspěšném submitu nezobrazuje nad confirmation panelem; zůstává jen v aktivním výběru termínu.
-- Confirmation panel doplnil krátký uklidňující blok `Termín je pro vás nyní rezervovaný...`, kontakt `Potřebujete pomoc?` zůstal poslední a Matomo event `Booking / Created` dál odchází pouze z `BookingFlow` po úspěšném submitu přes `createdBookingTrackedRef`.
+- Confirmation panel doplnil krátký uklidňující blok `Termín je pro vás nyní rezervovaný...`, kontakt `Potřebujete pomoc?` zůstal poslední a Matomo event `Rezervace / Vytvořena` dál odchází pouze z `BookingFlow` po úspěšném submitu přes `createdBookingTrackedRef`.
 
 - Provozní e-mail o nové rezervaci je zkrácený na rozhodovací obsah `služba / termín / klientka / kontakt / rychlé akce` a už neobsahuje dlouhé vysvětlování bezpečnostního mezikroku.
 - Tlačítka v admin notifikaci jsou nově skládaná pod sebe přes email-safe tabulkové CTA, používají Arial/Helvetica bez letter-spacing a mají jasnou hierarchii `Potvrdit rezervaci` jako primary, `Přesunout termín` a `Otevřít v administraci` jako secondary a `Zrušit rezervaci` jako danger-light.

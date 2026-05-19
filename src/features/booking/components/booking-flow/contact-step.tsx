@@ -25,6 +25,7 @@ type BookingContactStepProps = {
   onPhoneChange: (value: string) => void;
   onClientNoteChange: (value: string) => void;
   onVoucherCodeChange: (value: string) => void;
+  onFieldFocus: (field: ContactFieldKey) => void;
   onFieldBlur: (field: ContactFieldKey) => void;
 };
 
@@ -47,6 +48,7 @@ export function BookingContactStep({
   onPhoneChange,
   onClientNoteChange,
   onVoucherCodeChange,
+  onFieldFocus,
   onFieldBlur,
 }: BookingContactStepProps) {
   const fullNameError = getDisplayedFieldError("fullName");
@@ -100,6 +102,7 @@ export function BookingContactStep({
             ref={firstContactInputRef}
             name="fullName"
             value={fullName}
+            onFocus={() => onFieldFocus("fullName")}
             onBlur={() => onFieldBlur("fullName")}
             onChange={(event) => onFullNameChange(event.target.value)}
             aria-describedby={cn(
@@ -152,6 +155,7 @@ export function BookingContactStep({
             name="email"
             type="email"
             value={email}
+            onFocus={() => onFieldFocus("email")}
             onBlur={() => onFieldBlur("email")}
             onChange={(event) => onEmailChange(event.target.value)}
             aria-describedby={cn(
@@ -184,6 +188,7 @@ export function BookingContactStep({
             name="phone"
             type="tel"
             value={phone}
+            onFocus={() => onFieldFocus("phone")}
             onBlur={() => onFieldBlur("phone")}
             onChange={(event) => onPhoneChange(event.target.value)}
             placeholder="777 123 456"

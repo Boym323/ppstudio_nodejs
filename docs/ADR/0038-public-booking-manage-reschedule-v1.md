@@ -15,7 +15,7 @@ Admin detail rezervace už má centrální doménovou akci `rescheduleBooking(..
 - Backend coverage validace nesmí slepě odmítnout původní/preferovaný `slotId`, pokud nový začátek reálně leží v předchozím navazujícím segmentu; musí ověřit souvislý řetězec publikovaných slotů a kapacitu bez aktuální rezervace jako konfliktu.
 - Audit zůstává v `BookingRescheduleLog`, ale veřejný flow zapisuje `changedByClient = true` a `changedByUserId = null`.
 - Reminder, confirmation a reschedule e-maily nově generují bezpečný manage link `Změnit termín`; do DB se ukládá jen hash tokenu.
-- Matomo na tokenové manage route neposílá pageview s tokenem, ale klientské handlery mohou poslat neosobní eventy `Booking / Date selected` a `Booking / Time selected`.
+- Matomo na tokenové manage route neposílá pageview s tokenem, ale klientské handlery mohou poslat neosobní eventy `Rezervace / Datum vybráno` a `Rezervace / Čas vybrán`.
 
 ## Alternativy
 

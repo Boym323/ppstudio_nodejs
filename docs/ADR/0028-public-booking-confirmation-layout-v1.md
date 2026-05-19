@@ -31,7 +31,7 @@ Nešlo o změnu business logiky rezervace, ale o přepracování informačního 
 - Akční sekce `Potřebujete změnu?` byla odstraněná včetně CTA `Změnit termín` a `Zrušit rezervaci`; success screen má působit jako potvrzení a uzavření flow.
 - Pod blokem `Co bude následovat` je krátké uklidnění, že termín je nyní rezervovaný a klientka nemusí dělat další kroky.
 - Referenční kód se na confirmation screenu nezobrazuje, protože booking model nemá samostatný klientsky používaný reference-code atribut; interní `bookingId` se klientce neukazuje.
-- Matomo event `Booking / Created` zůstává v `BookingFlow` po success submitu a je chráněný `createdBookingTrackedRef`, takže confirmation panel neposílá další duplicitní event.
+- Matomo event `Rezervace / Vytvořena` zůstává v `BookingFlow` po success submitu a je chráněný `createdBookingTrackedRef`, takže confirmation panel neposílá další duplicitní event.
 
 ## Důsledky
 

@@ -16,6 +16,11 @@ import { BookingConfirmationPanel } from "./booking-confirmation-panel";
 import { StickyCTA } from "./sticky-cta";
 import { BookingContactStep } from "./booking-flow/contact-step";
 import {
+  shouldTrackContactFieldError,
+  shouldTrackContactFieldInput,
+  shouldTrackFirstContactFieldEvent,
+} from "./booking-flow/contact-analytics";
+import {
   buildContactFieldErrors,
   EMPTY_TIME_SLOTS,
   findInitialSelectedService,
@@ -74,6 +79,9 @@ export function BookingFlow({ catalog, initialSelectedServiceSlug, salonProfile 
   const contactStepFocusTimeoutRef = useRef<number | null>(null);
   const createdBookingTrackedRef = useRef(false);
   const contactStartedTrackedRef = useRef(false);
+  const trackedContactFocusFieldsRef = useRef<Set<ContactFieldKey>>(new Set());
+  const trackedContactInputFieldsRef = useRef<Set<ContactFieldKey>>(new Set());
+  const trackedContactErrorFieldsRef = useRef<Set<ContactFieldKey>>(new Set());
 
   const focusSection = (
     sectionElement: HTMLDivElement | null,
@@ -470,6 +478,9 @@ export function BookingFlow({ catalog, initialSelectedServiceSlug, salonProfile 
     setSelectedDateKey("");
     setVisibleMonthKey("");
     contactStartedTrackedRef.current = false;
+    trackedContactFocusFieldsRef.current.clear();
+    trackedContactInputFieldsRef.current.clear();
+    trackedContactErrorFieldsRef.current.clear();
   };
 
   const getSelectedServiceEventName = () => {
@@ -492,7 +503,35 @@ export function BookingFlow({ catalog, initialSelectedServiceSlug, salonProfile 
     }
 
     contactStartedTrackedRef.current = true;
-    trackMatomoEvent("Booking", "Contact started", eventName);
+    trackMatomoEvent("Rezervace", "Kontakt zahájen", eventName);
+  };
+
+  const trackContactFieldFocus = (field: ContactFieldKey) => {
+    trackContactStarted();
+
+    if (!shouldTrackFirstContactFieldEvent(trackedContactFocusFieldsRef.current, field)) {
+      return;
+    }
+
+    trackMatomoEvent("Rezervace", "Kontakt pole fokus", field);
+  };
+
+  const trackContactFieldInput = (field: ContactFieldKey, value: string) => {
+    trackContactStarted();
+
+    if (!shouldTrackContactFieldInput(trackedContactInputFieldsRef.current, field, value)) {
+      return;
+    }
+
+    trackMatomoEvent("Rezervace", "Kontakt pole vyplnění začátek", field);
+  };
+
+  const trackContactFieldError = (field: ContactFieldKey) => {
+    if (!shouldTrackContactFieldError(trackedContactErrorFieldsRef.current, field, Boolean(clientFieldErrors[field]))) {
+      return;
+    }
+
+    trackMatomoEvent("Rezervace", "Kontakt pole chyba", field);
   };
 
   const selectSlot = (slotOption: TimeSlotOption) => {
@@ -506,14 +545,13 @@ export function BookingFlow({ catalog, initialSelectedServiceSlug, salonProfile 
     setSelectedDateKey(dateKey);
     setSelectedTimeOptionKey(slotOption.key);
     setCurrentStep(3);
-    trackMatomoEvent("Booking", "Date selected", dateKey);
+    trackMatomoEvent("Rezervace", "Datum vybráno", dateKey);
     trackMatomoEvent(
-      "Booking",
-      "Time selected",
+      "Rezervace",
+      "Čas vybrán",
       `${formatSlotTime(slotOption.startsAt)} / ${formatSlotTime(slotOption.endsAt)}`,
       durationMinutes,
     );
-    trackContactStarted();
     focusContactStepSection();
   };
 
@@ -539,8 +577,8 @@ export function BookingFlow({ catalog, initialSelectedServiceSlug, salonProfile 
 
     createdBookingTrackedRef.current = true;
     trackMatomoEvent(
-      "Booking",
-      "Created",
+      "Rezervace",
+      "Vytvořena",
       selectedService?.name ?? serverState.confirmation.serviceName,
       selectedService?.priceFromCzk ?? undefined,
     );
@@ -617,8 +655,8 @@ export function BookingFlow({ catalog, initialSelectedServiceSlug, salonProfile 
                 resetServiceDependentSelection();
                 setCurrentStep(2);
                 trackMatomoEvent(
-                  "Booking",
-                  "Service selected",
+                  "Rezervace",
+                  "Služba vybrána",
                   service ? `${service.categoryName} / ${service.name}` : undefined,
                   service?.priceFromCzk ?? undefined,
                 );
@@ -645,7 +683,6 @@ export function BookingFlow({ catalog, initialSelectedServiceSlug, salonProfile 
               slotError={serverState.fieldErrors?.slotId ?? serverState.fieldErrors?.startsAt}
               onContinue={() => {
                 setCurrentStep(3);
-                trackContactStarted();
                 focusContactStepSection();
               }}
               onReturnToServiceSelection={() => {
@@ -655,7 +692,7 @@ export function BookingFlow({ catalog, initialSelectedServiceSlug, salonProfile 
               onSlotSelect={selectSlot}
               onSelectDate={(dateKey) => {
                 setSelectedDateKey(dateKey);
-                trackMatomoEvent("Booking", "Date selected", dateKey);
+                trackMatomoEvent("Rezervace", "Datum vybráno", dateKey);
                 if (selectedSlotDateKey && selectedSlotDateKey !== dateKey) {
                   setSelectedTimeOptionKey("");
                 }
@@ -693,13 +730,24 @@ export function BookingFlow({ catalog, initialSelectedServiceSlug, salonProfile 
               }
               getDisplayedFieldError={getDisplayedFieldError}
               onShowSummary={goToSummary}
-              onFullNameChange={setFullName}
-              onEmailChange={setEmail}
-              onPhoneChange={setPhone}
+              onFullNameChange={(value) => {
+                setFullName(value);
+                trackContactFieldInput("fullName", value);
+              }}
+              onEmailChange={(value) => {
+                setEmail(value);
+                trackContactFieldInput("email", value);
+              }}
+              onPhoneChange={(value) => {
+                setPhone(value);
+                trackContactFieldInput("phone", value);
+              }}
               onClientNoteChange={setClientNote}
               onVoucherCodeChange={setVoucherCode}
+              onFieldFocus={trackContactFieldFocus}
               onFieldBlur={(field) => {
                 setTouchedFields((current) => ({ ...current, [field]: true }));
+                trackContactFieldError(field);
               }}
             />
           </div>

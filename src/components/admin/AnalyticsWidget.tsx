@@ -23,6 +23,15 @@ export type AnalyticsDashboardData = {
     time: number;
     created: number;
   };
+  contactStepQuality: {
+    started: number;
+    fieldFocus: number;
+    fieldInputStarted: number;
+    fieldError: number;
+    focusRate: number;
+    inputRate: number;
+    errorRate: number;
+  };
 };
 
 type AnalyticsWidgetProps = {
@@ -41,19 +50,24 @@ const percentFormatter = new Intl.NumberFormat("cs-CZ", {
   maximumFractionDigits: 2,
 });
 
-function isAnalyticsDashboardData(value: unknown): value is AnalyticsDashboardData {
+export function isAnalyticsDashboardData(value: unknown): value is AnalyticsDashboardData {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return false;
   }
 
   const candidate = value as Record<string, unknown>;
   const funnel = candidate.funnel;
+  const contactStepQuality = candidate.contactStepQuality;
 
   if (!funnel || typeof funnel !== "object" || Array.isArray(funnel)) {
     return false;
   }
+  if (!contactStepQuality || typeof contactStepQuality !== "object" || Array.isArray(contactStepQuality)) {
+    return false;
+  }
 
   const funnelCandidate = funnel as Record<string, unknown>;
+  const contactStepQualityCandidate = contactStepQuality as Record<string, unknown>;
 
   return (
     Number.isFinite(candidate.visits) &&
@@ -76,7 +90,14 @@ function isAnalyticsDashboardData(value: unknown): value is AnalyticsDashboardDa
     Number.isFinite(funnelCandidate.service) &&
     Number.isFinite(funnelCandidate.date) &&
     Number.isFinite(funnelCandidate.time) &&
-    Number.isFinite(funnelCandidate.created)
+    Number.isFinite(funnelCandidate.created) &&
+    Number.isFinite(contactStepQualityCandidate.started) &&
+    Number.isFinite(contactStepQualityCandidate.fieldFocus) &&
+    Number.isFinite(contactStepQualityCandidate.fieldInputStarted) &&
+    Number.isFinite(contactStepQualityCandidate.fieldError) &&
+    Number.isFinite(contactStepQualityCandidate.focusRate) &&
+    Number.isFinite(contactStepQualityCandidate.inputRate) &&
+    Number.isFinite(contactStepQualityCandidate.errorRate)
   );
 }
 
@@ -257,6 +278,24 @@ export function AnalyticsWidget({
                   <FunnelStep label="Datum" value={state.data.funnel.date} />
                   <FunnelStep label="Čas" value={state.data.funnel.time} />
                   <FunnelStep label="Rezervace" value={state.data.funnel.created} />
+                </div>
+
+                <div className="space-y-2 rounded-lg border border-white/8 bg-black/18 p-3">
+                  <p className="text-sm font-medium text-white">Kvalita kontaktního kroku</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <AnalyticsMetric label="zahájeno" value={formatNumber(state.data.contactStepQuality.started)} />
+                    <AnalyticsMetric label="fokus pole" value={formatNumber(state.data.contactStepQuality.fieldFocus)} />
+                    <AnalyticsMetric
+                      label="začátek vyplnění"
+                      value={formatNumber(state.data.contactStepQuality.fieldInputStarted)}
+                    />
+                    <AnalyticsMetric label="chyba pole" value={formatNumber(state.data.contactStepQuality.fieldError)} />
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <AnalyticsMetric label="fokus %" value={formatPercent(state.data.contactStepQuality.focusRate)} />
+                    <AnalyticsMetric label="vyplnění %" value={formatPercent(state.data.contactStepQuality.inputRate)} />
+                    <AnalyticsMetric label="chyba %" value={formatPercent(state.data.contactStepQuality.errorRate)} />
+                  </div>
                 </div>
               </div>
             </details>

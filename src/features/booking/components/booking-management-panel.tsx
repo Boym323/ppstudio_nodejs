@@ -318,7 +318,7 @@ export function BookingManagementPanel({
     }
 
     lastTrackedDateRef.current = dateKey;
-    trackMatomoEvent("Booking", "Date selected", dateKey);
+    trackMatomoEvent("Rezervace", "Datum vybráno", dateKey);
   };
 
   const trackTimeSelected = (slot: TimeSlotOption) => {
@@ -329,7 +329,7 @@ export function BookingManagementPanel({
     }
 
     lastTrackedTimeRef.current = `${slot.slotId}:${slot.startsAt}`;
-    trackMatomoEvent("Booking", "Time selected", eventName);
+    trackMatomoEvent("Rezervace", "Čas vybrán", eventName);
   };
 
   const selectDate = (dateKey: string) => {

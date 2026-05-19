@@ -33,6 +33,15 @@ export type DashboardAnalytics = {
     time: number;
     created: number;
   };
+  contactStepQuality: {
+    started: number;
+    fieldFocus: number;
+    fieldInputStarted: number;
+    fieldError: number;
+    focusRate: number;
+    inputRate: number;
+    errorRate: number;
+  };
 };
 
 const MATOMO_REVALIDATE_SECONDS = 300;
@@ -51,13 +60,36 @@ const DEFAULT_DASHBOARD_ANALYTICS: DashboardAnalytics = {
     time: 0,
     created: 0,
   },
+  contactStepQuality: {
+    started: 0,
+    fieldFocus: 0,
+    fieldInputStarted: 0,
+    fieldError: 0,
+    focusRate: 0,
+    inputRate: 0,
+    errorRate: 0,
+  },
 };
 
 const bookingFunnelLabels = {
-  service: "Booking / Service selected",
-  date: "Booking / Date selected",
-  time: "Booking / Time selected",
-  created: "Booking / Created",
+  service: "Rezervace / Služba vybrána",
+  date: "Rezervace / Datum vybráno",
+  time: "Rezervace / Čas vybrán",
+  created: "Rezervace / Vytvořena",
+} as const;
+
+const bookingFunnelLegacyAliases = {
+  service: ["Booking / Service selected"],
+  date: ["Booking / Date selected"],
+  time: ["Booking / Time selected"],
+  created: ["Booking / Created"],
+} as const;
+
+const bookingContactQualityLabels = {
+  started: "Rezervace / Kontakt zahájen",
+  fieldFocus: "Rezervace / Kontakt pole fokus",
+  fieldInputStarted: "Rezervace / Kontakt pole vyplnění začátek",
+  fieldError: "Rezervace / Kontakt pole chyba",
 } as const;
 
 type MatomoMethod =
@@ -198,11 +230,12 @@ async function fetchMatomoJson(method: MatomoMethod) {
   return payload;
 }
 
-function getEventCount(events: MatomoEvent[], fullLabel: string) {
-  const [, actionLabel = fullLabel] = fullLabel.split(" / ");
+function getEventCount(events: MatomoEvent[], fullLabel: string, legacyFullLabels: readonly string[] = []) {
+  const candidateLabels = [fullLabel, ...legacyFullLabels];
+  const candidateActionLabels = candidateLabels.map((label) => label.split(" / ")[1] ?? label);
 
   return events
-    .filter((event) => event.label === fullLabel || event.label === actionLabel)
+    .filter((event) => candidateLabels.includes(event.label) || candidateActionLabels.includes(event.label))
     .reduce((sum, event) => sum + event.nb_events, 0);
 }
 
@@ -412,17 +445,25 @@ export async function getDashboardAnalytics(): Promise<DashboardAnalytics> {
 
     const visits = visitsSummary.nb_visits;
     const funnel = {
-      service: getEventCount(events, bookingFunnelLabels.service),
-      date: getEventCount(events, bookingFunnelLabels.date),
-      time: getEventCount(events, bookingFunnelLabels.time),
-      created: getEventCount(events, bookingFunnelLabels.created),
+      service: getEventCount(events, bookingFunnelLabels.service, bookingFunnelLegacyAliases.service),
+      date: getEventCount(events, bookingFunnelLabels.date, bookingFunnelLegacyAliases.date),
+      time: getEventCount(events, bookingFunnelLabels.time, bookingFunnelLegacyAliases.time),
+      created: getEventCount(events, bookingFunnelLabels.created, bookingFunnelLegacyAliases.created),
     };
     const conversions = funnel.created;
+    const contactStepStarted = getEventCount(events, bookingContactQualityLabels.started);
+    const contactFieldFocus = getEventCount(events, bookingContactQualityLabels.fieldFocus);
+    const contactFieldInputStarted = getEventCount(events, bookingContactQualityLabels.fieldInputStarted);
+    const contactFieldError = getEventCount(events, bookingContactQualityLabels.fieldError);
     const topReferrer = referrers.reduce<MatomoReferrer | null>(
       (top, referrer) => (!top || referrer.nb_visits > top.nb_visits ? referrer : top),
       null,
     );
     const sources = buildSourceRows(referrers, campaigns, funnel.created);
+    const focusRate = contactStepStarted > 0 ? Math.round((contactFieldFocus / contactStepStarted) * 10000) / 100 : 0;
+    const inputRate =
+      contactStepStarted > 0 ? Math.round((contactFieldInputStarted / contactStepStarted) * 10000) / 100 : 0;
+    const errorRate = contactStepStarted > 0 ? Math.round((contactFieldError / contactStepStarted) * 10000) / 100 : 0;
 
     return {
       periodLabel: DASHBOARD_ANALYTICS_PERIOD_LABEL,
@@ -432,6 +473,15 @@ export async function getDashboardAnalytics(): Promise<DashboardAnalytics> {
       topSource: sources[0]?.label ?? (topReferrer ? mapReferrerTypeLabel(topReferrer.label) : ""),
       sources,
       funnel,
+      contactStepQuality: {
+        started: contactStepStarted,
+        fieldFocus: contactFieldFocus,
+        fieldInputStarted: contactFieldInputStarted,
+        fieldError: contactFieldError,
+        focusRate,
+        inputRate,
+        errorRate,
+      },
     };
   } catch (error) {
     if (process.env.NODE_ENV === "development") {

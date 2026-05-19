@@ -148,9 +148,9 @@ export function trackMatomoEvent(
 }
 
 export function trackReservationCtaClick(location: string, page: string) {
-  trackMatomoEvent("CTA", "Reservation clicked", `${location} ${page}`);
+  trackMatomoEvent("CTA", "Rezervace klik", `${location} ${page}`);
 }
 
 export function trackContactCtaClick(type: "phone" | "email" | "instagram" | "contact form" | "map", location: string) {
-  trackMatomoEvent("CTA", "Contact clicked", `${type} ${location}`);
+  trackMatomoEvent("CTA", "Kontakt klik", `${type} ${location}`);
 }

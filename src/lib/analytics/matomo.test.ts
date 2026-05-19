@@ -1,0 +1,81 @@
+import assert from "node:assert/strict";
+import test, { afterEach } from "node:test";
+
+process.env.NEXT_PUBLIC_APP_NAME ??= "PP Studio";
+process.env.NEXT_PUBLIC_APP_URL ??= "https://example.com";
+process.env.DATABASE_URL ??= "postgresql://postgres:postgres@localhost:5432/ppstudio?schema=public";
+process.env.ADMIN_SESSION_SECRET ??= "test-secret-value-with-at-least-32-chars";
+process.env.ADMIN_OWNER_EMAIL ??= "owner@example.com";
+process.env.ADMIN_OWNER_PASSWORD ??= "change-me-owner";
+process.env.ADMIN_STAFF_EMAIL ??= "staff@example.com";
+process.env.ADMIN_STAFF_PASSWORD ??= "change-me-staff";
+process.env.EMAIL_DELIVERY_MODE ??= "log";
+process.env.MATOMO_URL ??= "https://matomo.example.com";
+process.env.MATOMO_SITE_ID ??= "1";
+process.env.MATOMO_AUTH_TOKEN ??= "token";
+
+const originalFetch = global.fetch;
+
+afterEach(() => {
+  global.fetch = originalFetch;
+});
+
+test("getDashboardAnalytics returns contactStepQuality counters and rates", async () => {
+  global.fetch = (async (input: RequestInfo | URL) => {
+    const rawUrl = typeof input === "string" ? input : input.toString();
+    const url = new URL(rawUrl);
+    const method = url.searchParams.get("method");
+
+    if (method === "VisitsSummary.get") {
+      return new Response(
+        JSON.stringify({
+          nb_visits: 10,
+        }),
+        { status: 200 },
+      );
+    }
+
+    if (method === "Events.getAction") {
+      return new Response(
+        JSON.stringify([
+          { label: "Rezervace / Služba vybrána", nb_events: 8 },
+          { label: "Rezervace / Datum vybráno", nb_events: 6 },
+          { label: "Rezervace / Čas vybrán", nb_events: 5 },
+          { label: "Rezervace / Vytvořena", nb_events: 2 },
+          { label: "Rezervace / Kontakt zahájen", nb_events: 4 },
+          { label: "Rezervace / Kontakt pole fokus", nb_events: 3 },
+          { label: "Rezervace / Kontakt pole vyplnění začátek", nb_events: 2 },
+          { label: "Rezervace / Kontakt pole chyba", nb_events: 1 },
+        ]),
+        { status: 200 },
+      );
+    }
+
+    if (method === "Referrers.getReferrerType") {
+      return new Response(
+        JSON.stringify([{ label: "Direct Entry", nb_visits: 10 }]),
+        { status: 200 },
+      );
+    }
+
+    if (method === "Referrers.getCampaigns") {
+      return new Response(JSON.stringify([]), { status: 200 });
+    }
+
+    return new Response(JSON.stringify([]), { status: 200 });
+  }) as typeof fetch;
+
+  const { getDashboardAnalytics } = await import("./matomo");
+  const analytics = await getDashboardAnalytics();
+
+  assert.equal(analytics.funnel.created, 2);
+  assert.deepEqual(analytics.contactStepQuality, {
+    started: 4,
+    fieldFocus: 3,
+    fieldInputStarted: 2,
+    fieldError: 1,
+    focusRate: 75,
+    inputRate: 50,
+    errorRate: 25,
+  });
+});

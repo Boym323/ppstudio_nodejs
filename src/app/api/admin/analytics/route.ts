@@ -20,57 +20,85 @@ const analyticsFallback = {
     time: 0,
     created: 0,
   },
+  contactStepQuality: {
+    started: 0,
+    fieldFocus: 0,
+    fieldInputStarted: 0,
+    fieldError: 0,
+    focusRate: 0,
+    inputRate: 0,
+    errorRate: 0,
+  },
 } as const;
 
-export async function GET() {
-  const session = await getSession();
+type AdminAnalyticsRouteApiDependencies = {
+  getSession: typeof getSession;
+  getMatomoReportingHealth: typeof getMatomoReportingHealth;
+  getDashboardAnalytics: typeof getDashboardAnalytics;
+};
 
-  if (!session || ![AdminRole.OWNER, AdminRole.SALON].includes(session.role)) {
-    return NextResponse.json(
-      {
-        status: "error",
-        message: "Do teto sekce maji pristup jen prihlaseni admin uzivatele.",
-      },
-      { status: 403 },
-    );
-  }
+export function createAdminAnalyticsRouteApi(
+  dependencies: AdminAnalyticsRouteApiDependencies = {
+    getSession,
+    getMatomoReportingHealth,
+    getDashboardAnalytics,
+  },
+) {
+  return {
+    async GET() {
+      const session = await dependencies.getSession();
 
-  try {
-    const reportingHealth = await getMatomoReportingHealth();
+      if (!session || ![AdminRole.OWNER, AdminRole.SALON].includes(session.role)) {
+        return NextResponse.json(
+          {
+            status: "error",
+            message: "Do teto sekce maji pristup jen prihlaseni admin uzivatele.",
+          },
+          { status: 403 },
+        );
+      }
 
-    if (reportingHealth.status !== "ok") {
-      return NextResponse.json(
-        {
-          ...analyticsFallback,
-          reportingStatus: reportingHealth.status,
-          reportingMessage: reportingHealth.message,
-        },
-        { status: 200 },
-      );
-    }
+      try {
+        const reportingHealth = await dependencies.getMatomoReportingHealth();
 
-    const analytics = await getDashboardAnalytics();
+        if (reportingHealth.status !== "ok") {
+          return NextResponse.json(
+            {
+              ...analyticsFallback,
+              reportingStatus: reportingHealth.status,
+              reportingMessage: reportingHealth.message,
+            },
+            { status: 200 },
+          );
+        }
 
-    return NextResponse.json(
-      {
-        ...analytics,
-        reportingStatus: "ok",
-      },
-      { status: 200 },
-    );
-  } catch (error) {
-    console.error("Admin analytics API failed", {
-      adminUserId: session.sub,
-      role: session.role,
-      error,
-    });
+        const analytics = await dependencies.getDashboardAnalytics();
 
-    return NextResponse.json(
-      {
-        ...analyticsFallback,
-        reportingMessage: "Matomo reporting je dočasně nedostupný.",
-      },
-      { status: 200 },
-    );
-  }
+        return NextResponse.json(
+          {
+            ...analytics,
+            reportingStatus: "ok",
+          },
+          { status: 200 },
+        );
+      } catch (error) {
+        console.error("Admin analytics API failed", {
+          adminUserId: session.sub,
+          role: session.role,
+          error,
+        });
+
+        return NextResponse.json(
+          {
+            ...analyticsFallback,
+            reportingMessage: "Matomo reporting je dočasně nedostupný.",
+          },
+          { status: 200 },
+        );
+      }
+    },
+  };
 }
+
+const api = createAdminAnalyticsRouteApi();
+export const GET = api.GET;

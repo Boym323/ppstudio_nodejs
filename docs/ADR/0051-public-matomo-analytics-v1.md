@@ -17,17 +17,17 @@ PP Studio potřebuje měřit návštěvnost veřejného webu, rezervační funne
 - Tracking helper `trackMatomoEvent` je bezpečný no-op při SSR, chybějící konfiguraci nebo nedostupné `_paq`.
 - Sanitizace zahazuje citlivé query parametry a rediguje tokenové self-service booking route na bezpečné placeholder path.
 - Admin, API a Next internals Matomo vůbec neinicializují. Tokenové self-service booking route neinicializují pageview, ale mohou inicializovat `_paq` pro bezpečné custom eventy z klientských handlerů.
-- Booking funnel eventy se volají pouze v client handlerech a `Booking / Created` až po úspěšném návratu server action, chráněný refem proti duplicitnímu odeslání.
-- Self-service změna termínu posílá pouze `Booking / Date selected` s denním klíčem a `Booking / Time selected` s rozsahem času; neposílá token, URL, klientku ani kontakt.
+- Booking funnel eventy se volají pouze v client handlerech a `Rezervace / Vytvořena` až po úspěšném návratu server action, chráněný refem proti duplicitnímu odeslání.
+- Self-service změna termínu posílá pouze `Rezervace / Datum vybráno` s denním klíčem a `Rezervace / Čas vybrán` s rozsahem času; neposílá token, URL, klientku ani kontakt.
 
 ## Matomo Goal
 
 Goal se nastaví ručně v Matomo, ne přes API:
 
-- název: `Booking created`
+- název: `Rezervace vytvořena`
 - trigger: `custom event`
-- category: `Booking`
-- action: `Created`
+- category: `Rezervace`
+- action: `Vytvořena`
 
 ## Dopady
 
