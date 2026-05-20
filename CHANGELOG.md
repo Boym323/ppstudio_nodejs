@@ -6,6 +6,9 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [0.3.14] - 2026-05-20
+
+- Release příprava pro produkční nasazení: projektová verze navýšena na patch `0.3.14`.
 - Majitelce (`notificationAdminEmail`) nově chodí i e-mail `admin-booking-rescheduled-v1`, když klientka přes self-service web přesune termín rezervace; e-mail obsahuje původní i nový termín a odkaz na detail rezervace v administraci.
 - Reschedule engine (`rescheduleBooking`) nově po klientském online přesunu zakládá vedle klientského `booking-rescheduled-v1` i admin email log, pokud je vyplněný notifikační admin e-mail.
 - E-mail renderer a testy byly rozšířené o novou šablonu `admin-booking-rescheduled-v1`; integrační test reschedule flow teď při kontrole klientského e-mailu filtruje explicitně podle `templateKey`.
