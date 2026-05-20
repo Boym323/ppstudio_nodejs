@@ -580,6 +580,7 @@ describe("history and side effects", () => {
       scheduledStartsAt: new Date("2026-04-28T09:00:00.000Z"),
       scheduledEndsAt: new Date("2026-04-28T10:00:00.000Z"),
       includeCalendarAttachment: true,
+      notifyAdminOnClientReschedule: true,
     });
   });
 
