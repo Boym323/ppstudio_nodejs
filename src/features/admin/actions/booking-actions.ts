@@ -6,6 +6,7 @@ import { z } from "zod";
 
 import { type AdminArea } from "@/config/navigation";
 import { type CreateManualBookingActionState } from "@/features/admin/actions/create-manual-booking-action-state";
+import { dispatchBookingStatusNotificationNonBlocking } from "@/features/admin/actions/booking-status-notification";
 import { type RedeemBookingVoucherActionState } from "@/features/admin/actions/redeem-booking-voucher-action-state";
 import { type RescheduleBookingActionState } from "@/features/admin/actions/reschedule-booking-action-state";
 import { type UpdateBookingNoteActionState } from "@/features/admin/actions/update-booking-note-action-state";
@@ -38,7 +39,6 @@ import {
   voucherRedemptionErrorCodes,
 } from "@/features/vouchers/lib/voucher-redemption";
 import { requireAdminArea, requireRole } from "@/lib/auth/session";
-import { sendOwnerBookingPushover } from "@/lib/notifications/pushover";
 import { prisma } from "@/lib/prisma";
 
 function readFormString(formData: FormData, key: string) {
@@ -223,20 +223,6 @@ function resolveActionArea(role: AdminRole, requestedArea: AdminArea): AdminArea
   }
 
   return requestedArea;
-}
-
-export function dispatchBookingStatusNotificationNonBlocking(input: {
-  type: "BOOKING_CONFIRMED" | "BOOKING_CANCELLED";
-  bookingId: string;
-  sourceLabel?: string;
-}, dispatcher: typeof sendOwnerBookingPushover = sendOwnerBookingPushover) {
-  void dispatcher(input).catch((error) => {
-    console.error("Owner booking Pushover dispatch failed in updateBookingStatusAction", {
-      bookingId: input.bookingId,
-      targetStatus: input.type === "BOOKING_CONFIRMED" ? BookingStatus.CONFIRMED : BookingStatus.CANCELLED,
-      error,
-    });
-  });
 }
 
 function getVoucherRedemptionFormError(error: VoucherRedemptionError) {

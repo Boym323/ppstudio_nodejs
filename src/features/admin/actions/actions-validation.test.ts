@@ -96,7 +96,7 @@ test("updateBookingStatusAction rejects invalid targetStatus", async () => {
 });
 
 test("dispatchBookingStatusNotificationNonBlocking does not block on failing notification dispatch", async () => {
-  const { dispatchBookingStatusNotificationNonBlocking } = await import("@/features/admin/actions/booking-actions");
+  const { dispatchBookingStatusNotificationNonBlocking } = await import("@/features/admin/actions/booking-status-notification");
   const originalConsoleError = console.error;
   const errors: unknown[][] = [];
 
