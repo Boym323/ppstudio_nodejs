@@ -95,6 +95,40 @@ test("updateBookingStatusAction rejects invalid targetStatus", async () => {
   assert.ok(result.fieldErrors?.targetStatus);
 });
 
+test("dispatchBookingStatusNotificationNonBlocking does not block on failing notification dispatch", async () => {
+  const { dispatchBookingStatusNotificationNonBlocking } = await import("@/features/admin/actions/booking-actions");
+  const originalConsoleError = console.error;
+  const errors: unknown[][] = [];
+
+  try {
+    console.error = (...args: unknown[]) => {
+      errors.push(args);
+    };
+
+    const startedAt = Date.now();
+    dispatchBookingStatusNotificationNonBlocking(
+      {
+        type: "BOOKING_CONFIRMED",
+        bookingId: "booking-test",
+        sourceLabel: "Admin",
+      },
+      async () => {
+        await new Promise((resolve) => setTimeout(resolve, 40));
+        throw new Error("pushover down");
+      },
+    );
+    const elapsedMs = Date.now() - startedAt;
+
+    assert.ok(elapsedMs < 20, `dispatch should be non-blocking, took ${elapsedMs}ms`);
+
+    await new Promise((resolve) => setTimeout(resolve, 70));
+    assert.equal(errors.length, 1);
+    assert.match(String(errors[0]?.[0] ?? ""), /pushover dispatch failed/i);
+  } finally {
+    console.error = originalConsoleError;
+  }
+});
+
 test("updateBookingPriceAction rejects non-numeric final price", async () => {
   const { updateBookingPriceAction } = await import("@/features/admin/actions/booking-actions");
   const formData = makeFormData({

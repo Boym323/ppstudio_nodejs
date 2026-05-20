@@ -225,6 +225,20 @@ function resolveActionArea(role: AdminRole, requestedArea: AdminArea): AdminArea
   return requestedArea;
 }
 
+export function dispatchBookingStatusNotificationNonBlocking(input: {
+  type: "BOOKING_CONFIRMED" | "BOOKING_CANCELLED";
+  bookingId: string;
+  sourceLabel?: string;
+}, dispatcher: typeof sendOwnerBookingPushover = sendOwnerBookingPushover) {
+  void dispatcher(input).catch((error) => {
+    console.error("Owner booking Pushover dispatch failed in updateBookingStatusAction", {
+      bookingId: input.bookingId,
+      targetStatus: input.type === "BOOKING_CONFIRMED" ? BookingStatus.CONFIRMED : BookingStatus.CANCELLED,
+      error,
+    });
+  });
+}
+
 function getVoucherRedemptionFormError(error: VoucherRedemptionError) {
   switch (error.code) {
     case voucherRedemptionErrorCodes.voucherNotFound:
@@ -383,7 +397,7 @@ export async function updateBookingStatusAction(
     parsed.data.targetStatus === BookingStatus.CONFIRMED
     || parsed.data.targetStatus === BookingStatus.CANCELLED
   ) {
-    await sendOwnerBookingPushover({
+    dispatchBookingStatusNotificationNonBlocking({
       type:
         parsed.data.targetStatus === BookingStatus.CONFIRMED
           ? "BOOKING_CONFIRMED"

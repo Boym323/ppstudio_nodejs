@@ -6,6 +6,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Opravené zasekávání quick akce `Potvrdit` v admin seznamu rezervací: `updateBookingStatusAction` už nečeká synchronně na Pushover dispatch, takže tlačítko nezůstává viset na `Ukládám...` při pomalé nebo nedostupné Pushover API vrstvě.
+- Přidán DB integrační test `admin-booking.integration.test.ts` pro flow `applyAdminBookingStatusChange` (`PENDING -> CONFIRMED`) včetně side effectů (`BookingStatusHistory`, `BookingActionToken`, `EmailLog`), aby byl potvrzovací zápis krytý nad reálným Prisma modelem.
 - Test coverage batch rozšířen o nové unit testy pro `admin action-state` moduly a early-fail validace v `booking-public/engine` (neplatný `startsAt`, neplatný telefon), aby se zvedlo pokrytí kritických low-coverage oblastí.
 - `npm run test:coverage` po doplnění testů: `Statements 29.22%` (6451/22073), `Branches 72.31%` (948/1311), `Functions 63.98%` (524/819), `Lines 29.22%` (6451/22073).
 - Test coverage batch 2 doplnil validační unit testy pro server actions (`client-actions`, `service-actions`, `booking-actions`, `settings-actions`) nad early error větvemi bez DB přístupu.

@@ -11,6 +11,12 @@ Evidence produkčních incidentů a jejich řešení.
 - Preventivní opatření
 
 ## Incidenty
+- Datum a čas: 2026-05-20 16:10 CEST
+  Dopad (uživatelé/systém): v admin pracovním seznamu rezervací se po kliknutí na `Potvrdit` mohla karta zaseknout ve stavu `Ukládám...`, i když booking stav už byl v DB změněný.
+  Příčina: `updateBookingStatusAction` čekala (`await`) na Pushover dispatch v rámci stejné server action response; při pomalé externí API vrstvě zůstával klientský `useFormStatus().pending` dlouho aktivní.
+  Okamžité řešení: přepnutí Pushover dispatch ve status action na non-blocking volání (`void ...catch(...)`), aby response nečekala na síťový side-effect.
+  Trvalá oprava: do vývojových pravidel doplněno, že admin `useActionState` zápisy nesmí synchronně čekat na externí notifikační HTTP volání.
+  Preventivní opatření: při každé nové server action mutaci oddělit kritickou DB transakci od best-effort notifikací (Pushover, webhooky) a držet tyto kroky mimo kritickou latency cestu UI.
 - Datum a čas: 2026-05-01 10:20 CEST
   Dopad (uživatelé/systém): lokální vývojový server padal během práce v `/admin` a přerušoval hot reload.
   Příčina: poškozená Turbopack dev cache (`.next/dev/cache/turbopack`), chybějící `.sst` soubory při obnově task databáze.
