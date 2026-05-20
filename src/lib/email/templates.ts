@@ -102,6 +102,18 @@ const adminBookingCancelledPayloadSchema = z.object({
   scheduledEndsAt: z.string().datetime(),
 });
 
+const adminBookingRescheduledPayloadSchema = z.object({
+  bookingId: z.string().min(1),
+  serviceName: z.string().min(1),
+  clientName: z.string().min(1),
+  clientEmail: z.string().email(),
+  previousStartsAt: z.string().datetime(),
+  previousEndsAt: z.string().datetime(),
+  scheduledStartsAt: z.string().datetime(),
+  scheduledEndsAt: z.string().datetime(),
+  adminUrl: z.url(),
+});
+
 const voucherSentPayloadSchema = z.object({
   voucherId: z.string().min(1),
 });
@@ -964,6 +976,55 @@ export async function renderEmailTemplate(
               ${buildEmailDetailRow("Email", data.clientEmail)}
             </table>
           `)}
+        `,
+        { includeFooter: false, maxWidthPx: 600 },
+      );
+
+      return { subject: safeSubject, html, text };
+    }
+    case "admin-booking-rescheduled-v1": {
+      const data = adminBookingRescheduledPayloadSchema.parse(payload);
+      const previousStartsAt = new Date(data.previousStartsAt);
+      const previousEndsAt = new Date(data.previousEndsAt);
+      const scheduledStartsAt = new Date(data.scheduledStartsAt);
+      const scheduledEndsAt = new Date(data.scheduledEndsAt);
+      const previousDate = formatBookingCalendarDate(previousStartsAt);
+      const previousTime = formatBookingTimeRange(previousStartsAt, previousEndsAt);
+      const bookingDate = formatBookingCalendarDate(scheduledStartsAt);
+      const bookingTime = formatBookingTimeRange(scheduledStartsAt, scheduledEndsAt);
+
+      const text = [
+        "Rezervace přesunuta klientkou",
+        "",
+        `Služba: ${data.serviceName}`,
+        `Nový termín: ${bookingDate}, ${bookingTime}`,
+        `Původní termín: ${previousDate}, ${previousTime}`,
+        `Klientka: ${data.clientName}`,
+        `Email: ${data.clientEmail}`,
+        "",
+        `Detail v administraci: ${data.adminUrl}`,
+      ].join("\n");
+
+      const html = buildEmailShell(
+        brand,
+        "Rezervace přesunuta klientkou",
+        "",
+        `
+          ${buildEmailCard(`
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
+              ${buildEmailDetailRow("Služba", data.serviceName)}
+              ${buildEmailDetailRow("Nový termín", `${bookingDate}, ${bookingTime}`)}
+              ${buildEmailDetailRow("Původní termín", `${previousDate}, ${previousTime}`)}
+              ${buildEmailDetailRow("Klientka", data.clientName)}
+              ${buildEmailDetailRow("Email", data.clientEmail)}
+            </table>
+          `)}
+          <div style="height:14px;line-height:14px;font-size:14px;">&nbsp;</div>
+          ${buildEmailActionButton({
+            href: data.adminUrl,
+            label: "Otevřít rezervaci v administraci",
+            variant: "secondary",
+          })}
         `,
         { includeFooter: false, maxWidthPx: 600 },
       );

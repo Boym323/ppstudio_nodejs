@@ -89,6 +89,18 @@ const previews = [
       adminUrl: "https://ppstudio.cz/admin/rezervace/preview-booking",
     },
   },
+  {
+    filename: "08-admin-presunuta-rezervace.html",
+    templateKey: "admin-booking-rescheduled-v1",
+    subject: "Přesunutá rezervace: Luxusní kosmetické ošetření",
+    payload: {
+      ...baseBookingPayload,
+      clientEmail: "jana@example.com",
+      previousStartsAt: "2026-05-17T08:00:00.000Z",
+      previousEndsAt: "2026-05-17T09:30:00.000Z",
+      adminUrl: "https://ppstudio.cz/admin/rezervace/preview-booking",
+    },
+  },
 ];
 
 async function main() {

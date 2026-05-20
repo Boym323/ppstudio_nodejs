@@ -19,7 +19,7 @@ import { formatBookingDateLabel } from "@/features/booking/lib/booking-format";
 import { resolvePublishedSlotCoverage } from "@/features/booking/lib/booking-slot-availability";
 import { sendOwnerBookingPushover } from "@/lib/notifications/pushover";
 import { prisma } from "@/lib/prisma";
-import { getBookingPolicySettings, isBookingWithinWindow } from "@/lib/site-settings";
+import { getBookingPolicySettings, getEmailBrandingSettings, isBookingWithinWindow } from "@/lib/site-settings";
 
 const ACTIVE_BOOKING_STATUSES = [BookingStatus.PENDING, BookingStatus.CONFIRMED] as const;
 const MAX_BOOKING_TRANSACTION_RETRIES = 3;
@@ -375,6 +375,7 @@ async function queueBookingRescheduledNotification(input: {
   scheduledStartsAt: Date;
   scheduledEndsAt: Date;
   includeCalendarAttachment: boolean;
+  notifyAdminOnClientReschedule: boolean;
 }) {
   const now = new Date();
   const manageToken = buildBookingActionToken();
@@ -432,6 +433,42 @@ async function queueBookingRescheduledNotification(input: {
       sentAt: env.EMAIL_DELIVERY_MODE === "background" ? undefined : now,
     },
   });
+
+  if (input.notifyAdminOnClientReschedule) {
+    const emailBranding = await getEmailBrandingSettings();
+    const adminNotificationEmail = emailBranding.notificationAdminEmail.trim();
+
+    if (adminNotificationEmail.length > 0) {
+      await prisma.emailLog.create({
+        data: {
+          bookingId: input.bookingId,
+          clientId: input.clientId,
+          type: EmailLogType.BOOKING_RESCHEDULED,
+          status: env.EMAIL_DELIVERY_MODE === "background" ? undefined : EmailLogStatus.SENT,
+          attemptCount: env.EMAIL_DELIVERY_MODE === "background" ? undefined : 1,
+          nextAttemptAt: env.EMAIL_DELIVERY_MODE === "background" ? now : undefined,
+          processingStartedAt: null,
+          processingToken: null,
+          recipientEmail: adminNotificationEmail,
+          subject: `Přesunutá rezervace: ${input.serviceName}`,
+          templateKey: "admin-booking-rescheduled-v1",
+          payload: {
+            bookingId: input.bookingId,
+            serviceName: input.serviceName,
+            clientName: input.clientName,
+            clientEmail: input.clientEmail,
+            previousStartsAt: input.previousStartsAt.toISOString(),
+            previousEndsAt: input.previousEndsAt.toISOString(),
+            scheduledStartsAt: input.scheduledStartsAt.toISOString(),
+            scheduledEndsAt: input.scheduledEndsAt.toISOString(),
+            adminUrl: `${env.NEXT_PUBLIC_APP_URL}/admin/rezervace/${input.bookingId}`,
+          },
+          provider: env.EMAIL_DELIVERY_MODE === "background" ? undefined : "log",
+          sentAt: env.EMAIL_DELIVERY_MODE === "background" ? undefined : now,
+        },
+      });
+    }
+  }
 
   return env.EMAIL_DELIVERY_MODE === "background" ? "queued" : "logged";
 }
@@ -867,6 +904,7 @@ export function createBookingReschedulingApi(
                 scheduledStartsAt: transactionResult.scheduledStartsAt,
                 scheduledEndsAt: transactionResult.scheduledEndsAt,
                 includeCalendarAttachment: input.includeCalendarAttachment ?? true,
+                notifyAdminOnClientReschedule: input.changedByClient ?? false,
               });
             } catch (error) {
               notificationStatus = "failed";

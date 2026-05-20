@@ -257,6 +257,7 @@ dbTest("rescheduleBooking updates the existing booking, writes audit history and
       where: {
         bookingId: seed.bookingId,
         type: EmailLogType.BOOKING_RESCHEDULED,
+        templateKey: "booking-rescheduled-v1",
       },
       orderBy: { createdAt: "desc" },
       select: {

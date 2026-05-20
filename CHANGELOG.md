@@ -6,6 +6,9 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Majitelce (`notificationAdminEmail`) nově chodí i e-mail `admin-booking-rescheduled-v1`, když klientka přes self-service web přesune termín rezervace; e-mail obsahuje původní i nový termín a odkaz na detail rezervace v administraci.
+- Reschedule engine (`rescheduleBooking`) nově po klientském online přesunu zakládá vedle klientského `booking-rescheduled-v1` i admin email log, pokud je vyplněný notifikační admin e-mail.
+- E-mail renderer a testy byly rozšířené o novou šablonu `admin-booking-rescheduled-v1`; integrační test reschedule flow teď při kontrole klientského e-mailu filtruje explicitně podle `templateKey`.
 - Opravené zasekávání quick akce `Potvrdit` v admin seznamu rezervací: `updateBookingStatusAction` už nečeká synchronně na Pushover dispatch, takže tlačítko nezůstává viset na `Ukládám...` při pomalé nebo nedostupné Pushover API vrstvě.
 - Přidán DB integrační test `admin-booking.integration.test.ts` pro flow `applyAdminBookingStatusChange` (`PENDING -> CONFIRMED`) včetně side effectů (`BookingStatusHistory`, `BookingActionToken`, `EmailLog`), aby byl potvrzovací zápis krytý nad reálným Prisma modelem.
 - Test coverage batch rozšířen o nové unit testy pro `admin action-state` moduly a early-fail validace v `booking-public/engine` (neplatný `startsAt`, neplatný telefon), aby se zvedlo pokrytí kritických low-coverage oblastí.

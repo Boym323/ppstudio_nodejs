@@ -1012,6 +1012,7 @@ describe("reschedule booking flow", () => {
         where: {
           bookingId: seed.manageableBookingId,
           type: EmailLogType.BOOKING_RESCHEDULED,
+          templateKey: "booking-rescheduled-v1",
         },
         orderBy: { createdAt: "desc" },
         select: {

@@ -187,6 +187,33 @@ test("renderEmailTemplate creates admin cancellation email in operational layout
   assert.doesNotMatch(email.html, /Napište nám/);
 });
 
+test("renderEmailTemplate creates admin rescheduled email in operational layout", async () => {
+  const { renderEmailTemplate } = await loadRenderer();
+  const email = await renderEmailTemplate(
+    "admin-booking-rescheduled-v1",
+    "Přesunutá rezervace: Luxusní péče",
+    {
+      bookingId: "clztestbookingadminrescheduled",
+      serviceName: "Luxusní péče",
+      clientName: "Jana Nováková",
+      clientEmail: "jana@example.com",
+      previousStartsAt: "2026-04-20T08:00:00.000Z",
+      previousEndsAt: "2026-04-20T09:00:00.000Z",
+      scheduledStartsAt: "2026-04-22T11:00:00.000Z",
+      scheduledEndsAt: "2026-04-22T12:00:00.000Z",
+      adminUrl: "https://example.com/admin/rezervace/clztestbookingadminrescheduled",
+    },
+  );
+
+  assert.match(email.text, /Rezervace přesunuta klientkou/);
+  assert.match(email.text, /Služba: Luxusní péče/);
+  assert.match(email.text, /Původní termín:/);
+  assert.match(email.text, /Nový termín:/);
+  assert.match(email.text, /Detail v administraci: https:\/\/example\.com\/admin\/rezervace\/clztestbookingadminrescheduled/);
+  assert.match(email.html, /Rezervace přesunuta klientkou/);
+  assert.match(email.html, /Otevřít rezervaci v administraci/);
+});
+
 test("renderEmailTemplate creates approved email", async () => {
   const { renderEmailTemplate } = await loadRenderer();
   const email = await renderEmailTemplate(
