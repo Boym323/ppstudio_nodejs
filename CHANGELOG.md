@@ -6,6 +6,9 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [0.3.15] - 2026-05-21
+
+- Release příprava pro produkční nasazení: projektová verze navýšena na patch `0.3.15`.
 - Admin dashboard už neeskaluje jako problém samotnou absenci publikovaných slotů dnes/zítra; sekce `Vyžaduje pozornost` nově drží jen skutečně akční provozní alerty (čekající potvrzení, selhané e-maily, rezervace po termínu k uzavření).
 - Sekce `Nejbližší volné termíny` používá neutrální copy pro nulovou dostupnost (`Momentálně nejsou publikované žádné nadcházející volné termíny.`) a při existujících draftech ukazuje užitečný stav s počtem návrhů čekajících na publikování a odkazem do dostupnosti.
 - Admin dashboard má klidnější provozní hierarchii: sekce `Vyžaduje pozornost` nově skutečně zvýrazňuje primární alert podle `emphasis`, sekundární alerty jsou kompaktnější a CTA labely zůstávají konkrétnější (`Dostupnost`, `Rezervace`, `E-mail logy`).
