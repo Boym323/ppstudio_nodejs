@@ -98,3 +98,4 @@ Sem patří krátké záznamy architektonických rozhodnutí.
 - `0092-business-test-coverage-reporting-v1.md`
 - `0093-owner-email-on-client-reschedule-v1.md`
 - `0094-admin-dashboard-alert-priority-v4.md`
+- `0095-public-microsoft-clarity-v1.md`

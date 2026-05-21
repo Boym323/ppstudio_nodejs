@@ -44,6 +44,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   5. `npm run db:migrate`
   6. `npm run dev`
 - Pro lokální vývoj preferuj `EMAIL_DELIVERY_MODE=log`; reálné SMTP a veřejný Matomo tracking zapínej jen při cíleném integračním testu.
+- Clarity ve vývoji zapínej jen cíleně (`NEXT_PUBLIC_CLARITY_ENABLED=true` + `NEXT_PUBLIC_CLARITY_PROJECT_ID`), default má zůstat vypnutý.
 - Bootstrap admin login přes `ADMIN_OWNER_*` a `ADMIN_STAFF_*` je recovery vrstva, ne výchozí dlouhodobý režim. Po založení databázových admin účtů vrať `ADMIN_BOOTSTRAP_ENABLED=false`.
 - README na GitHubu má fungovat jako rozcestník i rychlý onboarding. Když měníš setup, deploy nebo monitoring workflow, promítni změnu do `README.md` a udržuj v něm krokový postup, ne jen seznam odkazů.
 
@@ -138,7 +139,9 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Web Vitals reporting drž izolovaný v `WebVitalsReporter`; neposílej URL, klientská data ani booking tokeny. Pokud bude potřeba jiný backend než Matomo, nejdřív přidej ADR a bezpečnostní návrh endpointu.
 - Admin routy pod `src/app/(admin)/admin` dědí explicitní `metadata.robots` noindex/nofollow z admin layoutu. Nové admin obrazovky drž pod tímto stromem; pokud vznikne neveřejná route mimo něj, musí dostat vlastní noindex metadata.
 - Matomo client tracking je v `src/features/analytics/*` a inicializuje se přes `src/components/layout/site-shell.tsx`. Při lokálním vývoji nastav `NEXT_PUBLIC_MATOMO_ENABLED=true`, `NEXT_PUBLIC_MATOMO_URL` a `NEXT_PUBLIC_MATOMO_SITE_ID`; bez kompletní konfigurace je helper bezpečný no-op. Web Vitals mají navíc samostatný flag `NEXT_PUBLIC_WEB_VITALS_ENABLED` (default `true`), takže je lze vypnout bez vypnutí celého Matomo trackingu.
+- Clarity client tracking je v `src/features/analytics/clarity*.ts(x)` a inicializuje se také přes `SiteShell` (`next/script`, `lazyOnload`); bez kompletní konfigurace (`NEXT_PUBLIC_CLARITY_ENABLED`, `NEXT_PUBLIC_CLARITY_PROJECT_ID`) je helper bezpečný no-op.
 - `SiteShell` před renderem `MatomoTracker` čte přítomnost admin session cookie `ppstudio-admin-session`; pokud je cookie přítomná, `MatomoTracker` se renderuje s `disabled` a nenačte `matomo.js` ani init script. Cíl je vyloučit vlastní návštěvy administrace i na veřejných routách bez DB dotazu.
+- Stejný `disabled` guard v `SiteShell` používá i `ClarityTracker`, takže přihlášený admin není měřený ani na veřejných stránkách.
 - `MatomoTracker` má používat `next/script` strategii `lazyOnload`, protože veřejný web nepotřebuje analytics inicializaci v kritickém renderu; cílem je menší TBT a nižší unused JS na homepage.
 - Pageview tracking v App Routeru poslouchá `usePathname()` a `useSearchParams()`, první render nechává na inicializačním Matomo scriptu a další klientské navigace posílá se sanitizovanou URL.
 - Tokenové self-service booking route (`/rezervace/sprava/*`, `/rezervace/storno/*`, `/rezervace/akce/*`) neposílají pageview s tokenem. `MatomoTracker` na nich může pouze inicializovat `_paq`, aby šly z klientských handlerů poslat bezpečné neosobní eventy bez raw URL.

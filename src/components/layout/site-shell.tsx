@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 
 import { getPublicSalonProfile } from "@/lib/site-settings";
 import { getSessionCookie } from "@/lib/auth/session";
+import { ClarityTracker } from "@/features/analytics/clarity-tracker";
 import { MatomoTracker } from "@/features/analytics/matomo-tracker";
 import { WebVitalsReporter } from "@/features/analytics/web-vitals-reporter";
 
@@ -22,6 +23,7 @@ export async function SiteShell({ children, variant = "public" }: SiteShellProps
   return (
     <div className="flex min-h-screen flex-col bg-[var(--color-background)] overflow-x-clip">
       <Suspense fallback={null}>
+        <ClarityTracker disabled={hasAdminSessionCookie} />
         <MatomoTracker disabled={hasAdminSessionCookie} />
         <WebVitalsReporter />
       </Suspense>

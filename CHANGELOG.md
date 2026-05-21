@@ -5,6 +5,8 @@ Všechny důležité změny v tomto projektu se zapisují do tohoto souboru.
 Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
+- Přidána volitelná integrace Microsoft Clarity na veřejný web přes nový klientský `ClarityTracker` (`next/script`, `lazyOnload`) s env konfigurací `NEXT_PUBLIC_CLARITY_ENABLED` a `NEXT_PUBLIC_CLARITY_PROJECT_ID`.
+- Clarity se nenačítá v adminu, API, Next internals ani na tokenových self-service routách (`/rezervace/sprava/*`, `/rezervace/storno/*`, `/rezervace/akce/*`) a je vypnutá i při aktivní admin session cookie `ppstudio-admin-session`.
 
 ## [0.3.15] - 2026-05-21
 

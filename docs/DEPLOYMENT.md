@@ -72,6 +72,10 @@ Postup nasazení aplikace do produkce.
      - `/api/admin/analytics` vrací po přihlášení agregovaný JSON bez tokenu a bez PII; bez session vrací `403`
      - admin widget `Zdroje návštěv` ukazuje jen business labely zdrojů a max. několik položek včetně případného `Ostatní`, bez raw Matomo payloadu; rezervace u zdrojů jsou označené jako odhad
      - `npm run analytics:check` vrací `status: ok` nebo srozumitelnou chybu reportingu; při lockoutu nebo neplatném tokenu musí dashboard ukázat provozní hlášku místo zavádějících nul
+   - Clarity při zapnutých `NEXT_PUBLIC_CLARITY_*`:
+     - veřejná stránka načte Clarity tag pouze při `NEXT_PUBLIC_CLARITY_ENABLED=true` a vyplněném `NEXT_PUBLIC_CLARITY_PROJECT_ID`
+     - `/admin`, `/api`, Next internals a tokenové self-service route (`/rezervace/sprava/*`, `/rezervace/storno/*`, `/rezervace/akce/*`) Clarity neinicializují
+     - při přihlášené admin session (`ppstudio-admin-session`) se na veřejných stránkách Clarity nenačte
 16. Projdi ruční QA admin částí:
   - login redirect pro `OWNER` a `SALON`
   - opakované chybné přihlášení na `/admin/prihlaseni` po překročení limitu vrátí `error=rate_limited` a nepovolí session
