@@ -96,8 +96,9 @@ test("proxy refreshes session cookie when token is close to expiration", async (
 
 test("proxy rejects session after absolute max age", async () => {
   const { proxy } = await import("./proxy");
+  const { SESSION_ABSOLUTE_MAX_AGE } = await import("@/lib/auth/session-token");
   const now = Math.floor(Date.now() / 1000);
-  const oldSessionStartedAt = now - 60 * 60 * 24 * 31;
+  const oldSessionStartedAt = now - SESSION_ABSOLUTE_MAX_AGE - 60;
   const token = await createValidSessionToken("10m", oldSessionStartedAt);
   const request = new NextRequest("https://example.com/admin/rezervace", {
     headers: {
