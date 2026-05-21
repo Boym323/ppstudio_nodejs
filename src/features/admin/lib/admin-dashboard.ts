@@ -123,14 +123,6 @@ export type DashboardTimelineItem =
       editHref: string;
     };
 
-type DashboardTaskTone = "warning" | "success" | "neutral";
-
-type DashboardTodayTask = {
-  id: string;
-  label: string;
-  tone: DashboardTaskTone;
-};
-
 export type DashboardTodayPlanItem = {
   id: string;
   timeLabel: string;
@@ -175,6 +167,10 @@ function getBookingsHref(area: AdminArea) {
 
 function getClientsHref(area: AdminArea) {
   return area === "owner" ? "/admin/klienti" : "/admin/provoz/klienti";
+}
+
+function getVouchersHref(area: AdminArea) {
+  return area === "owner" ? "/admin/vouchery" : "/admin/provoz/vouchery";
 }
 
 function getTodayBounds(now: Date) {
@@ -345,9 +341,7 @@ export type AdminDashboardData = {
   todayLabel: string;
   todayBookingsCount: number;
   todayBookingsLabel: string;
-  nextReservationSummary: string;
   currentReservationSummary: string | null;
-  todayStatusLabel: string;
   nextClient: {
     timeLabel: string;
     timeRangeLabel: string;
@@ -357,7 +351,6 @@ export type AdminDashboardData = {
     detailHref: string;
     editHref: string;
   } | null;
-  todayTasks: DashboardTodayTask[];
   alerts: Array<{
     id: string;
     tone: DashboardAlertTone;
@@ -367,7 +360,6 @@ export type AdminDashboardData = {
     emphasis: "primary" | "secondary" | "ok";
   }>;
   todayPlanItems: DashboardTodayPlanItem[];
-  timelineItems: DashboardTimelineItem[];
   timelineFooterHref: string;
   createBookingHref: string;
   addSlotHref: string;
@@ -381,10 +373,6 @@ export type AdminDashboardData = {
     freeSlotsLabel: string;
     bookingsLabel: string;
   };
-  pendingConfirmations: {
-    count: number;
-    href: string;
-  };
   hasPublishedSlotsTodayOrTomorrow: boolean;
   hasFreeWindowsToday: boolean;
   upcomingSlots: DashboardUpcomingSlot[];
@@ -394,7 +382,7 @@ export type AdminDashboardData = {
     label: string;
     description: string;
     href: string;
-    icon: "plus" | "calendar" | "booking" | "clients";
+    icon: "plus" | "calendar" | "booking" | "clients" | "voucher";
   }>;
 };
 
@@ -406,6 +394,7 @@ export async function getAdminDashboardData(area: AdminArea): Promise<AdminDashb
   const bookingsHref = getBookingsHref(area);
   const plannerHref = getPlannerHref(area);
   const clientsHref = getClientsHref(area);
+  const vouchersHref = getVouchersHref(area);
 
   const [
     todayBookings,
@@ -651,51 +640,6 @@ export async function getAdminDashboardData(area: AdminArea): Promise<AdminDashb
     });
   }
 
-  const todayTasks: DashboardTodayTask[] = [
-    {
-      id: "pending",
-      label:
-        pendingBookings > 0
-          ? `${pendingBookings} ${formatCountLabel(
-              pendingBookings,
-              "čeká na potvrzení",
-              "čekají na potvrzení",
-              "čeká na potvrzení",
-            )}`
-          : "Všechny rezervace jsou zpracované",
-      tone: pendingBookings > 0 ? "warning" : "success",
-    },
-    {
-      id: "next-client",
-      label: nextTodayBooking
-        ? `Další klientka ${formatRelativeTime(nextTodayBooking.scheduledStartsAt, now)}`
-        : todayBookings.length > 0
-          ? "Další klientka dnes už není"
-          : "Dnes zatím bez klientky",
-      tone: nextTodayBooking ? "warning" : "neutral",
-    },
-    {
-      id: "free-windows",
-      label: `${freeWindowCount} ${formatCountLabel(
-        freeWindowCount,
-        "volné okno dnes",
-        "volná okna dnes",
-        "volných oken dnes",
-      )}`,
-      tone: freeWindowCount > 0 ? "neutral" : "success",
-    },
-    {
-      id: "failed-emails",
-      label: `${failedEmails} ${formatCountLabel(
-        failedEmails,
-        "chybný e-mail",
-        "chybné e-maily",
-        "chybných e-mailů",
-      )}`,
-      tone: failedEmails > 0 ? "warning" : "success",
-    },
-  ];
-
   return {
     area,
     todayLabel: `Dnes • ${formatDayLabel(now)}`,
@@ -714,24 +658,6 @@ export async function getAdminDashboardData(area: AdminArea): Promise<AdminDashb
           "Služba není uvedená",
         )}.`
       : null,
-    nextReservationSummary: nextTodayBooking
-      ? `Další rezervace: ${timeFormatter.format(nextTodayBooking.scheduledStartsAt)}–${timeFormatter.format(
-          nextTodayBooking.scheduledEndsAt,
-        )} ${safeText(nextTodayBooking.serviceNameSnapshot, "Služba není uvedená")}.`
-      : todayBookings.length > 0
-        ? "Další klientka dnes už není."
-        : "Dnes zatím není naplánovaná žádná rezervace.",
-    todayStatusLabel:
-      todayBookings.length > 0
-        ? todayBookings.length === 1
-          ? "Dnes je naplánovaná 1 aktivní rezervace."
-          : `Dnes jsou naplánované ${todayBookings.length} ${formatCountLabel(
-              todayBookings.length,
-              "aktivní rezervace",
-              "aktivní rezervace",
-              "aktivních rezervací",
-            )}.`
-        : "Dnes zatím není naplánovaná žádná rezervace.",
     nextClient: nextTodayBooking
       ? {
           timeLabel: timeFormatter.format(nextTodayBooking.scheduledStartsAt),
@@ -745,10 +671,8 @@ export async function getAdminDashboardData(area: AdminArea): Promise<AdminDashb
           editHref: getAdminBookingHref(area, nextTodayBooking.id),
         }
       : null,
-    todayTasks,
     alerts,
     todayPlanItems,
-    timelineItems,
     timelineFooterHref: plannerHref,
     createBookingHref: bookingsHref,
     addSlotHref: `${plannerHref}/novy`,
@@ -789,10 +713,6 @@ export async function getAdminDashboardData(area: AdminArea): Promise<AdminDashb
         "rezervací",
       )}`,
     },
-    pendingConfirmations: {
-      count: pendingBookings,
-      href: bookingsHref,
-    },
     hasPublishedSlotsTodayOrTomorrow,
     hasFreeWindowsToday,
     upcomingSlots: upcomingFreeSlots.map((slot) => {
@@ -817,13 +737,6 @@ export async function getAdminDashboardData(area: AdminArea): Promise<AdminDashb
     upcomingSlotsFooterHref: plannerHref,
     quickActions: [
       {
-        id: "create-booking",
-        label: "Vytvořit rezervaci",
-        description: "Nový termín pro klientku",
-        href: bookingsHref,
-        icon: "booking",
-      },
-      {
         id: "bookings",
         label: "Otevřít rezervace",
         description: "Seznam a potvrzení",
@@ -843,6 +756,13 @@ export async function getAdminDashboardData(area: AdminArea): Promise<AdminDashb
         description: "Kontakty a historie",
         href: clientsHref,
         icon: "clients",
+      },
+      {
+        id: "vouchers",
+        label: "Vouchery",
+        description: "Poukazy a čerpání",
+        href: vouchersHref,
+        icon: "voucher",
       },
     ],
   };

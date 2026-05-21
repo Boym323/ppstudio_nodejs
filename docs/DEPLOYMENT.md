@@ -87,7 +87,8 @@ Postup nasazení aplikace do produkce.
      - KPI jsou jeden kompaktní metric strip: `Dnes rezervace`, `Volná okna dnes`, `Týdenní obsazenost`, `Volné sloty tento týden`; nulové e-mailové chyby nejsou samostatná KPI karta
      - `Dnešní plán` ukazuje pouze dnešní rezervace jako kompaktní seznam, právě probíhající termín decentně zvýrazní a nulový stav nabízí `Vytvořit rezervaci`
      - `Nejbližší volné termíny` neduplikuje dnešní volná okna a při chybějící dostupnosti pro dnes/zítra ukazuje akce `Upravit dostupnost` a `Přidat termín`
-     - pravý sloupec obsahuje 2x2 rychlé akce, kompaktní `Tento týden` a nízkou kartu `Výkon webu`
+     - pravý sloupec obsahuje 2x2 rychlé akce `Rezervace / Dostupnost / Klienti / Vouchery`, kompaktní `Tento týden` a nízkou kartu `Výkon webu`
+     - alerty v `Vyžaduje pozornost` mají jasnou prioritu: jeden hlavní alert je výraznější, sekundární položky jsou kompaktnější a CTA texty zůstávají konkrétní (`Dostupnost`, `Rezervace`, `E-mail logy`)
      - detailní zdroje návštěv a funnel nejsou viditelné v hlavním pohledu; jsou až pod rozbalením `Zobrazit analytiku`
    - sekci `Kategorie služeb` na `/admin/kategorie-sluzeb` a `/admin/provoz/kategorie-sluzeb`:
      - pravý overlay drawer detailu na desktopu i mobilu

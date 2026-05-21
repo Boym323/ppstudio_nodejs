@@ -6,6 +6,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Admin dashboard má klidnější provozní hierarchii: sekce `Vyžaduje pozornost` nově skutečně zvýrazňuje primární alert podle `emphasis`, sekundární alerty jsou kompaktnější a CTA labely zůstávají konkrétnější (`Dostupnost`, `Rezervace`, `E-mail logy`).
+- Rychlé akce v dashboardu už neduplikují horní CTA `Vytvořit rezervaci`; čtvrtou akcí jsou nově `Vouchery`. KPI strip zobrazuje i krátký detail metriky a read model dashboardu byl očištěn od nepoužívaných polí.
 - Admin session cookie `ppstudio-admin-session` má nově prodlouženou platnost z 12 hodin na 7 dní (`maxAge` + JWT expirace), aby nebylo potřeba tak časté opětovné přihlášení během běžného provozu.
 - Admin auth nově používá sliding session refresh v `src/proxy.ts`: při admin requestu se session automaticky obnoví, pokud do expiry zbývá méně než 48 hodin; současně platí absolutní limit 45 dní od prvního přihlášení, po kterém je nutné nové přihlášení.
 - Session timeouty jsou nově konfigurovatelné přes env (`ADMIN_SESSION_IDLE_MAX_AGE_SECONDS`, `ADMIN_SESSION_REFRESH_WINDOW_SECONDS`, `ADMIN_SESSION_ABSOLUTE_MAX_AGE_SECONDS`) se zachovanými defaulty `14 dní / 48 hodin / 45 dní`.

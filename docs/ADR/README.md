@@ -97,3 +97,4 @@ Sem patří krátké záznamy architektonických rozhodnutí.
 - `0091-public-booking-service-query-prefill-v1.md`
 - `0092-business-test-coverage-reporting-v1.md`
 - `0093-owner-email-on-client-reschedule-v1.md`
+- `0094-admin-dashboard-alert-priority-v4.md`

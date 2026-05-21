@@ -17,7 +17,8 @@ type DashboardIconName =
   | "plus"
   | "calendar"
   | "booking"
-  | "clients";
+  | "clients"
+  | "voucher";
 
 function DashboardIcon({
   name,
@@ -90,6 +91,15 @@ function DashboardIcon({
           <path d="M16 12a2.5 2.5 0 1 0 0-5a2.5 2.5 0 0 0 0 5Z" />
           <path d="M4.5 18a4.5 4.5 0 0 1 7 0" />
           <path d="M13 18a3.8 3.8 0 0 1 6.5-.5" />
+        </svg>
+      );
+    case "voucher":
+      return (
+        <svg {...sharedProps}>
+          <path d="M5 7a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-2.2a2.2 2.2 0 0 0 0-5.6V7Z" />
+          <path d="M12 5v14" />
+          <path d="M9 9h.01" />
+          <path d="M15 15h.01" />
         </svg>
       );
   }
@@ -266,39 +276,11 @@ export function DashboardTodayHero({ data }: DashboardPageProps) {
   );
 }
 
-export function DashboardTodayTasks({ data }: DashboardPageProps) {
-  return (
-    <div className="rounded-[1.3rem] border border-white/8 bg-black/18 p-4 sm:p-5">
-      <div className="flex flex-col gap-2 border-b border-white/7 pb-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/42">
-            Dnešní úkoly
-          </p>
-          <p className="mt-1 text-sm text-white/58">Krátké priority pro dnešní směnu.</p>
-        </div>
-      </div>
-
-      <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-        {data.todayTasks.map((task) => (
-          <article
-            key={task.id}
-            className={cn(
-              "rounded-[1rem] border px-4 py-3",
-              task.tone === "warning" && "border-amber-300/16 bg-amber-400/8",
-              task.tone === "success" && "border-emerald-300/14 bg-emerald-400/8",
-              task.tone === "neutral" && "border-white/8 bg-white/[0.03]",
-            )}
-          >
-            <p className="text-sm font-medium leading-6 text-white">{task.label}</p>
-          </article>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 export function DashboardAttentionAlert({ data }: DashboardPageProps) {
   const actionableAlerts = data.alerts.filter((alert) => alert.emphasis !== "ok");
+  const primaryAlert =
+    actionableAlerts.find((alert) => alert.emphasis === "primary") ?? actionableAlerts[0] ?? null;
+  const secondaryAlerts = actionableAlerts.filter((alert) => alert.id !== primaryAlert?.id);
 
   if (actionableAlerts.length === 0) {
     return null;
@@ -311,7 +293,7 @@ export function DashboardAttentionAlert({ data }: DashboardPageProps) {
         "border-amber-300/16 bg-[linear-gradient(135deg,rgba(120,53,15,0.18),rgba(24,24,27,0.92))]",
       )}
     >
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+      <div className="grid gap-3 lg:grid-cols-[auto_minmax(0,1fr)] lg:items-start">
         <div className="flex shrink-0 items-center gap-2">
           <span
             className={cn(
@@ -324,37 +306,68 @@ export function DashboardAttentionAlert({ data }: DashboardPageProps) {
           <h2 className="text-sm font-semibold text-white">Vyžaduje pozornost</h2>
         </div>
 
-        <div className="grid min-w-0 flex-1 gap-2 md:grid-cols-3">
-          {actionableAlerts.map((alert) => (
-            <SecondaryAlertCard
-              key={alert.id}
-              tone={alert.tone}
-              text={alert.text}
-              href={alert.href}
-              actionLabel={alert.actionLabel}
+        <div
+          className={cn(
+            "grid min-w-0 gap-2",
+            secondaryAlerts.length > 0 && "xl:grid-cols-[minmax(18rem,1.15fr)_minmax(0,2fr)]",
+          )}
+        >
+          {primaryAlert ? (
+            <AlertCard
+              tone={primaryAlert.tone}
+              text={primaryAlert.text}
+              href={primaryAlert.href}
+              actionLabel={primaryAlert.actionLabel}
+              priority="primary"
             />
-          ))}
+          ) : null}
+
+          {secondaryAlerts.length > 0 ? (
+            <div className="grid min-w-0 gap-2 md:grid-cols-2">
+              {secondaryAlerts.map((alert) => (
+                <AlertCard
+                  key={alert.id}
+                  tone={alert.tone}
+                  text={alert.text}
+                  href={alert.href}
+                  actionLabel={alert.actionLabel}
+                  priority="secondary"
+                />
+              ))}
+            </div>
+          ) : null}
         </div>
       </div>
     </Card>
   );
 }
 
-function SecondaryAlertCard({
+function AlertCard({
   tone,
   text,
   href,
   actionLabel,
+  priority,
 }: {
   tone: "warning" | "problem" | "success";
   text: string;
   href: string;
   actionLabel: string;
+  priority: "primary" | "secondary";
 }) {
   const toneStyles = {
-    warning: "border-amber-400/20 bg-amber-400/8 text-amber-100",
-    problem: "border-orange-400/20 bg-orange-400/8 text-orange-100",
-    success: "border-emerald-400/20 bg-emerald-400/8 text-emerald-100",
+    warning:
+      priority === "primary"
+        ? "border-amber-300/30 bg-amber-400/12 text-amber-50"
+        : "border-amber-400/16 bg-amber-400/7 text-amber-100",
+    problem:
+      priority === "primary"
+        ? "border-orange-300/30 bg-orange-400/12 text-orange-50"
+        : "border-orange-400/16 bg-orange-400/7 text-orange-100",
+    success:
+      priority === "primary"
+        ? "border-emerald-300/28 bg-emerald-400/12 text-emerald-50"
+        : "border-emerald-400/16 bg-emerald-400/7 text-emerald-100",
   } as const;
 
   const toneIcons = {
@@ -364,18 +377,34 @@ function SecondaryAlertCard({
   } as const;
 
   return (
-    <article className={cn("min-w-0 overflow-hidden rounded-lg border px-3 py-2", toneStyles[tone])}>
+    <article
+      className={cn(
+        "min-w-0 overflow-hidden rounded-lg border",
+        priority === "primary" ? "px-3.5 py-3" : "px-3 py-2",
+        toneStyles[tone],
+      )}
+    >
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
         <div className="flex min-w-0 items-start gap-2">
           <span className="rounded-lg border border-current/15 bg-black/10 p-1.5">
             <DashboardIcon name={toneIcons[tone]} className="size-4" />
           </span>
-          <p className="min-w-0 text-sm font-medium leading-5 break-words">{text}</p>
+          <p
+            className={cn(
+              "min-w-0 font-medium break-words",
+              priority === "primary" ? "text-[15px] leading-6" : "text-sm leading-5",
+            )}
+          >
+            {text}
+          </p>
         </div>
 
         <Link
           href={href}
-          className="inline-flex min-h-8 w-fit shrink-0 items-center justify-center rounded-md border border-current/20 px-2.5 py-1 text-xs font-semibold text-current transition hover:bg-black/10"
+          className={cn(
+            "inline-flex min-h-8 w-fit shrink-0 items-center justify-center rounded-md border border-current/20 px-2.5 py-1 text-xs font-semibold text-current transition hover:bg-black/10",
+            priority === "primary" && "sm:min-w-[6.5rem]",
+          )}
         >
           {alertActionLabel(actionLabel)}
         </Link>
@@ -385,7 +414,19 @@ function SecondaryAlertCard({
 }
 
 function alertActionLabel(label: string) {
-  return label.includes("Upravit") ? "Upravit" : "Otevřít";
+  if (label.includes("dostupnost")) {
+    return "Dostupnost";
+  }
+
+  if (label.includes("e-mail")) {
+    return "E-mail logy";
+  }
+
+  if (label.includes("rezervace")) {
+    return "Rezervace";
+  }
+
+  return label;
 }
 
 export function DashboardTodayTimelineSection({ data }: DashboardPageProps) {
@@ -484,7 +525,8 @@ export function DashboardKpiGrid({ data }: DashboardPageProps) {
           <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/34">
             {item.label}
           </p>
-          <p className="mt-1 text-2xl font-semibold text-white/88">{item.value}</p>
+          <p className="mt-1 text-xl font-semibold text-white/88">{item.value}</p>
+          <p className="mt-0.5 text-xs text-white/42">{item.detail}</p>
         </article>
       ))}
     </Card>
@@ -579,25 +621,20 @@ export function DashboardQuickActions({ data }: DashboardPageProps) {
       </div>
 
       <div className="grid grid-cols-2 gap-2 pt-3">
-          {data.quickActions.map((action) => (
-            <Link
-              key={action.id}
-              href={action.href}
-              className={cn(
-                "group flex min-h-12 items-center gap-2 rounded-lg border px-3 py-2 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/55",
-                action.id === "create-booking"
-                  ? "border-[var(--color-accent)]/28 bg-[rgba(190,160,120,0.12)] hover:border-[var(--color-accent)]/42 hover:bg-[rgba(190,160,120,0.18)]"
-                  : "border-white/8 bg-white/[0.035] hover:border-white/14 hover:bg-white/[0.06]",
-              )}
-            >
-              <span className="flex size-7 shrink-0 items-center justify-center rounded-md border border-white/10 bg-black/18 text-[var(--color-accent-soft)] transition group-hover:border-[var(--color-accent)]/25">
-                <DashboardIcon name={action.icon} className="size-4" />
-              </span>
-              <div className="min-w-0">
-                <p className="truncate text-sm font-semibold text-white">{quickActionLabel(action.id)}</p>
-              </div>
-            </Link>
-          ))}
+        {data.quickActions.map((action) => (
+          <Link
+            key={action.id}
+            href={action.href}
+            className="group flex min-h-12 items-center gap-2 rounded-lg border border-white/8 bg-white/[0.035] px-3 py-2 transition hover:border-white/14 hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/55"
+          >
+            <span className="flex size-7 shrink-0 items-center justify-center rounded-md border border-white/10 bg-black/18 text-[var(--color-accent-soft)] transition group-hover:border-[var(--color-accent)]/25">
+              <DashboardIcon name={action.icon} className="size-4" />
+            </span>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold text-white">{quickActionLabel(action.id)}</p>
+            </div>
+          </Link>
+        ))}
       </div>
     </Card>
   );
@@ -605,14 +642,14 @@ export function DashboardQuickActions({ data }: DashboardPageProps) {
 
 function quickActionLabel(id: string) {
   switch (id) {
-    case "create-booking":
-      return "Vytvořit";
     case "bookings":
       return "Rezervace";
     case "availability":
       return "Dostupnost";
     case "clients":
       return "Klienti";
+    case "vouchers":
+      return "Vouchery";
     default:
       return "Otevřít";
   }
