@@ -376,6 +376,7 @@ export type AdminDashboardData = {
   hasPublishedSlotsTodayOrTomorrow: boolean;
   hasFreeWindowsToday: boolean;
   upcomingSlots: DashboardUpcomingSlot[];
+  draftUpcomingSlotsCount: number;
   upcomingSlotsFooterHref: string;
   quickActions: Array<{
     id: string;
@@ -403,6 +404,7 @@ export async function getAdminDashboardData(area: AdminArea): Promise<AdminDashb
     failedEmails,
     weekSlots,
     nearbyPublishedSlots,
+    upcomingDraftSlotsCount,
   ] = await Promise.all([
     prisma.booking.findMany({
       where: {
@@ -491,6 +493,12 @@ export async function getAdminDashboardData(area: AdminArea): Promise<AdminDashb
         },
       },
     }),
+    prisma.availabilitySlot.count({
+      where: {
+        startsAt: { gte: now },
+        status: AvailabilitySlotStatus.DRAFT,
+      },
+    }),
   ]);
 
   const safeText = (value: string, fallback: string) => {
@@ -575,28 +583,6 @@ export async function getAdminDashboardData(area: AdminArea): Promise<AdminDashb
     });
   }
 
-  if (!hasPublishedSlotsTodayOrTomorrow) {
-    alerts.push({
-      id: "nearby-slots",
-      tone: "problem",
-      text: "Na dnes a zítra není publikovaný žádný volný termín.",
-      href: plannerHref,
-      actionLabel: "Upravit dostupnost",
-      emphasis: "secondary",
-    });
-  }
-
-  if (todayBookings.length > 0 && !hasFreeWindowsToday) {
-    alerts.push({
-      id: "today-no-free-window",
-      tone: "warning",
-      text: "Dnes už není žádné volné okno pro další rezervaci.",
-      href: plannerHref,
-      actionLabel: "Upravit dostupnost",
-      emphasis: "secondary",
-    });
-  }
-
   if (overdueActiveBookingsCount > 0) {
     alerts.push({
       id: "current-overdue",
@@ -609,22 +595,6 @@ export async function getAdminDashboardData(area: AdminArea): Promise<AdminDashb
       )}.`,
       href: bookingsHref,
       actionLabel: "Otevřít rezervace",
-      emphasis: "secondary",
-    });
-  }
-
-  if (weekOccupancy >= 80 && weekFreeSlots <= 3) {
-    alerts.push({
-      id: "week-capacity-low",
-      tone: "warning",
-      text: `Tento týden zbývají jen ${weekFreeSlots} ${formatCountLabel(
-        weekFreeSlots,
-        "volný slot",
-        "volné sloty",
-        "volných slotů",
-      )}.`,
-      href: plannerHref,
-      actionLabel: "Dnešní plán",
       emphasis: "secondary",
     });
   }
@@ -734,6 +704,7 @@ export async function getAdminDashboardData(area: AdminArea): Promise<AdminDashb
         href: getSlotEditHref(area, slot.id),
       };
     }),
+    draftUpcomingSlotsCount: upcomingDraftSlotsCount,
     upcomingSlotsFooterHref: plannerHref,
     quickActions: [
       {

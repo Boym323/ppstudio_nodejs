@@ -547,6 +547,11 @@ export function RightSidebar({
 }
 
 export function DashboardAvailableSlots({ data }: DashboardPageProps) {
+  const draftSlotsLabel =
+    data.draftUpcomingSlotsCount === 1
+      ? "1 návrh termínu čeká na publikování."
+      : `Máte ${data.draftUpcomingSlotsCount} návrhů termínů čekajících na publikování.`;
+
   return (
     <Card className="p-4">
       <div className="border-b border-white/7 pb-3">
@@ -558,9 +563,20 @@ export function DashboardAvailableSlots({ data }: DashboardPageProps) {
           <>
             {!data.hasFreeWindowsToday ? (
               <p className="rounded-lg border border-white/8 bg-black/16 px-3 py-2.5 text-sm font-medium text-white/72">
-                {data.hasPublishedSlotsTodayOrTomorrow
-                  ? "Dnes nejsou volná okna."
-                  : "Dnes ani zítra není publikovaný volný termín."}
+                Pro dnešek už není volné okno, další publikované termíny najdete níže.
+              </p>
+            ) : null}
+
+            {data.draftUpcomingSlotsCount > 0 ? (
+              <p className="rounded-lg border border-white/8 bg-black/16 px-3 py-2.5 text-sm font-medium text-white/72">
+                {draftSlotsLabel}{" "}
+                <Link
+                  href={data.upcomingSlotsFooterHref}
+                  className="text-[var(--color-accent-soft)] transition hover:text-white"
+                >
+                  Otevřít dostupnost
+                </Link>
+                .
               </p>
             ) : null}
 
@@ -589,10 +605,20 @@ export function DashboardAvailableSlots({ data }: DashboardPageProps) {
         ) : (
           <div>
             <p className="text-sm font-medium text-white">
-              {data.hasPublishedSlotsTodayOrTomorrow
-                ? "Dnes nejsou volná okna."
-                : "Dnes ani zítra není publikovaný volný termín."}
+              Momentálně nejsou publikované žádné nadcházející volné termíny.
             </p>
+            {data.draftUpcomingSlotsCount > 0 ? (
+              <p className="mt-2 text-sm text-white/72">
+                {draftSlotsLabel}{" "}
+                <Link
+                  href={data.upcomingSlotsFooterHref}
+                  className="text-[var(--color-accent-soft)] transition hover:text-white"
+                >
+                  Otevřít dostupnost
+                </Link>
+                .
+              </p>
+            ) : null}
             <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
               <DashboardButton href={data.upcomingSlotsFooterHref} label="Upravit dostupnost" />
               <DashboardButton href={data.addSlotHref} label="Přidat termín" tone="outline" />

@@ -6,6 +6,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Admin dashboard už neeskaluje jako problém samotnou absenci publikovaných slotů dnes/zítra; sekce `Vyžaduje pozornost` nově drží jen skutečně akční provozní alerty (čekající potvrzení, selhané e-maily, rezervace po termínu k uzavření).
+- Sekce `Nejbližší volné termíny` používá neutrální copy pro nulovou dostupnost (`Momentálně nejsou publikované žádné nadcházející volné termíny.`) a při existujících draftech ukazuje užitečný stav s počtem návrhů čekajících na publikování a odkazem do dostupnosti.
 - Admin dashboard má klidnější provozní hierarchii: sekce `Vyžaduje pozornost` nově skutečně zvýrazňuje primární alert podle `emphasis`, sekundární alerty jsou kompaktnější a CTA labely zůstávají konkrétnější (`Dostupnost`, `Rezervace`, `E-mail logy`).
 - Rychlé akce v dashboardu už neduplikují horní CTA `Vytvořit rezervaci`; čtvrtou akcí jsou nově `Vouchery`. KPI strip zobrazuje i krátký detail metriky a read model dashboardu byl očištěn od nepoužívaných polí.
 - Admin session cookie `ppstudio-admin-session` má nově prodlouženou platnost z 12 hodin na 7 dní (`maxAge` + JWT expirace), aby nebylo potřeba tak časté opětovné přihlášení během běžného provozu.
