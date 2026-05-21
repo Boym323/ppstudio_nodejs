@@ -6,6 +6,10 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Admin session cookie `ppstudio-admin-session` má nově prodlouženou platnost z 12 hodin na 7 dní (`maxAge` + JWT expirace), aby nebylo potřeba tak časté opětovné přihlášení během běžného provozu.
+- Admin auth nově používá sliding session refresh v `src/proxy.ts`: při admin requestu se session automaticky obnoví, pokud do expiry zbývá méně než 48 hodin; současně platí absolutní limit 45 dní od prvního přihlášení, po kterém je nutné nové přihlášení.
+- Session timeouty jsou nově konfigurovatelné přes env (`ADMIN_SESSION_IDLE_MAX_AGE_SECONDS`, `ADMIN_SESSION_REFRESH_WINDOW_SECONDS`, `ADMIN_SESSION_ABSOLUTE_MAX_AGE_SECONDS`) se zachovanými defaulty `14 dní / 48 hodin / 45 dní`.
+
 ## [0.3.14] - 2026-05-20
 
 - Release příprava pro produkční nasazení: projektová verze navýšena na patch `0.3.14`.

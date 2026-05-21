@@ -314,6 +314,9 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - `POST /api/auth/login` má server-side rate limit (10 minut, IP + e-mail hash) přes helper `src/lib/auth/admin-login-rate-limit.ts`.
 - Audit login pokusů (`SUCCESS`, `INVALID_PAYLOAD`, `INVALID_CREDENTIALS`, `RATE_LIMITED`) se zapisuje do `BookingSubmissionLog` s prefixem `ADMIN_LOGIN_*`.
 - Session payload je podepsaný JWT token v `httpOnly` cookie.
+- Admin session cookie `ppstudio-admin-session` má idle expiraci 14 dní a používá sliding refresh v `src/proxy.ts`: pokud do expiry zbývá méně než 48 hodin, proxy vystaví novou cookie/JWT se stejným payloadem.
+- Session současně respektuje absolutní limit 45 dní od prvního přihlášení (`sessionStartedAt` claim); po překročení proxy cookie smaže a přesměruje na `/admin/prihlaseni`.
+- Hodnoty jsou konfigurovatelné přes env: `ADMIN_SESSION_IDLE_MAX_AGE_SECONDS`, `ADMIN_SESSION_REFRESH_WINDOW_SECONDS`, `ADMIN_SESSION_ABSOLUTE_MAX_AGE_SECONDS` (sekundy). Guardrails: refresh window nesmí být větší než idle timeout a absolute timeout nesmí být menší než idle timeout.
 - `src/proxy.ts` řeší rychlý auth gate pro admin: u `/admin/*` ověřuje podpis a expiraci session JWT cookie, ne jen její existenci; neplatnou cookie smaže a přesměruje na login.
 - Role-based autorizace se dokončuje uvnitř serverových helperů v `src/lib/auth/session.ts`; po ověření JWT se admin session znovu načítá z DB, neaktivní uživatel session zneplatní a aktuální role se bere z DB.
 - Lite admin účet se v aplikaci může hlásit přes bootstrap env proměnné pouze v recovery režimu `ADMIN_BOOTSTRAP_ENABLED=true`; běžný produkční provoz má používat DB účty.

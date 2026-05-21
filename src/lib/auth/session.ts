@@ -1,24 +1,21 @@
 import { AdminRole } from "@prisma/client";
-import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { env } from "@/config/env";
 import { type AdminArea, getAdminHomeHref } from "@/config/navigation";
 import { verifyPassword } from "@/lib/auth/password";
+import {
+  createSessionToken as createSessionTokenInternal,
+  getSessionCookie as getSessionCookieConfig,
+  verifySessionToken as verifySessionTokenInternal,
+  type SessionTokenPayload,
+} from "@/lib/auth/session-token";
 import { prisma } from "@/lib/prisma";
 
-const COOKIE_NAME = "ppstudio-admin-session";
-const SESSION_MAX_AGE = 60 * 60 * 12;
+const COOKIE_NAME = getSessionCookieConfig().name;
 
-const sessionSecret = new TextEncoder().encode(env.ADMIN_SESSION_SECRET);
-
-type SessionPayload = {
-  sub: string;
-  email: string;
-  name: string;
-  role: AdminRole;
-};
+type SessionPayload = SessionTokenPayload;
 
 export type AdminSession = SessionPayload;
 
@@ -125,18 +122,11 @@ export async function authenticateAdmin(email: string, password: string) {
 }
 
 export async function createSessionToken(payload: SessionPayload) {
-  return new SignJWT(payload)
-    .setProtectedHeader({ alg: "HS256" })
-    .setSubject(payload.sub)
-    .setIssuedAt()
-    .setExpirationTime(`${SESSION_MAX_AGE}s`)
-    .sign(sessionSecret);
+  return createSessionTokenInternal(payload);
 }
 
 export async function verifySessionToken(token: string) {
-  const { payload } = await jwtVerify(token, sessionSecret);
-
-  return payload as SessionPayload;
+  return verifySessionTokenInternal(token);
 }
 
 export async function resolveSessionFromTokenValue(token: string): Promise<AdminSession | null> {
@@ -221,14 +211,5 @@ export function listBootstrapAdminUsers(): BootstrapAdminUser[] {
 }
 
 export function getSessionCookie() {
-  return {
-    name: COOKIE_NAME,
-    options: {
-      httpOnly: true,
-      sameSite: "lax" as const,
-      secure: env.NODE_ENV === "production",
-      path: "/",
-      maxAge: SESSION_MAX_AGE,
-    },
-  };
+  return getSessionCookieConfig();
 }

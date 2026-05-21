@@ -29,6 +29,12 @@ Dokumentace proměnných prostředí pro lokální vývoj i produkci.
 - `DATABASE_URL`: PostgreSQL connection string pro Prisma.
 - `SHADOW_DATABASE_URL`: pomocná databáze pro `prisma migrate dev` (lokální vývoj).
 - `ADMIN_SESSION_SECRET`: klíč pro podpis admin session cookie.
+- `ADMIN_SESSION_IDLE_MAX_AGE_SECONDS`: volitelná idle expirace admin session cookie/JWT v sekundách (default `1209600` = 14 dní).
+- `ADMIN_SESSION_REFRESH_WINDOW_SECONDS`: volitelné okno pro sliding refresh v sekundách (default `172800` = 48 hodin před expirací).
+- `ADMIN_SESSION_ABSOLUTE_MAX_AGE_SECONDS`: volitelný absolutní strop session v sekundách (default `3888000` = 45 dní od prvního přihlášení).
+- Admin session cookie `ppstudio-admin-session` má idle expiraci 14 dní; při admin requestech ji `proxy` obnoví, pokud do expiry zbývá méně než 48 hodin.
+- Session má zároveň absolutní limit 45 dní od prvního přihlášení; po jeho překročení je vyžadované nové přihlášení.
+- Při změně `ADMIN_SESSION_SECRET` se existující admin session okamžitě zneplatní.
 - `ADMIN_BOOTSTRAP_ENABLED`: explicitní recovery přepínač pro bootstrap admin login. Výchozí hodnota je `false`; na produkci zapínej jen krátkodobě pro první založení nebo obnovu přístupu.
 - `ADMIN_OWNER_EMAIL`: bootstrap email pro owner admin účet.
 - `ADMIN_OWNER_PASSWORD`: bootstrap heslo pro owner admin účet.
@@ -57,6 +63,9 @@ DATABASE_URL="postgresql://postgres:postgres@localhost:5432/ppstudio?schema=publ
 SHADOW_DATABASE_URL="postgresql://postgres:postgres@localhost:5432/ppstudio_shadow?schema=public"
 
 ADMIN_SESSION_SECRET=replace-with-long-random-secret-at-least-32-chars
+ADMIN_SESSION_IDLE_MAX_AGE_SECONDS=1209600
+ADMIN_SESSION_REFRESH_WINDOW_SECONDS=172800
+ADMIN_SESSION_ABSOLUTE_MAX_AGE_SECONDS=3888000
 ADMIN_BOOTSTRAP_ENABLED=true
 ADMIN_OWNER_EMAIL=owner@example.com
 ADMIN_OWNER_PASSWORD=change-me-owner
@@ -72,6 +81,7 @@ Lokální doporučení:
 - `EMAIL_DELIVERY_MODE=log` je nejbezpečnější výchozí režim pro vývoj a testovací rollout.
 - `ADMIN_BOOTSTRAP_ENABLED=true` používej jen po dobu prvního přihlášení nebo recovery; po zřízení DB účtů vrať `false`.
 - `NEXT_PUBLIC_MATOMO_*`, `MATOMO_*` a `PUSHOVER_*` nech klidně vypnuté, pokud zrovna netestuješ analytics nebo notifikace.
+- Session časování můžeš upravit přes `ADMIN_SESSION_*_SECONDS`; pokud je nenastavíš, běží default `14 dní idle / refresh při <48h / absolutní strop 45 dní`.
 - `MEDIA_STORAGE_ROOT` drž mimo repozitář a ověř, že do něj má proces právo zapisovat.
 
 ## Poznámky

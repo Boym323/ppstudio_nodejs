@@ -500,6 +500,10 @@ npm run db:clear-booking-data -- --confirm
 - Env proměnné `ADMIN_STAFF_*` bootstrapují systémový účet role `SALON`.
 - Bootstrap login je výchozím nastavením vypnutý a funguje jen při `ADMIN_BOOTSTRAP_ENABLED=true`; po prvním založení nebo obnově DB admin účtu vrať `ADMIN_BOOTSTRAP_ENABLED=false`.
 - Session je ukládaná do `httpOnly` cookie a podepisovaná pomocí `ADMIN_SESSION_SECRET`.
+- Životnost admin session cookie `ppstudio-admin-session` je 14 dní (stejná expirace je i v podepsaném JWT tokenu).
+- Při běžném provozu adminu se session průběžně prodlužuje (sliding refresh): pokud při admin requestu zbývá do expiry méně než 48 hodin, `proxy` vystaví novou cookie.
+- Bezpečnostní strop je 45 dní od prvního přihlášení; po překročení je vyžadované nové přihlášení.
+- Časování session lze upravit env proměnnými `ADMIN_SESSION_IDLE_MAX_AGE_SECONDS`, `ADMIN_SESSION_REFRESH_WINDOW_SECONDS` a `ADMIN_SESSION_ABSOLUTE_MAX_AGE_SECONDS`.
 - Po přihlášení aplikace přesměruje uživatele na domovskou admin cestu podle role:
   - `OWNER` -> `/admin`
   - `SALON` -> `/admin/provoz`
