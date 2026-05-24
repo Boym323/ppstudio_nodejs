@@ -6,6 +6,9 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [0.3.18] - 2026-05-24
+
+- Release příprava pro produkční nasazení: projektová verze navýšena na patch `0.3.18`.
 - Opraven TypeScript kontrakt v owner dashboardu `Komunikace se zákaznicemi`: `trackingStateValue` v `EmailLogsDashboardData.recentEmails` nově zahrnuje i stav `processing`, aby byl v souladu s `deriveTrackingState(...)` a build nepadal na nekompatibilní unii typů.
 
 ## [0.3.17] - 2026-05-24
