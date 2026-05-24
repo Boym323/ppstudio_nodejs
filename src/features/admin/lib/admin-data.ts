@@ -1360,7 +1360,7 @@ export type EmailLogsDashboardData = {
     nextAttemptLabel: string;
     errorMessage: string | null;
     trackingStateLabel: string;
-    trackingStateValue: "sent" | "pending" | "retry" | "failed";
+    trackingStateValue: "sent" | "pending" | "processing" | "retry" | "failed";
     trackingOpenedLabel: string;
     trackingClickedLabel: string;
     detailHref: string;
