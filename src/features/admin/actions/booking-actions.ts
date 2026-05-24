@@ -1,11 +1,12 @@
 "use server";
 
-import { AdminRole, BookingSource, BookingStatus } from "@prisma/client";
+import { AdminRole, BookingActorType, BookingPaymentMethod, BookingSource, BookingStatus, VoucherType } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { type AdminArea } from "@/config/navigation";
 import { type CreateManualBookingActionState } from "@/features/admin/actions/create-manual-booking-action-state";
+import { type CompleteBookingVisitActionState } from "@/features/admin/actions/complete-booking-visit-action-state";
 import { dispatchBookingStatusNotificationNonBlocking } from "@/features/admin/actions/booking-status-notification";
 import { type RedeemBookingVoucherActionState } from "@/features/admin/actions/redeem-booking-voucher-action-state";
 import { type RescheduleBookingActionState } from "@/features/admin/actions/reschedule-booking-action-state";
@@ -14,6 +15,7 @@ import { type UpdateBookingPriceActionState } from "@/features/admin/actions/upd
 import { type UpdateBookingStatusActionState } from "@/features/admin/actions/update-booking-status-action-state";
 import {
   applyAdminBookingStatusChange,
+  canCompleteBookingAt,
   canApplyAdminBookingTransition,
   getAdminBookingActionOptions,
   getBookingStatusLabel,
@@ -38,6 +40,8 @@ import {
   VoucherRedemptionError,
   voucherRedemptionErrorCodes,
 } from "@/features/vouchers/lib/voucher-redemption";
+import { normalizeVoucherCode } from "@/features/vouchers/lib/voucher-code";
+import { getBookingPaymentSummary } from "@/features/bookings/lib/booking-payment-summary";
 import { requireAdminArea, requireRole } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 
@@ -168,6 +172,75 @@ const redeemBookingVoucherSchema = z.object({
   ),
   note: z.string().trim().max(2000, "Poznámka je příliš dlouhá.").optional().or(z.literal("")),
 });
+
+const completeBookingVisitSchema = z
+  .object({
+    area: z.enum(["owner", "salon"]),
+    bookingId: z.string().trim().min(1).max(64),
+    completionMode: z.enum(["cash", "qr", "voucher", "combined", "no_payment", "settled"]),
+    reason: z.string().trim().max(160, "Důvod je příliš dlouhý.").optional().or(z.literal("")),
+    voucherCode: z.string().trim().max(64).optional().or(z.literal("")),
+    voucherAmountCzk: z.preprocess(
+      (value) => (value === "" || value === null ? undefined : value),
+      z.coerce
+        .number({ error: "Částka voucheru musí být celé číslo v Kč." })
+        .int("Částka voucheru musí být celé číslo v Kč.")
+        .min(1, "Částka voucheru musí být vyšší než 0.")
+        .optional(),
+    ),
+    directAmountCzk: z.preprocess(
+      (value) => (value === "" || value === null ? undefined : value),
+      z.coerce
+        .number({ error: "Částka platby musí být celé číslo v Kč." })
+        .int("Částka platby musí být celé číslo v Kč.")
+        .min(1, "Částka platby musí být vyšší než 0.")
+        .optional(),
+    ),
+    directMethod: z.preprocess(
+      (value) => (value === "" || value === null ? undefined : value),
+      z.enum(["CASH", "BANK_TRANSFER"]).optional(),
+    ),
+    paymentNote: z.string().trim().max(500, "Poznámka je příliš dlouhá.").optional().or(z.literal("")),
+  })
+  .superRefine((value, ctx) => {
+    if (value.completionMode === "no_payment" && !(value.reason ?? "").trim()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["reason"],
+        message: "Pro dokončení bez úhrady je povinný důvod.",
+      });
+    }
+
+    if (
+      (value.completionMode === "voucher" || value.completionMode === "combined")
+      && !(value.voucherCode ?? "").trim()
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["voucherCode"],
+        message: "Zadejte kód voucheru.",
+      });
+    }
+
+    if (value.completionMode === "combined" && !value.directMethod) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["directMethod"],
+        message: "Vyberte způsob přímé platby.",
+      });
+    }
+
+    if (
+      (value.completionMode === "cash" || value.completionMode === "qr" || value.completionMode === "combined")
+      && !value.directAmountCzk
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["directAmountCzk"],
+        message: "Zadejte částku přímé platby.",
+      });
+    }
+  });
 
 function revalidateBookingAdminPaths(bookingId: string) {
   const paths = [
@@ -624,6 +697,301 @@ export async function redeemBookingVoucherAction(
       parsed.data.amountCzk,
       redeemedAmountCzk,
     ),
+  };
+}
+
+export async function completeBookingVisitAction(
+  _previousState: CompleteBookingVisitActionState,
+  formData: FormData,
+): Promise<CompleteBookingVisitActionState> {
+  const parsed = completeBookingVisitSchema.safeParse({
+    area: readFormString(formData, "area"),
+    bookingId: readFormString(formData, "bookingId"),
+    completionMode: readFormString(formData, "completionMode"),
+    reason: readFormString(formData, "reason"),
+    voucherCode: readFormString(formData, "voucherCode"),
+    voucherAmountCzk: readFormString(formData, "voucherAmountCzk"),
+    directAmountCzk: readFormString(formData, "directAmountCzk"),
+    directMethod: readFormString(formData, "directMethod"),
+    paymentNote: readFormString(formData, "paymentNote"),
+  });
+
+  if (!parsed.success) {
+    const fieldErrors = parsed.error.flatten().fieldErrors;
+    return {
+      status: "error",
+      formError: "Dokončení návštěvy je potřeba doplnit nebo opravit.",
+      fieldErrors: {
+        completionMode: fieldErrors.completionMode?.[0],
+        reason: fieldErrors.reason?.[0],
+        voucherCode: fieldErrors.voucherCode?.[0],
+        voucherAmountCzk: fieldErrors.voucherAmountCzk?.[0],
+        directAmountCzk: fieldErrors.directAmountCzk?.[0],
+        directMethod: fieldErrors.directMethod?.[0],
+      },
+    };
+  }
+
+  const session = await requireRole([AdminRole.OWNER, AdminRole.SALON]);
+  const actorUserId = await resolveVoucherRedemptionActorUserId(session.email);
+  const booking = await prisma.booking.findUnique({
+    where: { id: parsed.data.bookingId },
+    select: {
+      id: true,
+      serviceId: true,
+      status: true,
+      scheduledEndsAt: true,
+      finalPriceCzk: true,
+      servicePriceFromCzk: true,
+      voucherRedemptions: { select: { amountCzk: true } },
+      payments: { select: { amountCzk: true } },
+      service: { select: { priceFromCzk: true } },
+    },
+  });
+
+  if (!booking) {
+    return { status: "error", formError: "Rezervaci se nepodařilo najít." };
+  }
+
+  if (!canApplyAdminBookingTransition(booking.status, BookingStatus.COMPLETED)) {
+    return {
+      status: "error",
+      formError: `Rezervaci ve stavu „${getBookingStatusLabel(booking.status)}“ teď nejde dokončit.`,
+    };
+  }
+
+  if (!canCompleteBookingAt(booking.scheduledEndsAt)) {
+    return {
+      status: "error",
+      formError: "Rezervaci lze dokončit až po skončení naplánovaného termínu.",
+    };
+  }
+
+  const paymentSummary = getBookingPaymentSummary({
+    totalPriceCzk: booking.finalPriceCzk ?? booking.servicePriceFromCzk ?? booking.service.priceFromCzk ?? 0,
+    voucherRedemptions: booking.voucherRedemptions,
+    payments: booking.payments,
+  });
+  const remainingCzk = paymentSummary.remainingCzk;
+  const mode = parsed.data.completionMode;
+  const note = parsed.data.paymentNote?.trim() || null;
+  const baseReason = parsed.data.reason?.trim() || undefined;
+
+  if (remainingCzk > 0 && mode === "settled") {
+    return {
+      status: "error",
+      formError: "Při doplatku je potřeba vybrat způsob úhrady nebo dokončení bez úhrady.",
+      fieldErrors: { completionMode: "Vyberte způsob dokončení návštěvy." },
+    };
+  }
+
+  const directAmountCzk =
+    mode === "cash" || mode === "qr" || mode === "combined"
+      ? parsed.data.directAmountCzk ?? remainingCzk
+      : 0;
+  let plannedVoucherAmountCzk = 0;
+  let redeemedVoucherId: string | null = null;
+
+  if ((mode === "voucher" || mode === "combined") && remainingCzk > 0) {
+    const normalizedVoucherCode = normalizeVoucherCode(parsed.data.voucherCode ?? "");
+    const voucher = await prisma.voucher.findUnique({
+      where: { code: normalizedVoucherCode },
+      select: {
+        id: true,
+        type: true,
+        remainingValueCzk: true,
+        serviceId: true,
+        servicePriceSnapshotCzk: true,
+      },
+    });
+
+    if (!voucher) {
+      return {
+        status: "error",
+        formError: getVoucherRedemptionFormError(
+          new VoucherRedemptionError(voucherRedemptionErrorCodes.voucherNotFound, "Voucher was not found."),
+        ),
+        fieldErrors: { voucherCode: "Voucher se nepodařilo najít." },
+      };
+    }
+
+    if (voucher.type === VoucherType.VALUE) {
+      const requestedVoucherAmountCzk =
+        parsed.data.voucherAmountCzk ?? (mode === "voucher" ? remainingCzk : undefined);
+
+      if (!requestedVoucherAmountCzk) {
+        return {
+          status: "error",
+          formError: "U kombinované úhrady hodnotovým voucherem zadejte částku voucheru.",
+          fieldErrors: { voucherAmountCzk: "Zadejte částku voucheru." },
+        };
+      }
+
+      plannedVoucherAmountCzk = Math.min(requestedVoucherAmountCzk, voucher.remainingValueCzk ?? 0);
+    } else {
+      if (voucher.serviceId !== booking.serviceId) {
+        return {
+          status: "error",
+          formError: getVoucherRedemptionFormError(
+            new VoucherRedemptionError(voucherRedemptionErrorCodes.serviceMismatch, "Voucher service does not match booking."),
+          ),
+          fieldErrors: { voucherCode: "Voucher neodpovídá službě v rezervaci." },
+        };
+      }
+
+      plannedVoucherAmountCzk =
+        voucher.servicePriceSnapshotCzk ?? booking.servicePriceFromCzk ?? booking.service.priceFromCzk ?? 0;
+    }
+  }
+
+  if (remainingCzk > 0 && mode !== "no_payment") {
+    const plannedPaidCzk = directAmountCzk + plannedVoucherAmountCzk;
+
+    if (plannedPaidCzk < remainingCzk) {
+      return {
+        status: "error",
+        formError:
+          "Zadaná úhrada nepokrývá celý doplatek. Doplňte platbu, nebo použijte „Bez platby“ s povinným důvodem.",
+        fieldErrors:
+          mode === "voucher" || mode === "combined"
+            ? { voucherAmountCzk: "Úhrada musí pokrýt celý doplatek." }
+            : { directAmountCzk: "Úhrada musí pokrýt celý doplatek." },
+      };
+    }
+  }
+
+  try {
+    if (mode === "voucher" || mode === "combined") {
+      const redemption = await redeemVoucherForBooking({
+        bookingId: booking.id,
+        voucherCode: parsed.data.voucherCode ?? "",
+        amountCzk:
+          parsed.data.voucherAmountCzk
+          ?? (mode === "voucher" && remainingCzk > 0 ? remainingCzk : undefined),
+        redeemedByUserId: actorUserId,
+        note: note ?? undefined,
+      });
+      redeemedVoucherId = redemption.voucher.id;
+
+      await prisma.bookingStatusHistory.create({
+        data: {
+          bookingId: booking.id,
+          status: booking.status,
+          actorType: BookingActorType.USER,
+          actorUserId,
+          reason: "Voucher uplatněn při dokončení návštěvy",
+          metadata: {
+            source: "admin-booking-complete-flow-v1",
+            amount: redemption.redemption.amountCzk,
+            voucherCode: redemption.voucher.code,
+          },
+        },
+      });
+    }
+
+    if (mode === "cash" || mode === "qr" || mode === "combined") {
+      const directMethod =
+        mode === "cash"
+          ? BookingPaymentMethod.CASH
+          : mode === "qr"
+            ? BookingPaymentMethod.BANK_TRANSFER
+            : parsed.data.directMethod === "CASH"
+              ? BookingPaymentMethod.CASH
+              : BookingPaymentMethod.BANK_TRANSFER;
+
+      await prisma.bookingPayment.create({
+        data: {
+          bookingId: booking.id,
+          amountCzk: directAmountCzk,
+          method: directMethod,
+          paidAt: new Date(),
+          note,
+          createdByUserId: actorUserId,
+        },
+      });
+
+      await prisma.bookingStatusHistory.create({
+        data: {
+          bookingId: booking.id,
+          status: booking.status,
+          actorType: BookingActorType.USER,
+          actorUserId,
+          reason: "Platba zapsána při dokončení návštěvy",
+          metadata: {
+            source: "admin-booking-complete-flow-v1",
+            amount: directAmountCzk,
+            method: directMethod,
+          },
+        },
+      });
+    }
+  } catch (error) {
+    if (error instanceof VoucherRedemptionError) {
+      return {
+        status: "error",
+        formError: getVoucherRedemptionFormError(error),
+        fieldErrors:
+          error.code === voucherRedemptionErrorCodes.voucherNotFound
+            ? { voucherCode: getVoucherRedemptionFormError(error) }
+            : error.code === voucherRedemptionErrorCodes.amountRequired
+              || error.code === voucherRedemptionErrorCodes.insufficientRemainingValue
+              ? { voucherAmountCzk: getVoucherRedemptionFormError(error) }
+              : undefined,
+      };
+    }
+
+    console.error("Failed to register completion payment flow", error);
+    return {
+      status: "error",
+      formError: "Úhradu se nepodařilo zapsat. Zkuste to prosím znovu.",
+    };
+  }
+
+  const completionReason =
+    mode === "no_payment" && remainingCzk > 0
+      ? `Rezervace označena jako hotová s neuhrazeným doplatkem. ${baseReason ?? ""}`.trim()
+      : baseReason;
+
+  const completeResult = await applyAdminBookingStatusChange({
+    bookingId: booking.id,
+    targetStatus: BookingStatus.COMPLETED,
+    actorUserId,
+    reason: completionReason,
+  });
+
+  if (completeResult.status === "completion-too-early") {
+    return {
+      status: "error",
+      formError: "Rezervaci lze dokončit až po skončení naplánovaného termínu.",
+    };
+  }
+  if (completeResult.status === "invalid-transition") {
+    return {
+      status: "error",
+      formError: `Rezervace už mezitím přešla do stavu „${getBookingStatusLabel(completeResult.currentStatus)}“.`,
+    };
+  }
+  if (completeResult.status === "not-found") {
+    return {
+      status: "error",
+      formError: "Rezervaci se nepodařilo najít.",
+    };
+	  }
+
+	  revalidateBookingAdminPaths(booking.id);
+	  if (redeemedVoucherId) {
+	    revalidatePath("/admin/vouchery");
+	    revalidatePath("/admin/provoz/vouchery");
+	    revalidatePath(`/admin/vouchery/${redeemedVoucherId}`);
+	    revalidatePath(`/admin/provoz/vouchery/${redeemedVoucherId}`);
+	  }
+
+	  return {
+    status: "success",
+    successMessage:
+      mode === "no_payment"
+        ? "Návštěva je dokončená bez úhrady a důvod je uložený v historii."
+        : "Úhrada je zapsaná a návštěva dokončená.",
   };
 }
 

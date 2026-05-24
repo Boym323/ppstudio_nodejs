@@ -6,6 +6,15 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Admin detail rezervace je vizuálně přeřazený do pracovního cockpit režimu: u potvrzené rezervace je hlavní akcí `Dokončit návštěvu`, `Přesunout termín` a `Nedorazila` jsou sekundární provozní kroky a `Zrušit rezervaci` je oddělené do samostatné nebezpečné sekce s důvodem zrušení.
+- Souhrn rezervace se na mobilu zobrazuje hned pod hlavičkou, technická metadata jsou sbalitelná a tlumená, panel `Úhrada` výrazněji ukazuje doplatek a poznámky oddělují klientskou poznámku od interní týmové poznámky.
+- Admin detail rezervace je kompaktnější: panel `Další krok` používá stručný stavový řádek bez duplicit, potvrzení vybrané akce je v jednom kompaktním řádku a `Nebezpečné akce` jsou výchozně sbalené pod accordion.
+- `Úhrada` je zhuštěná do rychlého souhrnu `Doplatek / Uhrazeno / Voucher` se zvýrazněným doplatkem, detail plateb je pod rozbalením `Detail úhrady` a historie změn v detailu rezervace výchozně ukazuje jen poslední položku.
+- Panel `Další krok` v potvrzené rezervaci nově používá hlavní akci `Dokončit návštěvu` a zobrazuje platební kontext (`Doplatek` / `Platba vyřešena`) přímo u akce.
+- Přidán serverový completion flow `completeBookingVisitAction`: při doplatku umožňuje v jednom potvrzení dokončit návštěvu přes `Hotově`, `QR platba`, `Voucher`, `Kombinovaně` nebo `Bez platby` (u `Bez platby` je povinný důvod). Flow umí zapsat platbu a/nebo voucher a následně uzavřít rezervaci jako `Hotovo`.
+- Completion flow nyní před zápisem úhrady znovu ověřuje, že rezervaci lze dokončit až po termínu a že zvolená platba/voucher pokrývá celý doplatek; částečný voucher už neuzavře návštěvu bez vědomé volby `Bez platby` s důvodem.
+- V completion flow přibyla pomocná akce `Načíst voucher`: po zadání kódu načte stav a zbývající hodnotu voucheru a u hodnotového voucheru předvyplní doporučenou částku do pole `Částka voucheru`.
+- Audit při completion flow je rozšířený o záznamy `Platba zapsána při dokončení návštěvy`, `Voucher uplatněn při dokončení návštěvy` a u varianty bez úhrady o text `Rezervace označena jako hotová s neuhrazeným doplatkem...` v důvodu změny stavu.
 - Opraven owner flow `Znovu odeslat e-mail` u reminderu: nově po akci otevírá detail nově vytvořeného email logu (ne původního záznamu), takže je hned vidět skutečný výsledek resend pokusu.
 - Ruční admin resend reminderu (`BOOKING_REMINDER`) nyní nastavuje explicitní override flag `manualReminderResend`, takže worker reminder preflight záznam nepřepne automaticky na `system-skip` a zpráva se skutečně zkusí odeslat na opravený kontakt.
 

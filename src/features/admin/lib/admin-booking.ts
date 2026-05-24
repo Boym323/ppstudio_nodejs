@@ -357,6 +357,8 @@ function getHistorySourceLabel(metadata: unknown) {
       return "Akce detailu";
     case "admin-booking-note-v1":
       return "Interní poznámka";
+    case "admin-booking-complete-flow-v1":
+      return "Dokončení návštěvy";
     case "admin-manual-booking-v1":
       return "Ruční vytvoření";
     case "public-booking-request-v1":

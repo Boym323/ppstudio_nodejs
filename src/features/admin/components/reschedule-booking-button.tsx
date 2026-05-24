@@ -123,16 +123,16 @@ export function RescheduleBookingButton({
         className={
           variant === "inline"
             ? "rounded-full border border-white/10 px-3 py-1.5 text-sm text-white/76 transition hover:border-white/18 hover:bg-white/6 hover:text-white"
-            : "rounded-[1rem] border border-[var(--color-accent)]/35 bg-[rgba(190,160,120,0.12)] px-3.5 py-3 text-left transition hover:border-[var(--color-accent)]/45"
+            : "h-full w-full rounded-[1rem] border border-white/12 bg-white/[0.045] px-3.5 py-3 text-left transition hover:border-white/18 hover:bg-white/[0.065]"
         }
       >
         {variant === "inline" ? (
           "Přesunout termín"
         ) : (
           <>
-            <span className="block text-sm font-medium text-white">Přesunout termín</span>
+            <span className="block text-sm font-semibold text-white">Přesunout termín</span>
             <span className="mt-1 block text-sm leading-5 text-white/60">
-              Samostatná akce s validací, historií a navázaným oznámením klientce.
+              Důležitá provozní změna, ale neuzavírá návštěvu.
             </span>
           </>
         )}

@@ -47,8 +47,8 @@ export function AdminBookingPaymentForm({
     <details
       className="group rounded-[0.95rem] border border-white/8 bg-white/[0.03]"
     >
-      <summary className="cursor-pointer list-none px-3.5 py-3 marker:hidden">
-        <span className="inline-flex min-h-10 items-center justify-center rounded-full bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-[var(--color-accent-contrast)] transition group-open:hidden hover:brightness-105">
+      <summary className="cursor-pointer list-none px-3 py-2.5 marker:hidden">
+        <span className="inline-flex min-h-9 items-center justify-center rounded-full bg-[var(--color-accent)] px-3.5 py-1.5 text-sm font-semibold text-[var(--color-accent-contrast)] transition group-open:hidden hover:brightness-105">
           + Zapsat platbu
         </span>
         <span className="hidden text-sm font-medium text-white/78 group-open:inline">
@@ -56,7 +56,7 @@ export function AdminBookingPaymentForm({
         </span>
       </summary>
 
-      <form action={formAction} className="space-y-3 border-t border-white/8 px-3.5 py-3">
+      <form action={formAction} className="space-y-2.5 border-t border-white/8 px-3 py-2.5">
         <input type="hidden" name="area" value={area} />
         <input type="hidden" name="bookingId" value={bookingId} />
 
@@ -72,7 +72,7 @@ export function AdminBookingPaymentForm({
           </div>
         ) : null}
 
-        <div className="grid gap-3 md:grid-cols-3">
+        <div className="grid gap-2.5 md:grid-cols-3">
           <label className="block">
             <span className="text-sm font-medium text-white">Částka</span>
             <input
@@ -83,7 +83,7 @@ export function AdminBookingPaymentForm({
               inputMode="numeric"
               defaultValue={defaultAmountCzk > 0 ? defaultAmountCzk : undefined}
               placeholder="Např. 500"
-              className="mt-1.5 w-full rounded-[0.85rem] border border-white/8 bg-black/20 px-3.5 py-2.5 text-sm text-white outline-none transition placeholder:text-white/30 focus:border-[var(--color-accent)]/55"
+              className="mt-1.5 w-full rounded-[0.85rem] border border-white/8 bg-black/20 px-3 py-2 text-sm text-white outline-none transition placeholder:text-white/30 focus:border-[var(--color-accent)]/55"
             />
             {serverState.fieldErrors?.amountCzk ? (
               <p className="mt-2 text-sm text-red-300">{serverState.fieldErrors.amountCzk}</p>
@@ -95,7 +95,7 @@ export function AdminBookingPaymentForm({
             <select
               name="method"
               defaultValue={BookingPaymentMethod.CASH}
-              className="mt-1.5 w-full rounded-[0.85rem] border border-white/8 bg-black/20 px-3.5 py-2.5 text-sm text-white outline-none transition focus:border-[var(--color-accent)]/55"
+              className="mt-1.5 w-full rounded-[0.85rem] border border-white/8 bg-black/20 px-3 py-2 text-sm text-white outline-none transition focus:border-[var(--color-accent)]/55"
             >
               {paymentMethods.map((method) => (
                 <option key={method} value={method} className="bg-neutral-950 text-white">
@@ -114,7 +114,7 @@ export function AdminBookingPaymentForm({
               type="datetime-local"
               name="paidAt"
               defaultValue={formatDateTimeLocalValue(new Date())}
-              className="mt-1.5 w-full rounded-[0.85rem] border border-white/8 bg-black/20 px-3.5 py-2.5 text-sm text-white outline-none transition focus:border-[var(--color-accent)]/55"
+              className="mt-1.5 w-full rounded-[0.85rem] border border-white/8 bg-black/20 px-3 py-2 text-sm text-white outline-none transition focus:border-[var(--color-accent)]/55"
             />
             {serverState.fieldErrors?.paidAt ? (
               <p className="mt-2 text-sm text-red-300">{serverState.fieldErrors.paidAt}</p>
@@ -129,7 +129,7 @@ export function AdminBookingPaymentForm({
             rows={2}
             maxLength={500}
             placeholder="Např. doplatek po službě."
-            className="mt-1.5 w-full resize-y rounded-[0.85rem] border border-white/8 bg-black/20 px-3.5 py-2.5 text-sm leading-5 text-white outline-none transition placeholder:text-white/30 focus:border-[var(--color-accent)]/55"
+            className="mt-1.5 w-full resize-y rounded-[0.85rem] border border-white/8 bg-black/20 px-3 py-2 text-sm leading-5 text-white outline-none transition placeholder:text-white/30 focus:border-[var(--color-accent)]/55"
           />
           {serverState.fieldErrors?.note ? (
             <p className="mt-2 text-sm text-red-300">{serverState.fieldErrors.note}</p>
@@ -180,7 +180,7 @@ function SubmitPaymentButton() {
     <button
       type="submit"
       disabled={pending}
-      className="inline-flex min-h-10 items-center justify-center rounded-full bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-[var(--color-accent-contrast)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-70"
+      className="inline-flex min-h-9 items-center justify-center rounded-full bg-[var(--color-accent)] px-3.5 py-1.5 text-sm font-semibold text-[var(--color-accent-contrast)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-70"
     >
       {pending ? "Zapisuji platbu..." : "Zapsat platbu"}
     </button>

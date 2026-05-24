@@ -203,14 +203,16 @@ Postup nasazení aplikace do produkce.
   - detail klientky `/admin/klienti/[clientId]` a `/admin/provoz/klienti/[clientId]`: hlavička ukazuje stav, poslední a další návštěvu, rychlé akce fungují jen při dostupném kontaktu, historie návštěv otevírá detail rezervace a interní poznámka se uloží bez změny ostatních údajů
   - detail rezervace:
     - sticky header drží klientku, službu, termín, stav, zdroj a rychlé akce i při scrollu
-    - akční panel je hned pod headerem a podle stavu nabízí správný další krok (`Potvrdit`, `Hotovo`, `Zrušit`, `Nedorazila`)
+    - akční panel je hned pod headerem a podle stavu nabízí správný další krok (`Potvrdit`, `Dokončit návštěvu`, `Nedorazila`), zatímco `Zrušit rezervaci` je až v oddělené nebezpečné sekci
     - u budoucí potvrzené rezervace se `Hotovo` nenabízí a serverový submit ho odmítne; akce je dostupná až po skončení termínu
     - po označení dnešní služby jako `Hotovo` zůstane rezervace v timeline viditelná a minulý úsek se nezačne tvářit jako volné okno
     - v sekci `Volné termíny` je dokončená rezervace vidět jako tlumené `Hotovo`, ne jen jako nejasný zamčený interval
     - potvrď, že `Přesunout termín` zůstává oddělené CTA do draweru, ne součást běžného chooseru
-    - pravý summary card ukazuje kompaktně kontakt, službu, termín, zdroj, přesuny a auditní metadata
-    - poznámky jsou v jednom bloku (`Poznámka od klientky` + editovatelná interní poznámka)
-    - historie ukazuje nejdřív posledních 5 položek a umí rozbalit celý audit
+    - pravý summary card ukazuje kompaktně kontakt, službu, termín, zdroj a přesuny; technická metadata jsou sbalitelná nebo jasně upozaděná
+    - na mobilu je souhrn rezervace hned pod hlavičkou a teprve potom následuje `Další krok`
+    - panel `Úhrada` na první pohled ukazuje doplatek, celkem uhrazeno, voucher a platby mimo voucher, ale `+ Zapsat platbu` nepřebíjí hlavní akci `Dokončit návštěvu`
+    - poznámky jsou v jednom bloku, ale klientská poznámka je vizuálně oddělená od interní týmové poznámky
+    - historie ukazuje nejdřív poslední změnu a umí rozbalit celý audit
     - otevření draweru `Přesunout termín`
     - výběr nového času ze slotů i ručně
     - vznik auditního záznamu v historii detailu

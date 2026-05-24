@@ -100,3 +100,4 @@ Sem patří krátké záznamy architektonických rozhodnutí.
 - `0094-admin-dashboard-alert-priority-v4.md`
 - `0095-public-microsoft-clarity-v1.md`
 - `0096-admin-client-contact-correction-v1.md`
+- `0097-admin-booking-detail-cockpit-hierarchy-v1.md`

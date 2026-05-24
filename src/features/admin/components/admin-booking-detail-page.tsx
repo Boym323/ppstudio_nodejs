@@ -20,7 +20,7 @@ type AdminBookingDetailPageProps = {
   data: AdminBookingDetailData;
 };
 
-const HISTORY_PREVIEW_COUNT = 5;
+const HISTORY_PREVIEW_COUNT = 1;
 
 export function AdminBookingDetailPage({ data }: AdminBookingDetailPageProps) {
   const listHref = data.area === "owner" ? "/admin/rezervace" : "/admin/provoz/rezervace";
@@ -33,7 +33,7 @@ export function AdminBookingDetailPage({ data }: AdminBookingDetailPageProps) {
       <BookingDetailHeader data={data} listHref={listHref} />
 
       <div className="grid gap-3 xl:grid-cols-[minmax(0,1.5fr)_minmax(19rem,0.9fr)] xl:items-start">
-        <div className="min-w-0 space-y-3">
+        <div className="min-w-0 space-y-3 xl:order-1">
           <BookingActionPanel data={data} statusContext={statusContext} />
           <div id="booking-voucher">
             <BookingVoucherPanel data={data} />
@@ -49,7 +49,7 @@ export function AdminBookingDetailPage({ data }: AdminBookingDetailPageProps) {
           </div>
         </div>
 
-        <aside className="min-w-0 space-y-3 xl:sticky xl:top-28">
+        <aside className="order-first min-w-0 space-y-3 xl:order-2 xl:sticky xl:top-28">
           <BookingSummaryCard data={data} />
           <BookingAuditCard data={data} />
         </aside>
@@ -66,6 +66,7 @@ function BookingDetailHeader({
   listHref: string;
 }) {
   const headerToneClassName = getHeaderToneClassName(data.status);
+  const clientPhoneHref = buildPhoneHref(data.clientPhone);
   const clientEmailHref = data.clientEmail ? `mailto:${data.clientEmail}` : null;
 
   return (
@@ -110,8 +111,18 @@ function BookingDetailHeader({
           </div>
 
           <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-            <QuickHeaderAction href={buildPhoneHref(data.clientPhone)} label="Zavolat klientce" />
-            <QuickHeaderAction href={clientEmailHref} label="Napsat e-mail" muted={!clientEmailHref} />
+            <QuickHeaderAction
+              href={clientPhoneHref}
+              label="Zavolat klientce"
+              muted={!clientPhoneHref}
+              hint={!clientPhoneHref ? "Telefon není dostupný." : undefined}
+            />
+            <QuickHeaderAction
+              href={clientEmailHref}
+              label="Napsat e-mail"
+              muted={!clientEmailHref}
+              hint={!clientEmailHref ? "E-mail není dostupný." : undefined}
+            />
             {data.reschedule.enabled ? (
               <RescheduleBookingButton
                 area={data.area}
@@ -150,32 +161,10 @@ function BookingActionPanel({
 }) {
   return (
     <AdminPanel title="Další krok" compact={data.area === "salon"} denseHeader>
-      <div className="space-y-3">
+      <div className="space-y-2.5">
         <div className={getStatusContextClassName(statusContext.tone)}>
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <p className="text-[0.66rem] uppercase tracking-[0.18em] text-white/45">
-                Rozhodovací panel
-              </p>
-              <p className="mt-1 text-sm font-medium text-white">{statusContext.title}</p>
-              <p className="mt-1 text-sm leading-5 text-white/64">{statusContext.description}</p>
-            </div>
-            {data.reschedule.enabled ? (
-              <div className="shrink-0">
-                <RescheduleBookingButton
-                  area={data.area}
-                  bookingId={data.id}
-                  serviceId={data.reschedule.serviceId}
-                  serviceName={data.serviceName}
-                  serviceDurationMinutes={data.reschedule.serviceDurationMinutes}
-                  currentScheduledAtLabel={data.scheduledAtLabel}
-                  currentStartsAt={data.reschedule.currentStartsAt}
-                  expectedUpdatedAt={data.reschedule.expectedUpdatedAt}
-                  rescheduleCount={data.rescheduleCount}
-                  slots={data.reschedule.slots}
-                />
-              </div>
-            ) : null}
+          <div className="max-w-3xl">
+            <p className="text-sm font-medium text-white/84">{statusContext.title}</p>
           </div>
         </div>
 
@@ -184,6 +173,24 @@ function BookingActionPanel({
           bookingId={data.id}
           availableActions={data.availableActions}
           bookingStatus={data.status}
+          initialVoucherCode={data.voucher.intendedVoucher?.code ?? data.voucher.intendedVoucherCodeSnapshot ?? ""}
+          remainingPaymentCzk={data.voucher.paymentSummary.remainingCzk}
+          secondaryActionSlot={
+            data.reschedule.enabled ? (
+              <RescheduleBookingButton
+                area={data.area}
+                bookingId={data.id}
+                serviceId={data.reschedule.serviceId}
+                serviceName={data.serviceName}
+                serviceDurationMinutes={data.reschedule.serviceDurationMinutes}
+                currentScheduledAtLabel={data.scheduledAtLabel}
+                currentStartsAt={data.reschedule.currentStartsAt}
+                expectedUpdatedAt={data.reschedule.expectedUpdatedAt}
+                rescheduleCount={data.rescheduleCount}
+                slots={data.reschedule.slots}
+              />
+            ) : null
+          }
         />
       </div>
     </AdminPanel>
@@ -229,49 +236,87 @@ function BookingAuditCard({ data }: { data: AdminBookingDetailData }) {
 
   return (
     <AdminPanel title="Technická metadata" compact={data.area === "salon"} denseHeader>
-      <dl className="divide-y divide-white/6 overflow-hidden rounded-[1rem] border border-white/8 bg-white/[0.03]">
-        {items.map((item) => (
-          <SummaryRow key={item.label} label={item.label} value={item.value} />
-        ))}
-      </dl>
+      <details className="group overflow-hidden rounded-[1rem] border border-white/7 bg-white/[0.025]">
+        <summary className="cursor-pointer list-none px-3.5 py-3 marker:hidden">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm font-medium text-white/62">Auditní a akviziční údaje</p>
+            <span className="rounded-full border border-white/10 px-2.5 py-1 text-[0.64rem] font-semibold uppercase tracking-[0.14em] text-white/42 group-open:hidden">
+              Rozbalit
+            </span>
+            <span className="hidden rounded-full border border-white/10 px-2.5 py-1 text-[0.64rem] font-semibold uppercase tracking-[0.14em] text-white/52 group-open:inline">
+              Sbalit
+            </span>
+          </div>
+        </summary>
+        <dl className="divide-y divide-white/6 border-t border-white/7">
+          {items.map((item) => (
+            <SummaryRow key={item.label} label={item.label} value={item.value} muted />
+          ))}
+        </dl>
+      </details>
     </AdminPanel>
   );
 }
 
 function BookingNotesPanel({ data }: { data: AdminBookingDetailData }) {
+  const hasClientNote = Boolean(data.clientNote?.trim());
+  const hasInternalNote = Boolean(data.internalNote?.trim());
+
   return (
     <AdminPanel title="Poznámky" compact={data.area === "salon"} denseHeader>
-      <div className="space-y-3">
-        <CompactNoteBlock
-          label="Poznámka od klientky"
-          value={data.clientNote}
-          emptyLabel="Klientka nic nedopsala."
-          tone="default"
-        />
-
-        <div className="rounded-[1rem] border border-white/8 bg-white/[0.035] p-3.5">
-          <div className="mb-3">
-            <p className="text-[0.68rem] uppercase tracking-[0.2em] text-white/46">Interní poznámka</p>
-            <p className="mt-1 text-sm leading-5 text-white/60">
-              Krátký provozní kontext pro OWNER i SALON.
-            </p>
+      <div className="space-y-2.5">
+        {!hasClientNote && !hasInternalNote ? (
+          <div className="rounded-[0.95rem] border border-white/8 bg-white/[0.03] px-3 py-2.5">
+            <p className="text-sm text-white/62">Klientka: bez poznámky</p>
+            <p className="text-sm text-white/62">Interní: bez poznámky</p>
           </div>
+        ) : (
+          <CompactNoteBlock
+            label="Poznámka od klientky"
+            value={data.clientNote}
+            emptyLabel="Klientka nic nedopsala."
+            tone="default"
+          />
+        )}
 
-          {data.internalNote ? (
-            <CompactNoteBlock label="Aktuální interní poznámka" value={data.internalNote} tone="accent" />
-          ) : (
-            <div className="rounded-[0.95rem] border border-dashed border-white/12 bg-black/16 px-3 py-2.5">
-              <p className="text-sm text-white/62">Interní poznámka zatím chybí.</p>
+        <div className="rounded-[1rem] border border-[var(--color-accent)]/14 bg-[rgba(190,160,120,0.055)] p-3">
+          <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <p className="text-[0.68rem] uppercase tracking-[0.2em] text-[var(--color-accent-soft)]/82">
+                Interní poznámka
+              </p>
+              <p className="mt-1 text-sm leading-5 text-white/68">
+                Provozní kontext pro tým, ne klientská komunikace.
+              </p>
             </div>
-          )}
-
-          <div className="mt-3">
-            <AdminBookingNoteForm
-              area={data.area}
-              bookingId={data.id}
-              initialValue={data.internalNote ?? ""}
-            />
+            <span className="w-fit rounded-full border border-white/10 bg-black/16 px-2.5 py-1 text-[0.64rem] font-semibold uppercase tracking-[0.14em] text-white/48">
+              Týmový nástroj
+            </span>
           </div>
+
+          {hasInternalNote ? (
+            <div className="rounded-[0.95rem] border border-white/8 bg-black/16 p-3">
+              <CompactNoteBlock label="Aktuální interní poznámka" value={data.internalNote} tone="accent" />
+            </div>
+          ) : null}
+
+          <details className="group mt-2.5 rounded-[0.95rem] border border-white/8 bg-black/14">
+            <summary className="cursor-pointer list-none px-3.5 py-3 marker:hidden">
+              <span className="inline-flex min-h-9 items-center justify-center rounded-full border border-white/18 px-3.5 py-1.5 text-sm font-semibold text-white/78 transition group-open:hidden hover:border-white/28 hover:bg-white/8 hover:text-white">
+                {data.internalNote ? "Upravit poznámku" : "Přidat poznámku"}
+              </span>
+              <span className="hidden text-sm font-medium text-white/78 group-open:inline">
+                Interní poznámka
+              </span>
+            </summary>
+            <div className="border-t border-white/8 px-3.5 py-3">
+              <AdminBookingNoteForm
+                area={data.area}
+                bookingId={data.id}
+                initialValue={data.internalNote ?? ""}
+              />
+            </div>
+          </details>
         </div>
       </div>
     </AdminPanel>
@@ -302,13 +347,28 @@ function BookingVoucherPanel({ data }: { data: AdminBookingDetailData }) {
   return (
     <AdminPanel title="Úhrada" compact={data.area === "salon"} denseHeader>
       <div className="space-y-2.5">
-        <PaymentSummaryBlock data={data} paymentSummary={paymentSummary} />
+        <PaymentSummaryBlock paymentSummary={paymentSummary} />
 
-        <AdminBookingPaymentForm
-          area={data.area}
-          bookingId={data.id}
-          defaultAmountCzk={paymentSummary.remainingCzk}
-        />
+        <div className="grid gap-2 md:grid-cols-2">
+          <AdminBookingPaymentForm
+            area={data.area}
+            bookingId={data.id}
+            defaultAmountCzk={paymentSummary.remainingCzk}
+          />
+          {voucherForm && !intendedVoucher ? (
+            <details className="group rounded-[0.95rem] border border-white/8 bg-white/[0.03]">
+              <summary className="cursor-pointer list-none px-3 py-2.5 marker:hidden">
+                <span className="inline-flex min-h-9 items-center justify-center rounded-full border border-white/18 bg-transparent px-3 py-1 text-sm font-semibold text-white/84 transition group-open:hidden hover:border-white/28 hover:bg-white/8 hover:text-white">
+                  + Uplatnit voucher
+                </span>
+                <span className="hidden text-sm font-medium text-white/78 group-open:inline">
+                  Uplatnění voucheru
+                </span>
+              </summary>
+              <div className="border-t border-white/8 px-3 py-2.5">{voucherForm}</div>
+            </details>
+          ) : null}
+        </div>
 
         <div className="space-y-2">
           <p className="text-sm font-medium text-white/74">Dárkový poukaz</p>
@@ -363,20 +423,9 @@ function BookingVoucherPanel({ data }: { data: AdminBookingDetailData }) {
               </p>
             </div>
           ) : voucherForm ? (
-            <details className="group rounded-[0.95rem] border border-white/8 bg-white/[0.03]">
-              <summary className="cursor-pointer list-none px-3.5 py-3 marker:hidden">
-                <div className="flex flex-wrap items-center justify-between gap-2.5">
-                  <p className="text-sm text-white/64">K rezervaci není připojen žádný voucher.</p>
-                  <span className="inline-flex min-h-9 items-center justify-center rounded-full border border-white/18 bg-transparent px-3.5 py-1.5 text-sm font-semibold text-white/84 transition group-open:hidden hover:border-white/28 hover:bg-white/8 hover:text-white">
-                    + Uplatnit voucher
-                  </span>
-                  <span className="hidden text-sm font-medium text-white/78 group-open:inline">
-                    Uplatnění voucheru
-                  </span>
-                </div>
-              </summary>
-              <div className="border-t border-white/8 px-3.5 py-3">{voucherForm}</div>
-            </details>
+            <div className="rounded-[0.95rem] border border-white/8 bg-white/[0.03] px-3 py-2.5">
+              <p className="text-sm text-white/64">K rezervaci není připojen žádný voucher.</p>
+            </div>
           ) : (
             <div className="rounded-[0.95rem] border border-white/8 bg-white/[0.03] px-3.5 py-3">
               <p className="text-sm text-white/64">
@@ -386,184 +435,90 @@ function BookingVoucherPanel({ data }: { data: AdminBookingDetailData }) {
           )}
         </div>
 
-        <VoucherRedemptionsList
-          area={data.area}
-          bookingId={data.id}
-          redemptions={data.voucher.redemptions}
-          payments={data.voucher.payments}
-          hasPayments={hasRedemptions || hasDirectPayments}
-        />
+        <details className="group rounded-[0.95rem] border border-white/8 bg-white/[0.025]">
+          <summary className="cursor-pointer list-none px-3 py-2.5 text-sm font-medium text-white/72 marker:hidden">
+            <span className="group-open:hidden">Detail úhrady</span>
+            <span className="hidden group-open:inline">Skrýt detail úhrady</span>
+          </summary>
+          <div className="space-y-2.5 border-t border-white/8 px-3 py-2.5">
+            <PriceSummaryItem data={data} />
+            <VoucherRedemptionsList
+              area={data.area}
+              bookingId={data.id}
+              redemptions={data.voucher.redemptions}
+              payments={data.voucher.payments}
+              hasPayments={hasRedemptions || hasDirectPayments}
+            />
+          </div>
+        </details>
       </div>
     </AdminPanel>
   );
 }
 
-function PaymentSummaryBlock({
-  data,
-  paymentSummary,
-}: {
-  data: AdminBookingDetailData;
-  paymentSummary: AdminBookingDetailData["voucher"]["paymentSummary"];
-}) {
-  const statusHeadline = getPaymentStatusHeadline(paymentSummary);
-  const statusDetail = getPaymentStatusDetail(paymentSummary);
-  const items = [
-    { label: "Uhrazeno celkem", value: formatCzk(paymentSummary.paidTotalCzk) },
-    { label: "Voucher", value: formatCzk(paymentSummary.voucherPaidCzk) },
-    { label: "Mimo voucher", value: formatCzk(paymentSummary.directPaidCzk) },
-    {
-      label: paymentSummary.overpaidCzk > 0 ? "Přeplatek" : "Doplatek",
-      value: formatCzk(paymentSummary.overpaidCzk > 0 ? paymentSummary.overpaidCzk : paymentSummary.remainingCzk),
-      emphasis: true,
-    },
-  ];
-
-  return (
-    <div className="rounded-[0.95rem] border border-[var(--color-accent)]/26 bg-[rgba(190,160,120,0.07)] p-3">
-      <div className={getPaymentStatusPanelClassName(paymentSummary.paymentStatus)}>
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-[0.66rem] uppercase tracking-[0.16em] text-white/50">Stav úhrady</p>
-            <p className="mt-1 text-[1.2rem] font-semibold leading-tight text-white sm:text-[1.34rem]">
-              {statusHeadline}
-            </p>
-            <p className="mt-1 text-sm text-white/64">{statusDetail}</p>
-          </div>
-          <span className={getPaymentStatusBadgeClassName(paymentSummary.paymentStatus)}>
-            {paymentSummary.paymentStatusLabel.toLocaleUpperCase("cs-CZ")}
-          </span>
-        </div>
-      </div>
-
-      <dl className="mt-3 grid gap-2 sm:grid-cols-2">
-        <PriceSummaryItem data={data} paymentSummary={paymentSummary} />
-        {items.map((item) => (
-          <div
-            key={item.label}
-            className={cn(
-              "rounded-[0.8rem] border px-3 py-2.5",
-              item.emphasis
-                ? "border-[var(--color-accent)]/24 bg-[rgba(190,160,120,0.12)]"
-                : "border-white/8 bg-black/14",
-            )}
-          >
-            <dt className="text-[0.72rem] leading-4 text-white/48">{item.label}</dt>
-            <dd className={cn("mt-1 font-semibold", item.emphasis ? "text-[1.08rem] text-white" : "text-sm text-white/86")}>
-              {item.value}
-            </dd>
-          </div>
-        ))}
-      </dl>
-
-      <p className="mt-2 text-[0.72rem] leading-4 text-white/38">
-        Souhrn zahrnuje upravenou cenu, voucher i zapsané platby.
-      </p>
-    </div>
-  );
-}
-
 function PriceSummaryItem({
   data,
-  paymentSummary,
 }: {
   data: AdminBookingDetailData;
-  paymentSummary: AdminBookingDetailData["voucher"]["paymentSummary"];
 }) {
   const priceAdjustment = data.priceAdjustment;
   const hasAdjustment = priceAdjustment.finalPriceCzk !== null;
   const adjustmentLabel =
     hasAdjustment ? `Upraveno z ${formatCzk(priceAdjustment.basePriceCzk)}` : "Bez úpravy";
   const differenceLabel = getPriceDifferenceLabel(priceAdjustment.adjustmentCzk);
-  const cardClassName = cn(
-    "rounded-[0.8rem] border px-3 py-2.5",
-    hasAdjustment
-      ? "border-[var(--color-accent)]/20 bg-[rgba(190,160,120,0.1)]"
-      : "border-white/8 bg-black/14",
-  );
 
   if (!priceAdjustment.canUpdate) {
     return (
-      <div className={cardClassName}>
-        <dt className="flex flex-wrap items-center gap-1.5 text-[0.72rem] leading-4 text-white/48">
-          <span>Cena k úhradě</span>
-          <span className="rounded-full border border-white/10 bg-black/16 px-2 py-0.5 text-[0.6rem] font-medium uppercase tracking-[0.12em] text-white/52">
-            {adjustmentLabel}
-          </span>
-        </dt>
-        <dd className="mt-1 font-semibold text-sm text-white/86">
-          {formatCzk(paymentSummary.totalPriceCzk)}
-        </dd>
+      <div className="rounded-[0.9rem] border border-white/8 bg-black/14 px-3 py-2.5">
+        <p className="text-[0.72rem] leading-4 text-white/52">Cena k úhradě</p>
+        <p className="mt-1 text-sm font-semibold text-white/88">{formatCzk(data.effectivePriceCzk)}</p>
       </div>
     );
   }
 
   return (
-    <div className="sm:col-span-2">
-      <dt className="sr-only">Cena k úhradě</dt>
-      <dd>
-        <details className="group">
-          <summary className="cursor-pointer list-none marker:hidden">
-            <div className={cn(cardClassName, "transition group-open:rounded-b-none group-open:border-white/12")}>
-              <p className="flex flex-wrap items-center gap-1.5 text-[0.72rem] leading-4 text-white/48">
-                <span>Cena k úhradě</span>
-                <span
-                  className={cn(
-                    "rounded-full border px-2 py-0.5 text-[0.6rem] font-medium uppercase tracking-[0.12em]",
-                    hasAdjustment
-                      ? "border-[var(--color-accent)]/20 bg-[rgba(190,160,120,0.12)] text-white/70"
-                      : "border-white/10 bg-black/16 text-white/52",
-                  )}
-                >
-                  {adjustmentLabel}
-                </span>
-              </p>
-              <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
-                <span className="text-sm font-semibold text-white/86">
-                  {formatCzk(paymentSummary.totalPriceCzk)}
-                </span>
-                <span className="inline-flex min-h-7 items-center justify-center rounded-full border border-white/14 bg-transparent px-3 py-1 text-[0.72rem] font-semibold text-white/72 transition group-open:hidden hover:border-white/28 hover:bg-white/8 hover:text-white">
-                  Upravit
-                </span>
-                <span className="hidden text-[0.72rem] font-medium text-white/62 group-open:inline">
-                  Úprava ceny
-                </span>
-              </div>
-            </div>
-          </summary>
-
-          <div className="rounded-b-[0.8rem] border border-t-0 border-white/12 bg-black/14 px-3 py-3">
-            <dl className="grid gap-2 sm:grid-cols-3">
-              <VoucherMiniRow label="Ceníková cena" value={formatCzk(priceAdjustment.basePriceCzk)} />
-              <VoucherMiniRow label="Cena k úhradě" value={formatCzk(data.effectivePriceCzk)} />
-              <VoucherMiniRow label="Rozdíl" value={differenceLabel} />
-            </dl>
-            {hasAdjustment ? (
-              <div className="mt-3 rounded-[0.85rem] border border-white/7 bg-black/10 px-3 py-2">
-                <p className="text-sm leading-5 text-white/64">
-                  <span className="text-white/82">Důvod:</span> {priceAdjustment.reason}
-                </p>
-                {priceAdjustment.adjustedAtLabel ? (
-                  <p className="mt-1 text-xs leading-4 text-white/40">
-                    Upraveno {priceAdjustment.adjustedAtLabel}
-                    {priceAdjustment.adjustedByUserLabel ? ` · ${priceAdjustment.adjustedByUserLabel}` : ""}
-                  </p>
-                ) : null}
-              </div>
-            ) : null}
-            <div className="mt-3 border-t border-white/8 pt-3">
-              <AdminBookingPriceForm
-                area={data.area}
-                bookingId={data.id}
-                basePriceCzk={priceAdjustment.basePriceCzk}
-                finalPriceCzk={priceAdjustment.finalPriceCzk}
-                reason={priceAdjustment.reason}
-                variant="fields"
-              />
-            </div>
+    <details className="group rounded-[0.9rem] border border-white/8 bg-black/14">
+      <summary className="cursor-pointer list-none px-3 py-2.5 marker:hidden">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <p className="text-[0.72rem] leading-4 text-white/52">Cena k úhradě</p>
+            <p className="mt-1 text-sm font-semibold text-white/88">{formatCzk(data.effectivePriceCzk)}</p>
           </div>
-        </details>
-      </dd>
-    </div>
+          <span className="rounded-full border border-white/10 bg-black/16 px-2 py-0.5 text-[0.6rem] font-medium uppercase tracking-[0.12em] text-white/60">
+            {adjustmentLabel}
+          </span>
+        </div>
+      </summary>
+
+      <div className="space-y-2 border-t border-white/8 px-3 py-2.5">
+        <dl className="grid gap-2 sm:grid-cols-3">
+          <VoucherMiniRow label="Ceníková cena" value={formatCzk(priceAdjustment.basePriceCzk)} />
+          <VoucherMiniRow label="Cena k úhradě" value={formatCzk(data.effectivePriceCzk)} />
+          <VoucherMiniRow label="Rozdíl" value={differenceLabel} />
+        </dl>
+        {hasAdjustment ? (
+          <div className="rounded-[0.85rem] border border-white/7 bg-black/10 px-3 py-2">
+            <p className="text-sm leading-5 text-white/64">
+              <span className="text-white/82">Důvod:</span> {priceAdjustment.reason}
+            </p>
+            {priceAdjustment.adjustedAtLabel ? (
+              <p className="mt-1 text-xs leading-4 text-white/40">
+                Upraveno {priceAdjustment.adjustedAtLabel}
+                {priceAdjustment.adjustedByUserLabel ? ` · ${priceAdjustment.adjustedByUserLabel}` : ""}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
+        <AdminBookingPriceForm
+          area={data.area}
+          bookingId={data.id}
+          basePriceCzk={priceAdjustment.basePriceCzk}
+          finalPriceCzk={priceAdjustment.finalPriceCzk}
+          reason={priceAdjustment.reason}
+          variant="fields"
+        />
+      </div>
+    </details>
   );
 }
 
@@ -578,6 +533,43 @@ function getPriceDifferenceLabel(adjustmentCzk: number) {
 
   return "Bez úpravy";
 }
+
+function PaymentSummaryBlock({
+  paymentSummary,
+}: {
+  paymentSummary: AdminBookingDetailData["voucher"]["paymentSummary"];
+}) {
+  const dueLabel = paymentSummary.overpaidCzk > 0 ? "Přeplatek" : "Doplatek";
+  const dueValue = formatCzk(
+    paymentSummary.overpaidCzk > 0 ? paymentSummary.overpaidCzk : paymentSummary.remainingCzk,
+  );
+
+  return (
+    <div className="rounded-[0.95rem] border border-[var(--color-accent)]/26 bg-[rgba(190,160,120,0.07)] p-2.5">
+      <div className="grid gap-2 sm:grid-cols-3">
+        <div className="rounded-[0.8rem] border border-[var(--color-accent)]/35 bg-[rgba(190,160,120,0.16)] px-3 py-2">
+          <p className="text-[0.68rem] uppercase tracking-[0.14em] text-[var(--color-accent-soft)]/86">
+            {dueLabel}
+          </p>
+          <p className="mt-1 text-[1.2rem] font-semibold leading-tight text-white">{dueValue}</p>
+        </div>
+        <div className="rounded-[0.8rem] border border-white/8 bg-black/14 px-3 py-2">
+          <p className="text-[0.68rem] uppercase tracking-[0.14em] text-white/52">Uhrazeno</p>
+          <p className="mt-1 text-sm font-semibold text-white/88">
+            {formatCzk(paymentSummary.paidTotalCzk)}
+          </p>
+        </div>
+        <div className="rounded-[0.8rem] border border-white/8 bg-black/14 px-3 py-2">
+          <p className="text-[0.68rem] uppercase tracking-[0.14em] text-white/52">Voucher</p>
+          <p className="mt-1 text-sm font-semibold text-white/88">
+            {formatCzk(paymentSummary.voucherPaidCzk)}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 
 function getVoucherAmountHint(
   voucher: AdminBookingDetailData["voucher"]["intendedVoucher"],
@@ -685,42 +677,6 @@ function VoucherRedemptionsList({
   );
 }
 
-function getPaymentStatusHeadline(
-  paymentSummary: AdminBookingDetailData["voucher"]["paymentSummary"],
-) {
-  if (paymentSummary.paymentStatus === "OVERPAID") {
-    return `Přeplaceno o ${formatCzk(paymentSummary.overpaidCzk)}`;
-  }
-
-  if (paymentSummary.paymentStatus === "PARTIALLY_PAID") {
-    return `Zbývá doplatit ${formatCzk(paymentSummary.remainingCzk)}`;
-  }
-
-  if (paymentSummary.paymentStatus === "UNPAID") {
-    return "Bez úhrady";
-  }
-
-  return "Zaplaceno";
-}
-
-function getPaymentStatusDetail(
-  paymentSummary: AdminBookingDetailData["voucher"]["paymentSummary"],
-) {
-  if (paymentSummary.paymentStatus === "UNPAID") {
-    return `K úhradě je ${formatCzk(paymentSummary.totalPriceCzk)}.`;
-  }
-
-  if (paymentSummary.paymentStatus === "OVERPAID") {
-    return `Uhrazeno ${formatCzk(paymentSummary.paidTotalCzk)} při ceně ${formatCzk(paymentSummary.totalPriceCzk)}.`;
-  }
-
-  if (paymentSummary.paymentStatus === "PARTIALLY_PAID") {
-    return `Uhrazeno ${formatCzk(paymentSummary.paidTotalCzk)} z ${formatCzk(paymentSummary.totalPriceCzk)}.`;
-  }
-
-  return `Celá částka ${formatCzk(paymentSummary.totalPriceCzk)} je uhrazená.`;
-}
-
 function BookingHistoryTimeline({
   previewItems,
   remainingItems,
@@ -740,7 +696,13 @@ function BookingHistoryTimeline({
 
   return (
     <AdminPanel title="Historie změn" denseHeader>
-      <div className="space-y-2.5">
+      <div className="rounded-[1rem] border border-white/7 bg-white/[0.02] p-2">
+        <div className="mb-2 px-1">
+          <p className="text-sm leading-5 text-white/54">
+            Auditní stopa zůstává dole a ukazuje poslední změny; starší záznamy jsou připravené na rozbalení.
+          </p>
+        </div>
+        <div className="space-y-2">
         {previewItems.map((item) => (
           <HistoryItem key={item.id} item={item} />
         ))}
@@ -758,6 +720,7 @@ function BookingHistoryTimeline({
             </div>
           </details>
         ) : null}
+        </div>
       </div>
     </AdminPanel>
   );
@@ -768,14 +731,18 @@ function SummaryRow({
   value,
   href,
   tone = "default",
+  muted = false,
 }: {
   label: string;
   value: string;
   href?: string | null;
   tone?: "default" | "accent" | "strong";
+  muted?: boolean;
 }) {
   const valueClassName =
-    tone === "accent"
+    muted
+      ? "text-white/54"
+      : tone === "accent"
       ? "font-medium text-[var(--color-accent-soft)]"
       : tone === "strong"
         ? "font-medium text-white"
@@ -783,7 +750,7 @@ function SummaryRow({
 
   return (
     <div className="grid gap-1 px-3.5 py-3 sm:grid-cols-[6.5rem_minmax(0,1fr)] sm:items-start sm:gap-3">
-      <dt className="text-[0.66rem] uppercase tracking-[0.18em] text-white/42">{label}</dt>
+      <dt className={cn("text-[0.66rem] uppercase tracking-[0.18em]", muted ? "text-white/34" : "text-white/48")}>{label}</dt>
       <dd className={cn("min-w-0 text-sm leading-5", valueClassName)}>
         {href ? (
           <a href={href} className="block break-words transition hover:text-white">
@@ -872,10 +839,12 @@ function QuickHeaderAction({
   href,
   label,
   muted = false,
+  hint,
 }: {
   href: string | null;
   label: string;
   muted?: boolean;
+  hint?: string;
 }) {
   const className = cn(
     "inline-flex min-h-11 items-center justify-center rounded-full border px-3 py-2 text-sm transition",
@@ -885,7 +854,11 @@ function QuickHeaderAction({
   );
 
   if (!href) {
-    return <span className={className}>{label}</span>;
+    return (
+      <span className={className} title={hint}>
+        {label}
+      </span>
+    );
   }
 
   if (href.startsWith("/")) {
@@ -945,36 +918,6 @@ function getHistoryBadgeClassName(status: AdminBookingDetailData["historyItems"]
   return getStatusBadgeClassName(status);
 }
 
-function getPaymentStatusBadgeClassName(
-  status: AdminBookingDetailData["voucher"]["paymentSummary"]["paymentStatus"],
-) {
-  switch (status) {
-    case "OVERPAID":
-      return "inline-flex rounded-full border border-cyan-300/35 bg-cyan-500/12 px-2.5 py-1 text-[0.64rem] font-semibold uppercase tracking-[0.14em] text-cyan-100";
-    case "PAID":
-      return "inline-flex rounded-full border border-emerald-300/35 bg-emerald-500/12 px-2.5 py-1 text-[0.64rem] font-semibold uppercase tracking-[0.14em] text-emerald-100";
-    case "PARTIALLY_PAID":
-      return "inline-flex rounded-full border border-amber-300/35 bg-amber-500/12 px-2.5 py-1 text-[0.64rem] font-semibold uppercase tracking-[0.14em] text-amber-100";
-    case "UNPAID":
-      return "inline-flex rounded-full border border-white/12 bg-white/8 px-2.5 py-1 text-[0.64rem] font-semibold uppercase tracking-[0.14em] text-white/72";
-  }
-}
-
-function getPaymentStatusPanelClassName(
-  status: AdminBookingDetailData["voucher"]["paymentSummary"]["paymentStatus"],
-) {
-  switch (status) {
-    case "OVERPAID":
-      return "rounded-[0.9rem] border border-cyan-300/26 bg-cyan-500/10 px-3 py-2.5";
-    case "PAID":
-      return "rounded-[0.9rem] border border-emerald-300/26 bg-emerald-500/10 px-3 py-2.5";
-    case "PARTIALLY_PAID":
-      return "rounded-[0.9rem] border border-amber-300/26 bg-amber-500/10 px-3 py-2.5";
-    case "UNPAID":
-      return "rounded-[0.9rem] border border-white/12 bg-black/24 px-3 py-2.5";
-  }
-}
-
 function getStatusContextClassName(tone: "pending" | "confirmed" | "closed" | "neutral") {
   switch (tone) {
     case "pending":
@@ -1027,8 +970,8 @@ function getStatusContext(data: AdminBookingDetailData) {
       };
     case "CONFIRMED":
       return {
-        title: "Potvrzený termín je připravený k obsluze.",
-        description: "Po návštěvě ho uzavři jako hotové, případně označ jako nedorazila.",
+        title: "Potvrzený termín · Po návštěvě zapiš úhradu a dokonči návštěvu.",
+        description: "Po návštěvě uzavři rezervaci jako hotovou, případně označ jako nedorazila.",
         tone: "confirmed" as const,
       };
     default:
