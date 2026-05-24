@@ -147,7 +147,7 @@ export async function resendEmailLogAction(formData: FormData) {
     redirect(`/admin/email-logy/${emailLog.id}?flash=resend-missing-recipient`);
   }
 
-  await prisma.emailLog.create({
+  const createdEmailLog = await prisma.emailLog.create({
     data: buildResendEmailLogCreateInput({
       bookingId: emailLog.bookingId,
       clientId: emailLog.clientId,
@@ -162,5 +162,6 @@ export async function resendEmailLogAction(formData: FormData) {
 
   revalidatePath("/admin/email-logy");
   revalidatePath(`/admin/email-logy/${emailLog.id}`);
-  redirect(`/admin/email-logy/${emailLog.id}?flash=resend-success`);
+  revalidatePath(`/admin/email-logy/${createdEmailLog.id}`);
+  redirect(`/admin/email-logy/${createdEmailLog.id}?flash=resend-success`);
 }
