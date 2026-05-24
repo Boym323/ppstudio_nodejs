@@ -7,6 +7,7 @@ Formát je inspirovaný Keep a Changelog.
 ## [Unreleased]
 
 - Admin detail klientky nově umožňuje upravit e-mail a telefon přímo v rozhraní; změna se propíše i do aktivních rezervací klientky a do dosud neodeslaných e-mail logů, aby oprava překlepu nevyžadovala zásah přes DB.
+- Owner detail `Email logu` nově nabízí akce `Načíst e-mail z kontaktu` (synchronizace `recipientEmail` z aktuální klientky) a `Znovu odeslat e-mail` (vytvoření nového `PENDING` email logu bez přepisu původního záznamu), včetně nových flash hlášek.
 
 ## [0.3.16] - 2026-05-21
 

@@ -5,6 +5,10 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
+import {
+  buildResendEmailLogCreateInput,
+  resolveEmailLogRecipientFromContact,
+} from "@/features/admin/actions/email-log-action-helpers";
 import { requireAdminArea } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 
@@ -31,10 +35,19 @@ async function loadOwnerEmailLog(formData: FormData) {
 
   return prisma.emailLog.findUnique({
     where: { id: parsed.data.emailLogId },
-    select: {
-      id: true,
-      status: true,
-      processingStartedAt: true,
+    include: {
+      client: {
+        select: {
+          id: true,
+          email: true,
+        },
+      },
+      booking: {
+        select: {
+          id: true,
+          clientEmailSnapshot: true,
+        },
+      },
     },
   });
 }
@@ -90,4 +103,64 @@ export async function releaseStuckEmailLogAction(formData: FormData) {
   revalidatePath("/admin/email-logy");
   revalidatePath(`/admin/email-logy/${emailLog.id}`);
   redirect(`/admin/email-logy/${emailLog.id}?flash=release-success`);
+}
+
+export async function refreshEmailLogRecipientFromClientAction(formData: FormData) {
+  const emailLog = await loadOwnerEmailLog(formData);
+
+  if (!emailLog || emailLog.processingStartedAt) {
+    redirect("/admin/email-logy");
+  }
+
+  const targetEmail =
+    resolveEmailLogRecipientFromContact({
+      clientEmail: emailLog.client?.email ?? null,
+      bookingClientEmailSnapshot: emailLog.booking?.clientEmailSnapshot ?? null,
+    }) ?? "";
+  if (!targetEmail) {
+    redirect(`/admin/email-logy/${emailLog.id}?flash=recipient-refresh-missing`);
+  }
+
+  await prisma.emailLog.update({
+    where: {
+      id: emailLog.id,
+    },
+    data: {
+      recipientEmail: targetEmail,
+    },
+  });
+
+  revalidatePath("/admin/email-logy");
+  revalidatePath(`/admin/email-logy/${emailLog.id}`);
+  redirect(`/admin/email-logy/${emailLog.id}?flash=recipient-refresh-success`);
+}
+
+export async function resendEmailLogAction(formData: FormData) {
+  const emailLog = await loadOwnerEmailLog(formData);
+
+  if (!emailLog || emailLog.processingStartedAt) {
+    redirect("/admin/email-logy");
+  }
+
+  const recipientEmail = emailLog.recipientEmail.trim();
+  if (!recipientEmail) {
+    redirect(`/admin/email-logy/${emailLog.id}?flash=resend-missing-recipient`);
+  }
+
+  await prisma.emailLog.create({
+    data: buildResendEmailLogCreateInput({
+      bookingId: emailLog.bookingId,
+      clientId: emailLog.clientId,
+      actionTokenId: emailLog.actionTokenId,
+      type: emailLog.type,
+      recipientEmail,
+      subject: emailLog.subject,
+      templateKey: emailLog.templateKey,
+      payload: emailLog.payload,
+    }),
+  });
+
+  revalidatePath("/admin/email-logy");
+  revalidatePath(`/admin/email-logy/${emailLog.id}`);
+  redirect(`/admin/email-logy/${emailLog.id}?flash=resend-success`);
 }

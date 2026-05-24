@@ -1,6 +1,11 @@
 import Link from "next/link";
 
-import { releaseStuckEmailLogAction, retryEmailLogAction } from "../actions/email-log-actions";
+import {
+  refreshEmailLogRecipientFromClientAction,
+  releaseStuckEmailLogAction,
+  resendEmailLogAction,
+  retryEmailLogAction,
+} from "../actions/email-log-actions";
 import { type EmailLogDetailData } from "../lib/admin-data";
 import { AdminPageShell, AdminPanel } from "./admin-page-shell";
 
@@ -143,6 +148,30 @@ function EmailQuickActions({ data }: { data: EmailLogDetailData }) {
                 className="rounded-full bg-[var(--color-accent)] px-3.5 py-2 text-sm font-semibold text-[var(--color-accent-contrast)] transition hover:brightness-105"
               >
                 Zkusit znovu
+              </button>
+            </form>
+          ) : null}
+
+          {data.canRefreshRecipientFromClient ? (
+            <form action={refreshEmailLogRecipientFromClientAction}>
+              <input type="hidden" name="emailLogId" value={data.id} />
+              <button
+                type="submit"
+                className="rounded-full border border-white/12 bg-white/5 px-3.5 py-2 text-sm font-semibold text-white transition hover:border-white/30 hover:bg-white/10"
+              >
+                Načíst e-mail z kontaktu
+              </button>
+            </form>
+          ) : null}
+
+          {data.canResend ? (
+            <form action={resendEmailLogAction}>
+              <input type="hidden" name="emailLogId" value={data.id} />
+              <button
+                type="submit"
+                className="rounded-full border border-[var(--color-accent)]/42 bg-[var(--color-accent)]/12 px-3.5 py-2 text-sm font-semibold text-[var(--color-accent-soft)] transition hover:border-[var(--color-accent)]/68 hover:bg-[var(--color-accent)]/20"
+              >
+                Znovu odeslat e-mail
               </button>
             </form>
           ) : null}
