@@ -18,7 +18,8 @@ async function selectSlotById(
   actionButton: Locator,
 ) {
   const exactSlotButton = page.getByRole("button", { name: slotButtonLabel });
-  const slotDateLabel = slotButtonLabel.match(/ dne (?<dateLabel>.+)$/)?.groups?.dateLabel;
+  const slotDateLabelMatch = slotButtonLabel.match(/ dne (.+)$/);
+  const slotDateLabel = slotDateLabelMatch?.[1];
 
   if ((await exactSlotButton.count()) === 0 && slotDateLabel) {
     const dateButton = page.getByRole("button", { name: `Vybrat den ${slotDateLabel}` });
@@ -622,9 +623,10 @@ test.describe("booking flows", () => {
     await expect(page).toHaveURL(/\/admin/);
 
     await page.goto(`/admin/rezervace/${fixture.bookingId}`);
-    await page.getByRole("radio", { name: /Potvrdit/ }).click();
-    await page.getByLabel("Volitelný důvod").fill("E2E potvrzení");
-    await page.getByRole("button", { name: "Potvrdit rezervaci" }).click();
+    const bookingActions = page.locator("#booking-actions");
+    await bookingActions.getByRole("button", { name: "Potvrdit rezervaci" }).first().click();
+    await bookingActions.getByLabel("Volitelný důvod").fill("E2E potvrzení");
+    await bookingActions.locator("button[type='submit']").click();
 
     await expect(page.getByText("Změna byla uložená a propsala se i do historie rezervace.")).toBeVisible();
 
