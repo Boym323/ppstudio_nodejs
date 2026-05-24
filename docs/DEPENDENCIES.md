@@ -15,6 +15,7 @@ Seznam důležitých knihoven a důvod jejich použití.
 - `@prisma/adapter-pg`: `^7.8.0` (runtime používá `7.8.0`)
 - `@playwright/test`: browser E2E test runner pro hlavní rezervační a admin flow.
 - `c8`: V8 coverage reporter nad stávajícím `node --test` setupem; generuje HTML/LCOV/JSON reporty bez nutnosti přechodu na jiný test runner.
+- `svix`: verifikace podpisu Resend webhooků (`svix-id`, `svix-timestamp`, `svix-signature`) nad raw request body.
 - Matomo tracking nepřidává žádnou npm závislost; používá `next/script`, App Router navigation hooks a standardní `window._paq` frontu.
 - Microsoft Clarity tracking také nepřidává žádnou npm závislost; používá `next/script` a veřejný Clarity tag přes inline init snippet.
 - Vyloučení přihlášeného admina z veřejného trackingu také nepřidává závislost; používá jen `next/headers` cookies check v `SiteShell` a existující session cookie jméno z auth helperu.
@@ -56,6 +57,7 @@ Seznam důležitých knihoven a důvod jejich použití.
 - `zod`: validace env a serverových vstupů.
 - `jose`: podpis a verifikace admin session.
 - `nodemailer`: SMTP transport pro potvrzení rezervace a storno e-maily.
+- Resend REST transport nepřidává SDK závislost; používá vestavěný `fetch` a mapuje `providerMessageId` na Resend `email_id` pro webhook tracking.
 - `image-size`: čtení rozměrů lokálně uložených obrázků pro metadata `MediaAsset`.
 - `sharp`: lehká server-side image pipeline pro EXIF-normalized originál a varianty `optimized` + `thumbnail` při uploadu přes Media Library.
 - `server-only`: marker balík doporučený Next.js dokumentací pro server-only moduly; v tomhle projektu je instalovaný i kvůli běhu `node --test` mimo Next bundler, kde před testy registrujeme malý resolver hook a mapujeme `server-only` na prázdný stub jen v testovacím procesu.

@@ -22,7 +22,7 @@ export type EmailDeliveryMessage = {
 };
 
 export type EmailDeliveryResult = {
-  provider: "log" | "smtp";
+  provider: "log" | "smtp" | "resend";
   messageId?: string;
 };
 
@@ -91,6 +91,57 @@ function getSmtpTransportHint(error: unknown) {
   );
 }
 
+async function sendViaResend(message: EmailDeliveryMessage): Promise<EmailDeliveryResult> {
+  if (!env.RESEND_API_KEY) {
+    throw new Error("RESEND_API_KEY chybí. Nelze odeslat e-mail přes Resend API.");
+  }
+
+  const emailBranding = await getEmailBrandingSettings();
+  const requestedSenderEmail = emailBranding.senderEmail || env.SMTP_FROM_EMAIL || "info@ppstudio.cz";
+  const fromEmail = getSafeEnvelopeFromEmail(requestedSenderEmail);
+  const fromName = sanitizeEmailHeaderValue(emailBranding.senderName, "E-mail sender name");
+  const from = `${fromName} <${fromEmail}>`;
+  const to = message.to.trim();
+
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${env.RESEND_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      from,
+      to: [to],
+      subject: sanitizeEmailHeaderValue(message.subject, "E-mail subject"),
+      text: message.text,
+      html: message.html,
+      reply_to: env.SMTP_REPLY_TO ?? requestedSenderEmail ?? env.SMTP_FROM_EMAIL ?? undefined,
+      attachments:
+        message.attachments?.map((attachment) => ({
+          filename: attachment.filename,
+          content:
+            (typeof attachment.content === "string"
+              ? Buffer.from(attachment.content)
+              : attachment.content).toString("base64"),
+          content_type: attachment.contentType,
+        })) ?? undefined,
+    }),
+  });
+
+  const body = (await response.json().catch(() => null)) as { id?: string; message?: string } | null;
+
+  if (!response.ok || !body?.id) {
+    throw new Error(
+      `Resend API odeslání selhalo (${response.status}): ${body?.message ?? "Neznámá chyba."}`,
+    );
+  }
+
+  return {
+    provider: "resend",
+    messageId: body.id,
+  };
+}
+
 export async function sendEmail(message: EmailDeliveryMessage): Promise<EmailDeliveryResult> {
   const subject = sanitizeEmailHeaderValue(message.subject, "E-mail subject");
 
@@ -109,6 +160,13 @@ export async function sendEmail(message: EmailDeliveryMessage): Promise<EmailDel
       provider: "log",
       messageId,
     };
+  }
+
+  if (env.EMAIL_TRANSPORT === "resend") {
+    return sendViaResend({
+      ...message,
+      subject,
+    });
   }
 
   const transporter = getTransporter();

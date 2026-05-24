@@ -8,6 +8,9 @@ Formát je inspirovaný Keep a Changelog.
 
 - Admin detail klientky nově umožňuje upravit e-mail a telefon přímo v rozhraní; změna se propíše i do aktivních rezervací klientky a do dosud neodeslaných e-mail logů, aby oprava překlepu nevyžadovala zásah přes DB.
 - Owner detail `Email logu` nově nabízí akce `Načíst e-mail z kontaktu` (synchronizace `recipientEmail` z aktuální klientky) a `Znovu odeslat e-mail` (vytvoření nového `PENDING` email logu bez přepisu původního záznamu), včetně nových flash hlášek.
+- Owner přehled `Komunikace se zákaznicemi` teď ve sloupci tracking používá barevný stavový badge navázaný na aktuální stav email logu (`Tracking aktivní`, `Tracking připraven`, `Tracking čeká`, `Tracking v retry`, `Tracking selhal`) místo jednotného neutrálního štítku.
+- Delivery tracking je nově napojený na Resend webhooky: přidán endpoint `POST /api/webhooks/resend` s ověřením `svix` podpisu, ukládání eventů (`delivered/opened/clicked/bounced/failed/suppressed`) do `EmailLog` a odvozování tracking badge z reálných event dat.
+- Email provider podporuje transport `EMAIL_TRANSPORT=resend` vedle SMTP; při odeslání přes Resend se ukládá `providerMessageId = email_id`, takže webhook události se párují jednoznačně na konkrétní `EmailLog`.
 
 ## [0.3.16] - 2026-05-21
 

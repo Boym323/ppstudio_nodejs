@@ -28,6 +28,7 @@ const serverEnvSchema = z
     ADMIN_STAFF_EMAIL: z.email(),
     ADMIN_STAFF_PASSWORD: z.string().min(8),
     EMAIL_DELIVERY_MODE: z.enum(["log", "background"]).default("log"),
+    EMAIL_TRANSPORT: z.enum(["smtp", "resend"]).default("smtp"),
     SMTP_HOST: z.string().trim().optional(),
     SMTP_PORT: z.coerce.number().int().positive().optional(),
     SMTP_SECURE: z.enum(["auto", "true", "false"]).default("auto"),
@@ -36,6 +37,8 @@ const serverEnvSchema = z
     SMTP_FROM_EMAIL: z.email().optional(),
     SMTP_FROM_NAME: z.string().trim().min(1).default("PP Studio"),
     SMTP_REPLY_TO: z.email().optional(),
+    RESEND_API_KEY: z.string().trim().optional(),
+    RESEND_WEBHOOK_SECRET: z.string().trim().optional(),
     MEDIA_STORAGE_ROOT: z.string().trim().optional(),
   })
   .superRefine((env, context) => {
@@ -43,13 +46,16 @@ const serverEnvSchema = z
       return;
     }
 
-    const requiredFields = [
-      ["SMTP_HOST", env.SMTP_HOST],
-      ["SMTP_PORT", env.SMTP_PORT],
-      ["SMTP_USER", env.SMTP_USER],
-      ["SMTP_PASSWORD", env.SMTP_PASSWORD],
-      ["SMTP_FROM_EMAIL", env.SMTP_FROM_EMAIL],
-    ] as const;
+    const requiredFields =
+      env.EMAIL_TRANSPORT === "smtp"
+        ? ([
+            ["SMTP_HOST", env.SMTP_HOST],
+            ["SMTP_PORT", env.SMTP_PORT],
+            ["SMTP_USER", env.SMTP_USER],
+            ["SMTP_PASSWORD", env.SMTP_PASSWORD],
+            ["SMTP_FROM_EMAIL", env.SMTP_FROM_EMAIL],
+          ] as const)
+        : ([["RESEND_API_KEY", env.RESEND_API_KEY]] as const);
 
     for (const [field, value] of requiredFields) {
       if (value === undefined || value === "") {

@@ -9,7 +9,9 @@ Postup nasazení aplikace do produkce.
 
 ## Release checklist
 1. `npm ci`
-2. Ověř správné produkční env proměnné (`DATABASE_URL`, `ADMIN_SESSION_SECRET`, `ADMIN_BOOTSTRAP_ENABLED=false` mimo krátký recovery režim, admin bootstrap účty, email delivery, worker, `MEDIA_STORAGE_ROOT`, volitelně `NEXT_PUBLIC_MATOMO_*`, serverové `MATOMO_*` pro dashboard reporting a `PUSHOVER_ENABLED` / `PUSHOVER_APP_TOKEN` pro owner notifikace)
+2. Ověř správné produkční env proměnné (`DATABASE_URL`, `ADMIN_SESSION_SECRET`, `ADMIN_BOOTSTRAP_ENABLED=false` mimo krátký recovery režim, admin bootstrap účty, email delivery, worker, `MEDIA_STORAGE_ROOT`, volitelně `NEXT_PUBLIC_MATOMO_*`, serverové `MATOMO_*` pro dashboard reporting a `PUSHOVER_ENABLED` / `PUSHOVER_APP_TOKEN` pro owner notifikace).
+   - Při používání Resend trackingu ověř i `EMAIL_TRANSPORT=resend`, `RESEND_API_KEY` a `RESEND_WEBHOOK_SECRET`.
+   - V Resend dashboardu musí být webhook endpoint nastaven na `POST /api/webhooks/resend` (HTTPS produkční origin).
 3. Ověř existenci a práva k upload rootu; web proces musí umět zapisovat do `MEDIA_STORAGE_ROOT` nebo do výchozí cesty `/var/www/ppstudio/uploads`.
 4. Zálohuj databázi, pokud release obsahuje novou Prisma migraci.
 5. Zálohuj nebo snapshotuj upload root, pokud release mění práci s médii nebo cleanup logiku.

@@ -571,6 +571,16 @@ model EmailLog {
   payload             Json?
   provider            String?
   providerMessageId   String?
+  trackingLastEvent   String?
+  trackingLastEventAt DateTime?
+  trackingDeliveredAt DateTime?
+  trackingOpenedAt    DateTime?
+  trackingClickedAt   DateTime?
+  trackingBouncedAt   DateTime?
+  trackingComplainedAt DateTime?
+  trackingFailedAt    DateTime?
+  trackingSuppressedAt DateTime?
+  trackingRawPayload  Json?
   errorMessage        String?
   sentAt              DateTime?
   createdAt           DateTime            @default(now())

@@ -758,7 +758,7 @@ npm run db:clear-booking-data -- --confirm
   - health copy zůstává stručné; při čistém stavu používá text `Emaily fungují správně` a krátké vysvětlení o prázdné frontě
   - hlavní sekce `Poslední emaily` propojuje typ zprávy, stav, příjemce, vazbu na rezervaci, časy, pokusy a rychlé akce `Otevřít rezervaci / Detail emailu / Zkusit znovu`
   - badge typu rozlišuje `Přijetí rezervace` pro `booking-confirmation-v1` a finální `Potvrzení rezervace` pro `booking-approved-v1`
-  - tracking placeholdery `Otevřeno` a `Kliknuto` už nejsou v hlavním seznamu jako samostatné sloupce; místo nich může řádek ukázat jen jemný badge `Tracking připraven`
+- tracking badge v přehledu e-mailů je napojený na reálné Resend webhook eventy (`email.delivered`, `email.opened`, `email.clicked`, `email.bounced`, `email.failed`, `email.suppressed`); fallback bez eventů zůstává `Tracking připraven`
   - `Další pokus` se v hlavním seznamu ukazuje jen u stavů `Čeká` a `Retry`
   - původní pending/retry/error fronty zůstávají níž v debug bloku `Technický stav fronty`, který je defaultně sbalený do kompaktního souhrnu
 - Detail konkrétního e-mailu na `/admin/email-logy/[emailLogId]` je nově business-first:

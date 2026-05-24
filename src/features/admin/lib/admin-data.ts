@@ -35,6 +35,7 @@ import {
   formatClientPhoneForDisplay,
 } from "@/features/booking/lib/client-phone";
 import { listBootstrapAdminUsers } from "@/lib/auth/session";
+import { deriveTrackingState } from "@/lib/email/resend-webhooks";
 import { prisma } from "@/lib/prisma";
 
 const formatDate = new Intl.DateTimeFormat("cs-CZ", {
@@ -1358,6 +1359,8 @@ export type EmailLogsDashboardData = {
     lastAttemptLabel: string;
     nextAttemptLabel: string;
     errorMessage: string | null;
+    trackingStateLabel: string;
+    trackingStateValue: "sent" | "pending" | "retry" | "failed";
     trackingOpenedLabel: string;
     trackingClickedLabel: string;
     detailHref: string;
@@ -1766,6 +1769,17 @@ async function getEmailLogsData(): Promise<EmailLogsDashboardData> {
         ? `${log.booking.serviceNameSnapshot} • ${formatDateTimeLabel(log.booking.scheduledStartsAt)} - ${formatTime.format(log.booking.scheduledEndsAt)}`
         : null;
 
+      const trackingState = deriveTrackingState({
+        trackingLastEvent: log.trackingLastEvent,
+        trackingClickedAt: log.trackingClickedAt,
+        trackingOpenedAt: log.trackingOpenedAt,
+        trackingDeliveredAt: log.trackingDeliveredAt,
+        trackingBouncedAt: log.trackingBouncedAt,
+        trackingComplainedAt: log.trackingComplainedAt,
+        trackingFailedAt: log.trackingFailedAt,
+        trackingSuppressedAt: log.trackingSuppressedAt,
+      });
+
       return {
         id: log.id,
         typeLabel: getEmailTypeCategoryLabel(log.type, log.templateKey),
@@ -1787,8 +1801,10 @@ async function getEmailLogsData(): Promise<EmailLogsDashboardData> {
         lastAttemptLabel: formatDateTimeLabel(log.sentAt ?? log.updatedAt),
         nextAttemptLabel: formatDateTimeLabel(log.nextAttemptAt),
         errorMessage: log.errorMessage,
-        trackingOpenedLabel: "Připraveno",
-        trackingClickedLabel: "Připraveno",
+        trackingStateLabel: trackingState.label,
+        trackingStateValue: trackingState.value,
+        trackingOpenedLabel: log.trackingOpenedAt ? formatDateTimeLabel(log.trackingOpenedAt) : "Připraveno",
+        trackingClickedLabel: log.trackingClickedAt ? formatDateTimeLabel(log.trackingClickedAt) : "Připraveno",
         detailHref: `/admin/email-logy/${log.id}`,
         canRetry: log.status !== EmailLogStatus.SENT && log.processingStartedAt === null,
       };

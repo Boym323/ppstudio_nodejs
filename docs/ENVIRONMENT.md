@@ -43,6 +43,7 @@ Dokumentace proměnných prostředí pro lokální vývoj i produkci.
 - `ADMIN_STAFF_EMAIL`: bootstrap email pro lite admin účet (role `SALON`).
 - `ADMIN_STAFF_PASSWORD`: bootstrap heslo pro lite admin účet (role `SALON`).
 - `EMAIL_DELIVERY_MODE`: režim e-mailové delivery (`log`, `background`).
+- `EMAIL_TRANSPORT`: transport pro background odesílání (`smtp`, `resend`).
 - `SMTP_HOST`: SMTP hostname pro produkční odesílání.
 - `SMTP_PORT`: SMTP port.
 - `SMTP_SECURE`: `auto` pro volbu podle portu, `true` pro implicitní TLS, `false` pro explicitní STARTTLS nebo plain transport podle provideru.
@@ -51,6 +52,8 @@ Dokumentace proměnných prostředí pro lokální vývoj i produkci.
 - `SMTP_FROM_EMAIL`: adresa odesílatele.
 - `SMTP_FROM_NAME`: jméno odesílatele zobrazované klientovi.
 - `SMTP_REPLY_TO`: volitelná reply-to adresa.
+- `RESEND_API_KEY`: API klíč pro odesílání přes Resend REST API.
+- `RESEND_WEBHOOK_SECRET`: signing secret pro verifikaci webhooku `POST /api/webhooks/resend`.
 - `MEDIA_STORAGE_ROOT`: volitelná absolutní cesta k lokálnímu root adresáři pro nahraná média; pokud chybí, aplikace použije `/var/www/ppstudio/uploads`.
 
 ## Doporučený lokální `.env` základ
@@ -75,6 +78,9 @@ ADMIN_STAFF_EMAIL=staff@example.com
 ADMIN_STAFF_PASSWORD=change-me-staff
 
 EMAIL_DELIVERY_MODE=log
+EMAIL_TRANSPORT=smtp
+RESEND_API_KEY=
+RESEND_WEBHOOK_SECRET=
 MEDIA_STORAGE_ROOT=/var/www/ppstudio-uploads
 ```
 
@@ -95,7 +101,8 @@ Lokální doporučení:
 - Admin login rate limit nepřidává novou env proměnnou; limity jsou zatím fixované v `src/lib/auth/admin-login-rate-limit.ts` (okno 10 minut, IP limit 20, e-mail fail limit 6).
 - Hero fotografie pro `/o-mne` je aktuálně ručně verzovaný asset v `public/brand`; finální přepnutí na jiný soubor nevyžaduje novou env proměnnou, jen úpravu `aboutContent.profile.image`.
 - Bootstrap přístupy se v owner sekci `Uživatelé / role` zobrazují lidským jazykem jako `Systémový účet`; UI záměrně neukazuje `env`, `bootstrap` ani jiné technické implementační detaily jako hlavní obsah. Samotné použití bootstrap loginu zapisuje jen bezpečnou provozní informaci bez hesla.
-- Pokud je `EMAIL_DELIVERY_MODE=background`, jsou `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD` a `SMTP_FROM_EMAIL` povinné už při startu aplikace.
+- Pokud je `EMAIL_DELIVERY_MODE=background` a `EMAIL_TRANSPORT=smtp`, jsou `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD` a `SMTP_FROM_EMAIL` povinné už při startu aplikace.
+- Pokud je `EMAIL_DELIVERY_MODE=background` a `EMAIL_TRANSPORT=resend`, je při startu aplikace povinné `RESEND_API_KEY`.
 - Pokud je `EMAIL_DELIVERY_MODE=background`, admin pole `emailSenderEmail` v sekci `Nastavení` musí odpovídat `SMTP_FROM_EMAIL`; jinak aplikace změnu odmítne, aby se předešlo selhání doručování.
 - `NEXT_PUBLIC_APP_URL` je kritická i pro provozní approve/reject odkazy v e-mailu; pokud míří na špatný host nebo schéma, owner email akce povedou na neplatnou URL.
 - `NEXT_PUBLIC_SITE_URL` je doporučené nastavit v CI/Playwright režimu, kde `NEXT_PUBLIC_APP_URL` míří na lokální testovací origin (např. `http://127.0.0.1:3100`), aby veřejné SEO canonical/JSON-LD URL zůstaly produkční (např. `https://ppstudio.cz`).

@@ -69,6 +69,22 @@ const typeBadgeStyles = {
   other: "border-white/10 bg-black/20 text-white/72",
 } as const;
 
+const trackingBadgeStyles = {
+  sent: "border-emerald-300/25 bg-emerald-400/10 text-emerald-50",
+  pending: "border-amber-300/25 bg-amber-400/10 text-amber-50",
+  processing: "border-sky-300/25 bg-sky-400/10 text-sky-50",
+  retry: "border-orange-300/25 bg-orange-400/10 text-orange-50",
+  failed: "border-red-300/25 bg-red-400/10 text-red-50",
+} as const;
+
+const trackingBadgeLabels = {
+  sent: "Tracking doručeno",
+  pending: "Tracking připraven",
+  processing: "Tracking čeká",
+  retry: "Tracking stížnost",
+  failed: "Tracking selhal",
+} as const;
+
 export function AdminEmailLogsWorkspace({ data }: AdminEmailLogsWorkspaceProps) {
   const [statusFilter, setStatusFilter] = useState<EmailStatusFilterValue>("all");
   const [typeFilter, setTypeFilter] = useState<EmailTypeFilterValue>("all");
@@ -443,13 +459,11 @@ function EmailTrackingBadge({
 }: {
   email: AdminEmailLogsWorkspaceProps["data"]["recentEmails"][number];
 }) {
-  if (email.trackingOpenedLabel !== "Připraveno" || email.trackingClickedLabel !== "Připraveno") {
-    return null;
-  }
-
   return (
-    <span className="rounded-full border border-white/10 bg-black/20 px-2.5 py-1 text-[0.62rem] font-medium text-white/54">
-      Tracking připraven
+    <span
+      className={`rounded-full border px-2.5 py-1 text-[0.62rem] font-medium ${trackingBadgeStyles[email.trackingStateValue]}`}
+    >
+      {email.trackingStateLabel || trackingBadgeLabels[email.trackingStateValue]}
     </span>
   );
 }
