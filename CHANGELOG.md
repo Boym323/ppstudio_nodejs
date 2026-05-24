@@ -16,6 +16,7 @@ Formát je inspirovaný Keep a Changelog.
 - Owner přehled `Komunikace se zákaznicemi` teď ve sloupci tracking používá barevný stavový badge navázaný na aktuální stav email logu (`Tracking aktivní`, `Tracking připraven`, `Tracking čeká`, `Tracking v retry`, `Tracking selhal`) místo jednotného neutrálního štítku.
 - Delivery tracking je nově napojený na Resend webhooky: přidán endpoint `POST /api/webhooks/resend` s ověřením `svix` podpisu, ukládání eventů (`delivered/opened/clicked/bounced/failed/suppressed`) do `EmailLog` a odvozování tracking badge z reálných event dat.
 - Email provider podporuje transport `EMAIL_TRANSPORT=resend` vedle SMTP; při odeslání přes Resend se ukládá `providerMessageId = email_id`, takže webhook události se párují jednoznačně na konkrétní `EmailLog`.
+- Resend webhook chybové eventy (`email.bounced`, `email.complained`, `email.failed`, `email.suppressed`) nově navazují na owner Pushover notifikace typu `EMAIL_FAILED`; notifikace se posílá jen při prvním zachycení daného chybového stavu.
 
 ## [0.3.16] - 2026-05-21
 

@@ -148,6 +148,7 @@ export async function applyResendWebhookEvent(event: ResendWebhookEvent) {
     },
     select: {
       id: true,
+      bookingId: true,
       trackingLastEventAt: true,
       trackingDeliveredAt: true,
       trackingOpenedAt: true,
@@ -166,6 +167,7 @@ export async function applyResendWebhookEvent(event: ResendWebhookEvent) {
   const update: Parameters<typeof prisma.emailLog.update>[0]["data"] = {
     trackingRawPayload: event,
   };
+  let shouldNotifyDeliveryIssue = false;
 
   if (!emailLog.trackingLastEventAt || trackedAt >= emailLog.trackingLastEventAt) {
     update.trackingLastEvent = event.type;
@@ -186,18 +188,22 @@ export async function applyResendWebhookEvent(event: ResendWebhookEvent) {
 
   if (event.type === "email.bounced" && !emailLog.trackingBouncedAt) {
     update.trackingBouncedAt = trackedAt;
+    shouldNotifyDeliveryIssue = true;
   }
 
   if (event.type === "email.complained" && !emailLog.trackingComplainedAt) {
     update.trackingComplainedAt = trackedAt;
+    shouldNotifyDeliveryIssue = true;
   }
 
   if (event.type === "email.failed" && !emailLog.trackingFailedAt) {
     update.trackingFailedAt = trackedAt;
+    shouldNotifyDeliveryIssue = true;
   }
 
   if (event.type === "email.suppressed" && !emailLog.trackingSuppressedAt) {
     update.trackingSuppressedAt = trackedAt;
+    shouldNotifyDeliveryIssue = true;
   }
 
   await prisma.emailLog.update({
@@ -206,6 +212,24 @@ export async function applyResendWebhookEvent(event: ResendWebhookEvent) {
     },
     data: update,
   });
+
+  if (shouldNotifyDeliveryIssue) {
+    try {
+      const { sendOwnerEmailFailurePushover } = await import("@/lib/notifications/pushover-core");
+      await sendOwnerEmailFailurePushover({
+        emailLogId: emailLog.id,
+        bookingId: emailLog.bookingId,
+        emailType: event.type,
+        isReminder: false,
+      });
+    } catch (error) {
+      console.error("Resend delivery issue Pushover notification failed", {
+        emailLogId: emailLog.id,
+        eventType: event.type,
+        error,
+      });
+    }
+  }
 
   return { matched: true, ignored: false } as const;
 }
