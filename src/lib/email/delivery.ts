@@ -25,6 +25,15 @@ function readReminderScheduledStartsAt(payload: unknown) {
   return typeof scheduledStartsAt === "string" ? scheduledStartsAt : null;
 }
 
+function shouldBypassReminderPreflight(payload: unknown) {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    return false;
+  }
+
+  const flag = "manualReminderResend" in payload ? payload.manualReminderResend : null;
+  return flag === true;
+}
+
 function getErrorMessage(error: unknown) {
   if (error instanceof Error) {
     return error.message;
@@ -66,47 +75,51 @@ export async function deliverEmailLog(emailLogId: string): Promise<EmailLogDeliv
   }
 
   if (emailLog.type === EmailLogType.BOOKING_REMINDER && emailLog.bookingId) {
-    const booking = await prisma.booking.findUnique({
-      where: {
-        id: emailLog.bookingId,
-      },
-      select: {
-        status: true,
-        reminder24hSentAt: true,
-        scheduledStartsAt: true,
-      },
-    });
-    const reminderScheduledStartsAt = readReminderScheduledStartsAt(emailLog.payload);
-    const preflight = evaluateBookingReminderDelivery({
-      bookingStatus: booking?.status ?? null,
-      reminder24hSentAt: booking?.reminder24hSentAt ?? null,
-      scheduledStartsAt:
-        reminderScheduledStartsAt && booking?.scheduledStartsAt
-        && reminderScheduledStartsAt !== booking.scheduledStartsAt.toISOString()
-          ? null
-          : booking?.scheduledStartsAt ?? null,
-    });
+    const bypassPreflight = shouldBypassReminderPreflight(emailLog.payload);
 
-    if (!preflight.shouldSend) {
-      await prisma.emailLog.update({
+    if (!bypassPreflight) {
+      const booking = await prisma.booking.findUnique({
         where: {
-          id: emailLog.id,
+          id: emailLog.bookingId,
         },
-        data: {
-          status: EmailLogStatus.SENT,
-          provider: "system-skip",
-          sentAt: new Date(),
-          processingStartedAt: null,
-          processingToken: null,
-          nextAttemptAt: new Date(),
-          errorMessage: preflight.reason ?? "Reminder delivery skipped.",
+        select: {
+          status: true,
+          reminder24hSentAt: true,
+          scheduledStartsAt: true,
         },
       });
+      const reminderScheduledStartsAt = readReminderScheduledStartsAt(emailLog.payload);
+      const preflight = evaluateBookingReminderDelivery({
+        bookingStatus: booking?.status ?? null,
+        reminder24hSentAt: booking?.reminder24hSentAt ?? null,
+        scheduledStartsAt:
+          reminderScheduledStartsAt && booking?.scheduledStartsAt
+          && reminderScheduledStartsAt !== booking.scheduledStartsAt.toISOString()
+            ? null
+            : booking?.scheduledStartsAt ?? null,
+      });
 
-      return {
-        status: "skipped",
-        errorMessage: preflight.reason,
-      };
+      if (!preflight.shouldSend) {
+        await prisma.emailLog.update({
+          where: {
+            id: emailLog.id,
+          },
+          data: {
+            status: EmailLogStatus.SENT,
+            provider: "system-skip",
+            sentAt: new Date(),
+            processingStartedAt: null,
+            processingToken: null,
+            nextAttemptAt: new Date(),
+            errorMessage: preflight.reason ?? "Reminder delivery skipped.",
+          },
+        });
+
+        return {
+          status: "skipped",
+          errorMessage: preflight.reason,
+        };
+      }
     }
   }
 

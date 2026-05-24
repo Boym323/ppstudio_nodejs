@@ -6,6 +6,9 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Opraven owner flow `Znovu odeslat e-mail` u reminderu: nově po akci otevírá detail nově vytvořeného email logu (ne původního záznamu), takže je hned vidět skutečný výsledek resend pokusu.
+- Ruční admin resend reminderu (`BOOKING_REMINDER`) nyní nastavuje explicitní override flag `manualReminderResend`, takže worker reminder preflight záznam nepřepne automaticky na `system-skip` a zpráva se skutečně zkusí odeslat na opravený kontakt.
+
 ## [0.3.18] - 2026-05-24
 
 - Release příprava pro produkční nasazení: projektová verze navýšena na patch `0.3.18`.

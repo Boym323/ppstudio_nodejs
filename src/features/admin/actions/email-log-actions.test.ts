@@ -78,3 +78,24 @@ test("buildResendEmailLogCreateInput omits payload when source payload is null",
   assert.equal("payload" in data, true);
   assert.equal(data.payload, undefined);
 });
+
+test("buildResendEmailLogCreateInput sets manual reminder resend flag for reminder emails", async () => {
+  const { buildResendEmailLogCreateInput } = await import("@/features/admin/actions/email-log-action-helpers");
+
+  const data = buildResendEmailLogCreateInput({
+    bookingId: "booking-1",
+    clientId: "client-1",
+    actionTokenId: null,
+    type: EmailLogType.BOOKING_REMINDER,
+    recipientEmail: "client@example.com",
+    subject: "Pripominka terminu",
+    templateKey: "booking-reminder-24h-v1",
+    payload: { scheduledStartsAt: "2026-05-25T08:00:00.000Z" },
+  });
+
+  assert.equal(typeof data.payload, "object");
+  assert.deepEqual(data.payload, {
+    scheduledStartsAt: "2026-05-25T08:00:00.000Z",
+    manualReminderResend: true,
+  });
+});

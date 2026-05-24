@@ -719,6 +719,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - že `npm run email:worker:once` zapíše reminder kandidátky do `EmailLog`
   - že reminder e-mail nevytváří `.ics` attachment
   - že storno nebo přesun rezervace mezi enqueue a sendem skončí `system-skip`, ne reálným odesláním
+  - že ruční owner akce `Znovu odeslat e-mail` na reminder detailu vytvoří nový log s payload flagem `manualReminderResend=true` a tenhle resend se neposuzuje běžným reminder preflight skip pravidlem
 - Před aplikací migrací v prostředí, kde už běžela produkční data, spusť `npm run db:check-migrations`; script zkontroluje otevřené failed/incomplete záznamy v `_prisma_migrations`.
 - Při změně veřejného webu navíc ručně ověř:
 - Po změně veřejného booking flow ručně ověř i:

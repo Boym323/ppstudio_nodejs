@@ -24,6 +24,17 @@ export function buildResendEmailLogCreateInput(input: {
   payload: Prisma.JsonValue | null;
   now?: Date;
 }) {
+  const shouldBypassReminderPreflight = input.type === EmailLogType.BOOKING_REMINDER;
+  const payloadWithOverride =
+    input.payload && typeof input.payload === "object" && !Array.isArray(input.payload)
+      ? ({
+          ...(input.payload as Record<string, unknown>),
+          ...(shouldBypassReminderPreflight ? ({ manualReminderResend: true } as const) : {}),
+        } satisfies Prisma.InputJsonObject)
+      : shouldBypassReminderPreflight
+        ? ({ manualReminderResend: true } satisfies Prisma.InputJsonObject)
+        : input.payload;
+
   return {
     bookingId: input.bookingId,
     clientId: input.clientId,
@@ -37,7 +48,7 @@ export function buildResendEmailLogCreateInput(input: {
     recipientEmail: input.recipientEmail,
     subject: input.subject,
     templateKey: input.templateKey,
-    payload: input.payload === null ? undefined : (input.payload as Prisma.InputJsonValue),
+    payload: payloadWithOverride === null ? undefined : (payloadWithOverride as Prisma.InputJsonValue),
     provider: null,
     providerMessageId: null,
     errorMessage: null,
