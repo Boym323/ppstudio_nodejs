@@ -5,6 +5,9 @@ Všechny důležité změny v tomto projektu se zapisují do tohoto souboru.
 Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
+
+- Admin detail klientky nově umožňuje upravit e-mail a telefon přímo v rozhraní; změna se propíše i do aktivních rezervací klientky a do dosud neodeslaných e-mail logů, aby oprava překlepu nevyžadovala zásah přes DB.
+
 ## [0.3.16] - 2026-05-21
 
 - Release příprava pro produkční nasazení: projektová verze navýšena na patch `0.3.16`.

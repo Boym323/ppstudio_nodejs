@@ -5,6 +5,7 @@ import { type ReactNode } from "react";
 import { type AdminClientDetailData } from "@/features/admin/lib/admin-clients";
 import { cn } from "@/lib/utils";
 
+import { AdminClientContactForm } from "./admin-client-contact-form";
 import { AdminClientNoteForm } from "./admin-client-note-form";
 import { AdminPanel } from "./admin-page-shell";
 
@@ -224,6 +225,19 @@ function ClientContactCard({ data }: { data: AdminClientDetailData }) {
           <ActionLink href={data.phoneHref}>Zavolat</ActionLink>
           <ActionLink href={data.emailHref}>Napsat e-mail</ActionLink>
         </div>
+        <details className="rounded-[0.85rem] border border-white/6 bg-black/12 px-2.5 py-2">
+          <summary className="cursor-pointer list-none text-[0.72rem] font-medium uppercase tracking-[0.14em] text-white/56 transition hover:text-white/80 [&::-webkit-details-marker]:hidden">
+            Upravit kontakt
+          </summary>
+          <div className="mt-2 border-t border-white/6 pt-2">
+            <AdminClientContactForm
+              area={data.area}
+              clientId={data.id}
+              email={data.emailValue}
+              phone={data.phoneValue}
+            />
+          </div>
+        </details>
       </div>
     </SideCard>
   );

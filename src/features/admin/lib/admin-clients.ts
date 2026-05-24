@@ -297,8 +297,10 @@ export type AdminClientDetailData = {
   area: AdminArea;
   fullName: string;
   email: string;
+  emailValue: string;
   emailHref: string | null;
   phone: string;
+  phoneValue: string;
   phoneHref: string | null;
   isActive: boolean;
   statusLabel: string;
@@ -496,14 +498,18 @@ export async function getAdminClientDetailData(
 
   const normalizedPhone = buildClientPhoneHref(client.phone);
   const normalizedEmail = normalizeEmailHref(client.email);
+  const emailValue = client.email ?? "";
+  const phoneValue = client.phone ? formatClientPhoneForDisplay(client.phone) : "";
 
   return {
     id: client.id,
     area,
     fullName: client.fullName,
-    email: client.email ?? "Bez e-mailu",
+    email: emailValue || "Bez e-mailu",
+    emailValue,
     emailHref: normalizedEmail,
     phone: client.phone ? formatClientPhoneForDisplay(client.phone) : "Telefon není vyplněný",
+    phoneValue,
     phoneHref: normalizedPhone,
     isActive: client.isActive,
     statusLabel: client.isActive ? "Aktivní" : "Neaktivní",

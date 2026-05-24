@@ -36,6 +36,22 @@ test("updateClientNoteAction returns validation error for too long note", async 
   assert.match(result.fieldErrors?.internalNote ?? "", /příliš dlouhá/i);
 });
 
+test("updateClientContactAction returns validation error for invalid email", async () => {
+  const { updateClientContactAction } = await import("@/features/admin/actions/client-actions");
+  const formData = makeFormData({
+    area: "owner",
+    clientId: "client-1",
+    email: "spatny-email",
+    phone: "",
+  });
+
+  const result = await updateClientContactAction({ status: "idle" }, formData);
+
+  assert.equal(result.status, "error");
+  assert.match(result.formError ?? "", /kontakt/i);
+  assert.ok(result.fieldErrors?.email);
+});
+
 test("createServiceAction returns validation errors for incomplete payload", async () => {
   const { createServiceAction } = await import("@/features/admin/actions/service-actions");
   const formData = makeFormData({

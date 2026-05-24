@@ -29,6 +29,19 @@ export const updateClientNoteSchema = z.object({
     .or(z.literal("")),
 });
 
+export const updateClientContactSchema = z.object({
+  area: z.enum(["owner", "salon"]),
+  clientId: z.string().trim().min(1).max(64),
+  email: z
+    .string()
+    .trim()
+    .max(254, "E-mail je příliš dlouhý.")
+    .refine((value) => value.length === 0 || z.email().safeParse(value).success, {
+      message: "Zadejte platný e-mail.",
+    }),
+  phone: z.string().trim().max(32, "Telefon je příliš dlouhý.").optional().or(z.literal("")),
+});
+
 export type ClientListSortValue = (typeof clientListSortValues)[number];
 export type ClientListStatusValue = (typeof clientListStatusValues)[number];
 export type ClientListQuickFilterValue = (typeof clientListQuickFilterValues)[number];
