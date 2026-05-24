@@ -6,6 +6,9 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [0.3.17] - 2026-05-24
+
+- Release příprava pro produkční nasazení: projektová verze navýšena na patch `0.3.17`.
 - Admin detail klientky nově umožňuje upravit e-mail a telefon přímo v rozhraní; změna se propíše i do aktivních rezervací klientky a do dosud neodeslaných e-mail logů, aby oprava překlepu nevyžadovala zásah přes DB.
 - Owner detail `Email logu` nově nabízí akce `Načíst e-mail z kontaktu` (synchronizace `recipientEmail` z aktuální klientky) a `Znovu odeslat e-mail` (vytvoření nového `PENDING` email logu bez přepisu původního záznamu), včetně nových flash hlášek.
 - Owner přehled `Komunikace se zákaznicemi` teď ve sloupci tracking používá barevný stavový badge navázaný na aktuální stav email logu (`Tracking aktivní`, `Tracking připraven`, `Tracking čeká`, `Tracking v retry`, `Tracking selhal`) místo jednotného neutrálního štítku.
