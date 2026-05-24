@@ -90,6 +90,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - počítá `bookedIntervals` podle skutečných aktivních rezervací překrývajících daný čas, ne jen podle relace `Booking.slotId`.
 - Tokenová správa rezervace (`/rezervace/sprava/[token]`) volá katalog s vynecháním právě spravované rezervace. Díky tomu může nabídnout i dřívější start v navazujícím volném bloku před původním termínem; serverová validace ale dál kontroluje celý coverage řetězec a všechny ostatní aktivní bookingy.
 - Admin detail rezervace používá pro reschedule sloty stejný princip (`excludeBookingId` v `getPublicBookingCatalog`). Bez toho by vlastní aktivní booking blokoval původní slot a UI by nenabídlo posun o 30 minut dřív přes volné okno před začátkem.
+- Horní hlavička detailu rezervace drž jako kompaktní dvouřádkový toolbar: nahoře návrat + stav/kanál vlevo a rychlé akce vpravo, dole jméno klientky a sekundární řádek `služba · délka · termín`; termín nemá být vykreslený v samostatném velkém boxu.
 - Playwright booking fixture v `tests/e2e/helpers/fixtures.ts` seeduje termíny dynamicky podle aktuální booking policy (`bookingMinAdvanceHours`, `bookingMaxAdvanceDays`, `bookingCancellationHours`), aby testované self-service scenáře vždy běžely uvnitř skutečného online okna pro rezervaci/storno/přesun.
 - Protože E2E suite běží napříč více specy se 2 workery, fixture sloty se nesmí spoléhat na jeden sdílený čas. `createCatalogFixture()` vytváří trojici availability slotů v transakci, start rozhazuje hashovaně podle `runId` a při `AvailabilitySlot_active_time_window_excl` zkusí další kandidát.
 - Test runtime (`NODE_ENV=test`) záměrně vypíná Prisma client stdout/stderr query error logy v `src/lib/prisma.ts`; zachycené a retrynuté seed konflikty by jinak šuměly ve výstupu E2E/DB testů, i když samotný test projde.
@@ -374,7 +375,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - U veřejného booking flow v E2E testech preferuj `getByRole("textbox", { name: "E-mail" })` / `getByRole("textbox", { name: "Telefon" })` před regexy, které předpokládají, že nápověda je součástí accessible name. Pokud test zakládá vlastní službu bez preselectu slugem, nejdřív otevři její fixture kategorii; stránka může být zároveň seedovaná jinými E2E kategoriemi.
 - DB integrační testy `booking-public-voucher.integration.test.ts` jsou seedované per test case (`withSeed(...)`) místo sdíleného global seedu, aby paralelní běh netvořil write konflikty přes společné `service/slot/voucher` zázemí.
 - Při úpravách Playwright locatorů preferuj stabilní business orientační body (sekce, heading, finální CTA) před přesnými dynamickými timestamp labely nebo historickými texty formulářů; admin detail rezervace aktuálně používá pole `Volitelný důvod` a submit text odpovídá zvolené akci, např. `Potvrdit rezervaci`.
-- Mobilní booking detail v adminu nesmí vrstvit sticky hlavičku přes `Další krok` a status chooser; hlavička detailu má být sticky až od větších breakpointů, protože na telefonu už nad ní běží vlastní sticky topbar shellu.
+- Booking detail v adminu používá statickou hlavičku (bez sticky/plovoucího chování), aby nepřekrývala `Další krok` ani status chooser.
 - CI workflow `.github/workflows/ci.yml` běží na push do `main`/`master` a na pull requesty. Používá PostgreSQL service container, aplikuje Prisma migrace přes `prisma migrate deploy`, generuje Prisma klienta a postupně spouští `npm run lint`, `npm test`, `npm run build` a `npm run test:e2e`.
 - CI používá testovací env hodnoty přímo ve workflow a e-maily drží v `EMAIL_DELIVERY_MODE=log`, aby browser a DB testy nevytvářely reálné SMTP side effects.
 
@@ -401,7 +402,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Druhé kolo visual polish overview je čistě prezentační: neměň read model ani sekce, pokud ladíš jen proporce, spacing, typografii nebo card rhythm.
 - Pro mobilní breakpointy overview dashboardu preferuj single-column stack před zmenšováním desktop kompozice: CTA pod sebe, alert CTA na vlastní řádek a quick actions až od `sm` do dvou sloupců.
 - `src/features/admin/components/admin-booking-detail-page.tsx` skládá detail rezervace jako decision-first layout:
-  - sticky header s `klientka -> služba -> termín -> stav/zdroj -> rychlé akce`
+  - statická kompaktní hlavička s `klientka -> služba -> termín -> stav/zdroj -> rychlé akce`
   - horní akční panel jako hlavní rozhodovací centrum
   - levý sloupec `akce -> poznámky -> historie`
   - pravý sloupec `souhrn -> technická metadata`
@@ -767,7 +768,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - ověření, že akce na menších šířkách fungují jako full-width footer a od `lg` se vrací do úsporného vlastního sloupce
   - správné schování neplatné rychlé akce podle aktuálního stavu rezervace
   - barevné badge pro `čeká`, `hotovo`, `zrušeno` a čitelnost kontaktu i zdroje v hustém řádku
-  - detail rezervace s novým sticky headerem, jedním souhrnným panelem a kompaktní akční zónou
+  - detail rezervace s novou kompaktní statickou hlavičkou, jedním souhrnným panelem a kompaktní akční zónou
   - samostatné uložení interní poznámky bez změny stavu a propsání do historie
    - timeline historie s důvodem, poznámkou a zdrojem změny, pokud je k dispozici
 

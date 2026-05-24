@@ -68,49 +68,33 @@ function BookingDetailHeader({
   const headerToneClassName = getHeaderToneClassName(data.status);
   const clientPhoneHref = buildPhoneHref(data.clientPhone);
   const clientEmailHref = data.clientEmail ? `mailto:${data.clientEmail}` : null;
+  const serviceDurationLabel = formatDurationLabel(data.reschedule.serviceDurationMinutes);
+  const hasClientNote = Boolean(data.clientNote?.trim());
+  const hasInternalNote = Boolean(data.internalNote?.trim());
 
   return (
     <section
       className={cn(
-        "rounded-[var(--radius-panel)] border bg-[rgba(11,11,11,0.92)] p-3 backdrop-blur-xl lg:sticky lg:top-5 lg:z-30 sm:p-3.5",
+        "rounded-[var(--radius-panel)] border bg-[rgba(11,11,11,0.92)] px-3 py-2.5 backdrop-blur-xl sm:px-3.5 sm:py-3",
         headerToneClassName,
       )}
     >
-      <div className="flex flex-col gap-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <Link
-            href={listHref}
-            className="rounded-full border border-white/10 px-3 py-1.5 text-sm text-white/76 transition hover:border-white/18 hover:bg-white/6 hover:text-white"
-          >
-            Zpět na rezervace
-          </Link>
-          <span className={getStatusBadgeClassName(data.status)}>{data.statusLabel}</span>
-          <span className="rounded-full border border-white/8 px-2.5 py-1 text-[0.64rem] font-medium uppercase tracking-[0.16em] text-white/52">
-            {data.sourceLabel}
-          </span>
-        </div>
-
-        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
-          <div className="min-w-0 space-y-2">
-            <div className="space-y-1">
-              <p className="text-[0.66rem] uppercase tracking-[0.22em] text-[var(--color-accent-soft)]">
-                {data.area === "owner" ? "Detail rezervace" : "Provozní detail rezervace"}
-              </p>
-              <h1 className="font-display text-[1.42rem] leading-tight text-white sm:text-[1.7rem] xl:text-[1.86rem]">
-                {data.clientName}
-              </h1>
-              <p className="text-sm text-white/68 sm:text-[0.98rem]">{data.serviceName}</p>
-            </div>
-
-            <div className="rounded-[1rem] border border-white/8 bg-black/18 px-3.5 py-2.5">
-              <p className="text-[0.64rem] uppercase tracking-[0.18em] text-white/42">Termín</p>
-              <p className="mt-1 text-base font-semibold text-white sm:text-[1.02rem]">
-                {data.scheduledAtLabel}
-              </p>
-            </div>
+      <div className="flex flex-col gap-2.5">
+        <div className="flex flex-wrap items-start justify-between gap-2.5">
+          <div className="flex flex-wrap items-center gap-2">
+            <Link
+              href={listHref}
+              className="rounded-full border border-white/10 px-3 py-1.5 text-sm text-white/76 transition hover:border-white/18 hover:bg-white/6 hover:text-white"
+            >
+              Zpět na rezervace
+            </Link>
+            <span className={getStatusBadgeClassName(data.status)}>{data.statusLabel}</span>
+            <span className="rounded-full border border-white/8 px-2.5 py-1 text-[0.64rem] font-medium uppercase tracking-[0.16em] text-white/52">
+              {data.sourceLabel}
+            </span>
           </div>
 
-          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="hidden w-full flex-wrap items-center gap-2 sm:flex sm:w-auto sm:justify-end">
             <QuickHeaderAction
               href={clientPhoneHref}
               label="Zavolat klientce"
@@ -140,7 +124,59 @@ function BookingDetailHeader({
             ) : (
               <QuickHeaderAction href={null} label="Přesunout termín" muted />
             )}
-            <QuickHeaderAction href={listHref} label="Zpět na rezervace" />
+          </div>
+        </div>
+
+        <div className="space-y-1">
+          <p className="text-[0.62rem] uppercase tracking-[0.2em] text-[var(--color-accent-soft)]">
+            {data.area === "owner" ? "Detail rezervace" : "Provozní detail rezervace"}
+          </p>
+          <h1 className="font-display text-[1.18rem] leading-tight text-white sm:text-[1.34rem]">
+            {data.clientName}
+          </h1>
+          <p className="text-sm text-white/72">
+            {data.serviceName}
+            <span className="mx-1.5 text-white/38">·</span>
+            {serviceDurationLabel}
+            <span className="mx-1.5 text-white/38">·</span>
+            {data.scheduledAtLabel}
+          </p>
+          {hasClientNote || hasInternalNote ? (
+            <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+              {hasClientNote ? <NotePresenceBadge kind="client" /> : null}
+              {hasInternalNote ? <NotePresenceBadge kind="internal" /> : null}
+            </div>
+          ) : null}
+          <div className="flex w-full flex-wrap items-center gap-2 sm:hidden">
+            <QuickHeaderAction
+              href={clientPhoneHref}
+              label="Zavolat klientce"
+              muted={!clientPhoneHref}
+              hint={!clientPhoneHref ? "Telefon není dostupný." : undefined}
+            />
+            <QuickHeaderAction
+              href={clientEmailHref}
+              label="Napsat e-mail"
+              muted={!clientEmailHref}
+              hint={!clientEmailHref ? "E-mail není dostupný." : undefined}
+            />
+            {data.reschedule.enabled ? (
+              <RescheduleBookingButton
+                area={data.area}
+                bookingId={data.id}
+                serviceId={data.reschedule.serviceId}
+                serviceName={data.serviceName}
+                serviceDurationMinutes={data.reschedule.serviceDurationMinutes}
+                currentScheduledAtLabel={data.scheduledAtLabel}
+                currentStartsAt={data.reschedule.currentStartsAt}
+                expectedUpdatedAt={data.reschedule.expectedUpdatedAt}
+                rescheduleCount={data.rescheduleCount}
+                slots={data.reschedule.slots}
+                variant="inline"
+              />
+            ) : (
+              <QuickHeaderAction href={null} label="Přesunout termín" muted />
+            )}
           </div>
         </div>
       </div>
@@ -265,6 +301,15 @@ function BookingNotesPanel({ data }: { data: AdminBookingDetailData }) {
   return (
     <AdminPanel title="Poznámky" compact={data.area === "salon"} denseHeader>
       <div className="space-y-2.5">
+        {hasClientNote || hasInternalNote ? (
+          <div className="rounded-[0.95rem] border border-[var(--color-accent)]/28 bg-[rgba(190,160,120,0.12)] px-3 py-2.5">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-sm font-medium text-white/88">Poznámky vyžadují pozornost:</span>
+              {hasClientNote ? <NotePresenceBadge kind="client" /> : null}
+              {hasInternalNote ? <NotePresenceBadge kind="internal" /> : null}
+            </div>
+          </div>
+        ) : null}
         {!hasClientNote && !hasInternalNote ? (
           <div className="rounded-[0.95rem] border border-white/8 bg-white/[0.03] px-3 py-2.5">
             <p className="text-sm text-white/62">Klientka: bez poznámky</p>
@@ -847,7 +892,7 @@ function QuickHeaderAction({
   hint?: string;
 }) {
   const className = cn(
-    "inline-flex min-h-11 items-center justify-center rounded-full border px-3 py-2 text-sm transition",
+    "inline-flex min-h-9 items-center justify-center rounded-full border px-3 py-1.5 text-sm transition",
     muted
       ? "border-white/8 bg-white/[0.03] text-white/42"
       : "border-white/10 bg-black/16 text-white/76 hover:border-white/18 hover:bg-white/6 hover:text-white",
@@ -874,6 +919,16 @@ function QuickHeaderAction({
       {label}
     </a>
   );
+}
+
+function NotePresenceBadge({ kind }: { kind: "client" | "internal" }) {
+  const label = kind === "client" ? "Klientská poznámka" : "Interní poznámka";
+  const className =
+    kind === "client"
+      ? "rounded-full border border-amber-300/36 bg-amber-500/14 px-2.5 py-1 text-[0.64rem] font-semibold uppercase tracking-[0.12em] text-amber-100"
+      : "rounded-full border border-cyan-300/32 bg-cyan-500/12 px-2.5 py-1 text-[0.64rem] font-semibold uppercase tracking-[0.12em] text-cyan-100";
+
+  return <span className={className}>{label}</span>;
 }
 
 function getHeaderToneClassName(status: AdminBookingDetailData["status"]) {
@@ -916,6 +971,10 @@ function getHistoryBadgeClassName(status: AdminBookingDetailData["historyItems"]
   }
 
   return getStatusBadgeClassName(status);
+}
+
+function formatDurationLabel(durationMinutes: number) {
+  return `${durationMinutes} min`;
 }
 
 function getStatusContextClassName(tone: "pending" | "confirmed" | "closed" | "neutral") {

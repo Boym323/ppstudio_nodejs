@@ -6,6 +6,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Horní hlavička detailu rezervace v adminu je výrazně kompaktnější: má dvouřádkové provozní rozložení, rychlé akce jsou v horním řádku vpravo, zmizel duplicitní odkaz `Zpět na rezervace` a termín už není ve velkém boxu, ale jako stručný text v sekundárním řádku se službou a délkou.
+- Pokud je u rezervace doplněná klientská nebo interní poznámka, detail rezervace ji nově výrazněji signalizuje badge štítky už v hlavičce i v panelu `Poznámky`, aby byla vidět bez scrollování historie.
 - Admin detail rezervace je vizuálně přeřazený do pracovního cockpit režimu: u potvrzené rezervace je hlavní akcí `Dokončit návštěvu`, `Přesunout termín` a `Nedorazila` jsou sekundární provozní kroky a `Zrušit rezervaci` je oddělené do samostatné nebezpečné sekce s důvodem zrušení.
 - Souhrn rezervace se na mobilu zobrazuje hned pod hlavičkou, technická metadata jsou sbalitelná a tlumená, panel `Úhrada` výrazněji ukazuje doplatek a poznámky oddělují klientskou poznámku od interní týmové poznámky.
 - Admin detail rezervace je kompaktnější: panel `Další krok` používá stručný stavový řádek bez duplicit, potvrzení vybrané akce je v jednom kompaktním řádku a `Nebezpečné akce` jsou výchozně sbalené pod accordion.

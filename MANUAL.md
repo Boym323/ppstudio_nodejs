@@ -199,8 +199,10 @@ Detailní seznam všech env proměnných je v [`docs/ENVIRONMENT.md`](/var/www/p
 - Pushover kod je rozdeleny na Next.js wrapper `src/lib/notifications/pushover.ts` se `server-only` markerem a worker-safe implementaci `src/lib/notifications/pushover-core.ts`, kterou smi nacitat standalone `email:worker` pres `tsx`.
 - Admin detail rezervace nově podporuje samostatnou akci `Přesunout termín`; booking zůstává stejným záznamem, ale změna projde backend validací, auditním logem, resetem reminder návaznosti a volitelným klientským e-mailem `Termín byl změněn`.
 - Drawer `Přesunout termín` v admin detailu při skládání volných slotů nepočítá právě upravovanou rezervaci jako obsazenost. Pokud je před původním začátkem 30min publikované okno a délka služby se vejde přes toto okno plus vlastní původní slot, nabídne se posun na dřívější začátek.
-- Na mobilu zůstává hlavička detailu rezervace statická; sticky chování se zapíná až na větších obrazovkách, aby nepřekrývalo rozhodovací panel a CTA při potvrzení služby.
-- Admin detail rezervace už nefunguje jako dlouhá informační stránka; nově je to rychlý rozhodovací panel se sticky hlavičkou, horním akčním blokem, kompaktním souhrnem v bočním sloupci a sjednoceným blokem poznámek. Na mobilu jde souhrn hned pod hlavičku, potom teprve `Další krok`, `Úhrada`, poznámky a historie.
+- Hlavička detailu rezervace je statická (není plovoucí) na všech breakpointech, aby nepřekrývala rozhodovací panel a CTA při potvrzení služby.
+- Horní hlavička detailu rezervace je záměrně nízká a dvouřádková: první řádek drží návrat, stav/kanál a rychlé akce, druhý řádek jméno klientky + službu, délku a termín jako kompaktní text (bez velkého termínového boxu).
+- Pokud je vyplněná klientská nebo interní poznámka, detail rezervace ji zvýrazní badge štítkem už v hlavičce i v samotném panelu `Poznámky`, aby byla okamžitě viditelná.
+- Admin detail rezervace už nefunguje jako dlouhá informační stránka; nově je to rychlý rozhodovací panel se statickou kompaktní hlavičkou, horním akčním blokem, kompaktním souhrnem v bočním sloupci a sjednoceným blokem poznámek. Na mobilu jde souhrn hned pod hlavičku, potom teprve `Další krok`, `Úhrada`, poznámky a historie.
 - Panel `Další krok` je pracovní cockpit. U potvrzené rezervace má copy jasně říct, že termín je potvrzený a po návštěvě se má uzavřít jako hotový, případně označit jako `Nedorazila`. Primární provozní CTA je `Dokončit návštěvu`; `Přesunout termín` a `Nedorazila` jsou sekundární kroky. `Zrušit rezervaci` patří do samostatné sekce `Nebezpečná akce / Zrušení rezervace` s červeným varováním, důvodem a potvrzovacím tlačítkem, nikdy vedle hlavního provozního CTA.
 - Pro provozní realitu salonu je hlavní CTA u potvrzené rezervace přejmenované na `Dokončit návštěvu`. Cockpit ukazuje platební kontext (`Doplatek` nebo `Platba vyřešena`) a při doplatku nabízí kompaktní completion flow: `Hotově`, `QR platba`, `Voucher`, `Kombinovaně` nebo `Bez platby`.
 - Completion flow při doplatku zapisuje úhradu/voucher přímo v rámci dokončení návštěvy a pak přepne stav na `Hotovo`. Zvolená platba nebo voucher musí pokrýt celý doplatek; částečný voucher nechá návštěvu otevřenou, pokud admin vědomě nezvolí `Bez platby`.
@@ -667,7 +669,7 @@ npm run db:clear-booking-data -- --confirm
 - Detail rezervace je nyní dostupný jak pro `OWNER`, tak pro `SALON`:
   - `OWNER` na `/admin/rezervace/[bookingId]`
   - `SALON` na `/admin/provoz/rezervace/[bookingId]`
-  - nahoře používá kompaktní sticky header s návratem do seznamu, termínem, badge stavu, zdrojem a rychlými kontaktními akcemi
+  - nahoře používá kompaktní statickou hlavičku s návratem do seznamu, termínem, badge stavu, zdrojem a rychlými kontaktními akcemi
   - pod hlavičkou je jeden kompaktní souhrn místo více podobných boxů se stejnými daty
   - hlavní blok `Akce s rezervací` drží dostupné změny stavu a krátký stavový kontext bez dlouhých odstavců
   - poznámky jsou rozdělené na klientskou a interní; interní poznámku lze uložit samostatně i bez změny statusu
