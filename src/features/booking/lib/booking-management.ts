@@ -42,6 +42,7 @@ type LoadedManageToken = {
     updatedAt: Date;
     serviceId: string;
     serviceDurationMinutes: number;
+    cleanupBlockMinutes: number;
     serviceNameSnapshot: string;
     clientNameSnapshot: string;
     scheduledStartsAt: Date;
@@ -58,6 +59,7 @@ export type PublicBookingManagementPageState =
       serviceId: string;
       serviceName: string;
       serviceDurationMinutes: number;
+      cleanupBlockMinutes: number;
       clientName: string;
       scheduledAtLabel: string;
       statusLabel: string;
@@ -142,6 +144,7 @@ async function findManageToken(tokenHash: string) {
           updatedAt: true,
           serviceId: true,
           serviceDurationMinutes: true,
+          cleanupBlockMinutes: true,
           serviceNameSnapshot: true,
           clientNameSnapshot: true,
           scheduledStartsAt: true,
@@ -283,6 +286,7 @@ export function createBookingManagementApi(
         serviceId: resolved.token.booking.serviceId,
         serviceName: resolved.token.booking.serviceNameSnapshot,
         serviceDurationMinutes: resolved.token.booking.serviceDurationMinutes,
+        cleanupBlockMinutes: resolved.token.booking.cleanupBlockMinutes,
         clientName: resolved.token.booking.clientNameSnapshot,
         scheduledAtLabel: formatBookingDateLabel(
           resolved.token.booking.scheduledStartsAt,

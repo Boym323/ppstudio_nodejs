@@ -41,6 +41,15 @@ function structuredListFieldSchema(label: string) {
   );
 }
 
+const cleanupMinutesSchema = z.preprocess(
+  (value) => (value === undefined || value === null || value === "" ? 0 : value),
+  z.coerce
+    .number({ error: "Čas na úklid zadejte v minutách." })
+    .int("Čas na úklid musí být celé číslo.")
+    .min(0, "Čas na úklid nesmí být záporný.")
+    .max(480, "Čas na úklid je neobvykle dlouhý. Zkontrolujte prosím hodnotu."),
+);
+
 export const serviceListSearchParamsSchema = z.object({
   query: z.string().trim().max(120).optional(),
   status: z.enum(serviceListStatusValues).optional(),
@@ -80,6 +89,7 @@ export const updateServiceSchema = z.object({
     .int("Délka musí být celé číslo.")
     .min(5, "Délka služby musí být alespoň 5 minut.")
     .max(480, "Délka služby je neobvykle dlouhá. Zkontrolujte prosím hodnotu."),
+  cleanupMinutes: cleanupMinutesSchema,
   priceFromCzk: z.union([
     z.literal(""),
     z.coerce
@@ -145,6 +155,7 @@ export const createServiceSchema = z.object({
     .int("Délka musí být celé číslo.")
     .min(5, "Délka služby musí být alespoň 5 minut.")
     .max(480, "Délka služby je neobvykle dlouhá. Zkontrolujte prosím hodnotu."),
+  cleanupMinutes: cleanupMinutesSchema,
   priceFromCzk: z.union([
     z.literal(""),
     z.coerce

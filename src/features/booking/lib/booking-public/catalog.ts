@@ -3,6 +3,7 @@ import { AvailabilitySlotStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getBookingPolicySettings } from "@/lib/site-settings";
 
+import { roundUpToQuarterHour } from "../booking-cleanup";
 import {
   ACTIVE_BOOKING_STATUSES,
   type PublicBookingCatalog,
@@ -47,6 +48,7 @@ export async function getPublicBookingCatalog(
             slug: true,
             publicIntro: true,
             durationMinutes: true,
+            cleanupMinutes: true,
             priceFromCzk: true,
             category: {
               select: {
@@ -92,13 +94,24 @@ export async function getPublicBookingCatalog(
         scheduledStartsAt: {
           lt: bookingWindowEnd,
         },
-        scheduledEndsAt: {
-          gt: bookingWindowStart,
-        },
+        OR: [
+          {
+            blockedUntil: {
+              gt: bookingWindowStart,
+            },
+          },
+          {
+            blockedUntil: null,
+            scheduledEndsAt: {
+              gt: bookingWindowStart,
+            },
+          },
+        ],
       },
       select: {
         scheduledStartsAt: true,
         scheduledEndsAt: true,
+        blockedUntil: true,
       },
     }),
   ]);
@@ -111,6 +124,7 @@ export async function getPublicBookingCatalog(
       slug: service.slug,
       shortDescription: service.publicIntro,
       durationMinutes: service.durationMinutes,
+      cleanupBlockMinutes: roundUpToQuarterHour(service.cleanupMinutes),
       priceFromCzk: service.priceFromCzk,
     })),
     slots: buildMergedPublicCatalogSlots(
@@ -125,7 +139,7 @@ export async function getPublicBookingCatalog(
       })),
       bookings.map((booking) => ({
         startsAt: booking.scheduledStartsAt,
-        endsAt: booking.scheduledEndsAt,
+        endsAt: booking.blockedUntil ?? booking.scheduledEndsAt,
       })),
     ),
   };

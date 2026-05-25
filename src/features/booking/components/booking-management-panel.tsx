@@ -261,7 +261,11 @@ export function BookingManagementPanel({
         return [];
       }
 
-      return buildSlotTimeOptions(slot, initialState.serviceDurationMinutes)
+      return buildSlotTimeOptions(
+        slot,
+        initialState.serviceDurationMinutes,
+        initialState.cleanupBlockMinutes,
+      )
         .filter((option) => !option.isDisabled)
         .filter((option) => option.startsAt !== initialState.scheduledStartsAt);
     });

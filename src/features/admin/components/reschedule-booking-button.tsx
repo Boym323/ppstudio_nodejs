@@ -33,6 +33,7 @@ type RescheduleBookingButtonProps = {
   serviceId: string;
   serviceName: string;
   serviceDurationMinutes: number;
+  cleanupBlockMinutes: number;
   currentScheduledAtLabel: string;
   currentStartsAt: string;
   expectedUpdatedAt: string;
@@ -65,6 +66,7 @@ export function RescheduleBookingButton({
   serviceId,
   serviceName,
   serviceDurationMinutes,
+  cleanupBlockMinutes,
   currentScheduledAtLabel,
   currentStartsAt,
   expectedUpdatedAt,
@@ -229,6 +231,7 @@ export function RescheduleBookingButton({
                           slots={slots}
                           serviceId={serviceId}
                           serviceDurationMinutes={serviceDurationMinutes}
+                          cleanupBlockMinutes={cleanupBlockMinutes}
                           selectionMode={selectionMode}
                           onSelectionModeChange={setSelectionMode}
                           slotId={slotId}

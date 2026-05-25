@@ -17,6 +17,7 @@ import {
 } from "@/lib/site-settings";
 
 import { createNotificationEmailLogs } from "./notifications";
+import { resolveBookingTimingSnapshot } from "../booking-cleanup";
 import {
   ACTIVE_BOOKING_STATUSES,
   EDITABLE_SLOT_CAPACITY,
@@ -65,6 +66,7 @@ async function loadServiceForBooking(
       id: true,
       name: true,
       durationMinutes: true,
+      cleanupMinutes: true,
       priceFromCzk: true,
     },
   });
@@ -397,9 +399,13 @@ export async function createBookingWithEngine(
         async (tx) => {
           const now = new Date();
           const service = await loadServiceForBooking(tx, input.serviceId);
-          const requestedEndsAt = new Date(
-            requestedStartsAt.getTime() + service.durationMinutes * 60 * 1000,
-          );
+          const bookingTiming = resolveBookingTimingSnapshot({
+            startsAt: requestedStartsAt,
+            serviceDurationMinutes: service.durationMinutes,
+            cleanupMinutes: service.cleanupMinutes,
+          });
+          const requestedEndsAt = bookingTiming.serviceEnd;
+          const requestedBlockedUntil = bookingTiming.blockedUntil;
 
           const slot = input.slotId
             ? await lockRequestedSlot(tx, input.slotId)
@@ -417,7 +423,7 @@ export async function createBookingWithEngine(
             where: {
               id: slot ? { not: slot.id } : undefined,
               startsAt: {
-                lt: requestedEndsAt,
+                lt: requestedBlockedUntil,
               },
               endsAt: {
                 gt: requestedStartsAt,
@@ -462,7 +468,7 @@ export async function createBookingWithEngine(
             ),
             service.id,
             requestedStartsAt,
-            requestedEndsAt,
+            requestedBlockedUntil,
             slot?.id,
           );
 
@@ -471,7 +477,7 @@ export async function createBookingWithEngine(
             publishedCoverage === null &&
             requestedStartsAt >= slot.startsAt &&
             requestedStartsAt < slot.endsAt &&
-            requestedEndsAt > slot.endsAt
+            requestedBlockedUntil > slot.endsAt
           ) {
             throw new PublicBookingError(
               publicBookingErrorCodes.slotTooShort,
@@ -495,7 +501,7 @@ export async function createBookingWithEngine(
               ? resolvedCoverageSlots[resolvedCoverageSlots.length - 1]?.endsAt ?? resolvedSlot.endsAt
               : resolvedSlot.endsAt;
 
-            if (requestedStartsAt < resolvedSlot.startsAt || requestedEndsAt > coveredUntil) {
+            if (requestedStartsAt < resolvedSlot.startsAt || requestedBlockedUntil > coveredUntil) {
               if (!input.allowManualOverride) {
                 throw new PublicBookingError(
                   publicBookingErrorCodes.slotUnavailable,
@@ -540,11 +546,21 @@ export async function createBookingWithEngine(
                 in: [...ACTIVE_BOOKING_STATUSES],
               },
               scheduledStartsAt: {
-                lt: requestedEndsAt,
+                lt: requestedBlockedUntil,
               },
-              scheduledEndsAt: {
-                gt: requestedStartsAt,
-              },
+              OR: [
+                {
+                  blockedUntil: {
+                    gt: requestedStartsAt,
+                  },
+                },
+                {
+                  blockedUntil: null,
+                  scheduledEndsAt: {
+                    gt: requestedStartsAt,
+                  },
+                },
+              ],
               ...(manualOverride || !resolvedSlot
                 ? {}
                 : {
@@ -571,7 +587,7 @@ export async function createBookingWithEngine(
             resolvedSlot = await tx.availabilitySlot.create({
               data: {
                 startsAt: requestedStartsAt,
-                endsAt: requestedEndsAt,
+                endsAt: requestedBlockedUntil,
                 capacity: EDITABLE_SLOT_CAPACITY,
                 status: AvailabilitySlotStatus.DRAFT,
                 serviceRestrictionMode: AvailabilitySlotServiceRestrictionMode.ANY,
@@ -648,10 +664,13 @@ export async function createBookingWithEngine(
               clientEmailSnapshot: normalizedEmail,
               clientPhoneSnapshot: normalizedPhone,
               serviceNameSnapshot: service.name,
-              serviceDurationMinutes: service.durationMinutes,
+              serviceDurationMinutes: bookingTiming.serviceDurationMinutes,
+              cleanupMinutes: bookingTiming.cleanupMinutes,
+              cleanupBlockMinutes: bookingTiming.cleanupBlockMinutes,
               servicePriceFromCzk: service.priceFromCzk,
               scheduledStartsAt: requestedStartsAt,
               scheduledEndsAt: requestedEndsAt,
+              blockedUntil: bookingTiming.blockedUntil,
               clientNote: normalizedClientNote,
               internalNote: normalizedInternalNote,
               confirmedAt: input.status === BookingStatus.CONFIRMED ? now : null,

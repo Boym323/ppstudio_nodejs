@@ -25,6 +25,7 @@ type SlotCatalogItem = {
 type ServiceOption = {
   id: string;
   durationMinutes: number;
+  cleanupBlockMinutes: number;
 };
 
 type BookingTimeSelectorProps = {
@@ -108,7 +109,11 @@ export function BookingTimeSelector({
         return [];
       }
 
-      return buildSlotTimeOptions(slot, selectedService.durationMinutes).filter((option) => !option.isDisabled);
+      return buildSlotTimeOptions(
+        slot,
+        selectedService.durationMinutes,
+        selectedService.cleanupBlockMinutes,
+      ).filter((option) => !option.isDisabled);
     });
   }, [selectedService, slots]);
   const slotGroups = useMemo(() => {

@@ -338,7 +338,7 @@ export function BookingFlow({ catalog, initialSelectedServiceSlug, salonProfile 
         return false;
       }
 
-      if (getSlotDurationMinutes(slot) < selectedService.durationMinutes) {
+      if (getSlotDurationMinutes(slot) < selectedService.durationMinutes + selectedService.cleanupBlockMinutes) {
         return false;
       }
 
@@ -355,7 +355,11 @@ export function BookingFlow({ catalog, initialSelectedServiceSlug, salonProfile 
       return [];
     }
 
-    return availableSlots.flatMap((slot) => buildSlotTimeOptions(slot, selectedService.durationMinutes));
+    return availableSlots.flatMap((slot) => buildSlotTimeOptions(
+      slot,
+      selectedService.durationMinutes,
+      selectedService.cleanupBlockMinutes,
+    ));
   }, [availableSlots, selectedService]);
 
   const selectedTimeOptionCandidate = selectedTimeOptionKey

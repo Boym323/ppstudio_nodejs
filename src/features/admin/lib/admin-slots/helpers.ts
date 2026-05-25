@@ -29,6 +29,30 @@ export function intervalToCellRange(interval: TimeRange) {
   };
 }
 
+function clampCellBoundary(value: number) {
+  return Math.max(0, Math.min(DAY_CELLS, value));
+}
+
+export function intervalToPlannerCells(
+  interval: TimeRange,
+  mode: "cover" | "inside",
+) {
+  const start = dateToCellIndex(interval.startsAt);
+  const end = dateToCellIndex(interval.endsAt);
+
+  if (mode === "inside") {
+    return {
+      startCell: clampCellBoundary(Math.ceil(start)),
+      endCell: clampCellBoundary(Math.floor(end)),
+    };
+  }
+
+  return {
+    startCell: clampCellBoundary(Math.floor(start)),
+    endCell: clampCellBoundary(Math.ceil(end)),
+  };
+}
+
 export function formatTimeRange(startsAt: Date, endsAt: Date) {
   return `${timeFormatter.format(startsAt)} - ${timeFormatter.format(endsAt)}`;
 }

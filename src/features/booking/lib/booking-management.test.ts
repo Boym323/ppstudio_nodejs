@@ -48,6 +48,7 @@ function buildToken(overrides: BookingTokenOverrides = {}) {
       updatedAt: overrides.updatedAt ?? new Date(Date.now() - 60 * 60 * 1000),
       serviceId: "service-1",
       serviceDurationMinutes: 60,
+      cleanupBlockMinutes: 0,
       serviceNameSnapshot: `Service for ${bookingId}`,
       clientNameSnapshot: `Client for ${bookingId}`,
       scheduledStartsAt,

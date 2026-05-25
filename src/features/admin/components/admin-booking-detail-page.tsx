@@ -114,6 +114,7 @@ function BookingDetailHeader({
                 serviceId={data.reschedule.serviceId}
                 serviceName={data.serviceName}
                 serviceDurationMinutes={data.reschedule.serviceDurationMinutes}
+                cleanupBlockMinutes={data.reschedule.cleanupBlockMinutes}
                 currentScheduledAtLabel={data.scheduledAtLabel}
                 currentStartsAt={data.reschedule.currentStartsAt}
                 expectedUpdatedAt={data.reschedule.expectedUpdatedAt}
@@ -167,6 +168,7 @@ function BookingDetailHeader({
                 serviceId={data.reschedule.serviceId}
                 serviceName={data.serviceName}
                 serviceDurationMinutes={data.reschedule.serviceDurationMinutes}
+                cleanupBlockMinutes={data.reschedule.cleanupBlockMinutes}
                 currentScheduledAtLabel={data.scheduledAtLabel}
                 currentStartsAt={data.reschedule.currentStartsAt}
                 expectedUpdatedAt={data.reschedule.expectedUpdatedAt}
@@ -219,6 +221,7 @@ function BookingActionPanel({
                 serviceId={data.reschedule.serviceId}
                 serviceName={data.serviceName}
                 serviceDurationMinutes={data.reschedule.serviceDurationMinutes}
+                cleanupBlockMinutes={data.reschedule.cleanupBlockMinutes}
                 currentScheduledAtLabel={data.scheduledAtLabel}
                 currentStartsAt={data.reschedule.currentStartsAt}
                 expectedUpdatedAt={data.reschedule.expectedUpdatedAt}
@@ -268,6 +271,16 @@ function BookingAuditCard({ data }: { data: AdminBookingDetailData }) {
       label: "Odkud přišla",
       value: data.acquisitionLabel ?? "Neuvedeno",
     },
+    {
+      label: "Úklid po službě",
+      value: data.cleanup.cleanupLabel,
+    },
+    ...(data.cleanup.cleanupBlockMinutes > 0
+      ? [{
+          label: "Interně blokováno do",
+          value: data.cleanup.blockedUntilLabel,
+        }]
+      : []),
   ];
 
   return (

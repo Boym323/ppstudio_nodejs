@@ -1,6 +1,7 @@
 import type { PublicBookingCatalog } from "@/features/booking/lib/booking-public";
 
 const BOOKING_START_STEP_MINUTES = 30;
+const QUARTER_HOUR_MS = 15 * 60 * 1000;
 
 export type TimeSlotOption = {
   key: string;
@@ -48,6 +49,10 @@ function getSlotStartTime(value: string) {
   return new Date(value).getTime();
 }
 
+function isQuarterHourBoundary(valueMs: number) {
+  return valueMs % QUARTER_HOUR_MS === 0;
+}
+
 function getDayPeriod(startsAt: string): DayPeriodKey {
   const date = new Date(startsAt);
   const pragueHour = new Intl.DateTimeFormat("en-GB", {
@@ -90,18 +95,21 @@ function getDayPeriodLabel(period: DayPeriodKey) {
 export function buildSlotTimeOptions(
   slot: PublicBookingCatalog["slots"][number],
   serviceDurationMinutes: number,
+  cleanupBlockMinutes = 0,
 ): TimeSlotOption[] {
   const slotStartsAtMs = new Date(slot.startsAt).getTime();
   const slotEndsAtMs = new Date(slot.endsAt).getTime();
   const serviceDurationMs = serviceDurationMinutes * 60 * 1000;
+  const blockDurationMs = (serviceDurationMinutes + cleanupBlockMinutes) * 60 * 1000;
   const stepMs = BOOKING_START_STEP_MINUTES * 60 * 1000;
-  const latestStartMs = slotEndsAtMs - serviceDurationMs;
+  const latestStartMs = slotEndsAtMs - blockDurationMs;
 
   if (latestStartMs < slotStartsAtMs) {
     return [];
   }
 
   const options: TimeSlotOption[] = [];
+  const startCandidates = new Set<number>();
   const bookingStartsSorted = slot.bookedIntervals
     .map((booking) => new Date(booking.startsAt).getTime())
     .sort((left, right) => left - right);
@@ -113,9 +121,24 @@ export function buildSlotTimeOptions(
   let activeOverlaps = 0;
 
   for (let startsAtMs = slotStartsAtMs; startsAtMs <= latestStartMs; startsAtMs += stepMs) {
-    const endsAtMs = startsAtMs + serviceDurationMs;
+    startCandidates.add(startsAtMs);
+  }
 
-    while (startsPointer < bookingStartsSorted.length && bookingStartsSorted[startsPointer] < endsAtMs) {
+  for (const bookingEndsAtMs of bookingEndsSorted) {
+    if (
+      bookingEndsAtMs >= slotStartsAtMs
+      && bookingEndsAtMs <= latestStartMs
+      && isQuarterHourBoundary(bookingEndsAtMs)
+    ) {
+      startCandidates.add(bookingEndsAtMs);
+    }
+  }
+
+  for (const startsAtMs of [...startCandidates].sort((left, right) => left - right)) {
+    const endsAtMs = startsAtMs + serviceDurationMs;
+    const blockedUntilMs = startsAtMs + blockDurationMs;
+
+    while (startsPointer < bookingStartsSorted.length && bookingStartsSorted[startsPointer] < blockedUntilMs) {
       activeOverlaps += 1;
       startsPointer += 1;
     }

@@ -1,5 +1,12 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
-import { AdminRole, BookingActorType, BookingSource, BookingStatus } from "@prisma/client";
+import {
+  AdminRole,
+  AvailabilitySlotServiceRestrictionMode,
+  AvailabilitySlotStatus,
+  BookingActorType,
+  BookingSource,
+  BookingStatus,
+} from "@prisma/client";
 
 import {
   cleanupE2eData,
@@ -148,6 +155,65 @@ async function safeClick(page: Page, locator: Locator) {
   await page.waitForTimeout(100);
 }
 
+function addMinutes(value: Date, minutes: number) {
+  return new Date(value.getTime() + minutes * 60 * 1000);
+}
+
+function formatPragueTime(value: Date) {
+  return new Intl.DateTimeFormat("cs-CZ", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Europe/Prague",
+  }).format(value);
+}
+
+function formatPragueDateKey(value: Date) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    timeZone: "Europe/Prague",
+  }).formatToParts(value);
+  const year = parts.find((part) => part.type === "year")?.value;
+  const month = parts.find((part) => part.type === "month")?.value;
+  const day = parts.find((part) => part.type === "day")?.value;
+
+  if (!year || !month || !day) {
+    throw new Error(`Could not format Prague date key for ${value.toISOString()}`);
+  }
+
+  return `${year}-${month}-${day}`;
+}
+
+function buildPublicSlotButtonLabel(startsAt: Date) {
+  return `Vybrat termín ${formatPragueDateKey(startsAt)} ${formatPragueTime(startsAt)}`;
+}
+
+function slugify(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+function roundUpToHalfHour(value: Date) {
+  const copy = new Date(value);
+  copy.setUTCSeconds(0, 0);
+  const minutes = copy.getUTCMinutes();
+
+  if (minutes === 0 || minutes === 30) {
+    return copy;
+  }
+
+  if (minutes < 30) {
+    copy.setUTCMinutes(30, 0, 0);
+    return copy;
+  }
+
+  copy.setUTCHours(copy.getUTCHours() + 1, 0, 0, 0);
+  return copy;
+}
+
 test.describe("booking flows", () => {
   let fixtures: E2eFixture[] = [];
 
@@ -194,6 +260,171 @@ test.describe("booking flows", () => {
       "REJECT",
       "RESCHEDULE",
     ]);
+  });
+
+  test("public booking availability respects cleanup block while keeping client-visible service end", async ({ page }) => {
+    const runId = `e2e-cleanup-${Date.now().toString(36)}`;
+    const fixture: E2eFixture = {
+      runId,
+      serviceName: "",
+      serviceSlug: "",
+      categoryName: "",
+      clientName: "",
+      clientEmail: "",
+      slotLabels: {
+        primaryDateKey: "",
+        primaryTime: "",
+        rescheduleDateKey: "",
+        rescheduleTime: "",
+        rescheduleConflictButtonLabel: "",
+        rescheduleConflictSlotId: "",
+        rescheduleSuccessButtonLabel: "",
+        rescheduleSuccessSlotId: "",
+        rescheduleSuccessStartAt: "",
+        primaryStartAt: "",
+        rescheduleStartAt: "",
+      },
+    };
+    fixtures.push(fixture);
+
+    const categoryName = `E2E cleanup category ${runId}`;
+    const serviceName = `E2E cleanup service ${runId}`;
+    const serviceSlug = slugify(serviceName);
+    const serviceDurationMinutes = 60;
+    const servicePriceFromCzk = 900;
+
+    const category = await prisma.serviceCategory.create({
+      data: {
+        name: categoryName,
+        slug: slugify(categoryName),
+        publicName: categoryName,
+        description: "Dočasná E2E kategorie pro cleanup scénář.",
+        sortOrder: -10_000,
+        pricingSortOrder: -10_000,
+        isActive: true,
+      },
+    });
+
+    const service = await prisma.service.create({
+      data: {
+        categoryId: category.id,
+        name: serviceName,
+        publicName: serviceName,
+        slug: serviceSlug,
+        shortDescription: "Dočasná E2E služba pro cleanup scénář.",
+        publicIntro: "Dočasná E2E služba pro cleanup scénář.",
+        description: "Dočasná E2E služba pro cleanup scénář.",
+        seoDescription: "Dočasná E2E služba pro cleanup scénář.",
+        durationMinutes: serviceDurationMinutes,
+        cleanupMinutes: 10,
+        priceFromCzk: servicePriceFromCzk,
+        sortOrder: -10_000,
+        isActive: true,
+        isPubliclyBookable: true,
+      },
+    });
+
+    fixture.serviceName = serviceName;
+    fixture.serviceSlug = serviceSlug;
+    fixture.categoryName = categoryName;
+
+    const siteSettings = await prisma.siteSettings.findUnique({
+      where: { id: "site-settings" },
+      select: {
+        bookingMinAdvanceHours: true,
+        bookingMaxAdvanceDays: true,
+      },
+    });
+    const minAdvanceHours = siteSettings?.bookingMinAdvanceHours ?? 2;
+    const maxAdvanceDays = siteSettings?.bookingMaxAdvanceDays ?? 90;
+    const slotDurationMinutes = 4 * 60;
+    const minSafeStart = roundUpToHalfHour(addMinutes(new Date(), (minAdvanceHours + 10) * 60));
+    const maxSafeStart = roundUpToHalfHour(addMinutes(
+      new Date(),
+      maxAdvanceDays * 24 * 60 - slotDurationMinutes,
+    ));
+    const blockedBookingStart = minSafeStart > maxSafeStart ? maxSafeStart : minSafeStart;
+    const blockedBookingEnd = addMinutes(blockedBookingStart, serviceDurationMinutes);
+    const blockedUntil = addMinutes(blockedBookingEnd, 15);
+    const releasedStart = blockedUntil;
+    const releasedServiceEnd = addMinutes(releasedStart, serviceDurationMinutes);
+
+    const slot = await prisma.availabilitySlot.create({
+      data: {
+        startsAt: blockedBookingStart,
+        endsAt: addMinutes(blockedBookingStart, 4 * 60),
+        capacity: 1,
+        status: AvailabilitySlotStatus.PUBLISHED,
+        serviceRestrictionMode: AvailabilitySlotServiceRestrictionMode.SELECTED,
+        publishedAt: new Date(),
+        publicNote: `E2E cleanup ${runId}`,
+        allowedServices: {
+          create: {
+            serviceId: service.id,
+          },
+        },
+      },
+    });
+
+    const client = await prisma.client.create({
+      data: {
+        fullName: `E2E Cleanup Client ${runId}`,
+        email: `${runId}-cleanup-client@example.test`,
+        phone: "+420777000003",
+        lastBookedAt: blockedBookingStart,
+      },
+    });
+
+    await prisma.booking.create({
+      data: {
+        clientId: client.id,
+        slotId: slot.id,
+        serviceId: service.id,
+        source: BookingSource.WEB,
+        status: BookingStatus.CONFIRMED,
+        clientNameSnapshot: client.fullName,
+        clientEmailSnapshot: client.email ?? `${runId}-cleanup-client@example.test`,
+        clientPhoneSnapshot: client.phone,
+        serviceNameSnapshot: service.name,
+        serviceDurationMinutes,
+        servicePriceFromCzk,
+        cleanupMinutes: 10,
+        cleanupBlockMinutes: 15,
+        scheduledStartsAt: blockedBookingStart,
+        scheduledEndsAt: blockedBookingEnd,
+        blockedUntil,
+        confirmedAt: new Date(),
+        statusHistory: {
+          create: {
+            status: BookingStatus.CONFIRMED,
+            actorType: BookingActorType.SYSTEM,
+            note: "E2E cleanup block booking",
+          },
+        },
+      },
+    });
+
+    await page.goto(`/rezervace?service=${serviceSlug}`);
+    await expect(page.getByText(serviceName).first()).toBeVisible();
+
+    const blockedStartButton = page
+      .getByRole("button", { name: buildPublicSlotButtonLabel(blockedBookingEnd) });
+    const blockedStartCount = await blockedStartButton.count();
+    if (blockedStartCount > 0) {
+      await expect(blockedStartButton.first()).toBeDisabled();
+    }
+
+    const releasedStartButton = page
+      .getByRole("button", { name: buildPublicSlotButtonLabel(releasedStart) })
+      .first();
+    await expect(releasedStartButton).toBeVisible();
+    await expect(releasedStartButton).toBeEnabled();
+    await clickUntilFocused(releasedStartButton, page.getByLabel("Jméno a příjmení"));
+
+    await expect(page.getByText(`Konec ${formatPragueTime(releasedServiceEnd)}`)).toBeVisible();
+    await expect(page.getByText(new RegExp(`${serviceDurationMinutes}\\s*min`)).first()).toBeVisible();
+    await expect(page.getByText("Úklid po službě")).toHaveCount(0);
+    await expect(page.getByText("Interně blokováno do")).toHaveCount(0);
   });
 
   test("valid service slug preselects the service and keeps marketing params intact", async ({ page }) => {

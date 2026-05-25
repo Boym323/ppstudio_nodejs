@@ -17,6 +17,7 @@ export type UpdateServiceActionState = {
       | "pricingShortDescription"
       | "pricingBadge"
       | "durationMinutes"
+      | "cleanupMinutes"
       | "priceFromCzk"
       | "categoryId"
       | "sortOrder"

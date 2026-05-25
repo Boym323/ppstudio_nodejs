@@ -43,6 +43,7 @@ export type PublicBookingCatalog = {
     slug: string;
     shortDescription: string | null;
     durationMinutes: number;
+    cleanupBlockMinutes: number;
     priceFromCzk: number | null;
   }>;
   slots: Array<{
@@ -154,8 +155,9 @@ export function doesSlotSupportServiceDuration(
   startsAt: Date,
   endsAt: Date,
   serviceDurationMinutes: number,
+  cleanupBlockMinutes = 0,
 ) {
-  return endsAt.getTime() - startsAt.getTime() >= serviceDurationMinutes * 60 * 1000;
+  return endsAt.getTime() - startsAt.getTime() >= (serviceDurationMinutes + cleanupBlockMinutes) * 60 * 1000;
 }
 
 export function isRetryablePrismaError(error: unknown) {
@@ -253,6 +255,7 @@ export type BookingServiceRecord = {
   id: string;
   name: string;
   durationMinutes: number;
+  cleanupMinutes: number;
   priceFromCzk: number | null;
 };
 

@@ -54,3 +54,34 @@ test("getAdminBookingActionOptions hides completion before the booking end", asy
     true,
   );
 });
+
+test("buildBookingCleanupMetadata formats internal cleanup as low-priority admin metadata", async () => {
+  const { buildBookingCleanupMetadata } = await import("./admin-booking");
+  const scheduledEndsAt = new Date("2026-04-30T11:15:00.000Z");
+
+  assert.deepEqual(
+    buildBookingCleanupMetadata({
+      cleanupBlockMinutes: 15,
+      blockedUntil: new Date("2026-04-30T11:30:00.000Z"),
+      scheduledEndsAt,
+    }),
+    {
+      cleanupBlockMinutes: 15,
+      cleanupLabel: "15 min",
+      blockedUntilLabel: "13:30",
+    },
+  );
+
+  assert.deepEqual(
+    buildBookingCleanupMetadata({
+      cleanupBlockMinutes: null,
+      blockedUntil: null,
+      scheduledEndsAt,
+    }),
+    {
+      cleanupBlockMinutes: 0,
+      cleanupLabel: "Bez úklidové blokace",
+      blockedUntilLabel: "13:15",
+    },
+  );
+});

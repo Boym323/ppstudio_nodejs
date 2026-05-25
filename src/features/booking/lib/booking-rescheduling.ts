@@ -20,6 +20,7 @@ import { resolvePublishedSlotCoverage } from "@/features/booking/lib/booking-slo
 import { sendOwnerBookingPushover } from "@/lib/notifications/pushover";
 import { prisma } from "@/lib/prisma";
 import { getBookingPolicySettings, getEmailBrandingSettings, isBookingWithinWindow } from "@/lib/site-settings";
+import { resolveBookingTimingSnapshot } from "./booking-cleanup";
 
 const ACTIVE_BOOKING_STATUSES = [BookingStatus.PENDING, BookingStatus.CONFIRMED] as const;
 const MAX_BOOKING_TRANSACTION_RETRIES = 3;
@@ -496,9 +497,12 @@ async function rescheduleBookingInTransaction(
       slotId: true,
       serviceId: true,
       serviceDurationMinutes: true,
+      cleanupMinutes: true,
+      cleanupBlockMinutes: true,
       serviceNameSnapshot: true,
       scheduledStartsAt: true,
       scheduledEndsAt: true,
+      blockedUntil: true,
       clientId: true,
       clientNameSnapshot: true,
       clientEmailSnapshot: true,
@@ -558,9 +562,15 @@ async function rescheduleBookingInTransaction(
     );
   }
 
+  const requestedTiming = resolveBookingTimingSnapshot({
+    startsAt: requestedStartsAt,
+    serviceDurationMinutes: booking.serviceDurationMinutes,
+    cleanupMinutes: booking.cleanupMinutes ?? 0,
+    cleanupBlockMinutes: booking.cleanupBlockMinutes ?? 0,
+  });
   const requestedEndsAt = input.newEndAt
     ? new Date(input.newEndAt)
-    : new Date(requestedStartsAt.getTime() + booking.serviceDurationMinutes * 60 * 1000);
+    : requestedTiming.serviceEnd;
 
   if (
     Number.isNaN(requestedEndsAt.getTime())
@@ -580,6 +590,9 @@ async function rescheduleBookingInTransaction(
       "newTime",
     );
   }
+  const requestedBlockedUntil = new Date(
+    requestedEndsAt.getTime() + requestedTiming.cleanupBlockMinutes * 60 * 1000,
+  );
 
   if (
     booking.scheduledStartsAt.getTime() === requestedStartsAt.getTime()
@@ -618,7 +631,7 @@ async function rescheduleBookingInTransaction(
     where: {
       id: excludedSlotIds.length > 0 ? { notIn: excludedSlotIds } : undefined,
       startsAt: {
-        lt: requestedEndsAt,
+        lt: requestedBlockedUntil,
       },
       endsAt: {
         gt: requestedStartsAt,
@@ -664,7 +677,7 @@ async function rescheduleBookingInTransaction(
       ),
     booking.serviceId,
     requestedStartsAt,
-    requestedEndsAt,
+    requestedBlockedUntil,
     requestedSlot?.id ?? booking.slot.id,
   );
 
@@ -673,7 +686,7 @@ async function rescheduleBookingInTransaction(
     publishedCoverage === null &&
     requestedStartsAt >= requestedSlot.startsAt &&
     requestedStartsAt < requestedSlot.endsAt &&
-    requestedEndsAt > requestedSlot.endsAt
+    requestedBlockedUntil > requestedSlot.endsAt
   ) {
     throw new BookingRescheduleError(
       bookingRescheduleErrorCodes.slotTooShort,
@@ -691,7 +704,7 @@ async function rescheduleBookingInTransaction(
       ? resolvedCoverageSlots[resolvedCoverageSlots.length - 1]?.endsAt ?? resolvedSlot.endsAt
       : resolvedSlot.endsAt;
 
-    if (requestedStartsAt < resolvedSlot.startsAt || requestedEndsAt > coveredUntil) {
+    if (requestedStartsAt < resolvedSlot.startsAt || requestedBlockedUntil > coveredUntil) {
       resolvedSlot = null;
       resolvedCoverageSlots = [];
       manualOverride = true;
@@ -733,11 +746,21 @@ async function rescheduleBookingInTransaction(
         in: [...ACTIVE_BOOKING_STATUSES],
       },
       scheduledStartsAt: {
-        lt: requestedEndsAt,
+        lt: requestedBlockedUntil,
       },
-      scheduledEndsAt: {
-        gt: requestedStartsAt,
-      },
+      OR: [
+        {
+          blockedUntil: {
+            gt: requestedStartsAt,
+          },
+        },
+        {
+          blockedUntil: null,
+          scheduledEndsAt: {
+            gt: requestedStartsAt,
+          },
+        },
+      ],
       ...(manualOverride || !resolvedSlot
         ? {}
         : {
@@ -764,7 +787,7 @@ async function rescheduleBookingInTransaction(
     resolvedSlot = await tx.availabilitySlot.create({
       data: {
         startsAt: requestedStartsAt,
-        endsAt: requestedEndsAt,
+        endsAt: requestedBlockedUntil,
         capacity: EDITABLE_SLOT_CAPACITY,
         status: AvailabilitySlotStatus.DRAFT,
         serviceRestrictionMode: AvailabilitySlotServiceRestrictionMode.ANY,
@@ -814,6 +837,7 @@ async function rescheduleBookingInTransaction(
       slotId: resolvedSlot.id,
       scheduledStartsAt: requestedStartsAt,
       scheduledEndsAt: requestedEndsAt,
+      blockedUntil: requestedBlockedUntil,
       manualOverride,
       rescheduledAt,
       rescheduleCount: {

@@ -24,6 +24,9 @@ export type PlannerBooking = {
   startCell: number;
   endCell: number;
   label: string;
+  blockedLabel: string;
+  cleanupBlockedUntilLabel: string | null;
+  hasCleanupBlock: boolean;
   clientName: string;
   serviceName: string;
   status: BookingStatus;
@@ -46,6 +49,7 @@ export type PlannerDay = {
   cells: {
     available: boolean[];
     booked: boolean[];
+    bookedCleanup: boolean[];
     completed: boolean[];
     inactive: boolean[];
     locked: boolean[];

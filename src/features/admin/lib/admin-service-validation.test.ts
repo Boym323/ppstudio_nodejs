@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { createServiceSchema } from "./admin-service-validation";
+import { createServiceSchema, updateServiceSchema } from "./admin-service-validation";
 
 function buildValidInput(overrides: Partial<Record<string, unknown>> = {}) {
   return {
@@ -20,6 +20,7 @@ function buildValidInput(overrides: Partial<Record<string, unknown>> = {}) {
     pricingShortDescription: "Přirozené zvýraznění řas.",
     pricingBadge: "",
     durationMinutes: "60",
+    cleanupMinutes: "15",
     priceFromCzk: "900",
     isFeaturedOnHomepage: false,
     homepageSortOrder: "10",
@@ -38,6 +39,47 @@ describe("createServiceSchema", () => {
       "otevřenější pohled",
       "českou diakritiku",
     ]);
+  });
+
+  it("uloží volitelný čas na úklid jako počet minut", () => {
+    const parsed = createServiceSchema.parse(buildValidInput({
+      cleanupMinutes: "30",
+    }));
+
+    assert.equal(parsed.cleanupMinutes, 30);
+  });
+
+  it("použije výchozí nulu, když čas na úklid chybí", () => {
+    const input: Record<string, unknown> = buildValidInput();
+    delete input.cleanupMinutes;
+
+    const parsed = createServiceSchema.parse(input);
+
+    assert.equal(parsed.cleanupMinutes, 0);
+  });
+
+  it("odmítne záporný čas na úklid", () => {
+    const result = createServiceSchema.safeParse(buildValidInput({
+      cleanupMinutes: "-5",
+    }));
+
+    assert.equal(result.success, false);
+    if (result.success) {
+      throw new Error("Validace měla selhat.");
+    }
+    assert.match(result.error.flatten().fieldErrors.cleanupMinutes?.[0] ?? "", /nesmí být záporný/);
+  });
+
+  it("odmítne nečíselný čas na úklid", () => {
+    const result = createServiceSchema.safeParse(buildValidInput({
+      cleanupMinutes: "abc",
+    }));
+
+    assert.equal(result.success, false);
+    if (result.success) {
+      throw new Error("Validace měla selhat.");
+    }
+    assert.ok(result.error.flatten().fieldErrors.cleanupMinutes?.[0]);
   });
 
   it("odmítne více než osm bodů ve strukturované sekci", () => {
@@ -62,5 +104,20 @@ describe("createServiceSchema", () => {
       throw new Error("Validace měla selhat.");
     }
     assert.match(result.error.flatten().fieldErrors.includes?.[0] ?? "", /maximálně 240 znaků/);
+  });
+});
+
+describe("updateServiceSchema", () => {
+  it("přijme úklidový čas při editaci služby", () => {
+    const parsed = updateServiceSchema.parse({
+      ...buildValidInput({
+        serviceId: "service-1",
+        intent: "save",
+        cleanupMinutes: "45",
+        sortOrder: "10",
+      }),
+    });
+
+    assert.equal(parsed.cleanupMinutes, 45);
   });
 });

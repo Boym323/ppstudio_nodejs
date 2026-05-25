@@ -133,6 +133,102 @@ describe("buildSlotTimeOptions", () => {
   });
 });
 
+describe("buildSlotTimeOptions cleanup blocking", () => {
+  function buildCatalogSlot(bookedInterval: { startsAt: string; endsAt: string }) {
+    return {
+      id: "slot-cleanup",
+      startsAt: "2026-06-10T10:00:00.000Z",
+      endsAt: "2026-06-10T13:00:00.000Z",
+      publicNote: null,
+      capacity: 1,
+      serviceRestrictionMode: AvailabilitySlotServiceRestrictionMode.ANY,
+      allowedServiceIds: [],
+      bookedIntervals: [bookedInterval],
+    };
+  }
+
+  test("offers 11:15 after a 10:00-11:00 service with 15 minute cleanup block", () => {
+    const options = buildSlotTimeOptions(
+      buildCatalogSlot({
+        startsAt: "2026-06-10T10:00:00.000Z",
+        endsAt: "2026-06-10T11:15:00.000Z",
+      }),
+      60,
+    );
+
+    const starts = options.filter((option) => !option.isDisabled).map((option) => option.startsAt);
+
+    assert.ok(starts.includes("2026-06-10T11:15:00.000Z"));
+  });
+
+  test("offers 11:45 after a 10:00-11:30 service with 15 minute cleanup block", () => {
+    const options = buildSlotTimeOptions(
+      buildCatalogSlot({
+        startsAt: "2026-06-10T10:00:00.000Z",
+        endsAt: "2026-06-10T11:45:00.000Z",
+      }),
+      60,
+    );
+
+    const starts = options.filter((option) => !option.isDisabled).map((option) => option.startsAt);
+
+    assert.ok(starts.includes("2026-06-10T11:45:00.000Z"));
+  });
+
+  test("offers 11:30 after a 10:00-11:15 service with 15 minute cleanup block", () => {
+    const options = buildSlotTimeOptions(
+      buildCatalogSlot({
+        startsAt: "2026-06-10T10:00:00.000Z",
+        endsAt: "2026-06-10T11:30:00.000Z",
+      }),
+      60,
+    );
+
+    const starts = options.filter((option) => !option.isDisabled).map((option) => option.startsAt);
+
+    assert.ok(starts.includes("2026-06-10T11:30:00.000Z"));
+  });
+
+  test("requires the new booking's own cleanup block to fit into the slot", () => {
+    const options = buildSlotTimeOptions(
+      {
+        id: "slot-own-cleanup",
+        startsAt: "2026-06-10T10:00:00.000Z",
+        endsAt: "2026-06-10T11:00:00.000Z",
+        publicNote: null,
+        capacity: 1,
+        serviceRestrictionMode: AvailabilitySlotServiceRestrictionMode.ANY,
+        allowedServiceIds: [],
+        bookedIntervals: [],
+      },
+      60,
+      15,
+    );
+
+    assert.equal(options.length, 0);
+  });
+
+  test("keeps the option end at the client-visible service end", () => {
+    const options = buildSlotTimeOptions(
+      {
+        id: "slot-public-summary",
+        startsAt: "2026-06-10T10:00:00.000Z",
+        endsAt: "2026-06-10T12:00:00.000Z",
+        publicNote: null,
+        capacity: 1,
+        serviceRestrictionMode: AvailabilitySlotServiceRestrictionMode.ANY,
+        allowedServiceIds: [],
+        bookedIntervals: [],
+      },
+      75,
+      15,
+    );
+
+    assert.equal(options[0]?.startsAt, "2026-06-10T10:00:00.000Z");
+    assert.equal(options[0]?.endsAt, "2026-06-10T11:15:00.000Z");
+  });
+});
+
 describe("resolvePublishedSlotCoverage", () => {
   test("accepts a continuous chain of published slots", () => {
     const coverage = resolvePublishedSlotCoverage(

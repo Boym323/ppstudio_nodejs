@@ -161,7 +161,7 @@ Lokální doporučení:
 - Samostatná kontaktní hero fotka (`MediaType.CONTACT_PHOTO`) nepřidává žádnou env proměnnou; používá stejný `MEDIA_STORAGE_ROOT`, media route a Prisma model jako ostatní média.
 - Přepnutí `BookingSource` na nové provozní enum hodnoty (`WEB`, `PHONE`, `INSTAGRAM`, `IN_PERSON`, `OTHER`) je čistě databázová a aplikační změna, ne nová env konfigurace.
 - Refaktor veřejného výběru časů v `/rezervace` také nezavádí žádné nové env proměnné; jde čistě o klientskou UI vrstvu nad existujícím booking catalogem.
-- Admin sekce `Služby` také nepřidává nové env proměnné; používá stávající databázi, session a Prisma klient.
+- Admin sekce `Služby` také nepřidává nové env proměnné; používá stávající databázi, session a Prisma klient. Volitelný čas na úklid po službě (`Service.cleanupMinutes`) je databázové pole, ne konfigurace prostředí.
 - Ruční skript `npm run db:backfill-service-copy` pro propsání strukturovaných textů služeb do DB nepřidává žádnou novou env proměnnou; používá stávající `DATABASE_URL` stejně jako ostatní Prisma servisní skripty.
 - Audit změn cen služeb také nepřidává nové env proměnné; používá stávající databázi, admin session a Prisma klient.
 - UX refaktor pracovního přehledu v sekci `Rezervace` také nepřidává nové env proměnné; klikací statistiky, toolbar filtrů i seskupení podle data běží čistě nad existujícími query parametry, Prisma read modelem a App Router routou.

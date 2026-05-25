@@ -91,9 +91,21 @@ Sem patří krátké záznamy architektonických rozhodnutí.
 - `0074-admin-booking-list-density-v3.md`
 - `0075-admin-client-list-crm-density-v2.md`
 - `0076-admin-services-catalog-density-v3.md`
+- `0077-admin-client-prefill-manual-booking-v1.md`
+- `0078-admin-booking-direct-payments-v1.md`
+- `0079-admin-voucher-operational-edit-and-cancellation-v1.md`
+- `0080-public-contact-parking-section-v1.md`
+- `0081-public-faq-seo-content-v2.md`
+- `0082-admin-explicit-noindex-v1.md`
 - `0083-public-studio-media-hardening-v1.md`
+- `0084-admin-booking-final-price-v1.md`
+- `0085-admin-booking-needs-closure-section-v1.md`
+- `0086-client-phone-normalization-v1.md`
 - `0087-homepage-featured-services-v1.md`
+- `0088-service-structured-copy-in-db-v1.md`
+- `0089-prague-time-dst-booking-v1.md`
 - `0090-email-template-site-settings-contact-v1.md`
+- `0090-public-json-ld-and-web-vitals-v1.md`
 - `0091-public-booking-service-query-prefill-v1.md`
 - `0092-business-test-coverage-reporting-v1.md`
 - `0093-owner-email-on-client-reschedule-v1.md`
@@ -101,3 +113,7 @@ Sem patří krátké záznamy architektonických rozhodnutí.
 - `0095-public-microsoft-clarity-v1.md`
 - `0096-admin-client-contact-correction-v1.md`
 - `0097-admin-booking-detail-cockpit-hierarchy-v1.md`
+- `0099-service-cleanup-minutes-v1.md`
+
+Poznámka:
+- Historicky existují duplicitní indexy (`0026`, `0090`). Ber to jako legacy stav, čísla zpětně nepřejmenovávat.

@@ -447,6 +447,7 @@ function isCellHighlighted(
 
 export function GridCell({
   tone,
+  hasCleanupHint,
   selected,
   hourBoundary,
   label,
@@ -456,6 +457,7 @@ export function GridCell({
   onPointerMove,
 }: {
   tone: CellTone;
+  hasCleanupHint: boolean;
   selected: boolean;
   hourBoundary: boolean;
   label: string;
@@ -475,7 +477,7 @@ export function GridCell({
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       className={cn(
-        "h-8 w-full touch-none select-none rounded-[0.65rem] border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/70 lg:h-[1.2rem]",
+        "relative h-8 w-full touch-none select-none overflow-hidden rounded-[0.65rem] border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/70 lg:h-[1.2rem]",
         hourBoundary ? "border-t-white/22" : "border-t-white/10",
         tone === "available" && "border-emerald-300/25 bg-emerald-300/66 hover:bg-emerald-300/82",
         tone === "booked" && "cursor-default border-rose-300/30 bg-rose-300/70",
@@ -486,6 +488,9 @@ export function GridCell({
         tone === "empty" && "border-white/10 bg-white/[0.07] hover:bg-white/[0.11]",
         selected &&
           "z-10 scale-[1.01] border-[var(--color-accent)]/70 ring-2 ring-[var(--color-accent)]/90 ring-offset-1 ring-offset-[#141217] shadow-[0_0_0_1px_rgba(190,160,120,0.22),0_12px_24px_rgba(0,0,0,0.28)]",
+        hasCleanupHint &&
+          (tone === "booked" || tone === "completed") &&
+          "after:pointer-events-none after:absolute after:inset-y-0 after:right-0 after:w-1 after:bg-amber-200/82 after:content-['']",
       )}
     />
   );
@@ -570,13 +575,15 @@ export function DesktopWeekGrid({
                   (() => {
                     const tone = getCellTone(day, cellIndex);
 
+                    const hasCleanupHint = day.cells.bookedCleanup[cellIndex] ?? false;
                     return (
                   <GridCell
                     key={`${day.dateKey}-${cellIndex}`}
                     tone={tone}
+                    hasCleanupHint={hasCleanupHint}
                     selected={isCellHighlighted(day.dateKey, cellIndex, draft, selectedSelection)}
                     hourBoundary={cellIndex % 2 === 0}
-                    label={`${day.label}, ${formatRangeLabel(cellIndex, cellIndex + 1)}, ${getToneLabel(tone)}`}
+                    label={`${day.label}, ${formatRangeLabel(cellIndex, cellIndex + 1)}, ${getToneLabel(tone)}${hasCleanupHint ? ", obsahuje úklidovou blokaci" : ""}`}
                     dayKey={day.dateKey}
                     cellIndex={cellIndex}
                     onPointerDown={(event) => onCellStart(day, cellIndex, event.pointerType)}
@@ -633,16 +640,24 @@ export function MobileDayGrid({
                 >
                   {cellIndex % 2 === 0 ? timeLabels[cellIndex] ?? formatRangeLabel(cellIndex, cellIndex + 1).slice(0, 5) : ""}
                 </div>
-                <GridCell
-                  tone={getCellTone(day, cellIndex)}
-                  selected={isCellHighlighted(day.dateKey, cellIndex, draft, selectedSelection)}
-                  hourBoundary={cellIndex % 2 === 0}
-                  label={`${day.label}, ${formatRangeLabel(cellIndex, cellIndex + 1)}, ${getToneLabel(getCellTone(day, cellIndex))}`}
-                  dayKey={day.dateKey}
-                  cellIndex={cellIndex}
-                  onPointerDown={(event) => onCellStart(day, cellIndex, event.pointerType)}
-                  onPointerMove={(event) => onCellMove(day.dateKey, cellIndex, event.buttons, event.pointerType)}
-                />
+                {(() => {
+                  const tone = getCellTone(day, cellIndex);
+                  const hasCleanupHint = day.cells.bookedCleanup[cellIndex] ?? false;
+
+                  return (
+                    <GridCell
+                      tone={tone}
+                      hasCleanupHint={hasCleanupHint}
+                      selected={isCellHighlighted(day.dateKey, cellIndex, draft, selectedSelection)}
+                      hourBoundary={cellIndex % 2 === 0}
+                      label={`${day.label}, ${formatRangeLabel(cellIndex, cellIndex + 1)}, ${getToneLabel(tone)}${hasCleanupHint ? ", obsahuje úklidovou blokaci" : ""}`}
+                      dayKey={day.dateKey}
+                      cellIndex={cellIndex}
+                      onPointerDown={(event) => onCellStart(day, cellIndex, event.pointerType)}
+                      onPointerMove={(event) => onCellMove(day.dateKey, cellIndex, event.buttons, event.pointerType)}
+                    />
+                  );
+                })()}
               </div>
             ))}
           </div>
@@ -758,7 +773,9 @@ export function DayInspector({
                 </span>
               </div>
               <p className="mt-2 text-base font-semibold text-white">
-                {formatRangeLabel(activeSelection.startCell, activeSelection.endCell)}
+                {(selectionBooking && (activeSelection.tone === "booked" || activeSelection.tone === "completed"))
+                  ? selectionBooking.label
+                  : formatRangeLabel(activeSelection.startCell, activeSelection.endCell)}
               </p>
               <div className="mt-3 space-y-1 text-sm text-white/58">
                 <p>
@@ -772,6 +789,12 @@ export function DayInspector({
                 </p>
                 {selectionBooking ? (
                   <p>{selectionBooking.clientName} · {selectionBooking.serviceName}</p>
+                ) : null}
+                {selectionBooking && (activeSelection.tone === "booked" || activeSelection.tone === "completed") ? (
+                  <p>Blok v mřížce: {selectionBooking.blockedLabel}</p>
+                ) : null}
+                {selectionBooking?.hasCleanupBlock && selectionBooking.cleanupBlockedUntilLabel ? (
+                  <p>Úklidová blokace do: {selectionBooking.cleanupBlockedUntilLabel}</p>
                 ) : null}
                 {selectionInterval ? <p>{selectionInterval.detail}</p> : null}
                 {selectionInterval && selectionInterval.bookingCount > 0 ? (
@@ -843,6 +866,11 @@ export function DayInspector({
                   >
                     <div className="flex flex-wrap items-center gap-2">
                       <p className="font-medium">{booking.label}</p>
+                      {booking.hasCleanupBlock ? (
+                        <span className="rounded-full border border-amber-200/26 bg-amber-200/14 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.08em] text-amber-100/84">
+                          úklid
+                        </span>
+                      ) : null}
                       {booking.status === BookingStatus.COMPLETED ? (
                         <span className="rounded-full border border-cyan-300/22 bg-cyan-300/10 px-2 py-0.5 text-[10px] font-medium text-cyan-100/82">
                           Hotovo

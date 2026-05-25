@@ -528,6 +528,7 @@ export type ReservationsDashboardData = {
       categoryName: string;
       name: string;
       durationMinutes: number;
+      cleanupBlockMinutes: number;
       priceFromCzk: number | null;
     }>;
     slots: Awaited<ReturnType<typeof getPublicBookingCatalog>>["slots"];
@@ -1102,6 +1103,7 @@ export async function getReservationsData(
         categoryName: service.categoryName,
         name: service.name,
         durationMinutes: service.durationMinutes,
+        cleanupBlockMinutes: service.cleanupBlockMinutes,
         priceFromCzk: service.priceFromCzk,
       })),
       slots: bookingCatalog.slots,

@@ -6,6 +6,15 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Admin detail služby nově umí uložit volitelný `Čas na úklid po službě` (`Service.cleanupMinutes`, default `0`) s nápovědou, že jde o interní blokaci dostupnosti; klientce se nezobrazuje jako délka služby.
+- Rezervační engine nově při vytvoření a přesunu rezervace ukládá snapshot `cleanupMinutes`, `cleanupBlockMinutes` (zaokrouhlení nahoru na 15 minut) a `blockedUntil`; klientský konec služby (`scheduledEndsAt`) zůstává beze změny.
+- Veřejné i admin generování termínů a serverové kontroly kolizí nově používají interní interval rezervace `scheduledStartsAt -> blockedUntil`; běžná půlhodinová mřížka zůstává, ale první termín po cleanup blokaci se může nabídnout i v `:15` nebo `:45`.
+- Detail rezervace v administraci nově ve sbalitelných technických metadatech ukazuje nenápadný provozní údaj `Úklid po službě` a při nenulové blokaci také `Interně blokováno do`, zatímco hlavní termín rezervace dál zůstává čistý čas služby.
+- Opravené mapování čtvrthodinových hran (`:15`/`:45`) v admin týdenním planneru: rezervace a locked úseky teď blokují všechny dotčené půlhodinové buňky (`cover`), zatímco editovatelná dostupnost se zobrazuje jen pro celé půlhodiny (`inside`), takže ukládání konceptu už nedělá falešně volné buňky kolem cleanup blokace.
+- Admin týdenní planner je odolnější při hydrataci draftu: první render je SSR-safe bez čtení `localStorage`, lokální draft/feedback se načítá až po mountu a při chybějících dnech komponenta vrátí bezpečný fallback místo pádu.
+- Detail výběru v admin planneru nově u rezervace prioritně ukazuje klientský čas služby, zvlášť vypisuje interní blok v mřížce a při cleanup blokaci i řádek `Úklidová blokace do`; přímo v buňkách je cleanup část nenápadně označená jemným pravým pruhem a v seznamu rezervací je tlumený badge `úklid`.
+- Playwright E2E coverage veřejné rezervace je rozšířená o cleanup scénář: test ověřuje, že čas na úklid blokuje dostupnost (první nabídnutý termín může být až na `:15`) a klientský souhrn přitom dál zobrazuje jen reálný konec služby bez interních textů o blokaci.
+
 ## [0.3.19] - 2026-05-24
 
 - Release příprava pro produkční nasazení: projektová verze navýšena na patch `0.3.19`.

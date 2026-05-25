@@ -45,6 +45,7 @@ type EditServiceFormProps = BaseServiceFormProps & {
     pricingShortDescription: string | null;
     pricingBadge: string | null;
     durationMinutes: number;
+    cleanupMinutes: number;
     priceFromCzk: number | null;
     sortOrder: number;
     isFeaturedOnHomepage: boolean;
@@ -90,6 +91,7 @@ type CreateServiceFormProps = BaseServiceFormProps & {
     pricingShortDescription: string;
     pricingBadge: string;
     durationMinutes: number;
+    cleanupMinutes: number;
     priceFromCzk: string;
     isFeaturedOnHomepage: boolean;
     homepageSortOrder: number;
@@ -151,6 +153,9 @@ export function AdminServiceForm(props: EditServiceFormProps | CreateServiceForm
             {props.service.isFeaturedOnHomepage ? <AdminStatePill tone="accent">Homepage #{props.service.homepageSortOrder}</AdminStatePill> : null}
             <AdminStatePill tone="accent">{formatServicePrice(props.service.priceFromCzk)}</AdminStatePill>
             <AdminStatePill tone="accent">{props.service.durationMinutes} min</AdminStatePill>
+            {props.service.cleanupMinutes > 0 ? (
+              <AdminStatePill tone="muted">Úklid {props.service.cleanupMinutes} min</AdminStatePill>
+            ) : null}
           </>
         ) : (
           <>
@@ -210,6 +215,23 @@ export function AdminServiceForm(props: EditServiceFormProps | CreateServiceForm
               step={5}
               inputMode="numeric"
               defaultValue={props.mode === "create" ? props.initialValues.durationMinutes : props.service.durationMinutes}
+              className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--color-accent)]/60"
+            />
+          </Field>
+
+          <Field
+            label="Čas na úklid po službě"
+            error={serverState.fieldErrors?.cleanupMinutes}
+            help="Použije se pouze pro interní blokaci termínu po službě. Klientce se nezobrazuje jako délka služby."
+          >
+            <input
+              type="number"
+              name="cleanupMinutes"
+              min={0}
+              max={480}
+              step={5}
+              inputMode="numeric"
+              defaultValue={props.mode === "create" ? props.initialValues.cleanupMinutes : props.service.cleanupMinutes}
               className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--color-accent)]/60"
             />
           </Field>
@@ -568,15 +590,18 @@ function Field({
   label,
   error,
   children,
+  help,
 }: {
   label: string;
   error?: string;
+  help?: string;
   children: React.ReactNode;
 }) {
   return (
     <label className="block">
       <span className="text-sm font-medium text-white">{label}</span>
       {children}
+      {help ? <p className="mt-2 text-xs leading-5 text-white/52">{help}</p> : null}
       {error ? <p className="mt-2 text-sm text-red-300">{error}</p> : null}
     </label>
   );

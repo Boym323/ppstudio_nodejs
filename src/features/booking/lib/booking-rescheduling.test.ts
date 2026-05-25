@@ -50,6 +50,9 @@ function buildBooking(overrides: Partial<{
   scheduledStartsAt: Date;
   scheduledEndsAt: Date;
   serviceDurationMinutes: number;
+  cleanupMinutes: number;
+  cleanupBlockMinutes: number;
+  blockedUntil: Date;
   updatedAt: Date;
   slot: ReturnType<typeof buildSlot>;
   manualOverride: boolean;
@@ -71,9 +74,12 @@ function buildBooking(overrides: Partial<{
     slotId: overrides.slotId ?? slot.id,
     serviceId: "service-1",
     serviceDurationMinutes: overrides.serviceDurationMinutes ?? 60,
+    cleanupMinutes: overrides.cleanupMinutes ?? 0,
+    cleanupBlockMinutes: overrides.cleanupBlockMinutes ?? 0,
     serviceNameSnapshot: "Lash lifting",
     scheduledStartsAt,
     scheduledEndsAt,
+    blockedUntil: overrides.blockedUntil ?? scheduledEndsAt,
     clientId: "client-1",
     clientNameSnapshot: "Jana Nováková",
     clientEmailSnapshot: overrides.clientEmailSnapshot ?? "jana@example.com",
@@ -280,9 +286,19 @@ describe("state validation", () => {
         scheduledStartsAt: {
           lt: new Date("2026-04-28T11:30:00.000Z"),
         },
-        scheduledEndsAt: {
-          gt: new Date("2026-04-28T09:30:00.000Z"),
-        },
+        OR: [
+          {
+            blockedUntil: {
+              gt: new Date("2026-04-28T09:30:00.000Z"),
+            },
+          },
+          {
+            blockedUntil: null,
+            scheduledEndsAt: {
+              gt: new Date("2026-04-28T09:30:00.000Z"),
+            },
+          },
+        ],
         slotId: {
           in: ["slot-new", "slot-follow-up"],
         },
@@ -329,6 +345,7 @@ describe("state validation", () => {
       slotId: "slot-before",
       scheduledStartsAt: new Date("2026-04-28T09:30:00.000Z"),
       scheduledEndsAt: new Date("2026-04-28T10:30:00.000Z"),
+      blockedUntil: new Date("2026-04-28T10:30:00.000Z"),
       manualOverride: false,
       rescheduledAt: harness.calls.bookingUpdate[0]?.data
         ? (harness.calls.bookingUpdate[0].data as { rescheduledAt: Date }).rescheduledAt
@@ -428,6 +445,62 @@ describe("reschedule booking", () => {
     assert.equal(result.scheduledEndsAt, "2026-04-28T10:00:00.000Z");
     assert.equal(result.notificationStatus, "logged");
     assert.equal(harness.calls.bookingUpdate.length, 1);
+  });
+
+  test("uses cleanup snapshot for the new internal collision interval", async () => {
+    const harness = await createHarness({
+      booking: buildBooking({
+        cleanupMinutes: 10,
+        cleanupBlockMinutes: 15,
+      }),
+      requestedSlot: buildSlot({
+        id: "slot-new",
+        startsAt: new Date("2026-04-28T09:00:00.000Z"),
+        endsAt: new Date("2026-04-28T10:15:00.000Z"),
+      }),
+    });
+
+    await harness.api.rescheduleBooking({
+      bookingId: "booking-1",
+      slotId: "slot-new",
+      newStartAt: "2026-04-28T09:00:00.000Z",
+      changedByUserId: null,
+      changedByClient: true,
+      notifyClient: false,
+      expectedUpdatedAt: "2026-04-23T09:00:00.000Z",
+    });
+
+    assert.deepEqual(harness.calls.bookingCount[0]?.where, {
+      id: {
+        not: "booking-1",
+      },
+      status: {
+        in: [BookingStatus.PENDING, BookingStatus.CONFIRMED],
+      },
+      scheduledStartsAt: {
+        lt: new Date("2026-04-28T10:15:00.000Z"),
+      },
+      OR: [
+        {
+          blockedUntil: {
+            gt: new Date("2026-04-28T09:00:00.000Z"),
+          },
+        },
+        {
+          blockedUntil: null,
+          scheduledEndsAt: {
+            gt: new Date("2026-04-28T09:00:00.000Z"),
+          },
+        },
+      ],
+      slotId: {
+        in: ["slot-new"],
+      },
+    });
+    assert.equal(
+      (harness.calls.bookingUpdate[0]?.data as { blockedUntil?: Date }).blockedUntil?.toISOString(),
+      "2026-04-28T10:15:00.000Z",
+    );
   });
 
   test("rejects reschedule when the new term is the same as the current one", async () => {

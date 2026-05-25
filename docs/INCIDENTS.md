@@ -124,6 +124,7 @@ Evidence produkčních incidentů a jejich řešení.
 - Chybějící provozní feedback po slot akci (stav/smazání), kdy obsluha neví, proč se nic nestalo.
 - Rozjeté chování owner vs salon route po změně shared factory wrapperů (např. rozdílný guard nebo chybějící `notFound` validace sekce).
 - Nasazený kód admin sekce `Služby` bez aplikované migrace `20260419103000_service_public_bookability`, což by vedlo na Prisma chyby nad chybějícím sloupcem.
+- Nasazený kód admin sekce `Služby` bez aplikované migrace `20260525100000_service_cleanup_minutes_v1`, což by vedlo na Prisma chyby nad chybějícím sloupcem `Service.cleanupMinutes`.
 - Mylný předpoklad, že admin změna služby automaticky aktualizuje i veřejné stránky `/sluzby` a `/cenik`; ten je už vyřešený, veřejný katalog teď čte z DB v request-time.
 - Omylem smazaná kategorie se službami; tohle má být nyní systémově blokované a provoz má místo toho použít deaktivaci.
 - Neočekávané rozjetí pořadí kategorií mezi adminem a veřejným katalogem po ruční DB úpravě `sortOrder`.

@@ -59,6 +59,7 @@ test("createServiceAction returns validation errors for incomplete payload", asy
     categoryId: "",
     name: "",
     durationMinutes: "abc",
+    cleanupMinutes: "-1",
     priceFromCzk: "",
     homepageSortOrder: "0",
   });
@@ -70,6 +71,7 @@ test("createServiceAction returns validation errors for incomplete payload", asy
   assert.ok(result.fieldErrors?.categoryId);
   assert.ok(result.fieldErrors?.name);
   assert.ok(result.fieldErrors?.durationMinutes);
+  assert.ok(result.fieldErrors?.cleanupMinutes);
 });
 
 test("updateServiceAction returns validation errors for invalid numbers", async () => {
@@ -80,6 +82,7 @@ test("updateServiceAction returns validation errors for invalid numbers", async 
     categoryId: "cat-1",
     name: "A",
     durationMinutes: "4",
+    cleanupMinutes: "-5",
     priceFromCzk: "-1",
     sortOrder: "-1",
     homepageSortOrder: "-1",
@@ -91,6 +94,7 @@ test("updateServiceAction returns validation errors for invalid numbers", async 
   assert.match(result.formError ?? "", /doplnit nebo opravit/i);
   assert.ok(result.fieldErrors?.name);
   assert.ok(result.fieldErrors?.durationMinutes);
+  assert.ok(result.fieldErrors?.cleanupMinutes);
   assert.ok(result.fieldErrors?.priceFromCzk);
 });
 

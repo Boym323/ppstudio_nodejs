@@ -219,6 +219,7 @@ function cloneWeekDays(days: PlannerDay[]) {
     cells: {
       available: [...day.cells.available],
       booked: [...day.cells.booked],
+      bookedCleanup: [...day.cells.bookedCleanup],
       completed: [...day.cells.completed],
       inactive: [...day.cells.inactive],
       locked: [...day.cells.locked],
@@ -346,59 +347,10 @@ function getInitialPlannerState(data: PlannerWeekData): {
   days: PlannerDay[];
   feedback: FeedbackState | null;
 } {
-  const nextDays = cloneWeekDays(data.days);
-
-  if (typeof window === "undefined") {
-    return {
-      days: nextDays,
-      feedback: null,
-    };
-  }
-
-  const storedDraft = window.localStorage.getItem(getDraftStorageKey(data.area, data.weekKey));
-
-  if (!storedDraft) {
-    const storedFeedback = consumeStoredFeedback(data.area, data.weekKey);
-
-    return {
-      days: nextDays,
-      feedback: storedFeedback,
-    };
-  }
-
-  try {
-    const parsed = JSON.parse(storedDraft) as ReturnType<typeof serializeDraft>;
-
-    return {
-      days: nextDays.map((day) => {
-        const savedDay = parsed.find((item) => item.dateKey === day.dateKey);
-
-        if (!savedDay) {
-          return day;
-        }
-
-        return patchDayAvailableIntervals(
-          day,
-          sanitizeIntervals(savedDay.intervals).map((interval) => ({
-            startCell: interval.startCell,
-            endCell: interval.endCell,
-            label: formatRangeLabel(interval.startCell, interval.endCell),
-          })),
-        );
-      }),
-      feedback: {
-        tone: "info",
-        message: "Načetl se uložený koncept tohoto týdne z tohoto zařízení.",
-      },
-    };
-  } catch {
-    window.localStorage.removeItem(getDraftStorageKey(data.area, data.weekKey));
-
-    return {
-      days: nextDays,
-      feedback: null,
-    };
-  }
+  return {
+    days: cloneWeekDays(data.days),
+    feedback: null,
+  };
 }
 
 export function AdminWeeklyPlannerClient({
@@ -416,6 +368,65 @@ export function AdminWeeklyPlannerClient({
   const [copyTargetKey, setCopyTargetKey] = useState("");
   const [mobileInspectorOpen, setMobileInspectorOpen] = useState(false);
 
+  useEffect(() => {
+    const applyHydratedState = (next: {
+      days?: PlannerDay[];
+      feedback?: FeedbackState | null;
+    }) => {
+      queueMicrotask(() => {
+        if (next.days) {
+          setWorkingDays(next.days);
+        }
+
+        if (next.feedback !== undefined) {
+          setFeedback(next.feedback);
+        }
+      });
+    };
+
+    const storedDraft = window.localStorage.getItem(getDraftStorageKey(data.area, data.weekKey));
+
+    if (!storedDraft) {
+      const storedFeedback = consumeStoredFeedback(data.area, data.weekKey);
+
+      if (storedFeedback) {
+        applyHydratedState({ feedback: storedFeedback });
+      }
+
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(storedDraft) as ReturnType<typeof serializeDraft>;
+
+      const nextDays = cloneWeekDays(data.days).map((day) => {
+          const savedDay = parsed.find((item) => item.dateKey === day.dateKey);
+
+          if (!savedDay) {
+            return day;
+          }
+
+          return patchDayAvailableIntervals(
+            day,
+            sanitizeIntervals(savedDay.intervals).map((interval) => ({
+              startCell: interval.startCell,
+              endCell: interval.endCell,
+              label: formatRangeLabel(interval.startCell, interval.endCell),
+            })),
+          );
+        });
+      applyHydratedState({
+        days: nextDays,
+        feedback: {
+          tone: "info",
+          message: "Načetl se uložený koncept tohoto týdne z tohoto zařízení.",
+        },
+      });
+    } catch {
+      window.localStorage.removeItem(getDraftStorageKey(data.area, data.weekKey));
+    }
+  }, [data.area, data.days, data.weekKey]);
+
   const activeDraft =
     pendingInteraction && pendingInteraction.moved
       ? {
@@ -429,9 +440,10 @@ export function AdminWeeklyPlannerClient({
   const selectedDayKey =
     selectedSelection?.dateKey ?? activeDraft?.dateKey ?? initialDayKey ?? workingDays[0]?.dateKey;
   const selectedDay = useMemo(
-    () => workingDays.find((day) => day.dateKey === selectedDayKey) ?? workingDays[0],
+    () => workingDays.find((day) => day.dateKey === selectedDayKey) ?? workingDays[0] ?? null,
     [selectedDayKey, workingDays],
   );
+
   const hasUnsavedChanges = useMemo(
     () => JSON.stringify(serializeDraft(workingDays)) !== JSON.stringify(serializeDraft(data.days)),
     [data.days, workingDays],
@@ -556,6 +568,14 @@ export function AdminWeeklyPlannerClient({
       }
     };
   }, [pendingInteraction, workingDays]);
+
+  if (!selectedDay) {
+    return (
+      <div className="rounded-[1rem] border border-rose-300/22 bg-rose-300/10 px-4 py-3 text-sm text-white/84">
+        Planner teď nemá načtené dny. Obnovte stránku, prosím.
+      </div>
+    );
+  }
 
   function updateDay(dateKey: string, updater: (day: PlannerDay) => PlannerDay | null) {
     setWorkingDays((currentDays) =>

@@ -363,6 +363,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Playwright konfigurace používá lokální produkční `next start` server na `PLAYWRIGHT_PORT` (výchozí `3100`) a nastavuje `NEXT_PUBLIC_APP_URL` na stejný lokální origin pro runtime serveru.
 - E2E fixture helper seeduje unikátní služby, sloty, klienty, tokeny a dočasného owner uživatele přes Prisma; cleanup filtruje podle unikátního `runId`, aby testy nesahaly na ručně vytvořená data.
 - Aktuální E2E smoke coverage ověřuje veřejné vytvoření pending rezervace, self-service storno, self-service přesun a owner potvrzení rezervace v admin detailu.
+- `tests/e2e/booking-flows.spec.ts` obsahuje i cleanup regresi pro veřejné rezervace: seeduje službu s `cleanupMinutes=10`, vloží blokující potvrzenou rezervaci se snapshotem `cleanupBlockMinutes=15` a ověří, že veřejný výběr nenabídne start na `serviceEnd`, ale nabídne první start až na `blockedUntil`; zároveň hlídá, že souhrn zůstává klientský (konec služby bez interního textu o úklidu).
 - U self-service přesunu (`tests/e2e/booking-flows.spec.ts`) je kolizní krok záměrně deterministický: test nejdřív vybere konkrétní UI slot, seedne k němu runtime konflikt v DB a až potom submituje změnu, aby vždy ověřil chybovou hlášku před úspěšným přesunem na jiný čas.
 - Kolizní a úspěšný náhradní čas v E2E fixture drž jako samostatné navazující published sloty se stejným veřejným popisem. Runtime konflikt pak blokuje jen zvolený hodinový segment a následný úspěšný submit není závislý na kapacitní validaci uvnitř jednoho dlouhého slotu.
 - Po konfliktní odpovědi u self-service přesunu už je potvrzovací tlačítko povolené z předchozí volby; test proto při výběru náhradního slotu musí čekat na `aria-pressed=true` a shodu hidden `slotId` i `newStartAt`, jinak může rychlý CI běh odeslat starý kolidující termín nebo nový čas se starým slotem.
@@ -439,6 +440,8 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - `src/features/admin/lib/admin-services.ts` drží serverový read model pro seznam, provozní warningy, detail služby a předvyplněný create flow.
 - `src/features/admin/actions/service-actions.ts` nově obsluhuje create, update, duplikaci, quick toggles a reorder; validace zůstává v `src/features/admin/lib/admin-service-validation.ts`.
 - Editace služby při skutečné změně `priceFromCzk` zapisuje audit do `ServicePriceChangeLog`; aktér se mapuje z admin session e-mailu na reálné `AdminUser.id`, stejně jako u jiných provozních mutací.
+- `Service.cleanupMinutes` je interní provozní metadata služby s validací nezáporných celých minut; při vytvoření/přesunu rezervace se snapshotuje do `Booking.cleanupMinutes` a `Booking.cleanupBlockMinutes` (zaokrouhlení nahoru na 15 minut).
+- Booking dostupnost a kolize používají interní interval `scheduledStartsAt -> blockedUntil`, ale klientský termín i veřejné texty zůstávají `scheduledStartsAt -> scheduledEndsAt` bez zmínky o úklidu.
 - Detail služby obsahuje sekci `Homepage`, která ukládá `isFeaturedOnHomepage` a `homepageSortOrder`; tato pole neovlivňují booking flow ani ceník, jen výběr doporučených služeb na `/`.
 - `src/features/admin/lib/admin-services.ts` teď do detailového read modelu přibírá i posledních 10 `priceChangeLogs` včetně aktéra, aby drawer mohl audit ceny zobrazit bez další klientské fetch vrstvy.
 - Ve formuláři detailu služby (`admin-service-form.tsx`) je textová vrstva sjednocená pod `Veřejná prezentace`; `publicIntro` je jediný zdroj krátkého textu pro web i rezervační flow, aby se stejný copy neudržoval ve dvou polích.
@@ -877,6 +880,8 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Jednoduchá týdenní šablona i týdenní koncept jsou uložené lokálně v prohlížeči, takže nevyžadují novou tabulku ani další env; draft se klíčuje podle `area + weekKey`.
 - Před publikací týdne sanitizuj draft intervaly i na klientu i na serveru: drž integer buňky `0..28`, zahazuj prázdné intervaly (`endCell <= startCell`) a mergeuj překryvy. Tím se zabrání tomu, aby stale nebo poškozený draft skončil generickou chybou `Koncept týdne už není platný`.
 - `syncPlannerWeekDraft()` při publikaci konceptu nesmí mazat ani přepisovat chráněné intervaly načtené z DB. Pokud draftový interval kvůli stale klientskému stavu zasahuje do rezervace nebo omezení, server ho ořízne přes aktuální locked intervaly a uloží jen zbylou běžnou dostupnost.
+- `admin-weekly-planner-ui.test.ts` kryje cleanup UX v inspektoru dne: u rezervace musí zůstat primární čas služby, sekundárně se má zobrazit interní blok v mřížce a `Úklidová blokace do`; `GridCell` zároveň testuje vizuální cleanup hint (`after:w-1`) jen při aktivním cleanup markeru.
+- `mutations.integration.test.ts` má DB integrační scénář `getAdminPlannerWeek(...)`, který ověřuje, že planner API vrací odděleně klientský čas služby (`label`), interní blok (`blockedLabel`, `cleanupBlockedUntilLabel`) i mapování cleanup overlay buněk (`bookedCleanup`) pro rezervace se snapshotem `cleanupBlockMinutes`.
 
 ## Ruční QA pro planner
 - Ověř owner i salon variantu `/admin/volne-terminy` a `/admin/provoz/volne-terminy`.

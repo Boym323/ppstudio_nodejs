@@ -155,6 +155,7 @@ Detailní seznam všech env proměnných je v [`docs/ENVIRONMENT.md`](/var/www/p
 - Rezervační stránka `/rezervace` musí mít v HTML právě jeden hlavní `h1` nadpis pro veřejné booking flow; aktuálně je to text `Vyberte si termín, který vám nejlépe vyhovuje.` nad samotným formulářem.
 - Reálné služby z DB dostávají veřejnou copy vrstvu v `src/features/public/lib/public-services.ts`, ale zdrojem pravdy je model `Service`.
 - Katalogová i veřejná textová data (`name`, `slug`, cena, délka, dostupnost, kategorie, pořadí, `publicIntro`, `description`, `pricingShortDescription`, `seoTitle`, `seoDescription`, `idealFor`, `includes`, `benefits`, `goodToKnow`) čte veřejný web z DB.
+- Služba má interní pole `cleanupMinutes` pro čas na úklid po službě. Hodnota má výchozí `0`, nastavuje se v admin detailu služby, klientce se nezobrazuje jako délka služby a používá se jen pro interní blokaci dostupnosti po skončení služby.
 - Rezervační výběr služby používá DB `publicIntro`; strukturovaný copy override podle slugu není trvalý zdroj obsahu a smí sloužit jen jako dočasný backfill zdroj.
 - Ceník na `/cenik` má vlastní modul v `src/features/public/components/pricing-page.tsx` a je rozdělený do jasné kompozice `hero -> category chips -> hlavní sekce -> menší grid sekce -> finální CTA`.
 - Katalog služeb a kategorií teď nese i veřejná pricing metadata:
@@ -627,6 +628,7 @@ npm run db:clear-booking-data -- --confirm
   - formulář podporuje `Uložit` i `Uložit a zavřít` a novou službu lze založit přes jasné CTA `Nová služba`
   - při přepnutí mezi službami se detail vždy přenačte podle skutečně vybrané položky (nepřebírá hodnoty z předchozí karty)
   - v detailu služby lze ručně zapnout zobrazení na homepage a nastavit pořadí v sekci `Doporučené služby`
+  - v detailu služby lze nastavit `Čas na úklid po službě`; hodnota se ukládá jako interní metadata služby, klientce se nezobrazuje jako délka služby a při rezervacích se používá pro interní blokaci po skončení služby
   - v detailu služby je jediný obsahový blok `Veřejná prezentace`; pole `Veřejný úvod` je zdrojem textu pro web i rezervační krok výběru služby, takže se stejný text neudržuje duplicitně
   - detail se otevírá jako pravý overlay drawer (desktop i mobil), takže seznam zůstává viditelný v pozadí a obsluha neztrácí kontext
   - skutečná změna ceny v detailu služby zapisuje audit do `ServicePriceChangeLog`, takže lze dohledat původní i novou cenu, čas a admin aktéra
@@ -702,6 +704,7 @@ npm run db:clear-booking-data -- --confirm
 - Publikace konceptu týdne je tolerantní vůči drobně poškozenému/stale lokálnímu draftu: intervaly se před uložením normalizují na mřížku `06:00-20:00` (`0..28` půlhodinových buněk), prázdné úseky se ignorují a překryvy se sloučí.
 - Pokud se mezi načtením stránky a publikací objeví nebo zůstane v DB rezervace/omezení, publikace konceptu ji zachová a běžnou dostupnost uloží jen mimo tento chráněný čas.
 - Planner přímo neupravuje sloty, které už obsahují rezervace, omezení služeb, poznámky nebo jinou kapacitu než `1`; takové intervaly jsou v kalendáři vidět jako omezené a zůstávají chráněné.
+- U rezervací v planneru je primární čas v inspektoru `čas služby`; interní cleanup blokace se zobrazuje odděleně (`Blok v mřížce` + `Úklidová blokace do`) a v grid buňce má jemný pravý vizuální pruh.
 - Za „obsahují rezervace“ se pro rychlou planner editaci počítají hlavně aktivní nebo provozně relevantní vazby. `CANCELLED` historie se při publish mutaci přesouvá do archivovaného slotu na pozadí, takže obsluha v mřížce nevidí zbytečný blok jen kvůli storno minulosti.
 - Výchozí týden v planneru je počítaný nad lokálním datem `Europe/Prague`, takže týden vždy začíná pondělím i kolem časových posunů.
 - Při bootstrap přihlášení (`ADMIN_OWNER_*`, `ADMIN_STAFF_*`) se autor změny dostupnosti ukládá jen pokud existuje odpovídající záznam v tabulce `AdminUser`; jinak se použije `createdByUserId = null`, aby změna nespadla na FK.
@@ -741,6 +744,8 @@ npm run db:clear-booking-data -- --confirm
   - zákaz výběru služeb, které by rozbily už navázané aktivní rezervace
 - Kategorie a služby jsou samostatné DB entity, které se dnes plní přes import nebo admin správu, ne přes hardcoded seed.
 - `Service.isPubliclyBookable` odděluje interně aktivní službu od služby skutečně nabízené ve veřejné rezervaci.
+- `Service.cleanupMinutes` drží volitelný interní čas na úklid po službě s defaultem `0`; při vytváření/přesunu rezervace se snapshotuje do `Booking.cleanupMinutes` a zaokrouhlený blok do `Booking.cleanupBlockMinutes`.
+- `Booking.blockedUntil` drží interní konec blokace (`scheduledEndsAt + cleanupBlockMinutes`), zatímco klientský termín zůstává `scheduledStartsAt -> scheduledEndsAt`.
 - `Booking` drží snapshot klienta, služby i času, takže pozdější změny ceníku nebo názvů služeb nepoškodí historická data.
 - Voucher zadaný u rezervace má být jen záměr uložený na `Booking.intendedVoucherId` a snapshot polí; skutečné uplatnění voucheru smí vzniknout až admin zápisem do `VoucherRedemption`.
 - Samostatné veřejné ověření voucheru přes `/vouchery/overeni` smí pouze číst voucher přes bezpečný serverový helper a nesmí měnit žádná voucherová ani booking data.

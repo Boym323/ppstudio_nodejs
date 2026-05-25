@@ -288,6 +288,53 @@ dbTest("syncPlannerWeekDraft preserves booked intervals while replacing editable
   }
 });
 
+dbTest("getAdminPlannerWeek exposes service time and cleanup overlay metadata for booked cells", async () => {
+  const seed = await createSeed();
+  const { prisma, getAdminPlannerWeek } = await loadModules();
+
+  try {
+    const originalBooking = await prisma.booking.findUniqueOrThrow({
+      where: { id: seed.bookingId },
+      select: {
+        scheduledEndsAt: true,
+      },
+    });
+    const blockedUntil = new Date(originalBooking.scheduledEndsAt.getTime() + 15 * 60 * 1000);
+
+    await prisma.booking.update({
+      where: { id: seed.bookingId },
+      data: {
+        cleanupMinutes: 10,
+        cleanupBlockMinutes: 15,
+        blockedUntil,
+      },
+    });
+
+    const week = await getAdminPlannerWeek("owner", seed.weekKey);
+    const day = week.days.find((item) => item.dateKey === seed.dateKey);
+
+    assert.ok(day);
+    assert.equal(day.bookings.length, 1);
+
+    const booking = day.bookings[0];
+    assert.equal(booking.label, "09:00 - 10:00");
+    assert.equal(booking.blockedLabel, "09:00 - 10:15");
+    assert.equal(booking.cleanupBlockedUntilLabel, "10:15");
+    assert.equal(booking.hasCleanupBlock, true);
+    assert.equal(booking.startCell, 6);
+    assert.equal(booking.endCell, 9);
+
+    assert.equal(day.cells.booked[6], true);
+    assert.equal(day.cells.booked[7], true);
+    assert.equal(day.cells.booked[8], true);
+    assert.equal(day.cells.bookedCleanup[6], false);
+    assert.equal(day.cells.bookedCleanup[7], false);
+    assert.equal(day.cells.bookedCleanup[8], true);
+  } finally {
+    await cleanupSeed(seed);
+  }
+});
+
 dbTest("syncPlannerWeekDraft preserves slots that still have a cancelled booking relation", async () => {
   const { prisma, getAdminPlannerWeek, syncPlannerWeekDraft, getCellRangeBounds } = await loadModules();
   const suffix = randomUUID().slice(0, 8);

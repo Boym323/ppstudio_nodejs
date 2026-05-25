@@ -74,6 +74,7 @@ Seznam důležitých knihoven a důvod jejich použití.
 - Nová owner notifikace `admin-booking-rescheduled-v1` při self-service přesunu rezervace nepřidává žádnou knihovnu; používá existující outbox `EmailLog`, renderer šablon a `SiteSettings.notificationAdminEmail`.
 - Jediný 24h reminder rezervací také nepřidává novou knihovnu; scheduler, token workflow i outbox zápis používají stávající Next.js/Prisma/Node stack a existující `email:worker`.
 - Admin přesun termínu také nepřidává novou knihovnu; drawer UI, auditní log i doménová validace běží čistě na stávajícím stacku Next.js, React, Prisma a Zod.
+- Interní čas na úklid po službě nepřidává žádnou novou knihovnu; jde o rozšíření Prisma modelů `Service` a `Booking`, existující Zod validaci, stávající admin formulář/server actions a úpravy stávající booking/planner logiky.
 - Refaktor detailu rezervace do decision panelu také nepřidává novou závislost; sticky header, action chooser, kompaktní summary card i zkrácená historie používají jen stávající Next.js App Router, React a Tailwind utility.
 - Klientský self-service přesun termínu také nepřidává novou knihovnu; veřejná manage route, secure token flow a potvrzovací panel běží čistě na stávajícím stacku Next.js, React, Prisma a Zod.
 - UX refaktor klientského self-service přesunu termínu také nepřidává novou knihovnu; hybridní seznam, kalendář, sticky mobilní souhrn, smooth scroll i Matomo eventy používají stávající React/Next primitives a lokální helpers.

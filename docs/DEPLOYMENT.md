@@ -109,6 +109,7 @@ Postup nasazení aplikace do produkce.
      - smazání prázdné kategorie
    - sekci `Služby` na `/admin/sluzby` a `/admin/provoz/sluzby`:
      - vytvoření nové služby přes CTA
+     - nastavení `Čas na úklid po službě` a ověření, že se uloží v admin detailu; veřejná délka služby se nesmí změnit, ale dostupnost musí respektovat interní blokaci po službě
      - filtr podle kategorie
      - rychlé akce `aktivovat / deaktivovat`, `veřejná / interní`, `duplikovat`, `posunout`
      - warning stavy v kartách seznamu
@@ -257,6 +258,35 @@ Postup nasazení aplikace do produkce.
   - doručení admin notifikačního e-mailu na `notificationAdminEmail`
   - zpracování email workerem nebo potvrzený `EmailLog` v log režimu
   - načtení testovacího veřejného media URL `/media/public/<kind>/...` nebo legacy `/media/<kind>/...`
+
+## Go-Live šablona (release runbook)
+
+Vyplň při každém nasazení. Slouží jako rychlý audit trail kdo/co/kdy ověřil.
+
+| Krok | Stav | Owner | Čas (Europe/Prague) | Poznámka |
+| --- | --- | --- | --- | --- |
+| `npm run lint` | ☐ |  |  |  |
+| `npm test` | ☐ |  |  |  |
+| `npm run build` | ☐ |  |  |  |
+| `npm run test:e2e` | ☐ |  |  |  |
+| `npm run db:check-migrations` | ☐ |  |  |  |
+| `npx prisma migrate status` | ☐ |  |  |  |
+| `npx prisma migrate deploy` (cílové prostředí) | ☐ |  |  |  |
+| Post-deploy smoke: admin nastavení `cleanupMinutes` | ☐ |  |  |  |
+| Post-deploy smoke: veřejná rezervace bez interních textů | ☐ |  |  |  |
+| Post-deploy smoke: dostupnost respektuje `blockedUntil` (`:15` / `:45`) | ☐ |  |  |  |
+| Post-deploy smoke: admin detail rezervace ukazuje interní blokaci | ☐ |  |  |  |
+| Post-deploy smoke: přesun rezervace respektuje cleanup | ☐ |  |  |  |
+| Post-deploy smoke: ruční admin rezervace respektuje cleanup | ☐ |  |  |  |
+| Monitoring 0-2h po release (error logy / failed jobs / kolize) | ☐ |  |  |  |
+| Monitoring 24h po release | ☐ |  |  |  |
+
+### Sign-off
+
+- Release verze: ``
+- Datum: ``
+- Schválil/a (OWNER): ``
+- Poznámka k releasu: ``
   - otevření `/api/calendar/owner.ics?token=...`:
     - validní `VCALENDAR` hlavička
     - `Content-Type: text/calendar; charset=utf-8`
@@ -364,6 +394,8 @@ sudo /var/www/ppstudio/deploy/deploy.sh
 - Migrace `20260419103000_service_public_bookability` přidává sloupec `Service.isPubliclyBookable`; po deployi ověř, že `/rezervace`, `/sluzby` a `/cenik` zobrazují jen správné služby a že admin sekce `Služby` funguje v owner i salon oblasti.
 - Migrace `20260421113000_public_pricing_metadata` rozšiřuje katalog služeb a kategorií o veřejná pricing metadata; po deployi ověř `/cenik`, `/sluzby`, detail služby a admin formuláře `Služby` + `Kategorie služeb`.
 - Migrace `20260507143000_homepage_featured_services_v1` přidává ruční výběr doporučených služeb na homepage; po deployi ověř admin detail služby, nastavení `Zobrazit v doporučených službách`, pořadí a veřejnou homepage `/`.
+- Migrace `20260525100000_service_cleanup_minutes_v1` přidává `Service.cleanupMinutes` s defaultem `0`; po deployi ověř admin vytvoření/editaci služby, validaci nezáporné hodnoty a načtení uložené hodnoty zpět do formuláře.
+- Migrace `20260525113000_booking_cleanup_snapshot_v1` přidává snapshot sloupce na `Booking` (`cleanupMinutes`, `cleanupBlockMinutes`, `blockedUntil`); po deployi ověř, že veřejná i admin dostupnost respektuje interní blokaci a první termín po blokaci může být i v `:15`/`:45`.
 - Migrace `20260422120000_admin_users_invited_at` přidává `AdminUser.invitedAt`; po deployi ověř owner sekci `/admin/uzivatele`, stav `Pozvánka čeká` a existující DB účty bez vyplněného `invitedAt`.
 - Migrace `20260422170000_admin_invite_token_v1` přidává tabulku `AdminUserInviteToken`; po deployi ověř jednorázové použití pozvánky, expiraci a revokaci starších tokenů při novém odeslání.
 - Migrace `20260422201500_booking_email_actions_v1` rozšiřuje enum `BookingActionTokenType` o `APPROVE` a `REJECT`; po deployi ověř vytvoření nových tokenů při veřejné rezervaci a funkčnost email route `/rezervace/akce/[intent]/[token]`.

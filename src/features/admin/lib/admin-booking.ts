@@ -92,6 +92,11 @@ export type AdminBookingDetailData = {
   internalNote: string | null;
   rescheduleCount: number;
   rescheduledAtLabel: string | null;
+  cleanup: {
+    cleanupBlockMinutes: number;
+    cleanupLabel: string;
+    blockedUntilLabel: string;
+  };
   availableActions: AdminBookingActionOption[];
   historyItems: Array<{
     id: string;
@@ -109,6 +114,7 @@ export type AdminBookingDetailData = {
     enabled: boolean;
     serviceId: string;
     serviceDurationMinutes: number;
+    cleanupBlockMinutes: number;
     currentStartsAt: string;
     currentEndsAt: string;
     expectedUpdatedAt: string;
@@ -322,12 +328,37 @@ function formatDateTimeLabel(value: Date | null | undefined) {
   return formatDateTime.format(value);
 }
 
-function formatAdminBookingDateLabel(startsAt: Date, endsAt: Date) {
-  return `${formatDateTimeLabel(startsAt)} - ${new Intl.DateTimeFormat("cs-CZ", {
+function formatTimeLabel(value: Date | null | undefined) {
+  if (!value) {
+    return "Bez času";
+  }
+
+  return new Intl.DateTimeFormat("cs-CZ", {
     hour: "2-digit",
     minute: "2-digit",
     timeZone: "Europe/Prague",
-  }).format(endsAt)}`;
+  }).format(value);
+}
+
+export function buildBookingCleanupMetadata(input: {
+  cleanupBlockMinutes?: number | null;
+  blockedUntil?: Date | null;
+  scheduledEndsAt: Date;
+}) {
+  const cleanupBlockMinutes = Math.max(0, input.cleanupBlockMinutes ?? 0);
+  const blockedUntil = input.blockedUntil ?? input.scheduledEndsAt;
+
+  return {
+    cleanupBlockMinutes,
+    cleanupLabel: cleanupBlockMinutes > 0
+      ? `${cleanupBlockMinutes} min`
+      : "Bez úklidové blokace",
+    blockedUntilLabel: formatTimeLabel(blockedUntil),
+  };
+}
+
+function formatAdminBookingDateLabel(startsAt: Date, endsAt: Date) {
+  return `${formatDateTimeLabel(startsAt)} - ${formatTimeLabel(endsAt)}`;
 }
 
 function getActorLabel(actorType: BookingActorType, actorName?: string | null): string {
@@ -621,6 +652,11 @@ export async function getAdminBookingDetailData(
     internalNote: booking.internalNote,
     rescheduleCount: booking.rescheduleCount,
     rescheduledAtLabel: booking.rescheduledAt ? formatDateTimeLabel(booking.rescheduledAt) : null,
+    cleanup: buildBookingCleanupMetadata({
+      cleanupBlockMinutes: booking.cleanupBlockMinutes,
+      blockedUntil: booking.blockedUntil,
+      scheduledEndsAt: booking.scheduledEndsAt,
+    }),
     availableActions: getAdminBookingActionOptions(booking.status, {
       scheduledEndsAt: booking.scheduledEndsAt,
     }),
@@ -640,6 +676,7 @@ export async function getAdminBookingDetailData(
       enabled: booking.status === BookingStatus.PENDING || booking.status === BookingStatus.CONFIRMED,
       serviceId: booking.serviceId,
       serviceDurationMinutes: booking.serviceDurationMinutes,
+      cleanupBlockMinutes: booking.cleanupBlockMinutes,
       currentStartsAt: booking.scheduledStartsAt.toISOString(),
       currentEndsAt: booking.scheduledEndsAt.toISOString(),
       expectedUpdatedAt: booking.updatedAt.toISOString(),

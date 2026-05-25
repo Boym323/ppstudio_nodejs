@@ -26,6 +26,7 @@ type BookingRescheduleTimeSelectorProps = {
   slots: SlotCatalogItem[];
   serviceId: string;
   serviceDurationMinutes: number;
+  cleanupBlockMinutes: number;
   selectionMode: "slot" | "manual";
   onSelectionModeChange: (value: "slot" | "manual") => void;
   slotId: string;
@@ -75,6 +76,7 @@ export function BookingRescheduleTimeSelector({
   slots,
   serviceId,
   serviceDurationMinutes,
+  cleanupBlockMinutes,
   selectionMode,
   onSelectionModeChange,
   slotId,
@@ -98,9 +100,10 @@ export function BookingRescheduleTimeSelector({
         return [] as TimeSlotOption[];
       }
 
-      return buildSlotTimeOptions(slot, serviceDurationMinutes).filter((option) => !option.isDisabled);
+      return buildSlotTimeOptions(slot, serviceDurationMinutes, cleanupBlockMinutes)
+        .filter((option) => !option.isDisabled);
     });
-  }, [serviceDurationMinutes, serviceId, slots]);
+  }, [cleanupBlockMinutes, serviceDurationMinutes, serviceId, slots]);
   const slotGroups = useMemo(() => {
     const grouped = new Map<string, TimeSlotOption[]>();
 

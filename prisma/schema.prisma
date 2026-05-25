@@ -253,6 +253,7 @@ model Service {
   pricingShortDescription  String?
   pricingBadge             String?
   durationMinutes          Int
+  cleanupMinutes           Int                       @default(0)
   priceFromCzk             Int?
   sortOrder                Int                       @default(0)
   isFeaturedOnHomepage     Boolean                   @default(false)
@@ -363,6 +364,8 @@ model Booking {
   clientPhoneSnapshot         String?
   serviceNameSnapshot         String
   serviceDurationMinutes      Int
+  cleanupMinutes              Int                       @default(0)
+  cleanupBlockMinutes         Int                       @default(0)
   servicePriceFromCzk         Int?
   finalPriceCzk               Int?
   priceAdjustmentReason       String?
@@ -370,6 +373,7 @@ model Booking {
   priceAdjustedByUserId       String?
   scheduledStartsAt           DateTime
   scheduledEndsAt             DateTime
+  blockedUntil                DateTime?
   clientNote                  String?
   internalNote                String?
   confirmedAt                 DateTime?
