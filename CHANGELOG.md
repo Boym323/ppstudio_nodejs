@@ -5,6 +5,10 @@ Všechny důležité změny v tomto projektu se zapisují do tohoto souboru.
 Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
+
+## [0.3.21] - 2026-05-25
+
+- Release příprava pro produkční nasazení: projektová verze navýšena na patch `0.3.21`.
 - Opravený viewport po odeslání veřejné rezervace: po přechodu na success confirmation se stránka jednorázově posune na začátek, takže uživatelka nezůstane „dole“ po výměně formuláře za kompaktnější potvrzení.
 - Veřejná potvrzovací stránka po vytvoření rezervace je kompaktnější: nižší hero `Rezervace přijata`, menší vertikální mezery mezi bloky, hustší detail rezervace a kratší blok `Co bude následovat`, aby stránka nepůsobila jako dlouhá landing page.
 - Detail rezervace na success screenu nově preferuje strukturu `služba` + `datum · čas`; čas zůstává vizuálně nejvýraznější a klientka dál vidí jen čas služby (bez interní úklidové blokace).
