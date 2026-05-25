@@ -29,7 +29,7 @@ export async function SiteShell({ children, variant = "public" }: SiteShellProps
       </Suspense>
       <SiteHeader variant={variant} brandName={salonProfile.name} />
       <main className="flex-1">{children}</main>
-      <SiteFooter />
+      <SiteFooter compact={variant === "booking"} />
     </div>
   );
 }

@@ -6,25 +6,35 @@ import { getPublicSalonProfile } from '@/lib/site-settings';
 
 import { Container } from '../ui/container';
 
-export async function SiteFooter() {
+type SiteFooterProps = {
+  compact?: boolean;
+};
+
+export async function SiteFooter({ compact = false }: SiteFooterProps) {
   const salonProfile = await getPublicSalonProfile();
   const phoneHref = `tel:${salonProfile.phone.replace(/\s+/g, '')}`;
 
   return (
     <footer className="border-t border-black/5 bg-[var(--color-surface)]">
-      <Container className="max-w-6xl py-8 sm:py-10">
-        <div className="grid gap-8 border-b border-black/5 pb-6 sm:gap-10 sm:pb-8 lg:grid-cols-[minmax(15rem,1fr)_minmax(24rem,1.2fr)_minmax(15rem,1fr)] lg:items-start lg:gap-10">
+      <Container className={compact ? "max-w-6xl py-6 sm:py-7" : "max-w-6xl py-8 sm:py-10"}>
+        <div
+          className={
+            compact
+              ? "grid gap-6 border-b border-black/5 pb-5 sm:gap-7 sm:pb-6 lg:grid-cols-[minmax(15rem,1fr)_minmax(24rem,1.2fr)_minmax(15rem,1fr)] lg:items-start lg:gap-8"
+              : "grid gap-8 border-b border-black/5 pb-6 sm:gap-10 sm:pb-8 lg:grid-cols-[minmax(15rem,1fr)_minmax(24rem,1.2fr)_minmax(15rem,1fr)] lg:items-start lg:gap-10"
+          }
+        >
           <div className="max-w-sm">
             <p className="font-display text-[1.5rem] tracking-[0.14em] text-[var(--color-foreground)]">
               {salonProfile.name}
             </p>
-            <p className="mt-3 max-w-[28ch] text-sm leading-6 text-[var(--color-muted)]">
+            <p className={compact ? "mt-2 max-w-[28ch] text-sm leading-6 text-[var(--color-muted)]" : "mt-3 max-w-[28ch] text-sm leading-6 text-[var(--color-muted)]"}>
               Komorní studio pro péči o pleť a výraz s osobním přístupem, bez zbytečného spěchu.
             </p>
           </div>
 
-          <div className="grid gap-7 sm:grid-cols-2 sm:gap-8 lg:max-w-[30rem] lg:justify-self-center">
-            <nav aria-label="Hlavní navigace" className="grid content-start gap-3">
+          <div className={compact ? "grid gap-5 sm:grid-cols-2 sm:gap-6 lg:max-w-[30rem] lg:justify-self-center" : "grid gap-7 sm:grid-cols-2 sm:gap-8 lg:max-w-[30rem] lg:justify-self-center"}>
+            <nav aria-label="Hlavní navigace" className={compact ? "grid content-start gap-2.5" : "grid content-start gap-3"}>
               <p className="text-eyebrow text-[var(--color-muted)]">Navigace</p>
               <div className="grid gap-2 text-sm text-[var(--color-muted)]">
                 {mainNavigation.map((item) => (
@@ -39,7 +49,7 @@ export async function SiteFooter() {
               </div>
             </nav>
 
-            <nav aria-label="Důležité informace" className="grid content-start gap-3">
+            <nav aria-label="Důležité informace" className={compact ? "grid content-start gap-2.5" : "grid content-start gap-3"}>
               <p className="text-eyebrow text-[var(--color-muted)]">Informace</p>
               <div className="grid gap-2 text-sm text-[var(--color-muted)]">
                 {footerNavigation.map((item) => (
@@ -55,16 +65,16 @@ export async function SiteFooter() {
             </nav>
           </div>
 
-          <section className="grid gap-3 lg:justify-self-end lg:self-start">
+          <section className={compact ? "grid gap-2.5 lg:justify-self-end lg:self-start" : "grid gap-3 lg:justify-self-end lg:self-start"}>
             <p className="text-eyebrow text-[var(--color-muted)]">Kontakt</p>
-            <address className="grid gap-2 not-italic">
-              <div className="inline-flex min-h-11 items-start gap-3 rounded-2xl border border-black/[0.06] bg-white/40 px-4 py-3 text-[0.95rem] not-italic text-[var(--color-foreground)] shadow-[0_8px_24px_rgba(34,22,12,0.035)]">
+            <address className={compact ? "grid gap-1.5 not-italic" : "grid gap-2 not-italic"}>
+              <div className={compact ? "inline-flex min-h-10 items-start gap-3 rounded-2xl border border-black/[0.06] bg-white/40 px-3.5 py-2.5 text-[0.92rem] not-italic text-[var(--color-foreground)] shadow-[0_8px_24px_rgba(34,22,12,0.035)]" : "inline-flex min-h-11 items-start gap-3 rounded-2xl border border-black/[0.06] bg-white/40 px-4 py-3 text-[0.95rem] not-italic text-[var(--color-foreground)] shadow-[0_8px_24px_rgba(34,22,12,0.035)]"}>
                 <PinIcon />
                 <span className="max-w-[24ch] leading-6 text-[var(--color-muted)]">{salonProfile.addressLine}</span>
               </div>
               <a
                 href={phoneHref}
-                className="inline-flex min-h-11 items-center gap-3 rounded-2xl border border-black/[0.06] bg-white/55 px-4 py-3 text-[0.95rem] font-medium not-italic text-[var(--color-foreground)] shadow-[0_8px_24px_rgba(34,22,12,0.04)] hover:border-black/10 hover:bg-white/78"
+                className={compact ? "inline-flex min-h-10 items-center gap-3 rounded-2xl border border-black/[0.06] bg-white/55 px-3.5 py-2.5 text-[0.92rem] font-medium not-italic text-[var(--color-foreground)] shadow-[0_8px_24px_rgba(34,22,12,0.04)] hover:border-black/10 hover:bg-white/78" : "inline-flex min-h-11 items-center gap-3 rounded-2xl border border-black/[0.06] bg-white/55 px-4 py-3 text-[0.95rem] font-medium not-italic text-[var(--color-foreground)] shadow-[0_8px_24px_rgba(34,22,12,0.04)] hover:border-black/10 hover:bg-white/78"}
               >
                 <PhoneIcon />
                 <span>{salonProfile.phone}</span>
@@ -72,7 +82,7 @@ export async function SiteFooter() {
               <ObfuscatedEmailLink
                 email={salonProfile.email}
                 ariaLabel="Napsat e-mail do studia"
-                className="inline-flex min-h-11 min-w-0 items-center gap-3 rounded-2xl border border-black/[0.06] bg-white/55 px-4 py-3 text-[0.95rem] font-medium not-italic text-[var(--color-foreground)] shadow-[0_8px_24px_rgba(34,22,12,0.04)] hover:border-black/10 hover:bg-white/78"
+                className={compact ? "inline-flex min-h-10 min-w-0 items-center gap-3 rounded-2xl border border-black/[0.06] bg-white/55 px-3.5 py-2.5 text-[0.92rem] font-medium not-italic text-[var(--color-foreground)] shadow-[0_8px_24px_rgba(34,22,12,0.04)] hover:border-black/10 hover:bg-white/78" : "inline-flex min-h-11 min-w-0 items-center gap-3 rounded-2xl border border-black/[0.06] bg-white/55 px-4 py-3 text-[0.95rem] font-medium not-italic text-[var(--color-foreground)] shadow-[0_8px_24px_rgba(34,22,12,0.04)] hover:border-black/10 hover:bg-white/78"}
               >
                 <MailIcon />
                 <span className="break-words">{salonProfile.email}</span>
@@ -81,7 +91,7 @@ export async function SiteFooter() {
           </section>
         </div>
 
-        <div className="pt-4 text-xs tracking-[0.12em] text-[var(--color-muted)]">
+        <div className={compact ? "pt-3 text-xs tracking-[0.12em] text-[var(--color-muted)]" : "pt-4 text-xs tracking-[0.12em] text-[var(--color-muted)]"}>
           © {new Date().getFullYear()} {salonProfile.name}
         </div>
       </Container>

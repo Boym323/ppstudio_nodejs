@@ -78,6 +78,7 @@ export function BookingFlow({ catalog, initialSelectedServiceSlug, salonProfile 
   const contactStepHighlightTimeoutRef = useRef<number | null>(null);
   const contactStepFocusTimeoutRef = useRef<number | null>(null);
   const createdBookingTrackedRef = useRef(false);
+  const successViewportResetRef = useRef(false);
   const contactStartedTrackedRef = useRef(false);
   const trackedContactFocusFieldsRef = useRef<Set<ContactFieldKey>>(new Set());
   const trackedContactInputFieldsRef = useRef<Set<ContactFieldKey>>(new Set());
@@ -587,6 +588,17 @@ export function BookingFlow({ catalog, initialSelectedServiceSlug, salonProfile 
       selectedService?.priceFromCzk ?? undefined,
     );
   }, [selectedService?.name, selectedService?.priceFromCzk, serverState.confirmation, serverState.status]);
+
+  useEffect(() => {
+    if (serverState.status !== "success" || !serverState.confirmation || successViewportResetRef.current) {
+      return;
+    }
+
+    successViewportResetRef.current = true;
+    window.requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+  }, [serverState.confirmation, serverState.status]);
 
   const updateVisibleMonth = (nextMonthKey: string) => {
     setVisibleMonthKey(nextMonthKey);

@@ -426,13 +426,14 @@ npm run db:clear-booking-data -- --confirm
 - Po úspěšném odeslání se zobrazí samostatný confirmation flow místo jednoho souhrnného cardu:
   - status blok `Rezervace přijata`
   - jasný stav `Čeká na finální potvrzení` a věta, že termín je předběžně rezervovaný
-  - hlavní detail se službou, datem a časem ve formátu s čitelnou pomlčkou, například `09:30 – 10:30`
+  - hlavní detail je kompaktní a drží skladbu `služba` + `datum · čas`; čas zůstává dobře čitelný (např. `09:30 – 10:30`)
   - stručný blok `Co bude následovat`
   - uklidňující věta, že termín je nyní rezervovaný a klientka nemusí dělat další kroky
-  - samostatný kontakt na studio až pod hlavními informacemi
+  - samostatný kontakt na studio až pod hlavními informacemi (desktop může být v jedné řádce `e-mail · telefon`, mobil jako dvě samostatné akce)
   - referenční kód se nezobrazuje, dokud pro něj projekt nemá samostatné business pole používané v komunikaci
   - nad confirmation panelem se nezobrazuje intro z aktivního výběru termínu (`Vyberte si termín...`)
   - post-submit screen záměrně nezobrazuje akce `Změnit termín` ani `Zrušit rezervaci`; změny a storno patří do e-mailu nebo detailu rezervace, ne do uzavření flow
+  - potvrzovací stránka je záměrně hustší než dřív (nižší hero, menší vertikální mezery, nižší karty), aby nepůsobila jako dlouhá landing page
 - Provozní e-mail o nové rezervaci teď obsahuje tři akce:
   - `Potvrdit rezervaci`
   - `Přesunout termín`
@@ -454,6 +455,7 @@ npm run db:clear-booking-data -- --confirm
   - navigace a právní odkazy jsou oddělené do dvou samostatně nadepsaných skupin, ne do jednoho dlouhého seznamu
   - kontakt má vlastní opticky silnější blok s adresou a klikacími odkazy `tel:` a `mailto:`; telefon i e-mail se zobrazují přímo a bez textové obfuscace
   - spodní mikrořádek drží jen copyright a nemá přebírat roli další navigace
+  - v `SiteShell` variantě `booking` je footer záměrně ještě kompaktnější (menší paddingy/gapy), ale obsah a odkazy zůstávají stejné
 - Stránka `/gdpr` už není placeholder kostra; používá právní informační skladbu `hero s kontaktem správce -> obsahová navigace -> tematické sekce`.
 - Stránka `/obchodni-podminky` už není pracovní návrh; používá finální právní strukturu `hero s kontaktním blokem poskytovatele -> obsahová navigace -> kompaktní sekce pro rezervace, storno, cenu, průběh služby, odpovědnost, reklamace, poukazy a závěrečná ustanovení`.
 - GDPR sekce v `src/content/public-site.ts` teď počítají s jemně bohatším modelem (`id`, odstavce, seznamové body, volitelná poznámka), aby šla stránka rozšířit bez přepisování layoutu.

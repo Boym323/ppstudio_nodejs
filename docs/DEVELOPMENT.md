@@ -664,12 +664,15 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - horní status blok jen pro stav rezervace, s copy `Rezervace přijata` a `Čeká na finální potvrzení`
   - hero text má výslovně říct, že termín je pro klientku předběžně rezervovaný
   - hlavní detail rezervace ukazuje samostatně službu, datum a čas; čas zobrazuj s mezerami kolem pomlčky, například `09:30 – 10:30`
+  - density confirmation vrstvy drž kompaktní: menší vertikální mezery, nižší hero i detail card, bez dlouhých samostatných bloků
+  - detail rezervace preferuj ve skladbě `služba` + `datum · čas`; čas zůstává vizuálně nejvýraznější údaj
   - referenční kód nezobrazuj, dokud neexistuje samostatné business pole používané v adminu nebo klientské komunikaci
   - stručný blok `Co bude následovat` má říct, že potvrzení přijde e-mailem a studio se ozve při potřebě upřesnění
   - pod další kroky patří krátké uklidnění, že termín je rezervovaný a klientka nemusí dělat nic dalšího
   - blok `Potřebujete změnu?`, CTA `Změnit termín` a CTA `Zrušit rezervaci` na post-submit screen nevracej; tahle obrazovka má flow uzavírat, ne otevírat další rozhodnutí
   - intro aktivního flow `Vyberte si termín...` renderuj jen před formulářem, ne nad confirmation panelem po úspěšném submitu
-  - kontakt na studio až v posledním bloku s akčním copy `Napište nám` / `Zavolejte`
+  - kontakt na studio až v posledním bloku; na desktopu může být v jedné řádce `email · telefon`, na mobilu jako dvě dobře klikatelné akce
+  - booking varianta shellu může mít kompaktnější footer než ostatní veřejné stránky, ale bez změny linků a kontaktů
 - `createPublicBooking()` vrací pro confirmation vrstvu i `scheduledStartsAt`, `scheduledEndsAt` a `cancellationUrl`, aby web i e-mail nemusely domýšlet další akce z neúplných dat.
 - `BookingConfirmationPanel` tokenové manage/cancel odkazy z public action payloadu nemění ani negeneruje, ale na post-submit obrazovce je nezobrazuje; bezpečný manage entrypoint zůstává pro e-maily a detail rezervace.
 - Matomo event `Rezervace / Kontakt zahájen` se nově posílá až při první reálné interakci s kontaktním polem (focus/input), ne při samotném výběru času; eventy `Kontakt pole fokus`, `Kontakt pole vyplnění začátek` a `Kontakt pole chyba` jsou per-field omezené na první výskyt.
