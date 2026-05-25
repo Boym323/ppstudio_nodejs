@@ -6,6 +6,9 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [0.3.20] - 2026-05-25
+
+- Release příprava pro produkční nasazení: projektová verze navýšena na patch `0.3.20`.
 - Admin detail služby nově umí uložit volitelný `Čas na úklid po službě` (`Service.cleanupMinutes`, default `0`) s nápovědou, že jde o interní blokaci dostupnosti; klientce se nezobrazuje jako délka služby.
 - Rezervační engine nově při vytvoření a přesunu rezervace ukládá snapshot `cleanupMinutes`, `cleanupBlockMinutes` (zaokrouhlení nahoru na 15 minut) a `blockedUntil`; klientský konec služby (`scheduledEndsAt`) zůstává beze změny.
 - Veřejné i admin generování termínů a serverové kontroly kolizí nově používají interní interval rezervace `scheduledStartsAt -> blockedUntil`; běžná půlhodinová mřížka zůstává, ale první termín po cleanup blokaci se může nabídnout i v `:15` nebo `:45`.
