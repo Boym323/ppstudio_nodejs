@@ -6,6 +6,9 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [0.3.22] - 2026-05-27
+
+- Release příprava pro produkční nasazení: projektová verze navýšena na patch `0.3.22`.
 - Homepage LCP logo v hero sekci nově používá u `next/image` atribut `fetchPriority="high"` místo `preload`, aby prohlížeč priorizoval načtení LCP prvku bez rizika duplicitního preloadu.
 - CSS audit homepage: landscape-only styly pro booking header a sticky CTA byly přesunuty z `src/app/globals.css` do route-level souboru `src/app/(booking)/booking-layout.css`, takže se už nenačítají na veřejné homepage.
 
