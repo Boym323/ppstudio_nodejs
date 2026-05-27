@@ -63,7 +63,14 @@ const service = {
 describe("seo json-ld helpers", () => {
   test("builds LocalBusiness/BeautySalon JSON-LD from salon profile", () => {
     const jsonLd = buildLocalBusinessJsonLd(salonProfile);
-    const business = jsonLd["@graph"][0];
+    const business = jsonLd["@graph"][0] as {
+      "@type": string;
+      name: string;
+      telephone: string;
+      email: string;
+      address: { addressLocality: string };
+      sameAs?: string[];
+    };
 
     assert.equal(jsonLd["@context"], "https://schema.org");
     assert.equal(business["@type"], "BeautySalon");
@@ -76,7 +83,15 @@ describe("seo json-ld helpers", () => {
 
   test("builds Service JSON-LD with offer, CZK currency and ISO duration", () => {
     const jsonLd = buildServiceJsonLd(service, salonProfile);
-    const serviceNode = jsonLd["@graph"][0];
+    const serviceNode = jsonLd["@graph"][0] as {
+      "@type": string;
+      name: string;
+      description: string;
+      provider: { "@type": string };
+      areaServed: { name: string };
+      offers?: { price: string; priceCurrency: string; availability: string };
+      duration?: string;
+    };
 
     assert.equal(jsonLd["@context"], "https://schema.org");
     assert.equal(serviceNode["@type"], "Service");
@@ -84,6 +99,7 @@ describe("seo json-ld helpers", () => {
     assert.equal(serviceNode.description, "Čisticí ošetření pleti ve Zlíně se šetrným postupem.");
     assert.equal(serviceNode.provider["@type"], "BeautySalon");
     assert.equal(serviceNode.areaServed.name, "Zlín");
+    assert.ok(serviceNode.offers);
     assert.equal(serviceNode.offers.price, "1690");
     assert.equal(serviceNode.offers.priceCurrency, "CZK");
     assert.equal(serviceNode.offers.availability, "https://schema.org/InStock");
@@ -118,12 +134,16 @@ describe("seo json-ld helpers", () => {
         name: "Čisticí ošetření pleti",
       },
     ]);
-    assert.equal(Object.prototype.hasOwnProperty.call(jsonLd.itemListElement[2], "item"), false);
+    const currentPage = jsonLd.itemListElement[2];
+    assert.ok(currentPage);
+    assert.equal(Object.prototype.hasOwnProperty.call(currentPage, "item"), false);
   });
 
   test("keeps price as a schema-safe number string", () => {
     const jsonLd = buildServiceJsonLd(service, salonProfile);
-    const price = jsonLd["@graph"][0].offers.price;
+    const serviceNode = jsonLd["@graph"][0] as { offers?: { price: string } };
+    assert.ok(serviceNode.offers);
+    const price = serviceNode.offers.price;
 
     assert.equal(typeof price, "string");
     assert.match(price, /^\d+$/);
@@ -141,6 +161,7 @@ describe("seo json-ld helpers", () => {
   });
 
   test("omits undefined, null and empty values from serialized JSON-LD", () => {
+    const array: Array<string | null | undefined> = ["hodnota", undefined, null, ""];
     const serialized = serializeJsonLd({
       "@context": "https://schema.org",
       name: "PP Studio",
@@ -150,7 +171,7 @@ describe("seo json-ld helpers", () => {
         alsoEmpty: null,
         visible: "Zlín",
       },
-      array: ["hodnota", undefined, null, ""],
+      array: array.filter((item): item is string => typeof item === "string"),
     });
 
     assert.doesNotMatch(serialized, /undefined|null|missing|alsoEmpty|empty/);

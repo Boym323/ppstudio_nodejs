@@ -23,6 +23,7 @@ test("findInitialSelectedService returns the matching catalog service for a vali
         slug: "lash-lifting",
         shortDescription: null,
         durationMinutes: 60,
+        cleanupBlockMinutes: 0,
         priceFromCzk: 1200,
       },
       {
@@ -32,6 +33,7 @@ test("findInitialSelectedService returns the matching catalog service for a vali
         slug: "laminace-oboci",
         shortDescription: null,
         durationMinutes: 45,
+        cleanupBlockMinutes: 0,
         priceFromCzk: 990,
       },
     ],
@@ -50,6 +52,7 @@ test("findInitialSelectedService ignores missing or blank slugs", () => {
       slug: "lash-lifting",
       shortDescription: null,
       durationMinutes: 60,
+      cleanupBlockMinutes: 0,
       priceFromCzk: 1200,
     },
   ];

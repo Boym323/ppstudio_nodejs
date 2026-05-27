@@ -2,7 +2,6 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 async function loadRenderer() {
-  process.env.NODE_ENV = "test";
   process.env.NEXT_PUBLIC_APP_NAME = "PP Studio";
   process.env.NEXT_PUBLIC_APP_URL = "https://example.com";
   process.env.DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/ppstudio?schema=public";

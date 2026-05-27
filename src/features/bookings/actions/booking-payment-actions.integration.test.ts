@@ -60,6 +60,7 @@ dbTest("deleteBookingPaymentWithAudit records payment deletion metadata", async 
     },
     select: { id: true, email: true },
   });
+  assert.ok(client.email);
   const startsAt = new Date("2026-06-01T10:00:00.000Z");
   const slot = await prisma.availabilitySlot.create({
     data: {
