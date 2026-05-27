@@ -78,7 +78,7 @@ function PublicHero({
                   fill
                   sizes="(min-width: 640px) 176px, 150px"
                   className="object-contain drop-shadow-[0_4px_10px_rgba(23,19,17,0.14)]"
-                  preload
+                  fetchPriority="high"
                 />
               </div>
             ) : null}

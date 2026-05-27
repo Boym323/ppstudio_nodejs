@@ -6,6 +6,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Homepage LCP logo v hero sekci nově používá u `next/image` atribut `fetchPriority="high"` místo `preload`, aby prohlížeč priorizoval načtení LCP prvku bez rizika duplicitního preloadu.
+
 ## [0.3.21] - 2026-05-25
 
 - Release příprava pro produkční nasazení: projektová verze navýšena na patch `0.3.21`.
