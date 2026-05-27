@@ -1,5 +1,7 @@
 import { SiteShell } from "@/components/layout/site-shell";
 import { SeoJsonLd, buildLocalBusinessJsonLd } from "@/features/public/components/seo-json-ld";
+
+import "./booking-layout.css";
 import { getPublicSalonProfile } from "@/lib/site-settings";
 
 export default async function BookingLayout({

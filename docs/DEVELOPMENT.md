@@ -67,6 +67,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - `(public)` pro prezentační web.
 - `(booking)` pro rezervace bez míchání admin logiky.
 - `(admin)` pro backoffice.
+- Booking-specifické globální selektory (např. landscape tweak pro booking header/sticky CTA) drž v `src/app/(booking)` route-level CSS importovaném v booking layoutu, ne v root `src/app/globals.css`, aby se tyto styly nenačítaly na homepage.
 - Další vnitřní route group `(protected)` uvnitř adminu chrání sekce vyžadující session.
 - Veřejné booking flow používá server-loaded page + klientský wizard + server action pro finální zápis.
 - Ve veřejném booking flow platí focus pravidlo: klik na den v kalendáři má převést fokus na sekci `Dostupné časy`, zatímco klik na konkrétní čas má převést fokus na první input kontaktního kroku. Při dalších UX úpravách tenhle sled zachovej, aby zůstal konzistentní pro klávesnici i mobilní scroll.

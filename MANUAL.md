@@ -99,6 +99,7 @@ Detailní seznam všech env proměnných je v [`docs/ENVIRONMENT.md`](/var/www/p
 - Veřejný shell (`SiteShell`) umí volitelně inicializovat i Microsoft Clarity přes `NEXT_PUBLIC_CLARITY_ENABLED` a `NEXT_PUBLIC_CLARITY_PROJECT_ID`; Clarity běží jen na veřejných/booking stránkách, nepouští se pro přihlášený admin session kontext a neinicializuje se na tokenových self-service routách.
 - Web Vitals tracking má vlastní klientský feature flag `NEXT_PUBLIC_WEB_VITALS_ENABLED` (default `true`), takže měření lze vypnout nezávisle na pageview/event trackingu v Matomo.
 - Matomo skript na veřejném webu je záměrně odložený přes `lazyOnload`, aby se homepage nejdřív vykreslila s minimem klientské práce na hlavním vlákně.
+- Booking-only layout styly pro landscape header a sticky CTA jsou načítané jen v route group `(booking)` přes `src/app/(booking)/booking-layout.css`; homepage je nedostává z root globálního CSS.
 - Homepage hero preferuje jako LCP kandidát logo: je preloadované přes `next/image`, zatímco portrait běží bez priority, aby první vykreslení nebylo bržděné konkurenčním načítáním.
 - Veřejné kontaktní e-maily se uživatelkám zobrazují v běžném čitelném tvaru s `@`, ale veřejný web dál nesází surové `mailto:` přímo do SSR HTML; kontaktní odkazy se skládají až v klientu přes `ObfuscatedEmailLink`.
 - Matomo měří pageview veřejných stránek a booking flow včetně klientských App Router navigací, ale neposílá pageview pro `/admin`, `/api`, Next internals ani tokenové self-service route `/rezervace/sprava/*`, `/rezervace/storno/*`, `/rezervace/akce/*`.
