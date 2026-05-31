@@ -6,6 +6,9 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [0.3.23] - 2026-05-31
+
+- Release příprava pro produkční nasazení: projektová verze navýšena na patch `0.3.23`.
 - Opraven Matomo booking funnel pro předvyplněnou službu z query parametru (`/rezervace?service=...`): event `Rezervace / Služba vybrána` se nově odešle i při vstupu z ceníku nebo detailu služby bez dalšího kliku ve výběru služby, takže je v návštěvě vidět konkrétně vybraná služba.
 - Přidán Playwright E2E regresní scénář `service detail CTA opens booking with preselected service and immediate slot selection`, který v CI hlídá cestu `detail služby -> rezervace` včetně předvyplnění `serviceId` a okamžitého výběru termínu bez opětovné volby služby.
 
