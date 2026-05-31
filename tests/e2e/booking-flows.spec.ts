@@ -521,6 +521,31 @@ test.describe("booking flows", () => {
     );
   });
 
+  test("service detail CTA opens booking with preselected service and immediate slot selection", async ({ page }) => {
+    const fixture = await createPublicBookingFixture();
+    fixtures.push(fixture);
+
+    const service = await prisma.service.findFirstOrThrow({
+      where: {
+        slug: fixture.serviceSlug,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    await page.goto(`/sluzby/${fixture.serviceSlug}`);
+    await page.getByRole("link", { name: "Rezervovat službu" }).click();
+
+    await expect(page).toHaveURL(new RegExp(`/rezervace\\?service=${fixture.serviceSlug}$`));
+    await expect(page.locator('input[name="serviceId"]')).toHaveValue(service.id);
+    await expect(page.getByText(fixture.serviceName).first()).toBeVisible();
+
+    const firstSlotButton = page.getByRole("button", { name: /^Vybrat termín / }).first();
+    await expect(firstSlotButton).toBeVisible();
+    await clickUntilFocused(firstSlotButton, page.getByLabel("Jméno a příjmení"));
+  });
+
   test("public visitor can verify a voucher code safely", async ({ page }) => {
     const fixture = await createPublicVoucherFixture();
     fixtures.push(fixture);
