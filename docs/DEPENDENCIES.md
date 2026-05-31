@@ -18,7 +18,6 @@ Seznam důležitých knihoven a důvod jejich použití.
 - `svix`: verifikace podpisu Resend webhooků (`svix-id`, `svix-timestamp`, `svix-signature`) nad raw request body.
 - Matomo tracking nepřidává žádnou npm závislost; používá `next/script`, App Router navigation hooks a standardní `window._paq` frontu.
 - Microsoft Clarity tracking také nepřidává žádnou npm závislost; používá `next/script` a veřejný Clarity tag přes inline init snippet.
-- Meta Pixel tracking také nepřidává žádnou npm závislost; používá `next/script` a veřejný Meta `fbevents.js` tag přes inline init snippet.
 - Vyloučení přihlášeného admina z veřejného trackingu také nepřidává závislost; používá jen `next/headers` cookies check v `SiteShell` a existující session cookie jméno z auth helperu.
 - Veřejné JSON-LD a Web Vitals reporting nepřidávají žádnou novou runtime závislost; JSON-LD používá vlastní serializer a Web Vitals používají `next/web-vitals` dodávané Next.js.
 - Server-side Matomo Reporting API vrstva také nepřidává žádnou npm závislost; používá vestavěný `fetch`, Next.js revalidation cache a lokální TypeScript normalizaci odpovědí.

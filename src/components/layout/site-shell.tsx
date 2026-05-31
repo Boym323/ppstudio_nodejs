@@ -5,7 +5,6 @@ import { getPublicSalonProfile } from "@/lib/site-settings";
 import { getSessionCookie } from "@/lib/auth/session";
 import { ClarityTracker } from "@/features/analytics/clarity-tracker";
 import { MatomoTracker } from "@/features/analytics/matomo-tracker";
-import { MetaPixelTracker } from "@/features/analytics/meta-pixel-tracker";
 import { WebVitalsReporter } from "@/features/analytics/web-vitals-reporter";
 
 import { SiteFooter } from "./site-footer";
@@ -26,7 +25,6 @@ export async function SiteShell({ children, variant = "public" }: SiteShellProps
       <Suspense fallback={null}>
         <ClarityTracker disabled={hasAdminSessionCookie} />
         <MatomoTracker disabled={hasAdminSessionCookie} />
-        <MetaPixelTracker disabled={hasAdminSessionCookie} />
         <WebVitalsReporter />
       </Suspense>
       <SiteHeader variant={variant} brandName={salonProfile.name} />
