@@ -29,6 +29,7 @@ import {
   getSlotDurationMinutes,
   formatSlotDate,
   formatSlotTime,
+  shouldTrackPrefilledServiceSelectionEvent,
   stepLabels,
 } from "./booking-flow/helpers";
 import { BookingProgressPanel } from "./booking-flow/progress-panel";
@@ -83,6 +84,7 @@ export function BookingFlow({ catalog, initialSelectedServiceSlug, salonProfile 
   const trackedContactFocusFieldsRef = useRef<Set<ContactFieldKey>>(new Set());
   const trackedContactInputFieldsRef = useRef<Set<ContactFieldKey>>(new Set());
   const trackedContactErrorFieldsRef = useRef<Set<ContactFieldKey>>(new Set());
+  const prefilledServiceTrackedRef = useRef(false);
 
   const focusSection = (
     sectionElement: HTMLDivElement | null,
@@ -495,6 +497,26 @@ export function BookingFlow({ catalog, initialSelectedServiceSlug, salonProfile 
 
     return `${selectedService.categoryName} / ${selectedService.name}`;
   };
+
+  useEffect(() => {
+    if (
+      !shouldTrackPrefilledServiceSelectionEvent(
+        initialSelectedServiceSlug,
+        selectedService,
+        prefilledServiceTrackedRef.current,
+      )
+    ) {
+      return;
+    }
+
+    prefilledServiceTrackedRef.current = true;
+    trackMatomoEvent(
+      "Rezervace",
+      "Služba vybrána",
+      `${selectedService.categoryName} / ${selectedService.name}`,
+      selectedService.priceFromCzk ?? undefined,
+    );
+  }, [initialSelectedServiceSlug, selectedService]);
 
   const trackContactStarted = () => {
     if (contactStartedTrackedRef.current) {

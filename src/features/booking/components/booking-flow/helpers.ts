@@ -163,6 +163,14 @@ export function findInitialSelectedService(
   return services.find((service) => service.slug === normalizedSlug);
 }
 
+export function shouldTrackPrefilledServiceSelectionEvent(
+  initialSelectedServiceSlug: string | undefined,
+  selectedService: PublicBookingCatalog["services"][number] | undefined,
+  isAlreadyTracked: boolean,
+) {
+  return Boolean(initialSelectedServiceSlug && selectedService && !isAlreadyTracked);
+}
+
 function validateFullName(value: string) {
   const trimmed = value.trim();
 

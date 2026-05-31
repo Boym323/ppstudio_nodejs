@@ -1,7 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { findInitialSelectedService, formatSlotTime, getSlotDateKey } from "./helpers";
+import {
+  findInitialSelectedService,
+  formatSlotTime,
+  getSlotDateKey,
+  shouldTrackPrefilledServiceSelectionEvent,
+} from "./helpers";
 
 test("public booking client displays catalog ISO times as Prague salon time", () => {
   const winterStartsAt = "2026-01-15T08:00:00.000Z";
@@ -59,4 +64,48 @@ test("findInitialSelectedService ignores missing or blank slugs", () => {
 
   assert.equal(findInitialSelectedService(services, "neznamy-slug"), undefined);
   assert.equal(findInitialSelectedService(services, "   "), undefined);
+});
+
+test("shouldTrackPrefilledServiceSelectionEvent tracks prefilled service from query once", () => {
+  const selectedService = {
+    id: "service-1",
+    categoryName: "Řasy",
+    name: "Lash lifting",
+    slug: "lash-lifting",
+    shortDescription: null,
+    durationMinutes: 60,
+    cleanupBlockMinutes: 0,
+    priceFromCzk: 1200,
+  };
+
+  assert.equal(
+    shouldTrackPrefilledServiceSelectionEvent("lash-lifting", selectedService, false),
+    true,
+  );
+  assert.equal(
+    shouldTrackPrefilledServiceSelectionEvent("lash-lifting", selectedService, true),
+    false,
+  );
+});
+
+test("shouldTrackPrefilledServiceSelectionEvent returns false without query service or selected service", () => {
+  const selectedService = {
+    id: "service-2",
+    categoryName: "Obočí",
+    name: "Laminace obočí",
+    slug: "laminace-oboci",
+    shortDescription: null,
+    durationMinutes: 45,
+    cleanupBlockMinutes: 0,
+    priceFromCzk: 990,
+  };
+
+  assert.equal(
+    shouldTrackPrefilledServiceSelectionEvent(undefined, selectedService, false),
+    false,
+  );
+  assert.equal(
+    shouldTrackPrefilledServiceSelectionEvent("laminace-oboci", undefined, false),
+    false,
+  );
 });

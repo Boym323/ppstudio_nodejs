@@ -6,6 +6,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Opraven Matomo booking funnel pro předvyplněnou službu z query parametru (`/rezervace?service=...`): event `Rezervace / Služba vybrána` se nově odešle i při vstupu z ceníku nebo detailu služby bez dalšího kliku ve výběru služby, takže je v návštěvě vidět konkrétně vybraná služba.
+
 ## [0.3.22] - 2026-05-27
 
 - Release příprava pro produkční nasazení: projektová verze navýšena na patch `0.3.22`.
