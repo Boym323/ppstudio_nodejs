@@ -76,6 +76,7 @@ function PublicHero({
                   src={logoImage.src}
                   alt={logoImage.alt}
                   fill
+                  preload
                   sizes="(min-width: 640px) 176px, 150px"
                   className="object-contain drop-shadow-[0_4px_10px_rgba(23,19,17,0.14)]"
                   fetchPriority="high"
