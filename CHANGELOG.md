@@ -6,6 +6,9 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [0.3.24] - 2026-05-31
+
+- Release příprava pro produkční nasazení: projektová verze navýšena na patch `0.3.24`.
 - Homepage hero logo (`PP Studio`) je nyní explicitně označené jako LCP kandidát přes `next/image` `preload` + `fetchPriority="high"` pouze na tomto jednom prvku, bez změny layoutu a bez zásahu do ostatních log na webu.
 - Homepage hero portrét (`Portrét homepage PP Studio 1`) má nově explicitní `sizes` atribut v `next/image`, aby browser stahoval menší responzivní variantu podle reálné šířky layoutu místo zbytečně velkého zdroje.
 
