@@ -6,6 +6,9 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [0.3.25] - 2026-05-31
+
+- Release příprava pro produkční nasazení: projektová verze navýšena na patch `0.3.25`.
 - Veřejné odkazy na `/rezervace` už implicitně nepoužívají Next.js prefetch (`prefetch={false}`), aby se na stránkách mimo booking route zbytečně nepřednačítal booking CSS chunk (`0_9_05p0o1dxa.css`) a nevznikalo upozornění na nevyužitý preload.
 - Opraven PWA manifest icon 404: soubory `android-chrome-192x192.png` a `android-chrome-512x512.png` jsou nově dostupné v `public/`, takže odkazy z `app/manifest.webmanifest` fungují na root URL bez chyby načtení.
 
