@@ -39,9 +39,12 @@ function trackClick(tracking: Tracking) {
 }
 
 export function TrackedLink({ tracking, children, ...props }: TrackedLinkProps) {
+  const prefetch = props.prefetch ?? (tracking.kind === "reservation" ? false : undefined);
+
   return (
     <Link
       {...props}
+      prefetch={prefetch}
       onClick={() => {
         trackClick(tracking);
       }}

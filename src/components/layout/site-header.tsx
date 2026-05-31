@@ -37,6 +37,7 @@ export function SiteHeader({ variant = 'public', brandName = 'PP Studio' }: Site
           </Link>
           <Link
             href="/rezervace"
+            prefetch={false}
             className={cn(
               "booking-header__reservation-cta button-text inline-flex items-center justify-center rounded-full bg-[var(--color-foreground)] text-white lg:hidden",
               isBookingVariant ? "min-h-10 px-4" : "min-h-11 px-5",
@@ -92,6 +93,7 @@ export function SiteHeader({ variant = 'public', brandName = 'PP Studio' }: Site
           {!isBookingVariant ? (
             <Link
               href="/rezervace"
+              prefetch={false}
               className="button-text inline-flex min-h-11 items-center justify-center rounded-full bg-[var(--color-foreground)] px-5 text-white hover:bg-[#2c221d]"
             >
               Rezervovat termín
