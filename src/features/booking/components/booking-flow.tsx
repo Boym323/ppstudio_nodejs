@@ -499,13 +499,19 @@ export function BookingFlow({ catalog, initialSelectedServiceSlug, salonProfile 
   };
 
   useEffect(() => {
+    const trackedService = selectedService;
+
     if (
       !shouldTrackPrefilledServiceSelectionEvent(
         initialSelectedServiceSlug,
-        selectedService,
+        trackedService,
         prefilledServiceTrackedRef.current,
       )
     ) {
+      return;
+    }
+
+    if (!trackedService) {
       return;
     }
 
@@ -513,8 +519,8 @@ export function BookingFlow({ catalog, initialSelectedServiceSlug, salonProfile 
     trackMatomoEvent(
       "Rezervace",
       "Služba vybrána",
-      `${selectedService.categoryName} / ${selectedService.name}`,
-      selectedService.priceFromCzk ?? undefined,
+      `${trackedService.categoryName} / ${trackedService.name}`,
+      trackedService.priceFromCzk ?? undefined,
     );
   }, [initialSelectedServiceSlug, selectedService]);
 
