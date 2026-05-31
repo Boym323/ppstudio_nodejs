@@ -139,6 +139,7 @@ function PublicHero({
                 alt={portraitImage.alt}
                 width={portraitImage.width}
                 height={portraitImage.height}
+                sizes="(min-width: 1280px) 560px, (min-width: 1024px) 44vw, (min-width: 640px) 90vw, 100vw"
                 className="h-[16rem] w-full object-cover object-center sm:h-[20rem] lg:h-[24rem]"
                 loading="eager"
               />
