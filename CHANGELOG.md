@@ -6,6 +6,9 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Přidána volitelná integrace Meta Pixel (`fbq`) na veřejný web přes nový klientský `MetaPixelTracker` (`next/script`, `lazyOnload`) s env konfigurací `NEXT_PUBLIC_META_PIXEL_ENABLED` a `NEXT_PUBLIC_META_PIXEL_ID`.
+- Meta Pixel se nenačítá v adminu, API, Next internals ani na tokenových self-service routách (`/rezervace/sprava/*`, `/rezervace/storno/*`, `/rezervace/akce/*`) a je vypnutý i při aktivní admin session cookie `ppstudio-admin-session`.
+
 ## [0.3.24] - 2026-05-31
 
 - Release příprava pro produkční nasazení: projektová verze navýšena na patch `0.3.24`.
