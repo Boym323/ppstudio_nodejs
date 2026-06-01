@@ -19,8 +19,10 @@ Dokumentace proměnných prostředí pro lokální vývoj i produkci.
 - `VOUCHER_PUBLIC_DOMAIN`: volitelná explicitní doména pouze pro voucher PDF kontakty; má prioritu nad `NEXT_PUBLIC_SITE_DOMAIN`.
 - `NEXT_PUBLIC_MATOMO_ENABLED`: zapnutí veřejného Matomo trackingu; tracking běží pouze při přesné hodnotě `true`.
 - `NEXT_PUBLIC_CLARITY_ENABLED`: zapnutí veřejného Microsoft Clarity trackingu; tracking běží pouze při přesné hodnotě `true`.
+- `NEXT_PUBLIC_META_PIXEL_ENABLED`: zapnutí veřejného Meta Pixel trackingu; tracking běží pouze při přesné hodnotě `true`.
 - `NEXT_PUBLIC_WEB_VITALS_ENABLED`: zapnutí klientského sběru Web Vitals; měření běží pouze při přesné hodnotě `true`.
 - `NEXT_PUBLIC_CLARITY_PROJECT_ID`: veřejné Clarity Project ID z Clarity dashboardu.
+- `NEXT_PUBLIC_META_PIXEL_ID`: veřejné Meta Pixel ID (např. `977400093564812`).
 - `NEXT_PUBLIC_MATOMO_URL`: veřejná URL Matomo instance včetně schématu, například `https://matomo.example.cz/`.
 - `NEXT_PUBLIC_MATOMO_SITE_ID`: ID webu v Matomo.
 - `MATOMO_URL`: server-side URL Matomo instance pro Reporting API; typicky stejný origin jako veřejné Matomo, ale bez vystavení tokenu klientovi.
@@ -88,7 +90,7 @@ Lokální doporučení:
 
 - `EMAIL_DELIVERY_MODE=log` je nejbezpečnější výchozí režim pro vývoj a testovací rollout.
 - `ADMIN_BOOTSTRAP_ENABLED=true` používej jen po dobu prvního přihlášení nebo recovery; po zřízení DB účtů vrať `false`.
-- `NEXT_PUBLIC_MATOMO_*`, `NEXT_PUBLIC_CLARITY_*`, `MATOMO_*` a `PUSHOVER_*` nech klidně vypnuté, pokud zrovna netestuješ analytics nebo notifikace.
+- `NEXT_PUBLIC_MATOMO_*`, `NEXT_PUBLIC_CLARITY_*`, `NEXT_PUBLIC_META_PIXEL_*`, `MATOMO_*` a `PUSHOVER_*` nech klidně vypnuté, pokud zrovna netestuješ analytics nebo notifikace.
 - Session časování můžeš upravit přes `ADMIN_SESSION_*_SECONDS`; pokud je nenastavíš, běží default `14 dní idle / refresh při <48h / absolutní strop 45 dní`.
 - `MEDIA_STORAGE_ROOT` drž mimo repozitář a ověř, že do něj má proces právo zapisovat.
 
@@ -109,8 +111,10 @@ Lokální doporučení:
 - `NEXT_PUBLIC_APP_URL` je zároveň kanonický fallback origin pro admin redirecty. `x-forwarded-host` se použije jen tehdy, když odpovídá `NEXT_PUBLIC_APP_URL`, `NEXT_PUBLIC_SITE_DOMAIN` nebo `VOUCHER_PUBLIC_DOMAIN`; validace bezpečně akceptuje i alias `apex <-> www`, aby admin RSC prefetch/redirecty nekončily cross-origin CORS chybou.
 - Matomo konfigurace je volitelná: pokud `NEXT_PUBLIC_MATOMO_ENABLED` není přesně `true`, nebo chybí URL či site ID, tracking zůstane vypnutý. Protože jde o `NEXT_PUBLIC_*` proměnné, hodnoty se promítají do klientského bundle při buildu.
 - Clarity konfigurace je volitelná: pokud `NEXT_PUBLIC_CLARITY_ENABLED` není přesně `true`, nebo chybí `NEXT_PUBLIC_CLARITY_PROJECT_ID`, tracking zůstane vypnutý.
+- Meta Pixel konfigurace je volitelná: pokud `NEXT_PUBLIC_META_PIXEL_ENABLED` není přesně `true`, nebo chybí `NEXT_PUBLIC_META_PIXEL_ID`, tracking zůstane vypnutý.
 - Vyloučení přihlášeného admina z veřejného Matomo trackingu je řešené aplikačně přes admin session cookie `ppstudio-admin-session`; nepřidává se kvůli tomu žádná nová env proměnná.
 - Vyloučení přihlášeného admina z Clarity je řešené stejným guardem v `SiteShell` (`disabled` přes admin session cookie). Clarity se navíc neinicializuje na tokenových self-service routách.
+- Vyloučení přihlášeného admina z Meta Pixelu je řešené stejným guardem v `SiteShell` (`disabled` přes admin session cookie). Meta Pixel se navíc neinicializuje na tokenových self-service routách.
 - Web Vitals reporting má samostatný feature flag `NEXT_PUBLIC_WEB_VITALS_ENABLED` (default `true`). Pokud není přesně `true`, `WebVitalsReporter` se nespustí. Odeslání eventu je pořád závislé na veřejné Matomo konfiguraci `NEXT_PUBLIC_MATOMO_ENABLED`, `NEXT_PUBLIC_MATOMO_URL` a `NEXT_PUBLIC_MATOMO_SITE_ID`; bez ní je tracking helper no-op.
 - Server-side Matomo reporting konfigurace je oddělená od klientského trackingu: `MATOMO_URL`, `MATOMO_SITE_ID` a `MATOMO_AUTH_TOKEN` čte pouze server-only modul `src/lib/analytics/matomo.ts`. Pokud některá hodnota chybí, dashboard analytics vrací nulové hodnoty místo chyby do UI.
 - Úprava admin dashboardu na denní provozní cockpit nepřidává žádnou novou env proměnnou; používá stávající Prisma data, admin session a volitelnou server-side Matomo konfiguraci.
