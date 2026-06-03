@@ -49,7 +49,7 @@ export function AdminBookingsWorkspace({
       <div className="overflow-hidden rounded-[1.35rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.015))] shadow-[0_18px_50px_rgba(0,0,0,0.18)]">
         <div
           className={cn(
-            "sticky top-[5.1rem] z-20 hidden items-center gap-3 border-b border-white/10 bg-[rgba(10,9,8,0.96)] px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-white/40 backdrop-blur md:grid",
+            "hidden items-center gap-3 border-b border-white/10 bg-[rgba(10,9,8,0.96)] px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-white/40 md:grid",
             columnLayout,
           )}
         >

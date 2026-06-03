@@ -6,6 +6,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Opravená kolize sticky vrstev v admin seznamu rezervací: sticky zůstává jen horní filtrační panel a desktopová hlavička tabulky už se nepřilepuje samostatně, takže nepřekrývá filtry černým pruhem ani se neobjevuje uprostřed seznamu.
 - Admin seznam klientek v `/admin/klienti` a `/admin/provoz/klienti` už u sloupce `Poslední návštěva` neukazuje `Client.lastBookedAt` z poslední booking aktivity; nově bere poslední minulou rezervaci ve stavu `COMPLETED`, stejně jako detail klientky a CRM souhrn.
 - Řazení `Poslední návštěva` v seznamu klientek je sjednocené se stejnou definicí: klientky s novým budoucím nebo ještě neuzavřeným termínem už kvůli tomu neskáčou nahoru jako kdyby už návštěva proběhla.
 - Stejná oprava platí i pro legacy read model sekce `Klienti` v `admin-section-page`: stručný přehled a jeho pořadí už neberou `Client.lastBookedAt`, ale poslední minulou `COMPLETED` rezervaci.
