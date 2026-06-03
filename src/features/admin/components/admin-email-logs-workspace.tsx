@@ -146,12 +146,11 @@ export function AdminEmailLogsWorkspace({ data }: AdminEmailLogsWorkspaceProps) 
   });
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <EmailHealthPanel data={data} />
 
       <AdminPanel
         title="Poslední emaily"
-        description="Přehled posledních emailů a jejich stavu."
         compact
         denseHeader
         tighter
@@ -180,16 +179,16 @@ export function AdminEmailLogsWorkspace({ data }: AdminEmailLogsWorkspaceProps) 
 function EmailHealthPanel({ data }: { data: EmailLogsDashboardData }) {
   return (
     <section
-      className={`rounded-[var(--radius-panel)] border p-4 backdrop-blur-xl sm:p-5 ${healthToneStyles[data.health.tone]}`}
+      className={`rounded-[1.1rem] border px-3.5 py-3 backdrop-blur-xl sm:px-4 sm:py-3.5 ${healthToneStyles[data.health.tone]}`}
     >
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+      <div className="grid gap-2.5 xl:grid-cols-[minmax(0,1.1fr)_minmax(18rem,0.9fr)] xl:items-center">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[0.68rem] uppercase tracking-[0.24em] text-white/52">
+            <span className="text-[0.62rem] uppercase tracking-[0.18em] text-white/52">
               Health stav
             </span>
             <span
-              className={`rounded-full border px-3 py-1 text-[0.66rem] font-semibold uppercase tracking-[0.18em] ${healthBadgeStyles[data.health.tone]}`}
+              className={`rounded-full border px-2.5 py-0.5 text-[0.62rem] font-semibold uppercase tracking-[0.16em] ${healthBadgeStyles[data.health.tone]}`}
             >
               {data.health.tone === "ok"
                 ? "OK"
@@ -197,20 +196,17 @@ function EmailHealthPanel({ data }: { data: EmailLogsDashboardData }) {
                   ? "Warning"
                   : "Error"}
             </span>
+            <p className="min-w-0 text-sm font-medium text-white/92">{data.health.title}</p>
           </div>
-          <h3 className="mt-2.5 font-display text-[1.45rem] leading-tight text-white sm:text-[1.75rem]">
-            {data.health.title}
-          </h3>
-          <p className="mt-1.5 text-sm leading-5 text-white/76">{data.health.helper}</p>
-          <p className="mt-2 text-sm leading-5 text-white/88">{data.health.summary}</p>
+          <p className="mt-1 text-sm leading-5 text-white/72">{data.health.summary}</p>
         </div>
 
-        <div className="min-w-0 max-w-xl rounded-[1rem] border border-white/10 bg-black/20 p-3.5">
-          <p className="text-[0.68rem] uppercase tracking-[0.18em] text-white/46">
-            Poslední relevantní chyba
+        <div className="min-w-0 rounded-[0.9rem] border border-white/10 bg-black/20 px-3 py-2">
+          <p className="text-[0.62rem] uppercase tracking-[0.16em] text-white/46">
+            Chyba / stav
           </p>
-          <p className="mt-1.5 text-sm leading-5 text-white/84">
-            {data.health.latestError ?? "Aktuálně bez aktivní chyby v retry nebo failed stavu."}
+          <p className="mt-1 text-sm leading-5 text-white/84">
+            {data.health.latestError ?? data.health.helper}
           </p>
         </div>
       </div>
@@ -240,7 +236,7 @@ function EmailFilters({
   setDateFilter: (value: EmailDateFilterValue) => void;
 }) {
   return (
-    <div className="rounded-[1rem] border border-white/8 bg-[#151219]/95 px-3 py-2.5 backdrop-blur">
+    <div className="rounded-[0.95rem] border border-white/8 bg-[#151219]/95 px-3 py-2 backdrop-blur">
       <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-[minmax(0,2.4fr)_minmax(10rem,0.95fr)_minmax(11rem,1fr)_minmax(8rem,0.8fr)_auto] xl:items-end">
         <label className="block">
           <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/42">
@@ -251,7 +247,7 @@ function EmailFilters({
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.target.value)}
             placeholder="Příjemce, klientka, email, rezervace, chyba"
-            className="mt-1.5 h-10 w-full rounded-[0.9rem] border border-white/10 bg-black/20 px-3 text-sm text-white outline-none transition placeholder:text-white/28 focus:border-[var(--color-accent)]/60"
+            className="mt-1 h-9 w-full rounded-[0.8rem] border border-white/10 bg-black/20 px-3 text-sm text-white outline-none transition placeholder:text-white/28 focus:border-[var(--color-accent)]/60"
           />
         </label>
 
@@ -304,7 +300,7 @@ function EmailFilters({
               setTypeFilter("all");
               setDateFilter("7d");
             }}
-            className="inline-flex h-10 items-center rounded-full border border-white/10 px-4 text-sm text-white/74 transition hover:border-white/18 hover:bg-white/6 hover:text-white"
+            className="inline-flex h-9 items-center rounded-full border border-white/10 px-4 text-sm text-white/74 transition hover:border-white/18 hover:bg-white/6 hover:text-white"
           >
             Vymazat
           </button>
@@ -339,7 +335,7 @@ function FilterSelect({
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="mt-1.5 h-10 w-full rounded-[0.9rem] border border-white/10 bg-black/20 px-3 text-sm text-white outline-none transition focus:border-[var(--color-accent)]/60"
+        className="mt-1 h-9 w-full rounded-[0.8rem] border border-white/10 bg-black/20 px-3 text-sm text-white outline-none transition focus:border-[var(--color-accent)]/60"
       >
         {children}
       </select>
@@ -364,13 +360,13 @@ function RecentEmailList({
   }
 
   return (
-    <div className="space-y-2.5">
+    <div className="space-y-2">
       {emails.map((email) => (
         <article
           key={email.id}
-          className="rounded-[1.1rem] border border-white/8 bg-white/5 px-3 py-2.5"
+          className="rounded-[1rem] border border-white/8 bg-white/5 px-3 py-2"
         >
-          <div className="flex flex-col gap-2.5 xl:grid xl:grid-cols-[minmax(0,1fr)_10.25rem] xl:items-start xl:gap-3">
+          <div className="flex flex-col gap-2 xl:grid xl:grid-cols-[minmax(0,1fr)_10rem] xl:items-start xl:gap-2.5">
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
                 <EmailTypeBadge label={email.typeLabel} tone={email.typeValue} />
@@ -378,7 +374,7 @@ function RecentEmailList({
                 <EmailTrackingBadge email={email} />
               </div>
 
-              <div className="mt-2 grid gap-2.5 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1.1fr)_minmax(19rem,0.9fr)] xl:items-start">
+              <div className="mt-1.5 grid gap-2 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,1.05fr)_minmax(18rem,0.9fr)] xl:items-start">
                 <div className="min-w-0">
                   <p className="text-[0.66rem] uppercase tracking-[0.18em] text-white/42">Klientka / příjemce</p>
                   <p className="mt-0.5 text-sm font-medium leading-5 text-white">{email.recipientLabel}</p>
@@ -411,18 +407,18 @@ function RecentEmailList({
               ) : null}
             </div>
 
-            <div className="flex shrink-0 flex-wrap gap-1.5 xl:w-[10.25rem] xl:flex-col xl:items-stretch xl:self-start xl:pt-7">
+            <div className="flex shrink-0 flex-wrap gap-1.5 xl:w-[10rem] xl:flex-col xl:items-stretch xl:self-start xl:pt-5">
               {email.bookingHref ? (
                 <Link
                   href={email.bookingHref}
-                  className="inline-flex h-10 w-full items-center justify-center rounded-full border border-white/10 px-3.5 text-[0.92rem] font-medium text-white/78 transition hover:border-white/18 hover:text-white"
+                  className="inline-flex h-9 w-full items-center justify-center rounded-full border border-white/10 px-3.5 text-[0.9rem] font-medium text-white/78 transition hover:border-white/18 hover:text-white"
                 >
                   Otevřít rezervaci
                 </Link>
               ) : null}
               <Link
                 href={email.detailHref}
-                className="inline-flex h-10 w-full items-center justify-center rounded-full border border-white/10 px-3.5 text-[0.92rem] font-medium text-white/78 transition hover:border-white/18 hover:text-white"
+                className="inline-flex h-9 w-full items-center justify-center rounded-full border border-white/10 px-3.5 text-[0.9rem] font-medium text-white/78 transition hover:border-white/18 hover:text-white"
               >
                 Detail emailu
               </Link>
@@ -431,7 +427,7 @@ function RecentEmailList({
                   <input type="hidden" name="emailLogId" value={email.id} />
                   <button
                     type="submit"
-                    className="inline-flex h-10 w-full items-center justify-center rounded-full bg-[var(--color-accent)] px-3.5 text-[0.92rem] font-semibold text-[var(--color-accent-contrast)] transition hover:brightness-105"
+                    className="inline-flex h-9 w-full items-center justify-center rounded-full bg-[var(--color-accent)] px-3.5 text-[0.9rem] font-semibold text-[var(--color-accent-contrast)] transition hover:brightness-105"
                   >
                     Zkusit znovu
                   </button>
@@ -447,7 +443,7 @@ function RecentEmailList({
 
 function CompactMeta({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-[0.8rem] border border-white/8 bg-black/18 px-2.5 py-1.5">
+    <div className="rounded-[0.75rem] border border-white/8 bg-black/18 px-2.5 py-1.5">
       <p className="whitespace-nowrap text-[0.58rem] uppercase tracking-[0.14em] text-white/38">{label}</p>
       <p className="mt-0.5 text-xs leading-4 text-white/84">{value}</p>
     </div>
@@ -474,7 +470,7 @@ function EmailErrorDetail({
   email: AdminEmailLogsWorkspaceProps["data"]["recentEmails"][number];
 }) {
   return (
-    <div className="mt-3 rounded-[1rem] border border-red-300/18 bg-red-400/8 p-3.5">
+    <div className="mt-2.5 rounded-[0.95rem] border border-red-300/18 bg-red-400/8 p-3">
       <div className="grid gap-3 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
         <div>
           <p className="text-[0.66rem] uppercase tracking-[0.18em] text-red-50/70">Poslední chyba</p>
@@ -532,77 +528,65 @@ function EmailQueueDebugSection({ data }: { data: EmailLogsDashboardData }) {
       : "Fronta aktivní";
 
   return (
-    <AdminPanel
-      title="Technický stav fronty"
-      description="Kompaktní souhrn fronty a workeru."
-      compact
-      denseHeader
-      tighter
-    >
-      <div className="space-y-3">
-        <div className="rounded-[1rem] border border-white/8 bg-black/20 px-3.5 py-3">
-          <p className="text-sm text-white/82">
-            {queueHeadline} {" · "}Retry {data.retryingItems.length} {" · "}Failed{" "}
-            {data.failedItems.length} {" · "}
+    <details className="group rounded-[1rem] border border-white/8 bg-white/[0.03]">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3.5 py-3 text-left [&::-webkit-details-marker]:hidden">
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-white">Fronta e-mailů</p>
+          <p className="mt-1 text-sm text-white/74">
+            {queueHeadline} {" · "}Retry {data.retryingItems.length} {" · "}Failed {data.failedItems.length} {" · "}{" "}
             {data.workerSummary}
           </p>
         </div>
+        <span className="shrink-0 text-xs text-white/46 transition group-open:rotate-180">⌄</span>
+      </summary>
 
-        <details className="group rounded-[1rem] border border-white/8 bg-white/[0.03]">
-          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3.5 py-3 text-sm font-medium text-white/78 [&::-webkit-details-marker]:hidden">
-            <span>Detail fronty</span>
-            <span className="text-xs text-white/46 transition group-open:rotate-180">⌄</span>
-          </summary>
+      <div className="space-y-3 border-t border-white/8 px-3.5 py-3">
+        <div className="grid gap-2.5 md:grid-cols-2 xl:grid-cols-4">
+          {data.queueStats.map((stat) => (
+            <article
+              key={stat.label}
+              className={`rounded-[0.95rem] border px-3 py-2.5 ${queueStatToneStyles[stat.tone ?? "default"]}`}
+            >
+              <p className="text-[0.62rem] uppercase tracking-[0.16em] text-white/40">{stat.label}</p>
+              <p className="mt-1.5 font-display text-[1.45rem] leading-none">{stat.value}</p>
+              {stat.detail ? (
+                <p className="mt-1.5 text-xs leading-5 text-white/60">{stat.detail}</p>
+              ) : null}
+            </article>
+          ))}
+        </div>
 
-          <div className="space-y-3 border-t border-white/8 px-3.5 py-3">
-            <div className="grid gap-2.5 md:grid-cols-2 xl:grid-cols-4">
-              {data.queueStats.map((stat) => (
-                <article
-                  key={stat.label}
-                  className={`rounded-[0.95rem] border px-3 py-2.5 ${queueStatToneStyles[stat.tone ?? "default"]}`}
-                >
-                  <p className="text-[0.62rem] uppercase tracking-[0.16em] text-white/40">{stat.label}</p>
-                  <p className="mt-1.5 font-display text-[1.45rem] leading-none">{stat.value}</p>
-                  {stat.detail ? (
-                    <p className="mt-1.5 text-xs leading-5 text-white/60">{stat.detail}</p>
-                  ) : null}
-                </article>
-              ))}
-            </div>
+        <div className="rounded-[0.95rem] border border-white/8 bg-black/20 p-3">
+          <p className="text-[0.66rem] uppercase tracking-[0.18em] text-white/42">Worker stav</p>
+          <p className="mt-1.5 text-sm leading-5 text-white/82">{data.workerSummary}</p>
+        </div>
 
-            <div className="rounded-[0.95rem] border border-white/8 bg-black/20 p-3">
-              <p className="text-[0.66rem] uppercase tracking-[0.18em] text-white/42">Worker stav</p>
-              <p className="mt-1.5 text-sm leading-5 text-white/82">{data.workerSummary}</p>
-            </div>
+        <div className="grid gap-3 xl:grid-cols-3">
+          <AdminPanel title="Pending fronta" description="Čeká na první průchod." compact denseHeader tighter>
+            <AdminKeyValueList
+              items={data.pendingItems}
+              emptyTitle="Žádné pending emaily."
+              emptyDescription="Fronta je čistá."
+            />
+          </AdminPanel>
 
-            <div className="grid gap-3 xl:grid-cols-3">
-              <AdminPanel title="Pending fronta" description="Čeká na první průchod." compact denseHeader tighter>
-                <AdminKeyValueList
-                  items={data.pendingItems}
-                  emptyTitle="Žádné pending emaily."
-                  emptyDescription="Fronta je čistá."
-                />
-              </AdminPanel>
+          <AdminPanel title="Retry pokusy" description="Čekají na další pokus." compact denseHeader tighter>
+            <AdminKeyValueList
+              items={data.retryingItems}
+              emptyTitle="Žádné retry emaily."
+              emptyDescription="Retry fronta je prázdná."
+            />
+          </AdminPanel>
 
-              <AdminPanel title="Retry pokusy" description="Čekají na další pokus." compact denseHeader tighter>
-                <AdminKeyValueList
-                  items={data.retryingItems}
-                  emptyTitle="Žádné retry emaily."
-                  emptyDescription="Retry fronta je prázdná."
-                />
-              </AdminPanel>
-
-              <AdminPanel title="Poslední chyby" description="Záznamy ke kontrole." compact denseHeader tighter>
-                <AdminKeyValueList
-                  items={data.failedItems}
-                  emptyTitle="Žádné failed emaily."
-                  emptyDescription="Bez čerstvých chyb."
-                />
-              </AdminPanel>
-            </div>
-          </div>
-        </details>
+          <AdminPanel title="Poslední chyby" description="Záznamy ke kontrole." compact denseHeader tighter>
+            <AdminKeyValueList
+              items={data.failedItems}
+              emptyTitle="Žádné failed emaily."
+              emptyDescription="Bez čerstvých chyb."
+            />
+          </AdminPanel>
+        </div>
       </div>
-    </AdminPanel>
+    </details>
   );
 }

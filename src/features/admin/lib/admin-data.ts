@@ -5,11 +5,10 @@ import {
   BookingStatus,
   EmailLogStatus,
   EmailLogType,
-  MediaType,
   Prisma,
 } from "@prisma/client";
 
-import { type AdminArea, type AdminSectionSlug } from "@/config/navigation";
+import { type AdminArea } from "@/config/navigation";
 import {
   getAdminBookingActionOptions,
   getBookingAcquisitionLabel,
@@ -249,33 +248,6 @@ function actionTokenTypeLabel(type: BookingActionTokenType): string {
   return "Neznámý action token";
 }
 
-export function getAdminSectionTitle(slug: AdminSectionSlug) {
-  switch (slug) {
-    case "overview":
-      return "Přehled";
-    case "rezervace":
-      return "Rezervace";
-    case "volne-terminy":
-      return "Volné termíny";
-    case "vouchery":
-      return "Vouchery";
-    case "klienti":
-      return "Klienti";
-    case "media":
-      return "Média webu";
-    case "sluzby":
-      return "Služby";
-    case "kategorie-sluzeb":
-      return "Kategorie služeb";
-    case "uzivatele":
-      return "Uživatelé / role";
-    case "email-logy":
-      return "Email logy";
-    case "nastaveni":
-      return "Nastavení";
-  }
-}
-
 export async function getAdminOverviewData(area: AdminArea) {
   const now = new Date();
   const { startsAt: todayStart, endsAt: tomorrowStart } = getDayBounds(formatDateKey(now));
@@ -436,33 +408,6 @@ export async function getAdminOverviewData(area: AdminArea) {
     todayBookingItems,
     nextSlots,
   };
-}
-
-export async function getAdminSectionData(section: AdminSectionSlug, area: AdminArea) {
-  switch (section) {
-    case "rezervace":
-      return getReservationsData(area);
-    case "volne-terminy":
-      return getSlotsData(area);
-    case "vouchery":
-      throw new Error("Sekce vouchery ma vlastni specializovanou stranku.");
-    case "klienti":
-      return getClientsData();
-    case "media":
-      return getCertificatesData(area);
-    case "sluzby":
-      return getServicesData(area);
-    case "kategorie-sluzeb":
-      return getCategoriesData(area);
-    case "uzivatele":
-      throw new Error("Sekce uzivatele ma vlastni specializovanou stranku.");
-    case "email-logy":
-      return getEmailLogsData();
-    case "nastaveni":
-      return getSettingsData();
-    case "overview":
-      return getAdminOverviewData(area);
-  }
 }
 
 export type ReservationsDashboardData = {
@@ -1140,207 +1085,6 @@ export async function getManualBookingClientById(clientId: string) {
   };
 }
 
-async function getSlotsData(area: AdminArea) {
-  const [published, draft, items] = await Promise.all([
-    prisma.availabilitySlot.count({ where: { status: AvailabilitySlotStatus.PUBLISHED } }),
-    prisma.availabilitySlot.count({ where: { status: AvailabilitySlotStatus.DRAFT } }),
-    prisma.availabilitySlot.findMany({
-      orderBy: { startsAt: "asc" },
-      take: 10,
-      include: {
-        bookings: {
-          where: { status: { in: [BookingStatus.PENDING, BookingStatus.CONFIRMED] } },
-          select: { id: true },
-        },
-        allowedServices: {
-          include: { service: { select: { name: true } } },
-        },
-      },
-    }),
-  ]);
-
-  return {
-    stats: [
-      { label: "Publikované", value: String(published), tone: "accent" as const },
-      { label: "Draft", value: String(draft) },
-    ],
-    items: items.map((slot) => ({
-      id: slot.id,
-      title: formatTimeRange(slot.startsAt, slot.endsAt),
-      meta: `Kapacita ${slot.capacity} • Obsazeno ${slot.bookings.length} • ${statusLabel(slot.status)}`,
-      description:
-        area === "owner"
-          ? `Služby: ${
-              slot.allowedServices.length > 0
-                ? slot.allowedServices.map((item) => item.service.name).join(", ")
-                : "bez omezení"
-            }. ${slot.internalNote ?? slot.publicNote ?? "Bez poznámky."}`
-          : slot.publicNote ?? "Bez veřejné poznámky ke slotu.",
-      badge: statusLabel(slot.status),
-    })),
-  };
-}
-
-async function getClientsData() {
-  const now = new Date();
-  const [active, inactive, items] = await Promise.all([
-    prisma.client.count({ where: { isActive: true } }),
-    prisma.client.count({ where: { isActive: false } }),
-    prisma.client.findMany({
-      orderBy: [{ createdAt: "desc" }],
-      take: 10,
-      select: {
-        id: true,
-        fullName: true,
-        email: true,
-        phone: true,
-        isActive: true,
-        _count: { select: { bookings: true } },
-        bookings: {
-          where: {
-            status: BookingStatus.COMPLETED,
-            scheduledStartsAt: {
-              lt: now,
-            },
-          },
-          orderBy: {
-            scheduledStartsAt: "desc",
-          },
-          take: 1,
-          select: {
-            scheduledStartsAt: true,
-          },
-        },
-      },
-    }),
-  ]);
-
-  const sortedItems = [...items].sort((left, right) => {
-    const leftLastVisitAt = left.bookings[0]?.scheduledStartsAt ?? null;
-    const rightLastVisitAt = right.bookings[0]?.scheduledStartsAt ?? null;
-
-    if (leftLastVisitAt && rightLastVisitAt) {
-      const diff = rightLastVisitAt.getTime() - leftLastVisitAt.getTime();
-      if (diff !== 0) {
-        return diff;
-      }
-    } else if (leftLastVisitAt) {
-      return -1;
-    } else if (rightLastVisitAt) {
-      return 1;
-    }
-
-    return right.createdAt.getTime() - left.createdAt.getTime();
-  });
-
-  return {
-    stats: [
-      { label: "Aktivní", value: String(active), tone: "accent" as const },
-      { label: "Neaktivní", value: String(inactive), tone: "muted" as const },
-    ],
-    items: sortedItems.map((client) => ({
-      id: client.id,
-      title: client.fullName,
-      meta: `${client.email ?? "Bez e-mailu"}${client.phone ? ` • ${formatClientPhoneForDisplay(client.phone)}` : ""}`,
-      description: `Rezervací: ${client._count.bookings}. Poslední návštěva: ${formatDateLabel(client.bookings[0]?.scheduledStartsAt)}.`,
-      badge: client.isActive ? "Aktivní" : "Neaktivní",
-    })),
-  };
-}
-
-async function getCertificatesData(area: AdminArea) {
-  const [publicCertificates, recentCertificates] = await Promise.all([
-    prisma.mediaAsset.count({
-      where: {
-        type: MediaType.CERTIFICATE,
-        isPublished: true,
-      },
-    }),
-    prisma.mediaAsset.findMany({
-      where: {
-        type: MediaType.CERTIFICATE,
-      },
-      orderBy: { createdAt: "desc" },
-      take: 8,
-    }),
-  ]);
-
-  return {
-    stats: [
-      {
-        label: "Veřejné certifikáty",
-        value: String(publicCertificates),
-        tone: "accent" as const,
-      },
-    ],
-    items: recentCertificates.map((asset) => ({
-      id: asset.id,
-      title: asset.title || asset.fileName,
-      meta: `${asset.mimeType} • ${Math.round(asset.size / 1024)} KB`,
-      description: area === "owner"
-        ? `Nahráno ${formatDateLabel(asset.createdAt)} • soubor ${asset.storedFilename}`
-        : `Nahráno ${formatDateLabel(asset.createdAt)}`,
-      badge: asset.isPublished ? "Veřejné" : "Nepublikováno",
-    })),
-  };
-}
-
-async function getServicesData(area: AdminArea) {
-  const [active, inactive, items] = await Promise.all([
-    prisma.service.count({ where: { isActive: true } }),
-    prisma.service.count({ where: { isActive: false } }),
-    prisma.service.findMany({
-      orderBy: [{ isActive: "desc" }, { sortOrder: "asc" }, { name: "asc" }],
-      take: 12,
-      include: { category: { select: { name: true } } },
-    }),
-  ]);
-
-  return {
-    stats: [
-      { label: "Aktivní služby", value: String(active), tone: "accent" as const },
-      { label: "Skryté služby", value: String(inactive), tone: "muted" as const },
-    ],
-    items: items.map((service) => ({
-      id: service.id,
-      title: service.name,
-      meta: `${service.category.name} • ${service.durationMinutes} min`,
-      description:
-        area === "owner"
-          ? `Cena ${service.priceFromCzk ? `${service.priceFromCzk} Kč` : "nenastavena"}. Slug: ${service.slug}.`
-          : `Cena ${service.priceFromCzk ? `${service.priceFromCzk} Kč` : "nenastavena"}.`,
-      badge: service.isActive ? "Aktivní" : "Skryté",
-    })),
-  };
-}
-
-async function getCategoriesData(area: AdminArea) {
-  const [active, items] = await Promise.all([
-    prisma.serviceCategory.count({ where: { isActive: true } }),
-    prisma.serviceCategory.findMany({
-      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-      take: 12,
-      include: {
-        _count: { select: { services: true } },
-      },
-    }),
-  ]);
-
-  return {
-    stats: [{ label: "Aktivní kategorie", value: String(active), tone: "accent" as const }],
-    items: items.map((category) => ({
-      id: category.id,
-      title: category.name,
-      meta: `${category._count.services} služeb • pořadí ${category.sortOrder}`,
-      description:
-        area === "owner"
-          ? `${category.description ?? "Bez popisu."} Slug: ${category.slug}.`
-          : category.description ?? "Kategorie zatím nemá doplněný popis.",
-      badge: category.isActive ? "Aktivní" : "Skryté",
-    })),
-  };
-}
-
 type EmailLogItem = {
   id: string;
   title: string;
@@ -1617,7 +1361,7 @@ function getWorkerSummary({
   return "Fronta je čistá a worker momentálně nedrží žádný aktivní job.";
 }
 
-async function getEmailLogsData(): Promise<EmailLogsDashboardData> {
+export async function getEmailLogsData(): Promise<EmailLogsDashboardData> {
   const now = new Date();
   const { startsAt: todayStart, endsAt: tomorrowStart } = getDayBounds(formatDateKey(now));
   const sevenDayStart = addDays(todayStart, -6);
@@ -2020,32 +1764,5 @@ export async function getEmailLogDetailData(emailLogId: string): Promise<EmailLo
     lastAttemptLabel,
     headerTimestampLabel: emailLog.sentAt ? formatDateTimeLabel(emailLog.sentAt) : lastAttemptLabel,
     headerTimestampTitle: emailLog.sentAt ? "Odesláno" : "Poslední pokus",
-  };
-}
-
-async function getSettingsData() {
-  const items = await prisma.setting.findMany({
-    orderBy: { updatedAt: "desc" },
-    take: 12,
-    include: {
-      updatedByUser: { select: { name: true } },
-    },
-  });
-
-  return {
-    stats: [
-      {
-        label: "Záznamy nastavení",
-        value: String(items.length),
-        tone: "accent" as const,
-      },
-    ],
-    items: items.map((setting) => ({
-      id: setting.id,
-      title: setting.key,
-      meta: `Upraveno ${formatDateTimeLabel(setting.updatedAt)}`,
-      description: `${setting.description ?? "Bez popisu."} Poslední změna: ${setting.updatedByUser?.name ?? "systém"}.`,
-      badge: "Server",
-    })),
   };
 }

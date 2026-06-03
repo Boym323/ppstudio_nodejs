@@ -6,7 +6,6 @@ import { AdminBookingDetailPage } from "@/features/admin/components/admin-bookin
 import { AdminBookingsPage } from "@/features/admin/components/admin-bookings-page";
 import { AdminOverviewPage } from "@/features/admin/components/admin-overview-page";
 import { AdminPageShell, AdminPanel } from "@/features/admin/components/admin-page-shell";
-import { AdminSectionPage } from "@/features/admin/components/admin-section-page";
 import { AdminSettingsPage } from "@/features/admin/components/admin-settings-page";
 import { AdminMediaPage } from "@/features/admin/components/admin-media-page";
 import { AdminClientDetailPage } from "@/features/admin/components/admin-client-detail-page";
@@ -200,7 +199,7 @@ export function createAdminSectionRoute(area: AdminArea) {
       return <AdminUsersPage />;
     }
 
-    return <AdminSectionPage area={area} section={section} />;
+    notFound();
   };
 }
 

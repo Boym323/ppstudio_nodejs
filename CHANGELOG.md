@@ -9,6 +9,11 @@ Formát je inspirovaný Keep a Changelog.
 - Admin seznam klientek v `/admin/klienti` a `/admin/provoz/klienti` už u sloupce `Poslední návštěva` neukazuje `Client.lastBookedAt` z poslední booking aktivity; nově bere poslední minulou rezervaci ve stavu `COMPLETED`, stejně jako detail klientky a CRM souhrn.
 - Řazení `Poslední návštěva` v seznamu klientek je sjednocené se stejnou definicí: klientky s novým budoucím nebo ještě neuzavřeným termínem už kvůli tomu neskáčou nahoru jako kdyby už návštěva proběhla.
 - Stejná oprava platí i pro legacy read model sekce `Klienti` v `admin-section-page`: stručný přehled a jeho pořadí už neberou `Client.lastBookedAt`, ale poslední minulou `COMPLETED` rezervaci.
+- `/admin/email-logy` má nově vlastní explicitní route soubor místo nepřímého průchodu přes dynamické `/admin/[section]` a interní přepojení v `AdminSectionPage`; detail email logu zůstává beze změny.
+- `AdminSectionPage` byla odstraněná: po zavedení explicitní route pro `/admin/email-logy` už fallback neobsluhoval žádnou reálně dosažitelnou sekci. `createAdminSectionRoute(...)` teď po vyčerpání známých sekcí končí `notFound()`.
+- `src/features/admin/lib/admin-data.ts` je po tomto kroku zúžené na skutečně používané exporty. Root `/admin/email-logy` už čte přímo `getEmailLogsData()` a starý obecný sekční switch plus nepoužívané fallback read modely (`slots/clients/media/services/categories/settings`) byly odstraněné.
+- Opravený vizuální kontrast rootu `/admin/email-logy`: route dostala vlastní `layout.tsx` s `AdminShellLayout`, takže znovu běží na tmavém admin shell backgroundu místo světlého veřejného gradientu pod poloprůhlednými kartami.
+- Email logy prošly density passem do provoznější podoby: hlavička používá `denseIntro`, health panel je nižší, filtry i karty posledních emailů mají menší padding a CTA, takže se hlavní seznam dostane výš bez zbytečného „landing page“ dojmu.
 
 ## [0.3.26] - 2026-06-01
 

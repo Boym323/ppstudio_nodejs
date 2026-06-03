@@ -10,19 +10,22 @@ type AdminEmailLogsPageProps = {
 };
 
 export function AdminEmailLogsPage({ area, data }: AdminEmailLogsPageProps) {
+  const compactStats = data.stats.filter((stat) => stat.label !== "Poslední odeslání");
+
   return (
     <AdminPageShell
-      eyebrow={area === "owner" ? "Email observability" : "Provozní sekce"}
-      title="Komunikace se zákaznicemi"
+      eyebrow={area === "owner" ? "E-mailový provoz" : "Provozní sekce"}
+      title="Email logy"
       description={
         area === "owner"
-          ? "Rychlý přehled, jestli emaily fungují, co odešlo naposledy a kde je potřeba zásah."
+          ? "Rychlý provozní přehled doručování, fronty a posledních zpráv."
           : "Zjednodušený přehled e-mailů není v provozní sekci dostupný."
       }
-      stats={data.stats}
+      stats={compactStats}
       compactStats
       slimStats
       compact={area === "salon"}
+      denseIntro
     >
       <AdminEmailLogsWorkspace data={data} />
     </AdminPageShell>
