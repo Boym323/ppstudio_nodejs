@@ -6,6 +6,9 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [0.3.27] - 2026-06-03
+
+- Release příprava pro produkční nasazení: projektová verze navýšena na patch `0.3.27`.
 - Opravená kolize sticky vrstev v admin seznamu rezervací: sticky zůstává jen horní filtrační panel a desktopová hlavička tabulky už se nepřilepuje samostatně, takže nepřekrývá filtry černým pruhem ani se neobjevuje uprostřed seznamu.
 - Admin seznam klientek v `/admin/klienti` a `/admin/provoz/klienti` už u sloupce `Poslední návštěva` neukazuje `Client.lastBookedAt` z poslední booking aktivity; nově bere poslední minulou rezervaci ve stavu `COMPLETED`, stejně jako detail klientky a CRM souhrn.
 - Řazení `Poslední návštěva` v seznamu klientek je sjednocené se stejnou definicí: klientky s novým budoucím nebo ještě neuzavřeným termínem už kvůli tomu neskáčou nahoru jako kdyby už návštěva proběhla.
