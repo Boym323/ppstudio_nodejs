@@ -447,7 +447,7 @@ export async function getAdminSectionData(section: AdminSectionSlug, area: Admin
     case "vouchery":
       throw new Error("Sekce vouchery ma vlastni specializovanou stranku.");
     case "klienti":
-      return getClientsData(area);
+      return getClientsData();
     case "media":
       return getCertificatesData(area);
     case "sluzby":
@@ -1181,32 +1181,68 @@ async function getSlotsData(area: AdminArea) {
   };
 }
 
-async function getClientsData(area: AdminArea) {
+async function getClientsData() {
+  const now = new Date();
   const [active, inactive, items] = await Promise.all([
     prisma.client.count({ where: { isActive: true } }),
     prisma.client.count({ where: { isActive: false } }),
     prisma.client.findMany({
-      orderBy: [{ lastBookedAt: "desc" }, { createdAt: "desc" }],
+      orderBy: [{ createdAt: "desc" }],
       take: 10,
-      include: {
+      select: {
+        id: true,
+        fullName: true,
+        email: true,
+        phone: true,
+        isActive: true,
         _count: { select: { bookings: true } },
+        bookings: {
+          where: {
+            status: BookingStatus.COMPLETED,
+            scheduledStartsAt: {
+              lt: now,
+            },
+          },
+          orderBy: {
+            scheduledStartsAt: "desc",
+          },
+          take: 1,
+          select: {
+            scheduledStartsAt: true,
+          },
+        },
       },
     }),
   ]);
+
+  const sortedItems = [...items].sort((left, right) => {
+    const leftLastVisitAt = left.bookings[0]?.scheduledStartsAt ?? null;
+    const rightLastVisitAt = right.bookings[0]?.scheduledStartsAt ?? null;
+
+    if (leftLastVisitAt && rightLastVisitAt) {
+      const diff = rightLastVisitAt.getTime() - leftLastVisitAt.getTime();
+      if (diff !== 0) {
+        return diff;
+      }
+    } else if (leftLastVisitAt) {
+      return -1;
+    } else if (rightLastVisitAt) {
+      return 1;
+    }
+
+    return right.createdAt.getTime() - left.createdAt.getTime();
+  });
 
   return {
     stats: [
       { label: "Aktivní", value: String(active), tone: "accent" as const },
       { label: "Neaktivní", value: String(inactive), tone: "muted" as const },
     ],
-    items: items.map((client) => ({
+    items: sortedItems.map((client) => ({
       id: client.id,
       title: client.fullName,
       meta: `${client.email ?? "Bez e-mailu"}${client.phone ? ` • ${formatClientPhoneForDisplay(client.phone)}` : ""}`,
-      description:
-        area === "owner"
-          ? `Rezervací: ${client._count.bookings}. Poslední booking: ${formatDateLabel(client.lastBookedAt)}.`
-          : `Rezervací: ${client._count.bookings}. Poslední návštěva: ${formatDateLabel(client.lastBookedAt)}.`,
+      description: `Rezervací: ${client._count.bookings}. Poslední návštěva: ${formatDateLabel(client.bookings[0]?.scheduledStartsAt)}.`,
       badge: client.isActive ? "Aktivní" : "Neaktivní",
     })),
   };

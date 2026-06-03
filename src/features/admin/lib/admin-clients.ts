@@ -190,10 +190,10 @@ function buildClientOrderBy(sort: ClientListSortValue): Prisma.ClientOrderByWith
     case "created":
       return [{ createdAt: "desc" }];
     case "bookings":
-      return [{ bookings: { _count: "desc" } }, { lastBookedAt: "desc" }, { fullName: "asc" }];
+      return [{ bookings: { _count: "desc" } }, { createdAt: "desc" }, { fullName: "asc" }];
     case "recent":
     default:
-      return [{ lastBookedAt: "desc" }, { createdAt: "desc" }];
+      return [{ createdAt: "desc" }];
   }
 }
 
@@ -208,7 +208,8 @@ export async function getAdminClientsPageData(
   searchParams?: Record<string, string | string[] | undefined>,
 ) {
   const filters = normalizeSearchParams(searchParams);
-  const recentThreshold = new Date();
+  const now = new Date();
+  const recentThreshold = new Date(now);
   recentThreshold.setDate(recentThreshold.getDate() - 30);
   const where = buildClientWhere(filters, recentThreshold);
 
@@ -225,8 +226,14 @@ export async function getAdminClientsPageData(
     prisma.client.count({ where: hasInternalNoteWhere() }),
     prisma.client.count({
       where: {
-        lastBookedAt: {
-          gte: recentThreshold,
+        bookings: {
+          some: {
+            status: BookingStatus.COMPLETED,
+            scheduledStartsAt: {
+              gte: recentThreshold,
+              lt: now,
+            },
+          },
         },
       },
     }),
@@ -239,9 +246,34 @@ export async function getAdminClientsPageData(
             bookings: true,
           },
         },
+        bookings: {
+          where: {
+            status: BookingStatus.COMPLETED,
+            scheduledStartsAt: {
+              lt: now,
+            },
+          },
+          orderBy: {
+            scheduledStartsAt: "desc",
+          },
+          take: 1,
+          select: {
+            scheduledStartsAt: true,
+          },
+        },
       },
     }),
   ]);
+
+  const normalizedClients = sortClientsForList(
+    clients.map((client) => ({
+      ...client,
+      email: client.email ?? "",
+      lastVisitAt: client.bookings[0]?.scheduledStartsAt ?? null,
+      isTestRecord: isTestClientRecord(client.fullName, client.email),
+    })),
+    filters.sort,
+  );
 
   return {
     area,
@@ -272,13 +304,66 @@ export async function getAdminClientsPageData(
         detail: "Profily s interním kontextem.",
       },
     ],
-    clients: clients.map((client) => ({
-      ...client,
-      email: client.email ?? "",
-      isTestRecord: isTestClientRecord(client.fullName, client.email),
-    })),
+    clients: normalizedClients,
     currentPath: area === "owner" ? "/admin/klienti" : "/admin/provoz/klienti",
   };
+}
+
+function sortClientsForList<
+  T extends {
+    fullName: string;
+    createdAt: Date;
+    lastVisitAt: Date | null;
+    _count: {
+      bookings: number;
+    };
+  },
+>(clients: T[], sort: ClientListSortValue) {
+  const sortedClients = [...clients];
+
+  switch (sort) {
+    case "bookings":
+      return sortedClients.sort((left, right) => {
+        const bookingsDiff = right._count.bookings - left._count.bookings;
+        if (bookingsDiff !== 0) {
+          return bookingsDiff;
+        }
+
+        const visitDiff = compareDatesDesc(left.lastVisitAt, right.lastVisitAt);
+        if (visitDiff !== 0) {
+          return visitDiff;
+        }
+
+        return left.fullName.localeCompare(right.fullName, "cs-CZ");
+      });
+    case "recent":
+      return sortedClients.sort((left, right) => {
+        const visitDiff = compareDatesDesc(left.lastVisitAt, right.lastVisitAt);
+        if (visitDiff !== 0) {
+          return visitDiff;
+        }
+
+        return right.createdAt.getTime() - left.createdAt.getTime();
+      });
+    default:
+      return sortedClients;
+  }
+}
+
+function compareDatesDesc(left: Date | null, right: Date | null) {
+  if (left && right) {
+    return right.getTime() - left.getTime();
+  }
+
+  if (left) {
+    return -1;
+  }
+
+  if (right) {
+    return 1;
+  }
+
+  return 0;
 }
 
 function isTestClientRecord(fullName: string, email: string | null) {

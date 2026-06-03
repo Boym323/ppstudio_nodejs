@@ -14,7 +14,7 @@ type AdminClientsListProps = {
     email: string;
     phone: string | null;
     isActive: boolean;
-    lastBookedAt: Date | null;
+    lastVisitAt: Date | null;
     internalNote: string | null;
     _count: {
       bookings: number;
@@ -86,7 +86,7 @@ export function AdminClientsList({
               <ContactCell email={client.email} phone={client.phone} />
 
               <p className="text-white/72">{client._count.bookings}</p>
-              <p className="truncate text-white/68">{formatDateLabel(client.lastBookedAt).toLocaleLowerCase("cs-CZ")}</p>
+              <p className="truncate text-white/68">{formatDateLabel(client.lastVisitAt).toLocaleLowerCase("cs-CZ")}</p>
               <NoteBadge hasNote={hasNote(client.internalNote)} />
               <StatusBadge isActive={client.isActive} />
               <span
@@ -122,7 +122,7 @@ export function AdminClientsList({
 
               <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
                 <MetaCell label="Rezervace" value={String(client._count.bookings)} />
-                <MetaCell label="Poslední návštěva" value={formatDateLabel(client.lastBookedAt).toLocaleLowerCase("cs-CZ")} />
+                <MetaCell label="Poslední návštěva" value={formatDateLabel(client.lastVisitAt).toLocaleLowerCase("cs-CZ")} />
                 <MetaCell label="Poznámka" value={hasNote(client.internalNote) ? "ano" : "bez poznámky"} />
                 <span className="inline-flex items-center justify-center rounded-full border border-white/10 px-3 py-2 text-sm font-medium text-white/82">
                   Detail

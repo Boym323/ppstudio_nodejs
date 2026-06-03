@@ -6,6 +6,10 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Admin seznam klientek v `/admin/klienti` a `/admin/provoz/klienti` už u sloupce `Poslední návštěva` neukazuje `Client.lastBookedAt` z poslední booking aktivity; nově bere poslední minulou rezervaci ve stavu `COMPLETED`, stejně jako detail klientky a CRM souhrn.
+- Řazení `Poslední návštěva` v seznamu klientek je sjednocené se stejnou definicí: klientky s novým budoucím nebo ještě neuzavřeným termínem už kvůli tomu neskáčou nahoru jako kdyby už návštěva proběhla.
+- Stejná oprava platí i pro legacy read model sekce `Klienti` v `admin-section-page`: stručný přehled a jeho pořadí už neberou `Client.lastBookedAt`, ale poslední minulou `COMPLETED` rezervaci.
+
 ## [0.3.26] - 2026-06-01
 
 - Release příprava pro produkční nasazení: projektová verze navýšena na patch `0.3.26`.
