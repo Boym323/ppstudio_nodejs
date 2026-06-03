@@ -54,6 +54,7 @@ async function AdminBookingsPageContent({
 
   return (
     <AdminPageShell
+      eyebrow="Provoz rezervací"
       title="Rezervace"
       description="Provozní přehled rezervací, potvrzení a ručního přidání."
       headerActions={
@@ -71,8 +72,8 @@ async function AdminBookingsPageContent({
       <CompactKpiStrip kpis={data.kpis} />
 
       <AdminPanel
-        title={area === "owner" ? "Pracovní seznam" : "Rezervace k obsluze"}
-        description="Čekající rezervace zůstávají nahoře, filtry i akce jsou v jednom pracovním toku."
+        title="Pracovní seznam rezervací"
+        description="Čekající rezervace zůstávají nahoře, filtry i akce jsou v jednom toku."
         compact
         denseHeader
       >

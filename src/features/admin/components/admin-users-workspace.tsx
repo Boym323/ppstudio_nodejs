@@ -21,7 +21,7 @@ export function AdminUsersWorkspace({
       <div className="rounded-[1.4rem] border border-white/10 bg-white/[0.04] px-4 py-4 sm:px-5">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <p className="max-w-2xl text-sm leading-6 text-white/70">
-            Kdo má přístup, jakou má roli a co s ním lze udělat uvidíte hned bez dalšího rozklikávání.
+            Hned vidíte, kdo má přístup, jakou má roli a jaké akce jsou k dispozici.
           </p>
           <button
             type="button"

@@ -10,8 +10,8 @@ export function RoleCards({
 }) {
   return (
     <AdminPanel
-      title="Role a oprávnění"
-      description="Pouze dvě jasné role bez dalších meziúrovní a bez složité správy oprávnění."
+      title="Přehled rolí"
+      description="Dvě jasné role bez dalších meziúrovní a bez složité správy oprávnění."
       denseHeader
     >
       <div className="grid gap-4">

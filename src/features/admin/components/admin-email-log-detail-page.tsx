@@ -40,9 +40,9 @@ export function AdminEmailLogDetailPage({ data, flashMessage }: AdminEmailLogDet
 
   return (
     <AdminPageShell
-      eyebrow="Email logy"
-      title="Detail emailu"
-      description="Nejdřív provozní kontext, technický detail až pod ním."
+      eyebrow="E-mailový provoz"
+      title="Detail e-mailu"
+      description="Provozní kontext nahoře, technický detail až když je potřeba."
       compact
       denseIntro
     >
@@ -121,7 +121,7 @@ function EmailQuickActions({ data }: { data: EmailLogDetailData }) {
   const retryHint = getRetryHint(data);
 
   return (
-    <AdminPanel title="Rychlé akce" compact denseHeader tighter>
+    <AdminPanel title="Akce" compact denseHeader tighter>
       <div className="flex flex-col gap-2.5 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex flex-wrap items-center gap-2">
           <Link
@@ -207,7 +207,7 @@ function EmailSummaryGrid({ data }: { data: EmailLogDetailData }) {
   ];
 
   return (
-    <AdminPanel title="Souhrn" compact denseHeader tighter className="h-full">
+    <AdminPanel title="Souhrn e-mailu" compact denseHeader tighter className="h-full">
       <dl className="divide-y divide-white/8">
         {items.map((item) => (
           <div key={item.label} className="grid gap-1 py-1.5 sm:grid-cols-[6.8rem_minmax(0,1fr)] sm:items-start sm:gap-3">
@@ -251,8 +251,8 @@ function EmailTechnicalDetails({
 }) {
   return (
     <AdminPanel
-      title="Technické detaily"
-      description="Payload a debug až když jsou potřeba."
+      title="Technický detail"
+      description="Payload a debug až když jsou opravdu potřeba."
       compact
       denseHeader
       tighter
@@ -303,7 +303,7 @@ function EmailErrorPanel({ data }: { data: EmailLogDetailData }) {
   return (
     <AdminPanel
       title="Poslední chyba"
-      description="Stručný kontext nahoře, detail až pod ním."
+      description="Krátký kontext nahoře, detail až pod ním."
       compact
       denseHeader
       tighter
@@ -375,7 +375,7 @@ function LinkedEntityRow({
             </p>
             <details className="mt-1.5">
               <summary className="list-none cursor-pointer text-sm font-medium text-[var(--color-accent-soft)] [&::-webkit-details-marker]:hidden">
-                Zobrazit
+                Zobrazit celý token
               </summary>
               <p className="mt-1.5 break-all rounded-[0.8rem] border border-white/10 bg-black/20 px-2.5 py-1.5 text-xs leading-5 text-white/76">
                 {sensitiveValue}

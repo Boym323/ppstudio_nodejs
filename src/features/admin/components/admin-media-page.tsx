@@ -98,38 +98,38 @@ function getEmptyStateCopy(activeFilter: FilterTabValue) {
     case MediaType.CERTIFICATE:
       return {
         title: 'Zatím nejsou nahrané žádné certifikáty',
-        description: 'Nahrajte další obrázek a hned nastavte titulek, alt text i publikaci.',
-        cta: 'Nahrát obrázek',
+        description: 'Nahrajte první médium a rovnou nastavte titulek, alt text i publikaci.',
+        cta: 'Nahrát médium',
       };
     case MediaType.SALON_PHOTO:
       return {
         title: 'Zatím nejsou nahrané žádné fotky prostor',
         description: 'Přidejte fotografie studia, které se propíšou do veřejné stránky Studio.',
-        cta: 'Nahrát obrázek',
+        cta: 'Nahrát médium',
       };
     case contactPhotoMediaType:
       return {
         title: 'Zatím není nahraná žádná fotka pro kontakt',
         description: 'Přidejte samostatnou hero fotografii pro kontaktní stránku.',
-        cta: 'Nahrát obrázek',
+        cta: 'Nahrát médium',
       };
     case MediaType.PORTRAIT_HOME:
       return {
         title: 'Zatím není nahraný portrét pro homepage',
         description: 'Nahrajte portrét, který se zobrazí pouze v hero na homepage.',
-        cta: 'Nahrát obrázek',
+        cta: 'Nahrát médium',
       };
     case MediaType.PORTRAIT_ABOUT:
       return {
         title: 'Zatím není nahraný portrét pro stránku O mně',
         description: 'Nahrajte portrét, který se zobrazí pouze v hero sekci O mně.',
-        cta: 'Nahrát obrázek',
+        cta: 'Nahrát médium',
       };
     default:
       return {
         title: 'Zatím nejsou nahrané žádné obrázky',
-        description: 'Začněte prvním uploadem a knihovna se tady okamžitě naplní.',
-        cta: 'Nahrát první obrázek',
+        description: 'Začněte prvním uploadem a knihovna se tady hned naplní.',
+        cta: 'Nahrát první médium',
       };
   }
 }
@@ -186,9 +186,9 @@ export async function AdminMediaPage({
 
   return (
     <AdminPageShell
-      eyebrow={area === 'owner' ? 'Média webu' : 'Provozní média'}
-      title="Média webu"
-      description="Rychlá správa obrázků pro web. Certifikáty jsou jen jeden z typů médií, které tu můžete nahrát a spravovat."
+      eyebrow="Obsah webu"
+      title="Média"
+      description="Správa obrázků pro web, certifikátů a dalších mediálních podkladů na jednom místě."
       stats={[
         { label: 'Celkem médií', value: String(visibleAssets.length), tone: 'default' },
         { label: 'Publikováno', value: String(publishedCount), tone: 'accent' },
@@ -213,8 +213,8 @@ export async function AdminMediaPage({
       <div className="grid gap-4 xl:grid-cols-[minmax(0,0.88fr)_minmax(0,1.12fr)] xl:items-start">
         <MediaUploadForm area={area} activeFilter={activeFilter} />
         <AdminPanel
-          title="Knihovna obrázků"
-          description="Filtrujte podle typu, rychle měňte publikaci a hned vidíte, kde se obrázek na webu používá."
+          title="Knihovna médií"
+          description="Filtrujte podle typu, měňte publikaci a hned vidíte, kde se médium na webu používá."
           compact={area === 'salon'}
           denseHeader
         >
@@ -231,8 +231,8 @@ export function MediaUploadForm({ area, activeFilter }: { area: AdminArea; activ
 
   return (
     <AdminPanel
-      title="Nahrát obrázek"
-      description="Kompaktní upload pro rychlé doplnění typu, titulku a alt textu."
+      title="Nahrát médium"
+      description="Rychlý upload s typem, titulkem a alt textem."
       compact={area === 'salon'}
       denseHeader
     >
@@ -302,7 +302,7 @@ export function MediaUploadForm({ area, activeFilter }: { area: AdminArea; activ
             type="submit"
             className="rounded-full bg-[var(--color-accent)] px-5 py-2.5 text-sm font-semibold text-[var(--color-accent-contrast)] transition hover:brightness-105"
           >
-            Nahrát obrázek
+            Nahrát médium
           </button>
         </div>
       </form>

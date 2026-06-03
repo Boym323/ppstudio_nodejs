@@ -14,6 +14,10 @@ Formát je inspirovaný Keep a Changelog.
 - `src/features/admin/lib/admin-data.ts` je po tomto kroku zúžené na skutečně používané exporty. Root `/admin/email-logy` už čte přímo `getEmailLogsData()` a starý obecný sekční switch plus nepoužívané fallback read modely (`slots/clients/media/services/categories/settings`) byly odstraněné.
 - Opravený vizuální kontrast rootu `/admin/email-logy`: route dostala vlastní `layout.tsx` s `AdminShellLayout`, takže znovu běží na tmavém admin shell backgroundu místo světlého veřejného gradientu pod poloprůhlednými kartami.
 - Email logy prošly density passem do provoznější podoby: hlavička používá `denseIntro`, health panel je nižší, filtry i karty posledních emailů mají menší padding a CTA, takže se hlavní seznam dostane výš bez zbytečného „landing page“ dojmu.
+- Sjednocení intro copy napříč admin sekcemi: kratší provozní eyebrow/title/description u rezervací, kategorií, médií, nastavení, přístupů a e-mailových logů, plus sladění názvů v admin navigaci.
+- Sekundární panel copy v adminu je sjednocené stejným provozním tónem: kratší názvy a popisy u nastavení, přístupů, médií, rezervací a detailu e-mail logu.
+- Mikrocopy v adminu je sladěné i v CTA a empty states: `Reset filtrů`, `Nahrát médium`, čitelnější české empty states a provozní labely v e-mail observability.
+- Sidebar popisy admin sekcí jsou kratší a skenovatelnější, aby seděly s kompaktním provozním tónem celého adminu.
 
 ## [0.3.26] - 2026-06-01
 

@@ -231,7 +231,7 @@ export function DashboardTodayHero({ data }: DashboardPageProps) {
       <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-center">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <h1 className="text-base font-semibold text-white">Dnešní provoz</h1>
+            <h1 className="text-base font-semibold text-white">Provozní přehled</h1>
             <span className="text-sm font-medium text-white/52">{data.todayLabel}</span>
           </div>
 

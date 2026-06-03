@@ -185,7 +185,7 @@ function EmailHealthPanel({ data }: { data: EmailLogsDashboardData }) {
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-[0.62rem] uppercase tracking-[0.18em] text-white/52">
-              Health stav
+              Stav provozu
             </span>
             <span
               className={`rounded-full border px-2.5 py-0.5 text-[0.62rem] font-semibold uppercase tracking-[0.16em] ${healthBadgeStyles[data.health.tone]}`}
@@ -302,7 +302,7 @@ function EmailFilters({
             }}
             className="inline-flex h-9 items-center rounded-full border border-white/10 px-4 text-sm text-white/74 transition hover:border-white/18 hover:bg-white/6 hover:text-white"
           >
-            Vymazat
+            Reset filtrů
           </button>
         </div>
       </div>
@@ -351,9 +351,9 @@ function RecentEmailList({
   if (emails.length === 0) {
     return (
       <div className="rounded-[1.25rem] border border-dashed border-white/14 bg-white/4 p-5">
-        <p className="text-base font-medium text-white">Žádné emaily neodpovídají vybranému filtru.</p>
+        <p className="text-base font-medium text-white">Žádné e-maily neodpovídají zvolenému filtru.</p>
         <p className="mt-2 text-sm leading-6 text-white/62">
-          Zkus upravit stav, typ nebo hledání příjemce.
+          Uprav stav, typ nebo hledání příjemce.
         </p>
       </div>
     );
@@ -565,7 +565,7 @@ function EmailQueueDebugSection({ data }: { data: EmailLogsDashboardData }) {
           <AdminPanel title="Pending fronta" description="Čeká na první průchod." compact denseHeader tighter>
             <AdminKeyValueList
               items={data.pendingItems}
-              emptyTitle="Žádné pending emaily."
+              emptyTitle="Žádné čekající e-maily."
               emptyDescription="Fronta je čistá."
             />
           </AdminPanel>
@@ -573,7 +573,7 @@ function EmailQueueDebugSection({ data }: { data: EmailLogsDashboardData }) {
           <AdminPanel title="Retry pokusy" description="Čekají na další pokus." compact denseHeader tighter>
             <AdminKeyValueList
               items={data.retryingItems}
-              emptyTitle="Žádné retry emaily."
+              emptyTitle="Žádné e-maily v retry."
               emptyDescription="Retry fronta je prázdná."
             />
           </AdminPanel>
@@ -581,7 +581,7 @@ function EmailQueueDebugSection({ data }: { data: EmailLogsDashboardData }) {
           <AdminPanel title="Poslední chyby" description="Záznamy ke kontrole." compact denseHeader tighter>
             <AdminKeyValueList
               items={data.failedItems}
-              emptyTitle="Žádné failed emaily."
+              emptyTitle="Žádné chybové e-maily."
               emptyDescription="Bez čerstvých chyb."
             />
           </AdminPanel>

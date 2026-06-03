@@ -58,9 +58,9 @@ export function AdminSettingsPage({
 }) {
   return (
     <AdminPageShell
-      eyebrow="Full Admin sekce"
+      eyebrow="Provozní nastavení"
       title="Nastavení"
-      description="Jedno klidné místo pro veřejné kontakty salonu, globální pravidla rezervace a základní e-mailové odesílání. Nic pro služby, sloty ani jednotlivé rezervace."
+      description="Kontakty salonu, společná pravidla rezervací a základní provozní komunikace na jednom místě."
       stats={[
         {
           label: "Naposledy uložené",
@@ -91,36 +91,36 @@ export function AdminSettingsPage({
 
       <div className="grid gap-6">
         <AdminPanel
-          title="Salon"
-          description="Veřejné kontaktní údaje pro web i e-maily."
+          title="Kontakty salonu"
+          description="Veřejné kontakty pro web, e-maily a PDF voucher."
         >
           <AdminSalonSettingsForm settings={settings} />
         </AdminPanel>
 
         <AdminPanel
-          title="Rezervace"
-          description="Jen společná pravidla pro celý rezervační systém."
+          title="Pravidla rezervací"
+          description="Společná pravidla, která platí pro celý rezervační systém."
         >
           <AdminBookingSettingsForm settings={settings} />
         </AdminPanel>
 
         <AdminPanel
-          title="E-maily a notifikace"
-          description="Základní komunikace směrem ke klientce a provozu."
+          title="E-mailová komunikace"
+          description="Odesílatel, patička a základní provozní notifikace."
         >
           <AdminEmailSettingsForm settings={settings} />
         </AdminPanel>
 
         <AdminPanel
-          title="Kalendář"
-          description="Bezpečný odebíraný `.ics` kalendář pro Apple Kalendář a iCloud."
+          title="Sdílený kalendář"
+          description="Chráněný `.ics` feed pro Apple Kalendář a iCloud."
         >
           <AdminCalendarSettingsForm feed={settings.calendarFeed} />
         </AdminPanel>
 
         <AdminPanel
-          title="Pushover notifikace"
-          description="Owner-only rychlá upozornění na rezervace a provozní chyby."
+          title="Pushover upozornění"
+          description="Owner-only upozornění na rezervace a provozní chyby."
         >
           <AdminPushoverSettingsForm settings={settings.pushover} />
         </AdminPanel>

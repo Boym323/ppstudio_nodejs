@@ -7,9 +7,9 @@ export async function AdminUsersPage() {
 
   return (
     <AdminPageShell
-      eyebrow="Správa přístupů"
-      title="Uživatelé / role"
-      description="Jednoduchá owner-only sekce pro správu přístupů v PP Studio. Bez technického balastu, bez dalších mezirolí a s jasným rozlišením mezi běžnými a systémovými účty."
+      eyebrow="Přístupy a role"
+      title="Přístupy"
+      description="Owner-only správa přístupů, rolí a systémových účtů bez zbytečné složitosti."
       stats={data.stats}
     >
       <AdminUsersWorkspace users={data.users} roleCards={data.roleCards} />

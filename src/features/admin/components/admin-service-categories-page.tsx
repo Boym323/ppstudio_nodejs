@@ -16,12 +16,12 @@ export async function AdminServiceCategoriesPage({
 
   return (
     <AdminPageShell
-      eyebrow={area === "owner" ? "Struktura katalogu" : "Pořadí nabídky"}
+      eyebrow="Struktura nabídky"
       title="Kategorie služeb"
       description={
         area === "owner"
-          ? "Strukturace katalogu pro každodenní provoz: pořadí, stav, warningy i rychlý detail bez zbytečného přepínání."
-          : "Rychlá orientace v kategoriích, které drží nabídku salonu přehlednou a připravenou pro booking."
+          ? "Pořadí, stav a warningy kategorií na jednom místě, aby katalog zůstal přehledný."
+          : "Rychlá kontrola kategorií, které drží nabídku salonu srozumitelnou pro provoz i booking."
       }
       compact={area === "salon"}
     >
