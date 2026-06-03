@@ -132,9 +132,10 @@ Praktický postup:
 3. Uprav minimálně `DATABASE_URL`, `SHADOW_DATABASE_URL`, `ADMIN_SESSION_SECRET` a lokální `NEXT_PUBLIC_APP_URL`.
 4. Připrav PostgreSQL databázi pro hlavní i shadow DB.
 5. Spusť `npm install`.
-6. Spusť `npm run db:migrate` pro lokální Prisma migrace.
-7. Spusť `npm run dev`.
-8. Otevři `http://localhost:3000`.
+6. Spusť `npm run db:generate`.
+7. Spusť `npm run db:migrate` pro lokální Prisma migrace.
+8. Spusť `npm run dev`.
+9. Otevři `http://localhost:3000`.
 
 ### 3. První přihlášení do adminu
 

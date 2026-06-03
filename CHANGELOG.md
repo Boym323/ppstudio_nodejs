@@ -6,6 +6,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Opravená dokumentační nejednotnost v onboardingu a provozních docs: `README.md` znovu explicitně uvádí `npm run db:generate` v krokovém lokálním setupu, `MANUAL.md` má aktuální verze `next 16.2.6` a `prisma 7.8.0` a `docs/DEPLOYMENT.md` odpovídá současnému chování dashboard sekce `Vyžaduje pozornost`.
+
 ## [0.3.27] - 2026-06-03
 
 - Release příprava pro produkční nasazení: projektová verze navýšena na patch `0.3.27`.
