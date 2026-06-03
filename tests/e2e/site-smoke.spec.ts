@@ -148,17 +148,17 @@ test.describe("admin site smoke coverage", () => {
     await loginAdmin(page, admin.email, admin.password);
 
     const ownerPages: Array<{ path: string; heading: RegExp | string }> = [
-      { path: "/admin", heading: "Dnešní provoz" },
+      { path: "/admin", heading: "Provozní přehled" },
       { path: "/admin/rezervace", heading: "Rezervace" },
-      { path: "/admin/volne-terminy", heading: /Týden|Volné termíny/ },
+      { path: "/admin/volne-terminy", heading: /Týdenní plán|Volné termíny/ },
       { path: "/admin/vouchery", heading: "Vouchery" },
       { path: "/admin/vouchery/novy", heading: "Vytvořit voucher" },
       { path: "/admin/klienti", heading: "Klienti" },
-      { path: "/admin/media", heading: "Média webu" },
+      { path: "/admin/media", heading: "Média" },
       { path: "/admin/sluzby", heading: "Služby" },
       { path: "/admin/kategorie-sluzeb", heading: "Kategorie služeb" },
-      { path: "/admin/uzivatele", heading: "Uživatelé / role" },
-      { path: "/admin/email-logy", heading: "Komunikace se zákaznicemi" },
+      { path: "/admin/uzivatele", heading: "Přístupy" },
+      { path: "/admin/email-logy", heading: "Email logy" },
       { path: "/admin/nastaveni", heading: "Nastavení" },
     ];
 
@@ -179,13 +179,13 @@ test.describe("admin site smoke coverage", () => {
     await loginAdmin(page, admin.email, admin.password);
 
     const salonPages: Array<{ path: string; heading: RegExp | string }> = [
-      { path: "/admin/provoz", heading: "Dnešní provoz" },
+      { path: "/admin/provoz", heading: "Provozní přehled" },
       { path: "/admin/provoz/rezervace", heading: "Rezervace" },
-      { path: "/admin/provoz/volne-terminy", heading: /Týden|Plán provozu/ },
+      { path: "/admin/provoz/volne-terminy", heading: /Týdenní plán|Volné termíny/ },
       { path: "/admin/provoz/vouchery", heading: "Vouchery" },
       { path: "/admin/provoz/vouchery/novy", heading: "Vytvořit voucher" },
       { path: "/admin/provoz/klienti", heading: "Klienti" },
-      { path: "/admin/provoz/media", heading: "Média webu" },
+      { path: "/admin/provoz/media", heading: "Média" },
       { path: "/admin/provoz/sluzby", heading: "Služby" },
       { path: "/admin/provoz/kategorie-sluzeb", heading: "Kategorie služeb" },
     ];
@@ -198,6 +198,6 @@ test.describe("admin site smoke coverage", () => {
 
     await page.goto("/admin/nastaveni");
     await expect(page).toHaveURL(/\/admin\/provoz/);
-    await expect(page.getByRole("heading", { name: "Dnešní provoz" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Provozní přehled" })).toBeVisible();
   });
 });

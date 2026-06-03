@@ -89,8 +89,8 @@ Seznam důležitých knihoven a důvod jejich použití.
 - UX refaktor pracovního přehledu `Rezervace` také nepřidává novou závislost; klikací statistiky, URL-driven filtr toolbar i seskupení seznamu používají jen stávající Next.js App Router, `next/form`, React a Prisma vrstvu.
 - Admin login rate limit také nepřidává novou závislost; používá stávající Prisma model `BookingSubmissionLog` a vestavěný Node.js `crypto` pro hash fingerprintů.
 - Stabilizační refaktor `booking-public`, `booking-flow` a `admin-slots` také nepřidává žádnou novou runtime ani dev dependency; jde čistě o přesun stávající logiky do menších interních modulů.
-- Modul `Média webu` také nepřidává žádnou novou závislost; upload, metadata, filtr typů i publish stav běží na stávajícím stacku Next.js, React, Prisma, Zod, Node filesystem a `image-size`.
-- UX refaktor `Média webu` také nepřidává žádnou novou závislost; dropzóna, tabs s počty, quick publish/unpublish i kompaktní edit dialog běží na stávajících React/Next primitives.
+- Modul `Média` také nepřidává žádnou novou závislost; upload, metadata, filtr typů i publish stav běží na stávajícím stacku Next.js, React, Prisma, Zod, Node filesystem a `image-size`.
+- UX refaktor `Média` také nepřidává žádnou novou závislost; dropzóna, tabs s počty, quick publish/unpublish i kompaktní edit dialog běží na stávajících React/Next primitives.
 - Rozdělení portrétů na `PORTRAIT_HOME` a `PORTRAIT_ABOUT` také nepřidává žádnou novou závislost; používá stávající `MediaAsset` model, Prisma enum a public media helpery.
 - Veřejná stránka `/studio` nepřidává žádnou novou závislost; galerii skládá z existující media vrstvy a `next/image`.
 - Hardening `/studio` proti orphan media záznamům nepřidává žádnou novou závislost; používá stávající `localMediaStorage` a Node `fs` pro dev-only fallback `public/dev/studio/*`.
@@ -137,7 +137,7 @@ Seznam důležitých knihoven a důvod jejich použití.
 - Admin role-aware dashboardy používají jen existující Next.js, Prisma a React primitives; nepřidávali jsme další admin UI knihovnu ani CMS vrstvu.
 - Nový operativní admin dashboard overview také běží bez nové ikonové nebo chart knihovny; používá Tailwind utility classes, lokální SVG ikony a serverový read model nad existující Prisma vrstvou.
 - Konsolidace owner/salon admin route wrapperů do shared factory patternu proběhla bez přidání nové knihovny.
-- Přestavba owner sekce `Uživatelé / role` také zůstává bez nové UI nebo auth závislosti; používá jen stávající Next.js server actions, React klientské komponenty, Prisma a Zod.
+- Přestavba owner sekce `Přístupy` také zůstává bez nové UI nebo auth závislosti; používá jen stávající Next.js server actions, React klientské komponenty, Prisma a Zod.
 - Invite aktivace a DB hesla pro admin přístupy byly přidané bez nové auth knihovny; tokeny i hash hesel běží na vestavěném Node.js `crypto` (`sha256`, `scrypt`).
 - Admin workflow pro služby (seznam, filtry, editace a validační vrstva) bylo doplněné čistě nad existujícím stackem Next.js, React, Prisma a Zod.
 - Rozšíření katalogu o public/pricing metadata zůstává čistě v současném stacku Prisma + Next.js server actions; nepřidává CMS, feature flag službu ani externí content backend.

@@ -114,12 +114,12 @@ Detailní seznam všech env proměnných je v [`docs/ENVIRONMENT.md`](/var/www/p
 - Admin dashboard může tato data číst přes `/api/admin/analytics`; endpoint je přístupný jen pro přihlášené role `OWNER` a `SALON`, vrací pouze agregované počty bez PII a při interní chybě spadne na bezpečný JSON fallback.
 - Pro dashboard je připravená klientská komponenta `src/components/admin/AnalyticsWidget.tsx`; sama řeší `fetch('/api/admin/analytics')`, loading, error a kompaktní souhrn `Výkon webu` s návštěvami, rezervacemi a mírou rezervace.
 - Rozbalení `Zobrazit analytiku` obsahuje i mini sekci `Kvalita kontaktního kroku`: `zahájeno`, `fokus pole`, `začátek vyplnění`, `chyba pole` + procenta vůči `Kontakt zahájen`.
-- Admin přehled je kompaktní denní provozní cockpit: hlavní osa je `Dnešní provoz -> Vyžaduje pozornost -> provozní KPI -> Dnešní plán / Nejbližší volné termíny`, zatímco rychlé akce, týdenní souhrn a výkon webu jsou v pravém sloupci jako podpůrné bloky. Na desktopu je horní část záměrně nízká, aby byl bez dlouhého scrollu vidět hlavní provoz dne.
+- Admin přehled je kompaktní denní provozní cockpit: hlavní osa je `Provozní přehled -> Vyžaduje pozornost -> provozní KPI -> Dnešní plán / Nejbližší volné termíny`, zatímco rychlé akce, týdenní souhrn a výkon webu jsou v pravém sloupci jako podpůrné bloky. Na desktopu je horní část záměrně nízká, aby byl bez dlouhého scrollu vidět hlavní provoz dne.
 - Blok `Vyžaduje pozornost` se vykreslí jen když existuje alespoň jeden actionable alert (`emphasis !== ok`); pokud nic nehoří, blok se úplně skryje. Pokud alerty existují, UI zvýrazní jeden primární alert (`emphasis=primary`, případně první dostupný) a ostatní drží jako kompaktní sekundární položky.
 - Pokud je blok `Vyžaduje pozornost` zobrazený, alert text na mobilu se musí lámat do více řádků (bez `truncate`) a CTA může padat pod text; karta nesmí horizontálně přetékat mimo viewport.
 - Actionable alerty v `Vyžaduje pozornost` aktuálně pokrývají jen skutečně akční provozní problémy: čekající rezervace na potvrzení, selhané e-maily a rezervace po konci termínu čekající na uzavření.
 - Absence slotů dnes/zítra není sama o sobě problém: sekce `Nejbližší volné termíny` používá neutrální text (`Momentálně nejsou publikované žádné nadcházející volné termíny.`) a pokud existují draft sloty, zobrazí stav s počtem návrhů čekajících na publikování a odkazem do dostupnosti.
-- Rychlé akce v pravém sloupci nejsou primární místo pro vytvoření rezervace; hlavní CTA zůstává nahoře v `Dnešní provoz`. Pravý blok drží podpůrné vstupy `Rezervace`, `Dostupnost`, `Klienti` a `Vouchery`.
+- Rychlé akce v pravém sloupci nejsou primární místo pro vytvoření rezervace; hlavní CTA zůstává nahoře v `Provozní přehled`. Pravý blok drží podpůrné vstupy `Rezervace`, `Dostupnost`, `Klienti` a `Vouchery`.
 - Detailní zdroje návštěv a funnel jsou v dashboardu až v rozbalení `Zobrazit analytiku`, aby hlavní obrazovka nezobrazovala matoucí analytické hodnoty před provozními úkoly.
 - Sekce `Zdroje návštěv` v tomto widgetu kombinuje Matomo kampaně a referrer typy do business názvů `Instagram`, `Firmy`, `Google`, `Přímý vstup` nebo `Ostatní`; rezervace u zdrojů jsou výslovně jen orientační odhad podle podílu návštěv na dokončených `Rezervace / Vytvořena`, ne přesná atribuce.
 - Když je Matomo reporting rozbitý nebo zamčený, dashboard už neukazuje jen obecné nuly: `/api/admin/analytics` vrací i stav reportingu a widget vypíše provozní hlášku. Rychlá serverová kontrola funguje přes `npm run analytics:check`.
@@ -283,7 +283,7 @@ Detailní seznam všech env proměnných je v [`docs/ENVIRONMENT.md`](/var/www/p
   - `EMAIL_DELIVERY_MODE=log`: záznam se oznaci jako odeslany v log rezimu bez SMTP odeslani.
 - Email worker pro PDF prilohu importuje worker-safe `src/features/vouchers/lib/voucher-pdf-core.ts`; Next.js wrapper `src/features/vouchers/lib/voucher-pdf.ts` zustava jen pro admin routy s `import "server-only"`.
 - Email vzdy obsahuje jen bezpecna data (typ, hodnota nebo sluzba, kod, platnost, overovaci URL, instrukce) a PDF prilohu `voucher-KOD.pdf`; nikdy neobsahuje `internalNote`, historii cerpani ani technicka ID.
-- PDF voucheru obsahuje pouze veřejně bezpečné údaje: samostatné logo z `Média webu` vybrané v `/admin/nastaveni`, případně textové logo `PP Studio`, typ a hodnotu/službu, kód, platnost, QR ověření, kontakty salonu a krátké podmínky podle typu voucheru. Neobsahuje jméno ani e-mail kupujícího, interní poznámku, historii uplatnění ani technická ID.
+- PDF voucheru obsahuje pouze veřejně bezpečné údaje: samostatné logo z `Média` vybrané v `/admin/nastaveni`, případně textové logo `PP Studio`, typ a hodnotu/službu, kód, platnost, QR ověření, kontakty salonu a krátké podmínky podle typu voucheru. Neobsahuje jméno ani e-mail kupujícího, interní poznámku, historii uplatnění ani technická ID.
 - Veřejné ověření voucheru na `/vouchery/overeni` je `noindex` a není v sitemap. Platný voucher ukazuje jen bezpečná pole: kód, typ, zbývající hodnotu u `VALUE`, název služby ze snapshotu u `SERVICE` a platnost do. Platný stav doplňuje CTA `Rezervovat termín` na `/rezervace` a e-mailové `Napsat do studia`. Neplatný voucher ukazuje pouze obecné bezpečné důvody: nenalezený, zatím neaktivní, uplatněný, propadlý, zrušený nebo bez dostupného zůstatku.
 - Veřejné ověření voucheru má server-side rate limit podle IP hashe (okno 10 minut, max 10 pokusů). Při překročení vrací jen obecnou hlášku o dočasném omezení; neprozrazuje interní detail ani existenci konkrétního kódu.
 - Veřejné ověření voucher nikdy neuplatňuje: nevytváří `VoucherRedemption`, nemění `remainingValueCzk` ani `Voucher.status`.
@@ -502,13 +502,13 @@ npm run db:clear-booking-data -- --confirm
   - pokud DB obsahuje publikovaný záznam bez fyzického souboru, asset se do `/studio` nezařadí a nevzniká broken image box
   - ve `development` režimu je povolený fallback na lokální obrázky `public/dev/studio/*`; v produkci se fallback nikdy nepoužívá
   - navazující bloky krátce popisují atmosféru, adresu a finální cestu k rezervaci nebo kontaktu
-- Veřejné napojení modulu `Média webu` je nyní centrální:
+- Veřejné napojení modulu `Média` je nyní centrální:
   - `/o-mne` načítá certifikáty přes `MediaType.CERTIFICATE` a hero portrét přes `MediaType.PORTRAIT_ABOUT`
   - homepage používá hero portrét přes `MediaType.PORTRAIT_HOME`; pokud chybí, zůstává verzovaný brand asset
   - `/studio` používá publikované `MediaType.SALON_PHOTO`; první dostupná fotka je hero a následující dostupné fotky tvoří galerii
   - `/kontakt` používá pouze publikované `MediaType.CONTACT_PHOTO`; pokud není nahrané, zobrazí placeholder bez fotky studia
 - Certifikáty, fotky prostor, reference a další budoucí obsahové obrázky mají sdílený základ přes `MediaAsset` a lokální upload storage.
-- V admin modulu `Média webu` používej pro fotky studia tab `Prostory`; upload formulář v tomto tabu předvybere typ `SALON_PHOTO` a pole `Pořadí` určuje pořadí hero/galerie na `/studio`.
+- V admin modulu `Média` používej pro fotky studia tab `Prostory`; upload formulář v tomto tabu předvybere typ `SALON_PHOTO` a pole `Pořadí` určuje pořadí hero/galerie na `/studio`.
 - Pro samostatnou fotku na kontaktní stránce používej tab `Kontakt`; upload formulář v tomto tabu předvybere typ `CONTACT_PHOTO` a nejnižší `Pořadí` určuje aktivní hero fotku.
 
 ## Přihlášení Do Adminu
@@ -516,7 +516,7 @@ npm run db:clear-booking-data -- --confirm
 - Přihlašovací obrazovka používá krátké netechnické copy, neutrální e-mailový placeholder a viditelný focus stav pro klávesnicové ovládání.
 - Login route `POST /api/auth/login` má nově server-side rate limit (okno 10 minut) nad hashovanou IP a hashovaným e-mailem, aby omezila brute-force pokusy.
 - Při překročení limitu se login ukončí bezpečným přesměrováním na `/admin/prihlaseni?error=rate_limited` bez založení session.
-- Databázové účty vytvořené přes owner sekci `Uživatelé / role` se přihlašují vlastním heslem nastaveným přes pozvánku.
+- Databázové účty vytvořené přes owner sekci `Přístupy` se přihlašují vlastním heslem nastaveným přes pozvánku.
 - Pro systémový recovery fallback přihlášení existují bootstrap hodnoty:
   - `ADMIN_BOOTSTRAP_ENABLED`
   - `ADMIN_OWNER_EMAIL`
@@ -553,7 +553,7 @@ npm run db:clear-booking-data -- --confirm
   - po rotaci nebo vypnutí starý odkaz přestane fungovat
 - Sekce `Přehled` na `/admin` a `/admin/provoz` je nyní operativní dashboard dne:
   - layout je rozdělený na hlavní pracovní plochu a pravý sidebar; levý navigační sidebar zůstává součástí shellu
-  - nahoře je sjednocený blok `Dnešní provoz`, který v jednom cardu spojuje datum, dominantní počet dnešních rezervací, další klientku a hlavní CTA `Otevřít dnešní plán / Přidat termín / Detail rezervace`
+  - nahoře je sjednocený blok `Provozní přehled`, který v jednom cardu spojuje datum, dominantní počet dnešních rezervací, další klientku a hlavní CTA `Otevřít dnešní plán / Přidat termín / Detail rezervace`
   - součástí hero bloku je i kompaktní sekce `Dnešní úkoly`, která shrnuje pending potvrzení, další klientku, dnešní volná okna a chybné e-maily
   - pokud existují čekající potvrzení, dashboard je ukáže jako výrazný akční alert nad dnešním plánem; bez pending stavu zůstávají alerty menší a sekundární
   - `Dnešní plán` je hlavní pracovní sekce: používá mini timeline s výrazným časem vlevo, odlišením `Rezervace / Volné okno`, hover/focus stavy, click-to-open řádky a rychlé akce přímo v každé položce
@@ -589,8 +589,8 @@ npm run db:clear-booking-data -- --confirm
   - testovací profily podle bezpečných signálů (`example.com`, voucher/collision názvy nebo e-maily) se pouze jemně označí badge `test`, nikdy nemažou
   - detail klientky ukazuje kontakty, poslední a budoucí termín, nejčastější službu a posledních 10 rezervací
   - interní poznámka se upravuje přímo v detailu klientky a po uložení se propisuje do obou admin oblastí
-- Sekce `Uživatelé / role` je nyní vyhrazená jen pro `OWNER` na `/admin/uzivatele`:
-  - obrazovka je rozdělená na hlavní blok `Uživatelé` a vedlejší read-only blok `Role a oprávnění`
+- Sekce `Přístupy` je nyní vyhrazená jen pro `OWNER` na `/admin/uzivatele`:
+  - obrazovka je rozdělená na hlavní blok `Seznam přístupů` a vedlejší read-only blok `Přehled rolí`
   - systém používá pouze dvě role `OWNER` a `SALON`; neexistuje žádná role `ADMIN`
   - každý přístup ukazuje jméno, e-mail, roli, stav účtu, krátký helper text a dostupné akce
   - stavy účtu jsou `Aktivní`, `Pozvánka čeká`, `Deaktivovaný` a `Systémový účet`
@@ -609,12 +609,12 @@ npm run db:clear-booking-data -- --confirm
 - Každý upload dostane krátký generovaný identifikátor a ukládá se jako `{id}-original.<ext>`, `{id}-optimized.<ext>` a `{id}-thumbnail.<ext>` bez použití původního názvu souboru.
 - Relativní storage path má tvar `certificates/2026/04/<id>-original.<ext>`; běžné veřejné typy používají kořeny `spaces/`, `contact/`, `portraits-home/` nebo `portraits-about/`.
 - Publikace je řízená jen přes `MediaAsset.isPublished`; nové uploady se nepřesouvají mezi `public/private`.
-- Modul `Média webu` má první produkční napojení:
+- Modul `Média` má první produkční napojení:
   - admin upload, editaci a mazání přes `/admin/media` a `/admin/provoz/media`
   - běžné admin typy `CERTIFICATE`, `SALON_PHOTO`, `CONTACT_PHOTO`, `PORTRAIT_HOME` a `PORTRAIT_ABOUT`; legacy/nepoužívané typy `PORTRAIT` a `GENERAL` zůstávají jen v DB schématu kvůli kompatibilitě
   - admin UI je záměrně kompaktní pracovní nástroj: krátký header, 4 rychlé statistiky, upload panel s dropzónou, tabs s počty a hustší grid karet
   - každá karta média ukazuje náhled, titulek nebo soubor, typ, publish stav, rozměry, velikost a zřetelné `Použití` + `Sekce`
-- Logo pro PDF dárkové vouchery se nenahrává zvláštním workflow. Admin nejdřív nahraje PNG/JPEG do `Média webu` a potom ho vybere v `/admin/nastaveni` v poli `Logo pro PDF vouchery`; reference se ukládá do `SiteSettings.voucherPdfLogoMediaId`.
+- Logo pro PDF dárkové vouchery se nenahrává zvláštním workflow. Admin nejdřív nahraje PNG/JPEG do `Média` a potom ho vybere v `/admin/nastaveni` v poli `Logo pro PDF vouchery`; reference se ukládá do `SiteSettings.voucherPdfLogoMediaId`.
   - publish/unpublish jde přímo z karty bez otevírání editace; detailní změny zůstávají v kompaktním dialogu
   - prázdná knihovna i prázdné filtry mají vlastní CTA zpět na upload panel
   - veřejné zobrazení certifikátů v sekci `Certifikace` na stránce `/o-mne`
@@ -660,7 +660,7 @@ npm run db:clear-booking-data -- --confirm
   - mazání je povolené jen pro prázdné kategorie bez služeb; jinak je doporučené kategorii pouze vypnout
   - změna pořadí nebo aktivity se promítá do adminu, veřejných výpisů `/sluzby` a `/cenik` i do veřejného booking flow
 - Sekce jen pro `OWNER`:
-  - Uživatelé / role
+  - Přístupy
   - Email logy
   - Nastavení
 - Sekce `Nastavení` je nyní produkčně použitelná pro `OWNER` na `/admin/nastaveni`:
@@ -777,7 +777,7 @@ npm run db:clear-booking-data -- --confirm
   - stav `emailWorker` (`ok`/`warning`/`error`) podle stale claimů, backlogu a failed logů
   - stav `emailQueue` (`pending`, `retrying`, `processing`, `staleProcessing`, `failed`)
   - pole `alerts` se seznamem aktivních problémů; při `status=error` vrací endpoint HTTP `503`
-- Owner-only sekce `Email logy` nyní funguje jako business-first přehled `Komunikace se zákaznicemi`:
+- Owner-only sekce `Email logy` nyní funguje jako business-first přehled `Email logy`:
   - nahoře ukazuje health stav `OK / Warning / Error` podle failed, retry, pending fronty a poslední relevantní chyby
   - krátké metriky shrnují `Dnes odesláno`, `Za posledních 7 dní`, `Čeká na odeslání`, `Selhalo` a `Poslední odeslání` v nižším KPI stripu
   - health copy zůstává stručné; při čistém stavu používá text `Emaily fungují správně` a krátké vysvětlení o prázdné frontě

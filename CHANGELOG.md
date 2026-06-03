@@ -18,6 +18,8 @@ Formát je inspirovaný Keep a Changelog.
 - Sekundární panel copy v adminu je sjednocené stejným provozním tónem: kratší názvy a popisy u nastavení, přístupů, médií, rezervací a detailu e-mail logu.
 - Mikrocopy v adminu je sladěné i v CTA a empty states: `Reset filtrů`, `Nahrát médium`, čitelnější české empty states a provozní labely v e-mail observability.
 - Sidebar popisy admin sekcí jsou kratší a skenovatelnější, aby seděly s kompaktním provozním tónem celého adminu.
+- E2E smoke test `tests/e2e/site-smoke.spec.ts` je sladěný s novým admin namingem (`Provozní přehled`, `Média`, `Přístupy`, `Email logy`, `Volné termíny`), aby po copy refactoru znovu validoval správné headingy.
+- Provozní dokumentace a QA checklisty jsou sladěné s novým admin namingem (`Provozní přehled`, `Média`, `Přístupy`, `Email logy`) v `MANUAL.md` a `docs/*`, historické ADR/Changelog záznamy zůstávají beze změny jako auditní stopa.
 
 ## [0.3.26] - 2026-06-01
 

@@ -17,7 +17,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Pokud dev server spadne na poškozené Turbopack cache (`Failed to restore task data`, chybějící `.sst` v `.next/dev/cache/turbopack`), použij:
   - `npm run dev:clean` (smaže `.next` a znovu spustí dev server)
   - `npm run dev:webpack` (fallback bez Turbopacku, vhodné při opakovaných pádech cache)
-- Uploady souborů přes Server Actions respektují Next.js request body limit. Pro admin `Média webu` je v `next.config.ts` nastaveno `experimental.serverActions.bodySizeLimit = "10mb"`, protože samotný business limit obrázku je `8 MB` a multipart formulář přidává overhead navíc.
+- Uploady souborů přes Server Actions respektují Next.js request body limit. Pro admin `Média` je v `next.config.ts` nastaveno `experimental.serverActions.bodySizeLimit = "10mb"`, protože samotný business limit obrázku je `8 MB` a multipart formulář přidává overhead navíc.
 
 ## Test runner a coverage
 - `npm test` používá Node test runner + `tsx` preload nad quoted globem `src/**/*.test.ts`; quoting je záměrný, protože bez něj Bash v defaultní konfiguraci expandoval jen část stromu a coverage pak nereprezentovala celé repo.
@@ -165,7 +165,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - `getDashboardAnalytics()` vrací i `contactStepQuality` nad eventy `Rezervace / Kontakt zahájen`, `Kontakt pole fokus`, `Kontakt pole vyplnění začátek`, `Kontakt pole chyba`; API počítá počty i poměry `focusRate`, `inputRate`, `errorRate` vůči `Kontakt zahájen`.
 - API endpoint `src/app/api/admin/analytics/route.ts` vrací tuto agregaci jako JSON. Route je chráněná přes `getSession()` a pustí jen role `OWNER` / `SALON`; bez session vrací `403`, při interní chybě vrací `200` s bezpečným nulovým fallbackem a em dash `topSource`.
 - `src/components/admin/AnalyticsWidget.tsx` je klientská komponenta pro admin dashboard. Na mountu volá `fetch('/api/admin/analytics')`, validuje shape payloadu v runtime, zobrazuje `Načítání…` / `Data nejsou dostupná` a po úspěchu vykreslí jen kompaktní souhrn `Výkon webu` (`návštěvy dnes`, `rezervace dnes`, `míra rezervace`). Detail zdrojů a funnel kroků je dostupný až v rozbalení `Zobrazit analytiku`, aby hlavní cockpit neukazoval matoucí procenta jako primární provozní signál.
-- `DashboardPage` je kompaktní denní provozní cockpit. Priorita stránky je `Dnešní provoz -> Vyžaduje pozornost -> provozní KPI -> Dnešní plán / Nejbližší volné termíny -> Rychlé akce / Tento týden / Výkon webu`; horní provozní blok má fungovat jako nízká operační lišta, KPI jako jeden metric strip s krátkým detailem metriky a pravý sloupec jako krátký podpůrný panel. Disabled stav `Matomo není nakonfigurované.` se rozhoduje na serveru podle přítomnosti `MATOMO_URL`, `MATOMO_SITE_ID` a `MATOMO_AUTH_TOKEN`; klient kvůli tomu nečte žádný secret.
+- `DashboardPage` je kompaktní denní provozní cockpit. Priorita stránky je `Provozní přehled -> Vyžaduje pozornost -> provozní KPI -> Dnešní plán / Nejbližší volné termíny -> Rychlé akce / Tento týden / Výkon webu`; horní provozní blok má fungovat jako nízká operační lišta, KPI jako jeden metric strip s krátkým detailem metriky a pravý sloupec jako krátký podpůrný panel. Disabled stav `Matomo není nakonfigurované.` se rozhoduje na serveru podle přítomnosti `MATOMO_URL`, `MATOMO_SITE_ID` a `MATOMO_AUTH_TOKEN`; klient kvůli tomu nečte žádný secret.
 - Sekce dashboardu `Vyžaduje pozornost` se renderuje pouze při existenci actionable alertů (`alert.emphasis !== "ok"`); pokud jsou jen `ok` stavy, komponenta vrací `null`. Komponenta musí použít `alert.emphasis`: `primary` alert je vizuálně hlavní, sekundární alerty jsou menší podpůrné položky. Pokud primární alert neexistuje, jako hlavní se použije první actionable alert.
 - Když se sekce `Vyžaduje pozornost` zobrazí, musí být mobilně odolná: text alertu se zalamuje (`break-words`) a CTA může být pod textem; nepoužívej zde `truncate` v řádku s CTA, protože to způsobuje horizontální přetečení karty na úzkých iOS viewports.
 - Actionable alert pravidla v `getAdminDashboardData(...)` jsou záměrně provozní a konzervativní: `pending-bookings`, `email-failures` a `current-overdue` (aktivní rezervace po konci termínu). Samotná nulová dostupnost dnes/zítra nebo nízká týdenní kapacita se v této sekci neeskalují jako problém.
@@ -357,7 +357,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - `OWNER` na `/admin/*`
   - `SALON` na `/admin/provoz/*`
 - Neplatná nebo zakázaná admin sekce se neřeší jen skrytím v menu; routa se validuje server-side přes `src/features/admin/lib/admin-guards.ts`.
-- Sekce `Uživatelé / role` má vlastní owner-only route workflow v `src/features/admin/components/admin-users-page.tsx`; už nepoužívá generický placeholder renderer z `admin-section-page.tsx`.
+- Sekce `Přístupy` má vlastní owner-only route workflow v `src/features/admin/components/admin-users-page.tsx`; už nepoužívá generický placeholder renderer z `admin-section-page.tsx`.
 
 ## Testovací Strategie
 - Unit a doménové integrační testy běží přes Node test runner (`npm test`).
@@ -436,7 +436,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - `resendAdminUserInviteAction` zůstává server action vrstva pro sdílenou logiku, ale UI resend v řádku uživatele je záměrně napojené přes API route `src/app/api/admin/users/resend-invite/route.ts`, aby bylo spolehlivé i v klientském list row workflow
 - Invite e-mail je záměrně posílaný přímo ze server action přes `sendEmail`, aby owner viděl výsledek hned po kliknutí bez čekání na background worker.
 - Dokončení pozvánky řeší `activateAdminInviteAction` a klientská komponenta `AdminInviteActivationForm`; po úspěchu login stránka zobrazuje informační stav `invite=activated`.
-- UI sekce `Uživatelé / role` je rozdělené do menších komponent `AdminUsersWorkspace`, `UsersList`, `UserRow`, `InviteUserDialog`, `RoleCards`, `RoleBadge` a `AccountStatusBadge`.
+- UI sekce `Přístupy` je rozdělené do menších komponent `AdminUsersWorkspace`, `UsersList`, `UserRow`, `InviteUserDialog`, `RoleCards`, `RoleBadge` a `AccountStatusBadge`.
 - Systémové účty se v UI vědomě nepopsují jako bootstrap nebo env účty; tenhle slovník zůstává jen v technické dokumentaci a implementaci auth vrstvy.
 - Sekce `Rezervace` má vlastní workflow v `src/features/admin/components/admin-bookings-page.tsx` a už neběží přes generický placeholder renderer.
 - `src/features/admin/lib/admin-data.ts` pro rezervace nově vrací URL-driven read model s filtry, klikacími statistikami, seskupenými bloky seznamu a explicitními kontaktními odkazy místo obecného `title/meta/description`.
@@ -491,9 +491,9 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Desktopový seznam klientů drž jako tabulkový pracovní seznam, ne jako card dump; dlouhé e-maily a technické názvy musí zůstat v `truncate` kontejnerech. Chybějící kontakt rozlišuj explicitně na `bez e-mailu`, `bez telefonu` a `bez kontaktu`.
 - Testovací klientské profily se v seznamu pouze označují badge `test` podle bezpečných signálů v read modelu (`example.com`, `Voucher Klientka`, `Kolize`, `booking-voucher`, `client-collision`); nepřidávej mazání ani destruktivní bulk akce.
 - `src/features/admin/actions/client-actions.ts` je tenký server action adaptér pro editaci interní poznámky klientky; validace zůstává v `src/features/admin/lib/admin-client-validation.ts`.
-- Sekce `Média webu` má vlastní workflow v `src/features/admin/components/admin-media-page.tsx` a je dostupná v owner i salon oblasti na `/admin/media` a `/admin/provoz/media`.
+- Sekce `Média` má vlastní workflow v `src/features/admin/components/admin-media-page.tsx` a je dostupná v owner i salon oblasti na `/admin/media` a `/admin/provoz/media`.
 - Server action adaptéry pro média jsou v `src/features/admin/actions/media-actions.ts`; validace vstupu je v `src/features/admin/lib/admin-media-validation.ts`.
-- Sekci `Média webu` drž jako kompaktní pracovní plochu: krátký header, menší statistické boxy, upload panel s dropzónou, tabs s počty a hustší grid 2-3 karet podle šířky viewportu.
+- Sekci `Média` drž jako kompaktní pracovní plochu: krátký header, menší statistické boxy, upload panel s dropzónou, tabs s počty a hustší grid 2-3 karet podle šířky viewportu.
 - Admin karty médií mají kromě typu a publish stavu i text `Použití`, aby obsluha rovnou viděla, zda asset patří do `O mně`, `Studia`, `Kontaktu` nebo budoucích hero/banner bloků.
 - Quick publish/unpublish v knihovně má používat existující `updateMediaAction`; po mutaci zachovej aktivní filtr, aby se obsluha nevracela zbytečně na `Vše`.
 - Sekce `Nastavení` má vlastní workflow v `src/features/admin/components/admin-settings-page.tsx` a už neběží přes generický placeholder renderer.
@@ -516,7 +516,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - `src/features/admin/actions/booking-actions.ts` je tenký server action adaptér pro změnu stavu i samostatnou editaci interní poznámky rezervace; aktéra mapuje z admin session na reálné `AdminUser.id` podle e-mailu a při nenalezení používá `null`, aby zápis historie nenarazil na FK.
 - `src/features/admin/components/admin-booking-status-form.tsx` používá pro volbu změny stavu klikací akční karty (ne select); vybraná akce se okamžitě zvýrazní barvou podle typu změny a do server action se posílá přes hidden `targetStatus`.
 - `src/features/admin/lib/admin-booking.ts` drží detailový read model, mapování povolených přechodů, samostatnou poznámkovou mutaci a zápis do `BookingStatusHistory` včetně jednoduchého mapování zdroje změny pro timeline.
-- `src/features/admin/components/admin-email-logs-page.tsx` nově staví owner-only stránku `Komunikace se zákaznicemi`, která dává přednost health stavu, krátkým business metrikám a seznamu posledních emailů před čistým technickým monitoringem.
+- `src/features/admin/components/admin-email-logs-page.tsx` nově staví owner-only stránku `Email logy`, která dává přednost health stavu, krátkým business metrikám a seznamu posledních emailů před čistým technickým monitoringem.
 - `src/features/admin/components/admin-email-logs-workspace.tsx` drží business-first IA obrazovky: stručný health panel, kompaktní filtry v jednom desktop řádku, zhuštěný seznam posledních emailů s vazbou na rezervaci a spodní debug blok `Technický stav fronty`.
 - Hlavní seznam emailů záměrně nezobrazuje placeholder tracking pole `Otevřeno` a `Kliknuto` jako plné sloupce; tracking badge vychází z reálných webhook eventů uložených na `EmailLog` (`trackingDeliveredAt`, `trackingOpenedAt`, `trackingClickedAt`, `trackingBouncedAt`, `trackingFailedAt`, `trackingSuppressedAt`) a bez eventů drží fallback `Tracking připraven`.
 - Resend webhook endpoint je `POST /api/webhooks/resend`; vždy ověřuje podpis přes `svix-id`, `svix-timestamp`, `svix-signature` a `RESEND_WEBHOOK_SECRET` nad raw request body. Event se páruje přes `EmailLog.providerMessageId === data.email_id`.
@@ -535,7 +535,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - `src/features/admin/actions/booking-actions.ts` nově obsahuje i server action `createManualBookingAction`; pořád je to jen adaptér, skutečný create engine zůstává ve feature vrstvě booking domény.
 - Operativní overview dashboard má vlastní read model mimo `admin-data.ts`, aby se layout dneška a sekundární sekce nevyvíjely ve stejné obecné struktuře.
 - Dashboard read model `src/features/admin/lib/admin-dashboard.ts` nově vrací i provozní priority `todayTasks`, akční alerty s prioritou (`primary / secondary / ok`), akční timeline položky a kompaktní `upcomingSlots`; overview už není primárně o obecných statistikách.
-- `src/features/admin/components/admin-dashboard-page.tsx` skládá overview v pořadí `Dnešní provoz -> alerty -> KPI -> Dnešní plán / Nejbližší volné termíny -> pravý podpůrný sloupec` a drží i serverový skeleton fallback `DashboardPageSkeleton`.
+- `src/features/admin/components/admin-dashboard-page.tsx` skládá overview v pořadí `Provozní přehled -> alerty -> KPI -> Dnešní plán / Nejbližší volné termíny -> pravý podpůrný sloupec` a drží i serverový skeleton fallback `DashboardPageSkeleton`.
 - `src/features/admin/components/dashboard-today-timeline.tsx` je lehká client vrstva jen pro interaktivitu timeline: click-to-open řádky, inline rychlé akce rezervací, toast feedback a focus/hover chování; business logika zůstává v read modelu a existujících server actions.
 - Dnešní dashboardový plán i rozšířená timeline zobrazují u dnešních rezervací existující poznámky s původem `Klientka` / `Interně`; bez poznámek nevypisuj placeholder, aby cockpit zůstal rychlý.
 - `src/features/admin/components/admin-overview-page.tsx` používá `Suspense` nad async serverovým read modelem, takže overview umí zobrazit loading skeleton bez nové klientské state vrstvy.

@@ -102,7 +102,7 @@ Lokální doporučení:
 - Provozní identita veřejného webu (jméno provozovatelky a IČ používané na `/kontakt` a `/obchodni-podminky`) aktuálně také není env konfigurace; je součástí sdíleného public profile helperu v `src/lib/site-settings.ts`.
 - Admin login rate limit nepřidává novou env proměnnou; limity jsou zatím fixované v `src/lib/auth/admin-login-rate-limit.ts` (okno 10 minut, IP limit 20, e-mail fail limit 6).
 - Hero fotografie pro `/o-mne` je aktuálně ručně verzovaný asset v `public/brand`; finální přepnutí na jiný soubor nevyžaduje novou env proměnnou, jen úpravu `aboutContent.profile.image`.
-- Bootstrap přístupy se v owner sekci `Uživatelé / role` zobrazují lidským jazykem jako `Systémový účet`; UI záměrně neukazuje `env`, `bootstrap` ani jiné technické implementační detaily jako hlavní obsah. Samotné použití bootstrap loginu zapisuje jen bezpečnou provozní informaci bez hesla.
+- Bootstrap přístupy se v owner sekci `Přístupy` zobrazují lidským jazykem jako `Systémový účet`; UI záměrně neukazuje `env`, `bootstrap` ani jiné technické implementační detaily jako hlavní obsah. Samotné použití bootstrap loginu zapisuje jen bezpečnou provozní informaci bez hesla.
 - Pokud je `EMAIL_DELIVERY_MODE=background` a `EMAIL_TRANSPORT=smtp`, jsou `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD` a `SMTP_FROM_EMAIL` povinné už při startu aplikace.
 - Pokud je `EMAIL_DELIVERY_MODE=background` a `EMAIL_TRANSPORT=resend`, je při startu aplikace povinné `RESEND_API_KEY`.
 - Pokud je `EMAIL_DELIVERY_MODE=background`, admin pole `emailSenderEmail` v sekci `Nastavení` musí odpovídat `SMTP_FROM_EMAIL`; jinak aplikace změnu odmítne, aby se předešlo selhání doručování.
@@ -157,8 +157,8 @@ Lokální doporučení:
 - Slot admin CRUD nezavádí žádné nové env proměnné; spoléhá na stávající session, databázi a bootstrap admin účty.
 - Ruční vytvoření rezervace v adminu také nepřidává nové env proměnné; používá stejné `NEXT_PUBLIC_APP_URL`, `ADMIN_SESSION_SECRET`, DB schéma a e-mailovou konfiguraci jako veřejný booking. Nově ale počítá s tím, že `Client.email` může být `null`, takže potvrzovací e-mail se bez adresy přeskočí.
 - Stabilizační refaktor `booking-public`, `booking-flow` a `admin-slots` nepřidává žádné nové env proměnné; veřejné entrypointy i provozní konfigurace zůstávají beze změny.
-- Modul `Média webu` nepřidává žádnou novou env proměnnou; dál používá existující `MEDIA_STORAGE_ROOT` pro lokální storage mimo repozitář.
-- UX refaktor `Média webu` také nepřidává žádnou novou env proměnnou; kompaktní upload panel, quick publish/unpublish i tabs s počty používají stejnou storage a stejný aplikační model.
+- Modul `Média` nepřidává žádnou novou env proměnnou; dál používá existující `MEDIA_STORAGE_ROOT` pro lokální storage mimo repozitář.
+- UX refaktor `Média` také nepřidává žádnou novou env proměnnou; kompaktní upload panel, quick publish/unpublish i tabs s počty používají stejnou storage a stejný aplikační model.
 - Rozdělení portrétů na `PORTRAIT_HOME` a `PORTRAIT_ABOUT` také nepřidává env proměnnou; jde čistě o databázový typ média a veřejný read fallback.
 - Veřejná stránka `/studio` nepřidává žádnou novou env proměnnou; fotky studia čte přes stávající `MediaAsset` metadata a veřejné `/media/public/*` URL, se zachovanou kompatibilitou pro starší `/media/*`.
 - Dev fallback fotek `/studio` (`public/dev/studio/*`) je aktivní jen při `NODE_ENV=development` a nepoužívá žádnou novou env proměnnou; v produkci se fallback automaticky vypíná.
@@ -175,7 +175,7 @@ Lokální doporučení:
 - Operativní redesign admin overview dashboardu také nepřidává nové env proměnné; nové metriky a timeline berou data jen ze stávajících modelů `Booking`, `AvailabilitySlot`, `Client`, `ServiceCategory`, `Service` a `EmailLog`.
 - Admin sekce `Nastavení` také nepřidává nové env proměnné; kontaktní údaje, booking pravidla a e-mailový branding ukládá do DB modelu `SiteSettings`.
 - Logo pro PDF vouchery nepřidává nové env proměnné. Reference je v `SiteSettings.voucherPdfLogoMediaId`, soubor se čte z existujícího lokálního `MEDIA_STORAGE_ROOT` přes `MediaAsset`.
-- Přestavba sekce `Uživatelé / role` ani invite aktivace nepřidává nové env proměnné; používá existující `ADMIN_SESSION_SECRET` (hash tokenů) a `NEXT_PUBLIC_APP_URL` (link v pozvánce), plus DB pole `AdminUser.invitedAt` a tabulku `AdminUserInviteToken`.
+- Přestavba sekce `Přístupy` ani invite aktivace nepřidává nové env proměnné; používá existující `ADMIN_SESSION_SECRET` (hash tokenů) a `NEXT_PUBLIC_APP_URL` (link v pozvánce), plus DB pole `AdminUser.invitedAt` a tabulku `AdminUserInviteToken`.
 - Reminder systém 24 hodin před termínem nepřidává novou env proměnnou; používá existující `EMAIL_DELIVERY_MODE`, `NEXT_PUBLIC_APP_URL` a SMTP konfiguraci stejného `email:worker`.
 - Admin reschedule flow také nepřidává novou env proměnnou; používá stejné `NEXT_PUBLIC_APP_URL`, `ADMIN_SESSION_SECRET`, DB schéma a email worker jako ostatní booking workflow.
 - Klientský self-service přesun termínu také nepřidává novou env proměnnou; stojí na stejném `NEXT_PUBLIC_APP_URL`, hashovaných `BookingActionToken`, DB schématu a e-mailovém workeru.

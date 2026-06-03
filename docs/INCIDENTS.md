@@ -54,7 +54,7 @@ Evidence produkčních incidentů a jejich řešení.
 - Brute-force pokusy na `/api/auth/login` bez aktivace rate limit ochrany (`error=rate_limited` se po sérii špatných pokusů neobjeví).
 - Chybný role redirect nebo neočekávaný přístup `SALON` do owner-only sekcí.
 - Nefunkční prefill klientky v admin ruční rezervaci (`/admin/.../rezervace?create=1&clientId=...`), zejména po změně detailu klientky, booking draweru nebo shared owner/salon route factory.
-- Rozjezd owner-only sekce `Uživatelé / role`, kdy by se `SALON` dostal na `/admin/uzivatele` nebo by se v UI objevila jiná role než `OWNER` / `SALON`.
+- Rozjezd owner-only sekce `Přístupy`, kdy by se `SALON` dostal na `/admin/uzivatele` nebo by se v UI objevila jiná role než `OWNER` / `SALON`.
 - Chybně označené systémové přístupy nebo rozbitý stav `Pozvánka čeká` po nasazení migrace `AdminUser.invitedAt`.
 - Nefunkční aktivace pozvánky na `/admin/pozvanka/[token]` (expirace, použitý token, nebo chybějící migrace `AdminUserInviteToken`).
 - Veřejné kontaktní údaje nebo ceny ponechané v placeholder režimu po nasazení.
@@ -150,11 +150,11 @@ Evidence produkčních incidentů a jejich řešení.
 - Chybějící nebo nepodporovaný soubor zvolený jako `Logo pro PDF vouchery` nesmí blokovat stažení voucheru; očekávaný stav je fallback textové logo `PP Studio`. Pokud obsluha čeká obrázek, zkontroluj `SiteSettings.voucherPdfLogoMediaId`, existenci navázaného `MediaAsset` a lokální soubor v `MEDIA_STORAGE_ROOT`.
 - Tisková A4 varianta voucheru nesmí změnit e-mailovou PDF přílohu ani původní admin stažení. Při hlášení špatného tisku ověř nejdřív `/pdf/tisk`, A4 rozměr 210 x 297 mm, voucher v horní třetině a bílé pozadí mimo voucher; při hlášení změny e-mailového PDF porovnej, zda e-mail stále volá původní `generateVoucherPdf(...)`.
 - Pokus o nahrání nepodporovaného typu souboru nebo souboru nad velikostní limit, který musí skončit validační chybou místo 500.
-- Pád admin stránky `Média webu` po nahrání většího, ale stále povoleného obrázku. První kontrola: `next.config.ts` musí mít pro Server Actions vyšší `bodySizeLimit` než business limit uploadu; jinak Next.js request odmítne ještě před vlastní validací a uživatelka uvidí jen obecnou serverovou chybu.
-- Admin `Média webu` po uploadu, editaci nebo publish/unpublish vrací obsluhu na špatný filtr, takže rychlá práce v knihovně působí chaoticky a je potřeba znovu ručně přepínat tabs.
+- Pád admin stránky `Média` po nahrání většího, ale stále povoleného obrázku. První kontrola: `next.config.ts` musí mít pro Server Actions vyšší `bodySizeLimit` než business limit uploadu; jinak Next.js request odmítne ještě před vlastní validací a uživatelka uvidí jen obecnou serverovou chybu.
+- Admin `Média` po uploadu, editaci nebo publish/unpublish vrací obsluhu na špatný filtr, takže rychlá práce v knihovně působí chaoticky a je potřeba znovu ručně přepínat tabs.
 - Hero portrét na homepage nebo `/o-mne` neodpovídá očekávané stránce, protože je médium uložené pod špatným typem (`PORTRAIT_HOME` vs `PORTRAIT_ABOUT`); legacy `PORTRAIT` už veřejný web nepoužívá.
-- Certifikát nahraný v modulu `Média webu`, ale neviditelný na `/o-mne` kvůli jinému `MediaType` než `CERTIFICATE`, vypnutému `isPublished`, neplatné `storagePath` nebo chybějícímu souboru ve storage rootu.
-- Fotka studia nahraná v modulu `Média webu`, ale neviditelná na `/studio` kvůli jinému `MediaType` než `SALON_PHOTO`, vypnutému `isPublished`, neplatné `storagePath` nebo chybějícímu souboru ve storage rootu.
+- Certifikát nahraný v modulu `Média`, ale neviditelný na `/o-mne` kvůli jinému `MediaType` než `CERTIFICATE`, vypnutému `isPublished`, neplatné `storagePath` nebo chybějícímu souboru ve storage rootu.
+- Fotka studia nahraná v modulu `Média`, ale neviditelná na `/studio` kvůli jinému `MediaType` než `SALON_PHOTO`, vypnutému `isPublished`, neplatné `storagePath` nebo chybějícímu souboru ve storage rootu.
 - Broken image na `/studio` při publikovaném `SALON_PHOTO` záznamu bez fyzického souboru; read model má orphan asset přeskočit a UI nesmí renderovat prázdný rozbitý box.
 - Kontaktní stránka nemá hero fotku, protože nebyl nahraný žádný publikovaný `CONTACT_PHOTO`; očekávaný stav je placeholder, trvalá oprava je nahrát samostatnou fotku ve filtru `Kontakt`.
 - Hlavní portrét na `/o-mne` nahrazený neexistujícím nebo nevhodně ořezaným assetem v `public/brand`, kvůli čemuž by hero ztratil důvěryhodnost nebo vizuální kvalitu na mobilu.

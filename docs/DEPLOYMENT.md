@@ -49,7 +49,7 @@ Postup nasazení aplikace do produkce.
    - kontakt
    - FAQ a právní stránky
      - `/obchodni-podminky`: hero CTA, blok poskytovatele a obsahová navigace
-     - `/studio`: hero, galerie publikovaných fotek studia z modulu `Média webu`, fallback bez fotek a finální CTA
+     - `/studio`: hero, galerie publikovaných fotek studia z modulu `Média`, fallback bez fotek a finální CTA
      - `/studio`: při existenci publikovaného `SALON_PHOTO` záznamu bez fyzického souboru se obrázek nesmí renderovat jako broken image; orphan záznam má být bezpečně přeskočen
      - `/kontakt`: hero fotka se bere pouze z publikovaného `CONTACT_PHOTO`; pokud chybí, stránka zobrazí placeholder bez fotky studia
    - CTA na rezervaci
@@ -91,7 +91,7 @@ Postup nasazení aplikace do produkce.
   - `CRM souhrn` v detailu klientky ukazuje poslední dokončenou návštěvu, nejbližší aktivní budoucí termín, hodnotu služeb, uhrazeno/neuhrazeno a rozpad rezervací; zrušené a no-show rezervace se nepočítají do doplatku a individuální cena rezervace se počítá jako hodnota i základ doplatku
   - lite admin navigaci a mobilní čitelnost na `/admin/provoz/*`
    - overview dashboard na `/admin` a `/admin/provoz`:
-     - horní blok `Dnešní provoz` ukazuje datum, počet dnešních aktivních rezervací, právě probíhající nebo další rezervaci a CTA `Vytvořit rezervaci / Otevřít dnešní plán / Upravit dostupnost`
+     - horní blok `Provozní přehled` ukazuje datum, počet dnešních aktivních rezervací, právě probíhající nebo další rezervaci a CTA `Vytvořit rezervaci / Otevřít dnešní plán / Upravit dostupnost`
      - horní blok je nízká operační lišta, ne vysoký hero s velkým číslem
      - sekce `Vyžaduje pozornost` slučuje pending rezervace, chybějící publikovanou dostupnost dnes/zítra a chybné e-maily; při nulovém stavu ukazuje klidné potvrzení
      - KPI jsou jeden kompaktní metric strip: `Dnes rezervace`, `Volná okna dnes`, `Týdenní obsazenost`, `Volné sloty tento týden`; nulové e-mailové chyby nejsou samostatná KPI karta
@@ -187,7 +187,7 @@ Postup nasazení aplikace do produkce.
      - pozvánka dorazí na e-mail a odkaz vede na `/admin/pozvanka/[token]`
      - aktivace pozvánky dovolí nastavit heslo a následně přihlášení přes `/admin/prihlaseni`
      - akce `Přepnout na OWNER/SALON`, `Deaktivovat` a `Znovu aktivovat` se ihned propšou do seznamu
-  - modul `Média webu` na `/admin/media` a `/admin/provoz/media`:
+  - modul `Média` na `/admin/media` a `/admin/provoz/media`:
      - veřejná stránka `/studio` zobrazí jen publikované fotky typu `SALON_PHOTO`
      - ve filtru `Prostory` upload předvybere typ `SALON_PHOTO` a volitelné pole `Pořadí` určuje pořadí hero/galerie
      - ve filtru `Kontakt` upload předvybere typ `CONTACT_PHOTO` a volitelné pole `Pořadí` určuje kontaktní hero fotku
