@@ -119,6 +119,7 @@ async function createHarness(overrides: Partial<{
     slotUpdate: [] as Array<Record<string, unknown>>,
     slotDelete: [] as Array<Record<string, unknown>>,
     notification: [] as Array<Record<string, unknown>>,
+    pushover: [] as Array<Record<string, unknown>>,
   };
 
   let queryRawCalls = 0;
@@ -185,6 +186,9 @@ async function createHarness(overrides: Partial<{
     queueBookingRescheduledNotification: async (input) => {
       calls.notification.push(input as Record<string, unknown>);
       return overrides.notificationStatus ?? "logged";
+    },
+    sendOwnerBookingPushover: async (input) => {
+      calls.pushover.push(input as Record<string, unknown>);
     },
   });
 
@@ -655,6 +659,14 @@ describe("history and side effects", () => {
       includeCalendarAttachment: true,
       notifyAdminOnClientReschedule: true,
     });
+    assert.equal(harness.calls.pushover.length, 1);
+    assert.deepEqual(harness.calls.pushover[0], {
+      type: "BOOKING_RESCHEDULED",
+      bookingId: "booking-1",
+      sourceLabel: "Web",
+      previousStartsAt: new Date("2026-04-26T09:00:00.000Z"),
+      previousEndsAt: new Date("2026-04-26T10:00:00.000Z"),
+    });
   });
 
   test("does not write history or enqueue notification when reschedule fails", async () => {
@@ -680,6 +692,7 @@ describe("history and side effects", () => {
 
     assert.equal(harness.calls.logCreate.length, 0);
     assert.equal(harness.calls.notification.length, 0);
+    assert.equal(harness.calls.pushover.length, 0);
   });
 });
 

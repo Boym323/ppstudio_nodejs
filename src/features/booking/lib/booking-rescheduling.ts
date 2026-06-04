@@ -120,6 +120,7 @@ type BookingReschedulingDependencies = {
   getBookingPolicySettings: typeof getBookingPolicySettings;
   isBookingWithinWindow: typeof isBookingWithinWindow;
   queueBookingRescheduledNotification: typeof queueBookingRescheduledNotification;
+  sendOwnerBookingPushover: typeof sendOwnerBookingPushover;
 };
 
 function normalizeWhitespace(value: string) {
@@ -885,6 +886,7 @@ const defaultBookingReschedulingDependencies: BookingReschedulingDependencies = 
   getBookingPolicySettings,
   isBookingWithinWindow,
   queueBookingRescheduledNotification,
+  sendOwnerBookingPushover,
 };
 
 export function createBookingReschedulingApi(
@@ -939,7 +941,7 @@ export function createBookingReschedulingApi(
             }
           }
 
-          await sendOwnerBookingPushover({
+          await dependencies.sendOwnerBookingPushover({
             type: "BOOKING_RESCHEDULED",
             bookingId: transactionResult.bookingId,
             sourceLabel: input.changedByClient ? "Web" : "Admin",
