@@ -6,6 +6,9 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [0.3.28] - 2026-06-04
+
+- Release příprava pro produkční nasazení: projektová verze navýšena na patch `0.3.28`.
 - Admin detail rezervace nově umí akci `Změnit službu` přímo na existujícím bookingu: přepíše snapshot služby, délku, cleanup blokaci i ceníkový základ a uloží auditní stopu do historie rezervace.
 - Změna služby je serverově omezená jen na `PENDING`/`CONFIRMED` rezervace a odmítne se, pokud nová služba nesedí do stávajícího času, poruší slotové omezení nebo koliduje se službovým voucherem navázaným na jinou službu.
 - Admin booking detail read model nově do detailu posílá i nabídku dostupných služeb pro bezpečnou výměnu přímo z cockpit view bez ruční DB opravy.
