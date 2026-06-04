@@ -11,6 +11,7 @@ import {
   DeleteBookingPaymentButton,
 } from "./admin-booking-payment-form";
 import { AdminBookingPriceForm } from "./admin-booking-price-form";
+import { AdminBookingServiceForm } from "./admin-booking-service-form";
 import { AdminBookingStatusForm } from "./admin-booking-status-form";
 import { AdminBookingVoucherForm } from "./admin-booking-voucher-form";
 import { AdminPanel } from "./admin-page-shell";
@@ -231,6 +232,16 @@ function BookingActionPanel({
             ) : null
           }
         />
+
+        {data.reschedule.enabled ? (
+          <AdminBookingServiceForm
+            area={data.area}
+            bookingId={data.id}
+            expectedUpdatedAt={data.reschedule.expectedUpdatedAt}
+            currentServiceId={data.serviceId}
+            services={data.availableServices}
+          />
+        ) : null}
       </div>
     </AdminPanel>
   );

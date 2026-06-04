@@ -12,6 +12,7 @@ import { initialAdminUserAccessActionState } from "@/features/admin/actions/upda
 import { initialAdminUserResendInviteActionState } from "@/features/admin/actions/update-admin-user-resend-invite-action-state";
 import { initialUpdateBookingNoteActionState } from "@/features/admin/actions/update-booking-note-action-state";
 import { initialUpdateBookingPriceActionState } from "@/features/admin/actions/update-booking-price-action-state";
+import { initialUpdateBookingServiceActionState } from "@/features/admin/actions/update-booking-service-action-state";
 import { initialUpdateBookingSettingsActionState } from "@/features/admin/actions/update-booking-settings-action-state";
 import { initialUpdateBookingStatusActionState } from "@/features/admin/actions/update-booking-status-action-state";
 import { initialUpdateCalendarFeedActionState } from "@/features/admin/actions/update-calendar-feed-action-state";
@@ -39,6 +40,7 @@ test("admin action-state modules expose idle initial states", () => {
     initialAdminUserResendInviteActionState,
     initialUpdateBookingNoteActionState,
     initialUpdateBookingPriceActionState,
+    initialUpdateBookingServiceActionState,
     initialUpdateBookingSettingsActionState,
     initialUpdateBookingStatusActionState,
     initialUpdateCalendarFeedActionState,

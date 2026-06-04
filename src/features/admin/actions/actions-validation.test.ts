@@ -165,6 +165,23 @@ test("updateBookingPriceAction rejects non-numeric final price", async () => {
   assert.ok(result.fieldErrors?.finalPriceCzk);
 });
 
+test("updateBookingServiceAction rejects missing service selection", async () => {
+  const { updateBookingServiceAction } = await import("@/features/admin/actions/booking-actions");
+  const formData = makeFormData({
+    area: "owner",
+    bookingId: "booking-1",
+    serviceId: "",
+    expectedUpdatedAt: "2026-06-04T08:00:00.000Z",
+    reason: "",
+  });
+
+  const result = await updateBookingServiceAction({ status: "idle" }, formData);
+
+  assert.equal(result.status, "error");
+  assert.match(result.formError ?? "", /změnu služby/i);
+  assert.ok(result.fieldErrors?.serviceId);
+});
+
 test("createManualBookingAction rejects missing required form fields", async () => {
   const { createManualBookingAction } = await import("@/features/admin/actions/booking-actions");
   const formData = makeFormData({

@@ -8,6 +8,7 @@ import {
   BookingStatus,
   EmailLogStatus,
   EmailLogType,
+  Prisma,
   VoucherStatus,
   VoucherType,
 } from "@prisma/client";
@@ -20,8 +21,10 @@ import {
   buildBookingCancellationUrl,
   buildBookingManagementUrl,
 } from "@/features/booking/lib/booking-action-tokens";
+import { resolveBookingTimingSnapshot } from "@/features/booking/lib/booking-cleanup";
 import { getPublicBookingCatalog } from "@/features/booking/lib/booking-public";
 import { formatBookingDateLabel } from "@/features/booking/lib/booking-format";
+import { resolvePublishedSlotCoverage } from "@/features/booking/lib/booking-slot-availability";
 import { formatClientPhoneForDisplay } from "@/features/booking/lib/client-phone";
 import {
   BOOKING_PAYMENT_METHOD_LABELS,
@@ -75,6 +78,14 @@ export type AdminBookingDetailData = {
   clientPhone: string;
   serviceId: string;
   serviceName: string;
+  availableServices: Array<{
+    id: string;
+    categoryName: string;
+    name: string;
+    durationMinutes: number;
+    cleanupBlockMinutes: number;
+    priceFromCzk: number | null;
+  }>;
   servicePriceFromCzk: number | null;
   effectivePriceCzk: number;
   priceAdjustment: {
@@ -186,6 +197,14 @@ type ApplyAdminBookingStatusChangeInput = {
   actorUserId: string | null;
   reason?: string;
   internalNote?: string;
+};
+
+type UpdateAdminBookingServiceInput = {
+  bookingId: string;
+  serviceId: string;
+  actorUserId: string | null;
+  expectedUpdatedAt?: string;
+  reason?: string | null;
 };
 
 type AdminBookingActionContext = {
@@ -490,6 +509,11 @@ export async function getAdminBookingDetailData(
         service: {
           select: {
             priceFromCzk: true,
+            category: {
+              select: {
+                name: true,
+              },
+            },
           },
         },
         statusHistory: {
@@ -566,7 +590,7 @@ export async function getAdminBookingDetailData(
       },
     }),
     getPublicBookingCatalog({
-      includeServices: false,
+      includeServices: true,
       excludeBookingId: bookingId,
     }),
   ]);
@@ -635,6 +659,26 @@ export async function getAdminBookingDetailData(
     clientPhone: clientPhone ? formatClientPhoneForDisplay(clientPhone) : "Telefon není vyplněný",
     serviceId: booking.serviceId,
     serviceName: booking.serviceNameSnapshot,
+    availableServices: [
+      ...(!bookingCatalog.services.some((service) => service.id === booking.serviceId)
+        ? [{
+            id: booking.serviceId,
+            categoryName: booking.service.category?.name ?? "Aktuální služba",
+            name: booking.serviceNameSnapshot,
+            durationMinutes: booking.serviceDurationMinutes,
+            cleanupBlockMinutes: booking.cleanupBlockMinutes,
+            priceFromCzk: booking.servicePriceFromCzk,
+          }]
+        : []),
+      ...bookingCatalog.services.map((service) => ({
+        id: service.id,
+        categoryName: service.categoryName,
+        name: service.name,
+        durationMinutes: service.durationMinutes,
+        cleanupBlockMinutes: service.cleanupBlockMinutes,
+        priceFromCzk: service.priceFromCzk,
+      })),
+    ],
     servicePriceFromCzk: booking.servicePriceFromCzk,
     effectivePriceCzk,
     priceAdjustment: {
@@ -932,5 +976,311 @@ export async function updateAdminBookingInternalNote({
     });
 
     return { status: "success" as const };
+  });
+}
+
+export async function updateAdminBookingService({
+  bookingId,
+  serviceId,
+  actorUserId,
+  expectedUpdatedAt,
+  reason,
+}: UpdateAdminBookingServiceInput) {
+  return prisma.$transaction(async (tx) => {
+    await tx.$queryRaw<Array<{ id: string }>>(Prisma.sql`
+      SELECT "id"
+      FROM "Booking"
+      WHERE "id" = ${bookingId}
+      FOR UPDATE
+    `);
+
+    const booking = await tx.booking.findUnique({
+      where: { id: bookingId },
+      select: {
+        id: true,
+        clientId: true,
+        status: true,
+        slotId: true,
+        serviceId: true,
+        serviceNameSnapshot: true,
+        serviceDurationMinutes: true,
+        cleanupMinutes: true,
+        cleanupBlockMinutes: true,
+        servicePriceFromCzk: true,
+        scheduledStartsAt: true,
+        scheduledEndsAt: true,
+        blockedUntil: true,
+        manualOverride: true,
+        finalPriceCzk: true,
+        updatedAt: true,
+        slot: {
+          select: {
+            id: true,
+            startsAt: true,
+            endsAt: true,
+            capacity: true,
+            status: true,
+            serviceRestrictionMode: true,
+            allowedServices: {
+              select: {
+                serviceId: true,
+              },
+            },
+          },
+        },
+        intendedVoucher: {
+          select: {
+            id: true,
+            type: true,
+            serviceId: true,
+          },
+        },
+        voucherRedemptions: {
+          select: {
+            id: true,
+            serviceId: true,
+          },
+        },
+      },
+    });
+
+    if (!booking) {
+      return { status: "not-found" as const };
+    }
+
+    if (booking.status !== BookingStatus.PENDING && booking.status !== BookingStatus.CONFIRMED) {
+      return {
+        status: "status-not-allowed" as const,
+        currentStatus: booking.status,
+      };
+    }
+
+    if (expectedUpdatedAt) {
+      const expectedDate = new Date(expectedUpdatedAt);
+
+      if (!Number.isNaN(expectedDate.getTime()) && expectedDate.getTime() !== booking.updatedAt.getTime()) {
+        return {
+          status: "concurrent-modification" as const,
+        };
+      }
+    }
+
+    if (booking.serviceId === serviceId) {
+      return { status: "same-service" as const };
+    }
+
+    const nextService = await tx.service.findFirst({
+      where: {
+        id: serviceId,
+        isActive: true,
+        isPubliclyBookable: true,
+      },
+      select: {
+        id: true,
+        name: true,
+        durationMinutes: true,
+        cleanupMinutes: true,
+        priceFromCzk: true,
+      },
+    });
+
+    if (!nextService) {
+      return { status: "service-not-found" as const };
+    }
+
+    if (
+      booking.intendedVoucher?.type === VoucherType.SERVICE
+      && booking.intendedVoucher.serviceId
+      && booking.intendedVoucher.serviceId !== nextService.id
+    ) {
+      return {
+        status: "voucher-conflict" as const,
+        message: "Na rezervaci je navázaný službový voucher pro jinou službu. Nejprve upravte nebo odeberte voucher.",
+      };
+    }
+
+    const conflictingRedemption = booking.voucherRedemptions.some(
+      (redemption) => redemption.serviceId && redemption.serviceId !== nextService.id,
+    );
+
+    if (conflictingRedemption) {
+      return {
+        status: "voucher-conflict" as const,
+        message: "Na rezervaci už je uplatněný službový voucher pro jinou službu. Změnu služby proto nepovolíme.",
+      };
+    }
+
+    const nextTiming = resolveBookingTimingSnapshot({
+      startsAt: booking.scheduledStartsAt,
+      serviceDurationMinutes: nextService.durationMinutes,
+      cleanupMinutes: nextService.cleanupMinutes,
+    });
+    const nextScheduledEndsAt = nextTiming.serviceEnd;
+    const nextBlockedUntil = nextTiming.blockedUntil;
+
+    const overlappingSlots = await tx.availabilitySlot.findMany({
+      where: {
+        id: {
+          not: booking.slotId,
+        },
+        startsAt: {
+          lt: nextBlockedUntil,
+        },
+        endsAt: {
+          gt: booking.scheduledStartsAt,
+        },
+      },
+      select: {
+        id: true,
+        startsAt: true,
+        endsAt: true,
+        capacity: true,
+        status: true,
+        serviceRestrictionMode: true,
+        allowedServices: {
+          select: {
+            serviceId: true,
+          },
+        },
+      },
+      orderBy: [{ startsAt: "asc" }],
+    });
+
+    const publishedCoverage = resolvePublishedSlotCoverage(
+      [booking.slot, ...overlappingSlots],
+      nextService.id,
+      booking.scheduledStartsAt,
+      nextBlockedUntil,
+      booking.slot.id,
+    );
+
+    const slotAllowsNewService = booking.slot.serviceRestrictionMode === "ANY"
+      || booking.slot.allowedServices.some((allowedService) => allowedService.serviceId === nextService.id);
+    const currentSlotCoversNewTiming =
+      booking.scheduledStartsAt.getTime() >= booking.slot.startsAt.getTime()
+      && nextBlockedUntil.getTime() <= booking.slot.endsAt.getTime();
+
+    const canStayOnManualOverrideSlot = booking.slot.status !== "PUBLISHED"
+      && slotAllowsNewService
+      && currentSlotCoversNewTiming;
+
+    if (!publishedCoverage && !canStayOnManualOverrideSlot) {
+      return {
+        status: "slot-too-short" as const,
+      };
+    }
+
+    const resolvedCoverageSlots = publishedCoverage?.coverage ?? [booking.slot];
+    const restrictConflictToCoverage = booking.slot.status === "PUBLISHED" && publishedCoverage !== null;
+    const allowedCapacity = canStayOnManualOverrideSlot
+      ? booking.slot.capacity
+      : Math.min(...resolvedCoverageSlots.map((slot) => slot.capacity));
+
+    const activeBookingCount = await tx.booking.count({
+      where: {
+        id: {
+          not: booking.id,
+        },
+        status: {
+          in: [BookingStatus.PENDING, BookingStatus.CONFIRMED],
+        },
+        scheduledStartsAt: {
+          lt: nextBlockedUntil,
+        },
+        OR: [
+          {
+            blockedUntil: {
+              gt: booking.scheduledStartsAt,
+            },
+          },
+          {
+            blockedUntil: null,
+            scheduledEndsAt: {
+              gt: booking.scheduledStartsAt,
+            },
+          },
+        ],
+        ...(restrictConflictToCoverage
+          ? {
+              slotId: {
+                in: resolvedCoverageSlots.map((slot) => slot.id),
+              },
+            }
+          : {}),
+      },
+    });
+
+    if (activeBookingCount >= allowedCapacity) {
+      return { status: "conflict" as const };
+    }
+
+    if (booking.slot.status !== "PUBLISHED") {
+      await tx.availabilitySlot.update({
+        where: {
+          id: booking.slot.id,
+        },
+        data: {
+          endsAt: nextBlockedUntil,
+        },
+      });
+    }
+
+    await tx.booking.update({
+      where: {
+        id: booking.id,
+      },
+      data: {
+        serviceId: nextService.id,
+        serviceNameSnapshot: nextService.name,
+        serviceDurationMinutes: nextTiming.serviceDurationMinutes,
+        cleanupMinutes: nextTiming.cleanupMinutes,
+        cleanupBlockMinutes: nextTiming.cleanupBlockMinutes,
+        servicePriceFromCzk: nextService.priceFromCzk,
+        scheduledEndsAt: nextScheduledEndsAt,
+        blockedUntil: nextBlockedUntil,
+      },
+    });
+
+    const normalizedReason = reason?.trim() ? reason.trim() : null;
+    const metadata = {
+      source: "admin-booking-service-change-v1",
+      previousServiceId: booking.serviceId,
+      previousServiceName: booking.serviceNameSnapshot,
+      previousDurationMinutes: booking.serviceDurationMinutes,
+      previousCleanupBlockMinutes: booking.cleanupBlockMinutes,
+      previousScheduledEndsAt: booking.scheduledEndsAt.toISOString(),
+      nextServiceId: nextService.id,
+      nextServiceName: nextService.name,
+      nextDurationMinutes: nextTiming.serviceDurationMinutes,
+      nextCleanupBlockMinutes: nextTiming.cleanupBlockMinutes,
+      nextScheduledEndsAt: nextScheduledEndsAt.toISOString(),
+      keptFinalPriceCzk: booking.finalPriceCzk,
+    };
+
+    await tx.bookingStatusHistory.create({
+      data: {
+        bookingId: booking.id,
+        status: booking.status,
+        actorType: BookingActorType.USER,
+        actorUserId,
+        reason: normalizedReason
+          ? `Služba změněna: ${booking.serviceNameSnapshot} -> ${nextService.name}. ${normalizedReason}`
+          : `Služba změněna: ${booking.serviceNameSnapshot} -> ${nextService.name}.`,
+        note: null,
+        metadata,
+      },
+    });
+
+    return {
+      status: "success" as const,
+      clientId: booking.clientId,
+      previousServiceName: booking.serviceNameSnapshot,
+      nextServiceName: nextService.name,
+      previousScheduledEndsAt: booking.scheduledEndsAt,
+      nextScheduledEndsAt,
+      previousCleanupBlockMinutes: booking.cleanupBlockMinutes,
+      nextCleanupBlockMinutes: nextTiming.cleanupBlockMinutes,
+      keptFinalPriceCzk: booking.finalPriceCzk,
+    };
   });
 }

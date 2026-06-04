@@ -87,6 +87,7 @@ Postup nasazení aplikace do produkce.
   - opakované chybné přihlášení na `/admin/prihlaseni` po překročení limitu vrátí `error=rate_limited` a nepovolí session
   - dostupnost owner-only sekcí jen pro `OWNER`
   - stejné chování owner/salon párových route po refaktoru factory wrapperů (overview, section, booking detail, slot list/create/detail/edit)
+  - detail rezervace: akce `Změnit službu` přepíše službu bez vytvoření nové rezervace, uloží auditní záznam do historie a při delší/nepovolené službě vrátí čitelnou chybu místo tiché nekonzistence
   - detail klientky v owner i salon oblasti: CTA `Vytvořit rezervaci` otevře `/admin/.../rezervace?create=1&clientId=...` a drawer předvyplní správnou klientku nebo ukáže jemný fallback
   - `CRM souhrn` v detailu klientky ukazuje poslední dokončenou návštěvu, nejbližší aktivní budoucí termín, hodnotu služeb, uhrazeno/neuhrazeno a rozpad rezervací; zrušené a no-show rezervace se nepočítají do doplatku a individuální cena rezervace se počítá jako hodnota i základ doplatku
   - lite admin navigaci a mobilní čitelnost na `/admin/provoz/*`

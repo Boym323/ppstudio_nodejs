@@ -6,6 +6,9 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Admin detail rezervace nově umí akci `Změnit službu` přímo na existujícím bookingu: přepíše snapshot služby, délku, cleanup blokaci i ceníkový základ a uloží auditní stopu do historie rezervace.
+- Změna služby je serverově omezená jen na `PENDING`/`CONFIRMED` rezervace a odmítne se, pokud nová služba nesedí do stávajícího času, poruší slotové omezení nebo koliduje se službovým voucherem navázaným na jinou službu.
+- Admin booking detail read model nově do detailu posílá i nabídku dostupných služeb pro bezpečnou výměnu přímo z cockpit view bez ruční DB opravy.
 - Opravená dokumentační nejednotnost v onboardingu a provozních docs: `README.md` znovu explicitně uvádí `npm run db:generate` v krokovém lokálním setupu, `MANUAL.md` má aktuální verze `next 16.2.6` a `prisma 7.8.0` a `docs/DEPLOYMENT.md` odpovídá současnému chování dashboard sekce `Vyžaduje pozornost`.
 
 ## [0.3.27] - 2026-06-03
