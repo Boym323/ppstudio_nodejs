@@ -678,7 +678,7 @@ async function rescheduleBookingInTransaction(
       ),
     booking.serviceId,
     requestedStartsAt,
-    requestedBlockedUntil,
+    requestedEndsAt,
     requestedSlot?.id ?? booking.slot.id,
   );
 
@@ -687,7 +687,7 @@ async function rescheduleBookingInTransaction(
     publishedCoverage === null &&
     requestedStartsAt >= requestedSlot.startsAt &&
     requestedStartsAt < requestedSlot.endsAt &&
-    requestedBlockedUntil > requestedSlot.endsAt
+    requestedEndsAt > requestedSlot.endsAt
   ) {
     throw new BookingRescheduleError(
       bookingRescheduleErrorCodes.slotTooShort,
@@ -705,7 +705,7 @@ async function rescheduleBookingInTransaction(
       ? resolvedCoverageSlots[resolvedCoverageSlots.length - 1]?.endsAt ?? resolvedSlot.endsAt
       : resolvedSlot.endsAt;
 
-    if (requestedStartsAt < resolvedSlot.startsAt || requestedBlockedUntil > coveredUntil) {
+    if (requestedStartsAt < resolvedSlot.startsAt || requestedEndsAt > coveredUntil) {
       resolvedSlot = null;
       resolvedCoverageSlots = [];
       manualOverride = true;
@@ -762,13 +762,6 @@ async function rescheduleBookingInTransaction(
           },
         },
       ],
-      ...(manualOverride || !resolvedSlot
-        ? {}
-        : {
-            slotId: {
-              in: resolvedCoverageSlots.map((coverageSlot) => coverageSlot.id),
-            },
-          }),
     },
   });
 

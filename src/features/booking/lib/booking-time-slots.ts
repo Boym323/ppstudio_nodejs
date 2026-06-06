@@ -102,7 +102,7 @@ export function buildSlotTimeOptions(
   const serviceDurationMs = serviceDurationMinutes * 60 * 1000;
   const blockDurationMs = (serviceDurationMinutes + cleanupBlockMinutes) * 60 * 1000;
   const stepMs = BOOKING_START_STEP_MINUTES * 60 * 1000;
-  const latestStartMs = slotEndsAtMs - blockDurationMs;
+  const latestStartMs = slotEndsAtMs - serviceDurationMs;
 
   if (latestStartMs < slotStartsAtMs) {
     return [];

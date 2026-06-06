@@ -427,6 +427,123 @@ test.describe("booking flows", () => {
     await expect(page.getByText("Interně blokováno do")).toHaveCount(0);
   });
 
+  test("public booking allows the last client-visible start in a slot even when cleanup overflows past slot end", async ({ page }) => {
+    const runId = `e2e-cleanup-overflow-${Date.now().toString(36)}`;
+    const fixture: E2eFixture = {
+      runId,
+      serviceName: "",
+      serviceSlug: "",
+      categoryName: "",
+      clientName: "",
+      clientEmail: "",
+      slotLabels: {
+        primaryDateKey: "",
+        primaryTime: "",
+        rescheduleDateKey: "",
+        rescheduleTime: "",
+        rescheduleConflictButtonLabel: "",
+        rescheduleConflictSlotId: "",
+        rescheduleSuccessButtonLabel: "",
+        rescheduleSuccessSlotId: "",
+        rescheduleSuccessStartAt: "",
+        primaryStartAt: "",
+        rescheduleStartAt: "",
+      },
+    };
+    fixtures.push(fixture);
+
+    const categoryName = `E2E cleanup overflow category ${runId}`;
+    const serviceName = `E2E cleanup overflow service ${runId}`;
+    const serviceSlug = slugify(serviceName);
+    const serviceDurationMinutes = 60;
+    const servicePriceFromCzk = 900;
+
+    const category = await prisma.serviceCategory.create({
+      data: {
+        name: categoryName,
+        slug: slugify(categoryName),
+        publicName: categoryName,
+        description: "Dočasná E2E kategorie pro cleanup overflow scénář.",
+        sortOrder: -10_000,
+        pricingSortOrder: -10_000,
+        isActive: true,
+      },
+    });
+
+    const service = await prisma.service.create({
+      data: {
+        categoryId: category.id,
+        name: serviceName,
+        publicName: serviceName,
+        slug: serviceSlug,
+        shortDescription: "Dočasná E2E služba pro cleanup overflow scénář.",
+        publicIntro: "Dočasná E2E služba pro cleanup overflow scénář.",
+        description: "Dočasná E2E služba pro cleanup overflow scénář.",
+        seoDescription: "Dočasná E2E služba pro cleanup overflow scénář.",
+        durationMinutes: serviceDurationMinutes,
+        cleanupMinutes: 10,
+        priceFromCzk: servicePriceFromCzk,
+        sortOrder: -10_000,
+        isActive: true,
+        isPubliclyBookable: true,
+      },
+    });
+
+    fixture.serviceName = serviceName;
+    fixture.serviceSlug = serviceSlug;
+    fixture.categoryName = categoryName;
+
+    const siteSettings = await prisma.siteSettings.findUnique({
+      where: { id: "site-settings" },
+      select: {
+        bookingMinAdvanceHours: true,
+        bookingMaxAdvanceDays: true,
+      },
+    });
+    const minAdvanceHours = siteSettings?.bookingMinAdvanceHours ?? 2;
+    const maxAdvanceDays = siteSettings?.bookingMaxAdvanceDays ?? 90;
+    const slotDurationMinutes = 60;
+    const minSafeStart = roundUpToHalfHour(addMinutes(new Date(), (minAdvanceHours + 10) * 60));
+    const maxSafeStart = roundUpToHalfHour(addMinutes(
+      new Date(),
+      maxAdvanceDays * 24 * 60 - slotDurationMinutes,
+    ));
+    const slotStart = minSafeStart > maxSafeStart ? maxSafeStart : minSafeStart;
+    const slotEnd = addMinutes(slotStart, slotDurationMinutes);
+
+    await prisma.availabilitySlot.create({
+      data: {
+        startsAt: slotStart,
+        endsAt: slotEnd,
+        capacity: 1,
+        status: AvailabilitySlotStatus.PUBLISHED,
+        serviceRestrictionMode: AvailabilitySlotServiceRestrictionMode.SELECTED,
+        publishedAt: new Date(),
+        publicNote: `E2E cleanup overflow primary ${runId}`,
+        allowedServices: {
+          create: {
+            serviceId: service.id,
+          },
+        },
+      },
+    });
+
+    await page.goto(`/rezervace?service=${serviceSlug}`);
+    await expect(page.getByText(serviceName).first()).toBeVisible();
+
+    const slotStartButton = page
+      .getByRole("button", { name: buildPublicSlotButtonLabel(slotStart) })
+      .first();
+    await expect(slotStartButton).toBeVisible();
+    await expect(slotStartButton).toBeEnabled();
+    await clickUntilFocused(slotStartButton, page.getByLabel("Jméno a příjmení"));
+
+    await expect(page.getByText(`Konec ${formatPragueTime(slotEnd)}`)).toBeVisible();
+    await expect(page.getByText(new RegExp(`${serviceDurationMinutes}\\s*min`)).first()).toBeVisible();
+    await expect(page.getByText("Úklid po službě")).toHaveCount(0);
+    await expect(page.getByText("Interně blokováno do")).toHaveCount(0);
+  });
+
   test("valid service slug preselects the service and keeps marketing params intact", async ({ page }) => {
     const fixture = await createPublicBookingFixture();
     fixtures.push(fixture);

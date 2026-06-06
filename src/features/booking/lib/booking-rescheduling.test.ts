@@ -303,10 +303,49 @@ describe("state validation", () => {
             },
           },
         ],
-        slotId: {
-          in: ["slot-new", "slot-follow-up"],
-        },
       },
+    });
+  });
+
+  test("allows reschedule when cleanup overflows past the selected slot end", async () => {
+    const harness = await createHarness({
+      booking: buildBooking({
+        cleanupMinutes: 10,
+        cleanupBlockMinutes: 15,
+        blockedUntil: new Date("2026-04-26T10:15:00.000Z"),
+      }),
+      requestedSlot: buildSlot({
+        id: "slot-new",
+        startsAt: new Date("2026-04-28T09:00:00.000Z"),
+        endsAt: new Date("2026-04-28T10:00:00.000Z"),
+      }),
+    });
+
+    const result = await harness.api.rescheduleBooking({
+      bookingId: "booking-1",
+      slotId: "slot-new",
+      newStartAt: "2026-04-28T09:00:00.000Z",
+      changedByUserId: null,
+      changedByClient: true,
+      notifyClient: false,
+      expectedUpdatedAt: "2026-04-23T09:00:00.000Z",
+    });
+
+    assert.equal(result.bookingId, "booking-1");
+    assert.deepEqual(harness.calls.bookingUpdate[0]?.data, {
+      slotId: "slot-new",
+      scheduledStartsAt: new Date("2026-04-28T09:00:00.000Z"),
+      scheduledEndsAt: new Date("2026-04-28T10:00:00.000Z"),
+      blockedUntil: new Date("2026-04-28T10:15:00.000Z"),
+      manualOverride: false,
+      rescheduledAt: harness.calls.bookingUpdate[0]?.data
+        ? (harness.calls.bookingUpdate[0].data as { rescheduledAt: Date }).rescheduledAt
+        : undefined,
+      rescheduleCount: {
+        increment: 1,
+      },
+      reminder24hQueuedAt: null,
+      reminder24hSentAt: null,
     });
   });
 
@@ -497,9 +536,6 @@ describe("reschedule booking", () => {
           },
         },
       ],
-      slotId: {
-        in: ["slot-new"],
-      },
     });
     assert.equal(
       (harness.calls.bookingUpdate[0]?.data as { blockedUntil?: Date }).blockedUntil?.toISOString(),

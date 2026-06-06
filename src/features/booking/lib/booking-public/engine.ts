@@ -468,7 +468,7 @@ export async function createBookingWithEngine(
             ),
             service.id,
             requestedStartsAt,
-            requestedBlockedUntil,
+            requestedEndsAt,
             slot?.id,
           );
 
@@ -477,7 +477,7 @@ export async function createBookingWithEngine(
             publishedCoverage === null &&
             requestedStartsAt >= slot.startsAt &&
             requestedStartsAt < slot.endsAt &&
-            requestedBlockedUntil > slot.endsAt
+            requestedEndsAt > slot.endsAt
           ) {
             throw new PublicBookingError(
               publicBookingErrorCodes.slotTooShort,
@@ -501,7 +501,7 @@ export async function createBookingWithEngine(
               ? resolvedCoverageSlots[resolvedCoverageSlots.length - 1]?.endsAt ?? resolvedSlot.endsAt
               : resolvedSlot.endsAt;
 
-            if (requestedStartsAt < resolvedSlot.startsAt || requestedBlockedUntil > coveredUntil) {
+            if (requestedStartsAt < resolvedSlot.startsAt || requestedEndsAt > coveredUntil) {
               if (!input.allowManualOverride) {
                 throw new PublicBookingError(
                   publicBookingErrorCodes.slotUnavailable,
@@ -561,13 +561,6 @@ export async function createBookingWithEngine(
                   },
                 },
               ],
-              ...(manualOverride || !resolvedSlot
-                ? {}
-                : {
-                    slotId: {
-                      in: resolvedCoverageSlots.map((coverageSlot) => coverageSlot.id),
-                    },
-                  }),
             },
           });
 

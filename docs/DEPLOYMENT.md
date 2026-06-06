@@ -69,6 +69,7 @@ Postup nasazení aplikace do produkce.
      - booking funnel odešle eventy bez jména, e-mailu, telefonu, poznámky nebo tokenu
      - veřejná rezervace uloží telefon `777 123 456` jako `+420777123456`, zobrazí ho v adminu čitelně a odmítne textový/HTML telefon s uživatelskou hláškou
      - self-service změna termínu odešle jen eventy `Rezervace / Datum vybráno` a `Rezervace / Čas vybrán` bez tokenu nebo PII
+     - služba s `cleanupMinutes > 0` se dá rezervovat i na poslední klientský start v publikovaném okně, pokud se do slotu vejde samotná délka služby; navazující termín se ale nesmí nabídnout před `blockedUntil`
      - volitelný Matomo Goal `Rezervace vytvořena` pro custom event `Rezervace / Vytvořena` slouží jen pro Matomo UI; admin dashboard bere počet rezervací přímo z eventu
      - server-side dashboard reporting má nastavené `MATOMO_URL`, `MATOMO_SITE_ID` a `MATOMO_AUTH_TOKEN`, Reporting API token není dostupný v klientském bundle a při výpadku API dashboard zobrazí nulové fallbacky místo 500
      - `/api/admin/analytics` vrací po přihlášení agregovaný JSON bez tokenu a bez PII; bez session vrací `403`

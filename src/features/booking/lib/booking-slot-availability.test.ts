@@ -189,7 +189,7 @@ describe("buildSlotTimeOptions cleanup blocking", () => {
     assert.ok(starts.includes("2026-06-10T11:30:00.000Z"));
   });
 
-  test("requires the new booking's own cleanup block to fit into the slot", () => {
+  test("allows the last start in a slot when only cleanup overflows past slot end", () => {
     const options = buildSlotTimeOptions(
       {
         id: "slot-own-cleanup",
@@ -205,7 +205,20 @@ describe("buildSlotTimeOptions cleanup blocking", () => {
       15,
     );
 
-    assert.equal(options.length, 0);
+    assert.deepEqual(
+      options.map((option) => ({
+        startsAt: option.startsAt,
+        endsAt: option.endsAt,
+        isDisabled: option.isDisabled,
+      })),
+      [
+        {
+          startsAt: "2026-06-10T10:00:00.000Z",
+          endsAt: "2026-06-10T11:00:00.000Z",
+          isDisabled: false,
+        },
+      ],
+    );
   });
 
   test("keeps the option end at the client-visible service end", () => {

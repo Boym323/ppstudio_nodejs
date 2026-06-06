@@ -160,6 +160,7 @@ Detailní seznam všech env proměnných je v [`docs/ENVIRONMENT.md`](/var/www/p
 - Reálné služby z DB dostávají veřejnou copy vrstvu v `src/features/public/lib/public-services.ts`, ale zdrojem pravdy je model `Service`.
 - Katalogová i veřejná textová data (`name`, `slug`, cena, délka, dostupnost, kategorie, pořadí, `publicIntro`, `description`, `pricingShortDescription`, `seoTitle`, `seoDescription`, `idealFor`, `includes`, `benefits`, `goodToKnow`) čte veřejný web z DB.
 - Služba má interní pole `cleanupMinutes` pro čas na úklid po službě. Hodnota má výchozí `0`, nastavuje se v admin detailu služby, klientce se nezobrazuje jako délka služby a používá se jen pro interní blokaci dostupnosti po skončení služby.
+- Veřejná i self-service rezervace nově vyžadují, aby se do publikovaného okna vešla samotná služba; cleanup blokace může přetéct za konec slotu. Navazující termíny se ale dál blokují až do `blockedUntil`, takže další start se nabídne teprve po interním cleanup intervalu.
 - Rezervační výběr služby používá DB `publicIntro`; strukturovaný copy override podle slugu není trvalý zdroj obsahu a smí sloužit jen jako dočasný backfill zdroj.
 - Ceník na `/cenik` má vlastní modul v `src/features/public/components/pricing-page.tsx` a je rozdělený do jasné kompozice `hero -> category chips -> hlavní sekce -> menší grid sekce -> finální CTA`.
 - Katalog služeb a kategorií teď nese i veřejná pricing metadata:

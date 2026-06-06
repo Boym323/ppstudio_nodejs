@@ -341,7 +341,7 @@ export function BookingFlow({ catalog, initialSelectedServiceSlug, salonProfile 
         return false;
       }
 
-      if (getSlotDurationMinutes(slot) < selectedService.durationMinutes + selectedService.cleanupBlockMinutes) {
+      if (getSlotDurationMinutes(slot) < selectedService.durationMinutes) {
         return false;
       }
 
