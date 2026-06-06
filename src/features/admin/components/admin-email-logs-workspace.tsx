@@ -247,6 +247,10 @@ function EmailFilters({
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.target.value)}
             placeholder="Příjemce, klientka, email, rezervace, chyba"
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="none"
+            spellCheck={false}
             className="mt-1 h-9 w-full rounded-[0.8rem] border border-white/10 bg-black/20 px-3 text-sm text-white outline-none transition placeholder:text-white/28 focus:border-[var(--color-accent)]/60"
           />
         </label>

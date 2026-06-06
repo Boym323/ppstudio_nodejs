@@ -96,6 +96,10 @@ export function BookingClientSelector({
           value={query}
           onChange={(event) => onQueryChange(event.target.value)}
           placeholder="Např. Jana Nováková, 777123456 nebo jana@email.cz"
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="none"
+          spellCheck={false}
           className="mt-2 w-full rounded-[1rem] border border-white/8 bg-black/20 px-3.5 py-3 text-sm text-white outline-none transition placeholder:text-white/30 focus:border-[var(--color-accent)]/55"
         />
         {fieldErrors?.client ? <p className="mt-2 text-sm text-red-300">{fieldErrors.client}</p> : null}

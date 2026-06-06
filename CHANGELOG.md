@@ -6,6 +6,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Admin vyhledávací pole napříč klientkami, rezervacemi, službami, vouchery, e-mail logy i interními pickery klientky/služby už nepobízí prohlížeč k autofillu uložených kontaktů: search inputy mají vypnuté autocomplete/autocorrect heuristiky a kontaktně laděné placeholdery jsou neutrálnější tam, kde to dávalo smysl.
+
 ## [0.3.28] - 2026-06-04
 
 - Release příprava pro produkční nasazení: projektová verze navýšena na patch `0.3.28`.

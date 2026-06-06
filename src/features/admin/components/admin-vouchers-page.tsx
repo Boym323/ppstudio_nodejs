@@ -212,6 +212,10 @@ function AdminVouchersToolbar({
             name="q"
             defaultValue={filters.q}
             placeholder="Kód, kupující nebo služba"
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="none"
+            spellCheck={false}
             className={cn(
               "mt-1 w-full rounded-[0.9rem] border border-white/10 bg-black/20 px-3 py-2.25",
               "text-sm text-white outline-none transition placeholder:text-white/28",

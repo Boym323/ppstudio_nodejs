@@ -58,6 +58,10 @@ export function AdminServicesToolbar({
               name="query"
               defaultValue={filters.query}
               placeholder="Název, kategorie nebo text"
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="none"
+              spellCheck={false}
               className="mt-1 w-full rounded-[0.9rem] border border-white/10 bg-black/20 px-3 py-2 text-sm text-white outline-none transition placeholder:text-white/30 focus:border-[var(--color-accent)]/60"
             />
           </label>

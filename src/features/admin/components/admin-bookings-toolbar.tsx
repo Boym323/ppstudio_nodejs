@@ -58,7 +58,11 @@ export function AdminBookingsToolbar({
             type="search"
             name="query"
             defaultValue={filters.query}
-            placeholder="Klientka, email, telefon, služba"
+            placeholder="Klientka, kontakt nebo služba"
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="none"
+            spellCheck={false}
             className="mt-1.5 h-10 min-w-0 w-full rounded-[0.9rem] border border-white/10 bg-black/20 px-3 text-sm text-white outline-none transition placeholder:text-white/28 focus:border-[var(--color-accent)]/60"
           />
         </label>

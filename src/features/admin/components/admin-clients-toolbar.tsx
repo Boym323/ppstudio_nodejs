@@ -48,9 +48,14 @@ export function AdminClientsToolbar({
           <span className="text-[11px] uppercase tracking-[0.18em] text-white/48">Hledat</span>
           <input
             type="search"
+            id="admin-clients-search"
             name="query"
             defaultValue={filters.query}
-            placeholder="Jméno, e-mail, telefon, poznámka"
+            placeholder="Jméno, kontakt nebo poznámka"
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="none"
+            spellCheck={false}
             className="mt-1.5 w-full rounded-[0.85rem] border border-white/10 bg-black/20 px-3 py-2 text-sm text-white outline-none transition placeholder:text-white/30 focus:border-[var(--color-accent)]/60"
           />
         </label>

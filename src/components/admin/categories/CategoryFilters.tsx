@@ -48,6 +48,10 @@ export function CategoryFilters({
             name="query"
             defaultValue={filters.query}
             placeholder="Název nebo poznámka"
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="none"
+            spellCheck={false}
             className="mt-2 w-full rounded-xl border border-white/10 bg-black/25 px-4 py-3 text-sm text-white outline-none transition placeholder:text-white/28 focus:border-[var(--color-accent)]/55 focus:bg-black/35"
           />
         </label>

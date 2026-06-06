@@ -71,6 +71,10 @@ export function BookingServiceSelector({
             value={search}
             onChange={(event) => onSearchChange(event.target.value)}
             placeholder="Např. kosmetika, laminace nebo konkrétní název"
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="none"
+            spellCheck={false}
             className="mt-2 w-full rounded-[1rem] border border-white/8 bg-black/20 px-3.5 py-3 text-sm text-white outline-none transition placeholder:text-white/30 focus:border-[var(--color-accent)]/55"
           />
         </label>
