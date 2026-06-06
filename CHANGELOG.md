@@ -6,6 +6,9 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [0.3.29] - 2026-06-06
+
+- Release příprava pro produkční nasazení: projektová verze navýšena na patch `0.3.29`.
 - Admin vyhledávací pole napříč klientkami, rezervacemi, službami, vouchery, e-mail logy i interními pickery klientky/služby už nepobízí prohlížeč k autofillu uložených kontaktů: search inputy mají vypnuté autocomplete/autocorrect heuristiky a kontaktně laděné placeholdery jsou neutrálnější tam, kde to dávalo smysl.
 - Rezervační engine nově dovolí poslední klientský termín v publikovaném okně i tehdy, když interní cleanup blokace přeteče za konec slotu; navazující dostupnost zůstává správně blokovaná až do `blockedUntil`, takže se další rezervace nenabídne před dokončením úklidu.
 
