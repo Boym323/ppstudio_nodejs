@@ -26,6 +26,8 @@ export default defineConfig({
       ...process.env,
       NODE_ENV: "production",
       NEXT_PUBLIC_APP_URL: baseURL,
+      NEXT_PUBLIC_META_PIXEL_ENABLED: "true",
+      NEXT_PUBLIC_META_PIXEL_ID: "123456789",
       EMAIL_DELIVERY_MODE: "log",
     },
   },

@@ -3,7 +3,7 @@
 Tento dokument slouží jako detailní technická dokumentace vývoje.
 
 ## Verzování a release disciplína
-- `package.json` používá SemVer `MAJOR.MINOR.PATCH`; aktuální release je `0.3.29` v pre-stable řadě.
+- `package.json` používá SemVer `MAJOR.MINOR.PATCH`; aktuální release je `0.3.30` v pre-stable řadě.
 - Praktické pravidlo pro tento projekt:
   - `PATCH`: bugfix, interní refaktor bez změny kontraktu, performance tuning bez změny chování API/UI kontraktu.
   - `MINOR`: nová funkce nebo rozšíření existující funkce zpětně kompatibilním způsobem.
@@ -386,6 +386,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Pri finalnim cekani na success heading je timeout zamerne navyseny na `30_000 ms`; pri nezdaru test navic vypise posledni viditelnou chybu formulare, aby CI log hned ukazal, jestli slo o konflikt slotu, validaci nebo obecny save error.
 - Admin smoke scenare `owner can open the core backoffice sections` a `salon role can open the operational workspace but not owner-only sections` mají explicitní timeout `90_000 ms`, protože sekvenční průchod více backoffice rout v CI běžně přesahuje výchozích `45_000 ms`.
 - Playwright konfigurace používá lokální produkční `next start` server na `PLAYWRIGHT_PORT` (výchozí `3100`) a nastavuje `NEXT_PUBLIC_APP_URL` na stejný lokální origin pro runtime serveru.
+- Playwright runtime pro smoke coverage Meta Pixelu navíc nastavuje dummy `NEXT_PUBLIC_META_PIXEL_ENABLED=true` a `NEXT_PUBLIC_META_PIXEL_ID=123456789`, aby server komponenty při `next start` skutečně renderovaly Pixel i v testovacím prostředí.
 - E2E fixture helper seeduje unikátní služby, sloty, klienty, tokeny a dočasného owner uživatele přes Prisma; cleanup filtruje podle unikátního `runId`, aby testy nesahaly na ručně vytvořená data.
 - Aktuální E2E smoke coverage ověřuje veřejné vytvoření pending rezervace, self-service storno, self-service přesun a owner potvrzení rezervace v admin detailu.
 - `tests/e2e/booking-flows.spec.ts` obsahuje i cleanup regrese pro veřejné rezervace:

@@ -6,6 +6,9 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [0.3.30] - 2026-06-09
+
+- Release příprava pro produkční nasazení: projektová verze navýšena na patch `0.3.30`.
 - Meta Pixel už nesbírá jen `PageView`: detail služby posílá `ViewContent`, booking flow posílá `InitiateCheckout`, `AddToCart`, custom funnel eventy `BookingDateSelected` / `BookingTimeSelected` / `BookingContactStarted` a po úspěšném odeslání rezervace standardní `Lead`.
 - Přibyl sdílený Meta Pixel helper se sanitizací payloadu, který z eventů odstraňuje e-maily, telefony, tokeny, klientské poznámky a další hodnoty vypadající jako PII nebo tokenová URL.
 - Dokumentace a QA checklisty jsou doplněné o očekávané Meta Pixel eventy a rychlou kontrolu booking/service funnelu po deployi.
