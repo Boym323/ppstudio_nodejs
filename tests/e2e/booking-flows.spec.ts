@@ -141,18 +141,7 @@ async function clickUntilFocused(trigger: Locator, target: Locator) {
 
 async function installMetaPixelSpy(page: Page) {
   await page.addInitScript(() => {
-    const calls: unknown[][] = [];
-
-    Object.defineProperty(window, "__metaPixelCalls", {
-      configurable: true,
-      value: calls,
-    });
-
-    window.fbq = ((...args: unknown[]) => {
-      calls.push(args);
-    }) as typeof window.fbq;
-
-    window._fbq = window.fbq;
+    window.__metaPixelCalls = [];
   });
 }
 

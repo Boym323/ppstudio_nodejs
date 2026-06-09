@@ -4,6 +4,7 @@ declare global {
   interface Window {
     fbq?: (...args: unknown[]) => void;
     _fbq?: (...args: unknown[]) => void;
+    __metaPixelCalls?: unknown[][];
   }
 }
 
@@ -102,15 +103,26 @@ function trackMetaPixel(
   eventName: string,
   payload?: MetaPixelPayload,
   retryCount = 30,
+  recordDebugCall = true,
 ) {
   if (typeof window === "undefined" || !isMetaPixelConfigured() || !isSafeMetaPixelStringValue(eventName)) {
     return;
   }
 
+  const sanitizedPayload = sanitizeMetaPixelPayload(payload);
+
+  if (recordDebugCall && Array.isArray(window.__metaPixelCalls)) {
+    if (sanitizedPayload) {
+      window.__metaPixelCalls.push([method, eventName, sanitizedPayload]);
+    } else {
+      window.__metaPixelCalls.push([method, eventName]);
+    }
+  }
+
   if (!window.fbq) {
     if (retryCount > 0) {
       window.setTimeout(() => {
-        trackMetaPixel(method, eventName, payload, retryCount - 1);
+        trackMetaPixel(method, eventName, payload, retryCount - 1, false);
       }, 100);
     }
 
@@ -118,8 +130,6 @@ function trackMetaPixel(
   }
 
   try {
-    const sanitizedPayload = sanitizeMetaPixelPayload(payload);
-
     if (sanitizedPayload) {
       window.fbq(method, eventName, sanitizedPayload);
       return;
