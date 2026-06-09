@@ -351,6 +351,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Stránka `/o-mne` je výjimka z obecného pravidla „bez portrait-first kompozice“: může používat výraznější dvousloupcový hero s portrétem majitelky, pokud to pomáhá důvěře a rychlejšímu rozhodnutí klientky.
 - Statické soubory v `public/brand` jsou vhodné jen pro ručně verzované assety projektu; admin uploady mají používat sdílenou media vrstvu a model `MediaAsset`.
 - PWA manifest ikony odkazované v `src/app/manifest.webmanifest` přes root URL (např. `/android-chrome-192x192.png`) musí fyzicky existovat v `public/`; běžný soubor `src/app/android-chrome-*.png` bez file-convention názvu metadata route není automaticky servírovaný na stejné URL.
+- Pokud se mění brand logo pro browser chrome, regeneruj společně `src/app/favicon.ico`, `src/app/apple-icon.png` i `public/apple-touch-icon*.png` / `public/android-chrome-*.png`, aby zůstaly sladěné metadata route i manifest assets.
 
 ## Auth Strategie
 - Login probíhá přes `src/app/api/auth/login/route.ts`.

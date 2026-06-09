@@ -494,6 +494,7 @@ npm run db:clear-booking-data -- --confirm
 - Texty a struktura stránky `O mně` jsou centralizované v `aboutContent`; layout počítá s polem `whyChooseMe` včetně volitelného podnadpisu sekce, popisu benefit karet, hero badge, CTA kartou i pozdějším napojením certifikací na admin data bez dalšího přepisu sekcí.
 - Homepage copy teď vědomě navazuje na konverzně funkční strukturu starého webu (`služba + lokalita`, rychlé CTA na rezervaci/ceník, sekce pro nejistý výběr služby), ale běží na současném komponentovém základu.
 - Homepage hero podporuje i vizuální brand prvky přes obsahový config (`logoImage`, `portraitImage` v `src/content/public-site.ts`); lokální assety jsou v `public/brand/`.
+- Browserové a PWA ikony držíme odděleně od homepage brand assetů: favicon sada žije v `src/app/favicon.ico`, `src/app/apple-icon.png` a `public/android-chrome-*` / `public/apple-touch-icon*.png`.
 - Homepage hero lze obsahově ladit blíž původnímu webu přes `homepageContent` (`benefits`, `ctaNote`) bez zásahu do routy.
 - Hero na homepage je záměrně klidnější: portrét je menší a pravý sloupec nepoužívá doprovodné mini boxy.
 - CTA na rezervaci je dostupné v hlavičce, hero sekcích i obsahových blocích.

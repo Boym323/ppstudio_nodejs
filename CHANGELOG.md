@@ -7,6 +7,7 @@ Formát je inspirovaný Keep a Changelog.
 ## [Unreleased]
 
 - CI build pro Playwright smoke testy teď nastavuje i dummy `NEXT_PUBLIC_META_PIXEL_ENABLED=true` a `NEXT_PUBLIC_META_PIXEL_ID=123456789`, takže se Meta Pixel nevypne už při `next build` a browser funnel test čte stejné build-time env jako lokální `pretest:e2e`.
+- Webová ikonová sada (`src/app/favicon.ico`, `src/app/apple-icon.png`, `public/apple-touch-icon*.png`, `public/android-chrome-*.png`) je znovu vygenerovaná podle aktuálního loga PP Studio, takže favicon a PWA ikony odpovídají současnému brandingu.
 
 ## [0.3.30] - 2026-06-09
 
