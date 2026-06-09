@@ -153,6 +153,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Matomo client tracking je v `src/features/analytics/*` a inicializuje se přes `src/components/layout/site-shell.tsx`. Při lokálním vývoji nastav `NEXT_PUBLIC_MATOMO_ENABLED=true`, `NEXT_PUBLIC_MATOMO_URL` a `NEXT_PUBLIC_MATOMO_SITE_ID`; bez kompletní konfigurace je helper bezpečný no-op. Web Vitals mají navíc samostatný flag `NEXT_PUBLIC_WEB_VITALS_ENABLED` (default `true`), takže je lze vypnout bez vypnutí celého Matomo trackingu.
 - Clarity client tracking je v `src/features/analytics/clarity*.ts(x)` a inicializuje se také přes `SiteShell` (`next/script`, `lazyOnload`); bez kompletní konfigurace (`NEXT_PUBLIC_CLARITY_ENABLED`, `NEXT_PUBLIC_CLARITY_PROJECT_ID`) je helper bezpečný no-op.
 - Meta Pixel client tracking je v `src/features/analytics/meta-pixel*.ts(x)` a inicializuje se také přes `SiteShell` (`next/script`, `lazyOnload`); bez kompletní konfigurace (`NEXT_PUBLIC_META_PIXEL_ENABLED`, `NEXT_PUBLIC_META_PIXEL_ID`) je helper bezpečný no-op.
+- Meta Pixel helper v `src/features/analytics/meta-pixel.ts` je zároveň jediné místo pro `fbq` eventy a sanitizaci payloadu; nové eventy nepřidávej jako ad-hoc `window.fbq(...)` v komponentách.
 - `SiteShell` před renderem `MatomoTracker` čte přítomnost admin session cookie `ppstudio-admin-session`; pokud je cookie přítomná, `MatomoTracker` se renderuje s `disabled` a nenačte `matomo.js` ani init script. Cíl je vyloučit vlastní návštěvy administrace i na veřejných routách bez DB dotazu.
 - Stejný `disabled` guard v `SiteShell` používá i `ClarityTracker`, takže přihlášený admin není měřený ani na veřejných stránkách.
 - Stejný `disabled` guard v `SiteShell` používá i `MetaPixelTracker`, takže přihlášený admin není měřený ani na veřejných stránkách.
@@ -160,6 +161,15 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Pageview tracking v App Routeru poslouchá `usePathname()` a `useSearchParams()`, první render nechává na inicializačním Matomo scriptu a další klientské navigace posílá se sanitizovanou URL.
 - Tokenové self-service booking route (`/rezervace/sprava/*`, `/rezervace/storno/*`, `/rezervace/akce/*`) neposílají pageview s tokenem. `MatomoTracker` na nich může pouze inicializovat `_paq`, aby šly z klientských handlerů poslat bezpečné neosobní eventy bez raw URL.
 - Funnel a CTA eventy se smí volat jen v client handlerech nebo efektech po úspěšné akci; neposílej jména, e-maily, telefony, poznámky, tokeny ani raw URL s citlivými parametry.
+- Meta Pixel standardní eventy drž anglicky podle konvence platformy (`PageView`, `ViewContent`, `InitiateCheckout`, `AddToCart`, `Lead`); custom Meta eventy používej stabilně v PascalCase (`BookingDateSelected`, `BookingTimeSelected`, `BookingContactStarted`).
+- Meta Pixel v aktuální verzi měří tyto neosobní kroky:
+  - detail služby: `ViewContent`
+  - booking flow mount: `InitiateCheckout`
+  - výběr služby: `AddToCart`
+  - výběr dne: `BookingDateSelected`
+  - výběr času: `BookingTimeSelected`
+  - první interakce s kontaktním krokem: `BookingContactStarted`
+  - úspěšně vytvořená rezervace: `Lead`
 - Matomo eventy pojmenovávej primárně česky (`category` i `action`) a drž je stabilní v čase; anglické názvy používej jen tam, kde jde o standardní technický termín (`Web Vitals`, `CLS`, `LCP`).
 - V kontaktním kroku rezervace (`BookingContactStep`) se sledují jen neosobní interakce s poli (`fokus`, `začátek vyplnění`, `chyba`) a název pole (`fullName`/`email`/`phone`); nikdy neposílej obsah zadaných hodnot.
 - Server-side dashboard reporting je v `src/lib/analytics/matomo.ts` a je záměrně oddělený od klientského helperu. Používá pouze `MATOMO_*` env bez `NEXT_PUBLIC_`, `import "server-only"`, Matomo metody `VisitsSummary.get`, `Events.getAction`, `Referrers.getReferrerType` a `Referrers.getCampaigns`, a každý request cachuje přes `fetch(url, { next: { revalidate: 300 } })`.
@@ -371,6 +381,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Regrese ranního planner problému je krytá integračním testem `admin-slots/mutations.integration.test.ts`: publikace konceptu přes den s existující rezervací musí rezervovaný interval zachovat a přepsat jen běžnou dostupnost před/po něm.
 - Browser E2E testy běží přes Playwright (`npm run test:e2e`) v adresáři `tests/e2e`.
 - CI po samostatném `npm run build` spouští E2E přímo přes `npx playwright test`, aby se kvůli `pretest:e2e` neprováděl druhý identický build.
+- `pretest:e2e` pro Playwright build zapíná jen dummy Meta Pixel env (`NEXT_PUBLIC_META_PIXEL_ENABLED=true`, `NEXT_PUBLIC_META_PIXEL_ID=123456789`), aby šlo v browser smoke testech ověřit wiring eventů bez zásahu do produkčního defaultu.
 - Reschedule scenar `client can reschedule a booking through a public token` ma zamerne sirsi test timeout nez ostatni scenare, protoze overuje plny self-service submit a success render nad produkcnim `next start` serverem.
 - Pri finalnim cekani na success heading je timeout zamerne navyseny na `30_000 ms`; pri nezdaru test navic vypise posledni viditelnou chybu formulare, aby CI log hned ukazal, jestli slo o konflikt slotu, validaci nebo obecny save error.
 - Admin smoke scenare `owner can open the core backoffice sections` a `salon role can open the operational workspace but not owner-only sections` mají explicitní timeout `90_000 ms`, protože sekvenční průchod více backoffice rout v CI běžně přesahuje výchozích `45_000 ms`.

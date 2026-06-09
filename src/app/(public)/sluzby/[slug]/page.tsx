@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { connection } from "next/server";
 import { notFound } from 'next/navigation';
 
+import { MetaPixelViewContentTracker } from "@/features/analytics/meta-pixel-view-content-tracker";
 import { getPublicServiceBySlug } from '@/features/public/lib/public-services';
 import { ServiceDetailPage, buildPageMetadata, buildServiceBreadcrumbItems } from '@/features/public/components/public-site';
 import { SeoJsonLd, buildBreadcrumbListJsonLd, buildServiceJsonLd } from '@/features/public/components/seo-json-ld';
@@ -45,6 +46,14 @@ export default async function Page({ params }: { params: PageParams }) {
     <>
       <SeoJsonLd data={buildServiceJsonLd(service, salonProfile)} />
       <SeoJsonLd data={buildBreadcrumbListJsonLd(breadcrumbItems)} />
+      <MetaPixelViewContentTracker
+        service={{
+          slug: service.slug,
+          name: service.name,
+          category: service.category,
+          durationMinutes: service.durationMinutes,
+        }}
+      />
       <ServiceDetailPage service={service} />
     </>
   );

@@ -83,6 +83,8 @@ Postup nasazení aplikace do produkce.
      - veřejná stránka načte `fbevents.js` pouze při `NEXT_PUBLIC_META_PIXEL_ENABLED=true` a vyplněném `NEXT_PUBLIC_META_PIXEL_ID`
      - `/admin`, `/api`, Next internals a tokenové self-service route (`/rezervace/sprava/*`, `/rezervace/storno/*`, `/rezervace/akce/*`) Pixel neinicializují
      - při přihlášené admin session (`ppstudio-admin-session`) se na veřejných stránkách Pixel nenačte
+     - detail služby odešle `ViewContent`
+     - `/rezervace` odešle `InitiateCheckout`, po výběru služby `AddToCart`, po výběru dne/času custom `BookingDateSelected` / `BookingTimeSelected`, po první interakci v kontaktu `BookingContactStarted` a po úspěchu `Lead`
 16. Projdi ruční QA admin částí:
   - login redirect pro `OWNER` a `SALON`
   - opakované chybné přihlášení na `/admin/prihlaseni` po překročení limitu vrátí `error=rate_limited` a nepovolí session

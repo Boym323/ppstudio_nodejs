@@ -112,6 +112,7 @@ Lokální doporučení:
 - Matomo konfigurace je volitelná: pokud `NEXT_PUBLIC_MATOMO_ENABLED` není přesně `true`, nebo chybí URL či site ID, tracking zůstane vypnutý. Protože jde o `NEXT_PUBLIC_*` proměnné, hodnoty se promítají do klientského bundle při buildu.
 - Clarity konfigurace je volitelná: pokud `NEXT_PUBLIC_CLARITY_ENABLED` není přesně `true`, nebo chybí `NEXT_PUBLIC_CLARITY_PROJECT_ID`, tracking zůstane vypnutý.
 - Meta Pixel konfigurace je volitelná: pokud `NEXT_PUBLIC_META_PIXEL_ENABLED` není přesně `true`, nebo chybí `NEXT_PUBLIC_META_PIXEL_ID`, tracking zůstane vypnutý.
+- Při zapnuté konfiguraci Meta Pixel aktuálně posílá nejen `PageView`, ale i neosobní funnel eventy `ViewContent`, `InitiateCheckout`, `AddToCart`, `BookingDateSelected`, `BookingTimeSelected`, `BookingContactStarted` a `Lead`.
 - Vyloučení přihlášeného admina z veřejného Matomo trackingu je řešené aplikačně přes admin session cookie `ppstudio-admin-session`; nepřidává se kvůli tomu žádná nová env proměnná.
 - Vyloučení přihlášeného admina z Clarity je řešené stejným guardem v `SiteShell` (`disabled` přes admin session cookie). Clarity se navíc neinicializuje na tokenových self-service routách.
 - Vyloučení přihlášeného admina z Meta Pixelu je řešené stejným guardem v `SiteShell` (`disabled` přes admin session cookie). Meta Pixel se navíc neinicializuje na tokenových self-service routách.

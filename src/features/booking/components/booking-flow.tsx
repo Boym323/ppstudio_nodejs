@@ -7,6 +7,10 @@ import { createPublicBookingAction } from "@/features/booking/actions/create-pub
 import { initialPublicBookingActionState } from "@/features/booking/actions/public-booking-action-state";
 import { trackMatomoEvent } from "@/features/analytics/matomo";
 import {
+  trackMetaPixelCustomEvent,
+  trackMetaPixelStandardEvent,
+} from "@/features/analytics/meta-pixel";
+import {
   buildSlotTimeOptions,
   groupSlotsByDayPeriod,
   type TimeSlotOption,
@@ -85,6 +89,53 @@ export function BookingFlow({ catalog, initialSelectedServiceSlug, salonProfile 
   const trackedContactInputFieldsRef = useRef<Set<ContactFieldKey>>(new Set());
   const trackedContactErrorFieldsRef = useRef<Set<ContactFieldKey>>(new Set());
   const prefilledServiceTrackedRef = useRef(false);
+  const initiateCheckoutTrackedRef = useRef(false);
+
+  const trackSelectedServiceMetaEvent = (service?: {
+    categoryName: string;
+    name: string;
+    slug: string;
+    durationMinutes: number;
+    priceFromCzk: number | null;
+  }) => {
+    if (!service) {
+      return;
+    }
+
+    trackMetaPixelStandardEvent("AddToCart", {
+      content_type: "service",
+      content_ids: service.slug,
+      content_name: service.name,
+      content_category: service.categoryName,
+      duration_minutes: service.durationMinutes,
+      value: service.priceFromCzk ?? undefined,
+      currency: service.priceFromCzk ? "CZK" : undefined,
+    });
+  };
+
+  const trackSelectedDateMetaEvent = (dateKey: string) => {
+    const bookingDate = new Date(`${dateKey}T12:00:00Z`);
+    const bookingWeekday = new Intl.DateTimeFormat("cs-CZ", {
+      weekday: "long",
+      timeZone: "Europe/Prague",
+    }).format(bookingDate);
+
+    trackMetaPixelCustomEvent("BookingDateSelected", {
+      booking_month: dateKey.slice(0, 7),
+      booking_weekday: bookingWeekday,
+    });
+  };
+
+  const trackSelectedTimeMetaEvent = (slotOption: TimeSlotOption) => {
+    const startsAt = new Date(slotOption.startsAt);
+    const hour = startsAt.getHours();
+    const timeBucket = hour < 12 ? "morning" : hour < 17 ? "afternoon" : "evening";
+
+    trackMetaPixelCustomEvent("BookingTimeSelected", {
+      time_bucket: timeBucket,
+      duration_minutes: selectedService?.durationMinutes,
+    });
+  };
 
   const focusSection = (
     sectionElement: HTMLDivElement | null,
@@ -233,6 +284,18 @@ export function BookingFlow({ catalog, initialSelectedServiceSlug, salonProfile 
       }, 280);
     });
   };
+
+  useEffect(() => {
+    if (initiateCheckoutTrackedRef.current) {
+      return;
+    }
+
+    initiateCheckoutTrackedRef.current = true;
+    trackMetaPixelStandardEvent("InitiateCheckout", {
+      content_category: "booking",
+      source_context: initialSelectedServiceSlug ? "service_prefill" : "booking_landing",
+    });
+  }, [initialSelectedServiceSlug]);
 
   useEffect(() => {
     return () => {
@@ -522,6 +585,7 @@ export function BookingFlow({ catalog, initialSelectedServiceSlug, salonProfile 
       `${trackedService.categoryName} / ${trackedService.name}`,
       trackedService.priceFromCzk ?? undefined,
     );
+    trackSelectedServiceMetaEvent(trackedService);
   }, [initialSelectedServiceSlug, selectedService]);
 
   const trackContactStarted = () => {
@@ -537,6 +601,11 @@ export function BookingFlow({ catalog, initialSelectedServiceSlug, salonProfile 
 
     contactStartedTrackedRef.current = true;
     trackMatomoEvent("Rezervace", "Kontakt zahájen", eventName);
+    trackMetaPixelCustomEvent("BookingContactStarted", {
+      content_name: selectedService?.name,
+      content_category: selectedService?.categoryName,
+      content_ids: selectedService?.slug,
+    });
   };
 
   const trackContactFieldFocus = (field: ContactFieldKey) => {
@@ -579,12 +648,14 @@ export function BookingFlow({ catalog, initialSelectedServiceSlug, salonProfile 
     setSelectedTimeOptionKey(slotOption.key);
     setCurrentStep(3);
     trackMatomoEvent("Rezervace", "Datum vybráno", dateKey);
+    trackSelectedDateMetaEvent(dateKey);
     trackMatomoEvent(
       "Rezervace",
       "Čas vybrán",
       `${formatSlotTime(slotOption.startsAt)} / ${formatSlotTime(slotOption.endsAt)}`,
       durationMinutes,
     );
+    trackSelectedTimeMetaEvent(slotOption);
     focusContactStepSection();
   };
 
@@ -615,7 +686,24 @@ export function BookingFlow({ catalog, initialSelectedServiceSlug, salonProfile 
       selectedService?.name ?? serverState.confirmation.serviceName,
       selectedService?.priceFromCzk ?? undefined,
     );
-  }, [selectedService?.name, selectedService?.priceFromCzk, serverState.confirmation, serverState.status]);
+    trackMetaPixelStandardEvent("Lead", {
+      content_type: "service",
+      content_name: selectedService?.name ?? serverState.confirmation.serviceName,
+      content_category: selectedService?.categoryName,
+      content_ids: selectedService?.slug,
+      duration_minutes: selectedService?.durationMinutes,
+      value: selectedService?.priceFromCzk ?? undefined,
+      currency: selectedService?.priceFromCzk ? "CZK" : undefined,
+    });
+  }, [
+    selectedService?.categoryName,
+    selectedService?.durationMinutes,
+    selectedService?.name,
+    selectedService?.priceFromCzk,
+    selectedService?.slug,
+    serverState.confirmation,
+    serverState.status,
+  ]);
 
   useEffect(() => {
     if (serverState.status !== "success" || !serverState.confirmation || successViewportResetRef.current) {
@@ -704,6 +792,7 @@ export function BookingFlow({ catalog, initialSelectedServiceSlug, salonProfile 
                   service ? `${service.categoryName} / ${service.name}` : undefined,
                   service?.priceFromCzk ?? undefined,
                 );
+                trackSelectedServiceMetaEvent(service);
                 focusTermStepSection();
               }}
             />
@@ -737,6 +826,7 @@ export function BookingFlow({ catalog, initialSelectedServiceSlug, salonProfile 
               onSelectDate={(dateKey) => {
                 setSelectedDateKey(dateKey);
                 trackMatomoEvent("Rezervace", "Datum vybráno", dateKey);
+                trackSelectedDateMetaEvent(dateKey);
                 if (selectedSlotDateKey && selectedSlotDateKey !== dateKey) {
                   setSelectedTimeOptionKey("");
                 }
