@@ -42,7 +42,7 @@ export function MetaPixelTracker({ disabled = false }: MetaPixelTrackerProps) {
     <>
       <Script
         id="meta-pixel-init"
-        strategy="lazyOnload"
+        strategy="afterInteractive"
         dangerouslySetInnerHTML={{
           __html: `
             !function(f,b,e,v,n,t,s)

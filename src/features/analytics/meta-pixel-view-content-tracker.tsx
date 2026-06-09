@@ -18,6 +18,8 @@ export function MetaPixelViewContentTracker({
   service,
 }: MetaPixelViewContentTrackerProps) {
   useEffect(() => {
+    document.documentElement.dataset.metaPixelViewContent = service.slug;
+
     trackMetaPixelStandardEvent("ViewContent", {
       content_type: "service",
       content_ids: service.slug,
@@ -27,6 +29,12 @@ export function MetaPixelViewContentTracker({
       value: service.priceFromCzk ?? undefined,
       currency: service.priceFromCzk ? "CZK" : undefined,
     });
+
+    return () => {
+      if (document.documentElement.dataset.metaPixelViewContent === service.slug) {
+        delete document.documentElement.dataset.metaPixelViewContent;
+      }
+    };
   }, [service.category, service.durationMinutes, service.name, service.priceFromCzk, service.slug]);
 
   return null;

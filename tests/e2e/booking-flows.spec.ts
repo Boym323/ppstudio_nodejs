@@ -697,6 +697,9 @@ test.describe("booking flows", () => {
 
     await page.goto(`/sluzby/${fixture.serviceSlug}`);
     await expect(page.getByRole("heading", { name: fixture.serviceName })).toBeVisible();
+    await expect(page.locator("html")).toHaveAttribute("data-meta-pixel-view-content", fixture.serviceSlug, {
+      timeout: 30_000,
+    });
     await expectMetaPixelEvent(page, "track:ViewContent");
 
     await page.getByRole("link", { name: "Rezervovat službu" }).click();
