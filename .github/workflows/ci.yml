@@ -38,6 +38,8 @@ jobs:
     env:
       NEXT_PUBLIC_APP_NAME: PP Studio
       NEXT_PUBLIC_APP_URL: http://127.0.0.1:3100
+      NEXT_PUBLIC_META_PIXEL_ENABLED: "true"
+      NEXT_PUBLIC_META_PIXEL_ID: "123456789"
       DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/ppstudio?schema=public
       SHADOW_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/ppstudio_shadow?schema=public
       ADMIN_SESSION_SECRET: ci-secret-value-with-at-least-32-characters

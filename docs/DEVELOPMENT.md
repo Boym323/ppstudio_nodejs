@@ -382,6 +382,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Browser E2E testy běží přes Playwright (`npm run test:e2e`) v adresáři `tests/e2e`.
 - CI po samostatném `npm run build` spouští E2E přímo přes `npx playwright test`, aby se kvůli `pretest:e2e` neprováděl druhý identický build.
 - `pretest:e2e` pro Playwright build zapíná jen dummy Meta Pixel env (`NEXT_PUBLIC_META_PIXEL_ENABLED=true`, `NEXT_PUBLIC_META_PIXEL_ID=123456789`), aby šlo v browser smoke testech ověřit wiring eventů bez zásahu do produkčního defaultu.
+- Stejné dummy Meta env musí mít i každý samostatný CI `next build` krok. `NEXT_PUBLIC_*` hodnoty se inlinují už při buildu, takže pouhé runtime env v `playwright.config.ts` nestačí, pokud test běží nad předem sestaveným `.next`.
 - Reschedule scenar `client can reschedule a booking through a public token` ma zamerne sirsi test timeout nez ostatni scenare, protoze overuje plny self-service submit a success render nad produkcnim `next start` serverem.
 - Pri finalnim cekani na success heading je timeout zamerne navyseny na `30_000 ms`; pri nezdaru test navic vypise posledni viditelnou chybu formulare, aby CI log hned ukazal, jestli slo o konflikt slotu, validaci nebo obecny save error.
 - Admin smoke scenare `owner can open the core backoffice sections` a `salon role can open the operational workspace but not owner-only sections` mají explicitní timeout `90_000 ms`, protože sekvenční průchod více backoffice rout v CI běžně přesahuje výchozích `45_000 ms`.
