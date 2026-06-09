@@ -142,29 +142,17 @@ async function clickUntilFocused(trigger: Locator, target: Locator) {
 async function installMetaPixelSpy(page: Page) {
   await page.addInitScript(() => {
     const calls: unknown[][] = [];
-    let assignedFbq: ((...args: unknown[]) => void) | null = null;
-
-    const recordCall = (...args: unknown[]) => {
-      calls.push(args);
-      return assignedFbq?.(...args);
-    };
 
     Object.defineProperty(window, "__metaPixelCalls", {
       configurable: true,
-      get() {
-        return calls;
-      },
+      value: calls,
     });
 
-    Object.defineProperty(window, "fbq", {
-      configurable: true,
-      get() {
-        return assignedFbq ? recordCall : undefined;
-      },
-      set(value) {
-        assignedFbq = typeof value === "function" ? value : null;
-      },
-    });
+    window.fbq = ((...args: unknown[]) => {
+      calls.push(args);
+    }) as typeof window.fbq;
+
+    window._fbq = window.fbq;
   });
 }
 
@@ -174,6 +162,12 @@ async function getMetaPixelEventNames(page: Page) {
 
     return calls.map((call) => `${String(call[0])}:${String(call[1])}`);
   });
+}
+
+async function expectMetaPixelEvent(page: Page, eventName: string) {
+  await expect
+    .poll(async () => getMetaPixelEventNames(page))
+    .toContain(eventName);
 }
 
 async function loginAdmin(page: Page, email: string, password: string) {
@@ -714,20 +708,20 @@ test.describe("booking flows", () => {
 
     await page.goto(`/sluzby/${fixture.serviceSlug}`);
     await expect(page.getByRole("heading", { name: fixture.serviceName })).toBeVisible();
-    await expect.poll(async () => getMetaPixelEventNames(page)).toContain("track:ViewContent");
+    await expectMetaPixelEvent(page, "track:ViewContent");
 
     await page.getByRole("link", { name: "Rezervovat službu" }).click();
     await expect(page).toHaveURL(new RegExp(`/rezervace\\?service=${fixture.serviceSlug}$`));
-    await expect.poll(async () => getMetaPixelEventNames(page)).toContain("track:InitiateCheckout");
-    await expect.poll(async () => getMetaPixelEventNames(page)).toContain("track:AddToCart");
+    await expectMetaPixelEvent(page, "track:InitiateCheckout");
+    await expectMetaPixelEvent(page, "track:AddToCart");
 
     await clickUntilFocused(
       page.getByRole("button", { name: /^Vybrat termín / }).first(),
       page.getByLabel("Jméno a příjmení"),
     );
-    await expect.poll(async () => getMetaPixelEventNames(page)).toContain("trackCustom:BookingDateSelected");
-    await expect.poll(async () => getMetaPixelEventNames(page)).toContain("trackCustom:BookingTimeSelected");
-    await expect.poll(async () => getMetaPixelEventNames(page)).toContain("trackCustom:BookingContactStarted");
+    await expectMetaPixelEvent(page, "trackCustom:BookingDateSelected");
+    await expectMetaPixelEvent(page, "trackCustom:BookingTimeSelected");
+    await expectMetaPixelEvent(page, "trackCustom:BookingContactStarted");
 
     await page.getByLabel("Jméno a příjmení").fill(fixture.clientName);
     await page.getByRole("textbox", { name: "E-mail" }).fill(fixture.clientEmail);
@@ -736,7 +730,7 @@ test.describe("booking flows", () => {
     await page.getByRole("button", { name: "Odeslat rezervaci" }).first().click();
 
     await expect(page.getByRole("heading", { name: "Rezervace přijata" })).toBeVisible();
-    await expect.poll(async () => getMetaPixelEventNames(page)).toContain("track:Lead");
+    await expectMetaPixelEvent(page, "track:Lead");
   });
 
   test("public visitor can verify a voucher code safely", async ({ page }) => {
