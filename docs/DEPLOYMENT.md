@@ -208,7 +208,7 @@ Postup nasazení aplikace do produkce.
   - vytvoření testovací rezervace
   - propsání nové rezervace nebo změny slotu do overview dashboardu bez potřeby buildu nebo manuálního refresh flow navíc
   - `/admin/rezervace` a `/admin/provoz/rezervace`: kompaktní řádkový seznam, sticky header a inline akce `Potvrdit` / `Zrušit`
-  - `/admin/rezervace` a `/admin/provoz/rezervace`: segmented filtr statistik bez duplicitního CTA, toolbar `hledat / stav / zdroj / datum`, seskupení `Dnes / Zítra / Později / Dříve`, pending-first prioritu, click-to-open řádky, klávesy `Enter / ↑ / ↓`, tlumené řádky `Hotovo` a `Zrušená` a mobilní compact cards
+  - `/admin/rezervace` a `/admin/provoz/rezervace`: segmented filtr statistik bez duplicitního CTA, toolbar `hledat / stav / zdroj / datum`, seskupení `K uzavření / Čeká na potvrzení / Nadcházející / Minulé`, pending-first prioritu, click-to-open řádky, klávesy `Enter / ↑ / ↓`, tlumené řádky `Hotovo` a `Zrušená`, mobilní compact cards, živé našeptávání v poli `Hledat` a progresivní odkrývání (`Minulé` výchozně sbalené, `Zobrazit další` drží aktuální filtry)
   - detail klientky `/admin/klienti/[clientId]` a `/admin/provoz/klienti/[clientId]`: hlavička ukazuje stav, poslední a další návštěvu, rychlé akce fungují jen při dostupném kontaktu, historie návštěv otevírá detail rezervace a interní poznámka se uloží bez změny ostatních údajů
   - detail rezervace:
     - sticky header drží klientku, službu, termín, stav, zdroj a rychlé akce i při scrollu

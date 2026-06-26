@@ -111,7 +111,7 @@ Evidence produkčních incidentů a jejich řešení.
 - Voucher chybně odečtený už při veřejné rezervaci; správné chování je jen intent na `Booking`, skutečné čerpání vzniká výhradně ručním admin zápisem `VoucherRedemption`.
 - Hodnotový voucher čerpaný souběžně bez transakční aktualizace `remainingValueCzk`; budoucí admin akce musí u `VALUE` voucherů zamykat/ověřit aktuální zůstatek a až potom vytvořit `VoucherRedemption`.
 - Rezervační přehled vracející špatné nebo neaktivní filtry po kliknutí na statistický box; klik na aktivní box musí vždy umět vrátit seznam do výchozího stavu bez ruční editace URL.
-- Pracovní seznam rezervací bez vizuálního oddělení dnešních a budoucích termínů; po každém zásahu do read modelu nebo toolbaru ověř bloky `Dnes`, `Zítra`, `Později` a `Dříve`.
+- Pracovní seznam rezervací po zásahu do query parametrů nebo toolbaru ztratí stav sekcí `Minulé` / `Zobrazit další`; ověř, že `showPast` a skupinové `*Limit` parametry přežijí další filtrování i návrat přes historii prohlížeče.
 - Detail rezervace po UX refaktoru schová hlavní akce pod fold nebo mimo sticky header; po každém zásahu ověř, že `termín + stav + rychlé akce` zůstávají viditelné bez dalšího scrollu.
 - Detail rezervace znovu smíchá reschedule flow do běžného status chooseru; `Přesunout termín` má zůstat samostatné CTA s vlastním drawerem, validací a historií.
 - Pokud se na telefonu vrátí překryv první akční karty v detailu rezervace, zkontroluj kombinaci sticky vrstev `AdminShell` mobile topbaru a booking detail headeru; mobil nemá mít dva na sobě aktivní sticky panely se stejným scroll kontextem.

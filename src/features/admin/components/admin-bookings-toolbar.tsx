@@ -5,6 +5,8 @@ import { bookingListSourceValues, bookingListStatusValues } from "@/features/adm
 import { type ReservationsDashboardData } from "@/features/admin/lib/admin-data";
 import { cn } from "@/lib/utils";
 
+import { AdminBookingSearchField } from "./admin-booking-search-field";
+
 type AdminBookingsToolbarProps = {
   currentPath: string;
   filters: {
@@ -13,6 +15,8 @@ type AdminBookingsToolbarProps = {
     source: (typeof bookingListSourceValues)[number];
     dateFrom: string;
     dateTo: string;
+    showPast: boolean;
+    limits: ReservationsDashboardData["filters"]["limits"];
   };
   resultCount: number;
   stats: ReservationsDashboardData["stats"];
@@ -50,22 +54,7 @@ export function AdminBookingsToolbar({
       </div>
 
       <div className="mt-3 grid min-w-0 gap-2 lg:grid-cols-[minmax(0,2.2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.95fr)_minmax(0,0.95fr)_auto_auto]">
-        <label className="block min-w-0">
-          <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/42">
-            Hledat
-          </span>
-          <input
-            type="search"
-            name="query"
-            defaultValue={filters.query}
-            placeholder="Klientka, kontakt nebo služba"
-            autoComplete="off"
-            autoCorrect="off"
-            autoCapitalize="none"
-            spellCheck={false}
-            className="mt-1.5 h-10 min-w-0 w-full rounded-[0.9rem] border border-white/10 bg-black/20 px-3 text-sm text-white outline-none transition placeholder:text-white/28 focus:border-[var(--color-accent)]/60"
-          />
-        </label>
+        <AdminBookingSearchField defaultValue={filters.query} />
 
         <SelectField name="status" label="Stav" defaultValue={filters.status}>
           <option value="all" className="text-black">Vše</option>
@@ -103,6 +92,12 @@ export function AdminBookingsToolbar({
           </a>
         </div>
       </div>
+
+      {filters.showPast ? <input type="hidden" name="showPast" value="1" /> : null}
+      <input type="hidden" name="needsClosureLimit" value={String(filters.limits.needs_closure)} />
+      <input type="hidden" name="pendingLimit" value={String(filters.limits.pending)} />
+      <input type="hidden" name="upcomingLimit" value={String(filters.limits.upcoming)} />
+      <input type="hidden" name="pastLimit" value={String(filters.limits.past)} />
 
       <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-white/8 pt-2 text-sm text-white/58">
         <p>

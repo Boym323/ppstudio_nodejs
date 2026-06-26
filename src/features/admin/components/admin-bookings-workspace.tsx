@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
@@ -66,7 +67,7 @@ export function AdminBookingsWorkspace({
             <section key={group.key}>
               <div
                 className={cn(
-                  "flex items-center justify-between gap-3 border-b border-white/8 px-4 py-2.5",
+                  "flex items-start justify-between gap-3 border-b border-white/8 px-4 py-2.5",
                   group.key === "needs_closure"
                     ? "bg-[linear-gradient(90deg,rgba(244,114,86,0.16),rgba(255,255,255,0.04))]"
                     : group.key === "pending"
@@ -88,11 +89,43 @@ export function AdminBookingsWorkspace({
                     {group.label}
                   </p>
                   <p className="mt-0.5 text-sm text-white/48">{group.detail}</p>
+                  <p className="mt-1 text-xs text-white/38">
+                    {group.collapsed
+                      ? `${group.totalCount} rezervací je schovaných kvůli menšímu šumu v seznamu.`
+                      : group.hiddenCount > 0
+                        ? `Zobrazeno ${group.visibleCount} z ${group.totalCount} rezervací.`
+                        : `${group.totalCount} rezervací v aktuálním výřezu.`}
+                  </p>
                 </div>
-                <p className="text-sm text-white/46">{group.items.length}</p>
+                <div className="flex shrink-0 items-center gap-2">
+                  <p className="text-sm text-white/46">{group.totalCount}</p>
+                  {group.expandHref ? (
+                    <Link
+                      href={group.expandHref}
+                      scroll={false}
+                      className="inline-flex min-h-8 items-center rounded-full border border-white/10 px-3 text-xs font-medium text-white/74 transition hover:border-white/18 hover:bg-white/6 hover:text-white"
+                    >
+                      Rozbalit
+                    </Link>
+                  ) : null}
+                  {group.collapseHref ? (
+                    <Link
+                      href={group.collapseHref}
+                      scroll={false}
+                      className="inline-flex min-h-8 items-center rounded-full border border-white/10 px-3 text-xs font-medium text-white/74 transition hover:border-white/18 hover:bg-white/6 hover:text-white"
+                    >
+                      Sbalit
+                    </Link>
+                  ) : null}
+                </div>
               </div>
 
-              <div className="relative divide-y divide-white/8 before:hidden before:content-[''] md:before:block md:before:h-11">
+              {group.collapsed ? (
+                <div className="px-4 py-4 text-sm text-white/46">
+                  Historické rezervace zůstávají schované, dokud je nepotřebujete dohledat.
+                </div>
+              ) : (
+                <div className="relative divide-y divide-white/8 before:hidden before:content-[''] md:before:block md:before:h-11">
                 {group.items.map((booking) => {
                   const rowIndex = rowIndexById.get(booking.id) ?? 0;
 
@@ -233,7 +266,22 @@ export function AdminBookingsWorkspace({
                     </article>
                   );
                 })}
+                {group.showMoreHref ? (
+                  <div className="flex items-center justify-between gap-3 px-4 py-3">
+                    <p className="text-sm text-white/46">
+                      Zbývá ještě {group.hiddenCount} rezervací.
+                    </p>
+                    <Link
+                      href={group.showMoreHref}
+                      scroll={false}
+                      className="inline-flex min-h-9 items-center rounded-full border border-[var(--color-accent)]/36 bg-[var(--color-accent)]/12 px-4 text-sm font-semibold text-[var(--color-accent-contrast)] transition hover:bg-[var(--color-accent)]/20"
+                    >
+                      Zobrazit další
+                    </Link>
+                  </div>
+                ) : null}
               </div>
+              )}
             </section>
           ))}
         </div>

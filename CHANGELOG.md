@@ -6,6 +6,12 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Admin pracovní seznam rezervací už není svázaný pevným globálním limitem `take: 80`; souhrnný počet výsledků se počítá přes samostatný `count(where)` a UI dál pracuje se skutečným počtem nalezených rezervací.
+- Sekce `Rezervace` nově používá progresivní odkrývání dlouhých seznamů: `Minulé` jsou defaultně sbalené, každá skupina má vlastní URL-driven limit a dlouhé bloky se rozšiřují přes `Zobrazit další` bez ztráty aktivních filtrů.
+- Pole `Hledat` v rezervacích nově používá živé našeptávání nad databází přes admin lookup endpoint, takže návrhy reagují na aktuální klientky, kontakty a služby místo jednorázového snapshotu při načtení stránky.
+- Hledání v rezervacích se po krátké pauze při psaní odesílá samo, takže běžné filtrování už nevyžaduje klik na `Filtrovat`; výběr návrhu z našeptávače dál filtr spouští okamžitě.
+- Přibyly validační testy pro nové query parametry seznamu rezervací (`showPast`, `*Limit`), aby se nerozbilo serverové čtení URL stavu pracovního seznamu.
+
 ## [0.3.31] - 2026-06-09
 
 - Release příprava pro produkční nasazení: projektová verze navýšena na patch `0.3.31`.
@@ -1080,3 +1086,4 @@ Formát je inspirovaný Keep a Changelog.
   - `src/features/admin/lib/admin-slot-repository.ts`
 - Produkční `robots.txt` už neomezuje crawl jen na vybrané veřejné sekce; celý veřejný web je nyní pro roboty otevřený přes `Allow: /`, zatímco admin a tokenové self-service routy (`/rezervace/storno/*`, `/rezervace/sprava/*`, `/rezervace/akce/*`) zůstávají blokované.
 - Mobilní detail rezervace v adminu už při potvrzení služby nepřekrývá první akční kartu sticky hlavičkou; booking header je sticky až od desktop breakpointu, takže CTA a stavový chooser zůstávají na telefonu plně čitelné.
+- Našeptávač v admin rezervacích už při běžném textu nenabízí e-mailové a telefonní kontakty; ty se zobrazí jen pro dotazy připomínající kontakt. Z pole zároveň zmizel rušivý text `OK` a spodní pomocná věta, takže dropdown nepůsobí průhledně ani přeplácaně.

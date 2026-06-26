@@ -17,7 +17,9 @@ import {
   getBookingStatusLabel,
 } from "@/features/admin/lib/admin-booking";
 import {
+  bookingListGroupValues,
   bookingListSearchParamsSchema,
+  type BookingListGroupValue,
   type BookingListSourceValue,
   type BookingListStatValue,
   type BookingListStatusValue,
@@ -49,6 +51,10 @@ const formatTime = new Intl.DateTimeFormat("cs-CZ", {
   minute: "2-digit",
   timeZone: "Europe/Prague",
 });
+
+const defaultReservationGroupLimit = 12;
+const reservationGroupLimitStep = 12;
+const reservationGroupLimitMax = 200;
 
 const activeBookingStatuses = [BookingStatus.PENDING, BookingStatus.CONFIRMED] as const;
 
@@ -419,6 +425,8 @@ export type ReservationsDashboardData = {
     stat: BookingListStatValue | null;
     dateFrom: string;
     dateTo: string;
+    showPast: boolean;
+    limits: Record<BookingListGroupValue, number>;
     hasActiveFilters: boolean;
   };
   summary: {
@@ -441,9 +449,16 @@ export type ReservationsDashboardData = {
     value: string;
   }>;
   groups: Array<{
-    key: string;
+    key: BookingListGroupValue;
     label: string;
     detail: string;
+    totalCount: number;
+    visibleCount: number;
+    hiddenCount: number;
+    collapsed: boolean;
+    expandHref: string | null;
+    collapseHref: string | null;
+    showMoreHref: string | null;
     items: Array<{
       id: string;
       title: string;
@@ -498,6 +513,12 @@ function normalizeReservationsSearchParams(
     stat: typeof searchParams?.stat === "string" ? searchParams.stat : undefined,
     dateFrom: typeof searchParams?.dateFrom === "string" ? searchParams.dateFrom : undefined,
     dateTo: typeof searchParams?.dateTo === "string" ? searchParams.dateTo : undefined,
+    showPast: typeof searchParams?.showPast === "string" ? searchParams.showPast : undefined,
+    needsClosureLimit:
+      typeof searchParams?.needsClosureLimit === "string" ? searchParams.needsClosureLimit : undefined,
+    pendingLimit: typeof searchParams?.pendingLimit === "string" ? searchParams.pendingLimit : undefined,
+    upcomingLimit: typeof searchParams?.upcomingLimit === "string" ? searchParams.upcomingLimit : undefined,
+    pastLimit: typeof searchParams?.pastLimit === "string" ? searchParams.pastLimit : undefined,
   });
 
   const defaults = {
@@ -507,6 +528,11 @@ function normalizeReservationsSearchParams(
     stat: null as BookingListStatValue | null,
     dateFrom: "",
     dateTo: "",
+    showPast: false,
+    needsClosureLimit: defaultReservationGroupLimit,
+    pendingLimit: defaultReservationGroupLimit,
+    upcomingLimit: defaultReservationGroupLimit,
+    pastLimit: defaultReservationGroupLimit,
   };
 
   if (!parsed.success) {
@@ -523,6 +549,22 @@ function normalizeReservationsSearchParams(
     stat: parsed.data.stat ?? defaults.stat,
     dateFrom: dateFrom <= dateTo || !dateFrom || !dateTo ? dateFrom : dateTo,
     dateTo: dateFrom <= dateTo || !dateFrom || !dateTo ? dateTo : dateFrom,
+    showPast: parsed.data.showPast === "1",
+    needsClosureLimit: parsed.data.needsClosureLimit ?? defaults.needsClosureLimit,
+    pendingLimit: parsed.data.pendingLimit ?? defaults.pendingLimit,
+    upcomingLimit: parsed.data.upcomingLimit ?? defaults.upcomingLimit,
+    pastLimit: parsed.data.pastLimit ?? defaults.pastLimit,
+  };
+}
+
+function getReservationGroupLimits(
+  filters: ReturnType<typeof normalizeReservationsSearchParams>,
+): Record<BookingListGroupValue, number> {
+  return {
+    needs_closure: filters.needsClosureLimit,
+    pending: filters.pendingLimit,
+    upcoming: filters.upcomingLimit,
+    past: filters.pastLimit,
   };
 }
 
@@ -655,7 +697,12 @@ function formatGroupDateLabel(value: Date) {
 }
 
 function buildReservationsQueryString(
-  filters: Partial<ReturnType<typeof normalizeReservationsSearchParams>>,
+  filters: Partial<ReturnType<typeof normalizeReservationsSearchParams>> & {
+    needs_closure?: number;
+    pending?: number;
+    upcoming?: number;
+    past?: number;
+  },
 ) {
   const params = new URLSearchParams();
 
@@ -683,7 +730,52 @@ function buildReservationsQueryString(
     params.set("dateTo", filters.dateTo);
   }
 
+  if (filters.showPast) {
+    params.set("showPast", "1");
+  }
+
+  if (filters.needs_closure && filters.needs_closure !== defaultReservationGroupLimit) {
+    params.set("needsClosureLimit", String(filters.needs_closure));
+  }
+
+  if (filters.pending && filters.pending !== defaultReservationGroupLimit) {
+    params.set("pendingLimit", String(filters.pending));
+  }
+
+  if (filters.upcoming && filters.upcoming !== defaultReservationGroupLimit) {
+    params.set("upcomingLimit", String(filters.upcoming));
+  }
+
+  if (filters.past && filters.past !== defaultReservationGroupLimit) {
+    params.set("pastLimit", String(filters.past));
+  }
+
   return params.toString();
+}
+
+function buildReservationsGroupHref(
+  currentPath: string,
+  filters: ReturnType<typeof normalizeReservationsSearchParams>,
+  nextDisplay: {
+    showPast?: boolean;
+    limits?: Partial<Record<BookingListGroupValue, number>>;
+  },
+) {
+  const currentLimits = getReservationGroupLimits(filters);
+  const limits = {
+    ...currentLimits,
+    ...(nextDisplay.limits ?? {}),
+  };
+  const nextQuery = buildReservationsQueryString({
+    ...filters,
+    showPast: nextDisplay.showPast ?? filters.showPast,
+    needs_closure: Math.min(limits.needs_closure, reservationGroupLimitMax),
+    pending: Math.min(limits.pending, reservationGroupLimitMax),
+    upcoming: Math.min(limits.upcoming, reservationGroupLimitMax),
+    past: Math.min(limits.past, reservationGroupLimitMax),
+  });
+
+  return nextQuery ? `${currentPath}?${nextQuery}` : currentPath;
 }
 
 function buildReservationsStatHref(
@@ -774,6 +866,7 @@ export async function getReservationsData(
     weekKpi,
     missingContactKpi,
     totalUnfilteredCount,
+    totalFilteredCount,
     items,
     bookingCatalog,
     clients,
@@ -827,10 +920,10 @@ export async function getReservationsData(
       },
     }),
     prisma.booking.count(),
+    prisma.booking.count({ where }),
     prisma.booking.findMany({
       orderBy: { scheduledStartsAt: "asc" },
       where,
-      take: 80,
       include: {
         client: { select: { fullName: true } },
       },
@@ -853,9 +946,9 @@ export async function getReservationsData(
     ]);
 
   const groupedItems = new Map<
-    string,
+    BookingListGroupValue,
     {
-      key: string;
+      key: BookingListGroupValue;
       label: string;
       detail: string;
       items: ReservationsDashboardData["groups"][number]["items"];
@@ -868,7 +961,7 @@ export async function getReservationsData(
     const sourceLabel = getBookingSourceLabel(booking.source);
     const acquisitionLabel = getBookingAcquisitionLabel(booking.acquisitionSource);
 
-    let groupKey = "upcoming";
+    let groupKey: BookingListGroupValue = "upcoming";
     let groupLabel = "Nadcházející";
     let groupDetail = "Potvrzené a další aktivní rezervace od dneška dál.";
     const needsClosure = booking.scheduledEndsAt < now && isActiveBookingStatus(booking.status);
@@ -925,22 +1018,78 @@ export async function getReservationsData(
     });
   }
 
-  const totalCount = items.length;
+  const totalCount = totalFilteredCount;
+  const limits = getReservationGroupLimits(filters);
   const hasActiveFilters = Boolean(
     filters.query ||
       filters.status !== "all" ||
       filters.source !== "all" ||
       filters.stat ||
       filters.dateFrom ||
-      filters.dateTo,
+      filters.dateTo ||
+      filters.showPast ||
+      Object.values(limits).some((value) => value !== defaultReservationGroupLimit),
   );
   const emptyState = describeReservationsEmptyState(filters, totalUnfilteredCount, totalCount);
-  const groupOrder = ["needs_closure", "pending", "upcoming", "past"];
+  const groupOrder = [...bookingListGroupValues];
+  const sortedGroups = Array.from(groupedItems.values())
+    .map((group) => ({
+      ...group,
+      items: [...group.items].sort((left, right) => {
+        const priority = (item: (typeof group.items)[number]) => {
+          if (item.status === BookingStatus.PENDING) {
+            return 0;
+          }
+
+          if (item.status === BookingStatus.CONFIRMED) {
+            return 1;
+          }
+
+          return 2;
+        };
+
+        return (
+          priority(left) - priority(right) ||
+          left.scheduledStartsAtIso.localeCompare(right.scheduledStartsAtIso)
+        );
+      }),
+    }))
+    .sort((left, right) => groupOrder.indexOf(left.key) - groupOrder.indexOf(right.key))
+    .filter((group) => group.items.length > 0);
+  const hasOnlyPastResults =
+    sortedGroups.length > 0 && sortedGroups.every((group) => group.key === "past");
+  const showPast =
+    filters.showPast ||
+    filters.status === "completed" ||
+    filters.status === "cancelled" ||
+    filters.status === "no_show" ||
+    filters.stat === "completed" ||
+    filters.stat === "cancelled" ||
+    hasOnlyPastResults;
+  const manualBookingServices = bookingCatalog.services.map((service) => ({
+    id: service.id,
+    categoryName: service.categoryName,
+    name: service.name,
+    durationMinutes: service.durationMinutes,
+    cleanupBlockMinutes: service.cleanupBlockMinutes,
+    priceFromCzk: service.priceFromCzk,
+  }));
+  const manualBookingClients = clients.map((client) => ({
+    ...client,
+    email: client.email ?? "",
+  }));
 
   return {
     currentPath,
     filters: {
-      ...filters,
+      query: filters.query,
+      status: filters.status,
+      source: filters.source,
+      stat: filters.stat,
+      dateFrom: filters.dateFrom,
+      dateTo: filters.dateTo,
+      showPast,
+      limits,
       hasActiveFilters,
     },
     summary: {
@@ -1018,44 +1167,47 @@ export async function getReservationsData(
         value: String(missingContactKpi),
       },
     ],
-    groups: Array.from(groupedItems.values())
-      .map((group) => ({
+    groups: sortedGroups.map((group) => {
+      const collapsed = group.key === "past" && !showPast;
+      const totalGroupCount = group.items.length;
+      const visibleLimit = Math.min(limits[group.key], reservationGroupLimitMax);
+      const visibleItems = collapsed ? [] : group.items.slice(0, visibleLimit);
+      const hiddenCount = totalGroupCount - visibleItems.length;
+      const showMoreHref =
+        !collapsed && hiddenCount > 0
+          ? buildReservationsGroupHref(currentPath, filters, {
+              showPast,
+              limits: {
+                [group.key]: Math.min(visibleLimit + reservationGroupLimitStep, reservationGroupLimitMax),
+              },
+            })
+          : null;
+
+      return {
         ...group,
-        items: [...group.items].sort((left, right) => {
-          const priority = (item: (typeof group.items)[number]) => {
-            if (item.status === BookingStatus.PENDING) {
-              return 0;
-            }
-
-            if (item.status === BookingStatus.CONFIRMED) {
-              return 1;
-            }
-
-            return 2;
-          };
-
-          return (
-            priority(left) - priority(right) ||
-            left.scheduledStartsAtIso.localeCompare(right.scheduledStartsAtIso)
-          );
-        }),
-      }))
-      .sort((left, right) => groupOrder.indexOf(left.key) - groupOrder.indexOf(right.key))
-      .filter((group) => group.items.length > 0),
+        totalCount: totalGroupCount,
+        visibleCount: visibleItems.length,
+        hiddenCount,
+        collapsed,
+        expandHref: collapsed
+          ? buildReservationsGroupHref(currentPath, filters, {
+              showPast: true,
+            })
+          : null,
+        collapseHref:
+          group.key === "past" && filters.showPast
+            ? buildReservationsGroupHref(currentPath, filters, {
+                showPast: false,
+              })
+            : null,
+        showMoreHref,
+        items: visibleItems,
+      };
+    }),
     manualBooking: {
-      services: bookingCatalog.services.map((service) => ({
-        id: service.id,
-        categoryName: service.categoryName,
-        name: service.name,
-        durationMinutes: service.durationMinutes,
-        cleanupBlockMinutes: service.cleanupBlockMinutes,
-        priceFromCzk: service.priceFromCzk,
-      })),
+      services: manualBookingServices,
       slots: bookingCatalog.slots,
-      clients: clients.map((client) => ({
-        ...client,
-        email: client.email ?? "",
-      })),
+      clients: manualBookingClients,
     },
   } satisfies ReservationsDashboardData;
 }
