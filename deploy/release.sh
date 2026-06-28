@@ -67,10 +67,48 @@ load_runtime_env() {
     exit 1
   fi
 
-  set -a
-  # shellcheck disable=SC1091
-  source "${REPO_DIR}/.env"
-  set +a
+  local line
+  local line_number=0
+  local key
+  local raw_value
+  local value
+
+  while IFS= read -r line || [[ -n "${line}" ]]; do
+    line_number=$((line_number + 1))
+    line="${line%$'\r'}"
+
+    [[ -z "${line//[[:space:]]/}" ]] && continue
+    [[ "${line}" =~ ^[[:space:]]*# ]] && continue
+
+    if [[ ! "${line}" =~ ^[[:space:]]*([A-Za-z_][A-Za-z0-9_]*)[[:space:]]*=(.*)$ ]]; then
+      echo ".env obsahuje nevalidní řádek ${line_number}: ${line}" >&2
+      echo "Release skript podporuje dotenv zápis KEY=VALUE, ne shellové příkazy." >&2
+      exit 1
+    fi
+
+    key="${BASH_REMATCH[1]}"
+    raw_value="${BASH_REMATCH[2]}"
+    raw_value="${raw_value#"${raw_value%%[![:space:]]*}"}"
+    value="${raw_value}"
+
+    if [[ "${value}" =~ ^\"(.*)\"[[:space:]]*$ ]]; then
+      value="${BASH_REMATCH[1]}"
+      value="${value//\\n/$'\n'}"
+      value="${value//\\r/$'\r'}"
+      value="${value//\\t/$'\t'}"
+      value="${value//\\\"/\"}"
+      value="${value//\\\\/\\}"
+    elif [[ "${value}" =~ ^\'(.*)\'[[:space:]]*$ ]]; then
+      value="${BASH_REMATCH[1]}"
+    else
+      value="${value%"${value##*[![:space:]]}"}"
+      if [[ "${value}" =~ ^(.*[^[:space:]])[[:space:]]+#.*$ ]]; then
+        value="${BASH_REMATCH[1]}"
+      fi
+    fi
+
+    export "${key}=${value}"
+  done < "${REPO_DIR}/.env"
 }
 
 validate_server_actions_encryption_key() {

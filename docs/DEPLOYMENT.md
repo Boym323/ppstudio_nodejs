@@ -390,6 +390,7 @@ systemctl enable --now ppstudio-web
 systemctl enable --now ppstudio-email-worker
 ```
 - Units očekávají `.env` v `/var/www/ppstudio/.env` a `npm` dostupné v PATH.
+- `deploy/release.sh` načítá `.env` jako dotenv soubor, ne přes shellové `source`, takže bezpečně zvládá i hodnoty s mezerami bez uvozovek, například `NEXT_PUBLIC_APP_NAME=PP Studio`.
 - Pro jednorázovou instalaci a zapnutí obou služeb můžeš použít:
 ```bash
 sudo /var/www/ppstudio/deploy/deploy.sh

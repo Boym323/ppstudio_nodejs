@@ -1110,3 +1110,4 @@ Formát je inspirovaný Keep a Changelog.
 - Z backendu planneru `Volné termíny` zmizela i nepoužívaná copy-day mutace a její integrační DST test; v kódu i dokumentaci zůstává už jen podporované kopírování celého týdne.
 - V admin planneru `Volné termíny` zanikla i dřívější duplicitní CTA větev kolem `Vymazat dostupnost`; po zjednodušení inspektoru se denní akce už vůbec nezobrazují.
 - Aktualizován `@playwright/test` z `^1.59.1` na `^1.61.1`, protože větev `1.59.1` se v GitHub Actions na `Node 24.18.0` zasekávala při `npx playwright install --with-deps chromium` po stažení Chrome for Testing; upgrade přebírá upstream fix extractoru pro novější Node a odblokovává CI bez dopadu na produkční runtime.
+- `deploy/release.sh` už nenačítá produkční `.env` přes shellové `source`, ale vlastním dotenv parserem. Release tak nespadne na hodnotách s mezerami bez uvozovek, například `NEXT_PUBLIC_APP_NAME=PP Studio`, a místo toho korektně exportuje proměnné do buildu.
