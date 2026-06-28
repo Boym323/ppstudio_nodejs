@@ -44,7 +44,7 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
 - Další rozšíření stejného validačního test souboru přidalo i pokrytí pro `service-category-actions` (`createServiceCategoryAction`, `updateServiceCategoryAction`) nad chybnými payloady, aby se dál zvedlo coverage v admin action vrstvě bez DB flaky závislostí.
 
 ## Setup projektu krok za krokem
-1. Připrav Node.js 20+, npm 10+ a PostgreSQL 15+.
+1. Připrav Node.js 24 LTS, npm 10+ a PostgreSQL 15+.
 2. Naklonuj repozitář a v rootu vytvoř `.env` z `.env.example`.
 3. Nastav aspoň `DATABASE_URL`, `SHADOW_DATABASE_URL`, `ADMIN_SESSION_SECRET`, `NEXT_PUBLIC_APP_URL` a lokální `MEDIA_STORAGE_ROOT`.
 4. Pro lokální vývoj preferuj `EMAIL_DELIVERY_MODE=log`, aby se neposílaly reálné e-maily.
@@ -53,6 +53,12 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
 7. Spusť `npm run db:migrate`.
 8. Spusť `npm run dev` a otevři `http://localhost:3000`.
 9. Pokud potřebuješ první admin přihlášení přes env účty, dočasně zapni `ADMIN_BOOTSTRAP_ENABLED=true`, přihlas se na `/admin/prihlaseni` a po založení databázových účtů přepínač vrať na `false`.
+
+Poznámka k runtime:
+
+- Repo nově cílí na `Node 24 LTS`.
+- Lokálně použij `nvm use` podle [`.nvmrc`](/var/www/ppstudio/.nvmrc:1) nebo jiný ekvivalentní version manager.
+- V CI i produkci drž stejnou major verzi Node, aby `npm ci`, build a nativní balíčky (`sharp`, Prisma) běžely nad stejným ABI.
 
 ## Příklad `.env` a význam hlavních proměnných
 

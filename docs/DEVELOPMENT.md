@@ -13,6 +13,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Pro standardní produkční rollout používej `./deploy/release.sh`; skript sjednocuje kroky `pull -> npm ci -> db:generate -> db:check-migrations -> prisma migrate deploy -> lint -> build -> restart systemd služeb`, předem ověří nainstalované units `ppstudio-web.service` a `ppstudio-email-worker.service` a zastaví se i při nalezených legacy PM2 procesech `ppstudio-web` / `ppstudio-email-worker`.
 
 ## Dev runtime a cache
+- Vývoj i CI standardizujeme na `Node 24 LTS`. Repo drží [`.nvmrc`](/var/www/ppstudio/.nvmrc:1) s hodnotou `24` a `package.json` deklaruje `engines.node = ^24.0.0`; před prvním `npm install` nebo po upgrade runtime si ověř `node -v`.
 - Výchozí `npm run dev` používá Next.js 16 dev server.
 - Pokud dev server spadne na poškozené Turbopack cache (`Failed to restore task data`, chybějící `.sst` v `.next/dev/cache/turbopack`), použij:
   - `npm run dev:clean` (smaže `.next` a znovu spustí dev server)
@@ -43,10 +44,11 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Výchozí pořadí pro nový stroj nebo čistý checkout je:
   1. `cp .env.example .env`
   2. doplnit lokální `DATABASE_URL`, `SHADOW_DATABASE_URL`, `ADMIN_SESSION_SECRET`, `NEXT_PUBLIC_APP_URL`
-  3. `npm install`
-  4. `npm run db:generate`
-  5. `npm run db:migrate`
-  6. `npm run dev`
+  3. `nvm use` (nebo jiný ekvivalentní přepínač na `Node 24` podle [`.nvmrc`](/var/www/ppstudio/.nvmrc:1))
+  4. `npm install`
+  5. `npm run db:generate`
+  6. `npm run db:migrate`
+  7. `npm run dev`
 - Pro lokální vývoj preferuj `EMAIL_DELIVERY_MODE=log`; reálné SMTP a veřejný Matomo tracking zapínej jen při cíleném integračním testu.
 - Clarity ve vývoji zapínej jen cíleně (`NEXT_PUBLIC_CLARITY_ENABLED=true` + `NEXT_PUBLIC_CLARITY_PROJECT_ID`), default má zůstat vypnutý.
 - Meta Pixel ve vývoji zapínej jen cíleně (`NEXT_PUBLIC_META_PIXEL_ENABLED=true` + `NEXT_PUBLIC_META_PIXEL_ID`), default má zůstat vypnutý.

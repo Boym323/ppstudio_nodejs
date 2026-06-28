@@ -4,6 +4,7 @@ Seznam důležitých knihoven a důvod jejich použití.
 
 ## Aktuální verze stacku
 - Zdroj pravdy je `package.json` v kořeni projektu.
+- Projektový runtime cíl je `Node 24 LTS`; repozitář to explicitně deklaruje přes [`.nvmrc`](/var/www/ppstudio/.nvmrc:1) a `package.json.engines`.
 - `next`: `16.2.6`
 - `react`: `19.2.4`
 - `react-dom`: `19.2.4`

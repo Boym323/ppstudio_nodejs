@@ -6,9 +6,12 @@ Postup nasazení aplikace do produkce.
 - `node_modules` nesmi byt soucasti Git repozitare ani release ZIP/TAR artefaktu.
 - Build/deploy host musi vzdy instalovat zavislosti z cisteho checkoutu pomoci `npm ci` podle `package-lock.json`.
 - Pokud dojde k prenosu projektu mezi stroji, prenasi se zdrojove soubory + lockfile, ne predinstalovane zavislosti.
+- Cílový runtime tohoto repa je `Node 24 LTS`; před releasem ověř `node -v` a `npm -v` přímo na deploy hostu.
+- Pokud produkční systemd služby používají systémový `node` z `PATH`, po upgrade ověř, že stejnou verzi vidí i restartované jednotky `ppstudio-web` a `ppstudio-email-worker`.
 
 ## Release checklist
 1. `npm ci`
+   - Před tím ověř, že server už běží na `Node 24 LTS`; po skoku z `22` čekej čistý reinstall nativních balíčků typu `sharp`.
 2. Ověř správné produkční env proměnné (`DATABASE_URL`, `ADMIN_SESSION_SECRET`, `ADMIN_BOOTSTRAP_ENABLED=false` mimo krátký recovery režim, admin bootstrap účty, email delivery, worker, `MEDIA_STORAGE_ROOT`, volitelně `NEXT_PUBLIC_MATOMO_*`, `NEXT_PUBLIC_CLARITY_*`, `NEXT_PUBLIC_META_PIXEL_*`, serverové `MATOMO_*` pro dashboard reporting a `PUSHOVER_ENABLED` / `PUSHOVER_APP_TOKEN` pro owner notifikace).
    - Při používání Resend trackingu ověř i `EMAIL_TRANSPORT=resend`, `RESEND_API_KEY` a `RESEND_WEBHOOK_SECRET`.
    - V Resend dashboardu musí být webhook endpoint nastaven na `POST /api/webhooks/resend` (HTTPS produkční origin).
@@ -21,6 +24,7 @@ Postup nasazení aplikace do produkce.
 8. `npx prisma migrate deploy`
 9. `npm run lint`
 10. `npm run build`
+    - Při runtime upgradu po buildu udělej minimálně smoke test: homepage, admin login, vytvoření testovací rezervace a kontrolu, že po restartu běží i `ppstudio-email-worker.service`.
 11. Ověř, že `package.json`, `package-lock.json` a `CHANGELOG.md` obsahují stejnou release verzi.
 12. Ověř aktuálnost dokumentace (`MANUAL.md`, `docs/*`)
 13. Pokud release mění e-mailové šablony, spusť `npm run email:previews` a ručně otevři soubory v `tmp/email-previews`; zkontroluj HTML i textovou variantu v testech, kontakty ze `SiteSettings`, `.ics` přílohu u potvrzení a absenci přílohy u reminderu.
