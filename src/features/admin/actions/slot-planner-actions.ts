@@ -8,7 +8,6 @@ import {
   syncPlannerWeekDraft,
   applyWeeklyTemplate,
   clearPlannerDay,
-  copyPlannerDay,
   copyPlannerWeek,
   PlannerMutationError,
   type PlannerMutationResult,
@@ -27,12 +26,6 @@ const selectionSchema = z.object({
   startCell: z.number().int().min(0).max(PLANNER_DAY_CELLS),
   endCell: z.number().int().min(0).max(PLANNER_DAY_CELLS),
   mode: z.enum(["add", "remove"]),
-});
-
-const dayCopySchema = z.object({
-  weekKey: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  sourceDateKey: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  targetDateKey: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
 });
 
 const clearDaySchema = z.object({
@@ -203,33 +196,6 @@ export async function clearPlannerDayAction(
     return result;
   } catch (error) {
     return mapPlannerError(error, "Den se teď nepodařilo upravit.");
-  }
-}
-
-export async function copyPlannerDayAction(
-  area: AdminArea,
-  rawInput: unknown,
-): Promise<PlannerMutationResult> {
-  const access = await withPlannerAccess(area);
-  const parsed = dayCopySchema.safeParse(rawInput);
-
-  if (!parsed.success) {
-    return {
-      ok: false,
-      message: "Nepodařilo se přečíst zdrojový nebo cílový den.",
-      weekKey: "",
-    };
-  }
-
-  try {
-    const result = await copyPlannerDay(area, {
-      ...parsed.data,
-      actorUserId: access.actorUserId,
-    });
-    revalidatePlanner(area);
-    return result;
-  } catch (error) {
-    return mapPlannerError(error, "Kopírování dne se teď nepodařilo dokončit.");
   }
 }
 

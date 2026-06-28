@@ -669,29 +669,17 @@ export function MobileDayGrid({
 
 export function DayInspector({
   day,
-  days,
   legend,
   selection,
-  copyTargetKey,
   hasUnsavedChanges,
-  onCopyTargetChange,
-  onCopyDay,
-  onClearDay,
   onApplySelection,
-  onResetDay,
   pending,
 }: {
   day: PlannerDay;
-  days: PlannerDay[];
   legend: Array<{ tone: CellTone | "past"; label: string }>;
   selection: PlannerSelection | null;
-  copyTargetKey: string;
   hasUnsavedChanges: boolean;
-  onCopyTargetChange: (value: string) => void;
-  onCopyDay: () => void;
-  onClearDay: () => void;
   onApplySelection: () => void;
-  onResetDay: () => void;
   pending: boolean;
 }) {
   const activeSelection = selection && selection.dateKey === day.dateKey ? selection : null;
@@ -719,46 +707,6 @@ export function DayInspector({
             Den je aktuálně bez volných oken.
           </div>
         ) : null}
-      </div>
-
-      <div className="rounded-[1.2rem] border border-white/8 bg-white/[0.03] p-4">
-        <p className="text-[10px] uppercase tracking-[0.24em] text-white/42">Akce dne</p>
-        <div className="mt-3 grid gap-2">
-          <ActionButton tone="accent" onClick={onClearDay} disabled={pending}>
-            Označit den jako zavřeno
-          </ActionButton>
-          <ActionButton tone="default" onClick={onClearDay} disabled={pending}>
-            Vymazat dostupnost
-          </ActionButton>
-          <div className="rounded-[0.95rem] border border-white/8 bg-black/15 p-3">
-            <label className="text-[10px] uppercase tracking-[0.22em] text-white/42" htmlFor="copy-day-select">
-              Kopírovat rozvrh z jiného dne
-            </label>
-            <div className="mt-2 flex gap-2">
-              <select
-                id="copy-day-select"
-                value={copyTargetKey}
-                onChange={(event) => onCopyTargetChange(event.target.value)}
-                className="min-w-0 flex-1 rounded-full border border-white/10 bg-[#171417] px-3.5 py-2 text-sm text-white outline-none"
-              >
-                <option value="">Vyberte den</option>
-                {days
-                  .filter((candidate) => candidate.dateKey !== day.dateKey)
-                  .map((candidate) => (
-                    <option key={candidate.dateKey} value={candidate.dateKey}>
-                      {formatDayActionLabel(candidate)}
-                    </option>
-                  ))}
-              </select>
-              <ActionButton tone="accent" onClick={onCopyDay} disabled={pending || !copyTargetKey}>
-                Kopírovat
-              </ActionButton>
-            </div>
-          </div>
-          <ActionButton tone="ghost" onClick={onResetDay} disabled={pending}>
-            Obnovit den z publikovaného stavu
-          </ActionButton>
-        </div>
       </div>
 
       <div className="rounded-[1.2rem] border border-white/8 bg-white/[0.03] p-4">

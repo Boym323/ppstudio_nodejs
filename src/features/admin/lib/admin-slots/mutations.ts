@@ -21,7 +21,6 @@ import {
   formatDateKey,
   getCellRangeBounds,
   getDayBounds,
-  moveIntervalToDateKey,
   resolveWeekStart,
 } from "./time";
 import {
@@ -319,33 +318,6 @@ export async function clearPlannerDay(
   return {
     ok: true,
     message: "Den je nastavený jako zavřeno. Rezervace a omezené intervaly zůstaly beze změny.",
-    weekKey: input.weekKey,
-  };
-}
-
-export async function copyPlannerDay(
-  area: AdminArea,
-  input: {
-    weekKey: string;
-    sourceDateKey: string;
-    targetDateKey: string;
-    actorUserId: string | null;
-  },
-): Promise<PlannerMutationResult> {
-  await runPlannerTransaction(async (tx) => {
-    const sourceIntervals = await readEditableIntervalsForDate(tx, input.sourceDateKey);
-
-    await replaceDayWithIntervals(
-      tx,
-      input.actorUserId,
-      input.targetDateKey,
-      sourceIntervals.map((interval) => moveIntervalToDateKey(interval, input.targetDateKey)),
-    );
-  });
-
-  return {
-    ok: true,
-    message: "Rozvrh dne jsme zkopírovali. Přenesla se jen běžná dostupnost bez rezervací a omezených intervalů.",
     weekKey: input.weekKey,
   };
 }

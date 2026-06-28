@@ -49,7 +49,7 @@ UX cíl byl opačný než u starého řešení: běžná obsluha musí být scho
 ### Negativní
 - planner záměrně neumí přímo měnit složitější sloty s omezením služeb, poznámkou nebo jinou kapacitou
 - týdenní šablona je lokální pro zařízení/prohlížeč, ne sdílená databázově
-- copy day/week přenáší jen běžnou dostupnost; rezervace ani omezené intervaly se nekopírují
+- copy week přenáší jen běžnou dostupnost; rezervace ani omezené intervaly se nekopírují
 
 ## Alternativy
 - Uložit každou půlhodinu jako samostatný slot: zamítnuto, protože by to rozbilo současný booking model a zhoršilo podporu delších služeb.

@@ -295,7 +295,7 @@ Formát je inspirovaný Keep a Changelog.
 - Mazání přímých plateb rezervace nově zapisuje auditní stopu do `BookingStatusHistory` včetně `bookingId`, `paymentId`, částky, metody, admin uživatele a času smazání.
 - Admin mutační API pro opětovné odeslání pozvánky kontroluje `Origin`/`Host` proti `NEXT_PUBLIC_APP_URL` a při nesouladu vrací `403`.
 - E-mailové subject/from-name hodnoty mají centrální CRLF ochranu, `EMAIL_DELIVERY_MODE=log` maskuje příjemce a anonymizuje subject, a akviziční booking cookie dostává v produkci atribut `Secure`.
-- Admin planner mutace (`copy day/week`, `publish draft`, `apply template`, `selection`) nově automaticky opakují serializable transakce při Prisma `P2034` / `TransactionWriteConflict`, takže paralelní CI a provozní souběhy už nevyhazují náhodné pády při `deleteMany()` nad `AvailabilitySlot`.
+- Admin planner mutace (`copy week`, `publish draft`, `apply template`, `selection`) nově automaticky opakují serializable transakce při Prisma `P2034` / `TransactionWriteConflict`, takže paralelní CI a provozní souběhy už nevyhazují náhodné pády při `deleteMany()` nad `AvailabilitySlot`.
 - Veřejné čtení služeb je odolnější proti krátkému závodu mezi více Prisma dotazy na službu a kategorii: pokud se při souběžném cleanupu dočasně vrátí `service.category = null`, homepage ani detail služby už nespadnou na `Cannot read properties of null (reading 'name')` a použijí bezpečný fallback štítek kategorie.
 - Sitemap metadata route je nyní explicitně ISR (`revalidate = 86400`) v `src/app/sitemap.ts`, takže `sitemap.xml` se dynamicky průběžně obnovuje bez nutnosti ručního přegenerování při každé změně veřejných služeb.
 - Opraven build fail `Invalid segment configuration export detected`: `src/app/sitemap.ts` už používá pro `revalidate` přímo číselný literál `86400` místo výrazu `60 * 60 * 24`, aby Next.js 16 správně aplikoval segment config při produkčním buildu.
@@ -870,7 +870,7 @@ Formát je inspirovaný Keep a Changelog.
 - Sdílený admin shell layout wrapper `src/features/admin/components/admin-shell-layout.tsx` používaný napříč admin layout soubory.
 - Nový týdenní planner dostupností pro `OWNER` i `SALON` nad 30min gridem s přímou editací kliknutím nebo tažením.
 - Serverovou merge/split vrstvu, která skládá půlhodinové editace do souvislých intervalů `AvailabilitySlot` kompatibilních s public booking flow.
-- Denní rychlé akce `zkopírovat den` a `nastavit den jako zavřeno`, týdenní akci `zkopírovat týden na další` a jednoduchou lokální šablonu týdne.
+- Denní rychlou akci `nastavit den jako zavřeno`, týdenní akci `zkopírovat týden na další` a jednoduchou lokální šablonu týdne.
 - Produkční základ projektu pro veřejný web, rezervace a admin sekce.
 - Route groups pro `public`, `booking` a `admin`.
 - Design tokens a sdílené layout komponenty pro luxusní prezentační web.
@@ -1087,3 +1087,7 @@ Formát je inspirovaný Keep a Changelog.
 - Produkční `robots.txt` už neomezuje crawl jen na vybrané veřejné sekce; celý veřejný web je nyní pro roboty otevřený přes `Allow: /`, zatímco admin a tokenové self-service routy (`/rezervace/storno/*`, `/rezervace/sprava/*`, `/rezervace/akce/*`) zůstávají blokované.
 - Mobilní detail rezervace v adminu už při potvrzení služby nepřekrývá první akční kartu sticky hlavičkou; booking header je sticky až od desktop breakpointu, takže CTA a stavový chooser zůstávají na telefonu plně čitelné.
 - Našeptávač v admin rezervacích už při běžném textu nenabízí e-mailové a telefonní kontakty; ty se zobrazí jen pro dotazy připomínající kontakt. Z pole zároveň zmizel rušivý text `OK` a spodní pomocná věta, takže dropdown nepůsobí průhledně ani přeplácaně.
+- Z inspektoru dne v admin planneru `Volné termíny` zmizela celá karta `Akce dne`; pravý panel teď drží už jen souhrn dne a detail aktuálního výběru bez samostatných denních tlačítek.
+- Z inspektoru dne v admin planneru `Volné termíny` zmizela sekce `Kopírovat rozvrh z jiného dne`, takže UI už nenabízí matoucí copy-day workflow.
+- Z backendu planneru `Volné termíny` zmizela i nepoužívaná copy-day mutace a její integrační DST test; v kódu i dokumentaci zůstává už jen podporované kopírování celého týdne.
+- V admin planneru `Volné termíny` zanikla i dřívější duplicitní CTA větev kolem `Vymazat dostupnost`; po zjednodušení inspektoru se denní akce už vůbec nezobrazují.

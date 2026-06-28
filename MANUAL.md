@@ -256,7 +256,7 @@ Detailní seznam všech env proměnných je v [`docs/ENVIRONMENT.md`](/var/www/p
   - `SALON` vidí jen provozní sekce a jednodušší copy bez technických pojmů
 - Přesun termínu má pro `OWNER` i `SALON` stejné chování; role mění jen administrativní cestu, ne business logiku reschedule flow.
 - Filtrační lišta sekce `Služby` je na desktopu sticky a zůstává během scrollu po ruce; horní statistiky jsou záměrně menší, aby nepřebíraly roli hlavního obsahu. Scope běžného katalogu se v toolbaru komunikuje jen přes malé pill stavy typu `Běžný katalog` a `Systémové skryté`.
-- Sekce `Volné termíny / Týdenní plán dostupností` drží grid-first provozní workflow: horní hlavička je nízká, datum týdne se ukazuje jen v planner toolbaru a pravý panel je zhuštěný do tří bloků `Inspektor dne`, `Akce dne` a `Detail výběru`.
+- Sekce `Volné termíny / Týdenní plán dostupností` drží grid-first provozní workflow: horní hlavička je nízká, datum týdne se ukazuje jen v planner toolbaru a pravý panel je zhuštěný do bloků `Inspektor dne` a `Detail výběru`.
 - V planneru má legenda stavů zůstat sekundární a sbalená u detailu výběru; čitelnost času se zvyšuje spíš kontrastem levé osy, jemným zvýrazněním celých hodin a jasnějším selected stavem než dalšími vysvětlovacími kartami.
 - `CANCELLED` rezervace už v týdenním planneru nemá působit jako barevná nebo editační překážka. Historie zrušené rezervace se zachová v archivovaném slotu na pozadí, ale samotná mřížka má pro obsluhu ukazovat jen reálně důležitou dostupnost, aktivní rezervace a omezení.
 - Týdenní planner dostupností a veřejná booking service vrstva jsou po stabilizačním refaktoru modulární i v kódu, ale bez změny URL, exportů nebo databázového modelu.
@@ -703,10 +703,9 @@ npm run db:clear-booking-data -- --confirm
   - kliknutím výběr konkrétního bloku a tažením přidání nebo odebrání dostupnosti přímo v mřížce
   - na mobilu funguje tažení i přes dotyk/stylus (`touch`/`pen`), takže není nutné přepínat na desktop kvůli drag editaci
   - automatické sloučení sousedních půlhodin do souvislých intervalů `AvailabilitySlot`
-  - pravý akční inspektor dne s denním souhrnem, rychlými akcemi a detailem výběru z gridu
+  - pravý inspektor dne s denním souhrnem a detailem výběru z gridu
   - mobilní přepínač všech 7 dní najednou a editor jednoho dne bez horizontálního scrollu
   - přepnutí dne na mobilu čistí aktuální výběr buňky, ale nechává zachovaný nepublikovaný koncept týdne
-  - denní rychlé akce `zkopírovat den`, `nastavit den jako zavřeno`, `obnovit den z publikovaného stavu`
   - spodní sticky bar pro `Zahodit` a `Publikovat změny`
   - týdenní rychlé akce `zkopírovat týden na další` a lokální šablonu týdne uloženou v zařízení
   - zobrazení rezervací, omezených intervalů, neaktivních slotů a minulého času

@@ -72,51 +72,6 @@ test.describe("planner DST e2e", () => {
     await Promise.all(runIds.splice(0).map((runId) => cleanupRun(runId)));
   });
 
-  test("owner can copy day over spring/autumn DST and keep local 09:00-10:00", async ({ page }) => {
-    test.setTimeout(90_000);
-
-    const runId = buildRunId();
-    runIds.push(runId);
-    const owner = await createOwner(runId);
-
-    await createPlannerSlot(owner.userId, "2027-03-27", 6, 8);
-    await createPlannerSlot(owner.userId, "2027-10-30", 6, 8);
-
-    await loginAdmin(page, owner.email, owner.password);
-
-    await page.goto("/admin/volne-terminy?week=2027-03-22&day=2027-03-27");
-    await page.selectOption("#copy-day-select", "2027-03-28");
-    await page.getByRole("button", { name: "Kopírovat", exact: true }).click();
-    await expect(page.getByText("Rozvrh dne jsme zkopírovali do konceptu cílového dne.")).toBeVisible();
-    await page.getByRole("button", { name: "Publikovat změny" }).click();
-    await expect(page.getByText("Změny týdne byly publikované do dostupností.")).toBeVisible();
-
-    const springTarget = getCellRangeBounds("2027-03-28", 6, 8);
-    await expect.poll(async () => prisma.availabilitySlot.count({
-      where: {
-        createdByUserId: owner.userId,
-        startsAt: springTarget.startsAt,
-        endsAt: springTarget.endsAt,
-      },
-    })).toBe(1);
-
-    await page.goto("/admin/volne-terminy?week=2027-10-25&day=2027-10-30");
-    await page.selectOption("#copy-day-select", "2027-10-31");
-    await page.getByRole("button", { name: "Kopírovat", exact: true }).click();
-    await expect(page.getByText("Rozvrh dne jsme zkopírovali do konceptu cílového dne.")).toBeVisible();
-    await page.getByRole("button", { name: "Publikovat změny" }).click();
-    await expect(page.getByText("Změny týdne byly publikované do dostupností.")).toBeVisible();
-
-    const autumnTarget = getCellRangeBounds("2027-10-31", 6, 8);
-    await expect.poll(async () => prisma.availabilitySlot.count({
-      where: {
-        createdByUserId: owner.userId,
-        startsAt: autumnTarget.startsAt,
-        endsAt: autumnTarget.endsAt,
-      },
-    })).toBe(1);
-  });
-
   test("owner can copy a full week over DST and keep local hours", async ({ page }) => {
     test.setTimeout(90_000);
 

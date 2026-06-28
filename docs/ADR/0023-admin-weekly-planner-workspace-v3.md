@@ -17,7 +17,6 @@ Pro každodenní provoz salonu bylo potřeba z planneru udělat spíš kompaktn�
 - Hlavní pracovní plocha planneru je nově jednoznačně týdenní grid; shell i sidebar jsou záměrně kompaktnější.
 - Pravý panel se mění na akční inspektor dne:
   - krátký souhrn dne
-  - hlavní akce dne
   - detail aktuálního výběru z gridu
   - kompaktní seznam volných oken
   - malý seznam rezervací
@@ -43,7 +42,6 @@ Pro každodenní provoz salonu bylo potřeba z planneru udělat spíš kompaktn�
 
 ### Negativní
 - koncept týdne je zatím lokální pro zařízení/prohlížeč a není sdílený mezi uživateli
-- `Označit den jako zavřeno` je stále reprezentované jako den bez běžné dostupnosti, ne jako samostatná doménová entita
 - kopírování celého týdne na další týden zůstává serverová akce nad publikovaným stavem; uživatel musí nejdřív vyřešit lokální koncept
 
 ## Alternativy

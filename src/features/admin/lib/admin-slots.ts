@@ -13,7 +13,6 @@ export {
   applyAvailabilitySelection,
   applyWeeklyTemplate,
   clearPlannerDay,
-  copyPlannerDay,
   copyPlannerWeek,
   syncPlannerWeekDraft,
 } from "./admin-slots/mutations";

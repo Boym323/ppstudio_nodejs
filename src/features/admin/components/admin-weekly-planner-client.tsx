@@ -365,7 +365,6 @@ export function AdminWeeklyPlannerClient({
   const [pendingInteraction, setPendingInteraction] = useState<PendingInteraction | null>(null);
   const [selectedSelection, setSelectedSelection] = useState<PlannerSelection | null>(null);
   const [feedback, setFeedback] = useState<FeedbackState | null>(initialPlannerState.feedback);
-  const [copyTargetKey, setCopyTargetKey] = useState("");
   const [mobileInspectorOpen, setMobileInspectorOpen] = useState(false);
 
   useEffect(() => {
@@ -642,67 +641,6 @@ export function AdminWeeklyPlannerClient({
     });
   }
 
-  function clearSelectedDay() {
-    updateDay(selectedDay.dateKey, (day) => patchDayAvailableIntervals(day, []));
-    setSelectedSelection(null);
-    setFeedback({
-      tone: "info",
-      message: "Den je v konceptu nastavený bez volných oken. Publikací se změna propíše do planneru.",
-    });
-  }
-
-  function resetSelectedDay() {
-    const originalDay = data.days.find((day) => day.dateKey === selectedDay.dateKey);
-
-    if (!originalDay) {
-      return;
-    }
-
-    updateDay(selectedDay.dateKey, () => cloneWeekDays([originalDay])[0]);
-    setFeedback({
-      tone: "info",
-      message: "Vybraný den jsme vrátili do publikovaného stavu.",
-    });
-  }
-
-  function copyDayLocally() {
-    if (!copyTargetKey || copyTargetKey === selectedDay.dateKey) {
-      setFeedback({ tone: "error", message: "Vyberte jiný cílový den v rámci týdne." });
-      return;
-    }
-
-    const targetDay = workingDays.find((day) => day.dateKey === copyTargetKey);
-
-    if (!targetDay) {
-      return;
-    }
-
-    const blockedCell = selectedDay.availableIntervals
-      .flatMap((interval) =>
-        Array.from({ length: interval.endCell - interval.startCell }, (_, index) => interval.startCell + index),
-      )
-      .find((cell) => hasBlockedCells(targetDay, cell, cell + 1));
-
-    if (blockedCell !== undefined) {
-      setFeedback({
-        tone: "error",
-        message: "Cílový den obsahuje rezervaci nebo omezení v části, kam by se rozvrh zkopíroval.",
-      });
-      return;
-    }
-
-    updateDay(copyTargetKey, (day) =>
-      patchDayAvailableIntervals(
-        day,
-        selectedDay.availableIntervals.map((interval) => ({ ...interval })),
-      ),
-    );
-    setFeedback({
-      tone: "success",
-      message: "Rozvrh dne jsme zkopírovali do konceptu cílového dne.",
-    });
-  }
-
   function applyTemplateLocally() {
     const storedValue = window.localStorage.getItem(TEMPLATE_STORAGE_KEY);
 
@@ -766,7 +704,6 @@ export function AdminWeeklyPlannerClient({
   function discardDraft() {
     setWorkingDays(cloneWeekDays(data.days));
     setSelectedSelection(null);
-    setCopyTargetKey("");
     window.localStorage.removeItem(getDraftStorageKey(data.area, data.weekKey));
     setFeedback({ tone: "info", message: "Koncept týdne byl zahozen a planner se vrátil k publikovanému stavu." });
   }
@@ -905,16 +842,10 @@ export function AdminWeeklyPlannerClient({
           <div className="sticky top-6">
             <DayInspector
               day={selectedDay}
-              days={workingDays}
               legend={data.legend}
               selection={selectedSelection}
-              copyTargetKey={copyTargetKey}
               hasUnsavedChanges={hasUnsavedChanges}
-              onCopyTargetChange={setCopyTargetKey}
-              onCopyDay={copyDayLocally}
-              onClearDay={clearSelectedDay}
               onApplySelection={applySelectedBlock}
-              onResetDay={resetSelectedDay}
               pending={isPending}
             />
           </div>
@@ -924,16 +855,10 @@ export function AdminWeeklyPlannerClient({
       <MobileInspectorSheet open={mobileInspectorOpen} onClose={() => setMobileInspectorOpen(false)}>
         <DayInspector
           day={selectedDay}
-          days={workingDays}
           legend={data.legend}
           selection={selectedSelection}
-          copyTargetKey={copyTargetKey}
           hasUnsavedChanges={hasUnsavedChanges}
-          onCopyTargetChange={setCopyTargetKey}
-          onCopyDay={copyDayLocally}
-          onClearDay={clearSelectedDay}
           onApplySelection={applySelectedBlock}
-          onResetDay={resetSelectedDay}
           pending={isPending}
         />
       </MobileInspectorSheet>

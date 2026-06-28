@@ -195,7 +195,7 @@ Lokální doporučení:
 - Oprava fragmentace chained slotů pro admin planner také nepřidává žádné nové env proměnné; jde čistě o serverovou booking/reschedule logiku nad stávajícím `DATABASE_URL`.
 - Helper `scripts/repair-legacy-chained-slots.mjs` také nepřidává žádné nové env proměnné; používá stávající `DATABASE_URL`.
 - Oprava planner read modelu pro `CANCELLED` bookingy také nepřidává žádné nové env proměnné.
-- Přímá editace v 30min gridu, lokální koncept týdne, copy day/week i lokální šablona týdne používají stejné existující základy:
+- Přímá editace v 30min gridu, lokální koncept týdne, copy week i lokální šablona týdne používají stejné existující základy:
   - `DATABASE_URL`
   - `ADMIN_SESSION_SECRET`
   - bootstrap admin účty pro `OWNER` a `SALON`

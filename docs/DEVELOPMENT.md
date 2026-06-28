@@ -915,7 +915,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - den znovu načte ze serveru
   - chráněné intervaly (rezervace, omezení služeb, neaktivní sloty, sloty s poznámkou nebo jinou kapacitou) odmítne měnit
   - zbylé jednoduché publikované sloty smaže a znovu založí jako minimální sadu souvislých intervalů
-- Copy day/week přenáší jen běžnou dostupnost; rezervace ani omezené intervaly se nekopírují.
+- Copy week přenáší jen běžnou dostupnost; rezervace ani omezené intervaly se nekopírují.
 - Jednoduchá týdenní šablona i týdenní koncept jsou uložené lokálně v prohlížeči, takže nevyžadují novou tabulku ani další env; draft se klíčuje podle `area + weekKey`.
 - Před publikací týdne sanitizuj draft intervaly i na klientu i na serveru: drž integer buňky `0..28`, zahazuj prázdné intervaly (`endCell <= startCell`) a mergeuj překryvy. Tím se zabrání tomu, aby stale nebo poškozený draft skončil generickou chybou `Koncept týdne už není platný`.
 - `syncPlannerWeekDraft()` při publikaci konceptu nesmí mazat ani přepisovat chráněné intervaly načtené z DB. Pokud draftový interval kvůli stale klientskému stavu zasahuje do rezervace nebo omezení, server ho ořízne přes aktuální locked intervaly a uloží jen zbylou běžnou dostupnost.
@@ -932,11 +932,11 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Ověř sticky action bar pro neuložené změny: `Zahodit`, `Publikovat změny`.
 - Ověř, že zásah do rezervace nebo omezeného slotu vrátí srozumitelnou chybu a nic nepřepíše.
 - Ověř, že slot s `CANCELLED` rezervací planner neukazuje jako blokaci: před publishí se má tvářit jako běžná dostupnost, po vyčištění dne nesmí v mřížce zůstat jako šedý nebo uzamčený historický stín a publish draft nesmí spadnout.
-- Ověř kopírování dne, kopírování týdne, použití lokální šablony a obnovení uloženého konceptu po refreshi stejného týdne.
+- Ověř kopírování týdne, použití lokální šablony a obnovení uloženého konceptu po refreshi stejného týdne.
 
 ## Prague Time And DST
 - Salon-facing time is `Europe/Prague`; do not rely on server local timezone or fixed `+01:00` / `+02:00` offsets.
 - Planner slot creation should use `dateKey + half-hour cell index` through `getCellRangeBounds(...)`.
-- Planner copy day/week must preserve local cells with `moveIntervalToDateKey(...)`, not blind `24h`/millisecond shifts across DST.
+- Planner copy week must preserve local cells with `moveIntervalToDateKey(...)`, not blind `24h`/millisecond shifts across DST.
 - Public booking catalog may return UTC ISO strings, but all client display helpers must render with `timeZone: "Europe/Prague"`.
 - Regression tests for DST live in admin slot time helpers, booking formatting, public booking helpers, e-mail templates and ICS utilities.

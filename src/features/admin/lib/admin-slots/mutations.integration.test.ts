@@ -47,7 +47,6 @@ async function loadModules() {
     prisma,
     getAdminPlannerWeek: plannerQueries.getAdminPlannerWeek,
     syncPlannerWeekDraft: plannerMutations.syncPlannerWeekDraft,
-    copyPlannerDay: plannerMutations.copyPlannerDay,
     copyPlannerWeek: plannerMutations.copyPlannerWeek,
     getCellRangeBounds: plannerTime.getCellRangeBounds,
   };
@@ -524,61 +523,6 @@ dbTest("syncPlannerWeekDraft preserves slots that still have a cancelled booking
     await prisma.client.deleteMany({ where: { id: client.id } });
     await prisma.service.deleteMany({ where: { id: service.id } });
     await prisma.serviceCategory.deleteMany({ where: { id: category.id } });
-    await prisma.adminUser.deleteMany({ where: { id: actor.id } });
-  }
-});
-
-dbTest("copyPlannerDay preserves local hours over spring DST", async () => {
-  const { prisma, copyPlannerDay, getCellRangeBounds } = await loadModules();
-  const suffix = randomUUID().slice(0, 8);
-  const actor = await prisma.adminUser.create({
-    data: {
-      email: `copy-day-${suffix}@example.com`,
-      name: `Copy Day ${suffix}`,
-      role: AdminRole.OWNER,
-      isActive: true,
-    },
-    select: { id: true },
-  });
-  const source = getCellRangeBounds("2026-03-28", 6, 8);
-  const expectedTarget = getCellRangeBounds("2026-03-29", 6, 8);
-
-  try {
-    await prisma.availabilitySlot.create({
-      data: {
-        startsAt: source.startsAt,
-        endsAt: source.endsAt,
-        capacity: 1,
-        status: AvailabilitySlotStatus.PUBLISHED,
-        serviceRestrictionMode: AvailabilitySlotServiceRestrictionMode.ANY,
-        publishedAt: new Date(),
-        createdByUserId: actor.id,
-      },
-    });
-
-    await copyPlannerDay("owner", {
-      weekKey: "2026-03-23",
-      sourceDateKey: "2026-03-28",
-      targetDateKey: "2026-03-29",
-      actorUserId: actor.id,
-    });
-
-    const targetSlot = await prisma.availabilitySlot.findFirstOrThrow({
-      where: {
-        createdByUserId: actor.id,
-        startsAt: expectedTarget.startsAt,
-        endsAt: expectedTarget.endsAt,
-      },
-      select: {
-        startsAt: true,
-        endsAt: true,
-      },
-    });
-
-    assert.equal(targetSlot.startsAt.toISOString(), "2026-03-29T07:00:00.000Z");
-    assert.equal(targetSlot.endsAt.toISOString(), "2026-03-29T08:00:00.000Z");
-  } finally {
-    await prisma.availabilitySlot.deleteMany({ where: { createdByUserId: actor.id } });
     await prisma.adminUser.deleteMany({ where: { id: actor.id } });
   }
 });

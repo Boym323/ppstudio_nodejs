@@ -126,7 +126,7 @@ Postup nasazení aplikace do produkce.
      - přepínání týdnů a zachování vybraného dne
      - horní stránková hlavička zůstává nízká a datum týdne se ukazuje jen jednou v planner toolbaru vedle navigace týdne
      - toolbar drží kompaktně `zpět / Tento týden / vpřed / datum rozsahu / Kopírovat týden / Šablony` bez velkých prázdných mezer
-     - pravý panel je sloučený do karet `Inspektor dne`, `Akce dne` a `Detail výběru`; legenda je až sekundární rozbalovací sekce u detailu
+     - pravý panel je sloučený do karet `Inspektor dne` a `Detail výběru`; legenda je až sekundární rozbalovací sekce u detailu
      - levá časová osa je dobře čitelná, celé hodiny mají jemně výraznější horizontální rytmus a vybraný den i blok jsou na první pohled rozeznatelné
      - plain published slot s čistě `CANCELLED` bookingem se má tvářit jako běžná dostupnost, ne jako `Omezené`
      - zachování vybraného slotu po rychlé úpravě nebo změně stavu
@@ -460,18 +460,18 @@ sudo /var/www/ppstudio/deploy/deploy.sh
   - a stejné cesty pod `/admin/provoz/volne-terminy/*`
 - Ověř, že planner renderuje týdenní kalendář a že guardy rolí fungují stejně jako dřív.
 - Ověř, že kliknutí do gridu vybírá blok pro pravý inspektor a že teprve tažení nebo akce z inspektoru mění koncept.
-- Ověř přidání dostupnosti tažením, odebrání zeleného intervalu a copy day/week.
+- Ověř přidání dostupnosti tažením, odebrání zeleného intervalu a copy week.
 - Ověř sticky action bar `Zahodit / Publikovat změny` a že po refreshi bez publikace nejsou lokální změny týdne zachované.
 - Ověř, že pokus o zásah do rezervace skončí čitelnou chybou bez změny dat.
 
 ## QA Pro Letní/Zimní Čas
 - Tento release nepřidává DB migraci ani novou knihovnu.
-- Po deployi ověř v admin planneru slot 09:00-10:00 pro zimní i letní datum, copy day/week přes poslední březnovou a říjnovou neděli, veřejné zobrazení termínu, potvrzovací e-mail a `.ics` přílohu.
+- Po deployi ověř v admin planneru slot 09:00-10:00 pro zimní i letní datum, copy week přes poslední březnovou a říjnovou neděli, veřejné zobrazení termínu, potvrzovací e-mail a `.ics` přílohu.
 
 ## QA Pro Release 0.3.0
 - Release `0.3.0` nepřidává DB migraci ani novou knihovnu; rollout má zůstat bezpečný přes standardní `npx prisma migrate deploy` jako no-op.
 - Po deployi ověř admin přihlášení pro existující DB účet, že neaktivní účet nebo změněná role se promítne po další autorizaci a že bootstrap env login funguje jen při dočasném `ADMIN_BOOTSTRAP_ENABLED=true`.
 - Ověř, že owner approve/reject odkazy z e-mailu bez aktivní admin session neprovedou změnu rezervace a po přihlášení se audit zapisuje jako konkrétní admin uživatel.
 - Ověř self-service a tokenové route (`/rezervace/sprava/*`, `/rezervace/storno/*`, `/rezervace/akce/*`, calendar feed), že vrací očekávaný obsah a současně posílají `Cache-Control: no-store` a `Referrer-Policy: no-referrer`.
-- Ověř admin mutace `copy day/week`, `publish draft`, `apply template` a výběrové akce v planneru při rychlém opakování nebo paralelním provozu; nemají náhodně padat na `P2034` / `TransactionWriteConflict`.
+- Ověř admin mutace `copy week`, `publish draft`, `apply template` a výběrové akce v planneru při rychlém opakování nebo paralelním provozu; nemají náhodně padat na `P2034` / `TransactionWriteConflict`.
 - Ověř veřejnou homepage, detail služby a `sitemap.xml`; sitemap se má po buildu načíst bez chyby a běžet jako ISR metadata route s `revalidate = 86400`.

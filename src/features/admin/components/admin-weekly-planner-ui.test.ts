@@ -92,16 +92,10 @@ test("DayInspector shows service time as primary and internal cleanup block as s
   const html = renderToStaticMarkup(
     React.createElement(DayInspector, {
       day,
-      days: [day],
       legend: [{ tone: "booked", label: "Rezervace" }],
       selection,
-      copyTargetKey: "",
       hasUnsavedChanges: false,
-      onCopyTargetChange: () => {},
-      onCopyDay: () => {},
-      onClearDay: () => {},
       onApplySelection: () => {},
-      onResetDay: () => {},
       pending: false,
     }),
   );
@@ -110,6 +104,11 @@ test("DayInspector shows service time as primary and internal cleanup block as s
   assert.match(html, /Blok v mřížce: 11:30 - 13:30/);
   assert.match(html, /Úklidová blokace do: 13:30/);
   assert.match(html, /úklid/);
+  assert.doesNotMatch(html, /Akce dne/);
+  assert.doesNotMatch(html, /Označit den jako zavřeno/);
+  assert.doesNotMatch(html, /Obnovit den z publikovaného stavu/);
+  assert.doesNotMatch(html, /Kopírovat rozvrh z jiného dne/);
+  assert.doesNotMatch(html, /Vymazat dostupnost/);
 });
 
 test("GridCell adds cleanup hint stripe only for booked/completed cells with cleanup flag", () => {
