@@ -40,6 +40,11 @@ const tokenRouteHeaders = [
 
 const nextConfig: NextConfig = {
   allowedDevOrigins: ["192.168.0.143", "ppstudio.cz", "www.ppstudio.cz","192.168.0.150"],
+  deploymentId:
+    process.env.NEXT_DEPLOYMENT_ID
+    || process.env.DEPLOYMENT_VERSION
+    || process.env.GIT_HASH
+    || undefined,
   experimental: {
     serverActions: {
       // Media uploads are validated to 8 MB in app code, but multipart form

@@ -31,6 +31,10 @@ Dokumentace proměnných prostředí pro lokální vývoj i produkci.
 - `MATOMO_AUTH_TOKEN`: tajný Matomo Reporting API token pro dashboard agregace; nikdy nepoužívej prefix `NEXT_PUBLIC_`.
 - `PUSHOVER_ENABLED`: server-only globalni vypinac owner Pushover notifikaci; odesila se pouze pri presne hodnote `true`.
 - `PUSHOVER_APP_TOKEN`: server-only Pushover application token pro projekt; nikdy nepouzivej prefix `NEXT_PUBLIC_`.
+- `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY`: stabilní base64 AES klíč pro Next.js Server Actions; na produkci musí zůstat stejný mezi release buildy.
+- `NEXT_DEPLOYMENT_ID`: identifikátor konkrétního deploymentu pro ochranu proti version skew; při doporučeném rollout skriptu se nastavuje automaticky z aktuálního git commitu a nemá se držet staticky v `.env`.
+- `DEPLOYMENT_VERSION`: volitelný alias pro deployment identifikátor; release skript ho automaticky exportuje na stejnou hodnotu jako `NEXT_DEPLOYMENT_ID`.
+- `GIT_HASH`: volitelný fallback pro `deploymentId`; release skript ho automaticky exportuje na aktuální git commit.
 - `DATABASE_URL`: PostgreSQL connection string pro Prisma.
 - `SHADOW_DATABASE_URL`: pomocná databáze pro `prisma migrate dev` (lokální vývoj).
 - `ADMIN_SESSION_SECRET`: klíč pro podpis admin session cookie.
@@ -66,6 +70,7 @@ NODE_ENV=development
 NEXT_PUBLIC_APP_NAME=PP Studio
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 NEXT_PUBLIC_SITE_URL=https://ppstudio.cz
+NEXT_SERVER_ACTIONS_ENCRYPTION_KEY=replace-with-openssl-rand-base64-32
 
 DATABASE_URL="postgresql://postgres:postgres@localhost:5432/ppstudio?schema=public"
 SHADOW_DATABASE_URL="postgresql://postgres:postgres@localhost:5432/ppstudio_shadow?schema=public"
@@ -92,6 +97,7 @@ Lokální doporučení:
 - `EMAIL_DELIVERY_MODE=log` je nejbezpečnější výchozí režim pro vývoj a testovací rollout.
 - `ADMIN_BOOTSTRAP_ENABLED=true` používej jen po dobu prvního přihlášení nebo recovery; po zřízení DB účtů vrať `false`.
 - `NEXT_PUBLIC_MATOMO_*`, `NEXT_PUBLIC_CLARITY_*`, `NEXT_PUBLIC_META_PIXEL_*`, `MATOMO_*` a `PUSHOVER_*` nech klidně vypnuté, pokud zrovna netestuješ analytics nebo notifikace.
+- `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` drž stabilně v produkčním `.env`; deployment identifikátor naopak do `.env` běžně nefixuj, protože `deploy/release.sh` ho automaticky odvozuje z aktuálního commitu.
 - Session časování můžeš upravit přes `ADMIN_SESSION_*_SECONDS`; pokud je nenastavíš, běží default `14 dní idle / refresh při <48h / absolutní strop 45 dní`.
 - `MEDIA_STORAGE_ROOT` drž mimo repozitář a ověř, že do něj má proces právo zapisovat.
 
@@ -172,6 +178,7 @@ Lokální doporučení:
 - Audit změn cen služeb také nepřidává nové env proměnné; používá stávající databázi, admin session a Prisma klient.
 - UX refaktor pracovního přehledu v sekci `Rezervace` také nepřidává nové env proměnné; klikací statistiky, toolbar filtrů i seskupení podle data běží čistě nad existujícími query parametry, Prisma read modelem a App Router routou.
 - Refaktor detailu rezervace do rychlého decision panelu také nepřidává nové env proměnné; sticky header, kompaktní summary, action chooser i sjednocené poznámky běží nad existujícím booking read modelem a server actions.
+- Produkce musí pro Next.js Server Actions nastavovat stabilní `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` a na každý deploy jednotné `NEXT_DEPLOYMENT_ID` nebo ekvivalentní `DEPLOYMENT_VERSION` / `GIT_HASH`. Bez toho může po rolling deployi nebo při více instancích vznikat `Failed to find Server Action`.
 - Přepracované admin workflow `Služby` a `Kategorie služeb` také nepřidává nové env proměnné; create, quick actions, mobilní detail i varování běží čistě nad existující databází, session a Prisma klientem.
 - Sjednocení detailů `Služby` a `Kategorie služeb` do pravého overlay draweru i na desktopu také nepřidává nové env proměnné; jde čistě o klientské/UI chování nad existujícími route query a server actions.
 - Operativní redesign admin overview dashboardu také nepřidává nové env proměnné; nové metriky a timeline berou data jen ze stávajících modelů `Booking`, `AvailabilitySlot`, `Client`, `ServiceCategory`, `Service` a `EmailLog`.

@@ -61,6 +61,59 @@ check_root_permissions_hint() {
   fi
 }
 
+load_runtime_env() {
+  if [[ ! -f "${REPO_DIR}/.env" ]]; then
+    echo "Nenašel jsem ${REPO_DIR}/.env. Release skript potřebuje produkční env soubor." >&2
+    exit 1
+  fi
+
+  set -a
+  # shellcheck disable=SC1091
+  source "${REPO_DIR}/.env"
+  set +a
+}
+
+validate_server_actions_encryption_key() {
+  if [[ -z "${NEXT_SERVER_ACTIONS_ENCRYPTION_KEY:-}" ]]; then
+    echo "V .env chybí NEXT_SERVER_ACTIONS_ENCRYPTION_KEY." >&2
+    echo "Bez stabilního klíče hrozí po deployi chyby 'Failed to find Server Action'." >&2
+    exit 1
+  fi
+
+  if ! node <<'NODE'
+const key = process.env.NEXT_SERVER_ACTIONS_ENCRYPTION_KEY;
+
+if (!key) {
+  process.exit(1);
+}
+
+try {
+  const decoded = Buffer.from(key, "base64");
+  if (![16, 24, 32].includes(decoded.length)) {
+    process.exit(1);
+  }
+} catch {
+  process.exit(1);
+}
+NODE
+  then
+    echo "NEXT_SERVER_ACTIONS_ENCRYPTION_KEY není validní base64 AES klíč délky 16, 24 nebo 32 bajtů." >&2
+    echo "Doporučení: vygeneruj nový přes 'openssl rand -base64 32' a ulož ho do .env." >&2
+    exit 1
+  fi
+}
+
+prepare_deployment_env() {
+  local release_git_hash
+
+  release_git_hash="$(git rev-parse --short=12 HEAD)"
+  export NEXT_DEPLOYMENT_ID="${release_git_hash}"
+  export DEPLOYMENT_VERSION="${release_git_hash}"
+  export GIT_HASH="${release_git_hash}"
+
+  log "NEXT_DEPLOYMENT_ID=${NEXT_DEPLOYMENT_ID}"
+}
+
 ensure_unit_installed() {
   local unit_name="$1"
   local unit_file
@@ -139,6 +192,7 @@ run_release() {
   cd "${REPO_DIR}"
 
   require_cmd git
+  require_cmd node
   require_cmd npm
   require_cmd npx
   require_cmd systemctl
@@ -147,6 +201,9 @@ run_release() {
     echo "Nenašel jsem package.json v ${REPO_DIR}." >&2
     exit 1
   fi
+
+  load_runtime_env
+  validate_server_actions_encryption_key
 
   local current_branch
   current_branch="$(git rev-parse --abbrev-ref HEAD)"
@@ -174,6 +231,8 @@ run_release() {
   else
     log "Přeskakuji git pull (--skip-pull)."
   fi
+
+  prepare_deployment_env
 
   log "npm ci"
   npm ci

@@ -12,9 +12,10 @@ Postup nasazení aplikace do produkce.
 ## Release checklist
 1. `npm ci`
    - Před tím ověř, že server už běží na `Node 24 LTS`; po skoku z `22` čekej čistý reinstall nativních balíčků typu `sharp`.
-2. Ověř správné produkční env proměnné (`DATABASE_URL`, `ADMIN_SESSION_SECRET`, `ADMIN_BOOTSTRAP_ENABLED=false` mimo krátký recovery režim, admin bootstrap účty, email delivery, worker, `MEDIA_STORAGE_ROOT`, volitelně `NEXT_PUBLIC_MATOMO_*`, `NEXT_PUBLIC_CLARITY_*`, `NEXT_PUBLIC_META_PIXEL_*`, serverové `MATOMO_*` pro dashboard reporting a `PUSHOVER_ENABLED` / `PUSHOVER_APP_TOKEN` pro owner notifikace).
+2. Ověř správné produkční env proměnné (`DATABASE_URL`, `ADMIN_SESSION_SECRET`, `ADMIN_BOOTSTRAP_ENABLED=false` mimo krátký recovery režim, admin bootstrap účty, email delivery, worker, `MEDIA_STORAGE_ROOT`, povinný `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY`, volitelně `NEXT_PUBLIC_MATOMO_*`, `NEXT_PUBLIC_CLARITY_*`, `NEXT_PUBLIC_META_PIXEL_*`, serverové `MATOMO_*` pro dashboard reporting a `PUSHOVER_ENABLED` / `PUSHOVER_APP_TOKEN` pro owner notifikace).
    - Při používání Resend trackingu ověř i `EMAIL_TRANSPORT=resend`, `RESEND_API_KEY` a `RESEND_WEBHOOK_SECRET`.
    - V Resend dashboardu musí být webhook endpoint nastaven na `POST /api/webhooks/resend` (HTTPS produkční origin).
+   - `NEXT_DEPLOYMENT_ID` při doporučeném rollout skriptu nenasazuj ručně do `.env`; `deploy/release.sh` ho exportuje automaticky z aktuálního git commitu, stejně jako `DEPLOYMENT_VERSION` a `GIT_HASH`.
 3. Ověř existenci a práva k upload rootu; web proces musí umět zapisovat do `MEDIA_STORAGE_ROOT` nebo do výchozí cesty `/var/www/ppstudio/uploads`.
 4. Zálohuj databázi, pokud release obsahuje novou Prisma migraci.
 5. Zálohuj nebo snapshotuj upload root, pokud release mění práci s médii nebo cleanup logiku.
@@ -25,6 +26,7 @@ Postup nasazení aplikace do produkce.
 9. `npm run lint`
 10. `npm run build`
     - Při runtime upgradu po buildu udělej minimálně smoke test: homepage, admin login, vytvoření testovací rezervace a kontrolu, že po restartu běží i `ppstudio-email-worker.service`.
+    - Pokud build spouštíš mimo `deploy/release.sh`, exportuj předem `NEXT_DEPLOYMENT_ID` na aktuální release identifikátor a používej stejný `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` jako běžící produkce.
 11. Ověř, že `package.json`, `package-lock.json` a `CHANGELOG.md` obsahují stejnou release verzi.
 12. Ověř aktuálnost dokumentace (`MANUAL.md`, `docs/*`)
 13. Pokud release mění e-mailové šablony, spusť `npm run email:previews` a ručně otevři soubory v `tmp/email-previews`; zkontroluj HTML i textovou variantu v testech, kontakty ze `SiteSettings`, `.ics` přílohu u potvrzení a absenci přílohy u reminderu.
@@ -427,6 +429,10 @@ sudo /var/www/ppstudio/deploy/deploy.sh
 - Admin workflow kategorií služeb nevyžaduje novou DB migraci; navazuje na existující model `ServiceCategory`.
 - Přepracované admin workflow služeb a kategorií nevyžaduje novou DB migraci; změna je čistě v read modelech, server actions a UI vrstvách.
 - Nový layout sekce `Kategorie služeb` také nevyžaduje novou DB migraci; změna zůstává čistě v komponentách, read modelu a server actions nad existujícím `ServiceCategory`.
+- Next.js Server Actions hardening:
+  - všechny instance stejného buildu musí mít stejný `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY`
+  - při doporučeném rollout scriptu každý deploy automaticky dostane `NEXT_DEPLOYMENT_ID`, `DEPLOYMENT_VERSION` i `GIT_HASH` z aktuálního commitu; mimo skript to musí operátor dodat ručně
+  - při rolling deployi tím Next.js pozná mismatch a vynutí reload místo pádu na `Failed to find Server Action`
 - Strukturované texty služeb vyžadují migraci `20260508120000_service_structured_public_copy_v1`. Před produkcí udělej zálohu DB, nasaď migrace přes `npx prisma migrate deploy`, spusť dry-run `npm run db:backfill-service-copy -- --dry-run` a teprve po kontrole výstupu použij `npm run db:backfill-service-copy -- --confirm`. Skript mění pouze `seoTitle`, `idealFor`, `includes`, `benefits` a `goodToKnow` podle známých slugů.
 - Stabilizační refaktor `booking-public`, `booking-flow` a `admin-slots` také nevyžaduje novou DB migraci; změna je čistě strukturální a zachovává stejné veřejné exporty i databázové chování.
 - Před produkční aplikací migrace ověř data, která by mohla mít rezervaci bez přiřazené služby; tato migrace takové řádky záměrně odmítne.

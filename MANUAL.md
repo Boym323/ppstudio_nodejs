@@ -26,6 +26,7 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
   - `./deploy/release.sh`
 - Skript před releasem ověří, že na serveru existují units `ppstudio-web.service` a `ppstudio-email-worker.service`; pokud chybí, skončí s návodem na `sudo /var/www/ppstudio/deploy/deploy.sh`.
 - Skript také hlídá, že stejné procesy neběží ještě přes legacy PM2; při konfliktu vypíše převod na čistý systemd provoz (`pm2 delete ...`, `pm2 save --force`, `systemctl disable --now pm2-root.service`).
+- Skript před buildem načte `.env`, vynutí přítomnost validního `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` a pro aktuální release automaticky exportuje `NEXT_DEPLOYMENT_ID`, `DEPLOYMENT_VERSION` i `GIT_HASH` z aktuálního git commitu.
 - Skript provede standardní release kroky (`npm ci`, `npm run db:generate`, `npm run db:check-migrations`, `npx prisma migrate deploy`, `npm run lint`, `npm run build`, restart `ppstudio-web` a `ppstudio-email-worker`).
 - Detailní release checklist a QA body zůstávají v [`docs/DEPLOYMENT.md`](/var/www/ppstudio/docs/DEPLOYMENT.md).
 
@@ -82,6 +83,8 @@ MEDIA_STORAGE_ROOT=/var/www/ppstudio-uploads
 - `EMAIL_DELIVERY_MODE=log` je bezpečný lokální režim bez SMTP odesílání.
 - `MEDIA_STORAGE_ROOT` je zapisovatelná absolutní cesta mimo repo pro nahraná média.
 - Admin upload médií běží přes Next.js Server Actions. Aplikační limit obrázku je `8 MB`, ale `next.config.ts` drží request limit `10mb`, aby multipart overhead nesrazil legitimní upload ještě před serverovou validací.
+- Produkční nasazení s veřejnými formuláři nad Next.js Server Actions musí používat jednotný `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` pro všechny instance stejného buildu a zároveň posílat konzistentní `NEXT_DEPLOYMENT_ID` nebo `DEPLOYMENT_VERSION` / `GIT_HASH`, ze kterých `next.config.ts` skládá `deploymentId`. Jinak po deployi hrozí `Failed to find Server Action` u uživatelky se starším otevřeným tabem.
+- Při doporučeném rolloutu přes `deploy/release.sh` se `NEXT_DEPLOYMENT_ID` do `.env` běžně nepíše ručně; skript ho pro každý build automaticky nastaví na aktuální git commit. V `.env` tedy drž hlavně stabilní `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY`.
 
 Detailní seznam všech env proměnných je v [`docs/ENVIRONMENT.md`](/var/www/ppstudio/docs/ENVIRONMENT.md).
 
