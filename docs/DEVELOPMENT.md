@@ -392,6 +392,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - `site-smoke.spec.ts` ověřuje základní dostupnost veřejných rout, sitemap/robots kontrakt, bezpečné chybové stavy veřejných utility rout, auth redirect protected adminu a načtení hlavních OWNER/SALON sekcí bez plošného klikání každé akce.
 - Regrese ranního planner problému je krytá integračním testem `admin-slots/mutations.integration.test.ts`: publikace konceptu přes den s existující rezervací musí rezervovaný interval zachovat a přepsat jen běžnou dostupnost před/po něm.
 - Browser E2E testy běží přes Playwright (`npm run test:e2e`) v adresáři `tests/e2e`.
+- Na Node 24 nepoužívej Playwright `1.59.1`: v GitHub Actions se tento release uměl zaseknout při `npx playwright install --with-deps chromium` po stažení Chrome for Testing. Drž minimálně `1.60.0+`; repozitář je aktualizovaný na `^1.61.1`.
 - CI po samostatném `npm run build` spouští E2E přímo přes `npx playwright test`, aby se kvůli `pretest:e2e` neprováděl druhý identický build.
 - `pretest:e2e` pro Playwright build zapíná jen dummy Meta Pixel env (`NEXT_PUBLIC_META_PIXEL_ENABLED=true`, `NEXT_PUBLIC_META_PIXEL_ID=123456789`), aby šlo v browser smoke testech ověřit wiring eventů bez zásahu do produkčního defaultu.
 - Stejné dummy Meta env musí mít i každý samostatný CI `next build` krok. `NEXT_PUBLIC_*` hodnoty se inlinují už při buildu, takže pouhé runtime env v `playwright.config.ts` nestačí, pokud test běží nad předem sestaveným `.next`.

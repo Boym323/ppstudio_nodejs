@@ -1107,3 +1107,4 @@ Formát je inspirovaný Keep a Changelog.
 - Z inspektoru dne v admin planneru `Volné termíny` zmizela sekce `Kopírovat rozvrh z jiného dne`, takže UI už nenabízí matoucí copy-day workflow.
 - Z backendu planneru `Volné termíny` zmizela i nepoužívaná copy-day mutace a její integrační DST test; v kódu i dokumentaci zůstává už jen podporované kopírování celého týdne.
 - V admin planneru `Volné termíny` zanikla i dřívější duplicitní CTA větev kolem `Vymazat dostupnost`; po zjednodušení inspektoru se denní akce už vůbec nezobrazují.
+- Aktualizován `@playwright/test` z `^1.59.1` na `^1.61.1`, protože větev `1.59.1` se v GitHub Actions na `Node 24.18.0` zasekávala při `npx playwright install --with-deps chromium` po stažení Chrome for Testing; upgrade přebírá upstream fix extractoru pro novější Node a odblokovává CI bez dopadu na produkční runtime.

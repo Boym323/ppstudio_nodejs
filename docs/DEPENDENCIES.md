@@ -14,7 +14,7 @@ Seznam důležitých knihoven a důvod jejich použití.
 - `prisma`: `^7.8.0` (runtime používá `7.8.0`)
 - `@prisma/client`: `^7.8.0` (runtime používá `7.8.0`)
 - `@prisma/adapter-pg`: `^7.8.0` (runtime používá `7.8.0`)
-- `@playwright/test`: browser E2E test runner pro hlavní rezervační a admin flow.
+- `@playwright/test`: browser E2E test runner pro hlavní rezervační a admin flow; v projektu držíme `^1.61.1`, protože starší `1.59.1` se v CI na Node 24 zasekávala při instalaci browseru.
 - `c8`: V8 coverage reporter nad stávajícím `node --test` setupem; generuje HTML/LCOV/JSON reporty bez nutnosti přechodu na jiný test runner.
 - `svix`: verifikace podpisu Resend webhooků (`svix-id`, `svix-timestamp`, `svix-signature`) nad raw request body.
 - Matomo tracking nepřidává žádnou npm závislost; používá `next/script`, App Router navigation hooks a standardní `window._paq` frontu.
