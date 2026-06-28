@@ -57,6 +57,76 @@ function addDays(base: Date, days: number) {
   return new Date(base.getTime() + days * 24 * 60 * 60 * 1000);
 }
 
+async function findIsolatedSlotStart(
+  context: SeedContext,
+  durationMinutes: number,
+  minimumDayOffset = 14,
+) {
+  const { prisma } = await loadModules();
+  const activeStatuses = [BookingStatus.PENDING, BookingStatus.CONFIRMED, BookingStatus.COMPLETED];
+  const daySeed = parseInt(context.suffix.slice(0, 4), 16);
+  const hourSeed = parseInt(context.suffix.slice(4, 6), 16);
+  const minuteSeed = parseInt(context.suffix.slice(6, 8), 16);
+  const hourCandidates = [18, 19, 20, 21].map((hour, index, list) => list[(index + hourSeed) % list.length] ?? hour);
+  const minuteCandidates = [0, 15, 30, 45].map(
+    (minute, index, list) => list[(index + minuteSeed) % list.length] ?? minute,
+  );
+
+  for (let dayStep = 0; dayStep < 60; dayStep += 1) {
+    const dayOffset = minimumDayOffset + ((daySeed + dayStep) % 60);
+
+    for (const hour of hourCandidates) {
+      for (const minute of minuteCandidates) {
+        const startsAt = addDays(new Date(), dayOffset);
+        startsAt.setUTCHours(hour, minute, 0, 0);
+        const endsAt = new Date(startsAt.getTime() + durationMinutes * 60 * 1000);
+
+        const [overlappingSlots, overlappingBookings] = await Promise.all([
+          prisma.availabilitySlot.count({
+            where: {
+              startsAt: {
+                lt: endsAt,
+              },
+              endsAt: {
+                gt: startsAt,
+              },
+            },
+          }),
+          prisma.booking.count({
+            where: {
+              status: {
+                in: activeStatuses,
+              },
+              scheduledStartsAt: {
+                lt: endsAt,
+              },
+              OR: [
+                {
+                  blockedUntil: {
+                    gt: startsAt,
+                  },
+                },
+                {
+                  blockedUntil: null,
+                  scheduledEndsAt: {
+                    gt: startsAt,
+                  },
+                },
+              ],
+            },
+          }),
+        ]);
+
+        if (overlappingSlots === 0 && overlappingBookings === 0) {
+          return startsAt;
+        }
+      }
+    }
+  }
+
+  throw new Error("Nepodařilo se najít izolované testovací okno pro veřejnou rezervaci.");
+}
+
 function buildBookingInput(context: SeedContext, slot: { id: string; startsAt: Date }, voucherCode?: string) {
   const unique = randomUUID().slice(0, 8);
   const uniquePhoneSuffix = String(parseInt(unique.slice(0, 6), 16) % 1_000_000).padStart(6, "0");
@@ -171,8 +241,7 @@ async function withSeed(run: (context: SeedContext) => Promise<void>) {
 
 async function createSlot(context: SeedContext, offsetDays = context.createdSlotIds.length + 3) {
   const { prisma } = await loadModules();
-  const startsAt = addDays(new Date(), offsetDays);
-  startsAt.setUTCHours(9 + (context.createdSlotIds.length % 6), 0, 0, 0);
+  const startsAt = await findIsolatedSlotStart(context, 60, Math.max(offsetDays, 14));
   const endsAt = new Date(startsAt.getTime() + 60 * 60 * 1000);
   const slot = await prisma.availabilitySlot.create({
     data: {

@@ -37,6 +37,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - U server actions v `src/features/admin/actions/*.ts` prioritně pokrývej validační early-return větve (invalid form payload) bez DB přístupu; je to stabilní low-flake vrstva, která rychle zavírá velké coverage mezery.
 - Stejný postup používej i pro `service-category-actions`: validační větve `create/update` vrací strukturovaný action state ještě před auth/DB, takže jsou vhodné pro rychlé unit testy s vysokým poměrem přínos/údržba.
 - Pro `booking-public/engine.ts` drž minimálně unit coverage early-fail větví bez DB závislostí (`invalid startsAt`, `invalid phone`), aby základní validační guardy nešly regresí obejít.
+- DB integrační testy nespouštěj proti fixním hodinám typu „za 3 dny v 09:00“, pokud běží nad sdílenou nebo již seedovanou databází. Helpery pro sloty mají nejdřív najít izolované budoucí okno bez překryvu v `AvailabilitySlot` i aktivních `Booking`, jinak budou flaky podle aktuálních dat nebo paralelních běhů.
 
 ## Lokální setup workflow
 - Výchozí pořadí pro nový stroj nebo čistý checkout je:
