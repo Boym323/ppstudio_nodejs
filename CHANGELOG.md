@@ -6,6 +6,9 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [0.3.33] - 2026-06-09
+
+- Release příprava pro produkční nasazení: projektová verze navýšena na patch `0.3.33`.
 - Aktualizován framework `next` z `16.2.6` na `16.2.9` a `eslint-config-next` z `16.2.6` na `16.2.9`; jde o bezpečný patch upgrade v rámci Next.js 16 ověřený lokálním lintem a production buildem.
 - Provozní dokumentace nově eviduje i aktuální stav `npm audit`: po upgradu zůstává `1 low` a `6 moderate` transitive nálezů, ale automatické `npm audit fix` se záměrně nepouští, protože doporučené zásahy míří na nebezpečný downgrade `next` / `prisma`.
 - Projekt je nově standardizovaný na `Node 24 LTS`: přibyl repový pin [`.nvmrc`](/var/www/ppstudio/.nvmrc:1), `package.json` deklaruje `engines.node = ^24.0.0` a GitHub Actions CI běží na `Node 24` místo `22`.
