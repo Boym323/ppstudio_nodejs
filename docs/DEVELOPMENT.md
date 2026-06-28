@@ -22,6 +22,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 ## Test runner a coverage
 - `npm test` používá Node test runner + `tsx` preload nad quoted globem `src/**/*.test.ts`; quoting je záměrný, protože bez něj Bash v defaultní konfiguraci expandoval jen část stromu a coverage pak nereprezentovala celé repo.
 - `npm run test:coverage` používá `c8` nad tím samým runnerem a ukládá výstupy do `coverage/`.
+- U TypeScript callbacků vracejících union stavů planneru (`available` / `locked` / `booked` / `inactive`) preferuj u `flatMap` explicitní generic typu `flatMap<PlannerInterval>(...)`. Next.js 16 build checker jinak umí vnořené větve zúžit jen podle první literal větve a shodit production build na neplatné kompatibilitě `status`.
 - U admin planneru rozlišuj dvě vrstvy chování: editace stále pracuje s 30min sloty/cells, ale read model pro UI posílá i `cleanupBlocks` / `availableBlocks` v minutách, aby šlo jednu půlhodinovou buňku vykreslit po 15 minutách.
 - `availableIntervals` v planner read modelu neskládej přímo z jednotlivých slotových intervalů. Nejprve mergeuj `availableBlocks` v minutách a teprve potom je převáděj na celé 30min editable úseky, jinak se rozpadnou legitimně navazující sloty typu `14:00–14:45` + `14:45–15:00`.
 - Coverage scope je záměrně business-first:

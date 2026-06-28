@@ -289,7 +289,7 @@ export async function getAdminPlannerWeek(area: AdminArea, week?: string | null)
             [{ startsAt: clipped.startsAt, endsAt: clipped.endsAt }],
           );
 
-          const blockingIntervals: PlannerInterval[] = mergedBookings.flatMap((bookedRange, bookingIndex) => {
+          const blockingIntervals: PlannerInterval[] = mergedBookings.flatMap<PlannerInterval>((bookedRange, bookingIndex) => {
             const bookingCells = intervalToPlannerCells(bookedRange, "cover");
 
             if (bookingCells.endCell <= bookingCells.startCell) {
@@ -310,7 +310,7 @@ export async function getAdminPlannerWeek(area: AdminArea, week?: string | null)
             } satisfies PlannerInterval];
           });
 
-          const remainderIntervals: PlannerInterval[] = freeRanges.flatMap((freeRange, freeRangeIndex) => {
+          const remainderIntervals: PlannerInterval[] = freeRanges.flatMap<PlannerInterval>((freeRange, freeRangeIndex) => {
             const freeCells = intervalToPlannerCells(
               freeRange,
               !hasOwnBookings && plainEditable ? "inside" : "cover",

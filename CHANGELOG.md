@@ -6,6 +6,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Opravený production build planneru pro Next.js 16.2.6: vnořené `flatMap<PlannerInterval>(...)` v `admin-slots/queries.ts` teď explicitně drží sjednocený návratový typ pro větve `available` i `locked` a detail výběru v planner UI už null-safe čte `cleanupBlockedUntilLabel`, takže `next build` nepadá na TypeScript zúžení ani na `selectionBooking is possibly null`.
 - Admin planner `Volná okna` už při výpočtu běžné dostupnosti započítává i cleanup blokaci přetékající z navazující rezervace do sousedního slotu, takže se další slot falešně neukáže jako volný jen proto, že booking visí na předchozím `slotId`.
 - Přibyl DB regresní test pro týdenní planner, který hlídá, že `blockedUntil` v sousedním slotu zneplatní odpovídající `availableIntervals`, ale zbytek dne zůstane editovatelný.
 - Planner mřížka teď cleanup zobrazuje jako skutečný 15min/30min žlutý segment uvnitř půlhodinové buňky: při overflowu může být horní nebo dolní polovina žlutá nad zeleným/červeným základem, celá buňka je žlutá při plné 30min cleanup blokaci a legenda má samostatnou položku `Úklid`.

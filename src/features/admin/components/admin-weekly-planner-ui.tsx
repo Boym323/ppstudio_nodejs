@@ -860,7 +860,7 @@ export function DayInspector({
                 {selectionBooking && (activeSelection.tone === "booked" || activeSelection.tone === "completed") ? (
                   <p>Blok v mřížce: {selectionBooking.blockedLabel}</p>
                 ) : null}
-                {showCleanupBlockedUntil ? (
+                {showCleanupBlockedUntil && selectionBooking ? (
                   <p>Úklidová blokace do: {selectionBooking.cleanupBlockedUntilLabel}</p>
                 ) : null}
                 {selectionInterval ? <p>{selectionInterval.detail}</p> : null}
