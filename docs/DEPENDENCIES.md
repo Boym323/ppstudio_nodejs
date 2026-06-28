@@ -14,6 +14,8 @@ Seznam důležitých knihoven a důvod jejich použití.
 - `prisma`: `^7.8.0` (runtime používá `7.8.0`)
 - `@prisma/client`: `^7.8.0` (runtime používá `7.8.0`)
 - `@prisma/adapter-pg`: `^7.8.0` (runtime používá `7.8.0`)
+- K 28. 6. 2026 `npm audit` po patch upgradu hlásí `1 low` a `6 moderate` nálezů bez `high` / `critical`. Nejrelevantnější větev je `next -> postcss` a pak Prisma tooling (`prisma -> @prisma/dev -> @hono/node-server`).
+- Automatické `npm audit fix` se teď vědomě nepouští: doporučené opravy vrací nebezpečné návrhy na major downgrade `next` nebo `prisma`, takže bezpečný postup je čekat na kompatibilní upstream patch/minor release a zkusit audit znovu při dalším dependency passu.
 - `@playwright/test`: browser E2E test runner pro hlavní rezervační a admin flow; v projektu držíme `^1.61.1`, protože starší `1.59.1` se v CI na Node 24 zasekávala při instalaci browseru.
 - `c8`: V8 coverage reporter nad stávajícím `node --test` setupem; generuje HTML/LCOV/JSON reporty bez nutnosti přechodu na jiný test runner.
 - `svix`: verifikace podpisu Resend webhooků (`svix-id`, `svix-timestamp`, `svix-signature`) nad raw request body.

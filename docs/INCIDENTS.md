@@ -44,6 +44,7 @@ Evidence produkčních incidentů a jejich řešení.
   Preventivní opatření: po změnách Pushover, e-mail delivery nebo reminder scheduleru ověřit alespoň import/start worker vrstvy mimo Next.js runtime.
 
 ## Doporučené sledované oblasti
+- `npm audit` doporučující automatický fix přes downgrade `next` nebo `prisma`; před jakýmkoli `npm audit fix` vždy zkontroluj navržené cílové verze a diff lockfilu. V aktuálním stavu (2026-06-28) je správné `audit fix` nepouštět a čekat na kompatibilní upstream release.
 - Cross-origin blokace Next.js dev assetů (`/_next/webpack-hmr`, overlay, refresh endpointy) při otevření lokálního dev serveru z jiného zařízení nebo hostname, který není v `allowedDevOrigins`.
 - Neplatné nebo chybějící env proměnné při startu aplikace.
 - Chyby Prisma klienta po změně schematu nebo po nasazení bez `db:generate`.
