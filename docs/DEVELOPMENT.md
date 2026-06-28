@@ -20,6 +20,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
   - `npm run dev:clean` (smaže `.next` a znovu spustí dev server)
   - `npm run dev:webpack` (fallback bez Turbopacku, vhodné při opakovaných pádech cache)
 - Uploady souborů přes Server Actions respektují Next.js request body limit. Pro admin `Média` je v `next.config.ts` nastaveno `experimental.serverActions.bodySizeLimit = "10mb"`, protože samotný business limit obrázku je `8 MB` a multipart formulář přidává overhead navíc.
+- Kořenový `instrumentation.ts` je oficiální Next.js 16 hook pro serverovou observability. Když potřebuješ víc detailů k chybám, které spadnou ještě před vlastní action logikou, přidávej je přes `register()` / `onRequestError`, ne až do jednotlivých server actions.
 
 ## Test runner a coverage
 - `npm test` používá Node test runner + `tsx` preload nad quoted globem `src/**/*.test.ts`; quoting je záměrný, protože bez něj Bash v defaultní konfiguraci expandoval jen část stromu a coverage pak nereprezentovala celé repo.
@@ -80,6 +81,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Další vnitřní route group `(protected)` uvnitř adminu chrání sekce vyžadující session.
 - Veřejné booking flow používá server-loaded page + klientský wizard + server action pro finální zápis.
 - U všech veřejných i admin formulářů nad Next.js Server Actions počítej s deploy skew: aplikace čte `deploymentId` z `NEXT_DEPLOYMENT_ID` nebo fallbacku `DEPLOYMENT_VERSION` / `GIT_HASH`, ale plná ochrana funguje jen když všechny produkční instance stejného buildu sdílí i stejný `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY`.
+- `instrumentation.ts:onRequestError` už pro `Failed to find Server Action` loguje sanitizované request headers (`x-deployment-id`, proxy/IP metadata, user-agent), route context (`routeType: action`) a fingerprint `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY`. Při dalších úpravách zachovej zásadu, že do těchto logů nesmí spadnout raw booking tokeny ani celé query stringy.
 - Ve veřejném booking flow platí focus pravidlo: klik na den v kalendáři má převést fokus na sekci `Dostupné časy`, zatímco klik na konkrétní čas má převést fokus na první input kontaktního kroku. Při dalších UX úpravách tenhle sled zachovej, aby zůstal konzistentní pro klávesnici i mobilní scroll.
 - Dny v booking kalendáři bez jediného reálně volného času (`all slots disabled`) mají zůstat neinteraktivní (`disabled`) a `aria-label` dnů má používat lidský formát přes `formatDateKeyLabel(...)`, ne surové `YYYY-MM-DD`.
 - Error a empty stavy veřejného booking flow musí být akční: u chybějících služeb/termínů nebo konfliktů nabídni konkrétní další krok (`/kontakt`, `/cenik` nebo návrat do příslušného kroku) a drž klidný prémiový tón PP Studia ve Zlíně.
