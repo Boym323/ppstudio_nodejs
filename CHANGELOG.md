@@ -6,6 +6,9 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [0.3.34] - 2026-06-09
+
+- Release příprava pro produkční nasazení: projektová verze navýšena na patch `0.3.34`.
 - Přidán kořenový `instrumentation.ts` pro Next.js 16 produkční observability: při startu instance loguje deployment metadata a při request chybách zapisuje strukturovaný provozní záznam přes `onRequestError`.
 - Incident `Failed to find Server Action` už nově loguje i pravděpodobnou příčinu (`deployment-id-mismatch`, chybějící/stale `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY`), bezpečný fingerprint šifrovacího klíče, `x-deployment-id`, request context a sanitizovanou path bez tokenů.
 - Provozní dokumentace (`MANUAL`, `DEVELOPMENT`, `ENVIRONMENT`, `DEPLOYMENT`, `INCIDENTS`) je doplněná o nový runbook pro čtení těchto logů v `journalctl`.
