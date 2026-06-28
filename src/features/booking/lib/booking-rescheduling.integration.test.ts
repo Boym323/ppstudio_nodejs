@@ -31,6 +31,10 @@ type SeedContext = {
   actorUserId: string;
 };
 
+function addDays(base: Date, days: number) {
+  return new Date(base.getTime() + days * 24 * 60 * 60 * 1000);
+}
+
 async function loadModules() {
   const [{ prisma }, bookingModule, clientModule] = await Promise.all([
     import("@/lib/prisma"),
@@ -48,20 +52,94 @@ async function loadModules() {
   };
 }
 
+async function findIsolatedRescheduleWindow(
+  seedUuid: string,
+  durationMinutes: number,
+  excludedWindows: Array<{ startsAt: Date; endsAt: Date }> = [],
+) {
+  const { prisma, BookingStatus } = await loadModules();
+  const activeStatuses = [BookingStatus.PENDING, BookingStatus.CONFIRMED, BookingStatus.COMPLETED];
+  const daySeed = Number.parseInt(seedUuid.replaceAll("-", "").slice(0, 4), 16);
+  const hourSeed = Number.parseInt(seedUuid.replaceAll("-", "").slice(4, 6), 16);
+  const minuteSeed = Number.parseInt(seedUuid.replaceAll("-", "").slice(6, 8), 16);
+  const hourCandidates = [18, 19, 20, 21].map((hour, index, list) => list[(index + hourSeed) % list.length] ?? hour);
+  const minuteCandidates = [0, 15, 30, 45].map(
+    (minute, index, list) => list[(index + minuteSeed) % list.length] ?? minute,
+  );
+  for (let dayStep = 0; dayStep < 60; dayStep += 1) {
+    const dayOffset = 14 + ((daySeed + dayStep) % 60);
+
+    for (const hour of hourCandidates) {
+      for (const minute of minuteCandidates) {
+        const startsAt = addDays(new Date(), dayOffset);
+        startsAt.setUTCHours(hour, minute, 0, 0);
+        const endsAt = new Date(startsAt.getTime() + durationMinutes * 60 * 1000);
+        const overlapsExcludedWindow = excludedWindows.some(
+          (window) => startsAt < window.endsAt && endsAt > window.startsAt,
+        );
+
+        if (overlapsExcludedWindow) {
+          continue;
+        }
+
+        const [overlappingSlots, overlappingBookings] = await Promise.all([
+          prisma.availabilitySlot.count({
+            where: {
+              startsAt: {
+                lt: endsAt,
+              },
+              endsAt: {
+                gt: startsAt,
+              },
+            },
+          }),
+          prisma.booking.count({
+            where: {
+              status: {
+                in: activeStatuses,
+              },
+              scheduledStartsAt: {
+                lt: endsAt,
+              },
+              OR: [
+                {
+                  blockedUntil: {
+                    gt: startsAt,
+                  },
+                },
+                {
+                  blockedUntil: null,
+                  scheduledEndsAt: {
+                    gt: startsAt,
+                  },
+                },
+              ],
+            },
+          }),
+        ]);
+
+        if (overlappingSlots === 0 && overlappingBookings === 0) {
+          return startsAt;
+        }
+      }
+    }
+  }
+
+  throw new Error("Nepodařilo se najít izolované testovací okno pro reschedule integrační test.");
+}
+
 async function createSeed() {
   const { prisma, BookingStatus, AvailabilitySlotStatus } = await loadModules();
   const seedUuid = randomUUID();
   const suffix = seedUuid.slice(0, 8);
-  const seedEntropy = Number.parseInt(seedUuid.replaceAll("-", "").slice(0, 8), 16);
-  const offsetDays = 10 + (seedEntropy % 45);
-  const offsetMinutes = seedEntropy % (8 * 60);
-  const oldStartAt = new Date();
-  oldStartAt.setUTCSeconds(0, 0);
-  oldStartAt.setUTCMinutes(offsetMinutes);
-  oldStartAt.setUTCHours(8 + Math.floor(offsetMinutes / 60));
-  oldStartAt.setUTCDate(oldStartAt.getUTCDate() + offsetDays);
+  const oldStartAt = await findIsolatedRescheduleWindow(seedUuid, 60);
   const oldEndAt = new Date(oldStartAt.getTime() + 60 * 60 * 1000);
-  const newStartAt = new Date(oldStartAt.getTime() + 24 * 60 * 60 * 1000 + 66 * 60 * 1000);
+  const newStartAt = await findIsolatedRescheduleWindow(`${seedUuid}-next`, 90, [
+    {
+      startsAt: oldStartAt,
+      endsAt: oldEndAt,
+    },
+  ]);
   const newEndAt = new Date(newStartAt.getTime() + 90 * 60 * 1000);
   const actor = await prisma.adminUser.create({
     data: {

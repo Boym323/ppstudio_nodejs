@@ -39,6 +39,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Stejný postup používej i pro `service-category-actions`: validační větve `create/update` vrací strukturovaný action state ještě před auth/DB, takže jsou vhodné pro rychlé unit testy s vysokým poměrem přínos/údržba.
 - Pro `booking-public/engine.ts` drž minimálně unit coverage early-fail větví bez DB závislostí (`invalid startsAt`, `invalid phone`), aby základní validační guardy nešly regresí obejít.
 - DB integrační testy nespouštěj proti fixním hodinám typu „za 3 dny v 09:00“, pokud běží nad sdílenou nebo již seedovanou databází. Helpery pro sloty mají nejdřív najít izolované budoucí okno bez překryvu v `AvailabilitySlot` i aktivních `Booking`, jinak budou flaky podle aktuálních dat nebo paralelních běhů.
+- Stejné pravidlo platí i pro reschedule integrační testy: cílový původní i nový termín musí být před seedem ověřený proti existujícím slotům a aktivním rezervacím, jinak test může falešně skončit chybou `Nový termín koliduje s jinou aktivní rezervací.` i bez regresní změny doménové logiky.
 
 ## Lokální setup workflow
 - Výchozí pořadí pro nový stroj nebo čistý checkout je:

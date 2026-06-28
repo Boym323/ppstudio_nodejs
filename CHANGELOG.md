@@ -8,6 +8,7 @@ Formát je inspirovaný Keep a Changelog.
 
 - Projekt je nově standardizovaný na `Node 24 LTS`: přibyl repový pin [`.nvmrc`](/var/www/ppstudio/.nvmrc:1), `package.json` deklaruje `engines.node = ^24.0.0` a GitHub Actions CI běží na `Node 24` místo `22`.
 - Provozní a vývojová dokumentace byla doplněná o rollout poznámky k upgradu runtime, aby lokální vývoj, CI a produkce držely stejnou major verzi Node při `npm ci`, buildu a restartu systemd služeb.
+- Opravená flakiness DB integračního testu `booking-rescheduling.integration.test.ts`: seed už nevolí pevně odvozené budoucí časy, ale aktivně hledá izolované okno bez překryvu s existujícími sloty a aktivními rezervacemi ve sdílené databázi.
 
 ## [0.3.32] - 2026-06-28
 
