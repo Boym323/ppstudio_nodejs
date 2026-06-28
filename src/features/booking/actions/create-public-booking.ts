@@ -21,7 +21,7 @@ import {
   publicBookingErrorCodes,
 } from "@/features/booking/lib/booking-public";
 import { type PublicBookingActionState } from "@/features/booking/actions/public-booking-action-state";
-import { sendOwnerPushover } from "@/lib/notifications/pushover";
+import { sendOwnerSystemErrorPushover } from "@/lib/notifications/pushover";
 
 function readFormString(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -360,6 +360,16 @@ export async function createPublicBookingAction(
     if (isBookingSchemaDriftError(error)) {
       console.error("Public booking action failed due to schema drift", error);
 
+      await sendOwnerSystemErrorPushover({
+        title: "PP Studio - systemova chyba",
+        message: "Verejne vytvoreni rezervace narazilo na schema drift nebo chybejici migraci.",
+        context: {
+          contextId: "public-booking-schema-drift",
+          slotId: parsed.success ? parsed.data.slotId : null,
+        },
+        error,
+      });
+
       await writeSubmissionLog({
         outcome: BookingSubmissionOutcome.FAILED,
         ipHash: submissionMetadata.ipHash,
@@ -384,14 +394,13 @@ export async function createPublicBookingAction(
 
     console.error("Public booking action failed", error);
 
-    await sendOwnerPushover({
-      type: "SYSTEM_ERROR",
+    await sendOwnerSystemErrorPushover({
       title: "PP Studio - systemova chyba",
       message: "Verejne vytvoreni rezervace skoncilo neocekavanou chybou.",
-      priority: 1,
       context: {
         contextId: submissionMetadata.ipHash ?? parsed.data.slotId,
       },
+      error,
     });
 
     await writeSubmissionLog({

@@ -17,7 +17,7 @@ import {
 } from "@/features/booking/lib/booking-action-tokens";
 import { formatBookingDateLabel } from "@/features/booking/lib/booking-format";
 import { resolvePublishedSlotCoverage } from "@/features/booking/lib/booking-slot-availability";
-import { sendOwnerBookingPushover } from "@/lib/notifications/pushover";
+import { sendOwnerBookingPushover, sendOwnerSystemErrorPushover } from "@/lib/notifications/pushover";
 import { prisma } from "@/lib/prisma";
 import { getBookingPolicySettings, getEmailBrandingSettings, isBookingWithinWindow } from "@/lib/site-settings";
 import { resolveBookingTimingSnapshot } from "./booking-cleanup";
@@ -121,6 +121,7 @@ type BookingReschedulingDependencies = {
   isBookingWithinWindow: typeof isBookingWithinWindow;
   queueBookingRescheduledNotification: typeof queueBookingRescheduledNotification;
   sendOwnerBookingPushover: typeof sendOwnerBookingPushover;
+  sendOwnerSystemErrorPushover: typeof sendOwnerSystemErrorPushover;
 };
 
 function normalizeWhitespace(value: string) {
@@ -880,6 +881,7 @@ const defaultBookingReschedulingDependencies: BookingReschedulingDependencies = 
   isBookingWithinWindow,
   queueBookingRescheduledNotification,
   sendOwnerBookingPushover,
+  sendOwnerSystemErrorPushover,
 };
 
 export function createBookingReschedulingApi(
@@ -929,6 +931,15 @@ export function createBookingReschedulingApi(
               notificationStatus = "failed";
               console.error("Booking reschedule notification enqueue failed", {
                 bookingId: transactionResult.bookingId,
+                error,
+              });
+              await dependencies.sendOwnerSystemErrorPushover({
+                title: "PP Studio - systemova chyba",
+                message: "Presun rezervace se ulozil, ale nepodarilo se zalozit navazujici email notifikaci.",
+                context: {
+                  contextId: transactionResult.bookingId,
+                  bookingId: transactionResult.bookingId,
+                },
                 error,
               });
             }

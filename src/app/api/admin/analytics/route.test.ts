@@ -31,6 +31,9 @@ test("GET returns fallback analytics including contactStepQuality when reporting
     getDashboardAnalytics: async () => {
       throw new Error("getDashboardAnalytics should not run when reporting is blocked");
     },
+    notifySystemError: async () => {
+      throw new Error("notifySystemError should not run when reporting is blocked");
+    },
   });
 
   const response = await api.GET();
@@ -46,5 +49,45 @@ test("GET returns fallback analytics including contactStepQuality when reporting
     focusRate: 0,
     inputRate: 0,
     errorRate: 0,
+  });
+});
+
+test("GET notifies owner when analytics backend throws unexpected error", async () => {
+  const { createAdminAnalyticsRouteApi } = await import("./route");
+  const notifications: Array<Record<string, unknown>> = [];
+
+  const api = createAdminAnalyticsRouteApi({
+    getSession: async () => ({
+      sub: "admin-2",
+      role: AdminRole.SALON,
+      email: "salon@example.com",
+      name: "Salon",
+      iat: 1,
+      exp: 999999,
+    }),
+    getMatomoReportingHealth: async () => ({
+      status: "ok",
+      message: null,
+    }),
+    getDashboardAnalytics: async () => {
+      throw new Error("Matomo timeout");
+    },
+    notifySystemError: async (input) => {
+      notifications.push(input as unknown as Record<string, unknown>);
+    },
+  });
+
+  const response = await api.GET();
+  const payload = (await response.json()) as Record<string, unknown>;
+
+  assert.equal(response.status, 200);
+  assert.equal(payload.reportingStatus, "error");
+  assert.equal(notifications.length, 1);
+  assert.equal(notifications[0]?.title, "PP Studio - systemova chyba");
+  assert.equal(notifications[0]?.message, "Admin analytics API vratilo fallback kvuli neocekavane chybe.");
+  assert.deepEqual(notifications[0]?.context, {
+    contextId: "admin-analytics-api",
+    adminUserId: "admin-2",
+    role: AdminRole.SALON,
   });
 });

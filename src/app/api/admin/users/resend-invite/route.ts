@@ -10,6 +10,7 @@ import {
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
 import { isSameOriginAdminRequest } from "@/lib/http/request-origin";
+import { sendOwnerSystemErrorPushover } from "@/lib/notifications/pushover";
 
 const resendInviteSchema = z.object({
   userId: z.string().trim().min(1).max(64),
@@ -90,6 +91,16 @@ export async function POST(request: Request) {
     console.error("Admin invite resend API failed", {
       userId: user.id,
       email: user.email,
+      error,
+    });
+
+    await sendOwnerSystemErrorPushover({
+      title: "PP Studio - systemova chyba",
+      message: "Owner API pro znovuodeslani admin pozvanky selhalo.",
+      context: {
+        contextId: user.id,
+        adminUserId: user.id,
+      },
       error,
     });
 

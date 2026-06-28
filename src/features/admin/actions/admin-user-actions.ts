@@ -18,6 +18,7 @@ import {
 } from "@/features/admin/lib/admin-user-validation";
 import { isMissingInvitedAtColumnError } from "@/features/admin/lib/admin-user-db";
 import { requireAdminSectionAccess } from "@/features/admin/lib/admin-guards";
+import { sendOwnerSystemErrorPushover } from "@/lib/notifications/pushover";
 import { prisma } from "@/lib/prisma";
 
 function readFormString(formData: FormData, key: string) {
@@ -169,6 +170,16 @@ export async function saveAdminUserAccessAction(
       email: parsed.data.email,
       error,
     });
+
+    await sendOwnerSystemErrorPushover({
+      title: "PP Studio - systemova chyba",
+      message: "Zalozeni admin pristupu probehlo, ale pozvankovy email se nepodarilo odeslat.",
+      context: {
+        contextId: createdUserId || `admin-invite:${parsed.data.email}`,
+        adminUserId: createdUserId || null,
+      },
+      error,
+    });
   }
 
   revalidateAdminUserPaths();
@@ -271,6 +282,16 @@ export async function resendAdminUserInviteAction(
   } catch (error) {
     console.error("Admin invite resend email failed", {
       email: user.email,
+      error,
+    });
+
+    await sendOwnerSystemErrorPushover({
+      title: "PP Studio - systemova chyba",
+      message: "Opetovne odeslani admin pozvanky selhalo.",
+      context: {
+        contextId: user.id,
+        adminUserId: user.id,
+      },
       error,
     });
 

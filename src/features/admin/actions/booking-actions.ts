@@ -45,6 +45,7 @@ import {
 import { normalizeVoucherCode } from "@/features/vouchers/lib/voucher-code";
 import { getBookingPaymentSummary } from "@/features/bookings/lib/booking-payment-summary";
 import { requireAdminArea, requireRole } from "@/lib/auth/session";
+import { sendOwnerSystemErrorPushover } from "@/lib/notifications/pushover";
 import { prisma } from "@/lib/prisma";
 
 function readFormString(formData: FormData, key: string) {
@@ -807,6 +808,16 @@ export async function redeemBookingVoucherAction(
 
     console.error("Failed to redeem voucher for booking", error);
 
+    await sendOwnerSystemErrorPushover({
+      title: "PP Studio - systemova chyba",
+      message: "Uplatneni voucheru na rezervaci selhalo neocekavanou chybou.",
+      context: {
+        contextId: parsed.data.bookingId,
+        bookingId: parsed.data.bookingId,
+      },
+      error,
+    });
+
     return {
       status: "error",
       formError: "Voucher se teď nepodařilo uplatnit. Zkuste to prosím znovu.",
@@ -1073,6 +1084,17 @@ export async function completeBookingVisitAction(
     }
 
     console.error("Failed to register completion payment flow", error);
+
+    await sendOwnerSystemErrorPushover({
+      title: "PP Studio - systemova chyba",
+      message: "Dokonceni navstevy nebo zapis uhrady selhal neocekavanou chybou.",
+      context: {
+        contextId: booking.id,
+        bookingId: booking.id,
+      },
+      error,
+    });
+
     return {
       status: "error",
       formError: "Úhradu se nepodařilo zapsat. Zkuste to prosím znovu.",
@@ -1275,6 +1297,18 @@ export async function createManualBookingAction(
 
     console.error("Failed to create manual booking", error);
 
+    await sendOwnerSystemErrorPushover({
+      title: "PP Studio - systemova chyba",
+      message: "Rucni vytvoreni rezervace v adminu selhalo neocekavanou chybou.",
+      context: {
+        contextId:
+          (parsed.data.selectionMode === "slot" ? parsed.data.slotId : startsAt)
+          || parsed.data.serviceId
+          || "admin-manual-booking",
+      },
+      error,
+    });
+
     return {
       status: "error",
       formError: "Rezervaci se teď nepodařilo vytvořit. Zkuste to prosím znovu.",
@@ -1400,6 +1434,16 @@ export async function rescheduleBookingAction(
     }
 
     console.error("Failed to reschedule booking", error);
+
+    await sendOwnerSystemErrorPushover({
+      title: "PP Studio - systemova chyba",
+      message: "Admin presun rezervace selhal neocekavanou chybou.",
+      context: {
+        contextId: parsed.data.bookingId,
+        bookingId: parsed.data.bookingId,
+      },
+      error,
+    });
 
     return {
       status: "error",

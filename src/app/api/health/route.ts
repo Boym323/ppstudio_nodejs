@@ -1,5 +1,6 @@
 import { EmailLogStatus } from "@prisma/client";
 
+import { sendOwnerSystemErrorPushover } from "@/lib/notifications/pushover";
 import { prisma } from "@/lib/prisma";
 
 const WORKER_LOCK_TIMEOUT_MS = 10 * 60 * 1000;
@@ -17,6 +18,15 @@ export async function GET() {
   } catch (error) {
     dbStatus = "error";
     alerts.push("DB check failed");
+
+    await sendOwnerSystemErrorPushover({
+      title: "PP Studio - systemova chyba",
+      message: "Health endpoint selhal pri DB kontrole.",
+      context: {
+        contextId: "health-db-check",
+      },
+      error,
+    });
 
     return Response.json(
       {

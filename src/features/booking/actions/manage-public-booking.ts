@@ -12,6 +12,7 @@ import {
   issuePublicCancellationUrlByManageToken,
   reschedulePublicBookingByToken,
 } from "@/features/booking/lib/booking-management";
+import { sendOwnerSystemErrorPushover } from "@/lib/notifications/pushover";
 
 function readFormString(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -101,6 +102,16 @@ export async function managePublicBookingAction(
     }
 
     console.error("Failed to reschedule booking via self-service flow", error);
+
+    await sendOwnerSystemErrorPushover({
+      title: "PP Studio - systemova chyba",
+      message: "Self-service presun rezervace selhal neocekavanou chybou.",
+      context: {
+        contextId: slotId || "public-manage-reschedule",
+        slotId: slotId || null,
+      },
+      error,
+    });
 
     return {
       status: "error",

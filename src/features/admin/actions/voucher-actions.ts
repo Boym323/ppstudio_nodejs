@@ -22,6 +22,7 @@ import {
 } from "@/features/vouchers/lib/voucher-operations";
 import { createVoucherSchema } from "@/features/vouchers/schemas/voucher-schemas";
 import { requireRole } from "@/lib/auth/session";
+import { sendOwnerSystemErrorPushover } from "@/lib/notifications/pushover";
 import { prisma } from "@/lib/prisma";
 
 function readFormString(formData: FormData, key: string) {
@@ -165,10 +166,29 @@ export async function createAdminVoucherAction(
   }
 
   const actorUserId = await resolveVoucherActorUserId(session.email);
-  const voucher = await createVoucher(parsed.data, actorUserId);
+  let voucherId = "";
+
+  try {
+    const voucher = await createVoucher(parsed.data, actorUserId);
+    voucherId = voucher.id;
+  } catch (error) {
+    await sendOwnerSystemErrorPushover({
+      title: "PP Studio - systemova chyba",
+      message: "Vytvoreni voucheru selhalo neocekavanou chybou.",
+      context: {
+        contextId: `${area}:${parsed.data.type}:${parsed.data.validFrom}`,
+      },
+      error,
+    });
+
+    return {
+      status: "error",
+      formError: "Voucher se teď nepodařilo vytvořit. Zkuste to prosím znovu.",
+    };
+  }
 
   revalidatePath(getAdminVouchersHref(area));
-  redirect(getAdminVoucherHref(area, voucher.id));
+  redirect(getAdminVoucherHref(area, voucherId));
 }
 
 export async function updateVoucherOperationalDetailsAction(
@@ -220,7 +240,20 @@ export async function updateVoucherOperationalDetailsAction(
       };
     }
 
-    throw error;
+    await sendOwnerSystemErrorPushover({
+      title: "PP Studio - systemova chyba",
+      message: "Ulozeni provoznich udaju voucheru selhalo neocekavanou chybou.",
+      context: {
+        contextId: parsed.data.voucherId,
+        voucherId: parsed.data.voucherId,
+      },
+      error,
+    });
+
+    return {
+      status: "error",
+      formError: "Provozní údaje voucheru se teď nepodařilo uložit. Zkuste to prosím znovu.",
+    };
   }
 
   revalidateVoucherPaths(area, parsed.data.voucherId);
@@ -287,7 +320,20 @@ export async function cancelVoucherAction(
       }
     }
 
-    throw error;
+    await sendOwnerSystemErrorPushover({
+      title: "PP Studio - systemova chyba",
+      message: "Zruseni voucheru selhalo neocekavanou chybou.",
+      context: {
+        contextId: parsed.data.voucherId,
+        voucherId: parsed.data.voucherId,
+      },
+      error,
+    });
+
+    return {
+      status: "error",
+      formError: "Voucher se teď nepodařilo zrušit. Zkuste to prosím znovu.",
+    };
   }
 
   revalidateVoucherPaths(area, parsed.data.voucherId);

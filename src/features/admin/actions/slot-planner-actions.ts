@@ -15,6 +15,7 @@ import {
   type WeeklyTemplateInput,
 } from "@/features/admin/lib/admin-slots";
 import { requireAdminSectionAccess } from "@/features/admin/lib/admin-guards";
+import { sendOwnerSystemErrorPushover } from "@/lib/notifications/pushover";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 
@@ -129,7 +130,15 @@ async function withPlannerAccess(area: AdminArea) {
   };
 }
 
-function mapPlannerError(error: unknown, fallbackMessage: string): PlannerMutationResult {
+async function mapPlannerError(
+  error: unknown,
+  fallbackMessage: string,
+  context: {
+    area: AdminArea;
+    operation: string;
+    contextId?: string;
+  },
+): Promise<PlannerMutationResult> {
   if (error instanceof PlannerMutationError) {
     return {
       ok: false,
@@ -139,6 +148,17 @@ function mapPlannerError(error: unknown, fallbackMessage: string): PlannerMutati
   }
 
   console.error("Planner action failed", error);
+
+  await sendOwnerSystemErrorPushover({
+    title: "PP Studio - systemova chyba",
+    message: `Planner akce selhala (${context.operation}).`,
+    context: {
+      contextId: context.contextId ?? `planner-${context.area}-${context.operation}`,
+      area: context.area,
+      operation: context.operation,
+    },
+    error,
+  });
 
   return {
     ok: false,
@@ -171,7 +191,11 @@ export async function applyPlannerSelectionAction(
     revalidatePlanner(area);
     return result;
   } catch (error) {
-    return mapPlannerError(error, "Změnu dostupnosti se teď nepodařilo uložit.");
+    return mapPlannerError(error, "Změnu dostupnosti se teď nepodařilo uložit.", {
+      area,
+      operation: "apply-selection",
+      contextId: `${area}:${parsed.data.weekKey}:${parsed.data.dateKey}`,
+    });
   }
 }
 
@@ -195,7 +219,11 @@ export async function clearPlannerDayAction(
     revalidatePlanner(area);
     return result;
   } catch (error) {
-    return mapPlannerError(error, "Den se teď nepodařilo upravit.");
+    return mapPlannerError(error, "Den se teď nepodařilo upravit.", {
+      area,
+      operation: "clear-day",
+      contextId: `${area}:${parsed.data.weekKey}:${parsed.data.dateKey}`,
+    });
   }
 }
 
@@ -222,7 +250,11 @@ export async function copyPlannerWeekAction(
     revalidatePlanner(area);
     return result;
   } catch (error) {
-    return mapPlannerError(error, "Kopírování týdne se teď nepodařilo dokončit.");
+    return mapPlannerError(error, "Kopírování týdne se teď nepodařilo dokončit.", {
+      area,
+      operation: "copy-week",
+      contextId: `${area}:${parsed.data.sourceWeekKey}:${parsed.data.targetWeekKey}`,
+    });
   }
 }
 
@@ -250,7 +282,11 @@ export async function applyWeeklyTemplateAction(
     revalidatePlanner(area);
     return result;
   } catch (error) {
-    return mapPlannerError(error, "Šablonu se teď nepodařilo použít.");
+    return mapPlannerError(error, "Šablonu se teď nepodařilo použít.", {
+      area,
+      operation: "apply-template",
+      contextId: `${area}:${parsed.data.weekKey}:template`,
+    });
   }
 }
 
@@ -313,7 +349,11 @@ export async function syncPlannerWeekDraftAction(
       revalidatePlanner(area);
       return result;
     } catch (error) {
-      return mapPlannerError(error, "Koncept týdne se teď nepodařilo publikovat.");
+      return mapPlannerError(error, "Koncept týdne se teď nepodařilo publikovat.", {
+        area,
+        operation: "sync-draft",
+        contextId: `${area}:${recoveredParsed.data.weekKey}:draft`,
+      });
     }
   }
 
@@ -326,6 +366,10 @@ export async function syncPlannerWeekDraftAction(
     revalidatePlanner(area);
     return result;
   } catch (error) {
-    return mapPlannerError(error, "Koncept týdne se teď nepodařilo publikovat.");
+    return mapPlannerError(error, "Koncept týdne se teď nepodařilo publikovat.", {
+      area,
+      operation: "sync-draft",
+      contextId: `${area}:${parsed.data.weekKey}:draft`,
+    });
   }
 }

@@ -72,6 +72,7 @@ Evidence produkčních incidentů a jejich řešení.
 - `SALON` omylem vidi Pushover nastaveni nebo prijima Pushover notifikaci; UI i serverovy dotaz musi zustat omezeny na `AdminRole.OWNER`.
 - Pushover zprava obsahuje telefon, raw token, citlivou poznamku klientky nebo cely payload; notifikace maji posilat jen sluzbu, termin, zdroj, typ chyby a odkaz do adminu.
 - Pushover spam pri retry nebo opakovanem submitu; stejne `type + bookingId/contextId/emailLogId` ma byt v jednom procesu potlaceno 30s in-memory rate limitem.
+- Neocekavana serverova chyba skonci jen v `console.error` bez owner alertu; minimalne health DB check, analytics fallback, booking create/reschedule flow, public booking schema drift, fail enqueue reschedule emailu, planner mutace, kriticke voucher akce a owner resend invite flow maji posilat `SYSTEM_ERROR` Pushover s bezpecnym `contextId` a bez raw tokenu.
 - Opakované `EmailLog.status = FAILED` po nasazení nové SMTP konfigurace.
 - Resend webhook tracking bez párování na `EmailLog.providerMessageId` (např. při `EMAIL_TRANSPORT=smtp` nebo chybějícím `RESEND_WEBHOOK_SECRET`) vede k trvale neutrálnímu tracking stavu; při incidentu ověř `EMAIL_TRANSPORT`, `RESEND_API_KEY`, `RESEND_WEBHOOK_SECRET` a konfiguraci endpointu `/api/webhooks/resend` v Resend dashboardu.
 - Nefunkční storno odkazy kvůli špatnému `NEXT_PUBLIC_APP_URL` nebo proxy přepisu hosta.

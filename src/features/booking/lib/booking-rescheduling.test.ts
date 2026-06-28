@@ -190,6 +190,7 @@ async function createHarness(overrides: Partial<{
     sendOwnerBookingPushover: async (input) => {
       calls.pushover.push(input as Record<string, unknown>);
     },
+    sendOwnerSystemErrorPushover: async () => {},
   });
 
   return {

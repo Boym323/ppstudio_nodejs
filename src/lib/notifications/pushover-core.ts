@@ -31,6 +31,15 @@ export type DirectOwnerPushoverResult =
   | { status: "not-owner" }
   | { status: "failed"; message: string };
 
+export type OwnerSystemErrorPushoverInput = {
+  title: string;
+  message: string;
+  url?: string;
+  priority?: -2 | -1 | 0 | 1 | 2;
+  context?: Record<string, string | number | boolean | null>;
+  error?: unknown;
+};
+
 type BookingPushoverEventType =
   | "NEW_BOOKING"
   | "BOOKING_PENDING"
@@ -285,6 +294,39 @@ export async function sendDirectOwnerPushover(
 
 function buildAdminBookingUrl(bookingId: string) {
   return `${env.NEXT_PUBLIC_APP_URL}/admin/rezervace/${bookingId}`;
+}
+
+function getErrorSummary(error: unknown) {
+  if (error instanceof Error) {
+    const name = error.name?.trim();
+    const message = error.message?.trim();
+
+    if (name && message) {
+      return `${name}: ${message}`.slice(0, 220);
+    }
+
+    return (message || name || "Unknown error").slice(0, 220);
+  }
+
+  if (typeof error === "string") {
+    return error.trim().slice(0, 220);
+  }
+
+  return null;
+}
+
+export async function sendOwnerSystemErrorPushover(input: OwnerSystemErrorPushoverInput) {
+  const errorSummary = getErrorSummary(input.error);
+  const message = errorSummary ? `${input.message}\nChyba: ${errorSummary}` : input.message;
+
+  await sendOwnerPushover({
+    type: "SYSTEM_ERROR",
+    title: input.title,
+    message,
+    url: input.url,
+    priority: input.priority ?? 1,
+    context: input.context,
+  });
 }
 
 function getBookingTitle(type: BookingPushoverEventType) {

@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 
 import { getDashboardAnalytics, getMatomoReportingHealth } from "@/lib/analytics/matomo";
 import { getSession } from "@/lib/auth/session";
+import { sendOwnerSystemErrorPushover } from "@/lib/notifications/pushover";
 
 export const revalidate = 300;
 
@@ -35,6 +36,7 @@ type AdminAnalyticsRouteApiDependencies = {
   getSession: typeof getSession;
   getMatomoReportingHealth: typeof getMatomoReportingHealth;
   getDashboardAnalytics: typeof getDashboardAnalytics;
+  notifySystemError: typeof sendOwnerSystemErrorPushover;
 };
 
 export function createAdminAnalyticsRouteApi(
@@ -42,6 +44,7 @@ export function createAdminAnalyticsRouteApi(
     getSession,
     getMatomoReportingHealth,
     getDashboardAnalytics,
+    notifySystemError: sendOwnerSystemErrorPushover,
   },
 ) {
   return {
@@ -85,6 +88,17 @@ export function createAdminAnalyticsRouteApi(
         console.error("Admin analytics API failed", {
           adminUserId: session.sub,
           role: session.role,
+          error,
+        });
+
+        await dependencies.notifySystemError({
+          title: "PP Studio - systemova chyba",
+          message: "Admin analytics API vratilo fallback kvuli neocekavane chybe.",
+          context: {
+            contextId: "admin-analytics-api",
+            adminUserId: session.sub,
+            role: session.role,
+          },
           error,
         });
 

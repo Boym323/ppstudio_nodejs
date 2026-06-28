@@ -14,6 +14,7 @@ import {
 import { getEffectiveVoucherStatus } from "@/features/vouchers/lib/voucher-format";
 import { requireRole } from "@/lib/auth/session";
 import { isSafeEmailHeaderValue, sanitizeEmailHeaderValue } from "@/lib/email/header";
+import { sendOwnerSystemErrorPushover } from "@/lib/notifications/pushover";
 import { prisma } from "@/lib/prisma";
 
 const sendVoucherEmailSchema = z.object({
@@ -179,6 +180,16 @@ export async function sendVoucherEmailAction(
     };
   } catch (error) {
     console.error("Failed to queue voucher email", error);
+
+    await sendOwnerSystemErrorPushover({
+      title: "PP Studio - systemova chyba",
+      message: "Rucni odeslani voucher emailu se nepodarilo zalozit do fronty.",
+      context: {
+        contextId: readFormString(formData, "voucherId") || "admin-voucher-email",
+        voucherId: readFormString(formData, "voucherId") || null,
+      },
+      error,
+    });
 
     return {
       status: "error",
