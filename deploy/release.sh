@@ -272,8 +272,8 @@ run_release() {
 
   prepare_deployment_env
 
-  log "npm ci"
-  npm ci
+  log "npm ci --include=dev"
+  npm ci --include=dev
 
   log "npm run db:generate"
   npm run db:generate

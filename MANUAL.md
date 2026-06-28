@@ -27,6 +27,7 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
 - Skript před releasem ověří, že na serveru existují units `ppstudio-web.service` a `ppstudio-email-worker.service`; pokud chybí, skončí s návodem na `sudo /var/www/ppstudio/deploy/deploy.sh`.
 - Skript také hlídá, že stejné procesy neběží ještě přes legacy PM2; při konfliktu vypíše převod na čistý systemd provoz (`pm2 delete ...`, `pm2 save --force`, `systemctl disable --now pm2-root.service`).
 - Skript před buildem načte `.env` jako dotenv soubor, takže fungují i neuzavřené hodnoty s mezerami typu `NEXT_PUBLIC_APP_NAME=PP Studio`; zároveň vynutí přítomnost validního `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` a pro aktuální release automaticky exportuje `NEXT_DEPLOYMENT_ID`, `DEPLOYMENT_VERSION` i `GIT_HASH` z aktuálního git commitu.
+- Protože produkční `.env` běžně nastavuje `NODE_ENV=production`, skript používá `npm ci --include=dev`, aby se nainstalovaly i build-time nástroje z `devDependencies` jako `eslint`, `typescript` a `prisma`.
 - Skript provede standardní release kroky (`npm ci`, `npm run db:generate`, `npm run db:check-migrations`, `npx prisma migrate deploy`, `npm run lint`, `npm run build`, restart `ppstudio-web` a `ppstudio-email-worker`).
 - Detailní release checklist a QA body zůstávají v [`docs/DEPLOYMENT.md`](/var/www/ppstudio/docs/DEPLOYMENT.md).
 
