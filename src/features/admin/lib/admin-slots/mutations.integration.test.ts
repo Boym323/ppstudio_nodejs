@@ -334,6 +334,56 @@ dbTest("getAdminPlannerWeek exposes service time and cleanup overlay metadata fo
   }
 });
 
+dbTest("getAdminPlannerWeek removes adjacent free window when cleanup overflows into the next slot", async () => {
+  const seed = await createSeed();
+  const { prisma, getAdminPlannerWeek } = await loadModules();
+
+  try {
+    const originalBooking = await prisma.booking.findUniqueOrThrow({
+      where: { id: seed.bookingId },
+      select: {
+        scheduledEndsAt: true,
+      },
+    });
+    const blockedUntil = new Date(originalBooking.scheduledEndsAt.getTime() + 30 * 60 * 1000);
+
+    await prisma.booking.update({
+      where: { id: seed.bookingId },
+      data: {
+        cleanupMinutes: 10,
+        cleanupBlockMinutes: 30,
+        blockedUntil,
+      },
+    });
+
+    const week = await getAdminPlannerWeek("owner", seed.weekKey);
+    const day = week.days.find((item) => item.dateKey === seed.dateKey);
+
+    assert.ok(day);
+    assert.deepEqual(
+      day.availableIntervals.map((interval) => ({
+        startCell: interval.startCell,
+        endCell: interval.endCell,
+      })),
+      [
+        {
+          startCell: 4,
+          endCell: 6,
+        },
+        {
+          startCell: 9,
+          endCell: 16,
+        },
+      ],
+    );
+    assert.ok(
+      day.lockedIntervals.some((interval) => interval.startCell === 8 && interval.endCell === 9),
+    );
+  } finally {
+    await cleanupSeed(seed);
+  }
+});
+
 dbTest("syncPlannerWeekDraft preserves slots that still have a cancelled booking relation", async () => {
   const { prisma, getAdminPlannerWeek, syncPlannerWeekDraft, getCellRangeBounds } = await loadModules();
   const suffix = randomUUID().slice(0, 8);

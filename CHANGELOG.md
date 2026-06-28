@@ -6,6 +6,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Admin planner `Volná okna` už při výpočtu běžné dostupnosti započítává i cleanup blokaci přetékající z navazující rezervace do sousedního slotu, takže se další slot falešně neukáže jako volný jen proto, že booking visí na předchozím `slotId`.
+- Přibyl DB regresní test pro týdenní planner, který hlídá, že `blockedUntil` v sousedním slotu zneplatní odpovídající `availableIntervals`, ale zbytek dne zůstane editovatelný.
 - Admin pracovní seznam rezervací už není svázaný pevným globálním limitem `take: 80`; souhrnný počet výsledků se počítá přes samostatný `count(where)` a UI dál pracuje se skutečným počtem nalezených rezervací.
 - Sekce `Rezervace` nově používá progresivní odkrývání dlouhých seznamů: `Minulé` jsou defaultně sbalené, každá skupina má vlastní URL-driven limit a dlouhé bloky se rozšiřují přes `Zobrazit další` bez ztráty aktivních filtrů.
 - Pole `Hledat` v rezervacích nově používá živé našeptávání nad databází přes admin lookup endpoint, takže návrhy reagují na aktuální klientky, kontakty a služby místo jednorázového snapshotu při načtení stránky.

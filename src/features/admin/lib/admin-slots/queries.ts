@@ -228,30 +228,30 @@ export async function getAdminPlannerWeek(area: AdminArea, week?: string | null)
           } satisfies PlannerInterval];
         }
 
-        const slotBookingRanges = bookings
+        const slotBlockingRanges = bookings
           .filter(
             (booking) =>
-              booking.slotId === slot.id &&
-              booking.scheduledStartsAt < dayEnd &&
-              (booking.blockedUntil ?? booking.scheduledEndsAt) > dayStart,
+              booking.scheduledStartsAt < clipped.endsAt &&
+              (booking.blockedUntil ?? booking.scheduledEndsAt) > clipped.startsAt,
           )
           .map((booking) =>
             clampIntervalToDay(
               { startsAt: booking.scheduledStartsAt, endsAt: booking.blockedUntil ?? booking.scheduledEndsAt },
-              dayStart,
-              dayEnd,
+              clipped.startsAt,
+              clipped.endsAt,
             ),
           )
           .filter((range): range is TimeRange => range !== null);
+        const hasOwnBookings = activeBookingCount > 0;
 
-        if (slotBookingRanges.length > 0) {
-          const mergedBookings = mergeIntervals(slotBookingRanges);
+        if (slotBlockingRanges.length > 0) {
+          const mergedBookings = mergeIntervals(slotBlockingRanges);
           const freeRanges = mergedBookings.reduce(
             (remaining, bookedRange) => subtractIntervals(remaining, bookedRange),
             [{ startsAt: clipped.startsAt, endsAt: clipped.endsAt }],
           );
 
-          const bookedIntervals: PlannerInterval[] = mergedBookings.flatMap((bookedRange, bookingIndex) => {
+          const blockingIntervals: PlannerInterval[] = mergedBookings.flatMap((bookedRange, bookingIndex) => {
             const bookingCells = intervalToPlannerCells(bookedRange, "cover");
 
             if (bookingCells.endCell <= bookingCells.startCell) {
@@ -259,22 +259,42 @@ export async function getAdminPlannerWeek(area: AdminArea, week?: string | null)
             }
 
             return [{
-              id: `${slot.id}:booked:${bookingIndex}`,
+              id: `${slot.id}:${hasOwnBookings ? "booked" : "blocked"}:${bookingIndex}`,
               startCell: bookingCells.startCell,
               endCell: bookingCells.endCell,
               label: formatTimeRange(bookedRange.startsAt, bookedRange.endsAt),
-              status: "booked",
+              status: hasOwnBookings ? "booked" : "locked",
               bookingCount: activeBookingCount,
               canEdit: false,
-              detail: `${activeBookingCount} rezervace`,
+              detail: hasOwnBookings
+                ? `${activeBookingCount} rezervace`
+                : "Blokováno navazující rezervací nebo úklidem.",
             } satisfies PlannerInterval];
           });
 
-          const lockedRemainderIntervals: PlannerInterval[] = freeRanges.flatMap((freeRange, freeRangeIndex) => {
-            const freeCells = intervalToPlannerCells(freeRange, "cover");
+          const remainderIntervals: PlannerInterval[] = freeRanges.flatMap((freeRange, freeRangeIndex) => {
+            const freeCells = intervalToPlannerCells(
+              freeRange,
+              !hasOwnBookings && plainEditable ? "inside" : "cover",
+            );
 
             if (freeCells.endCell <= freeCells.startCell) {
               return [];
+            }
+
+            if (!hasOwnBookings && plainEditable) {
+              const plannerRange = getCellRangeBounds(dateKey, freeCells.startCell, freeCells.endCell);
+
+              return [{
+                id: `${slot.id}:available:${freeRangeIndex}`,
+                startCell: freeCells.startCell,
+                endCell: freeCells.endCell,
+                label: formatTimeRange(plannerRange.startsAt, plannerRange.endsAt),
+                status: "available",
+                bookingCount: 0,
+                canEdit: true,
+                detail: "Běžná dostupnost",
+              } satisfies PlannerInterval];
             }
 
             return [{
@@ -289,7 +309,7 @@ export async function getAdminPlannerWeek(area: AdminArea, week?: string | null)
             } satisfies PlannerInterval];
           });
 
-          return [...bookedIntervals, ...lockedRemainderIntervals];
+          return [...blockingIntervals, ...remainderIntervals];
         }
 
         if (plainEditable) {

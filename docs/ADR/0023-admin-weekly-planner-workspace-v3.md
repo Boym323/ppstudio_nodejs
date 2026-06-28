@@ -30,6 +30,7 @@ Pro každodenní provoz salonu bylo potřeba z planneru udělat spíš kompaktn�
 - Koncept týdne i týdenní šablona zůstávají lokální v prohlížeči; backend zatím neřeší sdílené drafty nebo workflow schvalování.
 - Publikace konceptu používá jednu server action pro synchronizaci celého otevřeného týdne, ale dál respektuje stejná doménová pravidla jako původní planner:
   - rezervace a omezené intervaly zůstávají chráněné
+  - cleanup blokace z rezervace chrání i navazující slot, pokud `blockedUntil` přeteče přes hranici původního `slotId`
   - DB zápis dál končí jako minimální sada souvislých `AvailabilitySlot` intervalů
 
 ## Důsledky
