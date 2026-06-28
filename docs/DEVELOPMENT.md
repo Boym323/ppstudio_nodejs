@@ -11,6 +11,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Při merge větší změny nejdřív aktualizuj `CHANGELOG.md` (`Unreleased`) a teprve při release proveď skutečný bump verze (`npm version patch|minor|major` nebo ekvivalentní manuální commit).
 - Verzi a changelog drž vždy konzistentně: release commit má obsahovat finální version bump a odpovídající release poznámky.
 - Pro standardní produkční rollout používej `./deploy/release.sh`; skript sjednocuje kroky `pull -> npm ci -> db:generate -> db:check-migrations -> prisma migrate deploy -> lint -> build -> restart systemd služeb`, předem ověří nainstalované units `ppstudio-web.service` a `ppstudio-email-worker.service` a zastaví se i při nalezených legacy PM2 procesech `ppstudio-web` / `ppstudio-email-worker`.
+- Na `npm 11` držíme v `package.json` i `allowScripts` whitelist pro balíčky s install hooky (`prisma`, `@prisma/engines`, `sharp`, `esbuild`, `unrs-resolver`). Při upgradu některého z nich čekej změnu pinu a po review spusť znovu `npm approve-scripts <pkg>`, jinak budou releasy hlásit `npm warn allow-scripts`.
 
 ## Dev runtime a cache
 - Vývoj i CI standardizujeme na `Node 24 LTS`. Repo drží [`.nvmrc`](/var/www/ppstudio/.nvmrc:1) s hodnotou `24` a `package.json` deklaruje `engines.node = ^24.0.0`; před prvním `npm install` nebo po upgrade runtime si ověř `node -v`.
