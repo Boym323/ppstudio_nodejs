@@ -73,7 +73,7 @@ export type PlannerWeekData = {
   weekRangeLabel: string;
   todayKey: string;
   days: PlannerDay[];
-  legend: Array<{ tone: PlannerInterval["status"] | "past"; label: string }>;
+  legend: Array<{ tone: PlannerInterval["status"] | "past" | "cleanup"; label: string }>;
 };
 
 export type PlannerMutationResult = {

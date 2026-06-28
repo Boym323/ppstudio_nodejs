@@ -473,6 +473,7 @@ export async function getAdminPlannerWeek(area: AdminArea, week?: string | null)
     legend: [
       { tone: "available", label: "Dostupnost" },
       { tone: "booked", label: "Rezervace" },
+      { tone: "cleanup", label: "Úklid" },
       { tone: "completed", label: "Hotovo" },
       { tone: "locked", label: "Omezené" },
       { tone: "inactive", label: "Neaktivní" },

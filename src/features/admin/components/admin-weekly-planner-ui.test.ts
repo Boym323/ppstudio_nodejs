@@ -111,8 +111,8 @@ test("DayInspector shows service time as primary and internal cleanup block as s
   assert.doesNotMatch(html, /Vymazat dostupnost/);
 });
 
-test("GridCell adds cleanup hint stripe only for booked/completed cells with cleanup flag", () => {
-  const withHint = renderToStaticMarkup(
+test("GridCell adds cleanup hint stripe for booking and adjacent cleanup lock cells", () => {
+  const bookedWithHint = renderToStaticMarkup(
     React.createElement(GridCell, {
       tone: "booked",
       hasCleanupHint: true,
@@ -126,9 +126,23 @@ test("GridCell adds cleanup hint stripe only for booked/completed cells with cle
     }),
   );
 
+  const lockedWithHint = renderToStaticMarkup(
+    React.createElement(GridCell, {
+      tone: "locked",
+      hasCleanupHint: true,
+      selected: false,
+      hourBoundary: false,
+      label: "Test",
+      dayKey: "2026-05-26",
+      cellIndex: 12,
+      onPointerDown: () => {},
+      onPointerMove: () => {},
+    }),
+  );
+
   const withoutHint = renderToStaticMarkup(
     React.createElement(GridCell, {
-      tone: "booked",
+      tone: "locked",
       hasCleanupHint: false,
       selected: false,
       hourBoundary: false,
@@ -140,6 +154,7 @@ test("GridCell adds cleanup hint stripe only for booked/completed cells with cle
     }),
   );
 
-  assert.match(withHint, /after:w-1/);
+  assert.match(bookedWithHint, /after:w-1/);
+  assert.match(lockedWithHint, /after:w-1/);
   assert.doesNotMatch(withoutHint, /after:w-1/);
 });

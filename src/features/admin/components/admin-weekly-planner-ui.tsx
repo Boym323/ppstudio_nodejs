@@ -332,7 +332,7 @@ export function WeekToolbar({
   );
 }
 
-export function PlannerLegend({ legend }: { legend: Array<{ tone: CellTone | "past"; label: string }> }) {
+export function PlannerLegend({ legend }: { legend: Array<{ tone: CellTone | "past" | "cleanup"; label: string }> }) {
   return (
     <div className="flex flex-wrap gap-2">
       {legend.map((item) => (
@@ -342,6 +342,7 @@ export function PlannerLegend({ legend }: { legend: Array<{ tone: CellTone | "pa
             "rounded-full border px-2.5 py-1 text-[10px] font-medium text-white/82",
             item.tone === "available" && "border-emerald-300/35 bg-emerald-300/15 text-white/86",
             item.tone === "booked" && "border-rose-300/35 bg-rose-300/16 text-white/86",
+            item.tone === "cleanup" && "border-amber-100/34 bg-amber-100/12 text-white/86",
             item.tone === "completed" && "border-cyan-300/30 bg-cyan-300/14 text-white/86",
             item.tone === "locked" && "border-amber-200/30 bg-amber-200/16 text-white/86",
             item.tone === "inactive" && "border-slate-300/22 bg-slate-300/12 text-white/82",
@@ -489,7 +490,7 @@ export function GridCell({
         selected &&
           "z-10 scale-[1.01] border-[var(--color-accent)]/70 ring-2 ring-[var(--color-accent)]/90 ring-offset-1 ring-offset-[#141217] shadow-[0_0_0_1px_rgba(190,160,120,0.22),0_12px_24px_rgba(0,0,0,0.28)]",
         hasCleanupHint &&
-          (tone === "booked" || tone === "completed") &&
+          (tone === "booked" || tone === "completed" || tone === "locked") &&
           "after:pointer-events-none after:absolute after:inset-y-0 after:right-0 after:w-1 after:bg-amber-200/82 after:content-['']",
       )}
     />
