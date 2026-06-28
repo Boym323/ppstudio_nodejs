@@ -6,6 +6,9 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [0.3.32] - 2026-06-28
+
+- Release příprava pro produkční nasazení: projektová verze navýšena na patch `0.3.32`.
 - Stabilizované DB integrační testy veřejné rezervace s voucherem: helper už nehledá fixní časové sloty v blízkých dnech, ale dynamicky vybírá izolované okno bez kolize s existujícími sloty a aktivními rezervacemi ve sdílené databázi.
 - Opravený production build planneru pro Next.js 16.2.6: vnořené `flatMap<PlannerInterval>(...)` v `admin-slots/queries.ts` teď explicitně drží sjednocený návratový typ pro větve `available` i `locked` a detail výběru v planner UI už null-safe čte `cleanupBlockedUntilLabel`, takže `next build` nepadá na TypeScript zúžení ani na `selectionBooking is possibly null`.
 - Admin planner `Volná okna` už při výpočtu běžné dostupnosti započítává i cleanup blokaci přetékající z navazující rezervace do sousedního slotu, takže se další slot falešně neukáže jako volný jen proto, že booking visí na předchozím `slotId`.
