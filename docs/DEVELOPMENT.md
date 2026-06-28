@@ -22,6 +22,8 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 ## Test runner a coverage
 - `npm test` používá Node test runner + `tsx` preload nad quoted globem `src/**/*.test.ts`; quoting je záměrný, protože bez něj Bash v defaultní konfiguraci expandoval jen část stromu a coverage pak nereprezentovala celé repo.
 - `npm run test:coverage` používá `c8` nad tím samým runnerem a ukládá výstupy do `coverage/`.
+- U admin planneru rozlišuj dvě vrstvy chování: editace stále pracuje s 30min sloty/cells, ale read model pro UI posílá i `cleanupBlocks` / `availableBlocks` v minutách, aby šlo jednu půlhodinovou buňku vykreslit po 15 minutách.
+- `availableIntervals` v planner read modelu neskládej přímo z jednotlivých slotových intervalů. Nejprve mergeuj `availableBlocks` v minutách a teprve potom je převáděj na celé 30min editable úseky, jinak se rozpadnou legitimně navazující sloty typu `14:00–14:45` + `14:45–15:00`.
 - Coverage scope je záměrně business-first:
   - `src/features/booking/lib/**/*.ts`
   - `src/features/admin/lib/**/*.ts`
@@ -478,7 +480,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 - Booking dostupnost a kolize používají interní interval `scheduledStartsAt -> blockedUntil`, ale klientský termín i veřejné texty zůstávají `scheduledStartsAt -> scheduledEndsAt` bez zmínky o úklidu.
 - Při výběru termínu musí publikované okno pokrýt jen samotnou službu; cleanup blokace může přetéct za konec slotu. Backend kolize ale dál musí používat `blockedUntil`, aby se navazující slot nebo dodatečně publikované okno nenabídly dřív, než interní blokace opravdu skončí.
 - Totéž pravidlo drž i planner read model v `src/features/admin/lib/admin-slots/queries.ts`: `availableIntervals` se musí odečítat proti všem booking blokacím překrývajícím slot, ne jen proti bookingům se stejným `slotId`, jinak inspektor dne ukáže falešné `Volné okno` po cleanup overflowu do sousedního slotu.
-- UI vrstva planneru v `src/features/admin/components/admin-weekly-planner-ui.tsx` má cleanup hint kreslit i pro `locked` buňky, pokud `day.cells.bookedCleanup[cell]` zůstává `true`. Díky tomu je v mřížce vidět rozdíl mezi obecným omezením a sousedním slotem blokovaným jen cleanup overflowem.
+- UI vrstva planneru v `src/features/admin/components/admin-weekly-planner-ui.tsx` nepracuje s 15min editací, ale umí cleanup vykreslit s 15min vizuální přesností uvnitř 30min buňky. Read model proto posílá `cleanupBlocks` v minutách od začátku planner dne a komponenta z nich skládá horní/dolní nebo plný žlutý overlay nad základním tónem buňky.
 - Detail služby obsahuje sekci `Homepage`, která ukládá `isFeaturedOnHomepage` a `homepageSortOrder`; tato pole neovlivňují booking flow ani ceník, jen výběr doporučených služeb na `/`.
 - `src/features/admin/lib/admin-services.ts` teď do detailového read modelu přibírá i posledních 10 `priceChangeLogs` včetně aktéra, aby drawer mohl audit ceny zobrazit bez další klientské fetch vrstvy.
 - Ve formuláři detailu služby (`admin-service-form.tsx`) je textová vrstva sjednocená pod `Veřejná prezentace`; `publicIntro` je jediný zdroj krátkého textu pro web i rezervační flow, aby se stejný copy neudržoval ve dvou polích.

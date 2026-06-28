@@ -53,6 +53,32 @@ const PLANNER_BOOKING_STATUSES = [
   BookingStatus.COMPLETED,
 ] as const;
 
+function mergeMinuteBlocks(blocks: Array<{ startMinutes: number; endMinutes: number }>) {
+  const sorted = [...blocks]
+    .filter((block) => block.endMinutes > block.startMinutes)
+    .sort((left, right) => left.startMinutes - right.startMinutes);
+
+  const merged: Array<{ startMinutes: number; endMinutes: number }> = [];
+
+  for (const block of sorted) {
+    const previous = merged.at(-1);
+
+    if (!previous) {
+      merged.push({ ...block });
+      continue;
+    }
+
+    if (previous.endMinutes >= block.startMinutes) {
+      previous.endMinutes = Math.max(previous.endMinutes, block.endMinutes);
+      continue;
+    }
+
+    merged.push({ ...block });
+  }
+
+  return merged;
+}
+
 export async function getAdminPlannerWeek(area: AdminArea, week?: string | null): Promise<PlannerWeekData> {
   const weekStart = resolveWeekStart(week);
   const weekEnd = addDays(weekStart, 7);
@@ -174,6 +200,12 @@ export async function getAdminPlannerWeek(area: AdminArea, week?: string | null)
           slotId: booking.slotId,
           startCell: cells.startCell,
           endCell: cells.endCell,
+          serviceStartMinutes: dateToCellIndex(
+            (serviceClipped ?? blockedClipped).startsAt,
+          ) * 30,
+          serviceEndMinutes: dateToCellIndex(
+            (serviceClipped ?? blockedClipped).endsAt,
+          ) * 30,
           label: serviceClipped
             ? formatTimeRange(serviceClipped.startsAt, serviceClipped.endsAt)
             : formatTimeRange(blockedClipped.startsAt, blockedClipped.endsAt),
@@ -192,6 +224,9 @@ export async function getAdminPlannerWeek(area: AdminArea, week?: string | null)
       activeBookingsBySlotId.set(booking.slotId, (activeBookingsBySlotId.get(booking.slotId) ?? 0) + 1);
     }
 
+    const availableBlocks: PlannerDay["availableBlocks"] = [];
+    const lockedBlocks: PlannerDay["lockedBlocks"] = [];
+    const inactiveBlocks: PlannerDay["inactiveBlocks"] = [];
     const intervals: PlannerInterval[] = daySlots
       .flatMap<PlannerInterval>((slot) => {
         const clipped = clampIntervalToDay(
@@ -209,13 +244,16 @@ export async function getAdminPlannerWeek(area: AdminArea, week?: string | null)
           clipped,
           slot.status === AvailabilitySlotStatus.PUBLISHED && plainEditable ? "inside" : "cover",
         );
-        if (cells.endCell <= cells.startCell) {
-          return [];
-        }
-
         const activeBookingCount = activeBookingsBySlotId.get(slot.id) ?? 0;
 
         if (slot.status !== AvailabilitySlotStatus.PUBLISHED) {
+          inactiveBlocks.push({
+            startMinutes: dateToCellIndex(clipped.startsAt) * 30,
+            endMinutes: dateToCellIndex(clipped.endsAt) * 30,
+          });
+          if (cells.endCell <= cells.startCell) {
+            return [];
+          }
           return [{
             id: slot.id,
             startCell: cells.startCell,
@@ -278,11 +316,14 @@ export async function getAdminPlannerWeek(area: AdminArea, week?: string | null)
               !hasOwnBookings && plainEditable ? "inside" : "cover",
             );
 
-            if (freeCells.endCell <= freeCells.startCell) {
-              return [];
-            }
-
             if (!hasOwnBookings && plainEditable) {
+              availableBlocks.push({
+                startMinutes: dateToCellIndex(freeRange.startsAt) * 30,
+                endMinutes: dateToCellIndex(freeRange.endsAt) * 30,
+              });
+              if (freeCells.endCell <= freeCells.startCell) {
+                return [];
+              }
               const plannerRange = getCellRangeBounds(dateKey, freeCells.startCell, freeCells.endCell);
 
               return [{
@@ -297,6 +338,13 @@ export async function getAdminPlannerWeek(area: AdminArea, week?: string | null)
               } satisfies PlannerInterval];
             }
 
+            lockedBlocks.push({
+              startMinutes: dateToCellIndex(freeRange.startsAt) * 30,
+              endMinutes: dateToCellIndex(freeRange.endsAt) * 30,
+            });
+            if (freeCells.endCell <= freeCells.startCell) {
+              return [];
+            }
             return [{
               id: `${slot.id}:locked:${freeRangeIndex}`,
               startCell: freeCells.startCell,
@@ -313,6 +361,13 @@ export async function getAdminPlannerWeek(area: AdminArea, week?: string | null)
         }
 
         if (plainEditable) {
+          availableBlocks.push({
+            startMinutes: dateToCellIndex(clipped.startsAt) * 30,
+            endMinutes: dateToCellIndex(clipped.endsAt) * 30,
+          });
+          if (cells.endCell <= cells.startCell) {
+            return [];
+          }
           const plannerRange = getCellRangeBounds(dateKey, cells.startCell, cells.endCell);
 
           return [{
@@ -327,6 +382,13 @@ export async function getAdminPlannerWeek(area: AdminArea, week?: string | null)
           } satisfies PlannerInterval];
         }
 
+        lockedBlocks.push({
+          startMinutes: dateToCellIndex(clipped.startsAt) * 30,
+          endMinutes: dateToCellIndex(clipped.endsAt) * 30,
+        });
+        if (cells.endCell <= cells.startCell) {
+          return [];
+        }
         return [{
           id: slot.id,
           startCell: cells.startCell,
@@ -346,13 +408,21 @@ export async function getAdminPlannerWeek(area: AdminArea, week?: string | null)
       })
       .sort((left, right) => left.startCell - right.startCell);
 
-    const availableIntervals = intervals
-      .filter((interval) => interval.status === "available")
-      .map((interval) => ({
-        startCell: interval.startCell,
-        endCell: interval.endCell,
-        label: interval.label,
-      }));
+    const availableIntervals = mergeMinuteBlocks(availableBlocks)
+      .map((block) => ({
+        startCell: Math.ceil(block.startMinutes / 30),
+        endCell: Math.floor(block.endMinutes / 30),
+      }))
+      .filter((interval) => interval.endCell > interval.startCell)
+      .map((interval) => {
+        const plannerRange = getCellRangeBounds(dateKey, interval.startCell, interval.endCell);
+
+        return {
+          startCell: interval.startCell,
+          endCell: interval.endCell,
+          label: formatTimeRange(plannerRange.startsAt, plannerRange.endsAt),
+        };
+      });
 
     const lockedIntervals = intervals
       .filter((interval) => interval.status === "locked" || interval.status === "inactive")
@@ -369,31 +439,41 @@ export async function getAdminPlannerWeek(area: AdminArea, week?: string | null)
           booking.status === BookingStatus.CONFIRMED,
       ),
     );
+    const cleanupRanges = bookings
+      .filter(
+        (booking) =>
+          booking.status === BookingStatus.PENDING ||
+          booking.status === BookingStatus.CONFIRMED ||
+          booking.status === BookingStatus.COMPLETED,
+      )
+      .map((booking) => {
+        const blockedUntil = booking.blockedUntil ?? booking.scheduledEndsAt;
+
+        if (blockedUntil.getTime() <= booking.scheduledEndsAt.getTime()) {
+          return null;
+        }
+
+        return clampIntervalToDay(
+          { startsAt: booking.scheduledEndsAt, endsAt: blockedUntil },
+          dayStart,
+          dayEnd,
+        );
+      })
+      .filter((range): range is TimeRange => range !== null);
+    const cleanupBlocks = mergeIntervals(cleanupRanges).map((range) => ({
+      startMinutes: dateToCellIndex(range.startsAt) * 30,
+      endMinutes: dateToCellIndex(range.endsAt) * 30,
+    }));
     const bookedCleanupCells = Array.from({ length: bookedCells.length }, () => false);
-    for (const booking of bookings) {
-      if (!(
-        booking.status === BookingStatus.PENDING ||
-        booking.status === BookingStatus.CONFIRMED ||
-        booking.status === BookingStatus.COMPLETED
-      )) {
-        continue;
-      }
-
-      const blockedUntil = booking.blockedUntil ?? booking.scheduledEndsAt;
-      if (blockedUntil.getTime() <= booking.scheduledEndsAt.getTime()) {
-        continue;
-      }
-
-      const cleanupRange = clampIntervalToDay(
-        { startsAt: booking.scheduledEndsAt, endsAt: blockedUntil },
-        dayStart,
-        dayEnd,
+    for (const cleanupBlock of cleanupBlocks) {
+      const cleanupCells = intervalToPlannerCells(
+        getCellRangeBounds(
+          dateKey,
+          cleanupBlock.startMinutes / 30,
+          cleanupBlock.endMinutes / 30,
+        ),
+        "cover",
       );
-      if (!cleanupRange) {
-        continue;
-      }
-
-      const cleanupCells = intervalToPlannerCells(cleanupRange, "cover");
       for (let cell = cleanupCells.startCell; cell < cleanupCells.endCell; cell += 1) {
         bookedCleanupCells[cell] = true;
       }
@@ -428,6 +508,10 @@ export async function getAdminPlannerWeek(area: AdminArea, week?: string | null)
       isPast,
       availableIntervals,
       lockedIntervals,
+      cleanupBlocks,
+      availableBlocks,
+      lockedBlocks,
+      inactiveBlocks,
       bookings: dayBookings,
       intervals,
       cells: {

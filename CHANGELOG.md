@@ -8,7 +8,9 @@ Formát je inspirovaný Keep a Changelog.
 
 - Admin planner `Volná okna` už při výpočtu běžné dostupnosti započítává i cleanup blokaci přetékající z navazující rezervace do sousedního slotu, takže se další slot falešně neukáže jako volný jen proto, že booking visí na předchozím `slotId`.
 - Přibyl DB regresní test pro týdenní planner, který hlídá, že `blockedUntil` v sousedním slotu zneplatní odpovídající `availableIntervals`, ale zbytek dne zůstane editovatelný.
-- Planner mřížka teď cleanup zobrazuje výrazněji i v sousedním uzamčeném slotu: pravý jantarový proužek se kreslí i na `locked` buňkách s cleanup blokací a legenda dostala samostatnou položku `Úklid`.
+- Planner mřížka teď cleanup zobrazuje jako skutečný 15min/30min žlutý segment uvnitř půlhodinové buňky: při overflowu může být horní nebo dolní polovina žlutá nad zeleným/červeným základem, celá buňka je žlutá při plné 30min cleanup blokaci a legenda má samostatnou položku `Úklid`.
+- Opravená regrese planner mřížky pro 15min zbytky po cleanup overflowu: vizuální vrstva už neztrácí spodní zelenou polovinu buňky u úseků typu `11:45–12:00`, i když z nich nevznikne samostatné 30min editační okno.
+- Seznam `Volná okna` nově mergeuje navazující editable sloty ještě před převodem na půlhodinová okna, takže rozdělené publikované intervaly typu `14:00–14:45` + `14:45–15:00` znovu tvoří jedno okno `14:00–15:00`.
 - Admin pracovní seznam rezervací už není svázaný pevným globálním limitem `take: 80`; souhrnný počet výsledků se počítá přes samostatný `count(where)` a UI dál pracuje se skutečným počtem nalezených rezervací.
 - Sekce `Rezervace` nově používá progresivní odkrývání dlouhých seznamů: `Minulé` jsou defaultně sbalené, každá skupina má vlastní URL-driven limit a dlouhé bloky se rozšiřují přes `Zobrazit další` bez ztráty aktivních filtrů.
 - Pole `Hledat` v rezervacích nově používá živé našeptávání nad databází přes admin lookup endpoint, takže návrhy reagují na aktuální klientky, kontakty a služby místo jednorázového snapshotu při načtení stránky.

@@ -214,6 +214,10 @@ function cloneWeekDays(days: PlannerDay[]) {
     ...day,
     availableIntervals: day.availableIntervals.map((interval) => ({ ...interval })),
     lockedIntervals: day.lockedIntervals.map((interval) => ({ ...interval })),
+    cleanupBlocks: day.cleanupBlocks.map((block) => ({ ...block })),
+    availableBlocks: day.availableBlocks.map((block) => ({ ...block })),
+    lockedBlocks: day.lockedBlocks.map((block) => ({ ...block })),
+    inactiveBlocks: day.inactiveBlocks.map((block) => ({ ...block })),
     bookings: day.bookings.map((booking) => ({ ...booking })),
     intervals: day.intervals.map((interval) => ({ ...interval })),
     cells: {

@@ -34,12 +34,21 @@ function createPlannerDayWithCleanupBooking(): PlannerDay {
     isPast: false,
     availableIntervals: [],
     lockedIntervals: [],
+    cleanupBlocks: [{
+      startMinutes: 375,
+      endMinutes: 390,
+    }],
+    availableBlocks: [],
+    lockedBlocks: [],
+    inactiveBlocks: [],
     bookings: [
       {
         id: "booking-1",
         slotId: "slot-1",
         startCell: 11,
         endCell: 15,
+        serviceStartMinutes: 345,
+        serviceEndMinutes: 375,
         label: "11:45 - 13:15",
         blockedLabel: "11:30 - 13:30",
         cleanupBlockedUntilLabel: "13:30",
@@ -78,7 +87,7 @@ function createPlannerDayWithCleanupBooking(): PlannerDay {
   };
 }
 
-test("DayInspector shows service time as primary and internal cleanup block as secondary metadata", () => {
+test("DayInspector keeps service time primary and hides duplicate cleanup end metadata", () => {
   const day = createPlannerDayWithCleanupBooking();
   const selection: PlannerSelection = {
     dateKey: day.dateKey,
@@ -102,7 +111,7 @@ test("DayInspector shows service time as primary and internal cleanup block as s
 
   assert.match(html, /11:45 - 13:15/);
   assert.match(html, /Blok v mřížce: 11:30 - 13:30/);
-  assert.match(html, /Úklidová blokace do: 13:30/);
+  assert.doesNotMatch(html, /Úklidová blokace do: 13:30/);
   assert.match(html, /úklid/);
   assert.doesNotMatch(html, /Akce dne/);
   assert.doesNotMatch(html, /Označit den jako zavřeno/);
@@ -111,11 +120,12 @@ test("DayInspector shows service time as primary and internal cleanup block as s
   assert.doesNotMatch(html, /Vymazat dostupnost/);
 });
 
-test("GridCell adds cleanup hint stripe for booking and adjacent cleanup lock cells", () => {
-  const bookedWithHint = renderToStaticMarkup(
+test("GridCell renders cleanup as top/bottom/full yellow overlay while keeping 30min cell", () => {
+  const topCleanup = renderToStaticMarkup(
     React.createElement(GridCell, {
       tone: "booked",
-      hasCleanupHint: true,
+      topTone: "cleanup",
+      bottomTone: "booked",
       selected: false,
       hourBoundary: false,
       label: "Test",
@@ -126,10 +136,11 @@ test("GridCell adds cleanup hint stripe for booking and adjacent cleanup lock ce
     }),
   );
 
-  const lockedWithHint = renderToStaticMarkup(
+  const bottomCleanup = renderToStaticMarkup(
     React.createElement(GridCell, {
-      tone: "locked",
-      hasCleanupHint: true,
+      tone: "available",
+      topTone: "available",
+      bottomTone: "cleanup",
       selected: false,
       hourBoundary: false,
       label: "Test",
@@ -140,10 +151,11 @@ test("GridCell adds cleanup hint stripe for booking and adjacent cleanup lock ce
     }),
   );
 
-  const withoutHint = renderToStaticMarkup(
+  const fullCleanup = renderToStaticMarkup(
     React.createElement(GridCell, {
       tone: "locked",
-      hasCleanupHint: false,
+      topTone: "cleanup",
+      bottomTone: "cleanup",
       selected: false,
       hourBoundary: false,
       label: "Test",
@@ -154,7 +166,23 @@ test("GridCell adds cleanup hint stripe for booking and adjacent cleanup lock ce
     }),
   );
 
-  assert.match(bookedWithHint, /after:w-1/);
-  assert.match(lockedWithHint, /after:w-1/);
-  assert.doesNotMatch(withoutHint, /after:w-1/);
+  const noCleanup = renderToStaticMarkup(
+    React.createElement(GridCell, {
+      tone: "locked",
+      topTone: "empty",
+      bottomTone: "empty",
+      selected: false,
+      hourBoundary: false,
+      label: "Test",
+      dayKey: "2026-05-26",
+      cellIndex: 12,
+      onPointerDown: () => {},
+      onPointerMove: () => {},
+    }),
+  );
+
+  assert.match(topCleanup, /top-0 h-1\/2 bg-amber-200\/78/);
+  assert.match(bottomCleanup, /bottom-0 h-1\/2 bg-amber-200\/78/);
+  assert.match(fullCleanup, /absolute inset-0 bg-amber-200\/78/);
+  assert.doesNotMatch(noCleanup, /bg-amber-200\/78/);
 });

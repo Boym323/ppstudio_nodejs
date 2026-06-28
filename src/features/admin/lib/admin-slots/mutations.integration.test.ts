@@ -35,6 +35,10 @@ type SeedContext = {
   weekKey: string;
 };
 
+type SeedOptions = {
+  splitTrailingAvailableSlot?: boolean;
+};
+
 async function loadModules() {
   const [{ prisma }, plannerMutations, plannerQueries, plannerTime] = await Promise.all([
     import("@/lib/prisma"),
@@ -52,7 +56,7 @@ async function loadModules() {
   };
 }
 
-async function createSeed(): Promise<SeedContext> {
+async function createSeed(options: SeedOptions = {}): Promise<SeedContext> {
   const { prisma, getCellRangeBounds } = await loadModules();
   const suffix = randomUUID().slice(0, 8);
   const dateKey = "2026-07-13";
@@ -60,6 +64,7 @@ async function createSeed(): Promise<SeedContext> {
   const before = getCellRangeBounds(dateKey, 4, 6);
   const bookedRange = getCellRangeBounds(dateKey, 6, 8);
   const after = getCellRangeBounds(dateKey, 8, 16);
+  const trailingSplit = getCellRangeBounds(dateKey, 9, 10);
 
   const actor = await prisma.adminUser.create({
     data: {
@@ -134,13 +139,22 @@ async function createSeed(): Promise<SeedContext> {
       },
       {
         startsAt: after.startsAt,
-        endsAt: after.endsAt,
+        endsAt: options.splitTrailingAvailableSlot ? trailingSplit.startsAt : after.endsAt,
         capacity: 1,
         status: AvailabilitySlotStatus.PUBLISHED,
         serviceRestrictionMode: AvailabilitySlotServiceRestrictionMode.ANY,
         publishedAt: new Date(),
         createdByUserId: actor.id,
       },
+      ...(options.splitTrailingAvailableSlot ? [{
+        startsAt: trailingSplit.startsAt,
+        endsAt: trailingSplit.endsAt,
+        capacity: 1,
+        status: AvailabilitySlotStatus.PUBLISHED,
+        serviceRestrictionMode: AvailabilitySlotServiceRestrictionMode.ANY,
+        publishedAt: new Date(),
+        createdByUserId: actor.id,
+      }] : []),
     ],
   });
 
@@ -329,6 +343,10 @@ dbTest("getAdminPlannerWeek exposes service time and cleanup overlay metadata fo
     assert.equal(day.cells.bookedCleanup[6], false);
     assert.equal(day.cells.bookedCleanup[7], false);
     assert.equal(day.cells.bookedCleanup[8], true);
+    assert.ok(
+      day.availableBlocks.some((block) => block.startMinutes <= 255 && block.endMinutes >= 270),
+      "15min volno po úklidu má zůstat ve vizuálních blocích",
+    );
   } finally {
     await cleanupSeed(seed);
   }
@@ -378,6 +396,39 @@ dbTest("getAdminPlannerWeek removes adjacent free window when cleanup overflows 
     );
     assert.ok(
       day.lockedIntervals.some((interval) => interval.startCell === 8 && interval.endCell === 9),
+    );
+  } finally {
+    await cleanupSeed(seed);
+  }
+});
+
+dbTest("getAdminPlannerWeek merges adjacent editable slots into one free window", async () => {
+  const seed = await createSeed({ splitTrailingAvailableSlot: true });
+  const { getAdminPlannerWeek } = await loadModules();
+
+  try {
+    const week = await getAdminPlannerWeek("owner", seed.weekKey);
+    const day = week.days.find((item) => item.dateKey === seed.dateKey);
+
+    assert.ok(day);
+    assert.deepEqual(
+      day.availableIntervals.map((interval) => ({
+        startCell: interval.startCell,
+        endCell: interval.endCell,
+        label: interval.label,
+      })),
+      [
+        {
+          startCell: 4,
+          endCell: 6,
+          label: "08:00 - 09:00",
+        },
+        {
+          startCell: 8,
+          endCell: 10,
+          label: "10:00 - 11:00",
+        },
+      ],
     );
   } finally {
     await cleanupSeed(seed);

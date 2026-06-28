@@ -32,6 +32,8 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
 ## Testování a coverage
 - `npm test` spouští celý Node test runner nad quoted globem `src/**/*.test.ts`; nejde už jen o shell-expanded podmnožinu jednoho souboru.
 - `npm run test:coverage` generuje report do `coverage/` a zaměřuje se na business logiku v `booking`, `admin`, `vouchers` a `lib/email`.
+- Admin planner `Volná okna` stále edituje půlhodinová okna, ale vizuálně umí rozlišit i cleanup/volno uvnitř jedné buňky po 15 minutách: žlutá značí úklid, zelená volno a červená navazující službu.
+- Seznam `Volná okna` se skládá až nad merged volnými segmenty, takže sousední publikované sloty bez mezery se v inspektoru dne zobrazí jako jedno souvislé půlhodinově editovatelné okno.
 - Výstupy jsou připravené pro lokální čtení i CI:
   - HTML report v `coverage/index.html`
   - LCOV data v `coverage/lcov.info`
@@ -163,7 +165,7 @@ Detailní seznam všech env proměnných je v [`docs/ENVIRONMENT.md`](/var/www/p
 - Služba má interní pole `cleanupMinutes` pro čas na úklid po službě. Hodnota má výchozí `0`, nastavuje se v admin detailu služby, klientce se nezobrazuje jako délka služby a používá se jen pro interní blokaci dostupnosti po skončení služby.
 - Veřejná i self-service rezervace nově vyžadují, aby se do publikovaného okna vešla samotná služba; cleanup blokace může přetéct za konec slotu. Navazující termíny se ale dál blokují až do `blockedUntil`, takže další start se nabídne teprve po interním cleanup intervalu.
 - Stejné pravidlo platí i pro admin planner: seznam `Volná okna` nesmí spoléhat jen na `Booking.slotId`, ale musí odečíst i cleanup blokaci přetékající do sousedního publikovaného slotu.
-- V planner mřížce je cleanup signalizovaný tenkým jantarovým pruhem na pravém okraji buňky. Pruh se ukazuje jak uvnitř booking/completed bloku, tak i v sousedním `locked` bloku, pokud jde jen o přeteklou úklidovou blokaci; legenda má pro to samostatnou položku `Úklid`.
+- V planner mřížce se cleanup zobrazuje žlutě uvnitř stále 30min buňky: při 15min overflowu obarví horní nebo dolní polovinu, při plné 30min cleanup blokaci je žlutá celá buňka. Druhá polovina buňky dál drží svůj stav (`zelená` dostupnost, `červená` rezervace, případně jiné omezení) a legenda má pro cleanup samostatnou položku `Úklid`.
 - Rezervační výběr služby používá DB `publicIntro`; strukturovaný copy override podle slugu není trvalý zdroj obsahu a smí sloužit jen jako dočasný backfill zdroj.
 - Ceník na `/cenik` má vlastní modul v `src/features/public/components/pricing-page.tsx` a je rozdělený do jasné kompozice `hero -> category chips -> hlavní sekce -> menší grid sekce -> finální CTA`.
 - Katalog služeb a kategorií teď nese i veřejná pricing metadata:

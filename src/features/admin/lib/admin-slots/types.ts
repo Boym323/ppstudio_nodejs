@@ -23,6 +23,8 @@ export type PlannerBooking = {
   slotId: string;
   startCell: number;
   endCell: number;
+  serviceStartMinutes: number;
+  serviceEndMinutes: number;
   label: string;
   blockedLabel: string;
   cleanupBlockedUntilLabel: string | null;
@@ -44,6 +46,10 @@ export type PlannerDay = {
   isPast: boolean;
   availableIntervals: Array<{ startCell: number; endCell: number; label: string }>;
   lockedIntervals: Array<{ startCell: number; endCell: number; label: string }>;
+  cleanupBlocks: Array<{ startMinutes: number; endMinutes: number }>;
+  availableBlocks: Array<{ startMinutes: number; endMinutes: number }>;
+  lockedBlocks: Array<{ startMinutes: number; endMinutes: number }>;
+  inactiveBlocks: Array<{ startMinutes: number; endMinutes: number }>;
   bookings: PlannerBooking[];
   intervals: PlannerInterval[];
   cells: {

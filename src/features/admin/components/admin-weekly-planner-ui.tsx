@@ -12,6 +12,7 @@ const PLANNER_DESKTOP_ROW_CLASS = "grid grid-rows-[repeat(28,minmax(0,1.2rem))] 
 const PLANNER_MOBILE_ROW_CLASS = "grid grid-rows-[repeat(28,minmax(0,2rem))] gap-y-1.5";
 
 export type CellTone = "available" | "booked" | "completed" | "locked" | "inactive" | "past" | "empty";
+type SegmentTone = CellTone | "cleanup";
 
 export type DraftSelection = {
   dateKey: string;
@@ -162,6 +163,106 @@ function getSelectionToneLabel(tone: CellTone) {
   }
 
   return "Prázdný blok";
+}
+
+function getRangeEndLabel(rangeLabel: string) {
+  const match = /-\s*(\d{2}:\d{2})$/.exec(rangeLabel);
+  return match?.[1] ?? null;
+}
+
+function overlapsMinutes(
+  block: { startMinutes: number; endMinutes: number },
+  startMinutes: number,
+  endMinutes: number,
+) {
+  return block.startMinutes < endMinutes && block.endMinutes > startMinutes;
+}
+
+function getSegmentTone(day: PlannerDay, startMinutes: number, endMinutes: number, cellIndex: number): SegmentTone {
+  if (day.cleanupBlocks.some((block) => overlapsMinutes(block, startMinutes, endMinutes))) {
+    return "cleanup";
+  }
+
+  if (
+    day.bookings.some(
+      (booking) =>
+        booking.status !== BookingStatus.COMPLETED &&
+        booking.serviceStartMinutes < endMinutes &&
+        booking.serviceEndMinutes > startMinutes,
+    )
+  ) {
+    return "booked";
+  }
+
+  if (
+    day.bookings.some(
+      (booking) =>
+        booking.status === BookingStatus.COMPLETED &&
+        booking.serviceStartMinutes < endMinutes &&
+        booking.serviceEndMinutes > startMinutes,
+    )
+  ) {
+    return "completed";
+  }
+
+  if (day.inactiveBlocks.some((block) => overlapsMinutes(block, startMinutes, endMinutes))) {
+    return "inactive";
+  }
+
+  if (day.lockedBlocks.some((block) => overlapsMinutes(block, startMinutes, endMinutes))) {
+    return "locked";
+  }
+
+  if (day.availableBlocks.some((block) => overlapsMinutes(block, startMinutes, endMinutes))) {
+    return "available";
+  }
+
+  if (day.cells.past[cellIndex]) {
+    return "past";
+  }
+
+  return "empty";
+}
+
+function getCellSegmentTones(day: PlannerDay, cellIndex: number) {
+  const cellStartMinutes = cellIndex * 30;
+
+  return {
+    top: getSegmentTone(day, cellStartMinutes, cellStartMinutes + 15, cellIndex),
+    bottom: getSegmentTone(day, cellStartMinutes + 15, cellStartMinutes + 30, cellIndex),
+  };
+}
+
+function getSegmentToneClass(tone: SegmentTone) {
+  if (tone === "available") {
+    return "bg-emerald-300/66";
+  }
+
+  if (tone === "booked") {
+    return "bg-rose-300/70";
+  }
+
+  if (tone === "completed") {
+    return "bg-cyan-300/60";
+  }
+
+  if (tone === "cleanup") {
+    return "bg-amber-200/78";
+  }
+
+  if (tone === "locked") {
+    return "bg-amber-200/42";
+  }
+
+  if (tone === "inactive") {
+    return "bg-slate-300/24";
+  }
+
+  if (tone === "past") {
+    return "bg-white/[0.04]";
+  }
+
+  return "bg-white/[0.07]";
 }
 
 function getSelectionInterval(
@@ -448,7 +549,8 @@ function isCellHighlighted(
 
 export function GridCell({
   tone,
-  hasCleanupHint,
+  topTone,
+  bottomTone,
   selected,
   hourBoundary,
   label,
@@ -458,7 +560,8 @@ export function GridCell({
   onPointerMove,
 }: {
   tone: CellTone;
-  hasCleanupHint: boolean;
+  topTone: SegmentTone;
+  bottomTone: SegmentTone;
   selected: boolean;
   hourBoundary: boolean;
   label: string;
@@ -480,20 +583,28 @@ export function GridCell({
       className={cn(
         "relative h-8 w-full touch-none select-none overflow-hidden rounded-[0.65rem] border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/70 lg:h-[1.2rem]",
         hourBoundary ? "border-t-white/22" : "border-t-white/10",
-        tone === "available" && "border-emerald-300/25 bg-emerald-300/66 hover:bg-emerald-300/82",
-        tone === "booked" && "cursor-default border-rose-300/30 bg-rose-300/70",
-        tone === "completed" && "cursor-default border-cyan-300/30 bg-cyan-300/60",
-        tone === "locked" && "cursor-default border-amber-200/24 bg-amber-200/42",
-        tone === "inactive" && "cursor-default border-slate-300/16 bg-slate-300/24",
-        tone === "past" && "cursor-default border-white/6 bg-white/[0.04]",
-        tone === "empty" && "border-white/10 bg-white/[0.07] hover:bg-white/[0.11]",
+        tone === "available" && "border-emerald-300/25 hover:border-emerald-300/38",
+        tone === "booked" && "cursor-default border-rose-300/30",
+        tone === "completed" && "cursor-default border-cyan-300/30",
+        tone === "locked" && "cursor-default border-amber-200/24",
+        tone === "inactive" && "cursor-default border-slate-300/16",
+        tone === "past" && "cursor-default border-white/6",
+        tone === "empty" && "border-white/10 hover:border-white/16",
         selected &&
           "z-10 scale-[1.01] border-[var(--color-accent)]/70 ring-2 ring-[var(--color-accent)]/90 ring-offset-1 ring-offset-[#141217] shadow-[0_0_0_1px_rgba(190,160,120,0.22),0_12px_24px_rgba(0,0,0,0.28)]",
-        hasCleanupHint &&
-          (tone === "booked" || tone === "completed" || tone === "locked") &&
-          "after:pointer-events-none after:absolute after:inset-y-0 after:right-0 after:w-1 after:bg-amber-200/82 after:content-['']",
       )}
-    />
+    >
+      <span className="pointer-events-none absolute inset-0">
+        {topTone === bottomTone ? (
+          <span className={cn("absolute inset-0", getSegmentToneClass(topTone))} />
+        ) : (
+          <>
+            <span className={cn("absolute inset-x-0 top-0 h-1/2", getSegmentToneClass(topTone))} />
+            <span className={cn("absolute inset-x-0 bottom-0 h-1/2", getSegmentToneClass(bottomTone))} />
+          </>
+        )}
+      </span>
+    </button>
   );
 }
 
@@ -576,15 +687,16 @@ export function DesktopWeekGrid({
                   (() => {
                     const tone = getCellTone(day, cellIndex);
 
-                    const hasCleanupHint = day.cells.bookedCleanup[cellIndex] ?? false;
+                    const segmentTones = getCellSegmentTones(day, cellIndex);
                     return (
                   <GridCell
                     key={`${day.dateKey}-${cellIndex}`}
                     tone={tone}
-                    hasCleanupHint={hasCleanupHint}
+                    topTone={segmentTones.top}
+                    bottomTone={segmentTones.bottom}
                     selected={isCellHighlighted(day.dateKey, cellIndex, draft, selectedSelection)}
                     hourBoundary={cellIndex % 2 === 0}
-                    label={`${day.label}, ${formatRangeLabel(cellIndex, cellIndex + 1)}, ${getToneLabel(tone)}${hasCleanupHint ? ", obsahuje úklidovou blokaci" : ""}`}
+                    label={`${day.label}, ${formatRangeLabel(cellIndex, cellIndex + 1)}, ${getToneLabel(tone)}${segmentTones.top === "cleanup" || segmentTones.bottom === "cleanup" ? ", obsahuje úklidovou blokaci" : ""}`}
                     dayKey={day.dateKey}
                     cellIndex={cellIndex}
                     onPointerDown={(event) => onCellStart(day, cellIndex, event.pointerType)}
@@ -643,15 +755,16 @@ export function MobileDayGrid({
                 </div>
                 {(() => {
                   const tone = getCellTone(day, cellIndex);
-                  const hasCleanupHint = day.cells.bookedCleanup[cellIndex] ?? false;
+                  const segmentTones = getCellSegmentTones(day, cellIndex);
 
                   return (
                     <GridCell
                       tone={tone}
-                      hasCleanupHint={hasCleanupHint}
+                      topTone={segmentTones.top}
+                      bottomTone={segmentTones.bottom}
                       selected={isCellHighlighted(day.dateKey, cellIndex, draft, selectedSelection)}
                       hourBoundary={cellIndex % 2 === 0}
-                      label={`${day.label}, ${formatRangeLabel(cellIndex, cellIndex + 1)}, ${getToneLabel(tone)}${hasCleanupHint ? ", obsahuje úklidovou blokaci" : ""}`}
+                      label={`${day.label}, ${formatRangeLabel(cellIndex, cellIndex + 1)}, ${getToneLabel(tone)}${segmentTones.top === "cleanup" || segmentTones.bottom === "cleanup" ? ", obsahuje úklidovou blokaci" : ""}`}
                       dayKey={day.dateKey}
                       cellIndex={cellIndex}
                       onPointerDown={(event) => onCellStart(day, cellIndex, event.pointerType)}
@@ -677,7 +790,7 @@ export function DayInspector({
   pending,
 }: {
   day: PlannerDay;
-  legend: Array<{ tone: CellTone | "past"; label: string }>;
+  legend: Array<{ tone: CellTone | "past" | "cleanup"; label: string }>;
   selection: PlannerSelection | null;
   hasUnsavedChanges: boolean;
   onApplySelection: () => void;
@@ -686,6 +799,11 @@ export function DayInspector({
   const activeSelection = selection && selection.dateKey === day.dateKey ? selection : null;
   const selectionInterval = getSelectionInterval(day, activeSelection);
   const selectionBooking = getSelectionBooking(day, activeSelection);
+  const showCleanupBlockedUntil = Boolean(
+    selectionBooking?.hasCleanupBlock &&
+      selectionBooking.cleanupBlockedUntilLabel &&
+      getRangeEndLabel(selectionBooking.blockedLabel) !== selectionBooking.cleanupBlockedUntilLabel,
+  );
   const isDayClosed = !day.isPast && day.availableIntervals.length === 0;
 
   return (
@@ -742,7 +860,7 @@ export function DayInspector({
                 {selectionBooking && (activeSelection.tone === "booked" || activeSelection.tone === "completed") ? (
                   <p>Blok v mřížce: {selectionBooking.blockedLabel}</p>
                 ) : null}
-                {selectionBooking?.hasCleanupBlock && selectionBooking.cleanupBlockedUntilLabel ? (
+                {showCleanupBlockedUntil ? (
                   <p>Úklidová blokace do: {selectionBooking.cleanupBlockedUntilLabel}</p>
                 ) : null}
                 {selectionInterval ? <p>{selectionInterval.detail}</p> : null}
