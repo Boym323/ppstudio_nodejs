@@ -11,6 +11,8 @@ SKIP_PULL=0
 SKIP_LINT=0
 SKIP_CONFIRM=0
 BRANCH="main"
+RELEASE_BUILD_DIR=""
+KEEP_RELEASE_WORKSPACE=0
 
 usage() {
   cat <<'USAGE'
@@ -152,6 +154,77 @@ prepare_deployment_env() {
   log "NEXT_DEPLOYMENT_ID=${NEXT_DEPLOYMENT_ID}"
 }
 
+create_release_workspace() {
+  local release_parent_dir
+
+  release_parent_dir="$(dirname "${REPO_DIR}")"
+  RELEASE_BUILD_DIR="$(mktemp -d -p "${release_parent_dir}" ".ppstudio-release.XXXXXX")"
+
+  log "Připravuji izolovaný build workspace ${RELEASE_BUILD_DIR}"
+  git -C "${REPO_DIR}" archive --format=tar HEAD | tar -xf - -C "${RELEASE_BUILD_DIR}"
+  cp "${REPO_DIR}/.env" "${RELEASE_BUILD_DIR}/.env"
+}
+
+cleanup_release_workspace() {
+  if [[ "${KEEP_RELEASE_WORKSPACE}" -eq 1 ]]; then
+    return
+  fi
+
+  if [[ -n "${RELEASE_BUILD_DIR}" && -d "${RELEASE_BUILD_DIR}" ]]; then
+    rm -rf "${RELEASE_BUILD_DIR}"
+  fi
+}
+
+swap_release_artifacts() {
+  local previous_node_modules_dir="${REPO_DIR}/node_modules.previous-release"
+  local previous_next_dir="${REPO_DIR}/.next.previous-release"
+
+  if [[ ! -d "${RELEASE_BUILD_DIR}/node_modules" ]] || [[ ! -d "${RELEASE_BUILD_DIR}/.next" ]]; then
+    echo "Staging workspace neobsahuje hotové node_modules/.next artefakty, přepnutí releasu ruším." >&2
+    exit 1
+  fi
+
+  rm -rf "${previous_node_modules_dir}" "${previous_next_dir}"
+
+  log "stop ${WEB_UNIT_NAME}/${WORKER_UNIT_NAME}"
+  sudo systemctl stop "${WEB_UNIT_NAME}" "${WORKER_UNIT_NAME}"
+
+  if [[ -d "${REPO_DIR}/node_modules" ]]; then
+    mv "${REPO_DIR}/node_modules" "${previous_node_modules_dir}"
+  fi
+
+  if [[ -d "${REPO_DIR}/.next" ]]; then
+    mv "${REPO_DIR}/.next" "${previous_next_dir}"
+  fi
+
+  mv "${RELEASE_BUILD_DIR}/node_modules" "${REPO_DIR}/node_modules"
+  mv "${RELEASE_BUILD_DIR}/.next" "${REPO_DIR}/.next"
+
+  if sudo systemctl start "${WEB_UNIT_NAME}" "${WORKER_UNIT_NAME}"; then
+    rm -rf "${previous_node_modules_dir}" "${previous_next_dir}"
+    return
+  fi
+
+  echo "Start nového releasu selhal, vracím předchozí build artefakty." >&2
+  KEEP_RELEASE_WORKSPACE=1
+
+  sudo systemctl stop "${WEB_UNIT_NAME}" "${WORKER_UNIT_NAME}" >/dev/null 2>&1 || true
+  rm -rf "${REPO_DIR}/node_modules" "${REPO_DIR}/.next"
+
+  if [[ -d "${previous_node_modules_dir}" ]]; then
+    mv "${previous_node_modules_dir}" "${REPO_DIR}/node_modules"
+  fi
+
+  if [[ -d "${previous_next_dir}" ]]; then
+    mv "${previous_next_dir}" "${REPO_DIR}/.next"
+  fi
+
+  sudo systemctl start "${WEB_UNIT_NAME}" "${WORKER_UNIT_NAME}" >/dev/null 2>&1 || true
+
+  echo "Rollback hotový. Zkontroluj journalctl a build workspace ${RELEASE_BUILD_DIR}." >&2
+  exit 1
+}
+
 ensure_unit_installed() {
   local unit_name="$1"
   local unit_file
@@ -230,6 +303,8 @@ run_release() {
   cd "${REPO_DIR}"
 
   require_cmd git
+  require_cmd tar
+  require_cmd mktemp
   require_cmd node
   require_cmd npm
   require_cmd npx
@@ -272,6 +347,11 @@ run_release() {
 
   prepare_deployment_env
 
+  trap cleanup_release_workspace EXIT
+  create_release_workspace
+
+  cd "${RELEASE_BUILD_DIR}"
+
   log "npm ci --include=dev"
   npm ci --include=dev
 
@@ -294,11 +374,8 @@ run_release() {
   log "npm run build"
   npm run build
 
-  log "restart ${WEB_UNIT_NAME}"
-  sudo systemctl restart "${WEB_UNIT_NAME}"
-
-  log "restart ${WORKER_UNIT_NAME}"
-  sudo systemctl restart "${WORKER_UNIT_NAME}"
+  cd "${REPO_DIR}"
+  swap_release_artifacts
 
   log "status ${WEB_UNIT_NAME}"
   systemctl --no-pager --lines=20 status "${WEB_UNIT_NAME}"

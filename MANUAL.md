@@ -28,8 +28,9 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
 - Skript také hlídá, že stejné procesy neběží ještě přes legacy PM2; při konfliktu vypíše převod na čistý systemd provoz (`pm2 delete ...`, `pm2 save --force`, `systemctl disable --now pm2-root.service`).
 - Skript před buildem načte `.env` jako dotenv soubor, takže fungují i neuzavřené hodnoty s mezerami typu `NEXT_PUBLIC_APP_NAME=PP Studio`; zároveň vynutí přítomnost validního `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` a pro aktuální release automaticky exportuje `NEXT_DEPLOYMENT_ID`, `DEPLOYMENT_VERSION` i `GIT_HASH` z aktuálního git commitu.
 - Protože produkční `.env` běžně nastavuje `NODE_ENV=production`, skript používá `npm ci --include=dev`, aby se nainstalovaly i build-time nástroje z `devDependencies` jako `eslint`, `typescript` a `prisma`.
+- Release build teď neběží nad živým `/var/www/ppstudio`, ale v dočasném staging workspace vedle repozitáře. Produkční výpadek proto nastává až v krátkém okně `systemctl stop -> swap .next + node_modules -> systemctl start`, místo aby web riskoval `MODULE_NOT_FOUND` během `npm ci` nebo `next build`.
 - `package.json` zároveň drží npm 11 `allowScripts` whitelist pro balíčky s install hooky (`prisma`, `@prisma/engines`, `sharp`, `esbuild`, `unrs-resolver`), takže release nevypisuje opakované `npm warn allow-scripts` a při upgradu těchto balíčků je potřeba whitelist znovu vědomě potvrdit.
-- Skript provede standardní release kroky (`npm ci`, `npm run db:generate`, `npm run db:check-migrations`, `npx prisma migrate deploy`, `npm run lint`, `npm run build`, restart `ppstudio-web` a `ppstudio-email-worker`).
+- Skript provede standardní release kroky (`git pull --ff-only -> staging npm ci --include=dev -> npm run db:generate -> npm run db:check-migrations -> npx prisma migrate deploy -> npm run lint -> npm run build -> stop/swap/start ppstudio-web + ppstudio-email-worker`).
 - Detailní release checklist a QA body zůstávají v [`docs/DEPLOYMENT.md`](/var/www/ppstudio/docs/DEPLOYMENT.md).
 
 ## Testování a coverage

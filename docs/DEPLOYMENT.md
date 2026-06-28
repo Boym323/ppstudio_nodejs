@@ -392,6 +392,8 @@ systemctl enable --now ppstudio-email-worker
 - Units očekávají `.env` v `/var/www/ppstudio/.env` a `npm` dostupné v PATH.
 - `deploy/release.sh` načítá `.env` jako dotenv soubor, ne přes shellové `source`, takže bezpečně zvládá i hodnoty s mezerami bez uvozovek, například `NEXT_PUBLIC_APP_NAME=PP Studio`.
 - Stejný skript používá `npm ci --include=dev`, protože po načtení produkčního `.env` může být `NODE_ENV=production`; bez toho by npm vynechal `devDependencies` a build by spadl třeba na chybě `eslint: not found`.
+- Aktuální rollout model minimalizuje výpadek tak, že `npm ci`, Prisma kroky, lint i `next build` proběhnou v dočasném staging adresáři mimo živý runtime. Do produkčního `/var/www/ppstudio` se po `systemctl stop` už jen rychle přepnou hotové artefakty `.next` a `node_modules` a služby se znovu nastartují.
+- Praktické pořadí releasu je teď `git pull --ff-only -> staging npm ci --include=dev -> npm run db:generate -> npm run db:check-migrations -> npx prisma migrate deploy -> npm run lint -> npm run build -> stop/swap/start systemd`.
 - Pro jednorázovou instalaci a zapnutí obou služeb můžeš použít:
 ```bash
 sudo /var/www/ppstudio/deploy/deploy.sh
