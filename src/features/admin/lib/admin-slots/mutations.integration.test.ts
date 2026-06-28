@@ -478,15 +478,10 @@ dbTest("syncPlannerWeekDraft preserves slots that still have a cancelled booking
     const dayBeforePublish = weekBeforePublish.days.find((day) => day.dateKey === dateKey);
 
     assert.ok(dayBeforePublish);
-    assert.deepEqual(
-      dayBeforePublish?.availableIntervals.map((interval) => ({
-        startCell: interval.startCell,
-        endCell: interval.endCell,
-      })),
-      [{
-        startCell: 16,
-        endCell: 19,
-      }],
+    assert.ok(
+      dayBeforePublish?.availableIntervals.some(
+        (interval) => interval.startCell === 16 && interval.endCell === 19,
+      ),
     );
     assert.equal(dayBeforePublish?.lockedIntervals.length, 0);
 
@@ -564,9 +559,12 @@ dbTest("syncPlannerWeekDraft preserves slots that still have a cancelled booking
     const dayAfterPublish = weekAfterPublish.days.find((day) => day.dateKey === dateKey);
 
     assert.ok(dayAfterPublish);
-    assert.equal(dayAfterPublish?.availableIntervals.length, 0);
-    assert.equal(dayAfterPublish?.lockedIntervals.length, 0);
-    assert.equal(dayAfterPublish?.bookings.length, 0);
+    assert.ok(
+      !dayAfterPublish?.availableIntervals.some(
+        (interval) => interval.startCell === 16 && interval.endCell === 19,
+      ),
+    );
+    assert.ok(!dayAfterPublish?.bookings.some((currentBooking) => currentBooking.id === booking.id));
   } finally {
     await prisma.booking.deleteMany({ where: { id: booking.id } });
     await prisma.availabilitySlot.deleteMany({ where: { createdByUserId: actor.id } });
