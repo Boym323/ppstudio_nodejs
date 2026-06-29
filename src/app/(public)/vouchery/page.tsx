@@ -1,6 +1,7 @@
 import { connection } from "next/server";
 
-import { VoucherLandingPage, buildPageMetadata } from "@/features/public/components/public-site";
+import { buildPageMetadata } from "@/features/public/components/public-page-metadata";
+import { VoucherLandingPage } from "@/features/public/components/voucher-landing-page";
 import { getVoucherSuggestedServices } from "@/features/public/lib/public-services";
 
 export const metadata = buildPageMetadata({

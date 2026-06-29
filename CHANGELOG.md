@@ -6,7 +6,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
-- Opravená dev výkonnost veřejné route `/vouchery`: landing page už nenačítá celý veřejný katalog služeb jen kvůli třem doporučením, ale používá zúžený query helper s limitem 3; tím se zkrátil serverový čas renderu a omezilo riziko navazujícího Turbopack `ChunkLoadError` / selhání RSC payloadu při přechodech v devu.
+- Opravená dev výkonnost veřejné route `/vouchery`: landing page už nenačítá celý veřejný katalog služeb jen kvůli třem doporučením, ale používá zúžený query helper s limitem 3; zároveň je rozdělená do menšího samostatného modulu s odděleným metadata helperem místo importu celého monolitického `public-site.tsx`. Tím se zkrátil serverový čas renderu a omezilo riziko navazujícího Turbopack `ChunkLoadError` / selhání RSC payloadu při přechodech v devu.
 - Veřejný web nově obsahuje indexovatelnou landing page `Dárkové vouchery` na `/vouchery`: samostatný hero, vysvětlení typů voucheru, orientační výběr vhodných služeb z aktuálního veřejného katalogu, FAQ blok a CTA na domluvu voucheru i na veřejné ověření kódu.
 - Footer navigace a `sitemap.xml` jsou rozšířené o route `/vouchery`, zatímco technická route `/vouchery/overeni` zůstává noindex a mimo sitemap.
 - Provozní dokumentace (`MANUAL`, `DEVELOPMENT`, `DEPLOYMENT`) je doplněná o novou veřejnou voucher route, její SEO postavení a ruční QA body po nasazení.
