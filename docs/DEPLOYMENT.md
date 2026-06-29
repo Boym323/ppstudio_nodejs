@@ -25,6 +25,7 @@ Postup nasazení aplikace do produkce.
 8. `npx prisma migrate deploy`
 9. `npm run lint`
 10. `npm run build`
+    - Doporučený `deploy/release.sh` před buildem automaticky synchronizuje `deploy/systemd/*.service` do `/etc/systemd/system/` a spouští `systemctl daemon-reload`, takže změny unitů není potřeba releasovat zvlášť.
     - Při runtime upgradu po buildu udělej minimálně smoke test: homepage, admin login, vytvoření testovací rezervace a kontrolu, že po restartu běží i `ppstudio-email-worker.service`.
     - Pokud build spouštíš mimo `deploy/release.sh`, exportuj předem `NEXT_DEPLOYMENT_ID` na aktuální release identifikátor, používej stejný `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` jako běžící produkce a zajisti, aby stejný deployment identifikátor viděl i runtime `next start` (např. přes `.release-env` nebo ekvivalentní systemd env override).
 11. Ověř, že `package.json`, `package-lock.json` a `CHANGELOG.md` obsahují stejnou release verzi.
@@ -394,6 +395,7 @@ systemctl enable --now ppstudio-email-worker
 - Stejný skript používá `npm ci --include=dev`, protože po načtení produkčního `.env` může být `NODE_ENV=production`; bez toho by npm vynechal `devDependencies` a build by spadl třeba na chybě `eslint: not found`.
 - Aktuální rollout model minimalizuje výpadek tak, že `npm ci`, Prisma kroky, lint i `next build` proběhnou v dočasném staging adresáři mimo živý runtime. Do produkčního `/var/www/ppstudio` se po `systemctl stop` už jen rychle přepnou hotové artefakty `.next` a `node_modules` a služby se znovu nastartují.
 - Praktické pořadí releasu je teď `git pull --ff-only -> staging npm ci --include=dev -> npm run db:generate -> npm run db:check-migrations -> npx prisma migrate deploy -> npm run lint -> npm run build -> stop/swap/start systemd`.
+- Stejný release helper po `git pull` automaticky přepíše i systemd unit soubory z `deploy/systemd/*` do `/etc/systemd/system/` a udělá `daemon-reload`, takže app release a unit release drží krok.
 - Pro jednorázovou instalaci a zapnutí obou služeb můžeš použít:
 ```bash
 sudo /var/www/ppstudio/deploy/deploy.sh

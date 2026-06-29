@@ -3,6 +3,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+SYSTEMD_DIR="/etc/systemd/system"
 WEB_UNIT_NAME="ppstudio-web"
 WORKER_UNIT_NAME="ppstudio-email-worker"
 RUNTIME_RELEASE_ENV_FILE=".release-env"
@@ -36,6 +37,19 @@ log() {
 
 unit_file_name() {
   printf '%s.service' "$1"
+}
+
+install_unit_file() {
+  local unit_name="$1"
+  local source_file="${REPO_DIR}/deploy/systemd/$(unit_file_name "${unit_name}")"
+  local target_file="${SYSTEMD_DIR}/$(unit_file_name "${unit_name}")"
+
+  if [[ ! -f "${source_file}" ]]; then
+    echo "Chybí unit šablona ${source_file}." >&2
+    exit 1
+  fi
+
+  sudo install -m 0644 "${source_file}" "${target_file}"
 }
 
 require_cmd() {
@@ -271,6 +285,15 @@ ensure_unit_installed() {
   exit 1
 }
 
+sync_systemd_units() {
+  log "synchronizuji systemd unity z deploy/systemd"
+  install_unit_file "${WEB_UNIT_NAME}"
+  install_unit_file "${WORKER_UNIT_NAME}"
+
+  log "systemctl daemon-reload"
+  sudo systemctl daemon-reload
+}
+
 ensure_no_pm2_conflicts() {
   local pm2_list
 
@@ -372,6 +395,8 @@ run_release() {
   else
     log "Přeskakuji git pull (--skip-pull)."
   fi
+
+  sync_systemd_units
 
   prepare_deployment_env
 

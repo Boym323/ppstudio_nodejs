@@ -6,6 +6,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- `deploy/release.sh` teď při každém releasu automaticky synchronizuje systemd unity z `deploy/systemd/` do `/etc/systemd/system/` a spouští `systemctl daemon-reload`, takže změny web/worker service definic se nasadí společně s aplikací a nezůstanou viset ve staré runtime konfiguraci.
 - Release rollout teď zapisuje aktivní `NEXT_DEPLOYMENT_ID`, `DEPLOYMENT_VERSION` a `GIT_HASH` i do runtime souboru `.release-env`; systemd web service ho načítá při `next start`, takže startup/request logy konečně ukazují stejný `deploymentId` jako build a rollback vrací i předchozí runtime identitu releasu.
 - Provozní dokumentace (`MANUAL`, `DEVELOPMENT`, `ENVIRONMENT`, `DEPLOYMENT`, `INCIDENTS`) nově výslovně popisuje rozdíl mezi build-time exportem release proměnných a runtime `.release-env`, aby byl runbook pro `Failed to find Server Action` v souladu se skutečným nasazením.
 
