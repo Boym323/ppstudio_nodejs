@@ -5,6 +5,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 WEB_UNIT_NAME="ppstudio-web"
 WORKER_UNIT_NAME="ppstudio-email-worker"
+RUNTIME_RELEASE_ENV_FILE=".release-env"
+PREVIOUS_RUNTIME_RELEASE_ENV_FILE=".release-env.previous-release"
 
 ALLOW_DIRTY=0
 SKIP_PULL=0
@@ -154,6 +156,16 @@ prepare_deployment_env() {
   log "NEXT_DEPLOYMENT_ID=${NEXT_DEPLOYMENT_ID}"
 }
 
+write_runtime_release_env_file() {
+  local target_file="$1"
+
+  cat > "${target_file}" <<EOF
+NEXT_DEPLOYMENT_ID=${NEXT_DEPLOYMENT_ID}
+DEPLOYMENT_VERSION=${DEPLOYMENT_VERSION}
+GIT_HASH=${GIT_HASH}
+EOF
+}
+
 create_release_workspace() {
   local release_parent_dir
 
@@ -178,6 +190,8 @@ cleanup_release_workspace() {
 swap_release_artifacts() {
   local previous_node_modules_dir="${REPO_DIR}/node_modules.previous-release"
   local previous_next_dir="${REPO_DIR}/.next.previous-release"
+  local runtime_release_env_path="${REPO_DIR}/${RUNTIME_RELEASE_ENV_FILE}"
+  local previous_runtime_release_env_path="${REPO_DIR}/${PREVIOUS_RUNTIME_RELEASE_ENV_FILE}"
 
   if [[ ! -d "${RELEASE_BUILD_DIR}/node_modules" ]] || [[ ! -d "${RELEASE_BUILD_DIR}/.next" ]]; then
     echo "Staging workspace neobsahuje hotové node_modules/.next artefakty, přepnutí releasu ruším." >&2
@@ -185,6 +199,13 @@ swap_release_artifacts() {
   fi
 
   rm -rf "${previous_node_modules_dir}" "${previous_next_dir}"
+  rm -f "${previous_runtime_release_env_path}"
+
+  if [[ -f "${runtime_release_env_path}" ]]; then
+    cp "${runtime_release_env_path}" "${previous_runtime_release_env_path}"
+  fi
+
+  write_runtime_release_env_file "${runtime_release_env_path}"
 
   log "stop ${WEB_UNIT_NAME}/${WORKER_UNIT_NAME}"
   sudo systemctl stop "${WEB_UNIT_NAME}" "${WORKER_UNIT_NAME}"
@@ -202,6 +223,7 @@ swap_release_artifacts() {
 
   if sudo systemctl start "${WEB_UNIT_NAME}" "${WORKER_UNIT_NAME}"; then
     rm -rf "${previous_node_modules_dir}" "${previous_next_dir}"
+    rm -f "${previous_runtime_release_env_path}"
     return
   fi
 
@@ -217,6 +239,12 @@ swap_release_artifacts() {
 
   if [[ -d "${previous_next_dir}" ]]; then
     mv "${previous_next_dir}" "${REPO_DIR}/.next"
+  fi
+
+  if [[ -f "${previous_runtime_release_env_path}" ]]; then
+    mv "${previous_runtime_release_env_path}" "${runtime_release_env_path}"
+  else
+    rm -f "${runtime_release_env_path}"
   fi
 
   sudo systemctl start "${WEB_UNIT_NAME}" "${WORKER_UNIT_NAME}" >/dev/null 2>&1 || true

@@ -6,6 +6,9 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Release rollout teď zapisuje aktivní `NEXT_DEPLOYMENT_ID`, `DEPLOYMENT_VERSION` a `GIT_HASH` i do runtime souboru `.release-env`; systemd web service ho načítá při `next start`, takže startup/request logy konečně ukazují stejný `deploymentId` jako build a rollback vrací i předchozí runtime identitu releasu.
+- Provozní dokumentace (`MANUAL`, `DEVELOPMENT`, `ENVIRONMENT`, `DEPLOYMENT`, `INCIDENTS`) nově výslovně popisuje rozdíl mezi build-time exportem release proměnných a runtime `.release-env`, aby byl runbook pro `Failed to find Server Action` v souladu se skutečným nasazením.
+
 ## [0.3.34] - 2026-06-09
 
 - Release příprava pro produkční nasazení: projektová verze navýšena na patch `0.3.34`.

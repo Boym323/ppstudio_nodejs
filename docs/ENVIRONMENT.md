@@ -35,6 +35,7 @@ Dokumentace proměnných prostředí pro lokální vývoj i produkci.
 - `NEXT_DEPLOYMENT_ID`: identifikátor konkrétního deploymentu pro ochranu proti version skew; při doporučeném rollout skriptu se nastavuje automaticky z aktuálního git commitu a nemá se držet staticky v `.env`.
 - `DEPLOYMENT_VERSION`: volitelný alias pro deployment identifikátor; release skript ho automaticky exportuje na stejnou hodnotu jako `NEXT_DEPLOYMENT_ID`.
 - `GIT_HASH`: volitelný fallback pro `deploymentId`; release skript ho automaticky exportuje na aktuální git commit.
+- `.release-env`: runtime soubor generovaný `deploy/release.sh`, který obsahuje `NEXT_DEPLOYMENT_ID`, `DEPLOYMENT_VERSION` a `GIT_HASH` pro systemd `next start`. Needituje se ručně; release i rollback ho přepisují atomicky podle aktivního buildu.
 - `DATABASE_URL`: PostgreSQL connection string pro Prisma.
 - `SHADOW_DATABASE_URL`: pomocná databáze pro `prisma migrate dev` (lokální vývoj).
 - `ADMIN_SESSION_SECRET`: klíč pro podpis admin session cookie.
@@ -97,7 +98,7 @@ Lokální doporučení:
 - `EMAIL_DELIVERY_MODE=log` je nejbezpečnější výchozí režim pro vývoj a testovací rollout.
 - `ADMIN_BOOTSTRAP_ENABLED=true` používej jen po dobu prvního přihlášení nebo recovery; po zřízení DB účtů vrať `false`.
 - `NEXT_PUBLIC_MATOMO_*`, `NEXT_PUBLIC_CLARITY_*`, `NEXT_PUBLIC_META_PIXEL_*`, `MATOMO_*` a `PUSHOVER_*` nech klidně vypnuté, pokud zrovna netestuješ analytics nebo notifikace.
-- `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` drž stabilně v produkčním `.env`; deployment identifikátor naopak do `.env` běžně nefixuj, protože `deploy/release.sh` ho automaticky odvozuje z aktuálního commitu.
+- `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` drž stabilně v produkčním `.env`; deployment identifikátor naopak do `.env` běžně nefixuj, protože `deploy/release.sh` ho automaticky odvozuje z aktuálního commitu a zapisuje do runtime `.release-env`.
 - Produkční `instrumentation.ts` z těchto hodnot skládá provozní log metadata. Do logu se nezapisuje surový `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY`, jen jeho bezpečný fingerprint; ten lze mezi instancemi porovnat při debugování `Failed to find Server Action`.
 - Session časování můžeš upravit přes `ADMIN_SESSION_*_SECONDS`; pokud je nenastavíš, běží default `14 dní idle / refresh při <48h / absolutní strop 45 dní`.
 - `MEDIA_STORAGE_ROOT` drž mimo repozitář a ověř, že do něj má proces právo zapisovat.
