@@ -6,6 +6,12 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Veřejný web nově obsahuje indexovatelnou landing page `Dárkové vouchery` na `/vouchery`: samostatný hero, vysvětlení typů voucheru, orientační výběr vhodných služeb z aktuálního veřejného katalogu, FAQ blok a CTA na domluvu voucheru i na veřejné ověření kódu.
+- Footer navigace a `sitemap.xml` jsou rozšířené o route `/vouchery`, zatímco technická route `/vouchery/overeni` zůstává noindex a mimo sitemap.
+- Provozní dokumentace (`MANUAL`, `DEVELOPMENT`, `DEPLOYMENT`) je doplněná o novou veřejnou voucher route, její SEO postavení a ruční QA body po nasazení.
+- Homepage a `/faq` nově obsahují jemné CTA na `/vouchery`, aby se dárkové vouchery lépe objevily i mimo footer a detail FAQ odpovědi.
+- Samotná landing page `/vouchery` je rozšířená o praktičtější prodejní obsah: scénáře podle situace, doporučení kdy volit konkrétní službu vs. hodnotový voucher a krátký průběh domluvy voucheru.
+
 ## [0.4.0] - 2026-06-29
 
 - Release příprava pro produkční nasazení: projektová verze navýšena na minor `0.4.0`.

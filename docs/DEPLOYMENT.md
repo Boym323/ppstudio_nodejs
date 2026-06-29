@@ -53,6 +53,10 @@ Postup nasazení aplikace do produkce.
      - sekci certifikací s reálnými daty i bez nich
      - finální tmavý CTA blok
    - služby a detail služby
+   - `/vouchery`:
+     - hero a finální CTA vedou na veřejný kontakt nebo `mailto:` pro domluvu voucheru
+     - odkaz `Ověřit voucher` vede na `/vouchery/overeni`
+     - sekce s doporučenými službami používá aktuální veřejný katalog a neobsahuje interní nebo neveřejné služby
    - kontakt
    - FAQ a právní stránky
      - `/obchodni-podminky`: hero CTA, blok poskytovatele a obsahová navigace

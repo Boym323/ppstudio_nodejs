@@ -10,6 +10,7 @@ export const mainNavigation = [
 ] as const;
 
 export const footerNavigation = [
+  { href: "/vouchery", label: "Dárkové vouchery" },
   { href: "/faq", label: "FAQ" },
   { href: "/storno-podminky", label: "Storno podmínky" },
   { href: "/obchodni-podminky", label: "Obchodní podmínky" },

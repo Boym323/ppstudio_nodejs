@@ -153,6 +153,7 @@ Praktický přehled hlavních HTTP endpointů je v [`docs/API.md`](/var/www/ppst
   - `prisma` + `@prisma/client` `7.8.0`
 - Veřejná část aktuálně pokrývá:
   - homepage
+  - landing page `Dárkové vouchery` na `/vouchery` s CTA na domluvu voucheru a veřejné ověření kódu
   - služby a detail služby
   - ceník rozdělený podle kategorií přes celou šířku obsahu
   - o mně
@@ -161,6 +162,7 @@ Praktický přehled hlavních HTTP endpointů je v [`docs/API.md`](/var/www/ppst
   - storno podmínky
   - obchodní podmínky
   - GDPR
+  - veřejné noindex ověření voucheru na `/vouchery/overeni`
 - Veřejný obsah je centralizovaný v `src/content/public-site.ts`, aby šly texty a hlavní brand copy měnit bez zásahu do layout komponent.
 - Klientská copy veřejného webu má reflektovat, že salon provozuje jedna osoba. Jednotné číslo používej tam, kde mluví přímo provozovatelka (`doporučuji`, `pošlu`, `můžete mě kontaktovat`); přirozené společné formulace s klientkou (`společně doladíme`) a studio jako místo (`k nám`) zůstávají v pořádku.
 - Mobilní veřejný header má ukázat všechny položky `mainNavigation` jako čitelnou mřížku `2 × 3` a samostatné CTA `Rezervace`; cílem je zachovat úplnou orientaci bez mačkání textu do jedné řádky.
@@ -172,6 +174,8 @@ Praktický přehled hlavních HTTP endpointů je v [`docs/API.md`](/var/www/ppst
 - `/storno-podminky` už nepoužívá jen generický právní text; stránka má vlastní akční skladbu `hero -> kontaktní box -> rychlý přehled pravidel -> krátké sekce`, aby klientka během pár sekund viděla co dělat a jaké dopady má pozdní storno nebo no-show.
 - Copy na `/storno-podminky` je nyní záměrně měkčí: zdůrazňuje včasné oznámení a provozní dopad pozdního zrušení, ale automaticky nekomunikuje storno poplatek; zároveň výslovně odkazuje i na storno link v potvrzení rezervace a 24h reminderu.
 - FAQ na `/faq` už není plochý seznam několika otázek; stránka používá skladbu `hero s jemným CTA -> pravý informační box první návštěvy -> rychlá sekční navigace -> tematické accordion bloky`.
+- Homepage i FAQ nově jemně promují samostatnou voucher landing page `/vouchery`, ale hlavní priorita veřejného webu zůstává rezervace a orientace v péči.
+- Landing page `/vouchery` už není jen stručný teaser; obsahuje i rozhodovací scénáře pro výběr mezi konkrétní službou a hodnotovým voucherem a krátký průběh domluvy, aby pomáhala při reálném nákupním rozhodování.
 - FAQ copy je záměrně orientované na rozhodnutí před první návštěvou: řeší výběr služby, průběh první návštěvy, praktické detaily, komfort, organizaci i stručné storno shrnutí s odkazem na samostatnou stránku podmínek.
 - FAQ odpovědi zůstávají serverově vypsané v HTML přes nativní `details/summary`; JSON-LD `FAQPage` se skládá ze stejného `FaqSection -> FaqItem` modelu a nesmí obsahovat otázky, které nejsou na stránce reálně vidět.
 - FAQ pokrývá i praktické rozhodovací otázky před rezervací: objednání bez přesného výběru služby, potvrzení rezervace, úpravu péče podle stavu pleti, doporučenou frekvenci kosmetiky, příchod s make-upem, citlivou pleť, běžnou citlivost úpravy obočí, výdrž barvení obočí, dárkové vouchery, adresu studia a odkaz na parkování na `/kontakt#parkovani`.
