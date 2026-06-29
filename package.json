@@ -18,7 +18,7 @@
     "lint": "eslint",
     "test": "RUN_DB_INTEGRATION_TESTS=1 node --import ./src/test/register-server-only.mjs --import tsx --test \"src/**/*.test.ts\"",
     "test:coverage": "rm -rf coverage .nyc_output && c8 node --import ./src/test/register-server-only.mjs --import tsx --test \"src/**/*.test.ts\"",
-    "pretest:e2e": "NEXT_PUBLIC_META_PIXEL_ENABLED=true NEXT_PUBLIC_META_PIXEL_ID=123456789 npm run build",
+    "pretest:e2e": "PLAYWRIGHT_PORT=${PLAYWRIGHT_PORT:-3100}; NEXT_PUBLIC_APP_URL=${PLAYWRIGHT_BASE_URL:-http://127.0.0.1:$PLAYWRIGHT_PORT} NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL:-https://ppstudio.cz} NEXT_PUBLIC_META_PIXEL_ENABLED=true NEXT_PUBLIC_META_PIXEL_ID=123456789 npm run build",
     "test:e2e": "playwright test",
     "test:db:booking": "RUN_DB_INTEGRATION_TESTS=1 node --import ./src/test/register-server-only.mjs --import tsx --test src/features/booking/lib/*.integration.test.ts",
     "email:worker": "tsx scripts/email-delivery-worker.ts",
