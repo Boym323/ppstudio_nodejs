@@ -922,12 +922,11 @@ export async function FaqPage() {
 }
 
 export async function VoucherLandingPage({
-  services: catalogServices = services,
+  suggestedServices = services.slice(0, 3),
 }: {
-  services?: Service[];
+  suggestedServices?: Service[];
 } = {}) {
   const salonProfile = await getPublicSalonProfile();
-  const suggestedServices = catalogServices.slice(0, 3);
   const voucherMailSubject = encodeURIComponent("Mám zájem o dárkový voucher");
   const voucherMailHref = `mailto:${salonProfile.email}?subject=${voucherMailSubject}`;
   const voucherPhoneHref = `tel:${salonProfile.phone.replace(/\s+/g, "")}`;

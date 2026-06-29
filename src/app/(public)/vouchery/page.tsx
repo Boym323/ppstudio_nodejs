@@ -1,7 +1,7 @@
 import { connection } from "next/server";
 
 import { VoucherLandingPage, buildPageMetadata } from "@/features/public/components/public-site";
-import { getPublicServices } from "@/features/public/lib/public-services";
+import { getVoucherSuggestedServices } from "@/features/public/lib/public-services";
 
 export const metadata = buildPageMetadata({
   title: "Dárkové vouchery",
@@ -13,7 +13,7 @@ export const metadata = buildPageMetadata({
 export default async function Page() {
   await connection();
 
-  const services = await getPublicServices();
+  const suggestedServices = await getVoucherSuggestedServices();
 
-  return <VoucherLandingPage services={services} />;
+  return <VoucherLandingPage suggestedServices={suggestedServices} />;
 }

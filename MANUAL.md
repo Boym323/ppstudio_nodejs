@@ -900,6 +900,9 @@ npm run db:clear-booking-data -- --confirm
   - ověřte, že list view bez `serviceId` nenačítá detail služby
   - ověřte, že seznam služeb načítá jen sloupce potřebné pro list
   - ověřte, že stavové metriky běží přes jeden agregační dotaz (`groupBy`) místo více samostatných `count`
+- Pokud `/vouchery` v devu po načtení nebo při opakované navigaci hlásí `ChunkLoadError` nebo `Failed to fetch RSC payload`:
+  - ověřte, že route nenačítá celý veřejný katalog služeb jen kvůli několika doporučeným kartám
+  - pro voucher landing page používejte limitovaný helper `getVoucherSuggestedServices(3)`, ne plné `getPublicServices()`
 - Chyba `Route "... " used params.slug. params is a Promise` v Next.js 16 znamená, že route používá starý synchronní přístup k dynamickým parametrům.
 - Oprava:
   - v `page.tsx` a `generateMetadata` typuj `params` jako `Promise<{ ... }>`

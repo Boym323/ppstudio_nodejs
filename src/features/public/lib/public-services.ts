@@ -331,6 +331,31 @@ export async function getPublicServices(): Promise<Service[]> {
   return services.map(mapService);
 }
 
+export async function getVoucherSuggestedServices(limit = 3): Promise<Service[]> {
+  const services = await prisma.service.findMany({
+    where: {
+      ...publicServiceVisibilityWhere,
+      category: {
+        is: {
+          isActive: true,
+        },
+      },
+    },
+    orderBy: [{ category: { sortOrder: "asc" } }, { sortOrder: "asc" }, { name: "asc" }],
+    take: limit,
+    include: {
+      category: {
+        select: {
+          name: true,
+          publicName: true,
+        },
+      },
+    },
+  });
+
+  return services.map(mapService);
+}
+
 export async function getHomepageFeaturedServices(limit = 3): Promise<Service[]> {
   const featuredServices = await prisma.service.findMany({
     where: {
