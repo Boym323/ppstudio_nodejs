@@ -1,4 +1,5 @@
-import { FaqPage, buildPageMetadata } from '@/features/public/components/public-site';
+import { buildPageMetadata } from '@/features/public/components/public-page-metadata';
+import { FaqPage } from '@/features/public/components/faq-page';
 
 export const metadata = buildPageMetadata({
   title: 'FAQ | Časté otázky',

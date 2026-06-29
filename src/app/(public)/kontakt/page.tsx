@@ -1,4 +1,5 @@
-import { ContactPage, buildPageMetadata } from '@/features/public/components/public-site';
+import { buildPageMetadata } from '@/features/public/components/public-page-metadata';
+import { ContactPage } from '@/features/public/components/contact-page';
 
 export const metadata = buildPageMetadata({
   title: 'Kontakt',
