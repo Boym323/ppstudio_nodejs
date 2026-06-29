@@ -1,4 +1,5 @@
 import { EmailLogStatus } from "@prisma/client";
+import packageJson from "../../../../package.json";
 
 import { sendOwnerSystemErrorPushover } from "@/lib/notifications/pushover";
 import { prisma } from "@/lib/prisma";
@@ -26,6 +27,7 @@ export async function GET() {
   const staleThreshold = new Date(nowMs - WORKER_LOCK_TIMEOUT_MS);
   const recentErrorThreshold = new Date(nowMs - RECENT_EMAIL_ERROR_WINDOW_MS);
   const release = {
+    version: packageJson.version,
     deploymentId: getCurrentDeploymentId(),
     deploymentVersion: process.env.DEPLOYMENT_VERSION?.trim() || null,
     gitHash: process.env.GIT_HASH?.trim() || null,

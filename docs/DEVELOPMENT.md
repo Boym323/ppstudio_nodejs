@@ -1,6 +1,7 @@
 # Podrobná Vývojová Dokumentace
 
 Tento dokument slouží jako detailní technická dokumentace vývoje.
+Pro centralizovaný přehled hlavních route handler kontraktů používej i [`docs/API.md`](/var/www/ppstudio/docs/API.md); implementace v `src/app/api/**/route.ts` je ale vždy finální zdroj pravdy.
 
 ## Verzování a release disciplína
 - `package.json` používá SemVer `MAJOR.MINOR.PATCH`; aktuální release je `0.3.34` v pre-stable řadě.

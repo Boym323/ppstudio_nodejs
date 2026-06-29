@@ -4,6 +4,11 @@ Produkční web kosmetického studia s veřejnou prezentací, rezervačním flow
 
 README slouží jako rychlý GitHub rozcestník. Detailní provozní a vývojová dokumentace je vedená přímo v repozitáři v `MANUAL.md` a `docs/*`, ne jako primární GitHub Wiki.
 
+Nejdůležitější dokumenty:
+- [MANUAL.md](/var/www/ppstudio/MANUAL.md) pro provozní souvislosti
+- [docs/DEVELOPMENT.md](/var/www/ppstudio/docs/DEVELOPMENT.md) pro technická pravidla vývoje
+- [docs/API.md](/var/www/ppstudio/docs/API.md) pro hlavní HTTP endpointy a jejich kontrakty
+
 ## Aktuální stav
 
 - veřejný web: homepage, služby, detail služby, ceník, studio, o mně, kontakt, FAQ a právní stránky
@@ -59,6 +64,7 @@ prisma/
 prisma.config.ts              Prisma 7 CLI konfigurace
 docs/
   ADR/                        architektonická rozhodnutí
+  API.md                      hlavní HTTP endpointy a jejich kontrakty
 ```
 
 ## Hlavní routy

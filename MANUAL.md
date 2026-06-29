@@ -92,10 +92,11 @@ MEDIA_STORAGE_ROOT=/var/www/ppstudio-uploads
 - Next.js runtime teď zapisuje při startu i při zachycené request chybě strukturované logy s prefixy `ppstudio.next.register` a `ppstudio.next.request-error`. U `Failed to find Server Action` log obsahuje bezpečný fingerprint `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY`, aktivní `deploymentId`, příchozí `x-deployment-id`, route context a sanitizovanou path bez raw tokenů.
 
 Detailní seznam všech env proměnných je v [`docs/ENVIRONMENT.md`](/var/www/ppstudio/docs/ENVIRONMENT.md).
+Praktický přehled hlavních HTTP endpointů je v [`docs/API.md`](/var/www/ppstudio/docs/API.md).
 
 ## Monitoring a provozní SLA minimum
 - Externí monitoring má pravidelně volat `GET /api/health`; při `503` nebo timeoutu ber stav jako incident.
-- `GET /api/health` při čistém stavu vrací i `release.deploymentId` / `deploymentVersion` / `gitHash` a `durationMs`; při incidentu podle toho rychle ověříš, jestli monitoring mluví se správným releasem a jestli se endpoint nezpomaluje.
+- `GET /api/health` při čistém stavu vrací i `release.version`, `release.deploymentId` / `deploymentVersion` / `gitHash` a `durationMs`; při incidentu podle toho rychle ověříš, jestli monitoring mluví se správným releasem a jestli se endpoint nezpomaluje.
 - Vedle webu sleduj i běh `ppstudio-web.service` a `ppstudio-email-worker.service`.
 - Pravidelně kontroluj, že e-mailová fronta nemá rostoucí `failed`, `retrying` nebo `stale` záznamy.
 - Po každém releasu proveď minimální smoke test: homepage, admin login a vytvoření testovací rezervace.
@@ -800,7 +801,7 @@ npm run db:clear-booking-data -- --confirm
 - `EmailLog` umožňuje trasovat odeslané i neúspěšné e-maily navázané na klienta, rezervaci a případný token.
 - `EMAIL_DELIVERY_MODE=log` je jen vývojový/safe-mode režim; loguje maskovaného příjemce a anonymizovaný subject, ne plnou zákaznickou komunikaci.
 - Veřejný route handler `GET /api/health` vrací provozní health snapshot pro monitoring:
-  - čas `checkedAt`, dobu vyhodnocení `durationMs` a release identitu `release.deploymentId` + fallbacky `deploymentVersion` / `gitHash`
+  - čas `checkedAt`, dobu vyhodnocení `durationMs` a release identitu `release.version`, `release.deploymentId` + fallbacky `deploymentVersion` / `gitHash`
   - stav `db` (rychlý `SELECT 1`)
   - stav `emailWorker` (`ok`/`warning`/`error`) podle stale claimů, backlogu a failed logů
   - stav `emailQueue` (`pending`, `retrying`, `processing`, `staleProcessing`, `failed`)

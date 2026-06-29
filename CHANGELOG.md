@@ -6,6 +6,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Přibyla centralizovaná API reference v [`docs/API.md`](/var/www/ppstudio/docs/API.md), která shrnuje hlavní veřejné, admin-only a webhook endpointy včetně účelu, přístupu, status kódů a shape odpovědí; nově pokrývá i internější admin/UI route kontrakty jako booking search, voucher lookup, logout a resend invite.
+- `GET /api/health` nově vrací i `release.version` převzatou z `package.json`, takže monitoring a ruční diagnostika snadno odliší aplikační verzi od deployment/commit identifikátoru.
 - `GET /api/health` teď vrací i release metadata (`deploymentId`, `deploymentVersion`, `gitHash`) a `durationMs`, takže externí monitoring i ruční incident diagnostika rychleji poznají, na jakém buildu endpoint běží a jak dlouho vyhodnocení trvalo.
 - Health endpoint má nově konzistentní payload i při DB chybě: chybová větev drží stejné sekce `emailWorker`, `emailQueue`, `emailDelivery` a vždy posílá `cache-control: no-store`.
 - Pole `emailDelivery.hasRecentError` už odpovídá názvu i v semantice: bere jen chyby z posledních 24 hodin a endpoint explicitně vrací i `recentErrorWindowMs`.
