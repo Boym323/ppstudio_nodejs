@@ -3,12 +3,33 @@ import { EmailLogStatus } from "@prisma/client";
 import { sendOwnerSystemErrorPushover } from "@/lib/notifications/pushover";
 import { prisma } from "@/lib/prisma";
 
+const DEPLOYMENT_ID_ENV_KEYS = ["NEXT_DEPLOYMENT_ID", "DEPLOYMENT_VERSION", "GIT_HASH"] as const;
 const WORKER_LOCK_TIMEOUT_MS = 10 * 60 * 1000;
+const RECENT_EMAIL_ERROR_WINDOW_MS = 24 * 60 * 60 * 1000;
+
+function getCurrentDeploymentId() {
+  for (const key of DEPLOYMENT_ID_ENV_KEYS) {
+    const value = process.env[key];
+
+    if (value && value.trim().length > 0) {
+      return value.trim();
+    }
+  }
+
+  return null;
+}
 
 export async function GET() {
+  const startedAtMs = Date.now();
   const now = new Date();
   const nowMs = now.getTime();
   const staleThreshold = new Date(nowMs - WORKER_LOCK_TIMEOUT_MS);
+  const recentErrorThreshold = new Date(nowMs - RECENT_EMAIL_ERROR_WINDOW_MS);
+  const release = {
+    deploymentId: getCurrentDeploymentId(),
+    deploymentVersion: process.env.DEPLOYMENT_VERSION?.trim() || null,
+    gitHash: process.env.GIT_HASH?.trim() || null,
+  };
 
   const alerts: string[] = [];
   let dbStatus: "ok" | "error" = "ok";
@@ -32,23 +53,38 @@ export async function GET() {
       {
         status: "error",
         checkedAt: now.toISOString(),
+        durationMs: Date.now() - startedAtMs,
+        release,
         db: {
           status: dbStatus,
         },
         emailWorker: {
           status: "unknown",
+          staleClaimTimeoutMs: WORKER_LOCK_TIMEOUT_MS,
           summary: "Nelze vyhodnotit bez funkční DB.",
         },
         emailQueue: {
           pending: 0,
           retrying: 0,
           processing: 0,
+          staleProcessing: 0,
           failed: 0,
+        },
+        emailDelivery: {
+          lastSentAt: null,
+          lastErrorAt: null,
+          hasRecentError: false,
+          recentErrorWindowMs: RECENT_EMAIL_ERROR_WINDOW_MS,
         },
         alerts,
         error: error instanceof Error ? error.message : "Unknown DB error",
       },
-      { status: 503 },
+      {
+        status: 503,
+        headers: {
+          "cache-control": "no-store",
+        },
+      },
     );
   }
 
@@ -101,6 +137,7 @@ export async function GET() {
       prisma.emailLog.findFirst({
         where: {
           errorMessage: { not: null },
+          updatedAt: { gte: recentErrorThreshold },
           OR: [
             { status: EmailLogStatus.FAILED },
             {
@@ -134,7 +171,7 @@ export async function GET() {
   }
 
   if (latestErrorLog?.errorMessage) {
-    alerts.push("Latest email error present");
+    alerts.push("Recent email error present");
   }
 
   const workerStatus = workerHasErrors || workerStuck ? "error" : workerBacklog ? "warning" : "ok";
@@ -145,6 +182,8 @@ export async function GET() {
     {
       status,
       checkedAt: now.toISOString(),
+      durationMs: Date.now() - startedAtMs,
+      release,
       db: {
         status: dbStatus,
       },
@@ -169,6 +208,7 @@ export async function GET() {
         lastSentAt: lastSentLog?.sentAt?.toISOString() ?? null,
         lastErrorAt: latestErrorLog?.updatedAt?.toISOString() ?? null,
         hasRecentError: Boolean(latestErrorLog?.errorMessage),
+        recentErrorWindowMs: RECENT_EMAIL_ERROR_WINDOW_MS,
       },
       alerts,
     },

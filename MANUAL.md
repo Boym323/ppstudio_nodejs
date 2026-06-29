@@ -95,6 +95,7 @@ Detailní seznam všech env proměnných je v [`docs/ENVIRONMENT.md`](/var/www/p
 
 ## Monitoring a provozní SLA minimum
 - Externí monitoring má pravidelně volat `GET /api/health`; při `503` nebo timeoutu ber stav jako incident.
+- `GET /api/health` při čistém stavu vrací i `release.deploymentId` / `deploymentVersion` / `gitHash` a `durationMs`; při incidentu podle toho rychle ověříš, jestli monitoring mluví se správným releasem a jestli se endpoint nezpomaluje.
 - Vedle webu sleduj i běh `ppstudio-web.service` a `ppstudio-email-worker.service`.
 - Pravidelně kontroluj, že e-mailová fronta nemá rostoucí `failed`, `retrying` nebo `stale` záznamy.
 - Po každém releasu proveď minimální smoke test: homepage, admin login a vytvoření testovací rezervace.
@@ -799,10 +800,12 @@ npm run db:clear-booking-data -- --confirm
 - `EmailLog` umožňuje trasovat odeslané i neúspěšné e-maily navázané na klienta, rezervaci a případný token.
 - `EMAIL_DELIVERY_MODE=log` je jen vývojový/safe-mode režim; loguje maskovaného příjemce a anonymizovaný subject, ne plnou zákaznickou komunikaci.
 - Veřejný route handler `GET /api/health` vrací provozní health snapshot pro monitoring:
+  - čas `checkedAt`, dobu vyhodnocení `durationMs` a release identitu `release.deploymentId` + fallbacky `deploymentVersion` / `gitHash`
   - stav `db` (rychlý `SELECT 1`)
   - stav `emailWorker` (`ok`/`warning`/`error`) podle stale claimů, backlogu a failed logů
   - stav `emailQueue` (`pending`, `retrying`, `processing`, `staleProcessing`, `failed`)
-  - pole `alerts` se seznamem aktivních problémů; při `status=error` vrací endpoint HTTP `503`
+  - `emailDelivery.lastSentAt`, `lastErrorAt`, `hasRecentError` a `recentErrorWindowMs` (aktuálně 24 hodin)
+  - pole `alerts` se seznamem aktivních problémů; při `status=error` vrací endpoint HTTP `503` a i chybová větev drží stejný JSON shape s `cache-control: no-store`
 - Owner-only sekce `Email logy` nyní funguje jako business-first přehled `Email logy`:
   - nahoře ukazuje health stav `OK / Warning / Error` podle failed, retry, pending fronty a poslední relevantní chyby
   - krátké metriky shrnují `Dnes odesláno`, `Za posledních 7 dní`, `Čeká na odeslání`, `Selhalo` a `Poslední odeslání` v nižším KPI stripu

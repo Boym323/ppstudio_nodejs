@@ -319,6 +319,7 @@ Vyplň při každém nasazení. Slouží jako rychlý audit trail kdo/co/kdy ov�
 ## Doporučené monitoring minimum
 - Externí uptime check volej proti `GET /api/health`.
 - Alarm nastav minimálně na HTTP `503`, timeout a opakovaný `warning` stav.
+- Při ruční kontrole po deployi si z payloadu ověř i `release.deploymentId` a `durationMs`; endpoint tak potvrdí, že nový runtime opravdu běží na očekávaném releasu a health check není zpomalený.
 - Sleduj oba systemd procesy `ppstudio-web.service` a `ppstudio-email-worker.service`.
 - Při zapnutém Matomo dashboard reportingu měj po ruce i `npm run analytics:check` pro rychlou diagnostiku mimo UI.
 - Po incidentu s e-maily vždy zkontroluj outbox stavy `failed`, `retrying`, `processing` a `stale`.
