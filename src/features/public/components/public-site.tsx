@@ -11,7 +11,7 @@ import {
   PlaceholderNote,
   PublicHero,
 } from '@/features/public/components/public-page-primitives';
-import { getPublicSalonProfile } from '@/lib/site-settings';
+import { getBookingPolicySettings, getPublicSalonProfile } from '@/lib/site-settings';
 
 function LegalSections({ sections }: { sections: LegalSection[] }) {
   return (
