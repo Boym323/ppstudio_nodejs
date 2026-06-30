@@ -3,6 +3,7 @@ import { Inter, Playfair_Display } from "next/font/google";
 import { Suspense } from "react";
 
 import { siteConfig } from "@/config/site";
+import { DevChunkReload } from "@/components/dev/dev-chunk-reload";
 import { BookingAcquisitionTracker } from "@/features/booking/components/booking-acquisition-tracker";
 import { getPublicSalonProfile } from "@/lib/site-settings";
 
@@ -85,6 +86,7 @@ export default function RootLayout({
       className={`${displayFont.variable} ${sansFont.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
+        <DevChunkReload />
         <Suspense fallback={null}>
           <BookingAcquisitionTracker />
         </Suspense>

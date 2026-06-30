@@ -20,6 +20,7 @@ Pro centralizovaný přehled hlavních route handler kontraktů používej i [`d
 - Pokud dev server spadne na poškozené Turbopack cache (`Failed to restore task data`, chybějící `.sst` v `.next/dev/cache/turbopack`), použij:
   - `npm run dev:clean` (smaže `.next` a znovu spustí dev server)
   - `npm run dev:webpack` (fallback bez Turbopacku, vhodné při opakovaných pádech cache)
+- Pokud browser v dev režimu po restartu nebo invalidaci layoutu skončí na `ChunkLoadError: Failed to load chunk /_next/static/chunks/...`, root shell teď provede jeden automatický hard reload. Když ani druhé načtení nepomůže, vyčisti `.next` přes `npm run dev:clean`; nejde typicky o business chybu `/rezervace`, ale o rozjetý HMR/client cache stav.
 - Uploady souborů přes Server Actions respektují Next.js request body limit. Pro admin `Média` je v `next.config.ts` nastaveno `experimental.serverActions.bodySizeLimit = "10mb"`, protože samotný business limit obrázku je `8 MB` a multipart formulář přidává overhead navíc.
 - Kořenový `instrumentation.ts` je oficiální Next.js 16 hook pro serverovou observability. Když potřebuješ víc detailů k chybám, které spadnou ještě před vlastní action logikou, přidávej je přes `register()` / `onRequestError`, ne až do jednotlivých server actions.
 
