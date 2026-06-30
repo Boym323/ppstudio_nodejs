@@ -6,6 +6,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Admin dashboard cleanup: z repozitáře zmizely dvě staré nepoužívané komponenty (`src/features/admin/components/admin-dashboard.tsx`, `src/features/admin/components/dashboard-today-timeline.tsx`) a read model `src/features/admin/lib/admin-dashboard.ts` už nevrací historická nepoužívaná pole, takže je přehled jednodušší na údržbu bez změny chování UI.
+
 ## [0.5.0] - 2026-06-30
 
 - Release příprava pro produkční nasazení: projektová verze navýšena na minor `0.5.0`.

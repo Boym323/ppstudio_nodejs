@@ -68,29 +68,6 @@ function formatCountLabel(count: number, singular: string, pluralFew: string, pl
   return pluralMany;
 }
 
-function formatRelativeTime(target: Date, now: Date) {
-  const diffMs = target.getTime() - now.getTime();
-
-  if (diffMs <= 0) {
-    return "právě teď";
-  }
-
-  const totalMinutes = Math.round(diffMs / 60000);
-
-  if (totalMinutes < 60) {
-    return `za ${totalMinutes} min`;
-  }
-
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
-
-  if (minutes === 0) {
-    return `za ${hours} h`;
-  }
-
-  return `za ${hours} h ${minutes} min`;
-}
-
 export type DashboardTimelineItem =
   | {
       id: string;
@@ -340,16 +317,13 @@ export type AdminDashboardData = {
   area: AdminArea;
   todayLabel: string;
   todayBookingsCount: number;
-  todayBookingsLabel: string;
   currentReservationSummary: string | null;
   nextClient: {
     timeLabel: string;
     timeRangeLabel: string;
-    relativeLabel: string;
     serviceName: string;
     clientName: string;
     detailHref: string;
-    editHref: string;
   } | null;
   alerts: Array<{
     id: string;
@@ -373,7 +347,6 @@ export type AdminDashboardData = {
     freeSlotsLabel: string;
     bookingsLabel: string;
   };
-  hasPublishedSlotsTodayOrTomorrow: boolean;
   hasFreeWindowsToday: boolean;
   upcomingSlots: DashboardUpcomingSlot[];
   draftUpcomingSlotsCount: number;
@@ -381,7 +354,6 @@ export type AdminDashboardData = {
   quickActions: Array<{
     id: string;
     label: string;
-    description: string;
     href: string;
     icon: "plus" | "calendar" | "booking" | "clients" | "voucher";
   }>;
@@ -533,9 +505,6 @@ export async function getAdminDashboardData(area: AdminArea): Promise<AdminDashb
   const weekFreeSlots = weekSlots.filter((slot) => slot.bookings.length < slot.capacity).length;
   const weekBookingsCount = weekSlots.reduce((total, slot) => total + slot.bookings.length, 0);
   const upcomingFreeSlots = nearbyPublishedSlots.filter((slot) => slot.bookings.length < slot.capacity);
-  const hasPublishedSlotsTodayOrTomorrow = upcomingFreeSlots.some(
-    (slot) => slot.startsAt >= todayStart && slot.startsAt < dayAfterTomorrowStart,
-  );
   const hasFreeWindowsToday = upcomingFreeSlots.some(
     (slot) => slot.startsAt >= todayStart && slot.startsAt < tomorrowStart,
   );
@@ -614,12 +583,6 @@ export async function getAdminDashboardData(area: AdminArea): Promise<AdminDashb
     area,
     todayLabel: `Dnes • ${formatDayLabel(now)}`,
     todayBookingsCount: todayBookings.length,
-    todayBookingsLabel: formatCountLabel(
-      todayBookings.length,
-      "rezervace",
-      "rezervace",
-      "rezervací",
-    ),
     currentReservationSummary: currentTodayBooking
       ? `Právě probíhá: ${timeFormatter.format(
           currentTodayBooking.scheduledStartsAt,
@@ -634,11 +597,9 @@ export async function getAdminDashboardData(area: AdminArea): Promise<AdminDashb
           timeRangeLabel: `${timeFormatter.format(nextTodayBooking.scheduledStartsAt)}–${timeFormatter.format(
             nextTodayBooking.scheduledEndsAt,
           )}`,
-          relativeLabel: formatRelativeTime(nextTodayBooking.scheduledStartsAt, now),
           serviceName: safeText(nextTodayBooking.serviceNameSnapshot, "Služba není uvedená"),
           clientName: safeText(nextTodayBooking.clientNameSnapshot, "Klientka není uvedená"),
           detailHref: getAdminBookingHref(area, nextTodayBooking.id),
-          editHref: getAdminBookingHref(area, nextTodayBooking.id),
         }
       : null,
     alerts,
@@ -683,7 +644,6 @@ export async function getAdminDashboardData(area: AdminArea): Promise<AdminDashb
         "rezervací",
       )}`,
     },
-    hasPublishedSlotsTodayOrTomorrow,
     hasFreeWindowsToday,
     upcomingSlots: upcomingFreeSlots.map((slot) => {
       const prefix =
@@ -710,28 +670,24 @@ export async function getAdminDashboardData(area: AdminArea): Promise<AdminDashb
       {
         id: "bookings",
         label: "Otevřít rezervace",
-        description: "Seznam a potvrzení",
         href: bookingsHref,
         icon: "calendar",
       },
       {
         id: "availability",
         label: "Upravit dostupnost",
-        description: "Volné termíny",
         href: plannerHref,
         icon: "calendar",
       },
       {
         id: "clients",
         label: "Klienti",
-        description: "Kontakty a historie",
         href: clientsHref,
         icon: "clients",
       },
       {
         id: "vouchers",
         label: "Vouchery",
-        description: "Poukazy a čerpání",
         href: vouchersHref,
         icon: "voucher",
       },
