@@ -6,6 +6,9 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-06-30
+
+- Release příprava pro produkční nasazení: projektová verze navýšena na minor `0.5.0`.
 - Dev DX: browser v developmentu při známém `ChunkLoadError` z chybějícího Next/Turbopack chunku jednorázově provede hard reload místo zůstání v rozbitém HMR stavu; doplněná dokumentace v `MANUAL.md`, `docs/DEVELOPMENT.md` a `docs/INCIDENTS.md`.
 - Opravená dev výkonnost veřejných route `/`, `/sluzby`, `/vouchery`, `/faq` a `/kontakt`: voucher landing page už nenačítá celý veřejný katalog služeb jen kvůli třem doporučením a všechny tyto route nově používají menší samostatné page moduly s odděleným metadata helperem místo importu celého monolitického `public-site.tsx`. Tím se zkrátil serverový čas renderu a omezilo riziko navazujícího Turbopack `ChunkLoadError` / selhání RSC payloadu při přechodech v devu.
 - Veřejný web nově obsahuje indexovatelnou landing page `Dárkové vouchery` na `/vouchery`: samostatný hero, vysvětlení typů voucheru, orientační výběr vhodných služeb z aktuálního veřejného katalogu, FAQ blok a CTA na domluvu voucheru i na veřejné ověření kódu.
