@@ -88,7 +88,10 @@ test.describe("voucher admin flows", () => {
     await page.goto("/admin/vouchery/novy");
 
     await page.getByRole("button", { name: "Poukaz na službu" }).click();
-    await page.locator('button[aria-pressed="false"]').filter({ hasText: fixture.serviceName }).first().click();
+    const serviceButton = page.locator('button[aria-pressed]').filter({ hasText: fixture.serviceName }).first();
+    await expect(serviceButton).toBeVisible();
+    await serviceButton.click();
+    await expect(serviceButton).toHaveAttribute("aria-pressed", "true");
     await page.getByRole("textbox", { name: "Kupující", exact: true }).fill(`E2E služba ${fixture.runId}`);
     await page.getByRole("button", { name: "Vytvořit voucher" }).click();
     await expect(page).toHaveURL(/\/admin\/vouchery\/[^/]+$/);
