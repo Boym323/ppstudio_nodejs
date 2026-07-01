@@ -101,21 +101,46 @@ export function AdminVoucherForm({ data }: AdminVoucherFormProps) {
             ) : (
               <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_14rem]">
                 <Field label="Aktivní služba" error={serverState.fieldErrors?.serviceId}>
-                  <select
-                    name="serviceId"
-                    value={serviceId}
-                    onChange={(event) => setServiceId(event.target.value)}
-                    className={inputClassName}
-                  >
-                    {data.services.length === 0 ? (
-                      <option value="" className="text-black">Žádná aktivní služba</option>
-                    ) : null}
-                    {data.services.map((service) => (
-                      <option key={service.id} value={service.id} className="text-black">
-                        {service.publicName ?? service.name}
-                      </option>
-                    ))}
-                  </select>
+                  <input type="hidden" name="serviceId" value={serviceId} />
+                  {data.services.length === 0 ? (
+                    <div className="mt-2 rounded-[1rem] border border-dashed border-white/12 bg-[#0f0d12] px-3.5 py-3 text-sm text-white/58">
+                      Žádná aktivní služba
+                    </div>
+                  ) : (
+                    <div className="mt-2 max-h-72 space-y-2 overflow-y-auto rounded-[1rem] border border-white/10 bg-[#0f0d12] p-2">
+                      {data.services.map((service) => {
+                        const isSelected = service.id === serviceId;
+
+                        return (
+                          <button
+                            key={service.id}
+                            type="button"
+                            onClick={() => setServiceId(service.id)}
+                            aria-pressed={isSelected}
+                            className={cn(
+                              "w-full rounded-[0.95rem] border px-3.5 py-3 text-left transition",
+                              isSelected
+                                ? "border-[var(--color-accent)]/60 bg-[rgba(190,160,120,0.16)] text-white"
+                                : "border-white/8 bg-white/[0.02] text-white/76 hover:border-white/16 hover:bg-white/[0.05]",
+                            )}
+                          >
+                            <p className="text-sm font-medium text-white">
+                              {service.publicName ?? service.name}
+                            </p>
+                            <p className="mt-1 text-xs leading-5 text-white/48">
+                              {service.category.name}
+                              <span className="mx-1.5 text-white/22">·</span>
+                              {service.durationMinutes} min
+                              <span className="mx-1.5 text-white/22">·</span>
+                              {service.priceFromCzk === null
+                                ? "Cena na dotaz"
+                                : czkFormatter.format(service.priceFromCzk)}
+                            </p>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
                 </Field>
 
                 <ServicePreview service={selectedService} />

@@ -17,6 +17,7 @@ Pro centralizovaný přehled hlavních route handler kontraktů používej i [`d
 ## Dev runtime a cache
 - Vývoj i CI standardizujeme na `Node 24 LTS`. Repo drží [`.nvmrc`](/var/www/ppstudio/.nvmrc:1) s hodnotou `24` a `package.json` deklaruje `engines.node = ^24.0.0`; před prvním `npm install` nebo po upgrade runtime si ověř `node -v`.
 - Výchozí `npm run dev` používá Next.js 16 dev server.
+- U admin formulářů nepočítej s tím, že stylování nativního `<select>/<option>` bude konzistentní napříč OS. Chrome na Windows může ignorovat kontrast očekávaný z Tailwind tříd a vykreslit nečitelný dropdown; pro business-kritický výběr (např. voucher na službu) preferuj vlastní seznam/radio/button picker nad hidden inputem.
 - Pokud dev server spadne na poškozené Turbopack cache (`Failed to restore task data`, chybějící `.sst` v `.next/dev/cache/turbopack`), použij:
   - `npm run dev:clean` (smaže `.next` a znovu spustí dev server)
   - `npm run dev:webpack` (fallback bez Turbopacku, vhodné při opakovaných pádech cache)

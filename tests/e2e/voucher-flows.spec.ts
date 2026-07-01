@@ -78,4 +78,37 @@ test.describe("voucher admin flows", () => {
       .toHaveValue("Dárkový poukaz PP Studio");
     await expect(emailPanel.getByRole("button", { name: "Potvrdit odeslání" })).toBeVisible();
   });
+
+  test("owner can create a service voucher from the admin catalog picker", async ({ page }) => {
+    const fixture = await createPublicBookingFixture();
+    const admin = await createAdminFixture(fixture.runId, AdminRole.OWNER);
+    fixtures.push(fixture);
+
+    await loginAdmin(page, admin.email, admin.password);
+    await page.goto("/admin/vouchery/novy");
+
+    await page.getByRole("button", { name: "Poukaz na službu" }).click();
+    await page.locator('button[aria-pressed="false"]').filter({ hasText: fixture.serviceName }).first().click();
+    await page.getByRole("textbox", { name: "Kupující", exact: true }).fill(`E2E služba ${fixture.runId}`);
+    await page.getByRole("button", { name: "Vytvořit voucher" }).click();
+    await expect(page).toHaveURL(/\/admin\/vouchery\/[^/]+$/);
+    await expect(page.getByRole("heading", { name: "Detail voucheru" })).toBeVisible();
+
+    const voucher = await prisma.voucher.findFirstOrThrow({
+      where: {
+        purchaserName: `E2E služba ${fixture.runId}`,
+      },
+      select: {
+        type: true,
+        service: {
+          select: {
+            name: true,
+          },
+        },
+      },
+    });
+
+    expect(voucher.type).toBe("SERVICE");
+    expect(voucher.service?.name).toBe(fixture.serviceName);
+  });
 });

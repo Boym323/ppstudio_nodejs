@@ -6,6 +6,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Opravené vytváření voucheru na službu v adminu: picker služby už nepoužívá nativní `<select>` pro samotný výběr, takže v Chrome na Windows nezmizí názvy služeb kvůli systémovému renderingu bílého textu na světlém dropdownu. Přibyl i E2E scénář pro založení službového voucheru.
 - Admin dashboard cleanup: z repozitáře zmizely dvě staré nepoužívané komponenty (`src/features/admin/components/admin-dashboard.tsx`, `src/features/admin/components/dashboard-today-timeline.tsx`) a read model `src/features/admin/lib/admin-dashboard.ts` už nevrací historická nepoužívaná pole, takže je přehled jednodušší na údržbu bez změny chování UI.
 - Dev DX: `DevChunkReload` už neběží až po hydrataci jako client component, ale jako inline `beforeInteractive` guard v root layoutu. Jednorázový hard reload tak zachytí i selhání root/admin chunků v `next dev`, kde se původní klientský handler někdy vůbec nestihl načíst.
 
