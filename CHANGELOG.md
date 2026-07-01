@@ -7,6 +7,7 @@ Formát je inspirovaný Keep a Changelog.
 ## [Unreleased]
 
 - Admin dashboard cleanup: z repozitáře zmizely dvě staré nepoužívané komponenty (`src/features/admin/components/admin-dashboard.tsx`, `src/features/admin/components/dashboard-today-timeline.tsx`) a read model `src/features/admin/lib/admin-dashboard.ts` už nevrací historická nepoužívaná pole, takže je přehled jednodušší na údržbu bez změny chování UI.
+- Dev DX: `DevChunkReload` už neběží až po hydrataci jako client component, ale jako inline `beforeInteractive` guard v root layoutu. Jednorázový hard reload tak zachytí i selhání root/admin chunků v `next dev`, kde se původní klientský handler někdy vůbec nestihl načíst.
 
 ## [0.5.0] - 2026-06-30
 

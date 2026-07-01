@@ -66,7 +66,7 @@ Poznámka k runtime:
 - V CI i produkci drž stejnou major verzi Node, aby `npm ci`, build a nativní balíčky (`sharp`, Prisma) běžely nad stejným ABI.
 
 ## Troubleshooting
-- Pokud se v dev browser konzoli po restartu `next dev` objeví `ChunkLoadError: Failed to load chunk /_next/static/chunks/...`, aplikace se teď jednou sama tvrdě obnoví. Když chyba zůstane i potom, spusť `npm run dev:clean`; jde obvykle o rozjetý Turbopack/HMR cache stav, ne o chybu business logiky stránky.
+- Pokud se v dev browser konzoli po restartu `next dev` objeví `ChunkLoadError: Failed to load chunk /_next/static/chunks/...`, aplikace se teď jednou sama tvrdě obnoví už z inline `beforeInteractive` guardu v root layoutu, tedy ještě před hydrací Reactu. Když chyba zůstane i potom, spusť `npm run dev:clean`; jde obvykle o rozjetý Turbopack/HMR cache stav, ne o chybu business logiky stránky.
 
 ## Příklad `.env` a význam hlavních proměnných
 
