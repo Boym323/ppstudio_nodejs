@@ -6,6 +6,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Opravené `Nejbližší volné termíny` na admin dashboardu: read model už nebere volno jen podle `slot.capacity`, ale odečítá i interní booking blokace `scheduledStartsAt -> blockedUntil` a navazující volné úseky skládá do souvislých oken, takže po cleanup overflowu neukáže falešný čas a zároveň je výstup sjednocený s plannerem.
 - Dokumentace byla srovnaná s aktuálním stavem repa: `README.md`, `MANUAL.md`, `docs/ENVIRONMENT.md`, `docs/DEVELOPMENT.md`, `docs/DEPENDENCIES.md` a `docs/DEPLOYMENT.md` teď odpovídají `Node 24`, současnému `.env.example`, veřejné voucher routě, coverage/dev skriptům a reálnému release flow přes staging workspace + `.release-env`.
 - Stabilizován Playwright scénář vytvoření službového voucheru v adminu: výběr fixture služby už nepředpokládá `aria-pressed="false"`, takže test nepadá, když je CI seedovaná služba kvůli pořadí katalogu už předvybraná.
 - Opravené vytváření voucheru na službu v adminu: picker služby už nepoužívá nativní `<select>` pro samotný výběr, takže v Chrome na Windows nezmizí názvy služeb kvůli systémovému renderingu bílého textu na světlém dropdownu. Přibyl i E2E scénář pro založení službového voucheru.

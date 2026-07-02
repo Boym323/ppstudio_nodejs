@@ -15,6 +15,7 @@ Overview `/admin` a `/admin/provoz` se zjednodušuje na denní provozní cockpit
 - KPI jsou omezené na provozní hodnoty a zobrazené jako jeden metric strip: dnešní rezervace, volná okna dnes, týdenní obsazenost a volné sloty tento týden.
 - Hlavní obsah je dvousloupcový: vlevo `Dnešní plán` a `Nejbližší volné termíny`, vpravo `Rychlé akce`, `Tento týden` a `Výkon webu`.
 - `Dnešní plán` zobrazuje jen rezervace, ne volná okna. Řádky jsou nízké, právě probíhající rezervace je decentně zvýrazněná a dokončené rezervace jsou tlumené.
+- `Nejbližší volné termíny` ukazují souvislá volná okna po odečtení interní blokace `scheduledStartsAt -> blockedUntil`, takže cleanup overflow do sousedního slotu nesmí vytvořit falešné volno na začátku publikovaného okna a dashboard zůstává čitelně sladěný s plannerem.
 - Pravý sloupec je zhuštěný: rychlé akce jsou 2x2 krátká tlačítka, `Tento týden` má tři řádky a Matomo widget je ve výchozím stavu kompaktní `Výkon webu`. Zdroje návštěv a funnel jsou dostupné až přes rozbalení `Zobrazit analytiku`.
 
 ## Důsledky

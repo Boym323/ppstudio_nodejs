@@ -112,3 +112,49 @@ test("buildTimelineItems trims notes and uses salon admin routes", async () => {
   assert.ok(freeWindow);
   assert.equal(freeWindow.editHref, "/admin/provoz/volne-terminy/slot-2/upravit");
 });
+
+test("buildUpcomingFreeWindows respects cleanup blocking and merges adjacent free slots", async () => {
+  const { buildUpcomingFreeWindows } = await import("./admin-dashboard");
+  const upcomingSlots = buildUpcomingFreeWindows(
+    [
+      {
+        id: "slot-cleanup-overflow",
+        startsAt: new Date("2026-07-02T11:30:00.000Z"),
+        endsAt: new Date("2026-07-02T12:00:00.000Z"),
+        capacity: 1,
+      },
+      {
+        id: "slot-first-real-free",
+        startsAt: new Date("2026-07-02T13:00:00.000Z"),
+        endsAt: new Date("2026-07-02T13:45:00.000Z"),
+        capacity: 1,
+      },
+      {
+        id: "slot-following-free",
+        startsAt: new Date("2026-07-02T13:45:00.000Z"),
+        endsAt: new Date("2026-07-02T14:00:00.000Z"),
+        capacity: 1,
+      },
+    ],
+    [
+      {
+        scheduledStartsAt: new Date("2026-07-02T10:00:00.000Z"),
+        scheduledEndsAt: new Date("2026-07-02T11:30:00.000Z"),
+        blockedUntil: new Date("2026-07-02T12:00:00.000Z"),
+      },
+    ],
+  );
+
+  assert.deepEqual(
+    upcomingSlots.map((slot) => ({
+      id: slot.id,
+      startsAt: slot.startsAt.toISOString(),
+      endsAt: slot.endsAt.toISOString(),
+    })),
+    [{
+      id: "slot-first-real-free-0",
+      startsAt: "2026-07-02T13:00:00.000Z",
+      endsAt: "2026-07-02T14:00:00.000Z",
+    }],
+  );
+});

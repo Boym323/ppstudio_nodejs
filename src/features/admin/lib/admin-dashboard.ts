@@ -7,6 +7,11 @@ import {
   getBookingStatusLabel,
 } from "@/features/admin/lib/admin-booking";
 import {
+  clampIntervalToDay,
+  mergeIntervals,
+  subtractIntervals,
+} from "@/features/admin/lib/admin-slots/helpers";
+import {
   addDays,
   formatDateKey,
   getDayBounds,
@@ -120,6 +125,26 @@ export type DashboardUpcomingSlot = {
   href: string;
 };
 
+type UpcomingSlotRecord = {
+  id: string;
+  startsAt: Date;
+  endsAt: Date;
+  capacity: number;
+};
+
+type UpcomingBookingBlockRecord = {
+  scheduledStartsAt: Date;
+  scheduledEndsAt: Date;
+  blockedUntil: Date | null;
+};
+
+type UpcomingFreeWindow = {
+  id: string;
+  startsAt: Date;
+  endsAt: Date;
+  capacity: number;
+};
+
 function capitalize(value: string) {
   return value.charAt(0).toUpperCase() + value.slice(1);
 }
@@ -189,6 +214,110 @@ function getWeekBounds(now: Date) {
   const weekEnd = addDays(weekStart, 7);
 
   return { weekStart, weekEnd };
+}
+
+function getFreeIntervalsForSlot(
+  slot: UpcomingSlotRecord,
+  overlappingBookings: UpcomingBookingBlockRecord[],
+) {
+  if (slot.capacity < 1) {
+    return [];
+  }
+
+  const blockedIntervals = mergeIntervals(
+    overlappingBookings
+      .map((booking) =>
+        clampIntervalToDay(
+          {
+            startsAt: booking.scheduledStartsAt,
+            endsAt: booking.blockedUntil ?? booking.scheduledEndsAt,
+          },
+          slot.startsAt,
+          slot.endsAt,
+        ))
+      .filter((interval): interval is { startsAt: Date; endsAt: Date } => interval !== null),
+  );
+
+  if (slot.capacity === 1) {
+    return blockedIntervals.reduce(
+      (intervals, blockedInterval) => subtractIntervals(intervals, blockedInterval),
+      [{ startsAt: slot.startsAt, endsAt: slot.endsAt }],
+    );
+  }
+
+  const boundaries = new Set<number>([
+    slot.startsAt.getTime(),
+    slot.endsAt.getTime(),
+  ]);
+
+  for (const blockedInterval of blockedIntervals) {
+    boundaries.add(blockedInterval.startsAt.getTime());
+    boundaries.add(blockedInterval.endsAt.getTime());
+  }
+
+  const sortedBoundaries = [...boundaries].sort((left, right) => left - right);
+  const availableSegments: Array<{ startsAt: Date; endsAt: Date }> = [];
+
+  for (let index = 0; index < sortedBoundaries.length - 1; index += 1) {
+    const segmentStart = sortedBoundaries[index];
+    const segmentEnd = sortedBoundaries[index + 1];
+
+    if (segmentEnd <= segmentStart) {
+      continue;
+    }
+
+    const activeBookings = overlappingBookings.filter((booking) => {
+      const blockedUntil = booking.blockedUntil ?? booking.scheduledEndsAt;
+      return booking.scheduledStartsAt.getTime() < segmentEnd && blockedUntil.getTime() > segmentStart;
+    }).length;
+
+    if (activeBookings < slot.capacity) {
+      availableSegments.push({
+        startsAt: new Date(segmentStart),
+        endsAt: new Date(segmentEnd),
+      });
+    }
+  }
+
+  return availableSegments;
+}
+
+export function buildUpcomingFreeWindows(
+  slots: UpcomingSlotRecord[],
+  bookings: UpcomingBookingBlockRecord[],
+) {
+  const rawFreeWindows = slots.flatMap<UpcomingFreeWindow>((slot) => {
+    const overlappingBookings = bookings.filter((booking) => {
+      const blockedUntil = booking.blockedUntil ?? booking.scheduledEndsAt;
+      return booking.scheduledStartsAt < slot.endsAt && blockedUntil > slot.startsAt;
+    });
+
+    return getFreeIntervalsForSlot(slot, overlappingBookings).map((interval, index) => ({
+      id: `${slot.id}-${index}`,
+      startsAt: interval.startsAt,
+      endsAt: interval.endsAt,
+      capacity: slot.capacity,
+    }));
+  });
+
+  const mergedWindows: UpcomingFreeWindow[] = [];
+
+  for (const window of rawFreeWindows) {
+    const previous = mergedWindows.at(-1);
+
+    if (
+      previous
+      && previous.capacity === window.capacity
+      && previous.endsAt.getTime() === window.startsAt.getTime()
+    ) {
+      previous.endsAt = window.endsAt;
+      continue;
+    }
+
+    mergedWindows.push({ ...window });
+  }
+
+  return mergedWindows;
 }
 
 export function buildTimelineItems(
@@ -376,6 +505,7 @@ export async function getAdminDashboardData(area: AdminArea): Promise<AdminDashb
     failedEmails,
     weekSlots,
     nearbyPublishedSlots,
+    nearbyBookingBlocks,
     upcomingDraftSlotsCount,
   ] = await Promise.all([
     prisma.booking.findMany({
@@ -453,16 +583,36 @@ export async function getAdminDashboardData(area: AdminArea): Promise<AdminDashb
         status: AvailabilitySlotStatus.PUBLISHED,
       },
       orderBy: { startsAt: "asc" },
-      take: 8,
       select: {
         id: true,
         startsAt: true,
         endsAt: true,
         capacity: true,
-        bookings: {
-          where: { status: { in: ACTIVE_BOOKING_STATUSES } },
-          select: { id: true },
-        },
+      },
+    }),
+    prisma.booking.findMany({
+      where: {
+        scheduledStartsAt: { lt: weekEnd },
+        OR: [
+          {
+            blockedUntil: {
+              gt: now,
+            },
+          },
+          {
+            blockedUntil: null,
+            scheduledEndsAt: {
+              gt: now,
+            },
+          },
+        ],
+        status: { in: ACTIVE_BOOKING_STATUSES },
+      },
+      orderBy: { scheduledStartsAt: "asc" },
+      select: {
+        scheduledStartsAt: true,
+        scheduledEndsAt: true,
+        blockedUntil: true,
       },
     }),
     prisma.availabilitySlot.count({
@@ -504,8 +654,8 @@ export async function getAdminDashboardData(area: AdminArea): Promise<AdminDashb
   const weekOccupancy = getWeekOccupancy(weekSlots);
   const weekFreeSlots = weekSlots.filter((slot) => slot.bookings.length < slot.capacity).length;
   const weekBookingsCount = weekSlots.reduce((total, slot) => total + slot.bookings.length, 0);
-  const upcomingFreeSlots = nearbyPublishedSlots.filter((slot) => slot.bookings.length < slot.capacity);
-  const hasFreeWindowsToday = upcomingFreeSlots.some(
+  const upcomingFreeWindows = buildUpcomingFreeWindows(nearbyPublishedSlots, nearbyBookingBlocks);
+  const hasFreeWindowsToday = upcomingFreeWindows.some(
     (slot) => slot.startsAt >= todayStart && slot.startsAt < tomorrowStart,
   );
   const overdueActiveBookingsCount = todaySlots.reduce((count, slot) => {
@@ -645,23 +795,22 @@ export async function getAdminDashboardData(area: AdminArea): Promise<AdminDashb
       )}`,
     },
     hasFreeWindowsToday,
-    upcomingSlots: upcomingFreeSlots.map((slot) => {
+    upcomingSlots: upcomingFreeWindows.slice(0, 8).map((slot) => {
       const prefix =
         slot.startsAt >= todayStart && slot.startsAt < tomorrowStart
           ? "Dnes"
           : slot.startsAt >= tomorrowStart && slot.startsAt < dayAfterTomorrowStart
             ? "Zítra"
             : formatDayLabel(slot.startsAt);
-      const remainingCapacity = Math.max(slot.capacity - slot.bookings.length, 0);
       const metaLabel =
-        remainingCapacity <= 1 ? "volno" : `volno • kapacita ${remainingCapacity}`;
+        slot.capacity <= 1 ? "volno" : `volno • kapacita ${slot.capacity}`;
 
       return {
         id: slot.id,
         dayLabel: prefix,
-        timeLabel: timeFormatter.format(slot.startsAt),
+        timeLabel: `${timeFormatter.format(slot.startsAt)} - ${timeFormatter.format(slot.endsAt)}`,
         metaLabel,
-        href: getSlotEditHref(area, slot.id),
+        href: plannerHref,
       };
     }),
     draftUpcomingSlotsCount: upcomingDraftSlotsCount,
