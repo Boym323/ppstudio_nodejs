@@ -885,26 +885,24 @@ export async function applyAdminBookingStatusChange({
       const manageToken = buildBookingActionToken();
       const cancellationToken = buildBookingActionToken();
 
-      await Promise.all([
-        tx.bookingActionToken.create({
-          data: {
-            bookingId: booking.id,
-            type: BookingActionTokenType.RESCHEDULE,
-            tokenHash: manageToken.tokenHash,
-            expiresAt: buildBookingActionExpiry(now),
-            lastSentAt: now,
-          },
-        }),
-        tx.bookingActionToken.create({
-          data: {
-            bookingId: booking.id,
-            type: BookingActionTokenType.CANCEL,
-            tokenHash: cancellationToken.tokenHash,
-            expiresAt: buildBookingActionExpiry(now),
-            lastSentAt: now,
-          },
-        }),
-      ]);
+      await tx.bookingActionToken.create({
+        data: {
+          bookingId: booking.id,
+          type: BookingActionTokenType.RESCHEDULE,
+          tokenHash: manageToken.tokenHash,
+          expiresAt: buildBookingActionExpiry(now),
+          lastSentAt: now,
+        },
+      });
+      await tx.bookingActionToken.create({
+        data: {
+          bookingId: booking.id,
+          type: BookingActionTokenType.CANCEL,
+          tokenHash: cancellationToken.tokenHash,
+          expiresAt: buildBookingActionExpiry(now),
+          lastSentAt: now,
+        },
+      });
 
       await tx.emailLog.create({
         data: {
@@ -1018,35 +1016,8 @@ export async function updateAdminBookingService({
         blockedUntil: true,
         manualOverride: true,
         finalPriceCzk: true,
+        intendedVoucherId: true,
         updatedAt: true,
-        slot: {
-          select: {
-            id: true,
-            startsAt: true,
-            endsAt: true,
-            capacity: true,
-            status: true,
-            serviceRestrictionMode: true,
-            allowedServices: {
-              select: {
-                serviceId: true,
-              },
-            },
-          },
-        },
-        intendedVoucher: {
-          select: {
-            id: true,
-            type: true,
-            serviceId: true,
-          },
-        },
-        voucherRedemptions: {
-          select: {
-            id: true,
-            serviceId: true,
-          },
-        },
       },
     });
 
@@ -1075,6 +1046,48 @@ export async function updateAdminBookingService({
       return { status: "same-service" as const };
     }
 
+    const slot = await tx.availabilitySlot.findUniqueOrThrow({
+      where: {
+        id: booking.slotId,
+      },
+      select: {
+        id: true,
+        startsAt: true,
+        endsAt: true,
+        capacity: true,
+        status: true,
+        serviceRestrictionMode: true,
+        allowedServices: {
+          select: {
+            serviceId: true,
+          },
+        },
+      },
+    });
+
+    const intendedVoucher = booking.intendedVoucherId
+      ? await tx.voucher.findUnique({
+          where: {
+            id: booking.intendedVoucherId,
+          },
+          select: {
+            id: true,
+            type: true,
+            serviceId: true,
+          },
+        })
+      : null;
+
+    const voucherRedemptions = await tx.voucherRedemption.findMany({
+      where: {
+        bookingId: booking.id,
+      },
+      select: {
+        id: true,
+        serviceId: true,
+      },
+    });
+
     const nextService = await tx.service.findFirst({
       where: {
         id: serviceId,
@@ -1095,9 +1108,9 @@ export async function updateAdminBookingService({
     }
 
     if (
-      booking.intendedVoucher?.type === VoucherType.SERVICE
-      && booking.intendedVoucher.serviceId
-      && booking.intendedVoucher.serviceId !== nextService.id
+      intendedVoucher?.type === VoucherType.SERVICE
+      && intendedVoucher.serviceId
+      && intendedVoucher.serviceId !== nextService.id
     ) {
       return {
         status: "voucher-conflict" as const,
@@ -1105,7 +1118,7 @@ export async function updateAdminBookingService({
       };
     }
 
-    const conflictingRedemption = booking.voucherRedemptions.some(
+    const conflictingRedemption = voucherRedemptions.some(
       (redemption) => redemption.serviceId && redemption.serviceId !== nextService.id,
     );
 
@@ -1153,20 +1166,20 @@ export async function updateAdminBookingService({
     });
 
     const publishedCoverage = resolvePublishedSlotCoverage(
-      [booking.slot, ...overlappingSlots],
+      [slot, ...overlappingSlots],
       nextService.id,
       booking.scheduledStartsAt,
       nextBlockedUntil,
-      booking.slot.id,
+      slot.id,
     );
 
-    const slotAllowsNewService = booking.slot.serviceRestrictionMode === "ANY"
-      || booking.slot.allowedServices.some((allowedService) => allowedService.serviceId === nextService.id);
+    const slotAllowsNewService = slot.serviceRestrictionMode === "ANY"
+      || slot.allowedServices.some((allowedService) => allowedService.serviceId === nextService.id);
     const currentSlotCoversNewTiming =
-      booking.scheduledStartsAt.getTime() >= booking.slot.startsAt.getTime()
-      && nextBlockedUntil.getTime() <= booking.slot.endsAt.getTime();
+      booking.scheduledStartsAt.getTime() >= slot.startsAt.getTime()
+      && nextBlockedUntil.getTime() <= slot.endsAt.getTime();
 
-    const canStayOnManualOverrideSlot = booking.slot.status !== "PUBLISHED"
+    const canStayOnManualOverrideSlot = slot.status !== "PUBLISHED"
       && slotAllowsNewService
       && currentSlotCoversNewTiming;
 
@@ -1176,10 +1189,10 @@ export async function updateAdminBookingService({
       };
     }
 
-    const resolvedCoverageSlots = publishedCoverage?.coverage ?? [booking.slot];
-    const restrictConflictToCoverage = booking.slot.status === "PUBLISHED" && publishedCoverage !== null;
+    const resolvedCoverageSlots = publishedCoverage?.coverage ?? [slot];
+    const restrictConflictToCoverage = slot.status === "PUBLISHED" && publishedCoverage !== null;
     const allowedCapacity = canStayOnManualOverrideSlot
-      ? booking.slot.capacity
+      ? slot.capacity
       : Math.min(...resolvedCoverageSlots.map((slot) => slot.capacity));
 
     const activeBookingCount = await tx.booking.count({
@@ -1220,10 +1233,10 @@ export async function updateAdminBookingService({
       return { status: "conflict" as const };
     }
 
-    if (booking.slot.status !== "PUBLISHED") {
+    if (slot.status !== "PUBLISHED") {
       await tx.availabilitySlot.update({
         where: {
-          id: booking.slot.id,
+          id: slot.id,
         },
         data: {
           endsAt: nextBlockedUntil,

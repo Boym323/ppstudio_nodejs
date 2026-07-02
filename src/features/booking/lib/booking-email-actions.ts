@@ -457,26 +457,24 @@ export async function performBookingEmailAction(
         const manageToken = buildBookingActionToken();
         const cancellationToken = buildBookingActionToken();
 
-        await Promise.all([
-          tx.bookingActionToken.create({
-            data: {
-              bookingId: lockedToken.bookingId,
-              type: BookingActionTokenType.RESCHEDULE,
-              tokenHash: manageToken.tokenHash,
-              expiresAt: buildBookingActionExpiry(now),
-              lastSentAt: now,
-            },
-          }),
-          tx.bookingActionToken.create({
-            data: {
-              bookingId: lockedToken.bookingId,
-              type: BookingActionTokenType.CANCEL,
-              tokenHash: cancellationToken.tokenHash,
-              expiresAt: buildBookingActionExpiry(now),
-              lastSentAt: now,
-            },
-          }),
-        ]);
+        await tx.bookingActionToken.create({
+          data: {
+            bookingId: lockedToken.bookingId,
+            type: BookingActionTokenType.RESCHEDULE,
+            tokenHash: manageToken.tokenHash,
+            expiresAt: buildBookingActionExpiry(now),
+            lastSentAt: now,
+          },
+        });
+        await tx.bookingActionToken.create({
+          data: {
+            bookingId: lockedToken.bookingId,
+            type: BookingActionTokenType.CANCEL,
+            tokenHash: cancellationToken.tokenHash,
+            expiresAt: buildBookingActionExpiry(now),
+            lastSentAt: now,
+          },
+        });
 
         bookingApprovedPayload = buildBookingApprovedEmailPayload(
           lockedToken.booking!,
