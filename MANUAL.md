@@ -68,6 +68,7 @@ Poznámka k runtime:
 ## Troubleshooting
 - Pokud se v dev browser konzoli po restartu `next dev` objeví `ChunkLoadError: Failed to load chunk /_next/static/chunks/...`, aplikace se teď jednou sama tvrdě obnoví už z inline `beforeInteractive` guardu v root layoutu, tedy ještě před hydrací Reactu. Když chyba zůstane i potom, spusť `npm run dev:clean`; jde obvykle o rozjetý Turbopack/HMR cache stav, ne o chybu business logiky stránky.
 - Pokud v admin formuláři `Vytvořit voucher` na Windows/Chrome po přepnutí na `Poukaz na službu` nevidíš názvy služeb, nehledej starou browser cache. Šlo o browser-specific rendering nativního dropdownu; aktuální picker používá vlastní seznam služeb a problém už nemá být reprodukovatelný.
+- Pokud DB test nebo storno rezervace spadne na `AvailabilitySlot_active_time_window_excl`, zkontroluj pořadí merge operací v `booking-slot-compaction.ts`. Sousední slot musí být při compaction nejdřív archivovaný a teprve potom se může rozšířit cílový interval; jinak PostgreSQL zachytí dočasný překryv dvou aktivních slotů.
 
 ## Příklad `.env` a význam hlavních proměnných
 

@@ -98,6 +98,17 @@ async function mergeSlotsIntoAnchor(
     });
   }
 
+  // Move the adjacent slot out of the active exclusion constraint set before
+  // expanding the anchor across the same time range.
+  await tx.availabilitySlot.update({
+    where: {
+      id: adjacentSlot.id,
+    },
+    data: {
+      status: AvailabilitySlotStatus.ARCHIVED,
+    },
+  });
+
   await tx.availabilitySlot.update({
     where: {
       id: anchorSlot.id,

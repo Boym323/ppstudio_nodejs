@@ -6,6 +6,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Opravený merge sousedních editovatelných slotů po storno rezervace: compaction teď v transakci nejdřív vyřadí slučovaný sousední slot z active exclusion constraintu a teprve potom rozšíří anchor slot, takže storno už nepadá na PostgreSQL chybě `AvailabilitySlot_active_time_window_excl`.
 - Storno rezervace nově po zrušení termínu automaticky znovu kompaktuje sousední běžné publikované fragmenty slotů zpět do souvislého okna, takže po starém bookingu nezůstávají trvalé zbytky typu `15:45–16:00`.
 - Opravené `Nejbližší volné termíny` na admin dashboardu: read model už nebere volno jen podle `slot.capacity`, ale odečítá i interní booking blokace `scheduledStartsAt -> blockedUntil` a navazující volné úseky skládá do souvislých oken, takže po cleanup overflowu neukáže falešný čas a zároveň je výstup sjednocený s plannerem.
 - Dokumentace byla srovnaná s aktuálním stavem repa: `README.md`, `MANUAL.md`, `docs/ENVIRONMENT.md`, `docs/DEVELOPMENT.md`, `docs/DEPENDENCIES.md` a `docs/DEPLOYMENT.md` teď odpovídají `Node 24`, současnému `.env.example`, veřejné voucher routě, coverage/dev skriptům a reálnému release flow přes staging workspace + `.release-env`.
