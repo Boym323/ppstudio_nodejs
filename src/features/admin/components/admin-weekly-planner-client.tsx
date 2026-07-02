@@ -364,17 +364,17 @@ export function AdminWeeklyPlannerClient({
 }: AdminWeeklyPlannerClientProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [initialPlannerState] = useState(() => getInitialPlannerState(data));
-  const [workingDays, setWorkingDays] = useState(initialPlannerState.days);
+  const [workingDays, setWorkingDays] = useState(() => getInitialPlannerState(data).days);
   const [pendingInteraction, setPendingInteraction] = useState<PendingInteraction | null>(null);
   const [selectedSelection, setSelectedSelection] = useState<PlannerSelection | null>(null);
-  const [feedback, setFeedback] = useState<FeedbackState | null>(initialPlannerState.feedback);
+  const [feedback, setFeedback] = useState<FeedbackState | null>(() => getInitialPlannerState(data).feedback);
   const [mobileInspectorOpen, setMobileInspectorOpen] = useState(false);
 
   useEffect(() => {
     const applyHydratedState = (next: {
       days?: PlannerDay[];
       feedback?: FeedbackState | null;
+      resetSelection?: boolean;
     }) => {
       queueMicrotask(() => {
         if (next.days) {
@@ -384,6 +384,12 @@ export function AdminWeeklyPlannerClient({
         if (next.feedback !== undefined) {
           setFeedback(next.feedback);
         }
+
+        if (next.resetSelection) {
+          setPendingInteraction(null);
+          setSelectedSelection(null);
+          setMobileInspectorOpen(false);
+        }
       });
     };
 
@@ -391,10 +397,11 @@ export function AdminWeeklyPlannerClient({
 
     if (!storedDraft) {
       const storedFeedback = consumeStoredFeedback(data.area, data.weekKey);
-
-      if (storedFeedback) {
-        applyHydratedState({ feedback: storedFeedback });
-      }
+      applyHydratedState({
+        days: cloneWeekDays(data.days),
+        feedback: storedFeedback ?? null,
+        resetSelection: true,
+      });
 
       return;
     }
@@ -424,9 +431,15 @@ export function AdminWeeklyPlannerClient({
           tone: "info",
           message: "Načetl se uložený koncept tohoto týdne z tohoto zařízení.",
         },
+        resetSelection: true,
       });
     } catch {
       window.localStorage.removeItem(getDraftStorageKey(data.area, data.weekKey));
+      applyHydratedState({
+        days: cloneWeekDays(data.days),
+        feedback: null,
+        resetSelection: true,
+      });
     }
   }, [data.area, data.days, data.weekKey]);
 
@@ -727,6 +740,9 @@ export function AdminWeeklyPlannerClient({
       setFeedback(nextFeedback);
 
       if (result.ok) {
+        setPendingInteraction(null);
+        setSelectedSelection(null);
+        setMobileInspectorOpen(false);
         window.localStorage.removeItem(getDraftStorageKey(data.area, data.weekKey));
         persistFeedback(data.area, data.weekKey, nextFeedback);
         router.replace(`${data.baseHref}?week=${data.weekKey}&day=${selectedDay.dateKey}`, { scroll: false });
