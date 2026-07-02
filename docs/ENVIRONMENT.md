@@ -67,11 +67,27 @@ Dokumentace proměnných prostředí pro lokální vývoj i produkci.
 
 ## Doporučený lokální `.env` základ
 
+`cp .env.example .env` ti připraví bezpečný výchozí základ. Pro lokální onboarding obvykle měníš hlavně runtime URL, databázi, session secret a dočasně bootstrap/email režim.
+
 ```dotenv
 NODE_ENV=development
 NEXT_PUBLIC_APP_NAME=PP Studio
 NEXT_PUBLIC_APP_URL=http://localhost:3000
-NEXT_PUBLIC_SITE_URL=https://ppstudio.cz
+NEXT_PUBLIC_SITE_DOMAIN=ppstudio.cz
+VOUCHER_PUBLIC_DOMAIN=ppstudio.cz
+NEXT_PUBLIC_MATOMO_ENABLED=false
+NEXT_PUBLIC_CLARITY_ENABLED=false
+NEXT_PUBLIC_META_PIXEL_ENABLED=false
+NEXT_PUBLIC_WEB_VITALS_ENABLED=true
+NEXT_PUBLIC_CLARITY_PROJECT_ID=
+NEXT_PUBLIC_META_PIXEL_ID=
+NEXT_PUBLIC_MATOMO_URL=https://matomo.example.cz/
+NEXT_PUBLIC_MATOMO_SITE_ID=1
+MATOMO_URL=https://matomo.example.cz/
+MATOMO_SITE_ID=1
+MATOMO_AUTH_TOKEN=replace-with-server-side-reporting-token
+PUSHOVER_ENABLED=false
+PUSHOVER_APP_TOKEN=replace-with-pushover-application-token
 NEXT_SERVER_ACTIONS_ENCRYPTION_KEY=replace-with-openssl-rand-base64-32
 
 DATABASE_URL="postgresql://postgres:postgres@localhost:5432/ppstudio?schema=public"
@@ -81,7 +97,7 @@ ADMIN_SESSION_SECRET=replace-with-long-random-secret-at-least-32-chars
 ADMIN_SESSION_IDLE_MAX_AGE_SECONDS=1209600
 ADMIN_SESSION_REFRESH_WINDOW_SECONDS=172800
 ADMIN_SESSION_ABSOLUTE_MAX_AGE_SECONDS=3888000
-ADMIN_BOOTSTRAP_ENABLED=true
+ADMIN_BOOTSTRAP_ENABLED=false
 ADMIN_OWNER_EMAIL=owner@example.com
 ADMIN_OWNER_PASSWORD=change-me-owner
 ADMIN_STAFF_EMAIL=staff@example.com
@@ -89,6 +105,14 @@ ADMIN_STAFF_PASSWORD=change-me-staff
 
 EMAIL_DELIVERY_MODE=log
 EMAIL_TRANSPORT=smtp
+SMTP_HOST=smtp.example.com
+SMTP_PORT=587
+SMTP_SECURE=auto
+SMTP_USER=mailer@example.com
+SMTP_PASSWORD=change-me-smtp
+SMTP_FROM_EMAIL=no-reply@example.com
+SMTP_FROM_NAME=PP Studio
+SMTP_REPLY_TO=hello@example.com
 RESEND_API_KEY=
 RESEND_WEBHOOK_SECRET=
 MEDIA_STORAGE_ROOT=/var/www/ppstudio-uploads
@@ -97,7 +121,7 @@ MEDIA_STORAGE_ROOT=/var/www/ppstudio-uploads
 Lokální doporučení:
 
 - `EMAIL_DELIVERY_MODE=log` je nejbezpečnější výchozí režim pro vývoj a testovací rollout.
-- `ADMIN_BOOTSTRAP_ENABLED=true` používej jen po dobu prvního přihlášení nebo recovery; po zřízení DB účtů vrať `false`.
+- `.env.example` drží `ADMIN_BOOTSTRAP_ENABLED=false` a `EMAIL_DELIVERY_MODE=background`; pro první lokální přihlášení nebo bezpečný vývoj je běžné tyto dvě hodnoty dočasně přepnout na `true` a `log`.
 - `NEXT_PUBLIC_MATOMO_*`, `NEXT_PUBLIC_CLARITY_*`, `NEXT_PUBLIC_META_PIXEL_*`, `MATOMO_*` a `PUSHOVER_*` nech klidně vypnuté, pokud zrovna netestuješ analytics nebo notifikace.
 - `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` drž stabilně v produkčním `.env`; deployment identifikátor naopak do `.env` běžně nefixuj, protože `deploy/release.sh` ho automaticky odvozuje z aktuálního commitu a zapisuje do runtime `.release-env`.
 - Produkční `instrumentation.ts` z těchto hodnot skládá provozní log metadata. Do logu se nezapisuje surový `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY`, jen jeho bezpečný fingerprint; ten lze mezi instancemi porovnat při debugování `Failed to find Server Action`.

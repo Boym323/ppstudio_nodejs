@@ -10,7 +10,7 @@ Postup nasazení aplikace do produkce.
 - Pokud produkční systemd služby používají systémový `node` z `PATH`, po upgrade ověř, že stejnou verzi vidí i restartované jednotky `ppstudio-web` a `ppstudio-email-worker`.
 
 ## Release checklist
-1. `npm ci`
+1. `npm ci --include=dev`
    - Před tím ověř, že server už běží na `Node 24 LTS`; po skoku z `22` čekej čistý reinstall nativních balíčků typu `sharp`.
 2. Ověř správné produkční env proměnné (`DATABASE_URL`, `ADMIN_SESSION_SECRET`, `ADMIN_BOOTSTRAP_ENABLED=false` mimo krátký recovery režim, admin bootstrap účty, email delivery, worker, `MEDIA_STORAGE_ROOT`, povinný `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY`, volitelně `NEXT_PUBLIC_MATOMO_*`, `NEXT_PUBLIC_CLARITY_*`, `NEXT_PUBLIC_META_PIXEL_*`, serverové `MATOMO_*` pro dashboard reporting a `PUSHOVER_ENABLED` / `PUSHOVER_APP_TOKEN` pro owner notifikace).
    - Při používání Resend trackingu ověř i `EMAIL_TRANSPORT=resend`, `RESEND_API_KEY` a `RESEND_WEBHOOK_SECRET`.
@@ -333,21 +333,22 @@ Vyplň při každém nasazení. Slouží jako rychlý audit trail kdo/co/kdy ov�
 - Pokud release mění e-mail, voucher nebo analytics flow, rozšiř smoke test i o odpovídající provozní scénář.
 - Když `/api/health` hlásí `warning` nebo `error`, release nepovažuj za uzavřený, dokud není stav vysvětlený nebo opravený.
 
-## Nasazení
-1. Pull nové verze na server.
-2. Instalace závislostí (`npm ci`).
-3. Generování Prisma klienta (`npm run db:generate`).
-4. Kontrola historie migrací (`npm run db:check-migrations`).
-5. Aplikace databázových změn (`npx prisma migrate deploy`).
-6. Build (`npm run build`).
-7. Připrav nebo ověř existenci upload rootu `/var/www/ppstudio/uploads` včetně práv pro web proces.
-8. Restart procesu aplikace.
-9. Pokud běžíš v self-hosted režimu bez připraveného SMTP, nech dočasně `EMAIL_DELIVERY_MODE=log`, ať booking flow neblokuje start produkce; po ověření SMTP ho pro produkci vrať na `background`.
-10. Pro produkci spusť zvlášť `npm run email:worker` jako samostatný proces nebo službu.
-11. Po nasazení reminder změny ověř, že worker běží nepřetržitě; bez něj se reminder joby neenqueueují ani nedoručují.
-12. Po nasazení reschedule změny ověř, že přesun resetuje `reminder24hQueuedAt` a `reminder24hSentAt`, aby se reminder správně navázal na nový termín.
-13. Po změně booking e-mailových šablon odešli testovací novou rezervaci, potvrzení, reminder, přesun a storno; v Gmailu, iOS Mailu, Apple Mailu a Outlooku zkontroluj čitelnost 600px shellu, stackování CTA na mobilu, funkčnost approve/reject/admin/manage/cancel odkazů, jednorázový kontakt, formát času `09:30 – 10:30` a to, že `Zrušit rezervaci` není vizuálně dominantnější než potvrzení.
-14. Po nasazení migrace `20260426123000_client_email_nullable_for_manual_booking` ověř ruční booking i bez e-mailu, včetně seznamu klientek, detailu klientky a detailu rezervace bez neplatných `mailto:` odkazů.
+## Ruční Fallback Rollout
+Použij jen tehdy, když z nějakého důvodu nemůžeš použít `./deploy/release.sh`. Doporučený skript je bezpečnější, protože buildí ve staging workspace, zapisuje `.release-env`, synchronizuje systemd unity a umí vrátit předchozí artefakty při selhání startu.
+
+1. Ověř `Node 24 LTS`, správné `.env`, upload root a existenci `ppstudio-web.service` / `ppstudio-email-worker.service`.
+2. Proveď `git pull --ff-only`.
+3. Spusť `npm ci --include=dev`.
+4. Spusť `npm run db:generate`.
+5. Spusť `npm run db:check-migrations`.
+6. Spusť `npx prisma migrate deploy`.
+7. Spusť `npm run lint`.
+8. Exportuj jednotný release identifikátor, například `export NEXT_DEPLOYMENT_ID=$(git rev-parse --short=12 HEAD)` a stejnou hodnotu nastav i do `DEPLOYMENT_VERSION` a `GIT_HASH`.
+9. Zapiš stejné tři proměnné i do `.release-env`, aby je po restartu viděl runtime `next start`.
+10. Spusť `npm run build`.
+11. Restartuj `ppstudio-web` a `ppstudio-email-worker`.
+12. Proveď minimálně smoke test `GET /api/health`, homepage, admin login a testovací rezervace.
+13. Pokud běžíš v self-hosted režimu bez připraveného SMTP, nech dočasně `EMAIL_DELIVERY_MODE=log`, ať booking flow neblokuje start produkce; po ověření SMTP ho pro produkci vrať na `background`.
 
 ### Bootstrap Recovery
 - Bootstrap login přes `ADMIN_OWNER_EMAIL/PASSWORD` a `ADMIN_STAFF_EMAIL/PASSWORD` je výchozím nastavením vypnutý.
@@ -361,8 +362,10 @@ Vyplň při každém nasazení. Slouží jako rychlý audit trail kdo/co/kdy ov�
   - fail-fast kontrolu, že systemd zná `ppstudio-web.service` a `ppstudio-email-worker.service`
   - fail-fast kontrolu, že stejné appky už neběží přes legacy PM2
   - `git pull --ff-only` (volitelně přeskočitelné)
-  - `npm ci`, `npm run db:generate`, `npm run db:check-migrations`, `npx prisma migrate deploy`
+  - build ve staging workspace mimo živý runtime
+  - `npm ci --include=dev`, `npm run db:generate`, `npm run db:check-migrations`, `npx prisma migrate deploy`
   - `npm run lint` (volitelně přeskočitelné), `npm run build`
+  - zápis `.release-env`, sync systemd unitů, krátký `stop -> swap .next + node_modules -> start`
   - restart `ppstudio-web` a `ppstudio-email-worker` + výpis statusu služeb
 - Příklad:
 ```bash
@@ -490,11 +493,3 @@ sudo /var/www/ppstudio/deploy/deploy.sh
 ## QA Pro Letní/Zimní Čas
 - Tento release nepřidává DB migraci ani novou knihovnu.
 - Po deployi ověř v admin planneru slot 09:00-10:00 pro zimní i letní datum, copy week přes poslední březnovou a říjnovou neděli, veřejné zobrazení termínu, potvrzovací e-mail a `.ics` přílohu.
-
-## QA Pro Release 0.3.0
-- Release `0.3.0` nepřidává DB migraci ani novou knihovnu; rollout má zůstat bezpečný přes standardní `npx prisma migrate deploy` jako no-op.
-- Po deployi ověř admin přihlášení pro existující DB účet, že neaktivní účet nebo změněná role se promítne po další autorizaci a že bootstrap env login funguje jen při dočasném `ADMIN_BOOTSTRAP_ENABLED=true`.
-- Ověř, že owner approve/reject odkazy z e-mailu bez aktivní admin session neprovedou změnu rezervace a po přihlášení se audit zapisuje jako konkrétní admin uživatel.
-- Ověř self-service a tokenové route (`/rezervace/sprava/*`, `/rezervace/storno/*`, `/rezervace/akce/*`, calendar feed), že vrací očekávaný obsah a současně posílají `Cache-Control: no-store` a `Referrer-Policy: no-referrer`.
-- Ověř admin mutace `copy week`, `publish draft`, `apply template` a výběrové akce v planneru při rychlém opakování nebo paralelním provozu; nemají náhodně padat na `P2034` / `TransactionWriteConflict`.
-- Ověř veřejnou homepage, detail služby a `sitemap.xml`; sitemap se má po buildu načíst bez chyby a běžet jako ISR metadata route s `revalidate = 86400`.

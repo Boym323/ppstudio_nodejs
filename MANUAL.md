@@ -73,22 +73,30 @@ Poznámka k runtime:
 
 ```dotenv
 NODE_ENV=development
+NEXT_PUBLIC_APP_NAME=PP Studio
 NEXT_PUBLIC_APP_URL=http://localhost:3000
+NEXT_PUBLIC_SITE_DOMAIN=ppstudio.cz
+VOUCHER_PUBLIC_DOMAIN=ppstudio.cz
+NEXT_SERVER_ACTIONS_ENCRYPTION_KEY=replace-with-openssl-rand-base64-32
 DATABASE_URL="postgresql://postgres:postgres@localhost:5432/ppstudio?schema=public"
 SHADOW_DATABASE_URL="postgresql://postgres:postgres@localhost:5432/ppstudio_shadow?schema=public"
 ADMIN_SESSION_SECRET=replace-with-long-random-secret-at-least-32-chars
-ADMIN_BOOTSTRAP_ENABLED=true
+ADMIN_BOOTSTRAP_ENABLED=false
 EMAIL_DELIVERY_MODE=log
+EMAIL_TRANSPORT=smtp
 MEDIA_STORAGE_ROOT=/var/www/ppstudio-uploads
 ```
 
 - `NEXT_PUBLIC_APP_URL` je runtime URL aplikace pro redirecty a e-mailové odkazy.
+- `NEXT_PUBLIC_SITE_DOMAIN` a `VOUCHER_PUBLIC_DOMAIN` pomáhají držet veřejnou textovou doménu konzistentní ve voucher PDF a kontaktních výstupech.
 - `NEXT_PUBLIC_SITE_URL` je doporučená kanonická veřejná URL pro SEO metadata a JSON-LD (při chybějící hodnotě fallback na `NEXT_PUBLIC_APP_URL`).
+- `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` je povinný stabilní klíč pro Next.js Server Actions; v produkci musí zůstat stejný mezi instancemi stejného buildu.
 - `DATABASE_URL` je hlavní aplikační databáze.
 - `SHADOW_DATABASE_URL` používá Prisma při `migrate dev`.
 - `ADMIN_SESSION_SECRET` podepisuje admin session cookie a musí být unikátní pro prostředí.
-- `ADMIN_BOOTSTRAP_ENABLED` je recovery přepínač bootstrap loginu; běžný produkční stav je `false`.
+- `ADMIN_BOOTSTRAP_ENABLED` je recovery přepínač bootstrap loginu; `.env.example` ho drží na `false`, pro první lokální přihlášení ho zapínej jen dočasně.
 - `EMAIL_DELIVERY_MODE=log` je bezpečný lokální režim bez SMTP odesílání.
+- `EMAIL_TRANSPORT` určuje background transport (`smtp` nebo `resend`).
 - `MEDIA_STORAGE_ROOT` je zapisovatelná absolutní cesta mimo repo pro nahraná média.
 - Admin upload médií běží přes Next.js Server Actions. Aplikační limit obrázku je `8 MB`, ale `next.config.ts` drží request limit `10mb`, aby multipart overhead nesrazil legitimní upload ještě před serverovou validací.
 - Produkční nasazení s veřejnými formuláři nad Next.js Server Actions musí používat jednotný `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` pro všechny instance stejného buildu a zároveň posílat konzistentní `NEXT_DEPLOYMENT_ID` nebo `DEPLOYMENT_VERSION` / `GIT_HASH`, ze kterých `next.config.ts` skládá `deploymentId`. Jinak po deployi hrozí `Failed to find Server Action` u uživatelky se starším otevřeným tabem.

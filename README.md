@@ -12,6 +12,7 @@ Nejdůležitější dokumenty:
 ## Aktuální stav
 
 - veřejný web: homepage, služby, detail služby, ceník, studio, o mně, kontakt, FAQ a právní stránky
+- veřejná voucher landing page na `/vouchery` a read-only ověření voucheru na `/vouchery/overeni`
 - rezervační flow na `/rezervace` nad ručně publikovanými sloty
 - self-service správa rezervace přes veřejné tokenové routy pro změnu termínu a storno
 - admin pro owner i provoz se sekcemi rezervací, volných termínů, služeb, kategorií, klientů, médií, voucherů a nastavení
@@ -32,8 +33,8 @@ Nejdůležitější dokumenty:
 - Tailwind CSS 4
 - Prisma 7 + PostgreSQL
 - Zod validace na serveru
-- Nodemailer pro e-mailový worker
-- Playwright + Node test runner
+- Nodemailer / Resend transport pro e-mailovou frontu
+- Playwright + Node test runner + `c8` coverage
 - Matomo Reporting API
 
 ## Struktura projektu
@@ -52,13 +53,17 @@ src/
   config/                     metadata, navigace, env
   content/                    editovatelný obsah veřejného webu
   features/
+    analytics/                veřejný tracking a reporting helpery
     admin/                    admin workflow, formuláře a read modely
     booking/                  booking flow a booking business logika
     calendar/                 kalendářové exporty
     home/                     homepage sekce
     media/                    media knihovna a upload workflow
     public/                   veřejné stránky nad DB read modely
+    vouchers/                 voucher doména, PDF a veřejné ověření
   lib/                        infrastructura, Prisma, auth, utility
+scripts/                      provozní a importní helpery
+tests/                        Playwright E2E scénáře
 prisma/
   schema.prisma               datový model
 prisma.config.ts              Prisma 7 CLI konfigurace
@@ -71,11 +76,11 @@ docs/
 
 - `/` veřejná homepage
 - `/sluzby`, `/sluzby/[slug]`, `/cenik`, `/studio`, `/o-mne`, `/kontakt`, `/faq`
+- `/vouchery`, `/vouchery/overeni?code=...`
 - `/rezervace` booking flow
 - `/rezervace/sprava/[token]` veřejná správa rezervace
 - `/rezervace/storno/[token]` veřejné storno
 - `/rezervace/akce/[intent]/[token]` potvrzovací akce z provozních e-mailů
-- `/vouchery/overeni?code=...` veřejné read-only ověření voucheru
 - `/admin/prihlaseni` admin login
 - `/admin/*` owner admin
 - `/admin/provoz/*` lite admin pro roli `SALON`
@@ -114,7 +119,7 @@ Projekt už pokrývá hlavní provozní entity:
 
 ### 1. Požadavky
 
-- Node.js 20+
+- Node.js 24 LTS
 - npm 10+
 - PostgreSQL 15+
 - lokální přístup k zapisovatelnému adresáři pro `MEDIA_STORAGE_ROOT`
@@ -137,11 +142,12 @@ Praktický postup:
 2. Vytvoř lokální `.env` z `.env.example`.
 3. Uprav minimálně `DATABASE_URL`, `SHADOW_DATABASE_URL`, `ADMIN_SESSION_SECRET` a lokální `NEXT_PUBLIC_APP_URL`.
 4. Připrav PostgreSQL databázi pro hlavní i shadow DB.
-5. Spusť `npm install`.
-6. Spusť `npm run db:generate`.
-7. Spusť `npm run db:migrate` pro lokální Prisma migrace.
-8. Spusť `npm run dev`.
-9. Otevři `http://localhost:3000`.
+5. Přepni lokální runtime na `Node 24` přes `nvm use` nebo ekvivalent.
+6. Spusť `npm install`.
+7. Spusť `npm run db:generate`.
+8. Spusť `npm run db:migrate` pro lokální Prisma migrace.
+9. Spusť `npm run dev`.
+10. Otevři `http://localhost:3000`.
 
 ### 3. První přihlášení do adminu
 
@@ -164,10 +170,12 @@ npm run dev:clean
 ## Skripty
 
 - `npm run dev` spustí vývojový server
+- `npm run dev:webpack` spustí dev server bez Turbopacku jako fallback při rozbité cache
 - `npm run build` vytvoří produkční build
 - `npm run start` spustí produkční server
 - `npm run lint` spustí ESLint
-- `npm run test` spustí integrační testy nad Node test runnerem
+- `npm run test` spustí unit a DB integrační testy nad Node test runnerem
+- `npm run test:coverage` vygeneruje coverage report do `coverage/`
 - `npm run test:e2e` spustí Playwright E2E testy
 - `npm run analytics:check` ověří server-side Matomo reporting
 - `npm run test:db:booking` spustí booking DB integrační testy
@@ -193,18 +201,22 @@ Zkrácený příklad pro lokální vývoj:
 NODE_ENV=development
 NEXT_PUBLIC_APP_NAME=PP Studio
 NEXT_PUBLIC_APP_URL=http://localhost:3000
+NEXT_PUBLIC_SITE_DOMAIN=ppstudio.cz
+VOUCHER_PUBLIC_DOMAIN=ppstudio.cz
+NEXT_SERVER_ACTIONS_ENCRYPTION_KEY=replace-with-openssl-rand-base64-32
 
 DATABASE_URL="postgresql://postgres:postgres@localhost:5432/ppstudio?schema=public"
 SHADOW_DATABASE_URL="postgresql://postgres:postgres@localhost:5432/ppstudio_shadow?schema=public"
 
 ADMIN_SESSION_SECRET=replace-with-long-random-secret-at-least-32-chars
-ADMIN_BOOTSTRAP_ENABLED=true
+ADMIN_BOOTSTRAP_ENABLED=false
 ADMIN_OWNER_EMAIL=owner@example.com
 ADMIN_OWNER_PASSWORD=change-me-owner
 ADMIN_STAFF_EMAIL=staff@example.com
 ADMIN_STAFF_PASSWORD=change-me-staff
 
 EMAIL_DELIVERY_MODE=log
+EMAIL_TRANSPORT=smtp
 
 MEDIA_STORAGE_ROOT=/var/www/ppstudio-uploads
 ```
@@ -212,11 +224,14 @@ MEDIA_STORAGE_ROOT=/var/www/ppstudio-uploads
 Co je důležité:
 
 - `NEXT_PUBLIC_APP_URL`: veřejný základ URL pro metadata, redirecty a odkazy v e-mailech
+- `NEXT_PUBLIC_SITE_DOMAIN` a `VOUCHER_PUBLIC_DOMAIN`: textová veřejná doména pro voucher PDF a kontaktní výstupy
+- `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY`: stabilní klíč pro Next.js Server Actions; v produkci musí zůstat stejný mezi instancemi stejného buildu
 - `DATABASE_URL`: hlavní PostgreSQL databáze aplikace
 - `SHADOW_DATABASE_URL`: pomocná DB pro `prisma migrate dev` v lokálním vývoji
 - `ADMIN_SESSION_SECRET`: tajný klíč pro podpis admin session cookie; v produkci musí být dlouhý a unikátní
-- `ADMIN_BOOTSTRAP_ENABLED`: nouzový přepínač bootstrap loginu; v produkci má být běžně `false`
+- `ADMIN_BOOTSTRAP_ENABLED`: nouzový přepínač bootstrap loginu; `.env.example` ho drží na `false`, pro první lokální přihlášení ho zapínej jen dočasně
 - `EMAIL_DELIVERY_MODE=log`: bezpečný lokální režim bez reálného SMTP odesílání
+- `EMAIL_TRANSPORT`: transport pro background odesílání (`smtp` nebo `resend`)
 - `MEDIA_STORAGE_ROOT`: absolutní cesta mimo repo, kam se ukládají nahraná média
 
 Plný seznam proměnných a detailní vysvětlení je v `docs/ENVIRONMENT.md`.
@@ -236,9 +251,9 @@ Plný seznam proměnných a detailní vysvětlení je v `docs/ENVIRONMENT.md`.
 ### Doporučený deploy krok za krokem
 
 1. Na serveru měj čistý checkout repozitáře a správně nastavené `.env`.
-2. Ověř PostgreSQL připojení, SMTP konfiguraci, `MEDIA_STORAGE_ROOT` a `ADMIN_BOOTSTRAP_ENABLED=false`.
+2. Ověř PostgreSQL připojení, e-mailovou konfiguraci, `MEDIA_STORAGE_ROOT`, validní `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` a `ADMIN_BOOTSTRAP_ENABLED=false`.
 3. Spusť `./deploy/release.sh`.
-4. Skript provede `git pull --ff-only`, `npm ci`, `npm run db:generate`, `npm run db:check-migrations`, `npx prisma migrate deploy`, `npm run lint`, `npm run build` a restart `ppstudio-web` / `ppstudio-email-worker`.
+4. Skript provede `git pull --ff-only`, build ve staging workspace (`npm ci --include=dev`, `npm run db:generate`, `npm run db:check-migrations`, `npx prisma migrate deploy`, `npm run lint`, `npm run build`), zapíše `.release-env`, synchronizuje systemd unity a pak krátce přepne hotové artefakty pro `ppstudio-web` / `ppstudio-email-worker`.
 5. Po releasu ověř `GET /api/health`, admin login, veřejnou homepage a testovací rezervaci.
 
 ### Kdy použít detailní deployment docs
