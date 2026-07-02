@@ -17,9 +17,18 @@ const OBSERVED_REQUEST_HEADERS = [
   "x-deployment-id",
   "x-nextjs-data",
 ] as const;
+const MIN_REASONABLE_SERVER_ACTION_ID_LENGTH = 16;
+const SERVER_ACTION_ID_PREVIEW_LENGTH = 6;
 
 type HeaderMap = Record<string, string | string[] | undefined>;
 type NormalizedHeaderValue = string | string[] | undefined;
+type NextActionHeaderSummary = {
+  present: boolean;
+  length?: number;
+  fingerprint?: string;
+  sample?: string;
+  looksMalformed?: boolean;
+};
 
 function getCurrentDeploymentId() {
   for (const key of DEPLOYMENT_ID_ENV_KEYS) {
@@ -34,9 +43,11 @@ function getCurrentDeploymentId() {
 }
 
 function getServerActionsKeyFingerprint() {
-  const key = process.env.NEXT_SERVER_ACTIONS_ENCRYPTION_KEY;
+  return getStableFingerprint(process.env.NEXT_SERVER_ACTIONS_ENCRYPTION_KEY);
+}
 
-  if (!key) {
+function getStableFingerprint(value?: string) {
+  if (!value) {
     return undefined;
   }
 
@@ -44,8 +55,8 @@ function getServerActionsKeyFingerprint() {
   // non-secret identifier that lets operations compare multiple instances.
   let hash = 2166136261;
 
-  for (let index = 0; index < key.length; index += 1) {
-    hash ^= key.charCodeAt(index);
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
     hash = Math.imul(hash, 16777619);
   }
 
@@ -170,19 +181,58 @@ function pickObservedHeaders(headers: HeaderMap) {
   return selectedHeaders;
 }
 
+function summarizeNextActionHeader(headers: HeaderMap): NextActionHeaderSummary {
+  const nextActionHeader = getHeader(headers, "next-action");
+
+  if (typeof nextActionHeader !== "string") {
+    return { present: false };
+  }
+
+  const normalizedActionId = nextActionHeader.trim();
+
+  if (normalizedActionId.length === 0) {
+    return {
+      present: true,
+      length: 0,
+      looksMalformed: true,
+    };
+  }
+
+  const isShortMalformed = normalizedActionId.length < MIN_REASONABLE_SERVER_ACTION_ID_LENGTH;
+
+  return {
+    present: true,
+    length: normalizedActionId.length,
+    fingerprint: getStableFingerprint(normalizedActionId),
+    sample:
+      normalizedActionId.length <= MIN_REASONABLE_SERVER_ACTION_ID_LENGTH
+        ? normalizedActionId
+        : `${normalizedActionId.slice(0, SERVER_ACTION_ID_PREVIEW_LENGTH)}...${normalizedActionId.slice(
+            -SERVER_ACTION_ID_PREVIEW_LENGTH,
+          )}`,
+    looksMalformed: isShortMalformed,
+  };
+}
+
 function inferServerActionErrorCause({
   isServerActionLookupError,
   clientDeploymentId,
   currentDeploymentId,
   serverActionsKeyFingerprint,
+  nextActionHeaderSummary,
 }: {
   isServerActionLookupError: boolean;
   clientDeploymentId?: string;
   currentDeploymentId?: string;
   serverActionsKeyFingerprint?: string;
+  nextActionHeaderSummary: NextActionHeaderSummary;
 }) {
   if (!isServerActionLookupError) {
     return undefined;
+  }
+
+  if (nextActionHeaderSummary.looksMalformed) {
+    return "malformed-next-action-header";
   }
 
   if (clientDeploymentId && currentDeploymentId && clientDeploymentId !== currentDeploymentId) {
@@ -198,6 +248,8 @@ function inferServerActionErrorCause({
 
 function getServerActionHint(cause?: string) {
   switch (cause) {
+    case "malformed-next-action-header":
+      return "Request poslal podezřelý nebo zjevně nevalidní next-action header. Často jde o scan/probing, ne o skutečný stale klientský tab.";
     case "deployment-id-mismatch":
       return "Klient poslal jiný x-deployment-id než běžící server. Ověř rolling deploy, sticky sessions a že všechny instance stejného release sdílí stejný build.";
     case "missing-server-actions-encryption-key":
@@ -244,6 +296,7 @@ export const onRequestError: Instrumentation.onRequestError = async (error, requ
   const runtime = getRuntimeMetadata();
   const observedHeaders = pickObservedHeaders(request.headers);
   const clientDeploymentId = getHeader(request.headers, "x-deployment-id");
+  const nextActionHeaderSummary = summarizeNextActionHeader(request.headers);
   const errorDetails = getErrorDetails(error);
   const isServerActionLookupError = errorDetails.message.includes(SERVER_ACTION_LOOKUP_ERROR);
   const suspectedCause = inferServerActionErrorCause({
@@ -251,6 +304,7 @@ export const onRequestError: Instrumentation.onRequestError = async (error, requ
     clientDeploymentId: typeof clientDeploymentId === "string" ? clientDeploymentId : undefined,
     currentDeploymentId: runtime.deploymentId,
     serverActionsKeyFingerprint: runtime.serverActionsKeyFingerprint,
+    nextActionHeaderSummary,
   });
 
   console.error(
@@ -266,6 +320,7 @@ export const onRequestError: Instrumentation.onRequestError = async (error, requ
         method: request.method,
         path: sanitizeTokenPath(request.path),
         headers: observedHeaders,
+        nextAction: nextActionHeaderSummary.present ? nextActionHeaderSummary : undefined,
       },
       context,
       error: errorDetails,

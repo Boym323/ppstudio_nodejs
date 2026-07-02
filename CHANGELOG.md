@@ -5,6 +5,7 @@ Všechny důležité změny v tomto projektu se zapisují do tohoto souboru.
 Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
+- Observability pro incident `Failed to find Server Action` nově loguje i sanitizované shrnutí `next-action` headeru (`length`, fingerprint, krátký sample, heuristika `looksMalformed`), takže provoz rychleji odliší stale klienta od scan/probingu s podvrženým action ID typu `"x"`.
 
 ## [0.5.1] - 2026-07-02
 
