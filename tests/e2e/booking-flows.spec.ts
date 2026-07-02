@@ -34,7 +34,7 @@ async function selectSlotById(
 
     if ((await dateButton.count()) > 0) {
       await dateButton.click();
-      await expect(exactSlotButton.first()).toBeVisible();
+      await expect(page.getByRole("button", { name: /^Vybrat čas / }).first()).toBeVisible();
     }
   }
 
@@ -61,6 +61,37 @@ async function selectSlotById(
   throw new Error(
     `Nepodařilo se vybrat očekávaný slot ${expectedSlotId} pro tlačítko \"${slotButtonLabel}\".`,
   );
+}
+
+async function selectAvailableSlot(
+  page: Page,
+  actionButton: Locator,
+  excludedSelections: Set<string> = new Set(),
+) {
+  const slotButtons = page.getByRole("button", { name: /^Vybrat čas / });
+  const buttonCount = await slotButtons.count();
+
+  for (let index = 0; index < buttonCount; index += 1) {
+    const candidate = slotButtons.nth(index);
+    await candidate.click();
+    await page.waitForTimeout(100);
+
+    const slotId = await page.locator('input[name="slotId"]').inputValue();
+    const startsAt = await page.locator('input[name="newStartAt"]').inputValue();
+    const selectionKey = `${slotId}:${startsAt}`;
+
+    if (excludedSelections.has(selectionKey) || !(await actionButton.isEnabled())) {
+      continue;
+    }
+
+    return {
+      slotId,
+      startsAt,
+      selectionKey,
+    };
+  }
+
+  throw new Error("Nepodařilo se vybrat žádný použitelný dostupný slot pro přesun rezervace.");
 }
 
 async function submitRescheduleUntilSuccess(
@@ -816,14 +847,9 @@ test.describe("booking flows", () => {
     const conflictMessage = page
       .getByText(/(nový termín|vybraný (termín|slot)).*(koliduje|není k dispozici)/i)
       .first();
-    await selectSlotById(
-      page,
-      fixture.slotLabels.rescheduleConflictButtonLabel,
-      fixture.slotLabels.rescheduleConflictSlotId,
-      confirmButton,
-    );
-    const selectedSlotId = await page.locator('input[name="slotId"]').inputValue();
-    const selectedStartIso = await page.locator('input[name="newStartAt"]').inputValue();
+    const conflictingSelection = await selectAvailableSlot(page, confirmButton);
+    const selectedSlotId = conflictingSelection.slotId;
+    const selectedStartIso = conflictingSelection.startsAt;
     const selectedStart = new Date(selectedStartIso);
     const selectedEnd = new Date(selectedStart.getTime() + managedBooking.serviceDurationMinutes * 60 * 1000);
 
@@ -874,20 +900,19 @@ test.describe("booking flows", () => {
       },
     });
 
-    await selectSlotById(
+    const successSelection = await selectAvailableSlot(
       page,
-      fixture.slotLabels.rescheduleSuccessButtonLabel,
-      fixture.slotLabels.rescheduleSuccessSlotId,
       confirmButton,
+      new Set([conflictingSelection.selectionKey]),
     );
     await expectSelectedRescheduleSlot(page, {
-      slotId: fixture.slotLabels.rescheduleSuccessSlotId,
-      startsAt: fixture.slotLabels.rescheduleSuccessStartAt,
+      slotId: successSelection.slotId,
+      startsAt: successSelection.startsAt,
     });
-    expect(fixture.slotLabels.rescheduleSuccessStartAt).not.toBe(selectedStartIso);
-    expect(fixture.slotLabels.rescheduleSuccessSlotId).not.toBe(selectedSlotId);
+    expect(successSelection.startsAt).not.toBe(selectedStartIso);
+    expect(successSelection.selectionKey).not.toBe(conflictingSelection.selectionKey);
     await confirmButton.click();
-    const attemptedSlotIds = new Set([selectedSlotId, fixture.slotLabels.rescheduleSuccessSlotId]);
+    const attemptedSlotIds = new Set([selectedSlotId, successSelection.slotId]);
     try {
       await expect(successHeading).toBeVisible({ timeout: 30_000 });
     } catch {

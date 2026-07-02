@@ -6,6 +6,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Stabilizovaný Playwright scénář klientského přesunu rezervace přes veřejný token: test už pro konfliktní i úspěšný přesun vybírá reálně dostupné sloty z aktuální stránky a ověřuje je přes hidden `slotId`/`newStartAt`, takže nepadá na rozdílu mezi `-` a `–` v accessible name ani na tom, že sdílená test DB nabídne jinou kombinaci časů než předpočítaná fixture.
 - Opravený merge sousedních editovatelných slotů po storno rezervace: compaction teď v transakci nejdřív vyřadí slučovaný sousední slot z active exclusion constraintu a teprve potom rozšíří anchor slot, takže storno už nepadá na PostgreSQL chybě `AvailabilitySlot_active_time_window_excl`.
 - Storno rezervace nově po zrušení termínu automaticky znovu kompaktuje sousední běžné publikované fragmenty slotů zpět do souvislého okna, takže po starém bookingu nezůstávají trvalé zbytky typu `15:45–16:00`.
 - Opravené `Nejbližší volné termíny` na admin dashboardu: read model už nebere volno jen podle `slot.capacity`, ale odečítá i interní booking blokace `scheduledStartsAt -> blockedUntil` a navazující volné úseky skládá do souvislých oken, takže po cleanup overflowu neukáže falešný čas a zároveň je výstup sjednocený s plannerem.
