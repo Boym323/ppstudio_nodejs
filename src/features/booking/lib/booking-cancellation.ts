@@ -11,6 +11,7 @@ import {
 import { env } from "@/config/env";
 import { hashBookingActionToken } from "@/features/booking/lib/booking-action-tokens";
 import { formatBookingDateLabel } from "@/features/booking/lib/booking-format";
+import { compactAdjacentEditableSlotsForBooking } from "@/features/booking/lib/booking-slot-compaction";
 import { sendOwnerBookingPushover } from "@/lib/notifications/pushover";
 import { prisma } from "@/lib/prisma";
 import {
@@ -69,6 +70,7 @@ type LoadedCancellationToken = {
     status: BookingStatus;
     cancelledAt: Date | null;
     clientId: string;
+    slotId: string;
     clientEmailSnapshot: string;
     clientNameSnapshot: string;
     serviceNameSnapshot: string;
@@ -131,6 +133,7 @@ async function findCancellationToken(tokenHash: string) {
           status: true,
           cancelledAt: true,
           clientId: true,
+          slotId: true,
           clientEmailSnapshot: true,
           clientNameSnapshot: true,
           serviceNameSnapshot: true,
@@ -261,6 +264,7 @@ export async function cancelPublicBookingByToken(rawToken: string): Promise<Canc
               status: true,
               cancelledAt: true,
               clientId: true,
+              slotId: true,
               clientEmailSnapshot: true,
               clientNameSnapshot: true,
               serviceNameSnapshot: true,
@@ -289,6 +293,8 @@ export async function cancelPublicBookingByToken(rawToken: string): Promise<Canc
           cancelledAt: now,
         },
       });
+
+      await compactAdjacentEditableSlotsForBooking(tx, lockedToken.booking.slotId);
 
       await tx.bookingActionToken.update({
         where: {

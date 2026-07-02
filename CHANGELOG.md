@@ -6,6 +6,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Storno rezervace nově po zrušení termínu automaticky znovu kompaktuje sousední běžné publikované fragmenty slotů zpět do souvislého okna, takže po starém bookingu nezůstávají trvalé zbytky typu `15:45–16:00`.
 - Opravené `Nejbližší volné termíny` na admin dashboardu: read model už nebere volno jen podle `slot.capacity`, ale odečítá i interní booking blokace `scheduledStartsAt -> blockedUntil` a navazující volné úseky skládá do souvislých oken, takže po cleanup overflowu neukáže falešný čas a zároveň je výstup sjednocený s plannerem.
 - Dokumentace byla srovnaná s aktuálním stavem repa: `README.md`, `MANUAL.md`, `docs/ENVIRONMENT.md`, `docs/DEVELOPMENT.md`, `docs/DEPENDENCIES.md` a `docs/DEPLOYMENT.md` teď odpovídají `Node 24`, současnému `.env.example`, veřejné voucher routě, coverage/dev skriptům a reálnému release flow přes staging workspace + `.release-env`.
 - Stabilizován Playwright scénář vytvoření službového voucheru v adminu: výběr fixture služby už nepředpokládá `aria-pressed="false"`, takže test nepadá, když je CI seedovaná služba kvůli pořadí katalogu už předvybraná.

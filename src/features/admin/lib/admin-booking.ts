@@ -22,6 +22,7 @@ import {
   buildBookingManagementUrl,
 } from "@/features/booking/lib/booking-action-tokens";
 import { resolveBookingTimingSnapshot } from "@/features/booking/lib/booking-cleanup";
+import { compactAdjacentEditableSlotsForBooking } from "@/features/booking/lib/booking-slot-compaction";
 import { getPublicBookingCatalog } from "@/features/booking/lib/booking-public";
 import { formatBookingDateLabel } from "@/features/booking/lib/booking-format";
 import { resolvePublishedSlotCoverage } from "@/features/booking/lib/booking-slot-availability";
@@ -821,6 +822,7 @@ export async function applyAdminBookingStatusChange({
         id: true,
         status: true,
         clientId: true,
+        slotId: true,
         clientNameSnapshot: true,
         clientEmailSnapshot: true,
         serviceNameSnapshot: true,
@@ -858,6 +860,10 @@ export async function applyAdminBookingStatusChange({
         internalNote: internalNote ? internalNote : undefined,
       },
     });
+
+    if (targetStatus === BookingStatus.CANCELLED) {
+      await compactAdjacentEditableSlotsForBooking(tx, booking.slotId);
+    }
 
     await tx.bookingStatusHistory.create({
       data: {

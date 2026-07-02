@@ -892,6 +892,211 @@ describe("cancel booking flow", () => {
     }
   });
 
+  dbTest("cancellation compacts adjacent editable slot fragments back into one window", async () => {
+    const {
+      prisma,
+      cancelPublicBookingByToken,
+      BookingActionTokenType,
+      BookingStatus,
+      AvailabilitySlotStatus,
+    } = await loadModules();
+    const { buildBookingActionExpiry, buildBookingActionToken } = await import("./booking-action-tokens");
+
+    const suffix = randomUUID().slice(0, 8);
+    const baseStartAt = await findFreeStartAt(prisma, {
+      earliest: addDays(new Date(), 8),
+      latest: addDays(new Date(), 30),
+      durationMinutes: 120,
+      preferredHour: 10,
+      preferredMinute: 0,
+    });
+    const beforeEndsAt = addHours(baseStartAt, 0.5);
+    const bookingEndsAt = addHours(baseStartAt, 1.75);
+    const fullEndsAt = addHours(baseStartAt, 2);
+
+    const actor = await prisma.adminUser.create({
+      data: {
+        email: `booking-cancel-compact-${suffix}@example.com`,
+        name: `Booking Cancel Compact ${suffix}`,
+        role: "OWNER",
+        isActive: true,
+      },
+      select: { id: true },
+    });
+
+    const category = await prisma.serviceCategory.create({
+      data: {
+        name: `Compact category ${suffix}`,
+        slug: `compact-category-${suffix}`,
+        isActive: true,
+      },
+      select: { id: true },
+    });
+
+    const service = await prisma.service.create({
+      data: {
+        categoryId: category.id,
+        name: `Compact service ${suffix}`,
+        slug: `compact-service-${suffix}`,
+        durationMinutes: 75,
+        isActive: true,
+        isPubliclyBookable: true,
+      },
+      select: { id: true },
+    });
+
+    const client = await prisma.client.create({
+      data: {
+        fullName: `Compact Client ${suffix}`,
+        email: `compact-client-${suffix}@example.com`,
+        phone: "+420777123456",
+        isActive: true,
+      },
+      select: { id: true },
+    });
+
+    const [, bookedSlot] = await prisma.$transaction([
+      prisma.availabilitySlot.create({
+        data: {
+          startsAt: baseStartAt,
+          endsAt: beforeEndsAt,
+          capacity: 1,
+          status: AvailabilitySlotStatus.PUBLISHED,
+          serviceRestrictionMode: "ANY",
+          publishedAt: addDays(new Date(), -1),
+          createdByUserId: actor.id,
+        },
+        select: { id: true },
+      }),
+      prisma.availabilitySlot.create({
+        data: {
+          startsAt: beforeEndsAt,
+          endsAt: bookingEndsAt,
+          capacity: 1,
+          status: AvailabilitySlotStatus.PUBLISHED,
+          serviceRestrictionMode: "ANY",
+          publishedAt: addDays(new Date(), -1),
+          createdByUserId: actor.id,
+        },
+        select: { id: true },
+      }),
+      prisma.availabilitySlot.create({
+        data: {
+          startsAt: bookingEndsAt,
+          endsAt: fullEndsAt,
+          capacity: 1,
+          status: AvailabilitySlotStatus.PUBLISHED,
+          serviceRestrictionMode: "ANY",
+          publishedAt: addDays(new Date(), -1),
+          createdByUserId: actor.id,
+        },
+        select: { id: true },
+      }),
+    ]);
+
+    const booking = await prisma.booking.create({
+      data: {
+        clientId: client.id,
+        slotId: bookedSlot.id,
+        serviceId: service.id,
+        status: BookingStatus.CONFIRMED,
+        source: "WEB",
+        clientNameSnapshot: `Compact Client ${suffix}`,
+        clientEmailSnapshot: `compact-client-${suffix}@example.com`,
+        clientPhoneSnapshot: "+420777123456",
+        serviceNameSnapshot: `Compact service ${suffix}`,
+        serviceDurationMinutes: 75,
+        servicePriceFromCzk: 1400,
+        scheduledStartsAt: beforeEndsAt,
+        scheduledEndsAt: bookingEndsAt,
+      },
+      select: { id: true },
+    });
+
+    const cancellationToken = buildBookingActionToken();
+
+    await prisma.bookingActionToken.create({
+      data: {
+        bookingId: booking.id,
+        type: BookingActionTokenType.CANCEL,
+        tokenHash: cancellationToken.tokenHash,
+        expiresAt: buildBookingActionExpiry(new Date()),
+      },
+    });
+
+    try {
+      const result = await cancelPublicBookingByToken(cancellationToken.rawToken);
+
+      assert.equal(result.status, "cancelled");
+
+      const updatedBooking = await prisma.booking.findUniqueOrThrow({
+        where: { id: booking.id },
+        select: {
+          status: true,
+          slotId: true,
+        },
+      });
+
+      assert.equal(updatedBooking.status, BookingStatus.CANCELLED);
+      assert.equal(updatedBooking.slotId, bookedSlot.id);
+
+      const slots = await prisma.availabilitySlot.findMany({
+        where: {
+          createdByUserId: actor.id,
+        },
+        orderBy: {
+          startsAt: "asc",
+        },
+        select: {
+          id: true,
+          startsAt: true,
+          endsAt: true,
+        },
+      });
+
+      assert.deepEqual(
+        slots.map((slot) => ({
+          id: slot.id,
+          startsAt: slot.startsAt.toISOString(),
+          endsAt: slot.endsAt.toISOString(),
+        })),
+        [{
+          id: bookedSlot.id,
+          startsAt: baseStartAt.toISOString(),
+          endsAt: fullEndsAt.toISOString(),
+        }],
+      );
+    } finally {
+      await prisma.emailLog.deleteMany({
+        where: { bookingId: booking.id },
+      });
+      await prisma.bookingStatusHistory.deleteMany({
+        where: { bookingId: booking.id },
+      });
+      await prisma.bookingActionToken.deleteMany({
+        where: { bookingId: booking.id },
+      });
+      await prisma.booking.deleteMany({
+        where: { id: booking.id },
+      });
+      await prisma.availabilitySlot.deleteMany({
+        where: { createdByUserId: actor.id },
+      });
+      await prisma.client.deleteMany({
+        where: { id: client.id },
+      });
+      await prisma.service.deleteMany({
+        where: { id: service.id },
+      });
+      await prisma.serviceCategory.deleteMany({
+        where: { id: category.id },
+      });
+      await prisma.adminUser.deleteMany({
+        where: { id: actor.id },
+      });
+    }
+  });
+
   dbTest("rejects cancellation after deadline and leaves booking unchanged", async () => {
     const seed = await createSeed();
     const { prisma, cancelPublicBookingByToken, BookingStatus, EmailLogType } = await loadModules();

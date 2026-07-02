@@ -11,6 +11,7 @@ import {
 import {
   cleanupE2eData,
   createAdminFixture,
+  createFragmentedCancellationFixture,
   createManagedBookingFixture,
   createPublicBookingFixture,
   createPublicVoucherFixture,
@@ -240,6 +241,30 @@ test.describe("booking flows", () => {
   test.afterEach(async () => {
     await Promise.all(fixtures.map((fixture) => cleanupE2eData(fixture.runId)));
     fixtures = [];
+  });
+
+  test("public booking cancellation compacts fragmented availability in planner", async ({ page }) => {
+    const fixture = await createFragmentedCancellationFixture();
+    fixtures.push(fixture);
+
+    await loginAdmin(page, fixture.adminEmail, fixture.adminPassword);
+    await expect(page).toHaveURL(/\/admin/);
+
+    await page.goto(`/admin/volne-terminy?week=${fixture.planner.weekKey}&day=${fixture.planner.dayKey}`);
+    await expect(page.getByRole("heading", { name: "Volné termíny" })).toBeVisible();
+    await expect(page.getByText(fixture.planner.beforeCancellationWindows[0], { exact: true })).toBeVisible();
+    await expect(page.getByText(fixture.planner.beforeCancellationWindows[1], { exact: true })).toBeVisible();
+
+    await page.goto(`/rezervace/storno/${fixture.cancelToken}`);
+    await expect(page.getByRole("heading", { name: "Opravdu chcete zrušit rezervaci?" })).toBeVisible();
+    await page.getByRole("button", { name: "Potvrdit storno" }).click();
+    await expect(page.getByText("Rezervace zrušena")).toBeVisible();
+
+    await page.goto(`/admin/volne-terminy?week=${fixture.planner.weekKey}&day=${fixture.planner.dayKey}`);
+    await expect(page.getByRole("heading", { name: "Volné termíny" })).toBeVisible();
+    await expect(page.getByText(fixture.planner.afterCancellationWindow, { exact: true })).toBeVisible();
+    await expect(page.getByText(fixture.planner.beforeCancellationWindows[0], { exact: true })).toHaveCount(0);
+    await expect(page.getByText(fixture.planner.beforeCancellationWindows[1], { exact: true })).toHaveCount(0);
   });
 
   test("public visitor can create a pending booking", async ({ page }) => {

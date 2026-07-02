@@ -18,6 +18,10 @@ import {
   buildBookingActionExpiry,
   buildBookingActionToken,
 } from "../../../src/features/booking/lib/booking-action-tokens";
+import {
+  formatDateKey,
+  resolveWeekStart,
+} from "../../../src/features/admin/lib/admin-slots/time";
 import { hashPassword } from "../../../src/lib/auth/password";
 import { prisma } from "../../../src/lib/prisma";
 
@@ -47,6 +51,17 @@ export type E2eFixture = {
     rescheduleSuccessStartAt: string;
     primaryStartAt: string;
     rescheduleStartAt: string;
+  };
+};
+
+export type FragmentedCancellationFixture = E2eFixture & {
+  adminEmail: string;
+  adminPassword: string;
+  planner: {
+    weekKey: string;
+    dayKey: string;
+    beforeCancellationWindows: string[];
+    afterCancellationWindow: string;
   };
 };
 
@@ -106,7 +121,7 @@ function formatPragueLongDateLabel(value: Date) {
 }
 
 function formatPragueTimeRange(startsAt: Date, endsAt: Date) {
-  return `${formatPragueTime(startsAt)} – ${formatPragueTime(endsAt)}`;
+  return `${formatPragueTime(startsAt)} - ${formatPragueTime(endsAt)}`;
 }
 
 function buildRunId() {
@@ -520,6 +535,199 @@ export async function createAdminFixture(runId: string, role: AdminRole = AdminR
   return { email, password };
 }
 
+export async function createFragmentedCancellationFixture(): Promise<FragmentedCancellationFixture> {
+  await resetE2eRecentAuditRateLimitState();
+
+  const runId = buildRunId();
+  const catalog = await createCatalogFixture(runId);
+  const admin = await createAdminFixture(runId, AdminRole.OWNER);
+  const clientName = `E2E Fragment ${runId}`;
+  const clientEmail = `${runId}-fragment@example.test`;
+  const clientPhone = "+420777000222";
+
+  await prisma.availabilitySlot.deleteMany({
+    where: {
+      OR: [
+        { id: catalog.primarySlot.id },
+        { id: catalog.rescheduleSlot.id },
+        { id: catalog.rescheduleSuccessSlot.id },
+      ],
+    },
+  });
+
+  const siteSettings = await prisma.siteSettings.findUnique({
+    where: { id: "site-settings" },
+    select: {
+      bookingMinAdvanceHours: true,
+      bookingCancellationHours: true,
+    },
+  });
+  const minAdvanceHours = siteSettings?.bookingMinAdvanceHours ?? 2;
+  const cancellationHours = siteSettings?.bookingCancellationHours ?? 48;
+  const baseLeadHours = Math.max(minAdvanceHours + 3, cancellationHours + 3);
+  const firstCandidate = buildPolicySafeStart(baseLeadHours);
+
+  let beforeWindowStart = firstCandidate;
+  let beforeWindowEnd = addMinutes(beforeWindowStart, 30);
+  let bookingStart = beforeWindowEnd;
+  let bookingEnd = addMinutes(bookingStart, catalog.service.durationMinutes);
+  let afterWindowStart = bookingEnd;
+  let afterWindowEnd = addMinutes(afterWindowStart, 30);
+  let beforeSlot: { id: string } | null = null;
+  let bookedSlot: { id: string } | null = null;
+  let afterSlot: { id: string } | null = null;
+
+  for (let attempt = 0; attempt < 21; attempt += 1) {
+    beforeWindowStart = addMinutes(firstCandidate, attempt * 24 * 60);
+    beforeWindowEnd = addMinutes(beforeWindowStart, 30);
+    bookingStart = beforeWindowEnd;
+    bookingEnd = addMinutes(bookingStart, catalog.service.durationMinutes);
+    afterWindowStart = bookingEnd;
+    afterWindowEnd = addMinutes(afterWindowStart, 30);
+
+    try {
+      [beforeSlot, bookedSlot, afterSlot] = await prisma.$transaction([
+        prisma.availabilitySlot.create({
+          data: {
+            startsAt: beforeWindowStart,
+            endsAt: beforeWindowEnd,
+            capacity: 1,
+            status: AvailabilitySlotStatus.PUBLISHED,
+            serviceRestrictionMode: AvailabilitySlotServiceRestrictionMode.ANY,
+            publishedAt: new Date(),
+          },
+          select: { id: true },
+        }),
+        prisma.availabilitySlot.create({
+          data: {
+            startsAt: bookingStart,
+            endsAt: bookingEnd,
+            capacity: 1,
+            status: AvailabilitySlotStatus.PUBLISHED,
+            serviceRestrictionMode: AvailabilitySlotServiceRestrictionMode.ANY,
+            publishedAt: new Date(),
+          },
+          select: { id: true },
+        }),
+        prisma.availabilitySlot.create({
+          data: {
+            startsAt: afterWindowStart,
+            endsAt: afterWindowEnd,
+            capacity: 1,
+            status: AvailabilitySlotStatus.PUBLISHED,
+            serviceRestrictionMode: AvailabilitySlotServiceRestrictionMode.ANY,
+            publishedAt: new Date(),
+          },
+          select: { id: true },
+        }),
+      ]);
+      break;
+    } catch (error) {
+      if (!isAvailabilitySlotWindowConflict(error) || attempt === 20) {
+        throw error;
+      }
+    }
+  }
+
+  if (!beforeSlot || !bookedSlot || !afterSlot) {
+    throw new Error(`Could not create fragmented cancellation fixture slots for ${runId}.`);
+  }
+
+  const client = await prisma.client.create({
+    data: {
+      fullName: clientName,
+      email: clientEmail,
+      phone: clientPhone,
+      lastBookedAt: bookingStart,
+    },
+    select: { id: true },
+  });
+
+  const booking = await prisma.booking.create({
+    data: {
+      clientId: client.id,
+      slotId: bookedSlot.id,
+      serviceId: catalog.service.id,
+      source: BookingSource.WEB,
+      status: BookingStatus.CONFIRMED,
+      clientNameSnapshot: clientName,
+      clientEmailSnapshot: clientEmail,
+      clientPhoneSnapshot: clientPhone,
+      serviceNameSnapshot: catalog.service.name,
+      serviceDurationMinutes: catalog.service.durationMinutes,
+      servicePriceFromCzk: catalog.service.priceFromCzk,
+      scheduledStartsAt: bookingStart,
+      scheduledEndsAt: bookingEnd,
+      confirmedAt: new Date(),
+      statusHistory: {
+        create: {
+          status: BookingStatus.CONFIRMED,
+          actorType: BookingActorType.SYSTEM,
+          note: "E2E fragmented cancellation fixture",
+        },
+      },
+    },
+    select: { id: true },
+  });
+
+  const cancelToken = buildBookingActionToken();
+  const manageToken = buildBookingActionToken();
+
+  await prisma.bookingActionToken.createMany({
+    data: [
+      {
+        bookingId: booking.id,
+        type: BookingActionTokenType.CANCEL,
+        tokenHash: cancelToken.tokenHash,
+        expiresAt: buildBookingActionExpiry(bookingStart),
+      },
+      {
+        bookingId: booking.id,
+        type: BookingActionTokenType.RESCHEDULE,
+        tokenHash: manageToken.tokenHash,
+        expiresAt: buildBookingActionExpiry(bookingStart),
+      },
+    ],
+  });
+
+  return {
+    runId,
+    serviceName: catalog.serviceName,
+    serviceSlug: catalog.serviceSlug,
+    categoryName: catalog.categoryName,
+    clientName,
+    clientEmail,
+    clientId: client.id,
+    bookingId: booking.id,
+    cancelToken: cancelToken.rawToken,
+    manageToken: manageToken.rawToken,
+    adminEmail: admin.email,
+    adminPassword: admin.password,
+    planner: {
+      weekKey: formatDateKey(resolveWeekStart(formatPragueDateKey(beforeWindowStart))),
+      dayKey: formatPragueDateKey(beforeWindowStart),
+      beforeCancellationWindows: [
+        formatPragueTimeRange(beforeWindowStart, beforeWindowEnd),
+        formatPragueTimeRange(afterWindowStart, afterWindowEnd),
+      ],
+      afterCancellationWindow: formatPragueTimeRange(beforeWindowStart, afterWindowEnd),
+    },
+    slotLabels: {
+      primaryDateKey: formatPragueDateKey(beforeWindowStart),
+      primaryTime: formatPragueTime(beforeWindowStart),
+      rescheduleDateKey: formatPragueDateKey(bookingStart),
+      rescheduleTime: formatPragueTime(bookingStart),
+      rescheduleConflictButtonLabel: "",
+      rescheduleConflictSlotId: beforeSlot.id,
+      rescheduleSuccessButtonLabel: "",
+      rescheduleSuccessSlotId: afterSlot.id,
+      rescheduleSuccessStartAt: afterWindowStart.toISOString(),
+      primaryStartAt: beforeWindowStart.toISOString(),
+      rescheduleStartAt: bookingStart.toISOString(),
+    },
+  };
+}
+
 export async function createPublicVoucherFixture(): Promise<E2eFixture> {
   await resetE2eRecentAuditRateLimitState();
 
@@ -600,9 +808,11 @@ export async function cleanupE2eData(runId: string) {
     },
     select: {
       id: true,
+      slotId: true,
     },
   }) : [];
   const bookingIds = bookings.map((booking) => booking.id);
+  const bookingSlotIds = bookings.map((booking) => booking.slotId);
   const actionTokens = await prisma.bookingActionToken.findMany({
     where: {
       bookingId: {
@@ -616,9 +826,14 @@ export async function cleanupE2eData(runId: string) {
   const actionTokenIds = actionTokens.map((token) => token.id);
   const slots = await prisma.availabilitySlot.findMany({
     where: {
-      publicNote: {
-        contains: runId,
-      },
+      OR: [
+        {
+          publicNote: {
+            contains: runId,
+          },
+        },
+        ...(bookingSlotIds.length > 0 ? [{ id: { in: bookingSlotIds } }] : []),
+      ],
     },
     select: {
       id: true,
