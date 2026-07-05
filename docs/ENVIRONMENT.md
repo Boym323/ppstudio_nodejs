@@ -21,9 +21,11 @@ Dokumentace proměnných prostředí pro lokální vývoj i produkci.
 - `NEXT_PUBLIC_MATOMO_ENABLED`: zapnutí veřejného Matomo trackingu; tracking běží pouze při přesné hodnotě `true`.
 - `NEXT_PUBLIC_CLARITY_ENABLED`: zapnutí veřejného Microsoft Clarity trackingu; tracking běží pouze při přesné hodnotě `true`.
 - `NEXT_PUBLIC_META_PIXEL_ENABLED`: zapnutí veřejného Meta Pixel trackingu; tracking běží pouze při přesné hodnotě `true`.
+- `NEXT_PUBLIC_GOOGLE_ADS_ENABLED`: zapnutí veřejného Google Ads tagu (`gtag.js`); tracking běží pouze při přesné hodnotě `true`.
 - `NEXT_PUBLIC_WEB_VITALS_ENABLED`: zapnutí klientského sběru Web Vitals; měření běží pouze při přesné hodnotě `true`.
 - `NEXT_PUBLIC_CLARITY_PROJECT_ID`: veřejné Clarity Project ID z Clarity dashboardu.
 - `NEXT_PUBLIC_META_PIXEL_ID`: veřejné Meta Pixel ID (např. `977400093564812`).
+- `NEXT_PUBLIC_GOOGLE_ADS_ID`: veřejné Google Ads tag ID, typicky ve tvaru `AW-18174837654`.
 - `NEXT_PUBLIC_MATOMO_URL`: veřejná URL Matomo instance včetně schématu, například `https://matomo.example.cz/`.
 - `NEXT_PUBLIC_MATOMO_SITE_ID`: ID webu v Matomo.
 - `MATOMO_URL`: server-side URL Matomo instance pro Reporting API; typicky stejný origin jako veřejné Matomo, ale bez vystavení tokenu klientovi.
@@ -78,9 +80,11 @@ VOUCHER_PUBLIC_DOMAIN=ppstudio.cz
 NEXT_PUBLIC_MATOMO_ENABLED=false
 NEXT_PUBLIC_CLARITY_ENABLED=false
 NEXT_PUBLIC_META_PIXEL_ENABLED=false
+NEXT_PUBLIC_GOOGLE_ADS_ENABLED=false
 NEXT_PUBLIC_WEB_VITALS_ENABLED=true
 NEXT_PUBLIC_CLARITY_PROJECT_ID=
 NEXT_PUBLIC_META_PIXEL_ID=
+NEXT_PUBLIC_GOOGLE_ADS_ID=AW-18174837654
 NEXT_PUBLIC_MATOMO_URL=https://matomo.example.cz/
 NEXT_PUBLIC_MATOMO_SITE_ID=1
 MATOMO_URL=https://matomo.example.cz/
@@ -122,7 +126,7 @@ Lokální doporučení:
 
 - `EMAIL_DELIVERY_MODE=log` je nejbezpečnější výchozí režim pro vývoj a testovací rollout.
 - `.env.example` drží `ADMIN_BOOTSTRAP_ENABLED=false` a `EMAIL_DELIVERY_MODE=background`; pro první lokální přihlášení nebo bezpečný vývoj je běžné tyto dvě hodnoty dočasně přepnout na `true` a `log`.
-- `NEXT_PUBLIC_MATOMO_*`, `NEXT_PUBLIC_CLARITY_*`, `NEXT_PUBLIC_META_PIXEL_*`, `MATOMO_*` a `PUSHOVER_*` nech klidně vypnuté, pokud zrovna netestuješ analytics nebo notifikace.
+- `NEXT_PUBLIC_MATOMO_*`, `NEXT_PUBLIC_CLARITY_*`, `NEXT_PUBLIC_META_PIXEL_*`, `NEXT_PUBLIC_GOOGLE_ADS_*`, `MATOMO_*` a `PUSHOVER_*` nech klidně vypnuté, pokud zrovna netestuješ analytics nebo notifikace.
 - `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` drž stabilně v produkčním `.env`; deployment identifikátor naopak do `.env` běžně nefixuj, protože `deploy/release.sh` ho automaticky odvozuje z aktuálního commitu a zapisuje do runtime `.release-env`.
 - Produkční `instrumentation.ts` z těchto hodnot skládá provozní log metadata. Do logu se nezapisuje surový `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY`, jen jeho bezpečný fingerprint; ten lze mezi instancemi porovnat při debugování `Failed to find Server Action`.
 - Session časování můžeš upravit přes `ADMIN_SESSION_*_SECONDS`; pokud je nenastavíš, běží default `14 dní idle / refresh při <48h / absolutní strop 45 dní`.
@@ -147,6 +151,7 @@ Lokální doporučení:
 - Matomo konfigurace je volitelná: pokud `NEXT_PUBLIC_MATOMO_ENABLED` není přesně `true`, nebo chybí URL či site ID, tracking zůstane vypnutý. Protože jde o `NEXT_PUBLIC_*` proměnné, hodnoty se promítají do klientského bundle při buildu.
 - Clarity konfigurace je volitelná: pokud `NEXT_PUBLIC_CLARITY_ENABLED` není přesně `true`, nebo chybí `NEXT_PUBLIC_CLARITY_PROJECT_ID`, tracking zůstane vypnutý.
 - Meta Pixel konfigurace je volitelná: pokud `NEXT_PUBLIC_META_PIXEL_ENABLED` není přesně `true`, nebo chybí `NEXT_PUBLIC_META_PIXEL_ID`, tracking zůstane vypnutý.
+- Google Ads konfigurace je volitelná: pokud `NEXT_PUBLIC_GOOGLE_ADS_ENABLED` není přesně `true`, nebo chybí `NEXT_PUBLIC_GOOGLE_ADS_ID`, tracking zůstane vypnutý.
 - Při zapnuté konfiguraci Meta Pixel aktuálně posílá nejen `PageView`, ale i neosobní funnel eventy `ViewContent`, `InitiateCheckout`, `AddToCart`, `BookingDateSelected`, `BookingTimeSelected`, `BookingContactStarted` a `Lead`.
 - Vyloučení přihlášeného admina z veřejného Matomo trackingu je řešené aplikačně přes admin session cookie `ppstudio-admin-session`; nepřidává se kvůli tomu žádná nová env proměnná.
 - Vyloučení přihlášeného admina z Clarity je řešené stejným guardem v `SiteShell` (`disabled` přes admin session cookie). Clarity se navíc neinicializuje na tokenových self-service routách.
@@ -155,6 +160,7 @@ Lokální doporučení:
 - Server-side Matomo reporting konfigurace je oddělená od klientského trackingu: `MATOMO_URL`, `MATOMO_SITE_ID` a `MATOMO_AUTH_TOKEN` čte pouze server-only modul `src/lib/analytics/matomo.ts`. Pokud některá hodnota chybí, dashboard analytics vrací nulové hodnoty místo chyby do UI.
 - Úprava admin dashboardu na denní provozní cockpit nepřidává žádnou novou env proměnnou; používá stávající Prisma data, admin session a volitelnou server-side Matomo konfiguraci.
 - Matomo se nepoužívá v adminu, neposílá tokenové self-service URL a neukládá analytics eventy do databáze PP Studio.
+- Google Ads tag se nepoužívá v adminu a neinicializuje se na tokenových self-service URL; u App Router navigace používá sanitizovaný `page_path` bez citlivých query parametrů.
 - Pushover konfigurace je oddelena na serverovy app token a per-owner User Key v DB. `PUSHOVER_ENABLED` a `PUSHOVER_APP_TOKEN` cte jen `src/lib/notifications/pushover.ts`; pri chybejici nebo vypnute konfiguraci se notifikace tise preskoci a hlavni booking/email flow pokracuje.
 - Pushover User Key se nespravuje v `.env`, ale v owner-only admin bloku `/admin/nastaveni -> Pushover notifikace`; ulozeny je v `UserNotificationSettings.pushoverUserKey` pro konkretni `AdminUser`.
 - Self-service změna termínu nepřidává nové env proměnné; pokud jsou `NEXT_PUBLIC_MATOMO_*` zapnuté, tokenová stránka může inicializovat Matomo kvůli bezpečným eventům, ale pageview s tokenem neodesílá.

@@ -91,6 +91,7 @@ MEDIA_STORAGE_ROOT=/var/www/ppstudio-uploads
 - `NEXT_PUBLIC_APP_URL` je runtime URL aplikace pro redirecty a e-mailové odkazy.
 - `NEXT_PUBLIC_SITE_DOMAIN` a `VOUCHER_PUBLIC_DOMAIN` pomáhají držet veřejnou textovou doménu konzistentní ve voucher PDF a kontaktních výstupech.
 - `NEXT_PUBLIC_SITE_URL` je doporučená kanonická veřejná URL pro SEO metadata a JSON-LD (při chybějící hodnotě fallback na `NEXT_PUBLIC_APP_URL`).
+- `NEXT_PUBLIC_GOOGLE_ADS_ENABLED` a `NEXT_PUBLIC_GOOGLE_ADS_ID` volitelně zapínají veřejný Google Ads tag (`gtag.js`, typicky `AW-*`).
 - `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` je povinný stabilní klíč pro Next.js Server Actions; v produkci musí zůstat stejný mezi instancemi stejného buildu.
 - `DATABASE_URL` je hlavní aplikační databáze.
 - `SHADOW_DATABASE_URL` používá Prisma při `migrate dev`.
@@ -128,6 +129,7 @@ Praktický přehled hlavních HTTP endpointů je v [`docs/API.md`](/var/www/ppst
 - Projekt běží na Next.js 16 App Routeru se strukturou oddělenou na public web, booking a admin.
 - Veřejný shell (`SiteShell`) inicializuje volitelný Matomo tracking přes `NEXT_PUBLIC_MATOMO_ENABLED`, `NEXT_PUBLIC_MATOMO_URL` a `NEXT_PUBLIC_MATOMO_SITE_ID`; admin route group tracking komponentu nepoužívá a při přítomné admin session cookie `ppstudio-admin-session` Matomo nenačítá ani na veřejných stránkách.
 - Veřejný shell (`SiteShell`) umí volitelně inicializovat i Microsoft Clarity přes `NEXT_PUBLIC_CLARITY_ENABLED` a `NEXT_PUBLIC_CLARITY_PROJECT_ID`; Clarity běží jen na veřejných/booking stránkách, nepouští se pro přihlášený admin session kontext a neinicializuje se na tokenových self-service routách.
+- Veřejný shell (`SiteShell`) umí volitelně inicializovat i Google Ads tag přes `NEXT_PUBLIC_GOOGLE_ADS_ENABLED` a `NEXT_PUBLIC_GOOGLE_ADS_ID`; tag běží jen na veřejných/booking stránkách, nepouští se pro přihlášený admin session kontext, neinicializuje se na tokenových self-service routách a při klientské navigaci v App Routeru dopošle další pageview přes `gtag('config', ...)`.
 - Veřejný shell (`SiteShell`) umí volitelně inicializovat i Meta Pixel přes `NEXT_PUBLIC_META_PIXEL_ENABLED` a `NEXT_PUBLIC_META_PIXEL_ID`; Pixel běží jen na veřejných/booking stránkách, nepouští se pro přihlášený admin session kontext a neinicializuje se na tokenových self-service routách.
 - Meta Pixel nad rámec `PageView` sleduje i klíčové neosobní funnel kroky: `ViewContent` na detailu služby, `InitiateCheckout` na aktivním booking flow, `AddToCart` při výběru služby, custom `BookingDateSelected` / `BookingTimeSelected` / `BookingContactStarted` a po úspěchu `Lead`.
 - Web Vitals tracking má vlastní klientský feature flag `NEXT_PUBLIC_WEB_VITALS_ENABLED` (default `true`), takže měření lze vypnout nezávisle na pageview/event trackingu v Matomo.

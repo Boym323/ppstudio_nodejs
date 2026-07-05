@@ -12,7 +12,7 @@ Postup nasazení aplikace do produkce.
 ## Release checklist
 1. `npm ci --include=dev`
    - Před tím ověř, že server už běží na `Node 24 LTS`; po skoku z `22` čekej čistý reinstall nativních balíčků typu `sharp`.
-2. Ověř správné produkční env proměnné (`DATABASE_URL`, `ADMIN_SESSION_SECRET`, `ADMIN_BOOTSTRAP_ENABLED=false` mimo krátký recovery režim, admin bootstrap účty, email delivery, worker, `MEDIA_STORAGE_ROOT`, povinný `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY`, volitelně `NEXT_PUBLIC_MATOMO_*`, `NEXT_PUBLIC_CLARITY_*`, `NEXT_PUBLIC_META_PIXEL_*`, serverové `MATOMO_*` pro dashboard reporting a `PUSHOVER_ENABLED` / `PUSHOVER_APP_TOKEN` pro owner notifikace).
+2. Ověř správné produkční env proměnné (`DATABASE_URL`, `ADMIN_SESSION_SECRET`, `ADMIN_BOOTSTRAP_ENABLED=false` mimo krátký recovery režim, admin bootstrap účty, email delivery, worker, `MEDIA_STORAGE_ROOT`, povinný `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY`, volitelně `NEXT_PUBLIC_MATOMO_*`, `NEXT_PUBLIC_CLARITY_*`, `NEXT_PUBLIC_META_PIXEL_*`, `NEXT_PUBLIC_GOOGLE_ADS_*`, serverové `MATOMO_*` pro dashboard reporting a `PUSHOVER_ENABLED` / `PUSHOVER_APP_TOKEN` pro owner notifikace).
    - Při používání Resend trackingu ověř i `EMAIL_TRANSPORT=resend`, `RESEND_API_KEY` a `RESEND_WEBHOOK_SECRET`.
    - V Resend dashboardu musí být webhook endpoint nastaven na `POST /api/webhooks/resend` (HTTPS produkční origin).
    - `NEXT_DEPLOYMENT_ID` při doporučeném rollout skriptu nenasazuj ručně do `.env`; `deploy/release.sh` ho exportuje automaticky z aktuálního git commitu, stejně jako `DEPLOYMENT_VERSION` a `GIT_HASH`, a před restartem webu je zapíše do `.release-env` pro runtime `next start`.
@@ -90,6 +90,11 @@ Postup nasazení aplikace do produkce.
      - veřejná stránka načte Clarity tag pouze při `NEXT_PUBLIC_CLARITY_ENABLED=true` a vyplněném `NEXT_PUBLIC_CLARITY_PROJECT_ID`
      - `/admin`, `/api`, Next internals a tokenové self-service route (`/rezervace/sprava/*`, `/rezervace/storno/*`, `/rezervace/akce/*`) Clarity neinicializují
      - při přihlášené admin session (`ppstudio-admin-session`) se na veřejných stránkách Clarity nenačte
+   - Google Ads tag při zapnutých `NEXT_PUBLIC_GOOGLE_ADS_*`:
+     - veřejná stránka načte `https://www.googletagmanager.com/gtag/js?id=AW-...` pouze při `NEXT_PUBLIC_GOOGLE_ADS_ENABLED=true` a vyplněném `NEXT_PUBLIC_GOOGLE_ADS_ID`
+     - `/admin`, `/api`, Next internals a tokenové self-service route (`/rezervace/sprava/*`, `/rezervace/storno/*`, `/rezervace/akce/*`) tag neinicializují
+     - při přihlášené admin session (`ppstudio-admin-session`) se na veřejných stránkách tag nenačte
+     - klientská navigace po veřejných stránkách odešle další `gtag('config', ...)` pageview bez tokenové URL a bez citlivých query parametrů
    - Meta Pixel při zapnutých `NEXT_PUBLIC_META_PIXEL_*`:
      - veřejná stránka načte `fbevents.js` pouze při `NEXT_PUBLIC_META_PIXEL_ENABLED=true` a vyplněném `NEXT_PUBLIC_META_PIXEL_ID`
      - `/admin`, `/api`, Next internals a tokenové self-service route (`/rezervace/sprava/*`, `/rezervace/storno/*`, `/rezervace/akce/*`) Pixel neinicializují

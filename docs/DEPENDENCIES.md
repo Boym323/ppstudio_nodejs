@@ -102,6 +102,7 @@ Seznam důležitých knihoven a důvod jejich použití.
 - Hardening `/studio` proti orphan media záznamům nepřidává žádnou novou závislost; používá stávající `localMediaStorage` a Node `fs` pro dev-only fallback `public/dev/studio/*`.
 - Samostatný typ média pro `/kontakt` nepřidává žádnou novou závislost; jde pouze o rozšíření Prisma enumu `MediaType` a existující media vrstvy.
 - Matomo integrace také nepřidává žádnou novou závislost; helper a CTA wrappers jsou lokální TypeScript/React moduly.
+- Google Ads tag také nepřidává žádnou novou závislost; integrace používá pouze vestavěný `next/script` a lokální tracker helper.
 - FAQPage JSON-LD a rozšířená FAQ stránka nepřidávají žádnou novou závislost; schema se generuje lokálním helperem a accordion zůstává na nativním HTML `details/summary`.
 - Matomo dashboard reporting také nepřidává žádnou novou závislost; `src/lib/analytics/matomo.ts` je server-only wrapper nad Reporting API.
 - Databázový základ voucherů nepřidává žádnou novou závislost; jde čistě o Prisma modely, enumy, migraci a budoucí doménovou vrstvu v `src/features/vouchers`.
