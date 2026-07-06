@@ -4,7 +4,7 @@ Tento dokument slouží jako detailní technická dokumentace vývoje.
 Pro centralizovaný přehled hlavních route handler kontraktů používej i [`docs/API.md`](/var/www/ppstudio/docs/API.md); implementace v `src/app/api/**/route.ts` je ale vždy finální zdroj pravdy.
 
 ## Verzování a release disciplína
-- `package.json` používá SemVer `MAJOR.MINOR.PATCH`; aktuální release je `0.5.1` v pre-stable řadě.
+- `package.json` používá SemVer `MAJOR.MINOR.PATCH`; aktuální release je `0.6.0` v pre-stable řadě.
 - Praktické pravidlo pro tento projekt:
   - `PATCH`: bugfix, interní refaktor bez změny kontraktu, performance tuning bez změny chování API/UI kontraktu.
   - `MINOR`: nová funkce nebo rozšíření existující funkce zpětně kompatibilním způsobem.

@@ -5,6 +5,10 @@ Všechny důležité změny v tomto projektu se zapisují do tohoto souboru.
 Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
+
+## [0.6.0] - 2026-07-06
+
+- Release příprava pro produkční nasazení: projektová verze navýšena na minor `0.6.0`.
 - Opravený TypeScript build stránky `/o-mne`: `Person` JSON-LD teď dostává explicitní `businessName` mapované ze salon profilu, takže `buildPersonJsonLd(...)` znovu odpovídá svému kontraktu a produkční build nepadá na chybějícím poli.
 - FAQ stránka rozšířila rozhodovací i SEO dotazy kolem výběru první služby, rozdílu mezi kosmetikou / lash liftingem / laminací obočí, příchodu s make-upem, výdrže lash liftingu a laminace obočí, problematické pleti, vhodnosti návštěvy při podráždění očí a volby mezi službovým a hodnotovým voucherem.
 - Veřejné SEO landing pages `/`, `/sluzby`, `/cenik`, `/vouchery`, `/o-mne` a detail služby `/sluzby/[slug]` už nevolají `connection()` v page komponentě, takže je zbytečně neoznačujeme jako request-time dynamické jen kvůli SEO/read-model obsahu; tím se otevírá lepší prerender/cache chování pro veřejné dohledatelné stránky.
