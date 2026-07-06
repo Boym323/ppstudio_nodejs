@@ -1,8 +1,9 @@
-import { connection } from 'next/server';
+import { SeoJsonLd, buildPersonJsonLd } from "@/features/public/components/seo-json-ld";
 import { getPublicCertificates } from '@/features/public/lib/public-certificates';
 import { AboutPage } from '@/features/public/components/about-page';
 import { buildPageMetadata } from '@/features/public/components/public-site';
 import { getPrimaryPublicAboutPortrait } from '@/features/public/lib/public-media';
+import { getPublicSalonProfile } from "@/lib/site-settings";
 
 export const metadata = buildPageMetadata({
   title: 'O mně',
@@ -11,11 +12,16 @@ export const metadata = buildPageMetadata({
 });
 
 export default async function Page() {
-  await connection();
-  const [certificates, portrait] = await Promise.all([
+  const [certificates, portrait, salonProfile] = await Promise.all([
     getPublicCertificates(),
     getPrimaryPublicAboutPortrait(),
+    getPublicSalonProfile(),
   ]);
 
-  return <AboutPage certificates={certificates} portrait={portrait} />;
+  return (
+    <>
+      <SeoJsonLd data={buildPersonJsonLd(salonProfile)} />
+      <AboutPage certificates={certificates} portrait={portrait} />
+    </>
+  );
 }

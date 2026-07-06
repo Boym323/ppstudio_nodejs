@@ -15,6 +15,7 @@ process.env.ADMIN_STAFF_EMAIL ??= "salon@example.com";
 process.env.ADMIN_STAFF_PASSWORD ??= "salon-password";
 
 let buildLocalBusinessJsonLd: typeof import("./seo-json-ld")["buildLocalBusinessJsonLd"];
+let buildPersonJsonLd: typeof import("./seo-json-ld")["buildPersonJsonLd"];
 let buildBreadcrumbListJsonLd: typeof import("./seo-json-ld")["buildBreadcrumbListJsonLd"];
 let buildServiceJsonLd: typeof import("./seo-json-ld")["buildServiceJsonLd"];
 let durationMinutesToIsoDuration: typeof import("./seo-json-ld")["durationMinutesToIsoDuration"];
@@ -24,6 +25,7 @@ before(async () => {
   const seoJsonLd = await import("./seo-json-ld");
 
   buildLocalBusinessJsonLd = seoJsonLd.buildLocalBusinessJsonLd;
+  buildPersonJsonLd = seoJsonLd.buildPersonJsonLd;
   buildBreadcrumbListJsonLd = seoJsonLd.buildBreadcrumbListJsonLd;
   buildServiceJsonLd = seoJsonLd.buildServiceJsonLd;
   durationMinutesToIsoDuration = seoJsonLd.durationMinutesToIsoDuration;
@@ -104,6 +106,22 @@ describe("seo json-ld helpers", () => {
     assert.equal(serviceNode.offers.priceCurrency, "CZK");
     assert.equal(serviceNode.offers.availability, "https://schema.org/InStock");
     assert.equal(serviceNode.duration, "PT75M");
+  });
+
+  test("builds Person JSON-LD for the about page entity", () => {
+    const jsonLd = buildPersonJsonLd({
+      operatorName: salonProfile.operatorName,
+      instagramUrl: salonProfile.instagramUrl,
+      city: salonProfile.city,
+      businessName: salonProfile.name,
+    });
+
+    assert.equal(jsonLd["@context"], "https://schema.org");
+    assert.equal(jsonLd["@type"], "Person");
+    assert.equal(jsonLd.name, "Pavlína Pomykalová");
+    assert.equal(jsonLd.jobTitle, "Kosmetická specialistka");
+    assert.equal(jsonLd.url, "https://ppstudio.cz/o-mne");
+    assert.deepEqual(jsonLd.sameAs, ["https://www.instagram.com/ppstudio.cz/"]);
   });
 
   test("builds BreadcrumbList JSON-LD with absolute URLs and current page without item", () => {

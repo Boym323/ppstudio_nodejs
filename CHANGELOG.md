@@ -5,6 +5,9 @@ Všechny důležité změny v tomto projektu se zapisují do tohoto souboru.
 Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
+- Veřejné SEO landing pages `/`, `/sluzby`, `/cenik`, `/vouchery`, `/o-mne` a detail služby `/sluzby/[slug]` už nevolají `connection()` v page komponentě, takže je zbytečně neoznačujeme jako request-time dynamické jen kvůli SEO/read-model obsahu; tím se otevírá lepší prerender/cache chování pro veřejné dohledatelné stránky.
+- Stránka `O mně` nově přidává samostatný `Person` JSON-LD pro Pavlínu Pomykalovou navázaný na entitu salonu, takže vyhledávače i AI systémy dostávají jasnější signál o osobě za značkou.
+- Do `public/llms.txt` přibyl stručný strojově čitelný rozcestník veřejného webu s autoritativními kontaktními fakty, hlavními landing pages a upozorněním, že admin/tokenové URL nejsou určeny pro citace ani navigaci.
 - Observability pro incident `Failed to find Server Action` nově loguje i sanitizované shrnutí `next-action` headeru (`length`, fingerprint, krátký sample, heuristika `looksMalformed`), takže provoz rychleji odliší stale klienta od scan/probingu s podvrženým action ID typu `"x"`.
 - Opravené klientské dosynchronizování admin planneru po `Publikovat změny`: po úspěšném publishi se lokální `workingDays` znovu přepíšou čerstvými serverovými daty a smaže se aktivní selection, takže nové volné okno už nezůstane jen jako zelený obrys až do ručního refreshnutí stránky.
 - Přibyla volitelná integrace Google Ads tagu (`gtag.js`, `AW-*`) na veřejný web přes `GoogleAdsTracker` s env konfigurací `NEXT_PUBLIC_GOOGLE_ADS_ENABLED` a `NEXT_PUBLIC_GOOGLE_ADS_ID`; tracker běží jen na veřejných/booking routách, respektuje admin session guard a při App Router navigaci posílá další `config` pageview bez tokenových URL.

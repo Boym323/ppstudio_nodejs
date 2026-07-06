@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import { connection } from "next/server";
 import { notFound } from 'next/navigation';
 
 import { MetaPixelViewContentTracker } from "@/features/analytics/meta-pixel-view-content-tracker";
@@ -30,8 +29,6 @@ export async function generateMetadata({ params }: { params: PageParams }): Prom
 }
 
 export default async function Page({ params }: { params: PageParams }) {
-  await connection();
-
   const { slug } = await params;
   const service = await getPublicServiceBySlug(slug);
 

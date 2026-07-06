@@ -25,6 +25,13 @@ type BusinessProfile = Pick<
   "name" | "phone" | "email" | "instagramUrl" | "streetAddress" | "postalCode" | "city"
 >;
 
+type PersonProfile = Pick<
+  PublicSalonProfile,
+  "operatorName" | "instagramUrl" | "city"
+> & {
+  businessName: string;
+};
+
 const SEO_BASE_URL = siteConfig.canonicalUrl;
 const BUSINESS_ID = `${SEO_BASE_URL}/#business`;
 const WEBSITE_ID = `${SEO_BASE_URL}/#website`;
@@ -84,6 +91,26 @@ export function buildHomePageJsonLd() {
       "@id": BUSINESS_ID,
     },
     inLanguage: "cs-CZ",
+  };
+}
+
+export function buildPersonJsonLd(profile: PersonProfile) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    "@id": `${SEO_BASE_URL}/o-mne#person`,
+    name: profile.operatorName,
+    jobTitle: "Kosmetická specialistka",
+    worksFor: {
+      "@id": BUSINESS_ID,
+      name: profile.businessName,
+    },
+    workLocation: {
+      "@type": "City",
+      name: profile.city,
+    },
+    url: `${SEO_BASE_URL}/o-mne`,
+    sameAs: profile.instagramUrl ? [profile.instagramUrl] : undefined,
   };
 }
 

@@ -1,5 +1,3 @@
-import { connection } from "next/server";
-
 import { buildPageMetadata } from "@/features/public/components/public-page-metadata";
 import { VoucherLandingPage } from "@/features/public/components/voucher-landing-page";
 import { getVoucherSuggestedServices } from "@/features/public/lib/public-services";
@@ -12,8 +10,6 @@ export const metadata = buildPageMetadata({
 });
 
 export default async function Page() {
-  await connection();
-
   const suggestedServices = await getVoucherSuggestedServices();
 
   return <VoucherLandingPage suggestedServices={suggestedServices} />;

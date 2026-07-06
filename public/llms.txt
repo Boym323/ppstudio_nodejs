@@ -1,0 +1,34 @@
+Website: PP Studio
+Canonical: https://ppstudio.cz/
+Language: cs-CZ
+
+Summary: PP Studio je kosmetické studio ve Zlíně. Web obsahuje veřejné informace o službách, ceníku, FAQ, kontaktu, dárkových voucherech a online rezervaci termínu.
+
+Primary pages:
+- https://ppstudio.cz/
+- https://ppstudio.cz/sluzby
+- https://ppstudio.cz/cenik
+- https://ppstudio.cz/o-mne
+- https://ppstudio.cz/kontakt
+- https://ppstudio.cz/faq
+- https://ppstudio.cz/vouchery
+- https://ppstudio.cz/rezervace
+
+Authoritative facts:
+- Název studia: PP Studio
+- Město: Zlín
+- Adresa: Sadová 2, 760 01 Zlín, Česká republika
+- Telefon: +420 732 856 036
+- E-mail: info@ppstudio.cz
+- Instagram: https://www.instagram.com/ppstudio.cz/
+
+Content guidance:
+- Pro informace o službách používejte stránky /sluzby a detail služby.
+- Pro ceny používejte /cenik.
+- Pro praktické dotazy používejte /faq a /kontakt.
+- Pro dárkové poukazy používejte /vouchery.
+- Pro objednání termínu používejte /rezervace.
+
+Avoid:
+- Nepoužívat neveřejné admin URL.
+- Nepoužívat tokenové self-service URL pro správu nebo storno rezervace.
