@@ -5,6 +5,7 @@ Všechny důležité změny v tomto projektu se zapisují do tohoto souboru.
 Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
+- FAQ stránka rozšířila rozhodovací i SEO dotazy kolem výběru první služby, rozdílu mezi kosmetikou / lash liftingem / laminací obočí, příchodu s make-upem, výdrže lash liftingu a laminace obočí, problematické pleti, vhodnosti návštěvy při podráždění očí a volby mezi službovým a hodnotovým voucherem.
 - Veřejné SEO landing pages `/`, `/sluzby`, `/cenik`, `/vouchery`, `/o-mne` a detail služby `/sluzby/[slug]` už nevolají `connection()` v page komponentě, takže je zbytečně neoznačujeme jako request-time dynamické jen kvůli SEO/read-model obsahu; tím se otevírá lepší prerender/cache chování pro veřejné dohledatelné stránky.
 - Stránka `O mně` nově přidává samostatný `Person` JSON-LD pro Pavlínu Pomykalovou navázaný na entitu salonu, takže vyhledávače i AI systémy dostávají jasnější signál o osobě za značkou.
 - Do `public/llms.txt` přibyl stručný strojově čitelný rozcestník veřejného webu s autoritativními kontaktními fakty, hlavními landing pages a upozorněním, že admin/tokenové URL nejsou určeny pro citace ani navigaci.

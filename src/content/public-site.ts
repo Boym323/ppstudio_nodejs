@@ -426,6 +426,16 @@ export function buildFaqSections(cancellationHours: number): FaqSection[] {
           answer:
             'Ano. Jakmile víte, že vám termín nevyhovuje, ozvěte se mi prosím co nejdříve a zkusíme spolu najít jiný čas. Čím dříve dáte vědět, tím snáz se podaří termín upravit.',
         },
+        {
+          question: 'Jak poznám, kterou službu rezervovat jako první?',
+          answer:
+            'Pokud řešíte hlavně pleť, obvykle dává smysl začít službou z kategorie kosmetických ošetření. Pokud vás víc zajímá upravený výraz bez velké každodenní práce, bývá vhodným začátkem lash lifting nebo laminace obočí. Když si nejste jistá, vyberte nejbližší variantu a na místě péči společně doladíme.',
+        },
+        {
+          question: 'Mohu si rezervovat lash lifting nebo laminaci obočí i jako první návštěvu?',
+          answer:
+            'Ano, tyto služby jsou vhodné i pro první návštěvu. Před začátkem si řekneme, jaký výsledek čekáte, co je pro vás přirozené a jestli dává větší smysl řasy, obočí nebo jejich kombinace.',
+        },
       ],
     },
     {
@@ -457,6 +467,16 @@ export function buildFaqSections(cancellationHours: number): FaqSection[] {
           question: 'Jak často chodit na kosmetiku?',
           answer:
             'Záleží na typu pleti, cíli péče i domácí rutině. U pravidelné péče se často osvědčuje návštěva přibližně jednou za 4 až 6 týdnů, ale přesnější rytmus doporučím podle toho, co vaše pleť aktuálně potřebuje.',
+        },
+        {
+          question: 'Jak poznám, jestli je pro mě vhodnější kosmetické ošetření pleti, lash lifting nebo laminace obočí?',
+          answer:
+            'Záleží na tom, co chcete zlepšit nejdřív. Pokud řešíte komfort pleti, čistotu nebo hydrataci, vhodnější bývá kosmetické ošetření. Pokud chcete zjednodušit ranní úpravu a zvýraznit oči nebo obočí, dává větší smysl lash lifting nebo laminace obočí.',
+        },
+        {
+          question: 'Je lepší přijít na kosmetiku bez make-upu?',
+          answer:
+            'Není to nutné. Pokud přijdete nalíčená, vše potřebné před ošetřením šetrně odlíčím. U lash liftingu a úpravy obočí ale bývá příjemnější přijít ideálně bez výrazného očního make-upu nebo mastných produktů kolem očí.',
         },
       ],
     },
@@ -494,6 +514,16 @@ export function buildFaqSections(cancellationHours: number): FaqSection[] {
           linkLabel: 'Zobrazit parkování',
           linkHref: '/kontakt#parkovani',
         },
+        {
+          question: 'Jak dlouho vydrží lash lifting?',
+          answer:
+            'Efekt lash liftingu obvykle vydrží přibližně 4 až 6 týdnů. Záleží na přirozeném cyklu vašich řas, domácí péči a také na tom, jak rychle se řasy obnovují.',
+        },
+        {
+          question: 'Jak dlouho vydrží laminace obočí?',
+          answer:
+            'Laminace obočí obvykle drží přibližně 4 až 6 týdnů. Výdrž ovlivňuje typ chloupků, následná péče i to, jak často obočí namáčíte, odličujete nebo fixujete dalšími produkty.',
+        },
       ],
     },
     {
@@ -521,6 +551,16 @@ export function buildFaqSections(cancellationHours: number): FaqSection[] {
           answer:
             'Ano, jen je potřeba citlivost zohlednit už při konzultaci. Pokud víte o reakcích, alergiích nebo aktuálním podráždění, řekneme si to předem a zvolím jemnější postup i vhodné přípravky.',
         },
+        {
+          question: 'Je kosmetické ošetření vhodné i pro problematickou nebo aknózní pleť?',
+          answer:
+            'Ve spoustě případů ano, ale vždy záleží na aktuálním stavu pleti. Pokud je pleť podrážděná, zanícená nebo právě řešíte intenzivnější dermatologickou léčbu, je důležité to říct předem, abychom zvolily šetrný a smysluplný postup.',
+        },
+        {
+          question: 'Kdy není vhodné přijít na lash lifting nebo laminaci obočí?',
+          answer:
+            'Pokud máte aktuálně podrážděné oči, čerstvou reakci v okolí očí, výrazně citlivou pokožku nebo probíhající zánět, je lepší termín raději odložit. Když si nejste jistá, napište mi předem a domluvíme se, jestli je návštěva v danou chvíli vhodná.',
+        },
       ],
     },
     {
@@ -544,6 +584,13 @@ export function buildFaqSections(cancellationHours: number): FaqSection[] {
             'Ano, dárkový voucher je možné vystavit na konkrétní službu nebo podle individuální domluvy. Nejrychlejší je napsat do studia a společně doladíme hodnotu i způsob předání.',
           linkLabel: 'Napsat do studia',
           linkHref: '/kontakt',
+        },
+        {
+          question: 'Je lepší voucher na konkrétní službu, nebo na hodnotu?',
+          answer:
+            'Pokud přesně víte, jakou péči chcete darovat, dává smysl voucher na konkrétní službu. Pokud si nejste jistá výběrem nebo jde o první návštěvu, bývá praktičtější volnější hodnota, aby se péče mohla doladit podle aktuální potřeby.',
+          linkLabel: 'Zobrazit vouchery',
+          linkHref: '/vouchery',
         },
       ],
     },

@@ -320,6 +320,7 @@ Pro centralizovaný přehled hlavních route handler kontraktů používej i [`d
 - FAQ stránka renderuje odpovědi serverově přes nativní `details/summary`; nepřidávej klientskou state vrstvu, která by odpovědi vkládala do DOM až po kliknutí.
 - `FAQPage` JSON-LD staví `buildFaqPageJsonLd(...)` ze stejného seznamu sekcí jako stránka. Při úpravě FAQ nejdřív změň viditelný `FaqItem` a až z něj nech vzniknout strukturovaná data, aby se schema nikdy nerozjelo s obsahem stránky.
 - Praktické FAQ má pokrývat i opakující se salonní dotazy kolem frekvence kosmetiky, příchodu s make-upem, citlivé pleti, úpravy obočí a výdrže barvení obočí; drž odpovědi konkrétní, ale bez medicínských slibů.
+- FAQ průběžně rozšiřuj i o rozhodovací dotazy s organickým potenciálem: jak vybrat první službu, kdy zvolit lash lifting vs. laminaci obočí, jak dlouho tyto služby vydrží, kdy je lepší návštěvu kvůli podráždění očí odložit a kdy je vhodnější hodnotový voucher než voucher na konkrétní službu.
 - `src/features/public/lib/public-services.ts` nyní zároveň funguje jako thin read model nad rozšířeným katalogem:
   - `Service` nese `publicIntro`, `seoDescription`, `pricingShortDescription`, `pricingBadge`; název služby je sjednocený v `Service.name`
   - `ServiceCategory` nese `pricingDescription`, `pricingLayout`, `pricingIconKey`, `pricingSortOrder`; veřejný název kategorie jde z aktuálního `ServiceCategory.name`
