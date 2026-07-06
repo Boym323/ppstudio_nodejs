@@ -20,7 +20,14 @@ export default async function Page() {
 
   return (
     <>
-      <SeoJsonLd data={buildPersonJsonLd(salonProfile)} />
+      <SeoJsonLd
+        data={buildPersonJsonLd({
+          operatorName: salonProfile.operatorName,
+          instagramUrl: salonProfile.instagramUrl,
+          city: salonProfile.city,
+          businessName: salonProfile.name,
+        })}
+      />
       <AboutPage certificates={certificates} portrait={portrait} />
     </>
   );
