@@ -75,6 +75,10 @@ function buildManualPreviewStartsAt(dateValue: string, timeValue: string) {
   }
 
   const resolved = resolvePragueLocalDateTime(dateValue, timeValue);
+  if (!resolved) {
+    return "";
+  }
+
   return Number.isNaN(resolved.getTime()) ? "" : resolved.toISOString();
 }
 
