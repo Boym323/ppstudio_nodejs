@@ -106,3 +106,21 @@ test("buildBookingAcquisitionCookieValue keeps service, utm and mtm query params
     "/rezervace?service=lash-lifting&utm_source=instagram&utm_medium=social&mtm_campaign=jaro-2026",
   );
 });
+
+test("buildBookingAcquisitionCookieValue maps mtm params into acquisition fields when utm params are missing", () => {
+  const cookieValue = buildBookingAcquisitionCookieValue({
+    pathname: "/rezervace",
+    search: "?mtm_source=instagram&mtm_medium=social&mtm_campaign=jaro-2026",
+    hostname: "ppstudio.cz",
+    referrer: "",
+  });
+
+  assert.ok(cookieValue);
+  assert.deepEqual(parseBookingAcquisitionCookie(cookieValue), {
+    source: "INSTAGRAM",
+    utmSource: "instagram",
+    utmMedium: "social",
+    utmCampaign: "jaro-2026",
+    referrerHost: null,
+  });
+});

@@ -159,7 +159,7 @@ async function resolveClientForBooking(
       },
       data: {
         fullName: normalizedFullName,
-        email: normalizedEmail ?? null,
+        email: normalizedEmail ?? undefined,
         phone: normalizedPhone,
         isActive: true,
         lastBookedAt: now,

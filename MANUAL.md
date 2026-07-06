@@ -72,6 +72,7 @@ Poznámka k runtime:
 - Pokud DB test nebo storno rezervace spadne na `AvailabilitySlot_active_time_window_excl`, zkontroluj pořadí merge operací v `booking-slot-compaction.ts`. Sousední slot musí být při compaction nejdřív archivovaný a teprve potom se může rozšířit cílový interval; jinak PostgreSQL zachytí dočasný překryv dvou aktivních slotů.
 - Pokud admin hlásí, že ruční rezervace „ukazuje jiný čas než se pak uloží“, ověř, že client preview stále používá Prague helper `resolvePragueLocalDateTime(...)` a ne lokální `new Date(...)` z browser timezone. Platí to pro drawer `Přidat rezervaci` i pro `Přesunout termín`.
 - Pokud se při výběru konkrétního slotu v adminu vrací chyba dostupnosti po změně služby nebo po delší prodlevě, je to očekávané: slot-mode už nesmí tiše vytvořit interní výjimku. Pro záměrnou interní výjimku použij režim ručního data/času.
+- Pokud ruční booking pro vybranou existující klientku odchází bez e-mailu, backend má zachovat původní `Client.email`; prázdné pole ve formuláři není signál pro smazání kontaktu. Opačné chování ber jako regresi.
 
 ## Příklad `.env` a význam hlavních proměnných
 
@@ -237,6 +238,7 @@ Praktický přehled hlavních HTTP endpointů je v [`docs/API.md`](/var/www/ppst
 - Pole `Hledat` v rezervacích se po krátké pauze při psaní filtruje automaticky; tlačítko `Filtrovat` zůstává jako explicitní fallback a výběr návrhu z našeptávače filtr použije hned.
 - Quick akce `Potvrdit` v seznamu rezervací nečeká na dokončení Pushover HTTP callu; stav rezervace se uloží a UI se odblokuje i při pomalé externí notifikační vrstvě.
 - Rezervace v adminu rozlišují `Kanál rezervace` a marketingové `Odkud přišla`: `Web` znamená, že rezervace vznikla přes veřejný booking flow, zatímco akviziční štítek `Instagram`, `Google`, `Firmy.cz / Seznam` nebo `Direct / bez kampaně` vychází z UTM/referreru. `Instagram zpráva` v kanálu rezervace je ručně zadaná rezervace z konverzace, ne webová UTM návštěva.
+- Akviziční cookie normalizuje primárně `utm_*`, ale jako fallback přijímá i `mtm_source`, `mtm_medium` a `mtm_campaign`, aby se booking attribution neztratil ani u Matomo-tagovaných odkazů.
 - Pracovní seznam drží sticky prvky jen tam, kde to dává smysl: na mobilu filtr bar scrolluje spolu s obsahem (nepřekrývá řádky), od `md` breakpointu výš zůstává nahoře pro rychlou práci v delším seznamu; hlavička tabulky drží kontext a akce v řádku vrací okamžitý inline feedback přes loading stav a toast.
 - V pracovním seznamu je teď nejvýraznější čas rezervace; uzavřené stavy `Hotovo` a `Zrušená` mají menší vizuální váhu, inline akce se liší podle stavu rezervace a chybějící kontakt se zobrazuje neutrálně jako `bez kontaktu`.
 - Kontakt v řádku rezervace je praktický i na mobilu: telefon používá `tel:`, e-mail `mailto:` a mobilní zobrazení skládá compact card s pořadím `čas -> klientka -> služba -> stav`.

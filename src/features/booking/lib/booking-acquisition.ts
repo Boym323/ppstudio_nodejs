@@ -243,9 +243,15 @@ export function buildBookingAcquisitionCookieValue(input: {
   const existing = decodeCookiePayload(input.existingCookieValue);
   const params = new URLSearchParams(input.search);
 
-  const utmSource = sanitizeTextValue(params.get("utm_source") ?? existing?.utmSource);
-  const utmMedium = sanitizeTextValue(params.get("utm_medium") ?? existing?.utmMedium);
-  const utmCampaign = sanitizeTextValue(params.get("utm_campaign") ?? existing?.utmCampaign);
+  const utmSource = sanitizeTextValue(
+    params.get("utm_source") ?? params.get("mtm_source") ?? existing?.utmSource,
+  );
+  const utmMedium = sanitizeTextValue(
+    params.get("utm_medium") ?? params.get("mtm_medium") ?? existing?.utmMedium,
+  );
+  const utmCampaign = sanitizeTextValue(
+    params.get("utm_campaign") ?? params.get("mtm_campaign") ?? existing?.utmCampaign,
+  );
 
   const referrerHost = getHostFromReferrer(input.referrer);
   const isExternalReferrer = referrerHost && referrerHost !== input.hostname.toLowerCase();

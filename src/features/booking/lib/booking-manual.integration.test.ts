@@ -36,6 +36,51 @@ async function loadModules() {
   };
 }
 
+async function findIsolatedManualWindow(
+  prisma: Awaited<ReturnType<typeof loadModules>>["prisma"],
+  seed: string,
+  durationMinutes: number,
+) {
+  const daySeed = Number.parseInt(seed.slice(0, 4), 16);
+  const hourSeed = Number.parseInt(seed.slice(4, 6), 16);
+  const minuteSeed = Number.parseInt(seed.slice(6, 8), 16);
+  const hourCandidates = [18, 19, 20, 21].map((hour, index, list) => list[(index + hourSeed) % list.length] ?? hour);
+  const minuteCandidates = [0, 15, 30, 45].map(
+    (minute, index, list) => list[(index + minuteSeed) % list.length] ?? minute,
+  );
+
+  for (let dayStep = 0; dayStep < 30; dayStep += 1) {
+    const dayOffset = 14 + ((daySeed + dayStep) % 30);
+
+    for (const hour of hourCandidates) {
+      for (const minute of minuteCandidates) {
+        const startsAt = new Date();
+        startsAt.setUTCSeconds(0, 0);
+        startsAt.setUTCDate(startsAt.getUTCDate() + dayOffset);
+        startsAt.setUTCHours(hour, minute, 0, 0);
+        const endsAt = new Date(startsAt.getTime() + durationMinutes * 60 * 1000);
+
+        const overlappingSlots = await prisma.availabilitySlot.count({
+          where: {
+            startsAt: {
+              lt: endsAt,
+            },
+            endsAt: {
+              gt: startsAt,
+            },
+          },
+        });
+
+        if (overlappingSlots === 0) {
+          return { startsAt, endsAt };
+        }
+      }
+    }
+  }
+
+  throw new Error("Nepodařilo se najít izolované okno pro ruční booking integrační test.");
+}
+
 dbTest("createManualBooking rejects stale slot-mode booking instead of silently creating manual override", async () => {
   const {
     prisma,
@@ -247,6 +292,123 @@ dbTest("createManualBooking still allows explicit manual override without slot s
         },
       });
     }
+    await prisma.service.deleteMany({
+      where: {
+        id: service.id,
+      },
+    });
+    await prisma.serviceCategory.deleteMany({
+      where: {
+        id: category.id,
+      },
+    });
+  }
+});
+
+dbTest("createManualBooking keeps existing selected client email when manual booking form leaves it blank", async () => {
+  const { prisma, createManualBooking } = await loadModules();
+
+  const suffix = randomUUID().slice(0, 8);
+  const { startsAt, endsAt } = await findIsolatedManualWindow(prisma, suffix, 60);
+
+  const category = await prisma.serviceCategory.create({
+    data: {
+      name: `Selected client category ${suffix}`,
+      slug: `selected-client-category-${suffix}`,
+      isActive: true,
+    },
+    select: { id: true },
+  });
+
+  const service = await prisma.service.create({
+    data: {
+      categoryId: category.id,
+      name: `Selected client service ${suffix}`,
+      slug: `selected-client-service-${suffix}`,
+      durationMinutes: 60,
+      priceFromCzk: 1200,
+      isActive: true,
+      isPubliclyBookable: true,
+    },
+    select: { id: true },
+  });
+
+  const slot = await prisma.availabilitySlot.create({
+    data: {
+      startsAt,
+      endsAt,
+      status: AvailabilitySlotStatus.PUBLISHED,
+      capacity: 1,
+      serviceRestrictionMode: "ANY",
+      publishedAt: new Date("2027-05-01T08:00:00.000Z"),
+    },
+    select: { id: true },
+  });
+
+  const client = await prisma.client.create({
+    data: {
+      fullName: `Vybraná klientka ${suffix}`,
+      email: `selected-client-${suffix}@example.com`,
+      phone: "+420777123456",
+      isActive: true,
+    },
+    select: { id: true },
+  });
+
+  let bookingId: string | null = null;
+
+  try {
+    const result = await createManualBooking({
+      serviceId: service.id,
+      slotId: slot.id,
+      allowManualOverride: false,
+      startsAt: startsAt.toISOString(),
+      selectedClientId: client.id,
+      fullName: `Vybraná klientka ${suffix}`,
+      email: "",
+      phone: "+420777123456",
+      source: BookingSource.PHONE,
+      status: BookingStatus.CONFIRMED,
+      actorUserId: null,
+      sendClientEmail: false,
+      includeCalendarAttachment: false,
+    });
+
+    bookingId = result.bookingId;
+
+    const updatedClient = await prisma.client.findUniqueOrThrow({
+      where: { id: client.id },
+      select: {
+        email: true,
+      },
+    });
+
+    assert.equal(updatedClient.email, `selected-client-${suffix}@example.com`);
+  } finally {
+    if (bookingId) {
+      await prisma.bookingActionToken.deleteMany({
+        where: { bookingId },
+      });
+      await prisma.emailLog.deleteMany({
+        where: { bookingId },
+      });
+      await prisma.bookingStatusHistory.deleteMany({
+        where: { bookingId },
+      });
+      await prisma.booking.deleteMany({
+        where: { id: bookingId },
+      });
+    }
+    await prisma.client.deleteMany({
+      where: {
+        id: client.id,
+      },
+    });
+    await prisma.availabilitySlot.deleteMany({
+      where: {
+        id: slot.id,
+      },
+    });
     await prisma.service.deleteMany({
       where: {
         id: service.id,
