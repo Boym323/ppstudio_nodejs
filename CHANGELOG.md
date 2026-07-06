@@ -6,6 +6,10 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Opravený admin preview ručního data/času v draweru rezervace i v draweru přesunu termínu: klientský náhled už nepřepočítává čas přes lokální timezone prohlížeče, ale přes stejný helper `Europe/Prague` jako server, takže kolem DST ani mimo české pásmo neukazuje jiný okamžik než se opravdu uloží.
+- Ruční rezervace v adminu už nepřepne výběr ze slotu do tichého `manualOverride`, když je vybraný slot mezitím stale nebo už neodpovídá délce služby. `manualOverride` zůstává vyhrazený jen pro explicitní režim ručního data/času.
+- Přibyly regresní testy pro Prague local time převod a DB integrační coverage pro admin ruční rezervaci: slot-mode teď ověřujeme proti tichému fallbacku na interní výjimku a manual-mode proti záměrnému vytvoření draft override slotu.
+
 ## [0.6.0] - 2026-07-06
 
 - Release příprava pro produkční nasazení: projektová verze navýšena na minor `0.6.0`.

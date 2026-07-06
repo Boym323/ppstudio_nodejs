@@ -15,5 +15,6 @@ Formatting for salon-facing admin, public booking, e-mail and ICS output must us
 - DB model and routes remain unchanged.
 - No new dependency is introduced.
 - Public catalog continues to return UTC ISO instants; clients render them as Prague local salon time.
+- Stejný Prague wall-clock převod musí používat i client-side admin preview pro ručně zadaný termín rezervace nebo přesunu, ne jen serverové uložení a planner read model.
 - E-mail and ICS keep Prague wall-clock appointment time while still storing absolute instants.
 - Manual QA should include copying days/weeks around the last Sunday of March and October.

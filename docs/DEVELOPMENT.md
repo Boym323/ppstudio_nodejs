@@ -45,6 +45,7 @@ Pro centralizovaný přehled hlavních route handler kontraktů používej i [`d
 - Pro `booking-public/engine.ts` drž minimálně unit coverage early-fail větví bez DB závislostí (`invalid startsAt`, `invalid phone`), aby základní validační guardy nešly regresí obejít.
 - DB integrační testy nespouštěj proti fixním hodinám typu „za 3 dny v 09:00“, pokud běží nad sdílenou nebo již seedovanou databází. Helpery pro sloty mají nejdřív najít izolované budoucí okno bez překryvu v `AvailabilitySlot` i aktivních `Booking`, jinak budou flaky podle aktuálních dat nebo paralelních běhů.
 - Stejné pravidlo platí i pro reschedule integrační testy: cílový původní i nový termín musí být před seedem ověřený proti existujícím slotům a aktivním rezervacím, jinak test může falešně skončit chybou `Nový termín koliduje s jinou aktivní rezervací.` i bez regresní změny doménové logiky.
+- Pro ruční admin booking teď držíme dvě oddělené regresní jistoty: `booking-local-time.test.ts` hlídá Prague wall-clock převod a `booking-manual.integration.test.ts` hlídá, že `slot` režim už nesmí tiše fallbacknout do `manualOverride`, zatímco explicitní manual režim to stále smí udělat.
 
 ## Lokální setup workflow
 - Výchozí pořadí pro nový stroj nebo čistý checkout je:
@@ -978,3 +979,5 @@ Pro centralizovaný přehled hlavních route handler kontraktů používej i [`d
 - Planner copy week must preserve local cells with `moveIntervalToDateKey(...)`, not blind `24h`/millisecond shifts across DST.
 - Public booking catalog may return UTC ISO strings, but all client display helpers must render with `timeZone: "Europe/Prague"`.
 - Regression tests for DST live in admin slot time helpers, booking formatting, public booking helpers, e-mail templates and ICS utilities.
+- Totéž platí i pro admin-side preview lokálně zadaného data/času: drawer `Přidat rezervaci` a `Přesunout termín` nesmí skládat preview přes browser-local `new Date("YYYY-MM-DDTHH:mm")`, ale přes `resolvePragueLocalDateTime(...)`, jinak se uložený čas rozjede s UI mimo CZ timezone a kolem DST.
+- `manualOverride` je provozní výjimka jen pro explicitní ruční zadání termínu. Pokud admin vybírá konkrétní published slot a ten je stale nebo po změně služby už nevyhovuje, backend musí požadovat nový výběr slotu místo tichého vytvoření draft override slotu.

@@ -47,6 +47,7 @@ Ruční rezervaci implementujeme jako běžný `Booking` nad jedním sdíleným 
 - Termín jde zadat dvěma způsoby:
   - výběr ze slotů respektujících veřejnou dostupnost
   - ruční datum a čas
+- Režim výběru ze slotů nesmí tiše spadnout do interní výjimky jen proto, že se mezitím změnila služba nebo zastaral vybraný slot; v takovém případě má backend vrátit chybu a vyžádat nový výběr termínu.
 - Pokud ručně zadaný termín neleží ve veřejné dostupnosti, systém upozorní na interní výjimku a nastaví `manualOverride = true`.
 
 ## Validace a audit

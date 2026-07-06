@@ -47,6 +47,7 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
 - Aktuální testovací batch (2026-05-19) doplnil unit testy pro `src/features/admin/actions/*action-state.ts` a early-fail validace v `src/features/booking/lib/booking-public/engine.ts` (`invalid startsAt`, `invalid phone`), aby se zlepšilo pokrytí nejnižších oblastí.
 - Navazující batch (2026-05-19) přidal validační unit testy pro server actions v `src/features/admin/actions/actions-validation.test.ts` (invalid form payloady pro `client-actions`, `service-actions`, `booking-actions`, `settings-actions`) a zvýšil coverage především v `admin/actions`.
 - Další rozšíření stejného validačního test souboru přidalo i pokrytí pro `service-category-actions` (`createServiceCategoryAction`, `updateServiceCategoryAction`) nad chybnými payloady, aby se dál zvedlo coverage v admin action vrstvě bez DB flaky závislostí.
+- Booking regresní sada nově obsahuje i `src/features/booking/lib/booking-local-time.test.ts` (Prague wall-clock převod) a `src/features/booking/lib/booking-manual.integration.test.ts` (ruční rezervace přes slot vs. explicitní manual override), takže při změnách admin booking flow pouštěj vedle běžných booking testů i tyto soubory.
 
 ## Setup projektu krok za krokem
 1. Připrav Node.js 24 LTS, npm 10+ a PostgreSQL 15+.
@@ -69,6 +70,8 @@ Poznámka k runtime:
 - Pokud se v dev browser konzoli po restartu `next dev` objeví `ChunkLoadError: Failed to load chunk /_next/static/chunks/...`, aplikace se teď jednou sama tvrdě obnoví už z inline `beforeInteractive` guardu v root layoutu, tedy ještě před hydrací Reactu. Když chyba zůstane i potom, spusť `npm run dev:clean`; jde obvykle o rozjetý Turbopack/HMR cache stav, ne o chybu business logiky stránky.
 - Pokud v admin formuláři `Vytvořit voucher` na Windows/Chrome po přepnutí na `Poukaz na službu` nevidíš názvy služeb, nehledej starou browser cache. Šlo o browser-specific rendering nativního dropdownu; aktuální picker používá vlastní seznam služeb a problém už nemá být reprodukovatelný.
 - Pokud DB test nebo storno rezervace spadne na `AvailabilitySlot_active_time_window_excl`, zkontroluj pořadí merge operací v `booking-slot-compaction.ts`. Sousední slot musí být při compaction nejdřív archivovaný a teprve potom se může rozšířit cílový interval; jinak PostgreSQL zachytí dočasný překryv dvou aktivních slotů.
+- Pokud admin hlásí, že ruční rezervace „ukazuje jiný čas než se pak uloží“, ověř, že client preview stále používá Prague helper `resolvePragueLocalDateTime(...)` a ne lokální `new Date(...)` z browser timezone. Platí to pro drawer `Přidat rezervaci` i pro `Přesunout termín`.
+- Pokud se při výběru konkrétního slotu v adminu vrací chyba dostupnosti po změně služby nebo po delší prodlevě, je to očekávané: slot-mode už nesmí tiše vytvořit interní výjimku. Pro záměrnou interní výjimku použij režim ručního data/času.
 
 ## Příklad `.env` a význam hlavních proměnných
 

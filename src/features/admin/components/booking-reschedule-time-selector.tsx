@@ -6,6 +6,7 @@ import {
   buildSlotTimeOptions,
   type TimeSlotOption,
 } from "@/features/booking/lib/booking-time-slots";
+import { resolvePragueLocalDateTime } from "@/features/booking/lib/booking-local-time";
 import { cn } from "@/lib/utils";
 
 type SlotCatalogItem = {
@@ -68,7 +69,7 @@ function buildManualPreviewStartsAt(dateValue: string, timeValue: string) {
     return "";
   }
 
-  const resolved = new Date(`${dateValue}T${timeValue}:00`);
+  const resolved = resolvePragueLocalDateTime(dateValue, timeValue);
   return Number.isNaN(resolved.getTime()) ? "" : resolved.toISOString();
 }
 

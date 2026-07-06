@@ -1224,6 +1224,7 @@ export async function createManualBookingAction(
     const result = await createManualBooking({
       serviceId: parsed.data.serviceId,
       slotId: parsed.data.selectionMode === "slot" ? parsed.data.slotId || undefined : undefined,
+      allowManualOverride: parsed.data.selectionMode === "manual",
       startsAt,
       selectedClientId: parsed.data.selectedClientId || undefined,
       fullName: parsed.data.fullName,
