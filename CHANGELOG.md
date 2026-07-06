@@ -11,6 +11,7 @@ Formát je inspirovaný Keep a Changelog.
 - Opravené doplňování rezervace pro vybranou existující klientku: když ruční booking formulář nechá e-mail prázdný, backend už klientce nemaže uložený kontakt na `null`; zachová se stávající adresa a booking jen používá aktuální výběr termínu/služby.
 - Booking acquisition cookie nově bere `mtm_source`, `mtm_medium` a `mtm_campaign` jako fallback k `utm_*`, takže marketingové odkazy z Matomo kampaní nepřicházejí o akviziční kampaň při zápisu rezervace.
 - Přibyly regresní testy pro Prague local time převod a DB integrační coverage pro admin ruční rezervaci: slot-mode teď ověřujeme proti tichému fallbacku na interní výjimku a manual-mode proti záměrnému vytvoření draft override slotu.
+- Booking test coverage se rozšířila o další end-to-end business scénáře: veřejné vytvoření rezervace se snapshotem služby/ceny/délky, odmítnutí druhé rezervace do už obsazeného slotu, potvrzenou ruční admin rezervaci na publikovaném slotu a reminder/e-mail worker flow pro 24h připomínku. Současně se stabilizoval seed jednoho staršího voucher integračního testu, aby nehavaroval v paralelním DB běhu na kolizi s cizí aktivní rezervací.
 
 ## [0.6.0] - 2026-07-06
 

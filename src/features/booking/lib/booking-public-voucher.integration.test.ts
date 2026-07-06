@@ -325,6 +325,77 @@ describe("public booking intended voucher", () => {
     });
   });
 
+  dbTest("stores public booking service snapshot and confirmation payload with service, price and duration", async () => {
+    await withSeed(async (seed) => {
+      const { prisma, createPublicBooking } = await loadModules();
+      const slot = await createSlot(seed);
+
+      const result = await createPublicBooking(buildBookingInput(seed, slot));
+      seed.createdBookingIds.push(result.bookingId);
+
+      const [booking, emailLog] = await Promise.all([
+        prisma.booking.findUniqueOrThrow({
+          where: { id: result.bookingId },
+          select: {
+            serviceNameSnapshot: true,
+            serviceDurationMinutes: true,
+            servicePriceFromCzk: true,
+            scheduledStartsAt: true,
+            scheduledEndsAt: true,
+          },
+        }),
+        prisma.emailLog.findFirstOrThrow({
+          where: {
+            bookingId: result.bookingId,
+            type: EmailLogType.BOOKING_CONFIRMED,
+            templateKey: "booking-confirmation-v1",
+          },
+          select: {
+            payload: true,
+          },
+        }),
+      ]);
+
+      const payload = emailLog.payload as Record<string, unknown>;
+
+      assert.equal(booking.serviceNameSnapshot, "Veřejná služba voucher");
+      assert.equal(booking.serviceDurationMinutes, 60);
+      assert.equal(booking.servicePriceFromCzk, 1200);
+      assert.equal(payload.serviceName, "Veřejná služba voucher");
+      assert.equal(payload.scheduledStartsAt, booking.scheduledStartsAt.toISOString());
+      assert.equal(payload.scheduledEndsAt, booking.scheduledEndsAt.toISOString());
+    });
+  });
+
+  dbTest("rejects second public booking for already occupied slot", async () => {
+    await withSeed(async (seed) => {
+      const { prisma, createPublicBooking, publicBookingErrorCodes } = await loadModules();
+      const slot = await createSlot(seed);
+
+      const firstBooking = await createPublicBooking(buildBookingInput(seed, slot));
+      seed.createdBookingIds.push(firstBooking.bookingId);
+
+      const secondInput = buildBookingInput(seed, slot);
+
+      await assert.rejects(
+        () => createPublicBooking(secondInput),
+        (error) =>
+          error instanceof Error &&
+          "code" in error &&
+          error.code === publicBookingErrorCodes.slotUnavailable &&
+          error.message === "Vybraný termín koliduje s jinou rezervací.",
+      );
+
+      const bookings = await prisma.booking.count({
+        where: {
+          slotId: slot.id,
+        },
+      });
+
+      assert.equal(bookings, 1);
+    });
+  });
+
   dbTest("splits chained published coverage so planner keeps free edge fragments editable", async () => {
     await withSeed(async (seed) => {
       const { prisma, createPublicBooking } = await loadModules();
@@ -335,10 +406,7 @@ describe("public booking intended voucher", () => {
         select: { id: true },
       });
 
-      const slotDayOffset = 5 + (parseInt(seed.suffix.slice(0, 2), 16) % 20);
-      const slotHourOffset = 6 + (parseInt(seed.suffix.slice(2, 4), 16) % 8);
-      const firstStart = addDays(new Date(), slotDayOffset);
-      firstStart.setUTCHours(slotHourOffset, 0, 0, 0);
+      const firstStart = await findIsolatedSlotStart(seed, 120, 14);
       seed.cleanupSlotWindows.push({
         startsAt: firstStart,
         endsAt: new Date(firstStart.getTime() + 2 * 60 * 60 * 1000),

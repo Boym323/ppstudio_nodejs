@@ -1,0 +1,256 @@
+import "dotenv/config";
+import assert from "node:assert/strict";
+import { randomUUID } from "node:crypto";
+import test from "node:test";
+
+import {
+  BookingSource,
+  BookingStatus,
+  EmailLogStatus,
+  EmailLogType,
+} from "@prisma/client";
+
+process.env.NEXT_PUBLIC_APP_NAME ??= "PP Studio";
+process.env.NEXT_PUBLIC_APP_URL ??= "https://example.com";
+process.env.DATABASE_URL ??= "postgresql://postgres:postgres@localhost:5432/ppstudio?schema=public";
+process.env.ADMIN_SESSION_SECRET ??= "test-secret-value-with-at-least-32-chars";
+process.env.ADMIN_OWNER_EMAIL ??= "owner@example.com";
+process.env.ADMIN_OWNER_PASSWORD ??= "change-me-owner";
+process.env.ADMIN_STAFF_EMAIL ??= "staff@example.com";
+process.env.ADMIN_STAFF_PASSWORD ??= "change-me-staff";
+process.env.EMAIL_DELIVERY_MODE ??= "log";
+process.env.PUSHOVER_ENABLED ??= "false";
+
+const dbTest = process.env.RUN_DB_INTEGRATION_TESTS === "1" ? test : test.skip;
+
+async function loadModules() {
+  const [{ prisma }, bookingModule, workerModule] = await Promise.all([
+    import("@/lib/prisma"),
+    import("./booking-public"),
+    import("@/lib/email/worker"),
+  ]);
+
+  return {
+    prisma,
+    createManualBooking: bookingModule.createManualBooking,
+    runEmailDeliveryWorkerOnce: workerModule.runEmailDeliveryWorkerOnce,
+    runBookingReminderSchedulerOnce: workerModule.runBookingReminderSchedulerOnce,
+  };
+}
+
+function addMinutes(base: Date, minutes: number) {
+  return new Date(base.getTime() + minutes * 60 * 1000);
+}
+
+async function createConfirmedManualBooking(seed: string, startsAt: Date) {
+  const { prisma, createManualBooking } = await loadModules();
+  const endsAt = addMinutes(startsAt, 60);
+
+  const category = await prisma.serviceCategory.create({
+    data: {
+      name: `Worker category ${seed}`,
+      slug: `worker-category-${seed}`,
+      isActive: true,
+    },
+    select: { id: true },
+  });
+
+  const service = await prisma.service.create({
+    data: {
+      categoryId: category.id,
+      name: `Worker service ${seed}`,
+      slug: `worker-service-${seed}`,
+      durationMinutes: 60,
+      priceFromCzk: 1350,
+      isActive: true,
+      isPubliclyBookable: true,
+    },
+    select: { id: true },
+  });
+
+  const result = await createManualBooking({
+    serviceId: service.id,
+    allowManualOverride: true,
+    startsAt: startsAt.toISOString(),
+    fullName: `Worker klientka ${seed}`,
+    email: `worker-${seed}@example.com`,
+    phone: "+420777123456",
+    source: BookingSource.PHONE,
+    status: BookingStatus.CONFIRMED,
+    actorUserId: null,
+    sendClientEmail: false,
+    includeCalendarAttachment: false,
+  });
+
+  return {
+    bookingId: result.bookingId,
+    categoryId: category.id,
+    serviceId: service.id,
+    slotId: await prisma.booking.findUniqueOrThrow({
+      where: { id: result.bookingId },
+      select: { slotId: true },
+    }).then((booking) => booking.slotId),
+    startsAt,
+    endsAt,
+    email: `worker-${seed}@example.com`,
+  };
+}
+
+async function cleanupBookingFixture({
+  bookingId,
+  serviceId,
+  categoryId,
+  slotId,
+  email,
+}: {
+  bookingId: string;
+  serviceId: string;
+  categoryId: string;
+  slotId: string;
+  email: string;
+}) {
+  const { prisma } = await loadModules();
+
+  await prisma.bookingActionToken.deleteMany({
+    where: { bookingId },
+  });
+  await prisma.emailLog.deleteMany({
+    where: { bookingId },
+  });
+  await prisma.bookingStatusHistory.deleteMany({
+    where: { bookingId },
+  });
+  await prisma.booking.deleteMany({
+    where: { id: bookingId },
+  });
+  await prisma.client.deleteMany({
+    where: { email },
+  });
+  await prisma.availabilitySlot.deleteMany({
+    where: {
+      id: slotId,
+    },
+  });
+  await prisma.service.deleteMany({
+    where: { id: serviceId },
+  });
+  await prisma.serviceCategory.deleteMany({
+    where: { id: categoryId },
+  });
+}
+
+dbTest("runBookingReminderSchedulerOnce logs 24h reminder for confirmed booking in reminder window", async () => {
+  const now = new Date();
+  now.setUTCSeconds(0, 0);
+  const startsAt = addMinutes(now, 25 * 60 + 30);
+  const seed = randomUUID().slice(0, 8);
+  const fixture = await createConfirmedManualBooking(seed, startsAt);
+  const { prisma, runBookingReminderSchedulerOnce } = await loadModules();
+
+  try {
+    const result = await runBookingReminderSchedulerOnce(now);
+
+    assert.equal(result.foundBookings, 1);
+    assert.equal(result.enqueued, 1);
+    assert.equal(result.failed, 0);
+
+    const [booking, emailLog] = await Promise.all([
+      prisma.booking.findUniqueOrThrow({
+        where: { id: fixture.bookingId },
+        select: {
+          reminder24hQueuedAt: true,
+          reminder24hSentAt: true,
+        },
+      }),
+      prisma.emailLog.findFirstOrThrow({
+        where: {
+          bookingId: fixture.bookingId,
+          type: EmailLogType.BOOKING_REMINDER,
+        },
+        select: {
+          status: true,
+          payload: true,
+        },
+      }),
+    ]);
+
+    const payload = emailLog.payload as Record<string, unknown>;
+
+    assert.equal(emailLog.status, EmailLogStatus.SENT);
+    assert.ok(booking.reminder24hQueuedAt);
+    assert.ok(booking.reminder24hSentAt);
+    assert.equal(payload.serviceName, `Worker service ${seed}`);
+    assert.equal(payload.scheduledStartsAt, fixture.startsAt.toISOString());
+    assert.equal(payload.scheduledEndsAt, fixture.endsAt.toISOString());
+    assert.match(String(payload.manageReservationUrl), /\/rezervace\/sprava\//);
+    assert.match(String(payload.cancellationUrl), /\/rezervace\/storno\//);
+  } finally {
+    await cleanupBookingFixture(fixture);
+  }
+});
+
+dbTest("runEmailDeliveryWorkerOnce delivers queued reminder email and marks booking reminder as sent", async () => {
+  const now = new Date();
+  now.setUTCSeconds(0, 0);
+  const startsAt = addMinutes(now, 25 * 60 + 15);
+  const seed = randomUUID().slice(0, 8);
+  const fixture = await createConfirmedManualBooking(seed, startsAt);
+  const { prisma, runEmailDeliveryWorkerOnce } = await loadModules();
+
+  try {
+    await prisma.emailLog.create({
+      data: {
+        bookingId: fixture.bookingId,
+        type: EmailLogType.BOOKING_REMINDER,
+        status: EmailLogStatus.PENDING,
+        recipientEmail: fixture.email,
+        subject: "Zítra se na vás těšíme v PP Studiu",
+        templateKey: "booking-reminder-24h-v1",
+        payload: {
+          bookingId: fixture.bookingId,
+          serviceName: `Worker service ${seed}`,
+          clientName: `Worker klientka ${seed}`,
+          scheduledStartsAt: fixture.startsAt.toISOString(),
+          scheduledEndsAt: fixture.endsAt.toISOString(),
+          manageReservationUrl: "https://example.com/rezervace/sprava/test-token",
+          cancellationUrl: "https://example.com/rezervace/storno/test-token",
+        },
+      },
+    });
+
+    const processed = await runEmailDeliveryWorkerOnce();
+
+    assert.equal(processed, 1);
+
+    const [booking, emailLog] = await Promise.all([
+      prisma.booking.findUniqueOrThrow({
+        where: { id: fixture.bookingId },
+        select: {
+          reminder24hQueuedAt: true,
+          reminder24hSentAt: true,
+        },
+      }),
+      prisma.emailLog.findFirstOrThrow({
+        where: {
+          bookingId: fixture.bookingId,
+          type: EmailLogType.BOOKING_REMINDER,
+        },
+        select: {
+          status: true,
+          provider: true,
+          sentAt: true,
+          errorMessage: true,
+        },
+      }),
+    ]);
+
+    assert.equal(emailLog.status, EmailLogStatus.SENT);
+    assert.equal(emailLog.provider, "log");
+    assert.ok(emailLog.sentAt);
+    assert.equal(emailLog.errorMessage, null);
+    assert.ok(booking.reminder24hQueuedAt);
+    assert.ok(booking.reminder24hSentAt);
+  } finally {
+    await cleanupBookingFixture(fixture);
+  }
+});

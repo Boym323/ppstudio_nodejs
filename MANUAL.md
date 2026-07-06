@@ -48,6 +48,7 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
 - Navazující batch (2026-05-19) přidal validační unit testy pro server actions v `src/features/admin/actions/actions-validation.test.ts` (invalid form payloady pro `client-actions`, `service-actions`, `booking-actions`, `settings-actions`) a zvýšil coverage především v `admin/actions`.
 - Další rozšíření stejného validačního test souboru přidalo i pokrytí pro `service-category-actions` (`createServiceCategoryAction`, `updateServiceCategoryAction`) nad chybnými payloady, aby se dál zvedlo coverage v admin action vrstvě bez DB flaky závislostí.
 - Booking regresní sada nově obsahuje i `src/features/booking/lib/booking-local-time.test.ts` (Prague wall-clock převod) a `src/features/booking/lib/booking-manual.integration.test.ts` (ruční rezervace přes slot vs. explicitní manual override), takže při změnách admin booking flow pouštěj vedle běžných booking testů i tyto soubory.
+- Pro širší booking regresi nově počítej i s `src/features/booking/lib/booking-public-voucher.integration.test.ts` (vytvoření veřejné rezervace, obsazený slot, snapshot služby/ceny/délky) a `src/features/booking/lib/booking-email-worker.integration.test.ts` (24h reminder scheduler + e-mail worker delivery).
 
 ## Setup projektu krok za krokem
 1. Připrav Node.js 24 LTS, npm 10+ a PostgreSQL 15+.
@@ -395,9 +396,12 @@ Pro cílené spuštění pouze booking DB integračních testů je připravený 
 npm run test:db:booking
 ```
 
-Aktuálně pokrývá:
+Aktuálně pokrývá i novější booking DB scénáře nad stejným globem `src/features/booking/lib/*.integration.test.ts`, mimo jiné:
 - `src/features/booking/lib/booking-rescheduling.integration.test.ts`
 - `src/features/booking/lib/booking-management.integration.test.ts`
+- `src/features/booking/lib/booking-manual.integration.test.ts`
+- `src/features/booking/lib/booking-public-voucher.integration.test.ts`
+- `src/features/booking/lib/booking-email-worker.integration.test.ts`
 
 U DB integračních seedů dostupnosti nepoužívej úzké fixní časové okno; při paralelním běhu CI to může náhodně kolidovat na `AvailabilitySlot_active_time_window_excl`. Bezpečnější je čas odvodit z UUID/hash rozptylu uvnitř booking window.
 

@@ -798,9 +798,10 @@ Pro centralizovaný přehled hlavních route handler kontraktů používej i [`d
   - `npm run build`
 - `npm run test` nově nastavuje `RUN_DB_INTEGRATION_TESTS=1`, takže integrační booking testy (`*.integration.test.ts`) už nejsou v běžném běhu skipnuté.
 - U DB integračních testů, které vytváří `AvailabilitySlot` řádky, neseeduj časy z malého fixního okna; při paralelním běhu to může náhodně narážet na `AvailabilitySlot_active_time_window_excl`. Preferuj UUID/hash odvozený časový rozptyl uvnitř aktuálního booking window.
+- Stejné pravidlo platí i pro seed aktivních `Booking`, ne jen slotů. Pokud test vybírá konkrétní startsAt ručně, musí předem ověřit i absenci překryvu s jinou aktivní rezervací; jinak se flake projeví jako doménová chyba `Vybraný termín koliduje s jinou rezervací.` místo skutečné regresní změny.
 - Pro DB-backed integrační testy booking domény je připravený i:
   - `npm run test:db:booking`
-- `npm run test:db:booking` aktuálně spouští jak centrální `booking-rescheduling.integration.test.ts`, tak veřejný `booking-management.integration.test.ts`.
+- `npm run test:db:booking` spouští celý booking integrační glob `src/features/booking/lib/*.integration.test.ts`, takže vedle reschedule/management scénářů pokrývá i veřejné vytvoření rezervace, ruční admin booking a 24h reminder + e-mail worker flow.
 - Pro rychlé unit ověření bezpečné veřejné správy rezervace a reschedule domény můžeš spustit i:
   - `node --import tsx --test src/features/booking/lib/booking-management.test.ts`
   - `node --import tsx --test src/features/booking/lib/booking-rescheduling.test.ts`

@@ -421,3 +421,127 @@ dbTest("createManualBooking keeps existing selected client email when manual boo
     });
   }
 });
+
+dbTest("createManualBooking creates confirmed admin reservation with service snapshot on published slot", async () => {
+  const { prisma, createManualBooking } = await loadModules();
+
+  const suffix = randomUUID().slice(0, 8);
+  const { startsAt, endsAt } = await findIsolatedManualWindow(prisma, suffix, 90);
+
+  const category = await prisma.serviceCategory.create({
+    data: {
+      name: `Admin snapshot category ${suffix}`,
+      slug: `admin-snapshot-category-${suffix}`,
+      isActive: true,
+    },
+    select: { id: true },
+  });
+
+  const service = await prisma.service.create({
+    data: {
+      categoryId: category.id,
+      name: `Admin snapshot service ${suffix}`,
+      slug: `admin-snapshot-service-${suffix}`,
+      durationMinutes: 90,
+      priceFromCzk: 1850,
+      isActive: true,
+      isPubliclyBookable: true,
+    },
+    select: { id: true },
+  });
+
+  const slot = await prisma.availabilitySlot.create({
+    data: {
+      startsAt,
+      endsAt,
+      status: AvailabilitySlotStatus.PUBLISHED,
+      capacity: 1,
+      serviceRestrictionMode: "ANY",
+      publishedAt: new Date("2027-05-01T08:00:00.000Z"),
+    },
+    select: { id: true },
+  });
+
+  let bookingId: string | null = null;
+
+  try {
+    const result = await createManualBooking({
+      serviceId: service.id,
+      slotId: slot.id,
+      allowManualOverride: false,
+      startsAt: startsAt.toISOString(),
+      fullName: `Admin klientka ${suffix}`,
+      email: `admin-manual-${suffix}@example.com`,
+      phone: "+420777123456",
+      source: BookingSource.PHONE,
+      status: BookingStatus.CONFIRMED,
+      actorUserId: null,
+      sendClientEmail: false,
+      includeCalendarAttachment: false,
+    });
+
+    bookingId = result.bookingId;
+
+    const booking = await prisma.booking.findUniqueOrThrow({
+      where: { id: result.bookingId },
+      select: {
+        isManual: true,
+        manualOverride: true,
+        source: true,
+        status: true,
+        serviceNameSnapshot: true,
+        serviceDurationMinutes: true,
+        servicePriceFromCzk: true,
+        scheduledStartsAt: true,
+        scheduledEndsAt: true,
+      },
+    });
+
+    assert.equal(result.status, BookingStatus.CONFIRMED);
+    assert.equal(result.manualOverride, false);
+    assert.equal(booking.isManual, true);
+    assert.equal(booking.manualOverride, false);
+    assert.equal(booking.source, BookingSource.PHONE);
+    assert.equal(booking.status, BookingStatus.CONFIRMED);
+    assert.equal(booking.serviceNameSnapshot, `Admin snapshot service ${suffix}`);
+    assert.equal(booking.serviceDurationMinutes, 90);
+    assert.equal(booking.servicePriceFromCzk, 1850);
+    assert.equal(booking.scheduledStartsAt.toISOString(), startsAt.toISOString());
+    assert.equal(booking.scheduledEndsAt.toISOString(), endsAt.toISOString());
+  } finally {
+    if (bookingId) {
+      await prisma.bookingActionToken.deleteMany({
+        where: { bookingId },
+      });
+      await prisma.emailLog.deleteMany({
+        where: { bookingId },
+      });
+      await prisma.bookingStatusHistory.deleteMany({
+        where: { bookingId },
+      });
+      await prisma.booking.deleteMany({
+        where: { id: bookingId },
+      });
+    }
+    await prisma.client.deleteMany({
+      where: {
+        email: `admin-manual-${suffix}@example.com`,
+      },
+    });
+    await prisma.availabilitySlot.deleteMany({
+      where: {
+        id: slot.id,
+      },
+    });
+    await prisma.service.deleteMany({
+      where: {
+        id: service.id,
+      },
+    });
+    await prisma.serviceCategory.deleteMany({
+      where: {
+        id: category.id,
+      },
+    });
+  }
+});
