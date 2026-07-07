@@ -53,11 +53,16 @@ export function CreateManualBookingDrawer({
   const [clientProfileNote, setClientProfileNote] = useState(prefilledClient?.internalNote ?? "");
   const [serviceSearch, setServiceSearch] = useState("");
   const [serviceId, setServiceId] = useState("");
-  const [selectionMode, setSelectionMode] = useState<"slot" | "manual">("slot");
+  const initialPrefilledDate = searchParams.get("date")?.trim() ?? "";
+  const initialPrefilledTime = searchParams.get("time")?.trim() ?? "";
+  const hasInitialPrefilledTime = initialPrefilledDate.length > 0 && initialPrefilledTime.length > 0;
+  const [selectionMode, setSelectionMode] = useState<"slot" | "manual">(
+    hasInitialPrefilledTime ? "manual" : "slot",
+  );
   const [slotId, setSlotId] = useState("");
   const [startsAt, setStartsAt] = useState("");
-  const [manualDate, setManualDate] = useState("");
-  const [manualTime, setManualTime] = useState("");
+  const [manualDate, setManualDate] = useState(initialPrefilledDate);
+  const [manualTime, setManualTime] = useState(initialPrefilledTime);
   const [source, setSource] = useState<BookingSource>(BookingSource.PHONE);
   const [bookingStatus, setBookingStatus] = useState<"PENDING" | "CONFIRMED">(
     BookingStatus.CONFIRMED,
@@ -81,6 +86,8 @@ export function CreateManualBookingDrawer({
     const nextSearchParams = new URLSearchParams(searchParams.toString());
     nextSearchParams.delete("create");
     nextSearchParams.delete("clientId");
+    nextSearchParams.delete("date");
+    nextSearchParams.delete("time");
     const nextHref = nextSearchParams.toString() ? `${pathname}?${nextSearchParams.toString()}` : pathname;
 
     router.replace(nextHref);
@@ -98,7 +105,7 @@ export function CreateManualBookingDrawer({
     previousStatus.current = serverState.status;
   }, [clearCreateBookingSearchParams, router, serverState.status]);
 
-  function resetForm() {
+  const resetForm = useCallback(() => {
     setClientQuery("");
     setSelectedClientId("");
     setFullName("");
@@ -107,18 +114,18 @@ export function CreateManualBookingDrawer({
     setClientProfileNote("");
     setServiceSearch("");
     setServiceId("");
-    setSelectionMode("slot");
+    setSelectionMode(hasInitialPrefilledTime ? "manual" : "slot");
     setSlotId("");
     setStartsAt("");
-    setManualDate("");
-    setManualTime("");
+    setManualDate(initialPrefilledDate);
+    setManualTime(initialPrefilledTime);
     setSource(BookingSource.PHONE);
     setBookingStatus(BookingStatus.CONFIRMED);
     setIncludeCalendarAttachment(true);
     setClientNote("");
     setInternalNote("");
     setPrefillNotice(null);
-  }
+  }, [hasInitialPrefilledTime, initialPrefilledDate, initialPrefilledTime]);
 
   function closeDrawer() {
     resetForm();
@@ -248,6 +255,12 @@ export function CreateManualBookingDrawer({
                         }
                       >
                         {prefillNotice}
+                      </div>
+                    ) : null}
+
+                    {hasInitialPrefilledTime ? (
+                      <div className="rounded-[1rem] border border-white/10 bg-white/[0.04] px-4 py-3 text-sm leading-6 text-white/74">
+                        Předvyplněný termín: {initialPrefilledDate} v {initialPrefilledTime}. Můžete ho ponechat nebo upravit.
                       </div>
                     ) : null}
 

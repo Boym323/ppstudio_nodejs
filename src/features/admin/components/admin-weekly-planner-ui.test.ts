@@ -106,6 +106,7 @@ test("DayInspector keeps service time primary and hides duplicate cleanup end me
       hasUnsavedChanges: false,
       onApplySelection: () => {},
       pending: false,
+      createBookingBaseHref: "/admin/volne-terminy",
     }),
   );
 
@@ -113,6 +114,8 @@ test("DayInspector keeps service time primary and hides duplicate cleanup end me
   assert.match(html, /Blok v mřížce: 11:30 - 13:30/);
   assert.doesNotMatch(html, /Úklidová blokace do: 13:30/);
   assert.match(html, /úklid/);
+  assert.match(html, /Přidat rezervaci do dne/);
+  assert.match(html, /create=1&amp;date=2026-05-26/);
   assert.doesNotMatch(html, /Akce dne/);
   assert.doesNotMatch(html, /Označit den jako zavřeno/);
   assert.doesNotMatch(html, /Obnovit den z publikovaného stavu/);

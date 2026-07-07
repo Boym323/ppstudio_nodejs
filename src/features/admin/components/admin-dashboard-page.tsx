@@ -174,6 +174,57 @@ function DashboardBadge({
   );
 }
 
+function DashboardActionPill({
+  href,
+  label,
+  tone = "neutral",
+}: {
+  href: string;
+  label: string;
+  tone?: "neutral" | "accent";
+}) {
+  const className = cn(
+    "inline-flex min-h-8 items-center justify-center rounded-full border px-3 py-1.5 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/60",
+    tone === "accent"
+      ? "border-[var(--color-accent)]/35 bg-[rgba(190,160,120,0.12)] text-[var(--color-accent-soft)] hover:border-[var(--color-accent)]/55 hover:bg-[rgba(190,160,120,0.18)]"
+      : "border-white/10 bg-white/[0.04] text-white/76 hover:border-white/18 hover:bg-white/[0.08] hover:text-white",
+  );
+
+  if (href.startsWith("tel:") || href.startsWith("mailto:")) {
+    return (
+      <a href={href} className={className}>
+        {label}
+      </a>
+    );
+  }
+
+  return (
+    <Link href={href} className={className}>
+      {label}
+    </Link>
+  );
+}
+
+function DashboardContactActions({
+  phoneHref,
+  emailHref,
+  createHref,
+  compact = false,
+}: {
+  phoneHref: string | null;
+  emailHref: string | null;
+  createHref: string;
+  compact?: boolean;
+}) {
+  return (
+    <div className={cn("flex flex-wrap gap-2", compact && "pt-1")}>
+      {phoneHref ? <DashboardActionPill href={phoneHref} label="Volat" /> : null}
+      {emailHref ? <DashboardActionPill href={emailHref} label="E-mail" /> : null}
+      <DashboardActionPill href={createHref} label="Nová rezervace" tone="accent" />
+    </div>
+  );
+}
+
 function getCompactTodayStatus(data: AdminDashboardData) {
   if (data.todayBookingsCount === 0) {
     return "Žádná aktivní rezervace";
@@ -248,21 +299,32 @@ export function DashboardTodayHero({ data }: DashboardPageProps) {
 
         <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap xl:justify-end">
           {data.nextClient ? (
-            <Link
-              href={data.nextClient.detailHref}
-              className="flex min-h-12 min-w-0 items-center justify-between gap-3 rounded-lg border border-white/9 bg-white/[0.035] px-3 py-2 transition hover:border-[var(--color-accent)]/28 hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/55 sm:min-w-[17rem]"
-            >
-              <span className="min-w-0">
-                <span className="block text-[11px] font-semibold uppercase tracking-[0.16em] text-white/38">
-                  Další rezervace
+            <div className="min-w-0 rounded-lg border border-white/9 bg-white/[0.035] px-3 py-2 sm:min-w-[17rem]">
+              <Link
+                href={data.nextClient.detailHref}
+                className="flex min-h-12 min-w-0 items-center justify-between gap-3 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/55"
+              >
+                <span className="min-w-0">
+                  <span className="block text-[11px] font-semibold uppercase tracking-[0.16em] text-white/38">
+                    Další rezervace
+                  </span>
+                  <span className="block truncate text-sm font-medium text-white">
+                    {data.nextClient.timeRangeLabel} · {data.nextClient.serviceName}
+                  </span>
+                  <span className="block truncate text-xs text-white/52">{data.nextClient.clientName}</span>
                 </span>
-                <span className="block truncate text-sm font-medium text-white">
-                  {data.nextClient.timeRangeLabel} · {data.nextClient.serviceName}
-                </span>
-                <span className="block truncate text-xs text-white/52">{data.nextClient.clientName}</span>
-              </span>
-              <span className="text-xs font-semibold text-[var(--color-accent-soft)]">Otevřít</span>
-            </Link>
+                <span className="text-xs font-semibold text-[var(--color-accent-soft)]">Otevřít</span>
+              </Link>
+
+              <div className="mt-2">
+                <DashboardContactActions
+                  phoneHref={data.nextClient.phoneHref}
+                  emailHref={data.nextClient.emailHref}
+                  createHref={data.nextClient.createFollowupHref}
+                  compact
+                />
+              </div>
+            </div>
           ) : null}
 
           <div className="flex flex-wrap gap-2">
@@ -444,20 +506,29 @@ export function DashboardTodayTimelineSection({ data }: DashboardPageProps) {
       {data.todayPlanItems.length > 0 ? (
         <div className="px-3 py-1.5 sm:px-4">
           {data.todayPlanItems.map((item, index) => (
-            <Link
+            <article
               key={item.id}
-              href={item.href}
               className={cn(
-                "grid min-h-14 gap-2 rounded-lg px-2.5 py-2.5 transition hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/55 sm:px-3 md:grid-cols-[112px_minmax(0,1fr)_auto] md:items-center",
+                "grid min-h-14 gap-2 rounded-lg px-2.5 py-2.5 sm:px-3 md:grid-cols-[112px_minmax(0,1fr)_auto] md:items-center",
                 index < data.todayPlanItems.length - 1 && "border-b border-white/5",
                 item.isCurrent && "border border-[var(--color-accent)]/24 bg-[rgba(190,160,120,0.10)]",
                 item.isCompleted && "opacity-68",
               )}
             >
-              <p className="text-sm font-semibold tracking-[0.02em] text-white/82">{item.timeLabel}</p>
+              <Link
+                href={item.href}
+                className="text-sm font-semibold tracking-[0.02em] text-white/82 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/55"
+              >
+                {item.timeLabel}
+              </Link>
               <div className="min-w-0">
-                <p className="truncate text-[15px] font-medium text-white">{item.serviceName}</p>
-                <p className="truncate text-xs text-white/50">{item.clientName}</p>
+                <Link
+                  href={item.href}
+                  className="block rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/55"
+                >
+                  <p className="truncate text-[15px] font-medium text-white">{item.serviceName}</p>
+                  <p className="truncate text-xs text-white/50">{item.clientName}</p>
+                </Link>
                 {item.notes.length > 0 ? (
                   <div className="mt-1 space-y-0.5">
                     {item.notes.map((note) => (
@@ -467,6 +538,14 @@ export function DashboardTodayTimelineSection({ data }: DashboardPageProps) {
                     ))}
                   </div>
                 ) : null}
+                <div className="mt-2">
+                  <DashboardContactActions
+                    phoneHref={item.phoneHref}
+                    emailHref={item.emailHref}
+                    createHref={item.createFollowupHref}
+                    compact
+                  />
+                </div>
               </div>
               <div className="flex items-center gap-2">
                 <span
@@ -481,9 +560,14 @@ export function DashboardTodayTimelineSection({ data }: DashboardPageProps) {
                 >
                   {item.statusLabel}
                 </span>
-                <span className="text-sm font-medium text-[var(--color-accent-soft)]">Otevřít</span>
+                <Link
+                  href={item.href}
+                  className="text-sm font-medium text-[var(--color-accent-soft)] transition hover:text-white"
+                >
+                  Otevřít
+                </Link>
               </div>
-            </Link>
+            </article>
           ))}
         </div>
       ) : (
@@ -581,11 +665,10 @@ export function DashboardAvailableSlots({ data }: DashboardPageProps) {
             ) : null}
 
             {data.upcomingSlots.map((slot, index) => (
-              <Link
+              <div
                 key={slot.id}
-                href={slot.href}
                 className={cn(
-                  "group flex items-center justify-between gap-4 rounded-lg px-3 py-2.5 transition hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/55",
+                  "flex items-center justify-between gap-4 rounded-lg px-3 py-2.5",
                   index < data.upcomingSlots.length - 1 && "border-b border-white/5",
                 )}
               >
@@ -598,8 +681,11 @@ export function DashboardAvailableSlots({ data }: DashboardPageProps) {
                   </div>
                   <p className="mt-1 text-sm text-white/54">{slot.metaLabel}</p>
                 </div>
-                <span className="text-xl text-white/32 transition group-hover:text-white/56">→</span>
-              </Link>
+                <div className="flex shrink-0 flex-wrap justify-end gap-2">
+                  <DashboardActionPill href={slot.createHref} label="Přidat rezervaci" tone="accent" />
+                  <DashboardActionPill href={slot.href} label="Dostupnost" />
+                </div>
+              </div>
             ))}
           </>
         ) : (

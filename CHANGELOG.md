@@ -6,6 +6,9 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Admin UX pro každodenní provoz kosmetičky je rychlejší ve třech klíčových tocích: hlavní CTA `Vytvořit rezervaci` na dashboardu teď otevírá rovnou drawer ruční rezervace, seznam `Dnešní plán` přidal přímé akce `Volat` / `E-mail` / `Nová rezervace` u nejbližších klientek a dashboard/planner umí otevřít ruční rezervaci s předvyplněným dnem a časem z konkrétního volného okna.
+- Drawer `Přidat rezervaci` nově čte query parametry `create=1`, `clientId`, `date` a `time`, takže ho lze bezpečně otevírat jako deep-link z detailu klientky, dashboardu i z týdenního planneru bez obcházení serverové validace dostupnosti.
+- Admin planner `Volné termíny` přidal do `Inspektoru dne` přímé CTA `Přidat rezervaci do dne` a při výběru editovatelného bloku i `Rezervovat vybraný blok`, aby kosmetička nemusela přepisovat termín ručně mezi dvěma sekcemi adminu.
 - Opravený admin preview ručního data/času v draweru rezervace i v draweru přesunu termínu: klientský náhled už nepřepočítává čas přes lokální timezone prohlížeče, ale přes stejný helper `Europe/Prague` jako server, takže kolem DST ani mimo české pásmo neukazuje jiný okamžik než se opravdu uloží.
 - Ruční rezervace v adminu už nepřepne výběr ze slotu do tichého `manualOverride`, když je vybraný slot mezitím stale nebo už neodpovídá délce služby. `manualOverride` zůstává vyhrazený jen pro explicitní režim ručního data/času.
 - Opravené doplňování rezervace pro vybranou existující klientku: když ruční booking formulář nechá e-mail prázdný, backend už klientce nemaže uložený kontakt na `null`; zachová se stávající adresa a booking jen používá aktuální výběr termínu/služby.

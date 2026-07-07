@@ -105,6 +105,29 @@ export function formatRangeLabel(startCell: number, endCell: number) {
   return `${formatTime(startMinutes)} - ${formatTime(endMinutes)}`;
 }
 
+function formatCellStartTime(cellIndex: number) {
+  const plannerStartMinutes = PLANNER_START_HOUR * 60;
+  const startMinutes = plannerStartMinutes + cellIndex * 30;
+
+  return `${String(Math.floor(startMinutes / 60)).padStart(2, "0")}:${String(startMinutes % 60).padStart(2, "0")}`;
+}
+
+function getCreateBookingHref(baseHref: string, dateKey: string, time?: string | null) {
+  const bookingsHref = baseHref.includes("/provoz/")
+    ? "/admin/provoz/rezervace"
+    : "/admin/rezervace";
+  const params = new URLSearchParams();
+
+  params.set("create", "1");
+  params.set("date", dateKey);
+
+  if (time) {
+    params.set("time", time);
+  }
+
+  return `${bookingsHref}?${params.toString()}`;
+}
+
 function getSummaryLine(day: PlannerDay) {
   return `${day.availableIntervals.length} volných oken · ${day.bookings.length} rezervací · ${day.lockedIntervals.length} omezení`;
 }
@@ -788,6 +811,7 @@ export function DayInspector({
   hasUnsavedChanges,
   onApplySelection,
   pending,
+  createBookingBaseHref,
 }: {
   day: PlannerDay;
   legend: Array<{ tone: CellTone | "past" | "cleanup"; label: string }>;
@@ -795,10 +819,21 @@ export function DayInspector({
   hasUnsavedChanges: boolean;
   onApplySelection: () => void;
   pending: boolean;
+  createBookingBaseHref: string;
 }) {
   const activeSelection = selection && selection.dateKey === day.dateKey ? selection : null;
   const selectionInterval = getSelectionInterval(day, activeSelection);
   const selectionBooking = getSelectionBooking(day, activeSelection);
+  const selectionCreateHref =
+    activeSelection && (activeSelection.tone === "available" || activeSelection.tone === "empty")
+      ? getCreateBookingHref(createBookingBaseHref, day.dateKey, formatCellStartTime(activeSelection.startCell))
+      : null;
+  const firstAvailableCell = day.availableIntervals[0]?.startCell ?? null;
+  const dayCreateHref = getCreateBookingHref(
+    createBookingBaseHref,
+    day.dateKey,
+    firstAvailableCell === null ? null : formatCellStartTime(firstAvailableCell),
+  );
   const showCleanupBlockedUntil = Boolean(
     selectionBooking?.hasCleanupBlock &&
       selectionBooking.cleanupBlockedUntilLabel &&
@@ -826,6 +861,22 @@ export function DayInspector({
             Den je aktuálně bez volných oken.
           </div>
         ) : null}
+        <div className="mt-3 flex flex-wrap gap-2">
+          {selectionCreateHref ? (
+            <Link
+              href={selectionCreateHref}
+              className="inline-flex min-h-9 items-center justify-center rounded-full border border-[var(--color-accent)]/34 bg-[rgba(190,160,120,0.12)] px-3.5 py-2 text-sm font-semibold text-white transition hover:border-[var(--color-accent)]/46 hover:bg-[rgba(190,160,120,0.18)]"
+            >
+              Rezervovat vybraný blok
+            </Link>
+          ) : null}
+          <Link
+            href={dayCreateHref}
+            className="inline-flex min-h-9 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] px-3.5 py-2 text-sm font-medium text-white/80 transition hover:border-white/18 hover:bg-white/[0.08] hover:text-white"
+          >
+            Přidat rezervaci do dne
+          </Link>
+        </div>
       </div>
 
       <div className="rounded-[1.2rem] border border-white/8 bg-white/[0.03] p-4">

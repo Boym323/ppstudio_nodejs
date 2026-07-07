@@ -867,6 +867,7 @@ export function AdminWeeklyPlannerClient({
               hasUnsavedChanges={hasUnsavedChanges}
               onApplySelection={applySelectedBlock}
               pending={isPending}
+              createBookingBaseHref={data.baseHref}
             />
           </div>
         </div>
@@ -880,6 +881,7 @@ export function AdminWeeklyPlannerClient({
           hasUnsavedChanges={hasUnsavedChanges}
           onApplySelection={applySelectedBlock}
           pending={isPending}
+          createBookingBaseHref={data.baseHref}
         />
       </MobileInspectorSheet>
 
