@@ -93,19 +93,7 @@ export function CreateManualBookingDrawer({
     router.replace(nextHref);
   }, [pathname, router, searchParams]);
 
-  useEffect(() => {
-    if (previousStatus.current !== "success" && serverState.status === "success") {
-      resetForm();
-      setOpen(false);
-      clearCreateBookingSearchParams();
-      setShowSuccessBanner(true);
-      router.refresh();
-    }
-
-    previousStatus.current = serverState.status;
-  }, [clearCreateBookingSearchParams, router, serverState.status]);
-
-  const resetForm = useCallback(() => {
+  function resetForm() {
     setClientQuery("");
     setSelectedClientId("");
     setFullName("");
@@ -125,7 +113,44 @@ export function CreateManualBookingDrawer({
     setClientNote("");
     setInternalNote("");
     setPrefillNotice(null);
-  }, [hasInitialPrefilledTime, initialPrefilledDate, initialPrefilledTime]);
+  }
+
+  useEffect(() => {
+    if (previousStatus.current !== "success" && serverState.status === "success") {
+      setClientQuery("");
+      setSelectedClientId("");
+      setFullName("");
+      setEmail("");
+      setPhone("");
+      setClientProfileNote("");
+      setServiceSearch("");
+      setServiceId("");
+      setSelectionMode(hasInitialPrefilledTime ? "manual" : "slot");
+      setSlotId("");
+      setStartsAt("");
+      setManualDate(initialPrefilledDate);
+      setManualTime(initialPrefilledTime);
+      setSource(BookingSource.PHONE);
+      setBookingStatus(BookingStatus.CONFIRMED);
+      setIncludeCalendarAttachment(true);
+      setClientNote("");
+      setInternalNote("");
+      setPrefillNotice(null);
+      setOpen(false);
+      clearCreateBookingSearchParams();
+      setShowSuccessBanner(true);
+      router.refresh();
+    }
+
+    previousStatus.current = serverState.status;
+  }, [
+    clearCreateBookingSearchParams,
+    hasInitialPrefilledTime,
+    initialPrefilledDate,
+    initialPrefilledTime,
+    router,
+    serverState.status,
+  ]);
 
   function closeDrawer() {
     resetForm();

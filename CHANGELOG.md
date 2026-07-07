@@ -6,6 +6,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Opravený lint/admin build blocker v draweru `Přidat rezervaci`: lokální `resetForm()` je nově vedený přes `useEffectEvent` místo ručního `useCallback`, takže Next.js/React compiler znovu dokáže zachovat invarianty `react-hooks/preserve-manual-memoization` i `exhaustive-deps` bez změny chování formuláře.
 - Admin refaktoring bez změny chování zmenšil několik přetížených modulů: detail rezervace i weekly planner přesunuly čistou rozhodovací logiku do samostatných helperů, route factory pro admin nastavení nově deleguje serverový read model do odděleného modulu a shared admin URL podle role se skládají přes typed helper místo ručně kopírovaných ternárů.
 - Přibyly cílené regresní testy pro nové helper vrstvy (`admin-paths`, `admin-booking-detail-helpers`, `admin-weekly-planner-helpers`), aby refaktor velkých admin komponent neoslaboval typovou kontrolu ani business rozhodování kolem planneru a detailu rezervace.
 - Přibyla nová kořenová technická dokumentace `ARCHITECTURE.md`, `BOOKING_FLOW.md`, `DEPLOYMENT.md`, `ENVIRONMENT.md` a `TROUBLESHOOTING.md`, která sjednocuje popis databáze a Prisma modelů, e-mail workeru, ICS feedů, Matomo/UTM analytiky, admin rolí a deploye na Proxmox/LXC.
