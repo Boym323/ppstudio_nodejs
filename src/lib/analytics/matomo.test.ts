@@ -38,9 +38,11 @@ test("getDashboardAnalytics returns contactStepQuality counters and rates", asyn
     if (method === "Events.getAction") {
       return new Response(
         JSON.stringify([
+          { label: "Rezervace / Zobrazena", nb_events: 10 },
           { label: "Rezervace / Služba vybrána", nb_events: 8 },
           { label: "Rezervace / Datum vybráno", nb_events: 6 },
           { label: "Rezervace / Čas vybrán", nb_events: 5 },
+          { label: "Rezervace / Odeslána rezervace", nb_events: 3 },
           { label: "Rezervace / Vytvořena", nb_events: 2 },
           { label: "Rezervace / Kontakt zahájen", nb_events: 4 },
           { label: "Rezervace / Kontakt pole fokus", nb_events: 3 },
@@ -68,6 +70,10 @@ test("getDashboardAnalytics returns contactStepQuality counters and rates", asyn
   const { getDashboardAnalytics } = await import("./matomo");
   const analytics = await getDashboardAnalytics();
 
+  assert.equal(analytics.funnel.viewed, 10);
+  assert.equal(analytics.funnel.term, 5);
+  assert.equal(analytics.funnel.contact, 4);
+  assert.equal(analytics.funnel.submitted, 3);
   assert.equal(analytics.funnel.created, 2);
   assert.deepEqual(analytics.contactStepQuality, {
     started: 4,

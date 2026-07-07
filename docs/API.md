@@ -273,9 +273,11 @@ Odpověď:
   "topSource": "Instagram",
   "sources": [],
   "funnel": {
+    "viewed": 0,
     "service": 0,
-    "date": 0,
-    "time": 0,
+    "term": 0,
+    "contact": 0,
+    "submitted": 0,
     "created": 0
   },
   "contactStepQuality": {
@@ -303,9 +305,11 @@ Vysvětlení polí:
 - `conversionRate`: procentuální poměr mezi návštěvami a konverzemi.
 - `topSource`: hlavní zdroj návštěv v business-friendly názvu.
 - `sources`: detailnější rozpad zdrojů návštěv pro widget.
+- `funnel.viewed`: počet zobrazení veřejného booking flow `/rezervace`.
 - `funnel.service`: počet průchodů krokem výběru služby.
-- `funnel.date`: počet průchodů krokem výběru data.
-- `funnel.time`: počet průchodů krokem výběru času.
+- `funnel.term`: počet průchodů krokem skutečně vybraného termínu; interně vychází z eventu `Rezervace / Čas vybrán`.
+- `funnel.contact`: počet vstupů do kontaktního kroku; interně vychází z eventu `Rezervace / Kontakt zahájen`.
+- `funnel.submitted`: počet submit pokusů veřejné rezervace před server action zpracováním.
 - `funnel.created`: počet dokončených rezervací.
 - `contactStepQuality.started`: kolikrát uživatelka vstoupila do kontaktního kroku.
 - `contactStepQuality.fieldFocus`: kolikrát dostalo fokus první relevantní kontaktní pole.

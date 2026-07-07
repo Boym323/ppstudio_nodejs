@@ -6,6 +6,9 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Matomo booking funnel je nově explicitnější a lépe čitelný pro business i provoz: veřejná `/rezervace` posílá event `Rezervace / Zobrazena`, submit pokus `Rezervace / Odeslána rezervace` a agregovaná chyba kroku/submitu se zapisuje jako `Rezervace / Formulář chyba`, zatímco detailní kontaktní mikro-kroky (`Kontakt zahájen`, `Kontakt pole fokus`, `Kontakt pole vyplnění začátek`, `Kontakt pole chyba`) zůstávají zachované pro diagnostiku UX.
+- Admin analytics dashboard a `/api/admin/analytics` teď skládají hlavní rezervační funnel ve tvaru `viewed -> service -> term -> contact -> submitted -> created` místo starého internějšího `service/date/time/created`, aby widget odpovídal skutečným mikro-krokům booking flow.
+- Dokumentace `MANUAL.md`, `docs/API.md`, `docs/DEVELOPMENT.md` a ADR pro Matomo/reporting jsou sladěné s novým funnel namingem a rozšířeným měřením booking formuláře.
 - Dev DX: inline `DevChunkReload` guard v root layoutu už nepoužívá trvalý jednorázový `sessionStorage` lock. Při `ChunkLoadError` v `next dev` nově dovolí dva rychlé hard reload pokusy v krátkém 15s okně, přidá dočasný cache-busting query parametr a po úspěšném načtení ho zase uklidí, takže browser nezůstane viset po prvním nepovedeném refreshi.
 - Opravený lint/admin build blocker v draweru `Přidat rezervaci`: lokální `resetForm()` je nově vedený přes `useEffectEvent` místo ručního `useCallback`, takže Next.js/React compiler znovu dokáže zachovat invarianty `react-hooks/preserve-manual-memoization` i `exhaustive-deps` bez změny chování formuláře.
 - Admin refaktoring bez změny chování zmenšil několik přetížených modulů: detail rezervace i weekly planner přesunuly čistou rozhodovací logiku do samostatných helperů, route factory pro admin nastavení nově deleguje serverový read model do odděleného modulu a shared admin URL podle role se skládají přes typed helper místo ručně kopírovaných ternárů.

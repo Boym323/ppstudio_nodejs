@@ -41,6 +41,14 @@ test("GET returns fallback analytics including contactStepQuality when reporting
 
   assert.equal(response.status, 200);
   assert.equal(payload.reportingStatus, "blocked");
+  assert.deepEqual(payload.funnel, {
+    viewed: 0,
+    service: 0,
+    term: 0,
+    contact: 0,
+    submitted: 0,
+    created: 0,
+  });
   assert.deepEqual(payload.contactStepQuality, {
     started: 0,
     fieldFocus: 0,

@@ -13,9 +13,11 @@ test("isAnalyticsDashboardData accepts payload with contactStepQuality", () => {
     topSource: "Přímý vstup",
     sources: [{ label: "Přímý vstup", visits: 10, conversions: 2 }],
     funnel: {
+      viewed: 10,
       service: 8,
-      date: 6,
-      time: 5,
+      term: 5,
+      contact: 4,
+      submitted: 3,
       created: 2,
     },
     contactStepQuality: {
@@ -42,9 +44,11 @@ test("isAnalyticsDashboardData rejects payload missing contactStepQuality", () =
     topSource: "Přímý vstup",
     sources: [{ label: "Přímý vstup", visits: 10, conversions: 2 }],
     funnel: {
+      viewed: 10,
       service: 8,
-      date: 6,
-      time: 5,
+      term: 5,
+      contact: 4,
+      submitted: 3,
       created: 2,
     },
   } satisfies Record<string, unknown>;

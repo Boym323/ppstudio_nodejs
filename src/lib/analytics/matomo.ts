@@ -28,9 +28,11 @@ export type DashboardAnalytics = {
   topSource: string;
   sources: DashboardAnalyticsSource[];
   funnel: {
+    viewed: number;
     service: number;
-    date: number;
-    time: number;
+    term: number;
+    contact: number;
+    submitted: number;
     created: number;
   };
   contactStepQuality: {
@@ -55,9 +57,11 @@ const DEFAULT_DASHBOARD_ANALYTICS: DashboardAnalytics = {
   topSource: "",
   sources: [],
   funnel: {
+    viewed: 0,
     service: 0,
-    date: 0,
-    time: 0,
+    term: 0,
+    contact: 0,
+    submitted: 0,
     created: 0,
   },
   contactStepQuality: {
@@ -72,16 +76,20 @@ const DEFAULT_DASHBOARD_ANALYTICS: DashboardAnalytics = {
 };
 
 const bookingFunnelLabels = {
+  viewed: "Rezervace / Zobrazena",
   service: "Rezervace / Služba vybrána",
-  date: "Rezervace / Datum vybráno",
-  time: "Rezervace / Čas vybrán",
+  term: "Rezervace / Čas vybrán",
+  contact: "Rezervace / Kontakt zahájen",
+  submitted: "Rezervace / Odeslána rezervace",
   created: "Rezervace / Vytvořena",
 } as const;
 
 const bookingFunnelLegacyAliases = {
+  viewed: ["Booking / Viewed"],
   service: ["Booking / Service selected"],
-  date: ["Booking / Date selected"],
-  time: ["Booking / Time selected"],
+  term: ["Booking / Time selected"],
+  contact: ["Booking / Contact started"],
+  submitted: ["Booking / Submitted"],
   created: ["Booking / Created"],
 } as const;
 
@@ -445,9 +453,11 @@ export async function getDashboardAnalytics(): Promise<DashboardAnalytics> {
 
     const visits = visitsSummary.nb_visits;
     const funnel = {
+      viewed: getEventCount(events, bookingFunnelLabels.viewed, bookingFunnelLegacyAliases.viewed),
       service: getEventCount(events, bookingFunnelLabels.service, bookingFunnelLegacyAliases.service),
-      date: getEventCount(events, bookingFunnelLabels.date, bookingFunnelLegacyAliases.date),
-      time: getEventCount(events, bookingFunnelLabels.time, bookingFunnelLegacyAliases.time),
+      term: getEventCount(events, bookingFunnelLabels.term, bookingFunnelLegacyAliases.term),
+      contact: getEventCount(events, bookingFunnelLabels.contact, bookingFunnelLegacyAliases.contact),
+      submitted: getEventCount(events, bookingFunnelLabels.submitted, bookingFunnelLegacyAliases.submitted),
       created: getEventCount(events, bookingFunnelLabels.created, bookingFunnelLegacyAliases.created),
     };
     const conversions = funnel.created;

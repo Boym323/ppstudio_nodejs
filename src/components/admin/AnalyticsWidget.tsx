@@ -18,9 +18,11 @@ export type AnalyticsDashboardData = {
     conversions: number;
   }[];
   funnel: {
+    viewed: number;
     service: number;
-    date: number;
-    time: number;
+    term: number;
+    contact: number;
+    submitted: number;
     created: number;
   };
   contactStepQuality: {
@@ -87,9 +89,11 @@ export function isAnalyticsDashboardData(value: unknown): value is AnalyticsDash
         Number.isFinite((source as Record<string, unknown>).visits) &&
         Number.isFinite((source as Record<string, unknown>).conversions),
     ) &&
+    Number.isFinite(funnelCandidate.viewed) &&
     Number.isFinite(funnelCandidate.service) &&
-    Number.isFinite(funnelCandidate.date) &&
-    Number.isFinite(funnelCandidate.time) &&
+    Number.isFinite(funnelCandidate.term) &&
+    Number.isFinite(funnelCandidate.contact) &&
+    Number.isFinite(funnelCandidate.submitted) &&
     Number.isFinite(funnelCandidate.created) &&
     Number.isFinite(contactStepQualityCandidate.started) &&
     Number.isFinite(contactStepQualityCandidate.fieldFocus) &&
@@ -274,9 +278,11 @@ export function AnalyticsWidget({
                 <SourcesList sources={state.data.sources} />
 
                 <div className="grid gap-2">
+                  <FunnelStep label="Zobrazení" value={state.data.funnel.viewed} />
                   <FunnelStep label="Služba" value={state.data.funnel.service} />
-                  <FunnelStep label="Datum" value={state.data.funnel.date} />
-                  <FunnelStep label="Čas" value={state.data.funnel.time} />
+                  <FunnelStep label="Termín" value={state.data.funnel.term} />
+                  <FunnelStep label="Kontakt" value={state.data.funnel.contact} />
+                  <FunnelStep label="Odesláno" value={state.data.funnel.submitted} />
                   <FunnelStep label="Rezervace" value={state.data.funnel.created} />
                 </div>
 

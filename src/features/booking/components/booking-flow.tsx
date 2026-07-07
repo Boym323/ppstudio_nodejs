@@ -84,12 +84,14 @@ export function BookingFlow({ catalog, initialSelectedServiceSlug, salonProfile 
   const contactStepFocusTimeoutRef = useRef<number | null>(null);
   const createdBookingTrackedRef = useRef(false);
   const successViewportResetRef = useRef(false);
+  const bookingViewedTrackedRef = useRef(false);
   const contactStartedTrackedRef = useRef(false);
   const trackedContactFocusFieldsRef = useRef<Set<ContactFieldKey>>(new Set());
   const trackedContactInputFieldsRef = useRef<Set<ContactFieldKey>>(new Set());
   const trackedContactErrorFieldsRef = useRef<Set<ContactFieldKey>>(new Set());
   const prefilledServiceTrackedRef = useRef(false);
   const initiateCheckoutTrackedRef = useRef(false);
+  const lastTrackedFormErrorKeyRef = useRef<string | null>(null);
 
   const trackSelectedServiceMetaEvent = (service?: {
     categoryName: string;
@@ -295,6 +297,19 @@ export function BookingFlow({ catalog, initialSelectedServiceSlug, salonProfile 
       content_category: "booking",
       source_context: initialSelectedServiceSlug ? "service_prefill" : "booking_landing",
     });
+  }, [initialSelectedServiceSlug]);
+
+  useEffect(() => {
+    if (bookingViewedTrackedRef.current) {
+      return;
+    }
+
+    bookingViewedTrackedRef.current = true;
+    trackMatomoEvent(
+      "Rezervace",
+      "Zobrazena",
+      initialSelectedServiceSlug ? "service_prefill" : "booking_landing",
+    );
   }, [initialSelectedServiceSlug]);
 
   useEffect(() => {
@@ -667,12 +682,28 @@ export function BookingFlow({ catalog, initialSelectedServiceSlug, salonProfile 
     });
 
     if (!canGoToStep4) {
+      trackMatomoEvent("Rezervace", "Formulář chyba", "kontakt");
       focusContactStepSection();
       return;
     }
 
     setCurrentStep(4);
   };
+
+  useEffect(() => {
+    if (serverState.status !== "error" || !serverState.formError) {
+      return;
+    }
+
+    const errorKey = `${serverState.suggestedStep ?? "unknown"}:${serverState.errorCode ?? "form-error"}:${serverState.formError}`;
+
+    if (lastTrackedFormErrorKeyRef.current === errorKey) {
+      return;
+    }
+
+    lastTrackedFormErrorKeyRef.current = errorKey;
+    trackMatomoEvent("Rezervace", "Formulář chyba", serverState.errorCode ?? "submit");
+  }, [serverState.errorCode, serverState.formError, serverState.status, serverState.suggestedStep]);
 
   useEffect(() => {
     if (serverState.status !== "success" || !serverState.confirmation || createdBookingTrackedRef.current) {
@@ -754,7 +785,23 @@ export function BookingFlow({ catalog, initialSelectedServiceSlug, salonProfile 
         </div>
       </div>
 
-      <form action={formAction} className="grid gap-5 pb-28 sm:gap-6 lg:grid-cols-[1.15fr_0.85fr] lg:pb-0">
+      <form
+        action={formAction}
+        className="grid gap-5 pb-28 sm:gap-6 lg:grid-cols-[1.15fr_0.85fr] lg:pb-0"
+        onSubmitCapture={() => {
+          if (!canGoToStep4) {
+            return;
+          }
+
+          lastTrackedFormErrorKeyRef.current = null;
+          trackMatomoEvent(
+            "Rezervace",
+            "Odeslána rezervace",
+            selectedService?.name,
+            selectedService?.priceFromCzk ?? undefined,
+          );
+        }}
+      >
       <input type="hidden" name="serviceId" value={selectedServiceId} />
       <input type="hidden" name="slotId" value={selectedTimeOption?.slotId ?? ""} />
       <input type="hidden" name="startsAt" value={selectedTimeOption?.startsAt ?? ""} />

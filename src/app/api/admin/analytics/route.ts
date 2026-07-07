@@ -16,9 +16,11 @@ const analyticsFallback = {
   topSource: "—",
   sources: [],
   funnel: {
+    viewed: 0,
     service: 0,
-    date: 0,
-    time: 0,
+    term: 0,
+    contact: 0,
+    submitted: 0,
     created: 0,
   },
   contactStepQuality: {
