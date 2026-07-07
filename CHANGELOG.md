@@ -6,6 +6,9 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-07-07
+
+- Release příprava pro produkční nasazení: projektová verze navýšena na minor `0.7.0`.
 - Matomo booking funnel je nově explicitnější a lépe čitelný pro business i provoz: veřejná `/rezervace` posílá event `Rezervace / Zobrazena`, submit pokus `Rezervace / Odeslána rezervace` a agregovaná chyba kroku/submitu se zapisuje jako `Rezervace / Formulář chyba`, zatímco detailní kontaktní mikro-kroky (`Kontakt zahájen`, `Kontakt pole fokus`, `Kontakt pole vyplnění začátek`, `Kontakt pole chyba`) zůstávají zachované pro diagnostiku UX.
 - Veřejné booking Matomo měření je doplněné i o provozní signály `Rezervace / Bez služeb`, `Rezervace / Bez termínů` a `Rezervace / Termín konflikt při odeslání`, takže reporting nově odliší prázdný katalog/kapacitu od submit konfliktu nad mezitím obsazeným nebo neplatným slotem.
 - Self-service Matomo měření nově pokrývá i bezpečné lifecycle eventy `Rezervace / Změna termínu otevřena`, `Rezervace / Změna termínu odeslána`, `Rezervace / Storno odesláno` a `Rezervace / Storno dokončeno`, bez vazby na raw tokenové URL nebo klientské kontakty.
