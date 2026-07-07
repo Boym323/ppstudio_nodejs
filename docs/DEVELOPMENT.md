@@ -3,6 +3,13 @@
 Tento dokument slouží jako detailní technická dokumentace vývoje.
 Pro centralizovaný přehled hlavních route handler kontraktů používej i [`docs/API.md`](/var/www/ppstudio/docs/API.md); implementace v `src/app/api/**/route.ts` je ale vždy finální zdroj pravdy.
 
+## Kořenová technická dokumentace
+- Architektonický přehled repa je v [`ARCHITECTURE.md`](/var/www/ppstudio/ARCHITECTURE.md).
+- End-to-end veřejný booking a self-service tok je v [`BOOKING_FLOW.md`](/var/www/ppstudio/BOOKING_FLOW.md).
+- Stručný provozní deployment přehled pro Proxmox/LXC je v [`DEPLOYMENT.md`](/var/www/ppstudio/DEPLOYMENT.md).
+- Stručný runtime přehled proměnných a prostředí je v [`ENVIRONMENT.md`](/var/www/ppstudio/ENVIRONMENT.md).
+- Pro opakující se incidenty použij i [`TROUBLESHOOTING.md`](/var/www/ppstudio/TROUBLESHOOTING.md).
+
 ## Verzování a release disciplína
 - `package.json` používá SemVer `MAJOR.MINOR.PATCH`; aktuální release je `0.6.0` v pre-stable řadě.
 - Praktické pravidlo pro tento projekt:
@@ -42,6 +49,7 @@ Pro centralizovaný přehled hlavních route handler kontraktů používej i [`d
 - Pro rychlé navyšování coverage v admin vrstvě používej samostatné `*.test.ts` i pro akční state moduly (`src/features/admin/actions/*action-state.ts`), protože i tyto server action kontrakty jsou součástí veřejného chování UI formulářů.
 - U server actions v `src/features/admin/actions/*.ts` prioritně pokrývej validační early-return větve (invalid form payload) bez DB přístupu; je to stabilní low-flake vrstva, která rychle zavírá velké coverage mezery.
 - Stejný postup používej i pro `service-category-actions`: validační větve `create/update` vrací strukturovaný action state ještě před auth/DB, takže jsou vhodné pro rychlé unit testy s vysokým poměrem přínos/údržba.
+- Když refaktoruješ velkou klientskou komponentu typu admin planner nebo detail rezervace, vytáhni nejdřív pure helpery do samostatného souboru a přidej jim úzké Node testy. Je to bezpečnější než rovnou rozbíjet komponentu do mnoha nových child komponent bez testovatelného středu.
 - Pro `booking-public/engine.ts` drž minimálně unit coverage early-fail větví bez DB závislostí (`invalid startsAt`, `invalid phone`), aby základní validační guardy nešly regresí obejít.
 - DB integrační testy nespouštěj proti fixním hodinám typu „za 3 dny v 09:00“, pokud běží nad sdílenou nebo již seedovanou databází. Helpery pro sloty mají nejdřív najít izolované budoucí okno bez překryvu v `AvailabilitySlot` i aktivních `Booking`, jinak budou flaky podle aktuálních dat nebo paralelních běhů.
 - Stejné pravidlo platí i pro reschedule integrační testy: cílový původní i nový termín musí být před seedem ověřený proti existujícím slotům a aktivním rezervacím, jinak test může falešně skončit chybou `Nový termín koliduje s jinou aktivní rezervací.` i bez regresní změny doménové logiky.
@@ -77,6 +85,11 @@ Pro centralizovaný přehled hlavních route handler kontraktů používej i [`d
 - `src/config` drží metadata, navigaci a validované prostředí.
 - `src/content` drží editovatelná data veřejného webu odděleně od layoutu a route souborů.
 - Fallback texty ve `src/content/public-site.ts` musí působit jako finální veřejný obsah (bez interních výrazů typu placeholder/TODO), aby i při výpadku DB copy zůstal web důvěryhodný a produkčně použitelný.
+- U větších admin modulů nedrž zároveň route orchestration, server fetch logiku, pure business helpery a JSX v jednom souboru. Aktuální baseline je:
+  - `src/features/admin/lib/admin-route-factories.tsx` jen pro routing a guardy
+  - `src/features/admin/lib/admin-settings-page-data.ts` pro server-only read model nastavení
+  - `src/features/admin/components/*-helpers.ts` pro čistou synchronní logiku testovatelnou bez React renderu
+  - `src/features/admin/components/*.tsx` pro samotnou kompozici UI
 
 ## Route Strategie
 - `(public)` pro prezentační web.

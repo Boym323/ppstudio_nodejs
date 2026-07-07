@@ -14,6 +14,13 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
 5. Provoz a monitoring
 6. Řešení problémů (Troubleshooting)
 
+## Architektonická mapa
+- Přehled architektury je v [`ARCHITECTURE.md`](/var/www/ppstudio/ARCHITECTURE.md).
+- Detail veřejného i self-service rezervačního toku je v [`BOOKING_FLOW.md`](/var/www/ppstudio/BOOKING_FLOW.md).
+- Stručný produkční deploy přehled pro Proxmox/LXC je v [`DEPLOYMENT.md`](/var/www/ppstudio/DEPLOYMENT.md).
+- Stručný runtime přehled proměnných a prostředí je v [`ENVIRONMENT.md`](/var/www/ppstudio/ENVIRONMENT.md).
+- Nejčastější provozní potíže a jejich první diagnostika jsou v [`TROUBLESHOOTING.md`](/var/www/ppstudio/TROUBLESHOOTING.md).
+
 ## Pravidla údržby
 - Při každé funkční změně aktualizuj relevantní sekce.
 - Při změně nasazení vždy aktualizuj sekci Build a nasazení.
@@ -37,6 +44,7 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
 ## Testování a coverage
 - `npm test` spouští celý Node test runner nad quoted globem `src/**/*.test.ts`; nejde už jen o shell-expanded podmnožinu jednoho souboru.
 - `npm run test:coverage` generuje report do `coverage/` a zaměřuje se na business logiku v `booking`, `admin`, `vouchers` a `lib/email`.
+- Při refaktoringu velkých admin obrazovek drž odděleně route/data loading (`src/features/admin/lib/**`), čisté helpery (`src/features/admin/components/*-helpers.ts`) a samotnou React kompozici. Tím jde měnit strukturu bez regresí v route kontraktu nebo hydrataci.
 - Admin planner `Volná okna` stále edituje půlhodinová okna, ale vizuálně umí rozlišit i cleanup/volno uvnitř jedné buňky po 15 minutách: žlutá značí úklid, zelená volno a červená navazující službu.
 - Seznam `Volná okna` se skládá až nad merged volnými segmenty, takže sousední publikované sloty bez mezery se v inspektoru dne zobrazí jako jedno souvislé půlhodinově editovatelné okno.
 - Výstupy jsou připravené pro lokální čtení i CI:
@@ -47,6 +55,7 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
 - Aktuální testovací batch (2026-05-19) doplnil unit testy pro `src/features/admin/actions/*action-state.ts` a early-fail validace v `src/features/booking/lib/booking-public/engine.ts` (`invalid startsAt`, `invalid phone`), aby se zlepšilo pokrytí nejnižších oblastí.
 - Navazující batch (2026-05-19) přidal validační unit testy pro server actions v `src/features/admin/actions/actions-validation.test.ts` (invalid form payloady pro `client-actions`, `service-actions`, `booking-actions`, `settings-actions`) a zvýšil coverage především v `admin/actions`.
 - Další rozšíření stejného validačního test souboru přidalo i pokrytí pro `service-category-actions` (`createServiceCategoryAction`, `updateServiceCategoryAction`) nad chybnými payloady, aby se dál zvedlo coverage v admin action vrstvě bez DB flaky závislostí.
+- Nová helper vrstva pro admin detail rezervace a weekly planner má vlastní úzké unit testy. Při dalších změnách nejdřív přidej nebo uprav helper test, teprve potom přepisuj JSX nebo server route factory.
 - Booking regresní sada nově obsahuje i `src/features/booking/lib/booking-local-time.test.ts` (Prague wall-clock převod) a `src/features/booking/lib/booking-manual.integration.test.ts` (ruční rezervace přes slot vs. explicitní manual override), takže při změnách admin booking flow pouštěj vedle běžných booking testů i tyto soubory.
 - Pro širší booking regresi nově počítej i s `src/features/booking/lib/booking-public-voucher.integration.test.ts` (vytvoření veřejné rezervace, obsazený slot, snapshot služby/ceny/délky) a `src/features/booking/lib/booking-email-worker.integration.test.ts` (24h reminder scheduler + e-mail worker delivery).
 

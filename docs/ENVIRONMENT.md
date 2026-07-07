@@ -2,6 +2,8 @@
 
 Dokumentace proměnných prostředí pro lokální vývoj i produkci.
 
+Stručný runtime přehled prostředí a vazeb na infrastrukturu je v kořenovém [`ENVIRONMENT.md`](/var/www/ppstudio/ENVIRONMENT.md). Tento soubor zůstává úplným katalogem proměnných.
+
 ## Pravidla
 - Tajné hodnoty nikdy neukládej do repozitáře.
 - Každá nová proměnná musí mít popis a příklad v `.env.example`.

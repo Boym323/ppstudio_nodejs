@@ -2,6 +2,7 @@ import Link from "next/link";
 import { VoucherType } from "@prisma/client";
 
 import { type AdminBookingDetailData } from "@/features/admin/lib/admin-booking";
+import { getAdminSectionPath } from "@/features/admin/lib/admin-paths";
 import { buildClientPhoneHref } from "@/features/booking/lib/client-phone";
 import { cn } from "@/lib/utils";
 
@@ -14,6 +15,13 @@ import { AdminBookingPriceForm } from "./admin-booking-price-form";
 import { AdminBookingServiceForm } from "./admin-booking-service-form";
 import { AdminBookingStatusForm } from "./admin-booking-status-form";
 import { AdminBookingVoucherForm } from "./admin-booking-voucher-form";
+import {
+  formatCzk,
+  formatDurationLabel,
+  getPriceDifferenceLabel,
+  getStatusContext,
+  getVoucherAmountHint,
+} from "./admin-booking-detail-helpers";
 import { AdminPanel } from "./admin-page-shell";
 import { RescheduleBookingButton } from "./reschedule-booking-button";
 
@@ -24,7 +32,7 @@ type AdminBookingDetailPageProps = {
 const HISTORY_PREVIEW_COUNT = 1;
 
 export function AdminBookingDetailPage({ data }: AdminBookingDetailPageProps) {
-  const listHref = data.area === "owner" ? "/admin/rezervace" : "/admin/provoz/rezervace";
+  const listHref = getAdminSectionPath(data.area, "rezervace");
   const statusContext = getStatusContext(data);
   const historyPreviewItems = data.historyItems.slice(0, HISTORY_PREVIEW_COUNT);
   const remainingHistoryItems = data.historyItems.slice(HISTORY_PREVIEW_COUNT);
@@ -591,18 +599,6 @@ function PriceSummaryItem({
   );
 }
 
-function getPriceDifferenceLabel(adjustmentCzk: number) {
-  if (adjustmentCzk < 0) {
-    return `Sleva ${formatCzk(Math.abs(adjustmentCzk))}`;
-  }
-
-  if (adjustmentCzk > 0) {
-    return `Navýšení ${formatCzk(adjustmentCzk)}`;
-  }
-
-  return "Bez úpravy";
-}
-
 function PaymentSummaryBlock({
   paymentSummary,
 }: {
@@ -637,24 +633,6 @@ function PaymentSummaryBlock({
       </div>
     </div>
   );
-}
-
-
-function getVoucherAmountHint(
-  voucher: AdminBookingDetailData["voucher"]["intendedVoucher"],
-  remainingAmountCzk: number | null,
-) {
-  if (!voucher || voucher.type !== VoucherType.VALUE) {
-    return null;
-  }
-
-  const remainingValueCzk = voucher.remainingValueCzk ?? 0;
-
-  if (remainingValueCzk <= 0 || remainingAmountCzk === null || remainingValueCzk >= remainingAmountCzk) {
-    return null;
-  }
-
-  return `Voucher pokryje maximálně ${formatCzk(remainingValueCzk)}. Zbytek ceny služby se doplatí mimo voucher.`;
 }
 
 function VoucherMiniRow({ label, value }: { label: string; value: string }) {
@@ -997,10 +975,6 @@ function getHistoryBadgeClassName(status: AdminBookingDetailData["historyItems"]
   return getStatusBadgeClassName(status);
 }
 
-function formatDurationLabel(durationMinutes: number) {
-  return `${durationMinutes} min`;
-}
-
 function getStatusContextClassName(tone: "pending" | "confirmed" | "closed" | "neutral") {
   switch (tone) {
     case "pending":
@@ -1014,68 +988,6 @@ function getStatusContextClassName(tone: "pending" | "confirmed" | "closed" | "n
   }
 }
 
-function getStatusContext(data: AdminBookingDetailData) {
-  if (data.availableActions.length === 0) {
-    switch (data.status) {
-      case "COMPLETED":
-        return {
-          title: "Rezervace je uzavřená jako hotová.",
-          description: "Detail teď slouží hlavně pro kontrolu poznámek a historie.",
-          tone: "closed" as const,
-        };
-      case "CANCELLED":
-        return {
-          title: "Rezervace je zrušená.",
-          description: "Žádná další provozní akce není potřeba.",
-          tone: "closed" as const,
-        };
-      case "NO_SHOW":
-        return {
-          title: "Rezervace je uzavřená jako nedorazila.",
-          description: "Historie zůstává po ruce a interní poznámku můžeš dál upravit.",
-          tone: "closed" as const,
-        };
-      default:
-        return {
-          title: "Rezervace je bez další akce.",
-          description: "Detail zůstává jako rychlý přehled a auditní stopa.",
-          tone: "neutral" as const,
-        };
-    }
-  }
-
-  switch (data.status) {
-    case "PENDING":
-      return {
-        title: "Rezervace čeká na rozhodnutí.",
-        description: "Nejčastější krok je potvrzení. Ostatní akce jsou hned vedle.",
-        tone: "pending" as const,
-      };
-    case "CONFIRMED":
-      return {
-        title: "Potvrzený termín · Po návštěvě zapiš úhradu a dokonči návštěvu.",
-        description: "Po návštěvě uzavři rezervaci jako hotovou, případně označ jako nedorazila.",
-        tone: "confirmed" as const,
-      };
-    default:
-      return {
-        title: "Vyber další krok.",
-        description: "Akce níže používají existující stavová pravidla i audit.",
-        tone: "neutral" as const,
-      };
-  }
-}
-
 function buildPhoneHref(phone: string) {
   return buildClientPhoneHref(phone);
-}
-
-const czkFormatter = new Intl.NumberFormat("cs-CZ", {
-  maximumFractionDigits: 0,
-  style: "currency",
-  currency: "CZK",
-});
-
-function formatCzk(value: number | null | undefined) {
-  return typeof value === "number" ? czkFormatter.format(value) : "Bez částky";
 }

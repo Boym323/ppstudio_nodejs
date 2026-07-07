@@ -2,6 +2,8 @@
 
 Postup nasazení aplikace do produkce.
 
+Stručný architektonický a provozní přehled nasazení na Proxmox/LXC je v kořenovém [`DEPLOYMENT.md`](/var/www/ppstudio/DEPLOYMENT.md). Tento soubor zůstává detailním release checklistem.
+
 ## Artefakty a zavislosti
 - `node_modules` nesmi byt soucasti Git repozitare ani release ZIP/TAR artefaktu.
 - Build/deploy host musi vzdy instalovat zavislosti z cisteho checkoutu pomoci `npm ci` podle `package-lock.json`.
