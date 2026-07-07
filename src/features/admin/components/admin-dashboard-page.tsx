@@ -208,19 +208,16 @@ function DashboardActionPill({
 function DashboardContactActions({
   phoneHref,
   emailHref,
-  createHref,
   compact = false,
 }: {
   phoneHref: string | null;
   emailHref: string | null;
-  createHref: string;
   compact?: boolean;
 }) {
   return (
     <div className={cn("flex flex-wrap gap-2", compact && "pt-1")}>
       {phoneHref ? <DashboardActionPill href={phoneHref} label="Volat" /> : null}
       {emailHref ? <DashboardActionPill href={emailHref} label="E-mail" /> : null}
-      <DashboardActionPill href={createHref} label="Nová rezervace" tone="accent" />
     </div>
   );
 }
@@ -320,7 +317,6 @@ export function DashboardTodayHero({ data }: DashboardPageProps) {
                 <DashboardContactActions
                   phoneHref={data.nextClient.phoneHref}
                   emailHref={data.nextClient.emailHref}
-                  createHref={data.nextClient.createFollowupHref}
                   compact
                 />
               </div>
@@ -542,7 +538,6 @@ export function DashboardTodayTimelineSection({ data }: DashboardPageProps) {
                   <DashboardContactActions
                     phoneHref={item.phoneHref}
                     emailHref={item.emailHref}
-                    createHref={item.createFollowupHref}
                     compact
                   />
                 </div>
@@ -682,7 +677,6 @@ export function DashboardAvailableSlots({ data }: DashboardPageProps) {
                   <p className="mt-1 text-sm text-white/54">{slot.metaLabel}</p>
                 </div>
                 <div className="flex shrink-0 flex-wrap justify-end gap-2">
-                  <DashboardActionPill href={slot.createHref} label="Přidat rezervaci" tone="accent" />
                   <DashboardActionPill href={slot.href} label="Dostupnost" />
                 </div>
               </div>

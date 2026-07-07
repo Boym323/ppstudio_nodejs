@@ -106,7 +106,6 @@ export type DashboardTimelineItem =
       subtitle: string;
       badge: "VOLNE";
       href: string;
-      createHref: string;
       editHref: string;
     };
 
@@ -121,7 +120,6 @@ export type DashboardTodayPlanItem = {
   phoneHref: string | null;
   emailLabel: string | null;
   emailHref: string | null;
-  createFollowupHref: string;
   isCurrent: boolean;
   isCompleted: boolean;
   notes: DashboardBookingNote[];
@@ -140,7 +138,6 @@ export type DashboardUpcomingSlot = {
   timeLabel: string;
   metaLabel: string;
   href: string;
-  createHref: string;
 };
 
 type UpcomingSlotRecord = {
@@ -430,10 +427,6 @@ export function buildTimelineItems(
             : `Kapacita ${slot.capacity} • historické volno`,
         badge: "VOLNE",
         href: getSlotEditHref(area, slot.id),
-        createHref: getCreateBookingHref(area, {
-          date: effectiveStartsAt.toISOString().slice(0, 10),
-          time: timeFormatter.format(effectiveStartsAt),
-        }),
         editHref: getSlotEditHref(area, slot.id),
       });
     };
@@ -524,7 +517,6 @@ export type AdminDashboardData = {
     phoneHref: string | null;
     emailLabel: string | null;
     emailHref: string | null;
-    createFollowupHref: string;
   } | null;
   alerts: Array<{
     id: string;
@@ -726,7 +718,6 @@ export async function getAdminDashboardData(area: AdminArea): Promise<AdminDashb
       phoneHref: item.contact.phoneHref,
       emailLabel: item.contact.emailLabel,
       emailHref: item.contact.emailHref,
-      createFollowupHref: getCreateBookingHref(area),
       isCurrent: item.id === currentTodayBooking?.id,
       isCompleted: item.bookingStatus === BookingStatus.COMPLETED,
       notes: item.notes,
@@ -832,7 +823,6 @@ export async function getAdminDashboardData(area: AdminArea): Promise<AdminDashb
           clientName: safeText(nextTodayBooking.clientNameSnapshot, "Klientka není uvedená"),
           detailHref: getAdminBookingHref(area, nextTodayBooking.id),
           ...getDashboardContactActions(nextTodayBooking),
-          createFollowupHref: getCreateBookingHref(area),
         }
       : null,
     alerts,
@@ -894,10 +884,6 @@ export async function getAdminDashboardData(area: AdminArea): Promise<AdminDashb
         timeLabel: `${timeFormatter.format(slot.startsAt)} - ${timeFormatter.format(slot.endsAt)}`,
         metaLabel,
         href: plannerHref,
-        createHref: getCreateBookingHref(area, {
-          date: slot.startsAt.toISOString().slice(0, 10),
-          time: timeFormatter.format(slot.startsAt),
-        }),
       };
     }),
     draftUpcomingSlotsCount: upcomingDraftSlotsCount,
