@@ -6,7 +6,10 @@ const DEV_CHUNK_RELOAD_SCRIPT = `
     return;
   }
 
-  const reloadKey = "ppstudio:dev-chunk-reload";
+  const reloadStateKey = "ppstudio:dev-chunk-reload";
+  const reloadSearchParam = "__ppstudio_chunk_reload";
+  const maxReloadsPerWindow = 2;
+  const reloadWindowMs = 15000;
 
   const readText = (value) => {
     if (typeof value === "string") {
@@ -60,23 +63,88 @@ const DEV_CHUNK_RELOAD_SCRIPT = `
     );
   };
 
-  const reloadOnce = () => {
+  const readReloadState = () => {
     try {
-      if (window.sessionStorage.getItem(reloadKey) === "1") {
+      const raw = window.sessionStorage.getItem(reloadStateKey);
+
+      if (!raw) {
+        return null;
+      }
+
+      const parsed = JSON.parse(raw);
+
+      if (!parsed || typeof parsed !== "object") {
+        return null;
+      }
+
+      if (typeof parsed.windowStartedAt !== "number" || typeof parsed.attemptCount !== "number") {
+        return null;
+      }
+
+      return parsed;
+    } catch {
+      return null;
+    }
+  };
+
+  const writeReloadState = (state) => {
+    try {
+      window.sessionStorage.setItem(reloadStateKey, JSON.stringify(state));
+    } catch {}
+  };
+
+  const clearReloadState = () => {
+    try {
+      window.sessionStorage.removeItem(reloadStateKey);
+    } catch {}
+  };
+
+  const clearReloadSearchParam = () => {
+    try {
+      const url = new URL(window.location.href);
+
+      if (!url.searchParams.has(reloadSearchParam)) {
         return;
       }
 
-      window.sessionStorage.setItem(reloadKey, "1");
-    } catch {
+      url.searchParams.delete(reloadSearchParam);
+      window.history.replaceState(window.history.state, "", url.toString());
+    } catch {}
+  };
+
+  const reloadWithGuard = () => {
+    const now = Date.now();
+    const state = readReloadState();
+    const isFreshWindow =
+      state
+      && now - state.windowStartedAt >= 0
+      && now - state.windowStartedAt <= reloadWindowMs;
+    const nextState = isFreshWindow
+      ? state
+      : { windowStartedAt: now, attemptCount: 0 };
+
+    if (nextState.attemptCount >= maxReloadsPerWindow) {
       return;
     }
+
+    writeReloadState({
+      windowStartedAt: nextState.windowStartedAt,
+      attemptCount: nextState.attemptCount + 1,
+    });
+
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set(reloadSearchParam, String(now));
+      window.location.replace(url.toString());
+      return;
+    } catch {}
 
     window.location.reload();
   };
 
   window.addEventListener("unhandledrejection", (event) => {
     if (isChunkLoadLike(event.reason)) {
-      reloadOnce();
+      reloadWithGuard();
     }
   });
 
@@ -84,17 +152,18 @@ const DEV_CHUNK_RELOAD_SCRIPT = `
     "error",
     (event) => {
       if (isChunkLoadLike(event.error) || isChunkLoadLike(event.target)) {
-        reloadOnce();
+        reloadWithGuard();
       }
     },
     true,
   );
 
   window.addEventListener("pageshow", () => {
-    try {
-      window.sessionStorage.removeItem(reloadKey);
-    } catch {}
+    clearReloadState();
+    clearReloadSearchParam();
   });
+
+  clearReloadSearchParam();
 })();
 `;
 
