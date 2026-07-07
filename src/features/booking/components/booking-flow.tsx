@@ -24,6 +24,7 @@ import {
   shouldTrackContactFieldInput,
   shouldTrackFirstContactFieldEvent,
 } from "./booking-flow/contact-analytics";
+import { isBookingTermConflictErrorCode } from "./booking-flow/booking-analytics";
 import {
   buildContactFieldErrors,
   EMPTY_TIME_SLOTS,
@@ -92,6 +93,7 @@ export function BookingFlow({ catalog, initialSelectedServiceSlug, salonProfile 
   const prefilledServiceTrackedRef = useRef(false);
   const initiateCheckoutTrackedRef = useRef(false);
   const lastTrackedFormErrorKeyRef = useRef<string | null>(null);
+  const lastTrackedTermConflictKeyRef = useRef<string | null>(null);
 
   const trackSelectedServiceMetaEvent = (service?: {
     categoryName: string;
@@ -703,6 +705,25 @@ export function BookingFlow({ catalog, initialSelectedServiceSlug, salonProfile 
 
     lastTrackedFormErrorKeyRef.current = errorKey;
     trackMatomoEvent("Rezervace", "Formulář chyba", serverState.errorCode ?? "submit");
+  }, [serverState.errorCode, serverState.formError, serverState.status, serverState.suggestedStep]);
+
+  useEffect(() => {
+    if (
+      serverState.status !== "error" ||
+      !serverState.formError ||
+      !isBookingTermConflictErrorCode(serverState.errorCode)
+    ) {
+      return;
+    }
+
+    const conflictKey = `${serverState.errorCode ?? "conflict"}:${serverState.suggestedStep ?? "unknown"}:${serverState.formError}`;
+
+    if (lastTrackedTermConflictKeyRef.current === conflictKey) {
+      return;
+    }
+
+    lastTrackedTermConflictKeyRef.current = conflictKey;
+    trackMatomoEvent("Rezervace", "Termín konflikt při odeslání", serverState.errorCode);
   }, [serverState.errorCode, serverState.formError, serverState.status, serverState.suggestedStep]);
 
   useEffect(() => {

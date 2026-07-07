@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useMemo, useRef, useState } from "react";
+import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   initialManagePublicBookingActionState,
@@ -247,6 +247,8 @@ export function BookingManagementPanel({
   const selectedDaySlotsRef = useRef<HTMLDivElement | null>(null);
   const lastTrackedDateRef = useRef("");
   const lastTrackedTimeRef = useRef("");
+  const rescheduleOpenedTrackedRef = useRef(false);
+  const rescheduleSubmittedTrackedRef = useRef(false);
 
   const slotOptions = useMemo(() => {
     if (initialState.status !== "ready") {
@@ -315,6 +317,21 @@ export function BookingManagementPanel({
   const selectedTimeRange = selectedOption
     ? formatTimeRange(selectedOption.startsAt, selectedOption.endsAt)
     : "";
+
+  useEffect(() => {
+    if (initialState.status !== "ready" || rescheduleOpenedTrackedRef.current) {
+      return;
+    }
+
+    rescheduleOpenedTrackedRef.current = true;
+    trackMatomoEvent("Rezervace", "Změna termínu otevřena", initialState.serviceName);
+  }, [initialState]);
+
+  useEffect(() => {
+    if (serverState.status === "error") {
+      rescheduleSubmittedTrackedRef.current = false;
+    }
+  }, [serverState.status]);
 
   const trackDateSelected = (dateKey: string) => {
     if (!dateKey || lastTrackedDateRef.current === dateKey) {
@@ -697,7 +714,18 @@ export function BookingManagementPanel({
           <p className="mt-4 text-sm text-red-700">{serverState.fieldErrors.slotId}</p>
         ) : null}
 
-        <form action={formAction} className="mt-8">
+        <form
+          action={formAction}
+          className="mt-8"
+          onSubmitCapture={() => {
+            if (!selectedOption || rescheduleSubmittedTrackedRef.current) {
+              return;
+            }
+
+            rescheduleSubmittedTrackedRef.current = true;
+            trackMatomoEvent("Rezervace", "Změna termínu odeslána", initialState.serviceName);
+          }}
+        >
           <input type="hidden" name="token" value={token} />
           <input type="hidden" name="slotId" value={selectedSlotId} />
           <input type="hidden" name="newStartAt" value={selectedStartsAt} />

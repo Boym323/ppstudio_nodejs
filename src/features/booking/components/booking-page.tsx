@@ -4,6 +4,7 @@ import type { getPublicSalonProfile } from "@/lib/site-settings";
 import { Container } from "@/components/ui/container";
 import type { PublicBookingCatalog } from "@/features/booking/lib/booking-public";
 
+import { BookingAvailabilityAnalytics } from "./booking-availability-analytics";
 import { BookingFlow } from "./booking-flow";
 
 type BookingPageProps = {
@@ -21,6 +22,7 @@ export function BookingPage({ catalog, initialSelectedServiceSlug, salonProfile 
       <Container className="space-y-12">
         {!hasServices ? (
           <section className="rounded-[var(--radius-panel)] border border-black/6 bg-white p-8 shadow-[var(--shadow-panel)]">
+            <BookingAvailabilityAnalytics eventAction="Bez služeb" />
             <h3 className="font-display text-3xl text-[var(--color-foreground)]">
               Rezervace teď čekají na aktuální nabídku služeb
             </h3>
@@ -45,6 +47,7 @@ export function BookingPage({ catalog, initialSelectedServiceSlug, salonProfile 
           </section>
         ) : !hasSlots ? (
           <section className="rounded-[var(--radius-panel)] border border-black/6 bg-white p-8 shadow-[var(--shadow-panel)]">
+            <BookingAvailabilityAnalytics eventAction="Bez termínů" />
             <h3 className="font-display text-3xl text-[var(--color-foreground)]">
               Momentálně nejsou vypsané volné termíny
             </h3>

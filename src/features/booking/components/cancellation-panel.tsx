@@ -1,9 +1,10 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef } from "react";
 
 import { cancelPublicBookingAction } from "@/features/booking/actions/cancel-public-booking";
 import { initialCancelPublicBookingActionState } from "@/features/booking/actions/cancel-public-booking-action-state";
+import { trackMatomoEvent } from "@/features/analytics/matomo";
 import type { PublicCancellationPageState } from "@/features/booking/lib/booking-cancellation";
 
 type CancellationPanelProps = {
@@ -36,6 +37,27 @@ export function CancellationPanel({ token, initialState }: CancellationPanelProp
     cancelPublicBookingAction,
     initialCancelPublicBookingActionState,
   );
+  const cancellationSubmittedTrackedRef = useRef(false);
+  const cancellationCompletedTrackedRef = useRef(false);
+
+  useEffect(() => {
+    if (serverState.status === "error") {
+      cancellationSubmittedTrackedRef.current = false;
+    }
+  }, [serverState.status]);
+
+  useEffect(() => {
+    if (
+      serverState.status !== "success" ||
+      !serverState.result ||
+      cancellationCompletedTrackedRef.current
+    ) {
+      return;
+    }
+
+    cancellationCompletedTrackedRef.current = true;
+    trackMatomoEvent("Rezervace", "Storno dokončeno", serverState.result.serviceName);
+  }, [serverState.result, serverState.status]);
 
   if (serverState.status === "success" && serverState.result) {
     return (
@@ -91,7 +113,18 @@ export function CancellationPanel({ token, initialState }: CancellationPanelProp
         </div>
       ) : null}
 
-      <form action={formAction} className="mt-8 flex flex-col gap-3 sm:flex-row">
+      <form
+        action={formAction}
+        className="mt-8 flex flex-col gap-3 sm:flex-row"
+        onSubmitCapture={() => {
+          if (cancellationSubmittedTrackedRef.current) {
+            return;
+          }
+
+          cancellationSubmittedTrackedRef.current = true;
+          trackMatomoEvent("Rezervace", "Storno odesláno", initialState.serviceName);
+        }}
+      >
         <input type="hidden" name="token" value={token} />
         <button
           type="submit"
