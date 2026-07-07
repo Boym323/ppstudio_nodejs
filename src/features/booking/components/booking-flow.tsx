@@ -598,6 +598,12 @@ export function BookingFlow({ catalog, initialSelectedServiceSlug, salonProfile 
     prefilledServiceTrackedRef.current = true;
     trackMatomoEvent(
       "Rezervace",
+      "Služba předvyplněna",
+      `${trackedService.categoryName} / ${trackedService.name}`,
+      trackedService.priceFromCzk ?? undefined,
+    );
+    trackMatomoEvent(
+      "Rezervace",
       "Služba vybrána",
       `${trackedService.categoryName} / ${trackedService.name}`,
       trackedService.priceFromCzk ?? undefined,
