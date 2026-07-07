@@ -81,6 +81,12 @@ async function findIsolatedManualWindow(
   throw new Error("Nepodařilo se najít izolované okno pro ruční booking integrační test.");
 }
 
+function buildUniquePhone(seed: string) {
+  const normalizedSeed = seed.replace(/[^a-f0-9]/gi, "").slice(0, 12) || "1";
+  const suffix = (Number.parseInt(normalizedSeed, 16) % 100000000).toString().padStart(8, "0");
+  return `+4207${suffix}`;
+}
+
 dbTest("createManualBooking rejects stale slot-mode booking instead of silently creating manual override", async () => {
   const {
     prisma,
@@ -90,6 +96,7 @@ dbTest("createManualBooking rejects stale slot-mode booking instead of silently 
   } = await loadModules();
 
   const suffix = randomUUID().slice(0, 8);
+  const phone = buildUniquePhone(suffix);
   const startsAt = new Date("2027-05-12T09:30:00.000Z");
   const slotStartsAt = new Date("2027-05-12T09:00:00.000Z");
   const slotEndsAt = new Date("2027-05-12T10:00:00.000Z");
@@ -137,7 +144,7 @@ dbTest("createManualBooking rejects stale slot-mode booking instead of silently 
         startsAt: startsAt.toISOString(),
         fullName: `Klientka ${suffix}`,
         email: `manual-slot-${suffix}@example.com`,
-        phone: "+420777123456",
+        phone,
         source: BookingSource.PHONE,
         status: BookingStatus.CONFIRMED,
         actorUserId: null,
@@ -207,6 +214,7 @@ dbTest("createManualBooking still allows explicit manual override without slot s
   const { prisma, createManualBooking } = await loadModules();
 
   const suffix = randomUUID().slice(0, 8);
+  const phone = buildUniquePhone(suffix);
   const startsAt = new Date("2027-05-13T09:30:00.000Z");
 
   const category = await prisma.serviceCategory.create({
@@ -241,7 +249,7 @@ dbTest("createManualBooking still allows explicit manual override without slot s
       startsAt: startsAt.toISOString(),
       fullName: `Klientka override ${suffix}`,
       email: `manual-override-${suffix}@example.com`,
-      phone: "+420777123456",
+      phone,
       source: BookingSource.PHONE,
       status: BookingStatus.CONFIRMED,
       actorUserId: null,
@@ -309,6 +317,7 @@ dbTest("createManualBooking keeps existing selected client email when manual boo
   const { prisma, createManualBooking } = await loadModules();
 
   const suffix = randomUUID().slice(0, 8);
+  const phone = buildUniquePhone(suffix);
   const { startsAt, endsAt } = await findIsolatedManualWindow(prisma, suffix, 60);
 
   const category = await prisma.serviceCategory.create({
@@ -349,7 +358,7 @@ dbTest("createManualBooking keeps existing selected client email when manual boo
     data: {
       fullName: `Vybraná klientka ${suffix}`,
       email: `selected-client-${suffix}@example.com`,
-      phone: "+420777123456",
+      phone,
       isActive: true,
     },
     select: { id: true },
@@ -366,7 +375,7 @@ dbTest("createManualBooking keeps existing selected client email when manual boo
       selectedClientId: client.id,
       fullName: `Vybraná klientka ${suffix}`,
       email: "",
-      phone: "+420777123456",
+      phone,
       source: BookingSource.PHONE,
       status: BookingStatus.CONFIRMED,
       actorUserId: null,
@@ -426,6 +435,7 @@ dbTest("createManualBooking creates confirmed admin reservation with service sna
   const { prisma, createManualBooking } = await loadModules();
 
   const suffix = randomUUID().slice(0, 8);
+  const phone = buildUniquePhone(suffix);
   const { startsAt, endsAt } = await findIsolatedManualWindow(prisma, suffix, 90);
 
   const category = await prisma.serviceCategory.create({
@@ -472,7 +482,7 @@ dbTest("createManualBooking creates confirmed admin reservation with service sna
       startsAt: startsAt.toISOString(),
       fullName: `Admin klientka ${suffix}`,
       email: `admin-manual-${suffix}@example.com`,
-      phone: "+420777123456",
+      phone,
       source: BookingSource.PHONE,
       status: BookingStatus.CONFIRMED,
       actorUserId: null,
