@@ -15,6 +15,7 @@ type LoginPageProps = {
 const errorMap: Record<string, string> = {
   invalid_credentials: "Zadané přihlašovací údaje nejsou správné.",
   invalid_payload: "Vyplň prosím korektně e-mail i heslo.",
+  origin_check_failed: "Přihlášení musí být odeslané přímo z administrace PP Studio.",
   rate_limited: "Příliš mnoho pokusů o přihlášení. Zkuste to prosím za chvíli znovu.",
 };
 

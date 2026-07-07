@@ -16,6 +16,7 @@ Postup nasazení aplikace do produkce.
    - Při používání Resend trackingu ověř i `EMAIL_TRANSPORT=resend`, `RESEND_API_KEY` a `RESEND_WEBHOOK_SECRET`.
    - V Resend dashboardu musí být webhook endpoint nastaven na `POST /api/webhooks/resend` (HTTPS produkční origin).
    - `NEXT_DEPLOYMENT_ID` při doporučeném rollout skriptu nenasazuj ručně do `.env`; `deploy/release.sh` ho exportuje automaticky z aktuálního git commitu, stejně jako `DEPLOYMENT_VERSION` a `GIT_HASH`, a před restartem webu je zapíše do `.release-env` pro runtime `next start`.
+   - Ověř, že reverzní proxy předává správný veřejný `Host` / `X-Forwarded-Host` odpovídající `NEXT_PUBLIC_APP_URL`; admin login/logout teď tyto hodnoty používají i pro explicitní CSRF/origin kontrolu.
 3. Ověř existenci a práva k upload rootu; web proces musí umět zapisovat do `MEDIA_STORAGE_ROOT` nebo do výchozí cesty `/var/www/ppstudio/uploads`.
 4. Zálohuj databázi, pokud release obsahuje novou Prisma migraci.
 5. Zálohuj nebo snapshotuj upload root, pokud release mění práci s médii nebo cleanup logiku.

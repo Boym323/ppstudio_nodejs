@@ -110,6 +110,7 @@ Evidence produkčních incidentů a jejich řešení.
 - Zastavený `email:worker`, kvůli kterému se nově nejen nedoručují pending e-maily, ale ani nevznikají 24h reminder joby pro zítřejší potvrzené rezervace.
 - `GET /api/health` vrací `warning` nebo `error` kvůli backlogu email fronty (`pending/retrying`) bez aktivního claimu (`processing = 0`), stale claimům (`staleProcessing > 0`) nebo `failed` logům; to je provozní signál ke kontrole služby `ppstudio-email-worker.service`.
 - `GET /api/health` vrací sice `status=ok`, ale `durationMs` roste nebo se výrazně liší mezi releasy; to je čas zkontrolovat DB latenci, blokace nebo degradaci workeru dřív, než se problém projeví jako timeout.
+- Admin login po submitu vrací `error=origin_check_failed`; nejdřív ověř, že request opravdu běží na veřejném originu z `NEXT_PUBLIC_APP_URL`, a pak zkontroluj proxy `Host` / `X-Forwarded-Host`. Typický symptom je redirect zpět na `/admin/prihlaseni` hned po submitu bez pokusu o autentizaci.
 - Reminder omylem odeslaný po storno nebo přesunu rezervace; worker má před sendem vždy znovu ověřit `Booking.status`, `scheduledStartsAt` a `reminder24hSentAt`.
 - Přesun termínu uložený bez auditního logu nebo bez navýšení `Booking.rescheduleCount`; reschedule flow musí vždy zapisovat `BookingRescheduleLog` i metadata posledního přesunu.
 - Změna ceny služby uložená bez auditní stopy; admin editace musí při skutečné změně `priceFromCzk` vždy zapisovat `ServicePriceChangeLog` s původní a novou hodnotou.

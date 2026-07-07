@@ -74,6 +74,7 @@ Poznámka k runtime:
 - Pokud admin hlásí, že ruční rezervace „ukazuje jiný čas než se pak uloží“, ověř, že client preview stále používá Prague helper `resolvePragueLocalDateTime(...)` a ne lokální `new Date(...)` z browser timezone. Platí to pro drawer `Přidat rezervaci` i pro `Přesunout termín`.
 - Pokud se při výběru konkrétního slotu v adminu vrací chyba dostupnosti po změně služby nebo po delší prodlevě, je to očekávané: slot-mode už nesmí tiše vytvořit interní výjimku. Pro záměrnou interní výjimku použij režim ručního data/času.
 - Pokud ruční booking pro vybranou existující klientku odchází bez e-mailu, backend má zachovat původní `Client.email`; prázdné pole ve formuláři není signál pro smazání kontaktu. Opačné chování ber jako regresi.
+- Pokud admin login po odeslání formuláře vrací `error=origin_check_failed`, zkontroluj `NEXT_PUBLIC_APP_URL`, reverzní proxy hlavičky `Host` / `X-Forwarded-Host` a že formulář opravdu běží na stejném originu jako `/admin/prihlaseni`.
 
 ## Příklad `.env` a význam hlavních proměnných
 
@@ -101,6 +102,7 @@ MEDIA_STORAGE_ROOT=/var/www/ppstudio-uploads
 - `DATABASE_URL` je hlavní aplikační databáze.
 - `SHADOW_DATABASE_URL` používá Prisma při `migrate dev`.
 - `ADMIN_SESSION_SECRET` podepisuje admin session cookie a musí být unikátní pro prostředí.
+- Admin login/logout route navíc kontrolují stejný `Origin` a důvěryhodný host proti `NEXT_PUBLIC_APP_URL`; při nesouladu login skončí `error=origin_check_failed` a logout vrátí `403`.
 - `ADMIN_BOOTSTRAP_ENABLED` je recovery přepínač bootstrap loginu; `.env.example` ho drží na `false`, pro první lokální přihlášení ho zapínej jen dočasně.
 - `EMAIL_DELIVERY_MODE=log` je bezpečný lokální režim bez SMTP odesílání.
 - `EMAIL_TRANSPORT` určuje background transport (`smtp` nebo `resend`).

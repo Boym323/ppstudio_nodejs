@@ -6,6 +6,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Zpevněný admin auth proti login/logout CSRF: `POST /api/auth/login` i `POST /api/auth/logout` nově explicitně vyžadují stejný origin/host jako administrace PP Studia a cross-origin submit končí odmítnutím ještě před autentizací nebo smazáním session cookie.
 - Admin UX pro každodenní provoz kosmetičky je rychlejší ve třech klíčových tocích: hlavní CTA `Vytvořit rezervaci` na dashboardu teď otevírá rovnou drawer ruční rezervace, seznam `Dnešní plán` přidal přímé akce `Volat` / `E-mail` / `Nová rezervace` u nejbližších klientek a dashboard/planner umí otevřít ruční rezervaci s předvyplněným dnem a časem z konkrétního volného okna.
 - Drawer `Přidat rezervaci` nově čte query parametry `create=1`, `clientId`, `date` a `time`, takže ho lze bezpečně otevírat jako deep-link z detailu klientky, dashboardu i z týdenního planneru bez obcházení serverové validace dostupnosti.
 - Admin planner `Volné termíny` přidal do `Inspektoru dne` přímé CTA `Přidat rezervaci do dne` a při výběru editovatelného bloku i `Rezervovat vybraný blok`, aby kosmetička nemusela přepisovat termín ručně mezi dvěma sekcemi adminu.

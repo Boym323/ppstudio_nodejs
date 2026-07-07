@@ -29,6 +29,45 @@ function buildLoginRequest(email: string, password: string) {
   });
 }
 
+test("POST rejects cross-origin login submit before auth work starts", async () => {
+  const { createAdminLoginRouteApi } = await import("./route");
+  const api = createAdminLoginRouteApi({
+    normalizeAdminLoginEmail: () => {
+      throw new Error("normalizeAdminLoginEmail should not run for rejected origin");
+    },
+    getAdminLoginAttemptMetadata: () => {
+      throw new Error("getAdminLoginAttemptMetadata should not run for rejected origin");
+    },
+    getRecentAdminLoginAttemptCounts: async () => {
+      throw new Error("rate-limit lookup should not run for rejected origin");
+    },
+    isAdminLoginRateLimited: () => false,
+    writeAdminLoginAttemptLog: async () => {
+      throw new Error("audit log should not run for rejected origin");
+    },
+    authenticateAdmin: async () => {
+      throw new Error("authenticateAdmin should not run for rejected origin");
+    },
+    createSessionToken: async () => {
+      throw new Error("createSessionToken should not run for rejected origin");
+    },
+    getSessionCookie: () => ({
+      name: "ppstudio-admin-session",
+      options: { httpOnly: true, sameSite: "lax" as const, secure: false, path: "/", maxAge: 3600 },
+    }),
+    buildAbsoluteUrl: (_request, path) => new URL(path, "https://example.com"),
+    isSameOriginAdminRequest: () => false,
+  });
+
+  const response = await api.POST(buildLoginRequest("owner@example.com", "super-safe-password"));
+
+  assert.equal(response.status, 303);
+  assert.equal(
+    response.headers.get("location"),
+    "https://example.com/admin/prihlaseni?error=origin_check_failed",
+  );
+});
+
 test("POST returns rate_limited redirect when attempt limit is exceeded", async () => {
   const { createAdminLoginRouteApi } = await import("./route");
   const loggedOutcomes: LoginOutcome[] = [];
@@ -54,6 +93,7 @@ test("POST returns rate_limited redirect when attempt limit is exceeded", async 
       options: { httpOnly: true, sameSite: "lax" as const, secure: false, path: "/", maxAge: 3600 },
     }),
     buildAbsoluteUrl: (_request, path) => new URL(path, "https://example.com"),
+    isSameOriginAdminRequest: () => true,
   });
 
   const response = await api.POST(buildLoginRequest("owner@example.com", "super-safe-password"));
@@ -88,6 +128,7 @@ test("POST returns invalid_payload redirect for malformed form data", async () =
       options: { httpOnly: true, sameSite: "lax" as const, secure: false, path: "/", maxAge: 3600 },
     }),
     buildAbsoluteUrl: (_request, path) => new URL(path, "https://example.com"),
+    isSameOriginAdminRequest: () => true,
   });
 
   const response = await api.POST(buildLoginRequest("invalid-email", "short"));
@@ -122,6 +163,7 @@ test("POST returns invalid_credentials redirect for wrong credentials", async ()
       options: { httpOnly: true, sameSite: "lax" as const, secure: false, path: "/", maxAge: 3600 },
     }),
     buildAbsoluteUrl: (_request, path) => new URL(path, "https://example.com"),
+    isSameOriginAdminRequest: () => true,
   });
 
   const response = await api.POST(buildLoginRequest("owner@example.com", "wrong-password-value"));
@@ -162,6 +204,7 @@ test("POST sets session cookie and redirects to admin home after successful logi
       options: { httpOnly: true, sameSite: "lax" as const, secure: false, path: "/", maxAge: 43200 },
     }),
     buildAbsoluteUrl: (_request, path) => new URL(path, "https://example.com"),
+    isSameOriginAdminRequest: () => true,
   });
 
   const response = await api.POST(buildLoginRequest("owner@example.com", "super-safe-password"));

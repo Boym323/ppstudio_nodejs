@@ -1,9 +1,13 @@
 import { NextResponse } from "next/server";
 
 import { getSessionCookie } from "@/lib/auth/session";
-import { buildAbsoluteUrl } from "@/lib/http/request-origin";
+import { buildAbsoluteUrl, isSameOriginAdminRequest } from "@/lib/http/request-origin";
 
 export async function POST(request: Request) {
+  if (!isSameOriginAdminRequest(request)) {
+    return new NextResponse("Pozadavek neprosel kontrolou puvodu.", { status: 403 });
+  }
+
   const response = NextResponse.redirect(buildAbsoluteUrl(request, "/admin/prihlaseni"), 303);
   const sessionCookie = getSessionCookie();
 

@@ -14,7 +14,7 @@ import {
   normalizeAdminLoginEmail,
   writeAdminLoginAttemptLog,
 } from "@/lib/auth/admin-login-rate-limit";
-import { buildAbsoluteUrl } from "@/lib/http/request-origin";
+import { buildAbsoluteUrl, isSameOriginAdminRequest } from "@/lib/http/request-origin";
 
 const loginSchema = z.object({
   email: z.email(),
@@ -32,6 +32,7 @@ type AdminLoginRouteDependencies = {
   normalizeAdminLoginEmail: typeof normalizeAdminLoginEmail;
   writeAdminLoginAttemptLog: typeof writeAdminLoginAttemptLog;
   buildAbsoluteUrl: typeof buildAbsoluteUrl;
+  isSameOriginAdminRequest: typeof isSameOriginAdminRequest;
 };
 
 const defaultAdminLoginRouteDependencies: AdminLoginRouteDependencies = {
@@ -44,6 +45,7 @@ const defaultAdminLoginRouteDependencies: AdminLoginRouteDependencies = {
   normalizeAdminLoginEmail,
   writeAdminLoginAttemptLog,
   buildAbsoluteUrl,
+  isSameOriginAdminRequest,
 };
 
 function normalizeAdminLoginNextPath(value: FormDataEntryValue | null) {
@@ -71,6 +73,13 @@ export function createAdminLoginRouteApi(
 ) {
   return {
     async POST(request: Request) {
+      if (!dependencies.isSameOriginAdminRequest(request)) {
+        return NextResponse.redirect(
+          dependencies.buildAbsoluteUrl(request, "/admin/prihlaseni?error=origin_check_failed"),
+          303,
+        );
+      }
+
       const formData = await request.formData();
       const normalizedEmail = dependencies.normalizeAdminLoginEmail(formData.get("email"));
       const loginAttemptMetadata = dependencies.getAdminLoginAttemptMetadata(

@@ -203,6 +203,7 @@ Odpověď:
 - rate limit: `303` na `/admin/prihlaseni?error=rate_limited`
 
 Bezpečnostní pravidla:
+- request musí projít stejným `Origin` a důvěryhodným hostem jako admin origin; cross-origin submit končí redirectem na `/admin/prihlaseni?error=origin_check_failed`
 - `next` musí začínat `/admin`
 - `next` nesmí být externí URL ani obsahovat `\\`
 
@@ -216,6 +217,10 @@ Implementace:
 
 Přístup:
 - admin session
+
+Bezpečnostní pravidla:
+- request musí projít stejným `Origin` a důvěryhodným hostem jako admin origin
+- cross-origin submit vrací `403` a session cookie se nemaže
 
 Vstup:
 - bez request body
