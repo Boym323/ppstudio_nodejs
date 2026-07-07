@@ -657,7 +657,7 @@ export async function renderEmailTemplate(
         `Dobrý den, ${data.clientName},`,
         "",
         "Zítra se na vás těšíme",
-        "Jen krátce připomínáme váš termín. Níže najdete čas i adresu salonu.",
+        "Jen krátce připomínáme Váš termín. Níže najdete čas i adresu salonu.",
         "",
         `Služba: ${data.serviceName}`,
         `Datum: ${bookingDate}`,
@@ -683,7 +683,7 @@ export async function renderEmailTemplate(
       const html = buildEmailShell(
         brand,
         "Zítra se na vás těšíme",
-        "Jen krátce připomínáme váš termín. Níže najdete čas i adresu salonu.",
+        "Jen krátce připomínáme Váš termín. Níže najdete čas i adresu salonu.",
         `
           ${buildBookingDetailCard({
             serviceName: data.serviceName,
