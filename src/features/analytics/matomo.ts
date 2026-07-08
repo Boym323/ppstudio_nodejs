@@ -32,6 +32,15 @@ export function normalizeMatomoUrl(url: string) {
   return url.endsWith("/") ? url : `${url}/`;
 }
 
+export function markMatomoTrackingState(path: string) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.__matomoTrackerConfigured = true;
+  window.__matomoTrackedPath = path;
+}
+
 export function shouldTrackMatomoPath(pathname: string) {
   if (!isMatomoConfigured()) {
     return false;
@@ -132,13 +141,13 @@ export function ensureMatomoTrackingPath(path: string, options?: { trackPageView
       queue.push(["setTrackerUrl", `${trackerUrl}matomo.php`]);
       queue.push(["setSiteId", process.env.NEXT_PUBLIC_MATOMO_SITE_ID ?? ""]);
       queue.push(["enableLinkTracking"]);
-      window.__matomoTrackerConfigured = true;
     }
 
     if (window.__matomoTrackedPath !== path) {
       queue.push(["setCustomUrl", path]);
-      window.__matomoTrackedPath = path;
     }
+
+    markMatomoTrackingState(path);
 
     if (options?.trackPageView) {
       queue.push(["setDocumentTitle", document.title]);

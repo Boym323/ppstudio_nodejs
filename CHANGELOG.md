@@ -11,8 +11,7 @@ Formát je inspirovaný Keep a Changelog.
 - Po rozdělení `CI` do samostatných jobů je workflow znovu sladěné s Prisma a App Router build chováním: `typecheck` po `npm ci` explicitně generuje Prisma klienta, `build` job má vlastní PostgreSQL service + migrace kvůli statickému sběru page dat a `e2e` job si dělá vlastní build, protože už nesdílí `.next` z jiného jobu.
 - Repo nově obsahuje samostatné GitHub workflow pro `CodeQL`, `Dependency Review` a scheduled `npm audit --audit-level=high`, plus `.github/dependabot.yml` pro týdenní update PR závislostí i GitHub Actions.
 - Dokumentace `MANUAL.md`, `docs/DEVELOPMENT.md`, `docs/DEPENDENCIES.md`, `docs/DEPLOYMENT.md`, `docs/INCIDENTS.md` a ADR `0105` je sladěná s novým CI/security stackem včetně poznámky, že branch protection a required status checks je ještě potřeba ručně zapnout v nastavení repozitáře.
-- Opravená regrese veřejného Matomo trackingu na tokenových self-service stránkách: `MatomoTracker` už nespoléhá při prvním renderu na `lazyOnload` init snippet, ale bootstrapuje `_paq` hned po hydraci. Route `/rezervace/storno/[token]` tak znovu spolehlivě zapisuje bezpečné `setCustomUrl` bez `trackPageView` a následné klientské eventy `Storno odesláno` / `Storno dokončeno` už nemají race s pozdní inicializací.
-- Matomo init je teď ještě odolnější pro CI a pomalejší prohlížeče: bezpečný `_paq` bootstrap běží přes inline `afterInteractive` script a App Router efekt už jen navazuje další navigace. Self-service storno tak nemá race mezi hydratací a Playwright poll kontrolou na `setCustomUrl`.
+- Opravená regrese veřejného Matomo trackingu na tokenových self-service stránkách: `MatomoTracker` si teď synchronizuje bootstrap stav s inline `afterInteractive` skriptem i s runtime helperem `ensureMatomoTrackingPath`, takže route `/rezervace/storno/[token]` spolehlivě zapíše bezpečné `setCustomUrl` bez `trackPageView` i při pomalejší hydrataci nebo CI běhu.
 
 ## [0.7.1] - 2026-07-08
 

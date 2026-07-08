@@ -7,6 +7,7 @@ import { useEffect, useRef } from "react";
 import {
   buildSafeMatomoPath,
   isMatomoConfigured,
+  markMatomoTrackingState,
   normalizeMatomoUrl,
   shouldInitializeMatomoTracking,
   shouldTrackMatomoPath,
@@ -40,8 +41,10 @@ export function MatomoTracker({ disabled = false }: MatomoTrackerProps) {
 
     const isInitialBootstrap = trackedPathRef.current === null;
     const safePath = buildSafeMatomoPath(pathname, searchParams);
+    const hasBootstrappedCurrentPath =
+      window.__matomoTrackerConfigured === true && window.__matomoTrackedPath === safePath;
 
-    if (isInitialBootstrap && safePath === initialPathRef.current) {
+    if (isInitialBootstrap && safePath === initialPathRef.current && hasBootstrappedCurrentPath) {
       trackedPathRef.current = safePath;
       return;
     }
@@ -58,6 +61,7 @@ export function MatomoTracker({ disabled = false }: MatomoTrackerProps) {
       }
 
       queue.push(["setCustomUrl", safePath]);
+      markMatomoTrackingState(safePath);
 
       if (shouldTrackPageview) {
         queue.push(["setDocumentTitle", document.title]);
@@ -90,6 +94,8 @@ export function MatomoTracker({ disabled = false }: MatomoTrackerProps) {
             window._paq.push(['setTrackerUrl', ${JSON.stringify(trackerEndpoint)}]);
             window._paq.push(['setSiteId', ${JSON.stringify(siteId)}]);
             window._paq.push(['setCustomUrl', ${JSON.stringify(safeCurrentPath)}]);
+            window.__matomoTrackerConfigured = true;
+            window.__matomoTrackedPath = ${JSON.stringify(safeCurrentPath)};
             ${shouldTrackPageview ? "window._paq.push(['setDocumentTitle', document.title]);window._paq.push(['trackPageView']);" : ""}
             window._paq.push(['enableLinkTracking']);
           `,
