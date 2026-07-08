@@ -23,6 +23,8 @@ export function MatomoTracker({ disabled = false }: MatomoTrackerProps) {
   const siteId = process.env.NEXT_PUBLIC_MATOMO_SITE_ID;
   const shouldInitialize = isMatomoConfigured() && shouldInitializeMatomoTracking(pathname, { disabled });
   const shouldTrackPageview = shouldTrackMatomoPath(pathname);
+  const safeCurrentPath = buildSafeMatomoPath(pathname, searchParams);
+  const initialPathRef = useRef(safeCurrentPath);
   const trackedPathRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -38,6 +40,11 @@ export function MatomoTracker({ disabled = false }: MatomoTrackerProps) {
 
     const isInitialBootstrap = trackedPathRef.current === null;
     const safePath = buildSafeMatomoPath(pathname, searchParams);
+
+    if (isInitialBootstrap && safePath === initialPathRef.current) {
+      trackedPathRef.current = safePath;
+      return;
+    }
 
     if (safePath === trackedPathRef.current) {
       return;
@@ -70,10 +77,25 @@ export function MatomoTracker({ disabled = false }: MatomoTrackerProps) {
   }
 
   const trackerUrl = normalizeMatomoUrl(matomoUrl);
+  const trackerEndpoint = `${trackerUrl}matomo.php`;
 
   return (
     <>
-      <Script id="matomo-script" src={`${trackerUrl}matomo.js`} strategy="lazyOnload" />
+      <Script
+        id="matomo-init"
+        strategy="afterInteractive"
+        dangerouslySetInnerHTML={{
+          __html: `
+            window._paq = window._paq || [];
+            window._paq.push(['setTrackerUrl', ${JSON.stringify(trackerEndpoint)}]);
+            window._paq.push(['setSiteId', ${JSON.stringify(siteId)}]);
+            window._paq.push(['setCustomUrl', ${JSON.stringify(safeCurrentPath)}]);
+            ${shouldTrackPageview ? "window._paq.push(['setDocumentTitle', document.title]);window._paq.push(['trackPageView']);" : ""}
+            window._paq.push(['enableLinkTracking']);
+          `,
+        }}
+      />
+      <Script id="matomo-script" src={`${trackerUrl}matomo.js`} strategy="afterInteractive" />
     </>
   );
 }

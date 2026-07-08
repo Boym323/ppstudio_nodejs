@@ -7,6 +7,7 @@ Formát je inspirovaný Keep a Changelog.
 ## [Unreleased]
 
 - Opravená regrese veřejného Matomo trackingu na tokenových self-service stránkách: `MatomoTracker` už nespoléhá při prvním renderu na `lazyOnload` init snippet, ale bootstrapuje `_paq` hned po hydraci. Route `/rezervace/storno/[token]` tak znovu spolehlivě zapisuje bezpečné `setCustomUrl` bez `trackPageView` a následné klientské eventy `Storno odesláno` / `Storno dokončeno` už nemají race s pozdní inicializací.
+- Matomo init je teď ještě odolnější pro CI a pomalejší prohlížeče: bezpečný `_paq` bootstrap běží přes inline `afterInteractive` script a App Router efekt už jen navazuje další navigace. Self-service storno tak nemá race mezi hydratací a Playwright poll kontrolou na `setCustomUrl`.
 
 ## [0.7.1] - 2026-07-08
 
