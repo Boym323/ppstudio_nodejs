@@ -174,12 +174,12 @@ export function CreateManualBookingDrawer({
       </div>
 
       {!open && showSuccessBanner && serverState.status === "success" ? (
-        <div className="mt-3 rounded-[1rem] border border-emerald-300/18 bg-emerald-500/10 px-4 py-3">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <p className="text-sm font-medium text-emerald-50">{serverState.successMessage}</p>
+        <div className="mt-3 max-w-full overflow-hidden rounded-[1rem] border border-emerald-300/18 bg-emerald-500/10 px-4 py-3">
+          <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0">
+              <p className="break-words text-sm font-medium text-emerald-50">{serverState.successMessage}</p>
               {serverState.manualOverrideWarning ? (
-                <p className="mt-1 text-sm leading-6 text-emerald-100/80">{serverState.manualOverrideWarning}</p>
+                <p className="mt-1 break-words text-sm leading-6 text-emerald-100/80">{serverState.manualOverrideWarning}</p>
               ) : null}
               {createdBookingHref ? (
                 <Link
@@ -252,10 +252,10 @@ export function CreateManualBookingDrawer({
                 <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6">
                   <div className="space-y-4 pb-28">
                     {serverState.status === "success" ? (
-                      <div className="rounded-[1rem] border border-emerald-300/18 bg-emerald-500/10 px-4 py-3">
-                        <p className="text-sm font-medium text-emerald-50">{serverState.successMessage}</p>
+                      <div className="max-w-full overflow-hidden rounded-[1rem] border border-emerald-300/18 bg-emerald-500/10 px-4 py-3">
+                        <p className="break-words text-sm font-medium text-emerald-50">{serverState.successMessage}</p>
                         {serverState.manualOverrideWarning ? (
-                          <p className="mt-2 text-sm leading-6 text-emerald-100/80">{serverState.manualOverrideWarning}</p>
+                          <p className="mt-2 break-words text-sm leading-6 text-emerald-100/80">{serverState.manualOverrideWarning}</p>
                         ) : null}
                         {createdBookingHref ? (
                           <Link href={createdBookingHref} className="mt-3 inline-flex text-sm font-medium text-white underline underline-offset-4">

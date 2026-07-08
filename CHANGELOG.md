@@ -6,6 +6,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Opravený vizuální rozpad admin detailu rezervace po ručním přesunu termínu: potvrzovací banner u akce `Přesunout termín` se v panelu `Další krok` nově vždy smrskne a zalomí uvnitř vlastní grid karty, takže nepřetéká přes completion flow ani sousední obsah.
+
 ## [0.7.0] - 2026-07-07
 
 - Release příprava pro produkční nasazení: projektová verze navýšena na minor `0.7.0`.

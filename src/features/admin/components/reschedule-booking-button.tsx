@@ -115,55 +115,57 @@ export function RescheduleBookingButton({
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => {
-          resetForm();
-          setShowSuccessBanner(false);
-          setOpen(true);
-        }}
-        className={
-          variant === "inline"
-            ? "rounded-full border border-white/10 px-3 py-1.5 text-sm text-white/76 transition hover:border-white/18 hover:bg-white/6 hover:text-white"
-            : "h-full w-full rounded-[1rem] border border-white/12 bg-white/[0.045] px-3.5 py-3 text-left transition hover:border-white/18 hover:bg-white/[0.065]"
-        }
-      >
-        {variant === "inline" ? (
-          "Přesunout termín"
-        ) : (
-          <>
-            <span className="block text-sm font-semibold text-white">Přesunout termín</span>
-            <span className="mt-1 block text-sm leading-5 text-white/60">
-              Důležitá provozní změna, ale neuzavírá návštěvu.
-            </span>
-          </>
-        )}
-      </button>
+      <div className={variant === "inline" ? undefined : "min-w-0"}>
+        <button
+          type="button"
+          onClick={() => {
+            resetForm();
+            setShowSuccessBanner(false);
+            setOpen(true);
+          }}
+          className={
+            variant === "inline"
+              ? "rounded-full border border-white/10 px-3 py-1.5 text-sm text-white/76 transition hover:border-white/18 hover:bg-white/6 hover:text-white"
+              : "h-full w-full rounded-[1rem] border border-white/12 bg-white/[0.045] px-3.5 py-3 text-left transition hover:border-white/18 hover:bg-white/[0.065]"
+          }
+        >
+          {variant === "inline" ? (
+            "Přesunout termín"
+          ) : (
+            <>
+              <span className="block text-sm font-semibold text-white">Přesunout termín</span>
+              <span className="mt-1 block text-sm leading-5 text-white/60">
+                Důležitá provozní změna, ale neuzavírá návštěvu.
+              </span>
+            </>
+          )}
+        </button>
 
-      {!open && showSuccessBanner && serverState.status === "success" ? (
-        <div className="mt-3 rounded-[1rem] border border-emerald-300/18 bg-emerald-500/10 px-4 py-3">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div className="min-w-0 flex-1">
-              <p className="break-words text-sm font-medium text-emerald-50">
-                {serverState.successMessage}
-              </p>
-              {serverState.warningMessage ? (
-                <p className="mt-1 break-words text-sm leading-6 text-emerald-100/80">
-                  {serverState.warningMessage}
+        {!open && showSuccessBanner && serverState.status === "success" ? (
+          <div className="mt-3 max-w-full overflow-hidden rounded-[1rem] border border-emerald-300/18 bg-emerald-500/10 px-4 py-3">
+            <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div className="min-w-0 flex-1">
+                <p className="break-words text-sm font-medium text-emerald-50">
+                  {serverState.successMessage}
                 </p>
-              ) : null}
-            </div>
+                {serverState.warningMessage ? (
+                  <p className="mt-1 break-words text-sm leading-6 text-emerald-100/80">
+                    {serverState.warningMessage}
+                  </p>
+                ) : null}
+              </div>
 
-            <button
-              type="button"
-              onClick={() => setShowSuccessBanner(false)}
-              className="shrink-0 self-start rounded-full border border-white/10 px-3 py-1.5 text-sm text-white/78 transition hover:border-white/18 hover:bg-white/6"
-            >
-              Zavřít
-            </button>
+              <button
+                type="button"
+                onClick={() => setShowSuccessBanner(false)}
+                className="shrink-0 self-start rounded-full border border-white/10 px-3 py-1.5 text-sm text-white/78 transition hover:border-white/18 hover:bg-white/6"
+              >
+                Zavřít
+              </button>
+            </div>
           </div>
-        </div>
-      ) : null}
+        ) : null}
+      </div>
 
       {canUsePortal && open
         ? createPortal(

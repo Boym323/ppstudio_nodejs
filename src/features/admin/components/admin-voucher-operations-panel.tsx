@@ -180,11 +180,11 @@ function ActionMessage({
   error?: string;
 }) {
   if (status === "success" && success) {
-    return <p className="rounded-[0.9rem] border border-emerald-300/20 bg-emerald-400/10 px-3 py-2 text-sm text-emerald-50">{success}</p>;
+    return <p className="max-w-full break-words rounded-[0.9rem] border border-emerald-300/20 bg-emerald-400/10 px-3 py-2 text-sm text-emerald-50">{success}</p>;
   }
 
   if (status === "error" && error) {
-    return <p className="rounded-[0.9rem] border border-red-300/20 bg-red-400/10 px-3 py-2 text-sm text-red-100">{error}</p>;
+    return <p className="max-w-full break-words rounded-[0.9rem] border border-red-300/20 bg-red-400/10 px-3 py-2 text-sm text-red-100">{error}</p>;
   }
 
   return null;

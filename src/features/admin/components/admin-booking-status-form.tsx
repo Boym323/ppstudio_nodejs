@@ -201,13 +201,13 @@ export function AdminBookingStatusForm({
       <input type="hidden" name="targetStatus" value={selectedAction} />
 
       {serverState.status === "success" && serverState.successMessage ? (
-        <div className="rounded-[0.95rem] border border-emerald-300/16 bg-emerald-400/10 px-3 py-2 text-sm leading-5 text-emerald-50">
+        <div className="max-w-full break-words rounded-[0.95rem] border border-emerald-300/16 bg-emerald-400/10 px-3 py-2 text-sm leading-5 text-emerald-50">
           {serverState.successMessage}
         </div>
       ) : null}
 
       {serverState.status === "error" && serverState.formError ? (
-        <div className="rounded-[0.95rem] border border-red-300/16 bg-red-400/10 px-3 py-2 text-sm leading-5 text-red-50">
+        <div className="max-w-full break-words rounded-[0.95rem] border border-red-300/16 bg-red-400/10 px-3 py-2 text-sm leading-5 text-red-50">
           {serverState.formError}
         </div>
       ) : null}
@@ -263,7 +263,7 @@ export function AdminBookingStatusForm({
               );
             })}
             {secondaryActionSlot ? (
-              <div className="min-h-20">{secondaryActionSlot}</div>
+              <div className="min-h-20 min-w-0">{secondaryActionSlot}</div>
             ) : null}
           </div>
 
