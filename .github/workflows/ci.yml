@@ -72,6 +72,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Generate Prisma client
+        run: npm run db:generate
+
       - name: Typecheck
         run: npm run typecheck
 
@@ -170,6 +173,21 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: ppstudio
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d ppstudio"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -182,6 +200,11 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Prepare database
+        run: |
+          npx prisma migrate deploy
+          npm run db:generate
 
       - name: Build
         run: npm run build
@@ -226,6 +249,9 @@ jobs:
 
       - name: Install Playwright Chromium
         run: npx playwright install --with-deps chromium
+
+      - name: Build
+        run: npm run build
 
       - name: E2E
         run: npx playwright test
