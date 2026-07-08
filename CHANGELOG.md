@@ -12,6 +12,7 @@ Formát je inspirovaný Keep a Changelog.
 - Repo nově obsahuje samostatné GitHub workflow pro `CodeQL`, `Dependency Review` a scheduled `npm audit --audit-level=high`, plus `.github/dependabot.yml` pro týdenní update PR závislostí i GitHub Actions.
 - Dokumentace `MANUAL.md`, `docs/DEVELOPMENT.md`, `docs/DEPENDENCIES.md`, `docs/DEPLOYMENT.md`, `docs/INCIDENTS.md` a ADR `0105` je sladěná s novým CI/security stackem včetně poznámky, že branch protection a required status checks je ještě potřeba ručně zapnout v nastavení repozitáře.
 - Opravená regrese veřejného Matomo trackingu na tokenových self-service stránkách: `MatomoTracker` si teď synchronizuje bootstrap stav s inline `afterInteractive` skriptem i s runtime helperem `ensureMatomoTrackingPath`, takže route `/rezervace/storno/[token]` spolehlivě zapíše bezpečné `setCustomUrl` bez `trackPageView` i při pomalejší hydrataci nebo CI běhu.
+- CI e2e build teď explicitně dostává testovací `NEXT_PUBLIC_MATOMO_*` hodnoty stejně jako Playwright runtime, takže produkční bundle v GitHub Actions nevypne Matomo ještě před spuštěním browser testů.
 
 ## [0.7.1] - 2026-07-08
 
