@@ -15,6 +15,37 @@ process.env.EMAIL_DELIVERY_MODE ??= "log";
 
 const dbTest = process.env.RUN_DB_INTEGRATION_TESTS === "1" ? test : test.skip;
 
+async function findIsolatedPaymentWindow(
+  prisma: Awaited<typeof import("@/lib/prisma")>["prisma"],
+  seed: string,
+  durationMinutes: number,
+) {
+  const daySeed = Number.parseInt(seed.slice(0, 4), 16);
+  const hourSeed = Number.parseInt(seed.slice(4, 6), 16);
+
+  for (let dayStep = 0; dayStep < 45; dayStep += 1) {
+    const dayOffset = 14 + ((daySeed + dayStep) % 45);
+    const startsAt = new Date();
+    startsAt.setUTCSeconds(0, 0);
+    startsAt.setUTCDate(startsAt.getUTCDate() + dayOffset);
+    startsAt.setUTCHours(9 + (hourSeed % 6), 0, 0, 0);
+    const endsAt = new Date(startsAt.getTime() + durationMinutes * 60 * 1000);
+
+    const overlappingSlots = await prisma.availabilitySlot.count({
+      where: {
+        startsAt: { lt: endsAt },
+        endsAt: { gt: startsAt },
+      },
+    });
+
+    if (overlappingSlots === 0) {
+      return { startsAt, endsAt };
+    }
+  }
+
+  throw new Error("Nepodařilo se najít izolované okno pro payment integrační test.");
+}
+
 dbTest("deleteBookingPaymentWithAudit records payment deletion metadata", async () => {
   const [{ prisma }, actions, prismaClient] = await Promise.all([
     import("@/lib/prisma"),
@@ -61,11 +92,11 @@ dbTest("deleteBookingPaymentWithAudit records payment deletion metadata", async 
     select: { id: true, email: true },
   });
   assert.ok(client.email);
-  const startsAt = new Date("2026-06-01T10:00:00.000Z");
+  const { startsAt, endsAt } = await findIsolatedPaymentWindow(prisma, suffix, 60);
   const slot = await prisma.availabilitySlot.create({
     data: {
       startsAt,
-      endsAt: new Date("2026-06-01T11:00:00.000Z"),
+      endsAt,
       status: prismaClient.AvailabilitySlotStatus.PUBLISHED,
       capacity: 1,
     },
@@ -83,7 +114,7 @@ dbTest("deleteBookingPaymentWithAudit records payment deletion metadata", async 
       serviceNameSnapshot: "Payment service",
       serviceDurationMinutes: 60,
       scheduledStartsAt: startsAt,
-      scheduledEndsAt: new Date("2026-06-01T11:00:00.000Z"),
+      scheduledEndsAt: endsAt,
     },
     select: { id: true },
   });

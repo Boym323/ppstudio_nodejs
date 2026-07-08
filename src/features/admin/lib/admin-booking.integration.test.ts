@@ -17,6 +17,49 @@ process.env.EMAIL_DELIVERY_MODE ??= "log";
 
 const dbTest = process.env.RUN_DB_INTEGRATION_TESTS === "1" ? test : test.skip;
 
+async function findIsolatedAdminWindow(
+  prisma: Awaited<typeof import("@/lib/prisma")>["prisma"],
+  seed: string,
+  durationMinutes: number,
+) {
+  const daySeed = Number.parseInt(seed.slice(0, 4), 16);
+  const hourSeed = Number.parseInt(seed.slice(4, 6), 16);
+  const minuteSeed = Number.parseInt(seed.slice(6, 8), 16);
+  const hourCandidates = [7, 8, 9, 10, 11, 12, 13, 14].map(
+    (hour, index, list) => list[(index + hourSeed) % list.length] ?? hour,
+  );
+  const minuteCandidates = [0, 15, 30].map(
+    (minute, index, list) => list[(index + minuteSeed) % list.length] ?? minute,
+  );
+
+  for (let dayStep = 0; dayStep < 45; dayStep += 1) {
+    const dayOffset = 14 + ((daySeed + dayStep) % 45);
+
+    for (const hour of hourCandidates) {
+      for (const minute of minuteCandidates) {
+        const startsAt = new Date();
+        startsAt.setUTCSeconds(0, 0);
+        startsAt.setUTCDate(startsAt.getUTCDate() + dayOffset);
+        startsAt.setUTCHours(hour, minute, 0, 0);
+        const endsAt = new Date(startsAt.getTime() + durationMinutes * 60 * 1000);
+
+        const overlappingSlots = await prisma.availabilitySlot.count({
+          where: {
+            startsAt: { lt: endsAt },
+            endsAt: { gt: startsAt },
+          },
+        });
+
+        if (overlappingSlots === 0) {
+          return { startsAt, endsAt };
+        }
+      }
+    }
+  }
+
+  throw new Error("Nepodařilo se najít izolované okno pro admin booking integrační test.");
+}
+
 dbTest("applyAdminBookingStatusChange confirms pending booking and writes side effects", async () => {
   const [{ prisma }, { applyAdminBookingStatusChange }] = await Promise.all([
     import("@/lib/prisma"),
@@ -24,8 +67,7 @@ dbTest("applyAdminBookingStatusChange confirms pending booking and writes side e
   ]);
 
   const suffix = randomUUID().slice(0, 8);
-  const startsAt = new Date("2027-03-10T09:00:00.000Z");
-  const endsAt = new Date("2027-03-10T10:00:00.000Z");
+  const { startsAt, endsAt } = await findIsolatedAdminWindow(prisma, suffix, 60);
 
   const owner = await prisma.adminUser.create({
     data: {
@@ -205,10 +247,10 @@ dbTest("applyAdminBookingStatusChange compacts adjacent editable slot fragments 
   ]);
 
   const suffix = randomUUID().slice(0, 8);
-  const baseStartAt = new Date("2027-03-12T10:00:00.000Z");
-  const beforeEndsAt = new Date("2027-03-12T10:30:00.000Z");
-  const bookingEndsAt = new Date("2027-03-12T11:45:00.000Z");
-  const fullEndsAt = new Date("2027-03-12T12:00:00.000Z");
+  const { startsAt: baseStartAt } = await findIsolatedAdminWindow(prisma, suffix, 120);
+  const beforeEndsAt = new Date(baseStartAt.getTime() + 30 * 60 * 1000);
+  const bookingEndsAt = new Date(baseStartAt.getTime() + 105 * 60 * 1000);
+  const fullEndsAt = new Date(baseStartAt.getTime() + 120 * 60 * 1000);
 
   const owner = await prisma.adminUser.create({
     data: {
@@ -250,7 +292,7 @@ dbTest("applyAdminBookingStatusChange compacts adjacent editable slot fragments 
         status: "PUBLISHED",
         capacity: 1,
         serviceRestrictionMode: "ANY",
-        publishedAt: new Date("2027-03-01T09:00:00.000Z"),
+        publishedAt: new Date(baseStartAt.getTime() - 24 * 60 * 60 * 1000),
         createdByUserId: owner.id,
       },
       select: { id: true },
@@ -262,7 +304,7 @@ dbTest("applyAdminBookingStatusChange compacts adjacent editable slot fragments 
         status: "PUBLISHED",
         capacity: 1,
         serviceRestrictionMode: "ANY",
-        publishedAt: new Date("2027-03-01T09:00:00.000Z"),
+        publishedAt: new Date(baseStartAt.getTime() - 24 * 60 * 60 * 1000),
         createdByUserId: owner.id,
       },
       select: { id: true },
@@ -274,7 +316,7 @@ dbTest("applyAdminBookingStatusChange compacts adjacent editable slot fragments 
         status: "PUBLISHED",
         capacity: 1,
         serviceRestrictionMode: "ANY",
-        publishedAt: new Date("2027-03-01T09:00:00.000Z"),
+        publishedAt: new Date(baseStartAt.getTime() - 24 * 60 * 60 * 1000),
         createdByUserId: owner.id,
       },
       select: { id: true },
@@ -397,8 +439,8 @@ dbTest("updateAdminBookingService rewrites booking snapshot and audit history", 
   ]);
 
   const suffix = randomUUID().slice(0, 8);
-  const startsAt = new Date("2027-03-11T09:00:00.000Z");
-  const endsAt = new Date("2027-03-11T10:00:00.000Z");
+  const { startsAt, endsAt } = await findIsolatedAdminWindow(prisma, suffix, 60);
+  const expectedServiceEndsAt = new Date(startsAt.getTime() + 45 * 60 * 1000);
 
   const owner = await prisma.adminUser.create({
     data: {
@@ -520,8 +562,8 @@ dbTest("updateAdminBookingService rewrites booking snapshot and audit history", 
     assert.equal(updatedBooking.cleanupMinutes, 10);
     assert.equal(updatedBooking.cleanupBlockMinutes, 15);
     assert.equal(updatedBooking.servicePriceFromCzk, 1500);
-    assert.equal(updatedBooking.scheduledEndsAt.toISOString(), "2027-03-11T09:45:00.000Z");
-    assert.equal(updatedBooking.blockedUntil?.toISOString(), "2027-03-11T10:00:00.000Z");
+    assert.equal(updatedBooking.scheduledEndsAt.toISOString(), expectedServiceEndsAt.toISOString());
+    assert.equal(updatedBooking.blockedUntil?.toISOString(), endsAt.toISOString());
 
     const history = await prisma.bookingStatusHistory.findMany({
       where: { bookingId: booking.id },

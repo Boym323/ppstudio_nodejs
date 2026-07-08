@@ -97,9 +97,8 @@ dbTest("createManualBooking rejects stale slot-mode booking instead of silently 
 
   const suffix = randomUUID().slice(0, 8);
   const phone = buildUniquePhone(suffix);
-  const startsAt = new Date("2027-05-12T09:30:00.000Z");
-  const slotStartsAt = new Date("2027-05-12T09:00:00.000Z");
-  const slotEndsAt = new Date("2027-05-12T10:00:00.000Z");
+  const { startsAt: slotStartsAt, endsAt: slotEndsAt } = await findIsolatedManualWindow(prisma, suffix, 60);
+  const startsAt = new Date(slotStartsAt.getTime() + 30 * 60 * 1000);
 
   const category = await prisma.serviceCategory.create({
     data: {
@@ -130,7 +129,7 @@ dbTest("createManualBooking rejects stale slot-mode booking instead of silently 
       status: AvailabilitySlotStatus.PUBLISHED,
       capacity: 1,
       serviceRestrictionMode: "ANY",
-      publishedAt: new Date("2027-05-01T08:00:00.000Z"),
+      publishedAt: new Date(slotStartsAt.getTime() - 24 * 60 * 60 * 1000),
     },
     select: { id: true },
   });
@@ -215,7 +214,7 @@ dbTest("createManualBooking still allows explicit manual override without slot s
 
   const suffix = randomUUID().slice(0, 8);
   const phone = buildUniquePhone(suffix);
-  const startsAt = new Date("2027-05-13T09:30:00.000Z");
+  const { startsAt } = await findIsolatedManualWindow(prisma, suffix, 60);
 
   const category = await prisma.serviceCategory.create({
     data: {

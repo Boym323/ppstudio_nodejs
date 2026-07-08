@@ -42,6 +42,39 @@ const baseVoucherMeta = {
   internalNote: undefined,
 };
 
+async function findIsolatedVoucherWindow(
+  prisma: Awaited<typeof import("@/lib/prisma")>["prisma"],
+  seedValue: string,
+  durationMinutes: number,
+  stepMinutes = 90,
+) {
+  const daySeed = Number.parseInt(seedValue.slice(0, 4), 16);
+  const hourSeed = Number.parseInt(seedValue.slice(4, 6), 16);
+
+  for (let dayStep = 0; dayStep < 60; dayStep += 1) {
+    const dayOffset = 14 + ((daySeed + dayStep) % 60);
+    const startsAt = new Date();
+    startsAt.setUTCSeconds(0, 0);
+    startsAt.setUTCDate(startsAt.getUTCDate() + dayOffset);
+    startsAt.setUTCHours(8 + (hourSeed % 8), 0, 0, 0);
+    const endsAt = new Date(startsAt.getTime() + durationMinutes * 60 * 1000);
+    const nextCandidateAt = new Date(startsAt.getTime() + stepMinutes * 60 * 1000);
+
+    const overlappingSlots = await prisma.availabilitySlot.count({
+      where: {
+        startsAt: { lt: nextCandidateAt },
+        endsAt: { gt: startsAt },
+      },
+    });
+
+    if (overlappingSlots === 0) {
+      return { startsAt, endsAt };
+    }
+  }
+
+  throw new Error("Nepodařilo se najít izolované okno pro voucher integrační test.");
+}
+
 async function loadModules() {
   const [
     { prisma },
@@ -73,8 +106,7 @@ async function loadModules() {
 async function createSeed(): Promise<TestContext> {
   const { prisma } = await loadModules();
   const suffix = randomUUID().slice(0, 8);
-  const startsAt = new Date("2026-06-01T09:00:00.000Z");
-  const endsAt = new Date("2026-06-01T10:00:00.000Z");
+  const { startsAt, endsAt } = await findIsolatedVoucherWindow(prisma, suffix, 60);
 
   const actor = await prisma.adminUser.create({
     data: {
@@ -126,7 +158,7 @@ async function createSeed(): Promise<TestContext> {
           startsAt: new Date(startsAt.getTime() + index * 90 * 60 * 1000),
           endsAt: new Date(endsAt.getTime() + index * 90 * 60 * 1000),
           status: AvailabilitySlotStatus.PUBLISHED,
-          publishedAt: new Date("2026-05-01T09:00:00.000Z"),
+          publishedAt: new Date(startsAt.getTime() - 24 * 60 * 60 * 1000),
         },
       }),
     ),
@@ -568,12 +600,13 @@ describe("voucher domain", () => {
     assert.ok(seed);
     const context = seed;
     const { prisma, createVoucher, redeemVoucherForBooking } = await loadModules();
+    const isolatedWindow = await findIsolatedVoucherWindow(prisma, randomUUID().slice(0, 8), 60);
     const slot = await prisma.availabilitySlot.create({
       data: {
-        startsAt: new Date("2026-06-03T09:00:00.000Z"),
-        endsAt: new Date("2026-06-03T10:00:00.000Z"),
+        startsAt: isolatedWindow.startsAt,
+        endsAt: isolatedWindow.endsAt,
         status: AvailabilitySlotStatus.PUBLISHED,
-        publishedAt: new Date("2026-05-01T09:00:00.000Z"),
+        publishedAt: new Date(isolatedWindow.startsAt.getTime() - 24 * 60 * 60 * 1000),
       },
     });
     const booking = await prisma.booking.create({
@@ -626,12 +659,13 @@ describe("voucher domain", () => {
     assert.ok(seed);
     const context = seed;
     const { prisma, createVoucher, redeemVoucherForBooking, VoucherRedemptionError } = await loadModules();
+    const isolatedWindow = await findIsolatedVoucherWindow(prisma, randomUUID().slice(0, 8), 45);
     const otherSlot = await prisma.availabilitySlot.create({
       data: {
-        startsAt: new Date("2026-06-02T09:00:00.000Z"),
-        endsAt: new Date("2026-06-02T09:45:00.000Z"),
+        startsAt: isolatedWindow.startsAt,
+        endsAt: isolatedWindow.endsAt,
         status: AvailabilitySlotStatus.PUBLISHED,
-        publishedAt: new Date("2026-05-01T09:00:00.000Z"),
+        publishedAt: new Date(isolatedWindow.startsAt.getTime() - 24 * 60 * 60 * 1000),
       },
     });
     const otherBooking = await prisma.booking.create({
