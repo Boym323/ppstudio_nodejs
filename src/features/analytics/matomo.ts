@@ -5,6 +5,8 @@ export type MatomoEventValue = number | undefined;
 declare global {
   interface Window {
     _paq?: Array<unknown[]>;
+    __matomoTrackerConfigured?: boolean;
+    __matomoTrackedPath?: string;
   }
 }
 
@@ -111,6 +113,42 @@ export function buildSafeMatomoPath(pathname: string, searchParams?: SearchParam
 
 function isSafeEventLabel(value: string) {
   return !sensitiveEventLabelPattern.test(value);
+}
+
+export function ensureMatomoTrackingPath(path: string, options?: { trackPageView?: boolean }) {
+  if (typeof window === "undefined" || !isMatomoConfigured()) {
+    return;
+  }
+
+  const queue = window._paq ?? [];
+
+  if (!window._paq) {
+    window._paq = queue;
+  }
+
+  try {
+    if (!window.__matomoTrackerConfigured) {
+      const trackerUrl = normalizeMatomoUrl(process.env.NEXT_PUBLIC_MATOMO_URL ?? "");
+      queue.push(["setTrackerUrl", `${trackerUrl}matomo.php`]);
+      queue.push(["setSiteId", process.env.NEXT_PUBLIC_MATOMO_SITE_ID ?? ""]);
+      queue.push(["enableLinkTracking"]);
+      window.__matomoTrackerConfigured = true;
+    }
+
+    if (window.__matomoTrackedPath !== path) {
+      queue.push(["setCustomUrl", path]);
+      window.__matomoTrackedPath = path;
+    }
+
+    if (options?.trackPageView) {
+      queue.push(["setDocumentTitle", document.title]);
+      queue.push(["trackPageView"]);
+    }
+  } catch (error) {
+    if (process.env.NODE_ENV === "development") {
+      console.warn("Matomo path bootstrap failed.", error);
+    }
+  }
 }
 
 export function trackMatomoEvent(

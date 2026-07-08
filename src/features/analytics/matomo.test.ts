@@ -3,6 +3,7 @@ import test, { after, afterEach } from "node:test";
 
 import {
   buildSafeMatomoPath,
+  ensureMatomoTrackingPath,
   trackMatomoEvent,
   shouldInitializeMatomo,
   shouldInitializeMatomoTracking,
@@ -113,5 +114,28 @@ test("trackMatomoEvent allows safe storno actions but still blocks raw token pat
 
   assert.deepEqual(calls, [
     ["trackEvent", "Rezervace", "Storno dokončeno", "Lash lifting"],
+  ]);
+});
+
+test("ensureMatomoTrackingPath bootstraps safe token route without pageview", () => {
+  setMatomoConfigured();
+
+  const calls: unknown[][] = [];
+  globalThis.window = {
+    _paq: {
+      push(payload: unknown[]) {
+        calls.push(payload);
+      },
+    } as unknown as Array<unknown[]>,
+  } as Window;
+
+  ensureMatomoTrackingPath("/rezervace/storno/[token]");
+  ensureMatomoTrackingPath("/rezervace/storno/[token]");
+
+  assert.deepEqual(calls, [
+    ["setTrackerUrl", "https://matomo.example.com/matomo.php"],
+    ["setSiteId", "1"],
+    ["enableLinkTracking"],
+    ["setCustomUrl", "/rezervace/storno/[token]"],
   ]);
 });

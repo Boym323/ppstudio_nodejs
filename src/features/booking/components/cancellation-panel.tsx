@@ -4,7 +4,7 @@ import { useActionState, useEffect, useRef } from "react";
 
 import { cancelPublicBookingAction } from "@/features/booking/actions/cancel-public-booking";
 import { initialCancelPublicBookingActionState } from "@/features/booking/actions/cancel-public-booking-action-state";
-import { trackMatomoEvent } from "@/features/analytics/matomo";
+import { ensureMatomoTrackingPath, trackMatomoEvent } from "@/features/analytics/matomo";
 import type { PublicCancellationPageState } from "@/features/booking/lib/booking-cancellation";
 
 type CancellationPanelProps = {
@@ -39,6 +39,10 @@ export function CancellationPanel({ token, initialState }: CancellationPanelProp
   );
   const cancellationSubmittedTrackedRef = useRef(false);
   const cancellationCompletedTrackedRef = useRef(false);
+
+  useEffect(() => {
+    ensureMatomoTrackingPath("/rezervace/storno/[token]");
+  }, []);
 
   useEffect(() => {
     if (serverState.status === "error") {
