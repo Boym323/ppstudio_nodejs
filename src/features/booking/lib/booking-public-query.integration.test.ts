@@ -38,6 +38,49 @@ function addDays(base: Date, days: number) {
   return new Date(base.getTime() + days * 24 * 60 * 60 * 1000);
 }
 
+async function findIsolatedPublicQuerySlotStart(
+  prisma: Awaited<typeof import("@/lib/prisma")>["prisma"],
+  seed: string,
+  durationMinutes: number,
+  minimumDayOffset = 5,
+) {
+  const daySeed = Number.parseInt(seed.slice(0, 4), 16);
+  const hourSeed = Number.parseInt(seed.slice(4, 6), 16);
+  const minuteSeed = Number.parseInt(seed.slice(6, 8), 16);
+  const hourCandidates = [9, 10, 11, 12, 13].map(
+    (hour, index, list) => list[(index + hourSeed) % list.length] ?? hour,
+  );
+  const minuteCandidates = [0, 15, 30].map(
+    (minute, index, list) => list[(index + minuteSeed) % list.length] ?? minute,
+  );
+
+  for (let dayStep = 0; dayStep < 45; dayStep += 1) {
+    const dayOffset = minimumDayOffset + ((daySeed + dayStep) % 45);
+
+    for (const hour of hourCandidates) {
+      for (const minute of minuteCandidates) {
+        const startsAt = addDays(new Date(), dayOffset);
+        startsAt.setUTCSeconds(0, 0);
+        startsAt.setUTCHours(hour, minute, 0, 0);
+        const endsAt = new Date(startsAt.getTime() + durationMinutes * 60 * 1000);
+
+        const overlappingSlots = await prisma.availabilitySlot.count({
+          where: {
+            startsAt: { lt: endsAt },
+            endsAt: { gt: startsAt },
+          },
+        });
+
+        if (overlappingSlots === 0) {
+          return { startsAt, endsAt };
+        }
+      }
+    }
+  }
+
+  throw new Error("Nepodařilo se najít izolované testovací okno pro booking-public-query integrační test.");
+}
+
 dbTest("getPublicBookingCatalog exposes only active publicly bookable services", async () => {
   const { prisma, getPublicBookingCatalog } = await loadModules();
   const suffix = randomUUID().slice(0, 8);
@@ -139,9 +182,7 @@ dbTest("getPublicBookingCatalog can exclude the managed booking from booked inte
     select: { id: true },
   });
 
-  const startsAt = addDays(new Date(), 6);
-  startsAt.setUTCHours(9, 0, 0, 0);
-  const endsAt = new Date(startsAt.getTime() + 2 * 60 * 60 * 1000);
+  const { startsAt, endsAt } = await findIsolatedPublicQuerySlotStart(prisma, suffix, 120, 6);
   const bookingStartsAt = new Date(startsAt.getTime() + 60 * 60 * 1000);
   const bookingEndsAt = new Date(bookingStartsAt.getTime() + 60 * 60 * 1000);
 
@@ -236,9 +277,7 @@ dbTest("createPublicBooking keeps server-side service availability as source of 
     select: { id: true },
   });
 
-  const startsAt = addDays(new Date(), 5);
-  startsAt.setUTCHours(9, 0, 0, 0);
-  const endsAt = new Date(startsAt.getTime() + 60 * 60 * 1000);
+  const { startsAt, endsAt } = await findIsolatedPublicQuerySlotStart(prisma, suffix, 60, 5);
 
   const slot = await prisma.availabilitySlot.create({
     data: {
