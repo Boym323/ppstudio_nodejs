@@ -53,13 +53,56 @@ async function loadModules() {
     syncPlannerWeekDraft: plannerMutations.syncPlannerWeekDraft,
     copyPlannerWeek: plannerMutations.copyPlannerWeek,
     getCellRangeBounds: plannerTime.getCellRangeBounds,
+    getDayBounds: plannerTime.getDayBounds,
+    addDays: plannerTime.addDays,
+    formatDateKey: plannerTime.formatDateKey,
+    resolveWeekStart: plannerTime.resolveWeekStart,
   };
+}
+
+async function findIsolatedPlannerDateKey() {
+  const { prisma, addDays, formatDateKey, getDayBounds, resolveWeekStart } = await loadModules();
+  const searchStart = addDays(resolveWeekStart(), 21);
+
+  for (let offset = 0; offset < 120; offset += 1) {
+    const candidate = addDays(searchStart, offset);
+    const dateKey = formatDateKey(candidate);
+    const { startsAt, endsAt } = getDayBounds(dateKey);
+    const [slotCount, bookingCount] = await Promise.all([
+      prisma.availabilitySlot.count({
+        where: {
+          startsAt: { lt: endsAt },
+          endsAt: { gt: startsAt },
+        },
+      }),
+      prisma.booking.count({
+        where: {
+          scheduledStartsAt: { lt: endsAt },
+          OR: [
+            {
+              blockedUntil: { gt: startsAt },
+            },
+            {
+              blockedUntil: null,
+              scheduledEndsAt: { gt: startsAt },
+            },
+          ],
+        },
+      }),
+    ]);
+
+    if (slotCount === 0 && bookingCount === 0) {
+      return dateKey;
+    }
+  }
+
+  throw new Error("Nepodařilo se najít izolovaný planner den pro integrační test.");
 }
 
 async function createSeed(options: SeedOptions = {}): Promise<SeedContext> {
   const { prisma, getCellRangeBounds } = await loadModules();
   const suffix = randomUUID().slice(0, 8);
-  const dateKey = "2026-07-13";
+  const dateKey = await findIsolatedPlannerDateKey();
   const weekKey = dateKey;
   const before = getCellRangeBounds(dateKey, 4, 6);
   const bookedRange = getCellRangeBounds(dateKey, 6, 8);
@@ -484,7 +527,7 @@ dbTest("syncPlannerWeekDraft preserves slots that still have a cancelled booking
       phone: true,
     },
   });
-  const dateKey = "2026-07-20";
+  const dateKey = await findIsolatedPlannerDateKey();
   const weekKey = dateKey;
   const slotRange = getCellRangeBounds(dateKey, 16, 19);
   const slot = await prisma.availabilitySlot.create({
