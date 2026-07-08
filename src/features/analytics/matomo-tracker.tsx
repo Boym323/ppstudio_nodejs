@@ -23,59 +23,56 @@ export function MatomoTracker({ disabled = false }: MatomoTrackerProps) {
   const siteId = process.env.NEXT_PUBLIC_MATOMO_SITE_ID;
   const shouldInitialize = isMatomoConfigured() && shouldInitializeMatomoTracking(pathname, { disabled });
   const shouldTrackPageview = shouldTrackMatomoPath(pathname);
-  const initialPathname = useRef(pathname);
-  const initialScriptTrackedPageview = useRef(shouldTrackPageview);
+  const trackedPathRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!shouldInitialize || !shouldTrackPageview || !window._paq) {
+    if (!shouldInitialize || !matomoUrl || !siteId) {
       return;
     }
 
-    if (
-      initialScriptTrackedPageview.current
-      && pathname === initialPathname.current
-    ) {
-      return;
+    const queue = window._paq ?? [];
+
+    if (!window._paq) {
+      window._paq = queue;
     }
 
+    const isInitialBootstrap = trackedPathRef.current === null;
     const safePath = buildSafeMatomoPath(pathname, searchParams);
 
+    if (safePath === trackedPathRef.current) {
+      return;
+    }
+
     try {
-      window._paq.push(["setCustomUrl", safePath]);
-      window._paq.push(["setDocumentTitle", document.title]);
-      window._paq.push(["trackPageView"]);
-      window._paq.push(["enableLinkTracking"]);
+      if (isInitialBootstrap) {
+        queue.push(["setTrackerUrl", `${normalizeMatomoUrl(matomoUrl)}matomo.php`]);
+        queue.push(["setSiteId", siteId]);
+        queue.push(["enableLinkTracking"]);
+      }
+
+      queue.push(["setCustomUrl", safePath]);
+
+      if (shouldTrackPageview) {
+        queue.push(["setDocumentTitle", document.title]);
+        queue.push(["trackPageView"]);
+      }
+
+      trackedPathRef.current = safePath;
     } catch (error) {
       if (process.env.NODE_ENV === "development") {
         console.warn("Matomo pageview failed.", error);
       }
     }
-  }, [pathname, searchParams, shouldInitialize, shouldTrackPageview]);
+  }, [matomoUrl, pathname, searchParams, shouldInitialize, shouldTrackPageview, siteId]);
 
   if (!shouldInitialize || !matomoUrl || !siteId) {
     return null;
   }
 
   const trackerUrl = normalizeMatomoUrl(matomoUrl);
-  const safeInitialPath = buildSafeMatomoPath(pathname, searchParams);
-  const trackerEndpoint = `${trackerUrl}matomo.php`;
 
   return (
     <>
-      <Script
-        id="matomo-init"
-        strategy="lazyOnload"
-        dangerouslySetInnerHTML={{
-          __html: `
-            window._paq = window._paq || [];
-            window._paq.push(['setTrackerUrl', ${JSON.stringify(trackerEndpoint)}]);
-            window._paq.push(['setSiteId', ${JSON.stringify(siteId)}]);
-            window._paq.push(['setCustomUrl', ${JSON.stringify(safeInitialPath)}]);
-            ${shouldTrackPageview ? "window._paq.push(['trackPageView']);" : ""}
-            window._paq.push(['enableLinkTracking']);
-          `,
-        }}
-      />
       <Script id="matomo-script" src={`${trackerUrl}matomo.js`} strategy="lazyOnload" />
     </>
   );

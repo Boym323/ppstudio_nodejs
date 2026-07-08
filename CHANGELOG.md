@@ -6,6 +6,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Opravená regrese veřejného Matomo trackingu na tokenových self-service stránkách: `MatomoTracker` už nespoléhá při prvním renderu na `lazyOnload` init snippet, ale bootstrapuje `_paq` hned po hydraci. Route `/rezervace/storno/[token]` tak znovu spolehlivě zapisuje bezpečné `setCustomUrl` bez `trackPageView` a následné klientské eventy `Storno odesláno` / `Storno dokončeno` už nemají race s pozdní inicializací.
+
 ## [0.7.1] - 2026-07-08
 
 - Release příprava pro produkční nasazení: projektová verze navýšena na patch `0.7.1`.
