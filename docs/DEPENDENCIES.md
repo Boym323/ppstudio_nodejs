@@ -19,6 +19,11 @@ Seznam důležitých knihoven a důvod jejich použití.
 - Automatické `npm audit fix` se teď vědomě nepouští: doporučené opravy vrací nebezpečné návrhy na major downgrade `next` nebo `prisma`, takže bezpečný postup je čekat na kompatibilní upstream patch/minor release a zkusit audit znovu při dalším dependency passu.
 - `@playwright/test`: browser E2E test runner pro hlavní rezervační a admin flow; v projektu držíme `^1.61.1`, protože starší `1.59.1` se v CI na Node 24 zasekávala při instalaci browseru.
 - `c8`: V8 coverage reporter nad stávajícím `node --test` setupem; generuje HTML/LCOV/JSON reporty bez nutnosti přechodu na jiný test runner.
+- GitHub security automation teď stojí i na repo konfiguraci bez nových runtime závislostí:
+  - `github/codeql-action`: statická bezpečnostní analýza JavaScript/TypeScript kódu
+  - `actions/dependency-review-action`: PR diff kontrola rizikových dependency změn
+  - `.github/dependabot.yml`: týdenní update PR pro `npm` a GitHub Actions
+- Scheduled `npm audit --audit-level=high` je záměrně oddělený od ručních dependency passů: chceme failnout jen na `high`/`critical`, zatímco známé `low`/`moderate` větve dál sledujeme ručně v tomto dokumentu.
 - `svix`: verifikace podpisu Resend webhooků (`svix-id`, `svix-timestamp`, `svix-signature`) nad raw request body.
 - Matomo tracking nepřidává žádnou npm závislost; používá `next/script`, App Router navigation hooks a standardní `window._paq` frontu.
 - Microsoft Clarity tracking také nepřidává žádnou npm závislost; používá `next/script` a veřejný Clarity tag přes inline init snippet.

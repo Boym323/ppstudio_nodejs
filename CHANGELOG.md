@@ -6,6 +6,9 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- GitHub automation pro kvalitu a bezpečnost je rozšířená na prakticky kompletní baseline: hlavní CI nově vedle `lint` běží i `typecheck`, plný `npm test`, samostatný `npm run test:coverage`, produkční build a Playwright E2E; coverage i `playwright-report` se zároveň ukládají jako artifacty.
+- Repo nově obsahuje samostatné GitHub workflow pro `CodeQL`, `Dependency Review` a scheduled `npm audit --audit-level=high`, plus `.github/dependabot.yml` pro týdenní update PR závislostí i GitHub Actions.
+- Dokumentace `MANUAL.md`, `docs/DEVELOPMENT.md`, `docs/DEPENDENCIES.md`, `docs/DEPLOYMENT.md`, `docs/INCIDENTS.md` a ADR `0105` je sladěná s novým CI/security stackem včetně poznámky, že branch protection a required status checks je ještě potřeba ručně zapnout v nastavení repozitáře.
 - Opravená regrese veřejného Matomo trackingu na tokenových self-service stránkách: `MatomoTracker` už nespoléhá při prvním renderu na `lazyOnload` init snippet, ale bootstrapuje `_paq` hned po hydraci. Route `/rezervace/storno/[token]` tak znovu spolehlivě zapisuje bezpečné `setCustomUrl` bez `trackPageView` a následné klientské eventy `Storno odesláno` / `Storno dokončeno` už nemají race s pozdní inicializací.
 - Matomo init je teď ještě odolnější pro CI a pomalejší prohlížeče: bezpečný `_paq` bootstrap běží přes inline `afterInteractive` script a App Router efekt už jen navazuje další navigace. Self-service storno tak nemá race mezi hydratací a Playwright poll kontrolou na `setCustomUrl`.
 

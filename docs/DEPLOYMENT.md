@@ -27,16 +27,21 @@ Stručný architektonický a provozní přehled nasazení na Proxmox/LXC je v ko
    - Známý historický stav: kontrola může upozornit na rollbacknuté migrace `20260419140000_site_settings_singleton` a `20260419103000_service_public_bookability`. Pokud výstup končí `Migration history check: OK`, jde o auditní stopu staršího recover postupu a ne o blocker releasu.
 8. `npx prisma migrate deploy`
 9. `npm run lint`
+9a. `npm run typecheck`
 10. `npm run build`
     - Doporučený `deploy/release.sh` před buildem automaticky synchronizuje `deploy/systemd/*.service` do `/etc/systemd/system/` a spouští `systemctl daemon-reload`, takže změny unitů není potřeba releasovat zvlášť.
     - Při runtime upgradu po buildu udělej minimálně smoke test: homepage, admin login, vytvoření testovací rezervace a kontrolu, že po restartu běží i `ppstudio-email-worker.service`.
     - Pokud build spouštíš mimo `deploy/release.sh`, exportuj předem `NEXT_DEPLOYMENT_ID` na aktuální release identifikátor, používej stejný `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` jako běžící produkce a zajisti, aby stejný deployment identifikátor viděl i runtime `next start` (např. přes `.release-env` nebo ekvivalentní systemd env override).
 11. Ověř, že `package.json`, `package-lock.json` a `CHANGELOG.md` obsahují stejnou release verzi.
 12. Ověř aktuálnost dokumentace (`MANUAL.md`, `docs/*`)
-13. Pokud release mění e-mailové šablony, spusť `npm run email:previews` a ručně otevři soubory v `tmp/email-previews`; zkontroluj HTML i textovou variantu v testech, kontakty ze `SiteSettings`, `.ics` přílohu u potvrzení a absenci přílohy u reminderu.
-14. Pokud release mění veřejné SEO JSON-LD, ověř homepage a jeden detail služby přes Google Rich Results Test nebo Schema Markup Validator; zkontroluj, že kontakt odpovídá viditelnému webu a Service schema neobsahuje recenze/ratingy.
-15. Pokud release mění voucher doménu, ověř že je aplikovaná migrace `20260427205720_add_vouchers`; aktuální serverová business vrstva nepřidává další migraci, worker ani public route.
-16. Projdi ruční QA veřejného webu na mobilu i desktopu:
+13. Po změně GitHub workflow nebo názvů jobů ručně ověř GitHub nastavení repozitáře:
+   - branch protection / rulesets mají required status checks podle aktuálních job names
+   - security záložka má zapnuté CodeQL a Dependabot alerts
+   - případné staré required check names po rename nezůstaly viset jako permanentně pending
+14. Pokud release mění e-mailové šablony, spusť `npm run email:previews` a ručně otevři soubory v `tmp/email-previews`; zkontroluj HTML i textovou variantu v testech, kontakty ze `SiteSettings`, `.ics` přílohu u potvrzení a absenci přílohy u reminderu.
+15. Pokud release mění veřejné SEO JSON-LD, ověř homepage a jeden detail služby přes Google Rich Results Test nebo Schema Markup Validator; zkontroluj, že kontakt odpovídá viditelnému webu a Service schema neobsahuje recenze/ratingy.
+16. Pokud release mění voucher doménu, ověř že je aplikovaná migrace `20260427205720_add_vouchers`; aktuální serverová business vrstva nepřidává další migraci, worker ani public route.
+17. Projdi ruční QA veřejného webu na mobilu i desktopu:
    - zkontroluj `robots.txt`:
      - veřejný web vrací `Allow: /`
      - admin a tokenové routy `/admin/*`, `/rezervace/storno/*`, `/rezervace/sprava/*`, `/rezervace/akce/*` zůstávají blokované
