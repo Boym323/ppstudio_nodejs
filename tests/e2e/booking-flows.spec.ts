@@ -177,11 +177,54 @@ async function installMetaPixelSpy(page: Page) {
   });
 }
 
+async function installMatomoSpy(page: Page) {
+  await page.addInitScript(() => {
+    const calls: unknown[][] = [];
+
+    const queue = {
+      push(payload: unknown[]) {
+        calls.push(payload);
+        return calls.length;
+      },
+    };
+
+    Object.defineProperty(window, "__matomoCalls", {
+      configurable: true,
+      value: calls,
+      writable: true,
+    });
+
+    Object.defineProperty(window, "_paq", {
+      configurable: true,
+      get() {
+        return queue;
+      },
+      set(value) {
+        if (Array.isArray(value)) {
+          for (const payload of value) {
+            if (Array.isArray(payload)) {
+              calls.push(payload);
+            }
+          }
+        }
+      },
+    });
+  });
+}
+
 async function getMetaPixelEventNames(page: Page) {
   return page.evaluate(() => {
     const calls = (window as Window & { __metaPixelCalls?: unknown[][] }).__metaPixelCalls ?? [];
 
     return calls.map((call) => `${String(call[0])}:${String(call[1])}`);
+  });
+}
+
+async function getMatomoCalls(page: Page) {
+  return page.evaluate(() => {
+    const calls = (window as Window & { __matomoCalls?: unknown[][] }).__matomoCalls ?? [];
+
+    return calls.map((call) => call.map((value) => String(value)));
   });
 }
 
@@ -798,15 +841,43 @@ test.describe("booking flows", () => {
     await expect(page.getByText("E2E tajná poznámka")).toHaveCount(0);
   });
 
-  test("client can cancel a booking through a public token", async ({ page }) => {
+  test("client can cancel a booking through a public token and emit only safe Matomo events", async ({ page }) => {
     const fixture = await createManagedBookingFixture();
     fixtures.push(fixture);
 
+    await installMatomoSpy(page);
+    await page.route("**/matomo.js", async (route) => {
+      await route.fulfill({
+        contentType: "application/javascript",
+        body: "// Matomo is stubbed for Playwright smoke coverage.",
+      });
+    });
+
     await page.goto(`/rezervace/storno/${fixture.cancelToken}`);
     await expect(page.getByRole("heading", { name: "Opravdu chcete zrušit rezervaci?" })).toBeVisible();
+
+    await expect.poll(async () => getMatomoCalls(page)).toContainEqual([
+      "setCustomUrl",
+      "/rezervace/storno/[token]",
+    ]);
+
+    const initialMatomoCalls = await getMatomoCalls(page);
+    expect(initialMatomoCalls.some((call) => call[0] === "trackPageView")).toBe(false);
+    expect(initialMatomoCalls.some((call) => call.some((value) => value.includes(fixture.cancelToken ?? "")))).toBe(false);
+
     await page.getByRole("button", { name: "Potvrdit storno" }).click();
 
     await expect(page.getByRole("heading", { name: new RegExp(`Hotovo, ${fixture.clientName}`) })).toBeVisible();
+
+    await expect.poll(async () => getMatomoCalls(page)).toEqual(
+      expect.arrayContaining([
+        ["trackEvent", "Rezervace", "Storno odesláno", fixture.serviceName],
+        ["trackEvent", "Rezervace", "Storno dokončeno", fixture.serviceName],
+      ]),
+    );
+
+    const finalMatomoCalls = await getMatomoCalls(page);
+    expect(finalMatomoCalls.some((call) => call.some((value) => value.includes(fixture.cancelToken ?? "")))).toBe(false);
 
     const booking = await prisma.booking.findUniqueOrThrow({
       where: {

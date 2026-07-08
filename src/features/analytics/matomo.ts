@@ -8,8 +8,10 @@ declare global {
   }
 }
 
-const sensitivePattern =
-  /(@|(?:\+?\d[\s().-]*){9,}|token|sprava|storno|akce|jmeno|poznám|poznam|\/rezervace\/(?:sprava|storno|akce)\/)/i;
+const sensitivePathValuePattern =
+  /(@|(?:\+?\d[\s().-]*){9,}|token|jmeno|poznám|poznam|\/rezervace\/(?:sprava|storno|akce)\/)/i;
+const sensitiveEventLabelPattern =
+  /(@|(?:\+?\d[\s().-]*){9,}|token|jmeno|poznám|poznam|\/rezervace\/(?:sprava|storno|akce)\/)/i;
 
 type SearchParamsLike = {
   size: number;
@@ -95,7 +97,7 @@ export function buildSafeMatomoPath(pathname: string, searchParams?: SearchParam
   const sensitiveKeys = /token|email|e-mail|mail|phone|telefon|tel|name|jmeno|client|note|poznam/i;
 
   searchParams.forEach((value, key) => {
-    if (sensitiveKeys.test(key) || sensitivePattern.test(value)) {
+    if (sensitiveKeys.test(key) || sensitivePathValuePattern.test(value)) {
       return;
     }
 
@@ -108,7 +110,7 @@ export function buildSafeMatomoPath(pathname: string, searchParams?: SearchParam
 }
 
 function isSafeEventLabel(value: string) {
-  return !sensitivePattern.test(value);
+  return !sensitiveEventLabelPattern.test(value);
 }
 
 export function trackMatomoEvent(

@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
-import test, { after } from "node:test";
+import test, { after, afterEach } from "node:test";
 
 import {
+  buildSafeMatomoPath,
+  trackMatomoEvent,
   shouldInitializeMatomo,
   shouldInitializeMatomoTracking,
   shouldTrackMatomoPath,
@@ -12,6 +14,8 @@ const originalEnv = {
   url: process.env.NEXT_PUBLIC_MATOMO_URL,
   siteId: process.env.NEXT_PUBLIC_MATOMO_SITE_ID,
 };
+
+const originalWindow = globalThis.window;
 
 function setMatomoConfigured() {
   process.env.NEXT_PUBLIC_MATOMO_ENABLED = "true";
@@ -57,4 +61,57 @@ test("shouldInitializeMatomoTracking keeps existing admin route protection", () 
 
 after(() => {
   restoreEnv();
+
+  if (originalWindow === undefined) {
+    delete globalThis.window;
+  } else {
+    globalThis.window = originalWindow;
+  }
+});
+
+afterEach(() => {
+  if (originalWindow === undefined) {
+    delete globalThis.window;
+  } else {
+    globalThis.window = originalWindow;
+  }
+});
+
+test("buildSafeMatomoPath removes sensitive query params and rewrites token routes", () => {
+  assert.equal(
+    buildSafeMatomoPath("/rezervace/storno/abc123"),
+    "/rezervace/storno/[token]",
+  );
+
+  const searchParams = new URLSearchParams({
+    service: "lash-lifting",
+    email: "jana@example.com",
+    phone: "+420 777 123 456",
+    redirect: "/rezervace/sprava/secret-token",
+  });
+
+  assert.equal(
+    buildSafeMatomoPath("/rezervace", searchParams),
+    "/rezervace?service=lash-lifting",
+  );
+});
+
+test("trackMatomoEvent allows safe storno actions but still blocks raw token paths", () => {
+  setMatomoConfigured();
+
+  const calls: unknown[][] = [];
+  globalThis.window = {
+    _paq: {
+      push(payload: unknown[]) {
+        calls.push(payload);
+      },
+    } as unknown as Array<unknown[]>,
+  } as Window;
+
+  trackMatomoEvent("Rezervace", "Storno dokončeno", "Lash lifting");
+  trackMatomoEvent("Rezervace", "Storno odesláno", "/rezervace/storno/secret-token");
+
+  assert.deepEqual(calls, [
+    ["trackEvent", "Rezervace", "Storno dokončeno", "Lash lifting"],
+  ]);
 });

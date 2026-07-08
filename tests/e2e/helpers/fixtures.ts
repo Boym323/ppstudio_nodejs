@@ -186,8 +186,9 @@ function isAvailabilitySlotWindowConflict(error: unknown) {
 }
 
 async function createCatalogFixture(runId: string) {
-  const categoryName = `E2E kategorie ${runId}`;
-  const serviceName = `E2E služba ${runId}`;
+  const fixtureLabel = hashRunId(runId).toString(16);
+  const categoryName = `E2E kategorie ${fixtureLabel}`;
+  const serviceName = `E2E služba ${fixtureLabel}`;
   const categorySlug = slugify(categoryName);
   const serviceSlug = slugify(serviceName);
 
