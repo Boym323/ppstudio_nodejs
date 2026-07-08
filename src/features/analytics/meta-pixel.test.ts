@@ -14,6 +14,7 @@ const originalEnv = {
 };
 
 const originalWindow = globalThis.window;
+const globalWindow = globalThis as typeof globalThis & { window?: Window & typeof globalThis };
 
 function setMetaPixelConfigured() {
   process.env.NEXT_PUBLIC_META_PIXEL_ENABLED = "true";
@@ -34,14 +35,22 @@ function restoreEnv() {
   }
 }
 
+function restoreWindow() {
+  if (originalWindow === undefined) {
+    Reflect.deleteProperty(globalWindow, "window");
+    return;
+  }
+
+  globalWindow.window = originalWindow;
+}
+
+function setMockWindow(windowMock: Partial<Window>) {
+  globalWindow.window = windowMock as Window & typeof globalThis;
+}
+
 afterEach(() => {
   restoreEnv();
-
-  if (originalWindow === undefined) {
-    delete globalThis.window;
-  } else {
-    globalThis.window = originalWindow;
-  }
+  restoreWindow();
 });
 
 test("shouldInitializeMetaPixelTracking disables initialization when disabled flag is true", () => {
@@ -80,11 +89,11 @@ test("trackMetaPixelStandardEvent sends sanitized payload to fbq", () => {
   setMetaPixelConfigured();
 
   const calls: unknown[][] = [];
-  globalThis.window = {
+  setMockWindow({
     fbq: (...args: unknown[]) => {
       calls.push(args);
     },
-  } as Window;
+  });
 
   trackMetaPixelStandardEvent("Lead", {
     content_name: "Lash lifting",
@@ -108,11 +117,11 @@ test("trackMetaPixelCustomEvent falls back to event-only call when payload sanit
   setMetaPixelConfigured();
 
   const calls: unknown[][] = [];
-  globalThis.window = {
+  setMockWindow({
     fbq: (...args: unknown[]) => {
       calls.push(args);
     },
-  } as Window;
+  });
 
   trackMetaPixelCustomEvent("BookingDateSelected", {
     client_email: "jana@example.com",

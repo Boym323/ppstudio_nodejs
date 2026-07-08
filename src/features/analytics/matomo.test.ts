@@ -17,6 +17,7 @@ const originalEnv = {
 };
 
 const originalWindow = globalThis.window;
+const globalWindow = globalThis as typeof globalThis & { window?: Window & typeof globalThis };
 
 function setMatomoConfigured() {
   process.env.NEXT_PUBLIC_MATOMO_ENABLED = "true";
@@ -44,6 +45,19 @@ function restoreEnv() {
   }
 }
 
+function restoreWindow() {
+  if (originalWindow === undefined) {
+    Reflect.deleteProperty(globalWindow, "window");
+    return;
+  }
+
+  globalWindow.window = originalWindow;
+}
+
+function setMockWindow(windowMock: Partial<Window>) {
+  globalWindow.window = windowMock as Window & typeof globalThis;
+}
+
 test("shouldInitializeMatomoTracking disables initialization when disabled flag is true", () => {
   setMatomoConfigured();
 
@@ -62,20 +76,11 @@ test("shouldInitializeMatomoTracking keeps existing admin route protection", () 
 
 after(() => {
   restoreEnv();
-
-  if (originalWindow === undefined) {
-    delete globalThis.window;
-  } else {
-    globalThis.window = originalWindow;
-  }
+  restoreWindow();
 });
 
 afterEach(() => {
-  if (originalWindow === undefined) {
-    delete globalThis.window;
-  } else {
-    globalThis.window = originalWindow;
-  }
+  restoreWindow();
 });
 
 test("buildSafeMatomoPath removes sensitive query params and rewrites token routes", () => {
@@ -101,13 +106,13 @@ test("trackMatomoEvent allows safe storno actions but still blocks raw token pat
   setMatomoConfigured();
 
   const calls: unknown[][] = [];
-  globalThis.window = {
+  setMockWindow({
     _paq: {
       push(payload: unknown[]) {
         calls.push(payload);
       },
     } as unknown as Array<unknown[]>,
-  } as Window;
+  });
 
   trackMatomoEvent("Rezervace", "Storno dokončeno", "Lash lifting");
   trackMatomoEvent("Rezervace", "Storno odesláno", "/rezervace/storno/secret-token");
@@ -121,13 +126,13 @@ test("ensureMatomoTrackingPath bootstraps safe token route without pageview", ()
   setMatomoConfigured();
 
   const calls: unknown[][] = [];
-  globalThis.window = {
+  setMockWindow({
     _paq: {
       push(payload: unknown[]) {
         calls.push(payload);
       },
     } as unknown as Array<unknown[]>,
-  } as Window;
+  });
 
   ensureMatomoTrackingPath("/rezervace/storno/[token]");
   ensureMatomoTrackingPath("/rezervace/storno/[token]");

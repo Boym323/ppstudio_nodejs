@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { AdminRole } from "@prisma/client";
 
+import { prisma } from "@/lib/prisma";
+
 process.env.NEXT_PUBLIC_APP_NAME ??= "PP Studio";
 process.env.NEXT_PUBLIC_APP_URL ??= "https://example.com";
 process.env.DATABASE_URL ??= "postgresql://postgres:postgres@localhost:5432/ppstudio?schema=public";
@@ -12,16 +14,32 @@ process.env.ADMIN_STAFF_EMAIL ??= "staff@example.com";
 process.env.ADMIN_STAFF_PASSWORD ??= "change-me-staff";
 process.env.EMAIL_DELIVERY_MODE ??= "log";
 
+function mockFindClients(value: unknown) {
+  return (async () => value) as typeof prisma.client.findMany;
+}
+
+function mockFindServices(value: unknown) {
+  return (async () => value) as typeof prisma.service.findMany;
+}
+
+function mockFindClientsFailure(message: string) {
+  return (async () => {
+    throw new Error(message);
+  }) as typeof prisma.client.findMany;
+}
+
+function mockFindServicesFailure(message: string) {
+  return (async () => {
+    throw new Error(message);
+  }) as typeof prisma.service.findMany;
+}
+
 test("booking search route rejects unauthenticated access", async () => {
   const { createAdminBookingSearchRouteApi } = await import("./route");
   const api = createAdminBookingSearchRouteApi({
     getSession: async () => null,
-    findClients: async () => {
-      throw new Error("findClients should not run without session");
-    },
-    findServices: async () => {
-      throw new Error("findServices should not run without session");
-    },
+    findClients: mockFindClientsFailure("findClients should not run without session"),
+    findServices: mockFindServicesFailure("findServices should not run without session"),
   });
 
   const response = await api.GET(new Request("https://example.com/api/admin/bookings/search?query=anna"));
@@ -40,21 +58,21 @@ test("booking search route returns deduplicated suggestions from clients and ser
       iat: 1,
       exp: 999999,
     }),
-    findClients: async () => [
+    findClients: mockFindClients([
       {
         fullName: "Anna Novak",
         email: "anna@example.com",
         phone: "+420777123456",
       },
-    ],
-    findServices: async () => [
+    ]),
+    findServices: mockFindServices([
       {
         name: "Kosmetické ošetření",
         category: {
           name: "Pleť",
         },
       },
-    ],
+    ]),
   });
 
   const response = await api.GET(new Request("https://example.com/api/admin/bookings/search?query=anna"));
@@ -87,14 +105,14 @@ test("booking search route returns contact suggestions only for contact-like que
       iat: 1,
       exp: 999999,
     }),
-    findClients: async () => [
+    findClients: mockFindClients([
       {
         fullName: "Anna Novak",
         email: "anna@example.com",
         phone: "+420777123456",
       },
-    ],
-    findServices: async () => [],
+    ]),
+    findServices: mockFindServices([]),
   });
 
   const response = await api.GET(new Request("https://example.com/api/admin/bookings/search?query=777"));
@@ -127,12 +145,8 @@ test("booking search route returns empty list for too-short query", async () => 
       iat: 1,
       exp: 999999,
     }),
-    findClients: async () => {
-      throw new Error("findClients should not run for invalid query");
-    },
-    findServices: async () => {
-      throw new Error("findServices should not run for invalid query");
-    },
+    findClients: mockFindClientsFailure("findClients should not run for invalid query"),
+    findServices: mockFindServicesFailure("findServices should not run for invalid query"),
   });
 
   const response = await api.GET(new Request("https://example.com/api/admin/bookings/search?query=a"));

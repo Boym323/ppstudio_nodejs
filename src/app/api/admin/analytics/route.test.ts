@@ -75,7 +75,7 @@ test("GET notifies owner when analytics backend throws unexpected error", async 
     }),
     getMatomoReportingHealth: async () => ({
       status: "ok",
-      message: null,
+      message: undefined,
     }),
     getDashboardAnalytics: async () => {
       throw new Error("Matomo timeout");
