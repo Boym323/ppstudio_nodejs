@@ -24,7 +24,11 @@ import {
   shouldTrackContactFieldInput,
   shouldTrackFirstContactFieldEvent,
 } from "./booking-flow/contact-analytics";
-import { isBookingTermConflictErrorCode } from "./booking-flow/booking-analytics";
+import {
+  isBookingTermConflictErrorCode,
+  shouldTrackBookingDateSelection,
+  shouldTrackBookingServiceSelectedForPrefill,
+} from "./booking-flow/booking-analytics";
 import {
   buildContactFieldErrors,
   EMPTY_TIME_SLOTS,
@@ -90,6 +94,7 @@ export function BookingFlow({ catalog, initialSelectedServiceSlug, salonProfile 
   const trackedContactInputFieldsRef = useRef<Set<ContactFieldKey>>(new Set());
   const trackedContactErrorFieldsRef = useRef<Set<ContactFieldKey>>(new Set());
   const prefilledServiceTrackedRef = useRef(false);
+  const lastTrackedDateKeyRef = useRef<string | null>(null);
   const initiateCheckoutTrackedRef = useRef(false);
   const lastTrackedFormErrorKeyRef = useRef<string | null>(null);
   const lastTrackedTermConflictKeyRef = useRef<string | null>(null);
@@ -588,14 +593,18 @@ export function BookingFlow({ catalog, initialSelectedServiceSlug, salonProfile 
       `${trackedService.categoryName} / ${trackedService.name}`,
       trackedService.priceFromCzk ?? undefined,
     );
-    trackMatomoEvent(
-      "Rezervace",
-      "Služba vybrána",
-      `${trackedService.categoryName} / ${trackedService.name}`,
-      trackedService.priceFromCzk ?? undefined,
-    );
     trackSelectedServiceMetaEvent(trackedService);
   }, [initialSelectedServiceSlug, selectedService]);
+
+  const trackDateSelected = (dateKey: string) => {
+    if (!shouldTrackBookingDateSelection(lastTrackedDateKeyRef.current, dateKey)) {
+      return;
+    }
+
+    lastTrackedDateKeyRef.current = dateKey;
+    trackMatomoEvent("Rezervace", "Datum vybráno", dateKey);
+    trackSelectedDateMetaEvent(dateKey);
+  };
 
   const trackContactStarted = () => {
     if (contactStartedTrackedRef.current) {
@@ -656,8 +665,7 @@ export function BookingFlow({ catalog, initialSelectedServiceSlug, salonProfile 
     setSelectedDateKey(dateKey);
     setSelectedTimeOptionKey(slotOption.key);
     setCurrentStep(3);
-    trackMatomoEvent("Rezervace", "Datum vybráno", dateKey);
-    trackSelectedDateMetaEvent(dateKey);
+    trackDateSelected(dateKey);
     trackMatomoEvent(
       "Rezervace",
       "Čas vybrán",
@@ -846,12 +854,14 @@ export function BookingFlow({ catalog, initialSelectedServiceSlug, salonProfile 
                 setSelectedServiceId(serviceId);
                 resetServiceDependentSelection();
                 setCurrentStep(2);
-                trackMatomoEvent(
-                  "Rezervace",
-                  "Služba vybrána",
-                  service ? `${service.categoryName} / ${service.name}` : undefined,
-                  service?.priceFromCzk ?? undefined,
-                );
+                if (shouldTrackBookingServiceSelectedForPrefill(service?.slug === initialSelectedServiceSlug)) {
+                  trackMatomoEvent(
+                    "Rezervace",
+                    "Služba vybrána",
+                    service ? `${service.categoryName} / ${service.name}` : undefined,
+                    service?.priceFromCzk ?? undefined,
+                  );
+                }
                 trackSelectedServiceMetaEvent(service);
                 focusTermStepSection();
               }}
@@ -885,8 +895,7 @@ export function BookingFlow({ catalog, initialSelectedServiceSlug, salonProfile 
               onSlotSelect={selectSlot}
               onSelectDate={(dateKey) => {
                 setSelectedDateKey(dateKey);
-                trackMatomoEvent("Rezervace", "Datum vybráno", dateKey);
-                trackSelectedDateMetaEvent(dateKey);
+                trackDateSelected(dateKey);
                 if (selectedSlotDateKey && selectedSlotDateKey !== dateKey) {
                   setSelectedTimeOptionKey("");
                 }
