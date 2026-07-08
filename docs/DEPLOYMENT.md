@@ -35,7 +35,7 @@ Stručný architektonický a provozní přehled nasazení na Proxmox/LXC je v ko
 11. Ověř, že `package.json`, `package-lock.json` a `CHANGELOG.md` obsahují stejnou release verzi.
 12. Ověř aktuálnost dokumentace (`MANUAL.md`, `docs/*`)
 13. Po změně GitHub workflow nebo názvů jobů ručně ověř GitHub nastavení repozitáře:
-   - branch protection / rulesets mají required status checks podle aktuálních job names
+   - branch protection / rulesets mají required status checks podle aktuálních job names; aktuální CI baseline je `lint`, `typecheck`, `test`, `coverage`, `build`, `e2e`
    - security záložka má zapnuté CodeQL a Dependabot alerts
    - případné staré required check names po rename nezůstaly viset jako permanentně pending
 14. Pokud release mění e-mailové šablony, spusť `npm run email:previews` a ručně otevři soubory v `tmp/email-previews`; zkontroluj HTML i textovou variantu v testech, kontakty ze `SiteSettings`, `.ics` přílohu u potvrzení a absenci přílohy u reminderu.

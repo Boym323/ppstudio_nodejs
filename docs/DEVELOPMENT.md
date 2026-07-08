@@ -49,7 +49,7 @@ Pro centralizovaný přehled hlavních route handler kontraktů používej i [`d
 - Report generuje formáty `text-summary`, `html`, `lcov` a `json-summary`, takže se hodí jak pro lokální čtení, tak pro CI artefakty.
 - Coverage běh nezapíná `RUN_DB_INTEGRATION_TESTS=1`; díky tomu měří hlavně unit/business logiku a nespadne na prostředí bez lokální databáze. Plnou DB vrstvu dál ověřuje standardní `npm test`.
 - GitHub Actions baseline je teď rozdělená do čtyř vrstev:
-  - hlavní `CI`: `lint -> typecheck -> npm test -> npm run test:coverage -> build -> Playwright E2E`
+  - hlavní `CI` jako šest samostatných jobů: `lint`, `typecheck`, `test`, `coverage`, `build`, `e2e`
   - `Dependency Review` pro PR dependency diff
   - `CodeQL` pro statickou security analýzu `javascript-typescript`
   - `Security Audit` pro scheduled/push `npm audit --audit-level=high`
@@ -478,9 +478,9 @@ Pro centralizovaný přehled hlavních route handler kontraktů používej i [`d
 - DB integrační testy `booking-public-voucher.integration.test.ts` jsou seedované per test case (`withSeed(...)`) místo sdíleného global seedu, aby paralelní běh netvořil write konflikty přes společné `service/slot/voucher` zázemí.
 - Při úpravách Playwright locatorů preferuj stabilní business orientační body (sekce, heading, finální CTA) před přesnými dynamickými timestamp labely nebo historickými texty formulářů; admin detail rezervace aktuálně používá pole `Volitelný důvod` a submit text odpovídá zvolené akci, např. `Potvrdit rezervaci`.
 - Booking detail v adminu používá statickou hlavičku (bez sticky/plovoucího chování), aby nepřekrývala `Další krok` ani status chooser.
-- CI workflow `.github/workflows/ci.yml` běží na push do `main`/`master` a na pull requesty. Používá PostgreSQL service container, aplikuje Prisma migrace přes `prisma migrate deploy`, generuje Prisma klienta a postupně spouští `npm run lint`, `npm run typecheck`, `npm test`, `npm run test:coverage`, `npm run build` a nakonec Playwright přes `npx playwright test`, aby se neopakoval build z `pretest:e2e`.
+- CI workflow `.github/workflows/ci.yml` běží na push do `main`/`master` a na pull requesty. Hlavní kontroly jsou rozdělené do samostatných jobů `lint`, `typecheck`, `test`, `coverage`, `build` a `e2e`, takže GitHub UI i branch protection vidí každý check zvlášť. DB joby používají PostgreSQL service container, aplikují Prisma migrace přes `prisma migrate deploy`, generují Prisma klienta a E2E běží přes `npx playwright test`.
 - CI používá testovací env hodnoty přímo ve workflow a e-maily drží v `EMAIL_DELIVERY_MODE=log`, aby browser a DB testy nevytvářely reálné SMTP side effects.
-- Repo-level enforcement zůstává mimo git: po přidání nebo přejmenování workflow ručně slad branch protection / rulesets a required status checks v GitHub nastavení repozitáře, jinak budou nové kontroly jen informativní.
+- Repo-level enforcement zůstává mimo git: po přidání nebo přejmenování workflow ručně slad branch protection / rulesets a required status checks v GitHub nastavení repozitáře, jinak budou nové kontroly jen informativní. Po této změně mají required checks mířit na jednotlivé job names `lint`, `typecheck`, `test`, `coverage`, `build`, `e2e`.
 
 ## Admin Informační Architektura
 - Sekce `volne-terminy` je znovu aktivní jako týdenní planner nad 30min gridem.

@@ -53,18 +53,18 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
   - LCOV data v `coverage/lcov.info`
   - strojově čitelný souhrn v `coverage/coverage-summary.json`
 - Coverage běh je záměrně bez `RUN_DB_INTEGRATION_TESTS=1`, takže reprezentuje hlavně unit/business vrstvu; databázové integrační testy dál ověřuje samostatný `npm test`.
-- GitHub Actions teď jako baseline pouští:
-  - `npm run lint`
-  - `npm run typecheck`
-  - `npm test`
-  - `npm run test:coverage`
-  - `npm run build`
-  - `npx playwright test`
+- GitHub Actions teď jako baseline pouští šest samostatných CI jobů:
+  - `lint`
+  - `typecheck`
+  - `test`
+  - `coverage`
+  - `build`
+  - `e2e`
 - Z hlavního CI běhu se ukládají artifacty `coverage-report` a `playwright-report`, takže při pádu PR není potřeba vše znovu reprodukovat jen kvůli detailní diagnostice.
 - Samostatné GitHub workflow navíc řeší `CodeQL`, `Dependency Review`, scheduled `npm audit --audit-level=high` a týdenní Dependabot update PR pro `npm` i GitHub Actions.
 - Samotné workflow soubory v repu nestačí k úplnému enforcementu. Po změně CI vždy ručně zkontroluj nastavení repozitáře na GitHubu:
   - branch protection / rulesets
-  - required status checks
+  - required status checks pro jednotlivé job names `lint`, `typecheck`, `test`, `coverage`, `build`, `e2e`
   - zapnutý Dependabot alerts a security overview
 - Aktuální testovací batch (2026-05-19) doplnil unit testy pro `src/features/admin/actions/*action-state.ts` a early-fail validace v `src/features/booking/lib/booking-public/engine.ts` (`invalid startsAt`, `invalid phone`), aby se zlepšilo pokrytí nejnižších oblastí.
 - Navazující batch (2026-05-19) přidal validační unit testy pro server actions v `src/features/admin/actions/actions-validation.test.ts` (invalid form payloady pro `client-actions`, `service-actions`, `booking-actions`, `settings-actions`) a zvýšil coverage především v `admin/actions`.
