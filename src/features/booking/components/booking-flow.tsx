@@ -85,7 +85,6 @@ export function BookingFlow({ catalog, initialSelectedServiceSlug, salonProfile 
   const contactStepFocusTimeoutRef = useRef<number | null>(null);
   const createdBookingTrackedRef = useRef(false);
   const successViewportResetRef = useRef(false);
-  const bookingViewedTrackedRef = useRef(false);
   const contactStartedTrackedRef = useRef(false);
   const trackedContactFocusFieldsRef = useRef<Set<ContactFieldKey>>(new Set());
   const trackedContactInputFieldsRef = useRef<Set<ContactFieldKey>>(new Set());
@@ -299,19 +298,6 @@ export function BookingFlow({ catalog, initialSelectedServiceSlug, salonProfile 
       content_category: "booking",
       source_context: initialSelectedServiceSlug ? "service_prefill" : "booking_landing",
     });
-  }, [initialSelectedServiceSlug]);
-
-  useEffect(() => {
-    if (bookingViewedTrackedRef.current) {
-      return;
-    }
-
-    bookingViewedTrackedRef.current = true;
-    trackMatomoEvent(
-      "Rezervace",
-      "Zobrazena",
-      initialSelectedServiceSlug ? "service_prefill" : "booking_landing",
-    );
   }, [initialSelectedServiceSlug]);
 
   useEffect(() => {

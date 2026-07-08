@@ -20,7 +20,7 @@ afterEach(() => {
   global.fetch = originalFetch;
 });
 
-test("getDashboardAnalytics returns contactStepQuality counters and rates", async () => {
+test("getDashboardAnalytics derives booking funnel viewed step from booking pageviews", async () => {
   global.fetch = (async (input: RequestInfo | URL) => {
     const rawUrl = typeof input === "string" ? input : input.toString();
     const url = new URL(rawUrl);
@@ -38,7 +38,6 @@ test("getDashboardAnalytics returns contactStepQuality counters and rates", asyn
     if (method === "Events.getAction") {
       return new Response(
         JSON.stringify([
-          { label: "Rezervace / Zobrazena", nb_events: 10 },
           { label: "Rezervace / Služba vybrána", nb_events: 8 },
           { label: "Rezervace / Datum vybráno", nb_events: 6 },
           { label: "Rezervace / Čas vybrán", nb_events: 5 },
@@ -48,6 +47,20 @@ test("getDashboardAnalytics returns contactStepQuality counters and rates", asyn
           { label: "Rezervace / Kontakt pole fokus", nb_events: 3 },
           { label: "Rezervace / Kontakt pole vyplnění začátek", nb_events: 2 },
           { label: "Rezervace / Kontakt pole chyba", nb_events: 1 },
+        ]),
+        { status: 200 },
+      );
+    }
+
+    if (method === "Actions.getPageUrls") {
+      assert.equal(url.searchParams.get("flat"), "1");
+
+      return new Response(
+        JSON.stringify([
+          { label: "/rezervace", nb_hits: 4 },
+          { label: "/rezervace?service=lash-lifting", nb_hits: 3 },
+          { label: "https://ppstudio.cz/rezervace?placement=Facebook_Mobile_Reels", nb_hits: 3 },
+          { label: "/rezervace/storno/[token]", nb_hits: 99 },
         ]),
         { status: 200 },
       );

@@ -7,6 +7,7 @@ Formát je inspirovaný Keep a Changelog.
 ## [Unreleased]
 
 - Opravený vizuální rozpad admin detailu rezervace po ručním přesunu termínu: potvrzovací banner u akce `Přesunout termín` se v panelu `Další krok` nově vždy smrskne a zalomí uvnitř vlastní grid karty, takže nepřetéká přes completion flow ani sousední obsah.
+- Matomo booking funnel už neduplikuje první krok vlastním eventem `Rezervace / Zobrazena`: dashboard teď bere `viewed` přímo z pageview reportu `/rezervace` (`Actions.getPageUrls`), zatímco klient posílá až navazující funnel eventy od `Služba vybrána` dál.
 
 ## [0.7.0] - 2026-07-07
 

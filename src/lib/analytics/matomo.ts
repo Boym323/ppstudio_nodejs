@@ -6,6 +6,7 @@ export type MatomoVisits = { nb_visits: number };
 export type MatomoEvent = { label: string; nb_events: number };
 export type MatomoReferrer = { label: string; nb_visits: number };
 export type MatomoCampaign = { label: string; nb_visits: number };
+export type MatomoPageUrl = { label: string; nb_hits: number };
 
 export type DashboardAnalyticsSource = {
   label: string;
@@ -76,7 +77,6 @@ const DEFAULT_DASHBOARD_ANALYTICS: DashboardAnalytics = {
 };
 
 const bookingFunnelLabels = {
-  viewed: "Rezervace / Zobrazena",
   service: "Rezervace / Služba vybrána",
   term: "Rezervace / Čas vybrán",
   contact: "Rezervace / Kontakt zahájen",
@@ -85,7 +85,6 @@ const bookingFunnelLabels = {
 } as const;
 
 const bookingFunnelLegacyAliases = {
-  viewed: ["Booking / Viewed"],
   service: ["Booking / Service selected"],
   term: ["Booking / Time selected"],
   contact: ["Booking / Contact started"],
@@ -102,6 +101,7 @@ const bookingContactQualityLabels = {
 
 type MatomoMethod =
   | "VisitsSummary.get"
+  | "Actions.getPageUrls"
   | "Events.getAction"
   | "Referrers.getReferrerType"
   | "Referrers.getCampaigns";
@@ -123,7 +123,10 @@ function getMatomoConfig() {
   };
 }
 
-function buildMatomoApiUrl(method: MatomoMethod) {
+function buildMatomoApiUrl(
+  method: MatomoMethod,
+  extraSearchParams?: Record<string, string>,
+) {
   const config = getMatomoConfig();
 
   if (!config) {
@@ -144,6 +147,9 @@ function buildMatomoApiUrl(method: MatomoMethod) {
     apiUrl.searchParams.set("date", "today");
     apiUrl.searchParams.set("format", "JSON");
     apiUrl.searchParams.set("token_auth", config.authToken);
+    for (const [key, value] of Object.entries(extraSearchParams ?? {})) {
+      apiUrl.searchParams.set(key, value);
+    }
 
     return apiUrl;
   } catch (error) {
@@ -202,8 +208,11 @@ function normalizeRows<T>(
     .map(normalize);
 }
 
-async function fetchMatomoJsonRaw(method: MatomoMethod) {
-  const url = buildMatomoApiUrl(method);
+async function fetchMatomoJsonRaw(
+  method: MatomoMethod,
+  extraSearchParams?: Record<string, string>,
+) {
+  const url = buildMatomoApiUrl(method, extraSearchParams);
 
   if (!url) {
     return null;
@@ -228,8 +237,11 @@ async function fetchMatomoJsonRaw(method: MatomoMethod) {
   }
 }
 
-async function fetchMatomoJson(method: MatomoMethod) {
-  const payload = await fetchMatomoJsonRaw(method);
+async function fetchMatomoJson(
+  method: MatomoMethod,
+  extraSearchParams?: Record<string, string>,
+) {
+  const payload = await fetchMatomoJsonRaw(method, extraSearchParams);
 
   if (getMatomoErrorMessage(payload)) {
     return null;
@@ -392,6 +404,16 @@ export async function fetchEvents(): Promise<MatomoEvent[]> {
   }));
 }
 
+export async function fetchPageUrls(): Promise<MatomoPageUrl[]> {
+  return normalizeRows(
+    await fetchMatomoJson("Actions.getPageUrls", { flat: "1" }),
+    (row) => ({
+      label: String(row.label ?? ""),
+      nb_hits: toFiniteNumber(row.nb_hits),
+    }),
+  );
+}
+
 export async function fetchReferrers(): Promise<MatomoReferrer[]> {
   return normalizeRows(await fetchMatomoJson("Referrers.getReferrerType"), (row) => ({
     label: String(row.label ?? ""),
@@ -404,6 +426,33 @@ export async function fetchCampaigns(): Promise<MatomoCampaign[]> {
     label: String(row.label ?? ""),
     nb_visits: toFiniteNumber(row.nb_visits),
   }));
+}
+
+function getBookingFlowPageviewCount(pageUrls: MatomoPageUrl[]) {
+  return pageUrls.reduce((sum, row) => {
+    const rawLabel = row.label.trim();
+
+    if (!rawLabel) {
+      return sum;
+    }
+
+    let normalizedPath = rawLabel;
+
+    try {
+      if (rawLabel.startsWith("http://") || rawLabel.startsWith("https://")) {
+        const parsedUrl = new URL(rawLabel);
+        normalizedPath = parsedUrl.pathname + parsedUrl.search;
+      }
+    } catch {
+      normalizedPath = rawLabel;
+    }
+
+    if (normalizedPath === "/rezervace" || normalizedPath.startsWith("/rezervace?")) {
+      return sum + row.nb_hits;
+    }
+
+    return sum;
+  }, 0);
 }
 
 export async function getMatomoReportingHealth(): Promise<MatomoReportingHealth> {
@@ -444,8 +493,9 @@ export async function getMatomoReportingHealth(): Promise<MatomoReportingHealth>
 
 export async function getDashboardAnalytics(): Promise<DashboardAnalytics> {
   try {
-    const [visitsSummary, events, referrers, campaigns] = await Promise.all([
+    const [visitsSummary, pageUrls, events, referrers, campaigns] = await Promise.all([
       fetchVisits(),
+      fetchPageUrls(),
       fetchEvents(),
       fetchReferrers(),
       fetchCampaigns(),
@@ -453,7 +503,7 @@ export async function getDashboardAnalytics(): Promise<DashboardAnalytics> {
 
     const visits = visitsSummary.nb_visits;
     const funnel = {
-      viewed: getEventCount(events, bookingFunnelLabels.viewed, bookingFunnelLegacyAliases.viewed),
+      viewed: getBookingFlowPageviewCount(pageUrls),
       service: getEventCount(events, bookingFunnelLabels.service, bookingFunnelLegacyAliases.service),
       term: getEventCount(events, bookingFunnelLabels.term, bookingFunnelLegacyAliases.term),
       contact: getEventCount(events, bookingFunnelLabels.contact, bookingFunnelLegacyAliases.contact),

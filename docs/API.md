@@ -305,7 +305,7 @@ Vysvětlení polí:
 - `conversionRate`: procentuální poměr mezi návštěvami a konverzemi.
 - `topSource`: hlavní zdroj návštěv v business-friendly názvu.
 - `sources`: detailnější rozpad zdrojů návštěv pro widget.
-- `funnel.viewed`: počet zobrazení veřejného booking flow `/rezervace`.
+- `funnel.viewed`: počet pageview zobrazení veřejného booking flow `/rezervace`; backend ho skládá z Matomo page URL reportu, ne z custom eventu.
 - `funnel.service`: počet průchodů krokem výběru služby.
 - `funnel.term`: počet průchodů krokem skutečně vybraného termínu; interně vychází z eventu `Rezervace / Čas vybrán`.
 - `funnel.contact`: počet vstupů do kontaktního kroku; interně vychází z eventu `Rezervace / Kontakt zahájen`.
