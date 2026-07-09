@@ -1,4 +1,4 @@
-import sharp from 'sharp';
+import sharp, { type Sharp } from 'sharp';
 
 import type {
   MediaVariantName,
@@ -21,7 +21,7 @@ function getOutputExtension(mimeType: string) {
   }
 }
 
-function applyEncoder(image: sharp.Sharp, mimeType: string, quality: number) {
+function applyEncoder(image: Sharp, mimeType: string, quality: number) {
   switch (mimeType) {
     case 'image/jpeg':
       return image.jpeg({ quality, mozjpeg: true });
