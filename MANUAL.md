@@ -62,6 +62,7 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
   - `e2e`
 - Z hlavního CI běhu se ukládají artifacty `coverage-report` a `playwright-report`, takže při pádu PR není potřeba vše znovu reprodukovat jen kvůli detailní diagnostice.
 - Samostatné GitHub workflow navíc řeší `CodeQL`, `Dependency Review`, scheduled `npm audit --audit-level=high` a týdenní Dependabot update PR pro `npm` i GitHub Actions.
+- GitHub Actions baseline je průběžně držena na novější major řadě bez Node 20 warningů v runneru: `actions/checkout@v7`, `actions/setup-node@v6`, `actions/upload-artifact@v7` a `actions/dependency-review-action@v5`.
 - Samotné workflow soubory v repu nestačí k úplnému enforcementu. Po změně CI vždy ručně zkontroluj nastavení repozitáře na GitHubu:
   - branch protection / rulesets
   - required status checks pro jednotlivé job names `lint`, `typecheck`, `test`, `coverage`, `build`, `e2e`

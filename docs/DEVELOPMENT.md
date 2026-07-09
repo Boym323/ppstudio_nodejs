@@ -53,6 +53,7 @@ Pro centralizovaný přehled hlavních route handler kontraktů používej i [`d
   - `Dependency Review` pro PR dependency diff
   - `CodeQL` pro statickou security analýzu `javascript-typescript`
   - `Security Audit` pro scheduled/push `npm audit --audit-level=high`
+- Verze GitHub Actions drž vědomě blízko aktuálním major release, protože starší akce mohou na GitHub runneru skončit v compat režimu s Node deprecation warningy. Aktuální baseline v repu je `actions/checkout@v7`, `actions/setup-node@v6`, `actions/upload-artifact@v7` a `actions/dependency-review-action@v5`.
 - Hlavní `CI` po doběhu ukládá artifacty `coverage/` a `playwright-report/`; při ladění flake nebo regressí tak preferuj stažení artifactu z GitHubu před slepým lokálním rerunem.
 - `.github/dependabot.yml` drží týdenní update PR pro `npm` i `github-actions`; pokud se změní cadence releasů nebo údržbové kapacity týmu, aktualizuj tento soubor spolu s `docs/DEPENDENCIES.md`.
 - Pro rychlé navyšování coverage v admin vrstvě používej samostatné `*.test.ts` i pro akční state moduly (`src/features/admin/actions/*action-state.ts`), protože i tyto server action kontrakty jsou součástí veřejného chování UI formulářů.

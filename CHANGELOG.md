@@ -6,6 +6,9 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- GitHub workflow baseline je sjednocená s aktuálními Dependabot GitHub Actions upgrady: `actions/checkout@v7`, `actions/setup-node@v6`, `actions/upload-artifact@v7` a `actions/dependency-review-action@v5`.
+- Tím se odstraňuje potřeba držet několik samostatných Dependabot PR jen pro GitHub Actions a snižuje se riziko runner warningů kolem starších Node-targeted action verzí.
+
 ## [0.7.2] - 2026-07-09
 
 - Release příprava pro produkční nasazení: projektová verze navýšena na patch `0.7.2`.
