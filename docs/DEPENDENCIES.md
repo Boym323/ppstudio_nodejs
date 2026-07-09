@@ -6,8 +6,8 @@ Seznam důležitých knihoven a důvod jejich použití.
 - Zdroj pravdy je `package.json` v kořeni projektu.
 - Projektový runtime cíl je `Node 24 LTS`; repozitář to explicitně deklaruje přes [`.nvmrc`](/var/www/ppstudio/.nvmrc:1) a `package.json.engines`.
 - `next`: `16.2.9`
-- `react`: `19.2.4`
-- `react-dom`: `19.2.4`
+- `react`: `19.2.7`
+- `react-dom`: `19.2.7`
 - `tailwindcss`: `^4.2.4` (runtime používá `4.2.4`)
 - `@tailwindcss/postcss`: `^4.2.4` (runtime používá `4.2.4`)
 - `postcss`: přímá závislost není pinovaná; resolvuje se přes `@tailwindcss/postcss` (`8.5.10`) a interně také přes `next` (`8.4.31`).
@@ -19,6 +19,7 @@ Seznam důležitých knihoven a důvod jejich použití.
 - Automatické `npm audit fix` se teď vědomě nepouští: doporučené opravy vrací nebezpečné návrhy na major downgrade `next` nebo `prisma`, takže bezpečný postup je čekat na kompatibilní upstream patch/minor release a zkusit audit znovu při dalším dependency passu.
 - `@playwright/test`: browser E2E test runner pro hlavní rezervační a admin flow; v projektu držíme `^1.61.1`, protože starší `1.59.1` se v CI na Node 24 zasekávala při instalaci browseru.
 - `c8`: V8 coverage reporter nad stávajícím `node --test` setupem; generuje HTML/LCOV/JSON reporty bez nutnosti přechodu na jiný test runner.
+- `react` a `react-dom` drž vždy na přesně stejné patch verzi. U Next.js/React serverového renderu repo nesmí přijmout jednostranný bump jen `react`, protože CI pak spadne na runtime kontrolu `Incompatible React versions`.
 - GitHub security automation teď stojí i na repo konfiguraci bez nových runtime závislostí:
   - `github/codeql-action`: statická bezpečnostní analýza JavaScript/TypeScript kódu
   - `actions/dependency-review-action`: PR diff kontrola rizikových dependency změn; aktuálně držíme major `v5`

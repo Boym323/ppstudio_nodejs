@@ -9,6 +9,7 @@ Formát je inspirovaný Keep a Changelog.
 - GitHub workflow baseline je sjednocená s aktuálními Dependabot GitHub Actions upgrady: `actions/checkout@v7`, `actions/setup-node@v6`, `actions/upload-artifact@v7` a `actions/dependency-review-action@v5`.
 - Tím se odstraňuje potřeba držet několik samostatných Dependabot PR jen pro GitHub Actions a snižuje se riziko runner warningů kolem starších Node-targeted action verzí.
 - Opravená kompatibilita media pipeline s novějším `sharp`: `src/lib/media/media-pipeline.ts` už nepoužívá zastaralý namespace typ `sharp.Sharp`, ale explicitní type import `Sharp`, takže upgrade `sharp` znovu prochází `typecheck` i produkčním buildem.
+- React stack je sjednocený na kompatibilní patch verzi `19.2.7`: `react` a `react-dom` se povyšují společně a doprovodné typy `@types/react` / `@types/react-dom` jsou sladěné s aktuální řadou, aby CI nepadalo na `Incompatible React versions`.
 
 ## [0.7.2] - 2026-07-09
 
