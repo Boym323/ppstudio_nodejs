@@ -11,7 +11,7 @@ Pro centralizovaný přehled hlavních route handler kontraktů používej i [`d
 - Pro opakující se incidenty použij i [`TROUBLESHOOTING.md`](/var/www/ppstudio/TROUBLESHOOTING.md).
 
 ## Verzování a release disciplína
-- `package.json` používá SemVer `MAJOR.MINOR.PATCH`; aktuální release je `0.7.1` v pre-stable řadě.
+- `package.json` používá SemVer `MAJOR.MINOR.PATCH`; aktuální release je `0.7.2` v pre-stable řadě.
 - Praktické pravidlo pro tento projekt:
   - `PATCH`: bugfix, interní refaktor bez změny kontraktu, performance tuning bez změny chování API/UI kontraktu.
   - `MINOR`: nová funkce nebo rozšíření existující funkce zpětně kompatibilním způsobem.

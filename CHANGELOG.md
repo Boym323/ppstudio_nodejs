@@ -6,6 +6,9 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [0.7.2] - 2026-07-09
+
+- Release příprava pro produkční nasazení: projektová verze navýšena na patch `0.7.2`.
 - GitHub automation pro kvalitu a bezpečnost je rozšířená na prakticky kompletní baseline: hlavní CI nově vedle `lint` běží i `typecheck`, plný `npm test`, samostatný `npm run test:coverage`, produkční build a Playwright E2E; coverage i `playwright-report` se zároveň ukládají jako artifacty.
 - Hlavní `CI` už není jeden velký job, ale šest samostatných checků `lint`, `typecheck`, `test`, `coverage`, `build`, `e2e`, takže GitHub UI i branch protection znovu vidí každou kontrolu zvlášť.
 - Po rozdělení `CI` do samostatných jobů je workflow znovu sladěné s Prisma a App Router build chováním: `typecheck` po `npm ci` explicitně generuje Prisma klienta, `build` job má vlastní PostgreSQL service + migrace kvůli statickému sběru page dat a `e2e` job si dělá vlastní build, protože už nesdílí `.next` z jiného jobu.
