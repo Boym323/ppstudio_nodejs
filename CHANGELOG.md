@@ -6,6 +6,9 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [0.7.3] - 2026-07-09
+
+- Release příprava pro produkční nasazení: projektová verze navýšena na patch `0.7.3`.
 - Aktualizován framework `next` z `16.2.9` na `16.2.10` a `eslint-config-next` z `16.2.9` na `16.2.10`; jde o bezpečný patch upgrade v rámci Next.js 16 s odpovídající aktualizací lockfile a dokumentace.
 - GitHub workflow baseline je sjednocená s aktuálními Dependabot GitHub Actions upgrady: `actions/checkout@v7`, `actions/setup-node@v6`, `actions/upload-artifact@v7` a `actions/dependency-review-action@v5`.
 - Tím se odstraňuje potřeba držet několik samostatných Dependabot PR jen pro GitHub Actions a snižuje se riziko runner warningů kolem starších Node-targeted action verzí.
