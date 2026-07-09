@@ -200,9 +200,9 @@ Praktický přehled hlavních HTTP endpointů je v [`docs/API.md`](/var/www/ppst
 - V detailu owner `Email logu` lze nově jedním klikem `Načíst e-mail z kontaktu` (aktualizuje `recipientEmail` z aktuální klientky) a `Znovu odeslat e-mail` (založí nový `PENDING` log jako nový pokus, původní záznam zůstává beze změny kvůli auditu).
 - Admin detail rezervace musí i při dlouhém jménu, e-mailu nebo hlášce po přesunu termínu zalamovat text uvnitř karet; success bannery, historie i key/value souhrny nesmí horizontálně přetékat mimo panel.
 - Aktuální runtime stack podle `package.json`:
-  - `next` `16.2.9`
-  - `react` `19.2.4`
-  - `react-dom` `19.2.4`
+  - `next` `16.2.10`
+  - `react` `19.2.7`
+  - `react-dom` `19.2.7`
   - `prisma` + `@prisma/client` `7.8.0`
 - Veřejná část aktuálně pokrývá:
   - homepage
