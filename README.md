@@ -2,12 +2,14 @@
 
 Produkční web kosmetického studia s veřejnou prezentací, rezervačním flow a odděleným admin rozhraním pro role `OWNER` a `SALON`.
 
-README slouží jako rychlý GitHub rozcestník. Detailní provozní a vývojová dokumentace je vedená přímo v repozitáři v `MANUAL.md` a `docs/*`, ne jako primární GitHub Wiki.
+Aktuální verze: **1.0.2**. README slouží jako rychlý GitHub rozcestník a onboarding. Detailní provozní a vývojová dokumentace je vedená přímo v repozitáři, ne jako primární GitHub Wiki.
 
 Nejdůležitější dokumenty:
-- [MANUAL.md](/var/www/ppstudio/MANUAL.md) pro provozní souvislosti
-- [docs/DEVELOPMENT.md](/var/www/ppstudio/docs/DEVELOPMENT.md) pro technická pravidla vývoje
-- [docs/API.md](/var/www/ppstudio/docs/API.md) pro hlavní HTTP endpointy a jejich kontrakty
+- [MANUAL.md](MANUAL.md) pro provozní souvislosti
+- [ARCHITECTURE.md](ARCHITECTURE.md) pro architekturu systému
+- [BOOKING_FLOW.md](BOOKING_FLOW.md) pro rezervační doménu
+- [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) pro technická pravidla vývoje
+- [docs/API.md](docs/API.md) pro hlavní HTTP endpointy a jejich kontrakty
 
 ## Aktuální stav
 
@@ -173,6 +175,7 @@ npm run dev:clean
 - `npm run build` vytvoří produkční build
 - `npm run start` spustí produkční server
 - `npm run lint` spustí ESLint
+- `npm run typecheck` ověří TypeScript bez zápisu výstupu
 - `npm run test` spustí unit a DB integrační testy nad Node test runnerem
 - `npm run test:coverage` vygeneruje coverage report do `coverage/`
 - `npm run test:e2e` spustí Playwright E2E testy
@@ -233,13 +236,18 @@ Plný seznam proměnných a detailní vysvětlení je v `docs/ENVIRONMENT.md`.
 
 ## Dokumentační rozcestník
 
-- `MANUAL.md`: provozní a uživatelský přehled projektu
-- `docs/DEVELOPMENT.md`: technické konvence, architektura a workflow
-- `docs/ENVIRONMENT.md`: env proměnné
-- `docs/DEPLOYMENT.md`: release a produkční nasazení
-- `docs/DEPENDENCIES.md`: přehled hlavních závislostí
-- `docs/INCIDENTS.md`: provozní incidenty a troubleshooting
-- `docs/ADR/*`: architektonická rozhodnutí
+- [MANUAL.md](MANUAL.md): provozní a uživatelský přehled projektu
+- [ARCHITECTURE.md](ARCHITECTURE.md): architektura, datový model a integrační hranice
+- [BOOKING_FLOW.md](BOOKING_FLOW.md): rezervační tok a jeho pravidla
+- [ENVIRONMENT.md](ENVIRONMENT.md): rychlý přehled produkčního prostředí
+- [DEPLOYMENT.md](DEPLOYMENT.md): praktický postup nasazení
+- [TROUBLESHOOTING.md](TROUBLESHOOTING.md): rychlá diagnostika problémů
+- [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md): technické konvence a workflow
+- [docs/ENVIRONMENT.md](docs/ENVIRONMENT.md): úplný katalog env proměnných
+- [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md): release checklist a nasazení
+- [docs/DEPENDENCIES.md](docs/DEPENDENCIES.md): přehled hlavních závislostí
+- [docs/INCIDENTS.md](docs/INCIDENTS.md): provozní incidenty a jejich řešení
+- [docs/ADR/README.md](docs/ADR/README.md): architektonická rozhodnutí
 
 ## Nasazení
 
@@ -248,20 +256,22 @@ Plný seznam proměnných a detailní vysvětlení je v `docs/ENVIRONMENT.md`.
 1. Na serveru měj čistý checkout repozitáře a správně nastavené `.env`.
 2. Ověř PostgreSQL připojení, e-mailovou konfiguraci, `MEDIA_STORAGE_ROOT` a validní `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY`.
 3. Spusť `./deploy/release.sh`.
-4. Skript provede `git pull --ff-only`, build ve staging workspace (`npm ci --include=dev`, `npm run db:generate`, `npm run db:check-migrations`, `npx prisma migrate deploy`, `npm run lint`, `npm run build`), zapíše `.release-env`, synchronizuje systemd unity a pak krátce přepne hotové artefakty pro `ppstudio-web` / `ppstudio-email-worker`.
-5. Po releasu ověř `GET /api/health`, admin login, veřejnou homepage a testovací rezervaci.
+4. Skript provede `git pull --ff-only`, vytvoří úplný staging release (`npm ci --include=dev`, `npm run db:generate`, `npm run db:check-migrations`, `prisma validate`, `npm run lint`, `npm run build`) a teprve poté aplikuje `prisma migrate deploy`.
+5. Hotový runtime uloží do verzovaného `releases/` a atomicky přepne symlink `current`; společně se tak přepnou zdrojové soubory, Prisma Client, `.next`, `node_modules` i e-mailový worker. Při selhání startu, health nebo smoke testu se vrátí předchozí runtime release; databázové migrace se automaticky nevracejí.
+6. Po releasu ověř `GET /api/health`, admin login, veřejnou homepage a testovací rezervaci. Health kontrola zároveň ověřuje očekávané deployment ID a homepage smoke test je diagnostikován samostatně.
 
 ### Kdy použít detailní deployment docs
 
-- `docs/DEPLOYMENT.md` obsahuje plný release checklist a ruční QA
-- `MANUAL.md` shrnuje provozní rollout z pohledu údržby
-- `docs/ENVIRONMENT.md` rozepisuje produkční env proměnné
+- [DEPLOYMENT.md](DEPLOYMENT.md) nabízí rychlý provozní postup
+- [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) obsahuje plný release checklist a ruční QA
+- [MANUAL.md](MANUAL.md) shrnuje rollout z pohledu údržby
+- [docs/ENVIRONMENT.md](docs/ENVIRONMENT.md) rozepisuje produkční env proměnné
 
 ## SLA a monitoring
 
 Projekt už má připravené stavební bloky pro základní provozní dohled:
 
-- `GET /api/health` vrací agregovaný stav webu, DB a e-mailové fronty
+- `GET /api/health` vrací bezpečný agregovaný stav webu, DB, e-mailové fronty a metadat releasu
 - `npm run analytics:check` ověří server-side Matomo reporting
 - `ppstudio-web.service` a `ppstudio-email-worker.service` mají být pod systemd
 - admin dashboard umí ukázat provozní a analytické varování, ale není náhradou externího monitoringu
@@ -272,6 +282,8 @@ Doporučené minimum:
 2. Kontrola běhu obou systemd služeb.
 3. Alert na růst `failed/retrying/stale` e-mailů.
 4. Základní release SLA: po deployi ověřit homepage, admin login a vytvoření testovací rezervace.
+
+`/api/health` vrací HTTP `503` při nedostupné databázi se stabilním kódem `DATABASE_UNAVAILABLE`. Pokud selžou pouze doplňkové metriky e-mailové fronty, vrací HTTP `200`, `status=warning` a `EMAIL_HEALTH_UNAVAILABLE`; konkrétní příčinu hledej v journalu webové služby.
 
 Pokud chcete mít v repu přímo popsaný provozní standard, navazující detaily jsou v `docs/DEPLOYMENT.md`, `docs/INCIDENTS.md` a `MANUAL.md`.
 
