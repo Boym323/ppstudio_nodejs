@@ -6,6 +6,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Opravena SEO discovery chyba: indexovatelná stránka `/studio` je znovu v `sitemap.xml`; Playwright SEO smoke test nyní její `<loc>` explicitně ověřuje.
+
 ## [0.7.3] - 2026-07-09
 
 - Release příprava pro produkční nasazení: projektová verze navýšena na patch `0.7.3`.

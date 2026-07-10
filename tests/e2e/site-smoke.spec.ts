@@ -97,6 +97,7 @@ test.describe("public site smoke coverage", () => {
     expect(sitemap).toContain("<loc>");
     expect(sitemap).toContain(`<loc>${host}`);
     expect(sitemap).toContain("/sluzby");
+    expect(sitemap).toContain(`${host}/studio`);
     expect(sitemap).not.toContain("http://ppstudio.cz");
     expect(sitemap).not.toContain("/admin");
     expect(sitemap).not.toContain("/rezervace/sprava");
