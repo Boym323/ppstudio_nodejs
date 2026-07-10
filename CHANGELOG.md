@@ -6,6 +6,9 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+### Fixed
+- Admin booking parser už odmítá neplatná kalendářní data, časy mimo rozsah a neexistující pražské wall-clock časy v jarní DST mezeře. Při podzimní dvojznačnosti používá explicitně dřívější výskyt.
+
 - Release preflight nově kontroluje lokální `prisma/migrations` proti `git ls-tree` a zastaví se na adresářích bez `migration.sql`, aby se předešlo chybě Prisma P3015.
 
 - Opravena SEO discovery chyba: indexovatelná stránka `/studio` je znovu v `sitemap.xml`; Playwright SEO smoke test nyní její `<loc>` explicitně ověřuje.

@@ -34,6 +34,10 @@ Pro centralizovaný přehled hlavních route handler kontraktů používej i [`d
 - Kořenový `instrumentation.ts` je oficiální Next.js 16 hook pro serverovou observability. Když potřebuješ víc detailů k chybám, které spadnou ještě před vlastní action logikou, přidávej je přes `register()` / `onRequestError`, ne až do jednotlivých server actions.
 
 ## Test runner a coverage
+
+### Prague local time
+
+`resolvePragueLocalDateTime` nejdříve ověřuje rozsahy data a času a následně vyžaduje přesný round-trip přes `Europe/Prague`. Časy v jarní DST mezeře a neplatná data se odmítají (`null`). Dvojznačný čas při podzimním přechodu používá dřívější výskyt.
 - `npm test` používá Node test runner + `tsx` preload nad quoted globem `src/**/*.test.ts`; quoting je záměrný, protože bez něj Bash v defaultní konfiguraci expandoval jen část stromu a coverage pak nereprezentovala celé repo.
 - `npm run typecheck` drží rychlou čistou TypeScript vrstvu přes `tsc --noEmit`; je to záměrně samostatný check, aby typové regrese nebyly vidět až v `next build`.
 - `npm run test:coverage` používá `c8` nad tím samým runnerem a ukládá výstupy do `coverage/`.

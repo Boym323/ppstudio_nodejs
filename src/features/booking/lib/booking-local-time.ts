@@ -41,6 +41,48 @@ function compareLocalParts(
   );
 }
 
+function areSameLocalParts(
+  left: { year: number; month: number; day: number; hour: number; minute: number },
+  right: { year: number; month: number; day: number; hour: number; minute: number },
+) {
+  return (
+    left.year === right.year &&
+    left.month === right.month &&
+    left.day === right.day &&
+    left.hour === right.hour &&
+    left.minute === right.minute
+  );
+}
+
+function isValidCalendarDate(year: number, month: number, day: number) {
+  if (year < 1 || year > 9999 || month < 1 || month > 12 || day < 1) {
+    return false;
+  }
+
+  const daysInMonth = [31, (year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0)) ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][month - 1];
+
+  return day <= daysInMonth;
+}
+
+function chooseEarlierPragueOccurrence(
+  guess: Date,
+  requested: { year: number; month: number; day: number; hour: number; minute: number },
+) {
+  let earliest = guess;
+
+  // DST overlaps are normally one hour, but check a wider bounded window so
+  // the policy remains explicit if zone rules ever use another offset.
+  for (let minutes = 1; minutes <= 180; minutes += 1) {
+    const candidate = new Date(guess.getTime() - minutes * 60_000);
+
+    if (areSameLocalParts(requested, getDateTimeParts(candidate))) {
+      earliest = candidate;
+    }
+  }
+
+  return earliest;
+}
+
 export function pragueLocalDateTimeToUtc(
   year: number,
   month: number,
@@ -48,6 +90,16 @@ export function pragueLocalDateTimeToUtc(
   hour: number,
   minute: number,
 ) {
+  if (
+    !isValidCalendarDate(year, month, day) ||
+    hour < 0 ||
+    hour > 23 ||
+    minute < 0 ||
+    minute > 59
+  ) {
+    return null;
+  }
+
   // Salon time follows Europe/Prague DST rules, so fixed +1/+2 offsets would
   // break around March/October transitions and for future tz database changes.
   let guess = new Date(Date.UTC(year, month - 1, day, hour, minute));
@@ -59,14 +111,16 @@ export function pragueLocalDateTimeToUtc(
       parts,
     );
 
-    if (delta === 0) {
-      return guess;
+    if (delta === 0 && areSameLocalParts({ year, month, day, hour, minute }, parts)) {
+      // The earlier matching instant is retained for an ambiguous autumn
+      // time. A spring-forward wall-clock time never reaches this branch.
+      return chooseEarlierPragueOccurrence(guess, { year, month, day, hour, minute });
     }
 
     guess = new Date(guess.getTime() + delta);
   }
 
-  return guess;
+  return null;
 }
 
 export function resolvePragueLocalDateTime(dateValue: string, timeValue: string) {
