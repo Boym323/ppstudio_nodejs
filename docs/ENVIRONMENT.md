@@ -39,7 +39,7 @@ Stručný runtime přehled prostředí a vazeb na infrastrukturu je v kořenové
 - `NEXT_DEPLOYMENT_ID`: identifikátor konkrétního deploymentu pro ochranu proti version skew; při doporučeném rollout skriptu se nastavuje automaticky z aktuálního git commitu a nemá se držet staticky v `.env`.
 - `DEPLOYMENT_VERSION`: volitelný alias pro deployment identifikátor; release skript ho automaticky exportuje na stejnou hodnotu jako `NEXT_DEPLOYMENT_ID`.
 - `GIT_HASH`: volitelný fallback pro `deploymentId`; release skript ho automaticky exportuje na aktuální git commit.
-- `.release-env`: runtime soubor generovaný `deploy/release.sh`, který obsahuje `NEXT_DEPLOYMENT_ID`, `DEPLOYMENT_VERSION` a `GIT_HASH` pro systemd `next start`. Needituje se ručně; release i rollback ho přepisují atomicky podle aktivního buildu.
+- `.release-env`: runtime soubor generovaný `deploy/release.sh`, který obsahuje `NEXT_DEPLOYMENT_ID`, `DEPLOYMENT_VERSION` a `GIT_HASH` pro systemd `next start`. Needituje se ručně; je součástí každého verzovaného release adresáře a unit ho čte z `/var/www/ppstudio/current/.release-env`.
 - Stejná trojice release proměnných se propisuje i do veřejného `GET /api/health` payloadu pod `release.*`, takže při incidentu můžeš porovnat monitoring odpověď se startup logy `ppstudio.next.register`.
 - `DATABASE_URL`: PostgreSQL connection string pro Prisma.
 - `SHADOW_DATABASE_URL`: pomocná databáze pro `prisma migrate dev` (lokální vývoj).

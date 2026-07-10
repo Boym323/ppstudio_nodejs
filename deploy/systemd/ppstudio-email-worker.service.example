@@ -5,8 +5,9 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-WorkingDirectory=/var/www/ppstudio
+WorkingDirectory=/var/www/ppstudio/current
 EnvironmentFile=/var/www/ppstudio/.env
+EnvironmentFile=-/var/www/ppstudio/current/.release-env
 Environment=NODE_ENV=production
 
 # Optional hardening:

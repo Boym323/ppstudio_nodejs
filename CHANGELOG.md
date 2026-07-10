@@ -7,6 +7,9 @@ Formát je inspirovaný Keep a Changelog.
 ## [Unreleased]
 
 ### Fixed
+- Produkční rollout už nemění jen `.next` a `node_modules`: každý build se ukládá jako úplný verzovaný adresář v `releases/` a atomický symlink `current` přepíná zdrojové soubory, Prisma klient i build společně. Při selhání startu, workeru nebo health/smoke testu se vrací celý předchozí release; databázové migrace se záměrně automaticky nevracejí.
+- Úspěšný release automaticky maže staré verzované adresáře: vždy chrání `current`, `previous` a standardně sedm dalších nejnovějších release; limit lze změnit přes `--keep-releases N`.
+
 - E-mailový outbox nyní váže doručení i finální zápis stavu na `processingToken`. Worker ani ruční okamžité odeslání tak nemohou dokončit cizí nebo zastaralý claim. Resend REST požadavky používají stabilní `Idempotency-Key` odvozený z `EmailLog.id`; SMTP používá stabilní `Message-ID` (a hlavičku Resend pro kompatibilní SMTP), proto po pádu mezi ACK poskytovatele a DB zápisem zůstává SMTP explicitně at-least-once.
 
 - Opravena bezpečnostní chyba administrátorských pozvánek: deaktivace účtu nyní v téže databázové transakci revokuje všechny nepoužité pozvánky. Veřejná aktivace zamyká token i účet, atomicky spotřebuje pouze dosud platný token aktivního uživatele a už nikdy sama nemění `AdminUser.isActive`. Přibyly integrační regrese pro deaktivovaný účet i souběžné použití stejného odkazu.

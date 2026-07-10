@@ -2,6 +2,8 @@
 
 Seznam důležitých knihoven a důvod jejich použití.
 
+Atomický release mechanismus nepřidává žádnou npm závislost; používá existující Bash, systemd, `curl`, Node.js a Prisma CLI.
+
 ## Aktuální verze stacku
 - Zdroj pravdy je `package.json` v kořeni projektu.
 - Projektový runtime cíl je `Node 24 LTS`; repozitář to explicitně deklaruje přes [`.nvmrc`](/var/www/ppstudio/.nvmrc:1) a `package.json.engines`.

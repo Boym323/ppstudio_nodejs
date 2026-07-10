@@ -2,12 +2,19 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
-SYSTEMD_DIR="/etc/systemd/system"
+REPO_DIR="${PPSTUDIO_REPO_DIR:-$(cd "${SCRIPT_DIR}/.." && pwd)}"
+SYSTEMD_DIR="${PPSTUDIO_SYSTEMD_DIR:-/etc/systemd/system}"
+RELEASES_DIR="${PPSTUDIO_RELEASES_DIR:-${REPO_DIR}/releases}"
+CURRENT_RELEASE_LINK="${REPO_DIR}/current"
+PREVIOUS_RELEASE_LINK="${REPO_DIR}/previous"
 WEB_UNIT_NAME="ppstudio-web"
 WORKER_UNIT_NAME="ppstudio-email-worker"
 RUNTIME_RELEASE_ENV_FILE=".release-env"
-PREVIOUS_RUNTIME_RELEASE_ENV_FILE=".release-env.previous-release"
+HEALTH_URL="${PPSTUDIO_HEALTH_URL:-http://127.0.0.1:3000/api/health}"
+SMOKE_URL="${PPSTUDIO_SMOKE_URL:-http://127.0.0.1:3000/}"
+HEALTH_RETRIES="${PPSTUDIO_HEALTH_RETRIES:-15}"
+HEALTH_RETRY_SECONDS="${PPSTUDIO_HEALTH_RETRY_SECONDS:-2}"
+RETAIN_RELEASES="${PPSTUDIO_RETAIN_RELEASES:-7}"
 
 ALLOW_DIRTY=0
 SKIP_PULL=0
@@ -26,6 +33,7 @@ Volby:
   --allow-dirty      Povolit release i s necommitnutými změnami
   --skip-pull        Přeskočit 'git pull --ff-only'
   --skip-lint        Přeskočit 'npm run lint'
+  --keep-releases N  Ponechat N posledních dalších release (výchozí: 7)
   --yes              Přeskočit interaktivní potvrzení
   -h, --help         Zobrazit nápovědu
 USAGE
@@ -201,10 +209,8 @@ EOF
 }
 
 create_release_workspace() {
-  local release_parent_dir
-
-  release_parent_dir="$(dirname "${REPO_DIR}")"
-  RELEASE_BUILD_DIR="$(mktemp -d -p "${release_parent_dir}" ".ppstudio-release.XXXXXX")"
+  mkdir -p "${RELEASES_DIR}"
+  RELEASE_BUILD_DIR="$(mktemp -d -p "${RELEASES_DIR}" ".staging.XXXXXX")"
 
   log "Připravuji izolovaný build workspace ${RELEASE_BUILD_DIR}"
   git -C "${REPO_DIR}" archive --format=tar HEAD | tar -xf - -C "${RELEASE_BUILD_DIR}"
@@ -221,70 +227,140 @@ cleanup_release_workspace() {
   fi
 }
 
-swap_release_artifacts() {
-  local previous_node_modules_dir="${REPO_DIR}/node_modules.previous-release"
-  local previous_next_dir="${REPO_DIR}/.next.previous-release"
-  local runtime_release_env_path="${REPO_DIR}/${RUNTIME_RELEASE_ENV_FILE}"
-  local previous_runtime_release_env_path="${REPO_DIR}/${PREVIOUS_RUNTIME_RELEASE_ENV_FILE}"
+cleanup_old_releases() {
+  local current_target=""
+  local previous_target=""
+  local release_dir
+  local additional_kept=0
 
-  if [[ ! -d "${RELEASE_BUILD_DIR}/node_modules" ]] || [[ ! -d "${RELEASE_BUILD_DIR}/.next" ]]; then
-    echo "Staging workspace neobsahuje hotové node_modules/.next artefakty, přepnutí releasu ruším." >&2
-    exit 1
+  if ! [[ "${RETAIN_RELEASES}" =~ ^[0-9]+$ ]]; then
+    echo "--keep-releases musí být nezáporné celé číslo." >&2
+    return 1
   fi
 
-  rm -rf "${previous_node_modules_dir}" "${previous_next_dir}"
-  rm -f "${previous_runtime_release_env_path}"
+  [[ -L "${CURRENT_RELEASE_LINK}" ]] && current_target="$(readlink -f "${CURRENT_RELEASE_LINK}")"
+  [[ -L "${PREVIOUS_RELEASE_LINK}" ]] && previous_target="$(readlink -f "${PREVIOUS_RELEASE_LINK}")"
 
-  if [[ -f "${runtime_release_env_path}" ]]; then
-    cp "${runtime_release_env_path}" "${previous_runtime_release_env_path}"
+  while IFS= read -r -d '' release_dir; do
+    case "$(basename "${release_dir}")" in
+      [0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]) ;;
+      *) continue ;;
+    esac
+
+    if [[ "${release_dir}" == "${current_target}" || "${release_dir}" == "${previous_target}" ]]; then
+      continue
+    fi
+
+    if (( additional_kept < RETAIN_RELEASES )); then
+      additional_kept=$((additional_kept + 1))
+      continue
+    fi
+
+    log "Mažu starý release ${release_dir}"
+    rm -rf -- "${release_dir}"
+  done < <(find "${RELEASES_DIR}" -mindepth 1 -maxdepth 1 -type d -print0 | sort -z -r)
+}
+
+set_release_link() {
+  local link_path="$1"
+  local target_path="$2"
+  local temporary_link="${link_path}.new"
+
+  ln -sfn "${target_path}" "${temporary_link}"
+  mv -Tf "${temporary_link}" "${link_path}"
+}
+
+start_release_services() {
+  sudo systemctl start "${WEB_UNIT_NAME}" || return 1
+  sudo systemctl start "${WORKER_UNIT_NAME}" || return 1
+}
+
+release_is_healthy() {
+  local response_file
+  response_file="$(mktemp)"
+
+  if ! sudo systemctl is-active --quiet "${WEB_UNIT_NAME}" || ! sudo systemctl is-active --quiet "${WORKER_UNIT_NAME}"; then
+    rm -f "${response_file}"
+    return 1
   fi
 
-  write_runtime_release_env_file "${runtime_release_env_path}"
+  if ! curl --fail --silent --show-error --max-time 10 "${HEALTH_URL}" > "${response_file}"; then
+    rm -f "${response_file}"
+    return 1
+  fi
+
+  if ! node -e '
+const fs = require("node:fs");
+const health = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+if (health.release?.deploymentId !== process.env.NEXT_DEPLOYMENT_ID) process.exit(1);
+' "${response_file}"; then
+    rm -f "${response_file}"
+    return 1
+  fi
+
+  rm -f "${response_file}"
+  curl --fail --silent --show-error --max-time 10 "${SMOKE_URL}" > /dev/null
+}
+
+wait_for_release_health() {
+  local attempt
+  for ((attempt = 1; attempt <= HEALTH_RETRIES; attempt++)); do
+    if release_is_healthy; then
+      return 0
+    fi
+
+    log "Health/smoke test zatím neprošel (${attempt}/${HEALTH_RETRIES})."
+    sleep "${HEALTH_RETRY_SECONDS}"
+  done
+  return 1
+}
+
+rollback_release() {
+  local previous_target="$1"
+
+  echo "Nový release neprošel startem nebo health/smoke testem, vracím předchozí celý release." >&2
+  sudo systemctl stop "${WEB_UNIT_NAME}" "${WORKER_UNIT_NAME}" >/dev/null 2>&1 || true
+
+  if [[ -n "${previous_target}" ]]; then
+    set_release_link "${CURRENT_RELEASE_LINK}" "${previous_target}"
+    sudo systemctl start "${WEB_UNIT_NAME}" >/dev/null 2>&1 || true
+    sudo systemctl start "${WORKER_UNIT_NAME}" >/dev/null 2>&1 || true
+  else
+    rm -f "${CURRENT_RELEASE_LINK}"
+  fi
+
+  echo "Rollback hotový; databázové migrace se záměrně nevracejí automaticky. Zkontroluj kompatibilitu schématu a journalctl." >&2
+  return 1
+}
+
+activate_release() {
+  local release_dir="$1"
+  local previous_target=""
+
+  if [[ ! -d "${release_dir}/node_modules" ]] || [[ ! -d "${release_dir}/.next" ]] || [[ ! -f "${release_dir}/package.json" ]]; then
+    echo "Release ${release_dir} není kompletní (chybí zdrojové soubory, node_modules nebo .next)." >&2
+    return 1
+  fi
+
+  if [[ -L "${CURRENT_RELEASE_LINK}" ]]; then
+    previous_target="$(readlink -f "${CURRENT_RELEASE_LINK}")"
+  elif [[ -e "${CURRENT_RELEASE_LINK}" ]]; then
+    echo "${CURRENT_RELEASE_LINK} musí být symlink na aktivní release." >&2
+    return 1
+  fi
 
   log "stop ${WEB_UNIT_NAME}/${WORKER_UNIT_NAME}"
   sudo systemctl stop "${WEB_UNIT_NAME}" "${WORKER_UNIT_NAME}"
+  set_release_link "${CURRENT_RELEASE_LINK}" "${release_dir}"
 
-  if [[ -d "${REPO_DIR}/node_modules" ]]; then
-    mv "${REPO_DIR}/node_modules" "${previous_node_modules_dir}"
+  if start_release_services && wait_for_release_health; then
+    if [[ -n "${previous_target}" ]]; then
+      set_release_link "${PREVIOUS_RELEASE_LINK}" "${previous_target}"
+    fi
+    return 0
   fi
 
-  if [[ -d "${REPO_DIR}/.next" ]]; then
-    mv "${REPO_DIR}/.next" "${previous_next_dir}"
-  fi
-
-  mv "${RELEASE_BUILD_DIR}/node_modules" "${REPO_DIR}/node_modules"
-  mv "${RELEASE_BUILD_DIR}/.next" "${REPO_DIR}/.next"
-
-  if sudo systemctl start "${WEB_UNIT_NAME}" "${WORKER_UNIT_NAME}"; then
-    rm -rf "${previous_node_modules_dir}" "${previous_next_dir}"
-    rm -f "${previous_runtime_release_env_path}"
-    return
-  fi
-
-  echo "Start nového releasu selhal, vracím předchozí build artefakty." >&2
-  KEEP_RELEASE_WORKSPACE=1
-
-  sudo systemctl stop "${WEB_UNIT_NAME}" "${WORKER_UNIT_NAME}" >/dev/null 2>&1 || true
-  rm -rf "${REPO_DIR}/node_modules" "${REPO_DIR}/.next"
-
-  if [[ -d "${previous_node_modules_dir}" ]]; then
-    mv "${previous_node_modules_dir}" "${REPO_DIR}/node_modules"
-  fi
-
-  if [[ -d "${previous_next_dir}" ]]; then
-    mv "${previous_next_dir}" "${REPO_DIR}/.next"
-  fi
-
-  if [[ -f "${previous_runtime_release_env_path}" ]]; then
-    mv "${previous_runtime_release_env_path}" "${runtime_release_env_path}"
-  else
-    rm -f "${runtime_release_env_path}"
-  fi
-
-  sudo systemctl start "${WEB_UNIT_NAME}" "${WORKER_UNIT_NAME}" >/dev/null 2>&1 || true
-
-  echo "Rollback hotový. Zkontroluj journalctl a build workspace ${RELEASE_BUILD_DIR}." >&2
-  exit 1
+  rollback_release "${previous_target}"
 }
 
 ensure_unit_installed() {
@@ -353,6 +429,10 @@ parse_args() {
         SKIP_LINT=1
         shift
         ;;
+      --keep-releases)
+        RETAIN_RELEASES="$2"
+        shift 2
+        ;;
       --yes)
         SKIP_CONFIRM=1
         shift
@@ -380,6 +460,7 @@ run_release() {
   require_cmd npm
   require_cmd npx
   require_cmd systemctl
+  require_cmd curl
 
   if [[ ! -f "${REPO_DIR}/package.json" ]]; then
     echo "Nenašel jsem package.json v ${REPO_DIR}." >&2
@@ -436,8 +517,8 @@ run_release() {
   log "npm run db:check-migrations"
   npm run db:check-migrations
 
-  log "npx prisma migrate deploy"
-  npx prisma migrate deploy
+  log "npx prisma validate (bez zápisu do DB)"
+  npx prisma validate
 
   if [[ "${SKIP_LINT}" -ne 1 ]]; then
     log "npm run lint"
@@ -449,8 +530,22 @@ run_release() {
   log "npm run build"
   npm run build
 
+  write_runtime_release_env_file "${RELEASE_BUILD_DIR}/${RUNTIME_RELEASE_ENV_FILE}"
+
+  local release_name
+  local release_dir
+  release_name="${GIT_HASH}-$(date -u +%Y%m%d%H%M%S)"
+  release_dir="${RELEASES_DIR}/${release_name}"
+  mv "${RELEASE_BUILD_DIR}" "${release_dir}"
+  RELEASE_BUILD_DIR=""
+
+  cd "${release_dir}"
+  log "npx prisma migrate deploy (těsně před aktivací; pouze expand/contract migrace)"
+  npx prisma migrate deploy
+
   cd "${REPO_DIR}"
-  swap_release_artifacts
+  activate_release "${release_dir}"
+  cleanup_old_releases
 
   log "status ${WEB_UNIT_NAME}"
   systemctl --no-pager --lines=20 status "${WEB_UNIT_NAME}"
@@ -461,5 +556,11 @@ run_release() {
   log "Hotovo. Doporučení: proveď ruční smoke test veřejného webu + adminu."
 }
 
-parse_args "$@"
-run_release
+main() {
+  parse_args "$@"
+  run_release
+}
+
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+  main "$@"
+fi

@@ -25,6 +25,12 @@ main() {
     exit 1
   fi
 
+  # První provisioning ještě nemá verzovaný release. Zachováme proto dosavadní
+  # checkout jako dočasný cíl; první release.sh ho nahradí adresářem v releases/.
+  if [[ ! -e "${REPO_DIR}/current" ]]; then
+    ln -s "${REPO_DIR}" "${REPO_DIR}/current"
+  fi
+
   install_unit "${REPO_DIR}/deploy/systemd/${WEB_UNIT_NAME}" "${SYSTEMD_DIR}/${WEB_UNIT_NAME}"
   install_unit "${REPO_DIR}/deploy/systemd/${WORKER_UNIT_NAME}" "${SYSTEMD_DIR}/${WORKER_UNIT_NAME}"
 
