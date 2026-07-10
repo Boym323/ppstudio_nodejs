@@ -20,6 +20,7 @@ Pro centralizovaný přehled hlavních route handler kontraktů používej i [`d
 - Verzi a changelog drž vždy konzistentně: release commit má obsahovat finální version bump a odpovídající release poznámky.
 - Pro standardní produkční rollout používej `./deploy/release.sh`; skript vytváří celý release v `releases/<commit>-<čas>` a atomicky přepíná `current`. Pořadí je `pull -> staging npm ci -> generate -> kontrola historie -> prisma validate -> lint -> build -> migrate deploy -> stop -> přepnutí current -> start webu i workeru -> health + smoke`. Migrace tedy smějí být jen expand/contract kompatibilní s předchozím releasem; rollback automaticky vrací pouze celý runtime release, nikdy DB schéma.
 - Po potvrzeném releasu helper provede retenci verzovaných adresářů: chrání `current`, `previous` a podle `--keep-releases` (výchozí 7) další nejnovější releasy. Úklid nesmí běžet před health/smoke testem ani mazat jinak pojmenované provozní adresáře.
+- Release health kontrola ověřuje odděleně `/api/health`, shodu `release.deploymentId` a homepage smoke URL. Při změně skriptu zachovej rozlišené provozní logy včetně HTTP statusu, aby se 500 z homepage nezaměnila za health endpoint.
 - Na `npm 11` držíme v `package.json` i `allowScripts` whitelist pro balíčky s install hooky (`prisma`, `@prisma/engines`, `sharp`, `esbuild`, `unrs-resolver`). Při upgradu některého z nich čekej změnu pinu a po review spusť znovu `npm approve-scripts <pkg>`, jinak budou releasy hlásit `npm warn allow-scripts`.
 
 ## Dev runtime a cache

@@ -30,12 +30,34 @@ systemctl() {
   esac
 }
 curl() {
+  local output_file=""
+  local previous_argument=""
+  local argument
+
   [[ "${CURL_FAIL}" -eq 0 ]] || return 1
+
+  for argument in "$@"; do
+    if [[ "${previous_argument}" == "--output" ]]; then
+      output_file="${argument}"
+    fi
+    previous_argument="${argument}"
+  done
+
   if [[ "${*: -1}" == *"api/health" ]]; then
-    printf '{"release":{"deploymentId":"%s"}}\n' "${NEXT_DEPLOYMENT_ID}"
+    if [[ -n "${output_file}" ]]; then
+      printf '{"release":{"deploymentId":"%s"}}\n' "${NEXT_DEPLOYMENT_ID}" > "${output_file}"
+    else
+      printf '{"release":{"deploymentId":"%s"}}\n' "${NEXT_DEPLOYMENT_ID}"
+    fi
   else
-    printf '<html>ok</html>\n'
+    if [[ -n "${output_file}" ]]; then
+      printf '<html>ok</html>\n' > "${output_file}"
+    else
+      printf '<html>ok</html>\n'
+    fi
   fi
+
+  printf '200'
 }
 
 assert_old_current() {

@@ -16,6 +16,8 @@ Ošetření detailních DB dotazů health snapshotu nepřidává žádnou závis
 
 Explicitní `turbopack.root` nepřidává závislost; používá vestavěný Node.js modul `node:path`, který je součástí podporovaného Node 24 runtime.
 
+Podrobnější release health diagnostika nepřidává závislost; používá stávající `curl`, Bash a dočasné soubory pro oddělené ověření health JSON a homepage.
+
 ## Aktuální verze stacku
 - Zdroj pravdy je `package.json` v kořeni projektu.
 - Projektový runtime cíl je `Node 24 LTS`; repozitář to explicitně deklaruje přes [`.nvmrc`](/var/www/ppstudio/.nvmrc:1) a `package.json.engines`.

@@ -276,16 +276,25 @@ start_release_services() {
 }
 
 release_is_healthy() {
-  local response_file
+  local response_file smoke_response_file http_status
   response_file="$(mktemp)"
+  smoke_response_file="$(mktemp)"
 
   if ! sudo systemctl is-active --quiet "${WEB_UNIT_NAME}" || ! sudo systemctl is-active --quiet "${WORKER_UNIT_NAME}"; then
-    rm -f "${response_file}"
+    log "Health/smoke kontrola: web nebo e-mailový worker neběží."
+    rm -f "${response_file}" "${smoke_response_file}"
     return 1
   fi
 
-  if ! curl --fail --silent --show-error --max-time 10 "${HEALTH_URL}" > "${response_file}"; then
-    rm -f "${response_file}"
+  if ! http_status="$(curl --silent --show-error --max-time 10 --output "${response_file}" --write-out '%{http_code}' "${HEALTH_URL}")"; then
+    log "Health endpoint není dostupný (${HEALTH_URL})."
+    rm -f "${response_file}" "${smoke_response_file}"
+    return 1
+  fi
+
+  if [[ ! "${http_status}" =~ ^2[0-9][0-9]$ ]]; then
+    log "Health endpoint vrátil HTTP ${http_status} (${HEALTH_URL})."
+    rm -f "${response_file}" "${smoke_response_file}"
     return 1
   fi
 
@@ -294,12 +303,25 @@ const fs = require("node:fs");
 const health = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
 if (health.release?.deploymentId !== process.env.NEXT_DEPLOYMENT_ID) process.exit(1);
 ' "${response_file}"; then
-    rm -f "${response_file}"
+    log "Health endpoint nemá očekávané deployment ID."
+    rm -f "${response_file}" "${smoke_response_file}"
     return 1
   fi
 
   rm -f "${response_file}"
-  curl --fail --silent --show-error --max-time 10 "${SMOKE_URL}" > /dev/null
+
+  if ! http_status="$(curl --silent --show-error --max-time 10 --output "${smoke_response_file}" --write-out '%{http_code}' "${SMOKE_URL}")"; then
+    log "Homepage smoke test není dostupný (${SMOKE_URL})."
+    rm -f "${smoke_response_file}"
+    return 1
+  fi
+
+  rm -f "${smoke_response_file}"
+
+  if [[ ! "${http_status}" =~ ^2[0-9][0-9]$ ]]; then
+    log "Homepage smoke test vrátil HTTP ${http_status} (${SMOKE_URL})."
+    return 1
+  fi
 }
 
 wait_for_release_health() {

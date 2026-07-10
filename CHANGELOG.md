@@ -10,6 +10,7 @@ Formát je inspirovaný Keep a Changelog.
 
 - Turbopack má v `next.config.ts` explicitní root aktivního checkoutu/release, takže staging build s vlastním `package-lock.json` už nevypisuje falešné varování o více lockfilech.
 - Provozní dokumentace nově potvrzuje, že rollbacknutý auditní záznam `20260428133959_voucher_pdf_logo_settings` má stejně jako dva starší recover záznamy následnou úspěšně dokončenou migraci a při `Migration history check: OK` neblokuje release.
+- Release health kontrola nově rozlišuje nedostupný či neúspěšný `/api/health` a homepage smoke test včetně konkrétního HTTP statusu; neúspěšný rollout tak lze diagnostikovat bez záměny obou endpointů.
 
 ## [1.0.1] - 2026-07-10
 
