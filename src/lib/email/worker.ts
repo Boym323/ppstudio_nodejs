@@ -59,7 +59,15 @@ async function claimDueEmailLogs(limit: number): Promise<ClaimedEmailLog[]> {
         },
       });
 
-      claimed.push(updated);
+      const claimedProcessingToken = updated.processingToken;
+      if (!claimedProcessingToken) {
+        throw new Error(`Claim e-mailu ${updated.id} nevytvořil processing token.`);
+      }
+
+      claimed.push({
+        id: updated.id,
+        processingToken: claimedProcessingToken,
+      });
     }
 
     return claimed;
