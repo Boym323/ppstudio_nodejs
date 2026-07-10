@@ -196,13 +196,8 @@ Implementace:
 
 ### ICS pro klientku
 
-- route: `/api/bookings/calendar/[token].ics`
-- přístup přes `BookingActionTokenType.CALENDAR`
-- vrací jen potvrzenou a nezrušenou rezervaci
-
-Implementace:
-
-- [src/features/calendar/lib/booking-calendar-event.ts](/var/www/ppstudio/src/features/calendar/lib/booking-calendar-event.ts:1)
+- klientka dostává jednu `.ics` přílohu v potvrzovacím nebo reschedule e-mailu; veřejný endpoint ani kalendářový token neexistují
+- generování přílohy: [src/features/calendar/lib/booking-calendar-attachment.ts](/var/www/ppstudio/src/features/calendar/lib/booking-calendar-attachment.ts:1)
 
 ## Analytika: Matomo, UTM, Clarity, Meta Pixel, Google Ads
 

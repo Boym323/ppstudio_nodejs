@@ -11,19 +11,9 @@ process.env.ADMIN_STAFF_EMAIL = "staff@example.com";
 process.env.ADMIN_STAFF_PASSWORD = "change-me-staff";
 process.env.EMAIL_DELIVERY_MODE = "log";
 
-test("buildBookingCalendarUrl creates clickable ics endpoint", async () => {
-  const { buildBookingCalendarUrl } = await import("./booking-action-tokens");
-
-  assert.equal(
-    buildBookingCalendarUrl("calendar-token-123"),
-    "https://example.com/api/bookings/calendar/calendar-token-123.ics",
-  );
-});
-
-test("buildBookingCalendarExpiry uses a longer-lived token window", async () => {
-  const { buildBookingCalendarExpiry } = await import("./booking-action-tokens");
+test("buildBookingActionExpiry uses the standard token window", async () => {
+  const { buildBookingActionExpiry } = await import("./booking-action-tokens");
   const now = new Date("2026-04-22T10:00:00.000Z");
-  const expiresAt = buildBookingCalendarExpiry(now);
 
-  assert.equal(expiresAt.toISOString(), "2026-10-19T10:00:00.000Z");
+  assert.equal(buildBookingActionExpiry(now).toISOString(), "2026-05-22T10:00:00.000Z");
 });

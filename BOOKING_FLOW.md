@@ -184,20 +184,7 @@ Používá tokeny:
 
 ## ICS pro klientku
 
-Route:
-
-- `/api/bookings/calendar/[token].ics`
-
-Podmínky:
-
-- token musí být typu `CALENDAR`
-- rezervace musí být potvrzená
-- rezervace nesmí být zrušená
-
-Výstup:
-
-- jeden `VEVENT`
-- obsahuje službu, termín, místo a kontakt studia
+Potvrzovací e-mail po stavu `CONFIRMED` a e-mail po změně termínu přikládají jeden `.ics` soubor. Veřejný ICS endpoint ani token typu `CALENDAR` se nepoužívají.
 
 ## Audit a observability
 

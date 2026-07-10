@@ -67,18 +67,9 @@ Pozor:
 
 - změna `ADMIN_SESSION_SECRET` změní i HMAC validaci owner feed tokenu
 
-## Klientský ICS odkaz vrací 404
+## Klientská ICS příloha chybí nebo nejde otevřít
 
-Route:
-
-- `/api/bookings/calendar/[token].ics`
-
-Zkontroluj:
-
-- že token je typu `CALENDAR`
-- že rezervace je `CONFIRMED`
-- že není `CANCELLED`
-- že token neexpiruje nebo není revokovaný
+Zkontroluj render šablony `booking-approved-v1` nebo `booking-rescheduled-v1`, email worker a iCalendar obsah přílohy. Veřejný zákaznický ICS odkaz ani token typu `CALENDAR` se nepoužívají.
 
 ## Matomo dashboard ukazuje nuly
 

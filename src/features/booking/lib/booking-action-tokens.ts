@@ -4,7 +4,6 @@ import { env } from "@/config/env";
 
 const BOOKING_ACTION_TOKEN_TTL_DAYS = 30;
 const BOOKING_EMAIL_ACTION_TOKEN_TTL_DAYS = 7;
-const BOOKING_CALENDAR_TOKEN_TTL_DAYS = 180;
 
 export type BookingEmailActionIntent = "approve" | "reject";
 
@@ -29,10 +28,6 @@ export function buildBookingEmailActionExpiry(now = new Date()) {
   return buildBookingActionExpiry(now, BOOKING_EMAIL_ACTION_TOKEN_TTL_DAYS);
 }
 
-export function buildBookingCalendarExpiry(now = new Date()) {
-  return buildBookingActionExpiry(now, BOOKING_CALENDAR_TOKEN_TTL_DAYS);
-}
-
 export function buildBookingCancellationUrl(rawToken: string) {
   return `${env.NEXT_PUBLIC_APP_URL}/rezervace/storno/${rawToken}`;
 }
@@ -43,8 +38,4 @@ export function buildBookingManagementUrl(rawToken: string) {
 
 export function buildBookingEmailActionUrl(intent: BookingEmailActionIntent, rawToken: string) {
   return `${env.NEXT_PUBLIC_APP_URL}/rezervace/akce/${intent}/${rawToken}`;
-}
-
-export function buildBookingCalendarUrl(rawToken: string) {
-  return `${env.NEXT_PUBLIC_APP_URL}/api/bookings/calendar/${rawToken}.ics`;
 }

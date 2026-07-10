@@ -15,7 +15,6 @@ Pro přesný runtime kontrakt je vždy rozhodující implementace route handleru
 | --- | --- | --- | --- |
 | `/api/health` | `GET` | veřejný | Provozní health check webu, DB a email workeru |
 | `/api/calendar/owner.ics?token=...` | `GET` | veřejný přes tajný token | Owner-only Apple/ICS subscription feed |
-| `/api/bookings/calendar/[token].ics` | `GET` | veřejný přes tajný token | Klientský `.ics` export konkrétní rezervace |
 | `/api/auth/login` | `POST` | veřejný | Admin login handler se session cookie |
 | `/api/auth/logout` | `POST` | admin session | Admin logout handler |
 | `/api/admin/analytics` | `GET` | admin-only (`OWNER`, `SALON`) | Agregovaná Matomo dashboard data |
@@ -146,36 +145,6 @@ Odpověď:
 
 Implementace:
 - [src/app/api/calendar/owner.ics/route.ts](/var/www/ppstudio/src/app/api/calendar/owner.ics/route.ts:1)
-
-## `GET /api/bookings/calendar/[token].ics`
-
-Účel:
-- veřejný tokenizovaný `.ics` export konkrétní rezervace pro klientku
-
-Přístup:
-- veřejný endpoint, ale jen přes platný booking token v URL
-- podporuje tvar s `.ics` suffixem
-- bez tokenu nebo s neplatným tokenem vrací `404`
-
-Vstup:
-- booking token v URL path
-
-Odpověď:
-- HTTP status:
-- `200`: vrací `.ics` obsah pro konkrétní rezervaci
-- `404`: token není dostupný nebo rezervace není pro export zpřístupněná
-- hlavičky při úspěchu:
-- `Content-Type: text/calendar; charset=utf-8`
-- `Content-Disposition: inline; filename="pp-studio-rezervace-....ics"`
-- `Cache-Control: private, no-store`
-- `X-Robots-Tag: noindex, nofollow, noarchive`
-
-Poznámky:
-- jde o zákaznický kalendářový export navázaný na konkrétní booking
-- token nesmí být logovaný nebo kopírovaný do veřejných chybových hlášek
-
-Implementace:
-- [src/app/api/bookings/calendar/[...token]/route.ts](/var/www/ppstudio/src/app/api/bookings/calendar/%5B...token%5D/route.ts:1)
 
 ## `POST /api/auth/login`
 

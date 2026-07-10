@@ -98,10 +98,6 @@ function sanitizeTokenPath(path: string) {
     return `/rezervace/akce/${intent}/[redacted]`;
   }
 
-  if (rawPathname.startsWith("/api/bookings/calendar/")) {
-    return "/api/bookings/calendar/[redacted].ics";
-  }
-
   return rawPathname;
 }
 

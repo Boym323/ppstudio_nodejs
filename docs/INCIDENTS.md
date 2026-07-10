@@ -98,7 +98,6 @@ Evidence produkčních incidentů a jejich řešení.
 - Nefunkční owner kalendářový feed kvůli špatnému `NEXT_PUBLIC_APP_URL`, neaplikované migraci `CalendarFeed`, chybné rotaci tokenu nebo rozbité route `/api/calendar/owner.ics`.
 - Apple Calendar subscription vracející prázdný nebo nevalidní obsah kvůli chybě v ICS escapování, line folding nebo timezone mapování `Europe/Prague`.
 - Zákaznická `.ics` událost posunutá o hodinu kvůli chybě v `DTSTART/DTEND` nebo chybějícímu `VTIMEZONE` bloku `Europe/Prague`.
-- Zákaznický `.ics` endpoint vracející event i pro `PENDING` nebo `CANCELLED` rezervaci; správně má být aktivní jen pro `CONFIRMED`.
 - Dvojí nebo chybné uplatnění voucheru: při incidentu porovnej `Voucher.remainingValueCzk`, `Voucher.status`, navázané `VoucherRedemption` záznamy a admin aktéra; public validace voucheru sama nikdy nemá vytvářet redemption ani odečítat zůstatek.
 - Badge nebo status v admin seznamu voucherů nesedí k řádku, chybně se láme nebo vizuálně mizí: zkontroluj `AdminStatePill`, mapování `effectiveStatus -> tone` v `admin-vouchers-page.tsx` a šířku desktopového sloupce `Stav`; nesmí se tím měnit voucher business logika ani filtrace.
 - Veřejné ověření `/vouchery/overeni` ukáže citlivá voucherová data nebo změní zůstatek: okamžitě ověř `verifyVoucherPublic(...)`, page output, `VoucherRedemption` záznamy a změny `remainingValueCzk` / `Voucher.status`; route musí zůstat read-only a zobrazovat jen bezpečná pole.

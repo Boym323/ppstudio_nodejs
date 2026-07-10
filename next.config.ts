@@ -70,10 +70,6 @@ const nextConfig: NextConfig = {
         source: "/rezervace/akce/:path*",
         headers: tokenRouteHeaders,
       },
-      {
-        source: "/api/bookings/calendar/:path*",
-        headers: tokenRouteHeaders,
-      },
     ];
   },
 };

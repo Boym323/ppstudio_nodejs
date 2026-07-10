@@ -707,7 +707,7 @@ Pro centralizovaný přehled hlavních route handler kontraktů používej i [`d
 - `VoucherRedemption` je jediný důkaz skutečného uplatnění voucheru; jedna rezervace smí mít nejvýše jeden takový záznam, protože uplatnění voucheru znamená provozní úhradu rezervace. Veřejné zadání voucheru má ukládat jen záměr, ne čerpání.
 - `Booking` má pro MVP voucher intent přímo na sobě přes `intendedVoucherId`, `intendedVoucherCodeSnapshot` a `intendedVoucherValidatedAt`; samostatný `BookingVoucherIntent` se zatím nezavádí.
 - Další business logiku voucherů drž pod `src/features/vouchers`; admin UI, public booking napojení a PDF generování nejsou součástí databázové foundation migrace.
-- `BookingActionToken` ukládá hash tokenu, expiraci a použití/revokaci pro bezpečné self-service storno, self-service změnu termínu, provozní email akce a zákaznický calendar event.
+- `BookingActionToken` ukládá hash tokenu, expiraci a použití/revokaci pro bezpečné self-service storno, self-service změnu termínu a provozní email akce.
 - `CalendarFeed` drží owner subscription feed jako samostatnou entitu mimo `SiteSettings`; ukládá scope, aktivaci, rotační salt a audit času změny.
 - Kalendářový token se neukládá jako raw secret do DB. URL se odvozuje serverově z `CalendarFeed.id`, `tokenSalt` a `ADMIN_SESSION_SECRET`, takže:
   - admin může odkaz zkopírovat kdykoli
@@ -718,9 +718,9 @@ Pro centralizovaný přehled hlavních route handler kontraktů používej i [`d
   - line folding po 75 bajtech
   - `VTIMEZONE` blok pro `Europe/Prague`
   - oddělený mapper `Booking -> VEVENT`
-- Stejný model `BookingActionToken` teď obsluhuje i owner/provoz email akce `APPROVE` a `REJECT` a zákaznický `CALENDAR`; do e-mailu se posílá jen raw token, v DB zůstává hash a auditní čas použití nebo revokace.
+- Stejný model `BookingActionToken` obsluhuje i owner/provoz email akce `APPROVE` a `REJECT`; do e-mailu se posílá jen raw token, v DB zůstává hash a auditní čas použití nebo revokace.
 - Serverová doménová vrstva pro email akce je v `src/features/booking/lib/booking-email-actions.ts`; drží validaci intentu, serializable transakci, změnu stavu, audit a založení klientského `EmailLog`.
-- Serverová doménová vrstva `src/features/calendar/lib/booking-calendar-event.ts` řeší validaci calendar tokenu, mapování bookingu na jeden `VEVENT` a generování zákaznického `.ics` payloadu.
+- `src/features/calendar/lib/booking-calendar-attachment.ts` generuje zákaznickou `.ics` přílohu z e-mailového payloadu; veřejný booking calendar endpoint ani token typu `CALENDAR` neudržuj.
 - `EmailLog` je připravený na notifikační workflow a troubleshooting komunikace s klientem.
 - 24h reminder rezervací je v `src/features/booking/lib/booking-reminders.ts`; výběr kandidátek je omezený na `CONFIRMED` bookingy s e-mailem, `reminder24hQueuedAt = null`, `reminder24hSentAt = null` a startem mezi `now + 25h` a `now + 26h`.
 - Reminder scheduler neběží jako zvláštní služba; `src/lib/email/worker.ts` ho spouští uvnitř existujícího `email:worker` procesu každých 5 minut a vytváří pouze `EmailLog`, nikdy neodesílá SMTP přímo.

@@ -76,6 +76,7 @@ Zavedli jsme generování jedné `.ics` přílohy přímo do potvrzovacího e-ma
 
 ## Dopady
 
-- Přibyla serverová služba `src/features/calendar/lib/booking-calendar-event.ts`.
+- Zákaznický klikací endpoint a token typu `CALENDAR`, které předcházely tomuto rozhodnutí, byly následně odstraněny migrací `20260710123000_remove_customer_calendar_endpoint`; případné historické tokeny se při migraci mažou.
+- Generování přílohy je v `src/features/calendar/lib/booking-calendar-attachment.ts`.
 - Potvrzovací e-mail `booking-approved-v1` nově nese `.ics` přílohu.
 - Pending confirmation screen po odeslání rezervace už kalendářovou akci nenabízí.

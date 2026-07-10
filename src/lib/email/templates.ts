@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { env } from "@/config/env";
-import { buildBookingCalendarIcsFromPayload } from "@/features/calendar/lib/booking-calendar-event";
+import { buildBookingCalendarIcsFromPayload } from "@/features/calendar/lib/booking-calendar-attachment";
 import {
   formatBookingCalendarDate,
   formatBookingTimeRange,
