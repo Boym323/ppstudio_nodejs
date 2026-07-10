@@ -1,18 +1,21 @@
 # Changelog
 
-- Opraven kritický lockout administrace: webový bootstrap login byl odstraněn, protože vydával session bez DB identity. Nový auditovatelný offline příkaz `npm run admin:recover-owner` vytvoří nebo obnoví aktivního DB OWNERa, revokuje otevřené pozvánky a nezapisuje heslo. Změna role i deaktivace nyní v serializovatelné transakci chrání posledního aktivního OWNERa; self-demotion vyžaduje dalšího aktivního OWNERa.
-
 Všechny důležité změny v tomto projektu se zapisují do tohoto souboru.
 
 Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
-### Fixed
+## [1.0.0] - 2026-07-10
+
+### Nekompatibilní změny
+- Opraven kritický lockout administrace: webový bootstrap login byl odstraněn, protože vydával session bez DB identity. Nový auditovatelný offline příkaz `npm run admin:recover-owner` vytvoří nebo obnoví aktivního DB OWNERa, revokuje otevřené pozvánky a nezapisuje heslo. Změna role i deaktivace nyní v serializovatelné transakci chrání posledního aktivního OWNERa; self-demotion vyžaduje dalšího aktivního OWNERa.
 - Odstraněn nefunkční zákaznický ICS endpoint `/api/bookings/calendar/[token].ics` a celý nepoužívaný tokenový tok `CALENDAR`. Klientské potvrzovací i reschedule e-maily dál přikládají jednu `.ics` událost; owner subscription feed zůstává beze změny. Migrace `20260710123000_remove_customer_calendar_endpoint` maže případné historické CALENDAR tokeny a enum vrací na skutečně používané hodnoty.
-- Veřejný `GET /api/health` při výpadku DB už nevrací `Error.message` s interní diagnostikou; místo ní vrací stabilní `error.code=DATABASE_UNAVAILABLE`. Pushover alert pro tento stav je non-blocking a samostatný desetiminutový cooldown v procesu zabrání notifikační bouři při častém monitoringu.
 - Kapacita dostupnostního slotu je nyní pevný databázový invariant `1`. Nová migrace před změnou constraintu fail-fast zastaví rollout, pokud najde historický slot s jinou hodnotou; booking engine mezitím vždy připustí jen jednu souběžnou rezervaci.
 - Produkční rollout už nemění jen `.next` a `node_modules`: každý build se ukládá jako úplný verzovaný adresář v `releases/` a atomický symlink `current` přepíná zdrojové soubory, Prisma klient i build společně. Při selhání startu, workeru nebo health/smoke testu se vrací celý předchozí release; databázové migrace se záměrně automaticky nevracejí.
+
+### Změněno a opraveno
+- Veřejný `GET /api/health` při výpadku DB už nevrací `Error.message` s interní diagnostikou; místo ní vrací stabilní `error.code=DATABASE_UNAVAILABLE`. Pushover alert pro tento stav je non-blocking a samostatný desetiminutový cooldown v procesu zabrání notifikační bouři při častém monitoringu.
 - Úspěšný release automaticky maže staré verzované adresáře: vždy chrání `current`, `previous` a standardně sedm dalších nejnovějších release; limit lze změnit přes `--keep-releases N`.
 
 - E-mailový outbox nyní váže doručení i finální zápis stavu na `processingToken`. Worker ani ruční okamžité odeslání tak nemohou dokončit cizí nebo zastaralý claim. Resend REST požadavky používají stabilní `Idempotency-Key` odvozený z `EmailLog.id`; SMTP používá stabilní `Message-ID` (a hlavičku Resend pro kompatibilní SMTP), proto po pádu mezi ACK poskytovatele a DB zápisem zůstává SMTP explicitně at-least-once.
@@ -25,9 +28,7 @@ Formát je inspirovaný Keep a Changelog.
 
 - Opravena SEO discovery chyba: indexovatelná stránka `/studio` je znovu v `sitemap.xml`; Playwright SEO smoke test nyní její `<loc>` explicitně ověřuje.
 
-## [0.7.3] - 2026-07-09
-
-- Release příprava pro produkční nasazení: projektová verze navýšena na patch `0.7.3`.
+- Release příprava pro produkční nasazení: projektová verze navýšena na major `1.0.0` kvůli nekompatibilním změnám veřejné routy, datového modelu a provozního deployment workflow.
 - Aktualizován framework `next` z `16.2.9` na `16.2.10` a `eslint-config-next` z `16.2.9` na `16.2.10`; jde o bezpečný patch upgrade v rámci Next.js 16 s odpovídající aktualizací lockfile a dokumentace.
 - GitHub workflow baseline je sjednocená s aktuálními Dependabot GitHub Actions upgrady: `actions/checkout@v7`, `actions/setup-node@v6`, `actions/upload-artifact@v7` a `actions/dependency-review-action@v5`.
 - Tím se odstraňuje potřeba držet několik samostatných Dependabot PR jen pro GitHub Actions a snižuje se riziko runner warningů kolem starších Node-targeted action verzí.
