@@ -18,6 +18,7 @@ import {
 } from "@/features/admin/lib/admin-user-validation";
 import { isMissingInvitedAtColumnError } from "@/features/admin/lib/admin-user-db";
 import { requireAdminSectionAccess } from "@/features/admin/lib/admin-guards";
+import { deactivateAdminUserAndRevokeInviteTokens } from "@/features/admin/lib/admin-invite-token-db";
 import { sendOwnerSystemErrorPushover } from "@/lib/notifications/pushover";
 import { prisma } from "@/lib/prisma";
 
@@ -226,10 +227,16 @@ export async function setAdminUserActiveAction(formData: FormData): Promise<void
     return;
   }
 
-  await prisma.adminUser.update({
-    where: { id: parsed.data.userId },
-    data: { isActive: parsed.data.nextIsActive },
-  });
+  if (parsed.data.nextIsActive) {
+    await prisma.adminUser.update({
+      where: { id: parsed.data.userId },
+      data: { isActive: true },
+    });
+  } else {
+    const now = new Date();
+
+    await deactivateAdminUserAndRevokeInviteTokens(parsed.data.userId, now);
+  }
 
   revalidateAdminUserPaths();
 }

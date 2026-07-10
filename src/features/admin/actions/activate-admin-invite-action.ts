@@ -5,12 +5,9 @@ import { z } from "zod";
 import { type AdminInviteActivationActionState } from "@/features/admin/actions/update-admin-invite-activation-action-state";
 import { hashAdminInviteToken } from "@/features/admin/lib/admin-invite-token";
 import {
-  findAdminInviteTokenWithUserByHash,
-  markAdminInviteTokenUsed,
-  revokeOtherAdminInviteTokens,
+  consumeAdminInviteToken,
 } from "@/features/admin/lib/admin-invite-token-db";
 import { hashPassword } from "@/lib/auth/password";
-import { prisma } from "@/lib/prisma";
 
 const activateAdminInviteSchema = z
   .object({
@@ -57,45 +54,23 @@ export async function activateAdminInviteAction(
     };
   }
 
-  const inviteToken = await findAdminInviteTokenWithUserByHash(
-    hashAdminInviteToken(parsed.data.token),
-  );
-
-  if (!inviteToken || !inviteToken.user) {
-    return {
-      status: "error",
-      formError: "Pozvánka není platná. Požádejte o novou.",
-    };
-  }
-
-  if (inviteToken.usedAt || inviteToken.revokedAt) {
-    return {
-      status: "error",
-      formError: "Tato pozvánka už byla použitá. Požádejte o novou.",
-    };
-  }
-
-  if (inviteToken.expiresAt <= new Date()) {
-    return {
-      status: "error",
-      formError: "Pozvánka vypršela. Požádejte o nové zaslání pozvánky.",
-    };
-  }
-
   const passwordHash = await hashPassword(parsed.data.password);
   const now = new Date();
-
-  await prisma.adminUser.update({
-    where: {
-      id: inviteToken.userId,
-    },
-    data: {
-      passwordHash,
-      isActive: true,
-    },
+  const result = await consumeAdminInviteToken({
+    tokenHash: hashAdminInviteToken(parsed.data.token),
+    passwordHash,
+    now,
   });
-  await markAdminInviteTokenUsed(inviteToken.id, now);
-  await revokeOtherAdminInviteTokens(inviteToken.userId, inviteToken.id, now);
+
+  if (result !== "activated") {
+    const formError = result === "expired"
+      ? "Pozvánka vypršela. Požádejte o nové zaslání pozvánky."
+      : result === "already-used"
+        ? "Tato pozvánka už byla použitá. Požádejte o novou."
+        : "Pozvánka není platná. Požádejte o novou.";
+
+    return { status: "error", formError };
+  }
 
   return {
     status: "success",

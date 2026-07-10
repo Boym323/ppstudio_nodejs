@@ -7,6 +7,8 @@ Formát je inspirovaný Keep a Changelog.
 ## [Unreleased]
 
 ### Fixed
+- Opravena bezpečnostní chyba administrátorských pozvánek: deaktivace účtu nyní v téže databázové transakci revokuje všechny nepoužité pozvánky. Veřejná aktivace zamyká token i účet, atomicky spotřebuje pouze dosud platný token aktivního uživatele a už nikdy sama nemění `AdminUser.isActive`. Přibyly integrační regrese pro deaktivovaný účet i souběžné použití stejného odkazu.
+
 - Admin booking parser už odmítá neplatná kalendářní data, časy mimo rozsah a neexistující pražské wall-clock časy v jarní DST mezeře. Při podzimní dvojznačnosti používá explicitně dřívější výskyt.
 
 - Release preflight nově kontroluje lokální `prisma/migrations` proti `git ls-tree` a zastaví se na adresářích bez `migration.sql`, aby se předešlo chybě Prisma P3015.

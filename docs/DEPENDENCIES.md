@@ -67,6 +67,7 @@ Seznam důležitých knihoven a důvod jejich použití.
 - `@prisma/adapter-pg`: oficiální PostgreSQL driver adapter pro Prisma 7 runtime.
 - `pg`: PostgreSQL driver použitý pod Prisma adapterem.
 - `prisma`: schema, migrace a generování klienta pro PostgreSQL.
+- Hardening administrátorských pozvánek nepřidává závislost; používá stávající Prisma 7 transakce a PostgreSQL `FOR UPDATE` row locky pro atomické spotřebování tokenu a jeho revokaci při deaktivaci účtu.
 - `zod`: validace env a serverových vstupů.
 - `jose`: podpis a verifikace admin session.
 - `nodemailer`: SMTP transport pro potvrzení rezervace a storno e-maily.

@@ -223,6 +223,7 @@ Lokální doporučení:
 - Admin sekce `Nastavení` také nepřidává nové env proměnné; kontaktní údaje, booking pravidla a e-mailový branding ukládá do DB modelu `SiteSettings`.
 - Logo pro PDF vouchery nepřidává nové env proměnné. Reference je v `SiteSettings.voucherPdfLogoMediaId`, soubor se čte z existujícího lokálního `MEDIA_STORAGE_ROOT` přes `MediaAsset`.
 - Přestavba sekce `Přístupy` ani invite aktivace nepřidává nové env proměnné; používá existující `ADMIN_SESSION_SECRET` (hash tokenů) a `NEXT_PUBLIC_APP_URL` (link v pozvánce), plus DB pole `AdminUser.invitedAt` a tabulku `AdminUserInviteToken`.
+- Bezpečné revokování administrátorských pozvánek při deaktivaci nevyžaduje novou konfiguraci ani migraci; vyžaduje pouze běžně podporované PostgreSQL transakce a row locky, které poskytuje stávající `DATABASE_URL`.
 - Reminder systém 24 hodin před termínem nepřidává novou env proměnnou; používá existující `EMAIL_DELIVERY_MODE`, `NEXT_PUBLIC_APP_URL` a SMTP konfiguraci stejného `email:worker`.
 - Admin reschedule flow také nepřidává novou env proměnnou; používá stejné `NEXT_PUBLIC_APP_URL`, `ADMIN_SESSION_SECRET`, DB schéma a email worker jako ostatní booking workflow.
 - Klientský self-service přesun termínu také nepřidává novou env proměnnou; stojí na stejném `NEXT_PUBLIC_APP_URL`, hashovaných `BookingActionToken`, DB schématu a e-mailovém workeru.

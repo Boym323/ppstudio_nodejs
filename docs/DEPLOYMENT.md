@@ -215,6 +215,7 @@ Stručný architektonický a provozní přehled nasazení na Proxmox/LXC je v ko
      - založení nové pozvánky vytvoří účet se stavem `Pozvánka čeká`
      - pozvánka dorazí na e-mail a odkaz vede na `/admin/pozvanka/[token]`
      - aktivace pozvánky dovolí nastavit heslo a následně přihlášení přes `/admin/prihlaseni`
+     - po deaktivaci účtu ověř, že dříve odeslaný odkaz na pozvánku skončí chybou, účet zůstane deaktivovaný a owner pro obnovení přístupu případně vytvoří novou pozvánku
      - akce `Přepnout na OWNER/SALON`, `Deaktivovat` a `Znovu aktivovat` se ihned propšou do seznamu
   - modul `Média` na `/admin/media` a `/admin/provoz/media`:
      - veřejná stránka `/studio` zobrazí jen publikované fotky typu `SALON_PHOTO`

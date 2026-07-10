@@ -60,6 +60,7 @@ Evidence produkčních incidentů a jejich řešení.
 - Rozjezd owner-only sekce `Přístupy`, kdy by se `SALON` dostal na `/admin/uzivatele` nebo by se v UI objevila jiná role než `OWNER` / `SALON`.
 - Chybně označené systémové přístupy nebo rozbitý stav `Pozvánka čeká` po nasazení migrace `AdminUser.invitedAt`.
 - Nefunkční aktivace pozvánky na `/admin/pozvanka/[token]` (expirace, použitý token, nebo chybějící migrace `AdminUserInviteToken`).
+- Bezpečnostní incident administrátorské pozvánky: při deaktivaci účtu ihned ověř `AdminUser.isActive = false` a `AdminUserInviteToken.revokedAt` pro všechny nepoužité tokeny. Starý odkaz musí vracet pouze obecnou chybu platnosti a nesmí zapsat heslo ani změnit aktivní stav; při pochybnosti účet ponech deaktivovaný a po prověření odešli novou pozvánku.
 - Veřejné kontaktní údaje nebo ceny ponechané v placeholder režimu po nasazení.
 - Právní stránka `/obchodni-podminky` ponechaná v draft nebo placeholder režimu; po release musí působit jako finální provozní dokument, ne jako interní návrh.
 - Nefunkční CTA odkazy mezi veřejným webem a rezervační částí.

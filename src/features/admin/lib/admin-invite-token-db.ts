@@ -55,6 +55,13 @@ type InviteTokenWithUser = InviteTokenRecord & {
   } | null;
 };
 
+export type ConsumeAdminInviteTokenResult =
+  | "activated"
+  | "invalid"
+  | "already-used"
+  | "expired"
+  | "user-inactive";
+
 function getInviteTokenDelegate(): InviteTokenDelegate | null {
   const candidate = (prisma as typeof prisma & {
     adminUserInviteToken?: InviteTokenDelegate;
@@ -107,6 +114,23 @@ export async function revokeActiveAdminInviteTokens(userId: string, revokedAt: D
       AND "usedAt" IS NULL
       AND "revokedAt" IS NULL
   `;
+}
+
+/** Deaktivace účtu a zneplatnění nepoužitých pozvánek musí být jeden commit. */
+export async function deactivateAdminUserAndRevokeInviteTokens(userId: string, now: Date) {
+  await prisma.$transaction(async (tx) => {
+    await tx.adminUser.update({
+      where: { id: userId },
+      data: { isActive: false },
+    });
+    await tx.$executeRaw(Prisma.sql`
+      UPDATE "AdminUserInviteToken"
+      SET "revokedAt" = ${now}, "updatedAt" = NOW()
+      WHERE "userId" = ${userId}
+        AND "usedAt" IS NULL
+        AND "revokedAt" IS NULL
+    `);
+  });
 }
 
 export async function revokeOtherAdminInviteTokens(
@@ -163,6 +187,108 @@ export async function markAdminInviteTokenUsed(tokenId: string, usedAt: Date) {
     SET "usedAt" = ${usedAt}, "updatedAt" = NOW()
     WHERE "id" = ${tokenId}
   `;
+}
+
+/**
+ * Jednorázově spotřebuje pozvánku a nastaví heslo pouze stále aktivnímu účtu.
+ *
+ * Zámek tokenu i uživatele je nezbytný: deaktivace téhož uživatele v jiné
+ * transakci pak nemůže proběhnout mezi ověřením tokenu a jeho spotřebováním.
+ */
+export async function consumeAdminInviteToken(data: {
+  tokenHash: string;
+  passwordHash: string;
+  now: Date;
+}): Promise<ConsumeAdminInviteTokenResult> {
+  return prisma.$transaction(async (tx) => {
+    const tokenReferences = await tx.$queryRaw<Array<{ id: string; userId: string }>>(Prisma.sql`
+      SELECT "id", "userId"
+      FROM "AdminUserInviteToken"
+      WHERE "tokenHash" = ${data.tokenHash}
+    `);
+    const tokenReference = tokenReferences[0];
+
+    if (!tokenReference) {
+      return "invalid";
+    }
+
+    // Stejné pořadí jako deaktivace: nejdříve účet, pak jeho tokeny.
+    const users = await tx.$queryRaw<Array<{ isActive: boolean }>>(Prisma.sql`
+      SELECT "isActive"
+      FROM "AdminUser"
+      WHERE "id" = ${tokenReference.userId}
+      FOR UPDATE
+    `);
+    const user = users[0];
+
+    if (!user) {
+      return "invalid";
+    }
+
+    const tokens = await tx.$queryRaw<
+      Array<{
+        id: string;
+        userId: string;
+        expiresAt: Date;
+        usedAt: Date | null;
+        revokedAt: Date | null;
+      }>
+    >(Prisma.sql`
+      SELECT
+        "id", "userId", "expiresAt", "usedAt", "revokedAt"
+      FROM "AdminUserInviteToken"
+      WHERE "id" = ${tokenReference.id}
+        AND "tokenHash" = ${data.tokenHash}
+      FOR UPDATE
+    `);
+    const token = tokens[0];
+
+    if (!token) {
+      return "invalid";
+    }
+
+    if (token.usedAt || token.revokedAt) {
+      return "already-used";
+    }
+
+    if (token.expiresAt <= data.now) {
+      return "expired";
+    }
+
+    if (!user.isActive) {
+      return "user-inactive";
+    }
+
+    const consumed = await tx.$queryRaw<Array<{ id: string }>>(Prisma.sql`
+      UPDATE "AdminUserInviteToken"
+      SET "usedAt" = ${data.now}, "updatedAt" = NOW()
+      WHERE "id" = ${token.id}
+        AND "usedAt" IS NULL
+        AND "revokedAt" IS NULL
+      RETURNING "id"
+    `);
+
+    if (consumed.length !== 1) {
+      return "already-used";
+    }
+
+    await tx.$executeRaw(Prisma.sql`
+      UPDATE "AdminUser"
+      SET "passwordHash" = ${data.passwordHash}, "updatedAt" = NOW()
+      WHERE "id" = ${token.userId}
+        AND "isActive" = TRUE
+    `);
+    await tx.$executeRaw(Prisma.sql`
+      UPDATE "AdminUserInviteToken"
+      SET "revokedAt" = ${data.now}, "updatedAt" = NOW()
+      WHERE "userId" = ${token.userId}
+        AND "id" <> ${token.id}
+        AND "usedAt" IS NULL
+        AND "revokedAt" IS NULL
+    `);
+
+    return "activated";
+  });
 }
 
 export async function findAdminInviteTokenByHash(tokenHash: string): Promise<InviteTokenRecord | null> {
