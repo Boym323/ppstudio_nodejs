@@ -482,6 +482,7 @@ sudo /var/www/ppstudio/deploy/deploy.sh
 - Aplikace nevyžaduje externí queue; e-maily se ve v1 ukládají do PostgreSQL outboxu a worker je vytahuje na pozadí.
 - Pro menší self-hosted provoz stačí běžný SMTP účet s app passwordem, běžící worker a monitoring `EmailLog` v owner adminu.
 - `email:worker` nově zajišťuje dvě věci: enqueue 24h reminderů i samotné doručování `EmailLog`. Pokud worker stojí, stojí obě části flow.
+- Doručování používá tokenovaný claim. Resend REST deduplikuje stejný outbox job 24 hodin přes `Idempotency-Key`; SMTP má stabilní `Message-ID`, ale po ACK SMTP serveru a před DB zápisem stále platí at-least-once doručení. Při incidentu proto neprováděj ruční resend naslepo a u SMTP případné duplicity řeš jako provozní možnost.
 - Pokud worker stojí, klientský self-service přesun sice změní termín v DB, ale potvrzovací e-mail o změně zůstane jen ve frontě nebo se nedoručí; smoke test po deployi má vždy ověřit i vznik `BOOKING_RESCHEDULED`.
 - Pokud SMTP dočasně nefunguje, přepni na `EMAIL_DELIVERY_MODE=log`; booking a storno zůstanou funkční a e-mailové pokusy se dál auditují.
 - Když worker hlásí TLS chybu typu `wrong version number`, zkontroluj, že `SMTP_SECURE` odpovídá portu. Pro Resend a podobné providery je nejbezpečnější `SMTP_SECURE=auto`.

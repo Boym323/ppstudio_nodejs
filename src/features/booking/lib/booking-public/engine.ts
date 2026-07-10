@@ -7,7 +7,7 @@ import {
 
 import { env } from "@/config/env";
 import { formatBookingDateLabel } from "@/features/booking/lib/booking-format";
-import { deliverEmailLog } from "@/lib/email/delivery";
+import { claimEmailLogForImmediateDelivery, deliverEmailLog } from "@/lib/email/delivery";
 import { sendOwnerBookingPushover } from "@/lib/notifications/pushover";
 import { prisma } from "@/lib/prisma";
 import {
@@ -764,7 +764,10 @@ export async function createBookingWithEngine(
 
       if (input.isManual && input.sendClientEmail && input.deliverEmailImmediately) {
         for (const emailLogId of transactionResult.createdEmailLogIds) {
-          await deliverEmailLog(emailLogId);
+          const processingToken = await claimEmailLogForImmediateDelivery(emailLogId);
+          if (processingToken) {
+            await deliverEmailLog(emailLogId, processingToken);
+          }
         }
       }
 

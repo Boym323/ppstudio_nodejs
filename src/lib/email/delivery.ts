@@ -1,4 +1,5 @@
 import { EmailLogStatus, EmailLogType } from "@prisma/client";
+import { randomUUID } from "node:crypto";
 
 import {
   evaluateBookingReminderDelivery,
@@ -14,6 +15,32 @@ export type EmailLogDeliveryOutcome = {
   status: "sent" | "failed" | "skipped";
   errorMessage?: string;
 };
+
+const WORKER_LOCK_TIMEOUT_MS = 10 * 60 * 1000;
+
+/** Atomicky převezme pending job pro explicitní (mimo worker) odeslání. */
+export async function claimEmailLogForImmediateDelivery(emailLogId: string) {
+  const now = new Date();
+  const processingToken = randomUUID();
+  const staleBefore = new Date(now.getTime() - WORKER_LOCK_TIMEOUT_MS);
+  const claimed = await prisma.emailLog.updateMany({
+    where: {
+      id: emailLogId,
+      status: EmailLogStatus.PENDING,
+      OR: [
+        { processingStartedAt: null },
+        { processingStartedAt: { lt: staleBefore } },
+      ],
+    },
+    data: {
+      processingToken,
+      processingStartedAt: now,
+      attemptCount: { increment: 1 },
+    },
+  });
+
+  return claimed.count === 1 ? processingToken : null;
+}
 
 function readReminderScheduledStartsAt(payload: unknown) {
   if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
@@ -42,7 +69,10 @@ function getErrorMessage(error: unknown) {
   return "Neznámá chyba při odeslání e-mailu.";
 }
 
-export async function deliverEmailLog(emailLogId: string): Promise<EmailLogDeliveryOutcome> {
+export async function deliverEmailLog(
+  emailLogId: string,
+  processingToken: string,
+): Promise<EmailLogDeliveryOutcome> {
   const emailLog = await prisma.emailLog.findUnique({
     where: {
       id: emailLogId,
@@ -56,6 +86,7 @@ export async function deliverEmailLog(emailLogId: string): Promise<EmailLogDeliv
       templateKey: true,
       payload: true,
       processingStartedAt: true,
+      processingToken: true,
       type: true,
       bookingId: true,
     },
@@ -68,7 +99,10 @@ export async function deliverEmailLog(emailLogId: string): Promise<EmailLogDeliv
     };
   }
 
-  if (emailLog.status === EmailLogStatus.SENT) {
+  if (
+    emailLog.status !== EmailLogStatus.PENDING
+    || emailLog.processingToken !== processingToken
+  ) {
     return {
       status: "skipped",
     };
@@ -100,9 +134,11 @@ export async function deliverEmailLog(emailLogId: string): Promise<EmailLogDeliv
       });
 
       if (!preflight.shouldSend) {
-        await prisma.emailLog.update({
+        const completed = await prisma.emailLog.updateMany({
           where: {
             id: emailLog.id,
+            status: EmailLogStatus.PENDING,
+            processingToken,
           },
           data: {
             status: EmailLogStatus.SENT,
@@ -115,10 +151,9 @@ export async function deliverEmailLog(emailLogId: string): Promise<EmailLogDeliv
           },
         });
 
-        return {
-          status: "skipped",
-          errorMessage: preflight.reason,
-        };
+        return completed.count === 1
+          ? { status: "skipped", errorMessage: preflight.reason }
+          : { status: "skipped", errorMessage: "Claim e-mailu mezitím převzal jiný worker." };
       }
     }
   }
@@ -135,11 +170,14 @@ export async function deliverEmailLog(emailLogId: string): Promise<EmailLogDeliv
       text: rendered.text,
       html: rendered.html,
       attachments: rendered.attachments,
+      idempotencyKey: `email-log/${emailLog.id}`,
     });
 
-    await prisma.emailLog.update({
+    const completed = await prisma.emailLog.updateMany({
       where: {
         id: emailLog.id,
+        status: EmailLogStatus.PENDING,
+        processingToken,
       },
       data: {
         status: EmailLogStatus.SENT,
@@ -152,6 +190,13 @@ export async function deliverEmailLog(emailLogId: string): Promise<EmailLogDeliv
         errorMessage: null,
       },
     });
+
+    if (completed.count !== 1) {
+      return {
+        status: "skipped",
+        errorMessage: "Claim e-mailu mezitím převzal jiný worker.",
+      };
+    }
 
     if (emailLog.type === EmailLogType.BOOKING_REMINDER && emailLog.bookingId) {
       await markBookingReminder24hSent(emailLog.bookingId, new Date());
@@ -168,9 +213,11 @@ export async function deliverEmailLog(emailLogId: string): Promise<EmailLogDeliv
       ? new Date(Date.now() + getEmailDeliveryRetryDelayMs(attemptCount))
       : null;
 
-    await prisma.emailLog.update({
+    const released = await prisma.emailLog.updateMany({
       where: {
         id: emailLog.id,
+        status: EmailLogStatus.PENDING,
+        processingToken,
       },
       data: {
         status: shouldRetry ? EmailLogStatus.PENDING : EmailLogStatus.FAILED,
@@ -180,6 +227,13 @@ export async function deliverEmailLog(emailLogId: string): Promise<EmailLogDeliv
         errorMessage,
       },
     });
+
+    if (released.count !== 1) {
+      return {
+        status: "skipped",
+        errorMessage: "Claim e-mailu mezitím převzal jiný worker.",
+      };
+    }
 
     if (!shouldRetry) {
       await sendOwnerEmailFailurePushover({

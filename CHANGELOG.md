@@ -7,6 +7,8 @@ Formát je inspirovaný Keep a Changelog.
 ## [Unreleased]
 
 ### Fixed
+- E-mailový outbox nyní váže doručení i finální zápis stavu na `processingToken`. Worker ani ruční okamžité odeslání tak nemohou dokončit cizí nebo zastaralý claim. Resend REST požadavky používají stabilní `Idempotency-Key` odvozený z `EmailLog.id`; SMTP používá stabilní `Message-ID` (a hlavičku Resend pro kompatibilní SMTP), proto po pádu mezi ACK poskytovatele a DB zápisem zůstává SMTP explicitně at-least-once.
+
 - Opravena bezpečnostní chyba administrátorských pozvánek: deaktivace účtu nyní v téže databázové transakci revokuje všechny nepoužité pozvánky. Veřejná aktivace zamyká token i účet, atomicky spotřebuje pouze dosud platný token aktivního uživatele a už nikdy sama nemění `AdminUser.isActive`. Přibyly integrační regrese pro deaktivovaný účet i souběžné použití stejného odkazu.
 
 - Admin booking parser už odmítá neplatná kalendářní data, časy mimo rozsah a neexistující pražské wall-clock časy v jarní DST mezeře. Při podzimní dvojznačnosti používá explicitně dřívější výskyt.

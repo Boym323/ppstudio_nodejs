@@ -1005,6 +1005,7 @@ npm run db:clear-booking-data -- --confirm
 - Veřejné čtení `SiteSettings` už při renderu nezapisuje do DB; pokud singleton dočasně chybí nebo DB read selže, veřejný web a e-mailové šablony použijí bezpečné defaulty a bootstrap zápis zůstává jen v owner admin sekci `Nastavení`.
 - Rezervační část má vlastní error boundary a loading fallback, takže výpadek booking vrstvy nepoškodí celý web.
 - Background e-mail worker lze spustit přes `npm run email:worker` jako samostatný proces; pro jednorázové dohnání fronty je k dispozici `npm run email:worker:once`.
+- Každý background job je chráněn `processingToken`; ruční okamžité doručení job nejdřív stejným způsobem atomicky claimuje. Resend REST používá pro jeden `EmailLog` stabilní idempotency key, zatímco obecné SMTP zůstává at-least-once (stabilní `Message-ID` může duplicity omezit, ale nemůže je absolutně vyloučit).
 - Stejný `email:worker` nově každých 5 minut i skenuje potvrzené rezervace v okně `25h-26h` před termínem a zapisuje jeden reminder `EmailLog` typu `BOOKING_REMINDER`.
 - Po přesunu termínu resetuje doménová akce `rescheduleBooking(...)` oba reminder markery, takže se starý reminder neposílá pro původní termín a nový čas může znovu projít standardním enqueue flow.
 - Před produkční aplikací migrací je k dispozici `npm run db:check-migrations`, který odhalí otevřené failed/incomplete záznamy v `_prisma_migrations`.

@@ -44,6 +44,7 @@ Evidence produkčních incidentů a jejich řešení.
   Preventivní opatření: po změnách Pushover, e-mail delivery nebo reminder scheduleru ověřit alespoň import/start worker vrstvy mimo Next.js runtime.
 
 ## Doporučené sledované oblasti
+- Duplicitní e-mail: ověř `EmailLog.processingToken`, `processingStartedAt`, `providerMessageId` a počet běžících `ppstudio-email-worker` procesů. Resend REST má pro tentýž `EmailLog.id` 24hodinovou deduplikaci; u SMTP nelze po provider ACK před DB zápisem přesně jednou garantovat, proto incident řeš jako at-least-once a nespouštěj ruční resend bez kontroly logu.
 - Nové GitHub workflow je v repu, ale branch protection / required checks na GitHubu pořád ukazují staré názvy jobů; typický symptom je PR, který má všechny nové checky zelené, ale merge blokuje neexistující historický status.
 - CodeQL nebo Dependabot jsou v workflow/configu připravené, ale na úrovni GitHub repozitáře nejsou skutečně zapnuté alerts nebo security overview; po rollout CI/security změn vždy ověř i repo settings, ne jen přítomnost YAML souborů.
 - `npm audit` doporučující automatický fix přes downgrade `next` nebo `prisma`; před jakýmkoli `npm audit fix` vždy zkontroluj navržené cílové verze a diff lockfilu. V aktuálním stavu (2026-06-28) je správné `audit fix` nepouštět a čekat na kompatibilní upstream release.

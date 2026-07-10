@@ -71,7 +71,7 @@ Seznam důležitých knihoven a důvod jejich použití.
 - `zod`: validace env a serverových vstupů.
 - `jose`: podpis a verifikace admin session.
 - `nodemailer`: SMTP transport pro potvrzení rezervace a storno e-maily.
-- Resend REST transport nepřidává SDK závislost; používá vestavěný `fetch` a mapuje `providerMessageId` na Resend `email_id` pro webhook tracking.
+- Resend REST transport nepřidává SDK závislost; používá vestavěný `fetch`, stabilní HTTP `Idempotency-Key` z `EmailLog.id` a mapuje `providerMessageId` na Resend `email_id` pro webhook tracking.
 - `image-size`: čtení rozměrů lokálně uložených obrázků pro metadata `MediaAsset`.
 - `sharp`: lehká server-side image pipeline pro EXIF-normalized originál a varianty `optimized` + `thumbnail` při uploadu přes Media Library. Při upgrade na novější minor řadu nepoužívej v TypeScriptu namespace styl `sharp.Sharp`; aktuální kompatibilní pattern v repu je explicitní `import sharp, { type Sharp } from 'sharp'`.
 - `server-only`: marker balík doporučený Next.js dokumentací pro server-only moduly; v tomhle projektu je instalovaný i kvůli běhu `node --test` mimo Next bundler, kde před testy registrujeme malý resolver hook a mapujeme `server-only` na prázdný stub jen v testovacím procesu.

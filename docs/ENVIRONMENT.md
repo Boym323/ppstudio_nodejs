@@ -197,6 +197,7 @@ Lokální doporučení:
 - Pokud měníš `ADMIN_SESSION_SECRET`, zneplatníš tím existující admin session a zároveň i starší odvozené ICS subscription URL. Po takové změně je potřeba v `/admin/nastaveni` feed znovu zkontrolovat a případně rotovat.
 - Změna `ADMIN_SESSION_SECRET` sama o sobě nezneplatní už vydané zákaznické calendar tokeny, protože ty jsou ukládané jako hash v `BookingActionToken`; pokud je chceš po bezpečnostním incidentu stáhnout, revokují se přes změnu stavu rezervace nebo ruční zásah do tokenů.
 - Pro SMTP produkci je doporučené `SMTP_SECURE=auto`; port `465`/`2465` se přepne na implicit TLS, `587`/`2587` na STARTTLS.
+- Resend REST automaticky používá stabilní idempotency key z `EmailLog.id` (platnost deduplikace na straně Resendu je 24 hodin); SMTP používá stabilní `Message-ID`, což nezaručuje exactly-once po nejistém výsledku síťového odeslání.
 - `EMAIL_DELIVERY_MODE=log` je vhodný pro lokální vývoj, testovací rollout a safe-mode při produkčním incidentu s SMTP. Produkce ho nemá používat dlouhodobě; log režim neposílá SMTP a provozní logy záměrně maskují příjemce a anonymizují subject.
 - Po změně `prisma/schema.prisma` už `npm run dev` a `npm run build` automaticky obnoví generovaný Prisma klient, ale při ruční práci s CLI je stále bezpečné spustit i `npm run db:generate`.
 - Slot admin CRUD nezavádí žádné nové env proměnné; spoléhá na stávající session, databázi a bootstrap admin účty.

@@ -19,6 +19,7 @@ export type EmailWorkerConfig = {
 
 type ClaimedEmailLog = {
   id: string;
+  processingToken: string;
 };
 
 async function claimDueEmailLogs(limit: number): Promise<ClaimedEmailLog[]> {
@@ -40,6 +41,7 @@ async function claimDueEmailLogs(limit: number): Promise<ClaimedEmailLog[]> {
     const claimed: ClaimedEmailLog[] = [];
 
     for (const row of rows) {
+      const processingToken = randomUUID();
       const updated = await tx.emailLog.update({
         where: {
           id: row.id,
@@ -49,10 +51,11 @@ async function claimDueEmailLogs(limit: number): Promise<ClaimedEmailLog[]> {
             increment: 1,
           },
           processingStartedAt: now,
-          processingToken: randomUUID(),
+          processingToken,
         },
         select: {
           id: true,
+          processingToken: true,
         },
       });
 
@@ -74,7 +77,7 @@ export async function runEmailDeliveryWorkerOnce() {
     }
 
     for (const emailLog of batch) {
-      await deliverEmailLog(emailLog.id);
+      await deliverEmailLog(emailLog.id, emailLog.processingToken);
       processed += 1;
     }
   }

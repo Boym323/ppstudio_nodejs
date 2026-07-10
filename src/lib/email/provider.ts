@@ -19,6 +19,8 @@ export type EmailDeliveryMessage = {
     content: string | Buffer;
     contentType: string;
   }>;
+  /** Stabilní identita jednoho outbox jobu pro bezpečné opakování odeslání. */
+  idempotencyKey?: string;
 };
 
 export type EmailDeliveryResult = {
@@ -108,6 +110,7 @@ async function sendViaResend(message: EmailDeliveryMessage): Promise<EmailDelive
     headers: {
       Authorization: `Bearer ${env.RESEND_API_KEY}`,
       "Content-Type": "application/json",
+      ...(message.idempotencyKey ? { "Idempotency-Key": message.idempotencyKey } : {}),
     },
     body: JSON.stringify({
       from,
@@ -195,6 +198,12 @@ export async function sendEmail(message: EmailDeliveryMessage): Promise<EmailDel
       text: message.text,
       html: message.html,
       attachments: message.attachments,
+      messageId: message.idempotencyKey
+        ? `<${message.idempotencyKey.replace(/[^a-zA-Z0-9._-]/g, "-")}@ppstudio.local>`
+        : undefined,
+      headers: message.idempotencyKey
+        ? { "Resend-Idempotency-Key": message.idempotencyKey }
+        : undefined,
     });
   } catch (error) {
     throw getSmtpTransportHint(error) ?? error;
