@@ -499,6 +499,7 @@ sudo /var/www/ppstudio/deploy/deploy.sh
 - Reverzní proxy by měla korektně předávat `x-forwarded-for`, aby submission audit a rate limiting pracovaly smysluplně.
 - I když `npm run build` dnes předem volá `prisma generate`, v release checklistu necháváme explicitní `npm run db:generate`, protože chrání i jiné skripty a ruční servisní zásahy.
 - `allowedDevOrigins` je čistě development nastavení pro `next dev`; produkční deploy ani `next start` na něm nestojí. Pokud někdo řeší vzdálené testování přes LAN nebo přes Synology reverse proxy na `ppstudio.cz`, upravuje se `next.config.ts`, ne produkční env.
+- Verzionovaný release vytváří ve staging adresáři vlastní `package-lock.json`. `turbopack.root` proto musí zůstat explicitně nastavený na adresář aktivního `next.config.ts`; jinak může `next build` vydat falešné varování o více lockfilech.
 - Upload root není build artefakt. Při deployi se nemaže a má být zálohovaný samostatně od repozitáře i databáze.
 - Veřejná média se publikují přes `/media/public/*` a legacy `/media/*`, takže reverse proxy nemusí mapovat fyzickou cestu upload adresáře přímo do document rootu.
 

@@ -14,6 +14,7 @@ Evidence produkčních incidentů a jejich řešení.
 - Pokud migrace hlásí `Cannot enforce AvailabilitySlot capacity = 1`, zastav rollout a vylistuj sloty s `capacity <> 1` včetně navázaných aktivních rezervací. Teprve po provozním rozhodnutí oprav data a migraci spusť znovu.
 - Riziko rollout/DB skewu: release nesmí aplikovat destruktivní nebo nekompatibilní migraci. `release.sh` nejdřív dokončí build a až potom aplikuje migraci těsně před přepnutím `current`; při selhání startu nebo health testu vrátí celý předchozí runtime release. DB se automaticky nevrací, proto je povinný expand/contract postup a při incidentu je nutné nasadit dopřednou opravnou migraci.
 - Zaplněný disk kvůli release artefaktům: ověř `du -sh /var/www/ppstudio/releases` a poslední výstup `release.sh`. Po úspěchu se automaticky ponechá `current`, `previous` a sedm dalších releasů; dočasně můžeš limit snížit přes `--keep-releases N`, ale nikdy ručně nemaž cíl symlinků.
+- `next build` během staging releasu hlásí více lockfileů v `releases/.staging.*`: ověř `next.config.ts` a jeho `turbopack.root`. Musí mířit na `__dirname` aktuálního release, nikoli na rodičovský adresář se všemi verzovanými release.
 
 - Datum a čas: 2026-05-20 16:10 CEST
   Dopad (uživatelé/systém): v admin pracovním seznamu rezervací se po kliknutí na `Potvrdit` mohla karta zaseknout ve stavu `Ukládám...`, i když booking stav už byl v DB změněný.

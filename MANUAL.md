@@ -40,6 +40,7 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
 - Po úspěšném release se adresář `releases/` automaticky uklidí: chráněné jsou cíle `current` a `previous` a výchozích sedm dalších nejnovějších release. Limit upravíš přes `./deploy/release.sh --keep-releases 14`; úklid nikdy neběží při selhání releasu.
 - `package.json` zároveň drží npm 11 `allowScripts` whitelist pro balíčky s install hooky (`prisma`, `@prisma/engines`, `sharp`, `esbuild`, `unrs-resolver`), takže release nevypisuje opakované `npm warn allow-scripts` a při upgradu těchto balíčků je potřeba whitelist znovu vědomě potvrdit.
 - Skript před vytvořením čistého git-archive workspace odmítne lokální migrační adresáře bez `migration.sql` (ochrana před Prisma P3015). Bez zápisu do DB provede `npm ci`, generate, kontrolu historie, `prisma validate`, lint a build; teprve potom, těsně před aktivací, spustí `prisma migrate deploy`. Produkční migrace proto musí být expand/contract a kompatibilní s předchozím runtime.
+- `next.config.ts` explicitně nastavuje `turbopack.root` na adresář právě běžícího checkoutu/release. Staging release tak může mít vlastní `package-lock.json` bez falešného workspace warningu při `next build`.
 - Detailní release checklist a QA body zůstávají v [`docs/DEPLOYMENT.md`](/var/www/ppstudio/docs/DEPLOYMENT.md).
 
 ## Testování a coverage
@@ -153,7 +154,7 @@ Praktický přehled hlavních HTTP endpointů je v [`docs/API.md`](/var/www/ppst
 
 ## Verzování (SemVer)
 - Projekt používá Semantic Versioning `MAJOR.MINOR.PATCH` v `package.json`.
-- Aktuální release je `1.0.1`; stabilní řada projektu začala verzí `1.0.0`.
+- Aktuální release je `1.0.2`; stabilní řada projektu začala verzí `1.0.0`.
 - `PATCH` (`0.1.0 -> 0.1.1`) zvyšuj při opravách chyb, interním refaktoru bez změny chování a technických úpravách bez dopadu na veřejné rozhraní.
 - `MINOR` (`0.1.0 -> 0.2.0`) zvyšuj při přidání nové funkce nebo rozšíření existující funkcionality zpětně kompatibilním způsobem.
 - `MAJOR` (`0.1.0 -> 1.0.0` nebo `1.x.y -> 2.0.0`) zvyšuj při nekompatibilní změně API, datového kontraktu, routingu nebo provozního chování, které vyžaduje zásah uživatele/operátora.

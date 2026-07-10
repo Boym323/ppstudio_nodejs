@@ -15,6 +15,7 @@ test("next config defines global and token route security headers", async () => 
   const nextConfig = (await import("../../next.config")).default;
   assert.equal(typeof nextConfig.headers, "function");
   assert.ok(nextConfig.headers);
+  assert.equal(nextConfig.turbopack?.root, process.cwd());
 
   const headers = await nextConfig.headers();
   const globalHeaders = headers.find((entry) => entry.source === "/:path*")?.headers ?? [];

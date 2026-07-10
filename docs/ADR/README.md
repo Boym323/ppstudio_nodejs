@@ -118,6 +118,7 @@ Sem patří krátké záznamy architektonických rozhodnutí.
 - `0109-offline-owner-recovery-and-owner-invariant.md`
 - `0110-availability-slot-single-capacity-invariant.md`
 - `0111-health-db-failure-sanitization-and-alert-cooldown.md` — bezpečný 503 kontrakt pro základní DB ping a degradovaný 200/warning stav pro nedostupné e-mailové metriky.
+- `0112-turbopack-release-root.md` — explicitní root aktivního release pro Turbopack build.
 
 Poznámka:
 - Historicky existují duplicitní indexy (`0026`, `0090`). Ber to jako legacy stav, čísla zpětně nepřejmenovávat.

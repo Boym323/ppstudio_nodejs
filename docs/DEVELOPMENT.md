@@ -11,7 +11,7 @@ Pro centralizovaný přehled hlavních route handler kontraktů používej i [`d
 - Pro opakující se incidenty použij i [`TROUBLESHOOTING.md`](/var/www/ppstudio/TROUBLESHOOTING.md).
 
 ## Verzování a release disciplína
-- `package.json` používá SemVer `MAJOR.MINOR.PATCH`; aktuální release je `1.0.1` ve stabilní řadě.
+- `package.json` používá SemVer `MAJOR.MINOR.PATCH`; aktuální release je `1.0.2` ve stabilní řadě.
 - Praktické pravidlo pro tento projekt:
   - `PATCH`: bugfix, interní refaktor bez změny kontraktu, performance tuning bez změny chování API/UI kontraktu.
   - `MINOR`: nová funkce nebo rozšíření existující funkce zpětně kompatibilním způsobem.
@@ -25,6 +25,7 @@ Pro centralizovaný přehled hlavních route handler kontraktů používej i [`d
 ## Dev runtime a cache
 - Vývoj i CI standardizujeme na `Node 24 LTS`. Repo drží [`.nvmrc`](/var/www/ppstudio/.nvmrc:1) s hodnotou `24` a `package.json` deklaruje `engines.node = ^24.0.0`; před prvním `npm install` nebo po upgrade runtime si ověř `node -v`.
 - Výchozí `npm run dev` používá Next.js 16 dev server.
+- `next.config.ts` nastavuje `turbopack.root` na `__dirname`; při verzovaném release/staging buildu tak Turbopack nepovažuje sourozenecké `releases/*/package-lock.json` za další workspace. Při přesunu projektu neměň tuto hodnotu na pevnou absolutní cestu.
 - U admin formulářů nepočítej s tím, že stylování nativního `<select>/<option>` bude konzistentní napříč OS. Chrome na Windows může ignorovat kontrast očekávaný z Tailwind tříd a vykreslit nečitelný dropdown; pro business-kritický výběr (např. voucher na službu) preferuj vlastní seznam/radio/button picker nad hidden inputem.
 - U klientských admin formulářů na Next.js 16 nepoužívej `useCallback` jen kvůli lokálním helperům typu `resetForm()`, pokud se nikam nepředávají jako props. Když stejný helper potřebuješ volat z `useEffect` i z click handlerů, preferuj v React 19 `useEffectEvent`; lint `react-hooks/preserve-manual-memoization` i `exhaustive-deps` tak zůstane v souladu s React compilerem.
 - Pokud dev server spadne na poškozené Turbopack cache (`Failed to restore task data`, chybějící `.sst` v `.next/dev/cache/turbopack`), použij:

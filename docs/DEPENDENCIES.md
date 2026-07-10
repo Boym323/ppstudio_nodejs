@@ -14,6 +14,8 @@ Ochrana DB health alertu nepřidává žádnou závislost ani persistentní stor
 
 Ošetření detailních DB dotazů health snapshotu nepřidává žádnou závislost; používá stávající `Response.json`, Prisma klient a serverový `console.error` pro neveřejnou diagnostiku a degradovaný health stav.
 
+Explicitní `turbopack.root` nepřidává závislost; používá vestavěný Node.js modul `node:path`, který je součástí podporovaného Node 24 runtime.
+
 ## Aktuální verze stacku
 - Zdroj pravdy je `package.json` v kořeni projektu.
 - Projektový runtime cíl je `Node 24 LTS`; repozitář to explicitně deklaruje přes [`.nvmrc`](/var/www/ppstudio/.nvmrc:1) a `package.json.engines`.

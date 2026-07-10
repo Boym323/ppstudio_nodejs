@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import path from "node:path";
 
 const securityHeaders = [
   {
@@ -39,6 +40,12 @@ const tokenRouteHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // Každý verzovaný release obsahuje vlastní package-lock.json. Explicitní root
+  // zabrání Turbopacku, aby při buildu staging release prohledával sourozence
+  // v /var/www/ppstudio/releases a vypisoval falešné workspace varování.
+  turbopack: {
+    root: path.resolve(__dirname),
+  },
   allowedDevOrigins: ["192.168.0.143", "ppstudio.cz", "www.ppstudio.cz","192.168.0.150"],
   deploymentId:
     process.env.NEXT_DEPLOYMENT_ID
