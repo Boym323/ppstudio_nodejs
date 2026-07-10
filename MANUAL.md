@@ -143,6 +143,7 @@ Praktický přehled hlavních HTTP endpointů je v [`docs/API.md`](/var/www/ppst
 
 ## Monitoring a provozní SLA minimum
 - Externí monitoring má pravidelně volat `GET /api/health`; při `503` nebo timeoutu ber stav jako incident.
+- Selhání detailních dotazů health snapshotu nad e-mailovou frontou vrací HTTP `200` se `status=warning` a `error.code=EMAIL_HEALTH_UNAVAILABLE`, nikoli veřejné `500`; release tím zůstává ověřitelný a konkrétní příčinu hledej v `journalctl -u ppstudio-web.service`.
 - `GET /api/health` při čistém stavu vrací i `release.version`, `release.deploymentId` / `deploymentVersion` / `gitHash` a `durationMs`; při incidentu podle toho rychle ověříš, jestli monitoring mluví se správným releasem a jestli se endpoint nezpomaluje.
 - Při nedostupné DB endpoint vrací pouze stabilní `error.code=DATABASE_UNAVAILABLE`, nikdy raw detail ovladače nebo připojení. Owner alert je best-effort, neblokuje odpověď a v jednom procesu se pro tento stav odešle nejvýše jednou za 10 minut.
 - Vedle webu sleduj i běh `ppstudio-web.service` a `ppstudio-email-worker.service`.
@@ -152,7 +153,7 @@ Praktický přehled hlavních HTTP endpointů je v [`docs/API.md`](/var/www/ppst
 
 ## Verzování (SemVer)
 - Projekt používá Semantic Versioning `MAJOR.MINOR.PATCH` v `package.json`.
-- Aktuální release je `1.0.0`, první stabilní vydání projektu.
+- Aktuální release je `1.0.1`; stabilní řada projektu začala verzí `1.0.0`.
 - `PATCH` (`0.1.0 -> 0.1.1`) zvyšuj při opravách chyb, interním refaktoru bez změny chování a technických úpravách bez dopadu na veřejné rozhraní.
 - `MINOR` (`0.1.0 -> 0.2.0`) zvyšuj při přidání nové funkce nebo rozšíření existující funkcionality zpětně kompatibilním způsobem.
 - `MAJOR` (`0.1.0 -> 1.0.0` nebo `1.x.y -> 2.0.0`) zvyšuj při nekompatibilní změně API, datového kontraktu, routingu nebo provozního chování, které vyžaduje zásah uživatele/operátora.

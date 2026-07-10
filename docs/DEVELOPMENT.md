@@ -11,7 +11,7 @@ Pro centralizovaný přehled hlavních route handler kontraktů používej i [`d
 - Pro opakující se incidenty použij i [`TROUBLESHOOTING.md`](/var/www/ppstudio/TROUBLESHOOTING.md).
 
 ## Verzování a release disciplína
-- `package.json` používá SemVer `MAJOR.MINOR.PATCH`; aktuální release je `0.7.2` v pre-stable řadě.
+- `package.json` používá SemVer `MAJOR.MINOR.PATCH`; aktuální release je `1.0.1` ve stabilní řadě.
 - Praktické pravidlo pro tento projekt:
   - `PATCH`: bugfix, interní refaktor bez změny kontraktu, performance tuning bez změny chování API/UI kontraktu.
   - `MINOR`: nová funkce nebo rozšíření existující funkce zpětně kompatibilním způsobem.
@@ -128,6 +128,7 @@ Pro centralizovaný přehled hlavních route handler kontraktů používej i [`d
 - Klasické admin POST route handlery (`/api/auth/login`, `/api/auth/logout`, owner resend invite, admin voucher lookup POST) nespoléhej jen na `SameSite=Lax`; drž explicitní `Origin`/trusted host kontrolu přes `isSameOriginAdminRequest(...)`, aby cross-origin form submit skončil dřív než auth nebo mutace.
 - Veřejné API obsahuje i route handler `GET /api/health` pro externí monitoring webu: endpoint dělá DB check (`SELECT 1`), čte stav email outbox fronty (`pending/retrying/processing/stale/failed`) a vrací agregovaný stav `ok|warning|error` + `alerts`; při `error` odpovídá HTTP `503`.
 - Když upravuješ `GET /api/health`, zachovej ho jako čistě veřejný provozní snapshot bez citlivých detailů: release metadata (`deploymentId`, `deploymentVersion`, `gitHash`) a `durationMs` jsou žádoucí, ale raw e-mailové chyby, tokeny ani DB/driver chyby do payloadu nesmí. Při nedostupné DB je veřejný kontrakt pouze `error.code=DATABASE_UNAVAILABLE`.
+- Základní `SELECT 1` při selhání vrací HTTP `503` s `error.code=DATABASE_UNAVAILABLE`. Pokud projde, ale selže pouze detailní Prisma read model nad `EmailLog`, vrací endpoint HTTP `200`, `status=warning` a `error.code=EMAIL_HEALTH_UNAVAILABLE`, aby release mohl ověřit živý runtime; druhá vrstva se nesmí proměnit v neobslouženou HTTP `500`. Detail chyby loguj pouze serverově.
 - DB failure alert z health endpointu je best-effort non-blocking dispatch s vlastním desetiminutovým in-memory cooldownem. Nečekej na Pushover v requestu; cooldown je lokální pro jeden runtime proces, proto v multi-instance provozu není náhradou centrálního alertingu.
 - `/rezervace` používá `connection()` a renderuje se request-time, aby ručně publikované sloty nebyly zafixované do build outputu.
 - Veřejné SEO landing pages (`/`, `/sluzby`, `/cenik`, `/vouchery`, `/o-mne`, detail `/sluzby/[slug]`) naopak nenuť do request-time režimu jen kvůli read modelům nebo JSON-LD. Next.js 16 výslovně doporučuje nedávat `await connection()` přímo do page komponenty, pokud tím jen zbytečně bráníš statickému shellu a metadata nepotřebují runtime request kontext.

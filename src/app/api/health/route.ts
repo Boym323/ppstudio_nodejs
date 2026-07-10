@@ -12,13 +12,28 @@ const DEPLOYMENT_ID_ENV_KEYS = [
 const WORKER_LOCK_TIMEOUT_MS = 10 * 60 * 1000;
 const RECENT_EMAIL_ERROR_WINDOW_MS = 24 * 60 * 60 * 1000;
 const DB_UNAVAILABLE_ERROR_CODE = "DATABASE_UNAVAILABLE";
+const EMAIL_HEALTH_UNAVAILABLE_ERROR_CODE = "EMAIL_HEALTH_UNAVAILABLE";
 const DB_FAILURE_ALERT_COOLDOWN_MS = 10 * 60 * 1000;
 
 type HealthRouteDependencies = {
   checkDatabase: () => Promise<unknown>;
+  getEmailHealthData: (now: Date) => Promise<EmailHealthData>;
   notifySystemError: typeof sendOwnerSystemErrorPushover;
   now: () => Date;
   claimDbFailureAlert: (nowMs: number) => boolean;
+};
+
+type EmailHealthData = {
+  pending: number;
+  retrying: number;
+  processingActive: number;
+  processingStale: number;
+  failed: number;
+  lastSentAt: Date | null;
+  latestError: {
+    errorMessage: string | null;
+    updatedAt: Date;
+  } | null;
 };
 
 export function createDbFailureAlertCooldown(
@@ -38,6 +53,95 @@ export function createDbFailureAlertCooldown(
 
 const claimDbFailureAlert = createDbFailureAlertCooldown();
 
+async function getEmailHealthData(now: Date): Promise<EmailHealthData> {
+  const staleThreshold = new Date(now.getTime() - WORKER_LOCK_TIMEOUT_MS);
+  const recentErrorThreshold = new Date(
+    now.getTime() - RECENT_EMAIL_ERROR_WINDOW_MS,
+  );
+  const [
+    pending,
+    retrying,
+    processingActive,
+    processingStale,
+    failed,
+    lastSentLog,
+    latestError,
+  ] = await Promise.all([
+    prisma.emailLog.count({
+      where: {
+        status: EmailLogStatus.PENDING,
+        attemptCount: 0,
+        processingStartedAt: null,
+        nextAttemptAt: { lte: now },
+      },
+    }),
+    prisma.emailLog.count({
+      where: {
+        status: EmailLogStatus.PENDING,
+        attemptCount: { gt: 0 },
+        processingStartedAt: null,
+      },
+    }),
+    prisma.emailLog.count({
+      where: {
+        status: EmailLogStatus.PENDING,
+        processingStartedAt: { not: null, gte: staleThreshold },
+      },
+    }),
+    prisma.emailLog.count({
+      where: {
+        status: EmailLogStatus.PENDING,
+        processingStartedAt: { lt: staleThreshold },
+      },
+    }),
+    prisma.emailLog.count({
+      where: {
+        status: EmailLogStatus.FAILED,
+      },
+    }),
+    prisma.emailLog.findFirst({
+      where: {
+        status: EmailLogStatus.SENT,
+        sentAt: { not: null },
+      },
+      orderBy: {
+        sentAt: "desc",
+      },
+      select: {
+        sentAt: true,
+      },
+    }),
+    prisma.emailLog.findFirst({
+      where: {
+        errorMessage: { not: null },
+        updatedAt: { gte: recentErrorThreshold },
+        OR: [
+          { status: EmailLogStatus.FAILED },
+          {
+            status: EmailLogStatus.PENDING,
+            attemptCount: { gt: 0 },
+          },
+        ],
+      },
+      orderBy: { updatedAt: "desc" },
+      select: {
+        errorMessage: true,
+        updatedAt: true,
+      },
+    }),
+  ]);
+
+  return {
+    pending,
+    retrying,
+    processingActive,
+    processingStale,
+    failed,
+    lastSentAt: lastSentLog?.sentAt ?? null,
+    latestError,
+  };
+}
+
 function getCurrentDeploymentId() {
   for (const key of DEPLOYMENT_ID_ENV_KEYS) {
     const value = process.env[key];
@@ -55,6 +159,7 @@ export function createHealthRouteApi(
 ) {
   const dependencies: HealthRouteDependencies = {
     checkDatabase: () => prisma.$queryRaw`SELECT 1`,
+    getEmailHealthData,
     notifySystemError: sendOwnerSystemErrorPushover,
     now: () => new Date(),
     claimDbFailureAlert,
@@ -66,10 +171,6 @@ export function createHealthRouteApi(
       const startedAtMs = Date.now();
       const now = dependencies.now();
       const nowMs = now.getTime();
-      const staleThreshold = new Date(nowMs - WORKER_LOCK_TIMEOUT_MS);
-      const recentErrorThreshold = new Date(
-        nowMs - RECENT_EMAIL_ERROR_WINDOW_MS,
-      );
       const release = {
         version: packageJson.version,
         deploymentId: getCurrentDeploymentId(),
@@ -143,78 +244,65 @@ export function createHealthRouteApi(
         );
       }
 
-      const [
+      let emailHealthData: EmailHealthData;
+
+      try {
+        emailHealthData = await dependencies.getEmailHealthData(now);
+      } catch (healthDataError) {
+        console.error("Health email status check failed", {
+          error: healthDataError,
+        });
+
+        return Response.json(
+          {
+            status: "warning",
+            checkedAt: now.toISOString(),
+            durationMs: Date.now() - startedAtMs,
+            release,
+            db: {
+              status: "ok",
+            },
+            emailWorker: {
+              status: "unknown",
+              staleClaimTimeoutMs: WORKER_LOCK_TIMEOUT_MS,
+              summary: "Detailní stav e-mailové fronty není dostupný.",
+            },
+            emailQueue: {
+              pending: 0,
+              retrying: 0,
+              processing: 0,
+              staleProcessing: 0,
+              failed: 0,
+            },
+            emailDelivery: {
+              lastSentAt: null,
+              lastErrorAt: null,
+              hasRecentError: false,
+              recentErrorWindowMs: RECENT_EMAIL_ERROR_WINDOW_MS,
+            },
+            alerts: ["Email health check unavailable"],
+            error: {
+              code: EMAIL_HEALTH_UNAVAILABLE_ERROR_CODE,
+            },
+          },
+          {
+            status: 200,
+            headers: {
+              "cache-control": "no-store",
+            },
+          },
+        );
+      }
+
+      const {
         pending,
         retrying,
         processingActive,
         processingStale,
         failed,
-        lastSentLog,
-        latestErrorLog,
-      ] = await Promise.all([
-        prisma.emailLog.count({
-          where: {
-            status: EmailLogStatus.PENDING,
-            attemptCount: 0,
-            processingStartedAt: null,
-            nextAttemptAt: { lte: now },
-          },
-        }),
-        prisma.emailLog.count({
-          where: {
-            status: EmailLogStatus.PENDING,
-            attemptCount: { gt: 0 },
-            processingStartedAt: null,
-          },
-        }),
-        prisma.emailLog.count({
-          where: {
-            status: EmailLogStatus.PENDING,
-            processingStartedAt: { not: null, gte: staleThreshold },
-          },
-        }),
-        prisma.emailLog.count({
-          where: {
-            status: EmailLogStatus.PENDING,
-            processingStartedAt: { lt: staleThreshold },
-          },
-        }),
-        prisma.emailLog.count({
-          where: {
-            status: EmailLogStatus.FAILED,
-          },
-        }),
-        prisma.emailLog.findFirst({
-          where: {
-            status: EmailLogStatus.SENT,
-            sentAt: { not: null },
-          },
-          orderBy: {
-            sentAt: "desc",
-          },
-          select: {
-            sentAt: true,
-          },
-        }),
-        prisma.emailLog.findFirst({
-          where: {
-            errorMessage: { not: null },
-            updatedAt: { gte: recentErrorThreshold },
-            OR: [
-              { status: EmailLogStatus.FAILED },
-              {
-                status: EmailLogStatus.PENDING,
-                attemptCount: { gt: 0 },
-              },
-            ],
-          },
-          orderBy: { updatedAt: "desc" },
-          select: {
-            errorMessage: true,
-            updatedAt: true,
-          },
-        }),
-      ]);
+        lastSentAt,
+        latestError,
+      } = emailHealthData;
 
       const workerStuck = processingStale > 0;
       const workerBacklog = pending + retrying > 0 && processingActive === 0;
@@ -234,7 +322,7 @@ export function createHealthRouteApi(
         );
       }
 
-      if (latestErrorLog?.errorMessage) {
+      if (latestError?.errorMessage) {
         alerts.push("Recent email error present");
       }
 
@@ -279,9 +367,9 @@ export function createHealthRouteApi(
             failed,
           },
           emailDelivery: {
-            lastSentAt: lastSentLog?.sentAt?.toISOString() ?? null,
-            lastErrorAt: latestErrorLog?.updatedAt?.toISOString() ?? null,
-            hasRecentError: Boolean(latestErrorLog?.errorMessage),
+            lastSentAt: lastSentAt?.toISOString() ?? null,
+            lastErrorAt: latestError?.updatedAt?.toISOString() ?? null,
+            hasRecentError: Boolean(latestError?.errorMessage),
             recentErrorWindowMs: RECENT_EMAIL_ERROR_WINDOW_MS,
           },
           alerts,

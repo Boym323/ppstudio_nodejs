@@ -12,6 +12,8 @@ Constraint jednotkové kapacity slotu nepřidává žádnou závislost; použív
 
 Ochrana DB health alertu nepřidává žádnou závislost ani persistentní storage; používá lokální in-memory cooldown v Next.js route handleru.
 
+Ošetření detailních DB dotazů health snapshotu nepřidává žádnou závislost; používá stávající `Response.json`, Prisma klient a serverový `console.error` pro neveřejnou diagnostiku a degradovaný health stav.
+
 ## Aktuální verze stacku
 - Zdroj pravdy je `package.json` v kořeni projektu.
 - Projektový runtime cíl je `Node 24 LTS`; repozitář to explicitně deklaruje přes [`.nvmrc`](/var/www/ppstudio/.nvmrc:1) a `package.json.engines`.

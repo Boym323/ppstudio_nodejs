@@ -37,6 +37,7 @@ Stručný runtime přehled prostředí a vazeb na infrastrukturu je v kořenové
 - `PUSHOVER_ENABLED`: server-only globalni vypinac owner Pushover notifikaci; odesila se pouze pri presne hodnote `true`.
 - `PUSHOVER_APP_TOKEN`: server-only Pushover application token pro projekt; nikdy nepouzivej prefix `NEXT_PUBLIC_`.
 - Cooldown DB failure alertu z `/api/health` je záměrně pevný na 10 minut v aplikaci a nepřidává žádnou env proměnnou; tím nemůže být omylem vystaven nebo rozvolněn pouze změnou prostředí.
+- Selhání základní DB kontroly `/api/health` používá bezpečný `503` kontrakt; selhání pouze detailní e-mailové metriky vrací `200/warning` s `EMAIL_HEALTH_UNAVAILABLE`. Ani jedna varianta nepřidává env proměnnou a pro konkrétní diagnostiku slouží systemd journal webové služby.
 - `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY`: stabilní base64 AES klíč pro Next.js Server Actions; na produkci musí zůstat stejný mezi release buildy.
 - `NEXT_DEPLOYMENT_ID`: identifikátor konkrétního deploymentu pro ochranu proti version skew; při doporučeném rollout skriptu se nastavuje automaticky z aktuálního git commitu a nemá se držet staticky v `.env`.
 - `DEPLOYMENT_VERSION`: volitelný alias pro deployment identifikátor; release skript ho automaticky exportuje na stejnou hodnotu jako `NEXT_DEPLOYMENT_ID`.

@@ -6,7 +6,7 @@ Veřejný `GET /api/health` při nedostupné databázi vracel raw `Error.message
 
 ## Rozhodnutí
 
-- Veřejný kontrakt pro nedostupnou DB je pouze HTTP `503` a `error.code = DATABASE_UNAVAILABLE`.
+- Veřejný kontrakt pro nedostupný základní DB ping je HTTP `503` a `error.code = DATABASE_UNAVAILABLE`. Pokud ping projde, ale selže pouze následný detailní dotaz health snapshotu nad e-mailovou frontou, kontrakt je HTTP `200`, `status=warning` a `error.code = EMAIL_HEALTH_UNAVAILABLE`.
 - Health handler nepředává raw DB chybu ani do veřejného payloadu, ani do textu owner alertu.
 - Owner alert `health-db-check` se dispatchuje best-effort bez čekání v requestu a samostatný in-memory cooldown jej v jednom runtime procesu propustí nejvýše jednou za 10 minut.
 - Cooldown je fixovaný v kódu; nepřidává novou env proměnnou ani závislost.
@@ -20,6 +20,7 @@ Veřejný `GET /api/health` při nedostupné databázi vracel raw `Error.message
 ## Důsledky
 
 - Monitoring má strojově stabilní a bezpečný signál bez interní diagnostiky.
+- Schema drift nebo chyba detailního Prisma dotazu nemění veřejný status na HTTP `500` ani neblokuje release, pokud je základní DB ping funkční; diagnostický objekt se zapisuje pouze do serverového journalu a monitoring dostane `warning`.
 - Pushover neprodlužuje health odpověď a při opakovaných requestech nevzniká lokální alert flood.
 - V multi-instance provozu může každý proces poslat jeden alert; centrální alerting zůstává odpovědností monitoringu.
 

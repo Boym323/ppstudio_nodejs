@@ -6,6 +6,10 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-07-10
+
+- Opraven `GET /api/health`: selhání detailních Prisma dotazů pro e-mailovou frontu už nepropadne jako neobsloužené HTTP `500`, ale degraduje na HTTP `200` se `status=warning` a bezpečným `error.code=EMAIL_HEALTH_UNAVAILABLE`. Release helper může ověřit živý web a serverový journal stále uchová příčinu pro diagnostiku.
+
 ## [1.0.0] - 2026-07-10
 
 ### Nekompatibilní změny

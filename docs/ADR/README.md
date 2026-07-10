@@ -117,7 +117,7 @@ Sem patří krátké záznamy architektonických rozhodnutí.
 - `0105-github-quality-and-security-automation-v1.md`
 - `0109-offline-owner-recovery-and-owner-invariant.md`
 - `0110-availability-slot-single-capacity-invariant.md`
-- `0111-health-db-failure-sanitization-and-alert-cooldown.md`
+- `0111-health-db-failure-sanitization-and-alert-cooldown.md` — bezpečný 503 kontrakt pro základní DB ping a degradovaný 200/warning stav pro nedostupné e-mailové metriky.
 
 Poznámka:
 - Historicky existují duplicitní indexy (`0026`, `0090`). Ber to jako legacy stav, čísla zpětně nepřejmenovávat.
