@@ -6,6 +6,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Aktualizovány kořenové provozní a architektonické dokumenty, API reference a přehled závislostí podle release workflow 1.0.3, aktuálního stacku a runtime kontraktů.
+
 ## [1.0.3] - 2026-07-10
 
 - Release helper po restartu služeb nejdřív tiše vyčká na otevření webového endpointu. Očekávaný krátký start Next.js už proto nevypisuje falešný `curl: (7) Failed to connect`; skutečný timeout zůstává důvodem pro rollback.

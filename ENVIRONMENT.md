@@ -6,8 +6,8 @@ Tento dokument shrnuje runtime prostředí projektu a nejdůležitější promě
 
 - Node.js `24 LTS`
 - npm `>=10`
-- Next.js `16.2.9`
-- React `19.2.4`
+- Next.js `16.2.10`
+- React a React DOM `19.2.7`
 - Prisma `7.8.0`
 - PostgreSQL
 - Debian LXC na Proxmoxu
@@ -67,7 +67,7 @@ Použití:
 Poznámka:
 
 - `NEXT_DEPLOYMENT_ID`, `DEPLOYMENT_VERSION` a `GIT_HASH` se při doporučeném deployi generují automaticky
-- runtime je čte i z `.release-env`
+- runtime je čte z `.release-env` konkrétního aktivního releasu v `/var/www/ppstudio/current`
 
 ### E-mail delivery
 

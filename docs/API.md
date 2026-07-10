@@ -57,7 +57,7 @@ Odpověď:
   "checkedAt": "2026-06-29T17:12:34.000Z",
   "durationMs": 24,
   "release": {
-    "version": "0.3.34",
+    "version": "1.0.3",
     "deploymentId": "abc123def456",
     "deploymentVersion": "abc123def456",
     "gitHash": "abc123def456"
@@ -90,6 +90,7 @@ Odpověď:
 Poznámky:
 - `status=warning` znamená neideální, ale ne fatální stav, typicky backlog `pending/retrying` bez aktivního claimu.
 - `status=error` znamená produkční problém vyžadující zásah.
+- Pokud základní DB ping projde, ale selže pouze detailní dotaz nad e-mailovou frontou, endpoint vrací HTTP `200`, `status=warning` a `error.code="EMAIL_HEALTH_UNAVAILABLE"`; konkrétní chybu loguje jen serverově.
 - `release.*` slouží pro porovnání monitoringu s aktivním releasem a startup logy.
 - `hasRecentError` je omezené na posledních 24 hodin; přesné okno vrací `recentErrorWindowMs`.
 - Endpoint nesmí vracet citlivá data, raw tokeny ani plné texty emailových chyb.

@@ -43,6 +43,7 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
 - Kontrola historie může uvést rollbacknuté záznamy `20260419103000_service_public_bookability`, `20260419140000_site_settings_singleton` a `20260428133959_voucher_pdf_logo_settings`. Jsou následované úspěšným záznamem stejné migrace, takže při `Migration history check: OK` nepředstavují blocker releasu ani se nesmějí ručně mazat z `_prisma_migrations`.
 - `next.config.ts` explicitně nastavuje `turbopack.root` na adresář právě běžícího checkoutu/release. Staging release tak může mít vlastní `package-lock.json` bez falešného workspace warningu při `next build`.
 - Pokud release neprojde health/smoke krokem, skript nyní vypíše, zda selhal `/api/health`, očekávané deployment ID, nebo homepage `/`, vždy s HTTP statusem. Teprve podle této informace čti `journalctl -u ppstudio-web.service -n 200 --no-pager`.
+- Po restartu služeb helper nejdřív tiše čeká na otevření webového endpointu (výchozích 20 pokusů po 0,25 s). Tím se očekávaný krátký start Next.js nezamění za incident; až vyčerpání readiness pokusů spouští rollback. Volitelně jej upravíš přes `PPSTUDIO_WEB_READY_RETRIES` a `PPSTUDIO_WEB_READY_RETRY_SECONDS`.
 - Detailní release checklist a QA body zůstávají v [`docs/DEPLOYMENT.md`](/var/www/ppstudio/docs/DEPLOYMENT.md).
 
 ## Testování a coverage

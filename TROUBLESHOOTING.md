@@ -18,6 +18,8 @@ Typické příčiny:
 - build proběhl na jiné verzi Node
 - nevalidní Prisma klient nebo migrace
 
+Release helper po restartu nejdřív tiše čeká na otevření endpointu; samotný očekávaný start Next.js proto není incident. Pokud vyčerpá readiness pokusy, skript provede rollback. Podle výpisu pak rozliš `Health endpoint ...` od `Homepage smoke test ...` a teprve následně kontroluj odpověď endpointu a journal.
+
 ## Worker neposílá e-maily
 
 Zkontroluj:
@@ -160,6 +162,8 @@ Typické příčiny:
 - nekompletní migrace
 - změna schématu bez deploynutého Prisma klienta
 - historická nekonzistence migration history
+
+Pokud `npm run db:check-migrations` končí `Migration history check: OK`, rollbacknuté auditní záznamy `20260419103000_service_public_bookability`, `20260419140000_site_settings_singleton` a `20260428133959_voucher_pdf_logo_settings` samy o sobě release neblokují. Nikdy je nemaž ručně z `_prisma_migrations`.
 
 ## Uploady médií nefungují
 

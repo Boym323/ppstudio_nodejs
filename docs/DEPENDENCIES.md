@@ -26,9 +26,9 @@ Tichý startup readiness probe nepřidává závislost; používá stejný `curl
 - `next`: `16.2.10`
 - `react`: `19.2.7`
 - `react-dom`: `19.2.7`
-- `tailwindcss`: `^4.2.4` (runtime používá `4.2.4`)
-- `@tailwindcss/postcss`: `^4.2.4` (runtime používá `4.2.4`)
-- `postcss`: přímá závislost není pinovaná; resolvuje se přes `@tailwindcss/postcss` (`8.5.10`) a interně také přes `next` (`8.4.31`).
+- `tailwindcss`: `^4.3.2` (runtime používá `4.3.2`)
+- `@tailwindcss/postcss`: `^4.3.2` (runtime používá `4.3.2`)
+- `postcss`: přímá závislost není pinovaná; resolvuje se přes `@tailwindcss/postcss` (`8.5.16`) a interně také přes `next`.
 - `prisma`: `^7.8.0` (runtime používá `7.8.0`)
 - `@prisma/client`: `^7.8.0` (runtime používá `7.8.0`)
 - `@prisma/adapter-pg`: `^7.8.0` (runtime používá `7.8.0`)

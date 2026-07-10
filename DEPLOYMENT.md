@@ -8,7 +8,7 @@ Aktuální nasazení počítá s:
 
 - Proxmox hostem
 - Debian LXC kontejnerem
-- checkoutem v `/var/www/ppstudio`
+- pracovním checkoutem v `/var/www/ppstudio` a aktivním releasem přes symlink `/var/www/ppstudio/current`
 - PostgreSQL databází
 - dvěma systemd službami:
   - `ppstudio-web`
@@ -16,7 +16,7 @@ Aktuální nasazení počítá s:
 
 Web a worker běží odděleně, ale sdílí:
 
-- stejný checkout
+- stejný aktivní release v `current`
 - stejný `.env`
 - stejnou databázi
 - stejný upload root
@@ -30,15 +30,15 @@ Soubory:
 
 ### `ppstudio-web`
 
-- `WorkingDirectory=/var/www/ppstudio`
-- načítá `.env` i volitelný `.release-env`
+- `WorkingDirectory=/var/www/ppstudio/current`
+- načítá stabilní `/var/www/ppstudio/.env` i release-local `.release-env`
 - startuje `npm run start`
 - běží jako `next start` na `PORT=3000`
 
 ### `ppstudio-email-worker`
 
-- `WorkingDirectory=/var/www/ppstudio`
-- načítá `.env`
+- `WorkingDirectory=/var/www/ppstudio/current`
+- načítá stabilní `/var/www/ppstudio/.env` i release-local `.release-env`
 - startuje `npm run email:worker`
 
 ## Doporučený release postup
@@ -57,14 +57,13 @@ Dělá:
    - `npm ci --include=dev`
    - `npm run db:generate`
    - `npm run db:check-migrations`
-   - `npx prisma migrate deploy`
    - `npm run lint`
    - `npm run build`
-6. zapíše runtime `.release-env`
-7. krátce zastaví web i worker
-8. atomicky přepne `node_modules` a `.next`
-9. spustí nové služby
-10. při chybě vrátí předchozí artefakty
+6. teprve po úspěšném buildu aplikuje `npx prisma migrate deploy`; migrace proto musí být expand/contract kompatibilní s předchozím releasem
+7. vytvoří runtime `.release-env`, uloží celý release do `releases/` a atomicky přepne `current`
+8. krátce zastaví a znovu spustí web i worker nad stejným releasem
+9. nejdřív tiše vyčká na otevření webového endpointu, potom ověří `/api/health`, očekávané deployment ID a homepage smoke test
+10. při selhání startu nebo kontrol vrátí předchozí runtime release; databázové migrace se automaticky nevracejí
 
 ## Proxmox/LXC specifika
 
@@ -115,17 +114,19 @@ Důvod:
 - dostupnost uploadovaných médií
 - pokud je aktivní Matomo reporting, i `/api/admin/analytics`
 
+Health endpoint při výpadku databáze vrací HTTP `503` s `DATABASE_UNAVAILABLE`. Selhání pouze doplňkových e-mailových metrik vrací HTTP `200`, `status=warning` a `EMAIL_HEALTH_UNAVAILABLE`; detail hledej v `journalctl -u ppstudio-web.service -n 200 --no-pager`.
+
 ## Rollback
 
 Nejrychlejší rollback možnosti:
 
-1. vrátit předchozí artefakty, pokud release script rollback spustil automaticky
+1. nechat release script vrátit předchozí symlink `current`, pokud rollback spustil automaticky
 2. ručně obnovit předchozí LXC snapshot
 3. obnovit DB dump, pokud problém způsobilá migrace změnila data
 
 Pozor:
 
-- rollback aplikace bez rollbacku migrace nemusí stačit
+- rollback aplikace bez rollbacku migrace nemusí stačit; při produkčním incidentu preferuj dopřednou kompatibilní opravu migrace
 - rollback DB bez rollbacku uploadů nebo souborů může rozbít média
 
 ## Související dokumenty

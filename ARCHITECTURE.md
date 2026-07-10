@@ -1,6 +1,6 @@
 # Architektura PP Studio
 
-Tento dokument shrnuje aktuální architekturu aplikace podle skutečného stavu repozitáře k datu `2026-07-07`.
+Tento dokument shrnuje aktuální architekturu aplikace podle skutečného stavu repozitáře k datu `2026-07-10`.
 
 ## Přehled systému
 
@@ -11,12 +11,13 @@ PP Studio je monolitická Next.js 16 aplikace nad App Routerem s PostgreSQL data
 - self-service správu rezervace přes token
 - admin rozhraní pro owner a salon role
 - e-mailový outbox worker
-- interní i zákaznické ICS kalendáře
+- owner ICS subscription feed a klientské ICS přílohy
 
 Hlavní stack:
 
-- `next` `16.2.9`
-- `react` `19.2.4`
+- `next` `16.2.10`
+- `react` `19.2.7`
+- `react-dom` `19.2.7`
 - `prisma` `7.8.0`
 - PostgreSQL
 - systemd služby `ppstudio-web` a `ppstudio-email-worker`
@@ -118,7 +119,7 @@ Schéma je v [prisma/schema.prisma](/var/www/ppstudio/prisma/schema.prisma:1).
 
 `BookingActionToken`
 
-- tokeny pro storno, přesun, approve/reject a kalendář
+- tokeny pro storno, přesun a approve/reject
 - raw token se neukládá, ukládá se hash
 
 `EmailLog`
@@ -286,8 +287,9 @@ Provozní model:
 
 - aplikace běží v jednom LXC kontejneru
 - web a worker jsou dvě samostatné systemd služby
-- release se dělá in-place nad checkoutem v `/var/www/ppstudio`
-- `deploy/release.sh` staví artefakty ve staging workspace a pak atomicky přepíná `.next` a `node_modules`
+- pracovní checkout zůstává v `/var/www/ppstudio`, ale běžící služby používají `/var/www/ppstudio/current`
+- `deploy/release.sh` staví úplný release ve staging workspace, uloží ho do `releases/` a atomicky přepne symlink `current`; zdrojové soubory, `.next`, `node_modules`, Prisma Client a worker tak vždy pocházejí ze stejné verze
+- po restartu helper nejdřív tiše čeká na otevření webového endpointu a až potom provede health a homepage smoke kontrolu; selhání vrací předchozí runtime release, nikoli databázové schéma
 
 Detaily rolloutů a env proměnných jsou v:
 
