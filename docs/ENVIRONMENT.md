@@ -40,6 +40,7 @@ Stručný runtime přehled prostředí a vazeb na infrastrukturu je v kořenové
 - Selhání základní DB kontroly `/api/health` používá bezpečný `503` kontrakt; selhání pouze detailní e-mailové metriky vrací `200/warning` s `EMAIL_HEALTH_UNAVAILABLE`. Ani jedna varianta nepřidává env proměnnou a pro konkrétní diagnostiku slouží systemd journal webové služby.
 - `turbopack.root` je odvozený od adresáře `next.config.ts` a nepoužívá env proměnnou ani pevnou cestu; tím funguje v kořeni repozitáře i v dočasném staging release.
 - Diagnostika health/smoke kroku releasu nepřidává env proměnnou; nadále používá volitelné `PPSTUDIO_HEALTH_URL` a `PPSTUDIO_SMOKE_URL`, které se ve výpisu selhání zobrazí včetně HTTP statusu.
+- `PPSTUDIO_WEB_READY_RETRIES` (výchozí `20`) a `PPSTUDIO_WEB_READY_RETRY_SECONDS` (výchozí `0.25`) jsou volitelné CLI-only proměnné release helperu pro tiché čekání na otevření webového endpointu po restartu; nejsou součástí runtime validace aplikace.
 - `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY`: stabilní base64 AES klíč pro Next.js Server Actions; na produkci musí zůstat stejný mezi release buildy.
 - `NEXT_DEPLOYMENT_ID`: identifikátor konkrétního deploymentu pro ochranu proti version skew; při doporučeném rollout skriptu se nastavuje automaticky z aktuálního git commitu a nemá se držet staticky v `.env`.
 - `DEPLOYMENT_VERSION`: volitelný alias pro deployment identifikátor; release skript ho automaticky exportuje na stejnou hodnotu jako `NEXT_DEPLOYMENT_ID`.

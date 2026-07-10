@@ -6,6 +6,10 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [1.0.3] - 2026-07-10
+
+- Release helper po restartu služeb nejdřív tiše vyčká na otevření webového endpointu. Očekávaný krátký start Next.js už proto nevypisuje falešný `curl: (7) Failed to connect`; skutečný timeout zůstává důvodem pro rollback.
+
 ## [1.0.2] - 2026-07-10
 
 - Turbopack má v `next.config.ts` explicitní root aktivního checkoutu/release, takže staging build s vlastním `package-lock.json` už nevypisuje falešné varování o více lockfilech.

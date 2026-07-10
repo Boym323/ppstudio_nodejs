@@ -18,6 +18,8 @@ Explicitní `turbopack.root` nepřidává závislost; používá vestavěný Nod
 
 Podrobnější release health diagnostika nepřidává závislost; používá stávající `curl`, Bash a dočasné soubory pro oddělené ověření health JSON a homepage.
 
+Tichý startup readiness probe nepřidává závislost; používá stejný `curl` a Bash `sleep`, které release helper už vyžaduje.
+
 ## Aktuální verze stacku
 - Zdroj pravdy je `package.json` v kořeni projektu.
 - Projektový runtime cíl je `Node 24 LTS`; repozitář to explicitně deklaruje přes [`.nvmrc`](/var/www/ppstudio/.nvmrc:1) a `package.json.engines`.

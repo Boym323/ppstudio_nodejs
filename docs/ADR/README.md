@@ -120,6 +120,7 @@ Sem patří krátké záznamy architektonických rozhodnutí.
 - `0111-health-db-failure-sanitization-and-alert-cooldown.md` — bezpečný 503 kontrakt pro základní DB ping a degradovaný 200/warning stav pro nedostupné e-mailové metriky.
 - `0112-turbopack-release-root.md` — explicitní root aktivního release pro Turbopack build.
 - `0113-release-health-smoke-diagnostics.md` — oddělená diagnostika health a homepage smoke testu při releasu.
+- `0114-release-web-readiness-probe.md` — tiché čekání na otevření portu po restartu webu.
 
 Poznámka:
 - Historicky existují duplicitní indexy (`0026`, `0090`). Ber to jako legacy stav, čísla zpětně nepřejmenovávat.

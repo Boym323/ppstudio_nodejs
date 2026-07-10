@@ -353,6 +353,7 @@ Vyplň při každém nasazení. Slouží jako rychlý audit trail kdo/co/kdy ov�
 - Když `/api/health` hlásí `warning` nebo `error`, release nepovažuj za uzavřený, dokud není stav vysvětlený nebo opravený.
 - Pokud release helper hlásí HTTP `503`, vyčti bezpečný JSON přes `curl -sS -D - http://127.0.0.1:3000/api/health` a konkrétní Prisma chybu z `journalctl -u ppstudio-web.service -n 200 --no-pager`. Selhání samotných doplňkových e-mailových metrik má zůstat HTTP `200` se `status=warning` a `EMAIL_HEALTH_UNAVAILABLE`, aby health handler při DB/schema driftu nevracel veřejné `500` ani zbytečně neblokoval release.
 - `release.sh` při neúspěchu explicitně vypíše `Health endpoint ...` nebo `Homepage smoke test ...` s URL a HTTP statusem. Podle této větve zkontroluj odpověď přes `curl -sS -D - <URL>` a `journalctl -u ppstudio-web.service -n 200 --no-pager`; společná hláška `Health/smoke test zatím neprošel` sama o sobě neurčuje vadný endpoint.
+- Po restartu helper nejdřív tiše čeká na otevření webového endpointu (výchozích 20 pokusů po 0,25 s). Volitelně jej upravíš přes `PPSTUDIO_WEB_READY_RETRIES` a `PPSTUDIO_WEB_READY_RETRY_SECONDS`; teprve po vyčerpání čekání je selhání startu logované a následuje rollback.
 
 ## Ruční Fallback Rollout
 Použij jen tehdy, když z nějakého důvodu nemůžeš použít `./deploy/release.sh`. Doporučený skript je bezpečnější, protože buildí ve staging workspace, zapisuje `.release-env`, synchronizuje systemd unity a umí vrátit předchozí artefakty při selhání startu.

@@ -13,6 +13,8 @@ CURRENT_RELEASE_LINK="${REPO_DIR}/current"
 PREVIOUS_RELEASE_LINK="${REPO_DIR}/previous"
 HEALTH_RETRIES=1
 HEALTH_RETRY_SECONDS=0
+WEB_READY_RETRIES=1
+WEB_READY_RETRY_SECONDS=0
 NEXT_DEPLOYMENT_ID="test-release"
 export NEXT_DEPLOYMENT_ID
 mkdir -p "${RELEASES_DIR}/old" "${RELEASES_DIR}/new/node_modules" "${RELEASES_DIR}/new/.next"
@@ -31,6 +33,7 @@ systemctl() {
 }
 curl() {
   local output_file=""
+  local write_out=0
   local previous_argument=""
   local argument
 
@@ -39,6 +42,9 @@ curl() {
   for argument in "$@"; do
     if [[ "${previous_argument}" == "--output" ]]; then
       output_file="${argument}"
+    fi
+    if [[ "${argument}" == "--write-out" ]]; then
+      write_out=1
     fi
     previous_argument="${argument}"
   done
@@ -57,7 +63,9 @@ curl() {
     fi
   fi
 
-  printf '200'
+  if [[ "${write_out}" -eq 1 ]]; then
+    printf '200'
+  fi
 }
 
 assert_old_current() {

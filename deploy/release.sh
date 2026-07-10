@@ -14,6 +14,8 @@ HEALTH_URL="${PPSTUDIO_HEALTH_URL:-http://127.0.0.1:3000/api/health}"
 SMOKE_URL="${PPSTUDIO_SMOKE_URL:-http://127.0.0.1:3000/}"
 HEALTH_RETRIES="${PPSTUDIO_HEALTH_RETRIES:-15}"
 HEALTH_RETRY_SECONDS="${PPSTUDIO_HEALTH_RETRY_SECONDS:-2}"
+WEB_READY_RETRIES="${PPSTUDIO_WEB_READY_RETRIES:-20}"
+WEB_READY_RETRY_SECONDS="${PPSTUDIO_WEB_READY_RETRY_SECONDS:-0.25}"
 RETAIN_RELEASES="${PPSTUDIO_RETAIN_RELEASES:-7}"
 
 ALLOW_DIRTY=0
@@ -275,6 +277,23 @@ start_release_services() {
   sudo systemctl start "${WORKER_UNIT_NAME}" || return 1
 }
 
+wait_for_web_listener() {
+  local attempt
+
+  for ((attempt = 1; attempt <= WEB_READY_RETRIES; attempt++)); do
+    # Po systemctl start Next.js ještě krátce neotevře port. Tento tichý probe
+    # rozlišuje očekávaný start od skutečného selhání health/smoke kontroly.
+    if curl --silent --output /dev/null --max-time 1 "${HEALTH_URL}"; then
+      return 0
+    fi
+
+    sleep "${WEB_READY_RETRY_SECONDS}"
+  done
+
+  log "Web po startu nezačal naslouchat (${HEALTH_URL}) ani po ${WEB_READY_RETRIES} pokusech."
+  return 1
+}
+
 release_is_healthy() {
   local response_file smoke_response_file http_status
   response_file="$(mktemp)"
@@ -375,7 +394,7 @@ activate_release() {
   sudo systemctl stop "${WEB_UNIT_NAME}" "${WORKER_UNIT_NAME}"
   set_release_link "${CURRENT_RELEASE_LINK}" "${release_dir}"
 
-  if start_release_services && wait_for_release_health; then
+  if start_release_services && wait_for_web_listener && wait_for_release_health; then
     if [[ -n "${previous_target}" ]]; then
       set_release_link "${PREVIOUS_RELEASE_LINK}" "${previous_target}"
     fi
