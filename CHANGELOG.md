@@ -9,6 +9,7 @@ Formát je inspirovaný Keep a Changelog.
 ## [1.0.2] - 2026-07-10
 
 - Turbopack má v `next.config.ts` explicitní root aktivního checkoutu/release, takže staging build s vlastním `package-lock.json` už nevypisuje falešné varování o více lockfilech.
+- Provozní dokumentace nově potvrzuje, že rollbacknutý auditní záznam `20260428133959_voucher_pdf_logo_settings` má stejně jako dva starší recover záznamy následnou úspěšně dokončenou migraci a při `Migration history check: OK` neblokuje release.
 
 ## [1.0.1] - 2026-07-10
 

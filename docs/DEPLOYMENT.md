@@ -28,7 +28,7 @@ Stručný architektonický a provozní přehled nasazení na Proxmox/LXC je v ko
 5. Zálohuj nebo snapshotuj upload root, pokud release mění práci s médii nebo cleanup logiku.
 6. `npm run db:generate`
 7. `npm run db:check-migrations`
-   - Známý historický stav: kontrola může upozornit na rollbacknuté migrace `20260419140000_site_settings_singleton` a `20260419103000_service_public_bookability`. Pokud výstup končí `Migration history check: OK`, jde o auditní stopu staršího recover postupu a ne o blocker releasu.
+   - Známý historický stav: kontrola může upozornit na rollbacknuté migrace `20260419140000_site_settings_singleton`, `20260419103000_service_public_bookability` a `20260428133959_voucher_pdf_logo_settings`. Každá má následný úspěšný záznam stejného názvu; pokud výstup končí `Migration history check: OK`, jde o auditní stopu staršího recover postupu a ne o blocker releasu.
 8. `npx prisma migrate deploy`
 9. `npm run lint`
 9a. `npm run typecheck`
