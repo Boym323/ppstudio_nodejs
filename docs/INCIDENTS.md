@@ -11,6 +11,7 @@ Evidence produkčních incidentů a jejich řešení.
 - Preventivní opatření
 
 ## Incidenty
+- Pokud migrace hlásí `Cannot enforce AvailabilitySlot capacity = 1`, zastav rollout a vylistuj sloty s `capacity <> 1` včetně navázaných aktivních rezervací. Teprve po provozním rozhodnutí oprav data a migraci spusť znovu.
 - Riziko rollout/DB skewu: release nesmí aplikovat destruktivní nebo nekompatibilní migraci. `release.sh` nejdřív dokončí build a až potom aplikuje migraci těsně před přepnutím `current`; při selhání startu nebo health testu vrátí celý předchozí runtime release. DB se automaticky nevrací, proto je povinný expand/contract postup a při incidentu je nutné nasadit dopřednou opravnou migraci.
 - Zaplněný disk kvůli release artefaktům: ověř `du -sh /var/www/ppstudio/releases` a poslední výstup `release.sh`. Po úspěchu se automaticky ponechá `current`, `previous` a sedm dalších releasů; dočasně můžeš limit snížit přes `--keep-releases N`, ale nikdy ručně nemaž cíl symlinků.
 

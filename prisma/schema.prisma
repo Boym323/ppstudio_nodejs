@@ -294,6 +294,7 @@ model AvailabilitySlot {
   id                     String                                 @id @default(cuid())
   startsAt               DateTime
   endsAt                 DateTime
+  /// PP Studio obsluhuje jeden zdroj; databázový CHECK v migraci vynucuje hodnotu 1.
   capacity               Int                                    @default(1)
   status                 AvailabilitySlotStatus                 @default(DRAFT)
   serviceRestrictionMode AvailabilitySlotServiceRestrictionMode @default(ANY)

@@ -8,6 +8,8 @@ Seznam důležitých knihoven a důvod jejich použití.
 
 Atomický release mechanismus nepřidává žádnou npm závislost; používá existující Bash, systemd, `curl`, Node.js a Prisma CLI.
 
+Constraint jednotkové kapacity slotu nepřidává žádnou závislost; používá existující PostgreSQL CHECK constraint a Prisma migrace.
+
 ## Aktuální verze stacku
 - Zdroj pravdy je `package.json` v kořeni projektu.
 - Projektový runtime cíl je `Node 24 LTS`; repozitář to explicitně deklaruje přes [`.nvmrc`](/var/www/ppstudio/.nvmrc:1) a `package.json.engines`.

@@ -209,6 +209,136 @@ dbTest("createManualBooking rejects stale slot-mode booking instead of silently 
   }
 });
 
+dbTest("createManualBooking rejects a second overlapping booking in the same slot", async () => {
+  const {
+    prisma,
+    createManualBooking,
+    PublicBookingError,
+    publicBookingErrorCodes,
+  } = await loadModules();
+
+  const suffix = randomUUID().slice(0, 8);
+  const { startsAt: slotStartsAt, endsAt: slotEndsAt } = await findIsolatedManualWindow(prisma, suffix, 60);
+
+  const category = await prisma.serviceCategory.create({
+    data: {
+      name: `Single capacity category ${suffix}`,
+      slug: `single-capacity-category-${suffix}`,
+      isActive: true,
+    },
+    select: { id: true },
+  });
+
+  const service = await prisma.service.create({
+    data: {
+      categoryId: category.id,
+      name: `Single capacity service ${suffix}`,
+      slug: `single-capacity-service-${suffix}`,
+      durationMinutes: 30,
+      priceFromCzk: 1200,
+      isActive: true,
+      isPubliclyBookable: true,
+    },
+    select: { id: true },
+  });
+
+  const slot = await prisma.availabilitySlot.create({
+    data: {
+      startsAt: slotStartsAt,
+      endsAt: slotEndsAt,
+      status: AvailabilitySlotStatus.PUBLISHED,
+      capacity: 1,
+      serviceRestrictionMode: "ANY",
+      publishedAt: new Date(slotStartsAt.getTime() - 24 * 60 * 60 * 1000),
+    },
+    select: { id: true },
+  });
+
+  try {
+    await createManualBooking({
+      serviceId: service.id,
+      slotId: slot.id,
+      allowManualOverride: false,
+      startsAt: slotStartsAt.toISOString(),
+      fullName: `První klientka ${suffix}`,
+      email: `single-capacity-first-${suffix}@example.com`,
+      phone: buildUniquePhone(`${suffix}1`),
+      source: BookingSource.PHONE,
+      status: BookingStatus.CONFIRMED,
+      actorUserId: null,
+      sendClientEmail: false,
+      includeCalendarAttachment: false,
+    });
+
+    await assert.rejects(
+      createManualBooking({
+        serviceId: service.id,
+        slotId: slot.id,
+        allowManualOverride: false,
+        startsAt: slotStartsAt.toISOString(),
+        fullName: `Druhá klientka ${suffix}`,
+        email: `single-capacity-second-${suffix}@example.com`,
+        phone: buildUniquePhone(`${suffix}2`),
+        source: BookingSource.PHONE,
+        status: BookingStatus.CONFIRMED,
+        actorUserId: null,
+        sendClientEmail: false,
+        includeCalendarAttachment: false,
+      }),
+      (error: unknown) => {
+        assert.ok(error instanceof PublicBookingError);
+        assert.equal(error.code, publicBookingErrorCodes.slotUnavailable);
+        return true;
+      },
+    );
+  } finally {
+    await prisma.bookingActionToken.deleteMany({
+      where: {
+        booking: {
+          serviceId: service.id,
+        },
+      },
+    });
+    await prisma.emailLog.deleteMany({
+      where: {
+        booking: {
+          serviceId: service.id,
+        },
+      },
+    });
+    await prisma.bookingStatusHistory.deleteMany({
+      where: {
+        booking: {
+          serviceId: service.id,
+        },
+      },
+    });
+    await prisma.booking.deleteMany({
+      where: {
+        serviceId: service.id,
+      },
+    });
+    await prisma.availabilitySlot.deleteMany({
+      where: {
+        startsAt: {
+          gte: slotStartsAt,
+          lt: slotEndsAt,
+        },
+      },
+    });
+    await prisma.service.delete({
+      where: {
+        id: service.id,
+      },
+    });
+    await prisma.serviceCategory.delete({
+      where: {
+        id: category.id,
+      },
+    });
+  }
+});
+
 dbTest("createManualBooking still allows explicit manual override without slot selection", async () => {
   const { prisma, createManualBooking } = await loadModules();
 

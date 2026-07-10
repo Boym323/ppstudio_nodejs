@@ -564,9 +564,9 @@ export async function createBookingWithEngine(
             },
           });
 
-          const allowedCapacity = manualOverride || !resolvedSlot
-            ? 1
-            : Math.min(...resolvedCoverageSlots.map((coverageSlot) => coverageSlot.capacity));
+          // PP Studio má jediný obslužný zdroj. DB migrace tento invariant vynucuje,
+          // ale write path jej drží i při práci nad dosud nemigrovanými historickými daty.
+          const allowedCapacity = 1;
 
           if (activeBookingCount >= allowedCapacity) {
             throw new PublicBookingError(

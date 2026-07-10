@@ -12,6 +12,7 @@ Stručný runtime přehled prostředí a vazeb na infrastrukturu je v kořenové
 - Pro konzistentní lokální vývoj, CI a produkci drž `Node 24 LTS`; repo má [`.nvmrc`](/var/www/ppstudio/.nvmrc:1) a `package.json` `engines.node = ^24.0.0`.
 - Prefill klientky pro admin ruční rezervaci používá jen query parametry `create=1` a `clientId` na existujících admin route; tahle změna nepřidává žádnou novou env proměnnou.
 - Normalizace telefonu klientky je čistě aplikační validace ve sdílených TypeScript helperech a nepřidává žádnou env proměnnou ani databázovou migraci.
+- Invariant `AvailabilitySlot.capacity = 1` nepřidává žádnou env proměnnou; vyžaduje pouze běžné `DATABASE_URL` pro Prisma migraci a předem čistá data.
 
 ## Přehled
 - `NODE_ENV`: režim běhu (`development`, `production`).

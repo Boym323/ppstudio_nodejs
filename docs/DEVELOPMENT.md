@@ -681,7 +681,7 @@ Pro centralizovaný přehled hlavních route handler kontraktů používej i [`d
 - Prisma 7 CLI konfigurace je v `prisma.config.ts`, ne v `schema.prisma`.
 - Runtime Prisma klient používá `@prisma/adapter-pg` + `pg`, protože Prisma 7 vyžaduje pro PostgreSQL explicitní driver adapter.
 - `AdminUser` zůstává oddělený od klientských kontaktů; klientská vrstva je modelovaná přes `Client`.
-- `AvailabilitySlot` je navržený jako ručně publikovatelný termín s kapacitou a stavem zveřejnění.
+- `AvailabilitySlot` je navržený jako ručně publikovatelný termín se stavem zveřejnění; PP Studio má jeden obslužný zdroj, proto `capacity` musí být vždy `1` a není to model pro více souběžných klientek.
 - Pro admin planner je `AvailabilitySlot` stále hlavní provozní entita; 30min grid je jen editační vrstva nad souvislými intervaly.
 - `AvailabilitySlot` má explicitní `serviceRestrictionMode`, takže admin rozhraní pozná rozdíl mezi slotem bez omezení a slotem, který čeká na výběr služeb.
 - Vazba `AvailabilitySlotService` umožňuje omezit slot jen na vybrané služby bez zabetonování schématu na jednu službu na slot.
@@ -829,6 +829,7 @@ Pro centralizovaný přehled hlavních route handler kontraktů používej i [`d
   - původní unique ochranu proti duplicitní rezervaci stejného klienta do stejného slotu (později nahrazenou přesnější variantou na úroveň konkrétního intervalu)
   - PostgreSQL exclusion constraint proti překrývajícím se aktivním slotům
 - Migrace `20260420153000_booking_exact_duplicate_active` nahrazuje široké `UNIQUE(slotId, clientId)` za partial unique index `Booking_exact_duplicate_active_key`, který blokuje jen přesně duplicitní aktivní interval (`slotId + clientId + scheduledStartsAt + scheduledEndsAt` při `status IN (PENDING, CONFIRMED)`).
+- Migrace `20260710110000_availability_slot_capacity_one` nejdřív spočítá sloty s `capacity <> 1` a při nenulovém výsledku se ukončí bez změny dat. Teprve nad čistými daty nahrazuje původní CHECK `capacity > 0` constraintem `capacity = 1`.
 - Migrace `20260423113000_booking_reschedule_logs_v1` přidává `Booking.reminder24hQueuedAt`, `Booking.rescheduleCount` a nový auditní model `BookingRescheduleLog` pro doménovou akci přesunu termínu.
 - Migrace `20260424103000_service_price_change_log_v1` přidává auditní model `ServicePriceChangeLog` pro změny cen služeb v adminu.
 - Nové slot admin workflow nevyžadovalo další migraci; navazuje přímo na už existující schema a constrainty.
@@ -859,6 +860,7 @@ Pro centralizovaný přehled hlavních route handler kontraktů používej i [`d
   - že storno nebo přesun rezervace mezi enqueue a sendem skončí `system-skip`, ne reálným odesláním
   - že ruční owner akce `Znovu odeslat e-mail` na reminder detailu vytvoří nový log s payload flagem `manualReminderResend=true` a tenhle resend se neposuzuje běžným reminder preflight skip pravidlem
 - Před aplikací migrací v prostředí, kde už běžela produkční data, spusť `npm run db:check-migrations`; script zkontroluje otevřené failed/incomplete záznamy v `_prisma_migrations`.
+- Před migrací kapacity navíc proveď `SELECT "id", "startsAt", "endsAt", "status", "capacity" FROM "AvailabilitySlot" WHERE "capacity" <> 1;`. Nalezené řádky rozhodni a oprav explicitně; migrace je nikdy sama nesnižuje, aby nezakryla možné souběžné rezervace.
 - Při změně veřejného webu navíc ručně ověř:
 - Po změně veřejného booking flow ručně ověř i:
   - `/rezervace` na mobilu i desktopu

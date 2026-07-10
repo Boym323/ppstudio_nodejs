@@ -116,6 +116,7 @@ Sem patří krátké záznamy architektonických rozhodnutí.
 - `0099-service-cleanup-minutes-v1.md`
 - `0105-github-quality-and-security-automation-v1.md`
 - `0109-offline-owner-recovery-and-owner-invariant.md`
+- `0110-availability-slot-single-capacity-invariant.md`
 
 Poznámka:
 - Historicky existují duplicitní indexy (`0026`, `0090`). Ber to jako legacy stav, čísla zpětně nepřejmenovávat.
