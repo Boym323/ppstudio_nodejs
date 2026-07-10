@@ -38,7 +38,7 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
 - Protože produkční `.env` běžně nastavuje `NODE_ENV=production`, skript používá `npm ci --include=dev`, aby se nainstalovaly i build-time nástroje z `devDependencies` jako `eslint`, `typescript` a `prisma`.
 - Release build teď neběží nad živým `/var/www/ppstudio`, ale v dočasném staging workspace vedle repozitáře. Produkční výpadek proto nastává až v krátkém okně `systemctl stop -> swap .next + node_modules -> systemctl start`, místo aby web riskoval `MODULE_NOT_FOUND` během `npm ci` nebo `next build`.
 - `package.json` zároveň drží npm 11 `allowScripts` whitelist pro balíčky s install hooky (`prisma`, `@prisma/engines`, `sharp`, `esbuild`, `unrs-resolver`), takže release nevypisuje opakované `npm warn allow-scripts` a při upgradu těchto balíčků je potřeba whitelist znovu vědomě potvrdit.
-- Skript provede standardní release kroky (`git pull --ff-only -> staging npm ci --include=dev -> npm run db:generate -> npm run db:check-migrations -> npx prisma migrate deploy -> npm run lint -> npm run build -> stop/swap/start ppstudio-web + ppstudio-email-worker`).
+- Skript před vytvořením čistého git-archive workspace odmítne lokální migrační adresáře bez `migration.sql` (ochrana před Prisma P3015) a provede standardní release kroky (`git pull --ff-only -> staging npm ci --include=dev -> npm run db:generate -> npm run db:check-migrations -> npx prisma migrate deploy -> npm run lint -> npm run build -> stop/swap/start ppstudio-web + ppstudio-email-worker`).
 - Detailní release checklist a QA body zůstávají v [`docs/DEPLOYMENT.md`](/var/www/ppstudio/docs/DEPLOYMENT.md).
 
 ## Testování a coverage

@@ -79,6 +79,26 @@ check_root_permissions_hint() {
   fi
 }
 
+check_local_migration_directories() {
+  local migration_dir migration_name tracked_path invalid=0
+  while IFS= read -r migration_dir; do
+    migration_name="$(basename "${migration_dir}")"
+    if [[ ! -f "${migration_dir}/migration.sql" ]]; then
+      tracked_path="$(git -C "${REPO_DIR}" ls-tree -d --name-only HEAD -- "prisma/migrations/${migration_name}")"
+      if [[ -n "${tracked_path}" ]]; then
+        echo "Migrace ${migration_name} je sledovaná, ale chybí ${migration_dir}/migration.sql." >&2
+      else
+        echo "Lokální migrační adresář ${migration_name} není v HEAD a chybí v něm migration.sql." >&2
+      fi
+      invalid=1
+    fi
+  done < <(find "${REPO_DIR}/prisma/migrations" -mindepth 1 -maxdepth 1 -type d -print | sort)
+  if [[ "${invalid}" -ne 0 ]]; then
+    echo "Release zastaven: Prisma migrate deploy by skončil chybou P3015." >&2
+    exit 1
+  fi
+}
+
 load_runtime_env() {
   if [[ ! -f "${REPO_DIR}/.env" ]]; then
     echo "Nenašel jsem ${REPO_DIR}/.env. Release skript potřebuje produkční env soubor." >&2
@@ -397,6 +417,8 @@ run_release() {
   fi
 
   sync_systemd_units
+
+  check_local_migration_directories
 
   prepare_deployment_env
 
