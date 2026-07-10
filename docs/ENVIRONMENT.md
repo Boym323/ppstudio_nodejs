@@ -50,11 +50,7 @@ Stručný runtime přehled prostředí a vazeb na infrastrukturu je v kořenové
 - Admin session cookie `ppstudio-admin-session` má idle expiraci 14 dní; při admin requestech ji `proxy` obnoví, pokud do expiry zbývá méně než 48 hodin.
 - Session má zároveň absolutní limit 45 dní od prvního přihlášení; po jeho překročení je vyžadované nové přihlášení.
 - Při změně `ADMIN_SESSION_SECRET` se existující admin session okamžitě zneplatní.
-- `ADMIN_BOOTSTRAP_ENABLED`: explicitní recovery přepínač pro bootstrap admin login. Výchozí hodnota je `false`; na produkci zapínej jen krátkodobě pro první založení nebo obnovu přístupu.
-- `ADMIN_OWNER_EMAIL`: bootstrap email pro owner admin účet.
-- `ADMIN_OWNER_PASSWORD`: bootstrap heslo pro owner admin účet.
-- `ADMIN_STAFF_EMAIL`: bootstrap email pro lite admin účet (role `SALON`).
-- `ADMIN_STAFF_PASSWORD`: bootstrap heslo pro lite admin účet (role `SALON`).
+- `ADMIN_OWNER_EMAIL`: kontaktní e-mail používaný jako bezpečný fallback pro systémové e-maily; neslouží k přihlášení.
 - `EMAIL_DELIVERY_MODE`: režim e-mailové delivery (`log`, `background`).
 - `EMAIL_TRANSPORT`: transport pro background odesílání (`smtp`, `resend`).
 - `SMTP_HOST`: SMTP hostname pro produkční odesílání.
@@ -103,11 +99,7 @@ ADMIN_SESSION_SECRET=replace-with-long-random-secret-at-least-32-chars
 ADMIN_SESSION_IDLE_MAX_AGE_SECONDS=1209600
 ADMIN_SESSION_REFRESH_WINDOW_SECONDS=172800
 ADMIN_SESSION_ABSOLUTE_MAX_AGE_SECONDS=3888000
-ADMIN_BOOTSTRAP_ENABLED=false
 ADMIN_OWNER_EMAIL=owner@example.com
-ADMIN_OWNER_PASSWORD=change-me-owner
-ADMIN_STAFF_EMAIL=staff@example.com
-ADMIN_STAFF_PASSWORD=change-me-staff
 
 EMAIL_DELIVERY_MODE=log
 EMAIL_TRANSPORT=smtp
@@ -127,7 +119,7 @@ MEDIA_STORAGE_ROOT=/var/www/ppstudio-uploads
 Lokální doporučení:
 
 - `EMAIL_DELIVERY_MODE=log` je nejbezpečnější výchozí režim pro vývoj a testovací rollout.
-- `.env.example` drží `ADMIN_BOOTSTRAP_ENABLED=false` a `EMAIL_DELIVERY_MODE=background`; pro první lokální přihlášení nebo bezpečný vývoj je běžné tyto dvě hodnoty dočasně přepnout na `true` a `log`.
+- `.env.example` drží `EMAIL_DELIVERY_MODE=background`; pro bezpečný vývoj jej obvykle přepni na `log`.
 - `NEXT_PUBLIC_MATOMO_*`, `NEXT_PUBLIC_CLARITY_*`, `NEXT_PUBLIC_META_PIXEL_*`, `NEXT_PUBLIC_GOOGLE_ADS_*`, `MATOMO_*` a `PUSHOVER_*` nech klidně vypnuté, pokud zrovna netestuješ analytics nebo notifikace.
 - `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` drž stabilně v produkčním `.env`; deployment identifikátor naopak do `.env` běžně nefixuj, protože `deploy/release.sh` ho automaticky odvozuje z aktuálního commitu a zapisuje do runtime `.release-env`.
 - Produkční `instrumentation.ts` z těchto hodnot skládá provozní log metadata. Do logu se nezapisuje surový `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY`, jen jeho bezpečný fingerprint; ten lze mezi instancemi porovnat při debugování `Failed to find Server Action`.
@@ -135,14 +127,14 @@ Lokální doporučení:
 - `MEDIA_STORAGE_ROOT` drž mimo repozitář a ověř, že do něj má proces právo zapisovat.
 
 ## Poznámky
-- Bootstrap admin přístupy slouží jen jako startovní/recovery vrstva projektu. Login přes `ADMIN_OWNER_*` a `ADMIN_STAFF_*` funguje pouze při `ADMIN_BOOTSTRAP_ENABLED=true`; po založení nebo opravě DB admin účtů přepínač vrať na `false`.
+- Webový bootstrap admin přístup není podporovaný. Pro obnovu přístupu použij offline `npm run admin:recover-owner -- --email owner@example.com --name 'Jméno' --confirm < heslo.txt`; CLI heslo nevypisuje, nebere ho z env a audit zapisuje do `BookingSubmissionLog`.
 - V produkci používej silná hesla a unikátní `ADMIN_SESSION_SECRET`.
 - Identita konkrétního serveru se nesmí zapisovat jako pevné tvrzení do verzované dokumentace, protože repozitář se synchronizuje i na produkci. Pro ověření prostředí vždy čti lokální `.env` a deploy konfiguraci na cílovém serveru; zejména `NODE_ENV`, `DATABASE_URL`, `NEXT_PUBLIC_APP_URL` a e-mailové proměnné.
 - Veřejný obsah salonu není řízený env proměnnými; texty a placeholdery jsou centralizované v `src/content/public-site.ts`.
 - Provozní identita veřejného webu (jméno provozovatelky a IČ používané na `/kontakt` a `/obchodni-podminky`) aktuálně také není env konfigurace; je součástí sdíleného public profile helperu v `src/lib/site-settings.ts`.
 - Admin login rate limit nepřidává novou env proměnnou; limity jsou zatím fixované v `src/lib/auth/admin-login-rate-limit.ts` (okno 10 minut, IP limit 20, e-mail fail limit 6).
 - Hero fotografie pro `/o-mne` je aktuálně ručně verzovaný asset v `public/brand`; finální přepnutí na jiný soubor nevyžaduje novou env proměnnou, jen úpravu `aboutContent.profile.image`.
-- Bootstrap přístupy se v owner sekci `Přístupy` zobrazují lidským jazykem jako `Systémový účet`; UI záměrně neukazuje `env`, `bootstrap` ani jiné technické implementační detaily jako hlavní obsah. Samotné použití bootstrap loginu zapisuje jen bezpečnou provozní informaci bez hesla.
+- Owner sekce `Přístupy` zobrazuje pouze databázové účty. Recovery zůstává mimo webovou aplikaci, takže nemůže vytvořit neplatnou session ani obcházet DB kontrolu role a aktivity.
 - Pokud je `EMAIL_DELIVERY_MODE=background` a `EMAIL_TRANSPORT=smtp`, jsou `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD` a `SMTP_FROM_EMAIL` povinné už při startu aplikace.
 - Pokud je `EMAIL_DELIVERY_MODE=background` a `EMAIL_TRANSPORT=resend`, je při startu aplikace povinné `RESEND_API_KEY`.
 - Pokud je `EMAIL_DELIVERY_MODE=background`, admin pole `emailSenderEmail` v sekci `Nastavení` musí odpovídat `SMTP_FROM_EMAIL`; jinak aplikace změnu odmítne, aby se předešlo selhání doručování.

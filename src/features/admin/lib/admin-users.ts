@@ -4,7 +4,6 @@ import { AdminRole } from "@prisma/client";
 
 import { isMissingInvitedAtColumnError } from "@/features/admin/lib/admin-user-db";
 import { type AdminAccountStatus } from "@/features/admin/lib/admin-user-presentation";
-import { listBootstrapAdminUsers } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 
 const formatDate = new Intl.DateTimeFormat("cs-CZ", {
@@ -134,13 +133,15 @@ function getSummary(user: {
 }
 
 export async function getAdminUsersPageData(): Promise<AdminUsersPageData> {
-  const [dbUsers, systemUsers] = await Promise.all([
-    loadAdminUsers(),
-    Promise.resolve(listBootstrapAdminUsers()),
-  ]);
+  const dbUsers = await loadAdminUsers();
 
+  const activeOwnerCount = dbUsers.filter(
+    (user) => user.role === AdminRole.OWNER && user.isActive,
+  ).length;
   const dbRecords: AdminUserAccessRecord[] = dbUsers.map((user) => {
     const status = deriveDbStatus(user);
+    const isLastActiveOwner =
+      user.role === AdminRole.OWNER && user.isActive && activeOwnerCount === 1;
 
     return {
       id: user.id,
@@ -149,7 +150,9 @@ export async function getAdminUsersPageData(): Promise<AdminUsersPageData> {
       role: user.role,
       status,
       isSystem: false,
-      helperText: getHelperText(user.role, status, false),
+      helperText: isLastActiveOwner
+        ? "Poslední aktivní OWNER. Pro změnu role nebo deaktivaci nejdřív aktivujte dalšího OWNERa."
+        : getHelperText(user.role, status, false),
       summary: getSummary({
         status,
         invitedAt: user.invitedAt,
@@ -161,33 +164,14 @@ export async function getAdminUsersPageData(): Promise<AdminUsersPageData> {
       lastLoginAtLabel: formatDateTimeLabel(user.lastLoginAt),
       createdAtLabel: formatDateTimeLabel(user.createdAt) ?? "Bez data",
       canEdit: true,
-      canChangeRole: true,
-      canDeactivate: status !== "DISABLED",
+      canChangeRole: !isLastActiveOwner,
+      canDeactivate: status !== "DISABLED" && !isLastActiveOwner,
       canActivate: status === "DISABLED",
       canResendInvite: status === "INVITED",
     };
   });
 
-  const systemRecords: AdminUserAccessRecord[] = systemUsers.map((user) => ({
-    id: user.id,
-    name: user.name,
-    email: user.email,
-    role: user.role,
-    status: "SYSTEM",
-    isSystem: true,
-    helperText: getHelperText(user.role, "SYSTEM", true),
-    summary: "Spravovaný přístup pro nouzový nebo základní provozní vstup.",
-    invitedAtLabel: null,
-    lastLoginAtLabel: null,
-    createdAtLabel: "Spravováno mimo běžnou správu uživatelů",
-    canEdit: false,
-    canChangeRole: false,
-    canDeactivate: false,
-    canActivate: false,
-    canResendInvite: false,
-  }));
-
-  const users = [...dbRecords, ...systemRecords];
+  const users = dbRecords;
 
   return {
     stats: [
@@ -207,12 +191,6 @@ export async function getAdminUsersPageData(): Promise<AdminUsersPageData> {
         value: String(users.filter((user) => user.status === "DISABLED").length),
         tone: "muted",
         detail: "Účty ponechané v evidenci bez běžného použití.",
-      },
-      {
-        label: "Systémové účty",
-        value: String(users.filter((user) => user.status === "SYSTEM").length),
-        tone: "muted",
-        detail: "Read-only přístupy spravované systémově mimo běžnou úpravu.",
       },
     ],
     users,

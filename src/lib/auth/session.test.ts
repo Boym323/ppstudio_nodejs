@@ -1,5 +1,6 @@
 import "dotenv/config";
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { randomUUID } from "node:crypto";
 import test from "node:test";
 
@@ -93,52 +94,43 @@ dbTest("resolveSessionFromTokenValue uses the current database role", async () =
   }
 });
 
-test("authenticateAdmin rejects bootstrap credentials by default", async () => {
-  const { authenticateAdmin } = await import("./session");
-  const previousFlag = process.env.ADMIN_BOOTSTRAP_ENABLED;
-  const previousOwnerEmail = process.env.ADMIN_OWNER_EMAIL;
-  const previousOwnerPassword = process.env.ADMIN_OWNER_PASSWORD;
+dbTest("offline recovery creates a usable owner session", async () => {
+  const { prisma } = await import("@/lib/prisma");
+  const { recoverAdminOwner } = await import("./admin-recovery");
+  const { authenticateAdmin, createSessionToken, resolveSessionFromTokenValue } = await import("./session");
+  const suffix = randomUUID().slice(0, 8);
+  const email = `recovery-${suffix}@example.com`;
+  const password = "recovery-password-123";
 
   try {
-    process.env.ADMIN_BOOTSTRAP_ENABLED = "false";
-    process.env.ADMIN_OWNER_EMAIL = "bootstrap-owner-test@example.com";
-    process.env.ADMIN_OWNER_PASSWORD = "bootstrap-owner-test-password";
+    const recovered = await recoverAdminOwner({
+      email,
+      name: "Recovered Owner",
+      password,
+    });
+    const authenticated = await authenticateAdmin(email, password);
 
-    const result = await authenticateAdmin(
-      process.env.ADMIN_OWNER_EMAIL!,
-      process.env.ADMIN_OWNER_PASSWORD!,
-    );
+    assert.ok(authenticated);
+    assert.equal(authenticated.id, recovered.id);
+    assert.equal(authenticated.role, AdminRole.OWNER);
 
-    assert.equal(result, null);
+    const token = await createSessionToken({
+      sub: authenticated.id,
+      email: authenticated.email,
+      name: authenticated.name,
+      role: authenticated.role,
+    });
+    const session = await resolveSessionFromTokenValue(token);
+
+    assert.equal(session?.sub, recovered.id);
+    assert.equal(session?.role, AdminRole.OWNER);
   } finally {
-    process.env.ADMIN_BOOTSTRAP_ENABLED = previousFlag;
-    process.env.ADMIN_OWNER_EMAIL = previousOwnerEmail;
-    process.env.ADMIN_OWNER_PASSWORD = previousOwnerPassword;
-  }
-});
-
-test("authenticateAdmin accepts bootstrap credentials only when explicitly enabled", async () => {
-  const { authenticateAdmin } = await import("./session");
-  const previousFlag = process.env.ADMIN_BOOTSTRAP_ENABLED;
-  const previousOwnerEmail = process.env.ADMIN_OWNER_EMAIL;
-  const previousOwnerPassword = process.env.ADMIN_OWNER_PASSWORD;
-
-  try {
-    process.env.ADMIN_BOOTSTRAP_ENABLED = "true";
-    process.env.ADMIN_OWNER_EMAIL = "bootstrap-owner-test@example.com";
-    process.env.ADMIN_OWNER_PASSWORD = "bootstrap-owner-test-password";
-
-    const result = await authenticateAdmin(
-      process.env.ADMIN_OWNER_EMAIL!,
-      process.env.ADMIN_OWNER_PASSWORD!,
-    );
-
-    assert.ok(result);
-    assert.equal(result.id, "bootstrap-owner");
-    assert.equal(result.role, AdminRole.OWNER);
-  } finally {
-    process.env.ADMIN_BOOTSTRAP_ENABLED = previousFlag;
-    process.env.ADMIN_OWNER_EMAIL = previousOwnerEmail;
-    process.env.ADMIN_OWNER_PASSWORD = previousOwnerPassword;
+    await prisma.bookingSubmissionLog.deleteMany({
+      where: {
+        failureCode: "ADMIN_RECOVERY_OWNER_RESTORED",
+        emailHash: createHash("sha256").update(email).digest("hex"),
+      },
+    });
+    await prisma.adminUser.deleteMany({ where: { email } });
   }
 });

@@ -190,7 +190,7 @@ Typické příčiny:
 Zkontroluj:
 
 - roli v `AdminUser.role`
-- jestli se uživatel nepřihlašuje bootstrap účtem v recovery režimu
+- zda je účet aktivní DB účet; při úplném lockoutu obnov OWNERa offline příkazem `admin:recover-owner`
 - guardy v owner/salon route stromu
 
 ## Proxmox/LXC specifické potíže

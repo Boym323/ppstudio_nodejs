@@ -35,7 +35,6 @@ import {
   buildClientPhoneHref,
   formatClientPhoneForDisplay,
 } from "@/features/booking/lib/client-phone";
-import { listBootstrapAdminUsers } from "@/lib/auth/session";
 import { deriveTrackingState } from "@/lib/email/resend-webhooks";
 import { prisma } from "@/lib/prisma";
 
@@ -377,8 +376,8 @@ export async function getAdminOverviewData(area: AdminArea) {
             },
             {
               label: "Admin účty",
-              value: String(adminUsers + listBootstrapAdminUsers().length),
-              detail: "Součet databázových a systémových přístupů.",
+              value: String(adminUsers),
+              detail: "Aktivní databázové přístupy do administrace.",
             },
             {
               label: "Chybné e-maily",

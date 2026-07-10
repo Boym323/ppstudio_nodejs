@@ -92,7 +92,7 @@ Admin používá podepsanou `httpOnly` session cookie přes `jose`, serverový l
 
 - `/admin/*` je plný owner backoffice
 - `/admin/provoz/*` je zjednodušené provozní rozhraní
-- bootstrap přístupy lze stále nastavit přes env, ale projekt už počítá i s databázovými admin účty a pozvánkami
+- admin přístupy jsou vždy databázové; pozvánky a offline recovery vytvářejí auditovatelný DB účet
 
 ## Datový model
 
@@ -152,8 +152,7 @@ Praktický postup:
 ### 3. První přihlášení do adminu
 
 - admin login je na `/admin/prihlaseni`
-- bootstrap přístupy přes `ADMIN_OWNER_*` a `ADMIN_STAFF_*` fungují jen při `ADMIN_BOOTSTRAP_ENABLED=true`
-- po prvním založení nebo opravě databázových admin účtů vrať `ADMIN_BOOTSTRAP_ENABLED=false`
+- pro první založení i obnovu přístupu použij offline `npm run admin:recover-owner -- --email owner@example.com --name 'Jméno' --confirm < heslo.txt`; webový bootstrap login neexistuje
 
 ### 4. Lokální e-mail a analytics režim
 
@@ -209,11 +208,7 @@ DATABASE_URL="postgresql://postgres:postgres@localhost:5432/ppstudio?schema=publ
 SHADOW_DATABASE_URL="postgresql://postgres:postgres@localhost:5432/ppstudio_shadow?schema=public"
 
 ADMIN_SESSION_SECRET=replace-with-long-random-secret-at-least-32-chars
-ADMIN_BOOTSTRAP_ENABLED=false
 ADMIN_OWNER_EMAIL=owner@example.com
-ADMIN_OWNER_PASSWORD=change-me-owner
-ADMIN_STAFF_EMAIL=staff@example.com
-ADMIN_STAFF_PASSWORD=change-me-staff
 
 EMAIL_DELIVERY_MODE=log
 EMAIL_TRANSPORT=smtp
@@ -229,7 +224,7 @@ Co je důležité:
 - `DATABASE_URL`: hlavní PostgreSQL databáze aplikace
 - `SHADOW_DATABASE_URL`: pomocná DB pro `prisma migrate dev` v lokálním vývoji
 - `ADMIN_SESSION_SECRET`: tajný klíč pro podpis admin session cookie; v produkci musí být dlouhý a unikátní
-- `ADMIN_BOOTSTRAP_ENABLED`: nouzový přepínač bootstrap loginu; `.env.example` ho drží na `false`, pro první lokální přihlášení ho zapínej jen dočasně
+- `ADMIN_OWNER_EMAIL`: kontaktní fallback pro systémové e-maily; není to přihlašovací účet
 - `EMAIL_DELIVERY_MODE=log`: bezpečný lokální režim bez reálného SMTP odesílání
 - `EMAIL_TRANSPORT`: transport pro background odesílání (`smtp` nebo `resend`)
 - `MEDIA_STORAGE_ROOT`: absolutní cesta mimo repo, kam se ukládají nahraná média
@@ -251,7 +246,7 @@ Plný seznam proměnných a detailní vysvětlení je v `docs/ENVIRONMENT.md`.
 ### Doporučený deploy krok za krokem
 
 1. Na serveru měj čistý checkout repozitáře a správně nastavené `.env`.
-2. Ověř PostgreSQL připojení, e-mailovou konfiguraci, `MEDIA_STORAGE_ROOT`, validní `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` a `ADMIN_BOOTSTRAP_ENABLED=false`.
+2. Ověř PostgreSQL připojení, e-mailovou konfiguraci, `MEDIA_STORAGE_ROOT` a validní `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY`.
 3. Spusť `./deploy/release.sh`.
 4. Skript provede `git pull --ff-only`, build ve staging workspace (`npm ci --include=dev`, `npm run db:generate`, `npm run db:check-migrations`, `npx prisma migrate deploy`, `npm run lint`, `npm run build`), zapíše `.release-env`, synchronizuje systemd unity a pak krátce přepne hotové artefakty pro `ppstudio-web` / `ppstudio-email-worker`.
 5. Po releasu ověř `GET /api/health`, admin login, veřejnou homepage a testovací rezervaci.

@@ -1,5 +1,7 @@
 # Changelog
 
+- Opraven kritický lockout administrace: webový bootstrap login byl odstraněn, protože vydával session bez DB identity. Nový auditovatelný offline příkaz `npm run admin:recover-owner` vytvoří nebo obnoví aktivního DB OWNERa, revokuje otevřené pozvánky a nezapisuje heslo. Změna role i deaktivace nyní v serializovatelné transakci chrání posledního aktivního OWNERa; self-demotion vyžaduje dalšího aktivního OWNERa.
+
 Všechny důležité změny v tomto projektu se zapisují do tohoto souboru.
 
 Formát je inspirovaný Keep a Changelog.

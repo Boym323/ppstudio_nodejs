@@ -14,7 +14,7 @@ Stručný architektonický a provozní přehled nasazení na Proxmox/LXC je v ko
 ## Release checklist
 1. `npm ci --include=dev`
    - Před tím ověř, že server už běží na `Node 24 LTS`; po skoku z `22` čekej čistý reinstall nativních balíčků typu `sharp`.
-2. Ověř správné produkční env proměnné (`DATABASE_URL`, `ADMIN_SESSION_SECRET`, `ADMIN_BOOTSTRAP_ENABLED=false` mimo krátký recovery režim, admin bootstrap účty, email delivery, worker, `MEDIA_STORAGE_ROOT`, povinný `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY`, volitelně `NEXT_PUBLIC_MATOMO_*`, `NEXT_PUBLIC_CLARITY_*`, `NEXT_PUBLIC_META_PIXEL_*`, `NEXT_PUBLIC_GOOGLE_ADS_*`, serverové `MATOMO_*` pro dashboard reporting a `PUSHOVER_ENABLED` / `PUSHOVER_APP_TOKEN` pro owner notifikace).
+2. Ověř správné produkční env proměnné (`DATABASE_URL`, `ADMIN_SESSION_SECRET`, `ADMIN_OWNER_EMAIL` jako kontaktní fallback, email delivery, worker, `MEDIA_STORAGE_ROOT`, povinný `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY`, volitelně `NEXT_PUBLIC_MATOMO_*`, `NEXT_PUBLIC_CLARITY_*`, `NEXT_PUBLIC_META_PIXEL_*`, `NEXT_PUBLIC_GOOGLE_ADS_*`, serverové `MATOMO_*` pro dashboard reporting a `PUSHOVER_ENABLED` / `PUSHOVER_APP_TOKEN` pro owner notifikace).
    - Při používání Resend trackingu ověř i `EMAIL_TRANSPORT=resend`, `RESEND_API_KEY` a `RESEND_WEBHOOK_SECRET`.
    - V Resend dashboardu musí být webhook endpoint nastaven na `POST /api/webhooks/resend` (HTTPS produkční origin).
    - `NEXT_DEPLOYMENT_ID` při doporučeném rollout skriptu nenasazuj ručně do `.env`; `deploy/release.sh` ho exportuje automaticky z aktuálního git commitu, stejně jako `DEPLOYMENT_VERSION` a `GIT_HASH`, a před restartem webu je zapíše do `.release-env` pro runtime `next start`.
@@ -363,10 +363,10 @@ Použij jen tehdy, když z nějakého důvodu nemůžeš použít `./deploy/rele
 11. Proveď minimálně smoke test `GET /api/health`, homepage, admin login a testovací rezervace.
 12. Pokud běžíš v self-hosted režimu bez připraveného SMTP, nech dočasně `EMAIL_DELIVERY_MODE=log`, ať booking flow neblokuje start produkce; po ověření SMTP ho pro produkci vrať na `background`.
 
-### Bootstrap Recovery
-- Bootstrap login přes `ADMIN_OWNER_EMAIL/PASSWORD` a `ADMIN_STAFF_EMAIL/PASSWORD` je výchozím nastavením vypnutý.
-- Pro první založení nebo obnovu přístupu nastav krátkodobě `ADMIN_BOOTSTRAP_ENABLED=true`, restartuj web proces, přihlas se, založ nebo oprav DB admin účet a přepni hodnotu zpět na `false`.
-- Bootstrap hesla nikdy nevypisuj do ticketů, logů ani changelogu. Po recovery zkontroluj, že běžné DB účty fungují a že bootstrap login je znovu odmítnutý.
+### Offline recovery OWNERa
+- Z hostu s přístupem k produkčnímu `DATABASE_URL` spusť `npm run admin:recover-owner -- --email owner@example.com --name 'Jméno' --confirm < /bezpecna/cesta/heslo.txt`.
+- CLI vytvoří nebo obnoví aktivního DB OWNERa, nastaví nové hashované heslo, revokuje nepoužité pozvánky a uloží audit `ADMIN_RECOVERY_OWNER_RESTORED`. Heslo není argumentem příkazu ani součástí auditu.
+- Po recovery ověř přihlášení, platnost nové session a že nelze deaktivovat ani degradovat posledního aktivního OWNERa. Soubor s heslem bezpečně smaž podle provozního postupu.
 
 ### Automatizovaný rollout skript
 - Pro běžný produkční rollout můžeš použít [`deploy/release.sh`](/var/www/ppstudio/deploy/release.sh).

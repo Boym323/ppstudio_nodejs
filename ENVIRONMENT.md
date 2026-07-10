@@ -43,16 +43,12 @@ Použití:
 ### Admin auth
 
 - `ADMIN_SESSION_SECRET`
-- `ADMIN_BOOTSTRAP_ENABLED`
 - `ADMIN_OWNER_EMAIL`
-- `ADMIN_OWNER_PASSWORD`
-- `ADMIN_STAFF_EMAIL`
-- `ADMIN_STAFF_PASSWORD`
 
 Použití:
 
 - podpis admin session
-- nouzové bootstrap přihlášení
+- kontaktní fallback pro systémové e-maily; recovery probíhá offline příkazem `admin:recover-owner`
 - HMAC odvození owner ICS feed tokenu
 
 ### Next.js Server Actions a release identita

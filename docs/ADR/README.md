@@ -115,6 +115,7 @@ Sem patří krátké záznamy architektonických rozhodnutí.
 - `0097-admin-booking-detail-cockpit-hierarchy-v1.md`
 - `0099-service-cleanup-minutes-v1.md`
 - `0105-github-quality-and-security-automation-v1.md`
+- `0109-offline-owner-recovery-and-owner-invariant.md`
 
 Poznámka:
 - Historicky existují duplicitní indexy (`0026`, `0090`). Ber to jako legacy stav, čísla zpětně nepřejmenovávat.

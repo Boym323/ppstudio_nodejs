@@ -84,7 +84,7 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
 6. Spusť `npm run db:generate`.
 7. Spusť `npm run db:migrate`.
 8. Spusť `npm run dev` a otevři `http://localhost:3000`.
-9. Pokud potřebuješ první admin přihlášení přes env účty, dočasně zapni `ADMIN_BOOTSTRAP_ENABLED=true`, přihlas se na `/admin/prihlaseni` a po založení databázových účtů přepínač vrať na `false`.
+9. Pro první admin přihlášení vytvoř DB OWNERa offline příkazem `npm run admin:recover-owner -- --email owner@example.com --name 'Jméno' --confirm < heslo.txt`.
 
 Poznámka k runtime:
 
@@ -114,7 +114,6 @@ NEXT_SERVER_ACTIONS_ENCRYPTION_KEY=replace-with-openssl-rand-base64-32
 DATABASE_URL="postgresql://postgres:postgres@localhost:5432/ppstudio?schema=public"
 SHADOW_DATABASE_URL="postgresql://postgres:postgres@localhost:5432/ppstudio_shadow?schema=public"
 ADMIN_SESSION_SECRET=replace-with-long-random-secret-at-least-32-chars
-ADMIN_BOOTSTRAP_ENABLED=false
 EMAIL_DELIVERY_MODE=log
 EMAIL_TRANSPORT=smtp
 MEDIA_STORAGE_ROOT=/var/www/ppstudio-uploads
@@ -129,7 +128,7 @@ MEDIA_STORAGE_ROOT=/var/www/ppstudio-uploads
 - `SHADOW_DATABASE_URL` používá Prisma při `migrate dev`.
 - `ADMIN_SESSION_SECRET` podepisuje admin session cookie a musí být unikátní pro prostředí.
 - Admin login/logout route navíc kontrolují stejný `Origin` a důvěryhodný host proti `NEXT_PUBLIC_APP_URL`; při nesouladu login skončí `error=origin_check_failed` a logout vrátí `403`.
-- `ADMIN_BOOTSTRAP_ENABLED` je recovery přepínač bootstrap loginu; `.env.example` ho drží na `false`, pro první lokální přihlášení ho zapínej jen dočasně.
+- Recovery admin přístupu nepoužívá env přihlášení; použij auditovatelný offline příkaz `admin:recover-owner`.
 - `EMAIL_DELIVERY_MODE=log` je bezpečný lokální režim bez SMTP odesílání.
 - `EMAIL_TRANSPORT` určuje background transport (`smtp` nebo `resend`).
 - `MEDIA_STORAGE_ROOT` je zapisovatelná absolutní cesta mimo repo pro nahraná média.
@@ -614,14 +613,8 @@ npm run db:clear-booking-data -- --confirm
 - Login route `POST /api/auth/login` má nově server-side rate limit (okno 10 minut) nad hashovanou IP a hashovaným e-mailem, aby omezila brute-force pokusy.
 - Při překročení limitu se login ukončí bezpečným přesměrováním na `/admin/prihlaseni?error=rate_limited` bez založení session.
 - Databázové účty vytvořené přes owner sekci `Přístupy` se přihlašují vlastním heslem nastaveným přes pozvánku.
-- Pro systémový recovery fallback přihlášení existují bootstrap hodnoty:
-  - `ADMIN_BOOTSTRAP_ENABLED`
-  - `ADMIN_OWNER_EMAIL`
-  - `ADMIN_OWNER_PASSWORD`
-  - `ADMIN_STAFF_EMAIL`
-  - `ADMIN_STAFF_PASSWORD`
-- Env proměnné `ADMIN_STAFF_*` bootstrapují systémový účet role `SALON`.
-- Bootstrap login je výchozím nastavením vypnutý a funguje jen při `ADMIN_BOOTSTRAP_ENABLED=true`; po prvním založení nebo obnově DB admin účtu vrať `ADMIN_BOOTSTRAP_ENABLED=false`.
+- Recovery nikdy neotevírá webový bootstrap účet. Pro vytvoření nebo obnovu DB OWNERa použij offline příkaz `npm run admin:recover-owner -- --email owner@example.com --name 'Jméno' --confirm < heslo.txt`; příkaz vyžaduje heslo alespoň 12 znaků, obnoví aktivní DB účet, revokuje otevřené pozvánky a zapíše audit `ADMIN_RECOVERY_OWNER_RESTORED` bez hesla.
+- Posledního aktivního OWNERa nelze v UI ani server action deaktivovat či degradovat. Vlastní degradace je možná až tehdy, když zůstává další aktivní OWNER.
 - Session je ukládaná do `httpOnly` cookie a podepisovaná pomocí `ADMIN_SESSION_SECRET`.
 - Životnost admin session cookie `ppstudio-admin-session` je 14 dní (stejná expirace je i v podepsaném JWT tokenu).
 - Při běžném provozu adminu se session průběžně prodlužuje (sliding refresh): pokud při admin requestu zbývá do expiry méně než 48 hodin, `proxy` vystaví novou cookie.
@@ -813,7 +806,7 @@ npm run db:clear-booking-data -- --confirm
 - U rezervací v planneru je primární čas v inspektoru `čas služby`; interní cleanup blokace se zobrazuje odděleně (`Blok v mřížce` + `Úklidová blokace do`) a v grid buňce má jemný pravý vizuální pruh.
 - Za „obsahují rezervace“ se pro rychlou planner editaci počítají hlavně aktivní nebo provozně relevantní vazby. `CANCELLED` historie se při publish mutaci přesouvá do archivovaného slotu na pozadí, takže obsluha v mřížce nevidí zbytečný blok jen kvůli storno minulosti.
 - Výchozí týden v planneru je počítaný nad lokálním datem `Europe/Prague`, takže týden vždy začíná pondělím i kolem časových posunů.
-- Při bootstrap přihlášení (`ADMIN_OWNER_*`, `ADMIN_STAFF_*`) se autor změny dostupnosti ukládá jen pokud existuje odpovídající záznam v tabulce `AdminUser`; jinak se použije `createdByUserId = null`, aby změna nespadla na FK.
+- Autor změny dostupnosti je vždy aktivní databázový `AdminUser`; nouzový webový bootstrap účet neexistuje.
 - Z detailu rezervace lze bezpečně změnit stav pouze v povolených krocích:
   - `PENDING -> CONFIRMED`
   - `CONFIRMED -> COMPLETED`

@@ -1,5 +1,9 @@
 # Dependencies
 
+## Recovery a přístupy
+
+- Offline recovery OWNERa používá stávající runtime `tsx`, Prisma a Node `crypto`; nepřibyla žádná externí závislost. Neodstraňuj `tsx`, dokud zůstává script `admin:recover-owner` součástí provozního postupu.
+
 Seznam důležitých knihoven a důvod jejich použití.
 
 Atomický release mechanismus nepřidává žádnou npm závislost; používá existující Bash, systemd, `curl`, Node.js a Prisma CLI.

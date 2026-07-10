@@ -264,7 +264,7 @@ Zdroj pravdy:
 Autentizace:
 
 - primárně DB účet `AdminUser.passwordHash`
-- nouzově bootstrap účty z env při `ADMIN_BOOTSTRAP_ENABLED=true`
+- recovery výhradně offline vytvořením nebo obnovou DB OWNERa přes `admin:recover-owner`
 
 ## Persistenční a provozní hranice
 

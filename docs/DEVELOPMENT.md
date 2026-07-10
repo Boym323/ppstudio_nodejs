@@ -83,7 +83,7 @@ Pro centralizovaný přehled hlavních route handler kontraktů používej i [`d
 - Clarity ve vývoji zapínej jen cíleně (`NEXT_PUBLIC_CLARITY_ENABLED=true` + `NEXT_PUBLIC_CLARITY_PROJECT_ID`), default má zůstat vypnutý.
 - Google Ads tag ve vývoji zapínej jen cíleně (`NEXT_PUBLIC_GOOGLE_ADS_ENABLED=true` + `NEXT_PUBLIC_GOOGLE_ADS_ID=AW-...`), default má zůstat vypnutý.
 - Meta Pixel ve vývoji zapínej jen cíleně (`NEXT_PUBLIC_META_PIXEL_ENABLED=true` + `NEXT_PUBLIC_META_PIXEL_ID`), default má zůstat vypnutý.
-- Bootstrap admin login přes `ADMIN_OWNER_*` a `ADMIN_STAFF_*` je recovery vrstva, ne výchozí dlouhodobý režim. Po založení databázových admin účtů vrať `ADMIN_BOOTSTRAP_ENABLED=false`.
+- Recovery admin přístupu prováděj pouze offline příkazem `npm run admin:recover-owner -- --email owner@example.com --name 'Jméno' --confirm < heslo.txt`; webový bootstrap login neexistuje.
 - README na GitHubu má fungovat jako rozcestník i rychlý onboarding. Když měníš setup, deploy nebo monitoring workflow, promítni změnu do `README.md` a udržuj v něm krokový postup, ne jen seznam odkazů.
 
 ## Architektura
@@ -438,7 +438,7 @@ Pro centralizovaný přehled hlavních route handler kontraktů používej i [`d
 - Hodnoty jsou konfigurovatelné přes env: `ADMIN_SESSION_IDLE_MAX_AGE_SECONDS`, `ADMIN_SESSION_REFRESH_WINDOW_SECONDS`, `ADMIN_SESSION_ABSOLUTE_MAX_AGE_SECONDS` (sekundy). Guardrails: refresh window nesmí být větší než idle timeout a absolute timeout nesmí být menší než idle timeout.
 - `src/proxy.ts` řeší rychlý auth gate pro admin: u `/admin/*` ověřuje podpis a expiraci session JWT cookie, ne jen její existenci; neplatnou cookie smaže a přesměruje na login.
 - Role-based autorizace se dokončuje uvnitř serverových helperů v `src/lib/auth/session.ts`; po ověření JWT se admin session znovu načítá z DB, neaktivní uživatel session zneplatní a aktuální role se bere z DB.
-- Lite admin účet se v aplikaci může hlásit přes bootstrap env proměnné pouze v recovery režimu `ADMIN_BOOTSTRAP_ENABLED=true`; běžný produkční provoz má používat DB účty.
+- Admin login přijímá výhradně aktivní databázové účty s `passwordHash`. Recovery CLI obnoví DB OWNERa, zapíše auditní záznam a revokuje otevřené pozvánky; heslo se nepředává jako argument příkazu.
 - Owner approve/reject odkazy z e-mailu už smějí změnit stav rezervace pouze po aktivní admin session. Tokenová stránka může zobrazit akci, ale server action před mutací znovu volá admin auth helper.
 - Pro role-based admin IA používáme dvě serverově chráněné oblasti:
   - `OWNER` na `/admin/*`

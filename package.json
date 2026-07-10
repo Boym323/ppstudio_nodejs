@@ -33,6 +33,7 @@
     "db:studio": "prisma studio",
     "db:import-services": "node scripts/import-services.mjs",
     "db:backfill-service-copy": "tsx scripts/backfill-service-copy.ts",
+    "admin:recover-owner": "tsx scripts/recover-admin-owner.ts",
     "db:clear-booking-data": "node scripts/clear-booking-data.mjs"
   },
   "dependencies": {

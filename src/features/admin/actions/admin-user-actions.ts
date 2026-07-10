@@ -18,7 +18,10 @@ import {
 } from "@/features/admin/lib/admin-user-validation";
 import { isMissingInvitedAtColumnError } from "@/features/admin/lib/admin-user-db";
 import { requireAdminSectionAccess } from "@/features/admin/lib/admin-guards";
-import { deactivateAdminUserAndRevokeInviteTokens } from "@/features/admin/lib/admin-invite-token-db";
+import {
+  LAST_ACTIVE_OWNER_MESSAGE,
+  updateAdminUserWithOwnerProtection,
+} from "@/features/admin/lib/admin-owner-protection";
 import { sendOwnerSystemErrorPushover } from "@/lib/notifications/pushover";
 import { prisma } from "@/lib/prisma";
 
@@ -207,10 +210,15 @@ export async function changeAdminUserRoleAction(formData: FormData): Promise<voi
     return;
   }
 
-  await prisma.adminUser.update({
-    where: { id: parsed.data.userId },
-    data: { role: parsed.data.role as AdminRole },
+  const result = await updateAdminUserWithOwnerProtection({
+    userId: parsed.data.userId,
+    role: parsed.data.role as AdminRole,
   });
+
+  if (result === "last-active-owner") {
+    console.warn(LAST_ACTIVE_OWNER_MESSAGE, { userId: parsed.data.userId });
+    return;
+  }
 
   revalidateAdminUserPaths();
 }
@@ -227,15 +235,14 @@ export async function setAdminUserActiveAction(formData: FormData): Promise<void
     return;
   }
 
-  if (parsed.data.nextIsActive) {
-    await prisma.adminUser.update({
-      where: { id: parsed.data.userId },
-      data: { isActive: true },
-    });
-  } else {
-    const now = new Date();
+  const result = await updateAdminUserWithOwnerProtection({
+    userId: parsed.data.userId,
+    isActive: parsed.data.nextIsActive,
+  });
 
-    await deactivateAdminUserAndRevokeInviteTokens(parsed.data.userId, now);
+  if (result === "last-active-owner") {
+    console.warn(LAST_ACTIVE_OWNER_MESSAGE, { userId: parsed.data.userId });
+    return;
   }
 
   revalidateAdminUserPaths();
