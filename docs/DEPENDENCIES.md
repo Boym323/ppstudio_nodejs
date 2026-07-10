@@ -10,6 +10,8 @@ Atomický release mechanismus nepřidává žádnou npm závislost; používá e
 
 Constraint jednotkové kapacity slotu nepřidává žádnou závislost; používá existující PostgreSQL CHECK constraint a Prisma migrace.
 
+Ochrana DB health alertu nepřidává žádnou závislost ani persistentní storage; používá lokální in-memory cooldown v Next.js route handleru.
+
 ## Aktuální verze stacku
 - Zdroj pravdy je `package.json` v kořeni projektu.
 - Projektový runtime cíl je `Node 24 LTS`; repozitář to explicitně deklaruje přes [`.nvmrc`](/var/www/ppstudio/.nvmrc:1) a `package.json.engines`.

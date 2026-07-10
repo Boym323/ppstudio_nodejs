@@ -336,6 +336,7 @@ Vyplň při každém nasazení. Slouží jako rychlý audit trail kdo/co/kdy ov�
     - potvrzeni, zruseni a presun poslou prislusny booking event
     - finalni selhani emailu/reminderu posle pouze jednu provozni chybu po vycerpani retry
     - duplicitni submit/retry stejneho `bookingId` nebo `emailLogId` se v jednom procesu potlaci 30s rate limitem
+    - pri simulovaném DB outage proveď deset `GET /api/health`; každý musí vrátit `503` s `error.code=DATABASE_UNAVAILABLE` bez driver textu a `health-db-check` smí v jednom procesu vyvolat nejvýše jeden Pushover alert za 10 minut
     - vypnuti nebo chyba Pushover API nema zmenit vysledek rezervace ani email workeru
 
 ## Doporučené monitoring minimum

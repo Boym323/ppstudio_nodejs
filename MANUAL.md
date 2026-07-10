@@ -144,6 +144,7 @@ Praktický přehled hlavních HTTP endpointů je v [`docs/API.md`](/var/www/ppst
 ## Monitoring a provozní SLA minimum
 - Externí monitoring má pravidelně volat `GET /api/health`; při `503` nebo timeoutu ber stav jako incident.
 - `GET /api/health` při čistém stavu vrací i `release.version`, `release.deploymentId` / `deploymentVersion` / `gitHash` a `durationMs`; při incidentu podle toho rychle ověříš, jestli monitoring mluví se správným releasem a jestli se endpoint nezpomaluje.
+- Při nedostupné DB endpoint vrací pouze stabilní `error.code=DATABASE_UNAVAILABLE`, nikdy raw detail ovladače nebo připojení. Owner alert je best-effort, neblokuje odpověď a v jednom procesu se pro tento stav odešle nejvýše jednou za 10 minut.
 - Vedle webu sleduj i běh `ppstudio-web.service` a `ppstudio-email-worker.service`.
 - Pravidelně kontroluj, že e-mailová fronta nemá rostoucí `failed`, `retrying` nebo `stale` záznamy.
 - Po každém releasu proveď minimální smoke test: homepage, admin login a vytvoření testovací rezervace.

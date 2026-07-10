@@ -9,6 +9,7 @@ Formát je inspirovaný Keep a Changelog.
 ## [Unreleased]
 
 ### Fixed
+- Veřejný `GET /api/health` při výpadku DB už nevrací `Error.message` s interní diagnostikou; místo ní vrací stabilní `error.code=DATABASE_UNAVAILABLE`. Pushover alert pro tento stav je non-blocking a samostatný desetiminutový cooldown v procesu zabrání notifikační bouři při častém monitoringu.
 - Kapacita dostupnostního slotu je nyní pevný databázový invariant `1`. Nová migrace před změnou constraintu fail-fast zastaví rollout, pokud najde historický slot s jinou hodnotou; booking engine mezitím vždy připustí jen jednu souběžnou rezervaci.
 - Produkční rollout už nemění jen `.next` a `node_modules`: každý build se ukládá jako úplný verzovaný adresář v `releases/` a atomický symlink `current` přepíná zdrojové soubory, Prisma klient i build společně. Při selhání startu, workeru nebo health/smoke testu se vrací celý předchozí release; databázové migrace se záměrně automaticky nevracejí.
 - Úspěšný release automaticky maže staré verzované adresáře: vždy chrání `current`, `previous` a standardně sedm dalších nejnovějších release; limit lze změnit přes `--keep-releases N`.

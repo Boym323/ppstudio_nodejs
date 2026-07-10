@@ -49,6 +49,7 @@ Odpověď:
 - hlavičky:
 - `Cache-Control: no-store`
 - `Content-Type: application/json`
+- při nedostupné DB obsahuje `error: { code: "DATABASE_UNAVAILABLE" }`; kód je stabilní a endpoint nikdy nevrací raw zprávu databázového driveru
 - shape odpovědi při běžném běhu:
 
 ```json
