@@ -6,6 +6,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Pushover upozornění na novou webovou rezervaci nyní uvádí, zda jde o novou, nebo vracející se klientku. Rozlišení vychází z existence starší rezervace stejné klientky a zpráva dál neobsahuje kontaktní údaje.
+
 ## [1.1.0] - 2026-07-11
 
 ### Přidáno

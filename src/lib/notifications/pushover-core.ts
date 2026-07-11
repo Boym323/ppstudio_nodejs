@@ -344,6 +344,10 @@ function getBookingTitle(type: BookingPushoverEventType) {
   }
 }
 
+function getClientRelationshipLabel(previousBookingCount: number) {
+  return previousBookingCount > 0 ? "Vracejici se klientka" : "Nova klientka";
+}
+
 export async function sendOwnerBookingPushover(input: {
   type: BookingPushoverEventType;
   bookingId: string;
@@ -362,6 +366,7 @@ export async function sendOwnerBookingPushover(input: {
         scheduledStartsAt: true,
         scheduledEndsAt: true,
         source: true,
+        clientId: true,
       },
     });
 
@@ -374,13 +379,27 @@ export async function sendOwnerBookingPushover(input: {
       booking.scheduledEndsAt,
     )}`;
     const source = input.sourceLabel ?? booking.source;
+    const clientRelationship = input.type === "NEW_BOOKING"
+      ? getClientRelationshipLabel(
+          await prisma.booking.count({
+            where: {
+              clientId: booking.clientId,
+              id: {
+                not: booking.id,
+              },
+            },
+          }),
+        )
+      : null;
     const message =
       input.type === "BOOKING_RESCHEDULED" && input.previousStartsAt && input.previousEndsAt
         ? `${booking.serviceNameSnapshot}\nPuvodne: ${formatBookingCalendarDate(input.previousStartsAt)}, ${formatBookingTimeRange(
             input.previousStartsAt,
             input.previousEndsAt,
           )}\nNove: ${currentTerm}`
-        : `${booking.serviceNameSnapshot}\n${currentTerm}\nZdroj: ${source}`;
+        : `${booking.serviceNameSnapshot}\n${currentTerm}\nZdroj: ${source}${
+            clientRelationship ? `\nKlientka: ${clientRelationship}` : ""
+          }`;
 
     await sendOwnerPushover({
       type: input.type,

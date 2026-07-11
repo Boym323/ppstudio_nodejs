@@ -331,6 +331,7 @@ Vyplň při každém nasazení. Slouží jako rychlý audit trail kdo/co/kdy ov�
     - ve feedu jsou jen `CONFIRMED` rezervace
     - po zrušení nebo přepnutí rezervace mimo `CONFIRMED` event zmizí při dalším fetchi
   - Pushover owner notifikace, pokud jsou v produkci zapnute:
+    - nová webová rezervace obsahuje kromě služby, termínu a zdroje i údaj, zda jde o novou nebo vracející se klientku
     - nova webova rezervace posle `NEW_BOOKING`
     - manualni pending rezervace posle `BOOKING_PENDING`
     - potvrzeni, zruseni a presun poslou prislusny booking event

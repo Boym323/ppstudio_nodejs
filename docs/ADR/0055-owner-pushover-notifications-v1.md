@@ -13,6 +13,7 @@
 - Odesilaci dotaz vzdy vybira pouze aktivni `AdminRole.OWNER` uzivatele s `pushoverEnabled`, vyplnenym User Key a zapnutym konkretnim event typem.
 - Stejny `type + bookingId/contextId/emailLogId` se v jednom procesu neposle casteji nez jednou za 30 sekund.
 - Chyby Pushover API se pouze loguji; produkcni flow pokracuje bez vyhozeni chyby.
+- U udalosti `NEW_BOOKING` se do zpravy pridava bezpecny provozni stitek `Nova klientka` nebo `Vracejici se klientka`. Rozhoduje existence starsi rezervace stejneho `clientId`, nikoli shoda kontaktu nebo jmena.
 
 ## Alternativy
 - Rozsirit `AdminUser` primo o Pushover pole. To by bylo jednodussi, ale michalo by identitu uzivatele s volitelnymi notifikacnimi preferencemi.
