@@ -84,20 +84,21 @@ test.describe("public site smoke coverage", () => {
 
     const robots = await robotsResponse.text();
     const sitemap = await sitemapResponse.text();
-    const host = robots.match(/^Host: (.+)$/m)?.[1];
     const sitemapUrl = robots.match(/^Sitemap: (.+)$/m)?.[1];
+    const canonicalUrl = sitemapUrl?.replace(/\/sitemap\.xml$/, "");
 
-    expect(host).toBeTruthy();
     expect(sitemapUrl).toBeTruthy();
+    expect(canonicalUrl).toBeTruthy();
 
     expect(robots).toContain("Disallow: /admin");
     expect(robots).toContain("Disallow: /rezervace/sprava");
-    expect(host).not.toBe("http://ppstudio.cz");
-    expect(sitemapUrl).toBe(`${host}/sitemap.xml`);
+    expect(robots).not.toMatch(/^Host:/m);
+    expect(sitemapUrl).toBe(`${canonicalUrl}/sitemap.xml`);
+    expect(canonicalUrl).not.toBe("http://ppstudio.cz");
     expect(sitemap).toContain("<loc>");
-    expect(sitemap).toContain(`<loc>${host}`);
+    expect(sitemap).toContain(`<loc>${canonicalUrl}`);
     expect(sitemap).toContain("/sluzby");
-    expect(sitemap).toContain(`${host}/studio`);
+    expect(sitemap).toContain(`${canonicalUrl}/studio`);
     expect(sitemap).not.toContain("http://ppstudio.cz");
     expect(sitemap).not.toContain("/admin");
     expect(sitemap).not.toContain("/rezervace/sprava");
