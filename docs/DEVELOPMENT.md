@@ -849,6 +849,7 @@ Pro centralizovaný přehled hlavních route handler kontraktů používej i [`d
 ## Testování
 - Minimální kontrola při každé změně:
   - `npm run lint`
+  - `npm run typecheck`
   - `npm run test`
   - `npm run build`
 - `npm run test` nově nastavuje `RUN_DB_INTEGRATION_TESTS=1`, takže integrační booking testy (`*.integration.test.ts`) už nejsou v běžném běhu skipnuté.

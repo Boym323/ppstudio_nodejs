@@ -568,6 +568,9 @@ run_release() {
     log "Přeskakuji lint (--skip-lint)."
   fi
 
+  log "npm run typecheck"
+  npm run typecheck
+
   log "npm run build"
   npm run build
 

@@ -123,6 +123,7 @@ Sem patří krátké záznamy architektonických rozhodnutí.
 - `0114-release-web-readiness-probe.md` — tiché čekání na otevření portu po restartu webu.
 - `0115-admin-mobile-ergonomics-v1.md` — větší dotykové plochy a bezpečné spodní ovladače mobilního adminu.
 - `0116-public-media-route-handler-consolidation.md` — jeden bezpečnostně citlivý handler pro kanonické i legacy veřejné media URL.
+- `0117-release-quality-gates.md` — samostatný typecheck v release preflightu a testovací/E2E gate v CI.
 
 Poznámka:
 - Historicky existují duplicitní indexy (`0026`, `0090`). Ber to jako legacy stav, čísla zpětně nepřejmenovávat.
