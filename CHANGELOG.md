@@ -1,18 +1,23 @@
 # Changelog
 
-## [Unreleased]
-
-- Zlepšena ergonomie mobilní administrace: filtry rezervací se na úzkém displeji posouvají v jednom řádku, akce i formulářové ovladače mají větší dotykové plochy a rychlé akce rezervace jsou zřetelná dvojice tlačítek.
-- Týdenní planner má na mobilu větší buňky a ovladače, srozumitelnější navigaci týdnem, bezpečnou spodní mezeru pro sheet i lištu neuložených změn a jasně označený vybraný den.
-
 Všechny důležité změny v tomto projektu se zapisují do tohoto souboru.
 
 Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-07-11
+
+### Přidáno
+- Zlepšena ergonomie mobilní administrace: filtry rezervací se na úzkém displeji posouvají v jednom řádku, akce i formulářové ovladače mají větší dotykové plochy a rychlé akce rezervace jsou zřetelná dvojice tlačítek.
+- Týdenní planner má na mobilu větší buňky a ovladače, srozumitelnější navigaci týdnem, bezpečnou spodní mezeru pro sheet i lištu neuložených změn a jasně označený vybraný den.
+
+### Opraveno
 - Opraven detail v `Email logy`: `/admin/email-logy/[emailLogId]` už nevkládá druhý `AdminShell`, takže se levé menu nevykresluje dvakrát.
+
+### Změněno
 - Aktualizovány kořenové provozní a architektonické dokumenty, API reference a přehled závislostí podle release workflow 1.0.3, aktuálního stacku a runtime kontraktů.
+- Release příprava pro produkční nasazení: projektová verze navýšena na minor `1.1.0` kvůli zpětně kompatibilnímu rozšíření mobilního adminu a planneru.
 
 ## [1.0.3] - 2026-07-10
 
