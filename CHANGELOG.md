@@ -1,5 +1,10 @@
 # Changelog
 
+## [Unreleased]
+
+- Zlepšena ergonomie mobilní administrace: filtry rezervací se na úzkém displeji posouvají v jednom řádku, akce i formulářové ovladače mají větší dotykové plochy a rychlé akce rezervace jsou zřetelná dvojice tlačítek.
+- Týdenní planner má na mobilu větší buňky a ovladače, srozumitelnější navigaci týdnem, bezpečnou spodní mezeru pro sheet i lištu neuložených změn a jasně označený vybraný den.
+
 Všechny důležité změny v tomto projektu se zapisují do tohoto souboru.
 
 Formát je inspirovaný Keep a Changelog.

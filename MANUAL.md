@@ -282,6 +282,7 @@ Praktický přehled hlavních HTTP endpointů je v [`docs/API.md`](/var/www/ppst
 - Rezervace v adminu rozlišují `Kanál rezervace` a marketingové `Odkud přišla`: `Web` znamená, že rezervace vznikla přes veřejný booking flow, zatímco akviziční štítek `Instagram`, `Google`, `Firmy.cz / Seznam` nebo `Direct / bez kampaně` vychází z UTM/referreru. `Instagram zpráva` v kanálu rezervace je ručně zadaná rezervace z konverzace, ne webová UTM návštěva.
 - Akviziční cookie normalizuje primárně `utm_*`, ale jako fallback přijímá i `mtm_source`, `mtm_medium` a `mtm_campaign`, aby se booking attribution neztratil ani u Matomo-tagovaných odkazů.
 - Pracovní seznam drží sticky prvky jen tam, kde to dává smysl: na mobilu filtr bar scrolluje spolu s obsahem (nepřekrývá řádky), od `md` breakpointu výš zůstává nahoře pro rychlou práci v delším seznamu; hlavička tabulky drží kontext a akce v řádku vrací okamžitý inline feedback přes loading stav a toast.
+- Mobilní pracovní seznam rezervací drží rychlé akce jako dva plnohodnotné dotykové ovladače vedle sebe (`Potvrdit`, `Otevřít`); rychlé filtry lze horizontálně posunout bez zalomení štítků a formulářové akce `Filtrovat` / `Zrušit filtry` mají stejnou snadno dosažitelnou výšku.
 - V pracovním seznamu je teď nejvýraznější čas rezervace; uzavřené stavy `Hotovo` a `Zrušená` mají menší vizuální váhu, inline akce se liší podle stavu rezervace a chybějící kontakt se zobrazuje neutrálně jako `bez kontaktu`.
 - Kontakt v řádku rezervace je praktický i na mobilu: telefon používá `tel:`, e-mail `mailto:` a mobilní zobrazení skládá compact card s pořadím `čas -> klientka -> služba -> stav`.
 - Admin detail klientky na `/admin/klienti/[clientId]` a `/admin/provoz/klienti/[clientId]` je provozní CRM karta: nahoře odpovídá kdo je klientka, jak ji kontaktovat, kdy byla naposledy a jestli má další termín; pod hlavičkou je kompaktní `CRM souhrn` s poslední/příští návštěvou, hodnotou dokončených služeb, uhrazeno/neuhrazeno a rozpad rezervací. `Neuhrazeno` neukazuje budoucí aktivní rezervace jako dluh, ale jen doplatky u dokončených nebo už proběhlých aktivních rezervací. Historie návštěv a interní poznámka jsou vlevo, kontakt, zkrácený přehled klientky a tlumená metadata vpravo.
@@ -791,7 +792,8 @@ npm run db:clear-booking-data -- --confirm
   - na mobilu funguje tažení i přes dotyk/stylus (`touch`/`pen`), takže není nutné přepínat na desktop kvůli drag editaci
   - automatické sloučení sousedních půlhodin do souvislých intervalů `AvailabilitySlot`
   - pravý inspektor dne s denním souhrnem a detailem výběru z gridu
-  - mobilní přepínač všech 7 dní najednou a editor jednoho dne bez horizontálního scrollu
+- mobilní přepínač všech 7 dní najednou a editor jednoho dne bez horizontálního scrollu
+- přepínač dnů, navigace týdne a buňky mřížky mají na telefonu větší dotykové plochy; spodní inspektor i lišta pro publikaci konceptu respektují safe area zařízení
   - přepnutí dne na mobilu čistí aktuální výběr buňky, ale nechává zachovaný nepublikovaný koncept týdne
   - spodní sticky bar pro `Zahodit` a `Publikovat změny`
   - týdenní rychlé akce `zkopírovat týden na další` a lokální šablonu týdne uloženou v zařízení

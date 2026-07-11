@@ -90,6 +90,8 @@ Pro centralizovaný přehled hlavních route handler kontraktů používej i [`d
 - README na GitHubu má fungovat jako rozcestník i rychlý onboarding. Když měníš setup, deploy nebo monitoring workflow, promítni změnu do `README.md` a udržuj v něm krokový postup, ne jen seznam odkazů.
 
 ## Architektura
+
+- Při změně mobilního admin UI drž minimální výšku hlavních dotykových ovladačů alespoň `2.75rem` a nenechávej dlouhou řadu filtrů zalomit se do nečitelných řádků: na telefonu může být vodorovně posuvná, na širším breakpointu se vrací běžné zalomení. U týdenního planneru musí fixed sheet i publish lišta počítat s `env(safe-area-inset-bottom)`.
 - `src/app` obsahuje pouze routy, layouty a route handlers.
 - `src/components` drží čistě sdílené stavební prvky.
 - `src/features` seskupuje konkrétní produktové oblasti:

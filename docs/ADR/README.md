@@ -121,6 +121,7 @@ Sem patří krátké záznamy architektonických rozhodnutí.
 - `0112-turbopack-release-root.md` — explicitní root aktivního release pro Turbopack build.
 - `0113-release-health-smoke-diagnostics.md` — oddělená diagnostika health a homepage smoke testu při releasu.
 - `0114-release-web-readiness-probe.md` — tiché čekání na otevření portu po restartu webu.
+- `0115-admin-mobile-ergonomics-v1.md` — větší dotykové plochy a bezpečné spodní ovladače mobilního adminu.
 
 Poznámka:
 - Historicky existují duplicitní indexy (`0026`, `0090`). Ber to jako legacy stav, čísla zpětně nepřejmenovávat.

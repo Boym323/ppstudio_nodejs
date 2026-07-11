@@ -388,34 +388,34 @@ export function WeekToolbar({
               </span>
             ) : null}
           </div>
-          <ActionButton className="xl:hidden" onClick={onOpenInspector}>
+          <ActionButton className="min-h-11 xl:hidden" onClick={onOpenInspector}>
             Inspektor dne
           </ActionButton>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 xl:flex-nowrap">
-          <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-col gap-2 xl:flex-row xl:items-center xl:flex-nowrap">
+          <div className="grid grid-cols-[minmax(0,auto)_1fr_minmax(0,auto)] items-center gap-2 sm:flex sm:flex-wrap">
             <Link
               href={`${baseHref}?week=${previousWeekKey}&day=${currentDayKey}`}
-              className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white/78"
+              className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white/78"
               aria-label="Předchozí týden"
             >
               ←
             </Link>
             <Link
               href={`${baseHref}?week=${todayKey}&day=${todayKey}`}
-              className="rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-sm text-white/82"
+              className="min-h-11 rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-sm text-white/82"
             >
               Tento týden
             </Link>
             <Link
               href={`${baseHref}?week=${nextWeekKey}&day=${currentDayKey}`}
-              className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white/78"
+              className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white/78"
               aria-label="Další týden"
             >
               →
             </Link>
-            <p className="rounded-full border border-white/10 bg-black/20 px-3.5 py-2 text-sm font-medium text-white/88">
+            <p className="col-span-3 rounded-[0.9rem] border border-white/10 bg-black/20 px-3.5 py-2 text-center text-sm font-medium text-white/88 sm:col-auto sm:rounded-full">
               {weekRangeLabel}
             </p>
           </div>
@@ -427,7 +427,7 @@ export function WeekToolbar({
 
           <details className="group relative">
             <summary className="list-none">
-              <span className="inline-flex cursor-pointer items-center justify-center rounded-full border border-white/10 bg-white/[0.06] px-3.5 py-2 text-sm font-medium text-white/84">
+              <span className="inline-flex min-h-11 cursor-pointer items-center justify-center rounded-full border border-white/10 bg-white/[0.06] px-3.5 py-2 text-sm font-medium text-white/84">
                 Šablony ▾
               </span>
             </summary>
@@ -516,15 +516,16 @@ export function MobileDayPicker({
 }) {
   return (
     <div className="lg:hidden">
-      <div className="grid grid-cols-7 gap-1 sm:gap-2">
+      <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
         {days.map((day) => (
           <Link
             key={day.dateKey}
             href={getDayActionHref(baseHref, weekKey, day.dateKey)}
             onClick={() => onSelectDay(day.dateKey)}
             aria-label={`${day.label}, ${day.availableIntervals.length} volná okna`}
+            aria-current={day.dateKey === selectedDayKey ? "date" : undefined}
             className={cn(
-              "min-w-0 rounded-[0.9rem] border px-1.5 py-2.5 text-center",
+              "min-h-[4.5rem] min-w-0 rounded-[0.9rem] border px-1 py-2.5 text-center transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/70 sm:px-1.5",
               day.dateKey === selectedDayKey
                 ? "border-[var(--color-accent)]/45 bg-[rgba(190,160,120,0.14)]"
                 : "border-white/10 bg-white/[0.04]",
@@ -604,7 +605,7 @@ export function GridCell({
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       className={cn(
-        "relative h-8 w-full touch-none select-none overflow-hidden rounded-[0.65rem] border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/70 lg:h-[1.2rem]",
+        "relative h-10 w-full touch-none select-none overflow-hidden rounded-[0.65rem] border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/70 sm:h-9 lg:h-[1.2rem]",
         hourBoundary ? "border-t-white/22" : "border-t-white/10",
         tone === "available" && "border-emerald-300/25 hover:border-emerald-300/38",
         tone === "booked" && "cursor-default border-rose-300/30",
@@ -1045,8 +1046,9 @@ export function MobileInspectorSheet({
         onClick={onClose}
       />
       <div
-        className="absolute bottom-0 left-0 right-0 max-h-[86vh] translate-y-0 overflow-y-auto rounded-t-[1.6rem] border border-white/10 bg-[#111015] p-4 shadow-[0_-16px_40px_rgba(0,0,0,0.35)] transition"
+        className="absolute bottom-0 left-0 right-0 max-h-[88vh] translate-y-0 overflow-y-auto rounded-t-[1.6rem] border border-white/10 bg-[#111015] px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-3 shadow-[0_-16px_40px_rgba(0,0,0,0.35)] transition"
       >
+        <div aria-hidden="true" className="mx-auto mb-3 h-1 w-10 rounded-full bg-white/20" />
         <div className="mb-4 flex items-center justify-between gap-3">
           <p className="text-sm font-medium text-white">Inspektor dne</p>
           <button
@@ -1077,7 +1079,7 @@ export function StickyActionBar({
   return (
     <div
       className={cn(
-        "pointer-events-none fixed inset-x-0 bottom-0 z-40 px-4 pb-4 transition",
+        "pointer-events-none fixed inset-x-0 bottom-0 z-40 px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] transition",
         visible ? "translate-y-0 opacity-100" : "translate-y-6 opacity-0",
       )}
     >
@@ -1087,11 +1089,11 @@ export function StickyActionBar({
             <p className="text-sm font-medium text-white">Neuložené změny týdne</p>
             <p className="text-sm text-white/56">Změny zatím zůstávají jen v pracovním konceptu tohoto týdne.</p>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <ActionButton tone="ghost" onClick={onDiscard} disabled={pending}>
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+            <ActionButton className="min-h-11" tone="ghost" onClick={onDiscard} disabled={pending}>
               Zahodit
             </ActionButton>
-            <ActionButton tone="accent" onClick={onPublish} disabled={pending}>
+            <ActionButton className="min-h-11" tone="accent" onClick={onPublish} disabled={pending}>
               Publikovat změny
             </ActionButton>
           </div>

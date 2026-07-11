@@ -48,7 +48,7 @@ export function AdminBookingsQuickActions({
     <div className="space-y-1">
       <form
         action={formAction}
-        className="flex w-full flex-wrap items-stretch justify-start gap-1 md:flex-nowrap md:justify-end"
+        className="grid w-full grid-cols-2 items-stretch gap-2 sm:flex sm:flex-wrap sm:gap-1 md:flex-nowrap md:justify-end"
         onClick={(event) => event.stopPropagation()}
       >
         <input type="hidden" name="area" value={area} />
@@ -70,7 +70,7 @@ export function AdminBookingsQuickActions({
         <Link
           href={href}
           onClick={(event) => event.stopPropagation()}
-          className="inline-flex min-h-8 min-w-[6rem] items-center justify-center rounded-full border border-white/12 px-3 py-1 text-[11px] font-medium text-white/72 transition hover:border-white/24 hover:bg-white/7 hover:text-white"
+          className="inline-flex min-h-11 min-w-0 items-center justify-center rounded-full border border-white/12 px-3 py-2 text-sm font-medium text-white/72 transition hover:border-white/24 hover:bg-white/7 hover:text-white sm:min-h-8 sm:min-w-[6rem] sm:py-1 sm:text-[11px]"
         >
           Otevřít
         </Link>
@@ -107,7 +107,7 @@ function QuickSubmitButton({
         onBeforeSubmit();
       }}
       className={cn(
-        "inline-flex min-h-8 min-w-[6rem] items-center justify-center rounded-full border px-3 py-1 text-[11px] font-medium transition disabled:cursor-not-allowed disabled:opacity-60",
+        "inline-flex min-h-11 min-w-0 items-center justify-center rounded-full border px-3 py-2 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-60 sm:min-h-8 sm:min-w-[6rem] sm:py-1 sm:text-[11px]",
         kind === "CONFIRMED"
           ? "border-amber-300/55 bg-amber-400/18 text-amber-50 hover:bg-amber-400/26"
           : "border-white/12 bg-white/5 text-white/74 hover:border-red-300/35 hover:bg-red-400/12 hover:text-red-50",
