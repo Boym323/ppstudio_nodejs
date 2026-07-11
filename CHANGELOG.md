@@ -6,6 +6,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Opraven detail v `Email logy`: `/admin/email-logy/[emailLogId]` už nevkládá druhý `AdminShell`, takže se levé menu nevykresluje dvakrát.
 - Aktualizovány kořenové provozní a architektonické dokumenty, API reference a přehled závislostí podle release workflow 1.0.3, aktuálního stacku a runtime kontraktů.
 
 ## [1.0.3] - 2026-07-10

@@ -893,6 +893,7 @@ npm run db:clear-booking-data -- --confirm
   - `Další pokus` se v hlavním seznamu ukazuje jen u stavů `Čeká` a `Retry`
   - původní pending/retry/error fronty zůstávají níž v debug bloku `Technický stav fronty`, který je defaultně sbalený do kompaktního souhrnu
 - Detail konkrétního e-mailu na `/admin/email-logy/[emailLogId]` je nově business-first:
+  - používá stejný jediný levý navigační sloupec jako přehled `Email logy`; navigace se v detailu nesmí duplikovat
   - nahoře ukazuje kompaktnější header s názvem emailu, jedním finálním stavem `Odesláno / Čeká / Retry / Selhalo`, příjemcem, klientkou, rezervací a klíčovým časem `Odesláno / Poslední pokus`
   - hned pod headerem drží zhuštěné rychlé akce `Zpět na přehled`, `Otevřít rezervaci`, případně `Zkusit znovu` nebo `Uvolnit zaseknutý job` v nízké operativní liště
   - pravý sloupec tvoří hustší souhrn `Typ emailu / Šablona / Příjemce / Provider / Poslední pokus / Odesláno / Počet pokusů`
