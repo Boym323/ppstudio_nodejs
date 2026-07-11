@@ -464,6 +464,7 @@ npm run db:migrate
 
 ### Lokální media storage
 - Upload root se nastavuje přes `MEDIA_STORAGE_ROOT`.
+- Kanonická `/media/public/*` i legacy `/media/*` URL sdílejí jediný handler `src/lib/media/public-media-route.ts`; ten zpřístupní pouze publikovaný `MediaAsset`.
 - Pokud proměnná není vyplněná, aplikace použije výchozí cestu `/var/www/ppstudio/uploads`.
 - Uvnitř rootu aplikace odděluje:
   - `public/` pro veřejně čitelná média

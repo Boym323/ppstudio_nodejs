@@ -748,6 +748,7 @@ Pro centralizovaný přehled hlavních route handler kontraktů používej i [`d
 - `src/lib/media/media-pipeline.ts` drží lehkou server-side pipeline nad `sharp`; pro JPEG/PNG/WebP dělá EXIF auto-rotate už na ukládaném originálu, `optimized` variantu (max 1920 px) a `thumbnail` variantu (cca 400 px) bez zavádění CDN nebo komplexního responsive systému.
 - Route `/media/[kind]/[[...path]]` používá v media path helperu a storage adapteru cílené `turbopackIgnore` anotace u dynamických `path.resolve/path.join`; cílem je zabránit tomu, aby Next.js 16 Turbopack NFT tracer při buildu omylem zahrnoval celý projekt.
 - Kanonická veřejná URL pro nové uploady je `/media/public/<type>/YYYY/MM/<filename>`; legacy route `/media/[kind]/[[...path]]` zůstává kvůli starším médiím.
+- Obě veřejné media routy pouze reexportují `GET` ze `src/lib/media/public-media-route.ts`; zde zůstává jediná kontrola bezpečné cesty, publikace assetu a bezpečných response hlaviček.
 - Route pro média umí vrátit originál i varianty `optimized` / `thumbnail` podle konkrétní storage path uložené v `MediaAsset`; starší záznamy bez variant fungují dál přes fallback na původní `storagePath`.
 - `src/lib/media/media-validation.ts` centralizuje kontrolu MIME typu, přípony a maximální velikosti souboru.
 - `src/lib/media/media-filename.ts` generuje krátký náhodný asset key a stabilní suffixy `original`, `optimized`, `thumbnail`, takže naming zůstává konzistentní a připravený na další varianty.

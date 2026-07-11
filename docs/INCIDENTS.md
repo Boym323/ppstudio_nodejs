@@ -168,6 +168,7 @@ Evidence produkčních incidentů a jejich řešení.
 - Chybějící nebo nečitelný `MEDIA_STORAGE_ROOT`, kvůli kterému upload selže při zápisu nebo se veřejný asset fyzicky nikdy neuloží.
 - Upload root namountovaný do dočasného adresáře, který se smaže při deployi nebo restartu serveru.
 - Nefunkční veřejné URL `/media/public/*` nebo legacy `/media/*` kvůli ručnímu zásahu do souborů na filesystemu bez odpovídajícího `MediaAsset` záznamu v DB.
+- Podezření na rozdílné zabezpečení kanonické `/media/public/*` a legacy `/media/*` route: obě musí reexportovat `GET` z `src/lib/media/public-media-route.ts`; ověř regresní test `src/app/media/media-route-aliases.test.ts` a že repository dotaz zachovává `isPublished: true`.
 - Chybějící nebo nepodporovaný soubor zvolený jako `Logo pro PDF vouchery` nesmí blokovat stažení voucheru; očekávaný stav je fallback textové logo `PP Studio`. Pokud obsluha čeká obrázek, zkontroluj `SiteSettings.voucherPdfLogoMediaId`, existenci navázaného `MediaAsset` a lokální soubor v `MEDIA_STORAGE_ROOT`.
 - Tisková A4 varianta voucheru nesmí změnit e-mailovou PDF přílohu ani původní admin stažení. Při hlášení špatného tisku ověř nejdřív `/pdf/tisk`, A4 rozměr 210 x 297 mm, voucher v horní třetině a bílé pozadí mimo voucher; při hlášení změny e-mailového PDF porovnej, zda e-mail stále volá původní `generateVoucherPdf(...)`.
 - Pokus o nahrání nepodporovaného typu souboru nebo souboru nad velikostní limit, který musí skončit validační chybou místo 500.

@@ -199,6 +199,7 @@ Lokální doporučení:
 - Ruční vytvoření rezervace v adminu také nepřidává nové env proměnné; používá stejné `NEXT_PUBLIC_APP_URL`, `ADMIN_SESSION_SECRET`, DB schéma a e-mailovou konfiguraci jako veřejný booking. Nově ale počítá s tím, že `Client.email` může být `null`, takže potvrzovací e-mail se bez adresy přeskočí.
 - Stabilizační refaktor `booking-public`, `booking-flow` a `admin-slots` nepřidává žádné nové env proměnné; veřejné entrypointy i provozní konfigurace zůstávají beze změny.
 - Modul `Média` nepřidává žádnou novou env proměnnou; dál používá existující `MEDIA_STORAGE_ROOT` pro lokální storage mimo repozitář.
+- Sjednocený handler veřejných médií nepřidává žádnou env proměnnou; nadále používá `MEDIA_STORAGE_ROOT` a databázovou kontrolu publikace `MediaAsset.isPublished`.
 - UX refaktor `Média` také nepřidává žádnou novou env proměnnou; kompaktní upload panel, quick publish/unpublish i tabs s počty používají stejnou storage a stejný aplikační model.
 - Rozdělení portrétů na `PORTRAIT_HOME` a `PORTRAIT_ABOUT` také nepřidává env proměnnou; jde čistě o databázový typ média a veřejný read fallback.
 - Veřejná stránka `/studio` nepřidává žádnou novou env proměnnou; fotky studia čte přes stávající `MediaAsset` metadata a veřejné `/media/public/*` URL, se zachovanou kompatibilitou pro starší `/media/*`.

@@ -6,6 +6,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Kanonická `/media/public/*` a zpětně kompatibilní `/media/*` route nyní reexportují jeden bezpečnostně citlivý handler. Ten dál povoluje výhradně publikované assety a regresní test hlídá, že se implementace nemůže rozdělit.
 - Pushover upozornění na novou webovou rezervaci nyní uvádí, zda jde o novou, nebo vracející se klientku. Rozlišení vychází z existence starší rezervace stejné klientky a zpráva dál neobsahuje kontaktní údaje.
 
 ## [1.1.0] - 2026-07-11

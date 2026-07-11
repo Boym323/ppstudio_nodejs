@@ -505,6 +505,7 @@ sudo /var/www/ppstudio/deploy/deploy.sh
 - Verzionovaný release vytváří ve staging adresáři vlastní `package-lock.json`. `turbopack.root` proto musí zůstat explicitně nastavený na adresář aktivního `next.config.ts`; jinak může `next build` vydat falešné varování o více lockfilech.
 - Upload root není build artefakt. Při deployi se nemaže a má být zálohovaný samostatně od repozitáře i databáze.
 - Veřejná média se publikují přes `/media/public/*` a legacy `/media/*`, takže reverse proxy nemusí mapovat fyzickou cestu upload adresáře přímo do document rootu.
+- Obě URL varianty obsluhuje stejný serverový handler; při smoke testu ověř jednu publikovanou variantu přes obě cesty a že nepublikovaný asset vrací `404`.
 
 ## Dodatečná QA pro týdenní planner
 - Ověř všechny route varianty:
