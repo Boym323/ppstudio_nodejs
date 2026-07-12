@@ -185,6 +185,37 @@ function validateFullName(value: string) {
   return undefined;
 }
 
+export type ContactFieldErrorReason = "povinné" | "příliš krátké" | "neplatný formát";
+
+export function getContactFieldErrorReason(
+  field: ContactFieldKey,
+  value: string,
+): ContactFieldErrorReason | undefined {
+  const trimmed = value.trim();
+
+  if (!trimmed && field !== "phone") {
+    return "povinné";
+  }
+
+  if (field === "fullName") {
+    if (trimmed.length < 3) {
+      return "příliš krátké";
+    }
+
+    return trimmed.replace(/[^\p{L}]/gu, "").length < 2 ? "neplatný formát" : undefined;
+  }
+
+  if (field === "email") {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed) ? undefined : "neplatný formát";
+  }
+
+  if (field === "phone") {
+    return !trimmed || isValidClientPhoneInput(trimmed) ? undefined : "neplatný formát";
+  }
+
+  return undefined;
+}
+
 function validateEmail(value: string) {
   const trimmed = value.trim();
 

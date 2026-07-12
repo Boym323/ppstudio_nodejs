@@ -33,6 +33,7 @@ import {
   buildContactFieldErrors,
   EMPTY_TIME_SLOTS,
   findInitialSelectedService,
+  getContactFieldErrorReason,
   getCategoryKey,
   getSlotDateKey,
   getSlotDurationMinutes,
@@ -651,7 +652,8 @@ export function BookingFlow({ catalog, initialSelectedServiceSlug, salonProfile 
       return;
     }
 
-    trackMatomoEvent("Rezervace", "Kontakt pole chyba", field);
+    const reason = getContactFieldErrorReason(field, contactValues[field]);
+    trackMatomoEvent("Rezervace", "Kontakt pole chyba", reason ? `${field} / ${reason}` : field);
   };
 
   const selectSlot = (slotOption: TimeSlotOption) => {

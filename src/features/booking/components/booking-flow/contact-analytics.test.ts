@@ -6,6 +6,7 @@ import {
   shouldTrackContactFieldInput,
   shouldTrackFirstContactFieldEvent,
 } from "./contact-analytics";
+import { getContactFieldErrorReason } from "./helpers";
 import type { ContactFieldKey } from "./types";
 
 test("shouldTrackFirstContactFieldEvent tracks each field only once", () => {
@@ -30,4 +31,13 @@ test("shouldTrackContactFieldError tracks only when field has error and only onc
   assert.equal(shouldTrackContactFieldError(tracked, "phone", false), false);
   assert.equal(shouldTrackContactFieldError(tracked, "phone", true), true);
   assert.equal(shouldTrackContactFieldError(tracked, "phone", true), false);
+});
+
+test("getContactFieldErrorReason returns stable, non-personal validation reasons", () => {
+  assert.equal(getContactFieldErrorReason("fullName", ""), "povinné");
+  assert.equal(getContactFieldErrorReason("fullName", "A"), "příliš krátké");
+  assert.equal(getContactFieldErrorReason("fullName", "123"), "neplatný formát");
+  assert.equal(getContactFieldErrorReason("fullName", "Jana Nováková"), undefined);
+  assert.equal(getContactFieldErrorReason("email", "jana@"), "neplatný formát");
+  assert.equal(getContactFieldErrorReason("phone", ""), undefined);
 });
