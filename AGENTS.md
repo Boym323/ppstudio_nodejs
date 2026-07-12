@@ -39,6 +39,14 @@ Dokumentace projektu:
 - `docs/INCIDENTS.md`
 - `docs/DEPENDENCIES.md`
 
+## Příprava release verze
+
+- Při pokynu k přípravě verze pro nasazení nejdřív cíleně přečti politiku SemVer, začátek `CHANGELOG.md` a commity od posledního version commitu; neprohledávej kvůli tomu celý repozitář ani celou dokumentaci.
+- Typ bumpu urči podle SemVer: `PATCH` pro opravy a interní změny, `MINOR` pro zpětně kompatibilní rozšíření, `MAJOR` pro nekompatibilní změny kontraktu nebo provozního workflow.
+- Atomicky aktualizuj `package.json`, kořenový záznam v `package-lock.json`, finální release sekci v `CHANGELOG.md` a pouze dokumenty či ukázky, které uvádějí aktuální aplikační verzi.
+- Při čistě mechanickém bumpu verze a release poznámek nespouštěj testy ani `typecheck`; ověř pouze konzistenci verzí a diff. Pokud release zahrnuje dosud neověřené změny zdrojového kódu nebo konfigurace, spusť nejmenší příslušnou kontrolu. Plné `test` a `e2e` nespouštěj bez výslovného požadavku; před skutečným nasazením musí projít jako CI brána pro výsledný commit.
+- Příprava verze sama o sobě neznamená deploy, commit ani push; tyto kroky proveď jen na výslovný pokyn.
+
 ## Kontroly a testy
 
 - Spusť pouze nejmenší relevantní kontrolu pro změněnou oblast.
