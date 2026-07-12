@@ -1,18 +1,17 @@
-Website: PP Studio
-Canonical: https://ppstudio.cz/
-Language: cs-CZ
+# PP Studio
 
-Summary: PP Studio je kosmetické studio ve Zlíně. Web obsahuje veřejné informace o službách, ceníku, FAQ, kontaktu, dárkových voucherech a online rezervaci termínu.
+> PP Studio je kosmetické studio ve Zlíně. Web obsahuje veřejné informace o službách, ceníku, FAQ, kontaktu, dárkových voucherech a online rezervaci termínu.
 
-Primary pages:
-- https://ppstudio.cz/
-- https://ppstudio.cz/sluzby
-- https://ppstudio.cz/cenik
-- https://ppstudio.cz/o-mne
-- https://ppstudio.cz/kontakt
-- https://ppstudio.cz/faq
-- https://ppstudio.cz/vouchery
-- https://ppstudio.cz/rezervace
+## Veřejné stránky
+
+- [Domovská stránka](https://ppstudio.cz/)
+- [Služby](https://ppstudio.cz/sluzby)
+- [Ceník](https://ppstudio.cz/cenik)
+- [O mně](https://ppstudio.cz/o-mne)
+- [Kontakt](https://ppstudio.cz/kontakt)
+- [Časté dotazy](https://ppstudio.cz/faq)
+- [Dárkové vouchery](https://ppstudio.cz/vouchery)
+- [Online rezervace](https://ppstudio.cz/rezervace)
 
 Authoritative facts:
 - Název studia: PP Studio

@@ -6,6 +6,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+- Opraven veřejný `public/llms.txt`: nyní začíná povinným Markdown nadpisem H1 a obsahuje veřejné stránky jako explicitní Markdown odkazy.
 - Produkční release preflight nyní před `next build` explicitně spouští `npm run typecheck`. Povinné databázové testy a Playwright E2E zůstávají samostatnou CI branou před releasem, protože jejich spuštění proti produkční databázi by nebylo bezpečné.
 - Kanonická `/media/public/*` a zpětně kompatibilní `/media/*` route nyní reexportují jeden bezpečnostně citlivý handler. Ten dál povoluje výhradně publikované assety a regresní test hlídá, že se implementace nemůže rozdělit.
 - Pushover upozornění na novou webovou rezervaci nyní uvádí, zda jde o novou, nebo vracející se klientku. Rozlišení vychází z existence starší rezervace stejné klientky a zpráva dál neobsahuje kontaktní údaje.
