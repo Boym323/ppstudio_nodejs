@@ -22,9 +22,17 @@ U běžných úprav komponent, stylů, textů nebo existující logiky dokumenta
 Relevantní dokumentaci aktualizuj pouze tehdy, když ji změna přímo ovlivňuje. Nečti ani neupravuj nesouvisející dokumenty. Drobné opravy textu, stylů a lokální implementační detaily nevyžadují automatickou dokumentaci. Nové ADR vytvářej pouze při skutečném architektonickém rozhodnutí.
 
 Dokumentace projektu:
+- `ARCHITECTURE.md`
+- `BOOKING_FLOW.md`
+- `DEPLOYMENT.md`
+- `ENVIRONMENT.md`
 - `MANUAL.md`
+- `SECURITY.md`
 - `CHANGELOG.md`
+- `TROUBLESHOOTING.md`
 - `docs/DEVELOPMENT.md`
+- `docs/API.md`
+- `docs/CODEX_RULES.md` (doplňkový odkaz na tato pravidla)
 - `docs/ADR/*`
 - `docs/ENVIRONMENT.md`
 - `docs/DEPLOYMENT.md`

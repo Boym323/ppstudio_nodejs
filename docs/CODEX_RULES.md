@@ -1,13 +1,10 @@
-Pravidla pro práci v tomto repozitáři:
-- zachovávej čistou, produkční architekturu
-- neprováděj zbytečné refaktory mimo scope úkolu
-- nesahej na nesouvisející soubory
-- u větší změny nejdřív napiš stručný plán
-- preferuj malé, čitelné komponenty
-- business logiku dávej mimo UI komponenty
-- validaci dělej server-side
-- pojmenování drž konzistentní
-- admin část odděluj od public webu
-- lite admin navrhuj jednoduše, bez technických detailů
-- rezervace stav na ručně vypisovaných slotech, ne na pevné pracovní době
-- kód piš tak, aby byl dobře rozšiřitelný pro v2
+# Pravidla pro AI práci
+
+Tento soubor je doplňkový odkaz pro AI nástroje. Aktuální a závazná pravidla
+pro práci v repozitáři jsou vždy v kořenovém [`AGENTS.md`](../AGENTS.md).
+
+`AGENTS.md` obsahuje zejména pravidla komunikace, práce s kontextem, rozsahu
+změn, dokumentace, kontrol, testů a commit messages.
+
+Při rozporu má přednost `AGENTS.md`. Tento soubor záměrně nekopíruje jeho
+pravidla, aby se při další změně nerozešly dvě verze instrukcí.
