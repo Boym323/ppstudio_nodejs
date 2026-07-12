@@ -6,11 +6,21 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-07-12
+
+### Přidáno
+- Pushover upozornění na novou webovou rezervaci nyní uvádí, zda jde o novou, nebo vracející se klientku. Rozlišení vychází z existence starší rezervace stejné klientky a zpráva dál neobsahuje kontaktní údaje.
+- Matomo analytika veřejného booking flow u chyby kontaktního pole nově zaznamenává stabilní, neosobní důvod validace. Self-service správa rezervace má pro své události samostatnou kategorii `Správa rezervace`.
+
+### Opraveno
+- Kanonická `/media/public/*` a zpětně kompatibilní `/media/*` route nyní reexportují jeden bezpečnostně citlivý handler. Ten dál povoluje výhradně publikované assety a regresní test hlídá, že se implementace nemůže rozdělit.
+
+### Změněno
+- Produkční release preflight nyní před `next build` explicitně spouští `npm run typecheck`. Povinné databázové testy a Playwright E2E zůstávají samostatnou CI branou před releasem, protože jejich spuštění proti produkční databázi by nebylo bezpečné.
 - Sjednoceny AI instrukce: `AGENTS.md` je explicitně hlavní zdroj pravidel a `docs/CODEX_RULES.md` na něj pouze odkazuje, aby se instrukce nerozcházely.
 - Opraven veřejný `public/llms.txt`: nyní začíná povinným Markdown nadpisem H1 a obsahuje veřejné stránky jako explicitní Markdown odkazy.
-- Produkční release preflight nyní před `next build` explicitně spouští `npm run typecheck`. Povinné databázové testy a Playwright E2E zůstávají samostatnou CI branou před releasem, protože jejich spuštění proti produkční databázi by nebylo bezpečné.
-- Kanonická `/media/public/*` a zpětně kompatibilní `/media/*` route nyní reexportují jeden bezpečnostně citlivý handler. Ten dál povoluje výhradně publikované assety a regresní test hlídá, že se implementace nemůže rozdělit.
-- Pushover upozornění na novou webovou rezervaci nyní uvádí, zda jde o novou, nebo vracející se klientku. Rozlišení vychází z existence starší rezervace stejné klientky a zpráva dál neobsahuje kontaktní údaje.
+- Release příprava pro produkční nasazení: projektová verze navýšena na minor `1.2.0` kvůli zpětně kompatibilnímu rozšíření Pushover notifikací a analytiky rezervací.
+
 
 ## [1.1.0] - 2026-07-11
 

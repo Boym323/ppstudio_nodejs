@@ -57,7 +57,7 @@ Odpověď:
   "checkedAt": "2026-06-29T17:12:34.000Z",
   "durationMs": 24,
   "release": {
-    "version": "1.1.0",
+    "version": "1.2.0",
     "deploymentId": "abc123def456",
     "deploymentVersion": "abc123def456",
     "gitHash": "abc123def456"
