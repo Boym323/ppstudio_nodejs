@@ -24,6 +24,8 @@ type BookingManagementPanelProps = {
   };
 };
 
+const MATOMO_CATEGORY = "Správa rezervace";
+
 function formatDateLabel(value: string) {
   return new Intl.DateTimeFormat("cs-CZ", {
     weekday: "long",
@@ -324,7 +326,7 @@ export function BookingManagementPanel({
     }
 
     rescheduleOpenedTrackedRef.current = true;
-    trackMatomoEvent("Rezervace", "Změna termínu otevřena", initialState.serviceName);
+    trackMatomoEvent(MATOMO_CATEGORY, "Změna termínu otevřena", initialState.serviceName);
   }, [initialState]);
 
   useEffect(() => {
@@ -339,7 +341,7 @@ export function BookingManagementPanel({
     }
 
     lastTrackedDateRef.current = dateKey;
-    trackMatomoEvent("Rezervace", "Datum vybráno", dateKey);
+    trackMatomoEvent(MATOMO_CATEGORY, "Datum vybráno", dateKey);
   };
 
   const trackTimeSelected = (slot: TimeSlotOption) => {
@@ -350,7 +352,7 @@ export function BookingManagementPanel({
     }
 
     lastTrackedTimeRef.current = `${slot.slotId}:${slot.startsAt}`;
-    trackMatomoEvent("Rezervace", "Čas vybrán", eventName);
+    trackMatomoEvent(MATOMO_CATEGORY, "Čas vybrán", eventName);
   };
 
   const selectDate = (dateKey: string) => {
@@ -723,7 +725,7 @@ export function BookingManagementPanel({
             }
 
             rescheduleSubmittedTrackedRef.current = true;
-            trackMatomoEvent("Rezervace", "Změna termínu odeslána", initialState.serviceName);
+            trackMatomoEvent(MATOMO_CATEGORY, "Změna termínu odeslána", initialState.serviceName);
           }}
         >
           <input type="hidden" name="token" value={token} />
