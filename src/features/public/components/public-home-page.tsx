@@ -62,8 +62,7 @@ function ServiceCard({ service }: { service: Service }) {
 }
 
 export async function PublicHomePage({ featuredServices = services.slice(0, 3) }: { featuredServices?: Service[] } = {}) {
-  const bookingPolicy = await getBookingPolicySettings();
-  const portrait = await getPrimaryPublicHomePortrait();
+  const [bookingPolicy, portrait] = await Promise.all([getBookingPolicySettings(), getPrimaryPublicHomePortrait()]);
   const trustMetrics = buildTrustMetrics(bookingPolicy.cancellationHours);
   const homepageServices = featuredServices.length > 0 ? featuredServices : services.slice(0, 3);
   const heroContent = {
