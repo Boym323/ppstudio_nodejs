@@ -75,14 +75,14 @@ export function CreateManualBookingDrawer({
   const [internalNote, setInternalNote] = useState("");
   const [prefillNotice, setPrefillNotice] = useState(prefillWarning);
   const canUsePortal = typeof window !== "undefined";
-  const availableClients = prefilledClient && !clientOptions.some((client) => client.id === prefilledClient.id)
-    ? [prefilledClient, ...clientOptions]
-    : clientOptions;
+  const visibleClientOptions = clientQuery.trim().length >= 2 ? clientOptions : [];
+  const availableClients = prefilledClient && !visibleClientOptions.some((client) => client.id === prefilledClient.id)
+    ? [prefilledClient, ...visibleClientOptions]
+    : visibleClientOptions;
 
   useEffect(() => {
     const query = clientQuery.trim();
     if (query.length < 2) {
-      setClientOptions([]);
       return;
     }
 
