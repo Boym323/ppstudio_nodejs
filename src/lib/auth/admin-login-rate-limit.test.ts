@@ -11,14 +11,16 @@ process.env.ADMIN_STAFF_EMAIL ??= "staff@example.com";
 process.env.ADMIN_STAFF_PASSWORD ??= "change-me-staff";
 process.env.EMAIL_DELIVERY_MODE ??= "log";
 
-test("extractClientIp prefers first x-forwarded-for value", async () => {
+test("extractClientIp uses only valid X-Real-IP supplied by the proxy", async () => {
   const { extractClientIp } = await import("@/lib/auth/admin-login-rate-limit");
   const headers = new Headers({
     "x-forwarded-for": "198.51.100.10, 203.0.113.9",
     "x-real-ip": "203.0.113.5",
   });
 
-  assert.equal(extractClientIp(headers), "198.51.100.10");
+  assert.equal(extractClientIp(headers), "203.0.113.5");
+  assert.equal(extractClientIp(new Headers({ "x-forwarded-for": "198.51.100.10" })), undefined);
+  assert.equal(extractClientIp(new Headers({ "x-real-ip": "not-an-ip" })), undefined);
 });
 
 test("normalizeAdminLoginEmail trims and lowercases value", async () => {

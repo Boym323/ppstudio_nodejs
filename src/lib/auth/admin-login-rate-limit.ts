@@ -2,6 +2,7 @@ import { BookingSubmissionOutcome, Prisma } from "@prisma/client";
 import { createHash } from "node:crypto";
 
 import { env } from "@/config/env";
+import { getTrustedClientIp } from "@/lib/http/trusted-client-ip";
 import { prisma } from "@/lib/prisma";
 
 const ADMIN_LOGIN_ATTEMPT_WINDOW_MS = 10 * 60 * 1000;
@@ -56,21 +57,7 @@ export function normalizeAdminLoginEmail(value: FormDataEntryValue | null) {
 }
 
 export function extractClientIp(requestHeaders: Headers) {
-  const forwardedFor = requestHeaders.get("x-forwarded-for");
-
-  if (forwardedFor) {
-    const firstForwardedIp = forwardedFor.split(",")[0]?.trim();
-    if (firstForwardedIp) {
-      return firstForwardedIp;
-    }
-  }
-
-  return (
-    requestHeaders.get("cf-connecting-ip") ??
-    requestHeaders.get("x-real-ip") ??
-    requestHeaders.get("x-vercel-forwarded-for") ??
-    undefined
-  );
+  return getTrustedClientIp(requestHeaders);
 }
 
 export function getAdminLoginAttemptMetadata(requestHeaders: Headers, normalizedEmail?: string) {

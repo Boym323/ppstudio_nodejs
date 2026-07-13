@@ -6,6 +6,7 @@ import { cookies, headers } from "next/headers";
 import { z } from "zod";
 
 import { env } from "@/config/env";
+import { getTrustedClientIp } from "@/lib/http/trusted-client-ip";
 import { prisma } from "@/lib/prisma";
 import {
   BOOKING_ACQUISITION_COOKIE,
@@ -101,21 +102,7 @@ function getPublicFacingBookingErrorMessage(error: PublicBookingError) {
 }
 
 function extractClientIp(requestHeaders: Headers) {
-  const forwardedFor = requestHeaders.get("x-forwarded-for");
-
-  if (forwardedFor) {
-    const firstForwardedIp = forwardedFor.split(",")[0]?.trim();
-    if (firstForwardedIp) {
-      return firstForwardedIp;
-    }
-  }
-
-  return (
-    requestHeaders.get("cf-connecting-ip") ??
-    requestHeaders.get("x-real-ip") ??
-    requestHeaders.get("x-vercel-forwarded-for") ??
-    undefined
-  );
+  return getTrustedClientIp(requestHeaders);
 }
 
 function getSubmissionMetadata(requestHeaders: Headers) {
