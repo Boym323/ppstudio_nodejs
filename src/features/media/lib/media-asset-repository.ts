@@ -1,4 +1,4 @@
-import { type MediaType, type Prisma } from '@prisma/client';
+import { MediaAssetVisibility, type MediaType, type Prisma } from '@prisma/client';
 
 import { prisma } from '@/lib/prisma';
 
@@ -17,6 +17,7 @@ export async function getPublicMediaAssetByTypeAndPath(type: MediaType, storageP
     where: {
       type,
       isPublished: true,
+      visibility: MediaAssetVisibility.PUBLIC,
       deletionRequestedAt: null,
       OR: [
         { storagePath },
@@ -31,6 +32,7 @@ export async function getPublicMediaAssetByPath(storagePath: string) {
   return prisma.mediaAsset.findFirst({
     where: {
       isPublished: true,
+      visibility: MediaAssetVisibility.PUBLIC,
       deletionRequestedAt: null,
       OR: [
         { storagePath },
@@ -53,6 +55,7 @@ export async function listPublicMediaAssets(type?: MediaType) {
     where: {
       ...(type ? { type } : {}),
       isPublished: true,
+      visibility: MediaAssetVisibility.PUBLIC,
       deletionRequestedAt: null,
     },
     orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
