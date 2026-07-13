@@ -6,6 +6,14 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [2.0.1] - 2026-07-13
+
+### Opraveno
+- Voucher lookup route má správné typování závislosti pro vyhledání voucheru a bezpečně zpracuje chybějící kód.
+- Next.js konfigurace inline vkládá Tailwind CSS pro rychlejší prvotní vykreslení.
+
+- Release příprava pro produkční nasazení: projektová verze navýšena na patch `2.0.1`.
+
 ## [2.0.0] - 2026-07-13
 
 ### Nekompatibilní změny
