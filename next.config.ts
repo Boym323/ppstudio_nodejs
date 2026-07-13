@@ -53,6 +53,9 @@ const nextConfig: NextConfig = {
     || process.env.GIT_HASH
     || undefined,
   experimental: {
+    // Tailwindovy styly jsou malé a pro první návštěvu je výhodnější je vložit
+    // přímo do HTML než čekat na blokující CSS požadavky.
+    inlineCss: true,
     serverActions: {
       // Media uploads are validated to 8 MB in app code, but multipart form
       // overhead would still hit the lower Next.js default request limit.
