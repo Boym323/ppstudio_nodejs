@@ -788,7 +788,7 @@ describe("public booking access", () => {
       assert.equal(cancelled.status, "already_cancelled");
       assert.equal(completed.status, "not_reschedulable");
       assert.equal(deadlineBlocked.status, "not_reschedulable");
-      assert.match(deadlineBlocked.message, /méně než 48 hodin/i);
+      assert.match(deadlineBlocked.message, /méně než 24 hodin/i);
     } finally {
       await cleanupSeed(seed);
     }
@@ -1105,7 +1105,7 @@ describe("cancel booking flow", () => {
       const result = await cancelPublicBookingByToken(seed.deadlineCancelTokenRaw);
 
       assert.equal(result.status, "not_cancellable");
-      assert.match(result.message, /méně než 48 hodin/i);
+      assert.match(result.message, /méně než 24 hodin/i);
 
       const deadlineBooking = await prisma.booking.findUniqueOrThrow({
         where: { id: seed.tooLateBookingId },
