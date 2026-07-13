@@ -54,7 +54,7 @@
     "server-only": "^0.0.1",
     "sharp": "^0.35.3",
     "svix": "^1.96.1",
-    "tailwind-merge": "^3.5.0",
+    "tailwind-merge": "^3.6.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
