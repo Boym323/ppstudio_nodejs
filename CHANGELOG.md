@@ -6,6 +6,24 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-07-13
+
+### Nekompatibilní změny
+- Admin API `GET /api/admin/bookings/search` a `GET /api/admin/vouchers/lookup` byly odstraněny. Obě vyhledávací operace nyní přijímají pouze `POST` se stejným JSON tělem, ověřeným same-origin požadavkem a hlavičkou `Cache-Control: private, no-store`; integrace musí přejít na nový kontrakt.
+
+### Přidáno
+- Administrace klientů má stránkování a vyhledávání; ruční vytvoření rezervace využívá dostupné klientky podle hledaného dotazu.
+- Média nově evidují okamžik žádosti o smazání, včetně indexu pro správu a filtrování tohoto stavu.
+
+### Opraveno
+- Veřejná media pipeline důsledně filtruje viditelnost assetů. Načítání rezervací a portrétu je paralelní, veřejná rezervace lépe popisuje chybu a manuální rezervace má opravené typování i práci s dostupnými klientkami.
+- Zrušení rezervace je možné nejpozději 24 hodin před termínem.
+- Důvěryhodná IP klientky se jednotně získává z bezpečně vyhodnocených hlaviček, včetně rate limitů pro přihlášení a ověření voucheru.
+
+### Změněno
+- Aktualizovány přímé závislosti `jose`, `nodemailer`, `svix`, `tailwind-merge`, `zod`, `tsx` a typy Node.js na řadu 24.
+- Release příprava pro produkční nasazení: projektová verze navýšena na major `2.0.0` kvůli nekompatibilní změně admin API kontraktů pro vyhledávání rezervací a voucherů.
+
 ## [1.2.0] - 2026-07-12
 
 ### Přidáno
