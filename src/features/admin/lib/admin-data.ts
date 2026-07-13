@@ -1277,7 +1277,7 @@ export async function getReservationsData(
     manualBooking: {
       services: manualBookingServices,
       slots: bookingCatalog.slots,
-      clients: [],
+      clients: [] as ReservationsDashboardData["manualBooking"]["clients"],
     },
   } satisfies ReservationsDashboardData;
 }
