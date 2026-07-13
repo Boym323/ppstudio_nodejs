@@ -515,8 +515,11 @@ export function MobileDayPicker({
   onSelectDay: (dayKey: string) => void;
 }) {
   return (
-    <div className="lg:hidden">
-      <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
+    <nav
+      aria-label="Výběr dne v týdnu"
+      className="-mx-3 snap-x snap-mandatory overflow-x-auto px-3 pb-1 [scrollbar-width:thin] sm:mx-0 sm:overflow-visible sm:px-0 sm:pb-0 lg:hidden"
+    >
+      <div className="flex gap-2 pr-3 sm:grid sm:grid-cols-7 sm:gap-2 sm:pr-0">
         {days.map((day) => (
           <Link
             key={day.dateKey}
@@ -525,7 +528,7 @@ export function MobileDayPicker({
             aria-label={`${day.label}, ${day.availableIntervals.length} volná okna`}
             aria-current={day.dateKey === selectedDayKey ? "date" : undefined}
             className={cn(
-              "min-h-[4.5rem] min-w-0 rounded-[0.9rem] border px-1 py-2.5 text-center transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/70 sm:px-1.5",
+              "min-h-[4.5rem] w-[4.75rem] shrink-0 snap-start rounded-[0.9rem] border px-1 py-2.5 text-center transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/70 sm:w-auto sm:min-w-0 sm:px-1.5",
               day.dateKey === selectedDayKey
                 ? "border-[var(--color-accent)]/45 bg-[rgba(190,160,120,0.14)]"
                 : "border-white/10 bg-white/[0.04]",
@@ -537,7 +540,7 @@ export function MobileDayPicker({
           </Link>
         ))}
       </div>
-    </div>
+    </nav>
   );
 }
 
