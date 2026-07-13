@@ -31,7 +31,7 @@ export async function AdminClientsPage({
           <AdminClientsToolbar currentPath={data.currentPath} filters={data.filters} />
 
           <div className="mt-4 grid gap-2 text-sm text-white/62 sm:grid-cols-3">
-            <p><span className="text-white">V seznamu:</span> {data.clients.length}</p>
+            <p><span className="text-white">V seznamu:</span> {data.clients.length} z {data.pagination.totalCount}</p>
             <p><span className="text-white">Filtr:</span> {labelForQuickFilter(data.filters.quick)} · {labelForStatus(data.filters.status)}</p>
             <p><span className="text-white">Řazení:</span> {labelForSort(data.filters.sort)}</p>
           </div>
@@ -39,10 +39,35 @@ export async function AdminClientsPage({
           <div className="mt-4">
             <AdminClientsList area={area} clients={data.clients} resetHref={data.currentPath} />
           </div>
+          {data.pagination.hasNextPage && data.pagination.nextCursor ? (
+            <div className="mt-4 flex justify-center">
+              <a
+                href={buildNextPageHref(data.currentPath, data.filters, data.pagination.nextCursor)}
+                className="inline-flex rounded-full border border-white/10 px-4 py-2 text-sm text-white/80 transition hover:border-white/18 hover:bg-white/6"
+              >
+                Načíst dalších 50 klientů
+              </a>
+            </div>
+          ) : null}
         </AdminPanel>
       </div>
     </AdminPageShell>
   );
+}
+
+function buildNextPageHref(
+  currentPath: string,
+  filters: { query: string; status: string; sort: string; quick: string },
+  cursor: string,
+) {
+  const params = new URLSearchParams({ cursor });
+
+  if (filters.query) params.set("query", filters.query);
+  if (filters.status !== "all") params.set("status", filters.status);
+  if (filters.sort !== "recent") params.set("sort", filters.sort);
+  if (filters.quick !== "all") params.set("quick", filters.quick);
+
+  return `${currentPath}?${params.toString()}`;
 }
 
 function ClientsStatsStrip({

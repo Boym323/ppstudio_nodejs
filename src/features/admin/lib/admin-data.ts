@@ -670,6 +670,56 @@ function buildReservationsWhere(
   return where;
 }
 
+function buildReservationGroupWhere(
+  group: BookingListGroupValue,
+  todayStart: Date,
+  now: Date,
+): Prisma.BookingWhereInput {
+  switch (group) {
+    case "needs_closure":
+      return {
+        scheduledEndsAt: { lt: now },
+        status: { in: [...activeBookingStatuses] },
+      };
+    case "pending":
+      return {
+        status: BookingStatus.PENDING,
+        scheduledEndsAt: { gte: now },
+      };
+    case "upcoming":
+      return {
+        status: BookingStatus.CONFIRMED,
+        scheduledStartsAt: { gte: todayStart },
+        scheduledEndsAt: { gte: now },
+      };
+    case "past":
+      return {
+        OR: [
+          { status: { in: [BookingStatus.COMPLETED, BookingStatus.CANCELLED, BookingStatus.NO_SHOW] } },
+          {
+            status: BookingStatus.CONFIRMED,
+            scheduledStartsAt: { lt: todayStart },
+            scheduledEndsAt: { gte: now },
+          },
+        ],
+      };
+  }
+}
+
+function buildReservationGroupQuery(
+  where: Prisma.BookingWhereInput,
+  group: BookingListGroupValue,
+  todayStart: Date,
+  now: Date,
+) {
+  return {
+    where: {
+      AND: [where, buildReservationGroupWhere(group, todayStart, now)],
+    },
+    orderBy: [{ scheduledStartsAt: "asc" as const }, { id: "asc" as const }],
+  };
+}
+
 function startOfToday() {
   return getDayBounds(formatDateKey(new Date())).startsAt;
 }
@@ -853,6 +903,13 @@ export async function getReservationsData(
   const filters = normalizeReservationsSearchParams(searchParams);
   const where = buildReservationsWhere(filters);
   const currentPath = area === "owner" ? "/admin/rezervace" : "/admin/provoz/rezervace";
+  const limits = getReservationGroupLimits(filters);
+  const groupQueries = Object.fromEntries(
+    bookingListGroupValues.map((group) => [
+      group,
+      buildReservationGroupQuery(where, group, todayStart, now),
+    ]),
+  ) as Record<BookingListGroupValue, ReturnType<typeof buildReservationGroupQuery>>;
 
   const [
     today,
@@ -866,9 +923,15 @@ export async function getReservationsData(
     missingContactKpi,
     totalUnfilteredCount,
     totalFilteredCount,
-    items,
     bookingCatalog,
-    clients,
+    needsClosureItems,
+    pendingItems,
+    upcomingItems,
+    pastItems,
+    needsClosureTotal,
+    pendingTotal,
+    upcomingTotal,
+    pastTotal,
   ] =
     await Promise.all([
     prisma.booking.count({
@@ -920,29 +983,42 @@ export async function getReservationsData(
     }),
     prisma.booking.count(),
     prisma.booking.count({ where }),
+    getPublicBookingCatalog(),
     prisma.booking.findMany({
-      orderBy: { scheduledStartsAt: "asc" },
-      where,
+      ...groupQueries.needs_closure,
+      take: Math.min(limits.needs_closure, reservationGroupLimitMax),
       include: {
         client: { select: { fullName: true } },
       },
     }),
-    getPublicBookingCatalog(),
-    prisma.client.findMany({
-      where: {
-        isActive: true,
-      },
-      orderBy: [{ lastBookedAt: "desc" }, { fullName: "asc" }],
-      select: {
-        id: true,
-        fullName: true,
-        email: true,
-        phone: true,
-        internalNote: true,
-        isActive: true,
-      },
+    prisma.booking.findMany({
+      ...groupQueries.pending,
+      take: Math.min(limits.pending, reservationGroupLimitMax),
+      include: { client: { select: { fullName: true } } },
     }),
+    prisma.booking.findMany({
+      ...groupQueries.upcoming,
+      take: Math.min(limits.upcoming, reservationGroupLimitMax),
+      include: { client: { select: { fullName: true } } },
+    }),
+    prisma.booking.findMany({
+      ...groupQueries.past,
+      take: Math.min(limits.past, reservationGroupLimitMax),
+      include: { client: { select: { fullName: true } } },
+    }),
+    prisma.booking.count(groupQueries.needs_closure),
+    prisma.booking.count(groupQueries.pending),
+    prisma.booking.count(groupQueries.upcoming),
+    prisma.booking.count(groupQueries.past),
     ]);
+
+  const items = [needsClosureItems, pendingItems, upcomingItems, pastItems].flat();
+  const groupTotals: Record<BookingListGroupValue, number> = {
+    needs_closure: needsClosureTotal,
+    pending: pendingTotal,
+    upcoming: upcomingTotal,
+    past: pastTotal,
+  };
 
   const groupedItems = new Map<
     BookingListGroupValue,
@@ -1018,7 +1094,6 @@ export async function getReservationsData(
   }
 
   const totalCount = totalFilteredCount;
-  const limits = getReservationGroupLimits(filters);
   const hasActiveFilters = Boolean(
     filters.query ||
       filters.status !== "all" ||
@@ -1072,10 +1147,6 @@ export async function getReservationsData(
     durationMinutes: service.durationMinutes,
     cleanupBlockMinutes: service.cleanupBlockMinutes,
     priceFromCzk: service.priceFromCzk,
-  }));
-  const manualBookingClients = clients.map((client) => ({
-    ...client,
-    email: client.email ?? "",
   }));
 
   return {
@@ -1168,10 +1239,10 @@ export async function getReservationsData(
     ],
     groups: sortedGroups.map((group) => {
       const collapsed = group.key === "past" && !showPast;
-      const totalGroupCount = group.items.length;
+      const totalGroupCount = groupTotals[group.key];
       const visibleLimit = Math.min(limits[group.key], reservationGroupLimitMax);
       const visibleItems = collapsed ? [] : group.items.slice(0, visibleLimit);
-      const hiddenCount = totalGroupCount - visibleItems.length;
+      const hiddenCount = Math.max(0, totalGroupCount - visibleItems.length);
       const showMoreHref =
         !collapsed && hiddenCount > 0
           ? buildReservationsGroupHref(currentPath, filters, {
@@ -1206,7 +1277,7 @@ export async function getReservationsData(
     manualBooking: {
       services: manualBookingServices,
       slots: bookingCatalog.slots,
-      clients: manualBookingClients,
+      clients: [],
     },
   } satisfies ReservationsDashboardData;
 }

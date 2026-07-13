@@ -28,6 +28,8 @@ type CreateManualBookingDrawerProps = {
   prefillWarning?: string | null;
 };
 
+type ClientOption = ReservationsDashboardData["manualBooking"]["clients"][number];
+
 export function CreateManualBookingDrawer({
   area,
   data,
@@ -46,6 +48,7 @@ export function CreateManualBookingDrawer({
   );
   const previousStatus = useRef(serverState.status);
   const [clientQuery, setClientQuery] = useState("");
+  const [clientOptions, setClientOptions] = useState<ClientOption[]>(data.clients);
   const [selectedClientId, setSelectedClientId] = useState(prefilledClient?.id ?? "");
   const [fullName, setFullName] = useState(prefilledClient?.fullName ?? "");
   const [email, setEmail] = useState(prefilledClient?.email ?? "");
@@ -72,9 +75,35 @@ export function CreateManualBookingDrawer({
   const [internalNote, setInternalNote] = useState("");
   const [prefillNotice, setPrefillNotice] = useState(prefillWarning);
   const canUsePortal = typeof window !== "undefined";
-  const availableClients = prefilledClient && !data.clients.some((client) => client.id === prefilledClient.id)
-    ? [prefilledClient, ...data.clients]
-    : data.clients;
+  const availableClients = prefilledClient && !clientOptions.some((client) => client.id === prefilledClient.id)
+    ? [prefilledClient, ...clientOptions]
+    : clientOptions;
+
+  useEffect(() => {
+    const query = clientQuery.trim();
+    if (query.length < 2) {
+      setClientOptions([]);
+      return;
+    }
+
+    const controller = new AbortController();
+    const timeout = window.setTimeout(async () => {
+      try {
+        const response = await fetch(`/api/admin/clients/search?query=${encodeURIComponent(query)}`, {
+          signal: controller.signal,
+        });
+        const result = await response.json() as { clients?: ClientOption[] };
+        if (response.ok) setClientOptions(result.clients ?? []);
+      } catch (error) {
+        if (!(error instanceof DOMException && error.name === "AbortError")) setClientOptions([]);
+      }
+    }, 250);
+
+    return () => {
+      controller.abort();
+      window.clearTimeout(timeout);
+    };
+  }, [clientQuery]);
 
   const createdBookingHref = serverState.createdBookingId
     ? area === "owner"

@@ -38,6 +38,8 @@ const formatDateTime = new Intl.DateTimeFormat("cs-CZ", {
   timeZone: "Europe/Prague",
 });
 
+const clientPageSize = 50;
+
 function formatDateLabel(value: Date | null | undefined) {
   if (!value) {
     return "Bez data";
@@ -87,6 +89,12 @@ function normalizeSearchParams(searchParams?: Record<string, string | string[] |
     sort: parsed.data.sort ?? defaults.sort,
     quick: parsed.data.quick ?? defaults.quick,
   };
+}
+
+function readClientCursor(searchParams?: Record<string, string | string[] | undefined>) {
+  const cursor = typeof searchParams?.cursor === "string" ? searchParams.cursor.trim() : "";
+
+  return cursor.length > 0 && cursor.length <= 128 ? cursor : null;
 }
 
 function hasInternalNoteWhere(): Prisma.ClientWhereInput {
@@ -186,14 +194,14 @@ function buildClientWhere(
 function buildClientOrderBy(sort: ClientListSortValue): Prisma.ClientOrderByWithRelationInput[] {
   switch (sort) {
     case "name":
-      return [{ fullName: "asc" }];
+      return [{ fullName: "asc" }, { id: "asc" }];
     case "created":
-      return [{ createdAt: "desc" }];
+      return [{ createdAt: "desc" }, { id: "desc" }];
     case "bookings":
-      return [{ bookings: { _count: "desc" } }, { createdAt: "desc" }, { fullName: "asc" }];
+      return [{ bookings: { _count: "desc" } }, { createdAt: "desc" }, { fullName: "asc" }, { id: "asc" }];
     case "recent":
     default:
-      return [{ createdAt: "desc" }];
+      return [{ createdAt: "desc" }, { id: "desc" }];
   }
 }
 
@@ -212,8 +220,9 @@ export async function getAdminClientsPageData(
   const recentThreshold = new Date(now);
   recentThreshold.setDate(recentThreshold.getDate() - 30);
   const where = buildClientWhere(filters, recentThreshold);
+  const cursor = readClientCursor(searchParams);
 
-  const [totalCount, newCount, noContactCount, notedCount, activeRecentCount, clients] = await Promise.all([
+  const [totalCount, newCount, noContactCount, notedCount, activeRecentCount, filteredCount, clients] = await Promise.all([
     prisma.client.count(),
     prisma.client.count({
       where: {
@@ -237,9 +246,12 @@ export async function getAdminClientsPageData(
         },
       },
     }),
+    prisma.client.count({ where }),
     prisma.client.findMany({
       where,
       orderBy: buildClientOrderBy(filters.sort),
+      take: clientPageSize + 1,
+      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
       include: {
         _count: {
           select: {
@@ -265,8 +277,10 @@ export async function getAdminClientsPageData(
     }),
   ]);
 
+  const hasNextPage = clients.length > clientPageSize;
+  const pageClients = clients.slice(0, clientPageSize);
   const normalizedClients = sortClientsForList(
-    clients.map((client) => ({
+    pageClients.map((client) => ({
       ...client,
       email: client.email ?? "",
       lastVisitAt: client.bookings[0]?.scheduledStartsAt ?? null,
@@ -305,6 +319,11 @@ export async function getAdminClientsPageData(
       },
     ],
     clients: normalizedClients,
+    pagination: {
+      totalCount: filteredCount,
+      hasNextPage,
+      nextCursor: hasNextPage ? pageClients.at(-1)?.id ?? null : null,
+    },
     currentPath: area === "owner" ? "/admin/klienti" : "/admin/provoz/klienti",
   };
 }
