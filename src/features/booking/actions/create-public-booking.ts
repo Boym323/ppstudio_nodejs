@@ -386,7 +386,8 @@ export async function createPublicBookingAction(
 
       return {
         status: "error",
-        formError: "Rezervaci teď nelze dokončit kvůli neaplikované databázové migraci. Aplikujte prosím poslední migrace a zkuste to znovu.",
+        formError:
+          "Rezervaci se teď nepodařilo dokončit. Zkuste to prosím znovu později nebo kontaktujte studio.",
         errorCode: "UNEXPECTED_ERROR",
         suggestedStep: 4,
       };
