@@ -720,11 +720,13 @@ model MediaAsset {
   thumbnailSize          Int?
   sortOrder              Int?
   isPublished            Boolean              @default(true)
+  deletionRequestedAt    DateTime?
   createdAt              DateTime             @default(now())
   updatedAt              DateTime             @updatedAt
   voucherPdfLogoSettings SiteSettings[]       @relation("SiteSettingsVoucherPdfLogo")
 
   @@index([type, isPublished, sortOrder])
+  @@index([deletionRequestedAt])
   @@index([type, createdAt])
   @@index([kind, createdAt])
   @@index([visibility, kind, createdAt])

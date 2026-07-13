@@ -7,7 +7,9 @@ export async function createMediaAsset(data: Prisma.MediaAssetUncheckedCreateInp
 }
 
 export async function getMediaAssetById(id: string) {
-  return prisma.mediaAsset.findUnique({ where: { id } });
+  return prisma.mediaAsset.findFirst({
+    where: { id, deletionRequestedAt: null },
+  });
 }
 
 export async function getPublicMediaAssetByTypeAndPath(type: MediaType, storagePath: string) {
@@ -15,6 +17,7 @@ export async function getPublicMediaAssetByTypeAndPath(type: MediaType, storageP
     where: {
       type,
       isPublished: true,
+      deletionRequestedAt: null,
       OR: [
         { storagePath },
         { optimizedStoragePath: storagePath },
@@ -28,6 +31,7 @@ export async function getPublicMediaAssetByPath(storagePath: string) {
   return prisma.mediaAsset.findFirst({
     where: {
       isPublished: true,
+      deletionRequestedAt: null,
       OR: [
         { storagePath },
         { optimizedStoragePath: storagePath },
@@ -39,7 +43,7 @@ export async function getPublicMediaAssetByPath(storagePath: string) {
 
 export async function listMediaAssets(type?: MediaType) {
   return prisma.mediaAsset.findMany({
-    where: type ? { type } : undefined,
+    where: { ...(type ? { type } : {}), deletionRequestedAt: null },
     orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
   });
 }
@@ -49,6 +53,7 @@ export async function listPublicMediaAssets(type?: MediaType) {
     where: {
       ...(type ? { type } : {}),
       isPublished: true,
+      deletionRequestedAt: null,
     },
     orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
   });
@@ -56,6 +61,13 @@ export async function listPublicMediaAssets(type?: MediaType) {
 
 export async function updateMediaAsset(id: string, data: Prisma.MediaAssetUncheckedUpdateInput) {
   return prisma.mediaAsset.update({ where: { id }, data });
+}
+
+export async function markMediaAssetForDeletion(id: string) {
+  return prisma.mediaAsset.update({
+    where: { id },
+    data: { deletionRequestedAt: new Date() },
+  });
 }
 
 export async function deleteMediaAsset(id: string) {

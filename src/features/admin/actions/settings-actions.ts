@@ -134,9 +134,10 @@ export async function updateSalonSettingsAction(
   const voucherPdfLogoMediaId = parsed.data.voucherPdfLogoMediaId || null;
 
   if (voucherPdfLogoMediaId) {
-    const logoAsset = await prisma.mediaAsset.findUnique({
+    const logoAsset = await prisma.mediaAsset.findFirst({
       where: {
         id: voucherPdfLogoMediaId,
+        deletionRequestedAt: null,
       },
       select: {
         id: true,

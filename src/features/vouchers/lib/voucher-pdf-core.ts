@@ -153,8 +153,8 @@ export async function generateVoucherPdf(voucher: VoucherPdfData, options: Vouch
     options.logoAsset !== undefined
       ? options.logoAsset
       : settings.voucherPdfLogoMediaId
-        ? await prisma.mediaAsset.findUnique({
-            where: { id: settings.voucherPdfLogoMediaId },
+        ? await prisma.mediaAsset.findFirst({
+            where: { id: settings.voucherPdfLogoMediaId, deletionRequestedAt: null },
             select: {
               id: true,
               storageProvider: true,

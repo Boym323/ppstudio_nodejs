@@ -15,6 +15,7 @@ import {
   getMediaAssetById,
   listMediaAssets,
   listPublicMediaAssets,
+  markMediaAssetForDeletion,
   updateMediaAsset,
 } from './media-asset-repository';
 
@@ -212,6 +213,8 @@ export async function deleteMedia(id: string) {
   if (!asset) {
     throw new Error('MEDIA_ASSET_NOT_FOUND');
   }
+
+  await markMediaAssetForDeletion(asset.id);
 
   await localMediaStorage.deleteFile({
     visibility: asset.visibility,
