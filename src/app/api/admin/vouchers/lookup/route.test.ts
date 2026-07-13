@@ -38,8 +38,8 @@ test("voucher lookup přijímá kód jen v POST těle a neukládá odpověď do 
   const api = createAdminVoucherLookupRouteApi({
     getSession: async () => createAdminSession(),
     isSameOriginAdminRequest: () => true,
-    findVoucher: (async ({ where }) => {
-      receivedCode = where.code;
+    findVoucher: (async ({ where }: { where: { code?: string } }) => {
+      receivedCode = where.code ?? "";
       return {
         code: "ABCD-1234",
         type: VoucherType.VALUE,
@@ -49,7 +49,7 @@ test("voucher lookup přijímá kód jen v POST těle a neukládá odpověď do 
         serviceNameSnapshot: null,
         servicePriceSnapshotCzk: null,
       };
-    }) as typeof prisma.voucher.findUnique,
+    }) as unknown as typeof prisma.voucher.findUnique,
   });
 
   const response = await api.POST(createLookupRequest("abcd-1234"));
@@ -69,7 +69,7 @@ test("voucher lookup odmítne request bez same-origin kontroly bez dotazu do dat
     isSameOriginAdminRequest: () => false,
     findVoucher: (async () => {
       throw new Error("findVoucher should not run for an unsafe origin");
-    }) as typeof prisma.voucher.findUnique,
+    }) as unknown as typeof prisma.voucher.findUnique,
   });
 
   const response = await api.POST(createLookupRequest("ABCD-1234"));
