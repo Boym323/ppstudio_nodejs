@@ -572,8 +572,8 @@ function parseDateFilterBoundary(value: string, endOfDay = false) {
     return null;
   }
 
-  const parsed = new Date(`${value}T${endOfDay ? "23:59:59.999" : "00:00:00.000"}`);
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
+  const { startsAt, endsAt } = getDayBounds(value);
+  return endOfDay ? new Date(endsAt.getTime() - 1) : startsAt;
 }
 
 function bookingStatusFromFilter(status: BookingListStatusValue) {
