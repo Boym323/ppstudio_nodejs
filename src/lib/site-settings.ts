@@ -41,7 +41,7 @@ function getDefaultSiteSettingsData() {
     instagramUrl: "https://www.instagram.com/ppstudio.cz/",
     bookingMinAdvanceHours: 2,
     bookingMaxAdvanceDays: 90,
-    bookingCancellationHours: 48,
+    bookingCancellationHours: 24,
     notificationAdminEmail: env.ADMIN_OWNER_EMAIL,
     emailSenderName: env.SMTP_FROM_NAME,
     emailSenderEmail: env.SMTP_FROM_EMAIL ?? "info@ppstudio.cz",
