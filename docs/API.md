@@ -18,8 +18,8 @@ Pro přesný runtime kontrakt je vždy rozhodující implementace route handleru
 | `/api/auth/login` | `POST` | veřejný | Admin login handler se session cookie |
 | `/api/auth/logout` | `POST` | admin session | Admin logout handler |
 | `/api/admin/analytics` | `GET` | admin-only (`OWNER`, `SALON`) | Agregovaná Matomo dashboard data |
-| `/api/admin/bookings/search` | `GET` | admin-only (`OWNER`, `SALON`) | Našeptávání hledání v rezervacích |
-| `/api/admin/vouchers/lookup` | `GET`, `POST` | admin-only (`OWNER`, `SALON`) | Lookup voucheru pro admin workflow |
+| `/api/admin/bookings/search` | `POST` | admin-only (`OWNER`, `SALON`) | Našeptávání hledání v rezervacích |
+| `/api/admin/vouchers/lookup` | `POST` | admin-only (`OWNER`, `SALON`) | Lookup voucheru pro admin workflow |
 | `/api/admin/users/resend-invite` | `POST` | admin-only (`OWNER`) | Znovuodeslání admin pozvánky |
 | `/api/webhooks/resend` | `POST` | veřejný webhook | Zpracování Resend email eventů |
 
@@ -295,7 +295,7 @@ Implementace:
 
 Následující endpointy jsou aktivně používané admin UI, ale jejich kontrakt je internější než u čistě veřejných integračních route. Dokumentujeme je proto hlavně kvůli bezpečné údržbě a provozu.
 
-## `GET /api/admin/bookings/search`
+## `POST /api/admin/bookings/search`
 
 Účel:
 - admin-only lookup endpoint pro našeptávání v seznamu rezervací
@@ -303,9 +303,10 @@ Následující endpointy jsou aktivně používané admin UI, ale jejich kontrak
 Přístup:
 - vyžaduje admin session
 - povolené role: `OWNER`, `SALON`
+- vyžaduje same-origin admin request
 
 Vstup:
-- `query`: minimálně 2 znaky, maximálně 80
+- JSON body `{ "query": "..." }`; `query` má minimálně 2 znaky, maximálně 80
 
 Odpověď:
 - HTTP status:
@@ -331,6 +332,7 @@ Poznámky:
 - `kind` je jedno z `client`, `contact`, `service`
 - při contact-like dotazu může vracet i e-mail nebo telefon
 - endpoint je read-only a neprovádí žádnou mutaci URL ani DB
+- odpověď vždy nese `Cache-Control: private, no-store`
 
 Vysvětlení polí:
 - `suggestions`: seřazený seznam návrhů pro našeptávač.
@@ -344,7 +346,6 @@ Vysvětlení polí:
 Implementace:
 - [src/app/api/admin/bookings/search/route.ts](/var/www/ppstudio/src/app/api/admin/bookings/search/route.ts:1)
 
-## `GET /api/admin/vouchers/lookup`
 ## `POST /api/admin/vouchers/lookup`
 
 Účel:
@@ -356,8 +357,7 @@ Přístup:
 - `POST` navíc vyžaduje same-origin admin request
 
 Vstup:
-- `GET`: query parametr `voucherCode`
-- `POST`: JSON body `{ "voucherCode": "..." }`
+- JSON body `{ "voucherCode": "..." }`
 
 Odpověď:
 - HTTP status:
@@ -386,6 +386,7 @@ Odpověď:
 Poznámky:
 - endpoint vrací efektivní voucher status, ne jen raw DB hodnotu
 - `remainingValueCzk` je vyplněné jen pro hodnotové poukazy
+- odpověď vždy nese `Cache-Control: private, no-store`
 
 Vysvětlení polí:
 - `voucher.code`: normalizovaný kód voucheru uložený v systému.

@@ -57,15 +57,15 @@ export function AdminBookingSearchField({
 
     const timeout = window.setTimeout(async () => {
       try {
-        const url = new URL("/api/admin/bookings/search", window.location.origin);
-        url.searchParams.set("query", normalizedQuery);
-
-        const response = await fetch(url, {
-          method: "GET",
+        const response = await fetch("/api/admin/bookings/search", {
+          method: "POST",
           signal: controller.signal,
           headers: {
             accept: "application/json",
+            "content-type": "application/json",
           },
+          body: JSON.stringify({ query: normalizedQuery }),
+          cache: "no-store",
         });
 
         const payload = (await response.json().catch(() => null)) as

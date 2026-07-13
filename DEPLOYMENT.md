@@ -103,6 +103,8 @@ Důvod:
 - e-mailové a ICS odkazy se skládají z `NEXT_PUBLIC_APP_URL`
 - canonical/SEO metadata se opírají o veřejný origin
 
+Pro administrační API neloguj query string. V access logu proxy používej cestu bez parametrů (např. `$uri` místo `$request_uri` v Nginxu); chrání to před únikem citlivých hodnot i při chybném klientském requestu.
+
 ## Po deployi ověř
 
 - `systemctl status ppstudio-web`

@@ -34,15 +34,23 @@ function mockFindServicesFailure(message: string) {
   }) as typeof prisma.service.findMany;
 }
 
+function createSearchRequest(query: string) {
+  return new Request("https://example.com/api/admin/bookings/search", {
+    method: "POST",
+    body: JSON.stringify({ query }),
+  });
+}
+
 test("booking search route rejects unauthenticated access", async () => {
   const { createAdminBookingSearchRouteApi } = await import("./route");
   const api = createAdminBookingSearchRouteApi({
     getSession: async () => null,
+    isSameOriginAdminRequest: () => true,
     findClients: mockFindClientsFailure("findClients should not run without session"),
     findServices: mockFindServicesFailure("findServices should not run without session"),
   });
 
-  const response = await api.GET(new Request("https://example.com/api/admin/bookings/search?query=anna"));
+  const response = await api.POST(createSearchRequest("anna"));
 
   assert.equal(response.status, 403);
 });
@@ -58,6 +66,7 @@ test("booking search route returns deduplicated suggestions from clients and ser
       iat: 1,
       exp: 999999,
     }),
+    isSameOriginAdminRequest: () => true,
     findClients: mockFindClients([
       {
         fullName: "Anna Novak",
@@ -75,7 +84,7 @@ test("booking search route returns deduplicated suggestions from clients and ser
     ]),
   });
 
-  const response = await api.GET(new Request("https://example.com/api/admin/bookings/search?query=anna"));
+  const response = await api.POST(createSearchRequest("anna"));
   const payload = (await response.json()) as {
     status: string;
     suggestions: Array<{
@@ -87,6 +96,7 @@ test("booking search route returns deduplicated suggestions from clients and ser
   };
 
   assert.equal(response.status, 200);
+  assert.equal(response.headers.get("cache-control"), "private, no-store");
   assert.equal(payload.status, "success");
   assert.equal(payload.suggestions.length, 2);
   assert.equal(payload.suggestions[0]?.label, "Anna Novak");
@@ -105,6 +115,7 @@ test("booking search route returns contact suggestions only for contact-like que
       iat: 1,
       exp: 999999,
     }),
+    isSameOriginAdminRequest: () => true,
     findClients: mockFindClients([
       {
         fullName: "Anna Novak",
@@ -115,7 +126,7 @@ test("booking search route returns contact suggestions only for contact-like que
     findServices: mockFindServices([]),
   });
 
-  const response = await api.GET(new Request("https://example.com/api/admin/bookings/search?query=777"));
+  const response = await api.POST(createSearchRequest("777"));
   const payload = (await response.json()) as {
     status: string;
     suggestions: Array<{
@@ -145,11 +156,12 @@ test("booking search route returns empty list for too-short query", async () => 
       iat: 1,
       exp: 999999,
     }),
+    isSameOriginAdminRequest: () => true,
     findClients: mockFindClientsFailure("findClients should not run for invalid query"),
     findServices: mockFindServicesFailure("findServices should not run for invalid query"),
   });
 
-  const response = await api.GET(new Request("https://example.com/api/admin/bookings/search?query=a"));
+  const response = await api.POST(createSearchRequest("a"));
   const payload = (await response.json()) as {
     status: string;
     suggestions: unknown[];

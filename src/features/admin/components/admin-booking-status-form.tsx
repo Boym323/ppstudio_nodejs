@@ -514,25 +514,26 @@ async function fetchVoucherLookup({
   voucherCode: string;
   signal: AbortSignal;
 }) {
-  const url = new URL("/api/admin/vouchers/lookup", window.location.origin);
-  url.searchParams.set("voucherCode", voucherCode);
-
   const requestInit = {
-    method: "GET",
+    method: "POST",
     credentials: "same-origin" as const,
     cache: "no-store" as const,
     signal,
+    headers: {
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({ voucherCode }),
   };
 
   try {
-    return await fetch(url, requestInit);
+    return await fetch("/api/admin/vouchers/lookup", requestInit);
   } catch (error) {
     if (signal.aborted) {
       throw error;
     }
 
     // Retry once for transient network/proxy hiccups.
-    return fetch(url, requestInit);
+    return fetch("/api/admin/vouchers/lookup", requestInit);
   }
 }
 

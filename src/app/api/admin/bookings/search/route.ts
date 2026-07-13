@@ -4,11 +4,16 @@ import { z } from "zod";
 
 import { formatClientPhoneForDisplay } from "@/features/booking/lib/client-phone";
 import { getSession } from "@/lib/auth/session";
+import { isSameOriginAdminRequest } from "@/lib/http/request-origin";
 import { prisma } from "@/lib/prisma";
 
 const bookingSearchSchema = z.object({
   query: z.string().trim().min(2).max(80),
 });
+
+const privateNoStoreHeaders = {
+  "Cache-Control": "private, no-store",
+};
 
 type SearchSuggestion = {
   value: string;
@@ -19,15 +24,27 @@ type SearchSuggestion = {
 
 export function createAdminBookingSearchRouteApi(deps?: {
   getSession?: typeof getSession;
+  isSameOriginAdminRequest?: typeof isSameOriginAdminRequest;
   findClients?: typeof prisma.client.findMany;
   findServices?: typeof prisma.service.findMany;
 }) {
   const getSessionImpl = deps?.getSession ?? getSession;
+  const isSameOriginAdminRequestImpl = deps?.isSameOriginAdminRequest ?? isSameOriginAdminRequest;
   const findClientsImpl = deps?.findClients ?? prisma.client.findMany.bind(prisma.client);
   const findServicesImpl = deps?.findServices ?? prisma.service.findMany.bind(prisma.service);
 
   return {
-    async GET(request: Request) {
+    async POST(request: Request) {
+      if (!isSameOriginAdminRequestImpl(request)) {
+        return NextResponse.json(
+          {
+            status: "error",
+            message: "Požadavek neprošel kontrolou původu.",
+          },
+          { status: 403, headers: privateNoStoreHeaders },
+        );
+      }
+
       const session = await getSessionImpl();
       if (!session || ![AdminRole.OWNER, AdminRole.SALON].includes(session.role)) {
         return NextResponse.json(
@@ -35,14 +52,12 @@ export function createAdminBookingSearchRouteApi(deps?: {
             status: "error",
             message: "Do této sekce mají přístup jen přihlášení admin uživatelé.",
           },
-          { status: 403 },
+          { status: 403, headers: privateNoStoreHeaders },
         );
       }
 
-      const { searchParams } = new URL(request.url);
-      const parsed = bookingSearchSchema.safeParse({
-        query: searchParams.get("query") ?? "",
-      });
+      const body = await request.json().catch(() => null);
+      const parsed = bookingSearchSchema.safeParse(body);
 
       if (!parsed.success) {
         return NextResponse.json(
@@ -50,7 +65,7 @@ export function createAdminBookingSearchRouteApi(deps?: {
             status: "success",
             suggestions: [] satisfies SearchSuggestion[],
           },
-          { status: 200 },
+          { status: 200, headers: privateNoStoreHeaders },
         );
       }
 
@@ -150,7 +165,7 @@ export function createAdminBookingSearchRouteApi(deps?: {
           status: "success",
           suggestions: Array.from(suggestions.values()),
         },
-        { status: 200 },
+        { status: 200, headers: privateNoStoreHeaders },
       );
     },
   };
@@ -158,8 +173,8 @@ export function createAdminBookingSearchRouteApi(deps?: {
 
 const routeApi = createAdminBookingSearchRouteApi();
 
-export async function GET(request: Request) {
-  return routeApi.GET(request);
+export async function POST(request: Request) {
+  return routeApi.POST(request);
 }
 
 function buildClientDetail(email: string | null, phone: string | null) {
