@@ -85,6 +85,28 @@ function addMinutes(value: Date, minutes: number) {
   return new Date(value.getTime() + minutes * 60 * 1000);
 }
 
+async function ensureE2eSiteSettings() {
+  await prisma.siteSettings.upsert({
+    where: { id: "site-settings" },
+    update: {},
+    create: {
+      id: "site-settings",
+      salonName: "PP Studio",
+      addressLine: "Sadová 2",
+      city: "Zlín",
+      postalCode: "760 01",
+      phone: "+420 732 856 036",
+      contactEmail: "info@ppstudio.cz",
+      bookingMinAdvanceHours: 2,
+      bookingMaxAdvanceDays: 90,
+      bookingCancellationHours: 48,
+      notificationAdminEmail: process.env.ADMIN_OWNER_EMAIL ?? "owner@example.test",
+      emailSenderName: "PP Studio",
+      emailSenderEmail: "info@ppstudio.cz",
+    },
+  });
+}
+
 function formatPragueTime(value: Date) {
   return new Intl.DateTimeFormat("cs-CZ", {
     hour: "2-digit",
@@ -186,6 +208,8 @@ function isAvailabilitySlotWindowConflict(error: unknown) {
 }
 
 async function createCatalogFixture(runId: string) {
+  await ensureE2eSiteSettings();
+
   const fixtureLabel = hashRunId(runId).toString(16);
   const categoryName = `E2E kategorie ${fixtureLabel}`;
   const serviceName = `E2E služba ${fixtureLabel}`;
