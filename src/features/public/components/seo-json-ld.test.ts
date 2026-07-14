@@ -79,6 +79,10 @@ describe("seo json-ld helpers", () => {
       telephone: string;
       email: string;
       address: { addressLocality: string };
+      openingHoursSpecification: {
+        dayOfWeek: string[];
+        description: string;
+      };
       sameAs?: string[];
     };
 
@@ -88,6 +92,14 @@ describe("seo json-ld helpers", () => {
     assert.equal(business.telephone, "+420 732 856 036");
     assert.equal(business.email, "info@ppstudio.cz");
     assert.equal(business.address.addressLocality, "Zlín");
+    assert.deepEqual(business.openingHoursSpecification.dayOfWeek, [
+      "https://schema.org/Monday",
+      "https://schema.org/Tuesday",
+      "https://schema.org/Wednesday",
+      "https://schema.org/Thursday",
+      "https://schema.org/Friday",
+    ]);
+    assert.equal(business.openingHoursSpecification.description, "Návštěvy probíhají pouze po předchozí rezervaci.");
     assert.deepEqual(business.sameAs, sameAsProfiles);
   });
 

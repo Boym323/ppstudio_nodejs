@@ -55,7 +55,7 @@ export async function ContactPage() {
               instagramUrl={salonProfile.instagramUrl}
               operatorName={salonProfile.operatorName}
               operatorId={salonProfile.businessId}
-              openingHours="Po-Pá: Dle objednávek"
+              openingHours="Po–Pá: pouze po předchozí rezervaci"
             />
           </div>
           <ContactParkingInfoCard parkingRateHref={parkingRateHref} congressParkingHref={congressParkingHref} />

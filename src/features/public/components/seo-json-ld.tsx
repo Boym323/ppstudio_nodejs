@@ -229,6 +229,17 @@ function buildLocalBusinessNode(profile: BusinessProfile) {
       "@type": "City",
       name: profile.city,
     },
+    openingHoursSpecification: {
+      "@type": "OpeningHoursSpecification",
+      dayOfWeek: [
+        "https://schema.org/Monday",
+        "https://schema.org/Tuesday",
+        "https://schema.org/Wednesday",
+        "https://schema.org/Thursday",
+        "https://schema.org/Friday",
+      ],
+      description: "Návštěvy probíhají pouze po předchozí rezervaci.",
+    },
     sameAs: buildSameAs(profile.instagramUrl),
     potentialAction: {
       "@type": "ReserveAction",
