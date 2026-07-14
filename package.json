@@ -24,6 +24,7 @@
     "test:db:booking": "RUN_DB_INTEGRATION_TESTS=1 node --import ./src/test/register-server-only.mjs --import tsx --test src/features/booking/lib/*.integration.test.ts",
     "email:worker": "tsx scripts/email-delivery-worker.ts",
     "email:worker:once": "tsx scripts/email-delivery-worker.ts --once",
+    "email:worker:check-imports": "tsx scripts/check-email-worker-imports.ts",
     "email:previews": "NODE_ENV=test tsx scripts/generate-email-previews.ts",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",

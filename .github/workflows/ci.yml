@@ -81,6 +81,9 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
+      - name: Email worker import smoke test
+        run: npm run email:worker:check-imports
+
   test:
     name: test
     runs-on: ubuntu-latest
