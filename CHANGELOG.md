@@ -6,6 +6,15 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [2.1.1] - 2026-07-14
+
+### Opraveno
+- Načítání Pushover notifikace pro systémovou chybu nastavení webu používá správný modul `pushover-core`.
+
+### Změněno
+- CI nově ověřuje importy e-mailového workeru, aby se chybný import zachytil před releasem.
+- Release příprava pro produkční nasazení: projektová verze navýšena na patch `2.1.1`.
+
 ## [2.1.0] - 2026-07-14
 
 ### Přidáno
