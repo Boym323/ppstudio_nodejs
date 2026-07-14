@@ -406,7 +406,10 @@ describe("public booking intended voucher", () => {
         createPublicBooking(buildBookingInput(seed, slot)),
       ]);
       const fulfilled = results.filter(
-        (result): result is PromiseFulfilledResult<{ bookingId: string }> => result.status === "fulfilled",
+        (
+          result,
+        ): result is PromiseFulfilledResult<Awaited<ReturnType<typeof createPublicBooking>>> =>
+          result.status === "fulfilled",
       );
       const rejected = results.filter(
         (result): result is PromiseRejectedResult => result.status === "rejected",

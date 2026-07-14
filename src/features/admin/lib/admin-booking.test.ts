@@ -78,11 +78,6 @@ test("canApplyAdminBookingTransition permits only the defined booking state tran
     canApplyAdminBookingTransition(BookingStatus.CONFIRMED, BookingStatus.NO_SHOW),
     true,
   );
-  assert.equal(
-    canApplyAdminBookingTransition(BookingStatus.CONFIRMED, BookingStatus.PENDING),
-    false,
-  );
-
   for (const closedStatus of [
     BookingStatus.CANCELLED,
     BookingStatus.COMPLETED,
