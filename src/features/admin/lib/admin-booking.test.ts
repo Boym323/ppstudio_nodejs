@@ -55,6 +55,50 @@ test("getAdminBookingActionOptions hides completion before the booking end", asy
   );
 });
 
+test("canApplyAdminBookingTransition permits only the defined booking state transitions", async () => {
+  const { canApplyAdminBookingTransition } = await import("./admin-booking");
+
+  assert.equal(
+    canApplyAdminBookingTransition(BookingStatus.PENDING, BookingStatus.CONFIRMED),
+    true,
+  );
+  assert.equal(
+    canApplyAdminBookingTransition(BookingStatus.PENDING, BookingStatus.CANCELLED),
+    true,
+  );
+  assert.equal(
+    canApplyAdminBookingTransition(BookingStatus.PENDING, BookingStatus.COMPLETED),
+    false,
+  );
+  assert.equal(
+    canApplyAdminBookingTransition(BookingStatus.CONFIRMED, BookingStatus.COMPLETED),
+    true,
+  );
+  assert.equal(
+    canApplyAdminBookingTransition(BookingStatus.CONFIRMED, BookingStatus.NO_SHOW),
+    true,
+  );
+  assert.equal(
+    canApplyAdminBookingTransition(BookingStatus.CONFIRMED, BookingStatus.PENDING),
+    false,
+  );
+
+  for (const closedStatus of [
+    BookingStatus.CANCELLED,
+    BookingStatus.COMPLETED,
+    BookingStatus.NO_SHOW,
+  ]) {
+    for (const targetStatus of [
+      BookingStatus.CONFIRMED,
+      BookingStatus.COMPLETED,
+      BookingStatus.CANCELLED,
+      BookingStatus.NO_SHOW,
+    ]) {
+      assert.equal(canApplyAdminBookingTransition(closedStatus, targetStatus), false);
+    }
+  }
+});
+
 test("buildBookingCleanupMetadata formats internal cleanup as low-priority admin metadata", async () => {
   const { buildBookingCleanupMetadata } = await import("./admin-booking");
   const scheduledEndsAt = new Date("2026-04-30T11:15:00.000Z");

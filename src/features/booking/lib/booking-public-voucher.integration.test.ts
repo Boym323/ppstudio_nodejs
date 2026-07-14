@@ -396,6 +396,34 @@ describe("public booking intended voucher", () => {
     });
   });
 
+  dbTest("allows exactly one of two concurrent public bookings for the same slot", async () => {
+    await withSeed(async (seed) => {
+      const { prisma, createPublicBooking, publicBookingErrorCodes } = await loadModules();
+      const slot = await createSlot(seed);
+
+      const results = await Promise.allSettled([
+        createPublicBooking(buildBookingInput(seed, slot)),
+        createPublicBooking(buildBookingInput(seed, slot)),
+      ]);
+      const fulfilled = results.filter(
+        (result): result is PromiseFulfilledResult<{ bookingId: string }> => result.status === "fulfilled",
+      );
+      const rejected = results.filter(
+        (result): result is PromiseRejectedResult => result.status === "rejected",
+      );
+
+      assert.equal(fulfilled.length, 1);
+      assert.equal(rejected.length, 1);
+      seed.createdBookingIds.push(fulfilled[0].value.bookingId);
+      assert.ok(
+        rejected[0].reason instanceof Error
+          && "code" in rejected[0].reason
+          && rejected[0].reason.code === publicBookingErrorCodes.slotUnavailable,
+      );
+      assert.equal(await prisma.booking.count({ where: { slotId: slot.id } }), 1);
+    });
+  });
+
   dbTest("splits chained published coverage so planner keeps free edge fragments editable", async () => {
     await withSeed(async (seed) => {
       const { prisma, createPublicBooking } = await loadModules();
