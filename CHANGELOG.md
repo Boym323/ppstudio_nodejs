@@ -6,6 +6,20 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-07-14
+
+### Přidáno
+- Nastavení webu se ukládá také jako atomický snapshot s obnovou z databáze, takže runtime zachová konzistentní veřejnou konfiguraci i při dočasném výpadku databázového čtení.
+- E2E fixture umí inicializovat nastavení webu a přibyl regresní test, který ověřuje, že ze dvou souběžných veřejných rezervací stejného slotu projde právě jedna.
+
+### Opraveno
+- E-mailové akce rezervace používají jednotné získání důvěryhodné IP adresy klientky.
+- Veřejná stránka správně uvádí otevírací dobu pouze po předchozí rezervaci, rozšířené profilové odkazy v JSON-LD a odpověď ve FAQ k rozdílu lash liftingu a prodlužování řas.
+- Test veřejného voucheru správně filtruje splněné rezervace.
+
+### Změněno
+- Release příprava pro produkční nasazení: projektová verze navýšena na minor `2.1.0` kvůli zpětně kompatibilnímu rozšíření práce s nastavením webu.
+
 ## [2.0.1] - 2026-07-13
 
 ### Opraveno
