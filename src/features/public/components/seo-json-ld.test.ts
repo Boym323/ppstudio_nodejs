@@ -62,6 +62,14 @@ const service = {
   seoDescription: "Čisticí ošetření pleti ve Zlíně se šetrným postupem.",
 } satisfies Service;
 
+const sameAsProfiles = [
+  "https://www.instagram.com/ppstudio.cz/",
+  "https://www.facebook.com/ppstudio.cz",
+  "https://www.google.com/maps/place/Kosmetika+%7C+Pavl%C3%ADna+Pomykalov%C3%A1/@49.2243341,17.6666905,17z/data=!3m1!4b1!4m6!3m5!1s0x471373237e15d51f:0x512b1d491baa6ee7!8m2!3d49.2243341!4d17.6666905!16s%2Fg%2F11n56ny14y",
+  "https://www.firmy.cz/detail/13882549-kosmetika-pavlina-pomykalova-zlin.html",
+  "https://mapy.com/cs/zakladni?mrp=%7B%22c%22%3A+111%7D&planovani-trasy=&rc=9oNFlx8BA8&ri=&ri=13882549&rs=&rs=firm&rt=&rt=&x=17.666679&y=49.224303&z=17",
+];
+
 describe("seo json-ld helpers", () => {
   test("builds LocalBusiness/BeautySalon JSON-LD from salon profile", () => {
     const jsonLd = buildLocalBusinessJsonLd(salonProfile);
@@ -80,7 +88,7 @@ describe("seo json-ld helpers", () => {
     assert.equal(business.telephone, "+420 732 856 036");
     assert.equal(business.email, "info@ppstudio.cz");
     assert.equal(business.address.addressLocality, "Zlín");
-    assert.deepEqual(business.sameAs, ["https://www.instagram.com/ppstudio.cz/"]);
+    assert.deepEqual(business.sameAs, sameAsProfiles);
   });
 
   test("builds Service JSON-LD with offer, CZK currency and ISO duration", () => {
@@ -121,7 +129,7 @@ describe("seo json-ld helpers", () => {
     assert.equal(jsonLd.name, "Pavlína Pomykalová");
     assert.equal(jsonLd.jobTitle, "Kosmetická specialistka");
     assert.equal(jsonLd.url, "https://ppstudio.cz/o-mne");
-    assert.deepEqual(jsonLd.sameAs, ["https://www.instagram.com/ppstudio.cz/"]);
+    assert.deepEqual(jsonLd.sameAs, sameAsProfiles);
   });
 
   test("builds BreadcrumbList JSON-LD with absolute URLs and current page without item", () => {

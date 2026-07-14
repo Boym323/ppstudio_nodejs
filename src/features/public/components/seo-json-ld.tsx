@@ -36,6 +36,12 @@ const SEO_BASE_URL = siteConfig.canonicalUrl;
 const BUSINESS_ID = `${SEO_BASE_URL}/#business`;
 const WEBSITE_ID = `${SEO_BASE_URL}/#website`;
 const LOGO_URL = `${SEO_BASE_URL}/brand/ppstudio-og-logo.png`;
+const BUSINESS_PROFILE_URLS = [
+  "https://www.facebook.com/ppstudio.cz",
+  "https://www.google.com/maps/place/Kosmetika+%7C+Pavl%C3%ADna+Pomykalov%C3%A1/@49.2243341,17.6666905,17z/data=!3m1!4b1!4m6!3m5!1s0x471373237e15d51f:0x512b1d491baa6ee7!8m2!3d49.2243341!4d17.6666905!16s%2Fg%2F11n56ny14y",
+  "https://www.firmy.cz/detail/13882549-kosmetika-pavlina-pomykalova-zlin.html",
+  "https://mapy.com/cs/zakladni?mrp=%7B%22c%22%3A+111%7D&planovani-trasy=&rc=9oNFlx8BA8&ri=&ri=13882549&rs=&rs=firm&rt=&rt=&x=17.666679&y=49.224303&z=17",
+] as const;
 
 export function SeoJsonLd({ data }: SeoJsonLdProps) {
   return (
@@ -110,7 +116,7 @@ export function buildPersonJsonLd(profile: PersonProfile) {
       name: profile.city,
     },
     url: `${SEO_BASE_URL}/o-mne`,
-    sameAs: profile.instagramUrl ? [profile.instagramUrl] : undefined,
+    sameAs: buildSameAs(profile.instagramUrl),
   };
 }
 
@@ -223,7 +229,7 @@ function buildLocalBusinessNode(profile: BusinessProfile) {
       "@type": "City",
       name: profile.city,
     },
-    sameAs: profile.instagramUrl ? [profile.instagramUrl] : undefined,
+    sameAs: buildSameAs(profile.instagramUrl),
     potentialAction: {
       "@type": "ReserveAction",
       target: {
@@ -233,6 +239,10 @@ function buildLocalBusinessNode(profile: BusinessProfile) {
       },
     },
   };
+}
+
+function buildSameAs(instagramUrl: string | null | undefined) {
+  return [...(instagramUrl ? [instagramUrl] : []), ...BUSINESS_PROFILE_URLS];
 }
 
 function parseCzkPrice(value: string) {
