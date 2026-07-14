@@ -14,6 +14,25 @@ const eslintConfig = defineConfig([
     "coverage/**",
     "next-env.d.ts",
   ]),
+  {
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector:
+            'CallExpression[callee.property.name="get"][arguments.0.value=/^x-(forwarded-for|real-ip)$/i]',
+          message:
+            "Proxy hlavičky čtěte výhradně přes getTrustedClientIp z @/lib/http/trusted-client-ip.",
+        },
+      ],
+    },
+  },
+  {
+    files: ["src/lib/http/trusted-client-ip.ts"],
+    rules: {
+      "no-restricted-syntax": "off",
+    },
+  },
 ]);
 
 export default eslintConfig;

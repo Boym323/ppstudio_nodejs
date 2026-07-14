@@ -6,6 +6,7 @@ import { type BookingEmailActionActionState } from "@/features/booking/actions/b
 import { type BookingEmailActionIntent } from "@/features/booking/lib/booking-action-tokens";
 import { performBookingEmailAction } from "@/features/booking/lib/booking-email-actions";
 import { requireRole } from "@/lib/auth/session";
+import { getTrustedClientIp } from "@/lib/http/trusted-client-ip";
 import { AdminRole } from "@prisma/client";
 
 function readFormString(formData: FormData, key: string) {
@@ -34,7 +35,7 @@ export async function performBookingEmailActionAction(
 
   const session = await requireRole([AdminRole.OWNER, AdminRole.SALON]);
   const requestHeaders = await headers();
-  const ipAddress = requestHeaders.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
+  const ipAddress = getTrustedClientIp(requestHeaders) ?? null;
   const userAgent = requestHeaders.get("user-agent");
   const result = await performBookingEmailAction(intent, token, {
     ipAddress,
