@@ -6,7 +6,7 @@ import { z } from "zod";
 
 import { env, siteSettingsSnapshotPath } from "@/config/env";
 import { prisma } from "@/lib/prisma";
-import { sendOwnerSystemErrorPushover } from "@/lib/notifications/pushover";
+import { sendOwnerSystemErrorPushover } from "@/lib/notifications/pushover-core";
 
 export const SITE_SETTINGS_ID = "site-settings";
 const DEFAULT_OPERATOR_NAME = "Pavlína Pomykalová";
