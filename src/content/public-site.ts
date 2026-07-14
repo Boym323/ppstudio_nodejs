@@ -520,6 +520,11 @@ export function buildFaqSections(cancellationHours: number): FaqSection[] {
             'Efekt lash liftingu obvykle vydrží přibližně 4 až 6 týdnů. Záleží na přirozeném cyklu vašich řas, domácí péči a také na tom, jak rychle se řasy obnovují.',
         },
         {
+          question: 'Jaký je rozdíl mezi lash liftingem a prodlužováním řas?',
+          answer:
+            'Lash lifting pracuje s vašimi vlastními řasami: natočí je, zafixuje a zvýrazní jejich přirozenou linii. Při prodlužování se k vlastním řasám aplikují umělé řasy, které vytvoří výraznější délku a objem. Lash lifting je vhodný, pokud chcete přirozeně upravený pohled bez přidaných řas.',
+        },
+        {
           question: 'Jak dlouho vydrží laminace obočí?',
           answer:
             'Laminace obočí obvykle drží přibližně 4 až 6 týdnů. Výdrž ovlivňuje typ chloupků, následná péče i to, jak často obočí namáčíte, odličujete nebo fixujete dalšími produkty.',
