@@ -40,6 +40,7 @@ const serverEnvSchema = z
     RESEND_API_KEY: z.string().trim().optional(),
     RESEND_WEBHOOK_SECRET: z.string().trim().optional(),
     MEDIA_STORAGE_ROOT: z.string().trim().optional(),
+    SITE_SETTINGS_SNAPSHOT_PATH: z.string().trim().optional(),
   })
   .superRefine((env, context) => {
     if (env.EMAIL_DELIVERY_MODE !== "background") {
@@ -81,3 +82,8 @@ export const mediaStorageRoot =
   env.MEDIA_STORAGE_ROOT && env.MEDIA_STORAGE_ROOT.length > 0
     ? path.resolve(env.MEDIA_STORAGE_ROOT)
     : path.resolve("/var/www/ppstudio/uploads");
+
+export const siteSettingsSnapshotPath =
+  env.SITE_SETTINGS_SNAPSHOT_PATH && env.SITE_SETTINGS_SNAPSHOT_PATH.length > 0
+    ? path.resolve(env.SITE_SETTINGS_SNAPSHOT_PATH)
+    : path.resolve("/var/www/ppstudio/site-settings-snapshot.json");

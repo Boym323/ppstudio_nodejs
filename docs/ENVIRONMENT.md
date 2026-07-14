@@ -70,6 +70,7 @@ Stručný runtime přehled prostředí a vazeb na infrastrukturu je v kořenové
 - `RESEND_API_KEY`: API klíč pro odesílání přes Resend REST API.
 - `RESEND_WEBHOOK_SECRET`: signing secret pro verifikaci webhooku `POST /api/webhooks/resend`.
 - `MEDIA_STORAGE_ROOT`: volitelná absolutní cesta k lokálnímu root adresáři pro nahraná média; pokud chybí, aplikace použije `/var/www/ppstudio/uploads`.
+- `SITE_SETTINGS_SNAPSHOT_PATH`: volitelná absolutní cesta pro atomický snapshot posledního správně načteného `SiteSettings`; výchozí je `/var/www/ppstudio/site-settings-snapshot.json`. Cesta musí být mimo adresář konkrétního releasu a zapisovatelná pro runtime uživatele. Při výpadku DB se použije snapshot, zaloguje se provozní alert a nové veřejné rezervace se do obnovení aktuálních pravidel odmítnou.
 
 ## Doporučený lokální `.env` základ
 
@@ -120,6 +121,7 @@ SMTP_REPLY_TO=hello@example.com
 RESEND_API_KEY=
 RESEND_WEBHOOK_SECRET=
 MEDIA_STORAGE_ROOT=/var/www/ppstudio-uploads
+SITE_SETTINGS_SNAPSHOT_PATH=/var/www/ppstudio/site-settings-snapshot.json
 ```
 
 Lokální doporučení:
@@ -131,6 +133,7 @@ Lokální doporučení:
 - Produkční `instrumentation.ts` z těchto hodnot skládá provozní log metadata. Do logu se nezapisuje surový `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY`, jen jeho bezpečný fingerprint; ten lze mezi instancemi porovnat při debugování `Failed to find Server Action`.
 - Session časování můžeš upravit přes `ADMIN_SESSION_*_SECONDS`; pokud je nenastavíš, běží default `14 dní idle / refresh při <48h / absolutní strop 45 dní`.
 - `MEDIA_STORAGE_ROOT` drž mimo repozitář a ověř, že do něj má proces právo zapisovat.
+- `SITE_SETTINGS_SNAPSHOT_PATH` drž mimo release checkout; snapshot obsahuje provozní kontaktní údaje a soubor má být přístupný jen runtime uživateli.
 
 ## Poznámky
 - Webový bootstrap admin přístup není podporovaný. Pro obnovu přístupu použij offline `npm run admin:recover-owner -- --email owner@example.com --name 'Jméno' --confirm < heslo.txt`; CLI heslo nevypisuje, nebere ho z env a audit zapisuje do `BookingSubmissionLog`.

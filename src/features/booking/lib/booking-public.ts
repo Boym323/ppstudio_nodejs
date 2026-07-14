@@ -8,6 +8,7 @@ import {
   validateVoucherForBookingInput,
   voucherValidationReasonCodes,
 } from "@/features/vouchers/lib/voucher-validation";
+import { hasCurrentBookingPolicySettings } from "@/lib/site-settings";
 
 import { createBookingWithEngine } from "./booking-public/engine";
 import {
@@ -68,6 +69,14 @@ function getPublicVoucherValidationMessage(reason: string) {
 export async function createPublicBooking(
   input: CreatePublicBookingInput,
 ): Promise<CreatePublicBookingResult> {
+  if (!(await hasCurrentBookingPolicySettings())) {
+    throw new PublicBookingError(
+      publicBookingErrorCodes.temporaryFailure,
+      "Online rezervace jsou teď krátce nedostupné, protože ověřujeme aktuální podmínky. Zkuste to prosím později nebo kontaktujte studio.",
+      4,
+    );
+  }
+
   const normalizedVoucherCodeInput = input.voucherCode?.trim() ?? "";
   const intendedVoucher = normalizedVoucherCodeInput
     ? await validateVoucherForBookingInput({

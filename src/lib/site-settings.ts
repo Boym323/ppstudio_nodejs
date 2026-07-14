@@ -1,7 +1,12 @@
 import { cache } from "react";
+import { randomUUID } from "node:crypto";
+import { mkdir, readFile, rename, unlink, writeFile } from "node:fs/promises";
+import path from "node:path";
+import { z } from "zod";
 
-import { env } from "@/config/env";
+import { env, siteSettingsSnapshotPath } from "@/config/env";
 import { prisma } from "@/lib/prisma";
+import { sendOwnerSystemErrorPushover } from "@/lib/notifications/pushover";
 
 export const SITE_SETTINGS_ID = "site-settings";
 const DEFAULT_OPERATOR_NAME = "Pavlína Pomykalová";
@@ -28,6 +33,38 @@ export type SiteSettingsRecord = {
   createdAt: Date;
   updatedAt: Date;
 };
+
+export type SiteSettingsSource = "database" | "snapshot" | "default";
+
+export type SiteSettingsReadResult = {
+  settings: SiteSettingsRecord;
+  source: SiteSettingsSource;
+};
+
+const siteSettingsSnapshotSchema = z.object({
+  id: z.literal(SITE_SETTINGS_ID),
+  salonName: z.string(),
+  addressLine: z.string(),
+  city: z.string(),
+  postalCode: z.string(),
+  phone: z.string(),
+  contactEmail: z.string(),
+  instagramUrl: z.string().nullable(),
+  bookingMinAdvanceHours: z.number().int().nonnegative(),
+  bookingMaxAdvanceDays: z.number().int().positive(),
+  bookingCancellationHours: z.number().int().nonnegative(),
+  notificationAdminEmail: z.string(),
+  emailSenderName: z.string(),
+  emailSenderEmail: z.string(),
+  emailFooterText: z.string().nullable(),
+  voucherPdfLogoMediaId: z.string().nullable(),
+  updatedByUserId: z.string().nullable(),
+  createdAt: z.coerce.date(),
+  updatedAt: z.coerce.date(),
+});
+
+const SITE_SETTINGS_FALLBACK_ALERT_WINDOW_MS = 5 * 60 * 1000;
+let lastFallbackAlertAt = 0;
 
 function getDefaultSiteSettingsData() {
   return {
@@ -84,6 +121,66 @@ async function readSiteSettingsFromDb() {
 
 const readSiteSettings = cache(async (): Promise<SiteSettingsRecord | null> => readSiteSettingsFromDb());
 
+export async function persistSiteSettingsSnapshot(settings: SiteSettingsRecord) {
+  const directory = path.dirname(siteSettingsSnapshotPath);
+  const temporaryPath = `${siteSettingsSnapshotPath}.${process.pid}.${randomUUID()}.tmp`;
+
+  try {
+    await mkdir(directory, { recursive: true });
+    await writeFile(temporaryPath, JSON.stringify(settings), { encoding: "utf8", mode: 0o600 });
+    await rename(temporaryPath, siteSettingsSnapshotPath);
+  } catch (error) {
+    console.error("Failed to persist site settings snapshot", { error });
+    await unlink(temporaryPath).catch(() => undefined);
+  }
+}
+
+async function readSiteSettingsSnapshot(): Promise<SiteSettingsRecord | null> {
+  try {
+    const raw = await readFile(siteSettingsSnapshotPath, "utf8");
+    const parsed = siteSettingsSnapshotSchema.safeParse(JSON.parse(raw));
+
+    if (!parsed.success) {
+      console.error("Ignoring invalid site settings snapshot", {
+        snapshotPath: siteSettingsSnapshotPath,
+        issues: parsed.error.issues.map((issue) => issue.path.join(".")),
+      });
+      return null;
+    }
+
+    return parsed.data;
+  } catch (error) {
+    const code = typeof error === "object" && error !== null && "code" in error ? error.code : null;
+
+    if (code !== "ENOENT") {
+      console.error("Failed to read site settings snapshot", { error });
+    }
+
+    return null;
+  }
+}
+
+function notifySiteSettingsFallback(error: unknown) {
+  const now = Date.now();
+
+  if (now - lastFallbackAlertAt < SITE_SETTINGS_FALLBACK_ALERT_WINDOW_MS) {
+    return;
+  }
+
+  lastFallbackAlertAt = now;
+  console.error("Site settings database fallback activated", {
+    event: "site_settings_database_fallback",
+    snapshotPath: siteSettingsSnapshotPath,
+    error,
+  });
+  void sendOwnerSystemErrorPushover({
+    title: "PP Studio - nastaveni z fallbacku",
+    message: "Databaze nastaveni neni dostupna. Web pouziva posledni ulozeny snapshot; nove online rezervace jsou docasne zablokovane.",
+    context: { contextId: "site-settings-database-fallback" },
+    error,
+  });
+}
+
 const createSiteSettings = cache(async (): Promise<SiteSettingsRecord> => {
   return prisma.siteSettings.upsert({
     where: {
@@ -94,10 +191,37 @@ const createSiteSettings = cache(async (): Promise<SiteSettingsRecord> => {
   });
 });
 
-export async function getSiteSettings() {
-  const settings = await readSiteSettings().catch(() => null);
+export async function getSiteSettingsReadResult(): Promise<SiteSettingsReadResult> {
+  try {
+    const settings = await readSiteSettings();
 
-  return settings ?? buildDefaultSiteSettingsRecord();
+    if (settings) {
+      void persistSiteSettingsSnapshot(settings);
+      return { settings, source: "database" };
+    }
+  } catch (error) {
+    notifySiteSettingsFallback(error);
+  }
+
+  const snapshot = await readSiteSettingsSnapshot();
+
+  if (snapshot) {
+    return { settings: snapshot, source: "snapshot" };
+  }
+
+  return { settings: buildDefaultSiteSettingsRecord(), source: "default" };
+}
+
+export async function getSiteSettings() {
+  return (await getSiteSettingsReadResult()).settings;
+}
+
+export async function hasCurrentBookingPolicySettings() {
+  if (isTestRuntime()) {
+    return true;
+  }
+
+  return (await getSiteSettingsReadResult()).source === "database";
 }
 
 export async function ensureSiteSettings() {

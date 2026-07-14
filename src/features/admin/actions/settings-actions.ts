@@ -20,6 +20,7 @@ import { prisma } from "@/lib/prisma";
 import {
   ensureSiteSettings,
   isSenderEmailAllowedBySmtpPolicy,
+  persistSiteSettingsSnapshot,
   SITE_SETTINGS_ID,
 } from "@/lib/site-settings";
 import { sendDirectOwnerPushover } from "@/lib/notifications/pushover";
@@ -155,7 +156,7 @@ export async function updateSalonSettingsAction(
     }
   }
 
-  await prisma.siteSettings.upsert({
+  const savedSettings = await prisma.siteSettings.upsert({
     where: { id: SITE_SETTINGS_ID },
     update: {
       ...parsed.data,
@@ -172,6 +173,7 @@ export async function updateSalonSettingsAction(
       updatedByUserId: actorUserId,
     },
   });
+  await persistSiteSettingsSnapshot(savedSettings);
 
   revalidateSettingsPaths();
 
@@ -208,7 +210,7 @@ export async function updateBookingSettingsAction(
   const actorUserId = await getActorUserId();
   const currentSettings = await ensureSiteSettings();
 
-  await prisma.siteSettings.upsert({
+  const savedSettings = await prisma.siteSettings.upsert({
     where: { id: SITE_SETTINGS_ID },
     update: {
       ...parsed.data,
@@ -221,6 +223,7 @@ export async function updateBookingSettingsAction(
       updatedByUserId: actorUserId,
     },
   });
+  await persistSiteSettingsSnapshot(savedSettings);
 
   revalidateSettingsPaths();
 
@@ -270,7 +273,7 @@ export async function updateEmailSettingsAction(
     };
   }
 
-  await prisma.siteSettings.upsert({
+  const savedSettings = await prisma.siteSettings.upsert({
     where: { id: SITE_SETTINGS_ID },
     update: {
       notificationAdminEmail: parsed.data.notificationAdminEmail,
@@ -289,6 +292,7 @@ export async function updateEmailSettingsAction(
       updatedByUserId: actorUserId,
     },
   });
+  await persistSiteSettingsSnapshot(savedSettings);
 
   revalidateSettingsPaths();
 

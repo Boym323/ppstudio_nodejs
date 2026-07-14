@@ -103,6 +103,17 @@ Výchozí fallback:
 
 - `/var/www/ppstudio/uploads`
 
+### Snapshot nastavení webu
+
+- `SITE_SETTINGS_SNAPSHOT_PATH`
+
+Použití:
+
+- atomický lokální snapshot posledního správně načteného `SiteSettings`
+- fallback veřejných kontaktů a podmínek při výpadku databáze
+
+Výchozí cesta je `/var/www/ppstudio/site-settings-snapshot.json`. Musí zůstat mimo adresář konkrétního releasu a být zapisovatelná pro runtime uživatele. Při použití snapshotu se loguje provozní alert a nové veřejné rezervace se do obnovení aktuálních pravidel nepřijímají.
+
 ### Analytika
 
 Klientské:
