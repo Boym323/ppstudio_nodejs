@@ -28,14 +28,14 @@ export function AdminSidebarNav({
   return (
     <>
       <div className="space-y-1.5 border-b border-white/7 pb-3">
-        <p className="text-[10px] uppercase tracking-[0.32em] text-white/34">
+        <p className="text-[10px] uppercase tracking-[0.32em] text-white/60">
           {currentArea === "owner" ? "Owner Admin" : "Provoz salonu"}
         </p>
         <div className="space-y-0.5">
           <h1 className="text-xl font-semibold tracking-tight text-white">PP Studio</h1>
-          <p className="text-xs text-white/42">{userName}</p>
+          <p className="text-xs text-white/60">{userName}</p>
         </div>
-        <p className="text-[11px] uppercase tracking-[0.16em] text-white/24">
+        <p className="text-[11px] uppercase tracking-[0.16em] text-white/60">
           {currentRole === AdminRole.OWNER ? "role owner" : "role provoz"}
         </p>
       </div>
@@ -61,7 +61,7 @@ export function AdminSidebarNav({
             >
               <span className="block text-sm font-medium">{item.label}</span>
               {isActive ? (
-                <span className="mt-1 block text-[11px] leading-4 text-white/34">
+                <span className="mt-1 block text-[11px] leading-4 text-white/60">
                   {item.description}
                 </span>
               ) : null}
