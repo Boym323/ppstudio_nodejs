@@ -617,7 +617,7 @@ export function RightSidebar({
   analyticsEnabled,
 }: DashboardPageProps & { analyticsEnabled: boolean }) {
   return (
-    <aside className="space-y-4 xl:sticky xl:top-4">
+    <aside aria-label="Rychlé přehledy" className="space-y-4 xl:sticky xl:top-4">
       <DashboardQuickActions data={data} />
       <DashboardWeekSummary data={data} />
       <AnalyticsWidget enabled={analyticsEnabled} />
@@ -827,7 +827,7 @@ export function DashboardPageSkeleton() {
           </div>
         </main>
 
-        <aside className="space-y-5">
+        <aside aria-label="Načítání rychlých přehledů" className="space-y-5">
           <div className="h-72 rounded-[1.65rem] border border-white/7 bg-zinc-900/88" />
           <div className="h-80 rounded-[1.65rem] border border-white/7 bg-zinc-900/88" />
         </aside>

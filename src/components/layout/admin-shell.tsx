@@ -45,7 +45,10 @@ export function AdminShell({ children, currentRole, userName }: AdminShellProps)
           "max-w-[min(100%,1860px)] lg:grid-cols-[224px_minmax(0,1fr)] xl:grid-cols-[228px_minmax(0,1fr)]",
         )}
       >
-        <aside className="hidden rounded-[1.5rem] border border-white/7 bg-white/[0.03] p-3 backdrop-blur-xl lg:sticky lg:top-5 lg:block">
+        <aside
+          aria-label="Hlavní navigace administrace"
+          className="hidden rounded-[1.5rem] border border-white/7 bg-white/[0.03] p-3 backdrop-blur-xl lg:sticky lg:top-5 lg:block"
+        >
           <AdminSidebarNav currentRole={currentRole} userName={userName} />
           <form action="/api/auth/logout" method="post" className="mt-5">
             <button
@@ -68,6 +71,7 @@ export function AdminShell({ children, currentRole, userName }: AdminShellProps)
         onClick={() => setMobileSidebarOpen(false)}
       >
         <aside
+          aria-label="Mobilní navigace administrace"
           className={cn(
             "absolute left-0 top-0 flex h-full w-[min(92vw,360px)] flex-col border-r border-white/10 bg-[#131116] px-4 py-4 shadow-[0_18px_48px_rgba(0,0,0,0.35)] transition",
             mobileSidebarOpen ? "translate-x-0" : "-translate-x-full",

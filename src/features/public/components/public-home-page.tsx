@@ -116,7 +116,7 @@ export async function PublicHomePage({ featuredServices = services.slice(0, 3) }
               </div>
             </div>
             <div className="mt-6 rounded-[calc(var(--radius-panel)-0.45rem)] border border-[#d8c9b8] bg-[#f7efe5] p-5 sm:p-6">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[var(--color-accent)]">Dárkové vouchery</p>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[var(--color-accent-contrast)]">Dárkové vouchery</p>
               <p className="mt-3 text-[15px] leading-7 text-[var(--color-accent-contrast)] sm:text-base">
                 Pokud hledáte péči jako dárek, voucher lze vystavit na konkrétní službu i podle individuální domluvy.
               </p>

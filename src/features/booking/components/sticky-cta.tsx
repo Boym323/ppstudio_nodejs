@@ -36,8 +36,8 @@ export function StickyCTA({
           className={cn(
             "booking-sticky-cta__button inline-flex min-h-12 shrink-0 items-center justify-center rounded-full px-5 py-3 text-sm font-semibold uppercase tracking-[0.16em]",
             type === "submit"
-              ? "bg-[var(--color-accent)] text-[var(--color-accent-contrast)]"
-              : "border border-[var(--color-accent)] bg-[var(--color-accent)] text-[var(--color-accent-contrast)]",
+              ? "bg-[var(--color-accent)] text-white"
+              : "border border-[var(--color-accent)] bg-[var(--color-accent)] text-white",
             isDisabled ? "cursor-not-allowed opacity-60" : "",
           )}
         >
