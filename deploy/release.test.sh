@@ -5,6 +5,8 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/release.sh"
 
+[[ "${RETAIN_RELEASES}" -eq 0 ]]
+
 TEMP_DIR="$(mktemp -d)"
 trap 'rm -rf "${TEMP_DIR}"' EXIT
 REPO_DIR="${TEMP_DIR}/repo"
@@ -92,7 +94,7 @@ migrate_line="$(grep -n 'npx prisma migrate deploy (těsně' "${SCRIPT_DIR}/rele
 activate_line="$(grep -n 'activate_release "\${release_dir}"' "${SCRIPT_DIR}/release.sh" | cut -d: -f1)"
 [[ "${typecheck_line}" -lt "${build_line}" && "${build_line}" -lt "${migrate_line}" && "${migrate_line}" -lt "${activate_line}" ]]
 
-# Úklid nikdy nesmí smazat current/previous a zachovává zadaný počet dalších releasů.
+# Výchozí úklid nikdy nesmí smazat current/previous ani ponechat další release.
 for release in \
   111111111111-20260101000000 \
   222222222222-20260102000000 \
@@ -102,11 +104,11 @@ for release in \
 done
 set_release_link "${CURRENT_RELEASE_LINK}" "${RELEASES_DIR}/111111111111-20260101000000"
 set_release_link "${PREVIOUS_RELEASE_LINK}" "${RELEASES_DIR}/222222222222-20260102000000"
-RETAIN_RELEASES=1
+RETAIN_RELEASES=0
 cleanup_old_releases
 [[ -d "${RELEASES_DIR}/111111111111-20260101000000" ]]
 [[ -d "${RELEASES_DIR}/222222222222-20260102000000" ]]
-[[ -d "${RELEASES_DIR}/444444444444-20260104000000" ]]
+[[ ! -d "${RELEASES_DIR}/444444444444-20260104000000" ]]
 [[ ! -d "${RELEASES_DIR}/333333333333-20260103000000" ]]
 
 echo "Release regresní scénáře: OK"

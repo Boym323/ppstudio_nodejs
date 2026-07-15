@@ -16,7 +16,7 @@ HEALTH_RETRIES="${PPSTUDIO_HEALTH_RETRIES:-15}"
 HEALTH_RETRY_SECONDS="${PPSTUDIO_HEALTH_RETRY_SECONDS:-2}"
 WEB_READY_RETRIES="${PPSTUDIO_WEB_READY_RETRIES:-20}"
 WEB_READY_RETRY_SECONDS="${PPSTUDIO_WEB_READY_RETRY_SECONDS:-0.25}"
-RETAIN_RELEASES="${PPSTUDIO_RETAIN_RELEASES:-4}"
+RETAIN_RELEASES="${PPSTUDIO_RETAIN_RELEASES:-0}"
 
 ALLOW_DIRTY=0
 SKIP_PULL=0
@@ -35,7 +35,7 @@ Volby:
   --allow-dirty      Povolit release i s necommitnutými změnami
   --skip-pull        Přeskočit 'git pull --ff-only'
   --skip-lint        Přeskočit 'npm run lint'
-  --keep-releases N  Ponechat N posledních dalších release (výchozí: 7)
+  --keep-releases N  Ponechat N posledních dalších release (výchozí: 0)
   --yes              Přeskočit interaktivní potvrzení
   -h, --help         Zobrazit nápovědu
 USAGE
