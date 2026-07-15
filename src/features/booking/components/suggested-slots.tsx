@@ -28,9 +28,9 @@ export function SuggestedSlots({
     <section className="space-y-3 sm:space-y-3.5">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h4 className="text-base font-semibold text-[var(--color-foreground)]">
+          <h3 className="text-base font-semibold text-[var(--color-foreground)]">
             Nejbližší dostupné termíny
-          </h4>
+          </h3>
           <p className="mt-1 text-sm text-[var(--color-muted)] max-sm:hidden">
             Nejrychlejší cesta k rezervaci je vybrat jeden z nejbližších volných časů.
           </p>
