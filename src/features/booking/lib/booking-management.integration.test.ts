@@ -176,13 +176,8 @@ async function createSeed() {
     preferredMinute: 23,
   });
   const conflictEndAt = addHours(conflictStartAt, 1);
-  const tooLateStartAt = await findFreeStartAt(prisma, {
-    earliest: addHours(now, 3),
-    latest: addHours(now, 42),
-    durationMinutes: 60,
-    preferredHour: 22,
-    preferredMinute: 29,
-  });
+  // Musí zůstat uvnitř 24hodinové lhůty bez ohledu na čas spuštění testu.
+  const tooLateStartAt = addHours(now, 12);
   const tooLateEndAt = addHours(tooLateStartAt, 1);
   const outsideWindowStartAt = await findFreeStartAt(prisma, {
     earliest: addDays(now, 91),
