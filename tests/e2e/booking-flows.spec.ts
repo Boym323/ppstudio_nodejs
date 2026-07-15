@@ -318,6 +318,8 @@ test.describe("booking flows", () => {
   });
 
   test("public booking cancellation compacts fragmented availability in planner", async ({ page }) => {
+    test.skip(test.info().project.name !== "chromium", "Planner uses a dedicated mobile workflow.");
+
     const fixture = await createFragmentedCancellationFixture();
     fixtures.push(fixture);
 

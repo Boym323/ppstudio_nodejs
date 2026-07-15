@@ -84,9 +84,9 @@ export function BookingTermStep({
           <p className="text-xs font-semibold uppercase tracking-[0.32em] text-[var(--color-accent)]">
             Krok 2
           </p>
-          <h3 className="mt-2 font-display text-3xl text-[var(--color-foreground)]">
+          <h2 className="mt-2 font-display text-3xl text-[var(--color-foreground)]">
             Vyberte termín
-          </h3>
+          </h2>
           <p className="mt-2 text-sm leading-6 text-[var(--color-muted)]">
             Zvolte nejbližší volný čas, nebo si v kalendáři najděte jiný den.
           </p>

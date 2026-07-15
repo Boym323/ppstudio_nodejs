@@ -73,9 +73,9 @@ export function BookingContactStep({
           <p className="text-xs font-semibold uppercase tracking-[0.32em] text-[var(--color-accent)]">
             Krok 3
           </p>
-          <h3 className="mt-2 font-display text-3xl text-[var(--color-foreground)]">
+          <h2 className="mt-2 font-display text-3xl text-[var(--color-foreground)]">
             Kontaktní údaje
-          </h3>
+          </h2>
           <p className="mt-2 text-sm leading-6 text-[var(--color-muted)]">
             Doplňte kontakt, ať vám můžeme poslat potvrzení a případně se domluvit na detailech.
           </p>

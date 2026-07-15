@@ -73,9 +73,9 @@ export function BookingServiceStep({
         <p className="text-xs font-semibold uppercase tracking-[0.32em] text-[var(--color-accent)]">
           Krok 1
         </p>
-        <h3 className="mt-2 font-display text-3xl text-[var(--color-foreground)]">
+        <h2 className="mt-2 font-display text-3xl text-[var(--color-foreground)]">
           Vyberte službu
-        </h3>
+        </h2>
         <p className="mt-2 text-sm leading-6 text-[var(--color-muted)]">
           Vyberte kategorii a poté konkrétní službu.
         </p>
@@ -118,9 +118,9 @@ export function BookingServiceStep({
                   <p className="text-xs uppercase tracking-[0.22em] text-[var(--color-muted)]">
                     {service.categoryName}
                   </p>
-                  <h4 className="mt-2 font-display text-2xl text-[var(--color-foreground)]">
+                  <p className="mt-2 font-display text-2xl text-[var(--color-foreground)]">
                     {service.name}
-                  </h4>
+                  </p>
                 </div>
                 <div className="text-right">
                   <p className="text-sm font-semibold text-[var(--color-foreground)]">

@@ -18,7 +18,7 @@ export function AdminShell({ children, currentRole, userName }: AdminShellProps)
 
   return (
     <div className="min-h-screen overflow-x-clip bg-[var(--color-admin-background)] text-[var(--color-admin-foreground)]">
-      <div
+      <header
         className={cn(
           "sticky top-0 z-40 border-b border-white/8 bg-[rgba(16,15,17,0.92)] px-4 py-3 backdrop-blur-xl transition lg:hidden",
           mobileSidebarOpen && "pointer-events-none opacity-0",
@@ -26,7 +26,7 @@ export function AdminShell({ children, currentRole, userName }: AdminShellProps)
       >
         <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="text-[10px] uppercase tracking-[0.28em] text-white/42">PP Studio Admin</p>
+            <p className="text-[10px] uppercase tracking-[0.28em] text-white/55">PP Studio Admin</p>
             <p className="text-sm font-medium text-white/84">{currentRole === AdminRole.OWNER ? "Owner" : "Provoz salonu"}</p>
           </div>
           <button
@@ -37,7 +37,7 @@ export function AdminShell({ children, currentRole, userName }: AdminShellProps)
             Menu
           </button>
         </div>
-      </div>
+      </header>
 
       <div
         className={cn(
@@ -56,16 +56,16 @@ export function AdminShell({ children, currentRole, userName }: AdminShellProps)
             </button>
           </form>
         </aside>
-        <div className="min-w-0 space-y-6">{children}</div>
+        <main className="min-w-0 space-y-6">{children}</main>
       </div>
 
+      {mobileSidebarOpen ? (
       <div
         className={cn(
           "fixed inset-0 z-50 bg-black/55 backdrop-blur-sm transition lg:hidden",
           mobileSidebarOpen ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0",
         )}
         onClick={() => setMobileSidebarOpen(false)}
-        aria-hidden={!mobileSidebarOpen}
       >
         <aside
           className={cn(
@@ -76,7 +76,7 @@ export function AdminShell({ children, currentRole, userName }: AdminShellProps)
         >
           <div className="mb-4 flex items-center justify-between gap-3">
             <div>
-              <p className="text-[10px] uppercase tracking-[0.28em] text-white/42">Navigace</p>
+              <p className="text-[10px] uppercase tracking-[0.28em] text-white/55">Navigace</p>
               <p className="text-sm text-white/84">{userName}</p>
             </div>
             <button
@@ -102,6 +102,7 @@ export function AdminShell({ children, currentRole, userName }: AdminShellProps)
           </form>
         </aside>
       </div>
+      ) : null}
     </div>
   );
 }

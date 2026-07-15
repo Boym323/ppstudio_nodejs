@@ -34,7 +34,7 @@ export async function SiteFooter({ compact = false }: SiteFooterProps) {
           </div>
 
           <div className={compact ? "grid gap-5 sm:grid-cols-2 sm:gap-6 lg:max-w-[30rem] lg:justify-self-center" : "grid gap-7 sm:grid-cols-2 sm:gap-8 lg:max-w-[30rem] lg:justify-self-center"}>
-            <nav aria-label="Hlavní navigace" className={compact ? "grid content-start gap-2.5" : "grid content-start gap-3"}>
+            <nav aria-label="Navigace v patičce" className={compact ? "grid content-start gap-2.5" : "grid content-start gap-3"}>
               <p className="text-eyebrow text-[var(--color-muted)]">Navigace</p>
               <div className="grid gap-2 text-sm text-[var(--color-muted)]">
                 {mainNavigation.map((item) => (

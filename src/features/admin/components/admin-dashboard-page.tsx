@@ -261,10 +261,10 @@ export function DashboardPage({ data }: DashboardPageProps) {
         <DashboardKpiGrid data={data} />
 
         <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)]">
-          <main className="min-w-0 space-y-4">
+          <div className="min-w-0 space-y-4">
             <DashboardTodayTimelineSection data={data} />
             <DashboardAvailableSlots data={data} />
-          </main>
+          </div>
 
           <RightSidebar data={data} analyticsEnabled={analyticsEnabled} />
         </div>
@@ -302,7 +302,7 @@ export function DashboardTodayHero({ data }: DashboardPageProps) {
                 className="flex min-h-12 min-w-0 items-center justify-between gap-3 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/55"
               >
                 <span className="min-w-0">
-                  <span className="block text-[11px] font-semibold uppercase tracking-[0.16em] text-white/38">
+                  <span className="block text-[11px] font-semibold uppercase tracking-[0.16em] text-white/60">
                     Další rezervace
                   </span>
                   <span className="block truncate text-sm font-medium text-white">
@@ -601,11 +601,11 @@ export function DashboardKpiGrid({ data }: DashboardPageProps) {
             "xl:border-b-0",
           )}
         >
-          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/34">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/60">
             {item.label}
           </p>
           <p className="mt-1 text-xl font-semibold text-white/88">{item.value}</p>
-          <p className="mt-0.5 text-xs text-white/42">{item.detail}</p>
+          <p className="mt-0.5 text-xs text-white/60">{item.detail}</p>
         </article>
       ))}
     </Card>
@@ -670,7 +670,7 @@ export function DashboardAvailableSlots({ data }: DashboardPageProps) {
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     <p className="text-base font-semibold text-white">{slot.timeLabel}</p>
-                    <span className="text-xs uppercase tracking-[0.18em] text-white/38">
+                    <span className="text-xs uppercase tracking-[0.18em] text-white/60">
                       {slot.dayLabel}
                     </span>
                   </div>
