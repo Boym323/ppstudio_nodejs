@@ -117,16 +117,22 @@ export async function getPublicBookingCatalog(
   ]);
 
   return {
-    services: services.map((service) => ({
-      id: service.id,
-      categoryName: service.category.name,
-      name: service.publicName || service.name,
-      slug: service.slug,
-      shortDescription: service.publicIntro,
-      durationMinutes: service.durationMinutes,
-      cleanupBlockMinutes: roundUpToQuarterHour(service.cleanupMinutes),
-      priceFromCzk: service.priceFromCzk,
-    })),
+    services: services.flatMap((service) => {
+      if (!service.category) {
+        return [];
+      }
+
+      return [{
+        id: service.id,
+        categoryName: service.category.name,
+        name: service.publicName || service.name,
+        slug: service.slug,
+        shortDescription: service.publicIntro,
+        durationMinutes: service.durationMinutes,
+        cleanupBlockMinutes: roundUpToQuarterHour(service.cleanupMinutes),
+        priceFromCzk: service.priceFromCzk,
+      }];
+    }),
     slots: buildMergedPublicCatalogSlots(
       slots.map((slot) => ({
         id: slot.id,

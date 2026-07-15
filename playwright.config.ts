@@ -32,6 +32,7 @@ export default defineConfig({
       NEXT_PUBLIC_META_PIXEL_ENABLED: "true",
       NEXT_PUBLIC_META_PIXEL_ID: "123456789",
       EMAIL_DELIVERY_MODE: "log",
+      SITE_SETTINGS_SNAPSHOT_PATH: "/tmp/ppstudio-e2e-site-settings-snapshot.json",
     },
   },
   projects: [
