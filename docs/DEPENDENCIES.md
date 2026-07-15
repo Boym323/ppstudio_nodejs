@@ -40,6 +40,7 @@ Tichý startup readiness probe nepřidává závislost; používá stejný `curl
 - Poslední ověřený lokální `npm audit` (2026-07-02) hlásí `1 low` a `6 moderate` nálezů bez `high` / `critical`. Nejrelevantnější větev je `next -> postcss`, dále Prisma tooling (`prisma -> @prisma/dev -> @hono/node-server`) a transitive `@babel/core` / `brace-expansion`.
 - Automatické `npm audit fix` se teď vědomě nepouští: doporučené opravy vrací nebezpečné návrhy na major downgrade `next` nebo `prisma`, takže bezpečný postup je čekat na kompatibilní upstream patch/minor release a zkusit audit znovu při dalším dependency passu.
 - `@playwright/test`: browser E2E test runner pro hlavní rezervační a admin flow; v projektu držíme `^1.61.1`, protože starší `1.59.1` se v CI na Node 24 zasekávala při instalaci browseru.
+- `@axe-core/playwright`: automatizovaná axe kontrola přístupnosti v reprezentativních Playwright scénářích veřejného webu, rezervace a administrace.
 - `c8`: V8 coverage reporter nad stávajícím `node --test` setupem; generuje HTML/LCOV/JSON reporty bez nutnosti přechodu na jiný test runner.
 - `react` a `react-dom` drž vždy na přesně stejné patch verzi. U Next.js/React serverového renderu repo nesmí přijmout jednostranný bump jen `react`, protože CI pak spadne na runtime kontrolu `Incompatible React versions`.
 - GitHub security automation teď stojí i na repo konfiguraci bez nových runtime závislostí:
