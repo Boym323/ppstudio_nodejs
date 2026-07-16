@@ -6,6 +6,16 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [3.0.1] - 2026-07-16
+
+### Opraveno
+- Ruční vytvoření rezervace správně obnoví předvyplněnou klientku při změně hledání, varuje při jejím nahrazení a stabilně zobrazuje otevřený stav formuláře.
+- Přehled rezervací bezpečně zobrazí jméno klientky i při chybějící relaci; rozpoznání stavu rezervace je odolnější.
+- E2E kontrola potvrzení rezervace správně ověřuje historii stavu a Playwright používá nastavený počet workerů.
+
+### Změněno
+- Release příprava pro produkční nasazení: projektová verze navýšena na patch `3.0.1`.
+
 ## [3.0.0] - 2026-07-16
 
 ### Nekompatibilní změny
