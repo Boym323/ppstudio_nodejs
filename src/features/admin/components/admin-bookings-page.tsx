@@ -59,6 +59,7 @@ async function AdminBookingsPageContent({
       description="Provozní přehled rezervací, potvrzení a ručního přidání."
       headerActions={
         <CreateManualBookingDrawer
+          key={`${shouldOpenCreateDrawer ? "open" : "closed"}:${requestedClientId || "none"}`}
           area={area}
           data={data.manualBooking}
           initialOpen={shouldOpenCreateDrawer}

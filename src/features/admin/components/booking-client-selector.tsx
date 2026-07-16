@@ -106,7 +106,11 @@ export function BookingClientSelector({
       </label>
 
       {selectedClient ? (
-        <div className="mt-4 rounded-[1rem] border border-[var(--color-accent)]/16 bg-[rgba(190,160,120,0.08)] p-3.5">
+        <div
+          role="group"
+          aria-label="Vybraná klientka"
+          className="mt-4 rounded-[1rem] border border-[var(--color-accent)]/16 bg-[rgba(190,160,120,0.08)] p-3.5"
+        >
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-soft)]">
             Vybraná klientka
           </p>
