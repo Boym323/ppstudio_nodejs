@@ -1186,15 +1186,39 @@ test.describe("booking flows", () => {
     await bookingActions.getByLabel("Volitelný důvod").fill("E2E potvrzení");
     await bookingActions.locator("button[type='submit']").click();
 
-    await expect(page.getByText("Změna byla uložená a propsala se i do historie rezervace.")).toBeVisible();
+    await expect.poll(async () => prisma.booking.findUnique({
+      where: {
+        id: fixture.bookingId,
+      },
+      select: {
+        status: true,
+        confirmedAt: true,
+      },
+    })).toMatchObject({
+      status: BookingStatus.CONFIRMED,
+      confirmedAt: expect.any(Date),
+    });
+
+    await expect(
+      page.getByText("Potvrzený termín · Po návštěvě zapiš úhradu a dokonči návštěvu."),
+    ).toBeVisible({ timeout: 30_000 });
 
     const booking = await prisma.booking.findUniqueOrThrow({
       where: {
         id: fixture.bookingId,
       },
+      include: {
+        statusHistory: true,
+      },
     });
 
     expect(booking.status).toBe(BookingStatus.CONFIRMED);
     expect(booking.confirmedAt).toBeTruthy();
+    expect(booking.statusHistory).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        reason: "E2E potvrzení",
+        status: BookingStatus.CONFIRMED,
+      }),
+    ]));
   });
 });
