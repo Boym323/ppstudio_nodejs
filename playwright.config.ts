@@ -6,6 +6,9 @@ const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? `http://127.0.0.1:${port}`;
 
 export default defineConfig({
   testDir: "./tests/e2e",
+  // Browser projekty používají stejnou databázi a jejich fixtures se po testu mažou.
+  // Jeden worker brání souběhu cleanupu jednoho projektu s během druhého.
+  workers: 1,
   fullyParallel: false,
   timeout: 45_000,
   expect: {
