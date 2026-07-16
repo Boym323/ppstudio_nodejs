@@ -1,12 +1,21 @@
 "use server";
 
 import { z } from "zod";
+import { headers } from "next/headers";
 
 import { type AdminInviteActivationActionState } from "@/features/admin/actions/update-admin-invite-activation-action-state";
 import { hashAdminInviteToken } from "@/features/admin/lib/admin-invite-token";
 import {
   consumeAdminInviteToken,
+  findAdminInviteTokenWithUserByHash,
 } from "@/features/admin/lib/admin-invite-token-db";
+import {
+  getAdminInviteActivationAttemptMetadata,
+  getRecentAdminInviteActivationAttemptCount,
+  isAdminInviteActivationRateLimited,
+  type AdminInviteActivationAuditOutcome,
+  writeAdminInviteActivationAttemptLog,
+} from "@/features/admin/lib/admin-invite-activation-rate-limit";
 import { hashPassword } from "@/lib/auth/password";
 
 const activateAdminInviteSchema = z
@@ -31,10 +40,63 @@ function readFormString(formData: FormData, key: string) {
   return typeof value === "string" ? value : "";
 }
 
+async function getActivationRequestHeaders() {
+  try {
+    return await headers();
+  } catch (error) {
+    if (process.env.NODE_ENV === "test") {
+      return new Headers();
+    }
+
+    throw error;
+  }
+}
+
+type InvitePrecheckResult = "valid" | Exclude<AdminInviteActivationAuditOutcome, "SUCCESS" | "RATE_LIMITED">;
+
+async function precheckAdminInviteToken(tokenHash: string, now: Date): Promise<InvitePrecheckResult> {
+  const token = await findAdminInviteTokenWithUserByHash(tokenHash);
+
+  if (!token || !token.user) {
+    return "INVALID";
+  }
+
+  if (token.usedAt || token.revokedAt) {
+    return "ALREADY_USED";
+  }
+
+  if (token.expiresAt <= now) {
+    return "EXPIRED";
+  }
+
+  if (!token.user.isActive) {
+    return "USER_INACTIVE";
+  }
+
+  return "valid";
+}
+
+function getInviteActivationError(result: AdminInviteActivationAuditOutcome) {
+  if (result === "RATE_LIMITED") {
+    return "Příliš mnoho pokusů o aktivaci. Zkuste to prosím za chvíli znovu.";
+  }
+
+  if (result === "EXPIRED") {
+    return "Pozvánka vypršela. Požádejte o nové zaslání pozvánky.";
+  }
+
+  if (result === "ALREADY_USED") {
+    return "Tato pozvánka už byla použitá. Požádejte o novou.";
+  }
+
+  return "Pozvánka není platná. Požádejte o novou.";
+}
+
 export async function activateAdminInviteAction(
   _previousState: AdminInviteActivationActionState,
   formData: FormData,
 ): Promise<AdminInviteActivationActionState> {
+  const attemptMetadata = getAdminInviteActivationAttemptMetadata(await getActivationRequestHeaders());
   const parsed = activateAdminInviteSchema.safeParse({
     token: readFormString(formData, "token"),
     password: readFormString(formData, "password"),
@@ -54,22 +116,54 @@ export async function activateAdminInviteAction(
     };
   }
 
-  const passwordHash = await hashPassword(parsed.data.password);
+  const ipAttempts = await getRecentAdminInviteActivationAttemptCount(attemptMetadata.ipHash);
+
+  if (isAdminInviteActivationRateLimited(ipAttempts)) {
+    await writeAdminInviteActivationAttemptLog({
+      auditOutcome: "RATE_LIMITED",
+      ...attemptMetadata,
+      metadata: { ipAttempts },
+    });
+
+    return { status: "error", formError: getInviteActivationError("RATE_LIMITED") };
+  }
+
   const now = new Date();
+  const tokenHash = hashAdminInviteToken(parsed.data.token);
+  const precheckResult = await precheckAdminInviteToken(tokenHash, now);
+
+  if (precheckResult !== "valid") {
+    await writeAdminInviteActivationAttemptLog({
+      auditOutcome: precheckResult,
+      ...attemptMetadata,
+    });
+
+    return { status: "error", formError: getInviteActivationError(precheckResult) };
+  }
+
+  const passwordHash = await hashPassword(parsed.data.password);
   const result = await consumeAdminInviteToken({
-    tokenHash: hashAdminInviteToken(parsed.data.token),
+    tokenHash,
     passwordHash,
     now,
   });
 
-  if (result !== "activated") {
-    const formError = result === "expired"
-      ? "Pozvánka vypršela. Požádejte o nové zaslání pozvánky."
+  const auditOutcome: AdminInviteActivationAuditOutcome = result === "activated"
+    ? "SUCCESS"
+    : result === "invalid"
+      ? "INVALID"
       : result === "already-used"
-        ? "Tato pozvánka už byla použitá. Požádejte o novou."
-        : "Pozvánka není platná. Požádejte o novou.";
+        ? "ALREADY_USED"
+        : result === "expired"
+          ? "EXPIRED"
+          : "USER_INACTIVE";
+  await writeAdminInviteActivationAttemptLog({
+    auditOutcome,
+    ...attemptMetadata,
+  });
 
-    return { status: "error", formError };
+  if (result !== "activated") {
+    return { status: "error", formError: getInviteActivationError(auditOutcome) };
   }
 
   return {
