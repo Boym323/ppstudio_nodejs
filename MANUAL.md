@@ -37,7 +37,7 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
 - Skript před buildem načte `.env` jako dotenv soubor, takže fungují i neuzavřené hodnoty s mezerami typu `NEXT_PUBLIC_APP_NAME=PP Studio`; zároveň vynutí přítomnost validního `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY`, pro aktuální release automaticky exportuje `NEXT_DEPLOYMENT_ID`, `DEPLOYMENT_VERSION` i `GIT_HASH` z aktuálního git commitu a stejnou trojici zapíše do runtime souboru `.release-env`, který čte systemd služba webu.
 - Protože produkční `.env` běžně nastavuje `NODE_ENV=production`, skript používá `npm ci --include=dev`, aby se nainstalovaly i build-time nástroje z `devDependencies` jako `eslint`, `typescript` a `prisma`.
 - Release build neběží nad živým runtime. Po úspěšném buildu vznikne úplný adresář `/var/www/ppstudio/releases/<commit>-<čas>` a systemd vždy spouští `/var/www/ppstudio/current`. Krátké atomické přepnutí symlinku proto přepne zdrojové soubory, `.next`, `node_modules` i worker `tsx` runtime společně; předchozí release zůstává zachovaný přes symlink `previous` až do úspěšného health a smoke testu.
-- Po úspěšném release se adresář `releases/` automaticky uklidí: chráněné jsou cíle `current` a `previous` a výchozích sedm dalších nejnovějších release. Limit upravíš přes `./deploy/release.sh --keep-releases 14`; úklid nikdy neběží při selhání releasu.
+- Po úspěšném release se adresář `releases/` automaticky uklidí: chráněné jsou pouze cíle `current` a `previous`; další release se ve výchozím nastavení neuchovávají. Limit upravíš přes `./deploy/release.sh --keep-releases 14`; úklid nikdy neběží při selhání releasu.
 - `package.json` zároveň drží npm 11 `allowScripts` whitelist pro balíčky s install hooky (`prisma`, `@prisma/engines`, `sharp`, `esbuild`, `unrs-resolver`), takže release nevypisuje opakované `npm warn allow-scripts` a při upgradu těchto balíčků je potřeba whitelist znovu vědomě potvrdit.
 - Skript před vytvořením čistého git-archive workspace odmítne lokální migrační adresáře bez `migration.sql` (ochrana před Prisma P3015). Bez zápisu do DB provede `npm ci`, generate, kontrolu historie, `prisma validate`, lint, samostatný `typecheck` a build; teprve potom, těsně před aktivací, spustí `prisma migrate deploy`. Produkční migrace proto musí být expand/contract a kompatibilní s předchozím runtime.
 - Kontrola historie může uvést rollbacknuté záznamy `20260419103000_service_public_bookability`, `20260419140000_site_settings_singleton` a `20260428133959_voucher_pdf_logo_settings`. Jsou následované úspěšným záznamem stejné migrace, takže při `Migration history check: OK` nepředstavují blocker releasu ani se nesmějí ručně mazat z `_prisma_migrations`.
@@ -158,7 +158,7 @@ Praktický přehled hlavních HTTP endpointů je v [`docs/API.md`](/var/www/ppst
 
 ## Verzování (SemVer)
 - Projekt používá Semantic Versioning `MAJOR.MINOR.PATCH` v `package.json`.
-- Aktuální release je `2.1.1`; stabilní řada projektu začala verzí `1.0.0`.
+- Aktuální release je `3.0.0`; stabilní řada projektu začala verzí `1.0.0`.
 - `PATCH` (`0.1.0 -> 0.1.1`) zvyšuj při opravách chyb, interním refaktoru bez změny chování a technických úpravách bez dopadu na veřejné rozhraní.
 - `MINOR` (`0.1.0 -> 0.2.0`) zvyšuj při přidání nové funkce nebo rozšíření existující funkcionality zpětně kompatibilním způsobem.
 - `MAJOR` (`0.1.0 -> 1.0.0` nebo `1.x.y -> 2.0.0`) zvyšuj při nekompatibilní změně API, datového kontraktu, routingu nebo provozního chování, které vyžaduje zásah uživatele/operátora.

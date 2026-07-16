@@ -6,6 +6,22 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [3.0.0] - 2026-07-16
+
+### Nekompatibilní změny
+- Produkční release po úspěšném nasazení ponechává pouze cíle `current` a `previous`; výchozí počet dalších uchovaných release se změnil ze sedmi na nulu. Pro delší historii rollbacků je nutné nově zadat `--keep-releases N` nebo nastavit `PPSTUDIO_RETAIN_RELEASES`.
+
+### Přidáno
+- Playwright E2E nyní obsahuje automatizovanou axe kontrolu přístupnosti reprezentativních veřejných, rezervačních i administrativních scénářů.
+- Testovací runtime ukládá snapshot nastavení webu do dočasného adresáře a veřejný katalog bezpečně vynechá služby bez kategorie.
+
+### Opraveno
+- Zlepšen kontrast akcentu a administrativní navigace, struktura nadpisů rezervačního flow a popisky navigace pro čtečky obrazovky.
+- Regresní test pro 24hodinovou lhůtu zrušení rezervace je nezávislý na čase spuštění.
+
+### Změněno
+- Release příprava pro produkční nasazení: projektová verze navýšena na major `3.0.0` kvůli nekompatibilní změně výchozí retenční politiky release artefaktů.
+
 ## [2.1.1] - 2026-07-14
 
 ### Opraveno

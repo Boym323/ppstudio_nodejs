@@ -392,7 +392,7 @@ Použij jen tehdy, když z nějakého důvodu nemůžeš použít `./deploy/rele
   - `npx prisma migrate deploy` až po úspěšném buildu a těsně před přepnutím; pouze expand/contract migrace
   - atomický `current` symlink, restart webu i workeru a povinný lokální health (`/api/health` s očekávaným deployment ID) + homepage smoke test
   - při selhání startu, workeru nebo health/smoke testu návrat symlinku na úplný předchozí release; DB se automaticky nerollbackuje
-  - až po úspěchu bezpečný úklid: `current`, `previous` a sedm dalších nejnovějších release zůstávají; nastavitelné přes `--keep-releases N`
+  - až po úspěchu bezpečný úklid: zůstávají jen `current` a `previous`; počet dalších nejnovějších release lze nastavit přes `--keep-releases N`
 - Příklad:
 ```bash
 cd /var/www/ppstudio
@@ -404,7 +404,7 @@ cd /var/www/ppstudio
   - `--skip-lint`: přeskočí lint krok
   - `--allow-dirty`: povolí spuštění i s necommitnutými změnami
   - `--yes`: bez interaktivního potvrzení
-  - `--keep-releases N`: ponechá po úspěchu navíc N nejnovějších release (výchozí `7`); `current` a `previous` zůstávají vždy
+  - `--keep-releases N`: ponechá po úspěchu navíc N nejnovějších release (výchozí `0`); `current` a `previous` zůstávají vždy
 - Pokud release skončí hned hláškou o chybějícím `ppstudio-web.service` nebo `ppstudio-email-worker.service`, server ještě nemá nainstalované produkční units; spusť `sudo /var/www/ppstudio/deploy/deploy.sh` a release opakuj.
 - Pokud release skončí hláškou o legacy PM2 procesech, server ještě běží ve smíšeném režimu. Přepni ho na systemd:
 ```bash
