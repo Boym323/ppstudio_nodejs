@@ -74,11 +74,35 @@ export function CreateManualBookingDrawer({
   const [clientNote, setClientNote] = useState("");
   const [internalNote, setInternalNote] = useState("");
   const [prefillNotice, setPrefillNotice] = useState(prefillWarning);
+  const appliedPrefilledClientId = useRef(prefilledClient?.id ?? null);
+  const appliedPrefillWarning = useRef(prefillWarning);
   const canUsePortal = typeof window !== "undefined";
   const visibleClientOptions = clientQuery.trim().length >= 2 ? clientOptions : [];
   const availableClients = prefilledClient && !visibleClientOptions.some((client) => client.id === prefilledClient.id)
     ? [prefilledClient, ...visibleClientOptions]
     : visibleClientOptions;
+
+  useEffect(() => {
+    if (!prefilledClient || appliedPrefilledClientId.current === prefilledClient.id) {
+      return;
+    }
+
+    appliedPrefilledClientId.current = prefilledClient.id;
+    setSelectedClientId(prefilledClient.id);
+    setFullName(prefilledClient.fullName);
+    setEmail(prefilledClient.email);
+    setPhone(prefilledClient.phone ?? "");
+    setClientProfileNote(prefilledClient.internalNote ?? "");
+  }, [prefilledClient]);
+
+  useEffect(() => {
+    if (appliedPrefillWarning.current === prefillWarning) {
+      return;
+    }
+
+    appliedPrefillWarning.current = prefillWarning;
+    setPrefillNotice(prefillWarning);
+  }, [prefillWarning]);
 
   useEffect(() => {
     const query = clientQuery.trim();
