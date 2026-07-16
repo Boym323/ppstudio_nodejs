@@ -1069,7 +1069,9 @@ export async function getReservationsData(
 
     groupedItems.get(groupKey)?.items.push({
       id: booking.id,
-      title: booking.client.fullName,
+      // V průběhu paralelních E2E úklidů nebo u starších nekonzistentních dat
+      // může relace klientky chybět, přestože záznam rezervace zůstane čitelný.
+      title: booking.client?.fullName ?? booking.clientNameSnapshot,
       serviceName: booking.serviceNameSnapshot,
       scheduledStartsAtIso: booking.scheduledStartsAt.toISOString(),
       scheduledDateLabel: formatDateLabel(booking.scheduledStartsAt),
