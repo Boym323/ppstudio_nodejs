@@ -1163,7 +1163,9 @@ test.describe("booking flows", () => {
     await page.getByRole("button", { name: "Vytvořit rezervaci" }).last().click();
 
     await expect(
-      page.getByText(/(koliduje|není k dispozici|obsazen|rezervovaný)/i).first(),
+      page.getByText(
+        /(koliduje|není (k dispozici|dostupný)|obsazen|rezervovaný|zasahuje do interně blokovaného času)/i,
+      ).first(),
     ).toBeVisible();
   });
 
