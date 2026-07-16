@@ -59,11 +59,11 @@ Dělá:
    - `npm run db:check-migrations`
    - `npm run lint`
    - `npm run build`
-6. teprve po úspěšném buildu aplikuje `npx prisma migrate deploy`; migrace proto musí být expand/contract kompatibilní s předchozím releasem
+6. teprve po úspěšném buildu aplikuje `npx prisma migrate deploy`; každá budoucí databázová migrace musí bez výjimky dodržet postup expand/contract a zůstat kompatibilní s předchozím releasem
 7. vytvoří runtime `.release-env`, uloží celý release do `releases/` a atomicky přepne `current`
 8. krátce zastaví a znovu spustí web i worker nad stejným releasem
 9. nejdřív tiše vyčká na otevření webového endpointu, potom ověří `/api/health`, očekávané deployment ID a homepage smoke test
-10. při selhání startu nebo kontrol vrátí předchozí runtime release; databázové migrace se automaticky nevracejí
+10. při selhání startu nebo kontrol vrátí předchozí runtime release; databázové migrace se automaticky nevracejí, proto rollback musí vždy fungovat se schématem po aplikované migraci
 
 ## Proxmox/LXC specifika
 
