@@ -95,7 +95,11 @@ export function AdminShell({ children, currentRole, userName }: AdminShellProps)
           </div>
 
           <div className="min-h-0 flex-1 overflow-y-auto">
-            <AdminSidebarNav currentRole={currentRole} userName={userName} />
+            <AdminSidebarNav
+              currentRole={currentRole}
+              userName={userName}
+              onNavigate={() => setMobileSidebarOpen(false)}
+            />
           </div>
 
           <form action="/api/auth/logout" method="post" className="mt-4">

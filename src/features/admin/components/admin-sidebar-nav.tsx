@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 type AdminSidebarNavProps = {
   currentRole: AdminRole;
   userName: string;
+  onNavigate?: () => void;
 };
 
 function getCurrentArea(pathname: string): AdminArea {
@@ -20,6 +21,7 @@ function getCurrentArea(pathname: string): AdminArea {
 export function AdminSidebarNav({
   currentRole,
   userName,
+  onNavigate,
 }: AdminSidebarNavProps) {
   const pathname = usePathname();
   const currentArea = getCurrentArea(pathname);
@@ -52,6 +54,7 @@ export function AdminSidebarNav({
             <Link
               key={item.href}
               href={item.href}
+              onClick={onNavigate}
               className={cn(
                 "rounded-xl border px-3 py-3 transition",
                 isActive
