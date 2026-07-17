@@ -1049,7 +1049,7 @@ export function MobileInspectorSheet({
         onClick={onClose}
       />
       <div
-        className="absolute bottom-0 left-0 right-0 max-h-[88vh] translate-y-0 overflow-y-auto rounded-t-[1.6rem] border border-white/10 bg-[#111015] px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-3 shadow-[0_-16px_40px_rgba(0,0,0,0.35)] transition"
+        className="absolute bottom-0 left-0 right-0 max-h-[88dvh] translate-y-0 overflow-y-auto rounded-t-[1.6rem] border border-white/10 bg-[#111015] px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-3 shadow-[0_-16px_40px_rgba(0,0,0,0.35)] transition"
       >
         <div aria-hidden="true" className="mx-auto mb-3 h-1 w-10 rounded-full bg-white/20" />
         <div className="mb-4 flex items-center justify-between gap-3">
@@ -1057,7 +1057,7 @@ export function MobileInspectorSheet({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-full border border-white/10 px-3 py-2 text-sm text-white/72"
+            className="min-h-11 min-w-11 rounded-full border border-white/10 px-3 py-2 text-sm text-white/72"
           >
             Zavřít
           </button>
