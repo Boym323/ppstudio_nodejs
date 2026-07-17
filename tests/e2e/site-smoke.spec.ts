@@ -8,12 +8,17 @@ import {
   type E2eFixture,
 } from "./helpers/fixtures";
 
-async function loginAdmin(page: Page, email: string, password: string) {
+async function loginAdmin(
+  page: Page,
+  email: string,
+  password: string,
+  expectedPath: "/admin" | "/admin/provoz",
+) {
   await page.goto("/admin/prihlaseni");
   await page.getByLabel("E-mail").fill(email);
   await page.getByLabel("Heslo").fill(password);
   await page.getByRole("button", { name: "Přihlásit se" }).click();
-  await expect(page).toHaveURL(/\/admin(?:\?.*)?$/);
+  await expect(page).toHaveURL((url) => url.pathname === expectedPath);
 }
 
 async function expectPageReady(page: Page, path: string, heading: RegExp | string) {
@@ -147,7 +152,7 @@ test.describe("admin site smoke coverage", () => {
     const admin = await createAdminFixture(fixture.runId, AdminRole.OWNER);
     fixtures.push(fixture);
 
-    await loginAdmin(page, admin.email, admin.password);
+    await loginAdmin(page, admin.email, admin.password, "/admin");
 
     const ownerPages: Array<{ path: string; heading: RegExp | string }> = [
       { path: "/admin", heading: "Provozní přehled" },
@@ -177,7 +182,7 @@ test.describe("admin site smoke coverage", () => {
     const admin = await createAdminFixture(fixture.runId, AdminRole.OWNER);
     fixtures.push(fixture);
 
-    await loginAdmin(page, admin.email, admin.password);
+    await loginAdmin(page, admin.email, admin.password, "/admin");
     await page.goto("/admin/statistiky?period=this_year");
     await expect(page.getByText(/^Zobrazené období:/)).toBeVisible();
     await expect(page.getByLabel("Od", { exact: true })).toHaveCount(0);
@@ -211,7 +216,7 @@ test.describe("admin site smoke coverage", () => {
     const admin = await createAdminFixture(fixture.runId, AdminRole.SALON);
     fixtures.push(fixture);
 
-    await loginAdmin(page, admin.email, admin.password);
+    await loginAdmin(page, admin.email, admin.password, "/admin/provoz");
 
     const salonPages: Array<{ path: string; heading: RegExp | string }> = [
       { path: "/admin/provoz", heading: "Provozní přehled" },
