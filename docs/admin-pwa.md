@@ -4,7 +4,7 @@ Administrace má vlastní manifest (`/admin.webmanifest`) a service worker (`/ad
 
 ## Bezpečnost a offline režim
 
-Cache `ppstudio-admin-shell-v2` obsahuje pouze `admin-offline.html` a tři admin ikony; za běhu mohou přibýt jen neměnné assety `/_next/static/`. Neobsahuje HTML administrace, RSC, API, session, rezervace, klientky, platby ani vouchery. Admin navigace jsou vždy síťové; bez připojení se ukáže pouze statická stránka bez uživatelských dat. Po odhlášení proto přístup vždy ověří server a PWA neumí ukázat předchozí admin obsah.
+Cache `ppstudio-admin-shell-v3` obsahuje pouze `admin-offline.html` a tři admin ikony; za běhu mohou přibýt jen neměnné assety `/_next/static/`. Neobsahuje HTML administrace, RSC, API, session, rezervace, klientky, platby ani vouchery. Admin navigace jsou vždy síťové; bez připojení se ukáže pouze statická stránka bez uživatelských dat. Po odhlášení proto přístup vždy ověří server a PWA neumí ukázat předchozí admin obsah.
 
 ## Instalace a údržba
 

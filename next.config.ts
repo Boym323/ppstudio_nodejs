@@ -40,6 +40,9 @@ const tokenRouteHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // Admin PWA používá scope `/admin/`; zachování koncového lomítka proto brání
+  // přesměrování start_url mimo deklarovaný scope manifestu.
+  skipTrailingSlashRedirect: true,
   // Každý verzovaný release obsahuje vlastní package-lock.json. Explicitní root
   // zabrání Turbopacku, aby při buildu staging release prohledával sourozence
   // v /var/www/ppstudio/releases a vypisoval falešné workspace varování.

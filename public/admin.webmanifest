@@ -3,7 +3,7 @@
   "name": "PP Studio – administrace",
   "short_name": "PP Studio",
   "description": "Rezervace, klientky a provoz PP Studia",
-  "start_url": "/admin",
+  "start_url": "/admin/",
   "scope": "/admin/",
   "display": "standalone",
   "background_color": "#101011",
@@ -14,9 +14,39 @@
     { "src": "/pwa/admin-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
     { "src": "/pwa/admin-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ],
+  "screenshots": [
+    {
+      "src": "/pwa/screenshots/admin-dashboard-wide.webp",
+      "sizes": "1440x900",
+      "type": "image/webp",
+      "form_factor": "wide",
+      "label": "Přehled administrace PP Studio"
+    },
+    {
+      "src": "/pwa/screenshots/admin-dashboard-mobile.webp",
+      "sizes": "390x844",
+      "type": "image/webp",
+      "label": "Administrace PP Studio na mobilu"
+    }
+  ],
   "shortcuts": [
-    { "name": "Rezervace", "short_name": "Rezervace", "url": "/admin/rezervace" },
-    { "name": "Volné termíny", "short_name": "Termíny", "url": "/admin/volne-terminy" },
-    { "name": "KPI a statistiky", "short_name": "KPI", "url": "/admin/statistiky" }
+    {
+      "name": "Rezervace",
+      "short_name": "Rezervace",
+      "url": "/admin/rezervace",
+      "icons": [{ "src": "/pwa/shortcuts/reservations-96.png", "sizes": "96x96", "type": "image/png" }]
+    },
+    {
+      "name": "Volné termíny",
+      "short_name": "Termíny",
+      "url": "/admin/volne-terminy",
+      "icons": [{ "src": "/pwa/shortcuts/slots-96.png", "sizes": "96x96", "type": "image/png" }]
+    },
+    {
+      "name": "KPI a statistiky",
+      "short_name": "KPI",
+      "url": "/admin/statistiky",
+      "icons": [{ "src": "/pwa/shortcuts/statistics-96.png", "sizes": "96x96", "type": "image/png" }]
+    }
   ]
 }

@@ -21,6 +21,9 @@ test("admin navigace zahrnuje pouze admin cestu a její potomky", () => {
 test("data a HTML jsou z PWA cache vždy vynechány", () => {
   assert.equal(shouldBypassPwaCache("/api/admin/clients/search"), true);
   assert.equal(shouldBypassPwaCache("/admin/klienti"), true);
+  assert.equal(shouldBypassPwaCache("/admin/vouchery"), true);
+  assert.equal(shouldBypassPwaCache("/admin/rezervace"), true);
+  assert.equal(shouldBypassPwaCache("/admin/platby"), true);
   assert.equal(shouldBypassPwaCache("/rezervace"), true);
   assert.equal(shouldBypassPwaCache("/_next/static/chunks/app.js"), false);
 });
