@@ -6,7 +6,7 @@ import { getPrimaryPublicAboutPortrait } from '@/features/public/lib/public-medi
 import { getPublicSalonProfile } from "@/lib/site-settings";
 
 export const metadata = buildPageMetadata({
-  title: 'O mně',
+  title: 'O mně | Pavlína Pomykalová',
   description: 'Poznejte příběh a přístup Pavlíny Pomykalové v PP Studiu.',
   path: '/o-mne',
 });
