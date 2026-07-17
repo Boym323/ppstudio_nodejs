@@ -6,6 +6,20 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [3.1.0] - 2026-07-17
+
+### Přidáno
+- Administrace má KPI dashboard pro OWNER i SALON roli: tržby, obsazenost, klientské a retenční metriky, storna, no-show, očekávané tržby, vývojové grafy, služby a akviziční zdroje včetně filtrů období.
+- Aktivace administrátorské pozvánky nově eviduje pokusy a omezuje jejich frekvenci podle důvěryhodné IP adresy.
+
+### Opraveno
+- Seznam klientek zachovává retenční filtry při stránkování a zobrazuje poslední službu i budoucí rezervaci.
+- Přihlášení administrace může v E2E scénářích ověřit očekávanou cílovou cestu; titul stránky „O mně“ je konkrétnější pro SEO.
+- Provozní dokumentace přesněji popisuje podmínky databázových migrací a rollbacku.
+
+### Změněno
+- Release příprava pro produkční nasazení: projektová verze navýšena na minor `3.1.0` kvůli zpětně kompatibilnímu rozšíření administrace o KPI dashboard.
+
 ## [3.0.1] - 2026-07-16
 
 ### Opraveno
