@@ -13,7 +13,7 @@ async function loginAdmin(page: Page, email: string, password: string) {
   await page.getByLabel("E-mail").fill(email);
   await page.getByLabel("Heslo").fill(password);
   await page.getByRole("button", { name: "Přihlásit se" }).click();
-  await expect(page).toHaveURL(/\/admin/);
+  await expect(page).toHaveURL(/\/admin(?:\?.*)?$/);
 }
 
 async function expectPageReady(page: Page, path: string, heading: RegExp | string) {
@@ -133,7 +133,7 @@ test.describe("admin site smoke coverage", () => {
   });
 
   test("guest is redirected from protected owner and salon workspaces", async ({ page }) => {
-    for (const path of ["/admin", "/admin/rezervace", "/admin/provoz", "/admin/provoz/rezervace"]) {
+    for (const path of ["/admin", "/admin/rezervace", "/admin/statistiky", "/admin/provoz", "/admin/provoz/rezervace", "/admin/provoz/statistiky"]) {
       await page.goto(path);
       await expect(page).toHaveURL(/\/admin\/prihlaseni/);
       await expect(page.getByRole("heading", { name: "Přihlášení do správy salonu" })).toBeVisible();
@@ -151,6 +151,7 @@ test.describe("admin site smoke coverage", () => {
 
     const ownerPages: Array<{ path: string; heading: RegExp | string }> = [
       { path: "/admin", heading: "Provozní přehled" },
+      { path: "/admin/statistiky", heading: "KPI a statistiky" },
       { path: "/admin/rezervace", heading: "Rezervace" },
       { path: "/admin/volne-terminy", heading: /Týdenní plán|Volné termíny/ },
       { path: "/admin/vouchery", heading: "Vouchery" },
@@ -171,6 +172,38 @@ test.describe("admin site smoke coverage", () => {
     }
   });
 
+  test("KPI filtr přepíná rychlé a vlastní období bez nechtěného přepočtu", async ({ page }) => {
+    const fixture = await createPublicBookingFixture();
+    const admin = await createAdminFixture(fixture.runId, AdminRole.OWNER);
+    fixtures.push(fixture);
+
+    await loginAdmin(page, admin.email, admin.password);
+    await page.goto("/admin/statistiky?period=this_year");
+    await expect(page.getByText(/^Zobrazené období:/)).toBeVisible();
+    await expect(page.getByLabel("Od", { exact: true })).toHaveCount(0);
+
+    await page.getByRole("link", { name: "Tento měsíc" }).click();
+    await expect(page).toHaveURL(/period=this_month/);
+    await expect(page.getByLabel("Od", { exact: true })).toHaveCount(0);
+
+    await page.getByRole("button", { name: "Vlastní období" }).click();
+    await expect(page.getByLabel("Od", { exact: true })).toHaveValue(/\d{4}-\d{2}-\d{2}/);
+    await expect(page.getByLabel("Do", { exact: true })).toHaveValue(/\d{4}-\d{2}-\d{2}/);
+    await page.getByLabel("Od", { exact: true }).fill("2026-07-20");
+    await page.getByLabel("Do", { exact: true }).fill("2026-07-10");
+    await page.getByRole("button", { name: "Použít vlastní období" }).click();
+    await expect(page.getByText("Datum „Od“ musí být před datem „Do“ nebo stejné.", { exact: true })).toBeVisible();
+
+    await page.getByLabel("Od", { exact: true }).fill("2026-07-10");
+    await page.getByLabel("Do", { exact: true }).fill("2026-07-19");
+    await page.getByRole("button", { name: "Použít vlastní období" }).click();
+    await expect(page).toHaveURL(/period=custom&dateFrom=2026-07-10&dateTo=2026-07-19/);
+    await page.reload();
+    await expect(page.getByLabel("Od", { exact: true })).toHaveValue("2026-07-10");
+    await expect(page.getByLabel("Do", { exact: true })).toHaveValue("2026-07-19");
+    expect(await page.locator("body").evaluate((body) => body.scrollWidth <= window.innerWidth)).toBe(true);
+  });
+
   test("salon role can open the operational workspace but not owner-only sections", async ({ page }) => {
     test.setTimeout(90_000);
 
@@ -182,6 +215,7 @@ test.describe("admin site smoke coverage", () => {
 
     const salonPages: Array<{ path: string; heading: RegExp | string }> = [
       { path: "/admin/provoz", heading: "Provozní přehled" },
+      { path: "/admin/provoz/statistiky", heading: "KPI a statistiky" },
       { path: "/admin/provoz/rezervace", heading: "Rezervace" },
       { path: "/admin/provoz/volne-terminy", heading: /Týdenní plán|Volné termíny/ },
       { path: "/admin/provoz/vouchery", heading: "Vouchery" },

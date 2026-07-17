@@ -70,6 +70,8 @@ function normalizeSearchParams(searchParams?: Record<string, string | string[] |
     status: typeof searchParams?.status === "string" ? searchParams.status : undefined,
     sort: typeof searchParams?.sort === "string" ? searchParams.sort : undefined,
     quick: typeof searchParams?.quick === "string" ? searchParams.quick : undefined,
+    retention: typeof searchParams?.retention === "string" ? searchParams.retention : undefined,
+    retentionAt: typeof searchParams?.retentionAt === "string" ? searchParams.retentionAt : undefined,
   });
 
   const defaults = {
@@ -77,6 +79,8 @@ function normalizeSearchParams(searchParams?: Record<string, string | string[] |
     status: "all" as ClientListStatusValue,
     sort: "recent" as ClientListSortValue,
     quick: "all" as ClientListQuickFilterValue,
+    retention: undefined as "8_11" | "12_15" | "16_plus" | undefined,
+    retentionAt: undefined as string | undefined,
   };
 
   if (!parsed.success) {
@@ -88,6 +92,8 @@ function normalizeSearchParams(searchParams?: Record<string, string | string[] |
     status: parsed.data.status ?? defaults.status,
     sort: parsed.data.sort ?? defaults.sort,
     quick: parsed.data.quick ?? defaults.quick,
+    retention: parsed.data.retention,
+    retentionAt: parsed.data.retentionAt,
   };
 }
 
@@ -130,6 +136,7 @@ function hasNoContactWhere(): Prisma.ClientWhereInput {
 function buildClientWhere(
   filters: ReturnType<typeof normalizeSearchParams>,
   recentThreshold: Date,
+  now: Date,
 ): Prisma.ClientWhereInput {
   const where: Prisma.ClientWhereInput = {};
   const andFilters: Prisma.ClientWhereInput[] = [];
@@ -184,6 +191,19 @@ function buildClientWhere(
       break;
   }
 
+  if (filters.retention) {
+    const eightWeeksAgo = new Date(now.getTime() - 8 * 7 * 86_400_000);
+    const twelveWeeksAgo = new Date(now.getTime() - 12 * 7 * 86_400_000);
+    const sixteenWeeksAgo = new Date(now.getTime() - 16 * 7 * 86_400_000);
+    const lowerBound = filters.retention === "8_11" ? twelveWeeksAgo : filters.retention === "12_15" ? sixteenWeeksAgo : undefined;
+    const upperBound = filters.retention === "8_11" ? eightWeeksAgo : filters.retention === "12_15" ? twelveWeeksAgo : sixteenWeeksAgo;
+    andFilters.push(
+      { isActive: true },
+      { bookings: { some: { status: BookingStatus.COMPLETED, scheduledStartsAt: { lt: upperBound, ...(lowerBound ? { gte: lowerBound } : {}) } } } },
+      { bookings: { none: { status: BookingStatus.COMPLETED, scheduledStartsAt: { gte: upperBound, lt: now } } } },
+    );
+  }
+
   if (andFilters.length > 0) {
     where.AND = andFilters;
   }
@@ -217,9 +237,12 @@ export async function getAdminClientsPageData(
 ) {
   const filters = normalizeSearchParams(searchParams);
   const now = new Date();
+  const retentionReference = filters.retentionAt
+    ? new Date(Math.min(Number(filters.retentionAt), now.getTime()))
+    : now;
   const recentThreshold = new Date(now);
   recentThreshold.setDate(recentThreshold.getDate() - 30);
-  const where = buildClientWhere(filters, recentThreshold);
+  const where = buildClientWhere(filters, recentThreshold, retentionReference);
   const cursor = readClientCursor(searchParams);
 
   const [totalCount, newCount, noContactCount, notedCount, activeRecentCount, filteredCount, clients] = await Promise.all([
@@ -262,7 +285,7 @@ export async function getAdminClientsPageData(
           where: {
             status: BookingStatus.COMPLETED,
             scheduledStartsAt: {
-              lt: now,
+              lt: retentionReference,
             },
           },
           orderBy: {
@@ -271,6 +294,7 @@ export async function getAdminClientsPageData(
           take: 1,
           select: {
             scheduledStartsAt: true,
+            serviceNameSnapshot: true,
           },
         },
       },
@@ -279,11 +303,22 @@ export async function getAdminClientsPageData(
 
   const hasNextPage = clients.length > clientPageSize;
   const pageClients = clients.slice(0, clientPageSize);
+  const futureBookings = pageClients.length
+    ? await prisma.booking.findMany({
+      where: { clientId: { in: pageClients.map((client) => client.id) }, status: { in: [BookingStatus.PENDING, BookingStatus.CONFIRMED] }, scheduledStartsAt: { gte: now } },
+      orderBy: { scheduledStartsAt: "asc" },
+      select: { clientId: true, scheduledStartsAt: true, serviceNameSnapshot: true },
+    })
+    : [];
+  const nextBookingByClientId = new Map<string, (typeof futureBookings)[number]>();
+  for (const booking of futureBookings) if (!nextBookingByClientId.has(booking.clientId)) nextBookingByClientId.set(booking.clientId, booking);
   const normalizedClients = sortClientsForList(
     pageClients.map((client) => ({
       ...client,
       email: client.email ?? "",
       lastVisitAt: client.bookings[0]?.scheduledStartsAt ?? null,
+      lastServiceName: client.bookings[0]?.serviceNameSnapshot ?? null,
+      nextBooking: nextBookingByClientId.get(client.id) ?? null,
       isTestRecord: isTestClientRecord(client.fullName, client.email),
     })),
     filters.sort,
@@ -319,6 +354,7 @@ export async function getAdminClientsPageData(
       },
     ],
     clients: normalizedClients,
+    retentionReference,
     pagination: {
       totalCount: filteredCount,
       hasNextPage,

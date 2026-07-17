@@ -4,10 +4,12 @@ import { getAdminClientHref } from "@/features/admin/lib/admin-clients";
 import { formatClientPhoneForDisplay } from "@/features/booking/lib/client-phone";
 import { cn } from "@/lib/utils";
 import { type AdminArea } from "@/config/navigation";
+import { getWeeksWithoutVisit } from "@/features/admin/lib/kpi-retention";
 
 type AdminClientsListProps = {
   area: AdminArea;
   resetHref: string;
+  retentionReference?: Date;
   clients: Array<{
     id: string;
     fullName: string;
@@ -15,6 +17,8 @@ type AdminClientsListProps = {
     phone: string | null;
     isActive: boolean;
     lastVisitAt: Date | null;
+    lastServiceName: string | null;
+    nextBooking: { scheduledStartsAt: Date; serviceNameSnapshot: string } | null;
     internalNote: string | null;
     _count: {
       bookings: number;
@@ -41,6 +45,7 @@ export function AdminClientsList({
   area,
   resetHref,
   clients,
+  retentionReference,
 }: AdminClientsListProps) {
   if (clients.length === 0) {
     return (
@@ -86,7 +91,7 @@ export function AdminClientsList({
               <ContactCell email={client.email} phone={client.phone} />
 
               <p className="text-white/72">{client._count.bookings}</p>
-              <p className="truncate text-white/68">{formatDateLabel(client.lastVisitAt).toLocaleLowerCase("cs-CZ")}</p>
+              <div className="min-w-0 text-white/68"><p className="truncate">{formatDateLabel(client.lastVisitAt).toLocaleLowerCase("cs-CZ")}</p>{client.lastServiceName ? <p className="truncate text-xs text-white/45">{client.lastServiceName} · {weeksSince(client.lastVisitAt, retentionReference)} týdnů</p> : null}{client.nextBooking ? <p className="truncate text-xs text-emerald-300">Již objednaná: {formatDateLabel(client.nextBooking.scheduledStartsAt)} · {client.nextBooking.serviceNameSnapshot}</p> : null}</div>
               <NoteBadge hasNote={hasNote(client.internalNote)} />
               <StatusBadge isActive={client.isActive} />
               <span
@@ -123,6 +128,8 @@ export function AdminClientsList({
               <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
                 <MetaCell label="Rezervace" value={String(client._count.bookings)} />
                 <MetaCell label="Poslední návštěva" value={formatDateLabel(client.lastVisitAt).toLocaleLowerCase("cs-CZ")} />
+                <MetaCell label="Poslední služba" value={client.lastServiceName ?? "—"} />
+                <MetaCell label="Budoucí rezervace" value={client.nextBooking ? `Již objednaná · ${formatDateLabel(client.nextBooking.scheduledStartsAt)} · ${client.nextBooking.serviceNameSnapshot}` : "—"} />
                 <MetaCell label="Poznámka" value={hasNote(client.internalNote) ? "ano" : "bez poznámky"} />
                 <span className="inline-flex items-center justify-center rounded-full border border-white/10 px-3 py-2 text-sm font-medium text-white/82">
                   Detail
@@ -135,6 +142,8 @@ export function AdminClientsList({
     </div>
   );
 }
+
+function weeksSince(value: Date | null, reference?: Date) { return getWeeksWithoutVisit(value, reference) ?? 0; }
 
 function hasNote(value: string | null) {
   return Boolean(value?.trim());

@@ -21,6 +21,7 @@ export type AdminArea = "owner" | "salon";
 
 export type AdminSectionSlug =
   | "overview"
+  | "statistiky"
   | "rezervace"
   | "volne-terminy"
   | "vouchery"
@@ -40,6 +41,13 @@ export type AdminNavigationItem = {
 };
 
 const sharedSections = [
+  {
+    slug: "statistiky",
+    ownerHref: "/admin/statistiky",
+    salonHref: "/admin/provoz/statistiky",
+    label: "KPI a statistiky",
+    description: "Manažerské KPI, tržby a vývoj salonu.",
+  },
   {
     slug: "rezervace",
     ownerHref: "/admin/rezervace",

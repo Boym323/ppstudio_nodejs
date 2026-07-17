@@ -25,6 +25,7 @@ export async function AdminClientsPage({
 
         <AdminPanel
           title="Seznam klientů"
+          description={data.filters.retention ? `Retenční stav k ${new Intl.DateTimeFormat("cs-CZ", { dateStyle: "medium", timeZone: "Europe/Prague" }).format(data.retentionReference)}.` : undefined}
           denseHeader
           compact={area === "salon"}
         >
@@ -37,7 +38,7 @@ export async function AdminClientsPage({
           </div>
 
           <div className="mt-4">
-            <AdminClientsList area={area} clients={data.clients} resetHref={data.currentPath} />
+            <AdminClientsList area={area} clients={data.clients} resetHref={data.currentPath} retentionReference={data.filters.retention ? data.retentionReference : undefined} />
           </div>
           {data.pagination.hasNextPage && data.pagination.nextCursor ? (
             <div className="mt-4 flex justify-center">
@@ -57,7 +58,7 @@ export async function AdminClientsPage({
 
 function buildNextPageHref(
   currentPath: string,
-  filters: { query: string; status: string; sort: string; quick: string },
+  filters: { query: string; status: string; sort: string; quick: string; retention?: string; retentionAt?: string },
   cursor: string,
 ) {
   const params = new URLSearchParams({ cursor });
@@ -66,6 +67,8 @@ function buildNextPageHref(
   if (filters.status !== "all") params.set("status", filters.status);
   if (filters.sort !== "recent") params.set("sort", filters.sort);
   if (filters.quick !== "all") params.set("quick", filters.quick);
+  if (filters.retention) params.set("retention", filters.retention);
+  if (filters.retentionAt) params.set("retentionAt", filters.retentionAt);
 
   return `${currentPath}?${params.toString()}`;
 }

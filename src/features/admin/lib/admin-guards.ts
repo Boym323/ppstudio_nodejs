@@ -10,6 +10,7 @@ import { requireAdminArea } from "@/lib/auth/session";
 
 const sectionSlugs = new Set<AdminSectionSlug>([
   "overview",
+  "statistiky",
   "rezervace",
   "volne-terminy",
   "vouchery",

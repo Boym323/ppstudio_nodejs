@@ -17,6 +17,7 @@ import { AdminUsersPage } from "@/features/admin/components/admin-users-page";
 import { AdminServiceCategoriesPage } from "@/features/admin/components/admin-service-categories-page";
 import { AdminServicesPage } from "@/features/admin/components/admin-services-page";
 import { AdminWeeklyPlannerPage } from "@/features/admin/components/admin-weekly-planner-page";
+import { AdminKpiDashboard } from "@/features/admin/components/admin-kpi-dashboard";
 import { getAdminSectionPath } from "@/features/admin/lib/admin-paths";
 import { getAdminSettingsPageData } from "@/features/admin/lib/admin-settings-page-data";
 import { requireAdminArea } from "@/lib/auth/session";
@@ -58,6 +59,13 @@ export function createAdminOverviewRoute(area: AdminArea) {
     await requireAdminArea(area);
 
     return <AdminOverviewPage area={area} />;
+  };
+}
+
+export function createAdminKpiDashboardRoute(area: AdminArea) {
+  return async function AdminKpiDashboardRoute({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+    await requireAdminSectionAccess(area, "statistiky");
+    return <AdminKpiDashboard area={area} searchParams={await searchParams} />;
   };
 }
 

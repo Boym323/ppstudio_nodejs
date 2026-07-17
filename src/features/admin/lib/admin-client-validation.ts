@@ -16,6 +16,8 @@ export const clientListSearchParamsSchema = z.object({
   status: z.enum(clientListStatusValues).optional(),
   sort: z.enum(clientListSortValues).optional(),
   quick: z.enum(clientListQuickFilterValues).optional(),
+  retention: z.enum(["8_11", "12_15", "16_plus"]).optional(),
+  retentionAt: z.string().regex(/^\d{13}$/).optional(),
 });
 
 export const updateClientNoteSchema = z.object({
