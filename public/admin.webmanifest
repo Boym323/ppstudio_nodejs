@@ -1,0 +1,22 @@
+{
+  "id": "/admin/",
+  "name": "PP Studio – administrace",
+  "short_name": "PP Studio",
+  "description": "Rezervace, klientky a provoz PP Studia",
+  "start_url": "/admin",
+  "scope": "/admin/",
+  "display": "standalone",
+  "background_color": "#101011",
+  "theme_color": "#18181a",
+  "orientation": "portrait-primary",
+  "icons": [
+    { "src": "/pwa/admin-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/pwa/admin-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/pwa/admin-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Rezervace", "short_name": "Rezervace", "url": "/admin/rezervace" },
+    { "name": "Volné termíny", "short_name": "Termíny", "url": "/admin/volne-terminy" },
+    { "name": "KPI a statistiky", "short_name": "KPI", "url": "/admin/statistiky" }
+  ]
+}

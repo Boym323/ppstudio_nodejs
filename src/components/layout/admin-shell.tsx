@@ -5,6 +5,7 @@ import { useState } from "react";
 import { AdminRole } from "@prisma/client";
 
 import { AdminSidebarNav } from "@/features/admin/components/admin-sidebar-nav";
+import { AdminOfflineBanner } from "@/features/pwa/admin-offline-banner";
 import { cn } from "@/lib/utils";
 
 type AdminShellProps = {
@@ -18,9 +19,10 @@ export function AdminShell({ children, currentRole, userName }: AdminShellProps)
 
   return (
     <div className="min-h-screen overflow-x-clip bg-[var(--color-admin-background)] text-[var(--color-admin-foreground)]">
+      <AdminOfflineBanner />
       <header
         className={cn(
-          "sticky top-0 z-40 border-b border-white/8 bg-[rgba(16,15,17,0.92)] px-4 py-3 backdrop-blur-xl transition lg:hidden",
+          "sticky top-0 z-40 border-b border-white/8 bg-[rgba(16,15,17,0.92)] px-4 pb-3 pt-[calc(0.75rem+env(safe-area-inset-top))] backdrop-blur-xl transition lg:hidden",
           mobileSidebarOpen && "pointer-events-none opacity-0",
         )}
       >
