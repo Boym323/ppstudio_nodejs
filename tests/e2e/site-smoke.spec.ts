@@ -209,6 +209,17 @@ test.describe("admin site smoke coverage", () => {
     expect(await page.locator("body").evaluate((body) => body.scrollWidth <= window.innerWidth)).toBe(true);
   });
 
+  test("provozní KPI zachovají tmavý administrativní povrch", async ({ page }) => {
+    const fixture = await createPublicBookingFixture();
+    const admin = await createAdminFixture(fixture.runId, AdminRole.SALON);
+    fixtures.push(fixture);
+
+    await loginAdmin(page, admin.email, admin.password, "/admin/provoz");
+    await page.goto("/admin/provoz/statistiky");
+    await expect(page.getByRole("heading", { name: "KPI a statistiky" })).toBeVisible();
+    await expect.poll(() => page.locator("main").evaluate((element) => getComputedStyle(element.parentElement?.parentElement ?? element).backgroundColor)).toBe("rgb(16, 15, 17)");
+  });
+
   test("salon role can open the operational workspace but not owner-only sections", async ({ page }) => {
     test.setTimeout(90_000);
 
@@ -236,6 +247,9 @@ test.describe("admin site smoke coverage", () => {
       await expect(page.getByRole("heading", { name: item.heading }).first()).toBeVisible();
       await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/i);
     }
+
+    await page.goto("/admin/provoz/statistiky");
+    await expect.poll(() => page.locator("main").evaluate((element) => getComputedStyle(element.parentElement?.parentElement ?? element).backgroundColor)).toBe("rgb(16, 15, 17)");
 
     await page.goto("/admin/nastaveni");
     await expect(page).toHaveURL(/\/admin\/provoz/);
