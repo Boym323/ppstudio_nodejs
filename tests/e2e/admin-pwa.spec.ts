@@ -14,7 +14,7 @@ test("admin PWA assety mají bezpečné hlavičky a veřejná rezervace není v 
   expect(worker.headers()["content-type"]).toContain("application/javascript; charset=utf-8");
   expect(worker.headers()["service-worker-allowed"]).toBe("/admin/");
   expect(worker.headers()["cache-control"]).toContain("no-store");
-  expect(await worker.text()).toContain('const CACHE_NAME = "ppstudio-admin-shell-v3"');
+  expect(await worker.text()).toContain('const CACHE_NAME = "ppstudio-admin-shell-v4"');
   expect(await offline.text()).toContain("Nejste připojeni k internetu");
 
   const adminStart = await request.get("/admin/", { maxRedirects: 0 });

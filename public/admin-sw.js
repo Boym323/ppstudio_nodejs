@@ -1,20 +1,9 @@
 /* PWA worker pro /admin/: ukládá jen instalační shell, nikdy HTML ani provozní data. */
-const CACHE_NAME = "ppstudio-admin-shell-v3";
+const CACHE_NAME = "ppstudio-admin-shell-v4";
 const SHELL_ASSETS = ["/admin-offline.html", "/pwa/admin-192.png", "/pwa/admin-512.png", "/pwa/admin-maskable-512.png"];
 const PWA_ASSET_PATHS = new Set(SHELL_ASSETS.slice(1));
 const isAdminNavigation = (pathname) => pathname === "/admin" || pathname.startsWith("/admin/");
 const isSafeStaticAsset = (pathname) => pathname.startsWith("/_next/static/") || PWA_ASSET_PATHS.has(pathname);
-const cacheResponseSafely = async (cache, request, networkResponse) => {
-  if (!networkResponse.ok || networkResponse.type === "opaque" || networkResponse.bodyUsed) return;
-
-  try {
-    // Clone synchronously before returning the original response to the browser.
-    await cache.put(request, networkResponse.clone());
-  } catch {
-    // Cache Storage is only an optimization; never turn a successful fetch into a failure.
-  }
-};
-
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(SHELL_ASSETS)));
   self.skipWaiting();
@@ -38,14 +27,29 @@ self.addEventListener("fetch", (event) => {
     if (cached) return cached;
 
     const networkResponse = await fetch(request);
+    let cacheResponse;
+    try {
+      // Clone immediately: the browser may consume the original once it is returned below.
+      cacheResponse = networkResponse.clone();
+    } catch {
+      // An unusable response is still returned from the network, only without caching.
+    }
+
     const cacheControl = networkResponse.headers.get("Cache-Control") || "";
-    if (!/private|no-store/i.test(cacheControl)) {
-      try {
-        const cache = await caches.open(CACHE_NAME);
-        await cacheResponseSafely(cache, request, networkResponse);
-      } catch {
-        // Opening Cache Storage can fail as well; the network response still wins.
-      }
+    if (
+      cacheResponse &&
+      networkResponse.ok &&
+      networkResponse.type !== "opaque" &&
+      !networkResponse.bodyUsed &&
+      !/private|no-store/i.test(cacheControl)
+    ) {
+      event.waitUntil(
+        caches.open(CACHE_NAME)
+          .then((cache) => cache.put(request, cacheResponse))
+          .catch(() => {
+            // Cache Storage is only an optimization; the successful network response wins.
+          }),
+      );
     }
 
     return networkResponse;
