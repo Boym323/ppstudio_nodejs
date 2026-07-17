@@ -257,15 +257,20 @@ export function CreateManualBookingDrawer({
 
       {canUsePortal && open
         ? createPortal(
-        <div className="fixed inset-0 z-[90]">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Vytvořit rezervaci v administraci"
+          className="fixed inset-0 z-[90]"
+        >
           <AdminEscapeKeyClose onEscape={closeDrawer} />
           <div
             className="absolute inset-0 bg-black/62 backdrop-blur-sm"
             onClick={closeDrawer}
           />
-          <div className="absolute inset-y-0 right-0 w-full max-w-4xl overflow-hidden border-l border-white/10 bg-[#131116] shadow-[-20px_0_70px_rgba(0,0,0,0.45)]">
+          <div className="absolute right-0 top-0 h-[100dvh] w-full max-w-4xl overflow-hidden border-l border-white/10 bg-[#131116] shadow-[-20px_0_70px_rgba(0,0,0,0.45)]">
             <div className="flex h-full flex-col">
-              <div className="flex items-start justify-between gap-4 border-b border-white/10 px-5 py-5 sm:px-6">
+              <div className="flex items-start justify-between gap-4 border-b border-white/10 px-5 pb-5 pt-[calc(1.25rem+env(safe-area-inset-top))] sm:px-6 sm:py-5">
                 <div>
                   <p className="text-[11px] uppercase tracking-[0.22em] text-[var(--color-accent-soft)]">
                     Ruční rezervace
@@ -447,7 +452,7 @@ export function CreateManualBookingDrawer({
                   </div>
                 </div>
 
-                <div className="sticky bottom-0 border-t border-white/10 bg-[#131116]/96 px-5 py-4 backdrop-blur sm:px-6">
+                <div className="sticky bottom-0 border-t border-white/10 bg-[#131116]/96 px-5 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-4 backdrop-blur sm:px-6 sm:py-4">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="text-sm leading-6 text-white/58">
                       Stejné chování pro OWNER i SALON. Rozdíl je jen v cestě do administrace, ne v logice rezervace.

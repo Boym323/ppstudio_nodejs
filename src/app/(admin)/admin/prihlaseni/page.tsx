@@ -44,8 +44,8 @@ export default async function AdminLoginPage({ searchParams }: LoginPageProps) {
   const nextPath = normalizeNextPath(params.next);
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(190,160,120,0.18),transparent_28%),linear-gradient(160deg,#111111_0%,#1b1714_45%,#281f19_100%)]">
-      <div className="mx-auto flex min-h-screen w-full max-w-xl items-center px-5 py-16 sm:px-6">
+    <div className="min-h-dvh bg-[radial-gradient(circle_at_top,rgba(190,160,120,0.18),transparent_28%),linear-gradient(160deg,#111111_0%,#1b1714_45%,#281f19_100%)]">
+      <div className="mx-auto flex min-h-dvh w-full max-w-xl items-center px-5 pb-[calc(4rem+env(safe-area-inset-bottom))] pt-[calc(4rem+env(safe-area-inset-top))] sm:px-6">
         <AdminLoginForm errorMessage={errorMessage} infoMessage={infoMessage} nextPath={nextPath} />
       </div>
     </div>

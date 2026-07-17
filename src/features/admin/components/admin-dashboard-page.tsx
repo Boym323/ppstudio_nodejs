@@ -254,7 +254,7 @@ export function DashboardPage({ data }: DashboardPageProps) {
   );
 
   return (
-    <div className="mx-auto min-h-[calc(100vh-3rem)] max-w-[1600px] px-0.5 py-0.5 sm:px-1 sm:py-1 lg:px-1">
+    <div className="mx-auto min-h-[calc(100dvh-3rem)] max-w-[1600px] px-0.5 py-0.5 sm:px-1 sm:py-1 lg:px-1">
       <div className="space-y-4">
         <DashboardTodayHero data={data} />
         <DashboardAttentionAlert data={data} />
@@ -788,7 +788,7 @@ function SummaryRow({ label, value }: { label: string; value: string }) {
 
 export function DashboardPageSkeleton() {
   return (
-    <div className="mx-auto min-h-[calc(100vh-3rem)] max-w-[1600px] animate-pulse px-0.5 py-0.5 sm:px-1 sm:py-1 lg:px-1">
+    <div className="mx-auto min-h-[calc(100dvh-3rem)] max-w-[1600px] animate-pulse px-0.5 py-0.5 sm:px-1 sm:py-1 lg:px-1">
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_320px] 2xl:grid-cols-[minmax(0,1fr)_336px]">
         <main className="min-w-0 space-y-6">
           <div className="rounded-[1.65rem] border border-white/7 bg-zinc-900/88 p-6">

@@ -18,7 +18,7 @@ export function AdminShell({ children, currentRole, userName }: AdminShellProps)
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   return (
-    <div className="min-h-screen overflow-x-clip bg-[var(--color-admin-background)] text-[var(--color-admin-foreground)]">
+    <div className="min-h-dvh overflow-x-clip bg-[var(--color-admin-background)] text-[var(--color-admin-foreground)]">
       <AdminOfflineBanner />
       <header
         className={cn(
@@ -34,7 +34,7 @@ export function AdminShell({ children, currentRole, userName }: AdminShellProps)
           <button
             type="button"
             onClick={() => setMobileSidebarOpen(true)}
-            className="rounded-full border border-white/10 bg-white/6 px-4 py-2 text-sm text-white/84"
+            className="min-h-11 min-w-11 rounded-full border border-white/10 bg-white/6 px-4 py-2 text-sm text-white/84"
           >
             Menu
           </button>
@@ -43,7 +43,7 @@ export function AdminShell({ children, currentRole, userName }: AdminShellProps)
 
       <div
         className={cn(
-          "mx-auto grid min-h-screen w-full items-start gap-4 px-3 py-3 sm:px-6 sm:py-6 lg:gap-6 lg:px-6 lg:py-5 xl:px-7",
+          "mx-auto grid min-h-dvh w-full items-start gap-4 px-3 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:px-6 sm:py-6 lg:gap-6 lg:px-6 lg:py-5 xl:px-7",
           "max-w-[min(100%,1860px)] lg:grid-cols-[224px_minmax(0,1fr)] xl:grid-cols-[228px_minmax(0,1fr)]",
         )}
       >
@@ -75,7 +75,7 @@ export function AdminShell({ children, currentRole, userName }: AdminShellProps)
         <aside
           aria-label="Mobilní navigace administrace"
           className={cn(
-            "absolute left-0 top-0 flex h-full w-[min(92vw,360px)] flex-col border-r border-white/10 bg-[#131116] px-4 py-4 shadow-[0_18px_48px_rgba(0,0,0,0.35)] transition",
+            "absolute left-0 top-0 flex h-[100dvh] w-[min(92vw,360px)] flex-col border-r border-white/10 bg-[#131116] px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-[calc(1rem+env(safe-area-inset-top))] shadow-[0_18px_48px_rgba(0,0,0,0.35)] transition",
             mobileSidebarOpen ? "translate-x-0" : "-translate-x-full",
           )}
           onClick={(event) => event.stopPropagation()}
@@ -88,7 +88,7 @@ export function AdminShell({ children, currentRole, userName }: AdminShellProps)
             <button
               type="button"
               onClick={() => setMobileSidebarOpen(false)}
-              className="rounded-full border border-white/10 px-3 py-2 text-sm text-white/72"
+              className="min-h-11 min-w-11 rounded-full border border-white/10 px-3 py-2 text-sm text-white/72"
             >
               Zavřít
             </button>

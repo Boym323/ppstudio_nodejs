@@ -50,17 +50,23 @@ export function InviteUserDialog({
   }
 
   return (
-    <div className="fixed inset-0 z-50">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="admin-user-dialog-title"
+      className="fixed inset-0 z-50 overflow-y-auto"
+    >
       <AdminEscapeKeyClose onEscape={onClose} />
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="absolute inset-x-0 bottom-0 top-auto mx-auto max-w-2xl px-4 pb-4 pt-10 sm:bottom-auto sm:left-1/2 sm:top-1/2 sm:w-full sm:-translate-x-1/2 sm:-translate-y-1/2 sm:px-6 sm:pb-0">
+      <div className="relative flex min-h-[100dvh] items-end px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-[calc(2.5rem+env(safe-area-inset-top))] sm:items-center sm:px-6 sm:py-8">
+        <div className="mx-auto w-full max-w-2xl">
         <div className="rounded-[1.7rem] border border-white/10 bg-[#131116] p-5 shadow-[0_20px_70px_rgba(0,0,0,0.45)] sm:p-6">
           <div className="flex items-start justify-between gap-4 border-b border-white/10 pb-4">
             <div>
               <p className="text-[11px] uppercase tracking-[0.22em] text-[var(--color-accent-soft)]">
                 {mode === "invite" ? "Nový přístup" : "Úprava přístupu"}
               </p>
-              <h3 className="mt-2 text-2xl font-display text-white">
+              <h3 id="admin-user-dialog-title" className="mt-2 text-2xl font-display text-white">
                 {mode === "invite" ? "Pozvat uživatele" : "Upravit uživatele"}
               </h3>
               <p className="mt-2 text-sm leading-6 text-white/66">
@@ -72,7 +78,7 @@ export function InviteUserDialog({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-full border border-white/10 px-3 py-2 text-sm text-white/72 transition hover:border-white/18 hover:bg-white/6"
+              className="min-h-11 min-w-11 rounded-full border border-white/10 px-3 py-2 text-sm text-white/72 transition hover:border-white/18 hover:bg-white/6"
             >
               Zavřít
             </button>
@@ -144,6 +150,7 @@ export function InviteUserDialog({
               <SubmitButton mode={mode} />
             </div>
           </form>
+        </div>
         </div>
       </div>
     </div>
