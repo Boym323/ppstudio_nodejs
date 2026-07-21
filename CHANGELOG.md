@@ -6,6 +6,17 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [3.2.0] - 2026-07-21
+
+### Přidáno
+- Administrace nyní podporuje instalovatelnou PWA s offline obrazovkou, service workerem, ikonami, zkratkami a upozorněním na nedostupné připojení.
+- Experimentální laboratorní planner nabízí samostatnou týdenní navigaci, frontu ukládání a adaptér pro FullCalendar, aniž by měnil původní planner.
+
+### Změněno
+- Admin API pro analytiku, hledání rezervací a ověření voucherů mají sdílenou implementaci route handlerů; mobilní administrace má vylepšenou navigaci a přístupnost.
+- Aktualizovány vývojové závislosti a workflow CI pro aktuální podporované verze.
+- Release příprava pro produkční nasazení: projektová verze navýšena na minor `3.2.0` kvůli zpětně kompatibilnímu rozšíření administrace o PWA a laboratorní planner.
+
 ## [3.1.0] - 2026-07-17
 
 ### Přidáno
