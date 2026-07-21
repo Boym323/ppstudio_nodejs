@@ -17,7 +17,7 @@ export type PlannerLabEvent = {
   interactive?: boolean;
   display: "background" | "block";
   color: string;
-  classNames: string[];
+  className: string;
   extendedProps: { type: PlannerLabEventType; editable: boolean; dateKey: string; startCell: number; endCell: number; clientName?: string; serviceName?: string };
 };
 
@@ -40,7 +40,7 @@ export function plannerWeekToFullCalendarEvents(
       interactive: true,
       display: "background" as const,
       color: "#4ecf9b",
-      classNames: ["planner-lab-event--availability"],
+      className: "planner-lab-event--availability",
       extendedProps: { type: "availability" as const, editable: true, dateKey: day.dateKey, startCell: interval.startCell, endCell: interval.endCell },
     }));
     const protectedIntervals = day.intervals
@@ -52,7 +52,7 @@ export function plannerWeekToFullCalendarEvents(
         editable: false as const,
         display: "background" as const,
         color: "#8b96a8",
-        classNames: ["planner-lab-event--protected"],
+        className: "planner-lab-event--protected",
         extendedProps: { type: "protected" as const, editable: false, dateKey: day.dateKey, startCell: interval.startCell, endCell: interval.endCell },
       }));
     const bookings = day.bookings.map((booking) => {
@@ -66,7 +66,7 @@ export function plannerWeekToFullCalendarEvents(
         editable: false as const,
         display: "block" as const,
         color: booking.status === "COMPLETED" ? "#64748b" : "#ee7890",
-        classNames: [booking.status === "COMPLETED" ? "planner-lab-event--completed" : "planner-lab-event--booking"],
+        className: booking.status === "COMPLETED" ? "planner-lab-event--completed" : "planner-lab-event--booking",
         extendedProps: {
           type: (booking.status === "COMPLETED" ? "completed" : "booking") as "booking" | "completed",
           editable: false,
@@ -85,7 +85,7 @@ export function plannerWeekToFullCalendarEvents(
       editable: false as const,
       display: "block" as const,
       color: "#d6a64e",
-      classNames: ["planner-lab-event--cleanup"],
+      className: "planner-lab-event--cleanup",
       extendedProps: { type: "cleanup" as const, editable: false, dateKey: day.dateKey, startCell: block.startMinutes / 30, endCell: block.endMinutes / 30 },
     }));
 
