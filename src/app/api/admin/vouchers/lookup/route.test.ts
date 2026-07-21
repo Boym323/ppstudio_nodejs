@@ -33,7 +33,7 @@ function createAdminSession() {
 }
 
 test("voucher lookup přijímá kód jen v POST těle a neukládá odpověď do cache", async () => {
-  const { createAdminVoucherLookupRouteApi } = await import("./route");
+  const { createAdminVoucherLookupRouteApi } = await import("./admin-voucher-lookup-route-api");
   let receivedCode = "";
   const api = createAdminVoucherLookupRouteApi({
     getSession: async () => createAdminSession(),
@@ -63,7 +63,7 @@ test("voucher lookup přijímá kód jen v POST těle a neukládá odpověď do 
 });
 
 test("voucher lookup odmítne request bez same-origin kontroly bez dotazu do databáze", async () => {
-  const { createAdminVoucherLookupRouteApi } = await import("./route");
+  const { createAdminVoucherLookupRouteApi } = await import("./admin-voucher-lookup-route-api");
   const api = createAdminVoucherLookupRouteApi({
     getSession: async () => createAdminSession(),
     isSameOriginAdminRequest: () => false,
