@@ -49,3 +49,13 @@ test("UTC intervaly zachovají Prague čas v létě, zimě i při obou DST přec
   assert.equal(getCellRangeBounds("2026-03-29", 0, 1).startsAt.toISOString(), "2026-03-29T04:00:00.000Z");
   assert.equal(getCellRangeBounds("2026-10-25", 0, 1).startsAt.toISOString(), "2026-10-25T05:00:00.000Z");
 });
+
+test("adaptér předá FullCalendaru 09:00 místního času po přechodu na letní čas", () => {
+  const input = week("2027-03-29");
+  input.days[0].availableIntervals = [{ startCell: 6, endCell: 8, label: "09:00 - 10:00" }];
+
+  const event = plannerWeekToFullCalendarEvents(input).find((item) => item.id.startsWith("availability:"));
+
+  assert.equal(event?.start, "2027-03-29T07:00:00.000Z");
+  assert.equal(event?.end, "2027-03-29T08:00:00.000Z");
+});

@@ -37,8 +37,8 @@ async function createOwner(runId: string) {
   return { ...user, password };
 }
 
-async function createAvailability(ownerId: string, startCell: number, endCell: number) {
-  const range = getCellRangeBounds(plannerDate, startCell, endCell);
+async function createAvailability(ownerId: string, startCell: number, endCell: number, dateKey = plannerDate) {
+  const range = getCellRangeBounds(dateKey, startCell, endCell);
 
   await prisma.availabilitySlot.create({
     data: {
@@ -107,6 +107,38 @@ test.describe("FullCalendar planner e2e", () => {
     await expect(page.getByRole("status")).toHaveText("Uloženo");
 
     const expectedRange = getCellRangeBounds(plannerDate, 6, 9);
+    await expect.poll(async () => prisma.availabilitySlot.count({
+      where: {
+        createdByUserId: owner.id,
+        startsAt: expectedRange.startsAt,
+        endsAt: expectedRange.endsAt,
+      },
+    })).toBe(1);
+  });
+
+  test("keeps the selected local time after the switch to daylight saving time", async ({ page }) => {
+    test.skip(test.info().project.name !== "chromium", "Kliknutí do časové mřížky je pokryté desktopovým workflow.");
+
+    const dstDate = "2027-03-29";
+    const runId = buildRunId();
+    runIds.push(runId);
+    const owner = await createOwner(runId);
+    await createAvailability(owner.id, 6, 8, dstDate);
+
+    await loginAdmin(page, owner.email, owner.password);
+    await page.goto(`/admin/volne-terminy?week=${dstDate}`);
+    await expect(page.getByTestId("planner-lab-calendar")).toBeVisible();
+
+    const dayColumn = page.locator(`.fc-timegrid-col[data-date="${dstDate}"]`);
+    const timeSlot = page.locator('.fc-timegrid-slot[data-time="10:00:00"]').first();
+    const [dayBox, slotBox] = await Promise.all([dayColumn.boundingBox(), timeSlot.boundingBox()]);
+    expect(dayBox).not.toBeNull();
+    expect(slotBox).not.toBeNull();
+
+    await page.mouse.click(dayBox!.x + dayBox!.width / 2, slotBox!.y + slotBox!.height / 2);
+    await expect(page.getByRole("status")).toHaveText("Uloženo");
+
+    const expectedRange = getCellRangeBounds(dstDate, 6, 9);
     await expect.poll(async () => prisma.availabilitySlot.count({
       where: {
         createdByUserId: owner.id,
