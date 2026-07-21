@@ -83,7 +83,7 @@ test.describe("planner DST e2e", () => {
 
     await loginAdmin(page, owner.email, owner.password);
 
-    await page.goto("/admin/volne-terminy?week=2027-03-22&day=2027-03-22");
+    await page.goto("/admin/volne-terminy/puvodni-planner?week=2027-03-22&day=2027-03-22");
     await page.getByRole("button", { name: "Kopírovat týden" }).click();
 
     await expect(page).toHaveURL(/week=2027-03-29/);

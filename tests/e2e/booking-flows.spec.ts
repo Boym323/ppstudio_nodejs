@@ -244,6 +244,28 @@ async function loginAdmin(page: Page, email: string, password: string) {
   );
 }
 
+function plannerAvailabilityCells(range: string) {
+  const [start, end] = range.split(" - ");
+  const [startHour, startMinute] = start.split(":").map(Number);
+  const [endHour, endMinute] = end.split(":").map(Number);
+  const cells: string[] = [];
+  let minutes = startHour * 60 + startMinute;
+  const endMinutes = endHour * 60 + endMinute;
+
+  while (minutes < endMinutes) {
+    const nextMinutes = minutes + 30;
+    const formatTime = (value: number) => `${String(Math.floor(value / 60)).padStart(2, "0")}:${String(value % 60).padStart(2, "0")}`;
+    cells.push(`${formatTime(minutes)} - ${formatTime(nextMinutes)}`);
+    minutes = nextMinutes;
+  }
+
+  return cells;
+}
+
+function plannerAvailableCell(page: Page, dateKey: string, range: string) {
+  return page.locator(`button[data-planner-cell="1"][data-day-key="${dateKey}"][aria-label$="${range}, volný blok"]:visible`);
+}
+
 function selectedClientCard(page: Page) {
   return page.getByRole("group", { name: "Vybraná klientka" });
 }
@@ -328,21 +350,21 @@ test.describe("booking flows", () => {
 
     await loginAdmin(page, fixture.adminEmail, fixture.adminPassword);
 
-    await page.goto(`/admin/volne-terminy?week=${fixture.planner.weekKey}&day=${fixture.planner.dayKey}`);
+    await page.goto(`/admin/volne-terminy/puvodni-planner?week=${fixture.planner.weekKey}&day=${fixture.planner.dayKey}`);
     await expect(page.getByRole("heading", { name: "Volné termíny" })).toBeVisible();
-    await expect(page.getByText(fixture.planner.beforeCancellationWindows[0], { exact: true })).toBeVisible();
-    await expect(page.getByText(fixture.planner.beforeCancellationWindows[1], { exact: true })).toBeVisible();
+    await expect(plannerAvailableCell(page, fixture.planner.dayKey, fixture.planner.beforeCancellationWindows[0])).toBeVisible();
+    await expect(plannerAvailableCell(page, fixture.planner.dayKey, fixture.planner.beforeCancellationWindows[1])).toBeVisible();
 
     await page.goto(`/rezervace/storno/${fixture.cancelToken}`);
     await expect(page.getByRole("heading", { name: "Opravdu chcete zrušit rezervaci?" })).toBeVisible();
     await page.getByRole("button", { name: "Potvrdit storno" }).click();
     await expect(page.getByText("Rezervace zrušena")).toBeVisible();
 
-    await page.goto(`/admin/volne-terminy?week=${fixture.planner.weekKey}&day=${fixture.planner.dayKey}`);
+    await page.goto(`/admin/volne-terminy/puvodni-planner?week=${fixture.planner.weekKey}&day=${fixture.planner.dayKey}`);
     await expect(page.getByRole("heading", { name: "Volné termíny" })).toBeVisible();
-    await expect(page.getByText(fixture.planner.afterCancellationWindow, { exact: true })).toBeVisible();
-    await expect(page.getByText(fixture.planner.beforeCancellationWindows[0], { exact: true })).toHaveCount(0);
-    await expect(page.getByText(fixture.planner.beforeCancellationWindows[1], { exact: true })).toHaveCount(0);
+    for (const range of plannerAvailabilityCells(fixture.planner.afterCancellationWindow)) {
+      await expect(plannerAvailableCell(page, fixture.planner.dayKey, range)).toBeVisible();
+    }
   });
 
   test("public visitor can create a pending booking", async ({ page }) => {
