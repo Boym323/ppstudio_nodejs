@@ -45,6 +45,8 @@ export type PlannerDay = {
   isToday: boolean;
   isPast: boolean;
   availableIntervals: Array<{ startCell: number; endCell: number; label: string }>;
+  /** Přesná 15minutová okna pro read-only zobrazení; editace zůstává po 30 minutách. */
+  displayAvailableIntervals?: Array<{ startCell: number; endCell: number; label: string }>;
   lockedIntervals: Array<{ startCell: number; endCell: number; label: string }>;
   cleanupBlocks: Array<{ startMinutes: number; endMinutes: number }>;
   availableBlocks: Array<{ startMinutes: number; endMinutes: number }>;

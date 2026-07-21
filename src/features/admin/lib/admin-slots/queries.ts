@@ -423,6 +423,19 @@ export async function getAdminPlannerWeek(area: AdminArea, week?: string | null)
           label: formatTimeRange(plannerRange.startsAt, plannerRange.endsAt),
         };
       });
+    const displayAvailableIntervals = mergeMinuteBlocks(availableBlocks).map((block) => {
+      const plannerRange = getCellRangeBounds(
+        dateKey,
+        block.startMinutes / 30,
+        block.endMinutes / 30,
+      );
+
+      return {
+        startCell: block.startMinutes / 30,
+        endCell: block.endMinutes / 30,
+        label: formatTimeRange(plannerRange.startsAt, plannerRange.endsAt),
+      };
+    });
 
     const lockedIntervals = intervals
       .filter((interval) => interval.status === "locked" || interval.status === "inactive")
@@ -507,6 +520,7 @@ export async function getAdminPlannerWeek(area: AdminArea, week?: string | null)
       isToday,
       isPast,
       availableIntervals,
+      displayAvailableIntervals,
       lockedIntervals,
       cleanupBlocks,
       availableBlocks,

@@ -962,8 +962,8 @@ export function DayInspector({
               <p className="text-xs text-white/46">{day.availableIntervals.length} bloků</p>
             </div>
             <div className="mt-2 space-y-2">
-              {day.availableIntervals.length > 0 ? (
-                day.availableIntervals.map((interval, intervalIndex) => (
+              {(day.displayAvailableIntervals ?? day.availableIntervals).length > 0 ? (
+                (day.displayAvailableIntervals ?? day.availableIntervals).map((interval, intervalIndex) => (
                   <div
                     key={`${day.dateKey}-available-${interval.startCell}-${interval.endCell}-${intervalIndex}`}
                     className="flex items-center justify-between rounded-[0.9rem] border border-emerald-300/18 bg-emerald-300/10 px-3 py-2 text-left"

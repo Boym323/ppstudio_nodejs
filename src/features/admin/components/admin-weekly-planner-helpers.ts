@@ -116,6 +116,7 @@ export function cloneWeekDays(days: PlannerDay[]) {
   return days.map((day) => ({
     ...day,
     availableIntervals: day.availableIntervals.map((interval) => ({ ...interval })),
+    displayAvailableIntervals: day.displayAvailableIntervals?.map((interval) => ({ ...interval })),
     lockedIntervals: day.lockedIntervals.map((interval) => ({ ...interval })),
     cleanupBlocks: day.cleanupBlocks.map((block) => ({ ...block })),
     availableBlocks: day.availableBlocks.map((block) => ({ ...block })),

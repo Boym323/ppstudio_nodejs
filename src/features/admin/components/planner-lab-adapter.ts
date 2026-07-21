@@ -32,7 +32,7 @@ export function plannerWeekToFullCalendarEvents(
   workingDays: PlannerDay[] = week.days,
 ): PlannerLabEvent[] {
   return workingDays.flatMap((day) => {
-    const availability = day.availableIntervals.map((interval, index) => ({
+    const availability = (day.displayAvailableIntervals ?? day.availableIntervals).map((interval, index) => ({
       id: `availability:${day.dateKey}:${index}:${interval.startCell}-${interval.endCell}`,
       title: "",
       ...toIsoRange(day.dateKey, interval.startCell, interval.endCell),
@@ -43,11 +43,24 @@ export function plannerWeekToFullCalendarEvents(
       className: "planner-lab-event--availability",
       extendedProps: { type: "availability" as const, editable: true, dateKey: day.dateKey, startCell: interval.startCell, endCell: interval.endCell },
     }));
-    const protectedIntervals = day.intervals
-      .filter((interval) => interval.status === "locked" || interval.status === "inactive")
+    const protectedIntervals = (day.lockedBlocks.length > 0
+      ? day.lockedBlocks.map((interval, index) => ({
+        id: `protected:${day.dateKey}:locked-${index}`,
+        title: "Chráněný interval",
+        startCell: interval.startMinutes / 30,
+        endCell: interval.endMinutes / 30,
+      }))
+      : day.intervals
+        .filter((interval) => interval.status === "locked" || interval.status === "inactive")
+        .map((interval) => ({
+          id: `protected:${day.dateKey}:${interval.id}`,
+          title: interval.status === "inactive" ? "Neaktivní interval" : "Chráněný interval",
+          startCell: interval.startCell,
+          endCell: interval.endCell,
+        })))
       .map((interval) => ({
-        id: `protected:${day.dateKey}:${interval.id}`,
-        title: interval.status === "inactive" ? "Neaktivní interval" : "Chráněný interval",
+        id: interval.id,
+        title: interval.title,
         ...toIsoRange(day.dateKey, interval.startCell, interval.endCell),
         editable: false as const,
         display: "background" as const,
