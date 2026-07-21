@@ -97,8 +97,8 @@ test.describe("FullCalendar planner e2e", () => {
     await page.goto(`/admin/volne-terminy?week=${plannerDate}`);
     await expect(page.getByTestId("planner-lab-calendar")).toBeVisible();
 
-    const dayColumn = page.locator(`.fc-timegrid-col[data-date="${plannerDate}"]`);
-    const timeSlot = page.locator('.fc-timegrid-slot[data-time="10:00:00"]').first();
+    const dayColumn = page.locator(`[role="gridcell"][data-date="${plannerDate}"]`);
+    const timeSlot = page.locator('[data-time="10:00:00"]').first();
     const [dayBox, slotBox] = await Promise.all([dayColumn.boundingBox(), timeSlot.boundingBox()]);
     expect(dayBox).not.toBeNull();
     expect(slotBox).not.toBeNull();
@@ -129,8 +129,8 @@ test.describe("FullCalendar planner e2e", () => {
     await page.goto(`/admin/volne-terminy?week=${dstDate}`);
     await expect(page.getByTestId("planner-lab-calendar")).toBeVisible();
 
-    const dayColumn = page.locator(`.fc-timegrid-col[data-date="${dstDate}"]`);
-    const timeSlot = page.locator('.fc-timegrid-slot[data-time="10:00:00"]').first();
+    const dayColumn = page.locator(`[role="gridcell"][data-date="${dstDate}"]`);
+    const timeSlot = page.locator('[data-time="10:00:00"]').first();
     const [dayBox, slotBox] = await Promise.all([dayColumn.boundingBox(), timeSlot.boundingBox()]);
     expect(dayBox).not.toBeNull();
     expect(slotBox).not.toBeNull();
