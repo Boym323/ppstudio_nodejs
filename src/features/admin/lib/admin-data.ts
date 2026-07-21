@@ -11,24 +11,19 @@ import {
 import { type AdminArea } from "@/config/navigation";
 import {
   getAdminBookingActionOptions,
-  getBookingAcquisitionLabel,
   getAdminBookingHref,
-  getBookingSourceLabel,
   getBookingStatusLabel,
 } from "@/features/admin/lib/admin-booking";
 import {
-  bookingListGroupValues,
   bookingListSearchParamsSchema,
-  type BookingListGroupValue,
   type BookingListSourceValue,
-  type BookingListStatValue,
   type BookingListStatusValue,
+  type BookingListViewValue,
 } from "@/features/admin/lib/admin-booking-list-validation";
 import {
   addDays,
   formatDateKey,
   getDayBounds,
-  resolveWeekStart,
 } from "@/features/admin/lib/admin-slots/time";
 import { getPublicBookingCatalog } from "@/features/booking/lib/booking-public";
 import {
@@ -51,9 +46,9 @@ const formatTime = new Intl.DateTimeFormat("cs-CZ", {
   timeZone: "Europe/Prague",
 });
 
-const defaultReservationGroupLimit = 12;
-const reservationGroupLimitStep = 12;
-const reservationGroupLimitMax = 200;
+const defaultReservationLimit = 30;
+const reservationLimitStep = 30;
+const reservationLimitMax = 200;
 
 const activeBookingStatuses = [BookingStatus.PENDING, BookingStatus.CONFIRMED] as const;
 
@@ -61,13 +56,6 @@ function isActiveBookingStatus(status: BookingStatus) {
   return status === BookingStatus.PENDING || status === BookingStatus.CONFIRMED;
 }
 
-function isClosedBookingStatus(status: BookingStatus) {
-  return (
-    status === BookingStatus.COMPLETED ||
-    status === BookingStatus.CANCELLED ||
-    status === BookingStatus.NO_SHOW
-  );
-}
 
 const formatDateTime = new Intl.DateTimeFormat("cs-CZ", {
   day: "numeric",
@@ -418,46 +406,28 @@ export async function getAdminOverviewData(area: AdminArea) {
 export type ReservationsDashboardData = {
   currentPath: string;
   filters: {
+    view: BookingListViewValue;
     query: string;
     status: BookingListStatusValue;
     source: BookingListSourceValue;
-    stat: BookingListStatValue | null;
     dateFrom: string;
     dateTo: string;
-    showPast: boolean;
-    limits: Record<BookingListGroupValue, number>;
+    limit: number;
     hasActiveFilters: boolean;
   };
+  views: Array<{ key: BookingListViewValue; label: string; count: number; href: string; isActive: boolean }>;
+  attention: { pendingCount: number; needsClosureCount: number; totalCount: number; href: string };
   summary: {
     totalCount: number;
-    totalUnfilteredCount: number;
-    emptyState: "empty" | "filtered" | "pending";
+    visibleCount: number;
+    emptyState: "today" | "upcoming" | "attention" | "history" | "all";
+    showMoreHref: string | null;
   };
-  stats: Array<{
-    key: BookingListStatValue;
-    label: string;
-    value: string;
-    tone?: "default" | "accent" | "muted";
-    detail?: string;
-    href: string;
-    isActive: boolean;
-  }>;
-  kpis: Array<{
-    key: "pending" | "today" | "week" | "missing-contact";
-    label: string;
-    value: string;
-  }>;
-  groups: Array<{
-    key: BookingListGroupValue;
+  sections: Array<{
+    key: string;
     label: string;
     detail: string;
     totalCount: number;
-    visibleCount: number;
-    hiddenCount: number;
-    collapsed: boolean;
-    expandHref: string | null;
-    collapseHref: string | null;
-    showMoreHref: string | null;
     items: Array<{
       id: string;
       title: string;
@@ -468,12 +438,8 @@ export type ReservationsDashboardData = {
       scheduledTimeLabel: string;
       status: BookingStatus;
       statusLabel: string;
-      sourceLabel: string;
-      acquisitionLabel: string | null;
       primaryContactLabel: string | null;
       primaryContactHref: string | null;
-      secondaryContactLabel: string | null;
-      secondaryContactHref: string | null;
       href: string;
       availableActions: ReturnType<typeof getAdminBookingActionOptions>;
       isMuted: boolean;
@@ -509,29 +475,22 @@ function normalizeReservationsSearchParams(
     query: typeof searchParams?.query === "string" ? searchParams.query : undefined,
     status: typeof searchParams?.status === "string" ? searchParams.status : undefined,
     source: typeof searchParams?.source === "string" ? searchParams.source : undefined,
+    view: typeof searchParams?.view === "string" ? searchParams.view : undefined,
     stat: typeof searchParams?.stat === "string" ? searchParams.stat : undefined,
     dateFrom: typeof searchParams?.dateFrom === "string" ? searchParams.dateFrom : undefined,
     dateTo: typeof searchParams?.dateTo === "string" ? searchParams.dateTo : undefined,
     showPast: typeof searchParams?.showPast === "string" ? searchParams.showPast : undefined,
-    needsClosureLimit:
-      typeof searchParams?.needsClosureLimit === "string" ? searchParams.needsClosureLimit : undefined,
-    pendingLimit: typeof searchParams?.pendingLimit === "string" ? searchParams.pendingLimit : undefined,
-    upcomingLimit: typeof searchParams?.upcomingLimit === "string" ? searchParams.upcomingLimit : undefined,
-    pastLimit: typeof searchParams?.pastLimit === "string" ? searchParams.pastLimit : undefined,
+    limit: typeof searchParams?.limit === "string" ? searchParams.limit : undefined,
   });
 
   const defaults = {
     query: "",
     status: "all" as BookingListStatusValue,
     source: "all" as BookingListSourceValue,
-    stat: null as BookingListStatValue | null,
+    view: "today" as BookingListViewValue,
     dateFrom: "",
     dateTo: "",
-    showPast: false,
-    needsClosureLimit: defaultReservationGroupLimit,
-    pendingLimit: defaultReservationGroupLimit,
-    upcomingLimit: defaultReservationGroupLimit,
-    pastLimit: defaultReservationGroupLimit,
+    limit: defaultReservationLimit,
   };
 
   if (!parsed.success) {
@@ -545,27 +504,20 @@ function normalizeReservationsSearchParams(
     query: parsed.data.query ?? defaults.query,
     status: parsed.data.status ?? defaults.status,
     source: parsed.data.source ?? defaults.source,
-    stat: parsed.data.stat ?? defaults.stat,
+    view: parsed.data.view ?? legacyView(parsed.data.stat, parsed.data.showPast) ?? defaults.view,
     dateFrom: dateFrom <= dateTo || !dateFrom || !dateTo ? dateFrom : dateTo,
     dateTo: dateFrom <= dateTo || !dateFrom || !dateTo ? dateTo : dateFrom,
-    showPast: parsed.data.showPast === "1",
-    needsClosureLimit: parsed.data.needsClosureLimit ?? defaults.needsClosureLimit,
-    pendingLimit: parsed.data.pendingLimit ?? defaults.pendingLimit,
-    upcomingLimit: parsed.data.upcomingLimit ?? defaults.upcomingLimit,
-    pastLimit: parsed.data.pastLimit ?? defaults.pastLimit,
+    limit: parsed.data.limit ?? defaults.limit,
   };
 }
 
-function getReservationGroupLimits(
-  filters: ReturnType<typeof normalizeReservationsSearchParams>,
-): Record<BookingListGroupValue, number> {
-  return {
-    needs_closure: filters.needsClosureLimit,
-    pending: filters.pendingLimit,
-    upcoming: filters.upcomingLimit,
-    past: filters.pastLimit,
-  };
+function legacyView(stat?: string, showPast?: string): BookingListViewValue | null {
+  if (stat === "needs_closure" || stat === "pending") return "attention";
+  if (stat === "upcoming" || stat === "confirmed") return "upcoming";
+  if (stat === "completed" || stat === "cancelled" || showPast === "1") return "history";
+  return null;
 }
+
 
 function parseDateFilterBoundary(value: string, endOfDay = false) {
   if (!value) {
@@ -637,17 +589,7 @@ function buildReservationsWhere(
     where.source = sourceFilter;
   }
 
-  if (filters.stat === "needs_closure") {
-    where.scheduledEndsAt = { lt: new Date() };
-
-    if (!statusFilter) {
-      where.status = { in: [...activeBookingStatuses] };
-    }
-  }
-
-  if (filters.stat === "upcoming") {
-    scheduledStartsAtFilter.gte = dateFrom ?? startOfToday();
-  } else if (dateFrom) {
+  if (dateFrom) {
     scheduledStartsAtFilter.gte = dateFrom;
   }
 
@@ -659,65 +601,7 @@ function buildReservationsWhere(
     where.scheduledStartsAt = scheduledStartsAtFilter;
   }
 
-  if (!statusFilter && filters.stat && filters.stat !== "needs_closure" && filters.stat !== "upcoming") {
-    const statStatus = bookingStatusFromFilter(filters.stat);
-
-    if (statStatus) {
-      where.status = statStatus;
-    }
-  }
-
   return where;
-}
-
-function buildReservationGroupWhere(
-  group: BookingListGroupValue,
-  todayStart: Date,
-  now: Date,
-): Prisma.BookingWhereInput {
-  switch (group) {
-    case "needs_closure":
-      return {
-        scheduledEndsAt: { lt: now },
-        status: { in: [...activeBookingStatuses] },
-      };
-    case "pending":
-      return {
-        status: BookingStatus.PENDING,
-        scheduledEndsAt: { gte: now },
-      };
-    case "upcoming":
-      return {
-        status: BookingStatus.CONFIRMED,
-        scheduledStartsAt: { gte: todayStart },
-        scheduledEndsAt: { gte: now },
-      };
-    case "past":
-      return {
-        OR: [
-          { status: { in: [BookingStatus.COMPLETED, BookingStatus.CANCELLED, BookingStatus.NO_SHOW] } },
-          {
-            status: BookingStatus.CONFIRMED,
-            scheduledStartsAt: { lt: todayStart },
-            scheduledEndsAt: { gte: now },
-          },
-        ],
-      };
-  }
-}
-
-function buildReservationGroupQuery(
-  where: Prisma.BookingWhereInput,
-  group: BookingListGroupValue,
-  todayStart: Date,
-  now: Date,
-) {
-  return {
-    where: {
-      AND: [where, buildReservationGroupWhere(group, todayStart, now)],
-    },
-    orderBy: [{ scheduledStartsAt: "asc" as const }, { id: "asc" as const }],
-  };
 }
 
 function startOfToday() {
@@ -728,560 +612,106 @@ function startOfTomorrow(todayStart: Date) {
   return addDays(todayStart, 1);
 }
 
-function startOfWeek(todayStart: Date) {
-  return resolveWeekStart(formatDateKey(todayStart));
-}
-
-function startOfNextWeek(weekStart: Date) {
-  return addDays(weekStart, 7);
-}
-
-function formatGroupDateLabel(value: Date) {
-  return new Intl.DateTimeFormat("cs-CZ", {
-    weekday: "long",
-    day: "numeric",
-    month: "numeric",
-    timeZone: "Europe/Prague",
-  }).format(value);
-}
-
-function buildReservationsQueryString(
-  filters: Partial<ReturnType<typeof normalizeReservationsSearchParams>> & {
-    needs_closure?: number;
-    pending?: number;
-    upcoming?: number;
-    past?: number;
-  },
+function buildReservationsHref(
+  currentPath: string,
+  filters: Pick<ReservationsDashboardData["filters"], "view" | "query" | "status" | "source" | "dateFrom" | "dateTo">,
+  next: Partial<ReservationsDashboardData["filters"]> = {},
 ) {
+  const values = { ...filters, ...next };
   const params = new URLSearchParams();
-
-  if (filters.query) {
-    params.set("query", filters.query);
-  }
-
-  if (filters.status && filters.status !== "all") {
-    params.set("status", filters.status);
-  }
-
-  if (filters.source && filters.source !== "all") {
-    params.set("source", filters.source);
-  }
-
-  if (filters.stat) {
-    params.set("stat", filters.stat);
-  }
-
-  if (filters.dateFrom) {
-    params.set("dateFrom", filters.dateFrom);
-  }
-
-  if (filters.dateTo) {
-    params.set("dateTo", filters.dateTo);
-  }
-
-  if (filters.showPast) {
-    params.set("showPast", "1");
-  }
-
-  if (filters.needs_closure && filters.needs_closure !== defaultReservationGroupLimit) {
-    params.set("needsClosureLimit", String(filters.needs_closure));
-  }
-
-  if (filters.pending && filters.pending !== defaultReservationGroupLimit) {
-    params.set("pendingLimit", String(filters.pending));
-  }
-
-  if (filters.upcoming && filters.upcoming !== defaultReservationGroupLimit) {
-    params.set("upcomingLimit", String(filters.upcoming));
-  }
-
-  if (filters.past && filters.past !== defaultReservationGroupLimit) {
-    params.set("pastLimit", String(filters.past));
-  }
-
-  return params.toString();
+  params.set("view", values.view);
+  if (values.query) params.set("query", values.query);
+  if (values.status !== "all") params.set("status", values.status);
+  if (values.source !== "all") params.set("source", values.source);
+  if (values.dateFrom) params.set("dateFrom", values.dateFrom);
+  if (values.dateTo) params.set("dateTo", values.dateTo);
+  if (next.limit && next.limit !== defaultReservationLimit) params.set("limit", String(next.limit));
+  return `${currentPath}?${params.toString()}`;
 }
 
-function buildReservationsGroupHref(
-  currentPath: string,
-  filters: ReturnType<typeof normalizeReservationsSearchParams>,
-  nextDisplay: {
-    showPast?: boolean;
-    limits?: Partial<Record<BookingListGroupValue, number>>;
-  },
-) {
-  const currentLimits = getReservationGroupLimits(filters);
-  const limits = {
-    ...currentLimits,
-    ...(nextDisplay.limits ?? {}),
-  };
-  const nextQuery = buildReservationsQueryString({
-    ...filters,
-    showPast: nextDisplay.showPast ?? filters.showPast,
-    needs_closure: Math.min(limits.needs_closure, reservationGroupLimitMax),
-    pending: Math.min(limits.pending, reservationGroupLimitMax),
-    upcoming: Math.min(limits.upcoming, reservationGroupLimitMax),
-    past: Math.min(limits.past, reservationGroupLimitMax),
-  });
-
-  return nextQuery ? `${currentPath}?${nextQuery}` : currentPath;
+function viewWhere(view: BookingListViewValue, todayStart: Date, tomorrowStart: Date, now: Date): Prisma.BookingWhereInput {
+  switch (view) {
+    case "today": return { scheduledStartsAt: { gte: todayStart, lt: tomorrowStart } };
+    case "upcoming": return { status: { in: [...activeBookingStatuses] }, scheduledStartsAt: { gte: tomorrowStart } };
+    case "attention": return { OR: [{ status: BookingStatus.PENDING }, { status: { in: [...activeBookingStatuses] }, scheduledEndsAt: { lt: now } }] };
+    case "history": return { status: { in: [BookingStatus.COMPLETED, BookingStatus.CANCELLED, BookingStatus.NO_SHOW] } };
+    case "all": return {};
+  }
 }
 
-function buildReservationsStatHref(
-  currentPath: string,
-  filters: ReturnType<typeof normalizeReservationsSearchParams>,
-  target: BookingListStatValue,
-) {
-  const nextQuery = buildReservationsQueryString({
-    ...filters,
-    stat: filters.stat === target ? null : target,
-  });
-
-  return nextQuery ? `${currentPath}?${nextQuery}` : currentPath;
+function reservationOrder(view: BookingListViewValue): Prisma.BookingOrderByWithRelationInput[] {
+  return [{ scheduledStartsAt: view === "history" || view === "all" ? "desc" : "asc" }, { id: "asc" }];
 }
 
-function describeReservationsEmptyState(
-  filters: ReturnType<typeof normalizeReservationsSearchParams>,
-  totalUnfilteredCount: number,
-  totalCount: number,
-) {
-  if (totalCount > 0) {
-    return "filtered" as const;
-  }
-
-  if (totalUnfilteredCount === 0) {
-    return "empty" as const;
-  }
-
-  if (
-    filters.stat === "pending" &&
-    !filters.query &&
-    filters.status === "all" &&
-    filters.source === "all" &&
-    !filters.dateFrom &&
-    !filters.dateTo
-  ) {
-    return "pending" as const;
-  }
-
-  return "filtered" as const;
-}
-
-function buildBookingContacts(booking: {
-  clientPhoneSnapshot: string | null;
-  clientEmailSnapshot: string;
-}) {
-  const phone = booking.clientPhoneSnapshot?.trim() ?? "";
+function buildBookingContacts(booking: { clientPhoneSnapshot: string | null; clientEmailSnapshot: string }) {
+  const phone = booking.clientPhoneSnapshot?.trim();
+  if (phone) return { primaryContactLabel: formatClientPhoneForDisplay(phone), primaryContactHref: buildClientPhoneHref(phone) };
   const email = booking.clientEmailSnapshot.trim();
-
-  if (phone) {
-    return {
-      primaryContactLabel: formatClientPhoneForDisplay(phone),
-      primaryContactHref: buildClientPhoneHref(phone),
-      secondaryContactLabel: email || null,
-      secondaryContactHref: email ? `mailto:${email}` : null,
-    };
-  }
-
-  return {
-    primaryContactLabel: email || null,
-    primaryContactHref: email ? `mailto:${email}` : null,
-    secondaryContactLabel: null,
-    secondaryContactHref: null,
-  };
+  return { primaryContactLabel: email || null, primaryContactHref: email ? `mailto:${email}` : null };
 }
 
-export async function getReservationsData(
-  area: AdminArea,
-  searchParams?: Record<string, string | string[] | undefined>,
-) {
-  const todayStart = startOfToday();
+export async function getReservationsData(area: AdminArea, searchParams?: Record<string, string | string[] | undefined>): Promise<ReservationsDashboardData> {
   const now = new Date();
+  const todayStart = startOfToday();
   const tomorrowStart = startOfTomorrow(todayStart);
-  const weekStart = startOfWeek(todayStart);
-  const nextWeekStart = startOfNextWeek(weekStart);
   const filters = normalizeReservationsSearchParams(searchParams);
-  const where = buildReservationsWhere(filters);
   const currentPath = area === "owner" ? "/admin/rezervace" : "/admin/provoz/rezervace";
-  const limits = getReservationGroupLimits(filters);
-  const groupQueries = Object.fromEntries(
-    bookingListGroupValues.map((group) => [
-      group,
-      buildReservationGroupQuery(where, group, todayStart, now),
-    ]),
-  ) as Record<BookingListGroupValue, ReturnType<typeof buildReservationGroupQuery>>;
-
-  const [
-    today,
-    needsClosure,
-    pending,
-    confirmed,
-    completed,
-    cancelled,
-    todayKpi,
-    weekKpi,
-    missingContactKpi,
-    totalUnfilteredCount,
-    totalFilteredCount,
-    bookingCatalog,
-    needsClosureItems,
-    pendingItems,
-    upcomingItems,
-    pastItems,
-    needsClosureTotal,
-    pendingTotal,
-    upcomingTotal,
-    pastTotal,
-  ] =
-    await Promise.all([
-    prisma.booking.count({
-      where: {
-        scheduledStartsAt: { gte: todayStart },
-        status: { in: [...activeBookingStatuses] },
-      },
-    }),
-    prisma.booking.count({
-      where: {
-        scheduledEndsAt: { lt: now },
-        status: { in: [...activeBookingStatuses] },
-      },
-    }),
-    prisma.booking.count({ where: { status: BookingStatus.PENDING } }),
-    prisma.booking.count({ where: { status: BookingStatus.CONFIRMED } }),
-    prisma.booking.count({ where: { status: BookingStatus.COMPLETED } }),
-    prisma.booking.count({ where: { status: BookingStatus.CANCELLED } }),
-    prisma.booking.count({
-      where: {
-        scheduledStartsAt: {
-          gte: todayStart,
-          lt: tomorrowStart,
-        },
-      },
-    }),
-    prisma.booking.count({
-      where: {
-        scheduledStartsAt: {
-          gte: weekStart,
-          lt: nextWeekStart,
-        },
-      },
-    }),
-    prisma.booking.count({
-      where: {
-        AND: [
-          {
-            clientEmailSnapshot: "",
-          },
-          {
-            OR: [
-              { clientPhoneSnapshot: null },
-              { clientPhoneSnapshot: "" },
-            ],
-          },
-        ],
-      },
-    }),
-    prisma.booking.count(),
+  const detailWhere = buildReservationsWhere(filters);
+  const activeWhere = viewWhere(filters.view, todayStart, tomorrowStart, now);
+  const where: Prisma.BookingWhereInput = { AND: [detailWhere, activeWhere] };
+  const viewKeys: BookingListViewValue[] = ["today", "upcoming", "attention", "history", "all"];
+  const viewLabels: Record<BookingListViewValue, string> = { today: "Dnes", upcoming: "Nadcházející", attention: "Pozornost", history: "Historie", all: "Vše" };
+  const [totalCount, bookings, pendingCount, needsClosureCount, bookingCatalog, ...viewCounts] = await Promise.all([
     prisma.booking.count({ where }),
+    prisma.booking.findMany({ where, orderBy: reservationOrder(filters.view), take: Math.min(filters.limit, reservationLimitMax), include: { client: { select: { fullName: true } } } }),
+    prisma.booking.count({ where: { status: BookingStatus.PENDING } }),
+    prisma.booking.count({ where: { status: { in: [...activeBookingStatuses] }, scheduledEndsAt: { lt: now } } }),
     getPublicBookingCatalog(),
-    prisma.booking.findMany({
-      ...groupQueries.needs_closure,
-      take: Math.min(limits.needs_closure, reservationGroupLimitMax),
-      include: {
-        client: { select: { fullName: true } },
-      },
-    }),
-    prisma.booking.findMany({
-      ...groupQueries.pending,
-      take: Math.min(limits.pending, reservationGroupLimitMax),
-      include: { client: { select: { fullName: true } } },
-    }),
-    prisma.booking.findMany({
-      ...groupQueries.upcoming,
-      take: Math.min(limits.upcoming, reservationGroupLimitMax),
-      include: { client: { select: { fullName: true } } },
-    }),
-    prisma.booking.findMany({
-      ...groupQueries.past,
-      take: Math.min(limits.past, reservationGroupLimitMax),
-      include: { client: { select: { fullName: true } } },
-    }),
-    prisma.booking.count(groupQueries.needs_closure),
-    prisma.booking.count(groupQueries.pending),
-    prisma.booking.count(groupQueries.upcoming),
-    prisma.booking.count(groupQueries.past),
-    ]);
-
-  const items = [needsClosureItems, pendingItems, upcomingItems, pastItems].flat();
-  const groupTotals: Record<BookingListGroupValue, number> = {
-    needs_closure: needsClosureTotal,
-    pending: pendingTotal,
-    upcoming: upcomingTotal,
-    past: pastTotal,
-  };
-
-  const groupedItems = new Map<
-    BookingListGroupValue,
-    {
-      key: BookingListGroupValue;
-      label: string;
-      detail: string;
-      items: ReservationsDashboardData["groups"][number]["items"];
-    }
-  >();
-
-  for (const booking of items) {
-    const startsAt = booking.scheduledStartsAt;
+    ...viewKeys.map((view) => prisma.booking.count({ where: viewWhere(view, todayStart, tomorrowStart, now) })),
+  ]);
+  const rows = bookings.map((booking) => {
     const contacts = buildBookingContacts(booking);
-    const sourceLabel = getBookingSourceLabel(booking.source);
-    const acquisitionLabel = getBookingAcquisitionLabel(booking.acquisitionSource);
-
-    let groupKey: BookingListGroupValue = "upcoming";
-    let groupLabel = "Nadcházející";
-    let groupDetail = "Potvrzené a další aktivní rezervace od dneška dál.";
-    const needsClosure = booking.scheduledEndsAt < now && isActiveBookingStatus(booking.status);
-
-    if (needsClosure) {
-      groupKey = "needs_closure";
-      groupLabel = "K uzavření";
-      groupDetail = "Proběhlé rezervace, které ještě nejsou označené jako hotové, zrušené nebo no-show.";
-    } else if (booking.status === BookingStatus.PENDING) {
-      groupKey = "pending";
-      groupLabel = "Čeká na potvrzení";
-      groupDetail = "Rezervace vyžadující rychlé provozní rozhodnutí.";
-    } else if (
-      startsAt < todayStart ||
-      isClosedBookingStatus(booking.status)
-    ) {
-      groupKey = "past";
-      groupLabel = "Minulé";
-      groupDetail = "Hotové, zrušené a historické rezervace pro dohledání.";
-    }
-
-    if (!groupedItems.has(groupKey)) {
-      groupedItems.set(groupKey, {
-        key: groupKey,
-        label: groupLabel,
-        detail: groupDetail,
-        items: [],
-      });
-    }
-
-    groupedItems.get(groupKey)?.items.push({
-      id: booking.id,
-      // V průběhu paralelních E2E úklidů nebo u starších nekonzistentních dat
-      // může relace klientky chybět, přestože záznam rezervace zůstane čitelný.
-      title: booking.client?.fullName ?? booking.clientNameSnapshot,
-      serviceName: booking.serviceNameSnapshot,
-      scheduledStartsAtIso: booking.scheduledStartsAt.toISOString(),
-      scheduledDateLabel: formatDateLabel(booking.scheduledStartsAt),
-      scheduledDateShortLabel: formatGroupDateLabel(booking.scheduledStartsAt),
-      scheduledTimeLabel: `${formatTime.format(booking.scheduledStartsAt)} - ${formatTime.format(booking.scheduledEndsAt)}`,
-      status: booking.status,
-      statusLabel: getBookingStatusLabel(booking.status),
-      sourceLabel,
-      acquisitionLabel,
-      primaryContactLabel: contacts.primaryContactLabel,
-      primaryContactHref: contacts.primaryContactHref,
-      secondaryContactLabel: contacts.secondaryContactLabel,
-      secondaryContactHref: contacts.secondaryContactHref,
-      href: getAdminBookingHref(area, booking.id),
-      availableActions: getAdminBookingActionOptions(booking.status, {
-        scheduledEndsAt: booking.scheduledEndsAt,
-      }),
+    return {
+      id: booking.id, title: booking.client?.fullName ?? booking.clientNameSnapshot, serviceName: booking.serviceNameSnapshot,
+      scheduledStartsAtIso: booking.scheduledStartsAt.toISOString(), scheduledDateLabel: formatDateLabel(booking.scheduledStartsAt),
+      scheduledDateShortLabel: formatDaySectionLabel(booking.scheduledStartsAt, todayStart, tomorrowStart), scheduledTimeLabel: `${formatTime.format(booking.scheduledStartsAt)} - ${formatTime.format(booking.scheduledEndsAt)}`,
+      status: booking.status, statusLabel: getBookingStatusLabel(booking.status), primaryContactLabel: contacts.primaryContactLabel,
+      primaryContactHref: contacts.primaryContactHref, href: getAdminBookingHref(area, booking.id),
+      availableActions: getAdminBookingActionOptions(booking.status, { scheduledEndsAt: booking.scheduledEndsAt }),
       isMuted: booking.status === BookingStatus.COMPLETED || booking.status === BookingStatus.CANCELLED,
       isPending: booking.status === BookingStatus.PENDING,
-      needsClosure,
-    });
+      needsClosure: booking.scheduledEndsAt < now && isActiveBookingStatus(booking.status),
+    };
+  });
+  const sections = new Map<string, ReservationsDashboardData["sections"][number]>();
+  for (const row of rows) {
+    const attentionKey = row.needsClosure ? "needs_closure" : "pending";
+    const key = filters.view === "attention" ? attentionKey : row.scheduledStartsAtIso.slice(0, 10);
+    const label = filters.view === "attention" ? (attentionKey === "needs_closure" ? "K uzavření" : "Čeká na potvrzení") : formatDaySectionLabel(new Date(row.scheduledStartsAtIso), todayStart, tomorrowStart);
+    const detail = filters.view === "attention" ? (attentionKey === "needs_closure" ? "Proběhlé aktivní rezervace." : "Rezervace vyžadující potvrzení.") : "";
+    const section = sections.get(key) ?? { key, label, detail, totalCount: 0, items: [] };
+    section.items.push(row); section.totalCount += 1; sections.set(key, section);
   }
-
-  const totalCount = totalFilteredCount;
-  const hasActiveFilters = Boolean(
-    filters.query ||
-      filters.status !== "all" ||
-      filters.source !== "all" ||
-      filters.stat ||
-      filters.dateFrom ||
-      filters.dateTo ||
-      filters.showPast ||
-      Object.values(limits).some((value) => value !== defaultReservationGroupLimit),
-  );
-  const emptyState = describeReservationsEmptyState(filters, totalUnfilteredCount, totalCount);
-  const groupOrder = [...bookingListGroupValues];
-  const sortedGroups = Array.from(groupedItems.values())
-    .map((group) => ({
-      ...group,
-      items: [...group.items].sort((left, right) => {
-        const priority = (item: (typeof group.items)[number]) => {
-          if (item.status === BookingStatus.PENDING) {
-            return 0;
-          }
-
-          if (item.status === BookingStatus.CONFIRMED) {
-            return 1;
-          }
-
-          return 2;
-        };
-
-        return (
-          priority(left) - priority(right) ||
-          left.scheduledStartsAtIso.localeCompare(right.scheduledStartsAtIso)
-        );
-      }),
-    }))
-    .sort((left, right) => groupOrder.indexOf(left.key) - groupOrder.indexOf(right.key))
-    .filter((group) => group.items.length > 0);
-  const hasOnlyPastResults =
-    sortedGroups.length > 0 && sortedGroups.every((group) => group.key === "past");
-  const showPast =
-    filters.showPast ||
-    filters.status === "completed" ||
-    filters.status === "cancelled" ||
-    filters.status === "no_show" ||
-    filters.stat === "completed" ||
-    filters.stat === "cancelled" ||
-    hasOnlyPastResults;
-  const manualBookingServices = bookingCatalog.services.map((service) => ({
-    id: service.id,
-    categoryName: service.categoryName,
-    name: service.name,
-    durationMinutes: service.durationMinutes,
-    cleanupBlockMinutes: service.cleanupBlockMinutes,
-    priceFromCzk: service.priceFromCzk,
-  }));
-
+  const baseFilters = { view: filters.view, query: filters.query, status: filters.status, source: filters.source, dateFrom: filters.dateFrom, dateTo: filters.dateTo };
+  const attentionHref = buildReservationsHref(currentPath, baseFilters, { view: "attention" });
+  const hasActiveFilters = Boolean(filters.query || filters.status !== "all" || filters.source !== "all" || filters.dateFrom || filters.dateTo);
   return {
     currentPath,
-    filters: {
-      query: filters.query,
-      status: filters.status,
-      source: filters.source,
-      stat: filters.stat,
-      dateFrom: filters.dateFrom,
-      dateTo: filters.dateTo,
-      showPast,
-      limits,
-      hasActiveFilters,
-    },
-    summary: {
-      totalCount,
-      totalUnfilteredCount,
-      emptyState,
-    },
-    stats: [
-      {
-        key: "needs_closure",
-        label: "K uzavření",
-        value: String(needsClosure),
-        tone: "accent" as const,
-        href: buildReservationsStatHref(currentPath, filters, "needs_closure"),
-        isActive: filters.stat === "needs_closure",
-      },
-      {
-        key: "upcoming",
-        label: "Dnes a dál",
-        value: String(today),
-        tone: "accent" as const,
-        href: buildReservationsStatHref(currentPath, filters, "upcoming"),
-        isActive: filters.stat === "upcoming",
-      },
-      {
-        key: "pending",
-        label: "Čeká",
-        value: String(pending),
-        href: buildReservationsStatHref(currentPath, filters, "pending"),
-        isActive: filters.stat === "pending",
-      },
-      {
-        key: "confirmed",
-        label: "Potvrzené",
-        value: String(confirmed),
-        href: buildReservationsStatHref(currentPath, filters, "confirmed"),
-        isActive: filters.stat === "confirmed",
-      },
-      {
-        key: "completed",
-        label: "Hotovo",
-        value: String(completed),
-        tone: "muted" as const,
-        href: buildReservationsStatHref(currentPath, filters, "completed"),
-        isActive: filters.stat === "completed",
-      },
-      {
-        key: "cancelled",
-        label: "Zrušené",
-        value: String(cancelled),
-        tone: "muted" as const,
-        href: buildReservationsStatHref(currentPath, filters, "cancelled"),
-        isActive: filters.stat === "cancelled",
-      },
-    ],
-    kpis: [
-      {
-        key: "pending",
-        label: "Čeká na potvrzení",
-        value: String(pending),
-      },
-      {
-        key: "today",
-        label: "Dnes",
-        value: String(todayKpi),
-      },
-      {
-        key: "week",
-        label: "Tento týden",
-        value: String(weekKpi),
-      },
-      {
-        key: "missing-contact",
-        label: "Bez kontaktu",
-        value: String(missingContactKpi),
-      },
-    ],
-    groups: sortedGroups.map((group) => {
-      const collapsed = group.key === "past" && !showPast;
-      const totalGroupCount = groupTotals[group.key];
-      const visibleLimit = Math.min(limits[group.key], reservationGroupLimitMax);
-      const visibleItems = collapsed ? [] : group.items.slice(0, visibleLimit);
-      const hiddenCount = Math.max(0, totalGroupCount - visibleItems.length);
-      const showMoreHref =
-        !collapsed && hiddenCount > 0
-          ? buildReservationsGroupHref(currentPath, filters, {
-              showPast,
-              limits: {
-                [group.key]: Math.min(visibleLimit + reservationGroupLimitStep, reservationGroupLimitMax),
-              },
-            })
-          : null;
-
-      return {
-        ...group,
-        totalCount: totalGroupCount,
-        visibleCount: visibleItems.length,
-        hiddenCount,
-        collapsed,
-        expandHref: collapsed
-          ? buildReservationsGroupHref(currentPath, filters, {
-              showPast: true,
-            })
-          : null,
-        collapseHref:
-          group.key === "past" && filters.showPast
-            ? buildReservationsGroupHref(currentPath, filters, {
-                showPast: false,
-              })
-            : null,
-        showMoreHref,
-        items: visibleItems,
-      };
-    }),
-    manualBooking: {
-      services: manualBookingServices,
-      slots: bookingCatalog.slots,
-      clients: [] as ReservationsDashboardData["manualBooking"]["clients"],
-    },
+    filters: { ...baseFilters, limit: filters.limit, hasActiveFilters },
+    views: viewKeys.map((key, index) => ({ key, label: viewLabels[key], count: viewCounts[index] ?? 0, href: buildReservationsHref(currentPath, baseFilters, { view: key }), isActive: key === filters.view })),
+    attention: { pendingCount, needsClosureCount, totalCount: pendingCount + needsClosureCount, href: attentionHref },
+    summary: { totalCount, visibleCount: rows.length, emptyState: filters.view, showMoreHref: totalCount > rows.length ? buildReservationsHref(currentPath, baseFilters, { limit: Math.min(filters.limit + reservationLimitStep, reservationLimitMax) }) : null },
+    sections: Array.from(sections.values()),
+    manualBooking: { services: bookingCatalog.services.map((service) => ({ id: service.id, categoryName: service.categoryName, name: service.name, durationMinutes: service.durationMinutes, cleanupBlockMinutes: service.cleanupBlockMinutes, priceFromCzk: service.priceFromCzk })), slots: bookingCatalog.slots, clients: [] },
   } satisfies ReservationsDashboardData;
+}
+
+function formatDaySectionLabel(value: Date, todayStart: Date, tomorrowStart: Date) {
+  const key = formatDateKey(value);
+  const label = new Intl.DateTimeFormat("cs-CZ", { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "Europe/Prague" }).format(value);
+  if (key === formatDateKey(todayStart)) return `Dnes · ${label}`;
+  if (key === formatDateKey(tomorrowStart)) return `Zítra · ${label}`;
+  return label;
 }
 
 export async function getManualBookingClientById(clientId: string) {

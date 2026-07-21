@@ -3,25 +3,19 @@ import assert from "node:assert/strict";
 
 import { bookingListSearchParamsSchema } from "./admin-booking-list-validation";
 
-test("booking list search params schema accepts progressive disclosure params", () => {
+test("booking list search params schema accepts view and limit", () => {
   const parsed = bookingListSearchParamsSchema.parse({
-    showPast: "1",
-    needsClosureLimit: "24",
-    pendingLimit: "18",
-    upcomingLimit: "36",
-    pastLimit: "48",
+    view: "attention",
+    limit: "60",
   });
 
-  assert.equal(parsed.showPast, "1");
-  assert.equal(parsed.needsClosureLimit, 24);
-  assert.equal(parsed.pendingLimit, 18);
-  assert.equal(parsed.upcomingLimit, 36);
-  assert.equal(parsed.pastLimit, 48);
+  assert.equal(parsed.view, "attention");
+  assert.equal(parsed.limit, 60);
 });
 
-test("booking list search params schema rejects invalid group limits", () => {
+test("booking list search params schema rejects invalid limit", () => {
   const parsed = bookingListSearchParamsSchema.safeParse({
-    pastLimit: "999",
+    limit: "999",
   });
 
   assert.equal(parsed.success, false);

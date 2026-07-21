@@ -70,11 +70,11 @@ async function AdminBookingsPageContent({
       compact={area === "salon"}
       denseIntro
     >
-      <CompactKpiStrip kpis={data.kpis} />
+      <AttentionPanel attention={data.attention} />
 
       <AdminPanel
         title="Pracovní seznam rezervací"
-        description="Čekající rezervace zůstávají nahoře, filtry i akce jsou v jednom toku."
+        description="Přehled termínů, potvrzení a navazujících kroků."
         compact
         denseHeader
       >
@@ -84,11 +84,11 @@ async function AdminBookingsPageContent({
               currentPath={data.currentPath}
               filters={data.filters}
               resultCount={data.summary.totalCount}
-              stats={data.stats}
+              views={data.views}
             />
           </div>
 
-          {data.groups.length > 0 ? (
+          {data.sections.length > 0 ? (
             <AdminBookingsWorkspace area={area} data={data} />
           ) : (
             <EmptyState area={area} data={data} />
@@ -99,24 +99,16 @@ async function AdminBookingsPageContent({
   );
 }
 
-function CompactKpiStrip({
-  kpis,
-}: {
-  kpis: ReservationsDashboardData["kpis"];
-}) {
+function AttentionPanel({ attention }: { attention: ReservationsDashboardData["attention"] }) {
   return (
-    <section className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-      {kpis.map((kpi) => (
-        <article
-          key={kpi.key}
-          className="flex min-h-14 items-center justify-between rounded-[1rem] border border-white/10 bg-white/[0.045] px-3.5 py-2.5"
-        >
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/48">
-            {kpi.label}
-          </p>
-          <p className="font-display text-xl text-white">{kpi.value}</p>
-        </article>
-      ))}
+    <section className="rounded-[1rem] border border-white/10 bg-white/[0.045] px-4 py-3">
+      {attention.totalCount > 0 ? <>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/48">Vyžaduje pozornost</p>
+        <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm text-white/78">
+          <a href={attention.href} className="hover:text-white">{attention.pendingCount} čeká na potvrzení</a>
+          <a href={attention.href} className="hover:text-white">{attention.needsClosureCount} rezervací je k uzavření</a>
+        </div>
+      </> : <p className="text-sm text-white/75">✓ Žádná rezervace nyní nevyžaduje pozornost.</p>}
     </section>
   );
 }
@@ -128,26 +120,19 @@ function EmptyState({
   area: AdminArea;
   data: ReservationsDashboardData;
 }) {
-  const emptyTitle = "Nenalezeny žádné rezervace.";
-
-  const emptyDescription =
-    data.summary.emptyState === "pending"
-      ? "Všechny nové rezervace už jsou zpracované nebo zatím žádná další nepřišla."
-      : data.summary.emptyState === "filtered"
-        ? "Zkuste upravit hledání, stav, zdroj nebo datumový rozsah."
-        : "Jakmile se objeví další termíny, ukážou se tady v pracovním seznamu.";
+  const titles = { today: "Dnes nejsou naplánované žádné rezervace.", upcoming: "Nejsou naplánované žádné nadcházející rezervace.", attention: "Žádná rezervace nyní nevyžaduje pozornost.", history: "V historii nejsou žádné odpovídající rezervace.", all: "Nenalezeny žádné rezervace." };
+  const emptyTitle = titles[data.filters.view];
 
   return (
     <div className="rounded-[1.25rem] border border-dashed border-white/14 bg-white/4 px-4 py-6">
       <p className="text-sm font-medium text-white">{emptyTitle}</p>
-      <p className="mt-1 text-sm text-white/62">{emptyDescription}</p>
       <div className="mt-4 flex flex-wrap items-center gap-2">
-        {data.summary.emptyState !== "empty" ? (
+        {data.filters.hasActiveFilters ? (
           <a
             href={data.currentPath}
             className="rounded-full border border-white/10 px-4 py-2 text-sm text-white/80 transition hover:border-white/18 hover:bg-white/6"
           >
-            Zrušit filtry
+            Vymazat filtry
           </a>
         ) : null}
         <CreateManualBookingDrawer area={area} data={data.manualBooking} />
