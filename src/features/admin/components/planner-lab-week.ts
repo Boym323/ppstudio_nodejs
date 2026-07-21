@@ -11,7 +11,7 @@ export function movePlannerLabWeek(weekStart: string, amount: number) {
 }
 
 export function isPlannerLabMobileViewport(width: number) {
-  return width < 640;
+  return width < 1024;
 }
 
 export function getPlannerLabDefaultView(mobile: boolean): PlannerLabView {

@@ -12,7 +12,8 @@ test("navigace týdne drží přesné pondělní klíče", () => {
   assert.equal(movePlannerLabWeek("2026-07-13", -1), "2026-07-06");
 });
 
-test("desktop včetně 1024 px používá pracovní týden a telefon jeden den", () => {
+test("úzké zobrazení do 1023 px používá jednodenní pohled", () => {
+  assert.equal(isPlannerLabMobileViewport(1023), true);
   assert.equal(isPlannerLabMobileViewport(1024), false);
   assert.equal(getPlannerLabDefaultView(false), "timeGridWorkWeek");
   assert.equal(getPlannerLabDefaultView(true), "timeGridDay");

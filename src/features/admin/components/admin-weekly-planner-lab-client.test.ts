@@ -29,7 +29,7 @@ test("lab automaticky přidává do prázdných buněk a odebírá ze zelených 
 test("lab blokuje navigaci při ukládání a při změně týdne obnoví data kalendáře", async () => {
   const source = await clientSource();
   assert.match(source, /const canNavigate = !isSaving && !isWeekLoading/);
-  assert.match(source, /const requestedDateRef = useRef\(weekStart\)/);
+  assert.match(source, /const requestedDateRef = useRef\(effectiveInitialDate\)/);
   assert.match(source, /requestWeek\(getPlannerLabWeekStart\(new Date\(\)\), today\)/);
   assert.match(source, /calendarRef\.current\?\.getApi\(\)\.gotoDate\(focusDate\)/);
   assert.match(source, /setOpenWeekStart\(nextWeekStart\); calendarRef/);
@@ -37,6 +37,14 @@ test("lab blokuje navigaci při ukládání a při změně týdne obnoví data k
   assert.match(source, /data\.weekKey === hydratedWeekRef\.current/);
   assert.match(source, /routeBase = "\/admin\/volne-terminy\/lab"/);
   assert.match(source, /router\.replace\(`\$\{routeBase\}\?week=/);
+  assert.match(source, /isPlannerLabMobileViewport\(window\.innerWidth\)/);
+  assert.match(source, /if \(activeView === "timeGridDay"\) \{/);
+  assert.match(source, /requestWeek\(getPlannerLabWeekStart\(getDayBounds\(nextDate\)\.startsAt\), nextDate\)/);
+  assert.match(source, /amount < 0 \? calendar\.prev\(\) : calendar\.next\(\)/);
+  assert.match(source, /const currentDate = calendarRef\.current\?\.getApi\(\)\.getDate\(\) \?\? info\.view\.currentStart/);
+  assert.match(source, /const focusDate = formatDateKey\(currentDate\)/);
+  assert.match(source, /calendar\.changeView\(nextView, requestedDateRef\.current\)/);
+  assert.doesNotMatch(source, /dateAlignment="week"/);
 });
 
 test("lab neobsahuje inspektor dne", async () => {

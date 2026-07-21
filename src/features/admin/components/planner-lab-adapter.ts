@@ -60,13 +60,13 @@ export function plannerWeekToFullCalendarEvents(
   return workingDays.flatMap((day) => {
     const availability = (day.displayAvailableIntervals ?? day.availableIntervals).map((interval, index) => ({
       id: `availability:${day.dateKey}:${index}:${interval.startCell}-${interval.endCell}`,
-      title: "",
+      title: "Volný termín",
       ...toIsoRange(day.dateKey, interval.startCell, interval.endCell),
       editable: false as const,
       interactive: true,
       display: "background" as const,
       color: "#4ecf9b",
-      className: "planner-lab-event--availability",
+      className: `planner-lab-event--availability${interval.endCell - interval.startCell >= 2 ? " planner-lab-event--availability-labelled" : ""}`,
       extendedProps: { type: "availability" as const, editable: true, dateKey: day.dateKey, startCell: interval.startCell, endCell: interval.endCell },
     }));
     const protectedCandidates = day.lockedBlocks.length > 0

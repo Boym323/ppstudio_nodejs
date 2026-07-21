@@ -28,6 +28,7 @@ test("adaptér mapuje jednotlivé typy eventů se stabilními ID", () => {
   assert.deepEqual(events.map((event) => event.id), plannerWeekToFullCalendarEvents(input).map((event) => event.id));
   assert.ok(events.every((event) => event.start.endsWith("Z") && event.end.endsWith("Z")));
   assert.equal(events.find((event) => event.extendedProps.type === "availability")?.display, "background");
+  assert.equal(events.find((event) => event.extendedProps.type === "availability")?.title, "Volný termín");
   assert.equal(events.find((event) => event.extendedProps.type === "cleanup")?.display, "block");
   assert.equal(events.find((event) => event.extendedProps.type === "protected")?.display, "background");
   assert.equal(events.find((event) => event.extendedProps.type === "booking")?.display, "block");
@@ -40,6 +41,7 @@ test("adaptér zachová dostupnost jako background event i po změně aktuální
   const event = plannerWeekToFullCalendarEvents(input, [draft]).find((item) => item.id.startsWith("availability:"));
   assert.equal(event?.extendedProps.type, "availability");
   assert.equal(event?.display, "background");
+  assert.match(event?.className ?? "", /planner-lab-event--availability-labelled/);
   assert.deepEqual([event?.extendedProps.startCell, event?.extendedProps.endCell], [6, 8]);
 });
 

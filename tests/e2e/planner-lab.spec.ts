@@ -18,7 +18,7 @@ async function loginAdmin(page: Page, email: string, password: string) {
   await page.getByLabel("E-mail").fill(email);
   await page.getByLabel("Heslo").fill(password);
   await page.getByRole("button", { name: "Přihlásit se" }).click();
-  await expect(page).toHaveURL(/\/admin/);
+  await expect(page).toHaveURL(/\/admin(?:\?.*)?$/);
 }
 
 async function createOwner(runId: string) {
@@ -83,6 +83,28 @@ test.describe("FullCalendar planner e2e", () => {
 
     await page.getByRole("button", { name: "Následující týden" }).click();
     await expect(page).toHaveURL(/week=2027-03-29/);
+  });
+
+  test("v jednodenním mobilním pohledu šipka přejde na následující den", async ({ page }) => {
+    test.skip(test.info().project.name !== "mobile-chrome", "Scénář ověřuje mobilní jednodenní pohled.");
+
+    const runId = buildRunId();
+    runIds.push(runId);
+    const owner = await createOwner(runId);
+    await createAvailability(owner.id, 6, 8);
+
+    await loginAdmin(page, owner.email, owner.password);
+    await page.goto(`/admin/volne-terminy?week=${plannerDate}&day=${plannerDate}`);
+    await expect(page.getByTestId("planner-lab-calendar")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Den", exact: true })).toHaveAttribute("aria-pressed", "true");
+
+    await page.getByRole("button", { name: "Následující den" }).click();
+    await expect(page).toHaveURL(/week=2027-03-22&day=2027-03-23/);
+
+    await page.getByRole("button", { name: "Po–Pá", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Následující týden" })).toBeVisible();
+    await page.getByRole("button", { name: "Následující týden" }).click();
+    await expect(page).toHaveURL(/week=2027-03-29&day=2027-03-29/);
   });
 
   test("adds availability by clicking an empty calendar cell", async ({ page }) => {
