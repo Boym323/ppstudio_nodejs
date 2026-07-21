@@ -239,7 +239,10 @@ export async function getAdminPlannerWeek(area: AdminArea, week?: string | null)
           return [];
         }
 
-        const plainEditable = isEditablePlannerSlot(slot);
+        // Rezervace sama nemění charakter slotu. Pro zobrazení zbytkové
+        // dostupnosti posuzujeme jen jeho nastavení; rezervované období se
+        // odečítá níže přes slotBlockingRanges.
+        const plainEditable = isEditablePlannerSlot({ ...slot, bookings: [] });
         const cells = intervalToPlannerCells(
           clipped,
           slot.status === AvailabilitySlotStatus.PUBLISHED && plainEditable ? "inside" : "cover",
@@ -313,10 +316,10 @@ export async function getAdminPlannerWeek(area: AdminArea, week?: string | null)
           const remainderIntervals: PlannerInterval[] = freeRanges.flatMap<PlannerInterval>((freeRange, freeRangeIndex) => {
             const freeCells = intervalToPlannerCells(
               freeRange,
-              !hasOwnBookings && plainEditable ? "inside" : "cover",
+              plainEditable ? "inside" : "cover",
             );
 
-            if (!hasOwnBookings && plainEditable) {
+            if (plainEditable) {
               availableBlocks.push({
                 startMinutes: dateToCellIndex(freeRange.startsAt) * 30,
                 endMinutes: dateToCellIndex(freeRange.endsAt) * 30,
@@ -353,7 +356,7 @@ export async function getAdminPlannerWeek(area: AdminArea, week?: string | null)
               status: "locked",
               bookingCount: activeBookingCount,
               canEdit: false,
-              detail: "Zbytek intervalu je svázaný existující rezervací.",
+              detail: "Interval nelze upravit přímo v planneru.",
             } satisfies PlannerInterval];
           });
 

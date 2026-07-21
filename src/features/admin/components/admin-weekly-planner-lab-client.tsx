@@ -34,7 +34,7 @@ export function AdminWeeklyPlannerLabClient({ data, weekStart, routeBase = "/adm
   const confirmedDaysRef = useRef(cloneWeekDays(data.days));
   const saveQueueRef = useRef<PlannerLabSaveQueue<{ days: PlannerDay[]; dateKey: string; startCell: number; endCell: number; mode: "add" | "remove" }> | null>(null);
   const [mounted, setMounted] = useState(false); const [compact, setCompact] = useState(false);
-  const [days, setDays] = useState(() => cloneWeekDays(data.days));
+  const [days, setDays] = useState<PlannerDay[]>(() => cloneWeekDays(data.days));
   const [message, setMessage] = useState<string | null>("Uloženo"); const [saveError, setSaveError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false); const [isWeekLoading, setIsWeekLoading] = useState(false);
   const [openWeekStart, setOpenWeekStart] = useState(weekStart); const [activeView, setActiveView] = useState<PlannerLabView>("timeGridWorkWeek");

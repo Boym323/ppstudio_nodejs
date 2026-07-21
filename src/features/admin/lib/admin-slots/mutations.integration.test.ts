@@ -470,6 +470,42 @@ dbTest("getAdminPlannerWeek removes adjacent free window when cleanup overflows 
   }
 });
 
+dbTest("getAdminPlannerWeek ponechá zbytek slotu po rezervaci bez úklidu jako volný", async () => {
+  const seed = await createSeed();
+  const { prisma, getAdminPlannerWeek, getCellRangeBounds } = await loadModules();
+
+  try {
+    const afterRange = getCellRangeBounds(seed.dateKey, 8, 16);
+    const extendedEnd = getCellRangeBounds(seed.dateKey, 10, 10).endsAt;
+    await prisma.availabilitySlot.deleteMany({
+      where: {
+        createdByUserId: seed.actorUserId,
+        startsAt: afterRange.startsAt,
+        endsAt: afterRange.endsAt,
+      },
+    });
+    await prisma.availabilitySlot.update({
+      where: { id: seed.bookedSlotId },
+      data: { endsAt: extendedEnd },
+    });
+
+    const week = await getAdminPlannerWeek("owner", seed.weekKey);
+    const day = week.days.find((item) => item.dateKey === seed.dateKey);
+
+    assert.ok(day);
+    assert.ok(
+      day.availableBlocks.some((block) => block.startMinutes === 240 && block.endMinutes === 300),
+      "čas po skončení rezervace má zůstat volný",
+    );
+    assert.ok(
+      !day.lockedBlocks.some((block) => block.startMinutes === 240 && block.endMinutes === 300),
+      "čas po skončení rezervace nesmí být jen kvůli slotu chráněný",
+    );
+  } finally {
+    await cleanupSeed(seed);
+  }
+});
+
 dbTest("getAdminPlannerWeek merges adjacent editable slots into one free window", async () => {
   const seed = await createSeed({ splitTrailingAvailableSlot: true });
   const { getAdminPlannerWeek } = await loadModules();
