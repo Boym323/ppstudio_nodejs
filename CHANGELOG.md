@@ -6,6 +6,19 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [3.3.0] - 2026-07-21
+
+### Přidáno
+- Tabulka služeb v provozním KPI dashboardu podporuje řazení kliknutím na záhlaví sloupců i výběrem řazení, včetně přístupného oznámení směru řazení.
+- Laboratorní planner zarovnává kalendářní data podle týdnů a rozšířené E2E scénáře ověřují dostupnost i zachování místního času při přechodu na letní čas.
+
+### Opraveno
+- Události planneru používají správný jednotný název CSS třídy, takže se spolehlivě uplatní jejich styly a selektory v testech.
+
+### Změněno
+- KPI tabulka služeb využívá `@tanstack/react-table` pro řazení.
+- Release příprava pro produkční nasazení: projektová verze navýšena na minor `3.3.0` kvůli zpětně kompatibilnímu rozšíření KPI tabulky a planneru.
+
 ## [3.2.1] - 2026-07-21
 
 ### Opraveno
