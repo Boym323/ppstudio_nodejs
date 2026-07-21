@@ -129,12 +129,11 @@ export function AdminWeeklyPlannerLabClient({ data, weekStart, initialDate, rout
       return;
     }
 
-    if (calendar) {
-      amount < 0 ? calendar.prev() : calendar.next();
-      return;
-    }
-
-    requestWeek(movePlannerLabWeek(openWeekStart, amount));
+    const nextWeekStart = movePlannerLabWeek(openWeekStart, amount);
+    const focusDate = activeView === "timeGridWeekend"
+      ? formatDateKey(addDays(getDayBounds(nextWeekStart).startsAt, 5))
+      : nextWeekStart;
+    requestWeek(nextWeekStart, focusDate);
   }
   const initialView = getPlannerLabDefaultView(compact);
   const status = isWeekLoading ? "Načítám týden…" : isSaving ? "Ukládám…" : saveError ?? message;

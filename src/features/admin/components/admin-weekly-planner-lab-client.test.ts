@@ -40,7 +40,8 @@ test("lab blokuje navigaci při ukládání a při změně týdne obnoví data k
   assert.match(source, /isPlannerLabMobileViewport\(window\.innerWidth\)/);
   assert.match(source, /if \(activeView === "timeGridDay"\) \{/);
   assert.match(source, /requestWeek\(getPlannerLabWeekStart\(getDayBounds\(nextDate\)\.startsAt\), nextDate\)/);
-  assert.match(source, /amount < 0 \? calendar\.prev\(\) : calendar\.next\(\)/);
+  assert.match(source, /const nextWeekStart = movePlannerLabWeek\(openWeekStart, amount\)/);
+  assert.match(source, /requestWeek\(nextWeekStart, focusDate\)/);
   assert.match(source, /const currentDate = calendarRef\.current\?\.getApi\(\)\.getDate\(\) \?\? info\.view\.currentStart/);
   assert.match(source, /const focusDate = formatDateKey\(currentDate\)/);
   assert.match(source, /calendar\.changeView\(nextView, requestedDateRef\.current\)/);
