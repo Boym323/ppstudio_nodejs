@@ -1,3 +1,5 @@
+import { randomBytes } from "crypto";
+
 import { expect, test, type Page } from "@playwright/test";
 import { AdminRole } from "@prisma/client";
 
@@ -24,7 +26,7 @@ test.describe("mobilní a standalone admin PWA", () => {
   let admin: { email: string; password: string };
 
   test.beforeEach(async ({ page }) => {
-    runId = `mobile-pwa-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    runId = `mobile-pwa-${Date.now()}-${randomBytes(4).toString("hex")}`;
     admin = await createAdminFixture(runId, AdminRole.OWNER);
     await page.setViewportSize(mobileViewport);
     await loginAdmin(page, admin.email, admin.password);
