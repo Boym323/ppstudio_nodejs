@@ -6,6 +6,19 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [3.4.0] - 2026-07-21
+
+### Přidáno
+- Laboratorní planner zobrazuje přesné patnáctiminutové intervaly dostupnosti a chrání bloky, které nepatří aktuálně spravované rezervaci.
+- Výpočet dostupnosti odečítá úklidové bloky; pokrytí zahrnuje i zbylé části slotu po rezervaci.
+
+### Opraveno
+- Typy stavů a výpočet zbytku slotu po rezervaci přesněji zachovávají dostupné termíny planneru.
+
+### Změněno
+- Prisma a související balíčky byly aktualizovány na verzi `7.9.0`.
+- Release příprava pro produkční nasazení: projektová verze navýšena na minor `3.4.0` kvůli zpětně kompatibilnímu rozšíření planneru o výpočet a ochranu dostupných intervalů.
+
 ## [3.3.0] - 2026-07-21
 
 ### Přidáno
