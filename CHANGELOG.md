@@ -6,6 +6,14 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [3.2.1] - 2026-07-21
+
+### Opraveno
+- E2E pokrytí planneru nyní ověřuje plánování dostupnosti včetně přechodů letního času a návaznosti na rezervační flow.
+
+### Změněno
+- Release příprava pro produkční nasazení: projektová verze navýšena na patch `3.2.1` kvůli doplnění regresních E2E testů planneru.
+
 ## [3.2.0] - 2026-07-21
 
 ### Přidáno
