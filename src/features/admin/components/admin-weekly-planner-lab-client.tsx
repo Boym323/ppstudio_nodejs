@@ -29,6 +29,7 @@ export function AdminWeeklyPlannerLabClient({ data, weekStart, routeBase = "/adm
   const requestedWeekRef = useRef(weekStart);
   const requestedDateRef = useRef(weekStart);
   const recentCellMutationRef = useRef<{ dateKey: string; startCell: number; endCell: number; expiresAt: number } | null>(null);
+  const datesSetFrameRef = useRef<number | null>(null);
   const hydratedWeekRef = useRef(weekStart);
   const contextRef = useRef({ area: data.area, weekKey: data.weekKey });
   const confirmedDaysRef = useRef(cloneWeekDays(data.days));
@@ -45,6 +46,7 @@ export function AdminWeeklyPlannerLabClient({ data, weekStart, routeBase = "/adm
     (error) => { setDays(cloneWeekDays(confirmedDaysRef.current)); setSaveError(error); setMessage(error); },
   ); return () => { saveQueueRef.current = null; }; }, []);
   useEffect(() => { const media = window.matchMedia("(max-width: 1023px)"); const update = () => setCompact(isCompactViewport(window.innerWidth)); const frame = window.requestAnimationFrame(() => { update(); setMounted(true); }); media.addEventListener("change", update); return () => { window.cancelAnimationFrame(frame); media.removeEventListener("change", update); }; }, []);
+  useEffect(() => () => { if (datesSetFrameRef.current !== null) window.cancelAnimationFrame(datesSetFrameRef.current); }, []);
   useEffect(() => {
     if (data.weekKey !== requestedWeekRef.current || data.weekKey === hydratedWeekRef.current) return;
     hydratedWeekRef.current = data.weekKey;
@@ -83,7 +85,16 @@ export function AdminWeeklyPlannerLabClient({ data, weekStart, routeBase = "/adm
   function handleSelect(info: DateSelectInfo) { const dateKey = formatDateKey(info.start); const startCell = dateToCellIndex(info.start); const endCell = dateToCellIndex(info.end); rememberScrollPosition(); info.view.calendar.unselect(); updateAvailabilityRange(dateKey, startCell, endCell, shouldAddRange(dateKey, startCell, endCell), false); }
   function handleDateClick(info: DateClickInfo) { const dateKey = formatDateKey(info.date); const cell = dateToCellIndex(info.date); updateAvailabilityRange(dateKey, cell, cell + 1, shouldAddRange(dateKey, cell, cell + 1)); }
   function requestWeek(nextWeekStart: string, focusDate = nextWeekStart) { if (!canNavigate) return; if (nextWeekStart === requestedWeekRef.current) { requestedDateRef.current = focusDate; calendarRef.current?.getApi().gotoDate(focusDate); return; } requestedWeekRef.current = nextWeekStart; requestedDateRef.current = focusDate; setIsWeekLoading(true); setOpenWeekStart(nextWeekStart); calendarRef.current?.getApi().gotoDate(focusDate); router.replace(`${routeBase}?week=${nextWeekStart}&day=${focusDate}`, { scroll: false }); }
-  function handleDatesSet(info: DatesSetInfo) { const nextWeekStart = getPlannerLabWeekStart(info.view.currentStart); setOpenWeekStart(nextWeekStart); if (nextWeekStart !== requestedWeekRef.current && canNavigate) requestWeek(nextWeekStart); }
+  function handleDatesSet(info: DatesSetInfo) {
+    const nextWeekStart = getPlannerLabWeekStart(info.view.currentStart);
+
+    if (datesSetFrameRef.current !== null) window.cancelAnimationFrame(datesSetFrameRef.current);
+    datesSetFrameRef.current = window.requestAnimationFrame(() => {
+      datesSetFrameRef.current = null;
+      setOpenWeekStart(nextWeekStart);
+      if (nextWeekStart !== requestedWeekRef.current && canNavigate) requestWeek(nextWeekStart);
+    });
+  }
   function changeView(view: PlannerLabView) { if (!canNavigate) return; setActiveView(view); const date = view === "timeGridWeekend" ? formatDateKey(addDays(getDayBounds(openWeekStart).startsAt, 5)) : openWeekStart; calendarRef.current?.getApi().changeView(view, date); }
   const initialView = getPlannerLabDefaultView(compact);
   const status = isWeekLoading ? "Načítám týden…" : isSaving ? "Ukládám…" : saveError ?? message;

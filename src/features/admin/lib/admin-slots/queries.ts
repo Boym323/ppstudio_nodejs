@@ -287,6 +287,14 @@ export async function getAdminPlannerWeek(area: AdminArea, week?: string | null)
 
         if (slotBlockingRanges.length > 0) {
           const mergedBookings = mergeIntervals(slotBlockingRanges);
+          if (!hasOwnBookings) {
+            for (const blockedRange of mergedBookings) {
+              lockedBlocks.push({
+                startMinutes: dateToCellIndex(blockedRange.startsAt) * 30,
+                endMinutes: dateToCellIndex(blockedRange.endsAt) * 30,
+              });
+            }
+          }
           const freeRanges = mergedBookings.reduce(
             (remaining, bookedRange) => subtractIntervals(remaining, bookedRange),
             [{ startsAt: clipped.startsAt, endsAt: clipped.endsAt }],
