@@ -159,6 +159,7 @@ test.describe("admin site smoke coverage", () => {
       { path: "/admin/statistiky", heading: "KPI a statistiky" },
       { path: "/admin/rezervace", heading: "Rezervace" },
       { path: "/admin/volne-terminy", heading: /Týdenní plán|Volné termíny/ },
+      { path: "/admin/volne-terminy/lab", heading: "Volné termíny" },
       { path: "/admin/vouchery", heading: "Vouchery" },
       { path: "/admin/vouchery/novy", heading: "Vytvořit voucher" },
       { path: "/admin/klienti", heading: "Klienti" },

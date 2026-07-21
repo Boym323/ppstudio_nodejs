@@ -13,7 +13,7 @@ process.env.ADMIN_STAFF_PASSWORD ??= "change-me-staff";
 process.env.EMAIL_DELIVERY_MODE ??= "log";
 
 test("GET returns fallback analytics including contactStepQuality when reporting is blocked", async () => {
-  const { createAdminAnalyticsRouteApi } = await import("./route");
+  const { createAdminAnalyticsRouteApi } = await import("./admin-analytics-route-api");
 
   const api = createAdminAnalyticsRouteApi({
     getSession: async () => ({
@@ -61,7 +61,7 @@ test("GET returns fallback analytics including contactStepQuality when reporting
 });
 
 test("GET notifies owner when analytics backend throws unexpected error", async () => {
-  const { createAdminAnalyticsRouteApi } = await import("./route");
+  const { createAdminAnalyticsRouteApi } = await import("./admin-analytics-route-api");
   const notifications: Array<Record<string, unknown>> = [];
 
   const api = createAdminAnalyticsRouteApi({

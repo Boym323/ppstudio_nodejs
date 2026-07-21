@@ -50,6 +50,7 @@ async function loadModules() {
   return {
     prisma,
     getAdminPlannerWeek: plannerQueries.getAdminPlannerWeek,
+    applyAvailabilitySelection: plannerMutations.applyAvailabilitySelection,
     syncPlannerWeekDraft: plannerMutations.syncPlannerWeekDraft,
     copyPlannerWeek: plannerMutations.copyPlannerWeek,
     getCellRangeBounds: plannerTime.getCellRangeBounds,
@@ -59,6 +60,30 @@ async function loadModules() {
     resolveWeekStart: plannerTime.resolveWeekStart,
   };
 }
+
+dbTest("applyAvailabilitySelection odebere jedinou půlhodinu z volného okna", async () => {
+  const seed = await createSeed();
+  const { getAdminPlannerWeek, applyAvailabilitySelection } = await loadModules();
+
+  try {
+    await applyAvailabilitySelection("owner", {
+      weekKey: seed.weekKey,
+      dateKey: seed.dateKey,
+      startCell: 4,
+      endCell: 5,
+      mode: "remove",
+      actorUserId: seed.actorUserId,
+    });
+
+    const week = await getAdminPlannerWeek("owner", seed.weekKey);
+    const day = week.days.find((item) => item.dateKey === seed.dateKey);
+    assert.ok(day);
+    assert.ok(!day.availableIntervals.some((interval) => interval.startCell <= 4 && interval.endCell > 4));
+    assert.ok(day.availableIntervals.some((interval) => interval.startCell === 5 && interval.endCell === 6));
+  } finally {
+    await cleanupSeed(seed);
+  }
+});
 
 async function findIsolatedPlannerDateKey() {
   const { prisma, addDays, formatDateKey, getDayBounds, resolveWeekStart } = await loadModules();

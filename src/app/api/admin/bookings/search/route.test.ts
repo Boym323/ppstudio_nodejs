@@ -42,7 +42,7 @@ function createSearchRequest(query: string) {
 }
 
 test("booking search route rejects unauthenticated access", async () => {
-  const { createAdminBookingSearchRouteApi } = await import("./route");
+  const { createAdminBookingSearchRouteApi } = await import("./admin-booking-search-route-api");
   const api = createAdminBookingSearchRouteApi({
     getSession: async () => null,
     isSameOriginAdminRequest: () => true,
@@ -56,7 +56,7 @@ test("booking search route rejects unauthenticated access", async () => {
 });
 
 test("booking search route returns deduplicated suggestions from clients and services", async () => {
-  const { createAdminBookingSearchRouteApi } = await import("./route");
+  const { createAdminBookingSearchRouteApi } = await import("./admin-booking-search-route-api");
   const api = createAdminBookingSearchRouteApi({
     getSession: async () => ({
       sub: "admin-1",
@@ -105,7 +105,7 @@ test("booking search route returns deduplicated suggestions from clients and ser
 });
 
 test("booking search route returns contact suggestions only for contact-like query", async () => {
-  const { createAdminBookingSearchRouteApi } = await import("./route");
+  const { createAdminBookingSearchRouteApi } = await import("./admin-booking-search-route-api");
   const api = createAdminBookingSearchRouteApi({
     getSession: async () => ({
       sub: "admin-1",
@@ -146,7 +146,7 @@ test("booking search route returns contact suggestions only for contact-like que
 });
 
 test("booking search route returns empty list for too-short query", async () => {
-  const { createAdminBookingSearchRouteApi } = await import("./route");
+  const { createAdminBookingSearchRouteApi } = await import("./admin-booking-search-route-api");
   const api = createAdminBookingSearchRouteApi({
     getSession: async () => ({
       sub: "admin-1",

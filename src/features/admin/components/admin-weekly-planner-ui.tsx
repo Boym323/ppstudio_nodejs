@@ -816,6 +816,7 @@ export function DayInspector({
   onApplySelection,
   pending,
   createBookingBaseHref,
+  autoSave = false,
 }: {
   day: PlannerDay;
   legend: Array<{ tone: CellTone | "past" | "cleanup"; label: string }>;
@@ -824,6 +825,7 @@ export function DayInspector({
   onApplySelection: () => void;
   pending: boolean;
   createBookingBaseHref: string;
+  autoSave?: boolean;
 }) {
   const activeSelection = selection && selection.dateKey === day.dateKey ? selection : null;
   const selectionInterval = getSelectionInterval(day, activeSelection);
@@ -924,7 +926,9 @@ export function DayInspector({
                 ) : null}
               </div>
             </div>
-            {activeSelection.editable ? (
+            {autoSave && activeSelection.editable ? (
+              <p className="text-sm text-white/58">Změna dostupnosti se ukládá automaticky po kliknutí nebo dokončení tažení.</p>
+            ) : activeSelection.editable ? (
               <ActionButton
                 tone={activeSelection.tone === "available" ? "danger" : "accent"}
                 onClick={onApplySelection}
@@ -944,7 +948,9 @@ export function DayInspector({
           <div className="mt-3 rounded-[0.95rem] border border-dashed border-white/10 bg-black/10 px-3 py-3">
             <p className="text-sm text-white/74">Vyberte blok v mřížce.</p>
             <p className="mt-1 text-sm leading-6 text-white/52">
-              Kliknutí vybere úsek, tažení vytvoří nebo upraví dostupnost.
+              {autoSave
+                ? "Kliknutí upraví 30 minut, tažení upraví celý vybraný rozsah. Změny se ukládají automaticky."
+                : "Kliknutí vybere úsek, tažení vytvoří nebo upraví dostupnost."}
             </p>
           </div>
         )}
