@@ -26,6 +26,32 @@ function toIsoRange(dateKey: string, startCell: number, endCell: number) {
   return { start: range.startsAt.toISOString(), end: range.endsAt.toISOString() };
 }
 
+function subtractCleanup(
+  interval: { startCell: number; endCell: number },
+  cleanupBlocks: Array<{ startMinutes: number; endMinutes: number }>,
+) {
+  return cleanupBlocks.reduce(
+    (remaining, cleanup) => remaining.flatMap((range) => {
+      const cleanupStart = cleanup.startMinutes / 30;
+      const cleanupEnd = cleanup.endMinutes / 30;
+
+      if (cleanupEnd <= range.startCell || cleanupStart >= range.endCell) {
+        return [range];
+      }
+
+      return [
+        cleanupStart > range.startCell
+          ? { startCell: range.startCell, endCell: Math.min(cleanupStart, range.endCell) }
+          : null,
+        cleanupEnd < range.endCell
+          ? { startCell: Math.max(cleanupEnd, range.startCell), endCell: range.endCell }
+          : null,
+      ].filter((part): part is { startCell: number; endCell: number } => part !== null && part.endCell > part.startCell);
+    }),
+    [interval],
+  );
+}
+
 /** Převádí aktuální stav týdne na neměnné FullCalendar eventy. */
 export function plannerWeekToFullCalendarEvents(
   week: PlannerWeekData,
@@ -43,7 +69,7 @@ export function plannerWeekToFullCalendarEvents(
       className: "planner-lab-event--availability",
       extendedProps: { type: "availability" as const, editable: true, dateKey: day.dateKey, startCell: interval.startCell, endCell: interval.endCell },
     }));
-    const protectedIntervals = (day.lockedBlocks.length > 0
+    const protectedCandidates = day.lockedBlocks.length > 0
       ? day.lockedBlocks.map((interval, index) => ({
         id: `protected:${day.dateKey}:locked-${index}`,
         title: "Chráněný interval",
@@ -57,17 +83,19 @@ export function plannerWeekToFullCalendarEvents(
           title: interval.status === "inactive" ? "Neaktivní interval" : "Chráněný interval",
           startCell: interval.startCell,
           endCell: interval.endCell,
-        })))
-      .map((interval) => ({
-        id: interval.id,
+        }));
+    const protectedIntervals = protectedCandidates.flatMap((interval) =>
+      subtractCleanup(interval, day.cleanupBlocks).map((range, index) => ({
+        id: `${interval.id}:${index}`,
         title: interval.title,
-        ...toIsoRange(day.dateKey, interval.startCell, interval.endCell),
+        ...toIsoRange(day.dateKey, range.startCell, range.endCell),
         editable: false as const,
         display: "background" as const,
         color: "#8b96a8",
         className: "planner-lab-event--protected",
-        extendedProps: { type: "protected" as const, editable: false, dateKey: day.dateKey, startCell: interval.startCell, endCell: interval.endCell },
-      }));
+        extendedProps: { type: "protected" as const, editable: false, dateKey: day.dateKey, startCell: range.startCell, endCell: range.endCell },
+      })),
+    );
     const bookings = day.bookings.map((booking) => {
       const serviceStartCell = booking.serviceStartMinutes / 30;
       const serviceEndCell = booking.serviceEndMinutes / 30;
