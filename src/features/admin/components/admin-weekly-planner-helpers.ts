@@ -76,6 +76,11 @@ export function patchDayAvailableIntervals(day: PlannerDay, intervals: PlannerDa
   return {
     ...day,
     availableIntervals: intervals,
+    displayAvailableIntervals: intervals.map((interval) => ({ ...interval })),
+    availableBlocks: intervals.map((interval) => ({
+      startMinutes: interval.startCell * 30,
+      endMinutes: interval.endCell * 30,
+    })),
     intervals: [...staticIntervals, ...nextIntervals].sort((left, right) => left.startCell - right.startCell),
     cells: {
       ...day.cells,
