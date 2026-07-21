@@ -66,7 +66,7 @@ export function plannerWeekToFullCalendarEvents(
       interactive: true,
       display: "background" as const,
       color: "#4ecf9b",
-      className: `planner-lab-event--availability${interval.endCell - interval.startCell >= 2 ? " planner-lab-event--availability-labelled" : ""}`,
+      className: "planner-lab-event--availability",
       extendedProps: { type: "availability" as const, editable: true, dateKey: day.dateKey, startCell: interval.startCell, endCell: interval.endCell },
     }));
     const protectedCandidates = day.lockedBlocks.length > 0

@@ -41,7 +41,6 @@ test("adaptér zachová dostupnost jako background event i po změně aktuální
   const event = plannerWeekToFullCalendarEvents(input, [draft]).find((item) => item.id.startsWith("availability:"));
   assert.equal(event?.extendedProps.type, "availability");
   assert.equal(event?.display, "background");
-  assert.match(event?.className ?? "", /planner-lab-event--availability-labelled/);
   assert.deepEqual([event?.extendedProps.startCell, event?.extendedProps.endCell], [6, 8]);
 });
 
