@@ -6,6 +6,17 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [3.5.0] - 2026-07-21
+
+### Přidáno
+- Laboratorní planner podporuje denní pohled a mobilní zobrazení dostupných bloků a intervalů.
+
+### Opraveno
+- Navigace a načítání týdne v planneru správně inicializují datum a zachovávají konzistentní stav při přechodu mezi pohledy.
+
+### Změněno
+- Release příprava pro produkční nasazení: projektová verze navýšena na minor `3.5.0` kvůli zpětně kompatibilnímu rozšíření planneru o denní a mobilní pohled.
+
 ## [3.4.0] - 2026-07-21
 
 ### Přidáno
