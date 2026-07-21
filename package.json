@@ -81,10 +81,10 @@
   },
   "allowScripts": {
     "esbuild@0.28.1": true,
-    "prisma@7.8.0": true,
+    "prisma@7.9.0": true,
     "sharp@0.34.5": true,
     "unrs-resolver@1.11.1": true,
-    "@prisma/engines@7.8.0": true
+    "@prisma/engines@7.9.0": true
   },
   "overrides": {
     "brace-expansion": "5.0.7",

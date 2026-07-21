@@ -48,6 +48,9 @@ const columns: Array<ColumnDef<Service>> = [
 export function KpiServicesTable({ services }: { services: KpiDashboardData["services"] }) {
   const [sorting, setSorting] = useState<SortingState>([{ id: "revenue", desc: true }]);
   const [showAll, setShowAll] = useState(false);
+  // TanStack Table exposes imperative APIs that React Compiler cannot safely memoize.
+  // The table is intentionally left uncompiled; this is the library's documented usage.
+  // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     data: services,
     columns,
