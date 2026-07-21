@@ -70,6 +70,8 @@ test.describe("FullCalendar planner e2e", () => {
   });
 
   test("renders availability and navigates to the following week", async ({ page }) => {
+    test.skip(test.info().project.name !== "chromium", "Scénář ověřuje desktopový pracovní týden.");
+
     const runId = buildRunId();
     runIds.push(runId);
     const owner = await createOwner(runId);
