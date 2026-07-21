@@ -35,6 +35,8 @@ test("lab blokuje navigaci při ukládání a při změně týdne obnoví data k
   assert.match(source, /setOpenWeekStart\(nextWeekStart\); calendarRef/);
   assert.match(source, /data\.weekKey !== requestedWeekRef\.current \|\| data\.weekKey === hydratedWeekRef\.current/);
   assert.match(source, /data\.weekKey === hydratedWeekRef\.current/);
+  assert.match(source, /routeBase = "\/admin\/volne-terminy\/lab"/);
+  assert.match(source, /router\.replace\(`\$\{routeBase\}\?week=/);
 });
 
 test("lab neobsahuje inspektor dne", async () => {

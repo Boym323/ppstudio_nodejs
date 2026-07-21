@@ -21,7 +21,7 @@ import styles from "./planner-lab.module.css";
 function isCompactViewport(width: number) { return width < 1024; }
 function formatWeekRange(weekStart: string) { const start = getDayBounds(weekStart).startsAt; const end = addDays(start, 6); const dayMonth = new Intl.DateTimeFormat("cs-CZ", { day: "numeric", month: "long", timeZone: "Europe/Prague" }); const year = new Intl.DateTimeFormat("cs-CZ", { year: "numeric", timeZone: "Europe/Prague" }); return `${dayMonth.format(start)} – ${dayMonth.format(end)} ${year.format(end)}`; }
 
-export function AdminWeeklyPlannerLabClient({ data, weekStart }: { data: PlannerWeekData; weekStart: string }) {
+export function AdminWeeklyPlannerLabClient({ data, weekStart, routeBase = "/admin/volne-terminy/lab" }: { data: PlannerWeekData; weekStart: string; routeBase?: string }) {
   const router = useRouter();
   const calendarRef = useRef<{ getApi: () => CalendarApi } | null>(null);
   const calendarContainerRef = useRef<HTMLDivElement>(null);
@@ -82,7 +82,7 @@ export function AdminWeeklyPlannerLabClient({ data, weekStart }: { data: Planner
   function shouldAddRange(dateKey: string, startCell: number, endCell: number) { const day = days.find((item) => item.dateKey === dateKey); return !day?.cells.available.slice(startCell, endCell).some(Boolean); }
   function handleSelect(info: DateSelectInfo) { const dateKey = formatDateKey(info.start); const startCell = dateToCellIndex(info.start); const endCell = dateToCellIndex(info.end); rememberScrollPosition(); info.view.calendar.unselect(); updateAvailabilityRange(dateKey, startCell, endCell, shouldAddRange(dateKey, startCell, endCell), false); }
   function handleDateClick(info: DateClickInfo) { const dateKey = formatDateKey(info.date); const cell = dateToCellIndex(info.date); updateAvailabilityRange(dateKey, cell, cell + 1, shouldAddRange(dateKey, cell, cell + 1)); }
-  function requestWeek(nextWeekStart: string, focusDate = nextWeekStart) { if (!canNavigate) return; if (nextWeekStart === requestedWeekRef.current) { requestedDateRef.current = focusDate; calendarRef.current?.getApi().gotoDate(focusDate); return; } requestedWeekRef.current = nextWeekStart; requestedDateRef.current = focusDate; setIsWeekLoading(true); setOpenWeekStart(nextWeekStart); calendarRef.current?.getApi().gotoDate(focusDate); router.replace(`/admin/volne-terminy/lab?week=${nextWeekStart}&day=${focusDate}`, { scroll: false }); }
+  function requestWeek(nextWeekStart: string, focusDate = nextWeekStart) { if (!canNavigate) return; if (nextWeekStart === requestedWeekRef.current) { requestedDateRef.current = focusDate; calendarRef.current?.getApi().gotoDate(focusDate); return; } requestedWeekRef.current = nextWeekStart; requestedDateRef.current = focusDate; setIsWeekLoading(true); setOpenWeekStart(nextWeekStart); calendarRef.current?.getApi().gotoDate(focusDate); router.replace(`${routeBase}?week=${nextWeekStart}&day=${focusDate}`, { scroll: false }); }
   function handleDatesSet(info: DatesSetInfo) { const nextWeekStart = getPlannerLabWeekStart(info.view.currentStart); setOpenWeekStart(nextWeekStart); if (nextWeekStart !== requestedWeekRef.current && canNavigate) requestWeek(nextWeekStart); }
   function changeView(view: PlannerLabView) { if (!canNavigate) return; setActiveView(view); const date = view === "timeGridWeekend" ? formatDateKey(addDays(getDayBounds(openWeekStart).startsAt, 5)) : openWeekStart; calendarRef.current?.getApi().changeView(view, date); }
   const initialView = getPlannerLabDefaultView(compact);
