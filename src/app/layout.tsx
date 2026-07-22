@@ -10,13 +10,13 @@ import { getPublicSalonProfile } from "@/lib/site-settings";
 import "./globals.css";
 
 const displayFont = Playfair_Display({
-  variable: "--font-display",
+  variable: "--font-display-next",
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
 });
 
 const sansFont = Inter({
-  variable: "--font-sans",
+  variable: "--font-sans-next",
   subsets: ["latin"],
 });
 

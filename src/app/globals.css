@@ -18,8 +18,8 @@
 @theme inline {
   --color-background: var(--color-background);
   --color-foreground: var(--color-foreground);
-  --font-sans: var(--font-sans);
-  --font-display: var(--font-display);
+  --font-sans: var(--font-sans-next);
+  --font-display: var(--font-display-next);
 }
 
 * {
@@ -37,7 +37,7 @@ body {
     radial-gradient(circle at top, rgba(219, 194, 165, 0.14), transparent 24%),
     linear-gradient(180deg, #fbf7f2 0%, #f7f2ec 100%);
   color: var(--color-foreground);
-  font-family: var(--font-sans), sans-serif;
+  font-family: var(--font-sans-next), sans-serif;
   font-size: 16px;
   line-height: 1.6;
   text-rendering: optimizeLegibility;
@@ -69,7 +69,7 @@ h4 {
 }
 
 .font-display {
-  font-family: var(--font-display), serif;
+  font-family: var(--font-display-next), serif;
 }
 
 img {
