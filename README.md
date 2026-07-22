@@ -170,8 +170,8 @@ npm run dev:clean
 
 ## Skripty
 
-- `npm run dev` spustí vývojový server
-- `npm run dev:webpack` spustí dev server bez Turbopacku jako fallback při rozbité cache
+- `npm run dev` spustí vývojový server přes Webpack (stabilní režim pro HMR)
+- `npm run dev:turbopack` spustí dev server s Turbopackem jako experimentální režim
 - `npm run build` vytvoří produkční build
 - `npm run start` spustí produkční server
 - `npm run lint` spustí ESLint
