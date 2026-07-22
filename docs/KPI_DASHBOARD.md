@@ -82,8 +82,9 @@ Implementace: `kpi-expected-revenue.ts`.
 - Nespoléhá se na pořadí Prisma výsledků ani na lokalizovaný text.
 - Přechody měsíce a roku používají pražský kalendář.
 - UI omezuje počet viditelných popisků osy přibližně na osm, ale datové body zachovává všechny.
+- Grafy vykresluje klientská komponenta pomocí Recharts; datové řady i jejich serverové výpočty zůstávají beze změny.
 
-Implementace: `kpi-time-series.ts`, `kpi-date-range.ts`, `admin-kpi-dashboard-page.tsx`.
+Implementace: `kpi-time-series.ts`, `kpi-date-range.ts`, `admin-kpi-dashboard-page.tsx`, `admin-kpi-charts.tsx`.
 
 ## Nejvýdělečnější služby
 
@@ -188,6 +189,7 @@ Implementace testu: `kpi-consistency.test.ts`.
 - Typy payloadu: `src/features/admin/types/kpi-dashboard.ts`
 - Serverová stránka: `src/features/admin/components/admin-kpi-dashboard.tsx`
 - Vykreslení dashboardu: `src/features/admin/components/admin-kpi-dashboard-page.tsx`
+- Klientské grafy Recharts: `src/features/admin/components/admin-kpi-charts.tsx`
 - Filtr období: `src/features/admin/components/kpi-period-filter.tsx`
 - Tabulka služeb: `src/features/admin/components/kpi-services-table.tsx`
 - Čisté výpočty a jejich testy: `src/features/admin/lib/kpi-*.ts`, `src/features/admin/lib/kpi-*.test.ts`
