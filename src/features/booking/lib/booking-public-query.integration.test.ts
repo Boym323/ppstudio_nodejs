@@ -336,3 +336,79 @@ dbTest("createPublicBooking keeps server-side service availability as source of 
     await prisma.serviceCategory.delete({ where: { id: category.id } });
   }
 });
+
+dbTest("createPublicBooking ignores an archived slot left by a cancelled booking", async () => {
+  const { prisma, createPublicBooking } = await loadModules();
+  const suffix = randomUUID().slice(0, 8);
+
+  const category = await prisma.serviceCategory.create({
+    data: {
+      name: `Booking archived slot category ${suffix}`,
+      slug: `booking-archived-slot-category-${suffix}`,
+      isActive: true,
+    },
+    select: { id: true },
+  });
+  const service = await prisma.service.create({
+    data: {
+      categoryId: category.id,
+      name: `Booking archived slot ${suffix}`,
+      publicName: `Booking archived slot ${suffix}`,
+      slug: `booking-archived-slot-${suffix}`,
+      durationMinutes: 30,
+      priceFromCzk: 1200,
+      isActive: true,
+      isPubliclyBookable: true,
+    },
+    select: { id: true },
+  });
+  const { startsAt, endsAt } = await findIsolatedPublicQuerySlotStart(prisma, suffix, 30, 5);
+  const [publishedSlot, archivedSlot] = await prisma.$transaction([
+    prisma.availabilitySlot.create({
+      data: {
+        startsAt,
+        endsAt,
+        status: "PUBLISHED",
+        publishedAt: new Date(),
+      },
+      select: { id: true },
+    }),
+    prisma.availabilitySlot.create({
+      data: {
+        startsAt: new Date(startsAt.getTime() - 15 * 60 * 1000),
+        endsAt: new Date(endsAt.getTime() + 15 * 60 * 1000),
+        status: "ARCHIVED",
+      },
+      select: { id: true },
+    }),
+  ]);
+  const email = `booking-archived-slot-${suffix}@example.com`;
+
+  try {
+    const booking = await createPublicBooking({
+      serviceId: service.id,
+      slotId: publishedSlot.id,
+      startsAt: startsAt.toISOString(),
+      fullName: `Klientka ${suffix}`,
+      email,
+      phone: "+420777123456",
+      acquisition: {
+        source: BookingAcquisitionSource.DIRECT,
+        utmSource: null,
+        utmMedium: null,
+        utmCampaign: null,
+        referrerHost: null,
+      },
+    });
+
+    assert.ok(booking.bookingId);
+  } finally {
+    await prisma.booking.deleteMany({ where: { clientEmailSnapshot: email } });
+    await prisma.client.deleteMany({ where: { email } });
+    await prisma.availabilitySlot.deleteMany({
+      where: { id: { in: [publishedSlot.id, archivedSlot.id] } },
+    });
+    await prisma.service.delete({ where: { id: service.id } });
+    await prisma.serviceCategory.delete({ where: { id: category.id } });
+  }
+});

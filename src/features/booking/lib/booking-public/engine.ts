@@ -450,8 +450,11 @@ export async function createBookingWithEngine(
             orderBy: [{ startsAt: "asc" }],
           });
 
+          // Archived and cancelled slots retain planner history but must not
+          // prevent a new public booking. DRAFT slots represent an intentional
+          // internal block (for example a manually created exception).
           const blockingSlots = overlappingSlots.filter(
-            (candidate) => candidate.status !== AvailabilitySlotStatus.PUBLISHED,
+            (candidate) => candidate.status === AvailabilitySlotStatus.DRAFT,
           );
 
           if (blockingSlots.length > 0) {
