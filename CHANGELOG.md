@@ -6,6 +6,16 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [3.6.0] - 2026-07-22
+
+### Přidáno
+- Pracovní seznam rezervací v administraci má samostatné pohledy Dnes, Nadcházející, Vyžaduje pozornost, Historie a Všechny, včetně jednotného postupného načítání dalších výsledků.
+
+### Změněno
+- Parametry seznamu rezervací používají přehlednější `view` a `limit`; starší odkazy založené na `stat` a `showPast` zůstávají přeloženy pro zpětnou kompatibilitu.
+- Aktualizovány zamčené transitive závislosti pro Babel, PostCSS a Sharp.
+- Release příprava pro produkční nasazení: projektová verze navýšena na minor `3.6.0` kvůli zpětně kompatibilnímu rozšíření pracovního seznamu rezervací.
+
 ## [3.5.0] - 2026-07-21
 
 ### Přidáno
