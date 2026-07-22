@@ -403,6 +403,7 @@ dbTest("createPublicBooking ignores an archived slot left by a cancelled booking
 
     assert.ok(booking.bookingId);
   } finally {
+    await prisma.emailLog.deleteMany({ where: { recipientEmail: email } });
     await prisma.booking.deleteMany({ where: { clientEmailSnapshot: email } });
     await prisma.client.deleteMany({ where: { email } });
     await prisma.availabilitySlot.deleteMany({
