@@ -6,6 +6,16 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [3.7.0] - 2026-07-22
+
+### Přidáno
+- KPI dashboard administrace zobrazuje grafy tržeb a rezervací.
+- Veřejný rezervační tok rozpozná obsazený nebo archivovaný termín a vrátí přesnější informaci pro uživatelské rozhraní.
+
+### Změněno
+- Vyhledávání klientek a rezervací nabízí srozumitelnější nápovědy a automatické doplňování; vývojový server lze spustit explicitně přes Turbopack nebo Webpack fallback.
+- Release příprava pro produkční nasazení: projektová verze navýšena na minor `3.7.0` kvůli zpětně kompatibilnímu rozšíření KPI dashboardu a rezervačního toku.
+
 ## [3.6.0] - 2026-07-22
 
 ### Přidáno
