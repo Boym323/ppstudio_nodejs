@@ -1136,10 +1136,11 @@ test.describe("booking flows", () => {
 
     await page.goto("/admin/rezervace");
     await expect(page.getByRole("heading", { name: "Vytvořit rezervaci v administraci" })).toHaveCount(0);
-    await page.getByRole("button", { name: "Přidat rezervaci" }).click();
-    await expect(page.getByRole("heading", { name: "Vytvořit rezervaci v administraci" })).toBeVisible();
-    await expect(page.getByText("Vybraná klientka")).toHaveCount(0);
-    await page.getByRole("button", { name: "Zrušit" }).click();
+    await page.getByRole("button", { name: "Přidat rezervaci" }).first().click();
+    const bookingDrawer = page.getByRole("dialog", { name: "Vytvořit rezervaci v administraci" });
+    await expect(bookingDrawer).toBeVisible();
+    await expect(bookingDrawer.getByText("Vybraná klientka")).toHaveCount(0);
+    await bookingDrawer.getByRole("button", { name: "Zrušit" }).click();
 
     await page.goto("/admin/rezervace?create=1&clientId=missing-client");
     await expect(page.getByRole("heading", { name: "Vytvořit rezervaci v administraci" })).toBeVisible();
@@ -1176,12 +1177,13 @@ test.describe("booking flows", () => {
     await loginAdmin(page, admin.email, admin.password);
 
     await page.goto(`/admin/rezervace?create=1&clientId=${fixture.clientId!}`);
-    await page.getByLabel("Služba").selectOption({ label: fixture.serviceName });
-    await safeClick(page, page.getByRole("button", { name: "Ruční zadání" }));
-    await expect(page.getByLabel("Datum")).toBeVisible();
-    await page.getByLabel("Datum").fill(fixture.slotLabels.primaryDateKey);
-    await page.getByLabel("Čas od").fill(fixture.slotLabels.primaryTime);
-    await page.getByRole("button", { name: "Vytvořit rezervaci" }).last().click();
+    const bookingDrawer = page.getByRole("dialog", { name: "Vytvořit rezervaci v administraci" });
+    await bookingDrawer.getByLabel("Služba").selectOption({ label: fixture.serviceName });
+    await safeClick(page, bookingDrawer.getByRole("button", { name: "Ruční zadání" }));
+    await expect(bookingDrawer.getByLabel("Datum")).toBeVisible();
+    await bookingDrawer.getByLabel("Datum").fill(fixture.slotLabels.primaryDateKey);
+    await bookingDrawer.getByLabel("Čas od").fill(fixture.slotLabels.primaryTime);
+    await bookingDrawer.getByRole("button", { name: "Vytvořit rezervaci" }).click();
 
     await expect(
       page.getByText(
