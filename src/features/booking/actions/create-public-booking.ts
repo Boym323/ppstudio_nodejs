@@ -223,6 +223,16 @@ export async function createPublicBookingAction(
       },
     });
 
+    await sendOwnerSystemErrorPushover({
+      title: "PP Studio - omezeny pocet pokusu o rezervaci",
+      message: "Verejny formular rezervace narazil na rate limit.",
+      context: {
+        contextId: submissionMetadata.ipHash ?? "public-booking-rate-limited",
+        ipAttempts,
+        emailFailures,
+      },
+    });
+
     return {
       status: "error",
       formError: "Odeslali jste příliš mnoho pokusů. Počkejte prosím chvíli a zkuste to znovu.",
@@ -331,6 +341,19 @@ export async function createPublicBookingAction(
           acquisition: acquisitionData,
         },
       });
+
+      if (error.code === publicBookingErrorCodes.bookingConflict) {
+        await sendOwnerSystemErrorPushover({
+          title: "PP Studio - konflikt verejne rezervace",
+          message: "Verejna rezervace vratila kod BOOKING_CONFLICT.",
+          context: {
+            contextId: parsed.success ? parsed.data.slotId : "public-booking-conflict",
+            slotId: parsed.success ? parsed.data.slotId : null,
+            serviceId: parsed.success ? parsed.data.serviceId : null,
+          },
+          error,
+        });
+      }
 
       return {
         status: "error",
