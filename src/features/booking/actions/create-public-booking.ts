@@ -155,6 +155,9 @@ async function getRecentSubmissionCounts(ipHash?: string, emailHash?: string) {
             outcome: {
               in: [BookingSubmissionOutcome.FAILED, BookingSubmissionOutcome.BLOCKED],
             },
+            failureCode: {
+              not: publicBookingErrorCodes.bookingConflict,
+            },
           },
         })
       : Promise.resolve(0),
