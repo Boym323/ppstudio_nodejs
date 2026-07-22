@@ -95,8 +95,11 @@ export function BookingClientSelector({
           type="search"
           value={query}
           onChange={(event) => onQueryChange(event.target.value)}
-          placeholder="Např. Jana Nováková, 777123456 nebo jana@email.cz"
-          autoComplete="off"
+          placeholder="Např. Jana Nováková nebo 777123456"
+          autoComplete="new-password"
+          data-form-type="other"
+          data-lpignore="true"
+          data-1p-ignore="true"
           autoCorrect="off"
           autoCapitalize="none"
           spellCheck={false}

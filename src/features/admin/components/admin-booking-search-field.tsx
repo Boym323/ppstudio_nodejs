@@ -26,8 +26,6 @@ export function AdminBookingSearchField({
   const router = useRouter();
   const pathname = usePathname();
   const inputRef = useRef<HTMLInputElement | null>(null);
-  const hasMountedRef = useRef(false);
-  const lastSubmittedQueryRef = useRef(defaultValue);
   const [query, setQuery] = useState(defaultValue);
   const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
   const [status, setStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
@@ -137,24 +135,6 @@ export function AdminBookingSearchField({
     router.replace(href, { scroll: false });
   }, [pathname, router]);
 
-  useEffect(() => {
-    if (!hasMountedRef.current) {
-      hasMountedRef.current = true;
-      return;
-    }
-
-    const timeout = window.setTimeout(() => {
-      if (query === lastSubmittedQueryRef.current) {
-        return;
-      }
-
-      lastSubmittedQueryRef.current = query;
-      navigateWithCurrentForm(query);
-    }, 420);
-
-    return () => window.clearTimeout(timeout);
-  }, [navigateWithCurrentForm, query]);
-
   function applySuggestion(nextValue: string, submit = false) {
     setQuery(nextValue);
     setSuggestions([]);
@@ -163,7 +143,6 @@ export function AdminBookingSearchField({
     setIsFocused(false);
 
     if (submit) {
-      lastSubmittedQueryRef.current = nextValue;
       requestAnimationFrame(() => navigateWithCurrentForm(nextValue));
     }
   }
@@ -181,11 +160,14 @@ export function AdminBookingSearchField({
       <div className="relative isolate mt-1.5">
         <input
           ref={inputRef}
-          type="search"
+          type="text"
           name="query"
           value={query}
           placeholder={placeholder}
-          autoComplete="off"
+          autoComplete="new-password"
+          data-form-type="other"
+          data-lpignore="true"
+          data-1p-ignore="true"
           autoCorrect="off"
           autoCapitalize="none"
           spellCheck={false}
@@ -217,6 +199,9 @@ export function AdminBookingSearchField({
               if (event.key === "Escape") {
                 setSuggestions([]);
                 setStatus("idle");
+              } else if (event.key === "Enter") {
+                event.preventDefault();
+                navigateWithCurrentForm(query);
               }
               return;
             }

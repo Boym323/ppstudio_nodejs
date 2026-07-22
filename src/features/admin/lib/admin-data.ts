@@ -499,12 +499,15 @@ function normalizeReservationsSearchParams(
 
   const dateFrom = parsed.data.dateFrom ?? "";
   const dateTo = parsed.data.dateTo ?? "";
+  const query = parsed.data.query ?? defaults.query;
+  const requestedView = parsed.data.view ?? legacyView(parsed.data.stat, parsed.data.showPast) ?? defaults.view;
 
   return {
-    query: parsed.data.query ?? defaults.query,
+    // Hledání klientky je globální; záložka „Nadcházející“ nesmí schovat její starší rezervace.
+    query,
     status: parsed.data.status ?? defaults.status,
     source: parsed.data.source ?? defaults.source,
-    view: parsed.data.view ?? legacyView(parsed.data.stat, parsed.data.showPast) ?? defaults.view,
+    view: query ? "all" : requestedView,
     dateFrom: dateFrom <= dateTo || !dateFrom || !dateTo ? dateFrom : dateTo,
     dateTo: dateFrom <= dateTo || !dateFrom || !dateTo ? dateTo : dateFrom,
     limit: parsed.data.limit ?? defaults.limit,

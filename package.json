@@ -9,7 +9,7 @@
   "scripts": {
     "clean": "rm -rf .next",
     "predev": "prisma generate",
-    "dev": "next dev --webpack",
+    "dev": "next dev",
     "dev:clean": "npm run clean && npm run dev",
     "dev:webpack": "next dev --webpack",
     "dev:turbopack": "next dev",
