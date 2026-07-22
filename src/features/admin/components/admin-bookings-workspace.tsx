@@ -14,6 +14,8 @@ export function AdminBookingsWorkspace({ area, data }: { area: AdminArea; data: 
   const router = useRouter(); const [toast, setToast] = useState<string | null>(null); const refs = useRef<Array<HTMLTableRowElement | null>>([]);
   const rows = data.sections.flatMap((section) => section.items);
   const columns = useMemo(() => createBookingColumns(area, setToast), [area]);
+  // TanStack Table returns mutable table helpers; these remain local to this non-memoized component.
+  // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({ data: rows, columns, getCoreRowModel: getCoreRowModel(), getRowId: (booking) => booking.id });
   const indexById = new Map(rows.map((row, index) => [row.id, index]));
   useEffect(() => { if (!toast) return; const id = window.setTimeout(() => setToast(null), 2600); return () => window.clearTimeout(id); }, [toast]);
