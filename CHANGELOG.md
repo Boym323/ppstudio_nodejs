@@ -6,6 +6,15 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [3.7.1] - 2026-07-23
+
+### Opraveno
+- Veřejná rezervace i přesun existující rezervace správně ignorují archivované a zrušené sloty; interně blokující zůstávají pouze koncepty.
+
+### Změněno
+- Integrační testy rezervací běží sériově, aby se nepřekrývaly při práci nad sdílenými daty.
+- Release příprava pro produkční nasazení: projektová verze navýšena na patch `3.7.1` kvůli opravě vyhodnocení blokujících stavů slotů.
+
 ## [3.7.0] - 2026-07-22
 
 ### Přidáno
