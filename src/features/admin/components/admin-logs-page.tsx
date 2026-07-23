@@ -12,8 +12,19 @@ const views: Array<{ value: AdminLogView; label: string; ownerOnly?: boolean }> 
 const severityLabel = { info: "Informace", success: "V pořádku", warning: "Varování", error: "Chyba" } as const;
 const categoryLabel = { event: "Událost", email: "E-mail", automation: "Automatizace", system: "Systém" } as const;
 
+const pragueDateTime = new Intl.DateTimeFormat("cs-CZ", {
+  timeZone: "Europe/Prague",
+  day: "2-digit",
+  month: "2-digit",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false,
+});
+
 function formatLogTime(occurredAt: string) {
-  return `${occurredAt.slice(0, 16).replace("T", " ")} UTC`;
+  const date = new Date(occurredAt);
+  return Number.isNaN(date.getTime()) ? "—" : pragueDateTime.format(date);
 }
 
 function hrefWith(data: AdminLogsData, changes: Record<string, string | undefined>) {
