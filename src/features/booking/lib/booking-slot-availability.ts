@@ -51,6 +51,10 @@ export type PublishedCoverageSlot = {
   allowedServices: SlotRestrictionRecord[];
 };
 
+export function isInternallyBlockingSlotStatus(status: AvailabilitySlotStatus) {
+  return status === AvailabilitySlotStatus.DRAFT;
+}
+
 function overlaps(
   leftStart: Date,
   leftEnd: Date,

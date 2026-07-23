@@ -38,7 +38,10 @@ import {
   normalizeWhitespace,
   publicBookingErrorCodes,
 } from "./shared";
-import { resolvePublishedSlotCoverage } from "../booking-slot-availability";
+import {
+  isInternallyBlockingSlotStatus,
+  resolvePublishedSlotCoverage,
+} from "../booking-slot-availability";
 
 function waitForRetryBackoff(attempt: number) {
   const backoffMs = Math.min(25 * attempt, 100);
@@ -453,8 +456,8 @@ export async function createBookingWithEngine(
           // Archived and cancelled slots retain planner history but must not
           // prevent a new public booking. DRAFT slots represent an intentional
           // internal block (for example a manually created exception).
-          const blockingSlots = overlappingSlots.filter(
-            (candidate) => candidate.status === AvailabilitySlotStatus.DRAFT,
+          const blockingSlots = overlappingSlots.filter((candidate) =>
+            isInternallyBlockingSlotStatus(candidate.status),
           );
 
           if (blockingSlots.length > 0) {

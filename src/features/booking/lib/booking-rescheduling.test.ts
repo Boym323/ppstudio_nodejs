@@ -250,6 +250,62 @@ describe("state validation", () => {
     assert.equal(result.notificationStatus, "skipped");
   });
 
+  test("ignores an overlapping archived slot left by a cancelled booking", async () => {
+    const harness = await createHarness({
+      overlappingSlots: [
+        buildSlot({
+          id: "slot-archived-history",
+          startsAt: new Date("2026-04-28T08:30:00.000Z"),
+          endsAt: new Date("2026-04-28T10:30:00.000Z"),
+          status: AvailabilitySlotStatus.ARCHIVED,
+        }),
+      ],
+    });
+
+    const result = await harness.api.rescheduleBooking({
+      bookingId: "booking-1",
+      slotId: "slot-new",
+      newStartAt: "2026-04-28T09:00:00.000Z",
+      changedByUserId: null,
+      changedByClient: true,
+      notifyClient: false,
+      expectedUpdatedAt: "2026-04-23T09:00:00.000Z",
+    });
+
+    assert.equal(result.bookingId, "booking-1");
+    assert.equal(result.manualOverride, false);
+  });
+
+  test("keeps an overlapping draft slot as an internal block", async () => {
+    const { bookingRescheduleErrorCodes } = await import("./booking-rescheduling");
+    const harness = await createHarness({
+      overlappingSlots: [
+        buildSlot({
+          id: "slot-draft-block",
+          startsAt: new Date("2026-04-28T08:30:00.000Z"),
+          endsAt: new Date("2026-04-28T10:30:00.000Z"),
+          status: AvailabilitySlotStatus.DRAFT,
+        }),
+      ],
+    });
+
+    await assert.rejects(
+      harness.api.rescheduleBooking({
+        bookingId: "booking-1",
+        slotId: "slot-new",
+        newStartAt: "2026-04-28T09:00:00.000Z",
+        changedByUserId: null,
+        changedByClient: true,
+        notifyClient: false,
+        expectedUpdatedAt: "2026-04-23T09:00:00.000Z",
+      }),
+      (error) => {
+        expectRescheduleErrorCode(error, bookingRescheduleErrorCodes.conflict);
+        return true;
+      },
+    );
+  });
+
   test("allows reschedule across adjacent published slots and uses the whole chain in conflict checks", async () => {
     const harness = await createHarness({
       booking: buildBooking({

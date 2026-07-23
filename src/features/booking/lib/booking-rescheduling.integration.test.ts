@@ -58,6 +58,8 @@ async function findIsolatedRescheduleWindow(
   excludedWindows: Array<{ startsAt: Date; endsAt: Date }> = [],
 ) {
   const { prisma, BookingStatus } = await loadModules();
+  const { getBookingPolicySettings } = await import("@/lib/site-settings");
+  const { maxAdvanceDays } = await getBookingPolicySettings();
   const activeStatuses = [BookingStatus.PENDING, BookingStatus.CONFIRMED, BookingStatus.COMPLETED];
   const daySeed = Number.parseInt(seedUuid.replaceAll("-", "").slice(0, 4), 16);
   const hourSeed = Number.parseInt(seedUuid.replaceAll("-", "").slice(4, 6), 16);
@@ -66,8 +68,15 @@ async function findIsolatedRescheduleWindow(
   const minuteCandidates = [0, 15, 30, 45].map(
     (minute, index, list) => list[(index + minuteSeed) % list.length] ?? minute,
   );
-  for (let dayStep = 0; dayStep < 60; dayStep += 1) {
-    const dayOffset = 14 + ((daySeed + dayStep) % 60);
+  const minimumDayOffset = 14;
+  const dayOffsetRange = maxAdvanceDays - minimumDayOffset;
+
+  if (dayOffsetRange < 1) {
+    throw new Error("Booking policy neposkytuje dostatecne testovaci okno pro reschedule.");
+  }
+
+  for (let dayStep = 0; dayStep < dayOffsetRange; dayStep += 1) {
+    const dayOffset = minimumDayOffset + ((daySeed + dayStep) % dayOffsetRange);
 
     for (const hour of hourCandidates) {
       for (const minute of minuteCandidates) {
@@ -356,6 +365,38 @@ dbTest("rescheduleBooking updates the existing booking, writes audit history and
     });
 
     assert.equal(oldSlotStillExists, null);
+  } finally {
+    await cleanupSeed(seed);
+  }
+});
+
+dbTest("rescheduleBooking ignores an archived slot left by a cancelled booking", async () => {
+  const seed = await createSeed();
+  const { prisma, rescheduleBooking, AvailabilitySlotStatus } = await loadModules();
+
+  await prisma.availabilitySlot.create({
+    data: {
+      startsAt: new Date(new Date(seed.newStartAt).getTime() - 30 * 60 * 1000),
+      endsAt: new Date(new Date(seed.newEndAt).getTime() + 30 * 60 * 1000),
+      capacity: 1,
+      status: AvailabilitySlotStatus.ARCHIVED,
+      serviceRestrictionMode: "ANY",
+      internalNote: "Historicky slot po zrusene rezervaci",
+      createdByUserId: seed.actorUserId,
+    },
+  });
+
+  try {
+    const result = await rescheduleBooking({
+      bookingId: seed.bookingId,
+      slotId: seed.newSlotId,
+      newStartAt: seed.newStartAt,
+      changedByUserId: seed.actorUserId,
+      notifyClient: false,
+      expectedUpdatedAt: seed.bookingUpdatedAt,
+    });
+
+    assert.equal(result.bookingId, seed.bookingId);
   } finally {
     await cleanupSeed(seed);
   }

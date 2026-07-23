@@ -16,7 +16,10 @@ import {
   buildBookingManagementUrl,
 } from "@/features/booking/lib/booking-action-tokens";
 import { formatBookingDateLabel } from "@/features/booking/lib/booking-format";
-import { resolvePublishedSlotCoverage } from "@/features/booking/lib/booking-slot-availability";
+import {
+  isInternallyBlockingSlotStatus,
+  resolvePublishedSlotCoverage,
+} from "@/features/booking/lib/booking-slot-availability";
 import { sendOwnerBookingPushover, sendOwnerSystemErrorPushover } from "@/lib/notifications/pushover";
 import { prisma } from "@/lib/prisma";
 import { getBookingPolicySettings, getEmailBrandingSettings, isBookingWithinWindow } from "@/lib/site-settings";
@@ -660,7 +663,9 @@ async function rescheduleBookingInTransaction(
     orderBy: [{ startsAt: "asc" }],
   });
 
-  const blockingSlots = overlappingSlots.filter((slot) => slot.status !== AvailabilitySlotStatus.PUBLISHED);
+  const blockingSlots = overlappingSlots.filter((slot) =>
+    isInternallyBlockingSlotStatus(slot.status),
+  );
 
   if (blockingSlots.length > 0) {
     throw new BookingRescheduleError(

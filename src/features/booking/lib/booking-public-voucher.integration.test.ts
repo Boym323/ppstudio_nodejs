@@ -63,6 +63,8 @@ async function findIsolatedSlotStart(
   minimumDayOffset = 14,
 ) {
   const { prisma } = await loadModules();
+  const { getBookingPolicySettings } = await import("@/lib/site-settings");
+  const { maxAdvanceDays } = await getBookingPolicySettings();
   const activeStatuses = [BookingStatus.PENDING, BookingStatus.CONFIRMED, BookingStatus.COMPLETED];
   const daySeed = parseInt(context.suffix.slice(0, 4), 16);
   const hourSeed = parseInt(context.suffix.slice(4, 6), 16);
@@ -72,8 +74,14 @@ async function findIsolatedSlotStart(
     (minute, index, list) => list[(index + minuteSeed) % list.length] ?? minute,
   );
 
-  for (let dayStep = 0; dayStep < 60; dayStep += 1) {
-    const dayOffset = minimumDayOffset + ((daySeed + dayStep) % 60);
+  const dayOffsetRange = maxAdvanceDays - minimumDayOffset;
+
+  if (dayOffsetRange < 1) {
+    throw new Error("Booking policy neposkytuje dostatecne testovaci okno pro verejnou rezervaci.");
+  }
+
+  for (let dayStep = 0; dayStep < dayOffsetRange; dayStep += 1) {
+    const dayOffset = minimumDayOffset + ((daySeed + dayStep) % dayOffsetRange);
 
     for (const hour of hourCandidates) {
       for (const minute of minuteCandidates) {

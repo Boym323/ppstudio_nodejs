@@ -8,9 +8,19 @@ import {
 
 import {
   buildMergedPublicCatalogSlots,
+  isInternallyBlockingSlotStatus,
   resolvePublishedSlotCoverage,
 } from "./booking-slot-availability";
 import { buildSlotTimeOptions } from "./booking-time-slots";
+
+describe("isInternallyBlockingSlotStatus", () => {
+  test("blocks only active draft slots and ignores historical states", () => {
+    assert.equal(isInternallyBlockingSlotStatus(AvailabilitySlotStatus.DRAFT), true);
+    assert.equal(isInternallyBlockingSlotStatus(AvailabilitySlotStatus.PUBLISHED), false);
+    assert.equal(isInternallyBlockingSlotStatus(AvailabilitySlotStatus.CANCELLED), false);
+    assert.equal(isInternallyBlockingSlotStatus(AvailabilitySlotStatus.ARCHIVED), false);
+  });
+});
 
 describe("buildMergedPublicCatalogSlots", () => {
   test("merges adjacent compatible slots and keeps source segments", () => {
