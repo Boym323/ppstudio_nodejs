@@ -6,7 +6,7 @@ import {
   normalizeClientListPage,
   type ClientListQuickFilterValue,
   type ClientListSortValue,
-  type ClientListStatusValue,
+  type ClientListViewValue,
 } from "@/features/admin/lib/admin-client-validation";
 import {
   getAdminBookingHref,
@@ -87,6 +87,7 @@ function formatBookingDateLabel(startsAt: Date, endsAt: Date) {
 function normalizeSearchParams(searchParams?: Record<string, string | string[] | undefined>) {
   const parsed = clientListSearchParamsSchema.safeParse({
     query: typeof searchParams?.query === "string" ? searchParams.query : undefined,
+    view: typeof searchParams?.view === "string" ? searchParams.view : undefined,
     status: typeof searchParams?.status === "string" ? searchParams.status : undefined,
     sort: typeof searchParams?.sort === "string" ? searchParams.sort : undefined,
     quick: typeof searchParams?.quick === "string" ? searchParams.quick : undefined,
@@ -97,7 +98,7 @@ function normalizeSearchParams(searchParams?: Record<string, string | string[] |
 
   const defaults = {
     query: "",
-    status: "all" as ClientListStatusValue,
+    view: "all" as ClientListViewValue,
     sort: "recent" as ClientListSortValue,
     quick: "all" as ClientListQuickFilterValue,
     retention: undefined as "8_11" | "12_15" | "16_plus" | undefined,
@@ -111,11 +112,20 @@ function normalizeSearchParams(searchParams?: Record<string, string | string[] |
 
   return {
     query: parsed.data.query ?? defaults.query,
-    status: parsed.data.status ?? defaults.status,
+    view: (() => {
+      if (parsed.data.view) return parsed.data.view;
+      if (parsed.data.retention) return "outreach";
+      if (parsed.data.status === "inactive") return "inactive";
+      if (parsed.data.quick === "no_contact") return "no_contact";
+      if (parsed.data.quick === "new_30") return "new";
+      return "all";
+    })(),
     sort: parsed.data.sort ?? defaults.sort,
-    quick: parsed.data.quick ?? defaults.quick,
-    retention: parsed.data.retention,
-    retentionAt: parsed.data.retentionAt,
+    quick: ["upcoming", "outreach", "new"].includes(parsed.data.view ?? (parsed.data.retention ? "outreach" : ""))
+      ? "all"
+      : (parsed.data.quick === "no_contact" || parsed.data.quick === "new_30" ? "all" : parsed.data.quick ?? defaults.quick),
+    retention: (parsed.data.view ?? (parsed.data.retention ? "outreach" : "all")) === "outreach" ? parsed.data.retention : undefined,
+    retentionAt: (parsed.data.view ?? (parsed.data.retention ? "outreach" : "all")) === "outreach" ? parsed.data.retentionAt : undefined,
     page: normalizeClientListPage(parsed.data.page),
   };
 }
@@ -158,13 +168,7 @@ function buildClientWhere(
   const where: Prisma.ClientWhereInput = {};
   const andFilters: Prisma.ClientWhereInput[] = [];
 
-  if (filters.status === "active") {
-    where.isActive = true;
-  }
-
-  if (filters.status === "inactive") {
-    where.isActive = false;
-  }
+  where.isActive = filters.view === "inactive" ? false : true;
 
   if (filters.query) {
     where.OR = [
@@ -173,6 +177,20 @@ function buildClientWhere(
       { phone: { contains: filters.query, mode: "insensitive" } },
       { internalNote: { contains: filters.query, mode: "insensitive" } },
     ];
+  }
+
+  if (filters.view === "upcoming") {
+    andFilters.push({ bookings: { some: { status: { in: [BookingStatus.PENDING, BookingStatus.CONFIRMED] }, scheduledStartsAt: { gte: now } } } });
+  }
+  if (filters.view === "new") andFilters.push({ createdAt: { gte: recentThreshold } });
+  if (filters.view === "no_contact") andFilters.push(hasNoContactWhere());
+  if (filters.view === "outreach") {
+    const eightWeeksAgo = new Date(now.getTime() - 8 * 7 * 86_400_000);
+    andFilters.push(
+      { bookings: { some: { status: BookingStatus.COMPLETED, scheduledStartsAt: { lt: eightWeeksAgo } } } },
+      { bookings: { none: { status: BookingStatus.COMPLETED, scheduledStartsAt: { gte: eightWeeksAgo, lt: now } } } },
+      { bookings: { none: { status: { in: [BookingStatus.PENDING, BookingStatus.CONFIRMED] }, scheduledStartsAt: { gte: now } } } },
+    );
   }
 
   switch (filters.quick) {
@@ -190,25 +208,15 @@ function buildClientWhere(
         },
       });
       break;
-    case "no_contact":
-      andFilters.push(hasNoContactWhere());
-      break;
     case "noted":
       andFilters.push(hasInternalNoteWhere());
-      break;
-    case "new_30":
-      andFilters.push({
-        createdAt: {
-          gte: recentThreshold,
-        },
-      });
       break;
     case "all":
     default:
       break;
   }
 
-  if (filters.retention) {
+  if (filters.view === "outreach" && filters.retention) {
     const eightWeeksAgo = new Date(now.getTime() - 8 * 7 * 86_400_000);
     const twelveWeeksAgo = new Date(now.getTime() - 12 * 7 * 86_400_000);
     const sixteenWeeksAgo = new Date(now.getTime() - 16 * 7 * 86_400_000);
@@ -244,11 +252,24 @@ function buildClientSqlWhere(
 ) {
   const clauses: Prisma.Sql[] = [];
 
-  if (filters.status === "active") clauses.push(Prisma.sql`c."isActive" = true`);
-  if (filters.status === "inactive") clauses.push(Prisma.sql`c."isActive" = false`);
+  clauses.push(Prisma.sql`c."isActive" = ${filters.view !== "inactive"}`);
   if (filters.query) {
     const query = `%${filters.query}%`;
     clauses.push(Prisma.sql`(c."fullName" ILIKE ${query} OR c.email ILIKE ${query} OR c.phone ILIKE ${query} OR c."internalNote" ILIKE ${query})`);
+  }
+
+  if (filters.view === "upcoming") {
+    clauses.push(Prisma.sql`EXISTS (SELECT 1 FROM "Booking" b WHERE b."clientId" = c.id AND b.status IN (${BookingStatus.PENDING}, ${BookingStatus.CONFIRMED}) AND b."scheduledStartsAt" >= ${retentionReference})`);
+  }
+  if (filters.view === "new") clauses.push(Prisma.sql`c."createdAt" >= ${recentThreshold}`);
+  if (filters.view === "no_contact") clauses.push(Prisma.sql`(c.email IS NULL OR c.email = '') AND (c.phone IS NULL OR c.phone = '')`);
+  if (filters.view === "outreach") {
+    const eightWeeksAgo = new Date(retentionReference.getTime() - 8 * 7 * 86_400_000);
+    clauses.push(
+      Prisma.sql`EXISTS (SELECT 1 FROM "Booking" b WHERE b."clientId" = c.id AND b.status = ${BookingStatus.COMPLETED} AND b."scheduledStartsAt" < ${eightWeeksAgo})`,
+      Prisma.sql`NOT EXISTS (SELECT 1 FROM "Booking" b WHERE b."clientId" = c.id AND b.status = ${BookingStatus.COMPLETED} AND b."scheduledStartsAt" >= ${eightWeeksAgo} AND b."scheduledStartsAt" < ${retentionReference})`,
+      Prisma.sql`NOT EXISTS (SELECT 1 FROM "Booking" b WHERE b."clientId" = c.id AND b.status IN (${BookingStatus.PENDING}, ${BookingStatus.CONFIRMED}) AND b."scheduledStartsAt" >= ${retentionReference})`,
+    );
   }
 
   switch (filters.quick) {
@@ -258,18 +279,12 @@ function buildClientSqlWhere(
     case "without_booking":
       clauses.push(Prisma.sql`NOT EXISTS (SELECT 1 FROM "Booking" b WHERE b."clientId" = c.id)`);
       break;
-    case "no_contact":
-      clauses.push(Prisma.sql`(c.email IS NULL OR c.email = '') AND (c.phone IS NULL OR c.phone = '')`);
-      break;
     case "noted":
       clauses.push(Prisma.sql`c."internalNote" IS NOT NULL AND c."internalNote" <> ''`);
       break;
-    case "new_30":
-      clauses.push(Prisma.sql`c."createdAt" >= ${recentThreshold}`);
-      break;
   }
 
-  if (filters.retention) {
+  if (filters.view === "outreach" && filters.retention) {
     const eightWeeksAgo = new Date(retentionReference.getTime() - 8 * 7 * 86_400_000);
     const twelveWeeksAgo = new Date(retentionReference.getTime() - 12 * 7 * 86_400_000);
     const sixteenWeeksAgo = new Date(retentionReference.getTime() - 16 * 7 * 86_400_000);
@@ -294,7 +309,7 @@ async function getOrderedClientPageIds(
 ) {
   const skip = (page - 1) * clientPageSize;
 
-  if (filters.sort === "name" || filters.sort === "created") {
+  if ((filters.view === "all" || filters.view === "no_contact" || filters.view === "inactive") && (filters.sort === "name" || filters.sort === "created")) {
     const clients = await prisma.client.findMany({
       where,
       orderBy: buildClientOrderBy(filters.sort),
@@ -306,9 +321,15 @@ async function getOrderedClientPageIds(
   }
 
   const sqlWhere = buildClientSqlWhere(filters, recentThreshold, retentionReference);
-  const orderBy = filters.sort === "recent"
-    ? Prisma.sql`last_visit."lastVisitAt" DESC NULLS LAST, c."createdAt" DESC, c.id DESC`
-    : Prisma.sql`booking_count.total DESC, last_visit."lastVisitAt" DESC NULLS LAST, c."fullName" ASC, c.id ASC`;
+  const orderBy = filters.view === "upcoming"
+    ? Prisma.sql`next_booking."nextBookingAt" ASC, c."fullName" ASC, c.id ASC`
+    : filters.view === "outreach"
+      ? Prisma.sql`last_visit."lastVisitAt" DESC, c.id ASC`
+      : filters.view === "new"
+        ? Prisma.sql`c."createdAt" DESC, c.id DESC`
+        : filters.sort === "recent"
+          ? Prisma.sql`last_visit."lastVisitAt" DESC NULLS LAST, c."createdAt" DESC, c.id DESC`
+          : Prisma.sql`booking_count.total DESC, last_visit."lastVisitAt" DESC NULLS LAST, c."fullName" ASC, c.id ASC`;
   const rows = await prisma.$queryRaw<Array<{ id: string }>>(Prisma.sql`
     SELECT c.id
     FROM "Client" c
@@ -324,6 +345,13 @@ async function getOrderedClientPageIds(
       FROM "Booking" b
       WHERE b."clientId" = c.id
     ) booking_count ON true
+    LEFT JOIN LATERAL (
+      SELECT MIN(b."scheduledStartsAt") AS "nextBookingAt"
+      FROM "Booking" b
+      WHERE b."clientId" = c.id
+        AND b.status IN (${BookingStatus.PENDING}, ${BookingStatus.CONFIRMED})
+        AND b."scheduledStartsAt" >= ${retentionReference}
+    ) next_booking ON true
     ${sqlWhere}
     ORDER BY ${orderBy}
     LIMIT ${clientPageSize} OFFSET ${skip}
@@ -338,43 +366,86 @@ export function getAdminClientHref(area: AdminArea, clientId: string) {
     : `/admin/provoz/klienti/${clientId}`;
 }
 
+const clientViewDefinitions: Array<{ value: ClientListViewValue; label: string }> = [
+  { value: "all", label: "Vše" },
+  { value: "upcoming", label: "Přijdou" },
+  { value: "outreach", label: "K oslovení" },
+  { value: "new", label: "Nové" },
+  { value: "no_contact", label: "Bez kontaktu" },
+  { value: "inactive", label: "Neaktivní" },
+];
+
+function getClientsPath(area: AdminArea) {
+  return area === "owner" ? "/admin/klienti" : "/admin/provoz/klienti";
+}
+
+function buildClientsHref(area: AdminArea, filters: ReturnType<typeof normalizeSearchParams>, view: ClientListViewValue, retention?: "8_11" | "12_15" | "16_plus", referenceAt?: Date) {
+  const params = new URLSearchParams();
+  if (filters.query) params.set("query", filters.query);
+  if (view !== "all") params.set("view", view);
+  if (["all", "no_contact", "inactive"].includes(view) && filters.quick !== "all") params.set("quick", filters.quick);
+  if (["all", "no_contact", "inactive"].includes(view) && filters.sort !== "recent") params.set("sort", filters.sort);
+  if (view === "outreach" && retention) params.set("retention", retention);
+  if (view === "outreach" && referenceAt) params.set("retentionAt", String(referenceAt.getTime()));
+  const query = params.toString();
+  return query ? `${getClientsPath(area)}?${query}` : getClientsPath(area);
+}
+
+function buildViews(area: AdminArea, filters: ReturnType<typeof normalizeSearchParams>, counts: Record<ClientListViewValue, number>, referenceAt: Date) {
+  return clientViewDefinitions.map((definition) => ({
+    ...definition,
+    count: counts[definition.value],
+    href: buildClientsHref(area, filters, definition.value, undefined, definition.value === "outreach" ? referenceAt : undefined),
+    isActive: filters.view === definition.value,
+  }));
+}
+
+function buildOutreach(area: AdminArea, filters: ReturnType<typeof normalizeSearchParams>, referenceAt: Date, counts: [number, number, number]) {
+  const bands = ([
+    ["8_11", "8–11 týdnů"],
+    ["12_15", "12–15 týdnů"],
+    ["16_plus", "16+ týdnů"],
+  ] as const).map(([value, label], index) => ({ value, label, count: counts[index], href: buildClientsHref(area, filters, "outreach", value, referenceAt) }));
+  return { totalCount: counts.reduce((total, count) => total + count, 0), referenceAt, bands };
+}
+
+function getEmptyState(view: ClientListViewValue) {
+  const messages: Record<ClientListViewValue, { title: string; description: string }> = {
+    all: { title: "Nenalezeny žádné aktivní klientky.", description: "" },
+    upcoming: { title: "Žádná klientka nemá naplánovanou budoucí návštěvu.", description: "" },
+    outreach: { title: "Žádná klientka nyní není k oslovení.", description: "" },
+    new: { title: "Za posledních 30 dní nebyl vytvořen žádný nový profil.", description: "" },
+    no_contact: { title: "Všechny aktivní klientky mají uvedený kontakt.", description: "" },
+    inactive: { title: "Nejsou evidované žádné neaktivní klientky.", description: "" },
+  };
+  return messages[view];
+}
+
 export async function getAdminClientsPageData(
   area: AdminArea,
   searchParams?: Record<string, string | string[] | undefined>,
 ) {
-  const filters = normalizeSearchParams(searchParams);
+  let filters = normalizeSearchParams(searchParams);
   const now = new Date();
   const retentionReference = filters.retentionAt
     ? new Date(Math.min(Number(filters.retentionAt), now.getTime()))
     : now;
+  if (filters.view === "outreach") filters = { ...filters, retentionAt: String(retentionReference.getTime()) };
   const recentThreshold = new Date(now);
   recentThreshold.setDate(recentThreshold.getDate() - 30);
   const where = buildClientWhere(filters, recentThreshold, retentionReference);
-  const [totalCount, newCount, noContactCount, notedCount, activeRecentCount, filteredCount] = await Promise.all([
-    prisma.client.count(),
-    prisma.client.count({
-      where: {
-        createdAt: {
-          gte: recentThreshold,
-        },
-      },
-    }),
-    prisma.client.count({ where: hasNoContactWhere() }),
-    prisma.client.count({ where: hasInternalNoteWhere() }),
-    prisma.client.count({
-      where: {
-        bookings: {
-          some: {
-            status: BookingStatus.COMPLETED,
-            scheduledStartsAt: {
-              gte: recentThreshold,
-              lt: now,
-            },
-          },
-        },
-      },
-    }),
+  const viewFilters = (view: ClientListViewValue) => buildClientWhere({ ...filters, view, quick: "all", retention: undefined }, recentThreshold, retentionReference);
+  const [filteredCount, allCount, upcomingCount, outreachCount, newCount, noContactCount, inactiveCount, band8, band12, band16] = await Promise.all([
     prisma.client.count({ where }),
+    prisma.client.count({ where: viewFilters("all") }),
+    prisma.client.count({ where: viewFilters("upcoming") }),
+    prisma.client.count({ where: viewFilters("outreach") }),
+    prisma.client.count({ where: viewFilters("new") }),
+    prisma.client.count({ where: viewFilters("no_contact") }),
+    prisma.client.count({ where: viewFilters("inactive") }),
+    prisma.client.count({ where: buildClientWhere({ ...filters, view: "outreach", quick: "all", retention: "8_11" }, recentThreshold, retentionReference) }),
+    prisma.client.count({ where: buildClientWhere({ ...filters, view: "outreach", quick: "all", retention: "12_15" }, recentThreshold, retentionReference) }),
+    prisma.client.count({ where: buildClientWhere({ ...filters, view: "outreach", quick: "all", retention: "16_plus" }, recentThreshold, retentionReference) }),
   ]);
   const totalPages = filteredCount === 0 ? 1 : Math.ceil(filteredCount / clientPageSize);
   const page = Math.min(filters.page, totalPages);
@@ -433,32 +504,9 @@ export async function getAdminClientsPageData(
   return {
     area,
     filters,
-    stats: [
-      {
-        label: area === "owner" ? "Klientů celkem" : "Klientek celkem",
-        value: String(totalCount),
-        tone: "accent" as const,
-        detail: "Všechny profily v databázi.",
-      },
-      {
-        label: "Nové za 30 dní",
-        value: String(newCount),
-        detail: activeRecentCount > newCount
-          ? `Aktivní za 30 dní: ${activeRecentCount}`
-          : "Nově založené profily.",
-      },
-      {
-        label: "Bez kontaktu",
-        value: String(noContactCount),
-        tone: noContactCount > 0 ? ("muted" as const) : undefined,
-        detail: "Bez e-mailu i telefonu.",
-      },
-      {
-        label: "S poznámkou",
-        value: String(notedCount),
-        detail: "Profily s interním kontextem.",
-      },
-    ],
+    views: buildViews(area, filters, { all: allCount, upcoming: upcomingCount, outreach: outreachCount, new: newCount, no_contact: noContactCount, inactive: inactiveCount }, retentionReference),
+    outreach: buildOutreach(area, filters, retentionReference, [band8, band12, band16]),
+    emptyState: getEmptyState(filters.view),
     clients: normalizedClients.map((client): AdminClientsListItem => {
       const email = client.email.trim();
       const phone = client.phone?.trim() ?? "";

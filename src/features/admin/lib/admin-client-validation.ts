@@ -2,6 +2,7 @@ import { z } from "zod";
 
 export const clientListSortValues = ["recent", "bookings", "name", "created"] as const;
 export const clientListStatusValues = ["all", "active", "inactive"] as const;
+export const clientListViewValues = ["all", "upcoming", "outreach", "new", "no_contact", "inactive"] as const;
 export const clientListQuickFilterValues = [
   "all",
   "with_booking",
@@ -14,6 +15,7 @@ export const clientListQuickFilterValues = [
 export const clientListSearchParamsSchema = z.object({
   query: z.string().trim().max(120).optional(),
   status: z.enum(clientListStatusValues).optional(),
+  view: z.enum(clientListViewValues).optional(),
   sort: z.enum(clientListSortValues).optional(),
   quick: z.enum(clientListQuickFilterValues).optional(),
   retention: z.enum(["8_11", "12_15", "16_plus"]).optional(),
@@ -56,4 +58,5 @@ export const updateClientContactSchema = z.object({
 
 export type ClientListSortValue = (typeof clientListSortValues)[number];
 export type ClientListStatusValue = (typeof clientListStatusValues)[number];
+export type ClientListViewValue = (typeof clientListViewValues)[number];
 export type ClientListQuickFilterValue = (typeof clientListQuickFilterValues)[number];

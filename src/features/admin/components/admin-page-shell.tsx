@@ -20,6 +20,8 @@ type AdminPageShellProps = {
   children?: React.ReactNode;
   compact?: boolean;
   denseIntro?: boolean;
+  mobileCompactIntro?: boolean;
+  mobileDescription?: string;
 };
 
 type AdminPanelProps = {
@@ -62,6 +64,8 @@ export function AdminPageShell({
   children,
   compact = false,
   denseIntro = false,
+  mobileCompactIntro = false,
+  mobileDescription,
 }: AdminPageShellProps) {
   return (
     <div className={cn("min-w-0", denseIntro ? "space-y-4" : "space-y-6")}>
@@ -76,7 +80,8 @@ export function AdminPageShell({
             {eyebrow ? (
               <p
                 className={cn(
-                  "text-xs uppercase text-[var(--color-accent-soft)]",
+                "text-xs uppercase text-[var(--color-accent-soft)]",
+                  mobileCompactIntro && "hidden sm:block",
                   denseIntro ? "tracking-[0.28em]" : "tracking-[0.35em]",
                 )}
               >
@@ -87,7 +92,7 @@ export function AdminPageShell({
               className={cn(
                 "font-display text-white",
                 denseIntro
-                  ? "text-[1.55rem] leading-none sm:text-[1.7rem]"
+                  ? mobileCompactIntro ? "text-[1.35rem] leading-none sm:text-[1.7rem]" : "text-[1.55rem] leading-none sm:text-[1.7rem]"
                   : compact
                     ? "mt-4 text-3xl sm:text-4xl"
                     : "mt-4 text-3xl sm:text-4xl xl:text-5xl",
@@ -103,7 +108,8 @@ export function AdminPageShell({
                   : "mt-4 text-sm leading-7 sm:text-base",
               )}
             >
-              {description}
+              <span className={mobileCompactIntro ? "hidden sm:inline" : undefined}>{description}</span>
+              {mobileCompactIntro ? <span className="sm:hidden">{mobileDescription ?? description}</span> : null}
             </p>
           </div>
 

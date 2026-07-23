@@ -73,13 +73,13 @@ dbTest("admin clients řadí a stránkuje globálně před načtením profilů",
     await createClient(`Bez návštěvy A ${suffix}`, new Date(reference.getTime() - 2 * 86_400_000));
     await createClient(`Bez návštěvy B ${suffix}`, new Date(reference.getTime() - 86_400_000));
 
-    const createBooking = async (clientId: string, scheduledStartsAt: Date) => {
+    const createBooking = async (clientId: string, scheduledStartsAt: Date, status = BookingStatus.COMPLETED) => {
       const booking = await prisma.booking.create({
         data: {
           clientId,
           slotId,
           serviceId,
-          status: BookingStatus.COMPLETED,
+          status,
           source: "WEB",
           clientNameSnapshot: `Klientka ${suffix}`,
           clientEmailSnapshot: `klientka-${suffix}@example.test`,
@@ -130,6 +130,31 @@ dbTest("admin clients řadí a stránkuje globálně před načtením profilů",
     const retention = await getAdminClientsPageData("owner", { ...baseParams, retention: "8_11", page: "1" });
     assert.deepEqual(retention.clients.map((client) => client.fullName), [`Retence ${suffix}`]);
     assert.equal(retention.filters.retentionAt, String(reference.getTime()));
+
+    const band12Id = await createClient(`Retence 13 ${suffix}`, new Date(reference.getTime() - 100 * 86_400_000));
+    const band16Id = await createClient(`Retence 17 ${suffix}`, new Date(reference.getTime() - 130 * 86_400_000));
+    const noContact = await prisma.client.create({ data: { fullName: `Bez kontaktu ${suffix}` }, select: { id: true } });
+    clientIds.push(noContact.id);
+    const inactive = await prisma.client.create({ data: { fullName: `Neaktivní ${suffix}`, isActive: false }, select: { id: true } });
+    clientIds.push(inactive.id);
+    await createBooking(band12Id, new Date(reference.getTime() - 13 * 7 * 86_400_000));
+    await createBooking(band16Id, new Date(reference.getTime() - 17 * 7 * 86_400_000));
+    await createBooking(priorityId, new Date(reference.getTime() + 2 * 86_400_000), BookingStatus.PENDING);
+
+    const upcoming = await getAdminClientsPageData("owner", { query: suffix, view: "upcoming" });
+    assert.deepEqual(upcoming.clients.map((client) => client.id), [priorityId]);
+    const outreach = await getAdminClientsPageData("owner", { query: suffix, view: "outreach", retentionAt: String(reference.getTime()) });
+    assert.ok(!outreach.clients.some((client) => client.id === priorityId));
+    assert.equal(outreach.outreach.bands.find((band) => band.value === "8_11")?.count, 1);
+    assert.equal(outreach.outreach.bands.find((band) => band.value === "12_15")?.count, 1);
+    assert.equal(outreach.outreach.bands.find((band) => band.value === "16_plus")?.count, 1);
+    const noContactView = await getAdminClientsPageData("owner", { query: suffix, view: "no_contact" });
+    assert.deepEqual(noContactView.clients.map((client) => client.id), [noContact.id]);
+    const inactiveView = await getAdminClientsPageData("owner", { query: suffix, view: "inactive" });
+    assert.deepEqual(inactiveView.clients.map((client) => client.id), [inactive.id]);
+    assert.equal((await getAdminClientsPageData("owner", { query: suffix, quick: "no_contact" })).filters.view, "no_contact");
+    assert.equal((await getAdminClientsPageData("owner", { query: suffix, status: "inactive" })).filters.view, "inactive");
+    assert.equal((await getAdminClientsPageData("salon", { view: "outreach" })).views.find((view) => view.value === "outreach")?.href.startsWith("/admin/provoz/klienti?"), true);
   } finally {
     await prisma.booking.deleteMany({ where: { id: { in: bookingIds } } });
     await prisma.client.deleteMany({ where: { id: { in: clientIds } } });
