@@ -6,6 +6,17 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [3.10.0] - 2026-07-23
+
+### Přidáno
+- Analytika v administraci zobrazuje počet konverzí a konverzní poměr booking cíle z Matomo.
+- KPI dashboard rozlišuje prázdné datové řady a zobrazuje pro ně srozumitelný prázdný stav.
+
+### Změněno
+- Grafy tržeb a rezervací používají sloupcové zobrazení a přesnější popisky hodnot i období.
+- Hlavní administrační dashboard má přehlednější stavové informace, formátování poznámek a vyhodnocení volných slotů.
+- Release příprava pro produkční nasazení: projektová verze navýšena na minor `3.10.0` kvůli zpětně kompatibilnímu rozšíření analytiky a KPI dashboardu.
+
 ## [3.9.0] - 2026-07-23
 
 ### Přidáno
