@@ -147,8 +147,14 @@ export const ownerAdminNavigation: AdminNavigationItem[] = [
     label: section.label,
     slug: section.slug,
     description: section.description,
-  })),
+  })).filter((section) => section.slug !== "logy"),
   ...ownerOnlySections,
+  ...sharedSections.filter((section) => section.slug === "logy").map((section) => ({
+    href: section.ownerHref,
+    label: section.label,
+    slug: section.slug,
+    description: section.description,
+  })),
 ];
 
 export const salonAdminNavigation: AdminNavigationItem[] = [
