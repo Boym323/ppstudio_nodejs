@@ -272,16 +272,16 @@ Vysvětlení polí:
 - `reportingStatus`: stav Matomo reportingu; `ok` znamená validní data, jiná hodnota značí fallback nebo problém reportingu.
 - `periodLabel`: lidský popisek období, za které jsou čísla počítaná.
 - `visits`: počet návštěv ve sledovaném období.
-- `conversions`: počet booking konverzí ve sledovaném období podle dashboard definice.
-- `conversionRate`: procentuální poměr mezi návštěvami a konverzemi.
+- `conversions`: počet konverzí Matomo Goal `idGoal=1` ve sledovaném období.
+- `conversionRate`: konverzní poměr Matomo Goal `idGoal=1`; při chybějící zpracované metrice se dopočítá z návštěv a konverzí cíle.
 - `topSource`: hlavní zdroj návštěv v business-friendly názvu.
-- `sources`: detailnější rozpad zdrojů návštěv pro widget.
+- `sources`: detailnější rozpad návštěv a skutečných konverzí Goal `idGoal=1` podle zdrojů; nejde o poměrový odhad.
 - `funnel.viewed`: počet pageview zobrazení veřejného booking flow `/rezervace`; backend ho skládá z Matomo page URL reportu, ne z custom eventu.
 - `funnel.service`: počet průchodů krokem výběru služby.
 - `funnel.term`: počet průchodů krokem skutečně vybraného termínu; interně vychází z eventu `Rezervace / Čas vybrán`.
 - `funnel.contact`: počet vstupů do kontaktního kroku; interně vychází z eventu `Rezervace / Kontakt zahájen`.
 - `funnel.submitted`: počet submit pokusů veřejné rezervace před server action zpracováním.
-- `funnel.created`: počet dokončených rezervací.
+- `funnel.created`: počet klientských eventů `Rezervace / Vytvořena`; slouží jako technický konec funnelu a nemusí se rovnat `conversions` z Matomo Goal.
 - `contactStepQuality.started`: kolikrát uživatelka vstoupila do kontaktního kroku.
 - `contactStepQuality.fieldFocus`: kolikrát dostalo fokus první relevantní kontaktní pole.
 - `contactStepQuality.fieldInputStarted`: kolikrát uživatelka skutečně začala psát do kontaktního pole.

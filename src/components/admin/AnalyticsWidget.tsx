@@ -149,7 +149,7 @@ function SourcesList({ sources }: { sources: AnalyticsDashboardData["sources"] }
           <div className="min-w-0">
             <p className="truncate text-sm font-medium text-white">{source.label || "—"}</p>
             <p className="mt-0.5 text-xs text-white/42">
-              odhad {formatNumber(source.conversions)} rezervací
+              {formatNumber(source.conversions)} konverzí cíle
             </p>
           </div>
           <p className="text-right text-sm font-semibold tabular-nums text-white">
@@ -259,7 +259,7 @@ export function AnalyticsWidget({
           <div className="mt-3 space-y-3">
             <div className="grid grid-cols-3 gap-2">
               <AnalyticsMetric label="návštěv" value={formatNumber(state.data.visits)} />
-              <AnalyticsMetric label="rezervace" value={formatNumber(state.data.conversions)} />
+              <AnalyticsMetric label="konverze cíle" value={formatNumber(state.data.conversions)} />
               <AnalyticsMetric label="míra" value={formatPercent(state.data.conversionRate)} />
             </div>
 

@@ -52,6 +52,19 @@ test("getDashboardAnalytics derives booking funnel viewed step from booking page
       );
     }
 
+    if (method === "Goals.get") {
+      assert.equal(url.searchParams.get("idGoal"), "1");
+
+      return new Response(
+        JSON.stringify({
+          nb_conversions: 3,
+          conversion_rate: "30%",
+          revenue: 2400,
+        }),
+        { status: 200 },
+      );
+    }
+
     if (method === "Actions.getPageUrls") {
       assert.equal(url.searchParams.get("flat"), "1");
 
@@ -67,13 +80,15 @@ test("getDashboardAnalytics derives booking funnel viewed step from booking page
     }
 
     if (method === "Referrers.getReferrerType") {
+      assert.equal(url.searchParams.get("idGoal"), "1");
       return new Response(
-        JSON.stringify([{ label: "Direct Entry", nb_visits: 10 }]),
+        JSON.stringify([{ label: "Direct Entry", nb_visits: 10, nb_conversions: 3 }]),
         { status: 200 },
       );
     }
 
     if (method === "Referrers.getCampaigns") {
+      assert.equal(url.searchParams.get("idGoal"), "1");
       return new Response(JSON.stringify([]), { status: 200 });
     }
 
@@ -88,6 +103,11 @@ test("getDashboardAnalytics derives booking funnel viewed step from booking page
   assert.equal(analytics.funnel.contact, 4);
   assert.equal(analytics.funnel.submitted, 3);
   assert.equal(analytics.funnel.created, 2);
+  assert.equal(analytics.conversions, 3);
+  assert.equal(analytics.conversionRate, 30);
+  assert.deepEqual(analytics.sources, [
+    { label: "Přímý vstup", visits: 10, conversions: 3 },
+  ]);
   assert.deepEqual(analytics.contactStepQuality, {
     started: 4,
     fieldFocus: 3,

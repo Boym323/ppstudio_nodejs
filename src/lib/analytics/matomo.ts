@@ -4,9 +4,10 @@ import { env } from "@/config/env";
 
 export type MatomoVisits = { nb_visits: number };
 export type MatomoEvent = { label: string; nb_events: number };
-export type MatomoReferrer = { label: string; nb_visits: number };
-export type MatomoCampaign = { label: string; nb_visits: number };
+export type MatomoReferrer = { label: string; nb_visits: number; nb_conversions: number };
+export type MatomoCampaign = { label: string; nb_visits: number; nb_conversions: number };
 export type MatomoPageUrl = { label: string; nb_hits: number };
+export type MatomoGoal = { nb_conversions: number; conversion_rate: number; revenue: number };
 
 export type DashboardAnalyticsSource = {
   label: string;
@@ -48,6 +49,7 @@ export type DashboardAnalytics = {
 };
 
 const MATOMO_REVALIDATE_SECONDS = 300;
+const BOOKING_GOAL_ID = "1";
 const DASHBOARD_ANALYTICS_PERIOD_LABEL = "Dnes";
 const DEFAULT_VISITS: MatomoVisits = { nb_visits: 0 };
 const DEFAULT_DASHBOARD_ANALYTICS: DashboardAnalytics = {
@@ -103,6 +105,7 @@ type MatomoMethod =
   | "VisitsSummary.get"
   | "Actions.getPageUrls"
   | "Events.getAction"
+  | "Goals.get"
   | "Referrers.getReferrerType"
   | "Referrers.getCampaigns";
 
@@ -167,6 +170,10 @@ function toFiniteNumber(value: unknown) {
   return Number.isFinite(numberValue) ? numberValue : 0;
 }
 
+function toFinitePercent(value: unknown) {
+  return toFiniteNumber(typeof value === "string" ? value.replace(/\s*%$/, "") : value);
+}
+
 function isMatomoApiErrorPayload(value: unknown): value is MatomoApiErrorPayload {
   return (
     Boolean(value) &&
@@ -192,6 +199,25 @@ function normalizeVisitsPayload(payload: unknown): MatomoVisits {
 
   return {
     nb_visits: toFiniteNumber((payload as Record<string, unknown>).nb_visits),
+  };
+}
+
+function normalizeGoalPayload(payload: unknown): MatomoGoal {
+  const candidate = Array.isArray(payload)
+    ? payload[0]
+    : payload && typeof payload === "object"
+      ? ((payload as Record<string, unknown>)[BOOKING_GOAL_ID] ?? payload)
+      : null;
+
+  if (!candidate || typeof candidate !== "object" || Array.isArray(candidate)) {
+    return { nb_conversions: 0, conversion_rate: 0, revenue: 0 };
+  }
+
+  const row = candidate as Record<string, unknown>;
+  return {
+    nb_conversions: toFiniteNumber(row.nb_conversions),
+    conversion_rate: toFinitePercent(row.conversion_rate),
+    revenue: toFiniteNumber(row.revenue),
   };
 }
 
@@ -331,23 +357,30 @@ function mapCampaignLabel(label: string) {
 function buildSourceRows(
   referrers: MatomoReferrer[],
   campaigns: MatomoCampaign[],
-  createdCount: number,
 ): DashboardAnalyticsSource[] {
-  const sourceVisits = new Map<string, number>();
+  const sourceMetrics = new Map<string, { visits: number; conversions: number }>();
   const mappedCampaignRows = campaigns
     .map((campaign) => ({
       label: mapCampaignLabel(campaign.label),
       visits: campaign.nb_visits,
+      conversions: campaign.nb_conversions,
     }))
-    .filter((campaign): campaign is { label: string; visits: number } => campaign.label !== null);
+    .filter(
+      (campaign): campaign is { label: string; visits: number; conversions: number } =>
+        campaign.label !== null,
+    );
   const totalMappedCampaignVisits = mappedCampaignRows.reduce((sum, campaign) => sum + campaign.visits, 0);
   const totalCampaignVisits = campaigns.reduce((sum, campaign) => sum + campaign.nb_visits, 0);
   const unknownCampaignVisits = Math.max(0, totalCampaignVisits - totalMappedCampaignVisits);
+  const totalMappedCampaignConversions = mappedCampaignRows.reduce((sum, campaign) => sum + campaign.conversions, 0);
+  const totalCampaignConversions = campaigns.reduce((sum, campaign) => sum + campaign.nb_conversions, 0);
+  const unknownCampaignConversions = Math.max(0, totalCampaignConversions - totalMappedCampaignConversions);
   const rows = referrers
     .filter((referrer) => !referrer.label.trim().toLowerCase().includes("campaign"))
     .map((referrer) => ({
       label: mapReferrerTypeLabel(referrer.label),
       visits: referrer.nb_visits,
+      conversions: referrer.nb_conversions,
     }));
 
   if (mappedCampaignRows.length > 0) {
@@ -358,21 +391,21 @@ function buildSourceRows(
     rows.push({
       label: "Kampaně",
       visits: unknownCampaignVisits,
+      conversions: unknownCampaignConversions,
     });
   }
 
   for (const row of rows) {
-    sourceVisits.set(row.label, (sourceVisits.get(row.label) ?? 0) + row.visits);
+    const current = sourceMetrics.get(row.label) ?? { visits: 0, conversions: 0 };
+    current.visits += row.visits;
+    current.conversions += row.conversions;
+    sourceMetrics.set(row.label, current);
   }
 
-  const totalSourceVisits = [...sourceVisits.values()].reduce((sum, visits) => sum + visits, 0);
-
-  const sources = [...sourceVisits.entries()]
-    .map(([label, visits]) => ({
+  const sources = [...sourceMetrics.entries()]
+    .map(([label, metrics]) => ({
       label,
-      visits,
-      conversions:
-        totalSourceVisits > 0 ? Math.round((visits / totalSourceVisits) * createdCount) : 0,
+      ...metrics,
     }))
     .sort((left, right) => right.visits - left.visits);
 
@@ -404,6 +437,10 @@ export async function fetchEvents(): Promise<MatomoEvent[]> {
   }));
 }
 
+export async function fetchBookingGoal(): Promise<MatomoGoal> {
+  return normalizeGoalPayload(await fetchMatomoJson("Goals.get", { idGoal: BOOKING_GOAL_ID }));
+}
+
 export async function fetchPageUrls(): Promise<MatomoPageUrl[]> {
   return normalizeRows(
     await fetchMatomoJson("Actions.getPageUrls", { flat: "1" }),
@@ -415,16 +452,18 @@ export async function fetchPageUrls(): Promise<MatomoPageUrl[]> {
 }
 
 export async function fetchReferrers(): Promise<MatomoReferrer[]> {
-  return normalizeRows(await fetchMatomoJson("Referrers.getReferrerType"), (row) => ({
+  return normalizeRows(await fetchMatomoJson("Referrers.getReferrerType", { idGoal: BOOKING_GOAL_ID }), (row) => ({
     label: String(row.label ?? ""),
     nb_visits: toFiniteNumber(row.nb_visits),
+    nb_conversions: toFiniteNumber(row.nb_conversions ?? row[`goal_${BOOKING_GOAL_ID}_nb_conversions`]),
   }));
 }
 
 export async function fetchCampaigns(): Promise<MatomoCampaign[]> {
-  return normalizeRows(await fetchMatomoJson("Referrers.getCampaigns"), (row) => ({
+  return normalizeRows(await fetchMatomoJson("Referrers.getCampaigns", { idGoal: BOOKING_GOAL_ID }), (row) => ({
     label: String(row.label ?? ""),
     nb_visits: toFiniteNumber(row.nb_visits),
+    nb_conversions: toFiniteNumber(row.nb_conversions ?? row[`goal_${BOOKING_GOAL_ID}_nb_conversions`]),
   }));
 }
 
@@ -493,8 +532,9 @@ export async function getMatomoReportingHealth(): Promise<MatomoReportingHealth>
 
 export async function getDashboardAnalytics(): Promise<DashboardAnalytics> {
   try {
-    const [visitsSummary, pageUrls, events, referrers, campaigns] = await Promise.all([
+    const [visitsSummary, bookingGoal, pageUrls, events, referrers, campaigns] = await Promise.all([
       fetchVisits(),
+      fetchBookingGoal(),
       fetchPageUrls(),
       fetchEvents(),
       fetchReferrers(),
@@ -510,7 +550,7 @@ export async function getDashboardAnalytics(): Promise<DashboardAnalytics> {
       submitted: getEventCount(events, bookingFunnelLabels.submitted, bookingFunnelLegacyAliases.submitted),
       created: getEventCount(events, bookingFunnelLabels.created, bookingFunnelLegacyAliases.created),
     };
-    const conversions = funnel.created;
+    const conversions = bookingGoal.nb_conversions;
     const contactStepStarted = getEventCount(events, bookingContactQualityLabels.started);
     const contactFieldFocus = getEventCount(events, bookingContactQualityLabels.fieldFocus);
     const contactFieldInputStarted = getEventCount(events, bookingContactQualityLabels.fieldInputStarted);
@@ -519,7 +559,7 @@ export async function getDashboardAnalytics(): Promise<DashboardAnalytics> {
       (top, referrer) => (!top || referrer.nb_visits > top.nb_visits ? referrer : top),
       null,
     );
-    const sources = buildSourceRows(referrers, campaigns, funnel.created);
+    const sources = buildSourceRows(referrers, campaigns);
     const focusRate = contactStepStarted > 0 ? Math.round((contactFieldFocus / contactStepStarted) * 10000) / 100 : 0;
     const inputRate =
       contactStepStarted > 0 ? Math.round((contactFieldInputStarted / contactStepStarted) * 10000) / 100 : 0;
@@ -529,7 +569,7 @@ export async function getDashboardAnalytics(): Promise<DashboardAnalytics> {
       periodLabel: DASHBOARD_ANALYTICS_PERIOD_LABEL,
       visits,
       conversions,
-      conversionRate: visits > 0 ? Math.round((conversions / visits) * 10000) / 100 : 0,
+      conversionRate: bookingGoal.conversion_rate || (visits > 0 ? Math.round((conversions / visits) * 10000) / 100 : 0),
       topSource: sources[0]?.label ?? (topReferrer ? mapReferrerTypeLabel(topReferrer.label) : ""),
       sources,
       funnel,
