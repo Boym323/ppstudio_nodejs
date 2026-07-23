@@ -137,7 +137,7 @@ export type DashboardUpcomingSlot = {
   dayLabel: string;
   timeLabel: string;
   metaLabel: string;
-  href: string;
+  createBookingHref: string;
 };
 
 type UpcomingSlotRecord = {
@@ -390,6 +390,7 @@ export function buildTimelineItems(
       id: string;
       scheduledStartsAt: Date;
       scheduledEndsAt: Date;
+      blockedUntil?: Date | null;
       status: BookingStatus;
       serviceNameSnapshot: string;
       clientNameSnapshot: string;
@@ -455,8 +456,10 @@ export function buildTimelineItems(
         }),
       });
 
-      if (booking.scheduledEndsAt.getTime() > cursor.getTime()) {
-        cursor = booking.scheduledEndsAt;
+      const bookingBlockedUntil = booking.blockedUntil ?? booking.scheduledEndsAt;
+
+      if (bookingBlockedUntil.getTime() > cursor.getTime()) {
+        cursor = bookingBlockedUntil;
       }
     }
 
@@ -556,6 +559,7 @@ export async function getAdminDashboardData(area: AdminArea): Promise<AdminDashb
   const now = new Date();
   const { todayStart, tomorrowStart, dayAfterTomorrowStart } = getTodayBounds(now);
   const { weekStart, weekEnd } = getWeekBounds(now);
+  const availabilityHorizon = addDays(tomorrowStart, 30);
 
   const bookingsHref = getBookingsHref(area);
   const plannerHref = getPlannerHref(area);
@@ -608,6 +612,7 @@ export async function getAdminDashboardData(area: AdminArea): Promise<AdminDashb
             id: true,
             scheduledStartsAt: true,
             scheduledEndsAt: true,
+            blockedUntil: true,
             status: true,
             serviceNameSnapshot: true,
             clientNameSnapshot: true,
@@ -647,7 +652,8 @@ export async function getAdminDashboardData(area: AdminArea): Promise<AdminDashb
     }),
     prisma.availabilitySlot.findMany({
       where: {
-        startsAt: { gte: now, lt: weekEnd },
+        startsAt: { lt: availabilityHorizon },
+        endsAt: { gt: now },
         status: AvailabilitySlotStatus.PUBLISHED,
       },
       orderBy: { startsAt: "asc" },
@@ -660,7 +666,7 @@ export async function getAdminDashboardData(area: AdminArea): Promise<AdminDashb
     }),
     prisma.booking.findMany({
       where: {
-        scheduledStartsAt: { lt: weekEnd },
+        scheduledStartsAt: { lt: availabilityHorizon },
         OR: [
           {
             blockedUntil: {
@@ -722,14 +728,21 @@ export async function getAdminDashboardData(area: AdminArea): Promise<AdminDashb
       isCompleted: item.bookingStatus === BookingStatus.COMPLETED,
       notes: item.notes,
     }));
-  const freeWindowCount = timelineItems.filter((item) => item.badge === "VOLNE").length;
   const weekOccupancy = getWeekOccupancy(weekSlots);
   const weekFreeSlots = weekSlots.filter((slot) => slot.bookings.length < slot.capacity).length;
   const weekBookingsCount = weekSlots.reduce((total, slot) => total + slot.bookings.length, 0);
-  const upcomingFreeWindows = buildUpcomingFreeWindows(nearbyPublishedSlots, nearbyBookingBlocks);
-  const hasFreeWindowsToday = upcomingFreeWindows.some(
+  const upcomingFreeWindows = buildUpcomingFreeWindows(
+    nearbyPublishedSlots.map((slot) => ({
+      ...slot,
+      startsAt: slot.startsAt < now ? now : slot.startsAt,
+    })),
+    nearbyBookingBlocks,
+  );
+  const todayFreeWindows = upcomingFreeWindows.filter(
     (slot) => slot.startsAt >= todayStart && slot.startsAt < tomorrowStart,
   );
+  const hasFreeWindowsToday = todayFreeWindows.length > 0;
+  const freeWindowCount = todayFreeWindows.length;
   const overdueActiveBookingsCount = todaySlots.reduce((count, slot) => {
     return (
       count +
@@ -752,7 +765,7 @@ export async function getAdminDashboardData(area: AdminArea): Promise<AdminDashb
         "rezervace čekají na potvrzení",
         "rezervací čeká na potvrzení",
       )}.`,
-      href: bookingsHref,
+      href: `${bookingsHref}?view=attention&status=pending`,
       actionLabel: "Otevřít rezervace",
       emphasis: "primary",
     });
@@ -784,7 +797,7 @@ export async function getAdminDashboardData(area: AdminArea): Promise<AdminDashb
         "rezervace jsou po termínu a čekají na uzavření",
         "rezervací je po termínu a čeká na uzavření",
       )}.`,
-      href: bookingsHref,
+      href: `${bookingsHref}?view=attention`,
       actionLabel: "Otevřít rezervace",
       emphasis: "secondary",
     });
@@ -868,7 +881,7 @@ export async function getAdminDashboardData(area: AdminArea): Promise<AdminDashb
       )}`,
     },
     hasFreeWindowsToday,
-    upcomingSlots: upcomingFreeWindows.slice(0, 8).map((slot) => {
+    upcomingSlots: upcomingFreeWindows.slice(0, 6).map((slot) => {
       const prefix =
         slot.startsAt >= todayStart && slot.startsAt < tomorrowStart
           ? "Dnes"
@@ -883,7 +896,10 @@ export async function getAdminDashboardData(area: AdminArea): Promise<AdminDashb
         dayLabel: prefix,
         timeLabel: `${timeFormatter.format(slot.startsAt)} - ${timeFormatter.format(slot.endsAt)}`,
         metaLabel,
-        href: plannerHref,
+        createBookingHref: getCreateBookingHref(area, {
+          date: formatDateKey(slot.startsAt),
+          time: timeFormatter.format(slot.startsAt),
+        }),
       };
     }),
     draftUpcomingSlotsCount: upcomingDraftSlotsCount,

@@ -75,6 +75,36 @@ test("buildTimelineItems clamps future free windows to now after completed booki
   assert.equal(freeWindow.sortTime, now.getTime());
 });
 
+test("buildTimelineItems does not expose cleanup time as a free window", async () => {
+  const { buildTimelineItems } = await import("./admin-dashboard");
+  const now = new Date("2026-04-30T08:00:00.000Z");
+  const items = buildTimelineItems("owner", now, [
+    {
+      id: "slot-cleanup",
+      startsAt: new Date("2026-04-30T08:00:00.000Z"),
+      endsAt: new Date("2026-04-30T11:00:00.000Z"),
+      capacity: 1,
+      bookings: [
+        {
+          id: "booking-cleanup",
+          scheduledStartsAt: new Date("2026-04-30T08:00:00.000Z"),
+          scheduledEndsAt: new Date("2026-04-30T09:00:00.000Z"),
+          blockedUntil: new Date("2026-04-30T09:30:00.000Z"),
+          status: BookingStatus.CONFIRMED,
+          serviceNameSnapshot: "Kosmetika",
+          clientNameSnapshot: "Jana Novakova",
+          clientNote: null,
+          internalNote: null,
+        },
+      ],
+    },
+  ]);
+  const freeWindow = items.find((item) => item.kind === "free");
+
+  assert.ok(freeWindow);
+  assert.equal(freeWindow.timeLabel, "11:30 - 13:00");
+});
+
 test("buildTimelineItems trims notes and uses salon admin routes", async () => {
   const { buildTimelineItems } = await import("./admin-dashboard");
   const now = new Date("2026-04-30T07:00:00.000Z");

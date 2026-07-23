@@ -325,8 +325,6 @@ export function DashboardTodayHero({ data }: DashboardPageProps) {
 
           <div className="flex flex-wrap gap-2">
             <DashboardButton href={data.createBookingHref} label="Vytvořit rezervaci" tone="primary" />
-            <DashboardButton href={data.timelineFooterHref} label="Dnešní plán" />
-            <DashboardButton href={data.upcomingSlotsFooterHref} label="Dostupnost" />
           </div>
         </div>
       </div>
@@ -336,12 +334,20 @@ export function DashboardTodayHero({ data }: DashboardPageProps) {
 
 export function DashboardAttentionAlert({ data }: DashboardPageProps) {
   const actionableAlerts = data.alerts.filter((alert) => alert.emphasis !== "ok");
+  const okAlert = data.alerts.find((alert) => alert.emphasis === "ok") ?? null;
   const primaryAlert =
     actionableAlerts.find((alert) => alert.emphasis === "primary") ?? actionableAlerts[0] ?? null;
   const secondaryAlerts = actionableAlerts.filter((alert) => alert.id !== primaryAlert?.id);
 
   if (actionableAlerts.length === 0) {
-    return null;
+    return okAlert ? (
+      <Card className="border-emerald-300/14 bg-emerald-400/[0.055] px-4 py-3">
+        <div className="flex items-center gap-2 text-sm text-emerald-50/88">
+          <DashboardIcon name="success" className="size-4 shrink-0" />
+          <p>{okAlert.text}</p>
+        </div>
+      </Card>
+    ) : null;
   }
 
   return (
@@ -528,9 +534,12 @@ export function DashboardTodayTimelineSection({ data }: DashboardPageProps) {
                 {item.notes.length > 0 ? (
                   <div className="mt-1 space-y-0.5">
                     {item.notes.map((note) => (
-                      <p key={note.label} className="truncate text-xs leading-5 text-white/58">
-                        <span className="font-medium text-white/72">{note.label}:</span> {note.value}
-                      </p>
+                      <details key={note.label} className="text-xs leading-5 text-white/58">
+                        <summary className="cursor-pointer truncate font-medium text-white/72">
+                          {note.label}: {note.value}
+                        </summary>
+                        <p className="mt-1 whitespace-pre-wrap break-words pl-2">{note.value}</p>
+                      </details>
                     ))}
                   </div>
                 ) : null}
@@ -659,28 +668,26 @@ export function DashboardAvailableSlots({ data }: DashboardPageProps) {
               </p>
             ) : null}
 
-            {data.upcomingSlots.map((slot, index) => (
-              <div
-                key={slot.id}
-                className={cn(
-                  "flex items-center justify-between gap-4 rounded-lg px-3 py-2.5",
-                  index < data.upcomingSlots.length - 1 && "border-b border-white/5",
-                )}
-              >
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="text-base font-semibold text-white">{slot.timeLabel}</p>
-                    <span className="text-xs uppercase tracking-[0.18em] text-white/60">
-                      {slot.dayLabel}
+            <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
+              {data.upcomingSlots.map((slot) => (
+                <Link
+                  key={slot.id}
+                  href={slot.createBookingHref}
+                  className="group rounded-xl border border-white/8 bg-white/[0.035] px-4 py-3 transition hover:border-[var(--color-accent)]/35 hover:bg-[rgba(190,160,120,0.08)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/55"
+                >
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-soft)]">
+                    {slot.dayLabel}
+                  </p>
+                  <p className="mt-2 text-lg font-semibold text-white">{slot.timeLabel}</p>
+                  <div className="mt-2 flex items-center justify-between gap-3 text-xs">
+                    <span className="text-white/52">{slot.metaLabel}</span>
+                    <span className="font-semibold text-[var(--color-accent-soft)] transition group-hover:text-white">
+                      Rezervovat
                     </span>
                   </div>
-                  <p className="mt-1 text-sm text-white/54">{slot.metaLabel}</p>
-                </div>
-                <div className="flex shrink-0 flex-wrap justify-end gap-2">
-                  <DashboardActionPill href={slot.href} label="Dostupnost" />
-                </div>
-              </div>
-            ))}
+                </Link>
+              ))}
+            </div>
           </>
         ) : (
           <div>
