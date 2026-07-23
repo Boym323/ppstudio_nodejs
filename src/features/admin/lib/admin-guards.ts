@@ -19,7 +19,7 @@ const sectionSlugs = new Set<AdminSectionSlug>([
   "sluzby",
   "kategorie-sluzeb",
   "uzivatele",
-  "email-logy",
+  "logy",
   "nastaveni",
 ]);
 

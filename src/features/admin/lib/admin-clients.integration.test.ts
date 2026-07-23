@@ -73,7 +73,7 @@ dbTest("admin clients řadí a stránkuje globálně před načtením profilů",
     await createClient(`Bez návštěvy A ${suffix}`, new Date(reference.getTime() - 2 * 86_400_000));
     await createClient(`Bez návštěvy B ${suffix}`, new Date(reference.getTime() - 86_400_000));
 
-    const createBooking = async (clientId: string, scheduledStartsAt: Date, status = BookingStatus.COMPLETED) => {
+    const createBooking = async (clientId: string, scheduledStartsAt: Date, status: BookingStatus = BookingStatus.COMPLETED) => {
       const booking = await prisma.booking.create({
         data: {
           clientId,

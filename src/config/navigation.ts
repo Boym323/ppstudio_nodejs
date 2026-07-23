@@ -30,7 +30,7 @@ export type AdminSectionSlug =
   | "sluzby"
   | "kategorie-sluzeb"
   | "uzivatele"
-  | "email-logy"
+  | "logy"
   | "nastaveni";
 
 export type AdminNavigationItem = {
@@ -41,6 +41,15 @@ export type AdminNavigationItem = {
 };
 
 const sharedSections = [
+  {
+    slug: "logy",
+    ownerHref: "/admin/logy",
+    salonHref: "/admin/provoz/logy",
+    label: "Události a logy",
+    salonLabel: "Události a logy",
+    description: "Provozní události, e-maily a upozornění.",
+    salonDescription: "Provozní události, vouchery a stavy e-mailů.",
+  },
   {
     slug: "statistiky",
     ownerHref: "/admin/statistiky",
@@ -117,12 +126,6 @@ const ownerOnlySections = [
     href: "/admin/uzivatele",
     label: "Přístupy",
     description: "Přístupy, role a systémové účty.",
-  },
-  {
-    slug: "email-logy",
-    href: "/admin/email-logy",
-    label: "Email logy",
-    description: "Potvrzení, připomínky a selhané zprávy.",
   },
   {
     slug: "nastaveni",

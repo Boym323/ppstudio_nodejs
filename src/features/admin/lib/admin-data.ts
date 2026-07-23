@@ -3,6 +3,7 @@ import {
   AvailabilitySlotStatus,
   BookingSource,
   BookingStatus,
+  BookingSubmissionOutcome,
   EmailLogStatus,
   EmailLogType,
   Prisma,
@@ -1304,6 +1305,268 @@ export async function getEmailLogsData(): Promise<EmailLogsDashboardData> {
       href: `/admin/email-logy/${log.id}`,
     })),
   };
+}
+
+export type AdminLogView = "attention" | "events" | "emails" | "automation" | "system";
+export type AdminLogSeverity = "info" | "success" | "warning" | "error";
+export type AdminLogSource = "all" | "email" | "booking" | "voucher" | "submission";
+
+export type AdminLogItem = {
+  id: string;
+  occurredAt: string;
+  category: "event" | "email" | "automation" | "system";
+  severity: AdminLogSeverity;
+  title: string;
+  description: string | null;
+  actorLabel: string | null;
+  entityLabel: string | null;
+  entityHref: string | null;
+  sourceType: "email" | "booking" | "voucher" | "submission";
+  sourceId: string;
+  primaryAction: "retry" | "release" | "detail" | "open" | null;
+  emailLogId?: string;
+  queueState?: string;
+  trackingState?: string;
+};
+
+export type AdminLogsData = {
+  area: AdminArea;
+  view: AdminLogView;
+  items: AdminLogItem[];
+  total: number;
+  page: number;
+  pageCount: number;
+  pageSize: number;
+  filters: { query: string; severity: "all" | AdminLogSeverity; source: AdminLogSource; dateFrom: string; dateTo: string };
+  attention: { failed: number; retry: number; stuck: number };
+  queueStats: EmailLogsDashboardData["queueStats"];
+  workerSummary: string;
+};
+
+const adminLogPageSize = 50;
+const workerLockTimeoutMs = 10 * 60 * 1000;
+
+function bookingHistoryLabel(status: BookingStatus) {
+  switch (status) {
+    case BookingStatus.PENDING: return "Rezervace vytvořena";
+    case BookingStatus.CONFIRMED: return "Rezervace potvrzena";
+    case BookingStatus.CANCELLED: return "Rezervace zrušena";
+    case BookingStatus.COMPLETED: return "Rezervace dokončena";
+    case BookingStatus.NO_SHOW: return "Klientka nedorazila";
+  }
+}
+
+function bookingHistorySeverity(status: BookingStatus): AdminLogSeverity {
+  if (status === BookingStatus.CANCELLED || status === BookingStatus.NO_SHOW) return "warning";
+  if (status === BookingStatus.COMPLETED || status === BookingStatus.CONFIRMED) return "success";
+  return "info";
+}
+
+function parseLogDate(value: string | undefined, end = false) {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+  const date = new Date(`${value}T${end ? "23:59:59.999" : "00:00:00.000"}`);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function containsQuery(value: string): Prisma.StringFilter {
+  return { contains: value, mode: "insensitive" };
+}
+
+export function buildEmailLogWhere(query: string, dateWhere?: Prisma.DateTimeFilter): Prisma.EmailLogWhereInput {
+  return {
+    ...(dateWhere ? { createdAt: dateWhere } : {}),
+    ...(query ? { OR: [
+      { recipientEmail: containsQuery(query) }, { subject: containsQuery(query) },
+      { templateKey: containsQuery(query) },
+      { booking: { is: { OR: [{ clientNameSnapshot: containsQuery(query) }, { serviceNameSnapshot: containsQuery(query) }, { id: containsQuery(query) }] } } },
+      { client: { is: { fullName: containsQuery(query) } } },
+    ] } : {}),
+  };
+}
+
+export function buildBookingHistoryWhere(query: string, dateWhere?: Prisma.DateTimeFilter): Prisma.BookingStatusHistoryWhereInput {
+  return { ...(dateWhere ? { createdAt: dateWhere } : {}), ...(query ? { OR: [
+    { reason: containsQuery(query) }, { note: containsQuery(query) },
+    { booking: { is: { OR: [{ id: containsQuery(query) }, { clientNameSnapshot: containsQuery(query) }, { serviceNameSnapshot: containsQuery(query) }] } } },
+  ] } : {}) };
+}
+
+function buildRescheduleWhere(query: string, dateWhere?: Prisma.DateTimeFilter): Prisma.BookingRescheduleLogWhereInput {
+  return { ...(dateWhere ? { createdAt: dateWhere } : {}), ...(query ? { OR: [
+    { reason: containsQuery(query) }, { booking: { is: { OR: [{ id: containsQuery(query) }, { clientNameSnapshot: containsQuery(query) }, { serviceNameSnapshot: containsQuery(query) }] } } },
+  ] } : {}) };
+}
+
+export function buildVoucherWhere(query: string, dateWhere?: Prisma.DateTimeFilter): Prisma.VoucherWhereInput {
+  return { ...(dateWhere ? { createdAt: dateWhere } : {}), ...(query ? { OR: [
+    { code: containsQuery(query) }, { purchaserName: containsQuery(query) }, { purchaserEmail: containsQuery(query) }, { recipientName: containsQuery(query) },
+  ] } : {}) };
+}
+
+function buildVoucherRedemptionWhere(query: string, dateWhere?: Prisma.DateTimeFilter): Prisma.VoucherRedemptionWhereInput {
+  return { ...(dateWhere ? { redeemedAt: dateWhere } : {}), ...(query ? { OR: [
+    { voucher: { is: { code: containsQuery(query) } } },
+    { booking: { is: { OR: [{ id: containsQuery(query) }, { clientNameSnapshot: containsQuery(query) }] } } },
+  ] } : {}) };
+}
+
+export function buildBookingSubmissionWhere(query: string, dateWhere?: Prisma.DateTimeFilter): Prisma.BookingSubmissionLogWhereInput {
+  const outcome = ["SUCCESS", "FAILED", "BLOCKED"].includes(query.toUpperCase())
+    ? query.toUpperCase() as BookingSubmissionOutcome
+    : undefined;
+  return { ...(dateWhere ? { createdAt: dateWhere } : {}), ...(query ? { OR: [
+    ...(outcome ? [{ outcome: { equals: outcome } }] : []),
+    { failureCode: containsQuery(query) }, { failureReason: containsQuery(query) },
+    { booking: { is: { OR: [{ id: containsQuery(query) }, { clientNameSnapshot: containsQuery(query) }, { serviceNameSnapshot: containsQuery(query) }] } } },
+    { client: { is: { fullName: containsQuery(query) } } },
+  ] } : {}) };
+}
+
+export function withEmailLogScope(
+  base: Prisma.EmailLogWhereInput,
+  view: AdminLogView,
+  severity: "all" | AdminLogSeverity,
+  staleBefore: Date,
+): Prisma.EmailLogWhereInput {
+  const attention: Prisma.EmailLogWhereInput = { OR: [
+    { status: EmailLogStatus.FAILED },
+    { status: EmailLogStatus.PENDING, attemptCount: { gt: 0 }, processingStartedAt: null },
+    { status: EmailLogStatus.PENDING, processingStartedAt: { lt: staleBefore } },
+  ] };
+  const bySeverity: Record<AdminLogSeverity, Prisma.EmailLogWhereInput> = {
+    error: { status: EmailLogStatus.FAILED },
+    success: { status: EmailLogStatus.SENT },
+    warning: { status: EmailLogStatus.PENDING, OR: [{ attemptCount: { gt: 0 } }, { processingStartedAt: { lt: staleBefore } }] },
+    info: { status: EmailLogStatus.PENDING, attemptCount: 0, OR: [{ processingStartedAt: null }, { processingStartedAt: { gte: staleBefore } }] },
+  };
+  const scopes = [base];
+  if (view === "attention") scopes.push(attention);
+  if (severity !== "all") scopes.push(bySeverity[severity]);
+  return scopes.length === 1 ? base : { AND: scopes };
+}
+
+function withBookingHistorySeverity(base: Prisma.BookingStatusHistoryWhereInput, severity: "all" | AdminLogSeverity) {
+  if (severity === "all") return base;
+  const statuses: Record<AdminLogSeverity, BookingStatus[]> = {
+    info: [BookingStatus.PENDING],
+    success: [BookingStatus.CONFIRMED, BookingStatus.COMPLETED],
+    warning: [BookingStatus.CANCELLED, BookingStatus.NO_SHOW],
+    error: [],
+  };
+  return { AND: [base, { status: { in: statuses[severity] } }] } satisfies Prisma.BookingStatusHistoryWhereInput;
+}
+
+export function normalizeAdminLogView(view: string | undefined, area: AdminArea): AdminLogView {
+  const parsed: AdminLogView = ["attention", "events", "emails", "automation", "system"].includes(view ?? "")
+    ? view as AdminLogView
+    : "events";
+  return area === "salon" && (parsed === "automation" || parsed === "system") ? "events" : parsed;
+}
+
+export function sortAndPageAdminLogItems(items: AdminLogItem[], page: number, pageSize = adminLogPageSize) {
+  const sorted = [...items].sort((a, b) => b.occurredAt.localeCompare(a.occurredAt) || b.id.localeCompare(a.id));
+  const offset = (page - 1) * pageSize;
+  return sorted.slice(offset, offset + pageSize);
+}
+
+export function getAdminLogPageMeta(total: number, requestedPage: number, pageSize = adminLogPageSize) {
+  const pageCount = Math.max(1, Math.ceil(total / pageSize));
+  const page = Number.isFinite(requestedPage) && requestedPage > 0 ? Math.min(requestedPage, pageCount) : 1;
+  return { page, pageCount, rangeStart: total === 0 ? 0 : (page - 1) * pageSize + 1, rangeEnd: Math.min(page * pageSize, total) };
+}
+
+/** Sjednocuje omezené serverové kandidáty; historické tabulky se do klienta neposílají. */
+export async function getAdminLogsData(input: {
+  area: AdminArea;
+  view?: string;
+  query?: string;
+  severity?: string;
+  source?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  page?: string;
+}): Promise<AdminLogsData> {
+  const isOwner = input.area === "owner";
+  const safeView = normalizeAdminLogView(input.view, input.area);
+  const severity = ["info", "success", "warning", "error"].includes(input.severity ?? "")
+    ? input.severity as AdminLogSeverity : "all";
+  const source: AdminLogSource = ["email", "booking", "voucher", "submission"].includes(input.source ?? "")
+    ? input.source as AdminLogSource : "all";
+  const query = input.query?.trim().slice(0, 120) ?? "";
+  const dateFrom = parseLogDate(input.dateFrom);
+  const dateTo = parseLogDate(input.dateTo, true);
+  const requestedPage = Number.parseInt(input.page ?? "1", 10);
+  const requestedOffset = Number.isFinite(requestedPage) && requestedPage > 0
+    ? (requestedPage - 1) * adminLogPageSize
+    : 0;
+  const now = new Date();
+  const staleBefore = new Date(now.getTime() - workerLockTimeoutMs);
+  const dateWhere = dateFrom || dateTo ? { gte: dateFrom ?? undefined, lte: dateTo ?? undefined } : undefined;
+  // Každý zdroj poskytne právě tolik kandidátů, kolik může ovlivnit požadovanou
+  // stránku po globálním řazení. Starší položka proto nemůže vytlačit novější
+  // položku jiného zdroje jen kvůli lokálnímu limitu.
+  const take = requestedOffset + adminLogPageSize + 1;
+  const emailActive = (safeView === "emails" || safeView === "attention") && (source === "all" || source === "email");
+  const bookingActive = safeView === "events" && (source === "all" || source === "booking");
+  const voucherActive = safeView === "events" && (source === "all" || source === "voucher");
+  const submissionActive = safeView === "system" && (source === "all" || source === "submission");
+  const emailWhere = withEmailLogScope(buildEmailLogWhere(query, dateWhere), safeView, severity, staleBefore);
+  const bookingHistoryWhere = withBookingHistorySeverity(buildBookingHistoryWhere(query, dateWhere), severity);
+  const rescheduleWhere = severity === "all" || severity === "info" ? buildRescheduleWhere(query, dateWhere) : { id: "__no_match__" };
+  const voucherWhere = severity === "all" || severity === "success" ? buildVoucherWhere(query, dateWhere) : { id: "__no_match__" };
+  const redemptionWhere = severity === "all" || severity === "success" ? buildVoucherRedemptionWhere(query, dateWhere) : { id: "__no_match__" };
+  const submissionWhere = buildBookingSubmissionWhere(query, dateWhere);
+
+  const [emails, bookingHistory, reschedules, vouchers, redemptions, submissions, failed, retry, stuck, pending, processing, emailTotal, bookingHistoryTotal, rescheduleTotal, voucherTotal, redemptionTotal, submissionTotal] = await Promise.all([
+    emailActive ? prisma.emailLog.findMany({ where: emailWhere, orderBy: [{ createdAt: "desc" }, { id: "desc" }], take, include: { booking: { select: { id: true, clientNameSnapshot: true, serviceNameSnapshot: true } }, client: { select: { fullName: true } } } }) : Promise.resolve([]),
+    bookingActive ? prisma.bookingStatusHistory.findMany({ where: bookingHistoryWhere, orderBy: [{ createdAt: "desc" }, { id: "desc" }], take, include: { booking: { select: { id: true, clientNameSnapshot: true, serviceNameSnapshot: true } }, actorUser: { select: { name: true } } } }) : Promise.resolve([]),
+    bookingActive ? prisma.bookingRescheduleLog.findMany({ where: rescheduleWhere, orderBy: [{ createdAt: "desc" }, { id: "desc" }], take, include: { booking: { select: { id: true, clientNameSnapshot: true, serviceNameSnapshot: true } }, changedByUser: { select: { name: true } } } }) : Promise.resolve([]),
+    voucherActive ? prisma.voucher.findMany({ where: voucherWhere, orderBy: [{ createdAt: "desc" }, { id: "desc" }], take, select: { id: true, code: true, purchaserName: true, recipientName: true, createdAt: true, createdByUser: { select: { name: true } } } }) : Promise.resolve([]),
+    voucherActive ? prisma.voucherRedemption.findMany({ where: redemptionWhere, orderBy: [{ redeemedAt: "desc" }, { id: "desc" }], take, include: { voucher: { select: { id: true, code: true } }, redeemedByUser: { select: { name: true } } } }) : Promise.resolve([]),
+    submissionActive ? prisma.bookingSubmissionLog.findMany({ where: submissionWhere, orderBy: [{ createdAt: "desc" }, { id: "desc" }], take, include: { booking: { select: { id: true, clientNameSnapshot: true, serviceNameSnapshot: true } }, client: { select: { fullName: true } } } }) : Promise.resolve([]),
+    prisma.emailLog.count({ where: { status: EmailLogStatus.FAILED } }),
+    prisma.emailLog.count({ where: { status: EmailLogStatus.PENDING, attemptCount: { gt: 0 }, processingStartedAt: null } }),
+    prisma.emailLog.count({ where: { status: EmailLogStatus.PENDING, processingStartedAt: { lt: staleBefore } } }),
+    prisma.emailLog.count({ where: { status: EmailLogStatus.PENDING, attemptCount: 0, processingStartedAt: null } }),
+    prisma.emailLog.count({ where: { status: EmailLogStatus.PENDING, processingStartedAt: { not: null } } }),
+    emailActive ? prisma.emailLog.count({ where: emailWhere }) : Promise.resolve(0),
+    bookingActive ? prisma.bookingStatusHistory.count({ where: bookingHistoryWhere }) : Promise.resolve(0),
+    bookingActive ? prisma.bookingRescheduleLog.count({ where: rescheduleWhere }) : Promise.resolve(0),
+    voucherActive ? prisma.voucher.count({ where: voucherWhere }) : Promise.resolve(0),
+    voucherActive ? prisma.voucherRedemption.count({ where: redemptionWhere }) : Promise.resolve(0),
+    submissionActive ? prisma.bookingSubmissionLog.count({ where: submissionWhere }) : Promise.resolve(0),
+  ]);
+
+  const bookingHref = (id: string) => getAdminBookingHref(input.area, id);
+  const voucherHref = (id: string) => `${input.area === "owner" ? "/admin" : "/admin/provoz"}/vouchery/${id}`;
+  const items: AdminLogItem[] = [
+    ...emails.map((log) => {
+      const status = getEmailRecentStatus(log.status, log.processingStartedAt, log.attemptCount);
+      const isStuck = log.processingStartedAt !== null && log.processingStartedAt < staleBefore;
+      const tracking = deriveTrackingState(log);
+      const primaryAction: AdminLogItem["primaryAction"] = isOwner
+        ? (isStuck ? "release" : status === "failed" || status === "retry" ? "retry" : "detail")
+        : null;
+      return { id: `email:${log.id}`, occurredAt: log.createdAt.toISOString(), category: "email" as const, severity: log.status === EmailLogStatus.FAILED ? "error" as const : isStuck || status === "retry" ? "warning" as const : status === "sent" ? "success" as const : "info" as const, title: log.subject, description: `${log.recipientEmail}${log.errorMessage ? ` • ${getErrorSummary(log.errorMessage)}` : ""}`, actorLabel: null, entityLabel: log.booking ? `${log.booking.clientNameSnapshot} • ${log.booking.serviceNameSnapshot}` : log.client?.fullName ?? null, entityHref: log.booking ? bookingHref(log.booking.id) : null, sourceType: "email" as const, sourceId: log.id, primaryAction, emailLogId: log.id, queueState: getEmailRecentStatusLabel(log.status, log.processingStartedAt, log.attemptCount), trackingState: tracking.label };
+    }),
+    ...bookingHistory.map((entry) => ({ id: `booking-history:${entry.id}`, occurredAt: entry.createdAt.toISOString(), category: "event" as const, severity: bookingHistorySeverity(entry.status), title: bookingHistoryLabel(entry.status), description: entry.reason ?? entry.note, actorLabel: entry.actorUser?.name ?? (entry.actorType === "CLIENT" ? "Klientka" : entry.actorType === "SYSTEM" ? "Systém" : null), entityLabel: entry.booking ? `${entry.booking.clientNameSnapshot} • ${entry.booking.serviceNameSnapshot}` : "Odstraněná rezervace", entityHref: entry.booking ? bookingHref(entry.booking.id) : null, sourceType: "booking" as const, sourceId: entry.id, primaryAction: entry.booking ? "open" as const : null })),
+    ...reschedules.map((entry) => ({ id: `booking-reschedule:${entry.id}`, occurredAt: entry.createdAt.toISOString(), category: "event" as const, severity: "info" as const, title: "Rezervace přesunuta", description: entry.reason, actorLabel: entry.changedByUser?.name ?? (entry.changedByClient ? "Klientka" : null), entityLabel: entry.booking ? `${entry.booking.clientNameSnapshot} • ${entry.booking.serviceNameSnapshot}` : "Odstraněná rezervace", entityHref: entry.booking ? bookingHref(entry.booking.id) : null, sourceType: "booking" as const, sourceId: entry.id, primaryAction: entry.booking ? "open" as const : null })),
+    ...vouchers.map((voucher) => ({ id: `voucher:${voucher.id}`, occurredAt: voucher.createdAt.toISOString(), category: "event" as const, severity: "success" as const, title: "Voucher vytvořen", description: voucher.recipientName ? `Pro ${voucher.recipientName}` : null, actorLabel: voucher.createdByUser?.name ?? null, entityLabel: `Voucher ${voucher.code}${voucher.purchaserName ? ` • ${voucher.purchaserName}` : ""}`, entityHref: voucherHref(voucher.id), sourceType: "voucher" as const, sourceId: voucher.id, primaryAction: "open" as const })),
+    ...redemptions.map((redemption) => ({ id: `voucher-redemption:${redemption.id}`, occurredAt: redemption.redeemedAt.toISOString(), category: "event" as const, severity: "success" as const, title: "Voucher uplatněn", description: null, actorLabel: redemption.redeemedByUser?.name ?? null, entityLabel: redemption.voucher ? `Voucher ${redemption.voucher.code}` : "Odstraněný voucher", entityHref: redemption.voucher ? voucherHref(redemption.voucher.id) : null, sourceType: "voucher" as const, sourceId: redemption.id, primaryAction: redemption.voucher ? "open" as const : null })),
+    ...submissions.map((entry) => ({ id: `submission:${entry.id}`, occurredAt: entry.createdAt.toISOString(), category: "system" as const, severity: entry.outcome === BookingSubmissionOutcome.SUCCESS ? "success" as const : entry.outcome === BookingSubmissionOutcome.BLOCKED ? "warning" as const : "error" as const, title: `Booking submission ${entry.outcome.toLowerCase()}`, description: entry.failureReason ?? entry.failureCode, actorLabel: "Systém", entityLabel: entry.booking ? `${entry.booking.clientNameSnapshot} • ${entry.booking.serviceNameSnapshot}` : entry.client?.fullName ?? "Veřejný booking", entityHref: entry.booking ? bookingHref(entry.booking.id) : null, sourceType: "submission" as const, sourceId: entry.id, primaryAction: entry.booking ? "open" as const : null })),
+  ];
+  const visible = items.filter((item) => {
+    if (safeView === "attention" && item.severity !== "error" && !(item.sourceType === "email" && item.severity === "warning")) return false;
+    if (safeView === "events" && item.category !== "event") return false;
+    if (safeView === "emails" && item.category !== "email") return false;
+    if (safeView === "automation") return false;
+    if (severity !== "all" && item.severity !== severity) return false;
+    if (source !== "all" && item.sourceType !== source) return false;
+    return true;
+  });
+  const total = emailTotal + bookingHistoryTotal + rescheduleTotal + voucherTotal + redemptionTotal + submissionTotal;
+  const { page, pageCount } = getAdminLogPageMeta(total, requestedPage);
+  return { area: input.area, view: safeView, items: sortAndPageAdminLogItems(visible, page), total, page, pageCount, pageSize: adminLogPageSize, filters: { query, severity, source, dateFrom: input.dateFrom ?? "", dateTo: input.dateTo ?? "" }, attention: { failed, retry, stuck }, queueStats: [{ label: "Čeká", value: String(pending), tone: pending ? "accent" : "muted" }, { label: "Retry", value: String(retry), tone: retry ? "accent" : "muted" }, { label: "Zpracovává se", value: String(processing), tone: processing ? "accent" : "muted" }, { label: "Selhalo", value: String(failed), tone: failed ? "accent" : "muted" }], workerSummary: getWorkerSummary({ pending, retrying: retry, processing, failed }) };
 }
 
 export async function getEmailLogDetailData(emailLogId: string): Promise<EmailLogDetailData | null> {
