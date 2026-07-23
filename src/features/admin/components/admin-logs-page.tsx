@@ -51,6 +51,8 @@ function LogsToolbar({ data }: { data: AdminLogsData }) {
 export function AdminLogsPage({ data }: { data: AdminLogsData }) {
   const isOwner = data.area === "owner";
   const columns: ColumnDef<AdminLogItem>[] = [{ accessorKey: "occurredAt", header: "Čas", cell: ({ row }) => formatLogTime(row.original.occurredAt) }, { accessorKey: "title", header: "Událost", cell: ({ row }) => <><b>{row.original.title}</b><p className="break-words text-xs text-white/60">{row.original.description}</p></> }, { accessorKey: "category", header: "Kategorie", cell: ({ row }) => categoryLabel[row.original.category] }, { accessorKey: "severity", header: "Závažnost / stav", cell: ({ row }) => severityLabel[row.original.severity] }, { accessorKey: "entityLabel", header: "Kontext", cell: ({ row }) => row.original.entityHref ? <Link href={row.original.entityHref} className="underline">{row.original.entityLabel}</Link> : row.original.entityLabel }, { accessorKey: "actorLabel", header: "Provedl" }, { id: "action", header: "Akce", cell: ({ row }) => <Action item={row.original}/> }];
+  // TanStack Table vrací nestabilní API; React Compiler tuto komponentu správně přeskočí.
+  // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({ data: data.items, columns, getCoreRowModel: getCoreRowModel(), getRowId: (row) => row.id });
   const empty = data.view === "automation" ? "Nejsou dostupné žádné uložené záznamy automatizací." : data.view === "system" ? "Nejsou dostupné žádné systémové události." : data.view === "attention" ? "Nic nyní nevyžaduje pozornost." : "Zatím nejsou evidované žádné provozní události.";
   const rangeStart = data.total === 0 ? 0 : (data.page - 1) * data.pageSize + 1;

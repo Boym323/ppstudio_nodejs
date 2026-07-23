@@ -68,6 +68,8 @@ const columns: ColumnDef<AdminClientListItem>[] = [
 ];
 
 export function AdminClientsList({ clients, resetHref, emptyState }: AdminClientsListProps) {
+  // TanStack Table vrací nestabilní API; React Compiler tuto komponentu správně přeskočí.
+  // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     data: clients,
     columns,
