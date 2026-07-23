@@ -20,6 +20,7 @@ import {
   buildClientPhoneHref,
   formatClientPhoneForDisplay,
 } from "@/features/booking/lib/client-phone";
+import { getWeeksWithoutVisit } from "@/features/admin/lib/kpi-retention";
 import { prisma } from "@/lib/prisma";
 
 const formatDate = new Intl.DateTimeFormat("cs-CZ", {
@@ -39,6 +40,24 @@ const formatDateTime = new Intl.DateTimeFormat("cs-CZ", {
 });
 
 const clientPageSize = 50;
+
+export type AdminClientsListItem = {
+  id: string;
+  href: string;
+  fullName: string;
+  email: string;
+  emailHref: string | null;
+  phoneDisplay: string;
+  phoneHref: string | null;
+  isActive: boolean;
+  totalBookings: number;
+  lastVisitLabel: string;
+  lastServiceName: string | null;
+  weeksWithoutVisit: number | null;
+  nextBookingLabel: string;
+  hasNote: boolean;
+  isTestRecord: boolean;
+};
 
 function formatDateLabel(value: Date | null | undefined) {
   if (!value) {
@@ -353,7 +372,30 @@ export async function getAdminClientsPageData(
         detail: "Profily s interním kontextem.",
       },
     ],
-    clients: normalizedClients,
+    clients: normalizedClients.map((client): AdminClientsListItem => {
+      const email = client.email.trim();
+      const phone = client.phone?.trim() ?? "";
+
+      return {
+        id: client.id,
+        href: getAdminClientHref(area, client.id),
+        fullName: client.fullName,
+        email,
+        emailHref: normalizeEmailHref(email),
+        phoneDisplay: phone ? formatClientPhoneForDisplay(phone) : "",
+        phoneHref: buildClientPhoneHref(phone),
+        isActive: client.isActive,
+        totalBookings: client._count.bookings,
+        lastVisitLabel: client.lastVisitAt ? formatDateLabel(client.lastVisitAt) : "Bez návštěvy",
+        lastServiceName: client.lastServiceName,
+        weeksWithoutVisit: getWeeksWithoutVisit(client.lastVisitAt, retentionReference),
+        nextBookingLabel: client.nextBooking
+          ? `${formatDateLabel(client.nextBooking.scheduledStartsAt)} · ${client.nextBooking.serviceNameSnapshot}`
+          : "Bez další rezervace",
+        hasNote: Boolean(client.internalNote?.trim()),
+        isTestRecord: client.isTestRecord,
+      };
+    }),
     retentionReference,
     pagination: {
       totalCount: filteredCount,

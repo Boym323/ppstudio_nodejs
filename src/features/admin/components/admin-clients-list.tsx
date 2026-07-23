@@ -1,233 +1,141 @@
+"use client";
+
 import Link from "next/link";
+import {
+  type ColumnDef,
+  flexRender,
+  getCoreRowModel,
+  useReactTable,
+} from "@tanstack/react-table";
 
-import { getAdminClientHref } from "@/features/admin/lib/admin-clients";
-import { formatClientPhoneForDisplay } from "@/features/booking/lib/client-phone";
 import { cn } from "@/lib/utils";
-import { type AdminArea } from "@/config/navigation";
-import { getWeeksWithoutVisit } from "@/features/admin/lib/kpi-retention";
 
-type AdminClientsListProps = {
-  area: AdminArea;
-  resetHref: string;
-  retentionReference?: Date;
-  clients: Array<{
-    id: string;
-    fullName: string;
-    email: string;
-    phone: string | null;
-    isActive: boolean;
-    lastVisitAt: Date | null;
-    lastServiceName: string | null;
-    nextBooking: { scheduledStartsAt: Date; serviceNameSnapshot: string } | null;
-    internalNote: string | null;
-    _count: {
-      bookings: number;
-    };
-    isTestRecord: boolean;
-  }>;
+type AdminClientListItem = {
+  id: string;
+  href: string;
+  fullName: string;
+  email: string;
+  emailHref: string | null;
+  phoneDisplay: string;
+  phoneHref: string | null;
+  isActive: boolean;
+  totalBookings: number;
+  lastVisitLabel: string;
+  lastServiceName: string | null;
+  weeksWithoutVisit: number | null;
+  nextBookingLabel: string;
+  hasNote: boolean;
+  isTestRecord: boolean;
 };
 
-const formatDate = new Intl.DateTimeFormat("cs-CZ", {
-  day: "numeric",
-  month: "numeric",
-  year: "numeric",
-});
+type AdminClientsListProps = {
+  resetHref: string;
+  clients: AdminClientListItem[];
+};
 
-function formatDateLabel(value: Date | null | undefined) {
-  if (!value) {
-    return "Bez návštěvy";
-  }
+const columns: ColumnDef<AdminClientListItem>[] = [
+  {
+    id: "client",
+    header: "Klientka",
+    cell: ({ row }) => <ClientCell client={row.original} />,
+  },
+  {
+    id: "lastVisit",
+    header: "Poslední návštěva",
+    cell: ({ row }) => <LastVisitCell client={row.original} />,
+  },
+  {
+    id: "nextBooking",
+    header: "Příští návštěva",
+    cell: ({ row }) => <p className={cn("min-w-44", row.original.nextBookingLabel === "Bez další rezervace" ? "text-white/45" : "text-emerald-200/82")}>{row.original.nextBookingLabel}</p>,
+  },
+  {
+    accessorKey: "totalBookings",
+    header: "Rezervace",
+    cell: ({ getValue }) => <p className="text-white/78">{getValue<number>()}</p>,
+  },
+  {
+    id: "context",
+    header: "Kontext",
+    cell: ({ row }) => <div className="grid gap-1.5"><NoteBadge hasNote={row.original.hasNote} /><StatusBadge isActive={row.original.isActive} /></div>,
+  },
+  {
+    id: "actions",
+    header: "Akce",
+    cell: ({ row }) => <Link href={row.original.href} className="inline-flex min-h-9 items-center rounded-full border border-white/10 px-3 text-xs font-medium text-white/78 transition hover:border-[var(--color-accent)]/40 hover:bg-[rgba(190,160,120,0.10)] hover:text-white">Detail</Link>,
+  },
+];
 
-  return formatDate.format(value);
-}
+export function AdminClientsList({ clients, resetHref }: AdminClientsListProps) {
+  const table = useReactTable({
+    data: clients,
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+    getRowId: (client) => client.id,
+  });
 
-export function AdminClientsList({
-  area,
-  resetHref,
-  clients,
-  retentionReference,
-}: AdminClientsListProps) {
   if (clients.length === 0) {
-    return (
-      <div className="rounded-[1.2rem] border border-dashed border-white/14 bg-white/4 p-5">
-        <p className="text-base font-medium text-white">Nenalezeni žádní klienti.</p>
-        <a
-          href={resetHref}
-          className="mt-4 inline-flex rounded-full border border-white/10 px-4 py-2 text-sm text-white/80 transition hover:border-white/18 hover:bg-white/6"
-        >
-          Zrušit filtr
-        </a>
-      </div>
-    );
+    return <EmptyState resetHref={resetHref} />;
   }
 
   return (
-    <div>
-      <div className="hidden overflow-hidden rounded-[1.1rem] border border-white/8 bg-white/4 lg:block">
-        <div className="grid grid-cols-[minmax(160px,1.25fr)_minmax(190px,1.35fr)_90px_130px_105px_95px_82px] gap-3 border-b border-white/8 px-3 py-2 text-[11px] uppercase tracking-[0.16em] text-white/42">
-          <span>Klientka</span>
-          <span>Kontakt</span>
-          <span>Rezervace</span>
-          <span>Poslední návštěva</span>
-          <span>Poznámka</span>
-          <span>Stav</span>
-          <span className="text-right">Akce</span>
-        </div>
-
-        <div className="divide-y divide-white/7">
-          {clients.map((client) => (
-            <Link
-              key={client.id}
-              href={getAdminClientHref(area, client.id)}
-              className="group grid min-h-14 grid-cols-[minmax(160px,1.25fr)_minmax(190px,1.35fr)_90px_130px_105px_95px_82px] items-center gap-3 px-3 py-2.5 text-sm transition hover:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--color-accent)]/60"
-            >
-              <div className="min-w-0">
-                <div className="flex min-w-0 items-center gap-2">
-                  <p className="min-w-0 truncate font-medium text-white">{client.fullName}</p>
-                  {client.isTestRecord ? <TestBadge /> : null}
-                </div>
-              </div>
-
-              <ContactCell email={client.email} phone={client.phone} />
-
-              <p className="text-white/72">{client._count.bookings}</p>
-              <div className="min-w-0 text-white/68"><p className="truncate">{formatDateLabel(client.lastVisitAt).toLocaleLowerCase("cs-CZ")}</p>{client.lastServiceName ? <p className="truncate text-xs text-white/45">{client.lastServiceName} · {weeksSince(client.lastVisitAt, retentionReference)} týdnů</p> : null}{client.nextBooking ? <p className="truncate text-xs text-emerald-300">Již objednaná: {formatDateLabel(client.nextBooking.scheduledStartsAt)} · {client.nextBooking.serviceNameSnapshot}</p> : null}</div>
-              <NoteBadge hasNote={hasNote(client.internalNote)} />
-              <StatusBadge isActive={client.isActive} />
-              <span
-                className="justify-self-end rounded-full border border-white/10 px-3 py-1.5 text-xs font-medium text-white/78 transition group-hover:border-[var(--color-accent)]/40 group-hover:bg-[rgba(190,160,120,0.10)] group-hover:text-white"
-              >
-                Detail
-              </span>
-            </Link>
-          ))}
-        </div>
+    <div className="min-w-0">
+      <div className="hidden overflow-x-auto rounded-[1.1rem] border border-white/8 bg-white/4 lg:block">
+        <table className="min-w-[900px] w-full border-collapse text-left text-sm">
+          <thead className="border-b border-white/8 text-[11px] uppercase tracking-[0.16em] text-white/42">
+            {table.getHeaderGroups().map((headerGroup) => (
+              <tr key={headerGroup.id}>
+                {headerGroup.headers.map((header) => (
+                  <th key={header.id} scope="col" className="px-3 py-2 font-medium">
+                    {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                  </th>
+                ))}
+              </tr>
+            ))}
+          </thead>
+          <tbody className="divide-y divide-white/7">
+            {table.getRowModel().rows.map((row) => (
+              <tr key={row.id} className={cn("transition hover:bg-white/5", !row.original.isActive && "text-white/52") }>
+                {row.getVisibleCells().map((cell) => (
+                  <td key={cell.id} className="px-3 py-3 align-middle">
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
 
       <div className="grid gap-2 lg:hidden">
-        {clients.map((client) => (
-          <Link
-            key={client.id}
-            href={getAdminClientHref(area, client.id)}
-            className="block rounded-[1.05rem] border border-white/8 bg-white/5 p-3 transition hover:bg-white/6 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/60"
-          >
-            <article>
-              <div className="flex min-w-0 items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="flex min-w-0 items-center gap-2">
-                    <h3 className="min-w-0 truncate text-base font-medium text-white">{client.fullName}</h3>
-                    {client.isTestRecord ? <TestBadge /> : null}
-                  </div>
-                  <div className="mt-1">
-                    <ContactCell email={client.email} phone={client.phone} />
-                  </div>
-                </div>
-                <StatusBadge isActive={client.isActive} />
-              </div>
-
-              <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
-                <MetaCell label="Rezervace" value={String(client._count.bookings)} />
-                <MetaCell label="Poslední návštěva" value={formatDateLabel(client.lastVisitAt).toLocaleLowerCase("cs-CZ")} />
-                <MetaCell label="Poslední služba" value={client.lastServiceName ?? "—"} />
-                <MetaCell label="Budoucí rezervace" value={client.nextBooking ? `Již objednaná · ${formatDateLabel(client.nextBooking.scheduledStartsAt)} · ${client.nextBooking.serviceNameSnapshot}` : "—"} />
-                <MetaCell label="Poznámka" value={hasNote(client.internalNote) ? "ano" : "bez poznámky"} />
-                <span className="inline-flex items-center justify-center rounded-full border border-white/10 px-3 py-2 text-sm font-medium text-white/82">
-                  Detail
-                </span>
-              </div>
-            </article>
-          </Link>
-        ))}
+        {table.getRowModel().rows.map((row) => <ClientCard key={row.id} client={row.original} />)}
       </div>
     </div>
   );
 }
 
-function weeksSince(value: Date | null, reference?: Date) { return getWeeksWithoutVisit(value, reference) ?? 0; }
-
-function hasNote(value: string | null) {
-  return Boolean(value?.trim());
+function EmptyState({ resetHref }: { resetHref: string }) {
+  return <div className="rounded-[1.2rem] border border-dashed border-white/14 bg-white/4 p-5"><p className="text-base font-medium text-white">Nenalezeni žádní klienti.</p><a href={resetHref} className="mt-4 inline-flex rounded-full border border-white/10 px-4 py-2 text-sm text-white/80 transition hover:border-white/18 hover:bg-white/6">Zrušit filtr</a></div>;
 }
 
-function hasContactValue(value: string | null | undefined) {
-  return Boolean(value?.trim());
+function ClientCell({ client }: { client: AdminClientListItem }) {
+  return <div className={cn("min-w-52", !client.isActive && "opacity-65")}><div className="flex items-center gap-2"><Link href={client.href} className="truncate font-medium text-white transition hover:text-[var(--color-accent-soft)]">{client.fullName}</Link>{client.isTestRecord ? <TestBadge /> : null}</div><Contact client={client} compact /></div>;
 }
 
-function ContactCell({
-  email,
-  phone,
-}: {
-  email: string;
-  phone: string | null;
-}) {
-  const hasEmail = hasContactValue(email);
-  const hasPhone = hasContactValue(phone);
-
-  if (!hasEmail && !hasPhone) {
-    return <p className="truncate text-white/45">bez kontaktu</p>;
-  }
-
-  return (
-    <div className="min-w-0 space-y-0.5">
-      <p className={cn("truncate", hasEmail ? "text-white/72" : "text-white/42")}>
-        {hasEmail ? email : "bez e-mailu"}
-      </p>
-      <p className={cn("truncate text-xs", hasPhone ? "text-white/58" : "text-white/36")}>
-        {hasPhone ? formatClientPhoneForDisplay(phone) : "bez telefonu"}
-      </p>
-    </div>
-  );
+function LastVisitCell({ client }: { client: AdminClientListItem }) {
+  return <div className="min-w-40"><p className={client.lastVisitLabel === "Bez návštěvy" ? "text-white/45" : "text-white/76"}>{client.lastVisitLabel}</p>{client.lastServiceName ? <p className="mt-0.5 truncate text-xs text-white/48">{client.lastServiceName}</p> : null}{client.weeksWithoutVisit !== null ? <p className="mt-0.5 text-xs text-white/42">{client.weeksWithoutVisit} {client.weeksWithoutVisit === 1 ? "týden" : "týdnů"} od návštěvy</p> : null}</div>;
 }
 
-function NoteBadge({ hasNote }: { hasNote: boolean }) {
-  return (
-    <span
-      className={cn(
-        "inline-flex w-fit items-center rounded-full border px-2 py-1 text-xs leading-none",
-        hasNote
-          ? "border-[var(--color-accent)]/28 bg-[rgba(190,160,120,0.10)] text-[var(--color-accent-soft)]"
-          : "border-white/8 bg-black/10 text-white/42",
-      )}
-    >
-      {hasNote ? "ano" : "bez poznámky"}
-    </span>
-  );
+function ClientCard({ client }: { client: AdminClientListItem }) {
+  return <article className={cn("min-w-0 rounded-[1.05rem] border border-white/8 bg-white/5 p-3", !client.isActive && "opacity-70")}><div className="flex min-w-0 items-start justify-between gap-3"><div className="min-w-0"><div className="flex items-center gap-2"><h3 className="truncate text-base font-medium text-white">{client.fullName}</h3>{client.isTestRecord ? <TestBadge /> : null}</div><Contact client={client} /></div><StatusBadge isActive={client.isActive} /></div><dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 text-sm"><CardDetail label="Poslední návštěva" value={client.lastVisitLabel} detail={client.lastServiceName ?? (client.weeksWithoutVisit !== null ? `${client.weeksWithoutVisit} týdnů od návštěvy` : undefined)} /><CardDetail label="Příští návštěva" value={client.nextBookingLabel} /><CardDetail label="Rezervace" value={String(client.totalBookings)} /><CardDetail label="Poznámka" value={client.hasNote ? "S poznámkou" : "Bez poznámky"} /></dl><div className="mt-3 flex flex-wrap gap-2">{client.phoneHref ? <a href={client.phoneHref} className="inline-flex min-h-11 items-center rounded-full border border-white/10 px-3 text-sm text-white/80">Zavolat</a> : null}{client.emailHref ? <a href={client.emailHref} className="inline-flex min-h-11 items-center rounded-full border border-white/10 px-3 text-sm text-white/80">Napsat</a> : null}<Link href={client.href} className="inline-flex min-h-11 items-center rounded-full bg-[var(--color-accent)] px-4 text-sm font-semibold text-[var(--color-accent-contrast)]">Detail</Link></div></article>;
 }
 
-function StatusBadge({ isActive }: { isActive: boolean }) {
-  return (
-    <span
-      className={cn(
-        "inline-flex w-fit shrink-0 items-center rounded-full border px-2.5 py-1 text-xs leading-none",
-        isActive
-          ? "border-emerald-300/30 bg-emerald-400/10 text-emerald-100"
-          : "border-white/10 bg-black/10 text-white/58",
-      )}
-    >
-      {isActive ? "Aktivní" : "Neaktivní"}
-    </span>
-  );
+function Contact({ client, compact = false }: { client: AdminClientListItem; compact?: boolean }) {
+  if (!client.email && !client.phoneDisplay) return <p className="mt-1 text-xs font-medium text-amber-100/78">Bez kontaktu</p>;
+  return <div className={cn("min-w-0", compact ? "mt-1 flex flex-wrap gap-x-2 text-xs" : "mt-1.5 grid gap-0.5 text-sm")}>{client.emailHref ? <a href={client.emailHref} className="truncate text-white/68 hover:text-white">{client.email}</a> : <span className="text-white/38">Bez e-mailu</span>}{client.phoneHref ? <a href={client.phoneHref} className="truncate text-white/58 hover:text-white">{client.phoneDisplay}</a> : <span className="text-white/38">Bez telefonu</span>}</div>;
 }
 
-function TestBadge() {
-  return (
-    <span className="shrink-0 rounded-full border border-amber-300/20 bg-amber-300/10 px-2 py-0.5 text-[10px] leading-none text-amber-100/78">
-      test
-    </span>
-  );
-}
-
-function MetaCell({
-  label,
-  value,
-}: {
-  label: string;
-  value: string;
-}) {
-  return (
-    <div className="min-w-0 rounded-[0.75rem] border border-white/8 bg-black/10 px-3 py-2">
-      <p className="text-[10px] uppercase tracking-[0.14em] text-white/38">{label}</p>
-      <p className="mt-1 truncate text-white/72">{value}</p>
-    </div>
-  );
-}
+function CardDetail({ label, value, detail }: { label: string; value: string; detail?: string }) { return <div className="min-w-0"><dt className="text-[10px] uppercase tracking-[0.14em] text-white/38">{label}</dt><dd className="mt-0.5 truncate text-white/75">{value}</dd>{detail ? <dd className="truncate text-xs text-white/43">{detail}</dd> : null}</div>; }
+function NoteBadge({ hasNote }: { hasNote: boolean }) { return <span className={cn("inline-flex w-fit rounded-full border px-2 py-1 text-xs leading-none", hasNote ? "border-[var(--color-accent)]/28 bg-[rgba(190,160,120,0.10)] text-[var(--color-accent-soft)]" : "border-white/8 bg-black/10 text-white/42")}>{hasNote ? "S poznámkou" : "Bez poznámky"}</span>; }
+function StatusBadge({ isActive }: { isActive: boolean }) { return <span className={cn("inline-flex w-fit shrink-0 rounded-full border px-2.5 py-1 text-xs leading-none", isActive ? "border-emerald-300/30 bg-emerald-400/10 text-emerald-100" : "border-white/10 bg-black/10 text-white/58")}>{isActive ? "Aktivní" : "Neaktivní"}</span>; }
+function TestBadge() { return <span className="shrink-0 rounded-full border border-amber-300/20 bg-amber-300/10 px-2 py-0.5 text-[10px] leading-none text-amber-100/78">test</span>; }

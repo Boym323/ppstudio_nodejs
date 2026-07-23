@@ -38,7 +38,7 @@ export async function AdminClientsPage({
           </div>
 
           <div className="mt-4">
-            <AdminClientsList area={area} clients={data.clients} resetHref={data.currentPath} retentionReference={data.filters.retention ? data.retentionReference : undefined} />
+            <AdminClientsList clients={data.clients} resetHref={data.currentPath} />
           </div>
           {data.pagination.hasNextPage && data.pagination.nextCursor ? (
             <div className="mt-4 flex justify-center">
