@@ -1,4 +1,5 @@
 import { type AdminArea } from "@/config/navigation";
+import Link from "next/link";
 import { AdminClientsList } from "@/features/admin/components/admin-clients-list";
 import { AdminClientsToolbar } from "@/features/admin/components/admin-clients-toolbar";
 import { AdminPageShell, AdminPanel } from "@/features/admin/components/admin-page-shell";
@@ -32,7 +33,7 @@ export async function AdminClientsPage({
           <AdminClientsToolbar currentPath={data.currentPath} filters={data.filters} />
 
           <div className="mt-4 grid gap-2 text-sm text-white/62 sm:grid-cols-3">
-            <p><span className="text-white">V seznamu:</span> {data.clients.length} z {data.pagination.totalCount}</p>
+            <p><span className="text-white">V seznamu:</span> {data.pagination.firstItemNumber}–{data.pagination.lastItemNumber} z {data.pagination.totalCount} klientek</p>
             <p><span className="text-white">Filtr:</span> {labelForQuickFilter(data.filters.quick)} · {labelForStatus(data.filters.status)}</p>
             <p><span className="text-white">Řazení:</span> {labelForSort(data.filters.sort)}</p>
           </div>
@@ -40,28 +41,19 @@ export async function AdminClientsPage({
           <div className="mt-4">
             <AdminClientsList clients={data.clients} resetHref={data.currentPath} />
           </div>
-          {data.pagination.hasNextPage && data.pagination.nextCursor ? (
-            <div className="mt-4 flex justify-center">
-              <a
-                href={buildNextPageHref(data.currentPath, data.filters, data.pagination.nextCursor)}
-                className="inline-flex rounded-full border border-white/10 px-4 py-2 text-sm text-white/80 transition hover:border-white/18 hover:bg-white/6"
-              >
-                Načíst dalších 50 klientů
-              </a>
-            </div>
-          ) : null}
+          {data.pagination.totalCount > 0 ? <ClientsPagination currentPath={data.currentPath} filters={data.filters} pagination={data.pagination} /> : null}
         </AdminPanel>
       </div>
     </AdminPageShell>
   );
 }
 
-function buildNextPageHref(
+function buildPageHref(
   currentPath: string,
   filters: { query: string; status: string; sort: string; quick: string; retention?: string; retentionAt?: string },
-  cursor: string,
+  page: number,
 ) {
-  const params = new URLSearchParams({ cursor });
+  const params = new URLSearchParams();
 
   if (filters.query) params.set("query", filters.query);
   if (filters.status !== "all") params.set("status", filters.status);
@@ -69,8 +61,41 @@ function buildNextPageHref(
   if (filters.quick !== "all") params.set("quick", filters.quick);
   if (filters.retention) params.set("retention", filters.retention);
   if (filters.retentionAt) params.set("retentionAt", filters.retentionAt);
+  if (page > 1) params.set("page", String(page));
 
-  return `${currentPath}?${params.toString()}`;
+  const query = params.toString();
+  return query ? `${currentPath}?${query}` : currentPath;
+}
+
+function ClientsPagination({
+  currentPath,
+  filters,
+  pagination,
+}: {
+  currentPath: string;
+  filters: { query: string; status: string; sort: string; quick: string; retention?: string; retentionAt?: string };
+  pagination: {
+    page: number;
+    totalPages: number;
+    hasPreviousPage: boolean;
+    hasNextPage: boolean;
+  };
+}) {
+  return (
+    <nav aria-label="Stránkování klientek" className="mt-4 flex flex-wrap items-center justify-center gap-3 text-sm text-white/72">
+      {pagination.hasPreviousPage ? (
+        <Link href={buildPageHref(currentPath, filters, pagination.page - 1)} className="inline-flex min-h-10 items-center rounded-full border border-white/10 px-4 transition hover:border-white/18 hover:bg-white/6">
+          Předchozí
+        </Link>
+      ) : <span className="inline-flex min-h-10 items-center rounded-full border border-white/6 px-4 text-white/30">Předchozí</span>}
+      <span>Stránka {pagination.page} z {pagination.totalPages}</span>
+      {pagination.hasNextPage ? (
+        <Link href={buildPageHref(currentPath, filters, pagination.page + 1)} className="inline-flex min-h-10 items-center rounded-full border border-white/10 px-4 transition hover:border-white/18 hover:bg-white/6">
+          Další
+        </Link>
+      ) : <span className="inline-flex min-h-10 items-center rounded-full border border-white/6 px-4 text-white/30">Další</span>}
+    </nav>
+  );
 }
 
 function ClientsStatsStrip({

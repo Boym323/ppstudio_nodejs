@@ -18,7 +18,17 @@ export const clientListSearchParamsSchema = z.object({
   quick: z.enum(clientListQuickFilterValues).optional(),
   retention: z.enum(["8_11", "12_15", "16_plus"]).optional(),
   retentionAt: z.string().regex(/^\d{13}$/).optional(),
+  page: z.string().optional(),
 });
+
+export function normalizeClientListPage(value: string | undefined) {
+  if (!value || !/^\d+$/.test(value)) {
+    return 1;
+  }
+
+  const page = Number(value);
+  return Number.isSafeInteger(page) && page > 0 ? page : 1;
+}
 
 export const updateClientNoteSchema = z.object({
   area: z.enum(["owner", "salon"]),

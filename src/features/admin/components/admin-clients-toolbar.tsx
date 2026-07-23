@@ -5,6 +5,8 @@ type AdminClientsToolbarProps = {
     status: string;
     sort: string;
     quick: string;
+    retention?: string;
+    retentionAt?: string;
   };
 };
 
@@ -16,7 +18,8 @@ export function AdminClientsToolbar({
     filters.query.trim().length > 0
     || filters.status !== "all"
     || filters.sort !== "recent"
-    || filters.quick !== "all";
+    || filters.quick !== "all"
+    || Boolean(filters.retention);
 
   return (
     <div className="grid gap-3">
@@ -43,6 +46,8 @@ export function AdminClientsToolbar({
 
       <form className="grid gap-2 rounded-[1.1rem] border border-white/8 bg-white/5 p-3 lg:grid-cols-[minmax(220px,1fr)_150px_180px_auto_auto] lg:items-end">
         <input type="hidden" name="quick" value={filters.quick} />
+        {filters.retention ? <input type="hidden" name="retention" value={filters.retention} /> : null}
+        {filters.retentionAt ? <input type="hidden" name="retentionAt" value={filters.retentionAt} /> : null}
 
         <label className="block">
           <span className="text-[11px] uppercase tracking-[0.18em] text-white/48">Hledat</span>
@@ -128,6 +133,14 @@ function buildFilterHref(
 
   if (merged.quick !== "all") {
     params.set("quick", merged.quick);
+  }
+
+  if (merged.retention) {
+    params.set("retention", merged.retention);
+  }
+
+  if (merged.retentionAt) {
+    params.set("retentionAt", merged.retentionAt);
   }
 
   const query = params.toString();

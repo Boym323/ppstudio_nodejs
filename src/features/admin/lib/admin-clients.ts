@@ -3,6 +3,7 @@ import { BookingStatus, Prisma } from "@prisma/client";
 import { type AdminArea } from "@/config/navigation";
 import {
   clientListSearchParamsSchema,
+  normalizeClientListPage,
   type ClientListQuickFilterValue,
   type ClientListSortValue,
   type ClientListStatusValue,
@@ -91,6 +92,7 @@ function normalizeSearchParams(searchParams?: Record<string, string | string[] |
     quick: typeof searchParams?.quick === "string" ? searchParams.quick : undefined,
     retention: typeof searchParams?.retention === "string" ? searchParams.retention : undefined,
     retentionAt: typeof searchParams?.retentionAt === "string" ? searchParams.retentionAt : undefined,
+    page: typeof searchParams?.page === "string" ? searchParams.page : undefined,
   });
 
   const defaults = {
@@ -100,6 +102,7 @@ function normalizeSearchParams(searchParams?: Record<string, string | string[] |
     quick: "all" as ClientListQuickFilterValue,
     retention: undefined as "8_11" | "12_15" | "16_plus" | undefined,
     retentionAt: undefined as string | undefined,
+    page: 1,
   };
 
   if (!parsed.success) {
@@ -113,13 +116,8 @@ function normalizeSearchParams(searchParams?: Record<string, string | string[] |
     quick: parsed.data.quick ?? defaults.quick,
     retention: parsed.data.retention,
     retentionAt: parsed.data.retentionAt,
+    page: normalizeClientListPage(parsed.data.page),
   };
-}
-
-function readClientCursor(searchParams?: Record<string, string | string[] | undefined>) {
-  const cursor = typeof searchParams?.cursor === "string" ? searchParams.cursor.trim() : "";
-
-  return cursor.length > 0 && cursor.length <= 128 ? cursor : null;
 }
 
 function hasInternalNoteWhere(): Prisma.ClientWhereInput {
@@ -230,18 +228,108 @@ function buildClientWhere(
   return where;
 }
 
-function buildClientOrderBy(sort: ClientListSortValue): Prisma.ClientOrderByWithRelationInput[] {
+function buildClientOrderBy(sort: Extract<ClientListSortValue, "name" | "created">): Prisma.ClientOrderByWithRelationInput[] {
   switch (sort) {
     case "name":
       return [{ fullName: "asc" }, { id: "asc" }];
     case "created":
       return [{ createdAt: "desc" }, { id: "desc" }];
-    case "bookings":
-      return [{ bookings: { _count: "desc" } }, { createdAt: "desc" }, { fullName: "asc" }, { id: "asc" }];
-    case "recent":
-    default:
-      return [{ createdAt: "desc" }, { id: "desc" }];
   }
+}
+
+function buildClientSqlWhere(
+  filters: ReturnType<typeof normalizeSearchParams>,
+  recentThreshold: Date,
+  retentionReference: Date,
+) {
+  const clauses: Prisma.Sql[] = [];
+
+  if (filters.status === "active") clauses.push(Prisma.sql`c."isActive" = true`);
+  if (filters.status === "inactive") clauses.push(Prisma.sql`c."isActive" = false`);
+  if (filters.query) {
+    const query = `%${filters.query}%`;
+    clauses.push(Prisma.sql`(c."fullName" ILIKE ${query} OR c.email ILIKE ${query} OR c.phone ILIKE ${query} OR c."internalNote" ILIKE ${query})`);
+  }
+
+  switch (filters.quick) {
+    case "with_booking":
+      clauses.push(Prisma.sql`EXISTS (SELECT 1 FROM "Booking" b WHERE b."clientId" = c.id)`);
+      break;
+    case "without_booking":
+      clauses.push(Prisma.sql`NOT EXISTS (SELECT 1 FROM "Booking" b WHERE b."clientId" = c.id)`);
+      break;
+    case "no_contact":
+      clauses.push(Prisma.sql`(c.email IS NULL OR c.email = '') AND (c.phone IS NULL OR c.phone = '')`);
+      break;
+    case "noted":
+      clauses.push(Prisma.sql`c."internalNote" IS NOT NULL AND c."internalNote" <> ''`);
+      break;
+    case "new_30":
+      clauses.push(Prisma.sql`c."createdAt" >= ${recentThreshold}`);
+      break;
+  }
+
+  if (filters.retention) {
+    const eightWeeksAgo = new Date(retentionReference.getTime() - 8 * 7 * 86_400_000);
+    const twelveWeeksAgo = new Date(retentionReference.getTime() - 12 * 7 * 86_400_000);
+    const sixteenWeeksAgo = new Date(retentionReference.getTime() - 16 * 7 * 86_400_000);
+    const lowerBound = filters.retention === "8_11" ? twelveWeeksAgo : filters.retention === "12_15" ? sixteenWeeksAgo : undefined;
+    const upperBound = filters.retention === "8_11" ? eightWeeksAgo : filters.retention === "12_15" ? twelveWeeksAgo : sixteenWeeksAgo;
+    clauses.push(
+      Prisma.sql`c."isActive" = true`,
+      Prisma.sql`EXISTS (SELECT 1 FROM "Booking" b WHERE b."clientId" = c.id AND b.status = ${BookingStatus.COMPLETED} AND b."scheduledStartsAt" < ${upperBound}${lowerBound ? Prisma.sql` AND b."scheduledStartsAt" >= ${lowerBound}` : Prisma.empty})`,
+      Prisma.sql`NOT EXISTS (SELECT 1 FROM "Booking" b WHERE b."clientId" = c.id AND b.status = ${BookingStatus.COMPLETED} AND b."scheduledStartsAt" >= ${upperBound} AND b."scheduledStartsAt" < ${retentionReference})`,
+    );
+  }
+
+  return clauses.length > 0 ? Prisma.sql`WHERE ${Prisma.join(clauses, " AND ")}` : Prisma.empty;
+}
+
+async function getOrderedClientPageIds(
+  filters: ReturnType<typeof normalizeSearchParams>,
+  where: Prisma.ClientWhereInput,
+  recentThreshold: Date,
+  retentionReference: Date,
+  page: number,
+) {
+  const skip = (page - 1) * clientPageSize;
+
+  if (filters.sort === "name" || filters.sort === "created") {
+    const clients = await prisma.client.findMany({
+      where,
+      orderBy: buildClientOrderBy(filters.sort),
+      skip,
+      take: clientPageSize,
+      select: { id: true },
+    });
+    return clients.map((client) => client.id);
+  }
+
+  const sqlWhere = buildClientSqlWhere(filters, recentThreshold, retentionReference);
+  const orderBy = filters.sort === "recent"
+    ? Prisma.sql`last_visit."lastVisitAt" DESC NULLS LAST, c."createdAt" DESC, c.id DESC`
+    : Prisma.sql`booking_count.total DESC, last_visit."lastVisitAt" DESC NULLS LAST, c."fullName" ASC, c.id ASC`;
+  const rows = await prisma.$queryRaw<Array<{ id: string }>>(Prisma.sql`
+    SELECT c.id
+    FROM "Client" c
+    LEFT JOIN LATERAL (
+      SELECT MAX(b."scheduledStartsAt") AS "lastVisitAt"
+      FROM "Booking" b
+      WHERE b."clientId" = c.id
+        AND b.status = ${BookingStatus.COMPLETED}
+        AND b."scheduledStartsAt" < ${retentionReference}
+    ) last_visit ON true
+    LEFT JOIN LATERAL (
+      SELECT COUNT(*)::int AS total
+      FROM "Booking" b
+      WHERE b."clientId" = c.id
+    ) booking_count ON true
+    ${sqlWhere}
+    ORDER BY ${orderBy}
+    LIMIT ${clientPageSize} OFFSET ${skip}
+  `);
+
+  return rows.map((row) => row.id);
 }
 
 export function getAdminClientHref(area: AdminArea, clientId: string) {
@@ -262,9 +350,7 @@ export async function getAdminClientsPageData(
   const recentThreshold = new Date(now);
   recentThreshold.setDate(recentThreshold.getDate() - 30);
   const where = buildClientWhere(filters, recentThreshold, retentionReference);
-  const cursor = readClientCursor(searchParams);
-
-  const [totalCount, newCount, noContactCount, notedCount, activeRecentCount, filteredCount, clients] = await Promise.all([
+  const [totalCount, newCount, noContactCount, notedCount, activeRecentCount, filteredCount] = await Promise.all([
     prisma.client.count(),
     prisma.client.count({
       where: {
@@ -289,11 +375,13 @@ export async function getAdminClientsPageData(
       },
     }),
     prisma.client.count({ where }),
-    prisma.client.findMany({
-      where,
-      orderBy: buildClientOrderBy(filters.sort),
-      take: clientPageSize + 1,
-      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+  ]);
+  const totalPages = filteredCount === 0 ? 1 : Math.ceil(filteredCount / clientPageSize);
+  const page = Math.min(filters.page, totalPages);
+  const clientIds = await getOrderedClientPageIds(filters, where, recentThreshold, retentionReference, page);
+  const clients = clientIds.length > 0
+    ? await prisma.client.findMany({
+      where: { id: { in: clientIds } },
       include: {
         _count: {
           select: {
@@ -317,11 +405,13 @@ export async function getAdminClientsPageData(
           },
         },
       },
-    }),
-  ]);
-
-  const hasNextPage = clients.length > clientPageSize;
-  const pageClients = clients.slice(0, clientPageSize);
+    })
+    : [];
+  const clientsById = new Map(clients.map((client) => [client.id, client]));
+  const pageClients = clientIds.flatMap((id) => {
+    const client = clientsById.get(id);
+    return client ? [client] : [];
+  });
   const futureBookings = pageClients.length
     ? await prisma.booking.findMany({
       where: { clientId: { in: pageClients.map((client) => client.id) }, status: { in: [BookingStatus.PENDING, BookingStatus.CONFIRMED] }, scheduledStartsAt: { gte: now } },
@@ -331,17 +421,14 @@ export async function getAdminClientsPageData(
     : [];
   const nextBookingByClientId = new Map<string, (typeof futureBookings)[number]>();
   for (const booking of futureBookings) if (!nextBookingByClientId.has(booking.clientId)) nextBookingByClientId.set(booking.clientId, booking);
-  const normalizedClients = sortClientsForList(
-    pageClients.map((client) => ({
+  const normalizedClients = pageClients.map((client) => ({
       ...client,
       email: client.email ?? "",
       lastVisitAt: client.bookings[0]?.scheduledStartsAt ?? null,
       lastServiceName: client.bookings[0]?.serviceNameSnapshot ?? null,
       nextBooking: nextBookingByClientId.get(client.id) ?? null,
       isTestRecord: isTestClientRecord(client.fullName, client.email),
-    })),
-    filters.sort,
-  );
+    }));
 
   return {
     area,
@@ -398,70 +485,19 @@ export async function getAdminClientsPageData(
     }),
     retentionReference,
     pagination: {
+      page,
+      pageSize: clientPageSize,
       totalCount: filteredCount,
-      hasNextPage,
-      nextCursor: hasNextPage ? pageClients.at(-1)?.id ?? null : null,
+      totalPages,
+      firstItemNumber: filteredCount === 0 ? 0 : (page - 1) * clientPageSize + 1,
+      lastItemNumber: (page - 1) * clientPageSize + pageClients.length,
+      hasPreviousPage: page > 1,
+      hasNextPage: page < totalPages,
     },
     currentPath: area === "owner" ? "/admin/klienti" : "/admin/provoz/klienti",
   };
 }
 
-function sortClientsForList<
-  T extends {
-    fullName: string;
-    createdAt: Date;
-    lastVisitAt: Date | null;
-    _count: {
-      bookings: number;
-    };
-  },
->(clients: T[], sort: ClientListSortValue) {
-  const sortedClients = [...clients];
-
-  switch (sort) {
-    case "bookings":
-      return sortedClients.sort((left, right) => {
-        const bookingsDiff = right._count.bookings - left._count.bookings;
-        if (bookingsDiff !== 0) {
-          return bookingsDiff;
-        }
-
-        const visitDiff = compareDatesDesc(left.lastVisitAt, right.lastVisitAt);
-        if (visitDiff !== 0) {
-          return visitDiff;
-        }
-
-        return left.fullName.localeCompare(right.fullName, "cs-CZ");
-      });
-    case "recent":
-      return sortedClients.sort((left, right) => {
-        const visitDiff = compareDatesDesc(left.lastVisitAt, right.lastVisitAt);
-        if (visitDiff !== 0) {
-          return visitDiff;
-        }
-
-        return right.createdAt.getTime() - left.createdAt.getTime();
-      });
-    default:
-      return sortedClients;
-  }
-}
-
-function compareDatesDesc(left: Date | null, right: Date | null) {
-  if (left && right) {
-    return right.getTime() - left.getTime();
-  }
-
-  if (left) {
-    return -1;
-  }
-
-  if (right) {
-    return 1;
-  }
-
-  return 0;
-}
 
 function isTestClientRecord(fullName: string, email: string | null) {
   const normalizedName = fullName.toLocaleLowerCase("cs-CZ");
