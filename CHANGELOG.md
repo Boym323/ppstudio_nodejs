@@ -6,6 +6,16 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [3.8.0] - 2026-07-23
+
+### Přidáno
+- Administrativní CRM seznam klientek nabízí provozní pohledy pro nadcházející návštěvy, klientky k oslovení, nové klientky, chybějící kontakt a neaktivní profily.
+- Seznam klientek podporuje stabilní stránkování a řazení podle poslední návštěvy, počtu rezervací, jména nebo založení profilu.
+
+### Změněno
+- Filtry CRM zachovávají zpětnou kompatibilitu se staršími odkazy pro stav, rychlé filtry a retenci; mobilní administrace má srozumitelnější popis obrazovky.
+- Release příprava pro produkční nasazení: projektová verze navýšena na minor `3.8.0` kvůli zpětně kompatibilnímu rozšíření CRM seznamu klientek.
+
 ## [3.7.1] - 2026-07-23
 
 ### Opraveno
