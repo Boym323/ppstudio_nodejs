@@ -6,6 +6,16 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [3.9.0] - 2026-07-23
+
+### Přidáno
+- Administrace má jednotný přehled událostí a logů s pohledy pro provozní události, e-maily, automatizace, systémové záznamy a položky vyžadující pozornost.
+- Logy lze filtrovat, prohledávat a stránkovat; na mobilu jsou dostupné v přehledných kartách a filtračním panelu.
+
+### Změněno
+- Původní cesta e-mailových logů přesměrovává na odpovídající pohled nového přehledu a navigace administrace používá název `Události a logy`.
+- Release příprava pro produkční nasazení: projektová verze navýšena na minor `3.9.0` kvůli zpětně kompatibilnímu rozšíření administrace o centrální provozní logy.
+
 ## [3.8.0] - 2026-07-23
 
 ### Přidáno
