@@ -1,13 +1,11 @@
 "use client";
 
 import {
-  Area,
-  AreaChart,
+  Bar,
+  BarChart,
   CartesianGrid,
   Cell,
   Legend,
-  Line,
-  LineChart,
   Pie,
   PieChart,
   ResponsiveContainer,
@@ -62,41 +60,40 @@ function EmptyChart() {
   return <div className="flex h-[260px] items-center justify-center text-center text-sm text-white/60">Ve vybraném období nejsou žádná data.</div>;
 }
 
-export function RevenueTrendChart({ rows }: { rows: RevenueRow[] }) {
-  if (!rows.length) return <EmptyChart />;
+export function RevenueTrendChart({ rows, hasData = rows.some((row) => row.revenue !== 0) }: { rows: RevenueRow[]; hasData?: boolean }) {
+  if (!rows.length || !hasData) return <EmptyChart />;
 
   return <div className="pt-4">
     <div className="h-[232px] w-full" role="img" aria-label={`Graf vývoje tržeb s ${rows.length} chronologickými body.`}>
     <ResponsiveContainer width="100%" height="100%">
-      <AreaChart data={rows} margin={{ top: 8, right: 8, bottom: 0, left: 0 }} accessibilityLayer>
-        <defs><linearGradient id="revenue-gradient" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stopColor={CHART_COLORS.accent} stopOpacity={0.35} /><stop offset="100%" stopColor={CHART_COLORS.accent} stopOpacity={0.02} /></linearGradient></defs>
+      <BarChart data={rows} margin={{ top: 8, right: 8, bottom: 0, left: 0 }} accessibilityLayer barCategoryGap="18%">
         <CartesianGrid vertical={false} stroke={CHART_COLORS.grid} />
         <XAxis dataKey="label" minTickGap={28} tickLine={false} axisLine={false} tick={{ fill: CHART_COLORS.axis, fontSize: 11 }} interval="preserveStartEnd" />
         <YAxis tickFormatter={compactMoney} tickLine={false} axisLine={false} width={52} tick={{ fill: CHART_COLORS.axis, fontSize: 11 }} />
-        <Tooltip content={(props) => <ChartTooltip {...props} valueFormatter={money.format} />} cursor={{ stroke: "rgba(255, 255, 255, 0.2)", strokeWidth: 1 }} />
-        <Area type="monotone" dataKey="revenue" name="Tržby" stroke={CHART_COLORS.accent} strokeWidth={2.5} fill="url(#revenue-gradient)" dot={false} activeDot={{ r: 4, strokeWidth: 0 }} />
-      </AreaChart>
+        <Tooltip content={(props) => <ChartTooltip {...props} valueFormatter={money.format} />} cursor={{ fill: "rgba(255, 255, 255, 0.05)" }} />
+        <Bar dataKey="revenue" name="Tržby" fill={CHART_COLORS.accent} radius={[4, 4, 0, 0]} maxBarSize={42} />
+      </BarChart>
     </ResponsiveContainer>
     </div>
     <p className="mt-2 flex items-center gap-2 text-xs text-white/72" aria-label="Legenda grafu: Tržby"><span className="size-2 rounded-full" style={{ backgroundColor: CHART_COLORS.accent }} />Tržby</p>
   </div>;
 }
 
-export function BookingTrendChart({ rows }: { rows: BookingRow[] }) {
-  if (!rows.length) return <EmptyChart />;
+export function BookingTrendChart({ rows, hasData = rows.some((row) => row.completed !== 0 || row.cancelled !== 0 || row.noShow !== 0) }: { rows: BookingRow[]; hasData?: boolean }) {
+  if (!rows.length || !hasData) return <EmptyChart />;
 
   return <div className="h-[260px] w-full pt-4" role="img" aria-label={`Graf vývoje rezervací s ${rows.length} chronologickými body. Řady: dokončené, storna a no-show.`}>
     <ResponsiveContainer width="100%" height="100%">
-      <LineChart data={rows} margin={{ top: 8, right: 8, bottom: 0, left: 0 }} accessibilityLayer>
+      <BarChart data={rows} margin={{ top: 8, right: 8, bottom: 0, left: 0 }} accessibilityLayer barCategoryGap="18%" barGap={1}>
         <CartesianGrid vertical={false} stroke={CHART_COLORS.grid} />
         <XAxis dataKey="label" minTickGap={28} tickLine={false} axisLine={false} tick={{ fill: CHART_COLORS.axis, fontSize: 11 }} interval="preserveStartEnd" />
         <YAxis allowDecimals={false} domain={[0, "auto"]} tickLine={false} axisLine={false} width={30} tick={{ fill: CHART_COLORS.axis, fontSize: 11 }} />
-        <Tooltip content={(props) => <ChartTooltip {...props} />} cursor={{ stroke: "rgba(255, 255, 255, 0.2)", strokeWidth: 1 }} />
+        <Tooltip content={(props) => <ChartTooltip {...props} />} cursor={{ fill: "rgba(255, 255, 255, 0.05)" }} />
         <Legend verticalAlign="bottom" height={30} iconType="circle" wrapperStyle={{ color: "rgba(255, 255, 255, 0.72)", fontSize: "12px", paddingTop: "12px" }} />
-        <Line type="monotone" dataKey="completed" name={bookingLabels.completed} stroke={CHART_COLORS.completed} strokeWidth={2.25} dot={false} activeDot={{ r: 4, strokeWidth: 0 }} />
-        <Line type="monotone" dataKey="cancelled" name={bookingLabels.cancelled} stroke={CHART_COLORS.cancelled} strokeWidth={2.25} dot={false} activeDot={{ r: 4, strokeWidth: 0 }} />
-        <Line type="monotone" dataKey="noShow" name={bookingLabels.noShow} stroke={CHART_COLORS.noShow} strokeWidth={2.25} dot={false} activeDot={{ r: 4, strokeWidth: 0 }} />
-      </LineChart>
+        <Bar dataKey="completed" name={bookingLabels.completed} fill={CHART_COLORS.completed} radius={[3, 3, 0, 0]} maxBarSize={24} />
+        <Bar dataKey="cancelled" name={bookingLabels.cancelled} fill={CHART_COLORS.cancelled} radius={[3, 3, 0, 0]} maxBarSize={24} />
+        <Bar dataKey="noShow" name={bookingLabels.noShow} fill={CHART_COLORS.noShow} radius={[3, 3, 0, 0]} maxBarSize={24} />
+      </BarChart>
     </ResponsiveContainer>
   </div>;
 }

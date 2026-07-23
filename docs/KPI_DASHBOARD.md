@@ -76,12 +76,16 @@ Implementace: `kpi-expected-revenue.ts`.
 ## Grafy
 
 - „Vývoj tržeb“ a „Vývoj rezervací“ obsahují kompletní souvislou časovou řadu.
+- Oba grafy používají sloupce, protože zobrazují diskrétní součty za den nebo měsíc; nespojují body čárou, která by naznačovala neexistující průběžné hodnoty.
 - Rozsah do 62 kalendářních dní používá jeden bod za každý den; delší rozsah jeden bod za každý kalendářní měsíc.
 - Chybějící body mají nulové hodnoty.
 - Každý bod má ISO `periodStart`; řadí se podle něj chronologicky před vytvořením českého popisku.
 - Nespoléhá se na pořadí Prisma výsledků ani na lokalizovaný text.
 - Přechody měsíce a roku používají pražský kalendář.
 - UI omezuje počet viditelných popisků osy přibližně na osm, ale datové body zachovává všechny.
+- Denní i měsíční popisky obsahují rok, takže zůstávají jednoznačné i přes přelom roku.
+- U měsíční agregace UI upozorňuje, že okrajové body vlastního rozsahu mohou zahrnovat jen část měsíce.
+- Doplněné nulové body zachovávají souvislou osu, ale graf bez jediné relevantní rezervace zobrazí stav bez dat místo zdánlivého nulového vývoje.
 - Grafy vykresluje klientská komponenta pomocí Recharts; datové řady i jejich serverové výpočty zůstávají beze změny.
 
 Implementace: `kpi-time-series.ts`, `kpi-date-range.ts`, `admin-kpi-dashboard-page.tsx`, `admin-kpi-charts.tsx`.
@@ -170,6 +174,9 @@ Implementace testu: `kpi-consistency.test.ts`.
 
 - Dashboard zachovává design administrace.
 - KPI definice používají klávesnicově a dotykově dostupné tooltipy.
+- Srovnání na kartách výslovně uvádí předchozí stejně dlouhé období a slovně hodnotí změnu jako lepší nebo horší; u negativních KPI je pokles příznivý.
+- Klikací KPI obsahuje textové CTA a retenční pásma mají vlastní nadpis, aby nebyla zaměnitelná s legendou grafu.
+- Akviziční tabulky používají provozní názvy `Objednaná hodnota` a `Tržby z dokončených` místo interní terminologie cenových snapshotů.
 - Tabulky mají sémantické hlavičky sloupců/řádků a fokusovatelný horizontální posun.
 - Ovládací prvky mají minimální výšku 44 px a viditelné focus stavy.
 - Akviziční tabulky a tabulka služeb se na 375 px posouvají uvnitř panelu; stránka jako celek horizontálně nepřetéká.

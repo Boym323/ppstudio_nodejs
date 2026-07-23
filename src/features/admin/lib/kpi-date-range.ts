@@ -73,7 +73,7 @@ export function getKpiPercentChange(value: number, previousValue: number) {
 }
 
 export function getKpiDateKey(value: Date, monthly: boolean) {
-  return new Intl.DateTimeFormat("cs-CZ", monthly ? { month: "short", year: "numeric", timeZone: "Europe/Prague" } : { day: "numeric", month: "numeric", timeZone: "Europe/Prague" }).format(value);
+  return new Intl.DateTimeFormat("cs-CZ", monthly ? { month: "short", year: "numeric", timeZone: "Europe/Prague" } : { day: "numeric", month: "numeric", year: "numeric", timeZone: "Europe/Prague" }).format(value);
 }
 
 export function getKpiPeriodStart(value: Date, monthly: boolean) {
