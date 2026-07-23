@@ -167,7 +167,7 @@ test.describe("admin site smoke coverage", () => {
       { path: "/admin/sluzby", heading: "Služby" },
       { path: "/admin/kategorie-sluzeb", heading: "Kategorie služeb" },
       { path: "/admin/uzivatele", heading: "Přístupy" },
-      { path: "/admin/email-logy", heading: "Email logy" },
+      { path: "/admin/email-logy", heading: "Události a logy" },
       { path: "/admin/nastaveni", heading: "Nastavení" },
     ];
 
