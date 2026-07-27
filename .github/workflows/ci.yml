@@ -122,48 +122,7 @@ jobs:
           npx prisma migrate deploy
           npm run db:generate
 
-      - name: Test
-        run: npm test
-
-  coverage:
-    name: coverage
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: ppstudio
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U postgres -d ppstudio"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version: 24
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Prepare database
-        run: |
-          npx prisma migrate deploy
-          npm run db:generate
-
-      - name: Coverage
+      - name: Test with coverage
         run: npm run test:coverage
 
       - name: Upload coverage artifact
@@ -259,13 +218,68 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: E2E
-        run: npx playwright test
+      - name: E2E Chromium
+        run: npx playwright test --project=chromium
 
       - name: Upload Playwright report
         if: always() && hashFiles('playwright-report/**') != ''
         uses: actions/upload-artifact@v7
         with:
-          name: playwright-report
+          name: playwright-report-chromium
+          path: playwright-report/
+          retention-days: 14
+
+  e2e-mobile:
+    name: e2e mobile
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: ppstudio
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d ppstudio"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Prepare database
+        run: |
+          npx prisma migrate deploy
+          npm run db:generate
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Build
+        run: npm run build
+
+      - name: E2E mobile Chrome
+        run: npx playwright test --project=mobile-chrome
+
+      - name: Upload Playwright report
+        if: always() && hashFiles('playwright-report/**') != ''
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report-mobile-chrome
           path: playwright-report/
           retention-days: 14
