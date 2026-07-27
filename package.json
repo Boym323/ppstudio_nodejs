@@ -94,6 +94,7 @@
       "brace-expansion": "1.1.16"
     },
     "postcss": "8.5.16",
+    "find-my-way": "9.7.0",
     "sharp": "$sharp"
   }
 }
