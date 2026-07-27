@@ -206,7 +206,47 @@ export function AdminServiceForm(props: EditServiceFormProps | CreateServiceForm
             </Field>
           </div>
 
-          <Field label="Délka v minutách" error={serverState.fieldErrors?.durationMinutes}>
+          <Field
+            label="Kategorie"
+            error={serverState.fieldErrors?.categoryId}
+            help="Určuje, ve které skupině se služba zobrazí v nabídce a ceníku."
+          >
+            <select
+              name="categoryId"
+              defaultValue={props.mode === "create" ? props.initialValues.categoryId : props.service.categoryId}
+              className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--color-accent)]/60"
+            >
+              {props.categories.map((category) => (
+                <option key={category.id} value={category.id} className="text-black">
+                  {category.name}{category.isActive ? "" : " (neaktivní)"}
+                </option>
+              ))}
+            </select>
+          </Field>
+
+          <Field
+            label="Cena od (Kč)"
+            error={serverState.fieldErrors?.priceFromCzk}
+            help="Nejnižší cena, která se zobrazí u služby na webu a v ceníku. Prázdné pole cenu nezobrazí."
+          >
+            <input
+              type="number"
+              name="priceFromCzk"
+              min={0}
+              max={50000}
+              step={50}
+              inputMode="numeric"
+              defaultValue={props.mode === "create" ? props.initialValues.priceFromCzk : props.service.priceFromCzk ?? ""}
+              placeholder="Např. 1200"
+              className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none transition placeholder:text-white/32 focus:border-[var(--color-accent)]/60"
+            />
+          </Field>
+
+          <Field
+            label="Délka služby (min)"
+            error={serverState.fieldErrors?.durationMinutes}
+            help="Délka termínu, který klientka uvidí a zarezervuje."
+          >
             <input
               type="number"
               name="durationMinutes"
@@ -236,50 +276,24 @@ export function AdminServiceForm(props: EditServiceFormProps | CreateServiceForm
             />
           </Field>
 
-          <Field label="Cena (Kč)" error={serverState.fieldErrors?.priceFromCzk}>
-            <input
-              type="number"
-              name="priceFromCzk"
-              min={0}
-              max={50000}
-              step={50}
-              inputMode="numeric"
-              defaultValue={props.mode === "create" ? props.initialValues.priceFromCzk : props.service.priceFromCzk ?? ""}
-              placeholder="Např. 1200"
-              className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none transition placeholder:text-white/32 focus:border-[var(--color-accent)]/60"
-            />
-          </Field>
-
           {props.mode === "edit" ? (
             <>
-              <div className="space-y-4">
-                <Field label="Pořadí" error={serverState.fieldErrors?.sortOrder}>
-                  <input
-                    type="number"
-                    name="sortOrder"
-                    min={0}
-                    max={9999}
-                    step={1}
-                    inputMode="numeric"
-                    defaultValue={props.service.sortOrder}
-                    className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--color-accent)]/60"
-                  />
-                </Field>
-
-                <Field label="Kategorie" error={serverState.fieldErrors?.categoryId}>
-                  <select
-                    name="categoryId"
-                    defaultValue={props.service.categoryId}
-                    className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--color-accent)]/60"
-                  >
-                    {props.categories.map((category) => (
-                      <option key={category.id} value={category.id} className="text-black">
-                        {category.name}{category.isActive ? "" : " (neaktivní)"}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-              </div>
+              <Field
+                label="Pořadí v kategorii"
+                error={serverState.fieldErrors?.sortOrder}
+                help="Nižší číslo zobrazí službu v dané kategorii dříve."
+              >
+                <input
+                  type="number"
+                  name="sortOrder"
+                  min={0}
+                  max={9999}
+                  step={1}
+                  inputMode="numeric"
+                  defaultValue={props.service.sortOrder}
+                  className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--color-accent)]/60"
+                />
+              </Field>
 
               <div className="rounded-[1.1rem] border border-white/8 bg-white/5 p-4 text-sm text-white/72">
                 <p className="font-medium text-white">Provozní kontext</p>
@@ -292,20 +306,6 @@ export function AdminServiceForm(props: EditServiceFormProps | CreateServiceForm
             </>
           ) : (
             <>
-              <Field label="Kategorie" error={serverState.fieldErrors?.categoryId}>
-                <select
-                  name="categoryId"
-                  defaultValue={props.initialValues.categoryId}
-                  className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--color-accent)]/60"
-                >
-                  {props.categories.map((category) => (
-                    <option key={category.id} value={category.id} className="text-black">
-                      {category.name}{category.isActive ? "" : " (neaktivní)"}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-
               <div className="rounded-[1.1rem] border border-white/8 bg-white/5 p-4 text-sm text-white/72">
                 <p className="font-medium text-white">Provozní kontext</p>
                 <p className="mt-2 leading-6">
@@ -318,61 +318,15 @@ export function AdminServiceForm(props: EditServiceFormProps | CreateServiceForm
       </SectionBlock>
 
       <SectionBlock
-        title="Publikace"
-        description="Aktivita a veřejná rezervovatelnost zůstávají oddělené, aby šlo držet interní služby bez chaosu."
-      >
-        <div className="grid gap-3 sm:grid-cols-2">
-          <ToggleCard
-            name="isActive"
-            defaultChecked={props.mode === "create" ? props.initialValues.isActive : props.service.isActive}
-            title="Aktivní služba"
-            description="Použijte, když má služba zůstat v běžné nabídce a provoz s ní dál počítá."
-          />
-          <ToggleCard
-            name="isPubliclyBookable"
-            defaultChecked={
-              props.mode === "create" ? props.initialValues.isPubliclyBookable : props.service.isPubliclyBookable
-            }
-            title="Veřejně rezervovatelná"
-            description="Použijte, když se má služba objevit klientkám na webu a v rezervačním flow."
-          />
-        </div>
-      </SectionBlock>
-
-      <SectionBlock
-        title="Homepage"
-        description="Ruční výběr služeb pro sekci Doporučené služby na úvodní stránce. Homepage zobrazí maximálně první tři."
-      >
-        <div className="grid gap-4 sm:grid-cols-[minmax(0,1.25fr)_180px] sm:items-start">
-          <ToggleCard
-            name="isFeaturedOnHomepage"
-            defaultChecked={
-              props.mode === "create" ? props.initialValues.isFeaturedOnHomepage : props.service.isFeaturedOnHomepage
-            }
-            title="Zobrazit v doporučených službách"
-            description="Použijte pro služby, které chcete na homepage aktivně nabídnout jako dobrý začátek."
-          />
-          <Field label="Pořadí na homepage" error={serverState.fieldErrors?.homepageSortOrder}>
-            <input
-              type="number"
-              name="homepageSortOrder"
-              min={0}
-              max={9999}
-              step={1}
-              inputMode="numeric"
-              defaultValue={props.mode === "create" ? props.initialValues.homepageSortOrder : props.service.homepageSortOrder}
-              className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--color-accent)]/60"
-            />
-          </Field>
-        </div>
-      </SectionBlock>
-
-      <SectionBlock
         title="Web a rezervace"
         description="Vše, co klientka uvidí pod stejným názvem na webu i v rezervačním kroku výběru služby."
       >
         <div className="grid gap-4">
-          <Field label="Krátký popis (web + rezervace)" error={serverState.fieldErrors?.publicIntro}>
+          <Field
+            label="Krátký popis (web + rezervace)"
+            error={serverState.fieldErrors?.publicIntro}
+            help="Zobrazí se v nabídce i při výběru termínu. Pro online rezervovatelnou službu je povinný."
+          >
             <textarea
               name="publicIntro"
               rows={3}
@@ -383,13 +337,17 @@ export function AdminServiceForm(props: EditServiceFormProps | CreateServiceForm
             />
           </Field>
 
-          <Field label="Detail služby (detail na webu)" error={serverState.fieldErrors?.description}>
+          <Field
+            label="Podrobný popis služby"
+            error={serverState.fieldErrors?.description}
+            help="Delší text pro samostatnou stránku služby na webu."
+          >
             <textarea
               name="description"
               rows={4}
               maxLength={4000}
               defaultValue={props.mode === "create" ? props.initialValues.description : props.service.description ?? ""}
-              placeholder="Delší text pro stránku detailu služby na webu."
+              placeholder="Popište průběh služby, její zaměření nebo co klientka může očekávat."
               className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm leading-6 text-white outline-none transition placeholder:text-white/32 focus:border-[var(--color-accent)]/60"
             />
           </Field>
@@ -398,7 +356,7 @@ export function AdminServiceForm(props: EditServiceFormProps | CreateServiceForm
 
       <SectionBlock
         title="Strukturovaný detail"
-        description="Každý neprázdný řádek se uloží jako jeden bod. Text zůstává plain text a veřejný web ho bezpečně escapuje přes React."
+        description="Každý neprázdný řádek se na detailu služby zobrazí jako samostatný bod."
       >
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Pro koho je služba vhodná" error={serverState.fieldErrors?.idealFor}>
@@ -464,6 +422,28 @@ export function AdminServiceForm(props: EditServiceFormProps | CreateServiceForm
       </SectionBlock>
 
       <SectionBlock
+        title="Zveřejnění a rezervace"
+        description="Nastavte, zda služba patří do běžné nabídky a zda si ji klientky mohou samy rezervovat."
+      >
+        <div className="grid gap-3 sm:grid-cols-2">
+          <ToggleCard
+            name="isActive"
+            defaultChecked={props.mode === "create" ? props.initialValues.isActive : props.service.isActive}
+            title="Aktivní služba"
+            description="Služba zůstane součástí běžné nabídky a provoz s ní bude dál počítat."
+          />
+          <ToggleCard
+            name="isPubliclyBookable"
+            defaultChecked={
+              props.mode === "create" ? props.initialValues.isPubliclyBookable : props.service.isPubliclyBookable
+            }
+            title="Lze rezervovat online"
+            description="Klientky ji uvidí na webu a budou si ji moci vybrat při online rezervaci."
+          />
+        </div>
+      </SectionBlock>
+
+      <SectionBlock
         title="Ceník"
         description="Texty, které se zobrazují na stránce ceníku."
       >
@@ -502,6 +482,38 @@ export function AdminServiceForm(props: EditServiceFormProps | CreateServiceForm
         </div>
       </SectionBlock>
 
+      <SectionBlock
+        title="Doporučená služba na úvodní stránce"
+        description="Vyberte službu, kterou chcete nabídnout v sekci Doporučené služby. Zobrazí se nejvýše první tři podle pořadí."
+      >
+        <div className="grid gap-4 sm:grid-cols-[minmax(0,1.25fr)_180px] sm:items-start">
+          <ToggleCard
+            name="isFeaturedOnHomepage"
+            defaultChecked={
+              props.mode === "create" ? props.initialValues.isFeaturedOnHomepage : props.service.isFeaturedOnHomepage
+            }
+            title="Zobrazit na úvodní stránce"
+            description="Vhodné pro služby, které chcete novým klientkám aktivně doporučit."
+          />
+          <Field
+            label="Pořadí na úvodní stránce"
+            error={serverState.fieldErrors?.homepageSortOrder}
+            help="Nižší číslo zobrazí službu dříve."
+          >
+            <input
+              type="number"
+              name="homepageSortOrder"
+              min={0}
+              max={9999}
+              step={1}
+              inputMode="numeric"
+              defaultValue={props.mode === "create" ? props.initialValues.homepageSortOrder : props.service.homepageSortOrder}
+              className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--color-accent)]/60"
+            />
+          </Field>
+        </div>
+      </SectionBlock>
+
       {props.mode === "edit" ? (
         <SectionBlock
           title="Historie ceny"
@@ -534,7 +546,7 @@ export function AdminServiceForm(props: EditServiceFormProps | CreateServiceForm
 
       <SectionBlock
         title="Google (SEO)"
-        description="Volitelný title a popis pro výsledek ve vyhledávání Google na detailu služby."
+        description="Volitelný název a popis pro výsledek ve vyhledávání Google. Pokud je necháte prázdné, použije se běžný název a popis služby."
       >
         <div className="grid gap-4">
           <Field label="SEO title" error={serverState.fieldErrors?.seoTitle}>
