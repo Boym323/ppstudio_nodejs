@@ -11,6 +11,8 @@
     "predev": "prisma generate",
     "dev": "next dev",
     "dev:clean": "npm run clean && npm run dev",
+    "dev:fast": "next dev",
+    "dev:clean:fast": "npm run clean && next dev",
     "dev:webpack": "next dev --webpack",
     "dev:turbopack": "next dev",
     "prebuild": "prisma generate",

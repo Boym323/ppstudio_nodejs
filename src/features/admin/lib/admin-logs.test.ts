@@ -11,6 +11,7 @@ import {
   getAdminLogPageMeta,
   normalizeAdminLogView,
   sortAndPageAdminLogItems,
+  withBookingSubmissionSeverity,
   withEmailLogScope,
   type AdminLogItem,
 } from "./admin-data";
@@ -19,11 +20,16 @@ function item(id: string, occurredAt: string): AdminLogItem {
   return { id, occurredAt, category: "event", severity: "info", title: id, description: null, actorLabel: null, entityLabel: null, entityHref: null, sourceType: "booking", sourceId: id, primaryAction: null };
 }
 
-test("neplatný view a technické SALON view se normalizují na events", () => {
+test("neplatný, skrytý a technický SALON view se normalizují na events", () => {
   assert.equal(normalizeAdminLogView("unknown", "owner"), "events");
-  assert.equal(normalizeAdminLogView("automation", "owner"), "automation");
+  assert.equal(normalizeAdminLogView("automation", "owner"), "events");
   assert.equal(normalizeAdminLogView("automation", "salon"), "events");
   assert.equal(normalizeAdminLogView("system", "salon"), "events");
+});
+
+test("systémová závažnost omezuje dotaz už před stránkováním", () => {
+  assert.deepEqual(withBookingSubmissionSeverity({}, "error"), { AND: [{}, { outcome: { in: ["FAILED"] } }] });
+  assert.deepEqual(withBookingSubmissionSeverity({}, "warning"), { AND: [{}, { outcome: { in: ["BLOCKED"] } }] });
 });
 
 test("query builder EmailLog hledá před take v dostupných polích", () => {
@@ -78,7 +84,7 @@ test("přesný total určuje pageCount, rozsah i normalizaci stránky", () => {
 
 test("findMany a count sdílejí stejné where proměnné", async () => {
   const source = await readFile(new URL("./admin-data.ts", import.meta.url), "utf8");
-  for (const whereName of ["emailWhere", "bookingHistoryWhere", "rescheduleWhere", "voucherWhere", "redemptionWhere"]) {
+  for (const whereName of ["emailWhere", "bookingHistoryWhere", "rescheduleWhere", "voucherWhere", "redemptionWhere", "submissionWhere"]) {
     assert.ok(source.includes(`findMany({ where: ${whereName}`));
     assert.ok(source.includes(`count({ where: ${whereName}`));
   }
