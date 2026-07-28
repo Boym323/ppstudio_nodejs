@@ -114,15 +114,13 @@ export async function createBookingPaymentAction(
 
   const createdByUserId = await resolveCurrentAdminUserId(session.email);
 
-  await prisma.bookingPayment.create({
-    data: {
-      bookingId: booking.id,
-      amountCzk: parsed.data.amountCzk,
-      method: parsed.data.method,
-      paidAt: new Date(parsed.data.paidAt),
-      note: parsed.data.note || null,
-      createdByUserId,
-    },
+  await createBookingPaymentWithAudit({
+    bookingId: booking.id,
+    amountCzk: parsed.data.amountCzk,
+    method: parsed.data.method,
+    paidAt: new Date(parsed.data.paidAt),
+    note: parsed.data.note || null,
+    createdByUserId,
   });
 
   revalidateBookingAdminPaths(booking.id);
@@ -131,6 +129,59 @@ export async function createBookingPaymentAction(
     status: "success",
     successMessage: "Platba je zapsaná a souhrn úhrady je aktuální.",
   };
+}
+
+export async function createBookingPaymentWithAudit(input: {
+  bookingId: string;
+  amountCzk: number;
+  method: BookingPaymentMethod;
+  paidAt: Date;
+  note: string | null;
+  createdByUserId: string | null;
+}) {
+  return prisma.$transaction(async (tx) => {
+    const booking = await tx.booking.findUnique({
+      where: { id: input.bookingId },
+      select: { id: true, status: true },
+    });
+
+    if (!booking) {
+      return { status: "not-found" as const };
+    }
+
+    const payment = await tx.bookingPayment.create({
+      data: {
+        bookingId: booking.id,
+        amountCzk: input.amountCzk,
+        method: input.method,
+        paidAt: input.paidAt,
+        note: input.note,
+        createdByUserId: input.createdByUserId,
+      },
+      select: { id: true },
+    });
+
+    await tx.bookingStatusHistory.create({
+      data: {
+        bookingId: booking.id,
+        status: booking.status,
+        actorType: BookingActorType.USER,
+        actorUserId: input.createdByUserId,
+        reason: "Platba zapsána",
+        metadata: {
+          source: "admin-booking-payment-create-v1",
+          bookingId: booking.id,
+          paymentId: payment.id,
+          amount: input.amountCzk,
+          method: input.method,
+          paidAt: input.paidAt.toISOString(),
+          createdByUserId: input.createdByUserId,
+        },
+      },
+    });
+
+    return { status: "created" as const, paymentId: payment.id };
+  });
 }
 
 export async function deleteBookingPaymentWithAudit(input: {

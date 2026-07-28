@@ -46,7 +46,7 @@ async function findIsolatedPaymentWindow(
   throw new Error("Nepodařilo se najít izolované okno pro payment integrační test.");
 }
 
-dbTest("deleteBookingPaymentWithAudit records payment deletion metadata", async () => {
+dbTest("payment audit records manual creation and deletion metadata", async () => {
   const [{ prisma }, actions, prismaClient] = await Promise.all([
     import("@/lib/prisma"),
     import("./booking-payment-actions"),
@@ -118,26 +118,52 @@ dbTest("deleteBookingPaymentWithAudit records payment deletion metadata", async 
     },
     select: { id: true },
   });
-  const payment = await prisma.bookingPayment.create({
-    data: {
+  try {
+    const paidAt = new Date("2026-05-10T09:45:00.000Z");
+    const creation = await actions.createBookingPaymentWithAudit({
       bookingId: booking.id,
       amountCzk: 700,
       method: prismaClient.BookingPaymentMethod.CASH,
+      paidAt,
+      note: "Doplatek po službě",
       createdByUserId: actor.id,
-    },
-    select: { id: true },
-  });
+    });
 
-  try {
+    assert.equal(creation.status, "created");
+
+    const createdHistory = await prisma.bookingStatusHistory.findFirst({
+      where: {
+        bookingId: booking.id,
+        reason: "Platba zapsána",
+      },
+      orderBy: { createdAt: "desc" },
+      select: {
+        actorUserId: true,
+        metadata: true,
+      },
+    });
+
+    assert.ok(createdHistory);
+    assert.equal(createdHistory.actorUserId, actor.id);
+    assert.deepEqual(createdHistory.metadata, {
+      source: "admin-booking-payment-create-v1",
+      bookingId: booking.id,
+      paymentId: creation.paymentId,
+      amount: 700,
+      method: "CASH",
+      paidAt: paidAt.toISOString(),
+      createdByUserId: actor.id,
+    });
+
     const result = await actions.deleteBookingPaymentWithAudit({
       bookingId: booking.id,
-      paymentId: payment.id,
+      paymentId: creation.paymentId,
       deletedByUserId: actor.id,
       deletedAt,
     });
 
     assert.equal(result.status, "deleted");
-    assert.equal(await prisma.bookingPayment.count({ where: { id: payment.id } }), 0);
+    assert.equal(await prisma.bookingPayment.count({ where: { id: creation.paymentId } }), 0);
 
     const history = await prisma.bookingStatusHistory.findFirst({
       where: {
@@ -156,7 +182,7 @@ dbTest("deleteBookingPaymentWithAudit records payment deletion metadata", async 
     assert.deepEqual(history.metadata, {
       source: "admin-booking-payment-delete-v1",
       bookingId: booking.id,
-      paymentId: payment.id,
+      paymentId: creation.paymentId,
       amount: 700,
       method: "CASH",
       deletedByUserId: actor.id,
