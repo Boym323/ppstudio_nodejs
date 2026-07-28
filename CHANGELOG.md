@@ -6,6 +6,20 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [3.11.0] - 2026-07-28
+
+### Přidáno
+- Administrace umožňuje u služeb nastavovat kategorii, cenu a délku.
+- CI workflow podporuje shardování Chromium a mobilního Chrome E2E běhu a ukládá coverage artefakt.
+
+### Opraveno
+- Voucher se správně předává do rezervace při platebním toku.
+- Audit plateb ověřuje metadata při vytváření i mazání platebních záznamů.
+
+### Změněno
+- Aktualizovány závislosti včetně Prisma 7.9.1, Next ESLint konfigurace a `find-my-way`.
+- Release příprava pro produkční nasazení: projektová verze navýšena na minor `3.11.0` kvůli zpětně kompatibilnímu rozšíření správy služeb.
+
 ## [3.10.0] - 2026-07-23
 
 ### Přidáno
