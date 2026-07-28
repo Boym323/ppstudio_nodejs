@@ -4,6 +4,7 @@ import type { getPublicSalonProfile } from "@/lib/site-settings";
 export type BookingFlowProps = {
   catalog: PublicBookingCatalog;
   initialSelectedServiceSlug?: string;
+  initialVoucherCode?: string;
   salonProfile: Awaited<ReturnType<typeof getPublicSalonProfile>>;
 };
 

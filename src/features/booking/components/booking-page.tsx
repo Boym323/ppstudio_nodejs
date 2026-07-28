@@ -10,10 +10,16 @@ import { BookingFlow } from "./booking-flow";
 type BookingPageProps = {
   catalog: PublicBookingCatalog;
   initialSelectedServiceSlug?: string;
+  initialVoucherCode?: string;
   salonProfile: Awaited<ReturnType<typeof getPublicSalonProfile>>;
 };
 
-export function BookingPage({ catalog, initialSelectedServiceSlug, salonProfile }: BookingPageProps) {
+export function BookingPage({
+  catalog,
+  initialSelectedServiceSlug,
+  initialVoucherCode,
+  salonProfile,
+}: BookingPageProps) {
   const hasServices = catalog.services.length > 0;
   const hasSlots = catalog.slots.length > 0;
 
@@ -74,6 +80,7 @@ export function BookingPage({ catalog, initialSelectedServiceSlug, salonProfile 
           <BookingFlow
             catalog={catalog}
             initialSelectedServiceSlug={initialSelectedServiceSlug}
+            initialVoucherCode={initialVoucherCode}
             salonProfile={salonProfile}
           />
         )}

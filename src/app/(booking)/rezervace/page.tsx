@@ -4,6 +4,7 @@ import { connection } from "next/server";
 import { getPublicBookingCatalog } from "@/features/booking/lib/booking-public";
 import { BookingPage } from "@/features/booking/components/booking-page";
 import { buildPageMetadata } from "@/features/public/components/public-site";
+import { normalizeVoucherCode } from "@/features/vouchers/lib/voucher-code";
 import { getPublicSalonProfile } from "@/lib/site-settings";
 
 export const metadata: Metadata = buildPageMetadata({
@@ -29,11 +30,16 @@ export default async function ReservationPage({
     : resolvedSearchParams?.service;
   const initialSelectedServiceSlug =
     typeof serviceSlug === "string" && serviceSlug.length > 0 ? serviceSlug : undefined;
+  const voucherCode = Array.isArray(resolvedSearchParams?.voucher)
+    ? resolvedSearchParams?.voucher[0]
+    : resolvedSearchParams?.voucher;
+  const normalizedVoucherCode = normalizeVoucherCode(voucherCode ?? "");
 
   return (
     <BookingPage
       catalog={catalog}
       initialSelectedServiceSlug={initialSelectedServiceSlug}
+      initialVoucherCode={normalizedVoucherCode || undefined}
       salonProfile={salonProfile}
     />
   );

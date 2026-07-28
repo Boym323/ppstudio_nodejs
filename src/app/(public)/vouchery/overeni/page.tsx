@@ -179,7 +179,7 @@ function VerificationResult({
         </p>
         <div className="mt-3 flex flex-col gap-3 sm:flex-row">
           <Link
-            href="/rezervace"
+            href={`/rezervace?voucher=${encodeURIComponent(result.code)}`}
             className="inline-flex min-h-11 items-center justify-center rounded-full bg-[var(--color-foreground)] px-5 py-3 text-center text-sm font-semibold text-white transition hover:bg-[#2c221d]"
           >
             Rezervovat termín

@@ -48,7 +48,12 @@ import { BookingSummarySidebar } from "./booking-flow/summary-sidebar";
 import { BookingTermStep } from "./booking-flow/term-step";
 import type { BookingFlowProps, ContactFieldKey, ServiceCategory } from "./booking-flow/types";
 
-export function BookingFlow({ catalog, initialSelectedServiceSlug, salonProfile }: BookingFlowProps) {
+export function BookingFlow({
+  catalog,
+  initialSelectedServiceSlug,
+  initialVoucherCode,
+  salonProfile,
+}: BookingFlowProps) {
   const [serverState, formAction] = useActionState(
     createPublicBookingAction,
     initialPublicBookingActionState,
@@ -67,7 +72,7 @@ export function BookingFlow({ catalog, initialSelectedServiceSlug, salonProfile 
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [clientNote, setClientNote] = useState("");
-  const [voucherCode, setVoucherCode] = useState("");
+  const [voucherCode, setVoucherCode] = useState(initialVoucherCode ?? "");
   const [currentStep, setCurrentStep] = useState(initialSelectedService ? 2 : 1);
   const [selectedDateKey, setSelectedDateKey] = useState("");
   const [visibleMonthKey, setVisibleMonthKey] = useState("");
