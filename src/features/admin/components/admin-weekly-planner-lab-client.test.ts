@@ -66,6 +66,8 @@ test("výběr buněk zachová lokální čas FullCalendaru i po změně letního
   assert.match(source, /getCalendarCellPosition\(info\.endStr\)/);
   assert.match(source, /function getCalendarClickPosition\(info: DateClickInfo\)/);
   assert.match(source, /info\.dayEl\.dataset\.date/);
+  assert.match(source, /getCalendarCellPosition\(info\.dateStr\)\?\.dateKey/);
   assert.match(source, /closest<HTMLElement>\("\[data-time\]"\)/);
+  assert.match(source, /document\.elementsFromPoint\(info\.jsEvent\.clientX, info\.jsEvent\.clientY\)/);
   assert.match(source, /getCalendarClickPosition\(info\)/);
 });
