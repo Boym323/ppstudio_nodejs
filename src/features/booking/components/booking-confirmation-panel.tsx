@@ -111,21 +111,21 @@ export function BookingConfirmationPanel({
         <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--color-accent)]">
           Potřebujete pomoc?
         </p>
-        <div className="mt-3 flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mt-3 grid gap-2.5 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] md:items-center">
           <ObfuscatedEmailLink
             email={salonContact.email}
             ariaLabel="Napsat e-mail do studia"
-            className="inline-flex min-h-11 items-center justify-center gap-2.5 rounded-full border border-black/10 bg-[var(--color-surface)]/45 px-4 py-2 text-[0.94rem] font-medium text-[var(--color-foreground)] transition hover:border-black/20 hover:bg-white sm:min-h-10 sm:bg-transparent sm:px-0 sm:py-0 sm:hover:bg-transparent"
+            className="inline-flex min-h-11 w-full min-w-0 max-w-full items-center justify-center gap-2.5 break-all rounded-full border border-black/10 bg-[var(--color-surface)]/45 px-4 py-2 text-[0.94rem] font-medium text-[var(--color-foreground)] transition hover:border-black/20 hover:bg-white md:w-auto md:justify-self-start"
           >
             <MailIcon />
             {salonContact.email}
           </ObfuscatedEmailLink>
-          <span className="hidden text-[var(--color-muted)] sm:inline" aria-hidden="true">
+          <span className="hidden text-[var(--color-muted)] md:inline" aria-hidden="true">
             ·
           </span>
           <a
             href={phoneHref}
-            className="inline-flex min-h-11 items-center justify-center gap-2.5 rounded-full border border-black/10 bg-[var(--color-surface)]/45 px-4 py-2 text-[0.94rem] font-medium text-[var(--color-foreground)] transition hover:border-black/20 hover:bg-white sm:min-h-10 sm:bg-transparent sm:px-0 sm:py-0 sm:hover:bg-transparent"
+            className="inline-flex min-h-11 w-full max-w-full items-center justify-center gap-2.5 rounded-full border border-black/10 bg-[var(--color-surface)]/45 px-4 py-2 text-[0.94rem] font-medium text-[var(--color-foreground)] transition hover:border-black/20 hover:bg-white md:w-auto md:justify-self-end"
           >
             <PhoneIcon />
             {salonContact.phone}
