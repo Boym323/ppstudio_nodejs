@@ -26,6 +26,7 @@ const deleteBookingPaymentSchema = z.object({
   area: z.enum(["owner", "salon"]),
   bookingId: z.string().trim().min(1).max(64),
   paymentId: z.string().trim().min(1).max(64),
+  voidReason: z.string().trim().min(1, "Uveďte důvod storna.").max(500, "Důvod storna je příliš dlouhý."),
 });
 
 function readFormString(formData: FormData, key: string) {
@@ -122,13 +123,14 @@ export async function createBookingPaymentAction(
   };
 }
 
-export async function deleteBookingPaymentWithAudit(input: {
+export async function voidBookingPaymentWithAudit(input: {
   bookingId: string;
   paymentId: string;
-  deletedByUserId: string | null;
-  deletedAt?: Date;
+  voidedByUserId: string | null;
+  voidReason: string;
+  voidedAt?: Date;
 }) {
-  const deletedAt = input.deletedAt ?? new Date();
+  const voidedAt = input.voidedAt ?? new Date();
 
   return prisma.$transaction(async (tx) => {
     const payment = await tx.bookingPayment.findUnique({
@@ -138,6 +140,10 @@ export async function deleteBookingPaymentWithAudit(input: {
         bookingId: true,
         amountCzk: true,
         method: true,
+        paidAt: true,
+        note: true,
+        createdByUserId: true,
+        status: true,
         booking: {
           select: {
             status: true,
@@ -150,30 +156,47 @@ export async function deleteBookingPaymentWithAudit(input: {
       return { status: "not-found" as const };
     }
 
-    await tx.bookingPayment.delete({
-      where: { id: payment.id },
+    if (payment.status === "VOIDED") {
+      return { status: "already-voided" as const };
+    }
+
+    const voidUpdate = await tx.bookingPayment.updateMany({
+      where: { id: payment.id, status: "ACTIVE" },
+      data: {
+        status: "VOIDED",
+        voidedAt,
+        voidedByUserId: input.voidedByUserId,
+        voidReason: input.voidReason,
+      },
     });
+    if (voidUpdate.count !== 1) {
+      return { status: "already-voided" as const };
+    }
 
     await tx.bookingStatusHistory.create({
       data: {
         bookingId: payment.bookingId,
         status: payment.booking.status,
         actorType: BookingActorType.USER,
-        actorUserId: input.deletedByUserId,
-        reason: "Platba odstraněna",
+        actorUserId: input.voidedByUserId,
+        reason: "Platba stornována",
         metadata: {
-          source: "admin-booking-payment-delete-v1",
+          source: "admin-booking-payment-void-v1",
           bookingId: payment.bookingId,
           paymentId: payment.id,
-          amount: payment.amountCzk,
-          method: payment.method,
-          deletedByUserId: input.deletedByUserId,
-          deletedAt: deletedAt.toISOString(),
+          originalAmountCzk: payment.amountCzk,
+          originalMethod: payment.method,
+          originalPaidAt: payment.paidAt.toISOString(),
+          originalNote: payment.note,
+          originalCreatedByUserId: payment.createdByUserId,
+          voidedByUserId: input.voidedByUserId,
+          voidedAt: voidedAt.toISOString(),
+          voidReason: input.voidReason,
         },
       },
     });
 
-    return { status: "deleted" as const, bookingId: payment.bookingId };
+    return { status: "voided" as const, bookingId: payment.bookingId };
   });
 }
 
@@ -185,6 +208,7 @@ export async function deleteBookingPaymentAction(
     area: readFormString(formData, "area"),
     bookingId: readFormString(formData, "bookingId"),
     paymentId: readFormString(formData, "paymentId"),
+    voidReason: readFormString(formData, "voidReason"),
   });
 
   if (!parsed.success) {
@@ -195,11 +219,12 @@ export async function deleteBookingPaymentAction(
   }
 
   const session = await requireRole([AdminRole.OWNER]);
-  const deletedByUserId = await resolveCurrentAdminUserId(session.email);
-  const result = await deleteBookingPaymentWithAudit({
+  const voidedByUserId = await resolveCurrentAdminUserId(session.email);
+  const result = await voidBookingPaymentWithAudit({
     bookingId: parsed.data.bookingId,
     paymentId: parsed.data.paymentId,
-    deletedByUserId,
+    voidedByUserId,
+    voidReason: parsed.data.voidReason,
   });
 
   if (result.status === "not-found") {
@@ -208,11 +233,14 @@ export async function deleteBookingPaymentAction(
       formError: "Platbu se nepodařilo najít u této rezervace.",
     };
   }
+  if (result.status === "already-voided") {
+    return { status: "error", formError: "Tato platba už byla stornována." };
+  }
 
   revalidateBookingAdminPaths(result.bookingId);
 
   return {
     status: "success",
-    successMessage: "Platba byla smazaná.",
+    successMessage: "Platba byla stornována a zůstává v historii.",
   };
 }

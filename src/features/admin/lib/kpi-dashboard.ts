@@ -1,6 +1,6 @@
 import "server-only";
 
-import { AvailabilitySlotStatus, BookingStatus } from "@prisma/client";
+import { AvailabilitySlotStatus, BookingPaymentStatus, BookingStatus } from "@prisma/client";
 
 import { getAdminSectionPath } from "@/features/admin/lib/admin-paths";
 import { getKpiDateKey, getKpiDateRanges, getKpiPercentChange, getKpiPeriodStart, getKpiExpectedRevenueRange, getKpiSeriesPeriodStarts } from "@/features/admin/lib/kpi-date-range";
@@ -25,7 +25,7 @@ async function getBookings(start: Date, end: Date) {
   return prisma.booking.findMany({
     where: { scheduledStartsAt: { gte: start, lt: end } },
     orderBy: { scheduledStartsAt: "asc" },
-    select: { id: true, clientId: true, status: true, scheduledStartsAt: true, scheduledEndsAt: true, serviceNameSnapshot: true, serviceDurationMinutes: true, finalPriceCzk: true, servicePriceFromCzk: true, acquisitionSource: true, acquisitionUtmSource: true, acquisitionUtmMedium: true, acquisitionUtmCampaign: true, slot: { select: { publishedAt: true } }, payments: { select: { amountCzk: true } } },
+    select: { id: true, clientId: true, status: true, scheduledStartsAt: true, scheduledEndsAt: true, serviceNameSnapshot: true, serviceDurationMinutes: true, finalPriceCzk: true, servicePriceFromCzk: true, acquisitionSource: true, acquisitionUtmSource: true, acquisitionUtmMedium: true, acquisitionUtmCampaign: true, slot: { select: { publishedAt: true } }, payments: { select: { amountCzk: true, status: true } } },
   });
 }
 async function getExpectedBookings(start: Date, end: Date) {
@@ -60,7 +60,7 @@ function summarize(
     finalPriceCzk: row.finalPriceCzk,
     servicePriceFromCzk: row.servicePriceFromCzk,
   })));
-  const outstanding = visits.reduce((sum, row) => Math.max(0, price(row) - row.payments.reduce((payments, payment) => payments + payment.amountCzk, 0)) + sum, 0);
+  const outstanding = visits.reduce((sum, row) => Math.max(0, price(row) - row.payments.reduce((payments, payment) => payments + (payment.status === BookingPaymentStatus.VOIDED ? 0 : payment.amountCzk), 0)) + sum, 0);
   return { listed, visits, revenue, clientMetrics, disruptions, outstanding };
 }
 

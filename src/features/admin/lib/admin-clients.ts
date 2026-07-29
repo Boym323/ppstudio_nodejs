@@ -752,6 +752,7 @@ export async function getAdminClientDetailData(
           payments: {
             select: {
               amountCzk: true,
+              status: true,
             },
           },
         },

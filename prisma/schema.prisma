@@ -62,6 +62,11 @@ enum BookingPaymentMethod {
   OTHER
 }
 
+enum BookingPaymentStatus {
+  ACTIVE
+  VOIDED
+}
+
 enum BookingActionTokenType {
   CANCEL
   RESCHEDULE
@@ -176,6 +181,7 @@ model AdminUser {
   updatedVouchers            Voucher[]                 @relation("VoucherUpdatedBy")
   redeemedVoucherRedemptions VoucherRedemption[]       @relation("AdminUserRedeemedVoucherRedemptions")
   bookingPayments            BookingPayment[]          @relation("BookingPaymentCreatedBy")
+  voidedBookingPayments      BookingPayment[]          @relation("BookingPaymentVoidedBy")
   adjustedBookingPrices      Booking[]                 @relation("BookingPriceAdjustedBy")
 }
 
@@ -427,16 +433,23 @@ model BookingPayment {
   method          BookingPaymentMethod
   paidAt          DateTime             @default(now())
   note            String?
+  status          BookingPaymentStatus @default(ACTIVE)
+  voidedAt        DateTime?
+  voidedByUserId  String?
+  voidReason      String?
   idempotencyKey  String?              @unique
   createdByUserId String?
   createdAt       DateTime             @default(now())
   updatedAt       DateTime             @updatedAt
   booking         Booking              @relation(fields: [bookingId], references: [id], onDelete: Cascade)
   createdByUser   AdminUser?           @relation("BookingPaymentCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  voidedByUser    AdminUser?           @relation("BookingPaymentVoidedBy", fields: [voidedByUserId], references: [id], onDelete: SetNull)
 
   @@index([bookingId, paidAt])
   @@index([method, paidAt])
   @@index([createdByUserId])
+  @@index([voidedByUserId])
+  @@index([bookingId, status])
 }
 
 model Voucher {

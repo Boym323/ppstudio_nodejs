@@ -54,7 +54,7 @@ dbTest("direct payment domain handles manual and completion flows idempotently",
     import("@prisma/client"),
   ]);
   const suffix = randomUUID().slice(0, 8);
-  const deletedAt = new Date("2026-05-10T10:00:00.000Z");
+  const voidedAt = new Date("2026-05-10T10:00:00.000Z");
 
   const actor = await prisma.adminUser.create({
     data: {
@@ -200,20 +200,34 @@ dbTest("direct payment domain handles manual and completion flows idempotently",
       idempotencyKey: manualIdempotencyKey,
     });
 
-    const result = await actions.deleteBookingPaymentWithAudit({
+    const result = await actions.voidBookingPaymentWithAudit({
       bookingId: booking.id,
       paymentId: creation.payment.id,
-      deletedByUserId: actor.id,
-      deletedAt,
+      voidedByUserId: actor.id,
+      voidedAt,
+      voidReason: "Chybně zapsaná hotovost.",
     });
 
-    assert.equal(result.status, "deleted");
-    assert.equal(await prisma.bookingPayment.count({ where: { id: creation.payment.id } }), 0);
+    assert.equal(result.status, "voided");
+    const voidedPayment = await prisma.bookingPayment.findUniqueOrThrow({ where: { id: creation.payment.id } });
+    assert.equal(voidedPayment.status, prismaClient.BookingPaymentStatus.VOIDED);
+    assert.equal(voidedPayment.voidedByUserId, actor.id);
+    assert.equal(voidedPayment.voidedAt?.toISOString(), voidedAt.toISOString());
+    assert.equal(voidedPayment.voidReason, "Chybně zapsaná hotovost.");
+    assert.equal(await prisma.bookingPayment.count({ where: { id: creation.payment.id } }), 1);
+
+    const repeatedVoid = await actions.voidBookingPaymentWithAudit({
+      bookingId: booking.id,
+      paymentId: creation.payment.id,
+      voidedByUserId: actor.id,
+      voidReason: "Druhý pokus.",
+    });
+    assert.equal(repeatedVoid.status, "already-voided");
 
     const history = await prisma.bookingStatusHistory.findFirst({
       where: {
         bookingId: booking.id,
-        reason: "Platba odstraněna",
+        reason: "Platba stornována",
       },
       orderBy: { createdAt: "desc" },
       select: {
@@ -225,13 +239,17 @@ dbTest("direct payment domain handles manual and completion flows idempotently",
     assert.ok(history);
     assert.equal(history.actorUserId, actor.id);
     assert.deepEqual(history.metadata, {
-      source: "admin-booking-payment-delete-v1",
+      source: "admin-booking-payment-void-v1",
       bookingId: booking.id,
       paymentId: creation.payment.id,
-      amount: 700,
-      method: "CASH",
-      deletedByUserId: actor.id,
-      deletedAt: deletedAt.toISOString(),
+      originalAmountCzk: 700,
+      originalMethod: "CASH",
+      originalPaidAt: paidAt.toISOString(),
+      originalNote: "Doplatek po službě",
+      originalCreatedByUserId: actor.id,
+      voidedByUserId: actor.id,
+      voidedAt: voidedAt.toISOString(),
+      voidReason: "Chybně zapsaná hotovost.",
     });
   } finally {
     await prisma.bookingStatusHistory.deleteMany({ where: { bookingId: booking.id } });

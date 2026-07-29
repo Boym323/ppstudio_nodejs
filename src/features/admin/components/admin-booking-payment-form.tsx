@@ -165,7 +165,7 @@ export function DeleteBookingPaymentButton({
     <form
       action={formAction}
       onSubmit={(event) => {
-        if (!window.confirm("Opravdu smazat tuto platbu?")) {
+        if (!window.confirm("Opravdu stornovat tuto platbu? Zůstane zachovaná v historii.")) {
           event.preventDefault();
         }
       }}
@@ -174,6 +174,10 @@ export function DeleteBookingPaymentButton({
       <input type="hidden" name="area" value={area} />
       <input type="hidden" name="bookingId" value={bookingId} />
       <input type="hidden" name="paymentId" value={paymentId} />
+      <label className="text-left text-xs text-white/65">
+        Důvod storna
+        <input name="voidReason" required maxLength={500} className="mt-1 block w-48 rounded border border-white/15 bg-black/20 px-2 py-1 text-sm text-white" />
+      </label>
       <DeletePaymentSubmitButton />
       {serverState.status === "error" && serverState.formError ? (
         <span className="max-w-48 text-right text-xs leading-4 text-red-300">{serverState.formError}</span>
@@ -205,7 +209,7 @@ function DeletePaymentSubmitButton() {
       disabled={pending}
       className="rounded-full border border-red-300/20 bg-red-400/10 px-3 py-1.5 text-xs font-semibold text-red-100 transition hover:bg-red-400/16 disabled:cursor-not-allowed disabled:opacity-60"
     >
-      {pending ? "Mažu..." : "Smazat"}
+      {pending ? "Stornuji..." : "Stornovat"}
     </button>
   );
 }

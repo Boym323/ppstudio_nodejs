@@ -8,6 +8,11 @@ import {
 } from "@/features/vouchers/schemas/voucher-schemas";
 import { prisma } from "@/lib/prisma";
 
+type VoucherRedemptionDbClient = Pick<
+  Prisma.TransactionClient,
+  "$queryRaw" | "voucher" | "booking" | "voucherRedemption"
+>;
+
 export const voucherRedemptionErrorCodes = {
   invalidInput: "INVALID_INPUT",
   voucherNotFound: "VOUCHER_NOT_FOUND",
@@ -39,7 +44,10 @@ function assertRedeemable(status: VoucherStatus) {
   }
 }
 
-export async function redeemVoucherForBooking(input: RedeemVoucherInput) {
+export async function redeemVoucherForBookingInTransaction(
+  tx: VoucherRedemptionDbClient,
+  input: RedeemVoucherInput,
+) {
   const parsed = redeemVoucherSchema.safeParse(input);
 
   if (!parsed.success) {
@@ -48,7 +56,6 @@ export async function redeemVoucherForBooking(input: RedeemVoucherInput) {
 
   const normalizedCode = normalizeVoucherCode(parsed.data.voucherCode);
 
-  return prisma.$transaction(async (tx) => {
     const [voucher] = await tx.$queryRaw<Array<{ id: string }>>(Prisma.sql`
       SELECT "id"
       FROM "Voucher"
@@ -219,5 +226,11 @@ export async function redeemVoucherForBooking(input: RedeemVoucherInput) {
     ]);
 
     return { voucher: updatedVoucher, redemption };
-  });
+}
+
+export async function redeemVoucherForBooking(input: RedeemVoucherInput) {
+  return prisma.$transaction(
+    (tx) => redeemVoucherForBookingInTransaction(tx, input),
+    { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+  );
 }

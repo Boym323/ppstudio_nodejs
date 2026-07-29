@@ -699,7 +699,7 @@ function VoucherRedemptionsList({
               <p className="mt-1 text-sm font-semibold text-white">
                 {payment.methodLabel}
               </p>
-              <p className="mt-1 text-sm text-white/65">Platba mimo voucher</p>
+              <p className="mt-1 text-sm text-white/65">{payment.status === "VOIDED" ? "Stornovaná platba" : "Platba mimo voucher"}</p>
             </div>
             <div className="flex flex-wrap items-center justify-end gap-2">
               <span className="rounded-full border border-white/8 bg-black/14 px-2.5 py-1 text-sm font-semibold text-white/88">
@@ -717,6 +717,7 @@ function VoucherRedemptionsList({
           <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-white/58">
             <span>Zapsal: {payment.createdByUserLabel}</span>
             {payment.note ? <span>• {payment.note}</span> : null}
+            {payment.status === "VOIDED" ? <span>• Storno: {payment.voidedAtLabel} · {payment.voidedByUserLabel} · {payment.voidReason}</span> : null}
           </div>
         </article>
       ))}

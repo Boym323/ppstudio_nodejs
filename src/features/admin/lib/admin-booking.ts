@@ -1,4 +1,5 @@
 import {
+  BookingPaymentStatus as BookingPaymentRecordStatus,
   AdminRole,
   BookingActionTokenType,
   BookingActorType,
@@ -156,6 +157,10 @@ export type AdminBookingDetailData = {
       paidAt: string;
       paidAtLabel: string;
       note: string | null;
+      status: BookingPaymentRecordStatus;
+      voidedAtLabel: string | null;
+      voidReason: string | null;
+      voidedByUserLabel: string | null;
       createdByUserLabel: string;
       canDelete: boolean;
     }>;
@@ -579,6 +584,13 @@ export async function getAdminBookingDetailData(
                 role: true,
               },
             },
+            voidedByUser: {
+              select: {
+                name: true,
+                email: true,
+                role: true,
+              },
+            },
           },
         },
         priceAdjustedByUser: {
@@ -636,7 +648,7 @@ export async function getAdminBookingDetailData(
     0,
   );
   const directPaidCzk = booking.payments.reduce(
-    (total, payment) => total + payment.amountCzk,
+    (total, payment) => total + (payment.status === BookingPaymentRecordStatus.VOIDED ? 0 : payment.amountCzk),
     0,
   );
   const paymentSummary = buildPaymentSummary({
@@ -738,8 +750,12 @@ export async function getAdminBookingDetailData(
         paidAt: payment.paidAt.toISOString(),
         paidAtLabel: formatDateTimeLabel(payment.paidAt),
         note: payment.note,
+        status: payment.status,
+        voidedAtLabel: payment.voidedAt ? formatDateTimeLabel(payment.voidedAt) : null,
+        voidReason: payment.voidReason,
+        voidedByUserLabel: formatOptionalAdminUserLabel(payment.voidedByUser),
         createdByUserLabel: formatBookingPaymentUserLabel(payment.createdByUser),
-        canDelete: area === "owner",
+        canDelete: area === "owner" && payment.status === BookingPaymentRecordStatus.ACTIVE,
       })),
       intendedVoucherCodeSnapshot: booking.intendedVoucherCodeSnapshot,
       intendedVoucherValidatedAtLabel: booking.intendedVoucherValidatedAt
@@ -815,7 +831,28 @@ export async function applyAdminBookingStatusChange({
   reason,
   internalNote,
 }: ApplyAdminBookingStatusChangeInput) {
-  return prisma.$transaction(async (tx) => {
+  return prisma.$transaction(
+    (tx) => applyAdminBookingStatusChangeInTransaction(tx, {
+      bookingId,
+      targetStatus,
+      actorUserId,
+      reason,
+      internalNote,
+    }),
+    { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+  );
+}
+
+export async function applyAdminBookingStatusChangeInTransaction(
+  tx: Prisma.TransactionClient,
+  {
+    bookingId,
+    targetStatus,
+    actorUserId,
+    reason,
+    internalNote,
+  }: ApplyAdminBookingStatusChangeInput,
+) {
     const booking = await tx.booking.findUnique({
       where: { id: bookingId },
       select: {
@@ -933,7 +970,6 @@ export async function applyAdminBookingStatusChange({
     }
 
     return { status: "success" as const };
-  });
 }
 
 export async function updateAdminBookingInternalNote({

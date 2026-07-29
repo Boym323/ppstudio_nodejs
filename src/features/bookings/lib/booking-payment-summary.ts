@@ -1,4 +1,4 @@
-import { BookingPaymentMethod } from "@prisma/client";
+import { BookingPaymentMethod, BookingPaymentStatus as BookingPaymentRecordStatus } from "@prisma/client";
 
 export type BookingPaymentStatus =
   | "UNPAID"
@@ -33,7 +33,7 @@ export const BOOKING_PAYMENT_METHOD_LABELS: Record<BookingPaymentMethod, string>
 type BookingPaymentSummaryInput = {
   totalPriceCzk?: number | null;
   voucherRedemptions?: Array<{ amountCzk?: number | null }>;
-  payments?: Array<{ amountCzk?: number | null }>;
+  payments?: Array<{ amountCzk?: number | null; status?: BookingPaymentRecordStatus }>;
 };
 
 export function getBookingPaymentSummary({
@@ -63,8 +63,11 @@ export function getBookingPaymentSummary({
   };
 }
 
-function sumCzk(items: Array<{ amountCzk?: number | null }>) {
-  return items.reduce((total, item) => total + Math.max(0, item.amountCzk ?? 0), 0);
+function sumCzk(items: Array<{ amountCzk?: number | null; status?: BookingPaymentRecordStatus }>) {
+  return items.reduce(
+    (total, item) => total + (item.status === BookingPaymentRecordStatus.VOIDED ? 0 : Math.max(0, item.amountCzk ?? 0)),
+    0,
+  );
 }
 
 function getPaymentStatus({

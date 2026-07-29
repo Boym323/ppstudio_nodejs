@@ -61,3 +61,17 @@ test("getBookingPaymentSummary returns OVERPAID for payment above total price", 
   assert.equal(summary.overpaidCzk, 100);
   assert.equal(summary.remainingCzk, 0);
 });
+
+test("getBookingPaymentSummary excludes voided direct payments", () => {
+  const summary = getBookingPaymentSummary({
+    totalPriceCzk: 1_000,
+    payments: [
+      { amountCzk: 1_000, status: "VOIDED" },
+      { amountCzk: 300, status: "ACTIVE" },
+    ],
+  });
+
+  assert.equal(summary.directPaidCzk, 300);
+  assert.equal(summary.remainingCzk, 700);
+  assert.equal(summary.status, "PARTIALLY_PAID");
+});
