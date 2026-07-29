@@ -582,11 +582,13 @@ function BookingVoucherPanel({ data }: { data: AdminBookingDetailData }) {
         </div>
 
         <div className="grid gap-2 md:grid-cols-2">
-          <AdminBookingPaymentForm
-            area={data.area}
-            bookingId={data.id}
-            defaultAmountCzk={paymentSummary.remainingCzk}
-          />
+          {paymentSummary.remainingCzk > 0 ? (
+            <AdminBookingPaymentForm
+              area={data.area}
+              bookingId={data.id}
+              defaultAmountCzk={paymentSummary.remainingCzk}
+            />
+          ) : null}
           {voucherForm && !intendedVoucher ? (
             <details className="group rounded-[0.95rem] border border-white/8 bg-white/[0.03]">
               <summary className="cursor-pointer list-none px-3 py-2.5 marker:hidden">
