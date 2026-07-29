@@ -50,9 +50,9 @@ export function AdminBookingVoucherForm({
         </div>
       ) : null}
 
-      <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(12rem,0.55fr)]">
+      <div className="grid gap-3 md:grid-cols-2">
         <label className="block">
-          <span className="text-sm font-medium text-white">Kód voucheru</span>
+          <span className="whitespace-nowrap text-sm font-medium text-white">Kód voucheru</span>
           <input
             type="text"
             name="voucherCode"
@@ -68,7 +68,7 @@ export function AdminBookingVoucherForm({
 
         {showAmount ? (
           <label className="block">
-            <span className="text-sm font-medium text-white">Částka k uplatnění</span>
+            <span className="whitespace-nowrap text-sm font-medium text-white">Částka k uplatnění</span>
             <input
               type="number"
               name="amountCzk"
