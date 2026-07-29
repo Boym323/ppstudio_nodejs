@@ -178,6 +178,7 @@ describe("public voucher verification", () => {
     assert.equal(result.ok, true);
     assert.equal(result.ok && result.type, VoucherType.SERVICE);
     assert.equal(result.ok && result.serviceNameSnapshot, "Lash lifting public");
+    assert.equal(result.ok && result.serviceSlug, `public-voucher-lash-${seed.suffix.toLowerCase()}`);
     assert.equal(result.ok && result.remainingValueCzk, null);
   });
 

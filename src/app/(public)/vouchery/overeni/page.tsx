@@ -153,6 +153,12 @@ function VerificationResult({
     );
   }
 
+  const bookingSearchParams = new URLSearchParams({ voucher: result.code });
+
+  if (result.type === VoucherType.SERVICE && result.serviceSlug) {
+    bookingSearchParams.set("service", result.serviceSlug);
+  }
+
   return (
     <div className="mt-5 space-y-5">
       <div className="rounded-[1.25rem] border border-emerald-200 bg-emerald-50 px-4 py-3 text-emerald-950">
@@ -179,7 +185,7 @@ function VerificationResult({
         </p>
         <div className="mt-3 flex flex-col gap-3 sm:flex-row">
           <Link
-            href={`/rezervace?voucher=${encodeURIComponent(result.code)}`}
+            href={`/rezervace?${bookingSearchParams.toString()}`}
             className="inline-flex min-h-11 items-center justify-center rounded-full bg-[var(--color-foreground)] px-5 py-3 text-center text-sm font-semibold text-white transition hover:bg-[#2c221d]"
           >
             Rezervovat termín

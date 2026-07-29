@@ -44,6 +44,7 @@ export type PublicVoucherVerificationResult =
       type: VoucherType;
       remainingValueCzk: number | null;
       serviceNameSnapshot: string | null;
+      serviceSlug: string | null;
       validUntil: Date | null;
     }
   | {
@@ -90,6 +91,11 @@ export async function verifyVoucherPublic(input: {
       status: true,
       remainingValueCzk: true,
       serviceNameSnapshot: true,
+      service: {
+        select: {
+          slug: true,
+        },
+      },
       validFrom: true,
       validUntil: true,
     },
@@ -120,6 +126,7 @@ export async function verifyVoucherPublic(input: {
     type: voucher.type,
     remainingValueCzk: voucher.type === VoucherType.VALUE ? (voucher.remainingValueCzk ?? 0) : null,
     serviceNameSnapshot: voucher.type === VoucherType.SERVICE ? voucher.serviceNameSnapshot : null,
+    serviceSlug: voucher.type === VoucherType.SERVICE ? voucher.service?.slug ?? null : null,
     validUntil: voucher.validUntil,
   };
 }
