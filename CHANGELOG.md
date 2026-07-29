@@ -6,6 +6,21 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [3.12.0] - 2026-07-29
+
+### Přidáno
+- Administrace podporuje úpravu a stornování plateb včetně idempotentního zpracování a auditních metadat.
+- Planner volných termínů má sjednocené ovládání, frontu ukládání a auditní stopu změn dostupnosti.
+- Voucher s předvolenou službou předává službu přímo do rezervačního toku.
+
+### Opraveno
+- Výběr času v planneru zachovává lokální datum a čas i při přechodech letního času.
+- Mobilní zobrazení detailu rezervace a potvrzení rezervace je responsivnější a přístupnější.
+
+### Změněno
+- Administrativní ovládací prvky a pomocné texty splňují lepší kontrastní a ARIA pravidla.
+- Release příprava pro produkční nasazení: projektová verze navýšena na minor `3.12.0` kvůli zpětně kompatibilnímu rozšíření správy plateb a planneru.
+
 ## [3.11.0] - 2026-07-28
 
 ### Přidáno
