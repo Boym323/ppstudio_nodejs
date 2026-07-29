@@ -26,6 +26,7 @@ import {
   formatTimeRange,
   getAreaSubtitle,
   getAreaTitle,
+  getEditablePlannerIntervals,
   getBaseHref,
   getSummaryNote,
   intervalToPlannerCells,
@@ -33,7 +34,6 @@ import {
   isEditablePlannerSlot,
   isSameDateKey,
   mergeIntervals,
-  subtractIntervals,
   EDITABLE_SLOT_CAPACITY,
 } from "./helpers";
 import {
@@ -223,6 +223,20 @@ export async function getAdminPlannerWeek(area: AdminArea, week?: string | null)
     for (const booking of dayBookings) {
       activeBookingsBySlotId.set(booking.slotId, (activeBookingsBySlotId.get(booking.slotId) ?? 0) + 1);
     }
+    const structuralLockedRanges = daySlots
+      .filter(
+        (slot) =>
+          (slot.status === AvailabilitySlotStatus.PUBLISHED || slot.status === AvailabilitySlotStatus.DRAFT) &&
+          !isEditablePlannerSlot(slot),
+      )
+      .map((slot) =>
+        clampIntervalToDay(
+          { startsAt: slot.startsAt, endsAt: slot.endsAt },
+          dayStart,
+          dayEnd,
+        ),
+      )
+      .filter((range): range is TimeRange => range !== null);
 
     const availableBlocks: PlannerDay["availableBlocks"] = [];
     const lockedBlocks: PlannerDay["lockedBlocks"] = [];
@@ -242,7 +256,7 @@ export async function getAdminPlannerWeek(area: AdminArea, week?: string | null)
         // Rezervace sama nemění charakter slotu. Pro zobrazení zbytkové
         // dostupnosti posuzujeme jen jeho nastavení; rezervované období se
         // odečítá níže přes slotBlockingRanges.
-        const plainEditable = isEditablePlannerSlot({ ...slot, bookings: [] });
+        const plainEditable = isEditablePlannerSlot(slot);
         const cells = intervalToPlannerCells(
           clipped,
           slot.status === AvailabilitySlotStatus.PUBLISHED && plainEditable ? "inside" : "cover",
@@ -269,7 +283,7 @@ export async function getAdminPlannerWeek(area: AdminArea, week?: string | null)
           } satisfies PlannerInterval];
         }
 
-        const slotBlockingRanges = bookings
+        const slotBookingRanges = bookings
           .filter(
             (booking) =>
               booking.scheduledStartsAt < clipped.endsAt &&
@@ -284,9 +298,10 @@ export async function getAdminPlannerWeek(area: AdminArea, week?: string | null)
           )
           .filter((range): range is TimeRange => range !== null);
         const hasOwnBookings = activeBookingCount > 0;
+        const protectedRanges = mergeIntervals([...slotBookingRanges, ...structuralLockedRanges]);
 
-        if (slotBlockingRanges.length > 0) {
-          const mergedBookings = mergeIntervals(slotBlockingRanges);
+        if (protectedRanges.length > 0) {
+          const mergedBookings = mergeIntervals(slotBookingRanges);
           if (!hasOwnBookings) {
             for (const blockedRange of mergedBookings) {
               lockedBlocks.push({
@@ -295,9 +310,9 @@ export async function getAdminPlannerWeek(area: AdminArea, week?: string | null)
               });
             }
           }
-          const freeRanges = mergedBookings.reduce(
-            (remaining, bookedRange) => subtractIntervals(remaining, bookedRange),
+          const freeRanges = getEditablePlannerIntervals(
             [{ startsAt: clipped.startsAt, endsAt: clipped.endsAt }],
+            protectedRanges,
           );
 
           const blockingIntervals: PlannerInterval[] = mergedBookings.flatMap<PlannerInterval>((bookedRange, bookingIndex) => {

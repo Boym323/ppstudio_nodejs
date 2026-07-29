@@ -104,6 +104,17 @@ export function subtractIntervals(intervals: TimeRange[], remove: TimeRange) {
   return result;
 }
 
+/**
+ * Jediný read/write výpočet běžné dostupnosti: spojí kompatibilní intervaly a
+ * odečte z nich všechny chráněné rozsahy (rezervaci včetně úklidu i omezení).
+ */
+export function getEditablePlannerIntervals(intervals: TimeRange[], protectedIntervals: TimeRange[]) {
+  return mergeIntervals(protectedIntervals).reduce(
+    (remaining, protectedInterval) => subtractIntervals(remaining, protectedInterval),
+    mergeIntervals(intervals),
+  );
+}
+
 export function intersectsAny(interval: TimeRange, blocked: TimeRange[]) {
   return blocked.some(
     (blockedInterval) => interval.startsAt < blockedInterval.endsAt && interval.endsAt > blockedInterval.startsAt,
@@ -128,15 +139,13 @@ export function isPlainEditableSlot(slot: {
   internalNote: string | null;
   serviceRestrictionMode: AvailabilitySlotServiceRestrictionMode;
   allowedServices: Array<{ serviceId: string }>;
-  bookings: Array<{ id: string; status: BookingStatus }>;
 }) {
   return (
     slot.capacity === EDITABLE_SLOT_CAPACITY &&
     slot.publicNote === null &&
     slot.internalNote === null &&
     slot.serviceRestrictionMode === AvailabilitySlotServiceRestrictionMode.ANY &&
-    slot.allowedServices.length === 0 &&
-    !slot.bookings.some((booking) => booking.status !== BookingStatus.CANCELLED)
+    slot.allowedServices.length === 0
   );
 }
 
@@ -145,9 +154,12 @@ export function isHiddenHistoricalCancelledSlot(slot: {
   bookings: Array<{ id: string; status: BookingStatus }>;
 }) {
   return (
-    slot.status !== AvailabilitySlotStatus.PUBLISHED &&
-    slot.bookings.length > 0 &&
-    slot.bookings.every((booking) => booking.status === BookingStatus.CANCELLED)
+    (slot.status === AvailabilitySlotStatus.ARCHIVED && slot.bookings.length > 0) ||
+    (
+      slot.status !== AvailabilitySlotStatus.PUBLISHED &&
+      slot.bookings.length > 0 &&
+      slot.bookings.every((booking) => booking.status === BookingStatus.CANCELLED)
+    )
   );
 }
 
@@ -210,7 +222,6 @@ export function isEditablePlannerSlot(slot: {
   internalNote: string | null;
   serviceRestrictionMode: AvailabilitySlotServiceRestrictionMode;
   allowedServices: Array<{ serviceId: string }>;
-  bookings: Array<{ id: string; status: BookingStatus }>;
 }) {
   return slot.status === AvailabilitySlotStatus.PUBLISHED && isPlainEditableSlot(slot);
 }

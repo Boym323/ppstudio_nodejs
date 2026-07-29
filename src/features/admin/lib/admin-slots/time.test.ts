@@ -4,9 +4,18 @@ import test from "node:test";
 import {
   formatDateKey,
   getCellRangeBounds,
+  isDateKeyInWeek,
+  isValidDateKey,
   moveIntervalToDateKey,
   timeFormatter,
 } from "./time";
+
+test("dateKey musí být skutečné datum a patřit do zadaného planner týdne", () => {
+  assert.equal(isValidDateKey("2026-02-29"), false);
+  assert.equal(isValidDateKey("2026-03-02"), true);
+  assert.equal(isDateKeyInWeek("2026-03-08", "2026-03-02"), true);
+  assert.equal(isDateKeyInWeek("2026-03-09", "2026-03-02"), false);
+});
 
 test("winter salon slot 09:00-10:00 stays 09:00-10:00 Europe/Prague", () => {
   const slot = getCellRangeBounds("2026-01-15", 6, 8);

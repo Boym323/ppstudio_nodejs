@@ -10,6 +10,7 @@ import { prisma } from "@/lib/prisma";
 import {
   EDITABLE_SLOT_CAPACITY,
   ensureHalfHourCellIndex,
+  getEditablePlannerIntervals,
   intersectsAny,
   isHiddenHistoricalCancelledSlot,
   isEditablePlannerSlot,
@@ -21,6 +22,8 @@ import {
   formatDateKey,
   getCellRangeBounds,
   getDayBounds,
+  isDateKeyInWeek,
+  isValidDateKey,
   moveIntervalToDateKey,
   resolveWeekStart,
 } from "./time";
@@ -34,6 +37,19 @@ import {
 
 const PLANNER_TRANSACTION_MAX_RETRIES = 4;
 const PLANNER_TRANSACTION_RETRY_DELAY_MS = 40;
+const PLANNER_BOOKING_STATUSES = ["PENDING", "CONFIRMED", "COMPLETED"] as const;
+
+function ensureValidPlannerWeekDate(weekKey: string, dateKey: string) {
+  if (!isValidDateKey(weekKey) || !isValidDateKey(dateKey) || !isDateKeyInWeek(dateKey, weekKey)) {
+    throw new PlannerMutationError("Zvolený den nepatří do platného týdne planneru.");
+  }
+}
+
+function ensureValidPlannerWeek(weekKey: string) {
+  if (!isValidDateKey(weekKey)) {
+    throw new PlannerMutationError("Týden planneru nemá platné datum.");
+  }
+}
 
 function isRetryablePrismaError(error: unknown) {
   const driverAdapterCause =
@@ -120,10 +136,25 @@ async function getEditableDayState(tx: Prisma.TransactionClient, dateKey: string
       },
     },
   });
+  const bookings = await tx.booking.findMany({
+    where: {
+      scheduledStartsAt: { lt: dayEnd },
+      OR: [
+        { blockedUntil: { gt: dayStart } },
+        { blockedUntil: null, scheduledEndsAt: { gt: dayStart } },
+      ],
+      status: { in: [...PLANNER_BOOKING_STATUSES] },
+    },
+    select: {
+      scheduledStartsAt: true,
+      scheduledEndsAt: true,
+      blockedUntil: true,
+    },
+  });
   const slots = rawSlots.filter((slot) => !isHiddenHistoricalCancelledSlot(slot));
 
   const editableSlots = slots.filter((slot) => isEditablePlannerSlot(slot));
-  const lockedIntervals = slots
+  const structuralLockedIntervals = slots
     .filter((slot) => {
       if (slot.status !== AvailabilitySlotStatus.PUBLISHED && slot.status !== AvailabilitySlotStatus.DRAFT) {
         return false;
@@ -132,14 +163,22 @@ async function getEditableDayState(tx: Prisma.TransactionClient, dateKey: string
       return !editableSlots.some((editableSlot) => editableSlot.id === slot.id);
     })
     .map((slot) => ({ startsAt: slot.startsAt, endsAt: slot.endsAt }));
-  const editableIntervals = editableSlots.map((slot) => ({ startsAt: slot.startsAt, endsAt: slot.endsAt }));
+  const bookingProtectedIntervals = bookings.map((booking) => ({
+    startsAt: booking.scheduledStartsAt,
+    endsAt: booking.blockedUntil ?? booking.scheduledEndsAt,
+  }));
+  const protectedIntervals = mergeIntervals([...structuralLockedIntervals, ...bookingProtectedIntervals]);
+  const editableIntervals = getEditablePlannerIntervals(
+    editableSlots.map((slot) => ({ startsAt: slot.startsAt, endsAt: slot.endsAt })),
+    protectedIntervals,
+  );
 
   return {
     dayStart,
     dayEnd,
     editableSlots,
     editableIntervals,
-    lockedIntervals,
+    lockedIntervals: protectedIntervals,
   };
 }
 
@@ -230,7 +269,7 @@ async function replaceDayWithIntervals(
 
 async function readEditableIntervalsForDate(tx: Prisma.TransactionClient, dateKey: string) {
   const state = await getEditableDayState(tx, dateKey);
-  return mergeIntervals(state.editableIntervals);
+  return state.editableIntervals;
 }
 
 export async function applyAvailabilitySelection(
@@ -244,6 +283,7 @@ export async function applyAvailabilitySelection(
     actorUserId: string | null;
   },
 ): Promise<PlannerMutationResult> {
+  ensureValidPlannerWeekDate(input.weekKey, input.dateKey);
   ensureHalfHourCellIndex(input.startCell);
   ensureHalfHourCellIndex(input.endCell);
 
@@ -262,7 +302,7 @@ export async function applyAvailabilitySelection(
       );
     }
 
-    const baseIntervals = mergeIntervals(state.editableIntervals);
+    const baseIntervals = state.editableIntervals;
     const nextIntervals =
       input.mode === "add"
         ? mergeIntervals([...baseIntervals, selection])
@@ -308,6 +348,7 @@ export async function clearPlannerDay(
     dateKey: string;
   },
 ): Promise<PlannerMutationResult> {
+  ensureValidPlannerWeekDate(input.weekKey, input.dateKey);
   await runPlannerTransaction(async (tx) => {
     const state = await getEditableDayState(tx, input.dateKey);
 
@@ -331,6 +372,8 @@ export async function copyPlannerWeek(
     actorUserId: string | null;
   },
 ): Promise<PlannerMutationResult> {
+  ensureValidPlannerWeek(input.sourceWeekKey);
+  ensureValidPlannerWeek(input.targetWeekKey);
   const sourceWeekStart = resolveWeekStart(input.sourceWeekKey);
   const targetWeekStart = resolveWeekStart(input.targetWeekKey);
 
@@ -364,6 +407,7 @@ export async function applyWeeklyTemplate(
     actorUserId: string | null;
   },
 ): Promise<PlannerMutationResult> {
+  ensureValidPlannerWeek(input.weekKey);
   const weekStart = resolveWeekStart(input.weekKey);
 
   await runPlannerTransaction(async (tx) => {
@@ -403,6 +447,7 @@ export async function syncPlannerWeekDraft(
     actorUserId: string | null;
   },
 ): Promise<PlannerMutationResult> {
+  ensureValidPlannerWeek(input.weekKey);
   const weekStart = resolveWeekStart(input.weekKey);
   const allowedDateKeys = new Set(
     Array.from({ length: 7 }, (_, index) => formatDateKey(addDays(weekStart, index))),
@@ -410,7 +455,7 @@ export async function syncPlannerWeekDraft(
 
   await runPlannerTransaction(async (tx) => {
     for (const day of input.days) {
-      if (!allowedDateKeys.has(day.dateKey)) {
+      if (!isValidDateKey(day.dateKey) || !allowedDateKeys.has(day.dateKey)) {
         throw new PlannerMutationError("Koncept obsahuje den mimo aktuálně otevřený týden.");
       }
 

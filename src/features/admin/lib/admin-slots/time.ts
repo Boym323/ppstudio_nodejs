@@ -149,6 +149,32 @@ function parseDateKey(dateKey: string) {
   };
 }
 
+export function isValidDateKey(dateKey: string) {
+  try {
+    const { year, month, day } = parseDateKey(dateKey);
+    const date = new Date(Date.UTC(year, month - 1, day));
+
+    return (
+      date.getUTCFullYear() === year &&
+      date.getUTCMonth() === month - 1 &&
+      date.getUTCDate() === day
+    );
+  } catch {
+    return false;
+  }
+}
+
+export function isDateKeyInWeek(dateKey: string, weekKey: string) {
+  if (!isValidDateKey(dateKey) || !isValidDateKey(weekKey)) {
+    return false;
+  }
+
+  const weekStart = resolveWeekStart(weekKey);
+  const dateStart = getDayBounds(dateKey).startsAt;
+
+  return dateStart >= weekStart && dateStart < addDays(weekStart, 7);
+}
+
 export function getDayBounds(dateKey: string) {
   const { year, month, day } = parseDateKey(dateKey);
   const startsAt = pragueLocalDateTimeToUtc(year, month, day, 0, 0);

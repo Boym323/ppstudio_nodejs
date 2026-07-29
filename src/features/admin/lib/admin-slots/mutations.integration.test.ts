@@ -111,6 +111,148 @@ dbTest("applyAvailabilitySelection je idempotentní při opakovaném přidání 
   }
 });
 
+dbTest("applyAvailabilitySelection upraví volné fragmenty dlouhého slotu kolem rezervace", async () => {
+  const cases = [
+    { startCell: 4, endCell: 5, expected: [[5, 6], [8, 16]] },
+    { startCell: 8, endCell: 9, expected: [[4, 6], [9, 16]] },
+  ];
+
+  for (const testCase of cases) {
+    const seed = await createSeed();
+    const { prisma, applyAvailabilitySelection } = await loadModules();
+
+    try {
+      const fullRange = await loadModules().then(({ getCellRangeBounds }) => getCellRangeBounds(seed.dateKey, 4, 16));
+      await prisma.availabilitySlot.update({
+        where: { id: seed.bookedSlotId },
+        data: { startsAt: fullRange.startsAt, endsAt: fullRange.endsAt },
+      });
+      await prisma.availabilitySlot.deleteMany({
+        where: { createdByUserId: seed.actorUserId, id: { not: seed.bookedSlotId } },
+      });
+
+      await applyAvailabilitySelection("owner", {
+        weekKey: seed.weekKey,
+        dateKey: seed.dateKey,
+        startCell: testCase.startCell,
+        endCell: testCase.endCell,
+        mode: "remove",
+        actorUserId: seed.actorUserId,
+      });
+
+      const week = await (await loadModules()).getAdminPlannerWeek("owner", seed.weekKey);
+      const day = week.days.find((item) => item.dateKey === seed.dateKey);
+      assert.deepEqual(
+        day?.availableIntervals.map((interval) => [interval.startCell, interval.endCell]),
+        testCase.expected,
+      );
+      assert.ok(
+        !day?.cells.inactive.slice(4, 16).some(Boolean),
+        "archivovaný původní slot nesmí překrýt nové volné fragmenty v planneru",
+      );
+
+      const [booking, historicalSlot] = await Promise.all([
+        prisma.booking.findUniqueOrThrow({ where: { id: seed.bookingId }, select: { slotId: true, status: true } }),
+        prisma.availabilitySlot.findUniqueOrThrow({ where: { id: seed.bookedSlotId }, select: { status: true } }),
+      ]);
+      assert.equal(booking.slotId, seed.bookedSlotId);
+      assert.equal(booking.status, BookingStatus.CONFIRMED);
+      assert.equal(historicalSlot.status, AvailabilitySlotStatus.ARCHIVED);
+    } finally {
+      await cleanupSeed(seed);
+    }
+  }
+});
+
+dbTest("applyAvailabilitySelection odmítne zásah do rezervovaného intervalu a den mimo týden", async () => {
+  const seed = await createSeed();
+  const { applyAvailabilitySelection } = await loadModules();
+
+  try {
+    await assert.rejects(
+      applyAvailabilitySelection("owner", {
+        weekKey: seed.weekKey,
+        dateKey: seed.dateKey,
+        startCell: 6,
+        endCell: 7,
+        mode: "remove",
+        actorUserId: seed.actorUserId,
+      }),
+      /zasahuje do rezervace nebo omezeného intervalu/,
+    );
+    await assert.rejects(
+      applyAvailabilitySelection("owner", {
+        weekKey: seed.weekKey,
+        dateKey: "2026-01-01",
+        startCell: 4,
+        endCell: 5,
+        mode: "add",
+        actorUserId: seed.actorUserId,
+      }),
+      /nepatří do platného týdne/,
+    );
+  } finally {
+    await cleanupSeed(seed);
+  }
+});
+
+dbTest("applyAvailabilitySelection znovu ověří rezervaci vytvořenou po načtení planneru", async () => {
+  const seed = await createSeed();
+  const { prisma, applyAvailabilitySelection, getAdminPlannerWeek, getCellRangeBounds } = await loadModules();
+  let concurrentBookingId: string | null = null;
+
+  try {
+    await getAdminPlannerWeek("owner", seed.weekKey);
+    const range = getCellRangeBounds(seed.dateKey, 8, 10);
+    const [slot, service, client] = await Promise.all([
+      prisma.availabilitySlot.findFirstOrThrow({
+        where: { createdByUserId: seed.actorUserId, startsAt: range.startsAt, endsAt: { gte: range.endsAt } },
+        select: { id: true },
+      }),
+      prisma.service.findUniqueOrThrow({ where: { id: seed.serviceId }, select: { name: true, durationMinutes: true } }),
+      prisma.client.findUniqueOrThrow({ where: { id: seed.clientId }, select: { fullName: true, email: true, phone: true } }),
+    ]);
+    const booking = await prisma.booking.create({
+      data: {
+        clientId: seed.clientId,
+        slotId: slot.id,
+        serviceId: seed.serviceId,
+        source: BookingSource.PHONE,
+        isManual: true,
+        status: BookingStatus.CONFIRMED,
+        clientNameSnapshot: client.fullName,
+        clientEmailSnapshot: client.email ?? "planner-client@example.com",
+        clientPhoneSnapshot: client.phone,
+        serviceNameSnapshot: service.name,
+        serviceDurationMinutes: service.durationMinutes,
+        scheduledStartsAt: range.startsAt,
+        scheduledEndsAt: range.endsAt,
+        confirmedAt: new Date(),
+        createdByUserId: seed.actorUserId,
+      },
+      select: { id: true },
+    });
+    concurrentBookingId = booking.id;
+
+    await assert.rejects(
+      applyAvailabilitySelection("owner", {
+        weekKey: seed.weekKey,
+        dateKey: seed.dateKey,
+        startCell: 8,
+        endCell: 9,
+        mode: "remove",
+        actorUserId: seed.actorUserId,
+      }),
+      /zasahuje do rezervace nebo omezeného intervalu/,
+    );
+  } finally {
+    if (concurrentBookingId) {
+      await prisma.booking.delete({ where: { id: concurrentBookingId } });
+    }
+    await cleanupSeed(seed);
+  }
+});
+
 async function findIsolatedPlannerDateKey() {
   const { prisma, addDays, formatDateKey, getDayBounds, resolveWeekStart } = await loadModules();
   const searchStart = addDays(resolveWeekStart(), 21);
