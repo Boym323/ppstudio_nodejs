@@ -85,6 +85,27 @@ dbTest("applyAvailabilitySelection odebere jedinou půlhodinu z volného okna", 
   }
 });
 
+dbTest("změna dostupnosti uloží audit se stavem před a po, autorem a odstraněnými sloty", async () => {
+  const seed = await createSeed();
+  const { prisma, applyAvailabilitySelection } = await loadModules();
+
+  try {
+    const result = await applyAvailabilitySelection("owner", {
+      weekKey: seed.weekKey, dateKey: seed.dateKey, startCell: 4, endCell: 5,
+      mode: "remove", actorUserId: seed.actorUserId, actorRole: AdminRole.OWNER,
+    });
+    const audit = await prisma.availabilityAuditEvent.findFirstOrThrow({ where: { operationId: result.operationId } });
+    assert.equal(audit.actorUserId, seed.actorUserId);
+    assert.equal(audit.actorRole, AdminRole.OWNER);
+    assert.equal(audit.dateKey, seed.dateKey);
+    assert.equal(audit.operation, "REMOVE");
+    assert.equal(audit.timeZone, "Europe/Prague");
+    assert.ok(Array.isArray((audit.before as { intervals: unknown[] }).intervals));
+    assert.ok(Array.isArray((audit.after as { intervals: unknown[] }).intervals));
+    assert.ok(Array.isArray(audit.archivedOrRemovedSlots));
+  } finally { await cleanupSeed(seed); }
+});
+
 dbTest("applyAvailabilitySelection je idempotentní při opakovaném přidání i odebrání", async () => {
   const seed = await createSeed();
   const { getAdminPlannerWeek, applyAvailabilitySelection } = await loadModules();
@@ -442,6 +463,7 @@ async function createSeed(options: SeedOptions = {}): Promise<SeedContext> {
 async function cleanupSeed(seed: SeedContext) {
   const { prisma } = await loadModules();
 
+  await prisma.availabilityAuditEvent.deleteMany({ where: { actorUserId: seed.actorUserId } });
   await prisma.booking.deleteMany({ where: { id: seed.bookingId } });
   await prisma.availabilitySlot.deleteMany({ where: { createdByUserId: seed.actorUserId } });
   await prisma.client.deleteMany({ where: { id: seed.clientId } });

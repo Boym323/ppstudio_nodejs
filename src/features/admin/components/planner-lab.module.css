@@ -10,6 +10,7 @@
 .modeButtonActive { background: rgb(190 160 120 / 28%); box-shadow: inset 0 0 0 1px rgb(245 202 112 / 42%); color: white; }
 .controlButton:focus-visible, .viewButton:focus-visible, .retryButton:focus-visible, .modeButton:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
 .status { display: flex; align-items: center; gap: .35rem; color: rgb(255 255 255 / 52%); font-size: .75rem; white-space: nowrap; }
+.statusActions { display: flex; gap: .35rem; }
 .retryButton { color: white; }
 .legend { display: flex; flex-wrap: wrap; gap: .35rem .8rem; padding-inline: .3rem; color: rgb(255 255 255 / 64%); font-size: .75rem; }
 .legend span { display: inline-flex; align-items: center; gap: .28rem; }

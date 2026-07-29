@@ -24,6 +24,16 @@ enum AvailabilitySlotServiceRestrictionMode {
   SELECTED
 }
 
+enum AvailabilityAuditOperation {
+  ADD
+  REMOVE
+  CLEAR
+  COPY_WEEK
+  APPLY_TEMPLATE
+  SYNC_DRAFT
+  UNDO
+}
+
 enum BookingStatus {
   PENDING
   CONFIRMED
@@ -183,6 +193,7 @@ model AdminUser {
   bookingPayments            BookingPayment[]          @relation("BookingPaymentCreatedBy")
   voidedBookingPayments      BookingPayment[]          @relation("BookingPaymentVoidedBy")
   adjustedBookingPrices      Booking[]                 @relation("BookingPriceAdjustedBy")
+  availabilityAuditEvents    AvailabilityAuditEvent[]  @relation("AvailabilityAuditEventActor")
 }
 
 model UserNotificationSettings {
@@ -319,6 +330,32 @@ model AvailabilitySlot {
   @@index([serviceRestrictionMode, startsAt])
   @@index([startsAt, endsAt])
   @@index([createdByUserId])
+}
+
+/// Neměnná auditní stopa administrátorských změn dostupnosti.
+model AvailabilityAuditEvent {
+  id                    String                     @id @default(cuid())
+  actorUserId           String?
+  actorRole             AdminRole?
+  adminArea             String?
+  dateKey               String
+  timeZone              String                     @default("Europe/Prague")
+  operation             AvailabilityAuditOperation
+  source                String
+  operationId           String
+  revertedOperationId   String?
+  before                Json
+  after                 Json
+  createdSlots          Json
+  archivedOrRemovedSlots Json
+  createdAt             DateTime                   @default(now())
+  actorUser             AdminUser?                 @relation("AvailabilityAuditEventActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([dateKey, createdAt])
+  @@index([operationId])
+  @@index([revertedOperationId])
+  @@index([actorUserId, createdAt])
 }
 
 model AvailabilitySlotService {

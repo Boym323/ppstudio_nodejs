@@ -27,6 +27,8 @@ const selectionSchema = z.object({
   startCell: z.number().int().min(0).max(PLANNER_DAY_CELLS),
   endCell: z.number().int().min(0).max(PLANNER_DAY_CELLS),
   mode: z.enum(["add", "remove"]),
+  operationId: z.string().uuid().optional(),
+  revertedOperationId: z.string().uuid().optional(),
 });
 
 const clearDaySchema = z.object({
@@ -122,11 +124,13 @@ async function withPlannerAccess(area: AdminArea) {
     },
     select: {
       id: true,
+      role: true,
     },
   });
 
   return {
     actorUserId: dbUser?.id ?? null,
+    actorRole: dbUser?.role ?? null,
   };
 }
 
@@ -186,6 +190,7 @@ export async function applyPlannerSelectionAction(
     const result = await applyAvailabilitySelection(area, {
       ...parsed.data,
       actorUserId: access.actorUserId,
+      actorRole: access.actorRole,
     });
 
     revalidatePlanner(area);
@@ -214,8 +219,8 @@ export async function clearPlannerDayAction(
   }
 
   try {
-    await withPlannerAccess(area);
-    const result = await clearPlannerDay(area, parsed.data);
+    const access = await withPlannerAccess(area);
+    const result = await clearPlannerDay(area, { ...parsed.data, actorUserId: access.actorUserId, actorRole: access.actorRole });
     revalidatePlanner(area);
     return result;
   } catch (error) {
@@ -246,6 +251,7 @@ export async function copyPlannerWeekAction(
     const result = await copyPlannerWeek(area, {
       ...parsed.data,
       actorUserId: access.actorUserId,
+      actorRole: access.actorRole,
     });
     revalidatePlanner(area);
     return result;
@@ -278,6 +284,7 @@ export async function applyWeeklyTemplateAction(
       weekKey: parsed.data.weekKey,
       template: parsed.data.template as WeeklyTemplateInput,
       actorUserId: access.actorUserId,
+      actorRole: access.actorRole,
     });
     revalidatePlanner(area);
     return result;
@@ -345,6 +352,7 @@ export async function syncPlannerWeekDraftAction(
         weekKey: recoveredParsed.data.weekKey,
         days: recoveredParsed.data.days as WeeklyDraftInput,
         actorUserId: access.actorUserId,
+        actorRole: access.actorRole,
       });
       revalidatePlanner(area);
       return result;
@@ -362,6 +370,7 @@ export async function syncPlannerWeekDraftAction(
       weekKey: parsed.data.weekKey,
       days: parsed.data.days as WeeklyDraftInput,
       actorUserId: access.actorUserId,
+      actorRole: access.actorRole,
     });
     revalidatePlanner(area);
     return result;

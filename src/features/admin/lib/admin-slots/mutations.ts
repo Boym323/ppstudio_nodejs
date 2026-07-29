@@ -1,8 +1,10 @@
 import {
+  AvailabilityAuditOperation,
   AvailabilitySlotServiceRestrictionMode,
   AvailabilitySlotStatus,
   Prisma,
 } from "@prisma/client";
+import { randomUUID } from "node:crypto";
 
 import { type AdminArea } from "@/config/navigation";
 import { prisma } from "@/lib/prisma";
@@ -38,6 +40,36 @@ import {
 const PLANNER_TRANSACTION_MAX_RETRIES = 4;
 const PLANNER_TRANSACTION_RETRY_DELAY_MS = 40;
 const PLANNER_BOOKING_STATUSES = ["PENDING", "CONFIRMED", "COMPLETED"] as const;
+const AVAILABILITY_TIME_ZONE = "Europe/Prague";
+
+type AuditContext = { actorUserId: string | null; actorRole?: "OWNER" | "SALON" | null; adminArea?: string; operationId: string; revertedOperationId?: string | null; operation: AvailabilityAuditOperation; source: string };
+
+function slotSnapshot(slot: Awaited<ReturnType<typeof getEditableDayState>>["editableSlots"][number]) {
+  return { id: slot.id, startsAt: slot.startsAt.toISOString(), endsAt: slot.endsAt.toISOString(), status: slot.status, bookingCount: slot.bookings.length };
+}
+
+function intervalSnapshot(intervals: TimeRange[]) {
+  return intervals.map((interval) => ({ startsAt: interval.startsAt.toISOString(), endsAt: interval.endsAt.toISOString() }));
+}
+
+async function writeAvailabilityAudit(tx: Prisma.TransactionClient, dateKey: string, state: Awaited<ReturnType<typeof getEditableDayState>>, nextIntervals: TimeRange[], audit: AuditContext) {
+  const removed = state.editableSlots.map((slot) => ({ ...slotSnapshot(slot), disposition: slot.bookings.length ? "archived" : "deleted" }));
+  await tx.availabilityAuditEvent.create({ data: {
+    actorUserId: audit.actorUserId,
+    actorRole: audit.actorRole,
+    adminArea: audit.adminArea ?? null,
+    dateKey,
+    timeZone: AVAILABILITY_TIME_ZONE,
+    operation: audit.operation,
+    source: audit.source,
+    operationId: audit.operationId,
+    revertedOperationId: audit.revertedOperationId ?? null,
+    before: { intervals: intervalSnapshot(state.editableIntervals), slots: state.editableSlots.map(slotSnapshot) },
+    after: { intervals: intervalSnapshot(nextIntervals) },
+    createdSlots: intervalSnapshot(nextIntervals),
+    archivedOrRemovedSlots: removed,
+  } });
+}
 
 function ensureValidPlannerWeekDate(weekKey: string, dateKey: string) {
   if (!isValidDateKey(weekKey) || !isValidDateKey(dateKey) || !isDateKeyInWeek(dateKey, weekKey)) {
@@ -225,6 +257,7 @@ async function replaceDayWithIntervals(
   options: {
     lockedConflict?: "reject" | "preserve";
     conflictMessage?: string;
+    audit: AuditContext;
   } = {},
 ) {
   const state = await getEditableDayState(tx, dateKey);
@@ -265,6 +298,7 @@ async function replaceDayWithIntervals(
       })),
     });
   }
+  await writeAvailabilityAudit(tx, dateKey, state, merged, options.audit);
 }
 
 async function readEditableIntervalsForDate(tx: Prisma.TransactionClient, dateKey: string) {
@@ -281,6 +315,9 @@ export async function applyAvailabilitySelection(
     endCell: number;
     mode: "add" | "remove";
     actorUserId: string | null;
+    actorRole?: "OWNER" | "SALON" | null;
+    operationId?: string;
+    revertedOperationId?: string | null;
   },
 ): Promise<PlannerMutationResult> {
   ensureValidPlannerWeekDate(input.weekKey, input.dateKey);
@@ -293,6 +330,7 @@ export async function applyAvailabilitySelection(
 
   const selection = getCellRangeBounds(input.dateKey, input.startCell, input.endCell);
 
+  const operationId = input.operationId ?? randomUUID();
   await runPlannerTransaction(async (tx) => {
     const state = await getEditableDayState(tx, input.dateKey);
 
@@ -329,6 +367,7 @@ export async function applyAvailabilitySelection(
         })),
       });
     }
+    await writeAvailabilityAudit(tx, input.dateKey, state, nextIntervals, { actorUserId: input.actorUserId, actorRole: input.actorRole, adminArea: area, operationId, revertedOperationId: input.revertedOperationId, operation: input.revertedOperationId ? AvailabilityAuditOperation.UNDO : input.mode === "add" ? AvailabilityAuditOperation.ADD : AvailabilityAuditOperation.REMOVE, source: input.revertedOperationId ? "planner-undo-v1" : "planner-selection-v1" });
   });
 
   return {
@@ -338,6 +377,7 @@ export async function applyAvailabilitySelection(
         ? "Dostupnost byla upravená a sousední půlhodiny jsme spojili do souvislých oken."
         : "Dostupnost byla odebraná. Zbylé úseky zůstaly uložené jako čisté souvislé intervaly.",
     weekKey: input.weekKey,
+    operationId,
   };
 }
 
@@ -346,21 +386,26 @@ export async function clearPlannerDay(
   input: {
     weekKey: string;
     dateKey: string;
+    actorUserId: string | null;
+    actorRole?: "OWNER" | "SALON" | null;
   },
 ): Promise<PlannerMutationResult> {
   ensureValidPlannerWeekDate(input.weekKey, input.dateKey);
+  const operationId = randomUUID();
   await runPlannerTransaction(async (tx) => {
     const state = await getEditableDayState(tx, input.dateKey);
 
     if (state.editableSlots.length > 0) {
       await removeEditableSlots(tx, state.editableSlots);
     }
+    await writeAvailabilityAudit(tx, input.dateKey, state, [], { actorUserId: input.actorUserId, actorRole: input.actorRole, adminArea: area, operationId, operation: AvailabilityAuditOperation.CLEAR, source: "planner-clear-day-v1" });
   });
 
   return {
     ok: true,
     message: "Den je nastavený jako zavřeno. Rezervace a omezené intervaly zůstaly beze změny.",
     weekKey: input.weekKey,
+    operationId,
   };
 }
 
@@ -370,6 +415,7 @@ export async function copyPlannerWeek(
     sourceWeekKey: string;
     targetWeekKey: string;
     actorUserId: string | null;
+    actorRole?: "OWNER" | "SALON" | null;
   },
 ): Promise<PlannerMutationResult> {
   ensureValidPlannerWeek(input.sourceWeekKey);
@@ -377,6 +423,7 @@ export async function copyPlannerWeek(
   const sourceWeekStart = resolveWeekStart(input.sourceWeekKey);
   const targetWeekStart = resolveWeekStart(input.targetWeekKey);
 
+  const operationId = randomUUID();
   await runPlannerTransaction(async (tx) => {
     for (let index = 0; index < 7; index += 1) {
       const sourceDateKey = formatDateKey(addDays(sourceWeekStart, index));
@@ -388,6 +435,7 @@ export async function copyPlannerWeek(
         input.actorUserId,
         targetDateKey,
         sourceIntervals.map((interval) => moveIntervalToDateKey(interval, targetDateKey)),
+        { audit: { actorUserId: input.actorUserId, actorRole: input.actorRole, adminArea: area, operationId, operation: AvailabilityAuditOperation.COPY_WEEK, source: "planner-copy-week-v1" } },
       );
     }
   });
@@ -396,6 +444,7 @@ export async function copyPlannerWeek(
     ok: true,
     message: "Celý týden jsme přenesli do cílového týdne. Kopírují se jen běžné volné intervaly, ne rezervace.",
     weekKey: input.targetWeekKey,
+    operationId,
   };
 }
 
@@ -405,11 +454,13 @@ export async function applyWeeklyTemplate(
     weekKey: string;
     template: WeeklyTemplateInput;
     actorUserId: string | null;
+    actorRole?: "OWNER" | "SALON" | null;
   },
 ): Promise<PlannerMutationResult> {
   ensureValidPlannerWeek(input.weekKey);
   const weekStart = resolveWeekStart(input.weekKey);
 
+  const operationId = randomUUID();
   await runPlannerTransaction(async (tx) => {
     for (const dayTemplate of input.template) {
       if (dayTemplate.weekday < 0 || dayTemplate.weekday > 6) {
@@ -428,7 +479,7 @@ export async function applyWeeklyTemplate(
         return getCellRangeBounds(dateKey, interval.startCell, interval.endCell);
       });
 
-      await replaceDayWithIntervals(tx, input.actorUserId, dateKey, intervals);
+      await replaceDayWithIntervals(tx, input.actorUserId, dateKey, intervals, { audit: { actorUserId: input.actorUserId, actorRole: input.actorRole, adminArea: area, operationId, operation: AvailabilityAuditOperation.APPLY_TEMPLATE, source: "planner-week-template-v1" } });
     }
   });
 
@@ -436,6 +487,7 @@ export async function applyWeeklyTemplate(
     ok: true,
     message: "Týdenní šablona byla použitá na právě otevřený týden.",
     weekKey: input.weekKey,
+    operationId,
   };
 }
 
@@ -445,6 +497,7 @@ export async function syncPlannerWeekDraft(
     weekKey: string;
     days: WeeklyDraftInput;
     actorUserId: string | null;
+    actorRole?: "OWNER" | "SALON" | null;
   },
 ): Promise<PlannerMutationResult> {
   ensureValidPlannerWeek(input.weekKey);
@@ -453,6 +506,7 @@ export async function syncPlannerWeekDraft(
     Array.from({ length: 7 }, (_, index) => formatDateKey(addDays(weekStart, index))),
   );
 
+  const operationId = randomUUID();
   await runPlannerTransaction(async (tx) => {
     for (const day of input.days) {
       if (!isValidDateKey(day.dateKey) || !allowedDateKeys.has(day.dateKey)) {
@@ -472,6 +526,7 @@ export async function syncPlannerWeekDraft(
 
       await replaceDayWithIntervals(tx, input.actorUserId, day.dateKey, intervals, {
         lockedConflict: "preserve",
+        audit: { actorUserId: input.actorUserId, actorRole: input.actorRole, adminArea: area, operationId, operation: AvailabilityAuditOperation.SYNC_DRAFT, source: "planner-week-draft-v1" },
       });
     }
   });
@@ -480,5 +535,6 @@ export async function syncPlannerWeekDraft(
     ok: true,
     message: "Změny týdne byly publikované do dostupností.",
     weekKey: input.weekKey,
+    operationId,
   };
 }

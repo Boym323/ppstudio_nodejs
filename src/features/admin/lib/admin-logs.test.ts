@@ -6,6 +6,7 @@ import test from "node:test";
 
 import {
   buildBookingHistoryWhere,
+  buildAvailabilityAuditWhere,
   buildEmailLogWhere,
   buildVoucherWhere,
   getAdminLogPageMeta,
@@ -55,6 +56,12 @@ test("query builder booking historie hledá v důvodu, poznámce a rezervaci", (
   assert.deepEqual(where.OR?.[1], { note: { contains: "abc", mode: "insensitive" } });
 });
 
+test("query builder auditu dostupnosti hledá den, zdroj, operaci i autora", () => {
+  const where = buildAvailabilityAuditWhere("Pavlína");
+  assert.equal(where.OR?.length, 4);
+  assert.deepEqual(where.OR?.[3], { actorUser: { is: { name: { contains: "Pavlína", mode: "insensitive" } } } });
+});
+
 test("query builder voucheru hledá kód, jména a e-mail", () => {
   const where = buildVoucherWhere("dar");
   assert.equal(where.OR?.length, 4);
@@ -84,7 +91,7 @@ test("přesný total určuje pageCount, rozsah i normalizaci stránky", () => {
 
 test("findMany a count sdílejí stejné where proměnné", async () => {
   const source = await readFile(new URL("./admin-data.ts", import.meta.url), "utf8");
-  for (const whereName of ["emailWhere", "bookingHistoryWhere", "rescheduleWhere", "voucherWhere", "redemptionWhere", "submissionWhere"]) {
+  for (const whereName of ["emailWhere", "bookingHistoryWhere", "rescheduleWhere", "voucherWhere", "redemptionWhere", "availabilityWhere", "submissionWhere"]) {
     assert.ok(source.includes(`findMany({ where: ${whereName}`));
     assert.ok(source.includes(`count({ where: ${whereName}`));
   }
@@ -100,4 +107,5 @@ test("mobilní drawer zachová view a formuláře neposílají page", async () =
   const source = await readFile(new URL("../components/admin-logs-page.tsx", import.meta.url), "utf8");
   assert.ok(source.includes('name="view" value={data.view}'));
   assert.equal(source.includes('name="page"'), false);
+  assert.ok(source.includes('value="availability">Dostupnost'));
 });

@@ -1,5 +1,5 @@
 export type PlannerLabSaveResult =
-  | { ok: true }
+  | { ok: true; operationId?: string }
   | { ok: false; message: string };
 
 /** Serializuje dílčí autosave změny v pořadí, v němž vznikly. */
@@ -10,7 +10,7 @@ export class PlannerLabSaveQueue<T> {
   constructor(
     private readonly save: (value: T) => Promise<PlannerLabSaveResult>,
     private readonly onSavingChange: (saving: boolean) => void,
-    private readonly onSaved: (value: T) => void,
+    private readonly onSaved: (value: T, result: Extract<PlannerLabSaveResult, { ok: true }>) => void,
     private readonly onDrained: () => void,
     private readonly onError: (message: string) => void,
   ) {}
@@ -50,7 +50,7 @@ export class PlannerLabSaveQueue<T> {
       }
 
       this.queued.shift();
-      this.onSaved(value);
+      this.onSaved(value, result);
     }
 
     this.saving = false;

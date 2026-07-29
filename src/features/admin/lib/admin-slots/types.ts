@@ -88,6 +88,7 @@ export type PlannerMutationResult = {
   ok: boolean;
   message: string;
   weekKey: string;
+  operationId?: string;
 };
 
 export type WeeklyTemplateInput = Array<{
