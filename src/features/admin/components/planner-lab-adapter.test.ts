@@ -32,6 +32,7 @@ test("adaptér mapuje jednotlivé typy eventů se stabilními ID", () => {
   assert.equal(events.find((event) => event.extendedProps.type === "cleanup")?.display, "block");
   assert.equal(events.find((event) => event.extendedProps.type === "protected")?.display, "background");
   assert.equal(events.find((event) => event.extendedProps.type === "booking")?.display, "block");
+  assert.equal(events.find((event) => event.extendedProps.type === "booking")?.extendedProps.bookingId, "booking-1");
 });
 
 test("adaptér zachová dostupnost jako background event i po změně aktuálního stavu", () => {

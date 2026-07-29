@@ -81,6 +81,7 @@ test.describe("produkční FullCalendar planner", () => {
     await page.goto(`/admin/volne-terminy?week=${plannerDate}`);
 
     await expect(page.getByTestId("fullcalendar-planner")).toBeVisible();
+    await expect(page.getByLabel("Legenda kalendáře")).toContainText("Volný termín");
     await expect(page.locator(".planner-lab-event--availability").first()).toBeVisible();
 
     await page.getByRole("button", { name: "Následující týden" }).click();
@@ -109,7 +110,7 @@ test.describe("produkční FullCalendar planner", () => {
     await expect(page).toHaveURL(/week=2027-03-29&day=2027-03-29/);
   });
 
-  test("adds availability by clicking an empty calendar cell", async ({ page }) => {
+  test("prohlížení nemění dostupnost a přidávací režim ji uloží s undo", async ({ page }) => {
     test.skip(test.info().project.name !== "chromium", "Kliknutí do časové mřížky je pokryté desktopovým workflow.");
 
     const runId = buildRunId();
@@ -128,16 +129,21 @@ test.describe("produkční FullCalendar planner", () => {
     expect(slotBox).not.toBeNull();
 
     await page.mouse.click(dayBox!.x + dayBox!.width / 2, slotBox!.y + slotBox!.height / 2);
+    const expectedRange = getCellRangeBounds(plannerDate, 6, 9);
+    await expect.poll(async () => prisma.availabilitySlot.count({ where: { createdByUserId: owner.id, startsAt: expectedRange.startsAt, endsAt: expectedRange.endsAt } })).toBe(0);
+
+    await page.getByRole("button", { name: "Přidat termín" }).click();
+    await page.mouse.click(dayBox!.x + dayBox!.width / 2, slotBox!.y + slotBox!.height / 2);
     await expect(page.getByRole("status")).toHaveText("Uloženo");
 
-    const expectedRange = getCellRangeBounds(plannerDate, 6, 9);
     await expect.poll(async () => prisma.availabilitySlot.count({
       where: {
         createdByUserId: owner.id,
         startsAt: expectedRange.startsAt,
-        endsAt: expectedRange.endsAt,
       },
     })).toBe(1);
+    await page.getByRole("button", { name: "Vrátit změnu" }).click();
+    await expect.poll(async () => prisma.availabilitySlot.count({ where: { createdByUserId: owner.id, startsAt: expectedRange.startsAt, endsAt: expectedRange.endsAt } })).toBe(0);
   });
 
   test("keeps the selected local time after the switch to daylight saving time", async ({ page }) => {
@@ -159,6 +165,7 @@ test.describe("produkční FullCalendar planner", () => {
     expect(dayBox).not.toBeNull();
     expect(slotBox).not.toBeNull();
 
+    await page.getByRole("button", { name: "Přidat termín" }).click();
     await page.mouse.click(dayBox!.x + dayBox!.width / 2, slotBox!.y + slotBox!.height / 2);
     await expect(page.getByRole("status")).toHaveText("Uloženo");
 

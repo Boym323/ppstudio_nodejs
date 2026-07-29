@@ -18,7 +18,7 @@ export type PlannerLabEvent = {
   display: "background" | "block";
   color: string;
   className: string;
-  extendedProps: { type: PlannerLabEventType; editable: boolean; dateKey: string; startCell: number; endCell: number; clientName?: string; serviceName?: string };
+  extendedProps: { type: PlannerLabEventType; editable: boolean; dateKey: string; startCell: number; endCell: number; bookingId?: string; clientName?: string; serviceName?: string };
 };
 
 function toIsoRange(dateKey: string, startCell: number, endCell: number) {
@@ -114,6 +114,7 @@ export function plannerWeekToFullCalendarEvents(
           dateKey: day.dateKey,
           startCell: serviceStartCell,
           endCell: serviceEndCell,
+          bookingId: booking.id,
           clientName: booking.clientName,
           serviceName: booking.serviceName,
         },

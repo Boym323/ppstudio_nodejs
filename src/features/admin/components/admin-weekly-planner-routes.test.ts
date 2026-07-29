@@ -23,6 +23,14 @@ test("hlavní routy OWNER a SALON používají stejný produkční planner", asy
   assert.match(plannerPage, /<AdminWeeklyPlannerClient/);
 });
 
+test("dnešní den je výchozí jen pro mobilní jednodenní pohled", async () => {
+  const source = await readFile(new URL("./admin-weekly-planner-lab-page.tsx", import.meta.url), "utf8");
+  const client = await readFile(new URL("./admin-weekly-planner-lab-client.tsx", import.meta.url), "utf8");
+  assert.match(source, /const initialDate = hasInitialDay \? day! : data\.weekKey/);
+  assert.match(client, /compact && !hasInitialDay/);
+  assert.match(client, /data\.todayKey/);
+});
+
 test("dashboard vede přímo do hlavního planneru bez route /novy", async () => {
   const dashboard = await source("src/features/admin/lib/admin-dashboard.ts");
 

@@ -196,7 +196,7 @@ dbTest("applyAvailabilitySelection odmítne zásah do rezervovaného intervalu a
   }
 });
 
-dbTest("applyAvailabilitySelection znovu ověří rezervaci vytvořenou po načtení planneru", async () => {
+dbTest("undo přes opačnou serverovou operaci odmítne rezervaci vytvořenou po původní změně", async () => {
   const seed = await createSeed();
   const { prisma, applyAvailabilitySelection, getAdminPlannerWeek, getCellRangeBounds } = await loadModules();
   let concurrentBookingId: string | null = null;
