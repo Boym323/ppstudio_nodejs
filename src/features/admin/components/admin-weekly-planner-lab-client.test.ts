@@ -12,7 +12,7 @@ test("planner začíná v bezpečném režimu prohlížení a změny vyžadují 
   const source = await clientSource();
   assert.match(source, /useState<PlannerMode>\("view"\)/);
   assert.match(source, /selectable=\{canEdit && mode !== "view"\}/);
-  assert.match(source, /if \(mode !== "view"\) updateAvailabilityRange/);
+  assert.match(source, /mode !== "view" && start && end/);
   assert.match(source, /aria-pressed=\{mode === item\}/);
   assert.match(source, /Přidat termín/);
   assert.match(source, /Odebrat termín/);
@@ -56,4 +56,12 @@ test("kompaktní pohled nabízí Den, Po–Pá a Víkend a zachová mobilní scr
   assert.match(source, /calendar\?\.changeView\(nextView, targetDate\)/);
   assert.match(source, /function rememberScrollPosition/);
   assert.match(source, /scrollTimeReset=\{false\}/);
+});
+
+test("výběr buněk zachová lokální čas FullCalendaru i po změně letního času", async () => {
+  const source = await clientSource();
+  assert.match(source, /function getCalendarCellPosition\(dateTime: string\)/);
+  assert.match(source, /getCalendarCellPosition\(info\.startStr\)/);
+  assert.match(source, /getCalendarCellPosition\(info\.endStr\)/);
+  assert.match(source, /getCalendarCellPosition\(info\.dateStr\)/);
 });

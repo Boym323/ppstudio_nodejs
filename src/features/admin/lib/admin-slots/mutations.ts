@@ -258,7 +258,7 @@ async function replaceDayWithIntervals(
     lockedConflict?: "reject" | "preserve";
     conflictMessage?: string;
     audit: AuditContext;
-  } = {},
+  },
 ) {
   const state = await getEditableDayState(tx, dateKey);
   const lockedConflict = options.lockedConflict ?? "reject";
