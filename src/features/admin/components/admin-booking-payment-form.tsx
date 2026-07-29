@@ -1,7 +1,7 @@
 "use client";
 
 import { BookingPaymentMethod } from "@prisma/client";
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useRef } from "react";
 import { useFormStatus } from "react-dom";
 
 import {
@@ -39,17 +39,16 @@ export function AdminBookingPaymentForm({
   bookingId,
   defaultAmountCzk,
 }: AdminBookingPaymentFormProps) {
-  const [serverState, formAction] = useActionState(
-    createBookingPaymentAction,
-    initialCreateBookingPaymentActionState,
-  );
-  const [idempotencyKey, setIdempotencyKey] = useState(createIdempotencyKey);
+  const idempotencyKeyRef = useRef(createIdempotencyKey());
+  const [serverState, formAction] = useActionState(async (previousState, formData) => {
+    const result = await createBookingPaymentAction(previousState, formData);
 
-  useEffect(() => {
-    if (serverState.status === "success") {
-      setIdempotencyKey(createIdempotencyKey());
+    if (result.status === "success") {
+      idempotencyKeyRef.current = createIdempotencyKey();
     }
-  }, [serverState.status]);
+
+    return result;
+  }, initialCreateBookingPaymentActionState);
 
   return (
     <details
@@ -67,7 +66,7 @@ export function AdminBookingPaymentForm({
       <form action={formAction} className="space-y-2.5 border-t border-white/8 px-3 py-2.5">
         <input type="hidden" name="area" value={area} />
         <input type="hidden" name="bookingId" value={bookingId} />
-        <input type="hidden" name="idempotencyKey" value={idempotencyKey} />
+        <input type="hidden" name="idempotencyKey" value={idempotencyKeyRef.current} />
 
         {serverState.status === "success" && serverState.successMessage ? (
           <div className="max-w-full break-words rounded-[0.9rem] border border-emerald-300/16 bg-emerald-400/10 px-3 py-2 text-sm leading-5 text-emerald-50">

@@ -1,7 +1,7 @@
 "use client";
 
 import { type ReactNode } from "react";
-import { useActionState, useEffect, useMemo, useRef, useState } from "react";
+import { useActionState, useMemo, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { VoucherType } from "@prisma/client";
 
@@ -53,11 +53,16 @@ export function AdminBookingStatusForm({
     updateBookingStatusAction,
     initialUpdateBookingStatusActionState,
   );
-  const [completeState, completeAction] = useActionState(
-    completeBookingVisitAction,
-    initialCompleteBookingVisitActionState,
-  );
-  const [completionIdempotencyKey, setCompletionIdempotencyKey] = useState(createIdempotencyKey);
+  const completionIdempotencyKeyRef = useRef(createIdempotencyKey());
+  const [completeState, completeAction] = useActionState(async (previousState, formData) => {
+    const result = await completeBookingVisitAction(previousState, formData);
+
+    if (result.status === "success") {
+      completionIdempotencyKeyRef.current = createIdempotencyKey();
+    }
+
+    return result;
+  }, initialCompleteBookingVisitActionState);
   const [completionMode, setCompletionMode] = useState<
     "cash" | "qr" | "voucher" | "combined" | "no_payment" | "settled"
   >("cash");
@@ -74,12 +79,6 @@ export function AdminBookingStatusForm({
   const selectedActionOption = availableActions.find((action) => action.value === selectedAction);
   const hasRemainingPayment = remainingPaymentCzk > 0;
   const helperText = useMemo(() => getClosedStateHelper(bookingStatus), [bookingStatus]);
-
-  useEffect(() => {
-    if (completeState.status === "success") {
-      setCompletionIdempotencyKey(createIdempotencyKey());
-    }
-  }, [completeState.status]);
 
   async function handleLoadVoucherInfo() {
     const normalizedCode = voucherCodeInput.trim();
@@ -206,7 +205,7 @@ export function AdminBookingStatusForm({
     >
       <input type="hidden" name="area" value={area} />
       <input type="hidden" name="bookingId" value={bookingId} />
-      <input type="hidden" name="idempotencyKey" value={completionIdempotencyKey} />
+      <input type="hidden" name="idempotencyKey" value={completionIdempotencyKeyRef.current} />
       <input type="hidden" name="targetStatus" value={selectedAction} />
 
       {serverState.status === "success" && serverState.successMessage ? (
