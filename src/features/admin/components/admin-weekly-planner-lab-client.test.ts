@@ -24,6 +24,11 @@ test("lab automaticky přidává do prázdných buněk a odebírá ze zelených 
   assert.doesNotMatch(source, />Přidat</);
   assert.doesNotMatch(source, />Odebrat</);
   assert.match(source, /const canEdit = !isWeekLoading && !saveError/);
+  assert.match(source, /function retrySave\(\) \{ setSaveError\(null\); setMessage\("Ukládám…"\); saveQueueRef\.current\?\.retry\(\); \}/);
+  assert.match(source, />Zkusit znovu</);
+  assert.match(source, /function restoreSavedState\(\) \{ saveQueueRef\.current\?\.discardPending\(\);/);
+  assert.match(source, /restoreRequestedRef\.current = true; router\.refresh\(\);/);
+  assert.match(source, />Obnovit uložený stav</);
 });
 
 test("lab blokuje navigaci při ukládání a při změně týdne obnoví data kalendáře", async () => {
@@ -33,8 +38,8 @@ test("lab blokuje navigaci při ukládání a při změně týdne obnoví data k
   assert.match(source, /requestWeek\(getPlannerLabWeekStart\(new Date\(\)\), today\)/);
   assert.match(source, /calendarRef\.current\?\.getApi\(\)\.gotoDate\(focusDate\)/);
   assert.match(source, /setOpenWeekStart\(nextWeekStart\); calendarRef/);
-  assert.match(source, /data\.weekKey !== requestedWeekRef\.current \|\| data\.weekKey === hydratedWeekRef\.current/);
-  assert.match(source, /data\.weekKey === hydratedWeekRef\.current/);
+  assert.match(source, /data\.weekKey !== requestedWeekRef\.current \|\| \(data\.weekKey === hydratedWeekRef\.current && !restoreRequestedRef\.current\)/);
+  assert.match(source, /restoreRequestedRef\.current = false;/);
   assert.match(source, /routeBase = "\/admin\/volne-terminy\/lab"/);
   assert.match(source, /router\.replace\(`\$\{routeBase\}\?week=/);
   assert.match(source, /isPlannerLabMobileViewport\(window\.innerWidth\)/);

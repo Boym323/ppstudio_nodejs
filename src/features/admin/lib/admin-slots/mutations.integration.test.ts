@@ -85,6 +85,32 @@ dbTest("applyAvailabilitySelection odebere jedinou půlhodinu z volného okna", 
   }
 });
 
+dbTest("applyAvailabilitySelection je idempotentní při opakovaném přidání i odebrání", async () => {
+  const seed = await createSeed();
+  const { getAdminPlannerWeek, applyAvailabilitySelection } = await loadModules();
+
+  try {
+    const input = {
+      weekKey: seed.weekKey,
+      dateKey: seed.dateKey,
+      startCell: 16,
+      endCell: 18,
+      actorUserId: seed.actorUserId,
+    };
+    await applyAvailabilitySelection("owner", { ...input, mode: "add" });
+    await applyAvailabilitySelection("owner", { ...input, mode: "add" });
+    await applyAvailabilitySelection("owner", { ...input, mode: "remove" });
+    await applyAvailabilitySelection("owner", { ...input, mode: "remove" });
+
+    const week = await getAdminPlannerWeek("owner", seed.weekKey);
+    const day = week.days.find((item) => item.dateKey === seed.dateKey);
+    assert.ok(day);
+    assert.ok(!day.availableIntervals.some((interval) => interval.startCell < 18 && interval.endCell > 16));
+  } finally {
+    await cleanupSeed(seed);
+  }
+});
+
 async function findIsolatedPlannerDateKey() {
   const { prisma, addDays, formatDateKey, getDayBounds, resolveWeekStart } = await loadModules();
   const searchStart = addDays(resolveWeekStart(), 21);
