@@ -9,7 +9,10 @@ import {
   completeBookingVisitAction,
   updateBookingStatusAction,
 } from "@/features/admin/actions/booking-actions";
-import { initialCompleteBookingVisitActionState } from "@/features/admin/actions/complete-booking-visit-action-state";
+import {
+  initialCompleteBookingVisitActionState,
+  type CompleteBookingVisitActionState,
+} from "@/features/admin/actions/complete-booking-visit-action-state";
 import { initialUpdateBookingStatusActionState } from "@/features/admin/actions/update-booking-status-action-state";
 import {
   type AdminBookingActionOption,
@@ -53,12 +56,15 @@ export function AdminBookingStatusForm({
     updateBookingStatusAction,
     initialUpdateBookingStatusActionState,
   );
-  const completionIdempotencyKeyRef = useRef(createIdempotencyKey());
-  const [completeState, completeAction] = useActionState(async (previousState, formData) => {
+  const [completionIdempotencyKey, setCompletionIdempotencyKey] = useState(createIdempotencyKey);
+  const [completeState, completeAction] = useActionState(async (
+    previousState: CompleteBookingVisitActionState,
+    formData: FormData,
+  ) => {
     const result = await completeBookingVisitAction(previousState, formData);
 
     if (result.status === "success") {
-      completionIdempotencyKeyRef.current = createIdempotencyKey();
+      setCompletionIdempotencyKey(createIdempotencyKey());
     }
 
     return result;
@@ -205,7 +211,7 @@ export function AdminBookingStatusForm({
     >
       <input type="hidden" name="area" value={area} />
       <input type="hidden" name="bookingId" value={bookingId} />
-      <input type="hidden" name="idempotencyKey" value={completionIdempotencyKeyRef.current} />
+      <input type="hidden" name="idempotencyKey" value={completionIdempotencyKey} />
       <input type="hidden" name="targetStatus" value={selectedAction} />
 
       {serverState.status === "success" && serverState.successMessage ? (

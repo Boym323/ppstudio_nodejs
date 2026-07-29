@@ -1,7 +1,7 @@
 "use client";
 
 import { BookingPaymentMethod } from "@prisma/client";
-import { useActionState, useRef } from "react";
+import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 
 import {
@@ -11,6 +11,7 @@ import {
 import {
   initialCreateBookingPaymentActionState,
   initialDeleteBookingPaymentActionState,
+  type CreateBookingPaymentActionState,
 } from "@/features/bookings/actions/booking-payment-action-state";
 import { BOOKING_PAYMENT_METHOD_LABELS } from "@/features/bookings/lib/booking-payment-summary";
 import { type AdminBookingDetailData } from "@/features/admin/lib/admin-booking";
@@ -39,12 +40,15 @@ export function AdminBookingPaymentForm({
   bookingId,
   defaultAmountCzk,
 }: AdminBookingPaymentFormProps) {
-  const idempotencyKeyRef = useRef(createIdempotencyKey());
-  const [serverState, formAction] = useActionState(async (previousState, formData) => {
+  const [idempotencyKey, setIdempotencyKey] = useState(createIdempotencyKey);
+  const [serverState, formAction] = useActionState(async (
+    previousState: CreateBookingPaymentActionState,
+    formData: FormData,
+  ) => {
     const result = await createBookingPaymentAction(previousState, formData);
 
     if (result.status === "success") {
-      idempotencyKeyRef.current = createIdempotencyKey();
+      setIdempotencyKey(createIdempotencyKey());
     }
 
     return result;
@@ -66,7 +70,7 @@ export function AdminBookingPaymentForm({
       <form action={formAction} className="space-y-2.5 border-t border-white/8 px-3 py-2.5">
         <input type="hidden" name="area" value={area} />
         <input type="hidden" name="bookingId" value={bookingId} />
-        <input type="hidden" name="idempotencyKey" value={idempotencyKeyRef.current} />
+        <input type="hidden" name="idempotencyKey" value={idempotencyKey} />
 
         {serverState.status === "success" && serverState.successMessage ? (
           <div className="max-w-full break-words rounded-[0.9rem] border border-emerald-300/16 bg-emerald-400/10 px-3 py-2 text-sm leading-5 text-emerald-50">
