@@ -31,11 +31,16 @@ const czkFormatter = new Intl.NumberFormat("cs-CZ", {
 type AdminBookingStatusFormProps = {
   area: AdminArea;
   bookingId: string;
-  bookingStatus: "PENDING" | "CONFIRMED" | "COMPLETED" | "CANCELLED" | "NO_SHOW";
+  bookingStatus:
+    "PENDING" | "CONFIRMED" | "COMPLETED" | "CANCELLED" | "NO_SHOW";
   availableActions: AdminBookingActionOption[];
   initialVoucherCode?: string;
   secondaryActionSlot?: ReactNode;
   remainingPaymentCzk?: number;
+  totalPriceCzk?: number;
+  directPaidCzk?: number;
+  voucherPaidCzk?: number;
+  overpaidCzk?: number;
 };
 
 export function AdminBookingStatusForm({
@@ -46,29 +51,41 @@ export function AdminBookingStatusForm({
   initialVoucherCode = "",
   secondaryActionSlot,
   remainingPaymentCzk = 0,
+  totalPriceCzk = 0,
+  directPaidCzk = 0,
+  voucherPaidCzk = 0,
+  overpaidCzk = 0,
 }: AdminBookingStatusFormProps) {
-  const operationalActions = availableActions.filter((action) => action.value !== "CANCELLED");
-  const dangerAction = availableActions.find((action) => action.value === "CANCELLED");
-  const [selectedAction, setSelectedAction] = useState<AdminBookingActionValue | "">(
-    operationalActions[0]?.value ?? dangerAction?.value ?? "",
+  const operationalActions = availableActions.filter(
+    (action) => action.value !== "CANCELLED",
   );
+  const dangerAction = availableActions.find(
+    (action) => action.value === "CANCELLED",
+  );
+  const [selectedAction, setSelectedAction] = useState<
+    AdminBookingActionValue | ""
+  >(operationalActions[0]?.value ?? dangerAction?.value ?? "");
   const [serverState, formAction] = useActionState(
     updateBookingStatusAction,
     initialUpdateBookingStatusActionState,
   );
-  const [completionIdempotencyKey, setCompletionIdempotencyKey] = useState(createIdempotencyKey);
-  const [completeState, completeAction] = useActionState(async (
-    previousState: CompleteBookingVisitActionState,
-    formData: FormData,
-  ) => {
-    const result = await completeBookingVisitAction(previousState, formData);
+  const [completionIdempotencyKey, setCompletionIdempotencyKey] =
+    useState(createIdempotencyKey);
+  const [completeState, completeAction] = useActionState(
+    async (
+      previousState: CompleteBookingVisitActionState,
+      formData: FormData,
+    ) => {
+      const result = await completeBookingVisitAction(previousState, formData);
 
-    if (result.status === "success") {
-      setCompletionIdempotencyKey(createIdempotencyKey());
-    }
+      if (result.status === "success") {
+        setCompletionIdempotencyKey(createIdempotencyKey());
+      }
 
-    return result;
-  }, initialCompleteBookingVisitActionState);
+      return result;
+    },
+    initialCompleteBookingVisitActionState,
+  );
   const [completionMode, setCompletionMode] = useState<
     "cash" | "qr" | "voucher" | "combined" | "no_payment" | "settled"
   >("cash");
@@ -82,9 +99,14 @@ export function AdminBookingStatusForm({
   });
   const voucherLookupRequestIdRef = useRef(0);
   const voucherLookupAbortControllerRef = useRef<AbortController | null>(null);
-  const selectedActionOption = availableActions.find((action) => action.value === selectedAction);
+  const selectedActionOption = availableActions.find(
+    (action) => action.value === selectedAction,
+  );
   const hasRemainingPayment = remainingPaymentCzk > 0;
-  const helperText = useMemo(() => getClosedStateHelper(bookingStatus), [bookingStatus]);
+  const helperText = useMemo(
+    () => getClosedStateHelper(bookingStatus),
+    [bookingStatus],
+  );
 
   async function handleLoadVoucherInfo() {
     const normalizedCode = voucherCodeInput.trim();
@@ -112,19 +134,17 @@ export function AdminBookingStatusForm({
         return;
       }
 
-      const payload = (await response.json().catch(() => null)) as
-        | {
-            status?: string;
-            message?: string;
-            voucher?: {
-              type?: VoucherType;
-              statusLabel?: string;
-              remainingValueCzk?: number | null;
-              serviceNameSnapshot?: string | null;
-              servicePriceSnapshotCzk?: number | null;
-            };
-          }
-        | null;
+      const payload = (await response.json().catch(() => null)) as {
+        status?: string;
+        message?: string;
+        voucher?: {
+          type?: VoucherType;
+          statusLabel?: string;
+          remainingValueCzk?: number | null;
+          serviceNameSnapshot?: string | null;
+          servicePriceSnapshotCzk?: number | null;
+        };
+      } | null;
 
       if (!response.ok || payload?.status !== "success" || !payload.voucher) {
         setVoucherLookup({
@@ -135,9 +155,17 @@ export function AdminBookingStatusForm({
       }
 
       if (payload.voucher.type === VoucherType.VALUE) {
-        const remainingValue = Math.max(0, payload.voucher.remainingValueCzk ?? 0);
-        const recommendedAmount = Math.max(0, Math.min(remainingPaymentCzk, remainingValue));
-        setVoucherAmountInput(recommendedAmount > 0 ? String(recommendedAmount) : "");
+        const remainingValue = Math.max(
+          0,
+          payload.voucher.remainingValueCzk ?? 0,
+        );
+        const recommendedAmount = Math.max(
+          0,
+          Math.min(remainingPaymentCzk, remainingValue),
+        );
+        setVoucherAmountInput(
+          recommendedAmount > 0 ? String(recommendedAmount) : "",
+        );
         setVoucherLookup({
           status: "success",
           message: `Zůstatek voucheru: ${formatCzk(remainingValue)} · Stav: ${payload.voucher.statusLabel}`,
@@ -146,10 +174,12 @@ export function AdminBookingStatusForm({
       }
 
       const servicePriceLabel =
-        payload.voucher.servicePriceSnapshotCzk && payload.voucher.servicePriceSnapshotCzk > 0
+        payload.voucher.servicePriceSnapshotCzk &&
+        payload.voucher.servicePriceSnapshotCzk > 0
           ? ` (${formatCzk(payload.voucher.servicePriceSnapshotCzk)})`
           : "";
-      const serviceName = payload.voucher.serviceNameSnapshot ?? "uložená služba";
+      const serviceName =
+        payload.voucher.serviceNameSnapshot ?? "uložená služba";
       setVoucherLookup({
         status: "success",
         message: `Voucher na službu: ${serviceName}${servicePriceLabel} · Stav: ${payload.voucher.statusLabel}`,
@@ -182,7 +212,9 @@ export function AdminBookingStatusForm({
     return (
       <div className="rounded-[1rem] border border-white/8 bg-white/[0.035] p-3.5">
         <p className="text-sm font-medium text-white">{helperText.title}</p>
-        <p className="mt-1 text-sm leading-5 text-white/62">{helperText.description}</p>
+        <p className="mt-1 text-sm leading-5 text-white/62">
+          {helperText.description}
+        </p>
         <div className="mt-3 flex flex-wrap gap-2">
           <a
             href="#booking-history"
@@ -211,7 +243,11 @@ export function AdminBookingStatusForm({
     >
       <input type="hidden" name="area" value={area} />
       <input type="hidden" name="bookingId" value={bookingId} />
-      <input type="hidden" name="idempotencyKey" value={completionIdempotencyKey} />
+      <input
+        type="hidden"
+        name="idempotencyKey"
+        value={completionIdempotencyKey}
+      />
       <input type="hidden" name="targetStatus" value={selectedAction} />
 
       {serverState.status === "success" && serverState.successMessage ? (
@@ -228,11 +264,11 @@ export function AdminBookingStatusForm({
 
       {operationalActions.length > 0 ? (
         <fieldset className="space-y-2">
-          <legend className="text-sm font-medium text-white">Provozní akce</legend>
+          <legend className="text-sm font-medium text-white">
+            Provozní akce
+          </legend>
 
-          <div
-            className="grid gap-2 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1.1fr)_minmax(0,1fr)]"
-          >
+          <div className="grid gap-2 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1.1fr)_minmax(0,1fr)]">
             {operationalActions.map((action, index) => {
               const isSelected = selectedAction === action.value;
               const isPrimary = index === 0;
@@ -243,10 +279,19 @@ export function AdminBookingStatusForm({
                   type="button"
                   aria-pressed={isSelected}
                   onClick={() => setSelectedAction(action.value)}
-                  className={getActionButtonClassName(action.value, isSelected, isPrimary)}
+                  className={getActionButtonClassName(
+                    action.value,
+                    isSelected,
+                    isPrimary,
+                  )}
                 >
                   <span className="text-left">
-                    <span className={cn("block font-semibold text-white", isPrimary ? "text-base" : "text-sm")}>
+                    <span
+                      className={cn(
+                        "block font-semibold text-white",
+                        isPrimary ? "text-base" : "text-sm",
+                      )}
+                    >
                       {getActionLabel(action)}
                     </span>
                     <span className="mt-1 block text-sm leading-5 text-white/62">
@@ -282,35 +327,61 @@ export function AdminBookingStatusForm({
           </div>
 
           {serverState.fieldErrors?.targetStatus ? (
-            <p className="text-sm text-red-300">{serverState.fieldErrors.targetStatus}</p>
+            <p className="text-sm text-red-300">
+              {serverState.fieldErrors.targetStatus}
+            </p>
           ) : null}
         </fieldset>
       ) : null}
 
       {selectedAction === "COMPLETED" ? (
         <div className="rounded-[0.95rem] border border-white/8 bg-white/[0.03] px-3 py-2.5">
-          <input type="hidden" name="completionMode" value={hasRemainingPayment ? completionMode : "settled"} />
+          <input
+            type="hidden"
+            name="completionMode"
+            value={hasRemainingPayment ? completionMode : "settled"}
+          />
 
           <p className="text-sm font-semibold text-white">Dokončení návštěvy</p>
-          <p className="mt-1 text-sm text-white/72">
-            {hasRemainingPayment
-              ? `Doplatek: ${new Intl.NumberFormat("cs-CZ", {
-                  maximumFractionDigits: 0,
-                  style: "currency",
-                  currency: "CZK",
-                }).format(remainingPaymentCzk)}`
-              : "Platba vyřešena"}
-          </p>
+          <dl className="mt-2 grid gap-1.5 text-sm text-white/72 sm:grid-cols-3">
+            <div>
+              <dt className="text-xs text-white/48">Cena návštěvy</dt>
+              <dd>{formatCzk(totalPriceCzk)}</dd>
+            </div>
+            <div>
+              <dt className="text-xs text-white/48">Dosud uhrazeno</dt>
+              <dd>{formatCzk(directPaidCzk + voucherPaidCzk)}</dd>
+            </div>
+            <div>
+              <dt className="text-xs text-white/48">
+                {overpaidCzk > 0 ? "Přeplatek" : "Zbývá doplatit"}
+              </dt>
+              <dd>
+                {formatCzk(overpaidCzk > 0 ? overpaidCzk : remainingPaymentCzk)}
+              </dd>
+            </div>
+          </dl>
+          {!hasRemainingPayment ? (
+            <p className="mt-2 text-sm font-medium text-emerald-100">
+              Rezervace je plně uhrazena.
+            </p>
+          ) : null}
           <p className="mt-1 text-xs text-white/52">
             Potřebuješ ruční opravu plateb nebo detailní rozpad? Použij sekci{" "}
-            <a href="#booking-voucher" className="underline underline-offset-2 hover:text-white">
+            <a
+              href="#booking-voucher"
+              className="underline underline-offset-2 hover:text-white"
+            >
               Úhrada
             </a>
             .
           </p>
 
           {hasRemainingPayment ? (
-            <div className="mt-2 grid gap-2 sm:grid-cols-2">
+            <div
+              className="mt-2 grid gap-2 sm:grid-cols-2"
+              aria-label="Způsob dokončení návštěvy"
+            >
               {[
                 ["cash", "Hotově"],
                 ["qr", "QR platba"],
@@ -322,7 +393,9 @@ export function AdminBookingStatusForm({
                   key={value}
                   type="button"
                   aria-pressed={completionMode === value}
-                  onClick={() => setCompletionMode(value as typeof completionMode)}
+                  onClick={() =>
+                    setCompletionMode(value as typeof completionMode)
+                  }
                   className={cn(
                     "rounded-[0.8rem] border px-3 py-2 text-left text-sm transition",
                     completionMode === value
@@ -336,7 +409,17 @@ export function AdminBookingStatusForm({
             </div>
           ) : null}
 
-          {(completionMode === "cash" || completionMode === "qr" || completionMode === "combined") && hasRemainingPayment ? (
+          {hasRemainingPayment && completionMode === "no_payment" ? (
+            <p className="mt-2 rounded-[0.8rem] border border-amber-300/20 bg-amber-400/10 px-3 py-2 text-sm leading-5 text-amber-50">
+              Rezervace bude dokončena s neuhrazeným zůstatkem{" "}
+              {formatCzk(remainingPaymentCzk)}.
+            </p>
+          ) : null}
+
+          {(completionMode === "cash" ||
+            completionMode === "qr" ||
+            completionMode === "combined") &&
+          hasRemainingPayment ? (
             <div className="mt-2 grid gap-2 sm:grid-cols-2">
               <label className="block">
                 <span className="text-xs font-medium text-white">Částka</span>
@@ -345,58 +428,84 @@ export function AdminBookingStatusForm({
                   name="directAmountCzk"
                   min={1}
                   step={1}
-                  defaultValue={remainingPaymentCzk > 0 ? remainingPaymentCzk : undefined}
+                  defaultValue={
+                    remainingPaymentCzk > 0 ? remainingPaymentCzk : undefined
+                  }
                   className="mt-1.5 w-full rounded-[0.85rem] border border-white/8 bg-black/20 px-3 py-2 text-sm text-white outline-none focus:border-[var(--color-accent)]/55"
                 />
                 {completeState.fieldErrors?.directAmountCzk ? (
-                  <p className="mt-1 text-xs text-red-300">{completeState.fieldErrors.directAmountCzk}</p>
+                  <p className="mt-1 text-xs text-red-300">
+                    {completeState.fieldErrors.directAmountCzk}
+                  </p>
                 ) : null}
               </label>
               {completionMode === "combined" ? (
                 <label className="block">
-                  <span className="text-xs font-medium text-white">Metoda doplatku mimo voucher</span>
+                  <span className="text-xs font-medium text-white">
+                    Metoda doplatku mimo voucher
+                  </span>
                   <select
                     name="directMethod"
                     defaultValue="CASH"
                     className="mt-1.5 w-full rounded-[0.85rem] border border-white/8 bg-black/20 px-3 py-2 text-sm text-white outline-none focus:border-[var(--color-accent)]/55"
                   >
-                    <option value="CASH" className="bg-neutral-950 text-white">Hotově</option>
-                    <option value="BANK_TRANSFER" className="bg-neutral-950 text-white">Převodem / QR</option>
+                    <option value="CASH" className="bg-neutral-950 text-white">
+                      Hotově
+                    </option>
+                    <option
+                      value="BANK_TRANSFER"
+                      className="bg-neutral-950 text-white"
+                    >
+                      Převodem / QR
+                    </option>
                   </select>
                 </label>
               ) : null}
             </div>
           ) : null}
 
-          {(completionMode === "voucher" || completionMode === "combined") && hasRemainingPayment ? (
+          {(completionMode === "voucher" || completionMode === "combined") &&
+          hasRemainingPayment ? (
             <div className="mt-2 grid gap-2 sm:grid-cols-2">
               <label className="block">
-                <span className="text-xs font-medium text-white">Kód voucheru</span>
+                <span className="text-xs font-medium text-white">
+                  Kód voucheru
+                </span>
                 <input
                   type="text"
                   name="voucherCode"
                   maxLength={64}
                   value={voucherCodeInput}
-                  onChange={(event) => setVoucherCodeInput(event.currentTarget.value)}
+                  onChange={(event) =>
+                    setVoucherCodeInput(event.currentTarget.value)
+                  }
                   className="mt-1.5 w-full rounded-[0.85rem] border border-white/8 bg-black/20 px-3 py-2 text-sm uppercase text-white outline-none focus:border-[var(--color-accent)]/55"
                 />
                 {completeState.fieldErrors?.voucherCode ? (
-                  <p className="mt-1 text-xs text-red-300">{completeState.fieldErrors.voucherCode}</p>
+                  <p className="mt-1 text-xs text-red-300">
+                    {completeState.fieldErrors.voucherCode}
+                  </p>
                 ) : null}
               </label>
               <label className="block">
-                <span className="text-xs font-medium text-white">Částka voucheru</span>
+                <span className="text-xs font-medium text-white">
+                  Částka voucheru
+                </span>
                 <input
                   type="number"
                   name="voucherAmountCzk"
                   min={1}
                   step={1}
                   value={voucherAmountInput}
-                  onChange={(event) => setVoucherAmountInput(event.currentTarget.value)}
+                  onChange={(event) =>
+                    setVoucherAmountInput(event.currentTarget.value)
+                  }
                   className="mt-1.5 w-full rounded-[0.85rem] border border-white/8 bg-black/20 px-3 py-2 text-sm text-white outline-none focus:border-[var(--color-accent)]/55"
                 />
                 {completeState.fieldErrors?.voucherAmountCzk ? (
-                  <p className="mt-1 text-xs text-red-300">{completeState.fieldErrors.voucherAmountCzk}</p>
+                  <p className="mt-1 text-xs text-red-300">
+                    {completeState.fieldErrors.voucherAmountCzk}
+                  </p>
                 ) : null}
               </label>
               <div className="sm:col-span-2">
@@ -406,13 +515,17 @@ export function AdminBookingStatusForm({
                   disabled={voucherLookup.status === "loading"}
                   className="rounded-full border border-white/18 px-3 py-1.5 text-xs font-semibold text-white/82 transition hover:border-white/30 hover:bg-white/8 disabled:cursor-not-allowed disabled:opacity-70"
                 >
-                  {voucherLookup.status === "loading" ? "Načítám voucher..." : "Načíst voucher"}
+                  {voucherLookup.status === "loading"
+                    ? "Načítám voucher..."
+                    : "Načíst voucher"}
                 </button>
                 {voucherLookup.message ? (
                   <p
                     className={cn(
                       "mt-1.5 text-xs",
-                      voucherLookup.status === "error" ? "text-red-300" : "text-white/62",
+                      voucherLookup.status === "error"
+                        ? "text-red-300"
+                        : "text-white/62",
                     )}
                   >
                     {voucherLookup.message}
@@ -427,7 +540,11 @@ export function AdminBookingStatusForm({
               selectedAction={selectedAction}
               fieldError={completeState.fieldErrors?.reason}
               compact
-              label={completionMode === "no_payment" ? "Povinný důvod" : "Volitelný důvod"}
+              label={
+                completionMode === "no_payment"
+                  ? "Povinný důvod"
+                  : "Volitelný důvod"
+              }
             />
             <CompleteVisitSubmitButton
               completionMode={hasRemainingPayment ? completionMode : "settled"}
@@ -435,10 +552,15 @@ export function AdminBookingStatusForm({
           </div>
 
           {completeState.status === "error" && completeState.formError ? (
-            <p className="mt-2 text-sm text-red-300">{completeState.formError}</p>
+            <p className="mt-2 text-sm text-red-300">
+              {completeState.formError}
+            </p>
           ) : null}
-          {completeState.status === "success" && completeState.successMessage ? (
-            <p className="mt-2 text-sm text-emerald-200">{completeState.successMessage}</p>
+          {completeState.status === "success" &&
+          completeState.successMessage ? (
+            <p className="mt-2 text-sm text-emerald-200">
+              {completeState.successMessage}
+            </p>
           ) : null}
         </div>
       ) : selectedAction !== "CANCELLED" ? (
@@ -452,7 +574,10 @@ export function AdminBookingStatusForm({
               fieldError={serverState.fieldErrors?.reason}
               compact
             />
-            <SubmitButton selectedAction={selectedActionOption?.label} compact />
+            <SubmitButton
+              selectedAction={selectedActionOption?.label}
+              compact
+            />
           </div>
         </div>
       ) : null}
@@ -461,7 +586,9 @@ export function AdminBookingStatusForm({
         <details className="group rounded-[0.95rem] border border-red-300/18 bg-red-500/[0.05]">
           <summary className="cursor-pointer list-none px-3 py-2.5 marker:hidden">
             <div className="flex items-center justify-between gap-2">
-              <p className="text-sm font-medium text-red-100/82">Nebezpečné akce</p>
+              <p className="text-sm font-medium text-red-100/82">
+                Nebezpečné akce
+              </p>
               <span className="rounded-full border border-red-200/18 px-2.5 py-0.5 text-[0.64rem] font-semibold uppercase tracking-[0.14em] text-red-100/72 group-open:hidden">
                 Rozbalit
               </span>
@@ -472,13 +599,18 @@ export function AdminBookingStatusForm({
           </summary>
           <div className="space-y-2 border-t border-red-200/12 px-3 py-2.5">
             <p className="text-sm leading-5 text-red-50/70">
-              Zrušení uvolní termín a přesune rezervaci mezi zrušené. Použij ho jen, když je storno potvrzené.
+              Zrušení uvolní termín a přesune rezervaci mezi zrušené. Použij ho
+              jen, když je storno potvrzené.
             </p>
             <button
               type="button"
               aria-pressed={selectedAction === dangerAction.value}
               onClick={() => setSelectedAction(dangerAction.value)}
-              className={getActionButtonClassName(dangerAction.value, selectedAction === dangerAction.value, false)}
+              className={getActionButtonClassName(
+                dangerAction.value,
+                selectedAction === dangerAction.value,
+                false,
+              )}
             >
               <span className="text-left text-sm font-semibold text-red-50">
                 {getActionLabel(dangerAction)}
@@ -494,7 +626,11 @@ export function AdminBookingStatusForm({
                   fieldError={serverState.fieldErrors?.reason}
                   compact
                 />
-                <SubmitButton selectedAction={dangerAction.label} danger compact />
+                <SubmitButton
+                  selectedAction={dangerAction.label}
+                  danger
+                  compact
+                />
               </div>
             ) : null}
           </div>
@@ -551,12 +687,15 @@ async function fetchVoucherLookup({
   }
 }
 
-function getClosedStateHelper(status: AdminBookingStatusFormProps["bookingStatus"]) {
+function getClosedStateHelper(
+  status: AdminBookingStatusFormProps["bookingStatus"],
+) {
   switch (status) {
     case "COMPLETED":
       return {
         title: "Hotovo.",
-        description: "Provozní akce už nejsou potřeba, ale historie zůstává po ruce.",
+        description:
+          "Provozní akce už nejsou potřeba, ale historie zůstává po ruce.",
       };
     case "CANCELLED":
       return {
@@ -566,7 +705,8 @@ function getClosedStateHelper(status: AdminBookingStatusFormProps["bookingStatus
     case "NO_SHOW":
       return {
         title: "Nedorazila.",
-        description: "Historii si můžeš zkontrolovat a případně doplnit interní poznámku.",
+        description:
+          "Historii si můžeš zkontrolovat a případně doplnit interní poznámku.",
       };
     default:
       return {
@@ -649,8 +789,16 @@ function ReasonField({
 }) {
   return (
     <label className="block">
-      <span className={cn("font-medium text-white", compact ? "text-xs" : "text-sm")}>
-        {label ?? (selectedAction === "CANCELLED" ? "Důvod zrušení" : "Volitelný důvod")}
+      <span
+        className={cn(
+          "font-medium text-white",
+          compact ? "text-xs" : "text-sm",
+        )}
+      >
+        {label ??
+          (selectedAction === "CANCELLED"
+            ? "Důvod zrušení"
+            : "Volitelný důvod")}
       </span>
       <input
         type="text"
@@ -692,7 +840,11 @@ function SubmitButton({
       )}
       disabled={pending}
     >
-      {pending ? "Ukládám změnu..." : selectedAction ? selectedAction : "Uložit změnu"}
+      {pending
+        ? "Ukládám změnu..."
+        : selectedAction
+          ? selectedAction
+          : "Uložit změnu"}
     </button>
   );
 }
@@ -700,7 +852,8 @@ function SubmitButton({
 function CompleteVisitSubmitButton({
   completionMode,
 }: {
-  completionMode: "cash" | "qr" | "voucher" | "combined" | "no_payment" | "settled";
+  completionMode:
+    "cash" | "qr" | "voucher" | "combined" | "no_payment" | "settled";
 }) {
   const { pending } = useFormStatus();
   let label = "Dokončit návštěvu";

@@ -47,6 +47,7 @@ export function AdminBookingPaymentForm({
   defaultAmountCzk,
 }: AdminBookingPaymentFormProps) {
   const [idempotencyKey, setIdempotencyKey] = useState(createIdempotencyKey);
+  const [isOpen, setIsOpen] = useState(false);
   const [serverState, formAction] = useActionState(async (
     previousState: CreateBookingPaymentActionState,
     formData: FormData,
@@ -63,8 +64,13 @@ export function AdminBookingPaymentForm({
   return (
     <details
       className="group rounded-[0.95rem] border border-white/8 bg-white/[0.03]"
+      open={isOpen}
+      onToggle={(event) => setIsOpen(event.currentTarget.open)}
     >
-      <summary className="cursor-pointer list-none px-3 py-2.5 marker:hidden">
+      <summary
+        className="cursor-pointer list-none px-3 py-2.5 marker:hidden"
+        aria-expanded={isOpen}
+      >
         <span className="inline-flex min-h-9 items-center justify-center rounded-full bg-[var(--color-accent)] px-3.5 py-1.5 text-sm font-semibold text-[var(--color-accent-contrast)] transition group-open:hidden hover:brightness-105">
           + Zapsat platbu
         </span>
