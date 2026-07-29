@@ -8,7 +8,7 @@
   --color-muted: #6d635d;
   --color-accent: #876941;
   --color-accent-soft: #dbc2a5;
-  --color-accent-contrast: #1b140f;
+  --color-accent-contrast: #0d0a08;
   --color-admin-background: #100f11;
   --color-admin-foreground: #f9f6f1;
   --radius-panel: 2rem;
@@ -109,5 +109,22 @@ img {
 
   .button-text {
     @apply text-sm font-semibold uppercase tracking-[0.14em];
+  }
+}
+
+@layer utilities {
+  /* Admin používá tmavé plochy; nízké opacity bílé nesplňovaly WCAG AA pro běžný text. */
+  .admin-app .text-white\/30,
+  .admin-app .text-white\/40,
+  .admin-app .text-white\/42,
+  .admin-app .text-white\/44,
+  .admin-app .text-white\/45,
+  .admin-app .text-white\/48,
+  .admin-app .text-white\/52 {
+    color: rgb(255 255 255 / 0.7);
+  }
+
+  .admin-app .text-\[var\(--color-accent\)\] {
+    color: var(--color-accent-soft);
   }
 }

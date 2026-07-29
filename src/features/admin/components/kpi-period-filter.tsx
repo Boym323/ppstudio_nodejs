@@ -46,7 +46,6 @@ export function KpiPeriodFilter({
           onClick={() => { setCustomOpen(true); setError(null); }}
           className={`min-h-11 shrink-0 snap-start rounded-xl border px-3 py-2.5 text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-black ${isCustomOpen ? "border-[var(--color-accent)] bg-[rgba(190,160,120,0.16)] text-white" : "border-white/12 text-white/70 hover:border-white/25"}`}
           aria-pressed={isCustomOpen}
-          aria-controls="kpi-custom-period"
         >
           Vlastní období
         </button>

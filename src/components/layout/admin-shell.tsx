@@ -33,7 +33,7 @@ export function AdminShell({ children, currentRole, userName }: AdminShellProps)
   });
 
   return (
-    <div className="min-h-dvh overflow-x-clip bg-[var(--color-admin-background)] text-[var(--color-admin-foreground)]">
+    <div className="admin-app min-h-dvh overflow-x-clip bg-[var(--color-admin-background)] text-[var(--color-admin-foreground)]">
       <AdminOfflineBanner />
       <header
         className={cn(
