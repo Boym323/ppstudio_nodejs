@@ -1,4 +1,6 @@
-import Script from "next/script";
+"use client";
+
+import { useEffect } from "react";
 
 const DEV_CHUNK_RELOAD_SCRIPT = `
 (() => {
@@ -168,17 +170,16 @@ const DEV_CHUNK_RELOAD_SCRIPT = `
 `;
 
 export function DevChunkReload() {
-  if (process.env.NODE_ENV !== "development") {
-    return null;
-  }
+  useEffect(() => {
+    if (process.env.NODE_ENV !== "development" || document.getElementById("ppstudio-dev-chunk-reload")) {
+      return;
+    }
 
-  return (
-    // Next.js 16 docs explicitly allow beforeInteractive scripts in app/layout.tsx.
-    // eslint-disable-next-line @next/next/no-before-interactive-script-outside-document
-    <Script
-      id="ppstudio-dev-chunk-reload"
-      strategy="beforeInteractive"
-      dangerouslySetInnerHTML={{ __html: DEV_CHUNK_RELOAD_SCRIPT }}
-    />
-  );
+    const script = document.createElement("script");
+    script.id = "ppstudio-dev-chunk-reload";
+    script.text = DEV_CHUNK_RELOAD_SCRIPT;
+    document.head.append(script);
+  }, []);
+
+  return null;
 }

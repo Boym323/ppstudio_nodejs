@@ -44,6 +44,7 @@ import {
 } from "@/features/vouchers/lib/voucher-redemption";
 import { normalizeVoucherCode } from "@/features/vouchers/lib/voucher-code";
 import { getBookingPaymentSummary } from "@/features/bookings/lib/booking-payment-summary";
+import { createDirectBookingPayment } from "@/features/bookings/lib/booking-payment";
 import { requireAdminArea, requireRole } from "@/lib/auth/session";
 import { sendOwnerSystemErrorPushover } from "@/lib/notifications/pushover";
 import { prisma } from "@/lib/prisma";
@@ -212,6 +213,7 @@ const completeBookingVisitSchema = z
       z.enum(["CASH", "BANK_TRANSFER"]).optional(),
     ),
     paymentNote: z.string().trim().max(500, "Poznámka je příliš dlouhá.").optional().or(z.literal("")),
+    idempotencyKey: z.string().uuid("Neplatný identifikátor požadavku."),
   })
   .superRefine((value, ctx) => {
     if (value.completionMode === "no_payment" && !(value.reason ?? "").trim()) {
@@ -857,6 +859,7 @@ export async function completeBookingVisitAction(
     directAmountCzk: readFormString(formData, "directAmountCzk"),
     directMethod: readFormString(formData, "directMethod"),
     paymentNote: readFormString(formData, "paymentNote"),
+    idempotencyKey: readFormString(formData, "idempotencyKey"),
   });
 
   if (!parsed.success) {
@@ -1042,31 +1045,42 @@ export async function completeBookingVisitAction(
               ? BookingPaymentMethod.CASH
               : BookingPaymentMethod.BANK_TRANSFER;
 
-      await prisma.bookingPayment.create({
-        data: {
+      const paymentResult = await prisma.$transaction((tx) => createDirectBookingPayment(tx, {
           bookingId: booking.id,
           amountCzk: directAmountCzk,
           method: directMethod,
           paidAt: new Date(),
           note,
-          createdByUserId: actorUserId,
-        },
-      });
-
-      await prisma.bookingStatusHistory.create({
-        data: {
-          bookingId: booking.id,
-          status: booking.status,
-          actorType: BookingActorType.USER,
-          actorUserId,
-          reason: "Platba zapsána při dokončení návštěvy",
-          metadata: {
+          idempotencyKey: parsed.data.idempotencyKey,
+          actor: { area: parsed.data.area, email: session.email, role: session.role },
+          audit: {
+            reason: "Platba zapsána při dokončení návštěvy",
             source: "admin-booking-complete-flow-v1",
-            amount: directAmountCzk,
-            method: directMethod,
           },
-        },
-      });
+      }));
+
+      if (paymentResult.status === "invalid") {
+        return {
+          status: "error",
+          formError: "Platbu je potřeba doplnit nebo opravit.",
+          fieldErrors: {
+            directAmountCzk: paymentResult.fieldErrors.amountCzk,
+            directMethod: paymentResult.fieldErrors.method,
+          },
+        };
+      }
+      if (paymentResult.status === "not-found") {
+        return { status: "error", formError: "Rezervaci se nepodařilo najít." };
+      }
+      if (paymentResult.status === "unauthorized") {
+        return { status: "error", formError: "Pro zápis platby nemáte oprávnění." };
+      }
+      if (paymentResult.status === "idempotency-conflict") {
+        return {
+          status: "error",
+          formError: "Požadavek na platbu nelze bezpečně zpracovat. Obnovte formulář a zkuste to znovu.",
+        };
+      }
     }
   } catch (error) {
     if (error instanceof VoucherRedemptionError) {

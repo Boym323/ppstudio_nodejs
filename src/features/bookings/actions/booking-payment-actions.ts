@@ -1,6 +1,6 @@
 "use server";
 
-import { AdminRole, BookingActorType, BookingPaymentMethod } from "@prisma/client";
+import { AdminRole, BookingActorType } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
@@ -10,22 +10,16 @@ import {
 } from "@/features/bookings/actions/booking-payment-action-state";
 import { requireRole } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
+import { createDirectBookingPayment } from "@/features/bookings/lib/booking-payment";
 
 const createBookingPaymentSchema = z.object({
   area: z.enum(["owner", "salon"]),
   bookingId: z.string().trim().min(1).max(64),
-  amountCzk: z.coerce
-    .number({ error: "Částku zadejte jako celé číslo v Kč." })
-    .int("Částka musí být celé číslo v Kč.")
-    .min(1, "Částka musí být vyšší než 0."),
-  method: z.nativeEnum(BookingPaymentMethod, {
-    error: "Vyberte platnou metodu platby.",
-  }),
-  paidAt: z.string().trim().min(1, "Zadejte datum platby.").refine(
-    (value) => Number.isFinite(new Date(value).getTime()),
-    "Zadejte platné datum platby.",
-  ),
-  note: z.string().trim().max(500, "Poznámka je příliš dlouhá.").optional().or(z.literal("")),
+  amountCzk: z.unknown(),
+  method: z.unknown(),
+  paidAt: z.unknown(),
+  note: z.unknown(),
+  idempotencyKey: z.string().uuid("Neplatný identifikátor požadavku."),
 });
 
 const deleteBookingPaymentSchema = z.object({
@@ -57,15 +51,8 @@ function revalidateBookingAdminPaths(bookingId: string) {
 
 async function resolveCurrentAdminUserId(email: string) {
   const user = await prisma.adminUser.findFirst({
-    where: {
-      email: {
-        equals: email.trim(),
-        mode: "insensitive",
-      },
-    },
-    select: {
-      id: true,
-    },
+    where: { email: { equals: email.trim(), mode: "insensitive" } },
+    select: { id: true },
   });
 
   return user?.id ?? null;
@@ -82,6 +69,7 @@ export async function createBookingPaymentAction(
     method: readFormString(formData, "method"),
     paidAt: readFormString(formData, "paidAt"),
     note: readFormString(formData, "note"),
+    idempotencyKey: readFormString(formData, "idempotencyKey"),
   });
 
   if (!parsed.success) {
@@ -100,88 +88,38 @@ export async function createBookingPaymentAction(
   }
 
   const session = await requireRole([AdminRole.OWNER, AdminRole.SALON]);
-  const booking = await prisma.booking.findUnique({
-    where: { id: parsed.data.bookingId },
-    select: { id: true },
-  });
-
-  if (!booking) {
-    return {
-      status: "error",
-      formError: "Rezervaci se nepodařilo najít.",
-    };
-  }
-
-  const createdByUserId = await resolveCurrentAdminUserId(session.email);
-
-  await createBookingPaymentWithAudit({
-    bookingId: booking.id,
+  const result = await prisma.$transaction((tx) => createDirectBookingPayment(tx, {
+    bookingId: parsed.data.bookingId,
     amountCzk: parsed.data.amountCzk,
     method: parsed.data.method,
-    paidAt: new Date(parsed.data.paidAt),
-    note: parsed.data.note || null,
-    createdByUserId,
-  });
+    paidAt: parsed.data.paidAt,
+    note: parsed.data.note,
+    idempotencyKey: parsed.data.idempotencyKey,
+    actor: { area: parsed.data.area, email: session.email, role: session.role },
+    audit: { reason: "Platba zapsána", source: "admin-booking-payment-create-v1" },
+  }));
 
-  revalidateBookingAdminPaths(booking.id);
+  if (result.status === "invalid") {
+    return { status: "error", formError: "Platbu je potřeba doplnit nebo opravit.", fieldErrors: result.fieldErrors };
+  }
+  if (result.status === "not-found") {
+    return { status: "error", formError: "Rezervaci se nepodařilo najít." };
+  }
+  if (result.status === "unauthorized") {
+    return { status: "error", formError: "Pro zápis platby nemáte oprávnění." };
+  }
+  if (result.status === "idempotency-conflict") {
+    return { status: "error", formError: "Požadavek na platbu nelze bezpečně zpracovat. Obnovte formulář a zkuste to znovu." };
+  }
+
+  revalidateBookingAdminPaths(result.payment.bookingId);
 
   return {
     status: "success",
-    successMessage: "Platba je zapsaná a souhrn úhrady je aktuální.",
+    successMessage: result.status === "existing"
+      ? "Tento požadavek na platbu už byl zpracovaný."
+      : "Platba je zapsaná a souhrn úhrady je aktuální.",
   };
-}
-
-export async function createBookingPaymentWithAudit(input: {
-  bookingId: string;
-  amountCzk: number;
-  method: BookingPaymentMethod;
-  paidAt: Date;
-  note: string | null;
-  createdByUserId: string | null;
-}) {
-  return prisma.$transaction(async (tx) => {
-    const booking = await tx.booking.findUnique({
-      where: { id: input.bookingId },
-      select: { id: true, status: true },
-    });
-
-    if (!booking) {
-      return { status: "not-found" as const };
-    }
-
-    const payment = await tx.bookingPayment.create({
-      data: {
-        bookingId: booking.id,
-        amountCzk: input.amountCzk,
-        method: input.method,
-        paidAt: input.paidAt,
-        note: input.note,
-        createdByUserId: input.createdByUserId,
-      },
-      select: { id: true },
-    });
-
-    await tx.bookingStatusHistory.create({
-      data: {
-        bookingId: booking.id,
-        status: booking.status,
-        actorType: BookingActorType.USER,
-        actorUserId: input.createdByUserId,
-        reason: "Platba zapsána",
-        metadata: {
-          source: "admin-booking-payment-create-v1",
-          bookingId: booking.id,
-          paymentId: payment.id,
-          amount: input.amountCzk,
-          method: input.method,
-          paidAt: input.paidAt.toISOString(),
-          createdByUserId: input.createdByUserId,
-        },
-      },
-    });
-
-    return { status: "created" as const, paymentId: payment.id };
-  });
 }
 
 export async function deleteBookingPaymentWithAudit(input: {

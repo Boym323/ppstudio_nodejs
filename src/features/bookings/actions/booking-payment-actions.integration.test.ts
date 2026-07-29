@@ -46,10 +46,11 @@ async function findIsolatedPaymentWindow(
   throw new Error("Nepodařilo se najít izolované okno pro payment integrační test.");
 }
 
-dbTest("payment audit records manual creation and deletion metadata", async () => {
-  const [{ prisma }, actions, prismaClient] = await Promise.all([
+dbTest("direct payment domain handles manual and completion flows idempotently", async () => {
+  const [{ prisma }, actions, paymentDomain, prismaClient] = await Promise.all([
     import("@/lib/prisma"),
     import("./booking-payment-actions"),
+    import("../lib/booking-payment"),
     import("@prisma/client"),
   ]);
   const suffix = randomUUID().slice(0, 8);
@@ -120,16 +121,59 @@ dbTest("payment audit records manual creation and deletion metadata", async () =
   });
   try {
     const paidAt = new Date("2026-05-10T09:45:00.000Z");
-    const creation = await actions.createBookingPaymentWithAudit({
+    const manualIdempotencyKey = randomUUID();
+    const creation = await prisma.$transaction((tx) => paymentDomain.createDirectBookingPayment(tx, {
+      bookingId: booking.id,
+      amountCzk: 700,
+      method: prismaClient.BookingPaymentMethod.CASH,
+      paidAt,
+      note: "  Doplatek po službě  ",
+      idempotencyKey: manualIdempotencyKey,
+      actor: { area: "owner", email: `payment-audit-${suffix}@example.com`, role: prismaClient.AdminRole.OWNER },
+      audit: { reason: "Platba zapsána", source: "admin-booking-payment-create-v1" },
+    }));
+
+    assert.equal(creation.status, "created");
+    assert.ok("payment" in creation);
+
+    const repeatedCreation = await prisma.$transaction((tx) => paymentDomain.createDirectBookingPayment(tx, {
       bookingId: booking.id,
       amountCzk: 700,
       method: prismaClient.BookingPaymentMethod.CASH,
       paidAt,
       note: "Doplatek po službě",
-      createdByUserId: actor.id,
-    });
+      idempotencyKey: manualIdempotencyKey,
+      actor: { area: "owner", email: `payment-audit-${suffix}@example.com`, role: prismaClient.AdminRole.OWNER },
+      audit: { reason: "Platba zapsána", source: "admin-booking-payment-create-v1" },
+    }));
+    assert.equal(repeatedCreation.status, "existing");
+    assert.ok("payment" in repeatedCreation);
+    assert.equal(repeatedCreation.payment.id, creation.payment.id);
 
-    assert.equal(creation.status, "created");
+    const completionCreation = await prisma.$transaction((tx) => paymentDomain.createDirectBookingPayment(tx, {
+      bookingId: booking.id,
+      amountCzk: 700,
+      method: prismaClient.BookingPaymentMethod.CASH,
+      paidAt,
+      note: "Doplatek po službě",
+      idempotencyKey: randomUUID(),
+      actor: { area: "owner", email: `payment-audit-${suffix}@example.com`, role: prismaClient.AdminRole.OWNER },
+      audit: { reason: "Platba zapsána při dokončení návštěvy", source: "admin-booking-complete-flow-v1" },
+    }));
+    assert.equal(completionCreation.status, "created");
+    assert.equal(await prisma.bookingPayment.count({ where: { bookingId: booking.id } }), 2);
+
+    const invalidCreation = await prisma.$transaction((tx) => paymentDomain.createDirectBookingPayment(tx, {
+      bookingId: booking.id,
+      amountCzk: 0,
+      method: prismaClient.BookingPaymentMethod.CASH,
+      paidAt,
+      note: null,
+      idempotencyKey: randomUUID(),
+      actor: { area: "owner", email: `payment-audit-${suffix}@example.com`, role: prismaClient.AdminRole.OWNER },
+      audit: { reason: "Platba zapsána", source: "admin-booking-payment-create-v1" },
+    }));
+    assert.equal(invalidCreation.status, "invalid");
 
     const createdHistory = await prisma.bookingStatusHistory.findFirst({
       where: {
@@ -148,22 +192,23 @@ dbTest("payment audit records manual creation and deletion metadata", async () =
     assert.deepEqual(createdHistory.metadata, {
       source: "admin-booking-payment-create-v1",
       bookingId: booking.id,
-      paymentId: creation.paymentId,
+      paymentId: creation.payment.id,
       amount: 700,
       method: "CASH",
       paidAt: paidAt.toISOString(),
       createdByUserId: actor.id,
+      idempotencyKey: manualIdempotencyKey,
     });
 
     const result = await actions.deleteBookingPaymentWithAudit({
       bookingId: booking.id,
-      paymentId: creation.paymentId,
+      paymentId: creation.payment.id,
       deletedByUserId: actor.id,
       deletedAt,
     });
 
     assert.equal(result.status, "deleted");
-    assert.equal(await prisma.bookingPayment.count({ where: { id: creation.paymentId } }), 0);
+    assert.equal(await prisma.bookingPayment.count({ where: { id: creation.payment.id } }), 0);
 
     const history = await prisma.bookingStatusHistory.findFirst({
       where: {
@@ -182,7 +227,7 @@ dbTest("payment audit records manual creation and deletion metadata", async () =
     assert.deepEqual(history.metadata, {
       source: "admin-booking-payment-delete-v1",
       bookingId: booking.id,
-      paymentId: creation.paymentId,
+      paymentId: creation.payment.id,
       amount: 700,
       method: "CASH",
       deletedByUserId: actor.id,

@@ -1,7 +1,7 @@
 "use client";
 
 import { BookingPaymentMethod } from "@prisma/client";
-import { useActionState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { useFormStatus } from "react-dom";
 
 import {
@@ -14,6 +14,7 @@ import {
 } from "@/features/bookings/actions/booking-payment-action-state";
 import { BOOKING_PAYMENT_METHOD_LABELS } from "@/features/bookings/lib/booking-payment-summary";
 import { type AdminBookingDetailData } from "@/features/admin/lib/admin-booking";
+import { createIdempotencyKey } from "@/lib/idempotency-key";
 
 type AdminBookingPaymentFormProps = {
   area: AdminBookingDetailData["area"];
@@ -42,6 +43,13 @@ export function AdminBookingPaymentForm({
     createBookingPaymentAction,
     initialCreateBookingPaymentActionState,
   );
+  const [idempotencyKey, setIdempotencyKey] = useState(createIdempotencyKey);
+
+  useEffect(() => {
+    if (serverState.status === "success") {
+      setIdempotencyKey(createIdempotencyKey());
+    }
+  }, [serverState.status]);
 
   return (
     <details
@@ -59,6 +67,7 @@ export function AdminBookingPaymentForm({
       <form action={formAction} className="space-y-2.5 border-t border-white/8 px-3 py-2.5">
         <input type="hidden" name="area" value={area} />
         <input type="hidden" name="bookingId" value={bookingId} />
+        <input type="hidden" name="idempotencyKey" value={idempotencyKey} />
 
         {serverState.status === "success" && serverState.successMessage ? (
           <div className="max-w-full break-words rounded-[0.9rem] border border-emerald-300/16 bg-emerald-400/10 px-3 py-2 text-sm leading-5 text-emerald-50">

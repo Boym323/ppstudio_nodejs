@@ -1,7 +1,7 @@
 "use client";
 
 import { type ReactNode } from "react";
-import { useActionState, useMemo, useRef, useState } from "react";
+import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { VoucherType } from "@prisma/client";
 
@@ -17,6 +17,7 @@ import {
 } from "@/features/admin/lib/admin-booking";
 import { type AdminArea } from "@/config/navigation";
 import { cn } from "@/lib/utils";
+import { createIdempotencyKey } from "@/lib/idempotency-key";
 
 const czkFormatter = new Intl.NumberFormat("cs-CZ", {
   maximumFractionDigits: 0,
@@ -56,6 +57,7 @@ export function AdminBookingStatusForm({
     completeBookingVisitAction,
     initialCompleteBookingVisitActionState,
   );
+  const [completionIdempotencyKey, setCompletionIdempotencyKey] = useState(createIdempotencyKey);
   const [completionMode, setCompletionMode] = useState<
     "cash" | "qr" | "voucher" | "combined" | "no_payment" | "settled"
   >("cash");
@@ -72,6 +74,12 @@ export function AdminBookingStatusForm({
   const selectedActionOption = availableActions.find((action) => action.value === selectedAction);
   const hasRemainingPayment = remainingPaymentCzk > 0;
   const helperText = useMemo(() => getClosedStateHelper(bookingStatus), [bookingStatus]);
+
+  useEffect(() => {
+    if (completeState.status === "success") {
+      setCompletionIdempotencyKey(createIdempotencyKey());
+    }
+  }, [completeState.status]);
 
   async function handleLoadVoucherInfo() {
     const normalizedCode = voucherCodeInput.trim();
@@ -198,6 +206,7 @@ export function AdminBookingStatusForm({
     >
       <input type="hidden" name="area" value={area} />
       <input type="hidden" name="bookingId" value={bookingId} />
+      <input type="hidden" name="idempotencyKey" value={completionIdempotencyKey} />
       <input type="hidden" name="targetStatus" value={selectedAction} />
 
       {serverState.status === "success" && serverState.successMessage ? (
