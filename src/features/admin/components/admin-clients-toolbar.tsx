@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 
 import { type ClientListViewValue } from "@/features/admin/lib/admin-client-validation";
+import { useAdminModalFocus } from "./admin-drawer-escape-close";
 
 type AdminClientsToolbarProps = { currentPath: string; filters: { query: string; view: ClientListViewValue; sort: string; quick: string; retention?: string; retentionAt?: string } };
 
@@ -12,12 +13,6 @@ export function AdminClientsToolbar({ currentPath, filters }: AdminClientsToolba
   const [isOpen, setIsOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const close = () => { setIsOpen(false); requestAnimationFrame(() => triggerRef.current?.focus()); };
-  useEffect(() => {
-    if (!isOpen) return;
-    const onKeyDown = (event: KeyboardEvent) => { if (event.key === "Escape") close(); };
-    document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
-  }, [isOpen]);
 
   return <>
     <form action={currentPath} className="hidden gap-2 rounded-[1.1rem] border border-white/8 bg-white/5 p-3 lg:grid lg:grid-cols-[minmax(220px,1fr)_180px_180px_auto_auto] lg:items-end">
@@ -45,5 +40,8 @@ function ClearFilters({ currentPath, filters, fixedView }: { currentPath: string
 function SelectField({ name, label, defaultValue, children }: { name: string; label: string; defaultValue: string; children: React.ReactNode }) { return <label className="block"><span className="text-[11px] uppercase tracking-[0.18em] text-white/48">{label}</span><select name={name} defaultValue={defaultValue} className="mt-1.5 h-10 w-full rounded-[0.85rem] border border-white/10 bg-black/20 px-3 text-sm text-white outline-none focus:border-[var(--color-accent)]/60">{children}</select></label>; }
 
 function MobileFiltersSheet({ currentPath, filters, query, fixedView, onClose }: { currentPath: string; filters: AdminClientsToolbarProps["filters"]; query: string; fixedView: boolean; onClose: () => void }) {
-  return <div id="admin-client-filters" role="dialog" aria-modal="true" aria-labelledby="admin-client-filters-title" className="fixed inset-0 z-50 lg:hidden"><button type="button" aria-label="Zavřít filtry" onClick={onClose} className="absolute inset-0 bg-black/65" /><form action={currentPath} className="absolute inset-x-0 bottom-0 max-h-[88dvh] overflow-y-auto rounded-t-[1.6rem] border border-white/10 bg-[#111015] px-4 pt-4 shadow-[0_-16px_40px_rgba(0,0,0,0.35)]"><HiddenFilters filters={{ ...filters, query }} includeQuery /> <div className="flex items-center justify-between gap-3"><h2 id="admin-client-filters-title" className="font-display text-xl text-white">Filtry</h2><button type="button" onClick={onClose} className="min-h-11 rounded-full px-3 text-sm text-white/70">Zavřít</button></div>{filters.view === "outreach" && filters.retention ? <p className="mt-3 text-sm text-white/62">Retenční pásmo: {filters.retention}</p> : null}{!fixedView ? <div className="mt-4 grid gap-3"><ExtraFilters filters={filters} /></div> : <p className="mt-4 text-sm text-white/62">Tento CRM pohled má pevně nastavené filtrování a řazení.</p>}<div className="sticky bottom-0 mt-5 flex gap-2 border-t border-white/10 bg-[#111015]/96 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-3 backdrop-blur"><a href={currentPath} className="inline-flex min-h-11 items-center rounded-full border border-white/10 px-4 text-sm text-white/80">Vymazat</a><button type="submit" className="min-h-11 flex-1 rounded-full bg-[var(--color-accent)] px-4 text-sm font-semibold text-[var(--color-accent-contrast)]">Použít filtry</button></div></form></div>;
+  const sheetRef = useRef<HTMLFormElement>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
+  useAdminModalFocus({ open: true, containerRef: sheetRef, initialFocusRef: closeRef, onClose });
+  return <div id="admin-client-filters" role="dialog" aria-modal="true" aria-labelledby="admin-client-filters-title" className="fixed inset-0 z-50 lg:hidden"><div aria-hidden="true" onClick={onClose} className="absolute inset-0 bg-black/65" /><form ref={sheetRef} action={currentPath} className="absolute inset-x-0 bottom-0 max-h-[88dvh] overflow-y-auto rounded-t-[1.6rem] border border-white/10 bg-[#111015] px-4 pt-4 shadow-[0_-16px_40px_rgba(0,0,0,0.35)]"><HiddenFilters filters={{ ...filters, query }} includeQuery /> <div className="flex items-center justify-between gap-3"><h2 id="admin-client-filters-title" className="font-display text-xl text-white">Filtry</h2><button ref={closeRef} type="button" onClick={onClose} className="min-h-11 rounded-full px-3 text-sm text-white/70">Zavřít</button></div>{filters.view === "outreach" && filters.retention ? <p className="mt-3 text-sm text-white/62">Retenční pásmo: {filters.retention}</p> : null}{!fixedView ? <div className="mt-4 grid gap-3"><ExtraFilters filters={filters} /></div> : <p className="mt-4 text-sm text-white/62">Tento CRM pohled má pevně nastavené filtrování a řazení.</p>}<div className="sticky bottom-0 mt-5 flex gap-2 border-t border-white/10 bg-[#111015]/96 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-3 backdrop-blur"><a href={currentPath} className="inline-flex min-h-11 items-center rounded-full border border-white/10 px-4 text-sm text-white/80">Vymazat</a><button type="submit" className="min-h-11 flex-1 rounded-full bg-[var(--color-accent)] px-4 text-sm font-semibold text-[var(--color-accent-contrast)]">Použít filtry</button></div></form></div>;
 }

@@ -50,11 +50,15 @@ test.describe("mobilní a standalone admin PWA", () => {
   });
 
   test("otevře a zavře mobilní navigaci", async ({ page }) => {
-    await page.getByRole("button", { name: "Menu" }).click();
-    const navigation = page.getByLabel("Mobilní navigace administrace");
+    const menu = page.getByRole("button", { name: "Menu" });
+    await menu.click();
+    const navigation = page.getByRole("dialog", { name: "Mobilní navigace administrace" });
     await expect(navigation).toBeVisible();
-    await navigation.getByRole("button", { name: "Zavřít" }).click();
+    const close = navigation.getByRole("button", { name: "Zavřít" });
+    await expect(close).toBeFocused();
+    await page.keyboard.press("Escape");
     await expect(navigation).toHaveCount(0);
+    await expect(menu).toBeFocused();
   });
 
   test("KPI dashboard nepřetéká vodorovně přes celou stránku", async ({ page }) => {

@@ -1,9 +1,10 @@
 import { BookingStatus } from "@prisma/client";
 import Link from "next/link";
+import { useRef } from "react";
 
 import type { PlannerDay } from "@/features/admin/lib/admin-slots";
 import { cn } from "@/lib/utils";
-import { AdminEscapeKeyClose } from "@/features/admin/components/admin-drawer-escape-close";
+import { useAdminModalFocus } from "@/features/admin/components/admin-drawer-escape-close";
 
 const PLANNER_START_HOUR = 6;
 const PLANNER_END_HOUR = 20;
@@ -388,7 +389,7 @@ export function WeekToolbar({
               </span>
             ) : null}
           </div>
-          <ActionButton className="min-h-11 xl:hidden" onClick={onOpenInspector}>
+          <ActionButton id="planner-mobile-inspector-trigger" className="min-h-11 xl:hidden" onClick={onOpenInspector}>
             Inspektor dne
           </ActionButton>
         </div>
@@ -1038,18 +1039,22 @@ export function MobileInspectorSheet({
   onClose: () => void;
   children: React.ReactNode;
 }) {
+  const sheetRef = useRef<HTMLDivElement>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
+  useAdminModalFocus({ open, containerRef: sheetRef, initialFocusRef: closeRef, onClose });
+
   if (!open) {
     return null;
   }
 
   return (
     <div
+      ref={sheetRef}
       className="fixed inset-0 z-50 xl:hidden"
       role="dialog"
       aria-modal="true"
       aria-label="Inspektor dne"
     >
-      <AdminEscapeKeyClose onEscape={onClose} enabled={open} />
       <div
         className="absolute inset-0 bg-black/55 opacity-100 backdrop-blur-sm transition"
         onClick={onClose}
@@ -1061,6 +1066,7 @@ export function MobileInspectorSheet({
         <div className="mb-4 flex items-center justify-between gap-3">
           <p className="text-sm font-medium text-white">Inspektor dne</p>
           <button
+            ref={closeRef}
             type="button"
             onClick={onClose}
             className="min-h-11 min-w-11 rounded-full border border-white/10 px-3 py-2 text-sm text-white/72"

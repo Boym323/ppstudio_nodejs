@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useRef, useState } from "react";
 
 import { AdminRole } from "@prisma/client";
 
 import { AdminSidebarNav } from "@/features/admin/components/admin-sidebar-nav";
 import { AdminOfflineBanner } from "@/features/pwa/admin-offline-banner";
+import { useAdminModalFocus } from "@/features/admin/components/admin-drawer-escape-close";
 import { cn } from "@/lib/utils";
 
 type AdminShellProps = {
@@ -16,6 +17,20 @@ type AdminShellProps = {
 
 export function AdminShell({ children, currentRole, userName }: AdminShellProps) {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const menuTriggerRef = useRef<HTMLButtonElement>(null);
+  const mobileMenuRef = useRef<HTMLElement>(null);
+  const mobileMenuCloseRef = useRef<HTMLButtonElement>(null);
+  const closeMobileSidebar = useCallback(() => {
+    setMobileSidebarOpen(false);
+    window.requestAnimationFrame(() => menuTriggerRef.current?.focus());
+  }, []);
+
+  useAdminModalFocus({
+    open: mobileSidebarOpen,
+    containerRef: mobileMenuRef,
+    initialFocusRef: mobileMenuCloseRef,
+    onClose: closeMobileSidebar,
+  });
 
   return (
     <div className="min-h-dvh overflow-x-clip bg-[var(--color-admin-background)] text-[var(--color-admin-foreground)]">
@@ -32,8 +47,12 @@ export function AdminShell({ children, currentRole, userName }: AdminShellProps)
             <p className="text-sm font-medium text-white/84">{currentRole === AdminRole.OWNER ? "Owner" : "Provoz salonu"}</p>
           </div>
           <button
+            ref={menuTriggerRef}
             type="button"
             onClick={() => setMobileSidebarOpen(true)}
+            aria-haspopup="dialog"
+            aria-expanded={mobileSidebarOpen}
+            aria-controls="admin-mobile-navigation"
             className="min-h-11 min-w-11 rounded-full border border-white/10 bg-white/6 px-4 py-2 text-sm text-white/84"
           >
             Menu
@@ -66,14 +85,18 @@ export function AdminShell({ children, currentRole, userName }: AdminShellProps)
 
       {mobileSidebarOpen ? (
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Mobilní navigace administrace"
         className={cn(
           "fixed inset-0 z-50 bg-black/55 backdrop-blur-sm transition lg:hidden",
           mobileSidebarOpen ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0",
         )}
-        onClick={() => setMobileSidebarOpen(false)}
+        onClick={closeMobileSidebar}
       >
         <aside
-          aria-label="Mobilní navigace administrace"
+          ref={mobileMenuRef}
+          id="admin-mobile-navigation"
           className={cn(
             "absolute left-0 top-0 flex h-[100dvh] w-[min(92vw,360px)] flex-col border-r border-white/10 bg-[#131116] px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-[calc(1rem+env(safe-area-inset-top))] shadow-[0_18px_48px_rgba(0,0,0,0.35)] transition",
             mobileSidebarOpen ? "translate-x-0" : "-translate-x-full",
@@ -86,8 +109,9 @@ export function AdminShell({ children, currentRole, userName }: AdminShellProps)
               <p className="text-sm text-white/84">{userName}</p>
             </div>
             <button
+              ref={mobileMenuCloseRef}
               type="button"
-              onClick={() => setMobileSidebarOpen(false)}
+              onClick={closeMobileSidebar}
               className="min-h-11 min-w-11 rounded-full border border-white/10 px-3 py-2 text-sm text-white/72"
             >
               Zavřít
@@ -98,7 +122,7 @@ export function AdminShell({ children, currentRole, userName }: AdminShellProps)
             <AdminSidebarNav
               currentRole={currentRole}
               userName={userName}
-              onNavigate={() => setMobileSidebarOpen(false)}
+              onNavigate={closeMobileSidebar}
             />
           </div>
 

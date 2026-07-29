@@ -219,6 +219,10 @@ export function AdminWeeklyPlannerClient({
   const [selectedSelection, setSelectedSelection] = useState<PlannerSelection | null>(null);
   const [feedback, setFeedback] = useState<FeedbackState | null>(() => getInitialPlannerState(data).feedback);
   const [mobileInspectorOpen, setMobileInspectorOpen] = useState(false);
+  const closeMobileInspector = () => {
+    setMobileInspectorOpen(false);
+    window.requestAnimationFrame(() => document.getElementById("planner-mobile-inspector-trigger")?.focus());
+  };
 
   useEffect(() => {
     const applyHydratedState = (next: {
@@ -723,7 +727,7 @@ export function AdminWeeklyPlannerClient({
         </div>
       </div>
 
-      <MobileInspectorSheet open={mobileInspectorOpen} onClose={() => setMobileInspectorOpen(false)}>
+      <MobileInspectorSheet open={mobileInspectorOpen} onClose={closeMobileInspector}>
         <DayInspector
           day={selectedDay}
           legend={data.legend}
