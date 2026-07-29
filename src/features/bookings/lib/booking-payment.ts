@@ -8,8 +8,7 @@ type BookingPaymentDbClient = Pick<
   "adminUser" | "booking" | "bookingPayment" | "bookingStatusHistory"
 >;
 
-const directBookingPaymentSchema = z.object({
-  bookingId: z.string().trim().min(1).max(64),
+export const directBookingPaymentFieldsSchema = z.object({
   amountCzk: z.coerce
     .number({ error: "Částku zadejte jako celé číslo v Kč." })
     .int("Částka musí být celé číslo v Kč.")
@@ -19,6 +18,10 @@ const directBookingPaymentSchema = z.object({
   }),
   paidAt: z.coerce.date({ error: "Zadejte platné datum platby." }),
   note: z.string().trim().max(500, "Poznámka je příliš dlouhá.").optional().nullable(),
+});
+
+const directBookingPaymentSchema = directBookingPaymentFieldsSchema.extend({
+  bookingId: z.string().trim().min(1).max(64),
   idempotencyKey: z.string().uuid("Neplatný identifikátor požadavku."),
 });
 
@@ -45,6 +48,22 @@ export type CreateDirectBookingPaymentResult =
   | { status: "not-found" }
   | { status: "unauthorized" }
   | { status: "idempotency-conflict" }
+  | { status: "invalid"; fieldErrors: Record<string, string | undefined> };
+
+export type UpdateDirectBookingPaymentInput = {
+  bookingId: unknown;
+  paymentId: unknown;
+  amountCzk: unknown;
+  method: unknown;
+  paidAt: unknown;
+  note?: unknown;
+  expectedUpdatedAt: unknown;
+  actor: CreateDirectBookingPaymentInput["actor"];
+};
+
+export type UpdateDirectBookingPaymentResult =
+  | { status: "updated"; payment: { id: string; bookingId: string } }
+  | { status: "not-found" | "voided" | "conflict" | "unauthorized" }
   | { status: "invalid"; fieldErrors: Record<string, string | undefined> };
 
 function isRoleAllowedInArea(role: AdminRole, area: AdminArea) {
@@ -158,4 +177,75 @@ export async function createDirectBookingPayment(
   });
 
   return { status: "created", payment };
+}
+
+/** Updates an active direct payment and stores an immutable before/after audit event. */
+export async function updateDirectBookingPayment(
+  db: BookingPaymentDbClient,
+  input: UpdateDirectBookingPaymentInput,
+): Promise<UpdateDirectBookingPaymentResult> {
+  const parsed = directBookingPaymentFieldsSchema.safeParse(input);
+  const expectedUpdatedAt = z.coerce.date().safeParse(input.expectedUpdatedAt);
+  const identifiers = z.object({
+    bookingId: z.string().trim().min(1).max(64),
+    paymentId: z.string().trim().min(1).max(64),
+  }).safeParse(input);
+
+  if (!parsed.success || !expectedUpdatedAt.success || !identifiers.success) {
+    const fieldErrors = parsed.success ? {} : parsed.error.flatten().fieldErrors;
+    return { status: "invalid", fieldErrors: {
+      amountCzk: fieldErrors.amountCzk?.[0], method: fieldErrors.method?.[0],
+      paidAt: fieldErrors.paidAt?.[0], note: fieldErrors.note?.[0],
+    } };
+  }
+  if (!isRoleAllowedInArea(input.actor.role, input.actor.area)) return { status: "unauthorized" };
+
+  const actor = await db.adminUser.findFirst({
+    where: { email: { equals: input.actor.email.trim(), mode: "insensitive" }, isActive: true, role: input.actor.role },
+    select: { id: true },
+  });
+  if (!actor) return { status: "unauthorized" };
+
+  const payment = await db.bookingPayment.findUnique({
+    where: { id: identifiers.data.paymentId },
+    select: { id: true, bookingId: true, status: true, updatedAt: true, amountCzk: true, method: true, paidAt: true, note: true, booking: { select: { status: true } } },
+  });
+  if (!payment || payment.bookingId !== identifiers.data.bookingId) return { status: "not-found" };
+  if (payment.status !== "ACTIVE") return { status: "voided" };
+
+  const update = await db.bookingPayment.updateMany({
+    where: { id: payment.id, bookingId: payment.bookingId, status: "ACTIVE", updatedAt: expectedUpdatedAt.data },
+    data: { amountCzk: parsed.data.amountCzk, method: parsed.data.method, paidAt: parsed.data.paidAt, note: parsed.data.note || null },
+  });
+  if (update.count !== 1) return { status: "conflict" };
+
+  await db.bookingStatusHistory.create({ data: {
+    bookingId: payment.bookingId, status: payment.booking.status, actorType: BookingActorType.USER, actorUserId: actor.id,
+    reason: "Platba upravena",
+    metadata: {
+      source: "admin-booking-payment-update-v1", bookingId: payment.bookingId, paymentId: payment.id,
+      before: { amountCzk: payment.amountCzk, method: payment.method, paidAt: payment.paidAt.toISOString(), note: payment.note },
+      after: { amountCzk: parsed.data.amountCzk, method: parsed.data.method, paidAt: parsed.data.paidAt.toISOString(), note: parsed.data.note || null },
+      changedByUserId: actor.id, changedAt: new Date().toISOString(),
+    },
+  } });
+  return { status: "updated", payment: { id: payment.id, bookingId: payment.bookingId } };
+}
+
+/** Soft duplicate hint only; callers must never use it as a payment constraint. */
+export async function findSimilarActiveBookingPayment(
+  db: Pick<Prisma.TransactionClient, "bookingPayment">,
+  input: { bookingId: string; amountCzk: number; method: BookingPaymentMethod; paidAt: Date },
+) {
+  return db.bookingPayment.findFirst({
+    where: {
+      bookingId: input.bookingId,
+      status: "ACTIVE",
+      method: input.method,
+      amountCzk: { gte: Math.max(1, Math.floor(input.amountCzk * 0.95)), lte: Math.ceil(input.amountCzk * 1.05) },
+      paidAt: { gte: new Date(input.paidAt.getTime() - 5 * 60_000), lte: new Date(input.paidAt.getTime() + 5 * 60_000) },
+    },
+    orderBy: { paidAt: "desc" },
+    select: { id: true, amountCzk: true, paidAt: true },
+  });
 }

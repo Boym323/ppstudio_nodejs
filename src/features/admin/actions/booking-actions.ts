@@ -104,6 +104,7 @@ const updateBookingPriceSchema = z.object({
       .nullable(),
   ),
   priceAdjustmentReason: z.string().trim().max(500, "Důvod je příliš dlouhý.").optional().or(z.literal("")),
+  confirmOverpayment: z.enum(["true", ""]).optional(),
 });
 
 const updateBookingServiceSchema = z.object({
@@ -547,6 +548,7 @@ export async function updateBookingPriceAction(
     bookingId: readFormString(formData, "bookingId"),
     finalPriceCzk: readFormString(formData, "finalPriceCzk"),
     priceAdjustmentReason: readFormString(formData, "priceAdjustmentReason"),
+    confirmOverpayment: readFormString(formData, "confirmOverpayment"),
   });
 
   if (!parsed.success) {
@@ -574,6 +576,8 @@ export async function updateBookingPriceAction(
           priceFromCzk: true,
         },
       },
+      voucherRedemptions: { select: { amountCzk: true } },
+      payments: { select: { amountCzk: true, status: true } },
     },
   });
 
@@ -597,6 +601,16 @@ export async function updateBookingPriceAction(
         priceAdjustmentReason: "Doplňte důvod úpravy ceny.",
       },
     };
+  }
+
+  const effectiveNextPriceCzk = clearsAdjustment ? basePriceCzk : nextFinalPriceCzk;
+  const nextPaymentSummary = getBookingPaymentSummary({
+    totalPriceCzk: effectiveNextPriceCzk,
+    voucherRedemptions: booking.voucherRedemptions,
+    payments: booking.payments,
+  });
+  if (nextPaymentSummary.overpaidCzk > 0 && parsed.data.confirmOverpayment !== "true") {
+    return { status: "error", formError: `Po změně vznikne přeplatek ${nextPaymentSummary.overpaidCzk} Kč. Potvrďte, že chcete cenu uložit.` };
   }
 
   const actorUserId = await resolveVoucherRedemptionActorUserId(session.email);

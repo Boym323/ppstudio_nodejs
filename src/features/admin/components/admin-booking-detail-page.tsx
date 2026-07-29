@@ -10,6 +10,7 @@ import { AdminBookingNoteForm } from "./admin-booking-note-form";
 import {
   AdminBookingPaymentForm,
   DeleteBookingPaymentButton,
+  EditBookingPaymentForm,
 } from "./admin-booking-payment-form";
 import { AdminBookingPriceForm } from "./admin-booking-price-form";
 import { AdminBookingServiceForm } from "./admin-booking-service-form";
@@ -592,6 +593,8 @@ function PriceSummaryItem({
           basePriceCzk={priceAdjustment.basePriceCzk}
           finalPriceCzk={priceAdjustment.finalPriceCzk}
           reason={priceAdjustment.reason}
+          directPaidCzk={data.voucher.paymentSummary.directPaidCzk}
+          voucherPaidCzk={data.voucher.paymentSummary.voucherPaidCzk}
           variant="fields"
         />
       </div>
@@ -692,7 +695,7 @@ function VoucherRedemptionsList({
         </article>
       ))}
       {payments.map((payment) => (
-        <article key={payment.id} className="rounded-[0.95rem] border border-white/8 bg-white/[0.03] px-3.5 py-3">
+        <article id={`payment-${payment.id}`} key={payment.id} className="rounded-[0.95rem] border border-white/8 bg-white/[0.03] px-3.5 py-3">
           <div className="flex flex-wrap items-start justify-between gap-2.5">
             <div className="min-w-0">
               <p className="text-[0.72rem] leading-4 text-white/42">{payment.paidAtLabel}</p>
@@ -715,10 +718,12 @@ function VoucherRedemptionsList({
             </div>
           </div>
           <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-white/58">
-            <span>Zapsal: {payment.createdByUserLabel}</span>
+            <span>Zapsal: {payment.createdByUserLabel} · {payment.createdAtLabel}</span>
+            {payment.lastEditedByUserLabel && payment.lastEditedAtLabel ? <span>• Naposledy upravil: {payment.lastEditedByUserLabel} · {payment.lastEditedAtLabel}</span> : null}
             {payment.note ? <span>• {payment.note}</span> : null}
             {payment.status === "VOIDED" ? <span>• Storno: {payment.voidedAtLabel} · {payment.voidedByUserLabel} · {payment.voidReason}</span> : null}
           </div>
+          {payment.canEdit ? <div className="mt-2"><EditBookingPaymentForm area={area} bookingId={bookingId} paymentId={payment.id} amountCzk={payment.amountCzk} method={payment.method} paidAt={payment.paidAt} note={payment.note} expectedUpdatedAt={payment.updatedAt} /></div> : null}
         </article>
       ))}
     </div>

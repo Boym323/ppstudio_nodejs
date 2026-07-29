@@ -3,7 +3,10 @@ export type CreateBookingPaymentActionState = {
   successMessage?: string;
   formError?: string;
   fieldErrors?: Partial<Record<"amountCzk" | "method" | "paidAt" | "note", string>>;
+  similarPayment?: { id: string; amountCzk: number; methodLabel: string; minutesAgo: number };
 };
+
+export type UpdateBookingPaymentActionState = Omit<CreateBookingPaymentActionState, "similarPayment">;
 
 export type DeleteBookingPaymentActionState = {
   status: "idle" | "success" | "error";
@@ -16,5 +19,9 @@ export const initialCreateBookingPaymentActionState: CreateBookingPaymentActionS
 };
 
 export const initialDeleteBookingPaymentActionState: DeleteBookingPaymentActionState = {
+  status: "idle",
+};
+
+export const initialUpdateBookingPaymentActionState: UpdateBookingPaymentActionState = {
   status: "idle",
 };

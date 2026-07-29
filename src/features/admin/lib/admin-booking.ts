@@ -162,6 +162,11 @@ export type AdminBookingDetailData = {
       voidReason: string | null;
       voidedByUserLabel: string | null;
       createdByUserLabel: string;
+      createdAtLabel: string;
+      updatedAt: string;
+      lastEditedByUserLabel: string | null;
+      lastEditedAtLabel: string | null;
+      canEdit: boolean;
       canDelete: boolean;
     }>;
     intendedVoucherCodeSnapshot: string | null;
@@ -640,6 +645,16 @@ export async function getAdminBookingDetailData(
       createdAt: log.createdAt,
     })),
   ].sort((left, right) => right.createdAt.getTime() - left.createdAt.getTime());
+  const paymentLastEdits = new Map<string, { actorLabel: string; createdAtLabel: string }>();
+  for (const historyItem of booking.statusHistory) {
+    const metadata = historyItem.metadata;
+    if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) continue;
+    const source = metadata.source;
+    const paymentId = metadata.paymentId;
+    if (source === "admin-booking-payment-update-v1" && typeof paymentId === "string" && !paymentLastEdits.has(paymentId)) {
+      paymentLastEdits.set(paymentId, { actorLabel: historyItem.actorUser?.name ?? "Neuvedeno", createdAtLabel: formatDateTimeLabel(historyItem.createdAt) });
+    }
+  }
   const basePriceCzk = Math.max(0, booking.servicePriceFromCzk ?? booking.service.priceFromCzk ?? 0);
   const effectivePriceCzk = Math.max(0, booking.finalPriceCzk ?? basePriceCzk);
   const priceAdjustmentCzk = effectivePriceCzk - basePriceCzk;
@@ -755,6 +770,11 @@ export async function getAdminBookingDetailData(
         voidReason: payment.voidReason,
         voidedByUserLabel: formatOptionalAdminUserLabel(payment.voidedByUser),
         createdByUserLabel: formatBookingPaymentUserLabel(payment.createdByUser),
+        createdAtLabel: formatDateTimeLabel(payment.createdAt),
+        updatedAt: payment.updatedAt.toISOString(),
+        lastEditedByUserLabel: paymentLastEdits.get(payment.id)?.actorLabel ?? null,
+        lastEditedAtLabel: paymentLastEdits.get(payment.id)?.createdAtLabel ?? null,
+        canEdit: payment.status === BookingPaymentRecordStatus.ACTIVE,
         canDelete: area === "owner" && payment.status === BookingPaymentRecordStatus.ACTIVE,
       })),
       intendedVoucherCodeSnapshot: booking.intendedVoucherCodeSnapshot,

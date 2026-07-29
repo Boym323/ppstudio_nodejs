@@ -150,6 +150,11 @@ dbTest("direct payment domain handles manual and completion flows idempotently",
     assert.ok("payment" in repeatedCreation);
     assert.equal(repeatedCreation.payment.id, creation.payment.id);
 
+    const similarPayment = await paymentDomain.findSimilarActiveBookingPayment(prisma, {
+      bookingId: booking.id, amountCzk: 700, method: prismaClient.BookingPaymentMethod.CASH, paidAt,
+    });
+    assert.equal(similarPayment?.id, creation.payment.id);
+
     const completionCreation = await prisma.$transaction((tx) => paymentDomain.createDirectBookingPayment(tx, {
       bookingId: booking.id,
       amountCzk: 700,
@@ -200,6 +205,37 @@ dbTest("direct payment domain handles manual and completion flows idempotently",
       idempotencyKey: manualIdempotencyKey,
     });
 
+    const originalPayment = await prisma.bookingPayment.findUniqueOrThrow({ where: { id: creation.payment.id } });
+    const editResult = await prisma.$transaction((tx) => paymentDomain.updateDirectBookingPayment(tx, {
+      bookingId: booking.id, paymentId: creation.payment.id, expectedUpdatedAt: originalPayment.updatedAt.toISOString(),
+      amountCzk: 900, method: prismaClient.BookingPaymentMethod.BANK_TRANSFER,
+      paidAt: new Date("2026-05-10T10:15:00.000Z"), note: " Upravený doplatek ",
+      actor: { area: "owner", email: `payment-audit-${suffix}@example.com`, role: prismaClient.AdminRole.OWNER },
+    }));
+    assert.equal(editResult.status, "updated");
+    const editedPayment = await prisma.bookingPayment.findUniqueOrThrow({ where: { id: creation.payment.id } });
+    assert.equal(editedPayment.amountCzk, 900);
+    assert.equal(editedPayment.method, prismaClient.BookingPaymentMethod.BANK_TRANSFER);
+    assert.equal(editedPayment.paidAt.toISOString(), "2026-05-10T10:15:00.000Z");
+    assert.equal(editedPayment.note, "Upravený doplatek");
+
+    const editAudit = await prisma.bookingStatusHistory.findFirst({ where: { bookingId: booking.id, reason: "Platba upravena" }, orderBy: { createdAt: "desc" } });
+    assert.ok(editAudit);
+    assert.deepEqual(editAudit.metadata, {
+      source: "admin-booking-payment-update-v1", bookingId: booking.id, paymentId: creation.payment.id,
+      before: { amountCzk: 700, method: "CASH", paidAt: paidAt.toISOString(), note: "Doplatek po službě" },
+      after: { amountCzk: 900, method: "BANK_TRANSFER", paidAt: "2026-05-10T10:15:00.000Z", note: "Upravený doplatek" },
+      changedByUserId: actor.id,
+      changedAt: (editAudit.metadata as { changedAt: string }).changedAt,
+    });
+
+    const staleEdit = await prisma.$transaction((tx) => paymentDomain.updateDirectBookingPayment(tx, {
+      bookingId: booking.id, paymentId: creation.payment.id, expectedUpdatedAt: originalPayment.updatedAt.toISOString(),
+      amountCzk: 901, method: prismaClient.BookingPaymentMethod.CASH, paidAt, note: null,
+      actor: { area: "owner", email: `payment-audit-${suffix}@example.com`, role: prismaClient.AdminRole.OWNER },
+    }));
+    assert.equal(staleEdit.status, "conflict");
+
     const result = await actions.voidBookingPaymentWithAudit({
       bookingId: booking.id,
       paymentId: creation.payment.id,
@@ -215,6 +251,13 @@ dbTest("direct payment domain handles manual and completion flows idempotently",
     assert.equal(voidedPayment.voidedAt?.toISOString(), voidedAt.toISOString());
     assert.equal(voidedPayment.voidReason, "Chybně zapsaná hotovost.");
     assert.equal(await prisma.bookingPayment.count({ where: { id: creation.payment.id } }), 1);
+
+    const voidedEdit = await prisma.$transaction((tx) => paymentDomain.updateDirectBookingPayment(tx, {
+      bookingId: booking.id, paymentId: creation.payment.id, expectedUpdatedAt: editedPayment.updatedAt.toISOString(),
+      amountCzk: 901, method: prismaClient.BookingPaymentMethod.CASH, paidAt, note: null,
+      actor: { area: "owner", email: `payment-audit-${suffix}@example.com`, role: prismaClient.AdminRole.OWNER },
+    }));
+    assert.equal(voidedEdit.status, "voided");
 
     const repeatedVoid = await actions.voidBookingPaymentWithAudit({
       bookingId: booking.id,
@@ -242,10 +285,10 @@ dbTest("direct payment domain handles manual and completion flows idempotently",
       source: "admin-booking-payment-void-v1",
       bookingId: booking.id,
       paymentId: creation.payment.id,
-      originalAmountCzk: 700,
-      originalMethod: "CASH",
-      originalPaidAt: paidAt.toISOString(),
-      originalNote: "Doplatek po službě",
+      originalAmountCzk: 900,
+      originalMethod: "BANK_TRANSFER",
+      originalPaidAt: "2026-05-10T10:15:00.000Z",
+      originalNote: "Upravený doplatek",
       originalCreatedByUserId: actor.id,
       voidedByUserId: actor.id,
       voidedAt: voidedAt.toISOString(),
