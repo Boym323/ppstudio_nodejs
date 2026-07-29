@@ -52,12 +52,13 @@ test.describe("dokončení návštěvy s úhradou", () => {
     await expect(page).toHaveURL(/\/admin/);
 
     await page.goto(`/admin/rezervace/${fixture.bookingId}`);
-    await page.getByRole("button", { name: "Dokončit návštěvu", exact: true }).click();
-    await page.getByRole("button", { name: "Kombinovaně" }).click();
-    await page.locator('input[name="directAmountCzk"]').fill("500");
-    await page.locator('input[name="voucherCode"]').fill(voucherCode);
-    await page.locator('input[name="voucherAmountCzk"]').fill("400");
-    await page.getByRole("button", { name: "Zapsat úhrady a dokončit" }).click();
+    await expect(page.getByRole("button", { name: /Dokončit návštěvu/ })).toBeVisible();
+    const completionPanel = page.locator('[aria-label="Způsob dokončení návštěvy"]').locator("..");
+    await completionPanel.getByRole("button", { name: "Kombinovaně" }).click();
+    await completionPanel.locator('input[name="directAmountCzk"]').fill("500");
+    await completionPanel.locator('input[name="voucherCode"]').fill(voucherCode);
+    await completionPanel.locator('input[name="voucherAmountCzk"]').fill("400");
+    await completionPanel.getByRole("button", { name: "Zapsat úhrady a dokončit" }).click();
 
     await expect.poll(async () => {
       const booking = await prisma.booking.findUniqueOrThrow({
