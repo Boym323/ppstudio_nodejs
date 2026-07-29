@@ -1,3 +1,3 @@
 import { createAdminSlotDetailRoute } from "@/features/admin/lib/admin-route-factories";
 
-export default createAdminSlotDetailRoute("salon", "detail");
+export default createAdminSlotDetailRoute("salon");

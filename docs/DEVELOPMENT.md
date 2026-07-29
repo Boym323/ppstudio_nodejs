@@ -172,10 +172,8 @@ Pro centralizovaný přehled hlavních route handler kontraktů používej i [`d
 - Drag editace v planner gridu musí zůstat funkční i pro mobilní pointery `touch`/`pen`; nespoléhej jen na `MouseEvent.buttons === 1` a u buněk drž `touch-action: none`, aby tažení nepřebíjel nativní scroll gesture.
 - UX polish týdního planneru drž výslovně jako `density pass`, ne jako novou IA: hlavní priorita je plocha pro grid, datum týdne jen jednou v toolbaru, pravý panel ve 3 kartách a legenda jako malý sekundární prvek až u detailu výběru.
 - Pro další úpravy planneru preferuj jemné změny kontrastu a rytmu mřížky před přidáváním dalšího chrome: výraznější celé hodiny, subtilnější půlhodiny, jasnější selected day/block a minimum textu přímo uvnitř gridu.
-- DST regresi planneru v UI kryje Playwright spec `tests/e2e/planner-dst.spec.ts`; scénář seeduje OWNER sloty 09:00-10:00, kliká `Kopírovat` den přes jarní/podzimní změnu času a `Kopírovat týden` přes DST, pak ověřuje cílové sloty přes `getCellRangeBounds(...)` v `Europe/Prague`.
-- Publish success/error feedback týdenního planneru je klientský banner v `src/features/admin/components/admin-weekly-planner-client.tsx`; při úspěšném `Publikovat změny` se success stav jednorázově přenese přes `sessionStorage`, aby přežil následný `router.refresh()` a nevznikal flaky závod mezi rerenderem a E2E asercí.
-- Po `router.refresh()` nesmí planner zůstat viset na předchozím klientském draftu. Když pro týden už neexistuje `localStorage` draft, musí se `workingDays` znovu hydratovat z `data.days` a vyčistit `selectedSelection`, jinak publish opticky skončí jen zeleným obrysem až do ručního reloadu.
-- Planner mutace v `src/features/admin/lib/admin-slots/mutations.ts` běží serializable a musí počítat s retry na Prisma `P2034` / `TransactionWriteConflict`; paralelní CI cleanup nebo jiný zápis do `AvailabilitySlot` tabulky nesmí shodit `Publikovat změny`, `Kopírovat den/týden` ani šablony na první konflikt.
+- FullCalendar planner ukládá změnu dostupnosti průběžně přes `applyPlannerSelectionAction()`; při chybě nabídne opakování nebo obnovení uloženého stavu.
+- Planner mutace v `src/features/admin/lib/admin-slots/mutations.ts` běží serializable a musí počítat s retry na Prisma `P2034` / `TransactionWriteConflict`; paralelní CI cleanup nebo jiný zápis do `AvailabilitySlot` tabulky nesmí shodit změnu dostupnosti na první konflikt.
 - Admin detail klientky je provozní CRM pohled nad `getAdminClientDetailData(...)` plus samostatné server actions pro `Client.internalNote` a kontaktní údaje. Při úpravách neměň route kontrakt `/admin/klienti/[clientId]` / `/admin/provoz/klienti/[clientId]` a nepřidávej nová pole do Prisma schematu kvůli preferencím. Úprava kontaktu musí validovat e-mail/telefon, hlídat unikátní `Client.email` a propsat e-mail/telefon jen do aktivních rezervací (`PENDING`/`CONFIRMED`), protože booking e-maily dál čtou `Booking.clientEmailSnapshot`; proběhlé rezervace (`COMPLETED`/`CANCELLED`/`NO_SHOW`) zůstávají auditně beze změny. Každý propis kontaktu do aktivní rezervace zapisuj do `BookingStatusHistory` (`reason: Kontakt klientky upraven`) včetně metadat původního/nového e-mailu a telefonu. `Poslední návštěva` v detailu znamená poslední minulou rezervaci ve stavu `COMPLETED`, ne `Client.lastBookedAt`, protože `lastBookedAt` se aktualizuje už při vytvoření rezervace. `CRM souhrn` počítej přes `src/features/clients/lib/client-crm-summary.ts`; pro platby nepíš novou aritmetiku mimo tento helper a sdílený `getBookingPaymentSummary(...)`. `Uhrazeno` je součet skutečných plateb a voucherových čerpání, ale `Neuhrazeno` smí zahrnout jen `COMPLETED` rezervace nebo aktivní `PENDING`/`CONFIRMED` rezervace se začátkem v minulosti, aby budoucí termíny nevypadaly jako dluh. UI drž kompaktní jako provozní workspace: žádné hero měřítko, tmavé card UI, jemné bordery, malé uppercase labely a krátké řádky historie bez zbytečných placeholderů poznámek.
 - Stejnou definici drž i seznam klientek na `/admin/klienti` a `/admin/provoz/klienti`: sloupec i řazení `Poslední návštěva` se musí opírat o poslední minulou rezervaci ve stavu `COMPLETED`, ne o profilové `Client.lastBookedAt`.
 - Totéž platí pro starší read model `getClientsData(...)` v `src/features/admin/lib/admin-data.ts`, pokud se ještě někde renderuje fallback / legacy sekce klientek přes `AdminSectionPage`.
@@ -507,9 +505,7 @@ Pro centralizovaný přehled hlavních route handler kontraktů používej i [`d
 - Sekce `volne-terminy` je znovu aktivní jako týdenní planner nad 30min gridem.
 - Serverový read/persistence model je v `src/features/admin/lib/admin-slots.ts`.
 - Server action adaptéry planneru jsou v `src/features/admin/actions/slot-planner-actions.ts`.
-- UI je rozdělené na serverový wrapper `src/features/admin/components/admin-weekly-planner-page.tsx` a klientský kalendář `src/features/admin/components/admin-weekly-planner-client.tsx`.
-- `admin-weekly-planner-client.tsx` je teď draft-first vrstva: drží `workingDays`, z nich odvozuje `hasUnsavedChanges` a publikuje celý týden až přes `syncPlannerWeekDraftAction()`.
-- Prezentační části planneru jsou dál rozsekané do `src/features/admin/components/admin-weekly-planner-ui.tsx`, aby hlavní klientská komponenta držela hlavně stav a akce.
+- Jediným produkčním UI je FullCalendar: serverový wrapper `AdminWeeklyPlannerPage` používá klientský kalendář `AdminWeeklyPlannerClient` pro OWNER i SALON. Soubory si kvůli kontinuitě historie zatím ponechávají původní název `*-lab-*`; nejde o samostatný experimentální workflow ani veřejnou route.
 - `src/components/layout/admin-shell.tsx` je klientský kvůli mobilnímu draweru sidebaru; desktop shell zůstává záměrně úzký, aby většina šířky patřila planner gridu.
 - Pravý panel planneru je akční inspektor dne; na menších breakpointech se otevírá jako `MobileInspectorSheet`.
 - `src/config/navigation.ts` drží centrální definici admin sekcí, slugů a navigace pro obě role.
@@ -571,7 +567,7 @@ Pro centralizovaný přehled hlavních route handler kontraktů používej i [`d
 - Totéž pravidlo drž i planner read model v `src/features/admin/lib/admin-slots/queries.ts`: `availableIntervals` se musí odečítat proti všem booking blokacím překrývajícím slot, ne jen proti bookingům se stejným `slotId`, jinak inspektor dne ukáže falešné `Volné okno` po cleanup overflowu do sousedního slotu.
 - Totéž pravidlo drž i admin dashboard read model v `src/features/admin/lib/admin-dashboard.ts`: sekce `Nejbližší volné termíny` nesmí zobrazit začátek slotu jen proto, že `slot.bookings.length < capacity`; musí odečíst všechny blokace `scheduledStartsAt -> blockedUntil` překrývající publikované sloty a navazující volné intervaly sloučit do stejných souvislých oken, jaká vidí planner.
 - Po zrušení rezervace přes klientský token i přes admin změnu stavu systém nově spouští post-cancel kompaktaci slotů: pokud se kolem zrušeného bookingu dotýkají sousední běžné publikované editable fragmenty a žádný z nich už nemá aktivní rezervaci, helper `src/features/booking/lib/booking-slot-compaction.ts` je sloučí zpět do jednoho souvislého slotu a případné historické `CANCELLED` booking vazby přesune na anchor slot.
-- UI vrstva planneru v `src/features/admin/components/admin-weekly-planner-ui.tsx` nepracuje s 15min editací, ale umí cleanup vykreslit s 15min vizuální přesností uvnitř 30min buňky. Read model proto posílá `cleanupBlocks` v minutách od začátku planner dne a komponenta z nich skládá horní/dolní nebo plný žlutý overlay nad základním tónem buňky.
+- FullCalendar planner zobrazuje úklid a rezervace jako samostatné události nad 30min mřížkou; read model proto dál posílá `cleanupBlocks` v minutách od začátku planner dne.
 - Detail služby obsahuje sekci `Homepage`, která ukládá `isFeaturedOnHomepage` a `homepageSortOrder`; tato pole neovlivňují booking flow ani ceník, jen výběr doporučených služeb na `/`.
 - `src/features/admin/lib/admin-services.ts` teď do detailového read modelu přibírá i posledních 10 `priceChangeLogs` včetně aktéra, aby drawer mohl audit ceny zobrazit bez další klientské fetch vrstvy.
 - Ve formuláři detailu služby (`admin-service-form.tsx`) je textová vrstva sjednocená pod `Veřejná prezentace`; `publicIntro` je jediný zdroj krátkého textu pro web i rezervační flow, aby se stejný copy neudržoval ve dvou polích.
@@ -627,7 +623,6 @@ Pro centralizovaný přehled hlavních route handler kontraktů používej i [`d
 - Pro budoucí upload workflow nepřidávej zvláštní implementaci pro owner a salon admin; sdílená feature vrstva je v `src/features/media/lib/media-library.ts`.
 - Produkční slot routy jsou explicitní a nepoužívají generický `[section]` detail:
   - `/admin/volne-terminy`
-  - `/admin/volne-terminy/novy`
   - `/admin/volne-terminy/[slotId]`
   - `/admin/volne-terminy/[slotId]/upravit`
   - salon varianta pod `/admin/provoz/volne-terminy/*`
@@ -1000,11 +995,8 @@ Pro centralizovaný přehled hlavních route handler kontraktů používej i [`d
 
 ## Týdenní plánování slotů
 - Hlavní workflow běží na `/admin/volne-terminy` a `/admin/provoz/volne-terminy`.
-- Mobil nepoužívá celou stěnu velkých denních karet; týden vybírá přes kompaktní sedmidenní přepínač a jeden přímý editor vybraného dne.
-- Přepnutí dne musí vždy zahodit jen aktuální UI výběr buňky a zavřít mobilní inspektor; koncept týdne zůstává zachovaný.
-- Mobilní planner nesmí schovávat dny týdne za neviditelný horizontální posun. Všech 7 dní má být vidět najednou a samotná půlhodinová mřížka se musí vejít do viewportu.
-- Buňky v gridu jsou skutečná tlačítka s accessible labelem `den + čas + stav`, aby šly ovládat a testovat bez závislosti na barvě.
-- Route `novy`, `[slotId]` a `[slotId]/upravit` jsou zachované kvůli kompatibilitě URL, ale přesměrují obsluhu zpět do planneru ve správném týdnu.
+- Mobilní FullCalendar nabízí pohled pro den, pracovní dny a víkend bez druhé implementace planneru.
+- `[slotId]` a `[slotId]/upravit` zůstávají kvůli kompatibilitě URL a přesměrují do správného týdne; samostatná route `novy` už neexistuje.
 - Mřížka používá 28 půlhodinových buněk na den (okno `06:00-20:00`).
 - Výpočet začátku týdne musí vycházet z lokálního kalendářního dne `Europe/Prague` (pondělí jako první den), ne z `getUTCDay()` nad UTC půlnocí.
 - `createdByUserId` při planner mutacích ber z reálného `AdminUser.id`; bootstrap session identifikátory (`bootstrap-owner`, `bootstrap-staff`) nejsou DB FK a musí fallbacknout na `null`.
@@ -1015,21 +1007,14 @@ Pro centralizovaný přehled hlavních route handler kontraktů používej i [`d
   - den znovu načte ze serveru
   - chráněné intervaly (rezervace, omezení služeb, neaktivní sloty, sloty s poznámkou nebo jinou kapacitou) odmítne měnit
   - zbylé jednoduché publikované sloty smaže a znovu založí jako minimální sadu souvislých intervalů
-- Copy week přenáší jen běžnou dostupnost; rezervace ani omezené intervaly se nekopírují.
-- Jednoduchá týdenní šablona i týdenní koncept jsou uložené lokálně v prohlížeči, takže nevyžadují novou tabulku ani další env; draft se klíčuje podle `area + weekKey`.
-- Před publikací týdne sanitizuj draft intervaly i na klientu i na serveru: drž integer buňky `0..28`, zahazuj prázdné intervaly (`endCell <= startCell`) a mergeuj překryvy. Tím se zabrání tomu, aby stale nebo poškozený draft skončil generickou chybou `Koncept týdne už není platný`.
-- `syncPlannerWeekDraft()` při publikaci konceptu nesmí mazat ani přepisovat chráněné intervaly načtené z DB. Pokud draftový interval kvůli stale klientskému stavu zasahuje do rezervace nebo omezení, server ho ořízne přes aktuální locked intervaly a uloží jen zbylou běžnou dostupnost.
-- `admin-weekly-planner-ui.test.ts` kryje cleanup UX v inspektoru dne: u rezervace musí zůstat primární čas služby, sekundárně se má zobrazit interní blok v mřížce a `Úklidová blokace do`; `GridCell` zároveň testuje vizuální cleanup hint (`after:w-1`) jen při aktivním cleanup markeru.
 - `mutations.integration.test.ts` má DB integrační scénář `getAdminPlannerWeek(...)`, který ověřuje, že planner API vrací odděleně klientský čas služby (`label`), interní blok (`blockedLabel`, `cleanupBlockedUntilLabel`) i mapování cleanup overlay buněk (`bookedCleanup`) pro rezervace se snapshotem `cleanupBlockMinutes`.
 
 ## Ruční QA pro planner
 - Ověř owner i salon variantu `/admin/volne-terminy` a `/admin/provoz/volne-terminy`.
-- Ověř, že kliknutí do buňky jen vybere blok pro inspektor a samotnou změnu udělá až tažení nebo akce z inspektoru.
-- Na mobilu ověř, že po výběru buňky lze přepnout na jiný den a nadpis editoru odpovídá URL parametru `day`.
-- Na mobilu ověř přidání a odebrání jednoho půlhodinového bloku přes inspektor bez horizontálního scrollu editoru dne.
+- Ověř přidání a odebrání jednoho půlhodinového bloku kliknutím bez horizontálního scrollu editoru dne.
 - Ověř přidání delšího úseku tažením a následné sloučení do jednoho `AvailabilitySlot`.
 - Ověř odebrání části dostupnosti ze zeleného bloku a správné rozdělení na zbylé intervaly.
-- Ověř sticky action bar pro neuložené změny: `Zahodit`, `Publikovat změny`.
+- Ověř průběžné uložení změny a obnovení uloženého stavu po chybě.
 - Ověř, že zásah do rezervace nebo omezeného slotu vrátí srozumitelnou chybu a nic nepřepíše.
 - Ověř, že slot s `CANCELLED` rezervací planner neukazuje jako blokaci: před publishí se má tvářit jako běžná dostupnost, po vyčištění dne nesmí v mřížce zůstat jako šedý nebo uzamčený historický stín a publish draft nesmí spadnout.
 - Ověř kopírování týdne, použití lokální šablony a obnovení uloženého konceptu po refreshi stejného týdne.

@@ -8,7 +8,7 @@ async function clientSource() {
   return readFile(clientPath, "utf8");
 }
 
-test("lab automaticky přidává do prázdných buněk a odebírá ze zelených intervalů", async () => {
+test("produkční planner automaticky přidává do prázdných buněk a odebírá ze zelených intervalů", async () => {
   const source = await clientSource();
   assert.match(source, /dateClick=\{handleDateClick\}/);
   assert.match(source, /setMessage\("Ukládám…"\)/);
@@ -31,7 +31,7 @@ test("lab automaticky přidává do prázdných buněk a odebírá ze zelených 
   assert.match(source, />Obnovit uložený stav</);
 });
 
-test("lab blokuje navigaci při ukládání a při změně týdne obnoví data kalendáře", async () => {
+test("produkční planner blokuje navigaci při ukládání a při změně týdne obnoví data kalendáře", async () => {
   const source = await clientSource();
   assert.match(source, /const canNavigate = !isSaving && !isWeekLoading/);
   assert.match(source, /const requestedDateRef = useRef\(effectiveInitialDate\)/);
@@ -40,7 +40,7 @@ test("lab blokuje navigaci při ukládání a při změně týdne obnoví data k
   assert.match(source, /setOpenWeekStart\(nextWeekStart\); calendarRef/);
   assert.match(source, /data\.weekKey !== requestedWeekRef\.current \|\| \(data\.weekKey === hydratedWeekRef\.current && !restoreRequestedRef\.current\)/);
   assert.match(source, /restoreRequestedRef\.current = false;/);
-  assert.match(source, /routeBase = "\/admin\/volne-terminy\/lab"/);
+  assert.match(source, /routeBase: string/);
   assert.match(source, /router\.replace\(`\$\{routeBase\}\?week=/);
   assert.match(source, /isPlannerLabMobileViewport\(window\.innerWidth\)/);
   assert.match(source, /if \(activeView === "timeGridDay"\) \{/);
@@ -53,7 +53,7 @@ test("lab blokuje navigaci při ukládání a při změně týdne obnoví data k
   assert.doesNotMatch(source, /dateAlignment="week"/);
 });
 
-test("lab neobsahuje inspektor dne", async () => {
+test("produkční planner neobsahuje druhý workflow inspektoru dne", async () => {
   const source = await clientSource();
   assert.doesNotMatch(source, /\b(?:DayInspector|MobileInspectorSheet|PlannerSelection)\b/);
   assert.doesNotMatch(source, /isInspectorOpen|initialDayKey/);

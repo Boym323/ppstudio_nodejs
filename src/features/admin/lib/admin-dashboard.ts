@@ -842,7 +842,7 @@ export async function getAdminDashboardData(area: AdminArea): Promise<AdminDashb
     todayPlanItems,
     timelineFooterHref: plannerHref,
     createBookingHref: getCreateBookingHref(area),
-    addSlotHref: `${plannerHref}/novy`,
+    addSlotHref: plannerHref,
     kpis: [
       {
         label: "Dnes rezervace",

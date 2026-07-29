@@ -787,19 +787,13 @@ npm run db:clear-booking-data -- --confirm
   - poznámky jsou rozdělené na klientskou a interní; interní poznámku lze uložit samostatně i bez změny statusu
   - historie změn zůstává dole jako hustší časová osa se stavem, aktérem, časem a dostupným zdrojem změny
 - Správa slotů je nyní produkčně použitelná pro obě role:
-  - týdenní planner na `/admin/volne-terminy` a `/admin/provoz/volne-terminy`
-  - route `novy`, `detail` a `upravit` zůstávají zachované, ale vrací zpět do planneru ve správném týdnu
+  - jediný FullCalendar planner na `/admin/volne-terminy` a `/admin/provoz/volne-terminy`
+  - route `detail` a `upravit` vrací zpět do planneru ve správném týdnu; samostatná route `novy` už neexistuje
 - Slot workflow podporuje:
-  - plánování po týdnech s hlavní plochou po dnech a 30min buňkách v pracovním okně `06:00-20:00`
-  - kliknutím výběr konkrétního bloku a tažením přidání nebo odebrání dostupnosti přímo v mřížce
-  - na mobilu funguje tažení i přes dotyk/stylus (`touch`/`pen`), takže není nutné přepínat na desktop kvůli drag editaci
+  - plánování po týdnech ve FullCalendar mřížce po 30 minutách v pracovním okně `06:00-20:00`
+  - kliknutím přidání či odebrání dostupnosti a tažením úpravu rozsahu přímo v mřížce
+  - na mobilu pohledy Den, Po–Pá a Víkend bez druhé plannerové implementace
   - automatické sloučení sousedních půlhodin do souvislých intervalů `AvailabilitySlot`
-  - pravý inspektor dne s denním souhrnem a detailem výběru z gridu
-- mobilní přepínač všech 7 dní najednou a editor jednoho dne bez horizontálního scrollu
-- přepínač dnů, navigace týdne a buňky mřížky mají na telefonu větší dotykové plochy; spodní inspektor i lišta pro publikaci konceptu respektují safe area zařízení
-  - přepnutí dne na mobilu čistí aktuální výběr buňky, ale nechává zachovaný nepublikovaný koncept týdne
-  - spodní sticky bar pro `Zahodit` a `Publikovat změny`
-  - týdenní rychlé akce `zkopírovat týden na další` a lokální šablonu týdne uloženou v zařízení
   - zobrazení rezervací, omezených intervalů, neaktivních slotů a minulého času
   - server-side ochranu proti zásahu do rezervací, omezených slotů a překryvům
 
@@ -807,16 +801,10 @@ npm run db:clear-booking-data -- --confirm
 - K datu `19. dubna 2026` je sekce `/admin/volne-terminy*` a `/admin/provoz/volne-terminy*` znovu aktivní jako týdenní planner.
 - Hlavní práce probíhá jen přes týdenní kalendář; samostatný formulář pro běžnou úpravu dostupnosti už není potřeba.
 - Aktuální podoba adminu dává prioritu mřížce týdne; levý sidebar je užší a mobil používá drawer pro navigaci.
-- Pravý panel funguje jako akční inspektor; na mobilu se otevírá jako spodní sheet, aby grid zůstal hlavní pracovní plochou.
 - 30min mřížka slouží jen jako editace v admin UI. Do databáze se ukládají souvislé intervaly `startsAt`-`endsAt`, aby zůstala kompatibilita s veřejným booking flow i delšími službami.
-- Neuložené změny se drží lokálně jako koncept týdne pro dané zařízení a týden; do databáze se propíšou až přes akci `Publikovat změny`.
-- Po úspěšném `Publikovat změny` zůstane potvrzovací hláška krátce viditelná i přes interní refresh planneru, takže obsluha dostane jasné potvrzení zápisu do dostupností.
-- Stejný interní refresh po publishi musí zároveň hned přepnout grid na nově publikovaný stav a vyčistit starý zelený selection outline; pokud by změna byla vidět až po ručním reloadu stránky, je to regrese klientské synchronizace planneru.
-- Publikace konceptu týdne je tolerantní vůči drobně poškozenému/stale lokálnímu draftu: intervaly se před uložením normalizují na mřížku `06:00-20:00` (`0..28` půlhodinových buněk), prázdné úseky se ignorují a překryvy se sloučí.
-- Pokud se mezi načtením stránky a publikací objeví nebo zůstane v DB rezervace/omezení, publikace konceptu ji zachová a běžnou dostupnost uloží jen mimo tento chráněný čas.
+- FullCalendar ukládá každou změnu dostupnosti průběžně; při chybě lze zápis zopakovat nebo obnovit poslední uložený stav.
 - Planner přímo neupravuje sloty, které už obsahují rezervace, omezení služeb, poznámky nebo jinou kapacitu než `1`; takové intervaly jsou v kalendáři vidět jako omezené a zůstávají chráněné.
-- U rezervací v planneru je primární čas v inspektoru `čas služby`; interní cleanup blokace se zobrazuje odděleně (`Blok v mřížce` + `Úklidová blokace do`) a v grid buňce má jemný pravý vizuální pruh.
-- Za „obsahují rezervace“ se pro rychlou planner editaci počítají hlavně aktivní nebo provozně relevantní vazby. `CANCELLED` historie se při publish mutaci přesouvá do archivovaného slotu na pozadí, takže obsluha v mřížce nevidí zbytečný blok jen kvůli storno minulosti.
+- Za „obsahují rezervace“ se pro rychlou planner editaci počítají hlavně aktivní nebo provozně relevantní vazby. `CANCELLED` historie se při změně dostupnosti přesouvá do archivovaného slotu na pozadí, takže obsluha v mřížce nevidí zbytečný blok jen kvůli storno minulosti.
 - Výchozí týden v planneru je počítaný nad lokálním datem `Europe/Prague`, takže týden vždy začíná pondělím i kolem časových posunů.
 - Autor změny dostupnosti je vždy aktivní databázový `AdminUser`; nouzový webový bootstrap účet neexistuje.
 - Z detailu rezervace lze bezpečně změnit stav pouze v povolených krocích:

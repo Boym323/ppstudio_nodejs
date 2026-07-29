@@ -10,7 +10,7 @@ import { prisma } from "../../src/lib/prisma";
 const plannerDate = "2027-03-22";
 
 function buildRunId() {
-  return `e2e-planner-lab-${Date.now()}-${randomBytes(4).toString("hex")}`;
+  return `e2e-fullcalendar-planner-${Date.now()}-${randomBytes(4).toString("hex")}`;
 }
 
 async function loginAdmin(page: Page, email: string, password: string) {
@@ -27,7 +27,7 @@ async function createOwner(runId: string) {
     data: {
       email: `${runId}@example.test`,
       passwordHash: await hashPassword(password),
-      name: `Planner Lab ${runId}`,
+      name: `FullCalendar planner ${runId}`,
       role: AdminRole.OWNER,
       isActive: true,
     },
@@ -62,7 +62,7 @@ async function cleanupRun(runId: string) {
   await prisma.adminUser.deleteMany({ where: { id: { in: users.map((user) => user.id) } } });
 }
 
-test.describe("FullCalendar planner e2e", () => {
+test.describe("produkční FullCalendar planner", () => {
   const runIds: string[] = [];
 
   test.afterEach(async () => {
@@ -80,7 +80,7 @@ test.describe("FullCalendar planner e2e", () => {
     await loginAdmin(page, owner.email, owner.password);
     await page.goto(`/admin/volne-terminy?week=${plannerDate}`);
 
-    await expect(page.getByTestId("planner-lab-calendar")).toBeVisible();
+    await expect(page.getByTestId("fullcalendar-planner")).toBeVisible();
     await expect(page.locator(".planner-lab-event--availability").first()).toBeVisible();
 
     await page.getByRole("button", { name: "Následující týden" }).click();
@@ -97,7 +97,7 @@ test.describe("FullCalendar planner e2e", () => {
 
     await loginAdmin(page, owner.email, owner.password);
     await page.goto(`/admin/volne-terminy?week=${plannerDate}&day=${plannerDate}`);
-    await expect(page.getByTestId("planner-lab-calendar")).toBeVisible();
+    await expect(page.getByTestId("fullcalendar-planner")).toBeVisible();
     await expect(page.getByRole("button", { name: "Den", exact: true })).toHaveAttribute("aria-pressed", "true");
 
     await page.getByRole("button", { name: "Následující den" }).click();
@@ -119,7 +119,7 @@ test.describe("FullCalendar planner e2e", () => {
 
     await loginAdmin(page, owner.email, owner.password);
     await page.goto(`/admin/volne-terminy?week=${plannerDate}`);
-    await expect(page.getByTestId("planner-lab-calendar")).toBeVisible();
+    await expect(page.getByTestId("fullcalendar-planner")).toBeVisible();
 
     const dayColumn = page.locator(`[role="gridcell"][data-date="${plannerDate}"]`);
     const timeSlot = page.locator('[data-time="10:00:00"]').first();
@@ -151,7 +151,7 @@ test.describe("FullCalendar planner e2e", () => {
 
     await loginAdmin(page, owner.email, owner.password);
     await page.goto(`/admin/volne-terminy?week=${dstDate}`);
-    await expect(page.getByTestId("planner-lab-calendar")).toBeVisible();
+    await expect(page.getByTestId("fullcalendar-planner")).toBeVisible();
 
     const dayColumn = page.locator(`[role="gridcell"][data-date="${dstDate}"]`);
     const timeSlot = page.locator('[data-time="10:00:00"]').first();

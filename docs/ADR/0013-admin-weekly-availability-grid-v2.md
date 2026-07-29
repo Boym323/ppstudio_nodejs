@@ -1,7 +1,7 @@
 # ADR 0013: Týdenní planner dostupností nad 30min gridem a souvislými intervaly
 
 ## Stav
-Accepted
+Superseded — produkční FullCalendar planner sjednotil workflow bez samostatné route `novy`, bez legacy route a bez původních rychlých akcí popsaných níže.
 
 ## Kontext
 Původní planner slotů byl odstraněný, protože byl pro každodenní provoz příliš těžkopádný. Zároveň už ale projekt měl důležitá omezení, která nešlo zahodit:

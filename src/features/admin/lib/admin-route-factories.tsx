@@ -16,7 +16,6 @@ import { AdminVouchersPage } from "@/features/admin/components/admin-vouchers-pa
 import { AdminUsersPage } from "@/features/admin/components/admin-users-page";
 import { AdminServiceCategoriesPage } from "@/features/admin/components/admin-service-categories-page";
 import { AdminServicesPage } from "@/features/admin/components/admin-services-page";
-import { AdminWeeklyPlannerPage } from "@/features/admin/components/admin-weekly-planner-page";
 import { AdminKpiDashboard } from "@/features/admin/components/admin-kpi-dashboard";
 import { getAdminSectionPath } from "@/features/admin/lib/admin-paths";
 import { getAdminSettingsPageData } from "@/features/admin/lib/admin-settings-page-data";
@@ -47,11 +46,6 @@ type AdminClientDetailParams = Promise<{
 
 type AdminVoucherDetailParams = Promise<{
   voucherId: string;
-}>;
-
-type AdminSearchParams = Promise<{
-  week?: string;
-  day?: string;
 }>;
 
 export function createAdminOverviewRoute(area: AdminArea) {
@@ -211,27 +205,12 @@ export function createAdminBookingDetailRoute(area: AdminArea) {
   };
 }
 
-export function createAdminSlotsRoute(area: AdminArea, _mode: "list" | "create") {
-  return async function AdminSlotsRoute({
-    searchParams,
-  }: {
-    searchParams: AdminSearchParams;
-  }) {
-    void _mode;
-    await requireAdminSectionAccess(area, "volne-terminy");
-    const { week, day } = await searchParams;
-
-    return <AdminWeeklyPlannerPage area={area} week={week} day={day} />;
-  };
-}
-
-export function createAdminSlotDetailRoute(area: AdminArea, _mode: "detail" | "edit") {
+export function createAdminSlotDetailRoute(area: AdminArea) {
   return async function AdminSlotDetailRoute({
     params,
   }: {
     params: AdminSlotParams;
   }) {
-    void _mode;
     await requireAdminSectionAccess(area, "volne-terminy");
     const { slotId } = await params;
     const slotContext = await findSlotWeekContext(slotId);

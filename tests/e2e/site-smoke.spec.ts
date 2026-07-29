@@ -158,8 +158,7 @@ test.describe("admin site smoke coverage", () => {
       { path: "/admin", heading: "Provozní přehled" },
       { path: "/admin/statistiky", heading: "KPI a statistiky" },
       { path: "/admin/rezervace", heading: "Rezervace" },
-      { path: "/admin/volne-terminy", heading: /Týdenní plán|Volné termíny/ },
-      { path: "/admin/volne-terminy/lab", heading: "Volné termíny" },
+      { path: "/admin/volne-terminy", heading: "Volné termíny" },
       { path: "/admin/vouchery", heading: "Vouchery" },
       { path: "/admin/vouchery/novy", heading: "Vytvořit voucher" },
       { path: "/admin/klienti", heading: "Klienti" },
@@ -174,7 +173,15 @@ test.describe("admin site smoke coverage", () => {
     for (const item of ownerPages) {
       await page.goto(item.path);
       await expect(page.getByRole("heading", { name: item.heading }).first()).toBeVisible();
+      if (item.path === "/admin/volne-terminy") {
+        await expect(page.getByTestId("fullcalendar-planner")).toBeVisible();
+      }
       await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/i);
+    }
+
+    for (const path of ["/admin/volne-terminy/novy", "/admin/volne-terminy/lab", "/admin/volne-terminy/puvodni-planner"]) {
+      await page.goto(path);
+      await expect(page.getByRole("heading", { name: "404" })).toBeVisible();
     }
   });
 
@@ -234,7 +241,7 @@ test.describe("admin site smoke coverage", () => {
       { path: "/admin/provoz", heading: "Provozní přehled" },
       { path: "/admin/provoz/statistiky", heading: "KPI a statistiky" },
       { path: "/admin/provoz/rezervace", heading: "Rezervace" },
-      { path: "/admin/provoz/volne-terminy", heading: /Týdenní plán|Volné termíny/ },
+      { path: "/admin/provoz/volne-terminy", heading: "Volné termíny" },
       { path: "/admin/provoz/vouchery", heading: "Vouchery" },
       { path: "/admin/provoz/vouchery/novy", heading: "Vytvořit voucher" },
       { path: "/admin/provoz/klienti", heading: "Klienti" },
@@ -246,8 +253,14 @@ test.describe("admin site smoke coverage", () => {
     for (const item of salonPages) {
       await page.goto(item.path);
       await expect(page.getByRole("heading", { name: item.heading }).first()).toBeVisible();
+      if (item.path === "/admin/provoz/volne-terminy") {
+        await expect(page.getByTestId("fullcalendar-planner")).toBeVisible();
+      }
       await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/i);
     }
+
+    await page.goto("/admin/provoz/volne-terminy/novy");
+    await expect(page.getByRole("heading", { name: "404" })).toBeVisible();
 
     await page.goto("/admin/provoz/statistiky");
     await expect.poll(() => page.locator("main").evaluate((element) => getComputedStyle(element.parentElement?.parentElement ?? element).backgroundColor)).toBe("rgb(16, 15, 17)");

@@ -155,14 +155,10 @@ Stručný architektonický a provozní přehled nasazení na Proxmox/LXC je v ko
    - slot workflow na `/admin/volne-terminy*` a `/admin/provoz/volne-terminy*`:
      - přepínání týdnů a zachování vybraného dne
      - horní stránková hlavička zůstává nízká a datum týdne se ukazuje jen jednou v planner toolbaru vedle navigace týdne
-     - toolbar drží kompaktně `zpět / Tento týden / vpřed / datum rozsahu / Kopírovat týden / Šablony` bez velkých prázdných mezer
-     - pravý panel je sloučený do karet `Inspektor dne` a `Detail výběru`; legenda je až sekundární rozbalovací sekce u detailu
-     - levá časová osa je dobře čitelná, celé hodiny mají jemně výraznější horizontální rytmus a vybraný den i blok jsou na první pohled rozeznatelné
+     - FullCalendar toolbar drží kompaktně navigaci týdne, aktuální rozsah a přepínač pohledu bez velkých prázdných mezer
+     - časová osa je dobře čitelná a rezervace, úklid i dostupnost jsou na první pohled rozeznatelné
      - plain published slot s čistě `CANCELLED` bookingem se má tvářit jako běžná dostupnost, ne jako `Omezené`
-     - zachování vybraného slotu po rychlé úpravě nebo změně stavu
-     - filtr stavu v planneru
-     - vytvoření slotu
-     - vytvoření série slotů
+     - průběžné uložení po rychlé úpravě dostupnosti
      - otevření denního pracovního panelu z karty dne
      - inline změnu stavu z day workspace
      - rychlou úpravu času bez kolize
@@ -513,14 +509,13 @@ sudo /var/www/ppstudio/deploy/deploy.sh
 ## Dodatečná QA pro týdenní planner
 - Ověř všechny route varianty:
   - `/admin/volne-terminy`
-  - `/admin/volne-terminy/novy`
   - `/admin/volne-terminy/[slotId]`
   - `/admin/volne-terminy/[slotId]/upravit`
   - a stejné cesty pod `/admin/provoz/volne-terminy/*`
 - Ověř, že planner renderuje týdenní kalendář a že guardy rolí fungují stejně jako dřív.
 - Ověř, že kliknutí do gridu vybírá blok pro pravý inspektor a že teprve tažení nebo akce z inspektoru mění koncept.
 - Ověř přidání dostupnosti tažením, odebrání zeleného intervalu a copy week.
-- Ověř sticky action bar `Zahodit / Publikovat změny` a že po refreshi bez publikace nejsou lokální změny týdne zachované.
+- Ověř průběžné uložení změny a možnost obnovit poslední uložený stav po chybě.
 - Ověř, že pokus o zásah do rezervace skončí čitelnou chybou bez změny dat.
 
 ## QA Pro Letní/Zimní Čas

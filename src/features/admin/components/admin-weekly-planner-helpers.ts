@@ -1,8 +1,23 @@
 import type { PlannerDay } from "@/features/admin/lib/admin-slots";
 
-import { formatRangeLabel, getCellTone, isEditableTone } from "./admin-weekly-planner-ui";
-
 export const PLANNER_DAY_CELLS = 28;
+
+function formatRangeLabel(startCell: number, endCell: number) {
+  const formatTime = (cell: number) => {
+    const minutes = 6 * 60 + cell * 30;
+    return `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
+  };
+
+  return `${formatTime(startCell)} - ${formatTime(endCell)}`;
+}
+
+function isEditableCell(day: PlannerDay, cellIndex: number) {
+  return !day.cells.booked[cellIndex]
+    && !day.cells.completed[cellIndex]
+    && !day.cells.locked[cellIndex]
+    && !day.cells.inactive[cellIndex]
+    && !day.cells.past[cellIndex];
+}
 
 export function buildAvailableCells(intervals: Array<{ startCell: number; endCell: number }>) {
   const cells = Array.from({ length: PLANNER_DAY_CELLS }, () => false);
@@ -97,10 +112,8 @@ export function patchDayAvailableIntervals(day: PlannerDay, intervals: PlannerDa
 
 export function hasBlockedCells(day: PlannerDay, startCell: number, endCell: number) {
   for (let cell = startCell; cell < endCell; cell += 1) {
-    const tone = getCellTone(day, cell);
-
-    if (!isEditableTone(tone)) {
-      return tone;
+    if (!isEditableCell(day, cell)) {
+      return "blocked";
     }
   }
 
