@@ -1,6 +1,6 @@
 # Environment
 
-Tento dokument shrnuje runtime prostředí projektu a nejdůležitější proměnné. Plný katalog proměnných zůstává v [docs/ENVIRONMENT.md](/var/www/ppstudio/docs/ENVIRONMENT.md).
+Tento dokument shrnuje runtime prostředí projektu a nejdůležitější proměnné. Plný katalog proměnných zůstává v [docs/ENVIRONMENT.md](docs/ENVIRONMENT.md).
 
 ## Runtime profil
 
@@ -8,7 +8,7 @@ Tento dokument shrnuje runtime prostředí projektu a nejdůležitější promě
 - npm `>=10`
 - Next.js `16.2.10`
 - React a React DOM `19.2.7`
-- Prisma `7.8.0`
+- Prisma `7.9.1`
 - PostgreSQL
 - Debian LXC na Proxmoxu
 
@@ -171,6 +171,6 @@ Neovlivňuje přímo obsah katalogu nebo booking pravidla v DB, protože ta jsou
 
 ## Související dokumenty
 
-- [ARCHITECTURE.md](/var/www/ppstudio/ARCHITECTURE.md)
-- [DEPLOYMENT.md](/var/www/ppstudio/DEPLOYMENT.md)
-- [docs/ENVIRONMENT.md](/var/www/ppstudio/docs/ENVIRONMENT.md)
+- [ARCHITECTURE.md](ARCHITECTURE.md)
+- [DEPLOYMENT.md](DEPLOYMENT.md)
+- [docs/ENVIRONMENT.md](docs/ENVIRONMENT.md)

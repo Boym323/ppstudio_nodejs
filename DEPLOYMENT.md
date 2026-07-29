@@ -1,6 +1,6 @@
 # Deployment
 
-Tento dokument je stručný provozní přehled deploye pro aktuální prostředí PP Studio. Detailní release checklist zůstává v [docs/DEPLOYMENT.md](/var/www/ppstudio/docs/DEPLOYMENT.md).
+Tento dokument je stručný provozní přehled deploye pro aktuální prostředí PP Studio. Detailní release checklist zůstává v [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
 ## Produkční topologie
 
@@ -25,8 +25,8 @@ Web a worker běží odděleně, ale sdílí:
 
 Soubory:
 
-- [deploy/systemd/ppstudio-web.service](/var/www/ppstudio/deploy/systemd/ppstudio-web.service:1)
-- [deploy/systemd/ppstudio-email-worker.service](/var/www/ppstudio/deploy/systemd/ppstudio-email-worker.service:1)
+- [deploy/systemd/ppstudio-web.service](deploy/systemd/ppstudio-web.service#L1)
+- [deploy/systemd/ppstudio-email-worker.service](deploy/systemd/ppstudio-email-worker.service#L1)
 
 ### `ppstudio-web`
 
@@ -45,7 +45,7 @@ Soubory:
 
 Script:
 
-- [deploy/release.sh](/var/www/ppstudio/deploy/release.sh:1)
+- [deploy/release.sh](deploy/release.sh#L1)
 
 Dělá:
 
@@ -133,6 +133,6 @@ Pozor:
 
 ## Související dokumenty
 
-- [ENVIRONMENT.md](/var/www/ppstudio/ENVIRONMENT.md)
-- [TROUBLESHOOTING.md](/var/www/ppstudio/TROUBLESHOOTING.md)
-- [docs/DEPLOYMENT.md](/var/www/ppstudio/docs/DEPLOYMENT.md)
+- [ENVIRONMENT.md](ENVIRONMENT.md)
+- [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
+- [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)

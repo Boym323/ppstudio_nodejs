@@ -18,7 +18,7 @@ Hlavní stack:
 - `next` `16.2.10`
 - `react` `19.2.7`
 - `react-dom` `19.2.7`
-- `prisma` `7.8.0`
+- `prisma` `7.9.1`
 - PostgreSQL
 - systemd služby `ppstudio-web` a `ppstudio-email-worker`
 
@@ -53,7 +53,7 @@ Hlavní stack:
 
 ## Databáze a Prisma modely
 
-Schéma je v [prisma/schema.prisma](/var/www/ppstudio/prisma/schema.prisma:1).
+Schéma je v [prisma/schema.prisma](prisma/schema.prisma#L1).
 
 ### Hlavní entity
 
@@ -165,9 +165,9 @@ Booking doména je navržená tak, aby UI bylo v klientu, ale rozhodující busi
 
 Implementace:
 
-- worker loop: [src/lib/email/worker.ts](/var/www/ppstudio/src/lib/email/worker.ts:1)
-- CLI entrypoint: [scripts/email-delivery-worker.ts](/var/www/ppstudio/scripts/email-delivery-worker.ts:1)
-- doručení: [src/lib/email/delivery.ts](/var/www/ppstudio/src/lib/email/delivery.ts:1)
+- worker loop: [src/lib/email/worker.ts](src/lib/email/worker.ts#L1)
+- CLI entrypoint: [scripts/email-delivery-worker.ts](scripts/email-delivery-worker.ts#L1)
+- doručení: [src/lib/email/delivery.ts](src/lib/email/delivery.ts#L1)
 
 Chování:
 
@@ -192,13 +192,13 @@ Produkčně běží jako samostatná systemd služba `ppstudio-email-worker.serv
 
 Implementace:
 
-- [src/features/calendar/lib/calendar-feed-service.ts](/var/www/ppstudio/src/features/calendar/lib/calendar-feed-service.ts:1)
-- [src/features/calendar/lib/calendar-feed-token.ts](/var/www/ppstudio/src/features/calendar/lib/calendar-feed-token.ts:1)
+- [src/features/calendar/lib/calendar-feed-service.ts](src/features/calendar/lib/calendar-feed-service.ts#L1)
+- [src/features/calendar/lib/calendar-feed-token.ts](src/features/calendar/lib/calendar-feed-token.ts#L1)
 
 ### ICS pro klientku
 
 - klientka dostává jednu `.ics` přílohu v potvrzovacím nebo reschedule e-mailu; veřejný endpoint ani kalendářový token neexistují
-- generování přílohy: [src/features/calendar/lib/booking-calendar-attachment.ts](/var/www/ppstudio/src/features/calendar/lib/booking-calendar-attachment.ts:1)
+- generování přílohy: [src/features/calendar/lib/booking-calendar-attachment.ts](src/features/calendar/lib/booking-calendar-attachment.ts#L1)
 
 ## Analytika: Matomo, UTM, Clarity, Meta Pixel, Google Ads
 
@@ -219,7 +219,7 @@ Serverová vrstva:
 
 ### UTM a akvizice
 
-Implementace: [src/features/booking/lib/booking-acquisition.ts](/var/www/ppstudio/src/features/booking/lib/booking-acquisition.ts:1)
+Implementace: [src/features/booking/lib/booking-acquisition.ts](src/features/booking/lib/booking-acquisition.ts#L1)
 
 - do cookie se ukládá landing path, referrer host a `utm_*` nebo `mtm_*`
 - při vytvoření rezervace se metadata propíší do `Booking`
@@ -242,8 +242,8 @@ Implementace: [src/features/booking/lib/booking-acquisition.ts](/var/www/ppstudi
 Zdroj pravdy:
 
 - enum `AdminRole`
-- navigace: [src/config/navigation.ts](/var/www/ppstudio/src/config/navigation.ts:1)
-- guardy: [src/features/admin/lib/admin-guards.ts](/var/www/ppstudio/src/features/admin/lib/admin-guards.ts:1)
+- navigace: [src/config/navigation.ts](src/config/navigation.ts#L1)
+- guardy: [src/features/admin/lib/admin-guards.ts](src/features/admin/lib/admin-guards.ts#L1)
 
 ### OWNER
 
@@ -293,6 +293,6 @@ Provozní model:
 
 Detaily rolloutů a env proměnných jsou v:
 
-- [DEPLOYMENT.md](/var/www/ppstudio/DEPLOYMENT.md)
-- [ENVIRONMENT.md](/var/www/ppstudio/ENVIRONMENT.md)
-- [TROUBLESHOOTING.md](/var/www/ppstudio/TROUBLESHOOTING.md)
+- [DEPLOYMENT.md](DEPLOYMENT.md)
+- [ENVIRONMENT.md](ENVIRONMENT.md)
+- [TROUBLESHOOTING.md](TROUBLESHOOTING.md)

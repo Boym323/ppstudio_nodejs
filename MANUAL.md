@@ -15,11 +15,11 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
 6. Řešení problémů (Troubleshooting)
 
 ## Architektonická mapa
-- Přehled architektury je v [`ARCHITECTURE.md`](/var/www/ppstudio/ARCHITECTURE.md).
-- Detail veřejného i self-service rezervačního toku je v [`BOOKING_FLOW.md`](/var/www/ppstudio/BOOKING_FLOW.md).
-- Stručný produkční deploy přehled pro Proxmox/LXC je v [`DEPLOYMENT.md`](/var/www/ppstudio/DEPLOYMENT.md).
-- Stručný runtime přehled proměnných a prostředí je v [`ENVIRONMENT.md`](/var/www/ppstudio/ENVIRONMENT.md).
-- Nejčastější provozní potíže a jejich první diagnostika jsou v [`TROUBLESHOOTING.md`](/var/www/ppstudio/TROUBLESHOOTING.md).
+- Přehled architektury je v [`ARCHITECTURE.md`](ARCHITECTURE.md).
+- Detail veřejného i self-service rezervačního toku je v [`BOOKING_FLOW.md`](BOOKING_FLOW.md).
+- Stručný produkční deploy přehled pro Proxmox/LXC je v [`DEPLOYMENT.md`](DEPLOYMENT.md).
+- Stručný runtime přehled proměnných a prostředí je v [`ENVIRONMENT.md`](ENVIRONMENT.md).
+- Nejčastější provozní potíže a jejich první diagnostika jsou v [`TROUBLESHOOTING.md`](TROUBLESHOOTING.md).
 
 ## Pravidla údržby
 - Při každé funkční změně aktualizuj relevantní sekce.
@@ -27,7 +27,7 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
 - Pokud přibude nová chyba a její fix, doplň ji do Troubleshooting.
 
 ## Build a nasazení
-- Doporučený produkční rollout script je [`deploy/release.sh`](/var/www/ppstudio/deploy/release.sh).
+- Doporučený produkční rollout script je [`deploy/release.sh`](deploy/release.sh).
 - Spouštěj z rootu repozitáře:
   - `cd /var/www/ppstudio`
   - `./deploy/release.sh`
@@ -44,7 +44,7 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
 - `next.config.ts` explicitně nastavuje `turbopack.root` na adresář právě běžícího checkoutu/release. Staging release tak může mít vlastní `package-lock.json` bez falešného workspace warningu při `next build`.
 - Pokud release neprojde health/smoke krokem, skript nyní vypíše, zda selhal `/api/health`, očekávané deployment ID, nebo homepage `/`, vždy s HTTP statusem. Teprve podle této informace čti `journalctl -u ppstudio-web.service -n 200 --no-pager`.
 - Po restartu služeb helper nejdřív tiše čeká na otevření webového endpointu (výchozích 20 pokusů po 0,25 s). Tím se očekávaný krátký start Next.js nezamění za incident; až vyčerpání readiness pokusů spouští rollback. Volitelně jej upravíš přes `PPSTUDIO_WEB_READY_RETRIES` a `PPSTUDIO_WEB_READY_RETRY_SECONDS`.
-- Detailní release checklist a QA body zůstávají v [`docs/DEPLOYMENT.md`](/var/www/ppstudio/docs/DEPLOYMENT.md).
+- Detailní release checklist a QA body zůstávají v [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
 
 ## Testování a coverage
 - `npm test` spouští celý Node test runner nad quoted globem `src/**/*.test.ts`; nejde už jen o shell-expanded podmnožinu jednoho souboru.
@@ -94,7 +94,7 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
 Poznámka k runtime:
 
 - Repo nově cílí na `Node 24 LTS`.
-- Lokálně použij `nvm use` podle [`.nvmrc`](/var/www/ppstudio/.nvmrc:1) nebo jiný ekvivalentní version manager.
+- Lokálně použij `nvm use` podle [`.nvmrc`](.nvmrc#L1) nebo jiný ekvivalentní version manager.
 - V CI i produkci drž stejnou major verzi Node, aby `npm ci`, build a nativní balíčky (`sharp`, Prisma) běžely nad stejným ABI.
 
 ## Troubleshooting
@@ -143,8 +143,8 @@ MEDIA_STORAGE_ROOT=/var/www/ppstudio-uploads
 - Při doporučeném rolloutu přes `deploy/release.sh` se `NEXT_DEPLOYMENT_ID` do `.env` běžně nepíše ručně; skript ho pro každý build automaticky nastaví na aktuální git commit a vedle build env ho zapíše i do `.release-env` pro runtime logy a incident diagnostiku. V `.env` tedy drž hlavně stabilní `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY`.
 - Next.js runtime teď zapisuje při startu i při zachycené request chybě strukturované logy s prefixy `ppstudio.next.register` a `ppstudio.next.request-error`. U `Failed to find Server Action` log obsahuje bezpečný fingerprint `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY`, aktivní `deploymentId`, příchozí `x-deployment-id`, route context, sanitizovanou path bez raw tokenů a nově i shrnutí `next-action` headeru (`length`, fingerprint, krátký sample, `looksMalformed`) pro odlišení stale klienta od scan/probingu.
 
-Detailní seznam všech env proměnných je v [`docs/ENVIRONMENT.md`](/var/www/ppstudio/docs/ENVIRONMENT.md).
-Praktický přehled hlavních HTTP endpointů je v [`docs/API.md`](/var/www/ppstudio/docs/API.md).
+Detailní seznam všech env proměnných je v [`docs/ENVIRONMENT.md`](docs/ENVIRONMENT.md).
+Praktický přehled hlavních HTTP endpointů je v [`docs/API.md`](docs/API.md).
 
 ## Monitoring a provozní SLA minimum
 - Externí monitoring má pravidelně volat `GET /api/health`; při `503` nebo timeoutu ber stav jako incident.
@@ -158,7 +158,7 @@ Praktický přehled hlavních HTTP endpointů je v [`docs/API.md`](/var/www/ppst
 
 ## Verzování (SemVer)
 - Projekt používá Semantic Versioning `MAJOR.MINOR.PATCH` v `package.json`.
-- Aktuální release je `3.1.0`; stabilní řada projektu začala verzí `1.0.0`.
+- Aktuální release je `3.11.0`; stabilní řada projektu začala verzí `1.0.0`.
 - `PATCH` (`0.1.0 -> 0.1.1`) zvyšuj při opravách chyb, interním refaktoru bez změny chování a technických úpravách bez dopadu na veřejné rozhraní.
 - `MINOR` (`0.1.0 -> 0.2.0`) zvyšuj při přidání nové funkce nebo rozšíření existující funkcionality zpětně kompatibilním způsobem.
 - `MAJOR` (`0.1.0 -> 1.0.0` nebo `1.x.y -> 2.0.0`) zvyšuj při nekompatibilní změně API, datového kontraktu, routingu nebo provozního chování, které vyžaduje zásah uživatele/operátora.
@@ -212,7 +212,7 @@ Praktický přehled hlavních HTTP endpointů je v [`docs/API.md`](/var/www/ppst
   - `next` `16.2.10`
   - `react` `19.2.7`
   - `react-dom` `19.2.7`
-  - `prisma` + `@prisma/client` `7.8.0`
+  - `prisma` + `@prisma/client` `7.9.1`
 - Veřejná část aktuálně pokrývá:
   - homepage
   - landing page `Dárkové vouchery` na `/vouchery` s CTA na domluvu voucheru a veřejné ověření kódu
@@ -977,12 +977,12 @@ npm run db:clear-booking-data -- --confirm
   - v `page.tsx` a `generateMetadata` typuj `params` jako `Promise<{ ... }>`
   - nejdřív proveď `const { slug } = await params` (nebo odpovídající pole)
   - až potom parametr použij v DB dotazech nebo renderu
-- Referenční implementace v projektu: [`src/app/(public)/sluzby/[slug]/page.tsx`](/var/www/ppstudio/src/app/(public)/sluzby/[slug]/page.tsx).
+- Referenční implementace v projektu: [`src/app/(public)/sluzby/[slug]/page.tsx`](src/app/(public)/sluzby/[slug]/page.tsx).
 - Chyba build procesu `Invalid segment configuration export detected` znamená, že některý App Router segment config export není staticky analyzovatelný.
 - Oprava:
   - v route souboru používej pro `revalidate`, `dynamic`, `fetchCache`, `runtime`, `preferredRegion`, `maxDuration` přímo literály nebo jiné staticky vyhodnotitelné hodnoty
   - nepoužívej výrazy typu `60 * 60 * 24`; použij rovnou `86400`
-  - v tomto projektu je referenční oprava v [`src/app/sitemap.ts`](/var/www/ppstudio/src/app/sitemap.ts)
+  - v tomto projektu je referenční oprava v [`src/app/sitemap.ts`](src/app/sitemap.ts)
 
 ## Provozní Poznámky
 - V detailu voucheru lze v adminu upravit jen provozní údaje: jméno kupujícího, e-mail kupujícího, platnost do a interní poznámku. Kód, typ, hodnota, měna, služba, čerpání ani PDF identita se běžnou editací nemění.
@@ -1016,10 +1016,10 @@ npm run db:clear-booking-data -- --confirm
 - Stejný `email:worker` nově každých 5 minut i skenuje potvrzené rezervace v okně `25h-26h` před termínem a zapisuje jeden reminder `EmailLog` typu `BOOKING_REMINDER`.
 - Po přesunu termínu resetuje doménová akce `rescheduleBooking(...)` oba reminder markery, takže se starý reminder neposílá pro původní termín a nový čas může znovu projít standardním enqueue flow.
 - Před produkční aplikací migrací je k dispozici `npm run db:check-migrations`, který odhalí otevřené failed/incomplete záznamy v `_prisma_migrations`.
-- Pro systemd provoz použij [`deploy/systemd/ppstudio-web.service`](/var/www/ppstudio/deploy/systemd/ppstudio-web.service) pro hlavní app a [`deploy/systemd/ppstudio-email-worker.service`](/var/www/ppstudio/deploy/systemd/ppstudio-email-worker.service) pro worker.
-- Systemd `.example` šablony s poznámkami k `User`/`Group` jsou v [`deploy/systemd/ppstudio-web.service.example`](/var/www/ppstudio/deploy/systemd/ppstudio-web.service.example) a [`deploy/systemd/ppstudio-email-worker.service.example`](/var/www/ppstudio/deploy/systemd/ppstudio-email-worker.service.example).
-- Jednorázová instalace obou units je připravená v [`deploy/deploy.sh`](/var/www/ppstudio/deploy/deploy.sh).
-- Pro Docker Compose provoz použij [`deploy/docker-compose.email-worker.yml`](/var/www/ppstudio/deploy/docker-compose.email-worker.yml).
+- Pro systemd provoz použij [`deploy/systemd/ppstudio-web.service`](deploy/systemd/ppstudio-web.service) pro hlavní app a [`deploy/systemd/ppstudio-email-worker.service`](deploy/systemd/ppstudio-email-worker.service) pro worker.
+- Systemd `.example` šablony s poznámkami k `User`/`Group` jsou v [`deploy/systemd/ppstudio-web.service.example`](deploy/systemd/ppstudio-web.service.example) a [`deploy/systemd/ppstudio-email-worker.service.example`](deploy/systemd/ppstudio-email-worker.service.example).
+- Jednorázová instalace obou units je připravená v [`deploy/deploy.sh`](deploy/deploy.sh).
+- Pro Docker Compose provoz použij [`deploy/docker-compose.email-worker.yml`](deploy/docker-compose.email-worker.yml).
 
 ## Týdenní Planner Dostupností
 - Desktop používá klasický týdenní grid se 7 dny a 30min řádky v rozsahu `06:00-20:00`.

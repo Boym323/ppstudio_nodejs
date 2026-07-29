@@ -2,14 +2,14 @@
 
 Dokumentace proměnných prostředí pro lokální vývoj i produkci.
 
-Stručný runtime přehled prostředí a vazeb na infrastrukturu je v kořenovém [`ENVIRONMENT.md`](/var/www/ppstudio/ENVIRONMENT.md). Tento soubor zůstává úplným katalogem proměnných.
+Stručný runtime přehled prostředí a vazeb na infrastrukturu je v kořenovém [`ENVIRONMENT.md`](../ENVIRONMENT.md). Tento soubor zůstává úplným katalogem proměnných.
 
 ## Pravidla
 - Tajné hodnoty nikdy neukládej do repozitáře.
 - Každá nová proměnná musí mít popis a příklad v `.env.example`.
 - Runtime proměnné používané aplikací se validují při startu přes `src/config/env.ts`.
 - CLI-only proměnné pro Prisma, například `SHADOW_DATABASE_URL`, načítá `prisma.config.ts` a nevalidují se při startu Next.js serveru.
-- Pro konzistentní lokální vývoj, CI a produkci drž `Node 24 LTS`; repo má [`.nvmrc`](/var/www/ppstudio/.nvmrc:1) a `package.json` `engines.node = ^24.0.0`.
+- Pro konzistentní lokální vývoj, CI a produkci drž `Node 24 LTS`; repo má [`.nvmrc`](../.nvmrc#L1) a `package.json` `engines.node = ^24.0.0`.
 - Prefill klientky pro admin ruční rezervaci používá jen query parametry `create=1` a `clientId` na existujících admin route; tahle změna nepřidává žádnou novou env proměnnou.
 - Normalizace telefonu klientky je čistě aplikační validace ve sdílených TypeScript helperech a nepřidává žádnou env proměnnou ani databázovou migraci.
 - Invariant `AvailabilitySlot.capacity = 1` nepřidává žádnou env proměnnou; vyžaduje pouze běžné `DATABASE_URL` pro Prisma migraci a předem čistá data.

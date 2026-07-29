@@ -57,7 +57,7 @@ Odpověď:
   "checkedAt": "2026-06-29T17:12:34.000Z",
   "durationMs": 24,
   "release": {
-    "version": "3.1.0",
+    "version": "3.11.0",
     "deploymentId": "abc123def456",
     "deploymentVersion": "abc123def456",
     "gitHash": "abc123def456"
@@ -117,7 +117,7 @@ Vysvětlení polí:
 - `alerts`: lidsky čitelný seznam aktivních problémů, které ovlivnily vyhodnocení health stavu.
 
 Implementace:
-- [src/app/api/health/route.ts](/var/www/ppstudio/src/app/api/health/route.ts:1)
+- [src/app/api/health/route.ts](../src/app/api/health/route.ts#L1)
 
 ## `GET /api/calendar/owner.ics?token=...`
 
@@ -145,7 +145,7 @@ Odpověď:
 - feed je read-only export, aplikace zůstává source of truth
 
 Implementace:
-- [src/app/api/calendar/owner.ics/route.ts](/var/www/ppstudio/src/app/api/calendar/owner.ics/route.ts:1)
+- [src/app/api/calendar/owner.ics/route.ts](../src/app/api/calendar/owner.ics/route.ts#L1)
 
 ## `POST /api/auth/login`
 
@@ -179,7 +179,7 @@ Bezpečnostní pravidla:
 - `next` nesmí být externí URL ani obsahovat `\\`
 
 Implementace:
-- [src/app/api/auth/login/route.ts](/var/www/ppstudio/src/app/api/auth/login/route.ts:1)
+- [src/app/api/auth/login/route.ts](../src/app/api/auth/login/route.ts#L1)
 
 ## `POST /api/auth/logout`
 
@@ -205,7 +205,7 @@ Poznámky:
 - používá stejnou cookie konfiguraci jako login/session vrstva
 
 Implementace:
-- [src/app/api/auth/logout/route.ts](/var/www/ppstudio/src/app/api/auth/logout/route.ts:1)
+- [src/app/api/auth/logout/route.ts](../src/app/api/auth/logout/route.ts#L1)
 
 ## `GET /api/admin/analytics`
 
@@ -289,7 +289,7 @@ Vysvětlení polí:
 - `contactStepQuality.focusRate`, `inputRate`, `errorRate`: odvozené procentuální metriky kvality kontaktního kroku.
 
 Implementace:
-- [src/app/api/admin/analytics/route.ts](/var/www/ppstudio/src/app/api/admin/analytics/route.ts:1)
+- [src/app/api/admin/analytics/route.ts](../src/app/api/admin/analytics/route.ts#L1)
 
 ## Interní Admin API
 
@@ -344,7 +344,7 @@ Vysvětlení polí:
 - `kind=service`: návrh podle názvu služby.
 
 Implementace:
-- [src/app/api/admin/bookings/search/route.ts](/var/www/ppstudio/src/app/api/admin/bookings/search/route.ts:1)
+- [src/app/api/admin/bookings/search/route.ts](../src/app/api/admin/bookings/search/route.ts#L1)
 
 ## `POST /api/admin/vouchers/lookup`
 
@@ -399,7 +399,7 @@ Vysvětlení polí:
 - `voucher.servicePriceSnapshotCzk`: uložená cena navázané služby v okamžiku vytvoření voucheru.
 
 Implementace:
-- [src/app/api/admin/vouchers/lookup/route.ts](/var/www/ppstudio/src/app/api/admin/vouchers/lookup/route.ts:1)
+- [src/app/api/admin/vouchers/lookup/route.ts](../src/app/api/admin/vouchers/lookup/route.ts#L1)
 
 ## `POST /api/admin/users/resend-invite`
 
@@ -445,7 +445,7 @@ Vysvětlení polí:
 - `message`: uživatelsky čitelná hláška určená pro admin rozhraní.
 
 Implementace:
-- [src/app/api/admin/users/resend-invite/route.ts](/var/www/ppstudio/src/app/api/admin/users/resend-invite/route.ts:1)
+- [src/app/api/admin/users/resend-invite/route.ts](../src/app/api/admin/users/resend-invite/route.ts#L1)
 
 ## `POST /api/webhooks/resend`
 
@@ -505,7 +505,7 @@ Vysvětlení polí:
 - `ignored`: event byl sice validní, ale záměrně nevedl ke změně stavu, například protože nebyl relevantní.
 
 Implementace:
-- [src/app/api/webhooks/resend/route.ts](/var/www/ppstudio/src/app/api/webhooks/resend/route.ts:1)
+- [src/app/api/webhooks/resend/route.ts](../src/app/api/webhooks/resend/route.ts#L1)
 
 ## Co tu záměrně není
 

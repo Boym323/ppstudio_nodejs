@@ -206,8 +206,8 @@ První kroky:
 
 ## Související dokumenty
 
-- [ARCHITECTURE.md](/var/www/ppstudio/ARCHITECTURE.md)
-- [BOOKING_FLOW.md](/var/www/ppstudio/BOOKING_FLOW.md)
-- [DEPLOYMENT.md](/var/www/ppstudio/DEPLOYMENT.md)
-- [ENVIRONMENT.md](/var/www/ppstudio/ENVIRONMENT.md)
-- [docs/INCIDENTS.md](/var/www/ppstudio/docs/INCIDENTS.md)
+- [ARCHITECTURE.md](ARCHITECTURE.md)
+- [BOOKING_FLOW.md](BOOKING_FLOW.md)
+- [DEPLOYMENT.md](DEPLOYMENT.md)
+- [ENVIRONMENT.md](ENVIRONMENT.md)
+- [docs/INCIDENTS.md](docs/INCIDENTS.md)

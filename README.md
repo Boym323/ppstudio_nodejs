@@ -2,7 +2,7 @@
 
 Produkční web kosmetického studia s veřejnou prezentací, rezervačním flow a odděleným admin rozhraním pro role `OWNER` a `SALON`.
 
-Aktuální verze: **3.6.0**. README slouží jako rychlý GitHub rozcestník a onboarding. Detailní provozní a vývojová dokumentace je vedená přímo v repozitáři, ne jako primární GitHub Wiki.
+Aktuální verze: **3.11.0**. README slouží jako rychlý GitHub rozcestník a onboarding. Detailní provozní a vývojová dokumentace je vedená přímo v repozitáři, ne jako primární GitHub Wiki.
 
 Nejdůležitější dokumenty:
 - [MANUAL.md](MANUAL.md) pro provozní souvislosti
@@ -59,9 +59,8 @@ src/
     admin/                    admin workflow, formuláře a read modely
     booking/                  booking flow a booking business logika
     calendar/                 kalendářové exporty
-    home/                     homepage sekce
     media/                    media knihovna a upload workflow
-    public/                   veřejné stránky nad DB read modely
+    public/                   homepage a veřejné stránky nad DB read modely
     vouchers/                 voucher doména, PDF a veřejné ověření
   lib/                        infrastructura, Prisma, auth, utility
 scripts/                      provozní a importní helpery
@@ -310,4 +309,4 @@ Nejdůležitější doprovodné dokumenty:
 ## Commit zprávy
 
 - commit message piš česky
-- pro jednotný styl je připravená šablona `.gitmessage-cz.txt`
+- pro jednotný styl dodržuj pravidla pro české commit zprávy v `AGENTS.md`

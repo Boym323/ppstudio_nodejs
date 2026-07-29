@@ -26,16 +26,16 @@ Tichý startup readiness probe nepřidává závislost; používá stejný `curl
 
 ## Aktuální verze stacku
 - Zdroj pravdy je `package.json` v kořeni projektu.
-- Projektový runtime cíl je `Node 24 LTS`; repozitář to explicitně deklaruje přes [`.nvmrc`](/var/www/ppstudio/.nvmrc:1) a `package.json.engines`.
+- Projektový runtime cíl je `Node 24 LTS`; repozitář to explicitně deklaruje přes [`.nvmrc`](../.nvmrc#L1) a `package.json.engines`.
 - `next`: `16.2.10`
 - `react`: `19.2.7`
 - `react-dom`: `19.2.7`
 - `tailwindcss`: `^4.3.2` (runtime používá `4.3.2`)
 - `@tailwindcss/postcss`: `^4.3.2` (runtime používá `4.3.2`)
 - `postcss`: přímá závislost není pinovaná; resolvuje se přes `@tailwindcss/postcss` (`8.5.16`) a interně také přes `next`.
-- `prisma`: `^7.8.0` (runtime používá `7.8.0`)
-- `@prisma/client`: `^7.8.0` (runtime používá `7.8.0`)
-- `@prisma/adapter-pg`: `^7.8.0` (runtime používá `7.8.0`)
+- `prisma`: `7.9.1`
+- `@prisma/client`: `7.9.1`
+- `@prisma/adapter-pg`: `7.9.1`
 - `package.json.allowScripts` na npm 11 vědomě whitelisuje install hooky pro `prisma`, `@prisma/engines`, `sharp`, `esbuild` a `unrs-resolver`. Záznamy jsou připnuté na konkrétní verze, aby se při upgradu znovu explicitně zrevidovalo, které postinstall/preinstall skripty repo pouští.
 - Poslední ověřený lokální `npm audit` (2026-07-02) hlásí `1 low` a `6 moderate` nálezů bez `high` / `critical`. Nejrelevantnější větev je `next -> postcss`, dále Prisma tooling (`prisma -> @prisma/dev -> @hono/node-server`) a transitive `@babel/core` / `brace-expansion`.
 - Automatické `npm audit fix` se teď vědomě nepouští: doporučené opravy vrací nebezpečné návrhy na major downgrade `next` nebo `prisma`, takže bezpečný postup je čekat na kompatibilní upstream patch/minor release a zkusit audit znovu při dalším dependency passu.

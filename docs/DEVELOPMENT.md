@@ -1,14 +1,14 @@
 # Podrobná Vývojová Dokumentace
 
 Tento dokument slouží jako detailní technická dokumentace vývoje.
-Pro centralizovaný přehled hlavních route handler kontraktů používej i [`docs/API.md`](/var/www/ppstudio/docs/API.md); implementace v `src/app/api/**/route.ts` je ale vždy finální zdroj pravdy.
+Pro centralizovaný přehled hlavních route handler kontraktů používej i [`docs/API.md`](API.md); implementace v `src/app/api/**/route.ts` je ale vždy finální zdroj pravdy.
 
 ## Kořenová technická dokumentace
-- Architektonický přehled repa je v [`ARCHITECTURE.md`](/var/www/ppstudio/ARCHITECTURE.md).
-- End-to-end veřejný booking a self-service tok je v [`BOOKING_FLOW.md`](/var/www/ppstudio/BOOKING_FLOW.md).
-- Stručný provozní deployment přehled pro Proxmox/LXC je v [`DEPLOYMENT.md`](/var/www/ppstudio/DEPLOYMENT.md).
-- Stručný runtime přehled proměnných a prostředí je v [`ENVIRONMENT.md`](/var/www/ppstudio/ENVIRONMENT.md).
-- Pro opakující se incidenty použij i [`TROUBLESHOOTING.md`](/var/www/ppstudio/TROUBLESHOOTING.md).
+- Architektonický přehled repa je v [`ARCHITECTURE.md`](../ARCHITECTURE.md).
+- End-to-end veřejný booking a self-service tok je v [`BOOKING_FLOW.md`](../BOOKING_FLOW.md).
+- Stručný provozní deployment přehled pro Proxmox/LXC je v [`DEPLOYMENT.md`](../DEPLOYMENT.md).
+- Stručný runtime přehled proměnných a prostředí je v [`ENVIRONMENT.md`](../ENVIRONMENT.md).
+- Pro opakující se incidenty použij i [`TROUBLESHOOTING.md`](../TROUBLESHOOTING.md).
 
 ## Verzování a release disciplína
 - `package.json` používá SemVer `MAJOR.MINOR.PATCH`; aktuální release je `3.7.1` ve stabilní řadě.
@@ -25,7 +25,7 @@ Pro centralizovaný přehled hlavních route handler kontraktů používej i [`d
 - Na `npm 11` držíme v `package.json` i `allowScripts` whitelist pro balíčky s install hooky (`prisma`, `@prisma/engines`, `sharp`, `esbuild`, `unrs-resolver`). Při upgradu některého z nich čekej změnu pinu a po review spusť znovu `npm approve-scripts <pkg>`, jinak budou releasy hlásit `npm warn allow-scripts`.
 
 ## Dev runtime a cache
-- Vývoj i CI standardizujeme na `Node 24 LTS`. Repo drží [`.nvmrc`](/var/www/ppstudio/.nvmrc:1) s hodnotou `24` a `package.json` deklaruje `engines.node = ^24.0.0`; před prvním `npm install` nebo po upgrade runtime si ověř `node -v`.
+- Vývoj i CI standardizujeme na `Node 24 LTS`. Repo drží [`.nvmrc`](../.nvmrc#L1) s hodnotou `24` a `package.json` deklaruje `engines.node = ^24.0.0`; před prvním `npm install` nebo po upgrade runtime si ověř `node -v`.
 - Výchozí `npm run dev` používá Next.js 16 dev server s Turbopackem kvůli rychlosti kompilace velké admin route. Webpack je dostupný přes `npm run dev:webpack` jako stabilnější fallback při problémech s Turbopack HMR.
 - `next.config.ts` nastavuje `turbopack.root` na `__dirname`; při verzovaném release/staging buildu tak Turbopack nepovažuje sourozenecké `releases/*/package-lock.json` za další workspace. Při přesunu projektu neměň tuto hodnotu na pevnou absolutní cestu.
 - U admin formulářů nepočítej s tím, že stylování nativního `<select>/<option>` bude konzistentní napříč OS. Chrome na Windows může ignorovat kontrast očekávaný z Tailwind tříd a vykreslit nečitelný dropdown; pro business-kritický výběr (např. voucher na službu) preferuj vlastní seznam/radio/button picker nad hidden inputem.
@@ -77,7 +77,7 @@ Pro centralizovaný přehled hlavních route handler kontraktů používej i [`d
 - Výchozí pořadí pro nový stroj nebo čistý checkout je:
   1. `cp .env.example .env`
   2. doplnit lokální `DATABASE_URL`, `SHADOW_DATABASE_URL`, `ADMIN_SESSION_SECRET`, `NEXT_PUBLIC_APP_URL`
-  3. `nvm use` (nebo jiný ekvivalentní přepínač na `Node 24` podle [`.nvmrc`](/var/www/ppstudio/.nvmrc:1))
+  3. `nvm use` (nebo jiný ekvivalentní přepínač na `Node 24` podle [`.nvmrc`](../.nvmrc#L1))
   4. `npm install`
   5. `npm run db:generate`
   6. `npm run db:migrate`

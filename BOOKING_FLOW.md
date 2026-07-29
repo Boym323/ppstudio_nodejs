@@ -17,7 +17,7 @@ UI průchod:
 
 Implementace UI:
 
-- [src/features/booking/components/booking-flow.tsx](/var/www/ppstudio/src/features/booking/components/booking-flow.tsx:1)
+- [src/features/booking/components/booking-flow.tsx](src/features/booking/components/booking-flow.tsx#L1)
 
 ## Data pro booking
 
@@ -62,7 +62,7 @@ Při vytvoření rezervace se propíše do `Booking`:
 
 Server action:
 
-- [src/features/booking/actions/create-public-booking.ts](/var/www/ppstudio/src/features/booking/actions/create-public-booking.ts:1)
+- [src/features/booking/actions/create-public-booking.ts](src/features/booking/actions/create-public-booking.ts#L1)
 
 Flow:
 
@@ -82,7 +82,7 @@ Rate limiting:
 
 Implementace:
 
-- [src/features/booking/lib/booking-public/engine.ts](/var/www/ppstudio/src/features/booking/lib/booking-public/engine.ts:1)
+- [src/features/booking/lib/booking-public/engine.ts](src/features/booking/lib/booking-public/engine.ts#L1)
 
 Engine uvnitř transakce řeší:
 
@@ -106,7 +106,7 @@ Engine uvnitř transakce řeší:
 
 Implementace:
 
-- [src/features/booking/lib/booking-public/notifications.ts](/var/www/ppstudio/src/features/booking/lib/booking-public/notifications.ts:1)
+- [src/features/booking/lib/booking-public/notifications.ts](src/features/booking/lib/booking-public/notifications.ts#L1)
 
 Po vytvoření rezervace se typicky založí:
 
@@ -211,8 +211,8 @@ Do analytics se neposílá:
 
 ## Související dokumenty
 
-- [ARCHITECTURE.md](/var/www/ppstudio/ARCHITECTURE.md)
-- [ENVIRONMENT.md](/var/www/ppstudio/ENVIRONMENT.md)
-- [TROUBLESHOOTING.md](/var/www/ppstudio/TROUBLESHOOTING.md)
-- [docs/ADR/0025-public-booking-flow-v2.md](/var/www/ppstudio/docs/ADR/0025-public-booking-flow-v2.md)
-- [docs/ADR/0031-owner-bookings-ics-feed-v1.md](/var/www/ppstudio/docs/ADR/0031-owner-bookings-ics-feed-v1.md)
+- [ARCHITECTURE.md](ARCHITECTURE.md)
+- [ENVIRONMENT.md](ENVIRONMENT.md)
+- [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
+- [docs/ADR/0025-public-booking-flow-v2.md](docs/ADR/0025-public-booking-flow-v2.md)
+- [docs/ADR/0031-owner-bookings-ics-feed-v1.md](docs/ADR/0031-owner-bookings-ics-feed-v1.md)

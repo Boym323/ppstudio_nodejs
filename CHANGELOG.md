@@ -382,7 +382,7 @@ Formát je inspirovaný Keep a Changelog.
 ## [0.4.0] - 2026-06-29
 
 - Release příprava pro produkční nasazení: projektová verze navýšena na minor `0.4.0`.
-- Přibyla centralizovaná API reference v [`docs/API.md`](/var/www/ppstudio/docs/API.md), která shrnuje hlavní veřejné, admin-only a webhook endpointy včetně účelu, přístupu, status kódů a shape odpovědí; nově pokrývá i internější admin/UI route kontrakty jako booking search, voucher lookup, logout a resend invite.
+- Přibyla centralizovaná API reference v [`docs/API.md`](docs/API.md), která shrnuje hlavní veřejné, admin-only a webhook endpointy včetně účelu, přístupu, status kódů a shape odpovědí; nově pokrývá i internější admin/UI route kontrakty jako booking search, voucher lookup, logout a resend invite.
 - `GET /api/health` nově vrací i `release.version` převzatou z `package.json`, takže monitoring a ruční diagnostika snadno odliší aplikační verzi od deployment/commit identifikátoru.
 - `GET /api/health` teď vrací i release metadata (`deploymentId`, `deploymentVersion`, `gitHash`) a `durationMs`, takže externí monitoring i ruční incident diagnostika rychleji poznají, na jakém buildu endpoint běží a jak dlouho vyhodnocení trvalo.
 - Health endpoint má nově konzistentní payload i při DB chybě: chybová větev drží stejné sekce `emailWorker`, `emailQueue`, `emailDelivery` a vždy posílá `cache-control: no-store`.
@@ -403,7 +403,7 @@ Formát je inspirovaný Keep a Changelog.
 - Release příprava pro produkční nasazení: projektová verze navýšena na patch `0.3.33`.
 - Aktualizován framework `next` z `16.2.6` na `16.2.9` a `eslint-config-next` z `16.2.6` na `16.2.9`; jde o bezpečný patch upgrade v rámci Next.js 16 ověřený lokálním lintem a production buildem.
 - Provozní dokumentace nově eviduje i aktuální stav `npm audit`: po upgradu zůstává `1 low` a `6 moderate` transitive nálezů, ale automatické `npm audit fix` se záměrně nepouští, protože doporučené zásahy míří na nebezpečný downgrade `next` / `prisma`.
-- Projekt je nově standardizovaný na `Node 24 LTS`: přibyl repový pin [`.nvmrc`](/var/www/ppstudio/.nvmrc:1), `package.json` deklaruje `engines.node = ^24.0.0` a GitHub Actions CI běží na `Node 24` místo `22`.
+- Projekt je nově standardizovaný na `Node 24 LTS`: přibyl repový pin [`.nvmrc`](.nvmrc#L1), `package.json` deklaruje `engines.node = ^24.0.0` a GitHub Actions CI běží na `Node 24` místo `22`.
 - Provozní a vývojová dokumentace byla doplněná o rollout poznámky k upgradu runtime, aby lokální vývoj, CI a produkce držely stejnou major verzi Node při `npm ci`, buildu a restartu systemd služeb.
 - Opravená flakiness DB integračního testu `booking-rescheduling.integration.test.ts`: seed už nevolí pevně odvozené budoucí časy, ale aktivně hledá izolované okno bez překryvu s existujícími sloty a aktivními rezervacemi ve sdílené databázi.
 

@@ -2,7 +2,7 @@
 
 Postup nasazení aplikace do produkce.
 
-Stručný architektonický a provozní přehled nasazení na Proxmox/LXC je v kořenovém [`DEPLOYMENT.md`](/var/www/ppstudio/DEPLOYMENT.md). Tento soubor zůstává detailním release checklistem.
+Stručný architektonický a provozní přehled nasazení na Proxmox/LXC je v kořenovém [`DEPLOYMENT.md`](../DEPLOYMENT.md). Tento soubor zůstává detailním release checklistem.
 
 ## Databázová preflight kontrola
 
@@ -380,7 +380,7 @@ Použij jen tehdy, když z nějakého důvodu nemůžeš použít `./deploy/rele
 - Po recovery ověř přihlášení, platnost nové session a že nelze deaktivovat ani degradovat posledního aktivního OWNERa. Soubor s heslem bezpečně smaž podle provozního postupu.
 
 ### Automatizovaný rollout skript
-- Pro běžný produkční rollout můžeš použít [`deploy/release.sh`](/var/www/ppstudio/deploy/release.sh).
+- Pro běžný produkční rollout můžeš použít [`deploy/release.sh`](../deploy/release.sh).
 - Skript provede:
   - kontrolu větve (výchozí `main`) a čistoty pracovního stromu
   - fail-fast kontrolu, že systemd zná `ppstudio-web.service` a `ppstudio-email-worker.service`
@@ -417,10 +417,10 @@ systemctl disable --now pm2-root.service
 - Regresní selhání startu webu, workeru a health/smoke rollbacku ověříš bez produkčních služeb příkazem `bash deploy/release.test.sh`; skript navíc kontroluje pořadí build -> migrace -> aktivace, takže selhání buildu před DB zápisem a selhání migrace před přepnutím zůstávají kryté kontraktem releasu.
 
 ### Systemd
-- Doporučený web unit je v [`deploy/systemd/ppstudio-web.service`](/var/www/ppstudio/deploy/systemd/ppstudio-web.service).
-- Doporučený worker unit je v [`deploy/systemd/ppstudio-email-worker.service`](/var/www/ppstudio/deploy/systemd/ppstudio-email-worker.service).
-- Šablony s poznámkami k `User`/`Group` jsou v [`deploy/systemd/ppstudio-web.service.example`](/var/www/ppstudio/deploy/systemd/ppstudio-web.service.example) a [`deploy/systemd/ppstudio-email-worker.service.example`](/var/www/ppstudio/deploy/systemd/ppstudio-email-worker.service.example).
-- Jednoduchý instalační helper je v [`deploy/deploy.sh`](/var/www/ppstudio/deploy/deploy.sh).
+- Doporučený web unit je v [`deploy/systemd/ppstudio-web.service`](../deploy/systemd/ppstudio-web.service).
+- Doporučený worker unit je v [`deploy/systemd/ppstudio-email-worker.service`](../deploy/systemd/ppstudio-email-worker.service).
+- Šablony s poznámkami k `User`/`Group` jsou v [`deploy/systemd/ppstudio-web.service.example`](../deploy/systemd/ppstudio-web.service.example) a [`deploy/systemd/ppstudio-email-worker.service.example`](../deploy/systemd/ppstudio-email-worker.service.example).
+- Jednoduchý instalační helper je v [`deploy/deploy.sh`](../deploy/deploy.sh).
 - Kopíruj je do `/etc/systemd/system/`, potom spusť:
 ```bash
 systemctl daemon-reload
@@ -441,7 +441,7 @@ sudo /var/www/ppstudio/deploy/deploy.sh
 - Pokud server historicky běžel přes PM2, vypni staré `ppstudio-web` a `ppstudio-email-worker` procesy ještě před prvním systemd restartem; jinak web skončí na `EADDRINUSE` a worker poběží duplicitně.
 
 ### Docker Compose
-- Pro container deployment je připravený [`deploy/docker-compose.email-worker.yml`](/var/www/ppstudio/deploy/docker-compose.email-worker.yml).
+- Pro container deployment je připravený [`deploy/docker-compose.email-worker.yml`](../deploy/docker-compose.email-worker.yml).
 - Službu používej vedle hlavního Next.js procesu, ne jako jeho náhradu.
 - Před startem zajisti, že image `ppstudio:latest` už obsahuje build aplikace a že `env_file` ukazuje na správný `.env`.
 
