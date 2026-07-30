@@ -67,6 +67,16 @@ test("planner má legendu a sdílené routování rezervace bez paralelního ins
   assert.match(source, /aria-label", label/);
 });
 
+test("obsazený termín zobrazuje službu pod jménem klientky", async () => {
+  const source = await clientSource();
+  assert.match(source, /className=\{styles\.eventMedium\}/);
+  assert.match(source, /details\.clientName \?\? "Klientka"/);
+  assert.match(
+    source,
+    /className=\{styles\.eventService\}>\{details\.serviceName \?\? "Služba"\}/,
+  );
+});
+
 test("planner zachová přístupné ovládání režimů bez inspektoru", async () => {
   const source = await clientSource();
   assert.match(source, /aria-pressed=\{mode === item\}/);

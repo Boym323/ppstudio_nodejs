@@ -6,6 +6,10 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+### Opraveno
+
+- Týdenní kalendář nyní u obsazených termínů zobrazuje pod jménem klientky také název rezervované služby.
+
 ## [3.13.0] - 2026-07-30
 
 ### Přidáno
