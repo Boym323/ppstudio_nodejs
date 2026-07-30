@@ -1,15 +1,18 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import type { PlannerDay } from "@/features/admin/lib/admin-slots";
+
 import {
   buildAvailableCells,
   buildIntervalsFromCells,
   cloneWeekDays,
+  patchDayAvailableRange,
   patchDayAvailableIntervals,
   sanitizeIntervals,
 } from "./admin-weekly-planner-helpers";
 
-function createPlannerDay() {
+function createPlannerDay(): PlannerDay {
   return {
     dateKey: "2026-07-07",
     isoDate: "2026-07-07",
@@ -80,4 +83,23 @@ test("patchDayAvailableIntervals aktualizuje summary i copy bunek bez mutace puv
   assert.equal(patchedDay.cells.available[2], true);
   assert.equal(patchedDay.summary.availableLabel, "1 volná okna");
   assert.equal(patchedDay.summary.note, "Dostupnost lze upravit přímo v mřížce nebo přes akční inspektor.");
+});
+
+test("patchDayAvailableRange zachová přesný blok po úklidu při změně jiného času", () => {
+  const day = createPlannerDay();
+  day.availableBlocks = [
+    { startMinutes: 75, endMinutes: 120 },
+    { startMinutes: 375, endMinutes: 480 },
+  ];
+  day.displayAvailableIntervals = [
+    { startCell: 2.5, endCell: 4, label: "07:15 - 08:00" },
+    { startCell: 12.5, endCell: 16, label: "12:15 - 14:00" },
+  ];
+
+  const patchedDay = patchDayAvailableRange(day, 3, 4, "remove");
+
+  assert.deepEqual(patchedDay.displayAvailableIntervals, [
+    { startCell: 2.5, endCell: 3, label: "07:15 - 07:30" },
+    { startCell: 12.5, endCell: 16, label: "12:15 - 14:00" },
+  ]);
 });

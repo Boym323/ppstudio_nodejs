@@ -11,6 +11,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 - Ukládání změn dostupnosti je idempotentní, takže opakovaný požadavek nevytvoří duplicitní změnu ani auditní událost.
+- Planner zachovává čtvrthodinové volné bloky po službě nebo úklidu a umožňuje je bezpečně přidat i odebrat.
 
 ### Odstraněno
 - Původní draftový planner a jeho nepoužívané pracovní postupy byly odstraněny; správa volných termínů má jednotné rozhraní.

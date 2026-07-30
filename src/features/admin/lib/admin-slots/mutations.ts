@@ -11,7 +11,7 @@ import { prisma } from "@/lib/prisma";
 
 import {
   EDITABLE_SLOT_CAPACITY,
-  ensureHalfHourCellIndex,
+  ensureQuarterHourCellIndex,
   getEditablePlannerIntervals,
   intersectsAny,
   isHiddenHistoricalCancelledSlot,
@@ -234,6 +234,7 @@ async function getEditableDayState(tx: Prisma.TransactionClient, dateKey: string
     editableSlots,
     editableIntervals,
     lockedIntervals: protectedIntervals,
+    bookingBlockEnds: bookings.map((booking) => booking.blockedUntil ?? booking.scheduledEndsAt),
   };
 }
 
@@ -287,8 +288,8 @@ export async function applyAvailabilitySelection(
   },
 ): Promise<PlannerMutationResult> {
   ensureValidPlannerWeekDate(input.weekKey, input.dateKey);
-  ensureHalfHourCellIndex(input.startCell);
-  ensureHalfHourCellIndex(input.endCell);
+  ensureQuarterHourCellIndex(input.startCell);
+  ensureQuarterHourCellIndex(input.endCell);
 
   if (input.endCell <= input.startCell) {
     throw new PlannerMutationError("Vyberte aspoň jednu půlhodinu.");
@@ -331,6 +332,23 @@ export async function applyAvailabilitySelection(
     if (intersectsAny(selection, state.lockedIntervals)) {
       throw new PlannerMutationError(
         "Vybraný úsek zasahuje do rezervace nebo omezeného intervalu. Tenhle čas je potřeba nechat beze změny.",
+      );
+    }
+
+    const usesQuarterHourStart = !Number.isInteger(input.startCell);
+    const startsImmediatelyAfterBookingBlock = state.bookingBlockEnds.some(
+      (bookingBlockEnd) => bookingBlockEnd.getTime() === selection.startsAt.getTime(),
+    );
+
+    if (usesQuarterHourStart && !startsImmediatelyAfterBookingBlock) {
+      throw new PlannerMutationError(
+        "Čtvrthodinový začátek lze použít jen bezprostředně po skončení rezervace nebo úklidu.",
+      );
+    }
+
+    if (!usesQuarterHourStart && !Number.isInteger(input.endCell)) {
+      throw new PlannerMutationError(
+        "Čtvrthodinový konec je možné použít jen u termínu, který začíná po úklidu.",
       );
     }
 
