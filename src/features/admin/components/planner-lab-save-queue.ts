@@ -28,6 +28,14 @@ export class PlannerLabSaveQueue<T> {
     if (!this.saving) this.queued = [];
   }
 
+  hasPendingChanges() {
+    return this.queued.length > 0;
+  }
+
+  pendingCount() {
+    return this.queued.length;
+  }
+
   private async flush() {
     this.saving = true;
     this.onSavingChange(true);

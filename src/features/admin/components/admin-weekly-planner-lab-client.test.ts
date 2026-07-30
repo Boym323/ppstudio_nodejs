@@ -31,6 +31,30 @@ test("planner ukládá undo přes opačnou serverovou operaci a hlásí autosave
   assert.doesNotMatch(source, /Publikovat změny|Zahodit koncept|localStorage/);
 });
 
+test("autosave používá neměnný kontext položky fronty i při retry", async () => {
+  const source = await clientSource();
+  assert.match(source, /type PlannerChange = Readonly<\{ area: PlannerWeekData\["area"\]; weekKey: string; operationId: string;/);
+  assert.match(source, /Object\.freeze\(\{ area: data\.area, weekKey: data\.weekKey, operationId: crypto\.randomUUID\(\)/);
+  assert.match(source, /applyPlannerSelectionAction\(change\.area, \{ weekKey: change\.weekKey, dateKey: change\.dateKey, startCell: change\.startCell, endCell: change\.endCell, mode: change\.mode, operationId: change\.operationId/);
+  assert.doesNotMatch(source, /contextRef/);
+});
+
+test("navigace čeká na prázdnou frontu a vyřešenou chybu", async () => {
+  const source = await clientSource();
+  assert.match(source, /const canNavigate = !isSaving && !isWeekLoading && !saveError && !hasPendingChanges/);
+  assert.match(source, /Nejdřív zopakujte změnu nebo obnovte uložený stav\./);
+  assert.match(source, /nextWeekStart !== requestedWeekRef\.current && !canNavigate/);
+  assert.match(source, /gotoDate\(requestedDateRef\.current\)/);
+});
+
+test("obnova uloženého stavu zahodí frontu a znovu načte potvrzená data", async () => {
+  const source = await clientSource();
+  assert.match(source, /function restoreSavedState\(\).*pendingCount/);
+  assert.match(source, /discardPending\(\); setHasPendingChanges\(false\)/);
+  assert.match(source, /setIsWeekLoading\(true\); restoreRequestedRef\.current = true; router\.refresh\(\)/);
+  assert.match(source, /window\.confirm\("Obnovení uloženého stavu zahodí všechny neuložené změny/);
+});
+
 test("planner má legendu a sdílené routování rezervace bez paralelního inspektoru", async () => {
   const source = await clientSource();
   assert.match(source, /Legenda kalendáře/);

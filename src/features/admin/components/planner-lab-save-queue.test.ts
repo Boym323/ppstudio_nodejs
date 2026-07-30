@@ -160,3 +160,47 @@ test("změny vytvořené během retry zůstanou za neúspěšnou položkou", asy
   await nextTurn();
   assert.deepEqual(calls, [1, 1, 2]);
 });
+
+test("retry opakuje stejný neměnný kontext změny", async () => {
+  const change = Object.freeze({ area: "owner", weekKey: "2026-08-03", dateKey: "2026-08-05", startCell: 4, endCell: 6, mode: "add" as const, operationId: "operation-a" });
+  const calls: typeof change[] = [];
+  let attempts = 0;
+  const queue = new PlannerLabSaveQueue<typeof change>(
+    async (value) => { calls.push(value); return attempts++ === 0 ? { ok: false, message: "Uložení selhalo." } : { ok: true }; },
+    () => {},
+    () => {},
+    () => {},
+    () => {},
+  );
+
+  queue.enqueue(change);
+  await nextTurn();
+  queue.retry();
+  await nextTurn();
+
+  assert.equal(calls.length, 2);
+  assert.strictEqual(calls[0], change);
+  assert.strictEqual(calls[1], change);
+  assert.deepEqual(calls[1], { area: "owner", weekKey: "2026-08-03", dateKey: "2026-08-05", startCell: 4, endCell: 6, mode: "add", operationId: "operation-a" });
+});
+
+test("více čekajících změn si uchová vlastní kontext týdne", async () => {
+  const first = deferred<{ ok: true }>();
+  const firstChange = Object.freeze({ weekKey: "2026-08-03", dateKey: "2026-08-03", operationId: "operation-a" });
+  const secondChange = Object.freeze({ weekKey: "2026-08-10", dateKey: "2026-08-10", operationId: "operation-b" });
+  const calls: Array<typeof firstChange | typeof secondChange> = [];
+  const queue = new PlannerLabSaveQueue<typeof firstChange | typeof secondChange>(
+    async (value) => { calls.push(value); return calls.length === 1 ? first.promise : { ok: true }; },
+    () => {},
+    () => {},
+    () => {},
+    () => {},
+  );
+
+  queue.enqueue(firstChange);
+  queue.enqueue(secondChange);
+  first.resolve({ ok: true });
+  await nextTurn();
+
+  assert.deepEqual(calls, [firstChange, secondChange]);
+});
