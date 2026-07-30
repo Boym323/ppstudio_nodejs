@@ -6,6 +6,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [3.13.0] - 2026-07-30
+
 ### Přidáno
 - Volné termíny používají pro OWNER i SALON jediný FullCalendar planner s průběžným ukládáním, opakováním neúspěšné změny a auditní stopou dostupnosti.
 
@@ -15,6 +17,9 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Odstraněno
 - Původní draftový planner a jeho nepoužívané pracovní postupy byly odstraněny; správa volných termínů má jednotné rozhraní.
+
+### Změněno
+- Release příprava pro produkční nasazení: projektová verze navýšena na minor `3.13.0` kvůli rozšíření správy volných termínů.
 
 ## [3.12.0] - 2026-07-29
 
