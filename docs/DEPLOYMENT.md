@@ -366,9 +366,10 @@ Použij jen tehdy, když z nějakého důvodu nemůžeš použít `./deploy/rele
 7. Teprve bezprostředně před přepnutím runtime spusť `npx prisma migrate deploy`; produkční migrace musí být expand/contract kompatibilní s právě běžící verzí.
 8. Exportuj jednotný release identifikátor, například `export NEXT_DEPLOYMENT_ID=$(git rev-parse --short=12 HEAD)` a stejnou hodnotu nastav i do `DEPLOYMENT_VERSION` a `GIT_HASH`.
 9. Zapiš stejné tři proměnné do `.release-env` uvnitř verzovaného release adresáře.
-10. Atomicky přepni symlink `current` na celý nový release a restartuj `ppstudio-web` a `ppstudio-email-worker`.
-11. Proveď minimálně smoke test `GET /api/health`, homepage, admin login a testovací rezervace.
-12. Pokud běžíš v self-hosted režimu bez připraveného SMTP, nech dočasně `EMAIL_DELIVERY_MODE=log`, ať booking flow neblokuje start produkce; po ověření SMTP ho pro produkci vrať na `background`.
+10. Před release potvrď, že `Unreleased` obsahuje všechny významné změny, přesuň jeho obsah pod novou verzovanou sekci s datem, aktualizuj případné odkazy pro porovnání verzí a založ novou prázdnou sekci `Unreleased`. V jedné release změně sjednoť verzi v `package.json`, kořenovém `package-lock.json`, `CHANGELOG.md` a dalších skutečně používaných místech.
+11. Atomicky přepni symlink `current` na celý nový release a restartuj `ppstudio-web` a `ppstudio-email-worker`.
+12. Proveď minimálně smoke test `GET /api/health`, homepage, admin login a testovací rezervace.
+13. Pokud běžíš v self-hosted režimu bez připraveného SMTP, nech dočasně `EMAIL_DELIVERY_MODE=log`, ať booking flow neblokuje start produkce; po ověření SMTP ho pro produkci vrať na `background`.
 
 ### Offline recovery OWNERa
 - Z hostu s přístupem k produkčnímu `DATABASE_URL` spusť `npm run admin:recover-owner -- --email owner@example.com --name 'Jméno' --confirm < /bezpecna/cesta/heslo.txt`.

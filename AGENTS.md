@@ -47,6 +47,17 @@ Dokumentace projektu:
 - Při čistě mechanickém bumpu verze a release poznámek nespouštěj testy ani `typecheck`; ověř pouze konzistenci verzí a diff. Pokud release zahrnuje dosud neověřené změny zdrojového kódu nebo konfigurace, spusť nejmenší příslušnou kontrolu. Plné `test` a `e2e` nespouštěj bez výslovného požadavku; před skutečným nasazením musí projít jako CI brána pro výsledný commit.
 - Příprava verze sama o sobě neznamená deploy, commit ani push; tyto kroky proveď jen na výslovný pokyn.
 
+## Průběžná správa changelogu
+
+- Každá významná změna produkčního chování musí ve stejné implementační změně aktualizovat `CHANGELOG.md` v sekci `Unreleased`; nečeká se na přípravu releasu.
+- Významnou změnou je zejména nová produkční funkce, oprava chyby ovlivňující uživatele nebo data, změna business logiky, administračního či veřejného rezervačního workflow, routingu, oprávnění, API, databázová migrace, bezpečnostní oprava, změna deploymentu nebo provozního chování, odstranění produkční funkce a významná změna závislosti s dopadem na aplikaci.
+- Changelog obvykle nevyžadují čisté testy, překlepy v dokumentaci, formátování, komentáře, snapshoty k již popsané změně, odstranění mrtvého kódu ani interní refaktor bez změny chování. Má-li interní změna dopad na bezpečnost, stabilitu, data nebo provoz, záznam vyžaduje i přesto.
+- Záznam popisuje dopad na uživatele nebo provoz, ne seznam technických souborů. Jeden významný celek má jeden stručný bod; duplicitní či překrývající se body sjednoť.
+- Používej stávající kategorie `Přidáno`, `Změněno`, `Opraveno`, `Odstraněno` a `Zabezpečení`; nevytvářej prázdné kategorie.
+- Při přípravě releasu přesuň obsah `Unreleased` pod novou verzovanou sekci s datem a po vydání ponech novou prázdnou sekci `Unreleased`. Historické verzované sekce neměň, s výjimkou prokazatelné faktické chyby.
+- Novou verzi ani `package.json` neměň pouze kvůli doplnění `Unreleased`.
+- Pro produkční změny spusť `npm run changelog:check -- --base <základní-commit-nebo-větev>`. Výjimka je možná pouze v pull requestu s labelem `skip-changelog` a řádkem `Důvod pro skip-changelog: <konkrétní důvod>` v popisu; slouží jen například pro refaktor bez změny chování, opravu typů, přesun souborů nebo zlepšení testovatelnosti, nikdy běžně pro funkce, opravy chyb, migrace ani změny workflow.
+
 ## Kontroly a testy
 
 - Spusť pouze nejmenší relevantní kontrolu pro změněnou oblast.

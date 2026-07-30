@@ -11,13 +11,14 @@ Pro centralizovaný přehled hlavních route handler kontraktů používej i [`d
 - Pro opakující se incidenty použij i [`TROUBLESHOOTING.md`](../TROUBLESHOOTING.md).
 
 ## Verzování a release disciplína
-- `package.json` používá SemVer `MAJOR.MINOR.PATCH`; aktuální release je `3.7.1` ve stabilní řadě.
+- `package.json` používá SemVer `MAJOR.MINOR.PATCH`; aktuální release ověř vždy přímo v `package.json`.
 - Praktické pravidlo pro tento projekt:
   - `PATCH`: bugfix, interní refaktor bez změny kontraktu, performance tuning bez změny chování API/UI kontraktu.
   - `MINOR`: nová funkce nebo rozšíření existující funkce zpětně kompatibilním způsobem.
   - `MAJOR`: nekompatibilní změna (API, route contract, data contract, provozní workflow vyžadující změnu postupu).
-- Při merge větší změny nejdřív aktualizuj `CHANGELOG.md` (`Unreleased`) a teprve při release proveď skutečný bump verze (`npm version patch|minor|major` nebo ekvivalentní manuální commit).
-- Verzi a changelog drž vždy konzistentně: release commit má obsahovat finální version bump a odpovídající release poznámky.
+- Průběžná práce: každá významná změna produkčního chování doplní ve stejné změně uživatelsky srozumitelný bod do `CHANGELOG.md` / `Unreleased`; verzi v `package.json` neměň a historické verzované sekce neupravuj. Pravidla a výjimky stanoví [ADR 0069](ADR/0069-versioning-and-release-policy-v1.md) a `AGENTS.md`.
+- Před odevzdáním produkční změny spusť `npm run changelog:check -- --base <základní-commit-nebo-větev>`. Výjimka v PR vyžaduje label `skip-changelog` a řádek `Důvod pro skip-changelog: <konkrétní důvod>` v popisu; je určená jen pro prokazatelně nebehaviorální změny.
+- Příprava releasu: zvol novou SemVer verzi, přesuň obsah `Unreleased` pod novou verzovanou sekci s datem, aktualizuj případné odkazy pro porovnání verzí, vytvoř novou prázdnou `Unreleased` a atomicky sjednoť verzi v `package.json`, kořenovém `package-lock.json` a dalších skutečně používaných místech. Release commit obsahuje finální version bump i odpovídající release poznámky.
 - Pro standardní produkční rollout používej `./deploy/release.sh`; skript vytváří celý release v `releases/<commit>-<čas>` a atomicky přepíná `current`. Pořadí je `pull -> staging npm ci -> generate -> kontrola historie -> prisma validate -> lint -> build -> migrate deploy -> stop -> přepnutí current -> start webu i workeru -> health + smoke`. Migrace tedy smějí být jen expand/contract kompatibilní s předchozím releasem; rollback automaticky vrací pouze celý runtime release, nikdy DB schéma.
 - Po potvrzeném releasu helper provede retenci verzovaných adresářů: chrání `current` a `previous`; další releasy ve výchozím nastavení neuchovává. Počet dalších nejnovějších release lze nastavit přes `--keep-releases`. Úklid nesmí běžet před health/smoke testem ani mazat jinak pojmenované provozní adresáře.
 - Release health kontrola ověřuje odděleně `/api/health`, shodu `release.deploymentId` a homepage smoke URL. Při změně skriptu zachovej rozlišené provozní logy včetně HTTP statusu, aby se 500 z homepage nezaměnila za health endpoint.
