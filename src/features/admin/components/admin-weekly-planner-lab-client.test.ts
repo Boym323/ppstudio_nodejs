@@ -96,6 +96,7 @@ test("kompaktní pohled nabízí Den, Po–Pá a Víkend a zachová mobilní scr
   assert.match(source, /if \(calendar\.view\.type === nextView\) \{ calendar\.gotoDate\(targetDate\); return; \}/);
   assert.match(source, /function rememberScrollPosition/);
   assert.match(source, /scrollTimeReset=\{false\}/);
+  assert.doesNotMatch(source, /key=\{compact \? "compact" : "desktop"\}/);
 });
 
 test("výběr buněk zachová lokální čas FullCalendaru i po změně letního času", async () => {

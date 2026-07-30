@@ -10,7 +10,7 @@ Formát je inspirovaný Keep a Changelog.
 
 - Týdenní kalendář nyní u obsazených termínů zachovává čas vedle jména klientky a pod ním zobrazuje název rezervované služby.
 - Týdenní kalendář barevně odlišuje nepotvrzené rezervace od potvrzených a vysvětluje je v legendě.
-- Přepínání responsivního pohledu týdenního kalendáře bezpečně pracuje s časovým scrollerem.
+- Přepínání responsivního pohledu týdenního kalendáře bezpečně pracuje s časovým scrollerem bez rušení planneru.
 - Provozní administrace salonu už nezobrazuje boční navigaci duplicitně vedle sebe.
 
 ## [3.13.0] - 2026-07-30
