@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { access, readFile } from "node:fs/promises";
 import test from "node:test";
 
 const projectRoot = new URL("../../../../", import.meta.url);
@@ -21,6 +21,22 @@ test("hlavní routy OWNER a SALON používají stejný produkční planner", asy
   assert.match(salonRoute, /<AdminWeeklyPlannerPage area="salon"/);
   assert.match(plannerPage, /export async function AdminWeeklyPlannerPage/);
   assert.match(plannerPage, /<AdminWeeklyPlannerClient/);
+});
+
+test("routy planneru načítají společné FullCalendar CSS ve svých layoutech", async () => {
+  const [ownerLayout, salonLayout, plannerTheme] = await Promise.all([
+    source("src/app/(admin)/admin/volne-terminy/layout.tsx"),
+    source("src/app/(admin)/admin/provoz/volne-terminy/layout.tsx"),
+    source("src/features/admin/components/planner-theme.css"),
+  ]);
+
+  const plannerThemeImport = 'import "@/features/admin/components/planner-theme.css";';
+  assert.equal(ownerLayout.split(plannerThemeImport).length - 1, 1);
+  assert.equal(salonLayout.split(plannerThemeImport).length - 1, 1);
+  assert.match(plannerTheme, /@import "@fullcalendar\/react\/skeleton\.css";/);
+  assert.match(plannerTheme, /@import "@fullcalendar\/react\/themes\/classic\/theme\.css";/);
+  assert.match(plannerTheme, /@import "@fullcalendar\/react\/themes\/classic\/palette\.css";/);
+  await assert.rejects(access(new URL("src/app/(admin)/admin/volne-terminy/planner-theme.css", projectRoot)));
 });
 
 test("dnešní den je výchozí jen pro mobilní jednodenní pohled", async () => {

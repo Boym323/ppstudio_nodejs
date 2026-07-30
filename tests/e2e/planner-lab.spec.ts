@@ -62,6 +62,18 @@ async function cleanupRun(runId: string) {
   await prisma.adminUser.deleteMany({ where: { id: { in: users.map((user) => user.id) } } });
 }
 
+async function expectStyledPlanner(page: Page) {
+  const planner = page.getByTestId("fullcalendar-planner");
+  const grid = planner.getByRole("grid");
+  await expect(planner).toBeVisible();
+  await expect(grid).toBeVisible();
+  await expect.poll(async () => grid.getByRole("gridcell").count()).toBeGreaterThan(0);
+  await expect.poll(async () => grid.evaluate((element) => {
+    const { height, width } = element.getBoundingClientRect();
+    return width > 0 && height > 0;
+  })).toBe(true);
+}
+
 test.describe("produkční FullCalendar planner", () => {
   const runIds: string[] = [];
 
@@ -86,6 +98,26 @@ test.describe("produkční FullCalendar planner", () => {
 
     await page.getByRole("button", { name: "Následující týden" }).click();
     await expect(page).toHaveURL(/week=2027-03-29/);
+  });
+
+  test("OWNER a SALON načtou stylovaný planner při přímém otevření", async ({ page }) => {
+    test.skip(test.info().project.name !== "chromium", "Scénář ověřuje desktopovou FullCalendar mřížku.");
+
+    const runId = buildRunId();
+    runIds.push(runId);
+    const owner = await createOwner(runId);
+
+    await loginAdmin(page, owner.email, owner.password);
+    await page.goto(`/admin/provoz/volne-terminy?week=${plannerDate}`);
+    await expectStyledPlanner(page);
+
+    await page.goto(`/admin/volne-terminy?week=${plannerDate}`);
+    await expectStyledPlanner(page);
+
+    await page.goto("/admin/provoz/statistiky");
+    await expect(page.getByRole("heading", { name: "KPI a statistiky" })).toBeVisible();
+    await page.goto(`/admin/provoz/volne-terminy?week=${plannerDate}`);
+    await expectStyledPlanner(page);
   });
 
   test("v jednodenním mobilním pohledu šipka přejde na následující den", async ({ page }) => {
