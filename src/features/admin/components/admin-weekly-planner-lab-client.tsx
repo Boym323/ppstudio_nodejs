@@ -5,7 +5,7 @@ import csLocale from "@fullcalendar/react/locales/cs";
 import interactionPlugin from "@fullcalendar/react/interaction";
 import themePlugin from "@fullcalendar/react/themes/classic";
 import timeGridPlugin from "@fullcalendar/react/timegrid";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { CalendarApi, DateClickInfo, DateSelectInfo, DatesSetInfo, EventClickInfo } from "@fullcalendar/react";
 
@@ -60,8 +60,8 @@ export function AdminWeeklyPlannerClient({ data, weekStart, initialDate, hasInit
   const [openWeekStart, setOpenWeekStart] = useState(weekStart); const [activeView, setActiveView] = useState<PlannerLabView>("timeGridWorkWeek");
   const [mode, setMode] = useState<PlannerMode>("view");
   const [undoChange, setUndoChange] = useState<UndoChange | null>(null); const undoTimeoutRef = useRef<number | null>(null);
-  function clearUndo() { if (undoTimeoutRef.current !== null) window.clearTimeout(undoTimeoutRef.current); undoTimeoutRef.current = null; setUndoChange(null); }
-  function offerUndo(change: PlannerChange, operationId?: string) { clearUndo(); setUndoChange({ dateKey: change.dateKey, startCell: change.startCell, endCell: change.endCell, mode: change.mode, revertedOperationId: operationId }); undoTimeoutRef.current = window.setTimeout(() => setUndoChange(null), 12_000); }
+  const clearUndo = useCallback(() => { if (undoTimeoutRef.current !== null) window.clearTimeout(undoTimeoutRef.current); undoTimeoutRef.current = null; setUndoChange(null); }, []);
+  const offerUndo = useCallback((change: PlannerChange, operationId?: string) => { clearUndo(); setUndoChange({ dateKey: change.dateKey, startCell: change.startCell, endCell: change.endCell, mode: change.mode, revertedOperationId: operationId }); undoTimeoutRef.current = window.setTimeout(() => setUndoChange(null), 12_000); }, [clearUndo]);
   useEffect(() => () => { if (undoTimeoutRef.current !== null) window.clearTimeout(undoTimeoutRef.current); }, []);
   useEffect(() => { saveQueueRef.current = new PlannerLabSaveQueue(
     async (change) => { const result = await applyPlannerSelectionAction(change.area, { weekKey: change.weekKey, dateKey: change.dateKey, startCell: change.startCell, endCell: change.endCell, mode: change.mode, operationId: change.operationId, revertedOperationId: change.revertedOperationId }); return result.ok ? { ok: true as const, operationId: result.operationId } : { ok: false as const, message: result.message }; },
@@ -69,7 +69,7 @@ export function AdminWeeklyPlannerClient({ data, weekStart, initialDate, hasInit
     (savedChange) => { confirmedDaysRef.current = cloneWeekDays(savedChange.days); offerUndo(savedChange, savedChange.operationId); },
     () => { setHasPendingChanges(false); setSaveError(null); setMessage("Uloženo"); },
     (error) => { setSaveError(error); setMessage(error); },
-  ); return () => { saveQueueRef.current = null; }; }, []);
+  ); return () => { saveQueueRef.current = null; }; }, [offerUndo]);
   useEffect(() => { const media = window.matchMedia("(max-width: 1023px)"); const update = () => setCompact(isPlannerLabMobileViewport(window.innerWidth)); const frame = window.requestAnimationFrame(() => { update(); setMounted(true); }); media.addEventListener("change", update); return () => { window.cancelAnimationFrame(frame); media.removeEventListener("change", update); }; }, []);
   useEffect(() => () => { if (datesSetFrameRef.current !== null) window.cancelAnimationFrame(datesSetFrameRef.current); }, []);
   useEffect(() => { if (data.weekKey !== requestedWeekRef.current || (data.weekKey === hydratedWeekRef.current && !restoreRequestedRef.current)) return; restoreRequestedRef.current = false; hydratedWeekRef.current = data.weekKey; const nextDays = cloneWeekDays(data.days); confirmedDaysRef.current = nextDays; setDays(cloneWeekDays(nextDays)); setOpenWeekStart(data.weekKey); setSaveError(null); setIsWeekLoading(false); calendarRef.current?.getApi().gotoDate(requestedDateRef.current); }, [data]);

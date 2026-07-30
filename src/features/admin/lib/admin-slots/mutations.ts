@@ -4,8 +4,6 @@ import {
   AvailabilitySlotStatus,
   Prisma,
 } from "@prisma/client";
-import { randomUUID } from "node:crypto";
-
 import { type AdminArea } from "@/config/navigation";
 import { prisma } from "@/lib/prisma";
 

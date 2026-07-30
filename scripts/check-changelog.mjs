@@ -102,7 +102,7 @@ export function run(argv = process.argv.slice(2)) {
 
   try {
     git(["rev-parse", "--verify", `${base}^{commit}`]);
-  } catch (error) {
+  } catch {
     fail(`Neplatný základ pro porovnání \"${base}\". Zkontroluj dostupnost commitu nebo větve (např. origin/main).`);
   }
 
