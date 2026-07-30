@@ -110,6 +110,70 @@ export function patchDayAvailableIntervals(day: PlannerDay, intervals: PlannerDa
   };
 }
 
+function mergeMinuteBlocks(blocks: PlannerDay["availableBlocks"]) {
+  const merged: PlannerDay["availableBlocks"] = [];
+
+  for (const block of [...blocks]
+    .filter((item) => item.endMinutes > item.startMinutes)
+    .sort((left, right) => left.startMinutes - right.startMinutes)) {
+    const previous = merged.at(-1);
+
+    if (previous && previous.endMinutes >= block.startMinutes) {
+      previous.endMinutes = Math.max(previous.endMinutes, block.endMinutes);
+    } else {
+      merged.push({ ...block });
+    }
+  }
+
+  return merged;
+}
+
+function subtractMinuteRange(blocks: PlannerDay["availableBlocks"], startMinutes: number, endMinutes: number) {
+  return blocks.flatMap((block) => {
+    if (endMinutes <= block.startMinutes || startMinutes >= block.endMinutes) {
+      return [block];
+    }
+
+    return [
+      startMinutes > block.startMinutes ? { startMinutes: block.startMinutes, endMinutes: startMinutes } : null,
+      endMinutes < block.endMinutes ? { startMinutes: endMinutes, endMinutes: block.endMinutes } : null,
+    ].filter((item): item is { startMinutes: number; endMinutes: number } => item !== null);
+  });
+}
+
+/** Zachová přesné čtvrthodinové bloky při lokální změně jiného úseku dne. */
+export function patchDayAvailableRange(
+  day: PlannerDay,
+  startCell: number,
+  endCell: number,
+  mode: "add" | "remove",
+): PlannerDay {
+  const startMinutes = startCell * 30;
+  const endMinutes = endCell * 30;
+  const availableBlocks = mode === "add"
+    ? mergeMinuteBlocks([...day.availableBlocks, { startMinutes, endMinutes }])
+    : mergeMinuteBlocks(subtractMinuteRange(day.availableBlocks, startMinutes, endMinutes));
+  const displayAvailableIntervals = availableBlocks.map((block) => ({
+    startCell: block.startMinutes / 30,
+    endCell: block.endMinutes / 30,
+    label: formatRangeLabel(block.startMinutes / 30, block.endMinutes / 30),
+  }));
+  const availableIntervals = buildIntervalsFromCells(buildAvailableCells(
+    displayAvailableIntervals.flatMap((interval) => {
+      const startCell = Math.ceil(interval.startCell);
+      const endCell = Math.floor(interval.endCell);
+      return endCell > startCell ? [{ startCell, endCell }] : [];
+    }),
+  ));
+  const patchedDay = patchDayAvailableIntervals(day, availableIntervals);
+
+  return {
+    ...patchedDay,
+    availableBlocks,
+    displayAvailableIntervals,
+  };
+}
+
 export function hasBlockedCells(day: PlannerDay, startCell: number, endCell: number) {
   for (let cell = startCell; cell < endCell; cell += 1) {
     if (!isEditableCell(day, cell)) {

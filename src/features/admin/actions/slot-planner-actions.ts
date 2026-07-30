@@ -18,8 +18,8 @@ const PLANNER_DAY_CELLS = (20 - 6) * 2;
 const selectionSchema = z.object({
   weekKey: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   dateKey: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  startCell: z.number().int().min(0).max(PLANNER_DAY_CELLS),
-  endCell: z.number().int().min(0).max(PLANNER_DAY_CELLS),
+  startCell: z.number().multipleOf(0.5).min(0).max(PLANNER_DAY_CELLS),
+  endCell: z.number().multipleOf(0.5).min(0).max(PLANNER_DAY_CELLS),
   mode: z.enum(["add", "remove"]),
   operationId: z.string().uuid(),
   revertedOperationId: z.string().uuid().optional(),

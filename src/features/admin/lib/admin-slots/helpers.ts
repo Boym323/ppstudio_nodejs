@@ -205,6 +205,12 @@ export function ensureHalfHourCellIndex(cell: number) {
   }
 }
 
+export function ensureQuarterHourCellIndex(cell: number) {
+  if (!Number.isFinite(cell) || !Number.isInteger(cell * 2) || cell < 0 || cell > DAY_CELLS) {
+    throw new PlannerMutationError("Vybraný čas v kalendáři není platný.");
+  }
+}
+
 export function isEditablePlannerSlot(slot: {
   status: AvailabilitySlotStatus;
   capacity: number;

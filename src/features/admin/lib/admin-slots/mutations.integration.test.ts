@@ -579,6 +579,62 @@ async function cleanupSeed(seed: SeedContext) {
   await prisma.adminUser.deleteMany({ where: { id: seed.actorUserId } });
 }
 
+dbTest("applyAvailabilitySelection dovolí čtvrthodinový začátek přímo po úklidu", async () => {
+  const seed = await createSeed();
+  const { prisma, applyAvailabilitySelection, getCellRangeBounds } = await loadModules();
+
+  try {
+    const originalBooking = await prisma.booking.findUniqueOrThrow({
+      where: { id: seed.bookingId },
+      select: { scheduledEndsAt: true },
+    });
+    const cleanupEnd = new Date(originalBooking.scheduledEndsAt.getTime() + 15 * 60 * 1000);
+    const trailingAvailability = getCellRangeBounds(seed.dateKey, 8, 16);
+
+    await prisma.booking.update({
+      where: { id: seed.bookingId },
+      data: { cleanupMinutes: 15, cleanupBlockMinutes: 15, blockedUntil: cleanupEnd },
+    });
+    await prisma.availabilitySlot.deleteMany({
+      where: {
+        createdByUserId: seed.actorUserId,
+        startsAt: trailingAvailability.startsAt,
+        endsAt: trailingAvailability.endsAt,
+      },
+    });
+
+    await applyAvailabilitySelection("owner", {
+      weekKey: seed.weekKey,
+      dateKey: seed.dateKey,
+      startCell: 8.5,
+      endCell: 10.5,
+      mode: "add",
+      operationId: randomUUID(),
+      actorUserId: seed.actorUserId,
+    });
+
+    const addedSlot = await prisma.availabilitySlot.findFirstOrThrow({
+      where: { createdByUserId: seed.actorUserId, startsAt: cleanupEnd },
+      select: { startsAt: true, endsAt: true },
+    });
+    assert.equal(addedSlot.startsAt.getTime(), cleanupEnd.getTime());
+    assert.equal(addedSlot.endsAt.getTime() - addedSlot.startsAt.getTime(), 60 * 60 * 1000);
+
+    await applyAvailabilitySelection("owner", {
+      weekKey: seed.weekKey,
+      dateKey: seed.dateKey,
+      startCell: 8.5,
+      endCell: 10.5,
+      mode: "remove",
+      operationId: randomUUID(),
+      actorUserId: seed.actorUserId,
+    });
+    assert.equal(await prisma.availabilitySlot.count({ where: { createdByUserId: seed.actorUserId, startsAt: cleanupEnd } }), 0);
+  } finally {
+    await cleanupSeed(seed);
+  }
+});
+
 dbTest("getAdminPlannerWeek exposes service time and cleanup overlay metadata for booked cells", async () => {
   const seed = await createSeed();
   const { prisma, getAdminPlannerWeek } = await loadModules();
