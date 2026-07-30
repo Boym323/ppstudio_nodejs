@@ -39,6 +39,21 @@ test("routy planneru načítají společné FullCalendar CSS ve svých layoutech
   await assert.rejects(access(new URL("src/app/(admin)/admin/volne-terminy/planner-theme.css", projectRoot)));
 });
 
+test("podsekce provozu nepřidávají druhý administrační shell", async () => {
+  const layouts = await Promise.all([
+    source("src/app/(admin)/admin/provoz/layout.tsx"),
+    source("src/app/(admin)/admin/provoz/volne-terminy/layout.tsx"),
+  ]);
+
+  assert.match(layouts[0], /AdminShellLayout/);
+  assert.doesNotMatch(layouts[1], /AdminShellLayout/);
+  await Promise.all([
+    assert.rejects(access(new URL("src/app/(admin)/admin/provoz/[section]/layout.tsx", projectRoot))),
+    assert.rejects(access(new URL("src/app/(admin)/admin/provoz/klienti/layout.tsx", projectRoot))),
+    assert.rejects(access(new URL("src/app/(admin)/admin/provoz/vouchery/layout.tsx", projectRoot))),
+  ]);
+});
+
 test("dnešní den je výchozí jen pro mobilní jednodenní pohled", async () => {
   const source = await readFile(new URL("./admin-weekly-planner-lab-page.tsx", import.meta.url), "utf8");
   const client = await readFile(new URL("./admin-weekly-planner-lab-client.tsx", import.meta.url), "utf8");

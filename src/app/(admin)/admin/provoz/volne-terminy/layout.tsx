@@ -1,3 +1,9 @@
 import "@/features/admin/components/planner-theme.css";
 
-export { AdminShellLayout as default } from "@/features/admin/components/admin-shell-layout";
+export default function SalonPlannerLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return children;
+}

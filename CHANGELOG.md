@@ -9,6 +9,7 @@ Formát je inspirovaný Keep a Changelog.
 ### Opraveno
 
 - Týdenní kalendář nyní u obsazených termínů zobrazuje pod jménem klientky také název rezervované služby.
+- Provozní administrace salonu už nezobrazuje boční navigaci duplicitně vedle sebe.
 
 ## [3.13.0] - 2026-07-30
 
