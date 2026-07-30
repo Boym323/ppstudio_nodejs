@@ -198,7 +198,7 @@ test.describe("produkční FullCalendar planner", () => {
     expect(slotBox).not.toBeNull();
 
     await page.getByRole("button", { name: "Přidat termín" }).click();
-    await page.mouse.click(dayBox!.x + dayBox!.width / 2, slotBox!.y + slotBox!.height / 2);
+    await page.mouse.click(dayBox!.x + dayBox!.width / 2, slotBox!.y + 2);
     await expect(page.getByRole("status")).toHaveText("Uloženo");
 
     const expectedRange = getCellRangeBounds(dstDate, 6, 9);
