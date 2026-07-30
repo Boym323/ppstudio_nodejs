@@ -205,16 +205,6 @@ export function ensureHalfHourCellIndex(cell: number) {
   }
 }
 
-export function getWeekdayTemplateFromDays(days: PlannerDay[]) {
-  return days.map((day, weekday) => ({
-    weekday,
-    intervals: day.availableIntervals.map((interval) => ({
-      startCell: interval.startCell,
-      endCell: interval.endCell,
-    })),
-  }));
-}
-
 export function isEditablePlannerSlot(slot: {
   status: AvailabilitySlotStatus;
   capacity: number;

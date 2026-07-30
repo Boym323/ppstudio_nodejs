@@ -124,6 +124,7 @@ Sem patří krátké záznamy architektonických rozhodnutí.
 - `0115-admin-mobile-ergonomics-v1.md` — větší dotykové plochy a bezpečné spodní ovladače mobilního adminu.
 - `0116-public-media-route-handler-consolidation.md` — jeden bezpečnostně citlivý handler pro kanonické i legacy veřejné media URL.
 - `0117-release-quality-gates.md` — samostatný typecheck v release preflightu a testovací/E2E gate v CI.
+- `0118-fullcalendar-planner-autosave-v1.md` — jediný produkční planner s autosave.
 
 Poznámka:
 - Historicky existují duplicitní indexy (`0026`, `0090`). Ber to jako legacy stav, čísla zpětně nepřejmenovávat.

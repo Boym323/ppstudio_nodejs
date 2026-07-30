@@ -4,17 +4,12 @@ export {
   getDayBounds,
   resolveWeekStart,
 } from "./admin-slots/time";
-export { getWeekdayTemplateFromDays } from "./admin-slots/helpers";
 export {
   findSlotWeekContext,
   getAdminPlannerWeek,
 } from "./admin-slots/queries";
 export {
   applyAvailabilitySelection,
-  applyWeeklyTemplate,
-  clearPlannerDay,
-  copyPlannerWeek,
-  syncPlannerWeekDraft,
 } from "./admin-slots/mutations";
 export {
   PlannerMutationError,
@@ -26,6 +21,4 @@ export type {
   PlannerMutationResult,
   PlannerWeekData,
   TimeRange,
-  WeeklyDraftInput,
-  WeeklyTemplateInput,
 } from "./admin-slots/types";

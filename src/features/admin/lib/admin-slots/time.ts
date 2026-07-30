@@ -209,10 +209,6 @@ export function getCellRangeBounds(dateKey: string, startCell: number, endCell: 
   };
 }
 
-export function moveIntervalToDateKey(interval: { startsAt: Date; endsAt: Date }, targetDateKey: string) {
-  return getCellRangeBounds(targetDateKey, dateToCellIndex(interval.startsAt), dateToCellIndex(interval.endsAt));
-}
-
 export function addDays(date: Date, amount: number) {
   const parts = getDateTimeParts(date);
   return pragueLocalDateTimeToUtc(parts.year, parts.month, parts.day + amount, parts.hour, parts.minute);

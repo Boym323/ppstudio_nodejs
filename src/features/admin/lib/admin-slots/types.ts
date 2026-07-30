@@ -91,22 +91,6 @@ export type PlannerMutationResult = {
   operationId?: string;
 };
 
-export type WeeklyTemplateInput = Array<{
-  weekday: number;
-  intervals: Array<{
-    startCell: number;
-    endCell: number;
-  }>;
-}>;
-
-export type WeeklyDraftInput = Array<{
-  dateKey: string;
-  intervals: Array<{
-    startCell: number;
-    endCell: number;
-  }>;
-}>;
-
 export class PlannerMutationError extends Error {
   constructor(message: string) {
     super(message);

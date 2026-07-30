@@ -1016,13 +1016,11 @@ Pro centralizovaný přehled hlavních route handler kontraktů používej i [`d
 - Ověř odebrání části dostupnosti ze zeleného bloku a správné rozdělení na zbylé intervaly.
 - Ověř průběžné uložení změny a obnovení uloženého stavu po chybě.
 - Ověř, že zásah do rezervace nebo omezeného slotu vrátí srozumitelnou chybu a nic nepřepíše.
-- Ověř, že slot s `CANCELLED` rezervací planner neukazuje jako blokaci: před publishí se má tvářit jako běžná dostupnost, po vyčištění dne nesmí v mřížce zůstat jako šedý nebo uzamčený historický stín a publish draft nesmí spadnout.
-- Ověř kopírování týdne, použití lokální šablony a obnovení uloženého konceptu po refreshi stejného týdne.
+- Ověř, že slot s `CANCELLED` rezervací planner neukazuje jako blokaci a nezůstává v mřížce jako šedý nebo uzamčený historický stín.
 
 ## Prague Time And DST
 - Salon-facing time is `Europe/Prague`; do not rely on server local timezone or fixed `+01:00` / `+02:00` offsets.
 - Planner slot creation should use `dateKey + half-hour cell index` through `getCellRangeBounds(...)`.
-- Planner copy week must preserve local cells with `moveIntervalToDateKey(...)`, not blind `24h`/millisecond shifts across DST.
 - Public booking catalog may return UTC ISO strings, but all client display helpers must render with `timeZone: "Europe/Prague"`.
 - Regression tests for DST live in admin slot time helpers, booking formatting, public booking helpers, e-mail templates and ICS utilities.
 - Totéž platí i pro admin-side preview lokálně zadaného data/času: drawer `Přidat rezervaci` a `Přesunout termín` nesmí skládat preview přes browser-local `new Date("YYYY-MM-DDTHH:mm")`, ale přes `resolvePragueLocalDateTime(...)`, jinak se uložený čas rozjede s UI mimo CZ timezone a kolem DST.

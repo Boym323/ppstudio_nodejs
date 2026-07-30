@@ -20,20 +20,14 @@ import {
   subtractIntervals,
 } from "./helpers";
 import {
-  addDays,
-  formatDateKey,
   getCellRangeBounds,
   getDayBounds,
   isDateKeyInWeek,
   isValidDateKey,
-  moveIntervalToDateKey,
-  resolveWeekStart,
 } from "./time";
 import {
   type PlannerMutationResult,
   type TimeRange,
-  type WeeklyDraftInput,
-  type WeeklyTemplateInput,
   PlannerMutationError,
 } from "./types";
 
@@ -74,12 +68,6 @@ async function writeAvailabilityAudit(tx: Prisma.TransactionClient, dateKey: str
 function ensureValidPlannerWeekDate(weekKey: string, dateKey: string) {
   if (!isValidDateKey(weekKey) || !isValidDateKey(dateKey) || !isDateKeyInWeek(dateKey, weekKey)) {
     throw new PlannerMutationError("Zvolený den nepatří do platného týdne planneru.");
-  }
-}
-
-function ensureValidPlannerWeek(weekKey: string) {
-  if (!isValidDateKey(weekKey)) {
-    throw new PlannerMutationError("Týden planneru nemá platné datum.");
   }
 }
 
@@ -284,63 +272,6 @@ async function removeEditableSlots(
   }
 }
 
-async function replaceDayWithIntervals(
-  tx: Prisma.TransactionClient,
-  actorUserId: string | null,
-  dateKey: string,
-  intervals: TimeRange[],
-  options: {
-    lockedConflict?: "reject" | "preserve";
-    conflictMessage?: string;
-    audit: AuditContext;
-  },
-) {
-  const state = await getEditableDayState(tx, dateKey);
-  const lockedConflict = options.lockedConflict ?? "reject";
-
-  if (
-    lockedConflict === "reject" &&
-    intervals.some((interval) => intersectsAny(interval, state.lockedIntervals))
-  ) {
-    throw new PlannerMutationError(
-      options.conflictMessage ??
-        "Kopírovaný rozvrh zasahuje do rezervací nebo omezených intervalů v cílovém dni.",
-    );
-  }
-
-  if (state.editableSlots.length > 0) {
-    await removeEditableSlots(tx, state.editableSlots);
-  }
-
-  const merged =
-    lockedConflict === "preserve"
-      ? state.lockedIntervals.reduce(
-          (currentIntervals, lockedInterval) => subtractIntervals(currentIntervals, lockedInterval),
-          mergeIntervals(intervals),
-        )
-      : mergeIntervals(intervals);
-
-  if (merged.length > 0) {
-    await tx.availabilitySlot.createMany({
-      data: merged.map((interval) => ({
-        startsAt: interval.startsAt,
-        endsAt: interval.endsAt,
-        capacity: EDITABLE_SLOT_CAPACITY,
-        status: AvailabilitySlotStatus.PUBLISHED,
-        serviceRestrictionMode: AvailabilitySlotServiceRestrictionMode.ANY,
-        publishedAt: new Date(),
-        createdByUserId: actorUserId,
-      })),
-    });
-  }
-  await writeAvailabilityAudit(tx, dateKey, state, merged, options.audit);
-}
-
-async function readEditableIntervalsForDate(tx: Prisma.TransactionClient, dateKey: string) {
-  const state = await getEditableDayState(tx, dateKey);
-  return state.editableIntervals;
-}
-
 export async function applyAvailabilitySelection(
   area: AdminArea,
   input: {
@@ -450,162 +381,4 @@ export async function applyAvailabilitySelection(
 
     return { ok: true, message: existingOperation.resultMessage, weekKey: existingOperation.weekKey, operationId };
   }
-}
-
-export async function clearPlannerDay(
-  area: AdminArea,
-  input: {
-    weekKey: string;
-    dateKey: string;
-    actorUserId: string | null;
-    actorRole?: "OWNER" | "SALON" | null;
-  },
-): Promise<PlannerMutationResult> {
-  ensureValidPlannerWeekDate(input.weekKey, input.dateKey);
-  const operationId = randomUUID();
-  await runPlannerTransaction(async (tx) => {
-    const state = await getEditableDayState(tx, input.dateKey);
-
-    if (state.editableSlots.length > 0) {
-      await removeEditableSlots(tx, state.editableSlots);
-    }
-    await writeAvailabilityAudit(tx, input.dateKey, state, [], { actorUserId: input.actorUserId, actorRole: input.actorRole, adminArea: area, operationId, operation: AvailabilityAuditOperation.CLEAR, source: "planner-clear-day-v1" });
-  });
-
-  return {
-    ok: true,
-    message: "Den je nastavený jako zavřeno. Rezervace a omezené intervaly zůstaly beze změny.",
-    weekKey: input.weekKey,
-    operationId,
-  };
-}
-
-export async function copyPlannerWeek(
-  area: AdminArea,
-  input: {
-    sourceWeekKey: string;
-    targetWeekKey: string;
-    actorUserId: string | null;
-    actorRole?: "OWNER" | "SALON" | null;
-  },
-): Promise<PlannerMutationResult> {
-  ensureValidPlannerWeek(input.sourceWeekKey);
-  ensureValidPlannerWeek(input.targetWeekKey);
-  const sourceWeekStart = resolveWeekStart(input.sourceWeekKey);
-  const targetWeekStart = resolveWeekStart(input.targetWeekKey);
-
-  const operationId = randomUUID();
-  await runPlannerTransaction(async (tx) => {
-    for (let index = 0; index < 7; index += 1) {
-      const sourceDateKey = formatDateKey(addDays(sourceWeekStart, index));
-      const targetDateKey = formatDateKey(addDays(targetWeekStart, index));
-      const sourceIntervals = await readEditableIntervalsForDate(tx, sourceDateKey);
-
-      await replaceDayWithIntervals(
-        tx,
-        input.actorUserId,
-        targetDateKey,
-        sourceIntervals.map((interval) => moveIntervalToDateKey(interval, targetDateKey)),
-        { audit: { actorUserId: input.actorUserId, actorRole: input.actorRole, adminArea: area, operationId, operation: AvailabilityAuditOperation.COPY_WEEK, source: "planner-copy-week-v1" } },
-      );
-    }
-  });
-
-  return {
-    ok: true,
-    message: "Celý týden jsme přenesli do cílového týdne. Kopírují se jen běžné volné intervaly, ne rezervace.",
-    weekKey: input.targetWeekKey,
-    operationId,
-  };
-}
-
-export async function applyWeeklyTemplate(
-  area: AdminArea,
-  input: {
-    weekKey: string;
-    template: WeeklyTemplateInput;
-    actorUserId: string | null;
-    actorRole?: "OWNER" | "SALON" | null;
-  },
-): Promise<PlannerMutationResult> {
-  ensureValidPlannerWeek(input.weekKey);
-  const weekStart = resolveWeekStart(input.weekKey);
-
-  const operationId = randomUUID();
-  await runPlannerTransaction(async (tx) => {
-    for (const dayTemplate of input.template) {
-      if (dayTemplate.weekday < 0 || dayTemplate.weekday > 6) {
-        throw new PlannerMutationError("Šablona týdne obsahuje neplatný den.");
-      }
-
-      const dateKey = formatDateKey(addDays(weekStart, dayTemplate.weekday));
-      const intervals = dayTemplate.intervals.map((interval) => {
-        ensureHalfHourCellIndex(interval.startCell);
-        ensureHalfHourCellIndex(interval.endCell);
-
-        if (interval.endCell <= interval.startCell) {
-          throw new PlannerMutationError("Šablona týdne obsahuje prázdný interval.");
-        }
-
-        return getCellRangeBounds(dateKey, interval.startCell, interval.endCell);
-      });
-
-      await replaceDayWithIntervals(tx, input.actorUserId, dateKey, intervals, { audit: { actorUserId: input.actorUserId, actorRole: input.actorRole, adminArea: area, operationId, operation: AvailabilityAuditOperation.APPLY_TEMPLATE, source: "planner-week-template-v1" } });
-    }
-  });
-
-  return {
-    ok: true,
-    message: "Týdenní šablona byla použitá na právě otevřený týden.",
-    weekKey: input.weekKey,
-    operationId,
-  };
-}
-
-export async function syncPlannerWeekDraft(
-  area: AdminArea,
-  input: {
-    weekKey: string;
-    days: WeeklyDraftInput;
-    actorUserId: string | null;
-    actorRole?: "OWNER" | "SALON" | null;
-  },
-): Promise<PlannerMutationResult> {
-  ensureValidPlannerWeek(input.weekKey);
-  const weekStart = resolveWeekStart(input.weekKey);
-  const allowedDateKeys = new Set(
-    Array.from({ length: 7 }, (_, index) => formatDateKey(addDays(weekStart, index))),
-  );
-
-  const operationId = randomUUID();
-  await runPlannerTransaction(async (tx) => {
-    for (const day of input.days) {
-      if (!isValidDateKey(day.dateKey) || !allowedDateKeys.has(day.dateKey)) {
-        throw new PlannerMutationError("Koncept obsahuje den mimo aktuálně otevřený týden.");
-      }
-
-      const intervals = day.intervals.map((interval) => {
-        ensureHalfHourCellIndex(interval.startCell);
-        ensureHalfHourCellIndex(interval.endCell);
-
-        if (interval.endCell <= interval.startCell) {
-          throw new PlannerMutationError("Koncept týdne obsahuje prázdný interval.");
-        }
-
-        return getCellRangeBounds(day.dateKey, interval.startCell, interval.endCell);
-      });
-
-      await replaceDayWithIntervals(tx, input.actorUserId, day.dateKey, intervals, {
-        lockedConflict: "preserve",
-        audit: { actorUserId: input.actorUserId, actorRole: input.actorRole, adminArea: area, operationId, operation: AvailabilityAuditOperation.SYNC_DRAFT, source: "planner-week-draft-v1" },
-      });
-    }
-  });
-
-  return {
-    ok: true,
-    message: "Změny týdne byly publikované do dostupností.",
-    weekKey: input.weekKey,
-    operationId,
-  };
 }

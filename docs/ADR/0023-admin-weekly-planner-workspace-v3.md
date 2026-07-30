@@ -1,7 +1,9 @@
 # ADR 0023: Draft-first pracovní workspace pro admin týdenní planner
 
 ## Stav
-Accepted
+Superseded (2026-07-29, ADR 0118)
+
+Toto rozhodnutí nahradil jediný produkční FullCalendar planner s průběžným autosave. Aktuální řešení popisuje ADR 0118.
 
 ## Kontext
 Planner dostupností už měl funkční 30min grid a server-side ochranu proti zásahu do rezervací nebo omezených slotů. V praxi ale pořád narážel na několik provozních problémů:
