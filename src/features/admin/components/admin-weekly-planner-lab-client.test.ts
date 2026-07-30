@@ -34,7 +34,8 @@ test("planner ukládá undo přes opačnou serverovou operaci a hlásí autosave
 test("autosave používá neměnný kontext položky fronty i při retry", async () => {
   const source = await clientSource();
   assert.match(source, /type PlannerChange = Readonly<\{ area: PlannerWeekData\["area"\]; weekKey: string; operationId: string;/);
-  assert.match(source, /Object\.freeze\(\{ area: data\.area, weekKey: data\.weekKey, operationId: crypto\.randomUUID\(\)/);
+  assert.match(source, /import \{ createIdempotencyKey \} from "@\/lib\/idempotency-key"/);
+  assert.match(source, /Object\.freeze\(\{ area: data\.area, weekKey: data\.weekKey, operationId: createIdempotencyKey\(\)/);
   assert.match(source, /applyPlannerSelectionAction\(change\.area, \{ weekKey: change\.weekKey, dateKey: change\.dateKey, startCell: change\.startCell, endCell: change\.endCell, mode: change\.mode, operationId: change\.operationId/);
   assert.doesNotMatch(source, /contextRef/);
 });

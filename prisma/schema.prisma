@@ -358,6 +358,17 @@ model AvailabilityAuditEvent {
   @@index([actorUserId, createdAt])
 }
 
+/// Idempotentní zápis jedné interaktivní změny dostupnosti planneru.
+model AvailabilityOperation {
+  operationId   String   @id
+  fingerprint   String
+  weekKey       String
+  resultMessage String
+  createdAt     DateTime @default(now())
+
+  @@index([createdAt])
+}
+
 model AvailabilitySlotService {
   slotId    String
   serviceId String

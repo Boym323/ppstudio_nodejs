@@ -113,6 +113,41 @@ function waitForRetry(delayMs: number) {
   });
 }
 
+function isUniqueConstraintError(error: unknown) {
+  return error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002";
+}
+
+function selectionFingerprint(area: AdminArea, input: {
+  weekKey: string;
+  dateKey: string;
+  startCell: number;
+  endCell: number;
+  mode: "add" | "remove";
+  revertedOperationId?: string | null;
+}) {
+  return JSON.stringify({
+    area,
+    weekKey: input.weekKey,
+    dateKey: input.dateKey,
+    startCell: input.startCell,
+    endCell: input.endCell,
+    mode: input.mode,
+    revertedOperationId: input.revertedOperationId ?? null,
+  });
+}
+
+function selectionResult(input: { weekKey: string; mode: "add" | "remove"; operationId: string }): PlannerMutationResult {
+  return {
+    ok: true,
+    message:
+      input.mode === "add"
+        ? "Dostupnost byla upravená a sousední půlhodiny jsme spojili do souvislých oken."
+        : "Dostupnost byla odebraná. Zbylé úseky zůstaly uložené jako čisté souvislé intervaly.",
+    weekKey: input.weekKey,
+    operationId: input.operationId,
+  };
+}
+
 async function runPlannerTransaction<T>(
   operation: (tx: Prisma.TransactionClient) => Promise<T>,
 ): Promise<T> {
@@ -316,7 +351,7 @@ export async function applyAvailabilitySelection(
     mode: "add" | "remove";
     actorUserId: string | null;
     actorRole?: "OWNER" | "SALON" | null;
-    operationId?: string;
+    operationId: string;
     revertedOperationId?: string | null;
   },
 ): Promise<PlannerMutationResult> {
@@ -330,8 +365,36 @@ export async function applyAvailabilitySelection(
 
   const selection = getCellRangeBounds(input.dateKey, input.startCell, input.endCell);
 
-  const operationId = input.operationId ?? randomUUID();
-  await runPlannerTransaction(async (tx) => {
+  const operationId = input.operationId;
+  const fingerprint = selectionFingerprint(area, input);
+  const result = selectionResult({ weekKey: input.weekKey, mode: input.mode, operationId });
+
+  try {
+    const existingResult = await runPlannerTransaction(async (tx) => {
+      const existingOperation = await tx.availabilityOperation.findUnique({ where: { operationId } });
+
+      if (existingOperation) {
+        if (existingOperation.fingerprint !== fingerprint) {
+          throw new PlannerMutationError("Tento idempotentní klíč už patří k jiné změně dostupnosti.");
+        }
+
+        return {
+          ok: true,
+          message: existingOperation.resultMessage,
+          weekKey: existingOperation.weekKey,
+          operationId,
+        } satisfies PlannerMutationResult;
+      }
+
+      await tx.availabilityOperation.create({
+        data: {
+          operationId,
+          fingerprint,
+          weekKey: result.weekKey,
+          resultMessage: result.message,
+        },
+      });
+
     const state = await getEditableDayState(tx, input.dateKey);
 
     if (intersectsAny(selection, state.lockedIntervals)) {
@@ -368,17 +431,25 @@ export async function applyAvailabilitySelection(
       });
     }
     await writeAvailabilityAudit(tx, input.dateKey, state, nextIntervals, { actorUserId: input.actorUserId, actorRole: input.actorRole, adminArea: area, operationId, revertedOperationId: input.revertedOperationId, operation: input.revertedOperationId ? AvailabilityAuditOperation.UNDO : input.mode === "add" ? AvailabilityAuditOperation.ADD : AvailabilityAuditOperation.REMOVE, source: input.revertedOperationId ? "planner-undo-v1" : "planner-selection-v1" });
-  });
+      return null;
+    });
 
-  return {
-    ok: true,
-    message:
-      input.mode === "add"
-        ? "Dostupnost byla upravená a sousední půlhodiny jsme spojili do souvislých oken."
-        : "Dostupnost byla odebraná. Zbylé úseky zůstaly uložené jako čisté souvislé intervaly.",
-    weekKey: input.weekKey,
-    operationId,
-  };
+    return existingResult ?? result;
+  } catch (error) {
+    if (!isUniqueConstraintError(error)) {
+      throw error;
+    }
+
+    const existingOperation = await prisma.availabilityOperation.findUnique({ where: { operationId } });
+    if (!existingOperation) {
+      throw error;
+    }
+    if (existingOperation.fingerprint !== fingerprint) {
+      throw new PlannerMutationError("Tento idempotentní klíč už patří k jiné změně dostupnosti.");
+    }
+
+    return { ok: true, message: existingOperation.resultMessage, weekKey: existingOperation.weekKey, operationId };
+  }
 }
 
 export async function clearPlannerDay(

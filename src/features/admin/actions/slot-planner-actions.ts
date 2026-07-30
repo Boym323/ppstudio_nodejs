@@ -27,7 +27,7 @@ const selectionSchema = z.object({
   startCell: z.number().int().min(0).max(PLANNER_DAY_CELLS),
   endCell: z.number().int().min(0).max(PLANNER_DAY_CELLS),
   mode: z.enum(["add", "remove"]),
-  operationId: z.string().uuid().optional(),
+  operationId: z.string().uuid(),
   revertedOperationId: z.string().uuid().optional(),
 });
 

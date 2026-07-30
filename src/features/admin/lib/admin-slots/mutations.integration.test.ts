@@ -72,6 +72,7 @@ dbTest("applyAvailabilitySelection odebere jedinou půlhodinu z volného okna", 
       startCell: 4,
       endCell: 5,
       mode: "remove",
+      operationId: randomUUID(),
       actorUserId: seed.actorUserId,
     });
 
@@ -92,7 +93,7 @@ dbTest("změna dostupnosti uloží audit se stavem před a po, autorem a odstran
   try {
     const result = await applyAvailabilitySelection("owner", {
       weekKey: seed.weekKey, dateKey: seed.dateKey, startCell: 4, endCell: 5,
-      mode: "remove", actorUserId: seed.actorUserId, actorRole: AdminRole.OWNER,
+      mode: "remove", operationId: randomUUID(), actorUserId: seed.actorUserId, actorRole: AdminRole.OWNER,
     });
     const audit = await prisma.availabilityAuditEvent.findFirstOrThrow({ where: { operationId: result.operationId } });
     assert.equal(audit.actorUserId, seed.actorUserId);
@@ -106,9 +107,9 @@ dbTest("změna dostupnosti uloží audit se stavem před a po, autorem a odstran
   } finally { await cleanupSeed(seed); }
 });
 
-dbTest("applyAvailabilitySelection je idempotentní při opakovaném přidání i odebrání", async () => {
+dbTest("applyAvailabilitySelection vrátí stejný výsledek při retry se stejným operationId", async () => {
   const seed = await createSeed();
-  const { getAdminPlannerWeek, applyAvailabilitySelection } = await loadModules();
+  const { prisma, getAdminPlannerWeek, applyAvailabilitySelection } = await loadModules();
 
   try {
     const input = {
@@ -117,16 +118,120 @@ dbTest("applyAvailabilitySelection je idempotentní při opakovaném přidání 
       startCell: 16,
       endCell: 18,
       actorUserId: seed.actorUserId,
+      mode: "add" as const,
+      operationId: randomUUID(),
     };
-    await applyAvailabilitySelection("owner", { ...input, mode: "add" });
-    await applyAvailabilitySelection("owner", { ...input, mode: "add" });
-    await applyAvailabilitySelection("owner", { ...input, mode: "remove" });
-    await applyAvailabilitySelection("owner", { ...input, mode: "remove" });
+    const first = await applyAvailabilitySelection("owner", input);
+    const retry = await applyAvailabilitySelection("owner", input);
 
     const week = await getAdminPlannerWeek("owner", seed.weekKey);
     const day = week.days.find((item) => item.dateKey === seed.dateKey);
     assert.ok(day);
-    assert.ok(!day.availableIntervals.some((interval) => interval.startCell < 18 && interval.endCell > 16));
+    assert.deepEqual(retry, first);
+    assert.equal(await prisma.availabilityAuditEvent.count({ where: { operationId: input.operationId } }), 1);
+    assert.equal(await prisma.availabilityOperation.count({ where: { operationId: input.operationId } }), 1);
+    assert.ok(day.availableIntervals.some((interval) => interval.startCell <= 16 && interval.endCell >= 18));
+  } finally {
+    await cleanupSeed(seed);
+  }
+});
+
+dbTest("operationId rozlišuje samostatné změny a odmítne jiný interval nebo režim", async () => {
+  const seed = await createSeed();
+  const { prisma, applyAvailabilitySelection } = await loadModules();
+  const firstOperationId = randomUUID();
+
+  try {
+    await applyAvailabilitySelection("owner", {
+      weekKey: seed.weekKey, dateKey: seed.dateKey, startCell: 16, endCell: 17,
+      mode: "add", operationId: firstOperationId, actorUserId: seed.actorUserId,
+    });
+    const second = await applyAvailabilitySelection("owner", {
+      weekKey: seed.weekKey, dateKey: seed.dateKey, startCell: 16, endCell: 17,
+      mode: "add", operationId: randomUUID(), actorUserId: seed.actorUserId,
+    });
+
+    assert.ok(second.operationId);
+    assert.notEqual(second.operationId, firstOperationId);
+    assert.equal(await prisma.availabilityAuditEvent.count({ where: { operationId: { in: [firstOperationId, second.operationId] } } }), 2);
+    await assert.rejects(
+      applyAvailabilitySelection("owner", {
+        weekKey: seed.weekKey, dateKey: seed.dateKey, startCell: 17, endCell: 18,
+        mode: "add", operationId: firstOperationId, actorUserId: seed.actorUserId,
+      }),
+      /idempotentní klíč už patří k jiné změně/,
+    );
+    await assert.rejects(
+      applyAvailabilitySelection("owner", {
+        weekKey: seed.weekKey, dateKey: seed.dateKey, startCell: 16, endCell: 17,
+        mode: "remove", operationId: firstOperationId, actorUserId: seed.actorUserId,
+      }),
+      /idempotentní klíč už patří k jiné změně/,
+    );
+  } finally {
+    await cleanupSeed(seed);
+  }
+});
+
+dbTest("souběžné retry a ztracená odpověď vytvoří jedinou operaci a audit", async () => {
+  const seed = await createSeed();
+  const { prisma, applyAvailabilitySelection } = await loadModules();
+  const operationId = randomUUID();
+  const input = {
+    weekKey: seed.weekKey, dateKey: seed.dateKey, startCell: 16, endCell: 18,
+    mode: "add" as const, operationId, actorUserId: seed.actorUserId,
+  };
+
+  try {
+    const [first, concurrentRetry] = await Promise.all([
+      applyAvailabilitySelection("owner", input),
+      applyAvailabilitySelection("owner", input),
+    ]);
+    const slotsAfterConcurrentRetry = await prisma.availabilitySlot.findMany({
+      where: { createdByUserId: seed.actorUserId },
+      orderBy: [{ startsAt: "asc" }, { endsAt: "asc" }],
+      select: { startsAt: true, endsAt: true, status: true },
+    });
+    // Simuluje úspěšný zápis, jehož odpověď se klientovi ztratila, a následný retry.
+    const retryAfterLostResponse = await applyAvailabilitySelection("owner", input);
+    const slotsAfterLostResponseRetry = await prisma.availabilitySlot.findMany({
+      where: { createdByUserId: seed.actorUserId },
+      orderBy: [{ startsAt: "asc" }, { endsAt: "asc" }],
+      select: { startsAt: true, endsAt: true, status: true },
+    });
+
+    assert.deepEqual(concurrentRetry, first);
+    assert.deepEqual(retryAfterLostResponse, first);
+    assert.deepEqual(slotsAfterLostResponseRetry, slotsAfterConcurrentRetry);
+    assert.equal(await prisma.availabilityOperation.count({ where: { operationId } }), 1);
+    assert.equal(await prisma.availabilityAuditEvent.count({ where: { operationId } }), 1);
+  } finally {
+    await cleanupSeed(seed);
+  }
+});
+
+dbTest("undo má vlastní operationId a auditní vazbu na původní operaci", async () => {
+  const seed = await createSeed();
+  const { prisma, applyAvailabilitySelection } = await loadModules();
+  const originalOperationId = randomUUID();
+  const undoOperationId = randomUUID();
+
+  try {
+    await applyAvailabilitySelection("owner", {
+      weekKey: seed.weekKey, dateKey: seed.dateKey, startCell: 16, endCell: 18,
+      mode: "add", operationId: originalOperationId, actorUserId: seed.actorUserId,
+    });
+    const undo = await applyAvailabilitySelection("owner", {
+      weekKey: seed.weekKey, dateKey: seed.dateKey, startCell: 16, endCell: 18,
+      mode: "remove", operationId: undoOperationId, revertedOperationId: originalOperationId,
+      actorUserId: seed.actorUserId,
+    });
+    const undoAudit = await prisma.availabilityAuditEvent.findFirstOrThrow({ where: { operationId: undoOperationId } });
+
+    assert.notEqual(undo.operationId, originalOperationId);
+    assert.equal(undoAudit.operation, "UNDO");
+    assert.equal(undoAudit.revertedOperationId, originalOperationId);
+    assert.equal(await prisma.availabilityOperation.count({ where: { operationId: { in: [originalOperationId, undoOperationId] } } }), 2);
   } finally {
     await cleanupSeed(seed);
   }
@@ -158,6 +263,7 @@ dbTest("applyAvailabilitySelection upraví volné fragmenty dlouhého slotu kole
         startCell: testCase.startCell,
         endCell: testCase.endCell,
         mode: "remove",
+        operationId: randomUUID(),
         actorUserId: seed.actorUserId,
       });
 
@@ -197,6 +303,7 @@ dbTest("applyAvailabilitySelection odmítne zásah do rezervovaného intervalu a
         startCell: 6,
         endCell: 7,
         mode: "remove",
+        operationId: randomUUID(),
         actorUserId: seed.actorUserId,
       }),
       /zasahuje do rezervace nebo omezeného intervalu/,
@@ -208,6 +315,7 @@ dbTest("applyAvailabilitySelection odmítne zásah do rezervovaného intervalu a
         startCell: 4,
         endCell: 5,
         mode: "add",
+        operationId: randomUUID(),
         actorUserId: seed.actorUserId,
       }),
       /nepatří do platného týdne/,
@@ -262,6 +370,7 @@ dbTest("undo přes opačnou serverovou operaci odmítne rezervaci vytvořenou po
         startCell: 8,
         endCell: 9,
         mode: "remove",
+        operationId: randomUUID(),
         actorUserId: seed.actorUserId,
       }),
       /zasahuje do rezervace nebo omezeného intervalu/,
