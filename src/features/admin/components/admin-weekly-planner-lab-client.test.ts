@@ -59,6 +59,8 @@ test("obnova uloženého stavu zahodí frontu a znovu načte potvrzená data", a
 test("planner má legendu a sdílené routování rezervace bez paralelního inspektoru", async () => {
   const source = await clientSource();
   assert.match(source, /Legenda kalendáře/);
+  assert.match(source, /Čeká na potvrzení/);
+  assert.match(source, /Potvrzená rezervace/);
   assert.match(source, /Neuložený stav/);
   assert.match(source, /Chyba ukládání/);
   assert.doesNotMatch(source, /Inspektor dne|Vytvořit rezervaci/);
@@ -70,6 +72,7 @@ test("planner má legendu a sdílené routování rezervace bez paralelního ins
 test("obsazený termín zobrazuje službu pod jménem klientky", async () => {
   const source = await clientSource();
   assert.match(source, /className=\{styles\.eventMedium\}/);
+  assert.match(source, /className=\{styles\.eventTitle\}><b>\{arg\.timeText\}<\/b>/);
   assert.match(source, /details\.clientName \?\? "Klientka"/);
   assert.match(
     source,
@@ -89,7 +92,8 @@ test("kompaktní pohled nabízí Den, Po–Pá a Víkend a zachová mobilní scr
   const source = await clientSource();
   assert.match(source, /\['timeGridDay', 'Den'\], \['timeGridWorkWeek', 'Po–Pá'\], \['timeGridWeekend', 'Víkend'\]/);
   assert.match(source, /longPressDelay=\{compact \? 450/);
-  assert.match(source, /calendar\?\.changeView\(nextView, targetDate\)/);
+  assert.match(source, /calendar\.changeView\(nextView, targetDate\)/);
+  assert.match(source, /if \(calendar\.view\.type === nextView\) \{ calendar\.gotoDate\(targetDate\); return; \}/);
   assert.match(source, /function rememberScrollPosition/);
   assert.match(source, /scrollTimeReset=\{false\}/);
 });

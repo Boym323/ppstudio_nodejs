@@ -16,6 +16,7 @@
 .legend span { display: inline-flex; align-items: center; gap: .28rem; }
 .legend i { width: .85rem; height: .85rem; border-radius: .2rem; border: 1px solid rgb(255 255 255 / 30%); }
 .legendAvailability { background: linear-gradient(180deg, rgb(47 144 105 / 90%), rgb(25 102 77 / 90%)); }
+.legendPending { background: #d6a64e; }
 .legendBooking { background: #ee7890; }
 .legendCleanup { background: repeating-linear-gradient(135deg, rgb(215 183 102 / 78%) 0 3px, rgb(215 183 102 / 20%) 3px 7px); }
 .legendProtected { background: repeating-linear-gradient(135deg, rgb(139 150 168 / 80%) 0 4px, rgb(139 150 168 / 20%) 4px 8px); }
@@ -37,6 +38,7 @@
 .calendar :global(.planner-lab-event--availability), .calendar :global(.planner-lab-event--protected) { left: 6px !important; right: 6px !important; width: auto !important; margin-inline: 0 !important; border-radius: .45rem !important; clip-path: inset(0 round .45rem); }
 .calendar :global(.planner-lab-event--availability) { --fc-event-color: #9af0c8 !important; box-shadow: inset 3px 0 #79dcae, inset 0 0 0 1px rgb(180 255 222 / 48%) !important; background: linear-gradient(180deg, rgb(47 144 105 / 78%), rgb(25 102 77 / 84%)) !important; }
 .calendar :global(.planner-lab-event--booking) { --fc-event-color: #ee7890 !important; background: #ee7890 !important; color: #430d1d !important; }
+.calendar :global(.planner-lab-event--pending) { --fc-event-color: #d6a64e !important; background: #d6a64e !important; color: #3b2604 !important; }
 .calendar :global(.planner-lab-event--cleanup) { --fc-event-color: #d7b766 !important; border: 1px solid rgb(215 183 102 / 42%) !important; border-radius: .45rem !important; box-shadow: none !important; background: repeating-linear-gradient(135deg, rgb(215 183 102 / 30%) 0 3px, rgb(215 183 102 / 12%) 3px 7px) !important; color: #f6e7bc !important; }
 .calendar :global(.planner-lab-event--protected) { --fc-event-color: #8b96a8 !important; background: repeating-linear-gradient(135deg, rgb(139 150 168 / 28%) 0 5px, rgb(139 150 168 / 12%) 5px 10px) !important; }
 .calendar :global(.planner-lab-event--completed) { --fc-event-color: #64748b !important; background: #536174 !important; color: #e2e8f0 !important; }
@@ -46,6 +48,9 @@
 .eventShort > * { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .eventMedium, .eventLong { line-height: 1.2; }
 .eventMedium > *, .eventLong > * { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.eventTitle { display: flex !important; gap: .25rem; align-items: baseline; }
+.eventTitle > * { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.eventTitle > b { flex: none; }
 .eventService { color: rgb(255 255 255 / 78%); }
 .cleanupEvent { display: flex; align-items: center; gap: .3rem; min-width: 0; overflow: hidden; color: #f6e7bc; font-size: 10px; line-height: 1; white-space: nowrap; }
 .cleanupEvent > b { flex: none; font-variant-numeric: tabular-nums; }

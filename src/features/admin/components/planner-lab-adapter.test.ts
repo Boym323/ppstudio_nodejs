@@ -45,6 +45,16 @@ test("adaptér zachová dostupnost jako background event i po změně aktuální
   assert.deepEqual([event?.extendedProps.startCell, event?.extendedProps.endCell], [6, 8]);
 });
 
+test("adaptér odliší čekající rezervaci jantarovou barvou", () => {
+  const input = week();
+  input.days[0].bookings[0].status = "PENDING";
+
+  const event = plannerWeekToFullCalendarEvents(input).find((item) => item.extendedProps.bookingId === "booking-1");
+
+  assert.equal(event?.className, "planner-lab-event--pending");
+  assert.equal(event?.color, "#d6a64e");
+});
+
 test("adaptér nevykreslí chráněný interval pod úklidem", () => {
   const input = week();
   input.days[0].cleanupBlocks = [{ startMinutes: 240, endMinutes: 270 }];

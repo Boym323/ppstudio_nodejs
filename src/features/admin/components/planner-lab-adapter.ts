@@ -106,8 +106,8 @@ export function plannerWeekToFullCalendarEvents(
         ...toIsoRange(day.dateKey, serviceStartCell, serviceEndCell),
         editable: false as const,
         display: "block" as const,
-        color: booking.status === "COMPLETED" ? "#64748b" : "#ee7890",
-        className: booking.status === "COMPLETED" ? "planner-lab-event--completed" : "planner-lab-event--booking",
+        color: booking.status === "COMPLETED" ? "#64748b" : booking.status === "PENDING" ? "#d6a64e" : "#ee7890",
+        className: booking.status === "COMPLETED" ? "planner-lab-event--completed" : booking.status === "PENDING" ? "planner-lab-event--pending" : "planner-lab-event--booking",
         extendedProps: {
           type: (booking.status === "COMPLETED" ? "completed" : "booking") as "booking" | "completed",
           editable: false,
