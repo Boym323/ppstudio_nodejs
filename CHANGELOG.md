@@ -8,6 +8,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Parametrické stavy rezervačního formuláře nyní kanonizují na `/rezervace` a vyhledávačům předávají `noindex, follow`, takže se ve výsledcích nezobrazují jako samostatné stránky.
 - Týdenní kalendář nyní u obsazených termínů zachovává čas vedle jména klientky a pod ním zobrazuje název rezervované služby.
 - Týdenní kalendář barevně odlišuje nepotvrzené rezervace od potvrzených a vysvětluje je v legendě.
 - Přepínání responsivního pohledu týdenního kalendáře bezpečně pracuje s časovým scrollerem bez rušení planneru.

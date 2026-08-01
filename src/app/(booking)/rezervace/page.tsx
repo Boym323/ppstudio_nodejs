@@ -7,11 +7,29 @@ import { buildPageMetadata } from "@/features/public/components/public-site";
 import { normalizeVoucherCode } from "@/features/vouchers/lib/voucher-code";
 import { getPublicSalonProfile } from "@/lib/site-settings";
 
-export const metadata: Metadata = buildPageMetadata({
+const reservationMetadata = buildPageMetadata({
   title: "Rezervace",
   description: "Online rezervace s rychlým výběrem služby, nejbližších termínů a potvrzením po schválení.",
   path: "/rezervace",
 });
+
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}): Promise<Metadata> {
+  const resolvedSearchParams = await searchParams;
+
+  if (Object.keys(resolvedSearchParams).length === 0) return reservationMetadata;
+
+  return {
+    ...reservationMetadata,
+    robots: {
+      index: false,
+      follow: true,
+    },
+  };
+}
 
 export default async function ReservationPage({
   searchParams,
