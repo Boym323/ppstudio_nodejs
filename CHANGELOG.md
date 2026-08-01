@@ -6,6 +6,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [3.13.2] - 2026-08-01
+
 ### Opraveno
 
 - Veřejná rezervace po obnovení dostupnosti znovu ověří zadaný voucher, během ověření jej nelze odeslat a veřejný popisek hodnotového voucheru už neprozrazuje jeho zůstatek.
@@ -17,6 +19,10 @@ Formát je inspirovaný Keep a Changelog.
 - Veřejná rezervace i klientský přesun termínu po souběžném obsazení načtou čerstvou nabídku ze serveru, zruší neplatný vybraný čas, přesunou výběr na první volný den a zachovají službu i kontaktní údaje; chybová hláška je dostupná i pro čtečky obrazovky.
 - Veřejný rezervační formulář už nenabízí poslední termín v publikovaném okně, pokud jeho interní úklidová blokace koliduje s navazující rezervací začínající na hranici nebo krátce za hranicí tohoto okna. Maximální nastavitelný čas na úklid je nyní 120 minut.
 - Pushover nově okamžitě upozorní OWNERa i na odmítnutí veřejné rezervace kvůli skutečné kolizi s aktivní rezervací (`SLOT_UNAVAILABLE`), nejen na obecný `BOOKING_CONFLICT`.
+
+### Změněno
+
+- Release příprava pro produkční nasazení: projektová verze navýšena na patch `3.13.2`.
 
 ## [3.13.1] - 2026-08-01
 
