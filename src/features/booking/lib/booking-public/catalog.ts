@@ -3,7 +3,10 @@ import { AvailabilitySlotStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getBookingPolicySettings } from "@/lib/site-settings";
 
-import { roundUpToQuarterHour } from "../booking-cleanup";
+import {
+  MAX_SERVICE_CLEANUP_MINUTES,
+  roundUpToQuarterHour,
+} from "../booking-cleanup";
 import {
   ACTIVE_BOOKING_STATUSES,
   type PublicBookingCatalog,
@@ -27,8 +30,11 @@ export async function getPublicBookingCatalog(
   const bookingWindowEnd = new Date(
     now.getTime() + bookingPolicy.maxAdvanceDays * 24 * 60 * 60 * 1000,
   );
+  const bookingConflictWindowEnd = new Date(
+    bookingWindowEnd.getTime() + MAX_SERVICE_CLEANUP_MINUTES * 60 * 1000,
+  );
 
-  const [services, slots, bookings] = await Promise.all([
+  const [services, slots, bookings, cleanupAggregate] = await Promise.all([
     includeServices
       ? prisma.service.findMany({
           where: {
@@ -92,7 +98,7 @@ export async function getPublicBookingCatalog(
           in: [...ACTIVE_BOOKING_STATUSES],
         },
         scheduledStartsAt: {
-          lt: bookingWindowEnd,
+          lt: bookingConflictWindowEnd,
         },
         OR: [
           {
@@ -114,7 +120,25 @@ export async function getPublicBookingCatalog(
         blockedUntil: true,
       },
     }),
+    prisma.service.aggregate({
+      where: {
+        isActive: true,
+        isPubliclyBookable: true,
+        category: {
+          is: {
+            isActive: true,
+          },
+        },
+      },
+      _max: {
+        cleanupMinutes: true,
+      },
+    }),
   ]);
+
+  const bookingLookaheadMinutes = roundUpToQuarterHour(
+    cleanupAggregate._max.cleanupMinutes ?? 0,
+  );
 
   return {
     services: services.flatMap((service) => {
@@ -147,6 +171,7 @@ export async function getPublicBookingCatalog(
         startsAt: booking.scheduledStartsAt,
         endsAt: booking.blockedUntil ?? booking.scheduledEndsAt,
       })),
+      bookingLookaheadMinutes,
     ),
   };
 }

@@ -99,6 +99,7 @@ function canMergeCatalogSlots(current: CatalogSlotRecord, next: CatalogSlotRecor
 export function buildMergedPublicCatalogSlots(
   slots: CatalogSlotRecord[],
   bookings: BookingIntervalRecord[],
+  bookingLookaheadMinutes = 0,
 ): PublicCatalogSlot[] {
   const normalizedSlots = slots
     .map((slot) => ({
@@ -143,8 +144,11 @@ export function buildMergedPublicCatalogSlots(
 
   return merged
     .map(({ slot, segments }) => {
+      const bookingLookaheadEnd = new Date(
+        slot.endsAt.getTime() + Math.max(0, bookingLookaheadMinutes) * 60 * 1000,
+      );
       const bookedIntervals = bookings
-        .filter((booking) => overlaps(slot.startsAt, slot.endsAt, booking.startsAt, booking.endsAt))
+        .filter((booking) => overlaps(slot.startsAt, bookingLookaheadEnd, booking.startsAt, booking.endsAt))
         .map((booking) => ({
           startsAt: booking.startsAt.toISOString(),
           endsAt: booking.endsAt.toISOString(),

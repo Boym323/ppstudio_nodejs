@@ -1,3 +1,5 @@
+export const MAX_SERVICE_CLEANUP_MINUTES = 480;
+
 export function roundUpToQuarterHour(minutes: number) {
   if (!Number.isFinite(minutes) || minutes <= 0) {
     return 0;

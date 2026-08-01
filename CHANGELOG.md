@@ -6,6 +6,10 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+### Opraveno
+
+- Veřejný rezervační formulář už nenabízí poslední termín v publikovaném okně, pokud jeho interní úklidová blokace koliduje s navazující rezervací začínající na hranici nebo krátce za hranicí tohoto okna.
+
 ## [3.13.1] - 2026-08-01
 
 ### Opraveno

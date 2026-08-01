@@ -231,6 +231,32 @@ describe("buildSlotTimeOptions cleanup blocking", () => {
     );
   });
 
+  test("disables the last start when cleanup overlaps a booking at the slot boundary", () => {
+    const [slot] = buildMergedPublicCatalogSlots(
+      [{
+        id: "slot-before-following-booking",
+        startsAt: new Date("2026-08-31T06:00:00.000Z"),
+        endsAt: new Date("2026-08-31T07:00:00.000Z"),
+        publicNote: null,
+        capacity: 1,
+        serviceRestrictionMode: AvailabilitySlotServiceRestrictionMode.ANY,
+        allowedServiceIds: [],
+      }],
+      [{
+        startsAt: new Date("2026-08-31T07:00:00.000Z"),
+        endsAt: new Date("2026-08-31T08:30:00.000Z"),
+      }],
+      15,
+    );
+
+    assert.ok(slot);
+    const [lastOption] = buildSlotTimeOptions(slot, 60, 15);
+
+    assert.equal(slot.bookedIntervals.length, 1);
+    assert.equal(lastOption?.startsAt, "2026-08-31T06:00:00.000Z");
+    assert.equal(lastOption?.isDisabled, true);
+  });
+
   test("keeps the option end at the client-visible service end", () => {
     const options = buildSlotTimeOptions(
       {

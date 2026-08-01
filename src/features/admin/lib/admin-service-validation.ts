@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { MAX_SERVICE_CLEANUP_MINUTES } from "@/features/booking/lib/booking-cleanup";
+
 export const serviceListSortValues = ["category", "name", "duration", "price", "order"] as const;
 export const serviceListStatusValues = ["all", "active", "inactive"] as const;
 export const serviceListBookableValues = ["all", "public", "private"] as const;
@@ -47,7 +49,7 @@ const cleanupMinutesSchema = z.preprocess(
     .number({ error: "Čas na úklid zadejte v minutách." })
     .int("Čas na úklid musí být celé číslo.")
     .min(0, "Čas na úklid nesmí být záporný.")
-    .max(480, "Čas na úklid je neobvykle dlouhý. Zkontrolujte prosím hodnotu."),
+    .max(MAX_SERVICE_CLEANUP_MINUTES, "Čas na úklid je neobvykle dlouhý. Zkontrolujte prosím hodnotu."),
 );
 
 export const serviceListSearchParamsSchema = z.object({
