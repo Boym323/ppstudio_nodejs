@@ -306,6 +306,72 @@ describe("state validation", () => {
     );
   });
 
+  for (const status of [
+    AvailabilitySlotStatus.DRAFT,
+    AvailabilitySlotStatus.ARCHIVED,
+    AvailabilitySlotStatus.CANCELLED,
+  ]) {
+    test(`client reschedule rejects requested ${status} slot`, async () => {
+      const { bookingRescheduleErrorCodes } = await import("./booking-rescheduling");
+      const harness = await createHarness({
+        requestedSlot: buildSlot({
+          id: `slot-${status.toLowerCase()}`,
+          startsAt: new Date("2026-04-28T09:00:00.000Z"),
+          endsAt: new Date("2026-04-28T10:00:00.000Z"),
+          status,
+        }),
+      });
+
+      await assert.rejects(
+        harness.api.rescheduleBooking({
+          bookingId: "booking-1",
+          slotId: `slot-${status.toLowerCase()}`,
+          newStartAt: "2026-04-28T09:00:00.000Z",
+          changedByUserId: null,
+          changedByClient: true,
+          notifyClient: false,
+          expectedUpdatedAt: "2026-04-23T09:00:00.000Z",
+        }),
+        (error) => {
+          expectRescheduleErrorCode(error, bookingRescheduleErrorCodes.slotNotAllowed);
+          return true;
+        },
+      );
+    });
+  }
+
+  test("uses a current published slot as anchor instead of an archived requested slot", async () => {
+    const harness = await createHarness({
+      requestedSlot: buildSlot({
+        id: "slot-archived-requested",
+        startsAt: new Date("2026-04-28T09:00:00.000Z"),
+        endsAt: new Date("2026-04-28T10:00:00.000Z"),
+        status: AvailabilitySlotStatus.ARCHIVED,
+      }),
+      overlappingSlots: [
+        buildSlot({
+          id: "slot-published-anchor",
+          startsAt: new Date("2026-04-28T09:00:00.000Z"),
+          endsAt: new Date("2026-04-28T10:00:00.000Z"),
+          status: AvailabilitySlotStatus.PUBLISHED,
+        }),
+      ],
+    });
+
+    const result = await harness.api.rescheduleBooking({
+      bookingId: "booking-1",
+      slotId: "slot-archived-requested",
+      newStartAt: "2026-04-28T09:00:00.000Z",
+      changedByUserId: null,
+      changedByClient: true,
+      notifyClient: false,
+      expectedUpdatedAt: "2026-04-23T09:00:00.000Z",
+    });
+
+    assert.equal(result.manualOverride, false);
+    assert.equal((harness.calls.bookingUpdate[0]?.data as { slotId?: string }).slotId, "slot-published-anchor");
+  });
+
   test("allows reschedule across adjacent published slots and uses the whole chain in conflict checks", async () => {
     const harness = await createHarness({
       booking: buildBooking({

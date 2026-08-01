@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import test from "node:test";
 
-import { BookingAcquisitionSource } from "@prisma/client";
+import { AvailabilitySlotStatus, BookingAcquisitionSource } from "@prisma/client";
 
 (process.env as Record<string, string | undefined>).NODE_ENV = "test";
 process.env.NEXT_PUBLIC_APP_NAME ??= "PP Studio";
@@ -332,6 +332,77 @@ dbTest("createPublicBooking keeps server-side service availability as source of 
       },
     });
     await prisma.availabilitySlot.delete({ where: { id: slot.id } });
+    await prisma.service.delete({ where: { id: service.id } });
+    await prisma.serviceCategory.delete({ where: { id: category.id } });
+  }
+});
+
+dbTest("createPublicBooking rejects DRAFT, ARCHIVED and CANCELLED requested slots", async () => {
+  const { prisma, createPublicBooking, PublicBookingError, publicBookingErrorCodes } = await loadModules();
+  const suffix = randomUUID().slice(0, 8);
+  const category = await prisma.serviceCategory.create({
+    data: {
+      name: `Booking rejected slot category ${suffix}`,
+      slug: `booking-rejected-slot-category-${suffix}`,
+      isActive: true,
+    },
+    select: { id: true },
+  });
+  const service = await prisma.service.create({
+    data: {
+      categoryId: category.id,
+      name: `Booking rejected slot ${suffix}`,
+      publicName: `Booking rejected slot ${suffix}`,
+      slug: `booking-rejected-slot-${suffix}`,
+      durationMinutes: 30,
+      priceFromCzk: 1200,
+      isActive: true,
+      isPubliclyBookable: true,
+    },
+    select: { id: true },
+  });
+  const { startsAt, endsAt } = await findIsolatedPublicQuerySlotStart(prisma, suffix, 30, 5);
+  const slots = await Promise.all(
+    [AvailabilitySlotStatus.DRAFT, AvailabilitySlotStatus.ARCHIVED, AvailabilitySlotStatus.CANCELLED].map(
+      (status, index) => prisma.availabilitySlot.create({
+        data: {
+          startsAt: new Date(startsAt.getTime() + index * 60 * 60 * 1000),
+          endsAt: new Date(endsAt.getTime() + index * 60 * 60 * 1000),
+          status,
+          cancelledAt: status === AvailabilitySlotStatus.CANCELLED ? new Date() : null,
+        },
+        select: { id: true, startsAt: true },
+      }),
+    ),
+  );
+
+  try {
+    for (const slot of slots) {
+      await assert.rejects(
+        createPublicBooking({
+          serviceId: service.id,
+          slotId: slot.id,
+          startsAt: slot.startsAt.toISOString(),
+          fullName: `Klientka ${suffix}`,
+          email: `booking-rejected-slot-${slot.id}@example.com`,
+          phone: "+420777123456",
+          acquisition: {
+            source: BookingAcquisitionSource.DIRECT,
+            utmSource: null,
+            utmMedium: null,
+            utmCampaign: null,
+            referrerHost: null,
+          },
+        }),
+        (error: unknown) => {
+          assert.ok(error instanceof PublicBookingError);
+          assert.equal(error.code, publicBookingErrorCodes.slotUnavailable);
+          return true;
+        },
+      );
+    }
+  } finally {
+    await prisma.availabilitySlot.deleteMany({ where: { id: { in: slots.map((slot) => slot.id) } } });
     await prisma.service.delete({ where: { id: service.id } });
     await prisma.serviceCategory.delete({ where: { id: category.id } });
   }

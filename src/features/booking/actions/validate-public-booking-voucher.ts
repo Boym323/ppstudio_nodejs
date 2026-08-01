@@ -9,6 +9,7 @@ import {
   isVoucherPublicVerificationRateLimited,
   writeVoucherPublicVerificationAttemptLog,
 } from "@/features/vouchers/lib/voucher-public-verification-rate-limit";
+import { toPublicBookingVoucherValidationSuccess } from "@/features/booking/lib/public-booking-voucher-presentation";
 
 /**
  * Vrací pouze údaje potřebné pro veřejný rezervační formulář. Výsledek slouží
@@ -49,11 +50,7 @@ export async function validatePublicBookingVoucherAction(input: {
       };
     }
 
-    return {
-      ok: true as const,
-      code: result.code,
-      displayLabel: result.displayLabel,
-    };
+    return toPublicBookingVoucherValidationSuccess(result);
   } catch (error) {
     console.error("Public booking voucher validation failed", error);
 

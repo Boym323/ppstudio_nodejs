@@ -359,6 +359,85 @@ test.describe("booking flows", () => {
     ]);
   });
 
+  test("conflict refresh revalidates a voucher before the visitor can submit a new term", async ({ browser }) => {
+    test.setTimeout(60_000);
+
+    const fixture = await createPublicBookingFixture();
+    const voucherFixture = await createPublicVoucherFixture();
+    fixtures.push(fixture, voucherFixture);
+
+    const firstContext = await browser.newContext();
+    const secondContext = await browser.newContext();
+    const firstPage = await firstContext.newPage();
+    const secondPage = await secondContext.newPage();
+    const bookingPath = `/rezervace?service=${fixture.serviceSlug}`;
+    const primarySlotLabel = buildPublicSlotButtonLabel(new Date(fixture.slotLabels.primaryStartAt));
+
+    const fillBookingContact = async (page: Page, suffix: string) => {
+      await page.getByLabel("Jméno a příjmení").fill(`${fixture.clientName} ${suffix}`);
+      await page.getByRole("textbox", { name: "E-mail" }).fill(`${fixture.runId}-${suffix}@example.test`);
+      await page.getByRole("textbox", { name: "Telefon" }).fill("+420 777 000 000");
+    };
+
+    try {
+      await firstPage.goto(bookingPath);
+      await clickUntilFocused(
+        firstPage.getByRole("button", { name: primarySlotLabel }).first(),
+        firstPage.getByLabel("Jméno a příjmení"),
+      );
+      await fillBookingContact(firstPage, "first");
+      await firstPage.getByLabel("Kód voucheru").fill(voucherFixture.voucherCode ?? "");
+      await expect(firstPage.getByText("Voucher je použitelný: Hodnotový poukaz.")).toBeVisible();
+
+      await secondPage.goto(bookingPath);
+      await clickUntilFocused(
+        secondPage.getByRole("button", { name: primarySlotLabel }).first(),
+        secondPage.getByLabel("Jméno a příjmení"),
+      );
+      await fillBookingContact(secondPage, "second");
+      await secondPage.getByRole("button", { name: "Odeslat rezervaci" }).first().click();
+      await expect(secondPage.getByRole("heading", { name: "Rezervace přijata" })).toBeVisible();
+
+      await firstPage.route("**/*", async (route) => {
+        if (route.request().headers()["next-action"]) {
+          await new Promise((resolve) => setTimeout(resolve, 600));
+        }
+        await route.continue();
+      });
+
+      const firstSubmit = firstPage.getByRole("button", { name: "Odeslat rezervaci" }).first();
+      await firstSubmit.click();
+      await expect(firstPage.getByText("Tento termín byl mezitím obsazen. Nabídku jsme aktualizovali, vyberte prosím jiný čas.")).toBeVisible();
+      await expect(firstPage.getByRole("button", { name: primarySlotLabel })).toHaveCount(0);
+      await expect(firstPage.getByText("Ověřuji voucher pro vybranou službu…")).toBeVisible();
+      await expect(firstSubmit).toBeDisabled();
+      await expect(firstPage.getByText("Voucher je použitelný: Hodnotový poukaz.")).toBeVisible();
+
+      const candidateSlots = firstPage.getByRole("button", { name: /^Vybrat termín / });
+      const candidateCount = await candidateSlots.count();
+      let selectedNewTerm = false;
+
+      for (let index = 0; index < candidateCount; index += 1) {
+        const candidate = candidateSlots.nth(index);
+        if (await candidate.getAttribute("aria-label") === primarySlotLabel) {
+          continue;
+        }
+        await clickUntilFocused(candidate, firstPage.getByLabel("Jméno a příjmení"));
+        if (await firstSubmit.isEnabled()) {
+          selectedNewTerm = true;
+          break;
+        }
+      }
+
+      expect(selectedNewTerm).toBe(true);
+      await firstSubmit.click();
+      await expect(firstPage.getByRole("heading", { name: "Rezervace přijata" })).toBeVisible();
+    } finally {
+      await firstContext.close();
+      await secondContext.close();
+    }
+  });
+
   test("public booking availability respects cleanup block while keeping client-visible service end", async ({ page }) => {
     const runId = `e2e-cleanup-${Date.now().toString(36)}`;
     const fixture: E2eFixture = {

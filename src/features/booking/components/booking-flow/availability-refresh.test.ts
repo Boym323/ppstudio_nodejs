@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  getRefreshedDateSelection,
   getRefreshedSelectedDateKey,
   isPublicBookingAvailabilityError,
   isRescheduleAvailabilityError,
@@ -38,4 +39,22 @@ test("po obnovení se nikdy nevrací zaniklý den ani se nevybírá konkrétní 
 
   assert.equal(getRefreshedSelectedDateKey("2026-08-05", availableDates), "2026-08-06");
   assert.equal(getRefreshedSelectedDateKey("", availableDates), "2026-08-06");
+});
+
+test("veřejná rezervace po zániku říjnového dne vybere září a zobrazí září", () => {
+  const selection = getRefreshedDateSelection("2026-10-12", ["2026-09-18", "2026-10-20"]);
+
+  assert.deepEqual(selection, {
+    selectedDateKey: "2026-09-18",
+    visibleMonthKey: "2026-09",
+  });
+});
+
+test("klientský přesun po zániku říjnového dne vybere září a zobrazí září", () => {
+  const selection = getRefreshedDateSelection("2026-10-12", ["2026-09-18", "2026-10-20"]);
+
+  assert.deepEqual(selection, {
+    selectedDateKey: "2026-09-18",
+    visibleMonthKey: "2026-09",
+  });
 });

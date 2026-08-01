@@ -30,3 +30,12 @@ export function isRescheduleAvailabilityError(errorCode?: string) {
 export function getRefreshedSelectedDateKey(currentDateKey: string, availableDateKeys: string[]) {
   return availableDateKeys.includes(currentDateKey) ? currentDateKey : availableDateKeys[0] ?? "";
 }
+
+export function getRefreshedDateSelection(currentDateKey: string, availableDateKeys: string[]) {
+  const selectedDateKey = getRefreshedSelectedDateKey(currentDateKey, availableDateKeys);
+
+  return {
+    selectedDateKey,
+    visibleMonthKey: selectedDateKey.slice(0, 7),
+  };
+}

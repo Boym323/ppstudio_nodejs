@@ -16,6 +16,7 @@ import type { TimeSlotOption } from "@/features/booking/lib/booking-time-slots";
 import { trackMatomoEvent } from "@/features/analytics/matomo";
 import { cn } from "@/lib/utils";
 import {
+  getRefreshedDateSelection,
   getRefreshedSelectedDateKey,
   isRescheduleAvailabilityError,
 } from "./booking-flow/availability-refresh";
@@ -263,6 +264,7 @@ export function BookingManagementPanel({
   const rescheduleSubmittedTrackedRef = useRef(false);
   const availabilityRefreshRequestRef = useRef(0);
   const lastRefreshedConflictRef = useRef("");
+  const pendingAvailabilityDateSyncRef = useRef(false);
 
   const slotOptions = useMemo(() => {
     if (currentState.status !== "ready") {
@@ -330,6 +332,22 @@ export function BookingManagementPanel({
     () => groupSlotsByDayPeriod(selectedDateSlots),
     [selectedDateSlots],
   );
+
+  useEffect(() => {
+    if (!pendingAvailabilityDateSyncRef.current) {
+      return;
+    }
+
+    pendingAvailabilityDateSyncRef.current = false;
+
+    if (selectedDateKey && availableDateKeys.includes(selectedDateKey)) {
+      return;
+    }
+
+    const refreshedSelection = getRefreshedDateSelection(selectedDateKey, availableDateKeys);
+    setSelectedDateKey(refreshedSelection.selectedDateKey);
+    setVisibleMonthKey(refreshedSelection.visibleMonthKey);
+  }, [availableDateKeys, firstAvailableDateKey, selectedDateKey]);
   const suggestedSlotGroups = slotGroups.slice(0, 4);
 
   const selectedOption = slotOptions.find(
@@ -380,6 +398,7 @@ export function BookingManagementPanel({
         setCurrentState(nextState);
         setSelectedSlotId("");
         setSelectedStartsAt("");
+        pendingAvailabilityDateSyncRef.current = true;
       })
       .catch(() => {
         if (availabilityRefreshRequestRef.current === requestId) {

@@ -8,6 +8,9 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Veřejná rezervace po obnovení dostupnosti znovu ověří zadaný voucher, během ověření jej nelze odeslat a veřejný popisek hodnotového voucheru už neprozrazuje jeho zůstatek.
+- Veřejná rezervace i klientský přesun po zániku vybraného dne trvale přepnou na první volný den v odpovídajícím měsíci.
+- Veřejné vytvoření rezervace a klientský přesun používají jako zdroj slotu výhradně aktuální publikované pokrytí; koncepty, archivy a zrušené sloty nelze použít jako fallback.
 - Veřejná rezervace i klientský přesun nyní vedle půlhodinového rastru nabídnou bezpečný čtvrthodinový začátek dopočítaný těsně před následující aktivní rezervací; úklid přitom nesmí zasáhnout do jejího začátku.
 - Rezervační formulář při každé změně služby znovu ověří voucher na serveru. Poukaz vázaný na jinou službu se ihned přestane uplatňovat, zachová se jeho kód i s vysvětlením a hodnotový poukaz zůstane použitelný; odpověď pro formulář přitom nepředává nepoužitý zůstatek voucheru.
 - Průběžné ověřování voucheru v rezervačním formuláři má stejný auditovaný limit jako veřejné ověření: nejvýše 10 pokusů z jedné IP adresy za 10 minut.

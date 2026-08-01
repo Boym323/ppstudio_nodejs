@@ -702,8 +702,8 @@ async function rescheduleBookingInTransaction(
     );
   }
 
-  let resolvedSlot: BookingSlotRecord | null = requestedSlot ?? publishedCoverage?.anchor ?? null;
-  let resolvedCoverageSlots = publishedCoverage?.coverage ?? (resolvedSlot ? [resolvedSlot] : []);
+  let resolvedSlot: BookingSlotRecord | null = publishedCoverage?.anchor ?? null;
+  let resolvedCoverageSlots = publishedCoverage?.coverage ?? [];
   let manualOverride = false;
 
   if (resolvedSlot) {

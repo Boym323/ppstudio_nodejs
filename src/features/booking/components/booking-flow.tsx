@@ -31,7 +31,14 @@ import {
   shouldTrackBookingDateSelection,
   shouldTrackBookingServiceSelectedForPrefill,
 } from "./booking-flow/booking-analytics";
-import { isPublicBookingAvailabilityError } from "./booking-flow/availability-refresh";
+import {
+  getRefreshedDateSelection,
+  isPublicBookingAvailabilityError,
+} from "./booking-flow/availability-refresh";
+import {
+  resolveVoucherRevalidation,
+  type VoucherApplicationState,
+} from "./booking-flow/voucher-revalidation";
 import {
   buildContactFieldErrors,
   EMPTY_TIME_SLOTS,
@@ -50,25 +57,6 @@ import { BookingServiceStep } from "./booking-flow/service-step";
 import { BookingSummarySidebar } from "./booking-flow/summary-sidebar";
 import { BookingTermStep } from "./booking-flow/term-step";
 import type { BookingFlowProps, ContactFieldKey, ServiceCategory } from "./booking-flow/types";
-
-type VoucherApplicationState =
-  | { status: "idle" }
-  | { status: "checking" }
-  | { status: "applied"; label: string }
-  | { status: "incompatible"; message: string }
-  | { status: "invalid"; message: string };
-
-function getVoucherValidationMessage(reason: string) {
-  switch (reason) {
-    case "NOT_FOUND": return "Voucher nebyl nalezen. Zkontrolujte prosím kód.";
-    case "DRAFT": return "Voucher zatím není aktivní.";
-    case "REDEEMED": return "Voucher už byl uplatněn.";
-    case "EXPIRED": return "Voucher je propadlý.";
-    case "NO_REMAINING_VALUE": return "Voucher už nemá žádný dostupný zůstatek.";
-    case "RATE_LIMITED": return "Příliš mnoho pokusů o ověření. Počkejte prosím chvíli a zkuste to znovu.";
-    default: return "Voucher se nepodařilo ověřit. Zkontrolujte prosím kód.";
-  }
-}
 
 export function BookingFlow({
   catalog,
@@ -102,6 +90,7 @@ export function BookingFlow({
   const [voucherCode, setVoucherCode] = useState(initialVoucherCode ?? "");
   const [appliedVoucherCode, setAppliedVoucherCode] = useState("");
   const [voucherApplication, setVoucherApplication] = useState<VoucherApplicationState>({ status: "idle" });
+  const [voucherValidationVersion, setVoucherValidationVersion] = useState(0);
   const [currentStep, setCurrentStep] = useState(initialSelectedService ? 2 : 1);
   const [selectedDateKey, setSelectedDateKey] = useState("");
   const [visibleMonthKey, setVisibleMonthKey] = useState("");
@@ -134,6 +123,7 @@ export function BookingFlow({
   const lastTrackedFormErrorKeyRef = useRef<string | null>(null);
   const lastTrackedTermConflictKeyRef = useRef<string | null>(null);
   const catalogRefreshRequestRef = useRef(0);
+  const pendingCatalogDateSyncRef = useRef(false);
   const voucherValidationRequestRef = useRef(0);
   const lastVoucherValidationServiceIdRef = useRef(selectedServiceId);
   const lastRefreshedConflictRef = useRef("");
@@ -472,23 +462,9 @@ export function BookingFlow({
         .then((result) => {
           if (voucherValidationRequestRef.current !== requestId) return;
 
-          if (result.ok) {
-            setAppliedVoucherCode(result.code);
-            setVoucherApplication({ status: "applied", label: result.displayLabel });
-            return;
-          }
-
-          setAppliedVoucherCode("");
-          if (result.reason === "SERVICE_MISMATCH") {
-            const serviceName = result.serviceNameSnapshot ?? "původní službu";
-            setVoucherApplication({
-              status: "incompatible",
-              message: `Tento poukaz je určený pro službu „${serviceName}“. Pro nově vybranou službu jej nelze použít.`,
-            });
-            return;
-          }
-
-          setVoucherApplication({ status: "invalid", message: getVoucherValidationMessage(result.reason) });
+          const revalidation = resolveVoucherRevalidation(result);
+          setAppliedVoucherCode(revalidation.appliedVoucherCode);
+          setVoucherApplication(revalidation.voucherApplication);
         })
         .catch(() => {
           if (voucherValidationRequestRef.current !== requestId) return;
@@ -499,7 +475,7 @@ export function BookingFlow({
 
     const timeoutId = window.setTimeout(validate, serviceChanged ? 0 : 350);
     return () => window.clearTimeout(timeoutId);
-  }, [selectedServiceId, voucherCode]);
+  }, [selectedServiceId, voucherCode, voucherValidationVersion]);
 
   const availableSlots = useMemo(() => {
     if (!selectedServiceId) {
@@ -599,6 +575,22 @@ export function BookingFlow({
     () => groupSlotsByDayPeriod(selectedDateSlots),
     [selectedDateSlots],
   );
+
+  useEffect(() => {
+    if (!pendingCatalogDateSyncRef.current) {
+      return;
+    }
+
+    pendingCatalogDateSyncRef.current = false;
+
+    if (selectedDateKey && availableSlotsByDate.has(selectedDateKey)) {
+      return;
+    }
+
+    const refreshedSelection = getRefreshedDateSelection(selectedDateKey, availableDateKeys);
+    setSelectedDateKey(refreshedSelection.selectedDateKey);
+    setVisibleMonthKey(refreshedSelection.visibleMonthKey);
+  }, [availableDateKeys, availableSlotsByDate, firstAvailableDateKey, selectedDateKey]);
 
   const calendarCells = useMemo(() => {
     if (!effectiveVisibleMonthKey) {
@@ -864,6 +856,9 @@ export function BookingFlow({
 
         setCurrentCatalog(result.catalog);
         setSelectedTimeOptionKey("");
+        pendingCatalogDateSyncRef.current = true;
+        invalidateVoucherApplication(result.voucherCode);
+        setVoucherValidationVersion((value) => value + 1);
         setVoucherCode(result.voucherCode);
         setCurrentStep(2);
         focusAvailableTimesSection();

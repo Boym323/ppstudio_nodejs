@@ -493,8 +493,8 @@ export async function createBookingWithEngine(
             );
           }
 
-          let resolvedSlot = slot ?? publishedCoverage?.anchor ?? null;
-          let resolvedCoverageSlots = publishedCoverage?.coverage ?? (resolvedSlot ? [resolvedSlot] : []);
+          let resolvedSlot = publishedCoverage?.anchor ?? null;
+          let resolvedCoverageSlots = publishedCoverage?.coverage ?? [];
           let manualOverride = false;
           const isWithinPublicWindow = isBookingWithinWindow(
             requestedStartsAt,
