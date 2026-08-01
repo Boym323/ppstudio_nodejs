@@ -32,6 +32,7 @@ import {
   shouldTrackBookingServiceSelectedForPrefill,
 } from "./booking-flow/booking-analytics";
 import {
+  getRefreshedSelectedDateKey,
   isPublicBookingAvailabilityError,
 } from "./booking-flow/availability-refresh";
 import {
@@ -582,6 +583,14 @@ export function BookingFlow({
     [availableSlotsByDate],
   );
 
+  useEffect(() => {
+    const refreshedDateKey = getRefreshedSelectedDateKey(selectedDateKey, availableDateKeys);
+
+    if (refreshedDateKey !== selectedDateKey) {
+      setSelectedDateKey(refreshedDateKey);
+    }
+  }, [availableDateKeys, selectedDateKey]);
+
   const availableMonths = useMemo(
     () => Array.from(new Set(availableDateKeys.map((dateKey) => dateKey.slice(0, 7)))).sort((monthA, monthB) => monthA.localeCompare(monthB)),
     [availableDateKeys],
@@ -867,6 +876,8 @@ export function BookingFlow({
         setCurrentCatalog(result.catalog);
         setSelectedTimeOptionKey("");
         setVoucherCode(result.voucherCode);
+        setCurrentStep(2);
+        focusAvailableTimesSection();
       })
       .catch(() => {
         if (catalogRefreshRequestRef.current === requestId) {

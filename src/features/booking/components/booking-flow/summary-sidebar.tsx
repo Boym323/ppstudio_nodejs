@@ -209,7 +209,7 @@ export function BookingSummarySidebar({
         </div>
 
         {serverState.status === "error" && serverState.suggestedStep ? (
-          <div className="mt-4 rounded-3xl border border-red-200 bg-red-50/80 p-4 sm:p-5">
+          <div role="alert" className="mt-4 rounded-3xl border border-red-200 bg-red-50/80 p-4 sm:p-5">
             <p className="text-sm font-semibold text-red-800">
               {serverState.formError ?? "Rezervaci se teď nepodařilo dokončit."}
             </p>

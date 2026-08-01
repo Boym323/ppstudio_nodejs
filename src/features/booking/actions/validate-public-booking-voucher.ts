@@ -52,10 +52,7 @@ export async function validatePublicBookingVoucherAction(input: {
     return {
       ok: true as const,
       code: result.code,
-      type: result.type,
       displayLabel: result.displayLabel,
-      remainingValueCzk: result.remainingValueCzk,
-      serviceNameSnapshot: result.serviceNameSnapshot,
     };
   } catch (error) {
     console.error("Public booking voucher validation failed", error);

@@ -9,9 +9,9 @@ Formát je inspirovaný Keep a Changelog.
 ### Opraveno
 
 - Veřejná rezervace i klientský přesun nyní vedle půlhodinového rastru nabídnou bezpečný čtvrthodinový začátek dopočítaný těsně před následující aktivní rezervací; úklid přitom nesmí zasáhnout do jejího začátku.
-- Rezervační formulář při každé změně služby znovu ověří voucher na serveru. Poukaz vázaný na jinou službu se ihned přestane uplatňovat, zachová se jeho kód i s vysvětlením a hodnotový poukaz zůstane použitelný.
+- Rezervační formulář při každé změně služby znovu ověří voucher na serveru. Poukaz vázaný na jinou službu se ihned přestane uplatňovat, zachová se jeho kód i s vysvětlením a hodnotový poukaz zůstane použitelný; odpověď pro formulář přitom nepředává nepoužitý zůstatek voucheru.
 - Průběžné ověřování voucheru v rezervačním formuláři má stejný auditovaný limit jako veřejné ověření: nejvýše 10 pokusů z jedné IP adresy za 10 minut.
-- Veřejná rezervace i klientský přesun termínu po souběžném obsazení načtou čerstvou nabídku ze serveru, zruší neplatný vybraný čas a zachovají službu i kontaktní údaje.
+- Veřejná rezervace i klientský přesun termínu po souběžném obsazení načtou čerstvou nabídku ze serveru, zruší neplatný vybraný čas, přesunou výběr na první volný den a zachovají službu i kontaktní údaje; chybová hláška je dostupná i pro čtečky obrazovky.
 - Veřejný rezervační formulář už nenabízí poslední termín v publikovaném okně, pokud jeho interní úklidová blokace koliduje s navazující rezervací začínající na hranici nebo krátce za hranicí tohoto okna. Maximální nastavitelný čas na úklid je nyní 120 minut.
 - Pushover nově okamžitě upozorní OWNERa i na odmítnutí veřejné rezervace kvůli skutečné kolizi s aktivní rezervací (`SLOT_UNAVAILABLE`), nejen na obecný `BOOKING_CONFLICT`.
 

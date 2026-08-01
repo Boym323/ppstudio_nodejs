@@ -15,7 +15,10 @@ import { buildSlotTimeOptions, groupSlotsByDayPeriod } from "@/features/booking/
 import type { TimeSlotOption } from "@/features/booking/lib/booking-time-slots";
 import { trackMatomoEvent } from "@/features/analytics/matomo";
 import { cn } from "@/lib/utils";
-import { isRescheduleAvailabilityError } from "./booking-flow/availability-refresh";
+import {
+  getRefreshedSelectedDateKey,
+  isRescheduleAvailabilityError,
+} from "./booking-flow/availability-refresh";
 
 type BookingManagementPanelProps = {
   token: string;
@@ -305,6 +308,17 @@ export function BookingManagementPanel({
   const availableMonths = useMemo(() => {
     return Array.from(new Set(slotGroups.map(([dateKey]) => getMonthKey(dateKey)))).filter(Boolean);
   }, [slotGroups]);
+
+  useEffect(() => {
+    const availableDateKeys = slotGroups.map(([dateKey]) => dateKey);
+    const refreshedDateKey = getRefreshedSelectedDateKey(selectedDateKey, availableDateKeys);
+
+    if (refreshedDateKey !== selectedDateKey) {
+      setSelectedDateKey(refreshedDateKey);
+      setVisibleMonthKey(getMonthKey(refreshedDateKey));
+    }
+  }, [selectedDateKey, slotGroups]);
+
   const effectiveVisibleMonthKey =
     visibleMonthKey || getMonthKey(effectiveSelectedDateKey) || availableMonths[0] || "";
   const calendarCells = useMemo(
@@ -714,7 +728,7 @@ export function BookingManagementPanel({
         </div>
 
         {serverState.status === "error" && serverState.formError ? (
-          <div className="mt-6 rounded-3xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <div role="alert" className="mt-6 rounded-3xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             <p>{serverState.formError}</p>
             {isRefreshingAvailability ? (
               <p className="mt-2">Aktualizujeme nabídku dostupných termínů…</p>

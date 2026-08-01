@@ -32,3 +32,10 @@ test("po obnovení zůstává vybraný den jen pokud má skutečně volný čas"
   assert.equal(getRefreshedSelectedDateKey("2026-08-06", availableDates), "2026-08-05");
   assert.equal(getRefreshedSelectedDateKey("2026-08-06", []), "");
 });
+
+test("po obnovení se nikdy nevrací zaniklý den ani se nevybírá konkrétní čas", () => {
+  const availableDates = ["2026-08-06", "2026-08-08"];
+
+  assert.equal(getRefreshedSelectedDateKey("2026-08-05", availableDates), "2026-08-06");
+  assert.equal(getRefreshedSelectedDateKey("", availableDates), "2026-08-06");
+});
