@@ -32,6 +32,10 @@ export const publicBookingErrorCodes = {
   temporaryFailure: "TEMPORARY_FAILURE",
 } as const;
 
+export const publicBookingConflictMessages = {
+  activeReservation: "Vybraný termín koliduje s jinou rezervací.",
+} as const;
+
 export type PublicBookingErrorCode =
   (typeof publicBookingErrorCodes)[keyof typeof publicBookingErrorCodes];
 
@@ -142,6 +146,15 @@ export class PublicBookingError extends Error {
     this.code = code;
     this.suggestedStep = suggestedStep;
   }
+}
+
+export function isSlotUnavailableDueToBookingConflict(
+  error: Pick<PublicBookingError, "code" | "message">,
+) {
+  return (
+    error.code === publicBookingErrorCodes.slotUnavailable
+    && error.message === publicBookingConflictMessages.activeReservation
+  );
 }
 
 export function normalizeWhitespace(value: string) {

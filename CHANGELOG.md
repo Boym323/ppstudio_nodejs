@@ -9,6 +9,7 @@ Formát je inspirovaný Keep a Changelog.
 ### Opraveno
 
 - Veřejný rezervační formulář už nenabízí poslední termín v publikovaném okně, pokud jeho interní úklidová blokace koliduje s navazující rezervací začínající na hranici nebo krátce za hranicí tohoto okna.
+- Pushover nově okamžitě upozorní OWNERa i na odmítnutí veřejné rezervace kvůli skutečné kolizi s aktivní rezervací (`SLOT_UNAVAILABLE`), nejen na obecný `BOOKING_CONFLICT`.
 
 ## [3.13.1] - 2026-08-01
 

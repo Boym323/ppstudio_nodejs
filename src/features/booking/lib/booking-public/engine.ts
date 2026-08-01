@@ -30,6 +30,7 @@ import {
   type SharedCreateBookingResult,
   CLIENT_PHONE_FORMAT_MESSAGE,
   PublicBookingError,
+  publicBookingConflictMessages,
   isRetryablePrismaError,
   isValidClientPhoneInput,
   mapKnownPrismaError,
@@ -577,7 +578,7 @@ export async function createBookingWithEngine(
           if (activeBookingCount >= allowedCapacity) {
             throw new PublicBookingError(
               publicBookingErrorCodes.slotUnavailable,
-              "Vybraný termín koliduje s jinou rezervací.",
+              publicBookingConflictMessages.activeReservation,
               2,
             );
           }

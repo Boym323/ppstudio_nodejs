@@ -23,8 +23,10 @@ export {
   formatClientPhoneForDisplay,
   isValidClientPhoneInput,
   isValidNormalizedClientPhone,
+  isSlotUnavailableDueToBookingConflict,
   normalizeClientEmail,
   normalizeClientPhone,
+  publicBookingConflictMessages,
   publicBookingErrorCodes,
 } from "./booking-public/shared";
 export type {

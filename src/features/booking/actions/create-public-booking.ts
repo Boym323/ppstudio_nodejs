@@ -16,6 +16,7 @@ import {
   CLIENT_PHONE_FORMAT_MESSAGE,
   createPublicBooking,
   isValidClientPhoneInput,
+  isSlotUnavailableDueToBookingConflict,
   normalizeClientEmail,
   normalizeClientPhone,
   PublicBookingError,
@@ -345,10 +346,13 @@ export async function createPublicBookingAction(
         },
       });
 
-      if (error.code === publicBookingErrorCodes.bookingConflict) {
+      if (
+        error.code === publicBookingErrorCodes.bookingConflict
+        || isSlotUnavailableDueToBookingConflict(error)
+      ) {
         await sendOwnerSystemErrorPushover({
           title: "PP Studio - konflikt verejne rezervace",
-          message: "Verejna rezervace vratila kod BOOKING_CONFLICT.",
+          message: `Verejna rezervace vratila kod ${error.code}.`,
           context: {
             contextId: parsed.success ? parsed.data.slotId : "public-booking-conflict",
             slotId: parsed.success ? parsed.data.slotId : null,

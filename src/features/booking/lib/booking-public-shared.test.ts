@@ -3,10 +3,13 @@ import test from "node:test";
 
 import {
   formatClientPhoneForDisplay,
+  isSlotUnavailableDueToBookingConflict,
   isRetryablePrismaError,
   isValidClientPhoneInput,
   isValidNormalizedClientPhone,
   normalizeClientPhone,
+  publicBookingConflictMessages,
+  publicBookingErrorCodes,
 } from "./booking-public/shared";
 
 test("normalizeClientPhone keeps empty phone empty", () => {
@@ -66,4 +69,21 @@ test("isRetryablePrismaError does not retry unrelated driver adapter errors", ()
   };
 
   assert.equal(isRetryablePrismaError(error), false);
+});
+
+test("isSlotUnavailableDueToBookingConflict recognizes an active booking overlap", () => {
+  assert.equal(
+    isSlotUnavailableDueToBookingConflict({
+      code: publicBookingErrorCodes.slotUnavailable,
+      message: publicBookingConflictMessages.activeReservation,
+    }),
+    true,
+  );
+  assert.equal(
+    isSlotUnavailableDueToBookingConflict({
+      code: publicBookingErrorCodes.slotUnavailable,
+      message: "Vybraný termín už není dostupný.",
+    }),
+    false,
+  );
 });
