@@ -51,6 +51,7 @@ type BookingSummarySidebarProps = {
   phone: string;
   voucherCode: string;
   canGoToStep4: boolean;
+  isRefreshingCatalog: boolean;
   serverState: PublicBookingActionState;
   onEditService: () => void;
   onEditTerm: () => void;
@@ -67,6 +68,7 @@ export function BookingSummarySidebar({
   phone,
   voucherCode,
   canGoToStep4,
+  isRefreshingCatalog,
   serverState,
   onEditService,
   onEditTerm,
@@ -228,7 +230,7 @@ export function BookingSummarySidebar({
         ) : null}
 
         <div className="mt-6 hidden flex-wrap gap-3 lg:flex">
-          <BookingSubmitButton disabled={!canGoToStep4} />
+          <BookingSubmitButton disabled={!canGoToStep4 || isRefreshingCatalog} />
           {currentStep > 1 ? (
             <button
               type="button"

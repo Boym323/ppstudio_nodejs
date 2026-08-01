@@ -25,6 +25,9 @@ import {
 import { type PublicBookingActionState } from "@/features/booking/actions/public-booking-action-state";
 import { sendOwnerSystemErrorPushover } from "@/lib/notifications/pushover";
 
+const availabilityRefreshMessage =
+  "Tento termín byl mezitím obsazen. Nabídku jsme aktualizovali, vyberte prosím jiný čas.";
+
 function readFormString(formData: FormData, key: string) {
   const value = formData.get(key);
 
@@ -95,6 +98,18 @@ function isBookingSchemaDriftError(error: unknown) {
 }
 
 function getPublicFacingBookingErrorMessage(error: PublicBookingError) {
+  if (
+    error.suggestedStep === 2
+    && (
+      error.code === publicBookingErrorCodes.bookingConflict
+      || error.code === publicBookingErrorCodes.slotUnavailable
+      || error.code === publicBookingErrorCodes.slotNotAllowed
+      || error.code === publicBookingErrorCodes.slotTooShort
+    )
+  ) {
+    return availabilityRefreshMessage;
+  }
+
   if (error.code === publicBookingErrorCodes.bookingConflict && error.suggestedStep === 3) {
     return "Údaje se nepodařilo bezpečně ověřit. Zkontrolujte prosím e-mail a telefon, nebo kontaktujte PP Studio ve Zlíně a rezervaci dokončíme společně.";
   }

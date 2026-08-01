@@ -9,10 +9,14 @@ import {
   BookingRescheduleError,
 } from "@/features/booking/lib/booking-rescheduling";
 import {
+  getPublicBookingManagementPageState,
   issuePublicCancellationUrlByManageToken,
   reschedulePublicBookingByToken,
 } from "@/features/booking/lib/booking-management";
 import { sendOwnerSystemErrorPushover } from "@/lib/notifications/pushover";
+
+const availabilityRefreshMessage =
+  "Tento termín byl mezitím obsazen. Nabídku jsme aktualizovali, vyberte prosím jiný čas.";
 
 function readFormString(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -27,6 +31,10 @@ function revalidateBookingPaths(bookingId: string) {
   revalidatePath("/admin/provoz");
   revalidatePath("/admin/provoz/rezervace");
   revalidatePath(`/admin/provoz/rezervace/${bookingId}`);
+}
+
+export async function refreshPublicBookingManagementAction(token: string) {
+  return getPublicBookingManagementPageState(token);
 }
 
 export async function managePublicBookingAction(
@@ -87,7 +95,15 @@ export async function managePublicBookingAction(
     if (error instanceof BookingRescheduleError) {
       return {
         status: "error",
-        formError: error.message,
+        errorCode: error.code,
+        formError:
+          error.code === bookingRescheduleErrorCodes.slotUnavailable
+          || error.code === bookingRescheduleErrorCodes.slotNotAllowed
+          || error.code === bookingRescheduleErrorCodes.slotTooShort
+          || error.code === bookingRescheduleErrorCodes.conflict
+          || error.code === bookingRescheduleErrorCodes.concurrentModification
+            ? availabilityRefreshMessage
+            : error.message,
         fieldErrors:
           error.code === bookingRescheduleErrorCodes.slotUnavailable
           || error.code === bookingRescheduleErrorCodes.slotNotAllowed

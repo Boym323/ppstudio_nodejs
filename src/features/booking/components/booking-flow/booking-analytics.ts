@@ -1,14 +1,9 @@
 "use client";
 
-const termConflictErrorCodes = new Set([
-  "BOOKING_CONFLICT",
-  "SLOT_UNAVAILABLE",
-  "SLOT_NOT_ALLOWED",
-  "SLOT_TOO_SHORT",
-]);
+import { isPublicBookingAvailabilityError } from "./availability-refresh";
 
-export function isBookingTermConflictErrorCode(errorCode?: string) {
-  return Boolean(errorCode && termConflictErrorCodes.has(errorCode));
+export function isBookingTermConflictErrorCode(errorCode?: string, suggestedStep?: number) {
+  return isPublicBookingAvailabilityError(errorCode, suggestedStep);
 }
 
 export function shouldTrackBookingDateSelection(
