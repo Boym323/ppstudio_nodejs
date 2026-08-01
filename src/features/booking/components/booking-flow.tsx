@@ -67,6 +67,7 @@ function getVoucherValidationMessage(reason: string) {
     case "REDEEMED": return "Voucher už byl uplatněn.";
     case "EXPIRED": return "Voucher je propadlý.";
     case "NO_REMAINING_VALUE": return "Voucher už nemá žádný dostupný zůstatek.";
+    case "RATE_LIMITED": return "Příliš mnoho pokusů o ověření. Počkejte prosím chvíli a zkuste to znovu.";
     default: return "Voucher se nepodařilo ověřit. Zkontrolujte prosím kód.";
   }
 }
