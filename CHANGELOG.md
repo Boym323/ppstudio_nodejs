@@ -8,6 +8,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- SEO titulky detailů služeb už neobsahují značku dvakrát; titul služby ukládá jen obsah titulku a globální metadata doplní `PP Studio`.
 - Parametrické stavy rezervačního formuláře nyní kanonizují na `/rezervace` a vyhledávačům předávají `noindex, follow`, takže se ve výsledcích nezobrazují jako samostatné stránky.
 - Týdenní kalendář nyní u obsazených termínů zachovává čas vedle jména klientky a pod ním zobrazuje název rezervované služby.
 - Týdenní kalendář barevně odlišuje nepotvrzené rezervace od potvrzených a vysvětluje je v legendě.

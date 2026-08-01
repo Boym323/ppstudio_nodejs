@@ -39,7 +39,7 @@ export const serviceCopyOverrides: Record<string, ServiceCopyOverride> = {
       "po ošetření doporučuji lehčí režim a šetrnou domácí péči",
       "pokud máte citlivou pleť, alergie nebo aktivní podráždění, řekněte to předem",
     ],
-    seoTitle: "Refresh kosmetické ošetření Zlín | PP Studio",
+    seoTitle: "Refresh kosmetické ošetření Zlín",
     seoDescription:
       "Refresh ošetření pleti v PP Studiu Zlín pro šetrné čištění, zklidnění a svěžejší vzhled pleti podle aktuální potřeby.",
   },
@@ -70,7 +70,7 @@ export const serviceCopyOverrides: Record<string, ServiceCopyOverride> = {
       "po ošetření se hodí vyhnout se výraznému zatížení pleti",
       "make-up doporučuji nanášet až s odstupem podle reakce pleti",
     ],
-    seoTitle: "Refresh ošetření pleti s masáží Zlín | PP Studio",
+    seoTitle: "Refresh ošetření pleti s masáží Zlín",
     seoDescription:
       "Delší Refresh ošetření v PP Studiu Zlín kombinuje čištění pleti, masku, závěrečnou péči a masáž obličeje.",
   },
@@ -101,7 +101,7 @@ export const serviceCopyOverrides: Record<string, ServiceCopyOverride> = {
       "výsledek je individuální podle stavu pleti",
       "pro stabilnější efekt dává smysl pravidelnost",
     ],
-    seoTitle: "Anti age kosmetické ošetření Zlín | PP Studio",
+    seoTitle: "Anti age kosmetické ošetření Zlín",
     seoDescription:
       "Anti age ošetření v PP Studiu Zlín pro zralejší pleť, výživu, komfort a svěžejší vzhled bez přehnaných slibů.",
   },
@@ -132,7 +132,7 @@ export const serviceCopyOverrides: Record<string, ServiceCopyOverride> = {
       "po ošetření pleť zbytečně nemačkejte ani nedrážděte",
       "pravidelnost bývá důležitější než jednorázový zásah",
     ],
-    seoTitle: "Clear ošetření pleti Zlín | PP Studio",
+    seoTitle: "Clear ošetření pleti Zlín",
     seoDescription:
       "Clear Treatment v PP Studiu Zlín pro pleť se sklonem k nečistotám, šetrné čištění, zklidnění a větší komfort.",
   },
@@ -163,7 +163,7 @@ export const serviceCopyOverrides: Record<string, ServiceCopyOverride> = {
       "pokud je pleť podrážděná po holení, řekněte to předem",
       "průběh je vhodné ještě ověřit podle přesného protokolu pánského ošetření",
     ],
-    seoTitle: "Kosmetické ošetření pro muže Zlín | PP Studio",
+    seoTitle: "Kosmetické ošetření pro muže Zlín",
     seoDescription:
       "Pánské kosmetické ošetření v PP Studiu Zlín pro čištění, hydrataci, zklidnění a praktickou péči o mužskou pleť.",
   },
@@ -194,7 +194,7 @@ export const serviceCopyOverrides: Record<string, ServiceCopyOverride> = {
       "po ošetření dodržujte šetrný režim podle doporučení",
       "vyhněte se agresivní exfoliaci a aktivním látkám bez domluvy",
     ],
-    seoTitle: "Spicule PDRN ošetření Zlín | PP Studio",
+    seoTitle: "Spicule PDRN ošetření Zlín",
     seoDescription:
       "Spicule & PDRN ošetření v PP Studiu Zlín pro intenzivnější péči, výživu a svěžejší vzhled pleti.",
   },
@@ -225,7 +225,7 @@ export const serviceCopyOverrides: Record<string, ServiceCopyOverride> = {
       "u výrazných nebo bolestivých projevů je vhodná odborná lékařská péče",
       "po návštěvě pleť nemačkejte a držte jednoduchou rutinu",
     ],
-    seoTitle: "Studentské ošetření pleti Zlín | PP Studio",
+    seoTitle: "Studentské ošetření pleti Zlín",
     seoDescription:
       "Student Treatment v PP Studiu Zlín pro mladou pleť, šetrné čištění, zklidnění a jednoduché doporučení domácí péče.",
   },
@@ -256,7 +256,7 @@ export const serviceCopyOverrides: Record<string, ServiceCopyOverride> = {
       "po ošetření je důležitý šetrný režim",
       "doporučení po proceduře se může lišit podle reakce pleti",
     ],
-    seoTitle: "Spicule Exosomy ošetření Zlín | PP Studio",
+    seoTitle: "Spicule Exosomy ošetření Zlín",
     seoDescription:
       "Spicule & Exosomy ošetření v PP Studiu Zlín pro intenzivnější kosmetickou péči a svěžejší vzhled pleti.",
   },
@@ -288,7 +288,7 @@ export const serviceCopyOverrides: Record<string, ServiceCopyOverride> = {
       "vyhněte se páře, sauně a mastným produktům v okolí očí",
       "na návštěvu přijďte ideálně bez řasenky",
     ],
-    seoTitle: "Lash lifting Zlín | PP Studio",
+    seoTitle: "Lash lifting Zlín",
     seoDescription:
       "Lash lifting v PP Studiu Zlín zvýrazní vlastní řasy natočením, fixací a výživou pro přirozeně otevřenější pohled.",
   },
@@ -319,7 +319,7 @@ export const serviceCopyOverrides: Record<string, ServiceCopyOverride> = {
       "vyhněte se páře a mastným produktům",
       "pravidelná výživa pomáhá udržet chloupky v lepší kondici",
     ],
-    seoTitle: "Laminace obočí Zlín | PP Studio",
+    seoTitle: "Laminace obočí Zlín",
     seoDescription:
       "Laminace obočí v PP Studiu Zlín upraví směr chloupků a pomůže obočí působit plněji, uhlazeněji a přirozeně.",
   },
@@ -352,7 +352,7 @@ export const serviceCopyOverrides: Record<string, ServiceCopyOverride> = {
       "efekt obvykle postupně odrůstá v řádu týdnů",
       "přijďte ideálně bez líčení očí",
     ],
-    seoTitle: "Lash lifting a laminace obočí Zlín | PP Studio",
+    seoTitle: "Lash lifting a laminace obočí Zlín",
     seoDescription:
       "Kombinace lash liftingu a laminace obočí v PP Studiu Zlín pro přirozeně výraznější pohled a upravený rám obličeje.",
   },
@@ -383,7 +383,7 @@ export const serviceCopyOverrides: Record<string, ServiceCopyOverride> = {
       "při akutních zdravotních potížích je vhodné službu odložit",
       "po masáži doporučuji pít vodu a nechat tělu klidnější režim",
     ],
-    seoTitle: "Lymfatická masáž obličeje Zlín | PP Studio",
+    seoTitle: "Lymfatická masáž obličeje Zlín",
     seoDescription:
       "Lymfatická masáž obličeje v PP Studiu Zlín pro relaxaci, uvolnění napětí a příjemný pocit lehkosti.",
   },
@@ -413,7 +413,7 @@ export const serviceCopyOverrides: Record<string, ServiceCopyOverride> = {
       "odstín volíme podle přirozenosti a typu klientky",
       "pokud míváte reakce na barvy, upozorněte na to předem",
     ],
-    seoTitle: "Barvení obočí Zlín | PP Studio",
+    seoTitle: "Barvení obočí Zlín",
     seoDescription:
       "Barvení obočí v PP Studiu Zlín pro přirozené zvýraznění chloupků, čitelnější tvar a upravený výraz obličeje.",
   },
@@ -443,7 +443,7 @@ export const serviceCopyOverrides: Record<string, ServiceCopyOverride> = {
       "pokud máte citlivé oči, řekněte to předem",
       "výdrž je individuální a postupně se ztrácí s obnovou řas",
     ],
-    seoTitle: "Barvení řas Zlín | PP Studio",
+    seoTitle: "Barvení řas Zlín",
     seoDescription:
       "Barvení řas v PP Studiu Zlín pro přirozené zvýraznění vlastních řas a otevřenější pohled bez každodenní řasenky.",
   },
@@ -473,7 +473,7 @@ export const serviceCopyOverrides: Record<string, ServiceCopyOverride> = {
       "mírné začervenání po úpravě je běžné",
       "službu lze dobře kombinovat s barvením obočí",
     ],
-    seoTitle: "Úprava obočí Zlín | PP Studio",
+    seoTitle: "Úprava obočí Zlín",
     seoDescription:
       "Úprava obočí v PP Studiu Zlín pro čistší linii, přirozený tvar a upravenější výraz obličeje.",
   },
@@ -503,7 +503,7 @@ export const serviceCopyOverrides: Record<string, ServiceCopyOverride> = {
       "v den depilace se vyhněte sauně, peelingu a aktivním látkám",
       "nechoďte na depilaci při podrážděné nebo poraněné pokožce",
     ],
-    seoTitle: "Depilace horního rtu a brady Zlín | PP Studio",
+    seoTitle: "Depilace horního rtu a brady Zlín",
     seoDescription:
       "Depilace horního rtu a brady v PP Studiu Zlín pro šetrné odstranění chloupků a hladší vzhled pokožky.",
   },
@@ -533,7 +533,7 @@ export const serviceCopyOverrides: Record<string, ServiceCopyOverride> = {
       "v den ošetření vynechte peeling a silné aktivní látky",
       "při podráždění pokožky je lepší termín přesunout",
     ],
-    seoTitle: "Depilace obličeje Zlín | PP Studio",
+    seoTitle: "Depilace obličeje Zlín",
     seoDescription:
       "Depilace vybraných partií obličeje v PP Studiu Zlín pro šetrné odstranění chloupků a čistší vzhled pokožky.",
   },
@@ -563,7 +563,7 @@ export const serviceCopyOverrides: Record<string, ServiceCopyOverride> = {
       "po depilaci vynechte saunu, horkou koupel a intenzivní sport",
       "pokožku je vhodné hydratovat šetrnou péčí",
     ],
-    seoTitle: "Depilace celých nohou Zlín | PP Studio",
+    seoTitle: "Depilace celých nohou Zlín",
     seoDescription:
       "Depilace celých nohou v PP Studiu Zlín pro hladší pokožku, upravený vzhled a pohodlnější pravidelnou péči.",
   },
@@ -593,7 +593,7 @@ export const serviceCopyOverrides: Record<string, ServiceCopyOverride> = {
       "v den ošetření se vyhněte sauně a intenzivnímu slunci",
       "pokožku následně hydratujte jemnou péčí",
     ],
-    seoTitle: "Depilace rukou Zlín | PP Studio",
+    seoTitle: "Depilace rukou Zlín",
     seoDescription:
       "Depilace rukou v PP Studiu Zlín pro hladší pokožku, pěstěný vzhled a pohodlnou pravidelnou úpravu.",
   },
@@ -624,7 +624,7 @@ export const serviceCopyOverrides: Record<string, ServiceCopyOverride> = {
       "pokud máte oblíbený styl, klidně přineste inspiraci",
       "řekněte předem, pokud máte alergie nebo citlivou pleť",
     ],
-    seoTitle: "Denní líčení Zlín | PP Studio",
+    seoTitle: "Denní líčení Zlín",
     seoDescription:
       "Denní líčení v PP Studiu Zlín pro přirozeně upravený vzhled do práce, na schůzku nebo běžný den.",
   },
@@ -655,7 +655,7 @@ export const serviceCopyOverrides: Record<string, ServiceCopyOverride> = {
       "před líčením doporučuji nepoužívat nové agresivní produkty",
       "u citlivé pleti nebo alergií dejte vědět předem",
     ],
-    seoTitle: "Večerní a společenské líčení Zlín | PP Studio",
+    seoTitle: "Večerní a společenské líčení Zlín",
     seoDescription:
       "Večerní a společenské líčení v PP Studiu Zlín pro ples, focení nebo výjimečnou událost, sladěné s vaším stylem.",
   },
