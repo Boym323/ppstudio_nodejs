@@ -304,23 +304,19 @@ export function BookingManagementPanel({
   const [selectedDateKey, setSelectedDateKey] = useState(firstAvailableDateKey);
   const [visibleMonthKey, setVisibleMonthKey] = useState(getMonthKey(firstAvailableDateKey));
 
-  const effectiveSelectedDateKey = selectedDateKey || firstAvailableDateKey;
+  const availableDateKeys = useMemo(
+    () => slotGroups.map(([dateKey]) => dateKey),
+    [slotGroups],
+  );
+  const effectiveSelectedDateKey = getRefreshedSelectedDateKey(selectedDateKey, availableDateKeys);
   const availableMonths = useMemo(() => {
-    return Array.from(new Set(slotGroups.map(([dateKey]) => getMonthKey(dateKey)))).filter(Boolean);
-  }, [slotGroups]);
-
-  useEffect(() => {
-    const availableDateKeys = slotGroups.map(([dateKey]) => dateKey);
-    const refreshedDateKey = getRefreshedSelectedDateKey(selectedDateKey, availableDateKeys);
-
-    if (refreshedDateKey !== selectedDateKey) {
-      setSelectedDateKey(refreshedDateKey);
-      setVisibleMonthKey(getMonthKey(refreshedDateKey));
-    }
-  }, [selectedDateKey, slotGroups]);
+    return Array.from(new Set(availableDateKeys.map((dateKey) => getMonthKey(dateKey)))).filter(Boolean);
+  }, [availableDateKeys]);
 
   const effectiveVisibleMonthKey =
-    visibleMonthKey || getMonthKey(effectiveSelectedDateKey) || availableMonths[0] || "";
+    visibleMonthKey && availableMonths.includes(visibleMonthKey)
+      ? visibleMonthKey
+      : getMonthKey(effectiveSelectedDateKey) || availableMonths[0] || "";
   const calendarCells = useMemo(
     () => buildCalendarCells(effectiveVisibleMonthKey),
     [effectiveVisibleMonthKey],
