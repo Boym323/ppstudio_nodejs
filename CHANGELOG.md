@@ -6,6 +6,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [3.13.1] - 2026-08-01
+
 ### Opraveno
 
 - SEO titulky detailů služeb už neobsahují značku dvakrát; titul služby ukládá jen obsah titulku a globální metadata doplní `PP Studio`.
@@ -14,6 +16,10 @@ Formát je inspirovaný Keep a Changelog.
 - Týdenní kalendář barevně odlišuje nepotvrzené rezervace od potvrzených a vysvětluje je v legendě.
 - Přepínání responsivního pohledu týdenního kalendáře bezpečně pracuje s časovým scrollerem bez rušení planneru.
 - Provozní administrace salonu už nezobrazuje boční navigaci duplicitně vedle sebe.
+
+### Změněno
+
+- Release příprava pro produkční nasazení: projektová verze navýšena na patch `3.13.1`.
 
 ## [3.13.0] - 2026-07-30
 
