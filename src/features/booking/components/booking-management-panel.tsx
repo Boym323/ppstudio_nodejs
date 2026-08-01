@@ -7,6 +7,7 @@ import {
 } from "@/features/booking/actions/manage-public-booking-action-state";
 import {
   managePublicBookingAction,
+  refreshPublicBookingManagementAction,
   startPublicBookingCancellationAction,
 } from "@/features/booking/actions/manage-public-booking";
 import type { PublicBookingManagementPageState } from "@/features/booking/lib/booking-management";
@@ -14,6 +15,7 @@ import { buildSlotTimeOptions, groupSlotsByDayPeriod } from "@/features/booking/
 import type { TimeSlotOption } from "@/features/booking/lib/booking-time-slots";
 import { trackMatomoEvent } from "@/features/analytics/matomo";
 import { cn } from "@/lib/utils";
+import { isRescheduleAvailabilityError } from "./booking-flow/availability-refresh";
 
 type BookingManagementPanelProps = {
   token: string;
@@ -236,13 +238,18 @@ function SlotButton({ slot, isSelected, onSelect }: SlotButtonProps) {
 
 export function BookingManagementPanel({
   token,
-  initialState,
+  initialState: initialPageState,
   salonContact,
 }: BookingManagementPanelProps) {
-  const [serverState, formAction] = useActionState(
+  const [serverState, formAction, isSubmitting] = useActionState(
     managePublicBookingAction,
     initialManagePublicBookingActionState,
   );
+  const [currentState, setCurrentState] = useState(initialPageState);
+  const [isRefreshingAvailability, setIsRefreshingAvailability] = useState(false);
+  const [availabilityRefreshError, setAvailabilityRefreshError] = useState("");
+  const [availabilityRefreshRetry, setAvailabilityRefreshRetry] = useState(0);
+  const [rescheduleAttempt, setRescheduleAttempt] = useState(0);
   const [selectedSlotId, setSelectedSlotId] = useState("");
   const [selectedStartsAt, setSelectedStartsAt] = useState("");
   const confirmationRef = useRef<HTMLElement | null>(null);
@@ -251,29 +258,31 @@ export function BookingManagementPanel({
   const lastTrackedTimeRef = useRef("");
   const rescheduleOpenedTrackedRef = useRef(false);
   const rescheduleSubmittedTrackedRef = useRef(false);
+  const availabilityRefreshRequestRef = useRef(0);
+  const lastRefreshedConflictRef = useRef("");
 
   const slotOptions = useMemo(() => {
-    if (initialState.status !== "ready") {
+    if (currentState.status !== "ready") {
       return [];
     }
 
-    return initialState.slots.flatMap((slot) => {
+    return currentState.slots.flatMap((slot) => {
       if (
         slot.serviceRestrictionMode === "SELECTED"
-        && !slot.allowedServiceIds.includes(initialState.serviceId)
+        && !slot.allowedServiceIds.includes(currentState.serviceId)
       ) {
         return [];
       }
 
       return buildSlotTimeOptions(
         slot,
-        initialState.serviceDurationMinutes,
-        initialState.cleanupBlockMinutes,
+        currentState.serviceDurationMinutes,
+        currentState.cleanupBlockMinutes,
       )
         .filter((option) => !option.isDisabled)
-        .filter((option) => option.startsAt !== initialState.scheduledStartsAt);
+        .filter((option) => option.startsAt !== currentState.scheduledStartsAt);
     });
-  }, [initialState]);
+  }, [currentState]);
 
   const slotGroups = useMemo(() => {
     const grouped = new Map<string, typeof slotOptions>();
@@ -321,19 +330,58 @@ export function BookingManagementPanel({
     : "";
 
   useEffect(() => {
-    if (initialState.status !== "ready" || rescheduleOpenedTrackedRef.current) {
+    if (currentState.status !== "ready" || rescheduleOpenedTrackedRef.current) {
       return;
     }
 
     rescheduleOpenedTrackedRef.current = true;
-    trackMatomoEvent(MATOMO_CATEGORY, "Změna termínu otevřena", initialState.serviceName);
-  }, [initialState]);
+    trackMatomoEvent(MATOMO_CATEGORY, "Změna termínu otevřena", currentState.serviceName);
+  }, [currentState]);
 
   useEffect(() => {
     if (serverState.status === "error") {
       rescheduleSubmittedTrackedRef.current = false;
     }
-  }, [serverState.status]);
+  }, [serverState]);
+
+  useEffect(() => {
+    if (serverState.status !== "error" || !isRescheduleAvailabilityError(serverState.errorCode)) {
+      return;
+    }
+
+    const conflictKey = `${serverState.errorCode}:${serverState.formError}:${rescheduleAttempt}:${availabilityRefreshRetry}`;
+
+    if (lastRefreshedConflictRef.current === conflictKey) {
+      return;
+    }
+
+    lastRefreshedConflictRef.current = conflictKey;
+    const requestId = availabilityRefreshRequestRef.current + 1;
+    availabilityRefreshRequestRef.current = requestId;
+    setIsRefreshingAvailability(true);
+    setAvailabilityRefreshError("");
+
+    void refreshPublicBookingManagementAction(token)
+      .then((nextState) => {
+        if (availabilityRefreshRequestRef.current !== requestId) {
+          return;
+        }
+
+        setCurrentState(nextState);
+        setSelectedSlotId("");
+        setSelectedStartsAt("");
+      })
+      .catch(() => {
+        if (availabilityRefreshRequestRef.current === requestId) {
+          setAvailabilityRefreshError("Aktuální termíny se nepodařilo načíst. Zkuste to prosím znovu.");
+        }
+      })
+      .finally(() => {
+        if (availabilityRefreshRequestRef.current === requestId) {
+          setIsRefreshingAvailability(false);
+        }
+      });
+  }, [availabilityRefreshRetry, rescheduleAttempt, serverState, token]);
 
   const trackDateSelected = (dateKey: string) => {
     if (!dateKey || lastTrackedDateRef.current === dateKey) {
@@ -409,12 +457,12 @@ export function BookingManagementPanel({
     );
   }
 
-  if (initialState.status !== "ready") {
+  if (currentState.status !== "ready") {
     return (
       <StatusCard
         eyebrow="Správa rezervace"
         title="Tuto rezervaci teď nelze změnit online."
-        description={initialState.message}
+        description={currentState.message}
         contact={salonContact}
       />
     );
@@ -431,7 +479,7 @@ export function BookingManagementPanel({
         </h1>
         <p className="mt-4 max-w-2xl text-base leading-7 text-[var(--color-muted)]">
           Vyberte si nový termín, který vám vyhovuje. Změnu lze provést nejpozději
-          {` ${initialState.cancellationHours} hodin před začátkem.`}
+          {` ${currentState.cancellationHours} hodin před začátkem.`}
         </p>
       </section>
 
@@ -442,32 +490,32 @@ export function BookingManagementPanel({
               Aktuální rezervace
             </p>
             <h2 className="mt-2 text-xl font-semibold text-[var(--color-foreground)]">
-              {initialState.serviceName}
+              {currentState.serviceName}
             </h2>
           </div>
           <span className="rounded-full border border-black/8 bg-[var(--color-surface)]/45 px-3 py-1.5 text-xs font-semibold text-[var(--color-foreground)]">
-            {initialState.statusLabel}
+            {currentState.statusLabel}
           </span>
         </div>
         <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-4">
           <div>
             <dt className="text-xs uppercase tracking-[0.16em] text-[var(--color-muted)]">Služba</dt>
-            <dd className="mt-1 font-semibold text-[var(--color-foreground)]">{initialState.serviceName}</dd>
+            <dd className="mt-1 font-semibold text-[var(--color-foreground)]">{currentState.serviceName}</dd>
           </div>
           <div>
             <dt className="text-xs uppercase tracking-[0.16em] text-[var(--color-muted)]">Datum</dt>
-            <dd className="mt-1 font-semibold text-[var(--color-foreground)]">{formatDateLabel(initialState.scheduledStartsAt)}</dd>
+            <dd className="mt-1 font-semibold text-[var(--color-foreground)]">{formatDateLabel(currentState.scheduledStartsAt)}</dd>
           </div>
           <div>
             <dt className="text-xs uppercase tracking-[0.16em] text-[var(--color-muted)]">Čas</dt>
             <dd className="mt-1 font-semibold text-[var(--color-foreground)]">
-              {formatTimeRange(initialState.scheduledStartsAt, initialState.scheduledEndsAt)}
+              {formatTimeRange(currentState.scheduledStartsAt, currentState.scheduledEndsAt)}
             </dd>
           </div>
           <div>
             <dt className="text-xs uppercase tracking-[0.16em] text-[var(--color-muted)]">Stav</dt>
             <dd className="mt-1 font-semibold text-[var(--color-foreground)]">
-              {initialState.statusLabel}
+              {currentState.statusLabel}
             </dd>
           </div>
         </dl>
@@ -667,7 +715,18 @@ export function BookingManagementPanel({
 
         {serverState.status === "error" && serverState.formError ? (
           <div className="mt-6 rounded-3xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-            {serverState.formError}
+            <p>{serverState.formError}</p>
+            {isRefreshingAvailability ? (
+              <p className="mt-2">Aktualizujeme nabídku dostupných termínů…</p>
+            ) : availabilityRefreshError ? (
+              <button
+                type="button"
+                onClick={() => setAvailabilityRefreshRetry((value) => value + 1)}
+                className="mt-3 font-semibold underline underline-offset-4"
+              >
+                Zkusit načtení znovu
+              </button>
+            ) : null}
           </div>
         ) : null}
       </section>
@@ -690,13 +749,13 @@ export function BookingManagementPanel({
           <div className="rounded-2xl border border-black/6 bg-[var(--color-surface)]/32 p-4">
             <dt className="text-xs uppercase tracking-[0.16em] text-[var(--color-muted)]">Služba</dt>
             <dd className="mt-2 text-lg font-semibold text-[var(--color-foreground)]">
-              {initialState.serviceName}
+              {currentState.serviceName}
             </dd>
           </div>
           <div className="rounded-2xl border border-black/6 bg-[var(--color-surface)]/32 p-4">
             <dt className="text-xs uppercase tracking-[0.16em] text-[var(--color-muted)]">Původní termín</dt>
             <dd className="mt-2 text-lg font-semibold text-[var(--color-foreground)]">
-              {formatShortDateLabel(initialState.scheduledStartsAt)}, {formatTimeRange(initialState.scheduledStartsAt, initialState.scheduledEndsAt)}
+              {formatShortDateLabel(currentState.scheduledStartsAt)}, {formatTimeRange(currentState.scheduledStartsAt, currentState.scheduledEndsAt)}
             </dd>
           </div>
           <div className={cn(
@@ -719,25 +778,32 @@ export function BookingManagementPanel({
         <form
           action={formAction}
           className="mt-8"
-          onSubmitCapture={() => {
-            if (!selectedOption || rescheduleSubmittedTrackedRef.current) {
+          onSubmitCapture={(event) => {
+            if (
+              !selectedOption
+              || rescheduleSubmittedTrackedRef.current
+              || isSubmitting
+              || isRefreshingAvailability
+            ) {
+              event.preventDefault();
               return;
             }
 
             rescheduleSubmittedTrackedRef.current = true;
-            trackMatomoEvent(MATOMO_CATEGORY, "Změna termínu odeslána", initialState.serviceName);
+            setRescheduleAttempt((value) => value + 1);
+            trackMatomoEvent(MATOMO_CATEGORY, "Změna termínu odeslána", currentState.serviceName);
           }}
         >
           <input type="hidden" name="token" value={token} />
           <input type="hidden" name="slotId" value={selectedSlotId} />
           <input type="hidden" name="newStartAt" value={selectedStartsAt} />
-          <input type="hidden" name="expectedUpdatedAt" value={initialState.expectedUpdatedAt} />
+          <input type="hidden" name="expectedUpdatedAt" value={currentState.expectedUpdatedAt} />
           <button
             type="submit"
-            disabled={!selectedOption}
+            disabled={!selectedOption || isSubmitting || isRefreshingAvailability}
             className="inline-flex min-h-13 w-full items-center justify-center rounded-full bg-[var(--color-foreground)] px-7 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-white transition hover:bg-[#2c221d] disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto sm:text-sm"
           >
-            Potvrdit nový termín
+            {isSubmitting ? "Ukládám změnu…" : "Potvrdit nový termín"}
           </button>
         </form>
       </section>

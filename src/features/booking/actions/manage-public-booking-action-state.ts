@@ -1,6 +1,7 @@
 export type ManagePublicBookingActionState = {
   status: "idle" | "success" | "error";
   formError?: string;
+  errorCode?: string;
   fieldErrors?: Partial<Record<"slotId", string>>;
   result?: {
     bookingId: string;

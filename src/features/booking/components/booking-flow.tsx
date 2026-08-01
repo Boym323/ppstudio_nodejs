@@ -4,6 +4,7 @@ import { AvailabilitySlotServiceRestrictionMode } from "@prisma/client";
 import { useActionState, useEffect, useMemo, useRef, useState, type MutableRefObject } from "react";
 
 import { createPublicBookingAction } from "@/features/booking/actions/create-public-booking";
+import { refreshPublicBookingCatalogAction } from "@/features/booking/actions/refresh-public-booking-catalog";
 import { initialPublicBookingActionState } from "@/features/booking/actions/public-booking-action-state";
 import { trackMatomoEvent } from "@/features/analytics/matomo";
 import {
@@ -30,6 +31,9 @@ import {
   shouldTrackBookingServiceSelectedForPrefill,
 } from "./booking-flow/booking-analytics";
 import {
+  isPublicBookingAvailabilityError,
+} from "./booking-flow/availability-refresh";
+import {
   buildContactFieldErrors,
   EMPTY_TIME_SLOTS,
   findInitialSelectedService,
@@ -54,16 +58,21 @@ export function BookingFlow({
   initialVoucherCode,
   salonProfile,
 }: BookingFlowProps) {
-  const [serverState, formAction] = useActionState(
+  const [serverState, formAction, isSubmitting] = useActionState(
     createPublicBookingAction,
     initialPublicBookingActionState,
   );
+  const [currentCatalog, setCurrentCatalog] = useState(catalog);
+  const [isRefreshingCatalog, setIsRefreshingCatalog] = useState(false);
+  const [catalogRefreshError, setCatalogRefreshError] = useState("");
+  const [catalogRefreshRetry, setCatalogRefreshRetry] = useState(0);
+  const [bookingAttempt, setBookingAttempt] = useState(0);
   const initialSelectedService = findInitialSelectedService(
-    catalog.services,
+    currentCatalog.services,
     initialSelectedServiceSlug,
   );
   const initialCategoryKey = getCategoryKey(
-    initialSelectedService?.categoryName ?? catalog.services[0]?.categoryName ?? "",
+    initialSelectedService?.categoryName ?? currentCatalog.services[0]?.categoryName ?? "",
   );
   const [selectedCategoryKey, setSelectedCategoryKey] = useState(initialCategoryKey);
   const [selectedServiceId, setSelectedServiceId] = useState(initialSelectedService?.id ?? "");
@@ -104,6 +113,8 @@ export function BookingFlow({
   const initiateCheckoutTrackedRef = useRef(false);
   const lastTrackedFormErrorKeyRef = useRef<string | null>(null);
   const lastTrackedTermConflictKeyRef = useRef<string | null>(null);
+  const catalogRefreshRequestRef = useRef(0);
+  const lastRefreshedConflictRef = useRef("");
 
   const trackSelectedServiceMetaEvent = (service?: {
     categoryName: string;
@@ -372,14 +383,14 @@ export function BookingFlow({
   }, [initialSelectedServiceSlug]);
 
   const servicesById = useMemo(
-    () => new Map(catalog.services.map((service) => [service.id, service])),
-    [catalog.services],
+    () => new Map(currentCatalog.services.map((service) => [service.id, service])),
+    [currentCatalog.services],
   );
 
   const serviceCategories = useMemo(() => {
     const grouped = new Map<string, ServiceCategory>();
 
-    for (const service of catalog.services) {
+    for (const service of currentCatalog.services) {
       const key = getCategoryKey(service.categoryName);
       const existing = grouped.get(key);
 
@@ -395,7 +406,7 @@ export function BookingFlow({
     }
 
     return [...grouped.values()];
-  }, [catalog.services]);
+  }, [currentCatalog.services]);
 
   const effectiveCategoryKey =
     selectedCategoryKey && serviceCategories.some((category) => category.key === selectedCategoryKey)
@@ -403,8 +414,8 @@ export function BookingFlow({
       : serviceCategories[0]?.key ?? "";
 
   const visibleServices = useMemo(
-    () => catalog.services.filter((service) => getCategoryKey(service.categoryName) === effectiveCategoryKey),
-    [catalog.services, effectiveCategoryKey],
+    () => currentCatalog.services.filter((service) => getCategoryKey(service.categoryName) === effectiveCategoryKey),
+    [currentCatalog.services, effectiveCategoryKey],
   );
 
   const selectedService = selectedServiceId ? servicesById.get(selectedServiceId) : undefined;
@@ -413,7 +424,7 @@ export function BookingFlow({
       return [];
     }
 
-    return catalog.slots.filter((slot) => {
+    return currentCatalog.slots.filter((slot) => {
       if (!selectedService) {
         return false;
       }
@@ -428,7 +439,7 @@ export function BookingFlow({
 
       return slot.allowedServiceIds.includes(selectedServiceId);
     });
-  }, [catalog.slots, selectedService, selectedServiceId]);
+  }, [currentCatalog.slots, selectedService, selectedServiceId]);
 
   const availableTimeOptions = useMemo(() => {
     if (!selectedService) {
@@ -462,7 +473,7 @@ export function BookingFlow({
   const availableSlotsByDate = useMemo(() => {
     const grouped = new Map<string, TimeSlotOption[]>();
 
-    for (const slotOption of availableTimeOptions) {
+    for (const slotOption of selectableTimeOptions) {
       const dateKey = getSlotDateKey(slotOption.startsAt);
       if (!dateKey) {
         continue;
@@ -480,7 +491,7 @@ export function BookingFlow({
     }
 
     return grouped;
-  }, [availableTimeOptions]);
+  }, [selectableTimeOptions]);
 
   const availableDateKeys = useMemo(
     () => [...availableSlotsByDate.keys()].sort((dateA, dateB) => dateA.localeCompare(dateB)),
@@ -718,7 +729,7 @@ export function BookingFlow({
     if (
       serverState.status !== "error" ||
       !serverState.formError ||
-      !isBookingTermConflictErrorCode(serverState.errorCode)
+      !isBookingTermConflictErrorCode(serverState.errorCode, serverState.suggestedStep)
     ) {
       return;
     }
@@ -732,6 +743,52 @@ export function BookingFlow({
     lastTrackedTermConflictKeyRef.current = conflictKey;
     trackMatomoEvent("Rezervace", "Termín konflikt při odeslání", serverState.errorCode);
   }, [serverState.errorCode, serverState.formError, serverState.status, serverState.suggestedStep]);
+
+  useEffect(() => {
+    if (
+      serverState.status !== "error"
+      || !isPublicBookingAvailabilityError(serverState.errorCode, serverState.suggestedStep)
+    ) {
+      return;
+    }
+
+    const conflictKey = `${serverState.errorCode}:${serverState.formError}:${bookingAttempt}:${catalogRefreshRetry}`;
+
+    if (lastRefreshedConflictRef.current === conflictKey) {
+      return;
+    }
+
+    lastRefreshedConflictRef.current = conflictKey;
+
+    const requestId = catalogRefreshRequestRef.current + 1;
+    catalogRefreshRequestRef.current = requestId;
+    setIsRefreshingCatalog(true);
+    setCatalogRefreshError("");
+
+    void refreshPublicBookingCatalogAction({
+      serviceId: selectedServiceId,
+      voucherCode,
+    })
+      .then((result) => {
+        if (catalogRefreshRequestRef.current !== requestId) {
+          return;
+        }
+
+        setCurrentCatalog(result.catalog);
+        setSelectedTimeOptionKey("");
+        setVoucherCode(result.voucherCode);
+      })
+      .catch(() => {
+        if (catalogRefreshRequestRef.current === requestId) {
+          setCatalogRefreshError("Aktuální nabídku se nepodařilo načíst. Zkuste to prosím znovu.");
+        }
+      })
+      .finally(() => {
+        if (catalogRefreshRequestRef.current === requestId) {
+          setIsRefreshingCatalog(false);
+        }
+      });
+  }, [bookingAttempt, catalogRefreshRetry, selectedServiceId, serverState, voucherCode]);
 
   useEffect(() => {
     if (serverState.status !== "success" || !serverState.confirmation || createdBookingTrackedRef.current) {
@@ -816,12 +873,18 @@ export function BookingFlow({
       <form
         action={formAction}
         className="grid gap-5 pb-28 sm:gap-6 lg:grid-cols-[1.15fr_0.85fr] lg:pb-0"
-        onSubmitCapture={() => {
+        onSubmitCapture={(event) => {
+          if (isSubmitting || isRefreshingCatalog) {
+            event.preventDefault();
+            return;
+          }
+
           if (!canGoToStep4) {
             return;
           }
 
           lastTrackedFormErrorKeyRef.current = null;
+          setBookingAttempt((value) => value + 1);
           trackMatomoEvent(
             "Rezervace",
             "Odeslána rezervace",
@@ -922,6 +985,21 @@ export function BookingFlow({
               }}
             />
 
+            {isRefreshingCatalog || catalogRefreshError ? (
+              <div className="rounded-2xl border border-[var(--color-accent)]/20 bg-[var(--color-surface)]/35 px-4 py-3 text-sm text-[var(--color-muted)]" role="status">
+                <p>{isRefreshingCatalog ? "Aktualizujeme nabídku dostupných termínů…" : catalogRefreshError}</p>
+                {catalogRefreshError ? (
+                  <button
+                    type="button"
+                    onClick={() => setCatalogRefreshRetry((value) => value + 1)}
+                    className="mt-3 font-semibold text-[var(--color-foreground)] underline underline-offset-4"
+                  >
+                    Zkusit načtení znovu
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
+
             <BookingContactStep
               sectionRef={contactStepSectionRef}
               firstContactInputRef={firstContactInputRef}
@@ -973,6 +1051,7 @@ export function BookingFlow({
         phone={phone}
         voucherCode={voucherCode}
         canGoToStep4={canGoToStep4}
+        isRefreshingCatalog={isRefreshingCatalog}
         serverState={serverState}
         onEditService={() => {
           setCurrentStep(1);
@@ -1013,7 +1092,7 @@ export function BookingFlow({
           type="submit"
           label="Odeslat rezervaci"
           note={`${formatSlotDate(selectedTimeOption.startsAt)} • ${formatSlotTime(selectedTimeOption.startsAt)}`}
-          disabled={!canGoToStep4}
+          disabled={!canGoToStep4 || isRefreshingCatalog}
         />
       )}
       </form>
