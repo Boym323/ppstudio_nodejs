@@ -1,7 +1,7 @@
 "use client";
 
 import { AvailabilitySlotServiceRestrictionMode } from "@prisma/client";
-import { useActionState, useEffect, useMemo, useRef, useState, type MutableRefObject } from "react";
+import { useActionState, useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject } from "react";
 
 import { createPublicBookingAction } from "@/features/booking/actions/create-public-booking";
 import { refreshPublicBookingCatalogAction } from "@/features/booking/actions/refresh-public-booking-catalog";
@@ -32,6 +32,7 @@ import {
   shouldTrackBookingServiceSelectedForPrefill,
 } from "./booking-flow/booking-analytics";
 import {
+  getAvailableDateKeysForAvailability,
   getRefreshedDateSelection,
   isPublicBookingAvailabilityError,
 } from "./booking-flow/availability-refresh";
@@ -123,7 +124,6 @@ export function BookingFlow({
   const lastTrackedFormErrorKeyRef = useRef<string | null>(null);
   const lastTrackedTermConflictKeyRef = useRef<string | null>(null);
   const catalogRefreshRequestRef = useRef(0);
-  const pendingCatalogDateSyncRef = useRef(false);
   const voucherValidationRequestRef = useRef(0);
   const lastVoucherValidationServiceIdRef = useRef(selectedServiceId);
   const lastRefreshedConflictRef = useRef("");
@@ -432,11 +432,11 @@ export function BookingFlow({
 
   const selectedService = selectedServiceId ? servicesById.get(selectedServiceId) : undefined;
 
-  const invalidateVoucherApplication = (nextCode = voucherCode) => {
+  const invalidateVoucherApplication = useCallback((nextCode = voucherCode) => {
     voucherValidationRequestRef.current += 1;
     setAppliedVoucherCode("");
     setVoucherApplication(nextCode.trim() && selectedServiceId ? { status: "checking" } : { status: "idle" });
-  };
+  }, [selectedServiceId, voucherCode]);
 
   useEffect(() => {
     const code = voucherCode.trim();
@@ -576,22 +576,6 @@ export function BookingFlow({
     [selectedDateSlots],
   );
 
-  useEffect(() => {
-    if (!pendingCatalogDateSyncRef.current) {
-      return;
-    }
-
-    pendingCatalogDateSyncRef.current = false;
-
-    if (selectedDateKey && availableSlotsByDate.has(selectedDateKey)) {
-      return;
-    }
-
-    const refreshedSelection = getRefreshedDateSelection(selectedDateKey, availableDateKeys);
-    setSelectedDateKey(refreshedSelection.selectedDateKey);
-    setVisibleMonthKey(refreshedSelection.visibleMonthKey);
-  }, [availableDateKeys, availableSlotsByDate, firstAvailableDateKey, selectedDateKey]);
-
   const calendarCells = useMemo(() => {
     if (!effectiveVisibleMonthKey) {
       return [];
@@ -648,10 +632,23 @@ export function BookingFlow({
     return serverState.fieldErrors?.[field];
   };
 
-  const resetServiceDependentSelection = () => {
+  const resetServiceDependentSelection = (nextServiceId = "") => {
+    const nextService = servicesById.get(nextServiceId);
+    const refreshedSelection = getRefreshedDateSelection(
+      selectedDateKey,
+      nextService
+        ? getAvailableDateKeysForAvailability(
+          currentCatalog,
+          nextServiceId,
+          nextService.durationMinutes,
+          nextService.cleanupBlockMinutes,
+        )
+        : [],
+    );
+
     setSelectedTimeOptionKey("");
-    setSelectedDateKey("");
-    setVisibleMonthKey("");
+    setSelectedDateKey(refreshedSelection.selectedDateKey);
+    setVisibleMonthKey(refreshedSelection.visibleMonthKey);
     contactStartedTrackedRef.current = false;
     trackedContactFocusFieldsRef.current.clear();
     trackedContactInputFieldsRef.current.clear();
@@ -854,9 +851,22 @@ export function BookingFlow({
           return;
         }
 
+        const nextService = result.catalog.services.find((service) => service.id === selectedServiceId);
+        const refreshedSelection = getRefreshedDateSelection(
+          selectedDateKey,
+          nextService
+            ? getAvailableDateKeysForAvailability(
+              result.catalog,
+              selectedServiceId,
+              nextService.durationMinutes,
+              nextService.cleanupBlockMinutes,
+            )
+            : [],
+        );
         setCurrentCatalog(result.catalog);
         setSelectedTimeOptionKey("");
-        pendingCatalogDateSyncRef.current = true;
+        setSelectedDateKey(refreshedSelection.selectedDateKey);
+        setVisibleMonthKey(refreshedSelection.visibleMonthKey);
         invalidateVoucherApplication(result.voucherCode);
         setVoucherValidationVersion((value) => value + 1);
         setVoucherCode(result.voucherCode);
@@ -873,7 +883,15 @@ export function BookingFlow({
           setIsRefreshingCatalog(false);
         }
       });
-  }, [bookingAttempt, catalogRefreshRetry, selectedServiceId, serverState, voucherCode]);
+  }, [
+    bookingAttempt,
+    catalogRefreshRetry,
+    invalidateVoucherApplication,
+    selectedDateKey,
+    selectedServiceId,
+    serverState,
+    voucherCode,
+  ]);
 
   useEffect(() => {
     if (serverState.status !== "success" || !serverState.confirmation || createdBookingTrackedRef.current) {
@@ -1010,7 +1028,7 @@ export function BookingFlow({
                 const service = servicesById.get(serviceId);
                 invalidateVoucherApplication();
                 setSelectedServiceId(serviceId);
-                resetServiceDependentSelection();
+                resetServiceDependentSelection(serviceId);
                 setCurrentStep(2);
                 if (shouldTrackBookingServiceSelectedForPrefill(service?.slug === initialSelectedServiceSlug)) {
                   trackMatomoEvent(

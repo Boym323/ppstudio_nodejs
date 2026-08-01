@@ -16,6 +16,7 @@ import type { TimeSlotOption } from "@/features/booking/lib/booking-time-slots";
 import { trackMatomoEvent } from "@/features/analytics/matomo";
 import { cn } from "@/lib/utils";
 import {
+  getAvailableDateKeysForAvailability,
   getRefreshedDateSelection,
   getRefreshedSelectedDateKey,
   isRescheduleAvailabilityError,
@@ -264,7 +265,6 @@ export function BookingManagementPanel({
   const rescheduleSubmittedTrackedRef = useRef(false);
   const availabilityRefreshRequestRef = useRef(0);
   const lastRefreshedConflictRef = useRef("");
-  const pendingAvailabilityDateSyncRef = useRef(false);
 
   const slotOptions = useMemo(() => {
     if (currentState.status !== "ready") {
@@ -333,21 +333,6 @@ export function BookingManagementPanel({
     [selectedDateSlots],
   );
 
-  useEffect(() => {
-    if (!pendingAvailabilityDateSyncRef.current) {
-      return;
-    }
-
-    pendingAvailabilityDateSyncRef.current = false;
-
-    if (selectedDateKey && availableDateKeys.includes(selectedDateKey)) {
-      return;
-    }
-
-    const refreshedSelection = getRefreshedDateSelection(selectedDateKey, availableDateKeys);
-    setSelectedDateKey(refreshedSelection.selectedDateKey);
-    setVisibleMonthKey(refreshedSelection.visibleMonthKey);
-  }, [availableDateKeys, firstAvailableDateKey, selectedDateKey]);
   const suggestedSlotGroups = slotGroups.slice(0, 4);
 
   const selectedOption = slotOptions.find(
@@ -395,10 +380,21 @@ export function BookingManagementPanel({
           return;
         }
 
+        const nextAvailableDateKeys = nextState.status === "ready"
+          ? getAvailableDateKeysForAvailability(
+            nextState,
+            nextState.serviceId,
+            nextState.serviceDurationMinutes,
+            nextState.cleanupBlockMinutes,
+            nextState.scheduledStartsAt,
+          )
+          : [];
+        const refreshedSelection = getRefreshedDateSelection(selectedDateKey, nextAvailableDateKeys);
         setCurrentState(nextState);
         setSelectedSlotId("");
         setSelectedStartsAt("");
-        pendingAvailabilityDateSyncRef.current = true;
+        setSelectedDateKey(refreshedSelection.selectedDateKey);
+        setVisibleMonthKey(refreshedSelection.visibleMonthKey);
       })
       .catch(() => {
         if (availabilityRefreshRequestRef.current === requestId) {
@@ -410,7 +406,7 @@ export function BookingManagementPanel({
           setIsRefreshingAvailability(false);
         }
       });
-  }, [availabilityRefreshRetry, rescheduleAttempt, serverState, token]);
+  }, [availabilityRefreshRetry, rescheduleAttempt, selectedDateKey, serverState, token]);
 
   const trackDateSelected = (dateKey: string) => {
     if (!dateKey || lastTrackedDateRef.current === dateKey) {

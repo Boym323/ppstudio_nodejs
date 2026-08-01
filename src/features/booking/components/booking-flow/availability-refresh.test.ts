@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { AvailabilitySlotServiceRestrictionMode } from "@prisma/client";
 
 import {
+  getAvailableDateKeysForAvailability,
   getRefreshedDateSelection,
   getRefreshedSelectedDateKey,
   isPublicBookingAvailabilityError,
@@ -57,4 +59,46 @@ test("klientský přesun po zániku říjnového dne vybere září a zobrazí z
     selectedDateKey: "2026-09-18",
     visibleMonthKey: "2026-09",
   });
+});
+
+test("výpočet dostupných dnů používá nový katalog, službu a volné časy", () => {
+  const catalog = {
+    slots: [
+      {
+        id: "slot-zari",
+        startsAt: "2026-09-18T08:00:00.000Z",
+        endsAt: "2026-09-18T10:00:00.000Z",
+        publicNote: null,
+        capacity: 1,
+        serviceRestrictionMode: AvailabilitySlotServiceRestrictionMode.ANY,
+        allowedServiceIds: [],
+        bookedIntervals: [],
+      },
+      {
+        id: "slot-rijen-nekompatibilni",
+        startsAt: "2026-10-20T08:00:00.000Z",
+        endsAt: "2026-10-20T10:00:00.000Z",
+        publicNote: null,
+        capacity: 1,
+        serviceRestrictionMode: AvailabilitySlotServiceRestrictionMode.SELECTED,
+        allowedServiceIds: ["other-service"],
+        bookedIntervals: [],
+      },
+    ],
+  };
+
+  assert.deepEqual(
+    getAvailableDateKeysForAvailability(catalog, "service-1", 60, 0),
+    ["2026-09-18"],
+  );
+  assert.deepEqual(
+    getAvailableDateKeysForAvailability(
+      catalog,
+      "service-1",
+      60,
+      0,
+      "2026-09-18T08:00:00.000Z",
+    ),
+    ["2026-09-18"],
+  );
 });

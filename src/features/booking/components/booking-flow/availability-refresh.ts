@@ -1,3 +1,9 @@
+import { AvailabilitySlotServiceRestrictionMode } from "@prisma/client";
+
+import { buildSlotTimeOptions } from "@/features/booking/lib/booking-time-slots";
+
+import { getSlotDateKey, getSlotDurationMinutes } from "./helpers";
+
 const publicAvailabilityErrorCodes = new Set([
   "SLOT_UNAVAILABLE",
   "SLOT_NOT_ALLOWED",
@@ -38,4 +44,44 @@ export function getRefreshedDateSelection(currentDateKey: string, availableDateK
     selectedDateKey,
     visibleMonthKey: selectedDateKey.slice(0, 7),
   };
+}
+
+type AvailabilityCatalogInput = {
+  slots: Array<{
+    id: string;
+    startsAt: string;
+    endsAt: string;
+    publicNote: string | null;
+    capacity: number;
+    serviceRestrictionMode: AvailabilitySlotServiceRestrictionMode;
+    allowedServiceIds: string[];
+    bookedIntervals: Array<{ startsAt: string; endsAt: string }>;
+    segments?: Array<{ id: string; startsAt: string; endsAt: string }>;
+  }>;
+};
+
+export function getAvailableDateKeysForAvailability(
+  catalog: AvailabilityCatalogInput,
+  serviceId: string,
+  serviceDurationMinutes: number,
+  cleanupBlockMinutes: number,
+  excludedStartsAt?: string,
+) {
+  if (!serviceId) {
+    return [];
+  }
+
+  return [...new Set(
+    catalog.slots
+      .filter((slot) => getSlotDurationMinutes(slot) >= serviceDurationMinutes)
+      .filter(
+        (slot) => slot.serviceRestrictionMode === AvailabilitySlotServiceRestrictionMode.ANY
+          || slot.allowedServiceIds.includes(serviceId),
+      )
+      .flatMap((slot) => buildSlotTimeOptions(slot, serviceDurationMinutes, cleanupBlockMinutes))
+      .filter((option) => !option.isDisabled)
+      .filter((option) => option.startsAt !== excludedStartsAt)
+      .map((option) => getSlotDateKey(option.startsAt))
+      .filter(Boolean),
+  )].sort((left, right) => left.localeCompare(right));
 }
