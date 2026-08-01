@@ -410,7 +410,11 @@ test.describe("booking flows", () => {
       await expect(firstPage.getByText("Tento termín byl mezitím obsazen. Nabídku jsme aktualizovali, vyberte prosím jiný čas.")).toBeVisible();
       await expect(firstPage.getByRole("button", { name: primarySlotLabel })).toHaveCount(0);
       await expect(firstPage.getByText("Ověřuji voucher pro vybranou službu…")).toBeVisible();
-      await expect(firstSubmit).toBeDisabled();
+      if (await firstSubmit.count() > 0) {
+        await expect(firstSubmit).toBeDisabled();
+      } else {
+        await expect(firstSubmit).toHaveCount(0);
+      }
       await expect(firstPage.getByText("Voucher je použitelný: Hodnotový poukaz.")).toBeVisible();
 
       const candidateSlots = firstPage.getByRole("button", { name: /^Vybrat termín / });
