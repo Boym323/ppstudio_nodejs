@@ -70,6 +70,18 @@ describe("createServiceSchema", () => {
     assert.match(result.error.flatten().fieldErrors.cleanupMinutes?.[0] ?? "", /nesmí být záporný/);
   });
 
+  it("odmítne čas na úklid delší než dvě hodiny", () => {
+    const result = createServiceSchema.safeParse(buildValidInput({
+      cleanupMinutes: "121",
+    }));
+
+    assert.equal(result.success, false);
+    if (result.success) {
+      throw new Error("Validace měla selhat.");
+    }
+    assert.match(result.error.flatten().fieldErrors.cleanupMinutes?.[0] ?? "", /neobvykle dlouhý/);
+  });
+
   it("odmítne nečíselný čas na úklid", () => {
     const result = createServiceSchema.safeParse(buildValidInput({
       cleanupMinutes: "abc",

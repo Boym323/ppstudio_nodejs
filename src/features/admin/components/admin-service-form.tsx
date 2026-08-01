@@ -12,6 +12,7 @@ import {
   initialUpdateServiceActionState,
 } from "@/features/admin/actions/update-service-action-state";
 import { AdminStatePill } from "@/features/admin/components/admin-state-pill";
+import { MAX_SERVICE_CLEANUP_MINUTES } from "@/features/booking/lib/booking-cleanup";
 import { pricingBadgeSuggestions } from "@/features/admin/lib/admin-service-validation";
 import { formatServicePrice } from "@/features/admin/lib/admin-service-format";
 
@@ -268,7 +269,7 @@ export function AdminServiceForm(props: EditServiceFormProps | CreateServiceForm
               type="number"
               name="cleanupMinutes"
               min={0}
-              max={480}
+              max={MAX_SERVICE_CLEANUP_MINUTES}
               step={5}
               inputMode="numeric"
               defaultValue={props.mode === "create" ? props.initialValues.cleanupMinutes : props.service.cleanupMinutes}
