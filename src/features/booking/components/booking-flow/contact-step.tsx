@@ -16,6 +16,12 @@ type BookingContactStepProps = {
   clientNote: string;
   clientNoteError?: string;
   voucherCode: string;
+  voucherApplication:
+    | { status: "idle" }
+    | { status: "checking" }
+    | { status: "applied"; label: string }
+    | { status: "incompatible"; message: string }
+    | { status: "invalid"; message: string };
   voucherCodeError?: string;
   contactFormError?: PublicBookingActionState["formError"];
   getDisplayedFieldError: (field: ContactFieldKey) => string | undefined;
@@ -39,6 +45,7 @@ export function BookingContactStep({
   clientNote,
   clientNoteError,
   voucherCode,
+  voucherApplication,
   voucherCodeError,
   contactFormError,
   getDisplayedFieldError,
@@ -265,7 +272,7 @@ export function BookingContactStep({
             </label>
             <input
               id="booking-contact-voucher-code"
-              name="voucherCode"
+              name="voucherCodeInput"
               value={voucherCode}
               onChange={(event) => onVoucherCodeChange(event.target.value)}
               aria-describedby={cn(
@@ -284,6 +291,21 @@ export function BookingContactStep({
                 className={errorClassName}
               >
                 {voucherCodeError}
+              </p>
+            ) : null}
+            {voucherApplication.status === "checking" ? (
+              <p aria-live="polite" className="text-sm text-[var(--color-muted)]">
+                Ověřuji voucher pro vybranou službu…
+              </p>
+            ) : null}
+            {voucherApplication.status === "applied" ? (
+              <p aria-live="polite" className="text-sm text-emerald-700">
+                Voucher je použitelný: {voucherApplication.label}.
+              </p>
+            ) : null}
+            {voucherApplication.status === "incompatible" || voucherApplication.status === "invalid" ? (
+              <p aria-live="polite" className="text-sm text-red-700">
+                {voucherApplication.message}
               </p>
             ) : null}
           </div>

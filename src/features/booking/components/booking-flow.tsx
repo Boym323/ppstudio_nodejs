@@ -5,6 +5,7 @@ import { useActionState, useEffect, useMemo, useRef, useState, type MutableRefOb
 
 import { createPublicBookingAction } from "@/features/booking/actions/create-public-booking";
 import { refreshPublicBookingCatalogAction } from "@/features/booking/actions/refresh-public-booking-catalog";
+import { validatePublicBookingVoucherAction } from "@/features/booking/actions/validate-public-booking-voucher";
 import { initialPublicBookingActionState } from "@/features/booking/actions/public-booking-action-state";
 import { trackMatomoEvent } from "@/features/analytics/matomo";
 import {
@@ -52,6 +53,24 @@ import { BookingSummarySidebar } from "./booking-flow/summary-sidebar";
 import { BookingTermStep } from "./booking-flow/term-step";
 import type { BookingFlowProps, ContactFieldKey, ServiceCategory } from "./booking-flow/types";
 
+type VoucherApplicationState =
+  | { status: "idle" }
+  | { status: "checking" }
+  | { status: "applied"; label: string }
+  | { status: "incompatible"; message: string }
+  | { status: "invalid"; message: string };
+
+function getVoucherValidationMessage(reason: string) {
+  switch (reason) {
+    case "NOT_FOUND": return "Voucher nebyl nalezen. Zkontrolujte prosím kód.";
+    case "DRAFT": return "Voucher zatím není aktivní.";
+    case "REDEEMED": return "Voucher už byl uplatněn.";
+    case "EXPIRED": return "Voucher je propadlý.";
+    case "NO_REMAINING_VALUE": return "Voucher už nemá žádný dostupný zůstatek.";
+    default: return "Voucher se nepodařilo ověřit. Zkontrolujte prosím kód.";
+  }
+}
+
 export function BookingFlow({
   catalog,
   initialSelectedServiceSlug,
@@ -82,6 +101,8 @@ export function BookingFlow({
   const [phone, setPhone] = useState("");
   const [clientNote, setClientNote] = useState("");
   const [voucherCode, setVoucherCode] = useState(initialVoucherCode ?? "");
+  const [appliedVoucherCode, setAppliedVoucherCode] = useState("");
+  const [voucherApplication, setVoucherApplication] = useState<VoucherApplicationState>({ status: "idle" });
   const [currentStep, setCurrentStep] = useState(initialSelectedService ? 2 : 1);
   const [selectedDateKey, setSelectedDateKey] = useState("");
   const [visibleMonthKey, setVisibleMonthKey] = useState("");
@@ -114,6 +135,8 @@ export function BookingFlow({
   const lastTrackedFormErrorKeyRef = useRef<string | null>(null);
   const lastTrackedTermConflictKeyRef = useRef<string | null>(null);
   const catalogRefreshRequestRef = useRef(0);
+  const voucherValidationRequestRef = useRef(0);
+  const lastVoucherValidationServiceIdRef = useRef(selectedServiceId);
   const lastRefreshedConflictRef = useRef("");
 
   const trackSelectedServiceMetaEvent = (service?: {
@@ -419,6 +442,66 @@ export function BookingFlow({
   );
 
   const selectedService = selectedServiceId ? servicesById.get(selectedServiceId) : undefined;
+
+  const invalidateVoucherApplication = (nextCode = voucherCode) => {
+    voucherValidationRequestRef.current += 1;
+    setAppliedVoucherCode("");
+    setVoucherApplication(nextCode.trim() && selectedServiceId ? { status: "checking" } : { status: "idle" });
+  };
+
+  useEffect(() => {
+    const code = voucherCode.trim();
+    const serviceChanged = lastVoucherValidationServiceIdRef.current !== selectedServiceId;
+    lastVoucherValidationServiceIdRef.current = selectedServiceId;
+    const requestId = voucherValidationRequestRef.current + 1;
+    voucherValidationRequestRef.current = requestId;
+
+    if (!code || !selectedServiceId) {
+      const timeoutId = window.setTimeout(() => {
+        if (voucherValidationRequestRef.current === requestId) {
+          setAppliedVoucherCode("");
+          setVoucherApplication({ status: "idle" });
+        }
+      }, 0);
+      return () => window.clearTimeout(timeoutId);
+    }
+
+    const validate = () => {
+      setAppliedVoucherCode("");
+      setVoucherApplication({ status: "checking" });
+      void validatePublicBookingVoucherAction({ code, serviceId: selectedServiceId })
+        .then((result) => {
+          if (voucherValidationRequestRef.current !== requestId) return;
+
+          if (result.ok) {
+            setAppliedVoucherCode(result.code);
+            setVoucherApplication({ status: "applied", label: result.displayLabel });
+            return;
+          }
+
+          setAppliedVoucherCode("");
+          if (result.reason === "SERVICE_MISMATCH") {
+            const serviceName = result.serviceNameSnapshot ?? "původní službu";
+            setVoucherApplication({
+              status: "incompatible",
+              message: `Tento poukaz je určený pro službu „${serviceName}“. Pro nově vybranou službu jej nelze použít.`,
+            });
+            return;
+          }
+
+          setVoucherApplication({ status: "invalid", message: getVoucherValidationMessage(result.reason) });
+        })
+        .catch(() => {
+          if (voucherValidationRequestRef.current !== requestId) return;
+          setAppliedVoucherCode("");
+          setVoucherApplication({ status: "invalid", message: "Voucher se teď nepodařilo ověřit. Zkuste to prosím znovu." });
+        });
+    };
+
+    const timeoutId = window.setTimeout(validate, serviceChanged ? 0 : 350);
+    return () => window.clearTimeout(timeoutId);
+  }, [selectedServiceId, voucherCode]);
+
   const availableSlots = useMemo(() => {
     if (!selectedServiceId) {
       return [];
@@ -558,7 +641,13 @@ export function BookingFlow({
   const hasClientContactErrors = Object.values(clientFieldErrors).some(Boolean);
   const canGoToStep2 = Boolean(selectedService);
   const canGoToStep3 = canGoToStep2 && Boolean(selectedTimeOption && !selectedTimeOption.isDisabled);
-  const canGoToStep4 = canGoToStep3 && !hasClientContactErrors && Boolean(fullName.trim() && email.trim());
+  const isVoucherValidationPending = voucherApplication.status === "checking";
+  const hasBlockingVoucherError = voucherApplication.status === "invalid";
+  const canGoToStep4 = canGoToStep3
+    && !hasClientContactErrors
+    && !isVoucherValidationPending
+    && !hasBlockingVoucherError
+    && Boolean(fullName.trim() && email.trim());
 
   const getDisplayedFieldError = (field: ContactFieldKey) => {
     if (touchedFields[field] && clientFieldErrors[field]) {
@@ -874,7 +963,7 @@ export function BookingFlow({
         action={formAction}
         className="grid gap-5 pb-28 sm:gap-6 lg:grid-cols-[1.15fr_0.85fr] lg:pb-0"
         onSubmitCapture={(event) => {
-          if (isSubmitting || isRefreshingCatalog) {
+          if (isSubmitting || isRefreshingCatalog || isVoucherValidationPending) {
             event.preventDefault();
             return;
           }
@@ -896,6 +985,7 @@ export function BookingFlow({
       <input type="hidden" name="serviceId" value={selectedServiceId} />
       <input type="hidden" name="slotId" value={selectedTimeOption?.slotId ?? ""} />
       <input type="hidden" name="startsAt" value={selectedTimeOption?.startsAt ?? ""} />
+      <input type="hidden" name="voucherCode" value={appliedVoucherCode} />
 
       <div className="space-y-5 sm:space-y-6">
         <section className="rounded-[var(--radius-panel)] border border-black/6 bg-white p-5 shadow-[var(--shadow-panel)] sm:p-7 lg:p-8">
@@ -915,12 +1005,14 @@ export function BookingFlow({
               serviceIdError={serverState.fieldErrors?.serviceId}
               onCategorySelect={(categoryKey) => {
                 setSelectedCategoryKey(categoryKey);
+                invalidateVoucherApplication();
                 setSelectedServiceId("");
                 resetServiceDependentSelection();
                 setCurrentStep(1);
               }}
               onServiceSelect={(serviceId) => {
                 const service = servicesById.get(serviceId);
+                invalidateVoucherApplication();
                 setSelectedServiceId(serviceId);
                 resetServiceDependentSelection();
                 setCurrentStep(2);
@@ -1010,6 +1102,7 @@ export function BookingFlow({
               clientNote={clientNote}
               clientNoteError={serverState.fieldErrors?.clientNote}
               voucherCode={voucherCode}
+              voucherApplication={voucherApplication}
               voucherCodeError={serverState.fieldErrors?.voucherCode}
               contactFormError={
                 serverState.status === "error" && serverState.suggestedStep === 3
@@ -1031,7 +1124,10 @@ export function BookingFlow({
                 trackContactFieldInput("phone", value);
               }}
               onClientNoteChange={setClientNote}
-              onVoucherCodeChange={setVoucherCode}
+              onVoucherCodeChange={(value) => {
+                invalidateVoucherApplication(value);
+                setVoucherCode(value);
+              }}
               onFieldFocus={trackContactFieldFocus}
               onFieldBlur={(field) => {
                 setTouchedFields((current) => ({ ...current, [field]: true }));
@@ -1050,6 +1146,7 @@ export function BookingFlow({
         email={email}
         phone={phone}
         voucherCode={voucherCode}
+        voucherApplication={voucherApplication}
         canGoToStep4={canGoToStep4}
         isRefreshingCatalog={isRefreshingCatalog}
         serverState={serverState}

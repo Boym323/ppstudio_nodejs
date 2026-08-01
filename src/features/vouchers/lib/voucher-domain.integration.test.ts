@@ -426,7 +426,45 @@ describe("voucher domain", () => {
       serviceId: context.otherServiceId,
     });
 
-    assert.deepEqual(result, { ok: false, reason: "SERVICE_MISMATCH" });
+    assert.deepEqual(result, {
+      ok: false,
+      reason: "SERVICE_MISMATCH",
+      serviceNameSnapshot: "Lash lifting public",
+    });
+  });
+
+  dbTest("rozlišuje propadlý voucher a voucher bez zůstatku", async () => {
+    assert.ok(seed);
+    const context = seed;
+    const { prisma, createVoucher, validateVoucherForBookingInput } = await loadModules();
+    const [expiredVoucher, exhaustedVoucher] = await Promise.all([
+      createVoucher(
+        { type: VoucherType.VALUE, ...baseVoucherMeta, originalValueCzk: 800 },
+        context.actorUserId,
+      ),
+      createVoucher(
+        { type: VoucherType.VALUE, ...baseVoucherMeta, originalValueCzk: 800 },
+        context.actorUserId,
+      ),
+    ]);
+    await Promise.all([
+      prisma.voucher.update({
+        where: { id: expiredVoucher.id },
+        data: { validUntil: new Date(Date.now() - 60_000) },
+      }),
+      prisma.voucher.update({
+        where: { id: exhaustedVoucher.id },
+        data: { status: VoucherStatus.PARTIALLY_REDEEMED, remainingValueCzk: 0 },
+      }),
+    ]);
+
+    const [expiredResult, exhaustedResult] = await Promise.all([
+      validateVoucherForBookingInput({ code: expiredVoucher.code, serviceId: context.serviceId }),
+      validateVoucherForBookingInput({ code: exhaustedVoucher.code, serviceId: context.serviceId }),
+    ]);
+
+    assert.deepEqual(expiredResult, { ok: false, reason: "EXPIRED" });
+    assert.deepEqual(exhaustedResult, { ok: false, reason: "NO_REMAINING_VALUE" });
   });
 
   dbTest("redeems VALUE voucher partially and then to zero", async () => {

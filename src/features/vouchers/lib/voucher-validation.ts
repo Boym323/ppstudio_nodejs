@@ -35,6 +35,7 @@ export type ValidateVoucherForBookingResult =
   | {
       ok: false;
       reason: VoucherValidationReasonCode;
+      serviceNameSnapshot?: string;
     };
 
 export type PublicVoucherVerificationResult =
@@ -184,7 +185,11 @@ export async function validateVoucherForBookingInput(input: {
   }
 
   if (voucher.serviceId !== serviceId) {
-    return { ok: false, reason: voucherValidationReasonCodes.serviceMismatch };
+    return {
+      ok: false,
+      reason: voucherValidationReasonCodes.serviceMismatch,
+      serviceNameSnapshot: voucher.serviceNameSnapshot ?? undefined,
+    };
   }
 
   return {

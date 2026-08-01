@@ -50,6 +50,12 @@ type BookingSummarySidebarProps = {
   email: string;
   phone: string;
   voucherCode: string;
+  voucherApplication:
+    | { status: "idle" }
+    | { status: "checking" }
+    | { status: "applied"; label: string }
+    | { status: "incompatible"; message: string }
+    | { status: "invalid"; message: string };
   canGoToStep4: boolean;
   isRefreshingCatalog: boolean;
   serverState: PublicBookingActionState;
@@ -67,6 +73,7 @@ export function BookingSummarySidebar({
   email,
   phone,
   voucherCode,
+  voucherApplication,
   canGoToStep4,
   isRefreshingCatalog,
   serverState,
@@ -187,7 +194,11 @@ export function BookingSummarySidebar({
                 {voucherCode.trim()}
               </p>
               <p className="mt-2 text-sm leading-5 text-[var(--color-muted)]">
-                Poukaz bude zkontrolován a uplatněn při návštěvě v salonu.
+                {voucherApplication.status === "applied"
+                  ? "Poukaz je pro tuto službu ověřený a při návštěvě jej znovu zkontrolujeme."
+                  : voucherApplication.status === "incompatible"
+                    ? "Poukaz není do této rezervace započítaný."
+                    : "Poukaz bude zkontrolován a uplatněn při návštěvě v salonu."}
               </p>
             </div>
           ) : null}
