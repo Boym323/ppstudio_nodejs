@@ -110,6 +110,7 @@ export function buildSlotTimeOptions(
 
   const options: TimeSlotOption[] = [];
   const startCandidates = new Set<number>();
+  const backwardCandidates = new Set<number>();
   const bookingStartsSorted = slot.bookedIntervals
     .map((booking) => new Date(booking.startsAt).getTime())
     .sort((left, right) => left - right);
@@ -134,6 +135,19 @@ export function buildSlotTimeOptions(
     }
   }
 
+  for (const bookingStartsAtMs of bookingStartsSorted) {
+    const candidateStartsAtMs = bookingStartsAtMs - blockDurationMs;
+
+    if (
+      candidateStartsAtMs >= slotStartsAtMs
+      && candidateStartsAtMs <= latestStartMs
+      && isQuarterHourBoundary(candidateStartsAtMs)
+    ) {
+      startCandidates.add(candidateStartsAtMs);
+      backwardCandidates.add(candidateStartsAtMs);
+    }
+  }
+
   for (const startsAtMs of [...startCandidates].sort((left, right) => left - right)) {
     const endsAtMs = startsAtMs + serviceDurationMs;
     const blockedUntilMs = startsAtMs + blockDurationMs;
@@ -153,13 +167,19 @@ export function buildSlotTimeOptions(
     const endsAt = new Date(endsAtMs).toISOString();
     const slotId = resolveSlotIdForStart(slot, startsAtMs);
 
+    const isDisabled = remainingCapacity < 1;
+
+    if (backwardCandidates.has(startsAtMs) && isDisabled) {
+      continue;
+    }
+
     options.push({
       key: `${slotId}:${startsAt}`,
       slotId,
       startsAt,
       endsAt,
       publicNote: slot.publicNote,
-      isDisabled: remainingCapacity < 1,
+      isDisabled,
     });
   }
 

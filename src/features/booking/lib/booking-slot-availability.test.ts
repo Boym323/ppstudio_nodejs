@@ -276,6 +276,134 @@ describe("buildSlotTimeOptions cleanup blocking", () => {
     assert.equal(options[0]?.startsAt, "2026-06-10T10:00:00.000Z");
     assert.equal(options[0]?.endsAt, "2026-06-10T11:15:00.000Z");
   });
+
+  test("offers a quarter-hour candidate backwards from the following booking", () => {
+    const options = buildSlotTimeOptions(
+      buildCatalogSlot({
+        startsAt: "2026-06-10T12:00:00.000Z",
+        endsAt: "2026-06-10T13:00:00.000Z",
+      }),
+      90,
+      15,
+    );
+
+    const candidate = options.find((option) => option.startsAt === "2026-06-10T10:15:00.000Z");
+
+    assert.equal(candidate?.isDisabled, false);
+    assert.equal(candidate?.endsAt, "2026-06-10T11:45:00.000Z");
+  });
+
+  test("accepts cleanup ending exactly at the following booking and rejects an overlap by one minute", () => {
+    const slot = buildCatalogSlot({
+      startsAt: "2026-06-10T12:00:00.000Z",
+      endsAt: "2026-06-10T13:00:00.000Z",
+    });
+    const exactBoundary = buildSlotTimeOptions(slot, 90, 15);
+    const oneMinuteOverlap = buildSlotTimeOptions(slot, 90, 16);
+
+    assert.equal(
+      exactBoundary.find((option) => option.startsAt === "2026-06-10T10:15:00.000Z")?.isDisabled,
+      false,
+    );
+    assert.equal(
+      oneMinuteOverlap.some((option) => option.startsAt === "2026-06-10T10:15:00.000Z" && !option.isDisabled),
+      false,
+    );
+  });
+
+  test("does not add a backwards candidate outside the quarter-hour grid or before availability", () => {
+    const nonQuarterHour = buildSlotTimeOptions(
+      buildCatalogSlot({
+        startsAt: "2026-06-10T12:00:00.000Z",
+        endsAt: "2026-06-10T13:00:00.000Z",
+      }),
+      90,
+      14,
+    );
+    const beforeAvailability = buildSlotTimeOptions(
+      {
+        ...buildCatalogSlot({
+          startsAt: "2026-06-10T10:00:00.000Z",
+          endsAt: "2026-06-10T11:00:00.000Z",
+        }),
+        startsAt: "2026-06-10T09:00:00.000Z",
+      },
+      90,
+      15,
+    );
+
+    assert.equal(nonQuarterHour.some((option) => option.startsAt === "2026-06-10T10:16:00.000Z"), false);
+    assert.equal(beforeAvailability.some((option) => option.startsAt === "2026-06-10T08:15:00.000Z"), false);
+  });
+
+  test("does not offer an invalid backwards candidate across a gap or another booking", () => {
+    const [firstDiscontinuousSlot] = buildMergedPublicCatalogSlots(
+      [
+        {
+          id: "slot-before-gap",
+          startsAt: new Date("2026-06-10T09:00:00.000Z"),
+          endsAt: new Date("2026-06-10T10:00:00.000Z"),
+          publicNote: null,
+          capacity: 1,
+          serviceRestrictionMode: AvailabilitySlotServiceRestrictionMode.ANY,
+          allowedServiceIds: [],
+        },
+        {
+          id: "slot-after-gap",
+          startsAt: new Date("2026-06-10T11:00:00.000Z"),
+          endsAt: new Date("2026-06-10T12:00:00.000Z"),
+          publicNote: null,
+          capacity: 1,
+          serviceRestrictionMode: AvailabilitySlotServiceRestrictionMode.ANY,
+          allowedServiceIds: [],
+        },
+      ],
+      [{
+        startsAt: new Date("2026-06-10T11:00:00.000Z"),
+        endsAt: new Date("2026-06-10T12:00:00.000Z"),
+      }],
+      120,
+    );
+    assert.ok(firstDiscontinuousSlot);
+    assert.equal(buildSlotTimeOptions(firstDiscontinuousSlot, 90, 15).some((option) => option.startsAt === "2026-06-10T09:15:00.000Z"), false);
+
+    const blockedCandidate = buildSlotTimeOptions(
+      {
+        ...buildCatalogSlot({
+          startsAt: "2026-06-10T11:00:00.000Z",
+          endsAt: "2026-06-10T11:15:00.000Z",
+        }),
+        bookedIntervals: [
+          { startsAt: "2026-06-10T11:00:00.000Z", endsAt: "2026-06-10T11:15:00.000Z" },
+          { startsAt: "2026-06-10T12:00:00.000Z", endsAt: "2026-06-10T13:00:00.000Z" },
+        ],
+      },
+      90, 15,
+    );
+    assert.equal(blockedCandidate.some((option) => option.startsAt === "2026-06-10T10:15:00.000Z"), false);
+  });
+
+  test("deduplicates and chronologically orders backwards candidates", () => {
+    const options = buildSlotTimeOptions(
+      {
+        ...buildCatalogSlot({
+          startsAt: "2026-06-10T11:15:00.000Z",
+          endsAt: "2026-06-10T12:00:00.000Z",
+        }),
+        endsAt: "2026-06-10T14:00:00.000Z",
+        bookedIntervals: [
+          { startsAt: "2026-06-10T11:15:00.000Z", endsAt: "2026-06-10T12:00:00.000Z" },
+          { startsAt: "2026-06-10T13:00:00.000Z", endsAt: "2026-06-10T14:00:00.000Z" },
+        ],
+      },
+      60,
+      15,
+    );
+    const starts = options.map((option) => option.startsAt);
+
+    assert.equal(starts.filter((startsAt) => startsAt === "2026-06-10T10:00:00.000Z").length, 1);
+    assert.deepEqual(starts, [...starts].sort());
+  });
 });
 
 describe("resolvePublishedSlotCoverage", () => {
