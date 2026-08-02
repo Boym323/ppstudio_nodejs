@@ -17,6 +17,8 @@ import { trackMatomoEvent } from "@/features/analytics/matomo";
 import { cn } from "@/lib/utils";
 import {
   getAvailableDateKeysForAvailability,
+  canApplyAvailabilityRefresh,
+  getAvailabilityRefreshKey,
   getRefreshedDateSelection,
   getRefreshedSelectedDateKey,
   isRescheduleAvailabilityError,
@@ -254,7 +256,6 @@ export function BookingManagementPanel({
   const [isRefreshingAvailability, setIsRefreshingAvailability] = useState(false);
   const [availabilityRefreshError, setAvailabilityRefreshError] = useState("");
   const [availabilityRefreshRetry, setAvailabilityRefreshRetry] = useState(0);
-  const [rescheduleAttempt, setRescheduleAttempt] = useState(0);
   const [selectedSlotId, setSelectedSlotId] = useState("");
   const [selectedStartsAt, setSelectedStartsAt] = useState("");
   const confirmationRef = useRef<HTMLElement | null>(null);
@@ -265,6 +266,7 @@ export function BookingManagementPanel({
   const rescheduleSubmittedTrackedRef = useRef(false);
   const availabilityRefreshRequestRef = useRef(0);
   const lastRefreshedConflictRef = useRef("");
+  const formRevisionRef = useRef(0);
 
   const slotOptions = useMemo(() => {
     if (currentState.status !== "ready") {
@@ -362,14 +364,19 @@ export function BookingManagementPanel({
       return;
     }
 
-    const conflictKey = `${serverState.errorCode}:${serverState.formError}:${rescheduleAttempt}:${availabilityRefreshRetry}`;
+    const conflictKey = getAvailabilityRefreshKey({
+      availabilityErrorId: serverState.availabilityErrorId,
+      retry: availabilityRefreshRetry,
+      isSubmitting,
+    });
 
-    if (lastRefreshedConflictRef.current === conflictKey) {
+    if (!conflictKey || lastRefreshedConflictRef.current === conflictKey) {
       return;
     }
 
     lastRefreshedConflictRef.current = conflictKey;
     const requestId = availabilityRefreshRequestRef.current + 1;
+    const requestRevision = formRevisionRef.current;
     availabilityRefreshRequestRef.current = requestId;
     setIsRefreshingAvailability(true);
     setAvailabilityRefreshError("");
@@ -377,6 +384,12 @@ export function BookingManagementPanel({
     void refreshPublicBookingManagementAction(token)
       .then((nextState) => {
         if (availabilityRefreshRequestRef.current !== requestId) {
+          return;
+        }
+
+        setCurrentState(nextState);
+
+        if (!canApplyAvailabilityRefresh(requestRevision, formRevisionRef.current)) {
           return;
         }
 
@@ -390,7 +403,6 @@ export function BookingManagementPanel({
           )
           : [];
         const refreshedSelection = getRefreshedDateSelection(selectedDateKey, nextAvailableDateKeys);
-        setCurrentState(nextState);
         setSelectedSlotId("");
         setSelectedStartsAt("");
         setSelectedDateKey(refreshedSelection.selectedDateKey);
@@ -406,7 +418,7 @@ export function BookingManagementPanel({
           setIsRefreshingAvailability(false);
         }
       });
-  }, [availabilityRefreshRetry, rescheduleAttempt, selectedDateKey, serverState, token]);
+  }, [availabilityRefreshRetry, isSubmitting, selectedDateKey, serverState, token]);
 
   const trackDateSelected = (dateKey: string) => {
     if (!dateKey || lastTrackedDateRef.current === dateKey) {
@@ -429,6 +441,7 @@ export function BookingManagementPanel({
   };
 
   const selectDate = (dateKey: string) => {
+    formRevisionRef.current += 1;
     setSelectedDateKey(dateKey);
     setVisibleMonthKey(getMonthKey(dateKey));
     trackDateSelected(dateKey);
@@ -436,6 +449,7 @@ export function BookingManagementPanel({
   };
 
   const selectSlot = (slot: TimeSlotOption) => {
+    formRevisionRef.current += 1;
     const dateKey = formatDateKey(slot.startsAt);
 
     setSelectedDateKey(dateKey);
@@ -815,7 +829,6 @@ export function BookingManagementPanel({
             }
 
             rescheduleSubmittedTrackedRef.current = true;
-            setRescheduleAttempt((value) => value + 1);
             trackMatomoEvent(MATOMO_CATEGORY, "Změna termínu odeslána", currentState.serviceName);
           }}
         >

@@ -4,6 +4,8 @@ import { AvailabilitySlotServiceRestrictionMode } from "@prisma/client";
 
 import {
   getAvailableDateKeysForAvailability,
+  canApplyAvailabilityRefresh,
+  getAvailabilityRefreshKey,
   getRefreshedDateSelection,
   getRefreshedSelectedDateKey,
   isPublicBookingAvailabilityError,
@@ -26,6 +28,40 @@ test("obnovení klientského přesunu reaguje i na souběžnou změnu rezervace"
   assert.equal(isRescheduleAvailabilityError("CONCURRENT_MODIFICATION"), true);
   assert.equal(isRescheduleAvailabilityError("SAME_TERM"), false);
   assert.equal(isRescheduleAvailabilityError("INVALID_DATE_TIME"), false);
+});
+
+test("jedna serverová chyba má jeden automatický refresh bez ohledu na další kliknutí", () => {
+  const first = getAvailabilityRefreshKey({
+    availabilityErrorId: "response-1",
+    retry: 0,
+    isSubmitting: false,
+  });
+
+  assert.equal(first, "response-1:0");
+  assert.equal(
+    getAvailabilityRefreshKey({ availabilityErrorId: "response-1", retry: 0, isSubmitting: false }),
+    first,
+  );
+  assert.equal(
+    getAvailabilityRefreshKey({ availabilityErrorId: "response-2", retry: 0, isSubmitting: false }),
+    "response-2:0",
+  );
+  assert.equal(
+    getAvailabilityRefreshKey({ availabilityErrorId: "response-1", retry: 0, isSubmitting: true }),
+    null,
+  );
+});
+
+test("ruční retry má samostatný klíč stejné serverové chyby", () => {
+  assert.equal(
+    getAvailabilityRefreshKey({ availabilityErrorId: "response-1", retry: 1, isSubmitting: false }),
+    "response-1:1",
+  );
+});
+
+test("pozdní refresh nemění novější uživatelskou volbu", () => {
+  assert.equal(canApplyAvailabilityRefresh(4, 4), true);
+  assert.equal(canApplyAvailabilityRefresh(4, 5), false);
 });
 
 test("po obnovení zůstává vybraný den jen pokud má skutečně volný čas", () => {

@@ -33,6 +33,8 @@ import {
 } from "./booking-flow/booking-analytics";
 import {
   getAvailableDateKeysForAvailability,
+  canApplyAvailabilityRefresh,
+  getAvailabilityRefreshKey,
   getRefreshedDateSelection,
   isPublicBookingAvailabilityError,
 } from "./booking-flow/availability-refresh";
@@ -73,7 +75,6 @@ export function BookingFlow({
   const [isRefreshingCatalog, setIsRefreshingCatalog] = useState(false);
   const [catalogRefreshError, setCatalogRefreshError] = useState("");
   const [catalogRefreshRetry, setCatalogRefreshRetry] = useState(0);
-  const [bookingAttempt, setBookingAttempt] = useState(0);
   const initialSelectedService = findInitialSelectedService(
     currentCatalog.services,
     initialSelectedServiceSlug,
@@ -127,6 +128,11 @@ export function BookingFlow({
   const voucherValidationRequestRef = useRef(0);
   const lastVoucherValidationServiceIdRef = useRef(selectedServiceId);
   const lastRefreshedConflictRef = useRef("");
+  const formRevisionRef = useRef(0);
+
+  const markFormChanged = () => {
+    formRevisionRef.current += 1;
+  };
 
   const trackSelectedServiceMetaEvent = (service?: {
     categoryName: string;
@@ -754,6 +760,7 @@ export function BookingFlow({
       return;
     }
 
+    markFormChanged();
     const dateKey = getSlotDateKey(slotOption.startsAt);
     const durationMinutes = selectedService?.durationMinutes;
 
@@ -829,25 +836,33 @@ export function BookingFlow({
       return;
     }
 
-    const conflictKey = `${serverState.errorCode}:${serverState.formError}:${bookingAttempt}:${catalogRefreshRetry}`;
+    const conflictKey = getAvailabilityRefreshKey({
+      availabilityErrorId: serverState.availabilityErrorId,
+      retry: catalogRefreshRetry,
+      isSubmitting,
+    });
 
-    if (lastRefreshedConflictRef.current === conflictKey) {
+    if (!conflictKey || lastRefreshedConflictRef.current === conflictKey) {
       return;
     }
 
     lastRefreshedConflictRef.current = conflictKey;
 
     const requestId = catalogRefreshRequestRef.current + 1;
+    const requestRevision = formRevisionRef.current;
     catalogRefreshRequestRef.current = requestId;
     setIsRefreshingCatalog(true);
     setCatalogRefreshError("");
 
-    void refreshPublicBookingCatalogAction({
-      serviceId: selectedServiceId,
-      voucherCode,
-    })
+    void refreshPublicBookingCatalogAction()
       .then((result) => {
         if (catalogRefreshRequestRef.current !== requestId) {
+          return;
+        }
+
+        setCurrentCatalog(result.catalog);
+
+        if (!canApplyAvailabilityRefresh(requestRevision, formRevisionRef.current)) {
           return;
         }
 
@@ -863,13 +878,11 @@ export function BookingFlow({
             )
             : [],
         );
-        setCurrentCatalog(result.catalog);
         setSelectedTimeOptionKey("");
         setSelectedDateKey(refreshedSelection.selectedDateKey);
         setVisibleMonthKey(refreshedSelection.visibleMonthKey);
-        invalidateVoucherApplication(result.voucherCode);
+        invalidateVoucherApplication();
         setVoucherValidationVersion((value) => value + 1);
-        setVoucherCode(result.voucherCode);
         setCurrentStep(2);
         focusAvailableTimesSection();
       })
@@ -884,13 +897,12 @@ export function BookingFlow({
         }
       });
   }, [
-    bookingAttempt,
     catalogRefreshRetry,
     invalidateVoucherApplication,
     selectedDateKey,
     selectedServiceId,
     serverState,
-    voucherCode,
+    isSubmitting,
   ]);
 
   useEffect(() => {
@@ -941,6 +953,7 @@ export function BookingFlow({
       dateKey.startsWith(`${nextMonthKey}-`),
     );
     if (firstDateInMonth) {
+      markFormChanged();
       setSelectedDateKey(firstDateInMonth);
       setSelectedTimeOptionKey("");
     }
@@ -987,7 +1000,6 @@ export function BookingFlow({
           }
 
           lastTrackedFormErrorKeyRef.current = null;
-          setBookingAttempt((value) => value + 1);
           trackMatomoEvent(
             "Rezervace",
             "Odeslána rezervace",
@@ -1018,6 +1030,7 @@ export function BookingFlow({
               selectedServiceId={selectedServiceId}
               serviceIdError={serverState.fieldErrors?.serviceId}
               onCategorySelect={(categoryKey) => {
+                markFormChanged();
                 setSelectedCategoryKey(categoryKey);
                 invalidateVoucherApplication();
                 setSelectedServiceId("");
@@ -1025,6 +1038,7 @@ export function BookingFlow({
                 setCurrentStep(1);
               }}
               onServiceSelect={(serviceId) => {
+                markFormChanged();
                 const service = servicesById.get(serviceId);
                 invalidateVoucherApplication();
                 setSelectedServiceId(serviceId);
@@ -1070,6 +1084,7 @@ export function BookingFlow({
               }}
               onSlotSelect={selectSlot}
               onSelectDate={(dateKey) => {
+                markFormChanged();
                 setSelectedDateKey(dateKey);
                 trackDateSelected(dateKey);
                 if (selectedSlotDateKey && selectedSlotDateKey !== dateKey) {
@@ -1139,6 +1154,7 @@ export function BookingFlow({
               }}
               onClientNoteChange={setClientNote}
               onVoucherCodeChange={(value) => {
+                markFormChanged();
                 invalidateVoucherApplication(value);
                 setVoucherCode(value);
               }}

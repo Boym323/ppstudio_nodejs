@@ -2,6 +2,8 @@ export type ManagePublicBookingActionState = {
   status: "idle" | "success" | "error";
   formError?: string;
   errorCode?: string;
+  /** Jedinečný identifikátor konkrétní odpovědi o nedostupném termínu. */
+  availabilityErrorId?: string;
   fieldErrors?: Partial<Record<"slotId", string>>;
   result?: {
     bookingId: string;

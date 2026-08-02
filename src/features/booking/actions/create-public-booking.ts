@@ -1,7 +1,7 @@
 "use server";
 
 import { BookingSubmissionOutcome, Prisma } from "@prisma/client";
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { cookies, headers } from "next/headers";
 import { z } from "zod";
 
@@ -382,6 +382,16 @@ export async function createPublicBookingAction(
         formError: publicFormError,
         errorCode: error.code,
         suggestedStep: error.suggestedStep,
+        availabilityErrorId:
+          error.suggestedStep === 2
+          && (
+            error.code === publicBookingErrorCodes.bookingConflict
+            || error.code === publicBookingErrorCodes.slotUnavailable
+            || error.code === publicBookingErrorCodes.slotNotAllowed
+            || error.code === publicBookingErrorCodes.slotTooShort
+          )
+            ? randomUUID()
+            : undefined,
         fieldErrors:
           error.code === publicBookingErrorCodes.voucherInvalid && publicFormError
             ? { voucherCode: publicFormError }

@@ -33,6 +33,22 @@ export function isRescheduleAvailabilityError(errorCode?: string) {
   return Boolean(errorCode && rescheduleAvailabilityErrorCodes.has(errorCode));
 }
 
+export function getAvailabilityRefreshKey(input: {
+  availabilityErrorId?: string;
+  retry: number;
+  isSubmitting: boolean;
+}) {
+  if (!input.availabilityErrorId || input.isSubmitting) {
+    return null;
+  }
+
+  return `${input.availabilityErrorId}:${input.retry}`;
+}
+
+export function canApplyAvailabilityRefresh(requestRevision: number, currentRevision: number) {
+  return requestRevision === currentRevision;
+}
+
 export function getRefreshedSelectedDateKey(currentDateKey: string, availableDateKeys: string[]) {
   return availableDateKeys.includes(currentDateKey) ? currentDateKey : availableDateKeys[0] ?? "";
 }

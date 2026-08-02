@@ -6,6 +6,10 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+### Opraveno
+
+- Veřejná rezervace i klientský přesun vážou automatické obnovení dostupnosti na konkrétní serverovou konfliktní odpověď; další odeslání se starou chybou už nespouští další refresh a pozdní odpověď nepřepíše novější volbu služby, voucheru, dne ani termínu.
+
 ## [3.13.2] - 2026-08-01
 
 ### Opraveno

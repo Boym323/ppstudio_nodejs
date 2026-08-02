@@ -398,15 +398,21 @@ test.describe("booking flows", () => {
       await secondPage.getByRole("button", { name: "Odeslat rezervaci" }).first().click();
       await expect(secondPage.getByRole("heading", { name: "Rezervace přijata" })).toBeVisible();
 
+      const actionRequestCounts = new Map<string, number>();
       await firstPage.route("**/*", async (route) => {
-        if (route.request().headers()["next-action"]) {
+        const actionId = route.request().headers()["next-action"];
+
+        if (actionId) {
+          actionRequestCounts.set(actionId, (actionRequestCounts.get(actionId) ?? 0) + 1);
           await new Promise((resolve) => setTimeout(resolve, 600));
         }
         await route.continue();
       });
 
       const firstSubmit = firstPage.getByRole("button", { name: "Odeslat rezervaci" }).first();
+      const firstSubmissionRequest = firstPage.waitForRequest((request) => Boolean(request.headers()["next-action"]));
       await firstSubmit.click();
+      const bookingActionId = (await firstSubmissionRequest).headers()["next-action"];
       await expect(firstPage.getByText("Tento termín byl mezitím obsazen. Nabídku jsme aktualizovali, vyberte prosím jiný čas.")).toBeVisible();
       await expect(firstPage.getByRole("button", { name: primarySlotLabel })).toHaveCount(0);
       await expect(firstPage.getByText("Ověřuji voucher pro vybranou službu…")).toBeVisible();
@@ -434,8 +440,15 @@ test.describe("booking flows", () => {
       }
 
       expect(selectedNewTerm).toBe(true);
+      const nonBookingActionCounts = new Map(
+        [...actionRequestCounts].filter(([actionId]) => actionId !== bookingActionId),
+      );
       await firstSubmit.click();
       await expect(firstPage.getByRole("heading", { name: "Rezervace přijata" })).toBeVisible();
+      expect(actionRequestCounts.get(bookingActionId)).toBe(2);
+      expect(
+        [...actionRequestCounts].filter(([actionId]) => actionId !== bookingActionId),
+      ).toEqual([...nonBookingActionCounts]);
     } finally {
       await firstContext.close();
       await secondContext.close();

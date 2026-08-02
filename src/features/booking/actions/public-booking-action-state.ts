@@ -2,6 +2,8 @@ export type PublicBookingActionState = {
   status: "idle" | "error" | "success";
   formError?: string;
   errorCode?: string;
+  /** Jedinečný identifikátor konkrétní odpovědi o nedostupném termínu. */
+  availabilityErrorId?: string;
   suggestedStep?: 1 | 2 | 3 | 4;
   fieldErrors?: Partial<Record<"serviceId" | "slotId" | "startsAt" | "fullName" | "email" | "phone" | "clientNote" | "voucherCode", string>>;
   confirmation?: {

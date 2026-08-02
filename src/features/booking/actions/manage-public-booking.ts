@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { randomUUID } from "node:crypto";
 
 import { type ManagePublicBookingActionState } from "@/features/booking/actions/manage-public-booking-action-state";
 import {
@@ -96,6 +97,14 @@ export async function managePublicBookingAction(
       return {
         status: "error",
         errorCode: error.code,
+        availabilityErrorId:
+          error.code === bookingRescheduleErrorCodes.slotUnavailable
+          || error.code === bookingRescheduleErrorCodes.slotNotAllowed
+          || error.code === bookingRescheduleErrorCodes.slotTooShort
+          || error.code === bookingRescheduleErrorCodes.conflict
+          || error.code === bookingRescheduleErrorCodes.concurrentModification
+            ? randomUUID()
+            : undefined,
         formError:
           error.code === bookingRescheduleErrorCodes.slotUnavailable
           || error.code === bookingRescheduleErrorCodes.slotNotAllowed
