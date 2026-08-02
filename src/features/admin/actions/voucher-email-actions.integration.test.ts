@@ -31,10 +31,12 @@ async function loadModules() {
 
 async function createVoucher({
   status,
+  validFrom = new Date("2026-01-01T00:00:00.000Z"),
   validUntil,
   suffix,
 }: {
   status: VoucherStatus;
+  validFrom?: Date;
   validUntil: Date | null;
   suffix: string;
 }) {
@@ -47,7 +49,7 @@ async function createVoucher({
       status,
       originalValueCzk: 1500,
       remainingValueCzk: 1500,
-      validFrom: new Date("2026-01-01T00:00:00.000Z"),
+      validFrom,
       validUntil,
     },
   });
@@ -104,6 +106,12 @@ dbTest("queueVoucherEmailLog rejects non-sendable voucher states", async () => {
       status: VoucherStatus.ACTIVE,
       validUntil: new Date("2020-01-01T00:00:00.000Z"),
       suffix: `${suffix}d`,
+    }),
+    createVoucher({
+      status: VoucherStatus.ACTIVE,
+      validFrom: new Date("2028-01-01T00:00:00.000Z"),
+      validUntil: new Date("2029-01-01T00:00:00.000Z"),
+      suffix: `${suffix}e`,
     }),
   ]);
 

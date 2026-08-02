@@ -6,8 +6,11 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [3.13.3] - 2026-08-02
+
 ### Opraveno
 
+- Budoucí aktivní voucher se nyní jako koncept posuzuje také při pokusu o odeslání e-mailem z administrace.
 - Vytvoření voucheru po zadání data platnosti opět projde i při interním opakovaném ověření formuláře.
 - Data platnosti voucheru z administračních date inputů se nyní ukládají podle hranic dne v časové zóně Praha; datum konce se správně zobrazuje jako vybraný den a opakované uložení jej neprodlužuje ani při změně letního času.
 - Admin lookup, seznamy, filtry a statistiky voucherů nyní shodně považují aktivní voucher s budoucím datem platnosti od za koncept; do aktuálně uplatnitelné hodnoty ani služeb se nezapočítá.
@@ -17,6 +20,10 @@ Formát je inspirovaný Keep a Changelog.
 - Veřejné ověření voucheru a rezervační formulář mají oddělené limity pro neplatné kódy; úspěšná ověření ani interní chyby už nevyčerpávají ochranu proti hádání kódů.
 - Veřejná rezervace i klientský přesun nyní bezpečně zaokrouhlují čtvrthodinové termíny před navazující rezervací dolů a po předchozí blokaci nahoru, takže nabízejí všechny volné termíny bez překrytí úklidu.
 - Veřejná rezervace i klientský přesun vážou automatické obnovení dostupnosti na konkrétní serverovou konfliktní odpověď; další odeslání se starou chybou už nespouští další refresh a pozdní odpověď nepřepíše novější volbu služby, voucheru, dne ani termínu.
+
+### Změněno
+
+- Release příprava pro produkční nasazení: projektová verze navýšena na patch `3.13.3`.
 
 ## [3.13.2] - 2026-08-01
 

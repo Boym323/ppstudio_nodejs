@@ -86,6 +86,7 @@ export async function queueVoucherEmailLog(input: unknown, now = new Date()): Pr
       id: true,
       code: true,
       status: true,
+      validFrom: true,
       validUntil: true,
     },
   });
@@ -103,6 +104,7 @@ export async function queueVoucherEmailLog(input: unknown, now = new Date()): Pr
   const effectiveStatus = getEffectiveVoucherStatus(
     {
       status: voucher.status,
+      validFrom: voucher.validFrom,
       validUntil: voucher.validUntil,
     },
     now,
