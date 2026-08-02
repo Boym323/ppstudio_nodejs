@@ -44,16 +44,20 @@ export function optionalVoucherValidityDate(boundary: VoucherValidityBoundary) {
   return z.preprocess(
     (value) => (value === "" || value === null ? undefined : value),
     z
-      .string({ error: "Datum platnosti není platné." })
-      .regex(dateInputPattern, "Datum platnosti není platné.")
-      .transform((value, ctx) => {
-        try {
-          return convertPragueDateInput(value, boundary);
-        } catch {
-          ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Datum platnosti není platné." });
-          return z.NEVER;
-        }
-      })
+      .union([
+        z.date(),
+        z
+          .string({ error: "Datum platnosti není platné." })
+          .regex(dateInputPattern, "Datum platnosti není platné.")
+          .transform((value, ctx) => {
+            try {
+              return convertPragueDateInput(value, boundary);
+            } catch {
+              ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Datum platnosti není platné." });
+              return z.NEVER;
+            }
+          }),
+      ])
       .optional(),
   );
 }

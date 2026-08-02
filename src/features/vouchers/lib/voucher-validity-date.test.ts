@@ -56,3 +56,11 @@ test("budoucí datum platnosti od zůstává povolené", () => {
 
   assert.equal(voucher.validFrom?.toISOString(), "2030-01-14T23:00:00.000Z");
 });
+
+test("vytvořený voucher lze interně znovu validovat bez změny platnosti", () => {
+  const voucher = parseVoucherValidity("2026-07-15", "2026-07-15");
+  const reparsedVoucher = createVoucherSchema.parse(voucher);
+
+  assert.equal(reparsedVoucher.validFrom?.toISOString(), "2026-07-14T22:00:00.000Z");
+  assert.equal(reparsedVoucher.validUntil?.toISOString(), "2026-07-15T22:00:00.000Z");
+});

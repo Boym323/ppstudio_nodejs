@@ -8,6 +8,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Vytvoření voucheru po zadání data platnosti opět projde i při interním opakovaném ověření formuláře.
 - Data platnosti voucheru z administračních date inputů se nyní ukládají podle hranic dne v časové zóně Praha; voucher je platný až do místní půlnoci po zvoleném dni i při změně letního času.
 - Admin lookup, seznamy, filtry a statistiky voucherů nyní shodně považují aktivní voucher s budoucím datem platnosti od za koncept; do aktuálně uplatnitelné hodnoty ani služeb se nezapočítá.
 - Voucher s budoucí platností od se nyní jednotně odmítá při veřejném ověření, vytvoření rezervace i při jeho uplatnění; nastavené datum platnosti od přitom zůstává zachované.
