@@ -7,6 +7,7 @@ import {
   getRecentVoucherPublicVerificationAttemptCount,
   getVoucherPublicVerificationMetadata,
   isVoucherPublicVerificationRateLimited,
+  publicVoucherVerificationSources,
   writeVoucherPublicVerificationAttemptLog,
 } from "@/features/vouchers/lib/voucher-public-verification-rate-limit";
 import { toPublicBookingVoucherValidationSuccess } from "@/features/booking/lib/public-booking-voucher-presentation";
@@ -21,13 +22,18 @@ export async function validatePublicBookingVoucherAction(input: {
 }) {
   const requestHeaders = await headers();
   const requestMetadata = getVoucherPublicVerificationMetadata(requestHeaders);
-  const ipAttempts = await getRecentVoucherPublicVerificationAttemptCount(requestMetadata.ipHash);
+  const source = publicVoucherVerificationSources.publicBooking;
+  const ipAttempts = await getRecentVoucherPublicVerificationAttemptCount({
+    ...requestMetadata,
+    source,
+  });
 
   if (isVoucherPublicVerificationRateLimited(ipAttempts)) {
     await writeVoucherPublicVerificationAttemptLog({
       auditOutcome: "RATE_LIMITED",
+      source,
       ...requestMetadata,
-      metadata: { ipAttempts, source: "public-booking-voucher-validation" },
+      metadata: { ipAttempts, source },
     });
 
     return { ok: false as const, reason: "RATE_LIMITED" as const };
@@ -38,8 +44,9 @@ export async function validatePublicBookingVoucherAction(input: {
 
     await writeVoucherPublicVerificationAttemptLog({
       auditOutcome: result.ok ? "SUCCESS" : "NOT_FOUND_OR_INVALID",
+      source,
       ...requestMetadata,
-      metadata: { ipAttempts, source: "public-booking-voucher-validation" },
+      metadata: { ipAttempts, source },
     });
 
     if (!result.ok) {
@@ -56,8 +63,9 @@ export async function validatePublicBookingVoucherAction(input: {
 
     await writeVoucherPublicVerificationAttemptLog({
       auditOutcome: "UNKNOWN_ERROR",
+      source,
       ...requestMetadata,
-      metadata: { ipAttempts, source: "public-booking-voucher-validation" },
+      metadata: { ipAttempts, source },
     });
 
     return { ok: false as const, reason: "UNKNOWN_ERROR" as const };

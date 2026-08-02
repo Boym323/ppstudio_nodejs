@@ -15,6 +15,7 @@ import {
   getRecentVoucherPublicVerificationAttemptCount,
   getVoucherPublicVerificationMetadata,
   isVoucherPublicVerificationRateLimited,
+  publicVoucherVerificationSources,
   writeVoucherPublicVerificationAttemptLog,
 } from "@/features/vouchers/lib/voucher-public-verification-rate-limit";
 import { getPublicSalonProfile } from "@/lib/site-settings";
@@ -253,15 +254,21 @@ function getPublicReasonMessage(reason: VoucherValidationReasonCode) {
 
 async function loadVerificationResult(code: string, requestHeaders: Headers): Promise<VoucherVerificationViewResult> {
   const requestMetadata = getVoucherPublicVerificationMetadata(requestHeaders);
-  const ipAttempts = await getRecentVoucherPublicVerificationAttemptCount(requestMetadata.ipHash);
+  const source = publicVoucherVerificationSources.publicPage;
+  const ipAttempts = await getRecentVoucherPublicVerificationAttemptCount({
+    ...requestMetadata,
+    source,
+  });
 
   if (isVoucherPublicVerificationRateLimited(ipAttempts)) {
     await writeVoucherPublicVerificationAttemptLog({
       auditOutcome: "RATE_LIMITED",
+      source,
       ipHash: requestMetadata.ipHash,
       userAgent: requestMetadata.userAgent,
       metadata: {
         ipAttempts,
+        source,
       },
     });
 
@@ -274,10 +281,12 @@ async function loadVerificationResult(code: string, requestHeaders: Headers): Pr
     await writeVoucherPublicVerificationAttemptLog({
       auditOutcome:
         verificationResult.ok ? "SUCCESS" : "NOT_FOUND_OR_INVALID",
+      source,
       ipHash: requestMetadata.ipHash,
       userAgent: requestMetadata.userAgent,
       metadata: {
         ipAttempts,
+        source,
       },
     });
 
@@ -287,10 +296,12 @@ async function loadVerificationResult(code: string, requestHeaders: Headers): Pr
 
     await writeVoucherPublicVerificationAttemptLog({
       auditOutcome: "UNKNOWN_ERROR",
+      source,
       ipHash: requestMetadata.ipHash,
       userAgent: requestMetadata.userAgent,
       metadata: {
         ipAttempts,
+        source,
       },
     });
 

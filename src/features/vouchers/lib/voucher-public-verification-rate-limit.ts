@@ -9,6 +9,14 @@ const VOUCHER_VERIFICATION_ATTEMPT_WINDOW_MS = 10 * 60 * 1000;
 const VOUCHER_VERIFICATION_MAX_ATTEMPTS_PER_IP = 10;
 const VOUCHER_VERIFICATION_FAILURE_CODE_PREFIX = "PUBLIC_VOUCHER_VERIFY_";
 
+export const publicVoucherVerificationSources = {
+  publicPage: "PUBLIC_PAGE",
+  publicBooking: "PUBLIC_BOOKING",
+} as const;
+
+export type PublicVoucherVerificationSource =
+  (typeof publicVoucherVerificationSources)[keyof typeof publicVoucherVerificationSources];
+
 export type PublicVoucherVerificationAuditOutcome =
   | "SUCCESS"
   | "NOT_FOUND_OR_INVALID"
@@ -25,22 +33,22 @@ const outcomeToLogMapping: Record<
 > = {
   SUCCESS: {
     outcome: BookingSubmissionOutcome.SUCCESS,
-    failureCode: `${VOUCHER_VERIFICATION_FAILURE_CODE_PREFIX}SUCCESS`,
+    failureCode: "SUCCESS",
     failureReason: "Veřejné ověření voucheru proběhlo úspěšně.",
   },
   NOT_FOUND_OR_INVALID: {
     outcome: BookingSubmissionOutcome.FAILED,
-    failureCode: `${VOUCHER_VERIFICATION_FAILURE_CODE_PREFIX}NOT_FOUND_OR_INVALID`,
+    failureCode: "NOT_FOUND_OR_INVALID",
     failureReason: "Veřejné ověření voucheru neprošlo.",
   },
   RATE_LIMITED: {
     outcome: BookingSubmissionOutcome.BLOCKED,
-    failureCode: `${VOUCHER_VERIFICATION_FAILURE_CODE_PREFIX}RATE_LIMITED`,
+    failureCode: "RATE_LIMITED",
     failureReason: "Příliš mnoho pokusů o veřejné ověření voucheru v krátkém čase.",
   },
   UNKNOWN_ERROR: {
     outcome: BookingSubmissionOutcome.FAILED,
-    failureCode: `${VOUCHER_VERIFICATION_FAILURE_CODE_PREFIX}UNKNOWN_ERROR`,
+    failureCode: "UNKNOWN_ERROR",
     failureReason: "Veřejné ověření voucheru selhalo interní chybou.",
   },
 };
@@ -63,7 +71,44 @@ export function getVoucherPublicVerificationMetadata(requestHeaders: Headers) {
   };
 }
 
-export async function getRecentVoucherPublicVerificationAttemptCount(ipHash?: string) {
+export function getVoucherPublicVerificationFailureCode(
+  source: PublicVoucherVerificationSource,
+  auditOutcome: PublicVoucherVerificationAuditOutcome,
+) {
+  return `${VOUCHER_VERIFICATION_FAILURE_CODE_PREFIX}${source}_${outcomeToLogMapping[auditOutcome].failureCode}`;
+}
+
+export function isVoucherPublicVerificationGuessingAttempt(auditOutcome: PublicVoucherVerificationAuditOutcome) {
+  return auditOutcome === "NOT_FOUND_OR_INVALID";
+}
+
+export function getVoucherPublicVerificationAttemptWhere({
+  ipHash,
+  source,
+  windowStart,
+}: {
+  ipHash: string;
+  source: PublicVoucherVerificationSource;
+  windowStart: Date;
+}): Prisma.BookingSubmissionLogWhereInput {
+  return {
+    ipHash,
+    createdAt: {
+      gte: windowStart,
+    },
+    failureCode: {
+      equals: getVoucherPublicVerificationFailureCode(source, "NOT_FOUND_OR_INVALID"),
+    },
+  };
+}
+
+export async function getRecentVoucherPublicVerificationAttemptCount({
+  ipHash,
+  source,
+}: {
+  ipHash?: string;
+  source: PublicVoucherVerificationSource;
+}) {
   if (!ipHash) {
     return 0;
   }
@@ -71,22 +116,7 @@ export async function getRecentVoucherPublicVerificationAttemptCount(ipHash?: st
   const windowStart = new Date(Date.now() - VOUCHER_VERIFICATION_ATTEMPT_WINDOW_MS);
 
   return prisma.bookingSubmissionLog.count({
-    where: {
-      ipHash,
-      createdAt: {
-        gte: windowStart,
-      },
-      failureCode: {
-        startsWith: VOUCHER_VERIFICATION_FAILURE_CODE_PREFIX,
-      },
-      outcome: {
-        in: [
-          BookingSubmissionOutcome.SUCCESS,
-          BookingSubmissionOutcome.FAILED,
-          BookingSubmissionOutcome.BLOCKED,
-        ],
-      },
-    },
+    where: getVoucherPublicVerificationAttemptWhere({ ipHash, source, windowStart }),
   });
 }
 
@@ -96,11 +126,13 @@ export function isVoucherPublicVerificationRateLimited(ipAttempts: number) {
 
 export async function writeVoucherPublicVerificationAttemptLog({
   auditOutcome,
+  source,
   ipHash,
   userAgent,
   metadata,
 }: {
   auditOutcome: PublicVoucherVerificationAuditOutcome;
+  source: PublicVoucherVerificationSource;
   ipHash?: string;
   userAgent?: string;
   metadata?: Prisma.InputJsonValue;
@@ -111,7 +143,7 @@ export async function writeVoucherPublicVerificationAttemptLog({
     await prisma.bookingSubmissionLog.create({
       data: {
         outcome: mapping.outcome,
-        failureCode: mapping.failureCode,
+        failureCode: getVoucherPublicVerificationFailureCode(source, auditOutcome),
         failureReason: mapping.failureReason,
         ipHash,
         userAgent,
