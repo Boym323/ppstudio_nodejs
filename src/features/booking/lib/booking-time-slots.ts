@@ -49,8 +49,12 @@ function getSlotStartTime(value: string) {
   return new Date(value).getTime();
 }
 
-function isQuarterHourBoundary(valueMs: number) {
-  return valueMs % QUARTER_HOUR_MS === 0;
+export function floorToQuarterHour(valueMs: number) {
+  return Math.floor(valueMs / QUARTER_HOUR_MS) * QUARTER_HOUR_MS;
+}
+
+export function ceilToQuarterHour(valueMs: number) {
+  return Math.ceil(valueMs / QUARTER_HOUR_MS) * QUARTER_HOUR_MS;
 }
 
 function getDayPeriod(startsAt: string): DayPeriodKey {
@@ -110,7 +114,7 @@ export function buildSlotTimeOptions(
 
   const options: TimeSlotOption[] = [];
   const startCandidates = new Set<number>();
-  const backwardCandidates = new Set<number>();
+  const quarterHourCandidates = new Set<number>();
   const bookingStartsSorted = slot.bookedIntervals
     .map((booking) => new Date(booking.startsAt).getTime())
     .sort((left, right) => left - right);
@@ -126,25 +130,26 @@ export function buildSlotTimeOptions(
   }
 
   for (const bookingEndsAtMs of bookingEndsSorted) {
-    if (
-      bookingEndsAtMs >= slotStartsAtMs
-      && bookingEndsAtMs <= latestStartMs
-      && isQuarterHourBoundary(bookingEndsAtMs)
-    ) {
-      startCandidates.add(bookingEndsAtMs);
-    }
-  }
-
-  for (const bookingStartsAtMs of bookingStartsSorted) {
-    const candidateStartsAtMs = bookingStartsAtMs - blockDurationMs;
+    const candidateStartsAtMs = ceilToQuarterHour(bookingEndsAtMs);
 
     if (
       candidateStartsAtMs >= slotStartsAtMs
       && candidateStartsAtMs <= latestStartMs
-      && isQuarterHourBoundary(candidateStartsAtMs)
     ) {
       startCandidates.add(candidateStartsAtMs);
-      backwardCandidates.add(candidateStartsAtMs);
+      quarterHourCandidates.add(candidateStartsAtMs);
+    }
+  }
+
+  for (const bookingStartsAtMs of bookingStartsSorted) {
+    const candidateStartsAtMs = floorToQuarterHour(bookingStartsAtMs - blockDurationMs);
+
+    if (
+      candidateStartsAtMs >= slotStartsAtMs
+      && candidateStartsAtMs <= latestStartMs
+    ) {
+      startCandidates.add(candidateStartsAtMs);
+      quarterHourCandidates.add(candidateStartsAtMs);
     }
   }
 
@@ -169,7 +174,7 @@ export function buildSlotTimeOptions(
 
     const isDisabled = remainingCapacity < 1;
 
-    if (backwardCandidates.has(startsAtMs) && isDisabled) {
+    if (quarterHourCandidates.has(startsAtMs) && isDisabled) {
       continue;
     }
 

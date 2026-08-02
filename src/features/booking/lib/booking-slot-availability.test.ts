@@ -277,7 +277,93 @@ describe("buildSlotTimeOptions cleanup blocking", () => {
     assert.equal(options[0]?.endsAt, "2026-06-10T11:15:00.000Z");
   });
 
-  test("offers a quarter-hour candidate backwards from the following booking", () => {
+  test("offers the latest safe quarter-hour candidate before the following booking", () => {
+    const options = buildSlotTimeOptions(
+      buildCatalogSlot({
+        startsAt: "2026-06-10T12:00:00.000Z",
+        endsAt: "2026-06-10T13:00:00.000Z",
+      }),
+      50,
+      15,
+    );
+
+    const candidate = options.find((option) => option.startsAt === "2026-06-10T10:45:00.000Z");
+
+    assert.equal(candidate?.isDisabled, false);
+    assert.equal(candidate?.endsAt, "2026-06-10T11:35:00.000Z");
+  });
+
+  test("rounds a 65 minute service down before the following booking", () => {
+    const slot = buildCatalogSlot({
+      startsAt: "2026-06-10T12:00:00.000Z",
+      endsAt: "2026-06-10T13:00:00.000Z",
+    });
+    const options = buildSlotTimeOptions(slot, 65, 15);
+
+    assert.equal(
+      options.find((option) => option.startsAt === "2026-06-10T10:30:00.000Z")?.isDisabled,
+      false,
+    );
+  });
+
+  test("rounds down without overlap when cleanup lasts 16 minutes", () => {
+    const options = buildSlotTimeOptions(
+      buildCatalogSlot({
+        startsAt: "2026-06-10T12:00:00.000Z",
+        endsAt: "2026-06-10T13:00:00.000Z",
+      }),
+      50,
+      16,
+    );
+
+    assert.equal(
+      options.find((option) => option.startsAt === "2026-06-10T10:45:00.000Z")?.isDisabled,
+      false,
+    );
+    assert.equal(
+      options.some((option) => option.startsAt === "2026-06-10T11:00:00.000Z" && !option.isDisabled),
+      false,
+    );
+  });
+
+  test("rounds a previous blocked interval up to the next quarter-hour", () => {
+    const options = buildSlotTimeOptions(
+      {
+        ...buildCatalogSlot({
+          startsAt: "2026-06-10T09:30:00.000Z",
+          endsAt: "2026-06-10T10:17:00.000Z",
+        }),
+        startsAt: "2026-06-10T10:15:00.000Z",
+      },
+      30,
+    );
+
+    assert.equal(
+      options.find((option) => option.startsAt === "2026-06-10T10:30:00.000Z")?.isDisabled,
+      false,
+    );
+    assert.equal(
+      options.some((option) => option.startsAt === "2026-06-10T10:15:00.000Z" && !option.isDisabled),
+      false,
+    );
+  });
+
+  test("keeps a previous blocked interval ending exactly on a quarter-hour", () => {
+    const options = buildSlotTimeOptions(
+      buildCatalogSlot({
+        startsAt: "2026-06-10T09:15:00.000Z",
+        endsAt: "2026-06-10T10:15:00.000Z",
+      }),
+      30,
+    );
+
+    assert.equal(
+      options.find((option) => option.startsAt === "2026-06-10T10:15:00.000Z")?.isDisabled,
+      false,
+    );
+  });
+
+  test("keeps the original exact 90 plus 15 minute candidate", () => {
     const options = buildSlotTimeOptions(
       buildCatalogSlot({
         startsAt: "2026-06-10T12:00:00.000Z",
@@ -287,26 +373,8 @@ describe("buildSlotTimeOptions cleanup blocking", () => {
       15,
     );
 
-    const candidate = options.find((option) => option.startsAt === "2026-06-10T10:15:00.000Z");
-
-    assert.equal(candidate?.isDisabled, false);
-    assert.equal(candidate?.endsAt, "2026-06-10T11:45:00.000Z");
-  });
-
-  test("accepts cleanup ending exactly at the following booking and rejects an overlap by one minute", () => {
-    const slot = buildCatalogSlot({
-      startsAt: "2026-06-10T12:00:00.000Z",
-      endsAt: "2026-06-10T13:00:00.000Z",
-    });
-    const exactBoundary = buildSlotTimeOptions(slot, 90, 15);
-    const oneMinuteOverlap = buildSlotTimeOptions(slot, 90, 16);
-
     assert.equal(
-      exactBoundary.find((option) => option.startsAt === "2026-06-10T10:15:00.000Z")?.isDisabled,
-      false,
-    );
-    assert.equal(
-      oneMinuteOverlap.some((option) => option.startsAt === "2026-06-10T10:15:00.000Z" && !option.isDisabled),
+      options.find((option) => option.startsAt === "2026-06-10T10:15:00.000Z")?.isDisabled,
       false,
     );
   });

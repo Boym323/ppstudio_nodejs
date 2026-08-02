@@ -8,6 +8,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Veřejná rezervace i klientský přesun nyní bezpečně zaokrouhlují čtvrthodinové termíny před navazující rezervací dolů a po předchozí blokaci nahoru, takže nabízejí všechny volné termíny bez překrytí úklidu.
 - Veřejná rezervace i klientský přesun vážou automatické obnovení dostupnosti na konkrétní serverovou konfliktní odpověď; další odeslání se starou chybou už nespouští další refresh a pozdní odpověď nepřepíše novější volbu služby, voucheru, dne ani termínu.
 
 ## [3.13.2] - 2026-08-01
