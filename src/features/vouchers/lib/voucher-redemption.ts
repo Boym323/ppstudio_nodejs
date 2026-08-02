@@ -87,7 +87,7 @@ export async function redeemVoucherForBookingInTransaction(
       throw new VoucherRedemptionError(voucherRedemptionErrorCodes.voucherNotFound, "Voucher was not found.");
     }
 
-    assertRedeemable(getEffectiveVoucherStatus(currentVoucher));
+    assertRedeemable(getEffectiveVoucherStatus(currentVoucher, new Date()));
 
     const [lockedBooking] = await tx.$queryRaw<Array<{ id: string }>>(Prisma.sql`
       SELECT "id"

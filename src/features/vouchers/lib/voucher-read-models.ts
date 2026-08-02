@@ -18,10 +18,9 @@ export type VoucherListFilters = {
   now?: Date;
 };
 
-function buildVoucherSqlWhere(filters: VoucherListFilters): Prisma.Sql {
+function buildVoucherSqlWhere(filters: VoucherListFilters, now: Date): Prisma.Sql {
   const conditions: Prisma.Sql[] = [];
   const query = filters.query?.trim();
-  const now = filters.now ?? new Date();
 
   if (filters.type && filters.type !== "all") {
     conditions.push(Prisma.sql`v."type" = ${filters.type}::"VoucherType"`);
@@ -33,12 +32,22 @@ function buildVoucherSqlWhere(filters: VoucherListFilters): Prisma.Sql {
         v."status" = 'EXPIRED'::"VoucherStatus"
         OR (
           v."status" IN ('ACTIVE'::"VoucherStatus", 'PARTIALLY_REDEEMED'::"VoucherStatus")
+          AND v."validFrom" <= ${now}
           AND v."validUntil" < ${now}
         )
       )`);
     } else if (filters.status === "ACTIVE" || filters.status === "PARTIALLY_REDEEMED") {
       conditions.push(Prisma.sql`v."status" = ${filters.status}::"VoucherStatus"`);
+      conditions.push(Prisma.sql`v."validFrom" <= ${now}`);
       conditions.push(Prisma.sql`(v."validUntil" IS NULL OR v."validUntil" >= ${now})`);
+    } else if (filters.status === "DRAFT") {
+      conditions.push(Prisma.sql`(
+        v."status" = 'DRAFT'::"VoucherStatus"
+        OR (
+          v."status" IN ('ACTIVE'::"VoucherStatus", 'PARTIALLY_REDEEMED'::"VoucherStatus")
+          AND v."validFrom" > ${now}
+        )
+      )`);
     } else {
       conditions.push(Prisma.sql`v."status" = ${filters.status}::"VoucherStatus"`);
     }
@@ -62,7 +71,8 @@ function buildVoucherSqlWhere(filters: VoucherListFilters): Prisma.Sql {
 
 export async function listVouchers(filters: VoucherListFilters = {}) {
   const take = Math.min(Math.max(filters.take ?? 50, 1), 200);
-  const where = buildVoucherSqlWhere(filters);
+  const now = filters.now ?? new Date();
+  const where = buildVoucherSqlWhere(filters, now);
   const vouchers = await prisma.$queryRaw<
     Array<{
       id: string;
@@ -109,7 +119,7 @@ export async function listVouchers(filters: VoucherListFilters = {}) {
   `);
 
   return vouchers.map((voucher) => {
-    const effectiveStatus = getEffectiveVoucherStatus(voucher);
+    const effectiveStatus = getEffectiveVoucherStatus(voucher, now);
 
     return {
       ...voucher,
@@ -130,6 +140,7 @@ export async function listVouchers(filters: VoucherListFilters = {}) {
 }
 
 export async function getVoucherDetail(id: string) {
+  const now = new Date();
   const voucher = await prisma.voucher.findUnique({
     where: { id },
     include: {
@@ -190,7 +201,7 @@ export async function getVoucherDetail(id: string) {
     return null;
   }
 
-  const effectiveStatus = getEffectiveVoucherStatus(voucher);
+  const effectiveStatus = getEffectiveVoucherStatus(voucher, now);
   const emailHistory = await loadVoucherEmailHistory(voucher.id);
 
   return {
@@ -266,6 +277,7 @@ function summarizeEmailError(errorMessage: string | null) {
 }
 
 export async function getVoucherByCodeSafe(codeInput: string) {
+  const now = new Date();
   const code = normalizeVoucherCode(codeInput);
 
   if (!code) {
@@ -293,7 +305,7 @@ export async function getVoucherByCodeSafe(codeInput: string) {
     return null;
   }
 
-  const effectiveStatus = getEffectiveVoucherStatus(voucher);
+  const effectiveStatus = getEffectiveVoucherStatus(voucher, now);
 
   return {
     ...voucher,

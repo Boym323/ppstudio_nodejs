@@ -27,7 +27,9 @@ async function loadModules() {
   return {
     prisma,
     getVoucherDetail: voucherReadModelsModule.getVoucherDetail,
+    listVouchers: voucherReadModelsModule.listVouchers,
     getAdminVoucherDetailData: adminVouchersModule.getAdminVoucherDetailData,
+    getAdminVouchersPageData: adminVouchersModule.getAdminVouchersPageData,
   };
 }
 
@@ -240,5 +242,93 @@ dbTest("getVoucherDetail limits voucher email history to five newest records", a
       },
     });
     await prisma.voucher.deleteMany({ where: { id: voucher.id } });
+  }
+});
+
+dbTest("seznamy, filtry a statistiky nezapočítávají budoucí aktivní vouchery", async () => {
+  const { prisma, listVouchers, getAdminVouchersPageData } = await loadModules();
+  const suffix = randomUUID().slice(0, 8).toUpperCase();
+  const now = new Date("2030-01-01T12:00:00.000Z");
+  const validUntil = new Date("2030-02-01T12:00:00.000Z");
+  const codes = ["VALUE", "SERVICE", "FUTURE-VALUE", "FUTURE-SERVICE", "DRAFT", "EXPIRED"].map(
+    (kind) => `PP-STAT-${kind}-${suffix}`,
+  );
+
+  try {
+    await prisma.voucher.createMany({
+      data: [
+        {
+          code: codes[0],
+          type: VoucherType.VALUE,
+          status: VoucherStatus.ACTIVE,
+          originalValueCzk: 500,
+          remainingValueCzk: 500,
+          validFrom: now,
+          validUntil,
+        },
+        {
+          code: codes[1],
+          type: VoucherType.SERVICE,
+          status: VoucherStatus.ACTIVE,
+          serviceNameSnapshot: "Masáž",
+          servicePriceSnapshotCzk: 1200,
+          validFrom: new Date(now.getTime() - 1),
+          validUntil,
+        },
+        {
+          code: codes[2],
+          type: VoucherType.VALUE,
+          status: VoucherStatus.ACTIVE,
+          originalValueCzk: 1200,
+          remainingValueCzk: 1200,
+          validFrom: new Date(now.getTime() + 1),
+          validUntil,
+        },
+        {
+          code: codes[3],
+          type: VoucherType.SERVICE,
+          status: VoucherStatus.ACTIVE,
+          serviceNameSnapshot: "Budoucí masáž",
+          servicePriceSnapshotCzk: 900,
+          validFrom: new Date(now.getTime() + 1),
+          validUntil,
+        },
+        {
+          code: codes[4],
+          type: VoucherType.VALUE,
+          status: VoucherStatus.DRAFT,
+          originalValueCzk: 300,
+          remainingValueCzk: 300,
+          validFrom: new Date(now.getTime() - 1),
+          validUntil,
+        },
+        {
+          code: codes[5],
+          type: VoucherType.VALUE,
+          status: VoucherStatus.ACTIVE,
+          originalValueCzk: 700,
+          remainingValueCzk: 700,
+          validFrom: new Date(now.getTime() - 2),
+          validUntil: new Date(now.getTime() - 1),
+        },
+      ],
+    });
+
+    const [active, draft, expired, page] = await Promise.all([
+      listVouchers({ query: suffix, status: VoucherStatus.ACTIVE, now }),
+      listVouchers({ query: suffix, status: VoucherStatus.DRAFT, now }),
+      listVouchers({ query: suffix, status: VoucherStatus.EXPIRED, now }),
+      getAdminVouchersPageData("owner", { q: suffix }, now),
+    ]);
+
+    assert.deepEqual(active.map((voucher) => voucher.code).sort(), [codes[0], codes[1]].sort());
+    assert.deepEqual(draft.map((voucher) => voucher.code).sort(), [codes[2], codes[3], codes[4]].sort());
+    assert.deepEqual(expired.map((voucher) => voucher.code), [codes[5]]);
+    assert.equal(page.vouchers.filter((voucher) => voucher.effectiveStatus === VoucherStatus.ACTIVE).length, 2);
+    assert.equal(page.vouchers.filter((voucher) => voucher.effectiveStatus === VoucherStatus.DRAFT).length, 3);
+    assert.equal(page.stats.find((stat) => stat.label === "Otevřené vouchery")?.value, "2");
+    assert.equal(page.stats.find((stat) => stat.label === "Zbývá k uplatnění")?.value, "500 Kč + 1 služba");
+  } finally {
+    await prisma.voucher.deleteMany({ where: { code: { in: codes } } });
   }
 });

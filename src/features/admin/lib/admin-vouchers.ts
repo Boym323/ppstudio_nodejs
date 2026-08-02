@@ -150,9 +150,9 @@ function formatRemainingWorkload(valueCzk: number, serviceCount: number) {
 export async function getAdminVouchersPageData(
   area: AdminArea,
   searchParams?: Record<string, string | string[] | undefined>,
+  now = new Date(),
 ) {
   const filters = normalizeSearchParams(searchParams);
-  const now = new Date();
   const soonThreshold = addDays(now, 30);
 
   const [
@@ -168,10 +168,12 @@ export async function getAdminVouchersPageData(
     await Promise.all([
       countVouchers(Prisma.sql`
         WHERE v."status" IN ('ACTIVE'::"VoucherStatus", 'PARTIALLY_REDEEMED'::"VoucherStatus")
+          AND v."validFrom" <= ${now}
           AND (v."validUntil" IS NULL OR v."validUntil" >= ${now})
       `),
       countVouchers(Prisma.sql`
         WHERE v."status" IN ('ACTIVE'::"VoucherStatus", 'PARTIALLY_REDEEMED'::"VoucherStatus")
+          AND v."validFrom" <= ${now}
           AND v."validUntil" IS NOT NULL
           AND v."validUntil" >= ${now}
           AND v."validUntil" <= ${soonThreshold}
@@ -181,6 +183,7 @@ export async function getAdminVouchersPageData(
         WHERE v."status" = 'EXPIRED'::"VoucherStatus"
           OR (
             v."status" IN ('ACTIVE'::"VoucherStatus", 'PARTIALLY_REDEEMED'::"VoucherStatus")
+            AND v."validFrom" <= ${now}
             AND v."validUntil" < ${now}
           )
       `),
@@ -190,11 +193,13 @@ export async function getAdminVouchersPageData(
         FROM "Voucher" v
         WHERE v."type" = 'VALUE'::"VoucherType"
           AND v."status" IN ('ACTIVE'::"VoucherStatus", 'PARTIALLY_REDEEMED'::"VoucherStatus")
+          AND v."validFrom" <= ${now}
           AND (v."validUntil" IS NULL OR v."validUntil" >= ${now})
       `),
       countVouchers(Prisma.sql`
         WHERE v."type" = 'SERVICE'::"VoucherType"
           AND v."status" IN ('ACTIVE'::"VoucherStatus", 'PARTIALLY_REDEEMED'::"VoucherStatus")
+          AND v."validFrom" <= ${now}
           AND (v."validUntil" IS NULL OR v."validUntil" >= ${now})
       `),
       listVouchers({

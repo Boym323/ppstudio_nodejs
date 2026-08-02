@@ -506,6 +506,7 @@ export async function getAdminBookingDetailData(
   area: AdminArea,
   bookingId: string,
 ): Promise<AdminBookingDetailData | null> {
+  const now = new Date();
   const [booking, bookingCatalog] = await Promise.all([
     prisma.booking.findUnique({
       where: { id: bookingId },
@@ -788,8 +789,8 @@ export async function getAdminBookingDetailData(
             type: booking.intendedVoucher.type,
             typeLabel: formatVoucherType(booking.intendedVoucher.type),
             status: booking.intendedVoucher.status,
-            effectiveStatus: getEffectiveVoucherStatus(booking.intendedVoucher),
-            statusLabel: formatVoucherStatus(getEffectiveVoucherStatus(booking.intendedVoucher)),
+            effectiveStatus: getEffectiveVoucherStatus(booking.intendedVoucher, now),
+            statusLabel: formatVoucherStatus(getEffectiveVoucherStatus(booking.intendedVoucher, now)),
             valueLabel: formatVoucherValue(booking.intendedVoucher),
             remainingLabel: formatVoucherRemaining(booking.intendedVoucher),
             remainingValueCzk: booking.intendedVoucher.remainingValueCzk,

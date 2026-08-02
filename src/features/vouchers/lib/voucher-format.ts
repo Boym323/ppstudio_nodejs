@@ -67,7 +67,7 @@ export function getEffectiveVoucherStatus(
     validFrom?: Date;
     validUntil: Date | null;
   },
-  now = new Date(),
+  now: Date,
 ): VoucherStatus {
   if (
     (voucher.status === VoucherStatus.ACTIVE || voucher.status === VoucherStatus.PARTIALLY_REDEEMED) &&

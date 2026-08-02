@@ -20,10 +20,12 @@ export function createAdminVoucherLookupRouteApi(deps?: {
   getSession?: typeof getSession;
   isSameOriginAdminRequest?: typeof isSameOriginAdminRequest;
   findVoucher?: typeof prisma.voucher.findUnique;
+  now?: () => Date;
 }) {
   const getSessionImpl = deps?.getSession ?? getSession;
   const isSameOriginAdminRequestImpl = deps?.isSameOriginAdminRequest ?? isSameOriginAdminRequest;
   const findVoucherImpl = deps?.findVoucher ?? prisma.voucher.findUnique.bind(prisma.voucher);
+  const nowImpl = deps?.now ?? (() => new Date());
 
   return {
     async POST(request: Request) {
@@ -67,6 +69,7 @@ export function createAdminVoucherLookupRouteApi(deps?: {
           code: true,
           type: true,
           status: true,
+          validFrom: true,
           validUntil: true,
           remainingValueCzk: true,
           serviceNameSnapshot: true,
@@ -84,7 +87,7 @@ export function createAdminVoucherLookupRouteApi(deps?: {
         );
       }
 
-      const effectiveStatus = getEffectiveVoucherStatus(voucher);
+      const effectiveStatus = getEffectiveVoucherStatus(voucher, nowImpl());
 
       return NextResponse.json(
         {

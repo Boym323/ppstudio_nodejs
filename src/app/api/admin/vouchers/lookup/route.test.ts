@@ -44,6 +44,7 @@ test("voucher lookup přijímá kód jen v POST těle a neukládá odpověď do 
         code: "ABCD-1234",
         type: VoucherType.VALUE,
         status: VoucherStatus.ACTIVE,
+        validFrom: new Date("2026-01-01T00:00:00.000Z"),
         validUntil: null,
         remainingValueCzk: 1500,
         serviceNameSnapshot: null,
@@ -60,6 +61,32 @@ test("voucher lookup přijímá kód jen v POST těle a neukládá odpověď do 
   assert.equal(receivedCode, "ABCD-1234");
   assert.equal(payload.status, "success");
   assert.equal(payload.voucher.code, "ABCD-1234");
+});
+
+test("voucher lookup vrací budoucí aktivní voucher jako koncept", async () => {
+  const { createAdminVoucherLookupRouteApi } = await import("./admin-voucher-lookup-route-api");
+  const api = createAdminVoucherLookupRouteApi({
+    getSession: async () => createAdminSession(),
+    isSameOriginAdminRequest: () => true,
+    now: () => new Date("2026-08-02T12:00:00.000Z"),
+    findVoucher: (async () => ({
+      code: "BUDOUCI-1234",
+      type: VoucherType.VALUE,
+      status: VoucherStatus.ACTIVE,
+      validFrom: new Date("2026-08-02T12:00:00.001Z"),
+      validUntil: null,
+      remainingValueCzk: 1500,
+      serviceNameSnapshot: null,
+      servicePriceSnapshotCzk: null,
+    })) as unknown as typeof prisma.voucher.findUnique,
+  });
+
+  const response = await api.POST(createLookupRequest("budouci-1234"));
+  const payload = (await response.json()) as { voucher: { status: string; statusLabel: string } };
+
+  assert.equal(response.status, 200);
+  assert.equal(payload.voucher.status, VoucherStatus.DRAFT);
+  assert.equal(payload.voucher.statusLabel, "Rozpracovaný");
 });
 
 test("voucher lookup odmítne request bez same-origin kontroly bez dotazu do databáze", async () => {
