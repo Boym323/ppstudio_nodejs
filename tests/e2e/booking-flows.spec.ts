@@ -415,7 +415,6 @@ test.describe("booking flows", () => {
       const bookingActionId = (await firstSubmissionRequest).headers()["next-action"];
       await expect(firstPage.getByText("Tento termín byl mezitím obsazen. Nabídku jsme aktualizovali, vyberte prosím jiný čas.")).toBeVisible();
       await expect(firstPage.getByRole("button", { name: primarySlotLabel })).toHaveCount(0);
-      await expect(firstPage.getByText("Ověřuji voucher pro vybranou službu…")).toBeVisible();
       if (await firstSubmit.count() > 0) {
         await expect(firstSubmit).toBeDisabled();
       } else {

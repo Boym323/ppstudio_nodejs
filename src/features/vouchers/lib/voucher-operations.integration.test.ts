@@ -175,15 +175,16 @@ describe("voucher operational management", () => {
 
   dbTest("rejects validUntil that is not after the stored validFrom", async () => {
     assert.ok(seed);
+    const context = seed;
     const { updateVoucherOperationalDetails, VoucherOperationError, voucherOperationErrorCodes } = await loadModules();
-    const voucher = await createValueVoucher(seed);
+    const voucher = await createValueVoucher(context);
 
     await assert.rejects(
       () =>
         updateVoucherOperationalDetails({
           voucherId: voucher.id,
           validUntil: new Date("2026-01-01T00:00:00.000Z"),
-          updatedByUserId: seed.ownerUserId,
+          updatedByUserId: context.ownerUserId,
         }),
       (error) =>
         error instanceof VoucherOperationError
