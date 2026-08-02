@@ -37,7 +37,7 @@ function convertPragueDateInput(value: string, boundary: VoucherValidityBoundary
   const offsetMinutes = Number(offsetMatch[2]) * 60 + Number(offsetMatch[3]);
   const signedOffsetMinutes = offsetMatch[1] === "+" ? offsetMinutes : -offsetMinutes;
 
-  return new Date(localDate.getTime() - signedOffsetMinutes * 60 * 1000);
+  return new Date(localDate.getTime() - signedOffsetMinutes * 60 * 1000 - (boundary === "end" ? 1 : 0));
 }
 
 export function optionalVoucherValidityDate(boundary: VoucherValidityBoundary) {
