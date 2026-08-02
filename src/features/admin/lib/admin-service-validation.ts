@@ -16,6 +16,23 @@ export const pricingBadgeSuggestions = [
 export const serviceStructuredListMaxItems = 8;
 export const serviceStructuredListItemMaxLength = 240;
 
+export function normalizeServiceSeoTitle(value: string) {
+  let normalized = value.trim();
+
+  while (/\s*\|\s*pp studio\s*$/i.test(normalized)) {
+    normalized = normalized.replace(/\s*\|\s*pp studio\s*$/i, "").trim();
+  }
+
+  return normalized;
+}
+
+const serviceSeoTitleSchema = z
+  .string()
+  .transform(normalizeServiceSeoTitle)
+  .pipe(z.string().max(120, "SEO title je příliš dlouhý."))
+  .optional()
+  .or(z.literal(""));
+
 function parseStructuredListText(value: unknown) {
   if (typeof value !== "string") {
     return [];
@@ -73,7 +90,7 @@ export const updateServiceSchema = z.object({
   publicName: z.string().trim().max(120, "Veřejný název služby je příliš dlouhý.").optional().or(z.literal("")),
   description: z.string().trim().max(4000, "Detailní popis je příliš dlouhý.").optional().or(z.literal("")),
   publicIntro: z.string().trim().max(400, "Krátký popis (web + rezervace) je příliš dlouhý.").optional().or(z.literal("")),
-  seoTitle: z.string().trim().max(120, "SEO title je příliš dlouhý.").optional().or(z.literal("")),
+  seoTitle: serviceSeoTitleSchema,
   seoDescription: z.string().trim().max(240, "Popis pro Google je příliš dlouhý.").optional().or(z.literal("")),
   idealFor: structuredListFieldSchema("Pro koho je služba vhodná"),
   includes: structuredListFieldSchema("Co služba obsahuje"),
@@ -139,7 +156,7 @@ export const createServiceSchema = z.object({
   publicName: z.string().trim().max(120, "Veřejný název služby je příliš dlouhý.").optional().or(z.literal("")),
   description: z.string().trim().max(4000, "Detailní popis je příliš dlouhý.").optional().or(z.literal("")),
   publicIntro: z.string().trim().max(400, "Krátký popis (web + rezervace) je příliš dlouhý.").optional().or(z.literal("")),
-  seoTitle: z.string().trim().max(120, "SEO title je příliš dlouhý.").optional().or(z.literal("")),
+  seoTitle: serviceSeoTitleSchema,
   seoDescription: z.string().trim().max(240, "Popis pro Google je příliš dlouhý.").optional().or(z.literal("")),
   idealFor: structuredListFieldSchema("Pro koho je služba vhodná"),
   includes: structuredListFieldSchema("Co služba obsahuje"),

@@ -32,6 +32,18 @@ test("buildPageMetadata keeps canonical and OpenGraph URLs on public canonical o
   assert.equal(metadata.openGraph?.url, "https://ppstudio.cz/sluzby");
 });
 
+test("buildPageMetadata předává title bez značky, aby ji layout přidal právě jednou", () => {
+  const metadata = buildPageMetadata({
+    title: "Lash lifting Zlín",
+    description: "Kosmetické služby PP Studio.",
+    path: "/sluzby/lash-lifting",
+  });
+
+  assert.equal(metadata.title, "Lash lifting Zlín");
+  assert.equal(metadata.openGraph?.title, "Lash lifting Zlín | PP Studio");
+  assert.equal(metadata.twitter?.title, "Lash lifting Zlín | PP Studio");
+});
+
 test("ServiceDetailPage points booking CTA to /rezervace?service=<slug>", () => {
   const html = renderToStaticMarkup(
     <ServiceDetailPage

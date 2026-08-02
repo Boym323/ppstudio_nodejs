@@ -8,6 +8,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Souhrn veřejné rezervace nyní jasně rozlišuje neplatný, nekompatibilní, ověřovaný i použitelný voucher a neplatný kód už nenaznačuje pozdější uplatnění.
+- SEO titulek služby se při vytvoření i úpravě na serveru zbaví opakované koncové značky PP Studio, takže se ve výsledných metadatech zobrazí právě jednou.
 - Veřejné ověření voucheru a rezervační formulář mají oddělené limity pro neplatné kódy; úspěšná ověření ani interní chyby už nevyčerpávají ochranu proti hádání kódů.
 - Veřejná rezervace i klientský přesun nyní bezpečně zaokrouhlují čtvrthodinové termíny před navazující rezervací dolů a po předchozí blokaci nahoru, takže nabízejí všechny volné termíny bez překrytí úklidu.
 - Veřejná rezervace i klientský přesun vážou automatické obnovení dostupnosti na konkrétní serverovou konfliktní odpověď; další odeslání se starou chybou už nespouští další refresh a pozdní odpověď nepřepíše novější volbu služby, voucheru, dne ani termínu.

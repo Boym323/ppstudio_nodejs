@@ -12,6 +12,7 @@ import {
   formatSlotDuration,
   formatSlotTime,
 } from "./helpers";
+import type { VoucherApplicationState } from "./voucher-revalidation";
 
 function getErrorActionLabel(suggestedStep?: 1 | 2 | 3 | 4) {
   switch (suggestedStep) {
@@ -50,12 +51,7 @@ type BookingSummarySidebarProps = {
   email: string;
   phone: string;
   voucherCode: string;
-  voucherApplication:
-    | { status: "idle" }
-    | { status: "checking" }
-    | { status: "applied"; label: string }
-    | { status: "incompatible"; message: string }
-    | { status: "invalid"; message: string };
+  voucherApplication: VoucherApplicationState;
   canGoToStep4: boolean;
   isRefreshingCatalog: boolean;
   serverState: PublicBookingActionState;
@@ -64,6 +60,21 @@ type BookingSummarySidebarProps = {
   onEditContact: () => void;
   onStepBack: () => void;
 };
+
+function getVoucherSummaryMessage(voucherApplication: VoucherApplicationState) {
+  switch (voucherApplication.status) {
+    case "idle":
+      return "Poukaz bude zkontrolován a uplatněn při návštěvě v salonu.";
+    case "checking":
+      return "Ověřuji použitelnost voucheru…";
+    case "applied":
+      return `Poukaz je pro tuto službu ověřený: ${voucherApplication.label}.`;
+    case "incompatible":
+      return voucherApplication.message;
+    case "invalid":
+      return "Tento poukaz momentálně nelze použít. Upravte nebo odstraňte jeho kód.";
+  }
+}
 
 export function BookingSummarySidebar({
   currentStep,
@@ -194,11 +205,7 @@ export function BookingSummarySidebar({
                 {voucherCode.trim()}
               </p>
               <p className="mt-2 text-sm leading-5 text-[var(--color-muted)]">
-                {voucherApplication.status === "applied"
-                  ? "Poukaz je pro tuto službu ověřený a při návštěvě jej znovu zkontrolujeme."
-                  : voucherApplication.status === "incompatible"
-                    ? "Poukaz není do této rezervace započítaný."
-                    : "Poukaz bude zkontrolován a uplatněn při návštěvě v salonu."}
+                {getVoucherSummaryMessage(voucherApplication)}
               </p>
             </div>
           ) : null}

@@ -5,6 +5,7 @@ import { type PublicBookingActionState } from "@/features/booking/actions/public
 import { cn } from "@/lib/utils";
 
 import type { ContactFieldKey } from "./types";
+import type { VoucherApplicationState } from "./voucher-revalidation";
 
 type BookingContactStepProps = {
   sectionRef: RefObject<HTMLDivElement | null>;
@@ -16,12 +17,7 @@ type BookingContactStepProps = {
   clientNote: string;
   clientNoteError?: string;
   voucherCode: string;
-  voucherApplication:
-    | { status: "idle" }
-    | { status: "checking" }
-    | { status: "applied"; label: string }
-    | { status: "incompatible"; message: string }
-    | { status: "invalid"; message: string };
+  voucherApplication: VoucherApplicationState;
   voucherCodeError?: string;
   contactFormError?: PublicBookingActionState["formError"];
   getDisplayedFieldError: (field: ContactFieldKey) => string | undefined;
@@ -295,7 +291,7 @@ export function BookingContactStep({
             ) : null}
             {voucherApplication.status === "checking" ? (
               <p aria-live="polite" className="text-sm text-[var(--color-muted)]">
-                Ověřuji voucher pro vybranou službu…
+                Ověřuji použitelnost voucheru…
               </p>
             ) : null}
             {voucherApplication.status === "applied" ? (
@@ -303,9 +299,14 @@ export function BookingContactStep({
                 Voucher je použitelný: {voucherApplication.label}.
               </p>
             ) : null}
-            {voucherApplication.status === "incompatible" || voucherApplication.status === "invalid" ? (
+            {voucherApplication.status === "incompatible" ? (
               <p aria-live="polite" className="text-sm text-red-700">
                 {voucherApplication.message}
+              </p>
+            ) : null}
+            {voucherApplication.status === "invalid" ? (
+              <p aria-live="polite" className="text-sm text-red-700">
+                Tento poukaz momentálně nelze použít. Upravte nebo odstraňte jeho kód.
               </p>
             ) : null}
           </div>

@@ -556,7 +556,7 @@ export function AdminServiceForm(props: EditServiceFormProps | CreateServiceForm
               name="seoTitle"
               maxLength={120}
               defaultValue={props.mode === "create" ? props.initialValues.seoTitle : props.service.seoTitle ?? ""}
-              placeholder="Např. Lash lifting Zlín | PP Studio"
+              placeholder="Např. Lash lifting Zlín"
               className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none transition placeholder:text-white/32 focus:border-[var(--color-accent)]/60"
             />
           </Field>

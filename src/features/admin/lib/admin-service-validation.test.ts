@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { createServiceSchema, updateServiceSchema } from "./admin-service-validation";
+import {
+  createServiceSchema,
+  normalizeServiceSeoTitle,
+  updateServiceSchema,
+} from "./admin-service-validation";
 
 function buildValidInput(overrides: Partial<Record<string, unknown>> = {}) {
   return {
@@ -31,6 +35,11 @@ function buildValidInput(overrides: Partial<Record<string, unknown>> = {}) {
 }
 
 describe("createServiceSchema", () => {
+  it("normalizuje koncovou značku v SEO title", () => {
+    const parsed = createServiceSchema.parse(buildValidInput());
+
+    assert.equal(parsed.seoTitle, "Lash lifting Zlín");
+  });
   it("převede textarea řádky na trimovaný seznam a zachová diakritiku", () => {
     const parsed = createServiceSchema.parse(buildValidInput());
 
@@ -120,6 +129,19 @@ describe("createServiceSchema", () => {
 });
 
 describe("updateServiceSchema", () => {
+  it("použije stejnou normalizaci SEO title jako vytvoření služby", () => {
+    const parsed = updateServiceSchema.parse({
+      ...buildValidInput({
+        serviceId: "service-1",
+        intent: "save",
+        seoTitle: "Lash lifting Zlín | PP Studio | PP Studio",
+        sortOrder: "10",
+      }),
+    });
+
+    assert.equal(parsed.seoTitle, "Lash lifting Zlín");
+  });
+
   it("přijme úklidový čas při editaci služby", () => {
     const parsed = updateServiceSchema.parse({
       ...buildValidInput({
@@ -131,5 +153,22 @@ describe("updateServiceSchema", () => {
     });
 
     assert.equal(parsed.cleanupMinutes, 45);
+  });
+});
+
+describe("normalizeServiceSeoTitle", () => {
+  it("odstraní opakovanou koncovou značku bez ohledu na velikost písmen a mezery", () => {
+    assert.equal(
+      normalizeServiceSeoTitle("  Lash lifting Zlín  | pP sTuDiO | PP STUDIO  "),
+      "Lash lifting Zlín",
+    );
+  });
+
+  it("zachová legitimní výskyt značky uvnitř názvu", () => {
+    assert.equal(normalizeServiceSeoTitle("PP Studio speciální péče Zlín"), "PP Studio speciální péče Zlín");
+  });
+
+  it("zachová prázdnou hodnotu", () => {
+    assert.equal(normalizeServiceSeoTitle("   "), "");
   });
 });
