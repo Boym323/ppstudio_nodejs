@@ -1,6 +1,8 @@
 import { VoucherType } from "@prisma/client";
 import { z } from "zod";
 
+import { optionalVoucherValidityDate } from "@/features/vouchers/lib/voucher-validity-date";
+
 const optionalText = (maxLength: number) =>
   z
     .string()
@@ -10,18 +12,13 @@ const optionalText = (maxLength: number) =>
     .or(z.literal(""))
     .transform((value) => value || undefined);
 
-const optionalDate = z.preprocess(
-  (value) => (value === "" || value === null ? undefined : value),
-  z.coerce.date().optional(),
-);
-
 const commonCreateVoucherFields = {
   purchaserName: optionalText(160),
   purchaserEmail: optionalText(240).pipe(z.string().email("E-mail kupujícího není platný.").optional()),
   recipientName: optionalText(160),
   message: optionalText(1200),
-  validFrom: optionalDate,
-  validUntil: optionalDate,
+  validFrom: optionalVoucherValidityDate("start"),
+  validUntil: optionalVoucherValidityDate("end"),
   internalNote: optionalText(2000),
 };
 

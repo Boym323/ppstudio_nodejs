@@ -20,6 +20,7 @@ import {
   VoucherOperationError,
   voucherOperationErrorCodes,
 } from "@/features/vouchers/lib/voucher-operations";
+import { optionalVoucherValidityDate } from "@/features/vouchers/lib/voucher-validity-date";
 import { createVoucherSchema } from "@/features/vouchers/schemas/voucher-schemas";
 import { requireRole } from "@/lib/auth/session";
 import { sendOwnerSystemErrorPushover } from "@/lib/notifications/pushover";
@@ -68,11 +69,6 @@ const optionalText = (maxLength: number, message: string) =>
     .or(z.literal(""))
     .transform((value) => value || undefined);
 
-const optionalOperationalDate = z.preprocess(
-  (value) => (value === "" || value === null ? undefined : value),
-  z.coerce.date("Datum platnosti není platné.").optional(),
-);
-
 const updateVoucherOperationalDetailsSchema = z.object({
   area: z.enum(["owner", "salon"]),
   voucherId: z.string().trim().min(1, "Voucher je potřeba vybrat.").max(64),
@@ -80,7 +76,7 @@ const updateVoucherOperationalDetailsSchema = z.object({
   purchaserEmail: optionalText(240, "E-mail kupujícího je příliš dlouhý.").pipe(
     z.email("E-mail kupujícího není platný.").optional(),
   ),
-  validUntil: optionalOperationalDate,
+  validUntil: optionalVoucherValidityDate("end"),
   internalNote: optionalText(2000, "Interní poznámka je příliš dlouhá."),
 });
 
