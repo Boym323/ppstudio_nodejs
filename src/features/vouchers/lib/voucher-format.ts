@@ -64,10 +64,19 @@ export function formatVoucherRemaining(voucher: {
 export function getEffectiveVoucherStatus(
   voucher: {
     status: VoucherStatus;
+    validFrom?: Date;
     validUntil: Date | null;
   },
   now = new Date(),
 ): VoucherStatus {
+  if (
+    (voucher.status === VoucherStatus.ACTIVE || voucher.status === VoucherStatus.PARTIALLY_REDEEMED) &&
+    voucher.validFrom !== undefined &&
+    voucher.validFrom.getTime() > now.getTime()
+  ) {
+    return VoucherStatus.DRAFT;
+  }
+
   if (
     (voucher.status === VoucherStatus.ACTIVE || voucher.status === VoucherStatus.PARTIALLY_REDEEMED) &&
     voucher.validUntil !== null &&

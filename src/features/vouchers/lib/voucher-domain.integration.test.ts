@@ -340,6 +340,44 @@ describe("voucher domain", () => {
     assert.equal(result.ok && result.remainingValueCzk, 800);
   });
 
+  dbTest("rejects voucher before validFrom in booking validation and accepts it exactly at validFrom", async () => {
+    assert.ok(seed);
+    const context = seed;
+    const { createVoucher, validateVoucherForBookingInput } = await loadModules();
+    const validFrom = new Date("2030-01-01T12:00:00.000Z");
+    const voucher = await createVoucher(
+      { type: VoucherType.VALUE, ...baseVoucherMeta, originalValueCzk: 800, validFrom },
+      context.actorUserId,
+    );
+
+    const [before, atStart] = await Promise.all([
+      validateVoucherForBookingInput({
+        code: voucher.code,
+        serviceId: context.serviceId,
+        now: new Date(validFrom.getTime() - 1),
+      }),
+      validateVoucherForBookingInput({ code: voucher.code, serviceId: context.serviceId, now: validFrom }),
+    ]);
+
+    assert.deepEqual(before, { ok: false, reason: "DRAFT" });
+    assert.equal(atStart.ok, true);
+  });
+
+  dbTest("keeps future validFrom when creating a voucher", async () => {
+    assert.ok(seed);
+    const context = seed;
+    const { createVoucher } = await loadModules();
+    const validFrom = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+    const voucher = await createVoucher(
+      { type: VoucherType.VALUE, ...baseVoucherMeta, originalValueCzk: 800, validFrom },
+      context.actorUserId,
+    );
+
+    assert.equal(voucher.status, VoucherStatus.ACTIVE);
+    assert.equal(voucher.validFrom.getTime(), validFrom.getTime());
+  });
+
   dbTest("rejects cancelled voucher for booking validation and redemption", async () => {
     assert.ok(seed);
     const context = seed;
@@ -465,6 +503,33 @@ describe("voucher domain", () => {
 
     assert.deepEqual(expiredResult, { ok: false, reason: "EXPIRED" });
     assert.deepEqual(exhaustedResult, { ok: false, reason: "NO_REMAINING_VALUE" });
+  });
+
+  dbTest("rejects voucher before validFrom during redemption", async () => {
+    assert.ok(seed);
+    const context = seed;
+    const { createVoucher, redeemVoucherForBooking, VoucherRedemptionError } = await loadModules();
+    const voucher = await createVoucher(
+      {
+        type: VoucherType.VALUE,
+        ...baseVoucherMeta,
+        originalValueCzk: 800,
+        validFrom: new Date(Date.now() + 60 * 60 * 1000),
+      },
+      context.actorUserId,
+    );
+
+    await assert.rejects(
+      () =>
+        redeemVoucherForBooking({
+          voucherCode: voucher.code,
+          bookingId: context.bookingIds[0],
+          amountCzk: 800,
+          redeemedByUserId: context.actorUserId,
+          note: undefined,
+        }),
+      (error) => error instanceof VoucherRedemptionError && error.code === "VOUCHER_NOT_REDEEMABLE",
+    );
   });
 
   dbTest("redeems VALUE voucher partially and then to zero", async () => {

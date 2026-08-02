@@ -240,6 +240,16 @@ export async function updateVoucherOperationalDetailsAction(
       };
     }
 
+    if (error instanceof VoucherOperationError && error.code === voucherOperationErrorCodes.invalidValidityRange) {
+      return {
+        status: "error",
+        formError: "Provozní údaje je potřeba ještě upravit.",
+        fieldErrors: {
+          validUntil: "Platnost do musí být po datu začátku platnosti.",
+        },
+      };
+    }
+
     await sendOwnerSystemErrorPushover({
       title: "PP Studio - systemova chyba",
       message: "Ulozeni provoznich udaju voucheru selhalo neocekavanou chybou.",

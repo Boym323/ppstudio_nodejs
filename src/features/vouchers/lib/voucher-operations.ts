@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 
 export const voucherOperationErrorCodes = {
   voucherNotFound: "VOUCHER_NOT_FOUND",
+  invalidValidityRange: "INVALID_VALIDITY_RANGE",
   voucherAlreadyCancelled: "VOUCHER_ALREADY_CANCELLED",
   voucherHasRedemptions: "VOUCHER_HAS_REDEMPTIONS",
 } as const;
@@ -30,6 +31,22 @@ export async function updateVoucherOperationalDetails(input: {
   internalNote?: string;
   updatedByUserId: string | null;
 }) {
+  const voucher = await prisma.voucher.findUnique({
+    where: { id: input.voucherId },
+    select: { validFrom: true },
+  });
+
+  if (!voucher) {
+    throw new VoucherOperationError(voucherOperationErrorCodes.voucherNotFound, "Voucher was not found.");
+  }
+
+  if (input.validUntil !== null && input.validUntil !== undefined && input.validUntil <= voucher.validFrom) {
+    throw new VoucherOperationError(
+      voucherOperationErrorCodes.invalidValidityRange,
+      "Voucher validUntil must be after validFrom.",
+    );
+  }
+
   const result = await prisma.voucher.updateMany({
     where: {
       id: input.voucherId,

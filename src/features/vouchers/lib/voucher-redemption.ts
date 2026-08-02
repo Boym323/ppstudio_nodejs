@@ -78,6 +78,7 @@ export async function redeemVoucherForBookingInTransaction(
         serviceId: true,
         serviceNameSnapshot: true,
         servicePriceSnapshotCzk: true,
+        validFrom: true,
         validUntil: true,
       },
     });

@@ -96,6 +96,7 @@ async function createTestVoucher(
     type: VoucherType;
     status?: VoucherStatus;
     remainingValueCzk?: number | null;
+    validFrom?: Date;
     validUntil?: Date | null;
     purchaserEmail?: string | null;
     internalNote?: string | null;
@@ -116,7 +117,7 @@ async function createTestVoucher(
       serviceNameSnapshot: isService ? "Lash lifting public" : null,
       servicePriceSnapshotCzk: isService ? 1200 : null,
       serviceDurationSnapshot: isService ? 60 : null,
-      validFrom: new Date("2026-01-01T00:00:00.000Z"),
+      validFrom: input.validFrom ?? new Date("2026-01-01T00:00:00.000Z"),
       validUntil: input.validUntil === undefined ? new Date("2026-12-31T23:59:59.000Z") : input.validUntil,
       issuedAt: new Date("2026-01-01T00:00:00.000Z"),
       internalNote: input.internalNote ?? null,
@@ -215,6 +216,25 @@ describe("public voucher verification", () => {
     });
 
     assert.deepEqual(result, { ok: false, reason: "EXPIRED" });
+  });
+
+  dbTest("rejects voucher before validFrom and accepts it exactly from validFrom", async () => {
+    assert.ok(seed);
+    const { verifyVoucherPublic } = await loadModules();
+    const validFrom = new Date("2026-06-01T12:00:00.000Z");
+    const voucher = await createTestVoucher(seed, {
+      codeSuffix: "VF",
+      type: VoucherType.VALUE,
+      validFrom,
+    });
+
+    const [before, atStart] = await Promise.all([
+      verifyVoucherPublic({ code: voucher.code, now: new Date("2026-06-01T11:59:59.999Z") }),
+      verifyVoucherPublic({ code: voucher.code, now: validFrom }),
+    ]);
+
+    assert.deepEqual(before, { ok: false, reason: "DRAFT" });
+    assert.equal(atStart.ok, true);
   });
 
   dbTest("returns cancelled reason without exposing internal cancellation metadata", async () => {

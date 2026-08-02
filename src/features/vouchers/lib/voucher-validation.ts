@@ -69,10 +69,6 @@ function getBlockedReason(status: VoucherStatus): VoucherValidationReasonCode | 
   }
 }
 
-function isVoucherNotActiveYet(voucher: { validFrom: Date }, now: Date) {
-  return voucher.validFrom.getTime() > now.getTime();
-}
-
 export async function verifyVoucherPublic(input: {
   code: string;
   now?: Date;
@@ -113,10 +109,6 @@ export async function verifyVoucherPublic(input: {
     return { ok: false, reason: blockedReason };
   }
 
-  if (isVoucherNotActiveYet(voucher, now)) {
-    return { ok: false, reason: voucherValidationReasonCodes.draft };
-  }
-
   if (voucher.type === VoucherType.VALUE && (voucher.remainingValueCzk ?? 0) <= 0) {
     return { ok: false, reason: voucherValidationReasonCodes.noRemainingValue };
   }
@@ -135,9 +127,11 @@ export async function verifyVoucherPublic(input: {
 export async function validateVoucherForBookingInput(input: {
   code: string;
   serviceId: string;
+  now?: Date;
 }): Promise<ValidateVoucherForBookingResult> {
   const code = normalizeVoucherCode(input.code);
   const serviceId = input.serviceId.trim();
+  const now = input.now ?? new Date();
 
   if (!code || !serviceId) {
     return { ok: false, reason: voucherValidationReasonCodes.invalidInput };
@@ -153,6 +147,7 @@ export async function validateVoucherForBookingInput(input: {
       remainingValueCzk: true,
       serviceId: true,
       serviceNameSnapshot: true,
+      validFrom: true,
       validUntil: true,
     },
   });
@@ -161,7 +156,7 @@ export async function validateVoucherForBookingInput(input: {
     return { ok: false, reason: voucherValidationReasonCodes.notFound };
   }
 
-  const effectiveStatus = getEffectiveVoucherStatus(voucher);
+  const effectiveStatus = getEffectiveVoucherStatus(voucher, now);
   const blockedReason = getBlockedReason(effectiveStatus);
 
   if (blockedReason) {

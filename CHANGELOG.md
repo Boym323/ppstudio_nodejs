@@ -8,6 +8,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Voucher s budoucí platností od se nyní jednotně odmítá při veřejném ověření, vytvoření rezervace i při jeho uplatnění; nastavené datum platnosti od přitom zůstává zachované.
 - Souhrn veřejné rezervace nyní jasně rozlišuje neplatný, nekompatibilní, ověřovaný i použitelný voucher a neplatný kód už nenaznačuje pozdější uplatnění.
 - SEO titulek služby se při vytvoření i úpravě na serveru zbaví opakované koncové značky PP Studio, takže se ve výsledných metadatech zobrazí právě jednou.
 - Veřejné ověření voucheru a rezervační formulář mají oddělené limity pro neplatné kódy; úspěšná ověření ani interní chyby už nevyčerpávají ochranu proti hádání kódů.

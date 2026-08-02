@@ -294,6 +294,7 @@ async function createVoucher(
     status?: VoucherStatus;
     remainingValueCzk?: number | null;
     serviceId?: string | null;
+    validFrom?: Date;
   },
 ) {
   const { prisma } = await loadModules();
@@ -308,6 +309,7 @@ async function createVoucher(
       serviceNameSnapshot: data.type === VoucherType.SERVICE ? "Veřejná služba voucher" : null,
       servicePriceSnapshotCzk: data.type === VoucherType.SERVICE ? 1200 : null,
       serviceDurationSnapshot: data.type === VoucherType.SERVICE ? 60 : null,
+      validFrom: data.validFrom,
       issuedAt: new Date(),
     },
   });
@@ -536,6 +538,24 @@ describe("public booking intended voucher", () => {
       assert.equal(unchangedVoucher.remainingValueCzk, 1000);
       assert.equal(unchangedVoucher.status, VoucherStatus.ACTIVE);
       assert.equal(redemptionCount, 0);
+    });
+  });
+
+  dbTest("rejects voucher before validFrom during final public booking creation", async () => {
+    await withSeed(async (seed) => {
+      const { createPublicBooking, publicBookingErrorCodes } = await loadModules();
+      const slot = await createSlot(seed);
+      const voucher = await createVoucher(seed, {
+        code: `PP-2026-F${randomUUID().replace(/-/g, "").slice(0, 5).toUpperCase()}`,
+        type: VoucherType.VALUE,
+        validFrom: new Date(Date.now() + 60 * 60 * 1000),
+      });
+      const input = buildBookingInput(seed, slot, voucher.code);
+
+      await assert.rejects(
+        () => createPublicBooking(input),
+        (error) => error instanceof Error && "code" in error && error.code === publicBookingErrorCodes.voucherInvalid,
+      );
     });
   });
 

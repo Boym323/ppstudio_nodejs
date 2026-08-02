@@ -173,6 +173,24 @@ describe("voucher operational management", () => {
     assert.equal(updated.message, null);
   });
 
+  dbTest("rejects validUntil that is not after the stored validFrom", async () => {
+    assert.ok(seed);
+    const { updateVoucherOperationalDetails, VoucherOperationError, voucherOperationErrorCodes } = await loadModules();
+    const voucher = await createValueVoucher(seed);
+
+    await assert.rejects(
+      () =>
+        updateVoucherOperationalDetails({
+          voucherId: voucher.id,
+          validUntil: new Date("2026-01-01T00:00:00.000Z"),
+          updatedByUserId: seed.ownerUserId,
+        }),
+      (error) =>
+        error instanceof VoucherOperationError
+        && error.code === voucherOperationErrorCodes.invalidValidityRange,
+    );
+  });
+
   dbTest("OWNER can cancel active voucher without redemptions", async () => {
     assert.ok(seed);
     const { cancelVoucherOperationally } = await loadModules();
