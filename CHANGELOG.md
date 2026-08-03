@@ -6,6 +6,10 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+### Opraveno
+
+- Webhook Resend nyní zpracuje událost zpožděného doručení, takže se v administraci uloží a zobrazí stav „Doručení zpožděno“.
+
 ## [3.13.3] - 2026-08-02
 
 ### Opraveno

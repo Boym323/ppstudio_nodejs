@@ -17,6 +17,7 @@ type ResendWebhookEvent = {
 const EMAIL_EVENT_TYPES = new Set([
   "email.sent",
   "email.delivered",
+  "email.delivery_delayed",
   "email.opened",
   "email.clicked",
   "email.bounced",
