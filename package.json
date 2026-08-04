@@ -34,6 +34,7 @@
     "db:check-migrations": "node scripts/check-migration-history.mjs",
     "analytics:check": "node scripts/check-matomo-reporting.mjs",
     "changelog:check": "node scripts/check-changelog.mjs",
+    "version:check": "node scripts/check-version-consistency.mjs",
     "test:changelog": "node --test scripts/check-changelog.test.mjs",
     "db:push": "prisma db push",
     "db:studio": "prisma studio",

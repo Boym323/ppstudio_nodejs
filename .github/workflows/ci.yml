@@ -57,6 +57,9 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Version consistency
+        run: npm run version:check
+
   typecheck:
     name: typecheck
     runs-on: ubuntu-latest
