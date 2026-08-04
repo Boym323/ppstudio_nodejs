@@ -22,6 +22,11 @@ export const slotDateKeyFormatter = new Intl.DateTimeFormat("en-US", {
   day: "2-digit",
   timeZone: "Europe/Prague",
 });
+const slotHourFormatter = new Intl.DateTimeFormat("en-US", {
+  hour: "2-digit",
+  hourCycle: "h23",
+  timeZone: "Europe/Prague",
+});
 export const calendarGridColumnsStyle = {
   gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
 } as const;
@@ -53,6 +58,22 @@ export function formatSlotTime(value: string) {
     minute: "2-digit",
     timeZone: "Europe/Prague",
   }).format(new Date(value));
+}
+
+export function getSlotHour(value: string) {
+  const parsedValue = new Date(value);
+
+  if (Number.isNaN(parsedValue.getTime())) {
+    return null;
+  }
+
+  const hour = slotHourFormatter.formatToParts(parsedValue)
+    .find((part) => part.type === "hour")?.value;
+  const numericHour = Number(hour);
+
+  return Number.isInteger(numericHour) && numericHour >= 0 && numericHour <= 23
+    ? numericHour
+    : null;
 }
 
 export function formatCalendarMonthLabel(monthKey: string) {

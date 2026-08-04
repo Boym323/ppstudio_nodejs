@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   findInitialSelectedService,
+  getSlotHour,
   formatSlotTime,
   getSlotDateKey,
   shouldTrackPrefilledServiceSelectionEvent,
@@ -16,6 +17,8 @@ test("public booking client displays catalog ISO times as Prague salon time", ()
   assert.equal(formatSlotTime(winterStartsAt), "09:00");
   assert.equal(getSlotDateKey(summerStartsAt), "2026-07-15");
   assert.equal(formatSlotTime(summerStartsAt), "09:00");
+  assert.equal(getSlotHour(winterStartsAt), 9);
+  assert.equal(getSlotHour(summerStartsAt), 9);
 });
 
 test("findInitialSelectedService returns the matching catalog service for a valid slug", () => {

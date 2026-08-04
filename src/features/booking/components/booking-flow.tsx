@@ -50,6 +50,7 @@ import {
   getCategoryKey,
   getSlotDateKey,
   getSlotDurationMinutes,
+  getSlotHour,
   formatSlotDate,
   formatSlotTime,
   shouldTrackPrefilledServiceSelectionEvent,
@@ -170,9 +171,12 @@ export function BookingFlow({
   };
 
   const trackSelectedTimeMetaEvent = (slotOption: TimeSlotOption) => {
-    const startsAt = new Date(slotOption.startsAt);
-    const hour = startsAt.getHours();
-    const timeBucket = hour < 12 ? "morning" : hour < 17 ? "afternoon" : "evening";
+    const hour = getSlotHour(slotOption.startsAt);
+    const timeBucket = hour !== null && hour < 12
+      ? "morning"
+      : hour !== null && hour < 17
+        ? "afternoon"
+        : "evening";
 
     trackMetaPixelCustomEvent("BookingTimeSelected", {
       time_bucket: timeBucket,
@@ -595,8 +599,8 @@ export function BookingFlow({
       return [];
     }
 
-    const daysInMonth = new Date(year, month, 0).getDate();
-    const firstWeekday = new Date(year, month - 1, 1).getDay();
+    const daysInMonth = new Date(Date.UTC(year, month, 0, 12)).getUTCDate();
+    const firstWeekday = new Date(Date.UTC(year, month - 1, 1, 12)).getUTCDay();
     const leadingPlaceholders = (firstWeekday + 6) % 7;
     const cells: Array<string | null> = Array.from({ length: leadingPlaceholders }, () => null);
 

@@ -18,6 +18,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Veřejný rezervační kalendář nyní počítá mřížku dnů i čas vybraného termínu nezávisle na časovém pásmu telefonu; termíny nadále vždy odpovídají času salonu v Praze.
 - Vyhledávání klientek při ruční rezervaci nyní předává dotaz pouze v chráněném POST těle, takže se citlivé údaje neobjevují v URL.
 - Webhook Resend nyní zpracuje událost zpožděného doručení, takže se v administraci uloží a zobrazí stav „Doručení zpožděno“.
 
