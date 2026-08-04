@@ -8,11 +8,12 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Zabezpečení
 
-- Aktualizována závislost `jose` na verzi 6.2.5.
+- Aktualizována závislost `jose` na verzi 6.2.8.
 - Aktualizována tranzitivní závislost `fast-uri` kvůli opravě zranitelnosti při vyhodnocování URI autority.
 
 ### Změněno
 
+- Aktualizovány patchové a minor verze produkčních i vývojových závislostí, včetně Next.js, Reactu, Playwrightu a Svixu.
 - Kontrola changelogu už neběží jako blokující job GitHub Actions; požadavek na její posouzení zůstává v pull request šabloně.
 
 ### Opraveno
