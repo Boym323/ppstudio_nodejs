@@ -6,6 +6,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [3.13.4] - 2026-08-04
+
 ### Zabezpečení
 
 - Aktualizována závislost `jose` na verzi 6.2.8.
@@ -15,6 +17,7 @@ Formát je inspirovaný Keep a Changelog.
 
 - Aktualizovány patchové a minor verze produkčních i vývojových závislostí, včetně Next.js, Reactu, Playwrightu a Svixu.
 - Kontrola changelogu už neběží jako blokující job GitHub Actions; požadavek na její posouzení zůstává v pull request šabloně.
+- Release příprava pro produkční nasazení: projektová verze navýšena na patch `3.13.4`.
 
 ### Opraveno
 
