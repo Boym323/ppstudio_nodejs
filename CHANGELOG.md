@@ -8,6 +8,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Zabezpečení
 
+- Aktualizována závislost `jose` na verzi 6.2.5.
 - Aktualizována tranzitivní závislost `fast-uri` kvůli opravě zranitelnosti při vyhodnocování URI autority.
 
 ### Opraveno
