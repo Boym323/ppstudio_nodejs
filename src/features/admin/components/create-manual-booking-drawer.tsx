@@ -113,7 +113,10 @@ export function CreateManualBookingDrawer({
     const controller = new AbortController();
     const timeout = window.setTimeout(async () => {
       try {
-        const response = await fetch(`/api/admin/clients/search?query=${encodeURIComponent(query)}`, {
+        const response = await fetch("/api/admin/clients/search", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query }),
           signal: controller.signal,
         });
         const result = await response.json() as { clients?: ClientOption[] };

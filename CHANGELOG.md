@@ -8,6 +8,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Vyhledávání klientek při ruční rezervaci nyní předává dotaz pouze v chráněném POST těle, takže se citlivé údaje neobjevují v URL.
 - Webhook Resend nyní zpracuje událost zpožděného doručení, takže se v administraci uloží a zobrazí stav „Doručení zpožděno“.
 
 ## [3.13.3] - 2026-08-02
