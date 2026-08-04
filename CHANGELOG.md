@@ -11,6 +11,10 @@ Formát je inspirovaný Keep a Changelog.
 - Aktualizována závislost `jose` na verzi 6.2.5.
 - Aktualizována tranzitivní závislost `fast-uri` kvůli opravě zranitelnosti při vyhodnocování URI autority.
 
+### Změněno
+
+- Kontrola changelogu už neběží jako blokující job GitHub Actions; požadavek na její posouzení zůstává v pull request šabloně.
+
 ### Opraveno
 
 - Vyhledávání klientek při ruční rezervaci nyní předává dotaz pouze v chráněném POST těle, takže se citlivé údaje neobjevují v URL.
