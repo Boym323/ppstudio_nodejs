@@ -6,6 +6,10 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+### Zabezpečení
+
+- Aktualizována tranzitivní závislost `fast-uri` kvůli opravě zranitelnosti při vyhodnocování URI autority.
+
 ### Opraveno
 
 - Vyhledávání klientek při ruční rezervaci nyní předává dotaz pouze v chráněném POST těle, takže se citlivé údaje neobjevují v URL.
