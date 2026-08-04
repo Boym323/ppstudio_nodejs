@@ -6,6 +6,10 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+### Změněno
+
+- FAQ nově vysvětluje rozdíl mezi korejským a klasickým lash liftingem a uvádí, že studio nabízí již jen korejskou variantu.
+
 ## [3.13.4] - 2026-08-04
 
 ### Zabezpečení

@@ -517,7 +517,12 @@ export function buildFaqSections(cancellationHours: number): FaqSection[] {
         {
           question: 'Jak dlouho vydrží lash lifting?',
           answer:
-            'Efekt lash liftingu obvykle vydrží přibližně 4 až 6 týdnů. Záleží na přirozeném cyklu vašich řas, domácí péči a také na tom, jak rychle se řasy obnovují.',
+            'Efekt lash liftingu obvykle vydrží přibližně 6 až 8 týdnů. Záleží na přirozeném cyklu vašich řas, domácí péči a také na tom, jak rychle se řasy obnovují.',
+        },
+        {
+          question: 'Jaký je rozdíl mezi korejským a klasickým lash liftingem?',
+          answer:
+            'Klasický lash lifting řasy natáčí na silikonové formě a fixuje je do oblouku. Korejský lash lifting pracuje šetrněji s vlastními řasami od kořínků a umožňuje přesněji přizpůsobit natočení jejich délce a směru růstu. V PP Studiu nyní nabízím už jen korejský lash lifting.',
         },
         {
           question: 'Jaký je rozdíl mezi lash liftingem a prodlužováním řas?',
