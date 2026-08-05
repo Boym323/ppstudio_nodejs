@@ -6,10 +6,13 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [3.13.5] - 2026-08-05
+
 ### Změněno
 
 - FAQ nově vysvětluje rozdíl mezi korejským a klasickým lash liftingem a uvádí, že studio nabízí již jen korejskou variantu.
 - Veřejné Matomo měření používá Heartbeat Timer s minimálním intervalem 15 sekund, takže přesněji zachytí délku návštěv bez vytváření dalších pageview.
+- Release příprava pro produkční nasazení: projektová verze navýšena na patch `3.13.5`.
 
 ## [3.13.4] - 2026-08-04
 
