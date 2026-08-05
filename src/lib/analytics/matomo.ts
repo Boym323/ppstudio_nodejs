@@ -80,6 +80,7 @@ const DEFAULT_DASHBOARD_ANALYTICS: DashboardAnalytics = {
 
 const bookingFunnelLabels = {
   service: "Rezervace / Služba vybrána",
+  prefilledService: "Rezervace / Služba předvyplněna",
   term: "Rezervace / Čas vybrán",
   contact: "Rezervace / Kontakt zahájen",
   submitted: "Rezervace / Odeslána rezervace",
@@ -544,7 +545,9 @@ export async function getDashboardAnalytics(): Promise<DashboardAnalytics> {
     const visits = visitsSummary.nb_visits;
     const funnel = {
       viewed: getBookingFlowPageviewCount(pageUrls),
-      service: getEventCount(events, bookingFunnelLabels.service, bookingFunnelLegacyAliases.service),
+      service:
+        getEventCount(events, bookingFunnelLabels.service, bookingFunnelLegacyAliases.service) +
+        getEventCount(events, bookingFunnelLabels.prefilledService),
       term: getEventCount(events, bookingFunnelLabels.term, bookingFunnelLegacyAliases.term),
       contact: getEventCount(events, bookingFunnelLabels.contact, bookingFunnelLegacyAliases.contact),
       submitted: getEventCount(events, bookingFunnelLabels.submitted, bookingFunnelLegacyAliases.submitted),

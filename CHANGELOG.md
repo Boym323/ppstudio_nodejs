@@ -9,6 +9,7 @@ Formát je inspirovaný Keep a Changelog.
 ### Opraveno
 
 - Meta Pixel nyní odešle `InitiateCheckout` až po výběru termínu nebo při přechodu do kontaktního kroku, takže samotné otevření rezervační stránky nenavyšuje počet zahájených checkoutů.
+- Funnel rezervací v administraci nyní do kroku služby započítává také předvyplněnou službu z detailu služby, takže následné kroky nevypadají jako neexistující propad.
 
 ## [3.13.5] - 2026-08-05
 
