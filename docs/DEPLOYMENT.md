@@ -113,7 +113,7 @@ Stručný architektonický a provozní přehled nasazení na Proxmox/LXC je v ko
      - `/admin`, `/api`, Next internals a tokenové self-service route (`/rezervace/sprava/*`, `/rezervace/storno/*`, `/rezervace/akce/*`) Pixel neinicializují
      - při přihlášené admin session (`ppstudio-admin-session`) se na veřejných stránkách Pixel nenačte
      - detail služby odešle `ViewContent`
-     - `/rezervace` odešle `InitiateCheckout`, po výběru služby `AddToCart`, po výběru dne/času custom `BookingDateSelected` / `BookingTimeSelected`, po první interakci v kontaktu `BookingContactStarted` a po úspěchu `Lead`
+     - `/rezervace` odešle `InitiateCheckout` až po výběru termínu nebo při přechodu do kontaktního kroku; po výběru služby odešle `AddToCart`, po výběru dne/času custom `BookingDateSelected` / `BookingTimeSelected`, po první interakci v kontaktu `BookingContactStarted` a po úspěchu `Lead`
 16. Projdi ruční QA admin částí:
   - login redirect pro `OWNER` a `SALON`
   - opakované chybné přihlášení na `/admin/prihlaseni` po překročení limitu vrátí `error=rate_limited` a nepovolí session

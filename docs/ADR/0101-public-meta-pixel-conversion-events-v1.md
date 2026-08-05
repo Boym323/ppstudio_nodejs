@@ -10,7 +10,7 @@ Samotny `PageView` v Meta Pixelu nestacil pro smysluplne remarketingove publikum
 - `PageView` zustava globalni v `MetaPixelTracker`, ale dalsi funnel eventy se volaji jen z klientskych handleru nebo efektu po uspesne akci.
 - Detail sluzby `/sluzby/[slug]` posila standardni event `ViewContent`.
 - Booking flow `/rezervace` posila:
-  - `InitiateCheckout` pri otevreni aktivniho booking flow
+  - `InitiateCheckout` po vyberu terminu nebo pri prechodu do kontaktniho kroku
   - `AddToCart` pri vyberu sluzby nebo pri URL prefill `?service=...`
   - custom `BookingDateSelected` pri vyberu dne
   - custom `BookingTimeSelected` pri vyberu casu

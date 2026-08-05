@@ -230,7 +230,7 @@ Pro centralizovaný přehled hlavních route handler kontraktů používej i [`d
 - Meta Pixel standardní eventy drž anglicky podle konvence platformy (`PageView`, `ViewContent`, `InitiateCheckout`, `AddToCart`, `Lead`); custom Meta eventy používej stabilně v PascalCase (`BookingDateSelected`, `BookingTimeSelected`, `BookingContactStarted`).
 - Meta Pixel v aktuální verzi měří tyto neosobní kroky:
   - detail služby: `ViewContent`
-  - booking flow mount: `InitiateCheckout`
+  - výběr termínu nebo přechod do kontaktního kroku booking flow: `InitiateCheckout`
   - výběr služby: `AddToCart`
   - výběr dne: `BookingDateSelected`
   - výběr času: `BookingTimeSelected`

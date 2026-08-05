@@ -876,13 +876,14 @@ test.describe("booking flows", () => {
 
     await page.getByRole("link", { name: "Rezervovat službu" }).click();
     await expect(page).toHaveURL(new RegExp(`/rezervace\\?service=${fixture.serviceSlug}$`));
-    await expectMetaPixelEvent(page, "track:InitiateCheckout");
     await expectMetaPixelEvent(page, "track:AddToCart");
+    await expect.poll(async () => getMetaPixelEventNames(page)).not.toContain("track:InitiateCheckout");
 
     await clickUntilFocused(
       page.getByRole("button", { name: /^Vybrat termín / }).first(),
       page.getByLabel("Jméno a příjmení"),
     );
+    await expectMetaPixelEvent(page, "track:InitiateCheckout");
     await expectMetaPixelEvent(page, "trackCustom:BookingDateSelected");
     await expectMetaPixelEvent(page, "trackCustom:BookingTimeSelected");
     await expectMetaPixelEvent(page, "trackCustom:BookingContactStarted");

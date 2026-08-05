@@ -333,18 +333,6 @@ export function BookingFlow({
   };
 
   useEffect(() => {
-    if (initiateCheckoutTrackedRef.current) {
-      return;
-    }
-
-    initiateCheckoutTrackedRef.current = true;
-    trackMetaPixelStandardEvent("InitiateCheckout", {
-      content_category: "booking",
-      source_context: initialSelectedServiceSlug ? "service_prefill" : "booking_landing",
-    });
-  }, [initialSelectedServiceSlug]);
-
-  useEffect(() => {
     return () => {
       if (serviceStepHighlightTimeoutRef.current !== null) {
         window.clearTimeout(serviceStepHighlightTimeoutRef.current);
@@ -441,6 +429,18 @@ export function BookingFlow({
   );
 
   const selectedService = selectedServiceId ? servicesById.get(selectedServiceId) : undefined;
+
+  const trackInitiateCheckout = () => {
+    if (initiateCheckoutTrackedRef.current) {
+      return;
+    }
+
+    initiateCheckoutTrackedRef.current = true;
+    trackMetaPixelStandardEvent("InitiateCheckout", {
+      content_category: "booking",
+      source_context: initialSelectedServiceSlug ? "service_prefill" : "booking_landing",
+    });
+  };
 
   const invalidateVoucherApplication = useCallback((nextCode = voucherCode) => {
     voucherValidationRequestRef.current += 1;
@@ -711,6 +711,8 @@ export function BookingFlow({
   };
 
   const trackContactStarted = () => {
+    trackInitiateCheckout();
+
     if (contactStartedTrackedRef.current) {
       return;
     }
@@ -771,6 +773,7 @@ export function BookingFlow({
     setSelectedDateKey(dateKey);
     setSelectedTimeOptionKey(slotOption.key);
     setCurrentStep(3);
+    trackInitiateCheckout();
     trackDateSelected(dateKey);
     trackMatomoEvent(
       "Rezervace",
@@ -1080,6 +1083,7 @@ export function BookingFlow({
               slotError={serverState.fieldErrors?.slotId ?? serverState.fieldErrors?.startsAt}
               onContinue={() => {
                 setCurrentStep(3);
+                trackInitiateCheckout();
                 focusContactStepSection();
               }}
               onReturnToServiceSelection={() => {
