@@ -140,6 +140,7 @@ export function ensureMatomoTrackingPath(path: string, options?: { trackPageView
       const trackerUrl = normalizeMatomoUrl(process.env.NEXT_PUBLIC_MATOMO_URL ?? "");
       queue.push(["setTrackerUrl", `${trackerUrl}matomo.php`]);
       queue.push(["setSiteId", process.env.NEXT_PUBLIC_MATOMO_SITE_ID ?? ""]);
+      queue.push(["enableHeartBeatTimer", 15]);
       queue.push(["enableLinkTracking"]);
     }
 

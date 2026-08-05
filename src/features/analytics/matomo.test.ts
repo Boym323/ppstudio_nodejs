@@ -140,6 +140,7 @@ test("ensureMatomoTrackingPath bootstraps safe token route without pageview", ()
   assert.deepEqual(calls, [
     ["setTrackerUrl", "https://matomo.example.com/matomo.php"],
     ["setSiteId", "1"],
+    ["enableHeartBeatTimer", 15],
     ["enableLinkTracking"],
     ["setCustomUrl", "/rezervace/storno/[token]"],
   ]);

@@ -57,6 +57,7 @@ export function MatomoTracker({ disabled = false }: MatomoTrackerProps) {
       if (isInitialBootstrap) {
         queue.push(["setTrackerUrl", `${normalizeMatomoUrl(matomoUrl)}matomo.php`]);
         queue.push(["setSiteId", siteId]);
+        queue.push(["enableHeartBeatTimer", 15]);
         queue.push(["enableLinkTracking"]);
       }
 
@@ -93,6 +94,7 @@ export function MatomoTracker({ disabled = false }: MatomoTrackerProps) {
             window._paq = window._paq || [];
             window._paq.push(['setTrackerUrl', ${JSON.stringify(trackerEndpoint)}]);
             window._paq.push(['setSiteId', ${JSON.stringify(siteId)}]);
+            window._paq.push(['enableHeartBeatTimer', 15]);
             window._paq.push(['setCustomUrl', ${JSON.stringify(safeCurrentPath)}]);
             window.__matomoTrackerConfigured = true;
             window.__matomoTrackedPath = ${JSON.stringify(safeCurrentPath)};
