@@ -876,7 +876,8 @@ test.describe("booking flows", () => {
 
     await page.getByRole("link", { name: "Rezervovat službu" }).click();
     await expect(page).toHaveURL(new RegExp(`/rezervace\\?service=${fixture.serviceSlug}$`));
-    await expectMetaPixelEvent(page, "track:AddToCart");
+    await expectMetaPixelEvent(page, "trackCustom:BookingServiceSelected");
+    await expect.poll(async () => getMetaPixelEventNames(page)).not.toContain("track:AddToCart");
     await expect.poll(async () => getMetaPixelEventNames(page)).not.toContain("track:InitiateCheckout");
 
     await clickUntilFocused(
@@ -895,7 +896,26 @@ test.describe("booking flows", () => {
     await page.getByRole("button", { name: "Odeslat rezervaci" }).first().click();
 
     await expect(page.getByRole("heading", { name: "Rezervace přijata" })).toBeVisible();
-    await expectMetaPixelEvent(page, "track:Lead");
+    await expectMetaPixelEvent(page, "track:Schedule");
+    await expect.poll(async () => getMetaPixelEventNames(page)).toEqual([
+      "track:ViewContent",
+      "trackCustom:BookingServiceSelected",
+      "trackCustom:BookingDateSelected",
+      "trackCustom:BookingTimeSelected",
+      "track:InitiateCheckout",
+      "trackCustom:BookingContactStarted",
+      "track:Schedule",
+    ]);
+    await expect.poll(async () => getMetaPixelEventNames(page)).not.toContain("track:AddToCart");
+    await expect.poll(async () => getMetaPixelEventNames(page)).not.toContain("track:Lead");
+
+    const calls = await page.evaluate(() => (
+      (window as Window & { __metaPixelCalls?: unknown[][] }).__metaPixelCalls ?? []
+    ));
+    expect(JSON.stringify(calls)).not.toContain(fixture.clientName);
+    expect(JSON.stringify(calls)).not.toContain(fixture.clientEmail);
+    expect(JSON.stringify(calls)).not.toContain("777 000 000");
+    expect(JSON.stringify(calls)).not.toMatch(/note|voucher|token/i);
   });
 
   test("public visitor can verify a voucher code safely", async ({ page }) => {

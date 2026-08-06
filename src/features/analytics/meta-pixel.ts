@@ -9,11 +9,14 @@ declare global {
 }
 
 type MetaPixelPrimitive = boolean | number | string;
-type MetaPixelPayload = Record<string, MetaPixelPrimitive | null | undefined>;
+export type MetaPixelPayload = Record<
+  string,
+  MetaPixelPrimitive | MetaPixelPrimitive[] | null | undefined
+>;
 
 const sensitiveValuePattern =
-  /(@|(?:\+?\d[\s().-]*){9,}|token|sprava|storno|akce|jmeno|poznám|poznam|\/rezervace\/(?:sprava|storno|akce)\/)/i;
-const sensitiveKeyPattern = /email|e-mail|mail|phone|telefon|tel|token|note|poznam|client/i;
+  /(@|(?:\+?\d[\s().-]*){9,}|token|voucher|sprava|storno|akce|jmeno|poznám|poznam|\/rezervace\/(?:sprava|storno|akce)\/)/i;
+const sensitiveKeyPattern = /email|e-mail|mail|phone|telefon|tel|token|note|poznam|client|voucher|booking[_-]?id/i;
 
 export function isMetaPixelConfigured() {
   return (
@@ -65,7 +68,7 @@ export function sanitizeMetaPixelPayload(payload?: MetaPixelPayload) {
     return undefined;
   }
 
-  const sanitizedEntries: Array<[string, MetaPixelPrimitive]> = [];
+  const sanitizedEntries: Array<[string, MetaPixelPrimitive | string[]]> = [];
 
   for (const [key, value] of Object.entries(payload)) {
     if (!isSafeMetaPixelKey(key) || value === undefined || value === null) {
@@ -75,6 +78,19 @@ export function sanitizeMetaPixelPayload(payload?: MetaPixelPayload) {
     if (typeof value === "string") {
       if (isSafeMetaPixelStringValue(value)) {
         sanitizedEntries.push([key, value.trim()]);
+      }
+      continue;
+    }
+
+    if (Array.isArray(value)) {
+      const sanitizedValues = value.flatMap((item) => (
+        typeof item === "string" && isSafeMetaPixelStringValue(item)
+          ? [item.trim()]
+          : []
+      ));
+
+      if (sanitizedValues.length > 0) {
+        sanitizedEntries.push([key, sanitizedValues]);
       }
       continue;
     }
@@ -149,4 +165,12 @@ export function trackMetaPixelStandardEvent(eventName: string, payload?: MetaPix
 
 export function trackMetaPixelCustomEvent(eventName: string, payload?: MetaPixelPayload) {
   trackMetaPixel("trackCustom", eventName, payload);
+}
+
+export function shouldTrackMetaPixelPageView(previousPathname: string | null, pathname: string) {
+  return Boolean(pathname && pathname !== previousPathname);
+}
+
+export function trackMetaPixelPageView() {
+  trackMetaPixelStandardEvent("PageView");
 }

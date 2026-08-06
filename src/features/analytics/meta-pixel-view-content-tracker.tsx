@@ -22,12 +22,10 @@ export function MetaPixelViewContentTracker({
 
     trackMetaPixelStandardEvent("ViewContent", {
       content_type: "service",
-      content_ids: service.slug,
+      content_ids: [service.slug],
       content_name: service.name,
       content_category: service.category,
       duration_minutes: service.durationMinutes,
-      value: service.priceFromCzk ?? undefined,
-      currency: service.priceFromCzk ? "CZK" : undefined,
     });
 
     return () => {

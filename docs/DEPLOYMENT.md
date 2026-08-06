@@ -113,7 +113,12 @@ Stručný architektonický a provozní přehled nasazení na Proxmox/LXC je v ko
      - `/admin`, `/api`, Next internals a tokenové self-service route (`/rezervace/sprava/*`, `/rezervace/storno/*`, `/rezervace/akce/*`) Pixel neinicializují
      - při přihlášené admin session (`ppstudio-admin-session`) se na veřejných stránkách Pixel nenačte
      - detail služby odešle `ViewContent`
-     - `/rezervace` odešle `InitiateCheckout` až po výběru termínu nebo při přechodu do kontaktního kroku; po výběru služby odešle `AddToCart`, po výběru dne/času custom `BookingDateSelected` / `BookingTimeSelected`, po první interakci v kontaktu `BookingContactStarted` a po úspěchu `Lead`
+     - `/rezervace` odešle `InitiateCheckout` až po výběru termínu nebo při přechodu do kontaktního kroku; po výběru služby odešle custom `BookingServiceSelected`, po výběru dne/času custom `BookingDateSelected` / `BookingTimeSelected`, po první interakci v kontaktu `BookingContactStarted` a po úspěchu standardní `Schedule` bez ceny, pokud není jednoznačná finální cena rezervace
+     - Meta Events Manager checklist po deployi:
+       1. ověř správný Pixel ID a spusť Test Events
+       2. ověř pořadí `ViewContent → BookingServiceSelected → BookingDateSelected → BookingTimeSelected → InitiateCheckout → BookingContactStarted → Schedule` a právě jedno `Schedule`
+       3. nastav `Schedule` jako hlavní konverzi a zkontroluj, že GTM ani Event Setup Tool neposílají stejné eventy podruhé
+       4. vytvoř publika `ViewContent` / `BookingServiceSelected` / `InitiateCheckout` bez `Schedule` a klientky se `Schedule` vyluč z kampaní nedokončené rezervace
 16. Projdi ruční QA admin částí:
   - login redirect pro `OWNER` a `SALON`
   - opakované chybné přihlášení na `/admin/prihlaseni` po překročení limitu vrátí `error=rate_limited` a nepovolí session

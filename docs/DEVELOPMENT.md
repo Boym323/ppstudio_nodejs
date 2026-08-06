@@ -227,15 +227,15 @@ Pro centralizovaný přehled hlavních route handler kontraktů používej i [`d
 - Pageview tracking v App Routeru poslouchá `usePathname()` a `useSearchParams()`. První render zapíše `_paq` init (`setTrackerUrl`, `setSiteId`, `setCustomUrl`) přes inline script a pageview pošle jen na routách, kde je povolený; další klientské navigace posílá efekt se sanitizovanou URL.
 - Tokenové self-service booking route (`/rezervace/sprava/*`, `/rezervace/storno/*`, `/rezervace/akce/*`) neposílají pageview s tokenem. `MatomoTracker` na nich může pouze inicializovat `_paq`, aby šly z klientských handlerů poslat bezpečné neosobní eventy bez raw URL.
 - Funnel a CTA eventy se smí volat jen v client handlerech nebo efektech po úspěšné akci; neposílej jména, e-maily, telefony, poznámky, tokeny ani raw URL s citlivými parametry.
-- Meta Pixel standardní eventy drž anglicky podle konvence platformy (`PageView`, `ViewContent`, `InitiateCheckout`, `AddToCart`, `Lead`); custom Meta eventy používej stabilně v PascalCase (`BookingDateSelected`, `BookingTimeSelected`, `BookingContactStarted`).
+- Meta Pixel standardní eventy drž anglicky podle konvence platformy (`PageView`, `ViewContent`, `InitiateCheckout`, `Schedule`); custom Meta eventy používej stabilně v PascalCase (`BookingServiceSelected`, `BookingDateSelected`, `BookingTimeSelected`, `BookingContactStarted`).
 - Meta Pixel v aktuální verzi měří tyto neosobní kroky:
   - detail služby: `ViewContent`
   - výběr termínu nebo přechod do kontaktního kroku booking flow: `InitiateCheckout`
-  - výběr služby: `AddToCart`
+  - výběr služby: `BookingServiceSelected`
   - výběr dne: `BookingDateSelected`
   - výběr času: `BookingTimeSelected`
   - první interakce s kontaktním krokem: `BookingContactStarted`
-  - úspěšně vytvořená rezervace: `Lead`
+  - úspěšně vytvořená rezervace: `Schedule` (bez `value` a `currency`, pokud není k dispozici jednoznačná finální cena)
 - Matomo eventy pojmenovávej primárně česky (`category` i `action`) a drž je stabilní v čase; anglické názvy používej jen tam, kde jde o standardní technický termín (`Web Vitals`, `CLS`, `LCP`). U `Rezervace / Kontakt pole chyba` nese `name` jen název pole a bezpečný důvod (`povinné`, `příliš krátké`, `neplatný formát`), nikdy hodnotu ani text chyby.
 - V kontaktním kroku rezervace (`BookingContactStep`) se sledují jen neosobní interakce s poli (`fokus`, `začátek vyplnění`, `chyba`) a název pole (`fullName`/`email`/`phone`); nikdy neposílej obsah zadaných hodnot.
 - Server-side dashboard reporting je v `src/lib/analytics/matomo.ts` a je záměrně oddělený od klientského helperu. Používá pouze `MATOMO_*` env bez `NEXT_PUBLIC_`, `import "server-only"`, Matomo metody `VisitsSummary.get`, `Events.getAction`, `Referrers.getReferrerType` a `Referrers.getCampaigns`, a každý request cachuje přes `fetch(url, { next: { revalidate: 300 } })`.

@@ -4,6 +4,7 @@ import test, { afterEach } from "node:test";
 import {
   sanitizeMetaPixelPayload,
   shouldInitializeMetaPixelTracking,
+  shouldTrackMetaPixelPageView,
   trackMetaPixelCustomEvent,
   trackMetaPixelStandardEvent,
 } from "./meta-pixel";
@@ -85,6 +86,24 @@ test("sanitizeMetaPixelPayload keeps safe analytics fields and removes sensitive
   });
 });
 
+test("sanitizeMetaPixelPayload keeps only safe string content_ids", () => {
+  const sanitized = sanitizeMetaPixelPayload({
+    content_ids: [" korean-lash-lifting ", "", "voucher-SECRET", "jana@example.com", "brow-lamination"],
+    booking_id: "booking-123",
+  });
+
+  assert.deepEqual(sanitized, {
+    content_ids: ["korean-lash-lifting", "brow-lamination"],
+  });
+});
+
+test("shouldTrackMetaPixelPageView tracks a return to the original path without duplicates", () => {
+  assert.equal(shouldTrackMetaPixelPageView("/", "/"), false);
+  assert.equal(shouldTrackMetaPixelPageView("/", "/sluzby"), true);
+  assert.equal(shouldTrackMetaPixelPageView("/sluzby", "/"), true);
+  assert.equal(shouldTrackMetaPixelPageView("/", "/"), false);
+});
+
 test("trackMetaPixelStandardEvent sends sanitized payload to fbq", () => {
   setMetaPixelConfigured();
 
@@ -95,7 +114,7 @@ test("trackMetaPixelStandardEvent sends sanitized payload to fbq", () => {
     },
   });
 
-  trackMetaPixelStandardEvent("Lead", {
+  trackMetaPixelStandardEvent("Schedule", {
     content_name: "Lash lifting",
     value: 1290,
     currency: "CZK",
@@ -104,7 +123,7 @@ test("trackMetaPixelStandardEvent sends sanitized payload to fbq", () => {
 
   assert.deepEqual(calls, [[
     "track",
-    "Lead",
+    "Schedule",
     {
       content_name: "Lash lifting",
       value: 1290,

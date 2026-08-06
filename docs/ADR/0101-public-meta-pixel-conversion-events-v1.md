@@ -7,23 +7,24 @@ Samotny `PageView` v Meta Pixelu nestacil pro smysluplne remarketingove publikum
 ## Rozhodnuti
 
 - Meta Pixel zustava volitelny pres `NEXT_PUBLIC_META_PIXEL_ENABLED=true` a `NEXT_PUBLIC_META_PIXEL_ID`.
-- `PageView` zustava globalni v `MetaPixelTracker`, ale dalsi funnel eventy se volaji jen z klientskych handleru nebo efektu po uspesne akci.
+- `PageView` zustava globalni v `MetaPixelTracker`; inicializacni skript jej posle jednou a kazda skutecna SPA navigace se porovnava s bezprostredne predchozi cestou.
 - Detail sluzby `/sluzby/[slug]` posila standardni event `ViewContent`.
 - Booking flow `/rezervace` posila:
   - `InitiateCheckout` po vyberu terminu nebo pri prechodu do kontaktniho kroku
-  - `AddToCart` pri vyberu sluzby nebo pri URL prefill `?service=...`
+  - custom `BookingServiceSelected` pri vyberu sluzby nebo pri platnem URL prefill `?service=...`
   - custom `BookingDateSelected` pri vyberu dne
   - custom `BookingTimeSelected` pri vyberu casu
   - custom `BookingContactStarted` pri prvni interakci s kontaktnim krokem
-  - `Lead` po uspesnem vytvoreni rezervace
-- Event payloady se sanitizuji v helperu `src/features/analytics/meta-pixel.ts`; zakazane jsou e-maily, telefony, tokeny, klientske poznamky a hodnoty vypadajici jako PII nebo tokenova URL.
+  - `Schedule` po uspesnem vytvoreni rezervace
+- `Schedule` je hlavni konverze, nikoliv platba: bez jednoznacne finalni ceny rezervace neposila `value` ani `currency`; `Purchase` zustava odlozeny do budouciho potvrzeni platby.
+- Event payloady se sanitizuji v helperu `src/features/analytics/meta-pixel.ts`; zakazane jsou e-maily, telefony, tokeny, booking ID, vouchery, klientske poznamky a hodnoty vypadajici jako PII nebo tokenova URL. `content_ids` je bezpecne filtrovane pole stringu.
 
 ## Alternativy
 
 - Posilat do Meta i detailni eventy kontaktniho formulare (`focus`, `input start`, `error`).
   - Zamitnuto, protoze jde o diagnosticke UX signaly vhodnejsi pro Matomo nez pro reklamni optimalizaci.
 - Posilat `Purchase` po vytvoreni rezervace.
-  - Odlozeno; bez online platby by semantika mohla byt matouci. V1 zustava u `Lead`.
+  - Odlozeno; bez online platby by semantika mohla byt matouci. Hlavni konverzi je `Schedule`.
 
 ## Dusledky
 

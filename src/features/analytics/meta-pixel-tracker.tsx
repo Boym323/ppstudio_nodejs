@@ -4,7 +4,12 @@ import Script from "next/script";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef } from "react";
 
-import { isMetaPixelConfigured, shouldInitializeMetaPixelTracking } from "./meta-pixel";
+import {
+  isMetaPixelConfigured,
+  shouldInitializeMetaPixelTracking,
+  shouldTrackMetaPixelPageView,
+  trackMetaPixelPageView,
+} from "./meta-pixel";
 
 type MetaPixelTrackerProps = {
   disabled?: boolean;
@@ -14,24 +19,20 @@ export function MetaPixelTracker({ disabled = false }: MetaPixelTrackerProps) {
   const pathname = usePathname();
   const pixelId = process.env.NEXT_PUBLIC_META_PIXEL_ID;
   const shouldInitialize = isMetaPixelConfigured() && shouldInitializeMetaPixelTracking(pathname, { disabled });
-  const initialPathname = useRef(pathname);
+  const previousPathname = useRef(pathname);
 
   useEffect(() => {
-    if (!shouldInitialize || !window.fbq) {
+    if (!shouldTrackMetaPixelPageView(previousPathname.current, pathname)) {
       return;
     }
 
-    if (pathname === initialPathname.current) {
+    previousPathname.current = pathname;
+
+    if (!shouldInitialize) {
       return;
     }
 
-    try {
-      window.fbq("track", "PageView");
-    } catch (error) {
-      if (process.env.NODE_ENV === "development") {
-        console.warn("Meta Pixel pageview failed.", error);
-      }
-    }
+    trackMetaPixelPageView();
   }, [pathname, shouldInitialize]);
 
   if (!shouldInitialize || !pixelId) {

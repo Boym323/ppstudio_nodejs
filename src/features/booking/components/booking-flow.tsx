@@ -146,14 +146,12 @@ export function BookingFlow({
       return;
     }
 
-    trackMetaPixelStandardEvent("AddToCart", {
+    trackMetaPixelCustomEvent("BookingServiceSelected", {
       content_type: "service",
-      content_ids: service.slug,
+      content_ids: [service.slug],
       content_name: service.name,
       content_category: service.categoryName,
       duration_minutes: service.durationMinutes,
-      value: service.priceFromCzk ?? undefined,
-      currency: service.priceFromCzk ? "CZK" : undefined,
     });
   };
 
@@ -728,7 +726,7 @@ export function BookingFlow({
     trackMetaPixelCustomEvent("BookingContactStarted", {
       content_name: selectedService?.name,
       content_category: selectedService?.categoryName,
-      content_ids: selectedService?.slug,
+      content_ids: selectedService ? [selectedService.slug] : undefined,
     });
   };
 
@@ -773,7 +771,6 @@ export function BookingFlow({
     setSelectedDateKey(dateKey);
     setSelectedTimeOptionKey(slotOption.key);
     setCurrentStep(3);
-    trackInitiateCheckout();
     trackDateSelected(dateKey);
     trackMatomoEvent(
       "Rezervace",
@@ -782,6 +779,7 @@ export function BookingFlow({
       durationMinutes,
     );
     trackSelectedTimeMetaEvent(slotOption);
+    trackInitiateCheckout();
     focusContactStepSection();
   };
 
@@ -924,14 +922,12 @@ export function BookingFlow({
       selectedService?.name ?? serverState.confirmation.serviceName,
       selectedService?.priceFromCzk ?? undefined,
     );
-    trackMetaPixelStandardEvent("Lead", {
+    trackMetaPixelStandardEvent("Schedule", {
       content_type: "service",
       content_name: selectedService?.name ?? serverState.confirmation.serviceName,
       content_category: selectedService?.categoryName,
-      content_ids: selectedService?.slug,
+      content_ids: selectedService ? [selectedService.slug] : undefined,
       duration_minutes: selectedService?.durationMinutes,
-      value: selectedService?.priceFromCzk ?? undefined,
-      currency: selectedService?.priceFromCzk ? "CZK" : undefined,
     });
   }, [
     selectedService?.categoryName,
