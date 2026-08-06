@@ -6,10 +6,13 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [3.14.0] - 2026-08-06
+
 ### Změněno
 
 - Meta Pixel nyní měří rezervační funnel jako `ViewContent` → `BookingServiceSelected` → `BookingDateSelected` → `BookingTimeSelected` → `InitiateCheckout` → `BookingContactStarted` → `Schedule`; zastaralé události `AddToCart` a `Lead` se už pro rezervace neposílají.
 - PageView Meta Pixelu se při SPA navigaci porovnává s bezprostředně předchozí cestou, takže se správně změří i návrat na původní stránku bez duplicit.
+- Release příprava pro produkční nasazení: projektová verze navýšena na minor `3.14.0`.
 
 ### Zabezpečení
 
