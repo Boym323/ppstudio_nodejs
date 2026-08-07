@@ -1,6 +1,6 @@
 import "server-only";
 
-import { AdminRole } from "@prisma/client";
+import { AdminRole, AdminUserAuditOperation, Prisma } from "@prisma/client";
 
 import { env } from "@/config/env";
 import {
@@ -111,6 +111,59 @@ export async function issueAdminInviteToken(userId: string) {
   });
 
   return buildAdminInviteUrl(token.rawToken);
+}
+
+/** Znovuvydání pozvánky a jeho audit jsou jeden DB commit; e-mail se odesílá až poté. */
+export async function reissueAdminInviteTokenWithAudit(input: {
+  userId: string;
+  actorUserId: string;
+}) {
+  const token = buildAdminInviteToken();
+  const now = new Date();
+
+  const inviteId = await prisma.$transaction(async (tx) => {
+    const user = await tx.adminUser.findUniqueOrThrow({
+      where: { id: input.userId },
+      select: { isActive: true, invitedAt: true },
+    });
+
+    await tx.adminUser.update({
+      where: { id: input.userId },
+      data: { invitedAt: now, isActive: true },
+    });
+    await tx.adminUserInviteToken.updateMany({
+      where: { userId: input.userId, usedAt: null, revokedAt: null },
+      data: { revokedAt: now },
+    });
+    const invite = await tx.adminUserInviteToken.create({
+      data: {
+        userId: input.userId,
+        tokenHash: token.tokenHash,
+        expiresAt: token.expiresAt,
+      },
+      select: { id: true },
+    });
+    await tx.adminUserAuditEvent.create({
+      data: {
+        targetUserId: input.userId,
+        actorUserId: input.actorUserId,
+        operation: AdminUserAuditOperation.INVITE_RESEND,
+        before: {
+          isActive: user.isActive,
+          invitedAt: user.invitedAt?.toISOString() ?? null,
+        },
+        after: {
+          isActive: true,
+          invitedAt: now.toISOString(),
+          inviteId: invite.id,
+        },
+      },
+    });
+
+    return invite.id;
+  }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+
+  return { inviteId, inviteUrl: buildAdminInviteUrl(token.rawToken) };
 }
 
 export async function markAdminUserAsInvited(userId: string) {

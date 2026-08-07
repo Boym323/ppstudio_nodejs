@@ -1,7 +1,8 @@
 import "server-only";
 
-import { AdminRole, Prisma } from "@prisma/client";
+import { AdminRole, AdminUserAuditOperation, Prisma } from "@prisma/client";
 
+import { buildAuditChange } from "@/features/admin/lib/audit-change";
 import { prisma } from "@/lib/prisma";
 
 export const LAST_ACTIVE_OWNER_MESSAGE =
@@ -9,6 +10,7 @@ export const LAST_ACTIVE_OWNER_MESSAGE =
 
 type OwnerMutation = {
   userId: string;
+  actorUserId: string;
   role?: AdminRole;
   isActive?: boolean;
 };
@@ -56,6 +58,14 @@ export async function updateAdminUserWithOwnerProtection(
 
       const nextRole = mutation.role ?? target.role;
       const nextIsActive = mutation.isActive ?? target.isActive;
+      const auditChange = buildAuditChange(
+        { role: target.role, isActive: target.isActive },
+        { role: nextRole, isActive: nextIsActive },
+      );
+
+      if (!auditChange) {
+        return "updated";
+      }
       if (target.role === AdminRole.OWNER && target.isActive) {
         const activeOwnerCount = await tx.adminUser.count({
           where: { role: AdminRole.OWNER, isActive: true },
@@ -79,6 +89,19 @@ export async function updateAdminUserWithOwnerProtection(
         data: {
           ...(mutation.role ? { role: mutation.role } : {}),
           ...(mutation.isActive === undefined ? {} : { isActive: mutation.isActive }),
+        },
+      });
+
+      await tx.adminUserAuditEvent.create({
+        data: {
+          targetUserId: target.id,
+          actorUserId: mutation.actorUserId,
+          operation: mutation.role !== undefined
+            ? AdminUserAuditOperation.CHANGE_ROLE
+            : nextIsActive
+              ? AdminUserAuditOperation.ACTIVATE
+              : AdminUserAuditOperation.DEACTIVATE,
+          ...auditChange,
         },
       });
 

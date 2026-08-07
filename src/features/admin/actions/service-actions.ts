@@ -1,5 +1,6 @@
 "use server";
 
+import { Prisma, ServiceChangeOperation } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -11,6 +12,8 @@ import {
   updateServiceSchema,
 } from "@/features/admin/lib/admin-service-validation";
 import { prisma } from "@/lib/prisma";
+import { buildServiceOperationalAuditChange } from "@/features/admin/lib/service-audit-change";
+import { toggleServiceOperationalFlag } from "@/features/admin/lib/service-change-operations";
 
 function readFormString(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -91,21 +94,30 @@ async function buildDuplicateServiceName(name: string) {
   return `${baseName} ${Date.now()}`;
 }
 
-async function resolveServiceActorUserId(email: string) {
-  const dbUser = await prisma.adminUser.findFirst({
-    where: {
-      email: {
-        equals: email.trim(),
-        mode: "insensitive",
-      },
-    },
-    select: {
-      id: true,
-    },
-  });
-
-  return dbUser?.id ?? null;
-}
+const serviceAuditSelect = {
+  id: true,
+  categoryId: true,
+  name: true,
+  publicName: true,
+  seoTitle: true,
+  description: true,
+  publicIntro: true,
+  seoDescription: true,
+  idealFor: true,
+  includes: true,
+  benefits: true,
+  goodToKnow: true,
+  pricingShortDescription: true,
+  pricingBadge: true,
+  durationMinutes: true,
+  cleanupMinutes: true,
+  priceFromCzk: true,
+  sortOrder: true,
+  isFeaturedOnHomepage: true,
+  homepageSortOrder: true,
+  isActive: true,
+  isPubliclyBookable: true,
+} as const;
 
 async function reorderServicesWithinCategory(categoryId: string, movedServiceId: string, direction: "up" | "down") {
   return prisma.$transaction(async (tx) => {
@@ -328,26 +340,13 @@ export async function updateServiceAction(
   const basePath = getServiceBasePath(area);
   const returnTo = safeReturnPath(parsed.data.returnTo, basePath);
   const session = await requireAdminSectionAccess(area, "sluzby");
-  const actorUserId = await resolveServiceActorUserId(session.email);
+  const actorUserId = session.sub;
   const nextPriceFromCzk = parsed.data.priceFromCzk === "" ? null : parsed.data.priceFromCzk;
 
-  const [service, category] = await Promise.all([
-    prisma.service.findUnique({
-      where: { id: parsed.data.serviceId },
-      select: { id: true, priceFromCzk: true },
-    }),
-    prisma.serviceCategory.findUnique({
-      where: { id: parsed.data.categoryId },
-      select: { id: true, isActive: true },
-    }),
-  ]);
-
-  if (!service) {
-    return {
-      status: "error",
-      formError: "Službu se nepodařilo najít.",
-    };
-  }
+  const category = await prisma.serviceCategory.findUnique({
+    where: { id: parsed.data.categoryId },
+    select: { id: true, isActive: true },
+  });
 
   if (!category) {
     return {
@@ -359,7 +358,36 @@ export async function updateServiceAction(
     };
   }
 
-  await prisma.$transaction(async (tx) => {
+  const serviceFound = await prisma.$transaction(async (tx) => {
+    const service = await tx.service.findUnique({
+      where: { id: parsed.data.serviceId },
+      select: serviceAuditSelect,
+    });
+    if (!service) return false;
+    const nextValues = {
+      categoryId: parsed.data.categoryId,
+      name: parsed.data.name,
+      publicName: parsed.data.publicName || null,
+      seoTitle: parsed.data.seoTitle || null,
+      description: parsed.data.description || null,
+      publicIntro: parsed.data.publicIntro || null,
+      seoDescription: parsed.data.seoDescription || null,
+      idealFor: parsed.data.idealFor,
+      includes: parsed.data.includes,
+      benefits: parsed.data.benefits,
+      goodToKnow: parsed.data.goodToKnow,
+      pricingShortDescription: parsed.data.pricingShortDescription || null,
+      pricingBadge: parsed.data.pricingBadge || null,
+      durationMinutes: parsed.data.durationMinutes,
+      cleanupMinutes: parsed.data.cleanupMinutes,
+      priceFromCzk: nextPriceFromCzk,
+      sortOrder: parsed.data.sortOrder,
+      isFeaturedOnHomepage: parsed.data.isFeaturedOnHomepage,
+      homepageSortOrder: parsed.data.homepageSortOrder,
+      isActive: parsed.data.isActive,
+      isPubliclyBookable: parsed.data.isPubliclyBookable,
+    };
+    const auditChange = buildServiceOperationalAuditChange(service, nextValues);
     await tx.service.update({
       where: { id: parsed.data.serviceId },
       data: {
@@ -398,7 +426,22 @@ export async function updateServiceAction(
         },
       });
     }
-  });
+    if (auditChange) {
+      await tx.serviceChangeLog.create({
+        data: {
+          serviceId: service.id,
+          actorUserId,
+          operation: ServiceChangeOperation.UPDATE_OPERATIONAL_DETAILS,
+          ...auditChange,
+        },
+      });
+    }
+    return true;
+  }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+
+  if (!serviceFound) {
+    return { status: "error", formError: "Službu se nepodařilo najít." };
+  }
 
   revalidateServicePaths(area);
 
@@ -418,21 +461,13 @@ export async function toggleServiceActiveAction(formData: FormData): Promise<voi
   const area = readFormString(formData, "area") as AdminArea;
   const serviceId = readFormString(formData, "serviceId");
   const returnTo = safeReturnPath(readFormString(formData, "returnTo"), getServiceBasePath(area));
-  await requireAdminSectionAccess(area, "sluzby");
+  const session = await requireAdminSectionAccess(area, "sluzby");
 
-  const service = await prisma.service.findUnique({
-    where: { id: serviceId },
-    select: { id: true, isActive: true },
-  });
+  const updated = await toggleServiceOperationalFlag({ serviceId, actorUserId: session.sub, field: "isActive" });
 
-  if (!service) {
+  if (!updated) {
     redirect(returnTo);
   }
-
-  await prisma.service.update({
-    where: { id: service.id },
-    data: { isActive: !service.isActive },
-  });
 
   revalidateServicePaths(area);
   redirect(returnTo);
@@ -442,21 +477,13 @@ export async function toggleServiceBookableAction(formData: FormData): Promise<v
   const area = readFormString(formData, "area") as AdminArea;
   const serviceId = readFormString(formData, "serviceId");
   const returnTo = safeReturnPath(readFormString(formData, "returnTo"), getServiceBasePath(area));
-  await requireAdminSectionAccess(area, "sluzby");
+  const session = await requireAdminSectionAccess(area, "sluzby");
 
-  const service = await prisma.service.findUnique({
-    where: { id: serviceId },
-    select: { id: true, isPubliclyBookable: true },
-  });
+  const updated = await toggleServiceOperationalFlag({ serviceId, actorUserId: session.sub, field: "isPubliclyBookable" });
 
-  if (!service) {
+  if (!updated) {
     redirect(returnTo);
   }
-
-  await prisma.service.update({
-    where: { id: service.id },
-    data: { isPubliclyBookable: !service.isPubliclyBookable },
-  });
 
   revalidateServicePaths(area);
   redirect(returnTo);

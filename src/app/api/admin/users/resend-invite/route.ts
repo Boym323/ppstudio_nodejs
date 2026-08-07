@@ -3,8 +3,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import {
-  issueAdminInviteToken,
-  markAdminUserAsInvited,
+  reissueAdminInviteTokenWithAudit,
   sendAdminInviteEmail,
 } from "@/features/admin/lib/admin-user-invite";
 import { prisma } from "@/lib/prisma";
@@ -73,8 +72,10 @@ export async function POST(request: Request) {
   }
 
   try {
-    await markAdminUserAsInvited(user.id);
-    const inviteUrl = await issueAdminInviteToken(user.id);
+    const { inviteUrl } = await reissueAdminInviteTokenWithAudit({
+      userId: user.id,
+      actorUserId: session.sub,
+    });
     await sendAdminInviteEmail({
       recipientEmail: user.email,
       recipientName: user.name,

@@ -165,6 +165,32 @@ enum VoucherStatus {
   CANCELLED
 }
 
+enum AdminUserAuditOperation {
+  CREATE
+  UPDATE_PROFILE
+  CHANGE_ROLE
+  ACTIVATE
+  DEACTIVATE
+  INVITE_RESEND
+}
+
+enum VoucherChangeOperation {
+  UPDATE_OPERATIONAL_DETAILS
+  CANCEL
+}
+
+enum ServiceChangeOperation {
+  UPDATE_OPERATIONAL_DETAILS
+  TOGGLE_ACTIVE
+  TOGGLE_BOOKABLE
+}
+
+enum SiteSettingsChangeOperation {
+  UPDATE_SALON
+  UPDATE_BOOKING_POLICY
+  UPDATE_EMAIL
+}
+
 model AdminUser {
   id                         String                    @id @default(cuid())
   email                      String                    @unique
@@ -194,6 +220,26 @@ model AdminUser {
   voidedBookingPayments      BookingPayment[]          @relation("BookingPaymentVoidedBy")
   adjustedBookingPrices      Booking[]                 @relation("BookingPriceAdjustedBy")
   availabilityAuditEvents    AvailabilityAuditEvent[]  @relation("AvailabilityAuditEventActor")
+  targetedAdminUserAudits    AdminUserAuditEvent[]     @relation("AdminUserAuditTarget")
+  authoredAdminUserAudits    AdminUserAuditEvent[]     @relation("AdminUserAuditActor")
+  voucherChangeLogs          VoucherChangeLog[]        @relation("VoucherChangeLogActor")
+  serviceChangeLogs          ServiceChangeLog[]        @relation("ServiceChangeLogActor")
+  siteSettingsChangeLogs     SiteSettingsChangeLog[]   @relation("SiteSettingsChangeLogActor")
+}
+
+model AdminUserAuditEvent {
+  id           String                  @id @default(cuid())
+  targetUserId String
+  actorUserId  String
+  operation    AdminUserAuditOperation
+  before       Json
+  after        Json
+  createdAt    DateTime                @default(now())
+  targetUser   AdminUser               @relation("AdminUserAuditTarget", fields: [targetUserId], references: [id], onDelete: Restrict)
+  actorUser    AdminUser               @relation("AdminUserAuditActor", fields: [actorUserId], references: [id], onDelete: Restrict)
+
+  @@index([targetUserId, createdAt])
+  @@index([createdAt, id])
 }
 
 model UserNotificationSettings {
@@ -283,12 +329,28 @@ model Service {
   bookings                 Booking[]
   submissionLogs           BookingSubmissionLog[]
   priceChangeLogs          ServicePriceChangeLog[]
+  changeLogs               ServiceChangeLog[]
   vouchers                 Voucher[]                 @relation("ServiceVouchers")
   voucherRedemptions       VoucherRedemption[]       @relation("ServiceVoucherRedemptions")
 
   @@index([categoryId, isActive, isPubliclyBookable, sortOrder])
   @@index([isActive, isPubliclyBookable, sortOrder])
   @@index([isFeaturedOnHomepage, homepageSortOrder])
+}
+
+model ServiceChangeLog {
+  id          String                 @id @default(cuid())
+  serviceId   String
+  actorUserId String
+  operation   ServiceChangeOperation
+  before      Json
+  after       Json
+  createdAt   DateTime               @default(now())
+  service     Service                @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  actorUser   AdminUser              @relation("ServiceChangeLogActor", fields: [actorUserId], references: [id], onDelete: Restrict)
+
+  @@index([serviceId, createdAt])
+  @@index([createdAt, id])
 }
 
 model ServicePriceChangeLog {
@@ -334,22 +396,22 @@ model AvailabilitySlot {
 
 /// Neměnná auditní stopa administrátorských změn dostupnosti.
 model AvailabilityAuditEvent {
-  id                    String                     @id @default(cuid())
-  actorUserId           String?
-  actorRole             AdminRole?
-  adminArea             String?
-  dateKey               String
-  timeZone              String                     @default("Europe/Prague")
-  operation             AvailabilityAuditOperation
-  source                String
-  operationId           String
-  revertedOperationId   String?
-  before                Json
-  after                 Json
-  createdSlots          Json
+  id                     String                     @id @default(cuid())
+  actorUserId            String?
+  actorRole              AdminRole?
+  adminArea              String?
+  dateKey                String
+  timeZone               String                     @default("Europe/Prague")
+  operation              AvailabilityAuditOperation
+  source                 String
+  operationId            String
+  revertedOperationId    String?
+  before                 Json
+  after                  Json
+  createdSlots           Json
   archivedOrRemovedSlots Json
-  createdAt             DateTime                   @default(now())
-  actorUser             AdminUser?                 @relation("AvailabilityAuditEventActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+  createdAt              DateTime                   @default(now())
+  actorUser              AdminUser?                 @relation("AvailabilityAuditEventActor", fields: [actorUserId], references: [id], onDelete: SetNull)
 
   @@index([createdAt])
   @@index([dateKey, createdAt])
@@ -532,6 +594,7 @@ model Voucher {
   updatedByUser           AdminUser?          @relation("VoucherUpdatedBy", fields: [updatedByUserId], references: [id], onDelete: SetNull)
   intendedBookings        Booking[]           @relation("BookingIntendedVoucher")
   redemptions             VoucherRedemption[]
+  changeLogs              VoucherChangeLog[]
 
   @@index([code])
   @@index([status, validUntil])
@@ -540,6 +603,21 @@ model Voucher {
   @@index([createdByUserId])
   @@index([cancelledByUserId])
   @@index([updatedByUserId])
+}
+
+model VoucherChangeLog {
+  id          String                 @id @default(cuid())
+  voucherId   String
+  actorUserId String
+  operation   VoucherChangeOperation
+  before      Json
+  after       Json
+  createdAt   DateTime               @default(now())
+  voucher     Voucher                @relation(fields: [voucherId], references: [id], onDelete: Restrict)
+  actorUser   AdminUser              @relation("VoucherChangeLogActor", fields: [actorUserId], references: [id], onDelete: Restrict)
+
+  @@index([voucherId, createdAt])
+  @@index([createdAt, id])
 }
 
 model VoucherRedemption {
@@ -621,39 +699,39 @@ model BookingActionToken {
 }
 
 model EmailLog {
-  id                  String              @id @default(cuid())
-  bookingId           String?
-  clientId            String?
-  actionTokenId       String?
-  type                EmailLogType
-  status              EmailLogStatus      @default(PENDING)
-  attemptCount        Int                 @default(0)
-  nextAttemptAt       DateTime            @default(now())
-  processingStartedAt DateTime?
-  processingToken     String?
-  recipientEmail      String
-  subject             String
-  templateKey         String
-  payload             Json?
-  provider            String?
-  providerMessageId   String?
-  trackingLastEvent   String?
-  trackingLastEventAt DateTime?
-  trackingDeliveredAt DateTime?
-  trackingOpenedAt    DateTime?
-  trackingClickedAt   DateTime?
-  trackingBouncedAt   DateTime?
+  id                   String              @id @default(cuid())
+  bookingId            String?
+  clientId             String?
+  actionTokenId        String?
+  type                 EmailLogType
+  status               EmailLogStatus      @default(PENDING)
+  attemptCount         Int                 @default(0)
+  nextAttemptAt        DateTime            @default(now())
+  processingStartedAt  DateTime?
+  processingToken      String?
+  recipientEmail       String
+  subject              String
+  templateKey          String
+  payload              Json?
+  provider             String?
+  providerMessageId    String?
+  trackingLastEvent    String?
+  trackingLastEventAt  DateTime?
+  trackingDeliveredAt  DateTime?
+  trackingOpenedAt     DateTime?
+  trackingClickedAt    DateTime?
+  trackingBouncedAt    DateTime?
   trackingComplainedAt DateTime?
-  trackingFailedAt    DateTime?
+  trackingFailedAt     DateTime?
   trackingSuppressedAt DateTime?
-  trackingRawPayload  Json?
-  errorMessage        String?
-  sentAt              DateTime?
-  createdAt           DateTime            @default(now())
-  updatedAt           DateTime            @updatedAt
-  booking             Booking?            @relation(fields: [bookingId], references: [id], onDelete: SetNull)
-  client              Client?             @relation(fields: [clientId], references: [id], onDelete: SetNull)
-  actionToken         BookingActionToken? @relation(fields: [actionTokenId], references: [id], onDelete: SetNull)
+  trackingRawPayload   Json?
+  errorMessage         String?
+  sentAt               DateTime?
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+  booking              Booking?            @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  client               Client?             @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  actionToken          BookingActionToken? @relation(fields: [actionTokenId], references: [id], onDelete: SetNull)
 
   @@index([bookingId, createdAt])
   @@index([clientId, createdAt])
@@ -707,7 +785,7 @@ model Setting {
 }
 
 model SiteSettings {
-  id                       String      @id @default("site-settings")
+  id                       String                  @id @default("site-settings")
   salonName                String
   addressLine              String
   city                     String
@@ -715,22 +793,38 @@ model SiteSettings {
   phone                    String
   contactEmail             String
   instagramUrl             String?
-  bookingMinAdvanceHours   Int         @default(2)
-  bookingMaxAdvanceDays    Int         @default(90)
-  bookingCancellationHours Int         @default(48)
+  bookingMinAdvanceHours   Int                     @default(2)
+  bookingMaxAdvanceDays    Int                     @default(90)
+  bookingCancellationHours Int                     @default(48)
   notificationAdminEmail   String
   emailSenderName          String
   emailSenderEmail         String
   emailFooterText          String?
   voucherPdfLogoMediaId    String?
   updatedByUserId          String?
-  createdAt                DateTime    @default(now())
-  updatedAt                DateTime    @updatedAt
-  updatedByUser            AdminUser?  @relation("SiteSettingsUpdatedBy", fields: [updatedByUserId], references: [id], onDelete: SetNull)
-  voucherPdfLogoMedia      MediaAsset? @relation("SiteSettingsVoucherPdfLogo", fields: [voucherPdfLogoMediaId], references: [id], onDelete: SetNull)
+  createdAt                DateTime                @default(now())
+  updatedAt                DateTime                @updatedAt
+  updatedByUser            AdminUser?              @relation("SiteSettingsUpdatedBy", fields: [updatedByUserId], references: [id], onDelete: SetNull)
+  voucherPdfLogoMedia      MediaAsset?             @relation("SiteSettingsVoucherPdfLogo", fields: [voucherPdfLogoMediaId], references: [id], onDelete: SetNull)
+  changeLogs               SiteSettingsChangeLog[]
 
   @@index([updatedByUserId])
   @@index([voucherPdfLogoMediaId])
+}
+
+model SiteSettingsChangeLog {
+  id             String                      @id @default(cuid())
+  siteSettingsId String
+  actorUserId    String
+  operation      SiteSettingsChangeOperation
+  before         Json
+  after          Json
+  createdAt      DateTime                    @default(now())
+  siteSettings   SiteSettings                @relation(fields: [siteSettingsId], references: [id], onDelete: Restrict)
+  actorUser      AdminUser                   @relation("SiteSettingsChangeLogActor", fields: [actorUserId], references: [id], onDelete: Restrict)
+
+  @@index([siteSettingsId, createdAt])
+  @@index([createdAt, id])
 }
 
 model CalendarFeed {

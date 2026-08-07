@@ -59,12 +59,13 @@ dbTest("self-demotion je možná až při dalším aktivním OWNERovi", async ()
 
   try {
     assert.equal(
-      await updateAdminUserWithOwnerProtection({ userId: first.id, role: AdminRole.SALON }),
+      await updateAdminUserWithOwnerProtection({ userId: first.id, actorUserId: second.id, role: AdminRole.SALON }),
       "updated",
     );
     const demoted = await prisma.adminUser.findUniqueOrThrow({ where: { id: first.id } });
     assert.equal(demoted.role, AdminRole.SALON);
   } finally {
+    await prisma.adminUserAuditEvent.deleteMany({ where: { targetUserId: { in: [first.id, second.id] } } });
     await prisma.adminUser.deleteMany({ where: { id: { in: [first.id, second.id] } } });
   }
 });

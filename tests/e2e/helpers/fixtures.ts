@@ -875,6 +875,14 @@ export async function cleanupE2eData(runId: string) {
       },
     },
   });
+  await prisma.voucherChangeLog.deleteMany({
+    where: {
+      OR: [
+        { voucher: { internalNote: { contains: runId } } },
+        { actorUser: { email: { contains: runId } } },
+      ],
+    },
+  });
   await prisma.voucher.deleteMany({
     where: {
       internalNote: {
@@ -923,8 +931,25 @@ export async function cleanupE2eData(runId: string) {
   }
   await prisma.availabilitySlot.deleteMany({ where: { id: { in: slotIds } } });
   await prisma.client.deleteMany({ where: { id: { in: clientIds } } });
+  await prisma.serviceChangeLog.deleteMany({
+    where: {
+      OR: [
+        ...(serviceIds.length > 0 ? [{ serviceId: { in: serviceIds } }] : []),
+        { actorUser: { email: { contains: runId } } },
+      ],
+    },
+  });
   await prisma.service.deleteMany({ where: { id: { in: serviceIds } } });
   await prisma.serviceCategory.deleteMany({ where: { id: { in: categoryIds } } });
+  await prisma.siteSettingsChangeLog.deleteMany({ where: { actorUser: { email: { contains: runId } } } });
+  await prisma.adminUserAuditEvent.deleteMany({
+    where: {
+      OR: [
+        { targetUser: { email: { contains: runId } } },
+        { actorUser: { email: { contains: runId } } },
+      ],
+    },
+  });
   await prisma.adminUser.deleteMany({
     where: {
       email: {

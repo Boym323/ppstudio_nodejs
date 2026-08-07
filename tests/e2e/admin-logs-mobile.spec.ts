@@ -38,7 +38,7 @@ test.describe("mobilní Události a logy", () => {
     await expect(dialog).toHaveCount(0);
     await expect(filters).toBeFocused();
     await expect(page.getByRole("button", { name: "Zkusit znovu" })).toBeVisible();
-    const technical = page.locator("details", { hasText: "Technický stav služeb" });
+    const technical = page.locator("details", { hasText: "E-mailová fronta" });
     await expect(technical).not.toHaveAttribute("open", "");
   });
 });

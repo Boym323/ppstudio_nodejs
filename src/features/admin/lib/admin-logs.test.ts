@@ -4,12 +4,17 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
+import { BookingSubmissionOutcome } from "@prisma/client";
+
 import {
   buildBookingHistoryWhere,
   buildAvailabilityAuditWhere,
   buildEmailLogWhere,
   buildVoucherWhere,
+  getBookingSubmissionPresentation,
   getAdminLogPageMeta,
+  getAdminLogCandidatePlan,
+  isCriticalBookingSubmission,
   normalizeAdminLogView,
   sortAndPageAdminLogItems,
   withBookingSubmissionSeverity,
@@ -29,8 +34,31 @@ test("neplatný, skrytý a technický SALON view se normalizují na events", () 
 });
 
 test("systémová závažnost omezuje dotaz už před stránkováním", () => {
-  assert.deepEqual(withBookingSubmissionSeverity({}, "error"), { AND: [{}, { outcome: { in: ["FAILED"] } }] });
-  assert.deepEqual(withBookingSubmissionSeverity({}, "warning"), { AND: [{}, { outcome: { in: ["BLOCKED"] } }] });
+  const errorWhere = withBookingSubmissionSeverity({}, "error");
+  const warningWhere = withBookingSubmissionSeverity({}, "warning");
+  assert.match(JSON.stringify(errorWhere), /UNKNOWN_ERROR/);
+  assert.match(JSON.stringify(errorWhere), /ADMIN_LOGIN_/);
+  assert.deepEqual(warningWhere, { AND: [{}, { id: "__no_match__" }] });
+});
+
+test("BookingSubmissionLog rozlišuje booking, login, aktivaci, voucher a recovery", () => {
+  assert.deepEqual(
+    getBookingSubmissionPresentation({ outcome: BookingSubmissionOutcome.FAILED, failureCode: "ADMIN_LOGIN_INVALID_CREDENTIALS" }),
+    { title: "Přihlášení administrátora", severity: "info", entityFallback: "Administrace", needsAttention: false },
+  );
+  assert.equal(getBookingSubmissionPresentation({ outcome: BookingSubmissionOutcome.SUCCESS, failureCode: "ADMIN_INVITE_ACTIVATION_SUCCESS" }).title, "Aktivace přístupu");
+  assert.equal(getBookingSubmissionPresentation({ outcome: BookingSubmissionOutcome.FAILED, failureCode: "PUBLIC_VOUCHER_VERIFY_PUBLIC_PAGE_NOT_FOUND_OR_INVALID" }).title, "Veřejné ověření voucheru");
+  assert.equal(getBookingSubmissionPresentation({ outcome: BookingSubmissionOutcome.SUCCESS, failureCode: "ADMIN_RECOVERY_OWNER_RESTORED" }).title, "Obnova administrátora");
+  assert.equal(getBookingSubmissionPresentation({ outcome: BookingSubmissionOutcome.FAILED, failureCode: "VALIDATION_ERROR" }).title, "Odeslání rezervace selhalo");
+});
+
+test("Pozornost odmítá běžný šum a přijímá jen skutečné systémové chyby", () => {
+  for (const code of ["ADMIN_LOGIN_INVALID_CREDENTIALS", "ADMIN_LOGIN_RATE_LIMITED", "VALIDATION_ERROR", "RATE_LIMITED", "PUBLIC_VOUCHER_VERIFY_PUBLIC_PAGE_NOT_FOUND_OR_INVALID"]) {
+    assert.equal(isCriticalBookingSubmission(code), false, code);
+  }
+  for (const code of ["TEMPORARY_FAILURE", "SCHEMA_MISMATCH", "UNEXPECTED_ERROR", "PUBLIC_VOUCHER_VERIFY_PUBLIC_PAGE_UNKNOWN_ERROR"]) {
+    assert.equal(isCriticalBookingSubmission(code), true, code);
+  }
 });
 
 test("query builder EmailLog hledá před take v dostupných polích", () => {
@@ -89,13 +117,27 @@ test("přesný total určuje pageCount, rozsah i normalizaci stránky", () => {
   assert.equal(getAdminLogPageMeta(137, Number.NaN).page, 1);
 });
 
+test("extrémní stránka se clampne před výpočtem kandidátního take", () => {
+  assert.deepEqual(getAdminLogCandidatePlan(137, 100_000), {
+    page: 3,
+    pageCount: 3,
+    rangeStart: 101,
+    rangeEnd: 137,
+    offset: 100,
+    take: 151,
+  });
+});
+
 test("findMany a count sdílejí stejné where proměnné", async () => {
   const source = await readFile(new URL("./admin-data.ts", import.meta.url), "utf8");
-  for (const whereName of ["emailWhere", "bookingHistoryWhere", "rescheduleWhere", "voucherWhere", "redemptionWhere", "availabilityWhere", "submissionWhere"]) {
+  for (const whereName of ["emailWhere", "bookingHistoryWhere", "rescheduleWhere", "voucherWhere", "redemptionWhere", "voucherChangeWhere", "serviceChangeWhere", "siteSettingsChangeWhere", "availabilityWhere", "adminUserAuditWhere", "submissionWhere"]) {
     assert.ok(source.includes(`findMany({ where: ${whereName}`));
     assert.ok(source.includes(`count({ where: ${whereName}`));
   }
-  assert.ok(source.includes("const take = requestedOffset + adminLogPageSize + 1"));
+  assert.ok(source.includes("getAdminLogCandidatePlan(total, requestedPage)"));
+  assert.equal(source.includes("requestedOffset + adminLogPageSize"), false);
+  assert.ok(source.includes('const attentionHealthActive = safeView === "attention"'));
+  assert.ok(source.includes("attentionHealthActive || ownerQueueHealthActive ? prisma.emailLog.count"));
 });
 
 test("stará email-log route přesměruje na pohled emails", async () => {
@@ -108,4 +150,12 @@ test("mobilní drawer zachová view a formuláře neposílají page", async () =
   assert.ok(source.includes('name="view" value={data.view}'));
   assert.equal(source.includes('name="page"'), false);
   assert.ok(source.includes('value="availability">Dostupnost'));
+  assert.ok(source.includes("E-mailová fronta"));
+});
+
+test("veřejný booking rate-limit ignoruje všechny známé nebookingové prefixy", async () => {
+  const source = await readFile(new URL("../../booking/actions/create-public-booking.ts", import.meta.url), "utf8");
+  for (const prefix of ["ADMIN_LOGIN_", "ADMIN_INVITE_ACTIVATION_", "ADMIN_RECOVERY_", "PUBLIC_VOUCHER_VERIFY_"]) {
+    assert.ok(source.includes(`"${prefix}"`), prefix);
+  }
 });

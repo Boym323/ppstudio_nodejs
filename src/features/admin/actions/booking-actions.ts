@@ -570,7 +570,12 @@ export async function updateBookingPriceAction(
     select: {
       id: true,
       clientId: true,
+      status: true,
       servicePriceFromCzk: true,
+      finalPriceCzk: true,
+      priceAdjustmentReason: true,
+      priceAdjustedAt: true,
+      priceAdjustedByUserId: true,
       service: {
         select: {
           priceFromCzk: true,
@@ -614,23 +619,54 @@ export async function updateBookingPriceAction(
   }
 
   const actorUserId = await resolveVoucherRedemptionActorUserId(session.email);
+  const nextStoredPrice = clearsAdjustment ? null : nextFinalPriceCzk;
+  const nextStoredReason = clearsAdjustment ? null : normalizedReason;
 
-  await prisma.booking.update({
-    where: { id: booking.id },
-    data: clearsAdjustment
-      ? {
-          finalPriceCzk: null,
-          priceAdjustmentReason: null,
-          priceAdjustedAt: null,
-          priceAdjustedByUserId: null,
-        }
-      : {
-          finalPriceCzk: nextFinalPriceCzk,
-          priceAdjustmentReason: normalizedReason,
-          priceAdjustedAt: new Date(),
-          priceAdjustedByUserId: actorUserId,
+  if (booking.finalPriceCzk !== nextStoredPrice || booking.priceAdjustmentReason !== nextStoredReason) {
+    const changedAt = new Date();
+    await prisma.$transaction(async (tx) => {
+      await tx.booking.update({
+        where: { id: booking.id },
+        data: clearsAdjustment
+          ? {
+              finalPriceCzk: null,
+              priceAdjustmentReason: null,
+              priceAdjustedAt: null,
+              priceAdjustedByUserId: null,
+            }
+          : {
+              finalPriceCzk: nextFinalPriceCzk,
+              priceAdjustmentReason: normalizedReason,
+              priceAdjustedAt: changedAt,
+              priceAdjustedByUserId: actorUserId,
+            },
+      });
+      await tx.bookingStatusHistory.create({
+        data: {
+          bookingId: booking.id,
+          status: booking.status,
+          actorType: BookingActorType.USER,
+          actorUserId,
+          reason: clearsAdjustment ? "Individuální cena zrušena" : "Individuální cena upravena",
+          metadata: {
+            source: "admin-booking-price-update-v1",
+            before: {
+              finalPriceCzk: booking.finalPriceCzk,
+              priceAdjustmentReason: booking.priceAdjustmentReason,
+              priceAdjustedAt: booking.priceAdjustedAt?.toISOString() ?? null,
+              priceAdjustedByUserId: booking.priceAdjustedByUserId,
+            },
+            after: {
+              finalPriceCzk: nextStoredPrice,
+              priceAdjustmentReason: nextStoredReason,
+              priceAdjustedAt: clearsAdjustment ? null : changedAt.toISOString(),
+              priceAdjustedByUserId: clearsAdjustment ? null : actorUserId,
+            },
+          },
         },
-  });
+      });
+    });
+  }
 
   revalidateBookingAdminPaths(booking.id);
   revalidatePath(`/admin/klienti/${booking.clientId}`);

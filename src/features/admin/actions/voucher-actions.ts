@@ -44,22 +44,6 @@ function resolveActionArea(role: AdminRole, requestedArea: AdminArea): AdminArea
   return requestedArea;
 }
 
-async function resolveVoucherActorUserId(email: string) {
-  const dbUser = await prisma.adminUser.findFirst({
-    where: {
-      email: {
-        equals: email.trim(),
-        mode: "insensitive",
-      },
-    },
-    select: {
-      id: true,
-    },
-  });
-
-  return dbUser?.id ?? null;
-}
-
 const optionalText = (maxLength: number, message: string) =>
   z
     .string()
@@ -161,7 +145,7 @@ export async function createAdminVoucherAction(
     }
   }
 
-  const actorUserId = await resolveVoucherActorUserId(session.email);
+  const actorUserId = session.sub;
   let voucherId = "";
 
   try {
@@ -217,7 +201,7 @@ export async function updateVoucherOperationalDetailsAction(
   }
 
   const area = resolveActionArea(session.role, parsed.data.area);
-  const actorUserId = await resolveVoucherActorUserId(session.email);
+  const actorUserId = session.sub;
 
   try {
     await updateVoucherOperationalDetails({
@@ -294,7 +278,7 @@ export async function cancelVoucherAction(
   }
 
   const area = resolveActionArea(session.role, parsed.data.area);
-  const actorUserId = await resolveVoucherActorUserId(session.email);
+  const actorUserId = session.sub;
 
   try {
     await cancelVoucherOperationally({

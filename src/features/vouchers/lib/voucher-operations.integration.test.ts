@@ -81,6 +81,9 @@ async function cleanupSeed(context: TestContext) {
       },
     },
   });
+  await prisma.voucherChangeLog.deleteMany({
+    where: { voucher: { code: { startsWith: `PP-OPS-${context.suffix}` } } },
+  });
   await prisma.voucher.deleteMany({
     where: {
       code: {
@@ -151,6 +154,17 @@ describe("voucher operational management", () => {
     assert.equal(updated.code, voucher.code);
     assert.equal(updated.type, VoucherType.VALUE);
     assert.equal(updated.originalValueCzk, 1500);
+    const audit = await prisma.voucherChangeLog.findFirstOrThrow({ where: { voucherId: voucher.id } });
+    assert.equal(audit.operation, "UPDATE_OPERATIONAL_DETAILS");
+    assert.deepEqual(audit.before, {
+      validUntil: "2026-12-31T00:00:00.000Z",
+      purchaserNameChanged: false,
+      purchaserEmailChanged: false,
+      internalNoteChanged: false,
+      hasInternalNote: false,
+    });
+    assert.equal(JSON.stringify(audit).includes("marie.nova@example.com"), false);
+    assert.equal(JSON.stringify(audit).includes("Interní poznámka"), false);
   });
 
   dbTest("SALON can update operational voucher details", async () => {
@@ -190,6 +204,22 @@ describe("voucher operational management", () => {
         error instanceof VoucherOperationError
         && error.code === voucherOperationErrorCodes.invalidValidityRange,
     );
+    assert.equal(await (await loadModules()).prisma.voucherChangeLog.count({ where: { voucherId: voucher.id } }), 0);
+  });
+
+  dbTest("no-op operational save does not create an audit row", async () => {
+    assert.ok(seed);
+    const { prisma, updateVoucherOperationalDetails } = await loadModules();
+    const voucher = await createValueVoucher(seed);
+    await updateVoucherOperationalDetails({
+      voucherId: voucher.id,
+      purchaserName: voucher.purchaserName ?? undefined,
+      purchaserEmail: voucher.purchaserEmail ?? undefined,
+      validUntil: voucher.validUntil,
+      internalNote: undefined,
+      updatedByUserId: seed.ownerUserId,
+    });
+    assert.equal(await prisma.voucherChangeLog.count({ where: { voucherId: voucher.id } }), 0);
   });
 
   dbTest("OWNER can cancel active voucher without redemptions", async () => {
@@ -209,6 +239,9 @@ describe("voucher operational management", () => {
     assert.equal(cancelled.cancelledByUserId, seed.ownerUserId);
     assert.equal(cancelled.updatedByUserId, seed.ownerUserId);
     assert.equal(cancelled.cancelReason, "Chybně vystavený voucher");
+    const audit = await (await loadModules()).prisma.voucherChangeLog.findFirstOrThrow({ where: { voucherId: voucher.id } });
+    assert.deepEqual(audit.before, { status: VoucherStatus.ACTIVE, cancelledAt: null });
+    assert.deepEqual(audit.after, { status: VoucherStatus.CANCELLED, cancelledAt: "2026-05-02T12:20:00.000Z" });
   });
 
   dbTest("SALON can cancel active voucher without redemptions", async () => {

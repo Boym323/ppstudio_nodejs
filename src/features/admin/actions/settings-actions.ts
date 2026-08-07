@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { CalendarFeedScope } from "@prisma/client";
+import { CalendarFeedScope, SiteSettingsChangeOperation } from "@prisma/client";
 
 import { env } from "@/config/env";
 import { requireAdminSectionAccess } from "@/features/admin/lib/admin-guards";
@@ -18,12 +18,11 @@ import {
 } from "@/features/calendar/lib/calendar-feed-service";
 import { prisma } from "@/lib/prisma";
 import {
-  ensureSiteSettings,
   isSenderEmailAllowedBySmtpPolicy,
   persistSiteSettingsSnapshot,
-  SITE_SETTINGS_ID,
 } from "@/lib/site-settings";
 import { sendDirectOwnerPushover } from "@/lib/notifications/pushover";
+import { updateSiteSettingsWithAudit } from "@/features/admin/lib/site-settings-audit";
 
 import { type UpdateBookingSettingsActionState } from "./update-booking-settings-action-state";
 import { type UpdateCalendarFeedActionState } from "./update-calendar-feed-action-state";
@@ -131,7 +130,7 @@ export async function updateSalonSettingsAction(
   }
 
   const actorUserId = await getActorUserId();
-  const currentSettings = await ensureSiteSettings();
+  if (!actorUserId) return { status: "error", formError: "Aktuální OWNER účet nebyl nalezen." };
   const voucherPdfLogoMediaId = parsed.data.voucherPdfLogoMediaId || null;
 
   if (voucherPdfLogoMediaId) {
@@ -156,22 +155,23 @@ export async function updateSalonSettingsAction(
     }
   }
 
-  const savedSettings = await prisma.siteSettings.upsert({
-    where: { id: SITE_SETTINGS_ID },
-    update: {
+  const salonData = {
       ...parsed.data,
       instagramUrl: parsed.data.instagramUrl || null,
       voucherPdfLogoMediaId,
-      updatedByUserId: actorUserId,
-    },
-    create: {
-      ...currentSettings,
-      ...parsed.data,
-      id: SITE_SETTINGS_ID,
-      instagramUrl: parsed.data.instagramUrl || null,
-      voucherPdfLogoMediaId,
-      updatedByUserId: actorUserId,
-    },
+    };
+  const savedSettings = await updateSiteSettingsWithAudit({
+    actorUserId,
+    operation: SiteSettingsChangeOperation.UPDATE_SALON,
+    data: salonData,
+    snapshots: (current) => ({
+      before: {
+        salonName: current.salonName, addressLine: current.addressLine, city: current.city,
+        postalCode: current.postalCode, phone: current.phone, contactEmail: current.contactEmail,
+        instagramUrl: current.instagramUrl, voucherPdfLogoMediaId: current.voucherPdfLogoMediaId,
+      },
+      after: salonData,
+    }),
   });
   await persistSiteSettingsSnapshot(savedSettings);
 
@@ -208,20 +208,20 @@ export async function updateBookingSettingsAction(
   }
 
   const actorUserId = await getActorUserId();
-  const currentSettings = await ensureSiteSettings();
+  if (!actorUserId) return { status: "error", formError: "Aktuální OWNER účet nebyl nalezen." };
 
-  const savedSettings = await prisma.siteSettings.upsert({
-    where: { id: SITE_SETTINGS_ID },
-    update: {
-      ...parsed.data,
-      updatedByUserId: actorUserId,
-    },
-    create: {
-      ...currentSettings,
-      ...parsed.data,
-      id: SITE_SETTINGS_ID,
-      updatedByUserId: actorUserId,
-    },
+  const savedSettings = await updateSiteSettingsWithAudit({
+    actorUserId,
+    operation: SiteSettingsChangeOperation.UPDATE_BOOKING_POLICY,
+    data: parsed.data,
+    snapshots: (current) => ({
+      before: {
+        bookingMinAdvanceHours: current.bookingMinAdvanceHours,
+        bookingMaxAdvanceDays: current.bookingMaxAdvanceDays,
+        bookingCancellationHours: current.bookingCancellationHours,
+      },
+      after: parsed.data,
+    }),
   });
   await persistSiteSettingsSnapshot(savedSettings);
 
@@ -260,7 +260,7 @@ export async function updateEmailSettingsAction(
   }
 
   const actorUserId = await getActorUserId();
-  const currentSettings = await ensureSiteSettings();
+  if (!actorUserId) return { status: "error", formError: "Aktuální OWNER účet nebyl nalezen." };
 
   if (!isSenderEmailAllowedBySmtpPolicy(parsed.data.emailSenderEmail)) {
     return {
@@ -273,24 +273,32 @@ export async function updateEmailSettingsAction(
     };
   }
 
-  const savedSettings = await prisma.siteSettings.upsert({
-    where: { id: SITE_SETTINGS_ID },
-    update: {
+  const emailData = {
       notificationAdminEmail: parsed.data.notificationAdminEmail,
       emailSenderName: parsed.data.emailSenderName,
       emailSenderEmail: parsed.data.emailSenderEmail,
       emailFooterText: parsed.data.emailFooterText || null,
-      updatedByUserId: actorUserId,
-    },
-    create: {
-      ...currentSettings,
-      id: SITE_SETTINGS_ID,
-      notificationAdminEmail: parsed.data.notificationAdminEmail,
-      emailSenderName: parsed.data.emailSenderName,
-      emailSenderEmail: parsed.data.emailSenderEmail,
-      emailFooterText: parsed.data.emailFooterText || null,
-      updatedByUserId: actorUserId,
-    },
+    };
+  const savedSettings = await updateSiteSettingsWithAudit({
+    actorUserId,
+    operation: SiteSettingsChangeOperation.UPDATE_EMAIL,
+    data: emailData,
+    snapshots: (current) => ({
+      before: {
+        notificationAdminEmail: current.notificationAdminEmail,
+        emailSenderName: current.emailSenderName,
+        emailSenderEmail: current.emailSenderEmail,
+        emailFooterChanged: false,
+        hasEmailFooter: current.emailFooterText !== null,
+      },
+      after: {
+        notificationAdminEmail: emailData.notificationAdminEmail,
+        emailSenderName: emailData.emailSenderName,
+        emailSenderEmail: emailData.emailSenderEmail,
+        emailFooterChanged: current.emailFooterText !== emailData.emailFooterText,
+        hasEmailFooter: emailData.emailFooterText !== null,
+      },
+    }),
   });
   await persistSiteSettingsSnapshot(savedSettings);
 

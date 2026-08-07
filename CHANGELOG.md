@@ -6,6 +6,17 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+### Opraveno
+
+- Administrační „Události a logy“ správně rozlišují rezervace, přihlášení, aktivace přístupů, recovery a veřejné ověřování voucherů; běžné validační či rate-limit události nezvyšují provozní závažnost a skutečné serverové chyby jsou po 24 hodin viditelné v owner pohledu „Pozornost“.
+- Auditní stopa individuální ceny rezervace nově ukládá stav před a po změně a veřejný booking rate-limit už nezapočítává audity aktivace administrátorských pozvánek ani offline recovery.
+- Hluboké stránkování provozních logů se clampuje před načtením kandidátů a SALON mimo „Pozornost“ už neprovádí pět nezobrazovaných e-mailových health countů.
+
+### Změněno
+
+- Běžné zrušení rezervace a vytvoření voucheru se v provozních událostech zobrazují jako informace; technický panel přesněji nese název „E-mailová fronta“ a vyhledávací nápověda odpovídá aktuálnímu pohledu.
+- Administrativní změny účtů, voucherů, služeb a SiteSettings mají doménové neměnné before/after logy s autorem, transakčním zápisem, serverovým OWNER/SALON omezením a minimalizací PII; cenový audit služby zůstává bez duplicit.
+
 ## [3.15.0] - 2026-08-07
 
 ### Změněno

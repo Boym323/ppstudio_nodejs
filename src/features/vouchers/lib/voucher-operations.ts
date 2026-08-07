@@ -1,4 +1,4 @@
-import { VoucherStatus } from "@prisma/client";
+import { Prisma, VoucherChangeOperation, VoucherStatus } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
 
@@ -23,55 +23,93 @@ function nullableText(value: string | undefined) {
   return value?.trim() ? value.trim() : null;
 }
 
+function isoDate(value: Date | null) {
+  return value?.toISOString() ?? null;
+}
+
 export async function updateVoucherOperationalDetails(input: {
   voucherId: string;
   purchaserName?: string;
   purchaserEmail?: string;
   validUntil?: Date | null;
   internalNote?: string;
-  updatedByUserId: string | null;
+  updatedByUserId: string;
 }) {
-  const voucher = await prisma.voucher.findUnique({
-    where: { id: input.voucherId },
-    select: { validFrom: true },
-  });
+  return prisma.$transaction(async (tx) => {
+    const voucher = await tx.voucher.findUnique({
+      where: { id: input.voucherId },
+      select: { id: true, validFrom: true, validUntil: true, purchaserName: true, purchaserEmail: true, internalNote: true },
+    });
 
-  if (!voucher) {
-    throw new VoucherOperationError(voucherOperationErrorCodes.voucherNotFound, "Voucher was not found.");
-  }
+    if (!voucher) {
+      throw new VoucherOperationError(voucherOperationErrorCodes.voucherNotFound, "Voucher was not found.");
+    }
 
-  if (input.validUntil !== null && input.validUntil !== undefined && input.validUntil <= voucher.validFrom) {
-    throw new VoucherOperationError(
-      voucherOperationErrorCodes.invalidValidityRange,
-      "Voucher validUntil must be after validFrom.",
-    );
-  }
-
-  const result = await prisma.voucher.updateMany({
-    where: {
-      id: input.voucherId,
-    },
-    data: {
+    const next = {
       purchaserName: nullableText(input.purchaserName),
       purchaserEmail: nullableText(input.purchaserEmail),
       validUntil: input.validUntil ?? null,
       internalNote: nullableText(input.internalNote),
-      updatedByUserId: input.updatedByUserId,
-    },
-  });
+    };
+    if (next.validUntil && next.validUntil <= voucher.validFrom) {
+      throw new VoucherOperationError(
+        voucherOperationErrorCodes.invalidValidityRange,
+        "Voucher validUntil must be after validFrom.",
+      );
+    }
 
-  if (result.count !== 1) {
-    throw new VoucherOperationError(voucherOperationErrorCodes.voucherNotFound, "Voucher was not found.");
-  }
+    const changed = voucher.purchaserName !== next.purchaserName
+      || voucher.purchaserEmail !== next.purchaserEmail
+      || isoDate(voucher.validUntil) !== isoDate(next.validUntil)
+      || voucher.internalNote !== next.internalNote;
+    if (!changed) return voucher;
+
+    const before: Record<string, Prisma.InputJsonValue | null> = {};
+    const after: Record<string, Prisma.InputJsonValue | null> = {};
+    if (isoDate(voucher.validUntil) !== isoDate(next.validUntil)) {
+      before.validUntil = isoDate(voucher.validUntil);
+      after.validUntil = isoDate(next.validUntil);
+    }
+    if (voucher.purchaserName !== next.purchaserName) {
+      before.purchaserNameChanged = false;
+      after.purchaserNameChanged = true;
+    }
+    if (voucher.purchaserEmail !== next.purchaserEmail) {
+      before.purchaserEmailChanged = false;
+      after.purchaserEmailChanged = true;
+    }
+    if (voucher.internalNote !== next.internalNote) {
+      before.internalNoteChanged = false;
+      after.internalNoteChanged = true;
+      before.hasInternalNote = voucher.internalNote !== null;
+      after.hasInternalNote = next.internalNote !== null;
+    }
+
+    const updated = await tx.voucher.update({
+      where: { id: voucher.id },
+      data: { ...next, updatedByUserId: input.updatedByUserId },
+    });
+    await tx.voucherChangeLog.create({
+      data: {
+        voucherId: voucher.id,
+        actorUserId: input.updatedByUserId,
+        operation: VoucherChangeOperation.UPDATE_OPERATIONAL_DETAILS,
+        before,
+        after,
+      },
+    });
+    return updated;
+  }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
 }
 
 export async function cancelVoucherOperationally(input: {
   voucherId: string;
   cancelReason: string;
-  actorUserId: string | null;
+  actorUserId: string;
   now?: Date;
 }) {
-  const voucher = await prisma.voucher.findUnique({
+  return prisma.$transaction(async (tx) => {
+  const voucher = await tx.voucher.findUnique({
     where: { id: input.voucherId },
     select: {
       id: true,
@@ -106,14 +144,26 @@ export async function cancelVoucherOperationally(input: {
     );
   }
 
-  return prisma.voucher.update({
+  const cancelledAt = input.now ?? new Date();
+  const updated = await tx.voucher.update({
     where: { id: voucher.id },
     data: {
       status: VoucherStatus.CANCELLED,
-      cancelledAt: input.now ?? new Date(),
+      cancelledAt,
       cancelledByUserId: input.actorUserId,
       cancelReason: input.cancelReason.trim(),
       updatedByUserId: input.actorUserId,
     },
   });
+  await tx.voucherChangeLog.create({
+    data: {
+      voucherId: voucher.id,
+      actorUserId: input.actorUserId,
+      operation: VoucherChangeOperation.CANCEL,
+      before: { status: voucher.status, cancelledAt: null },
+      after: { status: VoucherStatus.CANCELLED, cancelledAt: cancelledAt.toISOString() },
+    },
+  });
+  return updated;
+  }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
 }

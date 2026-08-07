@@ -1,13 +1,13 @@
 "use server";
 
-import { AdminRole } from "@prisma/client";
+import { AdminRole, AdminUserAuditOperation, Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 import { type AdminUserResendInviteActionState } from "@/features/admin/actions/update-admin-user-resend-invite-action-state";
 import { type AdminUserAccessActionState } from "@/features/admin/actions/update-admin-user-access-action-state";
 import {
   issueAdminInviteToken,
-  markAdminUserAsInvited,
+  reissueAdminInviteTokenWithAudit,
   sendAdminInviteEmail,
 } from "@/features/admin/lib/admin-user-invite";
 import {
@@ -24,6 +24,7 @@ import {
 } from "@/features/admin/lib/admin-owner-protection";
 import { sendOwnerSystemErrorPushover } from "@/lib/notifications/pushover";
 import { prisma } from "@/lib/prisma";
+import { buildAuditChange } from "@/features/admin/lib/audit-change";
 
 function readFormString(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -49,7 +50,7 @@ export async function saveAdminUserAccessAction(
   _previousState: AdminUserAccessActionState,
   formData: FormData,
 ): Promise<AdminUserAccessActionState> {
-  await requireAdminSectionAccess("owner", "uzivatele");
+  const session = await requireAdminSectionAccess("owner", "uzivatele");
 
   const parsed = saveAdminUserSchema.safeParse({
     userId: readFormString(formData, "userId"),
@@ -91,25 +92,39 @@ export async function saveAdminUserAccessAction(
   }
 
   if (userId) {
-    const existing = await prisma.adminUser.findUnique({
-      where: { id: userId },
-      select: { id: true },
-    });
+    const updated = await prisma.$transaction(async (tx) => {
+      const existing = await tx.adminUser.findUnique({
+        where: { id: userId },
+        select: { id: true, name: true, email: true },
+      });
+      if (!existing) return false;
+      const auditChange = buildAuditChange(
+        { name: existing.name, email: existing.email },
+        { name: parsed.data.name, email: parsed.data.email },
+      );
+      if (!auditChange) return true;
 
-    if (!existing) {
+      await tx.adminUser.update({
+        where: { id: userId },
+        data: { name: parsed.data.name, email: parsed.data.email },
+      });
+      await tx.adminUserAuditEvent.create({
+        data: {
+          targetUserId: userId,
+          actorUserId: session.sub,
+          operation: AdminUserAuditOperation.UPDATE_PROFILE,
+          ...auditChange,
+        },
+      });
+      return true;
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+
+    if (!updated) {
       return {
         status: "error",
         formError: "Uživatel už v systému neexistuje.",
       };
     }
-
-    await prisma.adminUser.update({
-      where: { id: userId },
-      data: {
-        name: parsed.data.name,
-        email: parsed.data.email,
-      },
-    });
 
     revalidateAdminUserPaths();
 
@@ -124,18 +139,21 @@ export async function saveAdminUserAccessAction(
   let missingInviteColumnFallback = false;
 
   try {
-    const createdUser = await prisma.adminUser.create({
-      data: {
-        name: parsed.data.name,
-        email: parsed.data.email,
-        role,
-        isActive: true,
-        invitedAt: new Date(),
-        passwordHash: null,
-      },
-      select: {
-        id: true,
-      },
+    const createdUser = await prisma.$transaction(async (tx) => {
+      const user = await tx.adminUser.create({
+        data: { name: parsed.data.name, email: parsed.data.email, role, isActive: true, invitedAt: new Date(), passwordHash: null },
+        select: { id: true },
+      });
+      await tx.adminUserAuditEvent.create({
+        data: {
+          targetUserId: user.id,
+          actorUserId: session.sub,
+          operation: AdminUserAuditOperation.CREATE,
+          before: {},
+          after: { name: parsed.data.name, email: parsed.data.email, role, isActive: true },
+        },
+      });
+      return user;
     });
     createdUserId = createdUser.id;
   } catch (error) {
@@ -143,17 +161,21 @@ export async function saveAdminUserAccessAction(
       throw error;
     }
 
-    const createdUser = await prisma.adminUser.create({
-      data: {
-        name: parsed.data.name,
-        email: parsed.data.email,
-        role,
-        isActive: true,
-        passwordHash: null,
-      },
-      select: {
-        id: true,
-      },
+    const createdUser = await prisma.$transaction(async (tx) => {
+      const user = await tx.adminUser.create({
+        data: { name: parsed.data.name, email: parsed.data.email, role, isActive: true, passwordHash: null },
+        select: { id: true },
+      });
+      await tx.adminUserAuditEvent.create({
+        data: {
+          targetUserId: user.id,
+          actorUserId: session.sub,
+          operation: AdminUserAuditOperation.CREATE,
+          before: {},
+          after: { name: parsed.data.name, email: parsed.data.email, role, isActive: true },
+        },
+      });
+      return user;
     });
     createdUserId = createdUser.id;
     missingInviteColumnFallback = true;
@@ -199,7 +221,7 @@ export async function saveAdminUserAccessAction(
 }
 
 export async function changeAdminUserRoleAction(formData: FormData): Promise<void> {
-  await requireAdminSectionAccess("owner", "uzivatele");
+  const session = await requireAdminSectionAccess("owner", "uzivatele");
 
   const parsed = changeAdminUserRoleSchema.safeParse({
     userId: readFormString(formData, "userId"),
@@ -212,6 +234,7 @@ export async function changeAdminUserRoleAction(formData: FormData): Promise<voi
 
   const result = await updateAdminUserWithOwnerProtection({
     userId: parsed.data.userId,
+    actorUserId: session.sub,
     role: parsed.data.role as AdminRole,
   });
 
@@ -224,7 +247,7 @@ export async function changeAdminUserRoleAction(formData: FormData): Promise<voi
 }
 
 export async function setAdminUserActiveAction(formData: FormData): Promise<void> {
-  await requireAdminSectionAccess("owner", "uzivatele");
+  const session = await requireAdminSectionAccess("owner", "uzivatele");
 
   const parsed = setAdminUserActiveSchema.safeParse({
     userId: readFormString(formData, "userId"),
@@ -237,6 +260,7 @@ export async function setAdminUserActiveAction(formData: FormData): Promise<void
 
   const result = await updateAdminUserWithOwnerProtection({
     userId: parsed.data.userId,
+    actorUserId: session.sub,
     isActive: parsed.data.nextIsActive,
   });
 
@@ -252,7 +276,7 @@ export async function resendAdminUserInviteAction(
   _previousState: AdminUserResendInviteActionState,
   formData: FormData,
 ): Promise<AdminUserResendInviteActionState> {
-  await requireAdminSectionAccess("owner", "uzivatele");
+  const session = await requireAdminSectionAccess("owner", "uzivatele");
 
   const parsed = resendAdminUserInviteSchema.safeParse({
     userId: readFormString(formData, "userId"),
@@ -282,10 +306,8 @@ export async function resendAdminUserInviteAction(
     };
   }
 
-  await markAdminUserAsInvited(user.id);
-
   try {
-    const inviteUrl = await issueAdminInviteToken(user.id);
+    const { inviteUrl } = await reissueAdminInviteTokenWithAudit({ userId: user.id, actorUserId: session.sub });
     await sendAdminInviteEmail({
       recipientEmail: user.email,
       recipientName: user.name,
