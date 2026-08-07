@@ -6,6 +6,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [3.14.2] - 2026-08-07
+
 ### Zabezpečení
 
 - Administrační PWA zakládá ochranu cache výhradně na explicitním allowlistu offline shellu, vlastních ikon a build-time Next assetů; dynamické, administrační, API, navigační a RSC requesty se neukládají nezávisle na session cookies.
@@ -13,6 +15,10 @@ Formát je inspirovaný Keep a Changelog.
 ### Opraveno
 
 - Administrační PWA již nezamyká orientaci obrazovky a při přidání na plochu iOS používá vlastní ikonu administrace.
+
+### Změněno
+
+- Release příprava pro produkční nasazení: projektová verze navýšena na patch `3.14.2`.
 
 ## [3.14.1] - 2026-08-07
 
