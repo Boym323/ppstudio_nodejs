@@ -6,6 +6,10 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+### Změněno
+
+- Stránka dárkových voucherů má kratší a přehlednější cestu k jejich vystavení, jasněji rozlišuje voucher na službu a hodnotu, přesněji popisuje jeho využití při rezervaci a méně zvýrazňuje ověření existujícího voucheru.
+
 ## [3.14.0] - 2026-08-06
 
 ### Změněno

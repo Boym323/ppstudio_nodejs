@@ -4,11 +4,7 @@ import { services, type Service } from "@/content/public-site";
 import { Container } from "@/components/ui/container";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { getPublicSalonProfile } from "@/lib/site-settings";
-import {
-  ActionLink,
-  PlaceholderNote,
-  PublicHero,
-} from "@/features/public/components/public-page-primitives";
+import { ActionLink, PublicHero } from "@/features/public/components/public-page-primitives";
 
 export async function VoucherLandingPage({
   suggestedServices = services.slice(0, 3),
@@ -17,7 +13,19 @@ export async function VoucherLandingPage({
 } = {}) {
   const salonProfile = await getPublicSalonProfile();
   const voucherMailSubject = encodeURIComponent("Mám zájem o dárkový voucher");
-  const voucherMailHref = `mailto:${salonProfile.email}?subject=${voucherMailSubject}`;
+  const voucherMailBody = encodeURIComponent(`Dobrý den,
+
+mám zájem o dárkový voucher.
+
+Voucher bych chtěl/a:
+
+* na konkrétní službu / na hodnotu
+
+Služba nebo hodnota:
+...
+
+Děkuji.`);
+  const voucherMailHref = `mailto:${salonProfile.email}?subject=${voucherMailSubject}&body=${voucherMailBody}`;
   const voucherPhoneHref = `tel:${salonProfile.phone.replace(/\s+/g, "")}`;
 
   return (
@@ -25,16 +33,15 @@ export async function VoucherLandingPage({
       <PublicHero
         eyebrow="Dárkové vouchery"
         title="Dárek, který nechává prostor vybrat si péči podle aktuální potřeby."
-        description="Voucher mohu vystavit na konkrétní službu i na hodnotu podle individuální domluvy. Hodí se ve chvíli, kdy chcete darovat péči příjemně a bez složitého rozhodování."
-        ctaPrompt="Stačí mi napsat, pro koho voucher vybíráte a jestli chcete konkrétní službu nebo volnější hodnotu."
-        primaryCta={{ href: voucherMailHref, label: "Napsat pro voucher" }}
-        secondaryCta={{ href: "/vouchery/overeni", label: "Ověřit voucher" }}
+        description="Voucher vystavím na konkrétní službu nebo na hodnotu podle vašeho přání. Pokud si nejste jistí výběrem, ráda doporučím vhodnou variantu."
+        primaryCta={{ href: voucherMailHref, label: "Chci dárkový voucher" }}
+        secondaryCta={{ href: "/vouchery/overeni", label: "Už voucher máte? Ověřit platnost", variant: "text" }}
         aside={(
           <VoucherHeroAside
-            phone={salonProfile.phone}
-            phoneHref={voucherPhoneHref}
             email={salonProfile.email}
+            phone={salonProfile.phone}
             voucherMailHref={voucherMailHref}
+            voucherPhoneHref={voucherPhoneHref}
           />
         )}
       />
@@ -42,163 +49,60 @@ export async function VoucherLandingPage({
       <section className="py-10 sm:py-14 lg:py-16">
         <Container className="space-y-8 sm:space-y-10">
           <SectionHeading
-            eyebrow="Jak to funguje"
-            title="Voucher je jednoduchý dárek i ve chvíli, kdy si nejste jistá přesnou službou."
-            description="Cílem je, aby obdarovaná dostala péči, která jí bude opravdu dávat smysl, ne aby se musela trefit do technického názvu procedury."
+            eyebrow="Vyberte způsob"
+            title="Voucher podle toho, kolik volnosti chcete nechat."
           />
-          <div className="grid gap-5 lg:grid-cols-3">
+          <div className="grid gap-5 lg:grid-cols-2">
             {[
               {
                 title: "Na konkrétní službu",
-                description:
-                  "Vhodné, pokud přesně víte, co chcete darovat. Voucher drží konkrétní službu a její jasný rámec.",
+                description: "Pokud přesně víte, čím chcete udělat radost, vystavím voucher přímo na vybranou službu.",
               },
               {
-                title: "Na hodnotu podle domluvy",
-                description:
-                  "Dobrá varianta, pokud chcete nechat větší volnost. Službu i využití lze doladit podle aktuální potřeby.",
-              },
-              {
-                title: "S ověřením online",
-                description:
-                  "Každý vystavený voucher lze později bezpečně ověřit přes veřejnou stránku, aniž by se cokoli odečítalo.",
+                title: "Na libovolnou hodnotu",
+                description: "Ideální, pokud chcete nechat výběr péče na obdarované. Konkrétní službu lze následně zvolit podle aktuální potřeby.",
               },
             ].map((item) => (
               <div
                 key={item.title}
                 className="rounded-[var(--radius-panel)] border border-black/6 bg-white p-6 shadow-[var(--shadow-panel)] sm:p-7"
               >
-                <p className="font-display text-2xl leading-[1.08] text-[var(--color-foreground)] sm:text-[2rem]">
+                <h2 className="font-display text-2xl leading-[1.08] text-[var(--color-foreground)] sm:text-[2rem]">
                   {item.title}
-                </p>
-                <p className="mt-4 text-[15px] leading-7 text-[var(--color-muted)] sm:text-base">
-                  {item.description}
-                </p>
+                </h2>
+                <p className="mt-4 text-[15px] leading-7 text-[var(--color-muted)] sm:text-base">{item.description}</p>
               </div>
             ))}
           </div>
-        </Container>
-      </section>
-
-      <section className="py-10 sm:py-14 lg:py-16">
-        <Container className="grid gap-6 lg:grid-cols-[1.04fr_0.96fr]">
-          <div className="rounded-[var(--radius-panel)] border border-black/6 bg-white p-6 shadow-[var(--shadow-panel)] sm:p-8">
-            <SectionHeading
-              eyebrow="Na co voucher vystavit"
-              title="Nejčastěji dává smysl vystavit voucher na službu, se kterou se dobře začíná."
-              description="Pokud vybíráte dárek poprvé, pomůže orientace podle typu péče, délky návštěvy a ceny."
-            />
-            <div className="mt-8 grid gap-4">
-              {suggestedServices.map((service) => (
-                <Link
-                  key={service.slug}
-                  href={`/sluzby/${service.slug}`}
-                  className="rounded-[calc(var(--radius-panel)-0.4rem)] border border-black/6 bg-[var(--color-surface)] p-5 transition hover:border-black/12 hover:bg-[#f4eadf]"
-                >
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-accent)]">
-                        {service.category}
-                      </p>
-                      <h2 className="mt-2 font-display text-2xl leading-[1.08] text-[var(--color-foreground)] sm:text-[1.9rem]">
-                        {service.name}
-                      </h2>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-display text-2xl text-[var(--color-foreground)]">{service.priceFrom}</p>
-                      <p className="mt-1 text-sm text-[var(--color-muted)]">{service.duration}</p>
-                    </div>
-                  </div>
-                  <p className="mt-4 text-[15px] leading-7 text-[var(--color-muted)] sm:text-base">
-                    {service.intro}
-                  </p>
-                </Link>
-              ))}
-            </div>
-          </div>
-
-          <div className="space-y-6">
-            <PlaceholderNote
-              title="Kdy se voucher hodí"
-              items={[
-                "k narozeninám nebo svátku, když chcete darovat chvíli péče místo věci",
-                "jako jemný dárek pro ženu, která si sama podobnou návštěvu často nevyhradí",
-                "ve chvíli, kdy chcete nechat volnost mezi konkrétní službou a péčí podle aktuální potřeby",
-                "když nechcete trefovat kosmetiku domů, ale raději darovat skutečný čas pro sebe",
-              ]}
-            />
-            <div className="rounded-[calc(var(--radius-panel)-0.35rem)] border border-[#d8c9b8] bg-[#f7efe5] p-5 shadow-[0_16px_38px_rgba(75,49,31,0.05)] sm:p-6">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[var(--color-accent)]">
-                Domluva voucheru
-              </p>
-              <p className="mt-4 text-[15px] leading-7 text-[var(--color-accent-contrast)] sm:text-base">
-                Pokud si nejste jistá výběrem, napište mi jen stručně, pro koho voucher vybíráte a jaký typ péče by mohl být blízký. Doporučím vhodnou variantu bez zbytečně složitého rozhodování.
-              </p>
-              <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-                <ActionLink
-                  href={voucherMailHref}
-                  trackingLocation="voucher-cta"
-                  trackingPage="vouchery"
-                  className="inline-flex min-h-11 items-center justify-center rounded-full bg-[var(--color-foreground)] px-5 py-3 text-center text-sm font-semibold text-white transition hover:bg-[#2c221d]"
-                >
-                  Napsat e-mail
-                </ActionLink>
-                <ActionLink
-                  href="/kontakt"
-                  trackingLocation="voucher-cta"
-                  trackingPage="vouchery"
-                  className="inline-flex min-h-11 items-center justify-center rounded-full border border-black/10 bg-white px-5 py-3 text-center text-sm font-semibold text-[var(--color-foreground)] transition hover:border-black/18 hover:bg-white/80"
-                >
-                  Otevřít kontakt
-                </ActionLink>
-              </div>
-            </div>
-          </div>
+          <p className="text-[15px] leading-7 text-[var(--color-muted)] sm:text-base">
+            Nevíte, kterou variantu vybrat? U první návštěvy bývá nejpraktičtější hodnotový voucher.
+          </p>
         </Container>
       </section>
 
       <section className="py-10 sm:py-14 lg:py-16">
         <Container className="space-y-8 sm:space-y-10">
           <SectionHeading
-            eyebrow="Podle situace"
-            title="Kdy dává větší smysl voucher na konkrétní službu a kdy raději volnější hodnota."
-            description="Nejčastější rozhodnutí nebývá jestli voucher ano, ale jakou variantu zvolit, aby dárek působil jistě a přirozeně."
+            eyebrow="Nejčastěji darované"
+            title="Oblíbená péče jako dárek."
+            description="Pokud chcete darovat konkrétní ošetření, můžete začít některou z těchto služeb."
           />
-          <div className="grid gap-5 lg:grid-cols-3">
-            {[
-              {
-                title: "Víte, co má ráda",
-                recommendation: "Spíš voucher na konkrétní službu",
-                description:
-                  "Pokud víte, že obdarovaná chodí pravidelně na určitou péči nebo přesně víte, co by jí udělalo radost, konkrétní služba působí osobně a jasně.",
-              },
-              {
-                title: "Chcete nechat větší volnost",
-                recommendation: "Spíš hodnotový voucher",
-                description:
-                  "Když si nejste jistá typem péče, ale víte, že by ocenila čas pro sebe, volnější hodnota bývá bezpečnější a příjemnější varianta.",
-              },
-              {
-                title: "Je to dárek pro první návštěvu",
-                recommendation: "Často je nejlepší hodnotový voucher",
-                description:
-                  "U první návštěvy bývá praktičtější nechat prostor na doladění podle aktuálního stavu pleti, komfortu i toho, co bude obdarované opravdu sedět.",
-              },
-            ].map((item) => (
-              <div
-                key={item.title}
-                className="rounded-[var(--radius-panel)] border border-black/6 bg-white p-6 shadow-[var(--shadow-panel)] sm:p-7"
+          <div className="grid gap-4 lg:grid-cols-3">
+            {suggestedServices.map((service) => (
+              <Link
+                key={service.slug}
+                href={`/sluzby/${service.slug}`}
+                className="rounded-[var(--radius-panel)] border border-black/6 bg-white p-5 shadow-[var(--shadow-panel)] transition hover:border-black/12 hover:bg-[#fdfaf7]"
               >
-                <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--color-accent)]">
-                  {item.recommendation}
-                </p>
-                <h2 className="mt-3 font-display text-2xl leading-[1.08] text-[var(--color-foreground)] sm:text-[1.9rem]">
-                  {item.title}
-                </h2>
-                <p className="mt-4 text-[15px] leading-7 text-[var(--color-muted)] sm:text-base">
-                  {item.description}
-                </p>
-              </div>
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <h2 className="min-w-0 font-display text-2xl leading-[1.08] text-[var(--color-foreground)] sm:text-[1.9rem]">{service.name}</h2>
+                  <div className="shrink-0 text-right">
+                    <p className="font-display text-2xl text-[var(--color-foreground)]">{service.priceFrom}</p>
+                    <p className="mt-1 text-sm text-[var(--color-muted)]">{service.duration}</p>
+                  </div>
+                </div>
+                <p className="mt-4 text-[15px] leading-7 text-[var(--color-muted)] sm:text-base">{service.intro}</p>
+              </Link>
             ))}
           </div>
         </Container>
@@ -207,30 +111,27 @@ export async function VoucherLandingPage({
       <section className="py-10 sm:py-14 lg:py-16">
         <Container className="grid gap-6 lg:grid-cols-[0.98fr_1.02fr]">
           <div className="rounded-[var(--radius-panel)] border border-black/6 bg-white p-6 shadow-[var(--shadow-panel)] sm:p-8">
-            <SectionHeading
-              eyebrow="Jak probíhá domluva"
-              title="Stačí krátká zpráva, zbytek doladíme spolu."
-              description="Cílem není zatěžovat vás formulářem, ale rychle se dobrat varianty, která bude jako dárek fungovat."
-            />
+            <SectionHeading eyebrow="Jak voucher získáte" title="Jednoduše a osobně." />
             <ol className="mt-8 grid gap-4">
               {[
                 {
-                  step: "1. Napište, pro koho voucher vybíráte",
-                  text: "Stačí pár slov o příležitosti a jestli chcete konkrétní službu, nebo raději volnější hodnotu.",
+                  step: "1. Vyberete službu nebo hodnotu",
+                  text: "Pokud si nejste jistí, stačí napsat, pro koho voucher vybíráte. S vhodnou variantou ráda poradím.",
                 },
                 {
-                  step: "2. Doporučím vhodnou variantu",
-                  text: "Pokud si nebudete jistá, navrhnu bezpečnější možnost podle toho, jestli jde o první návštěvu nebo už známý typ péče.",
+                  step: "2. Voucher připravím",
+                  text: "Každý voucher má vlastní kód, platnost uvedenou přímo na voucheru a lze jej připravit jako PDF.",
                 },
                 {
-                  step: "3. Voucher může obdarovaná později snadno využít",
-                  text: "Kód z voucheru lze ověřit online a termín se pak domlouvá přirozeně stejně jako běžná návštěva.",
+                  step: "3. Voucher jednoduše využijete",
+                  text: "Při rezervaci můžete uvést, že chcete voucher využít. Samotné uplatnění proběhne při návštěvě studia.",
+                },
+                {
+                  step: "4. Platnost ověříte online",
+                  text: "Pomocí kódu lze kdykoli bezpečně zkontrolovat stav voucheru bez jeho čerpání.",
                 },
               ].map((item) => (
-                <li
-                  key={item.step}
-                  className="rounded-[calc(var(--radius-panel)-0.45rem)] border border-black/6 bg-[var(--color-surface)] p-5"
-                >
+                <li key={item.step} className="rounded-[calc(var(--radius-panel)-0.45rem)] border border-black/6 bg-[var(--color-surface)] p-5">
                   <p className="font-medium text-[var(--color-foreground)]">{item.step}</p>
                   <p className="mt-2 text-[15px] leading-7 text-[var(--color-muted)] sm:text-base">{item.text}</p>
                 </li>
@@ -239,116 +140,36 @@ export async function VoucherLandingPage({
           </div>
 
           <div className="rounded-[var(--radius-panel)] border border-black/6 bg-[linear-gradient(180deg,#f8f1e8_0%,#f4eadf_100%)] p-6 shadow-[var(--shadow-panel)] sm:p-8">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[var(--color-accent)]">
-              Praktické situace
-            </p>
-            <h2 className="mt-4 font-display text-2xl leading-[1.08] text-[var(--color-foreground)] sm:text-3xl">
-              Nejčastěji funguje jednoduché pravidlo: čím menší jistota ve výběru, tím větší smysl má volnější varianta.
-            </h2>
-            <div className="mt-6 space-y-4 text-[15px] leading-7 text-[var(--color-muted)] sm:text-base">
-              <p>
-                Pokud vybíráte dárek pro ženu, která do podobné péče chodí pravidelně a víte, co má ráda, voucher na konkrétní službu bývá velmi hezký a osobní.
-              </p>
-              <p>
-                Pokud si ale nejste jistá, jestli je vhodnější ošetření pleti, lash lifting nebo jiný typ péče, je zpravidla příjemnější nechat jí větší prostor a zvolit variantu podle domluvy.
-              </p>
-              <p>
-                U první návštěvy je to často nejpraktičtější cesta. Dárek tak nepůsobí svazujícím dojmem a obdarovaná si může vybrat péči, která jí bude v danou chvíli sedět nejlépe.
-              </p>
-            </div>
-            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-              <ActionLink
-                href={voucherMailHref}
-                trackingLocation="voucher-scenarios"
-                trackingPage="vouchery"
-                className="inline-flex min-h-11 items-center justify-center rounded-full bg-[var(--color-foreground)] px-5 py-3 text-center text-sm font-semibold text-white transition hover:bg-[#2c221d]"
-              >
-                Napsat pro doporučení
-              </ActionLink>
-              <ActionLink
-                href="/kontakt"
-                trackingLocation="voucher-scenarios"
-                trackingPage="vouchery"
-                className="inline-flex min-h-11 items-center justify-center rounded-full border border-black/10 bg-white/75 px-5 py-3 text-center text-sm font-semibold text-[var(--color-foreground)] transition hover:border-black/18 hover:bg-white"
-              >
-                Otevřít kontakt
-              </ActionLink>
+            <SectionHeading eyebrow="Časté otázky" title="To podstatné k voucheru na jednom místě." />
+            <div className="mt-6 space-y-3">
+              {[
+                { question: "Může být voucher bez přesně vybrané služby?", answer: "Ano. Voucher lze vystavit také na hodnotu a konkrétní péči vybrat později." },
+                { question: "Jak dlouho voucher platí?", answer: "Konkrétní datum platnosti je vždy uvedeno přímo na voucheru." },
+                { question: "Jak poznám, že je voucher platný?", answer: "Každý voucher má vlastní kód, jehož stav lze bezpečně ověřit online. Ověření voucher nijak nečerpá." },
+                { question: "Jak se voucher používá?", answer: <>Při <Link href="/rezervace" className="underline decoration-[var(--color-accent)] underline-offset-4 hover:text-[var(--color-foreground)]">online rezervaci</Link> můžete uvést jeho kód. Samotné uplatnění proběhne při návštěvě studia.</> },
+              ].map((item) => (
+                <details key={item.question} className="rounded-[calc(var(--radius-panel)-0.5rem)] border border-black/8 bg-white/65 px-5 py-4">
+                  <summary className="cursor-pointer list-none pr-6 font-medium text-[var(--color-foreground)]">{item.question}</summary>
+                  <div className="mt-3 text-[15px] leading-7 text-[var(--color-muted)] sm:text-base">{item.answer}</div>
+                </details>
+              ))}
             </div>
           </div>
         </Container>
       </section>
 
       <section className="py-10 sm:py-14 lg:py-16">
-        <Container className="grid gap-6 lg:grid-cols-[0.98fr_1.02fr]">
-          <div className="rounded-[var(--radius-panel)] border border-black/6 bg-white p-6 shadow-[var(--shadow-panel)] sm:p-8">
-            <SectionHeading
-              eyebrow="Časté otázky"
-              title="To podstatné k voucheru na jednom místě."
-            />
-            <div className="mt-6 space-y-3">
-              {[
-                {
-                  question: "Může být voucher i bez přesně vybrané služby?",
-                  answer:
-                    "Ano. Pokud nechcete vybírat konkrétní proceduru, lze voucher vystavit i na hodnotu podle individuální domluvy.",
-                },
-                {
-                  question: "Jak si obdarovaná ověří, že je voucher platný?",
-                  answer:
-                    "Každý voucher má vlastní kód a veřejné ověření. Stránka pouze ukáže stav a nic z voucheru neodečítá.",
-                },
-                {
-                  question: "Co když si obdarovaná nebude jistá výběrem péče?",
-                  answer:
-                    "To je v pořádku. Při výběru termínu nebo před návštěvou lze službu společně doladit podle aktuální potřeby.",
-                },
-                {
-                  question: "Kdy je lepší voucher na službu a kdy na hodnotu?",
-                  answer:
-                    "Pokud přesně víte, co má obdarovaná ráda, dává smysl konkrétní služba. Pokud si nejste jistá nebo jde o první návštěvu, bývá praktičtější volnější hodnota podle domluvy.",
-                },
-              ].map((item) => (
-                <details
-                  key={item.question}
-                  className="rounded-[calc(var(--radius-panel)-0.5rem)] border border-black/8 bg-[var(--color-surface)] px-5 py-4"
-                >
-                  <summary className="cursor-pointer list-none pr-6 font-medium text-[var(--color-foreground)]">
-                    {item.question}
-                  </summary>
-                  <p className="mt-3 text-[15px] leading-7 text-[var(--color-muted)] sm:text-base">
-                    {item.answer}
-                  </p>
-                </details>
-              ))}
-            </div>
-          </div>
-
+        <Container>
           <div className="rounded-[var(--radius-panel)] border border-black/6 bg-[linear-gradient(180deg,#f8f1e8_0%,#f4eadf_100%)] p-6 shadow-[var(--shadow-panel)] sm:p-8">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[var(--color-accent)]">
-              Další krok
-            </p>
-            <h2 className="mt-4 font-display text-[2.2rem] leading-[1.04] text-[var(--color-foreground)] sm:text-5xl">
-              Chcete voucher vystavit nebo si ověřit už existující kód?
-            </h2>
-            <p className="mt-4 max-w-2xl text-[15px] leading-7 text-[var(--color-muted)] sm:text-base">
-              Pro vystavení voucheru mi stačí krátká zpráva. Pokud už voucher máte, můžete si jeho stav kdykoli bezpečně zkontrolovat online.
-            </p>
-            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-              <ActionLink
-                href={voucherMailHref}
-                trackingLocation="voucher-final"
-                trackingPage="vouchery"
-                className="inline-flex min-h-12 items-center justify-center rounded-full bg-[var(--color-foreground)] px-6 py-3 text-center text-sm font-semibold text-white transition hover:bg-[#2c221d]"
-              >
-                Napsat pro voucher
+            <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[var(--color-accent)]">Dárek podle vašeho přání</p>
+            <h2 className="mt-4 font-display text-[2.2rem] leading-[1.04] text-[var(--color-foreground)] sm:text-5xl">Chcete připravit dárkový voucher?</h2>
+            <p className="mt-4 max-w-2xl text-[15px] leading-7 text-[var(--color-muted)] sm:text-base">Napište mi, jestli máte představu o konkrétní službě nebo hodnotě. Pokud si nejste jistí, vhodnou variantu spolu jednoduše vybereme.</p>
+            <div className="mt-6 flex flex-col items-start gap-4">
+              <ActionLink href={voucherMailHref} trackingLocation="voucher-final" trackingPage="vouchery" className="inline-flex min-h-12 items-center justify-center rounded-full bg-[var(--color-foreground)] px-6 py-3 text-center text-sm font-semibold text-white transition hover:bg-[#2c221d]">
+                Chci dárkový voucher
               </ActionLink>
-              <ActionLink
-                href="/vouchery/overeni"
-                trackingLocation="voucher-final"
-                trackingPage="vouchery"
-                className="inline-flex min-h-12 items-center justify-center rounded-full border border-black/10 bg-white/75 px-6 py-3 text-center text-sm font-semibold text-[var(--color-foreground)] transition hover:border-black/18 hover:bg-white"
-              >
-                Ověřit voucher
+              <ActionLink href="/vouchery/overeni" trackingLocation="voucher-final" trackingPage="vouchery" className="text-sm font-medium text-[var(--color-accent-contrast)] underline decoration-[var(--color-accent)] underline-offset-4 transition hover:text-[var(--color-foreground)]">
+                Už voucher máte? Ověřit platnost →
               </ActionLink>
             </div>
           </div>
@@ -359,42 +180,30 @@ export async function VoucherLandingPage({
 }
 
 function VoucherHeroAside({
-  phone,
-  phoneHref,
   email,
+  phone,
   voucherMailHref,
+  voucherPhoneHref,
 }: {
-  phone: string;
-  phoneHref: string;
   email: string;
+  phone: string;
   voucherMailHref: string;
+  voucherPhoneHref: string;
 }) {
   return (
-    <aside className="h-full rounded-[calc(var(--radius-panel)-0.25rem)] border border-white/75 bg-white/88 p-5 shadow-[var(--shadow-panel)] backdrop-blur sm:p-6">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.32em] text-[var(--color-accent)]">
-        Rychlá domluva
-      </p>
-      <h2 className="mt-4 font-display text-2xl leading-[1.08] text-[var(--color-foreground)] sm:text-3xl">
-        Voucher domluvíme jednoduše a bez složitého formuláře.
-      </h2>
-      <p className="mt-3 text-[14px] leading-6 text-[var(--color-muted)] sm:text-[15px]">
-        Nejrychlejší je napsat e-mail. Pokud potřebujete rychlou orientaci, můžete se ozvat i telefonicky.
-      </p>
-      <div className="mt-6 grid gap-3">
-        <a
-          href={voucherMailHref}
-          className="rounded-2xl border border-black/[0.06] bg-[var(--color-surface)] px-4 py-3 transition hover:border-black/10 hover:bg-[#f4eadf]"
-        >
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-muted)]">E-mail</p>
-          <p className="mt-2 break-words text-[15px] leading-6 text-[var(--color-foreground)]">{email}</p>
-        </a>
-        <a
-          href={phoneHref}
-          className="rounded-2xl border border-black/[0.06] bg-[var(--color-surface)] px-4 py-3 transition hover:border-black/10 hover:bg-[#f4eadf]"
-        >
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-muted)]">Telefon</p>
-          <p className="mt-2 text-[15px] leading-6 text-[var(--color-foreground)]">{phone}</p>
-        </a>
+    <aside className="self-start rounded-[calc(var(--radius-panel)-0.25rem)] border border-black/5 bg-[var(--color-surface)] p-5 sm:p-6">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.32em] text-[var(--color-accent)]">Rychlá domluva</p>
+      <h2 className="mt-4 font-display text-2xl leading-[1.08] text-[var(--color-foreground)] sm:text-3xl">Voucher vyřídíme jednoduše.</h2>
+      <p className="mt-3 text-[14px] leading-6 text-[var(--color-muted)] sm:text-[15px]">Stačí napsat, zda máte představu o službě nebo hodnotě. Pokud si nejste jistí, ráda poradím.</p>
+      <div className="mt-5 flex flex-wrap gap-x-6 gap-y-3 border-t border-black/5 pt-4 text-[14px] leading-6 sm:text-[15px]">
+        <ActionLink href={voucherMailHref} trackingLocation="voucher-hero-aside" trackingPage="vouchery" className="group">
+          <span className="block text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-muted)]">E-mail</span>
+          <span className="mt-1 block text-[var(--color-foreground)] underline decoration-[var(--color-accent)] underline-offset-4 transition group-hover:text-[var(--color-accent-contrast)]">{email}</span>
+        </ActionLink>
+        <ActionLink href={voucherPhoneHref} trackingLocation="voucher-hero-aside" trackingPage="vouchery" className="group">
+          <span className="block text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-muted)]">Telefon</span>
+          <span className="mt-1 block text-[var(--color-foreground)] underline decoration-[var(--color-accent)] underline-offset-4 transition group-hover:text-[var(--color-accent-contrast)]">{phone}</span>
+        </ActionLink>
       </div>
     </aside>
   );

@@ -27,7 +27,7 @@ export function PublicHero({
   logoImage?: { src: string; alt: string; width: number; height: number };
   portraitImage?: { src: string; alt: string; width: number; height: number };
   primaryCta?: { href: string; label: string };
-  secondaryCta?: { href: string; label: string };
+  secondaryCta?: { href: string; label: string; variant?: "button" | "text" };
   aside?: ReactNode;
 }) {
   const isHomepageStyle = Boolean(logoImage && portraitImage);
@@ -89,7 +89,9 @@ export function PublicHero({
                     href={secondaryCta.href}
                     trackingLocation="hero"
                     trackingPage={eyebrow.toLowerCase()}
-                    className="inline-flex min-h-13 items-center justify-center rounded-full border border-black/10 bg-white/75 px-7 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-foreground)] hover:border-black/20 hover:bg-white sm:text-sm"
+                    className={secondaryCta.variant === "text"
+                      ? "text-sm font-medium text-[var(--color-accent-contrast)] underline decoration-[var(--color-accent)] underline-offset-4 transition hover:text-[var(--color-foreground)]"
+                      : "inline-flex min-h-13 items-center justify-center rounded-full border border-black/10 bg-white/75 px-7 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-foreground)] hover:border-black/20 hover:bg-white sm:text-sm"}
                   >
                     {secondaryCta.label}
                   </ActionLink>

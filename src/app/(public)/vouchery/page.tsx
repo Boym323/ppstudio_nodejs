@@ -5,7 +5,7 @@ import { getVoucherSuggestedServices } from "@/features/public/lib/public-servic
 export const metadata = buildPageMetadata({
   title: "Dárkové vouchery",
   description:
-    "Dárkový voucher do PP Studia ve Zlíně pro péči o pleť, lash lifting nebo laminaci obočí. Voucher lze vystavit na konkrétní službu i podle individuální domluvy.",
+    "Dárkový voucher do PP Studia ve Zlíně na kosmetické ošetření, lash lifting nebo další péči. Voucher lze vystavit na konkrétní službu i zvolenou hodnotu.",
   path: "/vouchery",
 });
 
