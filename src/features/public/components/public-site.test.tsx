@@ -44,7 +44,7 @@ test("buildPageMetadata předává title bez značky, aby ji layout přidal prá
   assert.equal(metadata.twitter?.title, "Lash lifting Zlín | PP Studio");
 });
 
-test("ServiceDetailPage points booking CTA to /rezervace?service=<slug>", () => {
+test("ServiceDetailPage points booking CTA to the service with its entry source", () => {
   const html = renderToStaticMarkup(
     <ServiceDetailPage
       service={{
@@ -64,5 +64,8 @@ test("ServiceDetailPage points booking CTA to /rezervace?service=<slug>", () => 
     />,
   );
 
-  assert.match(html, /href="\/rezervace\?service=lash-lifting-special"/);
+  assert.match(
+    html,
+    /href="\/rezervace\?service=lash-lifting-special&amp;source=service_detail"/,
+  );
 });

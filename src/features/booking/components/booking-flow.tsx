@@ -646,12 +646,12 @@ export function BookingFlow({
     contactStartedTrackedRef.current = false;
   };
 
-  const trackBookingStarted = () => {
+  const trackBookingStarted = useCallback(() => {
     if (bookingStartedTrackedRef.current) return;
 
     bookingStartedTrackedRef.current = true;
     trackBookingEvent("booking_started", bookingEntrySource);
-  };
+  }, [bookingEntrySource]);
 
   useEffect(() => {
     const trackedService = selectedService;
@@ -675,7 +675,7 @@ export function BookingFlow({
     serviceSelectedTrackedRef.current = true;
     trackBookingEvent("service_selected", `${trackedService.slug} | preselected`);
     trackSelectedServiceMetaEvent(trackedService);
-  }, [bookingEntrySource, initialSelectedServiceSlug, selectedService]);
+  }, [initialSelectedServiceSlug, selectedService, trackBookingStarted]);
 
   const trackContactStarted = () => {
     trackInitiateCheckout();
@@ -698,11 +698,11 @@ export function BookingFlow({
     });
   };
 
-  const trackContactFieldFocus = (_field: ContactFieldKey) => {
+  const trackContactFieldFocus = () => {
     trackContactStarted();
   };
 
-  const trackContactFieldInput = (_field: ContactFieldKey, _value: string) => {
+  const trackContactFieldInput = () => {
     trackContactStarted();
   };
 
@@ -863,6 +863,7 @@ export function BookingFlow({
       duration_minutes: selectedService?.durationMinutes,
     });
   }, [
+    selectedService,
     selectedService?.categoryName,
     selectedService?.durationMinutes,
     selectedService?.name,
@@ -1084,15 +1085,15 @@ export function BookingFlow({
               onShowSummary={goToSummary}
               onFullNameChange={(value) => {
                 setFullName(value);
-                trackContactFieldInput("fullName", value);
+                trackContactFieldInput();
               }}
               onEmailChange={(value) => {
                 setEmail(value);
-                trackContactFieldInput("email", value);
+                trackContactFieldInput();
               }}
               onPhoneChange={(value) => {
                 setPhone(value);
-                trackContactFieldInput("phone", value);
+                trackContactFieldInput();
               }}
               onClientNoteChange={setClientNote}
               onVoucherCodeChange={(value) => {

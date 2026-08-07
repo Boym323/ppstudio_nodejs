@@ -25,6 +25,7 @@ async function expectPageReady(page: Page, path: string, heading: RegExp | strin
   await page.goto(path);
   await expect(page.getByRole("heading", { name: heading }).first()).toBeVisible();
   await expect(page.locator('meta[name="robots"]')).not.toHaveAttribute("content", /noindex/i);
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 
   const currentUrl = new URL(page.url());
   const expectedCanonicalPath = currentUrl.pathname === "/" ? "" : currentUrl.pathname;
@@ -76,6 +77,31 @@ test.describe("public site smoke coverage", () => {
     await page.goto("/vouchery/overeni");
     await expect(page.getByRole("heading", { name: "Ověření dárkového poukazu" })).toBeVisible();
     await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/i);
+  });
+
+  test("mobile navigation stays accessible and unlocks the page after a desktop resize", async ({ page }) => {
+    test.skip(test.info().project.name !== "mobile-chrome", "Scénář ověřuje mobilní veřejnou navigaci.");
+
+    await page.goto("/");
+
+    const menuButton = page.getByRole("button", { name: "Otevřít menu" });
+    await expect(menuButton).toBeVisible();
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+
+    await menuButton.click();
+    await expect(page.getByRole("navigation", { name: "Mobilní navigace" })).toBeVisible();
+    await expect.poll(() => page.evaluate(() => document.body.style.overflow)).toBe("hidden");
+
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("navigation", { name: "Mobilní navigace" })).toHaveCount(0);
+    await expect(menuButton).toBeFocused();
+    await expect.poll(() => page.evaluate(() => document.body.style.overflow)).toBe("");
+
+    await menuButton.click();
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await expect(page.getByRole("navigation", { name: "Mobilní navigace" })).toHaveCount(0);
+    await expect.poll(() => page.evaluate(() => document.body.style.overflow)).toBe("");
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   });
 
   test("technical public discovery routes stay available and keep private paths out", async ({ request }) => {

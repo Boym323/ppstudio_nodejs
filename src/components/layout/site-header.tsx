@@ -39,6 +39,18 @@ export function SiteHeader({ variant = "public", brandName = "PP Studio" }: Site
   }, []);
 
   useEffect(() => {
+    const desktopMediaQuery = window.matchMedia("(min-width: 1024px)");
+    const closeMenuOnDesktop = (event: MediaQueryListEvent) => {
+      if (event.matches) {
+        setIsMenuOpen(false);
+      }
+    };
+
+    desktopMediaQuery.addEventListener("change", closeMenuOnDesktop);
+    return () => desktopMediaQuery.removeEventListener("change", closeMenuOnDesktop);
+  }, []);
+
+  useEffect(() => {
     if (!isMenuOpen) return;
     const previousOverflow = document.body.style.overflow;
     const focusableSelector = "a[href], button:not([disabled])";
