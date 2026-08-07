@@ -64,6 +64,9 @@ test("admin PWA po autentizovaném procházení neuloží provozní requesty do 
 
   try {
     await loginAdmin(page, admin.email, admin.password);
+    // /admin is outside the worker's intentional /admin/ scope.
+    await page.goto("/admin/rezervace");
+    await expect.poll(() => page.evaluate(async () => new URL((await navigator.serviceWorker.ready).scope).pathname)).toBe("/admin/");
     await page.reload();
     await expect.poll(() => page.evaluate(() => navigator.serviceWorker.controller !== null)).toBe(true);
 
