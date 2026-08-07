@@ -20,7 +20,7 @@ function LegalSections({ sections }: { sections: LegalSection[] }) {
         <section
           key={section.id ?? section.title}
           id={section.id}
-          className="scroll-mt-28 rounded-[calc(var(--radius-panel)-0.55rem)] border border-black/6 bg-white p-5 shadow-[var(--shadow-panel)] sm:p-6"
+          className="scroll-mt-[calc(var(--site-header-height)+1rem)] rounded-[calc(var(--radius-panel)-0.55rem)] border border-black/6 bg-white p-5 shadow-[var(--shadow-panel)] sm:p-6"
         >
           {section.eyebrow ? (
             <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--color-accent)]">{section.eyebrow}</p>

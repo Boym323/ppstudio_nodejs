@@ -58,7 +58,7 @@ export function BookingContactStep({
   const emailError = getDisplayedFieldError("email");
   const phoneError = getDisplayedFieldError("phone");
   const inputClassName =
-    "min-h-12 w-full rounded-2xl border border-black/8 bg-white px-4 py-3 outline-none transition focus:border-[var(--color-accent)] focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/30 focus-visible:ring-offset-2 focus-visible:ring-offset-white";
+    "min-h-12 w-full rounded-2xl border border-black/8 bg-white px-4 py-3 text-base outline-none transition focus:border-[var(--color-accent)] focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/30 focus-visible:ring-offset-2 focus-visible:ring-offset-white";
   const errorClassName = "block text-sm text-red-700";
 
   return (
@@ -231,7 +231,7 @@ export function BookingContactStep({
               clientNoteError ? "booking-contact-client-note-error" : "",
             )}
             aria-invalid={clientNoteError ? true : undefined}
-            className="w-full rounded-2xl border border-black/8 bg-white px-4 py-3 outline-none transition focus:border-[var(--color-accent)] focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/30 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+            className="w-full rounded-2xl border border-black/8 bg-white px-4 py-3 text-base outline-none transition focus:border-[var(--color-accent)] focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/30 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
           />
           <p id="booking-contact-client-note-hint" className="text-xs text-[var(--color-muted)]">
             Nepovinné. Napište sem jen to, co je důležité vědět před návštěvou.
@@ -276,7 +276,7 @@ export function BookingContactStep({
                 voucherCodeError ? "booking-contact-voucher-code-error" : "",
               )}
               aria-invalid={voucherCodeError ? true : undefined}
-              className="min-h-12 w-full rounded-2xl border border-black/8 bg-white px-4 py-3 font-mono text-sm uppercase tracking-[0.08em] outline-none transition focus:border-[var(--color-accent)] focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/30 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+              className="min-h-12 w-full rounded-2xl border border-black/8 bg-white px-4 py-3 font-mono text-base uppercase tracking-[0.08em] outline-none transition focus:border-[var(--color-accent)] focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/30 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
               autoComplete="off"
               inputMode="text"
             />

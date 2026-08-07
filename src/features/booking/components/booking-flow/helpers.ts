@@ -171,6 +171,20 @@ export function getCategoryKey(categoryName: string) {
   return categoryName.toLocaleLowerCase("cs-CZ");
 }
 
+const BOOKING_SECTION_SCROLL_GAP = 16;
+
+export function getBookingStickyOffset() {
+  if (typeof document === "undefined") {
+    return BOOKING_SECTION_SCROLL_GAP;
+  }
+
+  const headerHeight = document
+    .querySelector<HTMLElement>(".site-header--booking")
+    ?.getBoundingClientRect().height ?? 0;
+
+  return Math.ceil(headerHeight) + BOOKING_SECTION_SCROLL_GAP;
+}
+
 export function findInitialSelectedService(
   services: PublicBookingCatalog["services"],
   serviceSlug?: string,

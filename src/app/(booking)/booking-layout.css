@@ -19,22 +19,8 @@
     letter-spacing: 0.12em;
   }
 
-  .site-header--booking .booking-header__brand-subtitle,
-  .site-header--booking .booking-header__reservation-cta {
+  .site-header--booking .booking-header__brand-subtitle {
     display: none;
-  }
-
-  .site-header--booking .booking-header__nav {
-    flex: 1 1 auto;
-    justify-content: flex-end;
-    overflow-x: auto;
-    padding-bottom: 0;
-  }
-
-  .site-header--booking .booking-header__nav-link {
-    padding: 0.35rem 0.45rem;
-    font-size: 0.62rem;
-    letter-spacing: 0.12em;
   }
 
   .booking-sticky-cta {

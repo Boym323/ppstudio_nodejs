@@ -30,6 +30,8 @@ function ServiceCard({ service }: { service: Service }) {
 }
 
 export function ServicesPage({ services: catalogServices = services }: { services?: Service[] } = {}) {
+  const categories = [...new Set(catalogServices.map((service) => service.category))];
+
   return (
     <div className="pb-8 sm:pb-12">
       <PublicHero
@@ -39,19 +41,43 @@ export function ServicesPage({ services: catalogServices = services }: { service
         primaryCta={{ href: "/rezervace", label: "Vybrat termín" }}
         secondaryCta={{ href: "/cenik", label: "Zobrazit ceník" }}
       />
-      <section className="py-10 sm:py-14 lg:py-16">
+      <section className="pb-10 pt-8 sm:py-14 lg:py-16">
         <Container className="space-y-8 sm:space-y-10">
           <SectionHeading
             eyebrow="Katalog služeb"
             title="Každá služba shrnuje to podstatné: zaměření péče, délku i cenu."
           />
-          <div className="grid gap-6 lg:grid-cols-3">
-            {catalogServices.map((service) => (
-              <ServiceCard key={service.slug} service={service} />
+          <nav aria-label="Kategorie služeb" className="grid grid-cols-2 gap-2 pb-1 md:grid-cols-3 lg:flex lg:flex-wrap">
+            {categories.map((category, index) => {
+              const isLastOddMobileItem = categories.length % 2 === 1 && index === categories.length - 1;
+
+              return (
+                <a
+                  key={category}
+                  href={`#${toCategoryId(category)}`}
+                  className={`inline-flex min-h-11 min-w-0 items-center justify-center rounded-full border border-black/10 bg-white/65 px-3 py-2 text-center text-sm font-medium leading-5 text-[var(--color-foreground)] transition hover:border-[var(--color-accent)]/45 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2 md:px-4 ${isLastOddMobileItem ? "col-span-2 md:col-span-1" : ""}`}
+                >
+                  {category}
+                </a>
+              );
+            })}
+          </nav>
+          <div className="space-y-10">
+            {categories.map((category) => (
+              <section key={category} id={toCategoryId(category)} className="scroll-mt-[calc(var(--site-header-height)+1rem)] space-y-5">
+                <h2 className="font-display text-3xl leading-[1.05] text-[var(--color-foreground)]">{category}</h2>
+                <div className="grid gap-6 lg:grid-cols-3">
+                  {catalogServices.filter((service) => service.category === category).map((service) => <ServiceCard key={service.slug} service={service} />)}
+                </div>
+              </section>
             ))}
           </div>
         </Container>
       </section>
     </div>
   );
+}
+
+function toCategoryId(category: string) {
+  return `kategorie-${category.toLocaleLowerCase("cs-CZ").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")}`;
 }

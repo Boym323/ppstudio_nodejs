@@ -19,16 +19,14 @@ import { getBookingPolicySettings } from "@/lib/site-settings";
 
 function TrustStrip({ metrics }: { metrics: TrustMetric[] }) {
   return (
-    <section className="py-5 sm:py-8">
+    <section className="py-4 sm:py-8">
       <Container>
         <div className="grid gap-px overflow-hidden rounded-[var(--radius-panel)] border border-black/6 bg-black/6 shadow-[var(--shadow-panel)] sm:grid-cols-3">
           {metrics.map((metric) => (
-            <div key={metric.label} className="space-y-2 bg-white p-5 sm:p-6">
-              <p className="font-display text-2xl text-[var(--color-foreground)] sm:text-3xl">{metric.value}</p>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-accent)]">
-                {metric.label}
-              </p>
-              <p className="text-[13px] leading-6 text-[var(--color-muted)] sm:text-sm">{metric.description}</p>
+            <div key={metric.label} className="grid grid-cols-[4.5rem_1fr] items-center gap-x-3 gap-y-1 bg-white px-4 py-3 sm:block sm:p-6">
+              <p className="row-span-2 font-display text-xl text-[var(--color-foreground)] sm:text-3xl">{metric.value}</p>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-accent)]">{metric.label}</p>
+              <p className="text-[13px] leading-5 text-[var(--color-muted)] sm:mt-2 sm:leading-6 sm:text-sm">{metric.description}</p>
             </div>
           ))}
         </div>

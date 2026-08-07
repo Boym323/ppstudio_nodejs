@@ -98,7 +98,7 @@ export default async function VoucherVerificationPage({
                   defaultValue={normalizedCode}
                   placeholder="PP-2026-XXXXXX"
                   autoComplete="off"
-                  className="mt-2 w-full rounded-full border border-black/10 bg-white px-5 py-3 font-mono text-sm tracking-[0.08em] text-[var(--color-foreground)] outline-none transition placeholder:tracking-normal placeholder:text-black/32 focus:border-[var(--color-accent)]"
+                  className="mt-2 w-full rounded-full border border-black/10 bg-white px-5 py-3 font-mono text-base tracking-[0.08em] text-[var(--color-foreground)] outline-none transition placeholder:tracking-normal placeholder:text-black/32 focus:border-[var(--color-accent)]"
                 />
               </label>
               <button

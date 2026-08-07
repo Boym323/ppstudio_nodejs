@@ -34,8 +34,8 @@ export function PublicHero({
 
   return (
     <section className="relative isolate overflow-hidden border-b border-black/5 bg-[radial-gradient(circle_at_top_left,rgba(226,205,182,0.5),transparent_32%),linear-gradient(180deg,#f8f2eb_0%,#f5ede4_48%,#f8f3ed_100%)]">
-      <Container className="grid gap-8 py-10 sm:gap-10 sm:py-16 lg:grid-cols-[1.08fr_0.92fr] lg:items-stretch lg:py-24">
-        <div className="space-y-6 sm:space-y-7">
+      <Container className="grid gap-6 py-7 sm:gap-10 sm:py-16 lg:grid-cols-[1.08fr_0.92fr] lg:items-stretch lg:py-24">
+        <div className="space-y-5 sm:space-y-7">
           <div className="space-y-3">
             {!isHomepageStyle ? (
               <p className="text-[11px] font-semibold uppercase tracking-[0.32em] text-[var(--color-accent)]">{eyebrow}</p>

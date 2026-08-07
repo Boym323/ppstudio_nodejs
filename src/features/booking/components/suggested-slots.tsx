@@ -38,7 +38,7 @@ export function SuggestedSlots({
       </div>
 
       <div className="grid gap-2.5 sm:grid-cols-2 sm:gap-3 xl:grid-cols-3">
-        {slots.map((slot) => {
+        {slots.map((slot, index) => {
           const isSelected = slot.key === selectedKey;
 
           return (
@@ -48,18 +48,21 @@ export function SuggestedSlots({
               aria-label={getAriaLabel?.(slot)}
               onClick={() => onSelect(slot)}
               className={cn(
-                "rounded-3xl border bg-white px-4 py-3 text-left transition-all duration-150 sm:px-5 sm:py-4",
+                "min-h-14 rounded-2xl border bg-white px-4 py-2.5 text-left transition-all duration-150 sm:rounded-3xl sm:px-5 sm:py-4",
+                index >= 4 && "max-sm:hidden",
                 isSelected
                   ? "border-[var(--color-accent)] bg-[var(--color-surface-strong)]/45 shadow-[0_10px_24px_rgba(0,0,0,0.08)]"
                   : "border-black/6 hover:border-[var(--color-accent)]/25 hover:bg-[var(--color-surface)]/35",
               )}
             >
-              <p className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-[var(--color-accent)] sm:text-xs sm:tracking-[0.22em]">
-                {formatDate(slot.startsAt)}
-              </p>
-              <p className="mt-2 text-xl font-semibold text-[var(--color-foreground)] sm:mt-3 sm:text-2xl">
-                {formatTime(slot.startsAt)}
-              </p>
+              <div className="flex items-center justify-between gap-3 sm:block">
+                <p className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-[var(--color-accent)] sm:text-xs sm:tracking-[0.22em]">
+                  {formatDate(slot.startsAt)}
+                </p>
+                <p className="shrink-0 text-xl font-semibold text-[var(--color-foreground)] sm:mt-3 sm:text-2xl">
+                  {formatTime(slot.startsAt)}
+                </p>
+              </div>
               <p className="mt-2 text-sm text-[var(--color-muted)] max-sm:hidden">
                 Jedním klikem vyberete termín a přejdete na kontakt.
               </p>

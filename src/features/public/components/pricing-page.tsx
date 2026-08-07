@@ -62,25 +62,18 @@ export function PricingHero() {
 
 export function CategoryChips({ categories }: { categories: PublicPricingCategory[] }) {
   return (
-    <section className="py-6 sm:py-7">
+    <section className="pb-6 pt-5 sm:py-7">
       <Container>
-        <div className="flex gap-3 overflow-x-auto pb-1">
+        <div className="grid grid-cols-2 gap-2 pb-1 md:grid-cols-3 lg:flex lg:flex-wrap lg:justify-center">
           {categories.map((category, index) => {
-            const Icon = pricingIcons[category.iconKey] ?? SparkIcon;
-
+            const isLastOddMobileItem = categories.length % 2 === 1 && index === categories.length - 1;
             return (
               <a
                 key={category.id}
                 href={`#${category.id}`}
-                className={[
-                  "inline-flex shrink-0 items-center gap-3 rounded-full border px-5 py-3 text-sm font-medium",
-                  index === 0
-                    ? "border-[var(--color-foreground)] bg-[var(--color-foreground)] text-white shadow-[0_14px_32px_rgba(23,19,17,0.12)]"
-                    : "border-black/8 bg-white/82 text-[var(--color-foreground)] shadow-[0_8px_22px_rgba(23,19,17,0.04)] hover:border-black/12 hover:bg-white",
-                ].join(" ")}
+                className={`inline-flex min-h-11 min-w-0 items-center justify-center rounded-full border border-[#dfcfbc] bg-white/58 px-3 py-2 text-center text-[13px] font-medium leading-5 text-[var(--color-foreground)] shadow-[0_6px_16px_rgba(23,19,17,0.035)] transition hover:border-[var(--color-accent)]/55 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2 sm:text-sm md:px-4 ${isLastOddMobileItem ? "col-span-2 md:col-span-1" : ""}`}
               >
-                <Icon className="h-[1.05rem] w-[1.05rem]" />
-                <span className="whitespace-nowrap">{category.label}</span>
+                {category.label}
               </a>
             );
           })}
@@ -96,7 +89,7 @@ export function PricingSection({ category }: { category: PublicPricingCategory }
   return (
     <section
       id={category.id}
-      className="scroll-mt-32 overflow-hidden rounded-[1.85rem] border border-black/6 bg-[linear-gradient(180deg,rgba(255,252,248,0.92),rgba(252,247,241,0.92))] shadow-[0_18px_48px_rgba(55,38,24,0.05)]"
+      className="scroll-mt-[calc(var(--site-header-height)+1rem)] overflow-hidden rounded-[1.85rem] border border-black/6 bg-[linear-gradient(180deg,rgba(255,252,248,0.92),rgba(252,247,241,0.92))] shadow-[0_18px_48px_rgba(55,38,24,0.05)]"
     >
       <div className="grid gap-4 border-b border-black/6 px-5 py-5 sm:px-7 sm:py-6 lg:grid-cols-[minmax(0,0.72fr)_minmax(0,1fr)] lg:items-start lg:gap-8">
         <div className="flex items-center gap-4">
@@ -163,7 +156,7 @@ export function PricingGridSection({ category }: { category: PublicPricingCatego
   return (
     <section
       id={category.id}
-      className="scroll-mt-32 overflow-hidden rounded-[1.75rem] border border-black/6 bg-[linear-gradient(180deg,rgba(255,252,248,0.92),rgba(251,247,241,0.92))] shadow-[0_16px_40px_rgba(55,38,24,0.04)]"
+      className="scroll-mt-[calc(var(--site-header-height)+1rem)] overflow-hidden rounded-[1.75rem] border border-black/6 bg-[linear-gradient(180deg,rgba(255,252,248,0.92),rgba(251,247,241,0.92))] shadow-[0_16px_40px_rgba(55,38,24,0.04)]"
     >
       <div className="border-b border-black/6 px-5 py-5 sm:px-6 sm:py-6">
         <div className="flex items-center gap-4">

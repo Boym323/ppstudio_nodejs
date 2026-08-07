@@ -86,7 +86,7 @@ function FaqSectionBlock({ section }: { section: FaqSection }) {
   return (
     <section
       id={section.id}
-      className="scroll-mt-28 rounded-[var(--radius-panel)] border border-black/6 bg-white p-5 shadow-[var(--shadow-panel)] sm:p-6 lg:p-8"
+      className="scroll-mt-[calc(var(--site-header-height)+1rem)] rounded-[var(--radius-panel)] border border-black/6 bg-white p-5 shadow-[var(--shadow-panel)] sm:p-6 lg:p-8"
     >
       <div className="max-w-3xl">
         <p className="text-[11px] font-semibold uppercase tracking-[0.26em] text-[var(--color-accent)]">Tematická sekce</p>

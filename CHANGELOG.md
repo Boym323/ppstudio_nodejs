@@ -6,6 +6,16 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+### Změněno
+
+- Veřejný web má na mobilu kompaktní sticky hlavičku s přímou cestou k rezervaci a přístupným vysouvacím menu; na rezervační stránce ji nahrazuje návrat na web.
+- Rezervace s platně předvybranou službou nyní místo celého katalogu ukazuje stručné shrnutí služby a rovnou výběr termínu; službu lze kdykoli rozbalit a změnit.
+- Mobilní homepage, průběh rezervace včetně čtyř nejbližších termínů a katalog služeb lépe využívají vertikální prostor; kategorie služeb i ceníku jsou rychle dostupné přes zalamovanou anchor navigaci.
+
+### Opraveno
+
+- Automatické scrollování v rezervačním procesu i kotvy veřejných stránek nyní vychází ze skutečné výšky sticky hlavičky a formulářová pole na iOS nepřibližují stránku při získání fokusu.
+
 ## [3.14.2] - 2026-08-07
 
 ### Zabezpečení

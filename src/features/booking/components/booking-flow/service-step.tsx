@@ -4,7 +4,7 @@ import type { PublicBookingCatalog } from "@/features/booking/lib/booking-public
 import { cn } from "@/lib/utils";
 
 import { CategorySelect } from "../category-select";
-import { formatPrice, getCategoryKey } from "./helpers";
+import { formatPrice, getBookingStickyOffset, getCategoryKey } from "./helpers";
 import type { ServiceCategory } from "./types";
 
 type BookingServiceStepProps = {
@@ -13,8 +13,11 @@ type BookingServiceStepProps = {
   categories: ServiceCategory[];
   effectiveCategoryKey: string;
   visibleServices: PublicBookingCatalog["services"];
+  selectedService?: PublicBookingCatalog["services"][number];
   selectedServiceId: string;
   serviceIdError?: string;
+  compactSelectedService?: boolean;
+  onChangeService?: () => void;
   onCategorySelect: (categoryKey: string) => void;
   onServiceSelect: (serviceId: string) => void;
 };
@@ -25,8 +28,11 @@ export function BookingServiceStep({
   categories,
   effectiveCategoryKey,
   visibleServices,
+  selectedService,
   selectedServiceId,
   serviceIdError,
+  compactSelectedService = false,
+  onChangeService,
   onCategorySelect,
   onServiceSelect,
 }: BookingServiceStepProps) {
@@ -41,9 +47,7 @@ export function BookingServiceStep({
 
     window.requestAnimationFrame(() => {
       const rect = servicesList.getBoundingClientRect();
-      const headerOffset = window.innerWidth >= 1024 ? 112 : 88;
-      const breathingSpace = window.innerWidth >= 1024 ? 16 : 20;
-      const topOffset = headerOffset + breathingSpace;
+      const topOffset = getBookingStickyOffset();
       const isComfortablyVisible = rect.top >= topOffset && rect.bottom <= window.innerHeight - 24;
 
       if (isComfortablyVisible) {
@@ -70,31 +74,23 @@ export function BookingServiceStep({
       )}
     >
       <div>
-        <p className="text-xs font-semibold uppercase tracking-[0.32em] text-[var(--color-accent)]">
-          Krok 1
-        </p>
-        <h2 className="mt-2 font-display text-3xl text-[var(--color-foreground)]">
-          Vyberte službu
-        </h2>
-        <p className="mt-2 text-sm leading-6 text-[var(--color-muted)]">
-          Vyberte kategorii a poté konkrétní službu.
-        </p>
+        <p className="text-xs font-semibold uppercase tracking-[0.32em] text-[var(--color-accent)]">Krok 1</p>
+        <h2 className="mt-2 font-display text-3xl text-[var(--color-foreground)]">{compactSelectedService ? "Vybraná služba" : "Vyberte službu"}</h2>
+        <p className="mt-2 text-sm leading-6 text-[var(--color-muted)]">{compactSelectedService ? "Službu můžete před dokončením rezervace kdykoli změnit." : "Vyberte kategorii a poté konkrétní službu."}</p>
       </div>
 
-      <CategorySelect
-        categories={categories}
-        selectedKey={effectiveCategoryKey}
-        onSelect={(categoryKey) => {
-          const shouldScrollToServices = categoryKey !== effectiveCategoryKey;
-          onCategorySelect(categoryKey);
+      {compactSelectedService ? null : <>
+        <CategorySelect
+          categories={categories}
+          selectedKey={effectiveCategoryKey}
+          onSelect={(categoryKey) => {
+            const shouldScrollToServices = categoryKey !== effectiveCategoryKey;
+            onCategorySelect(categoryKey);
+            if (shouldScrollToServices) scrollToServices();
+          }}
+        />
 
-          if (shouldScrollToServices) {
-            scrollToServices();
-          }
-        }}
-      />
-
-      <div ref={servicesListRef} className="grid gap-3">
+        <div ref={servicesListRef} className="grid gap-3">
         {visibleServices.map((service) => {
           const isSelected = service.id === selectedServiceId;
 
@@ -139,7 +135,16 @@ export function BookingServiceStep({
             </button>
           );
         })}
-      </div>
+        </div>
+      </>}
+
+      {compactSelectedService && selectedService ? (
+        <div className="rounded-3xl border border-[var(--color-accent)]/30 bg-[var(--color-surface)]/45 p-4">
+          <p className="font-display text-2xl text-[var(--color-foreground)]">{selectedService.name}</p>
+          <p className="mt-1 text-sm text-[var(--color-muted)]">{selectedService.durationMinutes} min · {formatPrice(selectedService.priceFromCzk)}</p>
+          <button type="button" onClick={onChangeService} className="mt-3 inline-flex min-h-11 items-center rounded-full px-3 text-sm font-semibold text-[var(--color-foreground)] underline underline-offset-4 hover:text-[var(--color-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]">Změnit službu</button>
+        </div>
+      ) : null}
 
       {serviceIdError ? (
         <p className="text-sm text-red-700">{serviceIdError}</p>

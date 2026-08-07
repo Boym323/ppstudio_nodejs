@@ -47,6 +47,7 @@ import {
   EMPTY_TIME_SLOTS,
   findInitialSelectedService,
   getContactFieldErrorReason,
+  getBookingStickyOffset,
   getCategoryKey,
   getSlotDateKey,
   getSlotDurationMinutes,
@@ -80,6 +81,7 @@ export function BookingFlow({
     currentCatalog.services,
     initialSelectedServiceSlug,
   );
+  const initialSelectedServiceId = initialSelectedService?.id;
   const initialCategoryKey = getCategoryKey(
     initialSelectedService?.categoryName ?? currentCatalog.services[0]?.categoryName ?? "",
   );
@@ -95,6 +97,7 @@ export function BookingFlow({
   const [voucherApplication, setVoucherApplication] = useState<VoucherApplicationState>({ status: "idle" });
   const [voucherValidationVersion, setVoucherValidationVersion] = useState(0);
   const [currentStep, setCurrentStep] = useState(initialSelectedService ? 2 : 1);
+  const [isServiceCatalogOpen, setIsServiceCatalogOpen] = useState(!initialSelectedService);
   const [selectedDateKey, setSelectedDateKey] = useState("");
   const [visibleMonthKey, setVisibleMonthKey] = useState("");
   const [isServiceStepHighlighted, setIsServiceStepHighlighted] = useState(false);
@@ -204,7 +207,7 @@ export function BookingFlow({
 
     window.requestAnimationFrame(() => {
       const rect = sectionElement.getBoundingClientRect();
-      const topSafeArea = 120;
+      const topSafeArea = getBookingStickyOffset();
       const bottomSafeArea = 64;
       const isComfortablyVisible =
         rect.top >= topSafeArea && rect.bottom <= window.innerHeight - bottomSafeArea;
@@ -213,10 +216,7 @@ export function BookingFlow({
         return;
       }
 
-      const desktopOffset = 112;
-      const mobileOffset = 88;
-      const targetTop =
-        window.scrollY + rect.top - (window.innerWidth >= 1024 ? desktopOffset : mobileOffset);
+      const targetTop = window.scrollY + rect.top - topSafeArea;
 
       window.scrollTo({
         top: Math.max(0, targetTop),
@@ -252,7 +252,7 @@ export function BookingFlow({
 
     window.requestAnimationFrame(() => {
       const rect = sectionElement.getBoundingClientRect();
-      const topSafeArea = 120;
+      const topSafeArea = getBookingStickyOffset();
       const bottomSafeArea = 64;
       const isComfortablyVisible =
         rect.top >= topSafeArea && rect.bottom <= window.innerHeight - bottomSafeArea;
@@ -263,10 +263,7 @@ export function BookingFlow({
         return;
       }
 
-      const desktopOffset = 104;
-      const mobileOffset = 72;
-      const targetTop =
-        window.scrollY + rect.top - (window.innerWidth >= 1024 ? desktopOffset : mobileOffset);
+      const targetTop = window.scrollY + rect.top - topSafeArea;
 
       window.scrollTo({
         top: Math.max(0, targetTop),
@@ -299,7 +296,7 @@ export function BookingFlow({
 
     window.requestAnimationFrame(() => {
       const rect = sectionElement.getBoundingClientRect();
-      const topSafeArea = 120;
+      const topSafeArea = getBookingStickyOffset();
       const bottomSafeArea = 64;
       const isComfortablyVisible =
         rect.top >= topSafeArea && rect.bottom <= window.innerHeight - bottomSafeArea;
@@ -313,10 +310,7 @@ export function BookingFlow({
         return;
       }
 
-      const desktopOffset = 104;
-      const mobileOffset = 72;
-      const targetTop =
-        window.scrollY + rect.top - (window.innerWidth >= 1024 ? desktopOffset : mobileOffset);
+      const targetTop = window.scrollY + rect.top - topSafeArea;
 
       window.scrollTo({
         top: Math.max(0, targetTop),
@@ -352,7 +346,7 @@ export function BookingFlow({
   }, []);
 
   useEffect(() => {
-    if (!initialSelectedServiceSlug) {
+    if (!initialSelectedServiceId) {
       return;
     }
 
@@ -365,7 +359,7 @@ export function BookingFlow({
     const frameId = window.requestAnimationFrame(() => {
       setCurrentStep(2);
       const rect = sectionElement.getBoundingClientRect();
-      const topSafeArea = 120;
+      const topSafeArea = getBookingStickyOffset();
       const bottomSafeArea = 64;
       const isComfortablyVisible =
         rect.top >= topSafeArea && rect.bottom <= window.innerHeight - bottomSafeArea;
@@ -374,10 +368,7 @@ export function BookingFlow({
         return;
       }
 
-      const desktopOffset = 104;
-      const mobileOffset = 72;
-      const targetTop =
-        window.scrollY + rect.top - (window.innerWidth >= 1024 ? desktopOffset : mobileOffset);
+      const targetTop = window.scrollY + rect.top - topSafeArea;
 
       window.scrollTo({
         top: Math.max(0, targetTop),
@@ -388,7 +379,7 @@ export function BookingFlow({
     return () => {
       window.cancelAnimationFrame(frameId);
     };
-  }, [initialSelectedServiceSlug]);
+  }, [initialSelectedServiceId]);
 
   const servicesById = useMemo(
     () => new Map(currentCatalog.services.map((service) => [service.id, service])),
@@ -1030,13 +1021,21 @@ export function BookingFlow({
               categories={serviceCategories}
               effectiveCategoryKey={effectiveCategoryKey}
               visibleServices={visibleServices}
+              selectedService={selectedService}
               selectedServiceId={selectedServiceId}
               serviceIdError={serverState.fieldErrors?.serviceId}
+              compactSelectedService={Boolean(initialSelectedServiceSlug && selectedServiceId && !isServiceCatalogOpen)}
+              onChangeService={() => {
+                setIsServiceCatalogOpen(true);
+                setCurrentStep(1);
+                focusServiceStepSection();
+              }}
               onCategorySelect={(categoryKey) => {
                 markFormChanged();
                 setSelectedCategoryKey(categoryKey);
                 invalidateVoucherApplication();
                 setSelectedServiceId("");
+                setIsServiceCatalogOpen(true);
                 resetServiceDependentSelection();
                 setCurrentStep(1);
               }}
@@ -1045,6 +1044,7 @@ export function BookingFlow({
                 const service = servicesById.get(serviceId);
                 invalidateVoucherApplication();
                 setSelectedServiceId(serviceId);
+                setIsServiceCatalogOpen(false);
                 resetServiceDependentSelection(serviceId);
                 setCurrentStep(2);
                 if (shouldTrackBookingServiceSelectedForPrefill(service?.slug === initialSelectedServiceSlug)) {
@@ -1084,6 +1084,7 @@ export function BookingFlow({
               }}
               onReturnToServiceSelection={() => {
                 setCurrentStep(1);
+                setIsServiceCatalogOpen(true);
                 focusServiceStepSection();
               }}
               onSlotSelect={selectSlot}
