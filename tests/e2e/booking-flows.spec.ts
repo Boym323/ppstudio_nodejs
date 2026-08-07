@@ -826,7 +826,7 @@ test.describe("booking flows", () => {
 
     await expect(page.getByRole("link", { name: "Rezervovat službu" })).toHaveAttribute(
       "href",
-      `/rezervace?service=${fixture.serviceSlug}`,
+      `/rezervace?service=${fixture.serviceSlug}&source=service_detail`,
     );
   });
 
@@ -846,7 +846,9 @@ test.describe("booking flows", () => {
     await page.goto(`/sluzby/${fixture.serviceSlug}`);
     await page.getByRole("link", { name: "Rezervovat službu" }).click();
 
-    await expect(page).toHaveURL(new RegExp(`/rezervace\\?service=${fixture.serviceSlug}$`));
+    await expect(page).toHaveURL(
+      new RegExp(`/rezervace\\?service=${fixture.serviceSlug}&source=service_detail$`),
+    );
     await expect(page.locator('input[name="serviceId"]')).toHaveValue(service.id);
     await expect(page.getByText(fixture.serviceName).first()).toBeVisible();
 
@@ -875,7 +877,9 @@ test.describe("booking flows", () => {
     await expectMetaPixelEvent(page, "track:ViewContent");
 
     await page.getByRole("link", { name: "Rezervovat službu" }).click();
-    await expect(page).toHaveURL(new RegExp(`/rezervace\\?service=${fixture.serviceSlug}$`));
+    await expect(page).toHaveURL(
+      new RegExp(`/rezervace\\?service=${fixture.serviceSlug}&source=service_detail$`),
+    );
     await expectMetaPixelEvent(page, "trackCustom:BookingServiceSelected");
     await expect.poll(async () => getMetaPixelEventNames(page)).not.toContain("track:AddToCart");
     await expect.poll(async () => getMetaPixelEventNames(page)).not.toContain("track:InitiateCheckout");
