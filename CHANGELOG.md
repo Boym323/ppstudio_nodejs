@@ -6,9 +6,12 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [3.14.1] - 2026-08-07
+
 ### Změněno
 
 - Stránka dárkových voucherů má kratší a přehlednější cestu k jejich vystavení, jasněji rozlišuje voucher na službu a hodnotu, přesněji popisuje jeho využití při rezervaci a méně zvýrazňuje ověření existujícího voucheru.
+- Release příprava pro produkční nasazení: projektová verze navýšena na patch `3.14.1`.
 
 ## [3.14.0] - 2026-08-06
 
