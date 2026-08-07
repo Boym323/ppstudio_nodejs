@@ -4,6 +4,7 @@ const SHELL_ASSETS = ["/admin-offline.html", "/pwa/admin-192.png", "/pwa/admin-5
 const PWA_ASSET_PATHS = new Set(SHELL_ASSETS.slice(1));
 const isAdminNavigation = (pathname) => pathname === "/admin" || pathname.startsWith("/admin/");
 const isSafeStaticAsset = (pathname) => pathname.startsWith("/_next/static/") || PWA_ASSET_PATHS.has(pathname);
+const hasSensitiveRequestHeaders = (request) => request.headers.has("authorization") || request.headers.has("cookie");
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(SHELL_ASSETS)));
   self.skipWaiting();
@@ -15,7 +16,7 @@ self.addEventListener("fetch", (event) => {
   const { request } = event;
   if (request.method !== "GET") return;
   const url = new URL(request.url);
-  if (url.origin !== self.location.origin || url.pathname.startsWith("/api/")) return;
+  if (url.origin !== self.location.origin || url.pathname.startsWith("/api/") || hasSensitiveRequestHeaders(request)) return;
   // Network-first admin HTML deliberately never reaches Cache Storage.
   if (request.mode === "navigate" && isAdminNavigation(url.pathname)) {
     event.respondWith(fetch(request).catch(() => caches.match("/admin-offline.html")));

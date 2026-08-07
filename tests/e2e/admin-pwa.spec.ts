@@ -14,6 +14,7 @@ test("admin PWA assety mají bezpečné hlavičky a veřejná rezervace není v 
   expect(worker.headers()["content-type"]).toContain("application/javascript; charset=utf-8");
   expect(worker.headers()["service-worker-allowed"]).toBe("/admin/");
   expect(worker.headers()["cache-control"]).toContain("no-store");
+  expect(worker.headers()["content-security-policy"]).toBe("default-src 'self'; script-src 'self'");
   expect(await worker.text()).toContain('const CACHE_NAME = "ppstudio-admin-shell-v4"');
   expect(await offline.text()).toContain("Nejste připojeni k internetu");
 
@@ -34,8 +35,11 @@ test("admin PWA assety mají bezpečné hlavičky a veřejná rezervace není v 
 
   await page.goto("/admin/prihlaseni");
   await expect(page.locator('link[rel="manifest"][href="/admin.webmanifest"]')).toHaveCount(1);
+  await expect(page.locator('link[rel="apple-touch-icon"][href="/pwa/admin-apple-touch-icon.png"]')).toHaveCount(1);
+  await expect.poll(() => page.evaluate(async () => new URL((await navigator.serviceWorker.ready).scope).pathname)).toBe("/admin/");
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 
   await page.goto("/rezervace");
   await expect(page.locator('link[rel="manifest"][href="/admin.webmanifest"]')).toHaveCount(0);
+  expect(await page.evaluate(() => navigator.serviceWorker.controller)).toBe(null);
 });

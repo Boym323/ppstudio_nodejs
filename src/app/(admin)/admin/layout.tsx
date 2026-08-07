@@ -13,6 +13,9 @@ export const metadata: Metadata = {
     follow: false,
   },
   appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "PP Studio" },
+  icons: {
+    apple: [{ url: "/pwa/admin-apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+  },
 };
 
 export const viewport: Viewport = { themeColor: "#18181a", viewportFit: "cover" };

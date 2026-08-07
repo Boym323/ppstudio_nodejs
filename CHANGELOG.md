@@ -6,6 +6,14 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+### Zabezpečení
+
+- Administrační PWA nadále ukládá jen bezpečný instalační shell a nemůže do cache uložit požadavek s autorizačními či session hlavičkami; její pravidla jsou nyní přímo ověřována nad výsledným service workerem.
+
+### Opraveno
+
+- Administrační PWA již nezamyká orientaci obrazovky a při přidání na plochu iOS používá vlastní ikonu administrace.
+
 ## [3.14.1] - 2026-08-07
 
 ### Změněno
