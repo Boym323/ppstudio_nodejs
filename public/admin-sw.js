@@ -4,7 +4,10 @@ const SHELL_ASSETS = ["/admin-offline.html", "/pwa/admin-192.png", "/pwa/admin-5
 const PWA_ASSET_PATHS = new Set(SHELL_ASSETS.slice(1));
 const isAdminNavigation = (pathname) => pathname === "/admin" || pathname.startsWith("/admin/");
 const isSafeStaticAsset = (pathname) => pathname.startsWith("/_next/static/") || PWA_ASSET_PATHS.has(pathname);
-const hasSensitiveRequestHeaders = (request) => request.headers.has("authorization") || request.headers.has("cookie");
+const isDynamicRequest = (request) => request.mode === "navigate" || request.headers.has("rsc") || request.headers.has("next-router-state-tree") || request.headers.has("next-router-prefetch") || request.headers.has("next-url");
+// Cookie is appended by the browser after the FetchEvent request is cloned for the service worker.
+// The cache boundary is therefore the static-URL allowlist; Authorization is only an extra safeguard.
+const hasSensitiveRequestHeaders = (request) => request.headers.has("authorization");
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(SHELL_ASSETS)));
   self.skipWaiting();
@@ -22,6 +25,7 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(fetch(request).catch(() => caches.match("/admin-offline.html")));
     return;
   }
+  if (isDynamicRequest(request)) return;
   // Only public, immutable assets are cacheable; private and no-store responses are rejected.
   if (!isSafeStaticAsset(url.pathname)) return;
   event.respondWith(caches.match(request).then(async (cached) => {

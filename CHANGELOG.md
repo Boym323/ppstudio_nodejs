@@ -8,7 +8,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Zabezpečení
 
-- Administrační PWA nadále ukládá jen bezpečný instalační shell a nemůže do cache uložit požadavek s autorizačními či session hlavičkami; její pravidla jsou nyní přímo ověřována nad výsledným service workerem.
+- Administrační PWA zakládá ochranu cache výhradně na explicitním allowlistu offline shellu, vlastních ikon a build-time Next assetů; dynamické, administrační, API, navigační a RSC requesty se neukládají nezávisle na session cookies.
 
 ### Opraveno
 

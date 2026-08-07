@@ -1,4 +1,18 @@
-import { expect, test } from "@playwright/test";
+import { randomBytes } from "crypto";
+
+import { expect, test, type Page } from "@playwright/test";
+import { AdminRole } from "@prisma/client";
+
+import { cleanupE2eData, createAdminFixture } from "./helpers/fixtures";
+
+async function loginAdmin(page: Page, email: string, password: string) {
+  await page.goto("/admin/prihlaseni");
+  await page.getByLabel("E-mail").fill(email);
+  await page.getByLabel("Heslo").fill(password);
+  await page.getByRole("button", { name: "Přihlásit se" }).click();
+  await expect(page).toHaveURL(/\/admin$/);
+  await expect(page.getByRole("heading", { name: "Provozní přehled" })).toBeVisible();
+}
 
 test("admin PWA assety mají bezpečné hlavičky a veřejná rezervace není v jejím scope", async ({ page, request }) => {
   const [manifest, worker, offline] = await Promise.all([
@@ -42,4 +56,31 @@ test("admin PWA assety mají bezpečné hlavičky a veřejná rezervace není v 
   await page.goto("/rezervace");
   await expect(page.locator('link[rel="manifest"][href="/admin.webmanifest"]')).toHaveCount(0);
   expect(await page.evaluate(() => navigator.serviceWorker.controller)).toBe(null);
+});
+
+test("admin PWA po autentizovaném procházení neuloží provozní requesty do Cache Storage", async ({ page }) => {
+  const runId = `admin-pwa-cache-${Date.now()}-${randomBytes(4).toString("hex")}`;
+  const admin = await createAdminFixture(runId, AdminRole.OWNER);
+
+  try {
+    await loginAdmin(page, admin.email, admin.password);
+    await page.reload();
+    await expect.poll(() => page.evaluate(() => navigator.serviceWorker.controller !== null)).toBe(true);
+
+    for (const pathname of ["/admin/rezervace", "/admin/klienti", "/admin/vouchery"]) {
+      await page.goto(pathname);
+      await expect(page).toHaveURL(new RegExp(`${pathname}$`));
+    }
+
+    const cachedPaths = await page.evaluate(async () => {
+      const cacheNames = await caches.keys();
+      const requests = await Promise.all(cacheNames.map(async (name) => (await caches.open(name)).keys()));
+      return requests.flat().map((request) => new URL(request.url).pathname);
+    });
+
+    expect(cachedPaths).not.toEqual(expect.arrayContaining(["/admin/", "/admin/rezervace", "/admin/klienti", "/admin/vouchery"]));
+    expect(cachedPaths.every((pathname) => pathname === "/admin-offline.html" || pathname.startsWith("/pwa/admin-") || pathname.startsWith("/_next/static/"))).toBe(true);
+  } finally {
+    await cleanupE2eData(runId);
+  }
 });
