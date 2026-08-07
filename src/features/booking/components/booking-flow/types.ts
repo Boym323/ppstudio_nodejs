@@ -5,8 +5,17 @@ export type BookingFlowProps = {
   catalog: PublicBookingCatalog;
   initialSelectedServiceSlug?: string;
   initialVoucherCode?: string;
+  bookingEntrySource: BookingEntrySource;
   salonProfile: Awaited<ReturnType<typeof getPublicSalonProfile>>;
 };
+
+export type BookingEntrySource =
+  | "service_detail"
+  | "price_list"
+  | "homepage"
+  | "voucher"
+  | "direct_booking"
+  | "other";
 
 export type ContactFieldKey = "fullName" | "email" | "phone";
 

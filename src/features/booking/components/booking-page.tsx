@@ -6,11 +6,13 @@ import type { PublicBookingCatalog } from "@/features/booking/lib/booking-public
 
 import { BookingAvailabilityAnalytics } from "./booking-availability-analytics";
 import { BookingFlow } from "./booking-flow";
+import type { BookingEntrySource } from "./booking-flow/types";
 
 type BookingPageProps = {
   catalog: PublicBookingCatalog;
   initialSelectedServiceSlug?: string;
   initialVoucherCode?: string;
+  bookingEntrySource: BookingEntrySource;
   salonProfile: Awaited<ReturnType<typeof getPublicSalonProfile>>;
 };
 
@@ -18,6 +20,7 @@ export function BookingPage({
   catalog,
   initialSelectedServiceSlug,
   initialVoucherCode,
+  bookingEntrySource,
   salonProfile,
 }: BookingPageProps) {
   const hasServices = catalog.services.length > 0;
@@ -81,6 +84,7 @@ export function BookingPage({
             catalog={catalog}
             initialSelectedServiceSlug={initialSelectedServiceSlug}
             initialVoucherCode={initialVoucherCode}
+            bookingEntrySource={bookingEntrySource}
             salonProfile={salonProfile}
           />
         )}

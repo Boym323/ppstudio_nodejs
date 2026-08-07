@@ -2,6 +2,18 @@
 
 export type MatomoEventValue = number | undefined;
 
+export type BookingEventAction =
+  | "booking_started"
+  | "service_selected"
+  | "slot_selected"
+  | "contact_started"
+  | "booking_reviewed"
+  | "booking_submitted"
+  | "booking_confirmed"
+  | "booking_failed"
+  | "booking_service_changed"
+  | "booking_slot_changed";
+
 declare global {
   interface Window {
     _paq?: Array<unknown[]>;
@@ -197,8 +209,15 @@ export function trackMatomoEvent(
   }
 }
 
-export function trackReservationCtaClick(location: string, page: string) {
-  trackMatomoEvent("CTA", "Rezervace klik", `${location} ${page}`);
+/**
+ * Jediná taxonomie veřejného rezervačního funnelu. Název události je vždy
+ * technický slug služby nebo bezpečný kontext kroku; nikdy osobní údaje.
+ */
+export function trackBookingEvent(
+  action: BookingEventAction,
+  name?: string,
+) {
+  trackMatomoEvent("Booking", action, name);
 }
 
 export function trackContactCtaClick(type: "phone" | "email" | "instagram" | "contact form" | "map", location: string) {

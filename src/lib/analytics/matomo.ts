@@ -79,24 +79,25 @@ const DEFAULT_DASHBOARD_ANALYTICS: DashboardAnalytics = {
 };
 
 const bookingFunnelLabels = {
-  service: "Rezervace / Služba vybrána",
-  prefilledService: "Rezervace / Služba předvyplněna",
-  term: "Rezervace / Čas vybrán",
-  contact: "Rezervace / Kontakt zahájen",
-  submitted: "Rezervace / Odeslána rezervace",
-  created: "Rezervace / Vytvořena",
+  started: "Booking / booking_started",
+  service: "Booking / service_selected",
+  term: "Booking / slot_selected",
+  contact: "Booking / contact_started",
+  submitted: "Booking / booking_submitted",
+  created: "Booking / booking_confirmed",
 } as const;
 
 const bookingFunnelLegacyAliases = {
-  service: ["Booking / Service selected"],
-  term: ["Booking / Time selected"],
-  contact: ["Booking / Contact started"],
-  submitted: ["Booking / Submitted"],
-  created: ["Booking / Created"],
+  started: [],
+  service: ["Rezervace / Služba vybrána", "Rezervace / Služba předvyplněna", "Booking / Service selected"],
+  term: ["Rezervace / Čas vybrán", "Booking / Time selected"],
+  contact: ["Rezervace / Kontakt zahájen", "Booking / Contact started"],
+  submitted: ["Rezervace / Odeslána rezervace", "Booking / Submitted"],
+  created: ["Rezervace / Vytvořena", "Booking / Created"],
 } as const;
 
 const bookingContactQualityLabels = {
-  started: "Rezervace / Kontakt zahájen",
+  started: "Booking / contact_started",
   fieldFocus: "Rezervace / Kontakt pole fokus",
   fieldInputStarted: "Rezervace / Kontakt pole vyplnění začátek",
   fieldError: "Rezervace / Kontakt pole chyba",
@@ -544,17 +545,19 @@ export async function getDashboardAnalytics(): Promise<DashboardAnalytics> {
 
     const visits = visitsSummary.nb_visits;
     const funnel = {
-      viewed: getBookingFlowPageviewCount(pageUrls),
-      service:
-        getEventCount(events, bookingFunnelLabels.service, bookingFunnelLegacyAliases.service) +
-        getEventCount(events, bookingFunnelLabels.prefilledService),
+      viewed: getEventCount(events, bookingFunnelLabels.started, bookingFunnelLegacyAliases.started) || getBookingFlowPageviewCount(pageUrls),
+      service: getEventCount(events, bookingFunnelLabels.service, bookingFunnelLegacyAliases.service),
       term: getEventCount(events, bookingFunnelLabels.term, bookingFunnelLegacyAliases.term),
       contact: getEventCount(events, bookingFunnelLabels.contact, bookingFunnelLegacyAliases.contact),
       submitted: getEventCount(events, bookingFunnelLabels.submitted, bookingFunnelLegacyAliases.submitted),
       created: getEventCount(events, bookingFunnelLabels.created, bookingFunnelLegacyAliases.created),
     };
     const conversions = bookingGoal.nb_conversions;
-    const contactStepStarted = getEventCount(events, bookingContactQualityLabels.started);
+    const contactStepStarted = getEventCount(
+      events,
+      bookingContactQualityLabels.started,
+      bookingFunnelLegacyAliases.contact,
+    );
     const contactFieldFocus = getEventCount(events, bookingContactQualityLabels.fieldFocus);
     const contactFieldInputStarted = getEventCount(events, bookingContactQualityLabels.fieldInputStarted);
     const contactFieldError = getEventCount(events, bookingContactQualityLabels.fieldError);

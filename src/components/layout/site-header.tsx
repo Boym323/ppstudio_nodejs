@@ -85,7 +85,7 @@ export function SiteHeader({ variant = "public", brandName = "PP Studio" }: Site
           <Link href="/" className="inline-flex min-h-11 items-center rounded-full px-3 text-sm font-semibold text-[var(--color-foreground)] underline underline-offset-4 hover:text-[var(--color-accent)] lg:hidden">← Zpět</Link>
         ) : (
           <div className="flex items-center gap-2 lg:hidden">
-            <Link href="/rezervace" prefetch={false} className="button-text inline-flex min-h-11 items-center justify-center rounded-full bg-[var(--color-foreground)] px-4 text-white hover:bg-[#2c221d]">Rezervovat</Link>
+            <Link href="/rezervace?source=other" prefetch={false} className="button-text inline-flex min-h-11 items-center justify-center rounded-full bg-[var(--color-foreground)] px-4 text-white hover:bg-[#2c221d]">Rezervovat</Link>
             <button ref={menuTriggerRef} type="button" aria-label={isMenuOpen ? "Zavřít menu" : "Otevřít menu"} aria-expanded={isMenuOpen} aria-controls={menuId} onClick={() => setIsMenuOpen((open) => !open)} className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-black/10 bg-white/60 text-[var(--color-foreground)] hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]">
               <span aria-hidden="true" className="text-xl leading-none">{isMenuOpen ? "×" : "☰"}</span>
             </button>
@@ -96,7 +96,7 @@ export function SiteHeader({ variant = "public", brandName = "PP Studio" }: Site
           {mainNavigation.map((item) => <Link key={item.href} href={item.href} className="button-text shrink-0 rounded-full px-3 py-2 tracking-[0.15em] text-[var(--color-muted)] hover:bg-white/70 hover:text-[var(--color-foreground)]">{item.label}</Link>)}
         </nav>
         <div className="hidden lg:block">
-          {!isBookingVariant && <Link href="/rezervace" prefetch={false} className="button-text inline-flex min-h-11 items-center justify-center rounded-full bg-[var(--color-foreground)] px-5 text-white hover:bg-[#2c221d]">Rezervovat termín</Link>}
+          {!isBookingVariant && <Link href="/rezervace?source=other" prefetch={false} className="button-text inline-flex min-h-11 items-center justify-center rounded-full bg-[var(--color-foreground)] px-5 text-white hover:bg-[#2c221d]">Rezervovat termín</Link>}
         </div>
       </Container>
 

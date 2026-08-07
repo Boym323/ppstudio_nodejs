@@ -146,7 +146,7 @@ Děkuji.`);
                 { question: "Může být voucher bez přesně vybrané služby?", answer: "Ano. Voucher lze vystavit také na hodnotu a konkrétní péči vybrat později." },
                 { question: "Jak dlouho voucher platí?", answer: "Konkrétní datum platnosti je vždy uvedeno přímo na voucheru." },
                 { question: "Jak poznám, že je voucher platný?", answer: "Každý voucher má vlastní kód, jehož stav lze bezpečně ověřit online. Ověření voucher nijak nečerpá." },
-                { question: "Jak se voucher používá?", answer: <>Při <Link href="/rezervace" className="underline decoration-[var(--color-accent)] underline-offset-4 hover:text-[var(--color-foreground)]">online rezervaci</Link> můžete uvést jeho kód. Samotné uplatnění proběhne při návštěvě studia.</> },
+                { question: "Jak se voucher používá?", answer: <>Při <Link href="/rezervace?source=voucher" className="underline decoration-[var(--color-accent)] underline-offset-4 hover:text-[var(--color-foreground)]">online rezervaci</Link> můžete uvést jeho kód. Samotné uplatnění proběhne při návštěvě studia.</> },
               ].map((item) => (
                 <details key={item.question} className="rounded-[calc(var(--radius-panel)-0.5rem)] border border-black/8 bg-white/65 px-5 py-4">
                   <summary className="cursor-pointer list-none pr-6 font-medium text-[var(--color-foreground)]">{item.question}</summary>

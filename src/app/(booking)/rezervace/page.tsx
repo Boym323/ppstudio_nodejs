@@ -3,6 +3,7 @@ import { connection } from "next/server";
 
 import { getPublicBookingCatalog } from "@/features/booking/lib/booking-public";
 import { BookingPage } from "@/features/booking/components/booking-page";
+import type { BookingEntrySource } from "@/features/booking/components/booking-flow/types";
 import { buildPageMetadata } from "@/features/public/components/public-site";
 import { normalizeVoucherCode } from "@/features/vouchers/lib/voucher-code";
 import { getPublicSalonProfile } from "@/lib/site-settings";
@@ -12,6 +13,10 @@ const reservationMetadata = buildPageMetadata({
   description: "Online rezervace s rychlým výběrem služby, nejbližších termínů a potvrzením po schválení.",
   path: "/rezervace",
 });
+
+const bookingEntrySources = new Set<BookingEntrySource>([
+  "service_detail", "price_list", "homepage", "voucher", "direct_booking", "other",
+]);
 
 export async function generateMetadata({
   searchParams,
@@ -52,12 +57,19 @@ export default async function ReservationPage({
     ? resolvedSearchParams?.voucher[0]
     : resolvedSearchParams?.voucher;
   const normalizedVoucherCode = normalizeVoucherCode(voucherCode ?? "");
+  const source = Array.isArray(resolvedSearchParams?.source)
+    ? resolvedSearchParams?.source[0]
+    : resolvedSearchParams?.source;
+  const bookingEntrySource = typeof source === "string" && bookingEntrySources.has(source as BookingEntrySource)
+    ? source as BookingEntrySource
+    : "direct_booking";
 
   return (
     <BookingPage
       catalog={catalog}
       initialSelectedServiceSlug={initialSelectedServiceSlug}
       initialVoucherCode={normalizedVoucherCode || undefined}
+      bookingEntrySource={bookingEntrySource}
       salonProfile={salonProfile}
     />
   );

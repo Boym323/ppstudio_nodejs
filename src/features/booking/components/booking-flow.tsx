@@ -7,7 +7,7 @@ import { createPublicBookingAction } from "@/features/booking/actions/create-pub
 import { refreshPublicBookingCatalogAction } from "@/features/booking/actions/refresh-public-booking-catalog";
 import { validatePublicBookingVoucherAction } from "@/features/booking/actions/validate-public-booking-voucher";
 import { initialPublicBookingActionState } from "@/features/booking/actions/public-booking-action-state";
-import { trackMatomoEvent } from "@/features/analytics/matomo";
+import { trackBookingEvent, trackMatomoEvent } from "@/features/analytics/matomo";
 import {
   trackMetaPixelCustomEvent,
   trackMetaPixelStandardEvent,
@@ -22,14 +22,7 @@ import { BookingConfirmationPanel } from "./booking-confirmation-panel";
 import { StickyCTA } from "./sticky-cta";
 import { BookingContactStep } from "./booking-flow/contact-step";
 import {
-  shouldTrackContactFieldError,
-  shouldTrackContactFieldInput,
-  shouldTrackFirstContactFieldEvent,
-} from "./booking-flow/contact-analytics";
-import {
   isBookingTermConflictErrorCode,
-  shouldTrackBookingDateSelection,
-  shouldTrackBookingServiceSelectedForPrefill,
 } from "./booking-flow/booking-analytics";
 import {
   getAvailableDateKeysForAvailability,
@@ -46,7 +39,6 @@ import {
   buildContactFieldErrors,
   EMPTY_TIME_SLOTS,
   findInitialSelectedService,
-  getContactFieldErrorReason,
   getBookingStickyOffset,
   getCategoryKey,
   getSlotDateKey,
@@ -67,6 +59,7 @@ export function BookingFlow({
   catalog,
   initialSelectedServiceSlug,
   initialVoucherCode,
+  bookingEntrySource,
   salonProfile,
 }: BookingFlowProps) {
   const [serverState, formAction, isSubmitting] = useActionState(
@@ -117,17 +110,16 @@ export function BookingFlow({
   const firstContactInputRef = useRef<HTMLInputElement | null>(null);
   const contactStepHighlightTimeoutRef = useRef<number | null>(null);
   const contactStepFocusTimeoutRef = useRef<number | null>(null);
-  const createdBookingTrackedRef = useRef(false);
+  const confirmedBookingIdsRef = useRef<Set<string>>(new Set());
+  const bookingStartedTrackedRef = useRef(false);
+  const serviceSelectedTrackedRef = useRef(false);
+  const bookingReviewedTrackedRef = useRef(false);
   const successViewportResetRef = useRef(false);
   const contactStartedTrackedRef = useRef(false);
-  const trackedContactFocusFieldsRef = useRef<Set<ContactFieldKey>>(new Set());
-  const trackedContactInputFieldsRef = useRef<Set<ContactFieldKey>>(new Set());
-  const trackedContactErrorFieldsRef = useRef<Set<ContactFieldKey>>(new Set());
   const prefilledServiceTrackedRef = useRef(false);
-  const lastTrackedDateKeyRef = useRef<string | null>(null);
   const initiateCheckoutTrackedRef = useRef(false);
-  const lastTrackedFormErrorKeyRef = useRef<string | null>(null);
-  const lastTrackedTermConflictKeyRef = useRef<string | null>(null);
+  const lastFailedBookingKeyRef = useRef<string | null>(null);
+  const lastTrackedDateKeyRef = useRef<string | null>(null);
   const catalogRefreshRequestRef = useRef(0);
   const voucherValidationRequestRef = useRef(0);
   const lastVoucherValidationServiceIdRef = useRef(selectedServiceId);
@@ -159,6 +151,9 @@ export function BookingFlow({
   };
 
   const trackSelectedDateMetaEvent = (dateKey: string) => {
+    if (!dateKey || lastTrackedDateKeyRef.current === dateKey) return;
+
+    lastTrackedDateKeyRef.current = dateKey;
     const bookingDate = new Date(`${dateKey}T12:00:00Z`);
     const bookingWeekday = new Intl.DateTimeFormat("cs-CZ", {
       weekday: "long",
@@ -649,17 +644,13 @@ export function BookingFlow({
     setSelectedDateKey(refreshedSelection.selectedDateKey);
     setVisibleMonthKey(refreshedSelection.visibleMonthKey);
     contactStartedTrackedRef.current = false;
-    trackedContactFocusFieldsRef.current.clear();
-    trackedContactInputFieldsRef.current.clear();
-    trackedContactErrorFieldsRef.current.clear();
   };
 
-  const getSelectedServiceEventName = () => {
-    if (!selectedService) {
-      return undefined;
-    }
+  const trackBookingStarted = () => {
+    if (bookingStartedTrackedRef.current) return;
 
-    return `${selectedService.categoryName} / ${selectedService.name}`;
+    bookingStartedTrackedRef.current = true;
+    trackBookingEvent("booking_started", bookingEntrySource);
   };
 
   useEffect(() => {
@@ -680,24 +671,11 @@ export function BookingFlow({
     }
 
     prefilledServiceTrackedRef.current = true;
-    trackMatomoEvent(
-      "Rezervace",
-      "Služba předvyplněna",
-      `${trackedService.categoryName} / ${trackedService.name}`,
-      trackedService.priceFromCzk ?? undefined,
-    );
+    trackBookingStarted();
+    serviceSelectedTrackedRef.current = true;
+    trackBookingEvent("service_selected", `${trackedService.slug} | preselected`);
     trackSelectedServiceMetaEvent(trackedService);
-  }, [initialSelectedServiceSlug, selectedService]);
-
-  const trackDateSelected = (dateKey: string) => {
-    if (!shouldTrackBookingDateSelection(lastTrackedDateKeyRef.current, dateKey)) {
-      return;
-    }
-
-    lastTrackedDateKeyRef.current = dateKey;
-    trackMatomoEvent("Rezervace", "Datum vybráno", dateKey);
-    trackSelectedDateMetaEvent(dateKey);
-  };
+  }, [bookingEntrySource, initialSelectedServiceSlug, selectedService]);
 
   const trackContactStarted = () => {
     trackInitiateCheckout();
@@ -706,14 +684,13 @@ export function BookingFlow({
       return;
     }
 
-    const eventName = getSelectedServiceEventName();
-
-    if (!eventName) {
+    if (!selectedService) {
       return;
     }
 
+    trackBookingStarted();
     contactStartedTrackedRef.current = true;
-    trackMatomoEvent("Rezervace", "Kontakt zahájen", eventName);
+    trackBookingEvent("contact_started", selectedService.slug);
     trackMetaPixelCustomEvent("BookingContactStarted", {
       content_name: selectedService?.name,
       content_category: selectedService?.categoryName,
@@ -721,33 +698,12 @@ export function BookingFlow({
     });
   };
 
-  const trackContactFieldFocus = (field: ContactFieldKey) => {
+  const trackContactFieldFocus = (_field: ContactFieldKey) => {
     trackContactStarted();
-
-    if (!shouldTrackFirstContactFieldEvent(trackedContactFocusFieldsRef.current, field)) {
-      return;
-    }
-
-    trackMatomoEvent("Rezervace", "Kontakt pole fokus", field);
   };
 
-  const trackContactFieldInput = (field: ContactFieldKey, value: string) => {
+  const trackContactFieldInput = (_field: ContactFieldKey, _value: string) => {
     trackContactStarted();
-
-    if (!shouldTrackContactFieldInput(trackedContactInputFieldsRef.current, field, value)) {
-      return;
-    }
-
-    trackMatomoEvent("Rezervace", "Kontakt pole vyplnění začátek", field);
-  };
-
-  const trackContactFieldError = (field: ContactFieldKey) => {
-    if (!shouldTrackContactFieldError(trackedContactErrorFieldsRef.current, field, Boolean(clientFieldErrors[field]))) {
-      return;
-    }
-
-    const reason = getContactFieldErrorReason(field, contactValues[field]);
-    trackMatomoEvent("Rezervace", "Kontakt pole chyba", reason ? `${field} / ${reason}` : field);
   };
 
   const selectSlot = (slotOption: TimeSlotOption) => {
@@ -756,20 +712,18 @@ export function BookingFlow({
     }
 
     markFormChanged();
+    const previousSlotKey = selectedTimeOptionKey;
     const dateKey = getSlotDateKey(slotOption.startsAt);
-    const durationMinutes = selectedService?.durationMinutes;
 
     setSelectedDateKey(dateKey);
     setSelectedTimeOptionKey(slotOption.key);
     setCurrentStep(3);
-    trackDateSelected(dateKey);
-    trackMatomoEvent(
-      "Rezervace",
-      "Čas vybrán",
-      `${formatSlotTime(slotOption.startsAt)} / ${formatSlotTime(slotOption.endsAt)}`,
-      durationMinutes,
-    );
-    trackSelectedTimeMetaEvent(slotOption);
+    trackSelectedDateMetaEvent(dateKey);
+    trackBookingStarted();
+    if (selectedService && previousSlotKey !== slotOption.key) {
+      trackBookingEvent(previousSlotKey ? "booking_slot_changed" : "slot_selected", selectedService.slug);
+      trackSelectedTimeMetaEvent(slotOption);
+    }
     trackInitiateCheckout();
     focusContactStepSection();
   };
@@ -782,12 +736,15 @@ export function BookingFlow({
     });
 
     if (!canGoToStep4) {
-      trackMatomoEvent("Rezervace", "Formulář chyba", "kontakt");
       focusContactStepSection();
       return;
     }
 
     setCurrentStep(4);
+    if (!bookingReviewedTrackedRef.current && selectedService) {
+      bookingReviewedTrackedRef.current = true;
+      trackBookingEvent("booking_reviewed", selectedService.slug);
+    }
   };
 
   useEffect(() => {
@@ -795,33 +752,19 @@ export function BookingFlow({
       return;
     }
 
-    const errorKey = `${serverState.suggestedStep ?? "unknown"}:${serverState.errorCode ?? "form-error"}:${serverState.formError}`;
+    const errorKey = `${serverState.suggestedStep ?? "unknown"}:${serverState.errorCode ?? "server"}:${serverState.formError}`;
 
-    if (lastTrackedFormErrorKeyRef.current === errorKey) {
+    if (lastFailedBookingKeyRef.current === errorKey) {
       return;
     }
 
-    lastTrackedFormErrorKeyRef.current = errorKey;
-    trackMatomoEvent("Rezervace", "Formulář chyba", serverState.errorCode ?? "submit");
-  }, [serverState.errorCode, serverState.formError, serverState.status, serverState.suggestedStep]);
-
-  useEffect(() => {
-    if (
-      serverState.status !== "error" ||
-      !serverState.formError ||
-      !isBookingTermConflictErrorCode(serverState.errorCode, serverState.suggestedStep)
-    ) {
-      return;
-    }
-
-    const conflictKey = `${serverState.errorCode ?? "conflict"}:${serverState.suggestedStep ?? "unknown"}:${serverState.formError}`;
-
-    if (lastTrackedTermConflictKeyRef.current === conflictKey) {
-      return;
-    }
-
-    lastTrackedTermConflictKeyRef.current = conflictKey;
-    trackMatomoEvent("Rezervace", "Termín konflikt při odeslání", serverState.errorCode);
+    lastFailedBookingKeyRef.current = errorKey;
+    const error = serverState.errorCode === "VALIDATION_ERROR"
+      ? "validation"
+      : isBookingTermConflictErrorCode(serverState.errorCode, serverState.suggestedStep)
+        ? "availability_changed"
+        : "server";
+    trackBookingEvent("booking_failed", error);
   }, [serverState.errorCode, serverState.formError, serverState.status, serverState.suggestedStep]);
 
   useEffect(() => {
@@ -902,17 +845,16 @@ export function BookingFlow({
   ]);
 
   useEffect(() => {
-    if (serverState.status !== "success" || !serverState.confirmation || createdBookingTrackedRef.current) {
+    if (serverState.status !== "success" || !serverState.confirmation) {
       return;
     }
 
-    createdBookingTrackedRef.current = true;
-    trackMatomoEvent(
-      "Rezervace",
-      "Vytvořena",
-      selectedService?.name ?? serverState.confirmation.serviceName,
-      selectedService?.priceFromCzk ?? undefined,
-    );
+    const bookingId = serverState.confirmation.bookingId;
+    if (confirmedBookingIdsRef.current.has(bookingId)) return;
+
+    confirmedBookingIdsRef.current.add(bookingId);
+    trackBookingEvent("booking_confirmed", selectedService?.slug ?? "unknown_service");
+    trackMatomoEvent("Rezervace", "Vytvořena", selectedService?.slug ?? "unknown_service");
     trackMetaPixelStandardEvent("Schedule", {
       content_type: "service",
       content_name: selectedService?.name ?? serverState.confirmation.serviceName,
@@ -993,13 +935,8 @@ export function BookingFlow({
             return;
           }
 
-          lastTrackedFormErrorKeyRef.current = null;
-          trackMatomoEvent(
-            "Rezervace",
-            "Odeslána rezervace",
-            selectedService?.name,
-            selectedService?.priceFromCzk ?? undefined,
-          );
+          lastFailedBookingKeyRef.current = null;
+          if (selectedService) trackBookingEvent("booking_submitted", selectedService.slug);
         }}
       >
       <input type="hidden" name="serviceId" value={selectedServiceId} />
@@ -1047,13 +984,13 @@ export function BookingFlow({
                 setIsServiceCatalogOpen(false);
                 resetServiceDependentSelection(serviceId);
                 setCurrentStep(2);
-                if (shouldTrackBookingServiceSelectedForPrefill(service?.slug === initialSelectedServiceSlug)) {
-                  trackMatomoEvent(
-                    "Rezervace",
-                    "Služba vybrána",
-                    service ? `${service.categoryName} / ${service.name}` : undefined,
-                    service?.priceFromCzk ?? undefined,
+                if (service) {
+                  trackBookingStarted();
+                  trackBookingEvent(
+                    serviceSelectedTrackedRef.current ? "booking_service_changed" : "service_selected",
+                    service.slug,
                   );
+                  serviceSelectedTrackedRef.current = true;
                 }
                 trackSelectedServiceMetaEvent(service);
                 focusTermStepSection();
@@ -1091,7 +1028,7 @@ export function BookingFlow({
               onSelectDate={(dateKey) => {
                 markFormChanged();
                 setSelectedDateKey(dateKey);
-                trackDateSelected(dateKey);
+                trackSelectedDateMetaEvent(dateKey);
                 if (selectedSlotDateKey && selectedSlotDateKey !== dateKey) {
                   setSelectedTimeOptionKey("");
                 }
@@ -1166,7 +1103,6 @@ export function BookingFlow({
               onFieldFocus={trackContactFieldFocus}
               onFieldBlur={(field) => {
                 setTouchedFields((current) => ({ ...current, [field]: true }));
-                trackContactFieldError(field);
               }}
             />
           </div>

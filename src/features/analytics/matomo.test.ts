@@ -4,6 +4,7 @@ import test, { after, afterEach } from "node:test";
 import {
   buildSafeMatomoPath,
   ensureMatomoTrackingPath,
+  trackBookingEvent,
   trackMatomoEvent,
   shouldInitializeMatomo,
   shouldInitializeMatomoTracking,
@@ -119,6 +120,25 @@ test("trackMatomoEvent allows safe storno actions but still blocks raw token pat
 
   assert.deepEqual(calls, [
     ["trackEvent", "Rezervace", "Storno dokončeno", "Lash lifting"],
+  ]);
+});
+
+test("trackBookingEvent uses the stable Booking taxonomy and service slug", () => {
+  setMatomoConfigured();
+
+  const calls: unknown[][] = [];
+  setMockWindow({
+    _paq: {
+      push(payload: unknown[]) {
+        calls.push(payload);
+      },
+    } as unknown as Array<unknown[]>,
+  });
+
+  trackBookingEvent("booking_confirmed", "korejsky-lash-lifting");
+
+  assert.deepEqual(calls, [
+    ["trackEvent", "Booking", "booking_confirmed", "korejsky-lash-lifting"],
   ]);
 });
 

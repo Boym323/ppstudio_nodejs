@@ -5,7 +5,7 @@ import type { ComponentPropsWithoutRef, ReactNode } from "react";
 
 import { ObfuscatedEmailLink } from "@/components/ui/obfuscated-email-link";
 
-import { trackContactCtaClick, trackReservationCtaClick } from "./matomo";
+import { trackContactCtaClick } from "./matomo";
 
 type Tracking =
   | {
@@ -30,20 +30,33 @@ type TrackedAnchorProps = ComponentPropsWithoutRef<"a"> & {
 };
 
 function trackClick(tracking: Tracking) {
-  if (tracking.kind === "reservation") {
-    trackReservationCtaClick(tracking.location, tracking.page);
-    return;
-  }
+  if (tracking.kind === "contact") trackContactCtaClick(tracking.type, tracking.location);
+}
 
-  trackContactCtaClick(tracking.type, tracking.location);
+function getBookingEntrySource(tracking: Extract<Tracking, { kind: "reservation" }>, href: string) {
+  const source = href.includes("service=") || tracking.page === "služby"
+    ? "service_detail"
+    : tracking.page === "cenik"
+      ? "price_list"
+      : tracking.page === "domů" || tracking.page === "kosmetika zlín"
+        ? "homepage"
+        : tracking.page === "dárkové vouchery"
+          ? "voucher"
+          : "other";
+
+  const url = new URL(href, "https://ppstudio.local");
+  url.searchParams.set("source", source);
+  return `${url.pathname}${url.search}${url.hash}`;
 }
 
 export function TrackedLink({ tracking, children, ...props }: TrackedLinkProps) {
   const prefetch = props.prefetch ?? (tracking.kind === "reservation" ? false : undefined);
+  const href = tracking.kind === "reservation" ? getBookingEntrySource(tracking, props.href) : props.href;
 
   return (
     <Link
       {...props}
+      href={href}
       prefetch={prefetch}
       onClick={() => {
         trackClick(tracking);
