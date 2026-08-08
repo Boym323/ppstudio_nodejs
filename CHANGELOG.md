@@ -6,6 +6,10 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+### Změněno
+
+- Fallback snapshot nastavení webu je provozní stav serveru a již se nesleduje ve verzování, takže jeho automatická aktualizace z databáze nevytváří nechtěné změny pracovního stromu.
+
 ## [3.16.0] - 2026-08-08
 
 ### Opraveno
