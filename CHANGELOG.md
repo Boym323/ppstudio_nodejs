@@ -13,6 +13,7 @@ Formát je inspirovaný Keep a Changelog.
 ### Opraveno
 
 - Provozní audit voucherů nyní používá české popisky změněných údajů kupujícího a změna kategorie služby zobrazuje její název místo technického ID.
+- Audit individuální ceny rezervace se při souběžných administrativních úpravách zapisuje podle skutečného bezprostředně předchozího stavu.
 
 ## [3.16.0] - 2026-08-08
 
