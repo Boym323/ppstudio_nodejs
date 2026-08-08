@@ -1,6 +1,6 @@
 "use server";
 
-import { AdminRole, AdminUserAuditOperation, Prisma } from "@prisma/client";
+import { AdminRole, AdminUserAuditOperation } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 import { type AdminUserResendInviteActionState } from "@/features/admin/actions/update-admin-user-resend-invite-action-state";
@@ -24,6 +24,7 @@ import {
 } from "@/features/admin/lib/admin-owner-protection";
 import { sendOwnerSystemErrorPushover } from "@/lib/notifications/pushover";
 import { prisma } from "@/lib/prisma";
+import { runSerializableTransaction } from "@/lib/serializable-transaction";
 import { buildAuditChange } from "@/features/admin/lib/audit-change";
 
 function readFormString(formData: FormData, key: string) {
@@ -92,7 +93,7 @@ export async function saveAdminUserAccessAction(
   }
 
   if (userId) {
-    const updated = await prisma.$transaction(async (tx) => {
+    const updated = await runSerializableTransaction(async (tx) => {
       const existing = await tx.adminUser.findUnique({
         where: { id: userId },
         select: { id: true, name: true, email: true },
@@ -117,7 +118,7 @@ export async function saveAdminUserAccessAction(
         },
       });
       return true;
-    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+    });
 
     if (!updated) {
       return {

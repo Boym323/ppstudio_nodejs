@@ -6,7 +6,7 @@ import {
   redeemVoucherSchema,
   type RedeemVoucherInput,
 } from "@/features/vouchers/schemas/voucher-schemas";
-import { prisma } from "@/lib/prisma";
+import { runSerializableTransaction } from "@/lib/serializable-transaction";
 
 type VoucherRedemptionDbClient = Pick<
   Prisma.TransactionClient,
@@ -230,8 +230,5 @@ export async function redeemVoucherForBookingInTransaction(
 }
 
 export async function redeemVoucherForBooking(input: RedeemVoucherInput) {
-  return prisma.$transaction(
-    (tx) => redeemVoucherForBookingInTransaction(tx, input),
-    { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
-  );
+  return runSerializableTransaction((tx) => redeemVoucherForBookingInTransaction(tx, input));
 }

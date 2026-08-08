@@ -622,51 +622,68 @@ export async function updateBookingPriceAction(
   const nextStoredPrice = clearsAdjustment ? null : nextFinalPriceCzk;
   const nextStoredReason = clearsAdjustment ? null : normalizedReason;
 
-  if (booking.finalPriceCzk !== nextStoredPrice || booking.priceAdjustmentReason !== nextStoredReason) {
+  await prisma.$transaction(async (tx) => {
+    await tx.$queryRaw(Prisma.sql`
+      SELECT "id" FROM "Booking" WHERE "id" = ${booking.id} FOR UPDATE
+    `);
+    const currentBooking = await tx.booking.findUnique({
+      where: { id: booking.id },
+      select: {
+        status: true,
+        finalPriceCzk: true,
+        priceAdjustmentReason: true,
+        priceAdjustedAt: true,
+        priceAdjustedByUserId: true,
+      },
+    });
+
+    if (!currentBooking || (
+      currentBooking.finalPriceCzk === nextStoredPrice
+      && currentBooking.priceAdjustmentReason === nextStoredReason
+    )) return;
+
     const changedAt = new Date();
-    await prisma.$transaction(async (tx) => {
-      await tx.booking.update({
-        where: { id: booking.id },
-        data: clearsAdjustment
-          ? {
-              finalPriceCzk: null,
-              priceAdjustmentReason: null,
-              priceAdjustedAt: null,
-              priceAdjustedByUserId: null,
-            }
-          : {
-              finalPriceCzk: nextFinalPriceCzk,
-              priceAdjustmentReason: normalizedReason,
-              priceAdjustedAt: changedAt,
-              priceAdjustedByUserId: actorUserId,
-            },
-      });
-      await tx.bookingStatusHistory.create({
-        data: {
-          bookingId: booking.id,
-          status: booking.status,
-          actorType: BookingActorType.USER,
-          actorUserId,
-          reason: clearsAdjustment ? "Individuální cena zrušena" : "Individuální cena upravena",
-          metadata: {
-            source: "admin-booking-price-update-v1",
-            before: {
-              finalPriceCzk: booking.finalPriceCzk,
-              priceAdjustmentReason: booking.priceAdjustmentReason,
-              priceAdjustedAt: booking.priceAdjustedAt?.toISOString() ?? null,
-              priceAdjustedByUserId: booking.priceAdjustedByUserId,
-            },
-            after: {
-              finalPriceCzk: nextStoredPrice,
-              priceAdjustmentReason: nextStoredReason,
-              priceAdjustedAt: clearsAdjustment ? null : changedAt.toISOString(),
-              priceAdjustedByUserId: clearsAdjustment ? null : actorUserId,
-            },
+    await tx.booking.update({
+      where: { id: booking.id },
+      data: clearsAdjustment
+        ? {
+            finalPriceCzk: null,
+            priceAdjustmentReason: null,
+            priceAdjustedAt: null,
+            priceAdjustedByUserId: null,
+          }
+        : {
+            finalPriceCzk: nextFinalPriceCzk,
+            priceAdjustmentReason: normalizedReason,
+            priceAdjustedAt: changedAt,
+            priceAdjustedByUserId: actorUserId,
+          },
+    });
+    await tx.bookingStatusHistory.create({
+      data: {
+        bookingId: booking.id,
+        status: currentBooking.status,
+        actorType: BookingActorType.USER,
+        actorUserId,
+        reason: clearsAdjustment ? "Individuální cena zrušena" : "Individuální cena upravena",
+        metadata: {
+          source: "admin-booking-price-update-v1",
+          before: {
+            finalPriceCzk: currentBooking.finalPriceCzk,
+            priceAdjustmentReason: currentBooking.priceAdjustmentReason,
+            priceAdjustedAt: currentBooking.priceAdjustedAt?.toISOString() ?? null,
+            priceAdjustedByUserId: currentBooking.priceAdjustedByUserId,
+          },
+          after: {
+            finalPriceCzk: nextStoredPrice,
+            priceAdjustmentReason: nextStoredReason,
+            priceAdjustedAt: clearsAdjustment ? null : changedAt.toISOString(),
+            priceAdjustedByUserId: clearsAdjustment ? null : actorUserId,
           },
         },
-      });
+      },
     });
-  }
+  }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
 
   revalidateBookingAdminPaths(booking.id);
   revalidatePath(`/admin/klienti/${booking.clientId}`);
