@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import test from "node:test";
 
-import { BookingSubmissionOutcome } from "@prisma/client";
+import { AdminRole, BookingSubmissionOutcome, ServiceChangeOperation, VoucherChangeOperation, VoucherType } from "@prisma/client";
 
 process.env.DATABASE_URL ??= "postgresql://postgres:postgres@localhost:5432/ppstudio?schema=public";
 
@@ -51,5 +51,39 @@ dbTest("admin logy rozliší submission typy, Pozornost a SALON scope", async ()
     assert.equal(salonAttention.attention.critical, 0);
   } finally {
     await prisma.bookingSubmissionLog.deleteMany({ where: { failureReason: { contains: suffix } } });
+  }
+});
+
+dbTest("admin logy používají české popisky voucheru a název kategorie služby", async () => {
+  const [{ prisma }, { getAdminLogsData }] = await Promise.all([
+    import("@/lib/prisma"),
+    import("./admin-data"),
+  ]);
+  const suffix = randomUUID();
+  const actor = await prisma.adminUser.create({ data: { email: `admin-log-labels-${suffix}@example.com`, name: "Audit popisků", role: AdminRole.SALON } });
+  const previousCategory = await prisma.serviceCategory.create({ data: { name: `Původní kategorie ${suffix}`, slug: `puvodni-${suffix}` } });
+  const nextCategory = await prisma.serviceCategory.create({ data: { name: `Nová kategorie ${suffix}`, slug: `nova-${suffix}` } });
+  const service = await prisma.service.create({ data: { categoryId: nextCategory.id, name: `Služba ${suffix}`, slug: `sluzba-${suffix}`, durationMinutes: 60 } });
+  const voucher = await prisma.voucher.create({ data: { code: `AUDIT-${suffix}`, type: VoucherType.VALUE, originalValueCzk: 1000, remainingValueCzk: 1000 } });
+
+  try {
+    await prisma.serviceChangeLog.create({
+      data: { serviceId: service.id, actorUserId: actor.id, operation: ServiceChangeOperation.UPDATE_OPERATIONAL_DETAILS, before: { categoryId: previousCategory.id }, after: { categoryId: nextCategory.id } },
+    });
+    await prisma.voucherChangeLog.create({
+      data: { voucherId: voucher.id, actorUserId: actor.id, operation: VoucherChangeOperation.UPDATE_OPERATIONAL_DETAILS, before: { purchaserNameChanged: false, purchaserEmailChanged: false }, after: { purchaserNameChanged: true, purchaserEmailChanged: true } },
+    });
+
+    const serviceLogs = await getAdminLogsData({ area: "salon", view: "events", source: "service", query: suffix });
+    assert.equal(serviceLogs.items[0]?.description, `Kategorie: Původní kategorie ${suffix} → Nová kategorie ${suffix}`);
+    const voucherLogs = await getAdminLogsData({ area: "salon", view: "events", source: "voucher", query: suffix });
+    assert.equal(voucherLogs.items[0]?.description, "Jméno kupujícího: upraveno • E-mail kupujícího: upraveno");
+  } finally {
+    await prisma.voucherChangeLog.deleteMany({ where: { voucherId: voucher.id } });
+    await prisma.serviceChangeLog.deleteMany({ where: { serviceId: service.id } });
+    await prisma.voucher.delete({ where: { id: voucher.id } });
+    await prisma.service.delete({ where: { id: service.id } });
+    await prisma.serviceCategory.deleteMany({ where: { id: { in: [previousCategory.id, nextCategory.id] } } });
+    await prisma.adminUser.delete({ where: { id: actor.id } });
   }
 });

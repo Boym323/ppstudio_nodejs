@@ -10,6 +10,10 @@ Formát je inspirovaný Keep a Changelog.
 
 - Fallback snapshot nastavení webu je provozní stav serveru a již se nesleduje ve verzování, takže jeho automatická aktualizace z databáze nevytváří nechtěné změny pracovního stromu.
 
+### Opraveno
+
+- Provozní audit voucherů nyní používá české popisky změněných údajů kupujícího a změna kategorie služby zobrazuje její název místo technického ID.
+
 ## [3.16.0] - 2026-08-08
 
 ### Opraveno

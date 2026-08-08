@@ -1539,12 +1539,18 @@ function auditValueLabel(value: Prisma.JsonValue | undefined) {
   return String(value);
 }
 
-function auditChangeDescription(beforeValue: Prisma.JsonValue, afterValue: Prisma.JsonValue) {
+function auditChangeDescription(
+  beforeValue: Prisma.JsonValue,
+  afterValue: Prisma.JsonValue,
+  categoryNames = new Map<string, string>(),
+) {
   const before = beforeValue && typeof beforeValue === "object" && !Array.isArray(beforeValue) ? beforeValue : {};
   const after = afterValue && typeof afterValue === "object" && !Array.isArray(afterValue) ? afterValue : {};
   const labels: Record<string, string> = {
     role: "Role", isActive: "Aktivní", validUntil: "Platnost do", status: "Stav",
     cancelledAt: "Zrušeno", hasInternalNote: "Interní poznámka", categoryId: "Kategorie",
+    purchaserNameChanged: "Jméno kupujícího", purchaserEmailChanged: "E-mail kupujícího",
+    internalNoteChanged: "Interní poznámka",
     name: "Název", publicName: "Veřejný název", seoTitle: "SEO titulek",
     durationMinutes: "Délka", cleanupMinutes: "Úklid", sortOrder: "Pořadí",
     isFeaturedOnHomepage: "Na homepage", homepageSortOrder: "Pořadí na homepage",
@@ -1560,7 +1566,13 @@ function auditChangeDescription(beforeValue: Prisma.JsonValue, afterValue: Prism
     const label = labels[key] ?? key.replace(/Changed$/, "");
     if (key.endsWith("Changed") && after[key] === true) return `${label}: upraveno`;
     const suffix = key.endsWith("Minutes") ? " min" : key.endsWith("Hours") ? " h" : key.endsWith("Days") ? " dní" : "";
-    return `${label}: ${auditValueLabel(before[key])}${suffix} → ${auditValueLabel(after[key])}${suffix}`;
+    const beforeLabel = key === "categoryId" && typeof before[key] === "string"
+      ? categoryNames.get(before[key]) ?? auditValueLabel(before[key])
+      : auditValueLabel(before[key]);
+    const afterLabel = key === "categoryId" && typeof after[key] === "string"
+      ? categoryNames.get(after[key]) ?? auditValueLabel(after[key])
+      : auditValueLabel(after[key]);
+    return `${label}: ${beforeLabel}${suffix} → ${afterLabel}${suffix}`;
   }).join(" • ");
 }
 
@@ -1763,6 +1775,13 @@ export async function getAdminLogsData(input: {
     adminAuditActive ? prisma.adminUserAuditEvent.findMany({ where: adminUserAuditWhere, orderBy: [{ createdAt: "desc" }, { id: "desc" }], take, include: { targetUser: { select: { name: true } }, actorUser: { select: { name: true } } } }) : Promise.resolve([]),
     submissionActive ? prisma.bookingSubmissionLog.findMany({ where: submissionWhere, orderBy: [{ createdAt: "desc" }, { id: "desc" }], take, include: { booking: { select: { id: true, clientNameSnapshot: true, serviceNameSnapshot: true } }, client: { select: { fullName: true } } } }) : Promise.resolve([]),
   ]);
+  const categoryIds = serviceChanges.flatMap((entry) => [entry.before, entry.after]
+    .map((value) => value && typeof value === "object" && !Array.isArray(value) && typeof value.categoryId === "string" ? value.categoryId : null)
+    .filter((id): id is string => id !== null));
+  const categoryNames = new Map((categoryIds.length > 0
+    ? await prisma.serviceCategory.findMany({ where: { id: { in: categoryIds } }, select: { id: true, name: true } })
+    : [])
+    .map((category) => [category.id, category.name]));
 
   const bookingHref = (id: string) => getAdminBookingHref(input.area, id);
   const voucherHref = (id: string) => `${input.area === "owner" ? "/admin" : "/admin/provoz"}/vouchery/${id}`;
@@ -1781,7 +1800,7 @@ export async function getAdminLogsData(input: {
     ...vouchers.map((voucher) => ({ id: `voucher:${voucher.id}`, occurredAt: voucher.createdAt.toISOString(), category: "event" as const, severity: "info" as const, title: "Voucher vytvořen", description: null, actorLabel: voucher.createdByUser?.name ?? null, entityLabel: `Voucher ${voucher.code}`, entityHref: voucherHref(voucher.id), sourceType: "voucher" as const, sourceId: voucher.id, primaryAction: "open" as const })),
     ...redemptions.map((redemption) => ({ id: `voucher-redemption:${redemption.id}`, occurredAt: redemption.redeemedAt.toISOString(), category: "event" as const, severity: "success" as const, title: "Voucher uplatněn", description: null, actorLabel: redemption.redeemedByUser?.name ?? null, entityLabel: redemption.voucher ? `Voucher ${redemption.voucher.code}` : "Odstraněný voucher", entityHref: redemption.voucher ? voucherHref(redemption.voucher.id) : null, sourceType: "voucher" as const, sourceId: redemption.id, primaryAction: redemption.voucher ? "open" as const : null })),
     ...voucherChanges.map((entry) => ({ id: `voucher-change:${entry.id}`, occurredAt: entry.createdAt.toISOString(), category: "event" as const, severity: "info" as const, title: entry.operation === "CANCEL" ? "Voucher zrušen" : "Voucher upraven", description: auditChangeDescription(entry.before, entry.after), actorLabel: entry.actorUser.name, entityLabel: `Voucher ${entry.voucher.code}`, entityHref: voucherHref(entry.voucher.id), sourceType: "voucher" as const, sourceId: entry.id, primaryAction: "open" as const })),
-    ...serviceChanges.map((entry) => ({ id: `service-change:${entry.id}`, occurredAt: entry.createdAt.toISOString(), category: "event" as const, severity: "info" as const, title: "Služba upravena", description: auditChangeDescription(entry.before, entry.after), actorLabel: entry.actorUser.name, entityLabel: entry.service.publicName ?? entry.service.name, entityHref: `${input.area === "owner" ? "/admin" : "/admin/provoz"}/sluzby?serviceId=${entry.service.id}`, sourceType: "service" as const, sourceId: entry.id, primaryAction: "open" as const })),
+    ...serviceChanges.map((entry) => ({ id: `service-change:${entry.id}`, occurredAt: entry.createdAt.toISOString(), category: "event" as const, severity: "info" as const, title: "Služba upravena", description: auditChangeDescription(entry.before, entry.after, categoryNames), actorLabel: entry.actorUser.name, entityLabel: entry.service.publicName ?? entry.service.name, entityHref: `${input.area === "owner" ? "/admin" : "/admin/provoz"}/sluzby?serviceId=${entry.service.id}`, sourceType: "service" as const, sourceId: entry.id, primaryAction: "open" as const })),
     ...siteSettingsChanges.map((entry) => ({ id: `settings-change:${entry.id}`, occurredAt: entry.createdAt.toISOString(), category: "event" as const, severity: "info" as const, title: entry.operation === "UPDATE_BOOKING_POLICY" ? "Pravidla rezervace upravena" : entry.operation === "UPDATE_SALON" ? "Údaje salonu upraveny" : "E-mailová nastavení upravena", description: auditChangeDescription(entry.before, entry.after), actorLabel: entry.actorUser.name, entityLabel: "Nastavení webu", entityHref: "/admin/nastaveni", sourceType: "settings" as const, sourceId: entry.id, primaryAction: "open" as const })),
     ...availabilityAudits.map((entry) => ({ id: `availability:${entry.id}`, occurredAt: entry.createdAt.toISOString(), category: "event" as const, severity: "info" as const, title: availabilityAuditLabel(entry.operation), description: availabilityAuditDescription(entry), actorLabel: entry.actorUser?.name ?? null, entityLabel: `Volné termíny • ${entry.dateKey}`, entityHref: `${input.area === "owner" ? "/admin" : "/admin/provoz"}/volne-terminy?week=${entry.dateKey}&day=${entry.dateKey}`, sourceType: "availability" as const, sourceId: entry.id, primaryAction: "open" as const })),
     ...adminUserAudits.map((entry) => ({ id: `admin-user-audit:${entry.id}`, occurredAt: entry.createdAt.toISOString(), category: "system" as const, severity: "info" as const, title: ({ CREATE: "Admin účet vytvořen", UPDATE_PROFILE: "Admin účet upraven", CHANGE_ROLE: "Role admina změněna", ACTIVATE: "Admin účet aktivován", DEACTIVATE: "Admin účet deaktivován", INVITE_RESEND: "Pozvánka znovu vydána" } as Record<string, string>)[entry.operation] ?? "Admin účet upraven", description: auditChangeDescription(entry.before, entry.after), actorLabel: entry.actorUser.name, entityLabel: entry.targetUser.name, entityHref: "/admin/uzivatele", sourceType: "admin" as const, sourceId: entry.id, primaryAction: "open" as const })),
