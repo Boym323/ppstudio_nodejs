@@ -6,6 +6,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [3.16.0] - 2026-08-08
+
 ### Opraveno
 
 - Kontrola produkčních závislostí již nenaráží na zranitelný parser obrazových metadat; metadata médií se bezpečně načítají pomocí existující knihovny Sharp a tranzitivní Nano ID je aktualizováno na opravenou verzi.
@@ -18,6 +20,7 @@ Formát je inspirovaný Keep a Changelog.
 - Běžné zrušení rezervace a vytvoření voucheru se v provozních událostech zobrazují jako informace; technický panel přesněji nese název „E-mailová fronta“ a vyhledávací nápověda odpovídá aktuálnímu pohledu.
 - Administrativní změny účtů, voucherů, služeb a SiteSettings mají doménové neměnné before/after logy s autorem, transakčním zápisem, serverovým OWNER/SALON omezením a minimalizací PII; cenový audit služby zůstává bez duplicit.
 - Přehled „Události a logy“ nově lépe rozlišuje provozní, e-mailové a bezpečnostní záznamy pomocí stavových štítků, přehledného panelu Pozornost, kompaktnějších filtrů a čitelnějších mobilních karet.
+- Release příprava pro produkční nasazení: projektová verze navýšena na minor `3.16.0` kvůli zpětně kompatibilnímu rozšíření auditní stopy a provozních přehledů administrace.
 
 ## [3.15.0] - 2026-08-07
 
