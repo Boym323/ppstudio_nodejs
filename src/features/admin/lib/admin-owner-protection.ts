@@ -3,7 +3,7 @@ import "server-only";
 import { AdminRole, AdminUserAuditOperation, Prisma } from "@prisma/client";
 
 import { buildAuditChange } from "@/features/admin/lib/audit-change";
-import { prisma } from "@/lib/prisma";
+import { runSerializableTransaction } from "@/lib/serializable-transaction";
 
 export const LAST_ACTIVE_OWNER_MESSAGE =
   "Nelze odebrat posledního aktivního OWNERa. Nejdřív aktivujte nebo povyšte další účet OWNER.";
@@ -45,7 +45,7 @@ export function wouldRemoveLastActiveOwner({
 export async function updateAdminUserWithOwnerProtection(
   mutation: OwnerMutation,
 ): Promise<OwnerMutationResult> {
-  return prisma.$transaction(
+  return runSerializableTransaction(
     async (tx) => {
       const target = await tx.adminUser.findUnique({
         where: { id: mutation.userId },
@@ -117,6 +117,5 @@ export async function updateAdminUserWithOwnerProtection(
 
       return "updated";
     },
-    { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
   );
 }

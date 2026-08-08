@@ -1,6 +1,6 @@
 import { Prisma, VoucherChangeOperation, VoucherStatus } from "@prisma/client";
 
-import { prisma } from "@/lib/prisma";
+import { runSerializableTransaction } from "@/lib/serializable-transaction";
 
 export const voucherOperationErrorCodes = {
   voucherNotFound: "VOUCHER_NOT_FOUND",
@@ -35,7 +35,7 @@ export async function updateVoucherOperationalDetails(input: {
   internalNote?: string;
   updatedByUserId: string;
 }) {
-  return prisma.$transaction(async (tx) => {
+  return runSerializableTransaction(async (tx) => {
     const voucher = await tx.voucher.findUnique({
       where: { id: input.voucherId },
       select: { id: true, validFrom: true, validUntil: true, purchaserName: true, purchaserEmail: true, internalNote: true },
@@ -99,7 +99,7 @@ export async function updateVoucherOperationalDetails(input: {
       },
     });
     return updated;
-  }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+  });
 }
 
 export async function cancelVoucherOperationally(input: {
@@ -108,7 +108,7 @@ export async function cancelVoucherOperationally(input: {
   actorUserId: string;
   now?: Date;
 }) {
-  return prisma.$transaction(async (tx) => {
+  return runSerializableTransaction(async (tx) => {
   const voucher = await tx.voucher.findUnique({
     where: { id: input.voucherId },
     select: {
@@ -165,5 +165,5 @@ export async function cancelVoucherOperationally(input: {
     },
   });
   return updated;
-  }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+  });
 }

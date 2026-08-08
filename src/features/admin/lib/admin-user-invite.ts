@@ -1,6 +1,6 @@
 import "server-only";
 
-import { AdminRole, AdminUserAuditOperation, Prisma } from "@prisma/client";
+import { AdminRole, AdminUserAuditOperation } from "@prisma/client";
 
 import { env } from "@/config/env";
 import {
@@ -14,6 +14,7 @@ import {
 import { isMissingInvitedAtColumnError } from "@/features/admin/lib/admin-user-db";
 import { sendEmail } from "@/lib/email/provider";
 import { prisma } from "@/lib/prisma";
+import { runSerializableTransaction } from "@/lib/serializable-transaction";
 import { getPublicSalonProfile } from "@/lib/site-settings";
 
 function getInviteCopy(role: AdminRole) {
@@ -121,7 +122,7 @@ export async function reissueAdminInviteTokenWithAudit(input: {
   const token = buildAdminInviteToken();
   const now = new Date();
 
-  const inviteId = await prisma.$transaction(async (tx) => {
+  const inviteId = await runSerializableTransaction(async (tx) => {
     const user = await tx.adminUser.findUniqueOrThrow({
       where: { id: input.userId },
       select: { isActive: true, invitedAt: true },
@@ -161,7 +162,7 @@ export async function reissueAdminInviteTokenWithAudit(input: {
     });
 
     return invite.id;
-  }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+  });
 
   return { inviteId, inviteUrl: buildAdminInviteUrl(token.rawToken) };
 }

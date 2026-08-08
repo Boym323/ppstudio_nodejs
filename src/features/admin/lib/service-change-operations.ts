@@ -1,15 +1,15 @@
 import "server-only";
 
-import { Prisma, ServiceChangeOperation } from "@prisma/client";
+import { ServiceChangeOperation } from "@prisma/client";
 
-import { prisma } from "@/lib/prisma";
+import { runSerializableTransaction } from "@/lib/serializable-transaction";
 
 export async function toggleServiceOperationalFlag(input: {
   serviceId: string;
   actorUserId: string;
   field: "isActive" | "isPubliclyBookable";
 }) {
-  return prisma.$transaction(async (tx) => {
+  return runSerializableTransaction(async (tx) => {
     const service = await tx.service.findUnique({
       where: { id: input.serviceId },
       select: { id: true, isActive: true, isPubliclyBookable: true },
@@ -33,5 +33,5 @@ export async function toggleServiceOperationalFlag(input: {
       },
     });
     return true;
-  }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+  });
 }

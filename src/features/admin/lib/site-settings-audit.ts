@@ -3,7 +3,7 @@ import "server-only";
 import { Prisma, SiteSettingsChangeOperation, type SiteSettings } from "@prisma/client";
 
 import { buildAuditChange, type AuditSnapshot } from "@/features/admin/lib/audit-change";
-import { prisma } from "@/lib/prisma";
+import { runSerializableTransaction } from "@/lib/serializable-transaction";
 import { ensureSiteSettings, SITE_SETTINGS_ID } from "@/lib/site-settings";
 
 export async function updateSiteSettingsWithAudit({
@@ -18,7 +18,7 @@ export async function updateSiteSettingsWithAudit({
   snapshots: (current: SiteSettings) => { before: AuditSnapshot; after: AuditSnapshot };
 }) {
   await ensureSiteSettings();
-  return prisma.$transaction(async (tx) => {
+  return runSerializableTransaction(async (tx) => {
     const current = await tx.siteSettings.findUniqueOrThrow({ where: { id: SITE_SETTINGS_ID } });
     const selected = snapshots(current);
     const auditChange = buildAuditChange(selected.before, selected.after);
@@ -37,5 +37,5 @@ export async function updateSiteSettingsWithAudit({
       },
     });
     return saved;
-  }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+  });
 }

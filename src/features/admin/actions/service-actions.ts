@@ -1,6 +1,6 @@
 "use server";
 
-import { Prisma, ServiceChangeOperation } from "@prisma/client";
+import { ServiceChangeOperation } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -12,6 +12,7 @@ import {
   updateServiceSchema,
 } from "@/features/admin/lib/admin-service-validation";
 import { prisma } from "@/lib/prisma";
+import { runSerializableTransaction } from "@/lib/serializable-transaction";
 import { buildServiceOperationalAuditChange } from "@/features/admin/lib/service-audit-change";
 import { toggleServiceOperationalFlag } from "@/features/admin/lib/service-change-operations";
 
@@ -358,7 +359,7 @@ export async function updateServiceAction(
     };
   }
 
-  const serviceFound = await prisma.$transaction(async (tx) => {
+  const serviceFound = await runSerializableTransaction(async (tx) => {
     const service = await tx.service.findUnique({
       where: { id: parsed.data.serviceId },
       select: serviceAuditSelect,
@@ -437,7 +438,7 @@ export async function updateServiceAction(
       });
     }
     return true;
-  }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+  });
 
   if (!serviceFound) {
     return { status: "error", formError: "Službu se nepodařilo najít." };
