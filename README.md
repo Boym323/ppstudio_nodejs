@@ -128,7 +128,7 @@ Projekt už pokrývá hlavní provozní entity:
 ### 2. Instalace a lokální setup krok za krokem
 
 ```bash
-npm install
+npm run deps:install
 cp .env.example .env
 npm run db:generate
 npm run db:migrate
@@ -144,7 +144,7 @@ Praktický postup:
 3. Uprav minimálně `DATABASE_URL`, `SHADOW_DATABASE_URL`, `ADMIN_SESSION_SECRET` a lokální `NEXT_PUBLIC_APP_URL`.
 4. Připrav PostgreSQL databázi pro hlavní i shadow DB.
 5. Přepni lokální runtime na `Node 24` přes `nvm use` nebo ekvivalent.
-6. Spusť `npm install`.
+6. Spusť `npm run deps:install`. Skript používá ve výchozím stavu veřejný npm registry; pokud musíš použít firemní mirror, předej `PPSTUDIO_NPM_REGISTRY=https://… npm run deps:install`.
 7. Spusť `npm run db:generate`.
 8. Spusť `npm run db:migrate` pro lokální Prisma migrace.
 9. Spusť `npm run dev`.
@@ -167,6 +167,8 @@ Když dev server spadne na poškozenou Next/Turbopack cache, pomůže:
 npm run dev:clean
 ```
 
+`npm run test:e2e` vytváří vlastní produkční build v `.next-e2e`, takže jej lze bezpečně spustit i při běžícím `npm run dev`; neukončuj dev server ani nemaž jeho `.next`. Před čistou instalací ověř dostupnost registru příkazem `npm run deps:check`.
+
 ## Skripty
 
 - `npm run dev` spustí rychlý vývojový server s Turbopackem
@@ -178,6 +180,9 @@ npm run dev:clean
 - `npm run test` spustí unit a DB integrační testy nad Node test runnerem
 - `npm run test:coverage` vygeneruje coverage report do `coverage/`
 - `npm run test:e2e` spustí Playwright E2E testy
+- `npm run clean:e2e` smaže pouze izolovaný E2E build `.next-e2e`
+- `npm run deps:check` ověří dosažitelnost registru pro instalaci závislostí
+- `npm run deps:install` provede reprodukovatelnou instalaci z lockfile (`npm ci --include=dev`); volitelný `PPSTUDIO_NPM_REGISTRY` přepne registry
 - `npm run analytics:check` ověří server-side Matomo reporting
 - `npm run test:db:booking` spustí booking DB integrační testy
 - `npm run db:generate` vygeneruje Prisma Client

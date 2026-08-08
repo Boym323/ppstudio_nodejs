@@ -9,6 +9,7 @@ Formát je inspirovaný Keep a Changelog.
 ### Změněno
 
 - Fallback snapshot nastavení webu je provozní stav serveru a již se nesleduje ve verzování, takže jeho automatická aktualizace z databáze nevytváří nechtěné změny pracovního stromu.
+- Browserové E2E ověření používá vlastní produkční build i TypeScript konfiguraci, takže může běžet současně s vývojovým serverem bez zásahu do jeho HMR cache nebo pracovního stromu; instalace závislostí má ověřitelný registry preflight a explicitní fallback konfiguraci.
 
 ### Opraveno
 

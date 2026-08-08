@@ -40,6 +40,14 @@ const tokenRouteHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // E2E produkční build nesmí sdílet `.next` s interaktivním `next dev`.
+  // Jinak build maže HMR artefakty a dev server může vracet 403 nebo spadnout.
+  distDir: process.env.PPSTUDIO_NEXT_DIST_DIR || ".next",
+  typescript: {
+    // Next při buildování doplňuje typy z distDir do aktivního tsconfigu.
+    // E2E proto používá vlastní konfiguraci a nemění tsconfig vývoje.
+    tsconfigPath: process.env.PPSTUDIO_NEXT_DIST_DIR ? "tsconfig.e2e.json" : "tsconfig.json",
+  },
   // Admin PWA používá scope `/admin/`; zachování koncového lomítka proto brání
   // přesměrování start_url mimo deklarovaný scope manifestu.
   skipTrailingSlashRedirect: true,
