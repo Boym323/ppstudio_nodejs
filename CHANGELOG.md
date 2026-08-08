@@ -13,6 +13,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Audit změny kategorie služby nyní ukládá i historický název kategorie, takže zůstane čitelný i po smazání již nepoužívané kategorie.
 - Provozní audit voucherů nyní používá české popisky změněných údajů kupujícího a změna kategorie služby zobrazuje její název místo technického ID.
 - Audit individuální ceny rezervace se při souběžných administrativních úpravách zapisuje podle skutečného bezprostředně předchozího stavu.
 - Serializable transakce auditních změn administrátorů, voucherů, služeb a SiteSettings se při krátkodobém PostgreSQL write konfliktu automaticky zopakují, takže souběžná úprava zbytečně neskončí obecnou chybou.

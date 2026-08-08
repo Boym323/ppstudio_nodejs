@@ -1,6 +1,11 @@
 import { Prisma } from "@prisma/client";
 
-export type AuditScalar = string | number | boolean | null | string[];
+export type CategoryAuditSnapshot = {
+  categoryId: string;
+  categoryName: string;
+};
+
+export type AuditScalar = string | number | boolean | null | string[] | CategoryAuditSnapshot;
 export type AuditSnapshot = Record<string, AuditScalar>;
 
 function auditValueEquals(left: AuditScalar, right: AuditScalar) {

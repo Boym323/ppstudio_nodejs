@@ -68,11 +68,19 @@ dbTest("admin logy používají české popisky voucheru a název kategorie slu�
 
   try {
     await prisma.serviceChangeLog.create({
-      data: { serviceId: service.id, actorUserId: actor.id, operation: ServiceChangeOperation.UPDATE_OPERATIONAL_DETAILS, before: { categoryId: previousCategory.id }, after: { categoryId: nextCategory.id } },
+      data: {
+        serviceId: service.id,
+        actorUserId: actor.id,
+        operation: ServiceChangeOperation.UPDATE_OPERATIONAL_DETAILS,
+        before: { categoryId: { categoryId: previousCategory.id, categoryName: previousCategory.name } },
+        after: { categoryId: { categoryId: nextCategory.id, categoryName: nextCategory.name } },
+      },
     });
     await prisma.voucherChangeLog.create({
       data: { voucherId: voucher.id, actorUserId: actor.id, operation: VoucherChangeOperation.UPDATE_OPERATIONAL_DETAILS, before: { purchaserNameChanged: false, purchaserEmailChanged: false }, after: { purchaserNameChanged: true, purchaserEmailChanged: true } },
     });
+
+    await prisma.serviceCategory.delete({ where: { id: previousCategory.id } });
 
     const serviceLogs = await getAdminLogsData({ area: "salon", view: "events", source: "service", query: suffix });
     assert.equal(serviceLogs.items[0]?.description, `Kategorie: Původní kategorie ${suffix} → Nová kategorie ${suffix}`);
@@ -83,7 +91,7 @@ dbTest("admin logy používají české popisky voucheru a název kategorie slu�
     await prisma.serviceChangeLog.deleteMany({ where: { serviceId: service.id } });
     await prisma.voucher.delete({ where: { id: voucher.id } });
     await prisma.service.delete({ where: { id: service.id } });
-    await prisma.serviceCategory.deleteMany({ where: { id: { in: [previousCategory.id, nextCategory.id] } } });
+    await prisma.serviceCategory.delete({ where: { id: nextCategory.id } });
     await prisma.adminUser.delete({ where: { id: actor.id } });
   }
 });

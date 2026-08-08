@@ -2,6 +2,7 @@ import { buildAuditChange } from "@/features/admin/lib/audit-change";
 
 export type ServiceAuditState = {
   categoryId: string;
+  categoryName: string;
   name: string;
   publicName: string | null;
   seoTitle: string | null;
@@ -32,7 +33,7 @@ export function buildServiceOperationalAuditChange(current: ServiceAuditState, n
   );
   return buildAuditChange(
     {
-      categoryId: current.categoryId,
+      categoryId: { categoryId: current.categoryId, categoryName: current.categoryName },
       name: current.name,
       publicName: current.publicName,
       seoTitle: current.seoTitle,
@@ -46,7 +47,7 @@ export function buildServiceOperationalAuditChange(current: ServiceAuditState, n
       publicContentFields: [],
     },
     {
-      categoryId: next.categoryId,
+      categoryId: { categoryId: next.categoryId, categoryName: next.categoryName },
       name: next.name,
       publicName: next.publicName,
       seoTitle: next.seoTitle,

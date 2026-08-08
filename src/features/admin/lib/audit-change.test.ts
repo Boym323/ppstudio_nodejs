@@ -6,6 +6,7 @@ import { buildServiceOperationalAuditChange, type ServiceAuditState } from "./se
 
 const service: ServiceAuditState = {
   categoryId: "category-1",
+  categoryName: "Kosmetická ošetření",
   name: "Lash lifting",
   publicName: "Korejský lash lifting",
   seoTitle: null,
@@ -48,6 +49,17 @@ test("service visibility/bookability is audited without duplicating price audit"
   });
   assert.equal(buildServiceOperationalAuditChange(service, { ...service, priceFromCzk: 1_700 }), null);
   assert.equal(buildServiceOperationalAuditChange(service, { ...service }), null);
+});
+
+test("změna kategorie služby ukládá ID i historický název", () => {
+  assert.deepEqual(buildServiceOperationalAuditChange(service, {
+    ...service,
+    categoryId: "category-2",
+    categoryName: "Speciální ošetření",
+  }), {
+    before: { categoryId: { categoryId: "category-1", categoryName: "Kosmetická ošetření" } },
+    after: { categoryId: { categoryId: "category-2", categoryName: "Speciální ošetření" } },
+  });
 });
 
 test("veřejný obsah služby se audituje jen seznamem změněných polí", () => {

@@ -1539,6 +1539,15 @@ function auditValueLabel(value: Prisma.JsonValue | undefined) {
   return String(value);
 }
 
+function categoryAuditValueLabel(value: Prisma.JsonValue | undefined, categoryNames: Map<string, string>) {
+  if (typeof value === "string") return categoryNames.get(value) ?? value;
+  if (!value || typeof value !== "object" || Array.isArray(value)) return auditValueLabel(value);
+  const snapshot = value as Record<string, Prisma.JsonValue>;
+  if (typeof snapshot.categoryName === "string" && snapshot.categoryName) return snapshot.categoryName;
+  if (typeof snapshot.categoryId === "string") return categoryNames.get(snapshot.categoryId) ?? snapshot.categoryId;
+  return auditValueLabel(value);
+}
+
 function auditChangeDescription(
   beforeValue: Prisma.JsonValue,
   afterValue: Prisma.JsonValue,
@@ -1566,11 +1575,11 @@ function auditChangeDescription(
     const label = labels[key] ?? key.replace(/Changed$/, "");
     if (key.endsWith("Changed") && after[key] === true) return `${label}: upraveno`;
     const suffix = key.endsWith("Minutes") ? " min" : key.endsWith("Hours") ? " h" : key.endsWith("Days") ? " dní" : "";
-    const beforeLabel = key === "categoryId" && typeof before[key] === "string"
-      ? categoryNames.get(before[key]) ?? auditValueLabel(before[key])
+    const beforeLabel = key === "categoryId"
+      ? categoryAuditValueLabel(before[key], categoryNames)
       : auditValueLabel(before[key]);
-    const afterLabel = key === "categoryId" && typeof after[key] === "string"
-      ? categoryNames.get(after[key]) ?? auditValueLabel(after[key])
+    const afterLabel = key === "categoryId"
+      ? categoryAuditValueLabel(after[key], categoryNames)
       : auditValueLabel(after[key]);
     return `${label}: ${beforeLabel}${suffix} → ${afterLabel}${suffix}`;
   }).join(" • ");
@@ -1776,7 +1785,13 @@ export async function getAdminLogsData(input: {
     submissionActive ? prisma.bookingSubmissionLog.findMany({ where: submissionWhere, orderBy: [{ createdAt: "desc" }, { id: "desc" }], take, include: { booking: { select: { id: true, clientNameSnapshot: true, serviceNameSnapshot: true } }, client: { select: { fullName: true } } } }) : Promise.resolve([]),
   ]);
   const categoryIds = serviceChanges.flatMap((entry) => [entry.before, entry.after]
-    .map((value) => value && typeof value === "object" && !Array.isArray(value) && typeof value.categoryId === "string" ? value.categoryId : null)
+    .map((value) => {
+      if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+      const categoryValue = value.categoryId;
+      if (typeof categoryValue === "string") return categoryValue;
+      if (categoryValue && typeof categoryValue === "object" && !Array.isArray(categoryValue) && typeof categoryValue.categoryId === "string") return categoryValue.categoryId;
+      return null;
+    })
     .filter((id): id is string => id !== null));
   const categoryNames = new Map((categoryIds.length > 0
     ? await prisma.serviceCategory.findMany({ where: { id: { in: categoryIds } }, select: { id: true, name: true } })

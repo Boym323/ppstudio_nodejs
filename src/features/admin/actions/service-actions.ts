@@ -98,6 +98,7 @@ async function buildDuplicateServiceName(name: string) {
 const serviceAuditSelect = {
   id: true,
   categoryId: true,
+  category: { select: { name: true } },
   name: true,
   publicName: true,
   seoTitle: true,
@@ -346,7 +347,7 @@ export async function updateServiceAction(
 
   const category = await prisma.serviceCategory.findUnique({
     where: { id: parsed.data.categoryId },
-    select: { id: true, isActive: true },
+    select: { id: true, name: true, isActive: true },
   });
 
   if (!category) {
@@ -367,6 +368,7 @@ export async function updateServiceAction(
     if (!service) return false;
     const nextValues = {
       categoryId: parsed.data.categoryId,
+      categoryName: category.name,
       name: parsed.data.name,
       publicName: parsed.data.publicName || null,
       seoTitle: parsed.data.seoTitle || null,
@@ -388,7 +390,7 @@ export async function updateServiceAction(
       isActive: parsed.data.isActive,
       isPubliclyBookable: parsed.data.isPubliclyBookable,
     };
-    const auditChange = buildServiceOperationalAuditChange(service, nextValues);
+    const auditChange = buildServiceOperationalAuditChange({ ...service, categoryName: service.category.name }, nextValues);
     await tx.service.update({
       where: { id: parsed.data.serviceId },
       data: {
