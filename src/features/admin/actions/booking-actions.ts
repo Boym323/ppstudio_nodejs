@@ -566,86 +566,57 @@ export async function updateBookingPriceAction(
   }
 
   const session = await requireRole([AdminRole.OWNER, AdminRole.SALON]);
-  const booking = await prisma.booking.findUnique({
-    where: { id: parsed.data.bookingId },
-    select: {
-      id: true,
-      clientId: true,
-      status: true,
-      servicePriceFromCzk: true,
-      finalPriceCzk: true,
-      priceAdjustmentReason: true,
-      priceAdjustedAt: true,
-      priceAdjustedByUserId: true,
-      service: {
-        select: {
-          priceFromCzk: true,
-        },
-      },
-      voucherRedemptions: { select: { amountCzk: true } },
-      payments: { select: { amountCzk: true, status: true } },
-    },
-  });
-
-  if (!booking) {
-    return {
-      status: "error",
-      formError: "Rezervaci se nepodařilo najít.",
-    };
-  }
-
-  const basePriceCzk = Math.max(0, booking.servicePriceFromCzk ?? booking.service.priceFromCzk ?? 0);
   const nextFinalPriceCzk = parsed.data.finalPriceCzk;
   const normalizedReason = parsed.data.priceAdjustmentReason?.trim() ?? "";
-  const clearsAdjustment = nextFinalPriceCzk === null || nextFinalPriceCzk === basePriceCzk;
-
-  if (!clearsAdjustment && normalizedReason.length === 0) {
-    return {
-      status: "error",
-      formError: "Upravená cena potřebuje krátký důvod.",
-      fieldErrors: {
-        priceAdjustmentReason: "Doplňte důvod úpravy ceny.",
-      },
-    };
-  }
-
-  const effectiveNextPriceCzk = clearsAdjustment ? basePriceCzk : nextFinalPriceCzk;
-  const nextPaymentSummary = getBookingPaymentSummary({
-    totalPriceCzk: effectiveNextPriceCzk,
-    voucherRedemptions: booking.voucherRedemptions,
-    payments: booking.payments,
-  });
-  if (nextPaymentSummary.overpaidCzk > 0 && parsed.data.confirmOverpayment !== "true") {
-    return { status: "error", formError: `Po změně vznikne přeplatek ${nextPaymentSummary.overpaidCzk} Kč. Potvrďte, že chcete cenu uložit.` };
-  }
-
   const actorUserId = await resolveVoucherRedemptionActorUserId(session.email);
-  const nextStoredPrice = clearsAdjustment ? null : nextFinalPriceCzk;
-  const nextStoredReason = clearsAdjustment ? null : normalizedReason;
-
-  await runSerializableTransaction(async (tx) => {
+  const result = await runSerializableTransaction(async (tx) => {
     await tx.$queryRaw(Prisma.sql`
-      SELECT "id" FROM "Booking" WHERE "id" = ${booking.id} FOR UPDATE
+      SELECT "id" FROM "Booking" WHERE "id" = ${parsed.data.bookingId} FOR UPDATE
     `);
     const currentBooking = await tx.booking.findUnique({
-      where: { id: booking.id },
+      where: { id: parsed.data.bookingId },
       select: {
+        id: true,
+        clientId: true,
         status: true,
+        servicePriceFromCzk: true,
         finalPriceCzk: true,
         priceAdjustmentReason: true,
         priceAdjustedAt: true,
         priceAdjustedByUserId: true,
+        service: { select: { priceFromCzk: true } },
+        voucherRedemptions: { select: { amountCzk: true } },
+        payments: { select: { amountCzk: true, status: true } },
       },
     });
 
-    if (!currentBooking || (
+    if (!currentBooking) return { status: "not-found" as const };
+
+    const basePriceCzk = Math.max(0, currentBooking.servicePriceFromCzk ?? currentBooking.service.priceFromCzk ?? 0);
+    const clearsAdjustment = nextFinalPriceCzk === null || nextFinalPriceCzk === basePriceCzk;
+    if (!clearsAdjustment && normalizedReason.length === 0) {
+      return { status: "reason-required" as const };
+    }
+
+    const nextPaymentSummary = getBookingPaymentSummary({
+      totalPriceCzk: clearsAdjustment ? basePriceCzk : nextFinalPriceCzk,
+      voucherRedemptions: currentBooking.voucherRedemptions,
+      payments: currentBooking.payments,
+    });
+    if (nextPaymentSummary.overpaidCzk > 0 && parsed.data.confirmOverpayment !== "true") {
+      return { status: "overpayment-confirmation-required" as const, overpaidCzk: nextPaymentSummary.overpaidCzk };
+    }
+
+    const nextStoredPrice = clearsAdjustment ? null : nextFinalPriceCzk;
+    const nextStoredReason = clearsAdjustment ? null : normalizedReason;
+    if (
       currentBooking.finalPriceCzk === nextStoredPrice
       && currentBooking.priceAdjustmentReason === nextStoredReason
-    )) return;
+    ) return { status: "unchanged" as const, bookingId: currentBooking.id, clientId: currentBooking.clientId, clearsAdjustment };
 
     const changedAt = new Date();
     await tx.booking.update({
-      where: { id: booking.id },
+      where: { id: currentBooking.id },
       data: clearsAdjustment
         ? {
             finalPriceCzk: null,
@@ -662,7 +633,7 @@ export async function updateBookingPriceAction(
     });
     await tx.bookingStatusHistory.create({
       data: {
-        bookingId: booking.id,
+        bookingId: currentBooking.id,
         status: currentBooking.status,
         actorType: BookingActorType.USER,
         actorUserId,
@@ -684,15 +655,33 @@ export async function updateBookingPriceAction(
         },
       },
     });
+    return { status: "updated" as const, bookingId: currentBooking.id, clientId: currentBooking.clientId, clearsAdjustment };
   });
 
-  revalidateBookingAdminPaths(booking.id);
-  revalidatePath(`/admin/klienti/${booking.clientId}`);
-  revalidatePath(`/admin/provoz/klienti/${booking.clientId}`);
+  if (result.status === "not-found") {
+    return { status: "error", formError: "Rezervaci se nepodařilo najít." };
+  }
+  if (result.status === "reason-required") {
+    return {
+      status: "error",
+      formError: "Upravená cena potřebuje krátký důvod.",
+      fieldErrors: { priceAdjustmentReason: "Doplňte důvod úpravy ceny." },
+    };
+  }
+  if (result.status === "overpayment-confirmation-required") {
+    return {
+      status: "error",
+      formError: `Po změně vznikne přeplatek ${result.overpaidCzk} Kč. Potvrďte, že chcete cenu uložit.`,
+    };
+  }
+
+  revalidateBookingAdminPaths(result.bookingId);
+  revalidatePath(`/admin/klienti/${result.clientId}`);
+  revalidatePath(`/admin/provoz/klienti/${result.clientId}`);
 
   return {
     status: "success",
-    successMessage: clearsAdjustment
+    successMessage: result.clearsAdjustment
       ? "Individuální cena byla zrušená, rezervace znovu používá ceníkovou cenu."
       : "Individuální cena rezervace je uložená.",
   };

@@ -13,6 +13,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Kontrola přeplatku při změně individuální ceny nyní po uzamčení rezervace načte aktuální platby i čerpání voucheru, takže souběžně zapsaná úhrada nemůže projít bez nového potvrzení přeplatku.
 - Audit změny kategorie služby nyní ukládá i historický název kategorie, takže zůstane čitelný i po smazání již nepoužívané kategorie.
 - Provozní audit voucherů nyní používá české popisky změněných údajů kupujícího a změna kategorie služby zobrazuje její název místo technického ID.
 - Audit individuální ceny rezervace se při souběžných administrativních úpravách zapisuje podle skutečného bezprostředně předchozího stavu.
