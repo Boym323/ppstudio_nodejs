@@ -1,8 +1,11 @@
-import { imageSize } from 'image-size';
+import sharp from 'sharp';
 
 import type { MediaImageMetadata } from '@/lib/media/media-types';
 
-export function readImageMetadata(buffer: Buffer, mimeType: string): MediaImageMetadata {
+export async function readImageMetadata(
+  buffer: Buffer,
+  mimeType: string,
+): Promise<MediaImageMetadata> {
   if (!mimeType.startsWith('image/')) {
     return {
       width: null,
@@ -10,7 +13,7 @@ export function readImageMetadata(buffer: Buffer, mimeType: string): MediaImageM
     };
   }
 
-  const dimensions = imageSize(buffer);
+  const dimensions = await sharp(buffer, { animated: false }).metadata();
 
   return {
     width: dimensions.width ?? null,

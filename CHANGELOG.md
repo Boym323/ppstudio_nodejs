@@ -8,6 +8,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Kontrola produkčních závislostí již nenaráží na zranitelný parser obrazových metadat; metadata médií se bezpečně načítají pomocí existující knihovny Sharp a tranzitivní Nano ID je aktualizováno na opravenou verzi.
 - Administrační „Události a logy“ správně rozlišují rezervace, přihlášení, aktivace přístupů, recovery a veřejné ověřování voucherů; běžné validační či rate-limit události nezvyšují provozní závažnost a skutečné serverové chyby jsou po 24 hodin viditelné v owner pohledu „Pozornost“.
 - Auditní stopa individuální ceny rezervace nově ukládá stav před a po změně a veřejný booking rate-limit už nezapočítává audity aktivace administrátorských pozvánek ani offline recovery.
 - Hluboké stránkování provozních logů se clampuje před načtením kandidátů a SALON mimo „Pozornost“ už neprovádí pět nezobrazovaných e-mailových health countů.

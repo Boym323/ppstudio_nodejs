@@ -51,7 +51,6 @@
     "@prisma/client": "7.9.1",
     "@tanstack/react-table": "^8.21.3",
     "clsx": "^2.1.1",
-    "image-size": "^2.0.2",
     "jose": "^6.2.8",
     "next": "^16.3.0",
     "nodemailer": "^9.0.3",
