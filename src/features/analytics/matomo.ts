@@ -3,16 +3,17 @@
 export type MatomoEventValue = number | undefined;
 
 export type BookingEventAction =
-  | "booking_started"
-  | "service_selected"
-  | "slot_selected"
-  | "contact_started"
-  | "booking_reviewed"
-  | "booking_submitted"
-  | "booking_confirmed"
-  | "booking_failed"
-  | "booking_service_changed"
-  | "booking_slot_changed";
+  | "Rezervace zahájena"
+  | "Služba vybrána"
+  | "Čas vybrán"
+  | "Kontakt zahájen"
+  | "Kontaktní pole zahájeno"
+  | "Souhrn zobrazen"
+  | "Odeslána rezervace"
+  | "Vytvořena"
+  | "Neúspěšná rezervace"
+  | "Služba změněna"
+  | "Čas změněn";
 
 declare global {
   interface Window {
@@ -210,14 +211,14 @@ export function trackMatomoEvent(
 }
 
 /**
- * Jediná taxonomie veřejného rezervačního funnelu. Název události je vždy
+ * Jediná česká taxonomie veřejného rezervačního funnelu. Název události je vždy
  * technický slug služby nebo bezpečný kontext kroku; nikdy osobní údaje.
  */
 export function trackBookingEvent(
   action: BookingEventAction,
   name?: string,
 ) {
-  trackMatomoEvent("Booking", action, name);
+  trackMatomoEvent("Rezervace", action, name);
 }
 
 export function trackContactCtaClick(type: "phone" | "email" | "instagram" | "contact form" | "map", location: string) {

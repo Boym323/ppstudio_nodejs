@@ -7,7 +7,7 @@ import {
   shouldTrackFirstContactFieldEvent,
 } from "./contact-analytics";
 import { getContactFieldErrorReason } from "./helpers";
-import type { ContactFieldKey } from "./types";
+import type { ContactAnalyticsField, ContactFieldKey } from "./types";
 
 test("shouldTrackFirstContactFieldEvent tracks each field only once", () => {
   const tracked = new Set<ContactFieldKey>();
@@ -18,11 +18,12 @@ test("shouldTrackFirstContactFieldEvent tracks each field only once", () => {
 });
 
 test("shouldTrackContactFieldInput skips empty values and duplicate tracked field", () => {
-  const tracked = new Set<ContactFieldKey>();
+  const tracked = new Set<ContactAnalyticsField>();
 
-  assert.equal(shouldTrackContactFieldInput(tracked, "fullName", "   "), false);
-  assert.equal(shouldTrackContactFieldInput(tracked, "fullName", "Jana"), true);
-  assert.equal(shouldTrackContactFieldInput(tracked, "fullName", "Jana N."), false);
+  assert.equal(shouldTrackContactFieldInput(tracked, "email", "   "), false);
+  assert.equal(shouldTrackContactFieldInput(tracked, "email", "jana@example.com"), true);
+  assert.equal(shouldTrackContactFieldInput(tracked, "email", "jana.novakova@example.com"), false);
+  assert.equal(shouldTrackContactFieldInput(tracked, "clientNote", "Prosím o tiché prostředí."), true);
 });
 
 test("shouldTrackContactFieldError tracks only when field has error and only once", () => {

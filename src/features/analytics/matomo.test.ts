@@ -123,7 +123,7 @@ test("trackMatomoEvent allows safe storno actions but still blocks raw token pat
   ]);
 });
 
-test("trackBookingEvent uses the stable Booking taxonomy and service slug", () => {
+test("trackBookingEvent uses the stable Czech taxonomy and service slug", () => {
   setMatomoConfigured();
 
   const calls: unknown[][] = [];
@@ -135,10 +135,10 @@ test("trackBookingEvent uses the stable Booking taxonomy and service slug", () =
     } as unknown as Array<unknown[]>,
   });
 
-  trackBookingEvent("booking_confirmed", "korejsky-lash-lifting");
+  trackBookingEvent("Vytvořena", "korejsky-lash-lifting");
 
   assert.deepEqual(calls, [
-    ["trackEvent", "Booking", "booking_confirmed", "korejsky-lash-lifting"],
+    ["trackEvent", "Rezervace", "Vytvořena", "korejsky-lash-lifting"],
   ]);
 });
 

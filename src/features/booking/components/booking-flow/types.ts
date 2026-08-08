@@ -18,6 +18,7 @@ export type BookingEntrySource =
   | "other";
 
 export type ContactFieldKey = "fullName" | "email" | "phone";
+export type ContactAnalyticsField = "email" | "phone" | "clientNote";
 
 export type ServiceCategory = {
   key: string;

@@ -22,7 +22,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
-- Veřejný rezervační funnel v Matomo používá jednotné události `Booking` od skutečného zahájení až po backendem potvrzenou rezervaci; konverze se deduplikuje podle interního ID rezervace, ukládá jen technický slug služby a při potvrzení zachovává kompatibilní událost pro stávající Goal „Rezervace vytvořena“.
+- Veřejný rezervační funnel v Matomo používá jednotné české události `Rezervace` od skutečného zahájení až po backendem vytvořenou rezervaci; konverze se deduplikuje podle interního ID rezervace, ukládá jen technický slug služby a stávající Goal „Rezervace vytvořena“ dál používá událost `Vytvořena`. První vyplnění e-mailu, telefonu i poznámky se samostatně a bez obsahu polí měří pro vyhodnocení kontaktního kroku.
 - Veřejný web má na mobilu kompaktní sticky hlavičku s přímou cestou k rezervaci a přístupným vysouvacím menu; na rezervační stránce ji nahrazuje návrat na web.
 - Rezervace s platně předvybranou službou nyní místo celého katalogu ukazuje stručné shrnutí služby a rovnou výběr termínu; službu lze kdykoli rozbalit a změnit.
 - Mobilní homepage, průběh rezervace včetně čtyř nejbližších termínů a katalog služeb lépe využívají vertikální prostor; kategorie služeb i ceníku jsou rychle dostupné přes zalamovanou anchor navigaci.

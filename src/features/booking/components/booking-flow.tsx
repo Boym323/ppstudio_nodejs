@@ -7,7 +7,7 @@ import { createPublicBookingAction } from "@/features/booking/actions/create-pub
 import { refreshPublicBookingCatalogAction } from "@/features/booking/actions/refresh-public-booking-catalog";
 import { validatePublicBookingVoucherAction } from "@/features/booking/actions/validate-public-booking-voucher";
 import { initialPublicBookingActionState } from "@/features/booking/actions/public-booking-action-state";
-import { trackBookingEvent, trackMatomoEvent } from "@/features/analytics/matomo";
+import { trackBookingEvent } from "@/features/analytics/matomo";
 import {
   trackMetaPixelCustomEvent,
   trackMetaPixelStandardEvent,
@@ -21,6 +21,7 @@ import {
 import { BookingConfirmationPanel } from "./booking-confirmation-panel";
 import { StickyCTA } from "./sticky-cta";
 import { BookingContactStep } from "./booking-flow/contact-step";
+import { shouldTrackContactFieldInput } from "./booking-flow/contact-analytics";
 import {
   isBookingTermConflictErrorCode,
 } from "./booking-flow/booking-analytics";
@@ -53,7 +54,12 @@ import { BookingProgressPanel } from "./booking-flow/progress-panel";
 import { BookingServiceStep } from "./booking-flow/service-step";
 import { BookingSummarySidebar } from "./booking-flow/summary-sidebar";
 import { BookingTermStep } from "./booking-flow/term-step";
-import type { BookingFlowProps, ContactFieldKey, ServiceCategory } from "./booking-flow/types";
+import type {
+  BookingFlowProps,
+  ContactAnalyticsField,
+  ContactFieldKey,
+  ServiceCategory,
+} from "./booking-flow/types";
 
 export function BookingFlow({
   catalog,
@@ -116,6 +122,7 @@ export function BookingFlow({
   const bookingReviewedTrackedRef = useRef(false);
   const successViewportResetRef = useRef(false);
   const contactStartedTrackedRef = useRef(false);
+  const trackedContactInputFieldsRef = useRef<Set<ContactAnalyticsField>>(new Set());
   const prefilledServiceTrackedRef = useRef(false);
   const initiateCheckoutTrackedRef = useRef(false);
   const lastFailedBookingKeyRef = useRef<string | null>(null);
@@ -650,7 +657,7 @@ export function BookingFlow({
     if (bookingStartedTrackedRef.current) return;
 
     bookingStartedTrackedRef.current = true;
-    trackBookingEvent("booking_started", bookingEntrySource);
+    trackBookingEvent("Rezervace zahájena", bookingEntrySource);
   }, [bookingEntrySource]);
 
   useEffect(() => {
@@ -673,7 +680,7 @@ export function BookingFlow({
     prefilledServiceTrackedRef.current = true;
     trackBookingStarted();
     serviceSelectedTrackedRef.current = true;
-    trackBookingEvent("service_selected", `${trackedService.slug} | preselected`);
+    trackBookingEvent("Služba vybrána", `${trackedService.slug} | předvybraná`);
     trackSelectedServiceMetaEvent(trackedService);
   }, [initialSelectedServiceSlug, selectedService, trackBookingStarted]);
 
@@ -690,7 +697,7 @@ export function BookingFlow({
 
     trackBookingStarted();
     contactStartedTrackedRef.current = true;
-    trackBookingEvent("contact_started", selectedService.slug);
+    trackBookingEvent("Kontakt zahájen", selectedService.slug);
     trackMetaPixelCustomEvent("BookingContactStarted", {
       content_name: selectedService?.name,
       content_category: selectedService?.categoryName,
@@ -702,8 +709,19 @@ export function BookingFlow({
     trackContactStarted();
   };
 
-  const trackContactFieldInput = () => {
+  const trackContactFieldInput = (field: ContactAnalyticsField, value: string) => {
     trackContactStarted();
+
+    if (!shouldTrackContactFieldInput(trackedContactInputFieldsRef.current, field, value)) {
+      return;
+    }
+
+    const fieldLabel = {
+      email: "e-mail",
+      phone: "telefon",
+      clientNote: "poznámka",
+    }[field];
+    trackBookingEvent("Kontaktní pole zahájeno", fieldLabel);
   };
 
   const selectSlot = (slotOption: TimeSlotOption) => {
@@ -721,7 +739,7 @@ export function BookingFlow({
     trackSelectedDateMetaEvent(dateKey);
     trackBookingStarted();
     if (selectedService && previousSlotKey !== slotOption.key) {
-      trackBookingEvent(previousSlotKey ? "booking_slot_changed" : "slot_selected", selectedService.slug);
+      trackBookingEvent(previousSlotKey ? "Čas změněn" : "Čas vybrán", selectedService.slug);
       trackSelectedTimeMetaEvent(slotOption);
     }
     trackInitiateCheckout();
@@ -743,7 +761,7 @@ export function BookingFlow({
     setCurrentStep(4);
     if (!bookingReviewedTrackedRef.current && selectedService) {
       bookingReviewedTrackedRef.current = true;
-      trackBookingEvent("booking_reviewed", selectedService.slug);
+      trackBookingEvent("Souhrn zobrazen", selectedService.slug);
     }
   };
 
@@ -764,7 +782,7 @@ export function BookingFlow({
       : isBookingTermConflictErrorCode(serverState.errorCode, serverState.suggestedStep)
         ? "availability_changed"
         : "server";
-    trackBookingEvent("booking_failed", error);
+    trackBookingEvent("Neúspěšná rezervace", error);
   }, [serverState.errorCode, serverState.formError, serverState.status, serverState.suggestedStep]);
 
   useEffect(() => {
@@ -853,8 +871,7 @@ export function BookingFlow({
     if (confirmedBookingIdsRef.current.has(bookingId)) return;
 
     confirmedBookingIdsRef.current.add(bookingId);
-    trackBookingEvent("booking_confirmed", selectedService?.slug ?? "unknown_service");
-    trackMatomoEvent("Rezervace", "Vytvořena", selectedService?.slug ?? "unknown_service");
+    trackBookingEvent("Vytvořena", selectedService?.slug ?? "unknown_service");
     trackMetaPixelStandardEvent("Schedule", {
       content_type: "service",
       content_name: selectedService?.name ?? serverState.confirmation.serviceName,
@@ -937,7 +954,7 @@ export function BookingFlow({
           }
 
           lastFailedBookingKeyRef.current = null;
-          if (selectedService) trackBookingEvent("booking_submitted", selectedService.slug);
+          if (selectedService) trackBookingEvent("Odeslána rezervace", selectedService.slug);
         }}
       >
       <input type="hidden" name="serviceId" value={selectedServiceId} />
@@ -988,7 +1005,7 @@ export function BookingFlow({
                 if (service) {
                   trackBookingStarted();
                   trackBookingEvent(
-                    serviceSelectedTrackedRef.current ? "booking_service_changed" : "service_selected",
+                    serviceSelectedTrackedRef.current ? "Služba změněna" : "Služba vybrána",
                     service.slug,
                   );
                   serviceSelectedTrackedRef.current = true;
@@ -1085,17 +1102,19 @@ export function BookingFlow({
               onShowSummary={goToSummary}
               onFullNameChange={(value) => {
                 setFullName(value);
-                trackContactFieldInput();
               }}
               onEmailChange={(value) => {
                 setEmail(value);
-                trackContactFieldInput();
+                trackContactFieldInput("email", value);
               }}
               onPhoneChange={(value) => {
                 setPhone(value);
-                trackContactFieldInput();
+                trackContactFieldInput("phone", value);
               }}
-              onClientNoteChange={setClientNote}
+              onClientNoteChange={(value) => {
+                setClientNote(value);
+                trackContactFieldInput("clientNote", value);
+              }}
               onVoucherCodeChange={(value) => {
                 markFormChanged();
                 invalidateVoucherApplication(value);

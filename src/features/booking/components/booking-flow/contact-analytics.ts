@@ -1,8 +1,8 @@
-import type { ContactFieldKey } from "./types";
+import type { ContactAnalyticsField, ContactFieldKey } from "./types";
 
-export function shouldTrackFirstContactFieldEvent(
-  trackedFields: Set<ContactFieldKey>,
-  field: ContactFieldKey,
+export function shouldTrackFirstContactFieldEvent<T extends string>(
+  trackedFields: Set<T>,
+  field: T,
 ) {
   if (trackedFields.has(field)) {
     return false;
@@ -13,8 +13,8 @@ export function shouldTrackFirstContactFieldEvent(
 }
 
 export function shouldTrackContactFieldInput(
-  trackedFields: Set<ContactFieldKey>,
-  field: ContactFieldKey,
+  trackedFields: Set<ContactAnalyticsField>,
+  field: ContactAnalyticsField,
   value: string,
 ) {
   if (!value.trim()) {

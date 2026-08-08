@@ -79,27 +79,27 @@ const DEFAULT_DASHBOARD_ANALYTICS: DashboardAnalytics = {
 };
 
 const bookingFunnelLabels = {
-  started: "Booking / booking_started",
-  service: "Booking / service_selected",
-  term: "Booking / slot_selected",
-  contact: "Booking / contact_started",
-  submitted: "Booking / booking_submitted",
-  created: "Booking / booking_confirmed",
+  started: "Rezervace / Rezervace zahájena",
+  service: "Rezervace / Služba vybrána",
+  term: "Rezervace / Čas vybrán",
+  contact: "Rezervace / Kontakt zahájen",
+  submitted: "Rezervace / Odeslána rezervace",
+  created: "Rezervace / Vytvořena",
 } as const;
 
 const bookingFunnelLegacyAliases = {
   started: [],
-  service: ["Rezervace / Služba vybrána", "Rezervace / Služba předvyplněna", "Booking / Service selected"],
-  term: ["Rezervace / Čas vybrán", "Booking / Time selected"],
-  contact: ["Rezervace / Kontakt zahájen", "Booking / Contact started"],
-  submitted: ["Rezervace / Odeslána rezervace", "Booking / Submitted"],
-  created: ["Rezervace / Vytvořena", "Booking / Created"],
+  service: ["Rezervace / Služba předvyplněna"],
+  term: [],
+  contact: [],
+  submitted: [],
+  created: [],
 } as const;
 
 const bookingContactQualityLabels = {
-  started: "Booking / contact_started",
+  started: "Rezervace / Kontakt zahájen",
   fieldFocus: "Rezervace / Kontakt pole fokus",
-  fieldInputStarted: "Rezervace / Kontakt pole vyplnění začátek",
+  fieldInputStarted: "Rezervace / Kontaktní pole zahájeno",
   fieldError: "Rezervace / Kontakt pole chyba",
 } as const;
 

@@ -46,7 +46,7 @@ test("getDashboardAnalytics derives booking funnel viewed step from booking page
           { label: "Rezervace / Vytvořena", nb_events: 2 },
           { label: "Rezervace / Kontakt zahájen", nb_events: 4 },
           { label: "Rezervace / Kontakt pole fokus", nb_events: 3 },
-          { label: "Rezervace / Kontakt pole vyplnění začátek", nb_events: 2 },
+          { label: "Rezervace / Kontaktní pole zahájeno", nb_events: 2 },
           { label: "Rezervace / Kontakt pole chyba", nb_events: 1 },
         ]),
         { status: 200 },
