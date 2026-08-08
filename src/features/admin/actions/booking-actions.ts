@@ -50,6 +50,7 @@ import { createDirectBookingPayment } from "@/features/bookings/lib/booking-paym
 import { requireAdminArea, requireRole } from "@/lib/auth/session";
 import { sendOwnerSystemErrorPushover } from "@/lib/notifications/pushover";
 import { prisma } from "@/lib/prisma";
+import { runSerializableTransaction } from "@/lib/serializable-transaction";
 
 class CompletionPaymentError extends Error {}
 
@@ -622,7 +623,7 @@ export async function updateBookingPriceAction(
   const nextStoredPrice = clearsAdjustment ? null : nextFinalPriceCzk;
   const nextStoredReason = clearsAdjustment ? null : normalizedReason;
 
-  await prisma.$transaction(async (tx) => {
+  await runSerializableTransaction(async (tx) => {
     await tx.$queryRaw(Prisma.sql`
       SELECT "id" FROM "Booking" WHERE "id" = ${booking.id} FOR UPDATE
     `);
@@ -683,7 +684,7 @@ export async function updateBookingPriceAction(
         },
       },
     });
-  }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+  });
 
   revalidateBookingAdminPaths(booking.id);
   revalidatePath(`/admin/klienti/${booking.clientId}`);
