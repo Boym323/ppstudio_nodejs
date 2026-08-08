@@ -16,6 +16,7 @@ Formát je inspirovaný Keep a Changelog.
 
 - Běžné zrušení rezervace a vytvoření voucheru se v provozních událostech zobrazují jako informace; technický panel přesněji nese název „E-mailová fronta“ a vyhledávací nápověda odpovídá aktuálnímu pohledu.
 - Administrativní změny účtů, voucherů, služeb a SiteSettings mají doménové neměnné before/after logy s autorem, transakčním zápisem, serverovým OWNER/SALON omezením a minimalizací PII; cenový audit služby zůstává bez duplicit.
+- Přehled „Události a logy“ nově lépe rozlišuje provozní, e-mailové a bezpečnostní záznamy pomocí stavových štítků, přehledného panelu Pozornost, kompaktnějších filtrů a čitelnějších mobilních karet.
 
 ## [3.15.0] - 2026-08-07
 
