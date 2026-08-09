@@ -2,7 +2,7 @@
 
 import Script from "next/script";
 import { usePathname, useSearchParams } from "next/navigation";
-import { useEffect, useRef } from "react";
+import { useLayoutEffect } from "react";
 
 import {
   buildSafeMatomoPath,
@@ -24,9 +24,8 @@ export function MatomoTracker({ disabled = false }: MatomoTrackerProps) {
   const shouldInitialize = isMatomoConfigured() && shouldInitializeMatomoTracking(pathname, { disabled });
   const shouldTrackPageview = shouldTrackMatomoPath(pathname);
   const safeCurrentPath = buildSafeMatomoPath(pathname, searchParams);
-  const trackedPathRef = useRef<string | null>(null);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!shouldInitialize || !matomoUrl || !siteId) {
       return;
     }
@@ -37,35 +36,20 @@ export function MatomoTracker({ disabled = false }: MatomoTrackerProps) {
       window._paq = queue;
     }
 
-    const isInitialBootstrap = trackedPathRef.current === null;
     const safePath = buildSafeMatomoPath(pathname, searchParams);
-    const hasInlineBootstrapForCurrentPath =
-      window.__matomoTrackerConfigured === true &&
-      window.__matomoBootstrapPath === safePath;
-
-    if (isInitialBootstrap && hasInlineBootstrapForCurrentPath) {
-      trackedPathRef.current = safePath;
-      return;
-    }
-
-    if (safePath === window.__matomoTrackedPath) {
-      trackedPathRef.current = safePath;
-      return;
-    }
-
-    if (safePath === trackedPathRef.current) {
-      return;
-    }
 
     try {
-      if (isInitialBootstrap) {
+      if (!window.__matomoTrackerConfigured) {
         queue.push(["setTrackerUrl", `${normalizeMatomoUrl(matomoUrl)}matomo.php`]);
         queue.push(["setSiteId", siteId]);
         queue.push(["enableHeartBeatTimer", 15]);
         queue.push(["enableLinkTracking"]);
       }
 
-      queue.push(["setCustomUrl", safePath]);
+      if (window.__matomoTrackedPath !== safePath) {
+        queue.push(["setCustomUrl", safePath]);
+      }
+
       window.__matomoTrackerConfigured = true;
       window.__matomoTrackedPath = safePath;
       window.__matomoBootstrapPath = safePath;
@@ -75,8 +59,6 @@ export function MatomoTracker({ disabled = false }: MatomoTrackerProps) {
         queue.push(["setDocumentTitle", document.title]);
         queue.push(["trackPageView"]);
       }
-
-      trackedPathRef.current = safePath;
     } catch (error) {
       if (process.env.NODE_ENV === "development") {
         console.warn("Matomo pageview failed.", error);
@@ -107,13 +89,6 @@ export function MatomoTracker({ disabled = false }: MatomoTrackerProps) {
               window.__matomoTrackerConfigured = true;
               window.__matomoTrackedPath = ${JSON.stringify(safeCurrentPath)};
               window.__matomoBootstrapPath = ${JSON.stringify(safeCurrentPath)};
-              ${shouldTrackPageview ? `
-                if (window.__matomoLastPageviewPath !== ${JSON.stringify(safeCurrentPath)}) {
-                  window.__matomoLastPageviewPath = ${JSON.stringify(safeCurrentPath)};
-                  window._paq.push(['setDocumentTitle', document.title]);
-                  window._paq.push(['trackPageView']);
-                }
-              ` : ""}
             }
           `,
         }}
