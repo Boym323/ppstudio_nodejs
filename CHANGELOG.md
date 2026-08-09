@@ -9,6 +9,7 @@ Formát je inspirovaný Keep a Changelog.
 ### Opraveno
 
 - Matomo při remountu trackeru po SPA navigaci nyní deduplikuje pageview podle poslední skutečně odeslané URL, takže se stejné zobrazení neměří dvakrát.
+- Inline Matomo bootstrap používá stejnou deduplikaci jako klientský tracker, takže souběh bootstrapu a SPA navigace nevytvoří druhý pageview.
 
 ## [3.16.1] - 2026-08-09
 
