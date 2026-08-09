@@ -6,9 +6,15 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [3.16.2] - 2026-08-09
+
 ### Opraveno
 
 - Matomo pageview má jediného odesílatele pro první načtení i SPA navigace a bezpečná URL se zapisuje těsně před každým pageview, takže opožděný záznam fronty nepřevezme URL následné navigace.
+
+### Změněno
+
+- Release příprava pro produkční nasazení: projektová verze navýšena na patch `3.16.2` kvůli opravám Matomo pageviewů a rezervačního CTA.
 
 ## [3.16.1] - 2026-08-09
 
