@@ -20,6 +20,8 @@ declare global {
     _paq?: Array<unknown[]>;
     __matomoTrackerConfigured?: boolean;
     __matomoTrackedPath?: string;
+    __matomoBootstrapPath?: string;
+    __matomoFirstPageviewPath?: string;
   }
 }
 

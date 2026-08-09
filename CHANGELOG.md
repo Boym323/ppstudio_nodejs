@@ -13,6 +13,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Matomo při prvním načtení stránky synchronně nastaví tracker i pageview před načtením `matomo.js`, takže úvodní booking eventy sdílejí stejnou návštěvu místo rizika samostatných visitů.
 - Rychlé změny aktivace a veřejné rezervovatelnosti služby nyní posílají cílový stav, takže opakování serializovatelné transakce nemůže hodnotu nechtěně obrátit; již nastavený stav nevytváří auditní záznam.
 - Kontrola přeplatku při změně individuální ceny nyní po uzamčení rezervace načte aktuální platby i čerpání voucheru, takže souběžně zapsaná úhrada nemůže projít bez nového potvrzení přeplatku.
 - Audit změny kategorie služby nyní ukládá i historický název kategorie, takže zůstane čitelný i po smazání již nepoužívané kategorie.

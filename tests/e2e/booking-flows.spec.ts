@@ -227,6 +227,73 @@ async function getMatomoCalls(page: Page) {
   });
 }
 
+type MatomoRequest = {
+  endpoint: string;
+  params: Record<string, string>;
+};
+
+async function installMatomoRequestSpy(page: Page) {
+  const requests: MatomoRequest[] = [];
+
+  page.on("request", (request) => {
+    const url = new URL(request.url());
+
+    if (url.hostname !== "matomo.example.test" || url.pathname !== "/matomo.php") {
+      return;
+    }
+
+    requests.push({
+      endpoint: `${url.origin}${url.pathname}`,
+      params: Object.fromEntries(url.searchParams.entries()),
+    });
+  });
+
+  await page.route("**/matomo.js", async (route) => {
+    await route.fulfill({
+      contentType: "application/javascript",
+      body: `
+        (() => {
+          const queue = window._paq || [];
+          let endpoint = '';
+          let siteId = '';
+          let customUrl = '';
+          const visitorId = 'e2e-visitor-id';
+
+          const emit = (params) => {
+            const image = new Image();
+            image.src = endpoint + '?' + new URLSearchParams({
+              idsite: siteId,
+              rec: '1',
+              _id: visitorId,
+              url: customUrl,
+              ...params,
+            }).toString();
+          };
+
+          const handle = (command) => {
+            switch (command[0]) {
+              case 'setTrackerUrl': endpoint = command[1]; break;
+              case 'setSiteId': siteId = command[1]; break;
+              case 'setCustomUrl': customUrl = command[1]; break;
+              case 'trackPageView': emit({ action_name: document.title }); break;
+              case 'trackEvent': emit({ e_c: command[1], e_a: command[2], e_n: command[3] || '' }); break;
+              default: break;
+            }
+          };
+
+          queue.forEach(handle);
+          window._paq = { push(command) { handle(command); return 1; } };
+        })();
+      `,
+    });
+  });
+  await page.route("**/matomo.php**", async (route) => {
+    await route.fulfill({ status: 204 });
+  });
+
+  return requests;
+}
+
 async function expectMetaPixelEvent(page: Page, eventName: string) {
   await expect
     .poll(async () => getMetaPixelEventNames(page))
@@ -357,6 +424,51 @@ test.describe("booking flows", () => {
       "REJECT",
       "RESCHEDULE",
     ]);
+  });
+
+  test("Matomo bootstrap tracks the first pageview once and tracks an SPA navigation", async ({ page }) => {
+    const matomoRequests = await installMatomoRequestSpy(page);
+
+    await page.goto("/");
+    await expect.poll(() => matomoRequests.filter((request) => request.params.url === "/").length).toBe(1);
+
+    await page.getByRole("link", { name: "Rezervovat termín" }).first().click();
+    await expect(page).toHaveURL(/\/rezervace\?source=other/);
+    await expect.poll(
+      () => matomoRequests.filter((request) => request.params.url === "/rezervace?source=other").length,
+    ).toBe(1);
+
+    expect(matomoRequests.every((request) => request.endpoint === "https://matomo.example.test/matomo.php")).toBe(true);
+    expect(matomoRequests.every((request) => request.params.idsite === "1")).toBe(true);
+    expect(matomoRequests.every((request) => request.params._id === "e2e-visitor-id")).toBe(true);
+  });
+
+  test("Matomo keeps the first booking pageview and prefilled booking events in one visit", async ({ page }) => {
+    const fixture = await createPublicBookingFixture();
+    fixtures.push(fixture);
+    const matomoRequests = await installMatomoRequestSpy(page);
+
+    await page.goto(`/rezervace?service=${fixture.serviceSlug}`);
+    await expect(page.getByText(fixture.serviceName).first()).toBeVisible();
+
+    await expect.poll(
+      () => matomoRequests.filter((request) => request.params.url === `/rezervace?service=${fixture.serviceSlug}`).length,
+    ).toBeGreaterThanOrEqual(3);
+
+    const bookingRequests = matomoRequests.filter(
+      (request) => request.params.url === `/rezervace?service=${fixture.serviceSlug}`,
+    );
+    const pageviews = bookingRequests.filter((request) => !request.params.e_a);
+    const events = bookingRequests.filter((request) => request.params.e_a);
+
+    expect(pageviews).toHaveLength(1);
+    expect(events.map((request) => request.params.e_a)).toEqual(
+      expect.arrayContaining(["Rezervace zahájena", "Služba vybrána"]),
+    );
+    expect(bookingRequests.every((request) => request.endpoint === "https://matomo.example.test/matomo.php")).toBe(true);
+    expect(bookingRequests.every((request) => request.params.idsite === "1")).toBe(true);
+    expect(bookingRequests.every((request) => request.params._id === "e2e-visitor-id")).toBe(true);
+    expect(events.every((request) => request.params.new_visit === undefined)).toBe(true);
   });
 
   test("conflict refresh revalidates a voucher before the visitor can submit a new term", async ({ browser }) => {
