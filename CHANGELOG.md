@@ -8,7 +8,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
-- Matomo při remountu trackeru po SPA navigaci již neodesílá duplicitní pageview pro stejnou URL.
+- Matomo při remountu trackeru po SPA navigaci nyní deduplikuje pageview podle poslední skutečně odeslané URL, takže se stejné zobrazení neměří dvakrát.
 
 ## [3.16.1] - 2026-08-09
 

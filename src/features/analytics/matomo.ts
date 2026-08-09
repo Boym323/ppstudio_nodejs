@@ -21,7 +21,7 @@ declare global {
     __matomoTrackerConfigured?: boolean;
     __matomoTrackedPath?: string;
     __matomoBootstrapPath?: string;
-    __matomoFirstPageviewPath?: string;
+    __matomoLastPageviewPath?: string;
   }
 }
 

@@ -70,10 +70,10 @@ export function MatomoTracker({ disabled = false }: MatomoTrackerProps) {
       window.__matomoTrackedPath = safePath;
       window.__matomoBootstrapPath = safePath;
 
-      if (shouldTrackPageview) {
+      if (shouldTrackPageview && window.__matomoLastPageviewPath !== safePath) {
+        window.__matomoLastPageviewPath = safePath;
         queue.push(["setDocumentTitle", document.title]);
         queue.push(["trackPageView"]);
-        window.__matomoFirstPageviewPath ??= safePath;
       }
 
       trackedPathRef.current = safePath;
@@ -108,9 +108,9 @@ export function MatomoTracker({ disabled = false }: MatomoTrackerProps) {
               window.__matomoTrackedPath = ${JSON.stringify(safeCurrentPath)};
               window.__matomoBootstrapPath = ${JSON.stringify(safeCurrentPath)};
               ${shouldTrackPageview ? `
+                window.__matomoLastPageviewPath = ${JSON.stringify(safeCurrentPath)};
                 window._paq.push(['setDocumentTitle', document.title]);
                 window._paq.push(['trackPageView']);
-                window.__matomoFirstPageviewPath = ${JSON.stringify(safeCurrentPath)};
               ` : ""}
             }
           `,
