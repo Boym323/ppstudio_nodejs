@@ -14,7 +14,7 @@ process.env.EMAIL_DELIVERY_MODE ??= "log";
 
 test("GET při výpadku DB vrátí stabilní kód bez diagnostiky a alert potlačí cooldownem", async () => {
   const { createDbFailureAlertCooldown, createHealthRouteApi } =
-    await import("./route");
+    await import("./route-api");
   const notifications: Array<Record<string, unknown>> = [];
   const now = new Date("2026-07-10T10:00:00.000Z");
   const api = createHealthRouteApi({
@@ -50,7 +50,7 @@ test("GET při výpadku DB vrátí stabilní kód bez diagnostiky a alert potla�
 });
 
 test("GET při selhání detailních emailových DB dotazů degraduje na warning místo 500", async () => {
-  const { createHealthRouteApi } = await import("./route");
+  const { createHealthRouteApi } = await import("./route-api");
   const api = createHealthRouteApi({
     checkDatabase: async () => undefined,
     getEmailHealthData: async () => {

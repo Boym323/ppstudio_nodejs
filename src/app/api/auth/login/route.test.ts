@@ -30,7 +30,7 @@ function buildLoginRequest(email: string, password: string) {
 }
 
 test("POST rejects cross-origin login submit before auth work starts", async () => {
-  const { createAdminLoginRouteApi } = await import("./route");
+  const { createAdminLoginRouteApi } = await import("./route-api");
   const api = createAdminLoginRouteApi({
     normalizeAdminLoginEmail: () => {
       throw new Error("normalizeAdminLoginEmail should not run for rejected origin");
@@ -69,7 +69,7 @@ test("POST rejects cross-origin login submit before auth work starts", async () 
 });
 
 test("POST returns rate_limited redirect when attempt limit is exceeded", async () => {
-  const { createAdminLoginRouteApi } = await import("./route");
+  const { createAdminLoginRouteApi } = await import("./route-api");
   const loggedOutcomes: LoginOutcome[] = [];
 
   const api = createAdminLoginRouteApi({
@@ -104,7 +104,7 @@ test("POST returns rate_limited redirect when attempt limit is exceeded", async 
 });
 
 test("POST returns invalid_payload redirect for malformed form data", async () => {
-  const { createAdminLoginRouteApi } = await import("./route");
+  const { createAdminLoginRouteApi } = await import("./route-api");
   const loggedOutcomes: LoginOutcome[] = [];
 
   const api = createAdminLoginRouteApi({
@@ -139,7 +139,7 @@ test("POST returns invalid_payload redirect for malformed form data", async () =
 });
 
 test("POST returns invalid_credentials redirect for wrong credentials", async () => {
-  const { createAdminLoginRouteApi } = await import("./route");
+  const { createAdminLoginRouteApi } = await import("./route-api");
   const loggedOutcomes: LoginOutcome[] = [];
 
   const api = createAdminLoginRouteApi({
@@ -177,7 +177,7 @@ test("POST returns invalid_credentials redirect for wrong credentials", async ()
 });
 
 test("POST sets session cookie and redirects to admin home after successful login", async () => {
-  const { createAdminLoginRouteApi } = await import("./route");
+  const { createAdminLoginRouteApi } = await import("./route-api");
   const loggedOutcomes: LoginOutcome[] = [];
 
   const api = createAdminLoginRouteApi({
