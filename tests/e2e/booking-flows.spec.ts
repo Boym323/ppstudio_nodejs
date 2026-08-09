@@ -437,7 +437,10 @@ test.describe("booking flows", () => {
     await bookingCta.click();
     await expect(page).toHaveURL(/\/rezervace\?source=other/);
     await expect.poll(
-      () => matomoRequests.filter((request) => request.params.url === "/rezervace?source=other").length,
+      () =>
+        matomoRequests.filter(
+          (request) => request.params.url === "/rezervace?source=other" && !request.params.e_a,
+        ).length,
     ).toBe(1);
 
     expect(matomoRequests.every((request) => request.endpoint === "https://matomo.example.test/matomo.php")).toBe(true);
