@@ -48,6 +48,11 @@ export function MatomoTracker({ disabled = false }: MatomoTrackerProps) {
       return;
     }
 
+    if (safePath === window.__matomoTrackedPath) {
+      trackedPathRef.current = safePath;
+      return;
+    }
+
     if (safePath === trackedPathRef.current) {
       return;
     }

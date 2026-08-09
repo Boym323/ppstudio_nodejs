@@ -6,6 +6,10 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+### Opraveno
+
+- Matomo při remountu trackeru po SPA navigaci již neodesílá duplicitní pageview pro stejnou URL.
+
 ## [3.16.1] - 2026-08-09
 
 ### Změněno
