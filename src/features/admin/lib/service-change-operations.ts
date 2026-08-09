@@ -4,10 +4,11 @@ import { ServiceChangeOperation } from "@prisma/client";
 
 import { runSerializableTransaction } from "@/lib/serializable-transaction";
 
-export async function toggleServiceOperationalFlag(input: {
+export async function setServiceOperationalFlag(input: {
   serviceId: string;
   actorUserId: string;
   field: "isActive" | "isPubliclyBookable";
+  value: boolean;
 }) {
   return runSerializableTransaction(async (tx) => {
     const service = await tx.service.findUnique({
@@ -16,10 +17,11 @@ export async function toggleServiceOperationalFlag(input: {
     });
     if (!service) return false;
 
-    const nextValue = !service[input.field];
+    if (service[input.field] === input.value) return true;
+
     await tx.service.update({
       where: { id: service.id },
-      data: { [input.field]: nextValue },
+      data: { [input.field]: input.value },
     });
     await tx.serviceChangeLog.create({
       data: {
@@ -29,7 +31,7 @@ export async function toggleServiceOperationalFlag(input: {
           ? ServiceChangeOperation.TOGGLE_ACTIVE
           : ServiceChangeOperation.TOGGLE_BOOKABLE,
         before: { [input.field]: service[input.field] },
-        after: { [input.field]: nextValue },
+        after: { [input.field]: input.value },
       },
     });
     return true;

@@ -15,7 +15,7 @@ process.env.EMAIL_DELIVERY_MODE ??= "log";
 const dbTest = process.env.RUN_DB_INTEGRATION_TESTS === "1" ? test : test.skip;
 
 dbTest("service availability flags are audited atomically without a price log", async () => {
-  const [{ prisma }, { toggleServiceOperationalFlag }] = await Promise.all([
+  const [{ prisma }, { setServiceOperationalFlag }] = await Promise.all([
     import("@/lib/prisma"),
     import("./service-change-operations"),
   ]);
@@ -34,21 +34,27 @@ dbTest("service availability flags are audited atomically without a price log", 
   });
 
   try {
-    assert.equal(await toggleServiceOperationalFlag({ serviceId: service.id, actorUserId: actor.id, field: "isPubliclyBookable" }), true);
+    assert.equal(await setServiceOperationalFlag({ serviceId: service.id, actorUserId: actor.id, field: "isActive", value: false }), true);
     const audit = await prisma.serviceChangeLog.findFirstOrThrow({ where: { serviceId: service.id } });
-    assert.deepEqual(audit.before, { isPubliclyBookable: true });
-    assert.deepEqual(audit.after, { isPubliclyBookable: false });
+    assert.deepEqual(audit.before, { isActive: true });
+    assert.deepEqual(audit.after, { isActive: false });
     assert.equal(audit.actorUserId, actor.id);
     assert.equal(await prisma.servicePriceChangeLog.count({ where: { serviceId: service.id } }), 0);
 
-    await assert.rejects(() => toggleServiceOperationalFlag({
+    assert.equal(await setServiceOperationalFlag({ serviceId: service.id, actorUserId: actor.id, field: "isPubliclyBookable", value: false }), true);
+    assert.equal(await setServiceOperationalFlag({ serviceId: service.id, actorUserId: actor.id, field: "isPubliclyBookable", value: true }), true);
+    assert.equal(await setServiceOperationalFlag({ serviceId: service.id, actorUserId: actor.id, field: "isActive", value: false }), true);
+    assert.equal(await prisma.serviceChangeLog.count({ where: { serviceId: service.id } }), 3);
+
+    await assert.rejects(() => setServiceOperationalFlag({
       serviceId: service.id,
       actorUserId: `missing-${suffix}`,
       field: "isActive",
+      value: true,
     }));
     const afterFailure = await prisma.service.findUniqueOrThrow({ where: { id: service.id } });
-    assert.equal(afterFailure.isActive, true);
-    assert.equal(await prisma.serviceChangeLog.count({ where: { serviceId: service.id } }), 1);
+    assert.equal(afterFailure.isActive, false);
+    assert.equal(await prisma.serviceChangeLog.count({ where: { serviceId: service.id } }), 3);
   } finally {
     await prisma.serviceChangeLog.deleteMany({ where: { serviceId: service.id } });
     await prisma.service.delete({ where: { id: service.id } });

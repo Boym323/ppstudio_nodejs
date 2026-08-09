@@ -42,11 +42,11 @@ export function ServiceActionsMenu({
           Otevřít detail
         </Link>
 
-        <QuickMenuAction action={toggleServiceActiveAction} area={area} serviceId={serviceId} returnTo={returnTo}>
+        <QuickMenuAction action={toggleServiceActiveAction} area={area} serviceId={serviceId} returnTo={returnTo} value={!isActive}>
           {isActive ? "Deaktivovat" : "Aktivovat"}
         </QuickMenuAction>
 
-        <QuickMenuAction action={toggleServiceBookableAction} area={area} serviceId={serviceId} returnTo={returnTo}>
+        <QuickMenuAction action={toggleServiceBookableAction} area={area} serviceId={serviceId} returnTo={returnTo} value={!isPubliclyBookable}>
           {isPubliclyBookable ? "Nastavit jako interní" : "Nastavit jako veřejnou"}
         </QuickMenuAction>
 
@@ -78,12 +78,14 @@ function QuickMenuAction({
   area,
   serviceId,
   returnTo,
+  value,
   children,
 }: {
   action: (formData: FormData) => Promise<void>;
   area: AdminArea;
   serviceId: string;
   returnTo: string;
+  value?: boolean;
   children: ReactNode;
 }) {
   return (
@@ -91,6 +93,7 @@ function QuickMenuAction({
       <input type="hidden" name="area" value={area} />
       <input type="hidden" name="serviceId" value={serviceId} />
       <input type="hidden" name="returnTo" value={returnTo} />
+      {value === undefined ? null : <input type="hidden" name="value" value={String(value)} />}
       <button
         type="submit"
         className="flex w-full rounded-[0.85rem] px-3 py-2 text-left text-sm text-white/84 transition hover:bg-white/6"

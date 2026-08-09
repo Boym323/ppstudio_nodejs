@@ -14,7 +14,7 @@ import {
 import { prisma } from "@/lib/prisma";
 import { runSerializableTransaction } from "@/lib/serializable-transaction";
 import { buildServiceOperationalAuditChange } from "@/features/admin/lib/service-audit-change";
-import { toggleServiceOperationalFlag } from "@/features/admin/lib/service-change-operations";
+import { setServiceOperationalFlag } from "@/features/admin/lib/service-change-operations";
 
 function readFormString(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -345,27 +345,17 @@ export async function updateServiceAction(
   const actorUserId = session.sub;
   const nextPriceFromCzk = parsed.data.priceFromCzk === "" ? null : parsed.data.priceFromCzk;
 
-  const category = await prisma.serviceCategory.findUnique({
-    where: { id: parsed.data.categoryId },
-    select: { id: true, name: true, isActive: true },
-  });
-
-  if (!category) {
-    return {
-      status: "error",
-      formError: "Vybraná kategorie už v systému neexistuje.",
-      fieldErrors: {
-        categoryId: "Vyberte prosím existující kategorii.",
-      },
-    };
-  }
-
-  const serviceFound = await runSerializableTransaction(async (tx) => {
+  const transactionResult = await runSerializableTransaction(async (tx) => {
     const service = await tx.service.findUnique({
       where: { id: parsed.data.serviceId },
       select: serviceAuditSelect,
     });
-    if (!service) return false;
+    if (!service) return { serviceFound: false as const };
+    const category = await tx.serviceCategory.findUnique({
+      where: { id: parsed.data.categoryId },
+      select: { id: true, name: true, isActive: true },
+    });
+    if (!category) return { serviceFound: true as const, category: null };
     const nextValues = {
       categoryId: parsed.data.categoryId,
       categoryName: category.name,
@@ -439,11 +429,21 @@ export async function updateServiceAction(
         },
       });
     }
-    return true;
+    return { serviceFound: true as const, category };
   });
 
-  if (!serviceFound) {
+  if (!transactionResult.serviceFound) {
     return { status: "error", formError: "Službu se nepodařilo najít." };
+  }
+
+  if (!transactionResult.category) {
+    return {
+      status: "error",
+      formError: "Vybraná kategorie už v systému neexistuje.",
+      fieldErrors: {
+        categoryId: "Vyberte prosím existující kategorii.",
+      },
+    };
   }
 
   revalidateServicePaths(area);
@@ -454,7 +454,7 @@ export async function updateServiceAction(
 
   return {
     status: "success",
-    successMessage: category.isActive
+    successMessage: transactionResult.category.isActive
       ? "Služba je uložená. Nová délka a veřejná rezervovatelnost se projeví i v booking flow."
       : "Služba je uložená. Pozor jen na to, že neaktivní kategorie ji stejně skryje z veřejného bookingu.",
   };
@@ -466,7 +466,12 @@ export async function toggleServiceActiveAction(formData: FormData): Promise<voi
   const returnTo = safeReturnPath(readFormString(formData, "returnTo"), getServiceBasePath(area));
   const session = await requireAdminSectionAccess(area, "sluzby");
 
-  const updated = await toggleServiceOperationalFlag({ serviceId, actorUserId: session.sub, field: "isActive" });
+  const updated = await setServiceOperationalFlag({
+    serviceId,
+    actorUserId: session.sub,
+    field: "isActive",
+    value: readCheckbox(formData, "value"),
+  });
 
   if (!updated) {
     redirect(returnTo);
@@ -482,7 +487,12 @@ export async function toggleServiceBookableAction(formData: FormData): Promise<v
   const returnTo = safeReturnPath(readFormString(formData, "returnTo"), getServiceBasePath(area));
   const session = await requireAdminSectionAccess(area, "sluzby");
 
-  const updated = await toggleServiceOperationalFlag({ serviceId, actorUserId: session.sub, field: "isPubliclyBookable" });
+  const updated = await setServiceOperationalFlag({
+    serviceId,
+    actorUserId: session.sub,
+    field: "isPubliclyBookable",
+    value: readCheckbox(formData, "value"),
+  });
 
   if (!updated) {
     redirect(returnTo);
