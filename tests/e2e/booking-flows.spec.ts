@@ -432,7 +432,9 @@ test.describe("booking flows", () => {
     await page.goto("/");
     await expect.poll(() => matomoRequests.filter((request) => request.params.url === "/").length).toBe(1);
 
-    await page.getByRole("link", { name: "Rezervovat termín" }).first().click();
+    const bookingCta = page.locator('header a[href="/rezervace?source=other"]:visible');
+    await expect(bookingCta).toHaveCount(1);
+    await bookingCta.click();
     await expect(page).toHaveURL(/\/rezervace\?source=other/);
     await expect.poll(
       () => matomoRequests.filter((request) => request.params.url === "/rezervace?source=other").length,
