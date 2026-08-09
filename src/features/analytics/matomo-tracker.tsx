@@ -56,6 +56,7 @@ export function MatomoTracker({ disabled = false }: MatomoTrackerProps) {
 
       if (shouldTrackPageview && window.__matomoLastPageviewPath !== safePath) {
         window.__matomoLastPageviewPath = safePath;
+        queue.push(["setCustomUrl", safePath]);
         queue.push(["setDocumentTitle", document.title]);
         queue.push(["trackPageView"]);
       }

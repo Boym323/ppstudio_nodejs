@@ -8,7 +8,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
-- Matomo pageview má jediného odesílatele pro první načtení i SPA navigace, takže závod mezi inline bootstrapem a klientským efektem již nemůže odeslat stejnou URL dvakrát.
+- Matomo pageview má jediného odesílatele pro první načtení i SPA navigace a bezpečná URL se zapisuje těsně před každým pageview, takže opožděný záznam fronty nepřevezme URL následné navigace.
 
 ## [3.16.1] - 2026-08-09
 
