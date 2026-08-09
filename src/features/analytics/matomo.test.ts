@@ -3,6 +3,7 @@ import test, { after, afterEach } from "node:test";
 
 import {
   buildSafeMatomoPath,
+  claimMatomoPageview,
   ensureMatomoTrackingPath,
   trackBookingEvent,
   trackMatomoEvent,
@@ -73,6 +74,25 @@ test("shouldInitializeMatomoTracking keeps existing admin route protection", () 
   assert.equal(shouldInitializeMatomoTracking("/admin"), false);
   assert.equal(shouldInitializeMatomoTracking("/admin", { disabled: false }), false);
   assert.equal(shouldTrackMatomoPath("/admin"), false);
+});
+
+test("claimMatomoPageview deduplicates one navigation but tracks a return from an untracked route", () => {
+  setMockWindow({});
+
+  assert.equal(claimMatomoPageview("/", true), true);
+  assert.equal(claimMatomoPageview("/", true), false);
+  assert.equal(claimMatomoPageview("/rezervace/storno/[token]", false), false);
+  assert.equal(claimMatomoPageview("/", true), true);
+});
+
+test("claimMatomoPageview keeps a return trackable after consecutive untracked routes", () => {
+  setMockWindow({});
+
+  assert.equal(claimMatomoPageview("/rezervace", true), true);
+  assert.equal(claimMatomoPageview("/rezervace/sprava/[token]", false), false);
+  assert.equal(claimMatomoPageview("/rezervace/storno/[token]", false), false);
+  assert.equal(claimMatomoPageview("/rezervace", true), true);
+  assert.equal(claimMatomoPageview("/sluzby", true), true);
 });
 
 after(() => {

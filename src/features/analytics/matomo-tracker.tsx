@@ -6,6 +6,7 @@ import { useLayoutEffect } from "react";
 
 import {
   buildSafeMatomoPath,
+  claimMatomoPageview,
   isMatomoConfigured,
   normalizeMatomoUrl,
   shouldInitializeMatomoTracking,
@@ -54,8 +55,7 @@ export function MatomoTracker({ disabled = false }: MatomoTrackerProps) {
       window.__matomoTrackedPath = safePath;
       window.__matomoBootstrapPath = safePath;
 
-      if (shouldTrackPageview && window.__matomoLastPageviewPath !== safePath) {
-        window.__matomoLastPageviewPath = safePath;
+      if (claimMatomoPageview(safePath, shouldTrackPageview)) {
         queue.push(["setCustomUrl", safePath]);
         queue.push(["setDocumentTitle", document.title]);
         queue.push(["trackPageView"]);

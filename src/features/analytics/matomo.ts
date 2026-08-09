@@ -56,6 +56,28 @@ export function markMatomoTrackingState(path: string) {
   window.__matomoTrackedPath = path;
 }
 
+/**
+ * Rezervuje pageview pro aktuální navigaci. Netrackovaná navigace ruší
+ * deduplikaci předchozí tracked cesty, aby návrat na ni vytvořil nový pageview.
+ */
+export function claimMatomoPageview(path: string, shouldTrackPageview: boolean) {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  if (!shouldTrackPageview) {
+    window.__matomoLastPageviewPath = undefined;
+    return false;
+  }
+
+  if (window.__matomoLastPageviewPath === path) {
+    return false;
+  }
+
+  window.__matomoLastPageviewPath = path;
+  return true;
+}
+
 export function shouldTrackMatomoPath(pathname: string) {
   if (!isMatomoConfigured()) {
     return false;

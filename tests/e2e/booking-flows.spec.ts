@@ -426,20 +426,20 @@ test.describe("booking flows", () => {
     ]);
   });
 
-  test("Matomo bootstrap tracks the first pageview once and tracks an SPA navigation", async ({ page }) => {
+  test("Matomo bootstrap tracks the first pageview once and tracks SPA navigations", async ({ page }) => {
     const matomoRequests = await installMatomoRequestSpy(page);
 
     await page.goto("/");
     await expect.poll(() => matomoRequests.filter((request) => request.params.url === "/").length).toBe(1);
 
-    const bookingCta = page.locator('header a[href="/rezervace?source=other"]:visible');
-    await expect(bookingCta).toHaveCount(1);
-    await bookingCta.click();
-    await expect(page).toHaveURL(/\/rezervace\?source=other/);
+    const servicesLink = page.locator('footer a[href="/sluzby"]:visible');
+    await expect(servicesLink).toHaveCount(1);
+    await servicesLink.click();
+    await expect(page).toHaveURL(/\/sluzby/);
     await expect.poll(
       () =>
         matomoRequests.filter(
-          (request) => request.params.url === "/rezervace?source=other" && !request.params.e_a,
+          (request) => request.params.url === "/sluzby" && !request.params.e_a,
         ).length,
     ).toBe(1);
 

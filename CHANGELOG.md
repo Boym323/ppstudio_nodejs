@@ -6,6 +6,10 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+### Opraveno
+
+- Matomo SPA pageview deduplikace při návratu z netrackované route již nepotlačí legitimní nové zobrazení původní stránky.
+
 ## [3.16.2] - 2026-08-09
 
 ### Opraveno
