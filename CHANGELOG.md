@@ -6,10 +6,16 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [3.16.3] - 2026-08-10
+
 ### Opraveno
 
 - Matomo SPA pageview deduplikace při návratu z netrackované route již nepotlačí legitimní nové zobrazení původní stránky.
 - Storno rezervace nyní znovu zveřejní i historický slot archivovaný při úpravě planneru a spojí jej s navazující volnou dostupností, takže po zrušení nezůstávají mezery ve volných termínech.
+
+### Změněno
+
+- Release příprava pro produkční nasazení: projektová verze navýšena na patch `3.16.3` kvůli opravám Matomo pageviewů a obnovování volných termínů po stornu rezervace.
 
 ## [3.16.2] - 2026-08-09
 
