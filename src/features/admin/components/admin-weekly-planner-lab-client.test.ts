@@ -50,10 +50,14 @@ test("navigace čeká na prázdnou frontu a vyřešenou chybu", async () => {
 
 test("obnova uloženého stavu zahodí frontu a znovu načte potvrzená data", async () => {
   const source = await clientSource();
-  assert.match(source, /function restoreSavedState\(\).*pendingCount/);
+  assert.match(source, /function requestRestoreSavedState\(\).*pendingCount/);
   assert.match(source, /discardPending\(\); setHasPendingChanges\(false\)/);
   assert.match(source, /setIsWeekLoading\(true\); restoreRequestedRef\.current = true; router\.refresh\(\)/);
-  assert.match(source, /window\.confirm\("Obnovení uloženého stavu zahodí všechny neuložené změny/);
+  assert.match(source, /import \* as AlertDialog from "@\/components\/ui\/alert-dialog"/);
+  assert.match(source, /<AlertDialog\.Title>Zahodit neuložené změny\?<\/AlertDialog\.Title>/);
+  assert.match(source, /<AlertDialog\.Cancel asChild><button ref=\{restoreCancelRef\}/);
+  assert.match(source, /onOpenAutoFocus=\{\(event\) => \{ event\.preventDefault\(\); restoreCancelRef\.current\?\.focus\(\); \}\}/);
+  assert.doesNotMatch(source, /window\.confirm\(/);
 });
 
 test("planner má legendu a sdílené routování rezervace bez paralelního inspektoru", async () => {
