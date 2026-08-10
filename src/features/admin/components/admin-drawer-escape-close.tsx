@@ -1,26 +1,48 @@
 "use client";
 
-import { useEffect, type RefObject } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState, type ReactNode, type RefObject } from "react";
 
-export function AdminDrawerEscapeClose({ href }: { href: string }) {
+import * as Dialog from "@/components/ui/dialog";
+
+/** Sdílený Radix lifecycle pro drawery, jejichž otevřený stav určuje URL. */
+export function AdminRouteDrawer({
+  href,
+  children,
+  desktopOnly = false,
+}: {
+  href: string;
+  children: ReactNode;
+  desktopOnly?: boolean;
+}) {
+  const router = useRouter();
+  const [enabled, setEnabled] = useState(!desktopOnly);
+
   useEffect(() => {
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key !== "Escape") {
-        return;
-      }
-
-      event.preventDefault();
-      window.location.assign(href);
+    if (!desktopOnly) {
+      return;
     }
 
-    window.addEventListener("keydown", handleKeyDown);
+    const mediaQuery = window.matchMedia("(min-width: 1280px)");
+    const updateEnabled = () => setEnabled(mediaQuery.matches);
+    updateEnabled();
+    mediaQuery.addEventListener("change", updateEnabled);
 
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [href]);
+    return () => mediaQuery.removeEventListener("change", updateEnabled);
+  }, [desktopOnly]);
 
-  return null;
+  return (
+    <Dialog.Root
+      open={enabled}
+      onOpenChange={(nextOpen) => {
+        if (enabled && !nextOpen) {
+          router.push(href);
+        }
+      }}
+    >
+      {children}
+    </Dialog.Root>
+  );
 }
 
 export function AdminEscapeKeyClose({

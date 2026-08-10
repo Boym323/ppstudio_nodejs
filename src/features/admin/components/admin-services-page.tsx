@@ -1,7 +1,6 @@
-import Link from "next/link";
-
+import * as Dialog from "@/components/ui/dialog";
 import { AdminPageShell, AdminPanel } from "@/features/admin/components/admin-page-shell";
-import { AdminDrawerEscapeClose } from "@/features/admin/components/admin-drawer-escape-close";
+import { AdminRouteDrawer } from "@/features/admin/components/admin-drawer-escape-close";
 import { AdminServiceForm } from "@/features/admin/components/admin-service-form";
 import { AdminServicesList } from "@/features/admin/components/admin-services-list";
 import { AdminServicesToolbar } from "@/features/admin/components/admin-services-toolbar";
@@ -260,38 +259,37 @@ export async function AdminServicesPage({
       </div>
 
       {showDetailDrawer ? (
-        <div className="fixed inset-0 z-50 hidden xl:block">
-          <AdminDrawerEscapeClose href={returnTo} />
-          <Link
-            aria-label="Zavřít detail služby"
-            href={returnTo}
-            className="absolute inset-0 bg-black/62 backdrop-blur-sm"
-          />
-          <aside className="absolute inset-y-0 right-0 w-full max-w-4xl overflow-hidden border-l border-white/10 bg-[#131116] shadow-[-20px_0_70px_rgba(0,0,0,0.45)]">
-            <div className="flex h-full flex-col">
-              <header className="flex items-start justify-between gap-4 border-b border-white/10 px-5 py-5 sm:px-6">
-                <div>
-                  <p className="text-[11px] uppercase tracking-[0.22em] text-[var(--color-accent-soft)]">
-                    Detail služby
-                  </p>
-                  <h2 className="mt-2 text-2xl font-display text-white">{drawerTitle}</h2>
-                  <p className="mt-2 max-w-2xl text-sm leading-6 text-white/66">{drawerDescription}</p>
+        <AdminRouteDrawer href={returnTo} desktopOnly>
+          <Dialog.Portal>
+            <Dialog.Overlay className="z-[89] bg-black/62" />
+            <Dialog.Content className="!inset-y-0 !right-0 !left-auto z-[90] !h-[100dvh] !max-h-none !w-full !max-w-4xl !translate-x-0 !translate-y-0 !overflow-hidden border-l border-white/10 bg-[#131116] shadow-[-20px_0_70px_rgba(0,0,0,0.45)]">
+              <div className="flex h-full flex-col">
+                <header className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-white/10 bg-[#131116]/96 px-5 pb-5 pt-[calc(1.25rem+env(safe-area-inset-top))] backdrop-blur sm:px-6 sm:py-5">
+                  <div>
+                    <p className="text-[11px] uppercase tracking-[0.22em] text-[var(--color-accent-soft)]">
+                      Detail služby
+                    </p>
+                    <Dialog.Title>{drawerTitle}</Dialog.Title>
+                    <Dialog.Description className="max-w-2xl">{drawerDescription}</Dialog.Description>
+                  </div>
+
+                  <Dialog.Close asChild>
+                    <button
+                      type="button"
+                      className="min-h-11 min-w-11 rounded-full border border-white/10 px-3 py-2 text-sm text-white/74 transition hover:border-white/18 hover:bg-white/6 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
+                    >
+                      Zavřít
+                    </button>
+                  </Dialog.Close>
+                </header>
+
+                <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6">
+                  {detailContent}
                 </div>
-
-                <Link
-                  href={returnTo}
-                  className="rounded-full border border-white/10 px-3 py-2 text-sm text-white/74 transition hover:border-white/18 hover:bg-white/6"
-                >
-                  Zavřít
-                </Link>
-              </header>
-
-              <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6">
-                {detailContent}
               </div>
-            </div>
-          </aside>
-        </div>
+            </Dialog.Content>
+          </Dialog.Portal>
+        </AdminRouteDrawer>
       ) : null}
     </AdminPageShell>
   );

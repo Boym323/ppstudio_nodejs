@@ -9,6 +9,7 @@ Formát je inspirovaný Keep a Changelog.
 ### Změněno
 
 - Ruční vytvoření a přesun rezervace nyní používají přístupné Radix drawery se spolehlivým ovládáním fokusu, klávesou Escape a ergonomičtějším rozložením dlouhých formulářů.
+- Detail kategorie a desktopový detail služby v administraci nyní používají přístupné Radix drawery se správným focusem, klávesou Escape a zavíráním do původního pohledu seznamu.
 
 ## [3.16.3] - 2026-08-10
 
