@@ -23,6 +23,36 @@
   --font-display: var(--font-display-next);
 }
 
+@keyframes ppstudio-sheet-overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes ppstudio-sheet-overlay-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes ppstudio-sheet-slide-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+@keyframes ppstudio-sheet-slide-down {
+  from { transform: translateY(0); }
+  to { transform: translateY(100%); }
+}
+
+@keyframes ppstudio-sheet-slide-right {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+
+@keyframes ppstudio-sheet-slide-left {
+  from { transform: translateX(0); }
+  to { transform: translateX(-100%); }
+}
+
 * {
   box-sizing: border-box;
 }

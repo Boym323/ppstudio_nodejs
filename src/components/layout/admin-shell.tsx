@@ -1,13 +1,13 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 import { AdminRole } from "@prisma/client";
 
 import { AdminSidebarNav } from "@/features/admin/components/admin-sidebar-nav";
 import { AdminOfflineBanner } from "@/features/pwa/admin-offline-banner";
-import { useAdminModalFocus } from "@/features/admin/components/admin-drawer-escape-close";
 import { cn } from "@/lib/utils";
+import * as Sheet from "@/components/ui/sheet";
 
 type AdminShellProps = {
   children: React.ReactNode;
@@ -17,22 +17,16 @@ type AdminShellProps = {
 
 export function AdminShell({ children, currentRole, userName }: AdminShellProps) {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  const menuTriggerRef = useRef<HTMLButtonElement>(null);
-  const mobileMenuRef = useRef<HTMLElement>(null);
-  const mobileMenuCloseRef = useRef<HTMLButtonElement>(null);
-  const closeMobileSidebar = useCallback(() => {
-    setMobileSidebarOpen(false);
-    window.requestAnimationFrame(() => menuTriggerRef.current?.focus());
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(min-width: 1024px)");
+    const closeOnDesktop = () => { if (mediaQuery.matches) setMobileSidebarOpen(false); };
+    mediaQuery.addEventListener("change", closeOnDesktop);
+    return () => mediaQuery.removeEventListener("change", closeOnDesktop);
   }, []);
 
-  useAdminModalFocus({
-    open: mobileSidebarOpen,
-    containerRef: mobileMenuRef,
-    initialFocusRef: mobileMenuCloseRef,
-    onClose: closeMobileSidebar,
-  });
-
   return (
+    <Sheet.Root open={mobileSidebarOpen} onOpenChange={setMobileSidebarOpen}>
     <div className="admin-app min-h-dvh overflow-x-clip bg-[var(--color-admin-background)] text-[var(--color-admin-foreground)]">
       <AdminOfflineBanner />
       <header
@@ -46,17 +40,7 @@ export function AdminShell({ children, currentRole, userName }: AdminShellProps)
             <p className="text-[10px] uppercase tracking-[0.28em] text-white/55">PP Studio Admin</p>
             <p className="text-sm font-medium text-white/84">{currentRole === AdminRole.OWNER ? "Owner" : "Provoz salonu"}</p>
           </div>
-          <button
-            ref={menuTriggerRef}
-            type="button"
-            onClick={() => setMobileSidebarOpen(true)}
-            aria-haspopup="dialog"
-            aria-expanded={mobileSidebarOpen}
-            aria-controls="admin-mobile-navigation"
-            className="min-h-11 min-w-11 rounded-full border border-white/10 bg-white/6 px-4 py-2 text-sm text-white/84"
-          >
-            Menu
-          </button>
+          <Sheet.Trigger asChild><button type="button" className="min-h-11 min-w-11 rounded-full border border-white/10 bg-white/6 px-4 py-2 text-sm text-white/84">Menu</button></Sheet.Trigger>
         </div>
       </header>
 
@@ -84,45 +68,20 @@ export function AdminShell({ children, currentRole, userName }: AdminShellProps)
       </div>
 
       {mobileSidebarOpen ? (
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label="Mobilní navigace administrace"
-        className={cn(
-          "fixed inset-0 z-50 bg-black/55 backdrop-blur-sm transition lg:hidden",
-          mobileSidebarOpen ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0",
-        )}
-        onClick={closeMobileSidebar}
-      >
-        <aside
-          ref={mobileMenuRef}
-          id="admin-mobile-navigation"
-          className={cn(
-            "absolute left-0 top-0 flex h-[100dvh] w-[min(92vw,360px)] flex-col border-r border-white/10 bg-[#131116] px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-[calc(1rem+env(safe-area-inset-top))] shadow-[0_18px_48px_rgba(0,0,0,0.35)] transition",
-            mobileSidebarOpen ? "translate-x-0" : "-translate-x-full",
-          )}
-          onClick={(event) => event.stopPropagation()}
-        >
+      <Sheet.Content asChild side="left" className="bg-[#131116] lg:hidden"><aside id="admin-mobile-navigation"><Sheet.Title className="sr-only">Mobilní navigace administrace</Sheet.Title><Sheet.Description className="sr-only">Navigace administrace a odhlášení.</Sheet.Description>
           <div className="mb-4 flex items-center justify-between gap-3">
             <div>
               <p className="text-[10px] uppercase tracking-[0.28em] text-white/55">Navigace</p>
               <p className="text-sm text-white/84">{userName}</p>
             </div>
-            <button
-              ref={mobileMenuCloseRef}
-              type="button"
-              onClick={closeMobileSidebar}
-              className="min-h-11 min-w-11 rounded-full border border-white/10 px-3 py-2 text-sm text-white/72"
-            >
-              Zavřít
-            </button>
+            <Sheet.Close asChild><button type="button" className="min-h-11 min-w-11 rounded-full border border-white/10 px-3 py-2 text-sm text-white/72">Zavřít</button></Sheet.Close>
           </div>
 
           <div className="min-h-0 flex-1 overflow-y-auto">
             <AdminSidebarNav
               currentRole={currentRole}
               userName={userName}
-              onNavigate={closeMobileSidebar}
+              onNavigate={() => setMobileSidebarOpen(false)}
             />
           </div>
 
@@ -134,9 +93,9 @@ export function AdminShell({ children, currentRole, userName }: AdminShellProps)
               Odhlásit se
             </button>
           </form>
-        </aside>
-      </div>
+        </aside></Sheet.Content>
       ) : null}
     </div>
+    </Sheet.Root>
   );
 }
