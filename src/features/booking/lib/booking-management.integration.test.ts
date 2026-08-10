@@ -887,7 +887,7 @@ describe("cancel booking flow", () => {
     }
   });
 
-  dbTest("cancellation compacts adjacent editable slot fragments back into one window", async () => {
+  dbTest("cancellation restores an archived historical slot and compacts adjacent editable fragments", async () => {
     const {
       prisma,
       cancelPublicBookingByToken,
@@ -907,7 +907,8 @@ describe("cancel booking flow", () => {
     });
     const beforeEndsAt = addHours(baseStartAt, 0.5);
     const bookingEndsAt = addHours(baseStartAt, 1.75);
-    const fullEndsAt = addHours(baseStartAt, 2);
+    const cleanupEndsAt = addHours(baseStartAt, 2);
+    const fullEndsAt = addHours(baseStartAt, 2.5);
 
     const actor = await prisma.adminUser.create({
       data: {
@@ -968,7 +969,7 @@ describe("cancel booking flow", () => {
           startsAt: beforeEndsAt,
           endsAt: bookingEndsAt,
           capacity: 1,
-          status: AvailabilitySlotStatus.PUBLISHED,
+          status: AvailabilitySlotStatus.ARCHIVED,
           serviceRestrictionMode: "ANY",
           publishedAt: addDays(new Date(), -1),
           createdByUserId: actor.id,
@@ -977,7 +978,7 @@ describe("cancel booking flow", () => {
       }),
       prisma.availabilitySlot.create({
         data: {
-          startsAt: bookingEndsAt,
+          startsAt: cleanupEndsAt,
           endsAt: fullEndsAt,
           capacity: 1,
           status: AvailabilitySlotStatus.PUBLISHED,
@@ -1001,9 +1002,12 @@ describe("cancel booking flow", () => {
         clientPhoneSnapshot: "+420777123456",
         serviceNameSnapshot: `Compact service ${suffix}`,
         serviceDurationMinutes: 75,
+        cleanupMinutes: 10,
+        cleanupBlockMinutes: 15,
         servicePriceFromCzk: 1400,
         scheduledStartsAt: beforeEndsAt,
         scheduledEndsAt: bookingEndsAt,
+        blockedUntil: cleanupEndsAt,
       },
       select: { id: true },
     });
@@ -1046,6 +1050,7 @@ describe("cancel booking flow", () => {
           id: true,
           startsAt: true,
           endsAt: true,
+          status: true,
         },
       });
 
@@ -1054,11 +1059,13 @@ describe("cancel booking flow", () => {
           id: slot.id,
           startsAt: slot.startsAt.toISOString(),
           endsAt: slot.endsAt.toISOString(),
+          status: slot.status,
         })),
         [{
           id: bookedSlot.id,
           startsAt: baseStartAt.toISOString(),
           endsAt: fullEndsAt.toISOString(),
+          status: AvailabilitySlotStatus.PUBLISHED,
         }],
       );
     } finally {
