@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import { type ReactNode } from "react";
 
@@ -8,6 +10,7 @@ import {
   toggleServiceActiveAction,
   toggleServiceBookableAction,
 } from "@/features/admin/actions/service-actions";
+import * as DropdownMenu from "@/components/ui/dropdown-menu";
 
 export function ServiceActionsMenu({
   area,
@@ -27,49 +30,48 @@ export function ServiceActionsMenu({
   isPubliclyBookable: boolean;
 }) {
   return (
-    <details className="group relative">
-      <summary className="flex list-none justify-end [&::-webkit-details-marker]:hidden">
-        <span className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border border-white/10 bg-white/6 text-lg text-white/76 transition hover:border-white/18 hover:bg-white/10">
+    <DropdownMenu.Root>
+      <DropdownMenu.Trigger asChild>
+        <button type="button" aria-label="Akce služby" className="inline-flex min-h-10 min-w-10 items-center justify-center rounded-full border border-white/10 bg-white/6 text-lg text-white/76 transition hover:border-white/18 hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]">
           ⋯
-        </span>
-      </summary>
+        </button>
+      </DropdownMenu.Trigger>
+      <DropdownMenu.Portal>
+        <DropdownMenu.Content align="end">
+          <DropdownMenu.Item asChild>
+            <Link href={detailHref}>Otevřít detail</Link>
+          </DropdownMenu.Item>
+          <DropdownMenu.Separator />
 
-      <div className="absolute right-0 z-20 mt-2 w-56 rounded-[1rem] border border-white/10 bg-[#171419] p-2 shadow-[0_18px_40px_rgba(0,0,0,0.35)]">
-        <Link
-          href={detailHref}
-          className="flex rounded-[0.85rem] px-3 py-2 text-sm text-white/84 transition hover:bg-white/6"
-        >
-          Otevřít detail
-        </Link>
+          <QuickMenuAction action={toggleServiceActiveAction} area={area} serviceId={serviceId} returnTo={returnTo} value={!isActive}>
+            {isActive ? "Deaktivovat" : "Aktivovat"}
+          </QuickMenuAction>
 
-        <QuickMenuAction action={toggleServiceActiveAction} area={area} serviceId={serviceId} returnTo={returnTo} value={!isActive}>
-          {isActive ? "Deaktivovat" : "Aktivovat"}
-        </QuickMenuAction>
+          <QuickMenuAction action={toggleServiceBookableAction} area={area} serviceId={serviceId} returnTo={returnTo} value={!isPubliclyBookable}>
+            {isPubliclyBookable ? "Nastavit jako interní" : "Nastavit jako veřejnou"}
+          </QuickMenuAction>
 
-        <QuickMenuAction action={toggleServiceBookableAction} area={area} serviceId={serviceId} returnTo={returnTo} value={!isPubliclyBookable}>
-          {isPubliclyBookable ? "Nastavit jako interní" : "Nastavit jako veřejnou"}
-        </QuickMenuAction>
+          <QuickMenuAction action={duplicateServiceAction} area={area} serviceId={serviceId} returnTo={returnTo}>
+            Duplikovat
+          </QuickMenuAction>
 
-        <QuickMenuAction action={duplicateServiceAction} area={area} serviceId={serviceId} returnTo={returnTo}>
-          Duplikovat
-        </QuickMenuAction>
-
-        <MoveMenuAction
-          area={area}
-          categoryId={categoryId}
-          direction="up"
-          serviceId={serviceId}
-          returnTo={returnTo}
-        />
-        <MoveMenuAction
-          area={area}
-          categoryId={categoryId}
-          direction="down"
-          serviceId={serviceId}
-          returnTo={returnTo}
-        />
-      </div>
-    </details>
+          <MoveMenuAction
+            area={area}
+            categoryId={categoryId}
+            direction="up"
+            serviceId={serviceId}
+            returnTo={returnTo}
+          />
+          <MoveMenuAction
+            area={area}
+            categoryId={categoryId}
+            direction="down"
+            serviceId={serviceId}
+            returnTo={returnTo}
+          />
+        </DropdownMenu.Content>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
   );
 }
 
@@ -94,12 +96,9 @@ function QuickMenuAction({
       <input type="hidden" name="serviceId" value={serviceId} />
       <input type="hidden" name="returnTo" value={returnTo} />
       {value === undefined ? null : <input type="hidden" name="value" value={String(value)} />}
-      <button
-        type="submit"
-        className="flex w-full rounded-[0.85rem] px-3 py-2 text-left text-sm text-white/84 transition hover:bg-white/6"
-      >
-        {children}
-      </button>
+      <DropdownMenu.Item asChild>
+        <button type="submit">{children}</button>
+      </DropdownMenu.Item>
     </form>
   );
 }
@@ -124,12 +123,9 @@ function MoveMenuAction({
       <input type="hidden" name="categoryId" value={categoryId} />
       <input type="hidden" name="direction" value={direction} />
       <input type="hidden" name="returnTo" value={returnTo} />
-      <button
-        type="submit"
-        className="flex w-full rounded-[0.85rem] px-3 py-2 text-left text-sm text-white/84 transition hover:bg-white/6"
-      >
-        {direction === "up" ? "Posunout výš" : "Posunout níž"}
-      </button>
+      <DropdownMenu.Item asChild>
+        <button type="submit">{direction === "up" ? "Posunout výš" : "Posunout níž"}</button>
+      </DropdownMenu.Item>
     </form>
   );
 }

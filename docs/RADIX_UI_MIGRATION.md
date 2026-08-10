@@ -38,6 +38,8 @@ framework ani důvod pro redesign.
 | `admin-logs-page.tsx` – `LogsFiltersDialog` | Mobilní bottom sheet, `role="dialog"`, `aria-modal`, ruční focus trap a restore focus | `Dialog` stylovaný jako bottom sheet | 3 |
 | `admin-shell.tsx` – mobilní navigace | Vlastní modal overlay, ruční focus trap, Escape a restore focus | `Dialog` stylovaný jako levý drawer/sheet | 3 |
 | `admin-weekly-planner-lab-client.tsx` | `window.confirm` při zahození neuložených změn; status/error/undo feedback | `AlertDialog` pro potvrzení destruktivní akce | 3 |
+| `service-actions-menu.tsx` | Vlastní `<details>` akční menu | `DropdownMenu` s Portal, klávesovou navigací a jednotnými položkami | 4 |
+| Administrační workflow po Radix migraci | Lokální success bannery a ad-hoc toasty | Tenká vrstva nad `Toast` pro krátký globální feedback | 4 |
 | `site-header.tsx` – mobilní menu | `createPortal`, ruční Escape/focus trap, body scroll lock; veřejný header | `Dialog`/`Sheet` až v samostatném veřejném UI kroku | Odložit |
 | `about-certificates-gallery.tsx` – lightbox | Vlastní `role="dialog"`, `aria-modal` a Escape; veřejná galerie | `Dialog` až mimo admin migraci | Odložit |
 
@@ -90,15 +92,14 @@ stávající default/keyboard chování.
 
 ### DropdownMenu
 
-V cíleném auditu není současné `<details>/<summary>` action menu. Pokud se
-později objeví skutečné akční menu, použít `DropdownMenu` s klávesovou navigací,
-jasným triggerem a bez přesunu business logiky do UI vrstvy.
+Pro skutečná akční menu používat `DropdownMenu` s klávesovou navigací, jasným
+triggerem, portálem nad drawerem/dialogem a bez přesunu business logiky do UI
+vrstvy. Rozbalovací obsah formuláře nebo technický stav zůstává `<details>`.
 
 ### Toast
 
-Toast zatím nezavádět. Do budoucna má být jediný konzistentní kanál pro krátké
-globální success/error feedback; dlouhé inline validační a workflow chyby musí
-zůstat u příslušného formuláře.
+Pro krátký globální success/error feedback používat tenkou vrstvu nad Radix
+`Toast`. Field validation a chyby přímo svázané s formulářem zůstávají inline.
 
 ## Migrační pořadí
 
@@ -109,6 +110,8 @@ zůstat u příslušného formuláře.
 3. Migrovat mobilní sheets a `AlertDialog` v planneru.
 4. Veřejný `site-header` a certificate lightbox řešit odděleně, až bude jasné,
    že sdílený základ nenaruší veřejný branding.
+5. Nahradit skutečná administrační action menu `DropdownMenu` a sjednotit
+   krátký feedback migrovaných workflow pomocí `Toast`.
 
 ## Test strategy
 

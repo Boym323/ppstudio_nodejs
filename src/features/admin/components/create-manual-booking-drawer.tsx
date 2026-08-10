@@ -4,8 +4,10 @@ import { BookingSource, BookingStatus } from "@prisma/client";
 import Link from "next/link";
 import { useActionState, useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useFormStatus } from "react-dom";
 
 import * as Dialog from "@/components/ui/dialog";
+import { useToast } from "@/components/ui/toast";
 import { type AdminArea } from "@/config/navigation";
 import {
   initialCreateManualBookingActionState,
@@ -40,7 +42,7 @@ export function CreateManualBookingDrawer({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [open, setOpen] = useState(initialOpen);
-  const [showSuccessBanner, setShowSuccessBanner] = useState(false);
+  const { toast } = useToast();
   const [serverState, formAction] = useActionState(
     createManualBookingAction,
     initialCreateManualBookingActionState,
@@ -192,8 +194,12 @@ export function CreateManualBookingDrawer({
       setPrefillNotice(null);
       setOpen(false);
       clearCreateBookingSearchParams();
-      setShowSuccessBanner(true);
+      toast({ message: serverState.successMessage ?? "Rezervace byla vytvořena." });
       router.refresh();
+    }
+
+    if (previousStatus.current !== "error" && serverState.status === "error" && serverState.formError) {
+      toast({ message: serverState.formError, tone: "error" });
     }
 
     previousStatus.current = serverState.status;
@@ -203,7 +209,10 @@ export function CreateManualBookingDrawer({
     initialPrefilledDate,
     initialPrefilledTime,
     router,
+    serverState.formError,
+    serverState.successMessage,
     serverState.status,
+    toast,
   ]);
 
   function closeDrawer() {
@@ -227,7 +236,6 @@ export function CreateManualBookingDrawer({
         <Dialog.Trigger asChild>
           <button
             type="button"
-            onClick={() => setShowSuccessBanner(false)}
             className="rounded-full border border-[var(--color-accent)]/34 bg-[rgba(190,160,120,0.12)] px-4 py-2.5 text-sm font-semibold text-white transition hover:border-[var(--color-accent)]/46 hover:bg-[rgba(190,160,120,0.18)]"
           >
             Přidat rezervaci
@@ -235,11 +243,10 @@ export function CreateManualBookingDrawer({
         </Dialog.Trigger>
       </div>
 
-      {!open && showSuccessBanner && serverState.status === "success" ? (
+      {!open && serverState.status === "success" && (serverState.manualOverrideWarning || createdBookingHref) ? (
         <div className="mt-3 max-w-full overflow-hidden rounded-[1rem] border border-emerald-300/18 bg-emerald-500/10 px-4 py-3">
           <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0">
-              <p className="break-words text-sm font-medium text-emerald-50">{serverState.successMessage}</p>
               {serverState.manualOverrideWarning ? (
                 <p className="mt-1 break-words text-sm leading-6 text-emerald-100/80">{serverState.manualOverrideWarning}</p>
               ) : null}
@@ -253,13 +260,6 @@ export function CreateManualBookingDrawer({
               ) : null}
             </div>
 
-            <button
-              type="button"
-              onClick={() => setShowSuccessBanner(false)}
-              className="rounded-full border border-white/10 px-3 py-1.5 text-sm text-white/78 transition hover:border-white/18 hover:bg-white/6"
-            >
-              Zavřít
-            </button>
           </div>
         </div>
       ) : null}
@@ -308,20 +308,6 @@ export function CreateManualBookingDrawer({
 
                 <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6">
                   <div className="space-y-8 pb-8">
-                    {serverState.status === "success" ? (
-                      <div className="max-w-full overflow-hidden rounded-[1rem] border border-emerald-300/18 bg-emerald-500/10 px-4 py-3">
-                        <p className="break-words text-sm font-medium text-emerald-50">{serverState.successMessage}</p>
-                        {serverState.manualOverrideWarning ? (
-                          <p className="mt-2 break-words text-sm leading-6 text-emerald-100/80">{serverState.manualOverrideWarning}</p>
-                        ) : null}
-                        {createdBookingHref ? (
-                          <Link href={createdBookingHref} className="mt-3 inline-flex text-sm font-medium text-white underline underline-offset-4">
-                            Otevřít detail rezervace
-                          </Link>
-                        ) : null}
-                      </div>
-                    ) : null}
-
                     {serverState.status === "error" && serverState.formError ? (
                       <div className="rounded-[1rem] border border-red-300/16 bg-red-500/10 px-4 py-3 text-sm leading-6 text-red-50">
                         {serverState.formError}
@@ -480,22 +466,8 @@ export function CreateManualBookingDrawer({
                           Zrušit
                         </button>
                       </Dialog.Close>
-                      <button
-                        type="submit"
-                        name="submitMode"
-                        value="create"
-                        className="rounded-full border border-white/12 bg-white/6 px-4 py-2.5 text-sm font-medium text-white transition hover:border-white/18 hover:bg-white/10"
-                      >
-                        Vytvořit rezervaci
-                      </button>
-                      <button
-                        type="submit"
-                        name="submitMode"
-                        value="create-and-send"
-                        className="rounded-full bg-[var(--color-accent)] px-4 py-2.5 text-sm font-semibold text-[var(--color-accent-contrast)] transition hover:brightness-105"
-                      >
-                        Vytvořit a poslat potvrzení
-                      </button>
+                      <CreateSubmitButton mode="create" label="Vytvořit rezervaci" />
+                      <CreateSubmitButton mode="create-and-send" label="Vytvořit a poslat potvrzení" primary />
                     </div>
                   </div>
                 </div>
@@ -505,4 +477,10 @@ export function CreateManualBookingDrawer({
       </Dialog.Portal>
     </Dialog.Root>
   );
+}
+
+function CreateSubmitButton({ mode, label, primary = false }: { mode: "create" | "create-and-send"; label: string; primary?: boolean }) {
+  const { pending } = useFormStatus();
+
+  return <button type="submit" name="submitMode" value={mode} disabled={pending} className={primary ? "min-w-44 rounded-full bg-[var(--color-accent)] px-4 py-2.5 text-sm font-semibold text-[var(--color-accent-contrast)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60" : "min-w-44 rounded-full border border-white/12 bg-white/6 px-4 py-2.5 text-sm font-medium text-white transition hover:border-white/18 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60"}>{pending ? "Vytvářím…" : label}</button>;
 }

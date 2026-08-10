@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 
 import { AdminPwaRegistrar } from "@/features/pwa/admin-pwa-registrar";
+import { ToastProvider } from "@/components/ui/toast";
 
 export const metadata: Metadata = {
   applicationName: "PP Studio",
@@ -25,5 +26,5 @@ export default function AdminRootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  return <><AdminPwaRegistrar />{children}</>;
+  return <><AdminPwaRegistrar /><ToastProvider>{children}</ToastProvider></>;
 }

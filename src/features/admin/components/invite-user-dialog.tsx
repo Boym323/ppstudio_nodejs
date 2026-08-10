@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useRef } from "react";
+import { useFormStatus } from "react-dom";
 
 import {
   initialAdminUserAccessActionState,
@@ -8,6 +9,7 @@ import {
 } from "@/features/admin/actions/update-admin-user-access-action-state";
 import { saveAdminUserAccessAction } from "@/features/admin/actions/admin-user-actions";
 import * as Dialog from "@/components/ui/dialog";
+import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
 
 type InviteUserDialogProps = {
@@ -28,6 +30,7 @@ export function InviteUserDialog({
   initialValues,
   onClose,
 }: InviteUserDialogProps) {
+  const { toast } = useToast();
   const [serverState, formAction] = useActionState(
     saveAdminUserAccessAction,
     initialAdminUserAccessActionState,
@@ -39,11 +42,16 @@ export function InviteUserDialog({
       previousStatus.current !== "success" &&
       serverState.status === "success"
     ) {
+      toast({ message: serverState.successMessage ?? (mode === "invite" ? "Pozvánka byla odeslána." : "Změny byly uloženy.") });
       onClose();
     }
 
+    if (previousStatus.current !== "error" && serverState.status === "error" && serverState.formError) {
+      toast({ message: serverState.formError, tone: "error" });
+    }
+
     previousStatus.current = serverState.status;
-  }, [onClose, serverState.status]);
+  }, [mode, onClose, serverState.formError, serverState.status, serverState.successMessage, toast]);
 
   return (
     <Dialog.Root
@@ -188,12 +196,15 @@ function Field({
 }
 
 function SubmitButton({ mode }: { mode: "invite" | "edit" }) {
+  const { pending } = useFormStatus();
+
   return (
     <button
       type="submit"
-      className="rounded-full bg-[var(--color-accent)] px-4 py-2.5 text-sm font-semibold text-[var(--color-accent-contrast)] transition hover:brightness-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
+      disabled={pending}
+      className="min-w-36 rounded-full bg-[var(--color-accent)] px-4 py-2.5 text-sm font-semibold text-[var(--color-accent-contrast)] transition hover:brightness-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)] disabled:cursor-not-allowed disabled:opacity-60"
     >
-      {mode === "invite" ? "Odeslat pozvánku" : "Uložit změny"}
+      {pending ? "Ukládám…" : mode === "invite" ? "Odeslat pozvánku" : "Uložit změny"}
     </button>
   );
 }

@@ -54,6 +54,8 @@
     "@prisma/client": "7.9.1",
     "@radix-ui/react-alert-dialog": "^1.1.23",
     "@radix-ui/react-dialog": "^1.1.23",
+    "@radix-ui/react-dropdown-menu": "^2.1.24",
+    "@radix-ui/react-toast": "^1.2.23",
     "@tanstack/react-table": "^8.21.3",
     "clsx": "^2.1.1",
     "jose": "^6.2.8",

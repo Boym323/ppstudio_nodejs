@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useRef } from "react";
 
 import {
   initialTestPushoverActionState,
@@ -19,6 +19,7 @@ import {
   SettingsSubmitButton,
   settingsControlClassName,
 } from "./admin-settings-form-ui";
+import { useToast } from "@/components/ui/toast";
 
 type PushoverSettings = {
   pushoverUserKey: string | null;
@@ -52,6 +53,7 @@ export function AdminPushoverSettingsForm({
 }: {
   settings: PushoverSettings;
 }) {
+  const { toast } = useToast();
   const [serverState, formAction] = useActionState(
     updatePushoverSettingsAction,
     initialUpdatePushoverSettingsActionState,
@@ -60,14 +62,15 @@ export function AdminPushoverSettingsForm({
     sendPushoverTestAction,
     initialTestPushoverActionState,
   );
-  const [dismissedToastMessage, setDismissedToastMessage] = useState<string | null>(null);
-  const toastMessage =
-    testState.status === "success"
-      ? testState.successMessage
-      : testState.status === "error"
-        ? testState.formError
-        : null;
-  const visibleToastMessage = toastMessage !== dismissedToastMessage ? toastMessage : null;
+  const previousTestStatus = useRef(testState.status);
+
+  useEffect(() => {
+    if (previousTestStatus.current !== testState.status) {
+      if (testState.status === "success") toast({ message: testState.successMessage ?? "Testovací notifikace byla odeslána." });
+      if (testState.status === "error" && testState.formError) toast({ message: testState.formError, tone: "error" });
+    }
+    previousTestStatus.current = testState.status;
+  }, [testState.formError, testState.status, testState.successMessage, toast]);
 
   return (
     <div className="space-y-5">
@@ -111,7 +114,6 @@ export function AdminPushoverSettingsForm({
       </form>
 
       <form action={testAction} className="rounded-[1.25rem] border border-white/8 bg-white/5 p-4">
-        <SettingsFormMessages serverState={testState} />
         <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm leading-6 text-white/64">
             Test odešle notifikaci pouze aktuálně přihlášenému OWNEROVI podle uloženého User Key.
@@ -120,13 +122,6 @@ export function AdminPushoverSettingsForm({
         </div>
       </form>
 
-      {visibleToastMessage ? (
-        <Toast
-          message={visibleToastMessage}
-          tone={testState.status === "error" ? "error" : "success"}
-          onClose={() => setDismissedToastMessage(visibleToastMessage)}
-        />
-      ) : null}
     </div>
   );
 }
@@ -177,35 +172,5 @@ function ToggleField({
         className="h-5 w-5 rounded border-white/20 bg-black/30 accent-[var(--color-accent)]"
       />
     </label>
-  );
-}
-
-function Toast({
-  message,
-  tone,
-  onClose,
-}: {
-  message: string;
-  tone: "success" | "error";
-  onClose: () => void;
-}) {
-  return (
-    <div
-      role="status"
-      aria-live="polite"
-      className="fixed bottom-4 right-4 z-50 flex max-w-sm items-center gap-3 rounded-[1rem] border border-white/10 bg-[#17141b]/95 px-4 py-3 text-sm text-white shadow-[0_18px_50px_rgba(0,0,0,0.32)] backdrop-blur"
-    >
-      <span className={tone === "success" ? "text-emerald-300" : "text-red-300"}>
-        {tone === "success" ? "Hotovo" : "Pozor"}
-      </span>
-      <span>{message}</span>
-      <button
-        type="button"
-        onClick={onClose}
-        className="rounded-full border border-white/10 px-2 py-0.5 text-xs text-white/72 transition hover:border-white/18 hover:text-white"
-      >
-        Zavřít
-      </button>
-    </div>
   );
 }

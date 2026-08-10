@@ -11,6 +11,7 @@ Formát je inspirovaný Keep a Changelog.
 - Ruční vytvoření a přesun rezervace nyní používají přístupné Radix drawery se spolehlivým ovládáním fokusu, klávesou Escape a ergonomičtějším rozložením dlouhých formulářů.
 - Detail kategorie a desktopový detail služby v administraci nyní používají přístupné Radix drawery se správným focusem, klávesou Escape a zavíráním do původního pohledu seznamu.
 - Obnovení uloženého stavu planneru při zahození více neuložených úprav nyní používá přístupný Radix potvrzovací dialog s bezpečným výchozím focusem na zrušení akce.
+- Akce služeb a krátké výsledky migrovaných administračních workflow nyní používají přístupné Radix DropdownMenu a Toast; validační chyby formulářů zůstávají přímo u polí.
 
 ## [3.16.3] - 2026-08-10
 
