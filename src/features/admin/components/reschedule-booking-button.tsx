@@ -2,15 +2,14 @@
 
 import { useActionState, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { createPortal } from "react-dom";
 import { useFormStatus } from "react-dom";
 
+import * as Dialog from "@/components/ui/dialog";
 import { type AdminArea } from "@/config/navigation";
 import { rescheduleBookingAction } from "@/features/admin/actions/booking-actions";
 import {
   initialRescheduleBookingActionState,
 } from "@/features/admin/actions/reschedule-booking-action-state";
-import { AdminEscapeKeyClose } from "@/features/admin/components/admin-drawer-escape-close";
 import { BookingRescheduleTimeSelector } from "./booking-reschedule-time-selector";
 
 type SlotCatalogItem = {
@@ -90,7 +89,6 @@ export function RescheduleBookingButton({
     initialRescheduleBookingActionState,
   );
   const previousStatus = useRef(serverState.status);
-  const canUsePortal = typeof window !== "undefined";
 
   useEffect(() => {
     if (previousStatus.current !== "success" && serverState.status === "success") {
@@ -114,32 +112,33 @@ export function RescheduleBookingButton({
   }
 
   return (
-    <>
+    <Dialog.Root open={open} onOpenChange={setOpen}>
       <div className={variant === "inline" ? undefined : "min-w-0"}>
-        <button
-          type="button"
-          onClick={() => {
-            resetForm();
-            setShowSuccessBanner(false);
-            setOpen(true);
-          }}
-          className={
-            variant === "inline"
-              ? "rounded-full border border-white/10 px-3 py-1.5 text-sm text-white/76 transition hover:border-white/18 hover:bg-white/6 hover:text-white"
-              : "h-full w-full rounded-[1rem] border border-white/12 bg-white/[0.045] px-3.5 py-3 text-left transition hover:border-white/18 hover:bg-white/[0.065]"
-          }
-        >
-          {variant === "inline" ? (
-            "Přesunout termín"
-          ) : (
-            <>
-              <span className="block text-sm font-semibold text-white">Přesunout termín</span>
-              <span className="mt-1 block text-sm leading-5 text-white/60">
-                Důležitá provozní změna, ale neuzavírá návštěvu.
-              </span>
-            </>
-          )}
-        </button>
+        <Dialog.Trigger asChild>
+          <button
+            type="button"
+            onClick={() => {
+              resetForm();
+              setShowSuccessBanner(false);
+            }}
+            className={
+              variant === "inline"
+                ? "rounded-full border border-white/10 px-3 py-1.5 text-sm text-white/76 transition hover:border-white/18 hover:bg-white/6 hover:text-white"
+                : "h-full w-full rounded-[1rem] border border-white/12 bg-white/[0.045] px-3.5 py-3 text-left transition hover:border-white/18 hover:bg-white/[0.065]"
+            }
+          >
+            {variant === "inline" ? (
+              "Přesunout termín"
+            ) : (
+              <>
+                <span className="block text-sm font-semibold text-white">Přesunout termín</span>
+                <span className="mt-1 block text-sm leading-5 text-white/60">
+                  Důležitá provozní změna, ale neuzavírá návštěvu.
+                </span>
+              </>
+            )}
+          </button>
+        </Dialog.Trigger>
 
         {!open && showSuccessBanner && serverState.status === "success" ? (
           <div className="mt-3 max-w-full overflow-hidden rounded-[1rem] border border-emerald-300/18 bg-emerald-500/10 px-4 py-3">
@@ -167,32 +166,30 @@ export function RescheduleBookingButton({
         ) : null}
       </div>
 
-      {canUsePortal && open
-        ? createPortal(
-            <div className="fixed inset-0 z-[90]">
-              <AdminEscapeKeyClose onEscape={() => setOpen(false)} />
-              <div className="absolute inset-0 bg-black/62 backdrop-blur-sm" onClick={() => setOpen(false)} />
-              <div className="absolute inset-y-0 right-0 w-full max-w-3xl overflow-hidden border-l border-white/10 bg-[#131116] shadow-[-20px_0_70px_rgba(0,0,0,0.45)]">
+      <Dialog.Portal>
+        <Dialog.Overlay className="z-[89] bg-black/62" />
+        <Dialog.Content className="!inset-y-0 !right-0 !left-auto z-[90] !h-[100dvh] !max-h-none !w-full !max-w-3xl !translate-x-0 !translate-y-0 !overflow-hidden border-l border-white/10 bg-[#131116] shadow-[-20px_0_70px_rgba(0,0,0,0.45)]">
                 <div className="flex h-full flex-col">
-                  <div className="flex items-start justify-between gap-4 border-b border-white/10 px-5 py-5 sm:px-6">
+                  <header className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-white/10 bg-[#131116]/96 px-5 pb-5 pt-[calc(1.25rem+env(safe-area-inset-top))] backdrop-blur sm:px-6 sm:py-5">
                     <div>
                       <p className="text-[11px] uppercase tracking-[0.22em] text-[var(--color-accent-soft)]">
                         Přesun rezervace
                       </p>
-                      <h2 className="mt-2 text-2xl font-display text-white">Změnit termín bez tiché editace</h2>
-                      <p className="mt-2 max-w-2xl text-sm leading-6 text-white/66">
+                      <Dialog.Title>Změnit termín rezervace</Dialog.Title>
+                      <Dialog.Description>
                         Rezervace zůstane stejný booking, ale změna projde validací, auditním logem a návazným workflow.
-                      </p>
+                      </Dialog.Description>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() => setOpen(false)}
-                      className="rounded-full border border-white/10 px-3 py-2 text-sm text-white/74 transition hover:border-white/18 hover:bg-white/6"
-                    >
-                      Zavřít
-                    </button>
-                  </div>
+                    <Dialog.Close asChild>
+                      <button
+                        type="button"
+                        className="min-h-11 min-w-11 rounded-full border border-white/10 px-3 py-2 text-sm text-white/74 transition hover:border-white/18 hover:bg-white/6 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
+                      >
+                        Zavřít
+                      </button>
+                    </Dialog.Close>
+                  </header>
 
                   <form action={formAction} className="flex min-h-0 flex-1 flex-col">
                     <input type="hidden" name="area" value={area} />
@@ -208,7 +205,7 @@ export function RescheduleBookingButton({
                     <input type="hidden" name="includeCalendarAttachment" value={includeCalendarAttachment ? "1" : "0"} />
 
                     <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6">
-                      <div className="space-y-4 pb-28">
+                      <div className="space-y-4 pb-8">
                         {serverState.status === "success" && serverState.successMessage ? (
                           <div className="rounded-[1rem] border border-emerald-300/18 bg-emerald-500/10 px-4 py-3">
                             <p className="text-sm font-medium text-emerald-50">{serverState.successMessage}</p>
@@ -300,25 +297,23 @@ export function RescheduleBookingButton({
                         </div>
 
                         <div className="flex flex-col gap-2 sm:flex-row">
-                          <button
-                            type="button"
-                            onClick={() => setOpen(false)}
-                            className="rounded-full border border-white/10 px-4 py-2 text-sm font-medium text-white/76 transition hover:border-white/18 hover:bg-white/6"
-                          >
-                            Zrušit
-                          </button>
+                          <Dialog.Close asChild>
+                            <button
+                              type="button"
+                              className="rounded-full border border-white/10 px-4 py-2 text-sm font-medium text-white/76 transition hover:border-white/18 hover:bg-white/6"
+                            >
+                              Zrušit
+                            </button>
+                          </Dialog.Close>
                           <SubmitButton />
                         </div>
                       </div>
                     </div>
                   </form>
                 </div>
-              </div>
-            </div>,
-            document.body,
-          )
-        : null}
-    </>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }
 

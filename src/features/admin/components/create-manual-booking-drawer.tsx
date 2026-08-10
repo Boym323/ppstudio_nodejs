@@ -2,16 +2,15 @@
 
 import { BookingSource, BookingStatus } from "@prisma/client";
 import Link from "next/link";
-import { createPortal } from "react-dom";
 import { useActionState, useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
+import * as Dialog from "@/components/ui/dialog";
 import { type AdminArea } from "@/config/navigation";
 import {
   initialCreateManualBookingActionState,
 } from "@/features/admin/actions/create-manual-booking-action-state";
 import { createManualBookingAction } from "@/features/admin/actions/booking-actions";
-import { AdminEscapeKeyClose } from "@/features/admin/components/admin-drawer-escape-close";
 import { type ReservationsDashboardData } from "@/features/admin/lib/admin-data";
 import { BookingClientSelector } from "./booking-client-selector";
 import { BookingInternalNoteField } from "./booking-internal-note-field";
@@ -76,7 +75,6 @@ export function CreateManualBookingDrawer({
   const [prefillNotice, setPrefillNotice] = useState(prefillWarning);
   const appliedPrefilledClientId = useRef(prefilledClient?.id ?? null);
   const appliedPrefillWarning = useRef(prefillWarning);
-  const canUsePortal = typeof window !== "undefined";
   const visibleClientOptions = clientQuery.trim().length >= 2 ? clientOptions : [];
   const availableClients = prefilledClient && !visibleClientOptions.some((client) => client.id === prefilledClient.id)
     ? [prefilledClient, ...visibleClientOptions]
@@ -215,18 +213,26 @@ export function CreateManualBookingDrawer({
   }
 
   return (
-    <>
+    <Dialog.Root
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (nextOpen) {
+          setOpen(true);
+        } else {
+          closeDrawer();
+        }
+      }}
+    >
       <div className="flex items-center justify-end">
-        <button
-          type="button"
-          onClick={() => {
-            setShowSuccessBanner(false);
-            setOpen(true);
-          }}
-          className="rounded-full border border-[var(--color-accent)]/34 bg-[rgba(190,160,120,0.12)] px-4 py-2.5 text-sm font-semibold text-white transition hover:border-[var(--color-accent)]/46 hover:bg-[rgba(190,160,120,0.18)]"
-        >
-          Přidat rezervaci
-        </button>
+        <Dialog.Trigger asChild>
+          <button
+            type="button"
+            onClick={() => setShowSuccessBanner(false)}
+            className="rounded-full border border-[var(--color-accent)]/34 bg-[rgba(190,160,120,0.12)] px-4 py-2.5 text-sm font-semibold text-white transition hover:border-[var(--color-accent)]/46 hover:bg-[rgba(190,160,120,0.18)]"
+          >
+            Přidat rezervaci
+          </button>
+        </Dialog.Trigger>
       </div>
 
       {!open && showSuccessBanner && serverState.status === "success" ? (
@@ -258,40 +264,30 @@ export function CreateManualBookingDrawer({
         </div>
       ) : null}
 
-      {canUsePortal && open
-        ? createPortal(
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-label="Vytvořit rezervaci v administraci"
-          className="fixed inset-0 z-[90]"
-        >
-          <AdminEscapeKeyClose onEscape={closeDrawer} />
-          <div
-            className="absolute inset-0 bg-black/62 backdrop-blur-sm"
-            onClick={closeDrawer}
-          />
-          <div className="absolute right-0 top-0 h-[100dvh] w-full max-w-4xl overflow-hidden border-l border-white/10 bg-[#131116] shadow-[-20px_0_70px_rgba(0,0,0,0.45)]">
+      <Dialog.Portal>
+        <Dialog.Overlay className="z-[89] bg-black/62" />
+        <Dialog.Content className="!inset-y-0 !right-0 !left-auto z-[90] !h-[100dvh] !max-h-none !w-full !max-w-4xl !translate-x-0 !translate-y-0 !overflow-hidden border-l border-white/10 bg-[#131116] shadow-[-20px_0_70px_rgba(0,0,0,0.45)]">
             <div className="flex h-full flex-col">
-              <div className="flex items-start justify-between gap-4 border-b border-white/10 px-5 pb-5 pt-[calc(1.25rem+env(safe-area-inset-top))] sm:px-6 sm:py-5">
+              <header className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-white/10 bg-[#131116]/96 px-5 pb-5 pt-[calc(1.25rem+env(safe-area-inset-top))] backdrop-blur sm:px-6 sm:py-5">
                 <div>
                   <p className="text-[11px] uppercase tracking-[0.22em] text-[var(--color-accent-soft)]">
                     Ruční rezervace
                   </p>
-                  <h2 className="mt-2 text-2xl font-display text-white">Vytvořit rezervaci v administraci</h2>
-                  <p className="mt-2 max-w-2xl text-sm leading-6 text-white/66">
-                    Rezervace se ukládá jako běžný `Booking`, jen s admin vstupem a provozními metadaty.
-                  </p>
+                  <Dialog.Title>Nová rezervace</Dialog.Title>
+                  <Dialog.Description>
+                    Vyberte klientku, službu a termín. Detaily a oznámení můžete upravit před uložením.
+                  </Dialog.Description>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={closeDrawer}
-                  className="rounded-full border border-white/10 px-3 py-2 text-sm text-white/74 transition hover:border-white/18 hover:bg-white/6"
-                >
-                  Zavřít
-                </button>
-              </div>
+                <Dialog.Close asChild>
+                  <button
+                    type="button"
+                    className="min-h-11 min-w-11 rounded-full border border-white/10 px-3 py-2 text-sm text-white/74 transition hover:border-white/18 hover:bg-white/6 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
+                  >
+                    Zavřít
+                  </button>
+                </Dialog.Close>
+              </header>
 
               <form action={formAction} className="flex min-h-0 flex-1 flex-col">
                 <input type="hidden" name="area" value={area} />
@@ -311,7 +307,7 @@ export function CreateManualBookingDrawer({
                 <input type="hidden" name="internalNote" value={internalNote} />
 
                 <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6">
-                  <div className="space-y-4 pb-28">
+                  <div className="space-y-8 pb-8">
                     {serverState.status === "success" ? (
                       <div className="max-w-full overflow-hidden rounded-[1rem] border border-emerald-300/18 bg-emerald-500/10 px-4 py-3">
                         <p className="break-words text-sm font-medium text-emerald-50">{serverState.successMessage}</p>
@@ -350,75 +346,81 @@ export function CreateManualBookingDrawer({
                       </div>
                     ) : null}
 
-                    <BookingClientSelector
-                      clients={availableClients}
-                      query={clientQuery}
-                      onQueryChange={setClientQuery}
-                      selectedClientId={selectedClientId}
-                      onSelectClient={(clientId) => {
-                        setPrefillNotice(null);
-                        setSelectedClientId(clientId);
-                        const selectedClient = availableClients.find((client) => client.id === clientId);
+                    <div>
+                      <BookingClientSelector
+                        clients={availableClients}
+                        query={clientQuery}
+                        onQueryChange={setClientQuery}
+                        selectedClientId={selectedClientId}
+                        onSelectClient={(clientId) => {
+                          setPrefillNotice(null);
+                          setSelectedClientId(clientId);
+                          const selectedClient = availableClients.find((client) => client.id === clientId);
 
-                        if (!selectedClient) {
-                          return;
-                        }
+                          if (!selectedClient) {
+                            return;
+                          }
 
-                        setFullName(selectedClient.fullName);
-                        setEmail(selectedClient.email);
-                        setPhone(selectedClient.phone ?? "");
-                        setClientProfileNote(selectedClient.internalNote ?? "");
-                      }}
-                      onClearSelection={() => {
-                        setPrefillNotice(null);
-                        setSelectedClientId("");
-                        setFullName("");
-                        setEmail("");
-                        setPhone("");
-                        setClientProfileNote("");
-                      }}
-                      fullName={fullName}
-                      onFullNameChange={setFullName}
-                      email={email}
-                      onEmailChange={setEmail}
-                      phone={phone}
-                      onPhoneChange={setPhone}
-                      clientProfileNote={clientProfileNote}
-                      onClientProfileNoteChange={setClientProfileNote}
-                      fieldErrors={serverState.fieldErrors}
-                    />
+                          setFullName(selectedClient.fullName);
+                          setEmail(selectedClient.email);
+                          setPhone(selectedClient.phone ?? "");
+                          setClientProfileNote(selectedClient.internalNote ?? "");
+                        }}
+                        onClearSelection={() => {
+                          setPrefillNotice(null);
+                          setSelectedClientId("");
+                          setFullName("");
+                          setEmail("");
+                          setPhone("");
+                          setClientProfileNote("");
+                        }}
+                        fullName={fullName}
+                        onFullNameChange={setFullName}
+                        email={email}
+                        onEmailChange={setEmail}
+                        phone={phone}
+                        onPhoneChange={setPhone}
+                        clientProfileNote={clientProfileNote}
+                        onClientProfileNoteChange={setClientProfileNote}
+                        fieldErrors={serverState.fieldErrors}
+                      />
+                    </div>
 
-                    <BookingServiceSelector
-                      services={data.services}
-                      serviceId={serviceId}
-                      onServiceIdChange={(value) => {
-                        setServiceId(value);
-                        setSlotId("");
-                        setStartsAt("");
-                      }}
-                      search={serviceSearch}
-                      onSearchChange={setServiceSearch}
-                      error={serverState.fieldErrors?.serviceId}
-                    />
+                    <div className="border-t border-white/8 pt-7">
+                      <BookingServiceSelector
+                        services={data.services}
+                        serviceId={serviceId}
+                        onServiceIdChange={(value) => {
+                          setServiceId(value);
+                          setSlotId("");
+                          setStartsAt("");
+                        }}
+                        search={serviceSearch}
+                        onSearchChange={setServiceSearch}
+                        error={serverState.fieldErrors?.serviceId}
+                      />
+                    </div>
 
-                    <BookingTimeSelector
-                      slots={data.slots}
-                      services={data.services}
-                      serviceId={serviceId}
-                      selectionMode={selectionMode}
-                      onSelectionModeChange={setSelectionMode}
-                      slotId={slotId}
-                      onSlotIdChange={setSlotId}
-                      startsAt={startsAt}
-                      onStartsAtChange={setStartsAt}
-                      manualDate={manualDate}
-                      onManualDateChange={setManualDate}
-                      manualTime={manualTime}
-                      onManualTimeChange={setManualTime}
-                      errorSlot={serverState.fieldErrors?.slotId}
-                      errorManualDate={serverState.fieldErrors?.manualDate}
-                      errorManualTime={serverState.fieldErrors?.manualTime}
-                    />
+                    <div className="border-t border-white/8 pt-7">
+                      <BookingTimeSelector
+                        slots={data.slots}
+                        services={data.services}
+                        serviceId={serviceId}
+                        selectionMode={selectionMode}
+                        onSelectionModeChange={setSelectionMode}
+                        slotId={slotId}
+                        onSlotIdChange={setSlotId}
+                        startsAt={startsAt}
+                        onStartsAtChange={setStartsAt}
+                        manualDate={manualDate}
+                        onManualDateChange={setManualDate}
+                        manualTime={manualTime}
+                        onManualTimeChange={setManualTime}
+                        errorSlot={serverState.fieldErrors?.slotId}
+                        errorManualDate={serverState.fieldErrors?.manualDate}
+                        errorManualTime={serverState.fieldErrors?.manualTime}
+                      />
+                    </div>
 
                     {selectionMode === "manual" ? (
                       <>
@@ -432,26 +434,34 @@ export function CreateManualBookingDrawer({
                       </>
                     )}
 
-                    <BookingSourceField
-                      source={source}
-                      onSourceChange={setSource}
-                      bookingStatus={bookingStatus}
-                      onBookingStatusChange={setBookingStatus}
-                      sourceError={serverState.fieldErrors?.source}
-                      statusError={serverState.fieldErrors?.bookingStatus}
-                    />
+                    <div className="space-y-4 border-t border-white/8 pt-7">
+                      <div>
+                        <h2 className="text-xl font-display text-white">Detaily</h2>
+                        <p className="mt-1 text-sm leading-6 text-white/58">
+                          Nastavte stav, zdroj, oznámení a interní poznámky.
+                        </p>
+                      </div>
+                      <BookingSourceField
+                        source={source}
+                        onSourceChange={setSource}
+                        bookingStatus={bookingStatus}
+                        onBookingStatusChange={setBookingStatus}
+                        sourceError={serverState.fieldErrors?.source}
+                        statusError={serverState.fieldErrors?.bookingStatus}
+                      />
 
-                    <BookingNotificationOptions
-                      includeCalendarAttachment={includeCalendarAttachment}
-                      onIncludeCalendarAttachmentChange={setIncludeCalendarAttachment}
-                    />
+                      <BookingNotificationOptions
+                        includeCalendarAttachment={includeCalendarAttachment}
+                        onIncludeCalendarAttachmentChange={setIncludeCalendarAttachment}
+                      />
 
-                    <BookingInternalNoteField
-                      clientNote={clientNote}
-                      onClientNoteChange={setClientNote}
-                      internalNote={internalNote}
-                      onInternalNoteChange={setInternalNote}
-                    />
+                      <BookingInternalNoteField
+                        clientNote={clientNote}
+                        onClientNoteChange={setClientNote}
+                        internalNote={internalNote}
+                        onInternalNoteChange={setInternalNote}
+                      />
+                    </div>
                   </div>
                 </div>
 
@@ -462,13 +472,14 @@ export function CreateManualBookingDrawer({
                     </div>
 
                     <div className="flex flex-col gap-2 sm:flex-row">
-                      <button
-                        type="button"
-                        onClick={closeDrawer}
-                        className="rounded-full border border-white/10 px-4 py-2.5 text-sm text-white/80 transition hover:border-white/18 hover:bg-white/6"
-                      >
-                        Zrušit
-                      </button>
+                      <Dialog.Close asChild>
+                        <button
+                          type="button"
+                          className="rounded-full border border-white/10 px-4 py-2.5 text-sm text-white/80 transition hover:border-white/18 hover:bg-white/6"
+                        >
+                          Zrušit
+                        </button>
+                      </Dialog.Close>
                       <button
                         type="submit"
                         name="submitMode"
@@ -490,10 +501,8 @@ export function CreateManualBookingDrawer({
                 </div>
               </form>
             </div>
-          </div>
-        </div>,
-        document.body,
-      ) : null}
-    </>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }

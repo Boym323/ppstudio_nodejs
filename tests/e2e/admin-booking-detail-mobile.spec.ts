@@ -51,10 +51,10 @@ test.describe("mobilní detail rezervace", () => {
     await expect.poll(() => prisma.bookingPayment.count({ where: { bookingId: fixture.bookingId } })).toBe(1);
 
     await page.getByRole("button", { name: "Přesunout termín" }).first().click();
-    await expect(page.getByRole("heading", { name: "Změnit termín bez tiché editace" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Změnit termín rezervace" })).toBeVisible();
     const submit = page.getByRole("button", { name: /Potvrdit přesun|Přesunout termín/ }).last();
     await expect(submit).toBeInViewport();
     await page.keyboard.press("Escape");
-    await expect(page.getByRole("heading", { name: "Změnit termín bez tiché editace" })).toHaveCount(0);
+    await expect(page.getByRole("heading", { name: "Změnit termín rezervace" })).toHaveCount(0);
   });
 });

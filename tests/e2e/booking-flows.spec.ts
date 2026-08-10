@@ -1258,7 +1258,7 @@ test.describe("booking flows", () => {
     await expect(page).toHaveURL(
       new RegExp(`/admin/rezervace\\?create=1&clientId=${fixture.clientId!}`),
     );
-    await expect(page.getByRole("heading", { name: "Vytvořit rezervaci v administraci" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Nová rezervace" })).toBeVisible();
     await expect(page.getByText("Vybraná klientka")).toBeVisible();
     await expect(selectedClientCard(page).getByText(fixture.clientName)).toBeVisible();
     await expect(selectedClientCard(page).getByText(fixture.clientEmail)).toBeVisible();
@@ -1310,7 +1310,7 @@ test.describe("booking flows", () => {
     await expect(page).toHaveURL(
       new RegExp(`/admin/provoz/rezervace\\?create=1&clientId=${fixture.clientId!}`),
     );
-    await expect(page.getByRole("heading", { name: "Vytvořit rezervaci v administraci" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Nová rezervace" })).toBeVisible();
     await expect(page.getByText("Vybraná klientka")).toBeVisible();
     await expect(selectedClientCard(page).getByText(fixture.clientName)).toBeVisible();
     await expect(page.locator('input[name="selectedClientId"]')).toHaveValue(fixture.clientId!);
@@ -1324,15 +1324,15 @@ test.describe("booking flows", () => {
     await loginAdmin(page, admin.email, admin.password);
 
     await page.goto("/admin/rezervace");
-    await expect(page.getByRole("heading", { name: "Vytvořit rezervaci v administraci" })).toHaveCount(0);
+    await expect(page.getByRole("heading", { name: "Nová rezervace" })).toHaveCount(0);
     await page.getByRole("button", { name: "Přidat rezervaci" }).first().click();
-    const bookingDrawer = page.getByRole("dialog", { name: "Vytvořit rezervaci v administraci" });
+    const bookingDrawer = page.getByRole("dialog", { name: "Nová rezervace" });
     await expect(bookingDrawer).toBeVisible();
     await expect(bookingDrawer.getByText("Vybraná klientka")).toHaveCount(0);
     await bookingDrawer.getByRole("button", { name: "Zrušit" }).click();
 
     await page.goto("/admin/rezervace?create=1&clientId=missing-client");
-    await expect(page.getByRole("heading", { name: "Vytvořit rezervaci v administraci" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Nová rezervace" })).toBeVisible();
     await expect(page.getByText("Klientku se nepodařilo předvyplnit.")).toBeVisible();
     await expect(page.getByText("Vybraná klientka")).toHaveCount(0);
   });
@@ -1366,7 +1366,7 @@ test.describe("booking flows", () => {
     await loginAdmin(page, admin.email, admin.password);
 
     await page.goto(`/admin/rezervace?create=1&clientId=${fixture.clientId!}`);
-    const bookingDrawer = page.getByRole("dialog", { name: "Vytvořit rezervaci v administraci" });
+    const bookingDrawer = page.getByRole("dialog", { name: "Nová rezervace" });
     await bookingDrawer.getByLabel("Služba").selectOption({ label: fixture.serviceName });
     await safeClick(page, bookingDrawer.getByRole("button", { name: "Ruční zadání" }));
     await expect(bookingDrawer.getByLabel("Datum")).toBeVisible();

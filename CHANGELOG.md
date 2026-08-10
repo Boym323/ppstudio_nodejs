@@ -6,6 +6,10 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+### Změněno
+
+- Ruční vytvoření a přesun rezervace nyní používají přístupné Radix drawery se spolehlivým ovládáním fokusu, klávesou Escape a ergonomičtějším rozložením dlouhých formulářů.
+
 ## [3.16.3] - 2026-08-10
 
 ### Opraveno
