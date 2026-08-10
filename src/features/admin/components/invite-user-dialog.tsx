@@ -7,7 +7,7 @@ import {
   type AdminUserAccessActionState,
 } from "@/features/admin/actions/update-admin-user-access-action-state";
 import { saveAdminUserAccessAction } from "@/features/admin/actions/admin-user-actions";
-import { AdminEscapeKeyClose } from "@/features/admin/components/admin-drawer-escape-close";
+import * as Dialog from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 
 type InviteUserDialogProps = {
@@ -45,43 +45,40 @@ export function InviteUserDialog({
     previousStatus.current = serverState.status;
   }, [onClose, serverState.status]);
 
-  if (!open) {
-    return null;
-  }
-
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="admin-user-dialog-title"
-      className="fixed inset-0 z-50 overflow-y-auto"
+    <Dialog.Root
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) {
+          onClose();
+        }
+      }}
     >
-      <AdminEscapeKeyClose onEscape={onClose} />
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative flex min-h-[100dvh] items-end px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-[calc(2.5rem+env(safe-area-inset-top))] sm:items-center sm:px-6 sm:py-8">
-        <div className="mx-auto w-full max-w-2xl">
-        <div className="rounded-[1.7rem] border border-white/10 bg-[#131116] p-5 shadow-[0_20px_70px_rgba(0,0,0,0.45)] sm:p-6">
+      <Dialog.Portal>
+        <Dialog.Overlay />
+        <Dialog.Content className="rounded-[1.7rem] border border-white/10 bg-[#131116] p-5 shadow-[0_20px_70px_rgba(0,0,0,0.45)] sm:p-6">
           <div className="flex items-start justify-between gap-4 border-b border-white/10 pb-4">
             <div>
               <p className="text-[11px] uppercase tracking-[0.22em] text-[var(--color-accent-soft)]">
                 {mode === "invite" ? "Nový přístup" : "Úprava přístupu"}
               </p>
-              <h3 id="admin-user-dialog-title" className="mt-2 text-2xl font-display text-white">
+              <Dialog.Title>
                 {mode === "invite" ? "Pozvat uživatele" : "Upravit uživatele"}
-              </h3>
-              <p className="mt-2 text-sm leading-6 text-white/66">
+              </Dialog.Title>
+              <Dialog.Description>
                 {mode === "invite"
                   ? "Jednoduché založení přístupu bez složitých oprávnění navíc."
                   : "Upravte jméno a e-mail tak, aby byl přístup v evidenci dobře čitelný."}
-              </p>
+              </Dialog.Description>
             </div>
-            <button
-              type="button"
-              onClick={onClose}
-              className="min-h-11 min-w-11 rounded-full border border-white/10 px-3 py-2 text-sm text-white/72 transition hover:border-white/18 hover:bg-white/6"
-            >
-              Zavřít
-            </button>
+            <Dialog.Close asChild>
+              <button
+                type="button"
+                className="min-h-11 min-w-11 rounded-full border border-white/10 px-3 py-2 text-sm text-white/72 transition hover:border-white/18 hover:bg-white/6 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
+              >
+                Zavřít
+              </button>
+            </Dialog.Close>
           </div>
 
           <form action={formAction} className="mt-5 space-y-4">
@@ -120,7 +117,7 @@ export function InviteUserDialog({
                 defaultValue={initialValues?.role ?? "SALON"}
                 disabled={mode === "edit"}
                 className={cn(
-                  "mt-2 w-full rounded-[1rem] border border-white/8 bg-black/20 px-3.5 py-3 text-sm text-white outline-none transition focus:border-[var(--color-accent)]/55",
+                  "mt-2 w-full rounded-[1rem] border border-white/8 bg-black/20 px-3.5 py-3 text-sm text-white outline-none transition focus:border-[var(--color-accent)]/55 focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/45",
                   serverState.fieldErrors?.role ? "border-red-300/40" : "",
                   mode === "edit" ? "cursor-not-allowed opacity-70" : "",
                 )}
@@ -140,20 +137,20 @@ export function InviteUserDialog({
             </label>
 
             <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
-              <button
-                type="button"
-                onClick={onClose}
-                className="rounded-full border border-white/10 px-4 py-2.5 text-sm text-white/80 transition hover:border-white/18 hover:bg-white/6"
-              >
-                Zrušit
-              </button>
+              <Dialog.Close asChild>
+                <button
+                  type="button"
+                  className="rounded-full border border-white/10 px-4 py-2.5 text-sm text-white/80 transition hover:border-white/18 hover:bg-white/6 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
+                >
+                  Zrušit
+                </button>
+              </Dialog.Close>
               <SubmitButton mode={mode} />
             </div>
           </form>
-        </div>
-        </div>
-      </div>
-    </div>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }
 
@@ -181,7 +178,7 @@ function Field({
         defaultValue={defaultValue}
         placeholder={placeholder}
         className={cn(
-          "mt-2 w-full rounded-[1rem] border border-white/8 bg-black/20 px-3.5 py-3 text-sm text-white outline-none transition placeholder:text-white/30 focus:border-[var(--color-accent)]/55",
+          "mt-2 w-full rounded-[1rem] border border-white/8 bg-black/20 px-3.5 py-3 text-sm text-white outline-none transition placeholder:text-white/30 focus:border-[var(--color-accent)]/55 focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/45",
           error ? "border-red-300/40" : "",
         )}
       />
@@ -194,7 +191,7 @@ function SubmitButton({ mode }: { mode: "invite" | "edit" }) {
   return (
     <button
       type="submit"
-      className="rounded-full bg-[var(--color-accent)] px-4 py-2.5 text-sm font-semibold text-[var(--color-accent-contrast)] transition hover:brightness-105"
+      className="rounded-full bg-[var(--color-accent)] px-4 py-2.5 text-sm font-semibold text-[var(--color-accent-contrast)] transition hover:brightness-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
     >
       {mode === "invite" ? "Odeslat pozvánku" : "Uložit změny"}
     </button>
