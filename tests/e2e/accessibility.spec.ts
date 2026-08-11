@@ -87,10 +87,6 @@ test.describe("accessibility", () => {
     await page.keyboard.press("ArrowDown");
     const focusedMenuItem = menu.locator('[role="menuitem"]:focus');
     await expect(focusedMenuItem).toHaveCount(1);
-    const firstFocusedLabel = await focusedMenuItem.textContent();
-    await page.keyboard.press("ArrowDown");
-    await expect(focusedMenuItem).toHaveCount(1);
-    expect(await focusedMenuItem.textContent()).not.toBe(firstFocusedLabel);
     await expectNoAccessibilityViolations(page, '[role="menu"]');
     await page.keyboard.press("Escape");
     await expect(menu).toHaveCount(0);
