@@ -25,12 +25,15 @@
 
 ## Pravidlo aktivace oběda
 
-Policy je aktivní pro lokální pražské datum pouze tehdy, když sloučená publikovaná dostupnost daného dne:
+Globální auto lunch je `enabled` nebo `disabled`; denní režim je `AUTO` nebo `OFF`. Policy je aktivní pro lokální pražské datum pouze tehdy, když je globálně `enabled`, den není `OFF` a sloučená publikovaná dostupnost dne:
 
-1. obsahuje alespoň jeden souvislý 45minutový interval se začátkem mezi `11:00` a `13:00`, a
-2. publikovaná dostupnost pokračuje za `13:00` lokálního času.
+1. má skutečnou součtovou rezervovatelnou kapacitu alespoň 5 hodin (ne pouze rozdíl mezi prvním začátkem a posledním koncem),
+2. obsahuje alespoň jeden souvislý 45minutový interval se začátkem mezi `11:00` a `13:00`, a
+3. publikovaná dostupnost pokračuje za `13:00` lokálního času.
 
 Druhá podmínka záměrně brání tomu, aby krátký dopolední provoz končící v poledne byl blokován obědem. Pravidlo vychází z publikované dostupnosti, nikoli z odhadované pracovní šablony. Pokud je policy neaktivní, lunch feasibility ani lunch-preservation constraint se nepoužije. Pokud je aktivní, každý veřejný kandidát musí po hypotetickém bookingu ponechat alespoň jeden proveditelný lunch kandidát. Převody lokálního data a času používají na hranicích `Europe/Prague`; čistý engine pracuje s instanty.
+
+Fáze 1 zavádí `booking-schedule-optimization.ts` jako pure in-memory engine: `shouldApplyAutoLunch`, `generateLunchCandidates`, `findAvailableLunchCandidates`, `canPreserveAutoLunch`, `findBestAutoLunch` a `measureFragmentation`. Centrální policy drží délku 45 minut, grid 15 minut, začátky 11:00–13:00, minimum směny 5 hodin a `Europe/Prague`. Fragmentace měří počet a velikost volných bloků a návaznost na obsazenost/hranu availability; service-aware orphan metrika zůstává pro Fázi 5. Capacity větší než 1 se do lunch engine v této fázi nezapojuje; integrační vrstva pro něj později použije explicitní fallback.
 
 ## Invarianty
 
@@ -149,8 +152,8 @@ Datový model capacity vystavuje, ale produkční create path dokumentuje a vynu
 
 ### Fáze 1
 
-- Zafixovat activation rule, sémantiku intervalů, capacity rozhodnutí a error contract.
-- Přidat pure engine typy/funkce a unit testy bez integračního zapojení.
+- [x] Zafixovat activation rule, sémantiku intervalů, capacity rozhodnutí a error contract.
+- [x] Přidat pure engine typy/funkce a unit testy bez integračního zapojení.
 
 ### Fáze 2
 
