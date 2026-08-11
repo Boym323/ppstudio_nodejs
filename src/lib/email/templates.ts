@@ -18,6 +18,9 @@ import { getVoucherDetail } from "@/features/vouchers/lib/voucher-read-models";
 import { getEmailBrandingSettings, getPublicSalonProfile } from "@/lib/site-settings";
 import { sanitizeEmailHeaderValue } from "@/lib/email/header";
 import { BookingApprovedEmail } from "@/lib/email/react-email/BookingApprovedEmail";
+import { AdminBookingCancelledEmail } from "@/lib/email/react-email/AdminBookingCancelledEmail";
+import { AdminBookingNotificationEmail } from "@/lib/email/react-email/AdminBookingNotificationEmail";
+import { AdminBookingRescheduledEmail } from "@/lib/email/react-email/AdminBookingRescheduledEmail";
 import { BookingCancelledEmail } from "@/lib/email/react-email/BookingCancelledEmail";
 import { BookingConfirmationEmail } from "@/lib/email/react-email/BookingConfirmationEmail";
 import { BookingRejectedEmail } from "@/lib/email/react-email/BookingRejectedEmail";
@@ -232,6 +235,8 @@ function buildEmailButton({
   return `<a href="${escapeHtml(href)}" style="display:inline-block;min-height:20px;padding:13px 20px;border-radius:8px;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:20px;font-weight:700;letter-spacing:0;text-align:center;text-decoration:none;white-space:normal;${styles}">${escapeHtml(label)}</a>`;
 }
 
+// Legacy HTML helper remains until the dedicated Phase 5 cleanup.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function buildEmailActionButton({
   href,
   label,
@@ -917,70 +922,11 @@ export async function renderEmailTemplate(
         `Administrace: ${data.adminUrl}`,
       ].join("\n");
 
-      const html = buildEmailShell(
-        brand,
-        "Nová rezervace",
-        "",
-        `
-          <div style="border:1px solid #eaded4;border-radius:12px;padding:20px;background:#fbf7f3;">
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
-              <tr>
-                <td style="padding:0 0 16px;border-bottom:1px solid #eaded4;">
-                  <p style="margin:0 0 6px;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:16px;font-weight:700;text-transform:uppercase;color:#9e7f65;">Služba</p>
-                  <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:20px;line-height:28px;color:#1f1714;"><strong>${escapeHtml(data.serviceName)}</strong></p>
-                </td>
-              </tr>
-              <tr>
-                <td style="padding:16px 0;border-bottom:1px solid #eaded4;">
-                  <p style="margin:0 0 6px;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:16px;font-weight:700;text-transform:uppercase;color:#9e7f65;">Termín</p>
-                  <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:18px;line-height:26px;color:#1f1714;"><strong>${escapeHtml(bookingDate)}</strong></p>
-                  <p style="margin:4px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:18px;line-height:26px;color:#1f1714;">${escapeHtml(bookingTime)}</p>
-                </td>
-              </tr>
-              <tr>
-                <td style="padding:16px 0 0;">
-                  <p style="margin:0 0 6px;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:16px;font-weight:700;text-transform:uppercase;color:#9e7f65;">Klientka</p>
-                  <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:18px;line-height:26px;color:#1f1714;"><strong>${escapeHtml(data.clientName)}</strong></p>
-                  <p style="margin:6px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:22px;color:#5b4c44;">${escapeHtml(data.clientEmail)}</p>
-                  ${data.clientPhone ? `<p style="margin:4px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:22px;color:#5b4c44;">${escapeHtml(data.clientPhone)}</p>` : ""}
-                </td>
-              </tr>
-              ${clientNote ? `
-              <tr>
-                <td style="padding:16px 0 0;border-top:1px solid #eaded4;">
-                  <p style="margin:0 0 6px;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:16px;font-weight:700;text-transform:uppercase;color:#9e7f65;">Poznámka od klientky</p>
-                  <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:23px;color:#5b4c44;">${escapeHtml(clientNote)}</p>
-                </td>
-              </tr>
-              ` : ""}
-            </table>
-          </div>
-          <div style="margin-top:18px;border:1px solid #eaded4;border-radius:12px;padding:20px;background:#ffffff;">
-            <p style="margin:0 0 14px;font-family:Arial,Helvetica,sans-serif;font-size:18px;line-height:24px;font-weight:700;color:#1f1714;">Rychlé akce</p>
-            <div style="margin:0 0 12px;">${buildEmailActionButton({
-                href: data.approveUrl,
-                label: "Potvrdit rezervaci",
-                variant: "primary",
-              })}</div>
-            <div style="margin:0 0 12px;">${buildEmailActionButton({
-                href: data.adminUrl,
-                label: "Přesunout termín",
-                variant: "secondary",
-              })}</div>
-            <div style="margin:0 0 12px;">${buildEmailActionButton({
-                href: data.rejectUrl,
-                label: "Zrušit rezervaci",
-                variant: "destructive",
-              })}</div>
-            <div style="margin:0;">${buildEmailActionButton({
-                href: data.adminUrl,
-                label: "Otevřít v administraci",
-                variant: "secondary",
-              })}</div>
-          </div>
-        `,
-        { includeFooter: false, maxWidthPx: 600 },
-      );
+      const html = await render(createElement(AdminBookingNotificationEmail, {
+        brandName: brand.name, serviceName: data.serviceName, bookingDate, bookingTime,
+        clientName: data.clientName, clientEmail: data.clientEmail, clientPhone: data.clientPhone, clientNote,
+        approveUrl: data.approveUrl, rejectUrl: data.rejectUrl, adminUrl: data.adminUrl,
+      }));
 
       return { subject: safeSubject, html, text };
     }
@@ -1000,23 +946,10 @@ export async function renderEmailTemplate(
         `Email: ${data.clientEmail}`,
       ].join("\n");
 
-      const html = buildEmailShell(
-        brand,
-        "Rezervace zrušena",
-        "",
-        `
-          ${buildEmailCard(`
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
-              ${buildEmailDetailRow("Služba", data.serviceName)}
-              ${buildEmailDetailRow("Datum", bookingDate)}
-              ${buildEmailDetailRow("Čas", bookingTime)}
-              ${buildEmailDetailRow("Klientka", data.clientName)}
-              ${buildEmailDetailRow("Email", data.clientEmail)}
-            </table>
-          `)}
-        `,
-        { includeFooter: false, maxWidthPx: 600 },
-      );
+      const html = await render(createElement(AdminBookingCancelledEmail, {
+        brandName: brand.name, serviceName: data.serviceName, bookingDate, bookingTime,
+        clientName: data.clientName, clientEmail: data.clientEmail,
+      }));
 
       return { subject: safeSubject, html, text };
     }
@@ -1043,29 +976,10 @@ export async function renderEmailTemplate(
         `Detail v administraci: ${data.adminUrl}`,
       ].join("\n");
 
-      const html = buildEmailShell(
-        brand,
-        "Rezervace přesunuta klientkou",
-        "",
-        `
-          ${buildEmailCard(`
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
-              ${buildEmailDetailRow("Služba", data.serviceName)}
-              ${buildEmailDetailRow("Nový termín", `${bookingDate}, ${bookingTime}`)}
-              ${buildEmailDetailRow("Původní termín", `${previousDate}, ${previousTime}`)}
-              ${buildEmailDetailRow("Klientka", data.clientName)}
-              ${buildEmailDetailRow("Email", data.clientEmail)}
-            </table>
-          `)}
-          <div style="height:14px;line-height:14px;font-size:14px;">&nbsp;</div>
-          ${buildEmailActionButton({
-            href: data.adminUrl,
-            label: "Otevřít rezervaci v administraci",
-            variant: "secondary",
-          })}
-        `,
-        { includeFooter: false, maxWidthPx: 600 },
-      );
+      const html = await render(createElement(AdminBookingRescheduledEmail, {
+        brandName: brand.name, serviceName: data.serviceName, bookingDate, bookingTime, previousDate, previousTime,
+        clientName: data.clientName, clientEmail: data.clientEmail, adminUrl: data.adminUrl,
+      }));
 
       return { subject: safeSubject, html, text };
     }

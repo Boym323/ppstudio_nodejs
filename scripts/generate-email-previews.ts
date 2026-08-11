@@ -84,9 +84,9 @@ const previews = [
       clientEmail: "jana@example.com",
       clientPhone: "+420 777 123 456",
       clientNote: "Prosím o konzultaci před začátkem.",
-      approveUrl: "https://ppstudio.cz/rezervace/akce/approve/preview",
-      rejectUrl: "https://ppstudio.cz/rezervace/akce/reject/preview",
-      adminUrl: "https://ppstudio.cz/admin/rezervace/preview-booking",
+      approveUrl: "https://example.invalid/admin/action?token=preview-token",
+      rejectUrl: "https://example.invalid/admin/action?token=preview-token",
+      adminUrl: "https://example.invalid/admin/rezervace/preview-booking",
     },
   },
   {
@@ -98,7 +98,16 @@ const previews = [
       clientEmail: "jana@example.com",
       previousStartsAt: "2026-05-17T08:00:00.000Z",
       previousEndsAt: "2026-05-17T09:30:00.000Z",
-      adminUrl: "https://ppstudio.cz/admin/rezervace/preview-booking",
+      adminUrl: "https://example.invalid/admin/rezervace/preview-booking",
+    },
+  },
+  {
+    filename: "09-admin-zrusena-rezervace.html",
+    templateKey: "admin-booking-cancelled-v1",
+    subject: "Rezervace zrušena: Luxusní kosmetické ošetření",
+    payload: {
+      ...baseBookingPayload,
+      clientEmail: "jana@example.com",
     },
   },
 ];

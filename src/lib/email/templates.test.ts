@@ -137,24 +137,35 @@ test("renderEmailTemplate creates admin notification email with action links", a
       clientNote: "Mám alergii na lepidlo, prosím konzultaci před začátkem.",
       scheduledStartsAt: "2026-04-20T08:00:00.000Z",
       scheduledEndsAt: "2026-04-20T09:00:00.000Z",
-      approveUrl: "https://example.com/rezervace/akce/approve/token-approve",
-      rejectUrl: "https://example.com/rezervace/akce/reject/token-reject",
-      adminUrl: "https://example.com/admin/rezervace/clztestbooking9999",
+      approveUrl: "https://example.invalid/admin/action?kind=approve&token=unique-preview-token",
+      rejectUrl: "https://example.invalid/admin/action?kind=reject&token=unique-preview-token",
+      adminUrl: "https://example.invalid/admin/rezervace/clztestbooking9999",
     },
   );
 
   assert.equal(email.subject, "Nová rezervace: Luxusní péče");
-  assert.match(email.text, /token-approve/);
-  assert.match(email.text, /token-reject/);
+  assert.match(email.text, /Klientka: Jana Nováková/);
+  assert.match(email.text, /Email: jana@example\.com/);
+  assert.match(email.text, /Telefon: \+420777123456/);
+  assert.match(email.text, /Termín: .+, \d{2}:\d{2} – \d{2}:\d{2}/);
+  assert.match(email.text, /kind=approve&token=unique-preview-token/);
+  assert.match(email.text, /kind=reject&token=unique-preview-token/);
   assert.match(email.text, /Poznámka od klientky: Mám alergii na lepidlo/);
-  assert.match(email.text, /Přesunout termín: https:\/\/example.com\/admin\/rezervace\/clztestbooking9999/);
+  assert.match(email.text, /Přesunout termín: https:\/\/example.invalid\/admin\/rezervace\/clztestbooking9999/);
   assert.match(email.html, /Potvrdit rezervaci/);
+  assert.match(email.html, /Jana Nováková/);
+  assert.match(email.html, /jana@example\.com/);
+  assert.match(email.html, /\+420777123456/);
+  assert.match(email.html, /Luxusní péče/);
   assert.match(email.html, /Přesunout termín/);
   assert.match(email.html, /Poznámka od klientky/);
   assert.match(email.html, /Mám alergii na lepidlo/);
   assert.match(email.html, /Otevřít v administraci/);
+  assert.match(email.html, /https:\/\/example.invalid\/admin\/action\?kind=approve&amp;token=unique-preview-token/);
+  assert.match(email.html, /https:\/\/example.invalid\/admin\/action\?kind=reject&amp;token=unique-preview-token/);
+  assert.match(email.html, /https:\/\/example.invalid\/admin\/rezervace\/clztestbooking9999/);
   assert.doesNotMatch(email.html, /Akční odkazy vedou/);
-  assert.doesNotMatch(email.html, /letter-spacing:0\.08em/);
+  assert.match(email.html, /data-skip-in-text/);
 });
 
 test("renderEmailTemplate escapes client note in admin notification html", async () => {
@@ -201,9 +212,16 @@ test("renderEmailTemplate creates admin cancellation email in operational layout
 
   assert.match(email.text, /Rezervace zrušena/);
   assert.match(email.text, /Služba: Luxusní péče/);
+  assert.match(email.text, /Klientka: Jana Nováková/);
+  assert.match(email.text, /Datum: .+/);
+  assert.match(email.text, /Čas: \d{2}:\d{2} – \d{2}:\d{2}/);
   assert.match(email.text, /Email: jana@example\.com/);
   assert.match(email.html, /Rezervace zrušena/);
+  assert.match(email.html, /Jana Nováková/);
+  assert.match(email.html, /jana@example\.com/);
   assert.doesNotMatch(email.html, /Napište nám/);
+  assert.doesNotMatch(email.html, /admin\/rezervace/);
+  assert.doesNotMatch(email.html, /rezervace\/akce/);
 });
 
 test("renderEmailTemplate creates admin rescheduled email in operational layout", async () => {
@@ -220,17 +238,24 @@ test("renderEmailTemplate creates admin rescheduled email in operational layout"
       previousEndsAt: "2026-04-20T09:00:00.000Z",
       scheduledStartsAt: "2026-04-22T11:00:00.000Z",
       scheduledEndsAt: "2026-04-22T12:00:00.000Z",
-      adminUrl: "https://example.com/admin/rezervace/clztestbookingadminrescheduled",
+      adminUrl: "https://example.invalid/admin/rezervace/clztestbookingadminrescheduled",
     },
   );
 
   assert.match(email.text, /Rezervace přesunuta klientkou/);
   assert.match(email.text, /Služba: Luxusní péče/);
+  assert.match(email.text, /Klientka: Jana Nováková/);
+  assert.match(email.text, /Email: jana@example\.com/);
   assert.match(email.text, /Původní termín:/);
   assert.match(email.text, /Nový termín:/);
-  assert.match(email.text, /Detail v administraci: https:\/\/example\.com\/admin\/rezervace\/clztestbookingadminrescheduled/);
+  assert.match(email.text, /Detail v administraci: https:\/\/example\.invalid\/admin\/rezervace\/clztestbookingadminrescheduled/);
   assert.match(email.html, /Rezervace přesunuta klientkou/);
+  assert.match(email.html, /Jana Nováková/);
+  assert.match(email.html, /jana@example\.com/);
+  assert.match(email.html, /Původní termín/);
   assert.match(email.html, /Otevřít rezervaci v administraci/);
+  assert.match(email.html, /https:\/\/example\.invalid\/admin\/rezervace\/clztestbookingadminrescheduled/);
+  assert.doesNotMatch(email.html, /rezervace\/akce/);
 });
 
 test("renderEmailTemplate creates approved email", async () => {
