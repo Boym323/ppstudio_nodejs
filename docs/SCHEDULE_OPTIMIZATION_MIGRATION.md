@@ -1,50 +1,50 @@
-# Schedule Optimization Migration
+# Migrace optimalizace rozvrhu
 
-## Fixed product rules
+## Pevná produktová pravidla
 
-- Auto lunch is exactly 45 minutes, in `Europe/Prague`.
-- Candidate starts are `11:00`, `11:15`, …, `13:00`; a candidate may end at `13:45`.
-- Lunch is derived from current reservations and published availability. It is never stored as a DB booking or fixed block.
-- Existing bookings are never moved. Booking, reschedule and cancellation may therefore change the selected lunch position.
-- Cleanup is part of a booking block for occupancy and feasibility.
-- A public booking must not consume the last feasible 45-minute lunch on an active lunch-policy day.
-- Smart optimization may only reorder the “Doporučené termíny” section. It must not remove valid terms, change authoritative validation, or move a customer across dates merely for efficiency.
-- No ML, solver, external service, FullCalendar replacement, or npm dependency.
+- Automatický oběd trvá přesně 45 minut v časové zóně `Europe/Prague`.
+- Kandidátní začátky jsou `11:00`, `11:15`, …, `13:00`; kandidát může končit až ve `13:45`.
+- Oběd se odvozuje z aktuální dostupnosti a rezervací. Nikdy se neukládá jako DB rezervace ani pevný blok.
+- Existující rezervace se nikdy neposouvají. Booking, reschedule i cancellation proto mohou změnit optimální polohu oběda.
+- Cleanup je součástí booking blocku pro obsazenost a feasibility.
+- Veřejná rezervace nesmí spotřebovat poslední proveditelný 45minutový oběd v den s aktivní lunch policy.
+- Smart optimalizace smí pouze měnit pořadí sekce „Doporučené termíny“. Nesmí odstranit validní termíny, měnit authoritative validaci ani přesouvat klientku mezi dny pouze kvůli efektivitě.
+- Žádné ML, solver, externí služba, změna FullCalendaru ani nová npm dependency.
 
-## Current architecture
+## Aktuální architektura
 
-- `getPublicBookingCatalog` loads published availability and active bookings. Bookings are exposed as `bookedIntervals` with `endsAt = blockedUntil ?? scheduledEndsAt`, using a cleanup lookahead.
-- `buildSlotTimeOptions` creates the public options. Normal candidates use a 30-minute step; quarter-hour candidates are added after booking ends and before booking starts, rounded with `ceilToQuarterHour`/`floorToQuarterHour`.
-- `booking-flow.tsx` derives `selectableTimeOptions` by filtering disabled options. `suggestedSlots` is currently chronological: `selectableTimeOptions.slice(0, 6)`.
-- `buildSlotTimeOptions` treats `slot.capacity` as available capacity, but the create engine currently enforces the single-resource invariant with `allowedCapacity = 1`. Reschedule uses the minimum coverage capacity when no override is active.
-- `scheduledEndsAt` is the client-visible service end. `blockedUntil` is the occupancy end including cleanup; a null `blockedUntil` falls back to `scheduledEndsAt`. Planner queries and public catalog use the blocked end for conflicts.
-- Public create enters `createPublicBooking` with `allowManualOverride: false` and reaches `createBookingWithEngine`. The authoritative availability, overlap, capacity and slot checks happen inside a Serializable transaction after fresh reads and slot locking.
-- Public reschedule goes through `reschedulePublicBookingByToken` and the same transactional `rescheduleBooking` path. Client-originated manual override is rejected. Admin reschedule uses the same engine and may create an internal exception when explicitly permitted by the existing policy.
-- Admin manual booking uses `createManualBooking`; slot mode passes `allowManualOverride: false`, while explicit manual mode passes `true`. The existing UI already reports a manual-override warning.
-- `PlannerWeekData` contains both minute ranges (`availableBlocks`, `cleanupBlocks`, bookings' service minutes) and cell ranges. `queries.ts` composes availability, bookings and cleanup using the blocked end. The FullCalendar adapter renders bookings and cleanup on 30-minute cells, while `displayAvailableIntervals` can preserve 15-minute read-only ranges. A 45-minute domain event can therefore be represented exactly in ISO `start`/`end` data, but the current calendar-cell editing/visual model must not be used as the domain source of truth.
+- `getPublicBookingCatalog` načítá publikovanou dostupnost a aktivní rezervace. Rezervace předává jako `bookedIntervals`, kde `endsAt = blockedUntil ?? scheduledEndsAt`, s cleanup lookahead.
+- `buildSlotTimeOptions` vytváří veřejné možnosti. Běžní kandidáti používají krok 30 minut; quarter-hour kandidáti vznikají po koncích rezervací a před začátky rezervací pomocí `ceilToQuarterHour`/`floorToQuarterHour`.
+- `booking-flow.tsx` odvozuje `selectableTimeOptions` filtrováním disabled možností. `suggestedSlots` je nyní chronologické: `selectableTimeOptions.slice(0, 6)`.
+- `buildSlotTimeOptions` respektuje `slot.capacity`, ale create engine aktuálně vynucuje invariant jediného zdroje pomocí `allowedCapacity = 1`. Reschedule bez override používá nejnižší capacity z pokrytí.
+- `scheduledEndsAt` je konec služby viditelný klientce. `blockedUntil` je konec occupancy včetně cleanup; null `blockedUntil` znamená `scheduledEndsAt`. Planner queries i public catalog používají pro konflikty blokovaný konec.
+- Public create vstupuje přes `createPublicBooking` s `allowManualOverride: false` a pokračuje do `createBookingWithEngine`. Authoritative kontrola dostupnosti, překryvů, capacity a slotů probíhá uvnitř Serializable transakce po čerstvém načtení a locku slotu.
+- Public reschedule jde přes `reschedulePublicBookingByToken` a stejný transakční `rescheduleBooking`. Client-originated manual override se odmítá. Admin reschedule používá stejný engine a při explicitním povolení může vytvořit interní výjimku.
+- Admin manual booking používá `createManualBooking`; slot mode předává `allowManualOverride: false`, explicitní manual mode `true`. Existující UI už zobrazuje varování o manual override.
+- `PlannerWeekData` obsahuje minutové rozsahy (`availableBlocks`, `cleanupBlocks`, service minutes rezervací) i cell rozsahy. `queries.ts` skládá availability, bookings a cleanup s použitím blocked end. FullCalendar adapter vykresluje bookings a cleanup v 30minutových buňkách, zatímco `displayAvailableIntervals` umí zachovat 15minutová read-only okna. Doménový 45minutový event lze tedy reprezentovat přesnými ISO `start`/`end`, ale současný model buněk nesmí být zdrojem pravdy domény.
 
-## Lunch activation rule
+## Pravidlo aktivace oběda
 
-The policy is active for a local Prague date only when the merged published availability for that date:
+Policy je aktivní pro lokální pražské datum pouze tehdy, když sloučená publikovaná dostupnost daného dne:
 
-1. contains at least one contiguous 45-minute interval whose start is between `11:00` and `13:00`, and
-2. has published availability extending past `13:00` local time.
+1. obsahuje alespoň jeden souvislý 45minutový interval se začátkem mezi `11:00` a `13:00`, a
+2. publikovaná dostupnost pokračuje za `13:00` lokálního času.
 
-The second condition deliberately prevents a short morning schedule ending at noon from being blocked by lunch. It is derived from published availability, not from bookings or a guessed working-day template. If the rule is inactive, no lunch feasibility check or lunch-preservation constraint is applied. If active, every public candidate must leave at least one feasible lunch candidate after the hypothetical booking. All date and DST calculations use Prague-local date/time conversion at the boundary, with instants passed to the pure engine.
+Druhá podmínka záměrně brání tomu, aby krátký dopolední provoz končící v poledne byl blokován obědem. Pravidlo vychází z publikované dostupnosti, nikoli z odhadované pracovní šablony. Pokud je policy neaktivní, lunch feasibility ani lunch-preservation constraint se nepoužije. Pokud je aktivní, každý veřejný kandidát musí po hypotetickém bookingu ponechat alespoň jeden proveditelný lunch kandidát. Převody lokálního data a času používají na hranicích `Europe/Prague`; čistý engine pracuje s instanty.
 
-## Invariants
+## Invarianty
 
-- Lunch is a computed explanation/result, never persisted as a concrete time.
-- Lunch feasibility is evaluated against the same blocked intervals used for booking occupancy.
-- The optimizer never mutates availability, bookings, or the valid-term set.
-- Existing booking/business rules remain unchanged outside this feature.
-- Authoritative validation remains server-side and is repeated on fresh transactional data.
-- Date-first ordering is preserved; ranking is only a bounded reorder within a safe date horizon.
-- `scheduledEndsAt` remains service end; `blockedUntil` remains service end plus cleanup.
+- Oběd je vypočtený výsledek, nikoli uložený konkrétní čas.
+- Lunch feasibility používá stejné blokované intervaly jako booking occupancy.
+- Optimizer nemění availability, bookings ani množinu validních termínů.
+- Stávající booking/business pravidla mimo tuto funkci zůstávají beze změny.
+- Authoritative validace zůstává na serveru a opakuje se nad čerstvými transakčními daty.
+- Zachovává se date-first pořadí; ranking pouze omezeně přeuspořádá termíny v bezpečném horizontu.
+- `scheduledEndsAt` zůstává koncem služby; `blockedUntil` zůstává koncem služby plus cleanup.
 
 ## Pure engine API
 
-Add conceptually `src/features/booking/lib/booking-schedule-optimization.ts`. It must contain pure, deterministic functions and no Prisma, React, FullCalendar or env imports:
+Konceptuálně přidat `src/features/booking/lib/booking-schedule-optimization.ts`. Musí obsahovat čisté, deterministické funkce bez importů Prisma, Reactu, FullCalendaru nebo env:
 
 ```ts
 type Interval = { startsAt: number; endsAt: number };
@@ -54,7 +54,7 @@ type BookingBlock = Interval & { capacity?: number };
 generateLunchCandidates(input: {
   localDate: string; timeZone: "Europe/Prague";
   availability: Interval[]; stepMinutes: 15;
-}): LunchCandidate[]; // exact 11:00..13:00, 45 minutes
+}): LunchCandidate[]; // přesně 11:00..13:00, délka 45 minut
 
 evaluateLunchFeasibility(input: {
   lunchCandidates: LunchCandidate[]; bookedBlocks: BookingBlock[];
@@ -82,104 +82,104 @@ rankBookingCandidates(input: {
 }): typeof input.candidates;
 ```
 
-The implementation may use integer minutes/epoch milliseconds internally, but must document the conversion boundary and stable tie-breakers. The authoritative layer should call the same feasibility function after loading fresh intervals; it must not trust a client-provided lunch result.
+Implementace může interně používat celočíselné minuty nebo epoch milliseconds, ale musí dokumentovat hranici převodu a stabilní tie-breakery. Authoritative vrstva musí volat stejnou feasibility funkci po načtení čerstvých intervalů; nesmí důvěřovat lunch výsledku dodanému klientem.
 
-## Public booking integration
+## Integrace veřejného bookingu
 
-The catalog/flow should compute lunch-aware selectable options after normal service duration and cleanup expansion, before date grouping. The UX filter removes only options that would make an active-day lunch infeasible. `selectableTimeOptions` remains the complete filtered set; suggested slots consume a ranked view only. Catalog refresh and stale-selection handling must re-run the calculation.
+Catalog/availability projection má po standardním rozšíření o délku služby a cleanup dodat publikované intervaly a blokované booking bloky bez N+1 dotazů. UX filtr odstraní pouze možnosti, které by v aktivní den znemožnily oběd. `selectableTimeOptions` zůstane úplným filtrovaným seznamem; doporučené termíny použijí pouze seřazený pohled. Po refreshi katalogu i při stale selection se výpočet zopakuje.
 
-The server must independently apply the lunch rule in `createBookingWithEngine` immediately before the booking write, after fresh slot/booking reads and after the existing overlap/capacity checks have established the hypothetical booking block. A failure returns the existing “termín není dostupný/konflikt” class of result and cannot be bypassed by client input.
+Server musí nezávisle použít stejné lunch pravidlo v `createBookingWithEngine` těsně před zápisem, po čerstvém načtení slotů a rezervací a po ověření hypotetického booking blocku. Selhání vrací existující typ nedostupnosti/konfliktu a nelze jej obejít vstupem z klienta.
 
-## Transaction safety
+## Transakční bezpečnost
 
-Inside the existing Serializable transaction, calculate the local date, load the day's published coverage and active booking blocks (including cleanup), evaluate the hypothetical new block, and require a remaining lunch candidate before `booking.create`. Keep slot locking, overlap checks, capacity checks, idempotency checks and retry behavior intact. Reschedule must perform the equivalent check after excluding the booking being moved and before `booking.update`; cancellation needs no lunch write and naturally changes the next computation.
+Uvnitř existující Serializable transakce vypočítat lokální datum, načíst publikované pokrytí daného dne a aktivní booking bloky včetně cleanup, vyhodnotit hypotetický nový blok a vyžadovat zbývající lunch kandidát před `booking.create`. Lockování slotu, overlap checks, capacity checks, idempotency checks i retry chování musí zůstat zachovány. Reschedule provede ekvivalentní kontrolu po vyloučení přesouvané rezervace a před `booking.update`; cancellation nic pro lunch neukládá a další výpočet se přirozeně změní.
 
-## Reschedule/admin policy
+## Reschedule a admin policy
 
-- Public booking: hard lunch constraint; manual override is false.
-- Public reschedule: hard lunch constraint; `changedByClient` must never bypass it.
-- Admin slot mode: standard lunch constraint (`allowManualOverride: false`).
-- Explicit admin manual mode: may bypass lunch only through the existing explicit manual-override path. Preserve the `manualOverride` audit flag and existing warning; if the UI adds a warning, scope it to “this manual term leaves no feasible auto lunch” and require the already existing deliberate manual mode, not a hidden fallback.
-- Do not silently convert a failed slot-mode operation into a manual exception.
+- Public booking: hard lunch constraint; manual override je false.
+- Public reschedule: hard lunch constraint; `changedByClient` jej nikdy nesmí obejít.
+- Admin slot mode: standardní lunch constraint (`allowManualOverride: false`).
+- Explicitní admin manual mode: může lunch obejít pouze přes existující explicitní manual-override cestu. Zachovat audit flag `manualOverride` a existující warning; případné nové UI varování omezit na „tento manuální termín neponechává proveditelný automatický oběd“ a vyžadovat již existující vědomý manual mode.
+- Selhání slot mode se nesmí tiše změnit na manual exception.
 
-## Planner integration
+## Integrace planneru
 
-The planner should derive a display-only lunch event from the selected current state, alongside existing booking and cleanup events. It must not create an availability slot or booking. Use exact minute/ISO ranges for the domain result; retain 30-minute cells for existing edit affordances and FullCalendar compatibility. A 45-minute lunch must be rendered as a 45-minute event in the adapter's exact range, with no rounding of the optimization input. Availability, booking and cleanup must remain separate source facts so the lunch display cannot be mistaken for a persisted block.
+Planner má zobrazovat display-only lunch event odvozený z aktuálního stavu vedle booking a cleanup eventů. Nesmí vytvářet availability slot ani booking. Pro doménový výsledek použít přesné minutové/ISO rozsahy; 30minutové buňky ponechat pro stávající editaci a kompatibilitu s FullCalendar. 45minutový oběd se musí vykreslit jako 45minutový event v přesném rozsahu bez zaokrouhlení vstupu. Availability, booking a cleanup musí zůstat oddělenými zdrojovými fakty, aby display oběda nebyl zaměněn za uložený blok.
 
-## Smart ranking model
+## Model smart rankingu
 
-For each valid candidate, simulate `existing blocks + hypothetical booking`, choose the best feasible lunch, then measure the resulting free intervals. Rank by an interpretable lexicographic tuple, in this order:
+Pro každý validní kandidát simulovat `existující bloky + hypotetický booking`, vybrat nejlepší proveditelný oběd a změřit výsledné volné intervaly. Řadit podle interpretovatelné lexikografické n-tice:
 
-1. same/earliest date within a small safe date horizon (date-first);
-2. lunch feasible, with a stable fallback preserving the existing order;
-3. fewer residual fragments;
-4. fewer orphan/unbookable minutes;
-5. larger largest contiguous free block;
-6. more usable blocks for active service durations;
-7. stronger adjacency to existing bookings or an availability edge where that closes a fragment;
-8. original chronological order as the final tie-breaker.
+1. stejný/nejbližší datum v malém bezpečném horizontu (date-first);
+2. proveditelný oběd, se stabilním fallbackem na původní pořadí;
+3. méně výsledných fragmentů;
+4. méně orphan/nevyužitelných minut;
+5. větší největší souvislý volný blok;
+6. více bloků využitelných aktivními délkami služeb;
+7. silnější návaznost na existující rezervace nebo hranu availability, pokud tím fragment uzavřeme;
+8. původní chronologické pořadí jako poslední tie-breaker.
 
-The initial safe horizon should be the first few already available dates shown by the existing flow, not an unbounded calendar search. The complete chronological/filter-valid list remains available below recommendations. No arbitrary weights are needed; if a scalar is later required, normalize and document each metric and preserve the tuple's date-first constraint.
+Počáteční bezpečný horizont má být několik prvních již dostupných dnů zobrazených existujícím flow, nikoli neomezené hledání v kalendáři. Úplný chronologický a filtrovaný seznam zůstává dostupný pod doporučeními. Arbitrární váhy nejsou potřeba; pokud bude později nutný scalar, každá metrika se normalizuje a zdokumentuje při zachování date-first omezení.
 
-## Capacity strategy
+## Strategie capacity
 
-The data model exposes capacity, but the production create path documents and enforces a single service resource (`allowedCapacity = 1`); this is the relevant first-version domain. Implement lunch feasibility and fragmentation scoring for effective `capacity = 1` first. For `capacity > 1`, preserve existing availability and authoritative capacity behavior and use the current chronological recommendation fallback until a separate capacity-aware policy is specified. Do not collapse or rewrite capacity fields, and do not let a single-resource lunch calculation change general booking capacity semantics.
+Datový model capacity vystavuje, ale produkční create path dokumentuje a vynucuje jediný service resource (`allowedCapacity = 1`); to je relevantní doména první verze. Lunch feasibility a fragmentation scoring proto nejprve implementovat pro efektivní `capacity = 1`. Pro `capacity > 1` zachovat současnou availability i authoritative capacity logiku a použít chronologický fallback doporučení, dokud nebude specifikována samostatná capacity-aware policy. Capacity pole se nesmí slévat ani přepisovat a výpočet oběda pro jediný zdroj nesmí měnit obecnou capacity sémantiku bookingu.
 
-## Test matrix
+## Testovací matice
 
-- Candidate generation: exact 15-minute starts, 45-minute duration, 11:00/13:00 bounds, Prague DST and local-date boundaries.
-- Activation: day ending at noon inactive; day extending past 13:00 with a valid 45-minute candidate active; split availability and no contiguous lunch candidate inactive.
-- Feasibility: booking before, inside and after lunch; cleanup consuming the last candidate; cancellation restoring a candidate; existing booking never moved.
-- Public UX: filtered options, refresh/stale selection, all valid terms retained, recommendations no longer chronological-only.
-- Authoritative create: race for the last lunch position, Serializable retry/conflict, public manual override rejected.
-- Public/admin reschedule: exclude moved booking, client hard constraint, admin slot mode hard constraint, explicit manual mode warning and audit flag.
-- Capacity: capacity 1 scoring; capacity >1 fallback and unchanged authoritative behavior.
-- Planner: exact 45-minute display, cleanup separation, 30-minute cell compatibility, no lunch DB slot.
-- Integration targets: public catalog/create, manual booking, public reschedule, admin reschedule, cancellation and planner-week queries.
+- Generování kandidátů: přesné 15minutové začátky, délka 45 minut, hranice 11:00/13:00, Prague DST a lokální hranice dne.
+- Aktivace: den končící v poledne inactive; den pokračující za 13:00 s validním 45minutovým kandidátem active; rozdělená dostupnost bez souvislého oběda inactive.
+- Feasibility: booking před, uvnitř a po obědě; cleanup spotřebující poslední kandidát; cancellation obnovující kandidát; existující booking se nikdy neposouvá.
+- Public UX: filtrované možnosti, refresh/stale selection, zachování všech validních termínů, doporučení již nejsou pouze chronologická.
+- Authoritative create: race o poslední lunch pozici, Serializable retry/conflict, public manual override odmítnut.
+- Public/admin reschedule: vyloučení přesouvané rezervace, client hard constraint, admin slot mode hard constraint, explicitní manual mode s warningem a audit flagem.
+- Capacity: scoring pro capacity 1; capacity >1 fallback a nezměněné authoritative chování.
+- Planner: přesné 45minutové zobrazení, oddělení cleanup, kompatibilita 30minutových buněk, žádný lunch DB slot.
+- Integrační cíle: public catalog/create, manual booking, public reschedule, admin reschedule, cancellation a planner-week queries.
 
-## Performance guardrails
+## Výkonnostní mantinely
 
-- Fetch each date's relevant published availability and active booking blocks in bounded batches; never query once per candidate or service.
-- Keep the pure engine in-memory and linear or `O(n log n)` after sorting intervals; generate at most 9 lunch candidates per date.
-- Reuse the already loaded public catalog where possible and apply one ranking pass per date.
-- Do not add a DB lunch entity, materialized block, external call, solver, ML model or dependency.
-- Keep the authoritative transaction query bounded to the booking date and retain existing Serializable retries.
+- Relevantní publikovanou dostupnost a aktivní booking bloky načítat po omezených dávkách; nikdy nequeryovat jednou pro každý kandidát nebo službu.
+- Pure engine držet v paměti a po seřazení intervalů v lineární nebo `O(n log n)` složitosti; na den generovat nejvýše 9 lunch kandidátů.
+- Pokud možno znovu použít již načtený public catalog a provést jeden ranking pass na den.
+- Nepřidávat DB entitu oběda, materializovaný blok, externí volání, solver, ML model ani dependency.
+- Authoritative transakční query omezit na datum bookingu a zachovat stávající Serializable retries.
 
-## Phase checklist
+## Fázový checklist
 
 ### Fáze 1
 
-- Freeze the activation rule, interval semantics, capacity decision and error contract.
-- Add pure engine types/functions and unit tests only; no integration wiring.
+- Zafixovat activation rule, sémantiku intervalů, capacity rozhodnutí a error contract.
+- Přidat pure engine typy/funkce a unit testy bez integračního zapojení.
 
 ### Fáze 2
 
-- Add a catalog/availability projection that supplies published intervals and blocked booking blocks without N+1 queries.
-- Add UX feasibility filtering and preserve the complete term list.
+- Přidat catalog/availability projection s publikovanými intervaly a blokovanými booking bloky bez N+1 dotazů.
+- Přidat UX feasibility filtering a zachovat úplný seznam termínů.
 
 ### Fáze 3
 
-- Add the authoritative create check inside `createBookingWithEngine` immediately before write, with race/integration tests.
+- Přidat authoritative create check do `createBookingWithEngine` těsně před zápis a doplnit race/integration testy.
 
 ### Fáze 4
 
-- Apply the equivalent check to transactional reschedule; verify public, admin slot-mode and explicit manual-mode behavior.
+- Použít ekvivalentní kontrolu v transakčním reschedule a ověřit public, admin slot mode i explicitní manual mode.
 
 ### Fáze 5
 
-- Integrate display-only lunch state into `PlannerWeekData`/adapter using exact minute ranges; do not alter FullCalendar library or edit-cell semantics.
+- Integrovat display-only lunch stav do `PlannerWeekData`/adapteru přesné minutové rozsahy; neměnit FullCalendar library ani edit-cell sémantiku.
 
 ### Fáze 6
 
-- Add date-first smart ranking behind the existing recommendation boundary, complete the matrix/performance checks, and compare recommendation output against chronological fallback.
+- Přidat date-first smart ranking za stávající hranici doporučení, dokončit testovací matici a performance checks a porovnat výstup s chronologickým fallbackem.
 
-## Global invariants
+## Globální invarianty
 
-- No DB representation of a concrete auto-lunch time.
-- No FullCalendar library change.
-- No ML, solver or dependency.
-- Authoritative booking validation remains server-side.
-- Cleanup uses the blocked interval.
-- Scoring is pure and in-memory.
-- No N+1 query.
-- Public booking/business rules outside this feature remain unchanged.
+- Žádná DB reprezentace konkrétního auto lunch času.
+- Žádná změna FullCalendar library.
+- Žádné ML, solver ani dependency.
+- Authoritative booking validace zůstává na serveru.
+- Cleanup používá blocked interval.
+- Scoring je pure a in-memory.
+- Žádné N+1 query.
+- Public booking/business pravidla mimo tuto funkci zůstávají beze změny.
