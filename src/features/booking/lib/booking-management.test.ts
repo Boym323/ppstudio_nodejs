@@ -16,6 +16,12 @@ process.env.EMAIL_DELIVERY_MODE ??= "log";
 const emptyCatalog: PublicBookingCatalog = {
   services: [],
   slots: [],
+  scheduleOptimization: {
+    globalAutoLunchEnabled: true,
+    dayLunchModes: {},
+    publishedAvailability: [],
+    bookedIntervals: [],
+  },
 };
 
 type BookingTokenOverrides = Partial<{

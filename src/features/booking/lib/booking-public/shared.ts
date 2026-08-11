@@ -68,6 +68,18 @@ export type PublicBookingCatalog = {
       endsAt: string;
     }>;
   }>;
+  scheduleOptimization: {
+    globalAutoLunchEnabled: boolean;
+    dayLunchModes: Record<string, "AUTO" | "OFF">;
+    publishedAvailability: Array<{
+      startsAt: string;
+      endsAt: string;
+    }>;
+    bookedIntervals: Array<{
+      startsAt: string;
+      endsAt: string;
+    }>;
+  };
 };
 
 export type CreatePublicBookingInput = {
@@ -184,6 +196,15 @@ export function isRetryablePrismaError(error: unknown) {
     (
       error instanceof Prisma.PrismaClientKnownRequestError &&
       error.code === "P2034"
+    ) ||
+    (
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      error.code === "P2010" &&
+      "message" in error &&
+      typeof error.message === "string" &&
+      /Code: [`']40001[`']/.test(error.message)
     ) ||
     (
       typeof error === "object" &&

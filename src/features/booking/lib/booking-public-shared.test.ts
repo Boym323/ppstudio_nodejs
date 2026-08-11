@@ -60,6 +60,15 @@ test("isRetryablePrismaError treats Prisma PG adapter transaction conflicts as r
   assert.equal(isRetryablePrismaError(error), true);
 });
 
+test("isRetryablePrismaError retries a PostgreSQL 40001 wrapped by raw-query P2010", () => {
+  const error = {
+    code: "P2010",
+    message: "Raw query failed. Code: `40001`. Message: `could not serialize access due to concurrent update`",
+  };
+
+  assert.equal(isRetryablePrismaError(error), true);
+});
+
 test("isRetryablePrismaError does not retry unrelated driver adapter errors", () => {
   const error = {
     name: "DriverAdapterError",

@@ -1,4 +1,14 @@
 import type { PublicBookingCatalog } from "@/features/booking/lib/booking-public";
+import {
+  getNextCalendarDate,
+  getPragueLocalDate,
+  resolvePragueLocalDateTime,
+} from "./booking-local-time";
+import {
+  canPreserveAutoLunch,
+  generateLunchCandidates,
+  shouldApplyAutoLunch,
+} from "./booking-schedule-optimization";
 
 const BOOKING_START_STEP_MINUTES = 30;
 const QUARTER_HOUR_MS = 15 * 60 * 1000;
@@ -189,6 +199,86 @@ export function buildSlotTimeOptions(
   }
 
   return options;
+}
+
+export function filterTimeOptionsForAutoLunch(
+  options: TimeSlotOption[],
+  input: {
+    serviceDurationMinutes: number;
+    cleanupBlockMinutes: number;
+    capacity: number;
+    scheduleOptimization: PublicBookingCatalog["scheduleOptimization"];
+  },
+) {
+  if (input.capacity !== 1) {
+    return options;
+  }
+
+  const availability = input.scheduleOptimization.publishedAvailability.map((interval) => ({
+    startsAt: new Date(interval.startsAt).getTime(),
+    endsAt: new Date(interval.endsAt).getTime(),
+  }));
+  const bookedBlocks = input.scheduleOptimization.bookedIntervals.map((interval) => ({
+    startsAt: new Date(interval.startsAt).getTime(),
+    endsAt: new Date(interval.endsAt).getTime(),
+  }));
+  const dayContexts = new Map<string, {
+    active: boolean;
+    availability: typeof availability;
+    lunchCandidates: ReturnType<typeof generateLunchCandidates>;
+    bookedBlocks: typeof bookedBlocks;
+  }>();
+
+  return options.filter((option) => {
+    if (option.isDisabled) {
+      return true;
+    }
+
+    const startsAt = new Date(option.startsAt);
+    const localDate = getPragueLocalDate(startsAt);
+    let dayContext = dayContexts.get(localDate);
+
+    if (!dayContext) {
+      const nextLocalDate = getNextCalendarDate(localDate);
+      const dayStartsAt = resolvePragueLocalDateTime(localDate, "00:00")?.getTime();
+      const dayEndsAt = nextLocalDate
+        ? resolvePragueLocalDateTime(nextLocalDate, "00:00")?.getTime()
+        : undefined;
+      const dayAvailability = availability.filter(
+        (interval) => dayStartsAt !== undefined
+          && dayEndsAt !== undefined
+          && interval.startsAt < dayEndsAt
+          && interval.endsAt > dayStartsAt,
+      );
+      const active = shouldApplyAutoLunch({
+        localDate,
+        availability: dayAvailability,
+        globalAutoLunchEnabled: input.scheduleOptimization.globalAutoLunchEnabled,
+        dayLunchMode: input.scheduleOptimization.dayLunchModes[localDate] ?? "AUTO",
+      });
+      dayContext = {
+        active,
+        availability: dayAvailability,
+        lunchCandidates: generateLunchCandidates({ localDate, availability: dayAvailability }),
+        bookedBlocks: bookedBlocks.filter(
+          (interval) => dayStartsAt !== undefined
+            && dayEndsAt !== undefined
+            && interval.startsAt < dayEndsAt
+            && interval.endsAt > dayStartsAt,
+        ),
+      };
+      dayContexts.set(localDate, dayContext);
+    }
+
+    return canPreserveAutoLunch({
+      ...dayContext,
+      hypotheticalBlock: {
+        startsAt: startsAt.getTime(),
+        endsAt: startsAt.getTime()
+          + (input.serviceDurationMinutes + input.cleanupBlockMinutes) * 60_000,
+      },
+    }).feasible;
+  });
 }
 
 export function groupSlotsByDayPeriod(slots: TimeSlotOption[]): TimeSlotGroupData[] {

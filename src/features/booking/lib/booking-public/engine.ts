@@ -19,6 +19,20 @@ import {
 import { createNotificationEmailLogs } from "./notifications";
 import { resolveBookingTimingSnapshot } from "../booking-cleanup";
 import {
+  CURRENT_AUTO_LUNCH_CONFIGURATION,
+  getCurrentDayLunchMode,
+} from "../booking-auto-lunch-policy";
+import {
+  getNextCalendarDate,
+  getPragueLocalDate,
+  resolvePragueLocalDateTime,
+} from "../booking-local-time";
+import {
+  canPreserveAutoLunch,
+  generateLunchCandidates,
+  shouldApplyAutoLunch,
+} from "../booking-schedule-optimization";
+import {
   ACTIVE_BOOKING_STATUSES,
   EDITABLE_SLOT_CAPACITY,
   MAX_BOOKING_TRANSACTION_RETRIES,
@@ -49,6 +63,87 @@ function waitForRetryBackoff(attempt: number) {
   return new Promise((resolve) => {
     setTimeout(resolve, backoffMs);
   });
+}
+
+async function enforceAutoLunchForBooking(
+  tx: Prisma.TransactionClient,
+  requestedStartsAt: Date,
+  requestedBlockedUntil: Date,
+) {
+  const localDate = getPragueLocalDate(requestedStartsAt);
+  const nextLocalDate = getNextCalendarDate(localDate);
+  const dayStartsAt = resolvePragueLocalDateTime(localDate, "00:00");
+  const dayEndsAt = nextLocalDate
+    ? resolvePragueLocalDateTime(nextLocalDate, "00:00")
+    : null;
+
+  if (!dayStartsAt || !dayEndsAt) {
+    throw new PublicBookingError(
+      publicBookingErrorCodes.slotUnavailable,
+      "Vybraný termín už není dostupný.",
+      2,
+    );
+  }
+
+  const publishedSlots = await tx.availabilitySlot.findMany({
+    where: {
+      status: AvailabilitySlotStatus.PUBLISHED,
+      startsAt: { lt: dayEndsAt },
+      endsAt: { gt: dayStartsAt },
+    },
+    select: { startsAt: true, endsAt: true },
+  });
+  const availability = publishedSlots.map((publishedSlot) => ({
+    startsAt: publishedSlot.startsAt.getTime(),
+    endsAt: publishedSlot.endsAt.getTime(),
+  }));
+  const active = shouldApplyAutoLunch({
+    localDate,
+    availability,
+    globalAutoLunchEnabled: CURRENT_AUTO_LUNCH_CONFIGURATION.globalAutoLunchEnabled,
+    dayLunchMode: getCurrentDayLunchMode(localDate),
+  });
+
+  if (!active) {
+    return;
+  }
+
+  const activeBookings = await tx.booking.findMany({
+    where: {
+      status: { in: [...ACTIVE_BOOKING_STATUSES] },
+      scheduledStartsAt: { lt: dayEndsAt },
+      OR: [
+        { blockedUntil: { gt: dayStartsAt } },
+        { blockedUntil: null, scheduledEndsAt: { gt: dayStartsAt } },
+      ],
+    },
+    select: {
+      scheduledStartsAt: true,
+      scheduledEndsAt: true,
+      blockedUntil: true,
+    },
+  });
+  const feasible = canPreserveAutoLunch({
+    active,
+    availability,
+    lunchCandidates: generateLunchCandidates({ localDate, availability }),
+    bookedBlocks: activeBookings.map((booking) => ({
+      startsAt: booking.scheduledStartsAt.getTime(),
+      endsAt: (booking.blockedUntil ?? booking.scheduledEndsAt).getTime(),
+    })),
+    hypotheticalBlock: {
+      startsAt: requestedStartsAt.getTime(),
+      endsAt: requestedBlockedUntil.getTime(),
+    },
+  }).feasible;
+
+  if (!feasible) {
+    throw new PublicBookingError(
+      publicBookingErrorCodes.slotUnavailable,
+      "Vybraný termín už není dostupný.",
+      2,
+    );
+  }
 }
 
 async function loadServiceForBooking(
@@ -644,6 +739,10 @@ export async function createBookingWithEngine(
               "Tento konkrétní čas už má klientka v systému rezervovaný.",
               2,
             );
+          }
+
+          if (!input.allowManualOverride) {
+            await enforceAutoLunchForBooking(tx, requestedStartsAt, requestedBlockedUntil);
           }
 
           const booking = await tx.booking.create({

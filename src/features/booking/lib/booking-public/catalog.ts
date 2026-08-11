@@ -7,6 +7,7 @@ import {
   MAX_SERVICE_CLEANUP_MINUTES,
   roundUpToQuarterHour,
 } from "../booking-cleanup";
+import { CURRENT_AUTO_LUNCH_CONFIGURATION } from "../booking-auto-lunch-policy";
 import {
   ACTIVE_BOOKING_STATUSES,
   type PublicBookingCatalog,
@@ -140,6 +141,11 @@ export async function getPublicBookingCatalog(
     cleanupAggregate._max.cleanupMinutes ?? 0,
   );
 
+  const bookedIntervals = bookings.map((booking) => ({
+    startsAt: booking.scheduledStartsAt.toISOString(),
+    endsAt: (booking.blockedUntil ?? booking.scheduledEndsAt).toISOString(),
+  }));
+
   return {
     services: services.flatMap((service) => {
       if (!service.category) {
@@ -173,5 +179,13 @@ export async function getPublicBookingCatalog(
       })),
       bookingLookaheadMinutes,
     ),
+    scheduleOptimization: {
+      ...CURRENT_AUTO_LUNCH_CONFIGURATION,
+      publishedAvailability: slots.map((slot) => ({
+        startsAt: slot.startsAt.toISOString(),
+        endsAt: slot.endsAt.toISOString(),
+      })),
+      bookedIntervals,
+    },
   };
 }

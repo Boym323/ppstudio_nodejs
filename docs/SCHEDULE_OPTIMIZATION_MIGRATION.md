@@ -93,9 +93,17 @@ Catalog/availability projection má po standardním rozšíření o délku služ
 
 Server musí nezávisle použít stejné lunch pravidlo v `createBookingWithEngine` těsně před zápisem, po čerstvém načtení slotů a rezervací a po ověření hypotetického booking blocku. Selhání vrací existující typ nedostupnosti/konfliktu a nelze jej obejít vstupem z klienta.
 
+Fáze 2 zapojuje public filtering v `booking-flow.tsx` mezi `buildSlotTimeOptions` a odvození `selectableTimeOptions` pomocí `filterTimeOptionsForAutoLunch`. Stejný filtr používá public availability refresh. `getPublicBookingCatalog` předává v `scheduleOptimization` raw publikované intervaly a aktivní booking bloky; data vznikají ze stejných dávkových dotazů jako dosavadní katalog a konec booking bloku je `blockedUntil ?? scheduledEndsAt`. Filtr seskupí možnosti podle pražského lokálního data, připraví kontext dne jednou a všechny hypotetické booking bloky vyhodnotí čistě v paměti. Nemění pořadí ani výběr `suggestedSlots`.
+
+Authoritative kontrola je ve `createBookingWithEngine` uvnitř stávající `Serializable` transakce bezprostředně před `booking.create`, po ověření coverage, kapacity a duplicitní rezervace klientky. `enforceAutoLunchForBooking` načte raw `PUBLISHED` availability daného pražského dne a poté, jen při aktivní policy, čerstvé aktivní rezervace dne. Hypotetický blok používá `requestedStartsAt → requestedBlockedUntil`. Porušení vrací existující `SLOT_UNAVAILABLE` bez nového veřejného error kódu. Explicitní admin manual override zůstává mimo constraint; public a slot mode jej obejít nemohou.
+
 ## Transakční bezpečnost
 
 Uvnitř existující Serializable transakce vypočítat lokální datum, načíst publikované pokrytí daného dne a aktivní booking bloky včetně cleanup, vyhodnotit hypotetický nový blok a vyžadovat zbývající lunch kandidát před `booking.create`. Lockování slotu, overlap checks, capacity checks, idempotency checks i retry chování musí zůstat zachovány. Reschedule provede ekvivalentní kontrolu po vyloučení přesouvané rezervace a před `booking.update`; cancellation nic pro lunch neukládá a další výpočet se přirozeně změní.
+
+Stale test ověřuje, že termín dostupný ve starším katalogu server po mezilehlé rezervaci odmítne. Race test používá dva různé publikované sloty a dvě souběžné rezervace, které jsou jednotlivě validní, společně by však odstranily poslední oběd; projde právě jedna. PostgreSQL konflikt `40001`, který Prisma u raw `FOR UPDATE` vrací jako `P2010`, je zahrnut do stávajícího retry mechanismu. Po retry druhá transakce načte čerstvý committed stav a skončí `SLOT_UNAVAILABLE`; výsledná DB zachová lunch invariant.
+
+Persistence globálního a denního přepínače zatím neexistuje. Fáze 2 proto bez změny Prisma schématu používá explicitní integrační konfiguraci `CURRENT_AUTO_LUNCH_CONFIGURATION` s bezpečným současným výchozím stavem `enabled` a denním fallbackem `AUTO`. Kontrakt katalogu již umí nést `globalAutoLunchEnabled` a mapu `dayLunchModes`; čistý filtr i engine pokrývají `global OFF`, `day OFF` a směny kratší než 5 hodin. Persistence a administrační ovládání patří do Fáze 3.
 
 ## Reschedule a admin policy
 
@@ -157,12 +165,13 @@ Datový model capacity vystavuje, ale produkční create path dokumentuje a vynu
 
 ### Fáze 2
 
-- Přidat catalog/availability projection s publikovanými intervaly a blokovanými booking bloky bez N+1 dotazů.
-- Přidat UX feasibility filtering a zachovat úplný seznam termínů.
+- [x] Přidat catalog/availability projection s publikovanými intervaly a blokovanými booking bloky bez N+1 dotazů.
+- [x] Přidat UX feasibility filtering a zachovat chronologické pořadí filtrovaného seznamu termínů.
+- [x] Přidat authoritative create check do `createBookingWithEngine` těsně před zápis a ověřit stale/race scénáře.
 
 ### Fáze 3
 
-- Přidat authoritative create check do `createBookingWithEngine` těsně před zápis a doplnit race/integration testy.
+- Přidat minimální persistenci a administrační ovládání globálního `enabled/disabled` a denního `AUTO/OFF` bez ukládání konkrétního času oběda.
 
 ### Fáze 4
 
