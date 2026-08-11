@@ -1,3 +1,5 @@
+import { createElement } from "react";
+import { render } from "react-email";
 import { z } from "zod";
 
 import { env } from "@/config/env";
@@ -15,6 +17,7 @@ import {
 import { getVoucherDetail } from "@/features/vouchers/lib/voucher-read-models";
 import { getEmailBrandingSettings, getPublicSalonProfile } from "@/lib/site-settings";
 import { sanitizeEmailHeaderValue } from "@/lib/email/header";
+import { BookingConfirmationEmail } from "@/lib/email/react-email/BookingConfirmationEmail";
 
 const bookingConfirmationPayloadSchema = z.object({
   bookingId: z.string().min(1),
@@ -438,30 +441,20 @@ export async function renderEmailTemplate(
         `Zavolejte: ${salonContact.phone}`,
       ].join("\n");
 
-      const html = buildEmailShell(
-        brand,
-        "Rezervace přijata",
-        "Děkujeme za rezervaci. Termín teď zkontrolujeme a finální potvrzení pošleme dalším e-mailem.",
-        `
-          ${buildBookingDetailCard({
-            serviceName: data.serviceName,
-            bookingDate,
-            bookingTime,
-          })}
-          ${data.intendedVoucherCode ? `
-          <div style="height:14px;line-height:14px;font-size:14px;">&nbsp;</div>
-          ${buildEmailCard(`
-            <p style="margin:0 0 7px;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:16px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#9e7f65;">Dárkový poukaz</p>
-            <p style="margin:0 0 7px;font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:22px;font-weight:700;color:#1f1714;">${escapeHtml(data.intendedVoucherCode)}</p>
-            <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:24px;color:#5b4c44;">U rezervace jste uvedla dárkový poukaz. Poukaz bude ověřen a uplatněn při návštěvě v salonu.</p>
-          `, "#ffffff")}
-          ` : ""}
-          <div style="height:14px;line-height:14px;font-size:14px;">&nbsp;</div>
-          ${buildClientLocationBlock(salonContact)}
-          <div style="height:14px;line-height:14px;font-size:14px;">&nbsp;</div>
-          ${buildClientContactBlock(salonContact)}
-        `,
-        { maxWidthPx: 600 },
+      const html = await render(
+        createElement(BookingConfirmationEmail, {
+          brandName: brand.name,
+          serviceName: data.serviceName,
+          bookingDate,
+          bookingTime,
+          intendedVoucherCode: data.intendedVoucherCode,
+          salonName: salonContact.name,
+          salonAddress: salonContact.address,
+          salonEmail: salonContact.email,
+          salonPhone: salonContact.phone,
+          salonPhoneHref: buildPhoneHref(salonContact.phone),
+          salonMapUrl: salonContact.mapUrl,
+        }),
       );
 
       return { subject: safeSubject, html, text };

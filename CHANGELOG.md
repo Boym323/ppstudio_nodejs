@@ -6,6 +6,10 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+### Změněno
+
+- Zahájena migrace HTML e-mailů na React Email: pilotní šablona přijetí rezervace zachovává stávající obsah, plain-text variantu i doručovací tok.
+
 ## [3.16.4] - 2026-08-11
 
 ### Změněno

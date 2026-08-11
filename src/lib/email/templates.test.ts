@@ -59,6 +59,26 @@ test("renderEmailTemplate creates confirmation email for legacy payload without 
   assert.doesNotMatch(email.html, /Zrušit rezervaci/);
 });
 
+test("renderEmailTemplate escapes user content in confirmation html", async () => {
+  const { renderEmailTemplate } = await loadRenderer();
+  const email = await renderEmailTemplate(
+    "booking-confirmation-v1",
+    "Potvrzení rezervace",
+    {
+      bookingId: "clztestbookingescaped",
+      serviceName: '<img src=x onerror="alert(1)">',
+      clientName: "Jana <script>alert(1)</script>",
+      scheduledStartsAt: "2026-04-20T08:00:00.000Z",
+      scheduledEndsAt: "2026-04-20T09:00:00.000Z",
+      intendedVoucherCode: "<script>alert(1)</script>",
+    },
+  );
+
+  assert.match(email.html, /&lt;img src=x onerror=&quot;alert\(1\)&quot;&gt;/);
+  assert.match(email.html, /&lt;script&gt;alert\(1\)&lt;\/script&gt;/);
+  assert.doesNotMatch(email.html, /<script>alert\(1\)<\/script>/);
+});
+
 test("renderEmailTemplate creates cancellation email without booking reference", async () => {
   const { renderEmailTemplate } = await loadRenderer();
   const email = await renderEmailTemplate(
