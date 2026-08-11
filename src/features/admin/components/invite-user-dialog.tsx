@@ -48,10 +48,6 @@ export function InviteUserDialog({
       onClose();
     }
 
-    if (previousStatus.current !== "error" && serverState.status === "error" && serverState.formError) {
-      toast({ message: serverState.formError, tone: "error" });
-    }
-
     previousStatus.current = serverState.status;
   }, [mode, onClose, serverState.formError, serverState.status, serverState.successMessage, toast]);
 

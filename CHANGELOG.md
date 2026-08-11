@@ -16,6 +16,7 @@ Formát je inspirovaný Keep a Changelog.
 ### Opraveno
 
 - Finální audit Radix UI sjednotil vrstvení, overlaye a animace modalních prvků, doplnil mobilní safe-area u dlouhých drawerů a odstranil zbylý ruční focus trap a globální Escape obsluhu.
+- Rychlé akce rezervací nyní oznámí každý dokončený submit právě jednou; mobilní filtry a navigace navíc dokončí zavírací Radix animaci a formulářové chyby se nezobrazují duplicitně také v Toastu.
 
 ## [3.16.3] - 2026-08-10
 

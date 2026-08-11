@@ -1,7 +1,7 @@
 "use client";
 
 import * as ToastPrimitive from "@radix-ui/react-toast";
-import { createContext, useCallback, useContext, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -17,9 +17,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     const id = Date.now();
     setItems((current) => [...current.filter((item) => item.message !== message), { id, message, tone }]);
   }, []);
+  const contextValue = useMemo(() => ({ toast }), [toast]);
 
   return (
-    <ToastContext.Provider value={{ toast }}>
+    <ToastContext.Provider value={contextValue}>
       <ToastPrimitive.Provider swipeDirection="right">
         {children}
         {items.map((item) => (

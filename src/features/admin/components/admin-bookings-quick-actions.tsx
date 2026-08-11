@@ -35,14 +35,16 @@ export function AdminBookingsQuickActions({
     initialUpdateBookingStatusActionState,
   );
   const lastSubmittedAction = useRef<string | null>(null);
+  const previousServerState = useRef(serverState);
 
   const quickActions = getQuickActions(status, availableActions);
 
   useEffect(() => {
-    if (serverState.status === "success" && onSuccess) {
+    if (previousServerState.current !== serverState && serverState.status === "success" && onSuccess) {
       onSuccess(resolveToastMessage(lastSubmittedAction.current));
     }
-  }, [onSuccess, serverState.status]);
+    previousServerState.current = serverState;
+  }, [onSuccess, serverState]);
 
   return (
     <div className="space-y-1">

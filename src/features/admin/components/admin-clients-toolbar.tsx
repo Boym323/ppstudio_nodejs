@@ -32,7 +32,7 @@ export function AdminClientsToolbar({ currentPath, filters }: AdminClientsToolba
       <label className="min-w-0 flex-1 basis-0"><span className="sr-only">Hledat</span><input type="search" name="query" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Hledat klientku…" className="h-11 min-w-0 w-full rounded-[0.85rem] border border-white/10 bg-white/5 px-3 text-sm text-white outline-none placeholder:text-white/35 focus:border-[var(--color-accent)]/60" /></label>
       <Sheet.Trigger asChild><button type="button" className="inline-flex min-h-11 flex-none items-center rounded-full border border-white/12 px-4 text-sm font-medium text-white/84">Filtry{filters.quick !== "all" || filters.sort !== "recent" ? <span className="ml-1.5 rounded-full bg-white/12 px-1.5 py-0.5 text-[11px]">1</span> : null}</button></Sheet.Trigger>
     </form>
-    {isOpen ? <MobileFiltersSheet currentPath={currentPath} filters={filters} query={query} fixedView={fixedView} /> : null}
+    <MobileFiltersSheet currentPath={currentPath} filters={filters} query={query} fixedView={fixedView} />
   </Sheet.Root>;
 }
 

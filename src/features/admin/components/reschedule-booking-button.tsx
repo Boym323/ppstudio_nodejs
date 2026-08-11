@@ -98,10 +98,6 @@ export function RescheduleBookingButton({
       router.refresh();
     }
 
-    if (previousStatus.current !== "error" && serverState.status === "error" && serverState.formError) {
-      toast({ message: serverState.formError, tone: "error" });
-    }
-
     previousStatus.current = serverState.status;
   }, [router, serverState.formError, serverState.status, serverState.successMessage, toast]);
 

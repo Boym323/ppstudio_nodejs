@@ -6,6 +6,7 @@ import {
   cleanupE2eData,
   createAdminFixture,
   createPublicBookingFixture,
+  prisma,
   type E2eFixture,
 } from "./helpers/fixtures";
 
@@ -91,5 +92,25 @@ test.describe("accessibility", () => {
     await page.keyboard.press("Escape");
     await expect(menu).toHaveCount(0);
     await expect(menuTrigger).toBeFocused();
+  });
+
+  test("akce služby v DropdownMenu odešle server action myší i klávesou Enter", async ({ page }) => {
+    const fixture = await createPublicBookingFixture();
+    const admin = await createAdminFixture(fixture.runId, AdminRole.OWNER);
+    fixtures.push(fixture);
+
+    await loginAdmin(page, admin.email, admin.password);
+    await page.goto("/admin/sluzby");
+
+    const service = page.locator("details", { hasText: fixture.serviceName });
+    const menuTrigger = service.getByRole("button", { name: "Akce služby" });
+    await menuTrigger.click();
+    await page.getByRole("menuitem", { name: "Nastavit jako interní" }).click();
+    await expect.poll(async () => (await prisma.service.findUniqueOrThrow({ where: { slug: fixture.serviceSlug } })).isPubliclyBookable).toBe(false);
+
+    await menuTrigger.click();
+    await page.getByRole("menuitem", { name: "Nastavit jako veřejnou" }).focus();
+    await page.keyboard.press("Enter");
+    await expect.poll(async () => (await prisma.service.findUniqueOrThrow({ where: { slug: fixture.serviceSlug } })).isPubliclyBookable).toBe(true);
   });
 });

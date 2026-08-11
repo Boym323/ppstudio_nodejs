@@ -67,7 +67,6 @@ export function AdminShell({ children, currentRole, userName }: AdminShellProps)
         <main className="min-w-0 space-y-6">{children}</main>
       </div>
 
-      {mobileSidebarOpen ? (
       <Sheet.Content asChild side="left" className="bg-[#131116] lg:hidden"><aside id="admin-mobile-navigation"><Sheet.Title className="sr-only">Mobilní navigace administrace</Sheet.Title><Sheet.Description className="sr-only">Navigace administrace a odhlášení.</Sheet.Description>
           <div className="mb-4 flex items-center justify-between gap-3">
             <div>
@@ -94,7 +93,6 @@ export function AdminShell({ children, currentRole, userName }: AdminShellProps)
             </button>
           </form>
         </aside></Sheet.Content>
-      ) : null}
     </div>
     </Sheet.Root>
   );
