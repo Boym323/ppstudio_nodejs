@@ -4,7 +4,7 @@ export type UpdateBookingSettingsActionState = {
   formError?: string;
   fieldErrors?: Partial<
     Record<
-      "bookingMinAdvanceHours" | "bookingMaxAdvanceDays" | "bookingCancellationHours",
+      "bookingMinAdvanceHours" | "bookingMaxAdvanceDays" | "bookingCancellationHours" | "autoLunchEnabled",
       string
     >
   >;

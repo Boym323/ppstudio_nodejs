@@ -18,10 +18,7 @@ import {
 
 import { createNotificationEmailLogs } from "./notifications";
 import { resolveBookingTimingSnapshot } from "../booking-cleanup";
-import {
-  CURRENT_AUTO_LUNCH_CONFIGURATION,
-  getCurrentDayLunchMode,
-} from "../booking-auto-lunch-policy";
+import { loadAutoLunchPolicySnapshot } from "../booking-auto-lunch-policy";
 import {
   getNextCalendarDate,
   getPragueLocalDate,
@@ -97,11 +94,12 @@ async function enforceAutoLunchForBooking(
     startsAt: publishedSlot.startsAt.getTime(),
     endsAt: publishedSlot.endsAt.getTime(),
   }));
+  const autoLunchPolicy = await loadAutoLunchPolicySnapshot(tx, [localDate]);
   const active = shouldApplyAutoLunch({
     localDate,
     availability,
-    globalAutoLunchEnabled: CURRENT_AUTO_LUNCH_CONFIGURATION.globalAutoLunchEnabled,
-    dayLunchMode: getCurrentDayLunchMode(localDate),
+    globalAutoLunchEnabled: autoLunchPolicy.globalAutoLunchEnabled,
+    dayLunchMode: autoLunchPolicy.dayLunchModes[localDate] ?? "AUTO",
   });
 
   if (!active) {

@@ -54,6 +54,7 @@ export const updateBookingSettingsSchema = z.object({
     .int("Použijte celé hodiny.")
     .min(0, "Limit storna nemůže být záporný.")
     .max(336, "Limit storna držte maximálně na 336 hodin."),
+  autoLunchEnabled: z.boolean(),
 }).superRefine((value, context) => {
   if (value.bookingMinAdvanceHours >= value.bookingMaxAdvanceDays * 24) {
     context.addIssue({

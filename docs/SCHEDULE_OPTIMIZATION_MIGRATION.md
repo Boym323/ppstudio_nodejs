@@ -103,7 +103,7 @@ Uvnitř existující Serializable transakce vypočítat lokální datum, načís
 
 Stale test ověřuje, že termín dostupný ve starším katalogu server po mezilehlé rezervaci odmítne. Race test používá dva různé publikované sloty a dvě souběžné rezervace, které jsou jednotlivě validní, společně by však odstranily poslední oběd; projde právě jedna. PostgreSQL konflikt `40001`, který Prisma u raw `FOR UPDATE` vrací jako `P2010`, je zahrnut do stávajícího retry mechanismu. Po retry druhá transakce načte čerstvý committed stav a skončí `SLOT_UNAVAILABLE`; výsledná DB zachová lunch invariant.
 
-Persistence globálního a denního přepínače zatím neexistuje. Fáze 2 proto bez změny Prisma schématu používá explicitní integrační konfiguraci `CURRENT_AUTO_LUNCH_CONFIGURATION` s bezpečným současným výchozím stavem `enabled` a denním fallbackem `AUTO`. Kontrakt katalogu již umí nést `globalAutoLunchEnabled` a mapu `dayLunchModes`; čistý filtr i engine pokrývají `global OFF`, `day OFF` a směny kratší než 5 hodin. Persistence a administrační ovládání patří do Fáze 3.
+Globální přepínač je uložen v singletonu `SiteSettings.autoLunchEnabled` s bezpečným výchozím `true`. Denní režim používá model `AutoLunchDayOverride`, kde `dateKey` je lokální kalendářní datum `Europe/Prague`: absence řádku znamená `AUTO`, jediný ukládaný override znamená `OFF`. Neukládá se žádný konkrétní čas oběda. `loadAutoLunchPolicySnapshot` jedním dávkovým načtením připraví stejný snapshot pro public catalog a v autoritativní transakci pro datum požadované rezervace. Změna globálního nastavení používá existující audit `SiteSettingsChangeLog`; denní změna používá `AvailabilityAuditEvent` se zdrojem `auto-lunch-day-override-v1`. Obě změny invalidují `/rezervace`, takže další veřejné načtení vychází z aktuální konfigurace. Cílené unit/validační testy: 32 PASS; DB integrační testy jsou SKIPPED, protože sdílená vývojová DB má existující Prisma drift a bezpečný reset nebyl proveden.
 
 ## Reschedule a admin policy
 
@@ -171,7 +171,7 @@ Datový model capacity vystavuje, ale produkční create path dokumentuje a vynu
 
 ### Fáze 3
 
-- Přidat minimální persistenci a administrační ovládání globálního `enabled/disabled` a denního `AUTO/OFF` bez ukládání konkrétního času oběda.
+- [ ] Persistence konfigurace: přidat minimální persistenci a administrační ovládání globálního `enabled/disabled` a denního `AUTO/OFF` bez ukládání konkrétního času oběda.
 
 ### Fáze 4
 

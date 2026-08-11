@@ -234,6 +234,14 @@ test("updateSalonSettingsAction rejects invalid contact fields", async () => {
   assert.ok(result.fieldErrors?.phone);
 });
 
+test("updateAutoLunchDayModeAction rejects invalid Prague date before authorization", async () => {
+  const { updateAutoLunchDayModeAction } = await import("@/features/admin/actions/settings-actions");
+
+  const result = await updateAutoLunchDayModeAction({ dateKey: "2026-02-30", mode: "OFF" });
+
+  assert.deepEqual(result, { ok: false, message: "Zadejte platné lokální datum a režim oběda." });
+});
+
 test("createServiceCategoryAction returns validation errors for incomplete payload", async () => {
   const { createServiceCategoryAction } = await import("@/features/admin/actions/service-category-actions");
   const formData = makeFormData({

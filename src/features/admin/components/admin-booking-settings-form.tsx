@@ -22,6 +22,7 @@ export function AdminBookingSettingsForm({
     bookingMinAdvanceHours: number;
     bookingMaxAdvanceDays: number;
     bookingCancellationHours: number;
+    autoLunchEnabled: boolean;
   };
 }) {
   const [serverState, formAction] = useActionState(
@@ -89,6 +90,13 @@ export function AdminBookingSettingsForm({
             />
           </SettingsField>
         </div>
+        <label className="flex items-start gap-3 rounded-[1rem] border border-white/8 bg-black/12 p-4 text-sm text-white/76">
+          <input type="checkbox" name="autoLunchEnabled" value="1" defaultChecked={settings.autoLunchEnabled} className="mt-1 size-4" />
+          <span>
+            <span className="block font-semibold text-white">Automatická obědová přestávka</span>
+            <span className="mt-1 block leading-6">U delších směn systém automaticky chrání 45 minut na oběd a jeho čas přizpůsobuje rezervacím. Po vypnutí rezervační systém obědovou přestávku automaticky nechrání.</span>
+          </span>
+        </label>
       </SettingsSection>
 
       <SettingsFormFooter note="Změny se použijí pro nové rezervace. Už uložené termíny tím neměníš." />
