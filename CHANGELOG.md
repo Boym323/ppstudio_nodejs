@@ -6,9 +6,12 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [3.16.5] - 2026-08-11
+
 ### Změněno
 
 - Všechny produkční HTML e-maily (booking, administrace i voucher) nyní renderuje React Email; plain text, akční/ověřovací URL, ICS/PDF přílohy i delivery infrastruktura s EmailLogem, workery, retry/locking a providery zůstávají beze změny. Vývoj podporují interaktivní `email:dev` preview a regresní `email:previews` přes aplikační renderer.
+- Release příprava pro produkční nasazení: projektová verze navýšena na patch `3.16.5` kvůli dokončení migrace produkčních e-mailových šablon.
 
 ## [3.16.4] - 2026-08-11
 
