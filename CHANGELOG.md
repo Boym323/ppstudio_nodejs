@@ -9,7 +9,7 @@ Formát je inspirovaný Keep a Changelog.
 ### Změněno
 
 - Zahájena migrace HTML e-mailů na React Email: pilotní šablona přijetí rezervace zachovává stávající obsah, plain-text variantu i doručovací tok.
-- Booking e-maily pro klientky i administraci nyní generují HTML přes React Email při zachování plain-textu, akčních URL a ICS příloh; administrátorské akce nadále dostávají URL vytvořené mimo renderer.
+- Booking e-maily pro klientky i administraci i voucherový e-mail nyní generují HTML přes React Email při zachování plain-textu, akčních URL a příloh; administrátorské akce i ověřovací URL voucheru nadále vznikají mimo renderer a voucherový PDF attachment zůstává beze změny.
 
 ## [3.16.4] - 2026-08-11
 

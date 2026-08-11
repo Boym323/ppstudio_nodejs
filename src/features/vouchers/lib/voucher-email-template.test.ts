@@ -29,8 +29,8 @@ function buildBaseInput(type: VoucherType) {
   } as const;
 }
 
-test("buildVoucherEmailTemplate creates VALUE voucher email with safe details", () => {
-  const template = buildVoucherEmailTemplate(buildBaseInput(VoucherType.VALUE));
+test("buildVoucherEmailTemplate creates VALUE voucher email with safe details", async () => {
+  const template = await buildVoucherEmailTemplate(buildBaseInput(VoucherType.VALUE));
 
   assert.equal(template.subject, "Dárkový poukaz PP Studio");
   assert.match(template.text, /Typ poukazu: Hodnotový poukaz/);
@@ -38,23 +38,26 @@ test("buildVoucherEmailTemplate creates VALUE voucher email with safe details", 
   assert.match(template.text, /Kód voucheru: PP-2026-ZFUJ8U/);
   assert.match(template.text, /Platnost do:/);
   assert.match(template.text, /vouchery\/overeni\?code=PP-2026-ZFUJ8U/);
+  assert.match(template.html, /vouchery\/overeni\?code=PP-2026-ZFUJ8U/);
   assert.match(template.text, /^Dobrý den,\n\nv příloze zasíláme dárkový poukaz PP Studio\./m);
   assert.match(template.text, /ppstudio\.cz/);
   assert.doesNotMatch(template.text, /internalNote/i);
 });
 
-test("buildVoucherEmailTemplate creates SERVICE voucher email with service snapshot", () => {
-  const template = buildVoucherEmailTemplate(buildBaseInput(VoucherType.SERVICE));
+test("buildVoucherEmailTemplate creates SERVICE voucher email with service snapshot", async () => {
+  const template = await buildVoucherEmailTemplate(buildBaseInput(VoucherType.SERVICE));
 
   assert.match(template.text, /Typ poukazu: Poukaz na službu/);
   assert.match(template.text, /Služba: Lash lifting/);
   assert.match(template.text, /Kód voucheru: PP-2026-ZFUJ8U/);
   assert.match(template.text, /vouchery\/overeni\?code=PP-2026-ZFUJ8U/);
+  assert.match(template.html, /Lash lifting/);
+  assert.match(template.html, /vouchery\/overeni\?code=PP-2026-ZFUJ8U/);
   assert.doesNotMatch(template.text, /postupně čerpat/i);
 });
 
-test("buildVoucherEmailTemplate attaches PDF with expected metadata", () => {
-  const template = buildVoucherEmailTemplate(buildBaseInput(VoucherType.VALUE));
+test("buildVoucherEmailTemplate attaches PDF with expected metadata", async () => {
+  const template = await buildVoucherEmailTemplate(buildBaseInput(VoucherType.VALUE));
 
   assert.equal(template.attachments.length, 1);
   assert.equal(template.attachments[0]?.filename, "voucher-PP-2026-ZFUJ8U.pdf");
@@ -62,8 +65,8 @@ test("buildVoucherEmailTemplate attaches PDF with expected metadata", () => {
   assert.equal(template.attachments[0]?.content.toString("utf8"), "%PDF-1.7");
 });
 
-test("buildVoucherEmailTemplate uses provided salon contact and keeps PDF attachment", () => {
-  const template = buildVoucherEmailTemplate({
+test("buildVoucherEmailTemplate uses provided salon contact and keeps PDF attachment", async () => {
+  const template = await buildVoucherEmailTemplate({
     ...buildBaseInput(VoucherType.VALUE),
     salon: {
       name: "Salon U Lípy",
@@ -78,4 +81,18 @@ test("buildVoucherEmailTemplate uses provided salon contact and keeps PDF attach
   assert.match(template.html, /Salon U Lípy/);
   assert.match(template.html, /recepce@example\.cz/);
   assert.equal(template.attachments[0]?.contentType, "application/pdf");
+});
+
+test("buildVoucherEmailTemplate escapes dynamic voucher content in React Email HTML", async () => {
+  const template = await buildVoucherEmailTemplate({
+    ...buildBaseInput(VoucherType.SERVICE),
+    voucher: {
+      ...buildBaseInput(VoucherType.SERVICE).voucher,
+      serviceNameSnapshot: '<script>alert("xss")</script>',
+    },
+  });
+
+  assert.match(template.text, /<script>alert\("xss"\)<\/script>/);
+  assert.match(template.html, /&lt;script&gt;alert\(&quot;xss&quot;\)&lt;\/script&gt;/);
+  assert.doesNotMatch(template.html, /<script>alert\("xss"\)<\/script>/);
 });

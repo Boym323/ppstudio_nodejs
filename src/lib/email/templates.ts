@@ -993,7 +993,7 @@ export async function renderEmailTemplate(
 
       const pdfBytes = await generateVoucherPdf(voucher);
       const verificationUrl = buildVoucherVerificationUrl(voucher.code);
-      const voucherEmail = buildVoucherEmailTemplate({
+      const voucherEmail = await buildVoucherEmailTemplate({
         subject: safeSubject,
         voucher,
         salon: {
