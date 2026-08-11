@@ -268,6 +268,7 @@ export async function updateAutoLunchDayModeAction(input: { dateKey: string; mod
         actorUserId: actor.id, actorRole: "OWNER", adminArea: "owner", dateKey: parsed.data.dateKey,
         operation: "ADD", source: "auto-lunch-day-override-v1", operationId: randomUUID(),
         before: { dayLunchMode: previous ? "OFF" : "AUTO" }, after: { dayLunchMode: "OFF" },
+        createdSlots: [], archivedOrRemovedSlots: [],
       } }),
     ]);
   } else {
@@ -277,6 +278,7 @@ export async function updateAutoLunchDayModeAction(input: { dateKey: string; mod
         actorUserId: actor.id, actorRole: "OWNER", adminArea: "owner", dateKey: parsed.data.dateKey,
         operation: "REMOVE", source: "auto-lunch-day-override-v1", operationId: randomUUID(),
         before: { dayLunchMode: previous ? "OFF" : "AUTO" }, after: { dayLunchMode: "AUTO" },
+        createdSlots: [], archivedOrRemovedSlots: [],
       } }),
     ]);
   }

@@ -105,6 +105,13 @@ Stale test ověřuje, že termín dostupný ve starším katalogu server po mezi
 
 Globální přepínač je uložen v singletonu `SiteSettings.autoLunchEnabled` s bezpečným výchozím `true`. Denní režim používá model `AutoLunchDayOverride`, kde `dateKey` je lokální kalendářní datum `Europe/Prague`: absence řádku znamená `AUTO`, jediný ukládaný override znamená `OFF`. Neukládá se žádný konkrétní čas oběda. `loadAutoLunchPolicySnapshot` jedním dávkovým načtením připraví stejný snapshot pro public catalog a v autoritativní transakci pro datum požadované rezervace. Změna globálního nastavení používá existující audit `SiteSettingsChangeLog`; denní změna používá `AvailabilityAuditEvent` se zdrojem `auto-lunch-day-override-v1`. Obě změny invalidují `/rezervace`, takže další veřejné načtení vychází z aktuální konfigurace. Cílené unit/validační testy: 32 PASS; DB integrační testy jsou SKIPPED, protože sdílená vývojová DB má existující Prisma drift a bezpečný reset nebyl proveden.
 
+## Fáze 3A — ověření persistence
+
+- Sdílená DB `ppstudio_dev` měla drift před Fází 3: chyběly jí dřívější historické změny, mimo jiné odstranění `ClientContactConflict`, aktualizace `BookingActionTokenType` a související indexy. Nová migrace v ní nebyla aplikovaná.
+- Na izolované dočasné PostgreSQL DB prošlo všech 50 migrací včetně `20260811100000_auto_lunch_policy_persistence`; `prisma migrate diff` proti `schema.prisma` neukázal rozdíl. Migrace správně přidává `SiteSettings.autoLunchEnabled` s defaultem `true` a jediný `OFF` override na `dateKey` bez ukládání času oběda.
+- Pět DB integračních testů automatického oběda, včetně stale requestu a race condition, prošlo na izolované DB. Po regeneraci Prisma Clientu byly opraveny chybějící povinné atributy auditní události a testovací fixture `SiteSettings`.
+- Produkční `npm run build` po opravě typechecku dokončil a vytvořil `.next/BUILD_ID`; loader policy neprovádí dotaz při importu, pouze při runtime volání.
+
 ## Reschedule a admin policy
 
 - Public booking: hard lunch constraint; manual override je false.

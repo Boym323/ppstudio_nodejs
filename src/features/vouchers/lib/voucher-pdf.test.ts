@@ -198,6 +198,7 @@ function buildTestSiteSettings() {
     bookingMinAdvanceHours: 2,
     bookingMaxAdvanceDays: 90,
     bookingCancellationHours: 48,
+    autoLunchEnabled: true,
     notificationAdminEmail: "owner@example.com",
     emailSenderName: "PP Studio",
     emailSenderEmail: "info@ppstudio.cz",
