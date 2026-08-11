@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { useActionState, useEffect, useRef, type RefObject } from "react";
 import { useFormStatus } from "react-dom";
 
 import {
@@ -21,6 +21,7 @@ type InviteUserDialogProps = {
     email: string;
     role: "OWNER" | "SALON";
   } | null;
+  returnFocusRef?: RefObject<HTMLElement | null>;
   onClose: () => void;
 };
 
@@ -28,6 +29,7 @@ export function InviteUserDialog({
   open,
   mode,
   initialValues,
+  returnFocusRef,
   onClose,
 }: InviteUserDialogProps) {
   const { toast } = useToast();
@@ -64,7 +66,15 @@ export function InviteUserDialog({
     >
       <Dialog.Portal>
         <Dialog.Overlay />
-        <Dialog.Content className="rounded-[1.7rem] border border-white/10 bg-[#131116] p-5 shadow-[0_20px_70px_rgba(0,0,0,0.45)] sm:p-6">
+        <Dialog.Content
+          className="rounded-[1.7rem] border border-white/10 bg-[#131116] p-5 shadow-[0_20px_70px_rgba(0,0,0,0.45)] sm:p-6"
+          onCloseAutoFocus={(event) => {
+            if (returnFocusRef?.current) {
+              event.preventDefault();
+              returnFocusRef.current.focus();
+            }
+          }}
+        >
           <div className="flex items-start justify-between gap-4 border-b border-white/10 pb-4">
             <div>
               <p className="text-[11px] uppercase tracking-[0.22em] text-[var(--color-accent-soft)]">

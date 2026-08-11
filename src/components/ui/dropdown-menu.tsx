@@ -25,7 +25,7 @@ export const Content = forwardRef<
       ref={ref}
       sideOffset={sideOffset}
       className={cn(
-        "z-[100] min-w-56 rounded-[1rem] border border-white/10 bg-[#171419] p-1.5 text-white shadow-[0_18px_40px_rgba(0,0,0,0.35)] outline-none data-[state=open]:[animation:ppstudio-menu-in_140ms_ease-out] data-[state=closed]:[animation:ppstudio-menu-out_100ms_ease-in] motion-reduce:animate-none",
+        "admin-app z-[100] min-w-56 rounded-[1rem] border border-white/10 bg-[#171419] p-1.5 text-white shadow-[0_18px_40px_rgba(0,0,0,0.35)] outline-none data-[state=open]:[animation:ppstudio-menu-in_140ms_ease-out] data-[state=closed]:[animation:ppstudio-menu-out_100ms_ease-in] motion-reduce:animate-none",
         className,
       )}
       {...props}

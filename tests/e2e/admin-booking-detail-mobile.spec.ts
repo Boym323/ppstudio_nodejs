@@ -50,11 +50,14 @@ test.describe("mobilní detail rezervace", () => {
     await paymentPanel.getByRole("button", { name: "Zapsat platbu" }).click();
     await expect.poll(() => prisma.bookingPayment.count({ where: { bookingId: fixture.bookingId } })).toBe(1);
 
-    await page.getByRole("button", { name: "Přesunout termín" }).first().click();
-    await expect(page.getByRole("heading", { name: "Změnit termín rezervace" })).toBeVisible();
+    const rescheduleTrigger = page.getByRole("button", { name: "Přesunout termín" }).first();
+    await rescheduleTrigger.click();
+    const rescheduleDialog = page.getByRole("dialog", { name: "Změnit termín rezervace" });
+    await expect(rescheduleDialog).toBeVisible();
     const submit = page.getByRole("button", { name: /Potvrdit přesun|Přesunout termín/ }).last();
     await expect(submit).toBeInViewport();
     await page.keyboard.press("Escape");
-    await expect(page.getByRole("heading", { name: "Změnit termín rezervace" })).toHaveCount(0);
+    await expect(rescheduleDialog).toHaveCount(0);
+    await expect(rescheduleTrigger).toBeFocused();
   });
 });

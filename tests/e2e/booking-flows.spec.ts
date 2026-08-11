@@ -1325,11 +1325,14 @@ test.describe("booking flows", () => {
 
     await page.goto("/admin/rezervace");
     await expect(page.getByRole("heading", { name: "Nová rezervace" })).toHaveCount(0);
-    await page.getByRole("button", { name: "Přidat rezervaci" }).first().click();
+    const createBookingTrigger = page.getByRole("button", { name: "Přidat rezervaci" }).first();
+    await createBookingTrigger.click();
     const bookingDrawer = page.getByRole("dialog", { name: "Nová rezervace" });
     await expect(bookingDrawer).toBeVisible();
     await expect(bookingDrawer.getByText("Vybraná klientka")).toHaveCount(0);
     await bookingDrawer.getByRole("button", { name: "Zrušit" }).click();
+    await expect(bookingDrawer).toHaveCount(0);
+    await expect(createBookingTrigger).toBeFocused();
 
     await page.goto("/admin/rezervace?create=1&clientId=missing-client");
     await expect(page.getByRole("heading", { name: "Nová rezervace" })).toBeVisible();

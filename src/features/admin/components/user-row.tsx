@@ -1,6 +1,6 @@
 "use client";
 
-import { startTransition, useState } from "react";
+import { startTransition, useRef, useState } from "react";
 
 import { AdminRole } from "@prisma/client";
 
@@ -18,6 +18,7 @@ import { RoleBadge } from "./role-badge";
 export function UserRow({ user }: { user: AdminUserAccessRecord }) {
   const [detailOpen, setDetailOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const editTriggerRef = useRef<HTMLButtonElement>(null);
   const [resendState, setResendState] = useState<{
     status: "idle" | "success" | "error";
     message?: string;
@@ -110,6 +111,7 @@ export function UserRow({ user }: { user: AdminUserAccessRecord }) {
 
             {user.canEdit ? (
               <button
+                ref={editTriggerRef}
                 type="button"
                 onClick={() => setEditOpen(true)}
                 className="rounded-full border border-white/10 px-3.5 py-2 text-sm text-white/78 transition hover:border-white/18 hover:bg-white/6"
@@ -209,6 +211,7 @@ export function UserRow({ user }: { user: AdminUserAccessRecord }) {
           email: user.email,
           role: user.role,
         }}
+        returnFocusRef={editTriggerRef}
         onClose={() => setEditOpen(false)}
       />
     </>

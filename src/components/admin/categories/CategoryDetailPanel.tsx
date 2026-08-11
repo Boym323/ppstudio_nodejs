@@ -363,7 +363,7 @@ export function CategoryDetailPanel(props: Props) {
           </div>
         </div>
 
-        <div className="shrink-0 border-t border-white/8 bg-[linear-gradient(180deg,rgba(7,10,18,0.12),rgba(7,10,18,0.94)_28%,rgba(7,10,18,0.98))] px-5 pb-5 pt-4 backdrop-blur-xl sm:px-6">
+        <div className="shrink-0 border-t border-white/8 bg-[linear-gradient(180deg,rgba(7,10,18,0.12),rgba(7,10,18,0.94)_28%,rgba(7,10,18,0.98))] px-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-4 backdrop-blur-xl sm:px-6 sm:pb-5">
           <div className="flex flex-wrap items-center gap-3">
             <SubmitButton label="Uložit" />
             <SubmitButton label="Uložit a zavřít" intent="save-close" secondary />

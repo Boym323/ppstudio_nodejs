@@ -161,7 +161,7 @@ export function RescheduleBookingButton({
       </div>
 
       <Dialog.Portal>
-        <Dialog.Overlay className="z-[89] bg-black/62" />
+        <Dialog.Overlay />
         <Dialog.Content className="!inset-y-0 !right-0 !left-auto z-[90] !h-[100dvh] !max-h-none !w-full !max-w-3xl !translate-x-0 !translate-y-0 !overflow-hidden border-l border-white/10 bg-[#131116] shadow-[-20px_0_70px_rgba(0,0,0,0.45)]">
                 <div className="flex h-full flex-col">
                   <header className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-white/10 bg-[#131116]/96 px-5 pb-5 pt-[calc(1.25rem+env(safe-area-inset-top))] backdrop-blur sm:px-6 sm:py-5">
@@ -242,7 +242,7 @@ export function RescheduleBookingButton({
                             maxLength={300}
                             rows={4}
                             placeholder="Např. klientka volala a potřebovala posunout termín, nebo salon přesouvá rezervaci z provozních důvodů."
-                            className="mt-4 w-full rounded-[1rem] border border-white/8 bg-black/20 px-3.5 py-3 text-sm text-white outline-none transition placeholder:text-white/30 focus:border-[var(--color-accent)]/55"
+                            className="mt-4 w-full rounded-[1rem] border border-white/8 bg-black/20 px-3.5 py-3 text-sm text-white outline-none transition placeholder:text-white/30 focus:border-[var(--color-accent)]/55 focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/45"
                           />
                           <div className="mt-2 flex items-center justify-between gap-3 text-xs text-white/42">
                             <span>Uloží se do auditní historie přesunu.</span>
@@ -275,7 +275,7 @@ export function RescheduleBookingButton({
                       </div>
                     </div>
 
-                    <div className="sticky bottom-0 border-t border-white/10 bg-[#131116]/96 px-5 py-4 backdrop-blur sm:px-6">
+                    <div className="sticky bottom-0 border-t border-white/10 bg-[#131116]/96 px-5 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-4 backdrop-blur sm:px-6 sm:py-4">
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <div className="text-sm leading-6 text-white/58">
                           OWNER i SALON používají stejnou doménovou akci i stejné validace. Rozdíl je jen v admin cestě.

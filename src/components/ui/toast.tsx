@@ -31,7 +31,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               if (!open) setItems((current) => current.filter((currentItem) => currentItem.id !== item.id));
             }}
             className={cn(
-              "pointer-events-auto flex w-full items-start gap-3 rounded-[1rem] border bg-[#17141b]/95 px-4 py-3 text-sm text-white shadow-[0_18px_50px_rgba(0,0,0,0.32)] backdrop-blur data-[state=open]:[animation:ppstudio-toast-in_180ms_ease-out] data-[state=closed]:[animation:ppstudio-toast-out_140ms_ease-in] motion-reduce:animate-none sm:max-w-sm",
+              "admin-app pointer-events-auto flex w-full items-start gap-3 rounded-[1rem] border bg-[#17141b]/95 px-4 py-3 text-sm text-white shadow-[0_18px_50px_rgba(0,0,0,0.32)] backdrop-blur data-[state=open]:[animation:ppstudio-toast-in_180ms_ease-out] data-[state=closed]:[animation:ppstudio-toast-out_140ms_ease-in] motion-reduce:animate-none sm:max-w-sm",
               item.tone === "success" ? "border-emerald-300/20" : "border-red-300/30",
             )}
           >

@@ -13,6 +13,10 @@ Formát je inspirovaný Keep a Changelog.
 - Obnovení uloženého stavu planneru při zahození více neuložených úprav nyní používá přístupný Radix potvrzovací dialog s bezpečným výchozím focusem na zrušení akce.
 - Akce služeb a krátké výsledky migrovaných administračních workflow nyní používají přístupné Radix DropdownMenu a Toast; validační chyby formulářů zůstávají přímo u polí.
 
+### Opraveno
+
+- Finální audit Radix UI sjednotil vrstvení, overlaye a animace modalních prvků, doplnil mobilní safe-area u dlouhých drawerů a odstranil zbylý ruční focus trap a globální Escape obsluhu.
+
 ## [3.16.3] - 2026-08-10
 
 ### Opraveno

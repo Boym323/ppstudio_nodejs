@@ -50,7 +50,7 @@ export function CategoryDetailDrawer({
       }}
     >
       <Dialog.Portal>
-        <Dialog.Overlay className="z-[89] bg-black/62" />
+        <Dialog.Overlay />
         <Dialog.Content className="!inset-y-0 !right-0 !left-auto z-[90] !h-[100dvh] !max-h-none !w-full !max-w-4xl !translate-x-0 !translate-y-0 !overflow-hidden border-l border-white/10 bg-[#131116] shadow-[-20px_0_70px_rgba(0,0,0,0.45)]">
           <div className="flex h-full min-h-0 flex-col">
             <header className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-white/10 bg-[#131116]/96 px-5 pb-5 pt-[calc(1.25rem+env(safe-area-inset-top))] backdrop-blur sm:px-6 sm:py-5">

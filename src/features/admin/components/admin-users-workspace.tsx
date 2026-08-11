@@ -5,7 +5,7 @@ import type { AdminUsersPageData } from "@/features/admin/lib/admin-users";
 import { InviteUserDialog } from "./invite-user-dialog";
 import { RoleCards } from "./role-cards";
 import { UsersList } from "./users-list";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 export function AdminUsersWorkspace({
   users,
@@ -15,6 +15,7 @@ export function AdminUsersWorkspace({
   roleCards: AdminUsersPageData["roleCards"];
 }) {
   const [inviteOpen, setInviteOpen] = useState(false);
+  const inviteTriggerRef = useRef<HTMLButtonElement>(null);
 
   return (
     <>
@@ -24,6 +25,7 @@ export function AdminUsersWorkspace({
             Hned vidíte, kdo má přístup, jakou má roli a jaké akce jsou k dispozici.
           </p>
           <button
+            ref={inviteTriggerRef}
             type="button"
             onClick={() => setInviteOpen(true)}
             className="inline-flex justify-center rounded-full bg-[var(--color-accent)] px-4 py-2.5 text-sm font-semibold text-[var(--color-accent-contrast)] transition hover:brightness-105"
@@ -38,7 +40,12 @@ export function AdminUsersWorkspace({
         <RoleCards roleCards={roleCards} />
       </div>
 
-      <InviteUserDialog open={inviteOpen} mode="invite" onClose={() => setInviteOpen(false)} />
+      <InviteUserDialog
+        open={inviteOpen}
+        mode="invite"
+        returnFocusRef={inviteTriggerRef}
+        onClose={() => setInviteOpen(false)}
+      />
     </>
   );
 }

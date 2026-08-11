@@ -1,10 +1,11 @@
 # Migrace administračního UI na Radix UI
 
-## Rozsah a výchozí stav
+## Rozsah a finální stav
 
-Tento dokument je cílený kontext pro postupnou migraci modalů, drawerů a
-mobilních sheets. Audit pokryl pouze uvedené komponenty a jejich lokální UI
-chování. Fáze 0 nemění produkční kód, dependencies ani chování aplikace.
+Tento dokument uzavírá migraci administračních modalů, drawerů, mobilních
+sheets, akčního menu a krátkého feedbacku. Finální audit pokryl pouze níže
+uvedené komponenty, sdílené UI primitives a jejich lokální UI chování;
+nesouvisející backendové oblasti nebyly auditovány.
 
 ### Invariants
 
@@ -26,43 +27,37 @@ framework ani důvod pro redesign.
 
 ## Inventory
 
-| Komponenta | Současné řešení | Navržený Radix primitive | Fáze |
+| Komponenta | Výsledek | Stav | Poznámka |
 |---|---|---|---|
-| `admin-drawer-escape-close.tsx` | Globální `window` Escape listener; ruční focus trap přes `useAdminModalFocus`; route close přes `window.location.assign` | Sdílené tenké obaly nad `Dialog`; lifecycle `onOpenChange` | 1–2 |
-| `invite-user-dialog.tsx` | Controlled vlastní `role="dialog"`, `aria-modal`, overlay click a Escape listener | `Dialog.Root`, `Portal`, `Overlay`, `Content`, `Title`, `Description`, `Close` | 1 |
-| `create-manual-booking-drawer.tsx` | `createPortal`, vlastní Escape, pravý panel, sticky footer, inline success/error feedback | `Dialog` stylovaný jako pravý drawer | 2 |
-| `reschedule-booking-button.tsx` | `createPortal`, vlastní Escape, pravý panel, inline success/error feedback | `Dialog` stylovaný jako pravý drawer | 2 |
-| `CategoryDetailDrawer.tsx` | Vlastní fixed overlay, pravý `aside`, Escape listener; bez explicitního dialog semantics/focus trap | `Dialog` stylovaný jako drawer | 2 |
-| `admin-services-page.tsx` – detail služby | Route-driven fixed drawer, overlay `Link`, Escape navigace přes helper; bez explicitního dialog semantics | `Dialog` s controlled/route-driven lifecycle | 2 |
-| `admin-clients-toolbar.tsx` – `MobileFiltersSheet` | Mobilní bottom sheet, `role="dialog"`, `aria-modal`, ruční focus trap a restore focus | `Dialog` stylovaný jako bottom sheet | 3 |
-| `admin-logs-page.tsx` – `LogsFiltersDialog` | Mobilní bottom sheet, `role="dialog"`, `aria-modal`, ruční focus trap a restore focus | `Dialog` stylovaný jako bottom sheet | 3 |
-| `admin-shell.tsx` – mobilní navigace | Vlastní modal overlay, ruční focus trap, Escape a restore focus | `Dialog` stylovaný jako levý drawer/sheet | 3 |
-| `admin-weekly-planner-lab-client.tsx` | `window.confirm` při zahození neuložených změn; status/error/undo feedback | `AlertDialog` pro potvrzení destruktivní akce | 3 |
-| `service-actions-menu.tsx` | Vlastní `<details>` akční menu | `DropdownMenu` s Portal, klávesovou navigací a jednotnými položkami | 4 |
-| Administrační workflow po Radix migraci | Lokální success bannery a ad-hoc toasty | Tenká vrstva nad `Toast` pro krátký globální feedback | 4 |
-| `site-header.tsx` – mobilní menu | `createPortal`, ruční Escape/focus trap, body scroll lock; veřejný header | `Dialog`/`Sheet` až v samostatném veřejném UI kroku | Odložit |
-| `about-certificates-gallery.tsx` – lightbox | Vlastní `role="dialog"`, `aria-modal` a Escape; veřejná galerie | `Dialog` až mimo admin migraci | Odložit |
+| `components/ui/dialog.tsx` | Sdílený `Dialog` primitive | DONE | Portal, jednotný overlay, responsivní rozměry, focus lifecycle a animace. |
+| `components/ui/sheet.tsx` | Bottom a levý sheet nad `Dialog` | DONE | Omezení `88dvh`, vnitřní scroll, safe-area, touch layout a slide animace. |
+| `components/ui/alert-dialog.tsx` | Sdílený `AlertDialog` primitive | DONE | Použit pro potvrzení ztráty rozpracovaných změn. |
+| `components/ui/dropdown-menu.tsx` | Sdílený `DropdownMenu` primitive | DONE | Portal na `z-index: 100`, klávesová navigace a highlighted stav. |
+| `components/ui/toast.tsx` | Administrační `ToastProvider` | DONE | Success/error feedback, close action, safe-area viewport na `z-index: 110`. |
+| `invite-user-dialog.tsx` | Radix `Dialog` | DONE | Accessible title/description, zavření overlayem/Escape a obnova fokusu. |
+| `create-manual-booking-drawer.tsx` | Pravý Radix `Dialog` drawer | DONE | Sticky header/footer, oddělený scroll obsahu, safe-area a původní booking workflow. |
+| `reschedule-booking-button.tsx` | Pravý Radix `Dialog` drawer | DONE | Sticky header/footer, safe-area, inline validace a původní booking workflow. |
+| `CategoryDetailDrawer.tsx` | Pravý Radix `Dialog` drawer | DONE | Modal semantics, sticky hlavička a scroll/focus lifecycle zajišťuje Radix. |
+| `admin-services-page.tsx` – detail služby | Route-driven Radix `Dialog` drawer | DONE | `admin-route-drawer.tsx` zachovává zavření navigací na `returnTo`. |
+| `admin-clients-toolbar.tsx` – `MobileFiltersSheet` | Radix bottom sheet | DONE | Sticky actions, safe-area, dlouhý obsah a focus restoration. |
+| `admin-logs-page.tsx` – `LogsFiltersDialog` | Radix bottom sheet | DONE | Sticky actions, safe-area a focus restoration. |
+| `admin-shell.tsx` – mobilní navigace | Radix left sheet | DONE | Focus trap, Escape, obnova fokusu a uzavření při desktop breakpointu. |
+| `admin-weekly-planner-lab-client.tsx` | Radix `AlertDialog` | DONE | Bezpečný počáteční fokus je na akci „Zpět“. |
+| `service-actions-menu.tsx` | Radix `DropdownMenu` | DONE | Skutečné akční menu; technický `<details>` v logách není menu. |
+| `site-header.tsx` – mobilní menu | Původní veřejný modalový vzor | INTENTIONALLY KEPT | Veřejný branding a UI jsou mimo administrační Radix migraci. |
+| `about-certificates-gallery.tsx` – lightbox | Původní veřejný lightbox | INTENTIONALLY KEPT | Veřejná galerie je mimo administrační Radix migraci. |
+| `admin-booking-payment-form.tsx` – storno platby | Nativní `window.confirm` | INTENTIONALLY KEPT | Samostatné platební workflow nebylo součástí migračního inventáře; změna by rozšířila scope. |
 
-### Poznámky k výchozímu stavu
+### Poznámky k finálnímu stavu
 
-- Sdílený hook `useAdminModalFocus` řeší počáteční fokus, Tab cyklus, Escape,
-  ale pouze tam, kde je komponenta explicitně použije. Pravé route-driven
-  drawery služeb a kategorií jej dnes nepoužívají.
-- Rezervační drawery mají významné inline success/error stavy. Po migraci
-  musí zůstat ve stejném workflow a nesmí být nahrazeny toastem před zavedením
-  společného toast systému.
-- Manuální rezervace při úspěchu zavře panel, odstraní query parametry,
-  refreshne data a zobrazí success banner mimo drawer. Toto pořadí je invariant.
-- Přesun rezervace zachovává availability, conflict handling, refresh,
-  server action a výsledný booking state; Radix smí změnit pouze modal lifecycle.
-- `admin-services-page.tsx` zavírá detail navigací na `returnTo`, nikoli pouze
-  lokálním state. Stejný výsledný URL stav musí zůstat zachován.
-- `admin-weekly-planner-lab-client.tsx` používá `window.confirm` pouze při
-  zahození více pending změn; jde o vhodný samostatný `AlertDialog` krok.
-- `<details>/<summary>` jako action menu se v cíleném rozsahu nenašlo. V logách
-  je `<details>` pouze rozbalovací technický stav e-mailové fronty, nikoli menu.
-- `FullCalendar` a TanStack Table jsou v cílených souborech konzumenty dat/UI;
-  migrace modalu se jich nesmí dotknout.
+- Ruční `AdminEscapeKeyClose`, `useAdminModalFocus`, `FOCUSABLE_SELECTOR`,
+  modal-specific portály a administrační globální keydown listenery byly
+  odstraněny. `AdminRouteDrawer` zůstává pouze pro URL lifecycle detailu služby.
+- Manuální vytvoření a přesun rezervace zachovávají availability,
+  conflict handling, server actions, refresh, query parametry i výsledný booking
+  stav; Radix řeší pouze modalní lifecycle a accessibility.
+- `FullCalendar` a TanStack Table zůstaly pouze konzumenty dat/UI a migrace
+  jejich business chování nezměnila.
 
 ## UI conventions
 
@@ -101,17 +96,16 @@ vrstvy. Rozbalovací obsah formuláře nebo technický stav zůstává `<details
 Pro krátký globální success/error feedback používat tenkou vrstvu nad Radix
 `Toast`. Field validation a chyby přímo svázané s formulářem zůstávají inline.
 
-## Migrační pořadí
+## Vrstvení a vizuální konvence
 
-1. Zavést pouze `@radix-ui/react-dialog` a tenkou sdílenou komponentu bez
-   business logiky; pilotem je `InviteUserDialog`.
-2. Migrovat rezervační drawery a route-driven drawer služby/kategorie. Ověřit
-   URL lifecycle, sticky footery, availability a server actions.
-3. Migrovat mobilní sheets a `AlertDialog` v planneru.
-4. Veřejný `site-header` a certificate lightbox řešit odděleně, až bude jasné,
-   že sdílený základ nenaruší veřejný branding.
-5. Nahradit skutečná administrační action menu `DropdownMenu` a sjednotit
-   krátký feedback migrovaných workflow pomocí `Toast`.
+- Overlay všech modalních primitives: `z-index: 80`, `bg-black/62`, blur a
+  jednotný fade respektující `prefers-reduced-motion`.
+- Dialog, drawer a sheet obsah: `z-index: 90`; dropdown: `100`; toast: `110`.
+- Dialog a `AlertDialog` sdílejí titulkovou hierarchii, popis, radius a shadow;
+  pravé drawery záměrně nemají radius na hraně viewportu a používají boční
+  shadow. Bottom sheet má pouze horní radius.
+- Primární akce je na desktopu vpravo od sekundární; destruktivní akce
+  `AlertDialog` je vizuálně odlišená a bezpečný focus začíná na zrušení.
 
 ## Test strategy
 
@@ -126,9 +120,26 @@ Pro krátký globální success/error feedback používat tenkou vrstvu nad Radi
 - U rezervačních změn ověřit zejména, že Radix nezměnil server/client boundary,
   formulářové server actions, debounce/API lookup ani refresh po úspěchu.
 
-## Fáze 0 – auditní nález
+## Finální audit
 
-Relevantních je 11 UI míst v 12 zadaných souborech (jeden soubor je sdílený
-helper). Největší překvapení: část drawerů nemá explicitní dialog semantics ani
-focus trap, zatímco podobné mobilní sheets mají ruční focus management; dále
-se v rozsahu nacházejí dva veřejné modalové vzory a `window.confirm` v planneru.
+- Všechny migrované `Dialog`, drawer, sheet a `AlertDialog` instance mají
+  `Title`; všude, kde popis pomáhá, také `Description`. Ruční `role="dialog"`
+  ani `aria-modal` v administračním migračním rozsahu nezůstaly.
+- Escape, focus trap, focus restoration, zavření overlayem a klávesové
+  ovládání menu zajišťují Radix primitives. Ikonový trigger menu a toast close
+  mají accessible name; focus-visible stavy nebyly odstraněny bez náhrady.
+- Mobilní sheets používají dynamickou výšku viewportu, omezení výšky,
+  `overscroll-contain`, vnitřní scroll, sticky actions, safe-area a minimální
+  44px touch targets. Drawery oddělují scroll dlouhého obsahu od hlavičky a
+  paty; formulářové chyby zůstávají inline.
+- Všechny čtyři přímé Radix dependencies mají konzumenta. `Sheet` sdílí
+  `Dialog` namísto duplicitní implementace; nepoužité imports ani druhé UI
+  primitives pro stejný účel nebyly nalezeny.
+- Admin layout zůstává serverový a klientská hranice je pouze v malém
+  `ToastProvider`; serverová stránka služeb nebyla přesunuta pod `"use client"`.
+
+## Follow-up
+
+Žádný follow-up uvnitř uzavírané administrační Radix migrace. Záměrně
+ponechané veřejné modaly a samostatné storno platby jsou v inventáři označeny
+`INTENTIONALLY KEPT`, nikoli jako nedokončená část této migrace.

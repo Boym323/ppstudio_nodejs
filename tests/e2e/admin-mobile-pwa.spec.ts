@@ -56,6 +56,8 @@ test.describe("mobilní a standalone admin PWA", () => {
     await expect(navigation).toBeVisible();
     const close = navigation.getByRole("button", { name: "Zavřít" });
     await expect(close).toBeFocused();
+    await page.keyboard.press("Shift+Tab");
+    await expect(navigation.getByRole("button", { name: "Odhlásit se" })).toBeFocused();
     await page.keyboard.press("Escape");
     await expect(navigation).toHaveCount(0);
     await expect(menu).toBeFocused();
@@ -70,11 +72,13 @@ test.describe("mobilní a standalone admin PWA", () => {
 
   test("otevře a zavře mobilní dialog", async ({ page }) => {
     await page.goto("/admin/uzivatele");
-    await page.getByRole("button", { name: "Pozvat uživatele" }).click();
+    const trigger = page.getByRole("button", { name: "Pozvat uživatele" });
+    await trigger.click();
     const dialog = page.getByRole("dialog", { name: "Pozvat uživatele" });
     await expect(dialog).toBeVisible();
     await dialog.getByRole("button", { name: "Zavřít" }).click();
     await expect(dialog).toHaveCount(0);
+    await expect(trigger).toBeFocused();
   });
 
   test("zobrazí offline banner a propadlou session přesměruje na přihlášení", async ({ page }) => {
