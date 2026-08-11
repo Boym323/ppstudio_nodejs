@@ -90,9 +90,22 @@ test("buildVoucherEmailTemplate escapes dynamic voucher content in React Email H
       ...buildBaseInput(VoucherType.SERVICE).voucher,
       serviceNameSnapshot: '<script>alert("xss")</script>',
     },
+    salon: {
+      name: '<img src=x onerror="alert(1)"> PP Studio',
+      addressLine: '<script>alert("address")</script> Sadová 2',
+      phone: '+420 700 000 000"><img src=x onerror="alert(2)',
+      email: 'info@example.test"><img src=x onerror="alert(3)',
+    },
+    verificationUrl:
+      'https://example.test/vouchery/overeni?code=fake-token&next=" onmouseover="alert(1)',
   });
 
   assert.match(template.text, /<script>alert\("xss"\)<\/script>/);
   assert.match(template.html, /&lt;script&gt;alert\(&quot;xss&quot;\)&lt;\/script&gt;/);
   assert.doesNotMatch(template.html, /<script>alert\("xss"\)<\/script>/);
+  assert.match(template.html, /&lt;img src=x onerror=&quot;alert\(1\)&quot;&gt; PP Studio/);
+  assert.match(template.html, /&lt;script&gt;alert\(&quot;address&quot;\)&lt;\/script&gt; Sadová 2/);
+  assert.doesNotMatch(template.html, /<img src=x onerror=/);
+  assert.match(template.html, /code=fake-token&amp;next=&quot; onmouseover=&quot;alert\(1\)/);
+  assert.doesNotMatch(template.html, /href="[^"]*"\s+onmouseover=/);
 });

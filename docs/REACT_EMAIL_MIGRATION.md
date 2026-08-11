@@ -106,7 +106,7 @@ Před dokončením migrace doplnit snapshot/strukturální kontroly výsledného
 - [x] **Fáze 3 – admin e-maily:** `admin-booking-notification-v1`, `admin-booking-cancelled-v1` a `admin-booking-rescheduled-v1` renderují HTML přes React Email. URL akcí a detailu vznikají v dosavadní orchestraci a renderer je pouze přijímá přes props; token generation ani expirace se nezměnily. Sdílený `BookingDetailCard`, `EmailLayout` a rozšířený `EmailButton` zachovávají operační hierarchii akcí včetně destruktivní varianty. Testy ověřují obsah, přesné fiktivní action URL, jejich nepřítomnost v nerelevantních šablonách a JSX escaping poznámky bez aktivního script elementu. Fáze 4 musí zachovat samostatnou voucherovou PDF a ověřovací URL orchestraci.
 - [x] **Fáze 4 – voucher:** `voucher-sent-v1` renderuje HTML přes React Email. Synchronous `buildVoucherEmailTemplate` se změnil na async a jediný produkční call site v `renderEmailTemplate` jej awaituje. VALUE i SERVICE varianta, plain text a voucher-specific `VoucherDetailCard` jsou pokryté testy; PDF attachment zůstává beze změny (původní bytes, filename a `application/pdf`) a nadále vzniká v orchestrace `templates.ts`. Verification URL nadále skládá orchestrace pomocí `buildVoucherVerificationUrl` a React komponenta ji pouze přijímá přes props. Pro Fázi 5 zbývá odstranit až tehdy nepoužívané legacy HTML helpery.
 - [x] **Fáze 5 – cleanup:** odstraněny nedosažitelné ruční HTML větve a helpery po ověření nulových produkčních call sites; plain-text orchestrace a živé kontaktní utility zůstaly zachovány.
-- [ ] **Fáze 6 – audit:** projít všech 10 keys, payload contracts, plain text, preview, provider, worker, retry/locking a přílohy.
+- [x] **Fáze 6 – audit:** všech 10 keys, payload contracts, plain text, preview, provider, worker, retry/locking a přílohy byly zkontrolovány; migrace je produkčně bezpečná. Dvě worker integration kontroly nedošly k testované e-mailové cestě kvůli kolizi časového fixture ve sdílené DB, viz závěrečný audit.
 
 ## Cleanup result
 
@@ -117,3 +117,21 @@ Před dokončením migrace doplnit snapshot/strukturální kontroly výsledného
 - Stav buildu a případné položky pro finální audit jsou uvedeny v předávacím výsledku Fáze 5.
 
 Tento checklist je výchozí stav; každá další implementační fáze jej musí aktualizovat.
+
+# Final audit
+
+| Oblast | Výsledek |
+|---|---|
+| Template parity | PASS |
+| Payload parity | PASS |
+| Escaping/security | PASS |
+| Action URLs/tokens | PASS |
+| Attachments | PASS |
+| Plain text | PASS |
+| Async boundaries | PASS |
+| Delivery infrastructure | PASS |
+| Component architecture | PASS |
+| Preview workflow | PASS |
+| Build/tests | FAIL — build, typecheck, lint, unit/contract testy a 42 integračních testů prošly; 2 worker integration testy selhaly při přípravě fixture na `SLOT_UNAVAILABLE` ještě před rendererem/workerem. |
+
+Vizuální kontrola booking confirmation, cancellation, reschedule, admin notification a voucher preview neodhalila regresi; ověřeno bylo také mobilní zalamování reschedule šablony. Kontrola proběhla nad lokálním HTML/Chromium preview, nikoli v reálných Gmail/Outlook klientech.

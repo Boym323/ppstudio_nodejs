@@ -170,19 +170,21 @@ test("renderEmailTemplate creates admin notification email with action links", a
 
 test("renderEmailTemplate escapes client note in admin notification html", async () => {
   const { renderEmailTemplate } = await loadRenderer();
+  const attributeInjectionUrl =
+    'https://example.com/rezervace/akce/approve/fake-token?next=" onmouseover="alert(1)';
   const email = await renderEmailTemplate(
     "admin-booking-notification-v1",
     "Nová rezervace: Řasy & obočí",
     {
       bookingId: "clztestbookingnoteescape",
       serviceName: "Řasy & obočí",
-      clientName: "Eliška Černá",
+      clientName: '<img src=x onerror="alert(1)"> Eliška Černá',
       clientEmail: "eliska@example.com",
       clientPhone: null,
       clientNote: `<script>alert("x")</script> Prosím & děkuji.`,
       scheduledStartsAt: "2026-04-20T08:00:00.000Z",
       scheduledEndsAt: "2026-04-20T09:00:00.000Z",
-      approveUrl: "https://example.com/rezervace/akce/approve/token-approve",
+      approveUrl: attributeInjectionUrl,
       rejectUrl: "https://example.com/rezervace/akce/reject/token-reject",
       adminUrl: "https://example.com/admin/rezervace/clztestbookingnoteescape",
     },
@@ -192,7 +194,11 @@ test("renderEmailTemplate escapes client note in admin notification html", async
   assert.match(email.html, /&lt;script&gt;alert\(&quot;x&quot;\)&lt;\/script&gt; Prosím &amp; děkuji\./);
   assert.doesNotMatch(email.html, /<script>alert/);
   assert.match(email.html, /Řasy &amp; obočí/);
-  assert.match(email.text, /Eliška Černá/);
+  assert.match(email.html, /&lt;img src=x onerror=&quot;alert\(1\)&quot;&gt; Eliška Černá/);
+  assert.doesNotMatch(email.html, /<img src=x onerror=/);
+  assert.match(email.text, /<img src=x onerror="alert\(1\)"> Eliška Černá/);
+  assert.match(email.html, /approve\/fake-token\?next=&quot; onmouseover=&quot;alert\(1\)/);
+  assert.doesNotMatch(email.html, /href="[^"]*"\s+onmouseover=/);
 });
 
 test("renderEmailTemplate creates admin cancellation email in operational layout", async () => {

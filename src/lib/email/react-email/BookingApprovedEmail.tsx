@@ -1,4 +1,4 @@
-import { Section, Text } from "react-email";
+import { Section } from "react-email";
 
 import { BookingDetailCard } from "./_components/BookingDetailCard";
 import { BookingActionLinks, CalendarNotice, VoucherBlock } from "./_components/BookingBlocks";
