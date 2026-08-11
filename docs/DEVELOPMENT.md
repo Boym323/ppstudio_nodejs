@@ -26,6 +26,10 @@ Pro centralizovaný přehled hlavních route handler kontraktů používej i [`d
 - Na `npm 11` držíme v `package.json` i `allowScripts` whitelist pro balíčky s install hooky (`prisma`, `@prisma/engines`, `sharp`, `esbuild`, `unrs-resolver`). Při upgradu některého z nich čekej změnu pinu a po review spusť znovu `npm approve-scripts <pkg>`, jinak budou releasy hlásit `npm warn allow-scripts`.
 
 ## Dev runtime a cache
+
+### Vývoj e-mailů
+
+Produkční HTML templates jsou v `src/lib/email/react-email/` a sdílené komponenty v `_components`. `npm run email:dev` slouží k interaktivnímu vývoji React Email šablon, zatímco `npm run email:previews` vytváří regresní preview přes aplikační renderer. `renderEmailTemplate(...)` zůstává orchestration hranicí; React Email e-maily negeneruje ani neposílá, transport pokračuje přes současnou delivery infrastrukturu. Plain-text generování a přílohy zůstávají v orchestrace.
 - Vývoj i CI standardizujeme na `Node 24 LTS`. Repo drží [`.nvmrc`](../.nvmrc#L1) s hodnotou `24` a `package.json` deklaruje `engines.node = ^24.0.0`; před prvním `npm install` nebo po upgrade runtime si ověř `node -v`.
 - Výchozí `npm run dev` používá Next.js 16 dev server s Turbopackem kvůli rychlosti kompilace velké admin route. Webpack je dostupný přes `npm run dev:webpack` jako stabilnější fallback při problémech s Turbopack HMR.
 - `next.config.ts` nastavuje `turbopack.root` na `__dirname`; při verzovaném release/staging buildu tak Turbopack nepovažuje sourozenecké `releases/*/package-lock.json` za další workspace. Při přesunu projektu neměň tuto hodnotu na pevnou absolutní cestu.

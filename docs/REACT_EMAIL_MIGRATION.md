@@ -105,7 +105,15 @@ Před dokončením migrace doplnit snapshot/strukturální kontroly výsledného
 - [x] **Fáze 2 – klientské booking e-maily:** approved, reminder, rescheduled, cancelled, rejected; HTML používá React Email, plain-text a ICS/tokenové URL zůstávají v původní orchestraci.
 - [x] **Fáze 3 – admin e-maily:** `admin-booking-notification-v1`, `admin-booking-cancelled-v1` a `admin-booking-rescheduled-v1` renderují HTML přes React Email. URL akcí a detailu vznikají v dosavadní orchestraci a renderer je pouze přijímá přes props; token generation ani expirace se nezměnily. Sdílený `BookingDetailCard`, `EmailLayout` a rozšířený `EmailButton` zachovávají operační hierarchii akcí včetně destruktivní varianty. Testy ověřují obsah, přesné fiktivní action URL, jejich nepřítomnost v nerelevantních šablonách a JSX escaping poznámky bez aktivního script elementu. Fáze 4 musí zachovat samostatnou voucherovou PDF a ověřovací URL orchestraci.
 - [x] **Fáze 4 – voucher:** `voucher-sent-v1` renderuje HTML přes React Email. Synchronous `buildVoucherEmailTemplate` se změnil na async a jediný produkční call site v `renderEmailTemplate` jej awaituje. VALUE i SERVICE varianta, plain text a voucher-specific `VoucherDetailCard` jsou pokryté testy; PDF attachment zůstává beze změny (původní bytes, filename a `application/pdf`) a nadále vzniká v orchestrace `templates.ts`. Verification URL nadále skládá orchestrace pomocí `buildVoucherVerificationUrl` a React komponenta ji pouze přijímá přes props. Pro Fázi 5 zbývá odstranit až tehdy nepoužívané legacy HTML helpery.
-- [ ] **Fáze 5 – cleanup:** odstranit pouze nepoužívané ruční HTML helpery po ověření nulových call sites.
+- [x] **Fáze 5 – cleanup:** odstraněny nedosažitelné ruční HTML větve a helpery po ověření nulových produkčních call sites; plain-text orchestrace a živé kontaktní utility zůstaly zachovány.
 - [ ] **Fáze 6 – audit:** projít všech 10 keys, payload contracts, plain text, preview, provider, worker, retry/locking a přílohy.
+
+## Cleanup result
+
+- Odstraněny byly nedosažitelné `buildEmailButton`, `buildEmailActionButton`, `buildEmailShell`, `buildEmailCard`, `buildEmailDetailRow`, `buildBookingDetailCard`, `buildClientLocationBlock`, `buildClientContactBlock`, `buildClientActionLinks` a `escapeHtml` z původního HTML rendereru.
+- Ponechány byly `buildPhoneHref`, normalizace salonního kontaktu a `buildReminderParkingUrl`, protože jsou živou součástí orchestrace a vstupů pro React Email/plain text; plain-text builders nebyly migrovány ani odstraněny.
+- Produkční React Email pokrytí je 10/10 template keys a výsledná struktura má 5 shared komponent v `_components`; duplicitní layout ani mrtvá React Email komponenta nebyly nalezeny.
+- `npm run email:dev` zůstává interaktivním preview nad `src/lib/email/react-email/`; `npm run email:previews` zůstává regresním preview přes `renderEmailTemplate(...)`.
+- Stav buildu a případné položky pro finální audit jsou uvedeny v předávacím výsledku Fáze 5.
 
 Tento checklist je výchozí stav; každá další implementační fáze jej musí aktualizovat.
