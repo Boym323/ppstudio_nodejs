@@ -1442,6 +1442,7 @@ export async function rescheduleBookingAction(
     const result = await rescheduleBooking({
       bookingId: parsed.data.bookingId,
       slotId: parsed.data.selectionMode === "slot" ? parsed.data.slotId || undefined : undefined,
+      allowManualOverride: parsed.data.selectionMode === "manual",
       newStartAt: startsAt,
       reason: parsed.data.reason || null,
       changedByUserId: actorUserId,

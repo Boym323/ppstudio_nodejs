@@ -112,6 +112,13 @@ Globální přepínač je uložen v singletonu `SiteSettings.autoLunchEnabled` s
 - Pět DB integračních testů automatického oběda, včetně stale requestu a race condition, prošlo na izolované DB. Po regeneraci Prisma Clientu byly opraveny chybějící povinné atributy auditní události a testovací fixture `SiteSettings`.
 - Produkční `npm run build` po opravě typechecku dokončil a vytvořil `.next/BUILD_ID`; loader policy neprovádí dotaz při importu, pouze při runtime volání.
 
+## Fáze 4 — reschedule a admin
+
+- Veřejný i administrační přesun kontroluje lunch invariant v `rescheduleBookingInTransaction` bezprostředně před `booking.update`.
+- Kontrola používá čerstvý snapshot policy a publikovanou dostupnost cílového pražského dne; původní přesouvaná rezervace se z obsazenosti odečítá a nový blok končí v `blockedUntil`.
+- Standardní admin slot mode se chová stejně jako veřejný přesun a ruční vytvoření rezervace. Jen explicitní `allowManualOverride: true` v administrativním manual mode může invariant obejít.
+- Serializable transakce znovu načte stav při submitu; zamítnutý přesun nevytvoří `BookingRescheduleLog` ani notifikaci. Cílené unit testy pokrývají odečtení původní rezervace, cleanup/`blockedUntil` a policy OFF; DB integrační ověření vyžaduje izolovanou PostgreSQL DB.
+
 ## Reschedule a admin policy
 
 - Public booking: hard lunch constraint; manual override je false.
@@ -182,7 +189,7 @@ Datový model capacity vystavuje, ale produkční create path dokumentuje a vynu
 
 ### Fáze 4
 
-- Použít ekvivalentní kontrolu v transakčním reschedule a ověřit public, admin slot mode i explicitní manual mode.
+- [x] Přidat ekvivalentní kontrolu v transakčním reschedule pro public i admin slot mode; explicitní admin manual mode ji může obejít.
 
 ### Fáze 5
 

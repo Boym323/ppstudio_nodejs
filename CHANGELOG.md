@@ -8,7 +8,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
-- Veřejná rezervace chrání dynamickou 45minutovou obědovou přestávku během delších pracovních dnů jak při nabídce termínů, tak autoritativně při vytvoření rezervace v serializovatelné transakci; její globální ochranu lze nyní zapnout či vypnout v nastavení a provoz může připravit výjimku pro konkrétní pražský den.
+- Veřejná rezervace chrání dynamickou 45minutovou obědovou přestávku během delších pracovních dnů při nabídce termínů, vytvoření i přesunu v serializovatelné transakci; standardní administrativní rezervace a přesuny ji také respektují, zatímco vědomě zvolený manual override ji může obejít. Její globální ochranu lze zapnout či vypnout v nastavení a provoz může připravit výjimku pro konkrétní pražský den.
 
 ## [3.16.5] - 2026-08-11
 

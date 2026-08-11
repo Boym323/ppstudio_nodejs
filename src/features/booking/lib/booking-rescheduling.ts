@@ -24,6 +24,7 @@ import { sendOwnerBookingPushover, sendOwnerSystemErrorPushover } from "@/lib/no
 import { prisma } from "@/lib/prisma";
 import { getBookingPolicySettings, getEmailBrandingSettings, isBookingWithinWindow } from "@/lib/site-settings";
 import { resolveBookingTimingSnapshot } from "./booking-cleanup";
+import { canPreserveAutoLunchForBooking } from "./booking-auto-lunch-enforcement";
 
 const ACTIVE_BOOKING_STATUSES = [BookingStatus.PENDING, BookingStatus.CONFIRMED] as const;
 const MAX_BOOKING_TRANSACTION_RETRIES = 3;
@@ -69,6 +70,7 @@ export type RescheduleBookingInput = {
   reason?: string | null;
   changedByUserId: string | null;
   changedByClient?: boolean;
+  allowManualOverride?: boolean;
   notifyClient: boolean;
   includeCalendarAttachment?: boolean;
   expectedUpdatedAt?: string;
@@ -744,6 +746,14 @@ async function rescheduleBookingInTransaction(
     );
   }
 
+  if (manualOverride && !input.allowManualOverride) {
+    throw new BookingRescheduleError(
+      bookingRescheduleErrorCodes.slotNotAllowed,
+      "Vybraný termín není dostupný pro přesun.",
+      "slot",
+    );
+  }
+
   const activeBookingCount = await tx.booking.count({
     where: {
       id: {
@@ -779,6 +789,18 @@ async function rescheduleBookingInTransaction(
     throw new BookingRescheduleError(
       bookingRescheduleErrorCodes.conflict,
       "Nový termín koliduje s jinou aktivní rezervací.",
+      "slot",
+    );
+  }
+
+  if (!input.allowManualOverride && !await canPreserveAutoLunchForBooking(tx, {
+    requestedStartsAt,
+    requestedBlockedUntil,
+    excludeBookingId: booking.id,
+  })) {
+    throw new BookingRescheduleError(
+      bookingRescheduleErrorCodes.slotUnavailable,
+      "Vybraný termín už není dostupný.",
       "slot",
     );
   }

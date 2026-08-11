@@ -135,6 +135,7 @@ async function createHarness(overrides: Partial<{
     },
     booking: {
       findUnique: async () => booking,
+      findMany: async () => [],
       count: async (input: Record<string, unknown>) => {
         calls.bookingCount.push(input);
         return overrides.activeBookingCount ?? 0;
@@ -164,6 +165,12 @@ async function createHarness(overrides: Partial<{
         calls.slotDelete.push(input);
         return {};
       },
+    },
+    siteSettings: {
+      findUnique: async () => ({ autoLunchEnabled: true }),
+    },
+    autoLunchDayOverride: {
+      findMany: async () => [],
     },
     bookingRescheduleLog: {
       create: async (input: Record<string, unknown>) => {
