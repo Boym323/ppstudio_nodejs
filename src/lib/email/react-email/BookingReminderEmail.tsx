@@ -1,0 +1,11 @@
+import { Section } from "react-email";
+import { BookingDetailCard } from "./_components/BookingDetailCard";
+import { BookingActionLinks } from "./_components/BookingBlocks";
+import { ContactBlock, LocationBlock } from "./_components/ContactBlocks";
+import { EmailLayout } from "./_components/EmailLayout";
+
+export type BookingReminderEmailProps = { brandName: string; serviceName: string; bookingDate: string; bookingTime: string; salonName: string; salonAddress: string; salonEmail: string; salonPhone: string; salonPhoneHref: string; salonMapUrl: string; parkingUrl: string; manageReservationUrl?: string; cancellationUrl: string };
+export function BookingReminderEmail(props: BookingReminderEmailProps) { return <EmailLayout brandName={props.brandName} title="Zítra se na vás těšíme" intro="Jen krátce připomínáme Váš termín. Níže najdete čas i adresu salonu." preview={`Připomínka rezervace ${props.serviceName}.`}><BookingDetailCard serviceName={props.serviceName} bookingDate={props.bookingDate} bookingTime={props.bookingTime} /><Spacer /><LocationBlock name={props.salonName} address={props.salonAddress} mapUrl={props.salonMapUrl} parkingUrl={props.parkingUrl} /><BookingActionLinks manageReservationUrl={props.manageReservationUrl} cancellationUrl={props.cancellationUrl} /><Spacer /><ContactBlock email={props.salonEmail} phone={props.salonPhone} phoneHref={props.salonPhoneHref} /></EmailLayout>; }
+function Spacer() { return <Section style={{ height: "14px", lineHeight: "14px", fontSize: "14px" }}>&nbsp;</Section>; }
+const previewProps: BookingReminderEmailProps = { brandName: "PP Studio", serviceName: "Luxusní kosmetické ošetření", bookingDate: "úterý 19. května 2026", bookingTime: "10:00 – 11:30", salonName: "PP Studio", salonAddress: "Sadová 2, 760 01 Zlín", salonEmail: "info@example.test", salonPhone: "+420 700 000 000", salonPhoneHref: "tel:+420700000000", salonMapUrl: "https://maps.example.test/pp-studio", parkingUrl: "https://example.test/kontakt#parkovani", manageReservationUrl: "https://example.test/rezervace/sprava/preview", cancellationUrl: "https://example.test/rezervace/storno/preview" };
+export default Object.assign(BookingReminderEmail, { PreviewProps: previewProps });

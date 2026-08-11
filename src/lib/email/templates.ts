@@ -17,7 +17,12 @@ import {
 import { getVoucherDetail } from "@/features/vouchers/lib/voucher-read-models";
 import { getEmailBrandingSettings, getPublicSalonProfile } from "@/lib/site-settings";
 import { sanitizeEmailHeaderValue } from "@/lib/email/header";
+import { BookingApprovedEmail } from "@/lib/email/react-email/BookingApprovedEmail";
+import { BookingCancelledEmail } from "@/lib/email/react-email/BookingCancelledEmail";
 import { BookingConfirmationEmail } from "@/lib/email/react-email/BookingConfirmationEmail";
+import { BookingRejectedEmail } from "@/lib/email/react-email/BookingRejectedEmail";
+import { BookingReminderEmail } from "@/lib/email/react-email/BookingReminderEmail";
+import { BookingRescheduledEmail } from "@/lib/email/react-email/BookingRescheduledEmail";
 
 const bookingConfirmationPayloadSchema = z.object({
   bookingId: z.string().min(1),
@@ -495,6 +500,14 @@ export async function renderEmailTemplate(
         `Zavolejte: ${salonContact.phone}`,
       ].join("\n");
 
+      const reactHtml = await render(createElement(BookingCancelledEmail, {
+        brandName: brand.name, serviceName: data.serviceName, bookingDate, bookingTime,
+        intendedVoucherCode: data.intendedVoucherCode, salonName: salonContact.name, salonAddress: salonContact.address,
+        salonEmail: salonContact.email, salonPhone: salonContact.phone, salonPhoneHref: buildPhoneHref(salonContact.phone),
+        salonMapUrl: salonContact.mapUrl, newBookingUrl,
+      }));
+      return { subject: safeSubject, html: reactHtml, text };
+
       const html = buildEmailShell(
         brand,
         "Rezervace byla zrušena",
@@ -587,6 +600,15 @@ export async function renderEmailTemplate(
         salonContact.name,
       ].join("\n");
 
+      const reactHtml = await render(createElement(BookingApprovedEmail, {
+        brandName: brand.name, serviceName: data.serviceName, bookingDate, bookingTime,
+        intendedVoucherCode: data.intendedVoucherCode, salonName: salonContact.name, salonAddress: salonContact.address,
+        salonEmail: salonContact.email, salonPhone: salonContact.phone, salonPhoneHref: buildPhoneHref(salonContact.phone),
+        salonMapUrl: salonContact.mapUrl, manageReservationUrl: data.manageReservationUrl, cancellationUrl: data.cancellationUrl,
+        includeCalendarAttachment,
+      }));
+      return { subject: safeSubject, html: reactHtml, text, attachments: calendarAttachment ? [{ filename: "pp-studio-rezervace.ics", content: calendarAttachment, contentType: "text/calendar; charset=utf-8" }] : undefined };
+
       const html = buildEmailShell(
         brand,
         "Rezervace byla potvrzena",
@@ -673,6 +695,14 @@ export async function renderEmailTemplate(
         `Zavolejte: ${salonContact.phone}`,
       ].join("\n");
 
+      const reactHtml = await render(createElement(BookingReminderEmail, {
+        brandName: brand.name, serviceName: data.serviceName, bookingDate, bookingTime,
+        salonName: salonContact.name, salonAddress: salonContact.address, salonEmail: salonContact.email,
+        salonPhone: salonContact.phone, salonPhoneHref: buildPhoneHref(salonContact.phone), salonMapUrl: salonContact.mapUrl,
+        parkingUrl, manageReservationUrl: data.manageReservationUrl, cancellationUrl: data.cancellationUrl,
+      }));
+      return { subject: safeSubject, html: reactHtml, text };
+
       const html = buildEmailShell(
         brand,
         "Zítra se na vás těšíme",
@@ -746,6 +776,14 @@ export async function renderEmailTemplate(
         `Zavolejte: ${salonContact.phone}`,
       ].join("\n");
 
+      const reactHtml = await render(createElement(BookingRescheduledEmail, {
+        brandName: brand.name, serviceName: data.serviceName, bookingDate, bookingTime, previousDate, previousTime,
+        salonName: salonContact.name, salonAddress: salonContact.address, salonEmail: salonContact.email,
+        salonPhone: salonContact.phone, salonPhoneHref: buildPhoneHref(salonContact.phone), salonMapUrl: salonContact.mapUrl,
+        manageReservationUrl: data.manageReservationUrl, cancellationUrl: data.cancellationUrl, includeCalendarAttachment,
+      }));
+      return { subject: safeSubject, html: reactHtml, text, attachments: calendarAttachment ? [{ filename: "pp-studio-rezervace.ics", content: calendarAttachment, contentType: "text/calendar; charset=utf-8" }] : undefined };
+
       const html = buildEmailShell(
         brand,
         "Termín rezervace byl změněn",
@@ -816,6 +854,13 @@ export async function renderEmailTemplate(
         `Napište nám: ${salonContact.email}`,
         `Zavolejte: ${salonContact.phone}`,
       ].join("\n");
+
+      const reactHtml = await render(createElement(BookingRejectedEmail, {
+        brandName: brand.name, serviceName: data.serviceName, bookingDate, bookingTime,
+        salonName: salonContact.name, salonAddress: salonContact.address, salonEmail: salonContact.email,
+        salonPhone: salonContact.phone, salonPhoneHref: buildPhoneHref(salonContact.phone), salonMapUrl: salonContact.mapUrl, newBookingUrl,
+      }));
+      return { subject: safeSubject, html: reactHtml, text };
 
       const html = buildEmailShell(
         brand,

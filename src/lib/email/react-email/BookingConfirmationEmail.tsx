@@ -1,6 +1,7 @@
-import { Section, Text } from "react-email";
+import { Section } from "react-email";
 
 import { BookingDetailCard } from "./_components/BookingDetailCard";
+import { VoucherBlock } from "./_components/BookingBlocks";
 import { ContactBlock, LocationBlock } from "./_components/ContactBlocks";
 import { EmailLayout } from "./_components/EmailLayout";
 
@@ -48,57 +49,9 @@ export function BookingConfirmationEmail({
   );
 }
 
-function VoucherBlock({ code }: { code: string }) {
-  return (
-    <Section style={voucherStyle}>
-      <Text style={labelStyle}>Dárkový poukaz</Text>
-      <Text style={codeStyle}>{code}</Text>
-      <Text style={voucherTextStyle}>
-        U rezervace jste uvedla dárkový poukaz. Poukaz bude ověřen a uplatněn při návštěvě v salonu.
-      </Text>
-    </Section>
-  );
-}
-
 function Spacer() {
   return <Section style={{ height: "14px", lineHeight: "14px", fontSize: "14px" }}>&nbsp;</Section>;
 }
-
-const voucherStyle = {
-  marginTop: "14px",
-  padding: "18px",
-  border: "1px solid #eaded4",
-  borderRadius: "14px",
-  backgroundColor: "#ffffff",
-};
-
-const labelStyle = {
-  margin: "0 0 7px",
-  color: "#9e7f65",
-  fontFamily: "Arial, Helvetica, sans-serif",
-  fontSize: "12px",
-  lineHeight: "16px",
-  fontWeight: "700",
-  letterSpacing: "0.08em",
-  textTransform: "uppercase" as const,
-};
-
-const codeStyle = {
-  margin: "0 0 7px",
-  color: "#1f1714",
-  fontFamily: "Arial, Helvetica, sans-serif",
-  fontSize: "16px",
-  lineHeight: "22px",
-  fontWeight: "700",
-};
-
-const voucherTextStyle = {
-  margin: "0",
-  color: "#5b4c44",
-  fontFamily: "Arial, Helvetica, sans-serif",
-  fontSize: "15px",
-  lineHeight: "24px",
-};
 
 const previewProps: BookingConfirmationEmailProps = {
   brandName: "PP Studio",

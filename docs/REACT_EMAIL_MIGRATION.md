@@ -102,7 +102,7 @@ Před dokončením migrace doplnit snapshot/strukturální kontroly výsledného
 ## 9. Stav migrace
 
 - [x] **Fáze 1 – booking confirmation pilot:** `booking-confirmation-v1` renderuje HTML pomocí `react-email`; vznikly pouze prezentační komponenty `EmailLayout`, `BookingDetailCard` a kontaktní bloky. `renderEmailTemplate` zůstává async, payload/subject/plain text i doručovací a attachment infrastruktura beze změny. Vývojový preview běží přes `@react-email/ui` a `npm run email:dev`; žádná odchylka od plánu.
-- [ ] **Fáze 2 – klientské booking e-maily:** approved, reminder, rescheduled, cancelled, rejected; ověřit ICS a tokenové URL.
+- [x] **Fáze 2 – klientské booking e-maily:** approved, reminder, rescheduled, cancelled, rejected; HTML používá React Email, plain-text a ICS/tokenové URL zůstávají v původní orchestraci.
 - [ ] **Fáze 3 – admin e-maily:** notification, cancelled, rescheduled; ověřit escaping poznámky a admin URL.
 - [ ] **Fáze 4 – voucher:** React Email HTML pouze pro voucher; zachovat PDF generování, URL ověření a attachment.
 - [ ] **Fáze 5 – cleanup:** odstranit pouze nepoužívané ruční HTML helpery po ověření nulových call sites.

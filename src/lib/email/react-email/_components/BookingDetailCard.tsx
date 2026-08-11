@@ -4,14 +4,18 @@ type BookingDetailCardProps = {
   serviceName: string;
   bookingDate: string;
   bookingTime: string;
+  extraRows?: Array<{ label: string; value: string }>;
 };
 
-export function BookingDetailCard({ serviceName, bookingDate, bookingTime }: BookingDetailCardProps) {
+export function BookingDetailCard({ serviceName, bookingDate, bookingTime, extraRows = [] }: BookingDetailCardProps) {
   return (
     <Section style={cardStyle}>
       <DetailRow label="Služba" value={serviceName} />
       <DetailRow label="Datum" value={bookingDate} />
-      <DetailRow label="Čas" value={bookingTime} last />
+      <DetailRow label="Čas" value={bookingTime} last={extraRows.length === 0} />
+      {extraRows.map((row, index) => (
+        <DetailRow key={row.label} label={row.label} value={row.value} last={index === extraRows.length - 1} />
+      ))}
     </Section>
   );
 }

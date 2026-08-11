@@ -4,9 +4,10 @@ type LocationBlockProps = {
   name: string;
   address: string;
   mapUrl: string;
+  parkingUrl?: string;
 };
 
-export function LocationBlock({ name, address, mapUrl }: LocationBlockProps) {
+export function LocationBlock({ name, address, mapUrl, parkingUrl }: LocationBlockProps) {
   return (
     <Section style={{ ...cardStyle, backgroundColor: "#fffaf6" }}>
       <Text style={labelStyle}>Místo</Text>
@@ -20,6 +21,11 @@ export function LocationBlock({ name, address, mapUrl }: LocationBlockProps) {
           Zobrazit na mapě
         </Link>
       </Text>
+      {parkingUrl ? (
+        <Text style={parkingTextStyle}>
+          Před cestou se můžete podívat i na <Link href={parkingUrl} style={linkStyle}>tipy k parkování u salonu</Link>.
+        </Text>
+      ) : null}
     </Section>
   );
 }
@@ -79,6 +85,14 @@ const contactStyle = {
 
 const linkTextStyle = {
   margin: "10px 0 0",
+  fontFamily: "Arial, Helvetica, sans-serif",
+  fontSize: "14px",
+  lineHeight: "21px",
+};
+
+const parkingTextStyle = {
+  margin: "8px 0 0",
+  color: "#5b4c44",
   fontFamily: "Arial, Helvetica, sans-serif",
   fontSize: "14px",
   lineHeight: "21px",
