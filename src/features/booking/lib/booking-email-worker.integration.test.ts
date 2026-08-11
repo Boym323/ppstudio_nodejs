@@ -42,6 +42,63 @@ function addMinutes(base: Date, minutes: number) {
   return new Date(base.getTime() + minutes * 60 * 1000);
 }
 
+async function findIsolatedWorkerWindow(
+  prisma: Awaited<ReturnType<typeof loadModules>>["prisma"],
+  seed: string,
+  durationMinutes: number,
+) {
+  const daySeed = Number.parseInt(seed.slice(0, 4), 16);
+  const hourSeed = Number.parseInt(seed.slice(4, 6), 16);
+  const minuteSeed = Number.parseInt(seed.slice(6, 8), 16);
+  const hourCandidates = [18, 19, 20, 21].map((hour, index, list) => list[(index + hourSeed) % list.length] ?? hour);
+  const minuteCandidates = [0, 15, 30, 45].map(
+    (minute, index, list) => list[(index + minuteSeed) % list.length] ?? minute,
+  );
+
+  for (let dayStep = 0; dayStep < 45; dayStep += 1) {
+    const dayOffset = 14 + ((daySeed + dayStep) % 45);
+
+    for (const hour of hourCandidates) {
+      for (const minute of minuteCandidates) {
+        const startsAt = new Date();
+        startsAt.setUTCSeconds(0, 0);
+        startsAt.setUTCDate(startsAt.getUTCDate() + dayOffset);
+        startsAt.setUTCHours(hour, minute, 0, 0);
+        const endsAt = addMinutes(startsAt, durationMinutes);
+
+        const [overlappingSlots, overlappingBookings] = await Promise.all([
+          prisma.availabilitySlot.count({
+            where: {
+              startsAt: { lt: endsAt },
+              endsAt: { gt: startsAt },
+            },
+          }),
+          prisma.booking.count({
+            where: {
+              status: { in: [BookingStatus.PENDING, BookingStatus.CONFIRMED] },
+              scheduledStartsAt: { lt: endsAt },
+              OR: [
+                { blockedUntil: { gt: startsAt } },
+                { blockedUntil: null, scheduledEndsAt: { gt: startsAt } },
+              ],
+            },
+          }),
+        ]);
+
+        if (overlappingSlots === 0 && overlappingBookings === 0) {
+          return {
+            startsAt,
+            endsAt,
+            reminderScanAt: addMinutes(startsAt, -(25 * 60 + 30)),
+          };
+        }
+      }
+    }
+  }
+
+  throw new Error("Nepodařilo se najít izolované okno pro worker integrační test.");
+}
+
 async function createConfirmedManualBooking(seed: string, startsAt: Date) {
   const { prisma, createManualBooking } = await loadModules();
   const endsAt = addMinutes(startsAt, 60);
@@ -68,19 +125,27 @@ async function createConfirmedManualBooking(seed: string, startsAt: Date) {
     select: { id: true },
   });
 
-  const result = await createManualBooking({
-    serviceId: service.id,
-    allowManualOverride: true,
-    startsAt: startsAt.toISOString(),
-    fullName: `Worker klientka ${seed}`,
-    email: `worker-${seed}@example.com`,
-    phone: "+420777123456",
-    source: BookingSource.PHONE,
-    status: BookingStatus.CONFIRMED,
-    actorUserId: null,
-    sendClientEmail: false,
-    includeCalendarAttachment: false,
-  });
+  let result;
+
+  try {
+    result = await createManualBooking({
+      serviceId: service.id,
+      allowManualOverride: true,
+      startsAt: startsAt.toISOString(),
+      fullName: `Worker klientka ${seed}`,
+      email: `worker-${seed}@example.com`,
+      phone: "+420777123456",
+      source: BookingSource.PHONE,
+      status: BookingStatus.CONFIRMED,
+      actorUserId: null,
+      sendClientEmail: false,
+      includeCalendarAttachment: false,
+    });
+  } catch (error) {
+    await prisma.service.deleteMany({ where: { id: service.id } });
+    await prisma.serviceCategory.deleteMany({ where: { id: category.id } });
+    throw error;
+  }
 
   return {
     bookingId: result.bookingId,
@@ -140,15 +205,13 @@ async function cleanupBookingFixture({
 }
 
 dbTest("runBookingReminderSchedulerOnce logs 24h reminder for confirmed booking in reminder window", async () => {
-  const now = new Date();
-  now.setUTCSeconds(0, 0);
-  const startsAt = addMinutes(now, 25 * 60 + 30);
   const seed = randomUUID().slice(0, 8);
-  const fixture = await createConfirmedManualBooking(seed, startsAt);
   const { prisma, runBookingReminderSchedulerOnce } = await loadModules();
+  const window = await findIsolatedWorkerWindow(prisma, seed, 60);
+  const fixture = await createConfirmedManualBooking(seed, window.startsAt);
 
   try {
-    const result = await runBookingReminderSchedulerOnce(now);
+    const result = await runBookingReminderSchedulerOnce(window.reminderScanAt);
 
     assert.equal(result.foundBookings, 1);
     assert.equal(result.enqueued, 1);
@@ -190,12 +253,10 @@ dbTest("runBookingReminderSchedulerOnce logs 24h reminder for confirmed booking 
 });
 
 dbTest("runEmailDeliveryWorkerOnce delivers queued reminder email and marks booking reminder as sent", async () => {
-  const now = new Date();
-  now.setUTCSeconds(0, 0);
-  const startsAt = addMinutes(now, 25 * 60 + 15);
   const seed = randomUUID().slice(0, 8);
-  const fixture = await createConfirmedManualBooking(seed, startsAt);
   const { prisma, runEmailDeliveryWorkerOnce } = await loadModules();
+  const window = await findIsolatedWorkerWindow(prisma, seed, 60);
+  const fixture = await createConfirmedManualBooking(seed, window.startsAt);
 
   try {
     await prisma.emailLog.create({
@@ -214,6 +275,7 @@ dbTest("runEmailDeliveryWorkerOnce delivers queued reminder email and marks book
           scheduledEndsAt: fixture.endsAt.toISOString(),
           manageReservationUrl: "https://example.com/rezervace/sprava/test-token",
           cancellationUrl: "https://example.com/rezervace/storno/test-token",
+          manualReminderResend: true,
         },
       },
     });
