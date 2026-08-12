@@ -218,7 +218,7 @@ test.describe("admin site smoke coverage", () => {
 
     await loginAdmin(page, admin.email, admin.password, "/admin");
     await page.goto("/admin/statistiky?period=this_year");
-    await expect(page.getByText(/^Zobrazené období:/)).toBeVisible();
+    await expect(page.getByRole("main").getByText(/^Zobrazené období:/)).toBeVisible();
     await expect(page.getByLabel("Od", { exact: true })).toHaveCount(0);
 
     await page.getByRole("link", { name: "Tento měsíc" }).click();
