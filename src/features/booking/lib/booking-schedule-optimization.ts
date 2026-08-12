@@ -25,6 +25,14 @@ export type FragmentationMetrics = {
 };
 export type SuggestedSlotCandidate = { startsAt: string };
 
+type EvaluatedSuggestedSlot<T> = {
+  candidate: T;
+  index: number;
+  startsAt: number;
+  candidateAdjacency: number;
+  metrics: FragmentationMetrics;
+};
+
 function valid(interval: ScheduleInterval) {
   return Number.isFinite(interval.startsAt) && Number.isFinite(interval.endsAt) && interval.endsAt > interval.startsAt;
 }
@@ -138,6 +146,69 @@ function compare(left: LunchCandidate, leftMetrics: FragmentationMetrics, right:
   ].find((value) => value !== 0) ?? 0;
 }
 
+function compareEvaluatedSuggestedSlots<T>(left: EvaluatedSuggestedSlot<T>, right: EvaluatedSuggestedSlot<T>) {
+  return [
+    left.metrics.fragmentCount - right.metrics.fragmentCount,
+    left.metrics.orphanMinutes - right.metrics.orphanMinutes,
+    right.metrics.largestFreeBlockMinutes - left.metrics.largestFreeBlockMinutes,
+    right.candidateAdjacency - left.candidateAdjacency,
+    right.metrics.bookingAdjacencyMinutes - left.metrics.bookingAdjacencyMinutes,
+    right.metrics.availabilityEdgeMinutes - left.metrics.availabilityEdgeMinutes,
+    left.startsAt - right.startsAt,
+    left.index - right.index,
+  ].find((value) => value !== 0) ?? 0;
+}
+
+function hasSameRecommendationQuality(left: FragmentationMetrics, right: FragmentationMetrics) {
+  return left.fragmentCount === right.fragmentCount
+    && left.orphanMinutes === right.orphanMinutes
+    && left.largestFreeBlockMinutes === right.largestFreeBlockMinutes;
+}
+
+function chronologicalSuggestedSlots<T extends SuggestedSlotCandidate>(candidates: readonly T[]) {
+  return [...candidates].sort((left, right) => {
+    const leftStartsAt = new Date(left.startsAt).getTime();
+    const rightStartsAt = new Date(right.startsAt).getTime();
+    return leftStartsAt - rightStartsAt;
+  });
+}
+
+function evaluateSuggestedSlotQuality<T extends SuggestedSlotCandidate>(input: Omit<Parameters<typeof rankSuggestedSlots<T>>[0], "candidates">, candidate: T) {
+  const startsAt = new Date(candidate.startsAt).getTime();
+  if (!Number.isFinite(startsAt)) return null;
+  const localDate = getPragueLocalDate(new Date(startsAt));
+  const nextDate = getNextCalendarDate(localDate);
+  const dayStartsAt = resolvePragueLocalDateTime(localDate, "00:00")?.getTime();
+  const dayEndsAt = nextDate ? resolvePragueLocalDateTime(nextDate, "00:00")?.getTime() : undefined;
+  if (dayStartsAt === undefined || dayEndsAt === undefined) return null;
+
+  const availability = intervalsForDay(input.availability, dayStartsAt, dayEndsAt);
+  if (availability.length === 0) return null;
+  const bookedBlocks = intervalsForDay(input.bookedBlocks, dayStartsAt, dayEndsAt);
+  const active = shouldApplyAutoLunch({
+    localDate,
+    availability,
+    globalAutoLunchEnabled: input.globalAutoLunchEnabled,
+    dayLunchMode: input.dayLunchModes[localDate] ?? "AUTO",
+  });
+  const hypotheticalBlock = {
+    startsAt,
+    endsAt: startsAt + (input.serviceDurationMinutes + input.cleanupBlockMinutes) * MINUTE_MS,
+  };
+  const lunch = findBestAutoLunch({
+    active,
+    availability,
+    lunchCandidates: generateLunchCandidates({ localDate, availability }),
+    bookedBlocks: [...bookedBlocks, hypotheticalBlock],
+  });
+  if (active && !lunch) return null;
+  return measureFragmentation({
+    freeIntervals: subtract(availability, [...bookedBlocks, hypotheticalBlock, ...(lunch ? [lunch] : [])]),
+    availability,
+    bookingBlocks: [...bookedBlocks, hypotheticalBlock, ...(lunch ? [lunch] : [])],
+  });
+}
+
 export function findBestAutoLunch(input: { active: boolean; availability: ScheduleInterval[]; lunchCandidates: LunchCandidate[]; bookedBlocks?: BookingBlock[] }) {
   if (!input.active) return null;
   const candidates = findAvailableLunchCandidates(input);
@@ -230,20 +301,63 @@ export function rankSuggestedSlots<T extends SuggestedSlotCandidate>(input: {
       });
       if (evaluated.some((entry) => entry === null)) return candidates.map(({ candidate }) => candidate);
 
-      return (evaluated as Array<typeof evaluated[number] & {}>)
-        .sort((left, right) => {
-          const comparison = [
-            left.metrics.fragmentCount - right.metrics.fragmentCount,
-            left.metrics.orphanMinutes - right.metrics.orphanMinutes,
-            right.metrics.largestFreeBlockMinutes - left.metrics.largestFreeBlockMinutes,
-            right.candidateAdjacency - left.candidateAdjacency,
-            right.metrics.bookingAdjacencyMinutes - left.metrics.bookingAdjacencyMinutes,
-            right.metrics.availabilityEdgeMinutes - left.metrics.availabilityEdgeMinutes,
-            left.startsAt - right.startsAt,
-            left.index - right.index,
-          ].find((value) => value !== 0) ?? 0;
-          return comparison;
-        })
+      return (evaluated as EvaluatedSuggestedSlot<T>[])
+        .sort(compareEvaluatedSuggestedSlots)
         .map(({ candidate }) => candidate);
     });
+}
+
+/**
+ * Selects the genuinely best qualitative class from each Prague day, then presents
+ * that subset chronologically. Ranking chooses membership; it never dictates UI order.
+ */
+export function selectSuggestedSlots<T extends SuggestedSlotCandidate>(input: {
+  candidates: readonly T[];
+  availability: ScheduleInterval[];
+  bookedBlocks: BookingBlock[];
+  serviceDurationMinutes: number;
+  cleanupBlockMinutes: number;
+  capacity: number;
+  globalAutoLunchEnabled: boolean;
+  dayLunchModes: Record<string, DayLunchMode | undefined>;
+  limit?: number;
+}): T[] {
+  const limit = input.limit ?? 6;
+  if (limit <= 0) return [];
+
+  const chronological = chronologicalSuggestedSlots(input.candidates);
+  if (input.capacity !== 1 || input.serviceDurationMinutes <= 0 || input.cleanupBlockMinutes < 0) {
+    return chronological.slice(0, limit);
+  }
+
+  const ranked = rankSuggestedSlots(input);
+  const grouped = new Map<string, T[]>();
+  for (const candidate of ranked) {
+    const startsAt = new Date(candidate.startsAt).getTime();
+    if (!Number.isFinite(startsAt)) return chronological.slice(0, limit);
+    const dateKey = getPragueLocalDate(new Date(startsAt));
+    const group = grouped.get(dateKey) ?? [];
+    group.push(candidate);
+    grouped.set(dateKey, group);
+  }
+
+  const rankInput = input;
+  const selected = [...grouped.values()].flatMap((candidates) => {
+    const best = candidates[0];
+    if (!best) return [];
+    const localDate = getPragueLocalDate(new Date(best.startsAt));
+    const hasExistingBooking = input.bookedBlocks.some((block) => getPragueLocalDate(new Date(block.startsAt)) === localDate);
+    if (!hasExistingBooking) return chronologicalSuggestedSlots(candidates).slice(0, limit);
+    const bestQuality = evaluateSuggestedSlotQuality(rankInput, best);
+    if (!bestQuality) return chronologicalSuggestedSlots(candidates).slice(0, limit);
+    const sameQuality = candidates.filter((candidate) => {
+      const quality = evaluateSuggestedSlotQuality(rankInput, candidate);
+      return quality !== null && hasSameRecommendationQuality(quality, bestQuality);
+    });
+    return sameQuality.length === candidates.length
+      ? chronologicalSuggestedSlots(candidates).slice(0, limit)
+      : sameQuality;
+  });
+
+  return chronologicalSuggestedSlots(selected).slice(0, limit);
 }

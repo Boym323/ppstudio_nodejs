@@ -177,6 +177,14 @@ V1 hodnotí již načtené kandidáty po jednotlivých dnech a teprve potom vezm
 - Veřejný nadpis je `Doporučené termíny`; analytika `slot_selected` nebyla rozšiřována, protože v aktuálním booking flow není dostupná.
 - Deterministická simulace pokrývá prázdný den, ranní a odpolední rezervaci, rezervace z obou stran, krátkou mezeru, dlouhý blok, aktivní auto lunch a day `OFF`. Potvrdila zachování množiny kandidátů, determinismus, date-first pořadí a preferenci nehorší fragmentace, kde existuje lepší kandidát.
 
+## Fáze 8 — selekce doporučených termínů
+
+- Ranking, selection a prezentace jsou oddělené: `rankSuggestedSlots` nad kopií validních kandidátů určí kvalitativní pořadí, `selectSuggestedSlots` vybere pouze nejlepší kvalitativní třídu dne a UI pak zobrazí výslednou množinu chronologicky podle skutečného času `Europe/Prague`.
+- Kvalitativní třída zachovává lexikografické primární metriky výsledného schedule: méně fragmentů, `orphanMinutes` a větší největší volný blok. Sekundární adjacency může rozhodnout interní ranking, ale slabší primární třída se nepřidává jen kvůli naplnění seznamu.
+- Doporučení mají maximum šest položek, nikoli povinný počet. Neutrální den bez existující rezervace používá zákaznicky jednoduchý chronologický fallback prvních až šesti validních termínů. Pro `capacity > 1` zůstává chronologický fallback.
+- `selectableTimeOptions` nejsou selekcí ani rankingem mutovány, filtrovány či přeřazeny; plná nabídka zůstává beze změny. Doporučení se po selekci řadí napříč dny, takže pozdější lokální den nikdy nepředběhne dřívější.
+- Deterministická simulace osmi scénářů (prázdný den, ranní/odpolední booking, bookingy z obou stran, dlouhá a krátká mezera, aktivní lunch, day `OFF`) ověřuje subset validních kandidátů a chronologii. Výsledek: 1 scénář se šesti doporučeními, 7 s méně než šesti; minimum 1, maximum 6, průměr 1,625; všechny subsety byly chronologické.
+
 ## Strategie capacity
 
 Datový model capacity vystavuje, ale produkční create path dokumentuje a vynucuje jediný service resource (`allowedCapacity = 1`); to je relevantní doména první verze. Lunch feasibility a fragmentation scoring proto nejprve implementovat pro efektivní `capacity = 1`. Pro `capacity > 1` zachovat současnou availability i authoritative capacity logiku a použít chronologický fallback doporučení, dokud nebude specifikována samostatná capacity-aware policy. Capacity pole se nesmí slévat ani přepisovat a výpočet oběda pro jediný zdroj nesmí měnit obecnou capacity sémantiku bookingu.

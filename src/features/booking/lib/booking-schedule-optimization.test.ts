@@ -9,6 +9,7 @@ import {
   generateLunchCandidates,
   measureFragmentation,
   rankSuggestedSlots,
+  selectSuggestedSlots,
   shouldApplyAutoLunch,
   type ScheduleInterval,
 } from "./booking-schedule-optimization";
@@ -126,6 +127,19 @@ function rank(input: {
   });
 }
 
+function select(input: Parameters<typeof rank>[0]) {
+  return selectSuggestedSlots({
+    candidates: input.candidates,
+    availability: input.availability ?? fullDay(input.date),
+    bookedBlocks: input.bookedBlocks ?? [],
+    serviceDurationMinutes: 60,
+    cleanupBlockMinutes: 0,
+    capacity: input.capacity ?? 1,
+    globalAutoLunchEnabled: input.autoLunch ?? false,
+    dayLunchModes: input.dayLunchModes ?? {},
+  });
+}
+
 test("smart ranking preserves the valid candidate set and chronologically falls back for capacity above one", () => {
   const date = "2026-01-15";
   const candidates = suggested(date, "12:00", "10:30", "13:30");
@@ -216,4 +230,79 @@ test("smart ranking simulation keeps valid sets and date-first order across repr
     assert.deepEqual(first, second, `${scenario.name}: determinismus`);
     assert.equal(first[0]?.id, scenario.expectedFirst, scenario.name);
   }
+});
+
+test("recommendation selection chooses ranking quality but always presents the subset chronologically", () => {
+  const date = "2026-01-15";
+  const candidates = suggested(date, "13:00", "10:30", "14:00", "11:00", "11:30", "12:00");
+  const selected = select({
+    date,
+    candidates,
+    bookedBlocks: [interval(date, "09:00", "10:30"), interval(date, "15:00", "16:30")],
+  });
+
+  assert.deepEqual(selected.map((candidate) => candidate.id), [...selected]
+    .sort((left, right) => new Date(left.startsAt).getTime() - new Date(right.startsAt).getTime())
+    .map((candidate) => candidate.id));
+  assert.ok(selected.length < candidates.length, "slabší termíny se nepoužijí jako výplň do šesti");
+  assert.ok(selected.every((candidate) => candidates.includes(candidate)));
+});
+
+test("recommendation selection limits equivalent empty-day candidates chronologically without mutating selectable options", () => {
+  const date = "2026-01-15";
+  const candidates = suggested(date, "13:30", "09:00", "12:30", "10:00", "11:30", "09:30", "11:00", "10:30", "12:00", "13:00");
+  const snapshot = structuredClone(candidates);
+  const selected = select({ date, candidates });
+
+  assert.deepEqual(candidates, snapshot);
+  assert.equal(selected.length, 6);
+  assert.deepEqual(selected.map((candidate) => candidate.id), ["09:00", "09:30", "10:00", "10:30", "11:00", "11:30"]);
+});
+
+test("recommendation selection preserves date-first presentation and lunch-aware quality", () => {
+  const monday = "2026-07-15";
+  const tuesday = "2026-07-16";
+  const candidates = [
+    ...suggested(monday, "10:30", "12:00", "13:30"),
+    ...suggested(tuesday, "09:00", "09:30"),
+  ];
+  const selected = select({
+    date: monday,
+    candidates,
+    availability: [...fullDay(monday), ...fullDay(tuesday)],
+    bookedBlocks: [interval(monday, "09:00", "10:30"), interval(monday, "15:00", "16:30")],
+    autoLunch: true,
+  });
+
+  assert.deepEqual(selected.map((candidate) => candidate.startsAt), [...selected]
+    .sort((left, right) => new Date(left.startsAt).getTime() - new Date(right.startsAt).getTime())
+    .map((candidate) => candidate.startsAt));
+  assert.ok(selected.some((candidate) => candidate.id === "10:30"), "lunch lze přesunout a přesto zůstává kvalitní kandidát");
+  assert.ok(selected.every((candidate) => candidates.includes(candidate)));
+});
+
+test("recommendation simulation reports variable subset sizes and chronological subsets", () => {
+  const date = "2026-01-15";
+  const scenarios = [
+    { name: "prázdný den", bookedBlocks: [] as ScheduleInterval[], candidates: suggested(date, "09:00", "09:30", "10:00", "10:30", "11:00", "11:30", "12:00") },
+    { name: "ranní rezervace", bookedBlocks: [interval(date, "09:00", "10:30")], candidates: suggested(date, "10:30", "11:00", "12:00", "13:00") },
+    { name: "odpolední rezervace", bookedBlocks: [interval(date, "15:00", "16:30")], candidates: suggested(date, "10:30", "11:00", "12:00", "13:00") },
+    { name: "obě strany", bookedBlocks: [interval(date, "09:00", "10:30"), interval(date, "15:00", "16:30")], candidates: suggested(date, "10:30", "11:00", "12:00", "13:00", "13:30") },
+    { name: "krátká mezera", bookedBlocks: [interval(date, "09:00", "11:00"), interval(date, "12:00", "17:00")], candidates: suggested(date, "11:00") },
+    { name: "dlouhá mezera", bookedBlocks: [interval(date, "09:00", "10:00")], candidates: suggested(date, "10:00", "11:00", "12:00", "13:00") },
+    { name: "aktivní lunch", bookedBlocks: [interval(date, "09:00", "10:30"), interval(date, "15:00", "16:30")], candidates: suggested(date, "10:30", "12:00", "13:30"), autoLunch: true },
+    { name: "day OFF", bookedBlocks: [interval(date, "09:00", "10:30")], candidates: suggested(date, "10:30", "12:00", "13:00"), autoLunch: true, dayLunchModes: { [date]: "OFF" as const } },
+  ];
+  const counts: number[] = [];
+  for (const scenario of scenarios) {
+    const selected = select({ date, ...scenario });
+    counts.push(selected.length);
+    assert.ok(selected.every((candidate) => scenario.candidates.includes(candidate)), `${scenario.name}: subset selectable options`);
+    assert.deepEqual(selected, [...selected].sort((left, right) => new Date(left.startsAt).getTime() - new Date(right.startsAt).getTime()), `${scenario.name}: chronologicky`);
+  }
+  assert.equal(counts.filter((count) => count === 6).length, 1);
+  assert.equal(counts.filter((count) => count < 6).length, 7);
+  assert.equal(Math.min(...counts), 1);
+  assert.equal(Math.max(...counts), 6);
+  assert.equal(counts.reduce((sum, count) => sum + count, 0) / counts.length, 1.625);
 });

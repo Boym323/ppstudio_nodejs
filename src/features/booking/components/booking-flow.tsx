@@ -18,7 +18,7 @@ import {
   groupSlotsByDayPeriod,
   type TimeSlotOption,
 } from "@/features/booking/lib/booking-time-slots";
-import { rankSuggestedSlots } from "@/features/booking/lib/booking-schedule-optimization";
+import { selectSuggestedSlots } from "@/features/booking/lib/booking-schedule-optimization";
 
 import { BookingConfirmationPanel } from "./booking-confirmation-panel";
 import { StickyCTA } from "./sticky-cta";
@@ -540,7 +540,7 @@ export function BookingFlow({
       }
 
       const scheduleOptimization = currentCatalog.scheduleOptimization;
-      return rankSuggestedSlots({
+      return selectSuggestedSlots({
         candidates: selectableTimeOptions,
         availability: scheduleOptimization.publishedAvailability.map((interval) => ({
           startsAt: new Date(interval.startsAt).getTime(),
@@ -555,7 +555,7 @@ export function BookingFlow({
         capacity: availableSlots.every((slot) => slot.capacity === 1) ? 1 : 2,
         globalAutoLunchEnabled: scheduleOptimization.globalAutoLunchEnabled,
         dayLunchModes: scheduleOptimization.dayLunchModes,
-      }).slice(0, 6);
+      });
     },
     [availableSlots, currentCatalog.scheduleOptimization, selectableTimeOptions, selectedService],
   );
