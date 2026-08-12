@@ -167,7 +167,15 @@ Pro každý validní kandidát simulovat `existující bloky + hypotetický book
 7. silnější návaznost na existující rezervace nebo hranu availability, pokud tím fragment uzavřeme;
 8. původní chronologické pořadí jako poslední tie-breaker.
 
-Počáteční bezpečný horizont má být několik prvních již dostupných dnů zobrazených existujícím flow, nikoli neomezené hledání v kalendáři. Úplný chronologický a filtrovaný seznam zůstává dostupný pod doporučeními. Arbitrární váhy nejsou potřeba; pokud bude později nutný scalar, každá metrika se normalizuje a zdokumentuje při zachování date-first omezení.
+V1 hodnotí již načtené kandidáty po jednotlivých dnech a teprve potom vezme prvních šest; mezi dny je proto efektivita nikdy nepřeskočí. Úplný chronologický a filtrovaný seznam zůstává dostupný pod doporučeními. Arbitrární váhy nejsou potřeba; pokud bude později nutný scalar, každá metrika se normalizuje a zdokumentuje při zachování date-first omezení.
+
+## Fáze 6 — chytré doporučování termínů
+
+- `rankSuggestedSlots` v `booking-schedule-optimization.ts` je čistý synchronní in-memory pohled nad již validními kandidáty. Pracuje s publikovanou dostupností, blokovanými intervaly včetně cleanupu a hypotetickým booking blockem; pro aktivní policy do výsledného rozvrhu vloží nejlepší dostupný automatický oběd přes `findBestAutoLunch`.
+- Dny zůstávají chronologické podle `Europe/Prague`; pouze uvnitř stejného dne se kandidáti řadí lexikograficky podle menší fragmentace, menší orphan metriky (aktuálně neutrální), většího souvislého bloku, přímé návaznosti na existující blok, návaznosti/hran dostupnosti a nakonec dřívějšího startu. Prázdný nebo neutrální den zůstává chronologický.
+- Pokud chybí bezpečný kontext dne nebo je capacity jiná než 1, ranking vrátí původní chronologické pořadí. Nemění `selectableTimeOptions`, nevytváří ani neodstraňuje žádný termín a neprovádí žádné dotazy, requesty ani vedlejší efekty.
+- Veřejný nadpis je `Doporučené termíny`; analytika `slot_selected` nebyla rozšiřována, protože v aktuálním booking flow není dostupná.
+- Deterministická simulace pokrývá prázdný den, ranní a odpolední rezervaci, rezervace z obou stran, krátkou mezeru, dlouhý blok, aktivní auto lunch a day `OFF`. Potvrdila zachování množiny kandidátů, determinismus, date-first pořadí a preferenci nehorší fragmentace, kde existuje lepší kandidát.
 
 ## Strategie capacity
 
@@ -220,7 +228,7 @@ Datový model capacity vystavuje, ale produkční create path dokumentuje a vynu
 
 ### Fáze 6
 
-- Přidat date-first smart ranking za stávající hranici doporučení, dokončit testovací matici a performance checks a porovnat výstup s chronologickým fallbackem.
+- [x] Přidat date-first smart ranking za stávající hranici doporučení, dokončit testovací matici a performance checks a porovnat výstup s chronologickým fallbackem.
 
 ## Globální invarianty
 

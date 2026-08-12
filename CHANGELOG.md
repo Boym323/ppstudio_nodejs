@@ -8,7 +8,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
-- Veřejná rezervace chrání dynamickou 45minutovou obědovou přestávku během delších pracovních dnů při nabídce termínů, vytvoření i přesunu v serializovatelné transakci; standardní administrativní rezervace a přesuny ji také respektují, zatímco vědomě zvolený manual override ji může obejít. Její globální ochranu lze zapnout či vypnout v nastavení a provoz může připravit výjimku pro konkrétní pražský den. Přesuny navíc správně opakují PostgreSQL serializační konflikt `40001` vrácený Prisma jako `P2010`.
+- Veřejná rezervace chrání dynamickou 45minutovou obědovou přestávku během delších pracovních dnů při nabídce termínů, vytvoření i přesunu v serializovatelné transakci; standardní administrativní rezervace a přesuny ji také respektují, zatímco vědomě zvolený manual override ji může obejít. Její globální ochranu lze zapnout či vypnout v nastavení a provoz může připravit výjimku pro konkrétní pražský den. Přesuny navíc správně opakují PostgreSQL serializační konflikt `40001` vrácený Prisma jako `P2010`. Doporučené termíny nově preferují kompaktnější využití pracovního dne při zachování úplné nabídky ostatních dostupných termínů.
 - Admin planner nyní zobrazuje aktuálně vypočtenou obědovou přestávku, umožňuje pro konkrétní den automatický oběd vypnout nebo znovu zapnout a zachovává při tom kompaktní layout FullCalendaru.
 
 ## [3.16.5] - 2026-08-11

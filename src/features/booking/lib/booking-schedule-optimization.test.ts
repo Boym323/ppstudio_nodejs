@@ -8,6 +8,7 @@ import {
   findBestAutoLunch,
   generateLunchCandidates,
   measureFragmentation,
+  rankSuggestedSlots,
   shouldApplyAutoLunch,
   type ScheduleInterval,
 } from "./booking-schedule-optimization";
@@ -92,5 +93,127 @@ test("Prague wall-clock candidates retain their local meaning in winter, summer 
     assert.equal(candidates.length, 9);
     assert.equal(candidates[0].startsAt, at(date, AUTO_LUNCH_POLICY.earliestStart));
     assert.equal(candidates.at(-1)?.endsAt, at(date, "13:45"));
+  }
+});
+
+type SuggestedCandidate = { id: string; startsAt: string };
+
+function suggested(date: string, ...times: string[]): SuggestedCandidate[] {
+  return times.map((time) => ({
+    id: time,
+    startsAt: new Date(at(date, time)).toISOString(),
+  }));
+}
+
+function rank(input: {
+  date: string;
+  candidates: SuggestedCandidate[];
+  availability?: ScheduleInterval[];
+  bookedBlocks?: ScheduleInterval[];
+  capacity?: number;
+  autoLunch?: boolean;
+  dayLunchModes?: Record<string, "AUTO" | "OFF" | undefined>;
+}) {
+  return rankSuggestedSlots({
+    candidates: input.candidates,
+    availability: input.availability ?? fullDay(input.date),
+    bookedBlocks: input.bookedBlocks ?? [],
+    serviceDurationMinutes: 60,
+    cleanupBlockMinutes: 0,
+    capacity: input.capacity ?? 1,
+    globalAutoLunchEnabled: input.autoLunch ?? false,
+    dayLunchModes: input.dayLunchModes ?? {},
+  });
+}
+
+test("smart ranking preserves the valid candidate set and chronologically falls back for capacity above one", () => {
+  const date = "2026-01-15";
+  const candidates = suggested(date, "12:00", "10:30", "13:30");
+  const ranked = rank({
+    date,
+    candidates,
+    bookedBlocks: [interval(date, "09:00", "10:30"), interval(date, "15:00", "16:30")],
+  });
+  assert.deepEqual([...ranked].map((candidate) => candidate.id).sort(), [...candidates].map((candidate) => candidate.id).sort());
+  assert.equal(ranked[0]?.id, "10:30");
+  assert.deepEqual(rank({ date, candidates, capacity: 2 }).map((candidate) => candidate.id), candidates.map((candidate) => candidate.id));
+});
+
+test("smart ranking prefers fewer fragments, then a larger free block and direct booking adjacency", () => {
+  const date = "2026-01-15";
+  assert.equal(rank({
+    date,
+    candidates: suggested(date, "12:00", "10:30"),
+    bookedBlocks: [interval(date, "09:00", "10:30"), interval(date, "15:00", "16:30")],
+  })[0]?.id, "10:30");
+  assert.equal(rank({
+    date,
+    candidates: suggested(date, "13:00", "11:00"),
+    bookedBlocks: [interval(date, "09:00", "10:00"), interval(date, "16:00", "17:00")],
+  })[0]?.id, "11:00");
+  assert.equal(rank({
+    date,
+    candidates: suggested(date, "09:00", "11:00"),
+    bookedBlocks: [interval(date, "12:00", "13:00")],
+  })[0]?.id, "11:00");
+});
+
+test("smart ranking measures the resulting schedule including the best lunch placement without penalizing its move", () => {
+  const date = "2026-07-15";
+  const candidates = suggested(date, "10:30", "12:00", "13:30");
+  const ranked = rank({
+    date,
+    candidates,
+    bookedBlocks: [interval(date, "09:00", "10:30"), interval(date, "15:00", "16:30")],
+    autoLunch: true,
+  });
+  assert.equal(ranked[0]?.id, "10:30");
+  assert.deepEqual(rank({
+    date,
+    candidates,
+    bookedBlocks: [interval(date, "09:00", "10:30"), interval(date, "15:00", "16:30")],
+    autoLunch: true,
+  }).map((candidate) => candidate.id), ranked.map((candidate) => candidate.id));
+});
+
+test("smart ranking is date-first, stable on ties and keeps an empty day chronological", () => {
+  const firstDate = "2026-01-15";
+  const nextDate = "2026-01-16";
+  const candidates = [
+    ...suggested(firstDate, "12:00", "10:30"),
+    ...suggested(nextDate, "09:00"),
+  ];
+  const ranked = rank({
+    date: firstDate,
+    candidates,
+    availability: [fullDay(firstDate)[0]!, fullDay(nextDate)[0]!],
+    bookedBlocks: [interval(firstDate, "09:00", "10:30"), interval(firstDate, "15:00", "16:30")],
+  });
+  assert.deepEqual(ranked.map((candidate) => candidate.id), ["10:30", "12:00", "09:00"]);
+  assert.deepEqual(rank({
+    date: firstDate,
+    candidates: suggested(firstDate, "09:00", "10:00", "11:00"),
+  }).map((candidate) => candidate.id), ["09:00", "10:00", "11:00"]);
+});
+
+test("smart ranking simulation keeps valid sets and date-first order across representative days", () => {
+  const date = "2026-01-15";
+  const scenarios = [
+    { name: "prázdný den", bookedBlocks: [] as ScheduleInterval[], candidates: suggested(date, "09:00", "10:00", "11:00"), expectedFirst: "09:00" },
+    { name: "ranní rezervace", bookedBlocks: [interval(date, "09:00", "10:30")], candidates: suggested(date, "10:30", "12:00"), expectedFirst: "10:30" },
+    { name: "odpolední rezervace", bookedBlocks: [interval(date, "15:00", "16:30")], candidates: suggested(date, "10:30", "12:00"), expectedFirst: "10:30" },
+    { name: "rezervace na obou stranách", bookedBlocks: [interval(date, "09:00", "10:30"), interval(date, "15:00", "16:30")], candidates: suggested(date, "10:30", "12:00", "13:30"), expectedFirst: "10:30" },
+    { name: "krátká mezera", bookedBlocks: [interval(date, "09:00", "11:00"), interval(date, "12:00", "17:00")], candidates: suggested(date, "11:00"), expectedFirst: "11:00" },
+    { name: "dlouhý souvislý blok", bookedBlocks: [interval(date, "09:00", "10:00")], candidates: suggested(date, "10:00", "12:00"), expectedFirst: "10:00" },
+    { name: "aktivní automatický oběd", bookedBlocks: [interval(date, "09:00", "10:30"), interval(date, "15:00", "16:30")], candidates: suggested(date, "10:30", "12:00"), expectedFirst: "10:30", autoLunch: true },
+    { name: "denní OFF", bookedBlocks: [interval(date, "09:00", "10:30")], candidates: suggested(date, "10:30", "12:00"), expectedFirst: "10:30", autoLunch: true, dayLunchModes: { [date]: "OFF" as const } },
+  ];
+
+  for (const scenario of scenarios) {
+    const first = rank({ date, ...scenario });
+    const second = rank({ date, ...scenario });
+    assert.deepEqual(first.map((candidate) => candidate.id).sort(), scenario.candidates.map((candidate) => candidate.id).sort(), scenario.name);
+    assert.deepEqual(first, second, `${scenario.name}: determinismus`);
+    assert.equal(first[0]?.id, scenario.expectedFirst, scenario.name);
   }
 });

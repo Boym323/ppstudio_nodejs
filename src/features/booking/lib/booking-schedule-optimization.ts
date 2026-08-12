@@ -1,4 +1,4 @@
-import { resolvePragueLocalDateTime } from "./booking-local-time";
+import { getNextCalendarDate, getPragueLocalDate, resolvePragueLocalDateTime } from "./booking-local-time";
 
 export const AUTO_LUNCH_POLICY = {
   durationMinutes: 45,
@@ -23,6 +23,7 @@ export type FragmentationMetrics = {
   bookingAdjacencyMinutes: number;
   availabilityEdgeMinutes: number;
 };
+export type SuggestedSlotCandidate = { startsAt: string };
 
 function valid(interval: ScheduleInterval) {
   return Number.isFinite(interval.startsAt) && Number.isFinite(interval.endsAt) && interval.endsAt > interval.startsAt;
@@ -57,6 +58,16 @@ function subtract(availability: ScheduleInterval[], occupied: ScheduleInterval[]
     });
   }
   return free;
+}
+
+function intervalsForDay(intervals: ScheduleInterval[], startsAt: number, endsAt: number) {
+  return intervals.flatMap((interval) => {
+    const dayInterval = {
+      startsAt: Math.max(interval.startsAt, startsAt),
+      endsAt: Math.min(interval.endsAt, endsAt),
+    };
+    return valid(dayInterval) ? [dayInterval] : [];
+  });
 }
 
 function localInstant(localDate: string, time: string) {
@@ -142,4 +153,97 @@ export function findBestAutoLunch(input: { active: boolean; availability: Schedu
     }
   }
   return best;
+}
+
+/**
+ * Returns a date-first, in-memory ranking for an already valid set of public candidates.
+ * It deliberately never filters or mutates the input array; any incomplete day context
+ * falls back to the original chronological order for that day.
+ */
+export function rankSuggestedSlots<T extends SuggestedSlotCandidate>(input: {
+  candidates: readonly T[];
+  availability: ScheduleInterval[];
+  bookedBlocks: BookingBlock[];
+  serviceDurationMinutes: number;
+  cleanupBlockMinutes: number;
+  capacity: number;
+  globalAutoLunchEnabled: boolean;
+  dayLunchModes: Record<string, DayLunchMode | undefined>;
+}): T[] {
+  const chronological = [...input.candidates];
+  if (input.capacity !== 1 || input.serviceDurationMinutes <= 0 || input.cleanupBlockMinutes < 0) return chronological;
+
+  const grouped = new Map<string, Array<{ candidate: T; index: number; startsAt: number }>>();
+  for (const [index, candidate] of chronological.entries()) {
+    const startsAt = new Date(candidate.startsAt).getTime();
+    if (!Number.isFinite(startsAt)) return chronological;
+    const dateKey = getPragueLocalDate(new Date(startsAt));
+    const group = grouped.get(dateKey) ?? [];
+    group.push({ candidate, index, startsAt });
+    grouped.set(dateKey, group);
+  }
+
+  return [...grouped.entries()]
+    .sort(([left], [right]) => left.localeCompare(right))
+    .flatMap(([localDate, candidates]) => {
+      const nextDate = getNextCalendarDate(localDate);
+      const dayStartsAt = resolvePragueLocalDateTime(localDate, "00:00")?.getTime();
+      const dayEndsAt = nextDate ? resolvePragueLocalDateTime(nextDate, "00:00")?.getTime() : undefined;
+      if (dayStartsAt === undefined || dayEndsAt === undefined) return candidates.map(({ candidate }) => candidate);
+
+      const availability = intervalsForDay(input.availability, dayStartsAt, dayEndsAt);
+      const bookedBlocks = intervalsForDay(input.bookedBlocks, dayStartsAt, dayEndsAt);
+      if (availability.length === 0) return candidates.map(({ candidate }) => candidate);
+
+      const active = shouldApplyAutoLunch({
+        localDate,
+        availability,
+        globalAutoLunchEnabled: input.globalAutoLunchEnabled,
+        dayLunchMode: input.dayLunchModes[localDate] ?? "AUTO",
+      });
+      const lunchCandidates = generateLunchCandidates({ localDate, availability });
+      const blockDurationMs = (input.serviceDurationMinutes + input.cleanupBlockMinutes) * MINUTE_MS;
+      const evaluated = candidates.map((entry) => {
+        const hypotheticalBlock = { startsAt: entry.startsAt, endsAt: entry.startsAt + blockDurationMs };
+        const lunch = findBestAutoLunch({
+          active,
+          availability,
+          lunchCandidates,
+          bookedBlocks: [...bookedBlocks, hypotheticalBlock],
+        });
+        if (active && !lunch) return null;
+        const resultBlocks = [...bookedBlocks, hypotheticalBlock, ...(lunch ? [lunch] : [])];
+        return {
+          ...entry,
+          candidateAdjacency: bookedBlocks.reduce(
+            (count, block) => count + Number(
+              block.endsAt === hypotheticalBlock.startsAt || block.startsAt === hypotheticalBlock.endsAt,
+            ),
+            0,
+          ),
+          metrics: measureFragmentation({
+            freeIntervals: subtract(availability, resultBlocks),
+            availability,
+            bookingBlocks: resultBlocks,
+          }),
+        };
+      });
+      if (evaluated.some((entry) => entry === null)) return candidates.map(({ candidate }) => candidate);
+
+      return (evaluated as Array<typeof evaluated[number] & {}>)
+        .sort((left, right) => {
+          const comparison = [
+            left.metrics.fragmentCount - right.metrics.fragmentCount,
+            left.metrics.orphanMinutes - right.metrics.orphanMinutes,
+            right.metrics.largestFreeBlockMinutes - left.metrics.largestFreeBlockMinutes,
+            right.candidateAdjacency - left.candidateAdjacency,
+            right.metrics.bookingAdjacencyMinutes - left.metrics.bookingAdjacencyMinutes,
+            right.metrics.availabilityEdgeMinutes - left.metrics.availabilityEdgeMinutes,
+            left.startsAt - right.startsAt,
+            left.index - right.index,
+          ].find((value) => value !== 0) ?? 0;
+          return comparison;
+        })
+        .map(({ candidate }) => candidate);
+    });
 }

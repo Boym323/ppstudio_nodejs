@@ -18,6 +18,7 @@ import {
   groupSlotsByDayPeriod,
   type TimeSlotOption,
 } from "@/features/booking/lib/booking-time-slots";
+import { rankSuggestedSlots } from "@/features/booking/lib/booking-schedule-optimization";
 
 import { BookingConfirmationPanel } from "./booking-confirmation-panel";
 import { StickyCTA } from "./sticky-cta";
@@ -533,8 +534,30 @@ export function BookingFlow({
   );
 
   const suggestedSlots = useMemo(
-    () => selectableTimeOptions.slice(0, 6),
-    [selectableTimeOptions],
+    () => {
+      if (!selectedService) {
+        return selectableTimeOptions.slice(0, 6);
+      }
+
+      const scheduleOptimization = currentCatalog.scheduleOptimization;
+      return rankSuggestedSlots({
+        candidates: selectableTimeOptions,
+        availability: scheduleOptimization.publishedAvailability.map((interval) => ({
+          startsAt: new Date(interval.startsAt).getTime(),
+          endsAt: new Date(interval.endsAt).getTime(),
+        })),
+        bookedBlocks: scheduleOptimization.bookedIntervals.map((interval) => ({
+          startsAt: new Date(interval.startsAt).getTime(),
+          endsAt: new Date(interval.endsAt).getTime(),
+        })),
+        serviceDurationMinutes: selectedService.durationMinutes,
+        cleanupBlockMinutes: selectedService.cleanupBlockMinutes,
+        capacity: availableSlots.every((slot) => slot.capacity === 1) ? 1 : 2,
+        globalAutoLunchEnabled: scheduleOptimization.globalAutoLunchEnabled,
+        dayLunchModes: scheduleOptimization.dayLunchModes,
+      }).slice(0, 6);
+    },
+    [availableSlots, currentCatalog.scheduleOptimization, selectableTimeOptions, selectedService],
   );
 
   const availableSlotsByDate = useMemo(() => {
