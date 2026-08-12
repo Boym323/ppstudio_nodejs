@@ -7,6 +7,7 @@ import {
   buildAvailableCells,
   buildIntervalsFromCells,
   cloneWeekDays,
+  normalizePlannerSelectionToHalfHours,
   patchDayAvailableRange,
   patchDayAvailableIntervals,
   sanitizeIntervals,
@@ -103,6 +104,13 @@ test("patchDayAvailableRange zachová přesný blok po úklidu při změně jin�
     { startCell: 2.5, endCell: 3, label: "07:15 - 07:30" },
     { startCell: 12.5, endCell: 16, label: "12:15 - 14:00" },
   ]);
+});
+
+test("běžné tažení ze čtvrthodiny zarovná na viditelné půlhodiny", () => {
+  assert.deepEqual(normalizePlannerSelectionToHalfHours(12.5, 14.5), {
+    startCell: 12,
+    endCell: 15,
+  });
 });
 
 test("hydratovaný týden nahradí starý derived automatický oběd novým serverovým stavem", () => {

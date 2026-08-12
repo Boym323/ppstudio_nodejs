@@ -184,6 +184,14 @@ export function hasBlockedCells(day: PlannerDay, startCell: number, endCell: num
   return null;
 }
 
+/** Běžné tažení v půlhodinové mřížce zarovná na její viditelné hranice. */
+export function normalizePlannerSelectionToHalfHours(startCell: number, endCell: number) {
+  return {
+    startCell: Math.floor(startCell),
+    endCell: Math.ceil(endCell),
+  };
+}
+
 export function wouldConflictWithIntervals(
   day: PlannerDay,
   intervals: Array<{
