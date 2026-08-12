@@ -103,6 +103,18 @@ test("kompaktní pohled nabízí Den, Po–Pá a Víkend a zachová mobilní scr
   assert.doesNotMatch(source, /key=\{compact \? "compact" : "desktop"\}/);
 });
 
+test("planner řadí lunch controls před FullCalendar a zachová čtyři gridové řádky", async () => {
+  const source = await clientSource();
+  const controlsIndex = source.indexOf("className={styles.controls}");
+  const legendIndex = source.indexOf("className={styles.legend}");
+  const lunchIndex = source.indexOf("className={styles.lunchControls}");
+  const calendarIndex = source.indexOf("ref={calendarContainerRef}");
+  assert.ok(controlsIndex < legendIndex && legendIndex < lunchIndex && lunchIndex < calendarIndex);
+  const styles = await readFile(new URL("./planner-lab.module.css", import.meta.url), "utf8");
+  assert.match(styles, /grid-template-rows: auto auto auto minmax\(30rem, 1fr\)/);
+  assert.match(styles, /grid-template-rows: auto auto auto minmax\(28rem, 1fr\)/);
+});
+
 test("výběr buněk zachová lokální čas FullCalendaru i po změně letního času", async () => {
   const source = await clientSource();
   assert.match(source, /function getCalendarCellPosition\(dateTime: string\)/);

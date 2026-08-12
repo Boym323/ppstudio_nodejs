@@ -147,6 +147,13 @@ Planner má zobrazovat display-only lunch event odvozený z aktuálního stavu v
 - Global OFF deaktivuje denní ovladač a zobrazí informační stav. Aktivní policy bez kandidáta zobrazí admin warning bez falešného eventu. Lunch event nelze dragovat, resizeovat ani uložit do save queue.
 - Ověření pokrývá adapter přesnost, AUTO/OFF/global OFF, krátkou směnu, nový booking context, nemožný candidate a regresní editaci planneru.
 
+## Fáze 5B — oprava layoutu planneru
+
+- Příčinou regrese byl počet explicitních CSS grid řádků `.planner`: po vložení `lunchControls` zůstaly definované pouze tři řádky pro čtyři sourozenecké bloky. Ovládání oběda proto skončilo v implicitním řádku za kalendářem a `.calendar` si ve třetím řádku ponechal celý výškový prostor.
+- Oprava doplnila samostatný auto řádek pro `lunchControls` v desktopovém i užším layoutu. DOM pořadí zůstává `toolbar`, `legenda`, `lunchControls`, `FullCalendar`; ovládání nemá vlastní velkou výšku ani `flex: 1`.
+- FullCalendar sizing, `height="100%"`, `expandRows`, 30minutový grid a 15minutové snapování zůstaly beze změny. Přesný 45minutový lunch event zůstává read-only, dynamický a používá přesné ISO rozsahy.
+- Testy: doplněn DOM/CSS regresní test pořadí a gridových řádků; cílené planner/lunch testy prošly 61/61, `typecheck`, ESLint, changelog check i produkční build prošly a `.next/BUILD_ID` byl vytvořen. Vizuální smoke test desktopového Chromium ověřil viditelný grid a navigaci na následující týden; výsledek PASS.
+
 ## Model smart rankingu
 
 Pro každý validní kandidát simulovat `existující bloky + hypotetický booking`, vybrat nejlepší proveditelný oběd a změřit výsledné volné intervaly. Řadit podle interpretovatelné lexikografické n-tice:

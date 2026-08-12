@@ -1,5 +1,5 @@
 .page { display: grid; height: calc(100dvh - 2.5rem); min-height: 34rem; grid-template-rows: auto minmax(0, 1fr); gap: .75rem; overflow: hidden; }
-.planner { display: grid; min-height: 0; grid-template-rows: auto auto minmax(30rem, 1fr); gap: .5rem; }
+.planner { display: grid; min-height: 0; grid-template-rows: auto auto auto minmax(30rem, 1fr); gap: .5rem; }
 .controls { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem .5rem; min-width: 0; border: 1px solid rgb(255 255 255 / 10%); border-radius: .75rem; background: rgb(255 255 255 / 4%); padding: .45rem .55rem; }
 .weekRange { margin-right: auto; color: rgb(255 255 255 / 70%); font-size: .875rem; white-space: nowrap; }
 .navigation, .viewSwitch { display: flex; align-items: center; gap: .2rem; }
@@ -65,7 +65,7 @@
 .cleanupEvent > span { overflow: hidden; text-overflow: ellipsis; text-transform: uppercase; letter-spacing: .04em; font-size: 9px; font-weight: 700; }
 @media (max-width: 639px) {
   .page { height: calc(100dvh - 6.25rem); min-height: 32rem; gap: .5rem; }
-  .planner { grid-template-rows: auto auto minmax(28rem, 1fr); }
+  .planner { grid-template-rows: auto auto auto minmax(28rem, 1fr); }
   .controls { gap: .35rem; padding: .4rem; }
   .weekRange { flex-basis: 100%; margin-right: 0; font-size: .8125rem; }
   .status { margin-left: auto; }
