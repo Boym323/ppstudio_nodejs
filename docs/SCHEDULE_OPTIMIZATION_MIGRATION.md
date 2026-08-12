@@ -1,5 +1,57 @@
 # Migrace optimalizace rozvrhu
 
+# Aktuální výsledný stav
+
+Tato sekce je autoritativním shrnutím stavu po Fázi 9C. Níže uvedené historické fáze zachovávají tehdejší stav; pokud se s touto sekcí rozcházejí, platí tento výsledný stav.
+
+## Obědová politika a persistence
+
+- Automatický oběd trvá přesně 45 minut, kandidátní starty jsou `11:00–13:00` včetně po 15 minutách a aktivace vyžaduje nejméně 5 hodin skutečné publikované kapacity. Vše se vyhodnocuje v `Europe/Prague`.
+- Aktivace vychází pouze z raw/published availability. Bookingy a cleanup pouze mění možné umístění oběda; konkrétní start ani konec oběda se nepersistuje.
+- Globální přepínač je `SiteSettings.autoLunchEnabled`. Absence `AutoLunchDayOverride` znamená `AUTO`, existence override znamená `OFF`; návrat na `AUTO` override odstraní. Neexistuje persisted lunch start/end.
+
+## Authoritative ochrana
+
+Veřejný filtering doplňuje authoritative create uvnitř `Serializable` transakce nad čerstvou dostupností, bookingy a policy, včetně stale/race ochrany. Booking block používá `startsAt → blockedUntil`. Stejná ochrana platí pro public i admin reschedule a respektuje `excludeBookingId`. Standardní admin cesta používá `allowManualOverride = false`; explicitní manual override používá `true` a skutečný bypass se audituje přes `Booking.manualOverride`.
+
+## Planner
+
+Planner zobrazuje lunch jako odvozený přesný 45minutový read-only event z `findBestAutoLunch`; starty jsou po 15 minutách, zatímco FullCalendar grid zůstává 30minutový. Podporuje `AUTO`/`OFF`, globální `OFF` a warning při nemožném obědu. Lunch se nezapisuje do save queue ani do databáze.
+
+## Recommendation a fragmentation pipeline
+
+`selectableTimeOptions` se nemění. Aktuální tok je:
+
+```text
+RAW/PUBLISHED AVAILABILITY
+        ↓
+AUTO LUNCH POLICY
+        ↓
+NORMAL SLOT GENERATION
+        ↓
+LUNCH FEASIBILITY FILTER
+        ↓
+selectableTimeOptions
+        ↓
+rankSuggestedSlots
+        ↓
+service-aware fragmentation/orphan evaluation
+        ↓
+selectSuggestedSlots
+        ↓
+max. 6 nejlepších kvalitativních tříd
+        ↓
+chronologické zobrazení doporučení
+```
+
+Ranking mění pouze recommendation subset: slabší kandidáti se nedoplňují jen kvůli dosažení šesti, maximum je 6 a UI doporučení zobrazuje chronologicky. Date-first invariant zůstává.
+
+`orphanMinutes` se počítá přes `calculateOrphanMinutes(...)` a service-aware DP jako minuty, které po maximálním zaplnění volných fragmentů skutečně rezervovatelnými službami zůstávají nevyužitelné. Hodnotí se skutečné `durationMinutes + cleanupBlockMinutes`, s cleanupem zaokrouhleným přes shared helper. Priority jsou: `fragmentCount`, `orphanMinutes`, `largestFreeBlockMinutes`, adjacency / availability edge a stabilní tie-break.
+
+Interní fragment vyžaduje celý booking block včetně cleanupu. Pokud končí na availability edge, pouze poslední booking může cleanupem přesáhnout konec availability; procedura musí být availability stále plně pokryta. Context `ANY` podporuje service-aware orphan, nepodporovaný `SELECTED` restriction context používá bezpečný neutrální fallback. `capacity = 1` používá smart optimization, `capacity > 1` bezpečný chronologický fallback.
+
+Authoritative write: `REQUEST → Serializable transaction → fresh availability/bookings/policy → lunch feasibility → create/update nebo SLOT_UNAVAILABLE`.
+
 ## Pevná produktová pravidla
 
 - Automatický oběd trvá přesně 45 minut v časové zóně `Europe/Prague`.
@@ -15,7 +67,7 @@
 
 - `getPublicBookingCatalog` načítá publikovanou dostupnost a aktivní rezervace. Rezervace předává jako `bookedIntervals`, kde `endsAt = blockedUntil ?? scheduledEndsAt`, s cleanup lookahead.
 - `buildSlotTimeOptions` vytváří veřejné možnosti. Běžní kandidáti používají krok 30 minut; quarter-hour kandidáti vznikají po koncích rezervací a před začátky rezervací pomocí `ceilToQuarterHour`/`floorToQuarterHour`.
-- `booking-flow.tsx` odvozuje `selectableTimeOptions` filtrováním disabled možností. `suggestedSlots` je nyní chronologické: `selectableTimeOptions.slice(0, 6)`.
+- `booking-flow.tsx` odvozuje `selectableTimeOptions` filtrováním disabled možností. Historický přímý fallback `selectableTimeOptions.slice(0, 6)` byl později nahrazen ve Fázi 8 výběrem přes ranking a kvalitativní třídy.
 - `buildSlotTimeOptions` respektuje `slot.capacity`, ale create engine aktuálně vynucuje invariant jediného zdroje pomocí `allowedCapacity = 1`. Reschedule bez override používá nejnižší capacity z pokrytí.
 - `scheduledEndsAt` je konec služby viditelný klientce. `blockedUntil` je konec occupancy včetně cleanup; null `blockedUntil` znamená `scheduledEndsAt`. Planner queries i public catalog používají pro konflikty blokovaný konec.
 - Public create vstupuje přes `createPublicBooking` s `allowManualOverride: false` a pokračuje do `createBookingWithEngine`. Authoritative kontrola dostupnosti, překryvů, capacity a slotů probíhá uvnitř Serializable transakce po čerstvém načtení a locku slotu.
@@ -172,7 +224,7 @@ V1 hodnotí již načtené kandidáty po jednotlivých dnech a teprve potom vezm
 ## Fáze 6 — chytré doporučování termínů
 
 - `rankSuggestedSlots` v `booking-schedule-optimization.ts` je čistý synchronní in-memory pohled nad již validními kandidáty. Pracuje s publikovanou dostupností, blokovanými intervaly včetně cleanupu a hypotetickým booking blockem; pro aktivní policy do výsledného rozvrhu vloží nejlepší dostupný automatický oběd přes `findBestAutoLunch`.
-- Dny zůstávají chronologické podle `Europe/Prague`; pouze uvnitř stejného dne se kandidáti řadí lexikograficky podle menší fragmentace, menší orphan metriky (aktuálně neutrální), většího souvislého bloku, přímé návaznosti na existující blok, návaznosti/hran dostupnosti a nakonec dřívějšího startu. Prázdný nebo neutrální den zůstává chronologický.
+- Dny zůstávají chronologické podle `Europe/Prague`; pouze uvnitř stejného dne se kandidáti řadí lexikograficky podle menší fragmentace, menší service-aware orphan metriky, většího souvislého bloku, přímé návaznosti na existující blok, návaznosti/hran dostupnosti a nakonec dřívějšího startu. Prázdný den zůstává chronologický. (Původní neutrální orphan metrika je historický stav před Fází 9B.)
 - Pokud chybí bezpečný kontext dne nebo je capacity jiná než 1, ranking vrátí původní chronologické pořadí. Nemění `selectableTimeOptions`, nevytváří ani neodstraňuje žádný termín a neprovádí žádné dotazy, requesty ani vedlejší efekty.
 - Veřejný nadpis je `Doporučené termíny`; analytika `slot_selected` nebyla rozšiřována, protože v aktuálním booking flow není dostupná.
 - Deterministická simulace pokrývá prázdný den, ranní a odpolední rezervaci, rezervace z obou stran, krátkou mezeru, dlouhý blok, aktivní auto lunch a day `OFF`. Potvrdila zachování množiny kandidátů, determinismus, date-first pořadí a preferenci nehorší fragmentace, kde existuje lepší kandidát.
@@ -242,7 +294,7 @@ Datový model capacity vystavuje, ale produkční create path dokumentuje a vynu
 
 ### Fáze 3
 
-- [ ] Persistence konfigurace: přidat minimální persistenci a administrační ovládání globálního `enabled/disabled` a denního `AUTO/OFF` bez ukládání konkrétního času oběda.
+- [x] Persistence konfigurace: přidat minimální persistenci a administrační ovládání globálního `enabled/disabled` a denního `AUTO/OFF` bez ukládání konkrétního času oběda.
 
 ### Fáze 4
 
@@ -255,6 +307,26 @@ Datový model capacity vystavuje, ale produkční create path dokumentuje a vynu
 ### Fáze 6
 
 - [x] Přidat date-first smart ranking za stávající hranici doporučení, dokončit testovací matici a performance checks a porovnat výstup s chronologickým fallbackem.
+
+### Fáze 7
+
+- [x] Produkčně bezpečný výsledek.
+
+### Fáze 8
+
+- [x] Oddělit ranking, selekci a chronologickou prezentaci doporučených termínů; zachovat úplný `selectableTimeOptions`.
+
+### Fáze 9A
+
+- [x] Audit authoritative ochrany, reschedule, planneru a recommendation flow.
+
+### Fáze 9B
+
+- [x] Zavést service-aware `orphanMinutes` a cleanup edge semantics.
+
+### Fáze 9C
+
+- [x] Stabilizovat produkční build; ověřit `.next/BUILD_ID`.
 
 ## Globální invarianty
 
@@ -291,6 +363,16 @@ Datový model capacity vystavuje, ale produkční create path dokumentuje a vynu
 | Build | PASS | `npm run build` dokončil a vytvořil `.next/BUILD_ID`. |
 
 - Deterministická simulace osmi scénářů zachovala množinu kandidátů, determinismus i date-first pořadí. Proti chronologickému baseline se první termín změnil v 0/8 scénářů; smart varianta nikde nezhoršila fragmentaci a samostatný lunch-aware scénář potvrdil preferenci lepšího výsledného rozvrhu i při přesunu oběda.
-- `orphanMinutes` zůstává ve V1 vědomě neutrální. Capacity větší než 1 a neúplný optimization context používají původní chronologické pořadí.
+- Tento řádek popisuje historický stav před Fází 9B: tehdy `orphanMinutes` zůstávalo ve V1 vědomě neutrální. Po Fázi 9B je pro `ANY` context service-aware; `SELECTED` bez bezpečné segmentové mapy a capacity větší než 1 používají bezpečný chronologický/neutrální fallback.
 - Read-only simulace nad reálnými daty: SKIPPED, protože pro audit nebyl potvrzen bezpečný future/dev dataset oddělený od produkčních dat.
-- Fáze 7: [x] produkčně bezpečný výsledek.
+
+## Aktuální stav po Fázi 9C
+
+| Oblast | Výsledek |
+| --- | --- |
+| Recommendation selection | PASS |
+| Chronologické recommendation UI | PASS |
+| Service-aware `orphanMinutes` | PASS |
+| Cleanup edge semantics | PASS |
+| Fáze 9C build | PASS |
+| `.next/BUILD_ID` | PASS |
