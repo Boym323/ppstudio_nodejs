@@ -22,6 +22,13 @@
 .legendProtected { background: repeating-linear-gradient(135deg, rgb(139 150 168 / 80%) 0 4px, rgb(139 150 168 / 20%) 4px 8px); }
 .legendUnsaved { background: transparent; border-style: dashed !important; border-color: #f5ca70 !important; }
 .legendError { background: #b85164; }
+.legendLunch { background: repeating-linear-gradient(135deg, #8d78cf 0 4px, #5e4c98 4px 8px); }
+.lunchControls { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem .5rem; padding: .35rem .5rem; border: 1px solid rgb(141 120 207 / 24%); border-radius: .65rem; background: rgb(141 120 207 / 7%); color: rgb(255 255 255 / 72%); font-size: .75rem; }
+.lunchControls select { min-height: 1.8rem; max-width: 13rem; border: 1px solid rgb(255 255 255 / 14%); border-radius: .35rem; background: #211d27; padding: .2rem .4rem; color: white; }
+.lunchNote { color: rgb(255 255 255 / 55%); }
+.lunchEvent { display: flex; min-width: 0; gap: .3rem; align-items: baseline; overflow: hidden; color: #f3efff; font-size: 10px; white-space: nowrap; }
+.lunchEvent > b { flex: none; font-variant-numeric: tabular-nums; }
+.lunchEvent > span { overflow: hidden; text-overflow: ellipsis; text-transform: uppercase; letter-spacing: .04em; font-size: 9px; font-weight: 700; }
 .calendar { min-width: 0; min-height: 0; height: 100%; overflow: hidden; border: 1px solid rgb(255 255 255 / 9%); border-radius: 1rem; background: #121015; padding: .5rem; box-shadow: inset 0 1px rgb(255 255 255 / 3%); }
 .workWeek { overflow-x: auto; overscroll-behavior-x: contain; }
 .workWeek :global(.fc) { min-width: 36rem; }
@@ -42,6 +49,7 @@
 .calendar :global(.planner-lab-event--cleanup) { --fc-event-color: #d7b766 !important; border: 1px solid rgb(215 183 102 / 42%) !important; border-radius: .45rem !important; box-shadow: none !important; background: repeating-linear-gradient(135deg, rgb(215 183 102 / 30%) 0 3px, rgb(215 183 102 / 12%) 3px 7px) !important; color: #f6e7bc !important; }
 .calendar :global(.planner-lab-event--protected) { --fc-event-color: #8b96a8 !important; background: repeating-linear-gradient(135deg, rgb(139 150 168 / 28%) 0 5px, rgb(139 150 168 / 12%) 5px 10px) !important; }
 .calendar :global(.planner-lab-event--completed) { --fc-event-color: #64748b !important; background: #536174 !important; color: #e2e8f0 !important; }
+.calendar :global(.planner-lab-event--lunch) { --fc-event-color: #8d78cf !important; background: repeating-linear-gradient(135deg, rgb(141 120 207 / 78%) 0 5px, rgb(141 120 207 / 42%) 5px 10px) !important; color: #f3efff !important; border: 1px solid rgb(191 177 239 / 55%) !important; }
 .calendar :global(.fc-highlight) { background: rgb(245 202 112 / 26%); }
 .eventShort, .eventMedium, .eventLong { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; word-break: normal; overflow-wrap: normal; font-size: 12px; }
 .eventShort { display: flex; gap: .25rem; align-items: baseline; }

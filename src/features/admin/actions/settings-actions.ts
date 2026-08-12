@@ -49,6 +49,8 @@ function revalidateSettingsPaths() {
   for (const path of [
     "/admin/nastaveni",
     "/admin",
+    "/admin/volne-terminy",
+    "/admin/provoz/volne-terminy",
     "/",
     "/kontakt",
     "/faq",

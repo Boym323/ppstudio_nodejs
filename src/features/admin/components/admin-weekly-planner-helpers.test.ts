@@ -30,6 +30,7 @@ function createPlannerDay(): PlannerDay {
     lockedBlocks: [],
     inactiveBlocks: [],
     bookings: [],
+    autoLunch: { mode: "AUTO", startsAt: null, endsAt: null, warning: false },
     intervals: [],
     cells: {
       available: Array.from({ length: 28 }, () => false),

@@ -6,7 +6,8 @@ export type PlannerLabEventType =
   | "booking"
   | "cleanup"
   | "protected"
-  | "completed";
+  | "completed"
+  | "lunch";
 
 export type PlannerLabEvent = {
   id: string;
@@ -130,7 +131,26 @@ export function plannerWeekToFullCalendarEvents(
       className: "planner-lab-event--cleanup",
       extendedProps: { type: "cleanup" as const, editable: false, dateKey: day.dateKey, startCell: block.startMinutes / 30, endCell: block.endMinutes / 30 },
     }));
+    const lunch = day.autoLunch.startsAt && day.autoLunch.endsAt
+      ? [{
+          id: `lunch:${day.dateKey}`,
+          title: "Oběd · automaticky",
+          start: day.autoLunch.startsAt,
+          end: day.autoLunch.endsAt,
+          editable: false as const,
+          display: "block" as const,
+          color: "#8d78cf",
+          className: "planner-lab-event--lunch",
+          extendedProps: {
+            type: "lunch" as const,
+            editable: false,
+            dateKey: day.dateKey,
+            startCell: 0,
+            endCell: 0,
+          },
+        }]
+      : [];
 
-    return [...availability, ...protectedIntervals, ...bookings, ...cleanup];
+    return [...availability, ...protectedIntervals, ...bookings, ...cleanup, ...lunch];
   });
 }

@@ -139,6 +139,14 @@ Globální přepínač je uložen v singletonu `SiteSettings.autoLunchEnabled` s
 
 Planner má zobrazovat display-only lunch event odvozený z aktuálního stavu vedle booking a cleanup eventů. Nesmí vytvářet availability slot ani booking. Pro doménový výsledek použít přesné minutové/ISO rozsahy; 30minutové buňky ponechat pro stávající editaci a kompatibilitu s FullCalendar. 45minutový oběd se musí vykreslit jako 45minutový event v přesném rozsahu bez zaokrouhlení vstupu. Availability, booking a cleanup musí zůstat oddělenými zdrojovými fakty, aby display oběda nebyl zaměněn za uložený blok.
 
+### Fáze 5 — planner
+
+- Planner načítá publikovanou dostupnost, aktuální booking bloky včetně cleanupu a jeden dávkový policy snapshot týdne; `findBestAutoLunch` výsledek ukládá pouze do odvozených `PlannerDay.autoLunch` dat.
+- FullCalendar dostává samostatný read-only event `Oběd · automaticky` s přesnými ISO `start`/`end` hodnotami a délkou 45 minut; 30minutový grid se nemění.
+- Ovladač vybraného dne používá existující `updateAutoLunchDayModeAction`: AUTO odstraní OFF override, OFF jej vytvoří, obě změny se auditují přes `AvailabilityAuditEvent` a po změně proběhne `router.refresh`.
+- Global OFF deaktivuje denní ovladač a zobrazí informační stav. Aktivní policy bez kandidáta zobrazí admin warning bez falešného eventu. Lunch event nelze dragovat, resizeovat ani uložit do save queue.
+- Ověření pokrývá adapter přesnost, AUTO/OFF/global OFF, krátkou směnu, nový booking context, nemožný candidate a regresní editaci planneru.
+
 ## Model smart rankingu
 
 Pro každý validní kandidát simulovat `existující bloky + hypotetický booking`, vybrat nejlepší proveditelný oběd a změřit výsledné volné intervaly. Řadit podle interpretovatelné lexikografické n-tice:
@@ -201,7 +209,7 @@ Datový model capacity vystavuje, ale produkční create path dokumentuje a vynu
 
 ### Fáze 5
 
-- Integrovat display-only lunch stav do `PlannerWeekData`/adapteru přesné minutové rozsahy; neměnit FullCalendar library ani edit-cell sémantiku.
+- [x] Integrovat display-only lunch stav do `PlannerWeekData`/adapteru přesné minutové rozsahy; neměnit FullCalendar library ani edit-cell sémantiku.
 
 ### Fáze 6
 
