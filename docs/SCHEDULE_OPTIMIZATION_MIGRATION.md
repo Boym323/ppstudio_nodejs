@@ -240,3 +240,31 @@ Datový model capacity vystavuje, ale produkční create path dokumentuje a vynu
 - Scoring je pure a in-memory.
 - Žádné N+1 query.
 - Public booking/business pravidla mimo tuto funkci zůstávají beze změny.
+
+# Final audit
+
+| Oblast | Výsledek | Ověření |
+| --- | --- | --- |
+| Lunch policy | PASS | Centrální policy: 45 minut, start 11:00–13:00 včetně, krok 15 minut, minimum 5 hodin skutečné publikované kapacity, `Europe/Prague`. Aktivaci neurčují bookingy ani cleanup. |
+| Persistence | PASS | `SiteSettings.autoLunchEnabled`, absence `AutoLunchDayOverride` = AUTO, záznam = OFF, návrat na AUTO záznam maže. Konkrétní čas oběda se neukládá. |
+| Public filtering | PASS | Lunch filtr následuje po `buildSlotTimeOptions`, pouze odebírá neproveditelné kandidáty a používá již dávkově načtené bloky s `blockedUntil`. |
+| Public create | PASS | Authoritative kontrola probíhá nad čerstvými daty uvnitř `Serializable` transakce bezprostředně před `booking.create`; porušení vrací `SLOT_UNAVAILABLE`. |
+| Create race | PASS | Izolovaná PostgreSQL DB: ze dvou samostatně validních souběžných zápisů commitne jeden, druhý po serializačním retry skončí `SLOT_UNAVAILABLE`. |
+| Reschedule | PASS | Kontrola cílového pražského dne používá `excludeBookingId` a nový blok do `blockedUntil` před `booking.update`. Pokryty AUTO/OFF i krátká cílová směna. |
+| Reschedule race | PASS | Izolovaná PostgreSQL DB zachovala lunch invariant; stale i souběžný přesun byly autoritativně odmítnuty bez změny původní rezervace a bez success logu. |
+| Admin override | PASS | Slot mode používá povinné `allowManualOverride: false`; explicitní manual mode používá `true` a skutečné obejití lunch constraint ukládá do `Booking.manualOverride`. |
+| Planner | PASS | Planner dávkově načítá raw publikovanou dostupnost, occupancy včetně cleanupu a policy; přesný read-only lunch event je pouze odvozený a nemožný oběd vyvolá warning bez zápisu. |
+| Planner AUTO/OFF DB | PASS | Izolovaná PostgreSQL DB: AUTO → OFF → AUTO ověřilo override, sdílený policy snapshot, dvě auditní události a následný odvozený 45minutový planner event. |
+| Planner layout | PASS | DOM/CSS test i Chromium smoke potvrdily pořadí toolbar → legenda → lunch controls → FullCalendar, viditelný grid, kompaktní mezeru a žádný horizontální overflow stránky. |
+| Smart ranking | PASS | `rankSuggestedSlots` je pure, synchronní, deterministický a in-memory; hodnotí výsledný rozvrh včetně nejlepšího oběda a při neúplném kontextu stabilně fallbackuje. |
+| Date-first | PASS | Ranking seskupuje podle lokálního dne `Europe/Prague`, dny řadí chronologicky a přesouvá kandidáty pouze uvnitř dne. |
+| Selectable set parity | PASS | `selectableTimeOptions` zůstávají beze změny; ranking pracuje nad kopií a mění pouze nejvýše šest položek `suggestedSlots`. |
+| Performance | PASS | Bez N+1, ranking a lunch evaluation jsou in-memory, policy se načítá dávkově, bez nové dependency a bez async `.sort()`. |
+| Migrations | PASS | Na čisté izolované PostgreSQL DB prošlo všech 50 migrací, `prisma validate`, `migrate status` a `migrate diff` bez rozdílu; dočasné DB byly odstraněny. |
+| Tests | PASS | Cílená unit/planner sada 86/86, relevantní DB sada po opravách 23/23, agregovaná booking DB sada 60/60 a Chromium smoke 1/1. |
+| Build | PASS | `npm run build` dokončil a vytvořil `.next/BUILD_ID`. |
+
+- Deterministická simulace osmi scénářů zachovala množinu kandidátů, determinismus i date-first pořadí. Proti chronologickému baseline se první termín změnil v 0/8 scénářů; smart varianta nikde nezhoršila fragmentaci a samostatný lunch-aware scénář potvrdil preferenci lepšího výsledného rozvrhu i při přesunu oběda.
+- `orphanMinutes` zůstává ve V1 vědomě neutrální. Capacity větší než 1 a neúplný optimization context používají původní chronologické pořadí.
+- Read-only simulace nad reálnými daty: SKIPPED, protože pro audit nebyl potvrzen bezpečný future/dev dataset oddělený od produkčních dat.
+- Fáze 7: [x] produkčně bezpečný výsledek.

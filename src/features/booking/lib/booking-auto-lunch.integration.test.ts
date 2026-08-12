@@ -281,6 +281,28 @@ dbTest("rezervace spotřebující poslední lunch candidate vrátí SLOT_UNAVAIL
   });
 });
 
+dbTest("explicitní admin override obejde lunch constraint a zůstane auditovatelný", async () => {
+  await withSeed(45, 0, async (seed) => {
+    const { prisma, createBookingWithEngine } = await loadModules();
+    await seedExistingBooking(seed, "11:00", "13:00");
+    const result = await createBookingWithEngine({
+      ...bookingInput(seed, "13:00"),
+      isManual: true,
+      allowManualOverride: true,
+      actorType: BookingActorType.USER,
+    });
+    seed.bookingIds.push(result.bookingId);
+    assert.equal(result.manualOverride, true);
+    assert.equal(
+      (await prisma.booking.findUniqueOrThrow({
+        where: { id: result.bookingId },
+        select: { manualOverride: true },
+      })).manualOverride,
+      true,
+    );
+  });
+});
+
 dbTest("cleanup znemožňující poslední oběd vrátí SLOT_UNAVAILABLE", async () => {
   await withSeed(30, 15, async (seed) => {
     const { createBookingWithEngine } = await loadModules();

@@ -167,7 +167,7 @@ export async function createManualBooking(
     source: input.source,
     status: input.status,
     isManual: true,
-    allowManualOverride: input.allowManualOverride ?? true,
+    allowManualOverride: input.allowManualOverride,
     actorType: BookingActorType.USER,
     actorUserId: input.actorUserId,
     historyReason: "admin-manual-booking-v1",

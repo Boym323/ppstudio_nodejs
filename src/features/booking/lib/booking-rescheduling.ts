@@ -812,16 +812,22 @@ async function rescheduleBookingInTransaction(
     );
   }
 
-  if (!input.allowManualOverride && !await canPreserveAutoLunchForBooking(tx, {
+  const preservesAutoLunch = await canPreserveAutoLunchForBooking(tx, {
     requestedStartsAt,
     requestedBlockedUntil,
     excludeBookingId: booking.id,
-  })) {
+  });
+
+  if (!preservesAutoLunch && !input.allowManualOverride) {
     throw new BookingRescheduleError(
       bookingRescheduleErrorCodes.slotUnavailable,
       "Vybraný termín už není dostupný.",
       "slot",
     );
+  }
+
+  if (!preservesAutoLunch) {
+    manualOverride = true;
   }
 
   if (!resolvedSlot) {

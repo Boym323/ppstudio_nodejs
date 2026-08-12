@@ -94,7 +94,25 @@ test.describe("produkční FullCalendar planner", () => {
 
     await expect(page.getByTestId("fullcalendar-planner")).toBeVisible();
     await expect(page.getByLabel("Legenda kalendáře")).toContainText("Volný termín");
+    await expect(page.getByLabel("Denní režim automatického oběda")).toBeVisible();
     await expect(page.locator(".planner-lab-event--availability").first()).toBeVisible();
+
+    const [toolbarBox, legendBox, lunchBox, plannerBox] = await Promise.all([
+      page.getByRole("button", { name: "Následující týden" }).boundingBox(),
+      page.getByLabel("Legenda kalendáře").boundingBox(),
+      page.getByLabel("Denní režim automatického oběda").boundingBox(),
+      page.getByTestId("fullcalendar-planner").boundingBox(),
+    ]);
+    expect(toolbarBox).not.toBeNull();
+    expect(legendBox).not.toBeNull();
+    expect(lunchBox).not.toBeNull();
+    expect(plannerBox).not.toBeNull();
+    expect(toolbarBox!.y).toBeLessThan(legendBox!.y);
+    expect(legendBox!.y).toBeLessThan(lunchBox!.y);
+    expect(lunchBox!.y).toBeLessThan(plannerBox!.y);
+    expect(plannerBox!.y - (lunchBox!.y + lunchBox!.height)).toBeLessThan(32);
+    expect(plannerBox!.y).toBeLessThan(page.viewportSize()!.height);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
 
     await page.getByRole("button", { name: "Následující týden" }).click();
     await expect(page).toHaveURL(/week=2027-03-29/);

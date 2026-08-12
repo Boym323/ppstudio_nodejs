@@ -119,7 +119,7 @@ export type CreateManualBookingInput = {
   serviceId: string;
   startsAt: string;
   slotId?: string;
-  allowManualOverride?: boolean;
+  allowManualOverride: boolean;
   selectedClientId?: string;
   fullName: string;
   email?: string;

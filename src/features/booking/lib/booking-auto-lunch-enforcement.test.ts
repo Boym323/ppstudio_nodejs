@@ -14,8 +14,8 @@ process.env.ADMIN_STAFF_EMAIL ??= "staff@example.com";
 process.env.ADMIN_STAFF_PASSWORD ??= "change-me-staff";
 
 async function canPreserveAutoLunchForBooking(...args: Parameters<typeof import("./booking-auto-lunch-enforcement").canPreserveAutoLunchForBooking>) {
-  const module = await import("./booking-auto-lunch-enforcement");
-  return module.canPreserveAutoLunchForBooking(...args);
+  const enforcementModule = await import("./booking-auto-lunch-enforcement");
+  return enforcementModule.canPreserveAutoLunchForBooking(...args);
 }
 
 const dayStart = new Date("2026-04-28T06:00:00.000Z"); // 08:00 Europe/Prague
@@ -25,10 +25,15 @@ function createTransaction(input: {
   bookings?: Array<{ id: string; startsAt: Date; endsAt: Date; blockedUntil?: Date | null }>;
   enabled?: boolean;
   off?: boolean;
+  short?: boolean;
 }) {
   return {
     availabilitySlot: {
-      findMany: async () => [{ startsAt: dayStart, endsAt: dayEnd, status: AvailabilitySlotStatus.PUBLISHED }],
+      findMany: async () => [{
+        startsAt: dayStart,
+        endsAt: input.short ? new Date("2026-04-28T10:00:00.000Z") : dayEnd,
+        status: AvailabilitySlotStatus.PUBLISHED,
+      }],
     },
     booking: {
       findMany: async ({ where }: { where: { id?: { not: string } } }) =>
@@ -79,4 +84,5 @@ test("OFF den, globální OFF a krátká směna lunch constraint neuplatní", as
   };
   assert.equal(await canPreserveAutoLunchForBooking(createTransaction({ enabled: false }), request), true);
   assert.equal(await canPreserveAutoLunchForBooking(createTransaction({ off: true }), request), true);
+  assert.equal(await canPreserveAutoLunchForBooking(createTransaction({ short: true }), request), true);
 });

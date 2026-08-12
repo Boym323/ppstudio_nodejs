@@ -52,18 +52,25 @@ function waitForRetryBackoff(attempt: number) {
   });
 }
 
-async function enforceAutoLunchForBooking(
+async function resolveAutoLunchManualOverride(
   tx: Prisma.TransactionClient,
   requestedStartsAt: Date,
   requestedBlockedUntil: Date,
+  allowManualOverride: boolean,
 ) {
-  if (!await canPreserveAutoLunchForBooking(tx, { requestedStartsAt, requestedBlockedUntil })) {
+  if (await canPreserveAutoLunchForBooking(tx, { requestedStartsAt, requestedBlockedUntil })) {
+    return false;
+  }
+
+  if (!allowManualOverride) {
     throw new PublicBookingError(
       publicBookingErrorCodes.slotUnavailable,
       "Vybraný termín už není dostupný.",
       2,
     );
   }
+
+  return true;
 }
 
 async function loadServiceForBooking(
@@ -661,9 +668,12 @@ export async function createBookingWithEngine(
             );
           }
 
-          if (!input.allowManualOverride) {
-            await enforceAutoLunchForBooking(tx, requestedStartsAt, requestedBlockedUntil);
-          }
+          manualOverride ||= await resolveAutoLunchManualOverride(
+            tx,
+            requestedStartsAt,
+            requestedBlockedUntil,
+            input.allowManualOverride,
+          );
 
           const booking = await tx.booking.create({
             data: {

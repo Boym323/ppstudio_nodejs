@@ -102,6 +102,7 @@ async function findIsolatedWorkerWindow(
 async function createConfirmedManualBooking(seed: string, startsAt: Date) {
   const { prisma, createManualBooking } = await loadModules();
   const endsAt = addMinutes(startsAt, 60);
+  const phone = `+4207${String(Number.parseInt(seed, 16) % 100_000_000).padStart(8, "0")}`;
 
   const category = await prisma.serviceCategory.create({
     data: {
@@ -134,7 +135,7 @@ async function createConfirmedManualBooking(seed: string, startsAt: Date) {
       startsAt: startsAt.toISOString(),
       fullName: `Worker klientka ${seed}`,
       email: `worker-${seed}@example.com`,
-      phone: "+420777123456",
+      phone,
       source: BookingSource.PHONE,
       status: BookingStatus.CONFIRMED,
       actorUserId: null,

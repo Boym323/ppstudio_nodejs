@@ -465,7 +465,7 @@ dbTest("admin slot mode chrání lunch, explicitní manual override jej může o
       bookingId: seed.bookingId, slotId: seed.newSlotId, newStartAt: seed.newStartAt,
       changedByUserId: seed.actorUserId, notifyClient: false, expectedUpdatedAt: seed.bookingUpdatedAt, allowManualOverride: true,
     });
-    assert.equal(result.manualOverride, false);
+    assert.equal(result.manualOverride, true);
     assert.equal(result.scheduledStartsAt, seed.newStartAt);
   } finally {
     await cleanupLunchSeed(seed);
