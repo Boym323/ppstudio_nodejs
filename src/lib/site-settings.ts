@@ -24,6 +24,7 @@ export type SiteSettingsRecord = {
   bookingMinAdvanceHours: number;
   bookingMaxAdvanceDays: number;
   bookingCancellationHours: number;
+  autoLunchEnabled: boolean;
   notificationAdminEmail: string;
   emailSenderName: string;
   emailSenderEmail: string;
@@ -53,6 +54,7 @@ const siteSettingsSnapshotSchema = z.object({
   bookingMinAdvanceHours: z.number().int().nonnegative(),
   bookingMaxAdvanceDays: z.number().int().positive(),
   bookingCancellationHours: z.number().int().nonnegative(),
+  autoLunchEnabled: z.boolean().default(true),
   notificationAdminEmail: z.string(),
   emailSenderName: z.string(),
   emailSenderEmail: z.string(),
@@ -79,6 +81,7 @@ function getDefaultSiteSettingsData() {
     bookingMinAdvanceHours: 2,
     bookingMaxAdvanceDays: 90,
     bookingCancellationHours: 24,
+    autoLunchEnabled: true,
     notificationAdminEmail: env.ADMIN_OWNER_EMAIL,
     emailSenderName: env.SMTP_FROM_NAME,
     emailSenderEmail: env.SMTP_FROM_EMAIL ?? "info@ppstudio.cz",

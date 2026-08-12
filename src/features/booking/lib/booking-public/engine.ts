@@ -18,6 +18,7 @@ import {
 
 import { createNotificationEmailLogs } from "./notifications";
 import { resolveBookingTimingSnapshot } from "../booking-cleanup";
+import { canPreserveAutoLunchForBooking } from "../booking-auto-lunch-enforcement";
 import {
   ACTIVE_BOOKING_STATUSES,
   EDITABLE_SLOT_CAPACITY,
@@ -49,6 +50,27 @@ function waitForRetryBackoff(attempt: number) {
   return new Promise((resolve) => {
     setTimeout(resolve, backoffMs);
   });
+}
+
+async function resolveAutoLunchManualOverride(
+  tx: Prisma.TransactionClient,
+  requestedStartsAt: Date,
+  requestedBlockedUntil: Date,
+  allowManualOverride: boolean,
+) {
+  if (await canPreserveAutoLunchForBooking(tx, { requestedStartsAt, requestedBlockedUntil })) {
+    return false;
+  }
+
+  if (!allowManualOverride) {
+    throw new PublicBookingError(
+      publicBookingErrorCodes.slotUnavailable,
+      "Vybraný termín už není dostupný.",
+      2,
+    );
+  }
+
+  return true;
 }
 
 async function loadServiceForBooking(
@@ -645,6 +667,13 @@ export async function createBookingWithEngine(
               2,
             );
           }
+
+          manualOverride ||= await resolveAutoLunchManualOverride(
+            tx,
+            requestedStartsAt,
+            requestedBlockedUntil,
+            input.allowManualOverride,
+          );
 
           const booking = await tx.booking.create({
             data: {

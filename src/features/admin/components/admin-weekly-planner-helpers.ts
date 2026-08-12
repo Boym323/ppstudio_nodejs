@@ -184,6 +184,14 @@ export function hasBlockedCells(day: PlannerDay, startCell: number, endCell: num
   return null;
 }
 
+/** Běžné tažení v půlhodinové mřížce zarovná na její viditelné hranice. */
+export function normalizePlannerSelectionToHalfHours(startCell: number, endCell: number) {
+  return {
+    startCell: Math.floor(startCell),
+    endCell: Math.ceil(endCell),
+  };
+}
+
 export function wouldConflictWithIntervals(
   day: PlannerDay,
   intervals: Array<{
@@ -205,6 +213,7 @@ export function cloneWeekDays(days: PlannerDay[]) {
     lockedBlocks: day.lockedBlocks.map((block) => ({ ...block })),
     inactiveBlocks: day.inactiveBlocks.map((block) => ({ ...block })),
     bookings: day.bookings.map((booking) => ({ ...booking })),
+    autoLunch: { ...day.autoLunch },
     intervals: day.intervals.map((interval) => ({ ...interval })),
     cells: {
       available: [...day.cells.available],

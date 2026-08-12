@@ -62,6 +62,7 @@ export async function getAdminSettingsPageData(email: string) {
     bookingMinAdvanceHours: settings.bookingMinAdvanceHours,
     bookingMaxAdvanceDays: settings.bookingMaxAdvanceDays,
     bookingCancellationHours: settings.bookingCancellationHours,
+    autoLunchEnabled: settings.autoLunchEnabled,
     notificationAdminEmail: settings.notificationAdminEmail,
     emailSenderName: settings.emailSenderName,
     emailSenderEmail: settings.emailSenderEmail,

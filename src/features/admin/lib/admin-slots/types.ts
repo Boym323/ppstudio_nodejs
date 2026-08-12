@@ -53,6 +53,12 @@ export type PlannerDay = {
   lockedBlocks: Array<{ startMinutes: number; endMinutes: number }>;
   inactiveBlocks: Array<{ startMinutes: number; endMinutes: number }>;
   bookings: PlannerBooking[];
+  autoLunch: {
+    mode: "AUTO" | "OFF";
+    startsAt: string | null;
+    endsAt: string | null;
+    warning: boolean;
+  };
   intervals: PlannerInterval[];
   cells: {
     available: boolean[];
@@ -80,6 +86,7 @@ export type PlannerWeekData = {
   nextWeekKey: string;
   weekRangeLabel: string;
   todayKey: string;
+  autoLunchEnabled: boolean;
   days: PlannerDay[];
   legend: Array<{ tone: PlannerInterval["status"] | "past" | "cleanup"; label: string }>;
 };

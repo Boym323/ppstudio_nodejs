@@ -1,6 +1,9 @@
 import { AvailabilitySlotServiceRestrictionMode } from "@prisma/client";
 
-import { buildSlotTimeOptions } from "@/features/booking/lib/booking-time-slots";
+import {
+  buildSlotTimeOptions,
+  filterTimeOptionsForAutoLunch,
+} from "@/features/booking/lib/booking-time-slots";
 
 import { getSlotDateKey, getSlotDurationMinutes } from "./helpers";
 
@@ -74,6 +77,7 @@ type AvailabilityCatalogInput = {
     bookedIntervals: Array<{ startsAt: string; endsAt: string }>;
     segments?: Array<{ id: string; startsAt: string; endsAt: string }>;
   }>;
+  scheduleOptimization?: Parameters<typeof filterTimeOptionsForAutoLunch>[1]["scheduleOptimization"];
 };
 
 export function getAvailableDateKeysForAvailability(
@@ -87,14 +91,25 @@ export function getAvailableDateKeysForAvailability(
     return [];
   }
 
-  return [...new Set(
-    catalog.slots
+  const eligibleSlots = catalog.slots
       .filter((slot) => getSlotDurationMinutes(slot) >= serviceDurationMinutes)
       .filter(
         (slot) => slot.serviceRestrictionMode === AvailabilitySlotServiceRestrictionMode.ANY
           || slot.allowedServiceIds.includes(serviceId),
-      )
-      .flatMap((slot) => buildSlotTimeOptions(slot, serviceDurationMinutes, cleanupBlockMinutes))
+      );
+  const options = eligibleSlots
+    .flatMap((slot) => buildSlotTimeOptions(slot, serviceDurationMinutes, cleanupBlockMinutes));
+  const lunchSafeOptions = catalog.scheduleOptimization
+    ? filterTimeOptionsForAutoLunch(options, {
+        serviceDurationMinutes,
+        cleanupBlockMinutes,
+        capacity: eligibleSlots.every((slot) => slot.capacity === 1) ? 1 : 2,
+        scheduleOptimization: catalog.scheduleOptimization,
+      })
+    : options;
+
+  return [...new Set(
+    lunchSafeOptions
       .filter((option) => !option.isDisabled)
       .filter((option) => option.startsAt !== excludedStartsAt)
       .map((option) => getSlotDateKey(option.startsAt))

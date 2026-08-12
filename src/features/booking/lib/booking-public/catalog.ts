@@ -1,4 +1,4 @@
-import { AvailabilitySlotStatus } from "@prisma/client";
+import { AvailabilitySlotServiceRestrictionMode, AvailabilitySlotStatus } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
 import { getBookingPolicySettings } from "@/lib/site-settings";
@@ -7,6 +7,8 @@ import {
   MAX_SERVICE_CLEANUP_MINUTES,
   roundUpToQuarterHour,
 } from "../booking-cleanup";
+import { loadAutoLunchPolicySnapshot } from "../booking-auto-lunch-policy";
+import { getPragueLocalDate } from "../booking-local-time";
 import {
   ACTIVE_BOOKING_STATUSES,
   type PublicBookingCatalog,
@@ -140,6 +142,15 @@ export async function getPublicBookingCatalog(
     cleanupAggregate._max.cleanupMinutes ?? 0,
   );
 
+  const bookedIntervals = bookings.map((booking) => ({
+    startsAt: booking.scheduledStartsAt.toISOString(),
+    endsAt: (booking.blockedUntil ?? booking.scheduledEndsAt).toISOString(),
+  }));
+  const autoLunchPolicy = await loadAutoLunchPolicySnapshot(
+    prisma,
+    slots.map((slot) => getPragueLocalDate(slot.startsAt)),
+  );
+
   return {
     services: services.flatMap((service) => {
       if (!service.category) {
@@ -173,5 +184,21 @@ export async function getPublicBookingCatalog(
       })),
       bookingLookaheadMinutes,
     ),
+    scheduleOptimization: {
+      ...autoLunchPolicy,
+      publishedAvailability: slots.map((slot) => ({
+        startsAt: slot.startsAt.toISOString(),
+        endsAt: slot.endsAt.toISOString(),
+      })),
+      bookedIntervals,
+      serviceBlockOptions: services.map((service) => ({
+        id: service.id,
+        durationMinutes: service.durationMinutes,
+        cleanupBlockMinutes: roundUpToQuarterHour(service.cleanupMinutes),
+      })),
+      supportsServiceAwareOrphans: slots.every(
+        (slot) => slot.serviceRestrictionMode === AvailabilitySlotServiceRestrictionMode.ANY,
+      ),
+    },
   };
 }

@@ -2,8 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { CalendarFeedScope, SiteSettingsChangeOperation } from "@prisma/client";
+import { randomUUID } from "node:crypto";
+import { z } from "zod";
 
 import { env } from "@/config/env";
+import { type AdminArea } from "@/config/navigation";
 import { requireAdminSectionAccess } from "@/features/admin/lib/admin-guards";
 import {
   updateBookingSettingsSchema,
@@ -23,6 +26,7 @@ import {
 } from "@/lib/site-settings";
 import { sendDirectOwnerPushover } from "@/lib/notifications/pushover";
 import { updateSiteSettingsWithAudit } from "@/features/admin/lib/site-settings-audit";
+import { isValidDateKey } from "@/features/admin/lib/admin-slots/time";
 
 import { type UpdateBookingSettingsActionState } from "./update-booking-settings-action-state";
 import { type UpdateCalendarFeedActionState } from "./update-calendar-feed-action-state";
@@ -46,6 +50,8 @@ function revalidateSettingsPaths() {
   for (const path of [
     "/admin/nastaveni",
     "/admin",
+    "/admin/volne-terminy",
+    "/admin/provoz/volne-terminy",
     "/",
     "/kontakt",
     "/faq",
@@ -55,6 +61,12 @@ function revalidateSettingsPaths() {
     revalidatePath(path);
   }
 }
+
+const autoLunchDayModeSchema = z.object({
+  area: z.enum(["owner", "salon"]),
+  dateKey: z.string().refine(isValidDateKey, "Zadejte platné lokální datum."),
+  mode: z.enum(["AUTO", "OFF"]),
+});
 
 function revalidateCalendarFeedAdminPaths() {
   revalidatePath("/admin/nastaveni");
@@ -89,6 +101,24 @@ async function getCurrentOwnerDbUser() {
     },
     select: {
       id: true,
+    },
+  });
+
+  return dbUser;
+}
+
+async function getCurrentPlannerDbUser(area: AdminArea) {
+  const session = await requireAdminSectionAccess(area, "volne-terminy");
+  const dbUser = await prisma.adminUser.findFirst({
+    where: {
+      email: {
+        equals: session.email.trim(),
+        mode: "insensitive",
+      },
+    },
+    select: {
+      id: true,
+      role: true,
     },
   });
 
@@ -191,6 +221,7 @@ export async function updateBookingSettingsAction(
     bookingMinAdvanceHours: readFormString(formData, "bookingMinAdvanceHours"),
     bookingMaxAdvanceDays: readFormString(formData, "bookingMaxAdvanceDays"),
     bookingCancellationHours: readFormString(formData, "bookingCancellationHours"),
+    autoLunchEnabled: readFormBoolean(formData, "autoLunchEnabled"),
   });
 
   if (!parsed.success) {
@@ -203,6 +234,7 @@ export async function updateBookingSettingsAction(
         bookingMinAdvanceHours: fieldErrors.bookingMinAdvanceHours?.[0],
         bookingMaxAdvanceDays: fieldErrors.bookingMaxAdvanceDays?.[0],
         bookingCancellationHours: fieldErrors.bookingCancellationHours?.[0],
+        autoLunchEnabled: fieldErrors.autoLunchEnabled?.[0],
       },
     };
   }
@@ -219,6 +251,7 @@ export async function updateBookingSettingsAction(
         bookingMinAdvanceHours: current.bookingMinAdvanceHours,
         bookingMaxAdvanceDays: current.bookingMaxAdvanceDays,
         bookingCancellationHours: current.bookingCancellationHours,
+        autoLunchEnabled: current.autoLunchEnabled,
       },
       after: parsed.data,
     }),
@@ -231,6 +264,49 @@ export async function updateBookingSettingsAction(
     status: "success",
     successMessage: "Globální pravidla rezervace jsou uložená.",
   };
+}
+
+/** Denní režim patří k provozní správě dostupnosti; OFF je uložený override, AUTO jej odstraní. */
+export async function updateAutoLunchDayModeAction(input: { area: AdminArea; dateKey: string; mode: "AUTO" | "OFF" }) {
+  const parsed = autoLunchDayModeSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, message: "Zadejte platné lokální datum a režim oběda." };
+
+  const actor = await getCurrentPlannerDbUser(parsed.data.area);
+  if (!actor) return { ok: false, message: "Aktuální účet pro správu volných termínů nebyl nalezen." };
+
+  const previous = await prisma.autoLunchDayOverride.findUnique({ where: { dateKey: parsed.data.dateKey } });
+  if ((parsed.data.mode === "OFF") === Boolean(previous)) {
+    return { ok: true, mode: parsed.data.mode };
+  }
+
+  if (parsed.data.mode === "OFF") {
+    await prisma.$transaction([
+      prisma.autoLunchDayOverride.upsert({
+        where: { dateKey: parsed.data.dateKey },
+        create: { dateKey: parsed.data.dateKey, updatedByUserId: actor.id },
+        update: { updatedByUserId: actor.id },
+      }),
+      prisma.availabilityAuditEvent.create({ data: {
+        actorUserId: actor.id, actorRole: actor.role, adminArea: parsed.data.area, dateKey: parsed.data.dateKey,
+        operation: "ADD", source: "auto-lunch-day-override-v1", operationId: randomUUID(),
+        before: { dayLunchMode: previous ? "OFF" : "AUTO" }, after: { dayLunchMode: "OFF" },
+        createdSlots: [], archivedOrRemovedSlots: [],
+      } }),
+    ]);
+  } else {
+    await prisma.$transaction([
+      prisma.autoLunchDayOverride.deleteMany({ where: { dateKey: parsed.data.dateKey } }),
+      prisma.availabilityAuditEvent.create({ data: {
+        actorUserId: actor.id, actorRole: actor.role, adminArea: parsed.data.area, dateKey: parsed.data.dateKey,
+        operation: "REMOVE", source: "auto-lunch-day-override-v1", operationId: randomUUID(),
+        before: { dayLunchMode: previous ? "OFF" : "AUTO" }, after: { dayLunchMode: "AUTO" },
+        createdSlots: [], archivedOrRemovedSlots: [],
+      } }),
+    ]);
+  }
+
+  revalidateSettingsPaths();
+  return { ok: true, mode: parsed.data.mode };
 }
 
 export async function updateEmailSettingsAction(

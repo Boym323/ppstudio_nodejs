@@ -68,6 +68,27 @@ export type PublicBookingCatalog = {
       endsAt: string;
     }>;
   }>;
+  scheduleOptimization: {
+    globalAutoLunchEnabled: boolean;
+    dayLunchModes: Record<string, "AUTO" | "OFF">;
+    publishedAvailability: Array<{
+      startsAt: string;
+      endsAt: string;
+    }>;
+    bookedIntervals: Array<{
+      startsAt: string;
+      endsAt: string;
+    }>;
+    serviceBlockOptions?: Array<{
+      id: string;
+      durationMinutes: number;
+      cleanupBlockMinutes: number;
+    }>;
+    // Service-specific availability needs segment-level option mapping. Until the
+    // optimization context carries that mapping, SELECTED slots safely keep the
+    // orphan metric neutral.
+    supportsServiceAwareOrphans?: boolean;
+  };
 };
 
 export type CreatePublicBookingInput = {
@@ -107,7 +128,7 @@ export type CreateManualBookingInput = {
   serviceId: string;
   startsAt: string;
   slotId?: string;
-  allowManualOverride?: boolean;
+  allowManualOverride: boolean;
   selectedClientId?: string;
   fullName: string;
   email?: string;
@@ -184,6 +205,15 @@ export function isRetryablePrismaError(error: unknown) {
     (
       error instanceof Prisma.PrismaClientKnownRequestError &&
       error.code === "P2034"
+    ) ||
+    (
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      error.code === "P2010" &&
+      "message" in error &&
+      typeof error.message === "string" &&
+      /Code: [`']40001[`']/.test(error.message)
     ) ||
     (
       typeof error === "object" &&

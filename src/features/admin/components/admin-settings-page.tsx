@@ -29,6 +29,7 @@ export function AdminSettingsPage({
     bookingMinAdvanceHours: number;
     bookingMaxAdvanceDays: number;
     bookingCancellationHours: number;
+    autoLunchEnabled: boolean;
     notificationAdminEmail: string;
     emailSenderName: string;
     emailSenderEmail: string;

@@ -240,6 +240,15 @@ dbTest("getPublicBookingCatalog can exclude the managed booking from booked inte
       (interval) =>
         interval.startsAt === bookingStartsAt.toISOString()
         && interval.endsAt === bookingEndsAt.toISOString(),
+      ), false);
+    assert.ok(regularCatalog.scheduleOptimization.publishedAvailability.some(
+      (interval) => interval.startsAt === startsAt.toISOString() && interval.endsAt === endsAt.toISOString(),
+    ));
+    assert.ok(regularCatalog.scheduleOptimization.bookedIntervals.some(
+      (interval) => interval.startsAt === bookingStartsAt.toISOString() && interval.endsAt === bookingEndsAt.toISOString(),
+    ));
+    assert.equal(excludedCatalog.scheduleOptimization.bookedIntervals.some(
+      (interval) => interval.startsAt === bookingStartsAt.toISOString() && interval.endsAt === bookingEndsAt.toISOString(),
     ), false);
   } finally {
     await prisma.booking.deleteMany({ where: { id: booking.id } });
@@ -454,6 +463,7 @@ dbTest("createPublicBooking ignores an archived slot left by a cancelled booking
     }),
   ]);
   const email = `booking-archived-slot-${suffix}@example.com`;
+  const phone = `+4207${String(Number.parseInt(suffix, 16) % 100_000_000).padStart(8, "0")}`;
 
   try {
     const booking = await createPublicBooking({
@@ -462,7 +472,7 @@ dbTest("createPublicBooking ignores an archived slot left by a cancelled booking
       startsAt: startsAt.toISOString(),
       fullName: `Klientka ${suffix}`,
       email,
-      phone: "+420777123456",
+      phone,
       acquisition: {
         source: BookingAcquisitionSource.DIRECT,
         utmSource: null,

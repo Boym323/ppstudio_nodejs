@@ -5,6 +5,9 @@ import {
 
 import { type AdminArea } from "@/config/navigation";
 import { prisma } from "@/lib/prisma";
+import { loadAutoLunchPolicySnapshot } from "@/features/booking/lib/booking-auto-lunch-policy";
+import { AUTO_LUNCH_POLICY, findBestAutoLunch, generateLunchCandidates, shouldApplyAutoLunch } from "@/features/booking/lib/booking-schedule-optimization";
+import { resolvePragueLocalDateTime } from "@/features/booking/lib/booking-local-time";
 
 import {
   addDays,
@@ -84,8 +87,9 @@ export async function getAdminPlannerWeek(area: AdminArea, week?: string | null)
   const weekEnd = addDays(weekStart, 7);
   const now = new Date();
   const todayKey = formatDateKey(now);
+  const dateKeys = Array.from({ length: 7 }, (_, index) => formatDateKey(addDays(weekStart, index)));
 
-  const [slots, bookings] = await Promise.all([
+  const [slots, bookings, autoLunchPolicy] = await Promise.all([
     prisma.availabilitySlot.findMany({
       where: {
         startsAt: {
@@ -152,6 +156,7 @@ export async function getAdminPlannerWeek(area: AdminArea, week?: string | null)
         serviceNameSnapshot: true,
       },
     }),
+    loadAutoLunchPolicySnapshot(prisma, dateKeys),
   ]);
 
   const days: PlannerDay[] = [];
@@ -170,7 +175,8 @@ export async function getAdminPlannerWeek(area: AdminArea, week?: string | null)
         slot.endsAt > dayStart &&
         !isHiddenHistoricalCancelledSlot(slot),
     );
-    const dayBookings = bookings
+    const dayBookingRows = bookings.filter((booking) => booking.scheduledStartsAt < dayEnd && (booking.blockedUntil ?? booking.scheduledEndsAt) > dayStart);
+    const dayBookings = dayBookingRows
       .filter((booking) => booking.scheduledStartsAt < dayEnd && (booking.blockedUntil ?? booking.scheduledEndsAt) > dayStart)
       .map((booking) => {
         const blockedUntil = booking.blockedUntil ?? booking.scheduledEndsAt;
@@ -218,6 +224,35 @@ export async function getAdminPlannerWeek(area: AdminArea, week?: string | null)
         } satisfies PlannerBooking;
       })
       .filter((booking): booking is PlannerBooking => booking !== null);
+    const dayLunchMode = autoLunchPolicy.dayLunchModes[dateKey] ?? "AUTO";
+    const rawAvailability = daySlots
+      .filter((slot) => slot.status === AvailabilitySlotStatus.PUBLISHED)
+      .map((slot) => clampIntervalToDay({ startsAt: slot.startsAt, endsAt: slot.endsAt }, dayStart, dayEnd))
+      .filter((range): range is TimeRange => range !== null)
+      .map((range) => ({ startsAt: range.startsAt.getTime(), endsAt: range.endsAt.getTime() }));
+    const lunchCandidates = generateLunchCandidates({ localDate: dateKey, availability: rawAvailability });
+    const lunchActive = shouldApplyAutoLunch({
+      localDate: dateKey,
+      availability: rawAvailability,
+      globalAutoLunchEnabled: autoLunchPolicy.globalAutoLunchEnabled,
+      dayLunchMode,
+    });
+    const lunch = findBestAutoLunch({
+      active: lunchActive,
+      availability: rawAvailability,
+      lunchCandidates,
+      bookedBlocks: dayBookingRows.map((booking) => ({
+        startsAt: booking.scheduledStartsAt.getTime(),
+        endsAt: (booking.blockedUntil ?? booking.scheduledEndsAt).getTime(),
+      })),
+    });
+    const onePm = resolvePragueLocalDateTime(dateKey, AUTO_LUNCH_POLICY.latestStart)?.getTime() ?? null;
+    const rawMinutes = rawAvailability.reduce((sum, range) => sum + range.endsAt - range.startsAt, 0) / 60_000;
+    const eligibleWithoutCandidate = autoLunchPolicy.globalAutoLunchEnabled
+      && dayLunchMode === "AUTO"
+      && rawMinutes >= AUTO_LUNCH_POLICY.minimumShiftMinutes
+      && onePm !== null
+      && rawAvailability.some((range) => range.endsAt > onePm);
     const activeBookingsBySlotId = new Map<string, number>();
 
     for (const booking of dayBookings) {
@@ -553,6 +588,12 @@ export async function getAdminPlannerWeek(area: AdminArea, week?: string | null)
       lockedBlocks,
       inactiveBlocks,
       bookings: dayBookings,
+      autoLunch: {
+        mode: dayLunchMode,
+        startsAt: lunch ? new Date(lunch.startsAt).toISOString() : null,
+        endsAt: lunch ? new Date(lunch.endsAt).toISOString() : null,
+        warning: eligibleWithoutCandidate && !lunch,
+      },
       intervals,
       cells: {
         available: availableCells,
@@ -593,6 +634,7 @@ export async function getAdminPlannerWeek(area: AdminArea, week?: string | null)
     nextWeekKey: formatDateKey(addDays(weekStart, 7)),
     weekRangeLabel: `${monthTitleFormatter.format(weekStart)} - ${monthTitleFormatter.format(weekEndInclusive)}`,
     todayKey,
+    autoLunchEnabled: autoLunchPolicy.globalAutoLunchEnabled,
     days,
     legend: [
       { tone: "available", label: "Dostupnost" },

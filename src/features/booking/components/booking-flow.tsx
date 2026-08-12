@@ -14,9 +14,11 @@ import {
 } from "@/features/analytics/meta-pixel";
 import {
   buildSlotTimeOptions,
+  filterTimeOptionsForAutoLunch,
   groupSlotsByDayPeriod,
   type TimeSlotOption,
 } from "@/features/booking/lib/booking-time-slots";
+import { selectSuggestedSlots } from "@/features/booking/lib/booking-schedule-optimization";
 
 import { BookingConfirmationPanel } from "./booking-confirmation-panel";
 import { StickyCTA } from "./sticky-cta";
@@ -505,12 +507,19 @@ export function BookingFlow({
       return [];
     }
 
-    return availableSlots.flatMap((slot) => buildSlotTimeOptions(
+    const options = availableSlots.flatMap((slot) => buildSlotTimeOptions(
       slot,
       selectedService.durationMinutes,
       selectedService.cleanupBlockMinutes,
     ));
-  }, [availableSlots, selectedService]);
+
+    return filterTimeOptionsForAutoLunch(options, {
+      serviceDurationMinutes: selectedService.durationMinutes,
+      cleanupBlockMinutes: selectedService.cleanupBlockMinutes,
+      capacity: availableSlots.every((slot) => slot.capacity === 1) ? 1 : 2,
+      scheduleOptimization: currentCatalog.scheduleOptimization,
+    });
+  }, [availableSlots, currentCatalog.scheduleOptimization, selectedService]);
 
   const selectedTimeOptionCandidate = selectedTimeOptionKey
     ? availableTimeOptions.find((option) => option.key === selectedTimeOptionKey)
@@ -525,8 +534,32 @@ export function BookingFlow({
   );
 
   const suggestedSlots = useMemo(
-    () => selectableTimeOptions.slice(0, 6),
-    [selectableTimeOptions],
+    () => {
+      if (!selectedService) {
+        return selectableTimeOptions.slice(0, 6);
+      }
+
+      const scheduleOptimization = currentCatalog.scheduleOptimization;
+      return selectSuggestedSlots({
+        candidates: selectableTimeOptions,
+        availability: scheduleOptimization.publishedAvailability.map((interval) => ({
+          startsAt: new Date(interval.startsAt).getTime(),
+          endsAt: new Date(interval.endsAt).getTime(),
+        })),
+        bookedBlocks: scheduleOptimization.bookedIntervals.map((interval) => ({
+          startsAt: new Date(interval.startsAt).getTime(),
+          endsAt: new Date(interval.endsAt).getTime(),
+        })),
+        serviceDurationMinutes: selectedService.durationMinutes,
+        cleanupBlockMinutes: selectedService.cleanupBlockMinutes,
+        capacity: availableSlots.every((slot) => slot.capacity === 1) ? 1 : 2,
+        globalAutoLunchEnabled: scheduleOptimization.globalAutoLunchEnabled,
+        dayLunchModes: scheduleOptimization.dayLunchModes,
+        serviceBlockOptions: scheduleOptimization.serviceBlockOptions,
+        supportsServiceAwareOrphans: scheduleOptimization.supportsServiceAwareOrphans,
+      });
+    },
+    [availableSlots, currentCatalog.scheduleOptimization, selectableTimeOptions, selectedService],
   );
 
   const availableSlotsByDate = useMemo(() => {

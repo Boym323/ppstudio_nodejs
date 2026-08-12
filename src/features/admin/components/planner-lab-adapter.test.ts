@@ -11,6 +11,7 @@ function day(dateKey: string): PlannerDay {
     availableIntervals: [{ startCell: 2, endCell: 4, label: "07:00 - 08:00" }], lockedIntervals: [{ startCell: 8, endCell: 10, label: "10:00 - 11:00" }],
     cleanupBlocks: [{ startMinutes: 540, endMinutes: 570 }], availableBlocks: [], lockedBlocks: [], inactiveBlocks: [],
     bookings: [{ id: "booking-1", slotId: "slot-1", startCell: 4, endCell: 6, serviceStartMinutes: 480, serviceEndMinutes: 540, label: "08:00 - 09:00", blockedLabel: "08:00 - 09:00", cleanupBlockedUntilLabel: "09:30", hasCleanupBlock: true, clientName: "Eva", serviceName: "Masáž", status: "CONFIRMED" }],
+    autoLunch: { mode: "AUTO", startsAt: null, endsAt: null, warning: false },
     intervals: [{ id: "locked-1", startCell: 8, endCell: 10, label: "10:00 - 11:00", status: "locked", bookingCount: 0, canEdit: false, detail: "locked" }],
     cells: { available: Array(28).fill(false), booked: Array(28).fill(false), bookedCleanup: Array(28).fill(false), completed: Array(28).fill(false), inactive: Array(28).fill(false), locked: Array(28).fill(false), past: Array(28).fill(false) },
     summary: { availableLabel: "", bookingLabel: "", note: "" },
@@ -18,7 +19,7 @@ function day(dateKey: string): PlannerDay {
 }
 
 function week(dateKey = "2026-07-13"): PlannerWeekData {
-  return { area: "owner", baseHref: "/admin/volne-terminy", title: "", subtitle: "", weekKey: dateKey, previousWeekKey: "", nextWeekKey: "", weekRangeLabel: "", todayKey: "", days: [day(dateKey)], legend: [] };
+  return { area: "owner", baseHref: "/admin/volne-terminy", title: "", subtitle: "", weekKey: dateKey, previousWeekKey: "", nextWeekKey: "", weekRangeLabel: "", todayKey: "", autoLunchEnabled: true, days: [day(dateKey)], legend: [] };
 }
 
 test("adaptér mapuje jednotlivé typy eventů se stabilními ID", () => {
@@ -90,4 +91,22 @@ test("adaptér předá FullCalendaru 09:00 místního času po přechodu na letn
 
   assert.equal(event?.start, "2027-03-29T07:00:00.000Z");
   assert.equal(event?.end, "2027-03-29T08:00:00.000Z");
+});
+
+test("adaptér vykreslí automatický oběd přesně 45 minut bez zaokrouhlení", () => {
+  const input = week();
+  input.days[0].autoLunch = { mode: "AUTO", startsAt: "2026-07-13T10:15:00.000Z", endsAt: "2026-07-13T11:00:00.000Z", warning: false };
+  const event = plannerWeekToFullCalendarEvents(input).find((item) => item.extendedProps.type === "lunch");
+  assert.equal(event?.title, "Oběd · automaticky");
+  assert.equal(event?.start, "2026-07-13T10:15:00.000Z");
+  assert.equal(event?.end, "2026-07-13T11:00:00.000Z");
+  assert.equal(new Date(event!.end).getTime() - new Date(event!.start).getTime(), 45 * 60_000);
+  assert.equal(event?.editable, false);
+  assert.equal(event?.extendedProps.editable, false);
+});
+
+test("adaptér nezobrazí oběd v režimu OFF ani při varování bez kandidáta", () => {
+  const input = week();
+  input.days[0].autoLunch = { mode: "OFF", startsAt: null, endsAt: null, warning: true };
+  assert.equal(plannerWeekToFullCalendarEvents(input).some((item) => item.extendedProps.type === "lunch"), false);
 });

@@ -62,6 +62,34 @@ test("rychlé změny se ukládají FIFO bez souběžných zápisů", async () =>
   assert.equal(drained, 1);
 });
 
+test("fronta s více změnami vyvolá serverovou obnovu až po posledním zápisu právě jednou", async () => {
+  const first = deferred<{ ok: true }>();
+  const calls: number[] = [];
+  let refreshes = 0;
+  const queue = new PlannerLabSaveQueue<number>(
+    async (value) => {
+      calls.push(value);
+      return calls.length === 1 ? first.promise : { ok: true };
+    },
+    () => {},
+    () => {},
+    () => { refreshes += 1; },
+    () => {},
+  );
+
+  queue.enqueue(1);
+  queue.enqueue(2);
+  queue.enqueue(3);
+  await Promise.resolve();
+  assert.equal(refreshes, 0);
+
+  first.resolve({ ok: true });
+  await nextTurn();
+
+  assert.deepEqual(calls, [1, 2, 3]);
+  assert.equal(refreshes, 1);
+});
+
 test("přidání a následné odebrání stejného intervalu zachová pořadí obou změn", async () => {
   const calls: Array<"add" | "remove"> = [];
   const queue = new PlannerLabSaveQueue<"add" | "remove">(
@@ -107,6 +135,24 @@ test("selhání prostřední změny ji ponechá ve frontě a retry pokračuje st
   await nextTurn();
   assert.deepEqual(calls, [1, 2, 2, 3]);
   assert.deepEqual(saved, [1, 2, 3]);
+});
+
+test("selhání ukládání nespustí falešnou úspěšnou synchronizaci", async () => {
+  let refreshes = 0;
+  const errors: string[] = [];
+  const queue = new PlannerLabSaveQueue<number>(
+    async () => ({ ok: false, message: "Uložení selhalo." }),
+    () => {},
+    () => {},
+    () => { refreshes += 1; },
+    (message) => errors.push(message),
+  );
+
+  queue.enqueue(1);
+  await nextTurn();
+
+  assert.equal(refreshes, 0);
+  assert.deepEqual(errors, ["Uložení selhalo."]);
 });
 
 test("opakované selhání zůstává viditelné a retry nezdvojí úspěšnou změnu", async () => {

@@ -9,6 +9,41 @@ const dateTimePartsFormatter = new Intl.DateTimeFormat("en-CA", {
   hourCycle: "h23",
 });
 
+const datePartsFormatter = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "Europe/Prague",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+
+export function getPragueLocalDate(date: Date) {
+  const parts = datePartsFormatter.formatToParts(date);
+  const read = (type: "year" | "month" | "day") =>
+    parts.find((part) => part.type === type)?.value ?? "";
+
+  return `${read("year")}-${read("month")}-${read("day")}`;
+}
+
+export function getNextCalendarDate(dateValue: string) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateValue);
+
+  if (!match) {
+    return null;
+  }
+
+  const next = new Date(Date.UTC(
+    Number(match[1]),
+    Number(match[2]) - 1,
+    Number(match[3]) + 1,
+  ));
+
+  return [
+    String(next.getUTCFullYear()).padStart(4, "0"),
+    String(next.getUTCMonth() + 1).padStart(2, "0"),
+    String(next.getUTCDate()).padStart(2, "0"),
+  ].join("-");
+}
+
 function getDateTimeParts(date: Date) {
   const parts = dateTimePartsFormatter.formatToParts(date);
 
