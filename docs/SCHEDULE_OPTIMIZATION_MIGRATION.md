@@ -194,6 +194,15 @@ V1 hodnotí již načtené kandidáty po jednotlivých dnech a teprve potom vezm
 - Service-aware metrika je aktivní pouze pro context s výhradně `ANY` published sloty. Pro chybějící/nevalidní options nebo budoucí `SELECTED` restrictions bez bezpečné segmentové mapy vrací neutrální `0`. `capacity > 1` nadále používá chronologický fallback.
 - Lexikografické pořadí zůstává: `fragmentCount`, `orphanMinutes`, `largestFreeBlockMinutes`, adjacency, availability edge a stabilní dřívější start. Selekce Fáze 8 dál volí jen nejlepší kvalitativní třídu (maximálně šest) a výsledek klientce zobrazuje chronologicky; `selectableTimeOptions` se nemění.
 
+## Fáze 9C — stabilizace produkčního buildu
+
+- Původní symptom po Fázi 9B: předchozí `npm run build` skončil během zprávy `Running TypeScript ...` bez použitelné diagnostiky a bez `.next/BUILD_ID`. Při opakované reprodukci v aktuálním pracovním stromu se tento fail nepotvrdil; první běh doběhl s exit kódem `0` a čistý běh byl následně ověřen v PTY se skutečným exit kódem `0`.
+- Nejpravděpodobnější příčinou původního symptomu bylo transientní přerušení nebo ztráta diagnostiky Next.js build workeru. TypeScript chyba se neprokázala: projektový `tsc` i Next validace prošly, `.next/types` byly vygenerovány a čistý build pokračoval přes page data, static generation i finalizaci. OOM se neprokázal: prostředí má 16 GiB RAM, nemá swap, build neobdržel signál a systémové logy neobsahují OOM záznam.
+- Produkční zdrojový kód Fáze 9B nebyl kvůli buildu měněn; nebyl přidán workaround, `ignoreBuildErrors`, vypnutí typechecku ani memory flag. Provedeno bylo pouze odstranění `.next` přes existující `npm run clean` a nové standardní sestavení.
+- Výsledky stabilizace: `npm run typecheck` PASS, cílené testy orphan/ranking a booking-flow PASS, ESLint PASS, `git diff --check` PASS a changelog check PASS. Standardní `npm run build` v čistém stavu dokončil TypeScript za 74 s, page data za 8,9 s, static generation 44/44 a finalizaci; exit code `0`.
+- `.next/BUILD_ID` je neprázdný, hodnota ověřeného buildu je `dZh6lzoy4qWYdw4vRBlyC`.
+- Fáze 9B: READY. Fáze 9C: PASS.
+
 ## Strategie capacity
 
 Datový model capacity vystavuje, ale produkční create path dokumentuje a vynucuje jediný service resource (`allowedCapacity = 1`); to je relevantní doména první verze. Lunch feasibility a fragmentation scoring proto nejprve implementovat pro efektivní `capacity = 1`. Pro `capacity > 1` zachovat současnou availability i authoritative capacity logiku a použít chronologický fallback doporučení, dokud nebude specifikována samostatná capacity-aware policy. Capacity pole se nesmí slévat ani přepisovat a výpočet oběda pro jediný zdroj nesmí měnit obecnou capacity sémantiku bookingu.
