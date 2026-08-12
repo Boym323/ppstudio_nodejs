@@ -138,11 +138,30 @@ function isRetryablePrismaError(error: unknown) {
     typeof error === "object" && error !== null && "cause" in error
       ? (error as { cause?: unknown }).cause
       : null;
+  const rawQueryDriverCause =
+    error instanceof Prisma.PrismaClientKnownRequestError
+    && error.code === "P2010"
+    && typeof error.meta === "object"
+    && error.meta !== null
+    && "driverAdapterError" in error.meta
+    && typeof error.meta.driverAdapterError === "object"
+    && error.meta.driverAdapterError !== null
+    && "cause" in error.meta.driverAdapterError
+    && typeof error.meta.driverAdapterError.cause === "object"
+    && error.meta.driverAdapterError.cause !== null
+      ? error.meta.driverAdapterError.cause
+      : null;
 
   return (
     (
       error instanceof Prisma.PrismaClientKnownRequestError &&
-      error.code === "P2034"
+      (error.code === "P2034"
+        || (
+          error.code === "P2010"
+          && rawQueryDriverCause !== null
+          && "originalCode" in rawQueryDriverCause
+          && rawQueryDriverCause.originalCode === "40001"
+        ))
     ) ||
     (
       typeof error === "object" &&

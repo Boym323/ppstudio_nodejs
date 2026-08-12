@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { randomUUID } from "node:crypto";
 
+import { getPragueLocalDate, resolvePragueLocalDateTime } from "./booking-local-time";
+
 (process.env as Record<string, string | undefined>).NODE_ENV = "test";
 process.env.NEXT_PUBLIC_APP_NAME ??= "PP Studio";
 process.env.NEXT_PUBLIC_APP_URL ??= "https://example.com";
@@ -35,11 +37,24 @@ function addDays(base: Date, days: number) {
   return new Date(base.getTime() + days * 24 * 60 * 60 * 1000);
 }
 
+function addCalendarDays(dateKey: string, days: number) {
+  const [year, month, day] = dateKey.split("-").map(Number);
+  const value = new Date(Date.UTC(year, month - 1, day + days));
+  return `${String(value.getUTCFullYear()).padStart(4, "0")}-${String(value.getUTCMonth() + 1).padStart(2, "0")}-${String(value.getUTCDate()).padStart(2, "0")}`;
+}
+
+function at(localDate: string, time: string) {
+  const value = resolvePragueLocalDateTime(localDate, time);
+  assert.ok(value);
+  return value;
+}
+
 async function loadModules() {
-  const [{ prisma }, bookingModule, clientModule] = await Promise.all([
+  const [{ prisma }, bookingModule, clientModule, publicBookingModule] = await Promise.all([
     import("@/lib/prisma"),
     import("./booking-rescheduling"),
     import("@prisma/client"),
+    import("./booking-public"),
   ]);
 
   return {
@@ -49,6 +64,7 @@ async function loadModules() {
     BookingStatus: clientModule.BookingStatus,
     AvailabilitySlotStatus: clientModule.AvailabilitySlotStatus,
     EmailLogType: clientModule.EmailLogType,
+    getPublicBookingCatalog: publicBookingModule.getPublicBookingCatalog,
   };
 }
 
@@ -276,6 +292,224 @@ async function cleanupSeed(seed: SeedContext) {
   await prisma.serviceCategory.deleteMany({ where: { id: seed.categoryId } });
   await prisma.adminUser.deleteMany({ where: { id: seed.actorUserId } });
 }
+
+type LunchSeed = SeedContext & { localDate: string; cleanupMinutes: number; blockerClientIds: string[] };
+
+async function findIsolatedLunchDate() {
+  const { prisma, BookingStatus } = await loadModules();
+  const today = getPragueLocalDate(new Date());
+
+  for (let offset = 14; offset < 75; offset += 1) {
+    const localDate = addCalendarDays(today, offset);
+    const startsAt = at(localDate, "00:00");
+    const endsAt = at(addCalendarDays(localDate, 1), "00:00");
+    const [slots, bookings] = await Promise.all([
+      prisma.availabilitySlot.count({ where: { startsAt: { lt: endsAt }, endsAt: { gt: startsAt } } }),
+      prisma.booking.count({
+        where: {
+          status: { in: [BookingStatus.PENDING, BookingStatus.CONFIRMED] },
+          scheduledStartsAt: { lt: endsAt },
+          OR: [{ blockedUntil: { gt: startsAt } }, { blockedUntil: null, scheduledEndsAt: { gt: startsAt } }],
+        },
+      }),
+    ]);
+    if (slots === 0 && bookings === 0) return localDate;
+  }
+
+  throw new Error("Nepodařilo se najít izolovaný den pro lunch reschedule test.");
+}
+
+async function createLunchSeed(input: { cleanupMinutes?: number; oldStart?: string; oldEnd?: string } = {}): Promise<LunchSeed> {
+  const { prisma, BookingStatus, AvailabilitySlotStatus } = await loadModules();
+  const suffix = randomUUID().slice(0, 8);
+  const localDate = await findIsolatedLunchDate();
+  const cleanupMinutes = input.cleanupMinutes ?? 0;
+  const oldStart = input.oldStart ?? "11:00";
+  const oldEnd = input.oldEnd ?? "12:30";
+  const actor = await prisma.adminUser.create({ data: { email: `lunch-reschedule-${suffix}@example.com`, name: `Lunch reschedule ${suffix}`, role: "OWNER", isActive: true }, select: { id: true } });
+  const category = await prisma.serviceCategory.create({ data: { name: `Lunch reschedule ${suffix}`, slug: `lunch-reschedule-${suffix}` }, select: { id: true } });
+  const service = await prisma.service.create({
+    data: { categoryId: category.id, name: `Lunch reschedule ${suffix}`, slug: `lunch-reschedule-service-${suffix}`, durationMinutes: 90, cleanupMinutes, isActive: true, isPubliclyBookable: true },
+    select: { id: true },
+  });
+  const client = await prisma.client.create({ data: { fullName: `Lunch klientka ${suffix}`, email: `lunch-reschedule-client-${suffix}@example.com`, phone: "+420777123456" }, select: { id: true } });
+  const slot = await prisma.availabilitySlot.create({
+    data: { startsAt: at(localDate, "09:00"), endsAt: at(localDate, "17:00"), capacity: 1, status: AvailabilitySlotStatus.PUBLISHED, publishedAt: new Date(), serviceRestrictionMode: "ANY", createdByUserId: actor.id },
+    select: { id: true },
+  });
+  const booking = await prisma.booking.create({
+    data: {
+      clientId: client.id, slotId: slot.id, serviceId: service.id, source: "PHONE", isManual: false, manualOverride: false, status: BookingStatus.CONFIRMED,
+      clientNameSnapshot: `Lunch klientka ${suffix}`, clientEmailSnapshot: `lunch-reschedule-client-${suffix}@example.com`, clientPhoneSnapshot: "+420777123456", serviceNameSnapshot: `Lunch reschedule ${suffix}`,
+      serviceDurationMinutes: 90, cleanupMinutes, cleanupBlockMinutes: cleanupMinutes, scheduledStartsAt: at(localDate, oldStart), scheduledEndsAt: at(localDate, oldEnd), blockedUntil: new Date(at(localDate, oldEnd).getTime() + cleanupMinutes * 60_000), confirmedAt: new Date(), createdByUserId: actor.id,
+    },
+    select: { id: true, updatedAt: true },
+  });
+  return {
+    bookingId: booking.id, bookingUpdatedAt: booking.updatedAt.toISOString(), oldSlotId: slot.id, newSlotId: slot.id,
+    oldStartAt: at(localDate, oldStart).toISOString(), oldEndAt: at(localDate, oldEnd).toISOString(), newStartAt: at(localDate, "12:30").toISOString(), newEndAt: at(localDate, "14:00").toISOString(),
+    clientId: client.id, serviceId: service.id, categoryId: category.id, actorUserId: actor.id, localDate, cleanupMinutes, blockerClientIds: [],
+  };
+}
+
+async function cleanupLunchSeed(seed: LunchSeed) {
+  const { prisma } = await loadModules();
+  await prisma.emailLog.deleteMany({ where: { bookingId: seed.bookingId } });
+  await prisma.booking.deleteMany({ where: { serviceId: seed.serviceId } });
+  await prisma.availabilitySlot.deleteMany({ where: { createdByUserId: seed.actorUserId } });
+  await prisma.client.deleteMany({ where: { id: seed.clientId } });
+  await prisma.client.deleteMany({ where: { id: { in: seed.blockerClientIds } } });
+  await prisma.service.deleteMany({ where: { id: seed.serviceId } });
+  await prisma.serviceCategory.deleteMany({ where: { id: seed.categoryId } });
+  await prisma.adminUser.deleteMany({ where: { id: seed.actorUserId } });
+}
+
+async function addLunchBlocker(seed: LunchSeed, startsAt: string, endsAt: string) {
+  const { prisma, BookingStatus } = await loadModules();
+  const client = await prisma.client.create({ data: { fullName: `Lunch blokace ${randomUUID().slice(0, 8)}`, email: `lunch-blocker-${randomUUID()}@example.com` }, select: { id: true } });
+  seed.blockerClientIds.push(client.id);
+  await prisma.booking.create({
+    data: {
+      clientId: client.id, slotId: seed.oldSlotId, serviceId: seed.serviceId, source: "PHONE", isManual: false, manualOverride: false, status: BookingStatus.CONFIRMED,
+      clientNameSnapshot: "Lunch blokace", clientEmailSnapshot: client.id + "@example.com", serviceNameSnapshot: "Lunch blokace", serviceDurationMinutes: (at(seed.localDate, endsAt).getTime() - at(seed.localDate, startsAt).getTime()) / 60_000,
+      scheduledStartsAt: at(seed.localDate, startsAt), scheduledEndsAt: at(seed.localDate, endsAt), blockedUntil: at(seed.localDate, endsAt), confirmedAt: new Date(),
+    },
+  });
+}
+
+async function expectLunchUnavailable(run: () => Promise<unknown>) {
+  const { BookingRescheduleError } = await loadModules();
+  await assert.rejects(run, (error: unknown) => {
+    assert.ok(error instanceof BookingRescheduleError);
+    assert.equal(error.code, "SLOT_UNAVAILABLE");
+    return true;
+  });
+}
+
+dbTest("rescheduleBooking při simulaci cíle odečte původní booking a pouze přesune oběd", async () => {
+  const seed = await createLunchSeed();
+  const { prisma, rescheduleBooking } = await loadModules();
+  try {
+    const result = await rescheduleBooking({
+      bookingId: seed.bookingId, slotId: seed.newSlotId, newStartAt: seed.newStartAt,
+      changedByUserId: null, changedByClient: true, notifyClient: false, expectedUpdatedAt: seed.bookingUpdatedAt,
+    });
+    assert.equal(result.scheduledStartsAt, seed.newStartAt);
+    assert.equal(await prisma.bookingRescheduleLog.count({ where: { bookingId: seed.bookingId } }), 1);
+  } finally {
+    await cleanupLunchSeed(seed);
+  }
+});
+
+dbTest("stale public reschedule po mezitím vzniklé blokaci odmítne termín a zachová booking bez logu", async () => {
+  const seed = await createLunchSeed();
+  const { prisma, rescheduleBooking, getPublicBookingCatalog } = await loadModules();
+  try {
+    const catalog = await getPublicBookingCatalog();
+    assert.ok(catalog.slots.some((slot) => slot.id === seed.newSlotId));
+    await addLunchBlocker(seed, "11:00", "12:30");
+    await expectLunchUnavailable(() => rescheduleBooking({
+      bookingId: seed.bookingId, slotId: seed.newSlotId, newStartAt: seed.newStartAt,
+      changedByUserId: null, changedByClient: true, notifyClient: false, expectedUpdatedAt: seed.bookingUpdatedAt,
+    }));
+    const booking = await prisma.booking.findUniqueOrThrow({ where: { id: seed.bookingId }, select: { scheduledStartsAt: true, rescheduleCount: true } });
+    assert.equal(booking.scheduledStartsAt.toISOString(), seed.oldStartAt);
+    assert.equal(booking.rescheduleCount, 0);
+    assert.equal(await prisma.bookingRescheduleLog.count({ where: { bookingId: seed.bookingId } }), 0);
+  } finally {
+    await cleanupLunchSeed(seed);
+  }
+});
+
+dbTest("rescheduleBooking používá blockedUntil včetně cleanup pro lunch feasibility", async () => {
+  const seed = await createLunchSeed({ cleanupMinutes: 15, oldStart: "14:30", oldEnd: "16:00" });
+  const { rescheduleBooking } = await loadModules();
+  try {
+    await addLunchBlocker(seed, "11:45", "13:45");
+    await expectLunchUnavailable(() => rescheduleBooking({
+      bookingId: seed.bookingId, slotId: seed.newSlotId, newStartAt: at(seed.localDate, "09:30").toISOString(),
+      changedByUserId: null, changedByClient: true, notifyClient: false, expectedUpdatedAt: seed.bookingUpdatedAt,
+    }));
+  } finally {
+    await cleanupLunchSeed(seed);
+  }
+});
+
+dbTest("aktuální OFF policy při submitu dovolí termín, který AUTO odmítá", async () => {
+  const seed = await createLunchSeed({ oldStart: "14:30", oldEnd: "16:00" });
+  const { prisma, rescheduleBooking } = await loadModules();
+  try {
+    await addLunchBlocker(seed, "11:00", "12:30");
+    await prisma.autoLunchDayOverride.create({ data: { dateKey: seed.localDate, updatedByUserId: seed.actorUserId } });
+    const result = await rescheduleBooking({
+      bookingId: seed.bookingId, slotId: seed.newSlotId, newStartAt: seed.newStartAt,
+      changedByUserId: null, changedByClient: true, notifyClient: false, expectedUpdatedAt: seed.bookingUpdatedAt,
+    });
+    assert.equal(result.scheduledStartsAt, seed.newStartAt);
+  } finally {
+    await prisma.autoLunchDayOverride.deleteMany({ where: { dateKey: seed.localDate } });
+    await cleanupLunchSeed(seed);
+  }
+});
+
+dbTest("admin slot mode chrání lunch, explicitní manual override jej může obejít", async () => {
+  const seed = await createLunchSeed();
+  const { rescheduleBooking } = await loadModules();
+  try {
+    await addLunchBlocker(seed, "11:00", "12:30");
+    await expectLunchUnavailable(() => rescheduleBooking({
+      bookingId: seed.bookingId, slotId: seed.newSlotId, newStartAt: seed.newStartAt,
+      changedByUserId: seed.actorUserId, notifyClient: false, expectedUpdatedAt: seed.bookingUpdatedAt, allowManualOverride: false,
+    }));
+    const result = await rescheduleBooking({
+      bookingId: seed.bookingId, slotId: seed.newSlotId, newStartAt: seed.newStartAt,
+      changedByUserId: seed.actorUserId, notifyClient: false, expectedUpdatedAt: seed.bookingUpdatedAt, allowManualOverride: true,
+    });
+    assert.equal(result.manualOverride, false);
+    assert.equal(result.scheduledStartsAt, seed.newStartAt);
+  } finally {
+    await cleanupLunchSeed(seed);
+  }
+});
+
+dbTest("souběžné public reschedule nikdy necommitnou stav bez proveditelného oběda", async () => {
+  const seed = await createLunchSeed({ oldStart: "09:00", oldEnd: "10:30" });
+  const { prisma, rescheduleBooking, BookingStatus, AvailabilitySlotStatus } = await loadModules();
+  try {
+    await prisma.availabilitySlot.update({ where: { id: seed.oldSlotId }, data: { status: AvailabilitySlotStatus.ARCHIVED } });
+    const targetSlot = await prisma.availabilitySlot.create({
+      data: { startsAt: at(seed.localDate, "09:00"), endsAt: at(seed.localDate, "17:00"), capacity: 1, status: AvailabilitySlotStatus.PUBLISHED, publishedAt: new Date(), serviceRestrictionMode: "ANY", createdByUserId: seed.actorUserId },
+      select: { id: true },
+    });
+    const secondClient = await prisma.client.create({ data: { fullName: "Lunch race", email: `lunch-race-${randomUUID()}@example.com` }, select: { id: true } });
+    seed.blockerClientIds.push(secondClient.id);
+    const secondOldSlot = await prisma.availabilitySlot.create({
+      data: { startsAt: at(seed.localDate, "14:30"), endsAt: at(seed.localDate, "16:00"), capacity: 1, status: AvailabilitySlotStatus.ARCHIVED, serviceRestrictionMode: "ANY", createdByUserId: seed.actorUserId },
+      select: { id: true },
+    });
+    const secondBooking = await prisma.booking.create({
+      data: {
+        clientId: secondClient.id, slotId: secondOldSlot.id, serviceId: seed.serviceId, source: "PHONE", isManual: false, manualOverride: false, status: BookingStatus.CONFIRMED,
+        clientNameSnapshot: "Lunch race", clientEmailSnapshot: "lunch-race@example.com", serviceNameSnapshot: "Lunch race", serviceDurationMinutes: 90,
+        scheduledStartsAt: at(seed.localDate, "14:30"), scheduledEndsAt: at(seed.localDate, "16:00"), blockedUntil: at(seed.localDate, "16:00"), confirmedAt: new Date(),
+      }, select: { id: true, updatedAt: true },
+    });
+    const results = await Promise.allSettled([
+      rescheduleBooking({ bookingId: seed.bookingId, slotId: targetSlot.id, newStartAt: at(seed.localDate, "11:00").toISOString(), changedByUserId: null, changedByClient: true, notifyClient: false, expectedUpdatedAt: seed.bookingUpdatedAt }),
+      rescheduleBooking({ bookingId: secondBooking.id, slotId: targetSlot.id, newStartAt: at(seed.localDate, "12:30").toISOString(), changedByUserId: null, changedByClient: true, notifyClient: false, expectedUpdatedAt: secondBooking.updatedAt.toISOString() }),
+    ]);
+    const fulfilled = results.filter(
+      (result): result is PromiseFulfilledResult<Awaited<ReturnType<typeof rescheduleBooking>>> => result.status === "fulfilled",
+    );
+    const rejected = results.filter((result): result is PromiseRejectedResult => result.status === "rejected");
+    assert.equal(fulfilled.length, 1);
+    assert.equal(rejected.length, 1);
+    assert.ok(rejected[0].reason instanceof Error && "code" in rejected[0].reason);
+    assert.equal(rejected[0].reason.code, "SLOT_UNAVAILABLE");
+  } finally {
+    await cleanupLunchSeed(seed);
+  }
+});
 
 dbTest("rescheduleBooking updates the existing booking, writes audit history and resets reminders", async () => {
   const seed = await createSeed();

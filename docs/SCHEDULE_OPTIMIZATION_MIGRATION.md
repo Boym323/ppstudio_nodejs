@@ -117,7 +117,15 @@ Globální přepínač je uložen v singletonu `SiteSettings.autoLunchEnabled` s
 - Veřejný i administrační přesun kontroluje lunch invariant v `rescheduleBookingInTransaction` bezprostředně před `booking.update`.
 - Kontrola používá čerstvý snapshot policy a publikovanou dostupnost cílového pražského dne; původní přesouvaná rezervace se z obsazenosti odečítá a nový blok končí v `blockedUntil`.
 - Standardní admin slot mode se chová stejně jako veřejný přesun a ruční vytvoření rezervace. Jen explicitní `allowManualOverride: true` v administrativním manual mode může invariant obejít.
-- Serializable transakce znovu načte stav při submitu; zamítnutý přesun nevytvoří `BookingRescheduleLog` ani notifikaci. Cílené unit testy pokrývají odečtení původní rezervace, cleanup/`blockedUntil` a policy OFF; DB integrační ověření vyžaduje izolovanou PostgreSQL DB.
+- Serializable transakce znovu načte stav při submitu; zamítnutý přesun nevytvoří `BookingRescheduleLog` ani notifikaci. DB integrační ověření je dokončeno ve Fázi 4A.
+
+## Fáze 4A — databázové ověření přesunů
+
+- Byl použit izolovaný PostgreSQL database per běh; všech 50 migrací se aplikovalo a `prisma migrate diff` proti `schema.prisma` nevrátil rozdíl. Sdílená `ppstudio_dev` nebyla měněna a dočasné databáze byly po běhu odstraněny.
+- Integrační testy potvrzují přesun s `excludeBookingId`, zachování původní rezervace a absenci `BookingRescheduleLog` při zamítnutí, použití `blockedUntil` pro cleanup i aktuální cílovou policy `OFF`.
+- Public stale request po změně stavu a souběžný public reschedule jsou autoritativně ověřeny. Race odhalil, že raw `FOR UPDATE` vrací serializační konflikt jako Prisma `P2010` s vnořeným `originalCode` `40001`; retry byl doplněn a po opakování druhý přesun končí `SLOT_UNAVAILABLE`.
+- Admin slot mode invariant chrání; pouze explicitní `allowManualOverride: true` jej může obejít. Relevantní public create stale/race integrační testy z Fáze 2 byly spuštěny znovu.
+- Fáze 4: **PASS**.
 
 ## Reschedule a admin policy
 
