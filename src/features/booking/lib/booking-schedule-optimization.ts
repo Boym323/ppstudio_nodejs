@@ -14,6 +14,10 @@ const MINUTE_MS = 60_000;
 export type ScheduleInterval = { startsAt: number; endsAt: number };
 export type LunchCandidate = ScheduleInterval;
 export type BookingBlock = ScheduleInterval & { capacity?: number };
+export type ServiceBookingBlockOption = {
+  durationMinutes: number;
+  cleanupBlockMinutes: number;
+};
 export type DayLunchMode = "AUTO" | "OFF";
 export type LunchFeasibility = { active: boolean; feasible: boolean; candidates: LunchCandidate[] };
 export type FragmentationMetrics = {
@@ -120,7 +124,73 @@ export function canPreserveAutoLunch(input: { active: boolean; availability: Sch
   return { active: true, feasible: candidates.length > 0, candidates };
 }
 
-export function measureFragmentation(input: { freeIntervals: ScheduleInterval[]; availability: ScheduleInterval[]; bookingBlocks: ScheduleInterval[] }): FragmentationMetrics {
+function validServiceOptions(options: readonly ServiceBookingBlockOption[] | undefined) {
+  if (!options?.length) return null;
+  const unique = new Map<string, ServiceBookingBlockOption>();
+  for (const option of options) {
+    if (!Number.isInteger(option.durationMinutes) || option.durationMinutes <= 0
+      || !Number.isInteger(option.cleanupBlockMinutes) || option.cleanupBlockMinutes < 0) return null;
+    unique.set(`${option.durationMinutes}:${option.cleanupBlockMinutes}`, option);
+  }
+  return [...unique.values()];
+}
+
+function maxInternalUtilization(fragmentMinutes: number, options: readonly ServiceBookingBlockOption[]) {
+  const reachable = new Uint8Array(fragmentMinutes + 1);
+  reachable[0] = 1;
+  for (let minute = 1; minute <= fragmentMinutes; minute += 1) {
+    reachable[minute] = Number(options.some((option) => {
+      const blockMinutes = option.durationMinutes + option.cleanupBlockMinutes;
+      return blockMinutes <= minute && reachable[minute - blockMinutes] === 1;
+    }));
+  }
+  for (let minute = fragmentMinutes; minute >= 0; minute -= 1) {
+    if (reachable[minute]) return minute;
+  }
+  return 0;
+}
+
+/**
+ * Returns unavailable minutes after optimally packing future bookings. At a
+ * published-availability edge only the final booking may let its cleanup run
+ * past the edge, matching the authoritative coverage rule.
+ */
+export function calculateOrphanMinutes(input: {
+  freeIntervals: ScheduleInterval[];
+  availability: ScheduleInterval[];
+  bookingBlocks: ScheduleInterval[];
+  serviceBlockOptions?: readonly ServiceBookingBlockOption[];
+}) {
+  const options = validServiceOptions(input.serviceBlockOptions);
+  if (!options) return 0;
+  const availability = normalized(input.availability);
+  const booked = normalized(input.bookingBlocks);
+  let orphanMinutes = 0;
+
+  for (const fragment of normalized(input.freeIntervals)) {
+    const fragmentMinutes = (fragment.endsAt - fragment.startsAt) / MINUTE_MS;
+    if (!Number.isInteger(fragmentMinutes) || fragmentMinutes < 0) return 0;
+    const availabilityEdge = availability.some((interval) => interval.endsAt === fragment.endsAt);
+    let utilized = maxInternalUtilization(fragmentMinutes, options);
+
+    if (availabilityEdge) {
+      const nextBookingStart = booked.find((block) => block.startsAt >= fragment.endsAt)?.startsAt;
+      const cleanupOverflowMinutes = nextBookingStart === undefined
+        ? Number.POSITIVE_INFINITY
+        : (nextBookingStart - fragment.endsAt) / MINUTE_MS;
+      for (const last of options) {
+        if (last.durationMinutes > fragmentMinutes || last.cleanupBlockMinutes > cleanupOverflowMinutes) continue;
+        const beforeLast = maxInternalUtilization(fragmentMinutes - last.durationMinutes, options);
+        utilized = Math.max(utilized, beforeLast + last.durationMinutes);
+      }
+    }
+
+    orphanMinutes += fragmentMinutes - utilized;
+  }
+  return orphanMinutes;
+}
+
+export function measureFragmentation(input: { freeIntervals: ScheduleInterval[]; availability: ScheduleInterval[]; bookingBlocks: ScheduleInterval[]; serviceBlockOptions?: readonly ServiceBookingBlockOption[] }): FragmentationMetrics {
   const free = normalized(input.freeIntervals);
   const availability = normalized(input.availability);
   const booked = normalized(input.bookingBlocks);
@@ -128,8 +198,7 @@ export function measureFragmentation(input: { freeIntervals: ScheduleInterval[];
   return {
     fragmentCount: free.length,
     largestFreeBlockMinutes: free.reduce((largest, interval) => Math.max(largest, minutes(interval)), 0),
-    // A service catalogue is intentionally not an engine input in Phase 1.
-    orphanMinutes: 0,
+    orphanMinutes: calculateOrphanMinutes(input),
     bookingAdjacencyMinutes: free.filter((item) => booked.some((block) => block.endsAt === item.startsAt || block.startsAt === item.endsAt)).reduce((sum, item) => sum + minutes(item), 0),
     availabilityEdgeMinutes: free.filter((item) => availability.some((block) => block.startsAt === item.startsAt || block.endsAt === item.endsAt)).reduce((sum, item) => sum + minutes(item), 0),
   };
@@ -206,6 +275,7 @@ function evaluateSuggestedSlotQuality<T extends SuggestedSlotCandidate>(input: O
     freeIntervals: subtract(availability, [...bookedBlocks, hypotheticalBlock, ...(lunch ? [lunch] : [])]),
     availability,
     bookingBlocks: [...bookedBlocks, hypotheticalBlock, ...(lunch ? [lunch] : [])],
+    serviceBlockOptions: input.supportsServiceAwareOrphans ? input.serviceBlockOptions : undefined,
   });
 }
 
@@ -240,6 +310,8 @@ export function rankSuggestedSlots<T extends SuggestedSlotCandidate>(input: {
   capacity: number;
   globalAutoLunchEnabled: boolean;
   dayLunchModes: Record<string, DayLunchMode | undefined>;
+  serviceBlockOptions?: readonly ServiceBookingBlockOption[];
+  supportsServiceAwareOrphans?: boolean;
 }): T[] {
   const chronological = [...input.candidates];
   if (input.capacity !== 1 || input.serviceDurationMinutes <= 0 || input.cleanupBlockMinutes < 0) return chronological;
@@ -296,6 +368,7 @@ export function rankSuggestedSlots<T extends SuggestedSlotCandidate>(input: {
             freeIntervals: subtract(availability, resultBlocks),
             availability,
             bookingBlocks: resultBlocks,
+            serviceBlockOptions: input.supportsServiceAwareOrphans ? input.serviceBlockOptions : undefined,
           }),
         };
       });
@@ -320,6 +393,8 @@ export function selectSuggestedSlots<T extends SuggestedSlotCandidate>(input: {
   capacity: number;
   globalAutoLunchEnabled: boolean;
   dayLunchModes: Record<string, DayLunchMode | undefined>;
+  serviceBlockOptions?: readonly ServiceBookingBlockOption[];
+  supportsServiceAwareOrphans?: boolean;
   limit?: number;
 }): T[] {
   const limit = input.limit ?? 6;

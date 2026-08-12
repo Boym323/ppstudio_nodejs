@@ -1,4 +1,4 @@
-import { AvailabilitySlotStatus } from "@prisma/client";
+import { AvailabilitySlotServiceRestrictionMode, AvailabilitySlotStatus } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
 import { getBookingPolicySettings } from "@/lib/site-settings";
@@ -191,6 +191,14 @@ export async function getPublicBookingCatalog(
         endsAt: slot.endsAt.toISOString(),
       })),
       bookedIntervals,
+      serviceBlockOptions: services.map((service) => ({
+        id: service.id,
+        durationMinutes: service.durationMinutes,
+        cleanupBlockMinutes: roundUpToQuarterHour(service.cleanupMinutes),
+      })),
+      supportsServiceAwareOrphans: slots.every(
+        (slot) => slot.serviceRestrictionMode === AvailabilitySlotServiceRestrictionMode.ANY,
+      ),
     },
   };
 }

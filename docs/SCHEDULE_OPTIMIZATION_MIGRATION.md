@@ -185,6 +185,15 @@ V1 hodnotí již načtené kandidáty po jednotlivých dnech a teprve potom vezm
 - `selectableTimeOptions` nejsou selekcí ani rankingem mutovány, filtrovány či přeřazeny; plná nabídka zůstává beze změny. Doporučení se po selekci řadí napříč dny, takže pozdější lokální den nikdy nepředběhne dřívější.
 - Deterministická simulace osmi scénářů (prázdný den, ranní/odpolední booking, bookingy z obou stran, dlouhá a krátká mezera, aktivní lunch, day `OFF`) ověřuje subset validních kandidátů a chronologii. Výsledek: 1 scénář se šesti doporučeními, 7 s méně než šesti; minimum 1, maximum 6, průměr 1,625; všechny subsety byly chronologické.
 
+## Fáze 9B — service-aware orphanMinutes
+
+- `orphanMinutes` je součet minut, které po maximálním zaplnění každého výsledného volného fragmentu budoucími rezervacemi zůstávají nevyužitelné. Počítá se až po odečtení existujících booking bloků, hypotetického kandidáta a zvoleného automatického oběda.
+- Public catalog předává rankingové vrstvě jednou aktivní veřejně rezervovatelné služby jako dvojice `durationMinutes` a `cleanupBlockMinutes`; cleanup block vzniká výhradně přes sdílené `roundUpToQuarterHour`. Duplicitní dvojice se v pure helperu deduplikují.
+- Interní fragment používá unbounded DP nad skutečnými booking blocky (`procedura + cleanup`). Na availability edge může pouze poslední rezervace skončit procedurou na hraně; její cleanup smí přesáhnout konec publikované dostupnosti, pokud tím nekoliduje s následující rezervací. Předchozí rezervace v sekvenci vždy nesou celý cleanup block.
+- Výpočet je synchronní a in-memory, pracuje v minutové přesnosti (bez zaokrouhlování fragmentů) a má složitost `O(fragmentMinutes × počet unikátních možností)`. Nezavádí dependency, dotaz ani globální cache.
+- Service-aware metrika je aktivní pouze pro context s výhradně `ANY` published sloty. Pro chybějící/nevalidní options nebo budoucí `SELECTED` restrictions bez bezpečné segmentové mapy vrací neutrální `0`. `capacity > 1` nadále používá chronologický fallback.
+- Lexikografické pořadí zůstává: `fragmentCount`, `orphanMinutes`, `largestFreeBlockMinutes`, adjacency, availability edge a stabilní dřívější start. Selekce Fáze 8 dál volí jen nejlepší kvalitativní třídu (maximálně šest) a výsledek klientce zobrazuje chronologicky; `selectableTimeOptions` se nemění.
+
 ## Strategie capacity
 
 Datový model capacity vystavuje, ale produkční create path dokumentuje a vynucuje jediný service resource (`allowedCapacity = 1`); to je relevantní doména první verze. Lunch feasibility a fragmentation scoring proto nejprve implementovat pro efektivní `capacity = 1`. Pro `capacity > 1` zachovat současnou availability i authoritative capacity logiku a použít chronologický fallback doporučení, dokud nebude specifikována samostatná capacity-aware policy. Capacity pole se nesmí slévat ani přepisovat a výpočet oběda pro jediný zdroj nesmí měnit obecnou capacity sémantiku bookingu.

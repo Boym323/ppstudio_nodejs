@@ -79,6 +79,15 @@ export type PublicBookingCatalog = {
       startsAt: string;
       endsAt: string;
     }>;
+    serviceBlockOptions?: Array<{
+      id: string;
+      durationMinutes: number;
+      cleanupBlockMinutes: number;
+    }>;
+    // Service-specific availability needs segment-level option mapping. Until the
+    // optimization context carries that mapping, SELECTED slots safely keep the
+    // orphan metric neutral.
+    supportsServiceAwareOrphans?: boolean;
   };
 };
 

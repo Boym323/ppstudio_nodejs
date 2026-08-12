@@ -555,6 +555,8 @@ export function BookingFlow({
         capacity: availableSlots.every((slot) => slot.capacity === 1) ? 1 : 2,
         globalAutoLunchEnabled: scheduleOptimization.globalAutoLunchEnabled,
         dayLunchModes: scheduleOptimization.dayLunchModes,
+        serviceBlockOptions: scheduleOptimization.serviceBlockOptions,
+        supportsServiceAwareOrphans: scheduleOptimization.supportsServiceAwareOrphans,
       });
     },
     [availableSlots, currentCatalog.scheduleOptimization, selectableTimeOptions, selectedService],

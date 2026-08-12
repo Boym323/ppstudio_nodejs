@@ -4,6 +4,7 @@ import test from "node:test";
 import { resolvePragueLocalDateTime } from "./booking-local-time";
 import {
   AUTO_LUNCH_POLICY,
+  calculateOrphanMinutes,
   canPreserveAutoLunch,
   findBestAutoLunch,
   generateLunchCandidates,
@@ -13,6 +14,15 @@ import {
   shouldApplyAutoLunch,
   type ScheduleInterval,
 } from "./booking-schedule-optimization";
+
+const serviceOptions = [
+  { durationMinutes: 30, cleanupBlockMinutes: 0 },
+  { durationMinutes: 45, cleanupBlockMinutes: 0 },
+  { durationMinutes: 60, cleanupBlockMinutes: 0 },
+  { durationMinutes: 60, cleanupBlockMinutes: 15 },
+  { durationMinutes: 90, cleanupBlockMinutes: 30 },
+  { durationMinutes: 135, cleanupBlockMinutes: 30 },
+];
 
 const at = (date: string, time: string) => {
   const value = resolvePragueLocalDateTime(date, time);
@@ -257,6 +267,98 @@ test("recommendation selection limits equivalent empty-day candidates chronologi
   assert.deepEqual(candidates, snapshot);
   assert.equal(selected.length, 6);
   assert.deepEqual(selected.map((candidate) => candidate.id), ["09:00", "09:30", "10:00", "10:30", "11:00", "11:30"]);
+});
+
+test("service-aware orphan DP maximally packs actual booking blocks without rounding fragments", () => {
+  const orphan = (minutes: number) => calculateOrphanMinutes({
+    freeIntervals: [{ startsAt: 0, endsAt: minutes * 60_000 }],
+    availability: [{ startsAt: 0, endsAt: minutes * 60_000 }],
+    bookingBlocks: [],
+    serviceBlockOptions: serviceOptions,
+  });
+  assert.equal(orphan(0), 0);
+  assert.equal(orphan(15), 15);
+  assert.equal(orphan(25), 25);
+  assert.equal(orphan(30), 0);
+  assert.equal(orphan(90), 0, "60 + 30, not greedy 75");
+  assert.equal(orphan(100), 10);
+  assert.equal(orphan(105), 0);
+  assert.equal(orphan(135), 0);
+  assert.equal(orphan(150), 0);
+  assert.equal(orphan(180), 0);
+});
+
+test("service-aware orphan treats only the final cleanup at an availability edge as overflow", () => {
+  const option = [{ durationMinutes: 60, cleanupBlockMinutes: 15 }];
+  const measure = (minutes: number, edge: boolean) => calculateOrphanMinutes({
+    freeIntervals: [{ startsAt: 0, endsAt: minutes * 60_000 }],
+    availability: edge
+      ? [{ startsAt: 0, endsAt: minutes * 60_000 }]
+      : [{ startsAt: 0, endsAt: (minutes + 1) * 60_000 }],
+    bookingBlocks: edge ? [] : [{ startsAt: minutes * 60_000, endsAt: (minutes + 1) * 60_000 }],
+    serviceBlockOptions: option,
+  });
+  assert.equal(measure(60, false), 60, "internal fragment needs the 15-minute cleanup");
+  assert.equal(measure(60, true), 0, "final cleanup may cross the availability edge");
+  assert.equal(measure(59, true), 59, "procedure itself still must fit");
+  assert.equal(measure(120, true), 45, "only the final, not the first cleanup may overflow");
+  assert.equal(calculateOrphanMinutes({
+    freeIntervals: [{ startsAt: 0, endsAt: 60 * 60_000 }],
+    availability: [{ startsAt: 0, endsAt: 60 * 60_000 }],
+    bookingBlocks: [{ startsAt: 65 * 60_000, endsAt: 90 * 60_000 }],
+    serviceBlockOptions: option,
+  }), 60, "cleanup overflow may not collide with a later booking");
+});
+
+test("service-aware orphan uses rounded cleanup blocks and safely falls back when options are unsupported", () => {
+  assert.equal(calculateOrphanMinutes({
+    freeIntervals: [{ startsAt: 0, endsAt: 100 * 60_000 }],
+    availability: [{ startsAt: 0, endsAt: 100 * 60_000 }],
+    bookingBlocks: [],
+    serviceBlockOptions: [{ durationMinutes: 90, cleanupBlockMinutes: 30 }],
+  }), 10, "90-minute procedure plus rounded 30-minute cleanup only fits at the edge");
+  assert.equal(calculateOrphanMinutes({
+    freeIntervals: [{ startsAt: 0, endsAt: 115 * 60_000 }],
+    availability: [{ startsAt: 0, endsAt: 116 * 60_000 }],
+    bookingBlocks: [{ startsAt: 115 * 60_000, endsAt: 116 * 60_000 }],
+    serviceBlockOptions: [{ durationMinutes: 90, cleanupBlockMinutes: 30 }],
+  }), 115, "raw 20-minute cleanup must not be treated as an unrounded 110-minute block");
+  assert.equal(calculateOrphanMinutes({
+    freeIntervals: [{ startsAt: 0, endsAt: 15 * 60_000 }],
+    availability: [{ startsAt: 0, endsAt: 15 * 60_000 }],
+    bookingBlocks: [],
+    serviceBlockOptions: [{ durationMinutes: 30.5, cleanupBlockMinutes: 0 }],
+  }), 0);
+});
+
+test("ranking uses orphanMinutes after fragment count while keeping date-first and capacity fallbacks", () => {
+  const date = "2026-01-15";
+  const ranked = rankSuggestedSlots({
+    candidates: suggested(date, "09:15", "10:30"),
+    availability: [interval(date, "09:00", "12:30")],
+    bookedBlocks: [],
+    serviceDurationMinutes: 30,
+    cleanupBlockMinutes: 0,
+    capacity: 1,
+    globalAutoLunchEnabled: false,
+    dayLunchModes: {},
+    serviceBlockOptions: serviceOptions,
+    supportsServiceAwareOrphans: true,
+  });
+  assert.equal(ranked[0]?.id, "10:30", "90 + 90 beats 15 + 165 due to orphan 0 < 15");
+  assert.deepEqual(rankSuggestedSlots({
+    candidates: [...suggested(date, "10:30"), ...suggested("2026-01-16", "09:15")],
+    availability: [interval(date, "09:00", "12:30"), interval("2026-01-16", "09:00", "12:30")],
+    bookedBlocks: [], serviceDurationMinutes: 30, cleanupBlockMinutes: 0, capacity: 1,
+    globalAutoLunchEnabled: false, dayLunchModes: {}, serviceBlockOptions: serviceOptions, supportsServiceAwareOrphans: true,
+  }).map((candidate) => candidate.startsAt), [
+    ...suggested(date, "10:30").map((candidate) => candidate.startsAt),
+    ...suggested("2026-01-16", "09:15").map((candidate) => candidate.startsAt),
+  ]);
+  assert.deepEqual(rankSuggestedSlots({
+    candidates: suggested(date, "10:30", "09:15"), availability: [interval(date, "09:00", "12:30")], bookedBlocks: [],
+    serviceDurationMinutes: 30, cleanupBlockMinutes: 0, capacity: 2, globalAutoLunchEnabled: false, dayLunchModes: {}, serviceBlockOptions: serviceOptions, supportsServiceAwareOrphans: true,
+  }).map((candidate) => candidate.id), ["10:30", "09:15"]);
 });
 
 test("recommendation selection preserves date-first presentation and lunch-aware quality", () => {
