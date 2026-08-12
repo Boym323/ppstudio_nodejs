@@ -205,6 +205,7 @@ export function cloneWeekDays(days: PlannerDay[]) {
     lockedBlocks: day.lockedBlocks.map((block) => ({ ...block })),
     inactiveBlocks: day.inactiveBlocks.map((block) => ({ ...block })),
     bookings: day.bookings.map((booking) => ({ ...booking })),
+    autoLunch: { ...day.autoLunch },
     intervals: day.intervals.map((interval) => ({ ...interval })),
     cells: {
       available: [...day.cells.available],

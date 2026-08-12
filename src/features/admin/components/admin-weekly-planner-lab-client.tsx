@@ -74,9 +74,9 @@ export function AdminWeeklyPlannerClient({ data, weekStart, initialDate, hasInit
     async (change) => { const result = await applyPlannerSelectionAction(change.area, { weekKey: change.weekKey, dateKey: change.dateKey, startCell: change.startCell, endCell: change.endCell, mode: change.mode, operationId: change.operationId, revertedOperationId: change.revertedOperationId }); return result.ok ? { ok: true as const, operationId: result.operationId } : { ok: false as const, message: result.message }; },
     setIsSaving,
     (savedChange) => { confirmedDaysRef.current = cloneWeekDays(savedChange.days); offerUndo(savedChange, savedChange.operationId); },
-    () => { setHasPendingChanges(false); setSaveError(null); setMessage("Uloženo"); },
+    () => { setHasPendingChanges(false); setSaveError(null); setMessage("Uloženo"); setIsWeekLoading(true); restoreRequestedRef.current = true; router.refresh(); },
     (error) => { setSaveError(error); setMessage(error); },
-  ); return () => { saveQueueRef.current = null; }; }, [offerUndo]);
+  ); return () => { saveQueueRef.current = null; }; }, [offerUndo, router]);
   useEffect(() => { const media = window.matchMedia("(max-width: 1023px)"); const update = () => setCompact(isPlannerLabMobileViewport(window.innerWidth)); const frame = window.requestAnimationFrame(() => { update(); setMounted(true); }); media.addEventListener("change", update); return () => { window.cancelAnimationFrame(frame); media.removeEventListener("change", update); }; }, []);
   useEffect(() => () => { if (datesSetFrameRef.current !== null) window.cancelAnimationFrame(datesSetFrameRef.current); }, []);
   useEffect(() => { if (data.weekKey !== requestedWeekRef.current || (data.weekKey === hydratedWeekRef.current && !restoreRequestedRef.current)) return; restoreRequestedRef.current = false; hydratedWeekRef.current = data.weekKey; const nextDays = cloneWeekDays(data.days); confirmedDaysRef.current = nextDays; setDays(cloneWeekDays(nextDays)); setOpenWeekStart(data.weekKey); setSaveError(null); setIsWeekLoading(false); calendarRef.current?.getApi().gotoDate(requestedDateRef.current); }, [data]);
@@ -88,7 +88,7 @@ export function AdminWeeklyPlannerClient({ data, weekStart, initialDate, hasInit
     if (!selectedLunchDay || !data.autoLunchEnabled || selectedLunchDay.autoLunch.mode === nextMode || isWeekLoading) return;
     setIsWeekLoading(true);
     restoreRequestedRef.current = true;
-    const result = await updateAutoLunchDayModeAction({ dateKey: selectedLunchDay.dateKey, mode: nextMode });
+    const result = await updateAutoLunchDayModeAction({ area: data.area, dateKey: selectedLunchDay.dateKey, mode: nextMode });
     if (!result.ok) {
       setIsWeekLoading(false);
       restoreRequestedRef.current = false;

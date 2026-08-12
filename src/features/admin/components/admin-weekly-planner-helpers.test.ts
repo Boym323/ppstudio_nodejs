@@ -104,3 +104,26 @@ test("patchDayAvailableRange zachová přesný blok po úklidu při změně jin�
     { startCell: 12.5, endCell: 16, label: "12:15 - 14:00" },
   ]);
 });
+
+test("hydratovaný týden nahradí starý derived automatický oběd novým serverovým stavem", () => {
+  const staleDay = createPlannerDay();
+  staleDay.autoLunch = {
+    mode: "AUTO",
+    startsAt: "2026-07-07T10:00:00.000Z",
+    endsAt: "2026-07-07T10:45:00.000Z",
+    warning: false,
+  };
+  const serverDay = createPlannerDay();
+  serverDay.autoLunch = {
+    mode: "AUTO",
+    startsAt: "2026-07-07T11:15:00.000Z",
+    endsAt: "2026-07-07T12:00:00.000Z",
+    warning: false,
+  };
+
+  const hydratedDay = cloneWeekDays([serverDay])[0];
+
+  assert.notDeepEqual(hydratedDay.autoLunch, staleDay.autoLunch);
+  assert.deepEqual(hydratedDay.autoLunch, serverDay.autoLunch);
+  assert.notStrictEqual(hydratedDay.autoLunch, serverDay.autoLunch);
+});

@@ -6,6 +6,7 @@ import { randomUUID } from "node:crypto";
 import { z } from "zod";
 
 import { env } from "@/config/env";
+import { type AdminArea } from "@/config/navigation";
 import { requireAdminSectionAccess } from "@/features/admin/lib/admin-guards";
 import {
   updateBookingSettingsSchema,
@@ -62,6 +63,7 @@ function revalidateSettingsPaths() {
 }
 
 const autoLunchDayModeSchema = z.object({
+  area: z.enum(["owner", "salon"]),
   dateKey: z.string().refine(isValidDateKey, "Zadejte platné lokální datum."),
   mode: z.enum(["AUTO", "OFF"]),
 });
@@ -99,6 +101,24 @@ async function getCurrentOwnerDbUser() {
     },
     select: {
       id: true,
+    },
+  });
+
+  return dbUser;
+}
+
+async function getCurrentPlannerDbUser(area: AdminArea) {
+  const session = await requireAdminSectionAccess(area, "volne-terminy");
+  const dbUser = await prisma.adminUser.findFirst({
+    where: {
+      email: {
+        equals: session.email.trim(),
+        mode: "insensitive",
+      },
+    },
+    select: {
+      id: true,
+      role: true,
     },
   });
 
@@ -246,13 +266,13 @@ export async function updateBookingSettingsAction(
   };
 }
 
-/** Server action pro budoucí planner UI; OFF je uložený override, AUTO jej odstraní. */
-export async function updateAutoLunchDayModeAction(input: { dateKey: string; mode: "AUTO" | "OFF" }) {
+/** Denní režim patří k provozní správě dostupnosti; OFF je uložený override, AUTO jej odstraní. */
+export async function updateAutoLunchDayModeAction(input: { area: AdminArea; dateKey: string; mode: "AUTO" | "OFF" }) {
   const parsed = autoLunchDayModeSchema.safeParse(input);
   if (!parsed.success) return { ok: false, message: "Zadejte platné lokální datum a režim oběda." };
 
-  const actor = await getCurrentOwnerDbUser();
-  if (!actor) return { ok: false, message: "Aktuální OWNER účet nebyl nalezen." };
+  const actor = await getCurrentPlannerDbUser(parsed.data.area);
+  if (!actor) return { ok: false, message: "Aktuální účet pro správu volných termínů nebyl nalezen." };
 
   const previous = await prisma.autoLunchDayOverride.findUnique({ where: { dateKey: parsed.data.dateKey } });
   if ((parsed.data.mode === "OFF") === Boolean(previous)) {
@@ -267,7 +287,7 @@ export async function updateAutoLunchDayModeAction(input: { dateKey: string; mod
         update: { updatedByUserId: actor.id },
       }),
       prisma.availabilityAuditEvent.create({ data: {
-        actorUserId: actor.id, actorRole: "OWNER", adminArea: "owner", dateKey: parsed.data.dateKey,
+        actorUserId: actor.id, actorRole: actor.role, adminArea: parsed.data.area, dateKey: parsed.data.dateKey,
         operation: "ADD", source: "auto-lunch-day-override-v1", operationId: randomUUID(),
         before: { dayLunchMode: previous ? "OFF" : "AUTO" }, after: { dayLunchMode: "OFF" },
         createdSlots: [], archivedOrRemovedSlots: [],
@@ -277,7 +297,7 @@ export async function updateAutoLunchDayModeAction(input: { dateKey: string; mod
     await prisma.$transaction([
       prisma.autoLunchDayOverride.deleteMany({ where: { dateKey: parsed.data.dateKey } }),
       prisma.availabilityAuditEvent.create({ data: {
-        actorUserId: actor.id, actorRole: "OWNER", adminArea: "owner", dateKey: parsed.data.dateKey,
+        actorUserId: actor.id, actorRole: actor.role, adminArea: parsed.data.area, dateKey: parsed.data.dateKey,
         operation: "REMOVE", source: "auto-lunch-day-override-v1", operationId: randomUUID(),
         before: { dayLunchMode: previous ? "OFF" : "AUTO" }, after: { dayLunchMode: "AUTO" },
         createdSlots: [], archivedOrRemovedSlots: [],

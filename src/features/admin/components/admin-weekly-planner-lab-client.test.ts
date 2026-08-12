@@ -40,6 +40,14 @@ test("autosave používá neměnný kontext položky fronty i při retry", async
   assert.doesNotMatch(source, /contextRef/);
 });
 
+test("po vyprázdnění autosave fronty jednou obnoví tentýž týden ze serveru", async () => {
+  const source = await clientSource();
+  assert.match(source, /\(\) => \{ setHasPendingChanges\(false\); setSaveError\(null\); setMessage\("Uloženo"\); setIsWeekLoading\(true\); restoreRequestedRef\.current = true; router\.refresh\(\); \}/);
+  assert.match(source, /data\.weekKey === hydratedWeekRef\.current && !restoreRequestedRef\.current/);
+  assert.match(source, /const nextDays = cloneWeekDays\(data\.days\); confirmedDaysRef\.current = nextDays; setDays\(cloneWeekDays\(nextDays\)\)/);
+  assert.doesNotMatch(source, /findBestAutoLunch/);
+});
+
 test("navigace čeká na prázdnou frontu a vyřešenou chybu", async () => {
   const source = await clientSource();
   assert.match(source, /const canNavigate = !isSaving && !isWeekLoading && !saveError && !hasPendingChanges/);
@@ -113,6 +121,11 @@ test("planner řadí lunch controls před FullCalendar a zachová čtyři gridov
   const styles = await readFile(new URL("./planner-lab.module.css", import.meta.url), "utf8");
   assert.match(styles, /grid-template-rows: auto auto auto minmax\(30rem, 1fr\)/);
   assert.match(styles, /grid-template-rows: auto auto auto minmax\(28rem, 1fr\)/);
+});
+
+test("denní režim oběda posílá provozní oblast planneru", async () => {
+  const source = await clientSource();
+  assert.match(source, /updateAutoLunchDayModeAction\(\{ area: data\.area, dateKey: selectedLunchDay\.dateKey, mode: nextMode \}\)/);
 });
 
 test("výběr buněk zachová lokální čas FullCalendaru i po změně letního času", async () => {

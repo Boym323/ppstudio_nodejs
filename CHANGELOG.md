@@ -8,6 +8,12 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- Denní režim automatického oběda AUTO/OFF je nyní provozní oprávnění planneru: mohou jej měnit role OWNER i SALON při správě volných termínů, zatímco globální přepínač automatického oběda zůstává pouze v OWNER nastavení.
+
+### Opraveno
+
+- Po uložení všech navazujících změn dostupnosti planner právě jednou obnoví data ze serveru, takže zobrazený automaticky vypočtený oběd vždy odpovídá aktuální dostupnosti.
+
 - Veřejná rezervace chrání dynamickou 45minutovou obědovou přestávku během delších pracovních dnů při nabídce termínů, vytvoření i přesunu v serializovatelné transakci; standardní administrativní rezervace a přesuny ji také respektují, zatímco vědomě zvolený a auditovatelný manual override ji může obejít. Globální ochranu lze vypnout v nastavení, denní režim AUTO/OFF spravuje planner, který přesný odvozený oběd zobrazuje bez zápisu konkrétního času do databáze a se zachováním kompaktního layoutu FullCalendaru. Přesuny správně opakují PostgreSQL serializační konflikt `40001` vrácený Prisma jako `P2010`. Doporučené termíny nyní vybírají časově výhodné možnosti pro kompaktní využití pracovního dne a klientce je zobrazují chronologicky; kompletní nabídka dostupných termínů zůstává beze změny.
 - Doporučené termíny při výběru lépe zohledňují krátké nevyužitelné mezery mezi rezervacemi podle skutečných délek aktivně nabízených služeb; plná nabídka termínů ani jejich validita se nemění.
 
