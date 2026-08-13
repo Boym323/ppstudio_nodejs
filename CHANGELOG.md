@@ -6,9 +6,12 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [3.17.0] - 2026-08-13
+
 ### Změněno
 
 - Denní režim automatického oběda AUTO/OFF je nyní provozní oprávnění planneru: mohou jej měnit role OWNER i SALON při správě volných termínů, zatímco globální přepínač automatického oběda zůstává pouze v OWNER nastavení.
+- Release příprava pro produkční nasazení: projektová verze navýšena na minor `3.17.0` kvůli zpětně kompatibilnímu rozšíření plánovače a rezervací o automatický oběd.
 
 ### Opraveno
 
