@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, Playfair_Display } from "next/font/google";
+import { connection } from "next/server";
 import { Suspense } from "react";
 
 import { siteConfig } from "@/config/site";
@@ -21,6 +22,9 @@ const sansFont = Inter({
 });
 
 export async function generateMetadata(): Promise<Metadata> {
+  // Název salonu je runtime konfigurace v databázi. Build nesmí číst aktuální
+  // produkční schéma, protože migrace se záměrně aplikuje až po buildu.
+  await connection();
   const salonProfile = await getPublicSalonProfile().catch(() => ({
     name: siteConfig.name,
   }));

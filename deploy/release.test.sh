@@ -87,12 +87,13 @@ START_FAIL="ppstudio-web"; expect_rollback
 START_FAIL="ppstudio-email-worker"; expect_rollback
 START_FAIL=""; CURL_FAIL=1; expect_rollback
 
-# Typecheck i build musí předcházet zápisu migrací a aktivaci; selhání quality gate tedy nemůže DB změnit.
+# Typecheck, bezpečný test i build musí předcházet zápisu migrací a aktivaci; selhání quality gate tedy nemůže DB změnit.
 typecheck_line="$(grep -n 'npm run typecheck' "${SCRIPT_DIR}/release.sh" | tail -1 | cut -d: -f1)"
+test_line="$(grep -n 'npm run test:release' "${SCRIPT_DIR}/release.sh" | tail -1 | cut -d: -f1)"
 build_line="$(grep -n 'npm run build' "${SCRIPT_DIR}/release.sh" | tail -1 | cut -d: -f1)"
 migrate_line="$(grep -n 'npx prisma migrate deploy (těsně' "${SCRIPT_DIR}/release.sh" | cut -d: -f1)"
 activate_line="$(grep -n 'activate_release "\${release_dir}"' "${SCRIPT_DIR}/release.sh" | cut -d: -f1)"
-[[ "${typecheck_line}" -lt "${build_line}" && "${build_line}" -lt "${migrate_line}" && "${migrate_line}" -lt "${activate_line}" ]]
+[[ "${typecheck_line}" -lt "${test_line}" && "${test_line}" -lt "${build_line}" && "${build_line}" -lt "${migrate_line}" && "${migrate_line}" -lt "${activate_line}" ]]
 
 # Výchozí úklid nikdy nesmí smazat current/previous ani ponechat další release.
 for release in \

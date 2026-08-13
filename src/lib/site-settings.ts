@@ -199,7 +199,6 @@ export async function getSiteSettingsReadResult(): Promise<SiteSettingsReadResul
     const settings = await readSiteSettings();
 
     if (settings) {
-      void persistSiteSettingsSnapshot(settings);
       return { settings, source: "database" };
     }
   } catch (error) {

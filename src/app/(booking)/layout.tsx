@@ -1,3 +1,5 @@
+import { connection } from "next/server";
+
 import { SiteShell } from "@/components/layout/site-shell";
 import { SeoJsonLd, buildLocalBusinessJsonLd } from "@/features/public/components/seo-json-ld";
 
@@ -9,6 +11,9 @@ export default async function BookingLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Rezervační shell používá runtime SiteSettings. `connection()` garantuje,
+  // že Next.js jeho databázové čtení nespustí při release buildu.
+  await connection();
   const salonProfile = await getPublicSalonProfile();
 
   return (

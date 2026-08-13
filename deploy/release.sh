@@ -571,6 +571,11 @@ run_release() {
   log "npm run typecheck"
   npm run typecheck
 
+  # Produkční .env nesmí spouštět zapisující DB integrační testy. Tento běh
+  # ověřuje unit/regresní testy; DB integrační a E2E zůstávají CI bránou.
+  log "npm run test:release (bez produkční DB)"
+  npm run test:release
+
   log "npm run build"
   npm run build
 

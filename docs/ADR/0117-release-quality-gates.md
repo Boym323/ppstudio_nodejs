@@ -12,12 +12,12 @@ Accepted
 
 ## Rozhodnutí
 
-- Do bez-zápisového preflightu release helperu zařadit `npm run typecheck` mezi lint a build.
-- Jako podmínku produkčního releasu vyžadovat úspěšné CI checky `test` a `e2e` pro stejný commit prostřednictvím GitHub branch protection nebo rulesetů.
-- Testy ani E2E nespouštět automaticky v `deploy/release.sh`, dokud nemají izolovanou release databázi a testovací prostředí.
+- Do bez-zápisového preflightu release helperu zařadit `npm run typecheck` a následný `npm run test:release` mezi lint a build. `test:release` nezapíná `RUN_DB_INTEGRATION_TESTS`, takže nemůže zapisovat do produkční databáze.
+- Jako podmínku produkčního releasu nadále vyžadovat úspěšné CI checky databázového `test` a `e2e` pro stejný commit prostřednictvím GitHub branch protection nebo rulesetů.
+- Databázové integrační testy ani E2E nespouštět automaticky v `deploy/release.sh`, dokud nemají izolovanou release databázi a testovací prostředí.
 
 ## Důsledky
 
-- TypeScript regresi release zastaví před buildem, migrací i přepnutím runtime.
-- Unit, integrační a E2E regrese zůstávají blokující na bezpečně izolovaných CI službách PostgreSQL.
+- TypeScript i unit/regresní test release zastaví před buildem, migrací i přepnutím runtime, aniž by otevřel produkční DB.
+- Databázové integrační a E2E regrese zůstávají blokující na bezpečně izolovaných CI službách PostgreSQL.
 - Operátor musí před produkčním releasem ověřit úspěch povinných GitHub checků.
