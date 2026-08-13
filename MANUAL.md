@@ -47,7 +47,7 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
 - Detailní release checklist a QA body zůstávají v [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
 
 ## Testování a coverage
-- `npm test` spouští celý Node test runner nad quoted globem `src/**/*.test.ts`; nejde už jen o shell-expanded podmnožinu jednoho souboru.
+- `npm test` spouští celý Node test runner nad quoted globem `src/**/*.test.{ts,tsx}`; nejde už jen o shell-expanded podmnožinu jednoho souboru.
 - `npm run typecheck` je samostatná rychlá kontrola TypeScript kontraktů bez buildu; pouštěj ji před většími refaktory a vždy při změnách sdílených typů, route kontraktů nebo Prisma read modelů.
 - `npm run test:coverage` generuje report do `coverage/` a zaměřuje se na business logiku v `booking`, `admin`, `vouchers` a `lib/email`.
 - Při refaktoringu velkých admin obrazovek drž odděleně route/data loading (`src/features/admin/lib/**`), čisté helpery (`src/features/admin/components/*-helpers.ts`) a samotnou React kompozici. Tím jde měnit strukturu bez regresí v route kontraktu nebo hydrataci.

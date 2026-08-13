@@ -384,7 +384,7 @@ Použij jen tehdy, když z nějakého důvodu nemůžeš použít `./deploy/rele
 ### Automatizovaný rollout skript
 - Pro běžný produkční rollout můžeš použít [`deploy/release.sh`](../deploy/release.sh).
 - Skript provede:
-  - kontrolu větve (výchozí `main`) a čistoty pracovního stromu
+  - kontrolu větve (výchozí `main`) a čistoty pracovního stromu; při jakékoli necommitnuté nebo untracked změně release skončí před synchronizací unitů a buildem. Release artefakt vždy vytváří z commitnutého `HEAD`.
   - fail-fast kontrolu, že systemd zná `ppstudio-web.service` a `ppstudio-email-worker.service`
   - fail-fast kontrolu, že stejné appky už neběží přes legacy PM2
   - `git pull --ff-only` (volitelně přeskočitelné)
@@ -404,9 +404,9 @@ cd /var/www/ppstudio
   - `--branch <name>`: nastav očekávanou release větev
   - `--skip-pull`: přeskočí `git pull --ff-only`
   - `--skip-lint`: přeskočí lint krok
-  - `--allow-dirty`: povolí spuštění i s necommitnutými změnami
   - `--yes`: bez interaktivního potvrzení
   - `--keep-releases N`: ponechá po úspěchu navíc N nejnovějších release (výchozí `0`); `current` a `previous` zůstávají vždy
+- Volba `--allow-dirty` byla odstraněna. Necommitnuté změny nejdřív commitni nebo odlož; nelze je zahrnout do release.
 - Pokud release skončí hned hláškou o chybějícím `ppstudio-web.service` nebo `ppstudio-email-worker.service`, server ještě nemá nainstalované produkční units; spusť `sudo /var/www/ppstudio/deploy/deploy.sh` a release opakuj.
 - Pokud release skončí hláškou o legacy PM2 procesech, server ještě běží ve smíšeném režimu. Přepni ho na systemd:
 ```bash

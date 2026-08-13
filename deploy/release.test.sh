@@ -7,6 +7,11 @@ source "${SCRIPT_DIR}/release.sh"
 
 [[ "${RETAIN_RELEASES}" -eq 0 ]]
 
+if "${SCRIPT_DIR}/release.sh" --allow-dirty >/dev/null 2>&1; then
+  echo "Odstraněná volba --allow-dirty byla neočekávaně přijata." >&2
+  exit 1
+fi
+
 TEMP_DIR="$(mktemp -d)"
 trap 'rm -rf "${TEMP_DIR}"' EXIT
 REPO_DIR="${TEMP_DIR}/repo"
@@ -22,6 +27,36 @@ export NEXT_DEPLOYMENT_ID
 mkdir -p "${RELEASES_DIR}/old" "${RELEASES_DIR}/new/node_modules" "${RELEASES_DIR}/new/.next"
 touch "${RELEASES_DIR}/new/package.json"
 ln -s "${RELEASES_DIR}/old" "${CURRENT_RELEASE_LINK}"
+
+archive_repo="${TEMP_DIR}/archive-repo"
+archive_releases_dir="${archive_repo}/releases"
+mkdir -p "${archive_repo}"
+git -C "${archive_repo}" init --quiet
+git -C "${archive_repo}" config user.email 'release-test@example.test'
+git -C "${archive_repo}" config user.name 'Release test'
+printf 'commitnuty obsah\n' > "${archive_repo}/artifact.txt"
+printf 'TEST_ENV=1\n' > "${archive_repo}/.env"
+git -C "${archive_repo}" add artifact.txt
+git -C "${archive_repo}" commit --quiet -m 'Počáteční artefakt'
+printf 'necommitnuty obsah\n' > "${archive_repo}/artifact.txt"
+printf 'lokalni soubor\n' > "${archive_repo}/untracked.txt"
+[[ -n "$(git -C "${archive_repo}" status --porcelain)" ]]
+
+saved_repo_dir="${REPO_DIR}"
+saved_releases_dir="${RELEASES_DIR}"
+REPO_DIR="${archive_repo}"
+RELEASES_DIR="${archive_releases_dir}"
+if ensure_clean_worktree; then
+  echo "Dirty working tree nebyl odmítnut." >&2
+  exit 1
+fi
+RELEASE_BUILD_DIR=""
+create_release_workspace
+[[ "$(<"${RELEASE_BUILD_DIR}/artifact.txt")" == 'commitnuty obsah' ]]
+[[ ! -e "${RELEASE_BUILD_DIR}/untracked.txt" ]]
+cleanup_release_workspace
+REPO_DIR="${saved_repo_dir}"
+RELEASES_DIR="${saved_releases_dir}"
 
 START_FAIL=""
 CURL_FAIL=0

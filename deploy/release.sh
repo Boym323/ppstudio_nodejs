@@ -18,7 +18,6 @@ WEB_READY_RETRIES="${PPSTUDIO_WEB_READY_RETRIES:-20}"
 WEB_READY_RETRY_SECONDS="${PPSTUDIO_WEB_READY_RETRY_SECONDS:-0.25}"
 RETAIN_RELEASES="${PPSTUDIO_RETAIN_RELEASES:-0}"
 
-ALLOW_DIRTY=0
 SKIP_PULL=0
 SKIP_LINT=0
 SKIP_CONFIRM=0
@@ -33,7 +32,6 @@ Použití: ./deploy/release.sh [volby]
 
 Volby:
   --branch <name>    Očekávaná release větev (výchozí: main)
-  --allow-dirty      Povolit release i s necommitnutými změnami
   --skip-pull        Přeskočit 'git pull --ff-only'
   --skip-lint        Přeskočit 'npm run lint'
   --keep-releases N  Ponechat N posledních dalších release (výchozí: 0)
@@ -469,8 +467,8 @@ parse_args() {
         shift 2
         ;;
       --allow-dirty)
-        ALLOW_DIRTY=1
-        shift
+        echo "Volba --allow-dirty není podporovaná: release vyžaduje čistý working tree a artefakt vzniká pouze z HEAD." >&2
+        exit 1
         ;;
       --skip-pull)
         SKIP_PULL=1
@@ -501,6 +499,13 @@ parse_args() {
   done
 }
 
+ensure_clean_worktree() {
+  if [[ -n "$(git -C "${REPO_DIR}" status --porcelain)" ]]; then
+    echo "Working tree není čistý. Commitni nebo odlož změny; release artefakt vždy vzniká pouze z HEAD." >&2
+    return 1
+  fi
+}
+
 run_release() {
   cd "${REPO_DIR}"
 
@@ -529,10 +534,7 @@ run_release() {
     exit 1
   fi
 
-  if [[ "${ALLOW_DIRTY}" -ne 1 ]] && [[ -n "$(git status --porcelain)" ]]; then
-    echo "Working tree není čistý. Commitni změny, nebo použij --allow-dirty." >&2
-    exit 1
-  fi
+  ensure_clean_worktree || exit 1
 
   ensure_unit_installed "${WEB_UNIT_NAME}"
   ensure_unit_installed "${WORKER_UNIT_NAME}"

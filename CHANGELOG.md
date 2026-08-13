@@ -9,6 +9,8 @@ Formát je inspirovaný Keep a Changelog.
 ### Opraveno
 
 - Release build již nenačítá runtime nastavení ani veřejná data z produkční databáze před `prisma migrate deploy`, včetně dynamických položek sitemap; fallback snapshot nastavení se nadále aktualizuje pouze při administračních zápisech.
+- Release nyní odmítne dirty working tree bez výjimky; odstraněná volba `--allow-dirty` nemohla zahrnout lokální změny do artefaktu z `HEAD` a mohla zavádět při synchronizaci provozních souborů.
+- Node test runner nyní ve všech centrálních testovacích skriptech zahrnuje také komponentové soubory `.test.tsx`, takže je ověřuje lokální běh, release preflight i CI coverage.
 
 ## [3.17.0] - 2026-08-13
 
