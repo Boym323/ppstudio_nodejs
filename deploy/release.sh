@@ -25,6 +25,7 @@ SKIP_CONFIRM=0
 BRANCH="main"
 RELEASE_BUILD_DIR=""
 KEEP_RELEASE_WORKSPACE=0
+RELEASE_STARTED_AT=""
 
 usage() {
   cat <<'USAGE'
@@ -43,6 +44,15 @@ USAGE
 
 log() {
   printf '[release] %s\n' "$*"
+}
+
+log_release_duration() {
+  local elapsed_seconds=$((SECONDS - RELEASE_STARTED_AT))
+  local hours=$((elapsed_seconds / 3600))
+  local minutes=$(((elapsed_seconds % 3600) / 60))
+  local seconds=$((elapsed_seconds % 60))
+
+  log "Celkový čas release od potvrzení: ${hours} h ${minutes} min ${seconds} s."
 }
 
 unit_file_name() {
@@ -529,6 +539,7 @@ run_release() {
   ensure_no_pm2_conflicts
 
   confirm_or_exit
+  RELEASE_STARTED_AT=${SECONDS}
   check_root_permissions_hint
 
   if [[ "${SKIP_PULL}" -ne 1 ]]; then
@@ -603,6 +614,7 @@ run_release() {
   systemctl --no-pager --lines=20 status "${WORKER_UNIT_NAME}"
 
   log "Hotovo. Doporučení: proveď ruční smoke test veřejného webu + adminu."
+  log_release_duration
 }
 
 main() {
