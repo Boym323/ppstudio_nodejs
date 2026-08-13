@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { connection } from "next/server";
 
 import { services, type Service } from "@/content/public-site";
 import { Container } from "@/components/ui/container";
@@ -11,6 +12,7 @@ export async function VoucherLandingPage({
 }: {
   suggestedServices?: Service[];
 } = {}) {
+  await connection();
   const salonProfile = await getPublicSalonProfile();
   const voucherMailSubject = encodeURIComponent("Mám zájem o dárkový voucher");
   const voucherMailBody = encodeURIComponent(`Dobrý den,

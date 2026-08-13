@@ -1,9 +1,8 @@
 import type { MetadataRoute } from "next";
+import { connection } from "next/server";
 
 import { siteConfig } from "@/config/site";
 import { getPublicServiceSitemapEntries } from "@/features/public/lib/public-services";
-
-export const revalidate = 86400;
 
 type StaticSitemapRoute = {
   route: string;
@@ -30,6 +29,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { route: "/gdpr", changeFrequency: "monthly", priority: 0.7 },
   ];
 
+  // Služby jsou spravované v databázi. Release build běží před migracemi a
+  // nesmí proto otevírat aplikační databázi; aktuální sitemap se vytvoří až
+  // pro skutečný HTTP request.
+  await connection();
   const services = await getPublicServiceSitemapEntries();
   const latestServiceUpdate = services.reduce<Date | null>(
     (latest, service) => (latest === null || service.updatedAt > latest ? service.updatedAt : latest),

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import { connection } from 'next/server';
 
 import { MetaPixelViewContentTracker } from "@/features/analytics/meta-pixel-view-content-tracker";
 import { getPublicServiceBySlug } from '@/features/public/lib/public-services';
@@ -10,6 +11,7 @@ import { getPublicSalonProfile } from '@/lib/site-settings';
 type PageParams = Promise<{ slug: string }>;
 
 export async function generateMetadata({ params }: { params: PageParams }): Promise<Metadata> {
+  await connection();
   const { slug } = await params;
   const service = await getPublicServiceBySlug(slug);
 
@@ -29,6 +31,7 @@ export async function generateMetadata({ params }: { params: PageParams }): Prom
 }
 
 export default async function Page({ params }: { params: PageParams }) {
+  await connection();
   const { slug } = await params;
   const service = await getPublicServiceBySlug(slug);
 

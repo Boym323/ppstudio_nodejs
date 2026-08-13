@@ -1,5 +1,6 @@
 import { LegalPage, buildPageMetadata, getLegalPages } from '@/features/public/components/public-site';
 import { getPublicSalonProfile } from '@/lib/site-settings';
+import { connection } from 'next/server';
 
 export const metadata = buildPageMetadata({
   title: 'GDPR',
@@ -8,6 +9,7 @@ export const metadata = buildPageMetadata({
 });
 
 export default async function Page() {
+  await connection();
   const [legalPages, salonProfile] = await Promise.all([getLegalPages(), getPublicSalonProfile()]);
   const emailHref = `mailto:${salonProfile.email}?subject=${encodeURIComponent('Dotaz k ochraně osobních údajů')}`;
   const phoneHref = `tel:${salonProfile.phone.replace(/\s+/g, '')}`;

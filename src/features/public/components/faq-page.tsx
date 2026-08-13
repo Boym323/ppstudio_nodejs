@@ -1,3 +1,5 @@
+import { connection } from "next/server";
+
 import { buildFaqSections, type FaqItem, type FaqSection } from "@/content/public-site";
 import { Container } from "@/components/ui/container";
 import {
@@ -105,6 +107,7 @@ function FaqSectionBlock({ section }: { section: FaqSection }) {
 }
 
 export async function FaqPage() {
+  await connection();
   const bookingPolicy = await getBookingPolicySettings();
   const faqSections = buildFaqSections(bookingPolicy.cancellationHours);
 

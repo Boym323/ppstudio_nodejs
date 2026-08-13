@@ -11,6 +11,7 @@ export const metadata = buildPageMetadata({
 });
 
 export default async function Page() {
+  await connection();
   const featuredServices = await getHomepageFeaturedServices();
 
   return (
@@ -20,3 +21,4 @@ export default async function Page() {
     </>
   );
 }
+import { connection } from "next/server";

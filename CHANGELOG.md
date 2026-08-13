@@ -8,7 +8,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
-- Release build již nenačítá runtime nastavení ani veřejná data z produkční databáze před `prisma migrate deploy`, takže nově vygenerovaný Prisma Client nevyžaduje expand sloupce ve starém schématu; fallback snapshot nastavení se nadále aktualizuje pouze při administračních zápisech.
+- Release build již nenačítá runtime nastavení ani veřejná data z produkční databáze před `prisma migrate deploy`, včetně dynamických položek sitemap; fallback snapshot nastavení se nadále aktualizuje pouze při administračních zápisech.
 
 ## [3.17.0] - 2026-08-13
 

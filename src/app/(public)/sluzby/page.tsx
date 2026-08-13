@@ -8,7 +8,9 @@ export const metadata = buildPageMetadata({
 });
 
 export default async function Page() {
+  await connection();
   const services = await getPublicServices();
 
   return <ServicesPage services={services} />;
 }
+import { connection } from "next/server";

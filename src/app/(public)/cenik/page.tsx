@@ -9,7 +9,9 @@ export const metadata = buildPageMetadata({
 });
 
 export default async function Page() {
+  await connection();
   const categories = await getPublicPricingCatalog();
 
   return <PricingPage categories={categories} />;
 }
+import { connection } from "next/server";

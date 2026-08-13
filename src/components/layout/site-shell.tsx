@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { cookies } from "next/headers";
+import { connection } from "next/server";
 
 import { getPublicSalonProfile } from "@/lib/site-settings";
 import { getSessionCookie } from "@/lib/auth/session";
@@ -18,6 +19,7 @@ type SiteShellProps = {
 };
 
 export async function SiteShell({ children, variant = "public" }: SiteShellProps) {
+  await connection();
   const cookieStore = await cookies();
   const hasAdminSessionCookie = cookieStore.has(getSessionCookie().name);
   const salonProfile = await getPublicSalonProfile();

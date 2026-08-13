@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { connection } from 'next/server';
 
 import { footerNavigation, mainNavigation } from '@/config/navigation';
 import { ObfuscatedEmailLink } from '@/components/ui/obfuscated-email-link';
@@ -11,6 +12,7 @@ type SiteFooterProps = {
 };
 
 export async function SiteFooter({ compact = false }: SiteFooterProps) {
+  await connection();
   const salonProfile = await getPublicSalonProfile();
   const phoneHref = `tel:${salonProfile.phone.replace(/\s+/g, '')}`;
 

@@ -11,7 +11,9 @@ export const metadata = buildPageMetadata({
 });
 
 export default async function Page() {
+  await connection();
   const content = await getCancellationPageContent();
 
   return <CancellationPolicyPage content={content} />;
 }
+import { connection } from 'next/server';

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { connection } from "next/server";
 
 import {
   buildTrustMetrics,
@@ -60,6 +61,7 @@ function ServiceCard({ service }: { service: Service }) {
 }
 
 export async function PublicHomePage({ featuredServices = services.slice(0, 3) }: { featuredServices?: Service[] } = {}) {
+  await connection();
   const [bookingPolicy, portrait] = await Promise.all([getBookingPolicySettings(), getPrimaryPublicHomePortrait()]);
   const trustMetrics = buildTrustMetrics(bookingPolicy.cancellationHours);
   const homepageServices = featuredServices.length > 0 ? featuredServices : services.slice(0, 3);

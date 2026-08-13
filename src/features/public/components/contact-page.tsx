@@ -1,3 +1,5 @@
+import { connection } from "next/server";
+
 import { buildContactItems } from "@/content/public-site";
 import { Container } from "@/components/ui/container";
 import {
@@ -11,6 +13,7 @@ import { getPrimaryPublicContactPhoto } from "@/features/public/lib/public-studi
 import { getPublicSalonProfile } from "@/lib/site-settings";
 
 export async function ContactPage() {
+  await connection();
   const [salonProfile, heroPhoto] = await Promise.all([
     getPublicSalonProfile(),
     getPrimaryPublicContactPhoto(),

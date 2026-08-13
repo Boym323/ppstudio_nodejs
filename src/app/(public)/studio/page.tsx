@@ -9,6 +9,8 @@ export const metadata = buildPageMetadata({
 });
 
 export default async function Page() {
+  await connection();
   const photos = await getPublicStudioPhotos();
   return <StudioPage photos={photos} />;
 }
+import { connection } from 'next/server';

@@ -10,7 +10,9 @@ export const metadata = buildPageMetadata({
 });
 
 export default async function Page() {
+  await connection();
   const suggestedServices = await getVoucherSuggestedServices();
 
   return <VoucherLandingPage suggestedServices={suggestedServices} />;
 }
+import { connection } from "next/server";
