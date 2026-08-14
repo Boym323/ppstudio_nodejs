@@ -25,7 +25,10 @@ import { StickyCTA } from "./sticky-cta";
 import { BookingContactStep } from "./booking-flow/contact-step";
 import { shouldTrackContactFieldInput } from "./booking-flow/contact-analytics";
 import {
+  formatBookingMatomoSlotName,
   isBookingTermConflictErrorCode,
+  shouldTrackBookingDateSelection,
+  shouldTrackBookingTimeSelection,
 } from "./booking-flow/booking-analytics";
 import {
   getAvailableDateKeysForAvailability,
@@ -129,6 +132,7 @@ export function BookingFlow({
   const initiateCheckoutTrackedRef = useRef(false);
   const lastFailedBookingKeyRef = useRef<string | null>(null);
   const lastTrackedDateKeyRef = useRef<string | null>(null);
+  const lastTrackedTimeOptionKeyRef = useRef<string | null>(null);
   const catalogRefreshRequestRef = useRef(0);
   const voucherValidationRequestRef = useRef(0);
   const lastVoucherValidationServiceIdRef = useRef(selectedServiceId);
@@ -160,9 +164,10 @@ export function BookingFlow({
   };
 
   const trackSelectedDateMetaEvent = (dateKey: string) => {
-    if (!dateKey || lastTrackedDateKeyRef.current === dateKey) return;
+    if (!shouldTrackBookingDateSelection(lastTrackedDateKeyRef.current, dateKey)) return;
 
     lastTrackedDateKeyRef.current = dateKey;
+    trackBookingEvent("Datum vybráno", dateKey);
     const bookingDate = new Date(`${dateKey}T12:00:00Z`);
     const bookingWeekday = new Intl.DateTimeFormat("cs-CZ", {
       weekday: "long",
@@ -683,6 +688,7 @@ export function BookingFlow({
     setSelectedTimeOptionKey("");
     setSelectedDateKey(refreshedSelection.selectedDateKey);
     setVisibleMonthKey(refreshedSelection.visibleMonthKey);
+    lastTrackedTimeOptionKeyRef.current = null;
     contactStartedTrackedRef.current = false;
   };
 
@@ -763,7 +769,6 @@ export function BookingFlow({
     }
 
     markFormChanged();
-    const previousSlotKey = selectedTimeOptionKey;
     const dateKey = getSlotDateKey(slotOption.startsAt);
 
     setSelectedDateKey(dateKey);
@@ -771,8 +776,12 @@ export function BookingFlow({
     setCurrentStep(3);
     trackSelectedDateMetaEvent(dateKey);
     trackBookingStarted();
-    if (selectedService && previousSlotKey !== slotOption.key) {
-      trackBookingEvent(previousSlotKey ? "Čas změněn" : "Čas vybrán", selectedService.slug);
+    if (selectedService && shouldTrackBookingTimeSelection(lastTrackedTimeOptionKeyRef.current, slotOption.key)) {
+      lastTrackedTimeOptionKeyRef.current = slotOption.key;
+      trackBookingEvent(
+        "Čas vybrán",
+        formatBookingMatomoSlotName(slotOption.startsAt, slotOption.endsAt, selectedService.slug),
+      );
       trackSelectedTimeMetaEvent(slotOption);
     }
     trackInitiateCheckout();

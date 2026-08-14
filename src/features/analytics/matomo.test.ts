@@ -162,6 +162,44 @@ test("trackBookingEvent uses the stable Czech taxonomy and service slug", () => 
   ]);
 });
 
+test("trackBookingEvent keeps the booking date action and name for Matomo diagnostics", () => {
+  setMatomoConfigured();
+
+  const calls: unknown[][] = [];
+  setMockWindow({
+    _paq: {
+      push(payload: unknown[]) {
+        calls.push(payload);
+      },
+    } as unknown as Array<unknown[]>,
+  });
+
+  trackBookingEvent("Datum vybráno", "2026-09-03");
+
+  assert.deepEqual(calls, [
+    ["trackEvent", "Rezervace", "Datum vybráno", "2026-09-03"],
+  ]);
+});
+
+test("trackBookingEvent keeps the Čas vybrán funnel action with the detailed slot name", () => {
+  setMatomoConfigured();
+
+  const calls: unknown[][] = [];
+  setMockWindow({
+    _paq: {
+      push(payload: unknown[]) {
+        calls.push(payload);
+      },
+    } as unknown as Array<unknown[]>,
+  });
+
+  trackBookingEvent("Čas vybrán", "2026-09-03 | 10:00–11:15 | korejsky-lash-lifting");
+
+  assert.deepEqual(calls, [
+    ["trackEvent", "Rezervace", "Čas vybrán", "2026-09-03 | 10:00–11:15 | korejsky-lash-lifting"],
+  ]);
+});
+
 test("ensureMatomoTrackingPath bootstraps safe token route without pageview", () => {
   setMatomoConfigured();
 

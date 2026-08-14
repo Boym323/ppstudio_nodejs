@@ -5,6 +5,7 @@ export type MatomoEventValue = number | undefined;
 export type BookingEventAction =
   | "Rezervace zahájena"
   | "Služba vybrána"
+  | "Datum vybráno"
   | "Čas vybrán"
   | "Kontakt zahájen"
   | "Kontaktní pole zahájeno"
