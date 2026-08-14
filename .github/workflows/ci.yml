@@ -128,6 +128,9 @@ jobs:
       - name: Test with coverage
         run: npm run test:coverage
 
+      - name: Test production security headers
+        run: NODE_ENV=production node --import ./src/test/register-server-only.mjs --import tsx --test src/config/security-headers.test.ts
+
       - name: Upload coverage artifact
         if: always() && hashFiles('coverage/**') != ''
         uses: actions/upload-artifact@v7

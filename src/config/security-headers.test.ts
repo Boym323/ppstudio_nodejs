@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { buildSecurityHeaders } from "./security-headers";
 
 process.env.NEXT_PUBLIC_APP_NAME ??= "PP Studio";
 process.env.NEXT_PUBLIC_APP_URL ??= "https://example.com";
@@ -11,7 +12,33 @@ process.env.ADMIN_STAFF_EMAIL ??= "staff@example.com";
 process.env.ADMIN_STAFF_PASSWORD ??= "change-me-staff";
 process.env.EMAIL_DELIVERY_MODE ??= "log";
 
-test("next config defines global and token route security headers", async () => {
+const globalHeaderKeys = [
+  "X-Content-Type-Options",
+  "Referrer-Policy",
+  "Permissions-Policy",
+  "X-Frame-Options",
+];
+
+test("security headers include the non-production baseline", () => {
+  const headers = buildSecurityHeaders({ isProduction: false });
+
+  assert.deepEqual(headers.map((header) => header.key), globalHeaderKeys);
+  assert.ok(headers.some((header) => header.key === "X-Content-Type-Options" && header.value === "nosniff"));
+  assert.ok(!headers.some((header) => header.key === "Strict-Transport-Security"));
+});
+
+test("security headers include production HSTS with its configured value", () => {
+  const headers = buildSecurityHeaders({ isProduction: true });
+
+  assert.deepEqual(headers.map((header) => header.key), [...globalHeaderKeys, "Strict-Transport-Security"]);
+  assert.ok(
+    headers.some(
+      (header) => header.key === "Strict-Transport-Security" && header.value === "max-age=31536000; includeSubDomains",
+    ),
+  );
+});
+
+test("next config uses environment-specific global and token route security headers", async () => {
   const nextConfig = (await import("../../next.config")).default;
   assert.equal(typeof nextConfig.headers, "function");
   assert.ok(nextConfig.headers);
@@ -22,15 +49,9 @@ test("next config defines global and token route security headers", async () => 
   const tokenHeaders = headers.find((entry) => entry.source === "/rezervace/akce/:path*")?.headers ?? [];
 
   assert.deepEqual(
-    globalHeaders.map((header) => header.key),
-    [
-      "X-Content-Type-Options",
-      "Referrer-Policy",
-      "Permissions-Policy",
-      "X-Frame-Options",
-    ],
+    globalHeaders,
+    buildSecurityHeaders({ isProduction: process.env.NODE_ENV === "production" }),
   );
-  assert.ok(globalHeaders.some((header) => header.key === "X-Content-Type-Options" && header.value === "nosniff"));
   assert.ok(tokenHeaders.some((header) => header.key === "Cache-Control" && header.value === "no-store"));
   assert.ok(tokenHeaders.some((header) => header.key === "Referrer-Policy" && header.value === "no-referrer"));
 });

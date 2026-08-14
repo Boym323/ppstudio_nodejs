@@ -9,6 +9,7 @@ Formát je inspirovaný Keep a Changelog.
 ### Opraveno
 
 - Ve veřejném rezervačním flow Matomo u výběru termínu znovu zaznamenává lokální datum i přesný časový rozsah se slugem služby; událost `Čas vybrán` zachovává kompatibilitu stávajícího funnelu a nezdvojuje se při renderu stejné volby.
+- Regresní test security headers nyní deterministicky ověřuje non-production i produkční HSTS konfiguraci a GitHub CI samostatně kontroluje produkční variantu, takže release preflight zachytí rozdíl konfigurací před nasazením.
 
 ## [3.17.1] - 2026-08-14
 

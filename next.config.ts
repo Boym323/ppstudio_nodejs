@@ -1,32 +1,8 @@
 import type { NextConfig } from "next";
 import path from "node:path";
+import { buildSecurityHeaders } from "./src/config/security-headers";
 
-const securityHeaders = [
-  {
-    key: "X-Content-Type-Options",
-    value: "nosniff",
-  },
-  {
-    key: "Referrer-Policy",
-    value: "strict-origin-when-cross-origin",
-  },
-  {
-    key: "Permissions-Policy",
-    value: "camera=(), microphone=(), geolocation=()",
-  },
-  {
-    key: "X-Frame-Options",
-    value: "DENY",
-  },
-  ...(process.env.NODE_ENV === "production"
-    ? [
-        {
-          key: "Strict-Transport-Security",
-          value: "max-age=31536000; includeSubDomains",
-        },
-      ]
-    : []),
-];
+const securityHeaders = buildSecurityHeaders({ isProduction: process.env.NODE_ENV === "production" });
 
 const tokenRouteHeaders = [
   {
