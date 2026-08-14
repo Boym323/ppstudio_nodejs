@@ -25,6 +25,7 @@ BRANCH="main"
 RELEASE_BUILD_DIR=""
 KEEP_RELEASE_WORKSPACE=0
 RELEASE_STARTED_AT=""
+RELEASE_STEP_DURATIONS=()
 
 usage() {
   cat <<'USAGE'
@@ -53,6 +54,15 @@ log_release_duration() {
   log "Celkový čas release od potvrzení: ${hours} h ${minutes} min ${seconds} s."
 }
 
+log_release_step_durations() {
+  local duration
+
+  log "Přehled časů kroků:"
+  for duration in "${RELEASE_STEP_DURATIONS[@]}"; do
+    log "  ${duration}"
+  done
+}
+
 run_timed_step() {
   local step_name="$1"
   shift
@@ -65,7 +75,7 @@ run_timed_step() {
   local minutes=$(((elapsed_seconds % 3600) / 60))
   local seconds=$((elapsed_seconds % 60))
 
-  log "Čas kroku ${step_name}: ${hours} h ${minutes} min ${seconds} s."
+  RELEASE_STEP_DURATIONS+=("${step_name}: ${hours} h ${minutes} min ${seconds} s.")
 }
 
 unit_file_name() {
@@ -631,6 +641,7 @@ run_release() {
   run_timed_step "kontrola služby ${WORKER_UNIT_NAME}" systemctl --no-pager --lines=20 status "${WORKER_UNIT_NAME}"
 
   log "Hotovo. Doporučení: proveď ruční smoke test veřejného webu + adminu."
+  log_release_step_durations
   log_release_duration
 }
 
