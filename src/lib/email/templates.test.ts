@@ -1,6 +1,31 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
+const testEmailTemplateOptions = {
+  salonProfile: {
+    name: "PP Studio",
+    operatorName: "Pavlína Pomykalová",
+    businessId: "234 275 66",
+    phone: "+420 732 856 036",
+    email: "info@ppstudio.cz",
+    instagramUrl: null,
+    streetAddress: "Sadová 2",
+    postalCode: "760 01",
+    city: "Zlín",
+    addressLine: "Sadová 2, 760 01 Zlín",
+    bookingLabel: "Dle vypsaných termínů a individuální domluvy",
+  },
+  emailBranding: {
+    salonName: "PP Studio",
+    phone: "+420 732 856 036",
+    contactEmail: "info@ppstudio.cz",
+    senderName: "PP Studio",
+    senderEmail: "info@ppstudio.cz",
+    footerText: null,
+    notificationAdminEmail: "owner@example.com",
+  },
+};
+
 async function loadRenderer() {
   process.env.NEXT_PUBLIC_APP_NAME = "PP Studio";
   process.env.NEXT_PUBLIC_APP_URL = "https://example.com";
@@ -12,11 +37,14 @@ async function loadRenderer() {
   process.env.ADMIN_STAFF_PASSWORD = "change-me-staff";
   process.env.EMAIL_DELIVERY_MODE = "log";
 
-  return import("@/lib/email/templates");
+  const { renderEmailTemplate } = await import("@/lib/email/templates");
+
+  return (templateKey: string, subject: string, payload: unknown) =>
+    renderEmailTemplate(templateKey, subject, payload, testEmailTemplateOptions);
 }
 
 test("renderEmailTemplate creates confirmation email without post-submit action links", async () => {
-  const { renderEmailTemplate } = await loadRenderer();
+  const renderEmailTemplate = await loadRenderer();
   const email = await renderEmailTemplate(
     "booking-confirmation-v1",
     "Potvrzení rezervace: Luxusní péče",
@@ -39,8 +67,40 @@ test("renderEmailTemplate creates confirmation email without post-submit action 
   assert.doesNotMatch(email.html, /Zrušit rezervaci/);
 });
 
+test("renderEmailTemplate with explicit profile does not access SiteSettings database", async () => {
+  const renderEmailTemplate = await loadRenderer();
+  const { prisma } = await import("@/lib/prisma");
+  const originalFindUnique = prisma.siteSettings.findUnique;
+  let databaseCallCount = 0;
+
+  prisma.siteSettings.findUnique = (async () => {
+    databaseCallCount += 1;
+    throw new Error("Database must not be used by an injected template render.");
+  }) as unknown as typeof prisma.siteSettings.findUnique;
+
+  try {
+    const email = await renderEmailTemplate(
+      "booking-reminder-24h-v1",
+      "Připomínka rezervace",
+      {
+        bookingId: "clztestbookingno-db",
+        serviceName: "Luxusní péče",
+        clientName: "Jana Nováková",
+        scheduledStartsAt: "2026-04-24T08:00:00.000Z",
+        scheduledEndsAt: "2026-04-24T09:00:00.000Z",
+        cancellationUrl: "https://example.com/rezervace/storno/token-no-db",
+      },
+    );
+
+    assert.match(email.text, /Zítra se na vás těšíme/);
+    assert.equal(databaseCallCount, 0);
+  } finally {
+    prisma.siteSettings.findUnique = originalFindUnique;
+  }
+});
+
 test("renderEmailTemplate creates confirmation email for legacy payload without action urls", async () => {
-  const { renderEmailTemplate } = await loadRenderer();
+  const renderEmailTemplate = await loadRenderer();
   const email = await renderEmailTemplate(
     "booking-confirmation-v1",
     "Potvrzení rezervace: Luxusní péče",
@@ -60,7 +120,7 @@ test("renderEmailTemplate creates confirmation email for legacy payload without 
 });
 
 test("renderEmailTemplate escapes user content in confirmation html", async () => {
-  const { renderEmailTemplate } = await loadRenderer();
+  const renderEmailTemplate = await loadRenderer();
   const email = await renderEmailTemplate(
     "booking-confirmation-v1",
     "Potvrzení rezervace",
@@ -80,7 +140,7 @@ test("renderEmailTemplate escapes user content in confirmation html", async () =
 });
 
 test("renderEmailTemplate creates cancellation email without booking reference", async () => {
-  const { renderEmailTemplate } = await loadRenderer();
+  const renderEmailTemplate = await loadRenderer();
   const email = await renderEmailTemplate(
     "booking-cancelled-v1",
     "Storno potvrzeno: Luxusní péče",
@@ -99,7 +159,7 @@ test("renderEmailTemplate creates cancellation email without booking reference",
 });
 
 test("renderEmailTemplate creates rejected email in shared client layout", async () => {
-  const { renderEmailTemplate } = await loadRenderer();
+  const renderEmailTemplate = await loadRenderer();
   const email = await renderEmailTemplate(
     "booking-rejected-v1",
     "Rezervaci se nepodařilo potvrdit: Luxusní péče",
@@ -124,7 +184,7 @@ test("renderEmailTemplate creates rejected email in shared client layout", async
 });
 
 test("renderEmailTemplate creates admin notification email with action links", async () => {
-  const { renderEmailTemplate } = await loadRenderer();
+  const renderEmailTemplate = await loadRenderer();
   const email = await renderEmailTemplate(
     "admin-booking-notification-v1",
     "Nová rezervace: Luxusní péče",
@@ -169,7 +229,7 @@ test("renderEmailTemplate creates admin notification email with action links", a
 });
 
 test("renderEmailTemplate escapes client note in admin notification html", async () => {
-  const { renderEmailTemplate } = await loadRenderer();
+  const renderEmailTemplate = await loadRenderer();
   const attributeInjectionUrl =
     'https://example.com/rezervace/akce/approve/fake-token?next=" onmouseover="alert(1)';
   const email = await renderEmailTemplate(
@@ -202,7 +262,7 @@ test("renderEmailTemplate escapes client note in admin notification html", async
 });
 
 test("renderEmailTemplate creates admin cancellation email in operational layout", async () => {
-  const { renderEmailTemplate } = await loadRenderer();
+  const renderEmailTemplate = await loadRenderer();
   const email = await renderEmailTemplate(
     "admin-booking-cancelled-v1",
     "Rezervace zrušena: Luxusní péče",
@@ -231,7 +291,7 @@ test("renderEmailTemplate creates admin cancellation email in operational layout
 });
 
 test("renderEmailTemplate creates admin rescheduled email in operational layout", async () => {
-  const { renderEmailTemplate } = await loadRenderer();
+  const renderEmailTemplate = await loadRenderer();
   const email = await renderEmailTemplate(
     "admin-booking-rescheduled-v1",
     "Přesunutá rezervace: Luxusní péče",
@@ -265,7 +325,7 @@ test("renderEmailTemplate creates admin rescheduled email in operational layout"
 });
 
 test("renderEmailTemplate creates approved email", async () => {
-  const { renderEmailTemplate } = await loadRenderer();
+  const renderEmailTemplate = await loadRenderer();
   const email = await renderEmailTemplate(
     "booking-approved-v1",
     "Rezervace potvrzena: Luxusní péče",
@@ -307,7 +367,7 @@ test("renderEmailTemplate creates approved email", async () => {
 });
 
 test("renderEmailTemplate keeps email and ICS appointment time in Prague across DST", async () => {
-  const { renderEmailTemplate } = await loadRenderer();
+  const renderEmailTemplate = await loadRenderer();
   const email = await renderEmailTemplate(
     "booking-approved-v1",
     "Rezervace potvrzena: DST kontrola",
@@ -327,7 +387,7 @@ test("renderEmailTemplate keeps email and ICS appointment time in Prague across 
 });
 
 test("renderEmailTemplate creates approved email for legacy payload without manageReservationUrl", async () => {
-  const { renderEmailTemplate } = await loadRenderer();
+  const renderEmailTemplate = await loadRenderer();
   const email = await renderEmailTemplate(
     "booking-approved-v1",
     "Rezervace potvrzena: Luxusní péče",
@@ -349,7 +409,7 @@ test("renderEmailTemplate creates approved email for legacy payload without mana
 });
 
 test("renderEmailTemplate creates 24h reminder email without calendar attachment", async () => {
-  const { renderEmailTemplate } = await loadRenderer();
+  const renderEmailTemplate = await loadRenderer();
   const email = await renderEmailTemplate(
     "booking-reminder-24h-v1",
     "Zítra se na vás těšíme v PP Studiu",
@@ -388,7 +448,7 @@ test("renderEmailTemplate creates 24h reminder email without calendar attachment
 });
 
 test("renderEmailTemplate creates 24h reminder email for legacy payload without manageReservationUrl", async () => {
-  const { renderEmailTemplate } = await loadRenderer();
+  const renderEmailTemplate = await loadRenderer();
   const email = await renderEmailTemplate(
     "booking-reminder-24h-v1",
     "Zítra se na vás těšíme v PP Studiu",
@@ -409,7 +469,7 @@ test("renderEmailTemplate creates 24h reminder email for legacy payload without 
 });
 
 test("renderEmailTemplate creates reschedule email with updated term and calendar attachment", async () => {
-  const { renderEmailTemplate } = await loadRenderer();
+  const renderEmailTemplate = await loadRenderer();
   const email = await renderEmailTemplate(
     "booking-rescheduled-v1",
     "Změna termínu rezervace: Luxusní péče",

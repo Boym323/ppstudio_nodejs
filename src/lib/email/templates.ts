@@ -15,7 +15,11 @@ import {
   generateVoucherPdf,
 } from "@/features/vouchers/lib/voucher-pdf-core";
 import { getVoucherDetail } from "@/features/vouchers/lib/voucher-read-models";
-import { getEmailBrandingSettings, getPublicSalonProfile } from "@/lib/site-settings";
+import {
+  getEmailBrandingSettings,
+  getPublicSalonProfile,
+  type PublicSalonProfile,
+} from "@/lib/site-settings";
 import { sanitizeEmailHeaderValue } from "@/lib/email/header";
 import { BookingApprovedEmail } from "@/lib/email/react-email/BookingApprovedEmail";
 import { AdminBookingCancelledEmail } from "@/lib/email/react-email/AdminBookingCancelledEmail";
@@ -140,6 +144,15 @@ export type RenderedEmailTemplate = {
   }>;
 };
 
+export type RenderEmailTemplateOptions = {
+  /**
+   * Volitelná data pro deterministické renderování (např. preview a testy).
+   * Pokud nejsou předána, renderer zachová produkční načtení SiteSettings.
+   */
+  salonProfile?: PublicSalonProfile;
+  emailBranding?: Awaited<ReturnType<typeof getEmailBrandingSettings>>;
+};
+
 const clientStudio = {
   name: "PP Studio",
   address: "Sadová 2, 760 01 Zlín",
@@ -211,10 +224,11 @@ export async function renderEmailTemplate(
   templateKey: string,
   subject: string,
   payload: unknown,
+  options?: RenderEmailTemplateOptions,
 ): Promise<RenderedEmailTemplate> {
   const safeSubject = sanitizeEmailHeaderValue(subject, "E-mail subject");
   const [salonProfile, emailBranding] = await Promise.all([
-    getPublicSalonProfile().catch(() => ({
+    options?.salonProfile ?? getPublicSalonProfile().catch(() => ({
       name: env.NEXT_PUBLIC_APP_NAME,
       phone: "+420 732 856 036",
       email: "info@ppstudio.cz",
@@ -222,7 +236,7 @@ export async function renderEmailTemplate(
       addressLine: "Sadová 2, 760 01 Zlín",
       bookingLabel: "Dle vypsaných termínů a individuální domluvy",
     })),
-    getEmailBrandingSettings().catch(() => ({
+    options?.emailBranding ?? getEmailBrandingSettings().catch(() => ({
       salonName: env.NEXT_PUBLIC_APP_NAME,
       phone: "+420 732 856 036",
       contactEmail: "info@ppstudio.cz",
@@ -346,11 +360,17 @@ export async function renderEmailTemplate(
       const bookingTime = formatBookingTimeRange(scheduledStartsAt, scheduledEndsAt);
       const includeCalendarAttachment = data.includeCalendarAttachment ?? true;
       const calendarAttachment = includeCalendarAttachment
-        ? await buildBookingCalendarIcsFromPayload({
+          ? await buildBookingCalendarIcsFromPayload({
             bookingId: data.bookingId,
             serviceName: data.serviceName,
             scheduledStartsAt,
             scheduledEndsAt,
+            salonProfile: options ? {
+              name: salonContact.name,
+              addressLine: salonContact.address,
+              phone: salonContact.phone,
+              email: salonContact.email,
+            } : undefined,
           })
         : null;
 
@@ -457,11 +477,17 @@ export async function renderEmailTemplate(
       const bookingTime = formatBookingTimeRange(scheduledStartsAt, scheduledEndsAt);
       const includeCalendarAttachment = data.includeCalendarAttachment ?? true;
       const calendarAttachment = includeCalendarAttachment
-        ? await buildBookingCalendarIcsFromPayload({
+          ? await buildBookingCalendarIcsFromPayload({
             bookingId: data.bookingId,
             serviceName: data.serviceName,
             scheduledStartsAt,
             scheduledEndsAt,
+            salonProfile: options ? {
+              name: salonContact.name,
+              addressLine: salonContact.address,
+              phone: salonContact.phone,
+              email: salonContact.email,
+            } : undefined,
           })
         : null;
 

@@ -42,6 +42,11 @@ export type SiteSettingsReadResult = {
   source: SiteSettingsSource;
 };
 
+export type SiteSettingsReadDependencies = {
+  readFromDb?: () => Promise<SiteSettingsRecord | null>;
+  onDatabaseError?: (error: unknown) => void;
+};
+
 const siteSettingsSnapshotSchema = z.object({
   id: z.literal(SITE_SETTINGS_ID),
   salonName: z.string(),
@@ -106,6 +111,7 @@ function isTestRuntime() {
   return (
     process.env.NODE_ENV === "test" ||
     process.env.npm_lifecycle_event === "test" ||
+    process.env.NODE_TEST_CONTEXT !== undefined ||
     process.execArgv.includes("--test")
   );
 }
@@ -194,15 +200,17 @@ const createSiteSettings = cache(async (): Promise<SiteSettingsRecord> => {
   });
 });
 
-export async function getSiteSettingsReadResult(): Promise<SiteSettingsReadResult> {
+export async function getSiteSettingsReadResult(
+  dependencies?: SiteSettingsReadDependencies,
+): Promise<SiteSettingsReadResult> {
   try {
-    const settings = await readSiteSettings();
+    const settings = await (dependencies?.readFromDb ?? readSiteSettings)();
 
     if (settings) {
       return { settings, source: "database" };
     }
   } catch (error) {
-    notifySiteSettingsFallback(error);
+    (dependencies?.onDatabaseError ?? notifySiteSettingsFallback)(error);
   }
 
   const snapshot = await readSiteSettingsSnapshot();

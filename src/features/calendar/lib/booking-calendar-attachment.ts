@@ -34,33 +34,42 @@ export async function buildBookingCalendarIcsFromPayload(input: {
   serviceName: string;
   scheduledStartsAt: Date;
   scheduledEndsAt: Date;
+  salonProfile?: {
+    name: string;
+    addressLine: string;
+    phone: string;
+    email: string;
+  };
 }) {
-  const settings = await getSiteSettings().catch(() => ({
-    salonName: env.NEXT_PUBLIC_APP_NAME,
-    addressLine: "Masarykova 12",
-    city: "Brno",
-    postalCode: "602 00",
+  const salonProfile = input.salonProfile ?? await getSiteSettings().then((settings) => ({
+    name: settings.salonName,
+    addressLine: getSalonAddressLine(settings),
+    phone: settings.phone,
+    email: settings.contactEmail,
+  })).catch(() => ({
+    name: env.NEXT_PUBLIC_APP_NAME,
+    addressLine: "Masarykova 12, 602 00 Brno",
     phone: "+420 777 000 000",
-    contactEmail: "hello@ppstudio.cz",
+    email: "hello@ppstudio.cz",
   }));
   const uidHost = getCalendarEventUidHost();
-  const location = `${settings.salonName}, ${getSalonAddressLine(settings)}`;
+  const location = `${salonProfile.name}, ${salonProfile.addressLine}`;
 
   return buildCalendarIcs({
     productId: "-//PP Studio//Booking Event//CS",
-    name: `${settings.salonName} • rezervace klientky`,
+    name: `${salonProfile.name} • rezervace klientky`,
     description: "Jednotlivá potvrzená rezervace salonu PP Studio pro osobní kalendář klientky.",
     events: [
       {
         uid: `${input.bookingId}@${uidHost}`,
-        summary: `${settings.salonName} – ${input.serviceName}`,
+        summary: `${salonProfile.name} – ${input.serviceName}`,
         description: buildBookingCalendarDescription({
           serviceName: input.serviceName,
           scheduledStartsAt: input.scheduledStartsAt,
           scheduledEndsAt: input.scheduledEndsAt,
-          salonName: settings.salonName,
-          phone: settings.phone,
-          email: settings.contactEmail,
+          salonName: salonProfile.name,
+          phone: salonProfile.phone,
+          email: salonProfile.email,
         }),
         location,
         status: "CONFIRMED",
