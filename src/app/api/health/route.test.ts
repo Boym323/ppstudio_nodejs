@@ -51,10 +51,15 @@ test("GET při výpadku DB vrátí stabilní kód bez diagnostiky a alert potla�
 
 test("GET při selhání detailních emailových DB dotazů degraduje na warning místo 500", async () => {
   const { createHealthRouteApi } = await import("./route-api");
+  const healthDataError = new Error('column "processingToken" does not exist');
+  const loggedErrors: unknown[] = [];
   const api = createHealthRouteApi({
     checkDatabase: async () => undefined,
     getEmailHealthData: async () => {
-      throw new Error('column "processingToken" does not exist');
+      throw healthDataError;
+    },
+    logEmailHealthError: (error) => {
+      loggedErrors.push(error);
     },
   });
 
@@ -66,4 +71,6 @@ test("GET při selhání detailních emailových DB dotazů degraduje na warning
   assert.match(serializedPayload, /EMAIL_HEALTH_UNAVAILABLE/);
   assert.match(serializedPayload, /"status":"warning"/);
   assert.doesNotMatch(serializedPayload, /processingToken/);
+  assert.equal(loggedErrors.length, 1);
+  assert.equal(loggedErrors[0], healthDataError);
 });

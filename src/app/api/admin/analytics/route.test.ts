@@ -34,6 +34,9 @@ test("GET returns fallback analytics including contactStepQuality when reporting
     notifySystemError: async () => {
       throw new Error("notifySystemError should not run when reporting is blocked");
     },
+    logAnalyticsError: () => {
+      throw new Error("logAnalyticsError should not run when reporting is blocked");
+    },
   });
 
   const response = await api.GET();
@@ -63,6 +66,11 @@ test("GET returns fallback analytics including contactStepQuality when reporting
 test("GET notifies owner when analytics backend throws unexpected error", async () => {
   const { createAdminAnalyticsRouteApi } = await import("./admin-analytics-route-api");
   const notifications: Array<Record<string, unknown>> = [];
+  const loggedErrors: Array<{
+    error: unknown;
+    context: { adminUserId: string; role: AdminRole };
+  }> = [];
+  const matomoTimeout = new Error("Matomo timeout");
 
   const api = createAdminAnalyticsRouteApi({
     getSession: async () => ({
@@ -78,10 +86,13 @@ test("GET notifies owner when analytics backend throws unexpected error", async 
       message: undefined,
     }),
     getDashboardAnalytics: async () => {
-      throw new Error("Matomo timeout");
+      throw matomoTimeout;
     },
     notifySystemError: async (input) => {
       notifications.push(input as unknown as Record<string, unknown>);
+    },
+    logAnalyticsError: (error, context) => {
+      loggedErrors.push({ error, context });
     },
   });
 
@@ -90,6 +101,12 @@ test("GET notifies owner when analytics backend throws unexpected error", async 
 
   assert.equal(response.status, 200);
   assert.equal(payload.reportingStatus, "error");
+  assert.equal(loggedErrors.length, 1);
+  assert.equal(loggedErrors[0]?.error, matomoTimeout);
+  assert.deepEqual(loggedErrors[0]?.context, {
+    adminUserId: "admin-2",
+    role: AdminRole.SALON,
+  });
   assert.equal(notifications.length, 1);
   assert.equal(notifications[0]?.title, "PP Studio - systemova chyba");
   assert.equal(notifications[0]?.message, "Admin analytics API vratilo fallback kvuli neocekavane chybe.");

@@ -37,6 +37,10 @@ type AdminAnalyticsRouteApiDependencies = {
   getMatomoReportingHealth: typeof getMatomoReportingHealth;
   getDashboardAnalytics: typeof getDashboardAnalytics;
   notifySystemError: typeof sendOwnerSystemErrorPushover;
+  logAnalyticsError: (
+    error: unknown,
+    context: { adminUserId: string; role: AdminRole },
+  ) => void;
 };
 
 export function createAdminAnalyticsRouteApi(
@@ -45,6 +49,9 @@ export function createAdminAnalyticsRouteApi(
     getMatomoReportingHealth,
     getDashboardAnalytics,
     notifySystemError: sendOwnerSystemErrorPushover,
+    logAnalyticsError: (error, context) => {
+      console.error("Admin analytics API failed", { ...context, error });
+    },
   },
 ) {
   return {
@@ -85,10 +92,9 @@ export function createAdminAnalyticsRouteApi(
           { status: 200 },
         );
       } catch (error) {
-        console.error("Admin analytics API failed", {
+        dependencies.logAnalyticsError(error, {
           adminUserId: session.sub,
           role: session.role,
-          error,
         });
 
         await dependencies.notifySystemError({

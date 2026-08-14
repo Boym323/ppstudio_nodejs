@@ -19,6 +19,7 @@ type HealthRouteDependencies = {
   checkDatabase: () => Promise<unknown>;
   getEmailHealthData: (now: Date) => Promise<EmailHealthData>;
   notifySystemError: typeof sendOwnerSystemErrorPushover;
+  logEmailHealthError: (error: unknown) => void;
   now: () => Date;
   claimDbFailureAlert: (nowMs: number) => boolean;
 };
@@ -159,6 +160,9 @@ export function createHealthRouteApi(
     checkDatabase: () => prisma.$queryRaw`SELECT 1`,
     getEmailHealthData,
     notifySystemError: sendOwnerSystemErrorPushover,
+    logEmailHealthError: (error) => {
+      console.error("Health email status check failed", { error });
+    },
     now: () => new Date(),
     claimDbFailureAlert,
     ...overrides,
@@ -247,9 +251,7 @@ export function createHealthRouteApi(
       try {
         emailHealthData = await dependencies.getEmailHealthData(now);
       } catch (healthDataError) {
-        console.error("Health email status check failed", {
-          error: healthDataError,
-        });
+        dependencies.logEmailHealthError(healthDataError);
 
         return Response.json(
           {
