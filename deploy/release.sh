@@ -53,6 +53,21 @@ log_release_duration() {
   log "Celkový čas release od potvrzení: ${hours} h ${minutes} min ${seconds} s."
 }
 
+run_timed_step() {
+  local step_name="$1"
+  shift
+  local started_at=${SECONDS}
+
+  "$@"
+
+  local elapsed_seconds=$((SECONDS - started_at))
+  local hours=$((elapsed_seconds / 3600))
+  local minutes=$(((elapsed_seconds % 3600) / 60))
+  local seconds=$((elapsed_seconds % 60))
+
+  log "Čas kroku ${step_name}: ${hours} h ${minutes} min ${seconds} s."
+}
+
 unit_file_name() {
   printf '%s.service' "$1"
 }
@@ -546,74 +561,74 @@ run_release() {
 
   if [[ "${SKIP_PULL}" -ne 1 ]]; then
     log "git pull --ff-only"
-    git pull --ff-only
+    run_timed_step "git pull" git pull --ff-only
   else
     log "Přeskakuji git pull (--skip-pull)."
   fi
 
-  sync_systemd_units
+  run_timed_step "synchronizace systemd unitů" sync_systemd_units
 
-  check_local_migration_directories
+  run_timed_step "kontrola lokálních migrací" check_local_migration_directories
 
-  prepare_deployment_env
+  run_timed_step "příprava deployment environmentu" prepare_deployment_env
 
   trap cleanup_release_workspace EXIT
-  create_release_workspace
+  run_timed_step "vytvoření staging workspace" create_release_workspace
 
   cd "${RELEASE_BUILD_DIR}"
 
   log "npm ci --include=dev"
-  npm ci --include=dev
+  run_timed_step "npm ci" npm ci --include=dev
 
   log "npm run db:generate"
-  npm run db:generate
+  run_timed_step "Prisma generate" npm run db:generate
 
   log "npm run db:check-migrations"
-  npm run db:check-migrations
+  run_timed_step "kontrola historie migrací" npm run db:check-migrations
 
   log "npx prisma validate (bez zápisu do DB)"
-  npx prisma validate
+  run_timed_step "Prisma validate" npx prisma validate
 
   if [[ "${SKIP_LINT}" -ne 1 ]]; then
     log "npm run lint"
-    npm run lint
+    run_timed_step "lint" npm run lint
   else
     log "Přeskakuji lint (--skip-lint)."
   fi
 
   log "npm run typecheck"
-  npm run typecheck
+  run_timed_step "typecheck" npm run typecheck
 
   # Produkční .env nesmí spouštět zapisující DB integrační testy. Tento běh
   # ověřuje unit/regresní testy; DB integrační a E2E zůstávají CI bránou.
   log "npm run test:release (bez produkční DB)"
-  npm run test:release
+  run_timed_step "test:release" npm run test:release
 
   log "npm run build"
-  npm run build
+  run_timed_step "build" npm run build
 
-  write_runtime_release_env_file "${RELEASE_BUILD_DIR}/${RUNTIME_RELEASE_ENV_FILE}"
+  run_timed_step "zápis runtime release environmentu" write_runtime_release_env_file "${RELEASE_BUILD_DIR}/${RUNTIME_RELEASE_ENV_FILE}"
 
   local release_name
   local release_dir
   release_name="${GIT_HASH}-$(date -u +%Y%m%d%H%M%S)"
   release_dir="${RELEASES_DIR}/${release_name}"
-  mv "${RELEASE_BUILD_DIR}" "${release_dir}"
+  run_timed_step "finalizace release workspace" mv "${RELEASE_BUILD_DIR}" "${release_dir}"
   RELEASE_BUILD_DIR=""
 
   cd "${release_dir}"
   log "npx prisma migrate deploy (těsně před aktivací; pouze expand/contract migrace)"
-  npx prisma migrate deploy
+  run_timed_step "Prisma migrate deploy" npx prisma migrate deploy
 
   cd "${REPO_DIR}"
-  activate_release "${release_dir}"
-  cleanup_old_releases
+  run_timed_step "aktivace release" activate_release "${release_dir}"
+  run_timed_step "úklid starších releasů" cleanup_old_releases
 
   log "status ${WEB_UNIT_NAME}"
-  systemctl --no-pager --lines=20 status "${WEB_UNIT_NAME}"
+  run_timed_step "kontrola služby ${WEB_UNIT_NAME}" systemctl --no-pager --lines=20 status "${WEB_UNIT_NAME}"
 
   log "status ${WORKER_UNIT_NAME}"
-  systemctl --no-pager --lines=20 status "${WORKER_UNIT_NAME}"
+  run_timed_step "kontrola služby ${WORKER_UNIT_NAME}" systemctl --no-pager --lines=20 status "${WORKER_UNIT_NAME}"
 
   log "Hotovo. Doporučení: proveď ruční smoke test veřejného webu + adminu."
   log_release_duration
