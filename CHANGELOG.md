@@ -6,6 +6,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [3.17.1] - 2026-08-14
+
 ### Opraveno
 
 - Release build již nenačítá runtime nastavení ani veřejná data z produkční databáze před `prisma migrate deploy`, včetně dynamických položek sitemap; fallback snapshot nastavení se nadále aktualizuje pouze při administračních zápisech.
