@@ -367,7 +367,7 @@ Použij jen tehdy, když z nějakého důvodu nemůžeš použít `./deploy/rele
 3. Spusť `npm ci --include=dev`.
 4. Spusť `npm run db:generate`.
 5. Spusť `npm run db:check-migrations`.
-6. Spusť `npx prisma validate`, `npm run lint`, `npm run typecheck` a `npm run build`. Před produkčním releasem ověř úspěšné povinné CI checky `test` a `e2e`; nespouštěj jejich zapisující scénáře proti produkční databázi.
+6. Spusť `npx prisma validate`, `npm run lint`, `npm run typecheck` a `npm run build`. Před produkčním releasem ověř úspěšné povinné CI checky včetně `test`, `e2e` a kroku `Test release mechanism`; nespouštěj jejich zapisující scénáře proti produkční databázi.
 7. Teprve bezprostředně před přepnutím runtime spusť `npx prisma migrate deploy`; produkční migrace musí být expand/contract kompatibilní s právě běžící verzí.
 8. Exportuj jednotný release identifikátor, například `export NEXT_DEPLOYMENT_ID=$(git rev-parse --short=12 HEAD)` a stejnou hodnotu nastav i do `DEPLOYMENT_VERSION` a `GIT_HASH`.
 9. Zapiš stejné tři proměnné do `.release-env` uvnitř verzovaného release adresáře.
@@ -416,7 +416,7 @@ systemctl disable --now pm2-root.service
 ```
 - Teprve potom release opakuj.
 - Při prvním provisioningu `deploy/deploy.sh` vytvoří dočasný symlink `current` na existující checkout, aby mohly nové unity bezpečně nastartovat. První úspěšný `release.sh` jej nahradí plným adresářem v `releases/`; po tomto okamžiku už `current` nikdy nesměřuje na pracovní git checkout.
-- Regresní selhání startu webu, workeru a health/smoke rollbacku ověříš bez produkčních služeb příkazem `bash deploy/release.test.sh`; skript navíc kontroluje pořadí build -> migrace -> aktivace, takže selhání buildu před DB zápisem a selhání migrace před přepnutím zůstávají kryté kontraktem releasu.
+- Regresní selhání startu webu, workeru a health/smoke rollbacku ověříš bez produkčních služeb příkazem `npm run test:release-script` (spouští `bash deploy/release.test.sh`); stejný příkaz je povinný CI krok `Test release mechanism` bez PostgreSQL. Skript navíc kontroluje pořadí build -> migrace -> aktivace, takže selhání buildu před DB zápisem a selhání migrace před přepnutím zůstávají kryté kontraktem releasu.
 
 ### Systemd
 - Doporučený web unit je v [`deploy/systemd/ppstudio-web.service`](../deploy/systemd/ppstudio-web.service).
@@ -433,7 +433,7 @@ systemctl enable --now ppstudio-email-worker
 - `deploy/release.sh` načítá `.env` jako dotenv soubor, ne přes shellové `source`, takže bezpečně zvládá i hodnoty s mezerami bez uvozovek, například `NEXT_PUBLIC_APP_NAME=PP Studio`.
 - Stejný skript používá `npm ci --include=dev`, protože po načtení produkčního `.env` může být `NODE_ENV=production`; bez toho by npm vynechal `devDependencies` a build by spadl třeba na chybě `eslint: not found`.
 - Aktuální rollout model minimalizuje výpadek tak, že celý release včetně checkoutu, `.next` a `node_modules` vznikne ve staging adresáři mimo živý runtime. Po úspěšném buildu se uloží do `releases/` a po aplikaci kompatibilní migrace se atomicky přepne `current`; web i `tsx` worker proto nikdy nekombinují zdroje jednoho releasu s artefakty jiného.
-- Praktické pořadí releasu je `git pull --ff-only -> staging npm ci -> db:generate -> db:check-migrations -> prisma validate -> lint -> typecheck -> build -> prisma migrate deploy -> stop -> current symlink -> start -> health + smoke`. Selhání před migrací nemění DB ani runtime; selhání po přepnutí vrátí předchozí runtime, nikoli DB schéma. Před spuštěním releasu musí být pro stejný commit úspěšné povinné CI joby `test` a `e2e`.
+- Praktické pořadí releasu je `git pull --ff-only -> staging npm ci -> db:generate -> db:check-migrations -> prisma validate -> lint -> typecheck -> build -> prisma migrate deploy -> stop -> current symlink -> start -> health + smoke`. Selhání před migrací nemění DB ani runtime; selhání po přepnutí vrátí předchozí runtime, nikoli DB schéma. Před spuštěním releasu musí být pro stejný commit úspěšné povinné CI joby včetně `test`, `e2e` a kroku `Test release mechanism`.
 - Stejný release helper po `git pull` automaticky přepíše i systemd unit soubory z `deploy/systemd/*` do `/etc/systemd/system/` a udělá `daemon-reload`, takže app release a unit release drží krok.
 - Pro jednorázovou instalaci a zapnutí obou služeb můžeš použít:
 ```bash

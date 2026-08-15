@@ -57,6 +57,9 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Test release mechanism
+        run: npm run test:release-script
+
       - name: Version consistency
         run: npm run version:check
 

@@ -12,6 +12,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- GitHub CI nyní povinně spouští izolovaný regresní test release mechanismu, který chrání kontrolu čistého working tree, pořadí quality gates a migrace, rollback i health-check ochrany.
 - DB integrační testy nyní čtou SiteSettings stejnou databázovou cestou jako produkce; unit testy nadále zůstávají bez nechtěného přístupu k databázi.
 - CI nyní po coverage unit vrstvě povinně spouští všech 26 DB integračních scénářů proti migrovanému PostgreSQL, vždy sériově; připravená databáze už nezůstává nevyužitá kvůli guardu integračních testů.
 - Release testy e-mailových šablon už nevyvolávají očekávané Prisma chyby při běhu bez databáze; DB fallback zůstává pokryt samostatnými testy.
