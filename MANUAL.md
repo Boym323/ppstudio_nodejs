@@ -58,20 +58,23 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
   - LCOV data v `coverage/lcov.info`
   - strojově čitelný souhrn v `coverage/coverage-summary.json`
 - Coverage běh je záměrně bez `RUN_DB_INTEGRATION_TESTS=1`, takže reprezentuje hlavně unit/business vrstvu; databázové integrační testy dál ověřuje samostatný `npm test`.
-- GitHub Actions teď jako baseline pouští šest samostatných CI jobů:
+- GitHub Actions teď jako baseline pouští osm samostatných CI jobů:
   - `lint`
   - `typecheck`
   - `test`
-  - `coverage`
   - `build`
   - `e2e`
+  - `e2e chromium shard 2`
+  - `e2e mobile`
+  - `e2e mobile shard 2`
+- Coverage je součástí jobu `test` přes `npm run test:ci` a ukládá se jako artefakt; nevzniká pro něj samostatný GitHub check.
 - Joby `test` a `e2e` zůstávají povinnou CI branou před merge/releasem. Release skript je záměrně znovu nespouští nad produkčním `.env`: oba používají databázi a E2E provádějí zapisující scénáře.
 - Z hlavního CI běhu se ukládají artifacty `coverage-report` a `playwright-report`, takže při pádu PR není potřeba vše znovu reprodukovat jen kvůli detailní diagnostice.
 - Samostatné GitHub workflow navíc řeší `CodeQL`, `Dependency Review`, scheduled `npm audit --audit-level=high` a týdenní Dependabot update PR pro `npm` i GitHub Actions.
-- GitHub Actions baseline je průběžně držena na novější major řadě bez Node 20 warningů v runneru: `actions/checkout@v7`, `actions/setup-node@v6`, `actions/upload-artifact@v7` a `actions/dependency-review-action@v5`.
+- GitHub Actions baseline je průběžně držena na novější major řadě bez Node 20 warningů v runneru: `actions/checkout@v7`, `actions/setup-node@v7`, `actions/upload-artifact@v7` a `actions/dependency-review-action@v5`.
 - Samotné workflow soubory v repu nestačí k úplnému enforcementu. Po změně CI vždy ručně zkontroluj nastavení repozitáře na GitHubu:
   - branch protection / rulesets
-  - required status checks pro jednotlivé job names `lint`, `typecheck`, `test`, `coverage`, `build`, `e2e`
+  - required status checks pro jednotlivé GitHub job names `lint`, `typecheck`, `test`, `build`, `e2e`, `e2e chromium shard 2`, `e2e mobile`, `e2e mobile shard 2`; `coverage` není samostatný check
   - zapnutý Dependabot alerts a security overview
 - Aktuální testovací batch (2026-05-19) doplnil unit testy pro `src/features/admin/actions/*action-state.ts` a early-fail validace v `src/features/booking/lib/booking-public/engine.ts` (`invalid startsAt`, `invalid phone`), aby se zlepšilo pokrytí nejnižších oblastí.
 - Navazující batch (2026-05-19) přidal validační unit testy pro server actions v `src/features/admin/actions/actions-validation.test.ts` (invalid form payloady pro `client-actions`, `service-actions`, `booking-actions`, `settings-actions`) a zvýšil coverage především v `admin/actions`.

@@ -47,7 +47,7 @@ Tichý startup readiness probe nepřidává závislost; používá stejný `curl
   - `github/codeql-action`: statická bezpečnostní analýza JavaScript/TypeScript kódu
   - `actions/dependency-review-action`: PR diff kontrola rizikových dependency změn; aktuálně držíme major `v5`
   - `.github/dependabot.yml`: týdenní update PR pro `npm` a GitHub Actions
-- Pro CI orchestrace v `.github/workflows/*.yml` je aktuální baseline `actions/checkout@v7`, `actions/setup-node@v6` a `actions/upload-artifact@v7`; tyto verze nejsou runtime závislost projektu, ale jsou součástí provozního dependency surface repozitáře a mají se udržovat spolu s touto dokumentací.
+- Pro CI orchestrace v `.github/workflows/*.yml` je aktuální baseline `actions/checkout@v7`, `actions/setup-node@v7` a `actions/upload-artifact@v7`; tyto verze nejsou runtime závislost projektu, ale jsou součástí provozního dependency surface repozitáře a mají se udržovat spolu s touto dokumentací.
 - Scheduled `npm audit --audit-level=high` je záměrně oddělený od ručních dependency passů: chceme failnout jen na `high`/`critical`, zatímco známé `low`/`moderate` větve dál sledujeme ručně v tomto dokumentu.
 - `svix`: verifikace podpisu Resend webhooků (`svix-id`, `svix-timestamp`, `svix-signature`) nad raw request body.
 - Matomo tracking nepřidává žádnou npm závislost; používá `next/script`, App Router navigation hooks a standardní `window._paq` frontu.
