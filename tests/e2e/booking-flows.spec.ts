@@ -540,9 +540,14 @@ test.describe("booking flows", () => {
 
     await page.goto(`/rezervace?service=${fixture.serviceSlug}`);
     const suggestedSection = page.getByRole("heading", { name: "Doporučené termíny" }).locator("xpath=ancestor::section[1]");
-    const suggestedButtons = suggestedSection.locator("button");
-    await expect(suggestedSection.locator("button:visible")).toHaveCount(4);
+    const suggestedButtons = suggestedSection.getByRole("button", { includeHidden: true });
+    await expect(suggestedButtons).toHaveCount(6);
+    await expect(suggestedButtons.nth(0)).toBeVisible();
+    await expect(suggestedButtons.nth(1)).toBeVisible();
+    await expect(suggestedButtons.nth(2)).toBeVisible();
+    await expect(suggestedButtons.nth(3)).toBeVisible();
     await expect(suggestedButtons.nth(4)).toBeHidden();
+    await expect(suggestedButtons.nth(5)).toBeHidden();
     const hiddenSuggestedLabel = await suggestedButtons.nth(4).getAttribute("aria-label");
 
     if (!hiddenSuggestedLabel) {
