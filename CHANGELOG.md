@@ -12,6 +12,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Rezervační flow nyní v Matomo samostatně měří zobrazení a výběr doporučených termínů včetně jejich pořadí, bez změny stávajícího funnel eventu výběru času.
 - GitHub CI nyní povinně spouští izolovaný regresní test release mechanismu, který chrání kontrolu čistého working tree, pořadí quality gates a migrace, rollback i health-check ochrany.
 - DB integrační testy nyní čtou SiteSettings stejnou databázovou cestou jako produkce; unit testy nadále zůstávají bez nechtěného přístupu k databázi.
 - CI nyní po coverage unit vrstvě povinně spouští všech 27 DB integračních souborů proti migrovanému PostgreSQL, vždy sériově; připravená databáze už nezůstává nevyužitá kvůli guardu integračních testů.

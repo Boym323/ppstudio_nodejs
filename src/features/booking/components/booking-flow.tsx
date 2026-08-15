@@ -26,8 +26,13 @@ import { BookingContactStep } from "./booking-flow/contact-step";
 import { shouldTrackContactFieldInput } from "./booking-flow/contact-analytics";
 import {
   formatBookingMatomoSlotName,
+  formatSuggestedSlotSelectionMatomoName,
+  formatSuggestedSlotsDisplayedMatomoName,
+  getSuggestedSlotPosition,
+  getSuggestedSlotsDisplayKey,
   isBookingTermConflictErrorCode,
   shouldTrackBookingDateSelection,
+  shouldTrackSuggestedSlotsDisplay,
   shouldTrackBookingTimeSelection,
 } from "./booking-flow/booking-analytics";
 import {
@@ -133,6 +138,7 @@ export function BookingFlow({
   const lastFailedBookingKeyRef = useRef<string | null>(null);
   const lastTrackedDateKeyRef = useRef<string | null>(null);
   const lastTrackedTimeOptionKeyRef = useRef<string | null>(null);
+  const lastTrackedSuggestedSlotsDisplayKeyRef = useRef<string | null>(null);
   const catalogRefreshRequestRef = useRef(0);
   const voucherValidationRequestRef = useRef(0);
   const lastVoucherValidationServiceIdRef = useRef(selectedServiceId);
@@ -567,6 +573,20 @@ export function BookingFlow({
     [availableSlots, currentCatalog.scheduleOptimization, selectableTimeOptions, selectedService],
   );
 
+  useEffect(() => {
+    if (!selectedService || suggestedSlots.length === 0) {
+      return;
+    }
+
+    const displayKey = getSuggestedSlotsDisplayKey(selectedService.slug, suggestedSlots);
+    if (!shouldTrackSuggestedSlotsDisplay(lastTrackedSuggestedSlotsDisplayKeyRef.current, displayKey)) {
+      return;
+    }
+
+    lastTrackedSuggestedSlotsDisplayKeyRef.current = displayKey;
+    trackBookingEvent("Doporučené termíny zobrazeny", formatSuggestedSlotsDisplayedMatomoName(selectedService.slug));
+  }, [selectedService, suggestedSlots]);
+
   const availableSlotsByDate = useMemo(() => {
     const grouped = new Map<string, TimeSlotOption[]>();
 
@@ -782,6 +802,18 @@ export function BookingFlow({
         "Čas vybrán",
         formatBookingMatomoSlotName(slotOption.startsAt, slotOption.endsAt, selectedService.slug),
       );
+      const suggestedSlotPosition = getSuggestedSlotPosition(slotOption, suggestedSlots);
+      if (suggestedSlotPosition !== null) {
+        trackBookingEvent(
+          "Doporučený termín vybrán",
+          formatSuggestedSlotSelectionMatomoName(
+            slotOption.startsAt,
+            slotOption.endsAt,
+            selectedService.slug,
+            suggestedSlotPosition,
+          ),
+        );
+      }
       trackSelectedTimeMetaEvent(slotOption);
     }
     trackInitiateCheckout();
