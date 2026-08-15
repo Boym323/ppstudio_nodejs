@@ -8,6 +8,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- CI nyní po coverage unit vrstvě povinně spouští všech 26 DB integračních scénářů proti migrovanému PostgreSQL, vždy sériově; připravená databáze už nezůstává nevyužitá kvůli guardu integračních testů.
 - Release testy e-mailových šablon už nevyvolávají očekávané Prisma chyby při běhu bez databáze; DB fallback zůstává pokryt samostatnými testy.
 - Ve veřejném rezervačním flow Matomo u výběru termínu znovu zaznamenává lokální datum i přesný časový rozsah se slugem služby; událost `Čas vybrán` zachovává kompatibilitu stávajícího funnelu a nezdvojuje se při renderu stejné volby.
 - Regresní test security headers nyní deterministicky ověřuje non-production i produkční HSTS konfiguraci a GitHub CI samostatně kontroluje produkční variantu, takže release preflight zachytí rozdíl konfigurací před nasazením.

@@ -47,7 +47,7 @@ Produkční HTML templates jsou v `src/lib/email/react-email/` a sdílené kompo
 ### Prague local time
 
 `resolvePragueLocalDateTime` nejdříve ověřuje rozsahy data a času a následně vyžaduje přesný round-trip přes `Europe/Prague`. Časy v jarní DST mezeře a neplatná data se odmítají (`null`). Dvojznačný čas při podzimním přechodu používá dřívější výskyt.
-- `npm test` používá Node test runner + `tsx` preload nad quoted globem `src/**/*.test.{ts,tsx}`; quoting je záměrný, protože bez něj Bash v defaultní konfiguraci expandoval jen část stromu a coverage pak nereprezentovala celé repo.
+- `npm run test:unit` používá Node test runner + `tsx` preload nad quoted globem `src/**/*.test.{ts,tsx}`; quoting je záměrný, protože bez něj Bash v defaultní konfiguraci expandoval jen část stromu a coverage pak nereprezentovala celé repo. `npm test` zachovává plný lokální preflight: spustí nejdřív unit vrstvu a potom DB integrace.
 - `npm run typecheck` drží rychlou čistou TypeScript vrstvu přes `tsc --noEmit`; je to záměrně samostatný check, aby typové regrese nebyly vidět až v `next build`.
 - `npm run test:coverage` používá `c8` nad tím samým runnerem a ukládá výstupy do `coverage/`.
 - U TypeScript callbacků vracejících union stavů planneru (`available` / `locked` / `booked` / `inactive`) preferuj u `flatMap` explicitní generic typu `flatMap<PlannerInterval>(...)`. Next.js 16 build checker jinak umí vnořené větve zúžit jen podle první literal větve a shodit production build na neplatné kompatibilitě `status`.
@@ -60,7 +60,7 @@ Produkční HTML templates jsou v `src/lib/email/react-email/` a sdílené kompo
   - `src/features/vouchers/lib/**/*.ts`
   - `src/lib/email/**/*.ts`
 - Report generuje formáty `text-summary`, `html`, `lcov` a `json-summary`, takže se hodí jak pro lokální čtení, tak pro CI artefakty.
-- Coverage běh nezapíná `RUN_DB_INTEGRATION_TESTS=1`; díky tomu měří hlavně unit/business logiku a nespadne na prostředí bez lokální databáze. Plnou DB vrstvu dál ověřuje standardní `npm test`.
+- Coverage běh nezapíná `RUN_DB_INTEGRATION_TESTS=1`; díky tomu měří hlavně unit/business logiku a nespadne na prostředí bez lokální databáze. `npm run test:db:integration` spouští všech 26 DB integračních souborů samostatně proti připravenému PostgreSQL a vždy sériově přes `--test-concurrency=1`. `npm run test:ci` tuto vrstvu povinně navazuje za coverage, takže ji CI nemůže omylem přeskočit.
 - GitHub Actions baseline je teď rozdělená do čtyř vrstev:
   - hlavní `CI` jako šest samostatných jobů: `lint`, `typecheck`, `test`, `coverage`, `build`, `e2e`
   - `Dependency Review` pro PR dependency diff
@@ -459,8 +459,8 @@ Produkční HTML templates jsou v `src/lib/email/react-email/` a sdílené kompo
 - Sekce `Přístupy` má vlastní owner-only route workflow v `src/features/admin/components/admin-users-page.tsx`; už nepoužívá generický placeholder renderer z `admin-section-page.tsx`.
 
 ## Testovací Strategie
-- Unit a doménové integrační testy běží přes Node test runner (`npm test`).
-- DB-backed booking integrační scénáře lze spustit cíleně přes `npm run test:db:booking`.
+- Unit testy běží přes Node test runner (`npm run test:unit`); plný lokální preflight (`npm test`) na ně navazuje všemi DB integracemi.
+- Všechny DB integrační scénáře lze spustit cíleně a sériově přes `npm run test:db:integration`; pouze booking podmnožinu přes `npm run test:db:booking`.
 - Playwright E2E sada (`npm run test:e2e`) má dvě vrstvy:
   - `booking-flows.spec.ts` ověřuje kritické rezervační a provozní workflow nad reálnými fixture daty.
   - `voucher-flows.spec.ts` ověřuje provozní lifecycle hodnotového voucheru přes browser: vytvoření v adminu, chráněné stažení PDF a otevření předvyplněného panelu pro ruční odeslání e-mailu. Samotné zařazení e-mail logu kryje integrační test `voucher-email-actions.integration.test.ts`.
@@ -501,7 +501,7 @@ Produkční HTML templates jsou v `src/lib/email/react-email/` a sdílené kompo
 - DB integrační testy `booking-public-voucher.integration.test.ts` jsou seedované per test case (`withSeed(...)`) místo sdíleného global seedu, aby paralelní běh netvořil write konflikty přes společné `service/slot/voucher` zázemí.
 - Při úpravách Playwright locatorů preferuj stabilní business orientační body (sekce, heading, finální CTA) před přesnými dynamickými timestamp labely nebo historickými texty formulářů; admin detail rezervace aktuálně používá pole `Volitelný důvod` a submit text odpovídá zvolené akci, např. `Potvrdit rezervaci`.
 - Booking detail v adminu používá statickou hlavičku (bez sticky/plovoucího chování), aby nepřekrývala `Další krok` ani status chooser.
-- CI workflow `.github/workflows/ci.yml` běží na push do `main`/`master` a na pull requesty. Hlavní kontroly jsou rozdělené do samostatných jobů `lint`, `typecheck`, `test`, `coverage`, `build` a `e2e`, takže GitHub UI i branch protection vidí každý check zvlášť. DB joby používají PostgreSQL service container, aplikují Prisma migrace přes `prisma migrate deploy`, generují Prisma klienta a E2E běží přes `npx playwright test`.
+- CI workflow `.github/workflows/ci.yml` běží na push do `main`/`master` a na pull requesty. Hlavní kontroly jsou rozdělené do samostatných jobů `lint`, `typecheck`, `test`, `build` a `e2e`, takže GitHub UI i branch protection vidí každý check zvlášť. Job `test` po PostgreSQL service containeru, `prisma migrate deploy` a generování klienta spustí `npm run test:ci`: coverage unit vrstvy a následně sériové DB integrace. E2E běží přes `npx playwright test`.
 - Po rozdělení do samostatných jobů už mezi nimi nesdílíme pracovní adresář ani `.next`. `typecheck` proto po `npm ci` explicitně pouští `npm run db:generate`, `build` má vlastní PostgreSQL service + `prisma migrate deploy` kvůli route/page datům čteným při buildu a `e2e` si dělá vlastní build ještě před Playwright startem.
 - CI používá testovací env hodnoty přímo ve workflow a e-maily drží v `EMAIL_DELIVERY_MODE=log`, aby browser a DB testy nevytvářely reálné SMTP side effects.
 - Repo-level enforcement zůstává mimo git: po přidání nebo přejmenování workflow ručně slad branch protection / rulesets a required status checks v GitHub nastavení repozitáře, jinak budou nové kontroly jen informativní. Po této změně mají required checks mířit na jednotlivé job names `lint`, `typecheck`, `test`, `coverage`, `build`, `e2e`.
@@ -855,11 +855,13 @@ Produkční HTML templates jsou v `src/lib/email/react-email/` a sdílené kompo
   - `npm run typecheck`
   - `npm run test`
   - `npm run build`
-- `npm run test` nově nastavuje `RUN_DB_INTEGRATION_TESTS=1`, takže integrační booking testy (`*.integration.test.ts`) už nejsou v běžném běhu skipnuté.
+- `npm run test` nyní skládá `test:unit` a následný `test:db:integration`; guard `RUN_DB_INTEGRATION_TESTS=1` proto aktivuje DB scénáře jen ve výslovně určené, sériové vrstvě.
 - U DB integračních testů, které vytváří `AvailabilitySlot` řádky, neseeduj časy z malého fixního okna; při paralelním běhu to může náhodně narážet na `AvailabilitySlot_active_time_window_excl`. Preferuj UUID/hash odvozený časový rozptyl uvnitř aktuálního booking window.
 - Stejné pravidlo platí i pro seed aktivních `Booking`, ne jen slotů. Pokud test vybírá konkrétní startsAt ručně, musí předem ověřit i absenci překryvu s jinou aktivní rezervací; jinak se flake projeví jako doménová chyba `Vybraný termín koliduje s jinou rezervací.` místo skutečné regresní změny.
 - Pro DB-backed integrační testy booking domény je připravený i:
   - `npm run test:db:booking`
+- Pro celou DB integrační vrstvu (včetně admin a voucher scénářů) použij:
+  - `npm run test:db:integration`
 - `npm run test:db:booking` spouští celý booking integrační glob `src/features/booking/lib/*.integration.test.ts`, takže vedle reschedule/management scénářů pokrývá i veřejné vytvoření rezervace, ruční admin booking a 24h reminder + e-mail worker flow.
 - Pro rychlé unit ověření bezpečné veřejné správy rezervace a reschedule domény můžeš spustit i:
   - `node --import tsx --test src/features/booking/lib/booking-management.test.ts`

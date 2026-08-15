@@ -125,8 +125,8 @@ jobs:
           npx prisma migrate deploy
           npm run db:generate
 
-      - name: Test with coverage
-        run: npm run test:coverage
+      - name: Test unit layer with coverage and DB integrations
+        run: npm run test:ci
 
       - name: Test production security headers
         run: NODE_ENV=production node --import ./src/test/register-server-only.mjs --import tsx --test src/config/security-headers.test.ts
