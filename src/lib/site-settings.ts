@@ -107,7 +107,7 @@ function buildDefaultSiteSettingsRecord(): SiteSettingsRecord {
   };
 }
 
-function isTestRuntime() {
+function isNodeTestRuntime() {
   return (
     process.env.NODE_ENV === "test" ||
     process.env.npm_lifecycle_event === "test" ||
@@ -116,8 +116,16 @@ function isTestRuntime() {
   );
 }
 
+function isDbIntegrationTestRuntime() {
+  return process.env.RUN_DB_INTEGRATION_TESTS === "1";
+}
+
+function isUnitTestRuntime() {
+  return isNodeTestRuntime() && !isDbIntegrationTestRuntime();
+}
+
 async function readSiteSettingsFromDb() {
-  if (isTestRuntime()) {
+  if (isUnitTestRuntime()) {
     return null;
   }
 
@@ -227,7 +235,7 @@ export async function getSiteSettings() {
 }
 
 export async function hasCurrentBookingPolicySettings() {
-  if (isTestRuntime()) {
+  if (isUnitTestRuntime()) {
     return true;
   }
 

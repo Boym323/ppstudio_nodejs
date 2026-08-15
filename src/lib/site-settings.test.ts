@@ -57,3 +57,28 @@ test("getSiteSettingsReadResult returns the snapshot after an explicit database 
     await rm(directory, { recursive: true, force: true });
   }
 });
+
+test("běžný unit-test runtime nečte SiteSettings z databáze", async () => {
+  const { prisma } = await import("@/lib/prisma");
+  const { getSiteSettingsReadResult } = await import("@/lib/site-settings");
+  const originalDbIntegrationFlag = process.env.RUN_DB_INTEGRATION_TESTS;
+  let dbReadCount = 0;
+  const mutableSiteSettings = prisma.siteSettings as unknown as {
+    findUnique: (...args: unknown[]) => unknown;
+  };
+  const originalFindUnique = mutableSiteSettings.findUnique;
+
+  process.env.RUN_DB_INTEGRATION_TESTS = undefined;
+  mutableSiteSettings.findUnique = async () => {
+    dbReadCount += 1;
+    throw new Error("Unit test nesmí volat Prisma SiteSettings.");
+  };
+
+  try {
+    await getSiteSettingsReadResult();
+    assert.equal(dbReadCount, 0);
+  } finally {
+    mutableSiteSettings.findUnique = originalFindUnique;
+    process.env.RUN_DB_INTEGRATION_TESTS = originalDbIntegrationFlag;
+  }
+});
