@@ -249,7 +249,11 @@ dbTest("applyAvailabilitySelection upraví volné fragmenty dlouhého slotu kole
       const fullRange = await loadModules().then(({ getCellRangeBounds }) => getCellRangeBounds(seed.dateKey, 4, 16));
       await prisma.availabilitySlot.update({
         where: { id: seed.bookedSlotId },
-        data: { startsAt: fullRange.startsAt, endsAt: fullRange.endsAt },
+        data: {
+          status: AvailabilitySlotStatus.ARCHIVED,
+          startsAt: fullRange.startsAt,
+          endsAt: fullRange.endsAt,
+        },
       });
       await prisma.availabilitySlot.deleteMany({
         where: { createdByUserId: seed.actorUserId, id: { not: seed.bookedSlotId } },
