@@ -6,6 +6,10 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+### Zabezpečení
+
+- Deployment dokumentace nyní výslovně rozlišuje lokální a vzdálenou reverse proxy, protože IP rate limity důvěřují pouze proxy přepsané hlavičce `X-Real-IP`; pro vzdálenou proxy vyžaduje firewall allowlist portu 3000.
+
 ### Opraveno
 
 - DB integrační testy nyní čtou SiteSettings stejnou databázovou cestou jako produkce; unit testy nadále zůstávají bez nechtěného přístupu k databázi.

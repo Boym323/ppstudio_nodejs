@@ -33,7 +33,7 @@ Soubory:
 - `WorkingDirectory=/var/www/ppstudio/current`
 - načítá stabilní `/var/www/ppstudio/.env` i release-local `.release-env`
 - startuje `npm run start`
-- běží jako `next start` na `PORT=3000`
+- běží jako `next start` na `PORT=3000`; verzovaná unit aktuálně naslouchá na `0.0.0.0`, proto musí port 3000 chránit síťová vrstva popsaná níže
 
 ### `ppstudio-email-worker`
 
@@ -104,6 +104,15 @@ Důvod:
 - canonical/SEO metadata se opírají o veřejný origin
 
 Pro administrační API neloguj query string. V access logu proxy používej cestu bez parametrů (např. `$uri` místo `$request_uri` v Nginxu); chrání to před únikem citlivých hodnot i při chybném klientském requestu.
+
+## Důvěryhodná klientská IP a port 3000
+
+Repozitář dokládá Proxmox/LXC a použití Nginx Proxy Manageru, ale neobsahuje jeho konfiguraci ani firewall. Nelze proto určit, zda proxy běží na stejném, nebo jiném hostu. Závaznou podmínkou provozu je, že klient nesmí navázat přímé spojení na Next.js port 3000; jinak může podvrhnout `X-Real-IP` a obejít IP část rate limitů.
+
+- Je-li Nginx/NPM ve stejném LXC/hostu, změň v obou verzovaných web unitách `Environment=HOSTNAME=127.0.0.1` (případně `::1` pro IPv6) a ověř, že proxy připojuje na loopback. Neprováděj tuto změnu, pokud je proxy vzdálená.
+- Je-li proxy na jiném hostu, ponech bind pouze tehdy, když firewall před aplikací povolí TCP/3000 výhradně ze skutečných IP adres nebo CIDR této proxy a zakáže jej ze všech ostatních zdrojů. Stejné pravidlo nastav pro IPv6, pokud je port dostupný přes IPv6. Nepoužívej zástupné adresy; vycházej z reálného managementu proxy/infrastruktury.
+- V produkční proxy musí být pro požadavek na upstream provedeno přepsání (ne pouhé doplnění) hlavičky: `proxy_set_header X-Real-IP $remote_addr;`. Ověř konfiguraci například přes `nginx -T` nebo odpovídající konfiguraci NPM.
+- Je-li před Nginx/NPM CDN či další proxy, musí Nginx akceptovat `real_ip_header` jen od jejího skutečného allowlistu přes `set_real_ip_from`; teprve potom je `$remote_addr` vhodný pro uvedené přepsání. Aplikace záměrně nikdy nepřebírá `X-Forwarded-For`.
 
 ## Po deployi ověř
 
