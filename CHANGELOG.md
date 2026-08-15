@@ -6,6 +6,12 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [3.17.2] - 2026-08-15
+
+### Změněno
+
+- Release příprava pro produkční nasazení: projektová verze navýšena na patch `3.17.2` kvůli analytickým, bezpečnostním a provozním opravám.
+
 ### Zabezpečení
 
 - Deployment dokumentace nyní výslovně rozlišuje lokální a vzdálenou reverse proxy, protože IP rate limity důvěřují pouze proxy přepsané hlavičce `X-Real-IP`; pro vzdálenou proxy vyžaduje firewall allowlist portu 3000.
