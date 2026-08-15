@@ -39,7 +39,8 @@ type BookingTermStepProps = {
   slotError?: string;
   onContinue: () => void;
   onReturnToServiceSelection: () => void;
-  onSlotSelect: (slot: TimeSlotOption) => void;
+  onSuggestedSlotSelect: (slot: TimeSlotOption) => void;
+  onCalendarSlotSelect: (slot: TimeSlotOption) => void;
   onSelectDate: (dateKey: string) => void;
   onPreviousMonth: () => void;
   onNextMonth: () => void;
@@ -64,7 +65,8 @@ export function BookingTermStep({
   slotError,
   onContinue,
   onReturnToServiceSelection,
-  onSlotSelect,
+  onSuggestedSlotSelect,
+  onCalendarSlotSelect,
   onSelectDate,
   onPreviousMonth,
   onNextMonth,
@@ -142,7 +144,7 @@ export function BookingTermStep({
             getAriaLabel={buildSlotAriaLabel}
             formatDate={formatSlotDate}
             formatTime={formatSlotTime}
-            onSelect={onSlotSelect}
+            onSelect={onSuggestedSlotSelect}
           />
 
           <div className="rounded-3xl border border-black/6 bg-[var(--color-surface)]/18 p-4 sm:p-5">
@@ -256,7 +258,7 @@ export function BookingTermStep({
                 selectedKey={selectedTimeOptionKey}
                 getAriaLabel={buildSlotAriaLabel}
                 formatTime={formatSlotTime}
-                onSelect={onSlotSelect}
+                onSelect={onCalendarSlotSelect}
               />
             ))}
 

@@ -6,6 +6,12 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [3.17.3] - 2026-08-15
+
+### Opraveno
+
+- Matomo event `Doporučený termín vybrán` ve veřejné rezervaci nyní měří jen skutečný klik na doporučenou kartu; stejný čas zvolený přes kalendář zůstává pouze ve stávajícím funnel kroku `Čas vybrán`.
+
 ## [3.17.2] - 2026-08-15
 
 ### Změněno

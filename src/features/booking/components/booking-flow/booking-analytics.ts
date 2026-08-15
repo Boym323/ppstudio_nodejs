@@ -46,6 +46,11 @@ export function getSuggestedSlotsDisplayKey(
   return `${getSafeBookingServiceSlug(serviceSlug)}:${suggestedSlots.map((slot) => slot.key).join(",")}`;
 }
 
+/** Vrátí jen karty, které jsou v aktuálním responzivním zobrazení viditelné. */
+export function getVisibleSuggestedSlots<T>(suggestedSlots: readonly T[], visibleLimit: number) {
+  return suggestedSlots.slice(0, visibleLimit);
+}
+
 export function formatSuggestedSlotsDisplayedMatomoName(serviceSlug: string) {
   return getSafeBookingServiceSlug(serviceSlug);
 }

@@ -62,6 +62,21 @@ async function selectSlotById(
   );
 }
 
+function getCalendarDateButtonLabel(slotButtonLabel: string) {
+  const dateKey = slotButtonLabel.match(/^Vybrat termín (\d{4}-\d{2}-\d{2}) \d{2}:\d{2}$/)?.[1];
+
+  if (!dateKey) {
+    throw new Error(`Termín nemá očekávaný přístupný popisek: ${slotButtonLabel}`);
+  }
+
+  return `Vybrat den ${new Intl.DateTimeFormat("cs-CZ", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    timeZone: "Europe/Prague",
+  }).format(new Date(`${dateKey}T12:00:00.000Z`))}`;
+}
+
 async function selectAvailableSlot(
   page: Page,
   actionButton: Locator,
@@ -474,6 +489,74 @@ test.describe("booking flows", () => {
     expect(bookingRequests.every((request) => request.params.idsite === "1")).toBe(true);
     expect(bookingRequests.every((request) => request.params._id === "e2e-visitor-id")).toBe(true);
     expect(events.every((request) => request.params.new_visit === undefined)).toBe(true);
+  });
+
+  test("Matomo rozlišuje klik na doporučenou kartu od stejného času z kalendáře", async ({ page }) => {
+    const fixture = await createPublicBookingFixture();
+    fixtures.push(fixture);
+    await installMatomoSpy(page);
+
+    await page.goto(`/rezervace?service=${fixture.serviceSlug}`);
+    const suggestedSection = page.getByRole("heading", { name: "Doporučené termíny" }).locator("xpath=ancestor::section[1]");
+    const suggestedButton = suggestedSection.getByRole("button").first();
+    await expect(suggestedButton).toBeVisible();
+    const suggestedLabel = await suggestedButton.getAttribute("aria-label");
+
+    if (!suggestedLabel) {
+      throw new Error("Doporučený termín nemá očekávaný přístupný popisek.");
+    }
+
+    await page.getByRole("button", { name: getCalendarDateButtonLabel(suggestedLabel) }).click();
+    const calendarButton = page.getByRole("button", { name: suggestedLabel }).last();
+    await calendarButton.click();
+
+    await expect.poll(async () => {
+      const calls = await getMatomoCalls(page);
+      return calls.filter((call) => call[0] === "trackEvent" && call[2] === "Čas vybrán").length;
+    }).toBe(1);
+    let events = (await getMatomoCalls(page)).filter((call) => call[0] === "trackEvent");
+    expect(events.filter((call) => call[2] === "Doporučený termín vybrán")).toHaveLength(0);
+
+    await suggestedButton.click();
+    await expect.poll(async () => {
+      const calls = await getMatomoCalls(page);
+      return calls.filter((call) => call[0] === "trackEvent" && call[2] === "Doporučený termín vybrán").length;
+    }).toBe(1);
+    events = (await getMatomoCalls(page)).filter((call) => call[0] === "trackEvent");
+    expect(events.filter((call) => call[2] === "Čas vybrán")).toHaveLength(1);
+    expect(events).toContainEqual([
+      "trackEvent",
+      "Rezervace",
+      "Doporučený termín vybrán",
+      expect.stringMatching(/\| pozice 1$/),
+    ]);
+  });
+
+  test("mobilní skryté doporučení nelze měřit jako klik na doporučenou kartu", async ({ page }) => {
+    const fixture = await createPublicBookingFixture();
+    fixtures.push(fixture);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await installMatomoSpy(page);
+
+    await page.goto(`/rezervace?service=${fixture.serviceSlug}`);
+    const suggestedSection = page.getByRole("heading", { name: "Doporučené termíny" }).locator("xpath=ancestor::section[1]");
+    const suggestedButtons = suggestedSection.getByRole("button");
+    await expect(suggestedSection.locator("button:visible")).toHaveCount(4);
+    await expect(suggestedButtons.nth(4)).toBeHidden();
+    const hiddenSuggestedLabel = await suggestedButtons.nth(4).getAttribute("aria-label");
+
+    if (!hiddenSuggestedLabel) {
+      throw new Error("Skrytý doporučený termín nemá očekávaný přístupný popisek.");
+    }
+
+    await page.getByRole("button", { name: getCalendarDateButtonLabel(hiddenSuggestedLabel) }).click();
+    await page.getByRole("button", { name: hiddenSuggestedLabel }).last().click();
+    await expect.poll(async () => {
+      const calls = await getMatomoCalls(page);
+      return calls.filter((call) => call[0] === "trackEvent" && call[2] === "Čas vybrán").length;
+    }).toBe(1);
+    const events = (await getMatomoCalls(page)).filter((call) => call[0] === "trackEvent");
+    expect(events.filter((call) => call[2] === "Doporučený termín vybrán")).toHaveLength(0);
   });
 
   test("conflict refresh revalidates a voucher before the visitor can submit a new term", async ({ browser }) => {

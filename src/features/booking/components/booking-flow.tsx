@@ -30,6 +30,7 @@ import {
   formatSuggestedSlotsDisplayedMatomoName,
   getSuggestedSlotPosition,
   getSuggestedSlotsDisplayKey,
+  getVisibleSuggestedSlots,
   isBookingTermConflictErrorCode,
   shouldTrackBookingDateSelection,
   shouldTrackSuggestedSlotsDisplay,
@@ -70,6 +71,11 @@ import type {
   ContactFieldKey,
   ServiceCategory,
 } from "./booking-flow/types";
+
+type SlotSelectionSource = "suggested" | "calendar";
+
+const MOBILE_SUGGESTED_SLOTS_LIMIT = 4;
+const DESKTOP_SUGGESTED_SLOTS_LIMIT = 6;
 
 export function BookingFlow({
   catalog,
@@ -112,6 +118,11 @@ export function BookingFlow({
   const [isServiceStepHighlighted, setIsServiceStepHighlighted] = useState(false);
   const [isTermStepHighlighted, setIsTermStepHighlighted] = useState(false);
   const [isContactStepHighlighted, setIsContactStepHighlighted] = useState(false);
+  const [visibleSuggestedSlotsLimit, setVisibleSuggestedSlotsLimit] = useState(() => (
+    typeof window !== "undefined" && !window.matchMedia("(max-width: 639px)").matches
+      ? DESKTOP_SUGGESTED_SLOTS_LIMIT
+      : MOBILE_SUGGESTED_SLOTS_LIMIT
+  ));
   const [touchedFields, setTouchedFields] = useState<Record<ContactFieldKey, boolean>>({
     fullName: false,
     email: false,
@@ -573,19 +584,37 @@ export function BookingFlow({
     [availableSlots, currentCatalog.scheduleOptimization, selectableTimeOptions, selectedService],
   );
 
+  const visibleSuggestedSlots = useMemo(
+    () => getVisibleSuggestedSlots(suggestedSlots, visibleSuggestedSlotsLimit),
+    [suggestedSlots, visibleSuggestedSlotsLimit],
+  );
+
   useEffect(() => {
-    if (!selectedService || suggestedSlots.length === 0) {
+    const mediaQuery = window.matchMedia("(max-width: 639px)");
+    const syncVisibleSuggestedSlotsLimit = () => {
+      setVisibleSuggestedSlotsLimit(
+        mediaQuery.matches ? MOBILE_SUGGESTED_SLOTS_LIMIT : DESKTOP_SUGGESTED_SLOTS_LIMIT,
+      );
+    };
+
+    syncVisibleSuggestedSlotsLimit();
+    mediaQuery.addEventListener("change", syncVisibleSuggestedSlotsLimit);
+    return () => mediaQuery.removeEventListener("change", syncVisibleSuggestedSlotsLimit);
+  }, []);
+
+  useEffect(() => {
+    if (!selectedService || visibleSuggestedSlots.length === 0) {
       return;
     }
 
-    const displayKey = getSuggestedSlotsDisplayKey(selectedService.slug, suggestedSlots);
+    const displayKey = getSuggestedSlotsDisplayKey(selectedService.slug, visibleSuggestedSlots);
     if (!shouldTrackSuggestedSlotsDisplay(lastTrackedSuggestedSlotsDisplayKeyRef.current, displayKey)) {
       return;
     }
 
     lastTrackedSuggestedSlotsDisplayKeyRef.current = displayKey;
     trackBookingEvent("Doporučené termíny zobrazeny", formatSuggestedSlotsDisplayedMatomoName(selectedService.slug));
-  }, [selectedService, suggestedSlots]);
+  }, [selectedService, visibleSuggestedSlots]);
 
   const availableSlotsByDate = useMemo(() => {
     const grouped = new Map<string, TimeSlotOption[]>();
@@ -783,7 +812,7 @@ export function BookingFlow({
     trackBookingEvent("Kontaktní pole zahájeno", fieldLabel);
   };
 
-  const selectSlot = (slotOption: TimeSlotOption) => {
+  const selectSlot = (slotOption: TimeSlotOption, source: SlotSelectionSource) => {
     if (slotOption.isDisabled) {
       return;
     }
@@ -802,7 +831,10 @@ export function BookingFlow({
         "Čas vybrán",
         formatBookingMatomoSlotName(slotOption.startsAt, slotOption.endsAt, selectedService.slug),
       );
-      const suggestedSlotPosition = getSuggestedSlotPosition(slotOption, suggestedSlots);
+      trackSelectedTimeMetaEvent(slotOption);
+    }
+    if (selectedService && source === "suggested") {
+      const suggestedSlotPosition = getSuggestedSlotPosition(slotOption, visibleSuggestedSlots);
       if (suggestedSlotPosition !== null) {
         trackBookingEvent(
           "Doporučený termín vybrán",
@@ -814,7 +846,6 @@ export function BookingFlow({
           ),
         );
       }
-      trackSelectedTimeMetaEvent(slotOption);
     }
     trackInitiateCheckout();
     focusContactStepSection();
@@ -1116,7 +1147,8 @@ export function BookingFlow({
                 setIsServiceCatalogOpen(true);
                 focusServiceStepSection();
               }}
-              onSlotSelect={selectSlot}
+              onSuggestedSlotSelect={(slot) => selectSlot(slot, "suggested")}
+              onCalendarSlotSelect={(slot) => selectSlot(slot, "calendar")}
               onSelectDate={(dateKey) => {
                 markFormChanged();
                 setSelectedDateKey(dateKey);

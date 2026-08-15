@@ -7,6 +7,7 @@ import {
   formatSuggestedSlotsDisplayedMatomoName,
   getSuggestedSlotPosition,
   getSuggestedSlotsDisplayKey,
+  getVisibleSuggestedSlots,
   isBookingTermConflictErrorCode,
   shouldTrackBookingDateSelection,
   shouldTrackSuggestedSlotsDisplay,
@@ -76,6 +77,23 @@ test("doporučené termíny se měří jednou pro stejnou zobrazenou sadu a znov
     shouldTrackSuggestedSlotsDisplay(firstSet, getSuggestedSlotsDisplayKey("jina-sluzba", [{ key: "slot-1" }])),
     true,
   );
+});
+
+test("impression key na mobilu ignoruje mobilně skryté doporučené karty", () => {
+  const desktopSlots = [
+    { key: "slot-1" }, { key: "slot-2" }, { key: "slot-3" },
+    { key: "slot-4" }, { key: "slot-5" }, { key: "slot-6" },
+  ];
+  const changedOnlyHiddenDesktopSlots = [...desktopSlots.slice(0, 4), { key: "slot-5-changed" }, { key: "slot-6" }];
+
+  const mobileKey = getSuggestedSlotsDisplayKey("korejsky-lash-lifting", getVisibleSuggestedSlots(desktopSlots, 4));
+  const mobileKeyWithHiddenChange = getSuggestedSlotsDisplayKey(
+    "korejsky-lash-lifting",
+    getVisibleSuggestedSlots(changedOnlyHiddenDesktopSlots, 4),
+  );
+
+  assert.equal(mobileKeyWithHiddenChange, mobileKey);
+  assert.equal(shouldTrackSuggestedSlotsDisplay(mobileKey, mobileKeyWithHiddenChange), false);
 });
 
 test("výběr doporučení používá canonical key a vrací 1-based pozici", () => {
