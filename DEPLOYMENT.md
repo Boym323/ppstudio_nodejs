@@ -111,8 +111,11 @@ Repozitář dokládá Proxmox/LXC a použití Nginx Proxy Manageru, ale neobsahu
 
 - Je-li Nginx/NPM ve stejném LXC/hostu, změň v obou verzovaných web unitách `Environment=HOSTNAME=127.0.0.1` (případně `::1` pro IPv6) a ověř, že proxy připojuje na loopback. Neprováděj tuto změnu, pokud je proxy vzdálená.
 - Je-li proxy na jiném hostu, ponech bind pouze tehdy, když firewall před aplikací povolí TCP/3000 výhradně ze skutečných IP adres nebo CIDR této proxy a zakáže jej ze všech ostatních zdrojů. Stejné pravidlo nastav pro IPv6, pokud je port dostupný přes IPv6. Nepoužívej zástupné adresy; vycházej z reálného managementu proxy/infrastruktury.
+- Princip pravidla je: `allow tcp dport 3000 from <skutečný-proxy-ip-nebo-cidr>` a následně `deny tcp dport 3000 from any`; ekvivalentně pro IPv6. Hodnota v úhlových závorkách musí být při nasazení nahrazena doloženou adresou nebo sítí proxy, ne odhadnutou adresou aplikace ani klientů. Pravidlo patří na síťovou hranici, která skutečně chrání tento LXC/host.
 - V produkční proxy musí být pro požadavek na upstream provedeno přepsání (ne pouhé doplnění) hlavičky: `proxy_set_header X-Real-IP $remote_addr;`. Ověř konfiguraci například přes `nginx -T` nebo odpovídající konfiguraci NPM.
 - Je-li před Nginx/NPM CDN či další proxy, musí Nginx akceptovat `real_ip_header` jen od jejího skutečného allowlistu přes `set_real_ip_from`; teprve potom je `$remote_addr` vhodný pro uvedené přepsání. Aplikace záměrně nikdy nepřebírá `X-Forwarded-For`.
+
+Před uzavřením deploymentu ověř z hostu aplikace skutečný listener (`ss -ltnp`), konfiguraci proxy a firewall v jeho aktivním enforcement pointu. Z jiné než důvěryhodné proxy sítě musí být TCP spojení na port 3000 odmítnuto; přes veřejnou proxy musí požadavek stále fungovat a upstream musí dostat proxy přepsané `X-Real-IP`. Tyto vlastnosti nelze potvrdit unit testem ani jen z tohoto repozitáře.
 
 ## Po deployi ověř
 
