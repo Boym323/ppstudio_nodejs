@@ -15,6 +15,7 @@ import {
   getAdminLogPageMeta,
   getAdminLogCandidatePlan,
   getEmailDeliveryFailureWhere,
+  getUnresolvedEmailDeliveryFailureWhere,
   getEmailLogSeverity,
   isCriticalBookingSubmission,
   normalizeAdminLogView,
@@ -74,7 +75,7 @@ test("Pozornost zahrnuje transportní i provider delivery failures bez duplicit"
   const where = withEmailLogScope({}, "attention", "all", staleBefore);
   const attention = (where.AND as object[])[1];
   assert.deepEqual(attention, { OR: [
-    getEmailDeliveryFailureWhere(),
+    getUnresolvedEmailDeliveryFailureWhere(),
     { OR: [
       { trackingComplainedAt: { not: null } },
       { trackingLastEvent: "email.delivery_delayed", trackingDeliveredAt: null, trackingOpenedAt: null, trackingClickedAt: null },
@@ -82,6 +83,18 @@ test("Pozornost zahrnuje transportní i provider delivery failures bez duplicit"
     { status: "PENDING", attemptCount: { gt: 0 }, processingStartedAt: null },
     { status: "PENDING", processingStartedAt: { lt: staleBefore } },
   ] });
+});
+
+test("aktivní delivery failure vyžaduje neuzavřený explicitní resend chain", () => {
+  assert.deepEqual(getUnresolvedEmailDeliveryFailureWhere(), {
+    AND: [
+      getEmailDeliveryFailureWhere(),
+      { OR: [
+        { resendRootId: null, incidentResolvedAt: null },
+        { resendRoot: { is: { incidentResolvedAt: null } } },
+      ] },
+    ],
+  });
 });
 
 test("severity e-mailu dává delivery state přednost před SENT", () => {

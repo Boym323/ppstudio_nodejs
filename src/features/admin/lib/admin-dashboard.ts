@@ -1,7 +1,7 @@
 import { AvailabilitySlotStatus, BookingStatus } from "@prisma/client";
 
 import { type AdminArea } from "@/config/navigation";
-import { getEmailDeliveryFailureWhere } from "@/features/admin/lib/admin-data";
+import { getUnresolvedEmailDeliveryFailureWhere } from "@/lib/email/incidents";
 import {
   getAdminBookingActionOptions,
   getAdminBookingHref,
@@ -630,7 +630,7 @@ export async function getAdminDashboardData(area: AdminArea): Promise<AdminDashb
         status: BookingStatus.PENDING,
       },
     }),
-    prisma.emailLog.count({ where: getEmailDeliveryFailureWhere() }),
+    prisma.emailLog.count({ where: getUnresolvedEmailDeliveryFailureWhere() }),
     prisma.availabilitySlot.findMany({
       where: {
         startsAt: { gte: weekStart, lt: weekEnd },
@@ -778,9 +778,9 @@ export async function getAdminDashboardData(area: AdminArea): Promise<AdminDashb
       tone: "problem",
       text: `${failedEmails} ${formatCountLabel(
         failedEmails,
-        "e-mail se nepodařilo odeslat",
-        "e-maily se nepodařilo odeslat",
-        "e-mailů se nepodařilo odeslat",
+        "e-mail má problém s odesláním nebo doručením",
+        "e-maily mají problém s odesláním nebo doručením",
+        "e-mailů má problém s odesláním nebo doručením",
       )}.`,
       href: area === "owner" ? "/admin/email-logy" : bookingsHref,
       actionLabel: area === "owner" ? "Otevřít e-mail logy" : "Otevřít rezervace",

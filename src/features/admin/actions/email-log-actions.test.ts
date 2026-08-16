@@ -39,6 +39,8 @@ test("buildResendEmailLogCreateInput resets queue and provider state for resend"
   const payload = { bookingId: "booking-1", reminder: true };
 
   const data = buildResendEmailLogCreateInput({
+    resendOfId: "email-log-1",
+    resendRootId: "email-log-1",
     bookingId: "booking-1",
     clientId: "client-1",
     actionTokenId: "token-1",
@@ -59,6 +61,8 @@ test("buildResendEmailLogCreateInput resets queue and provider state for resend"
   assert.equal(data.providerMessageId, null);
   assert.equal(data.errorMessage, null);
   assert.equal(data.sentAt, null);
+  assert.equal(data.resendOfId, "email-log-1");
+  assert.equal(data.resendRootId, "email-log-1");
   assert.deepEqual(data.payload, payload);
 });
 
@@ -66,6 +70,8 @@ test("buildResendEmailLogCreateInput preserves received-booking template", async
   const { buildResendEmailLogCreateInput } = await import("@/features/admin/actions/email-log-action-helpers");
 
   const data = buildResendEmailLogCreateInput({
+    resendOfId: "email-log-1",
+    resendRootId: "email-log-1",
     bookingId: "booking-1",
     clientId: "client-1",
     actionTokenId: "token-1",
@@ -83,6 +89,8 @@ test("buildResendEmailLogCreateInput preserves received-booking template", async
 test("buildResendEmailLogCreateInput omits payload when source payload is null", async () => {
   const { buildResendEmailLogCreateInput } = await import("@/features/admin/actions/email-log-action-helpers");
   const data = buildResendEmailLogCreateInput({
+    resendOfId: "email-log-1",
+    resendRootId: "email-log-1",
     bookingId: null,
     clientId: null,
     actionTokenId: null,
@@ -101,6 +109,8 @@ test("buildResendEmailLogCreateInput sets manual reminder resend flag for remind
   const { buildResendEmailLogCreateInput } = await import("@/features/admin/actions/email-log-action-helpers");
 
   const data = buildResendEmailLogCreateInput({
+    resendOfId: "email-log-1",
+    resendRootId: "email-log-1",
     bookingId: "booking-1",
     clientId: "client-1",
     actionTokenId: null,

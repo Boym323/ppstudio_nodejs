@@ -149,6 +149,8 @@ export async function resendEmailLogAction(formData: FormData) {
 
   const createdEmailLog = await prisma.emailLog.create({
     data: buildResendEmailLogCreateInput({
+      resendOfId: emailLog.id,
+      resendRootId: emailLog.resendRootId ?? emailLog.id,
       bookingId: emailLog.bookingId,
       clientId: emailLog.clientId,
       actionTokenId: emailLog.actionTokenId,

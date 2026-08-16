@@ -3,6 +3,7 @@ import packageJson from "../../../../package.json";
 
 import { sendOwnerSystemErrorPushover } from "@/lib/notifications/pushover";
 import { prisma } from "@/lib/prisma";
+import { getUnresolvedEmailDeliveryFailureWhere } from "@/lib/email/incidents";
 
 const DEPLOYMENT_ID_ENV_KEYS = [
   "NEXT_DEPLOYMENT_ID",
@@ -95,9 +96,7 @@ async function getEmailHealthData(now: Date): Promise<EmailHealthData> {
       },
     }),
     prisma.emailLog.count({
-      where: {
-        status: EmailLogStatus.FAILED,
-      },
+      where: getUnresolvedEmailDeliveryFailureWhere(),
     }),
     prisma.emailLog.findFirst({
       where: {
@@ -116,7 +115,7 @@ async function getEmailHealthData(now: Date): Promise<EmailHealthData> {
         errorMessage: { not: null },
         updatedAt: { gte: recentErrorThreshold },
         OR: [
-          { status: EmailLogStatus.FAILED },
+          getUnresolvedEmailDeliveryFailureWhere(),
           {
             status: EmailLogStatus.PENDING,
             attemptCount: { gt: 0 },
@@ -309,7 +308,7 @@ export function createHealthRouteApi(
       const workerHasErrors = failed > 0;
 
       if (workerHasErrors) {
-        alerts.push(`Failed emails: ${failed}`);
+        alerts.push(`Active email incidents: ${failed}`);
       }
 
       if (workerStuck) {
@@ -357,7 +356,7 @@ export function createHealthRouteApi(
                 ? "Worker frontu zpracovává bez aktivní chyby."
                 : workerStatus === "warning"
                   ? "Fronta čeká na zpracování nebo retry, ale není vidět aktivní claim."
-                  : "Worker vyžaduje zásah (failed emaily nebo stale claim).",
+                  : "Worker vyžaduje zásah (aktivní e-mailové incidenty nebo stale claim).",
           },
           emailQueue: {
             pending,

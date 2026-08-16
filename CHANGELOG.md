@@ -8,6 +8,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Historické selhání doručení e-mailu nyní zůstává v logu, ale po potvrzeném doručení explicitního resendu se správně uzavře jako incident a nezůstává v administrativní sekci Pozornost ani v počtech aktivních e-mailových problémů.
 - EmailLog nyní rozlišuje přijetí veřejné pending rezervace (`BOOKING_RECEIVED`) od finálního potvrzení po schválení (`BOOKING_CONFIRMED`), včetně bezpečného přeřazení jednoznačně rozpoznatelných historických e-mailů; klientka dál dostává stejné dva lifecycle e-maily.
 - Resend webhooky nyní perzistentně a race-safe deduplikují ověřené Svix eventy, takže opakované doručení nemění tracking ani znovu neodesílá Pushover upozornění.
 - Administrační přehled e-mailů a „Pozornost“ nyní při vyhodnocení výsledku doručení zohledňují i následný Resend tracking: bounce, suppression a provider failure se zobrazí jako nedoručené, i když transportní `EmailLog.status` zůstává `SENT`.

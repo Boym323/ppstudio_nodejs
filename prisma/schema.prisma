@@ -727,6 +727,10 @@ model EmailLog {
   trackingFailedAt     DateTime?
   trackingSuppressedAt DateTime?
   trackingRawPayload   Json?
+  resendOfId           String?
+  resendRootId         String?
+  incidentResolvedAt   DateTime?
+  incidentResolvedByEmailLogId String?
   errorMessage         String?
   sentAt               DateTime?
   createdAt            DateTime            @default(now())
@@ -734,6 +738,10 @@ model EmailLog {
   booking              Booking?            @relation(fields: [bookingId], references: [id], onDelete: SetNull)
   client               Client?             @relation(fields: [clientId], references: [id], onDelete: SetNull)
   actionToken          BookingActionToken? @relation(fields: [actionTokenId], references: [id], onDelete: SetNull)
+  resendOf             EmailLog?           @relation("EmailLogResendChain", fields: [resendOfId], references: [id], onDelete: Restrict)
+  resends              EmailLog[]          @relation("EmailLogResendChain")
+  resendRoot           EmailLog?           @relation("EmailLogIncidentRoot", fields: [resendRootId], references: [id], onDelete: Restrict)
+  incidentResends      EmailLog[]          @relation("EmailLogIncidentRoot")
 
   @@index([bookingId, createdAt])
   @@index([clientId, createdAt])
@@ -742,6 +750,9 @@ model EmailLog {
   @@index([status, nextAttemptAt])
   @@index([processingStartedAt])
   @@index([providerMessageId])
+  @@index([resendOfId])
+  @@index([resendRootId])
+  @@index([incidentResolvedAt])
 }
 
 model EmailProviderWebhookEvent {

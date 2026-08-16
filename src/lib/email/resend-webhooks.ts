@@ -175,6 +175,7 @@ export async function applyResendWebhookEvent({ event, providerEventId, notifyDe
           select: {
             id: true,
             bookingId: true,
+            resendRootId: true,
             trackingLastEventAt: true,
             trackingDeliveredAt: true,
             trackingOpenedAt: true,
@@ -232,6 +233,21 @@ export async function applyResendWebhookEvent({ event, providerEventId, notifyDe
           }
 
           await tx.emailLog.update({ where: { id: emailLog.id }, data: update });
+
+          // Pouze explicitní resend může uzavřít incident původní zprávy. Samotný
+          // jiný lifecycle e-mail se proto do této cesty nikdy nedostane.
+          if (event.type === "email.delivered" && emailLog.resendRootId) {
+            await tx.emailLog.updateMany({
+              where: {
+                id: emailLog.resendRootId,
+                incidentResolvedAt: null,
+              },
+              data: {
+                incidentResolvedAt: trackedAt,
+                incidentResolvedByEmailLogId: emailLog.id,
+              },
+            });
+          }
 
           if (shouldNotifyDeliveryIssue) {
             deliveryIssue = { emailLogId: emailLog.id, bookingId: emailLog.bookingId };

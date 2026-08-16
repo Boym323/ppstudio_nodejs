@@ -14,6 +14,8 @@ export function resolveEmailLogRecipientFromContact(input: {
 }
 
 export function buildResendEmailLogCreateInput(input: {
+  resendOfId: string;
+  resendRootId: string;
   bookingId: string | null;
   clientId: string | null;
   actionTokenId: string | null;
@@ -36,6 +38,8 @@ export function buildResendEmailLogCreateInput(input: {
         : input.payload;
 
   return {
+    resendOfId: input.resendOfId,
+    resendRootId: input.resendRootId,
     bookingId: input.bookingId,
     clientId: input.clientId,
     actionTokenId: input.actionTokenId,

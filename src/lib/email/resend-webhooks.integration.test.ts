@@ -121,3 +121,56 @@ dbTest("Resend webhook rozlišuje různé eventy a nededuplikuje podle provider 
     await prisma.emailLog.deleteMany({ where: { id: { in: logs.map((log) => log.id) } } });
   }
 });
+
+dbTest("doručený resend idempotentně uzavře celý explicitní incident chain bez přepisu bounce historie", async () => {
+  const [{ prisma }, { applyResendWebhookEvent }, { getUnresolvedEmailDeliveryFailureWhere }] = await Promise.all([
+    import("@/lib/prisma"),
+    import("@/lib/email/resend-webhooks"),
+    import("@/lib/email/incidents"),
+  ]);
+  const seed = randomUUID();
+  const root = await createEmailLog(`resend-root-${seed}`);
+  await prisma.emailLog.update({
+    where: { id: root.id },
+    data: { trackingBouncedAt: new Date("2026-08-16T09:00:00.000Z") },
+  });
+  const middle = await prisma.emailLog.create({
+    data: {
+      type: EmailLogType.GENERIC, status: EmailLogStatus.SENT, recipientEmail: `middle-${seed}@example.test`, subject: "Resend", templateKey: "webhook-test", provider: "resend", providerMessageId: `resend-middle-${seed}`,
+      resendOfId: root.id, resendRootId: root.id, trackingBouncedAt: new Date("2026-08-16T10:00:00.000Z"),
+    },
+  });
+  const deliveredMessageId = `resend-delivered-${seed}`;
+  const delivered = await prisma.emailLog.create({
+    data: {
+      type: EmailLogType.GENERIC, status: EmailLogStatus.SENT, recipientEmail: `delivered-${seed}@example.test`, subject: "Resend", templateKey: "webhook-test", provider: "resend", providerMessageId: deliveredMessageId,
+      resendOfId: middle.id, resendRootId: root.id,
+    },
+  });
+  const eventId = `msg_delivered_chain_${seed}`;
+
+  try {
+    assert.equal(await prisma.emailLog.count({ where: { AND: [{ id: { in: [root.id, middle.id, delivered.id] } }, getUnresolvedEmailDeliveryFailureWhere()] } }) > 0, true);
+    const event = { type: "email.delivered", created_at: "2026-08-16T11:00:00.000Z", data: { email_id: deliveredMessageId } };
+    const [first, duplicate] = await Promise.all([
+      applyResendWebhookEvent({ event, providerEventId: eventId }),
+      applyResendWebhookEvent({ event, providerEventId: eventId }),
+    ]);
+    const [storedRoot, storedMiddle, storedDelivered] = await Promise.all([
+      prisma.emailLog.findUniqueOrThrow({ where: { id: root.id } }),
+      prisma.emailLog.findUniqueOrThrow({ where: { id: middle.id } }),
+      prisma.emailLog.findUniqueOrThrow({ where: { id: delivered.id } }),
+    ]);
+
+    assert.equal([first, duplicate].filter((result) => !result.duplicate).length, 1);
+    assert.ok(storedRoot.incidentResolvedAt);
+    assert.equal(storedRoot.incidentResolvedByEmailLogId, delivered.id);
+    assert.ok(storedRoot.trackingBouncedAt);
+    assert.ok(storedMiddle.trackingBouncedAt);
+    assert.ok(storedDelivered.trackingDeliveredAt);
+    assert.equal(await prisma.emailLog.count({ where: { AND: [{ id: { in: [root.id, middle.id, delivered.id] } }, getUnresolvedEmailDeliveryFailureWhere()] } }), 0);
+  } finally {
+    await prisma.emailProviderWebhookEvent.deleteMany({ where: { providerEventId: eventId } });
+    await prisma.emailLog.deleteMany({ where: { id: { in: [delivered.id, middle.id, root.id] } } });
+  }
+});

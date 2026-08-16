@@ -32,6 +32,9 @@ import {
   formatClientPhoneForDisplay,
 } from "@/features/booking/lib/client-phone";
 import { deriveTrackingState } from "@/lib/email/resend-webhooks";
+import { getEmailDeliveryFailureWhere, getUnresolvedEmailDeliveryFailureWhere } from "@/lib/email/incidents";
+
+export { getEmailDeliveryFailureWhere, getUnresolvedEmailDeliveryFailureWhere } from "@/lib/email/incidents";
 import { prisma } from "@/lib/prisma";
 
 const formatDate = new Intl.DateTimeFormat("cs-CZ", {
@@ -352,7 +355,7 @@ export async function getAdminOverviewData(area: AdminArea) {
       },
     }),
     prisma.adminUser.count({ where: { isActive: true } }),
-    prisma.emailLog.count({ where: getEmailDeliveryFailureWhere() }),
+    prisma.emailLog.count({ where: getUnresolvedEmailDeliveryFailureWhere() }),
   ]);
 
   return {
@@ -1105,7 +1108,7 @@ export async function getEmailLogsData(): Promise<EmailLogsDashboardData> {
       },
     }),
     prisma.emailLog.count({ where: { status: EmailLogStatus.SENT } }),
-    prisma.emailLog.count({ where: getEmailDeliveryFailureWhere() }),
+    prisma.emailLog.count({ where: getUnresolvedEmailDeliveryFailureWhere() }),
     prisma.emailLog.count({
       where: {
         status: EmailLogStatus.SENT,
@@ -1131,7 +1134,7 @@ export async function getEmailLogsData(): Promise<EmailLogsDashboardData> {
     prisma.emailLog.findFirst({
       where: {
         OR: [
-          getEmailDeliveryFailureWhere(),
+          getUnresolvedEmailDeliveryFailureWhere(),
           {
             status: EmailLogStatus.PENDING,
             attemptCount: { gt: 0 },
@@ -1196,7 +1199,7 @@ export async function getEmailLogsData(): Promise<EmailLogsDashboardData> {
       },
     }),
     prisma.emailLog.findMany({
-      where: getEmailDeliveryFailureWhere(),
+      where: getUnresolvedEmailDeliveryFailureWhere(),
       orderBy: { updatedAt: "desc" },
       take: 6,
       include: {
@@ -1514,18 +1517,6 @@ export function buildEmailLogWhere(query: string, dateWhere?: Prisma.DateTimeFil
   };
 }
 
-/** Definitivní selhání transportu nebo následného doručení; jeden EmailLog je v dotazu jen jednou. */
-export function getEmailDeliveryFailureWhere(): Prisma.EmailLogWhereInput {
-  return {
-    OR: [
-      { status: EmailLogStatus.FAILED },
-      { trackingBouncedAt: { not: null } },
-      { trackingFailedAt: { not: null } },
-      { trackingSuppressedAt: { not: null } },
-    ],
-  };
-}
-
 function getEmailDeliveryWarningWhere(): Prisma.EmailLogWhereInput {
   return {
     OR: [
@@ -1717,15 +1708,16 @@ export function withEmailLogScope(
   staleBefore: Date,
 ): Prisma.EmailLogWhereInput {
   const deliveryFailure = getEmailDeliveryFailureWhere();
+  const unresolvedDeliveryFailure = getUnresolvedEmailDeliveryFailureWhere();
   const deliveryWarning = getEmailDeliveryWarningWhere();
   const attention: Prisma.EmailLogWhereInput = { OR: [
-    deliveryFailure,
+    unresolvedDeliveryFailure,
     deliveryWarning,
     { status: EmailLogStatus.PENDING, attemptCount: { gt: 0 }, processingStartedAt: null },
     { status: EmailLogStatus.PENDING, processingStartedAt: { lt: staleBefore } },
   ] };
   const bySeverity: Record<AdminLogSeverity, Prisma.EmailLogWhereInput> = {
-    error: deliveryFailure,
+    error: view === "attention" ? unresolvedDeliveryFailure : deliveryFailure,
     success: { AND: [{ status: EmailLogStatus.SENT }, { NOT: [deliveryFailure, deliveryWarning] }] },
     warning: { AND: [{ NOT: [deliveryFailure] }, { OR: [
       deliveryWarning,
@@ -1831,7 +1823,7 @@ export async function getAdminLogsData(input: {
   const attentionHealthActive = safeView === "attention";
   const ownerQueueHealthActive = isOwner;
   const [failed, retry, stuck, pending, processing, critical, emailTotal, bookingHistoryTotal, rescheduleTotal, voucherTotal, redemptionTotal, voucherChangeTotal, serviceChangeTotal, siteSettingsChangeTotal, availabilityTotal, adminUserAuditTotal, submissionTotal] = await Promise.all([
-    attentionHealthActive || ownerQueueHealthActive ? prisma.emailLog.count({ where: getEmailDeliveryFailureWhere() }) : Promise.resolve(0),
+    attentionHealthActive || ownerQueueHealthActive ? prisma.emailLog.count({ where: getUnresolvedEmailDeliveryFailureWhere() }) : Promise.resolve(0),
     attentionHealthActive || ownerQueueHealthActive ? prisma.emailLog.count({ where: { status: EmailLogStatus.PENDING, attemptCount: { gt: 0 }, processingStartedAt: null } }) : Promise.resolve(0),
     attentionHealthActive || ownerQueueHealthActive ? prisma.emailLog.count({ where: { status: EmailLogStatus.PENDING, processingStartedAt: { lt: staleBefore } } }) : Promise.resolve(0),
     ownerQueueHealthActive ? prisma.emailLog.count({ where: { status: EmailLogStatus.PENDING, attemptCount: 0, processingStartedAt: null } }) : Promise.resolve(0),
@@ -1857,7 +1849,7 @@ export async function getAdminLogsData(input: {
   // Totals a clamp vznikají před findMany, takže ručně zadaná hluboká stránka
   // nemůže nafouknout kandidátní množinu nad skutečnou poslední stránku.
   const [emails, bookingHistory, reschedules, vouchers, redemptions, voucherChanges, serviceChanges, siteSettingsChanges, availabilityAudits, adminUserAudits, submissions] = await Promise.all([
-    emailActive ? prisma.emailLog.findMany({ where: emailWhere, orderBy: [{ createdAt: "desc" }, { id: "desc" }], take, include: { booking: { select: { id: true, clientNameSnapshot: true, serviceNameSnapshot: true } }, client: { select: { fullName: true } } } }) : Promise.resolve([]),
+    emailActive ? prisma.emailLog.findMany({ where: emailWhere, orderBy: [{ createdAt: "desc" }, { id: "desc" }], take, include: { booking: { select: { id: true, clientNameSnapshot: true, serviceNameSnapshot: true } }, client: { select: { fullName: true } }, resendRoot: { select: { incidentResolvedAt: true, incidentResolvedByEmailLogId: true } } } }) : Promise.resolve([]),
     bookingActive ? prisma.bookingStatusHistory.findMany({ where: bookingHistoryWhere, orderBy: [{ createdAt: "desc" }, { id: "desc" }], take, include: { booking: { select: { id: true, clientNameSnapshot: true, serviceNameSnapshot: true } }, actorUser: { select: { name: true } } } }) : Promise.resolve([]),
     bookingActive ? prisma.bookingRescheduleLog.findMany({ where: rescheduleWhere, orderBy: [{ createdAt: "desc" }, { id: "desc" }], take, include: { booking: { select: { id: true, clientNameSnapshot: true, serviceNameSnapshot: true } }, changedByUser: { select: { name: true } } } }) : Promise.resolve([]),
     voucherActive ? prisma.voucher.findMany({ where: voucherWhere, orderBy: [{ createdAt: "desc" }, { id: "desc" }], take, select: { id: true, code: true, createdAt: true, createdByUser: { select: { name: true } } } }) : Promise.resolve([]),
@@ -1894,7 +1886,8 @@ export async function getAdminLogsData(input: {
       const primaryAction: AdminLogItem["primaryAction"] = isOwner
         ? (isStuck ? "release" : status === "failed" || status === "retry" ? "retry" : "detail")
         : null;
-      return { id: `email:${log.id}`, occurredAt: log.createdAt.toISOString(), category: "email" as const, severity: logSeverity, title: log.subject, description: `${log.recipientEmail}${tracking.value !== "pending" ? ` • ${tracking.label}` : ""}${log.errorMessage ? ` • ${getErrorSummary(log.errorMessage)}` : ""}`, actorLabel: null, entityLabel: log.booking ? `${log.booking.clientNameSnapshot} • ${log.booking.serviceNameSnapshot}` : log.client?.fullName ?? null, entityHref: log.booking ? bookingHref(log.booking.id) : null, sourceType: "email" as const, sourceId: log.id, primaryAction, emailLogId: log.id, queueState: getEmailRecentStatusLabel(log.status, log.processingStartedAt, log.attemptCount), trackingState: tracking.label };
+      const incidentResolved = log.resendRoot?.incidentResolvedAt ?? log.incidentResolvedAt;
+      return { id: `email:${log.id}`, occurredAt: log.createdAt.toISOString(), category: "email" as const, severity: logSeverity, title: log.subject, description: `${log.recipientEmail}${tracking.value !== "pending" ? ` • ${tracking.label}` : ""}${incidentResolved && tracking.value === "failed" ? " • Vyřešeno následným odesláním" : ""}${log.errorMessage ? ` • ${getErrorSummary(log.errorMessage)}` : ""}`, actorLabel: null, entityLabel: log.booking ? `${log.booking.clientNameSnapshot} • ${log.booking.serviceNameSnapshot}` : log.client?.fullName ?? null, entityHref: log.booking ? bookingHref(log.booking.id) : null, sourceType: "email" as const, sourceId: log.id, primaryAction, emailLogId: log.id, queueState: getEmailRecentStatusLabel(log.status, log.processingStartedAt, log.attemptCount), trackingState: tracking.label };
     }),
     ...bookingHistory.map((entry) => ({ id: `booking-history:${entry.id}`, occurredAt: entry.createdAt.toISOString(), category: "event" as const, severity: bookingHistorySeverity(entry.status), title: bookingHistoryLabel(entry.status), description: bookingHistoryReasonLabel(entry.reason) ?? entry.note, actorLabel: entry.actorUser?.name ?? (entry.actorType === "CLIENT" ? "Klientka" : entry.actorType === "SYSTEM" ? "Systém" : null), entityLabel: entry.booking ? `${entry.booking.clientNameSnapshot} • ${entry.booking.serviceNameSnapshot}` : "Odstraněná rezervace", entityHref: entry.booking ? bookingHref(entry.booking.id) : null, sourceType: "booking" as const, sourceId: entry.id, primaryAction: entry.booking ? "open" as const : null })),
     ...reschedules.map((entry) => ({ id: `booking-reschedule:${entry.id}`, occurredAt: entry.createdAt.toISOString(), category: "event" as const, severity: "info" as const, title: "Rezervace přesunuta", description: entry.reason, actorLabel: entry.changedByUser?.name ?? (entry.changedByClient ? "Klientka" : null), entityLabel: entry.booking ? `${entry.booking.clientNameSnapshot} • ${entry.booking.serviceNameSnapshot}` : "Odstraněná rezervace", entityHref: entry.booking ? bookingHref(entry.booking.id) : null, sourceType: "booking" as const, sourceId: entry.id, primaryAction: entry.booking ? "open" as const : null })),
