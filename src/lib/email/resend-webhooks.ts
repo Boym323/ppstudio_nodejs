@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { getUnresolvedEmailDeliveryIncidentRootWhere } from "@/lib/email/incidents";
 
 type ResendWebhookHeaders = {
   id: string;
@@ -190,7 +191,12 @@ async function applyStoredResendWebhookEvent(tx: WebhookTransaction, input: {
   await tx.emailLog.update({ where: { id: emailLog.id }, data: update });
   if (eventType === "email.delivered" && emailLog.resendRootId) {
     await tx.emailLog.updateMany({
-      where: { id: emailLog.resendRootId, incidentResolvedAt: null },
+      where: {
+        AND: [
+          { id: emailLog.resendRootId },
+          getUnresolvedEmailDeliveryIncidentRootWhere(),
+        ],
+      },
       data: {
         incidentResolvedAt: trackedAt,
         incidentResolvedByEmailLogId: emailLog.id,

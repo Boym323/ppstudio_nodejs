@@ -414,3 +414,116 @@ dbTest("doručený resend idempotentně uzavře celý explicitní incident chain
     await prisma.emailLog.deleteMany({ where: { id: { in: [delivered.id, middle.id, root.id] } } });
   }
 });
+
+dbTest("doručený resend neuzavře čistý ani complaint-only chain bez delivery failure", async () => {
+  const [{ prisma }, { applyResendWebhookEvent }, { getUnresolvedEmailDeliveryIncidentRootWhere }, { getEmailLogDetailData, getAdminLogsData }, { getAdminDashboardData }, { createHealthRouteApi }] = await Promise.all([
+    import("@/lib/prisma"),
+    import("@/lib/email/resend-webhooks"),
+    import("@/lib/email/incidents"),
+    import("@/features/admin/lib/admin-data"),
+    import("@/features/admin/lib/admin-dashboard"),
+    import("@/app/api/health/route-api"),
+  ]);
+  const seed = randomUUID();
+  const ids: string[] = [];
+  const eventIds = [`msg-clean-delivered-${seed}`, `msg-complaint-delivered-${seed}`, `msg-child-failure-delivered-${seed}`];
+  const cleanSubject = `Čistý resend ${seed}`;
+  const initialActiveIncidentCount = await prisma.emailLog.count({ where: getUnresolvedEmailDeliveryIncidentRootWhere() });
+
+  try {
+    const cleanRoot = await createEmailLog(`resend-clean-root-${seed}`);
+    ids.push(cleanRoot.id);
+    const cleanDelivered = await prisma.emailLog.create({
+      data: {
+        type: EmailLogType.GENERIC, status: EmailLogStatus.SENT, recipientEmail: `clean-delivered-${seed}@example.test`, subject: cleanSubject, templateKey: "webhook-test", provider: "resend", providerMessageId: `resend-clean-delivered-${seed}`,
+        resendOfId: cleanRoot.id, resendRootId: cleanRoot.id,
+      },
+    });
+    ids.push(cleanDelivered.id);
+    await applyResendWebhookEvent({
+      event: { type: "email.delivered", created_at: "2026-08-16T11:00:00.000Z", data: { email_id: cleanDelivered.providerMessageId! } },
+      providerEventId: eventIds[0],
+    });
+
+    const complaintRoot = await createEmailLog(`resend-complaint-root-${seed}`);
+    ids.push(complaintRoot.id);
+    const complained = await prisma.emailLog.create({
+      data: {
+        type: EmailLogType.GENERIC, status: EmailLogStatus.SENT, recipientEmail: `complained-${seed}@example.test`, subject: "Complaint resend chain", templateKey: "webhook-test", provider: "resend", providerMessageId: `resend-complained-${seed}`,
+        resendOfId: complaintRoot.id, resendRootId: complaintRoot.id, trackingComplainedAt: new Date("2026-08-16T11:01:00.000Z"),
+      },
+    });
+    ids.push(complained.id);
+    const complaintDelivered = await prisma.emailLog.create({
+      data: {
+        type: EmailLogType.GENERIC, status: EmailLogStatus.SENT, recipientEmail: `complaint-delivered-${seed}@example.test`, subject: "Complaint resend chain", templateKey: "webhook-test", provider: "resend", providerMessageId: `resend-complaint-delivered-${seed}`,
+        resendOfId: complained.id, resendRootId: complaintRoot.id,
+      },
+    });
+    ids.push(complaintDelivered.id);
+    await applyResendWebhookEvent({
+      event: { type: "email.delivered", created_at: "2026-08-16T11:02:00.000Z", data: { email_id: complaintDelivered.providerMessageId! } },
+      providerEventId: eventIds[1],
+    });
+
+    const failedChildRoot = await createEmailLog(`resend-failed-child-root-${seed}`);
+    ids.push(failedChildRoot.id);
+    const failedChild = await prisma.emailLog.create({
+      data: {
+        type: EmailLogType.GENERIC, status: EmailLogStatus.FAILED, recipientEmail: `failed-child-${seed}@example.test`, subject: "Failure na childovi", templateKey: "webhook-test",
+        resendOfId: failedChildRoot.id, resendRootId: failedChildRoot.id,
+      },
+    });
+    ids.push(failedChild.id);
+    const deliveredAfterFailure = await prisma.emailLog.create({
+      data: {
+        type: EmailLogType.GENERIC, status: EmailLogStatus.SENT, recipientEmail: `delivered-after-failure-${seed}@example.test`, subject: "Failure na childovi", templateKey: "webhook-test", provider: "resend", providerMessageId: `resend-delivered-after-failure-${seed}`,
+        resendOfId: failedChild.id, resendRootId: failedChildRoot.id,
+      },
+    });
+    ids.push(deliveredAfterFailure.id);
+    const deliveredAfterFailureEvent = {
+      type: "email.delivered",
+      created_at: "2026-08-16T11:03:00.000Z",
+      data: { email_id: deliveredAfterFailure.providerMessageId! },
+    };
+    await applyResendWebhookEvent({ event: deliveredAfterFailureEvent, providerEventId: eventIds[2] });
+    const resolvedAfterFailure = await prisma.emailLog.findUniqueOrThrow({ where: { id: failedChildRoot.id } });
+    await applyResendWebhookEvent({ event: deliveredAfterFailureEvent, providerEventId: eventIds[2] });
+
+    const [storedCleanRoot, storedComplaintRoot, storedFailedChildRoot, activeIncidents, detail, attention, dashboard, healthResponse] = await Promise.all([
+      prisma.emailLog.findUniqueOrThrow({ where: { id: cleanRoot.id } }),
+      prisma.emailLog.findUniqueOrThrow({ where: { id: complaintRoot.id } }),
+      prisma.emailLog.findUniqueOrThrow({ where: { id: failedChildRoot.id } }),
+      prisma.emailLog.count({ where: { AND: [{ id: { in: ids } }, getUnresolvedEmailDeliveryIncidentRootWhere()] } }),
+      getEmailLogDetailData(cleanRoot.id),
+      getAdminLogsData({ area: "owner", view: "attention", source: "email", query: cleanSubject }),
+      getAdminDashboardData("owner"),
+      createHealthRouteApi().GET(),
+    ]);
+    const health = await healthResponse.json() as { emailIncidents: { active: number } };
+    const dashboardAlert = dashboard.alerts.find((alert) => alert.id === "email-failures");
+
+    for (const root of [storedCleanRoot, storedComplaintRoot]) {
+      assert.equal(root.incidentResolvedAt, null);
+      assert.equal(root.incidentResolutionKind, null);
+      assert.equal(root.incidentResolvedByEmailLogId, null);
+    }
+    assert.ok(resolvedAfterFailure.incidentResolvedAt);
+    assert.equal(storedFailedChildRoot.incidentResolvedAt?.toISOString(), resolvedAfterFailure.incidentResolvedAt?.toISOString());
+    assert.equal(storedFailedChildRoot.incidentResolutionKind, "DELIVERED_RESEND");
+    assert.equal(storedFailedChildRoot.incidentResolvedByEmailLogId, deliveredAfterFailure.id);
+    assert.equal(activeIncidents, 0);
+    assert.equal(detail?.incidentResolution, null);
+    assert.equal(attention.items.length, 0);
+    assert.equal(health.emailIncidents.active, initialActiveIncidentCount);
+    if (initialActiveIncidentCount === 0) {
+      assert.equal(dashboardAlert, undefined);
+    } else {
+      assert.match(dashboardAlert?.text ?? "", new RegExp(`^${initialActiveIncidentCount} `));
+    }
+  } finally {
+    await prisma.emailProviderWebhookEvent.deleteMany({ where: { providerEventId: { in: eventIds } } });
+    await prisma.emailLog.deleteMany({ where: { id: { in: ids } } });
+  }
+});
