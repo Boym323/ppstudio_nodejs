@@ -8,6 +8,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- EmailLog nyní rozlišuje přijetí veřejné pending rezervace (`BOOKING_RECEIVED`) od finálního potvrzení po schválení (`BOOKING_CONFIRMED`), včetně bezpečného přeřazení jednoznačně rozpoznatelných historických e-mailů; klientka dál dostává stejné dva lifecycle e-maily.
 - Resend webhooky nyní perzistentně a race-safe deduplikují ověřené Svix eventy, takže opakované doručení nemění tracking ani znovu neodesílá Pushover upozornění.
 - Administrační přehled e-mailů a „Pozornost“ nyní při vyhodnocení výsledku doručení zohledňují i následný Resend tracking: bounce, suppression a provider failure se zobrazí jako nedoručené, i když transportní `EmailLog.status` zůstává `SENT`.
 - Pushover alert po Resend `email.bounced` nyní správně rozlišuje následné nedoručení po předání providerovi od skutečného vyčerpání retry při odesílání; oba alerty zachovávají existující odkaz na rezervaci nebo e-mailový log.

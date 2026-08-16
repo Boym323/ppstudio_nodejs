@@ -234,6 +234,9 @@ function emailTypeLabel(type: EmailLogType, templateKey: string): string {
 
   switch (type) {
     case EmailLogType.BOOKING_CREATED:
+      return "Notifikace nové rezervace";
+    case EmailLogType.BOOKING_RECEIVED:
+      return "Přijetí rezervace";
     case EmailLogType.BOOKING_CONFIRMED:
       return "Potvrzení rezervace";
     case EmailLogType.BOOKING_CANCELLED:
@@ -964,6 +967,8 @@ function getEmailTypeCategory(type: EmailLogType, templateKey: string): EmailRec
 
   switch (type) {
     case EmailLogType.BOOKING_CREATED:
+    case EmailLogType.BOOKING_RECEIVED:
+      return "booking_received";
     case EmailLogType.BOOKING_CONFIRMED:
       return "booking_confirmation";
     case EmailLogType.BOOKING_REMINDER:

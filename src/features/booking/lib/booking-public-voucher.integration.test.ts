@@ -357,7 +357,7 @@ describe("public booking intended voucher", () => {
         prisma.emailLog.findFirstOrThrow({
           where: {
             bookingId: result.bookingId,
-            type: EmailLogType.BOOKING_CONFIRMED,
+            type: EmailLogType.BOOKING_RECEIVED,
             templateKey: "booking-confirmation-v1",
           },
           select: {
@@ -687,7 +687,7 @@ describe("public booking intended voucher", () => {
       const emailLog = await prisma.emailLog.findFirstOrThrow({
         where: {
           bookingId: result.bookingId,
-          type: EmailLogType.BOOKING_CONFIRMED,
+          type: EmailLogType.BOOKING_RECEIVED,
           templateKey: "booking-confirmation-v1",
         },
         select: { payload: true },

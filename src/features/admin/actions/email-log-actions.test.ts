@@ -62,6 +62,24 @@ test("buildResendEmailLogCreateInput resets queue and provider state for resend"
   assert.deepEqual(data.payload, payload);
 });
 
+test("buildResendEmailLogCreateInput preserves received-booking template", async () => {
+  const { buildResendEmailLogCreateInput } = await import("@/features/admin/actions/email-log-action-helpers");
+
+  const data = buildResendEmailLogCreateInput({
+    bookingId: "booking-1",
+    clientId: "client-1",
+    actionTokenId: "token-1",
+    type: EmailLogType.BOOKING_RECEIVED,
+    recipientEmail: "client@example.com",
+    subject: "Přijetí rezervace",
+    templateKey: "booking-confirmation-v1",
+    payload: { bookingId: "booking-1" },
+  });
+
+  assert.equal(data.type, EmailLogType.BOOKING_RECEIVED);
+  assert.equal(data.templateKey, "booking-confirmation-v1");
+});
+
 test("buildResendEmailLogCreateInput omits payload when source payload is null", async () => {
   const { buildResendEmailLogCreateInput } = await import("@/features/admin/actions/email-log-action-helpers");
   const data = buildResendEmailLogCreateInput({

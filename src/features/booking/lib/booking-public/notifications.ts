@@ -72,7 +72,10 @@ export async function createNotificationEmailLogs(
         bookingId: input.bookingId,
         clientId: input.clientId,
         actionTokenId: rescheduleActionToken.id,
-        type: EmailLogType.BOOKING_CONFIRMED,
+        type:
+          input.status === BookingStatus.CONFIRMED
+            ? EmailLogType.BOOKING_CONFIRMED
+            : EmailLogType.BOOKING_RECEIVED,
         status: env.EMAIL_DELIVERY_MODE === "background" ? undefined : EmailLogStatus.SENT,
         attemptCount: env.EMAIL_DELIVERY_MODE === "background" ? undefined : 1,
         nextAttemptAt: env.EMAIL_DELIVERY_MODE === "background" ? input.now : undefined,

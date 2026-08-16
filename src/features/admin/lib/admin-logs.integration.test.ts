@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import test from "node:test";
 
-import { AdminRole, BookingSubmissionOutcome, ServiceChangeOperation, VoucherChangeOperation, VoucherType } from "@prisma/client";
+import { AdminRole, BookingSubmissionOutcome, EmailLogType, ServiceChangeOperation, VoucherChangeOperation, VoucherType } from "@prisma/client";
 
 process.env.DATABASE_URL ??= "postgresql://postgres:postgres@localhost:5432/ppstudio?schema=public";
 
@@ -93,5 +93,40 @@ dbTest("admin logy používají české popisky voucheru a název kategorie slu�
     await prisma.service.delete({ where: { id: service.id } });
     await prisma.serviceCategory.delete({ where: { id: nextCategory.id } });
     await prisma.adminUser.delete({ where: { id: actor.id } });
+  }
+});
+
+dbTest("admin logy filtrují a popisují oba lifecycle e-maily rezervace", async () => {
+  const [{ prisma }, { getAdminLogsData }] = await Promise.all([
+    import("@/lib/prisma"),
+    import("./admin-data"),
+  ]);
+  const suffix = randomUUID();
+
+  try {
+    await prisma.emailLog.createMany({
+      data: [
+        {
+          type: EmailLogType.BOOKING_RECEIVED,
+          recipientEmail: `received-${suffix}@example.com`,
+          subject: `Přijetí rezervace ${suffix}`,
+          templateKey: "booking-confirmation-v1",
+        },
+        {
+          type: EmailLogType.BOOKING_CONFIRMED,
+          recipientEmail: `confirmed-${suffix}@example.com`,
+          subject: `Potvrzení rezervace ${suffix}`,
+          templateKey: "booking-approved-v1",
+        },
+      ],
+    });
+
+    const received = await getAdminLogsData({ area: "owner", view: "emails", query: suffix, emailType: EmailLogType.BOOKING_RECEIVED });
+    const confirmed = await getAdminLogsData({ area: "owner", view: "emails", query: suffix, emailType: EmailLogType.BOOKING_CONFIRMED });
+
+    assert.equal(received.items[0]?.title, "Přijetí rezervace");
+    assert.equal(confirmed.items[0]?.title, "Potvrzení rezervace");
+  } finally {
+    await prisma.emailLog.deleteMany({ where: { subject: { contains: suffix } } });
   }
 });
