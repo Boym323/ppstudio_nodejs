@@ -42,6 +42,8 @@ function getFlashMessage(flash?: string) {
       return "Do fronty byl založený nový pokus o odeslání tohoto e-mailu.";
     case "resend-missing-recipient":
       return "U aktuálního kontaktu není vyplněný e-mail, takže resend nelze založit.";
+    case "incident-closed":
+      return "Incident byl ručně uzavřený. Historie e-mailu zůstala beze změny.";
     default:
       return undefined;
   }

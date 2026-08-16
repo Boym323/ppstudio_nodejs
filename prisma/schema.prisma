@@ -101,6 +101,18 @@ enum EmailLogType {
   GENERIC
 }
 
+enum EmailIncidentResolutionKind {
+  DELIVERED_RESEND
+  MANUAL
+}
+
+enum EmailIncidentManualResolutionReason {
+  HISTORICAL
+  CONTACTED_OTHER_WAY
+  NO_LONGER_RELEVANT
+  OTHER
+}
+
 enum BookingSubmissionOutcome {
   SUCCESS
   FAILED
@@ -193,40 +205,41 @@ enum SiteSettingsChangeOperation {
 }
 
 model AdminUser {
-  id                         String                    @id @default(cuid())
-  email                      String                    @unique
-  name                       String
-  role                       AdminRole
-  passwordHash               String?
-  isActive                   Boolean                   @default(true)
-  invitedAt                  DateTime?
-  lastLoginAt                DateTime?
-  createdAt                  DateTime                  @default(now())
-  updatedAt                  DateTime                  @updatedAt
-  inviteTokens               AdminUserInviteToken[]
-  createdAvailabilitySlots   AvailabilitySlot[]        @relation("AvailabilitySlotCreatedBy")
-  createdBookings            Booking[]                 @relation("BookingCreatedBy")
-  bookingStatusHistoryItems  BookingStatusHistory[]    @relation("BookingStatusHistoryActor")
-  bookingRescheduleLogs      BookingRescheduleLog[]    @relation("BookingRescheduleLogActor")
-  servicePriceChangeLogs     ServicePriceChangeLog[]   @relation("ServicePriceChangeLogActor")
-  updatedCalendarFeeds       CalendarFeed[]            @relation("CalendarFeedUpdatedBy")
-  updatedSettings            Setting[]                 @relation("SettingUpdatedBy")
-  updatedSiteSettings        SiteSettings[]            @relation("SiteSettingsUpdatedBy")
-  updatedAutoLunchOverrides  AutoLunchDayOverride[]    @relation("AutoLunchDayOverrideUpdatedBy")
-  notificationSettings       UserNotificationSettings?
-  createdVouchers            Voucher[]                 @relation("AdminUserCreatedVouchers")
-  cancelledVouchers          Voucher[]                 @relation("VoucherCancelledBy")
-  updatedVouchers            Voucher[]                 @relation("VoucherUpdatedBy")
-  redeemedVoucherRedemptions VoucherRedemption[]       @relation("AdminUserRedeemedVoucherRedemptions")
-  bookingPayments            BookingPayment[]          @relation("BookingPaymentCreatedBy")
-  voidedBookingPayments      BookingPayment[]          @relation("BookingPaymentVoidedBy")
-  adjustedBookingPrices      Booking[]                 @relation("BookingPriceAdjustedBy")
-  availabilityAuditEvents    AvailabilityAuditEvent[]  @relation("AvailabilityAuditEventActor")
-  targetedAdminUserAudits    AdminUserAuditEvent[]     @relation("AdminUserAuditTarget")
-  authoredAdminUserAudits    AdminUserAuditEvent[]     @relation("AdminUserAuditActor")
-  voucherChangeLogs          VoucherChangeLog[]        @relation("VoucherChangeLogActor")
-  serviceChangeLogs          ServiceChangeLog[]        @relation("ServiceChangeLogActor")
-  siteSettingsChangeLogs     SiteSettingsChangeLog[]   @relation("SiteSettingsChangeLogActor")
+  id                             String                    @id @default(cuid())
+  email                          String                    @unique
+  name                           String
+  role                           AdminRole
+  passwordHash                   String?
+  isActive                       Boolean                   @default(true)
+  invitedAt                      DateTime?
+  lastLoginAt                    DateTime?
+  createdAt                      DateTime                  @default(now())
+  updatedAt                      DateTime                  @updatedAt
+  inviteTokens                   AdminUserInviteToken[]
+  createdAvailabilitySlots       AvailabilitySlot[]        @relation("AvailabilitySlotCreatedBy")
+  createdBookings                Booking[]                 @relation("BookingCreatedBy")
+  bookingStatusHistoryItems      BookingStatusHistory[]    @relation("BookingStatusHistoryActor")
+  bookingRescheduleLogs          BookingRescheduleLog[]    @relation("BookingRescheduleLogActor")
+  servicePriceChangeLogs         ServicePriceChangeLog[]   @relation("ServicePriceChangeLogActor")
+  updatedCalendarFeeds           CalendarFeed[]            @relation("CalendarFeedUpdatedBy")
+  updatedSettings                Setting[]                 @relation("SettingUpdatedBy")
+  updatedSiteSettings            SiteSettings[]            @relation("SiteSettingsUpdatedBy")
+  updatedAutoLunchOverrides      AutoLunchDayOverride[]    @relation("AutoLunchDayOverrideUpdatedBy")
+  notificationSettings           UserNotificationSettings?
+  createdVouchers                Voucher[]                 @relation("AdminUserCreatedVouchers")
+  cancelledVouchers              Voucher[]                 @relation("VoucherCancelledBy")
+  updatedVouchers                Voucher[]                 @relation("VoucherUpdatedBy")
+  redeemedVoucherRedemptions     VoucherRedemption[]       @relation("AdminUserRedeemedVoucherRedemptions")
+  manuallyResolvedEmailIncidents EmailLog[]                @relation("EmailLogIncidentManualResolution")
+  bookingPayments                BookingPayment[]          @relation("BookingPaymentCreatedBy")
+  voidedBookingPayments          BookingPayment[]          @relation("BookingPaymentVoidedBy")
+  adjustedBookingPrices          Booking[]                 @relation("BookingPriceAdjustedBy")
+  availabilityAuditEvents        AvailabilityAuditEvent[]  @relation("AvailabilityAuditEventActor")
+  targetedAdminUserAudits        AdminUserAuditEvent[]     @relation("AdminUserAuditTarget")
+  authoredAdminUserAudits        AdminUserAuditEvent[]     @relation("AdminUserAuditActor")
+  voucherChangeLogs              VoucherChangeLog[]        @relation("VoucherChangeLogActor")
+  serviceChangeLogs              ServiceChangeLog[]        @relation("ServiceChangeLogActor")
+  siteSettingsChangeLogs         SiteSettingsChangeLog[]   @relation("SiteSettingsChangeLogActor")
 }
 
 model AdminUserAuditEvent {
@@ -701,47 +714,52 @@ model BookingActionToken {
 }
 
 model EmailLog {
-  id                   String              @id @default(cuid())
-  bookingId            String?
-  clientId             String?
-  actionTokenId        String?
-  type                 EmailLogType
-  status               EmailLogStatus      @default(PENDING)
-  attemptCount         Int                 @default(0)
-  nextAttemptAt        DateTime            @default(now())
-  processingStartedAt  DateTime?
-  processingToken      String?
-  recipientEmail       String
-  subject              String
-  templateKey          String
-  payload              Json?
-  provider             String?
-  providerMessageId    String?
-  trackingLastEvent    String?
-  trackingLastEventAt  DateTime?
-  trackingDeliveredAt  DateTime?
-  trackingOpenedAt     DateTime?
-  trackingClickedAt    DateTime?
-  trackingBouncedAt    DateTime?
-  trackingComplainedAt DateTime?
-  trackingFailedAt     DateTime?
-  trackingSuppressedAt DateTime?
-  trackingRawPayload   Json?
-  resendOfId           String?
-  resendRootId         String?
-  incidentResolvedAt   DateTime?
-  incidentResolvedByEmailLogId String?
-  errorMessage         String?
-  sentAt               DateTime?
-  createdAt            DateTime            @default(now())
-  updatedAt            DateTime            @updatedAt
-  booking              Booking?            @relation(fields: [bookingId], references: [id], onDelete: SetNull)
-  client               Client?             @relation(fields: [clientId], references: [id], onDelete: SetNull)
-  actionToken          BookingActionToken? @relation(fields: [actionTokenId], references: [id], onDelete: SetNull)
-  resendOf             EmailLog?           @relation("EmailLogResendChain", fields: [resendOfId], references: [id], onDelete: Restrict)
-  resends              EmailLog[]          @relation("EmailLogResendChain")
-  resendRoot           EmailLog?           @relation("EmailLogIncidentRoot", fields: [resendRootId], references: [id], onDelete: Restrict)
-  incidentResends      EmailLog[]          @relation("EmailLogIncidentRoot")
+  id                             String                               @id @default(cuid())
+  bookingId                      String?
+  clientId                       String?
+  actionTokenId                  String?
+  type                           EmailLogType
+  status                         EmailLogStatus                       @default(PENDING)
+  attemptCount                   Int                                  @default(0)
+  nextAttemptAt                  DateTime                             @default(now())
+  processingStartedAt            DateTime?
+  processingToken                String?
+  recipientEmail                 String
+  subject                        String
+  templateKey                    String
+  payload                        Json?
+  provider                       String?
+  providerMessageId              String?
+  trackingLastEvent              String?
+  trackingLastEventAt            DateTime?
+  trackingDeliveredAt            DateTime?
+  trackingOpenedAt               DateTime?
+  trackingClickedAt              DateTime?
+  trackingBouncedAt              DateTime?
+  trackingComplainedAt           DateTime?
+  trackingFailedAt               DateTime?
+  trackingSuppressedAt           DateTime?
+  trackingRawPayload             Json?
+  resendOfId                     String?
+  resendRootId                   String?
+  incidentResolvedAt             DateTime?
+  incidentResolvedByEmailLogId   String?
+  incidentResolutionKind         EmailIncidentResolutionKind?
+  incidentManualResolvedByUserId String?
+  incidentManualResolutionReason EmailIncidentManualResolutionReason?
+  incidentManualResolutionNote   String?
+  errorMessage                   String?
+  sentAt                         DateTime?
+  createdAt                      DateTime                             @default(now())
+  updatedAt                      DateTime                             @updatedAt
+  booking                        Booking?                             @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  client                         Client?                              @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  actionToken                    BookingActionToken?                  @relation(fields: [actionTokenId], references: [id], onDelete: SetNull)
+  resendOf                       EmailLog?                            @relation("EmailLogResendChain", fields: [resendOfId], references: [id], onDelete: Restrict)
+  resends                        EmailLog[]                           @relation("EmailLogResendChain")
+  resendRoot                     EmailLog?                            @relation("EmailLogIncidentRoot", fields: [resendRootId], references: [id], onDelete: Restrict)
+  incidentResends                EmailLog[]                           @relation("EmailLogIncidentRoot")
+  incidentManualResolvedByUser   AdminUser?                           @relation("EmailLogIncidentManualResolution", fields: [incidentManualResolvedByUserId], references: [id], onDelete: Restrict)
 
   @@index([bookingId, createdAt])
   @@index([clientId, createdAt])
@@ -753,16 +771,17 @@ model EmailLog {
   @@index([resendOfId])
   @@index([resendRootId])
   @@index([incidentResolvedAt])
+  @@index([incidentManualResolvedByUserId])
 }
 
 model EmailProviderWebhookEvent {
-  id                String   @id @default(cuid())
+  id                String    @id @default(cuid())
   provider          String
   providerEventId   String
   eventType         String
   providerMessageId String?
   providerEventAt   DateTime?
-  receivedAt        DateTime @default(now())
+  receivedAt        DateTime  @default(now())
   processedAt       DateTime
   outcome           String
 
@@ -825,7 +844,7 @@ model SiteSettings {
   bookingMinAdvanceHours   Int                     @default(2)
   bookingMaxAdvanceDays    Int                     @default(90)
   bookingCancellationHours Int                     @default(48)
-  autoLunchEnabled        Boolean                 @default(true)
+  autoLunchEnabled         Boolean                 @default(true)
   notificationAdminEmail   String
   emailSenderName          String
   emailSenderEmail         String
@@ -844,10 +863,10 @@ model SiteSettings {
 
 /// Výslovné vypnutí automatického oběda pro lokální pražský den; absence znamená AUTO.
 model AutoLunchDayOverride {
-  dateKey         String    @id
+  dateKey         String     @id
   updatedByUserId String?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
   updatedByUser   AdminUser? @relation("AutoLunchDayOverrideUpdatedBy", fields: [updatedByUserId], references: [id], onDelete: SetNull)
 
   @@index([updatedByUserId])

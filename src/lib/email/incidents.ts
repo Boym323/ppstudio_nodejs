@@ -1,5 +1,17 @@
 import { EmailLogStatus, type Prisma } from "@prisma/client";
 
+export function isEmailDeliveryFailure(input: {
+  status: EmailLogStatus;
+  trackingBouncedAt: Date | null;
+  trackingFailedAt: Date | null;
+  trackingSuppressedAt: Date | null;
+}) {
+  return input.status === EmailLogStatus.FAILED
+    || input.trackingBouncedAt !== null
+    || input.trackingFailedAt !== null
+    || input.trackingSuppressedAt !== null;
+}
+
 /** Historický definitivní failure bez ohledu na stav navazujícího resendu. */
 export function getEmailDeliveryFailureWhere(): Prisma.EmailLogWhereInput {
   return {

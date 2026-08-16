@@ -6,6 +6,8 @@ import {
   BookingSubmissionOutcome,
   EmailLogStatus,
   EmailLogType,
+  EmailIncidentManualResolutionReason,
+  EmailIncidentResolutionKind,
   Prisma,
 } from "@prisma/client";
 
@@ -32,7 +34,7 @@ import {
   formatClientPhoneForDisplay,
 } from "@/features/booking/lib/client-phone";
 import { deriveTrackingState } from "@/lib/email/resend-webhooks";
-import { getEmailDeliveryFailureWhere, getUnresolvedEmailDeliveryFailureWhere } from "@/lib/email/incidents";
+import { getEmailDeliveryFailureWhere, getUnresolvedEmailDeliveryFailureWhere, isEmailDeliveryFailure } from "@/lib/email/incidents";
 
 export { getEmailDeliveryFailureWhere, getUnresolvedEmailDeliveryFailureWhere } from "@/lib/email/incidents";
 import { prisma } from "@/lib/prisma";
@@ -84,6 +86,21 @@ function formatDateTimeLabel(value: Date | null | undefined): string {
   }
 
   return formatDateTime.format(value);
+}
+
+function manualIncidentResolutionReasonLabel(reason: EmailIncidentManualResolutionReason | null) {
+  switch (reason) {
+    case EmailIncidentManualResolutionReason.HISTORICAL:
+      return "Historický";
+    case EmailIncidentManualResolutionReason.CONTACTED_OTHER_WAY:
+      return "Kontaktována jinak";
+    case EmailIncidentManualResolutionReason.NO_LONGER_RELEVANT:
+      return "Již nerelevantní";
+    case EmailIncidentManualResolutionReason.OTHER:
+      return "Jiný důvod";
+    default:
+      return "Bez uvedeného důvodu";
+  }
 }
 
 function formatTimeRange(startsAt: Date, endsAt: Date): string {
@@ -905,6 +922,11 @@ export type EmailLogDetailData = {
   clientSummary: string;
   clientContactEmail: string | null;
   canResend: boolean;
+  canCloseIncident: boolean;
+  incidentResolution: {
+    label: string;
+    detail: string;
+  } | null;
   actionTokenId: string | null;
   actionTokenLabel: string;
   actionTokenSummary: string;
@@ -1850,7 +1872,7 @@ export async function getAdminLogsData(input: {
   // Totals a clamp vznikají před findMany, takže ručně zadaná hluboká stránka
   // nemůže nafouknout kandidátní množinu nad skutečnou poslední stránku.
   const [emails, bookingHistory, reschedules, vouchers, redemptions, voucherChanges, serviceChanges, siteSettingsChanges, availabilityAudits, adminUserAudits, submissions] = await Promise.all([
-    emailActive ? prisma.emailLog.findMany({ where: emailWhere, orderBy: [{ createdAt: "desc" }, { id: "desc" }], take, include: { booking: { select: { id: true, clientNameSnapshot: true, serviceNameSnapshot: true } }, client: { select: { fullName: true } }, resendRoot: { select: { incidentResolvedAt: true, incidentResolvedByEmailLogId: true } } } }) : Promise.resolve([]),
+    emailActive ? prisma.emailLog.findMany({ where: emailWhere, orderBy: [{ createdAt: "desc" }, { id: "desc" }], take, include: { booking: { select: { id: true, clientNameSnapshot: true, serviceNameSnapshot: true } }, client: { select: { fullName: true } }, resendRoot: { select: { incidentResolvedAt: true, incidentResolvedByEmailLogId: true, incidentResolutionKind: true } } } }) : Promise.resolve([]),
     bookingActive ? prisma.bookingStatusHistory.findMany({ where: bookingHistoryWhere, orderBy: [{ createdAt: "desc" }, { id: "desc" }], take, include: { booking: { select: { id: true, clientNameSnapshot: true, serviceNameSnapshot: true } }, actorUser: { select: { name: true } } } }) : Promise.resolve([]),
     bookingActive ? prisma.bookingRescheduleLog.findMany({ where: rescheduleWhere, orderBy: [{ createdAt: "desc" }, { id: "desc" }], take, include: { booking: { select: { id: true, clientNameSnapshot: true, serviceNameSnapshot: true } }, changedByUser: { select: { name: true } } } }) : Promise.resolve([]),
     voucherActive ? prisma.voucher.findMany({ where: voucherWhere, orderBy: [{ createdAt: "desc" }, { id: "desc" }], take, select: { id: true, code: true, createdAt: true, createdByUser: { select: { name: true } } } }) : Promise.resolve([]),
@@ -1887,8 +1909,15 @@ export async function getAdminLogsData(input: {
       const primaryAction: AdminLogItem["primaryAction"] = isOwner
         ? (isStuck ? "release" : status === "failed" || status === "retry" ? "retry" : "detail")
         : null;
-      const incidentResolved = log.resendRoot?.incidentResolvedAt ?? log.incidentResolvedAt;
-      return { id: `email:${log.id}`, occurredAt: log.createdAt.toISOString(), category: "email" as const, severity: logSeverity, title: log.subject, description: `${log.recipientEmail}${tracking.value !== "pending" ? ` • ${tracking.label}` : ""}${incidentResolved && tracking.value === "failed" ? " • Vyřešeno následným odesláním" : ""}${log.errorMessage ? ` • ${getErrorSummary(log.errorMessage)}` : ""}`, actorLabel: null, entityLabel: log.booking ? `${log.booking.clientNameSnapshot} • ${log.booking.serviceNameSnapshot}` : log.client?.fullName ?? null, entityHref: log.booking ? bookingHref(log.booking.id) : null, sourceType: "email" as const, sourceId: log.id, primaryAction, emailLogId: log.id, queueState: getEmailRecentStatusLabel(log.status, log.processingStartedAt, log.attemptCount), trackingState: tracking.label };
+      const incidentRoot = log.resendRoot ?? log;
+      const incidentResolutionKind = incidentRoot.incidentResolutionKind
+        ?? (incidentRoot.incidentResolvedByEmailLogId ? EmailIncidentResolutionKind.DELIVERED_RESEND : null);
+      const incidentResolutionLabel = incidentRoot.incidentResolvedAt && tracking.value === "failed"
+        ? incidentResolutionKind === EmailIncidentResolutionKind.MANUAL
+          ? " • Ručně uzavřeno"
+          : " • Vyřešeno následným odesláním"
+        : "";
+      return { id: `email:${log.id}`, occurredAt: log.createdAt.toISOString(), category: "email" as const, severity: logSeverity, title: log.subject, description: `${log.recipientEmail}${tracking.value !== "pending" ? ` • ${tracking.label}` : ""}${incidentResolutionLabel}${log.errorMessage ? ` • ${getErrorSummary(log.errorMessage)}` : ""}`, actorLabel: null, entityLabel: log.booking ? `${log.booking.clientNameSnapshot} • ${log.booking.serviceNameSnapshot}` : log.client?.fullName ?? null, entityHref: log.booking ? bookingHref(log.booking.id) : null, sourceType: "email" as const, sourceId: log.id, primaryAction, emailLogId: log.id, queueState: getEmailRecentStatusLabel(log.status, log.processingStartedAt, log.attemptCount), trackingState: tracking.label };
     }),
     ...bookingHistory.map((entry) => ({ id: `booking-history:${entry.id}`, occurredAt: entry.createdAt.toISOString(), category: "event" as const, severity: bookingHistorySeverity(entry.status), title: bookingHistoryLabel(entry.status), description: bookingHistoryReasonLabel(entry.reason) ?? entry.note, actorLabel: entry.actorUser?.name ?? (entry.actorType === "CLIENT" ? "Klientka" : entry.actorType === "SYSTEM" ? "Systém" : null), entityLabel: entry.booking ? `${entry.booking.clientNameSnapshot} • ${entry.booking.serviceNameSnapshot}` : "Odstraněná rezervace", entityHref: entry.booking ? bookingHref(entry.booking.id) : null, sourceType: "booking" as const, sourceId: entry.id, primaryAction: entry.booking ? "open" as const : null })),
     ...reschedules.map((entry) => ({ id: `booking-reschedule:${entry.id}`, occurredAt: entry.createdAt.toISOString(), category: "event" as const, severity: "info" as const, title: "Rezervace přesunuta", description: entry.reason, actorLabel: entry.changedByUser?.name ?? (entry.changedByClient ? "Klientka" : null), entityLabel: entry.booking ? `${entry.booking.clientNameSnapshot} • ${entry.booking.serviceNameSnapshot}` : "Odstraněná rezervace", entityHref: entry.booking ? bookingHref(entry.booking.id) : null, sourceType: "booking" as const, sourceId: entry.id, primaryAction: entry.booking ? "open" as const : null })),
@@ -1949,6 +1978,21 @@ export async function getEmailLogDetailData(emailLogId: string): Promise<EmailLo
           revokedAt: true,
         },
       },
+      incidentManualResolvedByUser: {
+        select: { name: true, email: true },
+      },
+      resendRoot: {
+        select: {
+          incidentResolvedAt: true,
+          incidentResolvedByEmailLogId: true,
+          incidentResolutionKind: true,
+          incidentManualResolutionReason: true,
+          incidentManualResolutionNote: true,
+          incidentManualResolvedByUser: {
+            select: { name: true, email: true },
+          },
+        },
+      },
     },
   });
 
@@ -1968,6 +2012,22 @@ export async function getEmailLogDetailData(emailLogId: string): Promise<EmailLo
     : "Bez termínu rezervace";
   const clientName = emailLog.booking?.clientNameSnapshot ?? emailLog.client?.fullName ?? "Bez klientky";
   const lastAttemptLabel = formatDateTimeLabel(emailLog.sentAt ?? emailLog.updatedAt);
+  const incidentRoot = emailLog.resendRoot ?? emailLog;
+  const incidentIsActive = isEmailDeliveryFailure(emailLog)
+    && incidentRoot.incidentResolvedAt === null;
+  const incidentResolutionKind = incidentRoot.incidentResolutionKind
+    ?? (incidentRoot.incidentResolvedByEmailLogId ? EmailIncidentResolutionKind.DELIVERED_RESEND : null);
+  const incidentResolution = incidentRoot.incidentResolvedAt && incidentResolutionKind
+    ? incidentResolutionKind === EmailIncidentResolutionKind.MANUAL
+      ? {
+          label: "Ručně uzavřeno",
+          detail: `${formatDateTimeLabel(incidentRoot.incidentResolvedAt)} • ${incidentRoot.incidentManualResolvedByUser?.name ?? incidentRoot.incidentManualResolvedByUser?.email ?? "Neznámý OWNER"} • ${manualIncidentResolutionReasonLabel(incidentRoot.incidentManualResolutionReason)}${incidentRoot.incidentManualResolutionNote ? ` • ${incidentRoot.incidentManualResolutionNote}` : ""}`,
+        }
+      : {
+          label: "Vyřešeno následným odesláním",
+          detail: `${formatDateTimeLabel(incidentRoot.incidentResolvedAt)} • doručený explicitní resend`,
+        }
+    : null;
 
   return {
     id: emailLog.id,
@@ -2019,6 +2079,8 @@ export async function getEmailLogDetailData(emailLogId: string): Promise<EmailLo
       : "Bez navázaného klienta",
     clientContactEmail: emailLog.client?.email ?? null,
     canResend: !isProcessing,
+    canCloseIncident: incidentIsActive,
+    incidentResolution,
     actionTokenId: emailLog.actionToken?.id ?? null,
     actionTokenLabel: emailLog.actionToken ? actionTokenTypeLabel(emailLog.actionToken.type) : "Bez navázaného action tokenu",
     actionTokenSummary: emailLog.actionToken

@@ -191,7 +191,11 @@ async function applyStoredResendWebhookEvent(tx: WebhookTransaction, input: {
   if (eventType === "email.delivered" && emailLog.resendRootId) {
     await tx.emailLog.updateMany({
       where: { id: emailLog.resendRootId, incidentResolvedAt: null },
-      data: { incidentResolvedAt: trackedAt, incidentResolvedByEmailLogId: emailLog.id },
+      data: {
+        incidentResolvedAt: trackedAt,
+        incidentResolvedByEmailLogId: emailLog.id,
+        incidentResolutionKind: "DELIVERED_RESEND",
+      },
     });
   }
 

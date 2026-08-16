@@ -9,6 +9,7 @@ Formát je inspirovaný Keep a Changelog.
 ### Opraveno
 
 - Testovací a release běhy nyní bezpodmínečně blokují Pushover transport i při zděděné produkční konfiguraci, takže webhookové fixture nemohou odeslat skutečné owner upozornění.
+- OWNER nyní může auditovatelně ručně uzavřít historický e-mailový incident bez resendování klientce; původní bounce, suppressed nebo FAILED záznam zůstává beze změny a incident se přestane zobrazovat v Pozornosti.
 
 ## [3.18.0] - 2026-08-16
 

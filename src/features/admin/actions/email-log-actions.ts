@@ -1,6 +1,6 @@
 "use server";
 
-import { EmailLogStatus } from "@prisma/client";
+import { EmailIncidentManualResolutionReason, EmailLogStatus } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -10,10 +10,20 @@ import {
   resolveEmailLogRecipientFromContact,
 } from "@/features/admin/actions/email-log-action-helpers";
 import { requireAdminArea } from "@/lib/auth/session";
+import { manuallyResolveEmailIncident } from "@/lib/email/incident-resolution";
 import { prisma } from "@/lib/prisma";
 
 const emailLogActionSchema = z.object({
   emailLogId: z.string().trim().min(1).max(64),
+});
+
+const closeEmailIncidentSchema = emailLogActionSchema.extend({
+  reason: z.nativeEnum(EmailIncidentManualResolutionReason),
+  note: z.string().trim().max(300).optional(),
+}).superRefine((value, context) => {
+  if (value.reason === EmailIncidentManualResolutionReason.OTHER && !value.note) {
+    context.addIssue({ code: "custom", path: ["note"], message: "Doplňte krátkou poznámku." });
+  }
 });
 
 function readFormString(formData: FormData, key: string) {
@@ -164,4 +174,36 @@ export async function resendEmailLogAction(formData: FormData) {
 
   revalidateResendPaths(emailLog.id, createdEmailLog.id);
   redirect(`/admin/email-logy/${createdEmailLog.id}?flash=resend-success`);
+}
+
+export async function closeEmailIncidentAction(formData: FormData) {
+  const session = await requireAdminArea("owner");
+  const parsed = closeEmailIncidentSchema.safeParse({
+    emailLogId: readFormString(formData, "emailLogId"),
+    reason: readFormString(formData, "reason"),
+    note: readFormString(formData, "note"),
+  });
+
+  if (!parsed.success) {
+    redirect("/admin/email-logy");
+  }
+
+  const result = await manuallyResolveEmailIncident({
+    emailLogId: parsed.data.emailLogId,
+    actorUserId: session.sub,
+    actorRole: session.role,
+    reason: parsed.data.reason,
+    note: parsed.data.note || null,
+  });
+
+  if (result.outcome === "missing" || result.outcome === "forbidden" || result.outcome === "not_an_incident") {
+    redirect("/admin/email-logy");
+  }
+
+  revalidatePath("/admin/email-logy");
+  revalidatePath(`/admin/email-logy/${parsed.data.emailLogId}`);
+  if (result.rootId !== parsed.data.emailLogId) {
+    revalidatePath(`/admin/email-logy/${result.rootId}`);
+  }
+  redirect(`/admin/email-logy/${parsed.data.emailLogId}?flash=incident-closed`);
 }

@@ -5,6 +5,7 @@ import {
   resendEmailLogAction,
   retryEmailLogAction,
 } from "../actions/email-log-actions";
+import { EmailIncidentResolutionForm } from "./email-incident-resolution-form";
 import { type EmailLogDetailData } from "../lib/admin-data";
 import { AdminPageShell, AdminPanel } from "./admin-page-shell";
 
@@ -174,10 +175,19 @@ function EmailQuickActions({ data }: { data: EmailLogDetailData }) {
               </button>
             </form>
           ) : null}
+
+          {data.canCloseIncident ? <EmailIncidentResolutionForm emailLogId={data.id} /> : null}
         </div>
 
         <p className="text-sm leading-5 text-white/66 lg:max-w-[30rem] lg:text-right">{retryHint}</p>
       </div>
+
+      {data.incidentResolution ? (
+        <div className="mt-3 rounded-[0.9rem] border border-emerald-300/20 bg-emerald-400/[0.07] px-3.5 py-2.5 text-sm text-emerald-50">
+          <p className="font-semibold">{data.incidentResolution.label}</p>
+          <p className="mt-1 text-emerald-50/78">{data.incidentResolution.detail}</p>
+        </div>
+      ) : null}
     </AdminPanel>
   );
 }

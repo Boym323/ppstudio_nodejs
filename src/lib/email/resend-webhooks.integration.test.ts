@@ -257,11 +257,12 @@ dbTest("resend po opravě kontaktu zachová bounce audit původního logu a zalo
 });
 
 dbTest("terminální failed retry zachová audit a doručený navazující resend uzavře incident", async () => {
-  const [{ prisma }, { buildResendEmailLogCreateInput }, { applyResendWebhookEvent }, { getUnresolvedEmailDeliveryFailureWhere }] = await Promise.all([
+  const [{ prisma }, { buildResendEmailLogCreateInput }, { applyResendWebhookEvent }, { getUnresolvedEmailDeliveryFailureWhere }, { getEmailLogDetailData }] = await Promise.all([
     import("@/lib/prisma"),
     import("@/features/admin/actions/email-log-action-helpers"),
     import("@/lib/email/resend-webhooks"),
     import("@/lib/email/incidents"),
+    import("@/features/admin/lib/admin-data"),
   ]);
   const seed = randomUUID();
   const root = await prisma.emailLog.create({
@@ -337,10 +338,11 @@ dbTest("terminální failed retry zachová audit a doručený navazující resen
       event: { type: "email.delivered", created_at: "2026-08-16T12:00:00.000Z", data: { email_id: deliveredMessageId } },
       providerEventId: eventId,
     });
-    const [storedRoot, storedFailedResend, storedDeliveredResend] = await Promise.all([
+    const [storedRoot, storedFailedResend, storedDeliveredResend, detail] = await Promise.all([
       prisma.emailLog.findUniqueOrThrow({ where: { id: root.id } }),
       prisma.emailLog.findUniqueOrThrow({ where: { id: firstResend.id } }),
       prisma.emailLog.findUniqueOrThrow({ where: { id: deliveredResend.id } }),
+      getEmailLogDetailData(root.id),
     ]);
 
     assert.equal(storedRoot.status, EmailLogStatus.FAILED);
@@ -349,6 +351,8 @@ dbTest("terminální failed retry zachová audit a doručený navazující resen
     assert.equal(storedDeliveredResend.trackingDeliveredAt?.toISOString(), "2026-08-16T12:00:00.000Z");
     assert.ok(storedRoot.incidentResolvedAt);
     assert.equal(storedRoot.incidentResolvedByEmailLogId, deliveredResend.id);
+    assert.equal(storedRoot.incidentResolutionKind, "DELIVERED_RESEND");
+    assert.equal(detail?.incidentResolution?.label, "Vyřešeno následným odesláním");
     assert.equal(await prisma.emailLog.count({ where: { AND: [{ id: { in: [root.id, firstResend.id] } }, getUnresolvedEmailDeliveryFailureWhere()] } }), 0);
   } finally {
     await prisma.emailProviderWebhookEvent.deleteMany({ where: { providerEventId: eventId } });
@@ -400,6 +404,7 @@ dbTest("doručený resend idempotentně uzavře celý explicitní incident chain
     assert.equal([first, duplicate].filter((result) => !result.duplicate).length, 1);
     assert.ok(storedRoot.incidentResolvedAt);
     assert.equal(storedRoot.incidentResolvedByEmailLogId, delivered.id);
+    assert.equal(storedRoot.incidentResolutionKind, "DELIVERED_RESEND");
     assert.ok(storedRoot.trackingBouncedAt);
     assert.ok(storedMiddle.trackingBouncedAt);
     assert.ok(storedDelivered.trackingDeliveredAt);
