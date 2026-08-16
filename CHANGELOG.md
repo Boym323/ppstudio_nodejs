@@ -6,6 +6,10 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+### Opraveno
+
+- Úspěšné veřejné rezervace ani konflikty termínu nyní nevyčerpávají e-mailový limit pro skutečná selhání; validační a ostatní booking chyby se do něj nadále započítávají.
+
 ### Zabezpečení
 
 - Interní mutace storna plateb a zařazení voucher e-mailu už nejsou veřejně dosažitelnými Server Actions; chráněné action entrypointy nyní předávají ověřený kontext do server-only helperů.

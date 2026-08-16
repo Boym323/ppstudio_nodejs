@@ -236,8 +236,6 @@ export async function createPublicBookingAction(
       },
     });
 
-    await releaseAtomicRateLimitReservation(emailRateLimit.reservationId);
-
     return {
       status: "error",
       formError: "Formulář potřebuje doplnit nebo opravit.",
@@ -289,6 +287,8 @@ export async function createPublicBookingAction(
         acquisition: acquisitionData,
       },
     });
+
+    await releaseAtomicRateLimitReservation(emailRateLimit.reservationId);
 
     return {
       status: "success",
