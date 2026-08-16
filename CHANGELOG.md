@@ -6,6 +6,12 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [3.22.1] - 2026-08-16
+
+### Změněno
+
+- Release příprava pro produkční nasazení: projektová verze navýšena na patch `3.22.1` kvůli zpřesnění integračních testů obnovování rezervací při použití paddingu slotu.
+
 ## [3.22.0] - 2026-08-16
 
 ### Změněno
