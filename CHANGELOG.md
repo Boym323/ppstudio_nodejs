@@ -6,6 +6,12 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [3.22.0] - 2026-08-16
+
+### Změněno
+
+- Release příprava pro produkční nasazení: projektová verze navýšena na minor `3.22.0` kvůli zpětně kompatibilnímu rozšíření obnovování archivovaných termínů a zpracování rezervací.
+
 ### Opraveno
 
 - Při ručním přesunu aktivní rezervace z archivovaného původního slotu se nyní původní volný čas bezpečně znovu publikuje a podle potřeby sloučí se sousední dostupností; při překryvu s novým interním override se obnoví jen jeho volná část. Interní override nového termínu zůstává blokující.
