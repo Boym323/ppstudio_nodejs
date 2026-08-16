@@ -146,6 +146,7 @@ test("applyResendWebhookEvent records email.bounced as a provider delivery issue
   const originalTransaction = prisma.$transaction;
   const originalWebhookCreateMany = prisma.emailProviderWebhookEvent.createMany;
   const originalWebhookUpdateMany = prisma.emailProviderWebhookEvent.updateMany;
+  const originalExecuteRaw = prisma.$executeRaw;
   const updates: unknown[] = [];
   const events: unknown[] = [];
 
@@ -170,6 +171,7 @@ test("applyResendWebhookEvent records email.bounced as a provider delivery issue
     return { count: 1 };
   }) as typeof prisma.emailProviderWebhookEvent.createMany;
   prisma.emailProviderWebhookEvent.updateMany = (async () => ({ count: 1 })) as typeof prisma.emailProviderWebhookEvent.updateMany;
+  prisma.$executeRaw = (async () => 1) as typeof prisma.$executeRaw;
   prisma.$transaction = (async (callback: (tx: typeof prisma) => Promise<unknown>) => callback(prisma)) as unknown as typeof prisma.$transaction;
 
   try {
@@ -182,7 +184,7 @@ test("applyResendWebhookEvent records email.bounced as a provider delivery issue
       },
     });
 
-    assert.deepEqual(result, { matched: true, ignored: false, deliveryIssue: { emailLogId: "email-log-bounce", bookingId: "booking-bounce" }, duplicate: false });
+    assert.deepEqual(result, { matched: true, ignored: false, outcome: "MATCHED", deliveryIssue: { emailLogId: "email-log-bounce", bookingId: "booking-bounce", eventType: "email.bounced" }, duplicate: false });
     assert.deepEqual(updates, [{
       where: { id: "email-log-bounce" },
       data: {
@@ -197,6 +199,7 @@ test("applyResendWebhookEvent records email.bounced as a provider delivery issue
     prisma.emailLog.update = originalUpdate;
     prisma.emailProviderWebhookEvent.createMany = originalWebhookCreateMany;
     prisma.emailProviderWebhookEvent.updateMany = originalWebhookUpdateMany;
+    prisma.$executeRaw = originalExecuteRaw;
     prisma.$transaction = originalTransaction;
   }
 });

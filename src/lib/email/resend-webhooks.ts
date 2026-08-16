@@ -24,6 +24,9 @@ type ResendWebhookApplyInput = {
   }) => Promise<void>;
 };
 
+type DeliveryIssue = { emailLogId: string; bookingId: string | null; eventType: string };
+type WebhookTransaction = Pick<typeof prisma, "emailLog" | "emailProviderWebhookEvent" | "$executeRaw">;
+
 const EMAIL_EVENT_TYPES = new Set([
   "email.sent",
   "email.delivered",
@@ -35,6 +38,11 @@ const EMAIL_EVENT_TYPES = new Set([
   "email.failed",
   "email.suppressed",
 ]);
+
+async function lockResendMessage(tx: WebhookTransaction, providerMessageId: string | null) {
+  if (!providerMessageId) return;
+  await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${providerMessageId}, 0))`;
+}
 
 export async function verifyResendWebhookPayload(input: {
   payload: string;
@@ -140,16 +148,95 @@ export function deriveTrackingState(input: {
   } as const;
 }
 
+async function applyStoredResendWebhookEvent(tx: WebhookTransaction, input: {
+  eventType: string;
+  providerMessageId: string | null;
+  providerEventAt: Date | null;
+}) {
+  const { eventType, providerMessageId: emailId } = input;
+  if (!EMAIL_EVENT_TYPES.has(eventType) || !emailId) {
+    return { matched: false, ignored: true, outcome: "IGNORED", deliveryIssue: null };
+  }
+
+  const trackedAt = input.providerEventAt ?? new Date();
+  const emailLog = await tx.emailLog.findFirst({
+    where: { providerMessageId: emailId },
+    select: {
+      id: true, bookingId: true, resendRootId: true, trackingLastEventAt: true,
+      trackingDeliveredAt: true, trackingOpenedAt: true, trackingClickedAt: true,
+      trackingBouncedAt: true, trackingComplainedAt: true, trackingFailedAt: true,
+      trackingSuppressedAt: true,
+    },
+  });
+
+  if (!emailLog) {
+    return { matched: false, ignored: false, outcome: "UNMATCHED", deliveryIssue: null };
+  }
+
+  const update: Parameters<typeof tx.emailLog.update>[0]["data"] = {};
+  let shouldNotifyDeliveryIssue = false;
+  if (!emailLog.trackingLastEventAt || trackedAt >= emailLog.trackingLastEventAt) {
+    update.trackingLastEvent = eventType;
+    update.trackingLastEventAt = trackedAt;
+  }
+  if (eventType === "email.delivered" && !emailLog.trackingDeliveredAt) update.trackingDeliveredAt = trackedAt;
+  if (eventType === "email.opened" && !emailLog.trackingOpenedAt) update.trackingOpenedAt = trackedAt;
+  if (eventType === "email.clicked" && !emailLog.trackingClickedAt) update.trackingClickedAt = trackedAt;
+  if (eventType === "email.bounced" && !emailLog.trackingBouncedAt) { update.trackingBouncedAt = trackedAt; shouldNotifyDeliveryIssue = true; }
+  if (eventType === "email.complained" && !emailLog.trackingComplainedAt) { update.trackingComplainedAt = trackedAt; shouldNotifyDeliveryIssue = true; }
+  if (eventType === "email.failed" && !emailLog.trackingFailedAt) { update.trackingFailedAt = trackedAt; shouldNotifyDeliveryIssue = true; }
+  if (eventType === "email.suppressed" && !emailLog.trackingSuppressedAt) { update.trackingSuppressedAt = trackedAt; shouldNotifyDeliveryIssue = true; }
+
+  await tx.emailLog.update({ where: { id: emailLog.id }, data: update });
+  if (eventType === "email.delivered" && emailLog.resendRootId) {
+    await tx.emailLog.updateMany({
+      where: { id: emailLog.resendRootId, incidentResolvedAt: null },
+      data: { incidentResolvedAt: trackedAt, incidentResolvedByEmailLogId: emailLog.id },
+    });
+  }
+
+  return {
+    matched: true,
+    ignored: false,
+    outcome: "MATCHED",
+    deliveryIssue: shouldNotifyDeliveryIssue
+      ? { emailLogId: emailLog.id, bookingId: emailLog.bookingId, eventType }
+      : null,
+  };
+}
+
+async function notifyDeliveryIssues(issues: DeliveryIssue[], notifyDeliveryIssue: ResendWebhookApplyInput["notifyDeliveryIssue"]) {
+  for (const issue of issues) {
+    try {
+      if (notifyDeliveryIssue) {
+        await notifyDeliveryIssue({ ...issue, emailType: issue.eventType });
+      } else {
+        const { sendOwnerEmailFailurePushover } = await import("@/lib/notifications/pushover-core");
+        await sendOwnerEmailFailurePushover({
+          emailLogId: issue.emailLogId, bookingId: issue.bookingId, emailType: issue.eventType,
+          isReminder: false, failureKind: "provider-delivery",
+        });
+      }
+    } catch (error) {
+      console.error("Resend delivery issue Pushover notification failed", {
+        emailLogId: issue.emailLogId, eventType: issue.eventType, error,
+      });
+    }
+  }
+}
+
 export async function applyResendWebhookEvent({ event, providerEventId, notifyDeliveryIssue }: ResendWebhookApplyInput) {
   const emailId = event.data?.email_id?.trim() || null;
-
+  const providerEventAt = parseEventDate(event.created_at);
   const result = await prisma.$transaction(async (tx) => {
+      await lockResendMessage(tx, emailId);
       const eventClaim = await tx.emailProviderWebhookEvent.createMany({
         data: {
           provider: "resend",
           providerEventId,
           eventType: event.type,
           providerMessageId: emailId,
+          providerEventAt,
           processedAt: new Date(),
           outcome: "RECEIVED",
         },
@@ -157,134 +244,59 @@ export async function applyResendWebhookEvent({ event, providerEventId, notifyDe
       });
 
       if (eventClaim.count === 0) {
-        return { matched: false, ignored: true, deliveryIssue: null, duplicate: true };
+        return { matched: false, ignored: true, outcome: "DUPLICATE", deliveryIssue: null, duplicate: true };
       }
 
-      let matched = false;
-      let ignored = false;
-      let deliveryIssue: { emailLogId: string; bookingId: string | null } | null = null;
-      let outcome = "UNMATCHED";
-
-      if (!EMAIL_EVENT_TYPES.has(event.type) || !emailId) {
-        ignored = true;
-        outcome = "IGNORED";
-      } else {
-        const trackedAt = parseEventDate(event.created_at) ?? new Date();
-        const emailLog = await tx.emailLog.findFirst({
-          where: { providerMessageId: emailId },
-          select: {
-            id: true,
-            bookingId: true,
-            resendRootId: true,
-            trackingLastEventAt: true,
-            trackingDeliveredAt: true,
-            trackingOpenedAt: true,
-            trackingClickedAt: true,
-            trackingBouncedAt: true,
-            trackingComplainedAt: true,
-            trackingFailedAt: true,
-            trackingSuppressedAt: true,
-          },
-        });
-
-        if (!emailLog) {
-          outcome = "UNMATCHED";
-        } else {
-          matched = true;
-          outcome = "MATCHED";
-          const update: Parameters<typeof tx.emailLog.update>[0]["data"] = {};
-          let shouldNotifyDeliveryIssue = false;
-
-          if (!emailLog.trackingLastEventAt || trackedAt >= emailLog.trackingLastEventAt) {
-            update.trackingLastEvent = event.type;
-            update.trackingLastEventAt = trackedAt;
-          }
-
-          if (event.type === "email.delivered" && !emailLog.trackingDeliveredAt) {
-            update.trackingDeliveredAt = trackedAt;
-          }
-
-          if (event.type === "email.opened" && !emailLog.trackingOpenedAt) {
-            update.trackingOpenedAt = trackedAt;
-          }
-
-          if (event.type === "email.clicked" && !emailLog.trackingClickedAt) {
-            update.trackingClickedAt = trackedAt;
-          }
-
-          if (event.type === "email.bounced" && !emailLog.trackingBouncedAt) {
-            update.trackingBouncedAt = trackedAt;
-            shouldNotifyDeliveryIssue = true;
-          }
-
-          if (event.type === "email.complained" && !emailLog.trackingComplainedAt) {
-            update.trackingComplainedAt = trackedAt;
-            shouldNotifyDeliveryIssue = true;
-          }
-
-          if (event.type === "email.failed" && !emailLog.trackingFailedAt) {
-            update.trackingFailedAt = trackedAt;
-            shouldNotifyDeliveryIssue = true;
-          }
-
-          if (event.type === "email.suppressed" && !emailLog.trackingSuppressedAt) {
-            update.trackingSuppressedAt = trackedAt;
-            shouldNotifyDeliveryIssue = true;
-          }
-
-          await tx.emailLog.update({ where: { id: emailLog.id }, data: update });
-
-          // Pouze explicitní resend může uzavřít incident původní zprávy. Samotný
-          // jiný lifecycle e-mail se proto do této cesty nikdy nedostane.
-          if (event.type === "email.delivered" && emailLog.resendRootId) {
-            await tx.emailLog.updateMany({
-              where: {
-                id: emailLog.resendRootId,
-                incidentResolvedAt: null,
-              },
-              data: {
-                incidentResolvedAt: trackedAt,
-                incidentResolvedByEmailLogId: emailLog.id,
-              },
-            });
-          }
-
-          if (shouldNotifyDeliveryIssue) {
-            deliveryIssue = { emailLogId: emailLog.id, bookingId: emailLog.bookingId };
-          }
-        }
-      }
+      const applied = await applyStoredResendWebhookEvent(tx, { eventType: event.type, providerMessageId: emailId, providerEventAt });
 
       await tx.emailProviderWebhookEvent.updateMany({
         where: { provider: "resend", providerEventId },
-        data: { outcome, processedAt: new Date() },
+        data: { outcome: applied.outcome, processedAt: new Date() },
       });
 
-      return { matched, ignored, deliveryIssue, duplicate: false };
+      return { ...applied, duplicate: false };
     });
 
-  if (result.deliveryIssue) {
-    try {
-      if (notifyDeliveryIssue) {
-        await notifyDeliveryIssue({ ...result.deliveryIssue, emailType: event.type });
-      } else {
-        const { sendOwnerEmailFailurePushover } = await import("@/lib/notifications/pushover-core");
-        await sendOwnerEmailFailurePushover({
-          emailLogId: result.deliveryIssue.emailLogId,
-          bookingId: result.deliveryIssue.bookingId,
-          emailType: event.type,
-          isReminder: false,
-          failureKind: "provider-delivery",
-        });
-      }
-    } catch (error) {
-      console.error("Resend delivery issue Pushover notification failed", {
-        emailLogId: result.deliveryIssue.emailLogId,
-        eventType: event.type,
-        error,
-      });
-    }
+  if (result.deliveryIssue) await notifyDeliveryIssues([result.deliveryIssue], notifyDeliveryIssue);
+
+  if (!result.duplicate && !result.matched && !result.ignored) {
+    console.info("Resend webhook unmatched", { providerEventId, eventType: event.type, providerMessageId: emailId });
   }
 
   return result;
+}
+
+/** Zpracuje pouze dříve ověřené a uložené webhooky, které přišly před zápisem message ID. */
+export async function reconcileUnmatchedResendWebhookEvents(providerMessageId: string, notifyDeliveryIssue?: ResendWebhookApplyInput["notifyDeliveryIssue"]) {
+  const result = await prisma.$transaction(async (tx) => {
+    await lockResendMessage(tx, providerMessageId);
+    const events = await tx.emailProviderWebhookEvent.findMany({
+      where: { provider: "resend", providerMessageId, outcome: "UNMATCHED" },
+      select: { id: true },
+    });
+    const issues: DeliveryIssue[] = [];
+    let reconciled = 0;
+
+    for (const eventRef of events) {
+      const claimed = await tx.emailProviderWebhookEvent.updateMany({
+        where: { id: eventRef.id, outcome: "UNMATCHED" },
+        data: { outcome: "RECONCILING", processedAt: new Date() },
+      });
+      if (claimed.count === 0) continue;
+      const event = await tx.emailProviderWebhookEvent.findUniqueOrThrow({ where: { id: eventRef.id } });
+      const applied = await applyStoredResendWebhookEvent(tx, event);
+      await tx.emailProviderWebhookEvent.update({
+        where: { id: event.id },
+        data: { outcome: applied.matched ? "RECONCILED" : "UNMATCHED", processedAt: new Date() },
+      });
+      if (applied.matched) reconciled += 1;
+      if (applied.deliveryIssue) issues.push(applied.deliveryIssue);
+    }
+
+    return { reconciled, candidates: events.length, issues };
+  });
+
+  if (result.issues.length > 0) await notifyDeliveryIssues(result.issues, notifyDeliveryIssue);
+  console.info(result.candidates > 0 ? "Resend webhook reconciliation completed" : "Resend webhook reconciliation no match", { providerMessageId, eventCount: result.candidates });
+  return { reconciled: result.reconciled, candidates: result.candidates };
 }

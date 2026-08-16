@@ -8,6 +8,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Resend webhook, který dorazí před uložením `providerMessageId` workerem, se nyní po úspěšném předání e-mailu bezpečně zpracuje z ověřené perzistence; tracking ani Pushover se při souběhu nezdvojují.
 - Admin metriky a health texty e-mailů nyní přesně rozlišují aktivní incidenty doručení od transportního stavu `FAILED`; součet odeslaných zpráv je popsaný jako předání providerovi, nikoli jako potvrzené doručení.
 - Ruční opakování terminálně selhaného e-mailu nyní zakládá nový resend log a zachovává původní auditní historii i aktivní incident až do potvrzeného doručení resendu.
 - Ruční resend e-mailu nyní přebírá aktuální adresu kontaktu pouze do nového `EmailLogu`; historický příjemce původního pokusu včetně bounce zůstává neměnný a auditně dohledatelný.

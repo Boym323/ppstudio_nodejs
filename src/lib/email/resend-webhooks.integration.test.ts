@@ -84,6 +84,63 @@ dbTest("Resend webhook ukládá event atomicky a deduplikuje opakované i soubě
   }
 });
 
+dbTest("Resend reconciliation zpracuje dříve uložené UNMATCHED eventy právě jednou", async () => {
+  const [{ prisma }, { applyResendWebhookEvent, reconcileUnmatchedResendWebhookEvents }] = await Promise.all([
+    import("@/lib/prisma"),
+    import("@/lib/email/resend-webhooks"),
+  ]);
+  const seed = randomUUID();
+  const messageId = `resend-reconcile-${seed}`;
+  const eventIds = [`msg_sent_${seed}`, `msg_bounce_${seed}`, `msg_complaint_${seed}`];
+  const notifications: string[] = [];
+  const notifyDeliveryIssue = async ({ emailLogId, emailType }: { emailLogId: string; emailType: string }) => {
+    notifications.push(`${emailLogId}:${emailType}`);
+  };
+  let emailLogId: string | null = null;
+
+  try {
+    for (const [index, event] of [
+      { type: "email.sent", created_at: "2026-08-16T10:00:00.000Z", data: { email_id: messageId } },
+      { type: "email.bounced", created_at: "2026-08-16T10:01:00.000Z", data: { email_id: messageId } },
+      { type: "email.complained", created_at: "2026-08-16T10:02:00.000Z", data: { email_id: messageId } },
+    ].entries()) {
+      const result = await applyResendWebhookEvent({ event, providerEventId: eventIds[index]!, notifyDeliveryIssue });
+      assert.equal(result.outcome, "UNMATCHED");
+    }
+
+    const emailLog = await createEmailLog(messageId);
+    emailLogId = emailLog.id;
+    const concurrent = await Promise.all([
+      reconcileUnmatchedResendWebhookEvents(messageId, notifyDeliveryIssue),
+      reconcileUnmatchedResendWebhookEvents(messageId, notifyDeliveryIssue),
+    ]);
+    const [storedLog, storedEvents] = await Promise.all([
+      prisma.emailLog.findUniqueOrThrow({ where: { id: emailLog.id } }),
+      prisma.emailProviderWebhookEvent.findMany({ where: { providerEventId: { in: eventIds } } }),
+    ]);
+
+    assert.equal(concurrent.reduce((sum, result) => sum + result.reconciled, 0), 3);
+    assert.equal(storedLog.trackingLastEvent, "email.complained");
+    assert.equal(storedLog.trackingBouncedAt?.toISOString(), "2026-08-16T10:01:00.000Z");
+    assert.equal(storedLog.trackingComplainedAt?.toISOString(), "2026-08-16T10:02:00.000Z");
+    assert.ok(storedEvents.every((event) => event.outcome === "RECONCILED"));
+    assert.deepEqual(notifications.sort(), [
+      `${emailLog.id}:email.bounced`,
+      `${emailLog.id}:email.complained`,
+    ]);
+
+    const duplicate = await applyResendWebhookEvent({
+      event: { type: "email.bounced", created_at: "2026-08-16T10:01:00.000Z", data: { email_id: messageId } },
+      providerEventId: eventIds[1]!, notifyDeliveryIssue,
+    });
+    assert.equal(duplicate.duplicate, true);
+    assert.equal(notifications.length, 2);
+  } finally {
+    await prisma.emailProviderWebhookEvent.deleteMany({ where: { providerEventId: { in: eventIds } } });
+    if (emailLogId) await prisma.emailLog.delete({ where: { id: emailLogId } });
+  }
+});
+
 dbTest("Resend webhook rozlišuje různé eventy a nededuplikuje podle provider message ID", async () => {
   const [{ prisma }, { applyResendWebhookEvent }] = await Promise.all([
     import("@/lib/prisma"),

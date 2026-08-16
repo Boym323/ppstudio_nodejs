@@ -10,6 +10,7 @@ import { sendEmail } from "@/lib/email/provider";
 import { getEmailDeliveryRetryDelayMs, getMaxEmailDeliveryAttempts } from "@/lib/email/retry";
 import { renderEmailTemplate } from "@/lib/email/templates";
 import { sendOwnerEmailFailurePushover } from "@/lib/notifications/pushover-core";
+import { reconcileUnmatchedResendWebhookEvents } from "@/lib/email/resend-webhooks";
 
 export type EmailLogDeliveryOutcome = {
   status: "sent" | "failed" | "skipped";
@@ -196,6 +197,10 @@ export async function deliverEmailLog(
         status: "skipped",
         errorMessage: "Claim e-mailu mezitím převzal jiný worker.",
       };
+    }
+
+    if (delivery.provider === "resend" && delivery.messageId) {
+      await reconcileUnmatchedResendWebhookEvents(delivery.messageId);
     }
 
     if (emailLog.type === EmailLogType.BOOKING_REMINDER && emailLog.bookingId) {
