@@ -166,10 +166,13 @@ async function createSeed(input: { oldSlotPaddingMinutes?: number } = {}) {
     isolatedOldWindowStartAt.getTime() + oldSlotPaddingMinutes * 60 * 1000,
   );
   const oldEndAt = new Date(oldStartAt.getTime() + 60 * 60 * 1000);
+  const isolatedOldWindowEndAt = new Date(
+    isolatedOldWindowStartAt.getTime() + (60 + oldSlotPaddingMinutes * 2) * 60 * 1000,
+  );
   const newStartAt = await findIsolatedRescheduleWindow(`${seedUuid}-next`, 90, [
     {
-      startsAt: oldStartAt,
-      endsAt: oldEndAt,
+      startsAt: isolatedOldWindowStartAt,
+      endsAt: isolatedOldWindowEndAt,
     },
   ]);
   const newEndAt = new Date(newStartAt.getTime() + 90 * 60 * 1000);
