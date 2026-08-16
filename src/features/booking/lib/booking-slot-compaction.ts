@@ -73,6 +73,30 @@ async function restoreCancelledSlotIfArchived(
     return slot;
   }
 
+  const overlappingActiveSlot = await tx.availabilitySlot.findFirst({
+    where: {
+      id: {
+        not: slot.id,
+      },
+      status: {
+        in: [AvailabilitySlotStatus.DRAFT, AvailabilitySlotStatus.PUBLISHED],
+      },
+      startsAt: {
+        lt: slot.endsAt,
+      },
+      endsAt: {
+        gt: slot.startsAt,
+      },
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (overlappingActiveSlot) {
+    return null;
+  }
+
   const restoredEndsAt = slot.bookings.reduce((latestEndsAt, booking) => {
     if (!booking.blockedUntil || booking.blockedUntil <= latestEndsAt) {
       return latestEndsAt;
@@ -195,7 +219,13 @@ export async function compactAdjacentEditableSlotsForBooking(
     return null;
   }
 
-  anchorSlot = await restoreCancelledSlotIfArchived(tx, anchorSlot);
+  const restoredAnchorSlot = await restoreCancelledSlotIfArchived(tx, anchorSlot);
+
+  if (!restoredAnchorSlot) {
+    return null;
+  }
+
+  anchorSlot = restoredAnchorSlot;
 
   while (true) {
     const leftSlot = await findAdjacentMergeableSlot(tx, anchorSlot, "left");

@@ -8,7 +8,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
-- Při ručním přesunu aktivní rezervace z archivovaného původního slotu se nyní původní volný čas bezpečně znovu publikuje a podle potřeby sloučí se sousední dostupností; interní override nového termínu zůstává blokující.
+- Při ručním přesunu aktivní rezervace z archivovaného původního slotu se nyní původní volný čas bezpečně znovu publikuje a podle potřeby sloučí se sousední dostupností; při překryvu s aktivním slotem zůstane archivovaný. Interní override nového termínu zůstává blokující.
 - Úspěšné veřejné rezervace ani konflikty termínu nyní nevyčerpávají e-mailový limit pro skutečná selhání; validační a ostatní booking chyby se do něj nadále započítávají.
 
 ### Zabezpečení
