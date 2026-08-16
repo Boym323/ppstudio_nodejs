@@ -54,8 +54,15 @@ const RATE_LIMIT_WINDOW_MS = 30 * 1000;
 // provider webhooků je perzistentně v databázi, takže tato mapa není autorita.
 const recentEvents = new Map<string, number>();
 
+function isPushoverBlockedInTestRuntime() {
+  return process.env.NODE_ENV === "test"
+    || process.env.NODE_TEST_CONTEXT !== undefined
+    || process.execArgv.includes("--test")
+    || process.argv.includes("--test");
+}
+
 function isPushoverGloballyEnabled() {
-  return env.PUSHOVER_ENABLED === "true";
+  return !isPushoverBlockedInTestRuntime() && env.PUSHOVER_ENABLED === "true";
 }
 
 function hasPushoverAppToken() {

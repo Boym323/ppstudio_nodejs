@@ -137,6 +137,10 @@ test("deriveTrackingState reflects sent and delivery_delayed webhook events", as
 });
 
 test("applyResendWebhookEvent records email.bounced as a provider delivery issue", async () => {
+  // Simuluje release server s aktivním Pushover. node:test transport přesto
+  // nesmí opustit proces; payload lze dál ověřovat přes čistý builder/mocking.
+  process.env.PUSHOVER_ENABLED = "true";
+  process.env.PUSHOVER_APP_TOKEN = "test-pushover-token";
   const [{ prisma }, { applyResendWebhookEvent }] = await Promise.all([
     import("@/lib/prisma"),
     import("@/lib/email/resend-webhooks"),
@@ -147,8 +151,11 @@ test("applyResendWebhookEvent records email.bounced as a provider delivery issue
   const originalWebhookCreateMany = prisma.emailProviderWebhookEvent.createMany;
   const originalWebhookUpdateMany = prisma.emailProviderWebhookEvent.updateMany;
   const originalExecuteRaw = prisma.$executeRaw;
+  const originalFetch = globalThis.fetch;
   const updates: unknown[] = [];
   const events: unknown[] = [];
+  const deliveryIssueMocks: unknown[] = [];
+  let transportCalls = 0;
 
   prisma.emailLog.findFirst = (async () => ({
     id: "email-log-bounce",
@@ -173,6 +180,10 @@ test("applyResendWebhookEvent records email.bounced as a provider delivery issue
   prisma.emailProviderWebhookEvent.updateMany = (async () => ({ count: 1 })) as typeof prisma.emailProviderWebhookEvent.updateMany;
   prisma.$executeRaw = (async () => 1) as typeof prisma.$executeRaw;
   prisma.$transaction = (async (callback: (tx: typeof prisma) => Promise<unknown>) => callback(prisma)) as unknown as typeof prisma.$transaction;
+  globalThis.fetch = (async () => {
+    transportCalls += 1;
+    return new Response(null, { status: 200 });
+  }) as typeof fetch;
 
   try {
     const result = await applyResendWebhookEvent({
@@ -194,6 +205,36 @@ test("applyResendWebhookEvent records email.bounced as a provider delivery issue
       },
     }]);
     assert.equal(events.length, 1);
+    assert.equal(transportCalls, 0);
+
+    await applyResendWebhookEvent({
+      providerEventId: "msg_unit_bounce_mock",
+      event: {
+        type: "email.bounced",
+        created_at: "2026-08-16T10:00:00.000Z",
+        data: { email_id: "provider-message-1" },
+      },
+      notifyDeliveryIssue: async (issue) => {
+        deliveryIssueMocks.push(issue);
+      },
+    });
+    assert.deepEqual(deliveryIssueMocks, [{
+      emailLogId: "email-log-bounce",
+      bookingId: "booking-bounce",
+      eventType: "email.bounced",
+      emailType: "email.bounced",
+    }]);
+
+    const { buildOwnerEmailFailurePushover } = await import("@/lib/notifications/pushover-core");
+    const payload = buildOwnerEmailFailurePushover({
+      emailLogId: "email-log-bounce",
+      bookingId: "booking-bounce",
+      emailType: "email.bounced",
+      isReminder: false,
+      failureKind: "provider-delivery",
+    });
+    assert.equal(payload.url, "https://example.com/admin/rezervace/booking-bounce");
+    assert.equal(payload.message, "E-mail byl odeslán, ale následně se jej nepodařilo doručit příjemci.\nTyp: email.bounced");
   } finally {
     prisma.emailLog.findFirst = originalFindFirst;
     prisma.emailLog.update = originalUpdate;
@@ -201,5 +242,6 @@ test("applyResendWebhookEvent records email.bounced as a provider delivery issue
     prisma.emailProviderWebhookEvent.updateMany = originalWebhookUpdateMany;
     prisma.$executeRaw = originalExecuteRaw;
     prisma.$transaction = originalTransaction;
+    globalThis.fetch = originalFetch;
   }
 });

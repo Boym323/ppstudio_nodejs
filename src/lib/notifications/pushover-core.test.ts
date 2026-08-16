@@ -12,7 +12,7 @@ function setPushoverTestEnvironment() {
   process.env.PUSHOVER_APP_TOKEN = "test-pushover-token";
 }
 
-test("sendOwnerSystemErrorPushover isolates an AdminUser database failure", async () => {
+test("test runtime blocks Pushover even when inherited configuration enables it", async () => {
   setPushoverTestEnvironment();
 
   const [{ prisma }, { sendOwnerSystemErrorPushover }] = await Promise.all([
@@ -20,13 +20,18 @@ test("sendOwnerSystemErrorPushover isolates an AdminUser database failure", asyn
     import("@/lib/notifications/pushover-core"),
   ]);
   const originalFindMany = prisma.adminUser.findMany;
-  const originalConsoleError = console.error;
-  const errors: unknown[][] = [];
+  const originalFetch = globalThis.fetch;
+  let databaseCalls = 0;
+  let transportCalls = 0;
 
   prisma.adminUser.findMany = (async () => {
-    throw Object.assign(new Error("connect ECONNREFUSED 127.0.0.1:5432"), { code: "ECONNREFUSED" });
+    databaseCalls += 1;
+    return [];
   }) as typeof prisma.adminUser.findMany;
-  console.error = (...args: unknown[]) => { errors.push(args); };
+  globalThis.fetch = (async () => {
+    transportCalls += 1;
+    return new Response(null, { status: 200 });
+  }) as typeof fetch;
 
   try {
     await assert.doesNotReject(() => sendOwnerSystemErrorPushover({
@@ -34,10 +39,11 @@ test("sendOwnerSystemErrorPushover isolates an AdminUser database failure", asyn
       message: "Owner alert nesmí rozbít původní fallback.",
       context: { contextId: "pushover-failure-isolation" },
     }));
-    assert.equal(errors[0]?.[0], "Owner Pushover notification flow failed");
+    assert.equal(databaseCalls, 0);
+    assert.equal(transportCalls, 0);
   } finally {
     prisma.adminUser.findMany = originalFindMany;
-    console.error = originalConsoleError;
+    globalThis.fetch = originalFetch;
   }
 });
 

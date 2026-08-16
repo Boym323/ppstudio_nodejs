@@ -28,6 +28,7 @@ export default defineConfig({
     env: {
       ...process.env,
       NODE_ENV: "production",
+      PUSHOVER_ENABLED: "false",
       NEXT_PUBLIC_APP_URL: baseURL,
       NEXT_PUBLIC_MATOMO_ENABLED: "true",
       NEXT_PUBLIC_MATOMO_URL: "https://matomo.example.test/",

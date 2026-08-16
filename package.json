@@ -26,7 +26,7 @@
     "test:release": "node --import ./src/test/register-server-only.mjs --import tsx --test \"src/**/*.test.{ts,tsx}\"",
     "test:release-script": "bash deploy/release.test.sh",
     "test:coverage": "rm -rf coverage .nyc_output && c8 node --import ./src/test/register-server-only.mjs --import tsx --test \"src/**/*.test.{ts,tsx}\"",
-    "pretest:e2e": "PLAYWRIGHT_PORT=${PLAYWRIGHT_PORT:-3100}; PPSTUDIO_NEXT_DIST_DIR=.next-e2e NEXT_PUBLIC_APP_URL=${PLAYWRIGHT_BASE_URL:-http://127.0.0.1:$PLAYWRIGHT_PORT} NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL:-https://ppstudio.cz} NEXT_PUBLIC_MATOMO_ENABLED=true NEXT_PUBLIC_MATOMO_URL=https://matomo.example.test/ NEXT_PUBLIC_MATOMO_SITE_ID=1 NEXT_PUBLIC_META_PIXEL_ENABLED=true NEXT_PUBLIC_META_PIXEL_ID=123456789 npm run build",
+    "pretest:e2e": "PLAYWRIGHT_PORT=${PLAYWRIGHT_PORT:-3100}; PPSTUDIO_NEXT_DIST_DIR=.next-e2e PUSHOVER_ENABLED=false NEXT_PUBLIC_APP_URL=${PLAYWRIGHT_BASE_URL:-http://127.0.0.1:$PLAYWRIGHT_PORT} NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL:-https://ppstudio.cz} NEXT_PUBLIC_MATOMO_ENABLED=true NEXT_PUBLIC_MATOMO_URL=https://matomo.example.test/ NEXT_PUBLIC_MATOMO_SITE_ID=1 NEXT_PUBLIC_META_PIXEL_ENABLED=true NEXT_PUBLIC_META_PIXEL_ID=123456789 npm run build",
     "test:e2e": "PPSTUDIO_NEXT_DIST_DIR=.next-e2e playwright test",
     "deps:check": "npm ping --registry=${PPSTUDIO_NPM_REGISTRY:-https://registry.npmjs.org/}",
     "deps:install": "npm ci --include=dev --registry=${PPSTUDIO_NPM_REGISTRY:-https://registry.npmjs.org/}",
