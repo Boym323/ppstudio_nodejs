@@ -7,11 +7,12 @@ import test from "node:test";
 import {
   AdminRole,
   EmailIncidentManualResolutionReason,
+  EmailIncidentResolutionKind,
   EmailLogStatus,
   EmailLogType,
 } from "@prisma/client";
 
-import { getUnresolvedEmailDeliveryFailureWhere } from "./incidents";
+import { getUnresolvedEmailDeliveryFailureWhere, getUnresolvedEmailDeliveryIncidentRootWhere } from "./incidents";
 
 const dbTest = process.env.RUN_DB_INTEGRATION_TESTS === "1" ? test : test.skip;
 
@@ -52,6 +53,7 @@ dbTest("OWNER ručně uzavře root incident přes resend child bez změny histor
 
   try {
     assert.equal(await prisma.emailLog.count({ where: { AND: [{ id: { in: [root.id, child.id] } }, getUnresolvedEmailDeliveryFailureWhere()] } }), 2);
+    assert.equal(await prisma.emailLog.count({ where: { AND: [{ id: { in: [root.id, child.id] } }, getUnresolvedEmailDeliveryIncidentRootWhere()] } }), 1);
     const emailCountBefore = await prisma.emailLog.count();
 
     const forbidden = await manuallyResolveEmailIncident({
@@ -97,10 +99,80 @@ dbTest("OWNER ručně uzavře root incident přes resend child bez změny histor
     assert.equal(storedRoot.incidentResolvedByEmailLogId, null);
     assert.equal(await prisma.emailLog.count(), emailCountBefore);
     assert.equal(await prisma.emailLog.count({ where: { AND: [{ id: { in: [root.id, child.id] } }, getUnresolvedEmailDeliveryFailureWhere()] } }), 0);
+    assert.equal(await prisma.emailLog.count({ where: { AND: [{ id: { in: [root.id, child.id] } }, getUnresolvedEmailDeliveryIncidentRootWhere()] } }), 0);
     assert.equal(detail?.incidentResolution?.label, "Ručně uzavřeno");
     assert.match(detail?.incidentResolution?.detail ?? "", /OWNER incidentu.*Již nerelevantní/);
   } finally {
     await prisma.emailLog.deleteMany({ where: { id: { in: [root.id, child.id] } } });
     await prisma.adminUser.deleteMany({ where: { id: { in: [owner.id, salon.id] } } });
+  }
+});
+
+dbTest("read-model aktivních incidentů deduplikuje resend chain a historie zůstává po jednotlivých logách", async () => {
+  const [{ prisma }, { getAdminLogsData }] = await Promise.all([
+    import("@/lib/prisma"),
+    import("@/features/admin/lib/admin-data"),
+  ]);
+  const seed = randomUUID();
+  const recipient = `incident-chain-${seed}@example.test`;
+  const base = {
+    type: EmailLogType.GENERIC,
+    recipientEmail: recipient,
+    subject: "Incident chain",
+    templateKey: "incident-chain-test",
+  };
+  const ids: string[] = [];
+
+  try {
+    const root = await prisma.emailLog.create({
+      data: { ...base, status: EmailLogStatus.SENT, trackingBouncedAt: new Date("2026-06-15T10:00:00.000Z") },
+    });
+    ids.push(root.id);
+    assert.equal(await prisma.emailLog.count({ where: { AND: [{ id: { in: ids } }, getUnresolvedEmailDeliveryIncidentRootWhere()] } }), 1);
+
+    const firstFailedResend = await prisma.emailLog.create({
+      data: { ...base, status: EmailLogStatus.FAILED, resendOfId: root.id, resendRootId: root.id, errorMessage: "První resend selhal", createdAt: new Date("2026-06-15T10:01:00.000Z") },
+    });
+    const latestFailedResend = await prisma.emailLog.create({
+      data: { ...base, status: EmailLogStatus.FAILED, resendOfId: firstFailedResend.id, resendRootId: root.id, errorMessage: "Druhý resend selhal", createdAt: new Date("2026-06-15T10:02:00.000Z") },
+    });
+    ids.push(firstFailedResend.id, latestFailedResend.id);
+    assert.equal(await prisma.emailLog.count({ where: { AND: [{ id: { in: ids } }, getUnresolvedEmailDeliveryFailureWhere()] } }), 3);
+    assert.equal(await prisma.emailLog.count({ where: { AND: [{ id: { in: ids } }, getUnresolvedEmailDeliveryIncidentRootWhere()] } }), 1);
+
+    const suppressed = await prisma.emailLog.create({
+      data: { ...base, recipientEmail: `suppressed-${seed}@example.test`, status: EmailLogStatus.SENT, trackingSuppressedAt: new Date("2026-06-15T10:03:00.000Z") },
+    });
+    ids.push(suppressed.id);
+    assert.equal(await prisma.emailLog.count({ where: { AND: [{ id: { in: ids } }, getUnresolvedEmailDeliveryIncidentRootWhere()] } }), 2);
+
+    const [attention, attentionError, history] = await Promise.all([
+      getAdminLogsData({ area: "owner", view: "attention", source: "email", query: recipient }),
+      getAdminLogsData({ area: "owner", view: "attention", source: "email", severity: "error", query: recipient }),
+      getAdminLogsData({ area: "owner", view: "emails", source: "email", query: recipient }),
+    ]);
+    assert.equal(attention.total, 1);
+    assert.equal(attention.items.length, 1);
+    assert.equal(attention.items[0]?.emailLogId, latestFailedResend.id);
+    assert.equal(attentionError.total, 1);
+    assert.equal(attentionError.items[0]?.emailLogId, latestFailedResend.id);
+    assert.equal(history.total, 3);
+    assert.deepEqual(new Set(history.items.map((item) => item.emailLogId)), new Set([root.id, firstFailedResend.id, latestFailedResend.id]));
+
+    await prisma.emailLog.update({ where: { id: root.id }, data: { incidentResolvedAt: new Date(), incidentResolutionKind: EmailIncidentResolutionKind.MANUAL } });
+    assert.equal(await prisma.emailLog.count({ where: { AND: [{ id: { in: ids } }, getUnresolvedEmailDeliveryIncidentRootWhere()] } }), 1);
+
+    const deliveredRoot = await prisma.emailLog.create({
+      data: { ...base, recipientEmail: `delivered-${seed}@example.test`, status: EmailLogStatus.SENT, trackingBouncedAt: new Date("2026-06-15T10:04:00.000Z") },
+    });
+    ids.push(deliveredRoot.id);
+    const deliveredResend = await prisma.emailLog.create({
+      data: { ...base, recipientEmail: `delivered-${seed}@example.test`, status: EmailLogStatus.SENT, resendOfId: deliveredRoot.id, resendRootId: deliveredRoot.id },
+    });
+    ids.push(deliveredResend.id);
+    await prisma.emailLog.update({ where: { id: deliveredRoot.id }, data: { incidentResolvedAt: new Date(), incidentResolvedByEmailLogId: deliveredResend.id, incidentResolutionKind: EmailIncidentResolutionKind.DELIVERED_RESEND } });
+    assert.equal(await prisma.emailLog.count({ where: { AND: [{ id: { in: [deliveredRoot.id, deliveredResend.id] } }, getUnresolvedEmailDeliveryIncidentRootWhere()] } }), 0);
+  } finally {
+    await prisma.emailLog.deleteMany({ where: { id: { in: ids } } });
   }
 });

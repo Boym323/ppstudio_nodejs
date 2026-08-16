@@ -3,7 +3,7 @@ import packageJson from "../../../../package.json";
 
 import { sendOwnerSystemErrorPushover } from "@/lib/notifications/pushover";
 import { prisma } from "@/lib/prisma";
-import { getUnresolvedEmailDeliveryFailureWhere } from "@/lib/email/incidents";
+import { getUnresolvedEmailDeliveryFailureWhere, getUnresolvedEmailDeliveryIncidentRootWhere } from "@/lib/email/incidents";
 
 const DEPLOYMENT_ID_ENV_KEYS = [
   "NEXT_DEPLOYMENT_ID",
@@ -96,7 +96,7 @@ async function getEmailHealthData(now: Date): Promise<EmailHealthData> {
       },
     }),
     prisma.emailLog.count({
-      where: getUnresolvedEmailDeliveryFailureWhere(),
+      where: getUnresolvedEmailDeliveryIncidentRootWhere(),
     }),
     prisma.emailLog.findFirst({
       where: {
