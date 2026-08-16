@@ -13,6 +13,7 @@ Formát je inspirovaný Keep a Changelog.
 - Společný feed Události nyní u dokončení návštěvy zobrazí uplatnění voucheru jen jednou: kanonický `VoucherRedemption` potlačí pouze odpovídající booking audit se stejnou rezervací a kódem voucheru; historický audit bez redemption zůstává viditelný.
 - Deduplikace voucherových uplatnění v Událostech nyní probíhá nad celým serverovým read-modelem před řazením a stránkováním, takže total i hranice stránek nezobrazí duplicitní audit; datum filtru se jednotně řídí kanonickým časem redemption.
 - Aktivní e-mailové incidenty nyní počítají každý neuzavřený resend chain jen jednou podle stabilního rootu; Pozornost zobrazuje jeho nejnovější selhaný resend, zatímco historie e-mailů zachovává všechny jednotlivé pokusy.
+- Datumový filtr Pozornosti nyní vybírá nejnovější selhanou událost neuzavřeného e-mailového incidentu přímo v zadaném rozsahu; položka ani její timestamp proto nemohou pocházet z pozdějšího resendu mimo filtr.
 
 ## [3.19.0] - 2026-08-16
 

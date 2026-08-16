@@ -1482,6 +1482,12 @@ export async function getAdminLogsData(input: {
   const attentionIncidentWhere = getUnresolvedEmailDeliveryIncidentRootWhere({
     AND: [getEmailDeliveryFailureWhere(), emailBaseWhere],
   });
+  // Datum Pozornosti patří reprezentativnímu failure logu, nikoli rootu chainu.
+  // Root dál určuje identitu i stav resolution incidentu; při filtru proto z jeho
+  // failed členů vybíráme nejnovějšího, který leží přímo v zadaném rozsahu.
+  const attentionRepresentativeFailureWhere: Prisma.EmailLogWhereInput = dateWhere
+    ? { AND: [getEmailDeliveryFailureWhere(), { createdAt: dateWhere }] }
+    : getEmailDeliveryFailureWhere();
   const attentionSupplementWhere: Prisma.EmailLogWhereInput = severity === "all"
     ? { AND: [emailBaseWhere, { NOT: getEmailDeliveryFailureWhere() }, { OR: [
       getEmailDeliveryWarningWhere(),
@@ -1529,7 +1535,7 @@ export async function getAdminLogsData(input: {
               booking: { select: { id: true, clientNameSnapshot: true, serviceNameSnapshot: true } },
               client: { select: { fullName: true } },
               incidentResends: {
-                where: getEmailDeliveryFailureWhere(),
+                where: attentionRepresentativeFailureWhere,
                 orderBy: [{ createdAt: "desc" }, { id: "desc" }],
                 take: 1,
                 include: {

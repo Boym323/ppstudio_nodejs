@@ -176,3 +176,75 @@ dbTest("read-model aktivních incidentů deduplikuje resend chain a historie zů
     await prisma.emailLog.deleteMany({ where: { id: { in: ids } } });
   }
 });
+
+dbTest("Pozornost filtruje rootové incidenty podle zobrazeného failed reprezentanta", async () => {
+  const [{ prisma }, { getAdminLogsData }, { getAdminDashboardData }, { createHealthRouteApi }] = await Promise.all([
+    import("@/lib/prisma"),
+    import("@/features/admin/lib/admin-data"),
+    import("@/features/admin/lib/admin-dashboard"),
+    import("@/app/api/health/route-api"),
+  ]);
+  const seed = randomUUID();
+  const subject = `Datum incidentu ${seed}`;
+  const base = {
+    type: EmailLogType.GENERIC,
+    recipientEmail: `incident-date-${seed}@example.test`,
+    templateKey: "incident-date-filter-test",
+  };
+  const ids: string[] = [];
+
+  try {
+    // Root A je v rozsahu, jeho nejnovější child C nikoli.
+    const firstRoot = await prisma.emailLog.create({
+      data: { ...base, subject: `${subject} první`, status: EmailLogStatus.FAILED, createdAt: new Date("2026-08-10T12:00:00.000Z") },
+    });
+    const firstLatest = await prisma.emailLog.create({
+      data: { ...base, subject: `${subject} první`, status: EmailLogStatus.FAILED, resendOfId: firstRoot.id, resendRootId: firstRoot.id, createdAt: new Date("2026-08-15T12:00:00.000Z") },
+    });
+    // Druhý chain obsahuje A + B v rozsahu a C mimo něj.
+    const secondRoot = await prisma.emailLog.create({
+      data: { ...base, subject: `${subject} druhý`, status: EmailLogStatus.FAILED, createdAt: new Date("2026-08-10T13:00:00.000Z") },
+    });
+    const secondInRange = await prisma.emailLog.create({
+      data: { ...base, subject: `${subject} druhý`, status: EmailLogStatus.FAILED, resendOfId: secondRoot.id, resendRootId: secondRoot.id, createdAt: new Date("2026-08-11T12:00:00.000Z") },
+    });
+    const secondLatest = await prisma.emailLog.create({
+      data: { ...base, subject: `${subject} druhý`, status: EmailLogStatus.FAILED, resendOfId: secondInRange.id, resendRootId: secondRoot.id, createdAt: new Date("2026-08-15T13:00:00.000Z") },
+    });
+    ids.push(firstRoot.id, firstLatest.id, secondRoot.id, secondInRange.id, secondLatest.id);
+
+    const [onlyFirstRoot, bothInRange, noneInRange, onlySecondRoot, unfiltered] = await Promise.all([
+      getAdminLogsData({ area: "owner", view: "attention", source: "email", query: `${subject} první`, dateFrom: "2026-08-10", dateTo: "2026-08-10" }),
+      getAdminLogsData({ area: "owner", view: "attention", source: "email", query: subject, dateFrom: "2026-08-10", dateTo: "2026-08-12" }),
+      getAdminLogsData({ area: "owner", view: "attention", source: "email", query: subject, dateFrom: "2026-08-12", dateTo: "2026-08-14" }),
+      getAdminLogsData({ area: "owner", view: "attention", source: "email", query: subject, dateFrom: "2026-08-11", dateTo: "2026-08-11" }),
+      getAdminLogsData({ area: "owner", view: "attention", source: "email", query: subject }),
+    ]);
+
+    assert.deepEqual(onlyFirstRoot.items.map((item) => item.emailLogId), [firstRoot.id]);
+    assert.equal(onlyFirstRoot.total, onlyFirstRoot.items.length);
+    assert.deepEqual(new Set(bothInRange.items.map((item) => item.emailLogId)), new Set([firstRoot.id, secondInRange.id]));
+    assert.equal(bothInRange.total, bothInRange.items.length);
+    assert.equal(noneInRange.total, 0);
+    assert.deepEqual(noneInRange.items, []);
+    assert.deepEqual(onlySecondRoot.items.map((item) => item.emailLogId), [secondInRange.id]);
+    assert.equal(onlySecondRoot.total, onlySecondRoot.items.length);
+    assert.deepEqual(new Set(unfiltered.items.map((item) => item.emailLogId)), new Set([firstLatest.id, secondLatest.id]));
+    assert.equal(unfiltered.total, unfiltered.items.length);
+
+    const activeIncidentCount = await prisma.emailLog.count({ where: getUnresolvedEmailDeliveryIncidentRootWhere() });
+    const [attention, dashboard, healthResponse] = await Promise.all([
+      getAdminLogsData({ area: "owner", view: "attention", source: "email" }),
+      getAdminDashboardData("owner"),
+      createHealthRouteApi().GET(),
+    ]);
+    const health = await healthResponse.json() as { emailIncidents: { active: number } };
+    const dashboardAlert = dashboard.alerts.find((alert) => alert.id === "email-failures");
+
+    assert.equal(attention.attention.failed, activeIncidentCount);
+    assert.equal(health.emailIncidents.active, activeIncidentCount);
+    assert.match(dashboardAlert?.text ?? "", new RegExp(`^${activeIncidentCount} `));
+  } finally {
+    await prisma.emailLog.deleteMany({ where: { id: { in: ids } } });
+  }
+});
