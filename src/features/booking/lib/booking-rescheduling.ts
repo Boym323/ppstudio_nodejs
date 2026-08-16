@@ -25,6 +25,7 @@ import { prisma } from "@/lib/prisma";
 import { getBookingPolicySettings, getEmailBrandingSettings, isBookingWithinWindow } from "@/lib/site-settings";
 import { resolveBookingTimingSnapshot } from "./booking-cleanup";
 import { canPreserveAutoLunchForBooking } from "./booking-auto-lunch-enforcement";
+import { compactAdjacentEditableSlotsForBooking } from "./booking-slot-compaction";
 
 const ACTIVE_BOOKING_STATUSES = [BookingStatus.PENDING, BookingStatus.CONFIRMED] as const;
 const MAX_BOOKING_TRANSACTION_RETRIES = 3;
@@ -908,7 +909,9 @@ async function rescheduleBookingInTransaction(
     },
   });
 
-  if (booking.manualOverride) {
+  if (booking.slot.status === AvailabilitySlotStatus.ARCHIVED) {
+    await compactAdjacentEditableSlotsForBooking(tx, booking.slotId);
+  } else if (booking.manualOverride) {
     await maybeDeleteOrphanedManualOverrideSlot(tx, booking.slotId, booking.id);
   }
 

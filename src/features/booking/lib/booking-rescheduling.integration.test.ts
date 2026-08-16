@@ -604,6 +604,124 @@ dbTest("rescheduleBooking updates the existing booking, writes audit history and
   }
 });
 
+dbTest("admin manual override po přesunu obnoví a zkompaktuje opuštěný archivovaný původní slot", async () => {
+  const seed = await createSeed();
+  const { prisma, rescheduleBooking, AvailabilitySlotStatus, getPublicBookingCatalog } = await loadModules();
+  const oldStartAt = new Date(seed.oldStartAt);
+  const oldEndAt = new Date(seed.oldEndAt);
+  const leftStartsAt = new Date(oldStartAt.getTime() - 60 * 60 * 1000);
+  const rightEndsAt = new Date(oldEndAt.getTime() + 60 * 60 * 1000);
+
+  try {
+    await prisma.availabilitySlot.update({
+      where: { id: seed.oldSlotId },
+      data: {
+        status: AvailabilitySlotStatus.ARCHIVED,
+        internalNote: null,
+      },
+    });
+    const [leftSlot, rightSlot] = await Promise.all([
+      prisma.availabilitySlot.create({
+        data: {
+          startsAt: leftStartsAt,
+          endsAt: oldStartAt,
+          capacity: 1,
+          status: AvailabilitySlotStatus.PUBLISHED,
+          publishedAt: new Date(),
+          serviceRestrictionMode: "ANY",
+          createdByUserId: seed.actorUserId,
+        },
+        select: { id: true },
+      }),
+      prisma.availabilitySlot.create({
+        data: {
+          startsAt: oldEndAt,
+          endsAt: rightEndsAt,
+          capacity: 1,
+          status: AvailabilitySlotStatus.PUBLISHED,
+          publishedAt: new Date(),
+          serviceRestrictionMode: "ANY",
+          createdByUserId: seed.actorUserId,
+        },
+        select: { id: true },
+      }),
+    ]);
+    await prisma.booking.update({
+      where: { id: seed.bookingId },
+      data: {
+        cleanupMinutes: 15,
+        cleanupBlockMinutes: 15,
+      },
+    });
+    const newStartAt = await findIsolatedRescheduleWindow(randomUUID(), 75, [{
+      startsAt: leftStartsAt,
+      endsAt: rightEndsAt,
+    }]);
+    const newEndAt = new Date(newStartAt.getTime() + 60 * 60 * 1000);
+    const newBlockedUntil = new Date(newEndAt.getTime() + 15 * 60 * 1000);
+    const bookingBeforeReschedule = await prisma.booking.findUniqueOrThrow({
+      where: { id: seed.bookingId },
+      select: { updatedAt: true },
+    });
+
+    const result = await rescheduleBooking({
+      bookingId: seed.bookingId,
+      newStartAt: newStartAt.toISOString(),
+      changedByUserId: seed.actorUserId,
+      notifyClient: false,
+      expectedUpdatedAt: bookingBeforeReschedule.updatedAt.toISOString(),
+      allowManualOverride: true,
+    });
+
+    assert.equal(result.manualOverride, true);
+    const booking = await prisma.booking.findUniqueOrThrow({
+      where: { id: seed.bookingId },
+      select: {
+        slotId: true,
+        scheduledStartsAt: true,
+        scheduledEndsAt: true,
+        blockedUntil: true,
+        slot: {
+          select: {
+            status: true,
+            startsAt: true,
+            endsAt: true,
+          },
+        },
+      },
+    });
+    assert.notEqual(booking.slotId, seed.oldSlotId);
+    assert.equal(booking.slot.status, AvailabilitySlotStatus.DRAFT);
+    assert.equal(booking.scheduledStartsAt.toISOString(), newStartAt.toISOString());
+    assert.equal(booking.scheduledEndsAt.toISOString(), newEndAt.toISOString());
+    assert.equal(booking.blockedUntil?.toISOString(), newBlockedUntil.toISOString());
+    assert.equal(booking.slot.startsAt.toISOString(), newStartAt.toISOString());
+    assert.equal(booking.slot.endsAt.toISOString(), newBlockedUntil.toISOString());
+
+    const restoredSlot = await prisma.availabilitySlot.findUniqueOrThrow({
+      where: { id: seed.oldSlotId },
+      select: { status: true, startsAt: true, endsAt: true },
+    });
+    assert.equal(restoredSlot.status, AvailabilitySlotStatus.PUBLISHED);
+    assert.equal(restoredSlot.startsAt.toISOString(), leftStartsAt.toISOString());
+    assert.equal(restoredSlot.endsAt.toISOString(), rightEndsAt.toISOString());
+    assert.equal(await prisma.availabilitySlot.count({ where: { id: { in: [leftSlot.id, rightSlot.id] } } }), 0);
+
+    const catalog = await getPublicBookingCatalog({ includeServices: false });
+    const restoredCatalogSlot = catalog.slots.find((slot) => slot.id === seed.oldSlotId);
+    assert.ok(restoredCatalogSlot);
+    assert.equal(restoredCatalogSlot.startsAt, leftStartsAt.toISOString());
+    assert.equal(restoredCatalogSlot.endsAt, rightEndsAt.toISOString());
+    assert.equal(restoredCatalogSlot.bookedIntervals.some((interval) => interval.startsAt < seed.oldEndAt && interval.endsAt > seed.oldStartAt), false);
+    assert.equal(catalog.slots.some((slot) => newStartAt >= new Date(slot.startsAt) && newStartAt < new Date(slot.endsAt)), false);
+    assert.ok(catalog.scheduleOptimization.bookedIntervals.some((interval) => (
+      interval.startsAt === newStartAt.toISOString() && interval.endsAt === newBlockedUntil.toISOString()
+    )));
+  } finally {
+    await cleanupSeed(seed);
+  }
+});
+
 dbTest("rescheduleBooking ignores an archived slot left by a cancelled booking", async () => {
   const seed = await createSeed();
   const { prisma, rescheduleBooking, AvailabilitySlotStatus } = await loadModules();
