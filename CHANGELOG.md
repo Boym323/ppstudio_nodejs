@@ -6,6 +6,12 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [3.18.0] - 2026-08-16
+
+### Změněno
+
+- Release příprava pro produkční nasazení: projektová verze navýšena na minor `3.18.0` kvůli zpětně kompatibilnímu rozšíření zpracování a sledování e-mailových delivery webhooků.
+
 ### Opraveno
 
 - Selhání následné reconciliation Resend webhooku po úspěšném předání e-mailu již nespouští transportní retry ani nemění `SENT` na zavádějící stav; booking reminder se i v tomto případě označí jako odeslaný.
