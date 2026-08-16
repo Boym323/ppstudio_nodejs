@@ -6,6 +6,12 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [3.21.0] - 2026-08-16
+
+### Změněno
+
+- Release příprava pro produkční nasazení: projektová verze navýšena na minor `3.21.0` kvůli zpětně kompatibilnímu rozšíření správy e-mailových incidentů a administrativních filtrů.
+
 ### Opraveno
 
 - Doručený explicitní resend nyní uzavírá pouze skutečně aktivní delivery incident; čistý chain odeslaných e-mailů proto v historii ani v administraci chybně nevzniká jako „Vyřešeno následným odesláním“.
