@@ -6,6 +6,12 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [3.19.0] - 2026-08-16
+
+### Změněno
+
+- Release příprava pro produkční nasazení: projektová verze navýšena na minor `3.19.0` kvůli zpětně kompatibilnímu rozšíření administrace o ruční uzavření historických e-mailových incidentů.
+
 ### Opraveno
 
 - Testovací a release běhy nyní bezpodmínečně blokují Pushover transport i při zděděné produkční konfiguraci, takže webhookové fixture nemohou odeslat skutečné owner upozornění.
