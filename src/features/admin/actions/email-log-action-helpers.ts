@@ -13,9 +13,23 @@ export function resolveEmailLogRecipientFromContact(input: {
   return bookingEmail || null;
 }
 
+/**
+ * Technický resend může pokračovat přes `resendOfId` i po uzavření incidentu.
+ * Nový lifecycle incident ale nesmí znovu použít již uzavřený root.
+ */
+export function resolveResendIncidentRootId(input: {
+  sourceEmailLogId: string;
+  sourceResendRootId: string | null;
+  incidentResolvedAt: Date | null;
+}) {
+  return input.incidentResolvedAt === null
+    ? input.sourceResendRootId ?? input.sourceEmailLogId
+    : null;
+}
+
 export function buildResendEmailLogCreateInput(input: {
   resendOfId: string;
-  resendRootId: string;
+  resendRootId: string | null;
   bookingId: string | null;
   clientId: string | null;
   actionTokenId: string | null;

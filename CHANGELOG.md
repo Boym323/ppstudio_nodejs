@@ -8,6 +8,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Nový explicitní resend po již vyřešeném e-mailovém incidentu nyní zachovává technickou historii resendu, ale při dalším selhání zakládá samostatný aktivní incident; původní resolution audit zůstává neměnný.
 - Události v administraci nyní pro stránkování načítají jen bezpečně omezené kandidáty z jednotlivých zdrojů; přesný deduplikovaný total a cílené ověření voucherových identit zachovávají pořadí i hranice stránek bez načítání celé historie redemptionů.
 - Mobilní hledání v administrativních Událostech a logách nyní při odeslání zachová aktivní filtry příslušného pohledu a vždy začne od první stránky výsledků.
 - Ruční uzavření i filtrování Pozornosti nyní jednotně vyhodnocují celý resend chain: OWNER tak může uzavřít incident se selháním až na resendu a zobrazený failure vždy splňuje všechny aktivní e-mailové filtry.

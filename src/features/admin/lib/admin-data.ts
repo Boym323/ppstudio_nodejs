@@ -1736,6 +1736,11 @@ export async function getEmailLogDetailData(emailLogId: string): Promise<EmailLo
           },
         },
       },
+      incidentResends: {
+        where: getEmailDeliveryFailureWhere(),
+        select: { id: true },
+        take: 1,
+      },
     },
   });
 
@@ -1756,8 +1761,9 @@ export async function getEmailLogDetailData(emailLogId: string): Promise<EmailLo
   const clientName = emailLog.booking?.clientNameSnapshot ?? emailLog.client?.fullName ?? "Bez klientky";
   const lastAttemptLabel = formatDateTimeLabel(emailLog.sentAt ?? emailLog.updatedAt);
   const incidentRoot = emailLog.resendRoot ?? emailLog;
-  const incidentIsActive = isEmailDeliveryFailure(emailLog)
-    && incidentRoot.incidentResolvedAt === null;
+  const incidentIsActive = incidentRoot.incidentResolvedAt === null
+    && (isEmailDeliveryFailure(emailLog)
+      || (emailLog.resendRootId === null && emailLog.incidentResends.length > 0));
   const incidentResolutionKind = incidentRoot.incidentResolutionKind
     ?? (incidentRoot.incidentResolvedByEmailLogId ? EmailIncidentResolutionKind.DELIVERED_RESEND : null);
   const incidentResolution = incidentRoot.incidentResolvedAt && incidentResolutionKind

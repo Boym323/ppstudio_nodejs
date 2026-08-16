@@ -7,6 +7,7 @@ import { z } from "zod";
 
 import {
   buildResendEmailLogCreateInput,
+  resolveResendIncidentRootId,
   resolveEmailLogRecipientFromContact,
 } from "@/features/admin/actions/email-log-action-helpers";
 import { requireAdminArea } from "@/lib/auth/session";
@@ -73,10 +74,21 @@ async function createResendEmailLog(emailLog: OwnerEmailLog) {
     return null;
   }
 
+  const incidentRoot = emailLog.resendRootId
+    ? await prisma.emailLog.findUnique({
+        where: { id: emailLog.resendRootId },
+        select: { incidentResolvedAt: true },
+      })
+    : emailLog;
+
   return prisma.emailLog.create({
     data: buildResendEmailLogCreateInput({
       resendOfId: emailLog.id,
-      resendRootId: emailLog.resendRootId ?? emailLog.id,
+      resendRootId: resolveResendIncidentRootId({
+        sourceEmailLogId: emailLog.id,
+        sourceResendRootId: emailLog.resendRootId,
+        incidentResolvedAt: incidentRoot?.incidentResolvedAt ?? emailLog.incidentResolvedAt,
+      }),
       bookingId: emailLog.bookingId,
       clientId: emailLog.clientId,
       actionTokenId: emailLog.actionTokenId,

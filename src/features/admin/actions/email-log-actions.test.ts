@@ -33,6 +33,21 @@ test("resolveEmailLogRecipientFromContact returns null when both emails are miss
   assert.equal(resolved, null);
 });
 
+test("resolveResendIncidentRootId zachová pouze neuzavřený incident root", async () => {
+  const { resolveResendIncidentRootId } = await import("@/features/admin/actions/email-log-action-helpers");
+
+  assert.equal(resolveResendIncidentRootId({
+    sourceEmailLogId: "resend-b",
+    sourceResendRootId: "incident-a",
+    incidentResolvedAt: null,
+  }), "incident-a");
+  assert.equal(resolveResendIncidentRootId({
+    sourceEmailLogId: "resend-b",
+    sourceResendRootId: "incident-a",
+    incidentResolvedAt: new Date("2026-08-16T10:00:00.000Z"),
+  }), null);
+});
+
 test("buildResendEmailLogCreateInput resets queue and provider state for resend", async () => {
   const { buildResendEmailLogCreateInput } = await import("@/features/admin/actions/email-log-action-helpers");
   const now = new Date("2026-05-24T08:30:00.000Z");

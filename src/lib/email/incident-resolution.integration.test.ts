@@ -61,6 +61,7 @@ dbTest("OWNER ručně uzavře root incident přes resend child bez změny histor
     });
     assert.equal(forbidden.outcome, "forbidden");
 
+    const detailBeforeResolution = await getEmailLogDetailData(root.id);
     const first = await manuallyResolveEmailIncident({
       emailLogId: child.id,
       actorUserId: owner.id,
@@ -96,11 +97,132 @@ dbTest("OWNER ručně uzavře root incident přes resend child bez změny histor
     assert.equal(await prisma.emailLog.count(), emailCountBefore);
     assert.equal(await prisma.emailLog.count({ where: { AND: [{ id: { in: [root.id, child.id] } }, getUnresolvedEmailDeliveryFailureWhere()] } }), 0);
     assert.equal(await prisma.emailLog.count({ where: { AND: [{ id: { in: [root.id, child.id] } }, getUnresolvedEmailDeliveryIncidentRootWhere()] } }), 0);
+    assert.equal(detailBeforeResolution?.canCloseIncident, true);
     assert.equal(detail?.incidentResolution?.label, "Ručně uzavřeno");
     assert.match(detail?.incidentResolution?.detail ?? "", /OWNER incidentu.*Již nerelevantní/);
   } finally {
     await prisma.emailLog.deleteMany({ where: { id: { in: [root.id, child.id] } } });
     await prisma.adminUser.deleteMany({ where: { id: { in: [owner.id, salon.id] } } });
+  }
+});
+
+dbTest("resend po vyřešeném incidentu zakládá novou epochu bez přepsání historie", async () => {
+  const [{ prisma }, { buildResendEmailLogCreateInput, resolveResendIncidentRootId }, { applyResendWebhookEvent }, { getAdminLogsData }] = await Promise.all([
+    import("@/lib/prisma"),
+    import("@/features/admin/actions/email-log-action-helpers"),
+    import("@/lib/email/resend-webhooks"),
+    import("@/features/admin/lib/admin-data"),
+  ]);
+  const seed = randomUUID();
+  const ids: string[] = [];
+  const eventIds = [`epoch-b-${seed}`, `epoch-d-${seed}`];
+  const base = {
+    type: EmailLogType.GENERIC,
+    recipientEmail: `incident-epoch-${seed}@example.test`,
+    subject: `Incident epoch ${seed}`,
+    templateKey: "incident-epoch-test",
+  };
+
+  try {
+    const root = await prisma.emailLog.create({
+      data: { ...base, status: EmailLogStatus.SENT, trackingBouncedAt: new Date("2026-08-16T10:00:00.000Z") },
+    });
+    ids.push(root.id);
+    const deliveredResend = await prisma.emailLog.create({
+      data: { ...base, status: EmailLogStatus.SENT, provider: "resend", providerMessageId: `epoch-b-message-${seed}`, resendOfId: root.id, resendRootId: root.id },
+    });
+    ids.push(deliveredResend.id);
+    await applyResendWebhookEvent({
+      event: { type: "email.delivered", created_at: "2026-08-16T10:01:00.000Z", data: { email_id: `epoch-b-message-${seed}` } },
+      providerEventId: eventIds[0],
+    });
+    const resolvedRoot = await prisma.emailLog.findUniqueOrThrow({ where: { id: root.id } });
+    const originalResolution = {
+      incidentResolvedAt: resolvedRoot.incidentResolvedAt,
+      incidentResolutionKind: resolvedRoot.incidentResolutionKind,
+      incidentResolvedByEmailLogId: resolvedRoot.incidentResolvedByEmailLogId,
+    };
+    assert.ok(originalResolution.incidentResolvedAt);
+    assert.equal(originalResolution.incidentResolutionKind, EmailIncidentResolutionKind.DELIVERED_RESEND);
+
+    const failedResend = await prisma.emailLog.create({
+      data: buildResendEmailLogCreateInput({
+        resendOfId: deliveredResend.id,
+        resendRootId: resolveResendIncidentRootId({ sourceEmailLogId: deliveredResend.id, sourceResendRootId: deliveredResend.resendRootId, incidentResolvedAt: resolvedRoot.incidentResolvedAt }),
+        bookingId: null, clientId: null, actionTokenId: null, type: base.type,
+        recipientEmail: base.recipientEmail, subject: base.subject, templateKey: base.templateKey, payload: null,
+      }),
+    });
+    ids.push(failedResend.id);
+    await prisma.emailLog.update({ where: { id: failedResend.id }, data: { status: EmailLogStatus.FAILED, errorMessage: "Nový failure" } });
+    const [rootAfterFailure, failedAfterFailure, attention, history] = await Promise.all([
+      prisma.emailLog.findUniqueOrThrow({ where: { id: root.id } }),
+      prisma.emailLog.findUniqueOrThrow({ where: { id: failedResend.id } }),
+      getAdminLogsData({ area: "owner", view: "attention", source: "email", query: base.subject }),
+      getAdminLogsData({ area: "owner", view: "emails", source: "email", query: base.subject }),
+    ]);
+    assert.equal(failedAfterFailure.resendOfId, deliveredResend.id);
+    assert.equal(failedAfterFailure.resendRootId, null);
+    assert.deepEqual({ incidentResolvedAt: rootAfterFailure.incidentResolvedAt, incidentResolutionKind: rootAfterFailure.incidentResolutionKind, incidentResolvedByEmailLogId: rootAfterFailure.incidentResolvedByEmailLogId }, originalResolution);
+    assert.equal(await prisma.emailLog.count({ where: { AND: [{ id: { in: ids } }, getUnresolvedEmailDeliveryIncidentRootWhere()] } }), 1);
+    assert.deepEqual(attention.items.map((item) => item.emailLogId), [failedResend.id]);
+    assert.deepEqual(new Set(history.items.map((item) => item.emailLogId)), new Set(ids));
+
+    const finalResend = await prisma.emailLog.create({
+      data: { ...base, status: EmailLogStatus.SENT, provider: "resend", providerMessageId: `epoch-d-message-${seed}`, resendOfId: failedResend.id, resendRootId: failedResend.id },
+    });
+    ids.push(finalResend.id);
+    await applyResendWebhookEvent({
+      event: { type: "email.delivered", created_at: "2026-08-16T10:03:00.000Z", data: { email_id: `epoch-d-message-${seed}` } },
+      providerEventId: eventIds[1],
+    });
+    const [rootAfterDelivered, failedAfterDelivered] = await Promise.all([
+      prisma.emailLog.findUniqueOrThrow({ where: { id: root.id } }),
+      prisma.emailLog.findUniqueOrThrow({ where: { id: failedResend.id } }),
+    ]);
+    assert.deepEqual({ incidentResolvedAt: rootAfterDelivered.incidentResolvedAt, incidentResolutionKind: rootAfterDelivered.incidentResolutionKind, incidentResolvedByEmailLogId: rootAfterDelivered.incidentResolvedByEmailLogId }, originalResolution);
+    assert.ok(failedAfterDelivered.incidentResolvedAt);
+    assert.equal(failedAfterDelivered.incidentResolutionKind, EmailIncidentResolutionKind.DELIVERED_RESEND);
+    assert.equal(await prisma.emailLog.count({ where: { AND: [{ id: { in: ids } }, getUnresolvedEmailDeliveryIncidentRootWhere()] } }), 0);
+  } finally {
+    await prisma.emailProviderWebhookEvent.deleteMany({ where: { providerEventId: { in: eventIds } } });
+    for (const id of [...ids].reverse()) await prisma.emailLog.delete({ where: { id } });
+  }
+});
+
+dbTest("ruční uzavření nové resend epochy nemění dříve vyřešený incident", async () => {
+  const [{ prisma }, { manuallyResolveEmailIncident }] = await Promise.all([
+    import("@/lib/prisma"),
+    import("./incident-resolution"),
+  ]);
+  const seed = randomUUID();
+  const owner = await prisma.adminUser.create({ data: { email: `epoch-manual-owner-${seed}@example.test`, name: "OWNER nové epochy", role: AdminRole.OWNER } });
+  const ids: string[] = [];
+
+  try {
+    const oldRoot = await prisma.emailLog.create({
+      data: { type: EmailLogType.GENERIC, status: EmailLogStatus.FAILED, recipientEmail: `epoch-manual-${seed}@example.test`, subject: "Stará epocha", templateKey: "incident-epoch-test", incidentResolvedAt: new Date("2026-08-16T10:00:00.000Z"), incidentResolutionKind: EmailIncidentResolutionKind.DELIVERED_RESEND, incidentResolvedByEmailLogId: "historical-delivered-resend" },
+    });
+    ids.push(oldRoot.id);
+    const newFailure = await prisma.emailLog.create({
+      data: { type: EmailLogType.GENERIC, status: EmailLogStatus.FAILED, recipientEmail: oldRoot.recipientEmail, subject: "Nová epocha", templateKey: "incident-epoch-test", resendOfId: oldRoot.id, resendRootId: null },
+    });
+    ids.push(newFailure.id);
+    const oldResolution = { incidentResolvedAt: oldRoot.incidentResolvedAt, incidentResolutionKind: oldRoot.incidentResolutionKind, incidentResolvedByEmailLogId: oldRoot.incidentResolvedByEmailLogId };
+
+    const result = await manuallyResolveEmailIncident({ emailLogId: newFailure.id, actorUserId: owner.id, actorRole: AdminRole.OWNER, reason: EmailIncidentManualResolutionReason.HISTORICAL, note: null });
+    const [storedOldRoot, storedNewFailure] = await Promise.all([
+      prisma.emailLog.findUniqueOrThrow({ where: { id: oldRoot.id } }),
+      prisma.emailLog.findUniqueOrThrow({ where: { id: newFailure.id } }),
+    ]);
+    assert.deepEqual(result, { outcome: "resolved", rootId: newFailure.id });
+    assert.deepEqual({ incidentResolvedAt: storedOldRoot.incidentResolvedAt, incidentResolutionKind: storedOldRoot.incidentResolutionKind, incidentResolvedByEmailLogId: storedOldRoot.incidentResolvedByEmailLogId }, oldResolution);
+    assert.ok(storedNewFailure.incidentResolvedAt);
+    assert.equal(storedNewFailure.incidentResolutionKind, EmailIncidentResolutionKind.MANUAL);
+    assert.equal(await prisma.emailLog.count({ where: { AND: [{ id: { in: ids } }, getUnresolvedEmailDeliveryIncidentRootWhere()] } }), 0);
+  } finally {
+    for (const id of [...ids].reverse()) await prisma.emailLog.delete({ where: { id } });
+    await prisma.adminUser.delete({ where: { id: owner.id } });
   }
 });
 
