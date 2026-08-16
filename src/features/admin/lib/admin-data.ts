@@ -37,7 +37,7 @@ import {
 import { deriveTrackingState } from "@/lib/email/resend-webhooks";
 import { getEmailDeliveryFailureWhere, getUnresolvedEmailDeliveryFailureWhere, getUnresolvedEmailDeliveryIncidentRootWhere, isEmailDeliveryFailure } from "@/lib/email/incidents";
 
-export { getEmailDeliveryFailureWhere, getUnresolvedEmailDeliveryFailureWhere, getUnresolvedEmailDeliveryIncidentRootWhere } from "@/lib/email/incidents";
+export { getEmailDeliveryFailureWhere, getEmailDeliveryIncidentRootWhere, getUnresolvedEmailDeliveryFailureWhere, getUnresolvedEmailDeliveryIncidentRootWhere } from "@/lib/email/incidents";
 import { prisma } from "@/lib/prisma";
 
 const formatDate = new Intl.DateTimeFormat("cs-CZ", {
@@ -1482,12 +1482,12 @@ export async function getAdminLogsData(input: {
   const attentionIncidentWhere = getUnresolvedEmailDeliveryIncidentRootWhere({
     AND: [getEmailDeliveryFailureWhere(), emailBaseWhere],
   });
-  // Datum Pozornosti patří reprezentativnímu failure logu, nikoli rootu chainu.
-  // Root dál určuje identitu i stav resolution incidentu; při filtru proto z jeho
-  // failed členů vybíráme nejnovějšího, který leží přímo v zadaném rozsahu.
-  const attentionRepresentativeFailureWhere: Prisma.EmailLogWhereInput = dateWhere
-    ? { AND: [getEmailDeliveryFailureWhere(), { createdAt: dateWhere }] }
-    : getEmailDeliveryFailureWhere();
+  // Root určuje identitu i stav resolution. Reprezentant ale musí být failure,
+  // který splňuje celý aktivní emailový filtr, aby UI nikdy nezobrazilo jiný log
+  // než ten, který incident do filtrovaného výsledku zařadil.
+  const attentionRepresentativeFailureWhere: Prisma.EmailLogWhereInput = {
+    AND: [getEmailDeliveryFailureWhere(), emailBaseWhere],
+  };
   const attentionSupplementWhere: Prisma.EmailLogWhereInput = severity === "all"
     ? { AND: [emailBaseWhere, { NOT: getEmailDeliveryFailureWhere() }, { OR: [
       getEmailDeliveryWarningWhere(),

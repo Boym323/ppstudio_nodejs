@@ -17,6 +17,7 @@ import {
   getAdminLogCandidatePlan,
   filterDuplicateVoucherCompletionAudits,
   getEmailDeliveryFailureWhere,
+  getEmailDeliveryIncidentRootWhere,
   getEmailDetailFinalStatus,
   getUnresolvedEmailDeliveryFailureWhere,
   getUnresolvedEmailDeliveryIncidentRootWhere,
@@ -195,11 +196,8 @@ test("aktivní delivery failure vyžaduje neuzavřený explicitní resend chain"
 test("aktivní delivery incidenty se čtou pouze přes neuzavřené stabilní rooty", () => {
   assert.deepEqual(getUnresolvedEmailDeliveryIncidentRootWhere(), {
     AND: [
-      { resendRootId: null, incidentResolvedAt: null },
-      { OR: [
-        getEmailDeliveryFailureWhere(),
-        { incidentResends: { some: getEmailDeliveryFailureWhere() } },
-      ] },
+      getEmailDeliveryIncidentRootWhere(),
+      { incidentResolvedAt: null },
     ],
   });
 });

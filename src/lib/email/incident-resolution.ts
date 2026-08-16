@@ -5,7 +5,7 @@ import {
 } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
-import { isEmailDeliveryFailure } from "@/lib/email/incidents";
+import { getEmailDeliveryIncidentRootWhere } from "@/lib/email/incidents";
 
 export const emailIncidentManualResolutionReasons = [
   EmailIncidentManualResolutionReason.HISTORICAL,
@@ -44,17 +44,17 @@ export async function manuallyResolveEmailIncident(
   }
 
   const rootId = emailLog.resendRootId ?? emailLog.id;
-  const root = await database.emailLog.findUnique({
-    where: { id: rootId },
-    select: {
-      status: true,
-      trackingBouncedAt: true,
-      trackingFailedAt: true,
-      trackingSuppressedAt: true,
+  const root = await database.emailLog.findFirst({
+    where: {
+      AND: [
+        { id: rootId },
+        getEmailDeliveryIncidentRootWhere(),
+      ],
     },
+    select: { id: true },
   });
 
-  if (!root || !isEmailDeliveryFailure(root)) {
+  if (!root) {
     return { outcome: "not_an_incident" as const, rootId };
   }
 

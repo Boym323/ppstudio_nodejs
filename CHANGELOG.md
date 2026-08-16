@@ -6,6 +6,10 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+### Opraveno
+
+- Ruční uzavření i filtrování Pozornosti nyní jednotně vyhodnocují celý resend chain: OWNER tak může uzavřít incident se selháním až na resendu a zobrazený failure vždy splňuje všechny aktivní e-mailové filtry.
+
 ## [3.20.0] - 2026-08-16
 
 ### Změněno

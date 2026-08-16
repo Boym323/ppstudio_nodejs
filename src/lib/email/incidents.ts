@@ -40,21 +40,33 @@ export function getUnresolvedEmailDeliveryFailureWhere(): Prisma.EmailLogWhereIn
 }
 
 /**
- * Logické aktivní incidenty, vždy jeden stabilní root za resend chain.
+ * Logický delivery incident, vždy jeden stabilní root za resend chain.
  * `failureWhere` určuje, který failure člen je pro konkrétní read-model relevantní.
  */
-export function getUnresolvedEmailDeliveryIncidentRootWhere(
+export function getEmailDeliveryIncidentRootWhere(
   failureWhere: Prisma.EmailLogWhereInput = getEmailDeliveryFailureWhere(),
 ): Prisma.EmailLogWhereInput {
   return {
     AND: [
-      { resendRootId: null, incidentResolvedAt: null },
+      { resendRootId: null },
       {
         OR: [
           failureWhere,
           { incidentResends: { some: failureWhere } },
         ],
       },
+    ],
+  };
+}
+
+/** Logický incident, který dosud nebyl uzavřený. */
+export function getUnresolvedEmailDeliveryIncidentRootWhere(
+  failureWhere: Prisma.EmailLogWhereInput = getEmailDeliveryFailureWhere(),
+): Prisma.EmailLogWhereInput {
+  return {
+    AND: [
+      getEmailDeliveryIncidentRootWhere(failureWhere),
+      { incidentResolvedAt: null },
     ],
   };
 }
