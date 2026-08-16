@@ -122,6 +122,83 @@ dbTest("Resend webhook rozlišuje různé eventy a nededuplikuje podle provider 
   }
 });
 
+dbTest("resend po opravě kontaktu zachová bounce audit původního logu a založí nový chain", async () => {
+  const [{ prisma }, { buildResendEmailLogCreateInput, resolveEmailLogRecipientFromContact }] = await Promise.all([
+    import("@/lib/prisma"),
+    import("@/features/admin/actions/email-log-action-helpers"),
+  ]);
+  const seed = randomUUID();
+  const oldEmail = `petra-${seed}@seznam.dz`;
+  const currentEmail = `petra-${seed}@seznam.cz`;
+  const client = await prisma.client.create({
+    data: { fullName: `Resend audit ${seed}`, email: oldEmail },
+  });
+  const root = await prisma.emailLog.create({
+    data: {
+      clientId: client.id,
+      type: EmailLogType.BOOKING_CONFIRMED,
+      status: EmailLogStatus.SENT,
+      recipientEmail: oldEmail,
+      subject: "Rezervace potvrzena",
+      templateKey: "booking-approved-v1",
+      trackingBouncedAt: new Date("2026-08-16T09:00:00.000Z"),
+    },
+  });
+  const unrelatedLifecycleLog = await prisma.emailLog.create({
+    data: {
+      clientId: client.id,
+      type: EmailLogType.BOOKING_RECEIVED,
+      status: EmailLogStatus.SENT,
+      recipientEmail: oldEmail,
+      subject: "Rezervace přijata",
+      templateKey: "booking-confirmation-v1",
+    },
+  });
+
+  try {
+    await prisma.client.update({ where: { id: client.id }, data: { email: currentEmail } });
+    const updatedClient = await prisma.client.findUniqueOrThrow({ where: { id: client.id } });
+    const recipientEmail = resolveEmailLogRecipientFromContact({
+      clientEmail: updatedClient.email,
+      bookingClientEmailSnapshot: null,
+    });
+    assert.equal(recipientEmail, currentEmail);
+
+    const resend = await prisma.emailLog.create({
+      data: buildResendEmailLogCreateInput({
+        resendOfId: root.id,
+        resendRootId: root.id,
+        bookingId: root.bookingId,
+        clientId: root.clientId,
+        actionTokenId: root.actionTokenId,
+        type: root.type,
+        recipientEmail: recipientEmail!,
+        subject: root.subject,
+        templateKey: root.templateKey,
+        payload: root.payload,
+      }),
+    });
+    const [storedRoot, storedResend, storedUnrelatedLifecycleLog] = await Promise.all([
+      prisma.emailLog.findUniqueOrThrow({ where: { id: root.id } }),
+      prisma.emailLog.findUniqueOrThrow({ where: { id: resend.id } }),
+      prisma.emailLog.findUniqueOrThrow({ where: { id: unrelatedLifecycleLog.id } }),
+    ]);
+
+    assert.equal(storedRoot.recipientEmail, oldEmail);
+    assert.ok(storedRoot.trackingBouncedAt);
+    assert.equal(storedResend.recipientEmail, currentEmail);
+    assert.equal(storedResend.status, EmailLogStatus.PENDING);
+    assert.equal(storedResend.resendOfId, root.id);
+    assert.equal(storedResend.resendRootId, root.id);
+    assert.equal(storedUnrelatedLifecycleLog.recipientEmail, oldEmail);
+  } finally {
+    await prisma.emailLog.deleteMany({ where: { id: { in: [unrelatedLifecycleLog.id] } } });
+    await prisma.emailLog.deleteMany({ where: { resendOfId: root.id } });
+    await prisma.emailLog.delete({ where: { id: root.id } });
+    await prisma.client.delete({ where: { id: client.id } });
+  }
+});
+
 dbTest("doručený resend idempotentně uzavře celý explicitní incident chain bez přepisu bounce historie", async () => {
   const [{ prisma }, { applyResendWebhookEvent }, { getUnresolvedEmailDeliveryFailureWhere }] = await Promise.all([
     import("@/lib/prisma"),

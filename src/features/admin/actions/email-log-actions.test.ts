@@ -66,6 +66,38 @@ test("buildResendEmailLogCreateInput resets queue and provider state for resend"
   assert.deepEqual(data.payload, payload);
 });
 
+test("buildResendEmailLogCreateInput stores the current contact address only on the new resend", async () => {
+  const {
+    buildResendEmailLogCreateInput,
+    resolveEmailLogRecipientFromContact,
+  } = await import("@/features/admin/actions/email-log-action-helpers");
+  const historicalRecipient = "petra@seznam.dz";
+  const recipientEmail = resolveEmailLogRecipientFromContact({
+    clientEmail: "petra@seznam.cz",
+    bookingClientEmailSnapshot: historicalRecipient,
+  });
+
+  assert.equal(recipientEmail, "petra@seznam.cz");
+
+  const data = buildResendEmailLogCreateInput({
+    resendOfId: "email-log-a",
+    resendRootId: "email-log-a",
+    bookingId: "booking-1",
+    clientId: "client-1",
+    actionTokenId: null,
+    type: EmailLogType.BOOKING_CONFIRMED,
+    recipientEmail: recipientEmail!,
+    subject: "Rezervace potvrzena",
+    templateKey: "booking-approved-v1",
+    payload: null,
+  });
+
+  assert.equal(historicalRecipient, "petra@seznam.dz");
+  assert.equal(data.recipientEmail, "petra@seznam.cz");
+  assert.equal(data.resendOfId, "email-log-a");
+  assert.equal(data.resendRootId, "email-log-a");
+});
+
 test("buildResendEmailLogCreateInput preserves received-booking template", async () => {
   const { buildResendEmailLogCreateInput } = await import("@/features/admin/actions/email-log-action-helpers");
 

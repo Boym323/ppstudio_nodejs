@@ -904,7 +904,6 @@ export type EmailLogDetailData = {
   clientName: string;
   clientSummary: string;
   clientContactEmail: string | null;
-  canRefreshRecipientFromClient: boolean;
   canResend: boolean;
   actionTokenId: string | null;
   actionTokenLabel: string;
@@ -2019,7 +2018,6 @@ export async function getEmailLogDetailData(emailLogId: string): Promise<EmailLo
       ? `${emailLog.client.fullName} • ${emailLog.client.email ?? "Bez e-mailu"}${emailLog.client.phone ? ` • ${formatClientPhoneForDisplay(emailLog.client.phone)}` : ""}`
       : "Bez navázaného klienta",
     clientContactEmail: emailLog.client?.email ?? null,
-    canRefreshRecipientFromClient: !isProcessing && !!(emailLog.client?.email ?? emailLog.booking?.clientEmailSnapshot),
     canResend: !isProcessing,
     actionTokenId: emailLog.actionToken?.id ?? null,
     actionTokenLabel: emailLog.actionToken ? actionTokenTypeLabel(emailLog.actionToken.type) : "Bez navázaného action tokenu",

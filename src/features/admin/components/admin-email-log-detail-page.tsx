@@ -1,7 +1,6 @@
 import Link from "next/link";
 
 import {
-  refreshEmailLogRecipientFromClientAction,
   releaseStuckEmailLogAction,
   resendEmailLogAction,
   retryEmailLogAction,
@@ -148,18 +147,6 @@ function EmailQuickActions({ data }: { data: EmailLogDetailData }) {
                 className="rounded-full bg-[var(--color-accent)] px-3.5 py-2 text-sm font-semibold text-[var(--color-accent-contrast)] transition hover:brightness-105"
               >
                 Zkusit znovu
-              </button>
-            </form>
-          ) : null}
-
-          {data.canRefreshRecipientFromClient ? (
-            <form action={refreshEmailLogRecipientFromClientAction}>
-              <input type="hidden" name="emailLogId" value={data.id} />
-              <button
-                type="submit"
-                className="rounded-full border border-white/12 bg-white/5 px-3.5 py-2 text-sm font-semibold text-white transition hover:border-white/30 hover:bg-white/10"
-              >
-                Načíst e-mail z kontaktu
               </button>
             </form>
           ) : null}

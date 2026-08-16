@@ -38,14 +38,10 @@ function getFlashMessage(flash?: string) {
       return "Ruční retry byl odeslaný do fronty. Worker ho zpracuje při dalším průchodu.";
     case "release-success":
       return "Zaseknutý job byl uvolněný a vrácený zpět do fronty.";
-    case "recipient-refresh-success":
-      return "Příjemce byl aktualizovaný podle aktuálního kontaktu klientky.";
-    case "recipient-refresh-missing":
-      return "U klientky není vyplněný e-mail, takže nebylo co načíst.";
     case "resend-success":
       return "Do fronty byl založený nový pokus o odeslání tohoto e-mailu.";
     case "resend-missing-recipient":
-      return "Příjemce je prázdný. Nejdřív načtěte nebo doplňte e-mail kontaktu.";
+      return "U aktuálního kontaktu není vyplněný e-mail, takže resend nelze založit.";
     default:
       return undefined;
   }
