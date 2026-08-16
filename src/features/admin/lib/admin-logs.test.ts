@@ -18,7 +18,6 @@ import {
   filterDuplicateVoucherCompletionAudits,
   getEmailDeliveryFailureWhere,
   getEmailDetailFinalStatus,
-  getEmailHealthState,
   getUnresolvedEmailDeliveryFailureWhere,
   getUnresolvedEmailDeliveryIncidentRootWhere,
   getEmailLogSeverity,
@@ -205,31 +204,6 @@ test("aktivní delivery incidenty se čtou pouze přes neuzavřené stabilní ro
   });
 });
 
-test("health e-mailů popisuje transportní i následné delivery incidenty obecně", () => {
-  const health = getEmailHealthState({
-    pending: 0,
-    retrying: 0,
-    processing: 0,
-    failed: 1,
-    latestError: null,
-    lastSentLabel: "16. 8. 2026 10:00",
-  });
-
-  assert.equal(health.title, "Problém s e-maily");
-  assert.equal(health.helper, "Některé zprávy mají problém s odesláním nebo následným doručením.");
-  assert.match(health.summary, /Aktivní incidenty: 1/);
-});
-
-test("read-model e-mailů pojmenovává agregovaný počet jako aktivní incidenty a SENT jako předání providerovi", async () => {
-  const source = await readFile(new URL("./admin-data.ts", import.meta.url), "utf8");
-
-  assert.ok(source.includes('label: "Aktivní e-mailové incidenty"'));
-  assert.ok(source.includes('detail: "Nevyřešené problémy s odesláním nebo doručením."'));
-  assert.ok(source.includes('label: "Aktivní incidenty"'));
-  assert.ok(source.includes('detail: "Auditní součet zpráv úspěšně předaných e-mailovému providerovi."'));
-  assert.equal(source.includes("Auditní součet všech úspěšně doručených emailů."), false);
-});
-
 test("severity e-mailu dává delivery state přednost před SENT", () => {
   const base = {
     trackingLastEvent: null,
@@ -304,7 +278,7 @@ test("extrémní stránka se clampne před výpočtem kandidátního take", () =
 
 test("findMany a count sdílejí stejné where proměnné", async () => {
   const source = await readFile(new URL("./admin-data.ts", import.meta.url), "utf8");
-  for (const whereName of ["emailWhere", "bookingHistoryWhere", "rescheduleWhere", "voucherWhere", "voucherChangeWhere", "serviceChangeWhere", "siteSettingsChangeWhere", "availabilityWhere", "adminUserAuditWhere", "submissionWhere"]) {
+  for (const whereName of ["emailWhere", "bookingHistoryWhere", "rescheduleWhere", "voucherWhere", "voucherChangeWhere", "serviceChangeWhere", "servicePriceChangeWhere", "siteSettingsChangeWhere", "availabilityWhere", "adminUserAuditWhere", "submissionWhere"]) {
     assert.ok(source.includes(`findMany({ where: ${whereName}`));
     assert.ok(source.includes(`count({ where: ${whereName}`));
   }

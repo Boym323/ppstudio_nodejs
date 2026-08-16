@@ -6,6 +6,8 @@ import test from "node:test";
 
 import { AdminRole, BookingActorType, BookingStatus, BookingSubmissionOutcome, EmailLogType, ServiceChangeOperation, VoucherChangeOperation, VoucherType } from "@prisma/client";
 
+import { formatServicePrice } from "./admin-service-format";
+
 process.env.DATABASE_URL ??= "postgresql://postgres:postgres@localhost:5432/ppstudio?schema=public";
 
 const dbTest = process.env.RUN_DB_INTEGRATION_TESTS === "1" ? test : test.skip;
@@ -92,6 +94,55 @@ dbTest("admin logy používají české popisky voucheru a název kategorie slu�
     await prisma.voucher.delete({ where: { id: voucher.id } });
     await prisma.service.delete({ where: { id: service.id } });
     await prisma.serviceCategory.delete({ where: { id: nextCategory.id } });
+    await prisma.adminUser.delete({ where: { id: actor.id } });
+  }
+});
+
+dbTest("admin logy zobrazují každou změnu ceny služby právě jednou", async () => {
+  const [{ prisma }, { getAdminLogsData }] = await Promise.all([
+    import("@/lib/prisma"),
+    import("./admin-data"),
+  ]);
+  const suffix = randomUUID();
+  const actor = await prisma.adminUser.create({ data: { email: `admin-price-log-${suffix}@example.com`, name: "Cenový audit", role: AdminRole.SALON } });
+  const category = await prisma.serviceCategory.create({ data: { name: `Kategorie ceny ${suffix}`, slug: `kategorie-ceny-${suffix}` } });
+  const service = await prisma.service.create({ data: { categoryId: category.id, name: `Služba ceny ${suffix}`, slug: `sluzba-ceny-${suffix}`, durationMinutes: 60 } });
+
+  try {
+    await prisma.servicePriceChangeLog.createMany({
+      data: [
+        { serviceId: service.id, changedByUserId: actor.id, oldPriceFromCzk: 1390, newPriceFromCzk: 1490 },
+        { serviceId: service.id, changedByUserId: actor.id, oldPriceFromCzk: null, newPriceFromCzk: 1490 },
+        { serviceId: service.id, changedByUserId: actor.id, oldPriceFromCzk: 1490, newPriceFromCzk: null },
+      ],
+    });
+    await prisma.serviceChangeLog.create({
+      data: {
+        serviceId: service.id,
+        actorUserId: actor.id,
+        operation: ServiceChangeOperation.UPDATE_OPERATIONAL_DETAILS,
+        before: { isActive: true },
+        after: { isActive: false },
+      },
+    });
+
+    const feed = await getAdminLogsData({ area: "salon", view: "events", source: "service", query: suffix });
+    const priceChanges = feed.items.filter((item) => item.title === "Cena služby změněna");
+
+    assert.equal(priceChanges.length, 3);
+    assert.deepEqual(new Set(priceChanges.map((item) => item.description)), new Set([
+      `${formatServicePrice(1390)} → ${formatServicePrice(1490)}`,
+      `${formatServicePrice(null)} → ${formatServicePrice(1490)}`,
+      `${formatServicePrice(1490)} → ${formatServicePrice(null)}`,
+    ]));
+    assert.equal(priceChanges.every((item) => item.actorLabel === actor.name && item.entityLabel === service.name && item.severity === "info"), true);
+    assert.equal(feed.items.filter((item) => item.title === "Služba upravena").length, 1);
+    assert.equal(feed.total, 4);
+  } finally {
+    await prisma.serviceChangeLog.deleteMany({ where: { serviceId: service.id } });
+    await prisma.servicePriceChangeLog.deleteMany({ where: { serviceId: service.id } });
+    await prisma.service.delete({ where: { id: service.id } });
+    await prisma.serviceCategory.delete({ where: { id: category.id } });
     await prisma.adminUser.delete({ where: { id: actor.id } });
   }
 });

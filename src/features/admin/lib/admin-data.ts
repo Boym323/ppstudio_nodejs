@@ -29,6 +29,7 @@ import {
   getDayBounds,
 } from "@/features/admin/lib/admin-slots/time";
 import { getPublicBookingCatalog } from "@/features/booking/lib/booking-public";
+import { formatServicePrice } from "@/features/admin/lib/admin-service-format";
 import {
   buildClientPhoneHref,
   formatClientPhoneForDisplay,
@@ -792,19 +793,6 @@ export async function getManualBookingClientById(clientId: string) {
   };
 }
 
-type EmailLogItem = {
-  id: string;
-  title: string;
-  meta?: string;
-  description?: string;
-  badge?: string;
-  href?: string;
-};
-
-type EmailHealthTone = "ok" | "warning" | "error";
-
-type EmailRecentStatusValue = "sent" | "pending" | "processing" | "retry" | "failed";
-
 export function getEmailLogSeverity(input: {
   status: EmailLogStatus;
   processingStartedAt: Date | null;
@@ -820,67 +808,7 @@ export function getEmailLogSeverity(input: {
   return input.status === EmailLogStatus.SENT ? "success" : "info";
 }
 
-type EmailRecentTypeValue =
-  | "booking_received"
-  | "booking_confirmation"
-  | "reminder"
-  | "cancellation"
-  | "reschedule"
-  | "voucher"
-  | "admin"
-  | "other";
-
-export type EmailLogsDashboardData = {
-  referenceNowIso: string;
-  health: {
-    tone: EmailHealthTone;
-    title: string;
-    helper: string;
-    summary: string;
-    latestError: string | null;
-  };
-  stats: Array<{
-    label: string;
-    value: string;
-    tone?: "default" | "accent" | "muted";
-    detail?: string;
-  }>;
-  recentEmails: Array<{
-    id: string;
-    typeLabel: string;
-    typeValue: EmailRecentTypeValue;
-    statusLabel: string;
-    statusValue: EmailRecentStatusValue;
-    recipientLabel: string;
-    recipientEmail: string;
-    bookingSummary: string | null;
-    bookingHref: string | null;
-    createdAtIso: string;
-    createdAtLabel: string;
-    sentAtLabel: string;
-    activityLabel: string;
-    attemptCount: number;
-    lastAttemptLabel: string;
-    nextAttemptLabel: string;
-    errorMessage: string | null;
-    trackingStateLabel: string;
-    trackingStateValue: "sent" | "pending" | "processing" | "retry" | "failed";
-    trackingOpenedLabel: string;
-    trackingClickedLabel: string;
-    detailHref: string;
-    canRetry: boolean;
-  }>;
-  queueStats: Array<{
-    label: string;
-    value: string;
-    tone?: "default" | "accent" | "muted";
-    detail?: string;
-  }>;
-  workerSummary: string;
-  pendingItems: EmailLogItem[];
-  retryingItems: EmailLogItem[];
-  failedItems: EmailLogItem[];
-};
+type EmailRecentStatusValue = "sent" | "pending" | "processing" | "retry" | "failed";
 
 export type EmailLogDetailData = {
   id: string;
@@ -978,93 +906,6 @@ function getEmailRecentStatusLabel(
   }
 }
 
-function getEmailTypeCategory(type: EmailLogType, templateKey: string): EmailRecentTypeValue {
-  if (templateKey.startsWith("admin-")) {
-    return "admin";
-  }
-
-  if (templateKey === "booking-confirmation-v1") {
-    return "booking_received";
-  }
-
-  if (templateKey === "booking-approved-v1") {
-    return "booking_confirmation";
-  }
-
-  switch (type) {
-    case EmailLogType.BOOKING_CREATED:
-    case EmailLogType.BOOKING_RECEIVED:
-      return "booking_received";
-    case EmailLogType.BOOKING_CONFIRMED:
-      return "booking_confirmation";
-    case EmailLogType.BOOKING_REMINDER:
-      return "reminder";
-    case EmailLogType.BOOKING_CANCELLED:
-      return "cancellation";
-    case EmailLogType.BOOKING_RESCHEDULED:
-      return "reschedule";
-    case EmailLogType.VOUCHER_SENT:
-      return "voucher";
-    case EmailLogType.GENERIC:
-      return "other";
-  }
-}
-
-function getEmailTypeCategoryLabel(type: EmailLogType, templateKey: string): string {
-  switch (getEmailTypeCategory(type, templateKey)) {
-    case "booking_received":
-      return "Přijetí rezervace";
-    case "booking_confirmation":
-      return "Potvrzení rezervace";
-    case "reminder":
-      return "Reminder";
-    case "cancellation":
-      return "Zrušení";
-    case "reschedule":
-      return "Přesun termínu";
-    case "voucher":
-      return "Voucher";
-    case "admin":
-      return "Admin notifikace";
-    case "other":
-      return "Ostatní";
-  }
-}
-
-export function getEmailHealthState(input: {
-  pending: number;
-  retrying: number;
-  processing: number;
-  failed: number;
-  latestError: string | null;
-  lastSentLabel: string;
-}) {
-  if (input.failed > 0 || input.retrying > 0 || input.latestError) {
-    return {
-      tone: "error" as const,
-      title: "Problém s e-maily",
-      helper: "Některé zprávy mají problém s odesláním nebo následným doručením.",
-      summary: `Aktivní incidenty: ${input.failed} • ${input.retrying} je v retry • poslední odeslání ${input.lastSentLabel}`,
-    };
-  }
-
-  if (input.pending > 0 || input.processing > 0) {
-    return {
-      tone: "warning" as const,
-      title: "Některé emaily čekají na zpracování",
-      helper: "Ve frontě jsou zprávy, které worker ještě nezpracoval.",
-      summary: `${input.pending} čeká ve frontě • ${input.processing} se právě zpracovává • poslední odeslání ${input.lastSentLabel}`,
-    };
-  }
-
-  return {
-    tone: "ok" as const,
-    title: "Emaily fungují správně",
-    helper: "Fronta je prázdná a poslední odeslání proběhlo bez chyby.",
-    summary: `Fronta je prázdná • poslední odeslání ${input.lastSentLabel}`,
-  };
-}
-
 function getWorkerSummary({
   pending,
   retrying,
@@ -1089,301 +930,6 @@ function getWorkerSummary({
   }
 
   return "Fronta je čistá a worker momentálně nedrží žádný aktivní job.";
-}
-
-export async function getEmailLogsData(): Promise<EmailLogsDashboardData> {
-  const now = new Date();
-  const { startsAt: todayStart, endsAt: tomorrowStart } = getDayBounds(formatDateKey(now));
-  const sevenDayStart = addDays(todayStart, -6);
-  const [
-    pending,
-    retrying,
-    processing,
-    sent,
-    failed,
-    todaySent,
-    sevenDaySent,
-    lastSentLog,
-    latestErrorLog,
-    recentLogs,
-    pendingItems,
-    retryingItems,
-    failedItems,
-  ] = await Promise.all([
-    prisma.emailLog.count({
-      where: {
-        status: EmailLogStatus.PENDING,
-        attemptCount: 0,
-        nextAttemptAt: { lte: now },
-        processingStartedAt: null,
-      },
-    }),
-    prisma.emailLog.count({
-      where: {
-        status: EmailLogStatus.PENDING,
-        attemptCount: { gt: 0 },
-      },
-    }),
-    prisma.emailLog.count({
-      where: {
-        status: EmailLogStatus.PENDING,
-        processingStartedAt: { not: null },
-      },
-    }),
-    prisma.emailLog.count({ where: { status: EmailLogStatus.SENT } }),
-    prisma.emailLog.count({ where: getUnresolvedEmailDeliveryIncidentRootWhere() }),
-    prisma.emailLog.count({
-      where: {
-        status: EmailLogStatus.SENT,
-        sentAt: { gte: todayStart, lt: tomorrowStart },
-      },
-    }),
-    prisma.emailLog.count({
-      where: {
-        status: EmailLogStatus.SENT,
-        sentAt: { gte: sevenDayStart, lt: tomorrowStart },
-      },
-    }),
-    prisma.emailLog.findFirst({
-      where: {
-        status: EmailLogStatus.SENT,
-        sentAt: { not: null },
-      },
-      orderBy: { sentAt: "desc" },
-      select: {
-        sentAt: true,
-      },
-    }),
-    prisma.emailLog.findFirst({
-      where: {
-        OR: [
-          getUnresolvedEmailDeliveryFailureWhere(),
-          {
-            status: EmailLogStatus.PENDING,
-            attemptCount: { gt: 0 },
-          },
-        ],
-      },
-      orderBy: { updatedAt: "desc" },
-      select: {
-        errorMessage: true,
-        trackingLastEvent: true,
-        trackingClickedAt: true,
-        trackingOpenedAt: true,
-        trackingDeliveredAt: true,
-        trackingBouncedAt: true,
-        trackingComplainedAt: true,
-        trackingFailedAt: true,
-        trackingSuppressedAt: true,
-      },
-    }),
-    prisma.emailLog.findMany({
-      orderBy: [{ createdAt: "desc" }],
-      take: 48,
-      include: {
-        booking: {
-          select: {
-            id: true,
-            clientNameSnapshot: true,
-            serviceNameSnapshot: true,
-            scheduledStartsAt: true,
-            scheduledEndsAt: true,
-          },
-        },
-        client: {
-          select: {
-            fullName: true,
-          },
-        },
-      },
-    }),
-    prisma.emailLog.findMany({
-      where: {
-        status: EmailLogStatus.PENDING,
-        attemptCount: 0,
-        nextAttemptAt: { lte: now },
-        processingStartedAt: null,
-      },
-      orderBy: [{ nextAttemptAt: "asc" }, { createdAt: "asc" }],
-      take: 6,
-      include: {
-        booking: { select: { clientNameSnapshot: true } },
-      },
-    }),
-    prisma.emailLog.findMany({
-      where: {
-        status: EmailLogStatus.PENDING,
-        attemptCount: { gt: 0 },
-      },
-      orderBy: [{ nextAttemptAt: "asc" }, { createdAt: "desc" }],
-      take: 6,
-      include: {
-        booking: { select: { clientNameSnapshot: true } },
-      },
-    }),
-    prisma.emailLog.findMany({
-      where: getUnresolvedEmailDeliveryIncidentRootWhere(),
-      orderBy: { updatedAt: "desc" },
-      take: 6,
-      include: {
-        booking: { select: { clientNameSnapshot: true } },
-      },
-    }),
-  ]);
-
-  const lastSentLabel = formatDateTimeLabel(lastSentLog?.sentAt);
-  const latestError = latestErrorLog
-    ? latestErrorLog.errorMessage ?? deriveTrackingState(latestErrorLog).label
-    : null;
-  const waitingCount = pending + retrying + processing;
-  const health = getEmailHealthState({
-    pending,
-    retrying,
-    processing,
-    failed,
-    latestError,
-    lastSentLabel,
-  });
-
-  return {
-    referenceNowIso: now.toISOString(),
-    health: {
-      ...health,
-      latestError,
-    },
-    stats: [
-      {
-        label: "Dnes odesláno",
-        value: String(todaySent),
-        tone: "accent" as const,
-        detail: "Zprávy úspěšně předané providerovi od dnešní půlnoci.",
-      },
-      {
-        label: "Za posledních 7 dní",
-        value: String(sevenDaySent),
-        detail: "Součet zpráv úspěšně předaných providerovi za poslední týden.",
-      },
-      {
-        label: "Čeká na odeslání",
-        value: String(waitingCount),
-        tone: waitingCount > 0 ? ("accent" as const) : ("muted" as const),
-        detail: `${pending} ve frontě • ${retrying} retry • ${processing} se zpracovává`,
-      },
-      {
-        label: "Aktivní incidenty",
-        value: String(failed),
-        tone: failed > 0 ? ("accent" as const) : ("muted" as const),
-        detail: "Zprávy po vyčerpání retry nebo s neuzavřeným incidentem.",
-      },
-      {
-        label: "Poslední odeslání",
-        value: lastSentLabel,
-        detail: sent > 0 ? "Poslední zpráva úspěšně předaná e-mailovému providerovi." : "Zatím neevidujeme žádné odeslání.",
-      },
-    ],
-    recentEmails: recentLogs.map((log) => {
-      const recipientName = log.booking?.clientNameSnapshot ?? log.client?.fullName ?? "Bez jména";
-      const statusValue = getEmailRecentStatus(log.status, log.processingStartedAt, log.attemptCount);
-      const bookingSummary = log.booking
-        ? `${log.booking.serviceNameSnapshot} • ${formatDateTimeLabel(log.booking.scheduledStartsAt)} - ${formatTime.format(log.booking.scheduledEndsAt)}`
-        : null;
-
-      const trackingState = deriveTrackingState({
-        trackingLastEvent: log.trackingLastEvent,
-        trackingClickedAt: log.trackingClickedAt,
-        trackingOpenedAt: log.trackingOpenedAt,
-        trackingDeliveredAt: log.trackingDeliveredAt,
-        trackingBouncedAt: log.trackingBouncedAt,
-        trackingComplainedAt: log.trackingComplainedAt,
-        trackingFailedAt: log.trackingFailedAt,
-        trackingSuppressedAt: log.trackingSuppressedAt,
-      });
-
-      return {
-        id: log.id,
-        typeLabel: getEmailTypeCategoryLabel(log.type, log.templateKey),
-        typeValue: getEmailTypeCategory(log.type, log.templateKey),
-        statusLabel: getEmailRecentStatusLabel(log.status, log.processingStartedAt, log.attemptCount),
-        statusValue,
-        recipientLabel: recipientName === "Bez jména" ? log.recipientEmail : `${recipientName} • ${log.recipientEmail}`,
-        recipientEmail: log.recipientEmail,
-        bookingSummary,
-        bookingHref: log.booking ? getAdminBookingHref("owner", log.booking.id) : null,
-        createdAtIso: log.createdAt.toISOString(),
-        createdAtLabel: formatDateTimeLabel(log.createdAt),
-        sentAtLabel: formatDateTimeLabel(log.sentAt),
-        activityLabel:
-          log.status === EmailLogStatus.SENT && log.sentAt
-            ? `Odesláno ${formatDateTimeLabel(log.sentAt)}`
-            : `Vytvořeno ${formatDateTimeLabel(log.createdAt)}`,
-        attemptCount: log.attemptCount,
-        lastAttemptLabel: formatDateTimeLabel(log.sentAt ?? log.updatedAt),
-        nextAttemptLabel: formatDateTimeLabel(log.nextAttemptAt),
-        errorMessage: log.errorMessage,
-        trackingStateLabel: trackingState.label,
-        trackingStateValue: trackingState.value,
-        trackingOpenedLabel: log.trackingOpenedAt ? formatDateTimeLabel(log.trackingOpenedAt) : "Připraveno",
-        trackingClickedLabel: log.trackingClickedAt ? formatDateTimeLabel(log.trackingClickedAt) : "Připraveno",
-        detailHref: `/admin/email-logy/${log.id}`,
-        canRetry: log.status === EmailLogStatus.PENDING && log.processingStartedAt === null,
-      };
-    }),
-    queueStats: [
-      {
-        label: "Ve frontě",
-        value: String(pending),
-        tone: pending > 0 ? ("accent" as const) : ("muted" as const),
-        detail: "První pokus čekající na další průchod workeru.",
-      },
-      {
-        label: "Retry",
-        value: String(retrying),
-        tone: retrying > 0 ? ("accent" as const) : ("muted" as const),
-        detail: "Zprávy s dočasnou chybou a plánovaným dalším pokusem.",
-      },
-      {
-        label: "Zpracovává se",
-        value: String(processing),
-        tone: processing > 0 ? ("accent" as const) : ("muted" as const),
-        detail: "Claimnuté joby, které worker právě drží.",
-      },
-      {
-        label: "Celkem odesláno",
-        value: String(sent),
-        detail: "Auditní součet zpráv úspěšně předaných e-mailovému providerovi.",
-      },
-    ],
-    workerSummary: getWorkerSummary({
-      pending,
-      retrying,
-      processing,
-      failed,
-    }),
-    pendingItems: pendingItems.map((log) => ({
-      id: log.id,
-      title: `${log.subject} • ${log.recipientEmail}`,
-      meta: retryStateLabel(log.nextAttemptAt, log.processingStartedAt, log.attemptCount),
-      description: `${log.type} • klientka ${log.booking?.clientNameSnapshot ?? "bez rezervace"}`,
-      badge: "pending",
-      href: `/admin/email-logy/${log.id}`,
-    })),
-    retryingItems: retryingItems.map((log) => ({
-      id: log.id,
-      title: `${log.subject} • ${log.recipientEmail}`,
-      meta: retryStateLabel(log.nextAttemptAt, log.processingStartedAt, log.attemptCount),
-      description: `${log.type} • ${log.errorMessage ?? "Bez poslední chyby"}`,
-      badge: "retry",
-      href: `/admin/email-logy/${log.id}`,
-    })),
-    failedItems: failedItems.map((log) => ({
-      id: log.id,
-      title: `${log.subject} • ${log.recipientEmail}`,
-      meta: `${deriveTrackingState(log).value === "failed" ? "Nedoručeno" : statusLabel(log.status)} • ${formatDateTimeLabel(log.updatedAt)}`,
-      description: `${log.type} • ${log.errorMessage ?? deriveTrackingState(log).label} • klientka ${log.booking?.clientNameSnapshot ?? "bez rezervace"}`,
-      badge: "chyba",
-      href: `/admin/email-logy/${log.id}`,
-    })),
-  };
 }
 
 export type AdminLogView = "attention" | "events" | "emails" | "system";
@@ -1418,7 +964,12 @@ export type AdminLogsData = {
   pageSize: number;
   filters: { query: string; severity: "all" | AdminLogSeverity; source: AdminLogSource; emailType: "all" | EmailLogType; dateFrom: string; dateTo: string };
   attention: { failed: number; retry: number; stuck: number; critical: number };
-  queueStats: EmailLogsDashboardData["queueStats"];
+  queueStats: Array<{
+    label: string;
+    value: string;
+    tone?: "default" | "accent" | "muted";
+    detail?: string;
+  }>;
   workerSummary: string;
 };
 
@@ -1699,6 +1250,13 @@ function buildServiceChangeWhere(query: string, dateWhere?: Prisma.DateTimeFilte
   ] } : {}) };
 }
 
+function buildServicePriceChangeWhere(query: string, dateWhere?: Prisma.DateTimeFilter): Prisma.ServicePriceChangeLogWhereInput {
+  return { ...(dateWhere ? { createdAt: dateWhere } : {}), ...(query ? { OR: [
+    { service: { is: { OR: [{ name: containsQuery(query) }, { publicName: containsQuery(query) }] } } },
+    { changedByUser: { is: { name: containsQuery(query) } } },
+  ] } : {}) };
+}
+
 function buildSiteSettingsChangeWhere(query: string, dateWhere?: Prisma.DateTimeFilter): Prisma.SiteSettingsChangeLogWhereInput {
   return { ...(dateWhere ? { createdAt: dateWhere } : {}), ...(query ? {
     actorUser: { is: { name: containsQuery(query) } },
@@ -1938,6 +1496,7 @@ export async function getAdminLogsData(input: {
   const canonicalRedemptionWhere = buildVoucherRedemptionWhere(query, dateWhere);
   const voucherChangeWhere = severity === "all" || severity === "info" ? buildVoucherChangeWhere(query, dateWhere) : { id: "__no_match__" };
   const serviceChangeWhere = severity === "all" || severity === "info" ? buildServiceChangeWhere(query, dateWhere) : { id: "__no_match__" };
+  const servicePriceChangeWhere = severity === "all" || severity === "info" ? buildServicePriceChangeWhere(query, dateWhere) : { id: "__no_match__" };
   const siteSettingsChangeWhere = severity === "all" || severity === "info" ? buildSiteSettingsChangeWhere(query, dateWhere) : { id: "__no_match__" };
   const adminUserAuditWhere = severity === "all" || severity === "info" ? buildAdminUserAuditWhere(query, dateWhere) : { id: "__no_match__" };
   const submissionBaseWhere = buildBookingSubmissionWhere(query, dateWhere);
@@ -1950,7 +1509,7 @@ export async function getAdminLogsData(input: {
 
   const attentionHealthActive = safeView === "attention";
   const ownerQueueHealthActive = isOwner;
-  const [failed, retry, stuck, pending, processing, critical, emailTotal, bookingHistoryTotal, rescheduleTotal, voucherTotal, redemptionTotal, voucherChangeTotal, serviceChangeTotal, siteSettingsChangeTotal, availabilityTotal, adminUserAuditTotal, submissionTotal] = await Promise.all([
+  const [failed, retry, stuck, pending, processing, critical, emailTotal, bookingHistoryTotal, rescheduleTotal, voucherTotal, redemptionTotal, voucherChangeTotal, serviceChangeTotal, servicePriceChangeTotal, siteSettingsChangeTotal, availabilityTotal, adminUserAuditTotal, submissionTotal] = await Promise.all([
     attentionHealthActive || ownerQueueHealthActive ? prisma.emailLog.count({ where: getUnresolvedEmailDeliveryIncidentRootWhere() }) : Promise.resolve(0),
     attentionHealthActive || ownerQueueHealthActive ? prisma.emailLog.count({ where: { status: EmailLogStatus.PENDING, attemptCount: { gt: 0 }, processingStartedAt: null } }) : Promise.resolve(0),
     attentionHealthActive || ownerQueueHealthActive ? prisma.emailLog.count({ where: { status: EmailLogStatus.PENDING, processingStartedAt: { lt: staleBefore } } }) : Promise.resolve(0),
@@ -1971,6 +1530,7 @@ export async function getAdminLogsData(input: {
     voucherActive ? prisma.voucherRedemption.count({ where: redemptionWhere }) : Promise.resolve(0),
     voucherActive ? prisma.voucherChangeLog.count({ where: voucherChangeWhere }) : Promise.resolve(0),
     serviceActive ? prisma.serviceChangeLog.count({ where: serviceChangeWhere }) : Promise.resolve(0),
+    serviceActive ? prisma.servicePriceChangeLog.count({ where: servicePriceChangeWhere }) : Promise.resolve(0),
     settingsActive ? prisma.siteSettingsChangeLog.count({ where: siteSettingsChangeWhere }) : Promise.resolve(0),
     availabilityActive ? prisma.availabilityAuditEvent.count({ where: availabilityWhere }) : Promise.resolve(0),
     adminAuditActive ? prisma.adminUserAuditEvent.count({ where: adminUserAuditWhere }) : Promise.resolve(0),
@@ -1978,12 +1538,12 @@ export async function getAdminLogsData(input: {
   ]);
 
   const total = emailTotal + bookingHistoryTotal + rescheduleTotal + voucherTotal + redemptionTotal
-    + voucherChangeTotal + serviceChangeTotal + siteSettingsChangeTotal + availabilityTotal
+    + voucherChangeTotal + serviceChangeTotal + servicePriceChangeTotal + siteSettingsChangeTotal + availabilityTotal
     + adminUserAuditTotal + submissionTotal;
   const { take } = getAdminLogCandidatePlan(total, requestedPage);
   // Totals a clamp vznikají před findMany, takže ručně zadaná hluboká stránka
   // nemůže nafouknout kandidátní množinu nad skutečnou poslední stránku.
-  const [emails, bookingHistory, reschedules, vouchers, redemptions, voucherChanges, serviceChanges, siteSettingsChanges, availabilityAudits, adminUserAudits, submissions] = await Promise.all([
+  const [emails, bookingHistory, reschedules, vouchers, redemptions, voucherChanges, serviceChanges, servicePriceChanges, siteSettingsChanges, availabilityAudits, adminUserAudits, submissions] = await Promise.all([
     emailActive
       ? attentionIncidentActive
         ? Promise.all([
@@ -2018,6 +1578,7 @@ export async function getAdminLogsData(input: {
     (voucherActive || bookingActive) ? prisma.voucherRedemption.findMany({ where: voucherActive ? redemptionWhere : canonicalRedemptionWhere, orderBy: [{ redeemedAt: "desc" }, { id: "desc" }], take, include: { voucher: { select: { id: true, code: true } }, redeemedByUser: { select: { name: true } } } }) : Promise.resolve([]),
     voucherActive ? prisma.voucherChangeLog.findMany({ where: voucherChangeWhere, orderBy: [{ createdAt: "desc" }, { id: "desc" }], take, include: { voucher: { select: { id: true, code: true } }, actorUser: { select: { name: true } } } }) : Promise.resolve([]),
     serviceActive ? prisma.serviceChangeLog.findMany({ where: serviceChangeWhere, orderBy: [{ createdAt: "desc" }, { id: "desc" }], take, include: { service: { select: { id: true, name: true, publicName: true } }, actorUser: { select: { name: true } } } }) : Promise.resolve([]),
+    serviceActive ? prisma.servicePriceChangeLog.findMany({ where: servicePriceChangeWhere, orderBy: [{ createdAt: "desc" }, { id: "desc" }], take, include: { service: { select: { id: true, name: true, publicName: true } }, changedByUser: { select: { name: true } } } }) : Promise.resolve([]),
     settingsActive ? prisma.siteSettingsChangeLog.findMany({ where: siteSettingsChangeWhere, orderBy: [{ createdAt: "desc" }, { id: "desc" }], take, include: { actorUser: { select: { name: true } } } }) : Promise.resolve([]),
     availabilityActive ? prisma.availabilityAuditEvent.findMany({ where: availabilityWhere, orderBy: [{ createdAt: "desc" }, { id: "desc" }], take, include: { actorUser: { select: { name: true } } } }) : Promise.resolve([]),
     adminAuditActive ? prisma.adminUserAuditEvent.findMany({ where: adminUserAuditWhere, orderBy: [{ createdAt: "desc" }, { id: "desc" }], take, include: { targetUser: { select: { name: true } }, actorUser: { select: { name: true } } } }) : Promise.resolve([]),
@@ -2067,6 +1628,7 @@ export async function getAdminLogsData(input: {
     ...(voucherActive ? redemptions.map((redemption) => ({ id: `voucher-redemption:${redemption.id}`, occurredAt: redemption.redeemedAt.toISOString(), category: "event" as const, severity: "success" as const, title: "Voucher uplatněn", description: null, actorLabel: redemption.redeemedByUser?.name ?? null, entityLabel: redemption.voucher ? `Voucher ${redemption.voucher.code}` : "Odstraněný voucher", entityHref: redemption.voucher ? voucherHref(redemption.voucher.id) : null, sourceType: "voucher" as const, sourceId: redemption.id, primaryAction: redemption.voucher ? "open" as const : null })) : []),
     ...voucherChanges.map((entry) => ({ id: `voucher-change:${entry.id}`, occurredAt: entry.createdAt.toISOString(), category: "event" as const, severity: "info" as const, title: entry.operation === "CANCEL" ? "Voucher zrušen" : "Voucher upraven", description: auditChangeDescription(entry.before, entry.after), actorLabel: entry.actorUser.name, entityLabel: `Voucher ${entry.voucher.code}`, entityHref: voucherHref(entry.voucher.id), sourceType: "voucher" as const, sourceId: entry.id, primaryAction: "open" as const })),
     ...serviceChanges.map((entry) => ({ id: `service-change:${entry.id}`, occurredAt: entry.createdAt.toISOString(), category: "event" as const, severity: "info" as const, title: "Služba upravena", description: auditChangeDescription(entry.before, entry.after, categoryNames), actorLabel: entry.actorUser.name, entityLabel: entry.service.publicName ?? entry.service.name, entityHref: `${input.area === "owner" ? "/admin" : "/admin/provoz"}/sluzby?serviceId=${entry.service.id}`, sourceType: "service" as const, sourceId: entry.id, primaryAction: "open" as const })),
+    ...servicePriceChanges.map((entry) => ({ id: `service-price-change:${entry.id}`, occurredAt: entry.createdAt.toISOString(), category: "event" as const, severity: "info" as const, title: "Cena služby změněna", description: `${formatServicePrice(entry.oldPriceFromCzk)} → ${formatServicePrice(entry.newPriceFromCzk)}`, actorLabel: entry.changedByUser?.name ?? null, entityLabel: entry.service.publicName ?? entry.service.name, entityHref: `${input.area === "owner" ? "/admin" : "/admin/provoz"}/sluzby?serviceId=${entry.service.id}`, sourceType: "service" as const, sourceId: entry.id, primaryAction: "open" as const })),
     ...siteSettingsChanges.map((entry) => ({ id: `settings-change:${entry.id}`, occurredAt: entry.createdAt.toISOString(), category: "event" as const, severity: "info" as const, title: entry.operation === "UPDATE_BOOKING_POLICY" ? "Pravidla rezervace upravena" : entry.operation === "UPDATE_SALON" ? "Údaje salonu upraveny" : "E-mailová nastavení upravena", description: auditChangeDescription(entry.before, entry.after), actorLabel: entry.actorUser.name, entityLabel: "Nastavení webu", entityHref: "/admin/nastaveni", sourceType: "settings" as const, sourceId: entry.id, primaryAction: "open" as const })),
     ...availabilityAudits.map((entry) => ({ id: `availability:${entry.id}`, occurredAt: entry.createdAt.toISOString(), category: "event" as const, severity: "info" as const, title: availabilityAuditLabel(entry.operation), description: availabilityAuditDescription(entry), actorLabel: entry.actorUser?.name ?? null, entityLabel: `Volné termíny • ${entry.dateKey}`, entityHref: `${input.area === "owner" ? "/admin" : "/admin/provoz"}/volne-terminy?week=${entry.dateKey}&day=${entry.dateKey}`, sourceType: "availability" as const, sourceId: entry.id, primaryAction: "open" as const })),
     ...adminUserAudits.map((entry) => ({ id: `admin-user-audit:${entry.id}`, occurredAt: entry.createdAt.toISOString(), category: "system" as const, severity: "info" as const, title: ({ CREATE: "Admin účet vytvořen", UPDATE_PROFILE: "Admin účet upraven", CHANGE_ROLE: "Role admina změněna", ACTIVATE: "Admin účet aktivován", DEACTIVATE: "Admin účet deaktivován", INVITE_RESEND: "Pozvánka znovu vydána" } as Record<string, string>)[entry.operation] ?? "Admin účet upraven", description: auditChangeDescription(entry.before, entry.after), actorLabel: entry.actorUser.name, entityLabel: entry.targetUser.name, entityHref: "/admin/uzivatele", sourceType: "admin" as const, sourceId: entry.id, primaryAction: "open" as const })),
