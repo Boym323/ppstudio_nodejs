@@ -86,6 +86,24 @@ test("deriveTrackingState marks hard delivery issues as failed", async () => {
   assert.equal(suppressed.label, "Nedoručeno - blokováno (suppressed)");
 });
 
+test("deriveTrackingState rozlišuje spam complaint od nedoručení", async () => {
+  const { deriveTrackingState } = await import("@/lib/email/resend-webhooks");
+
+  const complained = deriveTrackingState({
+    trackingLastEvent: "email.complained",
+    trackingClickedAt: null,
+    trackingOpenedAt: null,
+    trackingDeliveredAt: new Date("2026-05-24T10:00:00.000Z"),
+    trackingBouncedAt: null,
+    trackingComplainedAt: new Date("2026-05-24T10:02:00.000Z"),
+    trackingFailedAt: null,
+    trackingSuppressedAt: null,
+  });
+
+  assert.equal(complained.value, "retry");
+  assert.equal(complained.label, "Nahlášeno jako spam");
+});
+
 test("deriveTrackingState reflects sent and delivery_delayed webhook events", async () => {
   const { deriveTrackingState } = await import("@/lib/email/resend-webhooks");
 

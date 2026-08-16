@@ -139,7 +139,7 @@ function retryStateLabel(
 
 type EmailTrackingInput = Parameters<typeof deriveTrackingState>[0];
 
-function getEmailDetailFinalStatus(input: {
+export function getEmailDetailFinalStatus(input: {
   status: EmailLogStatus;
   sentAt: Date | null;
   processingStartedAt: Date | null;
@@ -166,9 +166,11 @@ function getEmailDetailFinalStatus(input: {
   }
 
   if (tracking.value === "retry") {
+    const isComplaint = input.trackingComplainedAt !== null;
+
     return {
       value: "retry" as const,
-      label: "Doručení vyžaduje pozornost",
+      label: isComplaint ? "Nahlášeno jako spam" : "Doručení vyžaduje pozornost",
       detail: tracking.label,
       needsAttention: true,
     };

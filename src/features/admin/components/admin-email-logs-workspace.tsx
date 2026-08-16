@@ -81,7 +81,7 @@ const trackingBadgeLabels = {
   sent: "Tracking doručeno",
   pending: "Tracking připraven",
   processing: "Tracking čeká",
-  retry: "Tracking stížnost",
+  retry: "Doručení vyžaduje pozornost",
   failed: "Tracking selhal",
 } as const;
 

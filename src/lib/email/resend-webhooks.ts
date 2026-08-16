@@ -95,7 +95,7 @@ export function deriveTrackingState(input: {
   if (input.trackingComplainedAt) {
     return {
       value: "retry",
-      label: "Doručeno - označeno jako spam",
+      label: "Nahlášeno jako spam",
     } as const;
   }
 

@@ -15,6 +15,7 @@ import {
   getAdminLogPageMeta,
   getAdminLogCandidatePlan,
   getEmailDeliveryFailureWhere,
+  getEmailDetailFinalStatus,
   getUnresolvedEmailDeliveryFailureWhere,
   getEmailLogSeverity,
   isCriticalBookingSubmission,
@@ -83,6 +84,38 @@ test("Pozornost zahrnuje transportní i provider delivery failures bez duplicit"
     { status: "PENDING", attemptCount: { gt: 0 }, processingStartedAt: null },
     { status: "PENDING", processingStartedAt: { lt: staleBefore } },
   ] });
+});
+
+test("complaint zůstává warningem v Pozornosti mimo počet delivery failures", () => {
+  const staleBefore = new Date("2026-07-23T10:00:00.000Z");
+  const attention = withEmailLogScope({}, "attention", "all", staleBefore);
+
+  assert.deepEqual(getEmailDeliveryFailureWhere().OR, [
+    { status: "FAILED" },
+    { trackingBouncedAt: { not: null } },
+    { trackingFailedAt: { not: null } },
+    { trackingSuppressedAt: { not: null } },
+  ]);
+  assert.match(JSON.stringify(attention), /trackingComplainedAt/);
+  const complaintStatus = getEmailDetailFinalStatus({
+    status: "SENT",
+    sentAt: new Date("2026-07-23T10:00:00.000Z"),
+    processingStartedAt: null,
+    attemptCount: 0,
+    nextAttemptAt: null,
+    updatedAt: new Date("2026-07-23T10:02:00.000Z"),
+    trackingLastEvent: "email.complained",
+    trackingClickedAt: null,
+    trackingOpenedAt: null,
+    trackingDeliveredAt: new Date("2026-07-23T10:00:00.000Z"),
+    trackingBouncedAt: null,
+    trackingComplainedAt: new Date("2026-07-23T10:02:00.000Z"),
+    trackingFailedAt: null,
+    trackingSuppressedAt: null,
+  });
+
+  assert.equal(complaintStatus.label, "Nahlášeno jako spam");
+  assert.doesNotMatch(complaintStatus.label, /Nedoručeno/);
 });
 
 test("aktivní delivery failure vyžaduje neuzavřený explicitní resend chain", () => {

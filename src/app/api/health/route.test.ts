@@ -64,6 +64,16 @@ test("GET odděluje recipient delivery incidenty od kritického stavu workeru", 
       activeIncidents: 0,
     },
     {
+      name: "pouze se spam complaintem",
+      // Complaint je reputační incident pro administraci; není součástí
+      // delivery-failure agregace, která napájí health endpoint.
+      data: createEmailHealthData(),
+      httpStatus: 200,
+      status: "ok",
+      workerStatus: "ok",
+      activeIncidents: 0,
+    },
+    {
       name: "se stale worker claimem",
       data: createEmailHealthData({ processingStale: 1 }),
       httpStatus: 503,
