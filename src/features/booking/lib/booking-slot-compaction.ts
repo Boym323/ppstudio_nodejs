@@ -10,6 +10,7 @@ type MergeableSlotRecord = {
   startsAt: Date;
   endsAt: Date;
   status: AvailabilitySlotStatus;
+  createdByUserId: string | null;
   bookings: Array<{ id: string; blockedUntil: Date | null }>;
 };
 
@@ -47,6 +48,7 @@ const mergeableEditableSlotSelect = {
   startsAt: true,
   endsAt: true,
   status: true,
+  createdByUserId: true,
   bookings: {
     select: {
       id: true,
@@ -54,6 +56,15 @@ const mergeableEditableSlotSelect = {
     },
   },
 } satisfies Prisma.AvailabilitySlotSelect;
+
+function overlaps(
+  leftStartsAt: Date,
+  leftEndsAt: Date,
+  rightStartsAt: Date,
+  rightEndsAt: Date,
+) {
+  return leftStartsAt < rightEndsAt && leftEndsAt > rightStartsAt;
+}
 
 async function findMergeableSlotById(tx: Prisma.TransactionClient, slotId: string) {
   return tx.availabilitySlot.findFirst({
@@ -248,4 +259,129 @@ export async function compactAdjacentEditableSlotsForBooking(
   }
 
   return anchorSlot;
+}
+
+export async function restoreArchivedSlotAroundManualOverride(
+  tx: Prisma.TransactionClient,
+  slotId: string,
+  manualOverrideSlotId: string,
+) {
+  const archivedSlot = await findMergeableSlotById(tx, slotId);
+
+  if (!archivedSlot || archivedSlot.status !== AvailabilitySlotStatus.ARCHIVED) {
+    return null;
+  }
+
+  const manualOverrideSlot = await tx.availabilitySlot.findUnique({
+    where: {
+      id: manualOverrideSlotId,
+    },
+    select: {
+      startsAt: true,
+      endsAt: true,
+      status: true,
+    },
+  });
+
+  if (
+    !manualOverrideSlot
+    || manualOverrideSlot.status !== AvailabilitySlotStatus.DRAFT
+    || !overlaps(
+      archivedSlot.startsAt,
+      archivedSlot.endsAt,
+      manualOverrideSlot.startsAt,
+      manualOverrideSlot.endsAt,
+    )
+  ) {
+    return compactAdjacentEditableSlotsForBooking(tx, slotId);
+  }
+
+  const otherOverlappingActiveSlot = await tx.availabilitySlot.findFirst({
+    where: {
+      id: {
+        notIn: [archivedSlot.id, manualOverrideSlotId],
+      },
+      status: {
+        in: [AvailabilitySlotStatus.DRAFT, AvailabilitySlotStatus.PUBLISHED],
+      },
+      startsAt: {
+        lt: archivedSlot.endsAt,
+      },
+      endsAt: {
+        gt: archivedSlot.startsAt,
+      },
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (otherOverlappingActiveSlot) {
+    return null;
+  }
+
+  const restoredIntervals = [
+    archivedSlot.startsAt < manualOverrideSlot.startsAt
+      ? {
+          startsAt: archivedSlot.startsAt,
+          endsAt: manualOverrideSlot.startsAt,
+        }
+      : null,
+    manualOverrideSlot.endsAt < archivedSlot.endsAt
+      ? {
+          startsAt: manualOverrideSlot.endsAt,
+          endsAt: archivedSlot.endsAt,
+        }
+      : null,
+  ].filter((interval): interval is { startsAt: Date; endsAt: Date } => Boolean(interval));
+
+  const firstInterval = restoredIntervals.shift();
+
+  if (!firstInterval) {
+    return null;
+  }
+
+  await tx.availabilitySlot.update({
+    where: {
+      id: archivedSlot.id,
+    },
+    data: {
+      startsAt: firstInterval.startsAt,
+      endsAt: firstInterval.endsAt,
+      status: AvailabilitySlotStatus.PUBLISHED,
+      publishedAt: new Date(),
+    },
+  });
+
+  const restoredSlotIds = [archivedSlot.id];
+
+  for (const interval of restoredIntervals) {
+    const restoredSlot = await tx.availabilitySlot.create({
+      data: {
+        startsAt: interval.startsAt,
+        endsAt: interval.endsAt,
+        capacity: 1,
+        status: AvailabilitySlotStatus.PUBLISHED,
+        serviceRestrictionMode: AvailabilitySlotServiceRestrictionMode.ANY,
+        publishedAt: new Date(),
+        createdByUserId: archivedSlot.createdByUserId,
+      },
+      select: {
+        id: true,
+      },
+    });
+    restoredSlotIds.push(restoredSlot.id);
+  }
+
+  const compactedSlots = [];
+
+  for (const restoredSlotId of restoredSlotIds) {
+    const compactedSlot = await compactAdjacentEditableSlotsForBooking(tx, restoredSlotId);
+
+    if (compactedSlot) {
+      compactedSlots.push(compactedSlot);
+    }
+  }
+
+  return compactedSlots;
 }
