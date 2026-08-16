@@ -11,7 +11,7 @@ Zároveň nechceme měnit admin shell, navigaci, booking engine, role guardy, DB
 Overview `/admin` a `/admin/provoz` se zjednodušuje na denní provozní cockpit.
 
 - Horní sekce `Dnešní provoz` je nízká horizontální operační lišta s datem, krátkým stavovým řádkem, volitelným mini boxem další rezervace a třemi hlavními akcemi.
-- `Vyžaduje pozornost` slučuje čekající rezervace, chybějící publikovanou dostupnost dnes/zítra a chybné e-maily do kompaktních inline alertů. Nulový stav je klidný pozitivní text.
+- `Vyžaduje pozornost` slučuje čekající rezervace, chybějící publikovanou dostupnost dnes/zítra a aktivní e-mailové incidenty do kompaktních inline alertů. Nulový stav je klidný pozitivní text.
 - KPI jsou omezené na provozní hodnoty a zobrazené jako jeden metric strip: dnešní rezervace, volná okna dnes, týdenní obsazenost a volné sloty tento týden.
 - Hlavní obsah je dvousloupcový: vlevo `Dnešní plán` a `Nejbližší volné termíny`, vpravo `Rychlé akce`, `Tento týden` a `Výkon webu`.
 - `Dnešní plán` zobrazuje jen rezervace, ne volná okna. Řádky jsou nízké, právě probíhající rezervace je decentně zvýrazněná a dokončené rezervace jsou tlumené.

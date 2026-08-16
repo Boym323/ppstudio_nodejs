@@ -126,7 +126,7 @@ function LogsToolbar({ data }: { data: AdminLogsData }) {
 
 function AttentionSummary({ data, isOwner }: { data: AdminLogsData; isOwner: boolean }) {
   const items = [
-    { label: "Selhalo", value: data.attention.failed, tone: "text-rose-100" },
+    { label: "Aktivní incidenty", value: data.attention.failed, tone: "text-rose-100" },
     { label: "Čeká na retry", value: data.attention.retry, tone: "text-amber-100" },
     { label: "Zaseknuté", value: data.attention.stuck, tone: "text-amber-100" },
     ...(isOwner ? [{ label: "Systémové chyby", value: data.attention.critical, tone: "text-rose-100" }] : []),

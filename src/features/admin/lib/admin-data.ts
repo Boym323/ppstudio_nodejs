@@ -401,10 +401,10 @@ export async function getAdminOverviewData(area: AdminArea) {
               detail: "Aktivní databázové přístupy do administrace.",
             },
             {
-              label: "Chybné e-maily",
+              label: "Aktivní e-mailové incidenty",
               value: String(emailFailures),
               tone: emailFailures > 0 ? ("accent" as const) : ("muted" as const),
-              detail: "Počet e-mailů se stavem FAILED.",
+              detail: "Nevyřešené problémy s odesláním nebo doručením.",
             },
           ]
         : [
@@ -1009,7 +1009,7 @@ function getEmailTypeCategoryLabel(type: EmailLogType, templateKey: string): str
   }
 }
 
-function getEmailHealthState(input: {
+export function getEmailHealthState(input: {
   pending: number;
   retrying: number;
   processing: number;
@@ -1020,9 +1020,9 @@ function getEmailHealthState(input: {
   if (input.failed > 0 || input.retrying > 0 || input.latestError) {
     return {
       tone: "error" as const,
-      title: "Problém s odesíláním emailů",
-      helper: "Některé zprávy selhaly nebo čekají na další pokus.",
-      summary: `${input.failed} selhalo • ${input.retrying} je v retry • poslední odeslání ${input.lastSentLabel}`,
+      title: "Problém s e-maily",
+      helper: "Některé zprávy mají problém s odesláním nebo následným doručením.",
+      summary: `Aktivní incidenty: ${input.failed} • ${input.retrying} je v retry • poslední odeslání ${input.lastSentLabel}`,
     };
   }
 
@@ -1063,7 +1063,7 @@ function getWorkerSummary({
   }
 
   if (failed > 0) {
-    return "Fronta je prázdná, ale zůstávají selhané záznamy k dořešení nebo ručnímu retry.";
+    return "Fronta je prázdná, ale zůstávají aktivní e-mailové incidenty k dořešení nebo ručnímu retry.";
   }
 
   return "Fronta je čistá a worker momentálně nedrží žádný aktivní job.";
@@ -1234,12 +1234,12 @@ export async function getEmailLogsData(): Promise<EmailLogsDashboardData> {
         label: "Dnes odesláno",
         value: String(todaySent),
         tone: "accent" as const,
-        detail: "Úspěšně odeslané zprávy od dnešní půlnoci.",
+        detail: "Zprávy úspěšně předané providerovi od dnešní půlnoci.",
       },
       {
         label: "Za posledních 7 dní",
         value: String(sevenDaySent),
-        detail: "Součet úspěšně odeslaných zpráv za poslední týden.",
+        detail: "Součet zpráv úspěšně předaných providerovi za poslední týden.",
       },
       {
         label: "Čeká na odeslání",
@@ -1248,7 +1248,7 @@ export async function getEmailLogsData(): Promise<EmailLogsDashboardData> {
         detail: `${pending} ve frontě • ${retrying} retry • ${processing} se zpracovává`,
       },
       {
-        label: "Selhalo",
+        label: "Aktivní incidenty",
         value: String(failed),
         tone: failed > 0 ? ("accent" as const) : ("muted" as const),
         detail: "Zprávy po vyčerpání retry nebo s neuzavřeným incidentem.",
@@ -1256,7 +1256,7 @@ export async function getEmailLogsData(): Promise<EmailLogsDashboardData> {
       {
         label: "Poslední odeslání",
         value: lastSentLabel,
-        detail: sent > 0 ? "Poslední úspěšně uzavřený email log." : "Zatím neevidujeme žádné odeslání.",
+        detail: sent > 0 ? "Poslední zpráva úspěšně předaná e-mailovému providerovi." : "Zatím neevidujeme žádné odeslání.",
       },
     ],
     recentEmails: recentLogs.map((log) => {
@@ -1328,7 +1328,7 @@ export async function getEmailLogsData(): Promise<EmailLogsDashboardData> {
       {
         label: "Celkem odesláno",
         value: String(sent),
-        detail: "Auditní součet všech úspěšně doručených emailů.",
+        detail: "Auditní součet zpráv úspěšně předaných e-mailovému providerovi.",
       },
     ],
     workerSummary: getWorkerSummary({
@@ -1912,7 +1912,7 @@ export async function getAdminLogsData(input: {
     if (source !== "all" && item.sourceType !== source) return false;
     return true;
   });
-  return { area: input.area, view: safeView, items: sortAndPageAdminLogItems(visible, page), total, page, pageCount, pageSize: adminLogPageSize, filters: { query, severity, source, emailType, dateFrom: input.dateFrom ?? "", dateTo: input.dateTo ?? "" }, attention: { failed, retry, stuck, critical }, queueStats: [{ label: "Čeká", value: String(pending), tone: pending ? "accent" : "muted" }, { label: "Retry", value: String(retry), tone: retry ? "accent" : "muted" }, { label: "Zpracovává se", value: String(processing), tone: processing ? "accent" : "muted" }, { label: "Selhalo", value: String(failed), tone: failed ? "accent" : "muted" }], workerSummary: getWorkerSummary({ pending, retrying: retry, processing, failed }) };
+  return { area: input.area, view: safeView, items: sortAndPageAdminLogItems(visible, page), total, page, pageCount, pageSize: adminLogPageSize, filters: { query, severity, source, emailType, dateFrom: input.dateFrom ?? "", dateTo: input.dateTo ?? "" }, attention: { failed, retry, stuck, critical }, queueStats: [{ label: "Čeká", value: String(pending), tone: pending ? "accent" : "muted" }, { label: "Retry", value: String(retry), tone: retry ? "accent" : "muted" }, { label: "Zpracovává se", value: String(processing), tone: processing ? "accent" : "muted" }, { label: "Aktivní incidenty", value: String(failed), tone: failed ? "accent" : "muted" }], workerSummary: getWorkerSummary({ pending, retrying: retry, processing, failed }) };
 }
 
 export async function getEmailLogDetailData(emailLogId: string): Promise<EmailLogDetailData | null> {

@@ -8,6 +8,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Admin metriky a health texty e-mailů nyní přesně rozlišují aktivní incidenty doručení od transportního stavu `FAILED`; součet odeslaných zpráv je popsaný jako předání providerovi, nikoli jako potvrzené doručení.
 - Ruční opakování terminálně selhaného e-mailu nyní zakládá nový resend log a zachovává původní auditní historii i aktivní incident až do potvrzeného doručení resendu.
 - Ruční resend e-mailu nyní přebírá aktuální adresu kontaktu pouze do nového `EmailLogu`; historický příjemce původního pokusu včetně bounce zůstává neměnný a auditně dohledatelný.
 - Resend `email.complained` se nyní v administraci jednotně zobrazuje jako „Nahlášeno jako spam“, nikoli jako nedoručený e-mail. Zůstává reputačním warningem v Pozornosti a historii, ale nevstupuje do počtu delivery failures ani do kritičnosti `/api/health`.

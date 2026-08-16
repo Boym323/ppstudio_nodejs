@@ -872,8 +872,8 @@ npm run db:clear-booking-data -- --confirm
   - `emailDelivery.lastSentAt`, `lastErrorAt`, `hasRecentError` a `recentErrorWindowMs` (aktuálně 24 hodin)
   - pole `alerts` se seznamem aktivních problémů; při `status=error` vrací endpoint HTTP `503`, zatímco samotný recipient-specific incident vrací `warning`/`200`, a i chybová větev drží stejný JSON shape s `cache-control: no-store`
 - Owner-only sekce `Email logy` nyní funguje jako business-first přehled `Email logy`:
-  - nahoře ukazuje health stav `OK / Warning / Error` podle failed, retry, pending fronty a poslední relevantní chyby
-  - krátké metriky shrnují `Dnes odesláno`, `Za posledních 7 dní`, `Čeká na odeslání`, `Selhalo` a `Poslední odeslání` v nižším KPI stripu
+  - nahoře ukazuje health stav `OK / Warning / Error` podle aktivních delivery incidentů, retry, pending fronty a poslední relevantní chyby
+  - krátké metriky shrnují `Dnes odesláno`, `Za posledních 7 dní`, `Čeká na odeslání`, `Aktivní incidenty` a `Poslední odeslání` v nižším KPI stripu; součty odeslaných zpráv znamenají předání providerovi, nikoli potvrzené doručení
   - health copy zůstává stručné; při čistém stavu používá text `Emaily fungují správně` a krátké vysvětlení o prázdné frontě
   - hlavní sekce `Poslední emaily` propojuje typ zprávy, stav, příjemce, vazbu na rezervaci, časy, pokusy a rychlé akce `Otevřít rezervaci / Detail emailu / Zkusit znovu`
   - badge typu rozlišuje `Přijetí rezervace` pro `booking-confirmation-v1` a finální `Potvrzení rezervace` pro `booking-approved-v1`
@@ -891,7 +891,7 @@ npm run db:clear-booking-data -- --confirm
   - původní pending/retry/error fronty zůstávají níž v debug bloku `Technický stav fronty`, který je defaultně sbalený do kompaktního souhrnu
 - Detail konkrétního e-mailu na `/admin/email-logy/[emailLogId]` je nově business-first:
   - používá stejný jediný levý navigační sloupec jako přehled `Email logy`; navigace se v detailu nesmí duplikovat
-  - nahoře ukazuje kompaktnější header s názvem emailu, jedním finálním stavem `Odesláno / Čeká / Retry / Selhalo`, příjemcem, klientkou, rezervací a klíčovým časem `Odesláno / Poslední pokus`
+  - nahoře ukazuje kompaktnější header s názvem emailu, jedním finálním stavem `Odesláno / Čeká / Retry / Selhalo / Nedoručeno`, příjemcem, klientkou, rezervací a klíčovým časem `Odesláno / Poslední pokus`
   - hned pod headerem drží zhuštěné rychlé akce `Zpět na přehled`, `Otevřít rezervaci`, případně `Zkusit znovu` nebo `Uvolnit zaseknutý job` v nízké operativní liště
   - pravý sloupec tvoří hustší souhrn `Typ emailu / Šablona / Příjemce / Provider / Poslední pokus / Odesláno / Počet pokusů`
   - levý sloupec drží navázané entity `Rezervace / Klientka / Token akce` jako kompaktní řádky; token je defaultně maskovaný a plně se ukáže až po kliknutí na `Zobrazit`
