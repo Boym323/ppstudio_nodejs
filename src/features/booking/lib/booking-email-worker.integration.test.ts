@@ -24,10 +24,11 @@ process.env.PUSHOVER_ENABLED ??= "false";
 const dbTest = process.env.RUN_DB_INTEGRATION_TESTS === "1" ? test : test.skip;
 
 async function loadModules() {
-  const [{ prisma }, bookingModule, workerModule] = await Promise.all([
+  const [{ prisma }, bookingModule, workerModule, deliveryModule] = await Promise.all([
     import("@/lib/prisma"),
     import("./booking-public"),
     import("@/lib/email/worker"),
+    import("@/lib/email/delivery"),
   ]);
 
   return {
@@ -35,7 +36,30 @@ async function loadModules() {
     createManualBooking: bookingModule.createManualBooking,
     runEmailDeliveryWorkerOnce: workerModule.runEmailDeliveryWorkerOnce,
     runBookingReminderSchedulerOnce: workerModule.runBookingReminderSchedulerOnce,
+    claimEmailLogForImmediateDelivery: deliveryModule.claimEmailLogForImmediateDelivery,
+    deliverEmailLog: deliveryModule.deliverEmailLog,
   };
+}
+
+async function createPendingConfirmationEmailLog(seed: string) {
+  const { prisma } = await loadModules();
+
+  return prisma.emailLog.create({
+    data: {
+      type: EmailLogType.BOOKING_RECEIVED,
+      status: EmailLogStatus.PENDING,
+      recipientEmail: `delivery-${seed}@example.com`,
+      subject: "Rezervace přijata",
+      templateKey: "booking-confirmation-v1",
+      payload: {
+        bookingId: `delivery-${seed}`,
+        serviceName: "Testovací služba",
+        clientName: "Testovací klientka",
+        scheduledStartsAt: "2026-08-17T10:00:00.000Z",
+        scheduledEndsAt: "2026-08-17T11:00:00.000Z",
+      },
+    },
+  });
 }
 
 function addMinutes(base: Date, minutes: number) {
@@ -204,6 +228,159 @@ async function cleanupBookingFixture({
     where: { id: categoryId },
   });
 }
+
+dbTest("deliverEmailLog po úspěšném Resend delivery provede reconciliation a vrátí sent", async () => {
+  const seed = randomUUID();
+  const {
+    prisma,
+    claimEmailLogForImmediateDelivery,
+    deliverEmailLog,
+  } = await loadModules();
+  const emailLog = await createPendingConfirmationEmailLog(seed);
+  const processingToken = await claimEmailLogForImmediateDelivery(emailLog.id);
+  const reconciledMessageIds: string[] = [];
+
+  assert.ok(processingToken);
+  try {
+    const result = await deliverEmailLog(emailLog.id, processingToken, {
+      sendEmail: async () => ({ provider: "resend", messageId: `resend-${seed}` }),
+      reconcileUnmatchedResendWebhookEvents: async (messageId) => {
+        reconciledMessageIds.push(messageId);
+        return { reconciled: 0, candidates: 0 };
+      },
+    });
+    const stored = await prisma.emailLog.findUniqueOrThrow({ where: { id: emailLog.id } });
+
+    assert.deepEqual(result, { status: "sent" });
+    assert.deepEqual(reconciledMessageIds, [`resend-${seed}`]);
+    assert.equal(stored.status, EmailLogStatus.SENT);
+    assert.equal(stored.providerMessageId, `resend-${seed}`);
+  } finally {
+    await prisma.emailLog.deleteMany({ where: { id: emailLog.id } });
+  }
+});
+
+dbTest("deliverEmailLog zachová SENT a neaktivuje retry, když reconciliation po Resend delivery selže", async () => {
+  const seed = randomUUID();
+  const {
+    prisma,
+    claimEmailLogForImmediateDelivery,
+    deliverEmailLog,
+  } = await loadModules();
+  const emailLog = await createPendingConfirmationEmailLog(seed);
+  const processingToken = await claimEmailLogForImmediateDelivery(emailLog.id);
+  const originalConsoleError = console.error;
+  const logs: unknown[][] = [];
+
+  assert.ok(processingToken);
+  console.error = (...args: unknown[]) => logs.push(args);
+
+  try {
+    const result = await deliverEmailLog(emailLog.id, processingToken, {
+      sendEmail: async () => ({ provider: "resend", messageId: `resend-${seed}` }),
+      reconcileUnmatchedResendWebhookEvents: async () => {
+        throw new Error("simulated reconciliation failure");
+      },
+    });
+    const stored = await prisma.emailLog.findUniqueOrThrow({ where: { id: emailLog.id } });
+
+    assert.deepEqual(result, { status: "sent" });
+    assert.equal(stored.status, EmailLogStatus.SENT);
+    assert.equal(stored.processingToken, null);
+    assert.equal(stored.errorMessage, null);
+    assert.equal(stored.attemptCount, 1);
+    assert.deepEqual(logs, [[
+      "Resend webhook reconciliation failed after successful delivery",
+      {
+        emailLogId: emailLog.id,
+        providerMessageId: `resend-${seed}`,
+        operation: "reconcile-unmatched-resend-webhook-events",
+        errorName: "Error",
+      },
+    ]]);
+  } finally {
+    console.error = originalConsoleError;
+    await prisma.emailLog.deleteMany({ where: { id: emailLog.id } });
+  }
+});
+
+dbTest("selhání reconciliation neblokuje označení booking reminderu jako odeslaného", async () => {
+  const seed = randomUUID().slice(0, 8);
+  const {
+    prisma,
+    claimEmailLogForImmediateDelivery,
+    deliverEmailLog,
+  } = await loadModules();
+  const window = await findIsolatedWorkerWindow(prisma, seed, 60);
+  const fixture = await createConfirmedManualBooking(seed, window.startsAt);
+  const emailLog = await prisma.emailLog.create({
+    data: {
+      bookingId: fixture.bookingId,
+      type: EmailLogType.BOOKING_REMINDER,
+      status: EmailLogStatus.PENDING,
+      recipientEmail: fixture.email,
+      subject: "Zítra se na vás těšíme v PP Studiu",
+      templateKey: "booking-reminder-24h-v1",
+      payload: {
+        bookingId: fixture.bookingId,
+        serviceName: `Worker service ${seed}`,
+        clientName: `Worker klientka ${seed}`,
+        scheduledStartsAt: fixture.startsAt.toISOString(),
+        scheduledEndsAt: fixture.endsAt.toISOString(),
+        manageReservationUrl: "https://example.com/rezervace/sprava/test-token",
+        cancellationUrl: "https://example.com/rezervace/storno/test-token",
+        manualReminderResend: true,
+      },
+    },
+  });
+  const processingToken = await claimEmailLogForImmediateDelivery(emailLog.id);
+
+  assert.ok(processingToken);
+  try {
+    const result = await deliverEmailLog(emailLog.id, processingToken, {
+      sendEmail: async () => ({ provider: "resend", messageId: `resend-${seed}` }),
+      reconcileUnmatchedResendWebhookEvents: async () => {
+        throw new Error("simulated reconciliation failure");
+      },
+    });
+    const [storedEmailLog, booking] = await Promise.all([
+      prisma.emailLog.findUniqueOrThrow({ where: { id: emailLog.id } }),
+      prisma.booking.findUniqueOrThrow({ where: { id: fixture.bookingId } }),
+    ]);
+
+    assert.deepEqual(result, { status: "sent" });
+    assert.equal(storedEmailLog.status, EmailLogStatus.SENT);
+    assert.ok(booking.reminder24hSentAt);
+  } finally {
+    await cleanupBookingFixture(fixture);
+  }
+});
+
+dbTest("selhání sendEmail před SENT zachová retry behavior delivery workeru", async () => {
+  const seed = randomUUID();
+  const { prisma, claimEmailLogForImmediateDelivery, deliverEmailLog } = await loadModules();
+  const emailLog = await createPendingConfirmationEmailLog(seed);
+  const processingToken = await claimEmailLogForImmediateDelivery(emailLog.id);
+
+  assert.ok(processingToken);
+  try {
+    const result = await deliverEmailLog(emailLog.id, processingToken, {
+      sendEmail: async () => {
+        throw new Error("simulated transport failure");
+      },
+    });
+    const stored = await prisma.emailLog.findUniqueOrThrow({ where: { id: emailLog.id } });
+
+    assert.equal(result.status, "failed");
+    assert.equal(result.errorMessage, "simulated transport failure");
+    assert.equal(stored.status, EmailLogStatus.PENDING);
+    assert.equal(stored.processingToken, null);
+    assert.equal(stored.providerMessageId, null);
+    assert.equal(stored.errorMessage, "simulated transport failure");
+  } finally {
+    await prisma.emailLog.deleteMany({ where: { id: emailLog.id } });
+  }
+});
 
 dbTest("runBookingReminderSchedulerOnce logs 24h reminder for confirmed booking in reminder window", async () => {
   const seed = randomUUID().slice(0, 8);

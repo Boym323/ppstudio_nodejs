@@ -17,6 +17,12 @@ export type EmailLogDeliveryOutcome = {
   errorMessage?: string;
 };
 
+type EmailDeliveryDependencies = Partial<{
+  sendEmail: typeof sendEmail;
+  reconcileUnmatchedResendWebhookEvents: typeof reconcileUnmatchedResendWebhookEvents;
+  markBookingReminder24hSent: typeof markBookingReminder24hSent;
+}>;
+
 const WORKER_LOCK_TIMEOUT_MS = 10 * 60 * 1000;
 
 /** Atomicky převezme pending job pro explicitní (mimo worker) odeslání. */
@@ -73,6 +79,7 @@ function getErrorMessage(error: unknown) {
 export async function deliverEmailLog(
   emailLogId: string,
   processingToken: string,
+  dependencies: EmailDeliveryDependencies = {},
 ): Promise<EmailLogDeliveryOutcome> {
   const emailLog = await prisma.emailLog.findUnique({
     where: {
@@ -165,7 +172,7 @@ export async function deliverEmailLog(
       emailLog.subject,
       emailLog.payload,
     );
-    const delivery = await sendEmail({
+    const delivery = await (dependencies.sendEmail ?? sendEmail)({
       to: emailLog.recipientEmail,
       subject: rendered.subject,
       text: rendered.text,
@@ -200,11 +207,26 @@ export async function deliverEmailLog(
     }
 
     if (delivery.provider === "resend" && delivery.messageId) {
-      await reconcileUnmatchedResendWebhookEvents(delivery.messageId);
+      try {
+        await (
+          dependencies.reconcileUnmatchedResendWebhookEvents
+          ?? reconcileUnmatchedResendWebhookEvents
+        )(delivery.messageId);
+      } catch (error) {
+        console.error("Resend webhook reconciliation failed after successful delivery", {
+          emailLogId: emailLog.id,
+          providerMessageId: delivery.messageId,
+          operation: "reconcile-unmatched-resend-webhook-events",
+          errorName: error instanceof Error ? error.name : "UnknownError",
+        });
+      }
     }
 
     if (emailLog.type === EmailLogType.BOOKING_REMINDER && emailLog.bookingId) {
-      await markBookingReminder24hSent(emailLog.bookingId, new Date());
+      await (dependencies.markBookingReminder24hSent ?? markBookingReminder24hSent)(
+        emailLog.bookingId,
+        new Date(),
+      );
     }
 
     return {
