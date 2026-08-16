@@ -275,15 +275,17 @@ test("extrémní stránka se clampne před výpočtem kandidátního take", () =
   });
 });
 
-test("read-model používá filtry a deduplikuje před stránkováním", async () => {
+test("read-model používá bounded kandidáty, přesný total a cílenou voucher deduplikaci", async () => {
   const source = await readFile(new URL("./admin-data.ts", import.meta.url), "utf8");
   for (const whereName of ["emailWhere", "bookingHistoryWhere", "rescheduleWhere", "voucherWhere", "voucherChangeWhere", "serviceChangeWhere", "servicePriceChangeWhere", "siteSettingsChangeWhere", "availabilityWhere", "adminUserAuditWhere", "submissionWhere"]) {
     assert.ok(source.includes(`findMany({ where: ${whereName}`));
   }
   assert.ok(source.includes("findMany({ where: redemptionWhere"));
-  assert.ok(source.includes("findMany({ where: canonicalRedemptionWhere"));
-  assert.ok(source.includes("const deduplicatedTotal = visible.length"));
-  assert.equal(source.includes("getAdminLogCandidatePlan(total, requestedPage)"), false);
+  assert.ok(source.includes("const eventMeta = exactEventTotal === null ? null : getAdminLogCandidatePlan(exactEventTotal, requestedPage)"));
+  assert.ok(source.includes("...(candidateTake ? { take: candidateTake } : {})"));
+  assert.ok(source.includes("where: { OR: candidateVoucherIdentities }"));
+  assert.ok(source.includes("const deduplicatedTotal = exactEventTotal ?? visible.length"));
+  assert.equal(source.includes("findMany({ where: canonicalRedemptionWhere"), false);
   assert.equal(source.includes("requestedOffset + adminLogPageSize"), false);
   assert.ok(source.includes('const attentionHealthActive = safeView === "attention"'));
   assert.ok(source.includes("attentionHealthActive || ownerQueueHealthActive ? prisma.emailLog.count"));
