@@ -4,9 +4,9 @@ import { headers } from "next/headers";
 
 import { validateVoucherForBookingInput } from "@/features/vouchers/lib/voucher-validation";
 import {
-  getRecentVoucherPublicVerificationAttemptCount,
+  consumeVoucherPublicVerificationRateLimit,
   getVoucherPublicVerificationMetadata,
-  isVoucherPublicVerificationRateLimited,
+  releaseVoucherPublicVerificationReservation,
   publicVoucherVerificationSources,
   writeVoucherPublicVerificationAttemptLog,
 } from "@/features/vouchers/lib/voucher-public-verification-rate-limit";
@@ -23,12 +23,13 @@ export async function validatePublicBookingVoucherAction(input: {
   const requestHeaders = await headers();
   const requestMetadata = getVoucherPublicVerificationMetadata(requestHeaders);
   const source = publicVoucherVerificationSources.publicBooking;
-  const ipAttempts = await getRecentVoucherPublicVerificationAttemptCount({
+  const rateLimit = await consumeVoucherPublicVerificationRateLimit({
     ...requestMetadata,
     source,
   });
 
-  if (isVoucherPublicVerificationRateLimited(ipAttempts)) {
+  const ipAttempts = rateLimit.attempts;
+  if (!rateLimit.allowed) {
     await writeVoucherPublicVerificationAttemptLog({
       auditOutcome: "RATE_LIMITED",
       source,
@@ -57,6 +58,7 @@ export async function validatePublicBookingVoucherAction(input: {
       };
     }
 
+    await releaseVoucherPublicVerificationReservation(rateLimit.reservationId);
     return toPublicBookingVoucherValidationSuccess(result);
   } catch (error) {
     console.error("Public booking voucher validation failed", error);
@@ -67,6 +69,8 @@ export async function validatePublicBookingVoucherAction(input: {
       ...requestMetadata,
       metadata: { ipAttempts, source },
     });
+
+    await releaseVoucherPublicVerificationReservation(rateLimit.reservationId);
 
     return { ok: false as const, reason: "UNKNOWN_ERROR" as const };
   }

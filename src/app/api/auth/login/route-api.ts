@@ -9,9 +9,9 @@ import {
 } from "@/lib/auth/session";
 import {
   getAdminLoginAttemptMetadata,
-  getRecentAdminLoginAttemptCounts,
-  isAdminLoginRateLimited,
+  consumeAdminLoginRateLimit,
   normalizeAdminLoginEmail,
+  releaseAdminLoginEmailReservation,
   writeAdminLoginAttemptLog,
 } from "@/lib/auth/admin-login-rate-limit";
 import { buildAbsoluteUrl, isSameOriginAdminRequest } from "@/lib/http/request-origin";
@@ -27,8 +27,8 @@ type AdminLoginRouteDependencies = {
   createSessionToken: typeof createSessionToken;
   getSessionCookie: typeof getSessionCookie;
   getAdminLoginAttemptMetadata: typeof getAdminLoginAttemptMetadata;
-  getRecentAdminLoginAttemptCounts: typeof getRecentAdminLoginAttemptCounts;
-  isAdminLoginRateLimited: typeof isAdminLoginRateLimited;
+  consumeAdminLoginRateLimit: typeof consumeAdminLoginRateLimit;
+  releaseAdminLoginEmailReservation: typeof releaseAdminLoginEmailReservation;
   normalizeAdminLoginEmail: typeof normalizeAdminLoginEmail;
   writeAdminLoginAttemptLog: typeof writeAdminLoginAttemptLog;
   buildAbsoluteUrl: typeof buildAbsoluteUrl;
@@ -40,8 +40,8 @@ const defaultAdminLoginRouteDependencies: AdminLoginRouteDependencies = {
   createSessionToken,
   getSessionCookie,
   getAdminLoginAttemptMetadata,
-  getRecentAdminLoginAttemptCounts,
-  isAdminLoginRateLimited,
+  consumeAdminLoginRateLimit,
+  releaseAdminLoginEmailReservation,
   normalizeAdminLoginEmail,
   writeAdminLoginAttemptLog,
   buildAbsoluteUrl,
@@ -87,12 +87,13 @@ export function createAdminLoginRouteApi(
         normalizedEmail,
       );
 
-      const { ipAttempts, emailFailures } = await dependencies.getRecentAdminLoginAttemptCounts({
+      const rateLimit = await dependencies.consumeAdminLoginRateLimit({
         ipHash: loginAttemptMetadata.ipHash,
         emailHash: loginAttemptMetadata.emailHash,
       });
+      const { ipAttempts, emailFailures } = rateLimit;
 
-      if (dependencies.isAdminLoginRateLimited({ ipAttempts, emailFailures })) {
+      if (!rateLimit.allowed) {
         await dependencies.writeAdminLoginAttemptLog({
           loginOutcome: "RATE_LIMITED",
           ipHash: loginAttemptMetadata.ipHash,
@@ -148,6 +149,8 @@ export function createAdminLoginRouteApi(
           303,
         );
       }
+
+      await dependencies.releaseAdminLoginEmailReservation(rateLimit.emailReservationId);
 
       const token = await dependencies.createSessionToken({
         sub: authenticatedUser.id,

@@ -4,12 +4,15 @@ import { createHash } from "node:crypto";
 import { env } from "@/config/env";
 import { getTrustedClientIp } from "@/lib/http/trusted-client-ip";
 import { prisma } from "@/lib/prisma";
+import { consumeAtomicRateLimit, releaseAtomicRateLimitReservation } from "@/lib/security/atomic-rate-limit";
 
 const ADMIN_LOGIN_ATTEMPT_WINDOW_MS = 10 * 60 * 1000;
 const ADMIN_LOGIN_MAX_ATTEMPTS_PER_IP = 20;
 const ADMIN_LOGIN_MAX_FAILED_ATTEMPTS_PER_EMAIL = 6;
 
 const ADMIN_LOGIN_FAILURE_CODE_PREFIX = "ADMIN_LOGIN_";
+const ADMIN_LOGIN_IP_SCOPE = "admin-login-ip";
+const ADMIN_LOGIN_EMAIL_SCOPE = "admin-login-email-failure";
 
 type AdminLoginOutcome = "SUCCESS" | "INVALID_PAYLOAD" | "INVALID_CREDENTIALS" | "RATE_LIMITED";
 
@@ -84,49 +87,14 @@ export function isAdminLoginRateLimited({
   );
 }
 
-export async function getRecentAdminLoginAttemptCounts({
-  ipHash,
-  emailHash,
-}: {
-  ipHash?: string;
-  emailHash?: string;
-}) {
-  const windowStart = new Date(Date.now() - ADMIN_LOGIN_ATTEMPT_WINDOW_MS);
-
-  const [ipAttempts, emailFailures] = await Promise.all([
-    ipHash
-      ? prisma.bookingSubmissionLog.count({
-          where: {
-            ipHash,
-            createdAt: {
-              gte: windowStart,
-            },
-            failureCode: {
-              startsWith: ADMIN_LOGIN_FAILURE_CODE_PREFIX,
-            },
-          },
-        })
-      : Promise.resolve(0),
-    emailHash
-      ? prisma.bookingSubmissionLog.count({
-          where: {
-            emailHash,
-            createdAt: {
-              gte: windowStart,
-            },
-            outcome: {
-              in: [BookingSubmissionOutcome.FAILED, BookingSubmissionOutcome.BLOCKED],
-            },
-            failureCode: {
-              startsWith: ADMIN_LOGIN_FAILURE_CODE_PREFIX,
-            },
-          },
-        })
-      : Promise.resolve(0),
-  ]);
-
-  return { ipAttempts, emailFailures };
+export async function consumeAdminLoginRateLimit({ ipHash, emailHash }: { ipHash?: string; emailHash?: string }) {
+  const ip = await consumeAtomicRateLimit({ scope: ADMIN_LOGIN_IP_SCOPE, fingerprint: ipHash, limit: ADMIN_LOGIN_MAX_ATTEMPTS_PER_IP, windowMs: ADMIN_LOGIN_ATTEMPT_WINDOW_MS });
+  if (!ip.allowed) return { allowed: false, ipAttempts: ip.attempts, emailFailures: 0 };
+  const email = await consumeAtomicRateLimit({ scope: ADMIN_LOGIN_EMAIL_SCOPE, fingerprint: emailHash, limit: ADMIN_LOGIN_MAX_FAILED_ATTEMPTS_PER_EMAIL, windowMs: ADMIN_LOGIN_ATTEMPT_WINDOW_MS });
+  return { allowed: email.allowed, ipAttempts: ip.attempts, emailFailures: email.attempts, emailReservationId: email.reservationId };
 }
+
+export const releaseAdminLoginEmailReservation = releaseAtomicRateLimitReservation;
 
 export async function writeAdminLoginAttemptLog({
   loginOutcome,

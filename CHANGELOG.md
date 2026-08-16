@@ -9,6 +9,7 @@ Formát je inspirovaný Keep a Changelog.
 ### Zabezpečení
 
 - Interní mutace storna plateb a zařazení voucher e-mailu už nejsou veřejně dosažitelnými Server Actions; chráněné action entrypointy nyní předávají ověřený kontext do server-only helperů.
+- Databázové rate-limit buckety nyní atomicky rezervují pokus v PostgreSQL, takže paralelní requesty nemohou obejít nastavený limit.
 
 ## [3.21.0] - 2026-08-16
 

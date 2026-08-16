@@ -38,10 +38,10 @@ test("POST rejects cross-origin login submit before auth work starts", async () 
     getAdminLoginAttemptMetadata: () => {
       throw new Error("getAdminLoginAttemptMetadata should not run for rejected origin");
     },
-    getRecentAdminLoginAttemptCounts: async () => {
+    consumeAdminLoginRateLimit: async () => {
       throw new Error("rate-limit lookup should not run for rejected origin");
     },
-    isAdminLoginRateLimited: () => false,
+    releaseAdminLoginEmailReservation: async () => {},
     writeAdminLoginAttemptLog: async () => {
       throw new Error("audit log should not run for rejected origin");
     },
@@ -79,8 +79,8 @@ test("POST returns rate_limited redirect when attempt limit is exceeded", async 
       emailHash: "email-hash",
       userAgent: "unit-test-agent",
     }),
-    getRecentAdminLoginAttemptCounts: async () => ({ ipAttempts: 20, emailFailures: 0 }),
-    isAdminLoginRateLimited: () => true,
+    consumeAdminLoginRateLimit: async () => ({ allowed: false, ipAttempts: 20, emailFailures: 0 }),
+    releaseAdminLoginEmailReservation: async () => {},
     writeAdminLoginAttemptLog: async ({ loginOutcome }) => {
       loggedOutcomes.push(loginOutcome);
     },
@@ -114,8 +114,8 @@ test("POST returns invalid_payload redirect for malformed form data", async () =
       emailHash: "email-hash",
       userAgent: "unit-test-agent",
     }),
-    getRecentAdminLoginAttemptCounts: async () => ({ ipAttempts: 0, emailFailures: 0 }),
-    isAdminLoginRateLimited: () => false,
+    consumeAdminLoginRateLimit: async () => ({ allowed: true, ipAttempts: 1, emailFailures: 1, emailReservationId: "reservation" }),
+    releaseAdminLoginEmailReservation: async () => {},
     writeAdminLoginAttemptLog: async ({ loginOutcome }) => {
       loggedOutcomes.push(loginOutcome);
     },
@@ -149,8 +149,8 @@ test("POST returns invalid_credentials redirect for wrong credentials", async ()
       emailHash: "email-hash",
       userAgent: "unit-test-agent",
     }),
-    getRecentAdminLoginAttemptCounts: async () => ({ ipAttempts: 0, emailFailures: 0 }),
-    isAdminLoginRateLimited: () => false,
+    consumeAdminLoginRateLimit: async () => ({ allowed: true, ipAttempts: 1, emailFailures: 1, emailReservationId: "reservation" }),
+    releaseAdminLoginEmailReservation: async () => {},
     writeAdminLoginAttemptLog: async ({ loginOutcome }) => {
       loggedOutcomes.push(loginOutcome);
     },
@@ -187,8 +187,8 @@ test("POST sets session cookie and redirects to admin home after successful logi
       emailHash: "email-hash",
       userAgent: "unit-test-agent",
     }),
-    getRecentAdminLoginAttemptCounts: async () => ({ ipAttempts: 0, emailFailures: 0 }),
-    isAdminLoginRateLimited: () => false,
+    consumeAdminLoginRateLimit: async () => ({ allowed: true, ipAttempts: 1, emailFailures: 1, emailReservationId: "reservation" }),
+    releaseAdminLoginEmailReservation: async () => {},
     writeAdminLoginAttemptLog: async ({ loginOutcome }) => {
       loggedOutcomes.push(loginOutcome);
     },

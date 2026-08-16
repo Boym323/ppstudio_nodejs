@@ -819,6 +819,17 @@ model BookingSubmissionLog {
   @@index([outcome, createdAt])
 }
 
+model RateLimitReservation {
+  id          String   @id @default(cuid())
+  scope       String
+  fingerprint String
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+
+  @@index([scope, fingerprint, expiresAt])
+  @@index([expiresAt])
+}
+
 model Setting {
   id              String     @id @default(cuid())
   key             String     @unique

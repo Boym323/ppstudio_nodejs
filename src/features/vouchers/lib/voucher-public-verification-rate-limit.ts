@@ -4,6 +4,7 @@ import { createHash } from "node:crypto";
 import { env } from "@/config/env";
 import { getTrustedClientIp } from "@/lib/http/trusted-client-ip";
 import { prisma } from "@/lib/prisma";
+import { consumeAtomicRateLimit, releaseAtomicRateLimitReservation } from "@/lib/security/atomic-rate-limit";
 
 const VOUCHER_VERIFICATION_ATTEMPT_WINDOW_MS = 10 * 60 * 1000;
 const VOUCHER_VERIFICATION_MAX_ATTEMPTS_PER_IP = 10;
@@ -102,27 +103,15 @@ export function getVoucherPublicVerificationAttemptWhere({
   };
 }
 
-export async function getRecentVoucherPublicVerificationAttemptCount({
-  ipHash,
-  source,
-}: {
-  ipHash?: string;
-  source: PublicVoucherVerificationSource;
-}) {
-  if (!ipHash) {
-    return 0;
-  }
-
-  const windowStart = new Date(Date.now() - VOUCHER_VERIFICATION_ATTEMPT_WINDOW_MS);
-
-  return prisma.bookingSubmissionLog.count({
-    where: getVoucherPublicVerificationAttemptWhere({ ipHash, source, windowStart }),
-  });
-}
-
 export function isVoucherPublicVerificationRateLimited(ipAttempts: number) {
   return ipAttempts >= VOUCHER_VERIFICATION_MAX_ATTEMPTS_PER_IP;
 }
+
+export function consumeVoucherPublicVerificationRateLimit({ ipHash, source }: { ipHash?: string; source: PublicVoucherVerificationSource }) {
+  return consumeAtomicRateLimit({ scope: `public-voucher-verification-${source}`, fingerprint: ipHash, limit: VOUCHER_VERIFICATION_MAX_ATTEMPTS_PER_IP, windowMs: VOUCHER_VERIFICATION_ATTEMPT_WINDOW_MS });
+}
+
+export const releaseVoucherPublicVerificationReservation = releaseAtomicRateLimitReservation;
 
 export async function writeVoucherPublicVerificationAttemptLog({
   auditOutcome,

@@ -4,10 +4,12 @@ import { createHash } from "node:crypto";
 import { env } from "@/config/env";
 import { getTrustedClientIp } from "@/lib/http/trusted-client-ip";
 import { prisma } from "@/lib/prisma";
+import { consumeAtomicRateLimit } from "@/lib/security/atomic-rate-limit";
 
 const ADMIN_INVITE_ACTIVATION_ATTEMPT_WINDOW_MS = 10 * 60 * 1000;
 const ADMIN_INVITE_ACTIVATION_MAX_ATTEMPTS_PER_IP = 10;
 const ADMIN_INVITE_ACTIVATION_FAILURE_CODE_PREFIX = "ADMIN_INVITE_ACTIVATION_";
+const ADMIN_INVITE_ACTIVATION_IP_SCOPE = "admin-invite-activation-ip";
 
 export type AdminInviteActivationAuditOutcome =
   | "SUCCESS"
@@ -71,26 +73,12 @@ export function getAdminInviteActivationAttemptMetadata(requestHeaders: Headers)
   };
 }
 
-export async function getRecentAdminInviteActivationAttemptCount(ipHash?: string) {
-  if (!ipHash) {
-    return 0;
-  }
-
-  return prisma.bookingSubmissionLog.count({
-    where: {
-      ipHash,
-      createdAt: {
-        gte: new Date(Date.now() - ADMIN_INVITE_ACTIVATION_ATTEMPT_WINDOW_MS),
-      },
-      failureCode: {
-        startsWith: ADMIN_INVITE_ACTIVATION_FAILURE_CODE_PREFIX,
-      },
-    },
-  });
-}
-
 export function isAdminInviteActivationRateLimited(ipAttempts: number) {
   return ipAttempts >= ADMIN_INVITE_ACTIVATION_MAX_ATTEMPTS_PER_IP;
+}
+
+export async function consumeAdminInviteActivationRateLimit(ipHash?: string) {
+  return consumeAtomicRateLimit({ scope: ADMIN_INVITE_ACTIVATION_IP_SCOPE, fingerprint: ipHash, limit: ADMIN_INVITE_ACTIVATION_MAX_ATTEMPTS_PER_IP, windowMs: ADMIN_INVITE_ACTIVATION_ATTEMPT_WINDOW_MS });
 }
 
 export async function writeAdminInviteActivationAttemptLog({

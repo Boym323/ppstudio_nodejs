@@ -12,9 +12,9 @@ import {
   type VoucherValidationReasonCode,
 } from "@/features/vouchers/lib/voucher-validation";
 import {
-  getRecentVoucherPublicVerificationAttemptCount,
+  consumeVoucherPublicVerificationRateLimit,
   getVoucherPublicVerificationMetadata,
-  isVoucherPublicVerificationRateLimited,
+  releaseVoucherPublicVerificationReservation,
   publicVoucherVerificationSources,
   writeVoucherPublicVerificationAttemptLog,
 } from "@/features/vouchers/lib/voucher-public-verification-rate-limit";
@@ -255,12 +255,13 @@ function getPublicReasonMessage(reason: VoucherValidationReasonCode) {
 async function loadVerificationResult(code: string, requestHeaders: Headers): Promise<VoucherVerificationViewResult> {
   const requestMetadata = getVoucherPublicVerificationMetadata(requestHeaders);
   const source = publicVoucherVerificationSources.publicPage;
-  const ipAttempts = await getRecentVoucherPublicVerificationAttemptCount({
+  const rateLimit = await consumeVoucherPublicVerificationRateLimit({
     ...requestMetadata,
     source,
   });
 
-  if (isVoucherPublicVerificationRateLimited(ipAttempts)) {
+  const ipAttempts = rateLimit.attempts;
+  if (!rateLimit.allowed) {
     await writeVoucherPublicVerificationAttemptLog({
       auditOutcome: "RATE_LIMITED",
       source,
@@ -290,6 +291,9 @@ async function loadVerificationResult(code: string, requestHeaders: Headers): Pr
       },
     });
 
+    if (verificationResult.ok) {
+      await releaseVoucherPublicVerificationReservation(rateLimit.reservationId);
+    }
     return verificationResult;
   } catch (error) {
     console.error("Public voucher verification failed", error);
@@ -304,6 +308,8 @@ async function loadVerificationResult(code: string, requestHeaders: Headers): Pr
         source,
       },
     });
+
+    await releaseVoucherPublicVerificationReservation(rateLimit.reservationId);
 
     return { ok: false, reason: "UNKNOWN" };
   }

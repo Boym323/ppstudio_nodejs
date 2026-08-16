@@ -11,8 +11,7 @@ import {
 } from "@/features/admin/lib/admin-invite-token-db";
 import {
   getAdminInviteActivationAttemptMetadata,
-  getRecentAdminInviteActivationAttemptCount,
-  isAdminInviteActivationRateLimited,
+  consumeAdminInviteActivationRateLimit,
   type AdminInviteActivationAuditOutcome,
   writeAdminInviteActivationAttemptLog,
 } from "@/features/admin/lib/admin-invite-activation-rate-limit";
@@ -116,9 +115,10 @@ export async function activateAdminInviteAction(
     };
   }
 
-  const ipAttempts = await getRecentAdminInviteActivationAttemptCount(attemptMetadata.ipHash);
+  const rateLimit = await consumeAdminInviteActivationRateLimit(attemptMetadata.ipHash);
+  const ipAttempts = rateLimit.attempts;
 
-  if (isAdminInviteActivationRateLimited(ipAttempts)) {
+  if (!rateLimit.allowed) {
     await writeAdminInviteActivationAttemptLog({
       auditOutcome: "RATE_LIMITED",
       ...attemptMetadata,

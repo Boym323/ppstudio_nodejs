@@ -8,6 +8,7 @@ import { z } from "zod";
 import { env } from "@/config/env";
 import { getTrustedClientIp } from "@/lib/http/trusted-client-ip";
 import { prisma } from "@/lib/prisma";
+import { consumeAtomicRateLimit, releaseAtomicRateLimitReservation } from "@/lib/security/atomic-rate-limit";
 import {
   BOOKING_ACQUISITION_COOKIE,
   parseBookingAcquisitionCookie,
@@ -37,13 +38,8 @@ function readFormString(formData: FormData, key: string) {
 const BOOKING_ATTEMPT_WINDOW_MS = 10 * 60 * 1000;
 const MAX_ATTEMPTS_PER_IP = 8;
 const MAX_FAILED_ATTEMPTS_PER_EMAIL = 3;
-const NON_PUBLIC_BOOKING_AUDIT_PREFIXES = [
-  "ADMIN_LOGIN_",
-  "ADMIN_INVITE_ACTIVATION_",
-  "ADMIN_RECOVERY_",
-  "PUBLIC_VOUCHER_VERIFY_",
-] as const;
-
+const BOOKING_IP_RATE_LIMIT_SCOPE = "public-booking-ip";
+const BOOKING_EMAIL_RATE_LIMIT_SCOPE = "public-booking-email-failure";
 const publicBookingSchema = z.object({
   serviceId: z.string().trim().min(1, "Vyberte službu.").max(64, "Vyberte službu z nabídky."),
   slotId: z.string().trim().min(1, "Vyberte termín.").max(64, "Vyberte termín z nabídky."),
@@ -133,57 +129,6 @@ function getSubmissionMetadata(requestHeaders: Headers) {
   };
 }
 
-async function getRecentSubmissionCounts(ipHash?: string, emailHash?: string) {
-  const windowStart = new Date(Date.now() - BOOKING_ATTEMPT_WINDOW_MS);
-  const publicBookingAuditScope = {
-    NOT: NON_PUBLIC_BOOKING_AUDIT_PREFIXES.map((prefix) => ({
-      failureCode: {
-        startsWith: prefix,
-      },
-    })),
-  } satisfies Prisma.BookingSubmissionLogWhereInput;
-
-  const [ipAttempts, emailFailures] = await Promise.all([
-    ipHash
-      ? prisma.bookingSubmissionLog.count({
-          where: {
-            ...publicBookingAuditScope,
-            ipHash,
-            createdAt: {
-              gte: windowStart,
-            },
-            outcome: {
-              in: [
-                BookingSubmissionOutcome.SUCCESS,
-                BookingSubmissionOutcome.FAILED,
-                BookingSubmissionOutcome.BLOCKED,
-              ],
-            },
-          },
-        })
-      : Promise.resolve(0),
-    emailHash
-      ? prisma.bookingSubmissionLog.count({
-          where: {
-            ...publicBookingAuditScope,
-            emailHash,
-            createdAt: {
-              gte: windowStart,
-            },
-            outcome: {
-              in: [BookingSubmissionOutcome.FAILED, BookingSubmissionOutcome.BLOCKED],
-            },
-            failureCode: {
-              not: publicBookingErrorCodes.bookingConflict,
-            },
-          },
-        })
-      : Promise.resolve(0),
-  ]);
-
-  return { ipAttempts, emailFailures };
-}
-
 async function writeSubmissionLog(
   data: Prisma.BookingSubmissionLogUncheckedCreateInput & {
     outcome: BookingSubmissionOutcome;
@@ -224,12 +169,14 @@ export async function createPublicBookingAction(
   const normalizedEmailForAudit = normalizeClientEmail(readFormString(formData, "email"));
   const emailHash = normalizedEmailForAudit ? hashSubmissionFingerprint(normalizedEmailForAudit) : undefined;
 
-  const { ipAttempts, emailFailures } = await getRecentSubmissionCounts(
-    submissionMetadata.ipHash,
-    emailHash,
-  );
+  const ipRateLimit = await consumeAtomicRateLimit({ scope: BOOKING_IP_RATE_LIMIT_SCOPE, fingerprint: submissionMetadata.ipHash, limit: MAX_ATTEMPTS_PER_IP, windowMs: BOOKING_ATTEMPT_WINDOW_MS });
+  const emailRateLimit = ipRateLimit.allowed
+    ? await consumeAtomicRateLimit({ scope: BOOKING_EMAIL_RATE_LIMIT_SCOPE, fingerprint: emailHash, limit: MAX_FAILED_ATTEMPTS_PER_EMAIL, windowMs: BOOKING_ATTEMPT_WINDOW_MS })
+    : { allowed: false, attempts: 0 };
+  const ipAttempts = ipRateLimit.attempts;
+  const emailFailures = emailRateLimit.attempts;
 
-  if (ipAttempts >= MAX_ATTEMPTS_PER_IP || emailFailures >= MAX_FAILED_ATTEMPTS_PER_EMAIL) {
+  if (!ipRateLimit.allowed || !emailRateLimit.allowed) {
     await writeSubmissionLog({
       outcome: BookingSubmissionOutcome.BLOCKED,
       ipHash: submissionMetadata.ipHash,
@@ -253,6 +200,8 @@ export async function createPublicBookingAction(
         emailFailures,
       },
     });
+
+    await releaseAtomicRateLimitReservation(emailRateLimit.reservationId);
 
     return {
       status: "error",
@@ -286,6 +235,8 @@ export async function createPublicBookingAction(
         acquisition: acquisitionData,
       },
     });
+
+    await releaseAtomicRateLimitReservation(emailRateLimit.reservationId);
 
     return {
       status: "error",
@@ -362,6 +313,10 @@ export async function createPublicBookingAction(
           acquisition: acquisitionData,
         },
       });
+
+      if (error.code === publicBookingErrorCodes.bookingConflict) {
+        await releaseAtomicRateLimitReservation(emailRateLimit.reservationId);
+      }
 
       if (
         error.code === publicBookingErrorCodes.bookingConflict
