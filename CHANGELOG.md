@@ -6,6 +6,12 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [3.20.0] - 2026-08-16
+
+### Změněno
+
+- Release příprava pro produkční nasazení: projektová verze navýšena na minor `3.20.0` kvůli zpětně kompatibilnímu rozšíření administrativních událostí, auditů a filtrování e-mailových incidentů.
+
 ### Opraveno
 
 - Události v administraci nyní zahrnují kanonický audit změn ceny služby včetně autora, názvu služby a srozumitelné ceny před změnou i po ní; starší samostatný přehled e-mailů byl odstraněn, zatímco URL `/admin/email-logy` zůstává kompatibilním přesměrováním na E-maily v Událostech a logách.
