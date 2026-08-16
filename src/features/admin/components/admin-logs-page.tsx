@@ -6,6 +6,7 @@ import { flexRender, getCoreRowModel, useReactTable, type ColumnDef } from "@tan
 
 import { releaseStuckEmailLogAction, retryEmailLogAction } from "../actions/email-log-actions";
 import { type AdminLogItem, type AdminLogsData, type AdminLogView } from "../lib/admin-data";
+import { buildAdminLogsSearchParams, type AdminLogUrlChanges } from "../lib/admin-logs-url";
 import { AdminPageShell, AdminPanel } from "./admin-page-shell";
 import * as Sheet from "@/components/ui/sheet";
 
@@ -52,20 +53,8 @@ function formatLogTime(occurredAt: string) {
   return Number.isNaN(date.getTime()) ? "—" : pragueDateTime.format(date);
 }
 
-function hrefWith(data: AdminLogsData, changes: Record<string, string | undefined>) {
-  const values = {
-    view: data.view,
-    query: data.filters.query,
-    severity: data.filters.severity === "all" ? "" : data.filters.severity,
-    source: data.filters.source === "all" ? "" : data.filters.source,
-    emailType: data.filters.emailType === "all" ? "" : data.filters.emailType,
-    dateFrom: data.filters.dateFrom,
-    dateTo: data.filters.dateTo,
-    ...changes,
-  };
-  const params = new URLSearchParams();
-  Object.entries(values).forEach(([key, value]) => { if (value) params.set(key, value); });
-  return `?${params}`;
+function hrefWith(data: AdminLogsData, changes: AdminLogUrlChanges) {
+  return `?${buildAdminLogsSearchParams(data.view, data.filters, changes)}`;
 }
 
 function SeverityPill({ severity }: { severity: AdminLogItem["severity"] }) {
@@ -120,8 +109,10 @@ function LogsToolbar({ data }: { data: AdminLogsData }) {
       : data.view === "system"
         ? "Hledat účet nebo systémovou událost…"
         : "Hledat e-mail nebo kritickou chybu…";
+  const mobilePreservedFilters = [...buildAdminLogsSearchParams(data.view, data.filters).entries()]
+    .filter(([name]) => name !== "view" && name !== "query");
 
-  return <Sheet.Root open={open} onOpenChange={setOpen}><form method="get" className="hidden rounded-[1.1rem] border border-white/8 bg-[#151219]/95 p-3 md:block"><input type="hidden" name="view" value={data.view} /><div className="flex flex-wrap items-center gap-2"><input name="query" defaultValue={data.filters.query} placeholder={searchPlaceholder} className="min-h-11 min-w-[16rem] flex-1 rounded-xl border border-white/10 bg-black/25 px-3 text-sm text-white placeholder:text-white/35" /><FilterFields data={data} /><button className="min-h-11 rounded-full border border-[var(--color-accent)]/50 bg-[rgba(190,160,120,.1)] px-4 text-sm font-semibold text-[var(--color-accent-soft)]">Použít</button>{activeFilters ? <Link href={`?view=${data.view}`} className="min-h-11 px-2 text-sm leading-[2.75rem] text-white/62 underline">Vymazat filtry</Link> : null}</div></form><form method="get" className="flex gap-2 md:hidden"><input type="hidden" name="view" value={data.view} /><input name="query" defaultValue={data.filters.query} placeholder="Hledat…" className="min-h-11 min-w-0 flex-1 rounded-xl border border-white/10 bg-black/25 px-3 text-sm text-white placeholder:text-white/35" /><Sheet.Trigger asChild><button type="button" className={`min-h-11 rounded-full border px-4 text-sm ${activeFilters ? "border-[var(--color-accent)]/55 bg-[rgba(190,160,120,.15)] text-[var(--color-accent-soft)]" : "border-white/15 text-white/78"}`}>Filtry{activeFilters ? " •" : ""}</button></Sheet.Trigger></form><LogsFiltersDialog data={data} /></Sheet.Root>;
+  return <Sheet.Root open={open} onOpenChange={setOpen}><form method="get" className="hidden rounded-[1.1rem] border border-white/8 bg-[#151219]/95 p-3 md:block"><input type="hidden" name="view" value={data.view} /><div className="flex flex-wrap items-center gap-2"><input name="query" defaultValue={data.filters.query} placeholder={searchPlaceholder} className="min-h-11 min-w-[16rem] flex-1 rounded-xl border border-white/10 bg-black/25 px-3 text-sm text-white placeholder:text-white/35" /><FilterFields data={data} /><button className="min-h-11 rounded-full border border-[var(--color-accent)]/50 bg-[rgba(190,160,120,.1)] px-4 text-sm font-semibold text-[var(--color-accent-soft)]">Použít</button>{activeFilters ? <Link href={`?view=${data.view}`} className="min-h-11 px-2 text-sm leading-[2.75rem] text-white/62 underline">Vymazat filtry</Link> : null}</div></form><form method="get" className="flex gap-2 md:hidden"><input type="hidden" name="view" value={data.view} />{mobilePreservedFilters.map(([name, value]) => <input key={name} type="hidden" name={name} value={value} />)}<input name="query" defaultValue={data.filters.query} placeholder="Hledat…" className="min-h-11 min-w-0 flex-1 rounded-xl border border-white/10 bg-black/25 px-3 text-sm text-white placeholder:text-white/35" /><Sheet.Trigger asChild><button type="button" className={`min-h-11 rounded-full border px-4 text-sm ${activeFilters ? "border-[var(--color-accent)]/55 bg-[rgba(190,160,120,.15)] text-[var(--color-accent-soft)]" : "border-white/15 text-white/78"}`}>Filtry{activeFilters ? " •" : ""}</button></Sheet.Trigger></form><LogsFiltersDialog data={data} /></Sheet.Root>;
 }
 
 function AttentionSummary({ data, isOwner }: { data: AdminLogsData; isOwner: boolean }) {

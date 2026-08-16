@@ -8,6 +8,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Mobilní hledání v administrativních Událostech a logách nyní při odeslání zachová aktivní filtry příslušného pohledu a vždy začne od první stránky výsledků.
 - Ruční uzavření i filtrování Pozornosti nyní jednotně vyhodnocují celý resend chain: OWNER tak může uzavřít incident se selháním až na resendu a zobrazený failure vždy splňuje všechny aktivní e-mailové filtry.
 - Datumové filtry Událostí a logů nyní vždy vymezují kalendářní den v Europe/Prague včetně změn letního času, nezávisle na timezone produkčního Node.js procesu.
 

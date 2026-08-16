@@ -29,6 +29,7 @@ import {
   withEmailLogScope,
   type AdminLogItem,
 } from "./admin-data";
+import { buildAdminLogsSearchParams } from "./admin-logs-url";
 
 function item(id: string, occurredAt: string): AdminLogItem {
   return { id, occurredAt, category: "event", severity: "info", title: id, description: null, actorLabel: null, entityLabel: null, entityHref: null, sourceType: "booking", sourceId: id, primaryAction: null };
@@ -293,10 +294,31 @@ test("stará email-log route přesměruje na pohled emails", async () => {
   assert.ok(source.includes('redirect("/admin/logy?view=emails")'));
 });
 
+test("mobilní search zachová filtry relevantní pro pohled a resetuje stránku", () => {
+  const filters = { query: "původní", severity: "error" as const, source: "booking" as const, emailType: "BOOKING_CONFIRMED" as const, dateFrom: "2026-08-01", dateTo: "2026-08-15" };
+  const events = buildAdminLogsSearchParams("events", filters, { query: "nový dotaz" });
+  assert.deepEqual(Object.fromEntries(events), { view: "events", query: "nový dotaz", severity: "error", source: "booking", dateFrom: "2026-08-01", dateTo: "2026-08-15" });
+  assert.equal(events.has("page"), false);
+  assert.equal(buildAdminLogsSearchParams("events", filters, { page: "3" }).get("page"), "3");
+
+  const emails = buildAdminLogsSearchParams("emails", filters, { query: "nový dotaz" });
+  assert.equal(emails.get("emailType"), "BOOKING_CONFIRMED");
+  assert.equal(emails.has("source"), false);
+
+  const attention = buildAdminLogsSearchParams("attention", filters, { source: undefined, emailType: undefined });
+  assert.equal(attention.has("source"), false);
+  assert.equal(attention.has("emailType"), false);
+
+  const desktop = buildAdminLogsSearchParams("system", filters, { query: "nový dotaz" });
+  assert.equal(desktop.get("source"), "booking");
+  const mobile = buildAdminLogsSearchParams("system", filters, { query: "nový dotaz" });
+  assert.deepEqual(Object.fromEntries(mobile), Object.fromEntries(desktop));
+});
+
 test("mobilní drawer zachová view a formuláře neposílají page", async () => {
   const source = await readFile(new URL("../components/admin-logs-page.tsx", import.meta.url), "utf8");
   assert.ok(source.includes('name="view" value={data.view}'));
-  assert.equal(source.includes('name="page"'), false);
+  assert.ok(source.includes("buildAdminLogsSearchParams(data.view, data.filters)"));
   assert.ok(source.includes('value="availability">Dostupnost'));
   assert.ok(source.includes("E-mailová fronta"));
 });
