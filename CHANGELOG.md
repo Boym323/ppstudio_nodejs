@@ -6,6 +6,10 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+### Zabezpečení
+
+- Interní mutace storna plateb a zařazení voucher e-mailu už nejsou veřejně dosažitelnými Server Actions; chráněné action entrypointy nyní předávají ověřený kontext do server-only helperů.
+
 ## [3.21.0] - 2026-08-16
 
 ### Změněno

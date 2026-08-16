@@ -1,6 +1,6 @@
 "use server";
 
-import { AdminRole, BookingActorType, BookingPaymentMethod } from "@prisma/client";
+import { AdminRole, BookingPaymentMethod } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
@@ -12,6 +12,7 @@ import {
 import { requireRole } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 import { createDirectBookingPayment, findSimilarActiveBookingPayment, updateDirectBookingPayment } from "@/features/bookings/lib/booking-payment";
+import { voidBookingPaymentWithAudit } from "@/features/bookings/lib/booking-payment-mutations";
 import { BOOKING_PAYMENT_METHOD_LABELS } from "@/features/bookings/lib/booking-payment-summary";
 
 const createBookingPaymentSchema = z.object({
@@ -57,15 +58,6 @@ function revalidateBookingAdminPaths(bookingId: string) {
   for (const path of paths) {
     revalidatePath(path);
   }
-}
-
-async function resolveCurrentAdminUserId(email: string) {
-  const user = await prisma.adminUser.findFirst({
-    where: { email: { equals: email.trim(), mode: "insensitive" } },
-    select: { id: true },
-  });
-
-  return user?.id ?? null;
 }
 
 export async function createBookingPaymentAction(
@@ -170,83 +162,6 @@ export async function updateBookingPaymentAction(
   return { status: "success", successMessage: "Platba byla upravena a souhrn úhrady je aktuální." };
 }
 
-export async function voidBookingPaymentWithAudit(input: {
-  bookingId: string;
-  paymentId: string;
-  voidedByUserId: string | null;
-  voidReason: string;
-  voidedAt?: Date;
-}) {
-  const voidedAt = input.voidedAt ?? new Date();
-
-  return prisma.$transaction(async (tx) => {
-    const payment = await tx.bookingPayment.findUnique({
-      where: { id: input.paymentId },
-      select: {
-        id: true,
-        bookingId: true,
-        amountCzk: true,
-        method: true,
-        paidAt: true,
-        note: true,
-        createdByUserId: true,
-        status: true,
-        booking: {
-          select: {
-            status: true,
-          },
-        },
-      },
-    });
-
-    if (!payment || payment.bookingId !== input.bookingId) {
-      return { status: "not-found" as const };
-    }
-
-    if (payment.status === "VOIDED") {
-      return { status: "already-voided" as const };
-    }
-
-    const voidUpdate = await tx.bookingPayment.updateMany({
-      where: { id: payment.id, status: "ACTIVE" },
-      data: {
-        status: "VOIDED",
-        voidedAt,
-        voidedByUserId: input.voidedByUserId,
-        voidReason: input.voidReason,
-      },
-    });
-    if (voidUpdate.count !== 1) {
-      return { status: "already-voided" as const };
-    }
-
-    await tx.bookingStatusHistory.create({
-      data: {
-        bookingId: payment.bookingId,
-        status: payment.booking.status,
-        actorType: BookingActorType.USER,
-        actorUserId: input.voidedByUserId,
-        reason: "Platba stornována",
-        metadata: {
-          source: "admin-booking-payment-void-v1",
-          bookingId: payment.bookingId,
-          paymentId: payment.id,
-          originalAmountCzk: payment.amountCzk,
-          originalMethod: payment.method,
-          originalPaidAt: payment.paidAt.toISOString(),
-          originalNote: payment.note,
-          originalCreatedByUserId: payment.createdByUserId,
-          voidedByUserId: input.voidedByUserId,
-          voidedAt: voidedAt.toISOString(),
-          voidReason: input.voidReason,
-        },
-      },
-    });
-
-    return { status: "voided" as const, bookingId: payment.bookingId };
-  });
-}
-
 export async function deleteBookingPaymentAction(
   _previousState: DeleteBookingPaymentActionState,
   formData: FormData,
@@ -266,11 +181,10 @@ export async function deleteBookingPaymentAction(
   }
 
   const session = await requireRole([AdminRole.OWNER]);
-  const voidedByUserId = await resolveCurrentAdminUserId(session.email);
   const result = await voidBookingPaymentWithAudit({
     bookingId: parsed.data.bookingId,
     paymentId: parsed.data.paymentId,
-    voidedByUserId,
+    voidedByUserId: session.sub,
     voidReason: parsed.data.voidReason,
   });
 

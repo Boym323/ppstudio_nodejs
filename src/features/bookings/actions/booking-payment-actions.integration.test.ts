@@ -47,9 +47,9 @@ async function findIsolatedPaymentWindow(
 }
 
 dbTest("direct payment domain handles manual and completion flows idempotently", async () => {
-  const [{ prisma }, actions, paymentDomain, prismaClient] = await Promise.all([
+  const [{ prisma }, paymentMutations, paymentDomain, prismaClient] = await Promise.all([
     import("@/lib/prisma"),
-    import("./booking-payment-actions"),
+    import("../lib/booking-payment-mutations"),
     import("../lib/booking-payment"),
     import("@prisma/client"),
   ]);
@@ -236,7 +236,7 @@ dbTest("direct payment domain handles manual and completion flows idempotently",
     }));
     assert.equal(staleEdit.status, "conflict");
 
-    const result = await actions.voidBookingPaymentWithAudit({
+    const result = await paymentMutations.voidBookingPaymentWithAudit({
       bookingId: booking.id,
       paymentId: creation.payment.id,
       voidedByUserId: actor.id,
@@ -259,7 +259,7 @@ dbTest("direct payment domain handles manual and completion flows idempotently",
     }));
     assert.equal(voidedEdit.status, "voided");
 
-    const repeatedVoid = await actions.voidBookingPaymentWithAudit({
+    const repeatedVoid = await paymentMutations.voidBookingPaymentWithAudit({
       bookingId: booking.id,
       paymentId: creation.payment.id,
       voidedByUserId: actor.id,

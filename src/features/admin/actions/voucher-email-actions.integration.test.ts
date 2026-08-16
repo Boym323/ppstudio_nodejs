@@ -18,14 +18,14 @@ process.env.EMAIL_DELIVERY_MODE ??= "log";
 const dbTest = process.env.RUN_DB_INTEGRATION_TESTS === "1" ? test : test.skip;
 
 async function loadModules() {
-  const [{ prisma }, voucherEmailModule] = await Promise.all([
+  const [{ prisma }, voucherEmailQueue] = await Promise.all([
     import("@/lib/prisma"),
-    import("@/features/admin/actions/voucher-email-actions"),
+    import("@/features/admin/lib/voucher-email-queue"),
   ]);
 
   return {
     prisma,
-    queueVoucherEmailLog: voucherEmailModule.queueVoucherEmailLog,
+    queueVoucherEmailLog: voucherEmailQueue.queueVoucherEmailLog,
   };
 }
 
