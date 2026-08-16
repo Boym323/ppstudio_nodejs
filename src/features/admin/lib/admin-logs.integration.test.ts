@@ -214,15 +214,18 @@ dbTest("admin event feed potlačí jen booking audit kanonického voucherového 
     serviceDurationMinutes: 60, servicePriceFromCzk: 1000, scheduledStartsAt: slot.startsAt, scheduledEndsAt: slot.endsAt,
     ...(index === 0 ? { finalPriceCzk: 1000 } : {}),
   } })));
+  // Přechod přes lokální půlnoc (Europe/Prague): redemption je 31. 1., audit 1. 2.
+  const canonicalRedemptionAt = new Date("2027-01-31T22:59:59.000Z");
+  const duplicateAuditAt = new Date("2027-01-31T23:00:01.000Z");
 
   try {
     await prisma.voucherRedemption.createMany({ data: [
-      { voucherId: voucher.id, bookingId: bookings[0].id, amountCzk: 500 },
+      { voucherId: voucher.id, bookingId: bookings[0].id, amountCzk: 500, redeemedAt: canonicalRedemptionAt },
       { voucherId: secondVoucher.id, bookingId: bookings[2].id, amountCzk: 300 },
       { voucherId: thirdVoucher.id, bookingId: bookings[2].id, amountCzk: 200 },
     ] });
     await prisma.bookingStatusHistory.createMany({ data: [
-      { bookingId: bookings[0].id, status: BookingStatus.COMPLETED, actorType: BookingActorType.USER, reason: "Voucher uplatněn při dokončení návštěvy", metadata: { source: "admin-booking-complete-flow-v1", voucherCode: voucher.code } },
+      { bookingId: bookings[0].id, status: BookingStatus.COMPLETED, actorType: BookingActorType.USER, reason: "Voucher uplatněn při dokončení návštěvy", metadata: { source: "admin-booking-complete-flow-v1", voucherCode: voucher.code }, createdAt: duplicateAuditAt },
       { bookingId: bookings[0].id, status: BookingStatus.COMPLETED, actorType: BookingActorType.USER, reason: "Platba zapsána při dokončení návštěvy", metadata: { source: "admin-booking-complete-flow-v1" } },
       { bookingId: bookings[0].id, status: BookingStatus.COMPLETED, actorType: BookingActorType.USER, reason: "Dokončeno" },
       { bookingId: bookings[1].id, status: BookingStatus.COMPLETED, actorType: BookingActorType.USER, reason: "Dokončeno" },
@@ -230,17 +233,35 @@ dbTest("admin event feed potlačí jen booking audit kanonického voucherového 
       { bookingId: bookings[2].id, status: BookingStatus.COMPLETED, actorType: BookingActorType.USER, reason: "Voucher uplatněn při dokončení návštěvy", metadata: { source: "admin-booking-complete-flow-v1", voucherCode: secondVoucher.code } },
       { bookingId: bookings[2].id, status: BookingStatus.COMPLETED, actorType: BookingActorType.USER, reason: "Voucher uplatněn při dokončení návštěvy", metadata: { source: "admin-booking-complete-flow-v1", voucherCode: thirdVoucher.code } },
       { bookingId: bookings[2].id, status: BookingStatus.COMPLETED, actorType: BookingActorType.USER, reason: "Dokončeno" },
+      ...Array.from({ length: 51 }, (_, index) => ({
+        bookingId: bookings[1].id,
+        status: BookingStatus.COMPLETED,
+        actorType: BookingActorType.USER,
+        reason: `Novější událost ${index} ${suffix}`,
+        createdAt: new Date(`2027-02-02T${String(Math.floor(index / 60)).padStart(2, "0")}:${String(index % 60).padStart(2, "0")}:00.000Z`),
+      })),
     ] });
 
-    const feed = await getAdminLogsData({ area: "salon", view: "events", query: suffix });
-    assert.equal(feed.items.filter((item) => item.title === "Voucher uplatněn").length, 3);
-    assert.equal(feed.items.filter((item) => item.title === "Platba zaznamenána").length, 1);
-    assert.equal(feed.items.filter((item) => item.title === "Rezervace dokončena").length, 3);
-    assert.equal(feed.items.filter((item) => item.title === "Voucher uplatněn při dokončení návštěvy").length, 1);
-    assert.equal(feed.items.filter((item) => item.title === "Voucher uplatněn").every((item) => item.severity === "success"), true);
-    assert.equal(feed.items.find((item) => item.title === "Platba zaznamenána")?.severity, "info");
-    assert.equal(feed.items.filter((item) => item.title === "Rezervace dokončena").every((item) => item.severity === "success"), true);
-    assert.equal(feed.total, 11);
+    const [feed, firstPage, secondPage, redemptionDay, auditDay] = await Promise.all([
+      getAdminLogsData({ area: "salon", view: "events", query: suffix }),
+      getAdminLogsData({ area: "salon", view: "events", query: suffix, page: "1" }),
+      getAdminLogsData({ area: "salon", view: "events", query: suffix, page: "2" }),
+      getAdminLogsData({ area: "salon", view: "events", query: suffix, dateFrom: "2027-01-31", dateTo: "2027-01-31" }),
+      getAdminLogsData({ area: "salon", view: "events", query: suffix, dateFrom: "2027-02-01", dateTo: "2027-02-01" }),
+    ]);
+    const allItems = [...firstPage.items, ...secondPage.items];
+    assert.equal(feed.total, 62);
+    assert.equal(allItems.length, feed.total);
+    assert.equal(new Set(allItems.map((item) => item.id)).size, feed.total);
+    assert.equal(secondPage.items.filter((item) => item.title === "Voucher uplatněn").length, 3);
+    assert.equal(allItems.filter((item) => item.title === "Voucher uplatněn při dokončení návštěvy").length, 1);
+    assert.equal(redemptionDay.items.filter((item) => item.title === "Voucher uplatněn").length, 1);
+    assert.equal(auditDay.items.filter((item) => item.title === "Voucher uplatněn při dokončení návštěvy").length, 0);
+    assert.equal(allItems.filter((item) => item.title === "Platba zaznamenána").length, 1);
+    assert.equal(allItems.filter((item) => item.title === "Rezervace dokončena").length, 54);
+    assert.equal(allItems.filter((item) => item.title === "Voucher uplatněn").every((item) => item.severity === "success"), true);
+    assert.equal(allItems.find((item) => item.title === "Platba zaznamenána")?.severity, "info");
+    assert.equal(allItems.filter((item) => item.title === "Rezervace dokončena").every((item) => item.severity === "success"), true);
     assert.equal(feed.items.every((item, index, items) => index === 0 || items[index - 1].occurredAt >= item.occurredAt), true);
   } finally {
     await prisma.bookingStatusHistory.deleteMany({ where: { bookingId: { in: bookings.map((booking) => booking.id) } } });

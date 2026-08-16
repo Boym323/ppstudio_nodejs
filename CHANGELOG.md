@@ -11,6 +11,7 @@ Formát je inspirovaný Keep a Changelog.
 - Události v administraci nyní zahrnují kanonický audit změn ceny služby včetně autora, názvu služby a srozumitelné ceny před změnou i po ní; starší samostatný přehled e-mailů byl odstraněn, zatímco URL `/admin/email-logy` zůstává kompatibilním přesměrováním na E-maily v Událostech a logách.
 - Události a logy v administraci nyní rozlišují skutečné změny stavu rezervace od provozních auditů ceny, poznámky, kontaktu, služby, plateb a voucheru; úprava rezervace ve stavu `CONFIRMED` se proto již chybně netváří jako další potvrzení.
 - Společný feed Události nyní u dokončení návštěvy zobrazí uplatnění voucheru jen jednou: kanonický `VoucherRedemption` potlačí pouze odpovídající booking audit se stejnou rezervací a kódem voucheru; historický audit bez redemption zůstává viditelný.
+- Deduplikace voucherových uplatnění v Událostech nyní probíhá nad celým serverovým read-modelem před řazením a stránkováním, takže total i hranice stránek nezobrazí duplicitní audit; datum filtru se jednotně řídí kanonickým časem redemption.
 - Aktivní e-mailové incidenty nyní počítají každý neuzavřený resend chain jen jednou podle stabilního rootu; Pozornost zobrazuje jeho nejnovější selhaný resend, zatímco historie e-mailů zachovává všechny jednotlivé pokusy.
 
 ## [3.19.0] - 2026-08-16
