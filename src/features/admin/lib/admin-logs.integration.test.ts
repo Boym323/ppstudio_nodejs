@@ -97,7 +97,7 @@ dbTest("admin logy používají české popisky voucheru a název kategorie slu�
 });
 
 dbTest("admin logy filtrují a popisují oba lifecycle e-maily rezervace", async () => {
-  const [{ prisma }, { getAdminLogsData }] = await Promise.all([
+  const [{ prisma }, { getAdminLogsData, getEmailLogDetailData }] = await Promise.all([
     import("@/lib/prisma"),
     import("./admin-data"),
   ]);
@@ -123,9 +123,19 @@ dbTest("admin logy filtrují a popisují oba lifecycle e-maily rezervace", async
 
     const received = await getAdminLogsData({ area: "owner", view: "emails", query: suffix, emailType: EmailLogType.BOOKING_RECEIVED });
     const confirmed = await getAdminLogsData({ area: "owner", view: "emails", query: suffix, emailType: EmailLogType.BOOKING_CONFIRMED });
+    const [receivedLog, confirmedLog] = await Promise.all([
+      prisma.emailLog.findFirstOrThrow({ where: { recipientEmail: `received-${suffix}@example.com` }, select: { id: true } }),
+      prisma.emailLog.findFirstOrThrow({ where: { recipientEmail: `confirmed-${suffix}@example.com` }, select: { id: true } }),
+    ]);
+    const [receivedDetail, confirmedDetail] = await Promise.all([
+      getEmailLogDetailData(receivedLog.id),
+      getEmailLogDetailData(confirmedLog.id),
+    ]);
 
-    assert.equal(received.items[0]?.title, "Přijetí rezervace");
-    assert.equal(confirmed.items[0]?.title, "Potvrzení rezervace");
+    assert.equal(received.items[0]?.title, `Přijetí rezervace ${suffix}`);
+    assert.equal(confirmed.items[0]?.title, `Potvrzení rezervace ${suffix}`);
+    assert.equal(receivedDetail?.typeLabel, "Přijetí rezervace");
+    assert.equal(confirmedDetail?.typeLabel, "Potvrzení rezervace");
   } finally {
     await prisma.emailLog.deleteMany({ where: { subject: { contains: suffix } } });
   }
