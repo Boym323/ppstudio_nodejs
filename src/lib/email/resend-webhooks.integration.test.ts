@@ -199,6 +199,107 @@ dbTest("resend po opravě kontaktu zachová bounce audit původního logu a zalo
   }
 });
 
+dbTest("terminální failed retry zachová audit a doručený navazující resend uzavře incident", async () => {
+  const [{ prisma }, { buildResendEmailLogCreateInput }, { applyResendWebhookEvent }, { getUnresolvedEmailDeliveryFailureWhere }] = await Promise.all([
+    import("@/lib/prisma"),
+    import("@/features/admin/actions/email-log-action-helpers"),
+    import("@/lib/email/resend-webhooks"),
+    import("@/lib/email/incidents"),
+  ]);
+  const seed = randomUUID();
+  const root = await prisma.emailLog.create({
+    data: {
+      type: EmailLogType.GENERIC,
+      status: EmailLogStatus.FAILED,
+      attemptCount: 3,
+      recipientEmail: `failed-root-${seed}@example.test`,
+      subject: "Terminálně selhaný e-mail",
+      templateKey: "webhook-test",
+      errorMessage: "Původní transportní chyba",
+    },
+  });
+  const deliveredMessageId = `resend-terminal-delivered-${seed}`;
+  const eventId = `msg_terminal_chain_${seed}`;
+
+  try {
+    const firstResend = await prisma.emailLog.create({
+      data: buildResendEmailLogCreateInput({
+        resendOfId: root.id,
+        resendRootId: root.id,
+        bookingId: root.bookingId,
+        clientId: root.clientId,
+        actionTokenId: root.actionTokenId,
+        type: root.type,
+        recipientEmail: root.recipientEmail,
+        subject: root.subject,
+        templateKey: root.templateKey,
+        payload: root.payload,
+      }),
+    });
+    const storedRootAfterRetry = await prisma.emailLog.findUniqueOrThrow({ where: { id: root.id } });
+
+    assert.equal(storedRootAfterRetry.status, EmailLogStatus.FAILED);
+    assert.equal(storedRootAfterRetry.errorMessage, "Původní transportní chyba");
+    assert.equal(firstResend.status, EmailLogStatus.PENDING);
+    assert.equal(firstResend.resendOfId, root.id);
+    assert.equal(firstResend.resendRootId, root.id);
+    assert.equal(await prisma.emailLog.count({ where: { AND: [{ id: root.id }, getUnresolvedEmailDeliveryFailureWhere()] } }), 1);
+
+    await prisma.emailLog.update({
+      where: { id: firstResend.id },
+      data: { status: EmailLogStatus.SENT, sentAt: new Date(), provider: "resend", providerMessageId: `resend-terminal-sent-${seed}` },
+    });
+    const rootAfterSentResend = await prisma.emailLog.findUniqueOrThrow({ where: { id: root.id } });
+    assert.equal(rootAfterSentResend.incidentResolvedAt, null);
+    assert.equal(rootAfterSentResend.incidentResolvedByEmailLogId, null);
+
+    const failedResend = await prisma.emailLog.update({
+      where: { id: firstResend.id },
+      data: { status: EmailLogStatus.FAILED, errorMessage: "Druhý transportní fail" },
+    });
+    const deliveredResend = await prisma.emailLog.create({
+      data: buildResendEmailLogCreateInput({
+        resendOfId: failedResend.id,
+        resendRootId: failedResend.resendRootId ?? failedResend.id,
+        bookingId: failedResend.bookingId,
+        clientId: failedResend.clientId,
+        actionTokenId: failedResend.actionTokenId,
+        type: failedResend.type,
+        recipientEmail: failedResend.recipientEmail,
+        subject: failedResend.subject,
+        templateKey: failedResend.templateKey,
+        payload: failedResend.payload,
+      }),
+    });
+    await prisma.emailLog.update({
+      where: { id: deliveredResend.id },
+      data: { status: EmailLogStatus.SENT, sentAt: new Date(), provider: "resend", providerMessageId: deliveredMessageId },
+    });
+
+    await applyResendWebhookEvent({
+      event: { type: "email.delivered", created_at: "2026-08-16T12:00:00.000Z", data: { email_id: deliveredMessageId } },
+      providerEventId: eventId,
+    });
+    const [storedRoot, storedFailedResend, storedDeliveredResend] = await Promise.all([
+      prisma.emailLog.findUniqueOrThrow({ where: { id: root.id } }),
+      prisma.emailLog.findUniqueOrThrow({ where: { id: firstResend.id } }),
+      prisma.emailLog.findUniqueOrThrow({ where: { id: deliveredResend.id } }),
+    ]);
+
+    assert.equal(storedRoot.status, EmailLogStatus.FAILED);
+    assert.equal(storedRoot.errorMessage, "Původní transportní chyba");
+    assert.equal(storedFailedResend.status, EmailLogStatus.FAILED);
+    assert.equal(storedDeliveredResend.trackingDeliveredAt?.toISOString(), "2026-08-16T12:00:00.000Z");
+    assert.ok(storedRoot.incidentResolvedAt);
+    assert.equal(storedRoot.incidentResolvedByEmailLogId, deliveredResend.id);
+    assert.equal(await prisma.emailLog.count({ where: { AND: [{ id: { in: [root.id, firstResend.id] } }, getUnresolvedEmailDeliveryFailureWhere()] } }), 0);
+  } finally {
+    await prisma.emailProviderWebhookEvent.deleteMany({ where: { providerEventId: eventId } });
+    await prisma.emailLog.deleteMany({ where: { resendRootId: root.id } });
+    await prisma.emailLog.delete({ where: { id: root.id } });
+  }
+});
+
 dbTest("doručený resend idempotentně uzavře celý explicitní incident chain bez přepisu bounce historie", async () => {
   const [{ prisma }, { applyResendWebhookEvent }, { getUnresolvedEmailDeliveryFailureWhere }] = await Promise.all([
     import("@/lib/prisma"),

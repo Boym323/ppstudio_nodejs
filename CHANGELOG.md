@@ -8,6 +8,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Ruční opakování terminálně selhaného e-mailu nyní zakládá nový resend log a zachovává původní auditní historii i aktivní incident až do potvrzeného doručení resendu.
 - Ruční resend e-mailu nyní přebírá aktuální adresu kontaktu pouze do nového `EmailLogu`; historický příjemce původního pokusu včetně bounce zůstává neměnný a auditně dohledatelný.
 - Resend `email.complained` se nyní v administraci jednotně zobrazuje jako „Nahlášeno jako spam“, nikoli jako nedoručený e-mail. Zůstává reputačním warningem v Pozornosti a historii, ale nevstupuje do počtu delivery failures ani do kritičnosti `/api/health`.
 - Recipient-specific e-mailové incidenty (bounce, suppression nebo provider failure) už neoznačují email worker jako porouchaný: `/api/health` je uvádí jako `warning` s HTTP `200`, takže samy nemohou zablokovat či rollbacknout release.

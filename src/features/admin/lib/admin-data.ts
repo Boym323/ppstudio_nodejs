@@ -1303,7 +1303,7 @@ export async function getEmailLogsData(): Promise<EmailLogsDashboardData> {
         trackingOpenedLabel: log.trackingOpenedAt ? formatDateTimeLabel(log.trackingOpenedAt) : "Připraveno",
         trackingClickedLabel: log.trackingClickedAt ? formatDateTimeLabel(log.trackingClickedAt) : "Připraveno",
         detailHref: `/admin/email-logy/${log.id}`,
-        canRetry: log.status !== EmailLogStatus.SENT && log.processingStartedAt === null,
+        canRetry: log.status === EmailLogStatus.PENDING && log.processingStartedAt === null,
       };
     }),
     queueStats: [
@@ -1991,7 +1991,7 @@ export async function getEmailLogDetailData(emailLogId: string): Promise<EmailLo
     ),
     isProcessing,
     isStuck,
-    canRetry: emailLog.status !== EmailLogStatus.SENT && !isProcessing,
+    canRetry: emailLog.status === EmailLogStatus.PENDING && !isProcessing,
     canRelease: isProcessing && emailLog.status === EmailLogStatus.PENDING,
     nextAttemptLabel: formatDateTimeLabel(emailLog.nextAttemptAt),
     processingStartedLabel: formatDateTimeLabel(emailLog.processingStartedAt),

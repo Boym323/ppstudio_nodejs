@@ -52,11 +52,56 @@ async function loadOwnerEmailLog(formData: FormData) {
   });
 }
 
+type OwnerEmailLog = NonNullable<Awaited<ReturnType<typeof loadOwnerEmailLog>>>;
+
+async function createResendEmailLog(emailLog: OwnerEmailLog) {
+  const recipientEmail = resolveEmailLogRecipientFromContact({
+    clientEmail: emailLog.client?.email ?? null,
+    bookingClientEmailSnapshot: emailLog.booking?.clientEmailSnapshot ?? null,
+  });
+  if (!recipientEmail) {
+    return null;
+  }
+
+  return prisma.emailLog.create({
+    data: buildResendEmailLogCreateInput({
+      resendOfId: emailLog.id,
+      resendRootId: emailLog.resendRootId ?? emailLog.id,
+      bookingId: emailLog.bookingId,
+      clientId: emailLog.clientId,
+      actionTokenId: emailLog.actionTokenId,
+      type: emailLog.type,
+      recipientEmail,
+      subject: emailLog.subject,
+      templateKey: emailLog.templateKey,
+      payload: emailLog.payload,
+    }),
+  });
+}
+
+function revalidateResendPaths(sourceEmailLogId: string, resendEmailLogId: string) {
+  revalidatePath("/admin/email-logy");
+  revalidatePath(`/admin/email-logy/${sourceEmailLogId}`);
+  revalidatePath(`/admin/email-logy/${resendEmailLogId}`);
+}
+
 export async function retryEmailLogAction(formData: FormData) {
   const emailLog = await loadOwnerEmailLog(formData);
 
   if (!emailLog || emailLog.status === EmailLogStatus.SENT || emailLog.processingStartedAt) {
     redirect("/admin/email-logy");
+  }
+
+  // Terminální failure je neměnný auditní záznam. Další ruční pokus proto
+  // vždy zakládá nový explicitní resend log místo návratu původního do fronty.
+  if (emailLog.status === EmailLogStatus.FAILED) {
+    const createdEmailLog = await createResendEmailLog(emailLog);
+    if (!createdEmailLog) {
+      redirect(`/admin/email-logy/${emailLog.id}?flash=resend-missing-recipient`);
+    }
+
+    revalidateResendPaths(emailLog.id, createdEmailLog.id);
+    redirect(`/admin/email-logy/${createdEmailLog.id}?flash=resend-success`);
   }
 
   await prisma.emailLog.update({
@@ -112,31 +157,11 @@ export async function resendEmailLogAction(formData: FormData) {
     redirect("/admin/email-logy");
   }
 
-  const recipientEmail = resolveEmailLogRecipientFromContact({
-    clientEmail: emailLog.client?.email ?? null,
-    bookingClientEmailSnapshot: emailLog.booking?.clientEmailSnapshot ?? null,
-  });
-  if (!recipientEmail) {
+  const createdEmailLog = await createResendEmailLog(emailLog);
+  if (!createdEmailLog) {
     redirect(`/admin/email-logy/${emailLog.id}?flash=resend-missing-recipient`);
   }
 
-  const createdEmailLog = await prisma.emailLog.create({
-    data: buildResendEmailLogCreateInput({
-      resendOfId: emailLog.id,
-      resendRootId: emailLog.resendRootId ?? emailLog.id,
-      bookingId: emailLog.bookingId,
-      clientId: emailLog.clientId,
-      actionTokenId: emailLog.actionTokenId,
-      type: emailLog.type,
-      recipientEmail,
-      subject: emailLog.subject,
-      templateKey: emailLog.templateKey,
-      payload: emailLog.payload,
-    }),
-  });
-
-  revalidatePath("/admin/email-logy");
-  revalidatePath(`/admin/email-logy/${emailLog.id}`);
-  revalidatePath(`/admin/email-logy/${createdEmailLog.id}`);
+  revalidateResendPaths(emailLog.id, createdEmailLog.id);
   redirect(`/admin/email-logy/${createdEmailLog.id}?flash=resend-success`);
 }
