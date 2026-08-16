@@ -201,6 +201,8 @@ function EmailSummaryGrid({ data }: { data: EmailLogDetailData }) {
     { label: "Šablona", value: data.templateKey },
     { label: "Příjemce", value: data.recipientEmail },
     { label: "Provider", value: data.providerLabel },
+    { label: "Odeslání providerovi", value: data.transportStatusLabel },
+    { label: "Doručení příjemci", value: data.deliveryStatusLabel },
     { label: "Poslední pokus", value: data.lastAttemptLabel },
     { label: "Odesláno", value: data.sentAtLabel },
     { label: "Počet pokusů", value: `${data.attemptCount}×` },

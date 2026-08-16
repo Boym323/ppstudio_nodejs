@@ -71,7 +71,7 @@ export function deriveTrackingState(input: {
   if (input.trackingBouncedAt) {
     return {
       value: "failed",
-      label: "Nedoručeno - odmítnuto serverem (bounce)",
+      label: "Nedoručeno - odmítnuto cílovým serverem (bounce)",
     } as const;
   }
 

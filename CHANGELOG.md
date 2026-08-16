@@ -6,6 +6,10 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+### Opraveno
+
+- Administrační přehled e-mailů a „Pozornost“ nyní při vyhodnocení výsledku doručení zohledňují i následný Resend tracking: bounce, suppression a provider failure se zobrazí jako nedoručené, i když transportní `EmailLog.status` zůstává `SENT`.
+
 ## [3.17.3] - 2026-08-15
 
 ### Opraveno

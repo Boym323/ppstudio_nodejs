@@ -134,44 +134,68 @@ function retryStateLabel(
   return `Ve frontě • další pokus ${formatDateTimeLabel(nextAttemptAt)}`;
 }
 
-function getEmailDetailFinalStatus(
-  status: EmailLogStatus,
-  sentAt: Date | null,
-  processingStartedAt: Date | null,
-  attemptCount: number,
-  nextAttemptAt: Date | null,
-  updatedAt: Date,
-): {
+type EmailTrackingInput = Parameters<typeof deriveTrackingState>[0];
+
+function getEmailDetailFinalStatus(input: {
+  status: EmailLogStatus;
+  sentAt: Date | null;
+  processingStartedAt: Date | null;
+  attemptCount: number;
+  nextAttemptAt: Date | null;
+  updatedAt: Date;
+} & EmailTrackingInput): {
   value: "sent" | "pending" | "retry" | "failed";
   label: string;
   detail: string;
   needsAttention: boolean;
 } {
-  if (sentAt) {
-    return {
-      value: "sent" as const,
-      label: "Odesláno",
-      detail: `Odesláno ${formatDateTimeLabel(sentAt)}`,
-      needsAttention: false,
-    };
-  }
+  const tracking = deriveTrackingState(input);
 
-  if (attemptCount > 0 && status !== EmailLogStatus.FAILED) {
+  if (tracking.value === "failed") {
     return {
-      value: "retry" as const,
-      label: "Retry",
-      detail: processingStartedAt
-        ? `Probíhá další pokus od ${formatDateTimeLabel(processingStartedAt)}`
-        : `Další pokus ${formatDateTimeLabel(nextAttemptAt)}`,
+      value: "failed" as const,
+      label: "Nedoručeno",
+      detail: input.trackingBouncedAt
+        ? "Odmítnuto cílovým serverem (bounce)"
+        : tracking.label,
       needsAttention: true,
     };
   }
 
-  if (status === EmailLogStatus.FAILED) {
+  if (tracking.value === "retry") {
+    return {
+      value: "retry" as const,
+      label: "Doručení vyžaduje pozornost",
+      detail: tracking.label,
+      needsAttention: true,
+    };
+  }
+
+  if (input.sentAt) {
+    return {
+      value: "sent" as const,
+      label: "Odesláno",
+      detail: `Odeslání providerovi úspěšné ${formatDateTimeLabel(input.sentAt)}`,
+      needsAttention: false,
+    };
+  }
+
+  if (input.attemptCount > 0 && input.status !== EmailLogStatus.FAILED) {
+    return {
+      value: "retry" as const,
+      label: "Retry",
+      detail: input.processingStartedAt
+        ? `Probíhá další pokus od ${formatDateTimeLabel(input.processingStartedAt)}`
+        : `Další pokus ${formatDateTimeLabel(input.nextAttemptAt)}`,
+      needsAttention: true,
+    };
+  }
+
+  if (input.status === EmailLogStatus.FAILED) {
     return {
       value: "failed" as const,
       label: "Selhalo",
-      detail: `Poslední pokus ${formatDateTimeLabel(processingStartedAt ?? updatedAt)}`,
+      detail: `Poslední pokus ${formatDateTimeLabel(input.processingStartedAt ?? input.updatedAt)}`,
       needsAttention: true,
     };
   }
@@ -179,9 +203,9 @@ function getEmailDetailFinalStatus(
   return {
     value: "pending" as const,
     label: "Čeká",
-    detail: processingStartedAt
-      ? `První pokus běží od ${formatDateTimeLabel(processingStartedAt)}`
-      : `Ve frontě od ${formatDateTimeLabel(nextAttemptAt)}`,
+    detail: input.processingStartedAt
+      ? `První pokus běží od ${formatDateTimeLabel(input.processingStartedAt)}`
+      : `Ve frontě od ${formatDateTimeLabel(input.nextAttemptAt)}`,
     needsAttention: false,
   };
 }
@@ -325,7 +349,7 @@ export async function getAdminOverviewData(area: AdminArea) {
       },
     }),
     prisma.adminUser.count({ where: { isActive: true } }),
-    prisma.emailLog.count({ where: { status: EmailLogStatus.FAILED } }),
+    prisma.emailLog.count({ where: getEmailDeliveryFailureWhere() }),
   ]);
 
   return {
@@ -756,6 +780,21 @@ type EmailHealthTone = "ok" | "warning" | "error";
 
 type EmailRecentStatusValue = "sent" | "pending" | "processing" | "retry" | "failed";
 
+export function getEmailLogSeverity(input: {
+  status: EmailLogStatus;
+  processingStartedAt: Date | null;
+  attemptCount: number;
+  staleBefore: Date;
+} & EmailTrackingInput): AdminLogSeverity {
+  const tracking = deriveTrackingState(input);
+
+  if (tracking.value === "failed" || input.status === EmailLogStatus.FAILED) return "error";
+  if (tracking.value === "retry") return "warning";
+  if (input.processingStartedAt && input.processingStartedAt < input.staleBefore) return "warning";
+  if (input.attemptCount > 0 && input.status === EmailLogStatus.PENDING) return "warning";
+  return input.status === EmailLogStatus.SENT ? "success" : "info";
+}
+
 type EmailRecentTypeValue =
   | "booking_received"
   | "booking_confirmation"
@@ -845,6 +884,8 @@ export type EmailLogDetailData = {
   updatedAtLabel: string;
   providerLabel: string;
   providerMessageIdLabel: string;
+  transportStatusLabel: string;
+  deliveryStatusLabel: string;
   errorMessage: string | null;
   errorSummary: string | null;
   payload: Prisma.JsonValue | null;
@@ -1059,7 +1100,7 @@ export async function getEmailLogsData(): Promise<EmailLogsDashboardData> {
       },
     }),
     prisma.emailLog.count({ where: { status: EmailLogStatus.SENT } }),
-    prisma.emailLog.count({ where: { status: EmailLogStatus.FAILED } }),
+    prisma.emailLog.count({ where: getEmailDeliveryFailureWhere() }),
     prisma.emailLog.count({
       where: {
         status: EmailLogStatus.SENT,
@@ -1084,9 +1125,8 @@ export async function getEmailLogsData(): Promise<EmailLogsDashboardData> {
     }),
     prisma.emailLog.findFirst({
       where: {
-        errorMessage: { not: null },
         OR: [
-          { status: EmailLogStatus.FAILED },
+          getEmailDeliveryFailureWhere(),
           {
             status: EmailLogStatus.PENDING,
             attemptCount: { gt: 0 },
@@ -1096,6 +1136,14 @@ export async function getEmailLogsData(): Promise<EmailLogsDashboardData> {
       orderBy: { updatedAt: "desc" },
       select: {
         errorMessage: true,
+        trackingLastEvent: true,
+        trackingClickedAt: true,
+        trackingOpenedAt: true,
+        trackingDeliveredAt: true,
+        trackingBouncedAt: true,
+        trackingComplainedAt: true,
+        trackingFailedAt: true,
+        trackingSuppressedAt: true,
       },
     }),
     prisma.emailLog.findMany({
@@ -1143,9 +1191,7 @@ export async function getEmailLogsData(): Promise<EmailLogsDashboardData> {
       },
     }),
     prisma.emailLog.findMany({
-      where: {
-        status: EmailLogStatus.FAILED,
-      },
+      where: getEmailDeliveryFailureWhere(),
       orderBy: { updatedAt: "desc" },
       take: 6,
       include: {
@@ -1155,7 +1201,9 @@ export async function getEmailLogsData(): Promise<EmailLogsDashboardData> {
   ]);
 
   const lastSentLabel = formatDateTimeLabel(lastSentLog?.sentAt);
-  const latestError = latestErrorLog?.errorMessage ?? null;
+  const latestError = latestErrorLog
+    ? latestErrorLog.errorMessage ?? deriveTrackingState(latestErrorLog).label
+    : null;
   const waitingCount = pending + retrying + processing;
   const health = getEmailHealthState({
     pending,
@@ -1299,8 +1347,8 @@ export async function getEmailLogsData(): Promise<EmailLogsDashboardData> {
     failedItems: failedItems.map((log) => ({
       id: log.id,
       title: `${log.subject} • ${log.recipientEmail}`,
-      meta: `${statusLabel(log.status)} • ${formatDateTimeLabel(log.updatedAt)}`,
-      description: `${log.type} • ${log.errorMessage ?? "Bez textu chyby"} • klientka ${log.booking?.clientNameSnapshot ?? "bez rezervace"}`,
+      meta: `${deriveTrackingState(log).value === "failed" ? "Nedoručeno" : statusLabel(log.status)} • ${formatDateTimeLabel(log.updatedAt)}`,
+      description: `${log.type} • ${log.errorMessage ?? deriveTrackingState(log).label} • klientka ${log.booking?.clientNameSnapshot ?? "bez rezervace"}`,
       badge: "chyba",
       href: `/admin/email-logy/${log.id}`,
     })),
@@ -1458,6 +1506,32 @@ export function buildEmailLogWhere(query: string, dateWhere?: Prisma.DateTimeFil
       { booking: { is: { OR: [{ clientNameSnapshot: containsQuery(query) }, { serviceNameSnapshot: containsQuery(query) }, { id: containsQuery(query) }] } } },
       { client: { is: { fullName: containsQuery(query) } } },
     ] } : {}),
+  };
+}
+
+/** Definitivní selhání transportu nebo následného doručení; jeden EmailLog je v dotazu jen jednou. */
+export function getEmailDeliveryFailureWhere(): Prisma.EmailLogWhereInput {
+  return {
+    OR: [
+      { status: EmailLogStatus.FAILED },
+      { trackingBouncedAt: { not: null } },
+      { trackingFailedAt: { not: null } },
+      { trackingSuppressedAt: { not: null } },
+    ],
+  };
+}
+
+function getEmailDeliveryWarningWhere(): Prisma.EmailLogWhereInput {
+  return {
+    OR: [
+      { trackingComplainedAt: { not: null } },
+      {
+        trackingLastEvent: "email.delivery_delayed",
+        trackingDeliveredAt: null,
+        trackingOpenedAt: null,
+        trackingClickedAt: null,
+      },
+    ],
   };
 }
 
@@ -1637,15 +1711,21 @@ export function withEmailLogScope(
   severity: "all" | AdminLogSeverity,
   staleBefore: Date,
 ): Prisma.EmailLogWhereInput {
+  const deliveryFailure = getEmailDeliveryFailureWhere();
+  const deliveryWarning = getEmailDeliveryWarningWhere();
   const attention: Prisma.EmailLogWhereInput = { OR: [
-    { status: EmailLogStatus.FAILED },
+    deliveryFailure,
+    deliveryWarning,
     { status: EmailLogStatus.PENDING, attemptCount: { gt: 0 }, processingStartedAt: null },
     { status: EmailLogStatus.PENDING, processingStartedAt: { lt: staleBefore } },
   ] };
   const bySeverity: Record<AdminLogSeverity, Prisma.EmailLogWhereInput> = {
-    error: { status: EmailLogStatus.FAILED },
-    success: { status: EmailLogStatus.SENT },
-    warning: { status: EmailLogStatus.PENDING, OR: [{ attemptCount: { gt: 0 } }, { processingStartedAt: { lt: staleBefore } }] },
+    error: deliveryFailure,
+    success: { AND: [{ status: EmailLogStatus.SENT }, { NOT: [deliveryFailure, deliveryWarning] }] },
+    warning: { AND: [{ NOT: [deliveryFailure] }, { OR: [
+      deliveryWarning,
+      { status: EmailLogStatus.PENDING, OR: [{ attemptCount: { gt: 0 } }, { processingStartedAt: { lt: staleBefore } }] },
+    ] }] },
     info: { status: EmailLogStatus.PENDING, attemptCount: 0, OR: [{ processingStartedAt: null }, { processingStartedAt: { gte: staleBefore } }] },
   };
   const scopes = [base];
@@ -1746,7 +1826,7 @@ export async function getAdminLogsData(input: {
   const attentionHealthActive = safeView === "attention";
   const ownerQueueHealthActive = isOwner;
   const [failed, retry, stuck, pending, processing, critical, emailTotal, bookingHistoryTotal, rescheduleTotal, voucherTotal, redemptionTotal, voucherChangeTotal, serviceChangeTotal, siteSettingsChangeTotal, availabilityTotal, adminUserAuditTotal, submissionTotal] = await Promise.all([
-    attentionHealthActive || ownerQueueHealthActive ? prisma.emailLog.count({ where: { status: EmailLogStatus.FAILED } }) : Promise.resolve(0),
+    attentionHealthActive || ownerQueueHealthActive ? prisma.emailLog.count({ where: getEmailDeliveryFailureWhere() }) : Promise.resolve(0),
     attentionHealthActive || ownerQueueHealthActive ? prisma.emailLog.count({ where: { status: EmailLogStatus.PENDING, attemptCount: { gt: 0 }, processingStartedAt: null } }) : Promise.resolve(0),
     attentionHealthActive || ownerQueueHealthActive ? prisma.emailLog.count({ where: { status: EmailLogStatus.PENDING, processingStartedAt: { lt: staleBefore } } }) : Promise.resolve(0),
     ownerQueueHealthActive ? prisma.emailLog.count({ where: { status: EmailLogStatus.PENDING, attemptCount: 0, processingStartedAt: null } }) : Promise.resolve(0),
@@ -1802,13 +1882,14 @@ export async function getAdminLogsData(input: {
   const voucherHref = (id: string) => `${input.area === "owner" ? "/admin" : "/admin/provoz"}/vouchery/${id}`;
   const items: AdminLogItem[] = [
     ...emails.map((log) => {
+      const tracking = deriveTrackingState(log);
+      const logSeverity = getEmailLogSeverity({ ...log, staleBefore });
       const status = getEmailRecentStatus(log.status, log.processingStartedAt, log.attemptCount);
       const isStuck = log.processingStartedAt !== null && log.processingStartedAt < staleBefore;
-      const tracking = deriveTrackingState(log);
       const primaryAction: AdminLogItem["primaryAction"] = isOwner
         ? (isStuck ? "release" : status === "failed" || status === "retry" ? "retry" : "detail")
         : null;
-      return { id: `email:${log.id}`, occurredAt: log.createdAt.toISOString(), category: "email" as const, severity: log.status === EmailLogStatus.FAILED ? "error" as const : isStuck || status === "retry" ? "warning" as const : status === "sent" ? "success" as const : "info" as const, title: log.subject, description: `${log.recipientEmail}${log.errorMessage ? ` • ${getErrorSummary(log.errorMessage)}` : ""}`, actorLabel: null, entityLabel: log.booking ? `${log.booking.clientNameSnapshot} • ${log.booking.serviceNameSnapshot}` : log.client?.fullName ?? null, entityHref: log.booking ? bookingHref(log.booking.id) : null, sourceType: "email" as const, sourceId: log.id, primaryAction, emailLogId: log.id, queueState: getEmailRecentStatusLabel(log.status, log.processingStartedAt, log.attemptCount), trackingState: tracking.label };
+      return { id: `email:${log.id}`, occurredAt: log.createdAt.toISOString(), category: "email" as const, severity: logSeverity, title: log.subject, description: `${log.recipientEmail}${tracking.value !== "pending" ? ` • ${tracking.label}` : ""}${log.errorMessage ? ` • ${getErrorSummary(log.errorMessage)}` : ""}`, actorLabel: null, entityLabel: log.booking ? `${log.booking.clientNameSnapshot} • ${log.booking.serviceNameSnapshot}` : log.client?.fullName ?? null, entityHref: log.booking ? bookingHref(log.booking.id) : null, sourceType: "email" as const, sourceId: log.id, primaryAction, emailLogId: log.id, queueState: getEmailRecentStatusLabel(log.status, log.processingStartedAt, log.attemptCount), trackingState: tracking.label };
     }),
     ...bookingHistory.map((entry) => ({ id: `booking-history:${entry.id}`, occurredAt: entry.createdAt.toISOString(), category: "event" as const, severity: bookingHistorySeverity(entry.status), title: bookingHistoryLabel(entry.status), description: bookingHistoryReasonLabel(entry.reason) ?? entry.note, actorLabel: entry.actorUser?.name ?? (entry.actorType === "CLIENT" ? "Klientka" : entry.actorType === "SYSTEM" ? "Systém" : null), entityLabel: entry.booking ? `${entry.booking.clientNameSnapshot} • ${entry.booking.serviceNameSnapshot}` : "Odstraněná rezervace", entityHref: entry.booking ? bookingHref(entry.booking.id) : null, sourceType: "booking" as const, sourceId: entry.id, primaryAction: entry.booking ? "open" as const : null })),
     ...reschedules.map((entry) => ({ id: `booking-reschedule:${entry.id}`, occurredAt: entry.createdAt.toISOString(), category: "event" as const, severity: "info" as const, title: "Rezervace přesunuta", description: entry.reason, actorLabel: entry.changedByUser?.name ?? (entry.changedByClient ? "Klientka" : null), entityLabel: entry.booking ? `${entry.booking.clientNameSnapshot} • ${entry.booking.serviceNameSnapshot}` : "Odstraněná rezervace", entityHref: entry.booking ? bookingHref(entry.booking.id) : null, sourceType: "booking" as const, sourceId: entry.id, primaryAction: entry.booking ? "open" as const : null })),
@@ -1880,14 +1961,8 @@ export async function getEmailLogDetailData(emailLogId: string): Promise<EmailLo
   const isProcessing = processingStartedAt !== null;
   const isStuck =
     isProcessing && now.getTime() - processingStartedAt.getTime() > 10 * 60 * 1000;
-  const finalStatus = getEmailDetailFinalStatus(
-    emailLog.status,
-    emailLog.sentAt,
-    emailLog.processingStartedAt,
-    emailLog.attemptCount,
-    emailLog.nextAttemptAt,
-    emailLog.updatedAt,
-  );
+  const finalStatus = getEmailDetailFinalStatus(emailLog);
+  const tracking = deriveTrackingState(emailLog);
   const bookingTitle = emailLog.booking?.serviceNameSnapshot ?? "Bez navázané rezervace";
   const bookingScheduleLabel = emailLog.booking
     ? formatTimeRange(emailLog.booking.scheduledStartsAt, emailLog.booking.scheduledEndsAt)
@@ -1926,6 +2001,10 @@ export async function getEmailLogDetailData(emailLogId: string): Promise<EmailLo
     updatedAtLabel: formatDateTimeLabel(emailLog.updatedAt),
     providerLabel: emailLog.provider ?? "Bez providera",
     providerMessageIdLabel: emailLog.providerMessageId ?? "Bez message id",
+    transportStatusLabel: emailLog.status === EmailLogStatus.SENT ? "Úspěšné" : statusLabel(emailLog.status),
+    deliveryStatusLabel: tracking.value === "pending" && emailLog.status === EmailLogStatus.SENT
+      ? "Bez potvrzení od providera"
+      : tracking.value === "failed" ? finalStatus.detail : tracking.label,
     errorMessage: emailLog.errorMessage,
     errorSummary: getErrorSummary(emailLog.errorMessage),
     payload: emailLog.payload,

@@ -69,7 +69,7 @@ test("deriveTrackingState marks hard delivery issues as failed", async () => {
   });
 
   assert.equal(bounced.value, "failed");
-  assert.equal(bounced.label, "Nedoručeno - odmítnuto serverem (bounce)");
+  assert.equal(bounced.label, "Nedoručeno - odmítnuto cílovým serverem (bounce)");
 
   const suppressed = deriveTrackingState({
     trackingLastEvent: null,

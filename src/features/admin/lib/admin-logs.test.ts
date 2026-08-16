@@ -14,6 +14,8 @@ import {
   getBookingSubmissionPresentation,
   getAdminLogPageMeta,
   getAdminLogCandidatePlan,
+  getEmailDeliveryFailureWhere,
+  getEmailLogSeverity,
   isCriticalBookingSubmission,
   normalizeAdminLogView,
   sortAndPageAdminLogItems,
@@ -67,15 +69,41 @@ test("query builder EmailLog hledá před take v dostupných polích", () => {
   assert.deepEqual(where.OR?.[1], { subject: { contains: "jana", mode: "insensitive" } });
 });
 
-test("attention scope zahrnuje failed, retry a stuck e-maily", () => {
+test("Pozornost zahrnuje transportní i provider delivery failures bez duplicit", () => {
   const staleBefore = new Date("2026-07-23T10:00:00.000Z");
   const where = withEmailLogScope({}, "attention", "all", staleBefore);
   const attention = (where.AND as object[])[1];
   assert.deepEqual(attention, { OR: [
-    { status: "FAILED" },
+    getEmailDeliveryFailureWhere(),
+    { OR: [
+      { trackingComplainedAt: { not: null } },
+      { trackingLastEvent: "email.delivery_delayed", trackingDeliveredAt: null, trackingOpenedAt: null, trackingClickedAt: null },
+    ] },
     { status: "PENDING", attemptCount: { gt: 0 }, processingStartedAt: null },
     { status: "PENDING", processingStartedAt: { lt: staleBefore } },
   ] });
+});
+
+test("severity e-mailu dává delivery state přednost před SENT", () => {
+  const base = {
+    trackingLastEvent: null,
+    trackingClickedAt: null,
+    trackingOpenedAt: null,
+    trackingDeliveredAt: null,
+    trackingBouncedAt: null,
+    trackingComplainedAt: null,
+    trackingFailedAt: null,
+    trackingSuppressedAt: null,
+    processingStartedAt: null,
+    attemptCount: 1,
+    staleBefore: new Date("2026-07-23T10:00:00.000Z"),
+  };
+
+  assert.equal(getEmailLogSeverity({ ...base, status: "SENT" }), "success");
+  assert.equal(getEmailLogSeverity({ ...base, status: "SENT", trackingDeliveredAt: new Date() }), "success");
+  assert.equal(getEmailLogSeverity({ ...base, status: "SENT", trackingBouncedAt: new Date() }), "error");
+  assert.equal(getEmailLogSeverity({ ...base, status: "FAILED" }), "error");
+  assert.equal(getEmailLogSeverity({ ...base, status: "SENT", trackingLastEvent: "email.delivery_delayed" }), "warning");
 });
 
 test("query builder booking historie hledá v důvodu, poznámce a rezervaci", () => {

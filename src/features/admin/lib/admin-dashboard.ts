@@ -1,6 +1,7 @@
-import { AvailabilitySlotStatus, BookingStatus, EmailLogStatus } from "@prisma/client";
+import { AvailabilitySlotStatus, BookingStatus } from "@prisma/client";
 
 import { type AdminArea } from "@/config/navigation";
+import { getEmailDeliveryFailureWhere } from "@/features/admin/lib/admin-data";
 import {
   getAdminBookingActionOptions,
   getAdminBookingHref,
@@ -629,7 +630,7 @@ export async function getAdminDashboardData(area: AdminArea): Promise<AdminDashb
         status: BookingStatus.PENDING,
       },
     }),
-    prisma.emailLog.count({ where: { status: EmailLogStatus.FAILED } }),
+    prisma.emailLog.count({ where: getEmailDeliveryFailureWhere() }),
     prisma.availabilitySlot.findMany({
       where: {
         startsAt: { gte: weekStart, lt: weekEnd },
