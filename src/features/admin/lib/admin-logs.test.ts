@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
-import { BookingSubmissionOutcome } from "@prisma/client";
+import { BookingStatus, BookingSubmissionOutcome } from "@prisma/client";
 
 import {
   buildBookingHistoryWhere,
@@ -12,6 +12,7 @@ import {
   buildEmailLogWhere,
   buildVoucherWhere,
   getBookingSubmissionPresentation,
+  getBookingHistoryPresentation,
   getAdminLogPageMeta,
   getAdminLogCandidatePlan,
   getEmailDeliveryFailureWhere,
@@ -55,6 +56,46 @@ test("BookingSubmissionLog rozlišuje booking, login, aktivaci, voucher a recove
   assert.equal(getBookingSubmissionPresentation({ outcome: BookingSubmissionOutcome.FAILED, failureCode: "PUBLIC_VOUCHER_VERIFY_PUBLIC_PAGE_NOT_FOUND_OR_INVALID" }).title, "Veřejné ověření voucheru");
   assert.equal(getBookingSubmissionPresentation({ outcome: BookingSubmissionOutcome.SUCCESS, failureCode: "ADMIN_RECOVERY_OWNER_RESTORED" }).title, "Obnova administrátora");
   assert.equal(getBookingSubmissionPresentation({ outcome: BookingSubmissionOutcome.FAILED, failureCode: "VALIDATION_ERROR" }).title, "Odeslání rezervace selhalo");
+});
+
+test("historie rezervace rozlišuje změny stavu od provozního auditu", () => {
+  assert.deepEqual(
+    getBookingHistoryPresentation({
+      status: BookingStatus.CONFIRMED,
+      reason: "Potvrzeno administrátorkou",
+      metadata: { source: "admin-booking-detail-v2", fromStatus: "PENDING", toStatus: "CONFIRMED" },
+    }),
+    { title: "Rezervace potvrzena", severity: "success", description: "Potvrzeno administrátorkou" },
+  );
+  assert.deepEqual(
+    getBookingHistoryPresentation({
+      status: BookingStatus.CONFIRMED,
+      reason: "Individuální cena upravena",
+      metadata: { source: "admin-booking-price-update-v1" },
+    }),
+    { title: "Cena rezervace upravena", severity: "info", description: "Individuální cena upravena" },
+  );
+  for (const [source, reason, title] of [
+    ["admin-booking-note-v1", "Interní poznámka upravena", "Interní poznámka upravena"],
+    ["admin-client-contact-update-v1", "Kontakt klientky upraven", "Kontakt klientky upraven"],
+    ["admin-booking-payment-update-v1", "Platba upravena", "Platba upravena"],
+  ] as const) {
+    const presentation = getBookingHistoryPresentation({ status: BookingStatus.CONFIRMED, reason, metadata: { source } });
+    assert.equal(presentation.title, title);
+    assert.equal(presentation.severity, "info");
+  }
+});
+
+test("historie rezervace zachovává prezentaci terminalních změn stavu", () => {
+  for (const [status, title, severity] of [
+    [BookingStatus.CANCELLED, "Rezervace zrušena", "info"],
+    [BookingStatus.COMPLETED, "Rezervace dokončena", "success"],
+    [BookingStatus.NO_SHOW, "Klientka nedorazila", "warning"],
+  ] as const) {
+    const presentation = getBookingHistoryPresentation({ status, reason: null, metadata: { source: "admin-booking-detail-v2" } });
+    assert.equal(presentation.title, title);
+    assert.equal(presentation.severity, severity);
+  }
 });
 
 test("Pozornost odmítá běžný šum a přijímá jen skutečné systémové chyby", () => {

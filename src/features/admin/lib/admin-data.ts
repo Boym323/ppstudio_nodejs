@@ -1441,6 +1441,33 @@ function bookingHistorySeverity(status: BookingStatus): AdminLogSeverity {
   return "info";
 }
 
+const bookingHistoryAuditSourcePresentation = {
+  "admin-booking-price-update-v1": { title: "Cena rezervace upravena", severity: "info" },
+  "admin-booking-note-v1": { title: "Interní poznámka upravena", severity: "info" },
+  "admin-client-contact-update-v1": { title: "Kontakt klientky upraven", severity: "info" },
+  "admin-booking-service-change-v1": { title: "Služba rezervace změněna", severity: "info" },
+  "admin-booking-payment-create-v1": { title: "Platba zaznamenána", severity: "info" },
+  "admin-booking-payment-update-v1": { title: "Platba upravena", severity: "info" },
+  "admin-booking-payment-void-v1": { title: "Platba stornována", severity: "info" },
+  "admin-booking-complete-flow-v1": { title: "Platba zaznamenána", severity: "info" },
+} as const satisfies Record<string, { title: string; severity: AdminLogSeverity }>;
+
+const bookingHistoryReasonPresentation = {
+  "public-booking-request-v1": { title: "Rezervace vytvořena", severity: "info" },
+  "admin-manual-booking-v1": { title: "Rezervace vytvořena", severity: "info" },
+  "owner-email-approve-v1": { title: "Rezervace potvrzena", severity: "success" },
+  "owner-email-reject-v1": { title: "Rezervace zrušena", severity: "info" },
+  "public-cancellation-flow-v1": { title: "Rezervace zrušena", severity: "info" },
+  "Voucher uplatněn při dokončení návštěvy": { title: "Voucher uplatněn při dokončení návštěvy", severity: "info" },
+} as const satisfies Record<string, { title: string; severity: AdminLogSeverity }>;
+
+const bookingHistoryOperationalSources = Object.keys(bookingHistoryAuditSourcePresentation);
+
+function getBookingHistorySource(metadata: Prisma.JsonValue | null): string | null {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return null;
+  return typeof metadata.source === "string" ? metadata.source : null;
+}
+
 function bookingHistoryReasonLabel(reason: string | null) {
   const labels: Record<string, string> = {
     "public-booking-request-v1": "Rezervace odeslána z online formuláře",
@@ -1450,6 +1477,29 @@ function bookingHistoryReasonLabel(reason: string | null) {
     "admin-manual-booking-v1": "Rezervace vytvořena ručně v administraci",
   };
   return reason ? labels[reason] ?? reason : null;
+}
+
+export function getBookingHistoryPresentation(entry: {
+  status: BookingStatus;
+  reason: string | null;
+  metadata: Prisma.JsonValue | null;
+}) {
+  const reasonPresentation = entry.reason ? bookingHistoryReasonPresentation[entry.reason as keyof typeof bookingHistoryReasonPresentation] : null;
+  if (reasonPresentation) {
+    return { ...reasonPresentation, description: bookingHistoryReasonLabel(entry.reason) };
+  }
+
+  const source = getBookingHistorySource(entry.metadata);
+  const sourcePresentation = source ? bookingHistoryAuditSourcePresentation[source as keyof typeof bookingHistoryAuditSourcePresentation] : null;
+  if (sourcePresentation) {
+    return { ...sourcePresentation, description: bookingHistoryReasonLabel(entry.reason) };
+  }
+
+  return {
+    title: bookingHistoryLabel(entry.status),
+    severity: bookingHistorySeverity(entry.status),
+    description: bookingHistoryReasonLabel(entry.reason),
+  };
 }
 
 const adminSubmissionPrefixes = ["ADMIN_LOGIN_", "ADMIN_INVITE_ACTIVATION_", "ADMIN_RECOVERY_"] as const;
@@ -1756,13 +1806,17 @@ export function withEmailLogScope(
 
 function withBookingHistorySeverity(base: Prisma.BookingStatusHistoryWhereInput, severity: "all" | AdminLogSeverity) {
   if (severity === "all") return base;
-  const statuses: Record<AdminLogSeverity, BookingStatus[]> = {
-    info: [BookingStatus.PENDING, BookingStatus.CANCELLED],
-    success: [BookingStatus.CONFIRMED, BookingStatus.COMPLETED],
-    warning: [BookingStatus.NO_SHOW],
-    error: [],
+  const operationalSource: Prisma.BookingStatusHistoryWhereInput = {
+    OR: bookingHistoryOperationalSources.map((source) => ({ metadata: { path: ["source"], equals: source } })),
   };
-  return { AND: [base, { status: { in: statuses[severity] } }] } satisfies Prisma.BookingStatusHistoryWhereInput;
+  const creationReason = { reason: { in: ["public-booking-request-v1", "admin-manual-booking-v1"] } } satisfies Prisma.BookingStatusHistoryWhereInput;
+  const scopes: Record<AdminLogSeverity, Prisma.BookingStatusHistoryWhereInput> = {
+    info: { OR: [{ status: { in: [BookingStatus.PENDING, BookingStatus.CANCELLED] } }, operationalSource, creationReason] },
+    success: { AND: [{ status: { in: [BookingStatus.CONFIRMED, BookingStatus.COMPLETED] } }, { NOT: [operationalSource, creationReason] }] },
+    warning: { AND: [{ status: BookingStatus.NO_SHOW }, { NOT: [operationalSource] }] },
+    error: { id: "__no_match__" },
+  };
+  return { AND: [base, scopes[severity]] } satisfies Prisma.BookingStatusHistoryWhereInput;
 }
 
 export function normalizeAdminLogView(view: string | undefined, area: AdminArea): AdminLogView {
@@ -1919,7 +1973,10 @@ export async function getAdminLogsData(input: {
         : "";
       return { id: `email:${log.id}`, occurredAt: log.createdAt.toISOString(), category: "email" as const, severity: logSeverity, title: log.subject, description: `${log.recipientEmail}${tracking.value !== "pending" ? ` • ${tracking.label}` : ""}${incidentResolutionLabel}${log.errorMessage ? ` • ${getErrorSummary(log.errorMessage)}` : ""}`, actorLabel: null, entityLabel: log.booking ? `${log.booking.clientNameSnapshot} • ${log.booking.serviceNameSnapshot}` : log.client?.fullName ?? null, entityHref: log.booking ? bookingHref(log.booking.id) : null, sourceType: "email" as const, sourceId: log.id, primaryAction, emailLogId: log.id, queueState: getEmailRecentStatusLabel(log.status, log.processingStartedAt, log.attemptCount), trackingState: tracking.label };
     }),
-    ...bookingHistory.map((entry) => ({ id: `booking-history:${entry.id}`, occurredAt: entry.createdAt.toISOString(), category: "event" as const, severity: bookingHistorySeverity(entry.status), title: bookingHistoryLabel(entry.status), description: bookingHistoryReasonLabel(entry.reason) ?? entry.note, actorLabel: entry.actorUser?.name ?? (entry.actorType === "CLIENT" ? "Klientka" : entry.actorType === "SYSTEM" ? "Systém" : null), entityLabel: entry.booking ? `${entry.booking.clientNameSnapshot} • ${entry.booking.serviceNameSnapshot}` : "Odstraněná rezervace", entityHref: entry.booking ? bookingHref(entry.booking.id) : null, sourceType: "booking" as const, sourceId: entry.id, primaryAction: entry.booking ? "open" as const : null })),
+    ...bookingHistory.map((entry) => {
+      const presentation = getBookingHistoryPresentation(entry);
+      return { id: `booking-history:${entry.id}`, occurredAt: entry.createdAt.toISOString(), category: "event" as const, severity: presentation.severity, title: presentation.title, description: presentation.description ?? entry.note, actorLabel: entry.actorUser?.name ?? (entry.actorType === "CLIENT" ? "Klientka" : entry.actorType === "SYSTEM" ? "Systém" : null), entityLabel: entry.booking ? `${entry.booking.clientNameSnapshot} • ${entry.booking.serviceNameSnapshot}` : "Odstraněná rezervace", entityHref: entry.booking ? bookingHref(entry.booking.id) : null, sourceType: "booking" as const, sourceId: entry.id, primaryAction: entry.booking ? "open" as const : null };
+    }),
     ...reschedules.map((entry) => ({ id: `booking-reschedule:${entry.id}`, occurredAt: entry.createdAt.toISOString(), category: "event" as const, severity: "info" as const, title: "Rezervace přesunuta", description: entry.reason, actorLabel: entry.changedByUser?.name ?? (entry.changedByClient ? "Klientka" : null), entityLabel: entry.booking ? `${entry.booking.clientNameSnapshot} • ${entry.booking.serviceNameSnapshot}` : "Odstraněná rezervace", entityHref: entry.booking ? bookingHref(entry.booking.id) : null, sourceType: "booking" as const, sourceId: entry.id, primaryAction: entry.booking ? "open" as const : null })),
     ...vouchers.map((voucher) => ({ id: `voucher:${voucher.id}`, occurredAt: voucher.createdAt.toISOString(), category: "event" as const, severity: "info" as const, title: "Voucher vytvořen", description: null, actorLabel: voucher.createdByUser?.name ?? null, entityLabel: `Voucher ${voucher.code}`, entityHref: voucherHref(voucher.id), sourceType: "voucher" as const, sourceId: voucher.id, primaryAction: "open" as const })),
     ...redemptions.map((redemption) => ({ id: `voucher-redemption:${redemption.id}`, occurredAt: redemption.redeemedAt.toISOString(), category: "event" as const, severity: "success" as const, title: "Voucher uplatněn", description: null, actorLabel: redemption.redeemedByUser?.name ?? null, entityLabel: redemption.voucher ? `Voucher ${redemption.voucher.code}` : "Odstraněný voucher", entityHref: redemption.voucher ? voucherHref(redemption.voucher.id) : null, sourceType: "voucher" as const, sourceId: redemption.id, primaryAction: redemption.voucher ? "open" as const : null })),

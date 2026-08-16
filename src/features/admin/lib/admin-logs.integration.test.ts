@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import test from "node:test";
 
-import { AdminRole, BookingSubmissionOutcome, EmailLogType, ServiceChangeOperation, VoucherChangeOperation, VoucherType } from "@prisma/client";
+import { AdminRole, BookingActorType, BookingStatus, BookingSubmissionOutcome, EmailLogType, ServiceChangeOperation, VoucherChangeOperation, VoucherType } from "@prisma/client";
 
 process.env.DATABASE_URL ??= "postgresql://postgres:postgres@localhost:5432/ppstudio?schema=public";
 
@@ -93,6 +93,56 @@ dbTest("admin logy používají české popisky voucheru a název kategorie slu�
     await prisma.service.delete({ where: { id: service.id } });
     await prisma.serviceCategory.delete({ where: { id: nextCategory.id } });
     await prisma.adminUser.delete({ where: { id: actor.id } });
+  }
+});
+
+dbTest("admin logy dávají provoznímu booking auditu přednost před stavem rezervace", async () => {
+  const [{ prisma }, { getAdminLogsData }] = await Promise.all([
+    import("@/lib/prisma"),
+    import("./admin-data"),
+  ]);
+  const suffix = randomUUID();
+  const startsAt = new Date("2027-01-14T09:00:00.000Z");
+  const endsAt = new Date("2027-01-14T10:00:00.000Z");
+  const category = await prisma.serviceCategory.create({ data: { name: `Kategorie ${suffix}`, slug: `kategorie-${suffix}` } });
+  const service = await prisma.service.create({ data: { categoryId: category.id, name: `Služba ${suffix}`, slug: `sluzba-${suffix}`, durationMinutes: 60 } });
+  const slot = await prisma.availabilitySlot.create({ data: { startsAt, endsAt, status: "PUBLISHED", capacity: 1 } });
+  const client = await prisma.client.create({ data: { fullName: `Klientka ${suffix}`, email: `admin-log-${suffix}@example.com`, phone: "+420777123456", isActive: true } });
+  const booking = await prisma.booking.create({
+    data: {
+      clientId: client.id, slotId: slot.id, serviceId: service.id, status: BookingStatus.CONFIRMED, source: "WEB",
+      clientNameSnapshot: client.fullName, clientEmailSnapshot: client.email!, clientPhoneSnapshot: client.phone,
+      serviceNameSnapshot: service.name, serviceDurationMinutes: 60, servicePriceFromCzk: 1200,
+      scheduledStartsAt: startsAt, scheduledEndsAt: endsAt,
+    },
+  });
+
+  try {
+    await prisma.bookingStatusHistory.createMany({
+      data: [
+        { bookingId: booking.id, status: BookingStatus.CONFIRMED, actorType: BookingActorType.USER, reason: "Potvrzeno administrátorkou", metadata: { source: "admin-booking-detail-v2", fromStatus: "PENDING", toStatus: "CONFIRMED" } },
+        { bookingId: booking.id, status: BookingStatus.CONFIRMED, actorType: BookingActorType.USER, reason: "Individuální cena upravena", metadata: { source: "admin-booking-price-update-v1" } },
+        { bookingId: booking.id, status: BookingStatus.CONFIRMED, actorType: BookingActorType.USER, reason: "Interní poznámka upravena", metadata: { source: "admin-booking-note-v1" } },
+        { bookingId: booking.id, status: BookingStatus.CONFIRMED, actorType: BookingActorType.USER, reason: "Kontakt klientky upraven", metadata: { source: "admin-client-contact-update-v1" } },
+        { bookingId: booking.id, status: BookingStatus.CONFIRMED, actorType: BookingActorType.USER, reason: "Platba upravena", metadata: { source: "admin-booking-payment-update-v1" } },
+      ],
+    });
+
+    const [all, info, success] = await Promise.all([
+      getAdminLogsData({ area: "salon", view: "events", source: "booking", query: suffix }),
+      getAdminLogsData({ area: "salon", view: "events", source: "booking", query: suffix, severity: "info" }),
+      getAdminLogsData({ area: "salon", view: "events", source: "booking", query: suffix, severity: "success" }),
+    ]);
+    assert.equal(all.items.find((item) => item.title === "Cena rezervace upravena")?.severity, "info");
+    assert.deepEqual(new Set(info.items.map((item) => item.title)), new Set(["Cena rezervace upravena", "Interní poznámka upravena", "Kontakt klientky upraven", "Platba upravena"]));
+    assert.deepEqual(success.items.map((item) => item.title), ["Rezervace potvrzena"]);
+  } finally {
+    await prisma.bookingStatusHistory.deleteMany({ where: { bookingId: booking.id } });
+    await prisma.booking.delete({ where: { id: booking.id } });
+    await prisma.client.delete({ where: { id: client.id } });
+    await prisma.availabilitySlot.delete({ where: { id: slot.id } });
+    await prisma.service.delete({ where: { id: service.id } });
+    await prisma.serviceCategory.delete({ where: { id: category.id } });
   }
 });
 

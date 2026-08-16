@@ -6,6 +6,10 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+### Opraveno
+
+- Události a logy v administraci nyní rozlišují skutečné změny stavu rezervace od provozních auditů ceny, poznámky, kontaktu, služby, plateb a voucheru; úprava rezervace ve stavu `CONFIRMED` se proto již chybně netváří jako další potvrzení.
+
 ## [3.19.0] - 2026-08-16
 
 ### Změněno
