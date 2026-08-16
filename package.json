@@ -32,6 +32,8 @@
     "deps:install": "npm ci --include=dev --registry=${PPSTUDIO_NPM_REGISTRY:-https://registry.npmjs.org/}",
     "test:db:integration": "RUN_DB_INTEGRATION_TESTS=1 node --import ./src/test/register-server-only.mjs --import tsx --test --test-concurrency=1 \"src/**/*.integration.test.ts\"",
     "test:db:booking": "RUN_DB_INTEGRATION_TESTS=1 node --import ./src/test/register-server-only.mjs --import tsx --test --test-concurrency=1 src/features/booking/lib/*.integration.test.ts",
+    "test:db:admin-logs": "RUN_DB_INTEGRATION_TESTS=1 node --import ./src/test/register-server-only.mjs --import tsx --test --test-concurrency=1 src/features/admin/lib/admin-logs.integration.test.ts src/lib/email/incident-resolution.integration.test.ts",
+    "test:db:admin-logs:utc": "TZ=UTC npm run test:db:admin-logs",
     "test:ci": "npm run test:coverage && npm run test:db:integration",
     "email:worker": "tsx scripts/email-delivery-worker.ts",
     "email:worker:once": "tsx scripts/email-delivery-worker.ts --once",

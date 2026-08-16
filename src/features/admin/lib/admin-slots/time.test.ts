@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   formatDateKey,
   getCellRangeBounds,
+  getDayBounds,
   isDateKeyInWeek,
   isValidDateKey,
   timeFormatter,
@@ -34,6 +35,19 @@ test("summer salon slot 09:00-10:00 stays 09:00-10:00 Europe/Prague", () => {
   assert.equal(timeFormatter.format(slot.endsAt), "10:00");
   assert.equal(slot.startsAt.toISOString(), "2026-07-15T07:00:00.000Z");
   assert.equal(slot.endsAt.toISOString(), "2026-07-15T08:00:00.000Z");
+});
+
+test("getDayBounds používá pražské půlnoci nezávisle na timezone Node.js v létě, zimě i při DST", () => {
+  const summer = getDayBounds("2026-08-16");
+  const winter = getDayBounds("2026-01-16");
+  const dst = getDayBounds("2026-03-29");
+
+  assert.equal(summer.startsAt.toISOString(), "2026-08-15T22:00:00.000Z");
+  assert.equal(summer.endsAt.toISOString(), "2026-08-16T22:00:00.000Z");
+  assert.equal(winter.startsAt.toISOString(), "2026-01-15T23:00:00.000Z");
+  assert.equal(winter.endsAt.toISOString(), "2026-01-16T23:00:00.000Z");
+  assert.equal(dst.startsAt.toISOString(), "2026-03-28T23:00:00.000Z");
+  assert.equal(dst.endsAt.toISOString(), "2026-03-29T22:00:00.000Z");
 });
 
 test("getCellRangeBounds creates winter slot from local planner cells", () => {

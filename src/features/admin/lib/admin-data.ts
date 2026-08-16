@@ -27,6 +27,7 @@ import {
   addDays,
   formatDateKey,
   getDayBounds,
+  isValidDateKey,
 } from "@/features/admin/lib/admin-slots/time";
 import { getPublicBookingCatalog } from "@/features/booking/lib/booking-public";
 import { formatServicePrice } from "@/features/admin/lib/admin-service-format";
@@ -579,7 +580,7 @@ function parseDateFilterBoundary(value: string, endOfDay = false) {
   }
 
   const { startsAt, endsAt } = getDayBounds(value);
-  return endOfDay ? new Date(endsAt.getTime() - 1) : startsAt;
+  return endOfDay ? endsAt : startsAt;
 }
 
 function bookingStatusFromFilter(status: BookingListStatusValue) {
@@ -648,10 +649,10 @@ function buildReservationsWhere(
   }
 
   if (dateTo) {
-    scheduledStartsAtFilter.lte = dateTo;
+    scheduledStartsAtFilter.lt = dateTo;
   }
 
-  if (scheduledStartsAtFilter.gte || scheduledStartsAtFilter.lte) {
+  if (scheduledStartsAtFilter.gte || scheduledStartsAtFilter.lt) {
     where.scheduledStartsAt = scheduledStartsAtFilter;
   }
 
@@ -1156,9 +1157,9 @@ function criticalBookingSubmissionWhere(createdAt?: Prisma.DateTimeFilter): Pris
 }
 
 function parseLogDate(value: string | undefined, end = false) {
-  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
-  const date = new Date(`${value}T${end ? "23:59:59.999" : "00:00:00.000"}`);
-  return Number.isNaN(date.getTime()) ? null : date;
+  if (!value || !isValidDateKey(value)) return null;
+  const { startsAt, endsAt } = getDayBounds(value);
+  return end ? endsAt : startsAt;
 }
 
 function containsQuery(value: string): Prisma.StringFilter {
@@ -1466,7 +1467,7 @@ export async function getAdminLogsData(input: {
   const now = new Date();
   const staleBefore = new Date(now.getTime() - workerLockTimeoutMs);
   const attentionSince = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-  const dateWhere = dateFrom || dateTo ? { gte: dateFrom ?? undefined, lte: dateTo ?? undefined } : undefined;
+  const dateWhere = dateFrom || dateTo ? { gte: dateFrom ?? undefined, lt: dateTo ?? undefined } : undefined;
   const emailActive = (safeView === "emails" || safeView === "attention") && (source === "all" || source === "email");
   const bookingActive = safeView === "events" && (source === "all" || source === "booking");
   const voucherActive = safeView === "events" && (source === "all" || source === "voucher");

@@ -4,13 +4,74 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import test from "node:test";
 
-import { AdminRole, BookingActorType, BookingStatus, BookingSubmissionOutcome, EmailLogType, ServiceChangeOperation, VoucherChangeOperation, VoucherType } from "@prisma/client";
+import { AdminRole, BookingActorType, BookingStatus, BookingSubmissionOutcome, EmailLogStatus, EmailLogType, ServiceChangeOperation, VoucherChangeOperation, VoucherType } from "@prisma/client";
 
 import { formatServicePrice } from "./admin-service-format";
 
 process.env.DATABASE_URL ??= "postgresql://postgres:postgres@localhost:5432/ppstudio?schema=public";
 
 const dbTest = process.env.RUN_DB_INTEGRATION_TESTS === "1" ? test : test.skip;
+
+dbTest("admin datumové filtry používají pražský den pro Události, E-maily, Systém i Pozornost", async () => {
+  const [{ prisma }, { getAdminLogsData }] = await Promise.all([
+    import("@/lib/prisma"),
+    import("./admin-data"),
+  ]);
+  const suffix = `admin-log-prague-date-${randomUUID()}`;
+  const beforeDay = new Date("2026-08-15T21:59:59.999Z");
+  const dayStart = new Date("2026-08-15T22:00:00.000Z");
+  const dayEnd = new Date("2026-08-16T21:59:59.999Z");
+  const afterDay = new Date("2026-08-16T22:00:00.000Z");
+  const timestamps = [beforeDay, dayStart, dayEnd, afterDay];
+
+  try {
+    await Promise.all([
+      prisma.emailLog.createMany({ data: timestamps.map((createdAt, index) => ({
+        type: EmailLogType.GENERIC,
+        status: EmailLogStatus.FAILED,
+        recipientEmail: `${index}-${suffix}@example.test`,
+        subject: `E-mail ${suffix} ${index}`,
+        templateKey: "admin-log-prague-date",
+        errorMessage: "Regresní selhání",
+        createdAt,
+      })) }),
+      prisma.bookingSubmissionLog.createMany({ data: timestamps.map((createdAt, index) => ({
+        outcome: BookingSubmissionOutcome.FAILED,
+        failureCode: `ADMIN_DATE_${index}`,
+        failureReason: `Systém ${suffix} ${index}`,
+        createdAt,
+      })) }),
+      prisma.voucher.createMany({ data: timestamps.map((createdAt, index) => ({
+        code: `DATE-${index}-${suffix}`,
+        type: VoucherType.VALUE,
+        originalValueCzk: 100,
+        remainingValueCzk: 100,
+        purchaserName: `${suffix} ${index}`,
+        createdAt,
+      })) }),
+    ]);
+
+    const filters = { area: "owner" as const, query: suffix, dateFrom: "2026-08-16", dateTo: "2026-08-16" };
+    const [events, emails, system, attention] = await Promise.all([
+      getAdminLogsData({ ...filters, view: "events", source: "voucher" }),
+      getAdminLogsData({ ...filters, view: "emails", source: "email" }),
+      getAdminLogsData({ ...filters, view: "system", source: "submission" }),
+      getAdminLogsData({ ...filters, view: "attention", source: "email" }),
+    ]);
+
+    for (const data of [events, emails, system, attention]) {
+      assert.equal(data.total, 2);
+      assert.equal(data.items.length, 2);
+      assert.equal(data.items.every((item) => item.occurredAt >= dayStart.toISOString() && item.occurredAt < afterDay.toISOString()), true);
+    }
+  } finally {
+    await Promise.all([
+      prisma.emailLog.deleteMany({ where: { subject: { contains: suffix } } }),
+      prisma.bookingSubmissionLog.deleteMany({ where: { failureReason: { contains: suffix } } }),
+      prisma.voucher.deleteMany({ where: { purchaserName: { contains: suffix } } }),
+    ]);
+  }
+});
 
 dbTest("admin logy rozliší submission typy, Pozornost a SALON scope", async () => {
   const [{ prisma }, { getAdminLogsData }] = await Promise.all([

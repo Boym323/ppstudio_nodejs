@@ -9,6 +9,7 @@ Formát je inspirovaný Keep a Changelog.
 ### Opraveno
 
 - Ruční uzavření i filtrování Pozornosti nyní jednotně vyhodnocují celý resend chain: OWNER tak může uzavřít incident se selháním až na resendu a zobrazený failure vždy splňuje všechny aktivní e-mailové filtry.
+- Datumové filtry Událostí a logů nyní vždy vymezují kalendářní den v Europe/Prague včetně změn letního času, nezávisle na timezone produkčního Node.js procesu.
 
 ## [3.20.0] - 2026-08-16
 
