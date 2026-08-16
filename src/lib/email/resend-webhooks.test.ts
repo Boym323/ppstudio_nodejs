@@ -117,3 +117,56 @@ test("deriveTrackingState reflects sent and delivery_delayed webhook events", as
   assert.equal(delayed.value, "retry");
   assert.equal(delayed.label, "Doručení zpožděno");
 });
+
+test("applyResendWebhookEvent records email.bounced as a provider delivery issue", async () => {
+  const [{ prisma }, { applyResendWebhookEvent }] = await Promise.all([
+    import("@/lib/prisma"),
+    import("@/lib/email/resend-webhooks"),
+  ]);
+  const originalFindFirst = prisma.emailLog.findFirst;
+  const originalUpdate = prisma.emailLog.update;
+  const updates: unknown[] = [];
+
+  prisma.emailLog.findFirst = (async () => ({
+    id: "email-log-bounce",
+    bookingId: "booking-bounce",
+    trackingLastEventAt: null,
+    trackingDeliveredAt: null,
+    trackingOpenedAt: null,
+    trackingClickedAt: null,
+    trackingBouncedAt: null,
+    trackingComplainedAt: null,
+    trackingFailedAt: null,
+    trackingSuppressedAt: null,
+  })) as typeof prisma.emailLog.findFirst;
+  prisma.emailLog.update = (async (args) => {
+    updates.push(args);
+    return {};
+  }) as typeof prisma.emailLog.update;
+
+  try {
+    const result = await applyResendWebhookEvent({
+      type: "email.bounced",
+      created_at: "2026-08-16T10:00:00.000Z",
+      data: { email_id: "provider-message-1" },
+    });
+
+    assert.deepEqual(result, { matched: true, ignored: false });
+    assert.deepEqual(updates, [{
+      where: { id: "email-log-bounce" },
+      data: {
+        trackingRawPayload: {
+          type: "email.bounced",
+          created_at: "2026-08-16T10:00:00.000Z",
+          data: { email_id: "provider-message-1" },
+        },
+        trackingLastEvent: "email.bounced",
+        trackingLastEventAt: new Date("2026-08-16T10:00:00.000Z"),
+        trackingBouncedAt: new Date("2026-08-16T10:00:00.000Z"),
+      },
+    }]);
+  } finally {
+    prisma.emailLog.findFirst = originalFindFirst;
+    prisma.emailLog.update = originalUpdate;
+  }
+});

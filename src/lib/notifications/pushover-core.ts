@@ -420,23 +420,54 @@ export async function sendOwnerBookingPushover(input: {
   }
 }
 
-export async function sendOwnerEmailFailurePushover(input: {
+type OwnerEmailFailurePushoverInput = {
   emailLogId: string;
   bookingId?: string | null;
   emailType: string;
   isReminder: boolean;
-}) {
-  const type = input.isReminder ? "REMINDER_FAILED" : "EMAIL_FAILED";
+  failureKind: "transport" | "provider-delivery";
+};
 
-  await sendOwnerPushover({
+function getProviderDeliveryIssueMessage(emailType: string) {
+  switch (emailType) {
+    case "email.bounced":
+      return "E-mail byl odeslán, ale následně se jej nepodařilo doručit příjemci.";
+    case "email.complained":
+      return "E-mail byl odeslán a příjemce jej následně označil jako spam.";
+    case "email.failed":
+      return "E-mail byl odeslán, ale provider následně hlásil selhání doručení.";
+    case "email.suppressed":
+      return "E-mail byl providerem potlačen před doručením příjemci.";
+    default:
+      return "E-mail byl odeslán, ale provider následně hlásil problém s doručením.";
+  }
+}
+
+export function buildOwnerEmailFailurePushover(input: OwnerEmailFailurePushoverInput): OwnerPushoverInput {
+  const type = input.isReminder ? "REMINDER_FAILED" : "EMAIL_FAILED";
+  const isProviderBounce = input.failureKind === "provider-delivery" && input.emailType === "email.bounced";
+  const title = input.isReminder
+    ? "PP Studio - chyba reminderu"
+    : isProviderBounce
+      ? "PP Studio - e-mail nedoručen"
+      : "PP Studio - chyba emailu";
+  const message = input.failureKind === "provider-delivery"
+    ? getProviderDeliveryIssueMessage(input.emailType)
+    : "E-mail se nepodařilo odeslat ani po vyčerpání opakovaných pokusů.";
+
+  return {
     type,
-    title: input.isReminder ? "PP Studio - chyba reminderu" : "PP Studio - chyba emailu",
-    message: `Nepodarilo se odeslat email po vycerpani pokusu.\nTyp: ${input.emailType}`,
+    title,
+    message: `${message}\nTyp: ${input.emailType}`,
     url: input.bookingId ? buildAdminBookingUrl(input.bookingId) : `${env.NEXT_PUBLIC_APP_URL}/admin/email-logy/${input.emailLogId}`,
     priority: 1,
     context: {
       contextId: input.bookingId ?? input.emailLogId,
       emailLogId: input.emailLogId,
     },
-  });
+  };
+}
+
+export async function sendOwnerEmailFailurePushover(input: OwnerEmailFailurePushoverInput) {
+  await sendOwnerPushover(buildOwnerEmailFailurePushover(input));
 }

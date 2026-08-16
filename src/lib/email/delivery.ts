@@ -241,6 +241,7 @@ export async function deliverEmailLog(
         bookingId: emailLog.bookingId,
         emailType: emailLog.type,
         isReminder: emailLog.type === EmailLogType.BOOKING_REMINDER,
+        failureKind: "transport",
       });
     }
 

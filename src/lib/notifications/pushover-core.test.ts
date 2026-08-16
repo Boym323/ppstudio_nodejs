@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-test("sendOwnerSystemErrorPushover isolates an AdminUser database failure", async () => {
+function setPushoverTestEnvironment() {
   process.env.NEXT_PUBLIC_APP_NAME = "PP Studio";
   process.env.NEXT_PUBLIC_APP_URL = "https://example.com";
   process.env.DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/ppstudio?schema=public";
@@ -10,6 +10,10 @@ test("sendOwnerSystemErrorPushover isolates an AdminUser database failure", asyn
   process.env.EMAIL_DELIVERY_MODE = "log";
   process.env.PUSHOVER_ENABLED = "true";
   process.env.PUSHOVER_APP_TOKEN = "test-pushover-token";
+}
+
+test("sendOwnerSystemErrorPushover isolates an AdminUser database failure", async () => {
+  setPushoverTestEnvironment();
 
   const [{ prisma }, { sendOwnerSystemErrorPushover }] = await Promise.all([
     import("@/lib/prisma"),
@@ -35,4 +39,60 @@ test("sendOwnerSystemErrorPushover isolates an AdminUser database failure", asyn
     prisma.adminUser.findMany = originalFindMany;
     console.error = originalConsoleError;
   }
+});
+
+test("worker retry exhausted alert describes failed sending and keeps the booking link without PII", async () => {
+  setPushoverTestEnvironment();
+  const { buildOwnerEmailFailurePushover } = await import("@/lib/notifications/pushover-core");
+
+  const alert = buildOwnerEmailFailurePushover({
+    emailLogId: "email-log-1",
+    bookingId: "booking-1",
+    emailType: "BOOKING_CONFIRMATION",
+    isReminder: false,
+    failureKind: "transport",
+  });
+
+  assert.equal(alert.title, "PP Studio - chyba emailu");
+  assert.equal(alert.message, "E-mail se nepodařilo odeslat ani po vyčerpání opakovaných pokusů.\nTyp: BOOKING_CONFIRMATION");
+  assert.equal(alert.url, "https://example.com/admin/rezervace/booking-1");
+  assert.equal(alert.priority, 1);
+  assert.doesNotMatch(alert.message, /@|klient/i);
+});
+
+test("provider bounce alert describes subsequent non-delivery without retry claim and keeps the booking link", async () => {
+  setPushoverTestEnvironment();
+  const { buildOwnerEmailFailurePushover } = await import("@/lib/notifications/pushover-core");
+
+  const alert = buildOwnerEmailFailurePushover({
+    emailLogId: "email-log-2",
+    bookingId: "booking-2",
+    emailType: "email.bounced",
+    isReminder: false,
+    failureKind: "provider-delivery",
+  });
+
+  assert.equal(alert.title, "PP Studio - e-mail nedoručen");
+  assert.equal(alert.message, "E-mail byl odeslán, ale následně se jej nepodařilo doručit příjemci.\nTyp: email.bounced");
+  assert.equal(alert.url, "https://example.com/admin/rezervace/booking-2");
+  assert.equal(alert.priority, 1);
+  assert.doesNotMatch(alert.message, /vyčerpání|pokus|@|klient/i);
+});
+
+test("other provider delivery incidents keep their technical type and do not claim worker retry exhaustion", async () => {
+  setPushoverTestEnvironment();
+  const { buildOwnerEmailFailurePushover } = await import("@/lib/notifications/pushover-core");
+
+  const alert = buildOwnerEmailFailurePushover({
+    emailLogId: "email-log-3",
+    emailType: "email.complained",
+    isReminder: false,
+    failureKind: "provider-delivery",
+  });
+
+  assert.equal(alert.title, "PP Studio - chyba emailu");
+  assert.equal(alert.message, "E-mail byl odeslán a příjemce jej následně označil jako spam.\nTyp: email.complained");
+  assert.equal(alert.url, "https://example.com/admin/email-logy/email-log-3");
+  assert.equal(alert.priority, 1);
+  assert.doesNotMatch(alert.message, /vyčerpání|pokus|@|klient/i);
 });

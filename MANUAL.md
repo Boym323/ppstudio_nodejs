@@ -877,7 +877,7 @@ npm run db:clear-booking-data -- --confirm
   - hlavní sekce `Poslední emaily` propojuje typ zprávy, stav, příjemce, vazbu na rezervaci, časy, pokusy a rychlé akce `Otevřít rezervaci / Detail emailu / Zkusit znovu`
   - badge typu rozlišuje `Přijetí rezervace` pro `booking-confirmation-v1` a finální `Potvrzení rezervace` pro `booking-approved-v1`
   - tracking badge v přehledu e-mailů je napojený na reálné Resend webhook eventy (`email.delivered`, `email.opened`, `email.clicked`, `email.bounced`, `email.failed`, `email.suppressed`); fallback bez eventů zůstává `Tracking připraven`
-  - při chybových Resend eventech (`email.bounced`, `email.complained`, `email.failed`, `email.suppressed`) systém naváže owner Pushover notifikaci typu `Chyba emailu`; upozornění se posílá jen při prvním zachycení konkrétního chybového stavu
+  - při chybových Resend eventech (`email.bounced`, `email.complained`, `email.failed`, `email.suppressed`) systém naváže owner Pushover notifikaci o následném problému doručení po předání e-mailu providerovi; upozornění se posílá jen při prvním zachycení konkrétního chybového stavu
   - Resend produkční setup:
     - v produkčním `.env` nastavte `EMAIL_DELIVERY_MODE=background`, `EMAIL_TRANSPORT=resend`, `RESEND_API_KEY` a `RESEND_WEBHOOK_SECRET`
     - po změně schématu nasaďte migrace (`npx prisma migrate deploy`), aby `EmailLog` obsahoval tracking sloupce

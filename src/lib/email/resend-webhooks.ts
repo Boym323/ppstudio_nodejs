@@ -222,6 +222,7 @@ export async function applyResendWebhookEvent(event: ResendWebhookEvent) {
         bookingId: emailLog.bookingId,
         emailType: event.type,
         isReminder: false,
+        failureKind: "provider-delivery",
       });
     } catch (error) {
       console.error("Resend delivery issue Pushover notification failed", {
