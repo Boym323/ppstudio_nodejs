@@ -153,11 +153,18 @@ async function findIsolatedRescheduleWindow(
   throw new Error("Nepodařilo se najít izolované testovací okno pro reschedule integrační test.");
 }
 
-async function createSeed() {
+async function createSeed(input: { oldSlotPaddingMinutes?: number } = {}) {
   const { prisma, BookingStatus, AvailabilitySlotStatus } = await loadModules();
   const seedUuid = randomUUID();
   const suffix = seedUuid.slice(0, 8);
-  const oldStartAt = await findIsolatedRescheduleWindow(seedUuid, 60);
+  const oldSlotPaddingMinutes = input.oldSlotPaddingMinutes ?? 0;
+  const isolatedOldWindowStartAt = await findIsolatedRescheduleWindow(
+    seedUuid,
+    60 + oldSlotPaddingMinutes * 2,
+  );
+  const oldStartAt = new Date(
+    isolatedOldWindowStartAt.getTime() + oldSlotPaddingMinutes * 60 * 1000,
+  );
   const oldEndAt = new Date(oldStartAt.getTime() + 60 * 60 * 1000);
   const newStartAt = await findIsolatedRescheduleWindow(`${seedUuid}-next`, 90, [
     {
@@ -605,7 +612,7 @@ dbTest("rescheduleBooking updates the existing booking, writes audit history and
 });
 
 dbTest("admin manual override po přesunu obnoví a zkompaktuje opuštěný archivovaný původní slot", async () => {
-  const seed = await createSeed();
+  const seed = await createSeed({ oldSlotPaddingMinutes: 60 });
   const { prisma, rescheduleBooking, AvailabilitySlotStatus, getPublicBookingCatalog } = await loadModules();
   const oldStartAt = new Date(seed.oldStartAt);
   const oldEndAt = new Date(seed.oldEndAt);
