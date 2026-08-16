@@ -12,19 +12,21 @@ const globalForPrisma = globalThis as unknown as {
  * tak může zachovat instance vytvořená starším vygenerovaným klientem, která
  * nový delegate vůbec nemá. Takovou instanci nelze bezpečně znovu použít.
  */
-function hasImmutableAuditDelegates(client: PrismaClient) {
+function hasRequiredDelegates(client: PrismaClient) {
   const candidate = client as PrismaClient & {
     adminUserAuditEvent?: unknown;
     voucherChangeLog?: unknown;
     serviceChangeLog?: unknown;
     siteSettingsChangeLog?: unknown;
+    emailProviderWebhookEvent?: unknown;
   };
 
   return Boolean(
     candidate.adminUserAuditEvent
     && candidate.voucherChangeLog
     && candidate.serviceChangeLog
-    && candidate.siteSettingsChangeLog,
+    && candidate.siteSettingsChangeLog
+    && candidate.emailProviderWebhookEvent,
   );
 }
 
@@ -43,7 +45,7 @@ function createPrismaClient() {
   });
 }
 
-export const prisma = globalForPrisma.prisma && hasImmutableAuditDelegates(globalForPrisma.prisma)
+export const prisma = globalForPrisma.prisma && hasRequiredDelegates(globalForPrisma.prisma)
   ? globalForPrisma.prisma
   : createPrismaClient();
 

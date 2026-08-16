@@ -50,6 +50,8 @@ type BookingPushoverEventType =
 const PUSHOVER_ENDPOINT = "https://api.pushover.net/1/messages.json";
 const PUSHOVER_REQUEST_TIMEOUT_MS = 3_000;
 const RATE_LIMIT_WINDOW_MS = 30 * 1000;
+// Sekundární ochrana proti krátkým duplicitám v jednom procesu. Idempotence
+// provider webhooků je perzistentně v databázi, takže tato mapa není autorita.
 const recentEvents = new Map<string, number>();
 
 function isPushoverGloballyEnabled() {

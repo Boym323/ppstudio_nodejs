@@ -25,3 +25,25 @@ test("resend webhook route rejects request without svix headers", async () => {
 
   assert.equal(response.status, 400);
 });
+
+test("resend webhook route rejects an invalid Svix signature before processing", async () => {
+  process.env.RESEND_WEBHOOK_SECRET = "whsec_test";
+  const { POST } = await import("./route");
+
+  const response = await POST(new Request("https://example.com/api/webhooks/resend", {
+    method: "POST",
+    body: JSON.stringify({
+      type: "email.bounced",
+      created_at: "2026-08-16T10:00:00.000Z",
+      data: { email_id: "provider-message-invalid-signature" },
+    }),
+    headers: {
+      "content-type": "application/json",
+      "svix-id": "msg_invalid_signature",
+      "svix-timestamp": "1786874400",
+      "svix-signature": "v1,invalid",
+    },
+  }));
+
+  assert.equal(response.status, 400);
+});

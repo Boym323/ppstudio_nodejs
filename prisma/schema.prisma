@@ -743,6 +743,21 @@ model EmailLog {
   @@index([providerMessageId])
 }
 
+model EmailProviderWebhookEvent {
+  id                String   @id @default(cuid())
+  provider          String
+  providerEventId   String
+  eventType         String
+  providerMessageId String?
+  receivedAt        DateTime @default(now())
+  processedAt       DateTime
+  outcome           String
+
+  @@unique([provider, providerEventId])
+  @@index([providerMessageId])
+  @@index([receivedAt])
+}
+
 model BookingSubmissionLog {
   id            String                   @id @default(cuid())
   bookingId     String?

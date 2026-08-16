@@ -28,14 +28,36 @@ export async function POST(request: Request) {
 
   const payload = await request.text();
 
+  let event;
+
   try {
-    const event = await verifyResendWebhookPayload({
+    event = await verifyResendWebhookPayload({
       payload,
       headers,
       webhookSecret: env.RESEND_WEBHOOK_SECRET,
     });
+  } catch (error) {
+    console.error("Resend webhook verification failed", { error });
 
-    const result = await applyResendWebhookEvent(event);
+    return NextResponse.json({ status: "invalid" }, { status: 400 });
+  }
+
+  try {
+    console.info("Resend webhook received", {
+      eventType: event.type,
+      providerEventId: headers.id,
+      providerMessageId: event.data?.email_id?.trim() || null,
+    });
+
+    const result = await applyResendWebhookEvent({ event, providerEventId: headers.id });
+
+    console.info(result.duplicate ? "Resend webhook duplicate ignored" : "Resend webhook processed", {
+      eventType: event.type,
+      providerEventId: headers.id,
+      providerMessageId: event.data?.email_id?.trim() || null,
+      matched: result.matched,
+      ignored: result.ignored,
+    });
 
     return NextResponse.json({
       status: "ok",
@@ -43,10 +65,13 @@ export async function POST(request: Request) {
       ignored: result.ignored,
     });
   } catch (error) {
-    console.error("Resend webhook verification failed", {
+    console.error("Resend webhook processing failed", {
+      eventType: event.type,
+      providerEventId: headers.id,
+      providerMessageId: event.data?.email_id?.trim() || null,
       error,
     });
 
-    return NextResponse.json({ status: "invalid" }, { status: 400 });
+    return NextResponse.json({ status: "error" }, { status: 500 });
   }
 }

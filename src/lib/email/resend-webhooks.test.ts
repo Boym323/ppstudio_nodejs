@@ -125,7 +125,11 @@ test("applyResendWebhookEvent records email.bounced as a provider delivery issue
   ]);
   const originalFindFirst = prisma.emailLog.findFirst;
   const originalUpdate = prisma.emailLog.update;
+  const originalTransaction = prisma.$transaction;
+  const originalWebhookCreateMany = prisma.emailProviderWebhookEvent.createMany;
+  const originalWebhookUpdateMany = prisma.emailProviderWebhookEvent.updateMany;
   const updates: unknown[] = [];
+  const events: unknown[] = [];
 
   prisma.emailLog.findFirst = (async () => ({
     id: "email-log-bounce",
@@ -143,30 +147,38 @@ test("applyResendWebhookEvent records email.bounced as a provider delivery issue
     updates.push(args);
     return {};
   }) as typeof prisma.emailLog.update;
+  prisma.emailProviderWebhookEvent.createMany = (async (args) => {
+    events.push(args);
+    return { count: 1 };
+  }) as typeof prisma.emailProviderWebhookEvent.createMany;
+  prisma.emailProviderWebhookEvent.updateMany = (async () => ({ count: 1 })) as typeof prisma.emailProviderWebhookEvent.updateMany;
+  prisma.$transaction = (async (callback: (tx: typeof prisma) => Promise<unknown>) => callback(prisma)) as unknown as typeof prisma.$transaction;
 
   try {
     const result = await applyResendWebhookEvent({
-      type: "email.bounced",
-      created_at: "2026-08-16T10:00:00.000Z",
-      data: { email_id: "provider-message-1" },
+      providerEventId: "msg_unit_bounce",
+      event: {
+        type: "email.bounced",
+        created_at: "2026-08-16T10:00:00.000Z",
+        data: { email_id: "provider-message-1" },
+      },
     });
 
-    assert.deepEqual(result, { matched: true, ignored: false });
+    assert.deepEqual(result, { matched: true, ignored: false, deliveryIssue: { emailLogId: "email-log-bounce", bookingId: "booking-bounce" }, duplicate: false });
     assert.deepEqual(updates, [{
       where: { id: "email-log-bounce" },
       data: {
-        trackingRawPayload: {
-          type: "email.bounced",
-          created_at: "2026-08-16T10:00:00.000Z",
-          data: { email_id: "provider-message-1" },
-        },
         trackingLastEvent: "email.bounced",
         trackingLastEventAt: new Date("2026-08-16T10:00:00.000Z"),
         trackingBouncedAt: new Date("2026-08-16T10:00:00.000Z"),
       },
     }]);
+    assert.equal(events.length, 1);
   } finally {
     prisma.emailLog.findFirst = originalFindFirst;
     prisma.emailLog.update = originalUpdate;
+    prisma.emailProviderWebhookEvent.createMany = originalWebhookCreateMany;
+    prisma.emailProviderWebhookEvent.updateMany = originalWebhookUpdateMany;
+    prisma.$transaction = originalTransaction;
   }
 });
