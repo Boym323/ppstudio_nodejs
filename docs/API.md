@@ -32,7 +32,7 @@ Pro přesný runtime kontrakt je vždy rozhodující implementace route handleru
 - stav email outbox fronty
 - přítomnost backlogu bez aktivního worker claimu
 - stale processing claimy
-- failed email logy
+- aktivní recipient-specific delivery incidenty
 - poslední odeslaný email a poslední recent error
 
 Přístup:
@@ -44,7 +44,7 @@ Vstup:
 Odpověď:
 - HTTP status:
 - `200`: `status=ok` nebo `status=warning`
-- `503`: `status=error`, typicky DB chyba nebo kritický stav email workeru
+- `503`: `status=error`, typicky DB chyba nebo zaseknutý email worker
 - hlavičky:
 - `Cache-Control: no-store`
 - `Content-Type: application/json`
@@ -77,6 +77,10 @@ Odpověď:
     "staleProcessing": 0,
     "failed": 0
   },
+  "emailIncidents": {
+    "status": "ok",
+    "active": 0
+  },
   "emailDelivery": {
     "lastSentAt": "2026-06-29T12:49:49.676Z",
     "lastErrorAt": null,
@@ -88,8 +92,9 @@ Odpověď:
 ```
 
 Poznámky:
-- `status=warning` znamená neideální, ale ne fatální stav, typicky backlog `pending/retrying` bez aktivního claimu.
-- `status=error` znamená produkční problém vyžadující zásah.
+- `status=warning` znamená neideální, ale ne fatální stav, typicky backlog `pending/retrying` bez aktivního claimu nebo aktivní recipient-specific delivery incident.
+- `status=error` znamená produkční problém vyžadující zásah, například nedostupnou DB nebo stale processing claim.
+- Aktivní bounce, suppression ani jiné nevyřešené selhání doručení konkrétnímu příjemci samy o sobě nesmí vrátit `503`: endpoint vrátí `200`, `status=warning` a uvede je v `emailIncidents`. Release health check proto neblokují.
 - Pokud základní DB ping projde, ale selže pouze detailní dotaz nad e-mailovou frontou, endpoint vrací HTTP `200`, `status=warning` a `error.code="EMAIL_HEALTH_UNAVAILABLE"`; konkrétní chybu loguje jen serverově.
 - `release.*` slouží pro porovnání monitoringu s aktivním releasem a startup logy.
 - `hasRecentError` je omezené na posledních 24 hodin; přesné okno vrací `recentErrorWindowMs`.
@@ -109,7 +114,9 @@ Vysvětlení polí:
 - `emailQueue.retrying`: emaily čekající na další retry pokus.
 - `emailQueue.processing`: emaily, které si worker právě claimnul a zpracovává.
 - `emailQueue.staleProcessing`: emaily, které vypadají jako claimnuté příliš dlouho a worker se na nich mohl zaseknout.
-- `emailQueue.failed`: emaily ukončené jako definitivně neúspěšné.
+- `emailQueue.failed`: zpětně kompatibilní počet aktivních delivery incidentů; pro jeho explicitní provozní význam použij `emailIncidents.active`.
+- `emailIncidents.status`: provozní stav nevyřešených recipient-specific delivery incidentů; `warning` neznamená poruchu workeru.
+- `emailIncidents.active`: počet nevyřešených recipient-specific delivery incidentů; explicitně vyřešený resend chain se nezapočítává.
 - `emailDelivery.lastSentAt`: čas posledního úspěšně odeslaného emailu.
 - `emailDelivery.lastErrorAt`: čas poslední relevantní emailové chyby ještě uvnitř sledovaného okna.
 - `emailDelivery.hasRecentError`: jestli se v posledním sledovaném okně objevila relevantní emailová chyba.

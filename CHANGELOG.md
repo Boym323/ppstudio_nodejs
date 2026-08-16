@@ -8,6 +8,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Recipient-specific e-mailové incidenty (bounce, suppression nebo provider failure) už neoznačují email worker jako porouchaný: `/api/health` je uvádí jako `warning` s HTTP `200`, takže samy nemohou zablokovat či rollbacknout release.
 - Historické selhání doručení e-mailu nyní zůstává v logu, ale po potvrzeném doručení explicitního resendu se správně uzavře jako incident a nezůstává v administrativní sekci Pozornost ani v počtech aktivních e-mailových problémů.
 - EmailLog nyní rozlišuje přijetí veřejné pending rezervace (`BOOKING_RECEIVED`) od finálního potvrzení po schválení (`BOOKING_CONFIRMED`), včetně bezpečného přeřazení jednoznačně rozpoznatelných historických e-mailů; klientka dál dostává stejné dva lifecycle e-maily.
 - Resend webhooky nyní perzistentně a race-safe deduplikují ověřené Svix eventy, takže opakované doručení nemění tracking ani znovu neodesílá Pushover upozornění.

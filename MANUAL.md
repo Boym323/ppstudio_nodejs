@@ -866,10 +866,11 @@ npm run db:clear-booking-data -- --confirm
 - Veřejný route handler `GET /api/health` vrací provozní health snapshot pro monitoring:
   - čas `checkedAt`, dobu vyhodnocení `durationMs` a release identitu `release.version`, `release.deploymentId` + fallbacky `deploymentVersion` / `gitHash`
   - stav `db` (rychlý `SELECT 1`)
-  - stav `emailWorker` (`ok`/`warning`/`error`) podle stale claimů, backlogu a failed logů
+  - stav `emailWorker` (`ok`/`warning`/`error`) podle stale claimů a backlogu; recipient delivery incidenty worker jako porouchaný neoznačují
   - stav `emailQueue` (`pending`, `retrying`, `processing`, `staleProcessing`, `failed`)
+  - stav `emailIncidents` s počtem aktivních bounce, suppression a dalších recipient-specific delivery failures
   - `emailDelivery.lastSentAt`, `lastErrorAt`, `hasRecentError` a `recentErrorWindowMs` (aktuálně 24 hodin)
-  - pole `alerts` se seznamem aktivních problémů; při `status=error` vrací endpoint HTTP `503` a i chybová větev drží stejný JSON shape s `cache-control: no-store`
+  - pole `alerts` se seznamem aktivních problémů; při `status=error` vrací endpoint HTTP `503`, zatímco samotný recipient-specific incident vrací `warning`/`200`, a i chybová větev drží stejný JSON shape s `cache-control: no-store`
 - Owner-only sekce `Email logy` nyní funguje jako business-first přehled `Email logy`:
   - nahoře ukazuje health stav `OK / Warning / Error` podle failed, retry, pending fronty a poslední relevantní chyby
   - krátké metriky shrnují `Dnes odesláno`, `Za posledních 7 dní`, `Čeká na odeslání`, `Selhalo` a `Poslední odeslání` v nižším KPI stripu

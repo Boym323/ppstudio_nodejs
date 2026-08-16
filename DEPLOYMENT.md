@@ -128,7 +128,7 @@ Před uzavřením deploymentu ověř z hostu aplikace skutečný listener (`ss -
 - dostupnost uploadovaných médií
 - pokud je aktivní Matomo reporting, i `/api/admin/analytics`
 
-Health endpoint při výpadku databáze vrací HTTP `503` s `DATABASE_UNAVAILABLE`. Selhání pouze doplňkových e-mailových metrik vrací HTTP `200`, `status=warning` a `EMAIL_HEALTH_UNAVAILABLE`; detail hledej v `journalctl -u ppstudio-web.service -n 200 --no-pager`.
+Health endpoint při výpadku databáze vrací HTTP `503` s `DATABASE_UNAVAILABLE`; stejný status zůstává pro skutečně zaseknutý email worker (stale processing claim). Běžný bounce, suppression nebo jiné nevyřešené recipient-specific selhání doručení vrací HTTP `200`, `status=warning` a počet v `emailIncidents.active`, takže samo nemůže zablokovat release health check. Selhání pouze doplňkových e-mailových metrik vrací `200`, `status=warning` a `EMAIL_HEALTH_UNAVAILABLE`; detail hledej v `journalctl -u ppstudio-web.service -n 200 --no-pager`.
 
 ## Rollback
 

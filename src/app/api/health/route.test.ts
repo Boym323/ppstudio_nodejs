@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import type { EmailHealthData } from "./route-api";
 
 process.env.NEXT_PUBLIC_APP_NAME ??= "PP Studio";
 process.env.NEXT_PUBLIC_APP_URL ??= "https://example.com";
@@ -11,6 +12,93 @@ process.env.ADMIN_OWNER_PASSWORD ??= "change-me-owner";
 process.env.ADMIN_STAFF_EMAIL ??= "staff@example.com";
 process.env.ADMIN_STAFF_PASSWORD ??= "change-me-staff";
 process.env.EMAIL_DELIVERY_MODE ??= "log";
+
+function createEmailHealthData(
+  overrides: Partial<EmailHealthData> = {},
+): EmailHealthData {
+  return {
+    pending: 0,
+    retrying: 0,
+    processingActive: 0,
+    processingStale: 0,
+    failed: 0,
+    lastSentAt: null,
+    latestError: null,
+    ...overrides,
+  };
+}
+
+test("GET odděluje recipient delivery incidenty od kritického stavu workeru", async () => {
+  const { createHealthRouteApi } = await import("./route-api");
+  const cases = [
+    {
+      name: "bez incidentů",
+      data: createEmailHealthData(),
+      httpStatus: 200,
+      status: "ok",
+      workerStatus: "ok",
+      activeIncidents: 0,
+    },
+    {
+      name: "s nevyřešeným bouncem",
+      data: createEmailHealthData({ failed: 1 }),
+      httpStatus: 200,
+      status: "warning",
+      workerStatus: "ok",
+      activeIncidents: 1,
+    },
+    {
+      name: "s nevyřešenou suppression",
+      data: createEmailHealthData({ failed: 1 }),
+      httpStatus: 200,
+      status: "warning",
+      workerStatus: "ok",
+      activeIncidents: 1,
+    },
+    {
+      name: "s vyřešeným bouncem",
+      data: createEmailHealthData(),
+      httpStatus: 200,
+      status: "ok",
+      workerStatus: "ok",
+      activeIncidents: 0,
+    },
+    {
+      name: "se stale worker claimem",
+      data: createEmailHealthData({ processingStale: 1 }),
+      httpStatus: 503,
+      status: "error",
+      workerStatus: "error",
+      activeIncidents: 0,
+    },
+    {
+      name: "s bouncem a stale worker claimem",
+      data: createEmailHealthData({ failed: 1, processingStale: 1 }),
+      httpStatus: 503,
+      status: "error",
+      workerStatus: "error",
+      activeIncidents: 1,
+    },
+  ];
+
+  for (const scenario of cases) {
+    const api = createHealthRouteApi({
+      checkDatabase: async () => undefined,
+      getEmailHealthData: async () => scenario.data,
+    });
+    const response = await api.GET();
+    const payload = await response.json();
+
+    assert.equal(response.status, scenario.httpStatus, scenario.name);
+    assert.equal(payload.status, scenario.status, scenario.name);
+    assert.equal(payload.emailWorker.status, scenario.workerStatus, scenario.name);
+    assert.equal(
+      payload.emailIncidents.active,
+      scenario.activeIncidents,
+      scenario.name,
+    );
+  }
+});
 
 test("GET při výpadku DB vrátí stabilní kód bez diagnostiky a alert potlačí cooldownem", async () => {
   const { createDbFailureAlertCooldown, createHealthRouteApi } =

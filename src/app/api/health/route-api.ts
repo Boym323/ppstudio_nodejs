@@ -25,7 +25,7 @@ type HealthRouteDependencies = {
   claimDbFailureAlert: (nowMs: number) => boolean;
 };
 
-type EmailHealthData = {
+export type EmailHealthData = {
   pending: number;
   retrying: number;
   processingActive: number;
@@ -225,6 +225,10 @@ export function createHealthRouteApi(
               staleProcessing: 0,
               failed: 0,
             },
+            emailIncidents: {
+              status: "unknown",
+              active: 0,
+            },
             emailDelivery: {
               lastSentAt: null,
               lastErrorAt: null,
@@ -273,6 +277,10 @@ export function createHealthRouteApi(
               staleProcessing: 0,
               failed: 0,
             },
+            emailIncidents: {
+              status: "unknown",
+              active: 0,
+            },
             emailDelivery: {
               lastSentAt: null,
               lastErrorAt: null,
@@ -298,17 +306,17 @@ export function createHealthRouteApi(
         retrying,
         processingActive,
         processingStale,
-        failed,
+        failed: activeIncidents,
         lastSentAt,
         latestError,
       } = emailHealthData;
 
       const workerStuck = processingStale > 0;
       const workerBacklog = pending + retrying > 0 && processingActive === 0;
-      const workerHasErrors = failed > 0;
+      const hasActiveEmailIncidents = activeIncidents > 0;
 
-      if (workerHasErrors) {
-        alerts.push(`Active email incidents: ${failed}`);
+      if (hasActiveEmailIncidents) {
+        alerts.push(`Active email delivery incidents: ${activeIncidents}`);
       }
 
       if (workerStuck) {
@@ -326,7 +334,7 @@ export function createHealthRouteApi(
       }
 
       const workerStatus =
-        workerHasErrors || workerStuck
+        workerStuck
           ? "error"
           : workerBacklog
             ? "warning"
@@ -335,7 +343,7 @@ export function createHealthRouteApi(
       const status =
         workerStatus === "error"
           ? "error"
-          : workerStatus === "warning"
+          : workerStatus === "warning" || hasActiveEmailIncidents
             ? "warning"
             : "ok";
 
@@ -356,14 +364,18 @@ export function createHealthRouteApi(
                 ? "Worker frontu zpracovává bez aktivní chyby."
                 : workerStatus === "warning"
                   ? "Fronta čeká na zpracování nebo retry, ale není vidět aktivní claim."
-                  : "Worker vyžaduje zásah (aktivní e-mailové incidenty nebo stale claim).",
+                  : "Worker vyžaduje zásah kvůli stale processing claimu.",
           },
           emailQueue: {
             pending,
             retrying,
             processing: processingActive,
             staleProcessing: processingStale,
-            failed,
+            failed: activeIncidents,
+          },
+          emailIncidents: {
+            status: hasActiveEmailIncidents ? "warning" : "ok",
+            active: activeIncidents,
           },
           emailDelivery: {
             lastSentAt: lastSentAt?.toISOString() ?? null,
