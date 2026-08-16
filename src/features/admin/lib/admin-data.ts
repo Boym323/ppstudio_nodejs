@@ -1468,6 +1468,43 @@ function getBookingHistorySource(metadata: Prisma.JsonValue | null): string | nu
   return typeof metadata.source === "string" ? metadata.source : null;
 }
 
+const voucherCompletionAuditReason = "Voucher uplatněn při dokončení návštěvy";
+const voucherCompletionAuditSource = "admin-booking-complete-flow-v1";
+
+function getBookingHistoryVoucherCode(metadata: Prisma.JsonValue | null): string | null {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return null;
+  return typeof metadata.voucherCode === "string" ? metadata.voucherCode : null;
+}
+
+type VoucherCompletionBookingAudit = {
+  bookingId: string;
+  reason: string | null;
+  metadata: Prisma.JsonValue | null;
+};
+
+type CanonicalVoucherRedemption = {
+  bookingId: string | null;
+  voucher: { code: string } | null;
+};
+
+/** Potlačí jen booking audit, pro který existuje stejná kanonická voucher redemption operace. */
+export function filterDuplicateVoucherCompletionAudits<T extends VoucherCompletionBookingAudit>(
+  history: T[],
+  redemptions: CanonicalVoucherRedemption[],
+) {
+  const canonicalOperations = new Set(redemptions.flatMap((redemption) => (
+    redemption.bookingId && redemption.voucher
+      ? [`${redemption.bookingId}\u0000${redemption.voucher.code}`]
+      : []
+  )));
+
+  return history.filter((entry) => {
+    if (entry.reason !== voucherCompletionAuditReason || getBookingHistorySource(entry.metadata) !== voucherCompletionAuditSource) return true;
+    const voucherCode = getBookingHistoryVoucherCode(entry.metadata);
+    return !voucherCode || !canonicalOperations.has(`${entry.bookingId}\u0000${voucherCode}`);
+  });
+}
+
 function bookingHistoryReasonLabel(reason: string | null) {
   const labels: Record<string, string> = {
     "public-booking-request-v1": "Rezervace odeslána z online formuláře",
@@ -1898,6 +1935,7 @@ export async function getAdminLogsData(input: {
   const rescheduleWhere = severity === "all" || severity === "info" ? buildRescheduleWhere(query, dateWhere) : { id: "__no_match__" };
   const voucherWhere = severity === "all" || severity === "info" ? buildVoucherWhere(query, dateWhere) : { id: "__no_match__" };
   const redemptionWhere = severity === "all" || severity === "success" ? buildVoucherRedemptionWhere(query, dateWhere) : { id: "__no_match__" };
+  const canonicalRedemptionWhere = buildVoucherRedemptionWhere(query, dateWhere);
   const voucherChangeWhere = severity === "all" || severity === "info" ? buildVoucherChangeWhere(query, dateWhere) : { id: "__no_match__" };
   const serviceChangeWhere = severity === "all" || severity === "info" ? buildServiceChangeWhere(query, dateWhere) : { id: "__no_match__" };
   const siteSettingsChangeWhere = severity === "all" || severity === "info" ? buildSiteSettingsChangeWhere(query, dateWhere) : { id: "__no_match__" };
@@ -1942,7 +1980,7 @@ export async function getAdminLogsData(input: {
   const total = emailTotal + bookingHistoryTotal + rescheduleTotal + voucherTotal + redemptionTotal
     + voucherChangeTotal + serviceChangeTotal + siteSettingsChangeTotal + availabilityTotal
     + adminUserAuditTotal + submissionTotal;
-  const { page, pageCount, take } = getAdminLogCandidatePlan(total, requestedPage);
+  const { take } = getAdminLogCandidatePlan(total, requestedPage);
   // Totals a clamp vznikají před findMany, takže ručně zadaná hluboká stránka
   // nemůže nafouknout kandidátní množinu nad skutečnou poslední stránku.
   const [emails, bookingHistory, reschedules, vouchers, redemptions, voucherChanges, serviceChanges, siteSettingsChanges, availabilityAudits, adminUserAudits, submissions] = await Promise.all([
@@ -1977,7 +2015,7 @@ export async function getAdminLogsData(input: {
     bookingActive ? prisma.bookingStatusHistory.findMany({ where: bookingHistoryWhere, orderBy: [{ createdAt: "desc" }, { id: "desc" }], take, include: { booking: { select: { id: true, clientNameSnapshot: true, serviceNameSnapshot: true } }, actorUser: { select: { name: true } } } }) : Promise.resolve([]),
     bookingActive ? prisma.bookingRescheduleLog.findMany({ where: rescheduleWhere, orderBy: [{ createdAt: "desc" }, { id: "desc" }], take, include: { booking: { select: { id: true, clientNameSnapshot: true, serviceNameSnapshot: true } }, changedByUser: { select: { name: true } } } }) : Promise.resolve([]),
     voucherActive ? prisma.voucher.findMany({ where: voucherWhere, orderBy: [{ createdAt: "desc" }, { id: "desc" }], take, select: { id: true, code: true, createdAt: true, createdByUser: { select: { name: true } } } }) : Promise.resolve([]),
-    voucherActive ? prisma.voucherRedemption.findMany({ where: redemptionWhere, orderBy: [{ redeemedAt: "desc" }, { id: "desc" }], take, include: { voucher: { select: { id: true, code: true } }, redeemedByUser: { select: { name: true } } } }) : Promise.resolve([]),
+    (voucherActive || bookingActive) ? prisma.voucherRedemption.findMany({ where: voucherActive ? redemptionWhere : canonicalRedemptionWhere, orderBy: [{ redeemedAt: "desc" }, { id: "desc" }], take, include: { voucher: { select: { id: true, code: true } }, redeemedByUser: { select: { name: true } } } }) : Promise.resolve([]),
     voucherActive ? prisma.voucherChangeLog.findMany({ where: voucherChangeWhere, orderBy: [{ createdAt: "desc" }, { id: "desc" }], take, include: { voucher: { select: { id: true, code: true } }, actorUser: { select: { name: true } } } }) : Promise.resolve([]),
     serviceActive ? prisma.serviceChangeLog.findMany({ where: serviceChangeWhere, orderBy: [{ createdAt: "desc" }, { id: "desc" }], take, include: { service: { select: { id: true, name: true, publicName: true } }, actorUser: { select: { name: true } } } }) : Promise.resolve([]),
     settingsActive ? prisma.siteSettingsChangeLog.findMany({ where: siteSettingsChangeWhere, orderBy: [{ createdAt: "desc" }, { id: "desc" }], take, include: { actorUser: { select: { name: true } } } }) : Promise.resolve([]),
@@ -2001,6 +2039,7 @@ export async function getAdminLogsData(input: {
 
   const bookingHref = (id: string) => getAdminBookingHref(input.area, id);
   const voucherHref = (id: string) => `${input.area === "owner" ? "/admin" : "/admin/provoz"}/vouchery/${id}`;
+  const visibleBookingHistory = filterDuplicateVoucherCompletionAudits(bookingHistory, redemptions);
   const items: AdminLogItem[] = [
     ...emails.map(({ representativeEmailLog: log, incidentRoot }) => {
       const tracking = deriveTrackingState(log);
@@ -2019,13 +2058,13 @@ export async function getAdminLogsData(input: {
         : "";
       return { id: `email:${log.id}`, occurredAt: log.createdAt.toISOString(), category: "email" as const, severity: logSeverity, title: log.subject, description: `${log.recipientEmail}${tracking.value !== "pending" ? ` • ${tracking.label}` : ""}${incidentResolutionLabel}${log.errorMessage ? ` • ${getErrorSummary(log.errorMessage)}` : ""}`, actorLabel: null, entityLabel: log.booking ? `${log.booking.clientNameSnapshot} • ${log.booking.serviceNameSnapshot}` : log.client?.fullName ?? null, entityHref: log.booking ? bookingHref(log.booking.id) : null, sourceType: "email" as const, sourceId: log.id, primaryAction, emailLogId: log.id, queueState: getEmailRecentStatusLabel(log.status, log.processingStartedAt, log.attemptCount), trackingState: tracking.label };
     }),
-    ...bookingHistory.map((entry) => {
+    ...visibleBookingHistory.map((entry) => {
       const presentation = getBookingHistoryPresentation(entry);
       return { id: `booking-history:${entry.id}`, occurredAt: entry.createdAt.toISOString(), category: "event" as const, severity: presentation.severity, title: presentation.title, description: presentation.description ?? entry.note, actorLabel: entry.actorUser?.name ?? (entry.actorType === "CLIENT" ? "Klientka" : entry.actorType === "SYSTEM" ? "Systém" : null), entityLabel: entry.booking ? `${entry.booking.clientNameSnapshot} • ${entry.booking.serviceNameSnapshot}` : "Odstraněná rezervace", entityHref: entry.booking ? bookingHref(entry.booking.id) : null, sourceType: "booking" as const, sourceId: entry.id, primaryAction: entry.booking ? "open" as const : null };
     }),
     ...reschedules.map((entry) => ({ id: `booking-reschedule:${entry.id}`, occurredAt: entry.createdAt.toISOString(), category: "event" as const, severity: "info" as const, title: "Rezervace přesunuta", description: entry.reason, actorLabel: entry.changedByUser?.name ?? (entry.changedByClient ? "Klientka" : null), entityLabel: entry.booking ? `${entry.booking.clientNameSnapshot} • ${entry.booking.serviceNameSnapshot}` : "Odstraněná rezervace", entityHref: entry.booking ? bookingHref(entry.booking.id) : null, sourceType: "booking" as const, sourceId: entry.id, primaryAction: entry.booking ? "open" as const : null })),
     ...vouchers.map((voucher) => ({ id: `voucher:${voucher.id}`, occurredAt: voucher.createdAt.toISOString(), category: "event" as const, severity: "info" as const, title: "Voucher vytvořen", description: null, actorLabel: voucher.createdByUser?.name ?? null, entityLabel: `Voucher ${voucher.code}`, entityHref: voucherHref(voucher.id), sourceType: "voucher" as const, sourceId: voucher.id, primaryAction: "open" as const })),
-    ...redemptions.map((redemption) => ({ id: `voucher-redemption:${redemption.id}`, occurredAt: redemption.redeemedAt.toISOString(), category: "event" as const, severity: "success" as const, title: "Voucher uplatněn", description: null, actorLabel: redemption.redeemedByUser?.name ?? null, entityLabel: redemption.voucher ? `Voucher ${redemption.voucher.code}` : "Odstraněný voucher", entityHref: redemption.voucher ? voucherHref(redemption.voucher.id) : null, sourceType: "voucher" as const, sourceId: redemption.id, primaryAction: redemption.voucher ? "open" as const : null })),
+    ...(voucherActive ? redemptions.map((redemption) => ({ id: `voucher-redemption:${redemption.id}`, occurredAt: redemption.redeemedAt.toISOString(), category: "event" as const, severity: "success" as const, title: "Voucher uplatněn", description: null, actorLabel: redemption.redeemedByUser?.name ?? null, entityLabel: redemption.voucher ? `Voucher ${redemption.voucher.code}` : "Odstraněný voucher", entityHref: redemption.voucher ? voucherHref(redemption.voucher.id) : null, sourceType: "voucher" as const, sourceId: redemption.id, primaryAction: redemption.voucher ? "open" as const : null })) : []),
     ...voucherChanges.map((entry) => ({ id: `voucher-change:${entry.id}`, occurredAt: entry.createdAt.toISOString(), category: "event" as const, severity: "info" as const, title: entry.operation === "CANCEL" ? "Voucher zrušen" : "Voucher upraven", description: auditChangeDescription(entry.before, entry.after), actorLabel: entry.actorUser.name, entityLabel: `Voucher ${entry.voucher.code}`, entityHref: voucherHref(entry.voucher.id), sourceType: "voucher" as const, sourceId: entry.id, primaryAction: "open" as const })),
     ...serviceChanges.map((entry) => ({ id: `service-change:${entry.id}`, occurredAt: entry.createdAt.toISOString(), category: "event" as const, severity: "info" as const, title: "Služba upravena", description: auditChangeDescription(entry.before, entry.after, categoryNames), actorLabel: entry.actorUser.name, entityLabel: entry.service.publicName ?? entry.service.name, entityHref: `${input.area === "owner" ? "/admin" : "/admin/provoz"}/sluzby?serviceId=${entry.service.id}`, sourceType: "service" as const, sourceId: entry.id, primaryAction: "open" as const })),
     ...siteSettingsChanges.map((entry) => ({ id: `settings-change:${entry.id}`, occurredAt: entry.createdAt.toISOString(), category: "event" as const, severity: "info" as const, title: entry.operation === "UPDATE_BOOKING_POLICY" ? "Pravidla rezervace upravena" : entry.operation === "UPDATE_SALON" ? "Údaje salonu upraveny" : "E-mailová nastavení upravena", description: auditChangeDescription(entry.before, entry.after), actorLabel: entry.actorUser.name, entityLabel: "Nastavení webu", entityHref: "/admin/nastaveni", sourceType: "settings" as const, sourceId: entry.id, primaryAction: "open" as const })),
@@ -2044,7 +2083,9 @@ export async function getAdminLogsData(input: {
     if (source !== "all" && item.sourceType !== source) return false;
     return true;
   });
-  return { area: input.area, view: safeView, items: sortAndPageAdminLogItems(visible, page), total, page, pageCount, pageSize: adminLogPageSize, filters: { query, severity, source, emailType, dateFrom: input.dateFrom ?? "", dateTo: input.dateTo ?? "" }, attention: { failed, retry, stuck, critical }, queueStats: [{ label: "Čeká", value: String(pending), tone: pending ? "accent" : "muted" }, { label: "Retry", value: String(retry), tone: retry ? "accent" : "muted" }, { label: "Zpracovává se", value: String(processing), tone: processing ? "accent" : "muted" }, { label: "Aktivní incidenty", value: String(failed), tone: failed ? "accent" : "muted" }], workerSummary: getWorkerSummary({ pending, retrying: retry, processing, failed }) };
+  const deduplicatedTotal = total - (bookingHistory.length - visibleBookingHistory.length);
+  const deduplicatedMeta = getAdminLogPageMeta(deduplicatedTotal, requestedPage);
+  return { area: input.area, view: safeView, items: sortAndPageAdminLogItems(visible, deduplicatedMeta.page), total: deduplicatedTotal, page: deduplicatedMeta.page, pageCount: deduplicatedMeta.pageCount, pageSize: adminLogPageSize, filters: { query, severity, source, emailType, dateFrom: input.dateFrom ?? "", dateTo: input.dateTo ?? "" }, attention: { failed, retry, stuck, critical }, queueStats: [{ label: "Čeká", value: String(pending), tone: pending ? "accent" : "muted" }, { label: "Retry", value: String(retry), tone: retry ? "accent" : "muted" }, { label: "Zpracovává se", value: String(processing), tone: processing ? "accent" : "muted" }, { label: "Aktivní incidenty", value: String(failed), tone: failed ? "accent" : "muted" }], workerSummary: getWorkerSummary({ pending, retrying: retry, processing, failed }) };
 }
 
 export async function getEmailLogDetailData(emailLogId: string): Promise<EmailLogDetailData | null> {

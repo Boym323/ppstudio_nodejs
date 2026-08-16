@@ -146,6 +146,63 @@ dbTest("admin logy dávají provoznímu booking auditu přednost před stavem re
   }
 });
 
+dbTest("admin event feed potlačí jen booking audit kanonického voucherového čerpání", async () => {
+  const [{ prisma }, { getAdminLogsData }] = await Promise.all([
+    import("@/lib/prisma"),
+    import("./admin-data"),
+  ]);
+  const suffix = randomUUID();
+  const category = await prisma.serviceCategory.create({ data: { name: `Kategorie voucher feed ${suffix}`, slug: `voucher-feed-${suffix}` } });
+  const service = await prisma.service.create({ data: { categoryId: category.id, name: `Služba voucher feed ${suffix}`, slug: `sluzba-voucher-feed-${suffix}`, durationMinutes: 60 } });
+  const client = await prisma.client.create({ data: { fullName: `Klientka voucher feed ${suffix}`, email: `voucher-feed-${suffix}@example.com`, phone: "+420777123456", isActive: true } });
+  const slots = await Promise.all([0, 1, 2].map((offset) => prisma.availabilitySlot.create({ data: { startsAt: new Date(`2027-02-0${offset + 1}T09:00:00.000Z`), endsAt: new Date(`2027-02-0${offset + 1}T10:00:00.000Z`), status: "PUBLISHED", capacity: 1 } })));
+  const [voucher, secondVoucher, thirdVoucher] = await Promise.all([1, 2, 3].map((number) => prisma.voucher.create({ data: { code: `FEED-${number}-${suffix}`, type: VoucherType.VALUE, originalValueCzk: 500, remainingValueCzk: 500 } })));
+  const bookings = await Promise.all(slots.map((slot, index) => prisma.booking.create({ data: {
+    clientId: client.id, slotId: slot.id, serviceId: service.id, status: BookingStatus.COMPLETED, source: "WEB",
+    clientNameSnapshot: client.fullName, clientEmailSnapshot: client.email!, clientPhoneSnapshot: client.phone, serviceNameSnapshot: service.name,
+    serviceDurationMinutes: 60, servicePriceFromCzk: 1000, scheduledStartsAt: slot.startsAt, scheduledEndsAt: slot.endsAt,
+    ...(index === 0 ? { finalPriceCzk: 1000 } : {}),
+  } })));
+
+  try {
+    await prisma.voucherRedemption.createMany({ data: [
+      { voucherId: voucher.id, bookingId: bookings[0].id, amountCzk: 500 },
+      { voucherId: secondVoucher.id, bookingId: bookings[2].id, amountCzk: 300 },
+      { voucherId: thirdVoucher.id, bookingId: bookings[2].id, amountCzk: 200 },
+    ] });
+    await prisma.bookingStatusHistory.createMany({ data: [
+      { bookingId: bookings[0].id, status: BookingStatus.COMPLETED, actorType: BookingActorType.USER, reason: "Voucher uplatněn při dokončení návštěvy", metadata: { source: "admin-booking-complete-flow-v1", voucherCode: voucher.code } },
+      { bookingId: bookings[0].id, status: BookingStatus.COMPLETED, actorType: BookingActorType.USER, reason: "Platba zapsána při dokončení návštěvy", metadata: { source: "admin-booking-complete-flow-v1" } },
+      { bookingId: bookings[0].id, status: BookingStatus.COMPLETED, actorType: BookingActorType.USER, reason: "Dokončeno" },
+      { bookingId: bookings[1].id, status: BookingStatus.COMPLETED, actorType: BookingActorType.USER, reason: "Dokončeno" },
+      { bookingId: bookings[1].id, status: BookingStatus.COMPLETED, actorType: BookingActorType.USER, reason: "Voucher uplatněn při dokončení návštěvy", metadata: { source: "admin-booking-complete-flow-v1", voucherCode: `LEGACY-${suffix}` } },
+      { bookingId: bookings[2].id, status: BookingStatus.COMPLETED, actorType: BookingActorType.USER, reason: "Voucher uplatněn při dokončení návštěvy", metadata: { source: "admin-booking-complete-flow-v1", voucherCode: secondVoucher.code } },
+      { bookingId: bookings[2].id, status: BookingStatus.COMPLETED, actorType: BookingActorType.USER, reason: "Voucher uplatněn při dokončení návštěvy", metadata: { source: "admin-booking-complete-flow-v1", voucherCode: thirdVoucher.code } },
+      { bookingId: bookings[2].id, status: BookingStatus.COMPLETED, actorType: BookingActorType.USER, reason: "Dokončeno" },
+    ] });
+
+    const feed = await getAdminLogsData({ area: "salon", view: "events", query: suffix });
+    assert.equal(feed.items.filter((item) => item.title === "Voucher uplatněn").length, 3);
+    assert.equal(feed.items.filter((item) => item.title === "Platba zaznamenána").length, 1);
+    assert.equal(feed.items.filter((item) => item.title === "Rezervace dokončena").length, 3);
+    assert.equal(feed.items.filter((item) => item.title === "Voucher uplatněn při dokončení návštěvy").length, 1);
+    assert.equal(feed.items.filter((item) => item.title === "Voucher uplatněn").every((item) => item.severity === "success"), true);
+    assert.equal(feed.items.find((item) => item.title === "Platba zaznamenána")?.severity, "info");
+    assert.equal(feed.items.filter((item) => item.title === "Rezervace dokončena").every((item) => item.severity === "success"), true);
+    assert.equal(feed.total, 11);
+    assert.equal(feed.items.every((item, index, items) => index === 0 || items[index - 1].occurredAt >= item.occurredAt), true);
+  } finally {
+    await prisma.bookingStatusHistory.deleteMany({ where: { bookingId: { in: bookings.map((booking) => booking.id) } } });
+    await prisma.voucherRedemption.deleteMany({ where: { bookingId: { in: bookings.map((booking) => booking.id) } } });
+    await prisma.booking.deleteMany({ where: { id: { in: bookings.map((booking) => booking.id) } } });
+    await prisma.voucher.deleteMany({ where: { id: { in: [voucher.id, secondVoucher.id, thirdVoucher.id] } } });
+    await prisma.availabilitySlot.deleteMany({ where: { id: { in: slots.map((slot) => slot.id) } } });
+    await prisma.client.delete({ where: { id: client.id } });
+    await prisma.service.delete({ where: { id: service.id } });
+    await prisma.serviceCategory.delete({ where: { id: category.id } });
+  }
+});
+
 dbTest("admin logy filtrují a popisují oba lifecycle e-maily rezervace", async () => {
   const [{ prisma }, { getAdminLogsData, getEmailLogDetailData }] = await Promise.all([
     import("@/lib/prisma"),

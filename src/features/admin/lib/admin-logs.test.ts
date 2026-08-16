@@ -15,6 +15,7 @@ import {
   getBookingHistoryPresentation,
   getAdminLogPageMeta,
   getAdminLogCandidatePlan,
+  filterDuplicateVoucherCompletionAudits,
   getEmailDeliveryFailureWhere,
   getEmailDetailFinalStatus,
   getEmailHealthState,
@@ -32,6 +33,25 @@ import {
 function item(id: string, occurredAt: string): AdminLogItem {
   return { id, occurredAt, category: "event", severity: "info", title: id, description: null, actorLabel: null, entityLabel: null, entityHref: null, sourceType: "booking", sourceId: id, primaryAction: null };
 }
+
+test("potlačí jen booking audit kanonicky doloženého uplatnění voucheru", () => {
+  const duplicate = {
+    bookingId: "booking-1",
+    reason: "Voucher uplatněn při dokončení návštěvy",
+    metadata: { source: "admin-booking-complete-flow-v1", voucherCode: "VOUCHER-1" },
+  };
+  const legacy = { ...duplicate, bookingId: "booking-2", metadata: { ...duplicate.metadata, voucherCode: "LEGACY" } };
+  const differentVoucher = { ...duplicate, bookingId: "booking-1", metadata: { ...duplicate.metadata, voucherCode: "VOUCHER-2" } };
+  const completion = { bookingId: "booking-1", reason: "Dokončeno", metadata: { source: "admin-booking-detail-v2" } };
+
+  assert.deepEqual(
+    filterDuplicateVoucherCompletionAudits([duplicate, legacy, differentVoucher, completion], [
+      { bookingId: "booking-1", voucher: { code: "VOUCHER-1" } },
+      { bookingId: "booking-1", voucher: { code: "VOUCHER-2" } },
+    ]),
+    [legacy, completion],
+  );
+});
 
 test("neplatný, skrytý a technický SALON view se normalizují na events", () => {
   assert.equal(normalizeAdminLogView("unknown", "owner"), "events");
@@ -284,10 +304,12 @@ test("extrémní stránka se clampne před výpočtem kandidátního take", () =
 
 test("findMany a count sdílejí stejné where proměnné", async () => {
   const source = await readFile(new URL("./admin-data.ts", import.meta.url), "utf8");
-  for (const whereName of ["emailWhere", "bookingHistoryWhere", "rescheduleWhere", "voucherWhere", "redemptionWhere", "voucherChangeWhere", "serviceChangeWhere", "siteSettingsChangeWhere", "availabilityWhere", "adminUserAuditWhere", "submissionWhere"]) {
+  for (const whereName of ["emailWhere", "bookingHistoryWhere", "rescheduleWhere", "voucherWhere", "voucherChangeWhere", "serviceChangeWhere", "siteSettingsChangeWhere", "availabilityWhere", "adminUserAuditWhere", "submissionWhere"]) {
     assert.ok(source.includes(`findMany({ where: ${whereName}`));
     assert.ok(source.includes(`count({ where: ${whereName}`));
   }
+  assert.ok(source.includes("count({ where: redemptionWhere"));
+  assert.ok(source.includes("findMany({ where: voucherActive ? redemptionWhere : canonicalRedemptionWhere"));
   assert.ok(source.includes("getAdminLogCandidatePlan(total, requestedPage)"));
   assert.equal(source.includes("requestedOffset + adminLogPageSize"), false);
   assert.ok(source.includes('const attentionHealthActive = safeView === "attention"'));
