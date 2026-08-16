@@ -325,9 +325,10 @@ test("mobilní drawer zachová view a formuláře neposílají page", async () =
   assert.ok(source.includes("E-mailová fronta"));
 });
 
-test("veřejný booking rate-limit ignoruje všechny známé nebookingové prefixy", async () => {
+test("veřejný booking rate-limit používá vlastní atomické scopes", async () => {
   const source = await readFile(new URL("../../booking/actions/create-public-booking.ts", import.meta.url), "utf8");
-  for (const prefix of ["ADMIN_LOGIN_", "ADMIN_INVITE_ACTIVATION_", "ADMIN_RECOVERY_", "PUBLIC_VOUCHER_VERIFY_"]) {
-    assert.ok(source.includes(`"${prefix}"`), prefix);
+  for (const scope of ["public-booking-ip", "public-booking-email-failure"]) {
+    assert.ok(source.includes(`"${scope}"`), scope);
   }
+  assert.ok(source.includes("consumeAtomicRateLimit"));
 });
