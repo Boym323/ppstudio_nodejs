@@ -615,7 +615,7 @@ dbTest("rescheduleBooking updates the existing booking, writes audit history and
 });
 
 dbTest("admin manual override po přesunu obnoví a zkompaktuje opuštěný archivovaný původní slot", async () => {
-  const seed = await createSeed({ oldSlotPaddingMinutes: 60 });
+  const seed = await createSeed({ oldSlotPaddingMinutes: 120 });
   const { prisma, rescheduleBooking, AvailabilitySlotStatus, getPublicBookingCatalog } = await loadModules();
   const oldStartAt = new Date(seed.oldStartAt);
   const oldEndAt = new Date(seed.oldEndAt);
