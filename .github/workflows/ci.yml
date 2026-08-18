@@ -227,6 +227,8 @@ jobs:
         with:
           name: next-e2e-build
           path: .next-e2e/
+          include-hidden-files: true
+          if-no-files-found: error
           retention-days: 1
 
   e2e:
