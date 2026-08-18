@@ -6,6 +6,12 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [3.22.2] - 2026-08-18
+
+### Změněno
+
+- Produkční build nyní používá nový generátor `prisma-client` s CommonJS module formatem; Prisma Client se generuje do aplikačního zdrojového stromu před buildem a runtime webu i e-mailového workeru používají jednotný klient.
+
 ### Zabezpečení
 
 - Produkční závislosti nyní používají opravenou řadu `deepmerge-ts`, takže Prisma konfigurace již nepřitahuje auditované zranitelnosti typu high.
