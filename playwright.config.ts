@@ -30,7 +30,6 @@ export default defineConfig({
       NODE_ENV: "production",
       PUSHOVER_ENABLED: "false",
       NEXT_PUBLIC_APP_URL: baseURL,
-      NEXT_PUBLIC_SITE_URL: baseURL,
       NEXT_PUBLIC_MATOMO_ENABLED: "true",
       NEXT_PUBLIC_MATOMO_URL: "https://matomo.example.test/",
       NEXT_PUBLIC_MATOMO_SITE_ID: "1",
