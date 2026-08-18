@@ -6,6 +6,12 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [3.22.3] - 2026-08-18
+
+### Opraveno
+
+- E2E běh už nepřepisuje produkční canonical URL lokální adresou Playwright serveru, takže sitemap testy v CI ověřují správný veřejný doménový prefix.
+
 ## [3.22.2] - 2026-08-18
 
 ### Změněno
