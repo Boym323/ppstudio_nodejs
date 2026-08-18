@@ -6,6 +6,10 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+### Zabezpečení
+
+- Produkční závislosti nyní používají opravenou řadu `deepmerge-ts`, takže Prisma konfigurace již nepřitahuje auditované zranitelnosti typu high.
+
 ## [3.22.1] - 2026-08-16
 
 ### Změněno

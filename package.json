@@ -124,6 +124,7 @@
     },
     "postcss": "8.5.23",
     "find-my-way": "9.7.0",
-    "sharp": "$sharp"
+    "sharp": "$sharp",
+    "deepmerge-ts": "8.0.1"
   }
 }
