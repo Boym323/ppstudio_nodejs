@@ -9,7 +9,7 @@ import {
   EmailIncidentManualResolutionReason,
   EmailIncidentResolutionKind,
   Prisma,
-} from "@prisma/client";
+} from "@/generated/prisma/client";
 
 import { type AdminArea } from "@/config/navigation";
 import {

@@ -1,4 +1,4 @@
-import { AvailabilitySlotStatus, BookingStatus } from "@prisma/client";
+import { AvailabilitySlotStatus, BookingStatus } from "@/generated/prisma/browser";
 
 import { type AdminArea } from "@/config/navigation";
 import { getUnresolvedEmailDeliveryIncidentRootWhere } from "@/lib/email/incidents";

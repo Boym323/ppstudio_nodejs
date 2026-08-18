@@ -1,6 +1,6 @@
 import "server-only";
 
-import { AdminRole, AdminUserAuditOperation, Prisma } from "@prisma/client";
+import { AdminRole, AdminUserAuditOperation, Prisma } from "@/generated/prisma/client";
 
 import { buildAuditChange } from "@/features/admin/lib/audit-change";
 import { runSerializableTransaction } from "@/lib/serializable-transaction";

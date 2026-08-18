@@ -1,6 +1,6 @@
 "use client";
 
-import { BookingSource, BookingStatus } from "@prisma/client";
+import { BookingSource, BookingStatus } from "@/generated/prisma/browser";
 import Link from "next/link";
 import { useActionState, useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";

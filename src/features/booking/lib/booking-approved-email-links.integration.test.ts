@@ -33,7 +33,7 @@ async function loadModules() {
       import("@/features/admin/lib/admin-booking"),
       import("./booking-email-actions"),
       import("./booking-action-tokens"),
-      import("@prisma/client"),
+      import("@/generated/prisma/browser"),
     ]);
 
   return {

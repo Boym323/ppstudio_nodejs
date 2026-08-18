@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { AdminRole } from "@prisma/client";
+import { AdminRole } from "@/generated/prisma/browser";
 
 import { prisma } from "@/lib/prisma";
 

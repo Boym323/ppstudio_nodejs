@@ -8,7 +8,7 @@ import {
   BookingActorType,
   BookingSource,
   BookingStatus,
-} from "@prisma/client";
+} from "@/generated/prisma/browser";
 
 import { getPragueLocalDate, resolvePragueLocalDateTime } from "./booking-local-time";
 import {

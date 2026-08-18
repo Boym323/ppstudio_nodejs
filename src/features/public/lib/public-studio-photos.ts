@@ -1,7 +1,7 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 
-import { MediaType } from '@prisma/client';
+import { MediaType } from '@/generated/prisma/browser';
 
 import { type PublicImageAsset } from '@/features/public/lib/public-media';
 import { getPublishedMediaLibraryByType } from '@/features/media/lib/media-library';

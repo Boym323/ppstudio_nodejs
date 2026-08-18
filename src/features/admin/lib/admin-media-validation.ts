@@ -1,4 +1,4 @@
-import { MediaType } from '@prisma/client';
+import { MediaType } from '@/generated/prisma/browser';
 import { z } from 'zod';
 
 import { type AdminArea } from '@/config/navigation';

@@ -4,7 +4,7 @@ import {
   EmailLogStatus,
   EmailLogType,
   Prisma,
-} from "@prisma/client";
+} from "@/generated/prisma/client";
 
 import { env } from "@/config/env";
 import {

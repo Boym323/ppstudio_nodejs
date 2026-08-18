@@ -1,7 +1,7 @@
 import {
   AvailabilitySlotStatus,
   BookingStatus,
-} from "@prisma/client";
+} from "@/generated/prisma/browser";
 
 import { type AdminArea } from "@/config/navigation";
 import { prisma } from "@/lib/prisma";

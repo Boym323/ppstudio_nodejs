@@ -12,7 +12,7 @@ import {
   Prisma,
   VoucherStatus,
   VoucherType,
-} from "@prisma/client";
+} from "@/generated/prisma/client";
 
 import { env } from "@/config/env";
 import { type AdminArea } from "@/config/navigation";

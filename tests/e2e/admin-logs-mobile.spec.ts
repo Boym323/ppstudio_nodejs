@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
 
 import { expect, test } from "@playwright/test";
-import { AdminRole, EmailLogStatus, EmailLogType } from "@prisma/client";
+import { AdminRole, EmailLogStatus, EmailLogType } from "@/generated/prisma/client";
 
 import { createSessionToken, SESSION_COOKIE_NAME } from "../../src/lib/auth/session-token";
 import { cleanupE2eData, createAdminFixture, prisma } from "./helpers/fixtures";

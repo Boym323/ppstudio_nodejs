@@ -1,4 +1,4 @@
-import { EmailLogStatus, Prisma } from "@prisma/client";
+import { EmailLogStatus, Prisma } from "@/generated/prisma/client";
 import { randomUUID } from "node:crypto";
 
 import {

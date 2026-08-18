@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { CalendarFeedScope } from "@prisma/client";
+import { CalendarFeedScope } from "@/generated/prisma/browser";
 
 (process.env as Record<string, string | undefined>).NODE_ENV ??= "test";
 process.env.NEXT_PUBLIC_APP_NAME ??= "PP Studio";

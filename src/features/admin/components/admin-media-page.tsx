@@ -1,6 +1,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import { MediaType } from '@prisma/client';
+import { MediaType } from '@/generated/prisma/browser';
 
 import { type AdminArea } from '@/config/navigation';
 import { deleteMediaAction, updateMediaAction, uploadMediaAction } from '@/features/admin/actions/media-actions';

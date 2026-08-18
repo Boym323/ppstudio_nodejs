@@ -1,4 +1,4 @@
-import { AdminRole } from "@prisma/client";
+import { AdminRole } from "@/generated/prisma/browser";
 
 import { AdminStatePill } from "@/features/admin/components/admin-state-pill";
 import { getAdminRoleLabel } from "@/features/admin/lib/admin-user-presentation";

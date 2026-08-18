@@ -3,7 +3,7 @@ import {
   AvailabilitySlotStatus,
   BookingStatus,
   type Prisma,
-} from "@prisma/client";
+} from "@/generated/prisma/client";
 
 type MergeableSlotRecord = {
   id: string;

@@ -6,7 +6,7 @@ import {
   BookingSource,
   BookingStatus,
   Prisma,
-} from "@prisma/client";
+} from "@/generated/prisma/client";
 
 export {
   buildClientPhoneHref,

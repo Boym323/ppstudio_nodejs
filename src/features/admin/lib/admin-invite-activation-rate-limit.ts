@@ -1,4 +1,4 @@
-import { BookingSubmissionOutcome, Prisma } from "@prisma/client";
+import { BookingSubmissionOutcome, Prisma } from "@/generated/prisma/client";
 import { createHash } from "node:crypto";
 
 import { env } from "@/config/env";

@@ -1,7 +1,7 @@
 import {
   BookingActionTokenType,
   BookingStatus,
-} from "@prisma/client";
+} from "@/generated/prisma/browser";
 
 import {
   buildBookingActionExpiry,

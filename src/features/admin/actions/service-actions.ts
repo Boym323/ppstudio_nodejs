@@ -1,6 +1,6 @@
 "use server";
 
-import { ServiceChangeOperation } from "@prisma/client";
+import { ServiceChangeOperation } from "@/generated/prisma/browser";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 

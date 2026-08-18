@@ -3,7 +3,7 @@ import {
   AvailabilitySlotStatus,
   BookingStatus,
   Prisma,
-} from "@prisma/client";
+} from "@/generated/prisma/client";
 
 import { env } from "@/config/env";
 import { formatBookingDateLabel } from "@/features/booking/lib/booking-format";

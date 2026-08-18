@@ -1,7 +1,7 @@
 import {
   AvailabilitySlotServiceRestrictionMode,
   AvailabilitySlotStatus,
-} from "@prisma/client";
+} from "@/generated/prisma/browser";
 
 type BookingIntervalRecord = {
   startsAt: Date;

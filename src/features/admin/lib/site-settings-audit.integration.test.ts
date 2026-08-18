@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import test from "node:test";
 
-import { AdminRole, SiteSettingsChangeOperation } from "@prisma/client";
+import { AdminRole, SiteSettingsChangeOperation } from "@/generated/prisma/browser";
 
 process.env.DATABASE_URL ??= "postgresql://postgres:postgres@localhost:5432/ppstudio?schema=public";
 process.env.ADMIN_SESSION_SECRET ??= "test-secret-value-with-at-least-32-chars";

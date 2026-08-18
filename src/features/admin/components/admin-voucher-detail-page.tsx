@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { VoucherStatus, VoucherType } from "@prisma/client";
+import { VoucherStatus, VoucherType } from "@/generated/prisma/browser";
 
 import { AdminVoucherEmailPanel } from "@/features/admin/components/admin-voucher-email-panel";
 import { AdminVoucherOperationsPanel } from "@/features/admin/components/admin-voucher-operations-panel";

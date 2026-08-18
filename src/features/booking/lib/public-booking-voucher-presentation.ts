@@ -1,4 +1,4 @@
-import { VoucherType } from "@prisma/client";
+import { VoucherType } from "@/generated/prisma/browser";
 
 type ValidBookingVoucher = {
   code: string;

@@ -1,4 +1,4 @@
-import { CalendarFeedScope } from "@prisma/client";
+import { CalendarFeedScope } from "@/generated/prisma/browser";
 import { type NextRequest } from "next/server";
 
 import {

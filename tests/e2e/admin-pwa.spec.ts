@@ -1,7 +1,7 @@
 import { randomBytes } from "crypto";
 
 import { expect, test, type Page } from "@playwright/test";
-import { AdminRole } from "@prisma/client";
+import { AdminRole } from "@/generated/prisma/client";
 
 import { cleanupE2eData, createAdminFixture } from "./helpers/fixtures";
 

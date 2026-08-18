@@ -1,4 +1,4 @@
-import { EmailLogStatus, type Prisma } from "@prisma/client";
+import { EmailLogStatus, type Prisma } from "@/generated/prisma/client";
 
 export function isEmailDeliveryFailure(input: {
   status: EmailLogStatus;

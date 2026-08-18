@@ -1,6 +1,6 @@
 import path from 'node:path';
 
-import type { MediaAssetVisibility, MediaType } from '@prisma/client';
+import type { MediaAssetVisibility, MediaType } from '@/generated/prisma/browser';
 
 import { mediaStorageRoot } from '@/config/env';
 

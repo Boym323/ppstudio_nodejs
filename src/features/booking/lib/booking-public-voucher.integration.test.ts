@@ -10,7 +10,7 @@ import {
   EmailLogType,
   VoucherStatus,
   VoucherType,
-} from "@prisma/client";
+} from "@/generated/prisma/browser";
 
 (process.env as Record<string, string | undefined>).NODE_ENV = "test";
 process.env.NEXT_PUBLIC_APP_NAME ??= "PP Studio";

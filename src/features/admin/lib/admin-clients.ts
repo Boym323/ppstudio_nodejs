@@ -1,4 +1,4 @@
-import { BookingStatus, Prisma } from "@prisma/client";
+import { BookingStatus, Prisma } from "@/generated/prisma/client";
 
 import { type AdminArea } from "@/config/navigation";
 import {

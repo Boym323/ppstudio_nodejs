@@ -1,6 +1,6 @@
 import "server-only";
 
-import { Prisma } from "@prisma/client";
+import { Prisma } from "@/generated/prisma/client";
 
 export function isMissingInvitedAtColumnError(error: unknown) {
   if (!(error instanceof Prisma.PrismaClientKnownRequestError)) {

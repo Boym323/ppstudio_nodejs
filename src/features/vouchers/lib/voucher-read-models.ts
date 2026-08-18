@@ -1,4 +1,4 @@
-import { EmailLogType, Prisma, VoucherStatus, VoucherType } from "@prisma/client";
+import { EmailLogType, Prisma, VoucherStatus, VoucherType } from "@/generated/prisma/client";
 
 import { normalizeVoucherCode } from "@/features/vouchers/lib/voucher-code";
 import {

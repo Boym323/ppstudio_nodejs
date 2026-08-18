@@ -60,7 +60,7 @@ async function loadModules() {
       import("./booking-management"),
       import("./booking-cancellation"),
       import("./booking-action-tokens"),
-      import("@prisma/client"),
+      import("@/generated/prisma/browser"),
     ]);
 
   return {

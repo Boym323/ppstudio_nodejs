@@ -6,7 +6,7 @@ import {
   BookingActorType,
   BookingSource,
   BookingStatus,
-} from "@prisma/client";
+} from "@/generated/prisma/client";
 
 import {
   cleanupE2eData,

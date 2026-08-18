@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
 
 import { expect, test } from "@playwright/test";
-import { AdminRole } from "@prisma/client";
+import { AdminRole } from "@/generated/prisma/client";
 
 import {
   cleanupE2eData,

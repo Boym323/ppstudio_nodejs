@@ -1,6 +1,6 @@
 "use server";
 
-import { AdminRole, VoucherType } from "@prisma/client";
+import { AdminRole, VoucherType } from "@/generated/prisma/browser";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";

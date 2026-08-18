@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { VoucherStatus } from "@prisma/client";
+import { VoucherStatus } from "@/generated/prisma/browser";
 
 import { getEffectiveVoucherStatus } from "./voucher-format";
 

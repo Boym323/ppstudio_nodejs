@@ -1,4 +1,4 @@
-import { EmailLogStatus, EmailLogType, Prisma } from "@prisma/client";
+import { EmailLogStatus, EmailLogType, Prisma } from "@/generated/prisma/client";
 
 export function resolveEmailLogRecipientFromContact(input: {
   clientEmail: string | null;

@@ -2,7 +2,7 @@ import "dotenv/config";
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { AvailabilitySlotStatus } from "@prisma/client";
+import { AvailabilitySlotStatus } from "@/generated/prisma/browser";
 
 process.env.DATABASE_URL ??= "postgresql://postgres:postgres@localhost:5432/ppstudio?schema=public";
 

@@ -1,7 +1,7 @@
 import { randomBytes } from "crypto";
 
 import { expect, test, type Page } from "@playwright/test";
-import { AdminRole, AvailabilitySlotServiceRestrictionMode, AvailabilitySlotStatus } from "@prisma/client";
+import { AdminRole, AvailabilitySlotServiceRestrictionMode, AvailabilitySlotStatus } from "@/generated/prisma/client";
 
 import { getCellRangeBounds } from "../../src/features/admin/lib/admin-slots/time";
 import { hashPassword } from "../../src/lib/auth/password";

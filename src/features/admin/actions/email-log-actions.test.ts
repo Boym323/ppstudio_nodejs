@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { EmailLogStatus, EmailLogType } from "@prisma/client";
+import { EmailLogStatus, EmailLogType } from "@/generated/prisma/browser";
 
 test("resolveEmailLogRecipientFromContact prefers client email and trims whitespace", async () => {
   const { resolveEmailLogRecipientFromContact } = await import("@/features/admin/actions/email-log-action-helpers");

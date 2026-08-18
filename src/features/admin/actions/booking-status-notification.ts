@@ -1,4 +1,4 @@
-import { BookingStatus } from "@prisma/client";
+import { BookingStatus } from "@/generated/prisma/browser";
 
 import { sendOwnerBookingPushover } from "@/lib/notifications/pushover";
 

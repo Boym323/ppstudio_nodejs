@@ -1,6 +1,6 @@
 import "server-only";
 
-import { EmailLogStatus, EmailLogType, VoucherStatus } from "@prisma/client";
+import { EmailLogStatus, EmailLogType, VoucherStatus } from "@/generated/prisma/browser";
 import { z } from "zod";
 
 import { env } from "@/config/env";

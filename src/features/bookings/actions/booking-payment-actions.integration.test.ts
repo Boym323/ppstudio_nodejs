@@ -51,7 +51,7 @@ dbTest("direct payment domain handles manual and completion flows idempotently",
     import("@/lib/prisma"),
     import("../lib/booking-payment-mutations"),
     import("../lib/booking-payment"),
-    import("@prisma/client"),
+    import("@/generated/prisma/browser"),
   ]);
   const suffix = randomUUID().slice(0, 8);
   const voidedAt = new Date("2026-05-10T10:00:00.000Z");

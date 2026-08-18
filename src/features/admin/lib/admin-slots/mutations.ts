@@ -3,7 +3,7 @@ import {
   AvailabilitySlotServiceRestrictionMode,
   AvailabilitySlotStatus,
   Prisma,
-} from "@prisma/client";
+} from "@/generated/prisma/client";
 import { type AdminArea } from "@/config/navigation";
 import { prisma } from "@/lib/prisma";
 

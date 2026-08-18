@@ -1,6 +1,6 @@
 import "server-only";
 
-import { ServiceChangeOperation } from "@prisma/client";
+import { ServiceChangeOperation } from "@/generated/prisma/browser";
 
 import { runSerializableTransaction } from "@/lib/serializable-transaction";
 

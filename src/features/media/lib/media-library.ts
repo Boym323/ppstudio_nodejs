@@ -1,4 +1,4 @@
-import { MediaAssetKind, MediaAssetVisibility, MediaType } from '@prisma/client';
+import { MediaAssetKind, MediaAssetVisibility, MediaType } from '@/generated/prisma/browser';
 
 import { buildMediaPublicUrl } from '@/lib/media/media-config';
 import { localMediaStorage } from '@/lib/media/local-media-storage';

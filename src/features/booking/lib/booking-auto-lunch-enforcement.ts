@@ -1,4 +1,4 @@
-import { AvailabilitySlotStatus, BookingStatus, type Prisma } from "@prisma/client";
+import { AvailabilitySlotStatus, BookingStatus, type Prisma } from "@/generated/prisma/client";
 
 import { loadAutoLunchPolicySnapshot } from "./booking-auto-lunch-policy";
 import { getNextCalendarDate, getPragueLocalDate, resolvePragueLocalDateTime } from "./booking-local-time";

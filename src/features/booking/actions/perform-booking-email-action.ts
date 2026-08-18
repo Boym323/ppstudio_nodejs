@@ -7,7 +7,7 @@ import { type BookingEmailActionIntent } from "@/features/booking/lib/booking-ac
 import { performBookingEmailAction } from "@/features/booking/lib/booking-email-actions";
 import { requireRole } from "@/lib/auth/session";
 import { getTrustedClientIp } from "@/lib/http/trusted-client-ip";
-import { AdminRole } from "@prisma/client";
+import { AdminRole } from "@/generated/prisma/browser";
 
 function readFormString(formData: FormData, key: string) {
   const value = formData.get(key);

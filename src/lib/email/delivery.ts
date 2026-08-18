@@ -1,4 +1,4 @@
-import { EmailLogStatus, EmailLogType } from "@prisma/client";
+import { EmailLogStatus, EmailLogType } from "@/generated/prisma/browser";
 import { randomUUID } from "node:crypto";
 
 import {

@@ -1,6 +1,6 @@
 import "server-only";
 
-import { AvailabilitySlotStatus, BookingPaymentStatus, BookingStatus } from "@prisma/client";
+import { AvailabilitySlotStatus, BookingPaymentStatus, BookingStatus } from "@/generated/prisma/browser";
 
 import { getAdminSectionPath } from "@/features/admin/lib/admin-paths";
 import { getKpiDateKey, getKpiDateRanges, getKpiPercentChange, getKpiPeriodStart, getKpiExpectedRevenueRange, getKpiSeriesPeriodStarts } from "@/features/admin/lib/kpi-date-range";

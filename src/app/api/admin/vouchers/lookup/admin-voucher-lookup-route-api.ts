@@ -1,4 +1,4 @@
-import { AdminRole, VoucherType } from "@prisma/client";
+import { AdminRole, VoucherType } from "@/generated/prisma/browser";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 

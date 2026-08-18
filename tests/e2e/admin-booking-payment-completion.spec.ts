@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
 
 import { expect, test } from "@playwright/test";
-import { AdminRole, BookingStatus, VoucherStatus, VoucherType } from "@prisma/client";
+import { AdminRole, BookingStatus, VoucherStatus, VoucherType } from "@/generated/prisma/client";
 
 import {
   cleanupE2eData,

@@ -1,4 +1,4 @@
-import { AdminRole } from "@prisma/client";
+import { AdminRole } from "@/generated/prisma/browser";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 

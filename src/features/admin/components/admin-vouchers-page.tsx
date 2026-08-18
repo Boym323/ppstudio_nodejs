@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { type VoucherStatus, type VoucherType } from "@prisma/client";
+import { type VoucherStatus, type VoucherType } from "@/generated/prisma/browser";
 
 import { type AdminArea } from "@/config/navigation";
 import { AdminPageShell, AdminPanel } from "@/features/admin/components/admin-page-shell";

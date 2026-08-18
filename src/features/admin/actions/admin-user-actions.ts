@@ -1,6 +1,6 @@
 "use server";
 
-import { AdminRole, AdminUserAuditOperation } from "@prisma/client";
+import { AdminRole, AdminUserAuditOperation } from "@/generated/prisma/browser";
 import { revalidatePath } from "next/cache";
 
 import { type AdminUserResendInviteActionState } from "@/features/admin/actions/update-admin-user-resend-invite-action-state";

@@ -1,6 +1,6 @@
 import "server-only";
 
-import { AdminRole, Prisma } from "@prisma/client";
+import { AdminRole, Prisma } from "@/generated/prisma/client";
 
 import { prisma } from "@/lib/prisma";
 

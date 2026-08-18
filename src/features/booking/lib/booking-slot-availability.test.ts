@@ -4,7 +4,7 @@ import { describe, test } from "node:test";
 import {
   AvailabilitySlotServiceRestrictionMode,
   AvailabilitySlotStatus,
-} from "@prisma/client";
+} from "@/generated/prisma/browser";
 
 import {
   buildMergedPublicCatalogSlots,

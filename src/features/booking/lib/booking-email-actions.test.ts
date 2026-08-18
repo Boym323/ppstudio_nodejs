@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 
-import { BookingActionTokenType, BookingStatus } from "@prisma/client";
+import { BookingActionTokenType, BookingStatus } from "@/generated/prisma/browser";
 
 process.env.NEXT_PUBLIC_APP_NAME ??= "PP Studio";
 process.env.NEXT_PUBLIC_APP_URL ??= "https://example.com";

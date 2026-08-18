@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import { Prisma } from "@/generated/prisma/client";
 
 import { type Service } from "@/content/public-site";
 import { prisma } from "@/lib/prisma";

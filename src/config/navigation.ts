@@ -1,4 +1,4 @@
-import { AdminRole } from "@prisma/client";
+import { AdminRole } from "@/generated/prisma/browser";
 
 export const mainNavigation = [
   { href: "/", label: "Domů" },

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-import { AdminRole } from "@prisma/client";
+import { AdminRole } from "@/generated/prisma/browser";
 
 import { AdminSidebarNav } from "@/features/admin/components/admin-sidebar-nav";
 import { AdminOfflineBanner } from "@/features/pwa/admin-offline-banner";

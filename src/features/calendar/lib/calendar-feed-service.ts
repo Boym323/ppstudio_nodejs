@@ -1,4 +1,4 @@
-import { CalendarFeedScope, BookingStatus, type CalendarFeed } from "@prisma/client";
+import { CalendarFeedScope, BookingStatus, type CalendarFeed } from "@/generated/prisma/browser";
 
 import { env } from "@/config/env";
 import { prisma } from "@/lib/prisma";

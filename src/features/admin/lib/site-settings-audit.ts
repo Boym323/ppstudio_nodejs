@@ -1,6 +1,6 @@
 import "server-only";
 
-import { Prisma, SiteSettingsChangeOperation, type SiteSettings } from "@prisma/client";
+import { Prisma, SiteSettingsChangeOperation, type SiteSettings } from "@/generated/prisma/client";
 
 import { buildAuditChange, type AuditSnapshot } from "@/features/admin/lib/audit-change";
 import { runSerializableTransaction } from "@/lib/serializable-transaction";

@@ -1,6 +1,6 @@
 import "server-only";
 
-import { AdminRole, AdminUserAuditOperation } from "@prisma/client";
+import { AdminRole, AdminUserAuditOperation } from "@/generated/prisma/browser";
 
 import { env } from "@/config/env";
 import {

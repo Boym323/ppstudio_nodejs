@@ -1,4 +1,4 @@
-import { VoucherType } from "@prisma/client";
+import { VoucherType } from "@/generated/prisma/browser";
 import { createElement } from "react";
 import { render } from "react-email";
 

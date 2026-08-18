@@ -1,6 +1,6 @@
 "use client";
 
-import { BookingSource, BookingStatus } from "@prisma/client";
+import { BookingSource, BookingStatus } from "@/generated/prisma/browser";
 
 import { cn } from "@/lib/utils";
 

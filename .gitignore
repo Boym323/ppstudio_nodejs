@@ -55,3 +55,6 @@ test-results/
 
 # generated local previews
 /tmp/
+
+# Prisma client generated from prisma/schema.prisma
+/src/generated/prisma/

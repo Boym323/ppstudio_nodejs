@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 
 import fontkit from "@pdf-lib/fontkit";
-import { MediaAssetVisibility, MediaStorageProvider, VoucherType } from "@prisma/client";
+import { MediaAssetVisibility, MediaStorageProvider, VoucherType } from "@/generated/prisma/browser";
 import { PDFDocument, type PDFFont, type PDFImage, type PDFPage, rgb } from "pdf-lib";
 import QRCode from "qrcode";
 

@@ -1,6 +1,6 @@
 "use server";
 
-import { AdminRole } from "@prisma/client";
+import { AdminRole } from "@/generated/prisma/browser";
 import { revalidatePath } from "next/cache";
 
 import { type AdminArea } from "@/config/navigation";

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { AvailabilitySlotServiceRestrictionMode } from "@prisma/client";
+import { AvailabilitySlotServiceRestrictionMode } from "@/generated/prisma/browser";
 
 import {
   getAvailableDateKeysForAvailability,

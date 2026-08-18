@@ -1,6 +1,6 @@
 "use client";
 
-import { VoucherType } from "@prisma/client";
+import { VoucherType } from "@/generated/prisma/browser";
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 

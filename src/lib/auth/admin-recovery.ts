@@ -2,7 +2,7 @@ import "server-only";
 
 import { createHash } from "node:crypto";
 
-import { AdminRole, BookingSubmissionOutcome } from "@prisma/client";
+import { AdminRole, BookingSubmissionOutcome } from "@/generated/prisma/browser";
 
 import { hashPassword } from "@/lib/auth/password";
 import { prisma } from "@/lib/prisma";

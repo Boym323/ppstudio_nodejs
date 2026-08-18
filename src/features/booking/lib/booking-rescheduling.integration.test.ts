@@ -53,7 +53,7 @@ async function loadModules() {
   const [{ prisma }, bookingModule, clientModule, publicBookingModule] = await Promise.all([
     import("@/lib/prisma"),
     import("./booking-rescheduling"),
-    import("@prisma/client"),
+    import("@/generated/prisma/browser"),
     import("./booking-public"),
   ]);
 

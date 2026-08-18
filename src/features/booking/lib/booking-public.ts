@@ -2,7 +2,7 @@ import {
   BookingActorType,
   BookingSource,
   BookingStatus,
-} from "@prisma/client";
+} from "@/generated/prisma/browser";
 
 import {
   validateVoucherForBookingInput,

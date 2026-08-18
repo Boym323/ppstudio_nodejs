@@ -1,4 +1,4 @@
-import { AvailabilitySlotServiceRestrictionMode } from "@prisma/client";
+import { AvailabilitySlotServiceRestrictionMode } from "@/generated/prisma/browser";
 
 import {
   buildSlotTimeOptions,

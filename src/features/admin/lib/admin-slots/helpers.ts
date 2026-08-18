@@ -1,4 +1,4 @@
-import { AvailabilitySlotServiceRestrictionMode, AvailabilitySlotStatus, BookingStatus } from "@prisma/client";
+import { AvailabilitySlotServiceRestrictionMode, AvailabilitySlotStatus, BookingStatus } from "@/generated/prisma/browser";
 
 import { type AdminArea } from "@/config/navigation";
 

@@ -1,6 +1,6 @@
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 
-import { CalendarFeedScope, type CalendarFeed } from "@prisma/client";
+import { CalendarFeedScope, type CalendarFeed } from "@/generated/prisma/browser";
 
 import { env } from "@/config/env";
 

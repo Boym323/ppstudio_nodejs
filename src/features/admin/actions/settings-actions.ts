@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { CalendarFeedScope, SiteSettingsChangeOperation } from "@prisma/client";
+import { CalendarFeedScope, SiteSettingsChangeOperation } from "@/generated/prisma/browser";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
 

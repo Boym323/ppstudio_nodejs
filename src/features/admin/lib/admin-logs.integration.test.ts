@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import test from "node:test";
 
-import { AdminRole, BookingActorType, BookingStatus, BookingSubmissionOutcome, EmailLogStatus, EmailLogType, ServiceChangeOperation, VoucherChangeOperation, VoucherType } from "@prisma/client";
+import { AdminRole, BookingActorType, BookingStatus, BookingSubmissionOutcome, EmailLogStatus, EmailLogType, ServiceChangeOperation, VoucherChangeOperation, VoucherType } from "@/generated/prisma/browser";
 
 import { formatServicePrice } from "./admin-service-format";
 

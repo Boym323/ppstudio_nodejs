@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { VoucherStatus } from "@prisma/client";
+import { VoucherStatus } from "@/generated/prisma/browser";
 
 import { cancelVoucherAction, updateVoucherOperationalDetailsAction } from "@/features/admin/actions/voucher-actions";
 import {

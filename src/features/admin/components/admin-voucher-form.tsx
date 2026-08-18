@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { VoucherType } from "@prisma/client";
+import { VoucherType } from "@/generated/prisma/browser";
 import { useActionState, useMemo, useState } from "react";
 
 import {

@@ -1,6 +1,6 @@
 'use server';
 
-import { MediaType } from '@prisma/client';
+import { MediaType } from '@/generated/prisma/browser';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 

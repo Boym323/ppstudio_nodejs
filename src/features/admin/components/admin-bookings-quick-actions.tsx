@@ -1,6 +1,6 @@
 "use client";
 
-import { BookingStatus } from "@prisma/client";
+import { BookingStatus } from "@/generated/prisma/browser";
 import Link from "next/link";
 import { useActionState, useEffect, useRef } from "react";
 import { useFormStatus } from "react-dom";

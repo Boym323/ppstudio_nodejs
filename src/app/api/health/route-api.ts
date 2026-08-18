@@ -1,4 +1,4 @@
-import { EmailLogStatus } from "@prisma/client";
+import { EmailLogStatus } from "@/generated/prisma/browser";
 import packageJson from "../../../../package.json";
 
 import { sendOwnerSystemErrorPushover } from "@/lib/notifications/pushover";

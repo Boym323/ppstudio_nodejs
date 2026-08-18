@@ -1,7 +1,7 @@
 import { randomBytes } from "crypto";
 
 import { expect, test, type Page } from "@playwright/test";
-import { AdminRole } from "@prisma/client";
+import { AdminRole } from "@/generated/prisma/client";
 
 import { createSessionToken, SESSION_COOKIE_NAME } from "../../src/lib/auth/session-token";
 import { cleanupE2eData, createAdminFixture, prisma } from "./helpers/fixtures";

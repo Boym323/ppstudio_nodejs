@@ -1,4 +1,4 @@
-import { Prisma, type VoucherStatus, type VoucherType } from "@prisma/client";
+import { Prisma, type VoucherStatus, type VoucherType } from "@/generated/prisma/client";
 
 import { type AdminArea } from "@/config/navigation";
 import { getVoucherDetail, listVouchers } from "@/features/vouchers/lib/voucher-read-models";

@@ -1,6 +1,6 @@
 "use server";
 
-import { BookingActorType, BookingStatus, EmailLogStatus, Prisma } from "@prisma/client";
+import { BookingActorType, BookingStatus, EmailLogStatus, Prisma } from "@/generated/prisma/client";
 import { revalidatePath } from "next/cache";
 
 import { type AdminArea } from "@/config/navigation";

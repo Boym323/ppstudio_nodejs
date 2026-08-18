@@ -12,7 +12,7 @@ import {
   BookingStatus,
   VoucherStatus,
   VoucherType,
-} from "@prisma/client";
+} from "@/generated/prisma/client";
 
 import {
   buildBookingActionExpiry,

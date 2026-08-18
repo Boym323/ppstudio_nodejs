@@ -1,6 +1,6 @@
 "use server";
 
-import { AdminRole, BookingPaymentMethod } from "@prisma/client";
+import { AdminRole, BookingPaymentMethod } from "@/generated/prisma/browser";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 

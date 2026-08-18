@@ -1,4 +1,4 @@
-import { VoucherType } from "@prisma/client";
+import { VoucherType } from "@/generated/prisma/browser";
 
 import type { AdminBookingDetailData } from "@/features/admin/lib/admin-booking";
 

@@ -1,6 +1,6 @@
 import "server-only";
 
-import { AdminRole } from "@prisma/client";
+import { AdminRole } from "@/generated/prisma/browser";
 
 import { hashAdminInviteToken } from "@/features/admin/lib/admin-invite-token";
 import { findAdminInviteTokenWithUserByHash } from "@/features/admin/lib/admin-invite-token-db";

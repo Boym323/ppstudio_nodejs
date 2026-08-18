@@ -2,7 +2,7 @@ import {
   AdminRole,
   EmailIncidentManualResolutionReason,
   type PrismaClient,
-} from "@prisma/client";
+} from "@/generated/prisma/client";
 
 import { prisma } from "@/lib/prisma";
 import { getEmailDeliveryIncidentRootWhere } from "@/lib/email/incidents";

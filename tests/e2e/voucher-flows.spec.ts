@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { AdminRole } from "@prisma/client";
+import { AdminRole } from "@/generated/prisma/client";
 import { readFile } from "node:fs/promises";
 
 import {

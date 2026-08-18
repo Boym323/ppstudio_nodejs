@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import { AdminRole } from "@prisma/client";
+import { AdminRole } from "@/generated/prisma/browser";
 
 import { type AdminArea, getAdminNavigation } from "@/config/navigation";
 import { cn } from "@/lib/utils";

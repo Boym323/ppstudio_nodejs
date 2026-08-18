@@ -1,4 +1,4 @@
-import { AdminRole, BookingActorType, BookingPaymentMethod, Prisma } from "@prisma/client";
+import { AdminRole, BookingActorType, BookingPaymentMethod, Prisma } from "@/generated/prisma/client";
 import { z } from "zod";
 
 import { type AdminArea } from "@/config/navigation";

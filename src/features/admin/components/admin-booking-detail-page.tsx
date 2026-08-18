@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { VoucherType } from "@prisma/client";
+import { VoucherType } from "@/generated/prisma/browser";
 
 import { type AdminBookingDetailData } from "@/features/admin/lib/admin-booking";
 import { getAdminSectionPath } from "@/features/admin/lib/admin-paths";

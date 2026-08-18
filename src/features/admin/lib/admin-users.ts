@@ -1,6 +1,6 @@
 import "server-only";
 
-import { AdminRole } from "@prisma/client";
+import { AdminRole } from "@/generated/prisma/browser";
 
 import { isMissingInvitedAtColumnError } from "@/features/admin/lib/admin-user-db";
 import { type AdminAccountStatus } from "@/features/admin/lib/admin-user-presentation";

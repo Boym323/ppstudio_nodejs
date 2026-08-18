@@ -1,4 +1,4 @@
-import { AdminRole } from "@prisma/client";
+import { AdminRole } from "@/generated/prisma/browser";
 
 import { env } from "@/config/env";
 import { formatBookingCalendarDate, formatBookingTimeRange } from "@/features/booking/lib/booking-format";

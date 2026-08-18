@@ -10,7 +10,7 @@ import {
   EmailIncidentResolutionKind,
   EmailLogStatus,
   EmailLogType,
-} from "@prisma/client";
+} from "@/generated/prisma/browser";
 
 import { getUnresolvedEmailDeliveryFailureWhere, getUnresolvedEmailDeliveryIncidentRootWhere } from "./incidents";
 

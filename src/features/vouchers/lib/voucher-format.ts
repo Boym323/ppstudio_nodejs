@@ -1,4 +1,4 @@
-import { VoucherStatus, VoucherType } from "@prisma/client";
+import { VoucherStatus, VoucherType } from "@/generated/prisma/browser";
 
 const czkFormatter = new Intl.NumberFormat("cs-CZ", {
   maximumFractionDigits: 0,

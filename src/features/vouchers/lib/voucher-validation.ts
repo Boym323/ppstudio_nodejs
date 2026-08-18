@@ -1,4 +1,4 @@
-import { VoucherStatus, VoucherType } from "@prisma/client";
+import { VoucherStatus, VoucherType } from "@/generated/prisma/browser";
 
 import { normalizeVoucherCode } from "@/features/vouchers/lib/voucher-code";
 import {

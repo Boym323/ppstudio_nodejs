@@ -1,4 +1,4 @@
-import { AvailabilitySlotServiceRestrictionMode, AvailabilitySlotStatus } from "@prisma/client";
+import { AvailabilitySlotServiceRestrictionMode, AvailabilitySlotStatus } from "@/generated/prisma/browser";
 
 import { prisma } from "@/lib/prisma";
 import { getBookingPolicySettings } from "@/lib/site-settings";

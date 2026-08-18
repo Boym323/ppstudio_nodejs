@@ -1,4 +1,4 @@
-import { BookingStatus } from "@prisma/client";
+import { BookingStatus } from "@/generated/prisma/browser";
 import Link from "next/link";
 import { type ReactNode } from "react";
 

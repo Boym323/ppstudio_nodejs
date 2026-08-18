@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { VoucherType } from "@prisma/client";
+import { VoucherType } from "@/generated/prisma/browser";
 import { headers } from "next/headers";
 import Link from "next/link";
 

@@ -1,6 +1,6 @@
 "use server";
 
-import { BookingSubmissionOutcome, Prisma } from "@prisma/client";
+import { BookingSubmissionOutcome, Prisma } from "@/generated/prisma/client";
 import { createHash, randomUUID } from "node:crypto";
 import { cookies, headers } from "next/headers";
 import { z } from "zod";

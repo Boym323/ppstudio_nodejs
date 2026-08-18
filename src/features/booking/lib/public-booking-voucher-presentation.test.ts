@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { VoucherType } from "@prisma/client";
+import { VoucherType } from "@/generated/prisma/browser";
 
 import { toPublicBookingVoucherValidationSuccess } from "./public-booking-voucher-presentation";
 

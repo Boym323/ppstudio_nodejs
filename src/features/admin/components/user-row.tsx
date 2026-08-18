@@ -2,7 +2,7 @@
 
 import { startTransition, useRef, useState } from "react";
 
-import { AdminRole } from "@prisma/client";
+import { AdminRole } from "@/generated/prisma/browser";
 
 import {
   changeAdminUserRoleAction,

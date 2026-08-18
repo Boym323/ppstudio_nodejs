@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import test from "node:test";
 
-import { AvailabilitySlotStatus } from "@prisma/client";
+import { AvailabilitySlotStatus } from "@/generated/prisma/browser";
 
 import { resolvePragueLocalDateTime } from "./booking-local-time";
 

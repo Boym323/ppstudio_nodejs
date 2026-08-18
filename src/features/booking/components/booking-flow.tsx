@@ -1,6 +1,6 @@
 "use client";
 
-import { AvailabilitySlotServiceRestrictionMode } from "@prisma/client";
+import { AvailabilitySlotServiceRestrictionMode } from "@/generated/prisma/browser";
 import { useActionState, useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject } from "react";
 
 import { createPublicBookingAction } from "@/features/booking/actions/create-public-booking";

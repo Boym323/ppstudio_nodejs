@@ -3,7 +3,7 @@
 import { type ReactNode } from "react";
 import { useActionState, useMemo, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
-import { VoucherType } from "@prisma/client";
+import { VoucherType } from "@/generated/prisma/browser";
 
 import {
   completeBookingVisitAction,

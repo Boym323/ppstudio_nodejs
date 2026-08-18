@@ -1,4 +1,4 @@
-import type { AdminRole } from "@prisma/client";
+import type { AdminRole } from "@/generated/prisma/browser";
 import { SignJWT, jwtVerify } from "jose";
 
 const SESSION_COOKIE_NAME = "ppstudio-admin-session";

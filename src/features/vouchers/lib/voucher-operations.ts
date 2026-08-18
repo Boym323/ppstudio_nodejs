@@ -1,4 +1,4 @@
-import { Prisma, VoucherChangeOperation, VoucherStatus } from "@prisma/client";
+import { Prisma, VoucherChangeOperation, VoucherStatus } from "@/generated/prisma/client";
 
 import { runSerializableTransaction } from "@/lib/serializable-transaction";
 

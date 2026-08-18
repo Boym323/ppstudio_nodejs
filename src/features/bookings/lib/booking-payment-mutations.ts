@@ -1,6 +1,6 @@
 import "server-only";
 
-import { BookingActorType } from "@prisma/client";
+import { BookingActorType } from "@/generated/prisma/browser";
 
 import { prisma } from "@/lib/prisma";
 

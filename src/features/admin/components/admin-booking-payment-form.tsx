@@ -1,6 +1,6 @@
 "use client";
 
-import { BookingPaymentMethod } from "@prisma/client";
+import { BookingPaymentMethod } from "@/generated/prisma/browser";
 import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 

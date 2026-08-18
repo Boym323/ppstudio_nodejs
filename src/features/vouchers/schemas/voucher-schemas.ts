@@ -1,4 +1,4 @@
-import { VoucherType } from "@prisma/client";
+import { VoucherType } from "@/generated/prisma/browser";
 import { z } from "zod";
 
 import { optionalVoucherValidityDate } from "@/features/vouchers/lib/voucher-validity-date";

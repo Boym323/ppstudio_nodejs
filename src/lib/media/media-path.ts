@@ -1,6 +1,6 @@
 import path from 'node:path';
 
-import { MediaAssetVisibility } from '@prisma/client';
+import { MediaAssetVisibility } from '@/generated/prisma/browser';
 
 import { getMediaVisibilityRoot } from '@/lib/media/media-config';
 

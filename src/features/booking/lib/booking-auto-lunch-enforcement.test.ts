@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { AvailabilitySlotStatus } from "@prisma/client";
+import { AvailabilitySlotStatus } from "@/generated/prisma/browser";
 
 
 process.env.NEXT_PUBLIC_APP_NAME ??= "PP Studio";

@@ -1,6 +1,6 @@
 "use server";
 
-import { EmailIncidentManualResolutionReason, EmailLogStatus } from "@prisma/client";
+import { EmailIncidentManualResolutionReason, EmailLogStatus } from "@/generated/prisma/browser";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";

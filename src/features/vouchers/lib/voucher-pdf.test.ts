@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { MediaAssetVisibility, MediaStorageProvider, VoucherStatus, VoucherType } from "@prisma/client";
+import { MediaAssetVisibility, MediaStorageProvider, VoucherStatus, VoucherType } from "@/generated/prisma/browser";
 import { PDFDocument } from "pdf-lib";
 
 process.env.NEXT_PUBLIC_APP_NAME ??= "PP Studio";

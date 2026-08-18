@@ -12,7 +12,7 @@ const dbTest = process.env.RUN_DB_INTEGRATION_TESTS === "1" ? test : test.skip;
 async function loadModules() {
   const [prismaModule, prismaClientModule, tokenModule, inviteModule, actionModule] = await Promise.all([
     import("@/lib/prisma"),
-    import("@prisma/client"),
+    import("@/generated/prisma/browser"),
     import("@/features/admin/lib/admin-invite-token-db"),
     import("@/features/admin/lib/admin-invite-token"),
     import("./activate-admin-invite-action"),

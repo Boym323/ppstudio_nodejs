@@ -1,4 +1,4 @@
-import { MediaAssetVisibility, MediaType } from '@prisma/client';
+import { MediaAssetVisibility, MediaType } from '@/generated/prisma/browser';
 
 export { MediaAssetVisibility, MediaType };
 

@@ -1,7 +1,7 @@
 import path from 'node:path';
 import { mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 
-import type { MediaAssetVisibility, MediaType } from '@prisma/client';
+import type { MediaAssetVisibility, MediaType } from '@/generated/prisma/browser';
 
 import {
   buildMediaStoragePath,

@@ -1,4 +1,4 @@
-import { MediaType } from '@prisma/client';
+import { MediaType } from '@/generated/prisma/browser';
 
 import { getPublicMediaAssetByPath } from '@/features/media/lib/media-asset-repository';
 

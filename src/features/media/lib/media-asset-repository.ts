@@ -1,4 +1,4 @@
-import { MediaAssetVisibility, type MediaType, type Prisma } from '@prisma/client';
+import { MediaAssetVisibility, type MediaType, type Prisma } from '@/generated/prisma/client';
 
 import { prisma } from '@/lib/prisma';
 

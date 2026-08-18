@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import test, { after, before, describe } from "node:test";
 
-import { AdminRole, VoucherStatus, VoucherType } from "@prisma/client";
+import { AdminRole, VoucherStatus, VoucherType } from "@/generated/prisma/browser";
 
 process.env.NEXT_PUBLIC_APP_NAME ??= "PP Studio";
 process.env.NEXT_PUBLIC_APP_URL ??= "https://example.com";

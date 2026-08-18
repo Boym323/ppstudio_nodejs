@@ -8,7 +8,7 @@ import {
   EmailLogStatus,
   EmailLogType,
   Prisma,
-} from "@prisma/client";
+} from "@/generated/prisma/client";
 
 import { env } from "@/config/env";
 import { getAdminBookingHref, getBookingStatusLabel } from "@/features/admin/lib/admin-booking";

@@ -1,4 +1,4 @@
-import { BookingPaymentMethod, BookingPaymentStatus as BookingPaymentRecordStatus } from "@prisma/client";
+import { BookingPaymentMethod, BookingPaymentStatus as BookingPaymentRecordStatus } from "@/generated/prisma/browser";
 
 export type BookingPaymentStatus =
   | "UNPAID"

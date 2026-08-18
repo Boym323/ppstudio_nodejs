@@ -1,4 +1,4 @@
-import { Prisma, VoucherStatus, VoucherType } from "@prisma/client";
+import { Prisma, VoucherStatus, VoucherType } from "@/generated/prisma/client";
 
 import { generateVoucherCode } from "@/features/vouchers/lib/voucher-code";
 import { redeemVoucherForBooking } from "@/features/vouchers/lib/voucher-redemption";

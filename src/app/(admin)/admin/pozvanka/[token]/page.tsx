@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { AdminRole } from "@prisma/client";
+import { AdminRole } from "@/generated/prisma/browser";
 
 import { AdminInviteActivationForm } from "@/features/admin/components/admin-invite-activation-form";
 import { getAdminInvitePageState } from "@/features/admin/lib/admin-invite";

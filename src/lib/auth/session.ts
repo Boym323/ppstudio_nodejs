@@ -1,4 +1,4 @@
-import { AdminRole } from "@prisma/client";
+import { AdminRole } from "@/generated/prisma/browser";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
