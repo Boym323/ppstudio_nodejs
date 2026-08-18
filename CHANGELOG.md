@@ -6,6 +6,10 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+### Změněno
+
+- Databázové integrační testy už v CI neběží duplicitně, E2E shardy znovu používají cache Playwright browseru a zaseknutý produkční build skončí v samostatném časovém limitu.
+
 ## [3.22.3] - 2026-08-18
 
 ### Opraveno

@@ -181,6 +181,7 @@ jobs:
           npm run db:generate
 
       - name: Build
+        timeout-minutes: 10
         run: npm run build
 
   e2e:
@@ -213,6 +214,12 @@ jobs:
           node-version: 24
           cache: npm
 
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}
+
       - name: Install dependencies
         run: npm ci
 
@@ -225,6 +232,7 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Build
+        timeout-minutes: 10
         run: npm run build
 
       - name: E2E Chromium (shard 1/2)
@@ -268,6 +276,12 @@ jobs:
           node-version: 24
           cache: npm
 
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}
+
       - name: Install dependencies
         run: npm ci
 
@@ -280,6 +294,7 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Build
+        timeout-minutes: 10
         run: npm run build
 
       - name: E2E Chromium (shard 2/2)
@@ -323,6 +338,12 @@ jobs:
           node-version: 24
           cache: npm
 
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}
+
       - name: Install dependencies
         run: npm ci
 
@@ -335,6 +356,7 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Build
+        timeout-minutes: 10
         run: npm run build
 
       - name: E2E mobile Chrome (shard 1/2)
@@ -378,6 +400,12 @@ jobs:
           node-version: 24
           cache: npm
 
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}
+
       - name: Install dependencies
         run: npm ci
 
@@ -390,6 +418,7 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Build
+        timeout-minutes: 10
         run: npm run build
 
       - name: E2E mobile Chrome (shard 2/2)
