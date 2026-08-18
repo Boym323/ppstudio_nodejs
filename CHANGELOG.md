@@ -8,7 +8,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
-- Databázové integrační testy už v CI neběží duplicitně, E2E shardy znovu používají cache Playwright browseru a zaseknutý produkční build skončí v samostatném časovém limitu.
+- Databázové integrační testy už v CI neběží duplicitně a zaseknutý produkční build skončí v samostatném časovém limitu.
+- CI nyní hledá unit testy přes Node.js, Playwright browser instaluje přímo v každém E2E shardu a sdílí jeden E2E build přes artifact.
 
 ## [3.22.3] - 2026-08-18
 

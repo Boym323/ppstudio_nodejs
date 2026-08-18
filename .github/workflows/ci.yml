@@ -126,7 +126,6 @@ jobs:
       - name: Prepare database
         run: |
           npx prisma migrate deploy
-          npm run db:generate
 
       - name: Test unit layer with coverage and DB integrations
         run: npm run test:ci
@@ -184,8 +183,56 @@ jobs:
         timeout-minutes: 10
         run: npm run build
 
+  e2e-build:
+    name: e2e build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: ppstudio
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d ppstudio"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Prepare database
+        run: npx prisma migrate deploy
+
+      - name: Build E2E distribution
+        timeout-minutes: 10
+        run: npm run pretest:e2e
+
+      - name: Upload E2E distribution
+        uses: actions/upload-artifact@v7
+        with:
+          name: next-e2e-build
+          path: .next-e2e/
+          retention-days: 1
+
   e2e:
     name: e2e
+    needs: e2e-build
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -214,14 +261,14 @@ jobs:
           node-version: 24
           cache: npm
 
-      - name: Cache Playwright browsers
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/ms-playwright
-          key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}
-
       - name: Install dependencies
         run: npm ci
+
+      - name: Download E2E distribution
+        uses: actions/download-artifact@v7
+        with:
+          name: next-e2e-build
+          path: .next-e2e
 
       - name: Prepare database
         run: |
@@ -231,12 +278,8 @@ jobs:
       - name: Install Playwright Chromium
         run: npx playwright install --with-deps chromium
 
-      - name: Build
-        timeout-minutes: 10
-        run: npm run build
-
       - name: E2E Chromium (shard 1/2)
-        run: npx playwright test --fully-parallel --project=chromium --shard=1/2
+        run: PPSTUDIO_NEXT_DIST_DIR=.next-e2e npx playwright test --fully-parallel --project=chromium --shard=1/2
 
       - name: Upload Playwright report
         if: always() && hashFiles('playwright-report/**') != ''
@@ -276,14 +319,14 @@ jobs:
           node-version: 24
           cache: npm
 
-      - name: Cache Playwright browsers
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/ms-playwright
-          key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}
-
       - name: Install dependencies
         run: npm ci
+
+      - name: Download E2E distribution
+        uses: actions/download-artifact@v7
+        with:
+          name: next-e2e-build
+          path: .next-e2e
 
       - name: Prepare database
         run: |
@@ -293,12 +336,8 @@ jobs:
       - name: Install Playwright Chromium
         run: npx playwright install --with-deps chromium
 
-      - name: Build
-        timeout-minutes: 10
-        run: npm run build
-
       - name: E2E Chromium (shard 2/2)
-        run: npx playwright test --fully-parallel --project=chromium --shard=2/2
+        run: PPSTUDIO_NEXT_DIST_DIR=.next-e2e npx playwright test --fully-parallel --project=chromium --shard=2/2
 
       - name: Upload Playwright report
         if: always() && hashFiles('playwright-report/**') != ''
@@ -338,14 +377,14 @@ jobs:
           node-version: 24
           cache: npm
 
-      - name: Cache Playwright browsers
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/ms-playwright
-          key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}
-
       - name: Install dependencies
         run: npm ci
+
+      - name: Download E2E distribution
+        uses: actions/download-artifact@v7
+        with:
+          name: next-e2e-build
+          path: .next-e2e
 
       - name: Prepare database
         run: |
@@ -355,12 +394,8 @@ jobs:
       - name: Install Playwright Chromium
         run: npx playwright install --with-deps chromium
 
-      - name: Build
-        timeout-minutes: 10
-        run: npm run build
-
       - name: E2E mobile Chrome (shard 1/2)
-        run: npx playwright test --fully-parallel --project=mobile-chrome --shard=1/2
+        run: PPSTUDIO_NEXT_DIST_DIR=.next-e2e npx playwright test --fully-parallel --project=mobile-chrome --shard=1/2
 
       - name: Upload Playwright report
         if: always() && hashFiles('playwright-report/**') != ''
@@ -400,14 +435,14 @@ jobs:
           node-version: 24
           cache: npm
 
-      - name: Cache Playwright browsers
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/ms-playwright
-          key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}
-
       - name: Install dependencies
         run: npm ci
+
+      - name: Download E2E distribution
+        uses: actions/download-artifact@v7
+        with:
+          name: next-e2e-build
+          path: .next-e2e
 
       - name: Prepare database
         run: |
@@ -417,12 +452,8 @@ jobs:
       - name: Install Playwright Chromium
         run: npx playwright install --with-deps chromium
 
-      - name: Build
-        timeout-minutes: 10
-        run: npm run build
-
       - name: E2E mobile Chrome (shard 2/2)
-        run: npx playwright test --fully-parallel --project=mobile-chrome --shard=2/2
+        run: PPSTUDIO_NEXT_DIST_DIR=.next-e2e npx playwright test --fully-parallel --project=mobile-chrome --shard=2/2
 
       - name: Upload Playwright report
         if: always() && hashFiles('playwright-report/**') != ''
