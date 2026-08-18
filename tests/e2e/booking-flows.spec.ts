@@ -472,8 +472,11 @@ test.describe("booking flows", () => {
     await expect(page.getByText(fixture.serviceName).first()).toBeVisible();
 
     await expect.poll(
-      () => matomoRequests.filter((request) => request.params.url === `/rezervace?service=${fixture.serviceSlug}`).length,
-    ).toBeGreaterThanOrEqual(3);
+      () => matomoRequests
+        .filter((request) => request.params.url === `/rezervace?service=${fixture.serviceSlug}`)
+        .filter((request) => request.params.e_a)
+        .map((request) => request.params.e_a),
+    ).toEqual(expect.arrayContaining(["Rezervace zahájena", "Služba vybrána"]));
 
     const bookingRequests = matomoRequests.filter(
       (request) => request.params.url === `/rezervace?service=${fixture.serviceSlug}`,
@@ -565,7 +568,9 @@ test.describe("booking flows", () => {
   });
 
   test("conflict refresh revalidates a voucher before the visitor can submit a new term", async ({ browser }) => {
-    test.setTimeout(60_000);
+    // Dvě nezávislé relace zde záměrně provádějí několik serverových akcí
+    // včetně předepsaného zpoždění pro reprodukci konfliktu.
+    test.setTimeout(90_000);
 
     const fixture = await createPublicBookingFixture();
     const voucherFixture = await createPublicVoucherFixture();
