@@ -94,7 +94,10 @@ async function findMergeableSlotById(tx: Prisma.TransactionClient, slotId: strin
   return tx.availabilitySlot.findFirst({
     where: {
       id: slotId,
-      ...restorableCancelledSlotWhere,
+      ...mergeableEditableSlotConstraints,
+      status: {
+        in: [AvailabilitySlotStatus.PUBLISHED, AvailabilitySlotStatus.ARCHIVED],
+      },
     },
     select: mergeableEditableSlotSelect,
   });

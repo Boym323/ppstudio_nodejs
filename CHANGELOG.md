@@ -6,6 +6,10 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+### Opraveno
+
+- Storno rezervace nyní nesloučí termín s vlastním omezením služby nebo jinou kapacitou se sousedním běžným intervalem.
+
 ## [3.22.5] - 2026-08-19
 
 ### Opraveno

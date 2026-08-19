@@ -930,6 +930,145 @@ describe("cancel booking flow", () => {
     }
   });
 
+  dbTest("cancellation does not compact a SELECTED slot with an adjacent ANY slot", async () => {
+    const seed = await createSeed();
+    const { prisma, cancelPublicBookingByToken, AvailabilitySlotStatus } = await loadModules();
+    let adjacentSlotId: string | null = null;
+
+    try {
+      const slot = await prisma.availabilitySlot.findUniqueOrThrow({
+        where: { id: seed.manageableCurrentSlotId },
+        select: { startsAt: true, endsAt: true },
+      });
+
+      await prisma.availabilitySlot.update({
+        where: { id: seed.manageableCurrentSlotId },
+        data: {
+          serviceRestrictionMode: "SELECTED",
+          allowedServices: { create: { serviceId: seed.serviceId } },
+        },
+      });
+      const adjacentSlot = await prisma.availabilitySlot.create({
+        data: {
+          startsAt: slot.endsAt,
+          endsAt: addHours(slot.endsAt, 0.5),
+          capacity: 1,
+          status: AvailabilitySlotStatus.PUBLISHED,
+          serviceRestrictionMode: "ANY",
+          publishedAt: new Date(),
+          createdByUserId: seed.actorUserId,
+        },
+        select: { id: true },
+      });
+      adjacentSlotId = adjacentSlot.id;
+
+      const result = await cancelPublicBookingByToken(seed.cancelTokenRaw);
+
+      assert.equal(result.status, "cancelled");
+      const slots = await prisma.availabilitySlot.findMany({
+        where: { id: { in: [seed.manageableCurrentSlotId, adjacentSlot.id] } },
+        orderBy: { startsAt: "asc" },
+        select: { id: true, startsAt: true, endsAt: true, serviceRestrictionMode: true },
+      });
+
+      assert.deepEqual(slots, [
+        {
+          id: seed.manageableCurrentSlotId,
+          startsAt: slot.startsAt,
+          endsAt: slot.endsAt,
+          serviceRestrictionMode: "SELECTED",
+        },
+        {
+          id: adjacentSlot.id,
+          startsAt: slot.endsAt,
+          endsAt: addHours(slot.endsAt, 0.5),
+          serviceRestrictionMode: "ANY",
+        },
+      ]);
+    } finally {
+      if (adjacentSlotId) {
+        await prisma.availabilitySlot.deleteMany({ where: { id: adjacentSlotId } });
+      }
+      await cleanupSeed(seed);
+    }
+  });
+
+  dbTest("cancellation does not compact a capacity-2 slot with an adjacent capacity-1 slot", async () => {
+    const seed = await createSeed();
+    const { prisma, cancelPublicBookingByToken, AvailabilitySlotStatus } = await loadModules();
+    let adjacentSlotId: string | null = null;
+    let capacityConstraintRemoved = false;
+
+    try {
+      const slot = await prisma.availabilitySlot.findUniqueOrThrow({
+        where: { id: seed.manageableCurrentSlotId },
+        select: { startsAt: true, endsAt: true },
+      });
+
+      // Produkční schéma správně vynucuje kapacitu 1. Pro regresi selektoru
+      // nasimulujeme historický nekonzistentní slot, který opravovaný kód musí
+      // bezpečně odmítnout i při ručním zásahu do dat.
+      await prisma.$executeRawUnsafe(
+        'ALTER TABLE "AvailabilitySlot" DROP CONSTRAINT "AvailabilitySlot_capacity_one"',
+      );
+      capacityConstraintRemoved = true;
+      await prisma.availabilitySlot.update({
+        where: { id: seed.manageableCurrentSlotId },
+        data: { capacity: 2 },
+      });
+      const adjacentSlot = await prisma.availabilitySlot.create({
+        data: {
+          startsAt: slot.endsAt,
+          endsAt: addHours(slot.endsAt, 0.5),
+          capacity: 1,
+          status: AvailabilitySlotStatus.PUBLISHED,
+          serviceRestrictionMode: "ANY",
+          publishedAt: new Date(),
+          createdByUserId: seed.actorUserId,
+        },
+        select: { id: true },
+      });
+      adjacentSlotId = adjacentSlot.id;
+
+      const result = await cancelPublicBookingByToken(seed.cancelTokenRaw);
+
+      assert.equal(result.status, "cancelled");
+      const slots = await prisma.availabilitySlot.findMany({
+        where: { id: { in: [seed.manageableCurrentSlotId, adjacentSlot.id] } },
+        orderBy: { startsAt: "asc" },
+        select: { id: true, startsAt: true, endsAt: true, capacity: true },
+      });
+
+      assert.deepEqual(slots, [
+        {
+          id: seed.manageableCurrentSlotId,
+          startsAt: slot.startsAt,
+          endsAt: slot.endsAt,
+          capacity: 2,
+        },
+        {
+          id: adjacentSlot.id,
+          startsAt: slot.endsAt,
+          endsAt: addHours(slot.endsAt, 0.5),
+          capacity: 1,
+        },
+      ]);
+    } finally {
+      try {
+        if (adjacentSlotId) {
+          await prisma.availabilitySlot.deleteMany({ where: { id: adjacentSlotId } });
+        }
+        await cleanupSeed(seed);
+      } finally {
+        if (capacityConstraintRemoved) {
+          await prisma.$executeRawUnsafe(
+            'ALTER TABLE "AvailabilitySlot" ADD CONSTRAINT "AvailabilitySlot_capacity_one" CHECK ("capacity" = 1)',
+          );
+        }
+      }
+    }
+  });
+
   dbTest("cancellation restores the unblocked part of an archived slot", async () => {
     const seed = await createSeed();
     const { prisma, cancelPublicBookingByToken, AvailabilitySlotStatus } = await loadModules();
