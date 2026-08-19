@@ -6,6 +6,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [3.22.4] - 2026-08-19
+
 ### Opraveno
 
 - Pracovní seznam rezervací nyní u položek v pohledu „Pozornost“ zobrazuje vedle času také datum termínu, takže lze rozlišit dnešní a budoucí rezervace.
