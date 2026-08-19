@@ -20,10 +20,7 @@ import {
   updateAdminBookingService,
 
 } from "@/features/admin/lib/admin-booking";
-import {
-
-  getBookingStatusLabel,
-} from "@/features/admin/lib/booking/booking-display";
+import { getBookingStatusLabel } from "@/features/booking/lib/booking-status-presentation";
 import {
 
 
@@ -198,4 +195,3 @@ export async function updateBookingServiceAction(
       + keptPriceNotice,
   };
 }
-

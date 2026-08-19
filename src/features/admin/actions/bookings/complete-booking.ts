@@ -20,10 +20,7 @@ import {
 
 
 } from "@/features/admin/lib/admin-booking";
-import {
-
-  getBookingStatusLabel,
-} from "@/features/admin/lib/booking/booking-display";
+import { getBookingStatusLabel } from "@/features/booking/lib/booking-status-presentation";
 import {
   canApplyAdminBookingTransition,
   canCompleteBookingAt,
@@ -444,4 +441,3 @@ export async function completeBookingVisitAction(
         : "Úhrada je zapsaná a návštěva dokončená.",
   };
 }
-

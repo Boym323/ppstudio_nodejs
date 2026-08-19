@@ -11,8 +11,8 @@ import {
 import {
   getAdminBookingHref,
   getBookingSourceLabel,
-  getBookingStatusLabel,
 } from "@/features/admin/lib/booking/booking-display";
+import { getBookingStatusLabel } from "@/features/booking/lib/booking-status-presentation";
 import {
   getClientCrmSummary,
   type ClientCrmSummary,

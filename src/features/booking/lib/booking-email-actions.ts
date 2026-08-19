@@ -11,7 +11,6 @@ import {
 } from "@/generated/prisma/client";
 
 import { env } from "@/config/env";
-import { getAdminBookingHref, getBookingStatusLabel } from "@/features/admin/lib/booking/booking-display";
 import {
   buildBookingActionExpiry,
   buildBookingActionToken,
@@ -21,6 +20,7 @@ import {
   hashBookingActionToken,
 } from "@/features/booking/lib/booking-action-tokens";
 import { formatBookingDateLabel } from "@/features/booking/lib/booking-format";
+import { getBookingStatusLabel } from "@/features/booking/lib/booking-status-presentation";
 import { sendOwnerBookingPushover } from "@/lib/notifications/pushover";
 import { prisma } from "@/lib/prisma";
 
@@ -143,7 +143,7 @@ function getActionCopy(intent: BookingEmailActionIntent) {
 }
 
 function getAdminDetailUrl(bookingId: string) {
-  return `${env.NEXT_PUBLIC_APP_URL}${getAdminBookingHref("owner", bookingId)}`;
+  return `${env.NEXT_PUBLIC_APP_URL}/admin/rezervace/${bookingId}`;
 }
 
 function getAdminOverviewUrl() {

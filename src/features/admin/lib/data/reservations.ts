@@ -1,11 +1,12 @@
 import { BookingSource, BookingStatus, Prisma } from "@/generated/prisma/client";
 
 import type { AdminArea } from "@/config/navigation";
-import { getAdminBookingActionOptions, getAdminBookingHref, getBookingStatusLabel } from "@/features/admin/lib/booking/booking-display";
+import { getAdminBookingActionOptions, getAdminBookingHref } from "@/features/admin/lib/booking/booking-display";
 import { bookingListSearchParamsSchema, type BookingListSourceValue, type BookingListStatusValue, type BookingListViewValue } from "@/features/admin/lib/admin-booking-list-validation";
 import { addDays, formatDateKey, getDayBounds } from "@/features/admin/lib/admin-slots/time";
 import { getAdminBookingAvailabilityCatalog } from "@/features/booking/lib/booking-admin-availability";
 import { buildClientPhoneHref, formatClientPhoneForDisplay } from "@/features/booking/lib/client-phone";
+import { getBookingStatusLabel } from "@/features/booking/lib/booking-status-presentation";
 import { prisma } from "@/lib/prisma";
 
 const formatDate = new Intl.DateTimeFormat("cs-CZ", { day: "numeric", month: "numeric", year: "numeric", timeZone: "Europe/Prague" });
@@ -337,4 +338,3 @@ function formatDaySectionLabel(value: Date, todayStart: Date, tomorrowStart: Dat
   if (key === formatDateKey(tomorrowStart)) return `Zítra · ${label}`;
   return label;
 }
-

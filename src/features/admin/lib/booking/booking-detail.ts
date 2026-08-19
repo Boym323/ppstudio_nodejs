@@ -17,10 +17,10 @@ import {
   getAdminBookingPaymentStatusLabel,
   getBookingAcquisitionLabel,
   getBookingSourceLabel,
-  getBookingStatusLabel,
   type AdminBookingActionOption,
   type AdminBookingPaymentStatus,
 } from "@/features/admin/lib/booking/booking-display";
+import { getBookingStatusLabel } from "@/features/booking/lib/booking-status-presentation";
 import { getAdminBookingAvailabilityCatalog } from "@/features/booking/lib/booking-admin-availability";
 import { formatBookingDateLabel } from "@/features/booking/lib/booking-format";
 import { formatClientPhoneForDisplay } from "@/features/booking/lib/client-phone";

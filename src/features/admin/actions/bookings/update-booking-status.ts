@@ -22,8 +22,8 @@ import {
 } from "@/features/admin/lib/admin-booking";
 import {
   getAdminBookingActionOptions,
-  getBookingStatusLabel,
 } from "@/features/admin/lib/booking/booking-display";
+import { getBookingStatusLabel } from "@/features/booking/lib/booking-status-presentation";
 import {
   canApplyAdminBookingTransition,
 
@@ -201,4 +201,3 @@ export async function updateBookingStatusAction(
     successMessage: "Změna byla uložená a propsala se i do historie rezervace.",
   };
 }
-

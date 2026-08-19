@@ -5,8 +5,8 @@ import { getUnresolvedEmailDeliveryIncidentRootWhere } from "@/lib/email/inciden
 import {
   getAdminBookingActionOptions,
   getAdminBookingHref,
-  getBookingStatusLabel,
 } from "@/features/admin/lib/booking/booking-display";
+import { getBookingStatusLabel } from "@/features/booking/lib/booking-status-presentation";
 import {
   clampIntervalToDay,
   mergeIntervals,

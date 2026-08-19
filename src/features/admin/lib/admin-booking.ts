@@ -37,10 +37,10 @@ export {
   getAdminBookingPaymentStatusLabel,
   getBookingAcquisitionLabel,
   getBookingSourceLabel,
-  getBookingStatusLabel,
   type AdminBookingActionOption,
   type AdminBookingPaymentStatus,
 } from "@/features/admin/lib/booking/booking-display";
+export { getBookingStatusLabel } from "@/features/booking/lib/booking-status-presentation";
 export {
   getAdminBookingDetailData,
   type AdminBookingDetailData,
