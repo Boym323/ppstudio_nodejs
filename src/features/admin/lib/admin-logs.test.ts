@@ -276,7 +276,7 @@ test("extrémní stránka se clampne před výpočtem kandidátního take", () =
 });
 
 test("read-model používá bounded kandidáty, přesný total a cílenou voucher deduplikaci", async () => {
-  const source = await readFile(new URL("./admin-data.ts", import.meta.url), "utf8");
+  const source = await readFile(new URL("./data/email-logs.ts", import.meta.url), "utf8");
   for (const whereName of ["emailWhere", "bookingHistoryWhere", "rescheduleWhere", "voucherWhere", "voucherChangeWhere", "serviceChangeWhere", "servicePriceChangeWhere", "siteSettingsChangeWhere", "availabilityWhere", "adminUserAuditWhere", "submissionWhere"]) {
     assert.ok(source.includes(`findMany({ where: ${whereName}`));
   }

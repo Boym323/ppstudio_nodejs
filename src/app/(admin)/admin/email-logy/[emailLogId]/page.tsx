@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 
 import { AdminEmailLogDetailPage } from "@/features/admin/components/admin-email-log-detail-page";
-import { getEmailLogDetailData } from "@/features/admin/lib/admin-data";
+import { getEmailLogDetailData } from "@/features/admin/lib/data/email-logs";
 import { requireAdminArea } from "@/lib/auth/session";
 
 type AdminEmailLogDetailRouteProps = {

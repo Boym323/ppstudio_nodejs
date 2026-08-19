@@ -6,7 +6,7 @@ import {
   retryEmailLogAction,
 } from "../actions/email-log-actions";
 import { EmailIncidentResolutionForm } from "./email-incident-resolution-form";
-import { type EmailLogDetailData } from "../lib/admin-data";
+import { type EmailLogDetailData } from "../lib/data/email-logs";
 import { AdminPageShell, AdminPanel } from "./admin-page-shell";
 
 type AdminEmailLogDetailPageProps = {

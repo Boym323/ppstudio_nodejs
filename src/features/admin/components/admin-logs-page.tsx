@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { flexRender, getCoreRowModel, useReactTable, type ColumnDef } from "@tanstack/react-table";
 
 import { releaseStuckEmailLogAction, retryEmailLogAction } from "../actions/email-log-actions";
-import { type AdminLogItem, type AdminLogsData, type AdminLogView } from "../lib/admin-data";
+import { type AdminLogItem, type AdminLogsData, type AdminLogView } from "../lib/data/email-logs";
 import { buildAdminLogsSearchParams, type AdminLogUrlChanges } from "../lib/admin-logs-url";
 import { AdminPageShell, AdminPanel } from "./admin-page-shell";
 import * as Sheet from "@/components/ui/sheet";

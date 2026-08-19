@@ -1,11 +1,11 @@
 import { Suspense } from "react";
 
 import { type AdminArea } from "@/config/navigation";
+import { getManualBookingClientById } from "@/features/admin/lib/data/clients";
 import {
-  getManualBookingClientById,
   getReservationsData,
   type ReservationsDashboardData,
-} from "@/features/admin/lib/admin-data";
+} from "@/features/admin/lib/data/reservations";
 
 import { AdminBookingsToolbar } from "./admin-bookings-toolbar";
 import { AdminBookingsWorkspace } from "./admin-bookings-workspace";

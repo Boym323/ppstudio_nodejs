@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useMemo, useRef } from "react";
 import { type AdminArea } from "@/config/navigation";
-import { type ReservationsDashboardData } from "@/features/admin/lib/admin-data";
+import { type ReservationsDashboardData } from "@/features/admin/lib/data/reservations";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
 import { AdminBookingsQuickActions } from "./admin-bookings-quick-actions";

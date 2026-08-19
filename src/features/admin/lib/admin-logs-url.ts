@@ -1,4 +1,4 @@
-import type { AdminLogView, AdminLogsData } from "./admin-data";
+import type { AdminLogView, AdminLogsData } from "./data/email-logs";
 
 type AdminLogFilters = AdminLogsData["filters"];
 export type AdminLogUrlChanges = Partial<AdminLogFilters> & { view?: AdminLogView; page?: string };

@@ -1,5 +1,5 @@
 import { AdminLogsPage } from "@/features/admin/components/admin-logs-page";
-import { getAdminLogsData } from "@/features/admin/lib/admin-data";
+import { getAdminLogsData } from "@/features/admin/lib/data/email-logs";
 import { requireAdminArea } from "@/lib/auth/session";
 
 export default async function SalonLogsRoute({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {

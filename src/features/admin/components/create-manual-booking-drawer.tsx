@@ -13,7 +13,7 @@ import {
   initialCreateManualBookingActionState,
 } from "@/features/admin/actions/create-manual-booking-action-state";
 import { createManualBookingAction } from "@/features/admin/actions/bookings/create-manual-booking";
-import { type ReservationsDashboardData } from "@/features/admin/lib/admin-data";
+import { type ReservationsDashboardData } from "@/features/admin/lib/data/reservations";
 import { BookingClientSelector } from "./booking-client-selector";
 import { BookingInternalNoteField } from "./booking-internal-note-field";
 import { BookingNotificationOptions } from "./booking-notification-options";
