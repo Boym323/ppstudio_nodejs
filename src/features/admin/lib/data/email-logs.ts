@@ -11,29 +11,11 @@ import { prisma } from "@/lib/prisma";
 
 export { getEmailDeliveryFailureWhere, getEmailDeliveryIncidentRootWhere, getUnresolvedEmailDeliveryFailureWhere, getUnresolvedEmailDeliveryIncidentRootWhere } from "@/lib/email/incidents";
 
-const formatDate = new Intl.DateTimeFormat("cs-CZ", {
-  day: "numeric",
-  month: "numeric",
-  year: "numeric",
-  timeZone: "Europe/Prague",
-});
-
 const formatTime = new Intl.DateTimeFormat("cs-CZ", {
   hour: "2-digit",
   minute: "2-digit",
   timeZone: "Europe/Prague",
 });
-
-const defaultReservationLimit = 30;
-const reservationLimitStep = 30;
-const reservationLimitMax = 200;
-
-const activeBookingStatuses = [BookingStatus.PENDING, BookingStatus.CONFIRMED] as const;
-
-function isActiveBookingStatus(status: BookingStatus) {
-  return status === BookingStatus.PENDING || status === BookingStatus.CONFIRMED;
-}
-
 
 const formatDateTime = new Intl.DateTimeFormat("cs-CZ", {
   day: "numeric",
@@ -43,14 +25,6 @@ const formatDateTime = new Intl.DateTimeFormat("cs-CZ", {
   minute: "2-digit",
   timeZone: "Europe/Prague",
 });
-
-function formatDateLabel(value: Date | null | undefined): string {
-  if (!value) {
-    return "Bez data";
-  }
-
-  return formatDate.format(value);
-}
 
 function formatDateTimeLabel(value: Date | null | undefined): string {
   if (!value) {
