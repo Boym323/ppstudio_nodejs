@@ -29,7 +29,7 @@ import {
   getDayBounds,
   isValidDateKey,
 } from "@/features/admin/lib/admin-slots/time";
-import { getPublicBookingCatalog } from "@/features/booking/lib/booking-public";
+import { getAdminBookingAvailabilityCatalog } from "@/features/booking/lib/booking-admin-availability";
 import { formatServicePrice } from "@/features/admin/lib/admin-service-format";
 import {
   buildClientPhoneHref,
@@ -508,7 +508,7 @@ export type ReservationsDashboardData = {
       cleanupBlockMinutes: number;
       priceFromCzk: number | null;
     }>;
-    slots: Awaited<ReturnType<typeof getPublicBookingCatalog>>["slots"];
+    slots: Awaited<ReturnType<typeof getAdminBookingAvailabilityCatalog>>["slots"];
     clients: Array<{
       id: string;
       fullName: string;
@@ -721,7 +721,7 @@ export async function getReservationsData(area: AdminArea, searchParams?: Record
     prisma.booking.findMany({ where, orderBy: reservationOrder(filters.view), take: Math.min(filters.limit, reservationLimitMax), include: { client: { select: { fullName: true } } } }),
     prisma.booking.count({ where: { status: BookingStatus.PENDING } }),
     prisma.booking.count({ where: { status: { in: [...activeBookingStatuses] }, scheduledEndsAt: { lt: now } } }),
-    getPublicBookingCatalog(),
+    getAdminBookingAvailabilityCatalog(),
     ...viewKeys.map((view) => prisma.booking.count({ where: viewWhere(view, todayStart, tomorrowStart, now) })),
   ]);
   const rows = bookings.map((booking) => {

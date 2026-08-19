@@ -22,7 +22,7 @@ type CatalogSlotRecord = {
   allowedServiceIds: string[];
 };
 
-export type PublicCatalogSlot = {
+export type BookingAvailabilityCatalogSlot = {
   id: string;
   startsAt: string;
   endsAt: string;
@@ -96,11 +96,11 @@ function canMergeCatalogSlots(current: CatalogSlotRecord, next: CatalogSlotRecor
   );
 }
 
-export function buildMergedPublicCatalogSlots(
+export function buildMergedAvailabilityCatalogSlots(
   slots: CatalogSlotRecord[],
   bookings: BookingIntervalRecord[],
   bookingLookaheadMinutes = 0,
-): PublicCatalogSlot[] {
+): BookingAvailabilityCatalogSlot[] {
   const normalizedSlots = slots
     .map((slot) => ({
       ...slot,
@@ -170,10 +170,13 @@ export function buildMergedPublicCatalogSlots(
               endsAt: segment.endsAt.toISOString(),
             }))
           : undefined,
-      } satisfies PublicCatalogSlot;
+      } satisfies BookingAvailabilityCatalogSlot;
     })
     .filter((slot) => slot.capacity > 0);
 }
+
+export type PublicCatalogSlot = BookingAvailabilityCatalogSlot;
+export const buildMergedPublicCatalogSlots = buildMergedAvailabilityCatalogSlots;
 
 export function slotAllowsService(
   slot: Pick<PublishedCoverageSlot, "serviceRestrictionMode" | "allowedServices">,

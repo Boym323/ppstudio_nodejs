@@ -4,9 +4,12 @@ import {
   BookingAcquisitionSource,
   BookingActorType,
   BookingSource,
-  BookingStatus,
   Prisma,
 } from "@/generated/prisma/client";
+
+import type { BookingAvailabilityCatalog } from "../booking-availability-core";
+
+export { ACTIVE_BOOKING_STATUSES } from "../booking-availability-shared";
 
 export {
   buildClientPhoneHref,
@@ -17,7 +20,6 @@ export {
   normalizeClientPhone,
 } from "@/features/booking/lib/client-phone";
 
-export const ACTIVE_BOOKING_STATUSES = [BookingStatus.PENDING, BookingStatus.CONFIRMED] as const;
 export const MAX_BOOKING_TRANSACTION_RETRIES = 5;
 export const EDITABLE_SLOT_CAPACITY = 1;
 
@@ -39,57 +41,7 @@ export const publicBookingConflictMessages = {
 export type PublicBookingErrorCode =
   (typeof publicBookingErrorCodes)[keyof typeof publicBookingErrorCodes];
 
-export type PublicBookingCatalog = {
-  services: Array<{
-    id: string;
-    categoryName: string;
-    name: string;
-    slug: string;
-    shortDescription: string | null;
-    durationMinutes: number;
-    cleanupBlockMinutes: number;
-    priceFromCzk: number | null;
-  }>;
-  slots: Array<{
-    id: string;
-    startsAt: string;
-    endsAt: string;
-    publicNote: string | null;
-    capacity: number;
-    serviceRestrictionMode: AvailabilitySlotServiceRestrictionMode;
-    allowedServiceIds: string[];
-    bookedIntervals: Array<{
-      startsAt: string;
-      endsAt: string;
-    }>;
-    segments?: Array<{
-      id: string;
-      startsAt: string;
-      endsAt: string;
-    }>;
-  }>;
-  scheduleOptimization: {
-    globalAutoLunchEnabled: boolean;
-    dayLunchModes: Record<string, "AUTO" | "OFF">;
-    publishedAvailability: Array<{
-      startsAt: string;
-      endsAt: string;
-    }>;
-    bookedIntervals: Array<{
-      startsAt: string;
-      endsAt: string;
-    }>;
-    serviceBlockOptions?: Array<{
-      id: string;
-      durationMinutes: number;
-      cleanupBlockMinutes: number;
-    }>;
-    // Service-specific availability needs segment-level option mapping. Until the
-    // optimization context carries that mapping, SELECTED slots safely keep the
-    // orphan metric neutral.
-    supportsServiceAwareOrphans?: boolean;
-  };
-};
+export type PublicBookingCatalog = BookingAvailabilityCatalog;
 
 export type CreatePublicBookingInput = {
   serviceId: string;

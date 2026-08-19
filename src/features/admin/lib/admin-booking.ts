@@ -24,7 +24,7 @@ import {
 } from "@/features/booking/lib/booking-action-tokens";
 import { resolveBookingTimingSnapshot } from "@/features/booking/lib/booking-cleanup";
 import { compactAdjacentEditableSlotsForBooking } from "@/features/booking/lib/booking-slot-compaction";
-import { getPublicBookingCatalog } from "@/features/booking/lib/booking-public";
+import { getAdminBookingAvailabilityCatalog } from "@/features/booking/lib/booking-admin-availability";
 import { formatBookingDateLabel } from "@/features/booking/lib/booking-format";
 import { resolvePublishedSlotCoverage } from "@/features/booking/lib/booking-slot-availability";
 import { formatClientPhoneForDisplay } from "@/features/booking/lib/client-phone";
@@ -131,7 +131,7 @@ export type AdminBookingDetailData = {
     currentStartsAt: string;
     currentEndsAt: string;
     expectedUpdatedAt: string;
-    slots: Awaited<ReturnType<typeof getPublicBookingCatalog>>["slots"];
+    slots: Awaited<ReturnType<typeof getAdminBookingAvailabilityCatalog>>["slots"];
   };
   voucher: {
     paymentSummary: {
@@ -608,7 +608,7 @@ export async function getAdminBookingDetailData(
         },
       },
     }),
-    getPublicBookingCatalog({
+    getAdminBookingAvailabilityCatalog({
       includeServices: true,
       excludeBookingId: bookingId,
     }),
