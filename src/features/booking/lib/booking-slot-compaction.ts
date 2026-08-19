@@ -10,7 +10,12 @@ type MergeableSlotRecord = {
   startsAt: Date;
   endsAt: Date;
   status: AvailabilitySlotStatus;
+  capacity: number;
+  publicNote: string | null;
+  internalNote: string | null;
+  serviceRestrictionMode: AvailabilitySlotServiceRestrictionMode;
   createdByUserId: string | null;
+  allowedServices: Array<{ serviceId: string }>;
   bookings: Array<{ id: string; blockedUntil: Date | null }>;
 };
 
@@ -31,13 +36,23 @@ const mergeableEditableSlotConstraints = {
   },
 } satisfies Prisma.AvailabilitySlotWhereInput;
 
+const cancelledBookingsOnlyWhere = {
+  bookings: {
+    none: {
+      status: {
+        not: BookingStatus.CANCELLED,
+      },
+    },
+  },
+} satisfies Prisma.AvailabilitySlotWhereInput;
+
 const mergeablePublishedSlotWhere = {
   ...mergeableEditableSlotConstraints,
   status: AvailabilitySlotStatus.PUBLISHED,
 } satisfies Prisma.AvailabilitySlotWhereInput;
 
 const restorableCancelledSlotWhere = {
-  ...mergeableEditableSlotConstraints,
+  ...cancelledBookingsOnlyWhere,
   status: {
     in: [AvailabilitySlotStatus.PUBLISHED, AvailabilitySlotStatus.ARCHIVED],
   },
@@ -48,7 +63,16 @@ const mergeableEditableSlotSelect = {
   startsAt: true,
   endsAt: true,
   status: true,
+  capacity: true,
+  publicNote: true,
+  internalNote: true,
+  serviceRestrictionMode: true,
   createdByUserId: true,
+  allowedServices: {
+    select: {
+      serviceId: true,
+    },
+  },
   bookings: {
     select: {
       id: true,
@@ -76,36 +100,22 @@ async function findMergeableSlotById(tx: Prisma.TransactionClient, slotId: strin
   });
 }
 
+async function findRestorableCancelledSlotById(tx: Prisma.TransactionClient, slotId: string) {
+  return tx.availabilitySlot.findFirst({
+    where: {
+      id: slotId,
+      ...restorableCancelledSlotWhere,
+    },
+    select: mergeableEditableSlotSelect,
+  });
+}
+
 async function restoreCancelledSlotIfArchived(
   tx: Prisma.TransactionClient,
   slot: MergeableSlotRecord,
 ) {
   if (slot.status !== AvailabilitySlotStatus.ARCHIVED) {
     return slot;
-  }
-
-  const overlappingActiveSlot = await tx.availabilitySlot.findFirst({
-    where: {
-      id: {
-        not: slot.id,
-      },
-      status: {
-        in: [AvailabilitySlotStatus.DRAFT, AvailabilitySlotStatus.PUBLISHED],
-      },
-      startsAt: {
-        lt: slot.endsAt,
-      },
-      endsAt: {
-        gt: slot.startsAt,
-      },
-    },
-    select: {
-      id: true,
-    },
-  });
-
-  if (overlappingActiveSlot) {
-    return null;
   }
 
   const restoredEndsAt = slot.bookings.reduce((latestEndsAt, booking) => {
@@ -116,6 +126,58 @@ async function restoreCancelledSlotIfArchived(
     return booking.blockedUntil;
   }, slot.endsAt);
 
+  const overlappingActiveSlots = await tx.availabilitySlot.findMany({
+    where: {
+      id: {
+        not: slot.id,
+      },
+      status: {
+        in: [AvailabilitySlotStatus.DRAFT, AvailabilitySlotStatus.PUBLISHED],
+      },
+      startsAt: {
+        lt: restoredEndsAt,
+      },
+      endsAt: {
+        gt: slot.startsAt,
+      },
+    },
+    orderBy: {
+      startsAt: "asc",
+    },
+    select: {
+      startsAt: true,
+      endsAt: true,
+    },
+  });
+
+  const restoredIntervals: Array<{ startsAt: Date; endsAt: Date }> = [];
+  let restoredStartsAt = slot.startsAt;
+
+  for (const activeSlot of overlappingActiveSlots) {
+    if (restoredStartsAt < activeSlot.startsAt) {
+      restoredIntervals.push({
+        startsAt: restoredStartsAt,
+        endsAt: activeSlot.startsAt,
+      });
+    }
+    if (activeSlot.endsAt > restoredStartsAt) {
+      restoredStartsAt = activeSlot.endsAt;
+    }
+  }
+
+  if (restoredStartsAt < restoredEndsAt) {
+    restoredIntervals.push({
+      startsAt: restoredStartsAt,
+      endsAt: restoredEndsAt,
+    });
+  }
+
+  const firstRestoredInterval = restoredIntervals.shift();
+
+  if (!firstRestoredInterval) {
+    return null;
+  }
+
   await tx.availabilitySlot.update({
     where: {
       id: slot.id,
@@ -123,14 +185,39 @@ async function restoreCancelledSlotIfArchived(
     data: {
       status: AvailabilitySlotStatus.PUBLISHED,
       publishedAt: new Date(),
-      endsAt: restoredEndsAt,
+      startsAt: firstRestoredInterval.startsAt,
+      endsAt: firstRestoredInterval.endsAt,
     },
   });
+
+  for (const interval of restoredIntervals) {
+    await tx.availabilitySlot.create({
+      data: {
+        startsAt: interval.startsAt,
+        endsAt: interval.endsAt,
+        capacity: slot.capacity,
+        status: AvailabilitySlotStatus.PUBLISHED,
+        publicNote: slot.publicNote,
+        internalNote: slot.internalNote,
+        serviceRestrictionMode: slot.serviceRestrictionMode,
+        publishedAt: new Date(),
+        createdByUserId: slot.createdByUserId,
+        allowedServices: slot.allowedServices.length > 0
+          ? {
+              createMany: {
+                data: slot.allowedServices.map(({ serviceId }) => ({ serviceId })),
+              },
+            }
+          : undefined,
+      },
+    });
+  }
 
   return {
     ...slot,
     status: AvailabilitySlotStatus.PUBLISHED,
-    endsAt: restoredEndsAt,
+    startsAt: firstRestoredInterval.startsAt,
+    endsAt: firstRestoredInterval.endsAt,
   } satisfies MergeableSlotRecord;
 }
 
@@ -224,7 +311,7 @@ export async function compactAdjacentEditableSlotsForBooking(
   tx: Prisma.TransactionClient,
   slotId: string,
 ) {
-  let anchorSlot = await findMergeableSlotById(tx, slotId);
+  let anchorSlot = await findRestorableCancelledSlotById(tx, slotId);
 
   if (!anchorSlot) {
     return null;
@@ -237,6 +324,17 @@ export async function compactAdjacentEditableSlotsForBooking(
   }
 
   anchorSlot = restoredAnchorSlot;
+
+  // Obnovit lze i termín s vlastním omezením služby či poznámkou. Slučovat
+  // ale smíme pouze čisté editovatelné intervaly, jinak bychom jeho pravidla
+  // rozšířili na sousední volné termíny.
+  const mergeableAnchorSlot = await findMergeableSlotById(tx, anchorSlot.id);
+
+  if (!mergeableAnchorSlot) {
+    return anchorSlot;
+  }
+
+  anchorSlot = mergeableAnchorSlot;
 
   while (true) {
     const leftSlot = await findAdjacentMergeableSlot(tx, anchorSlot, "left");

@@ -887,6 +887,99 @@ describe("cancel booking flow", () => {
     }
   });
 
+  dbTest("cancellation restores an archived slot with a service restriction", async () => {
+    const seed = await createSeed();
+    const { prisma, cancelPublicBookingByToken, AvailabilitySlotStatus } = await loadModules();
+
+    try {
+      await prisma.availabilitySlot.update({
+        where: { id: seed.manageableCurrentSlotId },
+        data: {
+          status: AvailabilitySlotStatus.ARCHIVED,
+          serviceRestrictionMode: "SELECTED",
+          allowedServices: {
+            create: {
+              serviceId: seed.serviceId,
+            },
+          },
+        },
+      });
+
+      const result = await cancelPublicBookingByToken(seed.cancelTokenRaw);
+
+      assert.equal(result.status, "cancelled");
+
+      const slot = await prisma.availabilitySlot.findUniqueOrThrow({
+        where: { id: seed.manageableCurrentSlotId },
+        select: {
+          status: true,
+          capacity: true,
+          serviceRestrictionMode: true,
+          allowedServices: {
+            select: { serviceId: true },
+          },
+        },
+      });
+
+      assert.equal(slot.status, AvailabilitySlotStatus.PUBLISHED);
+      assert.equal(slot.capacity, 1);
+      assert.equal(slot.serviceRestrictionMode, "SELECTED");
+      assert.deepEqual(slot.allowedServices, [{ serviceId: seed.serviceId }]);
+    } finally {
+      await cleanupSeed(seed);
+    }
+  });
+
+  dbTest("cancellation restores the unblocked part of an archived slot", async () => {
+    const seed = await createSeed();
+    const { prisma, cancelPublicBookingByToken, AvailabilitySlotStatus } = await loadModules();
+    let overlappingSlotId: string | null = null;
+
+    try {
+      const originalSlot = await prisma.availabilitySlot.findUniqueOrThrow({
+        where: { id: seed.manageableCurrentSlotId },
+        select: { startsAt: true, endsAt: true },
+      });
+      const overlapStartsAt = addHours(originalSlot.endsAt, -0.25);
+
+      await prisma.availabilitySlot.update({
+        where: { id: seed.manageableCurrentSlotId },
+        data: { status: AvailabilitySlotStatus.ARCHIVED },
+      });
+      const overlappingSlot = await prisma.availabilitySlot.create({
+        data: {
+          startsAt: overlapStartsAt,
+          endsAt: originalSlot.endsAt,
+          capacity: 1,
+          status: AvailabilitySlotStatus.PUBLISHED,
+          serviceRestrictionMode: "ANY",
+          publishedAt: new Date(),
+          createdByUserId: seed.actorUserId,
+        },
+        select: { id: true },
+      });
+      overlappingSlotId = overlappingSlot.id;
+
+      const result = await cancelPublicBookingByToken(seed.cancelTokenRaw);
+
+      assert.equal(result.status, "cancelled");
+
+      const restoredSlot = await prisma.availabilitySlot.findUniqueOrThrow({
+        where: { id: seed.manageableCurrentSlotId },
+        select: { status: true, startsAt: true, endsAt: true },
+      });
+
+      assert.equal(restoredSlot.status, AvailabilitySlotStatus.PUBLISHED);
+      assert.equal(restoredSlot.startsAt.toISOString(), originalSlot.startsAt.toISOString());
+      assert.equal(restoredSlot.endsAt.toISOString(), originalSlot.endsAt.toISOString());
+    } finally {
+      if (overlappingSlotId) {
+        await prisma.availabilitySlot.deleteMany({ where: { id: overlappingSlotId } });
+      }
+      await cleanupSeed(seed);
+    }
+  });
+
   dbTest("cancellation restores an archived historical slot and compacts adjacent editable fragments", async () => {
     const {
       prisma,

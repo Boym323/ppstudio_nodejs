@@ -6,6 +6,10 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+### Opraveno
+
+- Storno klientské rezervace znovu zveřejní i archivovaný původní termín s omezením služby, aniž by rozšířilo jeho pravidla na sousední intervaly.
+
 ## [3.22.4] - 2026-08-19
 
 ### Opraveno
