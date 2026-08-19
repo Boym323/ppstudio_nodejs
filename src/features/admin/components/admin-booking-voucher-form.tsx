@@ -6,7 +6,7 @@ import { useFormStatus } from "react-dom";
 
 import { redeemBookingVoucherAction } from "@/features/admin/actions/booking-actions";
 import { initialRedeemBookingVoucherActionState } from "@/features/admin/actions/redeem-booking-voucher-action-state";
-import { type AdminBookingDetailData } from "@/features/admin/lib/admin-booking";
+import { type AdminBookingDetailData } from "@/features/admin/lib/booking/booking-detail";
 
 type AdminBookingVoucherFormProps = {
   area: AdminBookingDetailData["area"];

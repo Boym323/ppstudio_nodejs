@@ -17,14 +17,18 @@ import { type UpdateBookingStatusActionState } from "@/features/admin/actions/up
 import {
   applyAdminBookingStatusChange,
   applyAdminBookingStatusChangeInTransaction,
-  canCompleteBookingAt,
-  canApplyAdminBookingTransition,
-  getAdminBookingActionOptions,
-  getBookingStatusLabel,
-  type AdminBookingActionValue,
   updateAdminBookingService,
   updateAdminBookingInternalNote,
 } from "@/features/admin/lib/admin-booking";
+import {
+  getAdminBookingActionOptions,
+  getBookingStatusLabel,
+} from "@/features/admin/lib/booking/booking-display";
+import {
+  canApplyAdminBookingTransition,
+  canCompleteBookingAt,
+  type AdminBookingActionValue,
+} from "@/features/booking/domain/booking-status-transition";
 import {
   CLIENT_PHONE_FORMAT_MESSAGE,
   createManualBooking,

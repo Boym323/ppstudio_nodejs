@@ -16,7 +16,7 @@ import {
   type CreateBookingPaymentActionState,
 } from "@/features/booking/payments/actions/booking-payment-action-state";
 import { BOOKING_PAYMENT_METHOD_LABELS } from "@/features/booking/payments/lib/booking-payment-summary";
-import { type AdminBookingDetailData } from "@/features/admin/lib/admin-booking";
+import { type AdminBookingDetailData } from "@/features/admin/lib/booking/booking-detail";
 import { createIdempotencyKey } from "@/lib/idempotency-key";
 
 type AdminBookingPaymentFormProps = {

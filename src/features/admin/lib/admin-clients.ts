@@ -12,7 +12,7 @@ import {
   getAdminBookingHref,
   getBookingSourceLabel,
   getBookingStatusLabel,
-} from "@/features/admin/lib/admin-booking";
+} from "@/features/admin/lib/booking/booking-display";
 import {
   getClientCrmSummary,
   type ClientCrmSummary,

@@ -1,6 +1,6 @@
 import { VoucherType } from "@/generated/prisma/browser";
 
-import type { AdminBookingDetailData } from "@/features/admin/lib/admin-booking";
+import type { AdminBookingDetailData } from "@/features/admin/lib/booking/booking-detail";
 
 export type BookingStatusContext = {
   title: string;

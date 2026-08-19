@@ -14,10 +14,8 @@ import {
   type CompleteBookingVisitActionState,
 } from "@/features/admin/actions/complete-booking-visit-action-state";
 import { initialUpdateBookingStatusActionState } from "@/features/admin/actions/update-booking-status-action-state";
-import {
-  type AdminBookingActionOption,
-  type AdminBookingActionValue,
-} from "@/features/admin/lib/admin-booking";
+import { type AdminBookingActionOption } from "@/features/admin/lib/booking/booking-display";
+import { type AdminBookingActionValue } from "@/features/booking/domain/booking-status-transition";
 import { type AdminArea } from "@/config/navigation";
 import { cn } from "@/lib/utils";
 import { createIdempotencyKey } from "@/lib/idempotency-key";

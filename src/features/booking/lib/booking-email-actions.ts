@@ -11,7 +11,7 @@ import {
 } from "@/generated/prisma/client";
 
 import { env } from "@/config/env";
-import { getAdminBookingHref, getBookingStatusLabel } from "@/features/admin/lib/admin-booking";
+import { getAdminBookingHref, getBookingStatusLabel } from "@/features/admin/lib/booking/booking-display";
 import {
   buildBookingActionExpiry,
   buildBookingActionToken,

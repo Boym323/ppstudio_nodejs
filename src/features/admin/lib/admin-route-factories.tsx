@@ -21,7 +21,7 @@ import { getAdminSectionPath } from "@/features/admin/lib/admin-paths";
 import { getAdminSettingsPageData } from "@/features/admin/lib/admin-settings-page-data";
 import { requireAdminArea } from "@/lib/auth/session";
 
-import { getAdminBookingDetailData } from "./admin-booking";
+import { getAdminBookingDetailData } from "./booking/booking-detail";
 import { getAdminClientDetailData } from "./admin-clients";
 import { getAdminVoucherCreatePageData, getAdminVoucherDetailData } from "./admin-vouchers";
 import { isAdminSectionSlug, requireAdminSectionAccess } from "./admin-guards";

@@ -6,7 +6,7 @@ import {
   getAdminBookingActionOptions,
   getAdminBookingHref,
   getBookingStatusLabel,
-} from "@/features/admin/lib/admin-booking";
+} from "@/features/admin/lib/booking/booking-display";
 import {
   clampIntervalToDay,
   mergeIntervals,
