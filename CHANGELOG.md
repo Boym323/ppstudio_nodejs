@@ -6,6 +6,10 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+### Opraveno
+
+- Pracovní seznam rezervací nyní u položek v pohledu „Pozornost“ zobrazuje vedle času také datum termínu, takže lze rozlišit dnešní a budoucí rezervace.
+
 ### Změněno
 
 - Databázové integrační testy už v CI neběží duplicitně a zaseknutý produkční build skončí v samostatném časovém limitu.
