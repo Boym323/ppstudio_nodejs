@@ -4,7 +4,7 @@ import { VoucherType } from "@/generated/prisma/browser";
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 
-import { redeemBookingVoucherAction } from "@/features/admin/actions/booking-actions";
+import { redeemBookingVoucherAction } from "@/features/admin/actions/bookings/booking-voucher";
 import { initialRedeemBookingVoucherActionState } from "@/features/admin/actions/redeem-booking-voucher-action-state";
 import { type AdminBookingDetailData } from "@/features/admin/lib/booking/booking-detail";
 

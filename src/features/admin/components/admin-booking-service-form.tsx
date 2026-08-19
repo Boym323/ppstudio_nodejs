@@ -4,7 +4,7 @@ import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 
 import { type AdminArea } from "@/config/navigation";
-import { updateBookingServiceAction } from "@/features/admin/actions/booking-actions";
+import { updateBookingServiceAction } from "@/features/admin/actions/bookings/update-booking-service";
 import { initialUpdateBookingServiceActionState } from "@/features/admin/actions/update-booking-service-action-state";
 
 function formatPrice(priceFromCzk: number | null) {

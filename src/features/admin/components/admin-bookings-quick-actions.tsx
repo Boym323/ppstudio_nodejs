@@ -6,7 +6,7 @@ import { useActionState, useEffect, useRef } from "react";
 import { useFormStatus } from "react-dom";
 
 import { type AdminArea } from "@/config/navigation";
-import { updateBookingStatusAction } from "@/features/admin/actions/booking-actions";
+import { updateBookingStatusAction } from "@/features/admin/actions/bookings/update-booking-status";
 import { initialUpdateBookingStatusActionState } from "@/features/admin/actions/update-booking-status-action-state";
 import { cn } from "@/lib/utils";
 

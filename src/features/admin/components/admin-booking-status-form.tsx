@@ -5,10 +5,8 @@ import { useActionState, useMemo, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { VoucherType } from "@/generated/prisma/browser";
 
-import {
-  completeBookingVisitAction,
-  updateBookingStatusAction,
-} from "@/features/admin/actions/booking-actions";
+import { completeBookingVisitAction } from "@/features/admin/actions/bookings/complete-booking";
+import { updateBookingStatusAction } from "@/features/admin/actions/bookings/update-booking-status";
 import {
   initialCompleteBookingVisitActionState,
   type CompleteBookingVisitActionState,

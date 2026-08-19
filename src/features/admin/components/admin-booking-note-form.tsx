@@ -3,7 +3,7 @@
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 
-import { updateBookingNoteAction } from "@/features/admin/actions/booking-actions";
+import { updateBookingNoteAction } from "@/features/admin/actions/bookings/update-booking-note";
 import { initialUpdateBookingNoteActionState } from "@/features/admin/actions/update-booking-note-action-state";
 import { type AdminArea } from "@/config/navigation";
 

@@ -7,7 +7,7 @@ import { useFormStatus } from "react-dom";
 import * as Dialog from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/toast";
 import { type AdminArea } from "@/config/navigation";
-import { rescheduleBookingAction } from "@/features/admin/actions/booking-actions";
+import { rescheduleBookingAction } from "@/features/admin/actions/bookings/reschedule-booking";
 import {
   initialRescheduleBookingActionState,
 } from "@/features/admin/actions/reschedule-booking-action-state";
