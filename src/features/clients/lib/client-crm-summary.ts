@@ -1,6 +1,6 @@
 import { BookingStatus } from "@/generated/prisma/browser";
 
-import { getBookingPaymentSummary } from "@/features/bookings/lib/booking-payment-summary";
+import { getBookingPaymentSummary } from "@/features/booking/payments/lib/booking-payment-summary";
 
 const ACTIVE_BOOKING_STATUSES = new Set<BookingStatus>([
   BookingStatus.PENDING,

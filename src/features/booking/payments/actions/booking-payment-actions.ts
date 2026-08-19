@@ -8,12 +8,12 @@ import {
   type CreateBookingPaymentActionState,
   type DeleteBookingPaymentActionState,
   type UpdateBookingPaymentActionState,
-} from "@/features/bookings/actions/booking-payment-action-state";
+} from "@/features/booking/payments/actions/booking-payment-action-state";
 import { requireRole } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
-import { createDirectBookingPayment, findSimilarActiveBookingPayment, updateDirectBookingPayment } from "@/features/bookings/lib/booking-payment";
-import { voidBookingPaymentWithAudit } from "@/features/bookings/lib/booking-payment-mutations";
-import { BOOKING_PAYMENT_METHOD_LABELS } from "@/features/bookings/lib/booking-payment-summary";
+import { createDirectBookingPayment, findSimilarActiveBookingPayment, updateDirectBookingPayment } from "@/features/booking/payments/lib/booking-payment";
+import { voidBookingPaymentWithAudit } from "@/features/booking/payments/lib/booking-payment-mutations";
+import { BOOKING_PAYMENT_METHOD_LABELS } from "@/features/booking/payments/lib/booking-payment-summary";
 
 const createBookingPaymentSchema = z.object({
   area: z.enum(["owner", "salon"]),

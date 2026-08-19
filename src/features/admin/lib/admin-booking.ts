@@ -33,7 +33,7 @@ import {
   BOOKING_PAYMENT_STATUS_LABELS,
   getBookingPaymentSummary,
   type BookingPaymentStatus,
-} from "@/features/bookings/lib/booking-payment-summary";
+} from "@/features/booking/payments/lib/booking-payment-summary";
 import {
   formatVoucherRemaining,
   formatVoucherStatus,

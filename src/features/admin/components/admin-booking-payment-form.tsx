@@ -8,14 +8,14 @@ import {
   createBookingPaymentAction,
   deleteBookingPaymentAction,
   updateBookingPaymentAction,
-} from "@/features/bookings/actions/booking-payment-actions";
+} from "@/features/booking/payments/actions/booking-payment-actions";
 import {
   initialCreateBookingPaymentActionState,
   initialDeleteBookingPaymentActionState,
   initialUpdateBookingPaymentActionState,
   type CreateBookingPaymentActionState,
-} from "@/features/bookings/actions/booking-payment-action-state";
-import { BOOKING_PAYMENT_METHOD_LABELS } from "@/features/bookings/lib/booking-payment-summary";
+} from "@/features/booking/payments/actions/booking-payment-action-state";
+import { BOOKING_PAYMENT_METHOD_LABELS } from "@/features/booking/payments/lib/booking-payment-summary";
 import { type AdminBookingDetailData } from "@/features/admin/lib/admin-booking";
 import { createIdempotencyKey } from "@/lib/idempotency-key";
 

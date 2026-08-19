@@ -45,8 +45,8 @@ import {
   voucherRedemptionErrorCodes,
 } from "@/features/vouchers/lib/voucher-redemption";
 import { normalizeVoucherCode } from "@/features/vouchers/lib/voucher-code";
-import { getBookingPaymentSummary } from "@/features/bookings/lib/booking-payment-summary";
-import { createDirectBookingPayment } from "@/features/bookings/lib/booking-payment";
+import { getBookingPaymentSummary } from "@/features/booking/payments/lib/booking-payment-summary";
+import { createDirectBookingPayment } from "@/features/booking/payments/lib/booking-payment";
 import { requireAdminArea, requireRole } from "@/lib/auth/session";
 import { sendOwnerSystemErrorPushover } from "@/lib/notifications/pushover";
 import { prisma } from "@/lib/prisma";

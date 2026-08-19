@@ -12,7 +12,7 @@ async function readFeatureFile(relativePath: string) {
 }
 
 test("payment action boundary exports only actions and derives audit actor from the authorized session", async () => {
-  const source = await readFeatureFile("bookings/actions/booking-payment-actions.ts");
+  const source = await readFeatureFile("booking/payments/actions/booking-payment-actions.ts");
 
   assert.deepEqual(
     [...source.matchAll(/^export async function (\w+)/gm)].map((match) => match[1]),
@@ -38,7 +38,7 @@ test("voucher email action boundary keeps queueing behind the authorized action"
 
 test("internal DB mutation helpers are server-only modules", async () => {
   const [paymentMutationSource, voucherQueueSource] = await Promise.all([
-    readFeatureFile("bookings/lib/booking-payment-mutations.ts"),
+    readFeatureFile("booking/payments/lib/booking-payment-mutations.ts"),
     readFeatureFile("admin/lib/voucher-email-queue.ts"),
   ]);
 
