@@ -44,6 +44,40 @@ test("activation respects global/day switches, true published capacity and Pragu
   assert.equal(shouldApplyAutoLunch({ ...base, availability: [interval(date, "12:00", "14:00")] }), false);
 });
 
+test("archivované rezervace včetně úklidu prodlouží pracovní den pro aktivaci oběda", () => {
+  const date = "2026-08-27";
+  const availability = [interval(date, "11:15", "13:00")];
+  const bookedBlocks = [
+    interval(date, "08:30", "11:15"),
+    interval(date, "11:15", "11:45"),
+    interval(date, "13:00", "15:30"),
+    interval(date, "15:30", "17:15"),
+  ];
+
+  assert.equal(shouldApplyAutoLunch({
+    localDate: date,
+    availability,
+    globalAutoLunchEnabled: true,
+    dayLunchMode: "AUTO",
+  }), false);
+  assert.equal(shouldApplyAutoLunch({
+    localDate: date,
+    availability,
+    bookedBlocks,
+    globalAutoLunchEnabled: true,
+    dayLunchMode: "AUTO",
+  }), true);
+  assert.deepEqual(
+    findBestAutoLunch({
+      active: true,
+      availability,
+      lunchCandidates: generateLunchCandidates({ localDate: date, availability }),
+      bookedBlocks,
+    }),
+    interval(date, "11:45", "12:30"),
+  );
+});
+
 test("generates exactly nine covered candidates on the fixed 15-minute grid", () => {
   const date = "2026-07-15";
   const candidates = generateLunchCandidates({ localDate: date, availability: fullDay(date) });

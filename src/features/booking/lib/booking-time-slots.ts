@@ -250,9 +250,16 @@ export function filterTimeOptionsForAutoLunch(
           && interval.startsAt < dayEndsAt
           && interval.endsAt > dayStartsAt,
       );
+      const dayBookedBlocks = bookedBlocks.filter(
+        (interval) => dayStartsAt !== undefined
+          && dayEndsAt !== undefined
+          && interval.startsAt < dayEndsAt
+          && interval.endsAt > dayStartsAt,
+      );
       const active = shouldApplyAutoLunch({
         localDate,
         availability: dayAvailability,
+        bookedBlocks: dayBookedBlocks,
         globalAutoLunchEnabled: input.scheduleOptimization.globalAutoLunchEnabled,
         dayLunchMode: input.scheduleOptimization.dayLunchModes[localDate] ?? "AUTO",
       });
@@ -260,12 +267,7 @@ export function filterTimeOptionsForAutoLunch(
         active,
         availability: dayAvailability,
         lunchCandidates: generateLunchCandidates({ localDate, availability: dayAvailability }),
-        bookedBlocks: bookedBlocks.filter(
-          (interval) => dayStartsAt !== undefined
-            && dayEndsAt !== undefined
-            && interval.startsAt < dayEndsAt
-            && interval.endsAt > dayStartsAt,
-        ),
+        bookedBlocks: dayBookedBlocks,
       };
       dayContexts.set(localDate, dayContext);
     }

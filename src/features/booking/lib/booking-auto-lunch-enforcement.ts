@@ -30,16 +30,6 @@ export async function canPreserveAutoLunchForBooking(
     select: { startsAt: true, endsAt: true },
   });
   const availability = publishedSlots.map((slot) => ({ startsAt: slot.startsAt.getTime(), endsAt: slot.endsAt.getTime() }));
-  const policy = await loadAutoLunchPolicySnapshot(tx, [localDate]);
-  const active = shouldApplyAutoLunch({
-    localDate,
-    availability,
-    globalAutoLunchEnabled: policy.globalAutoLunchEnabled,
-    dayLunchMode: policy.dayLunchModes[localDate] ?? "AUTO",
-  });
-
-  if (!active) return true;
-
   const activeBookings = await tx.booking.findMany({
     where: {
       id: input.excludeBookingId ? { not: input.excludeBookingId } : undefined,
@@ -52,15 +42,26 @@ export async function canPreserveAutoLunchForBooking(
     },
     select: { scheduledStartsAt: true, scheduledEndsAt: true, blockedUntil: true },
   });
+  const bookedBlocks = activeBookings.map((booking) => ({
+    startsAt: booking.scheduledStartsAt.getTime(),
+    endsAt: (booking.blockedUntil ?? booking.scheduledEndsAt).getTime(),
+  }));
+  const policy = await loadAutoLunchPolicySnapshot(tx, [localDate]);
+  const active = shouldApplyAutoLunch({
+    localDate,
+    availability,
+    bookedBlocks,
+    globalAutoLunchEnabled: policy.globalAutoLunchEnabled,
+    dayLunchMode: policy.dayLunchModes[localDate] ?? "AUTO",
+  });
+
+  if (!active) return true;
 
   return canPreserveAutoLunch({
     active,
     availability,
     lunchCandidates: generateLunchCandidates({ localDate, availability }),
-    bookedBlocks: activeBookings.map((booking) => ({
-      startsAt: booking.scheduledStartsAt.getTime(),
-      endsAt: (booking.blockedUntil ?? booking.scheduledEndsAt).getTime(),
-    })),
+    bookedBlocks,
     hypotheticalBlock: {
       startsAt: input.requestedStartsAt.getTime(),
       endsAt: input.requestedBlockedUntil.getTime(),

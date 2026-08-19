@@ -6,8 +6,8 @@ Tato sekce je autoritativním shrnutím stavu po Fázi 9C. Níže uvedené histo
 
 ## Obědová politika a persistence
 
-- Automatický oběd trvá přesně 45 minut, kandidátní starty jsou `11:00–13:00` včetně po 15 minutách a aktivace vyžaduje nejméně 5 hodin skutečné publikované kapacity. Vše se vyhodnocuje v `Europe/Prague`.
-- Aktivace vychází pouze z raw/published availability. Bookingy a cleanup pouze mění možné umístění oběda; konkrétní start ani konec oběda se nepersistuje.
+- Automatický oběd trvá přesně 45 minut, kandidátní starty jsou `11:00–13:00` včetně po 15 minutách a aktivace vyžaduje nejméně 5 hodin skutečného pracovního času z publikované dostupnosti a obsazených bloků. Vše se vyhodnocuje v `Europe/Prague`.
+- Aktivace vychází z publikované dostupnosti a již obsazených bloků včetně úklidu, aby zůstala zachována přestávka i po archivaci slotu s existující rezervací. Konkrétní kandidát oběda ale musí ležet v publikované dostupnosti; jeho start ani konec se nepersistuje.
 - Globální přepínač je `SiteSettings.autoLunchEnabled`. Absence `AutoLunchDayOverride` znamená `AUTO`, existence override znamená `OFF`; návrat na `AUTO` override odstraní. Neexistuje persisted lunch start/end.
 
 ## Authoritative ochrana
@@ -77,13 +77,13 @@ Authoritative write: `REQUEST → Serializable transaction → fresh availabilit
 
 ## Pravidlo aktivace oběda
 
-Globální auto lunch je `enabled` nebo `disabled`; denní režim je `AUTO` nebo `OFF`. Policy je aktivní pro lokální pražské datum pouze tehdy, když je globálně `enabled`, den není `OFF` a sloučená publikovaná dostupnost dne:
+Globální auto lunch je `enabled` nebo `disabled`; denní režim je `AUTO` nebo `OFF`. Policy je aktivní pro lokální pražské datum pouze tehdy, když je globálně `enabled`, den není `OFF` a sloučený pracovní den (publikovaná dostupnost a obsazené bloky včetně úklidu) dne:
 
-1. má skutečnou součtovou rezervovatelnou kapacitu alespoň 5 hodin (ne pouze rozdíl mezi prvním začátkem a posledním koncem),
+1. má skutečnou součtovou pracovní kapacitu alespoň 5 hodin (ne pouze rozdíl mezi prvním začátkem a posledním koncem),
 2. obsahuje alespoň jeden souvislý 45minutový interval se začátkem mezi `11:00` a `13:00`, a
-3. publikovaná dostupnost pokračuje za `13:00` lokálního času.
+3. pracovní den pokračuje za `13:00` lokálního času.
 
-Druhá podmínka záměrně brání tomu, aby krátký dopolední provoz končící v poledne byl blokován obědem. Pravidlo vychází z publikované dostupnosti, nikoli z odhadované pracovní šablony. Pokud je policy neaktivní, lunch feasibility ani lunch-preservation constraint se nepoužije. Pokud je aktivní, každý veřejný kandidát musí po hypotetickém bookingu ponechat alespoň jeden proveditelný lunch kandidát. Převody lokálního data a času používají na hranicích `Europe/Prague`; čistý engine pracuje s instanty.
+Druhá podmínka záměrně brání tomu, aby krátký dopolední provoz končící v poledne byl blokován obědem. Kandidát oběda se nadále hledá pouze v publikované dostupnosti, takže existující rezervace oběd pouze aktivují a ovlivní jeho polohu, nikdy nevytvoří nový volný termín. Pokud je policy neaktivní, lunch feasibility ani lunch-preservation constraint se nepoužije. Pokud je aktivní, každý veřejný kandidát musí po hypotetickém bookingu ponechat alespoň jeden proveditelný lunch kandidát. Převody lokálního data a času používají na hranicích `Europe/Prague`; čistý engine pracuje s instanty.
 
 Fáze 1 zavádí `booking-schedule-optimization.ts` jako pure in-memory engine: `shouldApplyAutoLunch`, `generateLunchCandidates`, `findAvailableLunchCandidates`, `canPreserveAutoLunch`, `findBestAutoLunch` a `measureFragmentation`. Centrální policy drží délku 45 minut, grid 15 minut, začátky 11:00–13:00, minimum směny 5 hodin a `Europe/Prague`. Fragmentace měří počet a velikost volných bloků a návaznost na obsazenost/hranu availability; service-aware orphan metrika zůstává pro Fázi 5. Capacity větší než 1 se do lunch engine v této fázi nezapojuje; integrační vrstva pro něj později použije explicitní fallback.
 

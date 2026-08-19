@@ -8,6 +8,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Automatický oběd se nyní zachová i ve dni, kde pozdější úprava dostupnosti archivovala sloty s existujícími rezervacemi; aktivace zohledňuje skutečné rezervace a jejich úklid.
 - Storno klientské rezervace znovu zveřejní i archivovaný původní termín s omezením služby, aniž by rozšířilo jeho pravidla na sousední intervaly.
 
 ## [3.22.4] - 2026-08-19

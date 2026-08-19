@@ -100,15 +100,19 @@ export function generateLunchCandidates(input: { localDate: string; availability
   return candidates;
 }
 
-/** Activation uses raw published availability only; booking blocks never enter this decision. */
-export function shouldApplyAutoLunch(input: { localDate: string; availability: ScheduleInterval[]; globalAutoLunchEnabled: boolean; dayLunchMode: DayLunchMode }) {
+/**
+ * Aktivace vychází z reálného pracovního dne: publikované dostupnosti a již
+ * obsazených bloků včetně úklidu. Kandidát na oběd ale musí vždy zůstat v
+ * publikované dostupnosti.
+ */
+export function shouldApplyAutoLunch(input: { localDate: string; availability: ScheduleInterval[]; bookedBlocks?: BookingBlock[]; globalAutoLunchEnabled: boolean; dayLunchMode: DayLunchMode }) {
   if (!input.globalAutoLunchEnabled || input.dayLunchMode === "OFF") return false;
-  const availability = normalized(input.availability);
-  const total = availability.reduce((sum, interval) => sum + interval.endsAt - interval.startsAt, 0);
+  const workingDay = normalized([...input.availability, ...(input.bookedBlocks ?? [])]);
+  const total = workingDay.reduce((sum, interval) => sum + interval.endsAt - interval.startsAt, 0);
   const onePm = localInstant(input.localDate, AUTO_LUNCH_POLICY.latestStart);
   return total >= AUTO_LUNCH_POLICY.minimumShiftMinutes * MINUTE_MS
     && onePm !== null
-    && availability.some((interval) => interval.endsAt > onePm)
+    && workingDay.some((interval) => interval.endsAt > onePm)
     && generateLunchCandidates(input).length > 0;
 }
 
@@ -257,6 +261,7 @@ function evaluateSuggestedSlotQuality<T extends SuggestedSlotCandidate>(input: O
   const active = shouldApplyAutoLunch({
     localDate,
     availability,
+    bookedBlocks,
     globalAutoLunchEnabled: input.globalAutoLunchEnabled,
     dayLunchMode: input.dayLunchModes[localDate] ?? "AUTO",
   });
@@ -341,6 +346,7 @@ export function rankSuggestedSlots<T extends SuggestedSlotCandidate>(input: {
       const active = shouldApplyAutoLunch({
         localDate,
         availability,
+        bookedBlocks,
         globalAutoLunchEnabled: input.globalAutoLunchEnabled,
         dayLunchMode: input.dayLunchModes[localDate] ?? "AUTO",
       });

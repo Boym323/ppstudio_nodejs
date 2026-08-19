@@ -90,6 +90,21 @@ test("krátká směna lunch constraint nepoužije", () => {
   assert.deepEqual(filter(candidate, context({ availabilityEnd: "13:00" })), [candidate]);
 });
 
+test("rezervace v archivovaných slotech aktivují ochranu oběda ve zbývající publikované dostupnosti", () => {
+  const candidate = option("11:45", 75);
+  const scheduleOptimization = context({
+    availabilityStart: "11:15",
+    availabilityEnd: "13:00",
+    bookedIntervals: [
+      { start: "08:30", end: "11:45" },
+      { start: "13:00", end: "15:30" },
+      { start: "15:30", end: "17:15" },
+    ],
+  });
+
+  assert.deepEqual(filter(candidate, scheduleOptimization), []);
+});
+
 test("global OFF a day OFF lunch constraint nepoužijí", () => {
   const candidate = option("11:00", 165);
   assert.deepEqual(filter(candidate, context({ globalAutoLunchEnabled: false })), [candidate]);

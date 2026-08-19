@@ -6,8 +6,7 @@ import {
 import { type AdminArea } from "@/config/navigation";
 import { prisma } from "@/lib/prisma";
 import { loadAutoLunchPolicySnapshot } from "@/features/booking/lib/booking-auto-lunch-policy";
-import { AUTO_LUNCH_POLICY, findBestAutoLunch, generateLunchCandidates, shouldApplyAutoLunch } from "@/features/booking/lib/booking-schedule-optimization";
-import { resolvePragueLocalDateTime } from "@/features/booking/lib/booking-local-time";
+import { findBestAutoLunch, generateLunchCandidates, shouldApplyAutoLunch } from "@/features/booking/lib/booking-schedule-optimization";
 
 import {
   addDays,
@@ -234,6 +233,10 @@ export async function getAdminPlannerWeek(area: AdminArea, week?: string | null)
     const lunchActive = shouldApplyAutoLunch({
       localDate: dateKey,
       availability: rawAvailability,
+      bookedBlocks: dayBookingRows.map((booking) => ({
+        startsAt: booking.scheduledStartsAt.getTime(),
+        endsAt: (booking.blockedUntil ?? booking.scheduledEndsAt).getTime(),
+      })),
       globalAutoLunchEnabled: autoLunchPolicy.globalAutoLunchEnabled,
       dayLunchMode,
     });
@@ -246,13 +249,7 @@ export async function getAdminPlannerWeek(area: AdminArea, week?: string | null)
         endsAt: (booking.blockedUntil ?? booking.scheduledEndsAt).getTime(),
       })),
     });
-    const onePm = resolvePragueLocalDateTime(dateKey, AUTO_LUNCH_POLICY.latestStart)?.getTime() ?? null;
-    const rawMinutes = rawAvailability.reduce((sum, range) => sum + range.endsAt - range.startsAt, 0) / 60_000;
-    const eligibleWithoutCandidate = autoLunchPolicy.globalAutoLunchEnabled
-      && dayLunchMode === "AUTO"
-      && rawMinutes >= AUTO_LUNCH_POLICY.minimumShiftMinutes
-      && onePm !== null
-      && rawAvailability.some((range) => range.endsAt > onePm);
+    const eligibleWithoutCandidate = lunchActive;
     const activeBookingsBySlotId = new Map<string, number>();
 
     for (const booking of dayBookings) {
