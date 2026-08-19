@@ -6,6 +6,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [3.22.5] - 2026-08-19
+
 ### Opraveno
 
 - Automatický oběd se nyní zachová i ve dni, kde pozdější úprava dostupnosti archivovala sloty s existujícími rezervacemi; aktivace zohledňuje skutečné rezervace a jejich úklid.
