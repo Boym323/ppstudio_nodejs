@@ -6,6 +6,12 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [3.22.6] - 2026-08-20
+
+### Změněno
+
+- Release příprava pro produkční nasazení: projektová verze navýšena na patch `3.22.6` kvůli opravám obnovy dostupnosti při stornu, odmítnutí a ručním přesunu rezervací.
+
 ### Opraveno
 
 - Zamítnutí čekající rezervace z administrátorského e-mailového odkazu nyní stejně jako ostatní storna obnoví archivovaný či rozdělený dostupný termín.
