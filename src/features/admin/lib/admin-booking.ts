@@ -21,7 +21,10 @@ import {
   buildBookingManagementUrl,
 } from "@/features/booking/lib/booking-action-tokens";
 import { resolveBookingTimingSnapshot } from "@/features/booking/lib/booking-cleanup";
-import { compactAdjacentEditableSlotsForBooking } from "@/features/booking/lib/booking-slot-compaction";
+import {
+  archiveOrphanedManualOverrideSlotAfterCancellation,
+  compactAdjacentEditableSlotsForBooking,
+} from "@/features/booking/lib/booking-slot-compaction";
 import { resolvePublishedSlotCoverage } from "@/features/booking/lib/booking-slot-availability";
 import { prisma } from "@/lib/prisma";
 
@@ -97,6 +100,7 @@ export async function applyAdminBookingStatusChangeInTransaction(
         status: true,
         clientId: true,
         slotId: true,
+        manualOverride: true,
         clientNameSnapshot: true,
         clientEmailSnapshot: true,
         serviceNameSnapshot: true,
@@ -137,6 +141,10 @@ export async function applyAdminBookingStatusChangeInTransaction(
 
     if (targetStatus === BookingStatus.CANCELLED) {
       await compactAdjacentEditableSlotsForBooking(tx, booking.slotId);
+
+      if (booking.manualOverride) {
+        await archiveOrphanedManualOverrideSlotAfterCancellation(tx, booking.slotId);
+      }
     }
 
     await tx.bookingStatusHistory.create({

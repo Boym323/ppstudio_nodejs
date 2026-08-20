@@ -11,7 +11,10 @@ import {
 import { env } from "@/config/env";
 import { hashBookingActionToken } from "@/features/booking/lib/booking-action-tokens";
 import { formatBookingDateLabel } from "@/features/booking/lib/booking-format";
-import { compactAdjacentEditableSlotsForBooking } from "@/features/booking/lib/booking-slot-compaction";
+import {
+  archiveOrphanedManualOverrideSlotAfterCancellation,
+  compactAdjacentEditableSlotsForBooking,
+} from "@/features/booking/lib/booking-slot-compaction";
 import { sendOwnerBookingPushover } from "@/lib/notifications/pushover";
 import { prisma } from "@/lib/prisma";
 import {
@@ -69,6 +72,7 @@ type LoadedCancellationToken = {
     id: string;
     status: BookingStatus;
     cancelledAt: Date | null;
+    manualOverride: boolean;
     clientId: string;
     slotId: string;
     clientEmailSnapshot: string;
@@ -132,6 +136,7 @@ async function findCancellationToken(tokenHash: string) {
           id: true,
           status: true,
           cancelledAt: true,
+          manualOverride: true,
           clientId: true,
           slotId: true,
           clientEmailSnapshot: true,
@@ -263,6 +268,7 @@ export async function cancelPublicBookingByToken(rawToken: string): Promise<Canc
               id: true,
               status: true,
               cancelledAt: true,
+              manualOverride: true,
               clientId: true,
               slotId: true,
               clientEmailSnapshot: true,
@@ -295,6 +301,10 @@ export async function cancelPublicBookingByToken(rawToken: string): Promise<Canc
       });
 
       await compactAdjacentEditableSlotsForBooking(tx, lockedToken.booking.slotId);
+
+      if (lockedToken.booking.manualOverride) {
+        await archiveOrphanedManualOverrideSlotAfterCancellation(tx, lockedToken.booking.slotId);
+      }
 
       await tx.bookingActionToken.update({
         where: {

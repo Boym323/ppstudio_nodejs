@@ -432,6 +432,98 @@ dbTest("applyAdminBookingStatusChange compacts adjacent editable slot fragments 
   }
 });
 
+dbTest("applyAdminBookingStatusChange archives only its orphaned manual-override DRAFT slot", async () => {
+  const [{ prisma }, { applyAdminBookingStatusChange }] = await Promise.all([
+    import("@/lib/prisma"),
+    import("./admin-booking"),
+  ]);
+
+  const suffix = randomUUID().slice(0, 8);
+  const { startsAt, endsAt } = await findIsolatedAdminWindow(prisma, suffix, 60);
+  const owner = await prisma.adminUser.create({
+    data: { email: `owner-override-cancel-${suffix}@example.com`, name: `Owner ${suffix}`, role: "OWNER", isActive: true },
+    select: { id: true },
+  });
+  const category = await prisma.serviceCategory.create({
+    data: { name: `Kategorie override ${suffix}`, slug: `kategorie-override-${suffix}`, isActive: true },
+    select: { id: true },
+  });
+  const service = await prisma.service.create({
+    data: {
+      categoryId: category.id, name: `Služba override ${suffix}`, slug: `sluzba-override-${suffix}`,
+      durationMinutes: 60, priceFromCzk: 1200, isActive: true, isPubliclyBookable: true,
+    },
+    select: { id: true },
+  });
+  const client = await prisma.client.create({
+    data: { fullName: `Klientka override ${suffix}`, email: `override-${suffix}@example.com`, phone: "+420777123456", isActive: true },
+    select: { id: true },
+  });
+  const manualOverrideSlot = await prisma.availabilitySlot.create({
+    data: {
+      startsAt, endsAt, capacity: 1, status: "DRAFT", serviceRestrictionMode: "ANY",
+      internalNote: "Dočasná ruční výjimka", createdByUserId: owner.id,
+    },
+    select: { id: true },
+  });
+  const archivedOriginalSlot = await prisma.availabilitySlot.create({
+    data: {
+      startsAt, endsAt, capacity: 1, status: "ARCHIVED", serviceRestrictionMode: "ANY",
+      createdByUserId: owner.id,
+    },
+    select: { id: true },
+  });
+  const adminDraftSlot = await prisma.availabilitySlot.create({
+    data: {
+      startsAt: new Date(endsAt.getTime() + 60 * 60 * 1000),
+      endsAt: new Date(endsAt.getTime() + 2 * 60 * 60 * 1000),
+      capacity: 1, status: "DRAFT", serviceRestrictionMode: "ANY",
+      internalNote: "Skutečná administrativní blokace", createdByUserId: owner.id,
+    },
+    select: { id: true },
+  });
+  const booking = await prisma.booking.create({
+    data: {
+      clientId: client.id, slotId: manualOverrideSlot.id, serviceId: service.id,
+      status: BookingStatus.CONFIRMED, source: "PHONE", manualOverride: true,
+      clientNameSnapshot: `Klientka override ${suffix}`, clientEmailSnapshot: `override-${suffix}@example.com`,
+      clientPhoneSnapshot: "+420777123456", serviceNameSnapshot: `Služba override ${suffix}`,
+      serviceDurationMinutes: 60, servicePriceFromCzk: 1200, scheduledStartsAt: startsAt, scheduledEndsAt: endsAt,
+    },
+    select: { id: true },
+  });
+
+  try {
+    const result = await applyAdminBookingStatusChange({
+      bookingId: booking.id,
+      targetStatus: BookingStatus.CANCELLED,
+      actorUserId: owner.id,
+      reason: "Integration manual override cancellation",
+    });
+
+    assert.equal(result.status, "success");
+    const [updatedBooking, manualOverrideSlotAfterCancellation, archivedOriginalSlotAfterCancellation, adminDraftSlotAfterCancellation] = await Promise.all([
+      prisma.booking.findUniqueOrThrow({ where: { id: booking.id }, select: { status: true } }),
+      prisma.availabilitySlot.findUniqueOrThrow({ where: { id: manualOverrideSlot.id }, select: { status: true } }),
+      prisma.availabilitySlot.findUniqueOrThrow({ where: { id: archivedOriginalSlot.id }, select: { status: true } }),
+      prisma.availabilitySlot.findUniqueOrThrow({ where: { id: adminDraftSlot.id }, select: { status: true } }),
+    ]);
+
+    assert.equal(updatedBooking.status, BookingStatus.CANCELLED);
+    assert.equal(manualOverrideSlotAfterCancellation.status, "ARCHIVED");
+    assert.equal(archivedOriginalSlotAfterCancellation.status, "PUBLISHED");
+    assert.equal(adminDraftSlotAfterCancellation.status, "DRAFT");
+  } finally {
+    await prisma.bookingStatusHistory.deleteMany({ where: { bookingId: booking.id } });
+    await prisma.booking.deleteMany({ where: { id: booking.id } });
+    await prisma.client.deleteMany({ where: { id: client.id } });
+    await prisma.availabilitySlot.deleteMany({ where: { id: { in: [manualOverrideSlot.id, archivedOriginalSlot.id, adminDraftSlot.id] } } });
+    await prisma.service.deleteMany({ where: { id: service.id } });
+    await prisma.serviceCategory.deleteMany({ where: { id: category.id } });
+    await prisma.adminUser.deleteMany({ where: { id: owner.id } });
+  }
+});
+
 dbTest("updateAdminBookingService rewrites booking snapshot and audit history", async () => {
   const [{ prisma }, { updateAdminBookingService }] = await Promise.all([
     import("@/lib/prisma"),

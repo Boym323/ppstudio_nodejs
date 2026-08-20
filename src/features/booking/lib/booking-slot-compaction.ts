@@ -58,6 +58,8 @@ const restorableCancelledSlotWhere = {
   },
 } satisfies Prisma.AvailabilitySlotWhereInput;
 
+const activeBookingStatuses = [BookingStatus.PENDING, BookingStatus.CONFIRMED] as const;
+
 const mergeableEditableSlotSelect = {
   id: true,
   startsAt: true,
@@ -414,6 +416,8 @@ export async function restoreArchivedSlotAroundManualOverride(
     },
     select: {
       id: true,
+      startsAt: true,
+      endsAt: true,
     },
   });
 
@@ -494,4 +498,90 @@ export async function restoreArchivedSlotAroundManualOverride(
   }
 
   return compactedSlots;
+}
+
+export async function archiveOrphanedManualOverrideSlotAfterCancellation(
+  tx: Prisma.TransactionClient,
+  slotId: string,
+) {
+  const slot = await tx.availabilitySlot.findFirst({
+    where: {
+      id: slotId,
+      status: AvailabilitySlotStatus.DRAFT,
+      bookings: {
+        none: {
+          status: {
+            in: [...activeBookingStatuses],
+          },
+        },
+      },
+    },
+    select: {
+      id: true,
+      startsAt: true,
+      endsAt: true,
+    },
+  });
+
+  if (!slot) {
+    return null;
+  }
+
+  await tx.availabilitySlot.update({
+    where: {
+      id: slot.id,
+    },
+    data: {
+      status: AvailabilitySlotStatus.ARCHIVED,
+    },
+  });
+
+  const archivedSlots = await tx.availabilitySlot.findMany({
+    where: {
+      id: {
+        not: slot.id,
+      },
+      ...restorableCancelledSlotWhere,
+      status: AvailabilitySlotStatus.ARCHIVED,
+      startsAt: {
+        lt: slot.endsAt,
+      },
+      endsAt: {
+        gt: slot.startsAt,
+      },
+    },
+    select: {
+      id: true,
+      startsAt: true,
+      endsAt: true,
+    },
+  });
+
+  for (const archivedSlot of archivedSlots) {
+    const activeOverlap = await tx.availabilitySlot.findFirst({
+      where: {
+        id: {
+          notIn: [slot.id, archivedSlot.id],
+        },
+        status: {
+          in: [AvailabilitySlotStatus.DRAFT, AvailabilitySlotStatus.PUBLISHED],
+        },
+        startsAt: {
+          lt: archivedSlot.endsAt,
+        },
+        endsAt: {
+          gt: archivedSlot.startsAt,
+        },
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (!activeOverlap) {
+      await compactAdjacentEditableSlotsForBooking(tx, archivedSlot.id);
+    }
+  }
+
+  return slot;
 }

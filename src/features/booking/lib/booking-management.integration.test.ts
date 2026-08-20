@@ -930,6 +930,93 @@ describe("cancel booking flow", () => {
     }
   });
 
+  dbTest("public cancellation archives only its orphaned manual-override DRAFT slot", async () => {
+    const seed = await createSeed();
+    const { prisma, cancelPublicBookingByToken, AvailabilitySlotStatus, BookingStatus } = await loadModules();
+    let adminDraftSlotId: string | null = null;
+    let archivedOriginalSlotId: string | null = null;
+
+    try {
+      const manualOverrideSlot = await prisma.availabilitySlot.findUniqueOrThrow({
+        where: { id: seed.manageableCurrentSlotId },
+        select: { startsAt: true, endsAt: true },
+      });
+
+      const archivedOriginalSlot = await prisma.availabilitySlot.create({
+        data: {
+          startsAt: manualOverrideSlot.startsAt,
+          endsAt: manualOverrideSlot.endsAt,
+          capacity: 1,
+          status: AvailabilitySlotStatus.ARCHIVED,
+          serviceRestrictionMode: "ANY",
+          createdByUserId: seed.actorUserId,
+        },
+        select: { id: true },
+      });
+      archivedOriginalSlotId = archivedOriginalSlot.id;
+
+      await prisma.$transaction([
+        prisma.booking.update({
+          where: { id: seed.manageableBookingId },
+          data: { manualOverride: true },
+        }),
+        prisma.availabilitySlot.update({
+          where: { id: seed.manageableCurrentSlotId },
+          data: { status: AvailabilitySlotStatus.DRAFT },
+        }),
+      ]);
+
+      const adminDraftSlot = await prisma.availabilitySlot.create({
+        data: {
+          startsAt: addHours(manualOverrideSlot.endsAt, 2),
+          endsAt: addHours(manualOverrideSlot.endsAt, 3),
+          capacity: 1,
+          status: AvailabilitySlotStatus.DRAFT,
+          serviceRestrictionMode: "ANY",
+          createdByUserId: seed.actorUserId,
+          internalNote: "Skutečná administrativní blokace",
+        },
+        select: { id: true },
+      });
+      adminDraftSlotId = adminDraftSlot.id;
+
+      const result = await cancelPublicBookingByToken(seed.cancelTokenRaw);
+
+      assert.equal(result.status, "cancelled");
+      const [booking, manualOverrideSlotAfterCancellation, archivedOriginalSlotAfterCancellation, adminDraftSlotAfterCancellation] = await Promise.all([
+        prisma.booking.findUniqueOrThrow({
+          where: { id: seed.manageableBookingId },
+          select: { status: true },
+        }),
+        prisma.availabilitySlot.findUniqueOrThrow({
+          where: { id: seed.manageableCurrentSlotId },
+          select: { status: true },
+        }),
+        prisma.availabilitySlot.findUniqueOrThrow({
+          where: { id: archivedOriginalSlot.id },
+          select: { status: true },
+        }),
+        prisma.availabilitySlot.findUniqueOrThrow({
+          where: { id: adminDraftSlot.id },
+          select: { status: true },
+        }),
+      ]);
+
+      assert.equal(booking.status, BookingStatus.CANCELLED);
+      assert.equal(manualOverrideSlotAfterCancellation.status, AvailabilitySlotStatus.ARCHIVED);
+      assert.equal(archivedOriginalSlotAfterCancellation.status, AvailabilitySlotStatus.PUBLISHED);
+      assert.equal(adminDraftSlotAfterCancellation.status, AvailabilitySlotStatus.DRAFT);
+    } finally {
+      if (adminDraftSlotId) {
+        await prisma.availabilitySlot.deleteMany({ where: { id: adminDraftSlotId } });
+      }
+      if (archivedOriginalSlotId) {
+        await prisma.availabilitySlot.deleteMany({ where: { id: archivedOriginalSlotId } });
+      }
+      await cleanupSeed(seed);
+    }
+  });
+
   dbTest("cancellation does not compact a SELECTED slot with an adjacent ANY slot", async () => {
     const seed = await createSeed();
     const { prisma, cancelPublicBookingByToken, AvailabilitySlotStatus } = await loadModules();
