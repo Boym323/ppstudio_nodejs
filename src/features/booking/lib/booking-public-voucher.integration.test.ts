@@ -457,10 +457,11 @@ describe("public booking intended voucher", () => {
         select: { id: true },
       });
 
-      const firstStart = await findIsolatedSlotStart(seed, 240, 14);
+      const isolationDurationMinutes = 360;
+      const firstStart = await findIsolatedSlotStart(seed, isolationDurationMinutes, 14);
       assert.notEqual(
         getPragueLocalDate(firstStart),
-        getPragueLocalDate(new Date(firstStart.getTime() + 240 * 60 * 1000 - 1)),
+        getPragueLocalDate(new Date(firstStart.getTime() + isolationDurationMinutes * 60 * 1000 - 1)),
       );
       seed.cleanupSlotWindows.push({
         startsAt: firstStart,
