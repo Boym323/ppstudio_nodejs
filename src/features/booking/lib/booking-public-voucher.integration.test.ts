@@ -64,7 +64,7 @@ function addDays(base: Date, days: number) {
 
 async function findIsolatedSlotStart(
   context: SeedContext,
-  _durationMinutes: number,
+  durationMinutes: number,
   minimumDayOffset = 14,
 ) {
   const { prisma } = await loadModules();
@@ -93,7 +93,9 @@ async function findIsolatedSlotStart(
         const startsAt = addDays(new Date(), dayOffset);
         startsAt.setUTCHours(hour, minute, 0, 0);
         const localDate = getPragueLocalDate(startsAt);
-        const nextLocalDate = getNextCalendarDate(localDate);
+        const endsAt = new Date(startsAt.getTime() + durationMinutes * 60 * 1000);
+        const endLocalDate = getPragueLocalDate(new Date(endsAt.getTime() - 1));
+        const nextLocalDate = getNextCalendarDate(endLocalDate);
         const dayStartsAt = resolvePragueLocalDateTime(localDate, "00:00");
         const dayEndsAt = nextLocalDate ? resolvePragueLocalDateTime(nextLocalDate, "00:00") : null;
 
@@ -455,7 +457,11 @@ describe("public booking intended voucher", () => {
         select: { id: true },
       });
 
-      const firstStart = await findIsolatedSlotStart(seed, 120, 14);
+      const firstStart = await findIsolatedSlotStart(seed, 240, 14);
+      assert.notEqual(
+        getPragueLocalDate(firstStart),
+        getPragueLocalDate(new Date(firstStart.getTime() + 240 * 60 * 1000 - 1)),
+      );
       seed.cleanupSlotWindows.push({
         startsAt: firstStart,
         endsAt: new Date(firstStart.getTime() + 2 * 60 * 60 * 1000),
