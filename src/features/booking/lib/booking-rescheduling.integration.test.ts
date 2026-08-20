@@ -523,7 +523,7 @@ dbTest("souběžné public reschedule nikdy necommitnou stav bez proveditelného
 
 dbTest("rescheduleBooking updates the existing booking, writes audit history and resets reminders", async () => {
   const seed = await createSeed();
-  const { prisma, rescheduleBooking, EmailLogType } = await loadModules();
+  const { prisma, rescheduleBooking, BookingStatus, AvailabilitySlotStatus, EmailLogType } = await loadModules();
 
   try {
     const result = await rescheduleBooking({
@@ -605,10 +605,19 @@ dbTest("rescheduleBooking updates the existing booking, writes audit history and
 
     const oldSlotStillExists = await prisma.availabilitySlot.findUnique({
       where: { id: seed.oldSlotId },
-      select: { id: true },
+      select: {
+        id: true,
+        status: true,
+        bookings: {
+          where: { status: { in: [BookingStatus.PENDING, BookingStatus.CONFIRMED] } },
+          select: { id: true },
+        },
+      },
     });
 
-    assert.equal(oldSlotStillExists, null);
+    assert.ok(oldSlotStillExists);
+    assert.equal(oldSlotStillExists.status, AvailabilitySlotStatus.ARCHIVED);
+    assert.equal(oldSlotStillExists.bookings.length, 0);
   } finally {
     await cleanupSeed(seed);
   }
