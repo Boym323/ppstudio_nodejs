@@ -26,6 +26,7 @@ import { getBookingPolicySettings, getEmailBrandingSettings, isBookingWithinWind
 import { resolveBookingTimingSnapshot } from "./booking-cleanup";
 import { canPreserveAutoLunchForBooking } from "./booking-auto-lunch-enforcement";
 import {
+  archiveOrphanedManualOverrideSlotAfterCancellation,
   compactAdjacentEditableSlotsForBooking,
   restoreArchivedSlotAroundManualOverride,
 } from "./booking-slot-compaction";
@@ -345,11 +346,7 @@ async function maybeDeleteOrphanedManualOverrideSlot(
     return;
   }
 
-  await tx.availabilitySlot.delete({
-    where: {
-      id: slotId,
-    },
-  });
+  await archiveOrphanedManualOverrideSlotAfterCancellation(tx, slotId);
 }
 
 function getUniqueConstraintTargets(error: Prisma.PrismaClientKnownRequestError) {

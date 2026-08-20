@@ -708,17 +708,17 @@ dbTest("admin manual override po přesunu obnoví a zkompaktuje opuštěný arch
     assert.equal(booking.slot.startsAt.toISOString(), newStartAt.toISOString());
     assert.equal(booking.slot.endsAt.toISOString(), newBlockedUntil.toISOString());
 
-    const restoredSlot = await prisma.availabilitySlot.findUniqueOrThrow({
+    const archivedSourceSlot = await prisma.availabilitySlot.findUniqueOrThrow({
       where: { id: seed.oldSlotId },
       select: { status: true, startsAt: true, endsAt: true },
     });
-    assert.equal(restoredSlot.status, AvailabilitySlotStatus.PUBLISHED);
-    assert.equal(restoredSlot.startsAt.toISOString(), leftStartsAt.toISOString());
-    assert.equal(restoredSlot.endsAt.toISOString(), rightEndsAt.toISOString());
+    assert.equal(archivedSourceSlot.status, AvailabilitySlotStatus.ARCHIVED);
     assert.equal(await prisma.availabilitySlot.count({ where: { id: { in: [leftSlot.id, rightSlot.id] } } }), 0);
 
     const catalog = await getPublicBookingCatalog({ includeServices: false });
-    const restoredCatalogSlot = catalog.slots.find((slot) => slot.id === seed.oldSlotId);
+    const restoredCatalogSlot = catalog.slots.find((slot) => (
+      slot.startsAt === leftStartsAt.toISOString() && slot.endsAt === rightEndsAt.toISOString()
+    ));
     assert.ok(restoredCatalogSlot);
     assert.equal(restoredCatalogSlot.startsAt, leftStartsAt.toISOString());
     assert.equal(restoredCatalogSlot.endsAt, rightEndsAt.toISOString());
@@ -726,6 +726,31 @@ dbTest("admin manual override po přesunu obnoví a zkompaktuje opuštěný arch
     assert.equal(catalog.slots.some((slot) => newStartAt >= new Date(slot.startsAt) && newStartAt < new Date(slot.endsAt)), false);
     assert.ok(catalog.scheduleOptimization.bookedIntervals.some((interval) => (
       interval.startsAt === newStartAt.toISOString() && interval.endsAt === newBlockedUntil.toISOString()
+    )));
+
+    const bookingBeforeSecondReschedule = await prisma.booking.findUniqueOrThrow({
+      where: { id: seed.bookingId },
+      select: { updatedAt: true, slotId: true },
+    });
+    await rescheduleBooking({
+      bookingId: seed.bookingId,
+      slotId: seed.newSlotId,
+      newStartAt: seed.newStartAt,
+      changedByUserId: seed.actorUserId,
+      notifyClient: false,
+      expectedUpdatedAt: bookingBeforeSecondReschedule.updatedAt.toISOString(),
+    });
+
+    const [manualOverrideSlot, catalogAfterSecondReschedule] = await Promise.all([
+      prisma.availabilitySlot.findUniqueOrThrow({
+        where: { id: bookingBeforeSecondReschedule.slotId },
+        select: { status: true },
+      }),
+      getPublicBookingCatalog({ includeServices: false }),
+    ]);
+    assert.equal(manualOverrideSlot.status, AvailabilitySlotStatus.ARCHIVED);
+    assert.ok(catalogAfterSecondReschedule.slots.some((slot) => (
+      slot.startsAt === leftStartsAt.toISOString() && slot.endsAt === rightEndsAt.toISOString()
     )));
   } finally {
     await cleanupSeed(seed);
@@ -790,8 +815,12 @@ dbTest("admin manual override obnoví jen volnou část překrytého archivovan�
     assert.equal(booking.slot.endsAt.toISOString(), newBlockedUntil.toISOString());
     assert.equal(booking.blockedUntil?.toISOString(), newBlockedUntil.toISOString());
 
-    const restoredSlot = await prisma.availabilitySlot.findUniqueOrThrow({
-      where: { id: seed.oldSlotId },
+    const restoredSlot = await prisma.availabilitySlot.findFirstOrThrow({
+      where: {
+        status: AvailabilitySlotStatus.PUBLISHED,
+        startsAt: originalStartsAt,
+        endsAt: newStartsAt,
+      },
       select: {
         status: true,
         startsAt: true,
@@ -820,10 +849,12 @@ dbTest("admin manual override obnoví jen volnou část překrytého archivovan�
         endsAt: { gt: originalStartsAt },
         createdByUserId: seed.actorUserId,
       },
-    }), 0);
+    }), 1);
 
     const catalog = await getPublicBookingCatalog({ includeServices: false });
-    const restoredCatalogSlot = catalog.slots.find((slot) => slot.id === seed.oldSlotId);
+    const restoredCatalogSlot = catalog.slots.find((slot) => (
+      slot.startsAt === originalStartsAt.toISOString() && slot.endsAt === newStartsAt.toISOString()
+    ));
     assert.ok(restoredCatalogSlot);
     assert.equal(restoredCatalogSlot.startsAt, originalStartsAt.toISOString());
     assert.equal(restoredCatalogSlot.endsAt, newStartsAt.toISOString());

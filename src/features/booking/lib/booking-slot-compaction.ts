@@ -83,15 +83,6 @@ const mergeableEditableSlotSelect = {
   },
 } satisfies Prisma.AvailabilitySlotSelect;
 
-function overlaps(
-  leftStartsAt: Date,
-  leftEndsAt: Date,
-  rightStartsAt: Date,
-  rightEndsAt: Date,
-) {
-  return leftStartsAt < rightEndsAt && leftEndsAt > rightStartsAt;
-}
-
 async function findMergeableSlotById(tx: Prisma.TransactionClient, slotId: string) {
   return tx.availabilitySlot.findFirst({
     where: {
@@ -369,135 +360,39 @@ export async function restoreArchivedSlotAroundManualOverride(
   slotId: string,
   manualOverrideSlotId: string,
 ) {
+  void manualOverrideSlotId;
   const archivedSlot = await findRestorableCancelledSlotById(tx, slotId);
 
   if (!archivedSlot || archivedSlot.status !== AvailabilitySlotStatus.ARCHIVED) {
     return null;
   }
 
-  const manualOverrideSlot = await tx.availabilitySlot.findUnique({
-    where: {
-      id: manualOverrideSlotId,
-    },
-    select: {
-      startsAt: true,
-      endsAt: true,
-      status: true,
-    },
-  });
-
-  if (
-    !manualOverrideSlot
-    || manualOverrideSlot.status !== AvailabilitySlotStatus.DRAFT
-    || !overlaps(
-      archivedSlot.startsAt,
-      archivedSlot.endsAt,
-      manualOverrideSlot.startsAt,
-      manualOverrideSlot.endsAt,
-    )
-  ) {
-    return compactAdjacentEditableSlotsForBooking(tx, slotId);
-  }
-
-  const otherOverlappingActiveSlot = await tx.availabilitySlot.findFirst({
-    where: {
-      id: {
-        notIn: [archivedSlot.id, manualOverrideSlotId],
-      },
-      status: {
-        in: [AvailabilitySlotStatus.DRAFT, AvailabilitySlotStatus.PUBLISHED],
-      },
-      startsAt: {
-        lt: archivedSlot.endsAt,
-      },
-      endsAt: {
-        gt: archivedSlot.startsAt,
-      },
+  // Historický slot musí zůstat vcelku. Jeho zkrácení na první volný fragment
+  // by při pozdějším odstranění DRAFT override nenávratně ztratilo jeho střed.
+  const restorationSlot = await tx.availabilitySlot.create({
+    data: {
+      startsAt: archivedSlot.startsAt,
+      endsAt: archivedSlot.endsAt,
+      capacity: archivedSlot.capacity,
+      status: AvailabilitySlotStatus.ARCHIVED,
+      publicNote: archivedSlot.publicNote,
+      internalNote: archivedSlot.internalNote,
+      serviceRestrictionMode: archivedSlot.serviceRestrictionMode,
+      createdByUserId: archivedSlot.createdByUserId,
+      allowedServices: archivedSlot.allowedServices.length > 0
+        ? {
+            createMany: {
+              data: archivedSlot.allowedServices.map(({ serviceId }) => ({ serviceId })),
+            },
+          }
+        : undefined,
     },
     select: {
       id: true,
-      startsAt: true,
-      endsAt: true,
     },
   });
 
-  if (otherOverlappingActiveSlot) {
-    return null;
-  }
-
-  const restoredIntervals = [
-    archivedSlot.startsAt < manualOverrideSlot.startsAt
-      ? {
-          startsAt: archivedSlot.startsAt,
-          endsAt: manualOverrideSlot.startsAt,
-        }
-      : null,
-    manualOverrideSlot.endsAt < archivedSlot.endsAt
-      ? {
-          startsAt: manualOverrideSlot.endsAt,
-          endsAt: archivedSlot.endsAt,
-        }
-      : null,
-  ].filter((interval): interval is { startsAt: Date; endsAt: Date } => Boolean(interval));
-
-  const firstInterval = restoredIntervals.shift();
-
-  if (!firstInterval) {
-    return null;
-  }
-
-  await tx.availabilitySlot.update({
-    where: {
-      id: archivedSlot.id,
-    },
-    data: {
-      startsAt: firstInterval.startsAt,
-      endsAt: firstInterval.endsAt,
-      status: AvailabilitySlotStatus.PUBLISHED,
-      publishedAt: new Date(),
-    },
-  });
-
-  const restoredSlotIds = [archivedSlot.id];
-
-  for (const interval of restoredIntervals) {
-    const restoredSlot = await tx.availabilitySlot.create({
-      data: {
-        startsAt: interval.startsAt,
-        endsAt: interval.endsAt,
-        capacity: archivedSlot.capacity,
-        status: AvailabilitySlotStatus.PUBLISHED,
-        publicNote: archivedSlot.publicNote,
-        internalNote: archivedSlot.internalNote,
-        serviceRestrictionMode: archivedSlot.serviceRestrictionMode,
-        publishedAt: new Date(),
-        createdByUserId: archivedSlot.createdByUserId,
-        allowedServices: archivedSlot.allowedServices.length > 0
-          ? {
-              createMany: {
-                data: archivedSlot.allowedServices.map(({ serviceId }) => ({ serviceId })),
-              },
-            }
-          : undefined,
-      },
-      select: {
-        id: true,
-      },
-    });
-    restoredSlotIds.push(restoredSlot.id);
-  }
-
-  const compactedSlots = [];
-
-  for (const restoredSlotId of restoredSlotIds) {
-    const compactedSlot = await compactAdjacentEditableSlotsForBooking(tx, restoredSlotId);
-
-    if (compactedSlot) {
-      compactedSlots.push(compactedSlot);
-    }
-  }
-
-  return compactedSlots;
+  return compactAdjacentEditableSlotsForBooking(tx, restorationSlot.id);
 }
 
 export async function archiveOrphanedManualOverrideSlotAfterCancellation(
@@ -558,29 +453,7 @@ export async function archiveOrphanedManualOverrideSlotAfterCancellation(
   });
 
   for (const archivedSlot of archivedSlots) {
-    const activeOverlap = await tx.availabilitySlot.findFirst({
-      where: {
-        id: {
-          notIn: [slot.id, archivedSlot.id],
-        },
-        status: {
-          in: [AvailabilitySlotStatus.DRAFT, AvailabilitySlotStatus.PUBLISHED],
-        },
-        startsAt: {
-          lt: archivedSlot.endsAt,
-        },
-        endsAt: {
-          gt: archivedSlot.startsAt,
-        },
-      },
-      select: {
-        id: true,
-      },
-    });
-
-    if (!activeOverlap) {
-      await compactAdjacentEditableSlotsForBooking(tx, archivedSlot.id);
-    }
+    await compactAdjacentEditableSlotsForBooking(tx, archivedSlot.id);
   }
 
   return slot;

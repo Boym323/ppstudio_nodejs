@@ -930,7 +930,7 @@ describe("cancel booking flow", () => {
     }
   });
 
-  dbTest("public cancellation archives only its orphaned manual-override DRAFT slot", async () => {
+  dbTest("public cancellation po manual override obnoví celý archivovaný původní interval", async () => {
     const seed = await createSeed();
     const { prisma, cancelPublicBookingByToken, AvailabilitySlotStatus, BookingStatus } = await loadModules();
     let adminDraftSlotId: string | null = null;
@@ -942,10 +942,12 @@ describe("cancel booking flow", () => {
         select: { startsAt: true, endsAt: true },
       });
 
+      const originalStartsAt = addHours(manualOverrideSlot.startsAt, -1);
+      const originalEndsAt = addHours(manualOverrideSlot.endsAt, 1);
       const archivedOriginalSlot = await prisma.availabilitySlot.create({
         data: {
-          startsAt: manualOverrideSlot.startsAt,
-          endsAt: manualOverrideSlot.endsAt,
+          startsAt: originalStartsAt,
+          endsAt: originalEndsAt,
           capacity: 1,
           status: AvailabilitySlotStatus.ARCHIVED,
           serviceRestrictionMode: "ANY",
@@ -994,7 +996,7 @@ describe("cancel booking flow", () => {
         }),
         prisma.availabilitySlot.findUniqueOrThrow({
           where: { id: archivedOriginalSlot.id },
-          select: { status: true },
+          select: { status: true, startsAt: true, endsAt: true },
         }),
         prisma.availabilitySlot.findUniqueOrThrow({
           where: { id: adminDraftSlot.id },
@@ -1005,6 +1007,8 @@ describe("cancel booking flow", () => {
       assert.equal(booking.status, BookingStatus.CANCELLED);
       assert.equal(manualOverrideSlotAfterCancellation.status, AvailabilitySlotStatus.ARCHIVED);
       assert.equal(archivedOriginalSlotAfterCancellation.status, AvailabilitySlotStatus.PUBLISHED);
+      assert.equal(archivedOriginalSlotAfterCancellation.startsAt.toISOString(), originalStartsAt.toISOString());
+      assert.equal(archivedOriginalSlotAfterCancellation.endsAt.toISOString(), originalEndsAt.toISOString());
       assert.equal(adminDraftSlotAfterCancellation.status, AvailabilitySlotStatus.DRAFT);
     } finally {
       if (adminDraftSlotId) {
