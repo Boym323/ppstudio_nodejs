@@ -445,7 +445,12 @@ test.describe("booking flows", () => {
     const matomoRequests = await installMatomoRequestSpy(page);
 
     await page.goto("/");
-    await expect.poll(() => matomoRequests.filter((request) => request.params.url === "/").length).toBe(1);
+    await expect.poll(
+      () =>
+        matomoRequests.filter(
+          (request) => request.params.url === "/" && !request.params.e_a,
+        ).length,
+    ).toBe(1);
 
     const servicesLink = page.locator('footer a[href="/sluzby"]:visible');
     await expect(servicesLink).toHaveCount(1);
