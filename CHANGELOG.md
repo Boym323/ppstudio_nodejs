@@ -6,6 +6,10 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+### Opraveno
+
+- Web Vitals se při nezadaném veřejném feature flagu znovu reportují podle výchozí konfigurace; hodnota `false` reporting explicitně vypne.
+
 ## [3.22.6] - 2026-08-20
 
 ### Změněno
