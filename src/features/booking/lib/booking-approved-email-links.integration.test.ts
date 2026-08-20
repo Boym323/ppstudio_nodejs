@@ -24,6 +24,7 @@ type Seed = {
   serviceId: string;
   categoryId: string;
   approveRawToken?: string;
+  rejectRawToken?: string;
 };
 
 async function loadModules() {
@@ -50,7 +51,7 @@ async function loadModules() {
   };
 }
 
-async function createSeed(options?: { withApproveToken?: boolean }): Promise<Seed> {
+async function createSeed(options?: { withApproveToken?: boolean; withRejectToken?: boolean }): Promise<Seed> {
   const {
     prisma,
     buildBookingActionExpiry,
@@ -136,6 +137,7 @@ async function createSeed(options?: { withApproveToken?: boolean }): Promise<See
   });
 
   let approveRawToken: string | undefined;
+  let rejectRawToken: string | undefined;
 
   if (options?.withApproveToken) {
     const approveToken = buildBookingActionToken();
@@ -151,6 +153,20 @@ async function createSeed(options?: { withApproveToken?: boolean }): Promise<See
     });
   }
 
+  if (options?.withRejectToken) {
+    const rejectToken = buildBookingActionToken();
+    rejectRawToken = rejectToken.rawToken;
+
+    await prisma.bookingActionToken.create({
+      data: {
+        bookingId: booking.id,
+        type: BookingActionTokenType.REJECT,
+        tokenHash: rejectToken.tokenHash,
+        expiresAt: buildBookingActionExpiry(new Date(), 7),
+      },
+    });
+  }
+
   return {
     actorUserId: actor.id,
     bookingId: booking.id,
@@ -159,6 +175,7 @@ async function createSeed(options?: { withApproveToken?: boolean }): Promise<See
     serviceId: service.id,
     categoryId: category.id,
     approveRawToken,
+    rejectRawToken,
   };
 }
 
@@ -326,6 +343,114 @@ dbTest("performBookingEmailAction with admin actor records a user audit entry", 
     assert.equal(history.actorUserId, seed.actorUserId);
     assert.equal(history.reason, "owner-email-approve-v1");
   } finally {
+    await cleanupSeed(seed);
+  }
+});
+
+dbTest("performBookingEmailAction reject restores availability across an archived split slot", async () => {
+  const seed = await createSeed({ withRejectToken: true });
+  const { prisma, performBookingEmailAction, AvailabilitySlotStatus, BookingStatus } = await loadModules();
+  const fragmentIds: string[] = [];
+
+  try {
+    const slot = await prisma.availabilitySlot.findUniqueOrThrow({
+      where: { id: seed.slotId },
+      select: { startsAt: true, endsAt: true },
+    });
+    const fragmentDuration = 30 * 60 * 1000;
+
+    await prisma.availabilitySlot.update({
+      where: { id: seed.slotId },
+      data: { status: AvailabilitySlotStatus.ARCHIVED },
+    });
+
+    const fragments = await prisma.availabilitySlot.createManyAndReturn({
+      data: [
+        {
+          startsAt: new Date(slot.startsAt.getTime() - fragmentDuration),
+          endsAt: slot.startsAt,
+          capacity: 1,
+          status: AvailabilitySlotStatus.PUBLISHED,
+          publishedAt: new Date(),
+          serviceRestrictionMode: "ANY",
+          createdByUserId: seed.actorUserId,
+        },
+        {
+          startsAt: slot.endsAt,
+          endsAt: new Date(slot.endsAt.getTime() + fragmentDuration),
+          capacity: 1,
+          status: AvailabilitySlotStatus.PUBLISHED,
+          publishedAt: new Date(),
+          serviceRestrictionMode: "ANY",
+          createdByUserId: seed.actorUserId,
+        },
+      ],
+      select: { id: true },
+    });
+    fragmentIds.push(...fragments.map((fragment) => fragment.id));
+
+    const result = await performBookingEmailAction(
+      "reject",
+      seed.rejectRawToken!,
+      undefined,
+      { userId: seed.actorUserId },
+    );
+
+    assert.equal(result.status, "completed");
+
+    const [booking, overlappingSlots, blockingBookings] = await Promise.all([
+      prisma.booking.findUniqueOrThrow({
+        where: { id: seed.bookingId },
+        select: { status: true },
+      }),
+      prisma.availabilitySlot.findMany({
+        where: {
+          startsAt: { lt: slot.endsAt },
+          endsAt: { gt: slot.startsAt },
+        },
+        orderBy: { startsAt: "asc" },
+        select: {
+          id: true,
+          status: true,
+          startsAt: true,
+          endsAt: true,
+          bookings: {
+            select: { id: true, status: true, manualOverride: true },
+          },
+        },
+      }),
+      prisma.booking.findMany({
+        where: {
+          status: { in: [BookingStatus.PENDING, BookingStatus.CONFIRMED] },
+          scheduledStartsAt: { lt: slot.endsAt },
+          OR: [
+            { blockedUntil: { gt: slot.startsAt } },
+            { blockedUntil: null, scheduledEndsAt: { gt: slot.startsAt } },
+          ],
+        },
+        select: { id: true, status: true, manualOverride: true },
+      }),
+    ]);
+
+    assert.equal(booking.status, BookingStatus.CANCELLED);
+
+    let coveredUntil = slot.startsAt.getTime();
+    for (const publishedSlot of overlappingSlots.filter((item) => item.status === AvailabilitySlotStatus.PUBLISHED)) {
+      if (publishedSlot.startsAt.getTime() <= coveredUntil) {
+        coveredUntil = Math.max(coveredUntil, publishedSlot.endsAt.getTime());
+      }
+    }
+
+    assert.ok(coveredUntil >= slot.endsAt.getTime(), "Původní interval musí být celý pokryt publikovanou dostupností.");
+    assert.equal(
+      overlappingSlots.some((item) => item.status === AvailabilitySlotStatus.DRAFT
+        && item.bookings.some((bookingItem) => bookingItem.manualOverride && bookingItem.status === BookingStatus.CANCELLED)),
+      false,
+      "Osiřelý DRAFT slot ruční výjimky nesmí blokovat obnovenou dostupnost.",
+    );
+    assert.deepEqual(blockingBookings, []);
+  } finally {
+    await prisma.availabilitySlot.deleteMany({ where: { id: { in: fragmentIds } } });
     await cleanupSeed(seed);
   }
 });

@@ -20,6 +20,10 @@ import {
   hashBookingActionToken,
 } from "@/features/booking/lib/booking-action-tokens";
 import { formatBookingDateLabel } from "@/features/booking/lib/booking-format";
+import {
+  archiveOrphanedManualOverrideSlotAfterCancellation,
+  compactAdjacentEditableSlotsForBooking,
+} from "@/features/booking/lib/booking-slot-compaction";
 import { getBookingStatusLabel } from "@/features/booking/lib/booking-status-presentation";
 import { sendOwnerBookingPushover } from "@/lib/notifications/pushover";
 import { prisma } from "@/lib/prisma";
@@ -38,7 +42,9 @@ type LoadedBookingActionToken = {
     status: BookingStatus;
     confirmedAt: Date | null;
     cancelledAt: Date | null;
+    manualOverride: boolean;
     clientId: string;
+    slotId: string;
     clientNameSnapshot: string;
     clientEmailSnapshot: string;
     serviceNameSnapshot: string;
@@ -180,7 +186,9 @@ async function findActionToken(tokenHash: string) {
           status: true,
           confirmedAt: true,
           cancelledAt: true,
+          manualOverride: true,
           clientId: true,
+          slotId: true,
           clientNameSnapshot: true,
           clientEmailSnapshot: true,
           serviceNameSnapshot: true,
@@ -366,7 +374,9 @@ export async function performBookingEmailAction(
               status: true,
               confirmedAt: true,
               cancelledAt: true,
+              manualOverride: true,
               clientId: true,
+              slotId: true,
               clientNameSnapshot: true,
               clientEmailSnapshot: true,
               serviceNameSnapshot: true,
@@ -398,6 +408,14 @@ export async function performBookingEmailAction(
           cancelledAt: targetStatus === BookingStatus.CANCELLED ? now : null,
         },
       });
+
+      if (targetStatus === BookingStatus.CANCELLED) {
+        await compactAdjacentEditableSlotsForBooking(tx, lockedToken.booking!.slotId);
+
+        if (lockedToken.booking!.manualOverride) {
+          await archiveOrphanedManualOverrideSlotAfterCancellation(tx, lockedToken.booking!.slotId);
+        }
+      }
 
       await tx.bookingActionToken.update({
         where: {

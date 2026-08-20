@@ -8,6 +8,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Zamítnutí čekající rezervace z administrátorského e-mailového odkazu nyní stejně jako ostatní storna obnoví archivovaný či rozdělený dostupný termín.
 - Storno veřejné i administrativní rezervace nyní odstaví osiřelý dočasný DRAFT slot vytvořený ruční výjimkou, takže zrušený termín dál neblokuje dostupnost; běžné administrativní DRAFT blokace zůstávají zachované.
 - Storno rezervace nyní nesloučí termín s vlastním omezením služby nebo jinou kapacitou se sousedním běžným intervalem.
 - Ruční přesun rezervace nyní obnoví i archivovaný termín s vlastním omezením služeb a při rozdělení zachová jeho pravidla i poznámky.

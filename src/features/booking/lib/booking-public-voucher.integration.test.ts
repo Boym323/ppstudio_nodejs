@@ -11,6 +11,11 @@ import {
   VoucherStatus,
   VoucherType,
 } from "@/generated/prisma/browser";
+import {
+  getNextCalendarDate,
+  getPragueLocalDate,
+  resolvePragueLocalDateTime,
+} from "./booking-local-time";
 
 (process.env as Record<string, string | undefined>).NODE_ENV = "test";
 process.env.NEXT_PUBLIC_APP_NAME ??= "PP Studio";
@@ -59,7 +64,7 @@ function addDays(base: Date, days: number) {
 
 async function findIsolatedSlotStart(
   context: SeedContext,
-  durationMinutes: number,
+  _durationMinutes: number,
   minimumDayOffset = 14,
 ) {
   const { prisma } = await loadModules();
@@ -87,17 +92,20 @@ async function findIsolatedSlotStart(
       for (const minute of minuteCandidates) {
         const startsAt = addDays(new Date(), dayOffset);
         startsAt.setUTCHours(hour, minute, 0, 0);
-        const endsAt = new Date(startsAt.getTime() + durationMinutes * 60 * 1000);
+        const localDate = getPragueLocalDate(startsAt);
+        const nextLocalDate = getNextCalendarDate(localDate);
+        const dayStartsAt = resolvePragueLocalDateTime(localDate, "00:00");
+        const dayEndsAt = nextLocalDate ? resolvePragueLocalDateTime(nextLocalDate, "00:00") : null;
+
+        if (!dayStartsAt || !dayEndsAt) {
+          continue;
+        }
 
         const [overlappingSlots, overlappingBookings] = await Promise.all([
           prisma.availabilitySlot.count({
             where: {
-              startsAt: {
-                lt: endsAt,
-              },
-              endsAt: {
-                gt: startsAt,
-              },
+              startsAt: { lt: dayEndsAt },
+              endsAt: { gt: dayStartsAt },
             },
           }),
           prisma.booking.count({
@@ -106,18 +114,18 @@ async function findIsolatedSlotStart(
                 in: activeStatuses,
               },
               scheduledStartsAt: {
-                lt: endsAt,
+                lt: dayEndsAt,
               },
               OR: [
                 {
                   blockedUntil: {
-                    gt: startsAt,
+                    gt: dayStartsAt,
                   },
                 },
                 {
                   blockedUntil: null,
                   scheduledEndsAt: {
-                    gt: startsAt,
+                    gt: dayStartsAt,
                   },
                 },
               ],
