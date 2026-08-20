@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import test, { describe } from "node:test";
 
+import { compactAdjacentEditableSlotsForBooking } from "./booking-slot-compaction";
+
 (process.env as Record<string, string | undefined>).NODE_ENV = "test";
 process.env.NEXT_PUBLIC_APP_NAME ??= "PP Studio";
 process.env.NEXT_PUBLIC_APP_URL ??= "https://example.com";
@@ -1084,80 +1086,34 @@ describe("cancel booking flow", () => {
     }
   });
 
-  dbTest("cancellation does not compact a capacity-2 slot with an adjacent capacity-1 slot", async () => {
-    const seed = await createSeed();
-    const { prisma, cancelPublicBookingByToken, AvailabilitySlotStatus } = await loadModules();
-    let adjacentSlotId: string | null = null;
-    let capacityConstraintRemoved = false;
-
-    try {
-      const slot = await prisma.availabilitySlot.findUniqueOrThrow({
-        where: { id: seed.manageableCurrentSlotId },
-        select: { startsAt: true, endsAt: true },
-      });
-
-      // Produkční schéma správně vynucuje kapacitu 1. Pro regresi selektoru
-      // nasimulujeme historický nekonzistentní slot, který opravovaný kód musí
-      // bezpečně odmítnout i při ručním zásahu do dat.
-      await prisma.$executeRawUnsafe(
-        'ALTER TABLE "AvailabilitySlot" DROP CONSTRAINT "AvailabilitySlot_capacity_one"',
-      );
-      capacityConstraintRemoved = true;
-      await prisma.availabilitySlot.update({
-        where: { id: seed.manageableCurrentSlotId },
-        data: { capacity: 2 },
-      });
-      const adjacentSlot = await prisma.availabilitySlot.create({
-        data: {
-          startsAt: slot.endsAt,
-          endsAt: addHours(slot.endsAt, 0.5),
-          capacity: 1,
-          status: AvailabilitySlotStatus.PUBLISHED,
-          serviceRestrictionMode: "ANY",
-          publishedAt: new Date(),
-          createdByUserId: seed.actorUserId,
+  test("capacity-2 slot is not compacted with an adjacent capacity-1 slot", async () => {
+    const findFirstCalls: Array<{ where: Record<string, unknown> }> = [];
+    const capacityTwoSlot = {
+      id: "capacity-two",
+      startsAt: new Date("2030-01-01T10:00:00Z"),
+      endsAt: new Date("2030-01-01T11:00:00Z"),
+      status: "PUBLISHED" as const,
+      capacity: 2,
+      publicNote: null,
+      internalNote: null,
+      serviceRestrictionMode: "ANY" as const,
+      createdByUserId: null,
+      allowedServices: [],
+      bookings: [],
+    };
+    const tx = {
+      availabilitySlot: {
+        findFirst: async (args: { where: Record<string, unknown> }) => {
+          findFirstCalls.push(args);
+          return findFirstCalls.length === 1 ? capacityTwoSlot : null;
         },
-        select: { id: true },
-      });
-      adjacentSlotId = adjacentSlot.id;
+      },
+    } as never;
 
-      const result = await cancelPublicBookingByToken(seed.cancelTokenRaw);
+    const result = await compactAdjacentEditableSlotsForBooking(tx, capacityTwoSlot.id);
 
-      assert.equal(result.status, "cancelled");
-      const slots = await prisma.availabilitySlot.findMany({
-        where: { id: { in: [seed.manageableCurrentSlotId, adjacentSlot.id] } },
-        orderBy: { startsAt: "asc" },
-        select: { id: true, startsAt: true, endsAt: true, capacity: true },
-      });
-
-      assert.deepEqual(slots, [
-        {
-          id: seed.manageableCurrentSlotId,
-          startsAt: slot.startsAt,
-          endsAt: slot.endsAt,
-          capacity: 2,
-        },
-        {
-          id: adjacentSlot.id,
-          startsAt: slot.endsAt,
-          endsAt: addHours(slot.endsAt, 0.5),
-          capacity: 1,
-        },
-      ]);
-    } finally {
-      try {
-        if (adjacentSlotId) {
-          await prisma.availabilitySlot.deleteMany({ where: { id: adjacentSlotId } });
-        }
-        await cleanupSeed(seed);
-      } finally {
-        if (capacityConstraintRemoved) {
-          await prisma.$executeRawUnsafe(
-            'ALTER TABLE "AvailabilitySlot" ADD CONSTRAINT "AvailabilitySlot_capacity_one" CHECK ("capacity" = 1)',
-          );
-        }
-      }
-    }
+    assert.deepEqual(result, capacityTwoSlot);
+    assert.equal(findFirstCalls[1].where.capacity, 1);
   });
 
   dbTest("cancellation restores the unblocked part of an archived slot", async () => {
