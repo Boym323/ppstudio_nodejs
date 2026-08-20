@@ -367,7 +367,7 @@ export async function restoreArchivedSlotAroundManualOverride(
   slotId: string,
   manualOverrideSlotId: string,
 ) {
-  const archivedSlot = await findMergeableSlotById(tx, slotId);
+  const archivedSlot = await findRestorableCancelledSlotById(tx, slotId);
 
   if (!archivedSlot || archivedSlot.status !== AvailabilitySlotStatus.ARCHIVED) {
     return null;
@@ -461,11 +461,20 @@ export async function restoreArchivedSlotAroundManualOverride(
       data: {
         startsAt: interval.startsAt,
         endsAt: interval.endsAt,
-        capacity: 1,
+        capacity: archivedSlot.capacity,
         status: AvailabilitySlotStatus.PUBLISHED,
-        serviceRestrictionMode: AvailabilitySlotServiceRestrictionMode.ANY,
+        publicNote: archivedSlot.publicNote,
+        internalNote: archivedSlot.internalNote,
+        serviceRestrictionMode: archivedSlot.serviceRestrictionMode,
         publishedAt: new Date(),
         createdByUserId: archivedSlot.createdByUserId,
+        allowedServices: archivedSlot.allowedServices.length > 0
+          ? {
+              createMany: {
+                data: archivedSlot.allowedServices.map(({ serviceId }) => ({ serviceId })),
+              },
+            }
+          : undefined,
       },
       select: {
         id: true,

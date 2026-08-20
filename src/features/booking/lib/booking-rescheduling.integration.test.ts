@@ -747,6 +747,14 @@ dbTest("admin manual override obnoví jen volnou část překrytého archivovan�
         startsAt: originalStartsAt,
         endsAt: originalEndsAt,
         status: AvailabilitySlotStatus.ARCHIVED,
+        publicNote: "Jen pro vybranou službu",
+        internalNote: "Obnovit omezení po manual override",
+        serviceRestrictionMode: "SELECTED",
+        allowedServices: {
+          create: {
+            serviceId: seed.serviceId,
+          },
+        },
       },
     });
     const bookingBeforeReschedule = await prisma.booking.findUniqueOrThrow({
@@ -784,11 +792,27 @@ dbTest("admin manual override obnoví jen volnou část překrytého archivovan�
 
     const restoredSlot = await prisma.availabilitySlot.findUniqueOrThrow({
       where: { id: seed.oldSlotId },
-      select: { status: true, startsAt: true, endsAt: true },
+      select: {
+        status: true,
+        startsAt: true,
+        endsAt: true,
+        publicNote: true,
+        internalNote: true,
+        serviceRestrictionMode: true,
+        allowedServices: {
+          select: {
+            serviceId: true,
+          },
+        },
+      },
     });
     assert.equal(restoredSlot.status, AvailabilitySlotStatus.PUBLISHED);
     assert.equal(restoredSlot.startsAt.toISOString(), originalStartsAt.toISOString());
     assert.equal(restoredSlot.endsAt.toISOString(), newStartsAt.toISOString());
+    assert.equal(restoredSlot.publicNote, "Jen pro vybranou službu");
+    assert.equal(restoredSlot.internalNote, "Obnovit omezení po manual override");
+    assert.equal(restoredSlot.serviceRestrictionMode, "SELECTED");
+    assert.deepEqual(restoredSlot.allowedServices, [{ serviceId: seed.serviceId }]);
     assert.equal(await prisma.availabilitySlot.count({
       where: {
         status: AvailabilitySlotStatus.ARCHIVED,
@@ -823,6 +847,92 @@ dbTest("admin manual override obnoví jen volnou část překrytého archivovan�
       for (const otherSlot of activeSlots.slice(index + 1)) {
         assert.equal(slot.startsAt < otherSlot.endsAt && slot.endsAt > otherSlot.startsAt, false);
       }
+    }
+  } finally {
+    await cleanupLunchSeed(seed);
+  }
+});
+
+dbTest("admin manual override při splitu zachová metadata archivovaného slotu", async () => {
+  const seed = await createLunchSeed({ cleanupMinutes: 30, oldStart: "15:00", oldEnd: "16:30" });
+  const { prisma, rescheduleBooking, AvailabilitySlotStatus } = await loadModules();
+  const originalStartsAt = at(seed.localDate, "14:00");
+  const originalEndsAt = at(seed.localDate, "19:00");
+  const newStartsAt = at(seed.localDate, "16:00");
+  const newBlockedUntil = at(seed.localDate, "18:00");
+
+  try {
+    await prisma.availabilitySlot.update({
+      where: { id: seed.oldSlotId },
+      data: {
+        startsAt: originalStartsAt,
+        endsAt: originalEndsAt,
+        status: AvailabilitySlotStatus.ARCHIVED,
+        capacity: 1,
+        publicNote: "Nestandardní veřejná poznámka",
+        internalNote: "Nestandardní interní poznámka",
+        serviceRestrictionMode: "SELECTED",
+        allowedServices: {
+          create: {
+            serviceId: seed.serviceId,
+          },
+        },
+      },
+    });
+    const bookingBeforeReschedule = await prisma.booking.findUniqueOrThrow({
+      where: { id: seed.bookingId },
+      select: { updatedAt: true },
+    });
+
+    const result = await rescheduleBooking({
+      bookingId: seed.bookingId,
+      newStartAt: newStartsAt.toISOString(),
+      changedByUserId: seed.actorUserId,
+      notifyClient: false,
+      expectedUpdatedAt: bookingBeforeReschedule.updatedAt.toISOString(),
+      allowManualOverride: true,
+    });
+
+    assert.equal(result.manualOverride, true);
+    const restoredSlots = await prisma.availabilitySlot.findMany({
+      where: {
+        status: AvailabilitySlotStatus.PUBLISHED,
+        startsAt: { gte: originalStartsAt },
+        endsAt: { lte: originalEndsAt },
+        createdByUserId: seed.actorUserId,
+      },
+      orderBy: { startsAt: "asc" },
+      select: {
+        startsAt: true,
+        endsAt: true,
+        capacity: true,
+        publicNote: true,
+        internalNote: true,
+        serviceRestrictionMode: true,
+        createdByUserId: true,
+        allowedServices: {
+          select: {
+            serviceId: true,
+          },
+        },
+      },
+    });
+
+    assert.equal(restoredSlots.length, 2);
+    assert.deepEqual(restoredSlots.map((slot) => [
+      slot.startsAt.toISOString(),
+      slot.endsAt.toISOString(),
+    ]), [
+      [originalStartsAt.toISOString(), newStartsAt.toISOString()],
+      [newBlockedUntil.toISOString(), originalEndsAt.toISOString()],
+    ]);
+    for (const slot of restoredSlots) {
+      assert.equal(slot.capacity, 1);
+      assert.equal(slot.publicNote, "Nestandardní veřejná poznámka");
+      assert.equal(slot.internalNote, "Nestandardní interní poznámka");
+      assert.equal(slot.serviceRestrictionMode, "SELECTED");
+      assert.equal(slot.createdByUserId, seed.actorUserId);
+      assert.deepEqual(slot.allowedServices, [{ serviceId: seed.serviceId }]);
     }
   } finally {
     await cleanupLunchSeed(seed);

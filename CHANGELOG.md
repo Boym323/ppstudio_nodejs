@@ -9,6 +9,7 @@ Formát je inspirovaný Keep a Changelog.
 ### Opraveno
 
 - Storno rezervace nyní nesloučí termín s vlastním omezením služby nebo jinou kapacitou se sousedním běžným intervalem.
+- Ruční přesun rezervace nyní obnoví i archivovaný termín s vlastním omezením služeb a při rozdělení zachová jeho pravidla i poznámky.
 
 ## [3.22.5] - 2026-08-19
 
