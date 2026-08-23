@@ -27,9 +27,9 @@ Tichý startup readiness probe nepřidává závislost; používá stejný `curl
 ## Aktuální verze stacku
 - Zdroj pravdy je `package.json` v kořeni projektu.
 - Projektový runtime cíl je `Node 24 LTS`; repozitář to explicitně deklaruje přes [`.nvmrc`](../.nvmrc#L1) a `package.json.engines`.
-- `next`: `16.2.10`
-- `react`: `19.2.7`
-- `react-dom`: `19.2.7`
+- `next`: `16.3.1`
+- `react`: `19.2.8`
+- `react-dom`: `19.2.8`
 - `tailwindcss`: `^4.3.2` (runtime používá `4.3.2`)
 - `@tailwindcss/postcss`: `^4.3.2` (runtime používá `4.3.2`)
 - `postcss`: přímá závislost není pinovaná; resolvuje se přes `@tailwindcss/postcss` (`8.5.16`) a interně také přes `next`.
@@ -39,7 +39,7 @@ Tichý startup readiness probe nepřidává závislost; používá stejný `curl
 - `package.json.allowScripts` na npm 11 vědomě whitelisuje install hooky pro `prisma`, `@prisma/engines`, `sharp`, `esbuild` a `unrs-resolver`. Záznamy jsou připnuté na konkrétní verze, aby se při upgradu znovu explicitně zrevidovalo, které postinstall/preinstall skripty repo pouští.
 - Poslední ověřený lokální `npm audit` (2026-07-02) hlásí `1 low` a `6 moderate` nálezů bez `high` / `critical`. Nejrelevantnější větev je `next -> postcss`, dále Prisma tooling (`prisma -> @prisma/dev -> @hono/node-server`) a transitive `@babel/core` / `brace-expansion`.
 - Automatické `npm audit fix` se teď vědomě nepouští: doporučené opravy vrací nebezpečné návrhy na major downgrade `next` nebo `prisma`, takže bezpečný postup je čekat na kompatibilní upstream patch/minor release a zkusit audit znovu při dalším dependency passu.
-- `@playwright/test`: browser E2E test runner pro hlavní rezervační a admin flow; v projektu držíme `^1.61.1`, protože starší `1.59.1` se v CI na Node 24 zasekávala při instalaci browseru.
+- `@playwright/test`: browser E2E test runner pro hlavní rezervační a admin flow; v projektu držíme `^1.62.1`, protože starší `1.59.1` se v CI na Node 24 zasekávala při instalaci browseru.
 - `@axe-core/playwright`: automatizovaná axe kontrola přístupnosti v reprezentativních Playwright scénářích veřejného webu, rezervace a administrace.
 - `c8`: V8 coverage reporter nad stávajícím `node --test` setupem; generuje HTML/LCOV/JSON reporty bez nutnosti přechodu na jiný test runner.
 - `react` a `react-dom` drž vždy na přesně stejné patch verzi. U Next.js/React serverového renderu repo nesmí přijmout jednostranný bump jen `react`, protože CI pak spadne na runtime kontrolu `Incompatible React versions`.

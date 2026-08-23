@@ -15,9 +15,9 @@ PP Studio je monolitická Next.js 16 aplikace nad App Routerem s PostgreSQL data
 
 Hlavní stack:
 
-- `next` `16.2.10`
-- `react` `19.2.7`
-- `react-dom` `19.2.7`
+- `next` `16.3.1`
+- `react` `19.2.8`
+- `react-dom` `19.2.8`
 - `prisma` `7.9.1`
 - PostgreSQL
 - systemd služby `ppstudio-web` a `ppstudio-email-worker`

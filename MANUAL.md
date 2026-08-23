@@ -161,7 +161,7 @@ Praktický přehled hlavních HTTP endpointů je v [`docs/API.md`](docs/API.md).
 
 ## Verzování (SemVer)
 - Projekt používá Semantic Versioning `MAJOR.MINOR.PATCH` v `package.json`.
-- Aktuální release je `3.11.0`; stabilní řada projektu začala verzí `1.0.0`.
+- Aktuální release je `3.22.7`; stabilní řada projektu začala verzí `1.0.0`.
 - `PATCH` (`0.1.0 -> 0.1.1`) zvyšuj při opravách chyb, interním refaktoru bez změny chování a technických úpravách bez dopadu na veřejné rozhraní.
 - `MINOR` (`0.1.0 -> 0.2.0`) zvyšuj při přidání nové funkce nebo rozšíření existující funkcionality zpětně kompatibilním způsobem.
 - `MAJOR` (`0.1.0 -> 1.0.0` nebo `1.x.y -> 2.0.0`) zvyšuj při nekompatibilní změně API, datového kontraktu, routingu nebo provozního chování, které vyžaduje zásah uživatele/operátora.
@@ -212,9 +212,9 @@ Praktický přehled hlavních HTTP endpointů je v [`docs/API.md`](docs/API.md).
 - V detailu owner `Email logu` akce `Znovu odeslat e-mail` založí nový `PENDING` log s aktuálním e-mailem kontaktu jako nový pokus; historický `recipientEmail` původního záznamu se kvůli auditu nikdy nepřepisuje.
 - Admin detail rezervace musí i při dlouhém jménu, e-mailu nebo hlášce po přesunu termínu zalamovat text uvnitř karet; success bannery, historie i key/value souhrny nesmí horizontálně přetékat mimo panel.
 - Aktuální runtime stack podle `package.json`:
-  - `next` `16.2.10`
-  - `react` `19.2.7`
-  - `react-dom` `19.2.7`
+  - `next` `16.3.1`
+  - `react` `19.2.8`
+  - `react-dom` `19.2.8`
   - `prisma` + `@prisma/client` `7.9.1`
 - Veřejná část aktuálně pokrývá:
   - homepage

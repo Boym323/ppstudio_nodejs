@@ -6,8 +6,8 @@ Tento dokument shrnuje runtime prostředí projektu a nejdůležitější promě
 
 - Node.js `24 LTS`
 - npm `>=10`
-- Next.js `16.2.10`
-- React a React DOM `19.2.7`
+- Next.js `16.3.1`
+- React a React DOM `19.2.8`
 - Prisma `7.9.1`
 - PostgreSQL
 - Debian LXC na Proxmoxu

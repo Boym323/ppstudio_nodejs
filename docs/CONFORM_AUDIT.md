@@ -6,7 +6,7 @@ PP Studio používá Server Actions, React 19 `useActionState`, Zod 4 a nativní
 
 ## Current form architecture
 
-Technologický kontrakt: Next.js `16.3.0`, React `19.2.8`, Zod `4.4.3`, TypeScript 5. Formuláře používají nativní `<form action={formAction}>`, `useActionState` a `useFormStatus`. Server Action přijímá `(previousState, formData)`, ručně čte hodnoty, volá Zod `safeParse`, vrací typovaný action-state a potom provádí guardy, Prisma operace, audit, side effects, `revalidatePath` nebo redirect.
+Technologický kontrakt: Next.js `16.3.1`, React `19.2.8`, Zod `4.4.3`, TypeScript 5. Formuláře používají nativní `<form action={formAction}>`, `useActionState` a `useFormStatus`. Server Action přijímá `(previousState, formData)`, ručně čte hodnoty, volá Zod `safeParse`, vrací typovaný action-state a potom provádí guardy, Prisma operace, audit, side effects, `revalidatePath` nebo redirect.
 
 Typický tok:
 
@@ -125,4 +125,3 @@ Audit prokázal opakovaný plumbing a zachování Server Actions je možné, ale
 ## Proposed next step
 
 Pokud bude pokračovat pilot, scope je pouze `AdminSalonSettingsForm`, jeho action, schema a cílené testy/action contract. Acceptance criteria: stejný Server Action kontrakt, stejné business a auth chování, stejné nebo lepší field/form errors, zachované hodnoty po chybě, ověřené accessibility props a žádný Conform kód v Prisma/business vrstvě.
-
