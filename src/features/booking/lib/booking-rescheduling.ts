@@ -886,6 +886,9 @@ async function rescheduleBookingInTransaction(
       scheduledStartsAt: requestedStartsAt,
       scheduledEndsAt: requestedEndsAt,
       blockedUntil: requestedBlockedUntil,
+      originalAvailabilityEndsAt: resolvedSlot.status === AvailabilitySlotStatus.PUBLISHED
+        ? resolvedCoverageSlots.at(-1)?.endsAt ?? resolvedSlot.endsAt
+        : null,
       manualOverride,
       rescheduledAt,
       rescheduleCount: {

@@ -1287,6 +1287,7 @@ describe("cancel booking flow", () => {
         scheduledStartsAt: beforeEndsAt,
         scheduledEndsAt: bookingEndsAt,
         blockedUntil: cleanupEndsAt,
+        originalAvailabilityEndsAt: bookingEndsAt,
       },
       select: { id: true },
     });

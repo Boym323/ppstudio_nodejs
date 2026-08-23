@@ -16,7 +16,7 @@ type MergeableSlotRecord = {
   serviceRestrictionMode: AvailabilitySlotServiceRestrictionMode;
   createdByUserId: string | null;
   allowedServices: Array<{ serviceId: string }>;
-  bookings: Array<{ id: string; blockedUntil: Date | null }>;
+  bookings: Array<{ id: string; originalAvailabilityEndsAt: Date | null }>;
 };
 
 const mergeableEditableSlotConstraints = {
@@ -60,6 +60,19 @@ const restorableCancelledSlotWhere = {
 
 const activeBookingStatuses = [BookingStatus.PENDING, BookingStatus.CONFIRMED] as const;
 
+export function getRestorableSlotEnd(
+  slotEndsAt: Date,
+  bookings: Array<{ originalAvailabilityEndsAt: Date | null }>,
+) {
+  return bookings.reduce((latestEndsAt, booking) => {
+    if (!booking.originalAvailabilityEndsAt || booking.originalAvailabilityEndsAt <= latestEndsAt) {
+      return latestEndsAt;
+    }
+
+    return booking.originalAvailabilityEndsAt;
+  }, slotEndsAt);
+}
+
 const mergeableEditableSlotSelect = {
   id: true,
   startsAt: true,
@@ -78,7 +91,7 @@ const mergeableEditableSlotSelect = {
   bookings: {
     select: {
       id: true,
-      blockedUntil: true,
+      originalAvailabilityEndsAt: true,
     },
   },
 } satisfies Prisma.AvailabilitySlotSelect;
@@ -114,6 +127,8 @@ async function restoreCancelledSlotIfArchived(
     return slot;
   }
 
+  const restoredEndsAt = getRestorableSlotEnd(slot.endsAt, slot.bookings);
+
   const overlappingActiveSlots = await tx.availabilitySlot.findMany({
     where: {
       id: {
@@ -123,7 +138,7 @@ async function restoreCancelledSlotIfArchived(
         in: [AvailabilitySlotStatus.DRAFT, AvailabilitySlotStatus.PUBLISHED],
       },
       startsAt: {
-        lt: slot.endsAt,
+        lt: restoredEndsAt,
       },
       endsAt: {
         gt: slot.startsAt,
@@ -153,10 +168,10 @@ async function restoreCancelledSlotIfArchived(
     }
   }
 
-  if (restoredStartsAt < slot.endsAt) {
+  if (restoredStartsAt < restoredEndsAt) {
     restoredIntervals.push({
       startsAt: restoredStartsAt,
-      endsAt: slot.endsAt,
+      endsAt: restoredEndsAt,
     });
   }
 

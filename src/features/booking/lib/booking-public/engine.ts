@@ -700,6 +700,9 @@ export async function createBookingWithEngine(
               scheduledStartsAt: requestedStartsAt,
               scheduledEndsAt: requestedEndsAt,
               blockedUntil: bookingTiming.blockedUntil,
+              originalAvailabilityEndsAt: resolvedSlot.status === AvailabilitySlotStatus.PUBLISHED
+                ? resolvedCoverageSlots.at(-1)?.endsAt ?? resolvedSlot.endsAt
+                : null,
               clientNote: normalizedClientNote,
               internalNote: normalizedInternalNote,
               confirmedAt: input.status === BookingStatus.CONFIRMED ? now : null,

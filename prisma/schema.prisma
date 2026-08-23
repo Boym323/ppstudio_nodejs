@@ -506,6 +506,7 @@ model Booking {
   scheduledStartsAt           DateTime
   scheduledEndsAt             DateTime
   blockedUntil                DateTime?
+  originalAvailabilityEndsAt  DateTime?
   clientNote                  String?
   internalNote                String?
   confirmedAt                 DateTime?

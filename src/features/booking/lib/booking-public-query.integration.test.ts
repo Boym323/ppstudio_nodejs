@@ -483,6 +483,11 @@ dbTest("createPublicBooking ignores an archived slot left by a cancelled booking
     });
 
     assert.ok(booking.bookingId);
+    const storedBooking = await prisma.booking.findUniqueOrThrow({
+      where: { id: booking.bookingId },
+      select: { originalAvailabilityEndsAt: true },
+    });
+    assert.equal(storedBooking.originalAvailabilityEndsAt?.toISOString(), endsAt.toISOString());
   } finally {
     await prisma.emailLog.deleteMany({ where: { recipientEmail: email } });
     await prisma.booking.deleteMany({ where: { clientEmailSnapshot: email } });
