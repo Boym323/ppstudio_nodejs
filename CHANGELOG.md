@@ -6,6 +6,12 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [3.22.9] - 2026-08-23
+
+### Změněno
+
+- Release příprava pro produkční nasazení: projektová verze navýšena na patch `3.22.9` po doplnění regresního testu obnovy rezervace.
+
 ## [3.22.8] - 2026-08-23
 
 ### Opraveno
