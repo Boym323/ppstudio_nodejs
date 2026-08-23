@@ -114,14 +114,6 @@ async function restoreCancelledSlotIfArchived(
     return slot;
   }
 
-  const restoredEndsAt = slot.bookings.reduce((latestEndsAt, booking) => {
-    if (!booking.blockedUntil || booking.blockedUntil <= latestEndsAt) {
-      return latestEndsAt;
-    }
-
-    return booking.blockedUntil;
-  }, slot.endsAt);
-
   const overlappingActiveSlots = await tx.availabilitySlot.findMany({
     where: {
       id: {
@@ -131,7 +123,7 @@ async function restoreCancelledSlotIfArchived(
         in: [AvailabilitySlotStatus.DRAFT, AvailabilitySlotStatus.PUBLISHED],
       },
       startsAt: {
-        lt: restoredEndsAt,
+        lt: slot.endsAt,
       },
       endsAt: {
         gt: slot.startsAt,
@@ -161,10 +153,10 @@ async function restoreCancelledSlotIfArchived(
     }
   }
 
-  if (restoredStartsAt < restoredEndsAt) {
+  if (restoredStartsAt < slot.endsAt) {
     restoredIntervals.push({
       startsAt: restoredStartsAt,
-      endsAt: restoredEndsAt,
+      endsAt: slot.endsAt,
     });
   }
 

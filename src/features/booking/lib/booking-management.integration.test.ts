@@ -1166,7 +1166,7 @@ describe("cancel booking flow", () => {
     }
   });
 
-  dbTest("cancellation restores an archived historical slot and compacts adjacent editable fragments", async () => {
+  dbTest("cancellation restores an archived historical slot without publishing its cleanup gap", async () => {
     const {
       prisma,
       cancelPublicBookingByToken,
@@ -1335,17 +1335,22 @@ describe("cancel booking flow", () => {
 
       assert.deepEqual(
         slots.map((slot) => ({
-          id: slot.id,
           startsAt: slot.startsAt.toISOString(),
           endsAt: slot.endsAt.toISOString(),
           status: slot.status,
         })),
-        [{
-          id: bookedSlot.id,
-          startsAt: baseStartAt.toISOString(),
-          endsAt: fullEndsAt.toISOString(),
-          status: AvailabilitySlotStatus.PUBLISHED,
-        }],
+        [
+          {
+            startsAt: baseStartAt.toISOString(),
+            endsAt: bookingEndsAt.toISOString(),
+            status: AvailabilitySlotStatus.PUBLISHED,
+          },
+          {
+            startsAt: cleanupEndsAt.toISOString(),
+            endsAt: fullEndsAt.toISOString(),
+            status: AvailabilitySlotStatus.PUBLISHED,
+          },
+        ],
       );
     } finally {
       await prisma.emailLog.deleteMany({
