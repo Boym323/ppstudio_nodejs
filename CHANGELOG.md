@@ -6,6 +6,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [3.22.8] - 2026-08-23
+
 ### Opraveno
 
 - Storno nyní podle původní hranice dostupnosti správně obnoví i úklidový čas, pokud původně ležel uvnitř volného termínu.
