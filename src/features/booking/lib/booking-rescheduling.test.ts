@@ -467,6 +467,7 @@ describe("state validation", () => {
       scheduledStartsAt: new Date("2026-04-28T09:00:00.000Z"),
       scheduledEndsAt: new Date("2026-04-28T10:00:00.000Z"),
       blockedUntil: new Date("2026-04-28T10:15:00.000Z"),
+      originalAvailabilityEndsAt: new Date("2026-04-28T10:00:00.000Z"),
       manualOverride: false,
       rescheduledAt: harness.calls.bookingUpdate[0]?.data
         ? (harness.calls.bookingUpdate[0].data as { rescheduledAt: Date }).rescheduledAt
@@ -519,6 +520,7 @@ describe("state validation", () => {
       scheduledStartsAt: new Date("2026-04-28T09:30:00.000Z"),
       scheduledEndsAt: new Date("2026-04-28T10:30:00.000Z"),
       blockedUntil: new Date("2026-04-28T10:30:00.000Z"),
+      originalAvailabilityEndsAt: new Date("2026-04-28T11:00:00.000Z"),
       manualOverride: false,
       rescheduledAt: harness.calls.bookingUpdate[0]?.data
         ? (harness.calls.bookingUpdate[0].data as { rescheduledAt: Date }).rescheduledAt
