@@ -9,7 +9,7 @@ async function readSource(relativePath: string) {
   return readFile(path.join(projectRoot, relativePath), "utf8");
 }
 
-test("SiteSettings reads are deferred until a request in all build-time layouts", async () => {
+test("čtení SiteSettings je ve všech build-time layoutech odloženo až na požadavek", async () => {
   const files = [
     "src/app/layout.tsx",
     "src/app/(public)/layout.tsx",

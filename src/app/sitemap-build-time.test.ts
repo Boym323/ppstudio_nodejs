@@ -5,7 +5,7 @@ import { test } from "node:test";
 
 const projectRoot = path.resolve(import.meta.dirname, "../..");
 
-test("sitemap defers service reads until an HTTP request", async () => {
+test("sitemap odloží čtení služeb až na HTTP požadavek", async () => {
   const source = await readFile(path.join(projectRoot, "src/app/sitemap.ts"), "utf8");
   const connectionIndex = source.indexOf("await connection();");
   const servicesReadIndex = source.indexOf("await getPublicServiceSitemapEntries()");

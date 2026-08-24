@@ -9,7 +9,7 @@ import {
   shouldTrackPrefilledServiceSelectionEvent,
 } from "./helpers";
 
-test("public booking client displays catalog ISO times as Prague salon time", () => {
+test("klient veřejné rezervace zobrazí katalogové ISO časy jako čas salonu v Praze", () => {
   const winterStartsAt = "2026-01-15T08:00:00.000Z";
   const summerStartsAt = "2026-07-15T07:00:00.000Z";
 
@@ -21,7 +21,7 @@ test("public booking client displays catalog ISO times as Prague salon time", ()
   assert.equal(getSlotHour(summerStartsAt), 9);
 });
 
-test("findInitialSelectedService returns the matching catalog service for a valid slug", () => {
+test("findInitialSelectedService vrátí odpovídající katalogovou službu pro platný slug", () => {
   const selectedService = findInitialSelectedService(
     [
       {
@@ -51,7 +51,7 @@ test("findInitialSelectedService returns the matching catalog service for a vali
   assert.equal(selectedService?.id, "service-2");
 });
 
-test("findInitialSelectedService ignores missing or blank slugs", () => {
+test("findInitialSelectedService ignoruje chybějící nebo prázdné slugy", () => {
   const services = [
     {
       id: "service-1",

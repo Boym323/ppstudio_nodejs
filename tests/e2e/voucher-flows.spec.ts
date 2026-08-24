@@ -18,7 +18,7 @@ async function loginAdmin(page: Page, email: string, password: string) {
   await expect(page).toHaveURL(/\/admin/);
 }
 
-test.describe("voucher admin flows", () => {
+test.describe("administrační toky voucherů", () => {
   let fixtures: E2eFixture[] = [];
 
   test.afterEach(async () => {
@@ -26,7 +26,7 @@ test.describe("voucher admin flows", () => {
     fixtures = [];
   });
 
-  test("owner can create a value voucher, download its PDF and prepare the voucher email", async ({ page }) => {
+  test("owner vytvoří hodnotový voucher, stáhne jeho PDF a připraví e-mail voucheru", async ({ page }) => {
     const fixture = await createPublicBookingFixture();
     const admin = await createAdminFixture(fixture.runId, AdminRole.OWNER);
     fixtures.push(fixture);
@@ -79,7 +79,7 @@ test.describe("voucher admin flows", () => {
     await expect(emailPanel.getByRole("button", { name: "Potvrdit odeslání" })).toBeVisible();
   });
 
-  test("owner can create a service voucher from the admin catalog picker", async ({ page }) => {
+  test("owner vytvoří službový voucher pomocí výběru z administračního katalogu", async ({ page }) => {
     const fixture = await createPublicBookingFixture();
     const admin = await createAdminFixture(fixture.runId, AdminRole.OWNER);
     fixtures.push(fixture);

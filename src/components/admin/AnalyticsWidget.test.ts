@@ -3,7 +3,7 @@ import test from "node:test";
 
 import { isAnalyticsDashboardData } from "./AnalyticsWidget";
 
-test("isAnalyticsDashboardData accepts payload with contactStepQuality", () => {
+test("isAnalyticsDashboardData přijme payload s contactStepQuality", () => {
   const payload = {
     reportingStatus: "ok",
     periodLabel: "Dnes",
@@ -34,7 +34,7 @@ test("isAnalyticsDashboardData accepts payload with contactStepQuality", () => {
   assert.equal(isAnalyticsDashboardData(payload), true);
 });
 
-test("isAnalyticsDashboardData rejects payload missing contactStepQuality", () => {
+test("isAnalyticsDashboardData odmítne payload bez contactStepQuality", () => {
   const payload = {
     reportingStatus: "ok",
     periodLabel: "Dnes",

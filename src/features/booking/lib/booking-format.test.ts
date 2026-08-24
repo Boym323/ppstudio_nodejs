@@ -3,7 +3,7 @@ import test from "node:test";
 
 import { formatBookingTimeRange } from "./booking-format";
 
-test("booking time range renders winter salon time in Europe/Prague", () => {
+test("časový rozsah rezervace vykreslí zimní čas salonu v Europe/Prague", () => {
   assert.equal(
     formatBookingTimeRange(
       new Date("2026-01-15T08:00:00.000Z"),
@@ -13,7 +13,7 @@ test("booking time range renders winter salon time in Europe/Prague", () => {
   );
 });
 
-test("booking time range renders summer salon time in Europe/Prague", () => {
+test("časový rozsah rezervace vykreslí letní čas salonu v Europe/Prague", () => {
   assert.equal(
     formatBookingTimeRange(
       new Date("2026-07-15T07:00:00.000Z"),

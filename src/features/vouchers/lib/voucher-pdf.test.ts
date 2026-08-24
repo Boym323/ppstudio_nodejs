@@ -15,7 +15,7 @@ process.env.ADMIN_STAFF_EMAIL ??= "staff@example.com";
 process.env.ADMIN_STAFF_PASSWORD ??= "change-me-staff";
 process.env.EMAIL_DELIVERY_MODE ??= "log";
 
-test("builds voucher PDF metadata helpers", async () => {
+test("vytváří pomocné údaje PDF voucheru", async () => {
   const { buildVoucherPdfFilename, buildVoucherVerificationUrl } = await import("./voucher-pdf-core");
 
   assert.equal(buildVoucherPdfFilename("PP-2026-A7K9X2"), "voucher-PP-2026-A7K9X2.pdf");
@@ -25,7 +25,7 @@ test("builds voucher PDF metadata helpers", async () => {
   );
 });
 
-test("generates a PDF document for a value voucher", async () => {
+test("generuje PDF dokument pro hodnotový voucher", async () => {
   const { generateVoucherPdf } = await import("./voucher-pdf-core");
   const pdfBytes = await generateVoucherPdf(buildVoucherFixture(), {
     settings: buildTestSiteSettings(),
@@ -35,7 +35,7 @@ test("generates a PDF document for a value voucher", async () => {
   assert.ok(pdfBytes.length > 1_000);
 });
 
-test("generates a PDF document for a service voucher", async () => {
+test("generuje PDF dokument pro službový voucher", async () => {
   const { generateVoucherPdf } = await import("./voucher-pdf-core");
   const pdfBytes = await generateVoucherPdf(
     buildVoucherFixture({
@@ -51,14 +51,14 @@ test("generates a PDF document for a service voucher", async () => {
   assert.ok(pdfBytes.length > 1_000);
 });
 
-test("uses text logo fallback when voucher PDF logo is not configured", async () => {
+test("použije textové náhradní logo, když logo PDF voucheru není nastavené", async () => {
   const { resolveVoucherPdfLogo, VOUCHER_PDF_TEXT_LOGO } = await import("./voucher-pdf-core");
   const logo = await resolveVoucherPdfLogo(null);
 
   assert.deepEqual(logo, { kind: "text", text: VOUCHER_PDF_TEXT_LOGO });
 });
 
-test("generates a PDF when configured voucher logo file is missing", async () => {
+test("vygeneruje PDF, když nastavený soubor loga voucheru chybí", async () => {
   const { generateVoucherPdf } = await import("./voucher-pdf-core");
   const pdfBytes = await generateVoucherPdf(buildVoucherFixture(), {
     settings: buildTestSiteSettings(),

@@ -27,7 +27,7 @@ import { initialUpdateServiceActionState } from "@/features/admin/actions/update
 import { initialUpdateServiceCategoryActionState } from "@/features/admin/actions/update-service-category-action-state";
 import { initialUpdateVoucherOperationalDetailsActionState } from "@/features/admin/actions/update-voucher-operational-details-action-state";
 
-test("admin action-state modules expose idle initial states", () => {
+test("moduly administračních stavů akcí vystavují počáteční stav idle", () => {
   const states = [
     initialCancelVoucherActionState,
     initialCreateManualBookingActionState,

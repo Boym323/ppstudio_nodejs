@@ -19,7 +19,7 @@ const globalHeaderKeys = [
   "X-Frame-Options",
 ];
 
-test("security headers include the non-production baseline", () => {
+test("bezpečnostní hlavičky obsahují základ pro neprodukční prostředí", () => {
   const headers = buildSecurityHeaders({ isProduction: false });
 
   assert.deepEqual(headers.map((header) => header.key), globalHeaderKeys);
@@ -27,7 +27,7 @@ test("security headers include the non-production baseline", () => {
   assert.ok(!headers.some((header) => header.key === "Strict-Transport-Security"));
 });
 
-test("security headers include production HSTS with its configured value", () => {
+test("bezpečnostní hlavičky obsahují produkční HSTS s nastavenou hodnotou", () => {
   const headers = buildSecurityHeaders({ isProduction: true });
 
   assert.deepEqual(headers.map((header) => header.key), [...globalHeaderKeys, "Strict-Transport-Security"]);
@@ -38,7 +38,7 @@ test("security headers include production HSTS with its configured value", () =>
   );
 });
 
-test("next config uses environment-specific global and token route security headers", async () => {
+test("Next konfigurace používá bezpečnostní hlavičky pro globální a tokenové routy podle prostředí", async () => {
   const nextConfig = (await import("../../next.config")).default;
   assert.equal(typeof nextConfig.headers, "function");
   assert.ok(nextConfig.headers);

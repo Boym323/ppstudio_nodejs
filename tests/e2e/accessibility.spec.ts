@@ -26,7 +26,7 @@ async function expectNoAccessibilityViolations(page: Page, include?: string) {
   expect(results.violations).toEqual([]);
 }
 
-test.describe("accessibility", () => {
+test.describe("přístupnost", () => {
   let fixtures: E2eFixture[] = [];
 
   test.afterEach(async () => {
@@ -34,14 +34,14 @@ test.describe("accessibility", () => {
     fixtures = [];
   });
 
-  test("public homepage has no axe violations", async ({ page }) => {
+  test("veřejná domovská stránka nemá porušení pravidel axe", async ({ page }) => {
     await page.goto("/");
     await expect(page.getByRole("heading", { name: "Kosmetika ve Zlíně" })).toBeVisible();
 
     await expectNoAccessibilityViolations(page);
   });
 
-  test("booking form has no axe violations", async ({ page }) => {
+  test("rezervační formulář nemá porušení axe", async ({ page }) => {
     const fixture = await createPublicBookingFixture();
     fixtures.push(fixture);
 
@@ -51,7 +51,7 @@ test.describe("accessibility", () => {
     await expectNoAccessibilityViolations(page);
   });
 
-  test("admin dashboard has no axe violations", async ({ page }) => {
+  test("administrační dashboard nemá porušení axe", async ({ page }) => {
     const fixture = await createPublicBookingFixture();
     const admin = await createAdminFixture(fixture.runId, AdminRole.OWNER);
     fixtures.push(fixture);

@@ -393,7 +393,7 @@ function roundUpToHalfHour(value: Date) {
   return copy;
 }
 
-test.describe("booking flows", () => {
+test.describe("rezervační toky", () => {
   let fixtures: E2eFixture[] = [];
 
   test.afterEach(async () => {
@@ -401,7 +401,7 @@ test.describe("booking flows", () => {
     fixtures = [];
   });
 
-  test("public visitor can create a pending booking", async ({ page }) => {
+  test("veřejný návštěvník vytvoří čekající rezervaci", async ({ page }) => {
     const fixture = await createPublicBookingFixture();
     fixtures.push(fixture);
 
@@ -572,7 +572,7 @@ test.describe("booking flows", () => {
     expect(events.filter((call) => call[2] === "Doporučený termín vybrán")).toHaveLength(0);
   });
 
-  test("conflict refresh revalidates a voucher before the visitor can submit a new term", async ({ browser }) => {
+  test("obnovení po konfliktu znovu ověří voucher před možností odeslat nový termín", async ({ browser }) => {
     // Dvě nezávislé relace zde záměrně provádějí několik serverových akcí
     // včetně předepsaného zpoždění pro reprodukci konfliktu.
     test.setTimeout(90_000);
@@ -951,7 +951,7 @@ test.describe("booking flows", () => {
     await expect(page.getByText("Interně blokováno do")).toHaveCount(0);
   });
 
-  test("valid service slug preselects the service and keeps marketing params intact", async ({ page }) => {
+  test("platný slug služby předvybere službu a zachová marketingové parametry", async ({ page }) => {
     const fixture = await createPublicBookingFixture();
     fixtures.push(fixture);
 
@@ -978,7 +978,7 @@ test.describe("booking flows", () => {
     expect(currentUrl.searchParams.get("mtm_campaign")).toBe("jaro-2026");
   });
 
-  test("unknown service slug is ignored safely", async ({ page }) => {
+  test("neznámý slug služby je bezpečně ignorován", async ({ page }) => {
     const fixture = await createPublicBookingFixture();
     fixtures.push(fixture);
 
@@ -989,7 +989,7 @@ test.describe("booking flows", () => {
     await expect(page.getByText(fixture.serviceName).first()).toBeVisible();
   });
 
-  test("inactive or non-public service slug is not preselected", async ({ page }) => {
+  test("neaktivní nebo neveřejný slug služby se nepředvybere", async ({ page }) => {
     const inactiveFixture = await createPublicBookingFixture();
     const fallbackFixture = await createPublicBookingFixture();
     fixtures.push(inactiveFixture, fallbackFixture);
@@ -1137,7 +1137,7 @@ test.describe("booking flows", () => {
     expect(JSON.stringify(calls)).not.toMatch(/note|voucher|token/i);
   });
 
-  test("public visitor can verify a voucher code safely", async ({ page }) => {
+  test("veřejný návštěvník bezpečně ověří kód voucheru", async ({ page }) => {
     const fixture = await createPublicVoucherFixture();
     fixtures.push(fixture);
 
@@ -1154,7 +1154,7 @@ test.describe("booking flows", () => {
     await expect(page.getByText("E2E tajná poznámka")).toHaveCount(0);
   });
 
-  test("client can cancel a booking through a public token and emit only safe Matomo events", async ({ page }) => {
+  test("klient zruší rezervaci pomocí veřejného tokenu a odešle pouze bezpečné události Matomo", async ({ page }) => {
     const fixture = await createManagedBookingFixture();
     fixtures.push(fixture);
 
@@ -1206,7 +1206,7 @@ test.describe("booking flows", () => {
     expect(booking.statusHistory.some((item) => item.status === BookingStatus.CANCELLED)).toBe(true);
   });
 
-  test("client can reschedule a booking through a public token", async ({ page }) => {
+  test("klient přesune rezervaci pomocí veřejného tokenu", async ({ page }) => {
     test.setTimeout(60_000);
 
     const fixture = await createManagedBookingFixture();
@@ -1338,7 +1338,7 @@ test.describe("booking flows", () => {
     expect(booking.rescheduleLogs.some((item) => item.changedByClient)).toBe(true);
   });
 
-  test("owner can open manual booking from client detail and create a booking for the prefilled client", async ({ page }) => {
+  test("owner otevře manuální rezervaci z detailu klienta a vytvoří rezervaci pro předvyplněného klienta", async ({ page }) => {
     const fixture = await createManagedBookingFixture();
     const admin = await createAdminFixture(fixture.runId, AdminRole.OWNER);
     fixtures.push(fixture);
@@ -1487,7 +1487,7 @@ test.describe("booking flows", () => {
     await expect(page).toHaveURL(/\/admin\/prihlaseni/);
   });
 
-  test("owner can log in and confirm a pending booking", async ({ page }) => {
+  test("owner se přihlásí a potvrdí čekající rezervaci", async ({ page }) => {
     const fixture = await createManagedBookingFixture(BookingStatus.PENDING);
     const admin = await createAdminFixture(fixture.runId);
     fixtures.push(fixture);

@@ -6,7 +6,7 @@ process.env.NEXT_PUBLIC_SITE_DOMAIN = "ppstudio.cz";
 process.env.VOUCHER_PUBLIC_DOMAIN = "vouchery.ppstudio.cz";
 Object.assign(process.env, { NODE_ENV: "production" });
 
-test("buildAbsoluteUrl rejects untrusted forwarded hosts", async () => {
+test("buildAbsoluteUrl odmítne nedůvěryhodné předané hosty", async () => {
   const { buildAbsoluteUrl } = await import("./request-origin");
   const request = new Request("https://example.com/api/auth/login", {
     headers: {
@@ -21,7 +21,7 @@ test("buildAbsoluteUrl rejects untrusted forwarded hosts", async () => {
   );
 });
 
-test("buildAbsoluteUrl accepts configured forwarded host", async () => {
+test("buildAbsoluteUrl přijme nastavený předaný host", async () => {
   const { buildAbsoluteUrl } = await import("./request-origin");
   const request = new Request("https://internal.example/api/auth/login", {
     headers: {
@@ -33,7 +33,7 @@ test("buildAbsoluteUrl accepts configured forwarded host", async () => {
   assert.equal(buildAbsoluteUrl(request, "/admin").href, "https://ppstudio.cz/admin");
 });
 
-test("buildAbsoluteUrl accepts www alias of configured forwarded host", async () => {
+test("buildAbsoluteUrl přijme www alias nastaveného předaného hostu", async () => {
   const { buildAbsoluteUrl } = await import("./request-origin");
   const request = new Request("https://internal.example/api/auth/login", {
     headers: {
@@ -45,7 +45,7 @@ test("buildAbsoluteUrl accepts www alias of configured forwarded host", async ()
   assert.equal(buildAbsoluteUrl(request, "/admin").href, "https://www.ppstudio.cz/admin");
 });
 
-test("buildAbsoluteUrl falls back to canonical origin for untrusted request host", async () => {
+test("buildAbsoluteUrl použije kanonický origin pro nedůvěryhodný host požadavku", async () => {
   const { buildAbsoluteUrl } = await import("./request-origin");
   const request = new Request("https://evil.example/admin/rezervace");
 

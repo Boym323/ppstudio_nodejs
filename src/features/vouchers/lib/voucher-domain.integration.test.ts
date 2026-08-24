@@ -246,7 +246,7 @@ after(async () => {
 });
 
 describe("voucher domain", () => {
-  test("normalizes voucher codes", async () => {
+  test("normalizuje kódy voucherů", async () => {
     const { normalizeVoucherCode } = await loadModules();
 
     assert.equal(normalizeVoucherCode(" pp–2026 – a7k9x2 "), "PP-2026-A7K9X2");

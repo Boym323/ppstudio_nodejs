@@ -14,7 +14,7 @@ import {
 import { buildSlotTimeOptions } from "./booking-time-slots";
 
 describe("isInternallyBlockingSlotStatus", () => {
-  test("blocks only active draft slots and ignores historical states", () => {
+  test("blokuje pouze aktivní draft sloty a ignoruje historické stavy", () => {
     assert.equal(isInternallyBlockingSlotStatus(AvailabilitySlotStatus.DRAFT), true);
     assert.equal(isInternallyBlockingSlotStatus(AvailabilitySlotStatus.PUBLISHED), false);
     assert.equal(isInternallyBlockingSlotStatus(AvailabilitySlotStatus.CANCELLED), false);
@@ -23,7 +23,7 @@ describe("isInternallyBlockingSlotStatus", () => {
 });
 
 describe("buildMergedPublicCatalogSlots", () => {
-  test("merges adjacent compatible slots and keeps source segments", () => {
+  test("sloučí sousedící kompatibilní sloty a zachová zdrojové segmenty", () => {
     const slots = buildMergedPublicCatalogSlots(
       [
         {
@@ -67,7 +67,7 @@ describe("buildMergedPublicCatalogSlots", () => {
     assert.equal(slots[0]?.bookedIntervals.length, 1);
   });
 
-  test("returns UTC ISO instants that clients can render as Prague salon time", () => {
+  test("vrátí UTC ISO okamžiky, které klienti vykreslí jako čas salonu v Praze", () => {
     const [winterSlot, summerSlot] = buildMergedPublicCatalogSlots(
       [
         {
@@ -100,7 +100,7 @@ describe("buildMergedPublicCatalogSlots", () => {
 });
 
 describe("buildSlotTimeOptions", () => {
-  test("uses the segment that contains the selected start as slotId", () => {
+  test("použije segment obsahující vybraný začátek jako slotId", () => {
     const [mergedSlot] = buildMergedPublicCatalogSlots(
       [
         {
@@ -157,7 +157,7 @@ describe("buildSlotTimeOptions cleanup blocking", () => {
     };
   }
 
-  test("offers 11:15 after a 10:00-11:00 service with 15 minute cleanup block", () => {
+  test("nabídne 11:15 po službě 10:00–11:00 s patnáctiminutovým úklidovým blokem", () => {
     const options = buildSlotTimeOptions(
       buildCatalogSlot({
         startsAt: "2026-06-10T10:00:00.000Z",
@@ -171,7 +171,7 @@ describe("buildSlotTimeOptions cleanup blocking", () => {
     assert.ok(starts.includes("2026-06-10T11:15:00.000Z"));
   });
 
-  test("offers 11:45 after a 10:00-11:30 service with 15 minute cleanup block", () => {
+  test("nabídne 11:45 po službě 10:00–11:30 s patnáctiminutovým úklidovým blokem", () => {
     const options = buildSlotTimeOptions(
       buildCatalogSlot({
         startsAt: "2026-06-10T10:00:00.000Z",
@@ -185,7 +185,7 @@ describe("buildSlotTimeOptions cleanup blocking", () => {
     assert.ok(starts.includes("2026-06-10T11:45:00.000Z"));
   });
 
-  test("offers 11:30 after a 10:00-11:15 service with 15 minute cleanup block", () => {
+  test("nabídne 11:30 po službě 10:00–11:15 s patnáctiminutovým úklidovým blokem", () => {
     const options = buildSlotTimeOptions(
       buildCatalogSlot({
         startsAt: "2026-06-10T10:00:00.000Z",
@@ -199,7 +199,7 @@ describe("buildSlotTimeOptions cleanup blocking", () => {
     assert.ok(starts.includes("2026-06-10T11:30:00.000Z"));
   });
 
-  test("allows the last start in a slot when only cleanup overflows past slot end", () => {
+  test("dovolí poslední začátek ve slotu, když přes konec slotu zasahuje pouze úklid", () => {
     const options = buildSlotTimeOptions(
       {
         id: "slot-own-cleanup",
@@ -231,7 +231,7 @@ describe("buildSlotTimeOptions cleanup blocking", () => {
     );
   });
 
-  test("disables the last start when cleanup overlaps a booking at the slot boundary", () => {
+  test("zakáže poslední začátek, když úklid na hranici slotu koliduje s rezervací", () => {
     const [slot] = buildMergedPublicCatalogSlots(
       [{
         id: "slot-before-following-booking",
@@ -257,7 +257,7 @@ describe("buildSlotTimeOptions cleanup blocking", () => {
     assert.equal(lastOption?.isDisabled, true);
   });
 
-  test("keeps the option end at the client-visible service end", () => {
+  test("zachová konec nabízeného termínu na klientem viditelném konci služby", () => {
     const options = buildSlotTimeOptions(
       {
         id: "slot-public-summary",
@@ -277,7 +277,7 @@ describe("buildSlotTimeOptions cleanup blocking", () => {
     assert.equal(options[0]?.endsAt, "2026-06-10T11:15:00.000Z");
   });
 
-  test("offers the latest safe quarter-hour candidate before the following booking", () => {
+  test("nabídne nejpozdější bezpečný čtvrthodinový kandidát před následující rezervací", () => {
     const options = buildSlotTimeOptions(
       buildCatalogSlot({
         startsAt: "2026-06-10T12:00:00.000Z",
@@ -293,7 +293,7 @@ describe("buildSlotTimeOptions cleanup blocking", () => {
     assert.equal(candidate?.endsAt, "2026-06-10T11:35:00.000Z");
   });
 
-  test("rounds a 65 minute service down before the following booking", () => {
+  test("zaokrouhlí pětašedesátiminutovou službu dolů před následující rezervací", () => {
     const slot = buildCatalogSlot({
       startsAt: "2026-06-10T12:00:00.000Z",
       endsAt: "2026-06-10T13:00:00.000Z",
@@ -306,7 +306,7 @@ describe("buildSlotTimeOptions cleanup blocking", () => {
     );
   });
 
-  test("rounds down without overlap when cleanup lasts 16 minutes", () => {
+  test("zaokrouhlí dolů bez překryvu při šestnáctiminutovém úklidu", () => {
     const options = buildSlotTimeOptions(
       buildCatalogSlot({
         startsAt: "2026-06-10T12:00:00.000Z",
@@ -326,7 +326,7 @@ describe("buildSlotTimeOptions cleanup blocking", () => {
     );
   });
 
-  test("rounds a previous blocked interval up to the next quarter-hour", () => {
+  test("zaokrouhlí předchozí blokovaný interval nahoru na další čtvrthodinu", () => {
     const options = buildSlotTimeOptions(
       {
         ...buildCatalogSlot({
@@ -348,7 +348,7 @@ describe("buildSlotTimeOptions cleanup blocking", () => {
     );
   });
 
-  test("keeps a previous blocked interval ending exactly on a quarter-hour", () => {
+  test("zachová předchozí blokovaný interval končící přesně na čtvrthodině", () => {
     const options = buildSlotTimeOptions(
       buildCatalogSlot({
         startsAt: "2026-06-10T09:15:00.000Z",
@@ -363,7 +363,7 @@ describe("buildSlotTimeOptions cleanup blocking", () => {
     );
   });
 
-  test("keeps the original exact 90 plus 15 minute candidate", () => {
+  test("zachová původního přesného kandidáta 90 plus 15 minut", () => {
     const options = buildSlotTimeOptions(
       buildCatalogSlot({
         startsAt: "2026-06-10T12:00:00.000Z",
@@ -451,7 +451,7 @@ describe("buildSlotTimeOptions cleanup blocking", () => {
     assert.equal(blockedCandidate.some((option) => option.startsAt === "2026-06-10T10:15:00.000Z"), false);
   });
 
-  test("deduplicates and chronologically orders backwards candidates", () => {
+  test("odstraní duplicity a chronologicky seřadí zpětné kandidáty", () => {
     const options = buildSlotTimeOptions(
       {
         ...buildCatalogSlot({
@@ -475,7 +475,7 @@ describe("buildSlotTimeOptions cleanup blocking", () => {
 });
 
 describe("resolvePublishedSlotCoverage", () => {
-  test("accepts a continuous chain of published slots", () => {
+  test("přijme souvislý řetězec publikovaných slotů", () => {
     const coverage = resolvePublishedSlotCoverage(
       [
         {
@@ -546,7 +546,7 @@ describe("resolvePublishedSlotCoverage", () => {
     assert.deepEqual(coverage?.coverage.map((slot) => slot.id), ["slot-before", "slot-current"]);
   });
 
-  test("rejects a gap between slots", () => {
+  test("odmítne mezeru mezi sloty", () => {
     const coverage = resolvePublishedSlotCoverage(
       [
         {

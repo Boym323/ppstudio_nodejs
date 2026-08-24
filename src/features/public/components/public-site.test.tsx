@@ -21,7 +21,7 @@ before(async () => {
   buildPageMetadata = publicSiteModule.buildPageMetadata;
 });
 
-test("buildPageMetadata keeps canonical and OpenGraph URLs on public canonical origin", () => {
+test("buildPageMetadata zachová kanonické a OpenGraph URL na veřejném kanonickém originu", () => {
   const metadata = buildPageMetadata({
     title: "Služby",
     description: "Kosmetické služby PP Studio.",
@@ -44,7 +44,7 @@ test("buildPageMetadata předává title bez značky, aby ji layout přidal prá
   assert.equal(metadata.twitter?.title, "Lash lifting Zlín | PP Studio");
 });
 
-test("ServiceDetailPage points booking CTA to the service with its entry source", () => {
+test("ServiceDetailPage nasměruje CTA rezervace na službu s jejím zdrojem vstupu", () => {
   const html = renderToStaticMarkup(
     <ServiceDetailPage
       service={{

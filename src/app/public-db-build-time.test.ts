@@ -24,7 +24,7 @@ const requestTimePublicReads = [
   ["src/components/layout/site-footer.tsx", "await getPublicSalonProfile()"],
 ] as const;
 
-test("public database reads wait for an HTTP request", async () => {
+test("čtení veřejné databáze čeká na HTTP požadavek", async () => {
   for (const [file, read] of requestTimePublicReads) {
     const source = await readFile(path.join(projectRoot, file), "utf8");
     const connectionIndex = source.indexOf("await connection();");

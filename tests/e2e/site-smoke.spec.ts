@@ -38,7 +38,7 @@ async function expectPageReady(page: Page, path: string, heading: RegExp | strin
   await expect(page.locator('meta[property="og:url"]')).toHaveAttribute("content", canonicalHref ?? "");
 }
 
-test.describe("public site smoke coverage", () => {
+test.describe("základní pokrytí veřejného webu", () => {
   let fixtures: E2eFixture[] = [];
 
   test.afterEach(async () => {
@@ -46,7 +46,7 @@ test.describe("public site smoke coverage", () => {
     fixtures = [];
   });
 
-  test("public visitor can open every main public page and a service detail", async ({ page }) => {
+  test("veřejný návštěvník otevře všechny hlavní veřejné stránky a detail služby", async ({ page }) => {
     const fixture = await createPublicBookingFixture();
     fixtures.push(fixture);
 
@@ -79,7 +79,7 @@ test.describe("public site smoke coverage", () => {
     await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/i);
   });
 
-  test("mobile navigation stays accessible and unlocks the page after a desktop resize", async ({ page }) => {
+  test("mobilní navigace zůstane přístupná a po změně velikosti z desktopu odemkne stránku", async ({ page }) => {
     test.skip(test.info().project.name !== "mobile-chrome", "Scénář ověřuje mobilní veřejnou navigaci.");
 
     await page.goto("/");
@@ -104,7 +104,7 @@ test.describe("public site smoke coverage", () => {
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   });
 
-  test("technical public discovery routes stay available and keep private paths out", async ({ request }) => {
+  test("technické veřejné routy pro vyhledávače zůstanou dostupné a skryjí privátní cesty", async ({ request }) => {
     const [robotsResponse, sitemapResponse] = await Promise.all([
       request.get("/robots.txt"),
       request.get("/sitemap.xml"),
@@ -135,7 +135,7 @@ test.describe("public site smoke coverage", () => {
     expect(sitemap).not.toContain("/rezervace/sprava");
   });
 
-  test("public error and private utility routes fail safely", async ({ page }) => {
+  test("veřejné chybové stránky a privátní obslužné routy se chovají bezpečně při chybě", async ({ page }) => {
     await page.goto("/sluzby/neexistujici-e2e-sluzba");
     await expect(page.getByRole("heading", { name: "404" })).toBeVisible();
 
@@ -155,7 +155,7 @@ test.describe("public site smoke coverage", () => {
   });
 });
 
-test.describe("admin site smoke coverage", () => {
+test.describe("základní pokrytí administračního webu", () => {
   let fixtures: E2eFixture[] = [];
 
   test.afterEach(async () => {
@@ -163,7 +163,7 @@ test.describe("admin site smoke coverage", () => {
     fixtures = [];
   });
 
-  test("guest is redirected from protected owner and salon workspaces", async ({ page }) => {
+  test("nepřihlášený uživatel je z chráněných pracovních prostor ownera a salonu přesměrován", async ({ page }) => {
     for (const path of ["/admin", "/admin/rezervace", "/admin/statistiky", "/admin/provoz", "/admin/provoz/rezervace", "/admin/provoz/statistiky"]) {
       await page.goto(path);
       await expect(page).toHaveURL(/\/admin\/prihlaseni/);
@@ -171,7 +171,7 @@ test.describe("admin site smoke coverage", () => {
     }
   });
 
-  test("owner can open the core backoffice sections", async ({ page }) => {
+  test("owner otevře hlavní sekce backoffice", async ({ page }) => {
     test.setTimeout(90_000);
 
     const fixture = await createPublicBookingFixture();
@@ -254,7 +254,7 @@ test.describe("admin site smoke coverage", () => {
     await expect.poll(() => page.locator("main").evaluate((element) => getComputedStyle(element.parentElement?.parentElement ?? element).backgroundColor)).toBe("rgb(16, 15, 17)");
   });
 
-  test("salon role can open the operational workspace but not owner-only sections", async ({ page }) => {
+  test("role salon otevře provozní pracovní prostor, ale ne sekce pouze pro ownera", async ({ page }) => {
     test.setTimeout(90_000);
 
     const fixture = await createPublicBookingFixture();

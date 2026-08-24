@@ -56,7 +56,7 @@ function buildToken(overrides: BookingEmailActionTokenOverrides = {}) {
 }
 
 describe("resolveBookingEmailActionPageState", () => {
-  test("returns ready state for pending approve token", async () => {
+  test("vrátí připravený stav pro čekající token akce schválení", async () => {
     const { resolveBookingEmailActionPageState } = await loadModule();
 
     const result = resolveBookingEmailActionPageState(buildToken(), "approve");
@@ -70,7 +70,7 @@ describe("resolveBookingEmailActionPageState", () => {
     }
   });
 
-  test("rejects token that does not match requested email action", async () => {
+  test("odmítne token, který neodpovídá požadované e-mailové akci", async () => {
     const { resolveBookingEmailActionPageState } = await loadModule();
 
     const result = resolveBookingEmailActionPageState(buildToken(), "reject");
@@ -79,7 +79,7 @@ describe("resolveBookingEmailActionPageState", () => {
     assert.match(result.title, /nesouhlasí s požadovanou akcí/i);
   });
 
-  test("rejects expired action token with booking details", async () => {
+  test("odmítne prošlý akční token s údaji rezervace", async () => {
     const { resolveBookingEmailActionPageState } = await loadModule();
 
     const result = resolveBookingEmailActionPageState(
@@ -94,7 +94,7 @@ describe("resolveBookingEmailActionPageState", () => {
     assert.match(result.title, /platnost odkazu vypršela/i);
   });
 
-  test("rejects already processed token after first use", async () => {
+  test("odmítne již zpracovaný token po prvním použití", async () => {
     const { resolveBookingEmailActionPageState } = await loadModule();
 
     const result = resolveBookingEmailActionPageState(
@@ -108,7 +108,7 @@ describe("resolveBookingEmailActionPageState", () => {
     assert.match(result.message, /už byla dříve zpracována/i);
   });
 
-  test("returns already confirmed state when booking was confirmed elsewhere", async () => {
+  test("vrátí stav již potvrzeno, když byla rezervace potvrzena jinde", async () => {
     const { resolveBookingEmailActionPageState } = await loadModule();
 
     const result = resolveBookingEmailActionPageState(
@@ -123,7 +123,7 @@ describe("resolveBookingEmailActionPageState", () => {
     assert.match(result.message, /už byla dříve potvrzena/i);
   });
 
-  test("returns already cancelled state when booking was cancelled elsewhere", async () => {
+  test("vrátí stav již zrušeno, když byla rezervace zrušena jinde", async () => {
     const { resolveBookingEmailActionPageState } = await loadModule();
 
     const result = resolveBookingEmailActionPageState(

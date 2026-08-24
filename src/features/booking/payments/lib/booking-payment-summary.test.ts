@@ -3,7 +3,7 @@ import test from "node:test";
 
 import { getBookingPaymentSummary } from "./booking-payment-summary";
 
-test("getBookingPaymentSummary returns UNPAID when no payment exists", () => {
+test("getBookingPaymentSummary vrátí UNPAID, když neexistuje žádná platba", () => {
   const summary = getBookingPaymentSummary({
     totalPriceCzk: 1_200,
     voucherRedemptions: [],
@@ -14,7 +14,7 @@ test("getBookingPaymentSummary returns UNPAID when no payment exists", () => {
   assert.equal(summary.remainingCzk, 1_200);
 });
 
-test("getBookingPaymentSummary returns PARTIALLY_PAID for partial voucher payment", () => {
+test("getBookingPaymentSummary vrátí PARTIALLY_PAID pro částečnou platbu voucherem", () => {
   const summary = getBookingPaymentSummary({
     totalPriceCzk: 1_200,
     voucherRedemptions: [{ amountCzk: 500 }],
@@ -26,7 +26,7 @@ test("getBookingPaymentSummary returns PARTIALLY_PAID for partial voucher paymen
   assert.equal(summary.remainingCzk, 700);
 });
 
-test("getBookingPaymentSummary returns PARTIALLY_PAID for partial direct payment", () => {
+test("getBookingPaymentSummary vrátí PARTIALLY_PAID pro částečnou přímou platbu", () => {
   const summary = getBookingPaymentSummary({
     totalPriceCzk: 1_200,
     voucherRedemptions: [],
@@ -38,7 +38,7 @@ test("getBookingPaymentSummary returns PARTIALLY_PAID for partial direct payment
   assert.equal(summary.remainingCzk, 700);
 });
 
-test("getBookingPaymentSummary returns PAID for voucher and direct payment combined", () => {
+test("getBookingPaymentSummary vrátí PAID pro kombinaci platby voucherem a přímé platby", () => {
   const summary = getBookingPaymentSummary({
     totalPriceCzk: 1_200,
     voucherRedemptions: [{ amountCzk: 500 }],
@@ -50,7 +50,7 @@ test("getBookingPaymentSummary returns PAID for voucher and direct payment combi
   assert.equal(summary.remainingCzk, 0);
 });
 
-test("getBookingPaymentSummary returns OVERPAID for payment above total price", () => {
+test("getBookingPaymentSummary vrátí OVERPAID pro platbu nad celkovou cenou", () => {
   const summary = getBookingPaymentSummary({
     totalPriceCzk: 1_200,
     voucherRedemptions: [{ amountCzk: 500 }],
@@ -62,7 +62,7 @@ test("getBookingPaymentSummary returns OVERPAID for payment above total price", 
   assert.equal(summary.remainingCzk, 0);
 });
 
-test("getBookingPaymentSummary excludes voided direct payments", () => {
+test("getBookingPaymentSummary vyloučí zneplatněné přímé platby", () => {
   const summary = getBookingPaymentSummary({
     totalPriceCzk: 1_000,
     payments: [

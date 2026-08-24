@@ -21,7 +21,7 @@ function makeFormData(values: Record<string, string>) {
   return formData;
 }
 
-test("updateClientNoteAction returns validation error for too long note", async () => {
+test("updateClientNoteAction vrátí validační chybu pro příliš dlouhou poznámku", async () => {
   const { updateClientNoteAction } = await import("@/features/admin/actions/client-actions");
   const formData = makeFormData({
     area: "owner",
@@ -36,7 +36,7 @@ test("updateClientNoteAction returns validation error for too long note", async 
   assert.match(result.fieldErrors?.internalNote ?? "", /příliš dlouhá/i);
 });
 
-test("updateClientContactAction returns validation error for invalid email", async () => {
+test("updateClientContactAction vrátí validační chybu pro neplatný e-mail", async () => {
   const { updateClientContactAction } = await import("@/features/admin/actions/client-actions");
   const formData = makeFormData({
     area: "owner",
@@ -52,7 +52,7 @@ test("updateClientContactAction returns validation error for invalid email", asy
   assert.ok(result.fieldErrors?.email);
 });
 
-test("createServiceAction returns validation errors for incomplete payload", async () => {
+test("createServiceAction vrátí validační chyby pro neúplný payload", async () => {
   const { createServiceAction } = await import("@/features/admin/actions/service-actions");
   const formData = makeFormData({
     area: "owner",
@@ -74,7 +74,7 @@ test("createServiceAction returns validation errors for incomplete payload", asy
   assert.ok(result.fieldErrors?.cleanupMinutes);
 });
 
-test("updateServiceAction returns validation errors for invalid numbers", async () => {
+test("updateServiceAction vrátí validační chyby pro neplatná čísla", async () => {
   const { updateServiceAction } = await import("@/features/admin/actions/service-actions");
   const formData = makeFormData({
     area: "owner",
@@ -98,7 +98,7 @@ test("updateServiceAction returns validation errors for invalid numbers", async 
   assert.ok(result.fieldErrors?.priceFromCzk);
 });
 
-test("updateBookingStatusAction rejects invalid targetStatus", async () => {
+test("updateBookingStatusAction odmítne neplatný targetStatus", async () => {
   const { updateBookingStatusAction } = await import("@/features/admin/actions/booking-actions");
   const formData = makeFormData({
     area: "owner",
@@ -115,7 +115,7 @@ test("updateBookingStatusAction rejects invalid targetStatus", async () => {
   assert.ok(result.fieldErrors?.targetStatus);
 });
 
-test("dispatchBookingStatusNotificationNonBlocking does not block on failing notification dispatch", async () => {
+test("dispatchBookingStatusNotificationNonBlocking neblokuje při selhání odeslání notifikace", async () => {
   const { dispatchBookingStatusNotificationNonBlocking } = await import("@/features/admin/actions/booking-status-notification");
   const originalConsoleError = console.error;
   const errors: unknown[][] = [];
@@ -149,7 +149,7 @@ test("dispatchBookingStatusNotificationNonBlocking does not block on failing not
   }
 });
 
-test("updateBookingPriceAction rejects non-numeric final price", async () => {
+test("updateBookingPriceAction odmítne nečíselnou konečnou cenu", async () => {
   const { updateBookingPriceAction } = await import("@/features/admin/actions/booking-actions");
   const formData = makeFormData({
     area: "owner",
@@ -165,7 +165,7 @@ test("updateBookingPriceAction rejects non-numeric final price", async () => {
   assert.ok(result.fieldErrors?.finalPriceCzk);
 });
 
-test("updateBookingServiceAction rejects missing service selection", async () => {
+test("updateBookingServiceAction odmítne chybějící výběr služby", async () => {
   const { updateBookingServiceAction } = await import("@/features/admin/actions/booking-actions");
   const formData = makeFormData({
     area: "owner",
@@ -182,7 +182,7 @@ test("updateBookingServiceAction rejects missing service selection", async () =>
   assert.ok(result.fieldErrors?.serviceId);
 });
 
-test("createManualBookingAction rejects missing required form fields", async () => {
+test("createManualBookingAction odmítne chybějící povinná pole formuláře", async () => {
   const { createManualBookingAction } = await import("@/features/admin/actions/booking-actions");
   const formData = makeFormData({
     area: "owner",
@@ -213,7 +213,7 @@ test("createManualBookingAction rejects missing required form fields", async () 
   assert.ok(result.fieldErrors?.fullName);
 });
 
-test("updateSalonSettingsAction rejects invalid contact fields", async () => {
+test("updateSalonSettingsAction odmítne neplatná kontaktní pole", async () => {
   const { updateSalonSettingsAction } = await import("@/features/admin/actions/settings-actions");
   const formData = makeFormData({
     salonName: "A",
@@ -234,7 +234,7 @@ test("updateSalonSettingsAction rejects invalid contact fields", async () => {
   assert.ok(result.fieldErrors?.phone);
 });
 
-test("updateAutoLunchDayModeAction rejects invalid Prague date before authorization", async () => {
+test("updateAutoLunchDayModeAction odmítne neplatné pražské datum před autorizací", async () => {
   const { updateAutoLunchDayModeAction } = await import("@/features/admin/actions/settings-actions");
 
   const result = await updateAutoLunchDayModeAction({ area: "salon", dateKey: "2026-02-30", mode: "OFF" });
@@ -242,7 +242,7 @@ test("updateAutoLunchDayModeAction rejects invalid Prague date before authorizat
   assert.deepEqual(result, { ok: false, message: "Zadejte platné lokální datum a režim oběda." });
 });
 
-test("createServiceCategoryAction returns validation errors for incomplete payload", async () => {
+test("createServiceCategoryAction vrátí validační chyby pro neúplný payload", async () => {
   const { createServiceCategoryAction } = await import("@/features/admin/actions/service-category-actions");
   const formData = makeFormData({
     area: "owner",
@@ -265,7 +265,7 @@ test("createServiceCategoryAction returns validation errors for incomplete paylo
   assert.ok(result.fieldErrors?.pricingIconKey);
 });
 
-test("updateServiceCategoryAction returns validation errors for malformed payload", async () => {
+test("updateServiceCategoryAction vrátí validační chyby pro chybný payload", async () => {
   const { updateServiceCategoryAction } = await import("@/features/admin/actions/service-category-actions");
   const formData = makeFormData({
     area: "salon",

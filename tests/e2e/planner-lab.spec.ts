@@ -74,14 +74,14 @@ async function expectStyledPlanner(page: Page) {
   })).toBe(true);
 }
 
-test.describe("produkční FullCalendar planner", () => {
+test.describe("produkční plánovač FullCalendaru", () => {
   const runIds: string[] = [];
 
   test.afterEach(async () => {
     await Promise.all(runIds.splice(0).map(cleanupRun));
   });
 
-  test("renders availability and navigates to the following week", async ({ page }) => {
+  test("vykreslí dostupnost a přejde na následující týden", async ({ page }) => {
     test.skip(test.info().project.name !== "chromium", "Scénář ověřuje desktopový pracovní týden.");
 
     const runId = buildRunId();
@@ -196,7 +196,7 @@ test.describe("produkční FullCalendar planner", () => {
     await expect.poll(async () => prisma.availabilitySlot.count({ where: { createdByUserId: owner.id, startsAt: expectedRange.startsAt, endsAt: expectedRange.endsAt } })).toBe(0);
   });
 
-  test("keeps the selected local time after the switch to daylight saving time", async ({ page }) => {
+  test("zachová vybraný místní čas po přechodu na letní čas", async ({ page }) => {
     test.skip(test.info().project.name !== "chromium", "Kliknutí do časové mřížky je pokryté desktopovým workflow.");
 
     const dstDate = "2027-03-29";

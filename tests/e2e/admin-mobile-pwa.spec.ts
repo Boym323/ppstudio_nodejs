@@ -21,7 +21,7 @@ async function expectNoPageOverflow(page: Page) {
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 }
 
-test.describe("mobilní a standalone admin PWA", () => {
+test.describe("mobilní a samostatná admin PWA", () => {
   let runId = "";
   let admin: { email: string; password: string };
 
