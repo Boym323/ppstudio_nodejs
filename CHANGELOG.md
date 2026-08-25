@@ -6,6 +6,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [3.22.10] - 2026-08-25
+
 ### Zabezpečení
 
 - Admin redirecty nyní přijímají pouze interní `/admin` cíle a stránka aktivace pozvánky neukládá token do cache ani referrerů a není indexována.
