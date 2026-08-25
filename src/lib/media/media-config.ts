@@ -66,11 +66,12 @@ export function buildMediaStoragePath(input: {
   storedFilename: string;
   createdAt: Date;
 }) {
-  const directory = getMediaTypeDirectory(input.type);
   const year = String(input.createdAt.getUTCFullYear());
   const month = String(input.createdAt.getUTCMonth() + 1).padStart(2, '0');
 
-  return path.posix.join(directory, year, month, input.storedFilename);
+  // Typ je legacy metadata, ne význam ani umístění nových souborů.
+  // Stávající storagePath zůstávají beze změny; nové uploady jsou neutrální.
+  return path.posix.join('images', year, month, input.storedFilename);
 }
 
 export function buildMediaPublicUrl(storagePath: string) {
