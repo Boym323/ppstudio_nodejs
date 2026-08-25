@@ -37,16 +37,16 @@ Stručný runtime přehled prostředí a vazeb na infrastrukturu je v kořenové
 - `PUSHOVER_ENABLED`: server-only globalni vypinac owner Pushover notifikaci; odesila se pouze pri presne hodnote `true`.
 - `PUSHOVER_APP_TOKEN`: server-only Pushover application token pro projekt; nikdy nepouzivej prefix `NEXT_PUBLIC_`.
 - Cooldown DB failure alertu z `/api/health` je záměrně pevný na 10 minut v aplikaci a nepřidává žádnou env proměnnou; tím nemůže být omylem vystaven nebo rozvolněn pouze změnou prostředí.
-- Selhání základní DB kontroly `/api/health` používá bezpečný `503` kontrakt; selhání pouze detailní e-mailové metriky vrací `200/warning` s `EMAIL_HEALTH_UNAVAILABLE`. Ani jedna varianta nepřidává env proměnnou a pro konkrétní diagnostiku slouží systemd journal webové služby.
+- Selhání základní DB kontroly `/api/health` používá bezpečný `503` kontrakt. Detailní e-mailové metriky jsou oddělené v owner-only `/api/health/diagnostics`; pro konkrétní chyby slouží systemd journal webové služby.
 - `turbopack.root` je odvozený od adresáře `next.config.ts` a nepoužívá env proměnnou ani pevnou cestu; tím funguje v kořeni repozitáře i v dočasném staging release.
-- Diagnostika health/smoke kroku releasu nepřidává env proměnnou; nadále používá volitelné `PPSTUDIO_HEALTH_URL` a `PPSTUDIO_SMOKE_URL`, které se ve výpisu selhání zobrazí včetně HTTP statusu.
+- Diagnostika health/smoke kroku releasu používá volitelné `PPSTUDIO_LIVENESS_URL`, `PPSTUDIO_HEALTH_URL` a `PPSTUDIO_SMOKE_URL`, které se ve výpisu selhání zobrazí včetně HTTP statusu.
 - `PPSTUDIO_WEB_READY_RETRIES` (výchozí `20`) a `PPSTUDIO_WEB_READY_RETRY_SECONDS` (výchozí `0.25`) jsou volitelné CLI-only proměnné release helperu pro tiché čekání na otevření webového endpointu po restartu; nejsou součástí runtime validace aplikace.
 - `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY`: stabilní base64 AES klíč pro Next.js Server Actions; na produkci musí zůstat stejný mezi release buildy.
 - `NEXT_DEPLOYMENT_ID`: identifikátor konkrétního deploymentu pro ochranu proti version skew; při doporučeném rollout skriptu se nastavuje automaticky z aktuálního git commitu a nemá se držet staticky v `.env`.
 - `DEPLOYMENT_VERSION`: volitelný alias pro deployment identifikátor; release skript ho automaticky exportuje na stejnou hodnotu jako `NEXT_DEPLOYMENT_ID`.
 - `GIT_HASH`: volitelný fallback pro `deploymentId`; release skript ho automaticky exportuje na aktuální git commit.
 - `.release-env`: runtime soubor generovaný `deploy/release.sh`, který obsahuje `NEXT_DEPLOYMENT_ID`, `DEPLOYMENT_VERSION` a `GIT_HASH` pro systemd `next start`. Needituje se ručně; je součástí každého verzovaného release adresáře a unit ho čte z `/var/www/ppstudio/current/.release-env`.
-- Stejná trojice release proměnných se propisuje i do veřejného `GET /api/health` payloadu pod `release.*`, takže při incidentu můžeš porovnat monitoring odpověď se startup logy `ppstudio.next.register`.
+- Release proměnné se do veřejného health payloadu nepropisují; aktivní identitu ověř ve startup logu `ppstudio.next.register` nebo po přihlášení přes owner-only `/api/health/diagnostics`.
 - `DATABASE_URL`: PostgreSQL connection string pro Prisma.
 - `SHADOW_DATABASE_URL`: pomocná databáze pro `prisma migrate dev` (lokální vývoj).
 - `ADMIN_SESSION_SECRET`: klíč pro podpis admin session cookie.

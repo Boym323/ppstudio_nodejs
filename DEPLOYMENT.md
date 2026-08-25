@@ -68,7 +68,7 @@ Dělá:
 6. teprve po úspěšném buildu aplikuje `npx prisma migrate deploy`; každá budoucí databázová migrace musí bez výjimky dodržet postup expand/contract a zůstat kompatibilní s předchozím releasem
 7. vytvoří runtime `.release-env`, uloží celý release do `releases/` a atomicky přepne `current`
 8. krátce zastaví a znovu spustí web i worker nad stejným releasem
-9. nejdřív tiše vyčká na otevření webového endpointu, potom ověří `/api/health`, očekávané deployment ID a homepage smoke test
+9. nejdřív přes `/api/health/live` tiše vyčká na otevření webového endpointu, potom ověří DB readiness `/api/health` a homepage smoke test
 10. při selhání startu nebo kontrol vrátí předchozí runtime release; databázové migrace se automaticky nevracejí, proto rollback musí vždy fungovat se schématem po aplikované migraci
 
 ## Proxmox/LXC specifika
@@ -119,6 +119,7 @@ Repozitář dokládá Proxmox/LXC a použití Nginx Proxy Manageru, ale neobsahu
 - Je-li proxy na jiném hostu, ponech bind pouze tehdy, když firewall před aplikací povolí TCP/3000 výhradně ze skutečných IP adres nebo CIDR této proxy a zakáže jej ze všech ostatních zdrojů. Stejné pravidlo nastav pro IPv6, pokud je port dostupný přes IPv6. Nepoužívej zástupné adresy; vycházej z reálného managementu proxy/infrastruktury.
 - Princip pravidla je: `allow tcp dport 3000 from <skutečný-proxy-ip-nebo-cidr>` a následně `deny tcp dport 3000 from any`; ekvivalentně pro IPv6. Hodnota v úhlových závorkách musí být při nasazení nahrazena doloženou adresou nebo sítí proxy, ne odhadnutou adresou aplikace ani klientů. Pravidlo patří na síťovou hranici, která skutečně chrání tento LXC/host.
 - V produkční proxy musí být pro požadavek na upstream provedeno přepsání (ne pouhé doplnění) hlavičky: `proxy_set_header X-Real-IP $remote_addr;`. Ověř konfiguraci například přes `nginx -T` nebo odpovídající konfiguraci NPM.
+- Pro `POST /api/webhooks/resend` nastav na reverse proxy limit request body nejvýše `256k` (v nginx například `client_max_body_size 256k;`). Aplikace stejný limit vynucuje při streamovaném čtení; proxy je první ochranná vrstva.
 - Je-li před Nginx/NPM CDN či další proxy, musí Nginx akceptovat `real_ip_header` jen od jejího skutečného allowlistu přes `set_real_ip_from`; teprve potom je `$remote_addr` vhodný pro uvedené přepsání. Aplikace záměrně nikdy nepřebírá `X-Forwarded-For`.
 
 Před uzavřením deploymentu ověř z hostu aplikace skutečný listener (`ss -ltnp`), konfiguraci proxy a firewall v jeho aktivním enforcement pointu. Z jiné než důvěryhodné proxy sítě musí být TCP spojení na port 3000 odmítnuto; přes veřejnou proxy musí požadavek stále fungovat a upstream musí dostat proxy přepsané `X-Real-IP`. Tyto vlastnosti nelze potvrdit unit testem ani jen z tohoto repozitáře.
@@ -136,7 +137,7 @@ Verzovaná unit zachovává bind `0.0.0.0:3000`, protože doložená konfigurace
 - dostupnost uploadovaných médií
 - pokud je aktivní Matomo reporting, i `/api/admin/analytics`
 
-Health endpoint při výpadku databáze vrací HTTP `503` s `DATABASE_UNAVAILABLE`; stejný status zůstává pro skutečně zaseknutý email worker (stale processing claim). Běžný bounce, suppression nebo jiné nevyřešené recipient-specific selhání doručení vrací HTTP `200`, `status=warning` a počet v `emailIncidents.active`, takže samo nemůže zablokovat release health check. Selhání pouze doplňkových e-mailových metrik vrací `200`, `status=warning` a `EMAIL_HEALTH_UNAVAILABLE`; detail hledej v `journalctl -u ppstudio-web.service -n 200 --no-pager`.
+Veřejný readiness endpoint při výpadku databáze vrací HTTP `503` s `DATABASE_UNAVAILABLE`; jinak vrací jen `status=ok`. Stav workeru, fronty, recipient incidentů a release identity je dostupný pouze ownerovi na `/api/health/diagnostics`; detail chyb hledej v `journalctl -u ppstudio-web.service -n 200 --no-pager`.
 
 ## Rollback
 

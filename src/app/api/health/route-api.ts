@@ -38,7 +38,7 @@ export type EmailHealthData = {
   } | null;
 };
 
-export function createDbFailureAlertCooldown(
+function createDbFailureAlertCooldown(
   cooldownMs = DB_FAILURE_ALERT_COOLDOWN_MS,
 ) {
   let lastAlertAtMs: number | null = null;
@@ -152,7 +152,7 @@ function getCurrentDeploymentId() {
   return null;
 }
 
-export function createHealthRouteApi(
+export function createHealthDiagnosticsRouteApi(
   overrides: Partial<HealthRouteDependencies> = {},
 ) {
   const dependencies: HealthRouteDependencies = {

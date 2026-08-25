@@ -9,6 +9,8 @@ Formát je inspirovaný Keep a Changelog.
 ### Zabezpečení
 
 - Produkční web a e-mailový worker nyní běží pod vyhrazeným neprivilegovaným účtem; deploy připravuje chybějící systemd konfigurační adresáře, omezená oprávnění release, médií a stavového snapshotu, bezpečně uklízí runtime-vlastněné cache a zpřesňuje povinnou izolaci portu 3000 za důvěryhodnou proxy.
+- Veřejný health endpoint nyní provádí pouze jediný DB readiness dotaz a vrací minimální odpověď; bez-DB liveness je oddělená a detailní diagnostika fronty, incidentů i release identity je dostupná pouze ownerovi.
+- Resend webhook nyní streamovaně omezuje raw request body na 256 KiB i při chybějícím či nepravdivém `Content-Length` a nadlimitní požadavky odmítá stavem `413` před ověřením podpisu.
 
 ## [3.22.9] - 2026-08-23
 

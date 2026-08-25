@@ -47,3 +47,65 @@ test("resend webhook route rejects an invalid Svix signature before processing",
 
   assert.equal(response.status, 400);
 });
+
+test("resend webhook route odmítne deklarované nadlimitní body bez čtení streamu", async () => {
+  process.env.RESEND_WEBHOOK_SECRET = "whsec_test";
+  const { POST, RESEND_WEBHOOK_MAX_BODY_BYTES } = await import("./route");
+  let pulls = 0;
+  const body = new ReadableStream<Uint8Array>({
+    pull(controller) {
+      pulls += 1;
+      controller.enqueue(new Uint8Array([123, 125]));
+      controller.close();
+    },
+  });
+  const request = new Request("https://example.com/api/webhooks/resend", {
+    method: "POST",
+    body,
+    duplex: "half",
+    headers: {
+      "content-length": String(RESEND_WEBHOOK_MAX_BODY_BYTES + 1),
+      "svix-id": "msg_too_large",
+      "svix-timestamp": "1786874400",
+      "svix-signature": "v1,invalid",
+    },
+  } as RequestInit & { duplex: "half" });
+  const response = await POST(request);
+
+  assert.equal(response.status, 413);
+  assert.equal(request.bodyUsed, false);
+  assert.ok(pulls <= 1);
+  assert.deepEqual(await response.json(), { status: "too_large" });
+});
+
+test("resend webhook route vynutí limit i při lživě malém Content-Length", async () => {
+  process.env.RESEND_WEBHOOK_SECRET = "whsec_test";
+  const { POST, RESEND_WEBHOOK_MAX_BODY_BYTES } = await import("./route");
+  const request = new Request("https://example.com/api/webhooks/resend", {
+    method: "POST",
+    body: new Uint8Array(RESEND_WEBHOOK_MAX_BODY_BYTES + 1),
+    headers: {
+      "content-length": "1",
+      "svix-id": "msg_stream_too_large",
+      "svix-timestamp": "1786874400",
+      "svix-signature": "v1,invalid",
+    },
+  });
+
+  const response = await POST(request);
+
+  assert.equal(response.status, 413);
+});
+
+test("bounded raw-body reader zachová přesné bajty", async () => {
+  const { readBoundedRawBody } = await import("./route");
+  const bytes = Uint8Array.from([0, 255, 195, 40, 10, 123, 125]);
+  const request = new Request("https://example.com/api/webhooks/resend", {
+    method: "POST",
+    body: bytes,
+  });
+
+  const payload = await readBoundedRawBody(request, bytes.byteLength);
+
+  assert.deepEqual([...payload], [...bytes]);
+});

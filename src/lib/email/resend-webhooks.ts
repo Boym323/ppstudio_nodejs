@@ -46,7 +46,7 @@ async function lockResendMessage(tx: WebhookTransaction, providerMessageId: stri
 }
 
 export async function verifyResendWebhookPayload(input: {
-  payload: string;
+  payload: Buffer;
   headers: ResendWebhookHeaders;
   webhookSecret: string;
 }) {

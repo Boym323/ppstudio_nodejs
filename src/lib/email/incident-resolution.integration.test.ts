@@ -377,7 +377,7 @@ dbTest("Pozornost vybírá reprezentanta pouze z failure členů splňujících 
 });
 
 dbTest("Pozornost filtruje rootové incidenty podle zobrazeného failed reprezentanta", async () => {
-  const [{ prisma }, { getAdminLogsData }, { getAdminDashboardData }, { createHealthRouteApi }] = await Promise.all([
+  const [{ prisma }, { getAdminLogsData }, { getAdminDashboardData }, { createHealthDiagnosticsRouteApi }] = await Promise.all([
     import("@/lib/prisma"),
     import("@/features/admin/lib/admin-data"),
     import("@/features/admin/lib/admin-dashboard"),
@@ -435,7 +435,7 @@ dbTest("Pozornost filtruje rootové incidenty podle zobrazeného failed reprezen
     const [attention, dashboard, healthResponse] = await Promise.all([
       getAdminLogsData({ area: "owner", view: "attention", source: "email" }),
       getAdminDashboardData("owner"),
-      createHealthRouteApi().GET(),
+      createHealthDiagnosticsRouteApi().GET(),
     ]);
     const health = await healthResponse.json() as { emailIncidents: { active: number } };
     const dashboardAlert = dashboard.alerts.find((alert) => alert.id === "email-failures");

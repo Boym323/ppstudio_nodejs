@@ -125,11 +125,11 @@ curl() {
     previous_argument="${argument}"
   done
 
-  if [[ "${*: -1}" == *"api/health" ]]; then
+  if [[ "${*: -1}" == *"api/health"* ]]; then
     if [[ -n "${output_file}" ]]; then
-      printf '{"release":{"deploymentId":"%s"}}\n' "${NEXT_DEPLOYMENT_ID}" > "${output_file}"
+      printf '{"status":"ok"}\n' > "${output_file}"
     else
-      printf '{"release":{"deploymentId":"%s"}}\n' "${NEXT_DEPLOYMENT_ID}"
+      printf '{"status":"ok"}\n'
     fi
   else
     if [[ -n "${output_file}" ]]; then

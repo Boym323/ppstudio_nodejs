@@ -13,7 +13,9 @@ Pro přesný runtime kontrakt je vždy rozhodující implementace route handleru
 
 | Endpoint | Metoda | Přístup | Účel |
 | --- | --- | --- | --- |
-| `/api/health` | `GET` | veřejný | Provozní health check webu, DB a email workeru |
+| `/api/health/live` | `GET` | veřejný | Liveness webového procesu bez DB operací |
+| `/api/health` | `GET` | veřejný | Lehký readiness check webu a DB |
+| `/api/health/diagnostics` | `GET` | owner session | Detailní stav workeru, fronty, incidentů a releasu |
 | `/api/calendar/owner.ics?token=...` | `GET` | veřejný přes tajný token | Owner-only Apple/ICS subscription feed |
 | `/api/auth/login` | `POST` | veřejný | Admin login handler se session cookie |
 | `/api/auth/logout` | `POST` | admin session | Admin logout handler |
@@ -26,14 +28,9 @@ Pro přesný runtime kontrakt je vždy rozhodující implementace route handleru
 ## `GET /api/health`
 
 Účel:
-- veřejný endpoint pro monitoring a rychlou diagnostiku produkce
-- kontroluje:
-- DB dostupnost přes rychlý `SELECT 1`
-- stav email outbox fronty
-- přítomnost backlogu bez aktivního worker claimu
-- stale processing claimy
-- aktivní recipient-specific delivery incidenty
-- poslední odeslaný email a poslední recent error
+- veřejný readiness endpoint pro monitoring
+- provádí právě jeden rychlý DB check (`SELECT 1`)
+- nečte e-mailovou frontu ani incidenty a nezveřejňuje release metadata
 
 Přístup:
 - veřejný
@@ -43,8 +40,8 @@ Vstup:
 
 Odpověď:
 - HTTP status:
-- `200`: `status=ok` nebo `status=warning`
-- `503`: `status=error`, typicky DB chyba nebo zaseknutý email worker
+- `200`: web i DB jsou připravené
+- `503`: DB není dostupná
 - hlavičky:
 - `Cache-Control: no-store`
 - `Content-Type: application/json`
@@ -53,78 +50,24 @@ Odpověď:
 
 ```json
 {
-  "status": "ok",
-  "checkedAt": "2026-06-29T17:12:34.000Z",
-  "durationMs": 24,
-  "release": {
-    "version": "3.22.9",
-    "deploymentId": "abc123def456",
-    "deploymentVersion": "abc123def456",
-    "gitHash": "abc123def456"
-  },
-  "db": {
-    "status": "ok"
-  },
-  "emailWorker": {
-    "status": "ok",
-    "staleClaimTimeoutMs": 600000,
-    "summary": "Worker frontu zpracovává bez aktivní chyby."
-  },
-  "emailQueue": {
-    "pending": 0,
-    "retrying": 0,
-    "processing": 0,
-    "staleProcessing": 0,
-    "failed": 0
-  },
-  "emailIncidents": {
-    "status": "ok",
-    "active": 0
-  },
-  "emailDelivery": {
-    "lastSentAt": "2026-06-29T12:49:49.676Z",
-    "lastErrorAt": null,
-    "hasRecentError": false,
-    "recentErrorWindowMs": 86400000
-  },
-  "alerts": []
+  "status": "ok"
 }
 ```
 
 Poznámky:
-- `status=warning` znamená neideální, ale ne fatální stav, typicky backlog `pending/retrying` bez aktivního claimu nebo aktivní recipient-specific delivery incident.
-- `status=error` znamená produkční problém vyžadující zásah, například nedostupnou DB nebo stale processing claim.
-- Aktivní bounce, suppression ani jiné nevyřešené selhání doručení konkrétnímu příjemci samy o sobě nesmí vrátit `503`: endpoint vrátí `200`, `status=warning` a uvede je v `emailIncidents`. Release health check proto neblokují.
-- Pokud základní DB ping projde, ale selže pouze detailní dotaz nad e-mailovou frontou, endpoint vrací HTTP `200`, `status=warning` a `error.code="EMAIL_HEALTH_UNAVAILABLE"`; konkrétní chybu loguje jen serverově.
-- `release.*` slouží pro porovnání monitoringu s aktivním releasem a startup logy.
-- `hasRecentError` je omezené na posledních 24 hodin; přesné okno vrací `recentErrorWindowMs`.
-- Endpoint nesmí vracet citlivá data, raw tokeny ani plné texty emailových chyb.
-
-Vysvětlení polí:
-- `checkedAt`: čas, kdy endpoint health snapshot sestavil.
-- `durationMs`: jak dlouho endpointu trvalo health check spočítat a vrátit odpověď; vyšší číslo může signalizovat zpomalení DB nebo serveru.
-- `release.deploymentId`: hlavní identifikátor aktivního releasu, typicky aktuální commit nasazený do runtime.
-- `release.version`: aplikační verze převzatá z `package.json`.
-- `release.deploymentVersion`: alias deployment identifikátoru pro prostředí, kde se používá tato env proměnná.
-- `release.gitHash`: git commit hash dostupný v runtime env; používá se jako fallback nebo doplňkový identifikátor buildu.
-- `db.status`: výsledek rychlé DB dostupnosti.
-- `emailWorker.status`: agregovaný stav email workeru z pohledu fronty.
-- `emailWorker.staleClaimTimeoutMs`: po jaké době se aktivní processing claim považuje za zaseknutý.
-- `emailQueue.pending`: nové emaily čekající na první odeslání.
-- `emailQueue.retrying`: emaily čekající na další retry pokus.
-- `emailQueue.processing`: emaily, které si worker právě claimnul a zpracovává.
-- `emailQueue.staleProcessing`: emaily, které vypadají jako claimnuté příliš dlouho a worker se na nich mohl zaseknout.
-- `emailQueue.failed`: zpětně kompatibilní počet aktivních delivery incidentů; pro jeho explicitní provozní význam použij `emailIncidents.active`.
-- `emailIncidents.status`: provozní stav nevyřešených recipient-specific delivery incidentů; `warning` neznamená poruchu workeru.
-- `emailIncidents.active`: počet nevyřešených recipient-specific delivery incidentů; explicitně vyřešený resend chain se nezapočítává.
-- `emailDelivery.lastSentAt`: čas posledního úspěšně odeslaného emailu.
-- `emailDelivery.lastErrorAt`: čas poslední relevantní emailové chyby ještě uvnitř sledovaného okna.
-- `emailDelivery.hasRecentError`: jestli se v posledním sledovaném okně objevila relevantní emailová chyba.
-- `emailDelivery.recentErrorWindowMs`: délka časového okna pro `hasRecentError`; aktuálně 24 hodin.
-- `alerts`: lidsky čitelný seznam aktivních problémů, které ovlivnily vyhodnocení health stavu.
+- veřejná odpověď je záměrně stabilní a minimální
+- chyba DB vrací pouze `error.code="DATABASE_UNAVAILABLE"`, nikdy driver text
 
 Implementace:
 - [src/app/api/health/route.ts](../src/app/api/health/route.ts#L1)
+
+## `GET /api/health/live`
+
+Bez-DB liveness probe ověřuje jen to, že webový proces obsluhuje HTTP. Vždy vrací `200` a `{ "status": "ok" }`; používá jej release helper při čekání na otevření listeneru.
+
+## `GET /api/health/diagnostics`
+
+Detailní původní health snapshot (DB, worker, fronta, delivery incidenty, časy a release identita) je dostupný pouze přihlášenému ownerovi. Bez session vrací `401`, jiné admin roli `403`. Není určen pro anonymní uptime monitoring.
 
 ## `GET /api/calendar/owner.ics?token=...`
 
@@ -474,6 +417,7 @@ Odpověď:
 - HTTP status:
 - `200`: validní event zpracovaný
 - `400`: chybí webhook hlavičky nebo selže verifikace podpisu
+- `413`: raw body překročilo limit 256 KiB
 - `503`: webhook je vypnutý, protože chybí `RESEND_WEBHOOK_SECRET`
 - shape odpovědi:
 
@@ -500,7 +444,8 @@ Další možné odpovědi:
 ```
 
 Poznámky:
-- payload se verifikuje nad raw request body
+- payload se čte streamovaně nejvýše do 256 KiB a verifikuje se nad přesnými raw bytes
+- `Content-Length` slouží jen k rychlému odmítnutí; limit se vždy kontroluje i při čtení streamu
 - eventy se párují přes `EmailLog.providerMessageId`
 - endpoint je integrační vrstva; business výsledek se propsá do email tracking stavu v aplikaci
 

@@ -15,6 +15,7 @@ RUNTIME_USER="ppstudio"
 RUNTIME_GROUP="ppstudio"
 RUNTIME_RELEASE_ENV_FILE=".release-env"
 HEALTH_URL="${PPSTUDIO_HEALTH_URL:-http://127.0.0.1:3000/api/health}"
+LIVENESS_URL="${PPSTUDIO_LIVENESS_URL:-http://127.0.0.1:3000/api/health/live}"
 SMOKE_URL="${PPSTUDIO_SMOKE_URL:-http://127.0.0.1:3000/}"
 HEALTH_RETRIES="${PPSTUDIO_HEALTH_RETRIES:-15}"
 HEALTH_RETRY_SECONDS="${PPSTUDIO_HEALTH_RETRY_SECONDS:-2}"
@@ -324,14 +325,14 @@ wait_for_web_listener() {
   for ((attempt = 1; attempt <= WEB_READY_RETRIES; attempt++)); do
     # Po systemctl start Next.js ještě krátce neotevře port. Tento tichý probe
     # rozlišuje očekávaný start od skutečného selhání health/smoke kontroly.
-    if curl --silent --output /dev/null --max-time 1 "${HEALTH_URL}"; then
+    if curl --silent --output /dev/null --max-time 1 "${LIVENESS_URL}"; then
       return 0
     fi
 
     sleep "${WEB_READY_RETRY_SECONDS}"
   done
 
-  log "Web po startu nezačal naslouchat (${HEALTH_URL}) ani po ${WEB_READY_RETRIES} pokusech."
+  log "Web po startu nezačal naslouchat (${LIVENESS_URL}) ani po ${WEB_READY_RETRIES} pokusech."
   return 1
 }
 
@@ -354,16 +355,6 @@ release_is_healthy() {
 
   if [[ ! "${http_status}" =~ ^2[0-9][0-9]$ ]]; then
     log "Health endpoint vrátil HTTP ${http_status} (${HEALTH_URL})."
-    rm -f "${response_file}" "${smoke_response_file}"
-    return 1
-  fi
-
-  if ! node -e '
-const fs = require("node:fs");
-const health = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
-if (health.release?.deploymentId !== process.env.NEXT_DEPLOYMENT_ID) process.exit(1);
-' "${response_file}"; then
-    log "Health endpoint nemá očekávané deployment ID."
     rm -f "${response_file}" "${smoke_response_file}"
     return 1
   fi

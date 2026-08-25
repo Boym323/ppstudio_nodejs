@@ -42,7 +42,7 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
 - Skript před vytvořením čistého git-archive workspace odmítne lokální migrační adresáře bez `migration.sql` (ochrana před Prisma P3015). Bez zápisu do DB provede `npm ci`, generate, kontrolu historie, `prisma validate`, lint, samostatný `typecheck` a build; teprve potom, těsně před aktivací, spustí `prisma migrate deploy`. Produkční migrace proto musí být expand/contract a kompatibilní s předchozím runtime.
 - Kontrola historie může uvést rollbacknuté záznamy `20260419103000_service_public_bookability`, `20260419140000_site_settings_singleton` a `20260428133959_voucher_pdf_logo_settings`. Jsou následované úspěšným záznamem stejné migrace, takže při `Migration history check: OK` nepředstavují blocker releasu ani se nesmějí ručně mazat z `_prisma_migrations`.
 - `next.config.ts` explicitně nastavuje `turbopack.root` na adresář právě běžícího checkoutu/release. Staging release tak může mít vlastní `package-lock.json` bez falešného workspace warningu při `next build`.
-- Pokud release neprojde health/smoke krokem, skript nyní vypíše, zda selhal `/api/health`, očekávané deployment ID, nebo homepage `/`, vždy s HTTP statusem. Teprve podle této informace čti `journalctl -u ppstudio-web.service -n 200 --no-pager`.
+- Pokud release neprojde health/smoke krokem, skript vypíše, zda selhala liveness/readiness kontrola nebo homepage `/`, vždy s HTTP statusem. Teprve podle této informace čti `journalctl -u ppstudio-web.service -n 200 --no-pager`.
 - Po restartu služeb helper nejdřív tiše čeká na otevření webového endpointu (výchozích 20 pokusů po 0,25 s). Tím se očekávaný krátký start Next.js nezamění za incident; až vyčerpání readiness pokusů spouští rollback. Volitelně jej upravíš přes `PPSTUDIO_WEB_READY_RETRIES` a `PPSTUDIO_WEB_READY_RETRY_SECONDS`.
 - Detailní release checklist a QA body zůstávají v [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
 
@@ -151,8 +151,8 @@ Praktický přehled hlavních HTTP endpointů je v [`docs/API.md`](docs/API.md).
 
 ## Monitoring a provozní SLA minimum
 - Externí monitoring má pravidelně volat `GET /api/health`; při `503` nebo timeoutu ber stav jako incident.
-- Selhání detailních dotazů health snapshotu nad e-mailovou frontou vrací HTTP `200` se `status=warning` a `error.code=EMAIL_HEALTH_UNAVAILABLE`, nikoli veřejné `500`; release tím zůstává ověřitelný a konkrétní příčinu hledej v `journalctl -u ppstudio-web.service`.
-- `GET /api/health` při čistém stavu vrací i `release.version`, `release.deploymentId` / `deploymentVersion` / `gitHash` a `durationMs`; při incidentu podle toho rychle ověříš, jestli monitoring mluví se správným releasem a jestli se endpoint nezpomaluje.
+- `GET /api/health/live` ověřuje pouze běh webového procesu; `GET /api/health` přidává jediný DB readiness dotaz a nevrací interní metadata.
+- Detail fronty, workeru a release identity načti po owner přihlášení z `GET /api/health/diagnostics`; konkrétní příčinu chyb hledej v `journalctl -u ppstudio-web.service`.
 - Při nedostupné DB endpoint vrací pouze stabilní `error.code=DATABASE_UNAVAILABLE`, nikdy raw detail ovladače nebo připojení. Owner alert je best-effort, neblokuje odpověď a v jednom procesu se pro tento stav odešle nejvýše jednou za 10 minut.
 - Vedle webu sleduj i běh `ppstudio-web.service` a `ppstudio-email-worker.service`.
 - Pravidelně kontroluj, že e-mailová fronta nemá rostoucí `failed`, `retrying` nebo `stale` záznamy.
@@ -862,14 +862,7 @@ npm run db:clear-booking-data -- --confirm
 - Klientský manage flow při obyčejném načtení nevydává nový storno token. Tlačítko `Zrušit rezervaci` nejdřív přes server action vytvoří jednorázový `CANCEL` token a až potom přesměruje na potvrzovací storno stránku.
 - `EmailLog` umožňuje trasovat odeslané i neúspěšné e-maily navázané na klienta, rezervaci a případný token.
 - `EMAIL_DELIVERY_MODE=log` je jen vývojový/safe-mode režim; loguje maskovaného příjemce a anonymizovaný subject, ne plnou zákaznickou komunikaci.
-- Veřejný route handler `GET /api/health` vrací provozní health snapshot pro monitoring:
-  - čas `checkedAt`, dobu vyhodnocení `durationMs` a release identitu `release.version`, `release.deploymentId` + fallbacky `deploymentVersion` / `gitHash`
-  - stav `db` (rychlý `SELECT 1`)
-  - stav `emailWorker` (`ok`/`warning`/`error`) podle stale claimů a backlogu; recipient delivery incidenty worker jako porouchaný neoznačují
-  - stav `emailQueue` (`pending`, `retrying`, `processing`, `staleProcessing`, `failed`)
-  - stav `emailIncidents` s počtem aktivních bounce, suppression a dalších recipient-specific delivery failures
-  - `emailDelivery.lastSentAt`, `lastErrorAt`, `hasRecentError` a `recentErrorWindowMs` (aktuálně 24 hodin)
-  - pole `alerts` se seznamem aktivních problémů; při `status=error` vrací endpoint HTTP `503`, zatímco samotný recipient-specific incident vrací `warning`/`200`, a i chybová větev drží stejný JSON shape s `cache-control: no-store`
+- Health je rozdělený na veřejnou bez-DB liveness `/api/health/live`, veřejný readiness `/api/health` s jediným `SELECT 1` a owner-only `/api/health/diagnostics` s detailem workeru, fronty, incidentů a release identity.
 - Owner-only sekce `Email logy` nyní funguje jako business-first přehled `Email logy`:
   - nahoře ukazuje health stav `OK / Warning / Error` podle aktivních delivery incidentů, retry, pending fronty a poslední relevantní chyby
   - krátké metriky shrnují `Dnes odesláno`, `Za posledních 7 dní`, `Čeká na odeslání`, `Aktivní incidenty` a `Poslední odeslání` v nižším KPI stripu; součty odeslaných zpráv znamenají předání providerovi, nikoli potvrzené doručení

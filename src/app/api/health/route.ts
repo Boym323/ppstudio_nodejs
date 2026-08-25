@@ -1,3 +1,3 @@
-import { createHealthRouteApi } from "./route-api";
+import { createPublicHealthRouteApi } from "./public-route-api";
 
-export const { GET } = createHealthRouteApi();
+export const { GET } = createPublicHealthRouteApi();

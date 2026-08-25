@@ -262,7 +262,7 @@ Plný seznam proměnných a detailní vysvětlení je v `docs/ENVIRONMENT.md`.
 3. Spusť `./deploy/release.sh`.
 4. Skript provede `git pull --ff-only`, vytvoří úplný staging release (`npm ci --include=dev`, `npm run db:generate`, `npm run db:check-migrations`, `prisma validate`, `npm run lint`, `npm run build`) a teprve poté aplikuje `prisma migrate deploy`.
 5. Hotový runtime uloží do verzovaného `releases/` a atomicky přepne symlink `current`; společně se tak přepnou zdrojové soubory, Prisma Client, `.next`, `node_modules` i e-mailový worker. Při selhání startu, health nebo smoke testu se vrátí předchozí runtime release; databázové migrace se automaticky nevracejí.
-6. Po releasu ověř `GET /api/health`, admin login, veřejnou homepage a testovací rezervaci. Health kontrola zároveň ověřuje očekávané deployment ID a homepage smoke test je diagnostikován samostatně.
+6. Po releasu ověř `GET /api/health`, admin login, veřejnou homepage a testovací rezervaci. Homepage smoke test je diagnostikován samostatně; identitu releasu ověř ve startup logu, ne ve veřejném health payloadu.
 
 ### Kdy použít detailní deployment docs
 
@@ -275,7 +275,7 @@ Plný seznam proměnných a detailní vysvětlení je v `docs/ENVIRONMENT.md`.
 
 Projekt už má připravené stavební bloky pro základní provozní dohled:
 
-- `GET /api/health` vrací bezpečný agregovaný stav webu, DB, e-mailové fronty a metadat releasu
+- `GET /api/health/live` vrací bez-DB liveness, `GET /api/health` lehký DB readiness a owner-only `/api/health/diagnostics` detail fronty a releasu
 - `npm run analytics:check` ověří server-side Matomo reporting
 - `ppstudio-web.service` a `ppstudio-email-worker.service` mají být pod systemd
 - admin dashboard umí ukázat provozní a analytické varování, ale není náhradou externího monitoringu
@@ -287,7 +287,7 @@ Doporučené minimum:
 3. Alert na růst `failed/retrying/stale` e-mailů.
 4. Základní release SLA: po deployi ověřit homepage, admin login a vytvoření testovací rezervace.
 
-`/api/health` vrací HTTP `503` při nedostupné databázi se stabilním kódem `DATABASE_UNAVAILABLE`. Pokud selžou pouze doplňkové metriky e-mailové fronty, vrací HTTP `200`, `status=warning` a `EMAIL_HEALTH_UNAVAILABLE`; konkrétní příčinu hledej v journalu webové služby.
+`/api/health` provádí jediný DB ping a při nedostupné databázi vrací HTTP `503` se stabilním kódem `DATABASE_UNAVAILABLE`. Stav e-mailové fronty čti po owner přihlášení z `/api/health/diagnostics`; konkrétní příčinu chyb hledej v journalu webové služby.
 
 Pokud chcete mít v repu přímo popsaný provozní standard, navazující detaily jsou v `docs/DEPLOYMENT.md`, `docs/INCIDENTS.md` a `MANUAL.md`.
 

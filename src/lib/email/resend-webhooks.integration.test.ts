@@ -416,7 +416,7 @@ dbTest("doručený resend idempotentně uzavře celý explicitní incident chain
 });
 
 dbTest("doručený resend neuzavře čistý ani complaint-only chain bez delivery failure", async () => {
-  const [{ prisma }, { applyResendWebhookEvent }, { getUnresolvedEmailDeliveryIncidentRootWhere }, { getEmailLogDetailData, getAdminLogsData }, { getAdminDashboardData }, { createHealthRouteApi }] = await Promise.all([
+  const [{ prisma }, { applyResendWebhookEvent }, { getUnresolvedEmailDeliveryIncidentRootWhere }, { getEmailLogDetailData, getAdminLogsData }, { getAdminDashboardData }, { createHealthDiagnosticsRouteApi }] = await Promise.all([
     import("@/lib/prisma"),
     import("@/lib/email/resend-webhooks"),
     import("@/lib/email/incidents"),
@@ -499,7 +499,7 @@ dbTest("doručený resend neuzavře čistý ani complaint-only chain bez deliver
       getEmailLogDetailData(cleanRoot.id),
       getAdminLogsData({ area: "owner", view: "attention", source: "email", query: cleanSubject }),
       getAdminDashboardData("owner"),
-      createHealthRouteApi().GET(),
+      createHealthDiagnosticsRouteApi().GET(),
     ]);
     const health = await healthResponse.json() as { emailIncidents: { active: number } };
     const dashboardAlert = dashboard.alerts.find((alert) => alert.id === "email-failures");

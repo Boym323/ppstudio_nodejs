@@ -344,8 +344,8 @@ Vyplň při každém nasazení. Slouží jako rychlý audit trail kdo/co/kdy ov�
 
 ## Doporučené monitoring minimum
 - Externí uptime check volej proti `GET /api/health`.
-- Alarm nastav minimálně na HTTP `503`, timeout a opakovaný `warning` stav.
-- Při ruční kontrole po deployi si z payloadu ověř i `release.deploymentId` a `durationMs`; endpoint tak potvrdí, že nový runtime opravdu běží na očekávaném releasu a health check není zpomalený.
+- Alarm nastav minimálně na HTTP `503` a timeout; veřejný readiness nevrací warning ani interní diagnostiku.
+- Aktivní release identitu ověř ve startup logu `ppstudio.next.register` nebo po owner přihlášení přes `/api/health/diagnostics`.
 - Sleduj oba systemd procesy `ppstudio-web.service` a `ppstudio-email-worker.service`.
 - Při zapnutém Matomo dashboard reportingu měj po ruce i `npm run analytics:check` pro rychlou diagnostiku mimo UI.
 - Po incidentu s e-maily vždy zkontroluj outbox stavy `failed`, `retrying`, `processing` a `stale`.
@@ -353,8 +353,8 @@ Vyplň při každém nasazení. Slouží jako rychlý audit trail kdo/co/kdy ov�
 ## Praktické SLA po releasu
 - Do několika minut po nasazení ověř homepage, `/api/health`, admin login a jeden základní booking smoke test.
 - Pokud release mění e-mail, voucher nebo analytics flow, rozšiř smoke test i o odpovídající provozní scénář.
-- Když `/api/health` hlásí `error`, release nepovažuj za uzavřený, dokud není stav vysvětlený nebo opravený. `warning` ověř podle `emailIncidents`: samotný recipient-specific delivery incident neblokuje release, ale je vhodné jej provozně vyřešit.
-- Pokud release helper hlásí HTTP `503`, vyčti bezpečný JSON přes `curl -sS -D - http://127.0.0.1:3000/api/health` a konkrétní Prisma chybu z `journalctl -u ppstudio-web.service -n 200 --no-pager`. Selhání samotných doplňkových e-mailových metrik má zůstat HTTP `200` se `status=warning` a `EMAIL_HEALTH_UNAVAILABLE`, aby health handler při DB/schema driftu nevracel veřejné `500` ani zbytečně neblokoval release.
+- Když `/api/health` vrátí `error`/`503`, release nepovažuj za uzavřený, dokud není vysvětlená nebo opravená nedostupnost DB. Worker a recipient incidenty ověř samostatně přes owner-only diagnostiku.
+- Pokud release helper hlásí HTTP `503`, vyčti bezpečný minimální JSON přes `curl -sS -D - http://127.0.0.1:3000/api/health` a konkrétní Prisma chybu z `journalctl -u ppstudio-web.service -n 200 --no-pager`.
 - `release.sh` při neúspěchu explicitně vypíše `Health endpoint ...` nebo `Homepage smoke test ...` s URL a HTTP statusem. Podle této větve zkontroluj odpověď přes `curl -sS -D - <URL>` a `journalctl -u ppstudio-web.service -n 200 --no-pager`; společná hláška `Health/smoke test zatím neprošel` sama o sobě neurčuje vadný endpoint.
 - Po restartu helper nejdřív tiše čeká na otevření webového endpointu (výchozích 20 pokusů po 0,25 s). Volitelně jej upravíš přes `PPSTUDIO_WEB_READY_RETRIES` a `PPSTUDIO_WEB_READY_RETRY_SECONDS`; teprve po vyčerpání čekání je selhání startu logované a následuje rollback.
 

@@ -28,8 +28,38 @@ function createEmailHealthData(
   };
 }
 
+test("veřejný readiness health provede jen DB ping a nevrací interní diagnostiku", async () => {
+  const { createPublicHealthRouteApi } = await import("./public-route-api");
+  let databaseChecks = 0;
+  const api = createPublicHealthRouteApi({
+    checkDatabase: async () => {
+      databaseChecks += 1;
+    },
+  });
+
+  const response = await api.GET();
+  const payload = await response.json();
+
+  assert.equal(response.status, 200);
+  assert.equal(databaseChecks, 1);
+  assert.deepEqual(payload, { status: "ok" });
+  assert.equal(response.headers.get("cache-control"), "no-store");
+  assert.doesNotMatch(
+    JSON.stringify(payload),
+    /release|deployment|gitHash|emailWorker|emailQueue|incident|durationMs/,
+  );
+});
+
+test("liveness health nevyžaduje databázi", async () => {
+  const { GET } = await import("./live/route");
+  const response = await GET();
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), { status: "ok" });
+});
+
 test("GET odděluje recipient delivery incidenty od kritického stavu workeru", async () => {
-  const { createHealthRouteApi } = await import("./route-api");
+  const { createHealthDiagnosticsRouteApi } = await import("./route-api");
   const cases = [
     {
       name: "bez incidentů",
@@ -92,7 +122,7 @@ test("GET odděluje recipient delivery incidenty od kritického stavu workeru", 
   ];
 
   for (const scenario of cases) {
-    const api = createHealthRouteApi({
+    const api = createHealthDiagnosticsRouteApi({
       checkDatabase: async () => undefined,
       getEmailHealthData: async () => scenario.data,
     });
@@ -111,11 +141,11 @@ test("GET odděluje recipient delivery incidenty od kritického stavu workeru", 
 });
 
 test("GET při výpadku DB vrátí stabilní kód bez diagnostiky a alert potlačí cooldownem", async () => {
-  const { createDbFailureAlertCooldown, createHealthRouteApi } =
-    await import("./route-api");
+  const { createDbFailureAlertCooldown } = await import("./public-route-api");
+  const { createPublicHealthRouteApi } = await import("./public-route-api");
   const notifications: Array<Record<string, unknown>> = [];
   const now = new Date("2026-07-10T10:00:00.000Z");
-  const api = createHealthRouteApi({
+  const api = createPublicHealthRouteApi({
     checkDatabase: async () => {
       throw new Error("connect ECONNREFUSED postgres.internal:5432/ppstudio");
     },
@@ -148,10 +178,10 @@ test("GET při výpadku DB vrátí stabilní kód bez diagnostiky a alert potla�
 });
 
 test("GET při selhání detailních emailových DB dotazů degraduje na warning místo 500", async () => {
-  const { createHealthRouteApi } = await import("./route-api");
+  const { createHealthDiagnosticsRouteApi } = await import("./route-api");
   const healthDataError = new Error('column "processingToken" does not exist');
   const loggedErrors: unknown[] = [];
-  const api = createHealthRouteApi({
+  const api = createHealthDiagnosticsRouteApi({
     checkDatabase: async () => undefined,
     getEmailHealthData: async () => {
       throw healthDataError;
