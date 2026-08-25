@@ -465,6 +465,7 @@ ensure_unit_installed() {
 
 sync_systemd_units() {
   log "synchronizuji systemd unity z deploy/systemd"
+  sudo install -d -m 0755 /etc/sysusers.d /etc/tmpfiles.d
   sudo install -m 0644 "${REPO_DIR}/deploy/systemd/${SYSUSERS_FILE}" "/etc/sysusers.d/${SYSUSERS_FILE}"
   sudo systemd-sysusers "/etc/sysusers.d/${SYSUSERS_FILE}"
   sudo install -m 0644 "${REPO_DIR}/deploy/systemd/${TMPFILES_FILE}" "/etc/tmpfiles.d/${TMPFILES_FILE}"

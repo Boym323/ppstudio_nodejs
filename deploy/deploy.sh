@@ -33,6 +33,7 @@ main() {
     ln -s "${REPO_DIR}" "${REPO_DIR}/current"
   fi
 
+  install -d -m 0755 /etc/sysusers.d /etc/tmpfiles.d
   install -m 0644 "${REPO_DIR}/deploy/systemd/${SYSUSERS_FILE}" "/etc/sysusers.d/${SYSUSERS_FILE}"
   systemd-sysusers "/etc/sysusers.d/${SYSUSERS_FILE}"
   install -m 0644 "${REPO_DIR}/deploy/systemd/${TMPFILES_FILE}" "/etc/tmpfiles.d/${TMPFILES_FILE}"

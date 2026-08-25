@@ -15,6 +15,7 @@ grep -q '^ProtectHome=true$' "${SCRIPT_DIR}/systemd/ppstudio-web.service"
 grep -q '^StateDirectory=ppstudio$' "${SCRIPT_DIR}/systemd/ppstudio-web.service"
 ! grep -q '^\(AmbientCapabilities\|CapabilityBoundingSet\|PermissionsStartOnly\)=' "${SCRIPT_DIR}/systemd/ppstudio-web.service"
 ! grep -q '^\(AmbientCapabilities\|CapabilityBoundingSet\|PermissionsStartOnly\)=' "${SCRIPT_DIR}/systemd/ppstudio-email-worker.service"
+grep -q 'install -d -m 0755 /etc/sysusers.d /etc/tmpfiles.d' "${SCRIPT_DIR}/release.sh"
 if validate_runtime_path "/" "test" >/dev/null 2>&1; then
   echo "Nebezpečně široká runtime cesta byla neočekávaně přijata." >&2
   exit 1
