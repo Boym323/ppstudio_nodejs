@@ -118,7 +118,7 @@ dbTest("MediaCollectionItem zachovává unikátní a deterministické pořadí a
     assert.ok(await prisma.mediaAsset.findUnique({ where: { id: firstAsset.id } }));
     assert.deepEqual(await getMediaAssetUsage(firstAsset.id), {
       isUsed: true,
-      references: [{ source: "MediaCollectionItem", recordId: firstItem.id, field: "mediaAssetId" }],
+      references: [{ source: "MediaCollectionItem", recordId: firstItem.id, field: collection.type }],
     });
   } finally {
     await prisma.mediaCollectionItem.deleteMany({
