@@ -1008,7 +1008,7 @@ npm run db:clear-booking-data -- --confirm
 - Po přesunu termínu resetuje doménová akce `rescheduleBooking(...)` oba reminder markery, takže se starý reminder neposílá pro původní termín a nový čas může znovu projít standardním enqueue flow.
 - Před produkční aplikací migrací je k dispozici `npm run db:check-migrations`, který odhalí otevřené failed/incomplete záznamy v `_prisma_migrations`.
 - Pro systemd provoz použij [`deploy/systemd/ppstudio-web.service`](deploy/systemd/ppstudio-web.service) pro hlavní app a [`deploy/systemd/ppstudio-email-worker.service`](deploy/systemd/ppstudio-email-worker.service) pro worker.
-- Systemd `.example` šablony s poznámkami k `User`/`Group` jsou v [`deploy/systemd/ppstudio-web.service.example`](deploy/systemd/ppstudio-web.service.example) a [`deploy/systemd/ppstudio-email-worker.service.example`](deploy/systemd/ppstudio-email-worker.service.example).
+- Systemd unity i `.example` šablony povinně používají vyhrazený neprivilegovaný účet/skupinu `ppstudio`, které připraví instalační a release skript.
 - Jednorázová instalace obou units je připravená v [`deploy/deploy.sh`](deploy/deploy.sh).
 - Pro Docker Compose provoz použij [`deploy/docker-compose.email-worker.yml`](deploy/docker-compose.email-worker.yml).
 

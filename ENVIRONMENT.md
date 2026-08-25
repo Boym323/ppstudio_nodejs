@@ -112,7 +112,7 @@ Použití:
 - atomický lokální snapshot posledního správně načteného `SiteSettings`
 - fallback veřejných kontaktů a podmínek při výpadku databáze
 
-Výchozí cesta je `/var/www/ppstudio/site-settings-snapshot.json`. Musí zůstat mimo adresář konkrétního releasu a být zapisovatelná pro runtime uživatele. Při použití snapshotu se loguje provozní alert a nové veřejné rezervace se do obnovení aktuálních pravidel nepřijímají.
+Výchozí cesta je `/var/lib/ppstudio/site-settings-snapshot.json`. Deployment ji připravuje pro neprivilegovaného runtime uživatele `ppstudio`; vlastní cesta musí zůstat mimo checkout/release a být pro něj zapisovatelná. Při použití snapshotu se loguje provozní alert a nové veřejné rezervace se do obnovení aktuálních pravidel nepřijímají.
 
 ### Analytika
 

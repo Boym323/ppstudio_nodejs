@@ -6,6 +6,10 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+### Zabezpečení
+
+- Produkční web a e-mailový worker nyní běží pod vyhrazeným neprivilegovaným účtem; deploy připravuje omezená oprávnění release, médií a stavového snapshotu, bezpečně uklízí runtime-vlastněné cache a zpřesňuje povinnou izolaci portu 3000 za důvěryhodnou proxy.
+
 ## [3.22.9] - 2026-08-23
 
 ### Změněno

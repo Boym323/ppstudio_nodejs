@@ -9,6 +9,10 @@ CURRENT_RELEASE_LINK="${REPO_DIR}/current"
 PREVIOUS_RELEASE_LINK="${REPO_DIR}/previous"
 WEB_UNIT_NAME="ppstudio-web"
 WORKER_UNIT_NAME="ppstudio-email-worker"
+SYSUSERS_FILE="ppstudio.sysusers.conf"
+TMPFILES_FILE="ppstudio.tmpfiles.conf"
+RUNTIME_USER="ppstudio"
+RUNTIME_GROUP="ppstudio"
 RUNTIME_RELEASE_ENV_FILE=".release-env"
 HEALTH_URL="${PPSTUDIO_HEALTH_URL:-http://127.0.0.1:3000/api/health}"
 SMOKE_URL="${PPSTUDIO_SMOKE_URL:-http://127.0.0.1:3000/}"
@@ -292,7 +296,11 @@ cleanup_old_releases() {
     fi
 
     log "Mažu starý release ${release_dir}"
-    rm -rf -- "${release_dir}"
+    # Runtime uživatel může během provozu vytvořit .next/cache soubory a
+    # adresáře, ke kterým deploy účet nemá právo traversalu. Cíl je už výše
+    # omezený na release adresář mimo current/previous, proto je odstranění
+    # přes sudo bezpečné a nezávislé na runtime vlastnictví cache.
+    sudo rm -rf -- "${release_dir}"
   done < <(find "${RELEASES_DIR}" -mindepth 1 -maxdepth 1 -type d -print0 | sort -z -r)
 }
 
@@ -457,11 +465,83 @@ ensure_unit_installed() {
 
 sync_systemd_units() {
   log "synchronizuji systemd unity z deploy/systemd"
+  sudo install -m 0644 "${REPO_DIR}/deploy/systemd/${SYSUSERS_FILE}" "/etc/sysusers.d/${SYSUSERS_FILE}"
+  sudo systemd-sysusers "/etc/sysusers.d/${SYSUSERS_FILE}"
+  sudo install -m 0644 "${REPO_DIR}/deploy/systemd/${TMPFILES_FILE}" "/etc/tmpfiles.d/${TMPFILES_FILE}"
+  sudo systemd-tmpfiles --create "/etc/tmpfiles.d/${TMPFILES_FILE}"
   install_unit_file "${WEB_UNIT_NAME}"
   install_unit_file "${WORKER_UNIT_NAME}"
 
   log "systemctl daemon-reload"
   sudo systemctl daemon-reload
+}
+
+validate_runtime_path() {
+  local path_value="$1"
+  local label="$2"
+  local resolved_path
+
+  resolved_path="$(readlink -m -- "${path_value}")" || {
+    echo "${label} nelze normalizovat: ${path_value}." >&2
+    return 1
+  }
+
+  if [[ "${resolved_path}" != /* || "${resolved_path}" == "/" || "${resolved_path}" == "/var" || "${resolved_path}" == "/var/www" ]]; then
+    echo "${label} musí být bezpečná absolutní cesta, ne ${path_value}." >&2
+    return 1
+  fi
+}
+
+prepare_runtime_storage() {
+  local media_root="${MEDIA_STORAGE_ROOT:-/var/www/ppstudio/uploads}"
+  local snapshot_path="${SITE_SETTINGS_SNAPSHOT_PATH:-/var/lib/ppstudio/site-settings-snapshot.json}"
+  local legacy_snapshot_path="${REPO_DIR}/site-settings-snapshot.json"
+  local snapshot_dir
+  local repo_path
+  media_root="$(readlink -m -- "${media_root}")"
+  snapshot_path="$(readlink -m -- "${snapshot_path}")"
+  snapshot_dir="$(dirname "${snapshot_path}")"
+  repo_path="$(readlink -m -- "${REPO_DIR}")"
+
+  validate_runtime_path "${media_root}" "MEDIA_STORAGE_ROOT"
+  validate_runtime_path "${snapshot_dir}" "Adresář SITE_SETTINGS_SNAPSHOT_PATH"
+  if [[ "${media_root}" == "${repo_path}" || ( "${media_root}" == "${repo_path}"/* && "${media_root}" != "${repo_path}/uploads" ) ]]; then
+    echo "MEDIA_STORAGE_ROOT nesmí mířit do checkoutu ${repo_path}; použij externí storage nebo ${repo_path}/uploads." >&2
+    return 1
+  fi
+  if [[ "${snapshot_dir}" == "${repo_path}" || "${snapshot_dir}" == "${repo_path}"/* ]]; then
+    echo "SITE_SETTINGS_SNAPSHOT_PATH nesmí ležet v checkoutu ${repo_path}; použij /var/lib/ppstudio/site-settings-snapshot.json." >&2
+    return 1
+  fi
+
+  sudo install -d -o "${RUNTIME_USER}" -g "${RUNTIME_GROUP}" -m 0750 "${media_root}" "${snapshot_dir}"
+  sudo chgrp "${RUNTIME_GROUP}" "${REPO_DIR}"
+  sudo chmod g+rx "${REPO_DIR}"
+  sudo chgrp "${RUNTIME_GROUP}" "${REPO_DIR}/.env"
+  sudo chmod 0640 "${REPO_DIR}/.env"
+  sudo chown -R "${RUNTIME_USER}:${RUNTIME_GROUP}" "${media_root}"
+  sudo chmod -R u+rwX,g+rX,o-rwx "${media_root}"
+
+  if [[ -z "${SITE_SETTINGS_SNAPSHOT_PATH:-}" && -f "${legacy_snapshot_path}" && ! -f "${snapshot_path}" ]]; then
+    sudo install -o "${RUNTIME_USER}" -g "${RUNTIME_GROUP}" -m 0640 "${legacy_snapshot_path}" "${snapshot_path}"
+  fi
+
+  if [[ -f "${snapshot_path}" ]]; then
+    sudo chown "${RUNTIME_USER}:${RUNTIME_GROUP}" "${snapshot_path}"
+    sudo chmod 0640 "${snapshot_path}"
+  fi
+}
+
+prepare_runtime_release() {
+  local release_dir="$1"
+
+  # Build zůstává ve vlastnictví deploy uživatele; runtime skupina dostane
+  # read/traverse a Next.js cache navíc zápis pro zachování ISR/cache chování.
+  sudo chgrp -R "${RUNTIME_GROUP}" "${release_dir}"
+  sudo chmod -R g+rX,o-rwx "${release_dir}"
+  if [[ -d "${release_dir}/.next/cache" ]]; then
+    sudo chmod -R g+rwX "${release_dir}/.next/cache"
+  fi
 }
 
 ensure_no_pm2_conflicts() {
@@ -541,6 +621,8 @@ run_release() {
   require_cmd npm
   require_cmd npx
   require_cmd systemctl
+  require_cmd systemd-sysusers
+  require_cmd systemd-tmpfiles
   require_cmd curl
 
   if [[ ! -f "${REPO_DIR}/package.json" ]]; then
@@ -577,6 +659,10 @@ run_release() {
   fi
 
   run_timed_step "synchronizace systemd unitů" sync_systemd_units
+  run_timed_step "příprava runtime storage" prepare_runtime_storage
+  if [[ -L "${CURRENT_RELEASE_LINK}" ]]; then
+    run_timed_step "oprávnění aktivního release" prepare_runtime_release "$(readlink -f "${CURRENT_RELEASE_LINK}")"
+  fi
 
   run_timed_step "kontrola lokálních migrací" check_local_migration_directories
 
@@ -625,6 +711,7 @@ run_release() {
   release_dir="${RELEASES_DIR}/${release_name}"
   run_timed_step "finalizace release workspace" mv "${RELEASE_BUILD_DIR}" "${release_dir}"
   RELEASE_BUILD_DIR=""
+  run_timed_step "runtime oprávnění release" prepare_runtime_release "${release_dir}"
 
   cd "${release_dir}"
   log "npx prisma migrate deploy (těsně před aktivací; pouze expand/contract migrace)"

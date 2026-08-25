@@ -5,10 +5,13 @@ Wants=network-online.target
 
 [Service]
 Type=simple
+User=ppstudio
+Group=ppstudio
 WorkingDirectory=/var/www/ppstudio/current
 EnvironmentFile=/var/www/ppstudio/.env
 EnvironmentFile=-/var/www/ppstudio/current/.release-env
 Environment=NODE_ENV=production
+UMask=0027
 ExecStart=/usr/bin/env npm run email:worker
 Restart=always
 RestartSec=10
@@ -16,6 +19,15 @@ KillSignal=SIGTERM
 TimeoutStopSec=30
 NoNewPrivileges=true
 PrivateTmp=true
+PrivateDevices=true
+ProtectHome=true
+ProtectSystem=full
+ProtectControlGroups=true
+ProtectKernelModules=true
+ProtectKernelTunables=true
+RestrictSUIDSGID=true
+StateDirectory=ppstudio
+StateDirectoryMode=0750
 
 [Install]
 WantedBy=multi-user.target

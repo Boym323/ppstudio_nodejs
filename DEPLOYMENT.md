@@ -21,6 +21,10 @@ Web a worker běží odděleně, ale sdílí:
 - stejnou databázi
 - stejný upload root
 
+Vyhrazený účet `ppstudio` vytváří `systemd-sysusers` bez přihlašovacího shellu. `systemd-tmpfiles` připraví privátní stavový adresář a výchozí upload root; release helper nastaví oprávnění skutečného `MEDIA_STORAGE_ROOT`, release artefaktu a `.env`.
+
+Před prvním hardenovaným releasem odstraň z `.env` staré explicitní `SITE_SETTINGS_SNAPSHOT_PATH=/var/www/ppstudio/site-settings-snapshot.json`, nebo jej změň na `/var/lib/ppstudio/site-settings-snapshot.json`. Při použití nového fallbacku release existující snapshot jednorázově zkopíruje; checkout záměrně neudělí runtime uživateli právo přejmenovávat soubory ve svém kořeni.
+
 ## Systemd služby
 
 Soubory:
@@ -30,6 +34,7 @@ Soubory:
 
 ### `ppstudio-web`
 
+- běží jako neprivilegovaný uživatel a skupina `ppstudio`
 - `WorkingDirectory=/var/www/ppstudio/current`
 - načítá stabilní `/var/www/ppstudio/.env` i release-local `.release-env`
 - startuje `npm run start`
@@ -37,6 +42,7 @@ Soubory:
 
 ### `ppstudio-email-worker`
 
+- běží jako neprivilegovaný uživatel a skupina `ppstudio`
 - `WorkingDirectory=/var/www/ppstudio/current`
 - načítá stabilní `/var/www/ppstudio/.env` i release-local `.release-env`
 - startuje `npm run email:worker`
@@ -109,13 +115,15 @@ Pro administrační API neloguj query string. V access logu proxy používej ces
 
 Repozitář dokládá Proxmox/LXC a použití Nginx Proxy Manageru, ale neobsahuje jeho konfiguraci ani firewall. Nelze proto určit, zda proxy běží na stejném, nebo jiném hostu. Závaznou podmínkou provozu je, že klient nesmí navázat přímé spojení na Next.js port 3000; jinak může podvrhnout `X-Real-IP` a obejít IP část rate limitů.
 
-- Je-li Nginx/NPM ve stejném LXC/hostu, změň v obou verzovaných web unitách `Environment=HOSTNAME=127.0.0.1` (případně `::1` pro IPv6) a ověř, že proxy připojuje na loopback. Neprováděj tuto změnu, pokud je proxy vzdálená.
+- Je-li Nginx/NPM ve stejném síťovém namespace (typicky stejném LXC), změň ve web unitě i její `.example` variantě `Environment=HOSTNAME=127.0.0.1` (případně `::1` pro IPv6) a ověř, že proxy připojuje na loopback. Proxy v jiném LXC je z pohledu aplikace vzdálená.
 - Je-li proxy na jiném hostu, ponech bind pouze tehdy, když firewall před aplikací povolí TCP/3000 výhradně ze skutečných IP adres nebo CIDR této proxy a zakáže jej ze všech ostatních zdrojů. Stejné pravidlo nastav pro IPv6, pokud je port dostupný přes IPv6. Nepoužívej zástupné adresy; vycházej z reálného managementu proxy/infrastruktury.
 - Princip pravidla je: `allow tcp dport 3000 from <skutečný-proxy-ip-nebo-cidr>` a následně `deny tcp dport 3000 from any`; ekvivalentně pro IPv6. Hodnota v úhlových závorkách musí být při nasazení nahrazena doloženou adresou nebo sítí proxy, ne odhadnutou adresou aplikace ani klientů. Pravidlo patří na síťovou hranici, která skutečně chrání tento LXC/host.
 - V produkční proxy musí být pro požadavek na upstream provedeno přepsání (ne pouhé doplnění) hlavičky: `proxy_set_header X-Real-IP $remote_addr;`. Ověř konfiguraci například přes `nginx -T` nebo odpovídající konfiguraci NPM.
 - Je-li před Nginx/NPM CDN či další proxy, musí Nginx akceptovat `real_ip_header` jen od jejího skutečného allowlistu přes `set_real_ip_from`; teprve potom je `$remote_addr` vhodný pro uvedené přepsání. Aplikace záměrně nikdy nepřebírá `X-Forwarded-For`.
 
 Před uzavřením deploymentu ověř z hostu aplikace skutečný listener (`ss -ltnp`), konfiguraci proxy a firewall v jeho aktivním enforcement pointu. Z jiné než důvěryhodné proxy sítě musí být TCP spojení na port 3000 odmítnuto; přes veřejnou proxy musí požadavek stále fungovat a upstream musí dostat proxy přepsané `X-Real-IP`. Tyto vlastnosti nelze potvrdit unit testem ani jen z tohoto repozitáře.
+
+Verzovaná unit zachovává bind `0.0.0.0:3000`, protože doložená konfigurace neurčuje umístění NPM. To není samostatně bezpečný stav: před restartem hardenovaných unitů musí operátor buď zvolit loopback variantu pro lokální proxy, nebo doložit aktivní firewallový allowlist vzdálené proxy. Bez jedné z těchto podmínek deploy nedokončuj.
 
 ## Po deployi ověř
 

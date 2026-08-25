@@ -7,6 +7,20 @@ source "${SCRIPT_DIR}/release.sh"
 
 [[ "${RETAIN_RELEASES}" -eq 0 ]]
 
+grep -q '^User=ppstudio$' "${SCRIPT_DIR}/systemd/ppstudio-web.service"
+grep -q '^Group=ppstudio$' "${SCRIPT_DIR}/systemd/ppstudio-email-worker.service"
+grep -q '^Environment=HOSTNAME=0.0.0.0$' "${SCRIPT_DIR}/systemd/ppstudio-web.service"
+grep -q '^ProtectSystem=full$' "${SCRIPT_DIR}/systemd/ppstudio-web.service"
+grep -q '^ProtectHome=true$' "${SCRIPT_DIR}/systemd/ppstudio-web.service"
+grep -q '^StateDirectory=ppstudio$' "${SCRIPT_DIR}/systemd/ppstudio-web.service"
+! grep -q '^\(AmbientCapabilities\|CapabilityBoundingSet\|PermissionsStartOnly\)=' "${SCRIPT_DIR}/systemd/ppstudio-web.service"
+! grep -q '^\(AmbientCapabilities\|CapabilityBoundingSet\|PermissionsStartOnly\)=' "${SCRIPT_DIR}/systemd/ppstudio-email-worker.service"
+if validate_runtime_path "/" "test" >/dev/null 2>&1; then
+  echo "Nebezpečně široká runtime cesta byla neočekávaně přijata." >&2
+  exit 1
+fi
+validate_runtime_path "/var/lib/ppstudio" "test"
+
 if "${SCRIPT_DIR}/release.sh" --allow-dirty >/dev/null 2>&1; then
   echo "Odstraněná volba --allow-dirty byla neočekávaně přijata." >&2
   exit 1
@@ -60,7 +74,31 @@ RELEASES_DIR="${saved_releases_dir}"
 
 START_FAIL=""
 CURL_FAIL=0
-sudo() { "$@"; }
+SUDO_RM_SEEN=0
+sudo() {
+  if [[ "$1" == "rm" && "$2" == "-rf" ]]; then
+    SUDO_RM_SEEN=1
+  fi
+  "$@"
+}
+
+RUNTIME_USER="$(id -un)"
+RUNTIME_GROUP="$(id -gn)"
+MEDIA_STORAGE_ROOT="${TEMP_DIR}/media"
+SITE_SETTINGS_SNAPSHOT_PATH="${TEMP_DIR}/state/site-settings-snapshot.json"
+touch "${REPO_DIR}/.env"
+MEDIA_STORAGE_ROOT="${REPO_DIR}"
+if prepare_runtime_storage >/dev/null 2>&1; then
+  echo "MEDIA_STORAGE_ROOT nesmí převzít checkout." >&2
+  exit 1
+fi
+MEDIA_STORAGE_ROOT="${TEMP_DIR}/media"
+prepare_runtime_storage
+[[ "$(stat -c '%a' "${MEDIA_STORAGE_ROOT}")" == "750" ]]
+chmod 0644 "${RELEASES_DIR}/new/package.json"
+prepare_runtime_release "${RELEASES_DIR}/new"
+[[ "$(stat -c '%a' "${RELEASES_DIR}/new/package.json")" == "640" ]]
+
 systemctl() {
   case "$1" in
     start) [[ "${START_FAIL}" != "$2" ]] ;;
@@ -138,10 +176,13 @@ for release in \
   444444444444-20260104000000; do
   mkdir -p "${RELEASES_DIR}/${release}"
 done
+mkdir -p "${RELEASES_DIR}/333333333333-20260103000000/.next/cache/runtime-owned"
+chmod 0700 "${RELEASES_DIR}/333333333333-20260103000000/.next/cache/runtime-owned"
 set_release_link "${CURRENT_RELEASE_LINK}" "${RELEASES_DIR}/111111111111-20260101000000"
 set_release_link "${PREVIOUS_RELEASE_LINK}" "${RELEASES_DIR}/222222222222-20260102000000"
 RETAIN_RELEASES=0
 cleanup_old_releases
+[[ "${SUDO_RM_SEEN}" -eq 1 ]]
 [[ -d "${RELEASES_DIR}/111111111111-20260101000000" ]]
 [[ -d "${RELEASES_DIR}/222222222222-20260102000000" ]]
 [[ ! -d "${RELEASES_DIR}/444444444444-20260104000000" ]]

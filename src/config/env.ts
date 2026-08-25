@@ -86,4 +86,4 @@ export const mediaStorageRoot =
 export const siteSettingsSnapshotPath =
   env.SITE_SETTINGS_SNAPSHOT_PATH && env.SITE_SETTINGS_SNAPSHOT_PATH.length > 0
     ? path.resolve(env.SITE_SETTINGS_SNAPSHOT_PATH)
-    : path.resolve("/var/www/ppstudio/site-settings-snapshot.json");
+    : path.resolve("/var/lib/ppstudio/site-settings-snapshot.json");
