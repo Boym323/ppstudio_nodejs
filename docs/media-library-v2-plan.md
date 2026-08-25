@@ -5,7 +5,6 @@ Tento dokument je source of truth pro budoucí implementaci. Neprovádí migraci
 ## Datový model
 
 - `MediaAsset` reprezentuje fyzický asset, ne místo jeho použití.
-- Stávající `storagePath` se nemigrují ani nepřesouvají.
 - Singularní použití se řeší explicitními FK v `SiteSettings`.
 - Zachovat `voucherPdfLogoMediaId`.
 - Přidat `contactPhotoMediaId`, `homePortraitMediaId`, `aboutPortraitMediaId`.
@@ -20,7 +19,13 @@ Tento dokument je source of truth pro budoucí implementaci. Neprovádí migraci
 
 - Delete musí být usage-aware; používaný asset nesmí fyzicky zmizet.
 - Replace musí zachovat stejné `MediaAsset.id`.
-- Nové uploady mají později používat neutrální storage strukturu.
+- Stávající `storagePath` se nemigrují ani fyzicky nepřesouvají.
+- Nové uploady mají používat neutrální strukturu `images/YYYY/MM/...`; význam média nesmí být zakódovaný v cestě (`certificates`, `services`, `references` apod.).
+- `MediaAsset.storagePath` je relativní provider-independent cesta; business/runtime kód nesmí pracovat s absolutní cestou `/var/www/ppstudio/uploads`.
+- Veškeré čtení, zápis, existence a mazání fyzických médií musí probíhat přes `MediaStorageAdapter`.
+- Media Library musí zůstat storage-provider agnostic. Vazby `ServiceMedia`, `MediaCollectionItem` ani `SiteSettings` nesmí záviset na použitém storage provideru.
+- Aktuální provider zůstává `LOCAL`; implementace S3/MinIO není součástí Media Library v2.
+- Budoucí migrace `LOCAL → S3/MinIO` musí být možná bez změny business vazeb a ideálně se zachováním stejných `storagePath` jako object keys.
 - Šest potvrzených orphan souborů se v relační migraci nemaže.
 
 ## Produkční backfill
@@ -51,6 +56,6 @@ Deterministické singularní vazby:
 1. `expand` — přidat nové tabulky, FK a relation modely bez odstranění legacy kontraktu.
 2. `backfill` — propsat produkční assety a zachovat stávající `storagePath` i `MediaAsset.id`.
 3. `runtime cutover` — přepnout query, routy, publikaci, delete/replace a PDF použití na nové vazby.
-4. `admin/UI` — správa kolekcí, pořadí vazeb, singularních rolí a usage-aware akcí.
+4. `admin/UI` — správa kolekcí, pořadí vazeb, singularních rolí a usage-aware akcí; nový upload již používá neutrální `images/YYYY/MM/...`.
 5. `nové use cases` — `REFERENCES`, `ServiceMedia(HERO|GALLERY)` a další použití.
-6. `contract` — teprve nyní odstranit redundantní enumy, globální pořadí a legacy duplicitní pole.
+6. `contract` — odstranit redundantní enumy, globální pořadí a legacy duplicitní pole; nové uploady přepnout na neutrální `images/YYYY/MM/...`, pokud to nebylo provedeno dříve.
