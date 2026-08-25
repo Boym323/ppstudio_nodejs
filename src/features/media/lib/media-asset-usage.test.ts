@@ -10,27 +10,59 @@ function setTestEnv() {
   process.env.EMAIL_DELIVERY_MODE = 'log';
 }
 
-test('getMediaAssetUsage vrátí použití voucherového loga v SiteSettings', async () => {
+test('getMediaAssetUsage vrátí použití v SiteSettings i MediaCollectionItem', async () => {
   setTestEnv();
   const { prisma } = await import('@/lib/prisma');
   const originalFindMany = prisma.siteSettings.findMany;
+  const originalCollectionItemFindMany = prisma.mediaCollectionItem.findMany;
   const mutableSiteSettings = prisma.siteSettings as unknown as { findMany: (...args: unknown[]) => unknown };
+  const mutableCollectionItems = prisma.mediaCollectionItem as unknown as { findMany: (...args: unknown[]) => unknown };
 
   mutableSiteSettings.findMany = async (args) => {
     assert.deepEqual(args, {
-      where: { voucherPdfLogoMediaId: 'media-used' },
+      where: {
+        OR: [
+          { voucherPdfLogoMediaId: 'media-used' },
+          { contactPhotoMediaId: 'media-used' },
+          { homePortraitMediaId: 'media-used' },
+          { aboutPortraitMediaId: 'media-used' },
+        ],
+      },
+      select: {
+        id: true,
+        voucherPdfLogoMediaId: true,
+        contactPhotoMediaId: true,
+        homePortraitMediaId: true,
+        aboutPortraitMediaId: true,
+      },
+    });
+    return [{
+      id: 'site-settings',
+      voucherPdfLogoMediaId: 'media-used',
+      contactPhotoMediaId: null,
+      homePortraitMediaId: null,
+      aboutPortraitMediaId: null,
+    }];
+  };
+  mutableCollectionItems.findMany = async (args) => {
+    assert.deepEqual(args, {
+      where: { mediaAssetId: 'media-used' },
       select: { id: true },
     });
-    return [{ id: 'site-settings' }];
+    return [{ id: 'collection-item' }];
   };
 
   try {
     const { getMediaAssetUsage } = await import('./media-asset-usage');
     assert.deepEqual(await getMediaAssetUsage('media-used'), {
       isUsed: true,
-      references: [{ source: 'SiteSettings', recordId: 'site-settings', field: 'voucherPdfLogoMediaId' }],
+      references: [
+        { source: 'SiteSettings', recordId: 'site-settings', field: 'voucherPdfLogoMediaId' },
+        { source: 'MediaCollectionItem', recordId: 'collection-item', field: 'mediaAssetId' },
+      ],
     });
   } finally {
     mutableSiteSettings.findMany = originalFindMany as unknown as (...args: unknown[]) => unknown;
+    mutableCollectionItems.findMany = originalCollectionItemFindMany as unknown as (...args: unknown[]) => unknown;
   }
 });

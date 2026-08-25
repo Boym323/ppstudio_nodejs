@@ -146,6 +146,12 @@ enum MediaType {
   GENERAL
 }
 
+enum MediaCollectionType {
+  CERTIFICATES
+  STUDIO_GALLERY
+  REFERENCES
+}
+
 enum PricingLayout {
   LIST
   GRID
@@ -863,15 +869,24 @@ model SiteSettings {
   emailSenderEmail         String
   emailFooterText          String?
   voucherPdfLogoMediaId    String?
+  contactPhotoMediaId      String?
+  homePortraitMediaId      String?
+  aboutPortraitMediaId     String?
   updatedByUserId          String?
   createdAt                DateTime                @default(now())
   updatedAt                DateTime                @updatedAt
   updatedByUser            AdminUser?              @relation("SiteSettingsUpdatedBy", fields: [updatedByUserId], references: [id], onDelete: SetNull)
   voucherPdfLogoMedia      MediaAsset?             @relation("SiteSettingsVoucherPdfLogo", fields: [voucherPdfLogoMediaId], references: [id], onDelete: SetNull)
+  contactPhotoMedia        MediaAsset?             @relation("SiteSettingsContactPhoto", fields: [contactPhotoMediaId], references: [id], onDelete: SetNull)
+  homePortraitMedia        MediaAsset?             @relation("SiteSettingsHomePortrait", fields: [homePortraitMediaId], references: [id], onDelete: SetNull)
+  aboutPortraitMedia       MediaAsset?             @relation("SiteSettingsAboutPortrait", fields: [aboutPortraitMediaId], references: [id], onDelete: SetNull)
   changeLogs               SiteSettingsChangeLog[]
 
   @@index([updatedByUserId])
   @@index([voucherPdfLogoMediaId])
+  @@index([contactPhotoMediaId])
+  @@index([homePortraitMediaId])
+  @@index([aboutPortraitMediaId])
 }
 
 /// Výslovné vypnutí automatického oběda pro lokální pražský den; absence znamená AUTO.
@@ -916,11 +931,11 @@ model CalendarFeed {
 }
 
 model MediaAsset {
-  id                     String               @id @default(cuid())
-  storageProvider        MediaStorageProvider @default(LOCAL)
-  visibility             MediaAssetVisibility @default(PUBLIC)
+  id                     String                @id @default(cuid())
+  storageProvider        MediaStorageProvider  @default(LOCAL)
+  visibility             MediaAssetVisibility  @default(PUBLIC)
   kind                   MediaAssetKind
-  type                   MediaType            @default(CERTIFICATE)
+  type                   MediaType             @default(CERTIFICATE)
   originalFilename       String
   fileName               String
   storedFilename         String
@@ -933,26 +948,30 @@ model MediaAsset {
   alt                    String?
   altText                String?
   title                  String?
-  storagePath            String               @unique
+  storagePath            String                @unique
   url                    String
-  optimizedStoragePath   String?              @unique
+  optimizedStoragePath   String?               @unique
   optimizedUrl           String?
   optimizedMimeType      String?
   optimizedWidth         Int?
   optimizedHeight        Int?
   optimizedSize          Int?
-  thumbnailStoragePath   String?              @unique
+  thumbnailStoragePath   String?               @unique
   thumbnailUrl           String?
   thumbnailMimeType      String?
   thumbnailWidth         Int?
   thumbnailHeight        Int?
   thumbnailSize          Int?
   sortOrder              Int?
-  isPublished            Boolean              @default(true)
+  isPublished            Boolean               @default(true)
   deletionRequestedAt    DateTime?
-  createdAt              DateTime             @default(now())
-  updatedAt              DateTime             @updatedAt
-  voucherPdfLogoSettings SiteSettings[]       @relation("SiteSettingsVoucherPdfLogo")
+  createdAt              DateTime              @default(now())
+  updatedAt              DateTime              @updatedAt
+  voucherPdfLogoSettings SiteSettings[]        @relation("SiteSettingsVoucherPdfLogo")
+  contactPhotoSettings   SiteSettings[]        @relation("SiteSettingsContactPhoto")
+  homePortraitSettings   SiteSettings[]        @relation("SiteSettingsHomePortrait")
+  aboutPortraitSettings  SiteSettings[]        @relation("SiteSettingsAboutPortrait")
+  collectionItems        MediaCollectionItem[]
 
   @@index([type, isPublished, sortOrder])
   @@index([deletionRequestedAt])
@@ -960,4 +979,31 @@ model MediaAsset {
   @@index([kind, createdAt])
   @@index([visibility, kind, createdAt])
   @@index([storageProvider, kind, createdAt])
+}
+
+model MediaCollection {
+  id        String                @id @default(cuid())
+  type      MediaCollectionType   @unique
+  createdAt DateTime              @default(now())
+  updatedAt DateTime              @updatedAt
+  items     MediaCollectionItem[]
+}
+
+model MediaCollectionItem {
+  id           String          @id @default(cuid())
+  collectionId String
+  mediaAssetId String
+  sortOrder    Int
+  isVisible    Boolean         @default(true)
+  altText      String?
+  caption      String?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  collection   MediaCollection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  mediaAsset   MediaAsset      @relation(fields: [mediaAssetId], references: [id], onDelete: Restrict)
+
+  @@unique([collectionId, mediaAssetId])
+  @@unique([collectionId, sortOrder])
+  @@index([mediaAssetId])
+  @@index([collectionId, isVisible, sortOrder, id])
 }

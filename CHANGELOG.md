@@ -12,6 +12,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- Datový model médií nově podporuje relační kolekce certifikátů, galerie studia a referencí i samostatné vazby pro kontaktní fotografii a portréty, aniž by měnil dosavadní zobrazování nebo data.
 - Detail služby v administraci nyní nabízí bezpečný odkaz na veřejnou stránku, kontrolu chybějících částí obsahu a při převaze obecných úprav jednotnou historii změn včetně cenového auditu.
 - Detail služby v administraci nyní zobrazuje jednotný stav Veřejná, Interní nebo Neaktivní a před uložením srozumitelně vysvětluje dopad na rezervace, dostupnost a změnu délky.
 - Detail služby v administraci nyní upozorní na neuložené změny, chrání je při zavření a nabízí sticky akce pro uložení i uložení se zavřením.

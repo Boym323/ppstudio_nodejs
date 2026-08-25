@@ -23,14 +23,46 @@ const mediaAssetUsageSources: MediaAssetUsageSource[] = [
   {
     async findReferences(mediaAssetId) {
       const settings = await prisma.siteSettings.findMany({
-        where: { voucherPdfLogoMediaId: mediaAssetId },
+        where: {
+          OR: [
+            { voucherPdfLogoMediaId: mediaAssetId },
+            { contactPhotoMediaId: mediaAssetId },
+            { homePortraitMediaId: mediaAssetId },
+            { aboutPortraitMediaId: mediaAssetId },
+          ],
+        },
+        select: {
+          id: true,
+          voucherPdfLogoMediaId: true,
+          contactPhotoMediaId: true,
+          homePortraitMediaId: true,
+          aboutPortraitMediaId: true,
+        },
+      });
+
+      const fields = [
+        'voucherPdfLogoMediaId',
+        'contactPhotoMediaId',
+        'homePortraitMediaId',
+        'aboutPortraitMediaId',
+      ] as const;
+
+      return settings.flatMap((setting) => fields
+        .filter((field) => setting[field] === mediaAssetId)
+        .map((field) => ({ source: 'SiteSettings', recordId: setting.id, field })));
+    },
+  },
+  {
+    async findReferences(mediaAssetId) {
+      const items = await prisma.mediaCollectionItem.findMany({
+        where: { mediaAssetId },
         select: { id: true },
       });
 
-      return settings.map((setting) => ({
-        source: 'SiteSettings',
-        recordId: setting.id,
-        field: 'voucherPdfLogoMediaId',
+      return items.map((item) => ({
+        source: 'MediaCollectionItem',
+        recordId: item.id,
+        field: 'mediaAssetId',
       }));
     },
   },
