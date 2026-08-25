@@ -131,13 +131,26 @@ export async function updateMediaCollectionMembershipAction(formData: FormData) 
   if (action === 'remove') {
     await prisma.mediaCollectionItem.deleteMany({ where: { collectionId: collection.id, mediaAssetId: assetId } });
   } else {
-    const sortOrder = Number(formData.get('sortOrder'));
+    const rawSortOrder = formData.get('sortOrder');
+    const sortOrder = typeof rawSortOrder === 'string' && rawSortOrder.trim() !== '' ? Number(rawSortOrder) : null;
     const isVisible = formData.get('isVisible') !== 'false';
-    const last = await prisma.mediaCollectionItem.aggregate({ where: { collectionId: collection.id }, _max: { sortOrder: true } });
-    await prisma.mediaCollectionItem.upsert({
-      where: { collectionId_mediaAssetId: { collectionId: collection.id, mediaAssetId: assetId } },
-      create: { collectionId: collection.id, mediaAssetId: assetId, isVisible, sortOrder: Number.isInteger(sortOrder) && sortOrder >= 0 ? sortOrder : (last._max.sortOrder ?? -1) + 1 },
-      update: { isVisible, ...(Number.isInteger(sortOrder) && sortOrder >= 0 ? { sortOrder } : {}) },
+    await prisma.$transaction(async (tx) => {
+      const existing = await tx.mediaCollectionItem.findUnique({ where: { collectionId_mediaAssetId: { collectionId: collection.id, mediaAssetId: assetId } }, select: { id: true, sortOrder: true } });
+      const last = await tx.mediaCollectionItem.aggregate({ where: { collectionId: collection.id }, _max: { sortOrder: true } });
+      const requested = sortOrder !== null && Number.isInteger(sortOrder) && sortOrder >= 0 ? sortOrder : null;
+      const itemId = existing?.id ?? (await tx.mediaCollectionItem.create({ data: { collectionId: collection.id, mediaAssetId: assetId, isVisible, sortOrder: (last._max.sortOrder ?? -1) + 1 }, select: { id: true } })).id;
+      await tx.mediaCollectionItem.update({ where: { id: itemId }, data: { isVisible } });
+      if (requested === null) return;
+      if (existing && requested === existing.sortOrder) return;
+
+      const rows = await tx.mediaCollectionItem.findMany({ where: { collectionId: collection.id }, orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }], select: { id: true, sortOrder: true } });
+      const currentIndex = rows.findIndex((row) => row.id === itemId);
+      if (currentIndex < 0) return;
+      const reordered = rows.filter((row) => row.id !== itemId);
+      reordered.splice(Math.min(requested, reordered.length), 0, rows[currentIndex]);
+      const minimum = Math.min(...rows.map((row) => row.sortOrder), 0);
+      await Promise.all(reordered.map((row, index) => tx.mediaCollectionItem.update({ where: { id: row.id }, data: { sortOrder: minimum - index - 1 } })));
+      await Promise.all(reordered.map((row, index) => tx.mediaCollectionItem.update({ where: { id: row.id }, data: { sortOrder: index } })));
     });
   }
   revalidateMediaPaths(area);

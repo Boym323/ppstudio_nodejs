@@ -56,13 +56,13 @@ const mediaAssetUsageSources: MediaAssetUsageSource[] = [
     async findReferences(mediaAssetId) {
       const items = await prisma.mediaCollectionItem.findMany({
         where: { mediaAssetId },
-        select: { id: true },
+        select: { id: true, collection: { select: { type: true } } },
       });
 
       return items.map((item) => ({
         source: 'MediaCollectionItem',
         recordId: item.id,
-        field: 'mediaAssetId',
+        field: item.collection.type,
       }));
     },
   },
