@@ -1,17 +1,16 @@
-import { MediaType } from '@/generated/prisma/browser';
-
 import { getPublicMediaAssetByPath } from '@/features/media/lib/media-asset-repository';
 
-export const publicMediaTypes = new Map<string, MediaType>([
-  ['certificates', MediaType.CERTIFICATE],
-  ['spaces', MediaType.SALON_PHOTO],
-  ['contact', MediaType.CONTACT_PHOTO],
-  ['portraits', MediaType.PORTRAIT],
-  ['portraits-home', MediaType.PORTRAIT_HOME],
-  ['portraits-about', MediaType.PORTRAIT_ABOUT],
-  ['general', MediaType.GENERAL],
-  ['references', MediaType.GENERAL],
-  ['content', MediaType.GENERAL],
+export const publicMediaStorageRoots = new Set([
+  'certificates',
+  'spaces',
+  'contact',
+  'portraits',
+  'portraits-home',
+  'portraits-about',
+  'general',
+  'references',
+  'content',
+  'images',
 ]);
 
 export function resolveAssetVariant(

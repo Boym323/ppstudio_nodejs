@@ -3,16 +3,14 @@ import { NextResponse } from 'next/server';
 import { getPublicMediaAssetByPath } from '@/features/media/lib/media-asset-repository';
 import { localMediaStorage } from '@/lib/media/local-media-storage';
 import { assertSafeStoragePath } from '@/lib/media/media-path';
-import { publicMediaTypes, resolveAssetVariant } from '@/lib/media/media-route';
+import { publicMediaStorageRoots, resolveAssetVariant } from '@/lib/media/media-route';
 
 export async function GET(
   _request: Request,
   context: { params: Promise<{ kind: string; path?: string[] }> },
 ) {
   const { kind, path = [] } = await context.params;
-  const mediaType = publicMediaTypes.get(kind);
-
-  if (!mediaType || path.length === 0) {
+  if (!publicMediaStorageRoots.has(kind) || path.length === 0) {
     return NextResponse.json({ message: 'Soubor nebyl nalezen.' }, { status: 404 });
   }
 
