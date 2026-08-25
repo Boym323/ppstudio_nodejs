@@ -51,3 +51,38 @@ export function AdminRouteDrawer({
     </Dialog.Root>
   );
 }
+
+export function AdminRouteBackLink({
+  href,
+  children,
+  className,
+}: {
+  href: string;
+  children: ReactNode;
+  className?: string;
+}) {
+  const router = useRouter();
+
+  return (
+    <a
+      href={href}
+      className={className}
+      onClick={(event) => {
+        const hasUnsavedChanges = Boolean(document.querySelector('[data-unsaved-changes="true"]'));
+        const canClose = canCloseAdminDetail(hasUnsavedChanges, () =>
+          window.confirm("Máte neuložené změny. Opravdu chcete detail zavřít a změny zahodit?"),
+        );
+
+        if (!canClose) {
+          event.preventDefault();
+          return;
+        }
+
+        event.preventDefault();
+        router.push(href);
+      }}
+    >
+      {children}
+    </a>
+  );
+}

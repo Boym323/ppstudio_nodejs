@@ -13,6 +13,10 @@ Formát je inspirovaný Keep a Changelog.
 - Detail služby v administraci nyní upozorní na neuložené změny, chrání je při zavření a nabízí sticky akce pro uložení i uložení se zavřením.
 - Detail služby v administraci nově seskupuje provozní údaje, webový obsah a propagaci pro rychlejší každodenní správu; propagace, SEO a historie ceny jsou standardně sbalené.
 
+### Opraveno
+
+- Mobilní návrat ze služby v administraci nyní stejně jako desktopový drawer chrání neuložené změny před nechtěným zahozením.
+
 ## [3.22.10] - 2026-08-25
 
 ### Zabezpečení

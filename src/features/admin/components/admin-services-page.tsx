@@ -1,6 +1,9 @@
 import * as Dialog from "@/components/ui/dialog";
 import { AdminPageShell, AdminPanel } from "@/features/admin/components/admin-page-shell";
-import { AdminRouteDrawer } from "@/features/admin/components/admin-route-drawer";
+import {
+  AdminRouteBackLink,
+  AdminRouteDrawer,
+} from "@/features/admin/components/admin-route-drawer";
 import { AdminServiceForm } from "@/features/admin/components/admin-service-form";
 import { AdminServicesList } from "@/features/admin/components/admin-services-list";
 import { AdminServicesToolbar } from "@/features/admin/components/admin-services-toolbar";
@@ -169,12 +172,12 @@ export async function AdminServicesPage({
             }
             compact={area === "salon"}
           >
-            <a
+            <AdminRouteBackLink
               href={mobileBackHref}
               className="mb-4 inline-flex rounded-full border border-white/10 px-4 py-2 text-sm text-white/80 transition hover:border-white/18 hover:bg-white/6"
             >
               Zpět na seznam
-            </a>
+            </AdminRouteBackLink>
             {detailContent}
           </AdminPanel>
         ) : (
