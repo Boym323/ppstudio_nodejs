@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState, type FormEvent } from "react";
+import { useActionState, useEffect, useRef, useState, useTransition, type FormEvent } from "react";
 import { useFormStatus } from "react-dom";
 
 import { type AdminArea } from "@/config/navigation";
@@ -113,8 +113,9 @@ function listToTextareaValue(items: string[] | null | undefined) {
 
 export function AdminServiceForm(props: EditServiceFormProps | CreateServiceFormProps) {
   const formRef = useRef<HTMLFormElement>(null);
-  const initialSnapshotRef = useRef<string>();
+  const initialSnapshotRef = useRef<string | undefined>(undefined);
   const [isDirty, setIsDirty] = useState(false);
+  const [, startTransition] = useTransition();
   const [serverState, formAction] = useActionState(
     props.mode === "create" ? createServiceAction : updateServiceAction,
     initialUpdateServiceActionState,
@@ -158,9 +159,9 @@ export function AdminServiceForm(props: EditServiceFormProps | CreateServiceForm
       serverState.status,
     );
     if (serverState.status === "success") {
-      setIsDirty(false);
+      startTransition(() => setIsDirty(false));
     }
-  }, [serverState]);
+  }, [serverState, startTransition]);
 
   return (
     <form
@@ -223,8 +224,8 @@ export function AdminServiceForm(props: EditServiceFormProps | CreateServiceForm
       ) : null}
 
       <SectionBlock
-        title="Základ služby"
-        description="Nejdůležitější údaje pro rychlou práci v ceníku i v rezervačním flow."
+        title="Základ a provoz"
+        description="Nejdůležitější údaje pro rychlou práci v katalogu a rezervačním provozu."
       >
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="sm:col-span-2">
@@ -235,19 +236,6 @@ export function AdminServiceForm(props: EditServiceFormProps | CreateServiceForm
                 defaultValue={props.mode === "create" ? props.initialValues.name : props.service.name}
                 maxLength={120}
                 className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--color-accent)]/60"
-              />
-            </Field>
-          </div>
-
-          <div className="sm:col-span-2">
-            <Field label="Veřejný název" error={serverState.fieldErrors?.publicName}>
-              <input
-                type="text"
-                name="publicName"
-                maxLength={120}
-                defaultValue={props.mode === "create" ? props.initialValues.publicName : props.service.publicName ?? ""}
-                placeholder="Volitelné. Pokud zůstane prázdný, použije se název služby."
-                className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none transition placeholder:text-white/32 focus:border-[var(--color-accent)]/60"
               />
             </Field>
           </div>
@@ -361,13 +349,46 @@ export function AdminServiceForm(props: EditServiceFormProps | CreateServiceForm
             </>
           )}
         </div>
+
+        <div className="mt-4 border-t border-white/10 pt-4">
+          <h5 className="text-sm font-medium text-white">Stav a rezervace</h5>
+          <p className="mt-1 text-xs leading-5 text-white/52">
+            Určete, zda služba zůstává v nabídce a zda si ji klientky mohou rezervovat online.
+          </p>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <ToggleCard
+              name="isActive"
+              defaultChecked={props.mode === "create" ? props.initialValues.isActive : props.service.isActive}
+              title="Aktivní služba"
+              description="Služba zůstane součástí běžné nabídky a provoz s ní bude dál počítat."
+            />
+            <ToggleCard
+              name="isPubliclyBookable"
+              defaultChecked={
+                props.mode === "create" ? props.initialValues.isPubliclyBookable : props.service.isPubliclyBookable
+              }
+              title="Lze rezervovat online"
+              description="Klientky ji uvidí na webu a budou si ji moci vybrat při online rezervaci."
+            />
+          </div>
+        </div>
       </SectionBlock>
 
       <SectionBlock
-        title="Web a rezervace"
-        description="Vše, co klientka uvidí pod stejným názvem na webu i v rezervačním kroku výběru služby."
+        title="Obsah na webu"
+        description="Texty a strukturovaný detail, které klientka uvidí na webu a při výběru služby v rezervaci."
       >
         <div className="grid gap-4">
+          <Field label="Veřejný název" error={serverState.fieldErrors?.publicName}>
+            <input
+              type="text"
+              name="publicName"
+              maxLength={120}
+              defaultValue={props.mode === "create" ? props.initialValues.publicName : props.service.publicName ?? ""}
+              placeholder="Volitelné. Pokud zůstane prázdný, použije se název služby."
+              className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none transition placeholder:text-white/32 focus:border-[var(--color-accent)]/60"
+            />
+          </Field>
           <Field
             label="Krátký popis (web + rezervace)"
             error={serverState.fieldErrors?.publicIntro}
@@ -398,13 +419,10 @@ export function AdminServiceForm(props: EditServiceFormProps | CreateServiceForm
             />
           </Field>
         </div>
-      </SectionBlock>
-
-      <SectionBlock
-        title="Strukturovaný detail"
-        description="Každý neprázdný řádek se na detailu služby zobrazí jako samostatný bod."
-      >
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="mt-5 border-t border-white/10 pt-4">
+          <h5 className="text-sm font-medium text-white">Strukturovaný detail</h5>
+          <p className="mt-1 text-xs leading-5 text-white/52">Každý neprázdný řádek se na detailu služby zobrazí jako samostatný bod.</p>
+          <div className="mt-3 grid gap-4 sm:grid-cols-2">
           <Field label="Pro koho je služba vhodná" error={serverState.fieldErrors?.idealFor}>
             <textarea
               name="idealFor"
@@ -464,35 +482,16 @@ export function AdminServiceForm(props: EditServiceFormProps | CreateServiceForm
               className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm leading-6 text-white outline-none transition placeholder:text-white/32 focus:border-[var(--color-accent)]/60"
             />
           </Field>
+          </div>
         </div>
       </SectionBlock>
 
       <SectionBlock
-        title="Zveřejnění a rezervace"
-        description="Nastavte, zda služba patří do běžné nabídky a zda si ji klientky mohou samy rezervovat."
+        title="Propagace"
+        description="Volitelné zvýraznění služby v ceníku a na úvodní stránce."
+        collapsible
       >
-        <div className="grid gap-3 sm:grid-cols-2">
-          <ToggleCard
-            name="isActive"
-            defaultChecked={props.mode === "create" ? props.initialValues.isActive : props.service.isActive}
-            title="Aktivní služba"
-            description="Služba zůstane součástí běžné nabídky a provoz s ní bude dál počítat."
-          />
-          <ToggleCard
-            name="isPubliclyBookable"
-            defaultChecked={
-              props.mode === "create" ? props.initialValues.isPubliclyBookable : props.service.isPubliclyBookable
-            }
-            title="Lze rezervovat online"
-            description="Klientky ji uvidí na webu a budou si ji moci vybrat při online rezervaci."
-          />
-        </div>
-      </SectionBlock>
-
-      <SectionBlock
-        title="Ceník"
-        description="Texty, které se zobrazují na stránce ceníku."
-      >
+        <h5 className="text-sm font-medium text-white">Ceník</h5>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Krátký popis do ceníku" error={serverState.fieldErrors?.pricingShortDescription}>
             <textarea
@@ -526,13 +525,10 @@ export function AdminServiceForm(props: EditServiceFormProps | CreateServiceForm
             </datalist>
           </Field>
         </div>
-      </SectionBlock>
-
-      <SectionBlock
-        title="Doporučená služba na úvodní stránce"
-        description="Vyberte službu, kterou chcete nabídnout v sekci Doporučené služby. Zobrazí se nejvýše první tři podle pořadí."
-      >
-        <div className="grid gap-4 sm:grid-cols-[minmax(0,1.25fr)_180px] sm:items-start">
+        <div className="mt-5 border-t border-white/10 pt-4">
+          <h5 className="text-sm font-medium text-white">Homepage</h5>
+          <p className="mt-1 text-xs leading-5 text-white/52">Zobrazí se nejvýše první tři doporučené služby podle pořadí.</p>
+          <div className="mt-3 grid gap-4 sm:grid-cols-[minmax(0,1.25fr)_180px] sm:items-start">
           <ToggleCard
             name="isFeaturedOnHomepage"
             defaultChecked={
@@ -557,6 +553,7 @@ export function AdminServiceForm(props: EditServiceFormProps | CreateServiceForm
               className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--color-accent)]/60"
             />
           </Field>
+          </div>
         </div>
       </SectionBlock>
 
@@ -564,6 +561,7 @@ export function AdminServiceForm(props: EditServiceFormProps | CreateServiceForm
         <SectionBlock
           title="Historie ceny"
           description="Poslední auditní změny ceny služby včetně času a aktéra."
+          collapsible
         >
           {props.service.priceChangeLogs.length > 0 ? (
             <div className="grid gap-3">
@@ -591,8 +589,9 @@ export function AdminServiceForm(props: EditServiceFormProps | CreateServiceForm
       ) : null}
 
       <SectionBlock
-        title="Google (SEO)"
+        title="SEO"
         description="Volitelný název a popis pro výsledek ve vyhledávání Google. Pokud je necháte prázdné, použije se běžný název a popis služby."
+        collapsible
       >
         <div className="grid gap-4">
           <Field label="SEO title" error={serverState.fieldErrors?.seoTitle}>
@@ -628,11 +627,28 @@ function SectionBlock({
   title,
   description,
   children,
+  collapsible = false,
 }: {
   title: string;
   description: string;
   children: React.ReactNode;
+  collapsible?: boolean;
 }) {
+  if (collapsible) {
+    return (
+      <details className="group rounded-[1.25rem] border border-white/8 bg-white/5" data-section={title}>
+        <summary className="flex cursor-pointer list-none items-start justify-between gap-4 p-4 marker:hidden [&::-webkit-details-marker]:hidden">
+          <span>
+            <span className="block font-display text-xl text-white">{title}</span>
+            <span className="mt-2 block text-sm leading-6 text-white/62">{description}</span>
+          </span>
+          <span aria-hidden="true" className="mt-1 text-lg text-white/55 transition-transform group-open:rotate-45">+</span>
+        </summary>
+        <div className="border-t border-white/10 p-4">{children}</div>
+      </details>
+    );
+  }
+
   return (
     <section className="rounded-[1.25rem] border border-white/8 bg-white/5 p-4">
       <div className="border-b border-white/10 pb-4">
