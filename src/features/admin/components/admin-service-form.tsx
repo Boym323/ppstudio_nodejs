@@ -16,6 +16,12 @@ import { MAX_SERVICE_CLEANUP_MINUTES } from "@/features/booking/lib/booking-clea
 import { pricingBadgeSuggestions } from "@/features/admin/lib/admin-service-validation";
 import { formatServicePrice } from "@/features/admin/lib/admin-service-format";
 import {
+  applyServicePresentationStatus,
+  getServicePresentationStatus,
+  servicePresentationStatusLabels,
+  type ServicePresentationStatus,
+} from "@/features/admin/lib/service-presentation-status";
+import {
   isFormDirty,
   resolveSavedFormSnapshot,
   serializeFormEntries,
@@ -115,6 +121,18 @@ export function AdminServiceForm(props: EditServiceFormProps | CreateServiceForm
   const formRef = useRef<HTMLFormElement>(null);
   const initialSnapshotRef = useRef<string | undefined>(undefined);
   const [isDirty, setIsDirty] = useState(false);
+  const initialOperationalValues = {
+    isActive: props.mode === "create" ? props.initialValues.isActive : props.service.isActive,
+    isPubliclyBookable: props.mode === "create" ? props.initialValues.isPubliclyBookable : props.service.isPubliclyBookable,
+  };
+  const [isActive, setIsActive] = useState(initialOperationalValues.isActive);
+  const [isPubliclyBookable, setIsPubliclyBookable] = useState(initialOperationalValues.isPubliclyBookable);
+  const [categoryId, setCategoryId] = useState(
+    props.mode === "create" ? props.initialValues.categoryId : props.service.categoryId,
+  );
+  const [durationMinutes, setDurationMinutes] = useState(
+    props.mode === "create" ? props.initialValues.durationMinutes : props.service.durationMinutes,
+  );
   const [, startTransition] = useTransition();
   const [serverState, formAction] = useActionState(
     props.mode === "create" ? createServiceAction : updateServiceAction,
@@ -123,8 +141,11 @@ export function AdminServiceForm(props: EditServiceFormProps | CreateServiceForm
 
   const selectedCategory =
     props.categories.find((category) =>
-      category.id === (props.mode === "create" ? props.initialValues.categoryId : props.service.categoryId),
+      category.id === categoryId,
     ) ?? props.categories[0];
+  const presentationStatus = getServicePresentationStatus({ isActive, isPubliclyBookable });
+  const durationChanged = props.mode === "edit" && durationMinutes !== props.service.durationMinutes;
+  const isBeingDeactivated = props.mode === "edit" && props.service.isActive && !isActive;
 
   const summaryWarnings =
     props.mode === "edit"
@@ -163,6 +184,13 @@ export function AdminServiceForm(props: EditServiceFormProps | CreateServiceForm
     }
   }, [serverState, startTransition]);
 
+  useEffect(() => {
+    const form = formRef.current;
+    if (!form || initialSnapshotRef.current === undefined) return;
+
+    setIsDirty(isFormDirty(initialSnapshotRef.current, getCurrentSnapshot(form)));
+  }, [isActive, isPubliclyBookable]);
+
   return (
     <form
       ref={formRef}
@@ -191,11 +219,8 @@ export function AdminServiceForm(props: EditServiceFormProps | CreateServiceForm
       <div className="flex flex-wrap gap-2 rounded-[1.25rem] border border-white/8 bg-white/5 p-4">
         {props.mode === "edit" ? (
           <>
-            <AdminStatePill tone={props.service.isActive ? "active" : "muted"}>
-              {props.service.isActive ? "Aktivní" : "Neaktivní"}
-            </AdminStatePill>
-            <AdminStatePill tone={props.service.isPubliclyBookable ? "active" : "muted"}>
-              {props.service.isPubliclyBookable ? "Veřejná rezervace" : "Jen interní"}
+            <AdminStatePill tone={presentationStatus === "public" ? "active" : presentationStatus === "internal" ? "accent" : "muted"}>
+              {servicePresentationStatusLabels[presentationStatus]}
             </AdminStatePill>
             {props.service.isFeaturedOnHomepage ? <AdminStatePill tone="accent">Homepage #{props.service.homepageSortOrder}</AdminStatePill> : null}
             <AdminStatePill tone="accent">{formatServicePrice(props.service.priceFromCzk)}</AdminStatePill>
@@ -248,6 +273,7 @@ export function AdminServiceForm(props: EditServiceFormProps | CreateServiceForm
             <select
               name="categoryId"
               defaultValue={props.mode === "create" ? props.initialValues.categoryId : props.service.categoryId}
+              onChange={(event) => setCategoryId(event.target.value)}
               className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--color-accent)]/60"
             >
               {props.categories.map((category) => (
@@ -289,6 +315,7 @@ export function AdminServiceForm(props: EditServiceFormProps | CreateServiceForm
               step={5}
               inputMode="numeric"
               defaultValue={props.mode === "create" ? props.initialValues.durationMinutes : props.service.durationMinutes}
+              onChange={(event) => setDurationMinutes(Number(event.target.value))}
               className="mt-2 w-full rounded-[1.1rem] border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--color-accent)]/60"
             />
           </Field>
@@ -351,28 +378,43 @@ export function AdminServiceForm(props: EditServiceFormProps | CreateServiceForm
         </div>
 
         <div className="mt-4 border-t border-white/10 pt-4">
-          <h5 className="text-sm font-medium text-white">Stav a rezervace</h5>
-          <p className="mt-1 text-xs leading-5 text-white/52">
-            Určete, zda služba zůstává v nabídce a zda si ji klientky mohou rezervovat online.
-          </p>
-          <div className="mt-3 grid gap-3 sm:grid-cols-2">
-            <ToggleCard
-              name="isActive"
-              defaultChecked={props.mode === "create" ? props.initialValues.isActive : props.service.isActive}
-              title="Aktivní služba"
-              description="Služba zůstane součástí běžné nabídky a provoz s ní bude dál počítat."
-            />
-            <ToggleCard
-              name="isPubliclyBookable"
-              defaultChecked={
-                props.mode === "create" ? props.initialValues.isPubliclyBookable : props.service.isPubliclyBookable
-              }
-              title="Lze rezervovat online"
-              description="Klientky ji uvidí na webu a budou si ji moci vybrat při online rezervaci."
-            />
+          <h5 className="text-sm font-medium text-white">Stav služby</h5>
+          <p className="mt-1 text-xs leading-5 text-white/52">Zobrazuje současná pole jednodušeji; databázová pravidla se nemění.</p>
+          <input type="hidden" name="isActive" value={String(isActive)} />
+          <input type="hidden" name="isPubliclyBookable" value={String(isPubliclyBookable)} />
+          <div className="mt-3 grid gap-3 sm:grid-cols-3">
+            {(["public", "internal", "inactive"] as const).map((status) => (
+              <label key={status} className="flex cursor-pointer items-start gap-3 rounded-[1.1rem] border border-white/8 bg-white/5 p-4 has-[:checked]:border-[var(--color-accent)]/55 has-[:checked]:bg-[rgba(190,160,120,0.12)]">
+                <input
+                  type="radio"
+                  name="presentationStatus"
+                  value={status}
+                  checked={presentationStatus === status}
+                  onChange={() => {
+                    const next = applyServicePresentationStatus({ isActive, isPubliclyBookable }, status);
+                    setIsActive(next.isActive);
+                    setIsPubliclyBookable(next.isPubliclyBookable);
+                  }}
+                  className="mt-1 h-4 w-4 border-white/20 bg-black/20 text-[var(--color-accent)]"
+                />
+                <span><span className="block text-sm font-medium text-white">{servicePresentationStatusLabels[status]}</span><span className="mt-1 block text-sm leading-6 text-white/66">{status === "public" ? "Aktivní a lze ji rezervovat online." : status === "internal" ? "Aktivní jen pro interní provoz, bez online rezervace." : "Vypnutá pro nové použití podle současných pravidel."}</span></span>
+              </label>
+            ))}
           </div>
+          {presentationStatus === "inactive" && isPubliclyBookable ? <p className="mt-3 text-xs leading-5 text-white/52">Původní online režim zůstane uložený, aby se po opětovné aktivaci obnovil. Dokud je služba neaktivní, veřejně se nenabízí.</p> : null}
         </div>
       </SectionBlock>
+
+      {props.mode === "edit" ? (
+        <ServiceChangeImpact
+          bookingCount={props.service._count.bookings}
+          slotCount={props.service._count.allowedAvailabilitySlots}
+          isBeingDeactivated={isBeingDeactivated}
+          durationChanged={durationChanged}
+          categoryIsActive={selectedCategory?.isActive ?? false}
+          presentationStatus={presentationStatus}
+        />
+      ) : null}
 
       <SectionBlock
         title="Obsah na webu"
@@ -678,6 +720,43 @@ function Field({
       {help ? <p className="mt-2 text-xs leading-5 text-white/52">{help}</p> : null}
       {error ? <p className="mt-2 text-sm text-red-300">{error}</p> : null}
     </label>
+  );
+}
+
+function ServiceChangeImpact({
+  bookingCount,
+  slotCount,
+  isBeingDeactivated,
+  durationChanged,
+  categoryIsActive,
+  presentationStatus,
+}: {
+  bookingCount: number;
+  slotCount: number;
+  isBeingDeactivated: boolean;
+  durationChanged: boolean;
+  categoryIsActive: boolean;
+  presentationStatus: ServicePresentationStatus;
+}) {
+  return (
+    <section className="rounded-[1.25rem] border border-white/8 bg-white/5 p-4" aria-live="polite">
+      <h4 className="font-display text-xl text-white">Dopad změny</h4>
+      <div className="mt-3 space-y-2 text-sm leading-6 text-white/72">
+        <p>
+          {bookingCount > 0
+            ? `Služba má ${bookingCount} rezervací celkem.`
+            : "U služby zatím nejsou evidované rezervace."} Existující rezervace ani jejich snapshoty názvu, délky a ceny se touto úpravou nemění.
+        </p>
+        <p>
+          {slotCount > 0
+            ? `Služba je navázaná na ${slotCount} ${slotCount === 1 ? "slot" : "slotů"} dostupnosti.`
+            : "Služba nyní nemá přímou vazbu na sloty dostupnosti."} Stav služby existující sloty nemění; projeví se až při posuzování nových rezervací.
+        </p>
+        {presentationStatus === "public" && !categoryIsActive ? <p className="text-amber-100">Kategorie je neaktivní, proto se služba přes zvolený veřejný stav zatím neukáže na webu ani v online rezervaci.</p> : null}
+        {isBeingDeactivated ? <p className="text-amber-100">Po uložení službu nepůjde použít pro nové rezervace. Již vytvořené rezervace zůstanou beze změny.</p> : null}
+        {durationChanged ? <p className="text-amber-100">Nová délka se použije jen pro nově vytvořené rezervace a výpočet jejich dostupnosti. Termíny stávajících rezervací se nepřepočítají.</p> : null}
+      </div>
+    </section>
   );
 }
 
