@@ -10,13 +10,15 @@ function setTestEnv() {
   process.env.EMAIL_DELIVERY_MODE = 'log';
 }
 
-test('getMediaAssetUsage vrátí použití v SiteSettings i MediaCollectionItem', async () => {
+test('getMediaAssetUsage vrátí použití v SiteSettings, MediaCollectionItem i ServiceMedia', async () => {
   setTestEnv();
   const { prisma } = await import('@/lib/prisma');
   const originalFindMany = prisma.siteSettings.findMany;
   const originalCollectionItemFindMany = prisma.mediaCollectionItem.findMany;
+  const originalServiceMediaFindMany = prisma.serviceMedia.findMany;
   const mutableSiteSettings = prisma.siteSettings as unknown as { findMany: (...args: unknown[]) => unknown };
   const mutableCollectionItems = prisma.mediaCollectionItem as unknown as { findMany: (...args: unknown[]) => unknown };
+  const mutableServiceMedia = prisma.serviceMedia as unknown as { findMany: (...args: unknown[]) => unknown };
 
   mutableSiteSettings.findMany = async (args) => {
     assert.deepEqual(args, {
@@ -51,6 +53,13 @@ test('getMediaAssetUsage vrátí použití v SiteSettings i MediaCollectionItem'
     });
     return [{ id: 'collection-item' }];
   };
+  mutableServiceMedia.findMany = async (args) => {
+    assert.deepEqual(args, {
+      where: { mediaAssetId: 'media-used' },
+      select: { id: true, role: true, service: { select: { name: true, slug: true } } },
+    });
+    return [{ id: 'service-media', role: 'HERO', service: { name: 'Lash lifting', slug: 'lash-lifting' } }];
+  };
 
   try {
     const { getMediaAssetUsage } = await import('./media-asset-usage');
@@ -62,10 +71,12 @@ test('getMediaAssetUsage vrátí použití v SiteSettings i MediaCollectionItem'
         { source: 'SiteSettings', recordId: 'site-settings', field: 'homePortraitMediaId' },
         { source: 'SiteSettings', recordId: 'site-settings', field: 'aboutPortraitMediaId' },
         { source: 'MediaCollectionItem', recordId: 'collection-item', field: 'mediaAssetId' },
+        { source: 'ServiceMedia', recordId: 'service-media', field: 'HERO:Lash lifting:lash-lifting' },
       ],
     });
   } finally {
     mutableSiteSettings.findMany = originalFindMany as unknown as (...args: unknown[]) => unknown;
     mutableCollectionItems.findMany = originalCollectionItemFindMany as unknown as (...args: unknown[]) => unknown;
+    mutableServiceMedia.findMany = originalServiceMediaFindMany as unknown as (...args: unknown[]) => unknown;
   }
 });

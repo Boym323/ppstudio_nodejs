@@ -12,6 +12,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- Detail služby v administraci nyní umožňuje vybrat hlavní fotografii a řazenou galerii z Media Library; veřejný detail zobrazuje pouze publikované veřejné assety a zachovává dosavadní vzhled bez fotografií jako fallback.
 - Administrace Média je nyní relační knihovna assetů s vyhledáváním, filtry skutečného použití, správou kolekcí a bezpečným nahrazením souboru; nové uploady ukládá do neutrální cesty `images/YYYY/MM/...`.
 - Veřejné certifikáty, galerie studia, kontaktní fotografie a portréty nyní čtou relační vazby Media Library v2; respektují viditelnost a pořadí membershipů i publikovatelnost assetů, zatímco stávající URL a bezpečné fallbacky zůstávají zachované.
 - Přibyl ručně spouštěný, transakční a opakovatelný DEV/test backfill, který podle auditované mapy naplní kolekce médií a singularní vazby nastavení bez přepnutí runtime nebo změny legacy assetů.

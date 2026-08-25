@@ -152,6 +152,11 @@ enum MediaCollectionType {
   REFERENCES
 }
 
+enum ServiceMediaRole {
+  HERO
+  GALLERY
+}
+
 enum PricingLayout {
   LIST
   GRID
@@ -354,10 +359,29 @@ model Service {
   changeLogs               ServiceChangeLog[]
   vouchers                 Voucher[]                 @relation("ServiceVouchers")
   voucherRedemptions       VoucherRedemption[]       @relation("ServiceVoucherRedemptions")
+  media                    ServiceMedia[]
 
   @@index([categoryId, isActive, isPubliclyBookable, sortOrder])
   @@index([isActive, isPubliclyBookable, sortOrder])
   @@index([isFeaturedOnHomepage, homepageSortOrder])
+}
+
+model ServiceMedia {
+  id           String           @id @default(cuid())
+  serviceId    String
+  mediaAssetId String
+  role         ServiceMediaRole
+  sortOrder    Int              @default(0)
+  altText      String?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  service      Service          @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  mediaAsset   MediaAsset       @relation(fields: [mediaAssetId], references: [id], onDelete: Restrict)
+
+  @@unique([serviceId, role, mediaAssetId])
+  @@unique([serviceId, role, sortOrder])
+  @@index([mediaAssetId])
+  @@index([serviceId, role, sortOrder, id])
 }
 
 model ServiceChangeLog {
@@ -972,6 +996,7 @@ model MediaAsset {
   homePortraitSettings   SiteSettings[]        @relation("SiteSettingsHomePortrait")
   aboutPortraitSettings  SiteSettings[]        @relation("SiteSettingsAboutPortrait")
   collectionItems        MediaCollectionItem[]
+  serviceMedia           ServiceMedia[]
 
   @@index([type, isPublished, sortOrder])
   @@index([deletionRequestedAt])
