@@ -1,10 +1,13 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 
-import { MediaType } from '@/generated/prisma/browser';
+import { MediaCollectionType } from '@/generated/prisma/browser';
 
 import { type PublicImageAsset } from '@/features/public/lib/public-media';
-import { getPublishedMediaLibraryByType } from '@/features/media/lib/media-library';
+import {
+  getPublicContactPhotoAsset,
+  getPublicMediaCollectionItems,
+} from '@/features/public/lib/public-media-relations';
 import { localMediaStorage } from '@/lib/media/local-media-storage';
 
 export type PublicStudioPhoto = PublicImageAsset;
@@ -15,13 +18,14 @@ const DEV_STUDIO_FALLBACK_BASE_PATH = '/dev/studio';
 const SUPPORTED_DEV_IMAGE_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.webp']);
 
 function mapStudioAsset(
-  asset: Awaited<ReturnType<typeof getPublishedMediaLibraryByType>>[number],
+  asset: NonNullable<Awaited<ReturnType<typeof getPublicContactPhotoAsset>>>,
+  altTextOverride?: string | null,
 ): PublicStudioPhoto {
   return {
     id: asset.id,
     title: asset.title,
-    altText: asset.altText ?? STUDIO_ALT_FALLBACK,
-    imageUrl: asset.publicUrl,
+    altText: altTextOverride ?? asset.altText ?? STUDIO_ALT_FALLBACK,
+    imageUrl: asset.optimizedUrl ?? asset.url,
     width: asset.optimizedWidth ?? asset.width,
     height: asset.optimizedHeight ?? asset.height,
   };
@@ -53,10 +57,14 @@ async function getDevelopmentFallbackStudioPhotos(): Promise<PublicStudioPhoto[]
   }));
 }
 
-async function getAvailablePublishedImageAssets(type: MediaType) {
-  const assets = await getPublishedMediaLibraryByType(type);
+async function filterAvailableAssets<
+  T extends {
+    mediaAsset: NonNullable<Awaited<ReturnType<typeof getPublicContactPhotoAsset>>>;
+  },
+>(items: T[]) {
   const availableAssets = await Promise.all(
-    assets.map(async (asset) => {
+    items.map(async (item) => {
+      const asset = item.mediaAsset;
       const candidatePaths = [asset.optimizedStoragePath, asset.storagePath].filter(
         (candidate): candidate is string => Boolean(candidate),
       );
@@ -64,7 +72,7 @@ async function getAvailablePublishedImageAssets(type: MediaType) {
       for (const storagePath of candidatePaths) {
         const exists = await localMediaStorage.fileExists(asset.visibility, storagePath);
         if (exists) {
-          return asset;
+          return item;
         }
       }
 
@@ -77,10 +85,11 @@ async function getAvailablePublishedImageAssets(type: MediaType) {
 
 export async function getPublicStudioPhotos(): Promise<PublicStudioPhoto[]> {
   try {
-    const filteredAssets = await getAvailablePublishedImageAssets(MediaType.SALON_PHOTO);
+    const items = await getPublicMediaCollectionItems(MediaCollectionType.STUDIO_GALLERY);
+    const availableItems = await filterAvailableAssets(items);
 
-    if (filteredAssets.length > 0) {
-      return filteredAssets.map((asset) => mapStudioAsset(asset));
+    if (availableItems.length > 0) {
+      return availableItems.map(({ altText, mediaAsset }) => mapStudioAsset(mediaAsset, altText));
     }
   } catch (error) {
     if (process.env.NODE_ENV !== 'development') {
@@ -93,10 +102,11 @@ export async function getPublicStudioPhotos(): Promise<PublicStudioPhoto[]> {
 
 export async function getPrimaryPublicContactPhoto(): Promise<PublicStudioPhoto | null> {
   try {
-    const contactPhotos = await getAvailablePublishedImageAssets(MediaType.CONTACT_PHOTO);
+    const asset = await getPublicContactPhotoAsset();
+    const availableItems = asset ? await filterAvailableAssets([{ mediaAsset: asset }]) : [];
 
-    if (contactPhotos.length > 0) {
-      return mapStudioAsset(contactPhotos[0]);
+    if (availableItems.length > 0) {
+      return mapStudioAsset(availableItems[0].mediaAsset);
     }
   } catch (error) {
     if (process.env.NODE_ENV !== 'development') {

@@ -1,6 +1,7 @@
-import { MediaType } from '@/generated/prisma/browser';
-
-import { getPublishedMediaLibraryByType } from '@/features/media/lib/media-library';
+import {
+  getPublicAboutPortraitAsset,
+  getPublicHomePortraitAsset,
+} from '@/features/public/lib/public-media-relations';
 
 export type PublicImageAsset = {
   id: string;
@@ -12,36 +13,27 @@ export type PublicImageAsset = {
 };
 
 function mapPublicImageAsset(
-  asset: Awaited<ReturnType<typeof getPublishedMediaLibraryByType>>[number],
+  asset: NonNullable<Awaited<ReturnType<typeof getPublicHomePortraitAsset>>>,
   fallbackAltText: string,
-) {
+): PublicImageAsset {
   return {
     id: asset.id,
     title: asset.title,
     altText: asset.altText ?? asset.title ?? fallbackAltText,
-    imageUrl: asset.publicUrl,
+    imageUrl: asset.optimizedUrl ?? asset.url,
     width: asset.optimizedWidth ?? asset.width,
     height: asset.optimizedHeight ?? asset.height,
   };
 }
 
-export async function getPublicImageAssetsByType(
-  type: MediaType,
-  fallbackAltText: string,
-): Promise<PublicImageAsset[]> {
-  const assets = await getPublishedMediaLibraryByType(type);
-
-  return assets.map((asset, index) =>
-    mapPublicImageAsset(asset, `${fallbackAltText} ${index + 1}`),
-  );
-}
-
 export async function getPublicHomePortraits() {
-  return getPublicImageAssetsByType(MediaType.PORTRAIT_HOME, 'Portrét homepage PP Studio');
+  const asset = await getPublicHomePortraitAsset();
+  return asset ? [mapPublicImageAsset(asset, 'Portrét homepage PP Studio')] : [];
 }
 
 export async function getPublicAboutPortraits() {
-  return getPublicImageAssetsByType(MediaType.PORTRAIT_ABOUT, 'Portrét O mně PP Studio');
+  const asset = await getPublicAboutPortraitAsset();
+  return asset ? [mapPublicImageAsset(asset, 'Portrét O mně PP Studio')] : [];
 }
 
 export async function getPrimaryPublicHomePortrait() {

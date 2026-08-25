@@ -1,6 +1,6 @@
-import { MediaType } from '@/generated/prisma/browser';
+import { MediaCollectionType } from '@/generated/prisma/browser';
 
-import { getPublishedMediaLibraryByType } from '@/features/media/lib/media-library';
+import { getPublicMediaCollectionItems } from '@/features/public/lib/public-media-relations';
 
 export type PublicCertificate = {
   id: string;
@@ -12,13 +12,13 @@ export type PublicCertificate = {
 };
 
 export async function getPublicCertificates(): Promise<PublicCertificate[]> {
-  const assets = await getPublishedMediaLibraryByType(MediaType.CERTIFICATE);
+  const items = await getPublicMediaCollectionItems(MediaCollectionType.CERTIFICATES);
 
-  return assets.map((asset) => ({
+  return items.map(({ altText, mediaAsset: asset }) => ({
     id: asset.id,
     title: asset.title,
-    alt: asset.altText,
-    imageUrl: asset.publicUrl,
+    alt: altText ?? asset.altText,
+    imageUrl: asset.optimizedUrl ?? asset.url,
     width: asset.optimizedWidth ?? asset.width,
     height: asset.optimizedHeight ?? asset.height,
   }));
