@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef, useState, type FormEvent } from "react";
 import { useFormStatus } from "react-dom";
 
 import { type AdminArea } from "@/config/navigation";
@@ -15,6 +15,11 @@ import { AdminStatePill } from "@/features/admin/components/admin-state-pill";
 import { MAX_SERVICE_CLEANUP_MINUTES } from "@/features/booking/lib/booking-cleanup";
 import { pricingBadgeSuggestions } from "@/features/admin/lib/admin-service-validation";
 import { formatServicePrice } from "@/features/admin/lib/admin-service-format";
+import {
+  isFormDirty,
+  resolveSavedFormSnapshot,
+  serializeFormEntries,
+} from "@/features/admin/lib/admin-form-dirty-state";
 
 type CategoryOption = {
   id: string;
@@ -107,6 +112,9 @@ function listToTextareaValue(items: string[] | null | undefined) {
 }
 
 export function AdminServiceForm(props: EditServiceFormProps | CreateServiceFormProps) {
+  const formRef = useRef<HTMLFormElement>(null);
+  const initialSnapshotRef = useRef<string>();
+  const [isDirty, setIsDirty] = useState(false);
   const [serverState, formAction] = useActionState(
     props.mode === "create" ? createServiceAction : updateServiceAction,
     initialUpdateServiceActionState,
@@ -124,8 +132,45 @@ export function AdminServiceForm(props: EditServiceFormProps | CreateServiceForm
           ...(selectedCategory && !selectedCategory.isActive ? ["Nová služba bude v neaktivní kategorii, takže zůstane veřejně skrytá."] : []),
         ];
 
+  function getCurrentSnapshot(form: HTMLFormElement) {
+    return serializeFormEntries(new FormData(form).entries());
+  }
+
+  function updateDirtyState(event: FormEvent<HTMLFormElement>) {
+    const currentSnapshot = getCurrentSnapshot(event.currentTarget);
+    initialSnapshotRef.current ??= currentSnapshot;
+    setIsDirty(isFormDirty(initialSnapshotRef.current, currentSnapshot));
+  }
+
+  useEffect(() => {
+    const form = formRef.current;
+    if (!form) return;
+
+    const currentSnapshot = getCurrentSnapshot(form);
+    if (initialSnapshotRef.current === undefined) {
+      initialSnapshotRef.current = currentSnapshot;
+      return;
+    }
+
+    initialSnapshotRef.current = resolveSavedFormSnapshot(
+      initialSnapshotRef.current,
+      currentSnapshot,
+      serverState.status,
+    );
+    if (serverState.status === "success") {
+      setIsDirty(false);
+    }
+  }, [serverState]);
+
   return (
-    <form action={formAction} className="space-y-5">
+    <form
+      ref={formRef}
+      action={formAction}
+      className="space-y-5"
+      data-unsaved-changes={isDirty ? "true" : "false"}
+      onInput={updateDirtyState}
+      onChange={updateDirtyState}
+    >
       <input type="hidden" name="area" value={props.area} />
       <input type="hidden" name="returnTo" value={props.returnTo} />
       {props.mode === "edit" ? <input type="hidden" name="serviceId" value={props.service.id} /> : null}
@@ -574,7 +619,7 @@ export function AdminServiceForm(props: EditServiceFormProps | CreateServiceForm
         </div>
       </SectionBlock>
 
-      <SubmitButtons isCreate={props.mode === "create"} />
+      <SubmitButtons isCreate={props.mode === "create"} isDirty={isDirty} />
     </form>
   );
 }
@@ -647,11 +692,17 @@ function ToggleCard({
   );
 }
 
-function SubmitButtons({ isCreate }: { isCreate: boolean }) {
+function SubmitButtons({ isCreate, isDirty }: { isCreate: boolean; isDirty: boolean }) {
   const { pending } = useFormStatus();
 
   return (
-    <div className="flex flex-wrap gap-3">
+    <div className="sticky bottom-0 z-10 -mx-5 flex flex-wrap items-center gap-3 border-t border-white/10 bg-[#131116]/96 px-5 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))] backdrop-blur sm:-mx-6 sm:px-6">
+      <p
+        aria-live="polite"
+        className={`mr-auto text-sm font-medium ${isDirty ? "text-amber-200" : "text-emerald-200"}`}
+      >
+        {isDirty ? "Neuložené změny" : "Vše uloženo"}
+      </p>
       <button
         type="submit"
         name="intent"

@@ -6,6 +6,10 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+### Změněno
+
+- Detail služby v administraci nyní upozorní na neuložené změny, chrání je při zavření a nabízí sticky akce pro uložení i uložení se zavřením.
+
 ## [3.22.10] - 2026-08-25
 
 ### Zabezpečení

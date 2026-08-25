@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 
 import * as Dialog from "@/components/ui/dialog";
+import { canCloseAdminDetail } from "@/features/admin/lib/admin-form-dirty-state";
 
 /** Sdílený Radix lifecycle pro drawery, jejichž otevřený stav určuje URL. */
 export function AdminRouteDrawer({
@@ -36,6 +37,12 @@ export function AdminRouteDrawer({
       open={enabled}
       onOpenChange={(nextOpen) => {
         if (enabled && !nextOpen) {
+          const hasUnsavedChanges = Boolean(document.querySelector('[data-unsaved-changes="true"]'));
+          const canClose = canCloseAdminDetail(hasUnsavedChanges, () =>
+            window.confirm("Máte neuložené změny. Opravdu chcete detail zavřít a změny zahodit?"),
+          );
+
+          if (!canClose) return;
           router.push(href);
         }
       }}
