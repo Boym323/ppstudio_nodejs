@@ -17,6 +17,30 @@ const formatDateTime = new Intl.DateTimeFormat("cs-CZ", {
   minute: "2-digit",
 });
 
+const serviceAuditFieldLabels: Record<string, string> = {
+  categoryId: "Kategorie",
+  name: "Název",
+  publicName: "Veřejný název",
+  seoTitle: "SEO titulek",
+  durationMinutes: "Délka",
+  cleanupMinutes: "Úklidový čas",
+  sortOrder: "Pořadí",
+  isFeaturedOnHomepage: "Homepage",
+  homepageSortOrder: "Pořadí na homepage",
+  isActive: "Aktivita",
+  isPubliclyBookable: "Rezervovatelnost",
+  publicContentFields: "Veřejný obsah",
+};
+
+function describeServiceAuditChange(after: Prisma.JsonValue) {
+  if (!after || typeof after !== "object" || Array.isArray(after)) {
+    return "Služba upravena";
+  }
+
+  const labels = Object.keys(after).map((key) => serviceAuditFieldLabels[key] ?? key);
+  return labels.length > 0 ? labels.join(" • ") : "Služba upravena";
+}
+
 function normalizeSearchParams(searchParams?: Record<string, string | string[] | undefined>) {
   const parsed = serviceListSearchParamsSchema.safeParse({
     query: typeof searchParams?.query === "string" ? searchParams.query : undefined,
@@ -256,6 +280,8 @@ export async function getAdminServicesPageData(
             select: {
               bookings: true,
               allowedAvailabilitySlots: true,
+              changeLogs: true,
+              priceChangeLogs: true,
             },
           },
           priceChangeLogs: {
@@ -265,6 +291,23 @@ export async function getAdminServicesPageData(
             take: 10,
             include: {
               changedByUser: {
+                select: {
+                  name: true,
+                  email: true,
+                },
+              },
+            },
+          },
+          changeLogs: {
+            orderBy: {
+              createdAt: "desc",
+            },
+            take: 10,
+            select: {
+              id: true,
+              after: true,
+              createdAt: true,
+              actorUser: {
                 select: {
                   name: true,
                   email: true,
@@ -283,8 +326,16 @@ export async function getAdminServicesPageData(
           id: log.id,
           oldPriceFromCzk: log.oldPriceFromCzk,
           newPriceFromCzk: log.newPriceFromCzk,
+          createdAt: log.createdAt.toISOString(),
           createdAtLabel: formatDateTime.format(log.createdAt),
           changedByUser: log.changedByUser,
+        })),
+        changeLogs: selectedService.changeLogs.map((log) => ({
+          id: log.id,
+          summary: describeServiceAuditChange(log.after),
+          createdAt: log.createdAt.toISOString(),
+          createdAtLabel: formatDateTime.format(log.createdAt),
+          actorUser: log.actorUser,
         })),
       }
     : null;

@@ -45,6 +45,7 @@ type EditServiceFormProps = BaseServiceFormProps & {
   service: {
     id: string;
     name: string;
+    slug: string;
     publicName: string | null;
     description: string | null;
     publicIntro: string | null;
@@ -72,17 +73,30 @@ type EditServiceFormProps = BaseServiceFormProps & {
     _count: {
       bookings: number;
       allowedAvailabilitySlots: number;
+      changeLogs: number;
+      priceChangeLogs: number;
     };
     warnings: string[];
     priceChangeLogs: Array<{
       id: string;
       oldPriceFromCzk: number | null;
       newPriceFromCzk: number | null;
+      createdAt: string;
       createdAtLabel: string;
       changedByUser: {
         name: string;
         email: string;
       } | null;
+    }>;
+    changeLogs: Array<{
+      id: string;
+      summary: string;
+      createdAt: string;
+      createdAtLabel: string;
+      actorUser: {
+        name: string;
+        email: string;
+      };
     }>;
   };
 };
@@ -146,6 +160,47 @@ export function AdminServiceForm(props: EditServiceFormProps | CreateServiceForm
   const presentationStatus = getServicePresentationStatus({ isActive, isPubliclyBookable });
   const durationChanged = props.mode === "edit" && durationMinutes !== props.service.durationMinutes;
   const isBeingDeactivated = props.mode === "edit" && props.service.isActive && !isActive;
+  const isPublicService =
+    props.mode === "edit" &&
+    props.service.isActive &&
+    props.service.isPubliclyBookable &&
+    props.service.category.isActive &&
+    Boolean(
+      props.service.publicIntro ||
+      props.service.description ||
+      props.service.seoDescription ||
+      props.service.pricingShortDescription,
+    );
+  const missingDetailItems = props.mode === "edit"
+    ? [
+        !props.service.publicIntro?.trim() && "Veřejný úvod",
+        !props.service.description?.trim() && "Detailní popis",
+        props.service.idealFor.length === 0 && "Pro koho je služba vhodná",
+        props.service.includes.length === 0 && "Co služba zahrnuje",
+        props.service.benefits.length === 0 && "Přínosy služby",
+        props.service.goodToKnow.length === 0 && "Dobré vědět",
+        !props.service.seoTitle?.trim() && "SEO title",
+        !props.service.seoDescription?.trim() && "SEO popis",
+        !props.service.pricingShortDescription?.trim() && "Krátký popis do ceníku",
+      ].filter((item): item is string => Boolean(item))
+    : [];
+  const showUnifiedTimeline = props.mode === "edit" && props.service._count.changeLogs > props.service._count.priceChangeLogs;
+  const timelineItems = props.mode === "edit" && showUnifiedTimeline
+    ? [
+        ...props.service.changeLogs.map((log) => ({
+          ...log,
+          type: "change" as const,
+        })),
+        ...props.service.priceChangeLogs.map((log) => ({
+          id: log.id,
+          summary: `${formatServicePrice(log.oldPriceFromCzk)} → ${formatServicePrice(log.newPriceFromCzk)}`,
+          createdAt: log.createdAt,
+          createdAtLabel: log.createdAtLabel,
+          actorUser: log.changedByUser,
+          type: "price" as const,
+        })),
+      ].sort((left, right) => right.createdAt.localeCompare(left.createdAt))
+    : [];
 
   const summaryWarnings =
     props.mode === "edit"
@@ -599,26 +654,61 @@ export function AdminServiceForm(props: EditServiceFormProps | CreateServiceForm
         </div>
       </SectionBlock>
 
-      {props.mode === "edit" ? (
+      {props.mode === "edit" && missingDetailItems.length === 0 ? (
+        <p className="text-sm font-medium text-white">Detail kompletní</p>
+      ) : null}
+
+      {props.mode === "edit" && missingDetailItems.length > 0 ? (
         <SectionBlock
-          title="Historie ceny"
-          description="Poslední auditní změny ceny služby včetně času a aktéra."
+          title="Úplnost detailu"
+          description={`Doporučujeme doplnit ${missingDetailItems.length} položek`}
           collapsible
         >
-          {props.service.priceChangeLogs.length > 0 ? (
+          <ul className="grid gap-2 text-sm leading-6 text-white/72">
+            {missingDetailItems.map((item) => <li key={item}>• {item}</li>)}
+          </ul>
+        </SectionBlock>
+      ) : null}
+
+      {isPublicService ? (
+        <a
+          href={`/sluzby/${encodeURIComponent(props.service.slug)}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex rounded-full border border-white/16 px-3.5 py-2 text-sm font-semibold text-white transition hover:border-[var(--color-accent)]/70 hover:text-[var(--color-accent)]"
+        >
+          Zobrazit na webu
+        </a>
+      ) : null}
+
+      {props.mode === "edit" ? (
+        <SectionBlock
+          title={showUnifiedTimeline ? "Historie změn" : "Historie ceny"}
+          description={showUnifiedTimeline ? "Poslední úpravy služby a ceny včetně času a aktéra." : "Poslední auditní změny ceny služby včetně času a aktéra."}
+          collapsible
+        >
+          {showUnifiedTimeline && timelineItems.length > 0 ? (
             <div className="grid gap-3">
-              {props.service.priceChangeLogs.map((log) => (
+              {timelineItems.map((log) => (
                 <div
-                  key={log.id}
+                  key={`${log.type}-${log.id}`}
                   className="rounded-[1.1rem] border border-white/8 bg-black/20 px-4 py-3 text-sm text-white/72"
                 >
                   <p className="font-medium text-white">
-                    {formatServicePrice(log.oldPriceFromCzk)} -&gt; {formatServicePrice(log.newPriceFromCzk)}
+                    {log.summary}
                   </p>
                   <p className="mt-1 leading-6">
-                    {log.createdAtLabel} •{" "}
-                    {log.changedByUser?.name || log.changedByUser?.email || "Systém / neznámý uživatel"}
+                    {log.createdAtLabel} • {log.actorUser?.name || log.actorUser?.email || "Systém / neznámý uživatel"}
                   </p>
+                </div>
+              ))}
+            </div>
+          ) : props.service.priceChangeLogs.length > 0 ? (
+            <div className="grid gap-3">
+              {props.service.priceChangeLogs.map((log) => (
+                <div key={log.id} className="rounded-[1.1rem] border border-white/8 bg-black/20 px-4 py-3 text-sm text-white/72">
+                  <p className="font-medium text-white">{formatServicePrice(log.oldPriceFromCzk)} -&gt; {formatServicePrice(log.newPriceFromCzk)}</p>
+                  <p className="mt-1 leading-6">{log.createdAtLabel} • {log.changedByUser?.name || log.changedByUser?.email || "Systém / neznámý uživatel"}</p>
                 </div>
               ))}
             </div>

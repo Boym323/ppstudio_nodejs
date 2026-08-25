@@ -118,11 +118,13 @@ export async function AdminServicesPage({
           homepageSortOrder: data.selectedService.homepageSortOrder,
           isActive: data.selectedService.isActive,
           isPubliclyBookable: data.selectedService.isPubliclyBookable,
+          slug: data.selectedService.slug,
           categoryId: data.selectedService.categoryId,
           category: data.selectedService.category,
           _count: data.selectedService._count,
           warnings: data.services.find((service) => service.id === data.selectedService?.id)?.warnings ?? [],
           priceChangeLogs: data.selectedService.priceChangeLogs,
+          changeLogs: data.selectedService.changeLogs,
         }}
         categories={data.categories}
       />
