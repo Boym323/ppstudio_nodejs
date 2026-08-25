@@ -39,9 +39,9 @@ test('getMediaAssetUsage vrátí použití v SiteSettings i MediaCollectionItem'
     return [{
       id: 'site-settings',
       voucherPdfLogoMediaId: 'media-used',
-      contactPhotoMediaId: null,
-      homePortraitMediaId: null,
-      aboutPortraitMediaId: null,
+      contactPhotoMediaId: 'media-used',
+      homePortraitMediaId: 'media-used',
+      aboutPortraitMediaId: 'media-used',
     }];
   };
   mutableCollectionItems.findMany = async (args) => {
@@ -58,6 +58,9 @@ test('getMediaAssetUsage vrátí použití v SiteSettings i MediaCollectionItem'
       isUsed: true,
       references: [
         { source: 'SiteSettings', recordId: 'site-settings', field: 'voucherPdfLogoMediaId' },
+        { source: 'SiteSettings', recordId: 'site-settings', field: 'contactPhotoMediaId' },
+        { source: 'SiteSettings', recordId: 'site-settings', field: 'homePortraitMediaId' },
+        { source: 'SiteSettings', recordId: 'site-settings', field: 'aboutPortraitMediaId' },
         { source: 'MediaCollectionItem', recordId: 'collection-item', field: 'mediaAssetId' },
       ],
     });

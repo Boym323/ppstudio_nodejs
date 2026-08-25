@@ -25,7 +25,7 @@ test("vytváří pomocné údaje PDF voucheru", async () => {
   );
 });
 
-test("generuje PDF dokument pro hodnotový voucher", async () => {
+test("generuje PDF dokument pro hodnotový voucher při voucherPdfLogoMediaId=null", async () => {
   const { generateVoucherPdf } = await import("./voucher-pdf-core");
   const pdfBytes = await generateVoucherPdf(buildVoucherFixture(), {
     settings: buildTestSiteSettings(),
