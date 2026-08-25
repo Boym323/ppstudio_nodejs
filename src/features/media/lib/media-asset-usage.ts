@@ -66,6 +66,24 @@ const mediaAssetUsageSources: MediaAssetUsageSource[] = [
       }));
     },
   },
+  {
+    async findReferences(mediaAssetId) {
+      const items = await prisma.serviceMedia.findMany({
+        where: { mediaAssetId },
+        select: {
+          id: true,
+          role: true,
+          service: { select: { name: true, slug: true } },
+        },
+      });
+
+      return items.map((item) => ({
+        source: 'ServiceMedia',
+        recordId: item.id,
+        field: `${item.role}:${item.service.name}:${item.service.slug}`,
+      }));
+    },
+  },
 ];
 
 export async function getMediaAssetUsage(id: string): Promise<MediaAssetUsage> {

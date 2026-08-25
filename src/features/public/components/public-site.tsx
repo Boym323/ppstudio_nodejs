@@ -5,6 +5,7 @@ import {
   type LegalSection,
   type Service,
 } from '@/content/public-site';
+import Image from 'next/image';
 import { Container } from '@/components/ui/container';
 import { Breadcrumbs, type BreadcrumbItem } from '@/components/ui/breadcrumbs';
 import {
@@ -204,6 +205,7 @@ export function ServiceDetailPage({ service }: { service: Service }) {
         primaryCta={{ href: `/rezervace?service=${encodeURIComponent(service.slug)}`, label: 'Rezervovat službu' }}
         secondaryCta={{ href: '/sluzby', label: 'Zpět na všechny služby' }}
       />
+      {service.heroImage ? <section className="bg-[#f8f2eb] pb-2"><Container><div className="relative aspect-[16/7] overflow-hidden rounded-[var(--radius-panel)] bg-[var(--color-surface)]"><Image src={service.heroImage.src} alt={service.heroImage.alt} fill className="object-cover" sizes="(min-width: 1280px) 1200px, 100vw" priority /></div></Container></section> : null}
       <section className="py-10 sm:py-14 lg:py-16">
         <Container className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
           <div className="rounded-[var(--radius-panel)] border border-black/6 bg-white p-6 shadow-[var(--shadow-panel)] sm:p-8">
@@ -263,6 +265,7 @@ export function ServiceDetailPage({ service }: { service: Service }) {
           </div>
         </Container>
       </section>
+      {service.galleryImages?.length ? <section className="pb-10 sm:pb-14"><Container><h2 className="font-display text-3xl text-[var(--color-foreground)]">Fotogalerie služby</h2><div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{service.galleryImages.map((image) => <div key={image.src} className="relative aspect-[4/3] overflow-hidden rounded-[var(--radius-panel)] bg-[var(--color-surface)]"><Image src={image.src} alt={image.alt} fill className="object-cover" sizes="(min-width: 1024px) 33vw, 50vw" /></div>)}</div></Container></section> : null}
     </div>
   );
 }
