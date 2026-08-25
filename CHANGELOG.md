@@ -13,6 +13,7 @@ Formát je inspirovaný Keep a Changelog.
 ### Opraveno
 
 - Správa médií nyní blokuje smazání assetu používaného v nastavení webu; bezpečná náhrada zachovává jeho identitu a při selhání nepřijde o dosavadní funkční soubor.
+- Veřejná media route nyní přijímá neutrální cesty nových uploadů `images/YYYY/MM/...`, aniž by odvozovala význam média z URL; dosavadní legacy URL zůstávají dostupné.
 
 ### Změněno
 
