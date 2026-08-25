@@ -1,6 +1,6 @@
 'use server';
 
-import { MediaType } from '@/generated/prisma/browser';
+import { MediaCollectionType, MediaType } from '@/generated/prisma/browser';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
@@ -12,7 +12,8 @@ import {
   updateMediaSchema,
   uploadMediaSchema,
 } from '@/features/admin/lib/admin-media-validation';
-import { createMedia, deleteMedia, updateMedia } from '@/features/media/lib/media-library';
+import { prisma } from '@/lib/prisma';
+import { createMedia, deleteMedia, replaceMediaAsset, updateMedia } from '@/features/media/lib/media-library';
 
 function flashUrl(area: 'owner' | 'salon', flash: string, redirectFilter?: 'ALL' | MediaType) {
   const basePath = getMediaAdminPath(area);
@@ -54,7 +55,7 @@ function mapUploadErrorToFlash(error: unknown) {
 export async function uploadMediaAction(formData: FormData) {
   const parsed = uploadMediaSchema.safeParse({
     area: formData.get('area'),
-    type: formData.get('type') ?? MediaType.CERTIFICATE,
+    type: MediaType.GENERAL,
     title: formData.get('title'),
     altText: formData.get('altText'),
     sortOrder: formData.get('sortOrder'),
@@ -88,6 +89,59 @@ export async function uploadMediaAction(formData: FormData) {
 
   revalidateMediaPaths(parsed.data.area);
   redirect(flashUrl(parsed.data.area, 'media-upload-success', parsed.data.redirectFilter));
+}
+
+export async function replaceMediaAction(formData: FormData) {
+  const area = formData.get('area');
+  const assetId = formData.get('assetId');
+  if ((area !== 'owner' && area !== 'salon') || typeof assetId !== 'string') redirect('/admin/media?flash=media-replace-invalid-payload');
+  await requireAdminSectionAccess(area, 'media');
+  const file = formData.get('file');
+  if (!(file instanceof File) || file.size <= 0) redirect(flashUrl(area, 'media-upload-missing-file'));
+  try {
+    const current = await prisma.mediaAsset.findUnique({ where: { id: assetId } });
+    if (!current || current.deletionRequestedAt) redirect(flashUrl(area, 'media-replace-invalid-payload'));
+    await replaceMediaAsset(assetId, {
+      file,
+      type: current.type,
+      isPublished: current.isPublished,
+      title: current.title,
+      altText: current.altText,
+      sortOrder: current.sortOrder,
+    });
+  } catch (error) {
+    redirect(flashUrl(area, mapUploadErrorToFlash(error)));
+  }
+  revalidateMediaPaths(area);
+  redirect(flashUrl(area, 'media-replace-success'));
+}
+
+export async function updateMediaCollectionMembershipAction(formData: FormData) {
+  const area = formData.get('area');
+  const assetId = formData.get('assetId');
+  const collectionType = formData.get('collectionType');
+  const action = formData.get('action');
+  if ((area !== 'owner' && area !== 'salon') || typeof assetId !== 'string' || !Object.values(MediaCollectionType).includes(collectionType as MediaCollectionType)) {
+    redirect('/admin/media?flash=media-membership-invalid-payload');
+  }
+  await requireAdminSectionAccess(area, 'media');
+  const collection = await prisma.mediaCollection.upsert({
+    where: { type: collectionType as MediaCollectionType }, create: { type: collectionType as MediaCollectionType }, update: {},
+  });
+  if (action === 'remove') {
+    await prisma.mediaCollectionItem.deleteMany({ where: { collectionId: collection.id, mediaAssetId: assetId } });
+  } else {
+    const sortOrder = Number(formData.get('sortOrder'));
+    const isVisible = formData.get('isVisible') !== 'false';
+    const last = await prisma.mediaCollectionItem.aggregate({ where: { collectionId: collection.id }, _max: { sortOrder: true } });
+    await prisma.mediaCollectionItem.upsert({
+      where: { collectionId_mediaAssetId: { collectionId: collection.id, mediaAssetId: assetId } },
+      create: { collectionId: collection.id, mediaAssetId: assetId, isVisible, sortOrder: Number.isInteger(sortOrder) && sortOrder >= 0 ? sortOrder : (last._max.sortOrder ?? -1) + 1 },
+      update: { isVisible, ...(Number.isInteger(sortOrder) && sortOrder >= 0 ? { sortOrder } : {}) },
+    });
+  }
+  revalidateMediaPaths(area);
+  redirect(flashUrl(area, 'media-membership-success'));
 }
 
 export async function updateMediaAction(formData: FormData) {
@@ -132,7 +186,14 @@ export async function deleteMediaAction(formData: FormData) {
   }
 
   await requireAdminSectionAccess(parsed.data.area, 'media');
-  await deleteMedia(parsed.data.assetId);
+  try {
+    await deleteMedia(parsed.data.assetId);
+  } catch (error) {
+    if (error instanceof Error && error.message === 'MEDIA_ASSET_IN_USE') {
+      redirect(flashUrl(parsed.data.area, 'media-delete-in-use', parsed.data.redirectFilter));
+    }
+    throw error;
+  }
 
   revalidateMediaPaths(parsed.data.area);
   redirect(flashUrl(parsed.data.area, 'media-delete-success', parsed.data.redirectFilter));
