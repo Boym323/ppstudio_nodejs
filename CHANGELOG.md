@@ -6,6 +6,10 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+### Opraveno
+
+- Správa médií nyní blokuje smazání assetu používaného v nastavení webu; bezpečná náhrada zachovává jeho identitu a při selhání nepřijde o dosavadní funkční soubor.
+
 ### Změněno
 
 - Detail služby v administraci nyní nabízí bezpečný odkaz na veřejnou stránku, kontrolu chybějících částí obsahu a při převaze obecných úprav jednotnou historii změn včetně cenového auditu.

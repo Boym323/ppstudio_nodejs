@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 
 import type { MediaAssetVisibility, MediaType } from '@/generated/prisma/browser';
 
@@ -7,6 +7,7 @@ import {
   buildMediaStoragePath,
   getMediaStorageRoot,
   getMediaTempRoot,
+  getMediaVisibilityRoot,
   mediaVisibilities,
   mediaRootDirectoryMap,
 } from '@/lib/media/media-config';
@@ -37,6 +38,7 @@ export interface MediaStorageAdapter {
   readFile(visibility: MediaAssetVisibility, storagePath: string): Promise<Buffer>;
   ensureBaseDirectories(): Promise<void>;
   fileExists(visibility: MediaAssetVisibility, storagePath: string): Promise<boolean>;
+  listFiles(): Promise<Array<{ visibility: MediaAssetVisibility; storagePath: string }>>;
 }
 
 class LocalMediaStorageAdapter implements MediaStorageAdapter {
@@ -140,6 +142,29 @@ class LocalMediaStorageAdapter implements MediaStorageAdapter {
     } catch {
       return false;
     }
+  }
+
+  async listFiles() {
+    const files: Array<{ visibility: MediaAssetVisibility; storagePath: string }> = [];
+
+    async function visit(visibility: MediaAssetVisibility, directory: string, relativeDirectory = ''): Promise<void> {
+      let entries;
+      try {
+        entries = await readdir(directory, { withFileTypes: true });
+      } catch (error: unknown) {
+        if ((error as NodeJS.ErrnoException).code === 'ENOENT') return;
+        throw error;
+      }
+      await Promise.all(entries.map(async (entry) => {
+        const entryRelativePath = relativeDirectory ? `${relativeDirectory}/${entry.name}` : entry.name;
+        const entryPath = path.join(directory, entry.name);
+        if (entry.isDirectory()) return visit(visibility, entryPath, entryRelativePath);
+        if (entry.isFile()) files.push({ visibility, storagePath: entryRelativePath });
+      }));
+    }
+
+    await Promise.all(mediaVisibilities.map((visibility) => visit(visibility, getMediaVisibilityRoot(visibility))));
+    return files;
   }
 }
 

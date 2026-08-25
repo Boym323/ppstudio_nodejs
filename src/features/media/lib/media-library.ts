@@ -18,6 +18,7 @@ import {
   markMediaAssetForDeletion,
   updateMediaAsset,
 } from './media-asset-repository';
+import { getMediaAssetUsage } from './media-asset-usage';
 
 export function normalizeMediaText(value: string | null | undefined) {
   const normalized = value?.trim();
@@ -57,113 +58,76 @@ function withPublicUrl<
   };
 }
 
-export async function createMedia(input: MediaUploadInput) {
-  const isPublished = input.isPublished ?? true;
+type PreparedMediaUpload = {
+  visibility: MediaAssetVisibility;
+  preparedFile: Awaited<ReturnType<typeof localMediaStorage.prepareFile>>;
+  preparedVariants: Awaited<ReturnType<typeof localMediaStorage.prepareVariantFile>>[];
+  normalizedOriginal: Awaited<ReturnType<typeof normalizeOriginalMediaImage>>;
+  validatedFile: Awaited<ReturnType<typeof validateMediaFile>>;
+};
+
+async function prepareAndWriteMediaUpload(input: MediaUploadInput): Promise<PreparedMediaUpload> {
   const visibility = MediaAssetVisibility.PUBLIC;
   const validatedFile = await validateMediaFile(input.file);
   const normalizedOriginal = await normalizeOriginalMediaImage(validatedFile);
-
   await localMediaStorage.ensureBaseDirectories();
 
   const preparedFile = localMediaStorage.prepareFile({
-    file: {
-      ...validatedFile,
-      buffer: normalizedOriginal.buffer,
-      mimeType: normalizedOriginal.mimeType,
-      extension: normalizedOriginal.extension,
-      sizeBytes: normalizedOriginal.sizeBytes,
-    },
+    file: { ...validatedFile, buffer: normalizedOriginal.buffer, mimeType: normalizedOriginal.mimeType, extension: normalizedOriginal.extension, sizeBytes: normalizedOriginal.sizeBytes },
     type: input.type,
     visibility,
   });
-  const url = buildMediaPublicUrl(preparedFile.storagePath);
-  const variantPayloads = await createMediaVariants(normalizedOriginal);
-  const preparedVariants = variantPayloads.map((variant) =>
-    localMediaStorage.prepareVariantFile({
-      variant: variant.variant,
-      source: preparedFile,
-      buffer: variant.buffer,
-      mimeType: variant.mimeType,
-      extension: variant.extension,
-      sizeBytes: variant.sizeBytes,
-      width: variant.width,
-      height: variant.height,
-    }),
-  );
-
-  await localMediaStorage.writeFile({
-    ...preparedFile,
-    visibility,
-  });
-  await Promise.all(
-    preparedVariants.map((variant) =>
-      localMediaStorage.writeVariantFile({
-        ...variant,
-        visibility,
-      }),
-    ),
-  );
-
-  const optimizedVariant = preparedVariants.find((variant) => variant.variant === 'optimized') ?? null;
-  const thumbnailVariant = preparedVariants.find((variant) => variant.variant === 'thumbnail') ?? null;
+  const preparedVariants = (await createMediaVariants(normalizedOriginal)).map((variant) => localMediaStorage.prepareVariantFile({
+    variant: variant.variant, source: preparedFile, buffer: variant.buffer, mimeType: variant.mimeType,
+    extension: variant.extension, sizeBytes: variant.sizeBytes, width: variant.width, height: variant.height,
+  }));
 
   try {
-    const asset = await createMediaAsset({
-      type: input.type,
-      kind: legacyKindForType(input.type),
-      visibility,
-      storageProvider: 'LOCAL',
-      originalFilename: validatedFile.originalFilename,
-      fileName: preparedFile.storedFilename,
-      storedFilename: preparedFile.storedFilename,
-      mimeType: preparedFile.mimeType,
-      extension: preparedFile.extension,
-      sizeBytes: preparedFile.sizeBytes,
-      size: preparedFile.sizeBytes,
-      width: normalizedOriginal.width,
-      height: normalizedOriginal.height,
-      alt: normalizeMediaText(input.altText),
-      altText: normalizeMediaText(input.altText),
-      title: normalizeMediaText(input.title),
-      sortOrder: input.sortOrder ?? null,
-      storagePath: preparedFile.storagePath,
-      url,
-      optimizedStoragePath: optimizedVariant?.storagePath ?? null,
-      optimizedUrl: optimizedVariant ? buildMediaPublicUrl(optimizedVariant.storagePath) : null,
-      optimizedMimeType: optimizedVariant?.mimeType ?? null,
-      optimizedWidth: optimizedVariant?.width ?? null,
-      optimizedHeight: optimizedVariant?.height ?? null,
-      optimizedSize: optimizedVariant?.sizeBytes ?? null,
-      thumbnailStoragePath: thumbnailVariant?.storagePath ?? null,
-      thumbnailUrl: thumbnailVariant ? buildMediaPublicUrl(thumbnailVariant.storagePath) : null,
-      thumbnailMimeType: thumbnailVariant?.mimeType ?? null,
-      thumbnailWidth: thumbnailVariant?.width ?? null,
-      thumbnailHeight: thumbnailVariant?.height ?? null,
-      thumbnailSize: thumbnailVariant?.sizeBytes ?? null,
-      isPublished,
-    });
+    await localMediaStorage.writeFile({ ...preparedFile, visibility });
+    await Promise.all(preparedVariants.map((variant) => localMediaStorage.writeVariantFile({ ...variant, visibility })));
+    return { visibility, preparedFile, preparedVariants, normalizedOriginal, validatedFile };
+  } catch (error) {
+    await removePreparedMediaFiles({ visibility, preparedFile, preparedVariants });
+    throw error;
+  }
+}
+
+async function removePreparedMediaFiles(prepared: Pick<PreparedMediaUpload, 'visibility' | 'preparedFile' | 'preparedVariants'>) {
+  await Promise.all([
+    localMediaStorage.deleteFile({ ...prepared.preparedFile, visibility: prepared.visibility }),
+    ...prepared.preparedVariants.map((variant) => localMediaStorage.deleteFile({ ...variant, visibility: prepared.visibility })),
+  ]);
+}
+
+function mediaAssetData(input: MediaUploadInput, prepared: PreparedMediaUpload) {
+  const optimizedVariant = prepared.preparedVariants.find((variant) => variant.variant === 'optimized') ?? null;
+  const thumbnailVariant = prepared.preparedVariants.find((variant) => variant.variant === 'thumbnail') ?? null;
+  const { preparedFile, normalizedOriginal, validatedFile, visibility } = prepared;
+
+  return {
+    type: input.type, kind: legacyKindForType(input.type), visibility, storageProvider: 'LOCAL' as const,
+    originalFilename: validatedFile.originalFilename, fileName: preparedFile.storedFilename, storedFilename: preparedFile.storedFilename,
+    mimeType: preparedFile.mimeType, extension: preparedFile.extension, sizeBytes: preparedFile.sizeBytes, size: preparedFile.sizeBytes,
+    width: normalizedOriginal.width, height: normalizedOriginal.height, alt: normalizeMediaText(input.altText), altText: normalizeMediaText(input.altText),
+    title: normalizeMediaText(input.title), sortOrder: input.sortOrder ?? null, storagePath: preparedFile.storagePath,
+    url: buildMediaPublicUrl(preparedFile.storagePath), optimizedStoragePath: optimizedVariant?.storagePath ?? null,
+    optimizedUrl: optimizedVariant ? buildMediaPublicUrl(optimizedVariant.storagePath) : null, optimizedMimeType: optimizedVariant?.mimeType ?? null,
+    optimizedWidth: optimizedVariant?.width ?? null, optimizedHeight: optimizedVariant?.height ?? null, optimizedSize: optimizedVariant?.sizeBytes ?? null,
+    thumbnailStoragePath: thumbnailVariant?.storagePath ?? null, thumbnailUrl: thumbnailVariant ? buildMediaPublicUrl(thumbnailVariant.storagePath) : null,
+    thumbnailMimeType: thumbnailVariant?.mimeType ?? null, thumbnailWidth: thumbnailVariant?.width ?? null,
+    thumbnailHeight: thumbnailVariant?.height ?? null, thumbnailSize: thumbnailVariant?.sizeBytes ?? null, isPublished: input.isPublished ?? true,
+  };
+}
+
+export async function createMedia(input: MediaUploadInput) {
+  const prepared = await prepareAndWriteMediaUpload(input);
+
+  try {
+    const asset = await createMediaAsset(mediaAssetData(input, prepared));
 
     return withPublicUrl(asset);
   } catch (error) {
-    await Promise.all([
-      localMediaStorage.deleteFile({
-        visibility,
-        storagePath: preparedFile.storagePath,
-        storedFilename: preparedFile.storedFilename,
-        mimeType: preparedFile.mimeType,
-        sizeBytes: preparedFile.sizeBytes,
-      }),
-      ...preparedVariants.map((variant) =>
-        localMediaStorage.deleteFile({
-          visibility,
-          storagePath: variant.storagePath,
-          storedFilename: variant.storedFilename,
-          mimeType: variant.mimeType,
-          sizeBytes: variant.sizeBytes,
-        }),
-      ),
-    ]);
-
+    await removePreparedMediaFiles(prepared);
     throw error;
   }
 }
@@ -214,6 +178,11 @@ export async function deleteMedia(id: string) {
     throw new Error('MEDIA_ASSET_NOT_FOUND');
   }
 
+  const usage = await getMediaAssetUsage(asset.id);
+  if (usage.isUsed) {
+    throw new Error('MEDIA_ASSET_IN_USE');
+  }
+
   await markMediaAssetForDeletion(asset.id);
 
   await localMediaStorage.deleteFile({
@@ -254,16 +223,53 @@ export async function removeMediaAsset(id: string) {
 }
 
 export async function replaceMediaAsset(id: string, input: MediaUploadInput) {
-  const nextAsset = await createMedia(input);
+  const currentAsset = await getMediaAssetById(id);
+  if (!currentAsset) {
+    throw new Error('MEDIA_ASSET_NOT_FOUND');
+  }
 
+  // Nové soubory se nejprve kompletně připraví mimo aktuální záznam. Selhání
+  // uploadu nebo DB update proto nemůže odebrat dosavadní funkční asset.
+  const prepared = await prepareAndWriteMediaUpload(input);
+
+  let asset;
   try {
-    await deleteMedia(id);
+    asset = await updateMediaAsset(id, mediaAssetData(input, prepared));
   } catch (error) {
-    await deleteMedia(nextAsset.id);
+    await removePreparedMediaFiles(prepared);
     throw error;
   }
 
-  return nextAsset;
+  // Po úspěšném přepnutí DB je nový asset funkční. Neúspěšný úklid starých
+  // souborů proto ponechává pouze orphan kandidáta pro read-only audit.
+  try {
+    await removeStoredAssetFiles(currentAsset);
+  } catch {
+    // Záměrně bez rollbacku: rollback by mohl znefunkčnit právě nahrazený asset.
+  }
+
+  return withPublicUrl(asset);
+}
+
+async function removeStoredAssetFiles(asset: NonNullable<Awaited<ReturnType<typeof getMediaAssetById>>>) {
+  await localMediaStorage.deleteFile({
+    visibility: asset.visibility, storagePath: asset.storagePath, storedFilename: asset.storedFilename,
+    mimeType: asset.mimeType, sizeBytes: asset.sizeBytes,
+  });
+  if (asset.optimizedStoragePath && asset.optimizedMimeType && asset.optimizedSize) {
+    await localMediaStorage.deleteFile({
+      visibility: asset.visibility, storagePath: asset.optimizedStoragePath,
+      storedFilename: asset.optimizedStoragePath.split('/').pop() ?? asset.storedFilename,
+      mimeType: asset.optimizedMimeType, sizeBytes: asset.optimizedSize,
+    });
+  }
+  if (asset.thumbnailStoragePath && asset.thumbnailMimeType && asset.thumbnailSize) {
+    await localMediaStorage.deleteFile({
+      visibility: asset.visibility, storagePath: asset.thumbnailStoragePath,
+      storedFilename: asset.thumbnailStoragePath.split('/').pop() ?? asset.storedFilename,
+      mimeType: asset.thumbnailMimeType, sizeBytes: asset.thumbnailSize,
+    });
+  }
 }
 
 export async function getMediaLibraryByType(type: MediaType) {
