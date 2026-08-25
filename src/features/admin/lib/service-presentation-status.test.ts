@@ -14,12 +14,27 @@ test("prezentační stav pokrývá všechny kombinace provozních příznaků", 
   assert.equal(getServicePresentationStatus({ isActive: false, isPubliclyBookable: false }), "inactive");
 });
 
-test("kritické přechody zachovají online režim při deaktivaci a nastaví jej při aktivaci", () => {
-  const wasPublic = { isActive: false, isPubliclyBookable: true };
+test("všechny přechody mezi třemi prezentačními stavy uloží očekávané příznaky", () => {
+  const transitions = [
+    { from: "public", current: { isActive: true, isPubliclyBookable: true }, to: "public", expected: { isActive: true, isPubliclyBookable: true } },
+    { from: "public", current: { isActive: true, isPubliclyBookable: true }, to: "internal", expected: { isActive: true, isPubliclyBookable: false } },
+    { from: "public", current: { isActive: true, isPubliclyBookable: true }, to: "inactive", expected: { isActive: false, isPubliclyBookable: true } },
+    { from: "internal", current: { isActive: true, isPubliclyBookable: false }, to: "public", expected: { isActive: true, isPubliclyBookable: true } },
+    { from: "internal", current: { isActive: true, isPubliclyBookable: false }, to: "internal", expected: { isActive: true, isPubliclyBookable: false } },
+    { from: "internal", current: { isActive: true, isPubliclyBookable: false }, to: "inactive", expected: { isActive: false, isPubliclyBookable: false } },
+    { from: "inactive", current: { isActive: false, isPubliclyBookable: true }, to: "public", expected: { isActive: true, isPubliclyBookable: true } },
+    { from: "inactive", current: { isActive: false, isPubliclyBookable: true }, to: "internal", expected: { isActive: true, isPubliclyBookable: false } },
+    { from: "inactive", current: { isActive: false, isPubliclyBookable: true }, to: "inactive", expected: { isActive: false, isPubliclyBookable: true } },
+  ] as const;
 
-  assert.equal(getServicePresentationStatus(wasPublic), "inactive");
-  assert.deepEqual(applyServicePresentationStatus(wasPublic, "inactive"), wasPublic);
-  assert.deepEqual(applyServicePresentationStatus(wasPublic, "internal"), { isActive: true, isPubliclyBookable: false });
-  assert.deepEqual(applyServicePresentationStatus({ isActive: true, isPubliclyBookable: false }, "public"), { isActive: true, isPubliclyBookable: true });
+  for (const transition of transitions) {
+    assert.equal(getServicePresentationStatus(transition.current), transition.from);
+    assert.deepEqual(
+      applyServicePresentationStatus(transition.current, transition.to),
+      transition.expected,
+      `${transition.from} → ${transition.to}`,
+    );
+  }
+
   assert.equal(servicePresentationStatusLabels.internal, "Interní");
 });
