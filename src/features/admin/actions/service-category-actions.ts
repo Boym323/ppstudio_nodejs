@@ -15,6 +15,7 @@ import {
   updateServiceCategorySchema,
 } from "@/features/admin/lib/admin-service-category-validation";
 import { prisma } from "@/lib/prisma";
+import { getSafeAdminRedirectPath } from "@/features/admin/lib/admin-redirect";
 
 function readFormString(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -30,14 +31,6 @@ function readCheckbox(formData: FormData, key: string) {
 
 function getCategoryBasePath(area: AdminArea) {
   return area === "owner" ? "/admin/kategorie-sluzeb" : "/admin/provoz/kategorie-sluzeb";
-}
-
-function safeReturnPath(value: string | undefined, fallback: string) {
-  if (!value || !value.startsWith("/")) {
-    return fallback;
-  }
-
-  return value;
 }
 
 function revalidateServiceCategoryPaths(area: AdminArea) {
@@ -180,7 +173,7 @@ export async function createServiceCategoryAction(
   revalidateServiceCategoryPaths(area);
 
   const basePath = getCategoryBasePath(area);
-  const returnTo = safeReturnPath(parsed.data.returnTo, basePath);
+  const returnTo = getSafeAdminRedirectPath(parsed.data.returnTo, basePath);
   const separator = returnTo.includes("?") ? "&" : "?";
 
   redirect(`${returnTo}${separator}categoryId=${category.id}`);
@@ -227,7 +220,7 @@ export async function updateServiceCategoryAction(
 
   const area = parsed.data.area as AdminArea;
   const basePath = getCategoryBasePath(area);
-  const returnTo = safeReturnPath(parsed.data.returnTo, basePath);
+  const returnTo = getSafeAdminRedirectPath(parsed.data.returnTo, basePath);
   await requireAdminSectionAccess(area, "kategorie-sluzeb");
 
   const category = await prisma.serviceCategory.findUnique({
@@ -332,7 +325,7 @@ export async function reorderServiceCategoryInlineAction(input: {
 export async function toggleServiceCategoryActiveAction(formData: FormData): Promise<void> {
   const area = readFormString(formData, "area") as AdminArea;
   const categoryId = readFormString(formData, "categoryId");
-  const returnTo = safeReturnPath(readFormString(formData, "returnTo"), getCategoryBasePath(area));
+  const returnTo = getSafeAdminRedirectPath(readFormString(formData, "returnTo"), getCategoryBasePath(area));
   await requireAdminSectionAccess(area, "kategorie-sluzeb");
 
   const category = await prisma.serviceCategory.findUnique({
@@ -357,7 +350,7 @@ export async function moveServiceCategoryAction(formData: FormData): Promise<voi
   const area = readFormString(formData, "area") as AdminArea;
   const categoryId = readFormString(formData, "categoryId");
   const direction = readFormString(formData, "direction") === "down" ? "down" : "up";
-  const returnTo = safeReturnPath(readFormString(formData, "returnTo"), getCategoryBasePath(area));
+  const returnTo = getSafeAdminRedirectPath(readFormString(formData, "returnTo"), getCategoryBasePath(area));
   await requireAdminSectionAccess(area, "kategorie-sluzeb");
 
   await reorderCategories(categoryId, direction);
@@ -394,11 +387,11 @@ export async function deleteServiceCategoryAction(formData: FormData): Promise<v
   });
 
   if (!category) {
-    redirect(parsed.data.currentPath);
+    redirect(getSafeAdminRedirectPath(parsed.data.currentPath, getCategoryBasePath(area)));
   }
 
   if (category._count.services > 0) {
-    redirect(parsed.data.currentPath);
+    redirect(getSafeAdminRedirectPath(parsed.data.currentPath, getCategoryBasePath(area)));
   }
 
   await prisma.serviceCategory.delete({
@@ -406,5 +399,5 @@ export async function deleteServiceCategoryAction(formData: FormData): Promise<v
   });
 
   revalidateServiceCategoryPaths(area);
-  redirect(parsed.data.currentPath);
+  redirect(getSafeAdminRedirectPath(parsed.data.currentPath, getCategoryBasePath(area)));
 }

@@ -13,6 +13,10 @@ const tokenRouteHeaders = [
     key: "Referrer-Policy",
     value: "no-referrer",
   },
+  {
+    key: "X-Robots-Tag",
+    value: "noindex, nofollow",
+  },
 ];
 
 const nextConfig: NextConfig = {
@@ -65,6 +69,10 @@ const nextConfig: NextConfig = {
       },
       {
         source: "/rezervace/akce/:path*",
+        headers: tokenRouteHeaders,
+      },
+      {
+        source: "/admin/pozvanka/:path*",
         headers: tokenRouteHeaders,
       },
       {

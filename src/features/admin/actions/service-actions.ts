@@ -15,6 +15,7 @@ import { prisma } from "@/lib/prisma";
 import { runSerializableTransaction } from "@/lib/serializable-transaction";
 import { buildServiceOperationalAuditChange } from "@/features/admin/lib/service-audit-change";
 import { setServiceOperationalFlag } from "@/features/admin/lib/service-change-operations";
+import { getSafeAdminRedirectPath } from "@/features/admin/lib/admin-redirect";
 
 function readFormString(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -26,14 +27,6 @@ function readCheckbox(formData: FormData, key: string) {
   const value = formData.get(key);
 
   return value === "on" || value === "true";
-}
-
-function safeReturnPath(value: string | undefined, fallback: string) {
-  if (!value || !value.startsWith("/")) {
-    return fallback;
-  }
-
-  return value;
 }
 
 function getServiceBasePath(area: AdminArea) {
@@ -271,7 +264,7 @@ export async function createServiceAction(
   revalidateServicePaths(area);
 
   const basePath = getServiceBasePath(area);
-  const returnTo = safeReturnPath(parsed.data.returnTo, basePath);
+  const returnTo = getSafeAdminRedirectPath(parsed.data.returnTo, basePath);
   const separator = returnTo.includes("?") ? "&" : "?";
 
   redirect(`${returnTo}${separator}serviceId=${service.id}`);
@@ -340,7 +333,7 @@ export async function updateServiceAction(
 
   const area = parsed.data.area as AdminArea;
   const basePath = getServiceBasePath(area);
-  const returnTo = safeReturnPath(parsed.data.returnTo, basePath);
+  const returnTo = getSafeAdminRedirectPath(parsed.data.returnTo, basePath);
   const session = await requireAdminSectionAccess(area, "sluzby");
   const actorUserId = session.sub;
   const nextPriceFromCzk = parsed.data.priceFromCzk === "" ? null : parsed.data.priceFromCzk;
@@ -463,7 +456,7 @@ export async function updateServiceAction(
 export async function toggleServiceActiveAction(formData: FormData): Promise<void> {
   const area = readFormString(formData, "area") as AdminArea;
   const serviceId = readFormString(formData, "serviceId");
-  const returnTo = safeReturnPath(readFormString(formData, "returnTo"), getServiceBasePath(area));
+  const returnTo = getSafeAdminRedirectPath(readFormString(formData, "returnTo"), getServiceBasePath(area));
   const session = await requireAdminSectionAccess(area, "sluzby");
 
   const updated = await setServiceOperationalFlag({
@@ -484,7 +477,7 @@ export async function toggleServiceActiveAction(formData: FormData): Promise<voi
 export async function toggleServiceBookableAction(formData: FormData): Promise<void> {
   const area = readFormString(formData, "area") as AdminArea;
   const serviceId = readFormString(formData, "serviceId");
-  const returnTo = safeReturnPath(readFormString(formData, "returnTo"), getServiceBasePath(area));
+  const returnTo = getSafeAdminRedirectPath(readFormString(formData, "returnTo"), getServiceBasePath(area));
   const session = await requireAdminSectionAccess(area, "sluzby");
 
   const updated = await setServiceOperationalFlag({
@@ -506,7 +499,7 @@ export async function duplicateServiceAction(formData: FormData): Promise<void> 
   const area = readFormString(formData, "area") as AdminArea;
   const serviceId = readFormString(formData, "serviceId");
   const basePath = getServiceBasePath(area);
-  const returnTo = safeReturnPath(readFormString(formData, "returnTo"), basePath);
+  const returnTo = getSafeAdminRedirectPath(readFormString(formData, "returnTo"), basePath);
   await requireAdminSectionAccess(area, "sluzby");
 
   const source = await prisma.service.findUnique({
@@ -617,7 +610,7 @@ export async function moveServiceAction(formData: FormData): Promise<void> {
   const serviceId = readFormString(formData, "serviceId");
   const categoryId = readFormString(formData, "categoryId");
   const direction = readFormString(formData, "direction") === "down" ? "down" : "up";
-  const returnTo = safeReturnPath(readFormString(formData, "returnTo"), getServiceBasePath(area));
+  const returnTo = getSafeAdminRedirectPath(readFormString(formData, "returnTo"), getServiceBasePath(area));
   await requireAdminSectionAccess(area, "sluzby");
 
   await reorderServicesWithinCategory(categoryId, serviceId, direction);

@@ -47,6 +47,7 @@ test("Next konfigurace používá bezpečnostní hlavičky pro globální a toke
   const headers = await nextConfig.headers();
   const globalHeaders = headers.find((entry) => entry.source === "/:path*")?.headers ?? [];
   const tokenHeaders = headers.find((entry) => entry.source === "/rezervace/akce/:path*")?.headers ?? [];
+  const inviteHeaders = headers.find((entry) => entry.source === "/admin/pozvanka/:path*")?.headers ?? [];
 
   assert.deepEqual(
     globalHeaders,
@@ -54,4 +55,7 @@ test("Next konfigurace používá bezpečnostní hlavičky pro globální a toke
   );
   assert.ok(tokenHeaders.some((header) => header.key === "Cache-Control" && header.value === "no-store"));
   assert.ok(tokenHeaders.some((header) => header.key === "Referrer-Policy" && header.value === "no-referrer"));
+  assert.ok(inviteHeaders.some((header) => header.key === "Cache-Control" && header.value === "no-store"));
+  assert.ok(inviteHeaders.some((header) => header.key === "Referrer-Policy" && header.value === "no-referrer"));
+  assert.ok(inviteHeaders.some((header) => header.key === "X-Robots-Tag" && header.value === "noindex, nofollow"));
 });
