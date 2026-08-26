@@ -46,3 +46,25 @@ test('potvrzení zrušení publikace zachová action i returnTo a zrušení nic 
   assert.match(publishAction, /<AlertDialog\.Cancel asChild><button type="button"[^>]*>Ponechat publikované/);
   assert.match(publishAction, /<PendingSubmitButton[^>]*>Zrušit publikaci<\/PendingSubmitButton>/);
 });
+
+test('náhrada nepoužitého média odešle formulář přímo, používané vyžaduje potvrzení se skutečným souborem', async () => {
+  const source = await readFile(detailDialogPath, 'utf8');
+  const replaceAction = source.slice(source.indexOf('function ReplaceMediaAction'), source.indexOf('function PublishAction'));
+
+  assert.match(replaceAction, /if \(!usage\.isUsed \|\| allowSubmitRef\.current\) return/);
+  assert.match(replaceAction, /event\.preventDefault\(\)/);
+  assert.match(replaceAction, /Nahradit používané médium\?/);
+  assert.match(replaceAction, /Nový obrázek nahradí současný na všech místech použití/);
+  assert.match(replaceAction, /usage\.references\.length/);
+  assert.match(replaceAction, /visibleReferences = usage\.references\.slice\(0, 3\)/);
+  assert.match(replaceAction, /a další \{remainingReferences\} použití/);
+  assert.match(replaceAction, /<AlertDialog\.Cancel asChild><button type="button"[^>]*>Zrušit/);
+  assert.match(replaceAction, /'Nahradit všude'/);
+  assert.match(replaceAction, /setIsReplacing\(true\)/);
+  assert.match(replaceAction, /formRef\.current\?\.requestSubmit\(\)/);
+  assert.match(replaceAction, /action=\{replaceMediaAction\}/);
+  assert.match(replaceAction, /name="file"/);
+  assert.match(replaceAction, /name="assetId" value=\{assetId\}/);
+  assert.match(replaceAction, /name="area" value=\{area\}/);
+  assert.match(replaceAction, /name="returnTo" value=\{returnTo\}/);
+});

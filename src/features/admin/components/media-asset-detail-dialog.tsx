@@ -1,6 +1,7 @@
 'use client';
 
 import Image from 'next/image';
+import { type FormEvent, useRef, useState } from 'react';
 
 import * as AlertDialog from '@/components/ui/alert-dialog';
 import * as Dialog from '@/components/ui/dialog';
@@ -127,7 +128,7 @@ export function MediaAssetDetailDialog({ area, asset, usage, memberships, return
               <section className="space-y-3 rounded-[1rem] border border-white/8 bg-black/10 p-4">
                 <p className="text-xs font-semibold uppercase tracking-[.14em] text-white/48">Nahradit soubor</p>
                 <p className="text-xs leading-5 text-white/55">Náhrada zachová všechna použití tohoto média.</p>
-                <form action={replaceMediaAction} className="flex flex-wrap items-center gap-2"><input type="hidden" name="area" value={area}/><input type="hidden" name="assetId" value={asset.id}/><input type="hidden" name="returnTo" value={returnTo}/><input type="file" name="file" accept="image/jpeg,image/png,image/webp" className="max-w-full text-xs text-white/72"/><PendingSubmitButton pendingLabel="Nahrazuji…" className="min-h-10 rounded-full border border-white/12 px-3.5 py-2 text-xs">Nahradit</PendingSubmitButton></form>
+                <ReplaceMediaAction area={area} assetId={asset.id} usage={usage} returnTo={returnTo}/>
               </section>
 
               <section className="border-t border-red-300/15 pt-4" aria-label="Destruktivní akce">
@@ -140,6 +141,28 @@ export function MediaAssetDetailDialog({ area, asset, usage, memberships, return
       </Dialog.Portal>
     </Dialog.Root>
   );
+}
+
+function ReplaceMediaAction({ area, assetId, usage, returnTo }: { area: AdminArea; assetId: string; usage: Usage; returnTo: string }) {
+  const formRef = useRef<HTMLFormElement>(null);
+  const allowSubmitRef = useRef(false);
+  const [confirmationOpen, setConfirmationOpen] = useState(false);
+  const [isReplacing, setIsReplacing] = useState(false);
+  const visibleReferences = usage.references.slice(0, 3);
+  const remainingReferences = usage.references.length - visibleReferences.length;
+
+  const requestConfirmation = (event: FormEvent<HTMLFormElement>) => {
+    if (!usage.isUsed || allowSubmitRef.current) return;
+    event.preventDefault();
+    setConfirmationOpen(true);
+  };
+  const replaceEverywhere = () => {
+    setIsReplacing(true);
+    allowSubmitRef.current = true;
+    formRef.current?.requestSubmit();
+  };
+
+  return <><form ref={formRef} action={replaceMediaAction} onSubmit={requestConfirmation} className="flex flex-wrap items-center gap-2"><input type="hidden" name="area" value={area}/><input type="hidden" name="assetId" value={assetId}/><input type="hidden" name="returnTo" value={returnTo}/><input type="file" name="file" accept="image/jpeg,image/png,image/webp" className="max-w-full text-xs text-white/72"/><PendingSubmitButton pendingLabel="Nahrazuji…" className="min-h-10 rounded-full border border-white/12 px-3.5 py-2 text-xs">Nahradit</PendingSubmitButton></form>{usage.isUsed ? <AlertDialog.Root open={confirmationOpen} onOpenChange={setConfirmationOpen}><AlertDialog.Portal><AlertDialog.Overlay className="z-[100]"/><AlertDialog.Content className="z-[110] rounded-[1.4rem] border border-white/10 bg-[#131116] p-5 shadow-[0_20px_70px_rgba(0,0,0,0.45)] sm:p-6"><AlertDialog.Title>Nahradit používané médium?</AlertDialog.Title><AlertDialog.Description>Nový obrázek nahradí současný na všech místech použití.</AlertDialog.Description><p className="mt-2 text-sm text-white/72">Médium je použité na {usage.references.length} {usage.references.length === 1 ? 'místě' : 'místech'}.</p><ul className="mt-3 space-y-1 text-sm text-white/72">{visibleReferences.map((reference) => <li key={`${reference.source}-${reference.recordId}-${reference.field}`}>{usageLabel(reference)}</li>)}{remainingReferences > 0 ? <li>a další {remainingReferences} použití</li> : null}</ul><div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><AlertDialog.Cancel asChild><button type="button" disabled={isReplacing} className="min-h-10 rounded-full border border-white/12 px-4 py-2 text-sm text-white/80">Zrušit</button></AlertDialog.Cancel><button type="button" disabled={isReplacing} onClick={replaceEverywhere} className="min-h-10 rounded-full border border-amber-200/25 bg-amber-300/10 px-4 py-2 text-sm font-semibold text-amber-50 disabled:cursor-wait disabled:opacity-65">{isReplacing ? 'Nahrazuji…' : 'Nahradit všude'}</button></div></AlertDialog.Content></AlertDialog.Portal></AlertDialog.Root> : null}</>;
 }
 
 function PublishAction({ area, asset, usage, returnTo }: { area: AdminArea; asset: Asset; usage: Usage; returnTo: string }) {

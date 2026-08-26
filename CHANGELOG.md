@@ -13,6 +13,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Náhrada souboru u média používaného na webu nyní před provedením zobrazí počet a místa použití a vyžádá potvrzení, aby se obrázek nechtěně nezměnil všude.
 - Publikování a skrytí média nyní mění pouze stav publikace, takže už nemůže přepsat souběžně rozepsaný titulek nebo alt text.
 - Náhled certifikátů v administrativní Media Library se nyní v gridu nezkracuje a neaktivní stránkovací ovladače nejsou fokusovatelné odkazy.
 - Zrušení publikace média používaného na webu nyní před provedením ukáže jeho použití a vyžádá potvrzení, aby fotografie nechtěně nezmizela z veřejného webu.
