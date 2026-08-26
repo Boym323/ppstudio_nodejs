@@ -230,19 +230,20 @@ test("chybějící produkční ID přeskočí bez dangling vazby a transparentn�
 });
 
 test("produkční guard vyžaduje databázi ppstudio a DEV/test guard zůstává kompatibilní", () => {
-  const previousNodeEnv = process.env.NODE_ENV;
+  const env = process.env as Record<string, string | undefined>;
+  const previousNodeEnv = env.NODE_ENV;
 
-  process.env.NODE_ENV = "production";
+  env.NODE_ENV = "production";
   assert.doesNotThrow(() => assertAllowedBackfillDatabase("postgresql://localhost/ppstudio", "ppstudio"));
   assert.throws(() => assertAllowedBackfillDatabase("postgresql://localhost/ppstudio_dev", "ppstudio_dev"));
   assert.throws(() => assertAllowedBackfillDatabase("postgresql://localhost/ppstudio", "ppstudio_dev"));
 
-  process.env.NODE_ENV = "test";
+  env.NODE_ENV = "test";
   assert.doesNotThrow(() => assertAllowedBackfillDatabase("postgresql://localhost/ppstudio_dev", "ppstudio_dev"));
   assert.doesNotThrow(() => assertAllowedBackfillDatabase("postgresql://localhost/example_test", "example_test"));
 
-  if (previousNodeEnv === undefined) delete process.env.NODE_ENV;
-  else process.env.NODE_ENV = previousNodeEnv;
+  if (previousNodeEnv === undefined) delete env.NODE_ENV;
+  else env.NODE_ENV = previousNodeEnv;
 });
 
 test("částečný backfill dorovná bez duplicit a zachová existující membership ID", async () => {
