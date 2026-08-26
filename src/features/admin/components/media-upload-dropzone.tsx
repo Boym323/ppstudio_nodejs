@@ -53,7 +53,7 @@ export function MediaUploadDropzone({ name, accept, supportedTypes }: MediaUploa
         }
       >
         <div className="rounded-full border border-white/10 bg-black/25 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/72">
-          Upload obrázku
+          Nahrání obrázku
         </div>
         <p className="mt-4 text-sm font-semibold text-white sm:text-base">
           Přetáhněte obrázek nebo klikněte pro výběr

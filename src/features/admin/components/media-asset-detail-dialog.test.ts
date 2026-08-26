@@ -4,17 +4,20 @@ import test from 'node:test';
 
 const detailDialogPath = new URL('./media-asset-detail-dialog.tsx', import.meta.url);
 
-test('detail assetu Media Library používá Dialog mimo kartu a potvrzuje fyzické smazání', async () => {
+test('detail média Media Library používá Dialog mimo kartu a potvrzuje odstranění', async () => {
   const source = await readFile(detailDialogPath, 'utf8');
 
   assert.match(source, /<Dialog\.Root>/);
   assert.match(source, /<Dialog\.Content className="max-w-5xl/);
   assert.doesNotMatch(source, /<details/);
   assert.match(source, /<AlertDialog\.Root>/);
-  assert.match(source, /MediaAsset .* fyzické varianty/);
+  assert.match(source, /Odstraní se médium .* Tuto operaci nelze vrátit/);
   assert.match(source, /Tuto operaci nelze vrátit/);
-  assert.match(source, /Smazání je blokované: asset se používá ve vazbách uvedených výše/);
-  assert.match(source, /Náhrada zachová ID assetu i všechny existující vazby/);
+  assert.match(source, /Smazání je blokované: médium se používá na místech uvedených výše/);
+  assert.match(source, /Náhrada zachová všechna použití tohoto média/);
+  assert.match(source, />Detail média</);
+  assert.doesNotMatch(source, /MediaAsset „/);
+  assert.doesNotMatch(source, /fyzické varianty/);
   assert.match(source, /type: 'REFERENCES', label: 'Reference'/);
   assert.match(source, /isAdminPreview/);
   assert.match(source, /<img src=\{asset\.adminPreviewUrl!\}/);

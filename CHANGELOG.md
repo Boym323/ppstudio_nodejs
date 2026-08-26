@@ -26,6 +26,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- Uživatelské texty administrace médií nyní používají běžnou češtinu (médium, použití a zařazení) místo interní technické terminologie.
 - Administrace Media Library nyní filtruje publikovaná a skrytá média a v horních statistikách zobrazuje celkové počty aktivních assetů podle stavu publikace.
 - Nahrávání v administrativní Media Library se nyní otevírá v dialogu přímo z horního tlačítka, jasně uvádí publikování nového média i limity souboru a během zpracování zobrazuje průběh.
 - Nastavení webu nyní pro kontaktní fotografii a oba portréty nabízí vizuální výběr publikovaných veřejných médií s náhledem, změnou a odebráním fotografie.
