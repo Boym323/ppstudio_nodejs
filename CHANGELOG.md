@@ -13,6 +13,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Akce v administrativní Media Library nyní po uložení, publikaci, náhradě souboru, správě kolekce i smazání zachovají aktivní stránku a filtry; návratová URL je omezená na aktuální bezpečnou administrační oblast médií.
 - Picker při přidávání referencí nyní nabízí všechny publikované assety z Media Library nezávisle na aktivním filtru REFERENCES a nezobrazuje už přidané reference.
 - Media Library nyní stránkuje assety po 48 položkách a jejich použití načítá hromadně; nové veřejné vazby v galeriích, referencích a nastavení odmítají neveřejné, nepublikované či mazané assety a paralelní přidání do galerie služby bezpečně opakuje jen očekávaný konflikt pořadí.
 - Mazání MediaAsset nyní nejprve atomicky ověří všechny vazby a odstraní DB záznam; fyzické soubory uklízí až po commitu, takže souběžně vzniklá vazba nemůže zanechat používané médium bez souboru.

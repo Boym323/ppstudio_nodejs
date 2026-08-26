@@ -8,6 +8,7 @@ import { requireAdminSectionAccess } from '@/features/admin/lib/admin-guards';
 import {
   deleteMediaSchema,
   getMediaAdminPath,
+  getMediaRedirectUrl,
   normalizeOptionalText,
   updateMediaSchema,
   uploadMediaSchema,
@@ -15,11 +16,8 @@ import {
 import { prisma } from '@/lib/prisma';
 import { createMedia, deleteMedia, replaceMediaAsset, updateMedia } from '@/features/media/lib/media-library';
 
-function flashUrl(area: 'owner' | 'salon', flash: string) {
-  const basePath = getMediaAdminPath(area);
-  const searchParams = new URLSearchParams({ flash });
-
-  return `${basePath}?${searchParams.toString()}`;
+function flashUrl(area: 'owner' | 'salon', returnTo: FormDataEntryValue | null, flash: string) {
+  return getMediaRedirectUrl(area, returnTo, flash);
 }
 
 function revalidateMediaPaths(area: 'owner' | 'salon') {
@@ -64,7 +62,7 @@ export async function uploadMediaAction(formData: FormData) {
   const file = formData.get('file');
 
   if (!(file instanceof File) || file.size <= 0) {
-    redirect(flashUrl(parsed.data.area, 'media-upload-missing-file'));
+    redirect(flashUrl(parsed.data.area, formData.get('returnTo'), 'media-upload-missing-file'));
   }
 
   try {
@@ -75,11 +73,11 @@ export async function uploadMediaAction(formData: FormData) {
       altText: normalizeOptionalText(parsed.data.altText),
     });
   } catch (error) {
-    redirect(flashUrl(parsed.data.area, mapUploadErrorToFlash(error)));
+    redirect(flashUrl(parsed.data.area, formData.get('returnTo'), mapUploadErrorToFlash(error)));
   }
 
   revalidateMediaPaths(parsed.data.area);
-  redirect(flashUrl(parsed.data.area, 'media-upload-success'));
+  redirect(flashUrl(parsed.data.area, formData.get('returnTo'), 'media-upload-success'));
 }
 
 export async function replaceMediaAction(formData: FormData) {
@@ -88,10 +86,10 @@ export async function replaceMediaAction(formData: FormData) {
   if ((area !== 'owner' && area !== 'salon') || typeof assetId !== 'string') redirect('/admin/media?flash=media-replace-invalid-payload');
   await requireAdminSectionAccess(area, 'media');
   const file = formData.get('file');
-  if (!(file instanceof File) || file.size <= 0) redirect(flashUrl(area, 'media-upload-missing-file'));
+  if (!(file instanceof File) || file.size <= 0) redirect(flashUrl(area, formData.get('returnTo'), 'media-upload-missing-file'));
   try {
     const current = await prisma.mediaAsset.findUnique({ where: { id: assetId } });
-    if (!current || current.deletionRequestedAt) redirect(flashUrl(area, 'media-replace-invalid-payload'));
+    if (!current || current.deletionRequestedAt) redirect(flashUrl(area, formData.get('returnTo'), 'media-replace-invalid-payload'));
     await replaceMediaAsset(assetId, {
       file,
       isPublished: current.isPublished,
@@ -99,10 +97,10 @@ export async function replaceMediaAction(formData: FormData) {
       altText: current.altText,
     });
   } catch (error) {
-    redirect(flashUrl(area, mapUploadErrorToFlash(error)));
+    redirect(flashUrl(area, formData.get('returnTo'), mapUploadErrorToFlash(error)));
   }
   revalidateMediaPaths(area);
-  redirect(flashUrl(area, 'media-replace-success'));
+  redirect(flashUrl(area, formData.get('returnTo'), 'media-replace-success'));
 }
 
 export async function updateMediaCollectionMembershipAction(formData: FormData) {
@@ -143,7 +141,7 @@ export async function updateMediaCollectionMembershipAction(formData: FormData) 
     });
   }
   revalidateMediaPaths(area);
-  redirect(flashUrl(area, 'media-membership-success'));
+  redirect(flashUrl(area, formData.get('returnTo'), 'media-membership-success'));
 }
 
 export async function updateMediaAction(formData: FormData) {
@@ -168,7 +166,7 @@ export async function updateMediaAction(formData: FormData) {
   });
 
   revalidateMediaPaths(parsed.data.area);
-  redirect(flashUrl(parsed.data.area, 'media-update-success'));
+  redirect(flashUrl(parsed.data.area, formData.get('returnTo'), 'media-update-success'));
 }
 
 export async function deleteMediaAction(formData: FormData) {
@@ -186,11 +184,11 @@ export async function deleteMediaAction(formData: FormData) {
     await deleteMedia(parsed.data.assetId);
   } catch (error) {
     if (error instanceof Error && error.message === 'MEDIA_ASSET_IN_USE') {
-      redirect(flashUrl(parsed.data.area, 'media-delete-in-use'));
+      redirect(flashUrl(parsed.data.area, formData.get('returnTo'), 'media-delete-in-use'));
     }
     throw error;
   }
 
   revalidateMediaPaths(parsed.data.area);
-  redirect(flashUrl(parsed.data.area, 'media-delete-success'));
+  redirect(flashUrl(parsed.data.area, formData.get('returnTo'), 'media-delete-success'));
 }

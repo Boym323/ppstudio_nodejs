@@ -31,6 +31,26 @@ export function getMediaAdminPath(area: AdminArea) {
   return area === 'owner' ? '/admin/media' : '/admin/provoz/media';
 }
 
+export function getMediaRedirectUrl(area: AdminArea, returnTo: unknown, flash: string) {
+  const fallback = getMediaAdminPath(area);
+
+  if (typeof returnTo !== 'string' || !returnTo.startsWith('/') || returnTo.startsWith('//')) {
+    return `${fallback}?${new URLSearchParams({ flash })}`;
+  }
+
+  try {
+    const url = new URL(returnTo, 'http://media-return.invalid');
+    if (url.origin !== 'http://media-return.invalid' || url.pathname !== fallback || url.hash) {
+      return `${fallback}?${new URLSearchParams({ flash })}`;
+    }
+
+    url.searchParams.set('flash', flash);
+    return `${url.pathname}?${url.searchParams}`;
+  } catch {
+    return `${fallback}?${new URLSearchParams({ flash })}`;
+  }
+}
+
 export function getAdminMediaPreviewUrl(area: AdminArea, assetId: string) {
   return `/api/admin/media/${area}/${assetId}/preview`;
 }
