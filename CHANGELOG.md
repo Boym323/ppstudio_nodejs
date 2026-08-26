@@ -12,6 +12,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Media Library v administraci nyní zřetelně rozlišuje lidský název od názvu souboru, vysvětluje blokované smazání konkrétními vazbami a při úpravách, nahrazení i správě vazeb zobrazuje průběh akce; MediaPicker má jasný výběr, prázdný stav a ovladatelnější mobilní prvky.
 - Správa médií nyní blokuje smazání assetu používaného v nastavení webu; bezpečná náhrada zachovává jeho identitu a při selhání nepřijde o dosavadní funkční soubor.
 - Veřejná media route nyní přijímá neutrální cesty nových uploadů `images/YYYY/MM/...`, aniž by odvozovala význam média z URL; dosavadní legacy URL zůstávají dostupné.
 
