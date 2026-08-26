@@ -78,6 +78,32 @@ test('public media route serves new images storage paths without MediaType mappi
   });
 });
 
+test('public media route keeps unpublished assets inaccessible', async () => {
+  setTestEnv();
+  const [{ GET }, { prisma }] = await Promise.all([
+    import('./public-media-route'),
+    import('@/lib/prisma'),
+  ]);
+  const originalFindFirst = prisma.mediaAsset.findFirst;
+  const mediaAsset = prisma.mediaAsset as unknown as { findFirst: (...args: unknown[]) => unknown };
+  const findFirstCalls: unknown[] = [];
+  mediaAsset.findFirst = async (args) => {
+    findFirstCalls.push(args);
+    return null;
+  };
+
+  try {
+    const response = await GET(new Request('https://example.com/media/public/images/2026/08/unpublished.jpg'), mediaRequest('images', ['2026', '08', 'unpublished.jpg']));
+    const query = findFirstCalls[0] as { where?: { isPublished?: boolean; deletionRequestedAt?: null } };
+
+    assert.equal(response.status, 404);
+    assert.equal(query.where?.isPublished, true);
+    assert.equal(query.where?.deletionRequestedAt, null);
+  } finally {
+    mediaAsset.findFirst = originalFindFirst as unknown as (...args: unknown[]) => unknown;
+  }
+});
+
 test('public media route continues to serve legacy storage paths', async () => {
   const storagePath = 'certificates/2026/04/a1b2c3d4e5f6-original.jpg';
 

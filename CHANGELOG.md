@@ -9,6 +9,7 @@ Formát je inspirovaný Keep a Changelog.
 ### Přidáno
 
 - Administrace médií nyní umožňuje spravovat fotografie referencí z existující Media Library včetně pořadí, viditelnosti a vlastních popisků; použití v referencích bezpečně blokuje smazání assetu.
+- Administrace Media Library nyní bezpečně zobrazuje náhled i nepublikovaných médií pouze po autorizaci sekce Média, aniž by jim přidělovala veřejnou URL.
 
 ### Opraveno
 

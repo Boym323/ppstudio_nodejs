@@ -30,3 +30,7 @@ export function normalizeOptionalText(value: string | undefined) {
 export function getMediaAdminPath(area: AdminArea) {
   return area === 'owner' ? '/admin/media' : '/admin/provoz/media';
 }
+
+export function getAdminMediaPreviewUrl(area: AdminArea, assetId: string) {
+  return `/api/admin/media/${area}/${assetId}/preview`;
+}

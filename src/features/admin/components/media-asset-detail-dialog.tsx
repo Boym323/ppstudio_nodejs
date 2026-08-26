@@ -7,6 +7,9 @@ import * as Dialog from '@/components/ui/dialog';
 import { deleteMediaAction, replaceMediaAction, updateMediaAction, updateMediaCollectionMembershipAction } from '@/features/admin/actions/media-actions';
 import { PendingSubmitButton } from '@/features/admin/components/pending-submit-button';
 
+/* Admin preview musí načítat prohlížeč s přihlašovacím cookie; next/image ho při interním fetchi nepředává. */
+/* eslint-disable @next/next/no-img-element */
+
 type AdminArea = 'owner' | 'salon';
 type Asset = {
   id: string;
@@ -21,6 +24,7 @@ type Asset = {
   isPublished: boolean;
   thumbnailPublicUrl: string | null;
   publicUrl: string | null;
+  adminPreviewUrl: string | null;
 };
 type Usage = { isUsed: boolean; references: { source: string; recordId: string; field: string }[] };
 type Membership = { type: 'STUDIO_GALLERY' | 'CERTIFICATES' | 'REFERENCES'; sortOrder: number; isVisible: boolean };
@@ -48,7 +52,8 @@ function usageLabel(reference: Usage['references'][number]) {
 }
 
 export function MediaAssetDetailDialog({ area, asset, usage, memberships }: { area: AdminArea; asset: Asset; usage: Usage; memberships: Membership[] }) {
-  const preview = asset.publicUrl ?? asset.thumbnailPublicUrl;
+  const preview = asset.publicUrl ?? asset.thumbnailPublicUrl ?? asset.adminPreviewUrl;
+  const isAdminPreview = !asset.isPublished && Boolean(asset.adminPreviewUrl);
   const fileName = asset.originalFilename ?? asset.fileName;
 
   return (
@@ -56,7 +61,7 @@ export function MediaAssetDetailDialog({ area, asset, usage, memberships }: { ar
       <Dialog.Trigger asChild>
         <button type="button" className="group block w-full overflow-hidden rounded-[1.35rem] border border-white/10 bg-white/[0.04] text-left transition-colors hover:border-white/16 hover:bg-white/[0.055] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]" aria-label={`Otevřít detail média ${asset.title || fileName}`}>
           <div className="relative aspect-[4/3] overflow-hidden bg-black/25">
-            {preview ? <Image src={preview} alt={asset.altText ?? asset.title ?? asset.fileName} fill sizes="(min-width: 1536px) 20vw, (min-width: 1024px) 28vw, 50vw" className="object-cover transition-transform duration-300 group-hover:scale-[1.02]"/> : <div className="flex h-full items-center justify-center text-sm text-white/45">Skrytý náhled</div>}
+            {isAdminPreview ? <img src={asset.adminPreviewUrl!} alt={asset.altText ?? asset.title ?? asset.fileName} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"/> : preview ? <Image src={preview} alt={asset.altText ?? asset.title ?? asset.fileName} fill sizes="(min-width: 1536px) 20vw, (min-width: 1024px) 28vw, 50vw" className="object-cover transition-transform duration-300 group-hover:scale-[1.02]"/> : <div className="flex h-full items-center justify-center text-sm text-white/45">Skrytý náhled</div>}
             <span className={`absolute bottom-3 left-3 rounded-full border px-2.5 py-1 text-xs font-medium shadow-sm backdrop-blur ${asset.isPublished ? 'border-emerald-200/15 bg-emerald-950/75 text-emerald-100' : 'border-white/15 bg-black/60 text-white/75'}`}>{asset.isPublished ? 'Publikováno' : 'Skryto'}</span>
           </div>
           <div className="min-h-[8.75rem] space-y-2.5 p-3.5">
@@ -81,7 +86,7 @@ export function MediaAssetDetailDialog({ area, asset, usage, memberships }: { ar
           <div className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1.05fr)_minmax(20rem,.95fr)]">
             <section className="space-y-4" aria-label="Náhled a soubor">
               <div className="relative aspect-[4/3] overflow-hidden rounded-[1.2rem] border border-white/10 bg-black/30">
-                {preview ? <Image src={preview} alt={asset.altText ?? asset.title ?? asset.fileName} fill sizes="(min-width: 1024px) 52vw, 100vw" className="object-contain"/> : <div className="flex h-full items-center justify-center text-sm text-white/45">Skrytý náhled</div>}
+                {isAdminPreview ? <img src={asset.adminPreviewUrl!} alt={asset.altText ?? asset.title ?? asset.fileName} className="h-full w-full object-contain"/> : preview ? <Image src={preview} alt={asset.altText ?? asset.title ?? asset.fileName} fill sizes="(min-width: 1024px) 52vw, 100vw" className="object-contain"/> : <div className="flex h-full items-center justify-center text-sm text-white/45">Skrytý náhled</div>}
               </div>
               <div className="rounded-[1rem] border border-white/8 bg-black/10 p-4">
                 <p className="text-xs font-semibold uppercase tracking-[.14em] text-white/48">Soubor</p>
