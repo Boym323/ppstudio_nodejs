@@ -21,12 +21,14 @@ export function AdminSettingsPage({
     contactPhotoMediaId: string | null;
     homePortraitMediaId: string | null;
     aboutPortraitMediaId: string | null;
-    voucherPdfLogoOptions: Array<{
+    publishedMediaOptions: Array<{
       id: string;
       title: string | null;
-      originalFilename: string;
+      fileName: string;
       mimeType: string;
+      altText: string | null;
       thumbnailPublicUrl: string | null;
+      publicUrl: string | null;
     }>;
     bookingMinAdvanceHours: number;
     bookingMaxAdvanceDays: number;

@@ -26,6 +26,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- Nastavení webu nyní pro kontaktní fotografii a oba portréty nabízí vizuální výběr publikovaných veřejných médií s náhledem, změnou a odebráním fotografie.
 - CI, Security Audit a CodeQL lze nyní ručně spustit v GitHub Actions bez vytváření dalšího commitu.
 - Produkční backfill médií nyní vyžaduje přesnou databázi `ppstudio` a explicitní příznak `--confirm-production`; bez něj i při běžném `--confirm` provede pouze rollbackovaný dry-run.
 - Detail assetu v administrativní Media Library se nyní otevírá mimo stabilní grid v přístupném dialogu; odděluje náhled, metadata, použití, kolekce a destruktivní akce, přičemž fyzické smazání nepoužívaného assetu vyžaduje nezvratné potvrzení.

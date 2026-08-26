@@ -54,12 +54,14 @@ export async function getAdminSettingsPageData(email: string) {
     contactPhotoMediaId: settings.contactPhotoMediaId ?? null,
     homePortraitMediaId: settings.homePortraitMediaId ?? null,
     aboutPortraitMediaId: settings.aboutPortraitMediaId ?? null,
-    voucherPdfLogoOptions: mediaAssets.map((asset) => ({
+    publishedMediaOptions: mediaAssets.map((asset) => ({
       id: asset.id,
       title: asset.title,
-      originalFilename: asset.originalFilename,
+      fileName: asset.originalFilename,
       mimeType: asset.mimeType,
+      altText: asset.altText,
       thumbnailPublicUrl: asset.thumbnailPublicUrl,
+      publicUrl: asset.publicUrl,
     })),
     bookingMinAdvanceHours: settings.bookingMinAdvanceHours,
     bookingMaxAdvanceDays: settings.bookingMaxAdvanceDays,
