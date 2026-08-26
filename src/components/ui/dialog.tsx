@@ -35,7 +35,7 @@ export const Content = forwardRef<
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        "admin-app fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] left-1/2 z-[90] max-h-[calc(100dvh-3.5rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))] w-[calc(100%-2rem)] max-w-2xl -translate-x-1/2 overflow-y-auto [--color-accent-contrast:#fff] data-[state=open]:[animation:ppstudio-dialog-in_180ms_ease-out] data-[state=closed]:[animation:ppstudio-dialog-out_140ms_ease-in] motion-reduce:animate-none sm:top-1/2 sm:bottom-auto sm:max-h-[calc(100dvh-4rem)] sm:w-[calc(100%-3rem)] sm:-translate-y-1/2",
+        "admin-app fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] left-1/2 z-[90] max-h-[calc(100dvh-3.5rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))] w-[calc(100%-2rem)] max-w-2xl -translate-x-1/2 overflow-y-auto text-[var(--color-admin-foreground)] [--color-accent-contrast:#fff] data-[state=open]:[animation:ppstudio-dialog-in_180ms_ease-out] data-[state=closed]:[animation:ppstudio-dialog-out_140ms_ease-in] motion-reduce:animate-none sm:top-1/2 sm:bottom-auto sm:max-h-[calc(100dvh-4rem)] sm:w-[calc(100%-3rem)] sm:-translate-y-1/2",
         className,
       )}
       {...props}

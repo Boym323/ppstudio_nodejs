@@ -4,17 +4,17 @@ import { revalidatePath } from 'next/cache';
 
 import { type AdminArea } from '@/config/navigation';
 import { requireAdminSectionAccess } from '@/features/admin/lib/admin-guards';
+import {
+  addReferenceMediaSchema,
+  invalidReferenceMediaPayload,
+  moveReferenceMediaSchema,
+  removeReferenceMediaSchema,
+  updateReferenceMediaSchema,
+} from '@/features/admin/lib/reference-media-validation';
 import { addReferenceMedia, moveReferenceMedia, removeReferenceMedia, updateReferenceMedia } from '@/features/media/lib/reference-collection';
 
-function read(formData: FormData, key: string) {
-  const value = formData.get(key);
-  return typeof value === 'string' ? value : '';
-}
-
-async function authorize(area: string) {
-  if (area !== 'owner' && area !== 'salon') throw new Error('Neplatná administrační sekce.');
-  await requireAdminSectionAccess(area as AdminArea, 'media');
-  return area as AdminArea;
+async function authorize(area: AdminArea) {
+  await requireAdminSectionAccess(area, 'media');
 }
 
 function revalidateReferences() {
@@ -23,35 +23,50 @@ function revalidateReferences() {
 }
 
 export async function addReferenceMediaAction(formData: FormData) {
-  await authorize(read(formData, 'area'));
-  await addReferenceMedia(read(formData, 'mediaAssetId'));
+  const parsed = addReferenceMediaSchema.safeParse({
+    area: formData.get('area'),
+    mediaAssetId: formData.get('mediaAssetId'),
+  });
+  if (!parsed.success) invalidReferenceMediaPayload();
+  await authorize(parsed.data.area);
+  await addReferenceMedia(parsed.data.mediaAssetId);
   revalidateReferences();
 }
 
 export async function removeReferenceMediaAction(formData: FormData) {
-  await authorize(read(formData, 'area'));
-  await removeReferenceMedia(read(formData, 'id'));
+  const parsed = removeReferenceMediaSchema.safeParse({ area: formData.get('area'), id: formData.get('id') });
+  if (!parsed.success) invalidReferenceMediaPayload();
+  await authorize(parsed.data.area);
+  await removeReferenceMedia(parsed.data.id);
   revalidateReferences();
 }
 
 export async function moveReferenceMediaAction(formData: FormData) {
-  await authorize(read(formData, 'area'));
-  const direction = read(formData, 'direction');
-  if (direction !== 'up' && direction !== 'down') throw new Error('Neplatný směr pořadí.');
-  await moveReferenceMedia(read(formData, 'id'), direction);
+  const parsed = moveReferenceMediaSchema.safeParse({
+    area: formData.get('area'),
+    id: formData.get('id'),
+    direction: formData.get('direction'),
+  });
+  if (!parsed.success) invalidReferenceMediaPayload();
+  await authorize(parsed.data.area);
+  await moveReferenceMedia(parsed.data.id, parsed.data.direction);
   revalidateReferences();
 }
 
 export async function updateReferenceMediaAction(formData: FormData) {
-  await authorize(read(formData, 'area'));
-  const optional = (key: string) => {
-    const value = read(formData, key).trim();
-    return value || null;
-  };
-  await updateReferenceMedia(read(formData, 'id'), {
-    isVisible: read(formData, 'isVisible') === 'true',
-    altText: optional('altText'),
-    caption: optional('caption'),
+  const parsed = updateReferenceMediaSchema.safeParse({
+    area: formData.get('area'),
+    id: formData.get('id'),
+    isVisible: formData.getAll('isVisible'),
+    altText: formData.get('altText'),
+    caption: formData.get('caption'),
+  });
+  if (!parsed.success) invalidReferenceMediaPayload();
+  await authorize(parsed.data.area);
+  await updateReferenceMedia(parsed.data.id, {
+    isVisible: parsed.data.isVisible,
+    altText: parsed.data.altText,
+    caption: parsed.data.caption,
   });
   revalidateReferences();
 }

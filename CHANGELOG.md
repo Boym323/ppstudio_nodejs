@@ -9,6 +9,7 @@ Formát je inspirovaný Keep a Changelog.
 ### Zabezpečení
 
 - Next.js a navazující ESLint konfigurace byly aktualizovány na bezpečnostní verzi 16.3.3.
+- Reference media actions nyní serverově validují oblast, cuid identifikátory, směr přesunu, viditelnost a limity metadat před změnou databáze.
 
 ### Přidáno
 
@@ -18,6 +19,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Tlačítka v administračních dialozích nyní používají správnou světlou barvu textu a jsou na tmavém pozadí čitelná.
+- Ovládání pořadí Nahoru a Dolů v detailu média je nyní seskupené a při zalomení rozvržení zůstává zarovnané.
 - Správa kolekcí Studio a Certifikáty nyní používá vlastní kanonickou URL bez nefunkčních filtrů knihovny; po nahrání či jiné akci zůstává uživatel ve stejné kolekci.
 - Studio a Certifikáty nyní odmítnou nově zařadit nepublikované, neveřejné, mazané nebo neexistující médium, takže v administraci nevznikne vazba potlačená na veřejném webu.
 - Náhrada souboru u média používaného na webu nyní před provedením zobrazí počet a místa použití a vyžádá potvrzení, aby se obrázek nechtěně nezměnil všude.

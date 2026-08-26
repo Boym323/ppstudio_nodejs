@@ -35,7 +35,7 @@ export const Content = forwardRef<
     <AlertDialogPrimitive.Content
       ref={ref}
       className={cn(
-        "admin-app fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] left-1/2 z-[90] w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 [--color-accent-contrast:#fff] data-[state=open]:[animation:ppstudio-dialog-in_180ms_ease-out] data-[state=closed]:[animation:ppstudio-dialog-out_140ms_ease-in] motion-reduce:animate-none sm:top-1/2 sm:bottom-auto sm:w-[calc(100%-3rem)] sm:-translate-y-1/2",
+        "admin-app fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] left-1/2 z-[90] w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 text-[var(--color-admin-foreground)] [--color-accent-contrast:#fff] data-[state=open]:[animation:ppstudio-dialog-in_180ms_ease-out] data-[state=closed]:[animation:ppstudio-dialog-out_140ms_ease-in] motion-reduce:animate-none sm:top-1/2 sm:bottom-auto sm:w-[calc(100%-3rem)] sm:-translate-y-1/2",
         className,
       )}
       {...props}
