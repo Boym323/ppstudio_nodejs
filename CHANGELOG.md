@@ -18,6 +18,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- Výběr médií pro hlavní fotografii a galerii služby i pro reference se nyní otevírá v přístupném dialogu; detail zůstává kompaktní a výběr nadále vytváří jen existující vazby na assety.
 - Media Library v administraci má kompaktnější responsivní grid, přehlednější hierarchii karet a oddělené části detailu pro soubor, použití, úpravy a destruktivní akci.
 - Detail služby v administraci nyní umožňuje vybrat hlavní fotografii a řazenou galerii z Media Library; veřejný detail zobrazuje pouze publikované veřejné assety a zachovává dosavadní vzhled bez fotografií jako fallback.
 - Administrace Média je nyní relační knihovna assetů s vyhledáváním, filtry skutečného použití, správou kolekcí a bezpečným nahrazením souboru; nové uploady ukládá do neutrální cesty `images/YYYY/MM/...`.
