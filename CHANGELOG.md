@@ -8,6 +8,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Přidáno
 
+- Filtry Studio a Certifikáty v Media Library nyní otevírají vlastní správu celé kolekce s přidáním z knihovny, viditelností, řazením a bezpečným odebráním pouze vazby.
 - Administrace médií nyní umožňuje spravovat fotografie referencí z existující Media Library včetně pořadí, viditelnosti a vlastních popisků; použití v referencích bezpečně blokuje smazání assetu.
 - Administrace Media Library nyní bezpečně zobrazuje náhled i nepublikovaných médií pouze po autorizaci sekce Média, aniž by jim přidělovala veřejnou URL.
 

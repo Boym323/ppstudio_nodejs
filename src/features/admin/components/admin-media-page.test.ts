@@ -18,7 +18,7 @@ function findProp(value: unknown, name: string): unknown[] {
   return [...(node.props && name in node.props ? [node.props[name]] : []), ...findProp(node.props?.children, name)];
 }
 
-test('Media Library filtruje publikaci, zachová ji v URL a statistiky počítá jen z aktivních assetů', async () => {
+test('Media Library filtruje publikaci mimo collection view, kde Studio ignoruje ostatní filtry', async () => {
   setTestEnv();
   const { prisma } = await import('@/lib/prisma');
   const mediaAsset = prisma.mediaAsset as unknown as {
@@ -41,22 +41,23 @@ test('Media Library filtruje publikaci, zachová ji v URL a statistiky počítá
     await AdminMediaPage({ area: 'owner', searchParams: { publication: 'HIDDEN' } });
     await AdminMediaPage({ area: 'owner', searchParams: {} });
 
-    assert.deepEqual(wheres.map((where) => (where as { isPublished?: boolean }).isPublished), [true, false, undefined]);
+    assert.deepEqual(wheres.map((where) => (where as { isPublished?: boolean }).isPublished), [false, undefined]);
     assert.deepEqual(wheres[0], {
       deletionRequestedAt: null,
-      OR: [{ title: { contains: 'cert', mode: 'insensitive' } }, { fileName: { contains: 'cert', mode: 'insensitive' } }, { originalFilename: { contains: 'cert', mode: 'insensitive' } }, { altText: { contains: 'cert', mode: 'insensitive' } }],
-      NOT: { OR: [{ voucherPdfLogoSettings: { some: {} } }, { contactPhotoSettings: { some: {} } }, { homePortraitSettings: { some: {} } }, { aboutPortraitSettings: { some: {} } }, { collectionItems: { some: {} } }, { serviceMedia: { some: {} } }] },
-      isPublished: true,
-      collectionItems: { some: { collection: { type: 'CERTIFICATES' } } },
+      isPublished: false,
     });
     assert.deepEqual(groupByCalls, [{ by: ['isPublished'], where: { deletionRequestedAt: null }, _count: { _all: true } }, { by: ['isPublished'], where: { deletionRequestedAt: null }, _count: { _all: true } }, { by: ['isPublished'], where: { deletionRequestedAt: null }, _count: { _all: true } }]);
     assert.deepEqual((published.props as { stats: unknown }).stats, [{ label: 'Celkem', value: '6', tone: 'default' }, { label: 'Publikováno', value: '4', tone: 'accent' }, { label: 'Skryto', value: '2', tone: 'muted' }]);
-    assert.ok(findProp(published, 'href').includes('/admin/media?q=cert&usage=UNUSED&publication=PUBLISHED&collection=CERTIFICATES'));
+    assert.ok(findProp(published, 'href').includes('/admin/media?collection=CERTIFICATES'));
     const source = await readFile(new URL('./admin-media-page.tsx', import.meta.url), 'utf8');
+    assert.match(source, /const search = managedCollection \? '' : raw\('q'\)/);
+    assert.match(source, /const usageFilter = managedCollection \? 'ALL'/);
+    assert.match(source, /const publicationFilter = managedCollection \? 'ALL'/);
+    assert.match(source, /libraryAssets\.filter\(\(asset\) => !managedCollectionItems\.some\(\(item\) => item\.mediaAssetId === asset\.id\)\)/);
     assert.match(source, /publication: publicationFilter === 'ALL' \? undefined : publicationFilter/);
     assert.match(source, /name="publication" value=\{publicationFilter === 'ALL' \? '' : publicationFilter\}/);
     assert.match(source, /const returnTo = href\(\{ page: displayPage > 1 \? String\(displayPage\) : undefined \}\)/);
-    assert.ok(findProp(published, 'value').includes('PUBLISHED'));
+    assert.ok(!findProp(published, 'value').includes('PUBLISHED'));
   } finally {
     mediaAsset.count = original.count;
     mediaAsset.findMany = original.findMany;

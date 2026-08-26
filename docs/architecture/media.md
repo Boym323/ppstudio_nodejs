@@ -34,6 +34,7 @@ Stručný kontext aktuální implementace Media Library.
 - Hledání je case-insensitive přes titulek, název souboru, původní název a
   alt text.
 - Filtry rozlišují všechna, použitá a nepoužitá média a také kolekci.
+- Filtry Studio a Certifikáty otevírají správu celé dané kolekce nezávisle na ostatních filtrech knihovny; grid se v tomto pohledu nezobrazuje duplicitně.
 - Usage se zjišťuje hromadně přes `getMediaAssetUsageBatch`.
 - `returnTo` zachovává aktuální media route, query kontext a po akci přidává
   flash zprávu; neplatná hodnota vede na základní route dané oblasti.

@@ -27,6 +27,7 @@ for (const type of ['STUDIO_GALLERY', 'CERTIFICATES'] as const) {
       for (const asset of assets.slice(0, 3)) {
         await prisma.$transaction((tx) => saveMediaCollectionMembership(tx, collection.id, asset.id, true));
       }
+      await prisma.$transaction((tx) => saveMediaCollectionMembership(tx, collection.id, assets[3].id, true));
       await prisma.$transaction((tx) => saveMediaCollectionMembership(tx, collection.id, assets[3].id, false));
 
       const initial = await prisma.mediaCollectionItem.findMany({ where: { collectionId: collection.id }, orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }] });
@@ -43,6 +44,9 @@ for (const type of ['STUDIO_GALLERY', 'CERTIFICATES'] as const) {
       assert.deepEqual(ordered.map((item) => item.sortOrder), [0, 1, 2, 3]);
       assert.equal(new Set(ordered.map((item) => item.sortOrder)).size, ordered.length);
       assert.equal(ordered.at(-1)?.isVisible, false);
+
+      await prisma.mediaCollectionItem.deleteMany({ where: { collectionId: collection.id, mediaAssetId: assets[3].id } });
+      assert.ok(await prisma.mediaAsset.findUnique({ where: { id: assets[3].id } }));
     } finally {
       await prisma.mediaCollectionItem.deleteMany({ where: { mediaAssetId: { in: assets.map((asset) => asset.id) } } });
       await prisma.mediaAsset.deleteMany({ where: { id: { in: assets.map((asset) => asset.id) } } });
