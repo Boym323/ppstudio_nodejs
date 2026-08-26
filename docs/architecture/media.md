@@ -1,58 +1,77 @@
 # PP Studio Media Library
 
-## Základní model
+Stručný kontext aktuální implementace Media Library.
 
-`MediaAsset` je centrální záznam souboru a jeho metadat v Media Library.
+## Model
 
-- `visibility` určuje storage oblast (`PUBLIC` nebo `PRIVATE`).
-- `isPublished` určuje, zda je asset dostupný pro veřejné použití.
-- `deletionRequestedAt` označuje mazání; běžná i veřejná čtení berou jen `null`.
-- Originál používá `storagePath` a `url`; obrazové varianty jsou volitelné
-  `optimized*` a `thumbnail*` metadata a cesty.
+- `MediaAsset` je centrální záznam souboru, metadat a uložených variant.
+- `visibility` je `PUBLIC` nebo `PRIVATE` a určuje oblast storage.
+- `isPublished` určuje, zda může být asset vydán přes veřejný media access.
+- `deletionRequestedAt` je stavová značka mazání; aktivní assety mají hodnotu
+  `null`.
+- Originál je reprezentovaný poli `storagePath`/`url` a jeho metadata.
+- Volitelné varianty jsou `optimized` a `thumbnail`, každá se storage cestou,
+  URL, MIME typem, rozměry a velikostí.
 
-## Přístup a administrační rozhraní
+## Access
 
-- Veřejné media routes jsou `/media/public/[kind]/[[...path]]` a kompatibilní
-  `/media/[kind]/[[...path]]`; handler vydá jen asset s `PUBLIC`, `isPublished`
-  a `deletionRequestedAt = null`, pro originál i varianty.
-- Admin preview je `/api/admin/media/[area]/[assetId]/preview`; přijímá jen
-  `owner` nebo `salon`, ověřuje oprávnění k sekci `media` a odpovídá s
-  `private, no-store`.
-- Hlavní knihovna je `/admin/media` (OWNER) a `/admin/provoz/media` (SALON).
-- `listMediaPage` filtruje v databázi, řadí `createdAt desc, id asc`, normalizuje
-  číslo stránky a standardně vrací 48 assetů na stránku.
-- `returnTo` pro media akce smí být pouze relativní URL stejné media route dané
-  oblasti, bez hash; zachovává její query kontext a přidá flash. Jinak je fallback
-  na základní route knihovny.
+- Veřejný access obsluhují `/media/public/[kind]/[[...path]]` a kompatibilní
+  alias `/media/[kind]/[[...path]]`.
+- Veřejný handler vydá pouze asset s `PUBLIC`, `isPublished: true` a
+  `deletionRequestedAt: null`; stejná podmínka platí pro originál i varianty.
+- Unpublished asset nemá veřejnou URL. Autorizovaný admin jej může previewovat
+  přes `/api/admin/media/[area]/[assetId]/preview`.
+- Admin preview vyžaduje přístup k media sekci a používá `owner` nebo `salon`.
+  Odpověď je privátní a bez uložení do cache.
+- Hlavní admin entry pointy jsou `/admin/media` pro OWNER a
+  `/admin/provoz/media` pro SALON.
 
-## Vazby a veřejné použití
+## Library
 
-- `getMediaAssetUsageBatch` je společný hromadný usage guard. Vrací vazby ze
-  `SiteSettings`, `MediaCollectionItem` a `ServiceMedia` včetně typu zdroje,
-  ID záznamu a pole.
-- `MediaCollection` má jedinečný typ. `MediaCollectionItem` drží asset,
-  pořadí, viditelnost, volitelný alt text a popisek. Aktuální typy kolekcí jsou
-  `STUDIO_GALLERY`, `CERTIFICATES` a `REFERENCES`.
-- `ServiceMedia` váže asset ke službě v roli `HERO` nebo `GALLERY`; má pořadí a
-  volitelný alt text. Vazba assetu je restriktivní při mazání.
-- Singularní vazby `SiteSettings` jsou `contactPhotoMediaId`,
-  `homePortraitMediaId`, `aboutPortraitMediaId` a `voucherPdfLogoMediaId`;
-  při smazání assetu se nastavují na `null`.
-- Nová vazba, která se může ukázat na veřejném webu, musí projít
-  `isPublicMediaAsset`: asset je `PUBLIC`, publikovaný a není v mazání.
+- `AdminMediaPage` načítá knihovnu server-side přes `listMediaPage`.
+- Stránkování probíhá v databázi; výchozí velikost stránky je 48 a řazení je
+  `createdAt desc, id asc`.
+- Hledání je case-insensitive přes titulek, název souboru, původní název a
+  alt text.
+- Filtry rozlišují všechna, použitá a nepoužitá média a také kolekci.
+- Usage se zjišťuje hromadně přes `getMediaAssetUsageBatch`.
+- `returnTo` zachovává aktuální media route, query kontext a po akci přidává
+  flash zprávu; neplatná hodnota vede na základní route dané oblasti.
+- `MediaUploadDialog` je pouze UI formulář nad existující serverovou upload
+  pipeline (`uploadMediaAction` → `createMedia` → validace, zpracování a zápis).
 
-## Mazání a hlavní soubory
+## Relations
 
-- Mazání zamkne asset v DB, ověří usage, nastaví `deletionRequestedAt` a smaže
-  záznam v jedné transakci; až potom uklízí originál i varianty z filesystemu.
-  Neúspěšný filesystem cleanup nerollbackuje databázové smazání.
-- Modely: `prisma/schema.prisma`.
-- Knihovna, stránkování a mazání: `src/features/media/lib/media-library.ts`;
-  repository a usage: `media-asset-repository.ts`, `media-asset-usage.ts`.
-- Veřejná pravidla a collections: `public-media-asset.ts`,
-  `src/features/media/lib/reference-collection.ts`,
-  `src/features/public/lib/public-media-relations.ts` a `public-services.ts`.
-- Admin UI a akce: `src/features/admin/components/admin-media-page.tsx`,
-  `src/features/admin/actions/media-actions.ts` a `service-media-actions.ts`.
-- HTTP handlery: `src/lib/media/public-media-route.ts` a
-  `src/features/admin/lib/admin-media-preview-route-api.ts`.
+- `MediaCollection` má právě jeden typ z množiny `STUDIO_GALLERY`,
+  `CERTIFICATES` a `REFERENCES`.
+- `MediaCollectionItem` drží vazbu assetu, pořadí, viditelnost, alt text a
+  caption.
+- `ServiceMedia` váže asset ke službě v roli `HERO` nebo `GALLERY`, s pořadím
+  a volitelným alt textem.
+- `SiteSettings` je singulární záznam s vazbami:
+  `contactPhotoMediaId`, `homePortraitMediaId`, `aboutPortraitMediaId` a
+  `voucherPdfLogoMediaId`.
+
+## Rules
+
+- Nová relation použitelná na veřejném webu vyžaduje `PUBLIC`, publikovaný asset
+  a `deletionRequestedAt: null`.
+- Serverová validace je autoritativní; UI výběr sám o sobě vazbu nepotvrzuje.
+- Použité médium nelze smazat. Usage guard zahrnuje SiteSettings, kolekce a
+  ServiceMedia.
+- Unpublish použitého média vyžaduje UX confirmation, protože může zmizet z webu.
+- Mazání provede DB commit nejdříve a filesystem cleanup až následně.
+- Neúspěšný filesystem cleanup po DB smazání nevrací databázovou změnu.
+
+## Main files
+
+- Schéma: `prisma/schema.prisma` (`MediaAsset`, kolekce, `ServiceMedia`,
+  `SiteSettings`).
+- Core library a upload pipeline: `src/features/media/lib/media-library.ts`.
+- Repository a usage: `src/features/media/lib/media-asset-repository.ts` a
+  `src/features/media/lib/media-asset-usage.ts`.
+- Veřejná pravidla a access: `src/features/media/lib/public-media-asset.ts`,
+  `src/lib/media/public-media-route.ts`.
+- Admin stránka, akce a dialogy: `src/features/admin/components/admin-media-page.tsx`,
+  `src/features/admin/actions/media-actions.ts`, `src/features/admin/components/media-asset-detail-dialog.tsx`
+  a `src/features/admin/components/media-upload-dialog.tsx`.
