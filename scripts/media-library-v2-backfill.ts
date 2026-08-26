@@ -288,10 +288,14 @@ export async function backfillMediaLibraryV2(
 
 export function assertAllowedBackfillDatabase(databaseUrl: string, actualDatabase?: string) {
   const configuredDatabase = decodeURIComponent(new URL(databaseUrl).pathname.slice(1));
-  const isAllowed = (database: string) => database === "ppstudio_dev" || database.endsWith("_test");
+  const isProduction = process.env.NODE_ENV === "production";
+  const isAllowed = (database: string) => isProduction
+    ? database === "ppstudio"
+    : database === "ppstudio_dev" || database.endsWith("_test");
 
   if (!isAllowed(configuredDatabase)) {
-    throw new Error(`Backfill je povolen pouze pro ppstudio_dev nebo *_test DB; nakonfigurováno: ${configuredDatabase || "(prázdné)"}.`);
+    const expected = isProduction ? "ppstudio" : "ppstudio_dev nebo *_test";
+    throw new Error(`Backfill je povolen pouze pro ${expected} DB; nakonfigurováno: ${configuredDatabase || "(prázdné)"}.`);
   }
   if (actualDatabase !== undefined && (!isAllowed(actualDatabase) || actualDatabase !== configuredDatabase)) {
     throw new Error(`Identita připojené DB neodpovídá povolené konfiguraci (${configuredDatabase} != ${actualDatabase}).`);
@@ -321,7 +325,9 @@ class DryRunRollback extends Error {
 }
 
 async function main() {
-  const confirm = process.argv.slice(2).includes("--confirm");
+  const isProduction = process.env.NODE_ENV === "production";
+  const confirmProduction = process.argv.slice(2).includes("--confirm-production");
+  const confirm = isProduction ? confirmProduction : process.argv.slice(2).includes("--confirm");
   const databaseUrl = process.env.DATABASE_URL;
   if (!databaseUrl) {
     throw new Error("DATABASE_URL není nastavené.");
@@ -349,7 +355,7 @@ async function main() {
     } catch (error) {
       if (error instanceof DryRunRollback) {
         printReport(error.report, true);
-        console.log("Ostré spuštění: npm run db:backfill-media-library-v2 -- --confirm");
+        console.log(`Ostré spuštění: npm run db:backfill-media-library-v2 -- ${isProduction ? "--confirm-production" : "--confirm"}`);
         return;
       }
       throw error;

@@ -19,6 +19,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- Produkční backfill médií nyní vyžaduje přesnou databázi `ppstudio` a explicitní příznak `--confirm-production`; bez něj i při běžném `--confirm` provede pouze rollbackovaný dry-run.
 - Detail assetu v administrativní Media Library se nyní otevírá mimo stabilní grid v přístupném dialogu; odděluje náhled, metadata, použití, kolekce a destruktivní akce, přičemž fyzické smazání nepoužívaného assetu vyžaduje nezvratné potvrzení.
 - Výběr médií pro hlavní fotografii a galerii služby i pro reference se nyní otevírá v přístupném dialogu; detail zůstává kompaktní a výběr nadále vytváří jen existující vazby na assety.
 - Media Library v administraci má kompaktnější responsivní grid, přehlednější hierarchii karet a oddělené části detailu pro soubor, použití, úpravy a destruktivní akci.
@@ -35,6 +36,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Typecheck nyní ignoruje pouze deployment release artefakty `current`, `previous` a `releases`, takže staré release symlinky neblokují přípravu nového nasazení.
 - Mobilní návrat ze služby v administraci nyní stejně jako desktopový drawer chrání neuložené změny před nechtěným zahozením.
 
 ## [3.22.10] - 2026-08-25
