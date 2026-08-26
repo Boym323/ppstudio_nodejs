@@ -1,6 +1,7 @@
 import { MediaCollectionType } from '@/generated/prisma/browser';
 
 import { prisma } from '@/lib/prisma';
+import { moveMediaCollectionItem } from './media-collection-order';
 import { isPublicMediaAsset } from './public-media-asset';
 
 export type ReferenceCollectionMetadata = {
@@ -56,27 +57,7 @@ export async function updateReferenceMedia(id: string, metadata: ReferenceCollec
   });
 }
 
-/** Přepíše pořadí přes dočasné záporné hodnoty, aby nikdy nenarazilo na unique(collectionId, sortOrder). */
 export async function moveReferenceMedia(id: string, direction: 'up' | 'down') {
   const collection = await referencesCollection();
-  await prisma.$transaction(async (tx) => {
-    const rows = await tx.mediaCollectionItem.findMany({
-      where: { collectionId: collection.id },
-      orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
-      select: { id: true, sortOrder: true },
-    });
-    const index = rows.findIndex((row) => row.id === id);
-    const target = direction === 'up' ? index - 1 : index + 1;
-    if (index < 0 || target < 0 || target >= rows.length) return;
-
-    const reordered = [...rows];
-    [reordered[index], reordered[target]] = [reordered[target], reordered[index]];
-    const minimum = Math.min(...rows.map((row) => row.sortOrder), 0);
-    await Promise.all(reordered.map((row, position) => tx.mediaCollectionItem.update({
-      where: { id: row.id }, data: { sortOrder: minimum - position - 1 },
-    })));
-    await Promise.all(reordered.map((row, position) => tx.mediaCollectionItem.update({
-      where: { id: row.id }, data: { sortOrder: position },
-    })));
-  });
+  await prisma.$transaction((tx) => moveMediaCollectionItem(tx, collection.id, id, direction));
 }

@@ -29,6 +29,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- Pořadí fotografií Studio a Certifikátů se v Media Library nyní upravuje srozumitelnými tlačítky Nahoru a Dolů místo ručního zadávání čísla; přesun bezpečně zachovává jednoznačné pořadí kolekce.
 - Uživatelské texty administrace médií nyní používají běžnou češtinu (médium, použití a zařazení) místo interní technické terminologie.
 - Administrace Media Library nyní filtruje publikovaná a skrytá média a v horních statistikách zobrazuje celkové počty aktivních assetů podle stavu publikace.
 - Nahrávání v administrativní Media Library se nyní otevírá v dialogu přímo z horního tlačítka, jasně uvádí publikování nového média i limity souboru a během zpracování zobrazuje průběh.

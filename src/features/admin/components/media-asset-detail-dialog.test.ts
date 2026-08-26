@@ -23,6 +23,17 @@ test('detail média Media Library používá Dialog mimo kartu a potvrzuje odstr
   assert.match(source, /<img src=\{asset\.adminPreviewUrl!\}/);
 });
 
+test('Studio a Certifikáty mění pořadí tlačítky, Reference workflow zůstává oddělené', async () => {
+  const source = await readFile(detailDialogPath, 'utf8');
+
+  assert.match(source, /collection\.type === 'STUDIO_GALLERY' \|\| collection\.type === 'CERTIFICATES'/);
+  assert.match(source, /↑ Nahoru/);
+  assert.match(source, /↓ Dolů/);
+  assert.match(source, /disabled=\{!membership\.canMoveUp\}/);
+  assert.match(source, /disabled=\{!membership\.canMoveDown\}/);
+  assert.doesNotMatch(source, /name="sortOrder"/);
+});
+
 test('nepoužité médium a publikování nevyžadují potvrzení, zrušení publikace používaného média ano', async () => {
   const source = await readFile(detailDialogPath, 'utf8');
 

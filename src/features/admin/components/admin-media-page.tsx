@@ -13,7 +13,7 @@ import { prisma } from '@/lib/prisma';
 import { mediaUploadPolicy } from '@/lib/media/media-config';
 
 type Asset = Awaited<ReturnType<typeof listMedia>>[number] & { adminPreviewUrl: string | null };
-type Membership = { type: MediaCollectionType; sortOrder: number; isVisible: boolean };
+type Membership = { type: MediaCollectionType; sortOrder: number; isVisible: boolean; canMoveUp: boolean; canMoveDown: boolean };
 const collections = [{ type: MediaCollectionType.STUDIO_GALLERY, label: 'Studio' }, { type: MediaCollectionType.CERTIFICATES, label: 'Certifikáty' }, { type: MediaCollectionType.REFERENCES, label: 'Reference' }] as const;
 function flashMessage(flash?: string) { return ({ 'media-upload-success': 'Médium bylo nahrané.', 'media-replace-success': 'Soubor byl bezpečně nahrazen a jeho použití zůstalo zachované.', 'media-delete-success': 'Médium bylo odstraněné.', 'media-delete-in-use': 'Toto médium nelze smazat, protože se stále používá. Nejprve odeberte jeho použití.', 'media-membership-success': 'Zařazení do kolekce bylo uložené.', 'media-update-success': 'Metadata média byla uložená.', 'media-upload-missing-file': 'Vyberte prosím obrázek.', 'media-upload-empty-file': 'Vybraný soubor je prázdný.', 'media-upload-invalid-type': 'Použijte JPG, PNG nebo WebP.', 'media-upload-too-large': 'Soubor je příliš velký. Limit je 8 MB.', 'media-upload-failed': 'Médium se nepodařilo zpracovat. Zkuste to prosím znovu.', 'media-replace-invalid-payload': 'Soubor se nepodařilo nahradit. Vyberte prosím platný obrázek.' } as Record<string, string>)[flash ?? '']; }
 
@@ -44,9 +44,26 @@ export async function AdminMediaPage({ area, searchParams }: { area: AdminArea; 
     return asset ? { ...item, mediaAsset: { id: asset.id, title: asset.title, fileName: asset.fileName, altText: asset.altText, thumbnailPublicUrl: asset.isPublished ? asset.thumbnailUrl ?? asset.optimizedUrl ?? asset.url : null, publicUrl: asset.isPublished ? asset.optimizedUrl ?? asset.url : null } } : null;
   }).filter((item): item is ReferenceMediaItem => item !== null);
   const referencePickerAssets = publishedAssets.filter((asset) => !referenceItems.some((item) => item.mediaAssetId === asset.id));
-  const rows = await prisma.mediaCollectionItem.findMany({ where: { mediaAssetId: { in: displayAssets.map((asset) => asset.id) } }, select: { mediaAssetId: true, sortOrder: true, isVisible: true, collection: { select: { type: true } } } });
+  const rows = await prisma.mediaCollectionItem.findMany({ where: { mediaAssetId: { in: displayAssets.map((asset) => asset.id) } }, select: { mediaAssetId: true, collectionId: true, sortOrder: true, isVisible: true, collection: { select: { type: true } } } });
+  const collectionIds = [...new Set(rows.map((row) => row.collectionId))];
+  const collectionBoundaries = collectionIds.length ? await prisma.mediaCollectionItem.groupBy({
+    by: ['collectionId'],
+    where: { collectionId: { in: collectionIds } },
+    _min: { sortOrder: true },
+    _max: { sortOrder: true },
+  }) : [];
+  const boundariesByCollection = new Map(collectionBoundaries.map((boundary) => [boundary.collectionId, boundary]));
   const memberships = new Map<string, Membership[]>();
-  rows.forEach((row) => memberships.set(row.mediaAssetId, [...(memberships.get(row.mediaAssetId) ?? []), { type: row.collection.type, sortOrder: row.sortOrder, isVisible: row.isVisible }]));
+  rows.forEach((row) => {
+    const boundary = boundariesByCollection.get(row.collectionId);
+    memberships.set(row.mediaAssetId, [...(memberships.get(row.mediaAssetId) ?? []), {
+      type: row.collection.type,
+      sortOrder: row.sortOrder,
+      isVisible: row.isVisible,
+      canMoveUp: row.sortOrder !== boundary?._min.sortOrder,
+      canMoveDown: row.sortOrder !== boundary?._max.sortOrder,
+    }]);
+  });
   const usages = await getMediaAssetUsageBatch(displayAssets.map((asset) => asset.id));
   const base = getMediaAdminPath(area);
   const publicationStats = new Map(publicationGroups.map((group) => [group.isPublished, group._count._all]));
