@@ -71,6 +71,39 @@ Dělá:
 9. nejdřív přes `/api/health/live` tiše vyčká na otevření webového endpointu, potom ověří DB readiness `/api/health` a homepage smoke test
 10. při selhání startu nebo kontrol vrátí předchozí runtime release; databázové migrace se automaticky nevracejí, proto rollback musí vždy fungovat se schématem po aplikované migraci
 
+### Media Library v2 – staged upgrade
+
+Upgrade Media Library v2 z pre-v2 databáze s existujícími daty nesmí být proveden
+jako jediný přímý deploy finálního `main`. `release.sh` provádí `migrate deploy`
+před aktivací nového release, proto destruktivní contract migrace vyžaduje, aby
+všechny rollback kandidáty už používaly contract-ready runtime.
+
+Pořadí musí být:
+
+1. expand migrace
+2. backfill existujících vazeb
+3. relational runtime
+4. contract-ready runtime bez závislosti na legacy poli `MediaAsset`
+5. contract migrace
+
+Po expand migraci a před aktivací relational public runtime vždy spusť backfill.
+Bezpečný postup je nejprve ověřit stav dry-runem:
+
+```sh
+npm run db:backfill-media-library-v2
+```
+
+Poté lze explicitně povolit produkční zápis pouze přes:
+
+```sh
+npm run db:backfill-media-library-v2 -- --confirm-production
+```
+
+Po zápisu spusť znovu dry-run; musí být idempotní a hlásit 0 změn. Obyčejný
+`--confirm` produkční zápis nepovoluje. Relational runtime nesmí být aktivován
+před úspěšným backfillem a contract migrace nesmí následovat před contract-ready
+runtime.
+
 ## Proxmox/LXC specifika
 
 ### Co hlídat na LXC

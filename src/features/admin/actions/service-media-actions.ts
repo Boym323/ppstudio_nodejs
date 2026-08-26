@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 
 import { type AdminArea } from "@/config/navigation";
 import { requireAdminSectionAccess } from "@/features/admin/lib/admin-guards";
+import { reorderServiceGallery } from "@/features/admin/lib/service-media-reorder";
 import { prisma } from "@/lib/prisma";
 
 function read(formData: FormData, key: string) {
@@ -93,12 +94,6 @@ export async function moveServiceGalleryMediaAction(formData: FormData) {
   const id = read(formData, "id");
   const direction = read(formData, "direction");
   await authorize(area, serviceId);
-  const rows = await prisma.serviceMedia.findMany({ where: { serviceId, role: ServiceMediaRole.GALLERY }, orderBy: [{ sortOrder: "asc" }, { id: "asc" }], select: { id: true } });
-  const index = rows.findIndex((row) => row.id === id);
-  const target = direction === "up" ? index - 1 : index + 1;
-  if (index < 0 || target < 0 || target >= rows.length) return;
-  const reordered = [...rows];
-  [reordered[index], reordered[target]] = [reordered[target], reordered[index]];
-  await prisma.$transaction(reordered.map((row, sortOrder) => prisma.serviceMedia.update({ where: { id: row.id }, data: { sortOrder: (sortOrder + 1) * 10 } })));
+  await prisma.$transaction((tx) => reorderServiceGallery(tx, serviceId, id, direction === "up" ? "up" : "down"));
   revalidateServiceMedia();
 }
