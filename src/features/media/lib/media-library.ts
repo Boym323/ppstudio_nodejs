@@ -1,4 +1,5 @@
 import { MediaAssetVisibility, MediaStorageProvider } from '@/generated/prisma/browser';
+import type { Prisma } from '@/generated/prisma/client';
 
 import { buildMediaPublicUrl } from '@/lib/media/media-config';
 import { getMediaStorageAdapter } from '@/lib/media/media-storage';
@@ -122,6 +123,14 @@ export async function createMedia(input: MediaUploadInput) {
 export async function listMedia() {
   const assets = await listMediaAssets();
   return assets.map(withPublicUrl);
+}
+
+export async function listMediaPage({ page, pageSize = 48, where }: { page: number; pageSize?: number; where?: Prisma.MediaAssetWhereInput }) {
+  const total = await prisma.mediaAsset.count({ where });
+  const pageCount = Math.max(1, Math.ceil(total / pageSize));
+  const safePage = Math.min(Math.max(1, page), pageCount);
+  const assets = await prisma.mediaAsset.findMany({ where, orderBy: [{ createdAt: 'desc' }, { id: 'asc' }], skip: (safePage - 1) * pageSize, take: pageSize });
+  return { assets: assets.map(withPublicUrl), total, page: safePage, pageSize, pageCount };
 }
 
 export async function listPublishedMedia() {

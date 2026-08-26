@@ -1,6 +1,7 @@
 import { MediaCollectionType } from '@/generated/prisma/browser';
 
 import { prisma } from '@/lib/prisma';
+import { isPublicMediaAsset } from './public-media-asset';
 
 export type ReferenceCollectionMetadata = {
   isVisible: boolean;
@@ -18,8 +19,7 @@ async function referencesCollection() {
 
 export async function addReferenceMedia(mediaAssetId: string) {
   const collection = await referencesCollection();
-  const asset = await prisma.mediaAsset.findFirst({ where: { id: mediaAssetId, deletionRequestedAt: null }, select: { id: true } });
-  if (!asset) throw new Error('REFERENCE_MEDIA_ASSET_NOT_FOUND');
+  if (!(await isPublicMediaAsset(mediaAssetId))) throw new Error('REFERENCE_MEDIA_ASSET_NOT_PUBLIC');
 
   // Současné přidání může mezi aggregate a create obsadit další pořadí; opakování
   // pak načte aktuální maximum. Duplicitní membership vrací existující řádek.

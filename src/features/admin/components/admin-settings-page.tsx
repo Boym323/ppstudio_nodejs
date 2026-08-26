@@ -18,6 +18,9 @@ export function AdminSettingsPage({
     contactEmail: string;
     instagramUrl: string | null;
     voucherPdfLogoMediaId: string | null;
+    contactPhotoMediaId: string | null;
+    homePortraitMediaId: string | null;
+    aboutPortraitMediaId: string | null;
     voucherPdfLogoOptions: Array<{
       id: string;
       title: string | null;

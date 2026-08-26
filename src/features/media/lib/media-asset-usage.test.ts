@@ -24,10 +24,10 @@ test('getMediaAssetUsage vrátí použití v SiteSettings, MediaCollectionItem i
     assert.deepEqual(args, {
       where: {
         OR: [
-          { voucherPdfLogoMediaId: 'media-used' },
-          { contactPhotoMediaId: 'media-used' },
-          { homePortraitMediaId: 'media-used' },
-          { aboutPortraitMediaId: 'media-used' },
+          { voucherPdfLogoMediaId: { in: ['media-used'] } },
+          { contactPhotoMediaId: { in: ['media-used'] } },
+          { homePortraitMediaId: { in: ['media-used'] } },
+          { aboutPortraitMediaId: { in: ['media-used'] } },
         ],
       },
       select: {
@@ -48,17 +48,17 @@ test('getMediaAssetUsage vrátí použití v SiteSettings, MediaCollectionItem i
   };
   mutableCollectionItems.findMany = async (args) => {
     assert.deepEqual(args, {
-      where: { mediaAssetId: 'media-used' },
-      select: { id: true, collection: { select: { type: true } } },
+      where: { mediaAssetId: { in: ['media-used'] } },
+      select: { id: true, mediaAssetId: true, collection: { select: { type: true } } },
     });
-    return [{ id: 'collection-item', collection: { type: 'REFERENCES' } }];
+    return [{ id: 'collection-item', mediaAssetId: 'media-used', collection: { type: 'REFERENCES' } }];
   };
   mutableServiceMedia.findMany = async (args) => {
     assert.deepEqual(args, {
-      where: { mediaAssetId: 'media-used' },
-      select: { id: true, role: true, service: { select: { name: true, slug: true } } },
+      where: { mediaAssetId: { in: ['media-used'] } },
+      select: { id: true, mediaAssetId: true, role: true, service: { select: { name: true, slug: true } } },
     });
-    return [{ id: 'service-media', role: 'HERO', service: { name: 'Lash lifting', slug: 'lash-lifting' } }];
+    return [{ id: 'service-media', mediaAssetId: 'media-used', role: 'HERO', service: { name: 'Lash lifting', slug: 'lash-lifting' } }];
   };
 
   try {

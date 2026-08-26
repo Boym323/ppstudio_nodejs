@@ -51,3 +51,25 @@ test("reorder galerie používá dočasné pořadí před finálním 10/20 pořa
     assert.equal(tx.rows.find((row) => row.id === "other-service")?.sortOrder, 10);
   }
 });
+
+test("přidání do galerie zopakuje pouze konflikt pořadí z paralelního vložení", async () => {
+  process.env.NEXT_PUBLIC_APP_URL ??= 'https://example.com';
+  process.env.DATABASE_URL ??= 'postgresql://postgres:postgres@localhost:5432/ppstudio?schema=public';
+  process.env.ADMIN_SESSION_SECRET ??= 'test-secret-value-with-at-least-32-chars';
+  process.env.ADMIN_OWNER_EMAIL ??= 'owner@example.com';
+  process.env.EMAIL_DELIVERY_MODE ??= 'log';
+  const { createServiceGalleryMediaWithRetry } = await import("@/features/admin/actions/service-media-actions");
+  let aggregateCalls = 0;
+  let upsertCalls = 0;
+  const db = { serviceMedia: {
+    aggregate: async () => ({ _max: { sortOrder: ++aggregateCalls === 1 ? 10 : 20 } }),
+    upsert: async (args: { create: { sortOrder: number } }) => {
+      upsertCalls += 1;
+      if (upsertCalls === 1) throw { code: 'P2002', meta: { target: ['ServiceMedia_serviceId_role_sortOrder_key'] } };
+      return args.create;
+    },
+  } };
+  assert.deepEqual(await createServiceGalleryMediaWithRetry('service', 'asset', db as never), { serviceId: 'service', mediaAssetId: 'asset', role: ServiceMediaRole.GALLERY, sortOrder: 30 });
+  assert.equal(aggregateCalls, 2);
+  await assert.rejects(() => createServiceGalleryMediaWithRetry('service', 'asset', { serviceMedia: { aggregate: db.serviceMedia.aggregate, upsert: async () => { throw { code: 'P2002', meta: { target: ['ServiceMedia_serviceId_role_mediaAssetId_key'] } }; } } } as never));
+});

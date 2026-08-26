@@ -11,7 +11,10 @@ export type UpdateSalonSettingsActionState = {
       | "phone"
       | "contactEmail"
       | "instagramUrl"
-      | "voucherPdfLogoMediaId",
+      | "voucherPdfLogoMediaId"
+      | "contactPhotoMediaId"
+      | "homePortraitMediaId"
+      | "aboutPortraitMediaId",
       string
     >
   >;

@@ -20,7 +20,8 @@ async function createAsset() {
   const { prisma } = await import("@/lib/prisma");
   const suffix = randomUUID();
 
-  return prisma.mediaAsset.create({
+  try {
+    return await prisma.mediaAsset.create({
     data: {
       originalFilename: `${suffix}.jpg`,
       fileName: `${suffix}.jpg`,
@@ -30,7 +31,12 @@ async function createAsset() {
       storagePath: `test/media-library-v2/${suffix}.jpg`,
       url: `/media/public/test/media-library-v2/${suffix}.jpg`,
     },
-  });
+    });
+  } catch (error) {
+    const details = error as { name?: string; code?: string; meta?: unknown; message?: string; cause?: unknown };
+    console.error('MediaAsset fixture failed', { name: details.name, code: details.code, meta: details.meta, message: details.message, cause: details.cause });
+    throw error;
+  }
 }
 
 dbTest("MediaCollectionItem zachovává unikátní a deterministické pořadí a blokuje smazání assetu", async () => {

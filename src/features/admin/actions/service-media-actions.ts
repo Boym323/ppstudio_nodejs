@@ -7,17 +7,11 @@ import { type AdminArea } from "@/config/navigation";
 import { requireAdminSectionAccess } from "@/features/admin/lib/admin-guards";
 import { reorderServiceGallery } from "@/features/admin/lib/service-media-reorder";
 import { prisma } from "@/lib/prisma";
+import { isPublicMediaAsset } from "@/features/media/lib/public-media-asset";
 
 function read(formData: FormData, key: string) {
   const value = formData.get(key);
   return typeof value === "string" ? value : "";
-}
-
-async function ensurePublicAsset(mediaAssetId: string) {
-  return prisma.mediaAsset.findFirst({
-    where: { id: mediaAssetId, isPublished: true, visibility: "PUBLIC", deletionRequestedAt: null },
-    select: { id: true },
-  });
 }
 
 function revalidateServiceMedia() {
@@ -41,7 +35,7 @@ export async function setServiceHeroMediaAction(formData: FormData) {
   const serviceId = read(formData, "serviceId");
   const mediaAssetId = read(formData, "mediaAssetId");
   await authorize(area, serviceId);
-  if (!(await ensurePublicAsset(mediaAssetId))) throw new Error("Pro veřejnou službu lze vybrat jen publikované veřejné médium.");
+  if (!(await isPublicMediaAsset(mediaAssetId))) throw new Error("Pro veřejnou službu lze vybrat jen publikované veřejné médium.");
 
   const existing = await prisma.serviceMedia.findFirst({ where: { serviceId, role: ServiceMediaRole.HERO }, select: { id: true } });
   if (existing) {
@@ -65,18 +59,34 @@ export async function addServiceGalleryMediaAction(formData: FormData) {
   const serviceId = read(formData, "serviceId");
   const mediaAssetId = read(formData, "mediaAssetId");
   await authorize(area, serviceId);
-  if (!(await ensurePublicAsset(mediaAssetId))) throw new Error("Pro veřejnou službu lze vybrat jen publikované veřejné médium.");
-
-  const last = await prisma.serviceMedia.aggregate({
-    where: { serviceId, role: ServiceMediaRole.GALLERY },
-    _max: { sortOrder: true },
-  });
-  await prisma.serviceMedia.upsert({
-    where: { serviceId_role_mediaAssetId: { serviceId, role: ServiceMediaRole.GALLERY, mediaAssetId } },
-    create: { serviceId, mediaAssetId, role: ServiceMediaRole.GALLERY, sortOrder: (last._max.sortOrder ?? -10) + 10 },
-    update: {},
-  });
+  if (!(await isPublicMediaAsset(mediaAssetId))) throw new Error("Pro veřejnou službu lze vybrat jen publikované veřejné médium.");
+  await createServiceGalleryMediaWithRetry(serviceId, mediaAssetId);
   revalidateServiceMedia();
+}
+
+function isServiceGallerySortOrderConflict(error: unknown) {
+  if (!(typeof error === 'object' && error !== null && 'code' in error && error.code === 'P2002')) return false;
+  const target = 'meta' in error && typeof error.meta === 'object' && error.meta !== null && 'target' in error.meta ? error.meta.target : undefined;
+  return JSON.stringify(target).includes('serviceId_role_sortOrder');
+}
+
+export async function createServiceGalleryMediaWithRetry(serviceId: string, mediaAssetId: string, db = prisma) {
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      const last = await db.serviceMedia.aggregate({
+        where: { serviceId, role: ServiceMediaRole.GALLERY },
+        _max: { sortOrder: true },
+      });
+      return await db.serviceMedia.upsert({
+        where: { serviceId_role_mediaAssetId: { serviceId, role: ServiceMediaRole.GALLERY, mediaAssetId } },
+        create: { serviceId, mediaAssetId, role: ServiceMediaRole.GALLERY, sortOrder: (last._max.sortOrder ?? -10) + 10 },
+        update: {},
+      });
+    } catch (error) {
+      if (!isServiceGallerySortOrderConflict(error) || attempt === 2) throw error;
+    }
+  }
+  throw new Error('SERVICE_GALLERY_CREATE_FAILED');
 }
 
 export async function removeServiceGalleryMediaAction(formData: FormData) {

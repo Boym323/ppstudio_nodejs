@@ -22,10 +22,12 @@ import {
 import { prisma } from "@/lib/prisma";
 import {
   isSenderEmailAllowedBySmtpPolicy,
+  ensureSiteSettings,
   persistSiteSettingsSnapshot,
 } from "@/lib/site-settings";
 import { sendDirectOwnerPushover } from "@/lib/notifications/pushover";
 import { updateSiteSettingsWithAudit } from "@/features/admin/lib/site-settings-audit";
+import { isPublicMediaAsset } from "@/features/media/lib/public-media-asset";
 import { isValidDateKey } from "@/features/admin/lib/admin-slots/time";
 
 import { type UpdateBookingSettingsActionState } from "./update-booking-settings-action-state";
@@ -138,6 +140,9 @@ export async function updateSalonSettingsAction(
     contactEmail: readFormString(formData, "contactEmail"),
     instagramUrl: readFormString(formData, "instagramUrl"),
     voucherPdfLogoMediaId: readFormString(formData, "voucherPdfLogoMediaId"),
+    contactPhotoMediaId: readFormString(formData, "contactPhotoMediaId"),
+    homePortraitMediaId: readFormString(formData, "homePortraitMediaId"),
+    aboutPortraitMediaId: readFormString(formData, "aboutPortraitMediaId"),
   });
 
   if (!parsed.success) {
@@ -155,6 +160,9 @@ export async function updateSalonSettingsAction(
         contactEmail: fieldErrors.contactEmail?.[0],
         instagramUrl: fieldErrors.instagramUrl?.[0],
         voucherPdfLogoMediaId: fieldErrors.voucherPdfLogoMediaId?.[0],
+        contactPhotoMediaId: fieldErrors.contactPhotoMediaId?.[0],
+        homePortraitMediaId: fieldErrors.homePortraitMediaId?.[0],
+        aboutPortraitMediaId: fieldErrors.aboutPortraitMediaId?.[0],
       },
     };
   }
@@ -162,6 +170,18 @@ export async function updateSalonSettingsAction(
   const actorUserId = await getActorUserId();
   if (!actorUserId) return { status: "error", formError: "Aktuální OWNER účet nebyl nalezen." };
   const voucherPdfLogoMediaId = parsed.data.voucherPdfLogoMediaId || null;
+  const singularMedia = {
+    contactPhotoMediaId: parsed.data.contactPhotoMediaId || null,
+    homePortraitMediaId: parsed.data.homePortraitMediaId || null,
+    aboutPortraitMediaId: parsed.data.aboutPortraitMediaId || null,
+  };
+  const currentSettings = await ensureSiteSettings();
+
+  for (const [field, mediaAssetId] of Object.entries(singularMedia) as Array<[keyof typeof singularMedia, string | null]>) {
+    if (mediaAssetId && mediaAssetId !== currentSettings[field] && !(await isPublicMediaAsset(mediaAssetId))) {
+      return { status: "error", formError: "Pro veřejný web lze vybrat jen publikované veřejné médium.", fieldErrors: { [field]: "Vyberte publikované veřejné médium." } };
+    }
+  }
 
   if (voucherPdfLogoMediaId) {
     const logoAsset = await prisma.mediaAsset.findFirst({
@@ -189,6 +209,7 @@ export async function updateSalonSettingsAction(
       ...parsed.data,
       instagramUrl: parsed.data.instagramUrl || null,
       voucherPdfLogoMediaId,
+      ...singularMedia,
     };
   const savedSettings = await updateSiteSettingsWithAudit({
     actorUserId,
@@ -199,6 +220,7 @@ export async function updateSalonSettingsAction(
         salonName: current.salonName, addressLine: current.addressLine, city: current.city,
         postalCode: current.postalCode, phone: current.phone, contactEmail: current.contactEmail,
         instagramUrl: current.instagramUrl, voucherPdfLogoMediaId: current.voucherPdfLogoMediaId,
+        contactPhotoMediaId: current.contactPhotoMediaId, homePortraitMediaId: current.homePortraitMediaId, aboutPortraitMediaId: current.aboutPortraitMediaId,
       },
       after: salonData,
     }),

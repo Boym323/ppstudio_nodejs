@@ -36,6 +36,9 @@ export const updateSalonSettingsSchema = z.object({
     "Instagram odkaz musí začínat na http:// nebo https://.",
   ),
   voucherPdfLogoMediaId: z.string().trim().max(128, "Vybrané médium není platné.").optional().or(z.literal("")),
+  contactPhotoMediaId: z.string().trim().max(128, "Vybrané médium není platné.").optional().or(z.literal("")),
+  homePortraitMediaId: z.string().trim().max(128, "Vybrané médium není platné.").optional().or(z.literal("")),
+  aboutPortraitMediaId: z.string().trim().max(128, "Vybrané médium není platné.").optional().or(z.literal("")),
 });
 
 export const updateBookingSettingsSchema = z.object({

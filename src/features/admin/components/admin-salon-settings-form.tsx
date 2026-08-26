@@ -28,6 +28,9 @@ export function AdminSalonSettingsForm({
     contactEmail: string;
     instagramUrl: string | null;
     voucherPdfLogoMediaId: string | null;
+    contactPhotoMediaId: string | null;
+    homePortraitMediaId: string | null;
+    aboutPortraitMediaId: string | null;
     voucherPdfLogoOptions: Array<{
       id: string;
       title: string | null;
@@ -145,6 +148,19 @@ export function AdminSalonSettingsForm({
             </SettingsField>
           </div>
         </div>
+      </SettingsSection>
+
+      <SettingsSection title="Fotografie veřejného webu" description="Vyberte již publikované médium z Media Library; soubor se nekopíruje.">
+        {([
+          ["contactPhotoMediaId", "Kontaktní fotografie", "Bez fotografie"],
+          ["homePortraitMediaId", "Homepage portrét", "Bez portrétu"],
+          ["aboutPortraitMediaId", "About portrét", "Bez portrétu"],
+        ] as const).map(([name, label, emptyLabel]) => <SettingsField key={name} label={label}>
+          <select name={name} defaultValue={settings[name] ?? ""} className={settingsSelectClassName}>
+            <option value="">{emptyLabel}</option>
+            {settings.voucherPdfLogoOptions.map((asset) => <option key={asset.id} value={asset.id}>{asset.title ?? asset.originalFilename} · {asset.mimeType}</option>)}
+          </select>
+        </SettingsField>)}
       </SettingsSection>
 
       <SettingsSection

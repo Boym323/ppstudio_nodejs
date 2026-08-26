@@ -1,7 +1,7 @@
 import { ensureSiteSettings } from "@/lib/site-settings";
 import { prisma } from "@/lib/prisma";
 import { getOwnerCalendarFeedAdminState } from "@/features/calendar/lib/calendar-feed-service";
-import { listMedia } from "@/features/media/lib/media-library";
+import { listPublishedMedia } from "@/features/media/lib/media-library";
 
 export async function getAdminSettingsPageData(email: string) {
   const [settings, calendarFeed, ownerNotificationSettings, mediaAssets] = await Promise.all([
@@ -31,7 +31,7 @@ export async function getAdminSettingsPageData(email: string) {
         },
       },
     }),
-    listMedia(),
+    listPublishedMedia(),
   ]);
 
   const formatDateTime = new Intl.DateTimeFormat("cs-CZ", {
@@ -51,6 +51,9 @@ export async function getAdminSettingsPageData(email: string) {
     contactEmail: settings.contactEmail,
     instagramUrl: settings.instagramUrl,
     voucherPdfLogoMediaId: settings.voucherPdfLogoMediaId,
+    contactPhotoMediaId: settings.contactPhotoMediaId ?? null,
+    homePortraitMediaId: settings.homePortraitMediaId ?? null,
+    aboutPortraitMediaId: settings.aboutPortraitMediaId ?? null,
     voucherPdfLogoOptions: mediaAssets.map((asset) => ({
       id: asset.id,
       title: asset.title,
