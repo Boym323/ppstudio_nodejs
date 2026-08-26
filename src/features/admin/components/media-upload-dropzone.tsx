@@ -1,21 +1,30 @@
 'use client';
 
-import { useId, useRef, useState } from 'react';
+/* eslint-disable @next/next/no-img-element -- Lokální Blob URL je určená pouze pro náhled před uploadem. */
+
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 
 type MediaUploadDropzoneProps = {
   name: string;
   accept: string;
+  supportedTypes: string;
 };
 
-export function MediaUploadDropzone({ name, accept }: MediaUploadDropzoneProps) {
+export function MediaUploadDropzone({ name, accept, supportedTypes }: MediaUploadDropzoneProps) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const inputId = useId();
 
   function syncSelectedFile() {
-    setSelectedFileName(inputRef.current?.files?.[0]?.name ?? null);
+    setSelectedFile(inputRef.current?.files?.[0] ?? null);
   }
+
+  const previewUrl = useMemo(() => selectedFile?.type.startsWith('image/') ? URL.createObjectURL(selectedFile) : null, [selectedFile]);
+
+  useEffect(() => () => {
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+  }, [previewUrl]);
 
   return (
     <div className="space-y-2">
@@ -49,11 +58,13 @@ export function MediaUploadDropzone({ name, accept }: MediaUploadDropzoneProps) 
         <p className="mt-4 text-sm font-semibold text-white sm:text-base">
           Přetáhněte obrázek nebo klikněte pro výběr
         </p>
-        <p className="mt-1 text-xs text-white/56">JPG, PNG nebo WebP</p>
+        <p className="mt-1 text-xs text-white/56">{supportedTypes}</p>
         <p className="mt-4 min-h-5 text-sm text-[var(--color-accent-soft)]">
-          {selectedFileName ?? 'Zatím není vybraný žádný soubor'}
+          {selectedFile?.name ?? 'Zatím není vybraný žádný soubor'}
         </p>
       </label>
+
+      {previewUrl ? <img src={previewUrl} alt="Náhled vybraného obrázku" className="max-h-52 w-full rounded-[1.1rem] border border-white/10 object-contain"/> : null}
 
       <input
         ref={inputRef}
