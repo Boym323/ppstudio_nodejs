@@ -8,10 +8,10 @@ process.env.DATABASE_URL ??= 'postgresql://postgres:postgres@localhost:5432/ppst
 
 const dbTest = process.env.RUN_DB_INTEGRATION_TESTS === '1' ? test : test.skip;
 
-async function createAsset() {
+async function createAsset(overrides: { visibility?: 'PUBLIC' | 'PRIVATE'; isPublished?: boolean; deletionRequestedAt?: Date | null } = {}) {
   const { prisma } = await import('@/lib/prisma');
   const suffix = randomUUID();
-  return prisma.mediaAsset.create({ data: { originalFilename: `${suffix}.jpg`, fileName: `${suffix}.jpg`, mimeType: 'image/jpeg', extension: 'jpg', size: 1, storagePath: `test/collection-order/${suffix}.jpg`, url: `/media/public/test/collection-order/${suffix}.jpg` } });
+  return prisma.mediaAsset.create({ data: { originalFilename: `${suffix}.jpg`, fileName: `${suffix}.jpg`, mimeType: 'image/jpeg', extension: 'jpg', size: 1, storagePath: `test/collection-order/${suffix}.jpg`, url: `/media/public/test/collection-order/${suffix}.jpg`, ...overrides } });
 }
 
 for (const type of ['STUDIO_GALLERY', 'CERTIFICATES'] as const) {
@@ -47,6 +47,39 @@ for (const type of ['STUDIO_GALLERY', 'CERTIFICATES'] as const) {
 
       await prisma.mediaCollectionItem.deleteMany({ where: { collectionId: collection.id, mediaAssetId: assets[3].id } });
       assert.ok(await prisma.mediaAsset.findUnique({ where: { id: assets[3].id } }));
+    } finally {
+      await prisma.mediaCollectionItem.deleteMany({ where: { mediaAssetId: { in: assets.map((asset) => asset.id) } } });
+      await prisma.mediaAsset.deleteMany({ where: { id: { in: assets.map((asset) => asset.id) } } });
+    }
+  });
+}
+
+for (const type of ['STUDIO_GALLERY', 'CERTIFICATES'] as const) {
+  dbTest(`${type} vytvoří nové membership jen pro publikované veřejné aktivní médium`, async () => {
+    const [{ prisma }, { saveMediaCollectionMembership }] = await Promise.all([
+      import('@/lib/prisma'), import('./media-collection-order'),
+    ]);
+    const assets = await Promise.all([
+      createAsset(),
+      createAsset({ isPublished: false }),
+      createAsset({ deletionRequestedAt: new Date() }),
+      createAsset({ visibility: 'PRIVATE' }),
+    ]);
+
+    try {
+      const collection = await prisma.mediaCollection.upsert({ where: { type }, create: { type }, update: {} });
+      await prisma.mediaCollectionItem.deleteMany({ where: { collectionId: collection.id } });
+
+      assert.ok(await prisma.$transaction((tx) => saveMediaCollectionMembership(tx, collection.id, assets[0].id, true, { requirePublicAsset: true })));
+      for (const asset of assets.slice(1)) {
+        assert.equal(await prisma.$transaction((tx) => saveMediaCollectionMembership(tx, collection.id, asset.id, true, { requirePublicAsset: true })), null);
+      }
+      assert.equal(await prisma.$transaction((tx) => saveMediaCollectionMembership(tx, collection.id, randomUUID(), true, { requirePublicAsset: true })), null);
+
+      const invalidMembership = await prisma.mediaCollectionItem.create({ data: { collectionId: collection.id, mediaAssetId: assets[1].id, isVisible: true, sortOrder: 20 } });
+      const updated = await prisma.$transaction((tx) => saveMediaCollectionMembership(tx, collection.id, assets[1].id, false, { requirePublicAsset: true }));
+      assert.equal(updated?.id, invalidMembership.id);
+      assert.equal(updated?.isVisible, false);
     } finally {
       await prisma.mediaCollectionItem.deleteMany({ where: { mediaAssetId: { in: assets.map((asset) => asset.id) } } });
       await prisma.mediaAsset.deleteMany({ where: { id: { in: assets.map((asset) => asset.id) } } });

@@ -1,5 +1,7 @@
 import type { Prisma } from '@/generated/prisma/client';
 
+import { isPublicMediaAsset } from './public-media-asset';
+
 /** Přepíše pořadí přes dočasné záporné hodnoty, aby nikdy nenarazilo na unique(collectionId, sortOrder). */
 export async function moveMediaCollectionItem(tx: Prisma.TransactionClient, collectionId: string, id: string, direction: 'up' | 'down') {
   const rows = await tx.mediaCollectionItem.findMany({
@@ -23,12 +25,20 @@ export async function moveMediaCollectionItem(tx: Prisma.TransactionClient, coll
 }
 
 /** Nové membershipy vždy zařadí na konec; existující pouze upraví viditelnost. */
-export async function saveMediaCollectionMembership(tx: Prisma.TransactionClient, collectionId: string, mediaAssetId: string, isVisible: boolean) {
+export async function saveMediaCollectionMembership(
+  tx: Prisma.TransactionClient,
+  collectionId: string,
+  mediaAssetId: string,
+  isVisible: boolean,
+  options?: { requirePublicAsset?: boolean },
+) {
   const existing = await tx.mediaCollectionItem.findUnique({
     where: { collectionId_mediaAssetId: { collectionId, mediaAssetId } },
     select: { id: true },
   });
   if (existing) return tx.mediaCollectionItem.update({ where: { id: existing.id }, data: { isVisible } });
+
+  if (options?.requirePublicAsset && !(await isPublicMediaAsset(mediaAssetId, tx))) return null;
 
   const last = await tx.mediaCollectionItem.aggregate({ where: { collectionId }, _max: { sortOrder: true } });
   return tx.mediaCollectionItem.create({

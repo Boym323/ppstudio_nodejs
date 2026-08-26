@@ -110,7 +110,7 @@ export async function updateMediaCollectionMembershipAction(formData: FormData) 
   const assetId = formData.get('assetId');
   const collectionType = formData.get('collectionType');
   const action = formData.get('action');
-  if ((area !== 'owner' && area !== 'salon') || typeof assetId !== 'string' || !Object.values(MediaCollectionType).includes(collectionType as MediaCollectionType)) {
+  if ((area !== 'owner' && area !== 'salon') || typeof assetId !== 'string' || !Object.values(MediaCollectionType).includes(collectionType as MediaCollectionType) || (action !== 'add' && action !== 'save' && action !== 'remove' && action !== 'move')) {
     redirect('/admin/media?flash=media-membership-invalid-payload');
   }
   await requireAdminSectionAccess(area, 'media');
@@ -134,7 +134,16 @@ export async function updateMediaCollectionMembershipAction(formData: FormData) 
   } else {
     const isVisible = formData.get('isVisible') !== 'false';
     await prisma.$transaction(async (tx) => {
-      await saveMediaCollectionMembership(tx, collection.id, assetId, isVisible);
+      const membership = await saveMediaCollectionMembership(
+        tx,
+        collection.id,
+        assetId,
+        isVisible,
+        collectionType === MediaCollectionType.STUDIO_GALLERY || collectionType === MediaCollectionType.CERTIFICATES
+          ? { requirePublicAsset: true }
+          : undefined,
+      );
+      if (!membership) redirect(flashUrl(area, formData.get('returnTo'), 'media-membership-asset-not-public'));
     });
   }
   revalidateMediaPaths(area);
