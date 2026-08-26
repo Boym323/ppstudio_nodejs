@@ -8,6 +8,8 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 <!-- END:nextjs-agent-rules -->
 
+For Media Library work, read docs/architecture/media.md.
+
 U běžných úprav komponent, stylů, textů nebo existující logiky dokumentaci Next.js automaticky neprocházej.
 
 ## Práce s kontextem a rozsahem
