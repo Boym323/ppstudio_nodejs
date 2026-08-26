@@ -5,8 +5,8 @@ import { getMediaRedirectUrl } from './admin-media-validation';
 
 test('redirect médií zachová stránku a aktivní filtry', () => {
   assert.equal(
-    getMediaRedirectUrl('owner', '/admin/media?page=3&q=cert&usage=UNUSED&collection=CERTIFICATES', 'media-update-success'),
-    '/admin/media?page=3&q=cert&usage=UNUSED&collection=CERTIFICATES&flash=media-update-success',
+    getMediaRedirectUrl('owner', '/admin/media?page=3&q=cert&usage=UNUSED&publication=HIDDEN&collection=CERTIFICATES', 'media-update-success'),
+    '/admin/media?page=3&q=cert&usage=UNUSED&publication=HIDDEN&collection=CERTIFICATES&flash=media-update-success',
   );
 });
 

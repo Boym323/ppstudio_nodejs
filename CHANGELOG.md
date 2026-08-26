@@ -26,6 +26,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- Administrace Media Library nyní filtruje publikovaná a skrytá média a v horních statistikách zobrazuje celkové počty aktivních assetů podle stavu publikace.
 - Nahrávání v administrativní Media Library se nyní otevírá v dialogu přímo z horního tlačítka, jasně uvádí publikování nového média i limity souboru a během zpracování zobrazuje průběh.
 - Nastavení webu nyní pro kontaktní fotografii a oba portréty nabízí vizuální výběr publikovaných veřejných médií s náhledem, změnou a odebráním fotografie.
 - CI, Security Audit a CodeQL lze nyní ručně spustit v GitHub Actions bez vytváření dalšího commitu.
