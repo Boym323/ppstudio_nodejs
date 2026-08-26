@@ -15,9 +15,10 @@ function setTestEnv() {
 
 function buildAsset(storagePath: string) {
   return {
+    storageProvider: 'LOCAL',
     visibility: 'PUBLIC',
     storagePath,
-    storedFilename: storagePath.split('/').pop(),
+    fileName: storagePath.split('/').pop(),
     mimeType: 'image/jpeg',
     size: 3,
     optimizedStoragePath: null,

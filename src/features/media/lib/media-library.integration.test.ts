@@ -7,8 +7,6 @@ import { join } from 'node:path';
 import test from 'node:test';
 import sharp from 'sharp';
 
-import { MediaType } from '@/generated/prisma/browser';
-
 process.env.DATABASE_URL ??= 'postgresql://postgres:postgres@localhost:5432/ppstudio?schema=public';
 process.env.NEXT_PUBLIC_APP_URL ??= 'https://example.com';
 process.env.ADMIN_SESSION_SECRET ??= 'test-secret-value-with-at-least-32-chars';
@@ -29,7 +27,6 @@ dbTest('použitý asset nelze smazat a neúspěšný replace zachová původní 
   const onePixelPng = await sharp({ create: { width: 1, height: 1, channels: 3, background: '#ffffff' } }).png().toBuffer();
   const asset = await createMedia({
     file: new File([onePixelPng], 'asset.png', { type: 'image/png' }),
-    type: MediaType.CERTIFICATE,
   });
 
   try {
@@ -42,7 +39,6 @@ dbTest('použitý asset nelze smazat a neúspěšný replace zachová původní 
 
     await assert.rejects(() => replaceMediaAsset(asset.id, {
       file: new File([Buffer.from('neplatný soubor')], 'asset.txt', { type: 'text/plain' }),
-      type: MediaType.CERTIFICATE,
     }), { message: 'MEDIA_FILE_TYPE_UNSUPPORTED' });
     const afterFailedReplace = await prisma.mediaAsset.findUniqueOrThrow({ where: { id: asset.id } });
     assert.equal(afterFailedReplace.id, asset.id);
@@ -51,7 +47,6 @@ dbTest('použitý asset nelze smazat a neúspěšný replace zachová původní 
     const replacementPng = await sharp({ create: { width: 2, height: 2, channels: 3, background: '#000000' } }).png().toBuffer();
     const replaced = await replaceMediaAsset(asset.id, {
       file: new File([replacementPng], 'replacement.png', { type: 'image/png' }),
-      type: MediaType.CERTIFICATE,
     });
     assert.equal(replaced.id, asset.id);
     assert.notEqual(replaced.storagePath, asset.storagePath);

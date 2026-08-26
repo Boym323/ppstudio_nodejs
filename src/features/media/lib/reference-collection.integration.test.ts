@@ -15,7 +15,7 @@ const dbTest = process.env.RUN_DB_INTEGRATION_TESTS === '1' ? test : test.skip;
 async function createAsset() {
   const { prisma } = await import('@/lib/prisma');
   const suffix = randomUUID();
-  return prisma.mediaAsset.create({ data: { kind: 'CONTENT', type: 'GENERAL', originalFilename: `${suffix}.jpg`, fileName: `${suffix}.jpg`, storedFilename: `${suffix}.jpg`, mimeType: 'image/jpeg', extension: 'jpg', sizeBytes: 1, size: 1, storagePath: `test/references/${suffix}.jpg`, url: `/media/public/test/references/${suffix}.jpg` } });
+  return prisma.mediaAsset.create({ data: { originalFilename: `${suffix}.jpg`, fileName: `${suffix}.jpg`, mimeType: 'image/jpeg', extension: 'jpg', size: 1, storagePath: `test/references/${suffix}.jpg`, url: `/media/public/test/references/${suffix}.jpg` } });
 }
 
 dbTest('REFERENCES spravují membership, metadata, pořadí a usage bez smazání assetu', async () => {

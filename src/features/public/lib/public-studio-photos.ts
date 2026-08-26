@@ -8,7 +8,7 @@ import {
   getPublicContactPhotoAsset,
   getPublicMediaCollectionItems,
 } from '@/features/public/lib/public-media-relations';
-import { localMediaStorage } from '@/lib/media/local-media-storage';
+import { getMediaStorageAdapter } from '@/lib/media/media-storage';
 
 export type PublicStudioPhoto = PublicImageAsset;
 
@@ -70,7 +70,7 @@ async function filterAvailableAssets<
       );
 
       for (const storagePath of candidatePaths) {
-        const exists = await localMediaStorage.fileExists(asset.visibility, storagePath);
+        const exists = await getMediaStorageAdapter(asset.storageProvider).fileExists(asset.visibility, storagePath);
         if (exists) {
           return item;
         }

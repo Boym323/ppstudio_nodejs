@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 
 import { getPublicMediaAssetByPath } from '@/features/media/lib/media-asset-repository';
-import { localMediaStorage } from '@/lib/media/local-media-storage';
+import { getMediaStorageAdapter } from '@/lib/media/media-storage';
 import { assertSafeStoragePath } from '@/lib/media/media-path';
 import { publicMediaStorageRoots, resolveAssetVariant } from '@/lib/media/media-route';
 
@@ -35,14 +35,14 @@ export async function GET(
   }
 
   try {
-    const file = await localMediaStorage.readFile(asset.visibility, variant.storagePath);
+    const file = await getMediaStorageAdapter(asset.storageProvider).readFile(asset.visibility, variant.storagePath);
 
-    return new NextResponse(file, {
+    return new NextResponse(Uint8Array.from(file), {
       headers: {
         'Content-Type': variant.mimeType,
         'Cache-Control': 'public, max-age=31536000, immutable',
         'Content-Length': String(variant.size),
-        'Content-Disposition': `inline; filename="${variant.storagePath.split('/').pop() ?? asset.storedFilename}"`,
+        'Content-Disposition': `inline; filename="${variant.storagePath.split('/').pop() ?? asset.fileName}"`,
         'X-Content-Type-Options': 'nosniff',
       },
     });

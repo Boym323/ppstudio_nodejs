@@ -129,23 +129,6 @@ enum MediaAssetVisibility {
   PRIVATE
 }
 
-enum MediaAssetKind {
-  CERTIFICATE
-  SPACE
-  REFERENCE
-  CONTENT
-}
-
-enum MediaType {
-  CERTIFICATE
-  SALON_PHOTO
-  CONTACT_PHOTO
-  PORTRAIT
-  PORTRAIT_HOME
-  PORTRAIT_ABOUT
-  GENERAL
-}
-
 enum MediaCollectionType {
   CERTIFICATES
   STUDIO_GALLERY
@@ -958,18 +941,13 @@ model MediaAsset {
   id                     String                @id @default(cuid())
   storageProvider        MediaStorageProvider  @default(LOCAL)
   visibility             MediaAssetVisibility  @default(PUBLIC)
-  kind                   MediaAssetKind
-  type                   MediaType             @default(CERTIFICATE)
   originalFilename       String
   fileName               String
-  storedFilename         String
   mimeType               String
   extension              String
-  sizeBytes              Int
   size                   Int
   width                  Int?
   height                 Int?
-  alt                    String?
   altText                String?
   title                  String?
   storagePath            String                @unique
@@ -986,7 +964,6 @@ model MediaAsset {
   thumbnailWidth         Int?
   thumbnailHeight        Int?
   thumbnailSize          Int?
-  sortOrder              Int?
   isPublished            Boolean               @default(true)
   deletionRequestedAt    DateTime?
   createdAt              DateTime              @default(now())
@@ -998,12 +975,10 @@ model MediaAsset {
   collectionItems        MediaCollectionItem[]
   serviceMedia           ServiceMedia[]
 
-  @@index([type, isPublished, sortOrder])
   @@index([deletionRequestedAt])
-  @@index([type, createdAt])
-  @@index([kind, createdAt])
-  @@index([visibility, kind, createdAt])
-  @@index([storageProvider, kind, createdAt])
+  @@index([createdAt])
+  @@index([visibility, createdAt])
+  @@index([storageProvider, createdAt])
 }
 
 model MediaCollection {

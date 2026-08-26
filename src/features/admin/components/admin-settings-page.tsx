@@ -23,7 +23,6 @@ export function AdminSettingsPage({
       title: string | null;
       originalFilename: string;
       mimeType: string;
-      type: string;
       thumbnailPublicUrl: string | null;
     }>;
     bookingMinAdvanceHours: number;
