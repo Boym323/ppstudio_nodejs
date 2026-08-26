@@ -612,7 +612,7 @@ Produkční HTML templates jsou v `src/lib/email/react-email/` a sdílené kompo
 - Server action adaptéry pro média jsou v `src/features/admin/actions/media-actions.ts`; validace vstupu je v `src/features/admin/lib/admin-media-validation.ts`.
 - Sekci `Média` drž jako kompaktní pracovní plochu: krátký header, menší statistické boxy, upload panel s dropzónou, tabs s počty a hustší grid 2-3 karet podle šířky viewportu.
 - Admin karty médií mají kromě typu a publish stavu i text `Použití`, aby obsluha rovnou viděla, zda asset patří do `O mně`, `Studia`, `Kontaktu` nebo budoucích hero/banner bloků.
-- Quick publish/unpublish v knihovně má používat existující `updateMediaAction`; po mutaci zachovej aktivní filtr, aby se obsluha nevracela zbytečně na `Vše`.
+- Quick publish/unpublish v knihovně má používat samostatnou `updateMediaPublicationAction`; po mutaci zachovej aktivní filtr, aby se obsluha nevracela zbytečně na `Vše`.
 - Sekce `Nastavení` má vlastní workflow v `src/features/admin/components/admin-settings-page.tsx` a už neběží přes generický placeholder renderer.
 - Formuláře pro `Salon`, `Rezervace` a `E-maily a notifikace` jsou oddělené do samostatných client komponent a server action adaptérů v `src/features/admin/actions/settings-actions.ts`.
 - Sekce `Nastavení` nově obsahuje i owner-only kalendářový workflow:

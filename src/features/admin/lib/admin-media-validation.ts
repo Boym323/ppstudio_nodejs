@@ -9,11 +9,16 @@ export const uploadMediaSchema = z.object({
   altText: z.string().trim().max(160, 'Alt text může mít maximálně 160 znaků.').optional(),
 });
 
-export const updateMediaSchema = z.object({
+export const updateMediaMetadataSchema = z.object({
   area: adminAreaSchema,
   assetId: z.cuid(),
   title: z.string().trim().max(120, 'Titulek může mít maximálně 120 znaků.').optional(),
   altText: z.string().trim().max(160, 'Alt text může mít maximálně 160 znaků.').optional(),
+});
+
+export const updateMediaPublicationSchema = z.object({
+  area: adminAreaSchema,
+  assetId: z.cuid(),
   isPublished: z.enum(['true', 'false']).transform((value) => value === 'true'),
 });
 

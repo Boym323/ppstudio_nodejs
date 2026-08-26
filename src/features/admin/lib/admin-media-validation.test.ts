@@ -1,7 +1,18 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { getMediaRedirectUrl } from './admin-media-validation';
+import { getMediaRedirectUrl, updateMediaMetadataSchema, updateMediaPublicationSchema } from './admin-media-validation';
+
+test('schémata metadat a publikace přijímají nezávislé payloady', () => {
+  assert.deepEqual(
+    updateMediaMetadataSchema.parse({ area: 'owner', assetId: 'clh2g4m9e0000l7089a8z0x2b', title: 'Titulek', altText: 'Popis' }),
+    { area: 'owner', assetId: 'clh2g4m9e0000l7089a8z0x2b', title: 'Titulek', altText: 'Popis' },
+  );
+  assert.deepEqual(
+    updateMediaPublicationSchema.parse({ area: 'owner', assetId: 'clh2g4m9e0000l7089a8z0x2b', isPublished: 'true' }),
+    { area: 'owner', assetId: 'clh2g4m9e0000l7089a8z0x2b', isPublished: true },
+  );
+});
 
 test('redirect médií zachová stránku a aktivní filtry', () => {
   assert.equal(

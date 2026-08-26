@@ -10,7 +10,8 @@ import {
   getMediaAdminPath,
   getMediaRedirectUrl,
   normalizeOptionalText,
-  updateMediaSchema,
+  updateMediaMetadataSchema,
+  updateMediaPublicationSchema,
   uploadMediaSchema,
 } from '@/features/admin/lib/admin-media-validation';
 import { prisma } from '@/lib/prisma';
@@ -144,13 +145,12 @@ export async function updateMediaCollectionMembershipAction(formData: FormData) 
   redirect(flashUrl(area, formData.get('returnTo'), 'media-membership-success'));
 }
 
-export async function updateMediaAction(formData: FormData) {
-  const parsed = updateMediaSchema.safeParse({
+export async function updateMediaMetadataAction(formData: FormData) {
+  const parsed = updateMediaMetadataSchema.safeParse({
     area: formData.get('area'),
     assetId: formData.get('assetId'),
     title: formData.get('title'),
     altText: formData.get('altText'),
-    isPublished: formData.get('isPublished'),
   });
 
   if (!parsed.success) {
@@ -162,6 +162,26 @@ export async function updateMediaAction(formData: FormData) {
   await updateMedia(parsed.data.assetId, {
     title: normalizeOptionalText(parsed.data.title),
     altText: normalizeOptionalText(parsed.data.altText),
+  });
+
+  revalidateMediaPaths(parsed.data.area);
+  redirect(flashUrl(parsed.data.area, formData.get('returnTo'), 'media-update-success'));
+}
+
+export async function updateMediaPublicationAction(formData: FormData) {
+  const parsed = updateMediaPublicationSchema.safeParse({
+    area: formData.get('area'),
+    assetId: formData.get('assetId'),
+    isPublished: formData.get('isPublished'),
+  });
+
+  if (!parsed.success) {
+    redirect('/admin/media?flash=media-update-invalid-payload');
+  }
+
+  await requireAdminSectionAccess(parsed.data.area, 'media');
+
+  await updateMedia(parsed.data.assetId, {
     isPublished: parsed.data.isPublished,
   });
 

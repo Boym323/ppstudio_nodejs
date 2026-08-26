@@ -27,7 +27,7 @@ test('nepoužité médium a publikování nevyžadují potvrzení, zrušení pub
   const source = await readFile(detailDialogPath, 'utf8');
 
   assert.match(source, /return isPublished && isUsed/);
-  assert.match(source, /if \(!requiresUnpublishConfirmation\(asset\.isPublished, usage\.isUsed\)\) return <form action=\{updateMediaAction\}/);
+  assert.match(source, /if \(!requiresUnpublishConfirmation\(asset\.isPublished, usage\.isUsed\)\) return <form action=\{updateMediaPublicationAction\}/);
   assert.match(source, /asset\.isPublished \? 'Zrušit publikaci' : 'Publikovat'/);
   assert.match(source, /return <AlertDialog\.Root>/);
 });
@@ -39,8 +39,10 @@ test('potvrzení zrušení publikace zachová action i returnTo a zrušení nic 
   assert.match(publishAction, /Po zrušení publikace může zmizet z veřejného webu/);
   assert.match(publishAction, /usage\.references\.length/);
   assert.match(publishAction, /visibleReferences = usage\.references\.slice\(0, 3\)/);
-  assert.match(publishAction, /<form action=\{updateMediaAction\}/);
+  assert.match(publishAction, /<form action=\{updateMediaPublicationAction\}/);
   assert.match(publishAction, /name="returnTo" value=\{returnTo\}/);
+  assert.doesNotMatch(publishAction, /name="title"/);
+  assert.doesNotMatch(publishAction, /name="altText"/);
   assert.match(publishAction, /<AlertDialog\.Cancel asChild><button type="button"[^>]*>Ponechat publikované/);
   assert.match(publishAction, /<PendingSubmitButton[^>]*>Zrušit publikaci<\/PendingSubmitButton>/);
 });

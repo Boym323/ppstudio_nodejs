@@ -1,5 +1,5 @@
 export {
   deleteMediaAction as deleteCertificateAction,
-  updateMediaAction,
+  updateMediaMetadataAction as updateMediaAction,
   uploadMediaAction as uploadCertificateAction,
 } from '@/features/admin/actions/media-actions';
