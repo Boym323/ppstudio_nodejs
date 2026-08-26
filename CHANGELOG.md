@@ -13,6 +13,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Náhled certifikátů v administrativní Media Library se nyní v gridu nezkracuje a neaktivní stránkovací ovladače nejsou fokusovatelné odkazy.
 - Zrušení publikace média používaného na webu nyní před provedením ukáže jeho použití a vyžádá potvrzení, aby fotografie nechtěně nezmizela z veřejného webu.
 - Akce v administrativní Media Library nyní po uložení, publikaci, náhradě souboru, správě kolekce i smazání zachovají aktivní stránku a filtry; návratová URL je omezená na aktuální bezpečnou administrační oblast médií.
 - Picker při přidávání referencí nyní nabízí všechny publikované assety z Media Library nezávisle na aktivním filtru REFERENCES a nezobrazuje už přidané reference.

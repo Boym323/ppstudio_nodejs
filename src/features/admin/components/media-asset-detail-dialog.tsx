@@ -58,6 +58,7 @@ function usageLabel(reference: Usage['references'][number]) {
 export function MediaAssetDetailDialog({ area, asset, usage, memberships, returnTo }: { area: AdminArea; asset: Asset; usage: Usage; memberships: Membership[]; returnTo: string }) {
   const preview = asset.publicUrl ?? asset.thumbnailPublicUrl ?? asset.adminPreviewUrl;
   const isAdminPreview = !asset.isPublished && Boolean(asset.adminPreviewUrl);
+  const isDocumentStyle = memberships.some((membership) => membership.type === 'CERTIFICATES');
   const fileName = asset.originalFilename ?? asset.fileName;
 
   return (
@@ -65,7 +66,7 @@ export function MediaAssetDetailDialog({ area, asset, usage, memberships, return
       <Dialog.Trigger asChild>
         <button type="button" className="group block w-full overflow-hidden rounded-[1.35rem] border border-white/10 bg-white/[0.04] text-left transition-colors hover:border-white/16 hover:bg-white/[0.055] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]" aria-label={`Otevřít detail média ${asset.title || fileName}`}>
           <div className="relative aspect-[4/3] overflow-hidden bg-black/25">
-            {isAdminPreview ? <img src={asset.adminPreviewUrl!} alt={asset.altText ?? asset.title ?? asset.fileName} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"/> : preview ? <Image src={preview} alt={asset.altText ?? asset.title ?? asset.fileName} fill sizes="(min-width: 1536px) 20vw, (min-width: 1024px) 28vw, 50vw" className="object-cover transition-transform duration-300 group-hover:scale-[1.02]"/> : <div className="flex h-full items-center justify-center text-sm text-white/45">Skrytý náhled</div>}
+            {isAdminPreview ? <img src={asset.adminPreviewUrl!} alt={asset.altText ?? asset.title ?? asset.fileName} className={`h-full w-full ${isDocumentStyle ? 'object-contain' : 'object-cover'} transition-transform duration-300 group-hover:scale-[1.02]`}/> : preview ? <Image src={preview} alt={asset.altText ?? asset.title ?? asset.fileName} fill sizes="(min-width: 1536px) 20vw, (min-width: 1024px) 28vw, 50vw" className={`${isDocumentStyle ? 'object-contain' : 'object-cover'} transition-transform duration-300 group-hover:scale-[1.02]`}/> : <div className="flex h-full items-center justify-center text-sm text-white/45">Skrytý náhled</div>}
             <span className={`absolute bottom-3 left-3 rounded-full border px-2.5 py-1 text-xs font-medium shadow-sm backdrop-blur ${asset.isPublished ? 'border-emerald-200/15 bg-emerald-950/75 text-emerald-100' : 'border-white/15 bg-black/60 text-white/75'}`}>{asset.isPublished ? 'Publikováno' : 'Skryto'}</span>
           </div>
           <div className="min-h-[8.75rem] space-y-2.5 p-3.5">

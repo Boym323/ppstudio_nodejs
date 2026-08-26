@@ -64,3 +64,15 @@ test('Media Library filtruje publikaci, zachová ji v URL a statistiky počítá
     collectionItem.findMany = original.collectionFindMany;
   }
 });
+
+test('Media Library používá document preview pro certifikáty a neinteraktivní disabled pagination', async () => {
+  const pageSource = await readFile(new URL('./admin-media-page.tsx', import.meta.url), 'utf8');
+  const dialogSource = await readFile(new URL('./media-asset-detail-dialog.tsx', import.meta.url), 'utf8');
+
+  assert.match(dialogSource, /memberships\.some\(\(membership\) => membership\.type === 'CERTIFICATES'\)/);
+  assert.match(dialogSource, /isDocumentStyle \? 'object-contain' : 'object-cover'/);
+  assert.match(pageSource, /<PaginationControl href=\{href\(\{ page: displayPage > 1 \? String\(displayPage - 1\) : undefined \}\)\} disabled=\{displayPage <= 1\}>Předchozí<\/PaginationControl>/);
+  assert.match(pageSource, /<PaginationControl href=\{href\(\{ page: displayPage < pageCount \? String\(displayPage \+ 1\) : undefined \}\)\} disabled=\{displayPage >= pageCount\}>Další<\/PaginationControl>/);
+  assert.match(pageSource, /return disabled \? <span className=\{className\}>\{children\}<\/span> : <Link href=\{href\} className=\{className\}>\{children\}<\/Link>/);
+  assert.doesNotMatch(pageSource, /aria-disabled=\{displayPage/);
+});
