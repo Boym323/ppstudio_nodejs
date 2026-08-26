@@ -6,6 +6,10 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+### Zabezpečení
+
+- Next.js a navazující ESLint konfigurace byly aktualizovány na bezpečnostní verzi 16.3.3.
+
 ### Přidáno
 
 - Filtry Studio a Certifikáty v Media Library nyní otevírají vlastní správu celé kolekce s přidáním z knihovny, viditelností, řazením a bezpečným odebráním pouze vazby.
