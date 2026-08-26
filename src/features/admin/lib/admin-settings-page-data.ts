@@ -56,7 +56,6 @@ export async function getAdminSettingsPageData(email: string) {
       title: asset.title,
       originalFilename: asset.originalFilename,
       mimeType: asset.mimeType,
-      type: asset.type,
       thumbnailPublicUrl: asset.thumbnailPublicUrl,
     })),
     bookingMinAdvanceHours: settings.bookingMinAdvanceHours,

@@ -6,8 +6,30 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+### Přidáno
+
+- Administrace médií nyní umožňuje spravovat fotografie referencí z existující Media Library včetně pořadí, viditelnosti a vlastních popisků; použití v referencích bezpečně blokuje smazání assetu.
+
+### Opraveno
+
+- Reorder galerie služby nyní nejprve použije unikátní dočasné pořadí, takže přesun položek nekoliduje s immediate unique constraintem.
+- Media Library zachovává aktivní filtry při hledání, v pohledu `REFERENCES` nezobrazuje duplicitní knihovní grid a detail assetu umožňuje spravovat membership Reference.
+- Media Library v administraci nyní zřetelně rozlišuje lidský název od názvu souboru, vysvětluje blokované smazání konkrétními vazbami a při úpravách, nahrazení i správě vazeb zobrazuje průběh akce; MediaPicker má jasný výběr, prázdný stav a ovladatelnější mobilní prvky.
+- Správa médií nyní blokuje smazání assetu používaného v nastavení webu; bezpečná náhrada zachovává jeho identitu a při selhání nepřijde o dosavadní funkční soubor.
+- Veřejná media route nyní přijímá neutrální cesty nových uploadů `images/YYYY/MM/...`, aniž by odvozovala význam média z URL; dosavadní legacy URL zůstávají dostupné.
+
 ### Změněno
 
+- Produkční backfill médií nyní vyžaduje přesnou databázi `ppstudio` a explicitní příznak `--confirm-production`; bez něj i při běžném `--confirm` provede pouze rollbackovaný dry-run.
+- Detail assetu v administrativní Media Library se nyní otevírá mimo stabilní grid v přístupném dialogu; odděluje náhled, metadata, použití, kolekce a destruktivní akce, přičemž fyzické smazání nepoužívaného assetu vyžaduje nezvratné potvrzení.
+- Výběr médií pro hlavní fotografii a galerii služby i pro reference se nyní otevírá v přístupném dialogu; detail zůstává kompaktní a výběr nadále vytváří jen existující vazby na assety.
+- Media Library v administraci má kompaktnější responsivní grid, přehlednější hierarchii karet a oddělené části detailu pro soubor, použití, úpravy a destruktivní akci.
+- Detail služby v administraci nyní umožňuje vybrat hlavní fotografii a řazenou galerii z Media Library; veřejný detail zobrazuje pouze publikované veřejné assety a zachovává dosavadní vzhled bez fotografií jako fallback.
+- Administrace Média je nyní relační knihovna assetů s vyhledáváním, filtry skutečného použití, správou kolekcí a bezpečným nahrazením souboru; nové uploady ukládá do neutrální cesty `images/YYYY/MM/...`.
+- Veřejné certifikáty, galerie studia, kontaktní fotografie a portréty nyní čtou relační vazby Media Library v2; respektují viditelnost a pořadí membershipů i publikovatelnost assetů, zatímco stávající URL a bezpečné fallbacky zůstávají zachované.
+- Přibyl ručně spouštěný, transakční a opakovatelný DEV/test backfill, který podle auditované mapy naplní kolekce médií a singularní vazby nastavení bez přepnutí runtime nebo změny legacy assetů.
+- Datový model médií nově podporuje relační kolekce certifikátů, galerie studia a referencí i samostatné vazby pro kontaktní fotografii a portréty, aniž by měnil dosavadní zobrazování nebo data.
+- Odstraněn historický media kontrakt `MediaType`, `MediaAssetKind`, globální pořadí a duplicitní metadata; použití médií nyní určuje relační model.
 - Detail služby v administraci nyní nabízí bezpečný odkaz na veřejnou stránku, kontrolu chybějících částí obsahu a při převaze obecných úprav jednotnou historii změn včetně cenového auditu.
 - Detail služby v administraci nyní zobrazuje jednotný stav Veřejná, Interní nebo Neaktivní a před uložením srozumitelně vysvětluje dopad na rezervace, dostupnost a změnu délky.
 - Detail služby v administraci nyní upozorní na neuložené změny, chrání je při zavření a nabízí sticky akce pro uložení i uložení se zavřením.
@@ -15,6 +37,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Typecheck nyní ignoruje pouze deployment release artefakty `current`, `previous` a `releases`, takže staré release symlinky neblokují přípravu nového nasazení.
 - Mobilní návrat ze služby v administraci nyní stejně jako desktopový drawer chrání neuložené změny před nechtěným zahozením.
 
 ## [3.22.10] - 2026-08-25

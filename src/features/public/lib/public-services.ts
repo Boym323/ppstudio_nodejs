@@ -19,6 +19,13 @@ type PublicServiceRow = Prisma.ServiceGetPayload<{
   };
 }>;
 
+type PublicServiceMediaRow = {
+  role: "HERO" | "GALLERY";
+  sortOrder: number;
+  altText: string | null;
+  mediaAsset: { altText: string | null; optimizedUrl: string | null; url: string; thumbnailUrl: string | null };
+};
+
 type PublicPricingCategoryRow = Prisma.ServiceCategoryGetPayload<{
   include: {
     services: {
@@ -244,7 +251,13 @@ function buildPlaceholderBrief(service: PublicServiceRow) {
   return `Autentický detail ${getServiceDisplayName(service).toLowerCase()} v prostoru salonu, jemné světlo, čisté prostředí a minimum stock vzhledu.`;
 }
 
-function mapService(service: PublicServiceRow): Service {
+export function mapService(service: PublicServiceRow & { media?: PublicServiceMediaRow[] }): Service {
+  const media = service.media ?? [];
+  const image = (item: PublicServiceMediaRow) => ({
+    src: item.mediaAsset.optimizedUrl ?? item.mediaAsset.url,
+    alt: item.altText ?? item.mediaAsset.altText ?? getServiceDisplayName(service),
+  });
+  const hero = media.find((item) => item.role === "HERO");
   return {
     slug: service.slug,
     name: getServiceDisplayName(service),
@@ -261,6 +274,8 @@ function mapService(service: PublicServiceRow): Service {
     placeholderAssetBrief: buildPlaceholderBrief(service),
     seoTitle: service.seoTitle ?? undefined,
     seoDescription: service.seoDescription ?? buildServiceIntro(service),
+    heroImage: hero ? image(hero) : undefined,
+    galleryImages: media.filter((item) => item.role === "GALLERY").map(image),
   };
 }
 
@@ -324,6 +339,11 @@ export async function getPublicServices(): Promise<Service[]> {
           name: true,
           publicName: true,
         },
+      },
+      media: {
+        where: { mediaAsset: { is: { isPublished: true, visibility: "PUBLIC", deletionRequestedAt: null } } },
+        orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
+        select: { role: true, sortOrder: true, altText: true, mediaAsset: { select: { altText: true, optimizedUrl: true, url: true, thumbnailUrl: true } } },
       },
     },
   });
@@ -458,6 +478,11 @@ export async function getPublicServiceBySlug(slug: string): Promise<Service | nu
         select: {
           name: true,
         },
+      },
+      media: {
+        where: { mediaAsset: { is: { isPublished: true, visibility: "PUBLIC", deletionRequestedAt: null } } },
+        orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
+        select: { role: true, sortOrder: true, altText: true, mediaAsset: { select: { altText: true, optimizedUrl: true, url: true, thumbnailUrl: true } } },
       },
     },
   });

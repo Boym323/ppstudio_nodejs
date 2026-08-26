@@ -5,6 +5,7 @@ import {
   AdminRouteDrawer,
 } from "@/features/admin/components/admin-route-drawer";
 import { AdminServiceForm } from "@/features/admin/components/admin-service-form";
+import { ServiceMediaSection } from "@/features/admin/components/service-media-section";
 import { AdminServicesList } from "@/features/admin/components/admin-services-list";
 import { AdminServicesToolbar } from "@/features/admin/components/admin-services-toolbar";
 import { formatServicePrice } from "@/features/admin/lib/admin-service-format";
@@ -94,6 +95,7 @@ export async function AdminServicesPage({
         }}
       />
     ) : data.selectedService ? (
+      <>
       <AdminServiceForm
         key={`service-form-edit-${data.selectedService.id}`}
         mode="edit"
@@ -131,6 +133,14 @@ export async function AdminServicesPage({
         }}
         categories={data.categories}
       />
+      <ServiceMediaSection
+        area={area}
+        serviceId={data.selectedService.id}
+        assets={data.mediaAssets}
+        hero={data.selectedService.media.find((item) => item.role === "HERO") ?? null}
+        gallery={data.selectedService.media.filter((item) => item.role === "GALLERY")}
+      />
+      </>
     ) : (
       <div className="rounded-[1.5rem] border border-dashed border-white/14 bg-white/4 p-5">
         <p className="text-base font-medium text-white">Ve filtru není žádná služba k úpravě.</p>

@@ -1,6 +1,6 @@
 'use server';
 
-import { MediaType } from '@/generated/prisma/browser';
+import { MediaCollectionType } from '@/generated/prisma/browser';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
@@ -12,15 +12,12 @@ import {
   updateMediaSchema,
   uploadMediaSchema,
 } from '@/features/admin/lib/admin-media-validation';
-import { createMedia, deleteMedia, updateMedia } from '@/features/media/lib/media-library';
+import { prisma } from '@/lib/prisma';
+import { createMedia, deleteMedia, replaceMediaAsset, updateMedia } from '@/features/media/lib/media-library';
 
-function flashUrl(area: 'owner' | 'salon', flash: string, redirectFilter?: 'ALL' | MediaType) {
+function flashUrl(area: 'owner' | 'salon', flash: string) {
   const basePath = getMediaAdminPath(area);
   const searchParams = new URLSearchParams({ flash });
-
-  if (redirectFilter && redirectFilter !== 'ALL') {
-    searchParams.set('type', redirectFilter);
-  }
 
   return `${basePath}?${searchParams.toString()}`;
 }
@@ -54,11 +51,8 @@ function mapUploadErrorToFlash(error: unknown) {
 export async function uploadMediaAction(formData: FormData) {
   const parsed = uploadMediaSchema.safeParse({
     area: formData.get('area'),
-    type: formData.get('type') ?? MediaType.CERTIFICATE,
     title: formData.get('title'),
     altText: formData.get('altText'),
-    sortOrder: formData.get('sortOrder'),
-    redirectFilter: formData.get('redirectFilter') || undefined,
   });
 
   if (!parsed.success) {
@@ -70,36 +64,95 @@ export async function uploadMediaAction(formData: FormData) {
   const file = formData.get('file');
 
   if (!(file instanceof File) || file.size <= 0) {
-    redirect(flashUrl(parsed.data.area, 'media-upload-missing-file', parsed.data.redirectFilter));
+    redirect(flashUrl(parsed.data.area, 'media-upload-missing-file'));
   }
 
   try {
     await createMedia({
       file,
-      type: parsed.data.type,
       isPublished: true,
       title: normalizeOptionalText(parsed.data.title),
       altText: normalizeOptionalText(parsed.data.altText),
-      sortOrder: parsed.data.sortOrder ?? null,
     });
   } catch (error) {
-    redirect(flashUrl(parsed.data.area, mapUploadErrorToFlash(error), parsed.data.redirectFilter));
+    redirect(flashUrl(parsed.data.area, mapUploadErrorToFlash(error)));
   }
 
   revalidateMediaPaths(parsed.data.area);
-  redirect(flashUrl(parsed.data.area, 'media-upload-success', parsed.data.redirectFilter));
+  redirect(flashUrl(parsed.data.area, 'media-upload-success'));
+}
+
+export async function replaceMediaAction(formData: FormData) {
+  const area = formData.get('area');
+  const assetId = formData.get('assetId');
+  if ((area !== 'owner' && area !== 'salon') || typeof assetId !== 'string') redirect('/admin/media?flash=media-replace-invalid-payload');
+  await requireAdminSectionAccess(area, 'media');
+  const file = formData.get('file');
+  if (!(file instanceof File) || file.size <= 0) redirect(flashUrl(area, 'media-upload-missing-file'));
+  try {
+    const current = await prisma.mediaAsset.findUnique({ where: { id: assetId } });
+    if (!current || current.deletionRequestedAt) redirect(flashUrl(area, 'media-replace-invalid-payload'));
+    await replaceMediaAsset(assetId, {
+      file,
+      isPublished: current.isPublished,
+      title: current.title,
+      altText: current.altText,
+    });
+  } catch (error) {
+    redirect(flashUrl(area, mapUploadErrorToFlash(error)));
+  }
+  revalidateMediaPaths(area);
+  redirect(flashUrl(area, 'media-replace-success'));
+}
+
+export async function updateMediaCollectionMembershipAction(formData: FormData) {
+  const area = formData.get('area');
+  const assetId = formData.get('assetId');
+  const collectionType = formData.get('collectionType');
+  const action = formData.get('action');
+  if ((area !== 'owner' && area !== 'salon') || typeof assetId !== 'string' || !Object.values(MediaCollectionType).includes(collectionType as MediaCollectionType)) {
+    redirect('/admin/media?flash=media-membership-invalid-payload');
+  }
+  await requireAdminSectionAccess(area, 'media');
+  const collection = await prisma.mediaCollection.upsert({
+    where: { type: collectionType as MediaCollectionType }, create: { type: collectionType as MediaCollectionType }, update: {},
+  });
+  if (action === 'remove') {
+    await prisma.mediaCollectionItem.deleteMany({ where: { collectionId: collection.id, mediaAssetId: assetId } });
+  } else {
+    const rawSortOrder = formData.get('sortOrder');
+    const sortOrder = typeof rawSortOrder === 'string' && rawSortOrder.trim() !== '' ? Number(rawSortOrder) : null;
+    const isVisible = formData.get('isVisible') !== 'false';
+    await prisma.$transaction(async (tx) => {
+      const existing = await tx.mediaCollectionItem.findUnique({ where: { collectionId_mediaAssetId: { collectionId: collection.id, mediaAssetId: assetId } }, select: { id: true, sortOrder: true } });
+      const last = await tx.mediaCollectionItem.aggregate({ where: { collectionId: collection.id }, _max: { sortOrder: true } });
+      const requested = sortOrder !== null && Number.isInteger(sortOrder) && sortOrder >= 0 ? sortOrder : null;
+      const itemId = existing?.id ?? (await tx.mediaCollectionItem.create({ data: { collectionId: collection.id, mediaAssetId: assetId, isVisible, sortOrder: (last._max.sortOrder ?? -1) + 1 }, select: { id: true } })).id;
+      await tx.mediaCollectionItem.update({ where: { id: itemId }, data: { isVisible } });
+      if (requested === null) return;
+      if (existing && requested === existing.sortOrder) return;
+
+      const rows = await tx.mediaCollectionItem.findMany({ where: { collectionId: collection.id }, orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }], select: { id: true, sortOrder: true } });
+      const currentIndex = rows.findIndex((row) => row.id === itemId);
+      if (currentIndex < 0) return;
+      const reordered = rows.filter((row) => row.id !== itemId);
+      reordered.splice(Math.min(requested, reordered.length), 0, rows[currentIndex]);
+      const minimum = Math.min(...rows.map((row) => row.sortOrder), 0);
+      await Promise.all(reordered.map((row, index) => tx.mediaCollectionItem.update({ where: { id: row.id }, data: { sortOrder: minimum - index - 1 } })));
+      await Promise.all(reordered.map((row, index) => tx.mediaCollectionItem.update({ where: { id: row.id }, data: { sortOrder: index } })));
+    });
+  }
+  revalidateMediaPaths(area);
+  redirect(flashUrl(area, 'media-membership-success'));
 }
 
 export async function updateMediaAction(formData: FormData) {
   const parsed = updateMediaSchema.safeParse({
     area: formData.get('area'),
     assetId: formData.get('assetId'),
-    type: formData.get('type'),
     title: formData.get('title'),
     altText: formData.get('altText'),
-    sortOrder: formData.get('sortOrder'),
     isPublished: formData.get('isPublished'),
-    redirectFilter: formData.get('redirectFilter') || undefined,
   });
 
   if (!parsed.success) {
@@ -109,22 +162,19 @@ export async function updateMediaAction(formData: FormData) {
   await requireAdminSectionAccess(parsed.data.area, 'media');
 
   await updateMedia(parsed.data.assetId, {
-    type: parsed.data.type,
     title: normalizeOptionalText(parsed.data.title),
     altText: normalizeOptionalText(parsed.data.altText),
     isPublished: parsed.data.isPublished,
-    sortOrder: parsed.data.sortOrder ?? null,
   });
 
   revalidateMediaPaths(parsed.data.area);
-  redirect(flashUrl(parsed.data.area, 'media-update-success', parsed.data.redirectFilter));
+  redirect(flashUrl(parsed.data.area, 'media-update-success'));
 }
 
 export async function deleteMediaAction(formData: FormData) {
   const parsed = deleteMediaSchema.safeParse({
     area: formData.get('area'),
     assetId: formData.get('assetId'),
-    redirectFilter: formData.get('redirectFilter') || undefined,
   });
 
   if (!parsed.success) {
@@ -132,8 +182,15 @@ export async function deleteMediaAction(formData: FormData) {
   }
 
   await requireAdminSectionAccess(parsed.data.area, 'media');
-  await deleteMedia(parsed.data.assetId);
+  try {
+    await deleteMedia(parsed.data.assetId);
+  } catch (error) {
+    if (error instanceof Error && error.message === 'MEDIA_ASSET_IN_USE') {
+      redirect(flashUrl(parsed.data.area, 'media-delete-in-use'));
+    }
+    throw error;
+  }
 
   revalidateMediaPaths(parsed.data.area);
-  redirect(flashUrl(parsed.data.area, 'media-delete-success', parsed.data.redirectFilter));
+  redirect(flashUrl(parsed.data.area, 'media-delete-success'));
 }

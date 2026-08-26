@@ -19,6 +19,8 @@ function hasRequiredDelegates(client: PrismaClient) {
     serviceChangeLog?: unknown;
     siteSettingsChangeLog?: unknown;
     emailProviderWebhookEvent?: unknown;
+    mediaCollectionItem?: unknown;
+    serviceMedia?: unknown;
   };
 
   return Boolean(
@@ -26,7 +28,9 @@ function hasRequiredDelegates(client: PrismaClient) {
     && candidate.voucherChangeLog
     && candidate.serviceChangeLog
     && candidate.siteSettingsChangeLog
-    && candidate.emailProviderWebhookEvent,
+    && candidate.emailProviderWebhookEvent
+    && candidate.mediaCollectionItem
+    && candidate.serviceMedia,
   );
 }
 
