@@ -42,6 +42,10 @@ const fieldLabels: Record<string, string> = {
 };
 const bytes = (value: number) => value < 1024 * 1024 ? `${Math.max(1, Math.round(value / 1024))} KB` : `${(value / 1024 / 1024).toFixed(1)} MB`;
 
+export function requiresUnpublishConfirmation(isPublished: boolean, isUsed: boolean) {
+  return isPublished && isUsed;
+}
+
 function usageLabel(reference: Usage['references'][number]) {
   if (reference.source === 'MediaCollectionItem') return reference.field === 'REFERENCES' ? 'Reference' : 'Kolekce médií';
   if (reference.source === 'ServiceMedia') {
@@ -111,7 +115,7 @@ export function MediaAssetDetailDialog({ area, asset, usage, memberships, return
                   <label className="text-xs text-white/60">Výchozí alt text<input name="altText" defaultValue={asset.altText ?? ''} maxLength={160} className="mt-1 w-full rounded-[.7rem] border border-white/10 bg-black/20 px-2.5 py-2 text-sm text-white"/></label>
                   <PendingSubmitButton pendingLabel="Ukládám…" className="min-h-10 w-fit rounded-full border border-white/12 px-3.5 py-2 text-xs">Uložit metadata</PendingSubmitButton>
                 </form>
-                <form action={updateMediaAction}><input type="hidden" name="area" value={area}/><input type="hidden" name="assetId" value={asset.id}/><input type="hidden" name="returnTo" value={returnTo}/><input type="hidden" name="title" value={asset.title ?? ''}/><input type="hidden" name="altText" value={asset.altText ?? ''}/><input type="hidden" name="isPublished" value={asset.isPublished ? 'false' : 'true'}/><PendingSubmitButton pendingLabel="Ukládám…" className="min-h-10 rounded-full border border-white/12 px-3.5 py-2 text-xs">{asset.isPublished ? 'Skrýt' : 'Publikovat'}</PendingSubmitButton></form>
+                <PublishAction area={area} asset={asset} usage={usage} returnTo={returnTo}/>
               </section>
 
               <section className="space-y-3 rounded-[1rem] border border-white/8 bg-black/10 p-4">
@@ -135,6 +139,16 @@ export function MediaAssetDetailDialog({ area, asset, usage, memberships, return
       </Dialog.Portal>
     </Dialog.Root>
   );
+}
+
+function PublishAction({ area, asset, usage, returnTo }: { area: AdminArea; asset: Asset; usage: Usage; returnTo: string }) {
+  const formFields = <><input type="hidden" name="area" value={area}/><input type="hidden" name="assetId" value={asset.id}/><input type="hidden" name="returnTo" value={returnTo}/><input type="hidden" name="title" value={asset.title ?? ''}/><input type="hidden" name="altText" value={asset.altText ?? ''}/><input type="hidden" name="isPublished" value={asset.isPublished ? 'false' : 'true'}/></>;
+
+  if (!requiresUnpublishConfirmation(asset.isPublished, usage.isUsed)) return <form action={updateMediaAction}>{formFields}<PendingSubmitButton pendingLabel="Ukládám…" className="min-h-10 rounded-full border border-white/12 px-3.5 py-2 text-xs">{asset.isPublished ? 'Zrušit publikaci' : 'Publikovat'}</PendingSubmitButton></form>;
+
+  const visibleReferences = usage.references.slice(0, 3);
+  const remainingReferences = usage.references.length - visibleReferences.length;
+  return <AlertDialog.Root><AlertDialog.Trigger asChild><button type="button" className="min-h-10 rounded-full border border-white/12 px-3.5 py-2 text-xs">Zrušit publikaci</button></AlertDialog.Trigger><AlertDialog.Portal><AlertDialog.Overlay className="z-[100]"/><AlertDialog.Content className="z-[110] rounded-[1.4rem] border border-white/10 bg-[#131116] p-5 shadow-[0_20px_70px_rgba(0,0,0,0.45)] sm:p-6"><AlertDialog.Title>Zrušit publikaci používaného média?</AlertDialog.Title><AlertDialog.Description>Médium je použité na {usage.references.length} {usage.references.length === 1 ? 'místě' : 'místech'}. Po zrušení publikace může zmizet z veřejného webu.</AlertDialog.Description><ul className="mt-3 space-y-1 text-sm text-white/72">{visibleReferences.map((reference) => <li key={`${reference.source}-${reference.recordId}-${reference.field}`}>{usageLabel(reference)}</li>)}{remainingReferences > 0 ? <li>a další {remainingReferences} {remainingReferences === 1 ? 'použití' : 'použití'}</li> : null}</ul><form action={updateMediaAction} className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">{formFields}<AlertDialog.Cancel asChild><button type="button" className="min-h-10 rounded-full border border-white/12 px-4 py-2 text-sm text-white/80">Ponechat publikované</button></AlertDialog.Cancel><PendingSubmitButton pendingLabel="Ukládám…" className="min-h-10 rounded-full border border-amber-200/25 bg-amber-300/10 px-4 py-2 text-sm font-semibold text-amber-50">Zrušit publikaci</PendingSubmitButton></form></AlertDialog.Content></AlertDialog.Portal></AlertDialog.Root>;
 }
 
 function Memberships({ area, assetId, memberships, returnTo }: { area: AdminArea; assetId: string; memberships: Membership[]; returnTo: string }) {
