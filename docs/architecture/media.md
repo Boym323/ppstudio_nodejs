@@ -37,7 +37,11 @@ Stručný kontext aktuální implementace Media Library.
 - Filtry Studio a Certifikáty otevírají správu celé dané kolekce nezávisle na ostatních filtrech knihovny; grid se v tomto pohledu nezobrazuje duplicitně.
 - Usage se zjišťuje hromadně přes `getMediaAssetUsageBatch`.
 - `returnTo` zachovává aktuální media route, query kontext a po akci přidává
-  flash zprávu; neplatná hodnota vede na základní route dané oblasti.
+  flash zprávu; u správy Studio a Certifikátů používá pouze kanonický collection
+  kontext. Neplatná hodnota vede na základní route dané oblasti.
+- Správa Studio a Certifikátů má vlastní kanonickou URL `collection=<typ>`;
+  knihovní parametry `q`, `usage`, `publication` a `page` se z ní odstraňují,
+  přičemž `flash` po serverové akci zůstává zachovaný.
 - `MediaUploadDialog` je pouze UI formulář nad existující serverovou upload
   pipeline (`uploadMediaAction` → `createMedia` → validace, zpracování a zápis).
 

@@ -14,6 +14,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Správa kolekcí Studio a Certifikáty nyní používá vlastní kanonickou URL bez nefunkčních filtrů knihovny; po nahrání či jiné akci zůstává uživatel ve stejné kolekci.
 - Studio a Certifikáty nyní odmítnou nově zařadit nepublikované, neveřejné, mazané nebo neexistující médium, takže v administraci nevznikne vazba potlačená na veřejném webu.
 - Náhrada souboru u média používaného na webu nyní před provedením zobrazí počet a místa použití a vyžádá potvrzení, aby se obrázek nechtěně nezměnil všude.
 - Publikování a skrytí média nyní mění pouze stav publikace, takže už nemůže přepsat souběžně rozepsaný titulek nebo alt text.

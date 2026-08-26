@@ -36,6 +36,19 @@ export function getMediaAdminPath(area: AdminArea) {
   return area === 'owner' ? '/admin/media' : '/admin/provoz/media';
 }
 
+type MediaSearchParams = Record<string, string | string[] | undefined>;
+
+export function getManagedCollectionCanonicalUrl(area: AdminArea, searchParams: MediaSearchParams) {
+  const collection = typeof searchParams.collection === 'string' ? searchParams.collection : undefined;
+  if (collection !== 'STUDIO_GALLERY' && collection !== 'CERTIFICATES') return null;
+
+  if (!['q', 'usage', 'publication', 'page'].some((name) => name in searchParams)) return null;
+
+  const query = new URLSearchParams({ collection });
+  if (typeof searchParams.flash === 'string') query.set('flash', searchParams.flash);
+  return `${getMediaAdminPath(area)}?${query}`;
+}
+
 export function getMediaRedirectUrl(area: AdminArea, returnTo: unknown, flash: string) {
   const fallback = getMediaAdminPath(area);
 
@@ -50,6 +63,8 @@ export function getMediaRedirectUrl(area: AdminArea, returnTo: unknown, flash: s
     }
 
     url.searchParams.set('flash', flash);
+    const canonicalUrl = getManagedCollectionCanonicalUrl(area, Object.fromEntries(url.searchParams));
+    if (canonicalUrl) return canonicalUrl;
     return `${url.pathname}?${url.searchParams}`;
   } catch {
     return `${fallback}?${new URLSearchParams({ flash })}`;

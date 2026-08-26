@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { getMediaRedirectUrl, updateMediaMetadataSchema, updateMediaPublicationSchema } from './admin-media-validation';
+import { getManagedCollectionCanonicalUrl, getMediaRedirectUrl, updateMediaMetadataSchema, updateMediaPublicationSchema } from './admin-media-validation';
 
 test('schémata metadat a publikace přijímají nezávislé payloady', () => {
   assert.deepEqual(
@@ -14,10 +14,23 @@ test('schémata metadat a publikace přijímají nezávislé payloady', () => {
   );
 });
 
-test('redirect médií zachová stránku a aktivní filtry', () => {
+test('managed collection odstraní knihovní parametry a zachová flash', () => {
+  assert.equal(
+    getManagedCollectionCanonicalUrl('owner', { collection: 'STUDIO_GALLERY', q: 'x', usage: 'USED', page: '2' }),
+    '/admin/media?collection=STUDIO_GALLERY',
+  );
+  assert.equal(
+    getManagedCollectionCanonicalUrl('salon', { collection: 'CERTIFICATES', q: 'x', usage: 'USED', publication: 'HIDDEN', page: '2', flash: 'media-upload-success' }),
+    '/admin/provoz/media?collection=CERTIFICATES&flash=media-upload-success',
+  );
+  assert.equal(getManagedCollectionCanonicalUrl('owner', { collection: 'REFERENCES', q: 'x' }), null);
+  assert.equal(getManagedCollectionCanonicalUrl('owner', { collection: 'CERTIFICATES' }), null);
+});
+
+test('redirect médií kanonizuje návrat do managed collection', () => {
   assert.equal(
     getMediaRedirectUrl('owner', '/admin/media?page=3&q=cert&usage=UNUSED&publication=HIDDEN&collection=CERTIFICATES', 'media-update-success'),
-    '/admin/media?page=3&q=cert&usage=UNUSED&publication=HIDDEN&collection=CERTIFICATES&flash=media-update-success',
+    '/admin/media?collection=CERTIFICATES&flash=media-update-success',
   );
 });
 
