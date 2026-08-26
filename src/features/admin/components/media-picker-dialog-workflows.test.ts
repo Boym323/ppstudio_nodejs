@@ -29,3 +29,15 @@ test("References nevykreslují druhý inline picker", async () => {
   const adminPage = await readFile(new URL("./admin-media-page.tsx", import.meta.url), "utf8");
   assert.match(adminPage, /category !== MediaCollectionType\.REFERENCES/);
 });
+
+test("prázdné References nabízejí publikované assety z celé Media Library", async () => {
+  const adminPage = await readFile(new URL("./admin-media-page.tsx", import.meta.url), "utf8");
+  assert.match(adminPage, /listPublishedMedia/);
+  assert.match(adminPage, /category === MediaCollectionType\.REFERENCES \? listPublishedMedia\(\) : Promise\.resolve\(\[\]\)/);
+  assert.match(adminPage, /assets=\{referencePickerAssets\}/);
+});
+
+test("picker References nabídne jiný publikovaný asset, ale ne již přidanou referenci", async () => {
+  const adminPage = await readFile(new URL("./admin-media-page.tsx", import.meta.url), "utf8");
+  assert.match(adminPage, /const referencePickerAssets = publishedAssets\.filter\(\(asset\) => !referenceItems\.some\(\(item\) => item\.mediaAssetId === asset\.id\)\)/);
+});

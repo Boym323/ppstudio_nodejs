@@ -12,6 +12,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Picker při přidávání referencí nyní nabízí všechny publikované assety z Media Library nezávisle na aktivním filtru REFERENCES a nezobrazuje už přidané reference.
 - Media Library nyní stránkuje assety po 48 položkách a jejich použití načítá hromadně; nové veřejné vazby v galeriích, referencích a nastavení odmítají neveřejné, nepublikované či mazané assety a paralelní přidání do galerie služby bezpečně opakuje jen očekávaný konflikt pořadí.
 - Mazání MediaAsset nyní nejprve atomicky ověří všechny vazby a odstraní DB záznam; fyzické soubory uklízí až po commitu, takže souběžně vzniklá vazba nemůže zanechat používané médium bez souboru.
 - Reorder galerie služby nyní nejprve použije unikátní dočasné pořadí, takže přesun položek nekoliduje s immediate unique constraintem.
