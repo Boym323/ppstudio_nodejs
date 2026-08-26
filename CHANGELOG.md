@@ -12,6 +12,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Mazání MediaAsset nyní nejprve atomicky ověří všechny vazby a odstraní DB záznam; fyzické soubory uklízí až po commitu, takže souběžně vzniklá vazba nemůže zanechat používané médium bez souboru.
 - Reorder galerie služby nyní nejprve použije unikátní dočasné pořadí, takže přesun položek nekoliduje s immediate unique constraintem.
 - Media Library zachovává aktivní filtry při hledání, v pohledu `REFERENCES` nezobrazuje duplicitní knihovní grid a detail assetu umožňuje spravovat membership Reference.
 - Media Library v administraci nyní zřetelně rozlišuje lidský název od názvu souboru, vysvětluje blokované smazání konkrétními vazbami a při úpravách, nahrazení i správě vazeb zobrazuje průběh akce; MediaPicker má jasný výběr, prázdný stav a ovladatelnější mobilní prvky.

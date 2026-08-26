@@ -1,3 +1,5 @@
+import type { Prisma } from '@/generated/prisma/client';
+
 import { prisma } from '@/lib/prisma';
 
 export type MediaAssetUsageReference = {
@@ -12,7 +14,7 @@ export type MediaAssetUsage = {
 };
 
 type MediaAssetUsageSource = {
-  findReferences(mediaAssetId: string): Promise<MediaAssetUsageReference[]>;
+  findReferences(mediaAssetId: string, db: Prisma.TransactionClient): Promise<MediaAssetUsageReference[]>;
 };
 
 /**
@@ -21,8 +23,8 @@ type MediaAssetUsageSource = {
  */
 const mediaAssetUsageSources: MediaAssetUsageSource[] = [
   {
-    async findReferences(mediaAssetId) {
-      const settings = await prisma.siteSettings.findMany({
+    async findReferences(mediaAssetId, db) {
+      const settings = await db.siteSettings.findMany({
         where: {
           OR: [
             { voucherPdfLogoMediaId: mediaAssetId },
@@ -53,8 +55,8 @@ const mediaAssetUsageSources: MediaAssetUsageSource[] = [
     },
   },
   {
-    async findReferences(mediaAssetId) {
-      const items = await prisma.mediaCollectionItem.findMany({
+    async findReferences(mediaAssetId, db) {
+      const items = await db.mediaCollectionItem.findMany({
         where: { mediaAssetId },
         select: { id: true, collection: { select: { type: true } } },
       });
@@ -67,8 +69,8 @@ const mediaAssetUsageSources: MediaAssetUsageSource[] = [
     },
   },
   {
-    async findReferences(mediaAssetId) {
-      const items = await prisma.serviceMedia.findMany({
+    async findReferences(mediaAssetId, db) {
+      const items = await db.serviceMedia.findMany({
         where: { mediaAssetId },
         select: {
           id: true,
@@ -86,7 +88,7 @@ const mediaAssetUsageSources: MediaAssetUsageSource[] = [
   },
 ];
 
-export async function getMediaAssetUsage(id: string): Promise<MediaAssetUsage> {
-  const references = (await Promise.all(mediaAssetUsageSources.map((source) => source.findReferences(id)))).flat();
+export async function getMediaAssetUsage(id: string, db: Prisma.TransactionClient = prisma): Promise<MediaAssetUsage> {
+  const references = (await Promise.all(mediaAssetUsageSources.map((source) => source.findReferences(id, db)))).flat();
   return { isUsed: references.length > 0, references };
 }

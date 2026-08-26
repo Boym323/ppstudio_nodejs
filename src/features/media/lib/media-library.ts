@@ -2,6 +2,7 @@ import { MediaAssetVisibility, MediaStorageProvider } from '@/generated/prisma/b
 
 import { buildMediaPublicUrl } from '@/lib/media/media-config';
 import { getMediaStorageAdapter } from '@/lib/media/media-storage';
+import { prisma } from '@/lib/prisma';
 import {
   createMediaVariants,
   normalizeOriginalMediaImage,
@@ -11,11 +12,9 @@ import { validateMediaFile } from '@/lib/media/media-validation';
 
 import {
   createMediaAsset,
-  deleteMediaAsset,
   getMediaAssetById,
   listMediaAssets,
   listPublicMediaAssets,
-  markMediaAssetForDeletion,
   updateMediaAsset,
 } from './media-asset-repository';
 import { getMediaAssetUsage } from './media-asset-usage';
@@ -156,47 +155,46 @@ export async function updateMedia(
 }
 
 export async function deleteMedia(id: string) {
-  const asset = await getMediaAssetById(id);
+  let asset;
+  try {
+    asset = await prisma.$transaction(async (tx) => {
+      const locked = await tx.$queryRaw<Array<{ id: string }>>`
+        SELECT "id" FROM "MediaAsset"
+        WHERE "id" = ${id} AND "deletionRequestedAt" IS NULL
+        FOR UPDATE
+      `;
+      if (locked.length === 0) throw new Error('MEDIA_ASSET_NOT_FOUND');
 
-  if (!asset) {
-    throw new Error('MEDIA_ASSET_NOT_FOUND');
+      const currentAsset = await tx.mediaAsset.findUniqueOrThrow({ where: { id } });
+      const usage = await getMediaAssetUsage(currentAsset.id, tx);
+      if (usage.isUsed) throw new Error('MEDIA_ASSET_IN_USE');
+
+      await tx.mediaAsset.update({
+        where: { id: currentAsset.id },
+        data: { deletionRequestedAt: new Date() },
+      });
+      return tx.mediaAsset.delete({ where: { id: currentAsset.id } });
+    });
+  } catch (error) {
+    throw mapMediaAssetDeleteError(error);
   }
 
-  const usage = await getMediaAssetUsage(asset.id);
-  if (usage.isUsed) {
-    throw new Error('MEDIA_ASSET_IN_USE');
-  }
-
-  await markMediaAssetForDeletion(asset.id);
-
-  const storage = getMediaStorageAdapter(asset.storageProvider);
-  await storage.deleteFile({
-    visibility: asset.visibility,
-    storagePath: asset.storagePath,
-    storedFilename: asset.fileName,
-    mimeType: asset.mimeType,
-    sizeBytes: asset.size,
-  });
-  if (asset.optimizedStoragePath && asset.optimizedMimeType && asset.optimizedSize) {
-    await storage.deleteFile({
-      visibility: asset.visibility,
-      storagePath: asset.optimizedStoragePath,
-      storedFilename: asset.optimizedStoragePath.split('/').pop() ?? asset.fileName,
-      mimeType: asset.optimizedMimeType,
-      sizeBytes: asset.optimizedSize,
+  try {
+    await removeStoredAssetFiles(asset);
+  } catch (error) {
+    console.error('Media asset filesystem cleanup failed after database deletion', {
+      assetId: asset.id,
+      error,
     });
   }
-  if (asset.thumbnailStoragePath && asset.thumbnailMimeType && asset.thumbnailSize) {
-    await storage.deleteFile({
-      visibility: asset.visibility,
-      storagePath: asset.thumbnailStoragePath,
-      storedFilename: asset.thumbnailStoragePath.split('/').pop() ?? asset.fileName,
-      mimeType: asset.thumbnailMimeType,
-      sizeBytes: asset.thumbnailSize,
-    });
-  }
+}
 
-  await deleteMediaAsset(asset.id);
+export function isMediaAssetForeignKeyViolation(error: unknown) {
+  return typeof error === 'object' && error !== null && 'code' in error && error.code === 'P2003';
+}
+
+export function mapMediaAssetDeleteError(error: unknown) {
+  return isMediaAssetForeignKeyViolation(error) ? new Error('MEDIA_ASSET_IN_USE') : error;
 }
 
 export async function saveMediaAsset(input: MediaUploadInput) {
@@ -238,24 +236,25 @@ export async function replaceMediaAsset(id: string, input: MediaUploadInput) {
 
 async function removeStoredAssetFiles(asset: NonNullable<Awaited<ReturnType<typeof getMediaAssetById>>>) {
   const storage = getMediaStorageAdapter(asset.storageProvider);
-  await storage.deleteFile({
+  const files = [{
     visibility: asset.visibility, storagePath: asset.storagePath, storedFilename: asset.fileName,
     mimeType: asset.mimeType, sizeBytes: asset.size,
-  });
+  }];
   if (asset.optimizedStoragePath && asset.optimizedMimeType && asset.optimizedSize) {
-    await storage.deleteFile({
+    files.push({
       visibility: asset.visibility, storagePath: asset.optimizedStoragePath,
       storedFilename: asset.optimizedStoragePath.split('/').pop() ?? asset.fileName,
       mimeType: asset.optimizedMimeType, sizeBytes: asset.optimizedSize,
     });
   }
   if (asset.thumbnailStoragePath && asset.thumbnailMimeType && asset.thumbnailSize) {
-    await storage.deleteFile({
+    files.push({
       visibility: asset.visibility, storagePath: asset.thumbnailStoragePath,
       storedFilename: asset.thumbnailStoragePath.split('/').pop() ?? asset.fileName,
       mimeType: asset.thumbnailMimeType, sizeBytes: asset.thumbnailSize,
     });
   }
+  await Promise.all(files.map((file) => storage.deleteFile(file)));
 }
 
 export async function ensureMediaStorageReady() {
