@@ -28,6 +28,7 @@ type Membership = { type: 'STUDIO_GALLERY' | 'CERTIFICATES' | 'REFERENCES'; sort
 const collections = [
   { type: 'STUDIO_GALLERY', label: 'Studio' },
   { type: 'CERTIFICATES', label: 'Certifikáty' },
+  { type: 'REFERENCES', label: 'Reference' },
 ] as const;
 const fieldLabels: Record<string, string> = {
   contactPhotoMediaId: 'Kontaktní fotografie',

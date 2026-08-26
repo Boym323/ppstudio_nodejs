@@ -15,4 +15,5 @@ test('detail assetu Media Library používá Dialog mimo kartu a potvrzuje fyzic
   assert.match(source, /Tuto operaci nelze vrátit/);
   assert.match(source, /Smazání je blokované: asset se používá ve vazbách uvedených výše/);
   assert.match(source, /Náhrada zachová ID assetu i všechny existující vazby/);
+  assert.match(source, /type: 'REFERENCES', label: 'Reference'/);
 });
