@@ -19,6 +19,7 @@ Formát je inspirovaný Keep a Changelog.
 ### Změněno
 
 - Produkční backfill médií nyní vyžaduje přesnou databázi `ppstudio` a explicitní příznak `--confirm-production`; bez něj i při běžném `--confirm` provede pouze rollbackovaný dry-run.
+- Media Library v administraci má kompaktnější responsivní grid, přehlednější hierarchii karet a oddělené části detailu pro soubor, použití, úpravy a destruktivní akci.
 - Detail služby v administraci nyní umožňuje vybrat hlavní fotografii a řazenou galerii z Media Library; veřejný detail zobrazuje pouze publikované veřejné assety a zachovává dosavadní vzhled bez fotografií jako fallback.
 - Administrace Média je nyní relační knihovna assetů s vyhledáváním, filtry skutečného použití, správou kolekcí a bezpečným nahrazením souboru; nové uploady ukládá do neutrální cesty `images/YYYY/MM/...`.
 - Veřejné certifikáty, galerie studia, kontaktní fotografie a portréty nyní čtou relační vazby Media Library v2; respektují viditelnost a pořadí membershipů i publikovatelnost assetů, zatímco stávající URL a bezpečné fallbacky zůstávají zachované.
