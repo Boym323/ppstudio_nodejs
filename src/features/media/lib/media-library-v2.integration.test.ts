@@ -22,14 +22,10 @@ async function createAsset() {
 
   return prisma.mediaAsset.create({
     data: {
-      kind: "CONTENT",
-      type: "GENERAL",
       originalFilename: `${suffix}.jpg`,
       fileName: `${suffix}.jpg`,
-      storedFilename: `${suffix}.jpg`,
       mimeType: "image/jpeg",
       extension: "jpg",
-      sizeBytes: 1,
       size: 1,
       storagePath: `test/media-library-v2/${suffix}.jpg`,
       url: `/media/public/test/media-library-v2/${suffix}.jpg`,

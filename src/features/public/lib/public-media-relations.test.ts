@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
-import { MediaAssetVisibility, MediaCollectionType } from '@/generated/prisma/browser';
+import { MediaAssetVisibility, MediaCollectionType, MediaStorageProvider } from '@/generated/prisma/browser';
 
 process.env.NEXT_PUBLIC_APP_NAME ??= 'PP Studio';
 process.env.NEXT_PUBLIC_APP_URL ??= 'https://example.com';
@@ -14,6 +14,7 @@ process.env.EMAIL_DELIVERY_MODE ??= 'log';
 function buildAsset(id: string, overrides: Record<string, unknown> = {}) {
   return {
     id,
+    storageProvider: MediaStorageProvider.LOCAL,
     title: `Titulek ${id}`,
     altText: `Alt ${id}`,
     url: `/media/public/${id}-original.jpg`,

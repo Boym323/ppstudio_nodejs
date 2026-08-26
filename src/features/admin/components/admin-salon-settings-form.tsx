@@ -33,7 +33,6 @@ export function AdminSalonSettingsForm({
       title: string | null;
       originalFilename: string;
       mimeType: string;
-      type: string;
       thumbnailPublicUrl: string | null;
     }>;
   };

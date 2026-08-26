@@ -9,6 +9,5 @@ test('nové uploady používají neutrální images/YYYY/MM storagePath', async 
   process.env.ADMIN_OWNER_EMAIL = 'owner@example.com';
   process.env.EMAIL_DELIVERY_MODE = 'log';
   const { buildMediaStoragePath } = await import('./media-config');
-  assert.equal(buildMediaStoragePath({ type: 'CERTIFICATE', visibility: 'PUBLIC', storedFilename: 'asset.jpg', createdAt: new Date('2026-08-25T12:00:00Z') }), 'images/2026/08/asset.jpg');
-  assert.equal(buildMediaStoragePath({ type: 'SALON_PHOTO', visibility: 'PUBLIC', storedFilename: 'asset.jpg', createdAt: new Date('2026-08-25T12:00:00Z') }), 'images/2026/08/asset.jpg');
+  assert.equal(buildMediaStoragePath({ storedFilename: 'asset.jpg', createdAt: new Date('2026-08-25T12:00:00Z') }), 'images/2026/08/asset.jpg');
 });

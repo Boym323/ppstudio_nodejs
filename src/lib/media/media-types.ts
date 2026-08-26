@@ -1,15 +1,13 @@
-import { MediaAssetVisibility, MediaType } from '@/generated/prisma/browser';
+import { MediaAssetVisibility } from '@/generated/prisma/browser';
 
-export { MediaAssetVisibility, MediaType };
+export { MediaAssetVisibility };
 
 export type MediaUploadInput = {
   file: File;
-  type: MediaType;
   visibility?: MediaAssetVisibility;
   isPublished?: boolean;
   altText?: string | null;
   title?: string | null;
-  sortOrder?: number | null;
 };
 
 export type ValidatedMediaFile = {

@@ -1,6 +1,6 @@
 'use server';
 
-import { MediaCollectionType, MediaType } from '@/generated/prisma/browser';
+import { MediaCollectionType } from '@/generated/prisma/browser';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
@@ -15,13 +15,9 @@ import {
 import { prisma } from '@/lib/prisma';
 import { createMedia, deleteMedia, replaceMediaAsset, updateMedia } from '@/features/media/lib/media-library';
 
-function flashUrl(area: 'owner' | 'salon', flash: string, redirectFilter?: 'ALL' | MediaType) {
+function flashUrl(area: 'owner' | 'salon', flash: string) {
   const basePath = getMediaAdminPath(area);
   const searchParams = new URLSearchParams({ flash });
-
-  if (redirectFilter && redirectFilter !== 'ALL') {
-    searchParams.set('type', redirectFilter);
-  }
 
   return `${basePath}?${searchParams.toString()}`;
 }
@@ -55,11 +51,8 @@ function mapUploadErrorToFlash(error: unknown) {
 export async function uploadMediaAction(formData: FormData) {
   const parsed = uploadMediaSchema.safeParse({
     area: formData.get('area'),
-    type: MediaType.GENERAL,
     title: formData.get('title'),
     altText: formData.get('altText'),
-    sortOrder: formData.get('sortOrder'),
-    redirectFilter: formData.get('redirectFilter') || undefined,
   });
 
   if (!parsed.success) {
@@ -71,24 +64,22 @@ export async function uploadMediaAction(formData: FormData) {
   const file = formData.get('file');
 
   if (!(file instanceof File) || file.size <= 0) {
-    redirect(flashUrl(parsed.data.area, 'media-upload-missing-file', parsed.data.redirectFilter));
+    redirect(flashUrl(parsed.data.area, 'media-upload-missing-file'));
   }
 
   try {
     await createMedia({
       file,
-      type: parsed.data.type,
       isPublished: true,
       title: normalizeOptionalText(parsed.data.title),
       altText: normalizeOptionalText(parsed.data.altText),
-      sortOrder: parsed.data.sortOrder ?? null,
     });
   } catch (error) {
-    redirect(flashUrl(parsed.data.area, mapUploadErrorToFlash(error), parsed.data.redirectFilter));
+    redirect(flashUrl(parsed.data.area, mapUploadErrorToFlash(error)));
   }
 
   revalidateMediaPaths(parsed.data.area);
-  redirect(flashUrl(parsed.data.area, 'media-upload-success', parsed.data.redirectFilter));
+  redirect(flashUrl(parsed.data.area, 'media-upload-success'));
 }
 
 export async function replaceMediaAction(formData: FormData) {
@@ -103,11 +94,9 @@ export async function replaceMediaAction(formData: FormData) {
     if (!current || current.deletionRequestedAt) redirect(flashUrl(area, 'media-replace-invalid-payload'));
     await replaceMediaAsset(assetId, {
       file,
-      type: current.type,
       isPublished: current.isPublished,
       title: current.title,
       altText: current.altText,
-      sortOrder: current.sortOrder,
     });
   } catch (error) {
     redirect(flashUrl(area, mapUploadErrorToFlash(error)));
@@ -161,12 +150,9 @@ export async function updateMediaAction(formData: FormData) {
   const parsed = updateMediaSchema.safeParse({
     area: formData.get('area'),
     assetId: formData.get('assetId'),
-    type: formData.get('type'),
     title: formData.get('title'),
     altText: formData.get('altText'),
-    sortOrder: formData.get('sortOrder'),
     isPublished: formData.get('isPublished'),
-    redirectFilter: formData.get('redirectFilter') || undefined,
   });
 
   if (!parsed.success) {
@@ -176,22 +162,19 @@ export async function updateMediaAction(formData: FormData) {
   await requireAdminSectionAccess(parsed.data.area, 'media');
 
   await updateMedia(parsed.data.assetId, {
-    type: parsed.data.type,
     title: normalizeOptionalText(parsed.data.title),
     altText: normalizeOptionalText(parsed.data.altText),
     isPublished: parsed.data.isPublished,
-    sortOrder: parsed.data.sortOrder ?? null,
   });
 
   revalidateMediaPaths(parsed.data.area);
-  redirect(flashUrl(parsed.data.area, 'media-update-success', parsed.data.redirectFilter));
+  redirect(flashUrl(parsed.data.area, 'media-update-success'));
 }
 
 export async function deleteMediaAction(formData: FormData) {
   const parsed = deleteMediaSchema.safeParse({
     area: formData.get('area'),
     assetId: formData.get('assetId'),
-    redirectFilter: formData.get('redirectFilter') || undefined,
   });
 
   if (!parsed.success) {
@@ -203,11 +186,11 @@ export async function deleteMediaAction(formData: FormData) {
     await deleteMedia(parsed.data.assetId);
   } catch (error) {
     if (error instanceof Error && error.message === 'MEDIA_ASSET_IN_USE') {
-      redirect(flashUrl(parsed.data.area, 'media-delete-in-use', parsed.data.redirectFilter));
+      redirect(flashUrl(parsed.data.area, 'media-delete-in-use'));
     }
     throw error;
   }
 
   revalidateMediaPaths(parsed.data.area);
-  redirect(flashUrl(parsed.data.area, 'media-delete-success', parsed.data.redirectFilter));
+  redirect(flashUrl(parsed.data.area, 'media-delete-success'));
 }

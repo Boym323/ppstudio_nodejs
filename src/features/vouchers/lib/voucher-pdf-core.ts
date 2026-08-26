@@ -10,7 +10,7 @@ import { env } from "@/config/env";
 import { siteConfig } from "@/config/site";
 import { formatVoucherValue } from "@/features/vouchers/lib/voucher-format";
 import { type getVoucherDetail } from "@/features/vouchers/lib/voucher-read-models";
-import { localMediaStorage } from "@/lib/media/local-media-storage";
+import { getMediaStorageAdapter } from "@/lib/media/media-storage";
 import { prisma } from "@/lib/prisma";
 import { getSalonAddressLine, getSiteSettings, type SiteSettingsRecord } from "@/lib/site-settings";
 
@@ -136,7 +136,7 @@ export async function resolveVoucherPdfLogo(asset: VoucherPdfLogoAsset | null | 
   }
 
   try {
-    const bytes = await localMediaStorage.readFile(asset.visibility, storagePath);
+    const bytes = await getMediaStorageAdapter(asset.storageProvider).readFile(asset.visibility, storagePath);
     return {
       kind: "image",
       bytes,
