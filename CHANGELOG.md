@@ -22,6 +22,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Typecheck nyní ignoruje pouze deployment release artefakty `current`, `previous` a `releases`, takže staré release symlinky neblokují přípravu nového nasazení.
 - Mobilní návrat ze služby v administraci nyní stejně jako desktopový drawer chrání neuložené změny před nechtěným zahozením.
 
 ## [3.22.10] - 2026-08-25
