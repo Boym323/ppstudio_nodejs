@@ -24,3 +24,8 @@ test("správa referencí otevírá MediaPicker v Dialogu a zachová ID assetu", 
   assert.match(source, /name="mediaAssetId" value=\{selectedId\}/);
   assert.equal((source.match(/<MediaPicker /g) ?? []).length, 1);
 });
+
+test("References nevykreslují druhý inline picker", async () => {
+  const adminPage = await readFile(new URL("./admin-media-page.tsx", import.meta.url), "utf8");
+  assert.match(adminPage, /category !== MediaCollectionType\.REFERENCES/);
+});
