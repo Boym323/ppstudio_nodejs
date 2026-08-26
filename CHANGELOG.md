@@ -12,6 +12,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- Produkční backfill médií nyní vyžaduje přesnou databázi `ppstudio` a explicitní příznak `--confirm-production`; bez něj i při běžném `--confirm` provede pouze rollbackovaný dry-run.
 - Přibyl ručně spouštěný, transakční a opakovatelný DEV/test backfill, který podle auditované mapy naplní kolekce médií a singularní vazby nastavení bez přepnutí runtime nebo změny legacy assetů.
 - Datový model médií nově podporuje relační kolekce certifikátů, galerie studia a referencí i samostatné vazby pro kontaktní fotografii a portréty, aniž by měnil dosavadní zobrazování nebo data.
 - Detail služby v administraci nyní nabízí bezpečný odkaz na veřejnou stránku, kontrolu chybějících částí obsahu a při převaze obecných úprav jednotnou historii změn včetně cenového auditu.

@@ -9,6 +9,7 @@ import {
   SINGULAR_MEDIA,
   STUDIO_ASSET_IDS,
   VOUCHER_LOGO_ASSET_ID,
+  assertAllowedBackfillDatabase,
   type MediaLibraryV2BackfillClient,
 } from "../../../../scripts/media-library-v2-backfill";
 
@@ -226,6 +227,22 @@ test("chybějící produkční ID přeskočí bez dangling vazby a transparentn�
   assert.equal(state.settings?.homePortraitMediaId, null);
   assert.deepEqual(itemsFor(state, "CERTIFICATES").map(({ sortOrder }) => sortOrder), [0, 1, 2, 3, 4]);
   assert.deepEqual(itemsFor(state, "STUDIO_GALLERY").map(({ sortOrder }) => sortOrder), [0, 1, 2, 3, 4]);
+});
+
+test("produkční guard vyžaduje databázi ppstudio a DEV/test guard zůstává kompatibilní", () => {
+  const previousNodeEnv = process.env.NODE_ENV;
+
+  process.env.NODE_ENV = "production";
+  assert.doesNotThrow(() => assertAllowedBackfillDatabase("postgresql://localhost/ppstudio", "ppstudio"));
+  assert.throws(() => assertAllowedBackfillDatabase("postgresql://localhost/ppstudio_dev", "ppstudio_dev"));
+  assert.throws(() => assertAllowedBackfillDatabase("postgresql://localhost/ppstudio", "ppstudio_dev"));
+
+  process.env.NODE_ENV = "test";
+  assert.doesNotThrow(() => assertAllowedBackfillDatabase("postgresql://localhost/ppstudio_dev", "ppstudio_dev"));
+  assert.doesNotThrow(() => assertAllowedBackfillDatabase("postgresql://localhost/example_test", "example_test"));
+
+  if (previousNodeEnv === undefined) delete process.env.NODE_ENV;
+  else process.env.NODE_ENV = previousNodeEnv;
 });
 
 test("částečný backfill dorovná bez duplicit a zachová existující membership ID", async () => {
