@@ -36,7 +36,7 @@ test('akce publikace přijímá a zapisuje jen isPublished se stejnou autorizac�
   assert.match(publicationAction, /flashUrl\(parsed\.data\.area, formData\.get\('returnTo'\), 'media-update-success'\)/);
 });
 
-test('membership Studio a Certifikátů autorizovaně odmítá jen nové neveřejné assety a zachovává návrat', async () => {
+test('membership veřejných kolekcí autorizovaně odmítá jen nové neveřejné assety a zachovává návrat', async () => {
   const [source, pageSource] = await Promise.all([
     actionSource(),
     readFile(new URL('../components/admin-media-page.tsx', import.meta.url), 'utf8'),
@@ -45,7 +45,7 @@ test('membership Studio a Certifikátů autorizovaně odmítá jen nové neveře
 
   assert.match(membershipAction, /action !== 'add' && action !== 'save' && action !== 'remove' && action !== 'move'/);
   assert.match(membershipAction, /requireAdminSectionAccess\(area, 'media'\)/);
-  assert.match(membershipAction, /collectionType === MediaCollectionType\.STUDIO_GALLERY \|\| collectionType === MediaCollectionType\.CERTIFICATES[\s\S]*\{ requirePublicAsset: true \}/);
+  assert.match(membershipAction, /collectionType === MediaCollectionType\.STUDIO_GALLERY \|\| collectionType === MediaCollectionType\.CERTIFICATES \|\| collectionType === MediaCollectionType\.REFERENCES[\s\S]*\{ requirePublicAsset: true \}/);
   assert.match(membershipAction, /if \(!membership\) redirect\(flashUrl\(area, formData\.get\('returnTo'\), 'media-membership-asset-not-public'\)\)/);
   assert.match(membershipAction, /if \(action === 'remove'\) \{[\s\S]*mediaCollectionItem\.deleteMany/);
   assert.match(membershipAction, /redirect\(flashUrl\(area, formData\.get\('returnTo'\), 'media-membership-success'\)\)/);

@@ -14,7 +14,7 @@ async function createAsset(overrides: { visibility?: 'PUBLIC' | 'PRIVATE'; isPub
   return prisma.mediaAsset.create({ data: { originalFilename: `${suffix}.jpg`, fileName: `${suffix}.jpg`, mimeType: 'image/jpeg', extension: 'jpg', size: 1, storagePath: `test/collection-order/${suffix}.jpg`, url: `/media/public/test/collection-order/${suffix}.jpg`, ...overrides } });
 }
 
-for (const type of ['STUDIO_GALLERY', 'CERTIFICATES'] as const) {
+for (const type of ['STUDIO_GALLERY', 'CERTIFICATES', 'REFERENCES'] as const) {
   dbTest(`${type} přesouvá membershipy deterministicky a nové zařadí na konec`, async () => {
     const [{ prisma }, { moveMediaCollectionItem, saveMediaCollectionMembership }] = await Promise.all([
       import('@/lib/prisma'), import('./media-collection-order'),
@@ -54,7 +54,7 @@ for (const type of ['STUDIO_GALLERY', 'CERTIFICATES'] as const) {
   });
 }
 
-for (const type of ['STUDIO_GALLERY', 'CERTIFICATES'] as const) {
+for (const type of ['STUDIO_GALLERY', 'CERTIFICATES', 'REFERENCES'] as const) {
   dbTest(`${type} vytvoří nové membership jen pro publikované veřejné aktivní médium`, async () => {
     const [{ prisma }, { saveMediaCollectionMembership }] = await Promise.all([
       import('@/lib/prisma'), import('./media-collection-order'),
@@ -80,6 +80,9 @@ for (const type of ['STUDIO_GALLERY', 'CERTIFICATES'] as const) {
       const updated = await prisma.$transaction((tx) => saveMediaCollectionMembership(tx, collection.id, assets[1].id, false, { requirePublicAsset: true }));
       assert.equal(updated?.id, invalidMembership.id);
       assert.equal(updated?.isVisible, false);
+
+      await prisma.mediaCollectionItem.deleteMany({ where: { collectionId: collection.id, mediaAssetId: assets[1].id } });
+      assert.equal(await prisma.mediaCollectionItem.findUnique({ where: { id: invalidMembership.id } }), null);
     } finally {
       await prisma.mediaCollectionItem.deleteMany({ where: { mediaAssetId: { in: assets.map((asset) => asset.id) } } });
       await prisma.mediaAsset.deleteMany({ where: { id: { in: assets.map((asset) => asset.id) } } });

@@ -6,6 +6,11 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+### Opraveno
+
+- Nové zařazení média do kolekce Reference nyní stejně jako Studio a Certifikáty vyžaduje publikovaný veřejný asset bez aktivního mazání; existující historické vazby lze dál upravovat nebo odebrat.
+- Veřejný lightbox certifikátů nyní vrací fokus na konkrétní certifikát, který dialog otevřel, protože každý certifikát používá vlastní Radix Dialog root.
+
 ## [3.23.0] - 2026-08-27
 
 ### Zabezpečení

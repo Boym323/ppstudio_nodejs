@@ -139,7 +139,7 @@ export async function updateMediaCollectionMembershipAction(formData: FormData) 
         collection.id,
         assetId,
         isVisible,
-        collectionType === MediaCollectionType.STUDIO_GALLERY || collectionType === MediaCollectionType.CERTIFICATES
+        collectionType === MediaCollectionType.STUDIO_GALLERY || collectionType === MediaCollectionType.CERTIFICATES || collectionType === MediaCollectionType.REFERENCES
           ? { requirePublicAsset: true }
           : undefined,
       );
