@@ -12,6 +12,9 @@ import { aggregateServiceMetrics } from "@/features/admin/lib/kpi-service-metric
 import { getRetentionBand, getRetentionBandLabel, type RetentionBand } from "@/features/admin/lib/kpi-retention";
 import { completeKpiTimeSeries, sortKpiTimeSeries } from "@/features/admin/lib/kpi-time-series";
 import { type KpiDashboardData, type KpiDateRange, type KpiMetric } from "@/features/admin/types/kpi-dashboard";
+import { loadAutoLunchPolicySnapshot } from "@/features/booking/lib/booking-auto-lunch-policy";
+import { getPragueLocalDate } from "@/features/booking/lib/booking-local-time";
+import { AUTO_LUNCH_POLICY, generateLunchCandidates, shouldApplyAutoLunch } from "@/features/booking/lib/booking-schedule-optimization";
 import { prisma } from "@/lib/prisma";
 
 const completed = BookingStatus.COMPLETED;
@@ -25,8 +28,42 @@ async function getBookings(start: Date, end: Date) {
   return prisma.booking.findMany({
     where: { scheduledStartsAt: { gte: start, lt: end } },
     orderBy: { scheduledStartsAt: "asc" },
-    select: { id: true, clientId: true, status: true, scheduledStartsAt: true, scheduledEndsAt: true, serviceNameSnapshot: true, serviceDurationMinutes: true, finalPriceCzk: true, servicePriceFromCzk: true, acquisitionSource: true, acquisitionUtmSource: true, acquisitionUtmMedium: true, acquisitionUtmCampaign: true, slot: { select: { publishedAt: true } }, payments: { select: { amountCzk: true, status: true } }, voucherRedemptions: { select: { amountCzk: true } } },
+    select: { id: true, clientId: true, status: true, scheduledStartsAt: true, scheduledEndsAt: true, blockedUntil: true, serviceNameSnapshot: true, serviceDurationMinutes: true, finalPriceCzk: true, servicePriceFromCzk: true, acquisitionSource: true, acquisitionUtmSource: true, acquisitionUtmMedium: true, acquisitionUtmCampaign: true, slot: { select: { publishedAt: true } }, payments: { select: { amountCzk: true, status: true } }, voucherRedemptions: { select: { amountCzk: true } } },
   });
+}
+
+function getOccupancyLunchMinutes(
+  slots: Array<{ startsAt: Date; endsAt: Date }>,
+  visits: Array<Pick<BookingRow, "scheduledStartsAt" | "scheduledEndsAt" | "blockedUntil">>,
+  policy: Awaited<ReturnType<typeof loadAutoLunchPolicySnapshot>>,
+) {
+  const days = new Map<string, { availability: Array<{ startsAt: number; endsAt: number }>; bookedBlocks: Array<{ startsAt: number; endsAt: number }> }>();
+  const day = (date: Date) => {
+    const dateKey = getPragueLocalDate(date);
+    const current = days.get(dateKey) ?? { availability: [], bookedBlocks: [] };
+    days.set(dateKey, current);
+    return { dateKey, current };
+  };
+
+  for (const slot of slots) {
+    const { current } = day(slot.startsAt);
+    current.availability.push({ startsAt: slot.startsAt.getTime(), endsAt: slot.endsAt.getTime() });
+  }
+  for (const visit of visits) {
+    const { current } = day(visit.scheduledStartsAt);
+    current.bookedBlocks.push({ startsAt: visit.scheduledStartsAt.getTime(), endsAt: (visit.blockedUntil ?? visit.scheduledEndsAt).getTime() });
+  }
+
+  return [...days.entries()].reduce((total, [localDate, dayData]) => {
+    const active = shouldApplyAutoLunch({
+      localDate,
+      availability: dayData.availability,
+      bookedBlocks: dayData.bookedBlocks,
+      globalAutoLunchEnabled: policy.globalAutoLunchEnabled,
+      dayLunchMode: policy.dayLunchModes[localDate] ?? "AUTO",
+    });
+    return total + (active && generateLunchCandidates({ localDate, availability: dayData.availability }).length ? AUTO_LUNCH_POLICY.durationMinutes : 0);
+  }, 0);
 }
 async function getExpectedBookings(start: Date, end: Date) {
   return prisma.booking.findMany({
@@ -66,7 +103,7 @@ function summarize(
     const voucherPaidCzk = row.voucherRedemptions.reduce((redemptions, redemption) => redemptions + (redemption.amountCzk ?? 0), 0);
     return sum + Math.max(0, price(row) - directPaidCzk - voucherPaidCzk);
   }, 0);
-  return { listed, visits, revenue, clientMetrics, disruptions, outstanding };
+  return { listed, visits, revenue, clientMetrics, disruptions, noShowValue: disruptions.noShowValue, outstanding };
 }
 
 export async function getKpiDashboardData(area: "owner" | "salon", searchParams?: Record<string, string | string[] | undefined>): Promise<KpiDashboardData> {
@@ -87,11 +124,24 @@ export async function getKpiDashboardData(area: "owner" | "salon", searchParams?
   const currentSummary = summarize(extendedRows, current, allCompletedRows);
   const previousSummary = summarize(extendedRows, previous, allCompletedRows);
   const previousHasData = previousSummary.listed.length > 0;
-  const occupancy = (summary: ReturnType<typeof summarize>, range: KpiDateRange) => {
-    const available = slots.reduce((sum, slot) => sum + overlapMinutes(slot.startsAt, slot.endsAt, range) * Math.max(slot.capacity, 1), 0);
-    const reserved = summary.visits.reduce((sum, row) => sum + overlapMinutes(row.scheduledStartsAt, row.scheduledEndsAt, range), 0);
-    return available ? Math.min(100, (reserved / available) * 100) : 0;
+  const occupancy = async (summary: ReturnType<typeof summarize>, range: KpiDateRange) => {
+    const occupancySlots = slots.flatMap((slot) => {
+      const startsAt = new Date(Math.max(slot.startsAt.getTime(), range.start.getTime()));
+      const endsAt = new Date(Math.min(slot.endsAt.getTime(), range.end.getTime()));
+      return endsAt > startsAt ? [{ startsAt, endsAt, capacity: slot.capacity }] : [];
+    });
+    const available = occupancySlots.reduce((sum, slot) => sum + overlapMinutes(slot.startsAt, slot.endsAt, range) * Math.max(slot.capacity, 1), 0);
+    const reserved = summary.visits.reduce((sum, row) => sum + overlapMinutes(row.scheduledStartsAt, row.blockedUntil ?? row.scheduledEndsAt, range), 0);
+    const localDates = occupancySlots.map((slot) => getPragueLocalDate(slot.startsAt));
+    const policy = await loadAutoLunchPolicySnapshot(prisma, localDates);
+    const lunchMinutes = getOccupancyLunchMinutes(occupancySlots, summary.visits, policy);
+    const bookable = Math.max(0, available - lunchMinutes);
+    return bookable ? Math.min(100, (reserved / bookable) * 100) : 0;
   };
+  const [currentOccupancy, previousOccupancy] = await Promise.all([
+    occupancy(currentSummary, current),
+    occupancy(previousSummary, previous),
+  ]);
   const expectedRevenue = calculateExpectedRevenue(expectedBookings.map((booking) => ({
     status: booking.status,
     scheduledStartsAt: booking.scheduledStartsAt,
@@ -133,6 +183,6 @@ export async function getKpiDashboardData(area: "owner" | "salon", searchParams?
     (periodStart) => ({ periodStart, revenue: 0, completed: 0, cancelled: 0, noShow: 0 }),
   );
   return { range: current, previousRange: previous, calculatedAt: now, metrics: {
-    revenue: metric(currentSummary.revenue, previousSummary.revenue, previousHasData), completed: metric(currentSummary.visits.length, previousSummary.visits.length, previousHasData), averageSpend: metric(currentSummary.visits.length ? currentSummary.revenue / currentSummary.visits.length : 0, previousSummary.visits.length ? previousSummary.revenue / previousSummary.visits.length : 0, previousHasData), occupancy: metric(occupancy(currentSummary, current), occupancy(previousSummary, previous), previousHasData), newClients: metric(currentSummary.clientMetrics.newClients, previousSummary.clientMetrics.newClients, previousHasData), returningClients: metric(currentSummary.clientMetrics.returningClients, previousSummary.clientMetrics.returningClients, previousHasData), repeatVisitClients: metric(currentSummary.clientMetrics.repeatVisitClients, previousSummary.clientMetrics.repeatVisitClients, previousHasData), repeatVisitRate: metric(currentSummary.clientMetrics.repeatVisitRate, previousSummary.clientMetrics.repeatVisitRate, previousHasData), cancellations: metric(currentSummary.disruptions.cancellations, previousSummary.disruptions.cancellations, previousHasData), cancellationRate: metric(currentSummary.disruptions.cancellationRate, previousSummary.disruptions.cancellationRate, previousHasData), cancellationValue: metric(currentSummary.disruptions.cancellationValue, previousSummary.disruptions.cancellationValue, previousHasData), noShows: metric(currentSummary.disruptions.noShows, previousSummary.disruptions.noShows, previousHasData), noShowRate: metric(currentSummary.disruptions.noShowRate, previousSummary.disruptions.noShowRate, previousHasData), noShowValue: metric(currentSummary.disruptions.noShowValue, previousSummary.disruptions.noShowValue, previousHasData), expectedRevenue: metric(expectedRevenue.amount, 0, previousHasData), outstanding: metric(currentSummary.outstanding, previousSummary.outstanding, previousHasData),
+    revenue: metric(currentSummary.revenue, previousSummary.revenue, previousHasData), completed: metric(currentSummary.visits.length, previousSummary.visits.length, previousHasData), averageSpend: metric(currentSummary.visits.length ? currentSummary.revenue / currentSummary.visits.length : 0, previousSummary.visits.length ? previousSummary.revenue / previousSummary.visits.length : 0, previousHasData), occupancy: metric(currentOccupancy, previousOccupancy, previousHasData), newClients: metric(currentSummary.clientMetrics.newClients, previousSummary.clientMetrics.newClients, previousHasData), returningClients: metric(currentSummary.clientMetrics.returningClients, previousSummary.clientMetrics.returningClients, previousHasData), repeatVisitClients: metric(currentSummary.clientMetrics.repeatVisitClients, previousSummary.clientMetrics.repeatVisitClients, previousHasData), repeatVisitRate: metric(currentSummary.clientMetrics.repeatVisitRate, previousSummary.clientMetrics.repeatVisitRate, previousHasData), cancellations: metric(currentSummary.disruptions.cancellations, previousSummary.disruptions.cancellations, previousHasData), cancellationRate: metric(currentSummary.disruptions.cancellationRate, previousSummary.disruptions.cancellationRate, previousHasData), cancellationValue: metric(currentSummary.disruptions.cancellationValue, previousSummary.disruptions.cancellationValue, previousHasData), noShows: metric(currentSummary.disruptions.noShows, previousSummary.disruptions.noShows, previousHasData), noShowRate: metric(currentSummary.disruptions.noShowRate, previousSummary.disruptions.noShowRate, previousHasData), noShowValue: metric(currentSummary.disruptions.noShowValue, previousSummary.noShowValue, previousHasData), expectedRevenue: metric(expectedRevenue.amount, 0, previousHasData), outstanding: metric(currentSummary.outstanding, previousSummary.outstanding, previousHasData),
   }, revenueSeries: completeBuckets.map(({ periodStart, revenue }) => ({ periodStart, label: getKpiDateKey(new Date(periodStart), monthly), revenue })), bookingSeries: completeBuckets.map(({ periodStart, completed, cancelled, noShow }) => ({ periodStart, label: getKpiDateKey(new Date(periodStart), monthly), completed, cancelled, noShow })), services, clientMix: { newClients: currentSummary.clientMetrics.newClients, returningClients: currentSummary.clientMetrics.returningClients }, retention: (["8_11", "12_15", "16_plus"] as RetentionBand[]).map((band) => ({ band, label: getRetentionBandLabel(band), count: activeClients.filter((client) => getRetentionBand(client.bookings[0]?.scheduledStartsAt ?? null, retentionReference) === band).length, href: `${baseClientHref}?retention=${band}&retentionAt=${retentionReference.getTime()}` })), retentionReference, acquisition, expectedRevenue: { bookingCount: expectedRevenue.bookingCount, missingPriceCount: expectedRevenue.missingPriceCount, isHistorical: expectedIsHistorical }, unavailable: { hasData: currentSummary.listed.length > 0 } };
 }
