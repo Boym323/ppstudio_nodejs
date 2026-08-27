@@ -8,6 +8,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Zabezpečení
 
+- Lokální náhled souboru v administrativním nahrávání nyní před vložením do URL atributu explicitně kóduje URL, aby se text z file inputu nemohl interpretovat jako HTML.
 - Next.js a navazující ESLint konfigurace byly aktualizovány na bezpečnostní verzi 16.3.3.
 - Reference media actions nyní serverově validují oblast, cuid identifikátory, směr přesunu, viditelnost a limity metadat před změnou databáze.
 

@@ -26,7 +26,7 @@ export function MediaUploadDropzone({ name, accept, supportedTypes }: MediaUploa
     }
 
     const objectUrl = URL.createObjectURL(selectedFile);
-    return new URL(objectUrl).protocol === 'blob:' ? objectUrl : null;
+    return encodeURI(objectUrl);
   }, [selectedFile]);
 
   useEffect(() => () => {

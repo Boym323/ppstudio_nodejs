@@ -56,7 +56,7 @@ test('Media Library zachová filtry, ale odkazy Studio a Certifikáty jsou kanon
     assert.match(source, /const search = managedCollection \? '' : raw\('q'\)/);
     assert.match(source, /const usageFilter = managedCollection \? 'ALL'/);
     assert.match(source, /const publicationFilter = managedCollection \? 'ALL'/);
-    assert.match(source, /libraryAssets\.filter\(\(asset\) => !managedCollectionItems\.some\(\(item\) => item\.mediaAssetId === asset\.id\)\)/);
+    assert.match(source, /managedCollection \? Promise\.resolve\(\{ assets: \[\], total: 0, page: 1, pageSize: 48, pageCount: 1 \}\) : listMediaPage/);
     assert.match(source, /publication: publicationFilter === 'ALL' \? undefined : publicationFilter/);
     assert.match(source, /const returnTo = managedCollection \? collectionHref\(managedCollection\) : href/);
     assert.match(source, /← Zpět do knihovny médií/);
