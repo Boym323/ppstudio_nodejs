@@ -1,11 +1,11 @@
 import { ensureSiteSettings } from "@/lib/site-settings";
 import { prisma } from "@/lib/prisma";
 import { getOwnerCalendarFeedAdminState } from "@/features/calendar/lib/calendar-feed-service";
-import { listPublishedMedia } from "@/features/media/lib/media-library";
 
 export async function getAdminSettingsPageData(email: string) {
-  const [settings, calendarFeed, ownerNotificationSettings, mediaAssets] = await Promise.all([
-    ensureSiteSettings(),
+  const settings = await ensureSiteSettings();
+  const selectedMediaIds = [...new Set([settings.voucherPdfLogoMediaId, settings.contactPhotoMediaId, settings.homePortraitMediaId, settings.aboutPortraitMediaId].filter((id): id is string => Boolean(id)))];
+  const [calendarFeed, ownerNotificationSettings, mediaAssets] = await Promise.all([
     getOwnerCalendarFeedAdminState(),
     prisma.adminUser.findFirst({
       where: {
@@ -31,7 +31,7 @@ export async function getAdminSettingsPageData(email: string) {
         },
       },
     }),
-    listPublishedMedia(),
+    selectedMediaIds.length ? prisma.mediaAsset.findMany({ where: { id: { in: selectedMediaIds }, deletionRequestedAt: null }, select: { id: true, title: true, fileName: true, altText: true, visibility: true, isPublished: true, thumbnailUrl: true, optimizedUrl: true, url: true } }) : Promise.resolve([]),
   ]);
 
   const formatDateTime = new Intl.DateTimeFormat("cs-CZ", {
@@ -54,14 +54,13 @@ export async function getAdminSettingsPageData(email: string) {
     contactPhotoMediaId: settings.contactPhotoMediaId ?? null,
     homePortraitMediaId: settings.homePortraitMediaId ?? null,
     aboutPortraitMediaId: settings.aboutPortraitMediaId ?? null,
-    publishedMediaOptions: mediaAssets.map((asset) => ({
+    selectedMediaOptions: mediaAssets.map((asset) => ({
       id: asset.id,
       title: asset.title,
-      fileName: asset.originalFilename,
-      mimeType: asset.mimeType,
+      fileName: asset.fileName,
       altText: asset.altText,
-      thumbnailPublicUrl: asset.thumbnailPublicUrl,
-      publicUrl: asset.publicUrl,
+      thumbnailPublicUrl: asset.visibility === "PUBLIC" && asset.isPublished ? asset.thumbnailUrl ?? asset.optimizedUrl ?? asset.url : null,
+      publicUrl: asset.visibility === "PUBLIC" && asset.isPublished ? asset.optimizedUrl ?? asset.url : null,
     })),
     bookingMinAdvanceHours: settings.bookingMinAdvanceHours,
     bookingMaxAdvanceDays: settings.bookingMaxAdvanceDays,

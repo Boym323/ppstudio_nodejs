@@ -136,7 +136,6 @@ export async function AdminServicesPage({
       <ServiceMediaSection
         area={area}
         serviceId={data.selectedService.id}
-        assets={data.mediaAssets}
         hero={data.selectedService.media.find((item) => item.role === "HERO") ?? null}
         gallery={data.selectedService.media.filter((item) => item.role === "GALLERY")}
       />

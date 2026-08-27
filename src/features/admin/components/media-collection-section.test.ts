@@ -18,11 +18,12 @@ test('MediaCollectionSection spravuje Studio i Certifikáty ve stejném řazení
   assert.match(source, /name="isVisible" value=\{item\.isVisible \? 'false' : 'true'\}/);
   assert.match(source, /name="action" value="remove"/);
   assert.match(source, /Přidat z knihovny/);
-  assert.match(source, /assets=\{assets\}/);
+  assert.match(source, /enabled=\{pickerOpen\} scope=\{\{ type: 'COLLECTION', collectionType \}\}/);
+  assert.doesNotMatch(source, /assets=\{assets\}/);
   assert.match(source, /Přidá se na konec kolekce/);
   assert.match(source, /object-contain/);
   assert.match(actionsSource, /moveMediaCollectionItem\(tx, collection\.id, membership\.id, direction\)/);
-  assert.match(actionsSource, /saveMediaCollectionMembership\(tx, collection\.id, assetId, isVisible\)/);
+  assert.match(actionsSource, /saveMediaCollectionMembership\([\s\S]*tx,[\s\S]*collection\.id,[\s\S]*assetId,[\s\S]*isVisible/);
   assert.match(referenceSource, /addReferenceMediaAction, moveReferenceMediaAction, removeReferenceMediaAction, updateReferenceMediaAction/);
   assert.match(referenceSource, /Alt text pro referenci/);
   assert.doesNotMatch(referenceSource, /MediaCollectionSection/);

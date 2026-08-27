@@ -39,6 +39,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- Výběr médií v kolekcích, referencích, službách a nastavení se nyní načítá až po otevření dialogu, vyhledává a stránkuje serverově a neposílá do administračních stránek celou publikovanou Media Library.
 - Pořadí fotografií Studio a Certifikátů se v Media Library nyní upravuje srozumitelnými tlačítky Nahoru a Dolů místo ručního zadávání čísla; přesun bezpečně zachovává jednoznačné pořadí kolekce.
 - Uživatelské texty administrace médií nyní používají běžnou češtinu (médium, použití a zařazení) místo interní technické terminologie.
 - Administrace Media Library nyní filtruje publikovaná a skrytá média a v horních statistikách zobrazuje celkové počty aktivních assetů podle stavu publikace.

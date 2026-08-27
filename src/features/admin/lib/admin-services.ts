@@ -201,7 +201,7 @@ export async function getAdminServicesPageData(
   const filters = normalizeSearchParams(searchParams);
   const where = buildServiceWhere(filters);
 
-  const [services, categories, mediaAssets] = await Promise.all([
+  const [services, categories] = await Promise.all([
     prisma.service.findMany({
       where,
       orderBy: buildServiceOrderBy(filters.sort),
@@ -246,11 +246,6 @@ export async function getAdminServicesPageData(
           },
         },
       },
-    }),
-    prisma.mediaAsset.findMany({
-      where: { isPublished: true, visibility: "PUBLIC", deletionRequestedAt: null },
-      orderBy: [{ createdAt: "desc" }],
-      select: { id: true, title: true, fileName: true, altText: true, thumbnailUrl: true, optimizedUrl: true, url: true },
     }),
   ]);
 
@@ -417,14 +412,6 @@ export async function getAdminServicesPageData(
     services: servicesWithMeta,
     categories,
     selectedService: selectedServiceWithAudit,
-    mediaAssets: mediaAssets.map((asset) => ({
-      id: asset.id,
-      title: asset.title,
-      fileName: asset.fileName,
-      altText: asset.altText,
-      thumbnailPublicUrl: asset.thumbnailUrl ?? asset.optimizedUrl ?? asset.url,
-      publicUrl: asset.optimizedUrl ?? asset.url,
-    })),
     draftCategoryId:
       filters.category && categories.some((category) => category.id === filters.category)
         ? filters.category

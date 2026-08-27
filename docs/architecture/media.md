@@ -45,6 +45,21 @@ Stručný kontext aktuální implementace Media Library.
 - `MediaUploadDialog` je pouze UI formulář nad existující serverovou upload
   pipeline (`uploadMediaAction` → `createMedia` → validace, zpracování a zápis).
 
+## Admin picker
+
+- `MediaPicker` nenačítá kandidáty v parent page loaderu. Po otevření dialogu
+  volá jednu autorizovanou server action nad společným picker query.
+- Query vrací po 24 položkách, řadí `createdAt desc, id asc` a hledá
+  case-insensitive přes titulek, uložený i původní název souboru a alt text.
+- Kandidáty omezuje sdílený public eligibility filtr a validovaný scope
+  `GENERAL`, `COLLECTION`, `REFERENCES` nebo `SERVICE_GALLERY`; exclusions pro
+  kolekce, reference a galerii služby odvozuje přímo z databázových relations.
+- Každé načtení používá dva konstantní DB dotazy (`count` a stránkovaný
+  `findMany`), bez per-asset validace a bez N+1. Uložené singularní vazby v
+  Settings se pro prvotní render načtou jedním batch `id IN (...)` dotazem.
+- Klient hledání debouncuje, ignoruje zastaralé odpovědi a drží summary právě
+  vybraného assetu nezávisle na aktuální stránce výsledků.
+
 ## Relations
 
 - `MediaCollection` má právě jeden typ z množiny `STUDIO_GALLERY`,

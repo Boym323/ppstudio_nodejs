@@ -16,30 +16,30 @@ import {
   SettingsFormFooter,
   SettingsFormMessages,
   settingsControlClassName,
-  settingsSelectClassName,
   SettingsSection,
 } from "./admin-settings-form-ui";
 import { MediaPicker, type MediaPickerAsset } from "./media-picker";
 
-type PublicMediaOption = MediaPickerAsset & { mimeType: string };
+type PublicMediaOption = MediaPickerAsset;
 
 function PublicPhotoField({
   name,
   label,
   emptyLabel,
   initialValue,
-  assets,
+  initialAsset,
   error,
 }: {
-  name: "contactPhotoMediaId" | "homePortraitMediaId" | "aboutPortraitMediaId";
+  name: "contactPhotoMediaId" | "homePortraitMediaId" | "aboutPortraitMediaId" | "voucherPdfLogoMediaId";
   label: string;
   emptyLabel: string;
   initialValue: string | null;
-  assets: PublicMediaOption[];
+  initialAsset: PublicMediaOption | null;
   error?: string;
 }) {
   const [value, setValue] = useState(initialValue ?? "");
-  const selectedAsset = assets.find((asset) => asset.id === value);
+  const [selectedAsset, setSelectedAsset] = useState<PublicMediaOption | null>(initialAsset);
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   return (
     <div className="block">
@@ -66,7 +66,7 @@ function PublicPhotoField({
         ) : (
           <p className="flex-1 text-sm text-white/60">{emptyLabel}</p>
         )}
-        <Dialog.Root>
+        <Dialog.Root open={pickerOpen} onOpenChange={setPickerOpen}>
           <Dialog.Trigger asChild>
             <button type="button" className="min-h-11 rounded-full border border-white/15 px-4 py-2 text-sm text-white">
               Vybrat jiné médium
@@ -85,13 +85,13 @@ function PublicPhotoField({
                 </Dialog.Close>
               </div>
               <div className="mt-5">
-                <MediaPicker assets={assets} value={value} onSelect={setValue} />
+                <MediaPicker area="owner" enabled={pickerOpen} scope={{ type: "GENERAL", section: "SETTINGS" }} value={value} selectedAsset={selectedAsset} onSelect={(asset) => { setValue(asset.id); setSelectedAsset(asset); }} />
               </div>
             </Dialog.Content>
           </Dialog.Portal>
         </Dialog.Root>
         {value ? (
-          <button type="button" onClick={() => setValue("")} className="min-h-11 rounded-full border border-white/15 px-4 py-2 text-sm text-white/72">
+          <button type="button" onClick={() => { setValue(""); setSelectedAsset(null); }} className="min-h-11 rounded-full border border-white/15 px-4 py-2 text-sm text-white/72">
             Odebrat fotografii
           </button>
         ) : null}
@@ -116,7 +116,7 @@ export function AdminSalonSettingsForm({
     contactPhotoMediaId: string | null;
     homePortraitMediaId: string | null;
     aboutPortraitMediaId: string | null;
-    publishedMediaOptions: PublicMediaOption[];
+    selectedMediaOptions: PublicMediaOption[];
   };
 }) {
   const [serverState, formAction] = useActionState(
@@ -231,9 +231,9 @@ export function AdminSalonSettingsForm({
 
       <SettingsSection title="Fotografie veřejného webu" description="Vyberte již publikované médium z Media Library; soubor se nekopíruje.">
         <div className="space-y-4">
-          <PublicPhotoField name="contactPhotoMediaId" label="Kontaktní fotografie" emptyLabel="Bez fotografie" initialValue={settings.contactPhotoMediaId} assets={settings.publishedMediaOptions} error={serverState.fieldErrors?.contactPhotoMediaId} />
-          <PublicPhotoField name="homePortraitMediaId" label="Portrét na úvodní stránce" emptyLabel="Bez portrétu" initialValue={settings.homePortraitMediaId} assets={settings.publishedMediaOptions} error={serverState.fieldErrors?.homePortraitMediaId} />
-          <PublicPhotoField name="aboutPortraitMediaId" label="Portrét na stránce O mně" emptyLabel="Bez portrétu" initialValue={settings.aboutPortraitMediaId} assets={settings.publishedMediaOptions} error={serverState.fieldErrors?.aboutPortraitMediaId} />
+          <PublicPhotoField name="contactPhotoMediaId" label="Kontaktní fotografie" emptyLabel="Bez fotografie" initialValue={settings.contactPhotoMediaId} initialAsset={settings.selectedMediaOptions.find((asset) => asset.id === settings.contactPhotoMediaId) ?? null} error={serverState.fieldErrors?.contactPhotoMediaId} />
+          <PublicPhotoField name="homePortraitMediaId" label="Portrét na úvodní stránce" emptyLabel="Bez portrétu" initialValue={settings.homePortraitMediaId} initialAsset={settings.selectedMediaOptions.find((asset) => asset.id === settings.homePortraitMediaId) ?? null} error={serverState.fieldErrors?.homePortraitMediaId} />
+          <PublicPhotoField name="aboutPortraitMediaId" label="Portrét na stránce O mně" emptyLabel="Bez portrétu" initialValue={settings.aboutPortraitMediaId} initialAsset={settings.selectedMediaOptions.find((asset) => asset.id === settings.aboutPortraitMediaId) ?? null} error={serverState.fieldErrors?.aboutPortraitMediaId} />
         </div>
       </SettingsSection>
 
@@ -241,24 +241,7 @@ export function AdminSalonSettingsForm({
         title="PDF vouchery"
         description="Vizuál dárkového poukazu může mít vlastní značku nezávisle na webu."
       >
-        <SettingsField
-          label="Logo pro PDF vouchery"
-          hint="Použije se pouze v PDF dárkových voucherů. Může se lišit od loga na webu."
-          error={serverState.fieldErrors?.voucherPdfLogoMediaId}
-        >
-          <select
-            name="voucherPdfLogoMediaId"
-            defaultValue={settings.voucherPdfLogoMediaId ?? ""}
-            className={settingsSelectClassName}
-          >
-            <option value="">Textové logo PP Studio</option>
-            {settings.publishedMediaOptions.map((asset) => (
-              <option key={asset.id} value={asset.id}>
-                {asset.title ?? asset.fileName} · {asset.mimeType}
-              </option>
-            ))}
-          </select>
-        </SettingsField>
+        <PublicPhotoField name="voucherPdfLogoMediaId" label="Logo pro PDF vouchery" emptyLabel="Textové logo PP Studio" initialValue={settings.voucherPdfLogoMediaId} initialAsset={settings.selectedMediaOptions.find((asset) => asset.id === settings.voucherPdfLogoMediaId) ?? null} error={serverState.fieldErrors?.voucherPdfLogoMediaId} />
         <p className="mt-3 rounded-[1rem] border border-white/8 bg-black/10 px-4 py-3 text-sm leading-6 text-white/60">
           {settings.voucherPdfLogoMediaId
             ? "PDF použije vybrané médium, pokud je dostupné jako PNG nebo JPEG. U jiných formátů se bezpečně vrátí k textovému logu."

@@ -20,7 +20,14 @@ export function MediaUploadDropzone({ name, accept, supportedTypes }: MediaUploa
     setSelectedFile(inputRef.current?.files?.[0] ?? null);
   }
 
-  const previewUrl = useMemo(() => selectedFile?.type.startsWith('image/') ? URL.createObjectURL(selectedFile) : null, [selectedFile]);
+  const previewUrl = useMemo(() => {
+    if (!selectedFile || !['image/avif', 'image/gif', 'image/jpeg', 'image/png', 'image/webp'].includes(selectedFile.type)) {
+      return null;
+    }
+
+    const objectUrl = URL.createObjectURL(selectedFile);
+    return new URL(objectUrl).protocol === 'blob:' ? objectUrl : null;
+  }, [selectedFile]);
 
   useEffect(() => () => {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
@@ -64,7 +71,13 @@ export function MediaUploadDropzone({ name, accept, supportedTypes }: MediaUploa
         </p>
       </label>
 
-      {previewUrl ? <img src={previewUrl} alt="Náhled vybraného obrázku" className="max-h-52 w-full rounded-[1.1rem] border border-white/10 object-contain"/> : null}
+      {previewUrl ? (
+        <img
+          src={previewUrl}
+          alt="Náhled vybraného obrázku"
+          className="max-h-52 w-full rounded-[1.1rem] border border-white/10 object-contain"
+        />
+      ) : null}
 
       <input
         ref={inputRef}

@@ -21,11 +21,10 @@ export function AdminSettingsPage({
     contactPhotoMediaId: string | null;
     homePortraitMediaId: string | null;
     aboutPortraitMediaId: string | null;
-    publishedMediaOptions: Array<{
+    selectedMediaOptions: Array<{
       id: string;
       title: string | null;
       fileName: string;
-      mimeType: string;
       altText: string | null;
       thumbnailPublicUrl: string | null;
       publicUrl: string | null;

@@ -30,18 +30,26 @@ test("References nevykreslují druhý inline picker", async () => {
   assert.match(adminPage, /category !== MediaCollectionType\.REFERENCES/);
 });
 
-test("prázdné References nabízejí publikované assety z celé Media Library", async () => {
+test("References nenačítají celý seznam a používají serverový scope", async () => {
   const adminPage = await readFile(new URL("./admin-media-page.tsx", import.meta.url), "utf8");
-  assert.match(adminPage, /listPublishedMedia/);
-  assert.match(adminPage, /category === MediaCollectionType\.REFERENCES \? listPublishedMedia\(\) : Promise\.resolve\(\[\]\)/);
-  assert.match(adminPage, /assets=\{referencePickerAssets\}/);
+  assert.doesNotMatch(adminPage, /listPublishedMedia|referencePickerAssets/);
   const referenceSection = await readFile(referenceSectionPath, "utf8");
   assert.match(referenceSection, /Tato kolekce je zatím prázdná/);
   assert.match(referenceSection, /Přidat z knihovny médií/);
   assert.doesNotMatch(referenceSection, /Přidat z Media Library/);
 });
 
-test("picker References nabídne jiný publikovaný asset, ale ne již přidanou referenci", async () => {
-  const adminPage = await readFile(new URL("./admin-media-page.tsx", import.meta.url), "utf8");
-  assert.match(adminPage, /const referencePickerAssets = publishedAssets\.filter\(\(asset\) => !referenceItems\.some\(\(item\) => item\.mediaAssetId === asset\.id\)\)/);
+test("picker References předává autoritativní serverový scope", async () => {
+  const source = await readFile(referenceSectionPath, "utf8");
+  assert.match(source, /enabled=\{pickerOpen\} scope=\{\{ type: 'REFERENCES' \}\}/);
+});
+
+test("service editor neposílá kompletní assets payload", async () => {
+  const [page, loader] = await Promise.all([
+    readFile(new URL("./admin-services-page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../lib/admin-services.ts", import.meta.url), "utf8"),
+  ]);
+  assert.doesNotMatch(page, /assets=\{data\.mediaAssets\}/);
+  assert.doesNotMatch(loader, /mediaAssets:/);
+  assert.match(serviceSectionPath.pathname ? await readFile(serviceSectionPath, "utf8") : "", /scope=\{\{ type: 'SERVICE_GALLERY', serviceId \}\}/);
 });
