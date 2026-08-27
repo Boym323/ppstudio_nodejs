@@ -6,6 +6,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [3.23.0] - 2026-08-27
+
 ### Zabezpečení
 
 - Lokální náhled souboru v administrativním nahrávání nyní před vložením do URL atributu explicitně kóduje URL, aby se text z file inputu nemohl interpretovat jako HTML.
