@@ -19,6 +19,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Veřejný náhled certifikátů nyní používá přístupný dialog s udržením a návratem fokusu, zavřením klávesou Escape a blokováním interakce s pozadím.
 - Tlačítka v administračních dialozích nyní používají správnou světlou barvu textu a jsou na tmavém pozadí čitelná.
 - Ovládání pořadí Nahoru a Dolů v detailu média je nyní seskupené a při zalomení rozvržení zůstává zarovnané.
 - Správa kolekcí Studio a Certifikáty nyní používá vlastní kanonickou URL bez nefunkčních filtrů knihovny; po nahrání či jiné akci zůstává uživatel ve stejné kolekci.
