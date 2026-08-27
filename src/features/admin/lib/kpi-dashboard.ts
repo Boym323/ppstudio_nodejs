@@ -33,14 +33,12 @@ async function getExpectedBookings(start: Date, end: Date) {
     where: {
       status: BookingStatus.CONFIRMED,
       scheduledStartsAt: { gte: start, lt: end },
-      slot: { status: AvailabilitySlotStatus.PUBLISHED },
     },
     select: {
       status: true,
       scheduledStartsAt: true,
       finalPriceCzk: true,
       servicePriceFromCzk: true,
-      slot: { select: { status: true } },
     },
   });
 }
@@ -90,7 +88,6 @@ export async function getKpiDashboardData(area: "owner" | "salon", searchParams?
   const expectedRevenue = calculateExpectedRevenue(expectedBookings.map((booking) => ({
     status: booking.status,
     scheduledStartsAt: booking.scheduledStartsAt,
-    slotIsPublished: booking.slot.status === AvailabilitySlotStatus.PUBLISHED,
     finalPriceCzk: booking.finalPriceCzk,
     servicePriceFromCzk: booking.servicePriceFromCzk,
   })), expectedRange);

@@ -7,7 +7,6 @@ import { calculateExpectedRevenue, type ExpectedRevenueBooking } from "./kpi-exp
 const booking = (overrides: Partial<ExpectedRevenueBooking> = {}): ExpectedRevenueBooking => ({
   status: "CONFIRMED",
   scheduledStartsAt: new Date("2026-07-20T10:00:00.000Z"),
-  slotIsPublished: true,
   finalPriceCzk: 1200,
   servicePriceFromCzk: 1000,
   ...overrides,
@@ -19,10 +18,22 @@ test("počítá jen potvrzenou budoucí rezervaci uvnitř aktuálního měsíce 
     booking({ finalPriceCzk: 1350 }),
     booking({ scheduledStartsAt: new Date("2026-08-01T10:00:00.000Z") }),
     booking({ status: "CANCELLED" }),
-    booking({ slotIsPublished: false }),
     booking({ finalPriceCzk: null, servicePriceFromCzk: null }),
   ], july);
   assert.deepEqual(result, { amount: 1350, bookingCount: 1, missingPriceCount: 1 });
+});
+
+test("potvrzená rezervace zůstává očekávanou tržbou i po archivaci původního slotu", () => {
+  const archivedSlotBooking = {
+    ...booking({ finalPriceCzk: 1200 }),
+    slotStatus: "ARCHIVED",
+  };
+
+  assert.deepEqual(calculateExpectedRevenue([archivedSlotBooking], july), {
+    amount: 1200,
+    bookingCount: 1,
+    missingPriceCount: 0,
+  });
 });
 
 test("historické období nemá očekávané tržby", () => {

@@ -57,7 +57,7 @@ Implementace: `kpi-disruption-metrics.ts`.
 
 ### Očekávané tržby
 
-- Součet historických cen budoucích rezervací ve stavu `CONFIRMED`, jejichž slot má stav `PUBLISHED`.
+- Součet historických cen budoucích rezervací ve stavu `CONFIRMED`. Aktuální stav navázaného slotu se nehodnotí: planner může slot s platnou rezervací archivovat při změně dostupnosti.
 - Interval je průnik vybraného období a času od aktuálního okamžiku.
 - „Tento měsíc“ končí koncem aktuálního měsíce; „Tento rok“ koncem aktuálního roku.
 - Historické období zobrazuje `—` a text „Historické období“, nikoli zavádějící nulu.

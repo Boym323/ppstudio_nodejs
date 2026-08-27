@@ -1,7 +1,6 @@
 export type ExpectedRevenueBooking = {
   status: string;
   scheduledStartsAt: Date;
-  slotIsPublished: boolean;
   finalPriceCzk: number | null;
   servicePriceFromCzk: number | null;
 };
@@ -22,7 +21,6 @@ export function calculateExpectedRevenue(
   for (const booking of bookings) {
     if (
       booking.status !== "CONFIRMED" ||
-      !booking.slotIsPublished ||
       booking.scheduledStartsAt < range.start ||
       booking.scheduledStartsAt >= range.end
     ) continue;

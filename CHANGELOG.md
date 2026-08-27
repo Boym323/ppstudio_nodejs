@@ -9,6 +9,9 @@ Formát je inspirovaný Keep a Changelog.
 ### Opraveno
 
 - Dashboard nyní upozorní na dnešní aktivní rezervace po termínu a zobrazí je v dnešním plánu i v případě, že nejsou navázané na načtený dostupný slot.
+- KPI očekávaných tržeb nyní započítává všechny potvrzené budoucí rezervace s uloženou cenou, i když planner při úpravě dostupnosti archivoval jejich původní slot.
+- Karta očekávaných tržeb nyní jasně uvádí, že při filtru „Tento měsíc“ zahrnuje potvrzené návštěvy až do jeho konce.
+- Osa grafu tržeb nyní přesně zobrazuje mezilehlé hodnoty v tisících, takže zaokrouhlené popisky nematou čtení výše tržeb.
 
 ## [3.23.1] - 2026-08-27
 

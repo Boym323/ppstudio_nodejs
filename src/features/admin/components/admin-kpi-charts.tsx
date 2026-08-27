@@ -20,6 +20,7 @@ type BookingRow = { periodStart: string; label: string; completed: number; cance
 
 const money = new Intl.NumberFormat("cs-CZ", { style: "currency", currency: "CZK", maximumFractionDigits: 0 });
 const number = new Intl.NumberFormat("cs-CZ", { maximumFractionDigits: 0 });
+const compactNumber = new Intl.NumberFormat("cs-CZ", { maximumFractionDigits: 1 });
 
 const CHART_COLORS = {
   accent: "var(--color-accent)",
@@ -37,7 +38,7 @@ const bookingLabels = {
 } as const;
 
 function compactMoney(value: number) {
-  if (Math.abs(value) >= 1_000) return `${number.format(Math.round(value / 1_000))} tis.`;
+  if (Math.abs(value) >= 1_000) return `${compactNumber.format(value / 1_000)} tis.`;
   return number.format(value);
 }
 
