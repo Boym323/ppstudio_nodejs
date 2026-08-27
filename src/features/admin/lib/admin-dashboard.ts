@@ -569,7 +569,6 @@ export async function getAdminDashboardData(area: AdminArea): Promise<AdminDashb
 
   const [
     todayBookings,
-    todaySlots,
     pendingBookings,
     failedEmails,
     weekSlots,
@@ -580,11 +579,12 @@ export async function getAdminDashboardData(area: AdminArea): Promise<AdminDashb
     prisma.booking.findMany({
       where: {
         scheduledStartsAt: { gte: todayStart, lt: tomorrowStart },
-        status: { in: ACTIVE_BOOKING_STATUSES },
+        status: { in: TIMELINE_BOOKING_STATUSES },
       },
       orderBy: { scheduledStartsAt: "asc" },
       select: {
         id: true,
+        status: true,
         scheduledStartsAt: true,
         scheduledEndsAt: true,
         serviceNameSnapshot: true,
@@ -593,36 +593,6 @@ export async function getAdminDashboardData(area: AdminArea): Promise<AdminDashb
         clientEmailSnapshot: true,
         clientNote: true,
         internalNote: true,
-      },
-    }),
-    prisma.availabilitySlot.findMany({
-      where: {
-        startsAt: { gte: todayStart, lt: tomorrowStart },
-        status: { in: ACTIVE_SLOT_STATUSES },
-      },
-      orderBy: { startsAt: "asc" },
-      select: {
-        id: true,
-        startsAt: true,
-        endsAt: true,
-        capacity: true,
-        bookings: {
-          where: { status: { in: TIMELINE_BOOKING_STATUSES } },
-          orderBy: { scheduledStartsAt: "asc" },
-          select: {
-            id: true,
-            scheduledStartsAt: true,
-            scheduledEndsAt: true,
-            blockedUntil: true,
-            status: true,
-            serviceNameSnapshot: true,
-            clientNameSnapshot: true,
-            clientPhoneSnapshot: true,
-            clientEmailSnapshot: true,
-            clientNote: true,
-            internalNote: true,
-          },
-        },
       },
     }),
     prisma.booking.count({
@@ -703,31 +673,28 @@ export async function getAdminDashboardData(area: AdminArea): Promise<AdminDashb
     return trimmed.length > 0 ? trimmed : fallback;
   };
 
+  const activeTodayBookings = todayBookings.filter((booking) =>
+    ACTIVE_BOOKING_STATUSES.includes(booking.status),
+  );
   const currentTodayBooking =
-    todayBookings.find(
+    activeTodayBookings.find(
       (booking) =>
         booking.scheduledStartsAt.getTime() <= now.getTime() &&
         booking.scheduledEndsAt.getTime() > now.getTime(),
     ) ?? null;
   const nextTodayBooking =
-    todayBookings.find((booking) => booking.scheduledStartsAt.getTime() >= now.getTime()) ?? null;
-  const timelineItems = buildTimelineItems(area, now, todaySlots);
-  const todayPlanItems: DashboardTodayPlanItem[] = timelineItems
-    .filter((item): item is Extract<DashboardTimelineItem, { kind: "booking" }> => item.kind === "booking")
-    .map((item) => ({
-      id: item.id,
-      timeLabel: item.timeLabel,
-      serviceName: safeText(item.title, "Služba není uvedená"),
-      clientName: safeText(item.subtitle, "Klientka není uvedená"),
-      statusLabel: item.bookingStatusLabel,
-      href: item.href,
-      phoneLabel: item.contact.phoneLabel,
-      phoneHref: item.contact.phoneHref,
-      emailLabel: item.contact.emailLabel,
-      emailHref: item.contact.emailHref,
-      isCurrent: item.id === currentTodayBooking?.id,
-      isCompleted: item.bookingStatus === BookingStatus.COMPLETED,
-      notes: item.notes,
+    activeTodayBookings.find((booking) => booking.scheduledStartsAt.getTime() >= now.getTime()) ?? null;
+  const todayPlanItems: DashboardTodayPlanItem[] = todayBookings.map((booking) => ({
+      id: booking.id,
+      timeLabel: `${timeFormatter.format(booking.scheduledStartsAt)} - ${timeFormatter.format(booking.scheduledEndsAt)}`,
+      serviceName: safeText(booking.serviceNameSnapshot, "Služba není uvedená"),
+      clientName: safeText(booking.clientNameSnapshot, "Klientka není uvedená"),
+      statusLabel: getBookingStatusLabel(booking.status),
+      href: getAdminBookingHref(area, booking.id),
+      ...getDashboardContactActions(booking),
+      isCurrent: booking.id === currentTodayBooking?.id,
+      isCompleted: booking.status === BookingStatus.COMPLETED,
+      notes: buildDashboardBookingNotes(booking),
     }));
   const weekOccupancy = getWeekOccupancy(weekSlots);
   const weekFreeSlots = weekSlots.filter((slot) => slot.bookings.length < slot.capacity).length;
@@ -744,15 +711,9 @@ export async function getAdminDashboardData(area: AdminArea): Promise<AdminDashb
   );
   const hasFreeWindowsToday = todayFreeWindows.length > 0;
   const freeWindowCount = todayFreeWindows.length;
-  const overdueActiveBookingsCount = todaySlots.reduce((count, slot) => {
-    return (
-      count +
-      slot.bookings.filter(
-        (booking) =>
-          booking.status !== BookingStatus.COMPLETED && booking.scheduledEndsAt.getTime() <= now.getTime(),
-      ).length
-    );
-  }, 0);
+  const overdueActiveBookingsCount = activeTodayBookings.filter(
+    (booking) => booking.scheduledEndsAt.getTime() <= now.getTime(),
+  ).length;
 
   const alerts: AdminDashboardData["alerts"] = [];
 
@@ -818,7 +779,7 @@ export async function getAdminDashboardData(area: AdminArea): Promise<AdminDashb
   return {
     area,
     todayLabel: `Dnes • ${formatDayLabel(now)}`,
-    todayBookingsCount: todayBookings.length,
+    todayBookingsCount: activeTodayBookings.length,
     currentReservationSummary: currentTodayBooking
       ? `Právě probíhá: ${timeFormatter.format(
           currentTodayBooking.scheduledStartsAt,
@@ -847,7 +808,7 @@ export async function getAdminDashboardData(area: AdminArea): Promise<AdminDashb
     kpis: [
       {
         label: "Dnes rezervace",
-        value: String(todayBookings.length),
+        value: String(activeTodayBookings.length),
         detail: "aktivní dnešní rezervace",
       },
       {

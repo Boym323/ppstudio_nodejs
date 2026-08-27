@@ -6,6 +6,10 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+### Opraveno
+
+- Dashboard nyní upozorní na dnešní aktivní rezervace po termínu a zobrazí je v dnešním plánu i v případě, že nejsou navázané na načtený dostupný slot.
+
 ## [3.23.1] - 2026-08-27
 
 ### Změněno
