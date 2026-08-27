@@ -25,7 +25,7 @@ async function getBookings(start: Date, end: Date) {
   return prisma.booking.findMany({
     where: { scheduledStartsAt: { gte: start, lt: end } },
     orderBy: { scheduledStartsAt: "asc" },
-    select: { id: true, clientId: true, status: true, scheduledStartsAt: true, scheduledEndsAt: true, serviceNameSnapshot: true, serviceDurationMinutes: true, finalPriceCzk: true, servicePriceFromCzk: true, acquisitionSource: true, acquisitionUtmSource: true, acquisitionUtmMedium: true, acquisitionUtmCampaign: true, slot: { select: { publishedAt: true } }, payments: { select: { amountCzk: true, status: true } } },
+    select: { id: true, clientId: true, status: true, scheduledStartsAt: true, scheduledEndsAt: true, serviceNameSnapshot: true, serviceDurationMinutes: true, finalPriceCzk: true, servicePriceFromCzk: true, acquisitionSource: true, acquisitionUtmSource: true, acquisitionUtmMedium: true, acquisitionUtmCampaign: true, slot: { select: { publishedAt: true } }, payments: { select: { amountCzk: true, status: true } }, voucherRedemptions: { select: { amountCzk: true } } },
   });
 }
 async function getExpectedBookings(start: Date, end: Date) {
@@ -58,7 +58,14 @@ function summarize(
     finalPriceCzk: row.finalPriceCzk,
     servicePriceFromCzk: row.servicePriceFromCzk,
   })));
-  const outstanding = visits.reduce((sum, row) => Math.max(0, price(row) - row.payments.reduce((payments, payment) => payments + (payment.status === BookingPaymentStatus.VOIDED ? 0 : payment.amountCzk), 0)) + sum, 0);
+  const outstanding = visits.reduce((sum, row) => {
+    const directPaidCzk = row.payments.reduce(
+      (payments, payment) => payments + (payment.status === BookingPaymentStatus.VOIDED ? 0 : payment.amountCzk),
+      0,
+    );
+    const voucherPaidCzk = row.voucherRedemptions.reduce((redemptions, redemption) => redemptions + (redemption.amountCzk ?? 0), 0);
+    return sum + Math.max(0, price(row) - directPaidCzk - voucherPaidCzk);
+  }, 0);
   return { listed, visits, revenue, clientMetrics, disruptions, outstanding };
 }
 

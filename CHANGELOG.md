@@ -8,6 +8,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- KPI „Neuhrazená částka“ nyní odečítá od ceny dokončených návštěv také uplatněné voucherové částky, takže voucherem plně uhrazené rezervace již nevykazují falešný dluh.
 - Dashboard nyní upozorní na dnešní aktivní rezervace po termínu a zobrazí je v dnešním plánu i v případě, že nejsou navázané na načtený dostupný slot.
 - KPI očekávaných tržeb nyní započítává všechny potvrzené budoucí rezervace s uloženou cenou, i když planner při úpravě dostupnosti archivoval jejich původní slot.
 - Karta očekávaných tržeb nyní jasně uvádí, že při filtru „Tento měsíc“ zahrnuje potvrzené návštěvy až do jeho konce.
