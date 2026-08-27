@@ -77,6 +77,55 @@ function getCalendarDateButtonLabel(slotButtonLabel: string) {
   }).format(new Date(`${dateKey}T12:00:00.000Z`))}`;
 }
 
+function getCalendarMonthLabel(monthKey: string) {
+  const [year, month] = monthKey.split("-").map(Number);
+
+  return new Intl.DateTimeFormat("cs-CZ", {
+    month: "long",
+    year: "numeric",
+    timeZone: "Europe/Prague",
+  }).format(new Date(Date.UTC(year, month - 1, 1, 12, 0, 0)));
+}
+
+async function navigateCalendarToDate(page: Page, slotButtonLabel: string) {
+  const dateKey = slotButtonLabel.match(/^Vybrat termín (\d{4}-\d{2}-\d{2}) \d{2}:\d{2}$/)?.[1];
+
+  if (!dateKey) {
+    throw new Error(`Termín nemá očekávaný přístupný popisek: ${slotButtonLabel}`);
+  }
+
+  const calendarCard = page.getByRole("button", { name: "Další měsíc" }).locator("xpath=../../..");
+  const monthLabel = calendarCard.locator("p").nth(1);
+  await expect(monthLabel).toBeVisible();
+  const currentMonthLabel = (await monthLabel.textContent())?.trim();
+  const [targetYear, targetMonth] = dateKey.slice(0, 7).split("-").map(Number);
+  const currentMonthOffset = Array.from({ length: 25 }, (_, index) => index - 12).find((offset) => {
+    const candidate = new Date(Date.UTC(targetYear, targetMonth - 1 + offset, 1, 12));
+    const candidateKey = `${candidate.getUTCFullYear()}-${String(candidate.getUTCMonth() + 1).padStart(2, "0")}`;
+    return getCalendarMonthLabel(candidateKey) === currentMonthLabel;
+  });
+
+  if (currentMonthOffset === undefined) {
+    throw new Error(`Kalendář má neočekávaný měsíc: ${currentMonthLabel ?? ""}`);
+  }
+
+  const monthButtonName = currentMonthOffset < 0 ? "Další měsíc" : "Předchozí měsíc";
+  const monthButton = calendarCard.getByRole("button", { name: monthButtonName });
+  const targetMonthLabel = getCalendarMonthLabel(dateKey.slice(0, 7));
+
+  for (let attempt = 0; attempt < Math.abs(currentMonthOffset); attempt += 1) {
+    await expect(monthButton).toBeEnabled();
+    await monthButton.click();
+    await expect(monthLabel).not.toHaveText(currentMonthLabel ?? "");
+  }
+
+  await expect(monthLabel).toHaveText(targetMonthLabel);
+  const dateButton = calendarCard.getByRole("button", { name: getCalendarDateButtonLabel(slotButtonLabel) });
+  await expect(dateButton).toBeVisible();
+  await expect(dateButton).toBeEnabled();
+  return dateButton;
+}
+
 async function selectAvailableSlot(
   page: Page,
   actionButton: Locator,
@@ -562,8 +611,15 @@ test.describe("rezervační toky", () => {
       throw new Error("Skrytý doporučený termín nemá očekávaný přístupný popisek.");
     }
 
-    await page.getByRole("button", { name: getCalendarDateButtonLabel(hiddenSuggestedLabel) }).click();
-    await page.getByRole("button", { name: hiddenSuggestedLabel }).last().click();
+    const hiddenSuggestedDateButton = await navigateCalendarToDate(page, hiddenSuggestedLabel);
+    await hiddenSuggestedDateButton.click();
+    const calendarTimeButton = page
+      .getByRole("heading", { name: "Dostupné časy" })
+      .locator("xpath=ancestor::div[@tabindex='-1']")
+      .getByRole("button", { name: hiddenSuggestedLabel });
+    await expect(calendarTimeButton).toBeVisible();
+    await expect(calendarTimeButton).toBeEnabled();
+    await calendarTimeButton.click();
     await expect.poll(async () => {
       const calls = await getMatomoCalls(page);
       return calls.filter((call) => call[0] === "trackEvent" && call[2] === "Čas vybrán").length;

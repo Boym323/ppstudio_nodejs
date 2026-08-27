@@ -33,6 +33,7 @@ env:
   ADMIN_STAFF_PASSWORD: change-me-staff
   EMAIL_DELIVERY_MODE: log
   SMTP_FROM_NAME: PP Studio
+  MEDIA_STORAGE_ROOT: /tmp/ppstudio-media
   PLAYWRIGHT_PORT: 3100
   PLAYWRIGHT_BASE_URL: http://127.0.0.1:3100
 
