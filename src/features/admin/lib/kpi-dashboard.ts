@@ -78,7 +78,7 @@ export async function getKpiDashboardData(area: "owner" | "salon", searchParams?
   const [periodRows, allCompleted, slots, activeClients, expectedBookings] = await Promise.all([
     getBookings(previous.start, current.end),
     prisma.booking.findMany({ where: { status: completed, scheduledStartsAt: { lt: current.end } }, select: { clientId: true, scheduledStartsAt: true } }),
-    prisma.availabilitySlot.findMany({ where: { status: AvailabilitySlotStatus.PUBLISHED, startsAt: { lt: current.end }, endsAt: { gt: previous.start } }, select: { startsAt: true, endsAt: true } }),
+    prisma.availabilitySlot.findMany({ where: { status: { in: [AvailabilitySlotStatus.PUBLISHED, AvailabilitySlotStatus.ARCHIVED] }, publishedAt: { not: null }, startsAt: { lt: current.end }, endsAt: { gt: previous.start } }, select: { startsAt: true, endsAt: true, capacity: true } }),
     prisma.client.findMany({ where: { isActive: true, bookings: { some: { status: completed, scheduledStartsAt: { lt: retentionReference } } } }, select: { id: true, bookings: { where: { status: completed, scheduledStartsAt: { lt: retentionReference } }, orderBy: { scheduledStartsAt: "desc" }, take: 1, select: { scheduledStartsAt: true } } } }),
     expectedRange ? getExpectedBookings(expectedRange.start, expectedRange.end) : Promise.resolve([]),
   ]);
@@ -88,9 +88,9 @@ export async function getKpiDashboardData(area: "owner" | "salon", searchParams?
   const previousSummary = summarize(extendedRows, previous, allCompletedRows);
   const previousHasData = previousSummary.listed.length > 0;
   const occupancy = (summary: ReturnType<typeof summarize>, range: KpiDateRange) => {
-    const available = slots.reduce((sum, slot) => sum + overlapMinutes(slot.startsAt, slot.endsAt, range), 0);
+    const available = slots.reduce((sum, slot) => sum + overlapMinutes(slot.startsAt, slot.endsAt, range) * Math.max(slot.capacity, 1), 0);
     const reserved = summary.visits.reduce((sum, row) => sum + overlapMinutes(row.scheduledStartsAt, row.scheduledEndsAt, range), 0);
-    return available ? (reserved / available) * 100 : 0;
+    return available ? Math.min(100, (reserved / available) * 100) : 0;
   };
   const expectedRevenue = calculateExpectedRevenue(expectedBookings.map((booking) => ({
     status: booking.status,
