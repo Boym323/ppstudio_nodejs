@@ -43,6 +43,7 @@ async function loadModules() {
     applyAdminBookingStatusChange: adminBookingModule.applyAdminBookingStatusChange,
     performBookingEmailAction: bookingEmailActionsModule.performBookingEmailAction,
     buildBookingActionExpiry: actionTokenModule.buildBookingActionExpiry,
+    buildBookingSelfServiceActionExpiry: actionTokenModule.buildBookingSelfServiceActionExpiry,
     buildBookingActionToken: actionTokenModule.buildBookingActionToken,
     hashBookingActionToken: actionTokenModule.hashBookingActionToken,
     createResendEmailLog: resendModule.createResendEmailLog,
@@ -224,7 +225,11 @@ dbTest("applyAdminBookingStatusChange stores manage and cancellation links in ap
   const seed = await createSeed();
 
   try {
-    const { prisma, applyAdminBookingStatusChange } = await loadModules();
+    const {
+      prisma,
+      applyAdminBookingStatusChange,
+      buildBookingSelfServiceActionExpiry,
+    } = await loadModules();
     const result = await applyAdminBookingStatusChange({
       bookingId: seed.bookingId,
       targetStatus: "CONFIRMED",
@@ -250,6 +255,22 @@ dbTest("applyAdminBookingStatusChange stores manage and cancellation links in ap
 
     assert.ok(emailLog);
     assertApprovedEmailPayloadHasSelfServiceLinks(emailLog.payload);
+
+    const [booking, actionTokens] = await Promise.all([
+      prisma.booking.findUniqueOrThrow({
+        where: { id: seed.bookingId },
+        select: { scheduledStartsAt: true },
+      }),
+      prisma.bookingActionToken.findMany({
+        where: { bookingId: seed.bookingId },
+        select: { type: true, expiresAt: true },
+      }),
+    ]);
+
+    assert.equal(actionTokens.length, 2);
+    assert.ok(actionTokens.every(
+      (token) => token.expiresAt.getTime() === buildBookingSelfServiceActionExpiry(booking.scheduledStartsAt).getTime(),
+    ));
   } finally {
     await cleanupSeed(seed);
   }
@@ -259,7 +280,12 @@ dbTest("performBookingEmailAction approve stores manage and cancellation links i
   const seed = await createSeed({ withApproveToken: true });
 
   try {
-    const { prisma, performBookingEmailAction } = await loadModules();
+    const {
+      prisma,
+      performBookingEmailAction,
+      buildBookingSelfServiceActionExpiry,
+      BookingActionTokenType,
+    } = await loadModules();
     const result = await performBookingEmailAction(
       "approve",
       seed.approveRawToken!,
@@ -289,6 +315,25 @@ dbTest("performBookingEmailAction approve stores manage and cancellation links i
 
     assert.ok(emailLog);
     assertApprovedEmailPayloadHasSelfServiceLinks(emailLog.payload);
+
+    const [booking, actionTokens] = await Promise.all([
+      prisma.booking.findUniqueOrThrow({
+        where: { id: seed.bookingId },
+        select: { scheduledStartsAt: true },
+      }),
+      prisma.bookingActionToken.findMany({
+        where: {
+          bookingId: seed.bookingId,
+          type: { in: [BookingActionTokenType.RESCHEDULE, BookingActionTokenType.CANCEL] },
+        },
+        select: { expiresAt: true },
+      }),
+    ]);
+
+    assert.equal(actionTokens.length, 2);
+    assert.ok(actionTokens.every(
+      (token) => token.expiresAt.getTime() === buildBookingSelfServiceActionExpiry(booking.scheduledStartsAt).getTime(),
+    ));
   } finally {
     await cleanupSeed(seed);
   }
@@ -299,6 +344,7 @@ dbTest("resend tokenového CLIENT e-mailu vydá nové tokeny a staré zneplatní
   const {
     prisma,
     buildBookingActionExpiry,
+    buildBookingSelfServiceActionExpiry,
     buildBookingActionToken,
     hashBookingActionToken,
     createResendEmailLog,
@@ -376,6 +422,22 @@ dbTest("resend tokenového CLIENT e-mailu vydá nové tokeny a staré zneplatní
     assert.equal(resendPayload.auditValue, "zachovat");
     assert.ok(await prisma.bookingActionToken.findUnique({ where: { tokenHash: hashBookingActionToken(newManageToken) } }));
     assert.ok(await prisma.bookingActionToken.findUnique({ where: { tokenHash: hashBookingActionToken(newCancellationToken) } }));
+
+    const booking = await prisma.booking.findUniqueOrThrow({
+      where: { id: seed.bookingId },
+      select: { scheduledStartsAt: true },
+    });
+    const newActionTokens = await prisma.bookingActionToken.findMany({
+      where: {
+        bookingId: seed.bookingId,
+        tokenHash: { in: [hashBookingActionToken(newManageToken), hashBookingActionToken(newCancellationToken)] },
+      },
+      select: { expiresAt: true },
+    });
+    assert.equal(newActionTokens.length, 2);
+    assert.ok(newActionTokens.every(
+      (token) => token.expiresAt.getTime() === buildBookingSelfServiceActionExpiry(booking.scheduledStartsAt).getTime(),
+    ));
 
     const oldTokens = await prisma.bookingActionToken.findMany({
       where: { bookingId: seed.bookingId, tokenHash: { in: [oldManageToken.tokenHash, oldCancellationToken.tokenHash] } },
@@ -468,6 +530,19 @@ dbTest("resend tokenového ADMIN e-mailu vydá nové approve/reject tokeny", asy
     assert.notEqual(newRejectToken, oldRejectToken.rawToken);
     assert.ok(await prisma.bookingActionToken.findUnique({ where: { tokenHash: hashBookingActionToken(newApproveToken) } }));
     assert.ok(await prisma.bookingActionToken.findUnique({ where: { tokenHash: hashBookingActionToken(newRejectToken) } }));
+    const newAdminTokens = await prisma.bookingActionToken.findMany({
+      where: {
+        bookingId: seed.bookingId,
+        tokenHash: { in: [hashBookingActionToken(newApproveToken), hashBookingActionToken(newRejectToken)] },
+      },
+      select: { expiresAt: true, createdAt: true },
+    });
+    assert.equal(newAdminTokens.length, 2);
+    assert.ok(newAdminTokens.every(
+      (token) => Math.abs(
+        token.expiresAt.getTime() - token.createdAt.getTime() - 7 * 24 * 60 * 60 * 1000,
+      ) < 1_000,
+    ));
     const oldTokens = await prisma.bookingActionToken.findMany({
       where: { bookingId: seed.bookingId, tokenHash: { in: [oldApproveToken.tokenHash, oldRejectToken.tokenHash] } },
       select: { revokedAt: true },

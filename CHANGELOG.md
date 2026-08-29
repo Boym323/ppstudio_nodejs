@@ -12,6 +12,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Self-service odkazy pro správu a storno rezervace nyní expirují až krátce po plánovaném začátku rezervace, takže zůstávají použitelné i u termínů vytvořených 60–90 dní dopředu; storno a přesun dál samostatně respektují své business limity.
 - Ruční resend klientského e-mailu nyní po explicitním odstranění aktuální adresy klientky nepoužije historického příjemce, pokud ani booking snapshot neobsahuje použitelný kontakt.
 
 ## [3.23.2] - 2026-08-29

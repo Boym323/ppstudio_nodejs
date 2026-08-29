@@ -4,9 +4,9 @@ import {
 } from "@/generated/prisma/browser";
 
 import {
-  buildBookingActionExpiry,
   buildBookingActionToken,
   buildBookingCancellationUrl,
+  buildBookingSelfServiceActionExpiry,
   hashBookingActionToken,
 } from "@/features/booking/lib/booking-action-tokens";
 import { formatBookingDateLabel } from "@/features/booking/lib/booking-format";
@@ -158,6 +158,7 @@ async function findManageToken(tokenHash: string) {
 export function resolvePublicBookingManagementState(
   token: BookingManagementTokenRecord,
   cancellationHours: number,
+  now = new Date(),
 ): PublicBookingManagementBlockedState | { status: "ready"; token: LoadedManageToken } {
   if (!token) {
     return {
@@ -184,7 +185,7 @@ export function resolvePublicBookingManagementState(
     };
   }
 
-  if (token.expiresAt <= new Date()) {
+  if (token.expiresAt <= now) {
     return {
       status: "expired",
       message: "Platnost odkazu už vypršela. Pokud potřebujete termín upravit, kontaktujte prosím studio.",
@@ -211,7 +212,7 @@ export function resolvePublicBookingManagementState(
     };
   }
 
-  if (!canClientCancelBooking(token.booking.scheduledStartsAt, new Date(), cancellationHours)) {
+  if (!canClientCancelBooking(token.booking.scheduledStartsAt, now, cancellationHours)) {
     return {
       status: "not_reschedulable",
       message: `Změnu termínu už nelze provést online méně než ${cancellationHours} hodin před začátkem. Kontaktujte prosím studio.`,
@@ -225,7 +226,11 @@ export function resolvePublicBookingManagementState(
   };
 }
 
-async function issueCancellationUrl(bookingId: string, now = new Date()) {
+async function issueCancellationUrl(
+  bookingId: string,
+  scheduledStartsAt: Date,
+  now = new Date(),
+) {
   const cancellationToken = buildBookingActionToken();
 
   await prisma.bookingActionToken.create({
@@ -233,7 +238,7 @@ async function issueCancellationUrl(bookingId: string, now = new Date()) {
       bookingId,
       type: BookingActionTokenType.CANCEL,
       tokenHash: cancellationToken.tokenHash,
-      expiresAt: buildBookingActionExpiry(now),
+      expiresAt: buildBookingSelfServiceActionExpiry(scheduledStartsAt),
       lastSentAt: now,
     },
   });
@@ -317,7 +322,10 @@ export function createBookingManagementApi(
         return resolved;
       }
 
-      const cancellationUrl = await dependencies.issueCancellationUrl(resolved.token.booking.id);
+      const cancellationUrl = await dependencies.issueCancellationUrl(
+        resolved.token.booking.id,
+        resolved.token.booking.scheduledStartsAt,
+      );
 
       return {
         status: "issued",

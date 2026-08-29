@@ -6,6 +6,7 @@ import test, { describe } from "node:test";
 import {
   AvailabilitySlotStatus,
   BookingAcquisitionSource,
+  BookingActionTokenType,
   BookingStatus,
   EmailLogType,
   VoucherStatus,
@@ -43,10 +44,11 @@ type SeedContext = {
 };
 
 async function loadModules() {
-  const [{ prisma }, bookingModule, adminBookingModule] = await Promise.all([
+  const [{ prisma }, bookingModule, adminBookingModule, actionTokenModule] = await Promise.all([
     import("@/lib/prisma"),
     import("./booking-public"),
     import("@/features/admin/lib/admin-booking"),
+    import("./booking-action-tokens"),
   ]);
 
   return {
@@ -55,6 +57,7 @@ async function loadModules() {
     PublicBookingError: bookingModule.PublicBookingError,
     publicBookingErrorCodes: bookingModule.publicBookingErrorCodes,
     getAdminBookingDetailData: adminBookingModule.getAdminBookingDetailData,
+    buildBookingSelfServiceActionExpiry: actionTokenModule.buildBookingSelfServiceActionExpiry,
   };
 }
 
@@ -347,7 +350,7 @@ describe("public booking intended voucher", () => {
 
   dbTest("stores public booking service snapshot and confirmation payload with service, price and duration", async () => {
     await withSeed(async (seed) => {
-      const { prisma, createPublicBooking } = await loadModules();
+      const { prisma, createPublicBooking, buildBookingSelfServiceActionExpiry } = await loadModules();
       const slot = await createSlot(seed);
 
       const result = await createPublicBooking(buildBookingInput(seed, slot));
@@ -376,6 +379,14 @@ describe("public booking intended voucher", () => {
         }),
       ]);
 
+      const actionTokens = await prisma.bookingActionToken.findMany({
+        where: {
+          bookingId: result.bookingId,
+          type: { in: [BookingActionTokenType.CANCEL, BookingActionTokenType.RESCHEDULE] },
+        },
+        select: { type: true, expiresAt: true },
+      });
+
       const payload = emailLog.payload as Record<string, unknown>;
 
       assert.equal(booking.serviceNameSnapshot, "Veřejná služba voucher");
@@ -384,6 +395,13 @@ describe("public booking intended voucher", () => {
       assert.equal(payload.serviceName, "Veřejná služba voucher");
       assert.equal(payload.scheduledStartsAt, booking.scheduledStartsAt.toISOString());
       assert.equal(payload.scheduledEndsAt, booking.scheduledEndsAt.toISOString());
+      assert.deepEqual(
+        actionTokens.map((token) => token.type).sort(),
+        [BookingActionTokenType.CANCEL, BookingActionTokenType.RESCHEDULE].sort(),
+      );
+      assert.ok(actionTokens.every(
+        (token) => token.expiresAt.getTime() === buildBookingSelfServiceActionExpiry(booking.scheduledStartsAt).getTime(),
+      ));
     });
   });
 

@@ -13,10 +13,10 @@ import {
 
 import { env } from "@/config/env";
 import {
-  buildBookingActionExpiry,
   buildBookingActionToken,
   buildBookingCancellationUrl,
   buildBookingManagementUrl,
+  buildBookingSelfServiceActionExpiry,
   type BookingEmailActionIntent,
   hashBookingActionToken,
 } from "@/features/booking/lib/booking-action-tokens";
@@ -482,7 +482,7 @@ export async function performBookingEmailAction(
             bookingId: lockedToken.bookingId,
             type: BookingActionTokenType.RESCHEDULE,
             tokenHash: manageToken.tokenHash,
-            expiresAt: buildBookingActionExpiry(now),
+            expiresAt: buildBookingSelfServiceActionExpiry(lockedToken.booking!.scheduledStartsAt),
             lastSentAt: now,
           },
         });
@@ -491,7 +491,7 @@ export async function performBookingEmailAction(
             bookingId: lockedToken.bookingId,
             type: BookingActionTokenType.CANCEL,
             tokenHash: cancellationToken.tokenHash,
-            expiresAt: buildBookingActionExpiry(now),
+            expiresAt: buildBookingSelfServiceActionExpiry(lockedToken.booking!.scheduledStartsAt),
             lastSentAt: now,
           },
         });

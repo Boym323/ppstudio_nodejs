@@ -13,10 +13,10 @@ import { prisma } from "@/lib/prisma";
 import { scrubSensitiveEmailPayload } from "@/lib/email/payload-security";
 
 import {
-  buildBookingActionExpiry,
   buildBookingActionToken,
   buildBookingCancellationUrl,
   buildBookingManagementUrl,
+  buildBookingSelfServiceActionExpiry,
 } from "./booking-action-tokens";
 
 const BOOKING_REMINDER_24H_WINDOW_START_HOURS = 25;
@@ -185,7 +185,7 @@ export async function enqueueBookingReminder24hJobs(
             bookingId: booking.id,
             type: BookingActionTokenType.RESCHEDULE,
             tokenHash: manageToken.tokenHash,
-            expiresAt: buildBookingActionExpiry(now),
+            expiresAt: buildBookingSelfServiceActionExpiry(booking.scheduledStartsAt),
             lastSentAt: now,
           },
           select: {
@@ -198,7 +198,7 @@ export async function enqueueBookingReminder24hJobs(
             bookingId: booking.id,
             type: BookingActionTokenType.CANCEL,
             tokenHash: cancellationToken.tokenHash,
-            expiresAt: buildBookingActionExpiry(now),
+            expiresAt: buildBookingSelfServiceActionExpiry(booking.scheduledStartsAt),
             lastSentAt: now,
           },
         });

@@ -11,10 +11,10 @@ import {
 
 import { env } from "@/config/env";
 import {
-  buildBookingActionExpiry,
   buildBookingActionToken,
   buildBookingCancellationUrl,
   buildBookingManagementUrl,
+  buildBookingSelfServiceActionExpiry,
 } from "@/features/booking/lib/booking-action-tokens";
 import { formatBookingDateLabel } from "@/features/booking/lib/booking-format";
 import {
@@ -437,7 +437,7 @@ async function queueBookingRescheduledNotification(input: {
       bookingId: input.bookingId,
       type: BookingActionTokenType.RESCHEDULE,
       tokenHash: manageToken.tokenHash,
-      expiresAt: buildBookingActionExpiry(now),
+      expiresAt: buildBookingSelfServiceActionExpiry(input.scheduledStartsAt),
       lastSentAt: now,
     },
     select: {
@@ -450,7 +450,7 @@ async function queueBookingRescheduledNotification(input: {
       bookingId: input.bookingId,
       type: BookingActionTokenType.CANCEL,
       tokenHash: cancellationToken.tokenHash,
-      expiresAt: buildBookingActionExpiry(now),
+      expiresAt: buildBookingSelfServiceActionExpiry(input.scheduledStartsAt),
       lastSentAt: now,
     },
   });

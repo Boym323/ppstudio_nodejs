@@ -70,6 +70,8 @@ async function loadModules() {
     getPublicBookingManagementPageState: managementModule.getPublicBookingManagementPageState,
     reschedulePublicBookingByToken: managementModule.reschedulePublicBookingByToken,
     cancelPublicBookingByToken: cancellationModule.cancelPublicBookingByToken,
+    issuePublicCancellationUrlByManageToken: managementModule.issuePublicCancellationUrlByManageToken,
+    buildBookingSelfServiceActionExpiry: actionTokenModule.buildBookingSelfServiceActionExpiry,
     hashBookingActionToken: actionTokenModule.hashBookingActionToken,
     BookingActionTokenType: prismaClientModule.BookingActionTokenType,
     BookingActorType: prismaClientModule.BookingActorType,
@@ -793,6 +795,47 @@ describe("public booking access", () => {
 });
 
 describe("cancel booking flow", () => {
+  dbTest("explicit cancellation link expires after the booking start grace period", async () => {
+    const seed = await createSeed();
+    const {
+      prisma,
+      issuePublicCancellationUrlByManageToken,
+      buildBookingSelfServiceActionExpiry,
+      hashBookingActionToken,
+      BookingActionTokenType,
+    } = await loadModules();
+
+    try {
+      const result = await issuePublicCancellationUrlByManageToken(seed.manageTokenRaw);
+
+      assert.equal(result.status, "issued");
+      if (result.status !== "issued") {
+        throw new Error("Expected cancellation URL issuance to succeed.");
+      }
+
+      const rawToken = result.cancellationUrl.split("/").pop();
+      assert.ok(rawToken);
+      const [booking, token] = await Promise.all([
+        prisma.booking.findUniqueOrThrow({
+          where: { id: seed.manageableBookingId },
+          select: { scheduledStartsAt: true },
+        }),
+        prisma.bookingActionToken.findUniqueOrThrow({
+          where: { tokenHash: hashBookingActionToken(rawToken) },
+          select: { type: true, expiresAt: true },
+        }),
+      ]);
+
+      assert.equal(token.type, BookingActionTokenType.CANCEL);
+      assert.equal(
+        token.expiresAt.toISOString(),
+        buildBookingSelfServiceActionExpiry(booking.scheduledStartsAt).toISOString(),
+      );
+    } finally {
+      await cleanupSeed(seed);
+    }
+  });
+
   dbTest("cancels confirmed booking when token is valid", async () => {
     const seed = await createSeed();
     const {
@@ -1455,6 +1498,7 @@ describe("reschedule booking flow", () => {
     const {
       prisma,
       reschedulePublicBookingByToken,
+      buildBookingSelfServiceActionExpiry,
       BookingActionTokenType,
       EmailLogType,
     } = await loadModules();
@@ -1535,12 +1579,18 @@ describe("reschedule booking flow", () => {
         },
         select: {
           type: true,
+          expiresAt: true,
         },
       });
 
       const tokenTypes = newActionTokens.map((token) => token.type);
       assert.ok(tokenTypes.filter((type) => type === BookingActionTokenType.RESCHEDULE).length >= 2);
       assert.ok(tokenTypes.filter((type) => type === BookingActionTokenType.CANCEL).length >= 3);
+      const expectedNewExpiry = buildBookingSelfServiceActionExpiry(new Date(seed.replacementStartAt));
+      assert.equal(
+        newActionTokens.filter((token) => token.expiresAt.getTime() === expectedNewExpiry.getTime()).length,
+        2,
+      );
     } finally {
       await cleanupSeed(seed);
     }

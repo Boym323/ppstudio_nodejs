@@ -9,12 +9,12 @@ import {
 
 import { env } from "@/config/env";
 import {
-  buildBookingActionExpiry,
   buildBookingActionToken,
   buildBookingCancellationUrl,
   buildBookingEmailActionExpiry,
   buildBookingEmailActionUrl,
   buildBookingManagementUrl,
+  buildBookingSelfServiceActionExpiry,
 } from "@/features/booking/lib/booking-action-tokens";
 import { scrubSensitiveEmailPayload } from "@/lib/email/payload-security";
 
@@ -47,7 +47,7 @@ export async function createNotificationEmailLogs(
       bookingId: input.bookingId,
       type: BookingActionTokenType.RESCHEDULE,
       tokenHash: rescheduleToken.tokenHash,
-      expiresAt: buildBookingActionExpiry(input.now),
+      expiresAt: buildBookingSelfServiceActionExpiry(input.scheduledStartsAt),
       lastSentAt: input.sendClientEmail ? input.now : null,
     },
     select: {
@@ -60,7 +60,7 @@ export async function createNotificationEmailLogs(
       bookingId: input.bookingId,
       type: BookingActionTokenType.CANCEL,
       tokenHash: cancellationToken.tokenHash,
-      expiresAt: buildBookingActionExpiry(input.now),
+      expiresAt: buildBookingSelfServiceActionExpiry(input.scheduledStartsAt),
       lastSentAt: input.sendClientEmail ? input.now : null,
     },
   });

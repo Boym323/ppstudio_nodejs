@@ -15,8 +15,8 @@ import {
 } from "@/generated/prisma/client";
 
 import {
-  buildBookingActionExpiry,
   buildBookingActionToken,
+  buildBookingSelfServiceActionExpiry,
 } from "../../../src/features/booking/lib/booking-action-tokens";
 import {
   formatDateKey,
@@ -503,13 +503,13 @@ export async function createManagedBookingFixture(
         bookingId: booking.id,
         type: BookingActionTokenType.CANCEL,
         tokenHash: cancelToken.tokenHash,
-        expiresAt: buildBookingActionExpiry(catalog.primaryStart),
+        expiresAt: buildBookingSelfServiceActionExpiry(catalog.primaryStart),
       },
       {
         bookingId: booking.id,
         type: BookingActionTokenType.RESCHEDULE,
         tokenHash: manageToken.tokenHash,
-        expiresAt: buildBookingActionExpiry(catalog.primaryStart),
+        expiresAt: buildBookingSelfServiceActionExpiry(catalog.primaryStart),
       },
     ],
   });
@@ -704,13 +704,13 @@ export async function createFragmentedCancellationFixture(): Promise<FragmentedC
         bookingId: booking.id,
         type: BookingActionTokenType.CANCEL,
         tokenHash: cancelToken.tokenHash,
-        expiresAt: buildBookingActionExpiry(bookingStart),
+        expiresAt: buildBookingSelfServiceActionExpiry(bookingStart),
       },
       {
         bookingId: booking.id,
         type: BookingActionTokenType.RESCHEDULE,
         tokenHash: manageToken.tokenHash,
-        expiresAt: buildBookingActionExpiry(bookingStart),
+        expiresAt: buildBookingSelfServiceActionExpiry(bookingStart),
       },
     ],
   });

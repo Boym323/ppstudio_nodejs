@@ -4,6 +4,7 @@ import { env } from "@/config/env";
 
 const BOOKING_ACTION_TOKEN_TTL_DAYS = 30;
 const BOOKING_EMAIL_ACTION_TOKEN_TTL_DAYS = 7;
+const BOOKING_SELF_SERVICE_TOKEN_GRACE_HOURS = 2;
 
 export type BookingEmailActionIntent = "approve" | "reject";
 
@@ -22,6 +23,12 @@ export function hashBookingActionToken(rawToken: string) {
 
 export function buildBookingActionExpiry(now = new Date(), ttlDays = BOOKING_ACTION_TOKEN_TTL_DAYS) {
   return new Date(now.getTime() + ttlDays * 24 * 60 * 60 * 1000);
+}
+
+export function buildBookingSelfServiceActionExpiry(scheduledStartsAt: Date) {
+  return new Date(
+    scheduledStartsAt.getTime() + BOOKING_SELF_SERVICE_TOKEN_GRACE_HOURS * 60 * 60 * 1000,
+  );
 }
 
 export function buildBookingEmailActionExpiry(now = new Date()) {

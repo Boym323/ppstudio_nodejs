@@ -10,12 +10,12 @@ import {
   resolveResendIncidentRootId,
 } from "@/features/admin/actions/email-log-action-helpers";
 import {
-  buildBookingActionExpiry,
   buildBookingActionToken,
   buildBookingCancellationUrl,
   buildBookingEmailActionExpiry,
   buildBookingEmailActionUrl,
   buildBookingManagementUrl,
+  buildBookingSelfServiceActionExpiry,
 } from "@/features/booking/lib/booking-action-tokens";
 import { prisma } from "@/lib/prisma";
 
@@ -73,6 +73,20 @@ async function issueResendBookingActionTokens(
     ? [BookingActionTokenType.RESCHEDULE, BookingActionTokenType.CANCEL]
     : [BookingActionTokenType.APPROVE, BookingActionTokenType.REJECT];
 
+  let clientSelfServiceExpiry: Date | null = null;
+  if (kind === "client") {
+    const booking = await tx.booking.findUnique({
+      where: { id: emailLog.bookingId },
+      select: { scheduledStartsAt: true },
+    });
+
+    if (!booking) {
+      return null;
+    }
+
+    clientSelfServiceExpiry = buildBookingSelfServiceActionExpiry(booking.scheduledStartsAt);
+  }
+
   // PENDING zdroj může stále potřebovat své payload pro automatický retry.
   // Jeho starý token proto ponecháme platný; u SENT/FAILED už ho můžeme
   // bezpečně zneplatnit před vydáním nových odkazů.
@@ -90,14 +104,25 @@ async function issueResendBookingActionTokens(
 
   const firstToken = buildBookingActionToken();
   const secondToken = buildBookingActionToken();
+
+  if (kind === "client" && clientSelfServiceExpiry === null) {
+    return null;
+  }
+
+  const expiresAt = kind === "client"
+    ? clientSelfServiceExpiry
+    : buildBookingEmailActionExpiry(now);
+
+  if (!expiresAt) {
+    return null;
+  }
+
   const firstActionToken = await tx.bookingActionToken.create({
     data: {
       bookingId: emailLog.bookingId,
       type: tokenTypes[0],
       tokenHash: firstToken.tokenHash,
-      expiresAt: kind === "client"
-        ? buildBookingActionExpiry(now)
-        : buildBookingEmailActionExpiry(now),
+      expiresAt,
       lastSentAt: now,
     },
     select: { id: true },
@@ -108,9 +133,7 @@ async function issueResendBookingActionTokens(
       bookingId: emailLog.bookingId,
       type: tokenTypes[1],
       tokenHash: secondToken.tokenHash,
-      expiresAt: kind === "client"
-        ? buildBookingActionExpiry(now)
-        : buildBookingEmailActionExpiry(now),
+      expiresAt,
       lastSentAt: now,
     },
   });

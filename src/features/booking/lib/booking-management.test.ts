@@ -221,6 +221,29 @@ describe("state validation", () => {
     assert.equal(result.status, "ready");
   });
 
+  test("keeps a 60 day booking token valid after the old 30 day window", async () => {
+    const {
+      buildBookingSelfServiceActionExpiry,
+    } = await import("./booking-action-tokens");
+    const { resolvePublicBookingManagementState } = await import("./booking-management");
+    const scheduledStartsAt = new Date("2026-06-21T10:00:00.000Z");
+    const expiresAt = buildBookingSelfServiceActionExpiry(scheduledStartsAt);
+
+    const validAfterThirtyDays = resolvePublicBookingManagementState(
+      buildToken({ scheduledStartsAt, expiresAt }),
+      48,
+      new Date("2026-05-23T10:00:00.000Z"),
+    );
+    const expiredAfterGrace = resolvePublicBookingManagementState(
+      buildToken({ scheduledStartsAt, expiresAt }),
+      48,
+      new Date(expiresAt.getTime() + 1),
+    );
+
+    assert.equal(validAfterThirtyDays.status, "ready");
+    assert.equal(expiredAfterGrace.status, "expired");
+  });
+
   test("rejects cancelled booking state", async () => {
     const { resolvePublicBookingManagementState } = await import("./booking-management");
 
@@ -256,10 +279,16 @@ describe("state validation", () => {
 
   test("blocks public reschedule when booking is inside the online cancellation window", async () => {
     const { resolvePublicBookingManagementState } = await import("./booking-management");
+    const now = new Date("2026-04-23T10:00:00.000Z");
+    const scheduledStartsAt = new Date("2026-04-23T22:00:00.000Z");
 
     const result = resolvePublicBookingManagementState(
-      buildToken({ scheduledStartsAt: new Date(Date.now() + 12 * 60 * 60 * 1000) }),
+      buildToken({
+        scheduledStartsAt,
+        expiresAt: new Date("2026-04-30T10:00:00.000Z"),
+      }),
       24,
+      now,
     );
 
     assert.equal(result.status, "not_reschedulable");

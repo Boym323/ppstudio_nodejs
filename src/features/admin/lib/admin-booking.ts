@@ -18,10 +18,10 @@ import {
   type AdminBookingActionValue,
 } from "@/features/booking/domain/booking-status-transition";
 import {
-  buildBookingActionExpiry,
   buildBookingActionToken,
   buildBookingCancellationUrl,
   buildBookingManagementUrl,
+  buildBookingSelfServiceActionExpiry,
 } from "@/features/booking/lib/booking-action-tokens";
 import { resolveBookingTimingSnapshot } from "@/features/booking/lib/booking-cleanup";
 import { canPreserveAutoLunchForBooking } from "@/features/booking/lib/booking-auto-lunch-enforcement";
@@ -193,7 +193,7 @@ export async function applyAdminBookingStatusChangeInTransaction(
           bookingId: booking.id,
           type: BookingActionTokenType.RESCHEDULE,
           tokenHash: manageToken.tokenHash,
-          expiresAt: buildBookingActionExpiry(now),
+          expiresAt: buildBookingSelfServiceActionExpiry(booking.scheduledStartsAt),
           lastSentAt: now,
         },
       });
@@ -202,7 +202,7 @@ export async function applyAdminBookingStatusChangeInTransaction(
           bookingId: booking.id,
           type: BookingActionTokenType.CANCEL,
           tokenHash: cancellationToken.tokenHash,
-          expiresAt: buildBookingActionExpiry(now),
+          expiresAt: buildBookingSelfServiceActionExpiry(booking.scheduledStartsAt),
           lastSentAt: now,
         },
       });
