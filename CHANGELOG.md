@@ -6,6 +6,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [3.23.2] - 2026-08-29
+
 ### Opraveno
 
 - Zkrácení nebo prodloužení aktivní ruční výjimky při změně služby nyní synchronizuje `DRAFT` s `blockedUntil`, obnoví uvolněnou původní PUBLISHED dostupnost a bezpečně odečte nově blokovaný úsek; chráněné sloty zůstávají nedotčené nebo změnu odmítnou.
