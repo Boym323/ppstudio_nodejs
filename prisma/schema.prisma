@@ -91,6 +91,12 @@ enum EmailLogStatus {
   FAILED
 }
 
+enum EmailAudience {
+  CLIENT
+  ADMIN
+  EXTERNAL
+}
+
 enum EmailLogType {
   BOOKING_CREATED
   BOOKING_RECEIVED
@@ -734,6 +740,7 @@ model EmailLog {
   clientId                       String?
   actionTokenId                  String?
   type                           EmailLogType
+  audience                       EmailAudience                        @default(EXTERNAL)
   status                         EmailLogStatus                       @default(PENDING)
   attemptCount                   Int                                  @default(0)
   nextAttemptAt                  DateTime                             @default(now())

@@ -5,6 +5,7 @@ import {
   BookingActorType,
   BookingSource,
   BookingStatus,
+  EmailAudience,
   EmailLogStatus,
   EmailLogType,
   Prisma,
@@ -518,6 +519,7 @@ export async function performBookingEmailAction(
             targetStatus === BookingStatus.CONFIRMED
               ? EmailLogType.BOOKING_CONFIRMED
               : EmailLogType.BOOKING_CANCELLED,
+          audience: EmailAudience.CLIENT,
           status: env.EMAIL_DELIVERY_MODE === "background" ? undefined : EmailLogStatus.SENT,
           attemptCount: env.EMAIL_DELIVERY_MODE === "background" ? undefined : 1,
           nextAttemptAt: env.EMAIL_DELIVERY_MODE === "background" ? now : undefined,

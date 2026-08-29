@@ -1,6 +1,7 @@
 import {
   BookingActionTokenType,
   BookingStatus,
+  EmailAudience,
   EmailLogStatus,
   EmailLogType,
   Prisma,
@@ -76,6 +77,7 @@ export async function createNotificationEmailLogs(
           input.status === BookingStatus.CONFIRMED
             ? EmailLogType.BOOKING_CONFIRMED
             : EmailLogType.BOOKING_RECEIVED,
+        audience: EmailAudience.CLIENT,
         status: env.EMAIL_DELIVERY_MODE === "background" ? undefined : EmailLogStatus.SENT,
         attemptCount: env.EMAIL_DELIVERY_MODE === "background" ? undefined : 1,
         nextAttemptAt: env.EMAIL_DELIVERY_MODE === "background" ? input.now : undefined,
@@ -155,6 +157,7 @@ export async function createNotificationEmailLogs(
         bookingId: input.bookingId,
         clientId: input.clientId,
         type: EmailLogType.BOOKING_CREATED,
+        audience: EmailAudience.ADMIN,
         status: env.EMAIL_DELIVERY_MODE === "background" ? undefined : EmailLogStatus.SENT,
         attemptCount: env.EMAIL_DELIVERY_MODE === "background" ? undefined : 1,
         nextAttemptAt: env.EMAIL_DELIVERY_MODE === "background" ? input.now : undefined,

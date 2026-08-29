@@ -1,36 +1,110 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { EmailLogStatus, EmailLogType } from "@/generated/prisma/browser";
+import { EmailAudience, EmailLogStatus, EmailLogType } from "@/generated/prisma/browser";
 
-test("resolveEmailLogRecipientFromContact prefers client email and trims whitespace", async () => {
-  const { resolveEmailLogRecipientFromContact } = await import("@/features/admin/actions/email-log-action-helpers");
-  const resolved = resolveEmailLogRecipientFromContact({
+test("CLIENT recipient resolver prefers client email and trims whitespace", async () => {
+  const { resolveEmailLogRecipient } = await import("@/features/admin/actions/email-log-action-helpers");
+  const resolved = resolveEmailLogRecipient({
+    audience: EmailAudience.CLIENT,
     clientEmail: "  klientka@example.com ",
     bookingClientEmailSnapshot: "snapshot@example.com",
+    originalRecipientEmail: "historical@example.com",
   });
 
   assert.equal(resolved, "klientka@example.com");
 });
 
-test("resolveEmailLogRecipientFromContact falls back to booking snapshot when client email is missing", async () => {
-  const { resolveEmailLogRecipientFromContact } = await import("@/features/admin/actions/email-log-action-helpers");
-  const resolved = resolveEmailLogRecipientFromContact({
+test("CLIENT recipient resolver falls back to booking snapshot when client email is missing", async () => {
+  const { resolveEmailLogRecipient } = await import("@/features/admin/actions/email-log-action-helpers");
+  const resolved = resolveEmailLogRecipient({
+    audience: EmailAudience.CLIENT,
     clientEmail: "   ",
     bookingClientEmailSnapshot: " snapshot@example.com ",
+    originalRecipientEmail: "historical@example.com",
   });
 
   assert.equal(resolved, "snapshot@example.com");
 });
 
-test("resolveEmailLogRecipientFromContact returns null when both emails are missing", async () => {
-  const { resolveEmailLogRecipientFromContact } = await import("@/features/admin/actions/email-log-action-helpers");
-  const resolved = resolveEmailLogRecipientFromContact({
+test("CLIENT recipient resolver falls back to original recipient when contacts are missing", async () => {
+  const { resolveEmailLogRecipient } = await import("@/features/admin/actions/email-log-action-helpers");
+  const resolved = resolveEmailLogRecipient({
+    audience: EmailAudience.CLIENT,
     clientEmail: null,
     bookingClientEmailSnapshot: "   ",
+    originalRecipientEmail: "historical@example.com",
   });
 
-  assert.equal(resolved, null);
+  assert.equal(resolved, "historical@example.com");
+});
+
+test("pending CLIENT email po změně kontaktu použije aktuální e-mail klientky", async () => {
+  const { resolveEmailLogRecipient } = await import("@/features/admin/actions/email-log-action-helpers");
+  const resolved = resolveEmailLogRecipient({
+    audience: EmailAudience.CLIENT,
+    clientEmail: "  nova-klientka@example.com ",
+    bookingClientEmailSnapshot: "puvodni@example.com",
+    originalRecipientEmail: "historicky@example.com",
+  });
+
+  assert.equal(resolved, "nova-klientka@example.com");
+});
+
+test("pending ADMIN email změna kontaktu klientky recipient nezmění", async () => {
+  const { resolveEmailLogRecipient } = await import("@/features/admin/actions/email-log-action-helpers");
+  const resolved = resolveEmailLogRecipient({
+    audience: EmailAudience.ADMIN,
+    clientEmail: "klientka@example.com",
+    bookingClientEmailSnapshot: "snapshot@example.com",
+    originalRecipientEmail: "admin-puvodni@example.com",
+    adminNotificationEmail: "admin-aktualni@example.com",
+  });
+
+  assert.equal(resolved, "admin-aktualni@example.com");
+  assert.notEqual(resolved, "klientka@example.com");
+});
+
+test("resend CLIENT emailu jde klientce, ADMIN adminovi a EXTERNAL původnímu příjemci", async () => {
+  const { resolveEmailLogRecipient } = await import("@/features/admin/actions/email-log-action-helpers");
+  const common = {
+    clientEmail: "klientka@example.com",
+    bookingClientEmailSnapshot: "snapshot@example.com",
+    originalRecipientEmail: "puvodni@example.com",
+    adminNotificationEmail: "admin@example.com",
+  };
+
+  assert.equal(resolveEmailLogRecipient({ ...common, audience: EmailAudience.CLIENT }), "klientka@example.com");
+  assert.equal(resolveEmailLogRecipient({ ...common, audience: EmailAudience.ADMIN }), "admin@example.com");
+  assert.equal(resolveEmailLogRecipient({ ...common, audience: EmailAudience.EXTERNAL }), "puvodni@example.com");
+});
+
+test("ADMIN template/payload se přes booking/client relation nikdy nepřesměruje na Client.email", async () => {
+  const { resolveEmailLogRecipient, buildResendEmailLogCreateInput } = await import("@/features/admin/actions/email-log-action-helpers");
+  const recipientEmail = resolveEmailLogRecipient({
+    audience: EmailAudience.ADMIN,
+    clientEmail: "klientka@example.com",
+    bookingClientEmailSnapshot: "snapshot@example.com",
+    originalRecipientEmail: "admin-puvodni@example.com",
+    adminNotificationEmail: null,
+  });
+  const data = buildResendEmailLogCreateInput({
+    resendOfId: "admin-log-1",
+    resendRootId: "admin-log-1",
+    bookingId: "booking-1",
+    clientId: "client-1",
+    actionTokenId: null,
+    type: EmailLogType.BOOKING_CREATED,
+    audience: EmailAudience.ADMIN,
+    recipientEmail: recipientEmail!,
+    subject: "Nová rezervace",
+    templateKey: "admin-booking-notification-v1",
+    payload: { clientEmail: "klientka@example.com" },
+  });
+
+  assert.equal(data.audience, EmailAudience.ADMIN);
+  assert.equal(data.recipientEmail, "admin-puvodni@example.com");
+  assert.notEqual(data.recipientEmail, "klientka@example.com");
 });
 
 test("resolveResendIncidentRootId zachová pouze neuzavřený incident root", async () => {
@@ -84,12 +158,14 @@ test("buildResendEmailLogCreateInput resets queue and provider state for resend"
 test("buildResendEmailLogCreateInput stores the current contact address only on the new resend", async () => {
   const {
     buildResendEmailLogCreateInput,
-    resolveEmailLogRecipientFromContact,
+    resolveEmailLogRecipient,
   } = await import("@/features/admin/actions/email-log-action-helpers");
   const historicalRecipient = "petra@seznam.dz";
-  const recipientEmail = resolveEmailLogRecipientFromContact({
+  const recipientEmail = resolveEmailLogRecipient({
+    audience: EmailAudience.CLIENT,
     clientEmail: "petra@seznam.cz",
     bookingClientEmailSnapshot: historicalRecipient,
+    originalRecipientEmail: historicalRecipient,
   });
 
   assert.equal(recipientEmail, "petra@seznam.cz");
@@ -101,6 +177,7 @@ test("buildResendEmailLogCreateInput stores the current contact address only on 
     clientId: "client-1",
     actionTokenId: null,
     type: EmailLogType.BOOKING_CONFIRMED,
+    audience: EmailAudience.CLIENT,
     recipientEmail: recipientEmail!,
     subject: "Rezervace potvrzena",
     templateKey: "booking-approved-v1",

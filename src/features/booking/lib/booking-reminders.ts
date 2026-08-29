@@ -1,6 +1,7 @@
 import {
   BookingActionTokenType,
   BookingStatus,
+  EmailAudience,
   EmailLogStatus,
   EmailLogType,
   Prisma,
@@ -198,6 +199,7 @@ export async function enqueueBookingReminder24hJobs(
             clientId: booking.clientId,
             actionTokenId: manageActionToken.id,
             type: EmailLogType.BOOKING_REMINDER,
+            audience: EmailAudience.CLIENT,
             status: env.EMAIL_DELIVERY_MODE === "background" ? undefined : EmailLogStatus.SENT,
             attemptCount: env.EMAIL_DELIVERY_MODE === "background" ? undefined : 1,
             nextAttemptAt: env.EMAIL_DELIVERY_MODE === "background" ? now : undefined,

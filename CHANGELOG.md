@@ -10,6 +10,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- E-mailový outbox nyní rozlišuje klientské, administrační a externí příjemce; změna kontaktu klientky proto nepřepíše čekající admin/externí log a ruční resend administrační zprávy nemůže použít adresu klientky.
 - Zkrácení nebo prodloužení aktivní ruční výjimky při změně služby nyní synchronizuje `DRAFT` s `blockedUntil`, obnoví uvolněnou původní PUBLISHED dostupnost a bezpečně odečte nově blokovaný úsek; chráněné sloty zůstávají nedotčené nebo změnu odmítnou.
 - Ruční booking a admin přesun nyní před vytvořením interního DRAFT override atomicky odečtou pouze překrývající běžnou PUBLISHED dostupnost; částečné překryvy tak neporuší exclusion constraint a po cancellation/reschedule se původní dostupnost znovu zkompaktuje, zatímco protected sloty operaci bezpečně odmítnou.
 - Klientský katalog nyní pro automatický oběd načítá celou publikovanou dostupnost všech relevantních pražských dnů, zatímco skutečně rezervovatelné termíny dál respektují booking window; nabídka proto používá stejný denní kontext jako autoritativní serverová kontrola.

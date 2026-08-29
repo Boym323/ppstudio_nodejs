@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import test from "node:test";
 
-import { EmailLogStatus, EmailLogType } from "@/generated/prisma/browser";
+import { EmailAudience, EmailLogStatus, EmailLogType } from "@/generated/prisma/browser";
 
 process.env.NEXT_PUBLIC_APP_NAME ??= "PP Studio";
 process.env.NEXT_PUBLIC_APP_URL ??= "https://example.com";
@@ -180,7 +180,7 @@ dbTest("Resend webhook rozlišuje různé eventy a nededuplikuje podle provider 
 });
 
 dbTest("resend po opravě kontaktu zachová bounce audit původního logu a založí nový chain", async () => {
-  const [{ prisma }, { buildResendEmailLogCreateInput, resolveEmailLogRecipientFromContact }] = await Promise.all([
+  const [{ prisma }, { buildResendEmailLogCreateInput, resolveEmailLogRecipient }] = await Promise.all([
     import("@/lib/prisma"),
     import("@/features/admin/actions/email-log-action-helpers"),
   ]);
@@ -194,6 +194,7 @@ dbTest("resend po opravě kontaktu zachová bounce audit původního logu a zalo
     data: {
       clientId: client.id,
       type: EmailLogType.BOOKING_CONFIRMED,
+      audience: EmailAudience.CLIENT,
       status: EmailLogStatus.SENT,
       recipientEmail: oldEmail,
       subject: "Rezervace potvrzena",
@@ -205,6 +206,7 @@ dbTest("resend po opravě kontaktu zachová bounce audit původního logu a zalo
     data: {
       clientId: client.id,
       type: EmailLogType.BOOKING_RECEIVED,
+      audience: EmailAudience.CLIENT,
       status: EmailLogStatus.SENT,
       recipientEmail: oldEmail,
       subject: "Rezervace přijata",
@@ -215,9 +217,11 @@ dbTest("resend po opravě kontaktu zachová bounce audit původního logu a zalo
   try {
     await prisma.client.update({ where: { id: client.id }, data: { email: currentEmail } });
     const updatedClient = await prisma.client.findUniqueOrThrow({ where: { id: client.id } });
-    const recipientEmail = resolveEmailLogRecipientFromContact({
+    const recipientEmail = resolveEmailLogRecipient({
+      audience: EmailAudience.CLIENT,
       clientEmail: updatedClient.email,
       bookingClientEmailSnapshot: null,
+      originalRecipientEmail: root.recipientEmail,
     });
     assert.equal(recipientEmail, currentEmail);
 
@@ -229,6 +233,7 @@ dbTest("resend po opravě kontaktu zachová bounce audit původního logu a zalo
         clientId: root.clientId,
         actionTokenId: root.actionTokenId,
         type: root.type,
+        audience: root.audience,
         recipientEmail: recipientEmail!,
         subject: root.subject,
         templateKey: root.templateKey,

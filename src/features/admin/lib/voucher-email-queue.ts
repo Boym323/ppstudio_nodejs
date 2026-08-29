@@ -1,6 +1,6 @@
 import "server-only";
 
-import { EmailLogStatus, EmailLogType, VoucherStatus } from "@/generated/prisma/browser";
+import { EmailAudience, EmailLogStatus, EmailLogType, VoucherStatus } from "@/generated/prisma/browser";
 import { z } from "zod";
 
 import { env } from "@/config/env";
@@ -73,6 +73,7 @@ export async function queueVoucherEmailLog(input: unknown, now = new Date()): Pr
   await prisma.emailLog.create({
     data: {
       type: EmailLogType.VOUCHER_SENT,
+      audience: EmailAudience.EXTERNAL,
       status: inBackgroundMode ? undefined : EmailLogStatus.SENT,
       attemptCount: inBackgroundMode ? undefined : 1,
       nextAttemptAt: inBackgroundMode ? now : undefined,

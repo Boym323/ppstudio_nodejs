@@ -1,6 +1,6 @@
 "use server";
 
-import { EmailIncidentManualResolutionReason, EmailLogStatus } from "@/generated/prisma/browser";
+import { EmailAudience, EmailIncidentManualResolutionReason, EmailLogStatus } from "@/generated/prisma/browser";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -8,11 +8,12 @@ import { z } from "zod";
 import {
   buildResendEmailLogCreateInput,
   resolveResendIncidentRootId,
-  resolveEmailLogRecipientFromContact,
+  resolveEmailLogRecipient,
 } from "@/features/admin/actions/email-log-action-helpers";
 import { requireAdminArea } from "@/lib/auth/session";
 import { manuallyResolveEmailIncident } from "@/lib/email/incident-resolution";
 import { prisma } from "@/lib/prisma";
+import { getEmailBrandingSettings } from "@/lib/site-settings";
 
 const emailLogActionSchema = z.object({
   emailLogId: z.string().trim().min(1).max(64),
@@ -66,9 +67,15 @@ async function loadOwnerEmailLog(formData: FormData) {
 type OwnerEmailLog = NonNullable<Awaited<ReturnType<typeof loadOwnerEmailLog>>>;
 
 async function createResendEmailLog(emailLog: OwnerEmailLog) {
-  const recipientEmail = resolveEmailLogRecipientFromContact({
+  const emailBranding = emailLog.audience === EmailAudience.ADMIN
+    ? await getEmailBrandingSettings()
+    : null;
+  const recipientEmail = resolveEmailLogRecipient({
+    audience: emailLog.audience,
     clientEmail: emailLog.client?.email ?? null,
     bookingClientEmailSnapshot: emailLog.booking?.clientEmailSnapshot ?? null,
+    originalRecipientEmail: emailLog.recipientEmail,
+    adminNotificationEmail: emailBranding?.notificationAdminEmail,
   });
   if (!recipientEmail) {
     return null;
@@ -93,6 +100,7 @@ async function createResendEmailLog(emailLog: OwnerEmailLog) {
       clientId: emailLog.clientId,
       actionTokenId: emailLog.actionTokenId,
       type: emailLog.type,
+      audience: emailLog.audience,
       recipientEmail,
       subject: emailLog.subject,
       templateKey: emailLog.templateKey,

@@ -1,16 +1,27 @@
-import { EmailLogStatus, EmailLogType, Prisma } from "@/generated/prisma/client";
+import { EmailAudience, EmailLogStatus, EmailLogType, Prisma } from "@/generated/prisma/client";
 
-export function resolveEmailLogRecipientFromContact(input: {
+export function resolveEmailLogRecipient(input: {
+  audience: EmailAudience;
   clientEmail: string | null;
   bookingClientEmailSnapshot: string | null;
+  originalRecipientEmail: string;
+  adminNotificationEmail?: string | null;
 }) {
-  const clientEmail = input.clientEmail?.trim() ?? "";
-  if (clientEmail) {
-    return clientEmail;
+  if (input.audience === EmailAudience.CLIENT) {
+    const clientEmail = input.clientEmail?.trim() ?? "";
+    if (clientEmail) {
+      return clientEmail;
+    }
+
+    const bookingEmail = input.bookingClientEmailSnapshot?.trim() ?? "";
+    return bookingEmail || input.originalRecipientEmail.trim() || null;
   }
 
-  const bookingEmail = input.bookingClientEmailSnapshot?.trim() ?? "";
-  return bookingEmail || null;
+  if (input.audience === EmailAudience.ADMIN) {
+    return input.adminNotificationEmail?.trim() || input.originalRecipientEmail.trim() || null;
+  }
+
+  return input.originalRecipientEmail.trim() || null;
 }
 
 /**
@@ -34,6 +45,7 @@ export function buildResendEmailLogCreateInput(input: {
   clientId: string | null;
   actionTokenId: string | null;
   type: EmailLogType;
+  audience?: EmailAudience;
   recipientEmail: string;
   subject: string;
   templateKey: string;
@@ -58,6 +70,7 @@ export function buildResendEmailLogCreateInput(input: {
     clientId: input.clientId,
     actionTokenId: input.actionTokenId,
     type: input.type,
+    audience: input.audience ?? EmailAudience.EXTERNAL,
     status: EmailLogStatus.PENDING,
     attemptCount: 0,
     nextAttemptAt: input.now ?? new Date(),

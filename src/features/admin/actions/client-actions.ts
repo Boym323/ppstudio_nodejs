@@ -1,6 +1,6 @@
 "use server";
 
-import { BookingActorType, BookingStatus, EmailLogStatus, Prisma } from "@/generated/prisma/client";
+import { BookingActorType, BookingStatus, EmailAudience, EmailLogStatus, Prisma } from "@/generated/prisma/client";
 import { revalidatePath } from "next/cache";
 
 import { type AdminArea } from "@/config/navigation";
@@ -235,6 +235,7 @@ export async function updateClientContactAction(
               in: activeBookingIds,
             },
             status: EmailLogStatus.PENDING,
+            audience: EmailAudience.CLIENT,
             processingStartedAt: null,
           },
           data: {
