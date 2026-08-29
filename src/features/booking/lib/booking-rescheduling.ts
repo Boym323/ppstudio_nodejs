@@ -221,6 +221,27 @@ async function lockRequestedSlot(
   });
 }
 
+async function lockAvailabilityCoverage(
+  tx: Prisma.TransactionClient,
+  slotId: string | undefined,
+  requestedStartsAt: Date,
+  requestedBlockedUntil: Date,
+) {
+  await tx.$queryRaw<Array<{ id: string }>>(Prisma.sql`
+    SELECT "id"
+    FROM "AvailabilitySlot"
+    WHERE (
+      ${slotId ?? null}::text IS NOT NULL
+      AND "id" = ${slotId ?? null}
+    )
+    OR (
+      "startsAt" < ${requestedBlockedUntil}
+      AND "endsAt" > ${requestedStartsAt}
+    )
+    FOR UPDATE
+  `);
+}
+
 async function splitSlotForEditing(
   tx: Prisma.TransactionClient,
   slot: BookingSlotRecord,
@@ -645,13 +666,14 @@ async function rescheduleBookingInTransaction(
     ? await lockRequestedSlot(tx, input.slotId)
     : null;
 
-  if (input.slotId && input.slotId !== booking.slotId && !requestedSlot) {
-    throw new BookingRescheduleError(
-      bookingRescheduleErrorCodes.slotUnavailable,
-      "Vybraný slot už není k dispozici.",
-      "slot",
-    );
-  }
+  // A submitted slotId can be stale after the planner regenerated the day.
+  // The authoritative decision below is made from the current locked rows.
+  await lockAvailabilityCoverage(
+    tx,
+    input.slotId,
+    requestedStartsAt,
+    requestedBlockedUntil,
+  );
 
   const excludedSlotIds = [booking.slotId, requestedSlot?.id].filter((value): value is string => Boolean(value));
   const overlappingSlots = await tx.availabilitySlot.findMany({

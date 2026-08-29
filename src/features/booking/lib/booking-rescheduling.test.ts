@@ -379,6 +379,33 @@ describe("state validation", () => {
     assert.equal((harness.calls.bookingUpdate[0]?.data as { slotId?: string }).slotId, "slot-published-anchor");
   });
 
+  test("uses current contiguous coverage when the requested slotId no longer exists", async () => {
+    const harness = await createHarness({
+      requestedSlot: null,
+      overlappingSlots: [
+        buildSlot({
+          id: "slot-current-published",
+          startsAt: new Date("2026-04-28T09:00:00.000Z"),
+          endsAt: new Date("2026-04-28T10:00:00.000Z"),
+          status: AvailabilitySlotStatus.PUBLISHED,
+        }),
+      ],
+    });
+
+    const result = await harness.api.rescheduleBooking({
+      bookingId: "booking-1",
+      slotId: "slot-stale",
+      newStartAt: "2026-04-28T09:00:00.000Z",
+      changedByUserId: null,
+      changedByClient: true,
+      notifyClient: false,
+      expectedUpdatedAt: "2026-04-23T09:00:00.000Z",
+    });
+
+    assert.equal(result.manualOverride, false);
+    assert.equal((harness.calls.bookingUpdate[0]?.data as { slotId?: string }).slotId, "slot-current-published");
+  });
+
   test("allows reschedule across adjacent published slots and uses the whole chain in conflict checks", async () => {
     const harness = await createHarness({
       booking: buildBooking({

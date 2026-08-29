@@ -148,6 +148,27 @@ async function lockRequestedSlot(
   });
 }
 
+async function lockAvailabilityCoverage(
+  tx: Prisma.TransactionClient,
+  slotId: string | undefined,
+  requestedStartsAt: Date,
+  requestedBlockedUntil: Date,
+) {
+  await tx.$queryRaw<LockedSlotRow[]>(Prisma.sql`
+    SELECT "id"
+    FROM "AvailabilitySlot"
+    WHERE (
+      ${slotId ?? null}::text IS NOT NULL
+      AND "id" = ${slotId ?? null}
+    )
+    OR (
+      "startsAt" < ${requestedBlockedUntil}
+      AND "endsAt" > ${requestedStartsAt}
+    )
+    FOR UPDATE
+  `);
+}
+
 async function resolveClientForBooking(
   tx: Prisma.TransactionClient,
   input: ClientResolutionInput,
@@ -437,13 +458,15 @@ export async function createBookingWithEngine(
             ? await lockRequestedSlot(tx, input.slotId)
             : null;
 
-          if (input.slotId && !slot) {
-            throw new PublicBookingError(
-              publicBookingErrorCodes.slotUnavailable,
-              "Vybraný termín už není dostupný.",
-              2,
-            );
-          }
+          // slotId is only a reference to the availability the client saw.
+          // Lock the current interval too, so a regenerated or removed slot
+          // can fall back only to a contiguous current published coverage.
+          await lockAvailabilityCoverage(
+            tx,
+            input.slotId,
+            requestedStartsAt,
+            requestedBlockedUntil,
+          );
 
           const overlappingSlots = await tx.availabilitySlot.findMany({
             where: {

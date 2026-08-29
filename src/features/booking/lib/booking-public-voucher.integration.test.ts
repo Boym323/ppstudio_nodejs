@@ -447,6 +447,70 @@ describe("public booking intended voucher", () => {
     });
   });
 
+  dbTest("accepts a stale slotId when current published availability still covers service and cleanup", async () => {
+    await withSeed(async (seed) => {
+      const { prisma, createPublicBooking } = await loadModules();
+      await prisma.service.update({
+        where: { id: seed.serviceId },
+        data: { cleanupMinutes: 15 },
+      });
+      const startsAt = await findIsolatedSlotStart(seed, 75, 14);
+      const staleSlot = await createPublishedSlot(seed, startsAt, 75);
+      const replacementSlot = await createPublishedSlot(seed, startsAt, 75);
+
+      await prisma.availabilitySlot.delete({ where: { id: staleSlot.id } });
+
+      const result = await createPublicBooking(buildBookingInput(seed, staleSlot));
+      seed.createdBookingIds.push(result.bookingId);
+
+      const booking = await prisma.booking.findUniqueOrThrow({
+        where: { id: result.bookingId },
+        select: { slotId: true, blockedUntil: true },
+      });
+      assert.equal(booking.slotId, replacementSlot.id);
+      assert.equal(booking.blockedUntil.toISOString(), new Date(startsAt.getTime() + 75 * 60 * 1000).toISOString());
+    });
+  });
+
+  dbTest("rejects a stale slotId after current availability was removed", async () => {
+    await withSeed(async (seed) => {
+      const { prisma, createPublicBooking, publicBookingErrorCodes } = await loadModules();
+      const startsAt = await findIsolatedSlotStart(seed, 60, 14);
+      const staleSlot = await createPublishedSlot(seed, startsAt, 60);
+      await prisma.availabilitySlot.delete({ where: { id: staleSlot.id } });
+
+      await assert.rejects(
+        () => createPublicBooking(buildBookingInput(seed, staleSlot)),
+        (error) => error instanceof Error
+          && "code" in error
+          && error.code === publicBookingErrorCodes.slotUnavailable,
+      );
+    });
+  });
+
+  dbTest("accepts stale slotId when replacement availability covers service and cleanup overflows", async () => {
+    await withSeed(async (seed) => {
+      const { prisma, createPublicBooking } = await loadModules();
+      await prisma.service.update({
+        where: { id: seed.serviceId },
+        data: { cleanupMinutes: 15 },
+      });
+      const startsAt = await findIsolatedSlotStart(seed, 75, 14);
+      const staleSlot = await createPublishedSlot(seed, startsAt, 75);
+      const replacementSlot = await createPublishedSlot(seed, startsAt, 60);
+      await prisma.availabilitySlot.delete({ where: { id: staleSlot.id } });
+
+      const result = await createPublicBooking(buildBookingInput(seed, staleSlot));
+      seed.createdBookingIds.push(result.bookingId);
+      const booking = await prisma.booking.findUniqueOrThrow({
+        where: { id: result.bookingId },
+        select: { slotId: true, blockedUntil: true },
+      });
+      assert.equal(booking.slotId, replacementSlot.id);
+      assert.equal(booking.blockedUntil.toISOString(), new Date(startsAt.getTime() + 75 * 60 * 1000).toISOString());
+    });
+  });
+
   dbTest("splits chained published coverage so planner keeps free edge fragments editable", async () => {
     await withSeed(async (seed) => {
       const { prisma, createPublicBooking } = await loadModules();
