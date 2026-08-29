@@ -100,6 +100,33 @@ describe("buildMergedPublicCatalogSlots", () => {
 });
 
 describe("buildSlotTimeOptions", () => {
+  test("zachová rastr slotu při začátku rezervačního okna uprostřed intervalu", () => {
+    const options = buildSlotTimeOptions(
+      {
+        id: "slot-booking-window",
+        startsAt: "2026-06-10T09:00:00.000Z",
+        endsAt: "2026-06-10T17:00:00.000Z",
+        publicNote: null,
+        capacity: 1,
+        serviceRestrictionMode: AvailabilitySlotServiceRestrictionMode.ANY,
+        allowedServiceIds: [],
+        bookedIntervals: [],
+        bookingWindowStart: "2026-06-10T09:11:00.000Z",
+        bookingWindowEnd: "2026-06-10T10:31:00.000Z",
+      },
+      60,
+    );
+
+    assert.deepEqual(
+      options.map((option) => option.startsAt),
+      [
+        "2026-06-10T09:30:00.000Z",
+        "2026-06-10T10:00:00.000Z",
+        "2026-06-10T10:30:00.000Z",
+      ],
+    );
+  });
+
   test("použije segment obsahující vybraný začátek jako slotId", () => {
     const [mergedSlot] = buildMergedPublicCatalogSlots(
       [

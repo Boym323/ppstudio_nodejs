@@ -39,6 +39,9 @@ export type BookingAvailabilityCatalogSlot = {
     startsAt: string;
     endsAt: string;
   }>;
+  /** Hranice rezervačního okna; samotný slot zůstává nezkrácený kvůli rastru začátků. */
+  bookingWindowStart?: string;
+  bookingWindowEnd?: string;
 };
 
 export type PublishedCoverageSlot = {

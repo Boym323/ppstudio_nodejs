@@ -117,6 +117,12 @@ export function buildSlotTimeOptions(
   const blockDurationMs = (serviceDurationMinutes + cleanupBlockMinutes) * 60 * 1000;
   const stepMs = BOOKING_START_STEP_MINUTES * 60 * 1000;
   const latestStartMs = slotEndsAtMs - serviceDurationMs;
+  const bookingWindowStartMs = slot.bookingWindowStart
+    ? new Date(slot.bookingWindowStart).getTime()
+    : Number.NEGATIVE_INFINITY;
+  const bookingWindowEndMs = slot.bookingWindowEnd
+    ? new Date(slot.bookingWindowEnd).getTime()
+    : Number.POSITIVE_INFINITY;
 
   if (latestStartMs < slotStartsAtMs) {
     return [];
@@ -185,6 +191,10 @@ export function buildSlotTimeOptions(
     const isDisabled = remainingCapacity < 1;
 
     if (quarterHourCandidates.has(startsAtMs) && isDisabled) {
+      continue;
+    }
+
+    if (startsAtMs < bookingWindowStartMs || startsAtMs > bookingWindowEndMs) {
       continue;
     }
 

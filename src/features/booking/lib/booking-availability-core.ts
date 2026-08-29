@@ -12,7 +12,10 @@ import {
 } from "./booking-cleanup";
 import { loadAutoLunchPolicySnapshot } from "./booking-auto-lunch-policy";
 import { getPragueLocalDate } from "./booking-local-time";
-import { buildMergedAvailabilityCatalogSlots } from "./booking-slot-availability";
+import {
+  buildMergedAvailabilityCatalogSlots,
+  type BookingAvailabilityCatalogSlot,
+} from "./booking-slot-availability";
 import { ACTIVE_BOOKING_STATUSES } from "./booking-availability-shared";
 
 export type BookingAvailabilityCatalog = {
@@ -26,7 +29,7 @@ export type BookingAvailabilityCatalog = {
     cleanupBlockMinutes: number;
     priceFromCzk: number | null;
   }>;
-  slots: ReturnType<typeof buildMergedAvailabilityCatalogSlots>;
+  slots: BookingAvailabilityCatalogSlot[];
   scheduleOptimization: {
     globalAutoLunchEnabled: boolean;
     dayLunchModes: Record<string, "AUTO" | "OFF">;
@@ -89,7 +92,8 @@ export async function getBookingAvailabilityCatalog({
     prisma.availabilitySlot.findMany({
       where: {
         status: availabilitySlotStatus,
-        startsAt: { gte: bookingWindowStart, lte: bookingWindowEnd },
+        startsAt: { lt: bookingWindowEnd },
+        endsAt: { gt: bookingWindowStart },
       },
       orderBy: [{ startsAt: "asc" }],
       select: {
@@ -155,7 +159,11 @@ export async function getBookingAvailabilityCatalog({
         endsAt: booking.blockedUntil ?? booking.scheduledEndsAt,
       })),
       bookingLookaheadMinutes,
-    ),
+    ).map((slot) => ({
+      ...slot,
+      bookingWindowStart: bookingWindowStart.toISOString(),
+      bookingWindowEnd: bookingWindowEnd.toISOString(),
+    })),
     scheduleOptimization: {
       ...autoLunchPolicy,
       publishedAvailability: slots.map((slot) => ({

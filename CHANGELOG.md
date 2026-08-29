@@ -8,6 +8,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Volné termíny nyní načítají i dostupnost začínající před rezervačním oknem a zachovávají její původní časový rastr; veřejná i administrační rezervace a přesuny proto správně nabídnou první platný termín, aniž by nabídly začátky po konci okna.
 - KPI obsazenosti nyní zohledňuje kapacitu historicky zveřejněných slotů, automatický oběd i úklidové blokace, aby nepočítala nedostupný čas jako volné termíny; tooltipy a dlouhé texty KPI se na úzkých obrazovkách zalamují a zůstávají uvnitř viewportu.
 - KPI „Neuhrazená částka“ nyní odečítá od ceny dokončených návštěv také uplatněné voucherové částky, takže voucherem plně uhrazené rezervace již nevykazují falešný dluh.
 - Dashboard nyní upozorní na dnešní aktivní rezervace po termínu a zobrazí je v dnešním plánu i v případě, že nejsou navázané na načtený dostupný slot.
