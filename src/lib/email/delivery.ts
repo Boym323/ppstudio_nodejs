@@ -309,6 +309,7 @@ export async function deliverEmailLog(
         processingStartedAt: null,
         processingToken: null,
         errorMessage,
+        payload: shouldRetry ? undefined : scrubSensitiveEmailPayload(emailLog.payload),
       },
     });
 

@@ -9,6 +9,7 @@ Formát je inspirovaný Keep a Changelog.
 ### Zabezpečení
 
 - Doručené booking/admin e-maily už v `EmailLog.payload` nezachovávají raw bearer URL; ruční resend tokenových e-mailů vydává nové tokeny a zneplatní staré aktivní odkazy.
+- Terminálně neúspěšné booking/admin e-maily nyní při přechodu do `FAILED` atomicky redigují raw bearer URL v `EmailLog.payload`; retryable failures zůstávají pro automatický retry nezměněné.
 - Neověřený public booking ani public reschedule už nemění master jméno, e-mail ani telefon existující klientky; právě odeslané údaje zůstávají pouze ve snapshotu rezervace.
 
 ### Opraveno

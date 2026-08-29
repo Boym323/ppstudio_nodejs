@@ -1,6 +1,7 @@
 import "dotenv/config";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 import {
@@ -518,6 +519,159 @@ dbTest("selhání sendEmail před SENT zachová retry behavior delivery workeru"
     const failedPayload = stored.payload as Record<string, unknown>;
     assert.match(String(failedPayload.manageReservationUrl), /raw-failed-/);
     assert.match(String(failedPayload.cancellationUrl), /raw-failed-/);
+  } finally {
+    await prisma.emailLog.deleteMany({ where: { id: emailLog.id } });
+  }
+});
+
+dbTest("poslední neúspěšný pokus označí log jako FAILED a atomicky rediguje bearer URL", async () => {
+  const seed = randomUUID();
+  const { prisma, claimEmailLogForImmediateDelivery, deliverEmailLog } = await loadModules();
+  const emailLog = await prisma.emailLog.create({
+    data: {
+      type: EmailLogType.BOOKING_RECEIVED,
+      status: EmailLogStatus.PENDING,
+      attemptCount: 4,
+      recipientEmail: `delivery-terminal-failed-${seed}@example.com`,
+      subject: "Rezervace přijata",
+      templateKey: "booking-confirmation-v1",
+      payload: {
+        bookingId: `delivery-terminal-failed-${seed}`,
+        serviceName: "Testovací služba",
+        clientName: "Testovací klientka",
+        scheduledStartsAt: "2026-08-17T10:00:00.000Z",
+        scheduledEndsAt: "2026-08-17T11:00:00.000Z",
+        manageReservationUrl: `https://example.com/rezervace/sprava/raw-terminal-${seed}`,
+        cancellationUrl: `https://example.com/rezervace/storno/raw-terminal-${seed}`,
+        approveUrl: `https://example.com/admin/approve/raw-terminal-${seed}`,
+        rejectUrl: `https://example.com/admin/reject/raw-terminal-${seed}`,
+        customAuditValue: "zachovat",
+      },
+    },
+  });
+  const processingToken = await claimEmailLogForImmediateDelivery(emailLog.id);
+
+  assert.ok(processingToken);
+  try {
+    const result = await deliverEmailLog(emailLog.id, processingToken, {
+      sendEmail: async () => {
+        throw new Error("simulated terminal transport failure");
+      },
+    });
+    const stored = await prisma.emailLog.findUniqueOrThrow({
+      where: { id: emailLog.id },
+      select: { status: true, attemptCount: true, payload: true },
+    });
+    const payload = stored.payload as Record<string, unknown>;
+
+    assert.equal(result.status, "failed");
+    assert.equal(stored.status, EmailLogStatus.FAILED);
+    assert.equal(stored.attemptCount, 5);
+    assert.equal(payload.manageReservationUrl, "[REDACTED]");
+    assert.equal(payload.cancellationUrl, "[REDACTED]");
+    assert.equal(payload.approveUrl, "[REDACTED]");
+    assert.equal(payload.rejectUrl, "[REDACTED]");
+    assert.equal(payload.customAuditValue, "zachovat");
+  } finally {
+    await prisma.emailLog.deleteMany({ where: { id: emailLog.id } });
+  }
+});
+
+dbTest("resend scrubovaného FAILED booking e-mailu vydá nové tokeny a nový payload", async () => {
+  const seed = randomUUID().slice(0, 8);
+  const { prisma } = await loadModules();
+  const { createResendEmailLog } = await import("@/features/admin/actions/email-log-resend");
+  const window = await findIsolatedWorkerWindow(prisma, seed, 60);
+  const fixture = await createConfirmedManualBooking(seed, window.startsAt);
+
+  try {
+    const booking = await prisma.booking.findUniqueOrThrow({
+      where: { id: fixture.bookingId },
+      select: { clientId: true },
+    });
+    const source = await prisma.emailLog.create({
+      data: {
+        bookingId: fixture.bookingId,
+        clientId: booking.clientId,
+        type: EmailLogType.BOOKING_RECEIVED,
+        audience: EmailAudience.CLIENT,
+        status: EmailLogStatus.FAILED,
+        recipientEmail: fixture.email,
+        subject: "Rezervace přijata",
+        templateKey: "booking-confirmation-v1",
+        payload: {
+          bookingId: fixture.bookingId,
+          serviceName: `Worker service ${fixture.bookingId}`,
+          clientName: `Worker klientka ${fixture.bookingId}`,
+          scheduledStartsAt: fixture.startsAt.toISOString(),
+          scheduledEndsAt: fixture.endsAt.toISOString(),
+          manageReservationUrl: "[REDACTED]",
+          cancellationUrl: "[REDACTED]",
+          customAuditValue: "zachovat",
+        },
+      },
+    });
+    const sourceForResend = await prisma.emailLog.findUniqueOrThrow({
+      where: { id: source.id },
+      include: {
+        client: { select: { id: true, email: true } },
+        booking: { select: { id: true, clientEmailSnapshot: true } },
+      },
+    });
+
+    const resend = await createResendEmailLog({ emailLog: sourceForResend });
+
+    assert.ok(resend);
+    assert.equal(resend.status, EmailLogStatus.PENDING);
+    const resendPayload = resend.payload as Record<string, unknown>;
+    assert.match(String(resendPayload.manageReservationUrl), /\/rezervace\/sprava\//);
+    assert.match(String(resendPayload.cancellationUrl), /\/rezervace\/storno\//);
+    assert.notEqual(resendPayload.manageReservationUrl, "[REDACTED]");
+    assert.notEqual(resendPayload.cancellationUrl, "[REDACTED]");
+    assert.equal(resendPayload.customAuditValue, "zachovat");
+  } finally {
+    await cleanupBookingFixture(fixture);
+  }
+});
+
+dbTest("migrace historických FAILED logů rediguje známá bearer pole a zachová ostatní data", async () => {
+  const seed = randomUUID();
+  const { prisma } = await loadModules();
+  const migrationSql = await readFile(
+    "prisma/migrations/20260829120000_scrub_failed_email_log_bearer_payloads/migration.sql",
+    "utf8",
+  );
+  const emailLog = await prisma.emailLog.create({
+    data: {
+      type: EmailLogType.GENERIC,
+      status: EmailLogStatus.FAILED,
+      recipientEmail: `migration-failed-${seed}@example.com`,
+      subject: "Historický failure",
+      templateKey: "migration-test",
+      payload: {
+        manageReservationUrl: `https://example.com/manage/raw-${seed}`,
+        cancellationUrl: `https://example.com/cancel/raw-${seed}`,
+        approveUrl: `https://example.com/approve/raw-${seed}`,
+        rejectUrl: `https://example.com/reject/raw-${seed}`,
+        customAuditValue: "zachovat",
+      },
+    },
+  });
+
+  try {
+    await prisma.$executeRawUnsafe(migrationSql);
+    const stored = await prisma.emailLog.findUniqueOrThrow({
+      where: { id: emailLog.id },
+      select: { status: true, payload: true },
+    });
+    const payload = stored.payload as Record<string, unknown>;
+
+    assert.equal(stored.status, EmailLogStatus.FAILED);
+    assert.equal(payload.manageReservationUrl, "[REDACTED]");
+    assert.equal(payload.cancellationUrl, "[REDACTED]");
+    assert.equal(payload.approveUrl, "[REDACTED]");
+    assert.equal(payload.rejectUrl, "[REDACTED]");
+    assert.equal(payload.customAuditValue, "zachovat");
   } finally {
     await prisma.emailLog.deleteMany({ where: { id: emailLog.id } });
   }
