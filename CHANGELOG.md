@@ -8,6 +8,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Změna služby v administraci nyní stejně jako veřejná rezervace a přesun ověřuje zachování poslední platné automatické obědové přestávky nad aktuálním stavem dne; prodlužující změna služby proto nemůže uložit termín, který by oběd znemožnil.
 - Změna služby v administraci nyní vyžaduje souvislou publikovanou dostupnost jen do konce samotné služby, nikoli do konce úklidové blokace; archivovaný původní slot se přitom nepovažuje za ruční výjimku bez příznaku `manualOverride` rezervace.
 - Změna služby u aktivní rezervace nyní běží v opakované serializovatelné transakci a před uložením globálně kontroluje časový překryv aktivních rezervací, takže souběžné vytvoření rezervace nemůže obsadit stejný čas.
 - Odeslání pozvánky novému administračnímu uživateli má nyní dostatečný kontrast textu tlačítka i v mobilním dialogu.

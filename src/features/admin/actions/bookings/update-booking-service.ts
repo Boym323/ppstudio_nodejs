@@ -167,6 +167,16 @@ export async function updateBookingServiceAction(
     };
   }
 
+  if (result.status === "slot-unavailable") {
+    return {
+      status: "error",
+      formError: "Vybraný termín už není dostupný. Nová délka služby by znemožnila automatický oběd; nejprve upravte termín rezervace.",
+      fieldErrors: {
+        serviceId: "Vybraná služba by v tomto termínu znemožnila automatický oběd.",
+      },
+    };
+  }
+
   if (result.status === "conflict") {
     return {
       status: "error",

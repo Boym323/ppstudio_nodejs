@@ -22,6 +22,7 @@ import {
   buildBookingManagementUrl,
 } from "@/features/booking/lib/booking-action-tokens";
 import { resolveBookingTimingSnapshot } from "@/features/booking/lib/booking-cleanup";
+import { canPreserveAutoLunchForBooking } from "@/features/booking/lib/booking-auto-lunch-enforcement";
 import {
   archiveOrphanedManualOverrideSlotAfterCancellation,
   compactAdjacentEditableSlotsForBooking,
@@ -505,6 +506,16 @@ export async function updateAdminBookingService({
 
     if (activeBookingCount > 0) {
       return { status: "conflict" as const };
+    }
+
+    const preservesAutoLunch = await canPreserveAutoLunchForBooking(tx, {
+      requestedStartsAt: booking.scheduledStartsAt,
+      requestedBlockedUntil: nextBlockedUntil,
+      excludeBookingId: booking.id,
+    });
+
+    if (!preservesAutoLunch) {
+      return { status: "slot-unavailable" as const };
     }
 
     if (slot.status !== "PUBLISHED") {
