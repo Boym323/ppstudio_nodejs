@@ -6,6 +6,7 @@ import {
   EmailLogType,
   Prisma,
   VoucherType,
+  AvailabilitySlotStatus,
 } from "@/generated/prisma/client";
 
 import { env } from "@/config/env";
@@ -26,6 +27,8 @@ import { canPreserveAutoLunchForBooking } from "@/features/booking/lib/booking-a
 import {
   archiveOrphanedManualOverrideSlotAfterCancellation,
   compactAdjacentEditableSlotsForBooking,
+  preparePublishedAvailabilityForManualOverride,
+  restoreArchivedAvailabilityAfterManualOverrideShortening,
 } from "@/features/booking/lib/booking-slot-compaction";
 import { resolvePublishedSlotCoverage } from "@/features/booking/lib/booking-slot-availability";
 import { prisma } from "@/lib/prisma";
@@ -369,6 +372,19 @@ export async function updateAdminBookingService({
     });
     const nextScheduledEndsAt = nextTiming.serviceEnd;
     const nextBlockedUntil = nextTiming.blockedUntil;
+    const oldBlockedUntil = booking.blockedUntil ?? booking.scheduledEndsAt;
+    const lifecycleRangeEnd = new Date(Math.max(oldBlockedUntil.getTime(), nextBlockedUntil.getTime()));
+
+    await tx.$queryRaw<Array<{ id: string }>>(Prisma.sql`
+      SELECT "id"
+      FROM "AvailabilitySlot"
+      WHERE "id" = ${booking.slotId}
+         OR (
+           "startsAt" < ${lifecycleRangeEnd}
+           AND "endsAt" > ${booking.scheduledStartsAt}
+         )
+      FOR UPDATE
+    `);
 
     const slot = await tx.availabilitySlot.findUniqueOrThrow({
       where: {
@@ -380,7 +396,12 @@ export async function updateAdminBookingService({
         endsAt: true,
         capacity: true,
         status: true,
+        publicNote: true,
+        internalNote: true,
         serviceRestrictionMode: true,
+        publishedAt: true,
+        cancelledAt: true,
+        createdByUserId: true,
         allowedServices: {
           select: {
             serviceId: true,
@@ -452,7 +473,12 @@ export async function updateAdminBookingService({
         endsAt: true,
         capacity: true,
         status: true,
+        publicNote: true,
+        internalNote: true,
         serviceRestrictionMode: true,
+        publishedAt: true,
+        cancelledAt: true,
+        createdByUserId: true,
         allowedServices: {
           select: {
             serviceId: true,
@@ -461,6 +487,48 @@ export async function updateAdminBookingService({
       },
       orderBy: [{ startsAt: "asc" }],
     });
+
+    const manualOverrideResizeSlots = booking.manualOverride
+      ? await tx.availabilitySlot.findMany({
+          where: {
+            id: {
+              not: booking.slotId,
+            },
+            startsAt: {
+              lt: lifecycleRangeEnd,
+            },
+            endsAt: {
+              gt: booking.scheduledStartsAt,
+            },
+            status: {
+              in: [
+                AvailabilitySlotStatus.DRAFT,
+                AvailabilitySlotStatus.PUBLISHED,
+                AvailabilitySlotStatus.ARCHIVED,
+              ],
+            },
+          },
+          select: {
+            id: true,
+            startsAt: true,
+            endsAt: true,
+            capacity: true,
+            status: true,
+            publicNote: true,
+            internalNote: true,
+            serviceRestrictionMode: true,
+            publishedAt: true,
+            cancelledAt: true,
+            createdByUserId: true,
+            allowedServices: {
+              select: {
+                serviceId: true,
+              },
+            },
+          },
+          orderBy: [{ startsAt: "asc" }],
+        })
+      : [];
 
     const publishedCoverage = resolvePublishedSlotCoverage(
       [slot, ...overlappingSlots],
@@ -472,14 +540,21 @@ export async function updateAdminBookingService({
 
     const slotAllowsNewService = slot.serviceRestrictionMode === "ANY"
       || slot.allowedServices.some((allowedService) => allowedService.serviceId === nextService.id);
+    const currentSlotCoversExistingTiming =
+      booking.scheduledStartsAt.getTime() >= slot.startsAt.getTime()
+      && oldBlockedUntil.getTime() <= slot.endsAt.getTime();
     const currentSlotCoversNewTiming =
       booking.scheduledStartsAt.getTime() >= slot.startsAt.getTime()
       && nextBlockedUntil.getTime() <= slot.endsAt.getTime();
+    const isManualOverrideDraftResize = booking.manualOverride
+      && slot.status === AvailabilitySlotStatus.DRAFT
+      && slotAllowsNewService
+      && currentSlotCoversExistingTiming;
 
     const canStayOnManualOverrideSlot = booking.manualOverride
       && slot.status !== "PUBLISHED"
       && slotAllowsNewService
-      && currentSlotCoversNewTiming;
+      && (currentSlotCoversNewTiming || isManualOverrideDraftResize);
 
     if (!publishedCoverage && !canStayOnManualOverrideSlot) {
       return {
@@ -518,6 +593,35 @@ export async function updateAdminBookingService({
       return { status: "slot-unavailable" as const };
     }
 
+    const isManualOverrideShortening = isManualOverrideDraftResize
+      && nextBlockedUntil.getTime() < oldBlockedUntil.getTime();
+    const isManualOverrideExtension = isManualOverrideDraftResize
+      && nextBlockedUntil.getTime() > oldBlockedUntil.getTime();
+
+    if (isManualOverrideExtension) {
+      const protectedDraftOverlap = manualOverrideResizeSlots.some((candidate) => (
+        candidate.status === AvailabilitySlotStatus.DRAFT
+        && candidate.startsAt < nextBlockedUntil
+        && candidate.endsAt > oldBlockedUntil
+      ));
+
+      if (protectedDraftOverlap) {
+        return { status: "conflict" as const };
+      }
+
+      const manualOverridePreparation = await preparePublishedAvailabilityForManualOverride(
+        tx,
+        manualOverrideResizeSlots.filter((candidate) => candidate.status === AvailabilitySlotStatus.PUBLISHED),
+        oldBlockedUntil,
+        nextBlockedUntil,
+        booking.id,
+      );
+
+      if (manualOverridePreparation.protectedSlotIds.length > 0) {
+        return { status: "conflict" as const };
+      }
+    }
+
     if (slot.status !== "PUBLISHED") {
       await tx.availabilitySlot.update({
         where: {
@@ -527,6 +631,15 @@ export async function updateAdminBookingService({
           endsAt: nextBlockedUntil,
         },
       });
+    }
+
+    if (isManualOverrideShortening) {
+      await restoreArchivedAvailabilityAfterManualOverrideShortening(
+        tx,
+        slot.id,
+        nextBlockedUntil,
+        oldBlockedUntil,
+      );
     }
 
     await tx.booking.update({

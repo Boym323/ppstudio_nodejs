@@ -385,6 +385,15 @@ type ManualOverrideSlotRecord = Pick<
 function isPlainEditablePublishedSlot(slot: ManualOverrideSlotRecord) {
   return (
     slot.status === AvailabilitySlotStatus.PUBLISHED &&
+    isPlainEditableAvailabilitySlot(slot)
+  );
+}
+
+function isPlainEditableAvailabilitySlot(slot: Pick<
+  ManualOverrideSlotRecord,
+  "capacity" | "publicNote" | "internalNote" | "serviceRestrictionMode" | "allowedServices"
+>) {
+  return (
     slot.capacity === 1 &&
     slot.publicNote === null &&
     slot.internalNote === null &&
@@ -521,6 +530,63 @@ export async function preparePublishedAvailabilityForManualOverride(
     archivedSlotIds: candidateSlots.map((slot) => slot.id),
     protectedSlotIds: [] as string[],
   };
+}
+
+/**
+ * Restores only the ordinary archived availability released by shortening a
+ * manual override. The actual restoration and compaction stay delegated to
+ * the established lifecycle helper above.
+ */
+export async function restoreArchivedAvailabilityAfterManualOverrideShortening(
+  tx: Prisma.TransactionClient,
+  manualOverrideSlotId: string,
+  releasedStartsAt: Date,
+  releasedEndsAt: Date,
+) {
+  if (releasedStartsAt >= releasedEndsAt) {
+    return [] as string[];
+  }
+
+  const archivedSlots = await tx.availabilitySlot.findMany({
+    where: {
+      id: {
+        not: manualOverrideSlotId,
+      },
+      status: AvailabilitySlotStatus.ARCHIVED,
+      startsAt: {
+        lt: releasedEndsAt,
+      },
+      endsAt: {
+        gt: releasedStartsAt,
+      },
+      bookings: {
+        none: {
+          status: {
+            not: BookingStatus.CANCELLED,
+          },
+        },
+      },
+    },
+    select: mergeableEditableSlotSelect,
+    orderBy: [{ startsAt: "asc" }, { endsAt: "desc" }],
+  });
+
+  const restorableSlots = archivedSlots.filter(isPlainEditableAvailabilitySlot);
+  const restoredSlotIds: string[] = [];
+
+  for (const archivedSlot of restorableSlots) {
+    const restoredSlot = await restoreArchivedSlotAroundManualOverride(
+      tx,
+      archivedSlot.id,
+      manualOverrideSlotId,
+    );
+
+    if (restoredSlot) {
+      restoredSlotIds.push(archivedSlot.id);
+    }
+  }
+
+  return restoredSlotIds;
 }
 
 export async function restoreArchivedSlotAroundManualOverride(

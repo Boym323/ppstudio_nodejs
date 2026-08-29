@@ -19,6 +19,11 @@ function isSerializableConflict(error: unknown) {
       error.code === "P2034"
     ) ||
     (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2010" &&
+      /Code: [`']40001[`']/.test(error.message)
+    ) ||
+    (
       typeof error === "object" &&
       error !== null &&
       "name" in error &&
