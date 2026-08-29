@@ -1,10 +1,12 @@
-import { EmailLogStatus, EmailLogType } from "@/generated/prisma/browser";
+import { EmailAudience, EmailLogStatus, EmailLogType } from "@/generated/prisma/browser";
+import { Prisma } from "@/generated/prisma/client";
 import { randomUUID } from "node:crypto";
 
 import {
   evaluateBookingReminderDelivery,
   markBookingReminder24hSent,
 } from "@/features/booking/lib/booking-reminders";
+import { evaluateBookingEmailPreflight } from "@/lib/email/booking-preflight";
 import { prisma } from "@/lib/prisma";
 import { sendEmail } from "@/lib/email/provider";
 import { getEmailDeliveryRetryDelayMs, getMaxEmailDeliveryAttempts } from "@/lib/email/retry";
@@ -77,6 +79,31 @@ function getErrorMessage(error: unknown) {
   return "Neznámá chyba při odeslání e-mailu.";
 }
 
+async function markEmailLogSystemSkipped(
+  emailLogId: string,
+  processingToken: string,
+  reason: string,
+  payload: Prisma.JsonValue | null | undefined,
+) {
+  return prisma.emailLog.updateMany({
+    where: {
+      id: emailLogId,
+      status: EmailLogStatus.PENDING,
+      processingToken,
+    },
+    data: {
+      status: EmailLogStatus.SENT,
+      provider: "system-skip",
+      sentAt: new Date(),
+      processingStartedAt: null,
+      processingToken: null,
+      nextAttemptAt: new Date(),
+      errorMessage: reason,
+      payload: scrubSensitiveEmailPayload(payload),
+    },
+  });
+}
+
 export async function deliverEmailLog(
   emailLogId: string,
   processingToken: string,
@@ -97,6 +124,7 @@ export async function deliverEmailLog(
       processingStartedAt: true,
       processingToken: true,
       type: true,
+      audience: true,
       bookingId: true,
     },
   });
@@ -143,28 +171,54 @@ export async function deliverEmailLog(
       });
 
       if (!preflight.shouldSend) {
-        const completed = await prisma.emailLog.updateMany({
-          where: {
-            id: emailLog.id,
-            status: EmailLogStatus.PENDING,
-            processingToken,
-          },
-          data: {
-            status: EmailLogStatus.SENT,
-            provider: "system-skip",
-            sentAt: new Date(),
-            processingStartedAt: null,
-            processingToken: null,
-            nextAttemptAt: new Date(),
-            errorMessage: preflight.reason ?? "Reminder delivery skipped.",
-            payload: scrubSensitiveEmailPayload(emailLog.payload),
-          },
-        });
+        const completed = await markEmailLogSystemSkipped(
+          emailLog.id,
+          processingToken,
+          preflight.reason ?? "Reminder delivery skipped.",
+          emailLog.payload,
+        );
 
         return completed.count === 1
           ? { status: "skipped", errorMessage: preflight.reason }
           : { status: "skipped", errorMessage: "Claim e-mailu mezitím převzal jiný worker." };
       }
+    }
+  }
+
+  if (
+    emailLog.bookingId
+    && emailLog.audience === EmailAudience.CLIENT
+    && emailLog.type !== EmailLogType.BOOKING_REMINDER
+  ) {
+    const booking = await prisma.booking.findUnique({
+      where: {
+        id: emailLog.bookingId,
+      },
+      select: {
+        status: true,
+        scheduledStartsAt: true,
+        scheduledEndsAt: true,
+      },
+    });
+    const preflight = evaluateBookingEmailPreflight({
+      type: emailLog.type,
+      audience: emailLog.audience,
+      templateKey: emailLog.templateKey,
+      payload: emailLog.payload,
+      booking,
+    });
+
+    if (!preflight.shouldSend) {
+      const completed = await markEmailLogSystemSkipped(
+        emailLog.id,
+        processingToken,
+        preflight.reason ?? "Booking email delivery skipped.",
+        emailLog.payload,
+      );
+
+      return completed.count === 1
+        ? { status: "skipped", errorMessage: preflight.reason }
+        : { status: "skipped", errorMessage: "Claim e-mailu mezitím převzal jiný worker." };
     }
   }
 
