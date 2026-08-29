@@ -1376,33 +1376,31 @@ dbTest("updateAdminBookingService rozlišuje coverage služby, stale slot a skut
               where: { id: fixture.slot.id },
               data: { endsAt: new Date(fixture.startsAt.getTime() + 30 * 60 * 1000) },
             }),
-            prisma.availabilitySlot.create({
-              data: {
-                startsAt: new Date(fixture.startsAt.getTime() + 45 * 60 * 1000),
-                endsAt: fixture.bookingEndsAt,
-                status: "PUBLISHED",
-                capacity: 1,
-                serviceRestrictionMode: "ANY",
-              },
-            }),
           ]);
+          await prisma.availabilitySlot.create({
+            data: {
+              startsAt: new Date(fixture.startsAt.getTime() + 45 * 60 * 1000),
+              endsAt: fixture.bookingEndsAt,
+              status: "PUBLISHED",
+              capacity: 1,
+              serviceRestrictionMode: "ANY",
+            },
+          });
           break;
         case "archived-slot-with-current-coverage":
-          await Promise.all([
-            prisma.availabilitySlot.update({
-              where: { id: fixture.slot.id },
-              data: { status: "ARCHIVED" },
-            }),
-            prisma.availabilitySlot.create({
-              data: {
-                startsAt: fixture.startsAt,
-                endsAt: fixture.endsAt,
-                status: "PUBLISHED",
-                capacity: 1,
-                serviceRestrictionMode: "ANY",
-              },
-            }),
-          ]);
+          await prisma.availabilitySlot.update({
+            where: { id: fixture.slot.id },
+            data: { status: "ARCHIVED" },
+          });
+          await prisma.availabilitySlot.create({
+            data: {
+              startsAt: fixture.startsAt,
+              endsAt: fixture.endsAt,
+              status: "PUBLISHED",
+              capacity: 1,
+              serviceRestrictionMode: "ANY",
+            },
+          });
           break;
         case "archived-slot-without-current-coverage":
           await prisma.availabilitySlot.update({
