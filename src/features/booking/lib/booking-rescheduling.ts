@@ -23,6 +23,7 @@ import {
 } from "@/features/booking/lib/booking-slot-availability";
 import { sendOwnerBookingPushover, sendOwnerSystemErrorPushover } from "@/lib/notifications/pushover";
 import { prisma } from "@/lib/prisma";
+import { scrubSensitiveEmailPayload } from "@/lib/email/payload-security";
 import { getBookingPolicySettings, getEmailBrandingSettings, isBookingWithinWindow } from "@/lib/site-settings";
 import { resolveBookingTimingSnapshot } from "./booking-cleanup";
 import { canPreserveAutoLunchForBooking } from "./booking-auto-lunch-enforcement";
@@ -454,6 +455,19 @@ async function queueBookingRescheduledNotification(input: {
     },
   });
 
+  const clientPayload = {
+    bookingId: input.bookingId,
+    serviceName: input.serviceName,
+    clientName: input.clientName,
+    previousStartsAt: input.previousStartsAt.toISOString(),
+    previousEndsAt: input.previousEndsAt.toISOString(),
+    scheduledStartsAt: input.scheduledStartsAt.toISOString(),
+    scheduledEndsAt: input.scheduledEndsAt.toISOString(),
+    manageReservationUrl: buildBookingManagementUrl(manageToken.rawToken),
+    cancellationUrl: buildBookingCancellationUrl(cancellationToken.rawToken),
+    includeCalendarAttachment: input.includeCalendarAttachment,
+  };
+
   await prisma.emailLog.create({
     data: {
       bookingId: input.bookingId,
@@ -469,18 +483,9 @@ async function queueBookingRescheduledNotification(input: {
       recipientEmail: input.clientEmail,
       subject: `Změna termínu rezervace: ${input.serviceName}`,
       templateKey: "booking-rescheduled-v1",
-      payload: {
-        bookingId: input.bookingId,
-        serviceName: input.serviceName,
-        clientName: input.clientName,
-        previousStartsAt: input.previousStartsAt.toISOString(),
-        previousEndsAt: input.previousEndsAt.toISOString(),
-        scheduledStartsAt: input.scheduledStartsAt.toISOString(),
-        scheduledEndsAt: input.scheduledEndsAt.toISOString(),
-        manageReservationUrl: buildBookingManagementUrl(manageToken.rawToken),
-        cancellationUrl: buildBookingCancellationUrl(cancellationToken.rawToken),
-        includeCalendarAttachment: input.includeCalendarAttachment,
-      },
+      payload: env.EMAIL_DELIVERY_MODE === "background"
+        ? clientPayload
+        : scrubSensitiveEmailPayload(clientPayload),
       provider: env.EMAIL_DELIVERY_MODE === "background" ? undefined : "log",
       sentAt: env.EMAIL_DELIVERY_MODE === "background" ? undefined : now,
     },

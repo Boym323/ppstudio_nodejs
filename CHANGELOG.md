@@ -6,6 +6,10 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+### Zabezpečení
+
+- Doručené booking/admin e-maily už v `EmailLog.payload` nezachovávají raw bearer URL; ruční resend tokenových e-mailů vydává nové tokeny a zneplatní staré aktivní odkazy.
+
 ### Opraveno
 
 - Ruční resend klientského e-mailu nyní po explicitním odstranění aktuální adresy klientky nepoužije historického příjemce, pokud ani booking snapshot neobsahuje použitelný kontakt.

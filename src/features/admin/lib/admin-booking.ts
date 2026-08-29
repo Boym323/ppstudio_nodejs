@@ -33,6 +33,7 @@ import {
 } from "@/features/booking/lib/booking-slot-compaction";
 import { resolvePublishedSlotCoverage } from "@/features/booking/lib/booking-slot-availability";
 import { prisma } from "@/lib/prisma";
+import { scrubSensitiveEmailPayload } from "@/lib/email/payload-security";
 import { runSerializableTransaction } from "@/lib/serializable-transaction";
 
 export {
@@ -206,6 +207,16 @@ export async function applyAdminBookingStatusChangeInTransaction(
         },
       });
 
+      const clientPayload = {
+        bookingId: booking.id,
+        serviceName: booking.serviceNameSnapshot,
+        clientName: booking.clientNameSnapshot,
+        scheduledStartsAt: booking.scheduledStartsAt.toISOString(),
+        scheduledEndsAt: booking.scheduledEndsAt.toISOString(),
+        manageReservationUrl: buildBookingManagementUrl(manageToken.rawToken),
+        cancellationUrl: buildBookingCancellationUrl(cancellationToken.rawToken),
+      };
+
       await tx.emailLog.create({
         data: {
           bookingId: booking.id,
@@ -220,15 +231,9 @@ export async function applyAdminBookingStatusChangeInTransaction(
           recipientEmail: booking.clientEmailSnapshot,
           subject: `Rezervace potvrzena: ${booking.serviceNameSnapshot}`,
           templateKey: "booking-approved-v1",
-          payload: {
-            bookingId: booking.id,
-            serviceName: booking.serviceNameSnapshot,
-            clientName: booking.clientNameSnapshot,
-            scheduledStartsAt: booking.scheduledStartsAt.toISOString(),
-            scheduledEndsAt: booking.scheduledEndsAt.toISOString(),
-            manageReservationUrl: buildBookingManagementUrl(manageToken.rawToken),
-            cancellationUrl: buildBookingCancellationUrl(cancellationToken.rawToken),
-          },
+          payload: env.EMAIL_DELIVERY_MODE === "background"
+            ? clientPayload
+            : scrubSensitiveEmailPayload(clientPayload),
           provider: env.EMAIL_DELIVERY_MODE === "background" ? undefined : "log",
           sentAt: env.EMAIL_DELIVERY_MODE === "background" ? undefined : now,
         },

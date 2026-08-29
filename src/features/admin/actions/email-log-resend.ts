@@ -1,10 +1,38 @@
-import { Prisma } from "@/generated/prisma/client";
+import {
+  BookingActionTokenType,
+  EmailAudience,
+  EmailLogStatus,
+  Prisma,
+} from "@/generated/prisma/client";
 import {
   buildResendEmailLogCreateInput,
   resolveEmailLogRecipient,
   resolveResendIncidentRootId,
 } from "@/features/admin/actions/email-log-action-helpers";
+import {
+  buildBookingActionExpiry,
+  buildBookingActionToken,
+  buildBookingCancellationUrl,
+  buildBookingEmailActionExpiry,
+  buildBookingEmailActionUrl,
+  buildBookingManagementUrl,
+} from "@/features/booking/lib/booking-action-tokens";
 import { prisma } from "@/lib/prisma";
+
+const CLIENT_TOKEN_EMAIL_TEMPLATES = new Set([
+  "booking-confirmation-v1",
+  "booking-approved-v1",
+  "booking-reminder-24h-v1",
+  "booking-rescheduled-v1",
+]);
+
+type ResendTokenPayload = {
+  manageReservationUrl: string;
+  cancellationUrl: string;
+} | {
+  approveUrl: string;
+  rejectUrl: string;
+};
 
 type ResendSourceEmailLog = Prisma.EmailLogGetPayload<{
   include: {
@@ -12,6 +40,107 @@ type ResendSourceEmailLog = Prisma.EmailLogGetPayload<{
     booking: { select: { id: true; clientEmailSnapshot: true } };
   };
 }>;
+
+function getResendTokenPayloadKind(emailLog: ResendSourceEmailLog) {
+  if (
+    emailLog.audience === EmailAudience.CLIENT
+    && CLIENT_TOKEN_EMAIL_TEMPLATES.has(emailLog.templateKey)
+  ) {
+    return "client" as const;
+  }
+
+  if (
+    emailLog.audience === EmailAudience.ADMIN
+    && emailLog.templateKey === "admin-booking-notification-v1"
+  ) {
+    return "admin" as const;
+  }
+
+  return null;
+}
+
+async function issueResendBookingActionTokens(
+  tx: Prisma.TransactionClient,
+  emailLog: ResendSourceEmailLog,
+  kind: "client" | "admin",
+  now: Date,
+) {
+  if (!emailLog.bookingId) {
+    return null;
+  }
+
+  const tokenTypes = kind === "client"
+    ? [BookingActionTokenType.RESCHEDULE, BookingActionTokenType.CANCEL]
+    : [BookingActionTokenType.APPROVE, BookingActionTokenType.REJECT];
+
+  // PENDING zdroj může stále potřebovat své payload pro automatický retry.
+  // Jeho starý token proto ponecháme platný; u SENT/FAILED už ho můžeme
+  // bezpečně zneplatnit před vydáním nových odkazů.
+  if (emailLog.status !== EmailLogStatus.PENDING) {
+    await tx.bookingActionToken.updateMany({
+      where: {
+        bookingId: emailLog.bookingId,
+        type: { in: tokenTypes },
+        usedAt: null,
+        revokedAt: null,
+      },
+      data: { revokedAt: now },
+    });
+  }
+
+  const firstToken = buildBookingActionToken();
+  const secondToken = buildBookingActionToken();
+  const firstActionToken = await tx.bookingActionToken.create({
+    data: {
+      bookingId: emailLog.bookingId,
+      type: tokenTypes[0],
+      tokenHash: firstToken.tokenHash,
+      expiresAt: kind === "client"
+        ? buildBookingActionExpiry(now)
+        : buildBookingEmailActionExpiry(now),
+      lastSentAt: now,
+    },
+    select: { id: true },
+  });
+
+  await tx.bookingActionToken.create({
+    data: {
+      bookingId: emailLog.bookingId,
+      type: tokenTypes[1],
+      tokenHash: secondToken.tokenHash,
+      expiresAt: kind === "client"
+        ? buildBookingActionExpiry(now)
+        : buildBookingEmailActionExpiry(now),
+      lastSentAt: now,
+    },
+  });
+
+  const payload: ResendTokenPayload = kind === "client"
+    ? {
+        manageReservationUrl: buildBookingManagementUrl(firstToken.rawToken),
+        cancellationUrl: buildBookingCancellationUrl(secondToken.rawToken),
+      }
+    : {
+        approveUrl: buildBookingEmailActionUrl("approve", firstToken.rawToken),
+        rejectUrl: buildBookingEmailActionUrl("reject", secondToken.rawToken),
+      };
+
+  return {
+    actionTokenId: firstActionToken.id,
+    payload,
+  };
+}
+
+function buildResendPayload(payload: Prisma.JsonValue | null, tokenPayload: ResendTokenPayload) {
+  const basePayload = payload && typeof payload === "object" && !Array.isArray(payload)
+    ? { ...(payload as Record<string, Prisma.JsonValue>) }
+    : {};
+
+  return {
+    ...basePayload,
+    ...tokenPayload,
+  } satisfies Prisma.InputJsonObject;
+}
 
 /** Vlastní zápis nového logu; server action pouze ověřuje oprávnění a navigaci. */
 export async function createResendEmailLog(input: {
@@ -29,30 +158,41 @@ export async function createResendEmailLog(input: {
   });
   if (!recipientEmail) return null;
 
-  const incidentRoot = emailLog.resendRootId
-    ? await prisma.emailLog.findUnique({
-        where: { id: emailLog.resendRootId },
-        select: { incidentResolvedAt: true },
-      })
-    : emailLog;
+  return prisma.$transaction(async (tx) => {
+    const incidentRoot = emailLog.resendRootId
+      ? await tx.emailLog.findUnique({
+          where: { id: emailLog.resendRootId },
+          select: { incidentResolvedAt: true },
+        })
+      : emailLog;
+    const tokenPayloadKind = getResendTokenPayloadKind(emailLog);
+    if (tokenPayloadKind && !emailLog.bookingId) {
+      return null;
+    }
+    const tokenPayload = tokenPayloadKind
+      ? await issueResendBookingActionTokens(tx, emailLog, tokenPayloadKind, new Date())
+      : null;
 
-  return prisma.emailLog.create({
-    data: buildResendEmailLogCreateInput({
-      resendOfId: emailLog.id,
-      resendRootId: resolveResendIncidentRootId({
-        sourceEmailLogId: emailLog.id,
-        sourceResendRootId: emailLog.resendRootId,
-        incidentResolvedAt: incidentRoot?.incidentResolvedAt ?? emailLog.incidentResolvedAt,
+    return tx.emailLog.create({
+      data: buildResendEmailLogCreateInput({
+        resendOfId: emailLog.id,
+        resendRootId: resolveResendIncidentRootId({
+          sourceEmailLogId: emailLog.id,
+          sourceResendRootId: emailLog.resendRootId,
+          incidentResolvedAt: incidentRoot?.incidentResolvedAt ?? emailLog.incidentResolvedAt,
+        }),
+        bookingId: emailLog.bookingId,
+        clientId: emailLog.clientId,
+        actionTokenId: tokenPayload?.actionTokenId ?? emailLog.actionTokenId,
+        type: emailLog.type,
+        audience: emailLog.audience,
+        recipientEmail,
+        subject: emailLog.subject,
+        templateKey: emailLog.templateKey,
+        payload: tokenPayload
+          ? buildResendPayload(emailLog.payload, tokenPayload.payload)
+          : emailLog.payload,
       }),
-      bookingId: emailLog.bookingId,
-      clientId: emailLog.clientId,
-      actionTokenId: emailLog.actionTokenId,
-      type: emailLog.type,
-      audience: emailLog.audience,
-      recipientEmail,
-      subject: emailLog.subject,
-      templateKey: emailLog.templateKey,
-      payload: emailLog.payload,
-    }),
+    });
   });
 }

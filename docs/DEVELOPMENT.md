@@ -715,7 +715,7 @@ Produkční HTML templates jsou v `src/lib/email/react-email/` a sdílené kompo
 - `VoucherRedemption` je jediný důkaz skutečného uplatnění voucheru; jedna rezervace smí mít nejvýše jeden takový záznam, protože uplatnění voucheru znamená provozní úhradu rezervace. Veřejné zadání voucheru má ukládat jen záměr, ne čerpání.
 - `Booking` má pro MVP voucher intent přímo na sobě přes `intendedVoucherId`, `intendedVoucherCodeSnapshot` a `intendedVoucherValidatedAt`; samostatný `BookingVoucherIntent` se zatím nezavádí.
 - Další business logiku voucherů drž pod `src/features/vouchers`; admin UI, public booking napojení a PDF generování nejsou součástí databázové foundation migrace.
-- `BookingActionToken` ukládá hash tokenu, expiraci a použití/revokaci pro bezpečné self-service storno, self-service změnu termínu a provozní email akce.
+- `BookingActionToken` ukládá hash tokenu, expiraci a použití/revokaci pro bezpečné self-service storno, self-service změnu termínu a provozní email akce. Raw token je jen dočasně v token-bearing `EmailLog.payload` pro PENDING/FAILED outbox; po SENT se známá URL pole redigují.
 - `CalendarFeed` drží owner subscription feed jako samostatnou entitu mimo `SiteSettings`; ukládá scope, aktivaci, rotační salt a audit času změny.
 - Kalendářový token se neukládá jako raw secret do DB. URL se odvozuje serverově z `CalendarFeed.id`, `tokenSalt` a `ADMIN_SESSION_SECRET`, takže:
   - admin může odkaz zkopírovat kdykoli
@@ -726,7 +726,7 @@ Produkční HTML templates jsou v `src/lib/email/react-email/` a sdílené kompo
   - line folding po 75 bajtech
   - `VTIMEZONE` blok pro `Europe/Prague`
   - oddělený mapper `Booking -> VEVENT`
-- Stejný model `BookingActionToken` obsluhuje i owner/provoz email akce `APPROVE` a `REJECT`; do e-mailu se posílá jen raw token, v DB zůstává hash a auditní čas použití nebo revokace.
+- Stejný model `BookingActionToken` obsluhuje i owner/provoz email akce `APPROVE` a `REJECT`; do e-mailu se posílá raw token, v DB zůstává hash a auditní čas použití nebo revokace. Po úspěšném odeslání `EmailLog.payload` zachová jen `[REDACTED]` v URL polích.
 - Serverová doménová vrstva pro email akce je v `src/features/booking/lib/booking-email-actions.ts`; drží validaci intentu, serializable transakci, změnu stavu, audit a založení klientského `EmailLog`.
 - `src/features/calendar/lib/booking-calendar-attachment.ts` generuje zákaznickou `.ics` přílohu z e-mailového payloadu; veřejný booking calendar endpoint ani token typu `CALENDAR` neudržuj.
 - `EmailLog` je připravený na notifikační workflow a troubleshooting komunikace s klientem.
@@ -822,7 +822,7 @@ Produkční HTML templates jsou v `src/lib/email/react-email/` a sdílené kompo
 - Potvrzovací e-mail `booking-confirmation-v1` má stejně jako webový post-submit screen držet hierarchii bez CTA: stav -> služba / datum / čas -> místo -> kontakt.
 - `booking-reminder-24h-v1` nemá samostatné CTA `Ozvat se studiu`; kontakt je jednou ve spodním kontaktním bloku a akce `Změnit termín` / `Zrušit rezervaci` zůstávají sekundární.
 - U klientských e-mailů nesmí být storno vizuálně dominantnější než obsah potvrzení nebo připomínky. U admin notifikace je jediná primary akce `Potvrdit rezervaci`; `Přesunout termín` a `Otevřít v administraci` jsou secondary, `Zrušit rezervaci` danger-light.
-- `booking-confirmation-v1`, `booking-approved-v1`, `booking-reminder-24h-v1` i `booking-rescheduled-v1` teď dostávají `manageReservationUrl`; token se generuje per e-mail/send a do DB se ukládá jen jeho hash.
+- `booking-confirmation-v1`, `booking-approved-v1`, `booking-reminder-24h-v1` i `booking-rescheduled-v1` teď dostávají `manageReservationUrl`; token se generuje per e-mail/send, PENDING/FAILED outbox drží raw URL pro delivery/retry a po SENT se URL v payloadu redigují. Ruční resend vydává nové tokeny místo kopírování historického payloadu.
 - Referenční kód rezervace už se v klientském flow záměrně nepoužívá; veřejný web, e-maily i `.ics` popis komunikují jen službu, termín a konkrétní akce přes tokenizované odkazy.
 - Potvrzovací e-mail `booking-approved-v1` nově přikládá soubor `pp-studio-rezervace.ics`; attachment se generuje serverově při renderu šablony z payloadu `bookingId + serviceName + scheduledStartsAt + scheduledEndsAt`.
 

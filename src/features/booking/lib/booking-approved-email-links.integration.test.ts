@@ -28,13 +28,14 @@ type Seed = {
 };
 
 async function loadModules() {
-  const [{ prisma }, adminBookingModule, bookingEmailActionsModule, actionTokenModule, prismaClientModule] =
+  const [{ prisma }, adminBookingModule, bookingEmailActionsModule, actionTokenModule, prismaClientModule, resendModule] =
     await Promise.all([
       import("@/lib/prisma"),
       import("@/features/admin/lib/admin-booking"),
       import("./booking-email-actions"),
       import("./booking-action-tokens"),
       import("@/generated/prisma/browser"),
+      import("@/features/admin/actions/email-log-resend"),
     ]);
 
   return {
@@ -43,11 +44,16 @@ async function loadModules() {
     performBookingEmailAction: bookingEmailActionsModule.performBookingEmailAction,
     buildBookingActionExpiry: actionTokenModule.buildBookingActionExpiry,
     buildBookingActionToken: actionTokenModule.buildBookingActionToken,
+    hashBookingActionToken: actionTokenModule.hashBookingActionToken,
+    createResendEmailLog: resendModule.createResendEmailLog,
     AdminRole: prismaClientModule.AdminRole,
     AvailabilitySlotStatus: prismaClientModule.AvailabilitySlotStatus,
     BookingActionTokenType: prismaClientModule.BookingActionTokenType,
     BookingSource: prismaClientModule.BookingSource,
     BookingStatus: prismaClientModule.BookingStatus,
+    EmailAudience: prismaClientModule.EmailAudience,
+    EmailLogStatus: prismaClientModule.EmailLogStatus,
+    EmailLogType: prismaClientModule.EmailLogType,
   };
 }
 
@@ -205,8 +211,13 @@ function assertApprovedEmailPayloadHasSelfServiceLinks(payload: unknown) {
     cancellationUrl: string;
   };
 
-  assert.match(typedData.manageReservationUrl, /\/rezervace\/sprava\//);
-  assert.match(typedData.cancellationUrl, /\/rezervace\/storno\//);
+  if (process.env.EMAIL_DELIVERY_MODE === "background") {
+    assert.match(typedData.manageReservationUrl, /\/rezervace\/sprava\//);
+    assert.match(typedData.cancellationUrl, /\/rezervace\/storno\//);
+  } else {
+    assert.equal(typedData.manageReservationUrl, "[REDACTED]");
+    assert.equal(typedData.cancellationUrl, "[REDACTED]");
+  }
 }
 
 dbTest("applyAdminBookingStatusChange stores manage and cancellation links in approved email payload", async () => {
@@ -278,6 +289,191 @@ dbTest("performBookingEmailAction approve stores manage and cancellation links i
 
     assert.ok(emailLog);
     assertApprovedEmailPayloadHasSelfServiceLinks(emailLog.payload);
+  } finally {
+    await cleanupSeed(seed);
+  }
+});
+
+dbTest("resend tokenového CLIENT e-mailu vydá nové tokeny a staré zneplatní", async () => {
+  const seed = await createSeed();
+  const {
+    prisma,
+    buildBookingActionExpiry,
+    buildBookingActionToken,
+    hashBookingActionToken,
+    createResendEmailLog,
+    BookingActionTokenType,
+    EmailAudience,
+    EmailLogStatus,
+    EmailLogType,
+  } = await loadModules();
+  const now = new Date();
+  const oldManageToken = buildBookingActionToken();
+  const oldCancellationToken = buildBookingActionToken();
+
+  try {
+    const oldManageRecord = await prisma.bookingActionToken.create({
+      data: {
+        bookingId: seed.bookingId,
+        type: BookingActionTokenType.RESCHEDULE,
+        tokenHash: oldManageToken.tokenHash,
+        expiresAt: buildBookingActionExpiry(now),
+      },
+      select: { id: true },
+    });
+    await prisma.bookingActionToken.create({
+      data: {
+        bookingId: seed.bookingId,
+        type: BookingActionTokenType.CANCEL,
+        tokenHash: oldCancellationToken.tokenHash,
+        expiresAt: buildBookingActionExpiry(now),
+      },
+    });
+    const source = await prisma.emailLog.create({
+      data: {
+        bookingId: seed.bookingId,
+        clientId: seed.clientId,
+        actionTokenId: oldManageRecord.id,
+        type: EmailLogType.BOOKING_CONFIRMED,
+        audience: EmailAudience.CLIENT,
+        status: EmailLogStatus.SENT,
+        recipientEmail: "historical@example.com",
+        subject: "Rezervace potvrzena",
+        templateKey: "booking-approved-v1",
+        payload: {
+          bookingId: seed.bookingId,
+          serviceName: "Původní služba",
+          clientName: "Původní klientka",
+          scheduledStartsAt: "2026-08-17T10:00:00.000Z",
+          scheduledEndsAt: "2026-08-17T11:00:00.000Z",
+          manageReservationUrl: `https://example.com/rezervace/sprava/${oldManageToken.rawToken}`,
+          cancellationUrl: `https://example.com/rezervace/storno/${oldCancellationToken.rawToken}`,
+          includeCalendarAttachment: true,
+          auditValue: "zachovat",
+        },
+      },
+    });
+    const sourceForResend = await prisma.emailLog.findUniqueOrThrow({
+      where: { id: source.id },
+      include: {
+        client: { select: { id: true, email: true } },
+        booking: { select: { id: true, clientEmailSnapshot: true } },
+      },
+    });
+
+    const resend = await createResendEmailLog({ emailLog: sourceForResend });
+    assert.ok(resend);
+    const resendPayload = resend.payload as Record<string, unknown>;
+    const newManageToken = String(resendPayload.manageReservationUrl).split("/").pop();
+    const newCancellationToken = String(resendPayload.cancellationUrl).split("/").pop();
+
+    assert.ok(newManageToken);
+    assert.ok(newCancellationToken);
+    assert.notEqual(newManageToken, oldManageToken.rawToken);
+    assert.notEqual(newCancellationToken, oldCancellationToken.rawToken);
+    assert.equal(resend.status, EmailLogStatus.PENDING);
+    assert.equal(resend.actionTokenId !== null, true);
+    assert.equal(resendPayload.auditValue, "zachovat");
+    assert.ok(await prisma.bookingActionToken.findUnique({ where: { tokenHash: hashBookingActionToken(newManageToken) } }));
+    assert.ok(await prisma.bookingActionToken.findUnique({ where: { tokenHash: hashBookingActionToken(newCancellationToken) } }));
+
+    const oldTokens = await prisma.bookingActionToken.findMany({
+      where: { bookingId: seed.bookingId, tokenHash: { in: [oldManageToken.tokenHash, oldCancellationToken.tokenHash] } },
+      select: { revokedAt: true },
+    });
+    assert.equal(oldTokens.length, 2);
+    assert.ok(oldTokens.every((token) => token.revokedAt));
+  } finally {
+    await cleanupSeed(seed);
+  }
+});
+
+dbTest("resend tokenového ADMIN e-mailu vydá nové approve/reject tokeny", async () => {
+  const seed = await createSeed();
+  const {
+    prisma,
+    buildBookingActionExpiry,
+    buildBookingActionToken,
+    hashBookingActionToken,
+    createResendEmailLog,
+    BookingActionTokenType,
+    EmailAudience,
+    EmailLogStatus,
+    EmailLogType,
+  } = await loadModules();
+  const now = new Date();
+  const oldApproveToken = buildBookingActionToken();
+  const oldRejectToken = buildBookingActionToken();
+
+  try {
+    await prisma.bookingActionToken.create({
+      data: {
+        bookingId: seed.bookingId,
+        type: BookingActionTokenType.APPROVE,
+        tokenHash: oldApproveToken.tokenHash,
+        expiresAt: buildBookingActionExpiry(now, 7),
+      },
+    });
+    await prisma.bookingActionToken.create({
+      data: {
+        bookingId: seed.bookingId,
+        type: BookingActionTokenType.REJECT,
+        tokenHash: oldRejectToken.tokenHash,
+        expiresAt: buildBookingActionExpiry(now, 7),
+      },
+    });
+    const source = await prisma.emailLog.create({
+      data: {
+        bookingId: seed.bookingId,
+        clientId: seed.clientId,
+        type: EmailLogType.BOOKING_CREATED,
+        audience: EmailAudience.ADMIN,
+        status: EmailLogStatus.SENT,
+        recipientEmail: "admin@example.com",
+        subject: "Nová rezervace",
+        templateKey: "admin-booking-notification-v1",
+        payload: {
+          bookingId: seed.bookingId,
+          serviceName: "Služba",
+          clientName: "Klientka",
+          clientEmail: "client@example.com",
+          scheduledStartsAt: "2026-08-17T10:00:00.000Z",
+          scheduledEndsAt: "2026-08-17T11:00:00.000Z",
+          approveUrl: `https://example.com/rezervace/akce/approve/${oldApproveToken.rawToken}`,
+          rejectUrl: `https://example.com/rezervace/akce/reject/${oldRejectToken.rawToken}`,
+          adminUrl: "https://example.com/admin/rezervace/booking-1",
+        },
+      },
+    });
+    const sourceForResend = await prisma.emailLog.findUniqueOrThrow({
+      where: { id: source.id },
+      include: {
+        client: { select: { id: true, email: true } },
+        booking: { select: { id: true, clientEmailSnapshot: true } },
+      },
+    });
+
+    const resend = await createResendEmailLog({
+      emailLog: sourceForResend,
+      adminNotificationEmail: "admin@example.com",
+    });
+    assert.ok(resend);
+    const resendPayload = resend.payload as Record<string, unknown>;
+    const newApproveToken = String(resendPayload.approveUrl).split("/").pop();
+    const newRejectToken = String(resendPayload.rejectUrl).split("/").pop();
+
+    assert.ok(newApproveToken);
+    assert.ok(newRejectToken);
+    assert.notEqual(newApproveToken, oldApproveToken.rawToken);
+    assert.notEqual(newRejectToken, oldRejectToken.rawToken);
+    assert.ok(await prisma.bookingActionToken.findUnique({ where: { tokenHash: hashBookingActionToken(newApproveToken) } }));
+    assert.ok(await prisma.bookingActionToken.findUnique({ where: { tokenHash: hashBookingActionToken(newRejectToken) } }));
+    const oldTokens = await prisma.bookingActionToken.findMany({
+      where: { bookingId: seed.bookingId, tokenHash: { in: [oldApproveToken.tokenHash, oldRejectToken.tokenHash] } },
+      select: { revokedAt: true },
+    });
+    assert.equal(oldTokens.length, 2);
+    assert.ok(oldTokens.every((token) => token.revokedAt));
   } finally {
     await cleanupSeed(seed);
   }

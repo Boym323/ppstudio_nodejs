@@ -28,6 +28,7 @@ import {
 import { getBookingStatusLabel } from "@/features/booking/lib/booking-status-presentation";
 import { sendOwnerBookingPushover } from "@/lib/notifications/pushover";
 import { prisma } from "@/lib/prisma";
+import { scrubSensitiveEmailPayload } from "@/lib/email/payload-security";
 
 type BookingEmailActionTargetStatus = "CONFIRMED" | "CANCELLED";
 
@@ -532,7 +533,9 @@ export async function performBookingEmailAction(
               : `Rezervace nebyla potvrzena: ${lockedToken.booking?.serviceNameSnapshot ?? ""}`,
           templateKey:
             targetStatus === BookingStatus.CONFIRMED ? "booking-approved-v1" : "booking-rejected-v1",
-          payload: bookingApprovedPayload,
+          payload: env.EMAIL_DELIVERY_MODE === "background"
+            ? bookingApprovedPayload
+            : scrubSensitiveEmailPayload(bookingApprovedPayload),
           provider: env.EMAIL_DELIVERY_MODE === "background" ? undefined : "log",
           sentAt: env.EMAIL_DELIVERY_MODE === "background" ? undefined : now,
         },

@@ -16,6 +16,7 @@ import {
   buildBookingEmailActionUrl,
   buildBookingManagementUrl,
 } from "@/features/booking/lib/booking-action-tokens";
+import { scrubSensitiveEmailPayload } from "@/lib/email/payload-security";
 
 export async function createNotificationEmailLogs(
   tx: Prisma.TransactionClient,
@@ -66,6 +67,28 @@ export async function createNotificationEmailLogs(
 
   const manageReservationUrl = buildBookingManagementUrl(rescheduleToken.rawToken);
   const cancellationUrl = buildBookingCancellationUrl(cancellationToken.rawToken);
+  const clientPayload = input.status === BookingStatus.CONFIRMED
+    ? {
+        bookingId: input.bookingId,
+        serviceName: input.serviceName,
+        clientName: input.clientName,
+        scheduledStartsAt: input.scheduledStartsAt.toISOString(),
+        scheduledEndsAt: input.scheduledEndsAt.toISOString(),
+        manageReservationUrl,
+        cancellationUrl,
+        intendedVoucherCode: input.intendedVoucherCode,
+        includeCalendarAttachment: input.includeCalendarAttachment,
+      }
+    : {
+        bookingId: input.bookingId,
+        serviceName: input.serviceName,
+        clientName: input.clientName,
+        scheduledStartsAt: input.scheduledStartsAt.toISOString(),
+        scheduledEndsAt: input.scheduledEndsAt.toISOString(),
+        manageReservationUrl,
+        cancellationUrl,
+        intendedVoucherCode: input.intendedVoucherCode,
+      };
 
   if (input.sendClientEmail) {
     const clientEmailLog = await tx.emailLog.create({
@@ -92,29 +115,9 @@ export async function createNotificationEmailLogs(
           input.status === BookingStatus.CONFIRMED
             ? "booking-approved-v1"
             : "booking-confirmation-v1",
-        payload:
-          input.status === BookingStatus.CONFIRMED
-            ? {
-                bookingId: input.bookingId,
-                serviceName: input.serviceName,
-                clientName: input.clientName,
-                scheduledStartsAt: input.scheduledStartsAt.toISOString(),
-                scheduledEndsAt: input.scheduledEndsAt.toISOString(),
-                manageReservationUrl,
-                cancellationUrl,
-                intendedVoucherCode: input.intendedVoucherCode,
-                includeCalendarAttachment: input.includeCalendarAttachment,
-              }
-            : {
-                bookingId: input.bookingId,
-                serviceName: input.serviceName,
-                clientName: input.clientName,
-                scheduledStartsAt: input.scheduledStartsAt.toISOString(),
-                scheduledEndsAt: input.scheduledEndsAt.toISOString(),
-                manageReservationUrl,
-                cancellationUrl,
-                intendedVoucherCode: input.intendedVoucherCode,
-              },
+        payload: env.EMAIL_DELIVERY_MODE === "background"
+          ? clientPayload
+          : scrubSensitiveEmailPayload(clientPayload),
         provider: env.EMAIL_DELIVERY_MODE === "background" ? undefined : "log",
         sentAt: env.EMAIL_DELIVERY_MODE === "background" ? undefined : input.now,
       },
@@ -132,6 +135,19 @@ export async function createNotificationEmailLogs(
     const approveUrl = buildBookingEmailActionUrl("approve", approveToken.rawToken);
     const rejectUrl = buildBookingEmailActionUrl("reject", rejectToken.rawToken);
     const adminUrl = `${env.NEXT_PUBLIC_APP_URL}/admin/rezervace/${input.bookingId}`;
+    const adminPayload = {
+      bookingId: input.bookingId,
+      serviceName: input.serviceName,
+      clientName: input.clientName,
+      clientEmail: input.clientEmail,
+      clientPhone: input.clientPhone,
+      clientNote: input.clientNote,
+      scheduledStartsAt: input.scheduledStartsAt.toISOString(),
+      scheduledEndsAt: input.scheduledEndsAt.toISOString(),
+      approveUrl,
+      rejectUrl,
+      adminUrl,
+    };
 
     await tx.bookingActionToken.createMany({
       data: [
@@ -166,19 +182,9 @@ export async function createNotificationEmailLogs(
         recipientEmail: input.adminNotificationEmail,
         subject: `Nová rezervace: ${input.serviceName}`,
         templateKey: "admin-booking-notification-v1",
-        payload: {
-          bookingId: input.bookingId,
-          serviceName: input.serviceName,
-          clientName: input.clientName,
-          clientEmail: input.clientEmail,
-          clientPhone: input.clientPhone,
-          clientNote: input.clientNote,
-          scheduledStartsAt: input.scheduledStartsAt.toISOString(),
-          scheduledEndsAt: input.scheduledEndsAt.toISOString(),
-          approveUrl,
-          rejectUrl,
-          adminUrl,
-        },
+        payload: env.EMAIL_DELIVERY_MODE === "background"
+          ? adminPayload
+          : scrubSensitiveEmailPayload(adminPayload),
         provider: env.EMAIL_DELIVERY_MODE === "background" ? undefined : "log",
         sentAt: env.EMAIL_DELIVERY_MODE === "background" ? undefined : input.now,
       },

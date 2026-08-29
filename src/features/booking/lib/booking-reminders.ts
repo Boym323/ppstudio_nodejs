@@ -10,6 +10,7 @@ import {
 import { env } from "@/config/env";
 import { sendOwnerPushover } from "@/lib/notifications/pushover-core";
 import { prisma } from "@/lib/prisma";
+import { scrubSensitiveEmailPayload } from "@/lib/email/payload-security";
 
 import {
   buildBookingActionExpiry,
@@ -169,6 +170,15 @@ export async function enqueueBookingReminder24hJobs(
         const cancellationToken = buildBookingActionToken();
         const manageReservationUrl = buildBookingManagementUrl(manageToken.rawToken);
         const cancellationUrl = buildBookingCancellationUrl(cancellationToken.rawToken);
+        const reminderPayload = {
+          bookingId: booking.id,
+          serviceName: booking.serviceNameSnapshot,
+          clientName: booking.clientNameSnapshot,
+          scheduledStartsAt: booking.scheduledStartsAt.toISOString(),
+          scheduledEndsAt: booking.scheduledEndsAt.toISOString(),
+          manageReservationUrl,
+          cancellationUrl,
+        };
 
         const manageActionToken = await tx.bookingActionToken.create({
           data: {
@@ -208,15 +218,9 @@ export async function enqueueBookingReminder24hJobs(
             recipientEmail: booking.clientEmailSnapshot,
             subject: "Zítra se na vás těšíme v PP Studiu",
             templateKey: "booking-reminder-24h-v1",
-            payload: {
-              bookingId: booking.id,
-              serviceName: booking.serviceNameSnapshot,
-              clientName: booking.clientNameSnapshot,
-              scheduledStartsAt: booking.scheduledStartsAt.toISOString(),
-              scheduledEndsAt: booking.scheduledEndsAt.toISOString(),
-              manageReservationUrl,
-              cancellationUrl,
-            },
+            payload: env.EMAIL_DELIVERY_MODE === "background"
+              ? reminderPayload
+              : scrubSensitiveEmailPayload(reminderPayload),
             provider: env.EMAIL_DELIVERY_MODE === "background" ? undefined : "log",
             sentAt: env.EMAIL_DELIVERY_MODE === "background" ? undefined : now,
           },

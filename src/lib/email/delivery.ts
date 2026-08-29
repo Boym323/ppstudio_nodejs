@@ -11,6 +11,7 @@ import { getEmailDeliveryRetryDelayMs, getMaxEmailDeliveryAttempts } from "@/lib
 import { renderEmailTemplate } from "@/lib/email/templates";
 import { sendOwnerEmailFailurePushover } from "@/lib/notifications/pushover-core";
 import { reconcileUnmatchedResendWebhookEvents } from "@/lib/email/resend-webhooks";
+import { scrubSensitiveEmailPayload } from "@/lib/email/payload-security";
 
 export type EmailLogDeliveryOutcome = {
   status: "sent" | "failed" | "skipped";
@@ -156,6 +157,7 @@ export async function deliverEmailLog(
             processingToken: null,
             nextAttemptAt: new Date(),
             errorMessage: preflight.reason ?? "Reminder delivery skipped.",
+            payload: scrubSensitiveEmailPayload(emailLog.payload),
           },
         });
 
@@ -196,6 +198,7 @@ export async function deliverEmailLog(
         processingToken: null,
         nextAttemptAt: new Date(),
         errorMessage: null,
+        payload: scrubSensitiveEmailPayload(emailLog.payload),
       },
     });
 

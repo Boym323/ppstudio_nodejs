@@ -62,6 +62,36 @@ async function createPendingConfirmationEmailLog(seed: string) {
   });
 }
 
+async function createPendingTokenConfirmationEmailLog(seed: string) {
+  const { prisma } = await loadModules();
+  const manageToken = `raw-manage-token-${seed}`;
+  const cancellationToken = `raw-cancellation-token-${seed}`;
+
+  return {
+    emailLog: await prisma.emailLog.create({
+      data: {
+        type: EmailLogType.BOOKING_RECEIVED,
+        status: EmailLogStatus.PENDING,
+        recipientEmail: `delivery-token-${seed}@example.com`,
+        subject: "Rezervace přijata",
+        templateKey: "booking-confirmation-v1",
+        payload: {
+          bookingId: `delivery-token-${seed}`,
+          serviceName: "Testovací služba",
+          clientName: "Testovací klientka",
+          scheduledStartsAt: "2026-08-17T10:00:00.000Z",
+          scheduledEndsAt: "2026-08-17T11:00:00.000Z",
+          manageReservationUrl: `https://example.com/rezervace/sprava/${manageToken}`,
+          cancellationUrl: `https://example.com/rezervace/storno/${cancellationToken}`,
+          customAuditValue: "zachovat",
+        },
+      },
+    }),
+    manageToken,
+    cancellationToken,
+  };
+}
+
 function addMinutes(base: Date, minutes: number) {
   return new Date(base.getTime() + minutes * 60 * 1000);
 }
@@ -260,6 +290,45 @@ dbTest("deliverEmailLog po úspěšném Resend delivery provede reconciliation a
   }
 });
 
+dbTest("PENDING token email před odesláním zachová URL a po SENT je rediguje", async () => {
+  const seed = randomUUID();
+  const {
+    prisma,
+    claimEmailLogForImmediateDelivery,
+    deliverEmailLog,
+  } = await loadModules();
+  const { emailLog, manageToken, cancellationToken } = await createPendingTokenConfirmationEmailLog(seed);
+  const processingToken = await claimEmailLogForImmediateDelivery(emailLog.id);
+
+  assert.ok(processingToken);
+  try {
+    const pending = await prisma.emailLog.findUniqueOrThrow({
+      where: { id: emailLog.id },
+      select: { payload: true },
+    });
+    const pendingPayload = pending.payload as Record<string, unknown>;
+    assert.match(String(pendingPayload.manageReservationUrl), new RegExp(manageToken));
+    assert.match(String(pendingPayload.cancellationUrl), new RegExp(cancellationToken));
+
+    const result = await deliverEmailLog(emailLog.id, processingToken, {
+      sendEmail: async () => ({ provider: "resend", messageId: `resend-${seed}` }),
+      reconcileUnmatchedResendWebhookEvents: async () => ({ reconciled: 0, candidates: 0 }),
+    });
+    const stored = await prisma.emailLog.findUniqueOrThrow({
+      where: { id: emailLog.id },
+      select: { status: true, payload: true },
+    });
+    const sentPayload = stored.payload as Record<string, unknown>;
+
+    assert.deepEqual(result, { status: "sent" });
+    assert.equal(sentPayload.manageReservationUrl, "[REDACTED]");
+    assert.equal(sentPayload.cancellationUrl, "[REDACTED]");
+    assert.equal(sentPayload.customAuditValue, "zachovat");
+  } finally {
+    await prisma.emailLog.deleteMany({ where: { id: emailLog.id } });
+  }
+});
+
 dbTest("deliverEmailLog zachová SENT a neaktivuje retry, když reconciliation po Resend delivery selže", async () => {
   const seed = randomUUID();
   const {
@@ -359,7 +428,24 @@ dbTest("selhání reconciliation neblokuje označení booking reminderu jako ode
 dbTest("selhání sendEmail před SENT zachová retry behavior delivery workeru", async () => {
   const seed = randomUUID();
   const { prisma, claimEmailLogForImmediateDelivery, deliverEmailLog } = await loadModules();
-  const emailLog = await createPendingConfirmationEmailLog(seed);
+  const emailLog = await prisma.emailLog.create({
+    data: {
+      type: EmailLogType.BOOKING_RECEIVED,
+      status: EmailLogStatus.PENDING,
+      recipientEmail: `delivery-failed-${seed}@example.com`,
+      subject: "Rezervace přijata",
+      templateKey: "booking-confirmation-v1",
+      payload: {
+        bookingId: `delivery-failed-${seed}`,
+        serviceName: "Testovací služba",
+        clientName: "Testovací klientka",
+        scheduledStartsAt: "2026-08-17T10:00:00.000Z",
+        scheduledEndsAt: "2026-08-17T11:00:00.000Z",
+        manageReservationUrl: `https://example.com/rezervace/sprava/raw-failed-${seed}`,
+        cancellationUrl: `https://example.com/rezervace/storno/raw-failed-${seed}`,
+      },
+    },
+  });
   const processingToken = await claimEmailLogForImmediateDelivery(emailLog.id);
 
   assert.ok(processingToken);
@@ -377,6 +463,9 @@ dbTest("selhání sendEmail před SENT zachová retry behavior delivery workeru"
     assert.equal(stored.processingToken, null);
     assert.equal(stored.providerMessageId, null);
     assert.equal(stored.errorMessage, "simulated transport failure");
+    const failedPayload = stored.payload as Record<string, unknown>;
+    assert.match(String(failedPayload.manageReservationUrl), /raw-failed-/);
+    assert.match(String(failedPayload.cancellationUrl), /raw-failed-/);
   } finally {
     await prisma.emailLog.deleteMany({ where: { id: emailLog.id } });
   }
@@ -423,8 +512,8 @@ dbTest("runBookingReminderSchedulerOnce logs 24h reminder for confirmed booking 
     assert.equal(payload.serviceName, `Worker service ${seed}`);
     assert.equal(payload.scheduledStartsAt, fixture.startsAt.toISOString());
     assert.equal(payload.scheduledEndsAt, fixture.endsAt.toISOString());
-    assert.match(String(payload.manageReservationUrl), /\/rezervace\/sprava\//);
-    assert.match(String(payload.cancellationUrl), /\/rezervace\/storno\//);
+    assert.equal(payload.manageReservationUrl, "[REDACTED]");
+    assert.equal(payload.cancellationUrl, "[REDACTED]");
   } finally {
     await cleanupBookingFixture(fixture);
   }

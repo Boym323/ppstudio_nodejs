@@ -219,6 +219,7 @@ dbTest("resend po opravě kontaktu zachová bounce audit původního logu a zalo
     const updatedClient = await prisma.client.findUniqueOrThrow({ where: { id: client.id } });
     const recipientEmail = resolveEmailLogRecipient({
       audience: EmailAudience.CLIENT,
+      clientIsAvailable: true,
       clientEmail: updatedClient.email,
       bookingClientEmailSnapshot: null,
       originalRecipientEmail: root.recipientEmail,
