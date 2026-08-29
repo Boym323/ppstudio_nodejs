@@ -5,11 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
-import {
-  buildResendEmailLogCreateInput,
-  resolveResendIncidentRootId,
-  resolveEmailLogRecipient,
-} from "@/features/admin/actions/email-log-action-helpers";
+import { createResendEmailLog } from "@/features/admin/actions/email-log-resend";
 import { requireAdminArea } from "@/lib/auth/session";
 import { manuallyResolveEmailIncident } from "@/lib/email/incident-resolution";
 import { prisma } from "@/lib/prisma";
@@ -66,46 +62,13 @@ async function loadOwnerEmailLog(formData: FormData) {
 
 type OwnerEmailLog = NonNullable<Awaited<ReturnType<typeof loadOwnerEmailLog>>>;
 
-async function createResendEmailLog(emailLog: OwnerEmailLog) {
+async function createOwnerResendEmailLog(emailLog: OwnerEmailLog) {
   const emailBranding = emailLog.audience === EmailAudience.ADMIN
     ? await getEmailBrandingSettings()
     : null;
-  const recipientEmail = resolveEmailLogRecipient({
-    audience: emailLog.audience,
-    clientEmail: emailLog.client?.email ?? null,
-    bookingClientEmailSnapshot: emailLog.booking?.clientEmailSnapshot ?? null,
-    originalRecipientEmail: emailLog.recipientEmail,
+  return createResendEmailLog({
+    emailLog,
     adminNotificationEmail: emailBranding?.notificationAdminEmail,
-  });
-  if (!recipientEmail) {
-    return null;
-  }
-
-  const incidentRoot = emailLog.resendRootId
-    ? await prisma.emailLog.findUnique({
-        where: { id: emailLog.resendRootId },
-        select: { incidentResolvedAt: true },
-      })
-    : emailLog;
-
-  return prisma.emailLog.create({
-    data: buildResendEmailLogCreateInput({
-      resendOfId: emailLog.id,
-      resendRootId: resolveResendIncidentRootId({
-        sourceEmailLogId: emailLog.id,
-        sourceResendRootId: emailLog.resendRootId,
-        incidentResolvedAt: incidentRoot?.incidentResolvedAt ?? emailLog.incidentResolvedAt,
-      }),
-      bookingId: emailLog.bookingId,
-      clientId: emailLog.clientId,
-      actionTokenId: emailLog.actionTokenId,
-      type: emailLog.type,
-      audience: emailLog.audience,
-      recipientEmail,
-      subject: emailLog.subject,
-      templateKey: emailLog.templateKey,
-      payload: emailLog.payload,
-    }),
   });
 }
 
@@ -113,6 +76,12 @@ function revalidateResendPaths(sourceEmailLogId: string, resendEmailLogId: strin
   revalidatePath("/admin/email-logy");
   revalidatePath(`/admin/email-logy/${sourceEmailLogId}`);
   revalidatePath(`/admin/email-logy/${resendEmailLogId}`);
+}
+
+function getMissingResendRecipientFlash(emailLog: OwnerEmailLog) {
+  return emailLog.audience === EmailAudience.CLIENT && emailLog.client !== null
+    ? "resend-client-missing-recipient"
+    : "resend-missing-recipient";
 }
 
 export async function retryEmailLogAction(formData: FormData) {
@@ -125,9 +94,9 @@ export async function retryEmailLogAction(formData: FormData) {
   // Terminální failure je neměnný auditní záznam. Další ruční pokus proto
   // vždy zakládá nový explicitní resend log místo návratu původního do fronty.
   if (emailLog.status === EmailLogStatus.FAILED) {
-    const createdEmailLog = await createResendEmailLog(emailLog);
+    const createdEmailLog = await createOwnerResendEmailLog(emailLog);
     if (!createdEmailLog) {
-      redirect(`/admin/email-logy/${emailLog.id}?flash=resend-missing-recipient`);
+      redirect(`/admin/email-logy/${emailLog.id}?flash=${getMissingResendRecipientFlash(emailLog)}`);
     }
 
     revalidateResendPaths(emailLog.id, createdEmailLog.id);
@@ -187,9 +156,9 @@ export async function resendEmailLogAction(formData: FormData) {
     redirect("/admin/email-logy");
   }
 
-  const createdEmailLog = await createResendEmailLog(emailLog);
+  const createdEmailLog = await createOwnerResendEmailLog(emailLog);
   if (!createdEmailLog) {
-    redirect(`/admin/email-logy/${emailLog.id}?flash=resend-missing-recipient`);
+    redirect(`/admin/email-logy/${emailLog.id}?flash=${getMissingResendRecipientFlash(emailLog)}`);
   }
 
   revalidateResendPaths(emailLog.id, createdEmailLog.id);

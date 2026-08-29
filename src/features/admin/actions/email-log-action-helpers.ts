@@ -2,6 +2,7 @@ import { EmailAudience, EmailLogStatus, EmailLogType, Prisma } from "@/generated
 
 export function resolveEmailLogRecipient(input: {
   audience: EmailAudience;
+  clientIsAvailable: boolean;
   clientEmail: string | null;
   bookingClientEmailSnapshot: string | null;
   originalRecipientEmail: string;
@@ -14,7 +15,18 @@ export function resolveEmailLogRecipient(input: {
     }
 
     const bookingEmail = input.bookingClientEmailSnapshot?.trim() ?? "";
-    return bookingEmail || input.originalRecipientEmail.trim() || null;
+    if (bookingEmail) {
+      return bookingEmail;
+    }
+
+    // Je-li aktuální Client dohledatelný, prázdný kontakt je explicitní stav.
+    // Historický příjemce proto smí zůstat fallbackem jen pro legacy logy bez
+    // dostupné Client relation.
+    if (input.clientIsAvailable) {
+      return null;
+    }
+
+    return input.originalRecipientEmail.trim() || null;
   }
 
   if (input.audience === EmailAudience.ADMIN) {

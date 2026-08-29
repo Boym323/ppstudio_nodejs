@@ -6,6 +6,10 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+### Opraveno
+
+- Ruční resend klientského e-mailu nyní po explicitním odstranění aktuální adresy klientky nepoužije historického příjemce, pokud ani booking snapshot neobsahuje použitelný kontakt.
+
 ## [3.23.2] - 2026-08-29
 
 ### Opraveno
