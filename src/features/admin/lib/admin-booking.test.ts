@@ -32,6 +32,18 @@ test("canCompleteBookingAt allows completion only after the booking end", async 
   );
 });
 
+test("canMarkBookingNoShowAt povolí no-show až 15 minut po začátku", async () => {
+  const { canMarkBookingNoShowAt, NO_SHOW_GRACE_MINUTES } = await import("./admin-booking");
+  const scheduledStartsAt = new Date("2026-04-30T12:00:00.000Z");
+
+  assert.equal(NO_SHOW_GRACE_MINUTES, 15);
+  assert.equal(canMarkBookingNoShowAt(scheduledStartsAt, new Date("2026-04-30T11:44:00.000Z")), false);
+  assert.equal(canMarkBookingNoShowAt(scheduledStartsAt, new Date("2026-04-30T12:00:00.000Z")), false);
+  assert.equal(canMarkBookingNoShowAt(scheduledStartsAt, new Date("2026-04-30T12:14:59.000Z")), false);
+  assert.equal(canMarkBookingNoShowAt(scheduledStartsAt, new Date("2026-04-30T12:15:00.000Z")), true);
+  assert.equal(canMarkBookingNoShowAt(scheduledStartsAt, new Date("2026-04-30T13:00:00.000Z")), true);
+});
+
 test("getAdminBookingActionOptions hides completion before the booking end", async () => {
   const { getAdminBookingActionOptions } = await import("./admin-booking");
   const now = new Date("2026-04-30T12:00:00.000Z");
@@ -53,6 +65,23 @@ test("getAdminBookingActionOptions hides completion before the booking end", asy
     afterEnd.some((action) => action.value === BookingStatus.COMPLETED),
     true,
   );
+});
+
+test("getAdminBookingActionOptions hides no-show before the grace period", async () => {
+  const { getAdminBookingActionOptions } = await import("./admin-booking");
+  const scheduledStartsAt = new Date("2026-04-30T12:00:00.000Z");
+
+  const beforeGrace = getAdminBookingActionOptions(BookingStatus.CONFIRMED, {
+    scheduledStartsAt,
+    now: new Date("2026-04-30T12:14:59.000Z"),
+  });
+  const atGrace = getAdminBookingActionOptions(BookingStatus.CONFIRMED, {
+    scheduledStartsAt,
+    now: new Date("2026-04-30T12:15:00.000Z"),
+  });
+
+  assert.equal(beforeGrace.some((action) => action.value === BookingStatus.NO_SHOW), false);
+  assert.equal(atGrace.some((action) => action.value === BookingStatus.NO_SHOW), true);
 });
 
 test("canApplyAdminBookingTransition permits only the defined booking state transitions", async () => {

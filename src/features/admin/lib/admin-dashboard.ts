@@ -453,6 +453,7 @@ export function buildTimelineItems(
         contact: getDashboardContactActions(booking),
         notes: buildDashboardBookingNotes(booking),
         availableActions: getAdminBookingActionOptions(booking.status, {
+          scheduledStartsAt: booking.scheduledStartsAt,
           scheduledEndsAt: booking.scheduledEndsAt,
         }),
       });

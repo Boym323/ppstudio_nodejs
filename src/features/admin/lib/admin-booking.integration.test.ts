@@ -240,6 +240,73 @@ dbTest("applyAdminBookingStatusChange confirms pending booking and writes side e
   }
 });
 
+dbTest("applyAdminBookingStatusChange serverově odmítne předčasné no-show a po grace period uvolní availability", async () => {
+  const [{ prisma }, { applyAdminBookingStatusChange }, { getBookingAvailabilityCatalog }] = await Promise.all([
+    import("@/lib/prisma"),
+    import("./admin-booking"),
+    import("@/features/booking/lib/booking-availability-core"),
+  ]);
+  const suffix = randomUUID().slice(0, 8);
+  const { startsAt, endsAt } = await findIsolatedAdminWindow(prisma, suffix, 60);
+
+  const [owner, category, client] = await Promise.all([
+    prisma.adminUser.create({ data: { email: `owner-no-show-${suffix}@example.com`, name: `Owner ${suffix}`, role: "OWNER", isActive: true }, select: { id: true } }),
+    prisma.serviceCategory.create({ data: { name: `Kategorie no-show ${suffix}`, slug: `kategorie-no-show-${suffix}`, isActive: true }, select: { id: true } }),
+    prisma.client.create({ data: { fullName: `Klientka no-show ${suffix}`, email: `client-no-show-${suffix}@example.com`, phone: "+420777123456", isActive: true }, select: { id: true } }),
+  ]);
+  const service = await prisma.service.create({
+    data: { categoryId: category.id, name: `Služba no-show ${suffix}`, slug: `sluzba-no-show-${suffix}`, durationMinutes: 60, priceFromCzk: 1200, isActive: true, isPubliclyBookable: true },
+    select: { id: true },
+  });
+  const slot = await prisma.availabilitySlot.create({
+    data: { startsAt, endsAt, status: "PUBLISHED", capacity: 1 },
+    select: { id: true },
+  });
+  const booking = await prisma.booking.create({
+    data: {
+      clientId: client.id, slotId: slot.id, serviceId: service.id, status: BookingStatus.CONFIRMED, source: "WEB",
+      clientNameSnapshot: `Klientka no-show ${suffix}`, clientEmailSnapshot: `client-no-show-${suffix}@example.com`, clientPhoneSnapshot: "+420777123456",
+      serviceNameSnapshot: `Služba no-show ${suffix}`, serviceDurationMinutes: 60, servicePriceFromCzk: 1200,
+      scheduledStartsAt: startsAt, scheduledEndsAt: endsAt,
+    },
+    select: { id: true },
+  });
+  const getAvailability = () => getBookingAvailabilityCatalog({
+    includeServices: false,
+    bookingWindowStart: startsAt,
+    bookingWindowEnd: endsAt,
+    availabilitySlotStatus: "PUBLISHED",
+    serviceWhere: { id: service.id },
+  });
+
+  try {
+    const earlyResult = await applyAdminBookingStatusChange({
+      bookingId: booking.id, targetStatus: BookingStatus.NO_SHOW, actorUserId: owner.id,
+      now: new Date(startsAt.getTime() - 16 * 60 * 1000),
+    });
+    assert.equal(earlyResult.status, "no-show-too-early");
+    assert.equal((await prisma.booking.findUniqueOrThrow({ where: { id: booking.id }, select: { status: true } })).status, BookingStatus.CONFIRMED);
+    assert.equal((await getAvailability()).scheduleOptimization.bookedIntervals.length, 1);
+
+    const validResult = await applyAdminBookingStatusChange({
+      bookingId: booking.id, targetStatus: BookingStatus.NO_SHOW, actorUserId: owner.id,
+      now: new Date(startsAt.getTime() + 15 * 60 * 1000),
+    });
+    assert.equal(validResult.status, "success");
+    assert.equal((await prisma.booking.findUniqueOrThrow({ where: { id: booking.id }, select: { status: true } })).status, BookingStatus.NO_SHOW);
+    assert.equal((await getAvailability()).scheduleOptimization.bookedIntervals.length, 0);
+    assert.equal(await prisma.bookingStatusHistory.count({ where: { bookingId: booking.id, status: BookingStatus.NO_SHOW } }), 1);
+  } finally {
+    await prisma.bookingStatusHistory.deleteMany({ where: { bookingId: booking.id } });
+    await prisma.booking.deleteMany({ where: { id: booking.id } });
+    await prisma.client.deleteMany({ where: { id: client.id } });
+    await prisma.availabilitySlot.deleteMany({ where: { id: slot.id } });
+    await prisma.service.deleteMany({ where: { id: service.id } });
+    await prisma.serviceCategory.deleteMany({ where: { id: category.id } });
+    await prisma.adminUser.deleteMany({ where: { id: owner.id } });
+  }
+});
+
 dbTest("applyAdminBookingStatusChange compacts adjacent editable slot fragments on cancellation", async () => {
   const [{ prisma }, { applyAdminBookingStatusChange }] = await Promise.all([
     import("@/lib/prisma"),

@@ -302,7 +302,7 @@ export async function getReservationsData(area: AdminArea, searchParams?: Record
       scheduledDateShortLabel: formatDaySectionLabel(booking.scheduledStartsAt, todayStart, tomorrowStart), scheduledTimeLabel: `${formatTime.format(booking.scheduledStartsAt)} - ${formatTime.format(booking.scheduledEndsAt)}`,
       status: booking.status, statusLabel: getBookingStatusLabel(booking.status), primaryContactLabel: contacts.primaryContactLabel,
       primaryContactHref: contacts.primaryContactHref, href: getAdminBookingHref(area, booking.id),
-      availableActions: getAdminBookingActionOptions(booking.status, { scheduledEndsAt: booking.scheduledEndsAt }),
+      availableActions: getAdminBookingActionOptions(booking.status, { scheduledStartsAt: booking.scheduledStartsAt, scheduledEndsAt: booking.scheduledEndsAt }),
       isMuted: booking.status === BookingStatus.COMPLETED || booking.status === BookingStatus.CANCELLED,
       isPending: booking.status === BookingStatus.PENDING,
       needsClosure: booking.scheduledEndsAt < now && isActiveBookingStatus(booking.status),

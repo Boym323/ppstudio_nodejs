@@ -8,6 +8,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Administrace nyní serverově odmítne označení rezervace jako no-show před uplynutím 15 minut od jejího začátku, takže předčasná změna nemůže uvolnit termín v dostupnosti.
 - Planner dostupnosti nyní při úpravě dne zachová identitu všech nezměněných běžných intervalů; přegenerují se pouze sloty, které se změnou skutečně dotkly.
 - Veřejná rezervace i přesun rezervace už neodmítají stále dostupný termín jen kvůli zastaralému `slotId` po přegenerování planneru: v serializovatelné transakci ověří a uzamknou aktuální souvislé publikované pokrytí služby, zatímco interní cleanup blokace dál chrání kolize až do `blockedUntil`.
 - Volné termíny nyní načítají i dostupnost začínající před rezervačním oknem a zachovávají její původní časový rastr; veřejná i administrační rezervace a přesuny proto správně nabídnou první platný termín, aniž by nabídly začátky po konci okna.

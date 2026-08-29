@@ -180,6 +180,13 @@ export async function updateBookingStatusAction(
     };
   }
 
+  if (result.status === "no-show-too-early") {
+    return {
+      status: "error",
+      formError: "Rezervaci lze označit jako nedostavenou nejdříve 15 minut po jejím začátku.",
+    };
+  }
+
   if (
     parsed.data.targetStatus === BookingStatus.CONFIRMED
     || parsed.data.targetStatus === BookingStatus.CANCELLED

@@ -8,6 +8,7 @@ import { type AdminArea } from "@/config/navigation";
 import {
   allowedTransitions,
   canCompleteBookingAt,
+  canMarkBookingNoShowAt,
   type AdminBookingActionValue,
 } from "@/features/booking/domain/booking-status-transition";
 import { type BookingPaymentStatus, BOOKING_PAYMENT_STATUS_LABELS } from "@/features/booking/payments/lib/booking-payment-summary";
@@ -30,6 +31,7 @@ export type AdminBookingActionOption = {
 export type AdminBookingPaymentStatus = BookingPaymentStatus;
 
 type AdminBookingActionContext = {
+  scheduledStartsAt?: Date | null;
   scheduledEndsAt?: Date | null;
   now?: Date;
 };
@@ -87,11 +89,15 @@ export function getAdminBookingActionOptions(
   const now = context.now ?? new Date();
 
   return allowedTransitions[status].filter((value) => {
-    if (value !== BookingStatus.COMPLETED || !context.scheduledEndsAt) {
-      return true;
+    if (value === BookingStatus.COMPLETED && context.scheduledEndsAt) {
+      return canCompleteBookingAt(context.scheduledEndsAt, now);
     }
 
-    return canCompleteBookingAt(context.scheduledEndsAt, now);
+    if (value === BookingStatus.NO_SHOW && context.scheduledStartsAt) {
+      return canMarkBookingNoShowAt(context.scheduledStartsAt, now);
+    }
+
+    return true;
   }).map((value) => {
     switch (value) {
       case BookingStatus.CONFIRMED:

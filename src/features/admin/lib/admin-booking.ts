@@ -12,6 +12,7 @@ import { env } from "@/config/env";
 import {
   canApplyAdminBookingTransition,
   canCompleteBookingAt,
+  canMarkBookingNoShowAt,
   type AdminBookingActionValue,
 } from "@/features/booking/domain/booking-status-transition";
 import {
@@ -31,6 +32,8 @@ import { prisma } from "@/lib/prisma";
 export {
   canApplyAdminBookingTransition,
   canCompleteBookingAt,
+  canMarkBookingNoShowAt,
+  NO_SHOW_GRACE_MINUTES,
   type AdminBookingActionValue,
 } from "@/features/booking/domain/booking-status-transition";
 export {
@@ -55,6 +58,7 @@ type ApplyAdminBookingStatusChangeInput = {
   actorUserId: string | null;
   reason?: string;
   internalNote?: string;
+  now?: Date;
 };
 
 type UpdateAdminBookingServiceInput = {
@@ -71,6 +75,7 @@ export async function applyAdminBookingStatusChange({
   actorUserId,
   reason,
   internalNote,
+  now,
 }: ApplyAdminBookingStatusChangeInput) {
   return prisma.$transaction(
     (tx) => applyAdminBookingStatusChangeInTransaction(tx, {
@@ -79,6 +84,7 @@ export async function applyAdminBookingStatusChange({
       actorUserId,
       reason,
       internalNote,
+      now,
     }),
     { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
   );
@@ -91,6 +97,7 @@ export async function applyAdminBookingStatusChangeInTransaction(
     actorUserId,
     reason,
     internalNote,
+    now: inputNow,
   }: ApplyAdminBookingStatusChangeInput,
 ) {
     const booking = await tx.booking.findUnique({
@@ -120,11 +127,18 @@ export async function applyAdminBookingStatusChangeInTransaction(
       };
     }
 
-    const now = new Date();
+    const now = inputNow ?? new Date();
     if (targetStatus === BookingStatus.COMPLETED && !canCompleteBookingAt(booking.scheduledEndsAt, now)) {
       return {
         status: "completion-too-early" as const,
         scheduledEndsAt: booking.scheduledEndsAt,
+      };
+    }
+
+    if (targetStatus === BookingStatus.NO_SHOW && !canMarkBookingNoShowAt(booking.scheduledStartsAt, now)) {
+      return {
+        status: "no-show-too-early" as const,
+        scheduledStartsAt: booking.scheduledStartsAt,
       };
     }
 

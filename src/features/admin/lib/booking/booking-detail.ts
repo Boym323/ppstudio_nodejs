@@ -508,6 +508,7 @@ export async function getAdminBookingDetailData(
       scheduledEndsAt: booking.scheduledEndsAt,
     }),
     availableActions: getAdminBookingActionOptions(booking.status, {
+      scheduledStartsAt: booking.scheduledStartsAt,
       scheduledEndsAt: booking.scheduledEndsAt,
     }),
     historyItems: historyItems.map((item) => ({
