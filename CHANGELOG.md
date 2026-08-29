@@ -8,6 +8,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Změna služby u aktivní rezervace nyní běží v opakované serializovatelné transakci a před uložením globálně kontroluje časový překryv aktivních rezervací, takže souběžné vytvoření rezervace nemůže obsadit stejný čas.
 - Odeslání pozvánky novému administračnímu uživateli má nyní dostatečný kontrast textu tlačítka i v mobilním dialogu.
 - Volné termíny nyní atomicky ukládají denní režim automatického oběda a bezpečně zpracují neplatný nebo nekanonický týden planneru; souběžná úprava ani PostgreSQL konflikt překryvu už neskončí falešným úspěchem či obecným incidentem.
 - Administrace nyní serverově odmítne označení rezervace jako no-show před uplynutím 15 minut od jejího začátku, takže předčasná změna nemůže uvolnit termín v dostupnosti.

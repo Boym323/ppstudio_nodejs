@@ -3,7 +3,13 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import test from "node:test";
 
-import { BookingActorType, BookingActionTokenType, BookingStatus, EmailLogType } from "@/generated/prisma/browser";
+import {
+  BookingActorType,
+  BookingActionTokenType,
+  BookingSource,
+  BookingStatus,
+  EmailLogType,
+} from "@/generated/prisma/browser";
 
 process.env.NEXT_PUBLIC_APP_NAME ??= "PP Studio";
 process.env.NEXT_PUBLIC_APP_URL ??= "https://example.com";
@@ -58,6 +64,123 @@ async function findIsolatedAdminWindow(
   }
 
   throw new Error("Nepodařilo se najít izolované okno pro admin booking integrační test.");
+}
+
+async function createAdminServiceChangeFixture(
+  prisma: Awaited<typeof import("@/lib/prisma")>["prisma"],
+  suffix: string,
+) {
+  const { startsAt, endsAt } = await findIsolatedAdminWindow(prisma, suffix, 120);
+  const bookingEndsAt = new Date(startsAt.getTime() + 60 * 60 * 1000);
+  const owner = await prisma.adminUser.create({
+    data: {
+      email: `owner-service-change-${suffix}@example.com`,
+      name: `Owner service change ${suffix}`,
+      role: "OWNER",
+      isActive: true,
+    },
+    select: { id: true },
+  });
+  const category = await prisma.serviceCategory.create({
+    data: {
+      name: `Kategorie změny služby ${suffix}`,
+      slug: `kategorie-zmeny-sluzby-${suffix}`,
+      isActive: true,
+    },
+    select: { id: true },
+  });
+  const [originalService, replacementService] = await Promise.all([
+    prisma.service.create({
+      data: {
+        categoryId: category.id,
+        name: `Původní změna služby ${suffix}`,
+        slug: `puvodni-zmena-sluzby-${suffix}`,
+        durationMinutes: 60,
+        priceFromCzk: 1200,
+        isActive: true,
+        isPubliclyBookable: true,
+      },
+      select: { id: true },
+    }),
+    prisma.service.create({
+      data: {
+        categoryId: category.id,
+        name: `Delší změna služby ${suffix}`,
+        slug: `delsi-zmena-sluzby-${suffix}`,
+        durationMinutes: 90,
+        priceFromCzk: 1500,
+        isActive: true,
+        isPubliclyBookable: true,
+      },
+      select: { id: true },
+    }),
+  ]);
+  const slot = await prisma.availabilitySlot.create({
+    data: {
+      startsAt,
+      endsAt,
+      status: "PUBLISHED",
+      capacity: 1,
+      serviceRestrictionMode: "ANY",
+      publishedAt: new Date(startsAt.getTime() - 24 * 60 * 60 * 1000),
+    },
+    select: { id: true },
+  });
+  const client = await prisma.client.create({
+    data: {
+      fullName: `Klientka změny služby ${suffix}`,
+      email: `client-service-change-${suffix}@example.com`,
+      phone: "+420777123456",
+      isActive: true,
+    },
+    select: { id: true },
+  });
+  const booking = await prisma.booking.create({
+    data: {
+      clientId: client.id,
+      slotId: slot.id,
+      serviceId: originalService.id,
+      status: BookingStatus.CONFIRMED,
+      source: "WEB",
+      clientNameSnapshot: `Klientka změny služby ${suffix}`,
+      clientEmailSnapshot: `client-service-change-${suffix}@example.com`,
+      clientPhoneSnapshot: "+420777123456",
+      serviceNameSnapshot: `Původní změna služby ${suffix}`,
+      serviceDurationMinutes: 60,
+      servicePriceFromCzk: 1200,
+      scheduledStartsAt: startsAt,
+      scheduledEndsAt: bookingEndsAt,
+      blockedUntil: bookingEndsAt,
+    },
+    select: { id: true, updatedAt: true },
+  });
+
+  return {
+    startsAt,
+    endsAt,
+    bookingEndsAt,
+    owner,
+    category,
+    originalService,
+    replacementService,
+    slot,
+    client,
+    booking,
+    async cleanup() {
+      const serviceIds = [originalService.id, replacementService.id];
+      await prisma.bookingActionToken.deleteMany({ where: { booking: { serviceId: { in: serviceIds } } } });
+      await prisma.emailLog.deleteMany({ where: { booking: { serviceId: { in: serviceIds } } } });
+      await prisma.bookingStatusHistory.deleteMany({ where: { booking: { serviceId: { in: serviceIds } } } });
+      await prisma.booking.deleteMany({ where: { serviceId: { in: serviceIds } } });
+      await prisma.client.deleteMany({ where: { email: { contains: suffix } } });
+      await prisma.availabilitySlot.deleteMany({
+        where: { startsAt: { gte: startsAt, lt: endsAt } },
+      });
+      await prisma.service.deleteMany({ where: { id: { in: serviceIds } } });
+      await prisma.serviceCategory.deleteMany({ where: { id: category.id } });
+      await prisma.adminUser.deleteMany({ where: { id: owner.id } });
+    },
+  };
 }
 
 dbTest("applyAdminBookingStatusChange confirms pending booking and writes side effects", async () => {
@@ -769,5 +892,139 @@ dbTest("updateAdminBookingService rewrites booking snapshot and audit history", 
     await prisma.adminUser.deleteMany({
       where: { id: owner.id },
     });
+  }
+});
+
+dbTest("updateAdminBookingService odmítne globální kolizi mimo původní slot", async () => {
+  const [{ prisma }, { updateAdminBookingService }] = await Promise.all([
+    import("@/lib/prisma"),
+    import("./admin-booking"),
+  ]);
+  const fixture = await createAdminServiceChangeFixture(prisma, randomUUID().slice(0, 8));
+  const conflictingSlot = await prisma.availabilitySlot.create({
+    data: {
+      startsAt: fixture.bookingEndsAt,
+      endsAt: fixture.endsAt,
+      status: "PUBLISHED",
+      capacity: 1,
+      serviceRestrictionMode: "ANY",
+      publishedAt: new Date(fixture.startsAt.getTime() - 24 * 60 * 60 * 1000),
+    },
+    select: { id: true },
+  });
+  const conflictingClient = await prisma.client.create({
+    data: {
+      fullName: `Kolizní klientka ${fixture.booking.id}`,
+      email: `conflict-service-change-${fixture.booking.id}@example.com`,
+      phone: "+420777123457",
+      isActive: true,
+    },
+    select: { id: true },
+  });
+
+  try {
+    await prisma.booking.create({
+      data: {
+        clientId: conflictingClient.id,
+        slotId: conflictingSlot.id,
+        serviceId: fixture.originalService.id,
+        status: BookingStatus.CONFIRMED,
+        source: "WEB",
+        clientNameSnapshot: "Kolizní klientka",
+        clientEmailSnapshot: `conflict-service-change-${fixture.booking.id}@example.com`,
+        serviceNameSnapshot: "Kolizní služba",
+        serviceDurationMinutes: 60,
+        servicePriceFromCzk: 1200,
+        scheduledStartsAt: fixture.bookingEndsAt,
+        scheduledEndsAt: fixture.endsAt,
+        blockedUntil: fixture.endsAt,
+      },
+    });
+
+    const result = await updateAdminBookingService({
+      bookingId: fixture.booking.id,
+      serviceId: fixture.replacementService.id,
+      actorUserId: fixture.owner.id,
+      expectedUpdatedAt: fixture.booking.updatedAt.toISOString(),
+    });
+
+    assert.equal(result.status, "conflict");
+  } finally {
+    await fixture.cleanup();
+    await prisma.client.deleteMany({ where: { id: conflictingClient.id } });
+  }
+});
+
+dbTest("souběh změny služby a nové rezervace nikdy neuloží překrytí", async () => {
+  const [{ prisma }, { updateAdminBookingService }, { createManualBooking, PublicBookingError, publicBookingErrorCodes }] = await Promise.all([
+    import("@/lib/prisma"),
+    import("./admin-booking"),
+    import("@/features/booking/lib/booking-public"),
+  ]);
+  const fixture = await createAdminServiceChangeFixture(prisma, randomUUID().slice(0, 8));
+
+  try {
+    const [serviceChange, newBooking] = await Promise.allSettled([
+      updateAdminBookingService({
+        bookingId: fixture.booking.id,
+        serviceId: fixture.replacementService.id,
+        actorUserId: fixture.owner.id,
+        expectedUpdatedAt: fixture.booking.updatedAt.toISOString(),
+      }),
+      createManualBooking({
+        serviceId: fixture.originalService.id,
+        slotId: fixture.slot.id,
+        allowManualOverride: false,
+        startsAt: fixture.bookingEndsAt.toISOString(),
+        fullName: `Souběžná klientka ${fixture.booking.id}`,
+        email: `concurrent-service-change-${fixture.booking.id}@example.com`,
+        phone: "+420777123458",
+        source: BookingSource.PHONE,
+        status: BookingStatus.CONFIRMED,
+        actorUserId: fixture.owner.id,
+        sendClientEmail: false,
+        includeCalendarAttachment: false,
+      }),
+    ]);
+
+    assert.equal(serviceChange.status, "fulfilled");
+    if (serviceChange.status !== "fulfilled") return;
+
+    if (serviceChange.value.status === "success") {
+      assert.equal(newBooking.status, "rejected");
+      if (newBooking.status === "rejected") {
+        assert.ok(newBooking.reason instanceof PublicBookingError);
+        assert.equal(newBooking.reason.code, publicBookingErrorCodes.slotUnavailable);
+      }
+    } else {
+      assert.equal(serviceChange.value.status, "conflict");
+      assert.equal(newBooking.status, "fulfilled");
+    }
+
+    const activeBookings = await prisma.booking.findMany({
+      where: {
+        status: { in: [BookingStatus.PENDING, BookingStatus.CONFIRMED] },
+        scheduledStartsAt: { gte: fixture.startsAt, lt: fixture.endsAt },
+      },
+      select: {
+        id: true,
+        scheduledStartsAt: true,
+        scheduledEndsAt: true,
+        blockedUntil: true,
+      },
+    });
+
+    for (const [index, booking] of activeBookings.entries()) {
+      for (const other of activeBookings.slice(index + 1)) {
+        const bookingBlockedUntil = booking.blockedUntil ?? booking.scheduledEndsAt;
+        const otherBlockedUntil = other.blockedUntil ?? other.scheduledEndsAt;
+        assert.ok(
+          booking.scheduledStartsAt >= otherBlockedUntil || other.scheduledStartsAt >= bookingBlockedUntil,
+          `Aktivní bookingy ${booking.id} a ${other.id} se nesmí překrývat.`,
+        );
+      }
+    }
+  } finally {
+    await fixture.cleanup();
   }
 });

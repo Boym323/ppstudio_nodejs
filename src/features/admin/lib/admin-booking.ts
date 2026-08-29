@@ -28,6 +28,7 @@ import {
 } from "@/features/booking/lib/booking-slot-compaction";
 import { resolvePublishedSlotCoverage } from "@/features/booking/lib/booking-slot-availability";
 import { prisma } from "@/lib/prisma";
+import { runSerializableTransaction } from "@/lib/serializable-transaction";
 
 export {
   canApplyAdminBookingTransition,
@@ -285,7 +286,7 @@ export async function updateAdminBookingService({
   expectedUpdatedAt,
   reason,
 }: UpdateAdminBookingServiceInput) {
-  return prisma.$transaction(async (tx) => {
+  return runSerializableTransaction(async (tx) => {
     await tx.$queryRaw<Array<{ id: string }>>(Prisma.sql`
       SELECT "id"
       FROM "Booking"
@@ -341,6 +342,33 @@ export async function updateAdminBookingService({
       return { status: "same-service" as const };
     }
 
+    const nextService = await tx.service.findFirst({
+      where: {
+        id: serviceId,
+        isActive: true,
+        isPubliclyBookable: true,
+      },
+      select: {
+        id: true,
+        name: true,
+        durationMinutes: true,
+        cleanupMinutes: true,
+        priceFromCzk: true,
+      },
+    });
+
+    if (!nextService) {
+      return { status: "service-not-found" as const };
+    }
+
+    const nextTiming = resolveBookingTimingSnapshot({
+      startsAt: booking.scheduledStartsAt,
+      serviceDurationMinutes: nextService.durationMinutes,
+      cleanupMinutes: nextService.cleanupMinutes,
+    });
+    const nextScheduledEndsAt = nextTiming.serviceEnd;
+    const nextBlockedUntil = nextTiming.blockedUntil;
+
     const slot = await tx.availabilitySlot.findUniqueOrThrow({
       where: {
         id: booking.slotId,
@@ -383,25 +411,6 @@ export async function updateAdminBookingService({
       },
     });
 
-    const nextService = await tx.service.findFirst({
-      where: {
-        id: serviceId,
-        isActive: true,
-        isPubliclyBookable: true,
-      },
-      select: {
-        id: true,
-        name: true,
-        durationMinutes: true,
-        cleanupMinutes: true,
-        priceFromCzk: true,
-      },
-    });
-
-    if (!nextService) {
-      return { status: "service-not-found" as const };
-    }
-
     if (
       intendedVoucher?.type === VoucherType.SERVICE
       && intendedVoucher.serviceId
@@ -423,14 +432,6 @@ export async function updateAdminBookingService({
         message: "Na rezervaci už je uplatněný službový voucher pro jinou službu. Změnu služby proto nepovolíme.",
       };
     }
-
-    const nextTiming = resolveBookingTimingSnapshot({
-      startsAt: booking.scheduledStartsAt,
-      serviceDurationMinutes: nextService.durationMinutes,
-      cleanupMinutes: nextService.cleanupMinutes,
-    });
-    const nextScheduledEndsAt = nextTiming.serviceEnd;
-    const nextBlockedUntil = nextTiming.blockedUntil;
 
     const overlappingSlots = await tx.availabilitySlot.findMany({
       where: {
@@ -484,12 +485,6 @@ export async function updateAdminBookingService({
       };
     }
 
-    const resolvedCoverageSlots = publishedCoverage?.coverage ?? [slot];
-    const restrictConflictToCoverage = slot.status === "PUBLISHED" && publishedCoverage !== null;
-    const allowedCapacity = canStayOnManualOverrideSlot
-      ? slot.capacity
-      : Math.min(...resolvedCoverageSlots.map((slot) => slot.capacity));
-
     const activeBookingCount = await tx.booking.count({
       where: {
         id: {
@@ -501,30 +496,13 @@ export async function updateAdminBookingService({
         scheduledStartsAt: {
           lt: nextBlockedUntil,
         },
-        OR: [
-          {
-            blockedUntil: {
-              gt: booking.scheduledStartsAt,
-            },
-          },
-          {
-            blockedUntil: null,
-            scheduledEndsAt: {
-              gt: booking.scheduledStartsAt,
-            },
-          },
-        ],
-        ...(restrictConflictToCoverage
-          ? {
-              slotId: {
-                in: resolvedCoverageSlots.map((slot) => slot.id),
-              },
-            }
-          : {}),
+        blockedUntil: {
+          gt: booking.scheduledStartsAt,
+        },
       },
     });
 
-    if (activeBookingCount >= allowedCapacity) {
+    if (activeBookingCount > 0) {
       return { status: "conflict" as const };
     }
 
