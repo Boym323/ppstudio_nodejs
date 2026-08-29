@@ -178,7 +178,10 @@ test("full-day context se mezi pražskými dny nemíchá", () => {
       { startsAt: secondIso("06:00"), endsAt: secondIso("09:00") },
       { startsAt: secondIso("09:30"), endsAt: secondIso("12:30") },
     ],
-    bookedIntervals: [],
+    bookedIntervals: [
+      { startsAt: iso("08:30"), endsAt: iso("11:00") },
+      { startsAt: secondIso("11:00"), endsAt: secondIso("11:30") },
+    ],
   } satisfies Parameters<typeof filterTimeOptionsForAutoLunch>[1]["scheduleOptimization"];
 
   assert.deepEqual(

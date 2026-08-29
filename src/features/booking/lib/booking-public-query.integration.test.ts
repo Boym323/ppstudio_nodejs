@@ -3,9 +3,18 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import test from "node:test";
 
-import { AvailabilitySlotStatus, BookingAcquisitionSource } from "@/generated/prisma/browser";
+import {
+  AvailabilitySlotStatus,
+  BookingAcquisitionSource,
+  BookingActorType,
+  BookingSource,
+} from "@/generated/prisma/browser";
 
-import { resolvePragueLocalDateTime } from "./booking-local-time";
+import { getPragueLocalDate, resolvePragueLocalDateTime } from "./booking-local-time";
+import {
+  buildSlotTimeOptions,
+  filterTimeOptionsForAutoLunch,
+} from "./booking-time-slots";
 
 (process.env as Record<string, string | undefined>).NODE_ENV = "test";
 process.env.NEXT_PUBLIC_APP_NAME ??= "PP Studio";
@@ -22,10 +31,11 @@ process.env.PUSHOVER_ENABLED ??= "false";
 const dbTest = process.env.RUN_DB_INTEGRATION_TESTS === "1" ? test : test.skip;
 
 async function loadModules() {
-  const [{ prisma }, bookingModule, availabilityCore] = await Promise.all([
+  const [{ prisma }, bookingModule, availabilityCore, engineModule] = await Promise.all([
     import("@/lib/prisma"),
     import("./booking-public"),
     import("./booking-availability-core"),
+    import("./booking-public/engine"),
   ]);
 
   return {
@@ -33,6 +43,7 @@ async function loadModules() {
     createPublicBooking: bookingModule.createPublicBooking,
     getPublicBookingCatalog: bookingModule.getPublicBookingCatalog,
     getBookingAvailabilityCatalog: availabilityCore.getBookingAvailabilityCatalog,
+    createBookingWithEngine: engineModule.createBookingWithEngine,
     PublicBookingError: bookingModule.PublicBookingError,
     publicBookingErrorCodes: bookingModule.publicBookingErrorCodes,
   };
@@ -46,6 +57,47 @@ function at(localDate: string, time: string) {
 
 function addDays(base: Date, days: number) {
   return new Date(base.getTime() + days * 24 * 60 * 60 * 1000);
+}
+
+function addCalendarDays(dateKey: string, days: number) {
+  const [year, month, day] = dateKey.split("-").map(Number);
+  const value = new Date(Date.UTC(year, month - 1, day + days));
+  return [
+    String(value.getUTCFullYear()).padStart(4, "0"),
+    String(value.getUTCMonth() + 1).padStart(2, "0"),
+    String(value.getUTCDate()).padStart(2, "0"),
+  ].join("-");
+}
+
+async function findIsolatedPublicQueryLocalDate(
+  prisma: Awaited<typeof import("@/lib/prisma")>["prisma"],
+  minimumDayOffset = 14,
+) {
+  const today = getPragueLocalDate(new Date());
+
+  for (let offset = minimumDayOffset; offset < minimumDayOffset + 75; offset += 1) {
+    const localDate = addCalendarDays(today, offset);
+    const startsAt = at(localDate, "00:00");
+    const endsAt = at(addCalendarDays(localDate, 1), "00:00");
+    const [slots, bookings] = await Promise.all([
+      prisma.availabilitySlot.count({
+        where: { startsAt: { lt: endsAt }, endsAt: { gt: startsAt } },
+      }),
+      prisma.booking.count({
+        where: {
+          scheduledStartsAt: { lt: endsAt },
+          OR: [
+            { blockedUntil: { gt: startsAt } },
+            { blockedUntil: null, scheduledEndsAt: { gt: startsAt } },
+          ],
+        },
+      }),
+    ]);
+
+    if (slots === 0 && bookings === 0) return localDate;
+  }
+
+  throw new Error("Nepodařilo se najít izolovaný den pro booking availability integrační test.");
 }
 
 async function findIsolatedPublicQuerySlotStart(
@@ -271,6 +323,7 @@ dbTest("getPublicBookingCatalog can exclude the managed booking from booked inte
 
 dbTest("catalog odděluje booking-window kandidáty od full-day optimization dostupnosti přes více pražských dnů", async () => {
   const { prisma, getBookingAvailabilityCatalog } = await loadModules();
+  const suffix = randomUUID().slice(0, 8);
   const firstDate = "2027-01-15";
   const secondDate = "2027-01-16";
   const intervals = [
@@ -279,6 +332,33 @@ dbTest("catalog odděluje booking-window kandidáty od full-day optimization dos
     { date: secondDate, start: "06:00", end: "09:00" },
     { date: secondDate, start: "09:30", end: "14:00" },
   ];
+  const category = await prisma.serviceCategory.create({
+    data: {
+      name: `Booking optimization days category ${suffix}`,
+      slug: `booking-optimization-days-category-${suffix}`,
+      isActive: true,
+    },
+    select: { id: true },
+  });
+  const service = await prisma.service.create({
+    data: {
+      categoryId: category.id,
+      name: `Booking optimization days service ${suffix}`,
+      slug: `booking-optimization-days-service-${suffix}`,
+      durationMinutes: 60,
+      isActive: true,
+      isPubliclyBookable: true,
+    },
+    select: { id: true },
+  });
+  const client = await prisma.client.create({
+    data: {
+      fullName: `Klientka optimization days ${suffix}`,
+      email: `booking-optimization-days-${suffix}@example.com`,
+      phone: "+420777123456",
+    },
+    select: { id: true },
+  });
   const createdSlots = await prisma.availabilitySlot.createManyAndReturn({
     data: intervals.map((interval) => ({
       startsAt: at(interval.date, interval.start),
@@ -287,6 +367,24 @@ dbTest("catalog odděluje booking-window kandidáty od full-day optimization dos
       publishedAt: new Date(),
     })),
     select: { id: true, startsAt: true, endsAt: true },
+  });
+  const createdBookings = await prisma.booking.createManyAndReturn({
+    data: [firstDate, secondDate].map((date, index) => ({
+      clientId: client.id,
+      slotId: createdSlots[index * 2]?.id ?? "",
+      serviceId: service.id,
+      status: "CONFIRMED" as const,
+      clientNameSnapshot: `Klientka optimization days ${suffix}`,
+      clientEmailSnapshot: `booking-optimization-days-${suffix}@example.com`,
+      clientPhoneSnapshot: "+420777123456",
+      serviceNameSnapshot: `Booking optimization days service ${suffix}`,
+      serviceDurationMinutes: 60,
+      scheduledStartsAt: at(date, "07:00"),
+      scheduledEndsAt: at(date, "08:00"),
+      blockedUntil: at(date, "08:00"),
+      confirmedAt: new Date(),
+    })),
+    select: { id: true, scheduledStartsAt: true, scheduledEndsAt: true },
   });
 
   try {
@@ -316,8 +414,187 @@ dbTest("catalog odděluje booking-window kandidáty od full-day optimization dos
     for (const slot of createdSlots) {
       assert.equal(optimizationIntervals.has(`${slot.startsAt.toISOString()}/${slot.endsAt.toISOString()}`), true);
     }
+    assert.deepEqual(
+      catalog.scheduleOptimization.bookedIntervals
+        .map((interval) => `${interval.startsAt}/${interval.endsAt}`)
+        .sort(),
+      createdBookings
+        .map((booking) => `${booking.scheduledStartsAt.toISOString()}/${booking.scheduledEndsAt.toISOString()}`)
+        .sort(),
+    );
+    const [firstBooking, secondBooking] = [...createdBookings]
+      .sort((left, right) => left.scheduledStartsAt.getTime() - right.scheduledStartsAt.getTime());
+    assert.ok(firstBooking);
+    assert.ok(secondBooking);
+    assert.equal(catalog.slots.some((slot) => slot.bookedIntervals.some(
+      (interval) => interval.startsAt === firstBooking.scheduledStartsAt.toISOString(),
+    )), false);
+    assert.equal(catalog.slots.some((slot) => slot.bookedIntervals.some(
+      (interval) => interval.startsAt === secondBooking.scheduledStartsAt.toISOString(),
+    )), true);
   } finally {
+    await prisma.booking.deleteMany({ where: { id: { in: createdBookings.map((booking) => booking.id) } } });
     await prisma.availabilitySlot.deleteMany({ where: { id: { in: createdSlots.map((slot) => slot.id) } } });
+    await prisma.client.delete({ where: { id: client.id } });
+    await prisma.service.delete({ where: { id: service.id } });
+    await prisma.serviceCategory.delete({ where: { id: category.id } });
+  }
+});
+
+dbTest("schedule optimization zachová full-day aktivní booking včetně cleanup blokace", async () => {
+  const {
+    prisma,
+    getBookingAvailabilityCatalog,
+    createBookingWithEngine,
+    PublicBookingError,
+    publicBookingErrorCodes,
+  } = await loadModules();
+  const suffix = randomUUID().slice(0, 8);
+  const localDate = await findIsolatedPublicQueryLocalDate(prisma);
+  const category = await prisma.serviceCategory.create({
+    data: {
+      name: `Booking optimization category ${suffix}`,
+      slug: `booking-optimization-category-${suffix}`,
+      isActive: true,
+    },
+    select: { id: true },
+  });
+  const service = await prisma.service.create({
+    data: {
+      categoryId: category.id,
+      name: `Booking optimization service ${suffix}`,
+      slug: `booking-optimization-service-${suffix}`,
+      durationMinutes: 120,
+      isActive: true,
+      isPubliclyBookable: true,
+    },
+    select: { id: true },
+  });
+  const client = await prisma.client.create({
+    data: {
+      fullName: `Klientka optimization ${suffix}`,
+      email: `booking-optimization-${suffix}@example.com`,
+      phone: "+420777123456",
+    },
+    select: { id: true },
+  });
+  const slot = await prisma.availabilitySlot.create({
+    data: {
+      startsAt: at(localDate, "09:00"),
+      endsAt: at(localDate, "17:00"),
+      status: AvailabilitySlotStatus.PUBLISHED,
+      publishedAt: new Date(),
+    },
+    select: { id: true },
+  });
+  const activeBooking = await prisma.booking.create({
+    data: {
+      clientId: client.id,
+      slotId: slot.id,
+      serviceId: service.id,
+      status: "CONFIRMED",
+      clientNameSnapshot: `Klientka optimization ${suffix}`,
+      clientEmailSnapshot: `booking-optimization-${suffix}@example.com`,
+      clientPhoneSnapshot: "+420777123456",
+      serviceNameSnapshot: `Booking optimization service ${suffix}`,
+      serviceDurationMinutes: 45,
+      scheduledStartsAt: at(localDate, "11:00"),
+      scheduledEndsAt: at(localDate, "11:45"),
+      blockedUntil: at(localDate, "12:00"),
+      confirmedAt: new Date(),
+    },
+    select: { id: true },
+  });
+  const cancelledBooking = await prisma.booking.create({
+    data: {
+      clientId: client.id,
+      slotId: slot.id,
+      serviceId: service.id,
+      status: "CANCELLED",
+      clientNameSnapshot: `Klientka optimization cancelled ${suffix}`,
+      clientEmailSnapshot: `booking-optimization-cancelled-${suffix}@example.com`,
+      clientPhoneSnapshot: "+420777123456",
+      serviceNameSnapshot: `Booking optimization service ${suffix}`,
+      serviceDurationMinutes: 60,
+      scheduledStartsAt: at(localDate, "10:00"),
+      scheduledEndsAt: at(localDate, "11:00"),
+      cancelledAt: new Date(),
+    },
+    select: { id: true },
+  });
+  const serverClientPhone = `+420777${String(Number.parseInt(suffix, 16) % 1_000_000).padStart(6, "0")}`;
+
+  try {
+    const catalog = await getBookingAvailabilityCatalog({
+      includeServices: false,
+      bookingWindowStart: at(localDate, "12:00"),
+      bookingWindowEnd: at(localDate, "13:00"),
+      availabilitySlotStatus: AvailabilitySlotStatus.PUBLISHED,
+      serviceWhere: {
+        isActive: true,
+        isPubliclyBookable: true,
+        category: { is: { isActive: true } },
+      },
+    });
+    const catalogSlot = catalog.slots.find((item) => item.id === slot.id);
+    assert.ok(catalogSlot);
+
+    assert.equal(catalogSlot.bookedIntervals.some(
+      (interval) => interval.startsAt === at(localDate, "11:00").toISOString(),
+    ), false);
+    assert.deepEqual(catalog.scheduleOptimization.bookedIntervals, [{
+      startsAt: at(localDate, "11:00").toISOString(),
+      endsAt: at(localDate, "12:00").toISOString(),
+    }]);
+    assert.equal(catalog.scheduleOptimization.bookedIntervals.some(
+      (interval) => interval.startsAt === at(localDate, "10:00").toISOString(),
+    ), false);
+
+    const candidate = buildSlotTimeOptions(catalogSlot, 120).find(
+      (option) => option.startsAt === at(localDate, "12:00").toISOString(),
+    );
+    assert.ok(candidate);
+    assert.deepEqual(
+      filterTimeOptionsForAutoLunch([candidate], {
+        serviceDurationMinutes: 120,
+        cleanupBlockMinutes: 0,
+        capacity: 1,
+        scheduleOptimization: catalog.scheduleOptimization,
+      }),
+      [],
+    );
+    await assert.rejects(
+      () => createBookingWithEngine({
+        serviceId: service.id,
+        slotId: slot.id,
+        startsAt: candidate.startsAt,
+        client: {
+          fullName: `Klientka optimization server ${suffix}`,
+          email: `booking-optimization-server-${suffix}@example.com`,
+          phone: serverClientPhone,
+        },
+        source: BookingSource.WEB,
+        status: "PENDING",
+        isManual: false,
+        allowManualOverride: false,
+        actorType: BookingActorType.CLIENT,
+        historyReason: "Regrese full-day booking contextu automatického oběda",
+        sendClientEmail: false,
+        includeCalendarAttachment: false,
+        sendAdminNotification: false,
+      }),
+      (error: unknown) => {
+        assert.ok(error instanceof PublicBookingError);
+        assert.equal(error.code, publicBookingErrorCodes.slotUnavailable);
+        return true;
+      },
+    );
+  } finally {
+    await prisma.booking.deleteMany({ where: { id: { in: [activeBooking.id, cancelledBooking.id] } } });
+    await prisma.availabilitySlot.delete({ where: { id: slot.id } });
+    await prisma.client.delete({ where: { id: client.id } });
+    await prisma.service.delete({ where: { id: service.id } });
+    await prisma.serviceCategory.delete({ where: { id: category.id } });
   }
 });
 

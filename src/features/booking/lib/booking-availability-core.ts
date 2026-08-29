@@ -82,7 +82,7 @@ export async function getBookingAvailabilityCatalog({
     ? resolvePragueLocalDateTime(optimizationRangeEndLocalDate, "00:00")
     : null;
 
-  const [services, slots, scheduleOptimizationSlots, bookings, cleanupAggregate] = await Promise.all([
+  const [services, slots, scheduleOptimizationSlots, bookings, optimizationBookings, cleanupAggregate] = await Promise.all([
     includeServices
       ? prisma.service.findMany({
           where: serviceWhere,
@@ -140,13 +140,27 @@ export async function getBookingAvailabilityCatalog({
       },
       select: { scheduledStartsAt: true, scheduledEndsAt: true, blockedUntil: true },
     }),
+    optimizationRangeStart && optimizationRangeEnd
+      ? prisma.booking.findMany({
+          where: {
+            id: excludeBookingId ? { not: excludeBookingId } : undefined,
+            status: { in: [...ACTIVE_BOOKING_STATUSES] },
+            scheduledStartsAt: { lt: optimizationRangeEnd },
+            OR: [
+              { blockedUntil: { gt: optimizationRangeStart } },
+              { blockedUntil: null, scheduledEndsAt: { gt: optimizationRangeStart } },
+            ],
+          },
+          select: { scheduledStartsAt: true, scheduledEndsAt: true, blockedUntil: true },
+        })
+      : Promise.resolve([]),
     prisma.service.aggregate({ where: serviceWhere, _max: { cleanupMinutes: true } }),
   ]);
 
   const bookingLookaheadMinutes = roundUpToQuarterHour(
     cleanupAggregate._max.cleanupMinutes ?? 0,
   );
-  const bookedIntervals = bookings.map((booking) => ({
+  const bookedIntervals = optimizationBookings.map((booking) => ({
     startsAt: booking.scheduledStartsAt.toISOString(),
     endsAt: (booking.blockedUntil ?? booking.scheduledEndsAt).toISOString(),
   }));

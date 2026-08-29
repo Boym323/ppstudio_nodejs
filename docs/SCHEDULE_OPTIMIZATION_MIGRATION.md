@@ -65,7 +65,7 @@ Authoritative write: `REQUEST → Serializable transaction → fresh availabilit
 
 ## Aktuální architektura
 
-- `getPublicBookingCatalog` načítá publikovanou dostupnost a aktivní rezervace. Rezervace předává jako `bookedIntervals`, kde `endsAt = blockedUntil ?? scheduledEndsAt`, s cleanup lookahead.
+- `getPublicBookingCatalog` načítá kandidátní dostupnost a booking-window rezervace pro běžné sloty; `scheduleOptimization` dostává samostatný full-day range aktivních booking bloků všech relevantních pražských dnů. V obou projekcích platí `endsAt = blockedUntil ?? scheduledEndsAt`.
 - `buildSlotTimeOptions` vytváří veřejné možnosti. Běžní kandidáti používají krok 30 minut; quarter-hour kandidáti vznikají po koncích rezervací a před začátky rezervací pomocí `ceilToQuarterHour`/`floorToQuarterHour`.
 - `booking-flow.tsx` odvozuje `selectableTimeOptions` filtrováním disabled možností. Historický přímý fallback `selectableTimeOptions.slice(0, 6)` byl později nahrazen ve Fázi 8 výběrem přes ranking a kvalitativní třídy.
 - `buildSlotTimeOptions` respektuje `slot.capacity`, ale create engine aktuálně vynucuje invariant jediného zdroje pomocí `allowedCapacity = 1`. Reschedule bez override používá nejnižší capacity z pokrytí.
@@ -145,7 +145,7 @@ Catalog/availability projection má po standardním rozšíření o délku služ
 
 Server musí nezávisle použít stejné lunch pravidlo v `createBookingWithEngine` těsně před zápisem, po čerstvém načtení slotů a rezervací a po ověření hypotetického booking blocku. Selhání vrací existující typ nedostupnosti/konfliktu a nelze jej obejít vstupem z klienta.
 
-Fáze 2 zapojuje public filtering v `booking-flow.tsx` mezi `buildSlotTimeOptions` a odvození `selectableTimeOptions` pomocí `filterTimeOptionsForAutoLunch`. Stejný filtr používá public availability refresh. `getPublicBookingCatalog` předává v `scheduleOptimization` raw publikované intervaly a aktivní booking bloky; data vznikají ze stejných dávkových dotazů jako dosavadní katalog a konec booking bloku je `blockedUntil ?? scheduledEndsAt`. Filtr seskupí možnosti podle pražského lokálního data, připraví kontext dne jednou a všechny hypotetické booking bloky vyhodnotí čistě v paměti. Nemění pořadí ani výběr `suggestedSlots`.
+Fáze 2 zapojuje public filtering v `booking-flow.tsx` mezi `buildSlotTimeOptions` a odvození `selectableTimeOptions` pomocí `filterTimeOptionsForAutoLunch`. Stejný filtr používá public availability refresh. `getPublicBookingCatalog` předává v `scheduleOptimization` raw publikované intervaly a aktivní booking bloky; kandidátní booking data zůstávají omezená booking window, zatímco optimization booking context se načítá jedním full-day range dotazem přes všechny relevantní pražské dny. Konec booking bloku je `blockedUntil ?? scheduledEndsAt`. Filtr seskupí možnosti podle pražského lokálního data, připraví kontext dne jednou a všechny hypotetické booking bloky vyhodnotí čistě v paměti. Nemění pořadí ani výběr `suggestedSlots`.
 
 Authoritative kontrola je ve `createBookingWithEngine` uvnitř stávající `Serializable` transakce bezprostředně před `booking.create`, po ověření coverage, kapacity a duplicitní rezervace klientky. `enforceAutoLunchForBooking` načte raw `PUBLISHED` availability daného pražského dne a poté, jen při aktivní policy, čerstvé aktivní rezervace dne. Hypotetický blok používá `requestedStartsAt → requestedBlockedUntil`. Porušení vrací existující `SLOT_UNAVAILABLE` bez nového veřejného error kódu. Explicitní admin manual override zůstává mimo constraint; public a slot mode jej obejít nemohou.
 
