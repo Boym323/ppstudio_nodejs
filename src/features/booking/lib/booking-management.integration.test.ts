@@ -1504,6 +1504,16 @@ describe("reschedule booking flow", () => {
     } = await loadModules();
 
     try {
+      const rescheduleMasterContact = {
+        fullName: `CRM klientka po přesunu ${randomUUID().slice(0, 8)}`,
+        email: `reschedule-master-${randomUUID().slice(0, 8)}@example.com`,
+        phone: `+4207${String(Number.parseInt(randomUUID().replace(/\D/g, "").slice(0, 8) || "1", 10) % 100_000_000).padStart(8, "0")}`,
+      };
+      await prisma.client.update({
+        where: { id: seed.primaryClientId },
+        data: rescheduleMasterContact,
+      });
+
       const result = await reschedulePublicBookingByToken({
         token: seed.manageTokenRaw,
         slotId: seed.replacementSlotId,
@@ -1534,6 +1544,12 @@ describe("reschedule booking flow", () => {
       assert.equal(booking.rescheduleCount, 1);
       assert.equal(booking.reminder24hQueuedAt, null);
       assert.equal(booking.reminder24hSentAt, null);
+
+      const clientAfterPublicReschedule = await prisma.client.findUniqueOrThrow({
+        where: { id: seed.primaryClientId },
+        select: { fullName: true, email: true, phone: true },
+      });
+      assert.deepEqual(clientAfterPublicReschedule, rescheduleMasterContact);
 
       const rescheduleLog = await prisma.bookingRescheduleLog.findFirstOrThrow({
         where: { bookingId: seed.manageableBookingId },

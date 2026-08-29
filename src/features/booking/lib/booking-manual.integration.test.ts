@@ -886,9 +886,9 @@ dbTest("createManualBooking keeps existing selected client email when manual boo
       allowManualOverride: false,
       startsAt: startsAt.toISOString(),
       selectedClientId: client.id,
-      fullName: `Vybraná klientka ${suffix}`,
+      fullName: `Aktualizovaná vybraná klientka ${suffix}`,
       email: "",
-      phone,
+      phone: buildUniquePhone(`${suffix}1`),
       source: BookingSource.PHONE,
       status: BookingStatus.CONFIRMED,
       actorUserId: null,
@@ -901,11 +901,17 @@ dbTest("createManualBooking keeps existing selected client email when manual boo
     const updatedClient = await prisma.client.findUniqueOrThrow({
       where: { id: client.id },
       select: {
+        fullName: true,
         email: true,
+        phone: true,
       },
     });
 
-    assert.equal(updatedClient.email, `selected-client-${suffix}@example.com`);
+    assert.deepEqual(updatedClient, {
+      fullName: `Aktualizovaná vybraná klientka ${suffix}`,
+      email: `selected-client-${suffix}@example.com`,
+      phone: buildUniquePhone(`${suffix}1`),
+    });
   } finally {
     if (bookingId) {
       await prisma.bookingActionToken.deleteMany({

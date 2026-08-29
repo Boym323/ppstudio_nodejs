@@ -838,3 +838,206 @@ dbTest("createPublicBooking ignores an archived slot left by a cancelled booking
     await prisma.serviceCategory.delete({ where: { id: category.id } });
   }
 });
+
+dbTest("public booking zachová master kontakt klientky a uloží formulář do snapshotu", async () => {
+  const { prisma, createPublicBooking } = await loadModules();
+  const suffix = randomUUID().slice(0, 8);
+  const masterEmail = `booking-client-contact-master-${suffix}@example.com`;
+  const masterPhone = `+4207${String(Number.parseInt(suffix, 16) % 100_000_000).padStart(8, "0")}`;
+  const emailMatchPhone = `+4207${String((Number.parseInt(suffix, 16) + 1) % 100_000_000).padStart(8, "0")}`;
+  const phoneMatchEmail = `booking-client-contact-phone-${suffix}@example.com`;
+  const newClientEmail = `booking-client-contact-new-${suffix}@example.com`;
+  const newClientPhone = `+4207${String((Number.parseInt(suffix, 16) + 2) % 100_000_000).padStart(8, "0")}`;
+  const category = await prisma.serviceCategory.create({
+    data: {
+      name: `Booking client contact category ${suffix}`,
+      slug: `booking-client-contact-category-${suffix}`,
+      isActive: true,
+    },
+    select: { id: true },
+  });
+  const service = await prisma.service.create({
+    data: {
+      categoryId: category.id,
+      name: `Booking client contact service ${suffix}`,
+      slug: `booking-client-contact-service-${suffix}`,
+      durationMinutes: 60,
+      priceFromCzk: 1200,
+      isActive: true,
+      isPubliclyBookable: true,
+    },
+    select: { id: true },
+  });
+  const existingClient = await prisma.client.create({
+    data: {
+      fullName: `Master klientka ${suffix}`,
+      email: masterEmail,
+      phone: masterPhone,
+      isActive: true,
+      lastBookedAt: new Date("2020-01-01T00:00:00.000Z"),
+    },
+    select: { id: true },
+  });
+  const firstWindow = await findIsolatedPublicQuerySlotStart(prisma, suffix, 60, 5);
+  const firstSlot = await prisma.availabilitySlot.create({
+    data: {
+      startsAt: firstWindow.startsAt,
+      endsAt: firstWindow.endsAt,
+      status: AvailabilitySlotStatus.PUBLISHED,
+      capacity: 1,
+      serviceRestrictionMode: "ANY",
+      publishedAt: new Date(),
+    },
+    select: { id: true },
+  });
+  const secondWindow = await findIsolatedPublicQuerySlotStart(prisma, `${suffix}1`, 60, 5);
+  const secondSlot = await prisma.availabilitySlot.create({
+    data: {
+      startsAt: secondWindow.startsAt,
+      endsAt: secondWindow.endsAt,
+      status: AvailabilitySlotStatus.PUBLISHED,
+      capacity: 1,
+      serviceRestrictionMode: "ANY",
+      publishedAt: new Date(),
+    },
+    select: { id: true },
+  });
+  const thirdWindow = await findIsolatedPublicQuerySlotStart(prisma, `${suffix}2`, 60, 5);
+  const thirdSlot = await prisma.availabilitySlot.create({
+    data: {
+      startsAt: thirdWindow.startsAt,
+      endsAt: thirdWindow.endsAt,
+      status: AvailabilitySlotStatus.PUBLISHED,
+      capacity: 1,
+      serviceRestrictionMode: "ANY",
+      publishedAt: new Date(),
+    },
+    select: { id: true },
+  });
+  const slots = [firstSlot, secondSlot, thirdSlot];
+  const acquisition = {
+    source: BookingAcquisitionSource.DIRECT,
+    utmSource: null,
+    utmMedium: null,
+    utmCampaign: null,
+    referrerHost: null,
+  };
+  const bookingIds: string[] = [];
+
+  try {
+    const emailMatchedBooking = await createPublicBooking({
+      serviceId: service.id,
+      slotId: slots[0].id,
+      startsAt: firstWindow.startsAt.toISOString(),
+      fullName: `Jiné jméno podle e-mailu ${suffix}`,
+      email: masterEmail,
+      phone: emailMatchPhone,
+      acquisition,
+    });
+    bookingIds.push(emailMatchedBooking.bookingId);
+
+    const phoneMatchedBooking = await createPublicBooking({
+      serviceId: service.id,
+      slotId: slots[1].id,
+      startsAt: secondWindow.startsAt.toISOString(),
+      fullName: `Jiné jméno podle telefonu ${suffix}`,
+      email: phoneMatchEmail,
+      phone: masterPhone,
+      acquisition,
+    });
+    bookingIds.push(phoneMatchedBooking.bookingId);
+
+    const newClientBooking = await createPublicBooking({
+      serviceId: service.id,
+      slotId: slots[2].id,
+      startsAt: thirdWindow.startsAt.toISOString(),
+      fullName: `Nová klientka ${suffix}`,
+      email: newClientEmail,
+      phone: newClientPhone,
+      acquisition,
+    });
+    bookingIds.push(newClientBooking.bookingId);
+
+    const [client, bookings, newClient] = await Promise.all([
+      prisma.client.findUniqueOrThrow({
+        where: { id: existingClient.id },
+        select: { fullName: true, email: true, phone: true, lastBookedAt: true },
+      }),
+      prisma.booking.findMany({
+        where: { id: { in: bookingIds } },
+        select: { id: true, clientId: true, clientNameSnapshot: true, clientEmailSnapshot: true, clientPhoneSnapshot: true },
+      }),
+      prisma.client.findUniqueOrThrow({
+        where: { email: newClientEmail },
+        select: { fullName: true, email: true, phone: true },
+      }),
+    ]);
+
+    assert.deepEqual(
+      {
+        fullName: client.fullName,
+        email: client.email,
+        phone: client.phone,
+      },
+      {
+        fullName: `Master klientka ${suffix}`,
+        email: masterEmail,
+        phone: masterPhone,
+      },
+    );
+    assert.ok(client.lastBookedAt);
+    assert.ok(client.lastBookedAt.getTime() > new Date("2020-01-01T00:00:00.000Z").getTime());
+
+    const emailSnapshot = bookings.find((booking) => booking.id === emailMatchedBooking.bookingId);
+    const phoneSnapshot = bookings.find((booking) => booking.id === phoneMatchedBooking.bookingId);
+    assert.deepEqual(
+      emailSnapshot && {
+        clientId: emailSnapshot.clientId,
+        clientNameSnapshot: emailSnapshot.clientNameSnapshot,
+        clientEmailSnapshot: emailSnapshot.clientEmailSnapshot,
+        clientPhoneSnapshot: emailSnapshot.clientPhoneSnapshot,
+      },
+      {
+        clientId: existingClient.id,
+        clientNameSnapshot: `Jiné jméno podle e-mailu ${suffix}`,
+        clientEmailSnapshot: masterEmail,
+        clientPhoneSnapshot: emailMatchPhone,
+      },
+    );
+    assert.deepEqual(
+      phoneSnapshot && {
+        clientId: phoneSnapshot.clientId,
+        clientNameSnapshot: phoneSnapshot.clientNameSnapshot,
+        clientEmailSnapshot: phoneSnapshot.clientEmailSnapshot,
+        clientPhoneSnapshot: phoneSnapshot.clientPhoneSnapshot,
+      },
+      {
+        clientId: existingClient.id,
+        clientNameSnapshot: `Jiné jméno podle telefonu ${suffix}`,
+        clientEmailSnapshot: phoneMatchEmail,
+        clientPhoneSnapshot: masterPhone,
+      },
+    );
+    assert.deepEqual(newClient, {
+      fullName: `Nová klientka ${suffix}`,
+      email: newClientEmail,
+      phone: newClientPhone,
+    });
+  } finally {
+    await prisma.emailLog.deleteMany({ where: { bookingId: { in: bookingIds } } });
+    await prisma.bookingActionToken.deleteMany({ where: { bookingId: { in: bookingIds } } });
+    await prisma.bookingStatusHistory.deleteMany({ where: { bookingId: { in: bookingIds } } });
+    await prisma.booking.deleteMany({ where: { id: { in: bookingIds } } });
+    await prisma.client.deleteMany({
+      where: {
+        OR: [
+          { id: existingClient.id },
+          { email: newClientEmail },
+        ],
+      },
+    });
+    await prisma.availabilitySlot.deleteMany({ where: { id: { in: slots.map((slot) => slot.id) } } });
+    await prisma.service.delete({ where: { id: service.id } });
+    await prisma.serviceCategory.delete({ where: { id: category.id } });
+  }
+});

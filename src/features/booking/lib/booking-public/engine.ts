@@ -1,6 +1,7 @@
 import {
   AvailabilitySlotServiceRestrictionMode,
   AvailabilitySlotStatus,
+  BookingActorType,
   BookingStatus,
   Prisma,
 } from "@/generated/prisma/client";
@@ -174,6 +175,7 @@ async function resolveClientForBooking(
   tx: Prisma.TransactionClient,
   input: ClientResolutionInput,
   now: Date,
+  canUpdateExistingClientContact: boolean,
 ) {
   const normalizedFullName = normalizeWhitespace(input.fullName);
   const normalizedEmail = input.email ? normalizeClientEmail(input.email) : undefined;
@@ -206,12 +208,20 @@ async function resolveClientForBooking(
         id: selectedClient.id,
       },
       data: {
-        fullName: normalizedFullName,
-        email: normalizedEmail ?? undefined,
-        phone: normalizedPhone,
+        ...(canUpdateExistingClientContact
+          ? {
+              fullName: normalizedFullName,
+              email: normalizedEmail ?? undefined,
+              phone: normalizedPhone,
+            }
+          : {}),
         isActive: true,
         lastBookedAt: now,
-        internalNote: selectedClient.internalNote ?? normalizedClientProfileNote ?? undefined,
+        ...(canUpdateExistingClientContact
+          ? {
+              internalNote: selectedClient.internalNote ?? normalizedClientProfileNote ?? undefined,
+            }
+          : {}),
       },
       select: {
         id: true,
@@ -279,12 +289,20 @@ async function resolveClientForBooking(
         id: matchedClient.id,
       },
       data: {
-        fullName: normalizedFullName,
-        email: normalizedEmail,
-        phone: normalizedPhone,
+        ...(canUpdateExistingClientContact
+          ? {
+              fullName: normalizedFullName,
+              email: normalizedEmail,
+              phone: normalizedPhone,
+            }
+          : {}),
         isActive: true,
         lastBookedAt: now,
-        internalNote: matchedClient.internalNote ?? normalizedClientProfileNote ?? undefined,
+        ...(canUpdateExistingClientContact
+          ? {
+              internalNote: matchedClient.internalNote ?? normalizedClientProfileNote ?? undefined,
+            }
+          : {}),
       },
       select: {
         id: true,
@@ -687,7 +705,12 @@ export async function createBookingWithEngine(
             normalizedFullName,
             normalizedEmail,
             normalizedPhone,
-          } = await resolveClientForBooking(tx, input.client, now);
+          } = await resolveClientForBooking(
+            tx,
+            input.client,
+            now,
+            input.actorType === BookingActorType.USER,
+          );
 
           const existingClientBooking = await tx.booking.findFirst({
             where: {
