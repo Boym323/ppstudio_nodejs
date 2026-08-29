@@ -83,7 +83,7 @@ export type PublicBookingManageRescheduleResult =
       clientName: string;
       previousScheduledAtLabel: string;
       scheduledAtLabel: string;
-      notificationStatus: "queued" | "logged" | "skipped" | "failed";
+      notificationStatus: "queued" | "logged" | "skipped";
     }
   | (BookingManageDetails & {
       status: "invalid" | "expired" | "already_cancelled" | "not_reschedulable";

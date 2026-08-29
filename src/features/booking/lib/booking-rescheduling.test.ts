@@ -100,7 +100,8 @@ async function createHarness(overrides: Partial<{
   overlappingSlots: Array<ReturnType<typeof buildSlot>>;
   activeBookingCount: number;
   withinWindow: boolean;
-  notificationStatus: "queued" | "logged";
+  failEmailLog: boolean;
+  serializableFailures: number;
 }> = {}) {
   const { createBookingReschedulingApi } = await import("./booking-rescheduling");
 
@@ -120,6 +121,8 @@ async function createHarness(overrides: Partial<{
     slotCreate: [] as Array<Record<string, unknown>>,
     slotUpdate: [] as Array<Record<string, unknown>>,
     slotDelete: [] as Array<Record<string, unknown>>,
+    actionTokenCreate: [] as Array<Record<string, unknown>>,
+    emailLogCreate: [] as Array<Record<string, unknown>>,
     notification: [] as Array<Record<string, unknown>>,
     pushover: [] as Array<Record<string, unknown>>,
   };
@@ -180,11 +183,61 @@ async function createHarness(overrides: Partial<{
         return {};
       },
     },
+    bookingActionToken: {
+      create: async (input: Record<string, unknown>) => {
+        calls.actionTokenCreate.push(input);
+        return { id: "action-token-1" };
+      },
+    },
+    emailLog: {
+      create: async (input: Record<string, unknown>) => {
+        if (overrides.failEmailLog) {
+          throw new Error("EmailLog create failed");
+        }
+
+        calls.emailLogCreate.push(input);
+        return { id: "email-log-1" };
+      },
+    },
   };
+
+  let remainingSerializableFailures = overrides.serializableFailures ?? 0;
+  const transactionalCalls = [
+    calls.bookingUpdate,
+    calls.bookingCount,
+    calls.logCreate,
+    calls.slotCreate,
+    calls.slotUpdate,
+    calls.slotDelete,
+    calls.actionTokenCreate,
+    calls.emailLogCreate,
+  ];
 
   const api = createBookingReschedulingApi({
     prisma: {
-      $transaction: async (callback: (transaction: typeof tx) => unknown) => callback(tx),
+      $transaction: async (callback: (transaction: typeof tx) => unknown) => {
+        queryRawCalls = 0;
+        const sizesBeforeTransaction = transactionalCalls.map((items) => items.length);
+
+        try {
+          const result = await callback(tx);
+
+          if (remainingSerializableFailures > 0) {
+            remainingSerializableFailures -= 1;
+            throw {
+              name: "DriverAdapterError",
+              cause: { kind: "TransactionWriteConflict" },
+            };
+          }
+
+          return result;
+        } catch (error) {
+          transactionalCalls.forEach((items, index) => {
+            items.length = sizesBeforeTransaction[index] ?? 0;
+          });
+          throw error;
+        }
+      },
     } as never,
     getBookingPolicySettings: async () => ({
       minAdvanceHours: 2,
@@ -194,7 +247,6 @@ async function createHarness(overrides: Partial<{
     isBookingWithinWindow: () => overrides.withinWindow ?? true,
     queueBookingRescheduledNotification: async (input) => {
       calls.notification.push(input as Record<string, unknown>);
-      return overrides.notificationStatus ?? "logged";
     },
     sendOwnerBookingPushover: async (input) => {
       calls.pushover.push(input as Record<string, unknown>);
@@ -676,6 +728,44 @@ describe("reschedule booking", () => {
     assert.equal(harness.calls.bookingUpdate.length, 1);
   });
 
+  test("vytvoření klientského EmailLog selže transakčně spolu s přesunem", async () => {
+    const harness = await createHarness({ failEmailLog: true });
+
+    await assert.rejects(() => harness.api.rescheduleBooking({
+      bookingId: "booking-1",
+      slotId: "slot-new",
+      newStartAt: "2026-04-28T09:00:00.000Z",
+      changedByUserId: null,
+      changedByClient: true,
+      notifyClient: true,
+    }), /EmailLog create failed/);
+
+    assert.equal(harness.calls.bookingUpdate.length, 0);
+    assert.equal(harness.calls.logCreate.length, 0);
+    assert.equal(harness.calls.actionTokenCreate.length, 0);
+    assert.equal(harness.calls.emailLogCreate.length, 0);
+    assert.equal(harness.calls.notification.length, 0);
+  });
+
+  test("serializable retry zachová jediný klientský EmailLog a jedinou dvojici tokenů", async () => {
+    const harness = await createHarness({ serializableFailures: 1 });
+
+    const result = await harness.api.rescheduleBooking({
+      bookingId: "booking-1",
+      slotId: "slot-new",
+      newStartAt: "2026-04-28T09:00:00.000Z",
+      changedByUserId: null,
+      changedByClient: true,
+      notifyClient: true,
+    });
+
+    assert.equal(result.notificationStatus, "logged");
+    assert.equal(harness.calls.bookingUpdate.length, 1);
+    assert.equal(harness.calls.logCreate.length, 1);
+    assert.equal(harness.calls.actionTokenCreate.length, 2);
+    assert.equal(harness.calls.emailLogCreate.length, 1);
+  });
+
   test("uses cleanup snapshot for the new internal collision interval", async () => {
     const harness = await createHarness({
       booking: buildBooking({
@@ -881,6 +971,17 @@ describe("history and side effects", () => {
       includeCalendarAttachment: true,
       notifyAdminOnClientReschedule: true,
     });
+    const clientEmailLog = harness.calls.emailLogCreate[0]?.data as Record<string, unknown>;
+    assert.equal(clientEmailLog.audience, "CLIENT");
+    assert.equal(clientEmailLog.type, "BOOKING_RESCHEDULED");
+    assert.equal(
+      (clientEmailLog.payload as Record<string, unknown>).scheduledStartsAt,
+      "2026-04-28T09:00:00.000Z",
+    );
+    assert.equal(
+      (clientEmailLog.payload as Record<string, unknown>).scheduledEndsAt,
+      "2026-04-28T10:00:00.000Z",
+    );
     assert.equal(harness.calls.pushover.length, 1);
     assert.deepEqual(harness.calls.pushover[0], {
       type: "BOOKING_RESCHEDULED",

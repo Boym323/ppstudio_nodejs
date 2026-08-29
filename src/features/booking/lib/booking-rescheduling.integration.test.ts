@@ -50,20 +50,25 @@ function at(localDate: string, time: string) {
 }
 
 async function loadModules() {
-  const [{ prisma }, bookingModule, clientModule, publicBookingModule] = await Promise.all([
+  const [{ prisma }, bookingModule, clientModule, publicBookingModule, emailDeliveryModule] = await Promise.all([
     import("@/lib/prisma"),
     import("./booking-rescheduling"),
     import("@/generated/prisma/browser"),
     import("./booking-public"),
+    import("@/lib/email/delivery"),
   ]);
 
   return {
     prisma,
+    createBookingReschedulingApi: bookingModule.createBookingReschedulingApi,
     rescheduleBooking: bookingModule.rescheduleBooking,
     BookingRescheduleError: bookingModule.BookingRescheduleError,
     BookingStatus: clientModule.BookingStatus,
     AvailabilitySlotStatus: clientModule.AvailabilitySlotStatus,
+    EmailAudience: clientModule.EmailAudience,
     EmailLogType: clientModule.EmailLogType,
+    claimEmailLogForImmediateDelivery: emailDeliveryModule.claimEmailLogForImmediateDelivery,
+    deliverEmailLog: emailDeliveryModule.deliverEmailLog,
     getPublicBookingCatalog: publicBookingModule.getPublicBookingCatalog,
   };
 }
@@ -651,7 +656,7 @@ dbTest("souběžné public reschedule nikdy necommitnou stav bez proveditelného
 
 dbTest("rescheduleBooking updates the existing booking, writes audit history and resets reminders", async () => {
   const seed = await createSeed();
-  const { prisma, rescheduleBooking, BookingStatus, AvailabilitySlotStatus, EmailLogType } = await loadModules();
+  const { prisma, rescheduleBooking, BookingStatus, AvailabilitySlotStatus, EmailAudience, EmailLogType } = await loadModules();
 
   try {
     const result = await rescheduleBooking({
@@ -721,6 +726,7 @@ dbTest("rescheduleBooking updates the existing booking, writes audit history and
       orderBy: { createdAt: "desc" },
       select: {
         type: true,
+        audience: true,
         templateKey: true,
         subject: true,
         payload: true,
@@ -728,8 +734,15 @@ dbTest("rescheduleBooking updates the existing booking, writes audit history and
     });
 
     assert.equal(emailLog.type, EmailLogType.BOOKING_RESCHEDULED);
+    assert.equal(emailLog.audience, EmailAudience.CLIENT);
     assert.equal(emailLog.templateKey, "booking-rescheduled-v1");
     assert.match(emailLog.subject, /Změna termínu rezervace/);
+    const payload = emailLog.payload as Record<string, unknown>;
+    assert.equal(payload.scheduledStartsAt, seed.newStartAt);
+    assert.equal(
+      payload.scheduledEndsAt,
+      new Date(new Date(seed.newStartAt).getTime() + 60 * 60 * 1000).toISOString(),
+    );
 
     const oldSlotStillExists = await prisma.availabilitySlot.findUnique({
       where: { id: seed.oldSlotId },
@@ -746,6 +759,139 @@ dbTest("rescheduleBooking updates the existing booking, writes audit history and
     assert.ok(oldSlotStillExists);
     assert.equal(oldSlotStillExists.status, AvailabilitySlotStatus.ARCHIVED);
     assert.equal(oldSlotStillExists.bookings.length, 0);
+  } finally {
+    await cleanupSeed(seed);
+  }
+});
+
+dbTest("selhání klientského EmailLog rollbackne celý reschedule", async () => {
+  const seed = await createSeed();
+  const { prisma, createBookingReschedulingApi, EmailLogType } = await loadModules();
+  const api = createBookingReschedulingApi({
+    createBookingRescheduledClientEmailLog: async () => {
+      throw new Error("simulated EmailLog failure");
+    },
+  });
+
+  try {
+    await assert.rejects(
+      api.rescheduleBooking({
+        bookingId: seed.bookingId,
+        slotId: seed.newSlotId,
+        newStartAt: seed.newStartAt,
+        changedByUserId: seed.actorUserId,
+        notifyClient: true,
+        expectedUpdatedAt: seed.bookingUpdatedAt,
+      }),
+      /simulated EmailLog failure/,
+    );
+
+    const booking = await prisma.booking.findUniqueOrThrow({
+      where: { id: seed.bookingId },
+      select: {
+        slotId: true,
+        scheduledStartsAt: true,
+        rescheduleCount: true,
+      },
+    });
+    const [historyCount, emailCount, tokenCount] = await Promise.all([
+      prisma.bookingRescheduleLog.count({ where: { bookingId: seed.bookingId } }),
+      prisma.emailLog.count({
+        where: {
+          bookingId: seed.bookingId,
+          type: EmailLogType.BOOKING_RESCHEDULED,
+        },
+      }),
+      prisma.bookingActionToken.count({ where: { bookingId: seed.bookingId } }),
+    ]);
+
+    assert.equal(booking.slotId, seed.oldSlotId);
+    assert.equal(booking.scheduledStartsAt.toISOString(), seed.oldStartAt);
+    assert.equal(booking.rescheduleCount, 0);
+    assert.equal(historyCount, 0);
+    assert.equal(emailCount, 0);
+    assert.equal(tokenCount, 0);
+  } finally {
+    await cleanupSeed(seed);
+  }
+});
+
+dbTest("provider failure po commitu nechá úspěšný reschedule a outbox retry", async () => {
+  const seed = await createSeed();
+  const {
+    prisma,
+    rescheduleBooking,
+    EmailAudience,
+    EmailLogType,
+    claimEmailLogForImmediateDelivery,
+    deliverEmailLog,
+  } = await loadModules();
+
+  try {
+    const result = await rescheduleBooking({
+      bookingId: seed.bookingId,
+      slotId: seed.newSlotId,
+      newStartAt: seed.newStartAt,
+      changedByUserId: seed.actorUserId,
+      notifyClient: true,
+      expectedUpdatedAt: seed.bookingUpdatedAt,
+    });
+    assert.ok(result.notificationStatus === "logged" || result.notificationStatus === "queued");
+
+    const emailLog = await prisma.emailLog.findFirstOrThrow({
+      where: {
+        bookingId: seed.bookingId,
+        type: EmailLogType.BOOKING_RESCHEDULED,
+        audience: EmailAudience.CLIENT,
+      },
+      orderBy: { createdAt: "desc" },
+      select: { id: true },
+    });
+    await prisma.emailLog.update({
+      where: { id: emailLog.id },
+      data: {
+        status: "PENDING",
+        attemptCount: 0,
+        nextAttemptAt: new Date(0),
+        processingStartedAt: null,
+        processingToken: null,
+        provider: null,
+        sentAt: null,
+        payload: {
+          bookingId: seed.bookingId,
+          serviceName: `Test service ${seed.bookingId.slice(0, 8)}`,
+          clientName: `Klientka ${seed.bookingId.slice(0, 8)}`,
+          previousStartsAt: seed.oldStartAt,
+          previousEndsAt: seed.oldEndAt,
+          scheduledStartsAt: seed.newStartAt,
+          scheduledEndsAt: new Date(new Date(seed.newStartAt).getTime() + 60 * 60 * 1000).toISOString(),
+          manageReservationUrl: `https://example.com/rezervace/sprava/${seed.bookingId}`,
+          cancellationUrl: `https://example.com/rezervace/storno/${seed.bookingId}`,
+          includeCalendarAttachment: false,
+        },
+      },
+    });
+
+    const processingToken = await claimEmailLogForImmediateDelivery(emailLog.id);
+    assert.ok(processingToken);
+    const deliveryResult = await deliverEmailLog(emailLog.id, processingToken, {
+      sendEmail: async () => {
+        throw new Error("simulated provider failure after commit");
+      },
+    });
+    const [booking, storedEmailLog] = await Promise.all([
+      prisma.booking.findUniqueOrThrow({
+        where: { id: seed.bookingId },
+        select: { scheduledStartsAt: true, scheduledEndsAt: true, rescheduleCount: true },
+      }),
+      prisma.emailLog.findUniqueOrThrow({ where: { id: emailLog.id }, select: { status: true } }),
+    ]);
+
+    assert.equal(deliveryResult.status, "failed");
+    assert.equal(storedEmailLog.status, "PENDING");
+    assert.equal(booking.scheduledStartsAt.toISOString(), seed.newStartAt);
+    assert.equal(booking.scheduledEndsAt.toISOString(), new Date(new Date(seed.newStartAt).getTime() + 60 * 60 * 1000).toISOString());
+    assert.equal(booking.rescheduleCount, 1);
   } finally {
     await cleanupSeed(seed);
   }

@@ -94,7 +94,7 @@ export type RescheduleBookingResult = {
   previousScheduledAtLabel: string;
   rescheduleCount: number;
   manualOverride: boolean;
-  notificationStatus: "queued" | "logged" | "skipped" | "failed";
+  notificationStatus: "queued" | "logged" | "skipped";
 };
 
 type BookingSlotRecord = {
@@ -126,6 +126,21 @@ type RescheduleTransactionResult = {
   previousEndsAt: Date;
   manualOverride: boolean;
   rescheduleCount: number;
+  notificationStatus: "queued" | "logged" | "skipped";
+};
+
+type BookingRescheduledNotificationInput = {
+  bookingId: string;
+  clientId: string;
+  clientEmail: string;
+  clientName: string;
+  serviceName: string;
+  previousStartsAt: Date;
+  previousEndsAt: Date;
+  scheduledStartsAt: Date;
+  scheduledEndsAt: Date;
+  includeCalendarAttachment: boolean;
+  notifyAdminOnClientReschedule: boolean;
 };
 
 type BookingReschedulingDependencies = {
@@ -133,6 +148,7 @@ type BookingReschedulingDependencies = {
   getBookingPolicySettings: typeof getBookingPolicySettings;
   isBookingWithinWindow: typeof isBookingWithinWindow;
   queueBookingRescheduledNotification: typeof queueBookingRescheduledNotification;
+  createBookingRescheduledClientEmailLog?: typeof createBookingRescheduledClientEmailLog;
   sendOwnerBookingPushover: typeof sendOwnerBookingPushover;
   sendOwnerSystemErrorPushover: typeof sendOwnerSystemErrorPushover;
 };
@@ -416,23 +432,14 @@ function mapKnownPrismaError(error: Prisma.PrismaClientKnownRequestError) {
   );
 }
 
-async function queueBookingRescheduledNotification(input: {
-  bookingId: string;
-  clientId: string;
-  clientEmail: string;
-  clientName: string;
-  serviceName: string;
-  previousStartsAt: Date;
-  previousEndsAt: Date;
-  scheduledStartsAt: Date;
-  scheduledEndsAt: Date;
-  includeCalendarAttachment: boolean;
-  notifyAdminOnClientReschedule: boolean;
-}) {
+async function createBookingRescheduledClientEmailLog(
+  tx: Prisma.TransactionClient,
+  input: BookingRescheduledNotificationInput,
+) {
   const now = new Date();
   const manageToken = buildBookingActionToken();
   const cancellationToken = buildBookingActionToken();
-  const actionToken = await prisma.bookingActionToken.create({
+  const actionToken = await tx.bookingActionToken.create({
     data: {
       bookingId: input.bookingId,
       type: BookingActionTokenType.RESCHEDULE,
@@ -445,7 +452,7 @@ async function queueBookingRescheduledNotification(input: {
     },
   });
 
-  await prisma.bookingActionToken.create({
+  await tx.bookingActionToken.create({
     data: {
       bookingId: input.bookingId,
       type: BookingActionTokenType.CANCEL,
@@ -468,7 +475,7 @@ async function queueBookingRescheduledNotification(input: {
     includeCalendarAttachment: input.includeCalendarAttachment,
   };
 
-  await prisma.emailLog.create({
+  await tx.emailLog.create({
     data: {
       bookingId: input.bookingId,
       clientId: input.clientId,
@@ -490,6 +497,15 @@ async function queueBookingRescheduledNotification(input: {
       sentAt: env.EMAIL_DELIVERY_MODE === "background" ? undefined : now,
     },
   });
+
+  return env.EMAIL_DELIVERY_MODE === "background" ? "queued" as const : "logged" as const;
+}
+
+// Admin-only post-commit notification; the client outbox is created in the transaction above.
+async function queueBookingRescheduledNotification(
+  input: BookingRescheduledNotificationInput,
+) {
+  const now = new Date();
 
   if (input.notifyAdminOnClientReschedule) {
     const emailBranding = await getEmailBrandingSettings();
@@ -527,8 +543,6 @@ async function queueBookingRescheduledNotification(input: {
       });
     }
   }
-
-  return env.EMAIL_DELIVERY_MODE === "background" ? "queued" : "logged";
 }
 
 async function rescheduleBookingInTransaction(
@@ -986,6 +1000,25 @@ async function rescheduleBookingInTransaction(
     await maybeDeleteOrphanedManualOverrideSlot(tx, booking.slotId, booking.id);
   }
 
+  const notificationStatus = input.notifyClient && booking.clientEmailSnapshot.trim().length > 0
+    ? await (
+        dependencies.createBookingRescheduledClientEmailLog
+        ?? createBookingRescheduledClientEmailLog
+      )(tx, {
+        bookingId: booking.id,
+        clientId: booking.clientId,
+        clientEmail: booking.clientEmailSnapshot,
+        clientName: booking.clientNameSnapshot,
+        serviceName: booking.serviceNameSnapshot,
+        previousStartsAt: booking.scheduledStartsAt,
+        previousEndsAt: booking.scheduledEndsAt,
+        scheduledStartsAt: requestedStartsAt,
+        scheduledEndsAt: requestedEndsAt,
+        includeCalendarAttachment: input.includeCalendarAttachment ?? true,
+        notifyAdminOnClientReschedule: input.changedByClient ?? false,
+      })
+    : "skipped" as const;
+
   return {
     bookingId: booking.id,
     serviceName: booking.serviceNameSnapshot,
@@ -998,6 +1031,7 @@ async function rescheduleBookingInTransaction(
     previousEndsAt: booking.scheduledEndsAt,
     manualOverride,
     rescheduleCount: booking.rescheduleCount + 1,
+    notificationStatus,
   } satisfies RescheduleTransactionResult;
 }
 
@@ -1011,8 +1045,13 @@ const defaultBookingReschedulingDependencies: BookingReschedulingDependencies = 
 };
 
 export function createBookingReschedulingApi(
-  dependencies: BookingReschedulingDependencies = defaultBookingReschedulingDependencies,
+  dependencies: Partial<BookingReschedulingDependencies> = {},
 ) {
+  const resolvedDependencies: BookingReschedulingDependencies = {
+    ...defaultBookingReschedulingDependencies,
+    ...dependencies,
+  };
+
   return {
     async rescheduleBooking(
       input: RescheduleBookingInput,
@@ -1029,18 +1068,19 @@ export function createBookingReschedulingApi(
 
       for (let attempt = 1; attempt <= MAX_BOOKING_TRANSACTION_RETRIES; attempt += 1) {
         try {
-          const transactionResult = await dependencies.prisma.$transaction(
-            async (tx) => rescheduleBookingInTransaction(dependencies, tx, input, requestedStartsAt),
+          const transactionResult = await resolvedDependencies.prisma.$transaction(
+            async (tx) => rescheduleBookingInTransaction(resolvedDependencies, tx, input, requestedStartsAt),
             {
               isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
             },
           );
 
-          let notificationStatus: RescheduleBookingResult["notificationStatus"] = "skipped";
-
-          if (input.notifyClient && transactionResult.clientEmail.trim().length > 0) {
+          if (
+            transactionResult.notificationStatus !== "skipped"
+            && input.changedByClient
+          ) {
             try {
-              notificationStatus = await dependencies.queueBookingRescheduledNotification({
+              await resolvedDependencies.queueBookingRescheduledNotification({
                 bookingId: transactionResult.bookingId,
                 clientId: transactionResult.clientId,
                 clientEmail: transactionResult.clientEmail,
@@ -1054,14 +1094,13 @@ export function createBookingReschedulingApi(
                 notifyAdminOnClientReschedule: input.changedByClient ?? false,
               });
             } catch (error) {
-              notificationStatus = "failed";
-              console.error("Booking reschedule notification enqueue failed", {
+              console.error("Booking reschedule admin notification enqueue failed", {
                 bookingId: transactionResult.bookingId,
                 error,
               });
-              await dependencies.sendOwnerSystemErrorPushover({
+              await resolvedDependencies.sendOwnerSystemErrorPushover({
                 title: "PP Studio - systemova chyba",
-                message: "Presun rezervace se ulozil, ale nepodarilo se zalozit navazujici email notifikaci.",
+                message: "Presun rezervace se ulozil, ale nepodarilo se zalozit provozni email notifikaci.",
                 context: {
                   contextId: transactionResult.bookingId,
                   bookingId: transactionResult.bookingId,
@@ -1071,7 +1110,7 @@ export function createBookingReschedulingApi(
             }
           }
 
-          await dependencies.sendOwnerBookingPushover({
+          await resolvedDependencies.sendOwnerBookingPushover({
             type: "BOOKING_RESCHEDULED",
             bookingId: transactionResult.bookingId,
             sourceLabel: input.changedByClient ? "Web" : "Admin",
@@ -1095,7 +1134,7 @@ export function createBookingReschedulingApi(
             ),
             rescheduleCount: transactionResult.rescheduleCount,
             manualOverride: transactionResult.manualOverride,
-            notificationStatus,
+            notificationStatus: transactionResult.notificationStatus,
           };
         } catch (error) {
           if (error instanceof BookingRescheduleError) {

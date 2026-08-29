@@ -77,6 +77,7 @@ async function loadModules() {
     BookingActorType: prismaClientModule.BookingActorType,
     BookingSource: prismaClientModule.BookingSource,
     BookingStatus: prismaClientModule.BookingStatus,
+    EmailAudience: prismaClientModule.EmailAudience,
     EmailLogType: prismaClientModule.EmailLogType,
     AvailabilitySlotStatus: prismaClientModule.AvailabilitySlotStatus,
   };
@@ -1500,6 +1501,7 @@ describe("reschedule booking flow", () => {
       reschedulePublicBookingByToken,
       buildBookingSelfServiceActionExpiry,
       BookingActionTokenType,
+      EmailAudience,
       EmailLogType,
     } = await loadModules();
 
@@ -1568,6 +1570,7 @@ describe("reschedule booking flow", () => {
         },
         orderBy: { createdAt: "desc" },
         select: {
+          audience: true,
           templateKey: true,
           payload: true,
           actionTokenId: true,
@@ -1575,6 +1578,7 @@ describe("reschedule booking flow", () => {
       });
 
       assert.equal(emailLog.templateKey, "booking-rescheduled-v1");
+      assert.equal(emailLog.audience, EmailAudience.CLIENT);
       assert.equal(typeof emailLog.payload, "object");
       assert.ok(emailLog.payload && typeof emailLog.payload === "object" && !Array.isArray(emailLog.payload));
       const payload = emailLog.payload as Record<string, unknown>;
@@ -1607,6 +1611,20 @@ describe("reschedule booking flow", () => {
         newActionTokens.filter((token) => token.expiresAt.getTime() === expectedNewExpiry.getTime()).length,
         2,
       );
+
+      const adminEmailLog = await prisma.emailLog.findFirstOrThrow({
+        where: {
+          bookingId: seed.manageableBookingId,
+          type: EmailLogType.BOOKING_RESCHEDULED,
+          audience: EmailAudience.ADMIN,
+          templateKey: "admin-booking-rescheduled-v1",
+        },
+        select: {
+          payload: true,
+        },
+      });
+      const adminPayload = adminEmailLog.payload as Record<string, unknown>;
+      assert.equal(adminPayload.scheduledStartsAt, seed.replacementStartAt);
     } finally {
       await cleanupSeed(seed);
     }

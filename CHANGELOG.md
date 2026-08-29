@@ -13,6 +13,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Reschedule se zapnutým klientským oznámením nyní ukládá změnu rezervace, nové self-service tokeny a klientský `BOOKING_RESCHEDULED` `EmailLog` v jedné serializovatelné transakci; selhání zápisu proto přesun rollbackne a selhání providera po commitu řeší pouze outbox worker.
 - Booking e-mailový worker nyní před doručením klientských potvrzení, přijetí, přesunů a storen ověřuje aktuální stav a termín rezervace; zastaralé logy označí jako systémově přeskočené bez dalšího retry, zatímco administrační historické notifikace a retry při nezměněné rezervaci zůstávají zachované.
 - Voucherové čerpání nyní vzniká pouze uvnitř atomického dokončení návštěvy po přechodu rezervace do `COMPLETED`; samostatné admin uplatnění je vypnuté, nedokončené rezervace nové čerpání nepřijmou a historické nekonzistentní čerpání zablokuje storno, `NO_SHOW` i přesun bez mazání finanční historie.
 - Self-service odkazy pro správu a storno rezervace nyní expirují až krátce po plánovaném začátku rezervace, takže zůstávají použitelné i u termínů vytvořených 60–90 dní dopředu; storno a přesun dál samostatně respektují své business limity.

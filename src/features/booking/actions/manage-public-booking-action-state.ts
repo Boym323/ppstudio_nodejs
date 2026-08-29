@@ -11,7 +11,7 @@ export type ManagePublicBookingActionState = {
     clientName: string;
     previousScheduledAtLabel: string;
     scheduledAtLabel: string;
-    notificationStatus: "queued" | "logged" | "skipped" | "failed";
+    notificationStatus: "queued" | "logged" | "skipped";
   };
 };
 

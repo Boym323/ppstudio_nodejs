@@ -162,9 +162,6 @@ export async function rescheduleBookingAction(
       status: "success",
       successMessage: `Termín jsme přesunuli z „${result.previousScheduledAtLabel}“ na „${result.scheduledAtLabel}“.`,
       warningMessage: [
-        result.notificationStatus === "failed"
-          ? "Změna termínu zůstala uložená, ale navazující e-mail se nepodařilo založit do fronty. Chyba je zalogovaná."
-          : null,
         result.notificationStatus === "skipped" && parsed.data.notifyClient === "1"
           ? "Termín je přesunutý, ale klientce jsme neposílali e-mail, protože u rezervace chybí použitelný e-mail."
           : null,

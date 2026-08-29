@@ -137,7 +137,6 @@ Evidence produkčních incidentů a jejich řešení.
 - Click-to-open řádek rezervace, který při práci s checkboxem, kontaktem nebo row akcemi omylem otevírá detail; interaktivní prvky uvnitř řádku musí propagaci zastavit.
 - Self-service přesun termínu zapsaný bez `changedByClient = true`; veřejný manage flow musí být v historii odlišitelný od admin přesunu.
 - Přesun termínu provedený, ale starý interní override slot zůstal viset jako `DRAFT` a dál blokuje původní čas; doménová služba musí orphanovaný override slot uvolnit.
-- Přesun termínu provedený, ale klientský e-mail `BOOKING_RESCHEDULED` se nezaložil; změna rezervace má i v takovém případě zůstat uložená a chyba musí být jen zalogovaná pro provozní dohled.
 - Omylem spuštěné `prisma migrate dev` na produkčním serveru místo `prisma migrate deploy`.
 - Pokus o vytvoření nebo editaci překrývajícího se slotu, který by měl skončit user-friendly validační chybou místo neošetřeného 500.
 - Slot omylem snížený pod počet aktivních rezervací nebo archivovaný navzdory aktivní rezervaci.
