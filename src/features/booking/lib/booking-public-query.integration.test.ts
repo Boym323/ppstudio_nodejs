@@ -5,6 +5,8 @@ import test from "node:test";
 
 import { AvailabilitySlotStatus, BookingAcquisitionSource } from "@/generated/prisma/browser";
 
+import { resolvePragueLocalDateTime } from "./booking-local-time";
+
 (process.env as Record<string, string | undefined>).NODE_ENV = "test";
 process.env.NEXT_PUBLIC_APP_NAME ??= "PP Studio";
 process.env.NEXT_PUBLIC_APP_URL ??= "https://example.com";
@@ -20,18 +22,26 @@ process.env.PUSHOVER_ENABLED ??= "false";
 const dbTest = process.env.RUN_DB_INTEGRATION_TESTS === "1" ? test : test.skip;
 
 async function loadModules() {
-  const [{ prisma }, bookingModule] = await Promise.all([
+  const [{ prisma }, bookingModule, availabilityCore] = await Promise.all([
     import("@/lib/prisma"),
     import("./booking-public"),
+    import("./booking-availability-core"),
   ]);
 
   return {
     prisma,
     createPublicBooking: bookingModule.createPublicBooking,
     getPublicBookingCatalog: bookingModule.getPublicBookingCatalog,
+    getBookingAvailabilityCatalog: availabilityCore.getBookingAvailabilityCatalog,
     PublicBookingError: bookingModule.PublicBookingError,
     publicBookingErrorCodes: bookingModule.publicBookingErrorCodes,
   };
+}
+
+function at(localDate: string, time: string) {
+  const value = resolvePragueLocalDateTime(localDate, time);
+  assert.ok(value);
+  return value;
 }
 
 function addDays(base: Date, days: number) {
@@ -256,6 +266,58 @@ dbTest("getPublicBookingCatalog can exclude the managed booking from booked inte
     await prisma.client.deleteMany({ where: { id: client.id } });
     await prisma.service.deleteMany({ where: { id: service.id } });
     await prisma.serviceCategory.deleteMany({ where: { id: category.id } });
+  }
+});
+
+dbTest("catalog odděluje booking-window kandidáty od full-day optimization dostupnosti přes více pražských dnů", async () => {
+  const { prisma, getBookingAvailabilityCatalog } = await loadModules();
+  const firstDate = "2027-01-15";
+  const secondDate = "2027-01-16";
+  const intervals = [
+    { date: firstDate, start: "06:00", end: "09:00" },
+    { date: firstDate, start: "09:30", end: "14:00" },
+    { date: secondDate, start: "06:00", end: "09:00" },
+    { date: secondDate, start: "09:30", end: "14:00" },
+  ];
+  const createdSlots = await prisma.availabilitySlot.createManyAndReturn({
+    data: intervals.map((interval) => ({
+      startsAt: at(interval.date, interval.start),
+      endsAt: at(interval.date, interval.end),
+      status: AvailabilitySlotStatus.PUBLISHED,
+      publishedAt: new Date(),
+    })),
+    select: { id: true, startsAt: true, endsAt: true },
+  });
+
+  try {
+    const catalog = await getBookingAvailabilityCatalog({
+      includeServices: false,
+      bookingWindowStart: at(firstDate, "09:11"),
+      bookingWindowEnd: at(secondDate, "10:31"),
+      availabilitySlotStatus: AvailabilitySlotStatus.PUBLISHED,
+      serviceWhere: {
+        isActive: true,
+        isPubliclyBookable: true,
+        category: { is: { isActive: true } },
+      },
+    });
+    const catalogSlotIds = new Set(catalog.slots.flatMap((slot) => [
+      slot.id,
+      ...(slot.segments?.map((segment) => segment.id) ?? []),
+    ]));
+    const optimizationIntervals = new Set(
+      catalog.scheduleOptimization.publishedAvailability.map((interval) => `${interval.startsAt}/${interval.endsAt}`),
+    );
+
+    assert.equal(catalogSlotIds.has(createdSlots[0]?.id ?? ""), false);
+    assert.equal(catalogSlotIds.has(createdSlots[1]?.id ?? ""), true);
+    assert.equal(catalogSlotIds.has(createdSlots[2]?.id ?? ""), true);
+    assert.equal(catalogSlotIds.has(createdSlots[3]?.id ?? ""), true);
+    for (const slot of createdSlots) {
+      assert.equal(optimizationIntervals.has(`${slot.startsAt.toISOString()}/${slot.endsAt.toISOString()}`), true);
+    }
+  } finally {
+    await prisma.availabilitySlot.deleteMany({ where: { id: { in: createdSlots.map((slot) => slot.id) } } });
   }
 });
 

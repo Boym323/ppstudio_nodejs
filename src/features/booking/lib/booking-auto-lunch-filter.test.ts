@@ -6,6 +6,7 @@ import {
   filterTimeOptionsForAutoLunch,
   type TimeSlotOption,
 } from "./booking-time-slots";
+import { shouldApplyAutoLunch } from "./booking-schedule-optimization";
 
 const localDate = "2026-07-15";
 
@@ -30,6 +31,7 @@ function option(start: string, serviceDurationMinutes: number): TimeSlotOption {
 function context(input?: {
   availabilityStart?: string;
   availabilityEnd?: string;
+  availability?: Array<{ start: string; end: string }>;
   globalAutoLunchEnabled?: boolean;
   dayLunchMode?: "AUTO" | "OFF";
   bookedIntervals?: Array<{ start: string; end: string }>;
@@ -37,7 +39,10 @@ function context(input?: {
   return {
     globalAutoLunchEnabled: input?.globalAutoLunchEnabled ?? true,
     dayLunchModes: input?.dayLunchMode ? { [localDate]: input.dayLunchMode } : {},
-    publishedAvailability: [{
+    publishedAvailability: input?.availability?.map((interval) => ({
+      startsAt: iso(interval.start),
+      endsAt: iso(interval.end),
+    })) ?? [{
       startsAt: iso(input?.availabilityStart ?? "09:00"),
       endsAt: iso(input?.availabilityEnd ?? "17:00"),
     }],
@@ -88,6 +93,103 @@ test("cleanup odstraňující poslední možnost oběda není selectable", () =>
 test("krátká směna lunch constraint nepoužije", () => {
   const candidate = option("11:00", 165);
   assert.deepEqual(filter(candidate, context({ availabilityEnd: "13:00" })), [candidate]);
+});
+
+test("full-day context započítá minulou část směny a shoduje se s denní aktivací serverové logiky", () => {
+  const candidate = option("11:00", 165);
+  const availability = [
+    { start: "06:00", end: "09:00" },
+    { start: "09:30", end: "14:00" },
+  ];
+  const scheduleOptimization = context({ availability });
+  const dayAvailability = scheduleOptimization.publishedAvailability.map((interval) => ({
+    startsAt: new Date(interval.startsAt).getTime(),
+    endsAt: new Date(interval.endsAt).getTime(),
+  }));
+
+  assert.equal(shouldApplyAutoLunch({
+    localDate,
+    availability: dayAvailability,
+    globalAutoLunchEnabled: true,
+    dayLunchMode: "AUTO",
+  }), true);
+  assert.deepEqual(filter(candidate, context({ availabilityStart: "09:30", availabilityEnd: "14:00" })), [candidate]);
+  assert.deepEqual(filter(candidate, scheduleOptimization), []);
+});
+
+test("full-day context odfiltruje termín blokující poslední oběd", () => {
+  const candidate = option("11:00", 165);
+  const windowedContext = context({ availabilityStart: "09:30", availabilityEnd: "14:00" });
+  const fullDayContext = context({
+    availability: [
+      { start: "06:00", end: "09:00" },
+      { start: "09:30", end: "14:00" },
+    ],
+  });
+
+  assert.deepEqual(filter(candidate, windowedContext), [candidate]);
+  assert.deepEqual(filter(candidate, fullDayContext), []);
+});
+
+test("full-day context krátkého dne nezačne lunch constraint aplikovat", () => {
+  const candidate = option("11:00", 90);
+  const scheduleOptimization = context({
+    availability: [
+      { start: "06:00", end: "09:00" },
+      { start: "09:30", end: "12:30" },
+    ],
+  });
+
+  assert.equal(shouldApplyAutoLunch({
+    localDate,
+    availability: scheduleOptimization.publishedAvailability.map((interval) => ({
+      startsAt: new Date(interval.startsAt).getTime(),
+      endsAt: new Date(interval.endsAt).getTime(),
+    })),
+    globalAutoLunchEnabled: true,
+    dayLunchMode: "AUTO",
+  }), false);
+  assert.deepEqual(filter(candidate, scheduleOptimization), [candidate]);
+});
+
+test("full-day context se mezi pražskými dny nemíchá", () => {
+  const secondLocalDate = "2026-07-16";
+  const secondIso = (time: string) => {
+    const value = resolvePragueLocalDateTime(secondLocalDate, time);
+    assert.ok(value);
+    return value.toISOString();
+  };
+  const firstCandidate = option("11:00", 165);
+  const secondStartsAt = secondIso("10:00");
+  const secondCandidate: TimeSlotOption = {
+    key: secondStartsAt,
+    slotId: "slot-2",
+    startsAt: secondStartsAt,
+    endsAt: secondIso("11:00"),
+    publicNote: null,
+    isDisabled: false,
+  };
+  const scheduleOptimization = {
+    globalAutoLunchEnabled: true,
+    dayLunchModes: {},
+    publishedAvailability: [
+      { startsAt: iso("06:00"), endsAt: iso("09:00") },
+      { startsAt: iso("09:30"), endsAt: iso("14:00") },
+      { startsAt: secondIso("06:00"), endsAt: secondIso("09:00") },
+      { startsAt: secondIso("09:30"), endsAt: secondIso("12:30") },
+    ],
+    bookedIntervals: [],
+  } satisfies Parameters<typeof filterTimeOptionsForAutoLunch>[1]["scheduleOptimization"];
+
+  assert.deepEqual(
+    filterTimeOptionsForAutoLunch([firstCandidate, secondCandidate], {
+      serviceDurationMinutes: 165,
+      cleanupBlockMinutes: 0,
+      capacity: 1,
+      scheduleOptimization,
+    }),
+    [secondCandidate],
+  );
 });
 
 test("rezervace v archivovaných slotech aktivují ochranu oběda ve zbývající publikované dostupnosti", () => {

@@ -11,7 +11,11 @@ import {
   roundUpToQuarterHour,
 } from "./booking-cleanup";
 import { loadAutoLunchPolicySnapshot } from "./booking-auto-lunch-policy";
-import { getPragueLocalDate } from "./booking-local-time";
+import {
+  getNextCalendarDate,
+  getPragueLocalDate,
+  resolvePragueLocalDateTime,
+} from "./booking-local-time";
 import {
   buildMergedAvailabilityCatalogSlots,
   type BookingAvailabilityCatalogSlot,
@@ -70,8 +74,15 @@ export async function getBookingAvailabilityCatalog({
   const bookingConflictWindowEnd = new Date(
     bookingWindowEnd.getTime() + MAX_SERVICE_CLEANUP_MINUTES * 60 * 1000,
   );
+  const optimizationStartLocalDate = getPragueLocalDate(bookingWindowStart);
+  const optimizationEndLocalDate = getPragueLocalDate(bookingWindowEnd);
+  const optimizationRangeStart = resolvePragueLocalDateTime(optimizationStartLocalDate, "00:00");
+  const optimizationRangeEndLocalDate = getNextCalendarDate(optimizationEndLocalDate);
+  const optimizationRangeEnd = optimizationRangeEndLocalDate
+    ? resolvePragueLocalDateTime(optimizationRangeEndLocalDate, "00:00")
+    : null;
 
-  const [services, slots, bookings, cleanupAggregate] = await Promise.all([
+  const [services, slots, scheduleOptimizationSlots, bookings, cleanupAggregate] = await Promise.all([
     includeServices
       ? prisma.service.findMany({
           where: serviceWhere,
@@ -106,6 +117,17 @@ export async function getBookingAvailabilityCatalog({
         allowedServices: { select: { serviceId: true } },
       },
     }),
+    optimizationRangeStart && optimizationRangeEnd
+      ? prisma.availabilitySlot.findMany({
+          where: {
+            status: AvailabilitySlotStatus.PUBLISHED,
+            startsAt: { lt: optimizationRangeEnd },
+            endsAt: { gt: optimizationRangeStart },
+          },
+          orderBy: [{ startsAt: "asc" }],
+          select: { startsAt: true, endsAt: true },
+        })
+      : Promise.resolve([]),
     prisma.booking.findMany({
       where: {
         id: excludeBookingId ? { not: excludeBookingId } : undefined,
@@ -130,7 +152,7 @@ export async function getBookingAvailabilityCatalog({
   }));
   const autoLunchPolicy = await loadAutoLunchPolicySnapshot(
     prisma,
-    slots.map((slot) => getPragueLocalDate(slot.startsAt)),
+    scheduleOptimizationSlots.map((slot) => getPragueLocalDate(slot.startsAt)),
   );
 
   return {
@@ -166,7 +188,7 @@ export async function getBookingAvailabilityCatalog({
     })),
     scheduleOptimization: {
       ...autoLunchPolicy,
-      publishedAvailability: slots.map((slot) => ({
+      publishedAvailability: scheduleOptimizationSlots.map((slot) => ({
         startsAt: slot.startsAt.toISOString(),
         endsAt: slot.endsAt.toISOString(),
       })),
