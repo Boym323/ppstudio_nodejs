@@ -456,9 +456,8 @@ describe("public booking intended voucher", () => {
       });
       const startsAt = await findIsolatedSlotStart(seed, 75, 14);
       const staleSlot = await createPublishedSlot(seed, startsAt, 75);
-      const replacementSlot = await createPublishedSlot(seed, startsAt, 75);
-
       await prisma.availabilitySlot.delete({ where: { id: staleSlot.id } });
+      const replacementSlot = await createPublishedSlot(seed, startsAt, 75);
 
       const result = await createPublicBooking(buildBookingInput(seed, staleSlot));
       seed.createdBookingIds.push(result.bookingId);
@@ -498,8 +497,8 @@ describe("public booking intended voucher", () => {
       });
       const startsAt = await findIsolatedSlotStart(seed, 75, 14);
       const staleSlot = await createPublishedSlot(seed, startsAt, 75);
-      const replacementSlot = await createPublishedSlot(seed, startsAt, 60);
       await prisma.availabilitySlot.delete({ where: { id: staleSlot.id } });
+      const replacementSlot = await createPublishedSlot(seed, startsAt, 60);
 
       const result = await createPublicBooking(buildBookingInput(seed, staleSlot));
       seed.createdBookingIds.push(result.bookingId);
