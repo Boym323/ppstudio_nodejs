@@ -1121,7 +1121,7 @@ test.describe("rezervační toky", () => {
       new RegExp(`/rezervace\\?service=${fixture.serviceSlug}&source=service_detail$`),
     );
     await expect(page.locator('input[name="serviceId"]')).toHaveValue(service.id);
-    await expect(page.getByText(fixture.serviceName).first()).toBeVisible();
+    await expect(page.locator("main").getByText(fixture.serviceName).first()).toBeVisible();
 
     const firstSlotButton = page.getByRole("button", { name: /^Vybrat termín / }).first();
     await expect(firstSlotButton).toBeVisible();
