@@ -19,7 +19,8 @@ test("denní AUTO/OFF používá oprávnění volných termínů pro OWNER i SAL
   assert.match(source, /getCurrentPlannerDbUser\(area: AdminArea\)[\s\S]*requireAdminSectionAccess\(area, "volne-terminy"\)/);
   assert.match(action, /getCurrentPlannerDbUser\(parsed\.data\.area\)/);
   assert.doesNotMatch(action, /getCurrentOwnerDbUser/);
-  assert.match(action, /actorRole: actor\.role, adminArea: parsed\.data\.area/);
+  assert.match(action, /persistAutoLunchDayMode\(tx, \{[\s\S]*actor,/);
+  assert.match(source, /actorRole: input\.actor\.role, adminArea: input\.area/);
 });
 
 test("globální autoLunchEnabled zůstává v OWNER nastavení", async () => {
@@ -37,8 +38,8 @@ test("AUTO a OFF porovnávají a zapisují override atomicky v serializovatelné
     source.indexOf("export async function updateEmailSettingsAction"),
   );
 
-  assert.match(action, /if \(\(parsed\.data\.mode === "OFF"\) === Boolean\(previous\)\) \{[\s\S]*return \{ ok: true, mode: parsed\.data\.mode \}/);
   assert.match(action, /runSerializableTransaction\(\(tx\) => persistAutoLunchDayMode\(tx, \{/);
+  assert.match(source, /if \(\(input\.mode === "OFF"\) === Boolean\(previous\)\) \{[\s\S]*return false/);
   assert.match(source, /export async function persistAutoLunchDayMode[\s\S]*tx\.autoLunchDayOverride\.findUnique/);
   assert.match(source, /persistAutoLunchDayMode[\s\S]*autoLunchDayOverride\.upsert\(/);
   assert.match(source, /persistAutoLunchDayMode[\s\S]*tx\.autoLunchDayOverride\.delete\(\{ where: \{ dateKey: input\.dateKey \} \}\)/);
