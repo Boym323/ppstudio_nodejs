@@ -8,6 +8,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Odeslání pozvánky novému administračnímu uživateli má nyní dostatečný kontrast textu tlačítka i v mobilním dialogu.
 - Volné termíny nyní atomicky ukládají denní režim automatického oběda a bezpečně zpracují neplatný nebo nekanonický týden planneru; souběžná úprava ani PostgreSQL konflikt překryvu už neskončí falešným úspěchem či obecným incidentem.
 - Administrace nyní serverově odmítne označení rezervace jako no-show před uplynutím 15 minut od jejího začátku, takže předčasná změna nemůže uvolnit termín v dostupnosti.
 - Planner dostupnosti nyní při úpravě dne zachová identitu všech nezměněných běžných intervalů; přegenerují se pouze sloty, které se změnou skutečně dotkly.
