@@ -44,8 +44,55 @@ function intervalSnapshot(intervals: TimeRange[]) {
   return intervals.map((interval) => ({ startsAt: interval.startsAt.toISOString(), endsAt: interval.endsAt.toISOString() }));
 }
 
-async function writeAvailabilityAudit(tx: Prisma.TransactionClient, dateKey: string, state: Awaited<ReturnType<typeof getEditableDayState>>, nextIntervals: TimeRange[], audit: AuditContext) {
-  const removed = state.editableSlots.map((slot) => ({ ...slotSnapshot(slot), disposition: slot.bookings.length ? "archived" : "deleted" }));
+type EditableSlot = Awaited<ReturnType<typeof getEditableDayState>>["editableSlots"][number];
+
+type PlannerSlotDiff = {
+  preservedSlots: EditableSlot[];
+  removedSlots: EditableSlot[];
+  createdIntervals: TimeRange[];
+};
+
+function hasSameAllowedServices(slot: EditableSlot, serviceIds: string[]) {
+  const currentServiceIds = slot.allowedServices.map((service) => service.serviceId).sort();
+  const expectedServiceIds = [...serviceIds].sort();
+
+  return currentServiceIds.length === expectedServiceIds.length && currentServiceIds.every((serviceId, index) => serviceId === expectedServiceIds[index]);
+}
+
+function isIdenticalEditableSlot(slot: EditableSlot, interval: TimeRange) {
+  return (
+    slot.startsAt.getTime() === interval.startsAt.getTime() &&
+    slot.endsAt.getTime() === interval.endsAt.getTime() &&
+    slot.status === AvailabilitySlotStatus.PUBLISHED &&
+    slot.capacity === EDITABLE_SLOT_CAPACITY &&
+    slot.serviceRestrictionMode === AvailabilitySlotServiceRestrictionMode.ANY &&
+    slot.publicNote === null &&
+    slot.internalNote === null &&
+    hasSameAllowedServices(slot, [])
+  );
+}
+
+function diffEditableSlots(editableSlots: EditableSlot[], nextIntervals: TimeRange[]): PlannerSlotDiff {
+  const unmatchedSlots = new Set(editableSlots);
+  const preservedSlots: EditableSlot[] = [];
+  const createdIntervals: TimeRange[] = [];
+
+  for (const interval of nextIntervals) {
+    const identicalSlot = [...unmatchedSlots].find((slot) => isIdenticalEditableSlot(slot, interval));
+
+    if (identicalSlot) {
+      unmatchedSlots.delete(identicalSlot);
+      preservedSlots.push(identicalSlot);
+    } else {
+      createdIntervals.push(interval);
+    }
+  }
+
+  return { preservedSlots, removedSlots: [...unmatchedSlots], createdIntervals };
+}
+
+async function writeAvailabilityAudit(tx: Prisma.TransactionClient, dateKey: string, state: Awaited<ReturnType<typeof getEditableDayState>>, nextIntervals: TimeRange[], diff: PlannerSlotDiff, audit: AuditContext) {
+  const removed = diff.removedSlots.map((slot) => ({ ...slotSnapshot(slot), disposition: slot.bookings.length ? "archived" : "deleted" }));
   await tx.availabilityAuditEvent.create({ data: {
     actorUserId: audit.actorUserId,
     actorRole: audit.actorRole,
@@ -58,7 +105,7 @@ async function writeAvailabilityAudit(tx: Prisma.TransactionClient, dateKey: str
     revertedOperationId: audit.revertedOperationId ?? null,
     before: { intervals: intervalSnapshot(state.editableIntervals), slots: state.editableSlots.map(slotSnapshot) },
     after: { intervals: intervalSnapshot(nextIntervals) },
-    createdSlots: intervalSnapshot(nextIntervals),
+    createdSlots: intervalSnapshot(diff.createdIntervals),
     archivedOrRemovedSlots: removed,
   } });
 }
@@ -238,7 +285,7 @@ async function getEditableDayState(tx: Prisma.TransactionClient, dateKey: string
 
 async function removeEditableSlots(
   tx: Prisma.TransactionClient,
-  editableSlots: Awaited<ReturnType<typeof getEditableDayState>>["editableSlots"],
+  editableSlots: EditableSlot[],
 ) {
   const deletableSlotIds = editableSlots
     .filter((slot) => slot.bookings.length === 0)
@@ -360,13 +407,15 @@ export async function applyAvailabilitySelection(
       throw new PlannerMutationError("Změna by vytvořila kolizi s uzamčeným intervalem.");
     }
 
-    if (state.editableSlots.length > 0) {
-      await removeEditableSlots(tx, state.editableSlots);
+    const diff = diffEditableSlots(state.editableSlots, nextIntervals);
+
+    if (diff.removedSlots.length > 0) {
+      await removeEditableSlots(tx, diff.removedSlots);
     }
 
-    if (nextIntervals.length > 0) {
+    if (diff.createdIntervals.length > 0) {
       await tx.availabilitySlot.createMany({
-        data: nextIntervals.map((interval) => ({
+        data: diff.createdIntervals.map((interval) => ({
           startsAt: interval.startsAt,
           endsAt: interval.endsAt,
           capacity: EDITABLE_SLOT_CAPACITY,
@@ -377,7 +426,7 @@ export async function applyAvailabilitySelection(
         })),
       });
     }
-    await writeAvailabilityAudit(tx, input.dateKey, state, nextIntervals, { actorUserId: input.actorUserId, actorRole: input.actorRole, adminArea: area, operationId, revertedOperationId: input.revertedOperationId, operation: input.revertedOperationId ? AvailabilityAuditOperation.UNDO : input.mode === "add" ? AvailabilityAuditOperation.ADD : AvailabilityAuditOperation.REMOVE, source: input.revertedOperationId ? "planner-undo-v1" : "planner-selection-v1" });
+    await writeAvailabilityAudit(tx, input.dateKey, state, nextIntervals, diff, { actorUserId: input.actorUserId, actorRole: input.actorRole, adminArea: area, operationId, revertedOperationId: input.revertedOperationId, operation: input.revertedOperationId ? AvailabilityAuditOperation.UNDO : input.mode === "add" ? AvailabilityAuditOperation.ADD : AvailabilityAuditOperation.REMOVE, source: input.revertedOperationId ? "planner-undo-v1" : "planner-selection-v1" });
       return null;
     });
 

@@ -134,6 +134,132 @@ dbTest("applyAvailabilitySelection vrátí stejný výsledek při retry se stejn
   }
 });
 
+dbTest("ADD mimo běžné sloty zachová jejich ID", async () => {
+  const seed = await createSeed();
+  const { prisma, applyAvailabilitySelection } = await loadModules();
+
+  try {
+    const slots = await replaceWithPlainSlots(seed, [[4, 6], [8, 12]]);
+    const originalIds = slots.map((slot) => slot.id);
+
+    await applyAvailabilitySelection("owner", {
+      weekKey: seed.weekKey, dateKey: seed.dateKey, startCell: 16, endCell: 18,
+      mode: "add", operationId: randomUUID(), actorUserId: seed.actorUserId,
+    });
+
+    const currentSlots = await prisma.availabilitySlot.findMany({
+      where: { createdByUserId: seed.actorUserId, status: AvailabilitySlotStatus.PUBLISHED },
+      orderBy: { startsAt: "asc" },
+      select: { id: true, startsAt: true, endsAt: true },
+    });
+    assert.deepEqual(currentSlots.map((slot) => slot.id).filter((id) => originalIds.includes(id)), originalIds);
+    assert.deepEqual(await slotCells(seed, currentSlots), [[4, 6], [8, 12], [16, 18]]);
+  } finally {
+    await cleanupSeed(seed);
+  }
+});
+
+dbTest("ADD navazující přepíše pouze dotčený slot do kanonického intervalu", async () => {
+  const seed = await createSeed();
+  const { prisma, applyAvailabilitySelection } = await loadModules();
+
+  try {
+    await replaceWithPlainSlots(seed, [[4, 6]]);
+    await applyAvailabilitySelection("owner", {
+      weekKey: seed.weekKey, dateKey: seed.dateKey, startCell: 6, endCell: 8,
+      mode: "add", operationId: randomUUID(), actorUserId: seed.actorUserId,
+    });
+    const slots = await prisma.availabilitySlot.findMany({
+      where: { createdByUserId: seed.actorUserId, status: AvailabilitySlotStatus.PUBLISHED },
+      select: { startsAt: true, endsAt: true }, orderBy: { startsAt: "asc" },
+    });
+    assert.deepEqual(await slotCells(seed, slots), [[4, 8]]);
+  } finally {
+    await cleanupSeed(seed);
+  }
+});
+
+dbTest("REMOVE uvnitř a na kraji vytvoří správně zkrácené intervaly", async () => {
+  const seed = await createSeed();
+  const { prisma, applyAvailabilitySelection } = await loadModules();
+
+  try {
+    await replaceWithPlainSlots(seed, [[4, 12]]);
+    await applyAvailabilitySelection("owner", {
+      weekKey: seed.weekKey, dateKey: seed.dateKey, startCell: 7, endCell: 9,
+      mode: "remove", operationId: randomUUID(), actorUserId: seed.actorUserId,
+    });
+    let slots = await prisma.availabilitySlot.findMany({
+      where: { createdByUserId: seed.actorUserId, status: AvailabilitySlotStatus.PUBLISHED },
+      select: { startsAt: true, endsAt: true }, orderBy: { startsAt: "asc" },
+    });
+    assert.deepEqual(await slotCells(seed, slots), [[4, 7], [9, 12]]);
+
+    await applyAvailabilitySelection("owner", {
+      weekKey: seed.weekKey, dateKey: seed.dateKey, startCell: 4, endCell: 5,
+      mode: "remove", operationId: randomUUID(), actorUserId: seed.actorUserId,
+    });
+    slots = await prisma.availabilitySlot.findMany({
+      where: { createdByUserId: seed.actorUserId, status: AvailabilitySlotStatus.PUBLISHED },
+      select: { startsAt: true, endsAt: true }, orderBy: { startsAt: "asc" },
+    });
+    assert.deepEqual(await slotCells(seed, slots), [[5, 7], [9, 12]]);
+  } finally {
+    await cleanupSeed(seed);
+  }
+});
+
+dbTest("protected slot zůstane při nesouvisející změně beze změny", async () => {
+  const seed = await createSeed();
+  const { prisma, applyAvailabilitySelection, getCellRangeBounds } = await loadModules();
+
+  try {
+    await prisma.booking.deleteMany({ where: { id: seed.bookingId } });
+    await prisma.availabilitySlot.deleteMany({ where: { createdByUserId: seed.actorUserId } });
+    const locked = getCellRangeBounds(seed.dateKey, 8, 10);
+    const plain = getCellRangeBounds(seed.dateKey, 4, 6);
+    const protectedSlot = await prisma.availabilitySlot.create({ data: {
+      startsAt: locked.startsAt, endsAt: locked.endsAt, capacity: 1, status: AvailabilitySlotStatus.PUBLISHED,
+      serviceRestrictionMode: AvailabilitySlotServiceRestrictionMode.SELECTED, createdByUserId: seed.actorUserId,
+    }, select: { id: true, startsAt: true, endsAt: true, status: true, serviceRestrictionMode: true } });
+    await prisma.availabilitySlot.create({ data: {
+      startsAt: plain.startsAt, endsAt: plain.endsAt, capacity: 1, status: AvailabilitySlotStatus.PUBLISHED,
+      serviceRestrictionMode: AvailabilitySlotServiceRestrictionMode.ANY, createdByUserId: seed.actorUserId,
+    } });
+
+    await applyAvailabilitySelection("owner", {
+      weekKey: seed.weekKey, dateKey: seed.dateKey, startCell: 12, endCell: 14,
+      mode: "add", operationId: randomUUID(), actorUserId: seed.actorUserId,
+    });
+    assert.deepEqual(await prisma.availabilitySlot.findUniqueOrThrow({ where: { id: protectedSlot.id }, select: {
+      id: true, startsAt: true, endsAt: true, status: true, serviceRestrictionMode: true,
+    } }), protectedSlot);
+  } finally {
+    await cleanupSeed(seed);
+  }
+});
+
+dbTest("kompatibilní souběžné změny neztratí interval ani nevytvoří overlap", async () => {
+  const seed = await createSeed();
+  const { prisma, applyAvailabilitySelection } = await loadModules();
+
+  try {
+    await replaceWithPlainSlots(seed, [[4, 6]]);
+    await Promise.all([
+      applyAvailabilitySelection("owner", { weekKey: seed.weekKey, dateKey: seed.dateKey, startCell: 8, endCell: 10, mode: "add", operationId: randomUUID(), actorUserId: seed.actorUserId }),
+      applyAvailabilitySelection("owner", { weekKey: seed.weekKey, dateKey: seed.dateKey, startCell: 12, endCell: 14, mode: "add", operationId: randomUUID(), actorUserId: seed.actorUserId }),
+    ]);
+    const slots = await prisma.availabilitySlot.findMany({
+      where: { createdByUserId: seed.actorUserId, status: AvailabilitySlotStatus.PUBLISHED },
+      select: { startsAt: true, endsAt: true }, orderBy: { startsAt: "asc" },
+    });
+    assert.deepEqual(await slotCells(seed, slots), [[4, 6], [8, 10], [12, 14]]);
+    assert.ok(slots.every((slot, index) => index === 0 || slots[index - 1].endsAt <= slot.startsAt));
+  } finally {
+    await cleanupSeed(seed);
+  }
+});
+
 dbTest("operationId rozlišuje samostatné změny a odmítne jiný interval nebo režim", async () => {
   const seed = await createSeed();
   const { prisma, applyAvailabilitySelection } = await loadModules();
@@ -418,6 +544,53 @@ async function findIsolatedPlannerDateKey() {
   }
 
   throw new Error("Nepodařilo se najít izolovaný planner den pro integrační test.");
+}
+
+async function replaceWithPlainSlots(seed: SeedContext, cells: Array<[number, number]>) {
+  const { prisma, getCellRangeBounds } = await loadModules();
+
+  await prisma.booking.deleteMany({ where: { id: seed.bookingId } });
+  await prisma.availabilitySlot.deleteMany({ where: { createdByUserId: seed.actorUserId } });
+  await prisma.availabilitySlot.createMany({
+    data: cells.map(([startCell, endCell]) => {
+      const interval = getCellRangeBounds(seed.dateKey, startCell, endCell);
+      return {
+        startsAt: interval.startsAt,
+        endsAt: interval.endsAt,
+        capacity: 1,
+        status: AvailabilitySlotStatus.PUBLISHED,
+        serviceRestrictionMode: AvailabilitySlotServiceRestrictionMode.ANY,
+        publishedAt: new Date(),
+        createdByUserId: seed.actorUserId,
+      };
+    }),
+  });
+
+  return prisma.availabilitySlot.findMany({
+    where: { createdByUserId: seed.actorUserId },
+    select: { id: true, startsAt: true, endsAt: true },
+    orderBy: { startsAt: "asc" },
+  });
+}
+
+async function slotCells(
+  seed: SeedContext,
+  slots: Array<{ startsAt: Date; endsAt: Date }>,
+) {
+  const { getCellRangeBounds } = await loadModules();
+
+  return slots.map((slot) => {
+    for (let startCell = 0; startCell < 48; startCell += 1) {
+      for (let endCell = startCell + 1; endCell <= 48; endCell += 1) {
+        const candidate = getCellRangeBounds(seed.dateKey, startCell, endCell);
+        if (candidate.startsAt.getTime() === slot.startsAt.getTime() && candidate.endsAt.getTime() === slot.endsAt.getTime()) {
+          return [startCell, endCell];
+        }
+      }
+    }
+
+    throw new Error("Slot neleží na očekávaných planner buňkách.");
+  });
 }
 
 async function createSeed(options: SeedOptions = {}): Promise<SeedContext> {

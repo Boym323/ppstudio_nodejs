@@ -468,6 +468,7 @@ describe("public booking intended voucher", () => {
         select: { slotId: true, blockedUntil: true },
       });
       assert.equal(booking.slotId, replacementSlot.id);
+      assert.ok(booking.blockedUntil);
       assert.equal(booking.blockedUntil.toISOString(), new Date(startsAt.getTime() + 75 * 60 * 1000).toISOString());
     });
   });
@@ -507,6 +508,7 @@ describe("public booking intended voucher", () => {
         select: { slotId: true, blockedUntil: true },
       });
       assert.equal(booking.slotId, replacementSlot.id);
+      assert.ok(booking.blockedUntil);
       assert.equal(booking.blockedUntil.toISOString(), new Date(startsAt.getTime() + 75 * 60 * 1000).toISOString());
     });
   });
