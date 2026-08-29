@@ -44,6 +44,7 @@ import {
   isInternallyBlockingSlotStatus,
   resolvePublishedSlotCoverage,
 } from "../booking-slot-availability";
+import { preparePublishedAvailabilityForManualOverride } from "../booking-slot-compaction";
 
 function waitForRetryBackoff(attempt: number) {
   const backoffMs = Math.min(25 * attempt, 100);
@@ -590,6 +591,25 @@ export async function createBookingWithEngine(
             );
           } else {
             manualOverride = true;
+          }
+
+          if (!resolvedSlot) {
+            const manualOverridePreparation = await preparePublishedAvailabilityForManualOverride(
+              tx,
+              [slot, ...overlappingSlots].filter(
+                (candidate): candidate is NonNullable<typeof candidate> => Boolean(candidate),
+              ),
+              requestedStartsAt,
+              requestedBlockedUntil,
+            );
+
+            if (manualOverridePreparation.protectedSlotIds.length > 0) {
+              throw new PublicBookingError(
+                publicBookingErrorCodes.bookingConflict,
+                "Vybraný termín zasahuje do interně blokovaného času.",
+                2,
+              );
+            }
           }
 
           const activeBookingCount = await tx.booking.count({

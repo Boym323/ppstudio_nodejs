@@ -2,7 +2,7 @@ import {
   AvailabilitySlotServiceRestrictionMode,
   AvailabilitySlotStatus,
   BookingStatus,
-  type Prisma,
+  Prisma,
 } from "@/generated/prisma/client";
 
 type MergeableSlotRecord = {
@@ -14,6 +14,8 @@ type MergeableSlotRecord = {
   publicNote: string | null;
   internalNote: string | null;
   serviceRestrictionMode: AvailabilitySlotServiceRestrictionMode;
+  publishedAt: Date | null;
+  cancelledAt: Date | null;
   createdByUserId: string | null;
   allowedServices: Array<{ serviceId: string }>;
   bookings: Array<{ id: string; originalAvailabilityEndsAt: Date | null }>;
@@ -82,6 +84,8 @@ const mergeableEditableSlotSelect = {
   publicNote: true,
   internalNote: true,
   serviceRestrictionMode: true,
+  publishedAt: true,
+  cancelledAt: true,
   createdByUserId: true,
   allowedServices: {
     select: {
@@ -360,6 +364,163 @@ export async function compactAdjacentEditableSlotsForBooking(
   }
 
   return anchorSlot;
+}
+
+type ManualOverrideSlotRecord = Pick<
+  MergeableSlotRecord,
+  | "id"
+  | "startsAt"
+  | "endsAt"
+  | "status"
+  | "capacity"
+  | "publicNote"
+  | "internalNote"
+  | "serviceRestrictionMode"
+  | "publishedAt"
+  | "cancelledAt"
+  | "createdByUserId"
+  | "allowedServices"
+>;
+
+function isPlainEditablePublishedSlot(slot: ManualOverrideSlotRecord) {
+  return (
+    slot.status === AvailabilitySlotStatus.PUBLISHED &&
+    slot.capacity === 1 &&
+    slot.publicNote === null &&
+    slot.internalNote === null &&
+    slot.serviceRestrictionMode === AvailabilitySlotServiceRestrictionMode.ANY &&
+    slot.allowedServices.length === 0
+  );
+}
+
+/**
+ * Removes a manual-override interval from overlapping ordinary availability.
+ * The original rows stay archived as lifecycle history so cancellation can
+ * restore the exact pre-override interval through the existing compaction
+ * path.
+ */
+export async function preparePublishedAvailabilityForManualOverride(
+  tx: Prisma.TransactionClient,
+  slots: ManualOverrideSlotRecord[],
+  requestedStartsAt: Date,
+  requestedEndsAt: Date,
+  ignoredBookingId?: string,
+) {
+  const candidateSlots = slots
+    .filter((slot, index, collection) => collection.findIndex((candidate) => candidate.id === slot.id) === index)
+    .filter(
+      (slot) =>
+        slot.status === AvailabilitySlotStatus.PUBLISHED &&
+        slot.startsAt < requestedEndsAt &&
+        slot.endsAt > requestedStartsAt,
+    )
+    .sort((left, right) => left.startsAt.getTime() - right.startsAt.getTime());
+
+  if (candidateSlots.length === 0) {
+    return {
+      archivedSlotIds: [] as string[],
+      protectedSlotIds: [] as string[],
+    };
+  }
+
+  // The callers already lock the whole requested availability range. Keep a
+  // local lock here as well so this helper remains safe when reused directly.
+  await tx.$queryRaw<Array<{ id: string }>>(Prisma.sql`
+    SELECT "id"
+    FROM "AvailabilitySlot"
+    WHERE "id" IN (${Prisma.join(candidateSlots.map((slot) => slot.id))})
+    FOR UPDATE
+  `);
+
+  const slotsWithOtherActiveBookings = await tx.availabilitySlot.findMany({
+    where: {
+      id: {
+        in: candidateSlots.map((slot) => slot.id),
+      },
+      bookings: {
+        some: {
+          id: ignoredBookingId ? { not: ignoredBookingId } : undefined,
+          status: {
+            not: BookingStatus.CANCELLED,
+          },
+        },
+      },
+    },
+    select: {
+      id: true,
+    },
+  });
+  const slotsWithOtherActiveBookingIds = new Set(
+    slotsWithOtherActiveBookings.map((slot) => slot.id),
+  );
+
+  const protectedSlotIds = candidateSlots
+    .filter(
+      (slot) =>
+        !isPlainEditablePublishedSlot(slot) ||
+        slotsWithOtherActiveBookingIds.has(slot.id),
+    )
+    .map((slot) => slot.id);
+
+  if (protectedSlotIds.length > 0) {
+    return {
+      archivedSlotIds: [] as string[],
+      protectedSlotIds,
+    };
+  }
+
+  for (const slot of candidateSlots) {
+    const leftInterval = slot.startsAt < requestedStartsAt
+      ? { startsAt: slot.startsAt, endsAt: requestedStartsAt }
+      : null;
+    const rightInterval = requestedEndsAt < slot.endsAt
+      ? { startsAt: requestedEndsAt, endsAt: slot.endsAt }
+      : null;
+
+    // Move the original row out of the exclusion constraint before writing
+    // either edge fragment or the new DRAFT override.
+    await tx.availabilitySlot.update({
+      where: {
+        id: slot.id,
+      },
+      data: {
+        status: AvailabilitySlotStatus.ARCHIVED,
+      },
+    });
+
+    for (const interval of [leftInterval, rightInterval]) {
+      if (!interval || interval.startsAt >= interval.endsAt) {
+        continue;
+      }
+
+      await tx.availabilitySlot.create({
+        data: {
+          startsAt: interval.startsAt,
+          endsAt: interval.endsAt,
+          capacity: slot.capacity,
+          status: AvailabilitySlotStatus.PUBLISHED,
+          publicNote: slot.publicNote,
+          internalNote: slot.internalNote,
+          serviceRestrictionMode: slot.serviceRestrictionMode,
+          publishedAt: slot.publishedAt,
+          cancelledAt: slot.cancelledAt,
+          createdByUserId: slot.createdByUserId,
+          allowedServices: slot.allowedServices.length > 0
+            ? {
+                createMany: {
+                  data: slot.allowedServices.map(({ serviceId }) => ({ serviceId })),
+                },
+              }
+            : undefined,
+        },
+      });
+    }
+  }
+
+  return {
+    archivedSlotIds: candidateSlots.map((slot) => slot.id),
+    protectedSlotIds: [] as string[],
+  };
 }
 
 export async function restoreArchivedSlotAroundManualOverride(

@@ -28,6 +28,7 @@ import { canPreserveAutoLunchForBooking } from "./booking-auto-lunch-enforcement
 import {
   archiveOrphanedManualOverrideSlotAfterCancellation,
   compactAdjacentEditableSlotsForBooking,
+  preparePublishedAvailabilityForManualOverride,
   restoreArchivedSlotAroundManualOverride,
 } from "./booking-slot-compaction";
 
@@ -749,6 +750,7 @@ async function rescheduleBookingInTransaction(
   let resolvedSlot: BookingSlotRecord | null = publishedCoverage?.anchor ?? null;
   let resolvedCoverageSlots = publishedCoverage?.coverage ?? [];
   let manualOverride = false;
+  let preparedManualOverrideSlotIds: string[] = [];
 
   if (resolvedSlot) {
     const coveredUntil = resolvedCoverageSlots.length > 0
@@ -854,6 +856,25 @@ async function rescheduleBookingInTransaction(
   }
 
   if (!resolvedSlot) {
+    const manualOverridePreparation = await preparePublishedAvailabilityForManualOverride(
+      tx,
+      [requestedSlot, booking.slot, ...overlappingSlots].filter(
+        (slot): slot is BookingSlotRecord => Boolean(slot),
+      ),
+      requestedStartsAt,
+      requestedBlockedUntil,
+      booking.id,
+    );
+
+    if (manualOverridePreparation.protectedSlotIds.length > 0) {
+      throw new BookingRescheduleError(
+        bookingRescheduleErrorCodes.conflict,
+        "Nový termín zasahuje do interně blokovaného času.",
+        "slot",
+      );
+    }
+
+    preparedManualOverrideSlotIds = manualOverridePreparation.archivedSlotIds;
     resolvedSlot = await tx.availabilitySlot.create({
       data: {
         startsAt: requestedStartsAt,
@@ -934,7 +955,9 @@ async function rescheduleBookingInTransaction(
     },
   });
 
-  if (booking.slot.status === AvailabilitySlotStatus.ARCHIVED) {
+  if (preparedManualOverrideSlotIds.includes(booking.slotId)) {
+    await compactAdjacentEditableSlotsForBooking(tx, booking.slotId);
+  } else if (booking.slot.status === AvailabilitySlotStatus.ARCHIVED) {
     if (manualOverride && resolvedSlot.status === AvailabilitySlotStatus.DRAFT) {
       await restoreArchivedSlotAroundManualOverride(tx, booking.slotId, resolvedSlot.id);
     } else {
