@@ -1,5 +1,6 @@
 import { createHash, randomBytes } from "node:crypto";
 
+import { BookingActionTokenType, type Prisma } from "@/generated/prisma/client";
 import { env } from "@/config/env";
 
 const BOOKING_ACTION_TOKEN_TTL_DAYS = 30;
@@ -45,4 +46,43 @@ export function buildBookingManagementUrl(rawToken: string) {
 
 export function buildBookingEmailActionUrl(intent: BookingEmailActionIntent, rawToken: string) {
   return `${env.NEXT_PUBLIC_APP_URL}/rezervace/akce/${intent}/${rawToken}`;
+}
+
+export async function issueBookingClientActionTokens(
+  tx: Prisma.TransactionClient,
+  input: {
+    bookingId: string;
+    scheduledStartsAt: Date;
+    now: Date;
+  },
+) {
+  const manageToken = buildBookingActionToken();
+  const cancellationToken = buildBookingActionToken();
+  const expiresAt = buildBookingSelfServiceActionExpiry(input.scheduledStartsAt);
+  const manageActionToken = await tx.bookingActionToken.create({
+    data: {
+      bookingId: input.bookingId,
+      type: BookingActionTokenType.RESCHEDULE,
+      tokenHash: manageToken.tokenHash,
+      expiresAt,
+      lastSentAt: input.now,
+    },
+    select: { id: true },
+  });
+
+  await tx.bookingActionToken.create({
+    data: {
+      bookingId: input.bookingId,
+      type: BookingActionTokenType.CANCEL,
+      tokenHash: cancellationToken.tokenHash,
+      expiresAt,
+      lastSentAt: input.now,
+    },
+  });
+
+  return {
+    actionTokenId: manageActionToken.id,
+    manageReservationUrl: buildBookingManagementUrl(manageToken.rawToken),
+    cancellationUrl: buildBookingCancellationUrl(cancellationToken.rawToken),
+  };
 }

@@ -11,11 +11,9 @@ import {
 } from "@/features/admin/actions/email-log-action-helpers";
 import {
   buildBookingActionToken,
-  buildBookingCancellationUrl,
   buildBookingEmailActionExpiry,
   buildBookingEmailActionUrl,
-  buildBookingManagementUrl,
-  buildBookingSelfServiceActionExpiry,
+  issueBookingClientActionTokens,
 } from "@/features/booking/lib/booking-action-tokens";
 import { prisma } from "@/lib/prisma";
 
@@ -73,7 +71,7 @@ async function issueResendBookingActionTokens(
     ? [BookingActionTokenType.RESCHEDULE, BookingActionTokenType.CANCEL]
     : [BookingActionTokenType.APPROVE, BookingActionTokenType.REJECT];
 
-  let clientSelfServiceExpiry: Date | null = null;
+  let clientScheduledStartsAt: Date | null = null;
   if (kind === "client") {
     const booking = await tx.booking.findUnique({
       where: { id: emailLog.bookingId },
@@ -84,7 +82,7 @@ async function issueResendBookingActionTokens(
       return null;
     }
 
-    clientSelfServiceExpiry = buildBookingSelfServiceActionExpiry(booking.scheduledStartsAt);
+    clientScheduledStartsAt = booking.scheduledStartsAt;
   }
 
   // PENDING zdroj může stále potřebovat své payload pro automatický retry.
@@ -102,20 +100,31 @@ async function issueResendBookingActionTokens(
     });
   }
 
+  if (kind === "client") {
+    if (clientScheduledStartsAt === null) {
+      return null;
+    }
+
+    const scheduledStartsAt = clientScheduledStartsAt;
+    const clientTokens = await issueBookingClientActionTokens(tx, {
+      bookingId: emailLog.bookingId,
+      scheduledStartsAt,
+      now,
+    });
+
+    return {
+      actionTokenId: clientTokens.actionTokenId,
+      payload: {
+        manageReservationUrl: clientTokens.manageReservationUrl,
+        cancellationUrl: clientTokens.cancellationUrl,
+      },
+    };
+  }
+
   const firstToken = buildBookingActionToken();
   const secondToken = buildBookingActionToken();
 
-  if (kind === "client" && clientSelfServiceExpiry === null) {
-    return null;
-  }
-
-  const expiresAt = kind === "client"
-    ? clientSelfServiceExpiry
-    : buildBookingEmailActionExpiry(now);
-
-  if (!expiresAt) {
-    return null;
-  }
+  const expiresAt = buildBookingEmailActionExpiry(now);
 
   const firstActionToken = await tx.bookingActionToken.create({
     data: {
@@ -138,15 +147,10 @@ async function issueResendBookingActionTokens(
     },
   });
 
-  const payload: ResendTokenPayload = kind === "client"
-    ? {
-        manageReservationUrl: buildBookingManagementUrl(firstToken.rawToken),
-        cancellationUrl: buildBookingCancellationUrl(secondToken.rawToken),
-      }
-    : {
-        approveUrl: buildBookingEmailActionUrl("approve", firstToken.rawToken),
-        rejectUrl: buildBookingEmailActionUrl("reject", secondToken.rawToken),
-      };
+  const payload: ResendTokenPayload = {
+    approveUrl: buildBookingEmailActionUrl("approve", firstToken.rawToken),
+    rejectUrl: buildBookingEmailActionUrl("reject", secondToken.rawToken),
+  };
 
   return {
     actionTokenId: firstActionToken.id,

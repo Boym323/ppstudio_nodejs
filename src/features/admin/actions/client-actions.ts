@@ -1,6 +1,12 @@
 "use server";
 
-import { BookingActorType, BookingStatus, EmailAudience, EmailLogStatus, Prisma } from "@/generated/prisma/client";
+import {
+  BookingActorType,
+  BookingStatus,
+  EmailAudience,
+  EmailLogStatus,
+  Prisma,
+} from "@/generated/prisma/client";
 import { revalidatePath } from "next/cache";
 
 import { type AdminArea } from "@/config/navigation";
@@ -13,8 +19,13 @@ import {
 import {
   CLIENT_PHONE_FORMAT_MESSAGE,
   isValidClientPhoneInput,
+  normalizeClientEmail,
   normalizeClientPhone,
 } from "@/features/booking/lib/booking-public";
+import {
+  hasClientEmailChanged,
+  rotateClientBookingTokensForEmailChange,
+} from "@/features/admin/lib/client-contact-token-rotation";
 import { requireAdminArea } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 
@@ -139,7 +150,7 @@ export async function updateClientContactAction(
     };
   }
 
-  const normalizedEmail = parsed.data.email ? parsed.data.email.toLocaleLowerCase("cs-CZ") : null;
+  const normalizedEmail = parsed.data.email ? normalizeClientEmail(parsed.data.email) : null;
   const normalizedPhone = parsed.data.phone ? normalizeClientPhone(parsed.data.phone) : null;
 
   const client = await prisma.client.findUnique({
@@ -185,11 +196,25 @@ export async function updateClientContactAction(
     });
 
     const touchedBookingIds = await prisma.$transaction(async (tx) => {
+      const currentClient = await tx.client.findUnique({
+        where: { id: client.id },
+        select: { id: true, email: true },
+      });
+
+      if (!currentClient) {
+        throw new Error("Client disappeared during contact update.");
+      }
+
+      const emailChanged = hasClientEmailChanged(currentClient.email, normalizedEmail);
+      const now = new Date();
       const activeBookings = await tx.booking.findMany({
         where: {
           clientId: client.id,
           status: {
             in: [BookingStatus.PENDING, BookingStatus.CONFIRMED],
+          },
+          scheduledStartsAt: {
+            gte: now,
           },
         },
         select: {
@@ -199,13 +224,13 @@ export async function updateClientContactAction(
           clientPhoneSnapshot: true,
         },
       });
+      const activeBookingIds = activeBookings.map((booking) => booking.id);
       const touchedBookings = activeBookings.filter((booking) => {
         const bookingEmail = booking.clientEmailSnapshot.trim();
         const bookingPhone = booking.clientPhoneSnapshot ?? null;
 
         return bookingEmail !== (normalizedEmail ?? "") || bookingPhone !== normalizedPhone;
       });
-      const activeBookingIds = touchedBookings.map((booking) => booking.id);
 
       await tx.client.update({
         where: { id: client.id },
@@ -215,31 +240,16 @@ export async function updateClientContactAction(
         },
       });
 
-      if (activeBookingIds.length > 0) {
+      if (touchedBookings.length > 0) {
         await tx.booking.updateMany({
           where: {
             id: {
-              in: activeBookingIds,
+              in: touchedBookings.map((booking) => booking.id),
             },
           },
           data: {
             clientEmailSnapshot: normalizedEmail ?? "",
             clientPhoneSnapshot: normalizedPhone,
-          },
-        });
-
-        await tx.emailLog.updateMany({
-          where: {
-            clientId: client.id,
-            bookingId: {
-              in: activeBookingIds,
-            },
-            status: EmailLogStatus.PENDING,
-            audience: EmailAudience.CLIENT,
-            processingStartedAt: null,
-          },
-          data: {
-            recipientEmail: normalizedEmail ?? "",
           },
         });
 
@@ -261,7 +271,37 @@ export async function updateClientContactAction(
         });
       }
 
-      return activeBookingIds;
+      const bookingIdsForPendingEmailSync = emailChanged
+        ? activeBookingIds
+        : touchedBookings.map((booking) => booking.id);
+
+      if (bookingIdsForPendingEmailSync.length > 0) {
+        await tx.emailLog.updateMany({
+          where: {
+            clientId: client.id,
+            bookingId: {
+              in: bookingIdsForPendingEmailSync,
+            },
+            status: EmailLogStatus.PENDING,
+            audience: EmailAudience.CLIENT,
+            processingStartedAt: null,
+          },
+          data: {
+            recipientEmail: normalizedEmail ?? "",
+          },
+        });
+      }
+
+      if (emailChanged && activeBookingIds.length > 0) {
+        await rotateClientBookingTokensForEmailChange(tx, {
+          clientId: client.id,
+          bookingIds: activeBookingIds,
+          newEmail: normalizedEmail,
+          now,
+        });
+      }
+
+      return touchedBookings.map((booking) => booking.id);
     });
 
     revalidateClientPaths(client.id);
