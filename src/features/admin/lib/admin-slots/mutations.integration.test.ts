@@ -594,10 +594,10 @@ async function slotCells(
 }
 
 async function createSeed(options: SeedOptions = {}): Promise<SeedContext> {
-  const { prisma, getCellRangeBounds } = await loadModules();
+  const { prisma, formatDateKey, getCellRangeBounds, resolveWeekStart } = await loadModules();
   const suffix = randomUUID().slice(0, 8);
   const dateKey = await findIsolatedPlannerDateKey();
-  const weekKey = dateKey;
+  const weekKey = formatDateKey(resolveWeekStart(dateKey));
   const before = getCellRangeBounds(dateKey, 4, 6);
   const bookedRange = getCellRangeBounds(dateKey, 6, 8);
   const after = getCellRangeBounds(dateKey, 8, 16);

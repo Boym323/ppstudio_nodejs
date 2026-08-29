@@ -30,7 +30,7 @@ test("globální autoLunchEnabled zůstává v OWNER nastavení", async () => {
   assert.match(source, /async function getActorUserId\(\)[\s\S]*requireAdminSectionAccess\("owner", "nastaveni"\)/);
 });
 
-test("AUTO a OFF zachovávají idempotentní persistenci override", async () => {
+test("AUTO a OFF porovnávají a zapisují override atomicky v serializovatelné transakci", async () => {
   const source = await actionSource();
   const action = source.slice(
     source.indexOf("export async function updateAutoLunchDayModeAction"),
@@ -38,6 +38,9 @@ test("AUTO a OFF zachovávají idempotentní persistenci override", async () => 
   );
 
   assert.match(action, /if \(\(parsed\.data\.mode === "OFF"\) === Boolean\(previous\)\) \{[\s\S]*return \{ ok: true, mode: parsed\.data\.mode \}/);
-  assert.match(action, /autoLunchDayOverride\.upsert\(/);
-  assert.match(action, /autoLunchDayOverride\.deleteMany\(\{ where: \{ dateKey: parsed\.data\.dateKey \} \}\)/);
+  assert.match(action, /runSerializableTransaction\(\(tx\) => persistAutoLunchDayMode\(tx, \{/);
+  assert.match(source, /export async function persistAutoLunchDayMode[\s\S]*tx\.autoLunchDayOverride\.findUnique/);
+  assert.match(source, /persistAutoLunchDayMode[\s\S]*autoLunchDayOverride\.upsert\(/);
+  assert.match(source, /persistAutoLunchDayMode[\s\S]*tx\.autoLunchDayOverride\.delete\(\{ where: \{ dateKey: input\.dateKey \} \}\)/);
+  assert.doesNotMatch(action, /const previous = await prisma\.autoLunchDayOverride/);
 });

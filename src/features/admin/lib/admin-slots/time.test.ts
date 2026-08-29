@@ -5,8 +5,10 @@ import {
   formatDateKey,
   getCellRangeBounds,
   getDayBounds,
+  isCanonicalWeekKey,
   isDateKeyInWeek,
   isValidDateKey,
+  resolveWeekStart,
   timeFormatter,
 } from "./time";
 
@@ -15,6 +17,17 @@ test("dateKey musí být skutečné datum a patřit do zadaného planner týdne"
   assert.equal(isValidDateKey("2026-03-02"), true);
   assert.equal(isDateKeyInWeek("2026-03-08", "2026-03-02"), true);
   assert.equal(isDateKeyInWeek("2026-03-09", "2026-03-02"), false);
+});
+
+test("week parametr přijímá jen skutečné datum a vždy vrací pondělí Europe/Prague", () => {
+  assert.equal(isValidDateKey("abc"), false);
+  assert.equal(isValidDateKey("2026-99-99"), false);
+  assert.equal(formatDateKey(resolveWeekStart("2026-03-02")), "2026-03-02");
+  assert.equal(formatDateKey(resolveWeekStart("2026-03-05")), "2026-03-02");
+  assert.equal(isCanonicalWeekKey("2026-03-02"), true);
+  assert.equal(isCanonicalWeekKey("2026-03-05"), false);
+  assert.equal(isCanonicalWeekKey(formatDateKey(resolveWeekStart("abc"))), true);
+  assert.equal(isCanonicalWeekKey(formatDateKey(resolveWeekStart("2026-99-99"))), true);
 });
 
 test("winter salon slot 09:00-10:00 stays 09:00-10:00 Europe/Prague", () => {

@@ -1,5 +1,5 @@
 import type { PlannerDay, PlannerWeekData } from "@/features/admin/lib/admin-slots";
-import { getCellRangeBounds } from "@/features/admin/lib/admin-slots/time";
+import { getCellRangeBounds, PLANNER_GRID_MINUTES } from "@/features/admin/lib/admin-slots/time";
 
 export type PlannerLabEventType =
   | "availability"
@@ -33,8 +33,8 @@ function subtractCleanup(
 ) {
   return cleanupBlocks.reduce(
     (remaining, cleanup) => remaining.flatMap((range) => {
-      const cleanupStart = cleanup.startMinutes / 30;
-      const cleanupEnd = cleanup.endMinutes / 30;
+      const cleanupStart = cleanup.startMinutes / PLANNER_GRID_MINUTES;
+      const cleanupEnd = cleanup.endMinutes / PLANNER_GRID_MINUTES;
 
       if (cleanupEnd <= range.startCell || cleanupStart >= range.endCell) {
         return [range];
@@ -74,8 +74,8 @@ export function plannerWeekToFullCalendarEvents(
       ? day.lockedBlocks.map((interval, index) => ({
         id: `protected:${day.dateKey}:locked-${index}`,
         title: "Chráněný interval",
-        startCell: interval.startMinutes / 30,
-        endCell: interval.endMinutes / 30,
+        startCell: interval.startMinutes / PLANNER_GRID_MINUTES,
+        endCell: interval.endMinutes / PLANNER_GRID_MINUTES,
       }))
       : day.intervals
         .filter((interval) => interval.status === "locked" || interval.status === "inactive")
@@ -98,8 +98,8 @@ export function plannerWeekToFullCalendarEvents(
       })),
     );
     const bookings = day.bookings.map((booking) => {
-      const serviceStartCell = booking.serviceStartMinutes / 30;
-      const serviceEndCell = booking.serviceEndMinutes / 30;
+      const serviceStartCell = booking.serviceStartMinutes / PLANNER_GRID_MINUTES;
+      const serviceEndCell = booking.serviceEndMinutes / PLANNER_GRID_MINUTES;
 
       return {
         id: `booking:${day.dateKey}:${booking.id}`,
@@ -124,12 +124,12 @@ export function plannerWeekToFullCalendarEvents(
     const cleanup = day.cleanupBlocks.map((block, index) => ({
       id: `cleanup:${day.dateKey}:${index}:${block.startMinutes}-${block.endMinutes}`,
       title: "Úklid",
-      ...toIsoRange(day.dateKey, block.startMinutes / 30, block.endMinutes / 30),
+      ...toIsoRange(day.dateKey, block.startMinutes / PLANNER_GRID_MINUTES, block.endMinutes / PLANNER_GRID_MINUTES),
       editable: false as const,
       display: "block" as const,
       color: "#d6a64e",
       className: "planner-lab-event--cleanup",
-      extendedProps: { type: "cleanup" as const, editable: false, dateKey: day.dateKey, startCell: block.startMinutes / 30, endCell: block.endMinutes / 30 },
+      extendedProps: { type: "cleanup" as const, editable: false, dateKey: day.dateKey, startCell: block.startMinutes / PLANNER_GRID_MINUTES, endCell: block.endMinutes / PLANNER_GRID_MINUTES },
     }));
     const lunch = day.autoLunch.startsAt && day.autoLunch.endsAt
       ? [{

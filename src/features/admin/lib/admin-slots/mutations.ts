@@ -20,8 +20,10 @@ import {
 import {
   getCellRangeBounds,
   getDayBounds,
+  isCanonicalWeekKey,
   isDateKeyInWeek,
   isValidDateKey,
+  PLANNER_TIME_ZONE,
 } from "./time";
 import {
   type PlannerMutationResult,
@@ -32,7 +34,6 @@ import {
 const PLANNER_TRANSACTION_MAX_RETRIES = 4;
 const PLANNER_TRANSACTION_RETRY_DELAY_MS = 40;
 const PLANNER_BOOKING_STATUSES = ["PENDING", "CONFIRMED", "COMPLETED"] as const;
-const AVAILABILITY_TIME_ZONE = "Europe/Prague";
 
 type AuditContext = { actorUserId: string | null; actorRole?: "OWNER" | "SALON" | null; adminArea?: string; operationId: string; revertedOperationId?: string | null; operation: AvailabilityAuditOperation; source: string };
 
@@ -98,7 +99,7 @@ async function writeAvailabilityAudit(tx: Prisma.TransactionClient, dateKey: str
     actorRole: audit.actorRole,
     adminArea: audit.adminArea ?? null,
     dateKey,
-    timeZone: AVAILABILITY_TIME_ZONE,
+    timeZone: PLANNER_TIME_ZONE,
     operation: audit.operation,
     source: audit.source,
     operationId: audit.operationId,
@@ -110,10 +111,17 @@ async function writeAvailabilityAudit(tx: Prisma.TransactionClient, dateKey: str
   } });
 }
 
-function ensureValidPlannerWeekDate(weekKey: string, dateKey: string) {
-  if (!isValidDateKey(weekKey) || !isValidDateKey(dateKey) || !isDateKeyInWeek(dateKey, weekKey)) {
+export function ensureValidPlannerWeekDate(weekKey: string, dateKey: string) {
+  if (!isCanonicalWeekKey(weekKey) || !isValidDateKey(dateKey) || !isDateKeyInWeek(dateKey, weekKey)) {
     throw new PlannerMutationError("Zvolený den nepatří do platného týdne planneru.");
   }
+}
+
+export function isPlannerExclusionConstraintError(error: unknown) {
+  return (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    /(?:23P01|exclusion_violation)/i.test(error.message)
+  );
 }
 
 function isRetryablePrismaError(error: unknown) {
@@ -122,7 +130,7 @@ function isRetryablePrismaError(error: unknown) {
       ? (error as { cause?: unknown }).cause
       : null;
 
-  return (
+  return isPlannerExclusionConstraintError(error) || (
     (
       error instanceof Prisma.PrismaClientKnownRequestError &&
       error.code === "P2034"
@@ -432,6 +440,10 @@ export async function applyAvailabilitySelection(
 
     return existingResult ?? result;
   } catch (error) {
+    if (isPlannerExclusionConstraintError(error)) {
+      throw new PlannerMutationError("Volné termíny byly mezitím změněny. Obnovte planner a zkuste akci znovu.");
+    }
+
     if (!isUniqueConstraintError(error)) {
       throw error;
     }

@@ -11,12 +11,14 @@ import { findBestAutoLunch, generateLunchCandidates, shouldApplyAutoLunch } from
 import {
   addDays,
   dateLabelFormatter,
+  dateToCellIndex,
   dayNumberFormatter,
   formatDateKey,
   getCellRangeBounds,
   monthDayFormatter,
   monthOnlyFormatter,
   monthTitleFormatter,
+  PLANNER_GRID_MINUTES,
   resolveWeekStart,
   timeFormatter,
   weekdayLongFormatter,
@@ -38,9 +40,6 @@ import {
   mergeIntervals,
   EDITABLE_SLOT_CAPACITY,
 } from "./helpers";
-import {
-  dateToCellIndex,
-} from "./time";
 import {
   type PlannerBooking,
   type PlannerDay,
@@ -207,10 +206,10 @@ export async function getAdminPlannerWeek(area: AdminArea, week?: string | null)
           endCell: cells.endCell,
           serviceStartMinutes: dateToCellIndex(
             (serviceClipped ?? blockedClipped).startsAt,
-          ) * 30,
+          ) * PLANNER_GRID_MINUTES,
           serviceEndMinutes: dateToCellIndex(
             (serviceClipped ?? blockedClipped).endsAt,
-          ) * 30,
+          ) * PLANNER_GRID_MINUTES,
           label: serviceClipped
             ? formatTimeRange(serviceClipped.startsAt, serviceClipped.endsAt)
             : formatTimeRange(blockedClipped.startsAt, blockedClipped.endsAt),
@@ -297,8 +296,8 @@ export async function getAdminPlannerWeek(area: AdminArea, week?: string | null)
 
         if (slot.status !== AvailabilitySlotStatus.PUBLISHED) {
           inactiveBlocks.push({
-            startMinutes: dateToCellIndex(clipped.startsAt) * 30,
-            endMinutes: dateToCellIndex(clipped.endsAt) * 30,
+            startMinutes: dateToCellIndex(clipped.startsAt) * PLANNER_GRID_MINUTES,
+            endMinutes: dateToCellIndex(clipped.endsAt) * PLANNER_GRID_MINUTES,
           });
           if (cells.endCell <= cells.startCell) {
             return [];
@@ -337,8 +336,8 @@ export async function getAdminPlannerWeek(area: AdminArea, week?: string | null)
           if (!hasOwnBookings) {
             for (const blockedRange of mergedBookings) {
               lockedBlocks.push({
-                startMinutes: dateToCellIndex(blockedRange.startsAt) * 30,
-                endMinutes: dateToCellIndex(blockedRange.endsAt) * 30,
+                startMinutes: dateToCellIndex(blockedRange.startsAt) * PLANNER_GRID_MINUTES,
+                endMinutes: dateToCellIndex(blockedRange.endsAt) * PLANNER_GRID_MINUTES,
               });
             }
           }
@@ -376,8 +375,8 @@ export async function getAdminPlannerWeek(area: AdminArea, week?: string | null)
 
             if (plainEditable) {
               availableBlocks.push({
-                startMinutes: dateToCellIndex(freeRange.startsAt) * 30,
-                endMinutes: dateToCellIndex(freeRange.endsAt) * 30,
+                startMinutes: dateToCellIndex(freeRange.startsAt) * PLANNER_GRID_MINUTES,
+                endMinutes: dateToCellIndex(freeRange.endsAt) * PLANNER_GRID_MINUTES,
               });
               if (freeCells.endCell <= freeCells.startCell) {
                 return [];
@@ -397,8 +396,8 @@ export async function getAdminPlannerWeek(area: AdminArea, week?: string | null)
             }
 
             lockedBlocks.push({
-              startMinutes: dateToCellIndex(freeRange.startsAt) * 30,
-              endMinutes: dateToCellIndex(freeRange.endsAt) * 30,
+              startMinutes: dateToCellIndex(freeRange.startsAt) * PLANNER_GRID_MINUTES,
+              endMinutes: dateToCellIndex(freeRange.endsAt) * PLANNER_GRID_MINUTES,
             });
             if (freeCells.endCell <= freeCells.startCell) {
               return [];
@@ -420,8 +419,8 @@ export async function getAdminPlannerWeek(area: AdminArea, week?: string | null)
 
         if (plainEditable) {
           availableBlocks.push({
-            startMinutes: dateToCellIndex(clipped.startsAt) * 30,
-            endMinutes: dateToCellIndex(clipped.endsAt) * 30,
+            startMinutes: dateToCellIndex(clipped.startsAt) * PLANNER_GRID_MINUTES,
+            endMinutes: dateToCellIndex(clipped.endsAt) * PLANNER_GRID_MINUTES,
           });
           if (cells.endCell <= cells.startCell) {
             return [];
@@ -441,8 +440,8 @@ export async function getAdminPlannerWeek(area: AdminArea, week?: string | null)
         }
 
         lockedBlocks.push({
-          startMinutes: dateToCellIndex(clipped.startsAt) * 30,
-          endMinutes: dateToCellIndex(clipped.endsAt) * 30,
+          startMinutes: dateToCellIndex(clipped.startsAt) * PLANNER_GRID_MINUTES,
+          endMinutes: dateToCellIndex(clipped.endsAt) * PLANNER_GRID_MINUTES,
         });
         if (cells.endCell <= cells.startCell) {
           return [];
@@ -468,8 +467,8 @@ export async function getAdminPlannerWeek(area: AdminArea, week?: string | null)
 
     const availableIntervals = mergeMinuteBlocks(availableBlocks)
       .map((block) => ({
-        startCell: Math.ceil(block.startMinutes / 30),
-        endCell: Math.floor(block.endMinutes / 30),
+        startCell: Math.ceil(block.startMinutes / PLANNER_GRID_MINUTES),
+        endCell: Math.floor(block.endMinutes / PLANNER_GRID_MINUTES),
       }))
       .filter((interval) => interval.endCell > interval.startCell)
       .map((interval) => {
@@ -484,13 +483,13 @@ export async function getAdminPlannerWeek(area: AdminArea, week?: string | null)
     const displayAvailableIntervals = mergeMinuteBlocks(availableBlocks).map((block) => {
       const plannerRange = getCellRangeBounds(
         dateKey,
-        block.startMinutes / 30,
-        block.endMinutes / 30,
+        block.startMinutes / PLANNER_GRID_MINUTES,
+        block.endMinutes / PLANNER_GRID_MINUTES,
       );
 
       return {
-        startCell: block.startMinutes / 30,
-        endCell: block.endMinutes / 30,
+        startCell: block.startMinutes / PLANNER_GRID_MINUTES,
+        endCell: block.endMinutes / PLANNER_GRID_MINUTES,
         label: formatTimeRange(plannerRange.startsAt, plannerRange.endsAt),
       };
     });
@@ -532,16 +531,16 @@ export async function getAdminPlannerWeek(area: AdminArea, week?: string | null)
       })
       .filter((range): range is TimeRange => range !== null);
     const cleanupBlocks = mergeIntervals(cleanupRanges).map((range) => ({
-      startMinutes: dateToCellIndex(range.startsAt) * 30,
-      endMinutes: dateToCellIndex(range.endsAt) * 30,
+      startMinutes: dateToCellIndex(range.startsAt) * PLANNER_GRID_MINUTES,
+      endMinutes: dateToCellIndex(range.endsAt) * PLANNER_GRID_MINUTES,
     }));
     const bookedCleanupCells = Array.from({ length: bookedCells.length }, () => false);
     for (const cleanupBlock of cleanupBlocks) {
       const cleanupCells = intervalToPlannerCells(
         getCellRangeBounds(
           dateKey,
-          cleanupBlock.startMinutes / 30,
-          cleanupBlock.endMinutes / 30,
+          cleanupBlock.startMinutes / PLANNER_GRID_MINUTES,
+          cleanupBlock.endMinutes / PLANNER_GRID_MINUTES,
         ),
         "cover",
       );

@@ -12,14 +12,13 @@ import { requireAdminSectionAccess } from "@/features/admin/lib/admin-guards";
 import { sendOwnerSystemErrorPushover } from "@/lib/notifications/pushover";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-
-const PLANNER_DAY_CELLS = (20 - 6) * 2;
+import { PLANNER_CELL_COUNT } from "@/features/admin/lib/admin-slots/time";
 
 const selectionSchema = z.object({
   weekKey: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   dateKey: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  startCell: z.number().multipleOf(0.5).min(0).max(PLANNER_DAY_CELLS),
-  endCell: z.number().multipleOf(0.5).min(0).max(PLANNER_DAY_CELLS),
+  startCell: z.number().multipleOf(0.5).min(0).max(PLANNER_CELL_COUNT),
+  endCell: z.number().multipleOf(0.5).min(0).max(PLANNER_CELL_COUNT),
   mode: z.enum(["add", "remove"]),
   operationId: z.string().uuid(),
   revertedOperationId: z.string().uuid().optional(),
