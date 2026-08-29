@@ -58,6 +58,7 @@ function buildBooking(overrides: Partial<{
   manualOverride: boolean;
   rescheduleCount: number;
   clientEmailSnapshot: string;
+  voucherRedemptions: Array<{ id: string }>;
 }> = {}) {
   const scheduledStartsAt = overrides.scheduledStartsAt ?? new Date("2026-04-26T09:00:00.000Z");
   const scheduledEndsAt =
@@ -88,6 +89,7 @@ function buildBooking(overrides: Partial<{
     manualOverride: overrides.manualOverride ?? false,
     updatedAt: overrides.updatedAt ?? new Date("2026-04-23T09:00:00.000Z"),
     rescheduleCount: overrides.rescheduleCount ?? 0,
+    voucherRedemptions: overrides.voucherRedemptions ?? [],
     slot,
   };
 }
@@ -577,6 +579,31 @@ describe("state validation", () => {
       }),
       (error) => {
         expectRescheduleErrorCode(error, bookingRescheduleErrorCodes.statusNotAllowed);
+        return true;
+      },
+    );
+  });
+
+  test("rejects reschedule when an active booking already has voucher redemption", async () => {
+    const { bookingRescheduleErrorCodes } = await import("./booking-rescheduling");
+    const harness = await createHarness({
+      booking: buildBooking({
+        voucherRedemptions: [{ id: "redemption-1" }],
+      }),
+    });
+
+    await assert.rejects(
+      harness.api.rescheduleBooking({
+        bookingId: "booking-1",
+        slotId: "slot-new",
+        newStartAt: "2026-04-28T09:00:00.000Z",
+        changedByUserId: null,
+        changedByClient: true,
+        notifyClient: true,
+      }),
+      (error) => {
+        expectRescheduleErrorCode(error, bookingRescheduleErrorCodes.statusNotAllowed);
+        assert.match((error as Error).message, /voucherové čerpání/i);
         return true;
       },
     );

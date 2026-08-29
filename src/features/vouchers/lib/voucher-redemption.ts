@@ -1,4 +1,4 @@
-import { Prisma, VoucherStatus, VoucherType } from "@/generated/prisma/client";
+import { BookingStatus, Prisma, VoucherStatus, VoucherType } from "@/generated/prisma/client";
 
 import { normalizeVoucherCode } from "@/features/vouchers/lib/voucher-code";
 import { getEffectiveVoucherStatus } from "@/features/vouchers/lib/voucher-format";
@@ -22,6 +22,7 @@ export const voucherRedemptionErrorCodes = {
   amountRequired: "AMOUNT_REQUIRED",
   insufficientRemainingValue: "INSUFFICIENT_REMAINING_VALUE",
   serviceMismatch: "SERVICE_MISMATCH",
+  bookingStatusNotEligible: "BOOKING_STATUS_NOT_ELIGIBLE",
   concurrentRedemption: "CONCURRENT_REDEMPTION",
 } as const;
 
@@ -104,6 +105,7 @@ export async function redeemVoucherForBookingInTransaction(
       where: { id: lockedBooking.id },
       select: {
         id: true,
+        status: true,
         serviceId: true,
         serviceNameSnapshot: true,
         servicePriceFromCzk: true,
@@ -120,6 +122,13 @@ export async function redeemVoucherForBookingInTransaction(
 
     if (!booking) {
       throw new VoucherRedemptionError(voucherRedemptionErrorCodes.bookingNotFound, "Booking was not found.");
+    }
+
+    if (booking.status !== BookingStatus.COMPLETED) {
+      throw new VoucherRedemptionError(
+        voucherRedemptionErrorCodes.bookingStatusNotEligible,
+        "Voucher can only be redeemed when completing a booking visit.",
+      );
     }
 
     const existingRedemption = await tx.voucherRedemption.findFirst({

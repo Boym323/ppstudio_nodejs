@@ -1,72 +1,13 @@
 "use server";
 
-import { AdminRole, } from "@/generated/prisma/client";
-import { revalidatePath } from "next/cache";
+import { AdminRole, BookingStatus } from "@/generated/prisma/client";
 import { z } from "zod";
 
-import { type AdminArea } from "@/config/navigation";
-
-
-
 import { type RedeemBookingVoucherActionState } from "@/features/admin/actions/redeem-booking-voucher-action-state";
-
-
-
-
-
-import {
-
-
-
-
-} from "@/features/admin/lib/admin-booking";
-import {
-
-
-} from "@/features/admin/lib/booking/booking-display";
-import {
-
-
-
-} from "@/features/booking/domain/booking-status-transition";
-import {
-
-
-
-
-
-} from "@/features/booking/lib/booking-public";
-import {
-
-
-
-} from "@/features/booking/lib/booking-rescheduling";
-
-import {
-  redeemVoucherForBooking,
-
-  VoucherRedemptionError,
-  voucherRedemptionErrorCodes,
-} from "@/features/vouchers/lib/voucher-redemption";
-
-
-
 import { requireRole } from "@/lib/auth/session";
-import { sendOwnerSystemErrorPushover } from "@/lib/notifications/pushover";
+import { prisma } from "@/lib/prisma";
 
-
-
-import {
-  getVoucherRedemptionFormError,
-  getVoucherRedemptionSuccessMessage,
-  readFormString,
-  revalidateBookingAdminPaths,
-
-  resolveActionArea,
-
-
-  resolveVoucherRedemptionActorUserId,
-} from "./shared";
+import { readFormString } from "./shared";
 
 const redeemBookingVoucherSchema = z.object({
   area: z.enum(["owner", "salon"]),
@@ -83,7 +24,11 @@ const redeemBookingVoucherSchema = z.object({
   note: z.string().trim().max(2000, "Poznámka je příliš dlouhá.").optional().or(z.literal("")),
 });
 
-
+/**
+ * Compatibility guard for old callers. Actual voucher redemption belongs to
+ * completeBookingVisitAction, where the booking is completed atomically with
+ * the financial event.
+ */
 export async function redeemBookingVoucherAction(
   _previousState: RedeemBookingVoucherActionState,
   formData: FormData,
@@ -110,74 +55,26 @@ export async function redeemBookingVoucherAction(
     };
   }
 
-  const session = await requireRole([AdminRole.OWNER, AdminRole.SALON]);
-  const area = resolveActionArea(session.role, parsed.data.area as AdminArea);
-  const actorUserId = await resolveVoucherRedemptionActorUserId(session.email);
+  await requireRole([AdminRole.OWNER, AdminRole.SALON]);
 
-  let redeemedVoucherId: string | null = null;
-  let redeemedAmountCzk: number | null = null;
+  const booking = await prisma.booking.findUnique({
+    where: { id: parsed.data.bookingId },
+    select: { status: true },
+  });
 
-  try {
-    const result = await redeemVoucherForBooking({
-      bookingId: parsed.data.bookingId,
-      voucherCode: parsed.data.voucherCode,
-      amountCzk: parsed.data.amountCzk,
-      redeemedByUserId: actorUserId,
-      note: parsed.data.note || undefined,
-    });
+  if (!booking) {
+    return { status: "error", formError: "Rezervaci se nepodařilo najít." };
+  }
 
-    redeemedVoucherId = result.voucher.id;
-    redeemedAmountCzk = result.redemption.amountCzk;
-  } catch (error) {
-    if (error instanceof VoucherRedemptionError) {
-      return {
-        status: "error",
-        formError: getVoucherRedemptionFormError(error),
-        fieldErrors:
-          error.code === voucherRedemptionErrorCodes.amountRequired ||
-          error.code === voucherRedemptionErrorCodes.insufficientRemainingValue ||
-          error.code === voucherRedemptionErrorCodes.bookingAlreadyRedeemed
-            ? { amountCzk: getVoucherRedemptionFormError(error) }
-            : error.code === voucherRedemptionErrorCodes.voucherNotFound
-              ? { voucherCode: getVoucherRedemptionFormError(error) }
-              : undefined,
-      };
-    }
-
-    console.error("Failed to redeem voucher for booking", error);
-
-    await sendOwnerSystemErrorPushover({
-      title: "PP Studio - systemova chyba",
-      message: "Uplatneni voucheru na rezervaci selhalo neocekavanou chybou.",
-      context: {
-        contextId: parsed.data.bookingId,
-        bookingId: parsed.data.bookingId,
-      },
-      error,
-    });
-
+  if (booking.status !== BookingStatus.COMPLETED) {
     return {
       status: "error",
-      formError: "Voucher se teď nepodařilo uplatnit. Zkuste to prosím znovu.",
+      formError: "Voucher lze skutečně uplatnit pouze při dokončení návštěvy. Použijte akci „Dokončit návštěvu“.",
     };
   }
 
-  revalidateBookingAdminPaths(parsed.data.bookingId);
-  revalidatePath("/admin/vouchery");
-  revalidatePath("/admin/provoz/vouchery");
-
-  if (redeemedVoucherId) {
-    revalidatePath(`/admin/vouchery/${redeemedVoucherId}`);
-    revalidatePath(`/admin/provoz/vouchery/${redeemedVoucherId}`);
-  }
-
   return {
-    status: "success",
-    successMessage: getVoucherRedemptionSuccessMessage(
-      area,
-      parsed.data.amountCzk,
-      redeemedAmountCzk,
-    ),
+    status: "error",
+    formError: "Samostatné uplatnění voucheru není dostupné. Voucher se uplatňuje pouze v rámci dokončení návštěvy.",
   };
 }
-

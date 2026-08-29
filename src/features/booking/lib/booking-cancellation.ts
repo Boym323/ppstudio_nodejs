@@ -81,6 +81,7 @@ type LoadedCancellationToken = {
     serviceNameSnapshot: string;
     scheduledStartsAt: Date;
     scheduledEndsAt: Date;
+    voucherRedemptions: Array<{ id: string }>;
   };
 };
 
@@ -145,6 +146,10 @@ async function findCancellationToken(tokenHash: string) {
           serviceNameSnapshot: true,
           scheduledStartsAt: true,
           scheduledEndsAt: true,
+          voucherRedemptions: {
+            select: { id: true },
+            take: 1,
+          },
         },
       },
     },
@@ -192,6 +197,14 @@ function resolveCancellationState(
     return {
       status: "already_cancelled",
       message: "Rezervace už byla dříve zrušena.",
+      ...details,
+    };
+  }
+
+  if (token.booking.voucherRedemptions.length > 0) {
+    return {
+      status: "not_cancellable",
+      message: "Tuto rezervaci nelze zrušit, protože už obsahuje voucherové čerpání. Finanční událost nebyla automaticky odstraněna.",
       ...details,
     };
   }
@@ -277,6 +290,10 @@ export async function cancelPublicBookingByToken(rawToken: string): Promise<Canc
               serviceNameSnapshot: true,
               scheduledStartsAt: true,
               scheduledEndsAt: true,
+              voucherRedemptions: {
+                select: { id: true },
+                take: 1,
+              },
             },
           },
         },

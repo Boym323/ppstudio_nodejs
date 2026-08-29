@@ -21,6 +21,7 @@ type BookingEmailActionTokenOverrides = Partial<{
   bookingStatus: BookingStatus;
   confirmedAt: Date | null;
   cancelledAt: Date | null;
+  voucherRedemptions: Array<{ id: string }>;
 }>;
 
 async function loadModule() {
@@ -51,6 +52,7 @@ function buildToken(overrides: BookingEmailActionTokenOverrides = {}) {
       serviceNameSnapshot: "Lash lifting",
       scheduledStartsAt,
       scheduledEndsAt,
+      voucherRedemptions: overrides.voucherRedemptions ?? [],
     },
   } as const;
 }
@@ -137,5 +139,19 @@ describe("resolveBookingEmailActionPageState", () => {
 
     assert.equal(result.status, "already_cancelled");
     assert.match(result.message, /už byla dříve zrušena/i);
+  });
+
+  test("zablokuje e-mailovou akci u rezervace s existujícím voucherovým čerpáním", async () => {
+    const { resolveBookingEmailActionPageState } = await loadModule();
+
+    const result = resolveBookingEmailActionPageState(
+      buildToken({
+        voucherRedemptions: [{ id: "redemption-1" }],
+      }),
+      "approve",
+    );
+
+    assert.equal(result.status, "voucher_redemption_blocked");
+    assert.match(result.message, /voucherové čerpání/i);
   });
 });

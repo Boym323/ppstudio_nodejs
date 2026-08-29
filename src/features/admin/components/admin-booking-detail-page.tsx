@@ -15,13 +15,11 @@ import {
 import { AdminBookingPriceForm } from "./admin-booking-price-form";
 import { AdminBookingServiceForm } from "./admin-booking-service-form";
 import { AdminBookingStatusForm } from "./admin-booking-status-form";
-import { AdminBookingVoucherForm } from "./admin-booking-voucher-form";
 import {
   formatCzk,
   formatDurationLabel,
   getPriceDifferenceLabel,
   getStatusContext,
-  getVoucherAmountHint,
 } from "./admin-booking-detail-helpers";
 import { AdminPanel } from "./admin-page-shell";
 import { RescheduleBookingButton } from "./reschedule-booking-button";
@@ -459,29 +457,7 @@ function BookingNotesPanel({ data }: { data: AdminBookingDetailData }) {
 function BookingVoucherPanel({ data }: { data: AdminBookingDetailData }) {
   const intendedVoucher = data.voucher.intendedVoucher;
   const paymentSummary = data.voucher.paymentSummary;
-  const initialVoucherCode =
-    intendedVoucher?.code ?? data.voucher.intendedVoucherCodeSnapshot ?? "";
   const hasRedemptions = data.voucher.redemptions.length > 0;
-  const canRedeemAnotherVoucher =
-    !hasRedemptions && paymentSummary.remainingAmountCzk !== 0;
-  const amountHint = getVoucherAmountHint(
-    intendedVoucher,
-    paymentSummary.remainingAmountCzk,
-  );
-  const voucherForm = canRedeemAnotherVoucher ? (
-    <AdminBookingVoucherForm
-      id="booking-voucher-form"
-      area={data.area}
-      bookingId={data.id}
-      initialVoucherCode={initialVoucherCode}
-      intendedVoucherType={intendedVoucher?.type ?? null}
-      defaultAmountCzk={
-        intendedVoucher?.defaultRedeemAmountCzk ??
-        paymentSummary.remainingAmountCzk
-      }
-      amountHint={amountHint}
-    />
-  ) : null;
 
   return (
     <AdminPanel title="Úhrada" compact={data.area === "salon"} denseHeader>
@@ -495,7 +471,7 @@ function BookingVoucherPanel({ data }: { data: AdminBookingDetailData }) {
         />
 
         <div className="space-y-2">
-          <p className="text-sm font-medium text-white/74">Uplatněný voucher</p>
+          <p className="text-sm font-medium text-white/74">Voucher</p>
 
           {intendedVoucher ? (
             <div className="rounded-[0.95rem] border border-[var(--color-accent)]/16 bg-[rgba(190,160,120,0.06)] p-3">
@@ -537,19 +513,10 @@ function BookingVoucherPanel({ data }: { data: AdminBookingDetailData }) {
                   }
                 />
               </dl>
-              {voucherForm ? (
-                <div className="mt-3 border-t border-white/8 pt-3">
-                  <p className="text-sm font-medium text-white/82">
-                    Uplatnění voucheru
-                  </p>
-                  <p className="mt-1 text-sm leading-5 text-white/56">
-                    Voucher z rezervace je předvyplněný, stačí potvrdit
-                    případnou částku a uložení.
-                  </p>
-                  <div className="mt-3 rounded-[0.95rem] border border-white/8 bg-black/18 p-3">
-                    {voucherForm}
-                  </div>
-                </div>
+              {!hasRedemptions ? (
+                <p className="mt-3 border-t border-white/8 pt-3 text-sm leading-5 text-white/56">
+                  Toto je pouze záměr uvedený při rezervaci. Skutečné čerpání se zapíše až při dokončení návštěvy v sekci „Další krok“.
+                </p>
               ) : null}
             </div>
           ) : data.voucher.intendedVoucherCodeSnapshot ? (
@@ -562,18 +529,9 @@ function BookingVoucherPanel({ data }: { data: AdminBookingDetailData }) {
                 , ale není napojený na aktivní voucher v evidenci.
               </p>
             </div>
-          ) : voucherForm ? (
-            <div className="rounded-[0.95rem] border border-white/8 bg-white/[0.03] px-3 py-2.5">
-              <p className="text-sm text-white/64">
-                K rezervaci není uplatněn žádný voucher.
-              </p>
-            </div>
           ) : (
-            <div className="rounded-[0.95rem] border border-white/8 bg-white/[0.03] px-3.5 py-3">
-              <p className="text-sm text-white/64">
-                Rezervace je podle souhrnu úhrady dorovnaná, voucher není
-                potřeba.
-              </p>
+            <div className="rounded-[0.95rem] border border-white/8 bg-white/[0.03] px-3 py-2.5">
+              <p className="text-sm text-white/64">K rezervaci není uložený záměr použít voucher.</p>
             </div>
           )}
           {hasRedemptions ? (
@@ -588,21 +546,6 @@ function BookingVoucherPanel({ data }: { data: AdminBookingDetailData }) {
               bookingId={data.id}
               defaultAmountCzk={paymentSummary.remainingCzk}
             />
-          ) : null}
-          {voucherForm && !intendedVoucher ? (
-            <details className="group rounded-[0.95rem] border border-white/8 bg-white/[0.03]">
-              <summary className="cursor-pointer list-none px-3 py-2.5 marker:hidden">
-                <span className="inline-flex min-h-9 items-center justify-center rounded-full border border-white/18 bg-transparent px-3 py-1 text-sm font-semibold text-white/84 transition group-open:hidden hover:border-white/28 hover:bg-white/8 hover:text-white">
-                  + Uplatnit voucher
-                </span>
-                <span className="hidden text-sm font-medium text-white/78 group-open:inline">
-                  Uplatnění voucheru
-                </span>
-              </summary>
-              <div className="border-t border-white/8 px-3 py-2.5">
-                {voucherForm}
-              </div>
-            </details>
           ) : null}
         </div>
 

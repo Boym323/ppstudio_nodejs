@@ -120,6 +120,10 @@ export async function applyAdminBookingStatusChangeInTransaction(
         serviceNameSnapshot: true,
         scheduledStartsAt: true,
         scheduledEndsAt: true,
+        voucherRedemptions: {
+          select: { id: true },
+          take: 1,
+        },
       },
     });
 
@@ -135,6 +139,17 @@ export async function applyAdminBookingStatusChangeInTransaction(
     }
 
     const now = inputNow ?? new Date();
+
+    if (
+      (targetStatus === BookingStatus.CANCELLED || targetStatus === BookingStatus.NO_SHOW)
+      && booking.voucherRedemptions.length > 0
+    ) {
+      return {
+        status: "voucher-redemption-blocked" as const,
+        currentStatus: booking.status,
+      };
+    }
+
     if (targetStatus === BookingStatus.COMPLETED && !canCompleteBookingAt(booking.scheduledEndsAt, now)) {
       return {
         status: "completion-too-early" as const,

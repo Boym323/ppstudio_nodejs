@@ -52,6 +52,7 @@ type LoadedBookingActionToken = {
     serviceNameSnapshot: string;
     scheduledStartsAt: Date;
     scheduledEndsAt: Date;
+    voucherRedemptions: ReadonlyArray<{ id: string }>;
   } | null;
 };
 
@@ -74,6 +75,7 @@ type BookingEmailActionTerminalState = Partial<BookingEmailActionDetails> & {
     | "expired"
     | "already_confirmed"
     | "already_cancelled"
+    | "voucher_redemption_blocked"
     | "already_processed"
     | "not_found";
   intent: BookingEmailActionIntent;
@@ -196,6 +198,10 @@ async function findActionToken(tokenHash: string) {
           serviceNameSnapshot: true,
           scheduledStartsAt: true,
           scheduledEndsAt: true,
+          voucherRedemptions: {
+            select: { id: true },
+            take: 1,
+          },
         },
       },
     },
@@ -227,6 +233,16 @@ function resolveNonReadyState(
   }
 
   const details = toActionDetails(token.booking);
+
+  if (token.booking.voucherRedemptions.length > 0) {
+    return {
+      status: "voucher_redemption_blocked",
+      intent,
+      title: "Akci nelze bezpečně provést",
+      message: "Rezervace už obsahuje voucherové čerpání. Potvrzení ani zrušení z e-mailového odkazu proto není dostupné; finanční událost nebyla automaticky odstraněna.",
+      ...details,
+    };
+  }
 
   if (token.type !== getActionTokenType(intent)) {
     return {
@@ -302,6 +318,10 @@ export function resolveBookingEmailActionPageState(
     || token.booking.confirmedAt
     || token.booking.cancelledAt
   ) {
+    return resolveNonReadyState(token, intent);
+  }
+
+  if (token.booking.voucherRedemptions.length > 0) {
     return resolveNonReadyState(token, intent);
   }
 
@@ -384,6 +404,10 @@ export async function performBookingEmailAction(
               serviceNameSnapshot: true,
               scheduledStartsAt: true,
               scheduledEndsAt: true,
+              voucherRedemptions: {
+                select: { id: true },
+                take: 1,
+              },
             },
           },
         },

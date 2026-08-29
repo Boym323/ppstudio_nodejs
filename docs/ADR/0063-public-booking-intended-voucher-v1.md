@@ -1,7 +1,7 @@
 # ADR 0063: Public booking intended voucher v1
 
 ## Kontext
-- Voucher doména a admin uplatnění voucheru u rezervace už existují.
+- Voucher doména a completion flow pro uplatnění voucheru u dokončené návštěvy už existují.
 - `Booking` má pole pro intended voucher, ale veřejné booking flow je zatím neplnilo.
 - Zadání voucheru klientkou při rezervaci není uplatnění poukazu.
 
@@ -21,7 +21,7 @@
 - Veřejné booking flow nemění `remainingValueCzk`, `Voucher.status` ani nevytváří `VoucherRedemption`.
 - `VALUE` voucher je validní, pokud má kladný zůstatek, včetně `PARTIALLY_REDEEMED`.
 - `SERVICE` voucher je validní pouze pro stejnou službu jako rezervace.
-- Skutečné uplatnění zůstává v admin detailu rezervace.
+- Skutečné uplatnění zůstává v completion flow v admin detailu rezervace a vznikne až společně s přechodem do `COMPLETED`.
 
 ## Stav
 - schváleno

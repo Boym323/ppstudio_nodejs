@@ -187,6 +187,13 @@ export async function updateBookingStatusAction(
     };
   }
 
+  if (result.status === "voucher-redemption-blocked") {
+    return {
+      status: "error",
+      formError: "Rezervaci nelze zrušit ani označit jako nedostavenou, protože už obsahuje voucherové čerpání. Finanční událost nebyla automaticky odstraněna.",
+    };
+  }
+
   if (
     parsed.data.targetStatus === BookingStatus.CONFIRMED
     || parsed.data.targetStatus === BookingStatus.CANCELLED

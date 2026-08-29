@@ -330,25 +330,6 @@ export async function completeBookingVisitAction(
         throw new CompletionPaymentError("Při doplatku je potřeba vybrat způsob úhrady nebo dokončení bez úhrady.");
       }
 
-      let voucherId: string | null = null;
-      if (mode === "voucher" || mode === "combined") {
-        const redemption = await redeemVoucherForBookingInTransaction(tx, {
-          bookingId: current.id,
-          voucherCode: parsed.data.voucherCode ?? "",
-          amountCzk: parsed.data.voucherAmountCzk ?? (mode === "voucher" ? currentSummary.remainingCzk : undefined),
-          redeemedByUserId: actorUserId,
-          note: note ?? undefined,
-        });
-        voucherId = redemption.voucher.id;
-        await tx.bookingStatusHistory.create({
-          data: {
-            bookingId: current.id, status: current.status, actorType: BookingActorType.USER, actorUserId,
-            reason: "Voucher uplatněn při dokončení návštěvy",
-            metadata: { source: "admin-booking-complete-flow-v1", amount: redemption.redemption.amountCzk, voucherCode: redemption.voucher.code },
-          },
-        });
-      }
-
       if (mode === "cash" || mode === "qr" || mode === "combined") {
         const directMethod = mode === "cash" ? BookingPaymentMethod.CASH : mode === "qr"
           ? BookingPaymentMethod.BANK_TRANSFER
@@ -363,6 +344,32 @@ export async function completeBookingVisitAction(
         if (paymentResult.status !== "created" && paymentResult.status !== "existing") {
           throw new CompletionPaymentError("Platbu se nepodařilo bezpečně zapsat.");
         }
+      }
+
+      let voucherId: string | null = null;
+      let completionApplied = false;
+      if (mode === "voucher" || mode === "combined") {
+        const completion = await applyAdminBookingStatusChangeInTransaction(tx, {
+          bookingId: current.id, targetStatus: BookingStatus.COMPLETED, actorUserId, reason: baseReason,
+        });
+        if (completion.status !== "success") throw new CompletionPaymentError("Stav rezervace se nepodařilo změnit.");
+        completionApplied = true;
+
+        const redemption = await redeemVoucherForBookingInTransaction(tx, {
+          bookingId: current.id,
+          voucherCode: parsed.data.voucherCode ?? "",
+          amountCzk: parsed.data.voucherAmountCzk ?? (mode === "voucher" ? currentSummary.remainingCzk : undefined),
+          redeemedByUserId: actorUserId,
+          note: note ?? undefined,
+        });
+        voucherId = redemption.voucher.id;
+        await tx.bookingStatusHistory.create({
+          data: {
+            bookingId: current.id, status: BookingStatus.COMPLETED, actorType: BookingActorType.USER, actorUserId,
+            reason: "Voucher uplatněn při dokončení návštěvy",
+            metadata: { source: "admin-booking-complete-flow-v1", amount: redemption.redemption.amountCzk, voucherCode: redemption.voucher.code },
+          },
+        });
       }
 
       const paidAfterCompletion = await tx.booking.findUniqueOrThrow({
@@ -381,10 +388,12 @@ export async function completeBookingVisitAction(
       const completionReason = mode === "no_payment" && currentSummary.remainingCzk > 0
         ? `Rezervace označena jako hotová s neuhrazeným doplatkem. ${baseReason ?? ""}`.trim()
         : baseReason;
-      const completion = await applyAdminBookingStatusChangeInTransaction(tx, {
-        bookingId: current.id, targetStatus: BookingStatus.COMPLETED, actorUserId, reason: completionReason,
-      });
-      if (completion.status !== "success") throw new CompletionPaymentError("Stav rezervace se nepodařilo změnit.");
+      if (!completionApplied) {
+        const completion = await applyAdminBookingStatusChangeInTransaction(tx, {
+          bookingId: current.id, targetStatus: BookingStatus.COMPLETED, actorUserId, reason: completionReason,
+        });
+        if (completion.status !== "success") throw new CompletionPaymentError("Stav rezervace se nepodařilo změnit.");
+      }
       return { voucherId };
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
     redeemedVoucherId = transactionResult.voucherId;

@@ -566,6 +566,10 @@ async function rescheduleBookingInTransaction(
       clientPhoneSnapshot: true,
       clientNote: true,
       manualOverride: true,
+      voucherRedemptions: {
+        select: { id: true },
+        take: 1,
+      },
       updatedAt: true,
       rescheduleCount: true,
       slot: {
@@ -616,6 +620,13 @@ async function rescheduleBookingInTransaction(
     throw new BookingRescheduleError(
       bookingRescheduleErrorCodes.statusNotAllowed,
       "Tuto rezervaci už není možné přesunout. Přesun podporujeme jen u čekajících a potvrzených rezervací.",
+    );
+  }
+
+  if (booking.voucherRedemptions.length > 0) {
+    throw new BookingRescheduleError(
+      bookingRescheduleErrorCodes.statusNotAllowed,
+      "Tuto rezervaci už není možné přesunout, protože už obsahuje voucherové čerpání. Finanční událost nebyla automaticky odstraněna.",
     );
   }
 

@@ -100,6 +100,7 @@ async function loadModules() {
     redeemVoucherForBooking: voucherRedemptionModule.redeemVoucherForBooking,
     VoucherRedemptionError: voucherRedemptionModule.VoucherRedemptionError,
     getAdminBookingDetailData: adminBookingModule.getAdminBookingDetailData,
+    applyAdminBookingStatusChange: adminBookingModule.applyAdminBookingStatusChange,
   };
 }
 
@@ -172,7 +173,7 @@ async function createSeed(): Promise<TestContext> {
           slotId: slot.id,
           serviceId: service.id,
           source: BookingSource.WEB,
-          status: BookingStatus.CONFIRMED,
+          status: BookingStatus.COMPLETED,
           clientNameSnapshot: client.fullName,
           clientEmailSnapshot: client.email ?? "",
           clientPhoneSnapshot: client.phone,
@@ -532,6 +533,97 @@ describe("voucher domain", () => {
     );
   });
 
+  dbTest("odmítá redemption pro nedokončené, zrušené i no-show rezervace", async () => {
+    assert.ok(seed);
+    const context = seed;
+    const { prisma, createVoucher, redeemVoucherForBooking, VoucherRedemptionError } = await loadModules();
+    const cases = [
+      [context.bookingIds[0], BookingStatus.PENDING],
+      [context.bookingIds[1], BookingStatus.CONFIRMED],
+      [context.bookingIds[2], BookingStatus.CANCELLED],
+      [context.bookingIds[3], BookingStatus.NO_SHOW],
+    ] as const;
+
+    try {
+      for (const [bookingId, status] of cases) {
+        const voucher = await createVoucher(
+          { type: VoucherType.VALUE, ...baseVoucherMeta, originalValueCzk: 400 },
+          context.actorUserId,
+        );
+        await prisma.booking.update({ where: { id: bookingId }, data: { status } });
+
+        await assert.rejects(
+          () => redeemVoucherForBooking({
+            voucherCode: voucher.code,
+            bookingId,
+            amountCzk: 400,
+            redeemedByUserId: context.actorUserId,
+            note: undefined,
+          }),
+          (error) => error instanceof VoucherRedemptionError && error.code === "BOOKING_STATUS_NOT_ELIGIBLE",
+        );
+
+        const unchanged = await prisma.voucher.findUniqueOrThrow({
+          where: { id: voucher.id },
+          select: { remainingValueCzk: true, status: true },
+        });
+        assert.deepEqual(unchanged, { remainingValueCzk: 400, status: VoucherStatus.ACTIVE });
+        assert.equal(await prisma.voucherRedemption.count({ where: { voucherId: voucher.id } }), 0);
+      }
+    } finally {
+      await prisma.booking.updateMany({
+        where: { id: { in: context.bookingIds } },
+        data: { status: BookingStatus.COMPLETED },
+      });
+    }
+  });
+
+  dbTest("storno ani no-show neobejdou dřívější voucherové čerpání", async () => {
+    assert.ok(seed);
+    const context = seed;
+    const { prisma, createVoucher, applyAdminBookingStatusChange } = await loadModules();
+    const bookingId = context.bookingIds[0];
+    const voucher = await createVoucher(
+      { type: VoucherType.VALUE, ...baseVoucherMeta, originalValueCzk: 500 },
+      context.actorUserId,
+    );
+
+    try {
+      await prisma.booking.update({ where: { id: bookingId }, data: { status: BookingStatus.CONFIRMED } });
+      await prisma.voucher.update({
+        where: { id: voucher.id },
+        data: { remainingValueCzk: 300, status: VoucherStatus.PARTIALLY_REDEEMED },
+      });
+      await prisma.voucherRedemption.create({
+        data: { voucherId: voucher.id, bookingId, amountCzk: 200, redeemedByUserId: context.actorUserId },
+      });
+
+      const cancellation = await applyAdminBookingStatusChange({
+        bookingId,
+        targetStatus: BookingStatus.CANCELLED,
+        actorUserId: context.actorUserId,
+      });
+      assert.equal(cancellation.status, "voucher-redemption-blocked");
+
+      const noShow = await applyAdminBookingStatusChange({
+        bookingId,
+        targetStatus: BookingStatus.NO_SHOW,
+        actorUserId: context.actorUserId,
+        now: new Date(Date.now() + 60 * 60 * 1000),
+      });
+      assert.equal(noShow.status, "voucher-redemption-blocked");
+
+      const [unchangedBooking, unchangedVoucher] = await Promise.all([
+        prisma.booking.findUniqueOrThrow({ where: { id: bookingId }, select: { status: true } }),
+        prisma.voucher.findUniqueOrThrow({ where: { id: voucher.id }, select: { remainingValueCzk: true, status: true } }),
+      ]);
+      assert.equal(unchangedBooking.status, BookingStatus.CONFIRMED);
+      assert.deepEqual(unchangedVoucher, { remainingValueCzk: 300, status: VoucherStatus.PARTIALLY_REDEEMED });
+    } finally {
+      await prisma.booking.update({ where: { id: bookingId }, data: { status: BookingStatus.COMPLETED } });
+    }
+  });
+
   dbTest("redeems VALUE voucher partially and then to zero", async () => {
     assert.ok(seed);
     const context = seed;
@@ -619,6 +711,49 @@ describe("voucher domain", () => {
     assert.equal(result.voucher.remainingValueCzk, 0);
     assert.equal(result.voucher.status, VoucherStatus.REDEEMED);
     assert.equal(result.redemption.amountCzk, 500);
+  });
+
+  dbTest("souběžné redemption requesty nepřekročí zůstatek voucheru", async () => {
+    assert.ok(seed);
+    const context = seed;
+    const { prisma, createVoucher, redeemVoucherForBooking, VoucherRedemptionError } = await loadModules();
+    const voucher = await createVoucher(
+      { type: VoucherType.VALUE, ...baseVoucherMeta, originalValueCzk: 1000 },
+      context.actorUserId,
+    );
+
+    const results = await Promise.allSettled([
+      redeemVoucherForBooking({
+        voucherCode: voucher.code,
+        bookingId: context.bookingIds[0],
+        amountCzk: 700,
+        redeemedByUserId: context.actorUserId,
+        note: undefined,
+      }),
+      redeemVoucherForBooking({
+        voucherCode: voucher.code,
+        bookingId: context.bookingIds[1],
+        amountCzk: 700,
+        redeemedByUserId: context.actorUserId,
+        note: undefined,
+      }),
+    ]);
+
+    for (const result of results) {
+      if (result.status === "rejected") {
+        assert.ok(result.reason instanceof VoucherRedemptionError);
+      }
+    }
+
+    const [redemptions, finalVoucher] = await Promise.all([
+      prisma.voucherRedemption.findMany({ where: { voucherId: voucher.id }, select: { amountCzk: true } }),
+      prisma.voucher.findUniqueOrThrow({ where: { id: voucher.id }, select: { remainingValueCzk: true, status: true } }),
+    ]);
+    const redeemedTotal = redemptions.reduce((total, redemption) => total + (redemption.amountCzk ?? 0), 0);
+
+    assert.ok(redeemedTotal <= 1000);
+    assert.equal((finalVoucher.remainingValueCzk ?? 0) + redeemedTotal, 1000);
+    assert.equal(finalVoucher.status, redeemedTotal === 1000 ? VoucherStatus.REDEEMED : VoucherStatus.PARTIALLY_REDEEMED);
   });
 
   dbTest("blocks another voucher redemption on an already paid booking", async () => {
@@ -718,7 +853,7 @@ describe("voucher domain", () => {
         slotId: slot.id,
         serviceId: context.serviceId,
         source: BookingSource.WEB,
-        status: BookingStatus.CONFIRMED,
+        status: BookingStatus.COMPLETED,
         clientNameSnapshot: "Jana Voucherová",
         clientEmailSnapshot: "jana-voucher@example.com",
         clientPhoneSnapshot: "+420777111222",
@@ -777,7 +912,7 @@ describe("voucher domain", () => {
         slotId: otherSlot.id,
         serviceId: context.otherServiceId,
         source: BookingSource.WEB,
-        status: BookingStatus.CONFIRMED,
+        status: BookingStatus.COMPLETED,
         clientNameSnapshot: "Jana Voucherová",
         clientEmailSnapshot: "jana-voucher@example.com",
         clientPhoneSnapshot: "+420777111222",

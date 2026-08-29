@@ -85,6 +85,8 @@ export function getVoucherRedemptionFormError(error: VoucherRedemptionError) {
       return "Voucher nemá tak vysoký zůstatek. Zadejte maximálně zbývající hodnotu voucheru; zbytek ceny se doplatí mimo voucher.";
     case voucherRedemptionErrorCodes.serviceMismatch:
       return "Tento voucher je vystavený na jinou službu než aktuální rezervace.";
+    case voucherRedemptionErrorCodes.bookingStatusNotEligible:
+      return "Voucher lze skutečně uplatnit pouze při dokončení návštěvy. Použijte akci „Dokončit návštěvu“.";
     case voucherRedemptionErrorCodes.concurrentRedemption:
       return "Voucher se mezitím změnil. Obnovte detail rezervace a zkuste to znovu.";
     default:

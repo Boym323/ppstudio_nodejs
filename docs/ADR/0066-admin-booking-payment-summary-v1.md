@@ -2,6 +2,8 @@
 
 Poznámka k aktuálnímu stavu: toto rozhodnutí popisuje mezikrok, kdy panel `Úhrada` počítal jen voucherové čerpání. Evidenci běžných plateb mimo voucher následně doplnilo ADR 0078, které je pro současný stav autoritativní.
 
+Aktualizace lifecycle voucherů: historická samostatná akce a formulář popsané níže už nejsou součástí UI ani finančního workflow. Skutečné `VoucherRedemption` vzniká pouze při atomickém dokončení návštěvy; stará serverová action zůstává jen jako odmítající kompatibilní pojistka.
+
 ## Kontext
 - Voucher redemption u rezervace uz existuje a je provozni dukaz skutecneho uplatneni poukazu.
 - Detail rezervace mel panel `Voucher`, ale obsluha potrebovala rychle videt, kolik je sluzba uhrazena voucherem a kolik zbyva doplatit.
@@ -15,8 +17,8 @@ Poznámka k aktuálnímu stavu: toto rozhodnutí popisuje mezikrok, kdy panel `�
 - `paidAmountCzk` je v teto verzi stejne jako `voucherPaidCzk`.
 - `remainingAmountCzk` je `max(totalPriceCzk - paidAmountCzk, 0)`, pokud je cena znama.
 - `paymentStatus` je `UNPAID`, `PARTIALLY_PAID` nebo `PAID` podle zaplacene castky a zbyvajiciho doplatku; pri nezname cene nesmi byt stav `PAID`.
-- Sekce `Darkovy poukaz` zustava v panelu a dal pouziva existujici `redeemBookingVoucherAction(...)` a `AdminBookingVoucherForm`.
-- UI panelu zustava bez nove business logiky: summary se zobrazuje jako kompaktní receipt-like blok se stavem jako badge a vizuálně nejvýraznějším doplatkem. Sekce `Dárkový poukaz` i historie úhrad jsou zhuštěné; u rezervací bez intended voucheru i bez redemptionu se formulář zobrazi až po rozbalení přes `+ Uplatnit voucher`, ale u rezervací s intended voucherem je formulář přímo v jeho kartě bez anchor mezikroku.
+- V době tohoto ADR sekce `Darkovy poukaz` v panelu používala `redeemBookingVoucherAction(...)` a `AdminBookingVoucherForm`; aktuální lifecycle je popsán v úvodní aktualizaci tohoto dokumentu.
+- V době tohoto ADR UI panelu zůstávalo bez nové business logiky: summary se zobrazoval jako kompaktní receipt-like blok se stavem jako badge a vizuálně nejvýraznějším doplatkem. Historické rozložení sekce `Dárkový poukaz` a formuláře proto nereprezentuje aktuální UI.
 
 ## Alternativy
 - Pridat `BookingPayment` tabulku: v době ADR zamitnuto, protoze aktualni cil byl jen voucher settlement summary; později nahrazeno ADR 0078.
