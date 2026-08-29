@@ -895,6 +895,121 @@ dbTest("updateAdminBookingService rewrites booking snapshot and audit history", 
   }
 });
 
+dbTest("updateAdminBookingService rozlišuje coverage služby, stale slot a skutečný manual override", async () => {
+  const [{ prisma }, { updateAdminBookingService }] = await Promise.all([
+    import("@/lib/prisma"),
+    import("./admin-booking"),
+  ]);
+  const scenarios = [
+    "cleanup-overhang",
+    "insufficient-coverage",
+    "coverage-gap",
+    "archived-slot-with-current-coverage",
+    "archived-slot-without-current-coverage",
+    "manual-override",
+  ] as const;
+
+  for (const scenario of scenarios) {
+    const fixture = await createAdminServiceChangeFixture(prisma, randomUUID().slice(0, 8));
+
+    try {
+      switch (scenario) {
+        case "cleanup-overhang":
+          await Promise.all([
+            prisma.service.update({
+              where: { id: fixture.replacementService.id },
+              data: { durationMinutes: 60, cleanupMinutes: 10 },
+            }),
+            prisma.availabilitySlot.update({
+              where: { id: fixture.slot.id },
+              data: { endsAt: fixture.bookingEndsAt },
+            }),
+          ]);
+          break;
+        case "insufficient-coverage":
+          await prisma.availabilitySlot.update({
+            where: { id: fixture.slot.id },
+            data: { endsAt: fixture.bookingEndsAt },
+          });
+          break;
+        case "coverage-gap":
+          await Promise.all([
+            prisma.service.update({
+              where: { id: fixture.replacementService.id },
+              data: { durationMinutes: 60 },
+            }),
+            prisma.availabilitySlot.update({
+              where: { id: fixture.slot.id },
+              data: { endsAt: new Date(fixture.startsAt.getTime() + 30 * 60 * 1000) },
+            }),
+            prisma.availabilitySlot.create({
+              data: {
+                startsAt: new Date(fixture.startsAt.getTime() + 45 * 60 * 1000),
+                endsAt: fixture.bookingEndsAt,
+                status: "PUBLISHED",
+                capacity: 1,
+                serviceRestrictionMode: "ANY",
+              },
+            }),
+          ]);
+          break;
+        case "archived-slot-with-current-coverage":
+          await Promise.all([
+            prisma.availabilitySlot.update({
+              where: { id: fixture.slot.id },
+              data: { status: "ARCHIVED" },
+            }),
+            prisma.availabilitySlot.create({
+              data: {
+                startsAt: fixture.startsAt,
+                endsAt: fixture.endsAt,
+                status: "PUBLISHED",
+                capacity: 1,
+                serviceRestrictionMode: "ANY",
+              },
+            }),
+          ]);
+          break;
+        case "archived-slot-without-current-coverage":
+          await prisma.availabilitySlot.update({
+            where: { id: fixture.slot.id },
+            data: { status: "ARCHIVED" },
+          });
+          break;
+        case "manual-override":
+          await Promise.all([
+            prisma.booking.update({
+              where: { id: fixture.booking.id },
+              data: { manualOverride: true },
+            }),
+            prisma.availabilitySlot.update({
+              where: { id: fixture.slot.id },
+              data: { status: "DRAFT" },
+            }),
+          ]);
+          break;
+      }
+
+      const result = await updateAdminBookingService({
+        bookingId: fixture.booking.id,
+        serviceId: fixture.replacementService.id,
+        actorUserId: fixture.owner.id,
+      });
+
+      const shouldSucceed = scenario === "cleanup-overhang"
+        || scenario === "archived-slot-with-current-coverage"
+        || scenario === "manual-override";
+      assert.equal(
+        result.status,
+        shouldSucceed ? "success" : "slot-too-short",
+        `Scénář ${scenario} musí ${shouldSucceed ? "projít" : "selhat na coverage"}.`,
+      );
+    } finally {
+      await fixture.cleanup();
+    }
+  }
+});
+
 dbTest("updateAdminBookingService odmítne globální kolizi mimo původní slot", async () => {
   const [{ prisma }, { updateAdminBookingService }] = await Promise.all([
     import("@/lib/prisma"),

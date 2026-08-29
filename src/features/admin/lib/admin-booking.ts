@@ -439,7 +439,7 @@ export async function updateAdminBookingService({
           not: booking.slotId,
         },
         startsAt: {
-          lt: nextBlockedUntil,
+          lt: nextScheduledEndsAt,
         },
         endsAt: {
           gt: booking.scheduledStartsAt,
@@ -465,7 +465,7 @@ export async function updateAdminBookingService({
       [slot, ...overlappingSlots],
       nextService.id,
       booking.scheduledStartsAt,
-      nextBlockedUntil,
+      nextScheduledEndsAt,
       slot.id,
     );
 
@@ -475,7 +475,8 @@ export async function updateAdminBookingService({
       booking.scheduledStartsAt.getTime() >= slot.startsAt.getTime()
       && nextBlockedUntil.getTime() <= slot.endsAt.getTime();
 
-    const canStayOnManualOverrideSlot = slot.status !== "PUBLISHED"
+    const canStayOnManualOverrideSlot = booking.manualOverride
+      && slot.status !== "PUBLISHED"
       && slotAllowsNewService
       && currentSlotCoversNewTiming;
 
