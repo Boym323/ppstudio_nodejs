@@ -139,7 +139,10 @@ test.describe("produkční plánovač FullCalendaru", () => {
   });
 
   test("v jednodenním mobilním pohledu šipka přejde na následující den", async ({ page }) => {
-    test.skip(test.info().project.name !== "mobile-chrome", "Scénář ověřuje mobilní jednodenní pohled.");
+    test.skip(
+      !["mobile-chrome", "mobile-safari"].includes(test.info().project.name),
+      "Scénář ověřuje mobilní jednodenní pohled.",
+    );
 
     const runId = buildRunId();
     runIds.push(runId);

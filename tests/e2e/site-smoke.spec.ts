@@ -80,7 +80,10 @@ test.describe("základní pokrytí veřejného webu", () => {
   });
 
   test("mobilní navigace zůstane přístupná a po změně velikosti z desktopu odemkne stránku", async ({ page }) => {
-    test.skip(test.info().project.name !== "mobile-chrome", "Scénář ověřuje mobilní veřejnou navigaci.");
+    test.skip(
+      !["mobile-chrome", "mobile-safari"].includes(test.info().project.name),
+      "Scénář ověřuje mobilní veřejnou navigaci.",
+    );
 
     await page.goto("/");
 

@@ -6,6 +6,14 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+### Odstraněno
+
+- Z detailu klientky byla odstraněna redundantní akce „Obnovit detail“, která pouze navigovala na stejnou URL bez vlastního obnovení dat nebo jiného side effectu.
+
+### Změněno
+
+- GitHub CI nyní v existujícím mobilním shardování spouští také booking E2E coverage přes Playwright WebKit na profilu iPhone 15.
+
 ## [3.26.0] - 2026-08-30
 
 ### Přidáno

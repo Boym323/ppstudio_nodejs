@@ -43,7 +43,6 @@ export function AdminClientDetailPage({ data }: AdminClientDetailPageProps) {
 
 function ClientDetailHeader({ data }: { data: AdminClientDetailData }) {
   const listHref = data.area === "owner" ? "/admin/klienti" : "/admin/provoz/klienti";
-  const detailHref = data.area === "owner" ? `/admin/klienti/${data.id}` : `/admin/provoz/klienti/${data.id}`;
   const createBookingHref = buildCreateBookingHref(data.area, data.id);
 
   return (
@@ -69,7 +68,6 @@ function ClientDetailHeader({ data }: { data: AdminClientDetailData }) {
           <ActionLink href={createBookingHref} variant="primary">Vytvořit rezervaci</ActionLink>
           <ActionLink href={data.phoneHref}>Zavolat</ActionLink>
           <ActionLink href={data.emailHref}>Napsat e-mail</ActionLink>
-          <ActionLink href={detailHref}>Obnovit detail</ActionLink>
         </div>
       </div>
 

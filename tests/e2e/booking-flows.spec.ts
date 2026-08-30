@@ -564,7 +564,11 @@ test.describe("rezervační toky", () => {
     }
 
     await page.getByRole("button", { name: getCalendarDateButtonLabel(suggestedLabel) }).click();
-    const calendarButton = page.getByRole("button", { name: suggestedLabel }).last();
+    const calendarButton = page
+      .getByRole("heading", { name: "Dostupné časy" })
+      .locator("xpath=ancestor::div[@tabindex='-1']")
+      .getByRole("button", { name: suggestedLabel })
+      .first();
     await calendarButton.click();
 
     await expect.poll(async () => {
@@ -616,7 +620,8 @@ test.describe("rezervační toky", () => {
     const calendarTimeButton = page
       .getByRole("heading", { name: "Dostupné časy" })
       .locator("xpath=ancestor::div[@tabindex='-1']")
-      .getByRole("button", { name: hiddenSuggestedLabel });
+      .getByRole("button", { name: hiddenSuggestedLabel })
+      .first();
     await expect(calendarTimeButton).toBeVisible();
     await expect(calendarTimeButton).toBeEnabled();
     await calendarTimeButton.click();
