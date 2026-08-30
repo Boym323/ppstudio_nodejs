@@ -10,6 +10,10 @@ import {
 import { env } from "@/config/env";
 import { issueBookingClientActionTokens } from "@/features/booking/lib/booking-action-tokens";
 import { normalizeClientEmail } from "@/features/booking/lib/booking-public";
+import {
+  buildCanonicalClientBookingEmailPayload,
+  evaluateBookingEmailPreflight,
+} from "@/lib/email/booking-preflight";
 import { scrubSensitiveEmailPayload } from "@/lib/email/payload-security";
 
 async function systemSkipPendingClientEmailLog(
@@ -155,10 +159,22 @@ export async function rotateClientBookingTokensForEmailChange(
           subject: `Přijetí rezervace: ${booking.serviceNameSnapshot}`,
         };
     const pendingLogs = pendingLogsByBookingId.get(booking.id) ?? [];
-    const existingEmailLog = pendingLogs.find((emailLog) => (
-      emailLog.type === currentEmail.type
-      && emailLog.templateKey === currentEmail.templateKey
-    ));
+    const existingEmailLog = pendingLogs.find((emailLog) => {
+      if (
+        emailLog.type !== currentEmail.type
+        || emailLog.templateKey !== currentEmail.templateKey
+      ) {
+        return false;
+      }
+
+      return evaluateBookingEmailPreflight({
+        type: emailLog.type,
+        audience: EmailAudience.CLIENT,
+        templateKey: emailLog.templateKey,
+        payload: emailLog.payload,
+        booking,
+      }).shouldSend;
+    });
     const obsoletePendingLogIds = pendingLogs
       .filter((emailLog) => emailLog.id !== existingEmailLog?.id)
       .map((emailLog) => emailLog.id);
@@ -184,32 +200,20 @@ export async function rotateClientBookingTokensForEmailChange(
       );
     }
 
-    if (
-      existingEmailLog
-      && existingEmailLog.type === currentEmail.type
-      && existingEmailLog.templateKey === currentEmail.templateKey
-    ) {
+    if (existingEmailLog) {
       const clientTokens = await issueBookingClientActionTokens(tx, {
         bookingId: booking.id,
         scheduledStartsAt: booking.scheduledStartsAt,
         now: input.now,
       });
-      const basePayload = existingEmailLog.payload
-        && typeof existingEmailLog.payload === "object"
-        && !Array.isArray(existingEmailLog.payload)
-        ? { ...(existingEmailLog.payload as Record<string, Prisma.JsonValue>) }
-        : {};
+      const clientPayload = buildCanonicalClientBookingEmailPayload(booking, clientTokens);
 
       await tx.emailLog.update({
         where: { id: existingEmailLog.id },
         data: {
           recipientEmail: input.newEmail,
           actionTokenId: clientTokens.actionTokenId,
-          payload: {
-            ...basePayload,
-            manageReservationUrl: clientTokens.manageReservationUrl,
-            cancellationUrl: clientTokens.cancellationUrl,
-          } satisfies Prisma.InputJsonObject,
+          payload: clientPayload,
         },
       });
       continue;
@@ -220,22 +224,7 @@ export async function rotateClientBookingTokensForEmailChange(
       scheduledStartsAt: booking.scheduledStartsAt,
       now: input.now,
     });
-    const clientPayload = {
-      bookingId: booking.id,
-      serviceId: booking.serviceId,
-      serviceName: booking.serviceNameSnapshot,
-      clientName: booking.clientNameSnapshot,
-      scheduledStartsAt: booking.scheduledStartsAt.toISOString(),
-      scheduledEndsAt: booking.scheduledEndsAt.toISOString(),
-      manageReservationUrl: clientTokens.manageReservationUrl,
-      cancellationUrl: clientTokens.cancellationUrl,
-      ...(booking.status === BookingStatus.CONFIRMED
-        ? { includeCalendarAttachment: true }
-        : {}),
-      ...(booking.intendedVoucherCodeSnapshot
-        ? { intendedVoucherCode: booking.intendedVoucherCodeSnapshot }
-        : {}),
-    } satisfies Prisma.InputJsonObject;
+    const clientPayload = buildCanonicalClientBookingEmailPayload(booking, clientTokens);
 
     await tx.emailLog.create({
       data: {

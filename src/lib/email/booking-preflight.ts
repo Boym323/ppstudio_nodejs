@@ -3,6 +3,7 @@ import {
   EmailAudience,
   EmailLogType,
 } from "@/generated/prisma/browser";
+import { Prisma } from "@/generated/prisma/client";
 
 export type BookingEmailPreflightBooking = {
   status: BookingStatus;
@@ -15,6 +16,38 @@ export type BookingEmailPreflightResult = {
   shouldSend: boolean;
   reason?: string;
 };
+
+export type CanonicalClientBookingEmailBooking = BookingEmailPreflightBooking & {
+  id: string;
+  serviceNameSnapshot: string;
+  clientNameSnapshot: string;
+  intendedVoucherCodeSnapshot: string | null;
+};
+
+export function buildCanonicalClientBookingEmailPayload(
+  booking: CanonicalClientBookingEmailBooking,
+  links: {
+    manageReservationUrl: string;
+    cancellationUrl: string;
+  },
+) {
+  return {
+    bookingId: booking.id,
+    serviceId: booking.serviceId,
+    serviceName: booking.serviceNameSnapshot,
+    clientName: booking.clientNameSnapshot,
+    scheduledStartsAt: booking.scheduledStartsAt.toISOString(),
+    scheduledEndsAt: booking.scheduledEndsAt.toISOString(),
+    manageReservationUrl: links.manageReservationUrl,
+    cancellationUrl: links.cancellationUrl,
+    ...(booking.status === BookingStatus.CONFIRMED
+      ? { includeCalendarAttachment: true }
+      : {}),
+    ...(booking.intendedVoucherCodeSnapshot
+      ? { intendedVoucherCode: booking.intendedVoucherCodeSnapshot }
+      : {}),
+  } satisfies Prisma.InputJsonObject;
+}
 
 function readPayloadString(payload: unknown, key: string) {
   if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
