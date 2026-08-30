@@ -197,7 +197,11 @@ async function findIsolatedReminderAuthorizationWindow(
   throw new Error("Nepodařilo se najít izolované reminder window pro autorizační test.");
 }
 
-async function createConfirmedManualBooking(seed: string, startsAt: Date) {
+async function createConfirmedManualBooking(
+  seed: string,
+  startsAt: Date,
+  options: { preserveAutoReminder?: boolean } = {},
+) {
   const { prisma, createManualBooking } = await loadModules();
   const endsAt = addMinutes(startsAt, 60);
   const phone = `+4207${String(Number.parseInt(seed, 16) % 100_000_000).padStart(8, "0")}`;
@@ -244,6 +248,24 @@ async function createConfirmedManualBooking(seed: string, startsAt: Date) {
     await prisma.service.deleteMany({ where: { id: service.id } });
     await prisma.serviceCategory.deleteMany({ where: { id: category.id } });
     throw error;
+  }
+
+  if (!options.preserveAutoReminder) {
+    await prisma.$transaction([
+      prisma.emailLog.deleteMany({
+        where: {
+          bookingId: result.bookingId,
+          type: EmailLogType.BOOKING_REMINDER,
+        },
+      }),
+      prisma.booking.update({
+        where: { id: result.bookingId },
+        data: {
+          reminder24hQueuedAt: null,
+          reminder24hSentAt: null,
+        },
+      }),
+    ]);
   }
 
   return {
@@ -1537,18 +1559,22 @@ dbTest("migrace communicationGeneration selektivně zachová jen prokazatelně a
   }
 });
 
-dbTest("runBookingReminderSchedulerOnce logs 24h reminder for confirmed booking in reminder window", async () => {
+dbTest("scheduler catch-up doplní reminder po úzkém okně, deduplikuje jej a ignoruje budoucí i začaté bookingy", async () => {
   const seed = randomUUID().slice(0, 8);
   const { prisma, runBookingReminderSchedulerOnce } = await loadModules();
   const window = await findIsolatedWorkerWindow(prisma, seed, 60);
   const fixture = await createConfirmedManualBooking(seed, window.startsAt);
 
   try {
-    const result = await runBookingReminderSchedulerOnce(window.reminderScanAt);
+    await runBookingReminderSchedulerOnce(addMinutes(window.startsAt, -(30 * 60)));
+    assert.equal(await prisma.emailLog.count({
+      where: {
+        bookingId: fixture.bookingId,
+        type: EmailLogType.BOOKING_REMINDER,
+      },
+    }), 0);
 
-    assert.equal(result.foundBookings, 1);
-    assert.equal(result.enqueued, 1);
-    assert.equal(result.failed, 0);
+    await runBookingReminderSchedulerOnce(addMinutes(window.startsAt, -(24 * 60)));
 
     const [booking, emailLog] = await Promise.all([
       prisma.booking.findUniqueOrThrow({
@@ -1581,6 +1607,55 @@ dbTest("runBookingReminderSchedulerOnce logs 24h reminder for confirmed booking 
     assert.equal(payload.scheduledEndsAt, fixture.endsAt.toISOString());
     assert.equal(payload.manageReservationUrl, "[REDACTED]");
     assert.equal(payload.cancellationUrl, "[REDACTED]");
+
+    await runBookingReminderSchedulerOnce(addMinutes(window.startsAt, -(23 * 60)));
+    assert.equal(await prisma.emailLog.count({
+      where: {
+        bookingId: fixture.bookingId,
+        type: EmailLogType.BOOKING_REMINDER,
+      },
+    }), 1);
+
+    await prisma.booking.update({
+      where: { id: fixture.bookingId },
+      data: {
+        reminder24hQueuedAt: null,
+        reminder24hSentAt: null,
+      },
+    });
+    await prisma.emailLog.deleteMany({
+      where: {
+        bookingId: fixture.bookingId,
+        type: EmailLogType.BOOKING_REMINDER,
+      },
+    });
+    await runBookingReminderSchedulerOnce(addMinutes(window.startsAt, 1));
+    assert.equal(await prisma.emailLog.count({
+      where: {
+        bookingId: fixture.bookingId,
+        type: EmailLogType.BOOKING_REMINDER,
+      },
+    }), 0);
+  } finally {
+    await cleanupBookingFixture(fixture);
+  }
+});
+
+dbTest("manual confirmed booking uvnitř catch-up window založí právě jeden reminder", async () => {
+  const seed = randomUUID().slice(0, 8);
+  const { prisma } = await loadModules();
+  const window = await findIsolatedReminderAuthorizationWindow(prisma, 60);
+  const fixture = await createConfirmedManualBooking(seed, window.startsAt, {
+    preserveAutoReminder: true,
+  });
+
+  try {
+    assert.equal(await prisma.emailLog.count({
+      where: {
+        bookingId: fixture.bookingId,
+        type: EmailLogType.BOOKING_REMINDER,
+      },
+    }), 1);
   } finally {
     await cleanupBookingFixture(fixture);
   }
@@ -1841,6 +1916,101 @@ dbTest("cizí aktivní delivery lease job odloží a po expiraci pokračuje stej
     assert.deepEqual(retryResult, { status: "sent" });
     assert.deepEqual(sentIdempotencyKeys, [`email-log/${emailLog.id}`]);
   } finally {
+    await cleanupBookingFixture(fixture);
+  }
+});
+
+dbTest("claim takeover po provider ACK nesmí starým workerem zapsat reminder marker ani SENT", async () => {
+  const seed = randomUUID().slice(0, 8);
+  const { prisma, claimEmailLogForImmediateDelivery, deliverEmailLog } = await loadModules();
+  const { EMAIL_WORKER_LOCK_TIMEOUT_MS } = await import("@/lib/email/booking-delivery-fence");
+  const window = await findIsolatedReminderAuthorizationWindow(prisma, 60);
+  const fixture = await createConfirmedManualBooking(seed, window.startsAt);
+  const emailLog = await createPendingBookingEmailLog(fixture, {
+    type: EmailLogType.BOOKING_REMINDER,
+    templateKey: "booking-reminder-24h-v1",
+    payload: buildBookingEmailPayload(fixture),
+  });
+  const barrier = createBarrier();
+  const idempotencyKeys: string[] = [];
+
+  try {
+    const tokenA = await claimEmailLogForImmediateDelivery(emailLog.id);
+    assert.ok(tokenA);
+    const firstDelivery = deliverEmailLog(emailLog.id, tokenA, {
+      sendEmail: async (input) => {
+        idempotencyKeys.push(input.idempotencyKey ?? "");
+        return { provider: "resend", messageId: "provider-accepted-before-takeover" };
+      },
+      beforeDeliveryFinalization: barrier.wait,
+    });
+
+    await barrier.entered;
+    await prisma.emailLog.update({
+      where: { id: emailLog.id },
+      data: {
+        processingStartedAt: new Date(Date.now() - EMAIL_WORKER_LOCK_TIMEOUT_MS - 1),
+      },
+    });
+    const tokenB = await claimEmailLogForImmediateDelivery(emailLog.id);
+    assert.ok(tokenB);
+    assert.notEqual(tokenB, tokenA);
+    const takeoverResult = await deliverEmailLog(emailLog.id, tokenB, {
+      sendEmail: async () => {
+        throw new Error("Provider nesmí být při cizím aktivním lease zavolán.");
+      },
+    });
+    assert.equal(takeoverResult.status, "deferred");
+
+    barrier.release();
+    const firstResult = await firstDelivery;
+    assert.equal(firstResult.status, "skipped");
+
+    const afterLostClaim = await Promise.all([
+      prisma.booking.findUniqueOrThrow({
+        where: { id: fixture.bookingId },
+        select: { reminder24hSentAt: true },
+      }),
+      prisma.emailLog.findUniqueOrThrow({
+        where: { id: emailLog.id },
+        select: { status: true, processingToken: true, providerMessageId: true, provider: true },
+      }),
+    ]);
+    assert.equal(afterLostClaim[0].reminder24hSentAt, null);
+    assert.equal(afterLostClaim[1].status, EmailLogStatus.PENDING);
+    assert.equal(afterLostClaim[1].processingToken, null);
+    assert.equal(afterLostClaim[1].providerMessageId, null);
+    assert.notEqual(afterLostClaim[1].provider, "system-skip");
+
+    const recoveryToken = await claimEmailLogForImmediateDelivery(emailLog.id);
+    assert.ok(recoveryToken);
+    const recoveryResult = await deliverEmailLog(emailLog.id, recoveryToken, {
+      sendEmail: async (input) => {
+        idempotencyKeys.push(input.idempotencyKey ?? "");
+        return { provider: "resend", messageId: "provider-accepted-before-takeover" };
+      },
+    });
+    assert.deepEqual(recoveryResult, { status: "sent" });
+    assert.deepEqual(idempotencyKeys, [
+      `email-log/${emailLog.id}`,
+      `email-log/${emailLog.id}`,
+    ]);
+
+    const recovered = await Promise.all([
+      prisma.booking.findUniqueOrThrow({
+        where: { id: fixture.bookingId },
+        select: { reminder24hSentAt: true },
+      }),
+      prisma.emailLog.findUniqueOrThrow({
+        where: { id: emailLog.id },
+        select: { status: true, providerMessageId: true },
+      }),
+    ]);
+    assert.ok(recovered[0].reminder24hSentAt);
+    assert.equal(recovered[1].status, EmailLogStatus.SENT);
+    assert.equal(recovered[1].providerMessageId, "provider-accepted-before-takeover");
+  } finally {
+    barrier.release();
     await cleanupBookingFixture(fixture);
   }
 });

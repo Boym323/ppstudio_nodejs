@@ -14,6 +14,15 @@ Formát je inspirovaný Keep a Changelog.
 
 - GitHub CI nyní v existujícím mobilním shardování spouští také booking E2E coverage přes Playwright WebKit na profilu iPhone 15.
 
+### Opraveno
+
+- Pozdní potvrzení rezervace a výpadek reminder scheduleru už nezpůsobí ztrátu 24h připomínky; potvrzovací cesty ji zakládají okamžitě a scheduler idempotentně dohledá všechny dosud nezačaté rezervace až do horní hranice reminder okna.
+
+### Zabezpečení
+
+- Produkční release nyní před databázovou migrací zastaví a ověří web i e-mailový worker; při selhání migrace nebo nového runtime zůstávají writeři fail-closed zastavení a starý release se nad změněným schématem automaticky nespustí.
+- Post-provider finalizace klientského e-mailu nyní před reminder markerem pod zámkem ověří současné vlastnictví `EmailLog` claimu, booking delivery lease, generaci i příjemce, takže převzatý claim nemůže zanechat `reminder24hSentAt` u čekajícího logu.
+
 ## [3.26.0] - 2026-08-30
 
 ### Přidáno

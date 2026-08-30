@@ -142,6 +142,7 @@ export async function applyAdminBookingStatusChangeInTransaction(
         serviceNameSnapshot: true,
         scheduledStartsAt: true,
         scheduledEndsAt: true,
+        reminder24hSentAt: true,
         voucherRedemptions: {
           select: { id: true },
           take: 1,
@@ -301,6 +302,21 @@ export async function applyAdminBookingStatusChangeInTransaction(
           sentAt: env.EMAIL_DELIVERY_MODE === "background" ? undefined : now,
         },
       });
+
+      if (booking.reminder24hSentAt === null) {
+        await enqueueBookingReminder24hForBooking(tx, {
+          id: booking.id,
+          clientId: booking.clientId,
+          clientEmailSnapshot: clientEmail,
+          communicationGeneration: nextCommunicationGeneration,
+          clientNameSnapshot: booking.clientNameSnapshot,
+          status: BookingStatus.CONFIRMED,
+          serviceId: booking.serviceId,
+          serviceNameSnapshot: booking.serviceNameSnapshot,
+          scheduledStartsAt: booking.scheduledStartsAt,
+          scheduledEndsAt: booking.scheduledEndsAt,
+        }, now);
+      }
     }
 
     if (

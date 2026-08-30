@@ -76,6 +76,8 @@ RELEASES_DIR="${saved_releases_dir}"
 START_FAIL=""
 CURL_FAIL=0
 SUDO_RM_SEEN=0
+WEB_ACTIVE=0
+WORKER_ACTIVE=0
 sudo() {
   if [[ "$1" == "rm" && "$2" == "-rf" ]]; then
     SUDO_RM_SEEN=1
@@ -102,8 +104,27 @@ prepare_runtime_release "${RELEASES_DIR}/new"
 
 systemctl() {
   case "$1" in
-    start) [[ "${START_FAIL}" != "$2" ]] ;;
-    stop|is-active|status|show) return 0 ;;
+    start)
+      [[ "${START_FAIL}" != "$2" ]] || return 1
+      if [[ "$2" == "${WEB_UNIT_NAME}" ]]; then
+        WEB_ACTIVE=1
+      elif [[ "$2" == "${WORKER_UNIT_NAME}" ]]; then
+        WORKER_ACTIVE=1
+      fi
+      ;;
+    stop)
+      WEB_ACTIVE=0
+      WORKER_ACTIVE=0
+      ;;
+    is-active)
+      local unit_name="${*: -1}"
+      if [[ "${unit_name}" == "${WEB_UNIT_NAME}" ]]; then
+        [[ "${WEB_ACTIVE}" -eq 1 ]]
+      else
+        [[ "${WORKER_ACTIVE}" -eq 1 ]]
+      fi
+      ;;
+    status|show) return 0 ;;
     *) return 0 ;;
   esac
 }
@@ -156,18 +177,27 @@ expect_rollback() {
   assert_old_current
 }
 
-# Selhání webu, workeru a health/smoke musí vždy obnovit celý předchozí release.
+# Selhání webu, workeru a health/smoke obnoví symlink, ale po migraci fail-closed
+# nespustí starý runtime nad potenciálně nekompatibilním schématem.
 START_FAIL="ppstudio-web"; expect_rollback
 START_FAIL="ppstudio-email-worker"; expect_rollback
 START_FAIL=""; CURL_FAIL=1; expect_rollback
+[[ "${WEB_ACTIVE}" -eq 0 && "${WORKER_ACTIVE}" -eq 0 ]]
 
-# Typecheck, bezpečný test i build musí předcházet zápisu migrací a aktivaci; selhání quality gate tedy nemůže DB změnit.
+# Typecheck, bezpečný test i build musí předcházet zastavení runtime. Migrace
+# smí následovat až po stopu + ověření writerů a před aktivací/startem.
 typecheck_line="$(grep -n 'npm run typecheck' "${SCRIPT_DIR}/release.sh" | tail -1 | cut -d: -f1)"
 test_line="$(grep -n 'npm run test:release' "${SCRIPT_DIR}/release.sh" | tail -1 | cut -d: -f1)"
 build_line="$(grep -n 'npm run build' "${SCRIPT_DIR}/release.sh" | tail -1 | cut -d: -f1)"
-migrate_line="$(grep -n 'npx prisma migrate deploy (těsně' "${SCRIPT_DIR}/release.sh" | cut -d: -f1)"
+stop_line="$(grep -n 'run_timed_step "zastavení a ověření writerů" stop_release_writers' "${SCRIPT_DIR}/release.sh" | cut -d: -f1)"
+migrate_line="$(grep -n 'npx prisma migrate deploy (writeři jsou ověřeně zastavení)' "${SCRIPT_DIR}/release.sh" | cut -d: -f1)"
 activate_line="$(grep -n 'activate_release "\${release_dir}"' "${SCRIPT_DIR}/release.sh" | cut -d: -f1)"
-[[ "${typecheck_line}" -lt "${test_line}" && "${test_line}" -lt "${build_line}" && "${build_line}" -lt "${migrate_line}" && "${migrate_line}" -lt "${activate_line}" ]]
+[[ "${typecheck_line}" -lt "${test_line}" && "${test_line}" -lt "${build_line}" && "${build_line}" -lt "${stop_line}" && "${stop_line}" -lt "${migrate_line}" && "${migrate_line}" -lt "${activate_line}" ]]
+
+WEB_ACTIVE=1
+WORKER_ACTIVE=1
+stop_release_writers
+[[ "${WEB_ACTIVE}" -eq 0 && "${WORKER_ACTIVE}" -eq 0 ]]
 
 # Výchozí úklid nikdy nesmí smazat current/previous ani ponechat další release.
 for release in \

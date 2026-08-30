@@ -46,6 +46,7 @@ import {
   resolvePublishedSlotCoverage,
 } from "../booking-slot-availability";
 import { preparePublishedAvailabilityForManualOverride } from "../booking-slot-compaction";
+import { enqueueBookingReminder24hForBooking } from "../booking-reminders";
 
 function waitForRetryBackoff(attempt: number) {
   const backoffMs = Math.min(25 * attempt, 100);
@@ -837,6 +838,21 @@ export async function createBookingWithEngine(
             adminNotificationEmail: emailBranding.notificationAdminEmail,
             intendedVoucherCode: input.intendedVoucher?.code,
           });
+
+          if (input.status === BookingStatus.CONFIRMED && normalizedEmail.length > 0) {
+            await enqueueBookingReminder24hForBooking(tx, {
+              id: booking.id,
+              clientId: client.id,
+              clientEmailSnapshot: normalizedEmail,
+              communicationGeneration: 1,
+              clientNameSnapshot: normalizedFullName,
+              status: BookingStatus.CONFIRMED,
+              serviceId: service.id,
+              serviceNameSnapshot: service.name,
+              scheduledStartsAt: booking.scheduledStartsAt,
+              scheduledEndsAt: booking.scheduledEndsAt,
+            }, now);
+          }
 
           return {
             bookingId: booking.id,

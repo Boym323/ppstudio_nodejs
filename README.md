@@ -260,8 +260,8 @@ Plný seznam proměnných a detailní vysvětlení je v `docs/ENVIRONMENT.md`.
 1. Na serveru měj čistý checkout repozitáře a správně nastavené `.env`.
 2. Ověř PostgreSQL připojení, e-mailovou konfiguraci, `MEDIA_STORAGE_ROOT` a validní `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY`.
 3. Spusť `./deploy/release.sh`.
-4. Skript provede `git pull --ff-only`, vytvoří úplný staging release (`npm ci --include=dev`, `npm run db:generate`, `npm run db:check-migrations`, `prisma validate`, `npm run lint`, `npm run build`) a teprve poté aplikuje `prisma migrate deploy`.
-5. Hotový runtime uloží do verzovaného `releases/` a atomicky přepne symlink `current`; společně se tak přepnou zdrojové soubory, Prisma Client, `.next`, `node_modules` i e-mailový worker. Při selhání startu, health nebo smoke testu se vrátí předchozí runtime release; databázové migrace se automaticky nevracejí.
+4. Skript provede `git pull --ff-only`, vytvoří úplný staging release (`npm ci --include=dev`, `npm run db:generate`, `npm run db:check-migrations`, `prisma validate`, `npm run lint`, `npm run build`), zastaví web i worker, ověří jejich neaktivní stav a teprve poté aplikuje `prisma migrate deploy`.
+5. Po úspěšné migraci atomicky přepne symlink `current` a spustí nový runtime. Při selhání migrace nový release neaktivuje; při selhání startu, health nebo smoke testu ponechá služby fail-closed zastavené, aby starý writer neběžel nad změněným schématem.
 6. Po releasu ověř `GET /api/health`, admin login, veřejnou homepage a testovací rezervaci. Homepage smoke test je diagnostikován samostatně; identitu releasu ověř ve startup logu, ne ve veřejném health payloadu.
 
 ### Kdy použít detailní deployment docs

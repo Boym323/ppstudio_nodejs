@@ -32,6 +32,7 @@ type EmailDeliveryDependencies = Partial<{
   beforeBookingPreflight: () => void | Promise<void>;
   beforeDeliveryAuthorization: () => void | Promise<void>;
   beforeProviderSend: () => void | Promise<void>;
+  beforeDeliveryFinalization: () => void | Promise<void>;
 }>;
 
 /** Atomicky převezme pending job pro explicitní (mimo worker) odeslání. */
@@ -505,6 +506,7 @@ export async function deliverEmailLog(
       attachments: rendered.attachments,
       idempotencyKey: `email-log/${emailLog.id}`,
     });
+    await dependencies.beforeDeliveryFinalization?.();
 
     // The short post-provider transaction is intentionally separate from the
     // provider request. It serializes final authorization with lifecycle
@@ -520,31 +522,66 @@ export async function deliverEmailLog(
           FOR UPDATE
         `);
 
-        const currentBooking = await tx.booking.findUnique({
+        await tx.$queryRaw<Array<{ id: string }>>(Prisma.sql`
+          SELECT "id"
+          FROM "EmailLog"
+          WHERE "id" = ${emailLog.id}
+          FOR UPDATE
+        `);
+
+        const [currentBooking, currentEmailLog] = await Promise.all([
+          tx.booking.findUnique({
           where: { id: emailLog.bookingId },
           select: {
+            status: true,
+            clientEmailSnapshot: true,
             communicationGeneration: true,
             clientDeliveryLeaseToken: true,
             clientDeliveryLeaseExpiresAt: true,
+            reminder24hSentAt: true,
+            scheduledStartsAt: true,
+            scheduledEndsAt: true,
+            serviceId: true,
           },
-        });
+          }),
+          tx.emailLog.findUnique({
+            where: { id: emailLog.id },
+            select: {
+              status: true,
+              processingToken: true,
+            },
+          }),
+        ]);
         completedAt = new Date();
 
         if (
+          currentEmailLog?.status !== EmailLogStatus.PENDING
+          || currentEmailLog.processingToken !== processingToken
+        ) {
+          return { kind: "CLAIM_LOST" as const, count: 0, completedAt };
+        }
+
+        const finalPreflight = evaluateClientBookingDelivery(emailLog, currentBooking);
+        if (
           !currentBooking
+          || !finalPreflight.shouldSend
           || currentBooking.communicationGeneration !== emailLog.communicationGeneration
+          || currentBooking.clientEmailSnapshot.trim() !== emailLog.recipientEmail.trim()
           || currentBooking.clientDeliveryLeaseToken !== processingToken
           || !currentBooking.clientDeliveryLeaseExpiresAt
           || currentBooking.clientDeliveryLeaseExpiresAt <= completedAt
         ) {
-          return { count: 0, completedAt };
+          return { kind: "FINAL_AUTHORIZATION_LOST" as const, count: 0, completedAt };
         }
 
-        if (emailLog.type === EmailLogType.BOOKING_REMINDER) {
+        if (
+          emailLog.type === EmailLogType.BOOKING_REMINDER
+          && currentBooking.reminder24hSentAt === null
+        ) {
           // Stav reminderu a SENT log musí vzniknout v témže commitu. Pokud
           // jde o explicitní resend již odeslaného reminderu, původní sentAt
           // zachováme, ale queuedAt dál reprezentuje úspěšně finalizovaný job.
-          await tx.booking.updateMany({
+          const markedReminder = await tx.booking.updateMany({
             where: {
               id: emailLog.bookingId,
               communicationGeneration: emailLog.communicationGeneration,
@@ -558,6 +595,10 @@ export async function deliverEmailLog(
               reminder24hSentAt: completedAt,
             },
           });
+
+          if (markedReminder.count !== 1) {
+            return { kind: "FINAL_AUTHORIZATION_LOST" as const, count: 0, completedAt };
+          }
         }
       }
 
@@ -580,10 +621,21 @@ export async function deliverEmailLog(
         },
       });
 
-      return { count: completed.count, completedAt };
+      return {
+        kind: completed.count === 1 ? "COMPLETED" as const : "CLAIM_LOST" as const,
+        count: completed.count,
+        completedAt,
+      };
     });
 
     if (completion.count !== 1) {
+      if (completion.kind === "CLAIM_LOST") {
+        return {
+          status: "skipped",
+          errorMessage: "Claim e-mailu mezitím převzal jiný worker.",
+        };
+      }
+
       const released = await releaseClaimedEmailLogForRetry(
         emailLog.id,
         processingToken,

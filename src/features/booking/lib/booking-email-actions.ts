@@ -26,6 +26,7 @@ import {
   compactAdjacentEditableSlotsForBooking,
 } from "@/features/booking/lib/booking-slot-compaction";
 import { getBookingStatusLabel } from "@/features/booking/lib/booking-status-presentation";
+import { enqueueBookingReminder24hForBooking } from "@/features/booking/lib/booking-reminders";
 import { sendOwnerBookingPushover } from "@/lib/notifications/pushover";
 import { prisma } from "@/lib/prisma";
 import { scrubSensitiveEmailPayload } from "@/lib/email/payload-security";
@@ -62,6 +63,7 @@ type LoadedBookingActionToken = {
     scheduledEndsAt: Date;
     clientDeliveryLeaseToken?: string | null;
     clientDeliveryLeaseExpiresAt?: Date | null;
+    reminder24hSentAt: Date | null;
     voucherRedemptions: ReadonlyArray<{ id: string }>;
   } | null;
 };
@@ -214,6 +216,7 @@ async function findActionToken(tokenHash: string) {
           scheduledEndsAt: true,
           clientDeliveryLeaseToken: true,
           clientDeliveryLeaseExpiresAt: true,
+          reminder24hSentAt: true,
           voucherRedemptions: {
             select: { id: true },
             take: 1,
@@ -438,6 +441,7 @@ export async function performBookingEmailAction(
               scheduledEndsAt: true,
               clientDeliveryLeaseToken: true,
               clientDeliveryLeaseExpiresAt: true,
+              reminder24hSentAt: true,
               voucherRedemptions: {
                 select: { id: true },
                 take: 1,
@@ -622,6 +626,25 @@ export async function performBookingEmailAction(
             sentAt: env.EMAIL_DELIVERY_MODE === "background" ? undefined : now,
           },
         });
+      }
+
+      if (
+        targetStatus === BookingStatus.CONFIRMED
+        && clientEmail.length > 0
+        && lockedToken.booking!.reminder24hSentAt === null
+      ) {
+        await enqueueBookingReminder24hForBooking(tx, {
+          id: lockedToken.bookingId,
+          clientId: lockedToken.booking!.clientId,
+          clientEmailSnapshot: clientEmail,
+          communicationGeneration: nextCommunicationGeneration,
+          clientNameSnapshot: lockedToken.booking!.clientNameSnapshot,
+          status: BookingStatus.CONFIRMED,
+          serviceId: lockedToken.booking!.serviceId,
+          serviceNameSnapshot: lockedToken.booking!.serviceNameSnapshot,
+          scheduledStartsAt: lockedToken.booking!.scheduledStartsAt,
+          scheduledEndsAt: lockedToken.booking!.scheduledEndsAt,
+        }, now);
       }
 
       return {

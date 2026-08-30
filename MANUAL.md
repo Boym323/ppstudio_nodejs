@@ -39,7 +39,7 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
 - Release build neběží nad živým runtime. Po úspěšném buildu vznikne úplný adresář `/var/www/ppstudio/releases/<commit>-<čas>` a systemd vždy spouští `/var/www/ppstudio/current`. Krátké atomické přepnutí symlinku proto přepne zdrojové soubory, `.next`, `node_modules` i worker `tsx` runtime společně; předchozí release zůstává zachovaný přes symlink `previous` až do úspěšného health a smoke testu.
 - Po úspěšném release se adresář `releases/` automaticky uklidí: chráněné jsou pouze cíle `current` a `previous`; další release se ve výchozím nastavení neuchovávají. Limit upravíš přes `./deploy/release.sh --keep-releases 14`; úklid nikdy neběží při selhání releasu.
 - `package.json` zároveň drží npm 11 `allowScripts` whitelist pro balíčky s install hooky (`prisma`, `@prisma/engines`, `sharp`, `esbuild`, `unrs-resolver`), takže release nevypisuje opakované `npm warn allow-scripts` a při upgradu těchto balíčků je potřeba whitelist znovu vědomě potvrdit.
-- Skript před vytvořením čistého git-archive workspace odmítne lokální migrační adresáře bez `migration.sql` (ochrana před Prisma P3015). Bez zápisu do DB provede `npm ci`, generate, kontrolu historie, `prisma validate`, lint, samostatný `typecheck` a build; teprve potom, těsně před aktivací, spustí `prisma migrate deploy`. Produkční migrace proto musí být expand/contract a kompatibilní s předchozím runtime.
+- Skript před vytvořením čistého git-archive workspace odmítne lokální migrační adresáře bez `migration.sql` (ochrana před Prisma P3015). Bez zápisu do DB provede `npm ci`, generate, kontrolu historie, `prisma validate`, lint, samostatný `typecheck` a build; potom zastaví web i worker, ověří jejich neaktivní stav a teprve pak spustí `prisma migrate deploy`. Při selhání migrace nebo startu zůstávají služby fail-closed zastavené, dokud není ručně potvrzen bezpečný recovery postup.
 - Kontrola historie může uvést rollbacknuté záznamy `20260419103000_service_public_bookability`, `20260419140000_site_settings_singleton` a `20260428133959_voucher_pdf_logo_settings`. Jsou následované úspěšným záznamem stejné migrace, takže při `Migration history check: OK` nepředstavují blocker releasu ani se nesmějí ručně mazat z `_prisma_migrations`.
 - `next.config.ts` explicitně nastavuje `turbopack.root` na adresář právě běžícího checkoutu/release. Staging release tak může mít vlastní `package-lock.json` bez falešného workspace warningu při `next build`.
 - Pokud release neprojde health/smoke krokem, skript vypíše, zda selhala liveness/readiness kontrola nebo homepage `/`, vždy s HTTP statusem. Teprve podle této informace čti `journalctl -u ppstudio-web.service -n 200 --no-pager`.
@@ -940,7 +940,7 @@ npm run db:clear-booking-data -- --confirm
 - Pokud po přesunu nevzniká nový 24h reminder:
   - ověřte, že booking má po přesunu `reminder24hQueuedAt = null` a `reminder24hSentAt = null`
   - spusťte `npm run email:worker:once`
-  - zkontrolujte, že nový termín leží v reminder okně `25h-26h` od aktuálního času
+  - zkontrolujte, že nový termín ještě nezačal a není více než 26 hodin od aktuálního času; scheduler umí dohnat i termín po původním okně `25h-26h`
 - Pokud worker selhává na chybě `Invalid input: expected string, received undefined` s cestou `manageReservationUrl`:
   - jde typicky o starší `EmailLog.payload`, který pole `manageReservationUrl` ještě neobsahuje
   - aktuální renderer je backward-compatible a e-mail odešle i bez tohoto pole, jen bez CTA `Změnit termín`
@@ -997,7 +997,7 @@ npm run db:clear-booking-data -- --confirm
 - Rezervační část má vlastní error boundary a loading fallback, takže výpadek booking vrstvy nepoškodí celý web.
 - Background e-mail worker lze spustit přes `npm run email:worker` jako samostatný proces; pro jednorázové dohnání fronty je k dispozici `npm run email:worker:once`.
 - Každý background job je chráněn `processingToken`; ruční okamžité doručení job nejdřív stejným způsobem atomicky claimuje. Resend REST používá pro jeden `EmailLog` stabilní idempotency key, zatímco obecné SMTP zůstává at-least-once (stabilní `Message-ID` může duplicity omezit, ale nemůže je absolutně vyloučit).
-- Stejný `email:worker` nově každých 5 minut i skenuje potvrzené rezervace v okně `25h-26h` před termínem a zapisuje jeden reminder `EmailLog` typu `BOOKING_REMINDER`.
+- Stejný `email:worker` každých 5 minut skenuje potvrzené rezervace od aktuálního času do 26 hodin před termínem a idempotentně zapisuje jeden reminder `EmailLog` typu `BOOKING_REMINDER`; tím dohání i pozdní potvrzení nebo výpadek původního enqueue okna.
 - Po přesunu termínu resetuje doménová akce `rescheduleBooking(...)` oba reminder markery, takže se starý reminder neposílá pro původní termín a nový čas může znovu projít standardním enqueue flow.
 - Před produkční aplikací migrací je k dispozici `npm run db:check-migrations`, který odhalí otevřené failed/incomplete záznamy v `_prisma_migrations`.
 - Pro systemd provoz použij [`deploy/systemd/ppstudio-web.service`](deploy/systemd/ppstudio-web.service) pro hlavní app a [`deploy/systemd/ppstudio-email-worker.service`](deploy/systemd/ppstudio-email-worker.service) pro worker.

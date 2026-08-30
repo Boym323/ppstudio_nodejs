@@ -65,11 +65,11 @@ Dělá:
    - `npm run db:check-migrations`
    - `npm run lint`
    - `npm run build`
-6. teprve po úspěšném buildu aplikuje `npx prisma migrate deploy`; každá budoucí databázová migrace musí bez výjimky dodržet postup expand/contract a zůstat kompatibilní s předchozím releasem
-7. vytvoří runtime `.release-env`, uloží celý release do `releases/` a atomicky přepne `current`
-8. krátce zastaví a znovu spustí web i worker nad stejným releasem
+6. po úspěšném buildu zastaví web i worker a ověří, že žádný z nich neběží jako writer
+7. aplikuje `npx prisma migrate deploy` a teprve po úspěchu atomicky přepne `current`
+8. spustí web i worker nad stejným releasem
 9. nejdřív přes `/api/health/live` tiše vyčká na otevření webového endpointu, potom ověří DB readiness `/api/health` a homepage smoke test
-10. při selhání startu nebo kontrol vrátí předchozí runtime release; databázové migrace se automaticky nevracejí, proto rollback musí vždy fungovat se schématem po aplikované migraci
+10. při selhání migrace nový release neaktivuje; při selhání startu nebo kontrol vrátí symlink, ale služby ponechá fail-closed zastavené, dokud není ručně potvrzena kompatibilita schématu
 
 ### Media Library v2 – staged upgrade
 

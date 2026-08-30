@@ -70,7 +70,11 @@ async function loadModules() {
   };
 }
 
-async function createSeed(options?: { withApproveToken?: boolean; withRejectToken?: boolean }): Promise<Seed> {
+async function createSeed(options?: {
+  withApproveToken?: boolean;
+  withRejectToken?: boolean;
+  startsAfterHours?: number;
+}): Promise<Seed> {
   const {
     prisma,
     buildBookingActionExpiry,
@@ -84,7 +88,7 @@ async function createSeed(options?: { withApproveToken?: boolean; withRejectToke
 
   const suffix = randomUUID().slice(0, 8);
   const bookingEmail = `client-${suffix}@example.com`;
-  const startsAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  const startsAt = new Date(Date.now() + (options?.startsAfterHours ?? 7 * 24) * 60 * 60 * 1000);
   startsAt.setUTCSeconds(0, 0);
   const endsAt = new Date(startsAt.getTime() + 60 * 60 * 1000);
 
@@ -378,6 +382,30 @@ dbTest("performBookingEmailAction approve stores manage and cancellation links i
     assert.ok(actionTokens.every(
       (token) => token.expiresAt.getTime() === buildBookingSelfServiceActionExpiry(booking.scheduledStartsAt).getTime(),
     ));
+  } finally {
+    await cleanupSeed(seed);
+  }
+});
+
+dbTest("owner approve 24 hodin před začátkem založí právě jeden reminder", async () => {
+  const seed = await createSeed({ withApproveToken: true, startsAfterHours: 24 });
+
+  try {
+    const { prisma, performBookingEmailAction, EmailLogType } = await loadModules();
+    const result = await performBookingEmailAction(
+      "approve",
+      seed.approveRawToken!,
+      undefined,
+      { userId: seed.actorUserId },
+    );
+
+    assert.equal(result.status, "completed");
+    assert.equal(await prisma.emailLog.count({
+      where: {
+        bookingId: seed.bookingId,
+        type: EmailLogType.BOOKING_REMINDER,
+      },
+    }), 1);
   } finally {
     await cleanupSeed(seed);
   }

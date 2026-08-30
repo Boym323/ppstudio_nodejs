@@ -116,3 +116,16 @@ test("evaluateBookingReminderDelivery blocks bookings moved outside the reminder
   assert.equal(result.shouldSend, false);
   assert.match(result.reason ?? "", /outside the reminder window/i);
 });
+
+test("evaluateBookingReminderDelivery blocks catch-up after booking start", async () => {
+  const { evaluateBookingReminderDelivery } = await loadReminderModule();
+  const result = evaluateBookingReminderDelivery({
+    bookingStatus: BookingStatus.CONFIRMED,
+    reminder24hSentAt: null,
+    scheduledStartsAt: new Date("2026-04-23T09:59:59.000Z"),
+    now: new Date("2026-04-23T10:00:00.000Z"),
+  });
+
+  assert.equal(result.shouldSend, false);
+  assert.match(result.reason ?? "", /already started/i);
+});

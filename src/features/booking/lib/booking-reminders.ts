@@ -93,7 +93,7 @@ export function getBookingReminder24hEnqueueWindowPosition(
 }
 
 export async function getBookingsFor24hReminder(now = new Date()): Promise<BookingReminderCandidate[]> {
-  const { windowStart, windowEnd } = getBookingReminder24hWindow(now);
+  const { windowEnd } = getBookingReminder24hWindow(now);
 
   return prisma.booking.findMany({
     where: {
@@ -101,10 +101,9 @@ export async function getBookingsFor24hReminder(now = new Date()): Promise<Booki
       clientEmailSnapshot: {
         not: "",
       },
-      reminder24hQueuedAt: null,
       reminder24hSentAt: null,
       scheduledStartsAt: {
-        gte: windowStart,
+        gt: now,
         lte: windowEnd,
       },
     },
@@ -139,15 +138,14 @@ async function claimNextBookingFor24hReminder(
   now: Date,
   excludedBookingIds: string[],
 ): Promise<BookingReminderCandidate | null> {
-  const { windowStart, windowEnd } = getBookingReminder24hWindow(now);
+  const { windowEnd } = getBookingReminder24hWindow(now);
   const rows = await tx.$queryRaw<Array<{ id: string }>>(Prisma.sql`
     SELECT booking."id"
     FROM "Booking" AS booking
     WHERE booking."status" = ${BookingStatus.CONFIRMED}
       AND trim(booking."clientEmailSnapshot") <> ''
-      AND booking."reminder24hQueuedAt" IS NULL
       AND booking."reminder24hSentAt" IS NULL
-      AND booking."scheduledStartsAt" >= ${windowStart}
+      AND booking."scheduledStartsAt" > ${now}
       AND booking."scheduledStartsAt" <= ${windowEnd}
       ${buildExcludedBookingIdsClause(excludedBookingIds)}
     ORDER BY booking."scheduledStartsAt" ASC, booking."createdAt" ASC
@@ -235,7 +233,6 @@ export async function enqueueBookingReminder24hForBooking(
       type: EmailLogType.BOOKING_REMINDER,
       audience: EmailAudience.CLIENT,
       status: EmailLogStatus.PENDING,
-      processingStartedAt: null,
     },
     select: {
       id: true,
@@ -383,14 +380,15 @@ export async function enqueueBookingReminder24hJobs(
     enqueued: 0,
     failed: 0,
   };
-  const failedBookingIds = new Set<string>();
+  const visitedBookingIds = new Set<string>();
+  let iterations = 0;
 
-  while (result.enqueued + result.failed < Math.min(result.foundBookings, BOOKING_REMINDER_24H_MAX_ITERATIONS)) {
+  while (iterations < Math.min(result.foundBookings, BOOKING_REMINDER_24H_MAX_ITERATIONS)) {
     let claimedBookingId: string | null = null;
 
     try {
-      const enqueuedBookingId = await prisma.$transaction(async (tx) => {
-        const booking = await claimNextBookingFor24hReminder(tx, now, Array.from(failedBookingIds));
+      const enqueueResult = await prisma.$transaction(async (tx) => {
+        const booking = await claimNextBookingFor24hReminder(tx, now, Array.from(visitedBookingIds));
 
         if (!booking) {
           return null;
@@ -398,21 +396,26 @@ export async function enqueueBookingReminder24hJobs(
 
         claimedBookingId = booking.id;
 
-        await enqueueBookingReminder24hForBooking(tx, booking, now);
+        const job = await enqueueBookingReminder24hForBooking(tx, booking, now);
 
-        return booking.id;
+        return { bookingId: booking.id, created: job.created };
       });
 
-      if (!enqueuedBookingId) {
+      if (!enqueueResult) {
         break;
       }
 
-      result.enqueued += 1;
+      visitedBookingIds.add(enqueueResult.bookingId);
+      iterations += 1;
+      if (enqueueResult.created) {
+        result.enqueued += 1;
+      }
     } catch (error) {
       result.failed += 1;
+      iterations += 1;
 
       if (claimedBookingId) {
-        failedBookingIds.add(claimedBookingId);
+        visitedBookingIds.add(claimedBookingId);
       }
 
       console.error("Booking reminder 24h enqueue failed", {

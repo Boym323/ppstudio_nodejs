@@ -319,6 +319,23 @@ start_release_services() {
   sudo systemctl start "${WORKER_UNIT_NAME}" || return 1
 }
 
+assert_release_writers_stopped() {
+  local unit_name
+
+  for unit_name in "${WEB_UNIT_NAME}" "${WORKER_UNIT_NAME}"; do
+    if systemctl is-active --quiet "${unit_name}"; then
+      echo "Služba ${unit_name} je stále aktivní; databázovou migraci nelze bezpečně spustit." >&2
+      return 1
+    fi
+  done
+}
+
+stop_release_writers() {
+  log "stop writerů ${WEB_UNIT_NAME}/${WORKER_UNIT_NAME}"
+  sudo systemctl stop "${WEB_UNIT_NAME}" "${WORKER_UNIT_NAME}"
+  assert_release_writers_stopped
+}
+
 wait_for_web_listener() {
   local attempt
 
@@ -391,18 +408,16 @@ wait_for_release_health() {
 rollback_release() {
   local previous_target="$1"
 
-  echo "Nový release neprošel startem nebo health/smoke testem, vracím předchozí celý release." >&2
+  echo "Nový release neprošel startem nebo health/smoke testem; runtime ponechávám fail-closed zastavený." >&2
   sudo systemctl stop "${WEB_UNIT_NAME}" "${WORKER_UNIT_NAME}" >/dev/null 2>&1 || true
 
   if [[ -n "${previous_target}" ]]; then
     set_release_link "${CURRENT_RELEASE_LINK}" "${previous_target}"
-    sudo systemctl start "${WEB_UNIT_NAME}" >/dev/null 2>&1 || true
-    sudo systemctl start "${WORKER_UNIT_NAME}" >/dev/null 2>&1 || true
   else
     rm -f "${CURRENT_RELEASE_LINK}"
   fi
 
-  echo "Rollback hotový; databázové migrace se záměrně nevracejí automaticky. Zkontroluj kompatibilitu schématu a journalctl." >&2
+  echo "Symlink byl vrácen, ale starý runtime nebyl automaticky spuštěn nad změněným schématem. Zkontroluj migraci, kompatibilitu a journalctl." >&2
   return 1
 }
 
@@ -422,8 +437,7 @@ activate_release() {
     return 1
   fi
 
-  log "stop ${WEB_UNIT_NAME}/${WORKER_UNIT_NAME}"
-  sudo systemctl stop "${WEB_UNIT_NAME}" "${WORKER_UNIT_NAME}"
+  assert_release_writers_stopped || return 1
   set_release_link "${CURRENT_RELEASE_LINK}" "${release_dir}"
 
   if start_release_services && wait_for_web_listener && wait_for_release_health; then
@@ -705,8 +719,11 @@ run_release() {
   RELEASE_BUILD_DIR=""
   run_timed_step "runtime oprávnění release" prepare_runtime_release "${release_dir}"
 
+  cd "${REPO_DIR}"
+  run_timed_step "zastavení a ověření writerů" stop_release_writers
+
   cd "${release_dir}"
-  log "npx prisma migrate deploy (těsně před aktivací; pouze expand/contract migrace)"
+  log "npx prisma migrate deploy (writeři jsou ověřeně zastavení)"
   run_timed_step "Prisma migrate deploy" npx prisma migrate deploy
 
   cd "${REPO_DIR}"

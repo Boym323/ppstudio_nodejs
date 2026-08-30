@@ -739,6 +739,7 @@ dbTest("applyAdminBookingStatusChange confirms pending booking and writes side e
 
   const suffix = randomUUID().slice(0, 8);
   const { startsAt, endsAt } = await findIsolatedAdminWindow(prisma, suffix, 60);
+  const confirmationNow = new Date(startsAt.getTime() - 24 * 60 * 60 * 1000);
 
   const owner = await prisma.adminUser.create({
     data: {
@@ -819,6 +820,7 @@ dbTest("applyAdminBookingStatusChange confirms pending booking and writes side e
       notifyClient: true,
       reason: "Integration confirmation",
       internalNote: "Potvrzeno z integračního testu",
+      now: confirmationNow,
     });
 
     assert.equal(result.status, "success");
@@ -862,9 +864,9 @@ dbTest("applyAdminBookingStatusChange confirms pending booking and writes side e
       select: { type: true, tokenHash: true },
     });
 
-    assert.equal(actionTokens.length, 2);
-    assert.ok(actionTokens.some((token) => token.type === BookingActionTokenType.RESCHEDULE));
-    assert.ok(actionTokens.some((token) => token.type === BookingActionTokenType.CANCEL));
+    assert.equal(actionTokens.length, 4);
+    assert.equal(actionTokens.filter((token) => token.type === BookingActionTokenType.RESCHEDULE).length, 2);
+    assert.equal(actionTokens.filter((token) => token.type === BookingActionTokenType.CANCEL).length, 2);
     assert.ok(actionTokens.every((token) => token.tokenHash.length > 0));
 
     const emailLog = await prisma.emailLog.findFirst({
@@ -881,6 +883,12 @@ dbTest("applyAdminBookingStatusChange confirms pending booking and writes side e
     assert.ok(emailLog);
     assert.equal(emailLog.templateKey, "booking-approved-v1");
     assert.equal(emailLog.recipientEmail, `client-booking-int-${suffix}@example.com`);
+    assert.equal(await prisma.emailLog.count({
+      where: {
+        bookingId: booking.id,
+        type: EmailLogType.BOOKING_REMINDER,
+      },
+    }), 1);
   } finally {
     await prisma.bookingActionToken.deleteMany({
       where: { bookingId: booking.id },

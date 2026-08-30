@@ -30,7 +30,7 @@ Stručný architektonický a provozní přehled nasazení na Proxmox/LXC je v ko
 6. `npm run db:generate`
 7. `npm run db:check-migrations`
    - Známý historický stav: kontrola může upozornit na rollbacknuté migrace `20260419140000_site_settings_singleton`, `20260419103000_service_public_bookability` a `20260428133959_voucher_pdf_logo_settings`. Každá má následný úspěšný záznam stejného názvu; pokud výstup končí `Migration history check: OK`, jde o auditní stopu staršího recover postupu a ne o blocker releasu.
-8. Pro běžný rollout spusť `./deploy/release.sh`; přesné pořadí quality gates je `git pull --ff-only` -> synchronizace systemd unitů -> kontrola lokálních migrací a deployment env -> staging `npm ci --include=dev` -> `npm run db:generate` -> `npm run db:check-migrations` -> `npx prisma validate` -> `npm run lint` -> `npm run typecheck` -> `npm run test:release` -> `npm run build` -> zápis `.release-env` a finalizace staging release -> `npx prisma migrate deploy` těsně před aktivací -> atomické přepnutí `current`, restart webu i workeru a health + homepage smoke validace. `test:release` je bez DB integrací; `test` a E2E zůstávají CI branou.
+8. Pro běžný rollout spusť `./deploy/release.sh`; přesné pořadí quality gates je `git pull --ff-only` -> synchronizace systemd unitů -> kontrola lokálních migrací a deployment env -> staging `npm ci --include=dev` -> `npm run db:generate` -> `npm run db:check-migrations` -> `npx prisma validate` -> `npm run lint` -> `npm run typecheck` -> `npm run test:release` -> `npm run build` -> zápis `.release-env` a finalizace staging release -> stop webu i workeru a ověření neaktivního stavu -> `npx prisma migrate deploy` -> atomické přepnutí `current`, start webu i workeru a health + homepage smoke validace. `test:release` je bez DB integrací; `test` a E2E zůstávají CI branou.
 9. Ověř pro commit určený k releasu povinné GitHub CI checky `lint`, `typecheck`, `test`, `build`, `e2e`, `e2e chromium shard 2`, `e2e mobile` a `e2e mobile shard 2`. `coverage` nevyžaduj samostatně: vzniká jako artefakt jobu `test`. Nespouštěj `test` ani E2E proti produkčnímu `.env`, protože obsahují databázové či zapisující scénáře.
 10. Pokud build výjimečně spouštíš mimo `deploy/release.sh`, postupuj v uvedeném pořadí a aplikuj `npx prisma migrate deploy` až po úspěšném buildu a těsně před aktivací.
     - Doporučený `deploy/release.sh` před buildem automaticky synchronizuje `deploy/systemd/*.service` do `/etc/systemd/system/` a spouští `systemctl daemon-reload`, takže změny unitů není potřeba releasovat zvlášť.
@@ -367,13 +367,14 @@ Použij jen tehdy, když z nějakého důvodu nemůžeš použít `./deploy/rele
 4. Spusť `npm run db:generate`.
 5. Spusť `npm run db:check-migrations`.
 6. Spusť `npx prisma validate`, `npm run lint`, `npm run typecheck` a `npm run build`. Před produkčním releasem ověř úspěšné povinné CI checky včetně `test`, `e2e` a kroku `Test release mechanism`; nespouštěj jejich zapisující scénáře proti produkční databázi.
-7. Teprve bezprostředně před přepnutím runtime spusť `npx prisma migrate deploy`; produkční migrace musí být expand/contract kompatibilní s právě běžící verzí.
-8. Exportuj jednotný release identifikátor, například `export NEXT_DEPLOYMENT_ID=$(git rev-parse --short=12 HEAD)` a stejnou hodnotu nastav i do `DEPLOYMENT_VERSION` a `GIT_HASH`.
-9. Zapiš stejné tři proměnné do `.release-env` uvnitř verzovaného release adresáře.
-10. Před release potvrď, že `Unreleased` obsahuje všechny významné změny, přesuň jeho obsah pod novou verzovanou sekci s datem, aktualizuj případné odkazy pro porovnání verzí a založ novou prázdnou sekci `Unreleased`. V jedné release změně sjednoť verzi v `package.json`, kořenovém `package-lock.json`, `CHANGELOG.md` a dalších skutečně používaných místech.
-11. Atomicky přepni symlink `current` na celý nový release a restartuj `ppstudio-web` a `ppstudio-email-worker`.
-12. Proveď minimálně smoke test `GET /api/health`, homepage, admin login a testovací rezervace.
-13. Pokud běžíš v self-hosted režimu bez připraveného SMTP, nech dočasně `EMAIL_DELIVERY_MODE=log`, ať booking flow neblokuje start produkce; po ověření SMTP ho pro produkci vrať na `background`.
+7. Zastav `ppstudio-web.service` i `ppstudio-email-worker.service` a přes `systemctl is-active` ověř, že ani jeden writer neběží.
+8. Teprve potom spusť `npx prisma migrate deploy`. Při selhání nech oba writeři zastavené; starý runtime nespouštěj bez explicitního potvrzení kompatibility se skutečným stavem schématu.
+9. Exportuj jednotný release identifikátor, například `export NEXT_DEPLOYMENT_ID=$(git rev-parse --short=12 HEAD)` a stejnou hodnotu nastav i do `DEPLOYMENT_VERSION` a `GIT_HASH`.
+10. Zapiš stejné tři proměnné do `.release-env` uvnitř verzovaného release adresáře.
+11. Před release potvrď, že `Unreleased` obsahuje všechny významné změny, přesuň jeho obsah pod novou verzovanou sekci s datem, aktualizuj případné odkazy pro porovnání verzí a založ novou prázdnou sekci `Unreleased`. V jedné release změně sjednoť verzi v `package.json`, kořenovém `package-lock.json`, `CHANGELOG.md` a dalších skutečně používaných místech.
+12. Atomicky přepni symlink `current` na celý nový release a spusť `ppstudio-web` a `ppstudio-email-worker`.
+13. Proveď minimálně smoke test `GET /api/health`, homepage, admin login a testovací rezervace.
+14. Pokud běžíš v self-hosted režimu bez připraveného SMTP, nech dočasně `EMAIL_DELIVERY_MODE=log`, ať booking flow neblokuje start produkce; po ověření SMTP ho pro produkci vrať na `background`.
 
 ### Offline recovery OWNERa
 - Z hostu s přístupem k produkčnímu `DATABASE_URL` spusť `npm run admin:recover-owner -- --email owner@example.com --name 'Jméno' --confirm < /bezpecna/cesta/heslo.txt`.
@@ -390,9 +391,10 @@ Použij jen tehdy, když z nějakého důvodu nemůžeš použít `./deploy/rele
   - build ve staging workspace mimo živý runtime
   - bez-zápisový preflight `npm ci --include=dev`, `npm run db:generate`, `npm run db:check-migrations`, `npx prisma validate`, lint, `npm run typecheck`, `npm run test:release` a build; `test:release` nespouští DB integrační testy nad produkčním `.env`
   - vytvoření plného release v `releases/<commit>-<čas>` včetně zdrojů, `.next`, `node_modules` a `.release-env`
-  - `npx prisma migrate deploy` až po úspěšném buildu a těsně před přepnutím; pouze expand/contract migrace
+  - stop webu i workeru a ověření, že oba writeři jsou neaktivní
+  - `npx prisma migrate deploy` až po úspěšném buildu a stopu writerů
   - atomický `current` symlink, restart webu i workeru a povinný lokální health (`/api/health` s očekávaným deployment ID) + homepage smoke test
-  - při selhání startu, workeru nebo health/smoke testu návrat symlinku na úplný předchozí release; DB se automaticky nerollbackuje
+  - při selhání migrace žádná aktivace ani start; při selhání startu nebo health/smoke návrat symlinku, ale fail-closed ponechání služeb zastavených, dokud není ručně potvrzena kompatibilita DB
   - až po úspěchu bezpečný úklid: zůstávají jen `current` a `previous`; počet dalších nejnovějších release lze nastavit přes `--keep-releases N`
 - Příklad:
 ```bash
@@ -432,7 +434,7 @@ systemctl enable --now ppstudio-email-worker
 - `deploy/release.sh` načítá `.env` jako dotenv soubor, ne přes shellové `source`, takže bezpečně zvládá i hodnoty s mezerami bez uvozovek, například `NEXT_PUBLIC_APP_NAME=PP Studio`.
 - Stejný skript používá `npm ci --include=dev`, protože po načtení produkčního `.env` může být `NODE_ENV=production`; bez toho by npm vynechal `devDependencies` a build by spadl třeba na chybě `eslint: not found`.
 - Aktuální rollout model minimalizuje výpadek tak, že celý release včetně checkoutu, `.next` a `node_modules` vznikne ve staging adresáři mimo živý runtime. Po úspěšném buildu se uloží do `releases/` a po aplikaci kompatibilní migrace se atomicky přepne `current`; web i `tsx` worker proto nikdy nekombinují zdroje jednoho releasu s artefakty jiného.
-- Praktické pořadí releasu je `git pull --ff-only -> synchronizace systemd unitů -> kontrola lokálních migrací a deployment env -> staging npm ci -> db:generate -> db:check-migrations -> prisma validate -> lint -> typecheck -> test:release -> build -> zápis .release-env a finalizace release -> prisma migrate deploy -> stop -> current symlink -> start -> health + smoke`. Selhání před migrací nemění DB ani runtime; selhání po přepnutí vrátí předchozí runtime, nikoli DB schéma. Před spuštěním releasu musí být pro stejný commit úspěšné všechny povinné CI joby (`lint`, `typecheck`, `test`, `build` a čtyři E2E shardy); krok `Test release mechanism` je součástí jobu `lint`.
+- Praktické pořadí releasu je `git pull --ff-only -> synchronizace systemd unitů -> kontrola lokálních migrací a deployment env -> staging npm ci -> db:generate -> db:check-migrations -> prisma validate -> lint -> typecheck -> test:release -> build -> zápis .release-env a finalizace release -> stop + ověření writerů -> prisma migrate deploy -> current symlink -> start -> health + smoke`. Selhání před stopem nemění DB ani runtime; selhání od migrace dál ponechá runtime fail-closed zastavený. Před spuštěním releasu musí být pro stejný commit úspěšné všechny povinné CI joby (`lint`, `typecheck`, `test`, `build` a čtyři E2E shardy); krok `Test release mechanism` je součástí jobu `lint`.
 - Stejný release helper po `git pull` automaticky přepíše i systemd unit soubory z `deploy/systemd/*` do `/etc/systemd/system/` a udělá `daemon-reload`, takže app release a unit release drží krok.
 - Pro jednorázovou instalaci a zapnutí obou služeb můžeš použít:
 ```bash
