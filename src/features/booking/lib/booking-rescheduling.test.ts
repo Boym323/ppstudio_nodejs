@@ -15,7 +15,7 @@ process.env.ADMIN_OWNER_EMAIL ??= "owner@example.com";
 process.env.ADMIN_OWNER_PASSWORD ??= "change-me-owner";
 process.env.ADMIN_STAFF_EMAIL ??= "staff@example.com";
 process.env.ADMIN_STAFF_PASSWORD ??= "change-me-staff";
-process.env.EMAIL_DELIVERY_MODE ??= "log";
+process.env.EMAIL_DELIVERY_MODE = "log";
 
 function buildSlot(overrides: Partial<{
   id: string;
