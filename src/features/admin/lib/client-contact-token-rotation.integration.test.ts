@@ -16,6 +16,12 @@ process.env.NEXT_PUBLIC_APP_NAME ??= "PP Studio";
 process.env.NEXT_PUBLIC_APP_URL ??= "https://example.com";
 process.env.DATABASE_URL ??= "postgresql://postgres:postgres@localhost:5432/ppstudio?schema=public";
 process.env.EMAIL_DELIVERY_MODE = "background";
+process.env.EMAIL_TRANSPORT = "smtp";
+process.env.SMTP_HOST = "smtp.example.test";
+process.env.SMTP_PORT = "2525";
+process.env.SMTP_USER = "test-user";
+process.env.SMTP_PASSWORD = "test-password";
+process.env.SMTP_FROM_EMAIL = "noreply@example.test";
 
 const dbTest = process.env.RUN_DB_INTEGRATION_TESTS === "1" ? test : test.skip;
 
