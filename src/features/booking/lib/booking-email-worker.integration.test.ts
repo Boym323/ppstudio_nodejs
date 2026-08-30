@@ -165,6 +165,47 @@ async function findIsolatedReminderWindow(
   return { startsAt, endsAt };
 }
 
+async function findIsolatedReminderAuthorizationWindow(
+  prisma: Awaited<ReturnType<typeof loadModules>>["prisma"],
+  durationMinutes: number,
+) {
+  // Delivery preflight smí pokračovat k autorizační bariéře jen u termínu
+  // nejvýše 26 hodin dopředu. Běžná helper funkce hledá termíny nejdříve za
+  // 14 dní, což je vhodné pro scheduler testy, ale zde by preflight skončil
+  // dříve a test by čekal na nikdy neuvolněnou bariéru. Začínáme o něco dříve,
+  // aby i reschedule o hodinu zůstal v povoleném okně.
+  for (let attempt = 0; attempt < 12; attempt += 1) {
+    const startsAt = new Date(Date.now() + (24 * 60 + 30 + attempt * 5) * 60 * 1000);
+    startsAt.setUTCSeconds(0, 0);
+    const endsAt = addMinutes(startsAt, durationMinutes);
+
+    const [overlappingSlots, overlappingBookings] = await Promise.all([
+      prisma.availabilitySlot.count({
+        where: {
+          startsAt: { lt: endsAt },
+          endsAt: { gt: startsAt },
+        },
+      }),
+      prisma.booking.count({
+        where: {
+          status: { in: [BookingStatus.PENDING, BookingStatus.CONFIRMED] },
+          scheduledStartsAt: { lt: endsAt },
+          OR: [
+            { blockedUntil: { gt: startsAt } },
+            { blockedUntil: null, scheduledEndsAt: { gt: startsAt } },
+          ],
+        },
+      }),
+    ]);
+
+    if (overlappingSlots === 0 && overlappingBookings === 0) {
+      return { startsAt, endsAt };
+    }
+  }
+
+  throw new Error("Nepodařilo se najít izolované reminder window pro autorizační test.");
+}
+
 async function createConfirmedManualBooking(seed: string, startsAt: Date) {
   const { prisma, createManualBooking } = await loadModules();
   const endsAt = addMinutes(startsAt, 60);
@@ -2077,7 +2118,7 @@ dbTest("service-change mezi preflightem a autorizací zneplatní starý reminder
   const seed = randomUUID().slice(0, 8);
   const { prisma, claimEmailLogForImmediateDelivery, deliverEmailLog } = await loadModules();
   const { updateAdminBookingService } = await import("@/features/admin/lib/admin-booking");
-  const window = await findIsolatedReminderWindow(prisma, seed, 60);
+  const window = await findIsolatedReminderAuthorizationWindow(prisma, 60);
   const fixture = await createConfirmedManualBooking(seed, window.startsAt);
   const alternativeService = await createAlternativeService(fixture, seed);
   const oldReminder = await createPendingBookingEmailLog(fixture, {
@@ -2165,7 +2206,7 @@ dbTest("reschedule mezi preflightem a autorizací zneplatní starý reminder", a
   const seed = randomUUID().slice(0, 8);
   const { prisma, claimEmailLogForImmediateDelivery, deliverEmailLog } = await loadModules();
   const { rescheduleBooking } = await import("@/features/booking/lib/booking-rescheduling");
-  const window = await findIsolatedReminderWindow(prisma, seed, 120);
+  const window = await findIsolatedReminderAuthorizationWindow(prisma, 120);
   const fixture = await createConfirmedManualBooking(seed, window.startsAt);
   const nextStartsAt = addMinutes(window.startsAt, 60);
   const nextEndsAt = addMinutes(nextStartsAt, 60);
@@ -2267,7 +2308,7 @@ dbTest("reschedule mezi preflightem a autorizací zneplatní starý reminder", a
 dbTest("stale reminder po retryable failure se při dalším claimu už neodešle", async () => {
   const seed = randomUUID().slice(0, 8);
   const { prisma, claimEmailLogForImmediateDelivery, deliverEmailLog } = await loadModules();
-  const window = await findIsolatedReminderWindow(prisma, seed, 60);
+  const window = await findIsolatedReminderAuthorizationWindow(prisma, 60);
   const fixture = await createConfirmedManualBooking(seed, window.startsAt);
   const emailLog = await createPendingBookingEmailLog(fixture, {
     type: EmailLogType.BOOKING_REMINDER,
