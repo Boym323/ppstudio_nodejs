@@ -961,18 +961,19 @@ dbTest("applyAdminBookingStatusChange serverově odmítne předčasné no-show a
     assert.equal((await prisma.booking.findUniqueOrThrow({ where: { id: booking.id }, select: { status: true } })).status, BookingStatus.CONFIRMED);
     assert.equal((await getAvailability()).scheduleOptimization.bookedIntervals.length, 1);
 
+    const noShowAt = new Date(startsAt.getTime() + 15 * 60 * 1000);
     await prisma.booking.update({
       where: { id: booking.id },
       data: {
         clientDeliveryLeaseToken: "no-show-worker",
-        clientDeliveryLeaseExpiresAt: new Date(Date.now() + 60 * 1000),
+        clientDeliveryLeaseExpiresAt: new Date(noShowAt.getTime() + 60 * 1000),
       },
     });
 
     const blockedByDeliveryLease = await applyAdminBookingStatusChange({
       bookingId: booking.id, targetStatus: BookingStatus.NO_SHOW, actorUserId: owner.id,
       notifyClient: false,
-      now: new Date(startsAt.getTime() + 15 * 60 * 1000),
+      now: noShowAt,
     });
     assert.equal(blockedByDeliveryLease.status, "concurrent-modification");
     assert.deepEqual(
@@ -991,7 +992,7 @@ dbTest("applyAdminBookingStatusChange serverově odmítne předčasné no-show a
     const validResult = await applyAdminBookingStatusChange({
       bookingId: booking.id, targetStatus: BookingStatus.NO_SHOW, actorUserId: owner.id,
       notifyClient: false,
-      now: new Date(startsAt.getTime() + 15 * 60 * 1000),
+      now: noShowAt,
     });
     assert.equal(validResult.status, "success");
     assert.deepEqual(
