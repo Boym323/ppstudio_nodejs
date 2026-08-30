@@ -774,6 +774,60 @@ dbTest("resend aktuálního FAILED booking e-mailu vydá nové tokeny a nový pa
   }
 });
 
+dbTest("tokenizovaný CLIENT resend použije booking snapshot místo master e-mailu", async () => {
+  const seed = randomUUID().slice(0, 8);
+  const { prisma } = await loadModules();
+  const { createResendEmailLog } = await import("@/features/admin/actions/email-log-resend");
+  const window = await findIsolatedWorkerWindow(prisma, seed, 60);
+  const fixture = await createConfirmedManualBooking(seed, window.startsAt);
+  const masterEmail = "master-" + seed + "@example.com";
+
+  try {
+    const booking = await prisma.booking.findUniqueOrThrow({
+      where: { id: fixture.bookingId },
+      select: { clientId: true },
+    });
+    const source = await prisma.emailLog.create({
+      data: {
+        bookingId: fixture.bookingId,
+        clientId: booking.clientId,
+        type: EmailLogType.BOOKING_CONFIRMED,
+        audience: EmailAudience.CLIENT,
+        status: EmailLogStatus.FAILED,
+        recipientEmail: fixture.email,
+        subject: "Rezervace potvrzena",
+        templateKey: "booking-approved-v1",
+        payload: buildBookingEmailPayload(fixture, {
+          manageReservationUrl: "[REDACTED]",
+          cancellationUrl: "[REDACTED]",
+        }),
+      },
+    });
+    const sourceForResend = await prisma.emailLog.findUniqueOrThrow({
+      where: { id: source.id },
+      include: {
+        client: { select: { id: true, email: true } },
+        booking: { select: { id: true, clientEmailSnapshot: true } },
+      },
+    });
+    await prisma.client.update({
+      where: { id: booking.clientId },
+      data: { email: masterEmail },
+    });
+
+    const resend = await createResendEmailLog({ emailLog: sourceForResend });
+
+    assert.ok(resend);
+    assert.equal(resend.recipientEmail, fixture.email);
+  } finally {
+    await prisma.client.updateMany({
+      where: { email: masterEmail },
+      data: { email: fixture.email },
+    });
+    await cleanupBookingFixture(fixture);
+  }
+});
+
 dbTest("resend zastaralého potvrzení nerevokuje aktuální tokeny ani nezaloží nový log", async () => {
   const seed = randomUUID().slice(0, 8);
   const { prisma } = await loadModules();

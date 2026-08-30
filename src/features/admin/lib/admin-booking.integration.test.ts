@@ -1801,7 +1801,7 @@ dbTest("updateAdminBookingService po opuštění enqueue window vytvoří replac
   }
 });
 
-dbTest("updateAdminBookingService uvnitř enqueue window ponechá vytvoření reminderu na scheduleru", async () => {
+dbTest("updateAdminBookingService uvnitř enqueue window založí reminder okamžitě", async () => {
   const [{ prisma }, { updateAdminBookingService }, { runBookingReminderSchedulerOnce }] = await Promise.all([
     import("@/lib/prisma"),
     import("./admin-booking"),
@@ -1830,11 +1830,11 @@ dbTest("updateAdminBookingService uvnitř enqueue window ponechá vytvoření re
       await prisma.emailLog.count({
         where: { bookingId: fixture.booking.id, type: EmailLogType.BOOKING_REMINDER },
       }),
-      0,
+      1,
     );
 
     const schedulerResult = await runBookingReminderSchedulerOnce(now);
-    assert.deepEqual(schedulerResult, { foundBookings: 1, enqueued: 1, failed: 0 });
+    assert.deepEqual(schedulerResult, { foundBookings: 0, enqueued: 0, failed: 0 });
 
     const reminder = await prisma.emailLog.findFirstOrThrow({
       where: { bookingId: fixture.booking.id, type: EmailLogType.BOOKING_REMINDER },

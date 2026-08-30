@@ -49,6 +49,11 @@ export type EnqueueBookingReminder24hJobResult = {
   reason?: string;
 };
 
+type EnqueueBookingReminder24hOptions = {
+  /** Aktualizuj tento aktuální pending log místo zakládání duplicity. */
+  existingPendingReminderId?: string;
+};
+
 export type EnqueueBookingReminder24hResult = {
   foundBookings: number;
   enqueued: number;
@@ -186,7 +191,7 @@ function isCurrentReminderPayload(
     && payload.serviceId === booking.serviceId
     && payload.scheduledStartsAt === booking.scheduledStartsAt.toISOString()
     && payload.scheduledEndsAt === booking.scheduledEndsAt.toISOString()
-    && (!recipientEmail || recipientEmail === booking.clientEmailSnapshot)
+    && (!recipientEmail || recipientEmail.trim() === booking.clientEmailSnapshot.trim())
   );
 }
 
@@ -198,6 +203,7 @@ export async function enqueueBookingReminder24hForBooking(
   tx: Prisma.TransactionClient,
   booking: BookingReminderCandidate,
   now = new Date(),
+  options: EnqueueBookingReminder24hOptions = {},
 ): Promise<EnqueueBookingReminder24hJobResult> {
   const preflight = evaluateBookingReminderDelivery({
     bookingStatus: booking.status,
@@ -228,12 +234,23 @@ export async function enqueueBookingReminder24hForBooking(
       status: EmailLogStatus.PENDING,
     },
     select: {
+      id: true,
       recipientEmail: true,
       payload: true,
     },
   });
 
-  if (pendingReminders.some((reminder) => isCurrentReminderPayload(reminder.payload, booking, reminder.recipientEmail))) {
+  const currentPendingReminder = pendingReminders.find((reminder) => (
+    isCurrentReminderPayload(reminder.payload, booking, reminder.recipientEmail)
+  ));
+
+  if (
+    currentPendingReminder
+    && (
+      !options.existingPendingReminderId
+      || currentPendingReminder.id !== options.existingPendingReminderId
+    )
+  ) {
     return {
       created: false,
       reason: "Current booking reminder is already pending.",
@@ -278,28 +295,36 @@ export async function enqueueBookingReminder24hForBooking(
     },
   });
 
-  await tx.emailLog.create({
-    data: {
-      bookingId: booking.id,
-      clientId: booking.clientId,
-      actionTokenId: manageActionToken.id,
-      type: EmailLogType.BOOKING_REMINDER,
-      audience: EmailAudience.CLIENT,
-      status: env.EMAIL_DELIVERY_MODE === "background" ? undefined : EmailLogStatus.SENT,
-      attemptCount: env.EMAIL_DELIVERY_MODE === "background" ? undefined : 1,
-      nextAttemptAt: env.EMAIL_DELIVERY_MODE === "background" ? now : undefined,
-      processingStartedAt: null,
-      processingToken: null,
-      recipientEmail: booking.clientEmailSnapshot,
-      subject: "Zítra se na vás těšíme v PP Studiu",
-      templateKey: "booking-reminder-24h-v1",
-      payload: env.EMAIL_DELIVERY_MODE === "background"
-        ? reminderPayload
-        : scrubSensitiveEmailPayload(reminderPayload),
-      provider: env.EMAIL_DELIVERY_MODE === "background" ? undefined : "log",
-      sentAt: env.EMAIL_DELIVERY_MODE === "background" ? undefined : now,
-    },
-  });
+  const emailLogData = {
+    bookingId: booking.id,
+    clientId: booking.clientId,
+    actionTokenId: manageActionToken.id,
+    type: EmailLogType.BOOKING_REMINDER,
+    audience: EmailAudience.CLIENT,
+    status: env.EMAIL_DELIVERY_MODE === "background" ? EmailLogStatus.PENDING : EmailLogStatus.SENT,
+    attemptCount: env.EMAIL_DELIVERY_MODE === "background" ? 0 : 1,
+    nextAttemptAt: now,
+    processingStartedAt: null,
+    processingToken: null,
+    recipientEmail: booking.clientEmailSnapshot.trim(),
+    subject: "Zítra se na vás těšíme v PP Studiu",
+    templateKey: "booking-reminder-24h-v1",
+    payload: env.EMAIL_DELIVERY_MODE === "background"
+      ? reminderPayload
+      : scrubSensitiveEmailPayload(reminderPayload),
+    provider: env.EMAIL_DELIVERY_MODE === "background" ? null : "log",
+    sentAt: env.EMAIL_DELIVERY_MODE === "background" ? null : now,
+    errorMessage: null,
+  };
+
+  if (options.existingPendingReminderId) {
+    await tx.emailLog.update({
+      where: { id: options.existingPendingReminderId },
+      data: emailLogData,
+    });
+  } else {
+    await tx.emailLog.create({ data: emailLogData });
+  }
 
   await tx.booking.update({
     where: {

@@ -94,6 +94,18 @@ export async function rotateClientBookingTokensForEmailChange(
     return;
   }
 
+  // Helper rotace tokenů používají i přímé maintenance flow. Snapshot rezervace
+  // proto zůstává autoritativní i tehdy, když ho caller před transakcí ještě
+  // nepropsal.
+  await tx.booking.updateMany({
+    where: { id: { in: activeBookingIds } },
+    data: { clientEmailSnapshot: input.newEmail ?? "" },
+  });
+  const bookingsWithCurrentEmail = activeBookings.map((booking) => ({
+    ...booking,
+    clientEmailSnapshot: input.newEmail ?? "",
+  }));
+
   // Worker claim lock musí být serializovaný se změnou kontaktu; jinak by mohl
   // mezi načtením pending logu a jeho aktualizací převzít starého příjemce.
   await tx.$queryRaw<Array<{ id: string }>>(Prisma.sql`
@@ -155,7 +167,7 @@ export async function rotateClientBookingTokensForEmailChange(
     pendingLogsByBookingId.set(emailLog.bookingId, logs);
   }
 
-  for (const booking of activeBookings) {
+  for (const booking of bookingsWithCurrentEmail) {
     const currentEmail = booking.status === BookingStatus.CONFIRMED
       ? {
           type: EmailLogType.BOOKING_CONFIRMED,
@@ -184,12 +196,18 @@ export async function rotateClientBookingTokensForEmailChange(
         booking,
       }).shouldSend;
     });
+    const reminderWindowPosition = getBookingReminder24hEnqueueWindowPosition(
+      booking.scheduledStartsAt,
+      input.now,
+    );
     const existingReminderLog = input.newEmail
+      && booking.status === BookingStatus.CONFIRMED
+      && booking.reminder24hSentAt === null
+      && reminderWindowPosition !== "before"
       ? pendingLogs.find((emailLog) => {
           if (
             emailLog.type !== EmailLogType.BOOKING_REMINDER
             || emailLog.templateKey !== "booking-reminder-24h-v1"
-            || emailLog.recipientEmail !== input.newEmail
           ) {
             return false;
           }
@@ -214,12 +232,6 @@ export async function rotateClientBookingTokensForEmailChange(
         && emailLog.id !== existingReminderLog?.id
       ))
       .map((emailLog) => emailLog.id);
-    const staleReminderWasSkipped = pendingLogs.some((emailLog) => (
-      emailLog.type === EmailLogType.BOOKING_REMINDER
-      && emailLog.templateKey === "booking-reminder-24h-v1"
-      && obsoletePendingLogIds.includes(emailLog.id)
-    ));
-
     if (!input.newEmail) {
       for (const emailLog of pendingLogs) {
         await systemSkipPendingClientEmailLog(
@@ -230,11 +242,7 @@ export async function rotateClientBookingTokensForEmailChange(
         );
       }
 
-      if (
-        staleReminderWasSkipped
-        && booking.status === BookingStatus.CONFIRMED
-        && booking.reminder24hSentAt === null
-      ) {
+      if (booking.status === BookingStatus.CONFIRMED && booking.reminder24hSentAt === null) {
         await tx.booking.update({
           where: { id: booking.id },
           data: { reminder24hQueuedAt: null },
@@ -252,20 +260,13 @@ export async function rotateClientBookingTokensForEmailChange(
       );
     }
 
-    if (
-      staleReminderWasSkipped
-      && !existingReminderLog
-      && booking.status === BookingStatus.CONFIRMED
-      && booking.reminder24hSentAt === null
-    ) {
+    if (booking.status === BookingStatus.CONFIRMED && booking.reminder24hSentAt === null) {
       await tx.booking.update({
         where: { id: booking.id },
         data: { reminder24hQueuedAt: null },
       });
 
-      if (
-        getBookingReminder24hEnqueueWindowPosition(booking.scheduledStartsAt, input.now) === "after"
-      ) {
+      if (reminderWindowPosition !== "before") {
         await enqueueBookingReminder24hForBooking(tx, {
           id: booking.id,
           clientId: input.clientId,
@@ -276,7 +277,9 @@ export async function rotateClientBookingTokensForEmailChange(
           serviceNameSnapshot: booking.serviceNameSnapshot,
           scheduledStartsAt: booking.scheduledStartsAt,
           scheduledEndsAt: booking.scheduledEndsAt,
-        }, input.now);
+        }, input.now, existingReminderLog
+          ? { existingPendingReminderId: existingReminderLog.id }
+          : undefined);
       }
     }
 
@@ -291,7 +294,7 @@ export async function rotateClientBookingTokensForEmailChange(
       await tx.emailLog.update({
         where: { id: existingEmailLog.id },
         data: {
-          recipientEmail: input.newEmail,
+          recipientEmail: booking.clientEmailSnapshot.trim(),
           actionTokenId: clientTokens.actionTokenId,
           payload: clientPayload,
         },
@@ -318,7 +321,7 @@ export async function rotateClientBookingTokensForEmailChange(
         nextAttemptAt: env.EMAIL_DELIVERY_MODE === "background" ? input.now : undefined,
         processingStartedAt: null,
         processingToken: null,
-        recipientEmail: input.newEmail,
+        recipientEmail: booking.clientEmailSnapshot.trim(),
         subject: currentEmail.subject,
         templateKey: currentEmail.templateKey,
         payload: env.EMAIL_DELIVERY_MODE === "background"

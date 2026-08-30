@@ -1038,7 +1038,7 @@ async function rescheduleBookingInTransaction(
 
   if (
     booking.status === BookingStatus.CONFIRMED
-    && reminderWindowPosition === "after"
+    && reminderWindowPosition !== "before"
   ) {
     await enqueueBookingReminder24hForBooking(tx, {
       id: booking.id,

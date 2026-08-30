@@ -274,21 +274,27 @@ export async function createResendEmailLog(input: {
         });
       }
 
-      if (!currentClient && emailLog.bookingId) {
+      if (emailLog.bookingId) {
         currentBooking = await loadCurrentResendBooking(
           tx,
           emailLog.bookingId,
-          tokenPayloadKind === "client",
+          true,
         );
+
+        if (!currentBooking) {
+          return null;
+        }
       }
 
-      recipientEmail = resolveEmailLogRecipient({
-        audience: EmailAudience.CLIENT,
-        clientIsAvailable: currentClient !== null,
-        clientEmail: currentClient?.email ?? null,
-        bookingClientEmailSnapshot: currentBooking?.clientEmailSnapshot ?? null,
-        originalRecipientEmail: emailLog.recipientEmail,
-      });
+      recipientEmail = emailLog.bookingId
+        ? currentBooking?.clientEmailSnapshot.trim() || null
+        : resolveEmailLogRecipient({
+            audience: EmailAudience.CLIENT,
+            clientIsAvailable: currentClient !== null,
+            clientEmail: currentClient?.email ?? null,
+            bookingClientEmailSnapshot: null,
+            originalRecipientEmail: emailLog.recipientEmail,
+          });
       if (!recipientEmail) return null;
     }
 

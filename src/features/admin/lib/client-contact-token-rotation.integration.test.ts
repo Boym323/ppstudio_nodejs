@@ -694,7 +694,7 @@ dbTest("změna e-mailu zachová lifecycle neodeslaného 24h reminderu", async ()
     const inside = await createFixture("inside", 25.5);
     const insideEmail = `reminder-inside-new-${suffix}@example.test`;
     await rotate(inside, insideEmail);
-    assert.equal((await prisma.booking.findUniqueOrThrow({ where: { id: inside.booking.id } })).reminder24hQueuedAt, null);
+    assert.ok((await prisma.booking.findUniqueOrThrow({ where: { id: inside.booking.id } })).reminder24hQueuedAt);
     await runBookingReminderSchedulerOnce(now);
     const insideReminder = await prisma.emailLog.findFirstOrThrow({
       where: { bookingId: inside.booking.id, type: EmailLogType.BOOKING_REMINDER, status: EmailLogStatus.PENDING },
@@ -708,10 +708,8 @@ dbTest("změna e-mailu zachová lifecycle neodeslaného 24h reminderu", async ()
       where: { bookingId: after.booking.id, type: EmailLogType.BOOKING_REMINDER },
       orderBy: { createdAt: "asc" },
     });
-    assert.equal(afterLogs.length, 2);
-    assert.equal(afterLogs[0]?.status, EmailLogStatus.SENT);
-    assert.equal(afterLogs[0]?.provider, "system-skip");
-    const replacement = afterLogs[1]!;
+    assert.equal(afterLogs.length, 1);
+    const replacement = afterLogs[0]!;
     assert.equal(replacement.status, EmailLogStatus.PENDING);
     assert.equal(replacement.recipientEmail, afterEmail);
     const replacementPayload = replacement.payload as Record<string, unknown>;
@@ -719,6 +717,8 @@ dbTest("změna e-mailu zachová lifecycle neodeslaného 24h reminderu", async ()
     assert.equal(replacementPayload.serviceId, service.id);
     assert.equal(replacementPayload.scheduledStartsAt, after.startsAt.toISOString());
     assert.equal(replacementPayload.scheduledEndsAt, after.endsAt.toISOString());
+    assert.match(String(replacementPayload.manageReservationUrl), /\/rezervace\/sprava\//);
+    assert.match(String(replacementPayload.cancellationUrl), /\/rezervace\/storno\//);
     assert.equal((await prisma.booking.findUniqueOrThrow({ where: { id: after.booking.id } })).clientEmailSnapshot, afterEmail);
     assert.ok((await prisma.booking.findUniqueOrThrow({ where: { id: after.booking.id } })).reminder24hQueuedAt);
 
@@ -757,7 +757,7 @@ dbTest("změna e-mailu zachová lifecycle neodeslaného 24h reminderu", async ()
     assert.equal(rapidPending[0]?.recipientEmail, rapidC);
     assert.equal(
       await prisma.emailLog.count({ where: { bookingId: rapid.booking.id, provider: "system-skip" } }),
-      2,
+      0,
     );
 
     const rollback = await createFixture("rollback", 30);

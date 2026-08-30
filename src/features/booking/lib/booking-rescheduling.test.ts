@@ -761,10 +761,18 @@ describe("reschedule booking", () => {
     });
   });
 
-  test("uvnitř enqueue window nechá reminder na scheduleru", async () => {
-    const { harness } = await rescheduleToRelativeTarget(25.5);
+  test("uvnitř enqueue window založí reminder okamžitě", async () => {
+    const { harness, startsAt, endsAt } = await rescheduleToRelativeTarget(25.5);
 
-    assert.equal(harness.calls.emailLogCreate.length, 0);
+    assert.equal(harness.calls.emailLogCreate.length, 1);
+    assert.equal(harness.calls.actionTokenCreate.length, 2);
+    const reminderLog = harness.calls.emailLogCreate[0]?.data as {
+      type: string;
+      payload: Record<string, unknown>;
+    };
+    assert.equal(reminderLog.type, "BOOKING_REMINDER");
+    assert.equal(reminderLog.payload.scheduledStartsAt, startsAt.toISOString());
+    assert.equal(reminderLog.payload.scheduledEndsAt, endsAt.toISOString());
     assert.equal((harness.calls.bookingUpdate[0]?.data as { reminder24hQueuedAt: null }).reminder24hQueuedAt, null);
     assert.equal((harness.calls.bookingUpdate[0]?.data as { reminder24hSentAt: null }).reminder24hSentAt, null);
   });

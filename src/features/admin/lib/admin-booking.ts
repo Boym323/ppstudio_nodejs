@@ -468,7 +468,7 @@ export async function updateAdminBookingService({
     const shouldEnqueueReplacementReminder = (
       booking.status === BookingStatus.CONFIRMED
       && booking.reminder24hSentAt === null
-      && reminderWindowPosition === "after"
+      && reminderWindowPosition !== "before"
     );
     const oldBlockedUntil = booking.blockedUntil ?? booking.scheduledEndsAt;
     const lifecycleRangeEnd = new Date(Math.max(oldBlockedUntil.getTime(), nextBlockedUntil.getTime()));
