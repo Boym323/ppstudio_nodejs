@@ -48,6 +48,7 @@ type LoadedBookingActionToken = {
     clientId: string;
     slotId: string;
     serviceId: string;
+    communicationGeneration: number;
     clientNameSnapshot: string;
     clientEmailSnapshot: string;
     serviceNameSnapshot: string;
@@ -196,6 +197,7 @@ async function findActionToken(tokenHash: string) {
           clientId: true,
           slotId: true,
           serviceId: true,
+          communicationGeneration: true,
           clientNameSnapshot: true,
           clientEmailSnapshot: true,
           serviceNameSnapshot: true,
@@ -403,6 +405,7 @@ export async function performBookingEmailAction(
               clientId: true,
               slotId: true,
               serviceId: true,
+              communicationGeneration: true,
               clientNameSnapshot: true,
               clientEmailSnapshot: true,
               serviceNameSnapshot: true,
@@ -557,6 +560,7 @@ export async function performBookingEmailAction(
             nextAttemptAt: env.EMAIL_DELIVERY_MODE === "background" ? now : undefined,
             processingStartedAt: null,
             processingToken: null,
+            communicationGeneration: lockedToken.booking?.communicationGeneration,
             recipientEmail: clientEmail,
             subject:
               targetStatus === BookingStatus.CONFIRMED

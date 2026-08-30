@@ -77,6 +77,7 @@ type LoadedCancellationToken = {
     clientId: string;
     slotId: string;
     clientEmailSnapshot: string;
+    communicationGeneration: number;
     clientNameSnapshot: string;
     serviceNameSnapshot: string;
     scheduledStartsAt: Date;
@@ -142,6 +143,7 @@ async function findCancellationToken(tokenHash: string) {
           clientId: true,
           slotId: true,
           clientEmailSnapshot: true,
+          communicationGeneration: true,
           clientNameSnapshot: true,
           serviceNameSnapshot: true,
           scheduledStartsAt: true,
@@ -286,6 +288,7 @@ export async function cancelPublicBookingByToken(rawToken: string): Promise<Canc
               clientId: true,
               slotId: true,
               clientEmailSnapshot: true,
+              communicationGeneration: true,
               clientNameSnapshot: true,
               serviceNameSnapshot: true,
               scheduledStartsAt: true,
@@ -372,6 +375,7 @@ export async function cancelPublicBookingByToken(rawToken: string): Promise<Canc
           nextAttemptAt: env.EMAIL_DELIVERY_MODE === "background" ? now : undefined,
           processingStartedAt: null,
           processingToken: null,
+          communicationGeneration: lockedToken.booking.communicationGeneration,
           recipientEmail: lockedToken.booking.clientEmailSnapshot,
           subject: `Storno potvrzeno: ${lockedToken.booking.serviceNameSnapshot}`,
           templateKey: "booking-cancelled-v1",

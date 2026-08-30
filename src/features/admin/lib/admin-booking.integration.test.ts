@@ -1884,6 +1884,7 @@ dbTest("enqueue helper nereplikuje aktuální PENDING reminder", async () => {
       id: fixture.booking.id,
       clientId: fixture.client.id,
       clientEmailSnapshot: `client-service-change-${suffix}@example.com`,
+      communicationGeneration: 1,
       clientNameSnapshot: `Klientka změny služby ${suffix}`,
       status: BookingStatus.CONFIRMED,
       serviceId: fixture.originalService.id,

@@ -20,6 +20,7 @@ import {
   evaluateBookingEmailPreflight,
 } from "@/lib/email/booking-preflight";
 import { scrubSensitiveEmailPayload } from "@/lib/email/payload-security";
+import { hasActiveClientDeliveryLease } from "@/lib/email/booking-delivery-fence";
 
 async function systemSkipPendingClientEmailLog(
   tx: Prisma.TransactionClient,
@@ -71,7 +72,7 @@ export async function rotateClientBookingTokensForEmailChange(
     return;
   }
 
-  const activeBookings = await tx.booking.findMany({
+  let activeBookings = await tx.booking.findMany({
     where: {
       clientId: input.clientId,
       id: {
@@ -94,6 +95,9 @@ export async function rotateClientBookingTokensForEmailChange(
       scheduledEndsAt: true,
       intendedVoucherCodeSnapshot: true,
       clientEmailSnapshot: true,
+      communicationGeneration: true,
+      clientDeliveryLeaseToken: true,
+      clientDeliveryLeaseExpiresAt: true,
       reminder24hQueuedAt: true,
       reminder24hSentAt: true,
     },
@@ -104,16 +108,59 @@ export async function rotateClientBookingTokensForEmailChange(
     return;
   }
 
+  // Contact rotation and delivery authorization use the same Booking lock.
+  // After taking it, refresh the rows so a lease committed concurrently is
+  // observed before the snapshot/generation mutation.
+  await tx.$queryRaw<Array<{ id: string }>>(Prisma.sql`
+    SELECT "id"
+    FROM "Booking"
+    WHERE "id" IN (${Prisma.join(activeBookingIds)})
+    ORDER BY "id"
+    FOR UPDATE
+  `);
+  activeBookings = await tx.booking.findMany({
+    where: {
+      clientId: input.clientId,
+      id: { in: activeBookingIds },
+      status: { in: [BookingStatus.PENDING, BookingStatus.CONFIRMED] },
+      scheduledStartsAt: { gte: input.now },
+    },
+    select: {
+      id: true,
+      status: true,
+      serviceId: true,
+      serviceNameSnapshot: true,
+      clientNameSnapshot: true,
+      scheduledStartsAt: true,
+      scheduledEndsAt: true,
+      intendedVoucherCodeSnapshot: true,
+      clientEmailSnapshot: true,
+      communicationGeneration: true,
+      clientDeliveryLeaseToken: true,
+      clientDeliveryLeaseExpiresAt: true,
+      reminder24hQueuedAt: true,
+      reminder24hSentAt: true,
+    },
+  });
+
+  if (activeBookings.some((booking) => hasActiveClientDeliveryLease(booking, input.now))) {
+    throw new Error("Nelze změnit kontakt během autorizovaného odesílání klientského e-mailu.");
+  }
+
   // Helper rotace tokenů používají i přímé maintenance flow. Snapshot rezervace
   // proto zůstává autoritativní i tehdy, když ho caller před transakcí ještě
   // nepropsal.
   await tx.booking.updateMany({
     where: { id: { in: activeBookingIds } },
-    data: { clientEmailSnapshot: input.newEmail ?? "" },
+    data: {
+      clientEmailSnapshot: input.newEmail ?? "",
+      communicationGeneration: { increment: 1 },
+    },
   });
   const bookingsWithCurrentEmail = activeBookings.map((booking) => ({
     ...booking,
     clientEmailSnapshot: input.newEmail ?? "",
+    communicationGeneration: booking.communicationGeneration + 1,
   }));
 
   // Worker claim lock musí být serializovaný se změnou kontaktu; jinak by mohl
@@ -158,6 +205,7 @@ export async function rotateClientBookingTokensForEmailChange(
     orderBy: [{ createdAt: "desc" }, { id: "desc" }],
     select: {
       id: true,
+      communicationGeneration: true,
       bookingId: true,
       type: true,
       templateKey: true,
@@ -281,6 +329,7 @@ export async function rotateClientBookingTokensForEmailChange(
           id: booking.id,
           clientId: input.clientId,
           clientEmailSnapshot: booking.clientEmailSnapshot,
+          communicationGeneration: booking.communicationGeneration,
           clientNameSnapshot: booking.clientNameSnapshot,
           status: booking.status,
           serviceId: booking.serviceId,
@@ -305,6 +354,7 @@ export async function rotateClientBookingTokensForEmailChange(
         where: { id: existingEmailLog.id },
         data: {
           recipientEmail: booking.clientEmailSnapshot.trim(),
+          communicationGeneration: booking.communicationGeneration,
           actionTokenId: clientTokens.actionTokenId,
           payload: clientPayload,
         },
@@ -332,6 +382,7 @@ export async function rotateClientBookingTokensForEmailChange(
         processingStartedAt: null,
         processingToken: null,
         recipientEmail: booking.clientEmailSnapshot.trim(),
+        communicationGeneration: booking.communicationGeneration,
         subject: currentEmail.subject,
         templateKey: currentEmail.templateKey,
         payload: env.EMAIL_DELIVERY_MODE === "background"

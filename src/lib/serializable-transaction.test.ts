@@ -23,6 +23,20 @@ function serializableConflict() {
   });
 }
 
+function rawSerializableConflict() {
+  return new Prisma.PrismaClientKnownRequestError("Raw query failed. Code: `40001`", {
+    code: "P2010",
+    clientVersion: "test",
+  });
+}
+
+function driverAdapterSerializableConflict() {
+  return {
+    name: "DriverAdapterError",
+    cause: { kind: "TransactionWriteConflict" },
+  };
+}
+
 function mockTransaction(
   t: test.TestContext,
   prisma: { $transaction: unknown },
@@ -64,6 +78,34 @@ test("runSerializableTransaction zopakuje P2034 a následně uspěje", async (t)
   assert.equal(await runSerializableTransaction(async () => {
     calls += 1;
     if (calls === 1) throw serializableConflict();
+    return "hotovo";
+  }), "hotovo");
+  assert.equal(calls, 2);
+});
+
+test("runSerializableTransaction zopakuje P2010 s PostgreSQL 40001 a následně uspěje", async (t) => {
+  let calls = 0;
+  const { prisma, runSerializableTransaction } = await loadTransactionHelper();
+  skipRetryDelay(t);
+  mockTransaction(t, prisma, async (operation) => operation({} as Prisma.TransactionClient));
+
+  assert.equal(await runSerializableTransaction(async () => {
+    calls += 1;
+    if (calls === 1) throw rawSerializableConflict();
+    return "hotovo";
+  }), "hotovo");
+  assert.equal(calls, 2);
+});
+
+test("runSerializableTransaction zopakuje DriverAdapterError s TransactionWriteConflict", async (t) => {
+  let calls = 0;
+  const { prisma, runSerializableTransaction } = await loadTransactionHelper();
+  skipRetryDelay(t);
+  mockTransaction(t, prisma, async (operation) => operation({} as Prisma.TransactionClient));
+
+  assert.equal(await runSerializableTransaction(async () => {
+    calls += 1;
+    if (calls === 1) throw driverAdapterSerializableConflict();
     return "hotovo";
   }), "hotovo");
   assert.equal(calls, 2);

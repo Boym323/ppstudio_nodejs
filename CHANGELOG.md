@@ -6,6 +6,16 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [3.25.0] - 2026-08-30
+
+### Zabezpečení
+
+- Klientské booking e-maily a 24h reminder nyní používají generaci komunikace a krátký delivery fence; změna kontaktu, služby nebo termínu proto zneplatní i claimnutý starý job bez držení databázového locku přes provider HTTP.
+
+### Opraveno
+
+- Starý reminder už nemůže po úspěšném provider delivery označit novou reminder generaci jako `SENT`; stale retry skončí systémovým přeskočením.
+
 ## [3.24.0] - 2026-08-30
 
 ### Zabezpečení

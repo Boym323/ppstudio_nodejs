@@ -512,6 +512,9 @@ model Booking {
   status                      BookingStatus             @default(PENDING)
   clientNameSnapshot          String
   clientEmailSnapshot         String
+  communicationGeneration     Int                       @default(1)
+  clientDeliveryLeaseToken    String?
+  clientDeliveryLeaseExpiresAt DateTime?
   clientPhoneSnapshot         String?
   serviceNameSnapshot         String
   serviceDurationMinutes      Int
@@ -746,6 +749,7 @@ model EmailLog {
   nextAttemptAt                  DateTime                             @default(now())
   processingStartedAt            DateTime?
   processingToken                String?
+  communicationGeneration        Int                                  @default(1)
   recipientEmail                 String
   subject                        String
   templateKey                    String

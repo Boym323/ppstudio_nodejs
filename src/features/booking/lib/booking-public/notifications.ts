@@ -23,6 +23,7 @@ export async function createNotificationEmailLogs(
   input: {
     bookingId: string;
     clientId: string;
+    communicationGeneration: number;
     clientName: string;
     clientEmail: string;
     clientPhone?: string;
@@ -109,6 +110,7 @@ export async function createNotificationEmailLogs(
         nextAttemptAt: env.EMAIL_DELIVERY_MODE === "background" ? input.now : undefined,
         processingStartedAt: null,
         processingToken: null,
+        communicationGeneration: input.communicationGeneration,
         recipientEmail: input.clientEmail,
         subject:
           input.status === BookingStatus.CONFIRMED

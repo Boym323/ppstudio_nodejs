@@ -48,6 +48,7 @@ type CurrentResendBooking = Prisma.BookingGetPayload<{
     clientEmailSnapshot: true;
     status: true;
     serviceId: true;
+    communicationGeneration: true;
     scheduledStartsAt: true;
     scheduledEndsAt: true;
   };
@@ -98,6 +99,7 @@ async function loadCurrentResendBooking(
       clientEmailSnapshot: true,
       status: true,
       serviceId: true,
+      communicationGeneration: true,
       scheduledStartsAt: true,
       scheduledEndsAt: true,
     },
@@ -284,6 +286,10 @@ export async function createResendEmailLog(input: {
         if (!currentBooking) {
           return null;
         }
+
+        if (emailLog.communicationGeneration !== currentBooking.communicationGeneration) {
+          return null;
+        }
       }
 
       recipientEmail = emailLog.bookingId
@@ -347,6 +353,7 @@ export async function createResendEmailLog(input: {
         }),
         bookingId: emailLog.bookingId,
         clientId: emailLog.clientId,
+        communicationGeneration: currentBooking?.communicationGeneration,
         actionTokenId: tokenPayload?.actionTokenId ?? emailLog.actionTokenId,
         type: emailLog.type,
         audience: emailLog.audience,

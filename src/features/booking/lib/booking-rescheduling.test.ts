@@ -84,6 +84,7 @@ function buildBooking(overrides: Partial<{
     clientId: "client-1",
     clientNameSnapshot: "Jana Nováková",
     clientEmailSnapshot: overrides.clientEmailSnapshot ?? "jana@example.com",
+    communicationGeneration: 1,
     clientPhoneSnapshot: "+420777000000",
     clientNote: null,
     manualOverride: overrides.manualOverride ?? false,
@@ -125,6 +126,7 @@ async function createHarness(overrides: Partial<{
     actionTokenCreate: [] as Array<Record<string, unknown>>,
     actionTokenUpdateMany: [] as Array<Record<string, unknown>>,
     emailLogCreate: [] as Array<Record<string, unknown>>,
+    emailLogUpdate: [] as Array<Record<string, unknown>>,
     notification: [] as Array<Record<string, unknown>>,
     pushover: [] as Array<Record<string, unknown>>,
   };
@@ -196,7 +198,15 @@ async function createHarness(overrides: Partial<{
       },
     },
     emailLog: {
-      findMany: async () => (overrides.pendingReminderPayloads ?? []).map((payload) => ({ payload })),
+      findMany: async () => (overrides.pendingReminderPayloads ?? []).map((payload) => ({
+        payload,
+        communicationGeneration: 1,
+        recipientEmail: "jana@example.com",
+        processingStartedAt: null,
+      })),
+      update: async (input: Record<string, unknown>) => {
+        calls.emailLogUpdate.push(input);
+      },
       create: async (input: Record<string, unknown>) => {
         if (overrides.failEmailLog) {
           throw new Error("EmailLog create failed");
@@ -219,6 +229,7 @@ async function createHarness(overrides: Partial<{
     calls.actionTokenCreate,
     calls.actionTokenUpdateMany,
     calls.emailLogCreate,
+    calls.emailLogUpdate,
   ];
 
   const api = createBookingReschedulingApi({
@@ -566,6 +577,9 @@ describe("state validation", () => {
       },
       reminder24hQueuedAt: null,
       reminder24hSentAt: null,
+      communicationGeneration: {
+        increment: 1,
+      },
     });
   });
 
@@ -619,6 +633,9 @@ describe("state validation", () => {
       },
       reminder24hQueuedAt: null,
       reminder24hSentAt: null,
+      communicationGeneration: {
+        increment: 1,
+      },
     });
   });
 
@@ -758,6 +775,7 @@ describe("reschedule booking", () => {
       rescheduleCount: { increment: 1 },
       reminder24hQueuedAt: null,
       reminder24hSentAt: null,
+      communicationGeneration: { increment: 1 },
     });
   });
 

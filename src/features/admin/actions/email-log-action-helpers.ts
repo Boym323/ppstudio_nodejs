@@ -62,6 +62,7 @@ export function buildResendEmailLogCreateInput(input: {
   subject: string;
   templateKey: string;
   payload: Prisma.JsonValue | null;
+  communicationGeneration?: number;
   now?: Date;
 }) {
   const shouldBypassReminderPreflight = input.type === EmailLogType.BOOKING_REMINDER;
@@ -91,6 +92,7 @@ export function buildResendEmailLogCreateInput(input: {
     recipientEmail: input.recipientEmail,
     subject: input.subject,
     templateKey: input.templateKey,
+    communicationGeneration: input.communicationGeneration,
     payload: payloadWithOverride === null ? undefined : (payloadWithOverride as Prisma.InputJsonValue),
     provider: null,
     providerMessageId: null,

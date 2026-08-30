@@ -34,6 +34,7 @@ export type BookingReminderCandidate = {
   id: string;
   clientId: string;
   clientEmailSnapshot: string;
+  communicationGeneration: number;
   clientNameSnapshot: string;
   status: BookingStatus;
   serviceId: string;
@@ -114,6 +115,7 @@ export async function getBookingsFor24hReminder(now = new Date()): Promise<Booki
       id: true,
       clientId: true,
       clientEmailSnapshot: true,
+      communicationGeneration: true,
       clientNameSnapshot: true,
       status: true,
       serviceId: true,
@@ -167,6 +169,7 @@ async function claimNextBookingFor24hReminder(
       id: true,
       clientId: true,
       clientEmailSnapshot: true,
+      communicationGeneration: true,
       clientNameSnapshot: true,
       status: true,
       serviceId: true,
@@ -232,10 +235,13 @@ export async function enqueueBookingReminder24hForBooking(
       type: EmailLogType.BOOKING_REMINDER,
       audience: EmailAudience.CLIENT,
       status: EmailLogStatus.PENDING,
+      processingStartedAt: null,
     },
     select: {
       id: true,
+      communicationGeneration: true,
       recipientEmail: true,
+      processingStartedAt: true,
       payload: true,
     },
   });
@@ -246,11 +252,32 @@ export async function enqueueBookingReminder24hForBooking(
 
   if (
     currentPendingReminder
+    && currentPendingReminder.communicationGeneration === booking.communicationGeneration
     && (
       !options.existingPendingReminderId
       || currentPendingReminder.id !== options.existingPendingReminderId
     )
   ) {
+    return {
+      created: false,
+      reason: "Current booking reminder is already pending.",
+    };
+  }
+
+  if (currentPendingReminder && !options.existingPendingReminderId) {
+    // A same-term reschedule can invalidate the generation without changing
+    // the reminder payload. Reuse the unclaimed outbox row, but move it to the
+    // new authoritative generation instead of creating a duplicate.
+    await tx.emailLog.update({
+      where: { id: currentPendingReminder.id },
+      data: {
+        communicationGeneration: booking.communicationGeneration,
+        recipientEmail: booking.clientEmailSnapshot.trim(),
+        nextAttemptAt: now,
+        errorMessage: null,
+      },
+    });
+
     return {
       created: false,
       reason: "Current booking reminder is already pending.",
@@ -268,6 +295,7 @@ export async function enqueueBookingReminder24hForBooking(
     clientName: booking.clientNameSnapshot,
     scheduledStartsAt: booking.scheduledStartsAt.toISOString(),
     scheduledEndsAt: booking.scheduledEndsAt.toISOString(),
+    communicationGeneration: booking.communicationGeneration,
     manageReservationUrl,
     cancellationUrl,
   };
@@ -309,6 +337,7 @@ export async function enqueueBookingReminder24hForBooking(
     recipientEmail: booking.clientEmailSnapshot.trim(),
     subject: "Zítra se na vás těšíme v PP Studiu",
     templateKey: "booking-reminder-24h-v1",
+    communicationGeneration: booking.communicationGeneration,
     payload: env.EMAIL_DELIVERY_MODE === "background"
       ? reminderPayload
       : scrubSensitiveEmailPayload(reminderPayload),
@@ -407,10 +436,21 @@ export async function enqueueBookingReminder24hJobs(
   return result;
 }
 
-export async function markBookingReminder24hSent(bookingId: string, sentAt: Date) {
-  await prisma.booking.updateMany({
+export async function markBookingReminder24hSent(
+  bookingId: string,
+  sentAt: Date,
+  identity: {
+    communicationGeneration: number;
+    recipientEmail: string;
+    deliveryLeaseToken: string;
+  },
+) {
+  return prisma.booking.updateMany({
     where: {
       id: bookingId,
+      communicationGeneration: identity.communicationGeneration,
+      clientEmailSnapshot: identity.recipientEmail,
+      clientDeliveryLeaseToken: identity.deliveryLeaseToken,
       reminder24hSentAt: null,
     },
     data: {

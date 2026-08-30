@@ -38,6 +38,7 @@ import {
 } from "@/features/booking/lib/booking-reminders";
 import { prisma } from "@/lib/prisma";
 import { scrubSensitiveEmailPayload } from "@/lib/email/payload-security";
+import { hasActiveClientDeliveryLease } from "@/lib/email/booking-delivery-fence";
 import { runSerializableTransaction } from "@/lib/serializable-transaction";
 
 export {
@@ -131,6 +132,7 @@ export async function applyAdminBookingStatusChangeInTransaction(
         manualOverride: true,
         clientNameSnapshot: true,
         clientEmailSnapshot: true,
+        communicationGeneration: true,
         serviceNameSnapshot: true,
         scheduledStartsAt: true,
         scheduledEndsAt: true,
@@ -269,6 +271,7 @@ export async function applyAdminBookingStatusChangeInTransaction(
           nextAttemptAt: env.EMAIL_DELIVERY_MODE === "background" ? now : undefined,
           processingStartedAt: null,
           processingToken: null,
+          communicationGeneration: booking.communicationGeneration,
           recipientEmail: clientEmail,
           subject: `Rezervace potvrzena: ${booking.serviceNameSnapshot}`,
           templateKey: "booking-approved-v1",
@@ -305,6 +308,7 @@ export async function applyAdminBookingStatusChangeInTransaction(
           nextAttemptAt: env.EMAIL_DELIVERY_MODE === "background" ? now : undefined,
           processingStartedAt: null,
           processingToken: null,
+          communicationGeneration: booking.communicationGeneration,
           recipientEmail: clientEmail,
           subject: `Storno potvrzeno: ${booking.serviceNameSnapshot}`,
           templateKey: "booking-cancelled-v1",
@@ -405,12 +409,19 @@ export async function updateAdminBookingService({
         finalPriceCzk: true,
         intendedVoucherId: true,
         reminder24hSentAt: true,
+        communicationGeneration: true,
+        clientDeliveryLeaseToken: true,
+        clientDeliveryLeaseExpiresAt: true,
         updatedAt: true,
       },
     });
 
     if (!booking) {
       return { status: "not-found" as const };
+    }
+
+    if (hasActiveClientDeliveryLease(booking, inputNow ?? new Date())) {
+      return { status: "concurrent-modification" as const };
     }
 
     if (booking.status !== BookingStatus.PENDING && booking.status !== BookingStatus.CONFIRMED) {
@@ -753,6 +764,7 @@ export async function updateAdminBookingService({
         servicePriceFromCzk: nextService.priceFromCzk,
         scheduledEndsAt: nextScheduledEndsAt,
         blockedUntil: nextBlockedUntil,
+        communicationGeneration: { increment: 1 },
         reminder24hQueuedAt: booking.reminder24hSentAt === null ? null : undefined,
       },
     });
@@ -762,6 +774,7 @@ export async function updateAdminBookingService({
         id: booking.id,
         clientId: booking.clientId,
         clientEmailSnapshot: booking.clientEmailSnapshot,
+        communicationGeneration: booking.communicationGeneration + 1,
         clientNameSnapshot: booking.clientNameSnapshot,
         status: booking.status,
         serviceId: nextService.id,

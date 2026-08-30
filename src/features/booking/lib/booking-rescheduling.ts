@@ -30,6 +30,7 @@ import {
 import { sendOwnerBookingPushover, sendOwnerSystemErrorPushover } from "@/lib/notifications/pushover";
 import { prisma } from "@/lib/prisma";
 import { scrubSensitiveEmailPayload } from "@/lib/email/payload-security";
+import { hasActiveClientDeliveryLease } from "@/lib/email/booking-delivery-fence";
 import { getBookingPolicySettings, getEmailBrandingSettings, isBookingWithinWindow } from "@/lib/site-settings";
 import { resolveBookingTimingSnapshot } from "./booking-cleanup";
 import { canPreserveAutoLunchForBooking } from "./booking-auto-lunch-enforcement";
@@ -125,6 +126,7 @@ type BookingSlotRecord = {
 type RescheduleTransactionResult = {
   bookingId: string;
   serviceId: string;
+  communicationGeneration: number;
   serviceName: string;
   clientId: string;
   clientName: string;
@@ -142,6 +144,7 @@ type BookingRescheduledNotificationInput = {
   bookingId: string;
   clientId: string;
   serviceId: string;
+  communicationGeneration?: number;
   clientEmail: string;
   clientName: string;
   serviceName: string;
@@ -537,6 +540,7 @@ async function createBookingRescheduledClientEmailLog(
       nextAttemptAt: env.EMAIL_DELIVERY_MODE === "background" ? now : undefined,
       processingStartedAt: null,
       processingToken: null,
+      communicationGeneration: input.communicationGeneration,
       recipientEmail: input.clientEmail,
       subject: `Změna termínu rezervace: ${input.serviceName}`,
       templateKey: "booking-rescheduled-v1",
@@ -627,6 +631,9 @@ async function rescheduleBookingInTransaction(
       clientId: true,
       clientNameSnapshot: true,
       clientEmailSnapshot: true,
+      communicationGeneration: true,
+      clientDeliveryLeaseToken: true,
+      clientDeliveryLeaseExpiresAt: true,
       clientPhoneSnapshot: true,
       clientNote: true,
       manualOverride: true,
@@ -663,6 +670,13 @@ async function rescheduleBookingInTransaction(
     throw new BookingRescheduleError(
       bookingRescheduleErrorCodes.notFound,
       "Rezervaci se nepodařilo najít.",
+    );
+  }
+
+  if (hasActiveClientDeliveryLease(booking, new Date())) {
+    throw new BookingRescheduleError(
+      bookingRescheduleErrorCodes.concurrentModification,
+      "Rezervace se právě zpracovává pro odeslání klientského e-mailu. Obnovte detail a zkuste to znovu.",
     );
   }
 
@@ -1027,6 +1041,7 @@ async function rescheduleBookingInTransaction(
         ? resolvedCoverageSlots.at(-1)?.endsAt ?? resolvedSlot.endsAt
         : null,
       manualOverride,
+      communicationGeneration: { increment: 1 },
       rescheduledAt,
       rescheduleCount: {
         increment: 1,
@@ -1044,6 +1059,7 @@ async function rescheduleBookingInTransaction(
       id: booking.id,
       clientId: booking.clientId,
       clientEmailSnapshot: booking.clientEmailSnapshot,
+      communicationGeneration: booking.communicationGeneration + 1,
       clientNameSnapshot: booking.clientNameSnapshot,
       status: booking.status,
       serviceId: booking.serviceId,
@@ -1092,6 +1108,7 @@ async function rescheduleBookingInTransaction(
         bookingId: booking.id,
         clientId: booking.clientId,
         serviceId: booking.serviceId,
+        communicationGeneration: booking.communicationGeneration + 1,
         clientEmail: booking.clientEmailSnapshot,
         clientName: booking.clientNameSnapshot,
         serviceName: booking.serviceNameSnapshot,
@@ -1107,6 +1124,7 @@ async function rescheduleBookingInTransaction(
   return {
     bookingId: booking.id,
     serviceId: booking.serviceId,
+    communicationGeneration: booking.communicationGeneration + 1,
     serviceName: booking.serviceNameSnapshot,
     clientId: booking.clientId,
     clientName: booking.clientNameSnapshot,

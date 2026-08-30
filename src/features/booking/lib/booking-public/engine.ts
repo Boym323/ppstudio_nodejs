@@ -820,6 +820,7 @@ export async function createBookingWithEngine(
           const notifications = await createNotificationEmailLogs(tx, {
             bookingId: booking.id,
             clientId: client.id,
+            communicationGeneration: 1,
             clientName: normalizedFullName,
             clientEmail: normalizedEmail,
             clientPhone: normalizedPhone,
