@@ -57,6 +57,7 @@ async function loadModules() {
     import("./booking-public"),
     import("@/lib/email/delivery"),
   ]);
+  const actionTokenModule = await import("./booking-action-tokens");
 
   return {
     prisma,
@@ -67,6 +68,10 @@ async function loadModules() {
     AvailabilitySlotStatus: clientModule.AvailabilitySlotStatus,
     EmailAudience: clientModule.EmailAudience,
     EmailLogType: clientModule.EmailLogType,
+    BookingActionTokenType: clientModule.BookingActionTokenType,
+    buildBookingActionToken: actionTokenModule.buildBookingActionToken,
+    buildBookingSelfServiceActionExpiry: actionTokenModule.buildBookingSelfServiceActionExpiry,
+    hashBookingActionToken: actionTokenModule.hashBookingActionToken,
     claimEmailLogForImmediateDelivery: emailDeliveryModule.claimEmailLogForImmediateDelivery,
     deliverEmailLog: emailDeliveryModule.deliverEmailLog,
     getPublicBookingCatalog: publicBookingModule.getPublicBookingCatalog,
@@ -656,7 +661,16 @@ dbTest("souběžné public reschedule nikdy necommitnou stav bez proveditelného
 
 dbTest("rescheduleBooking updates the existing booking, writes audit history and resets reminders", async () => {
   const seed = await createSeed();
-  const { prisma, rescheduleBooking, BookingStatus, AvailabilitySlotStatus, EmailAudience, EmailLogType } = await loadModules();
+  const {
+    prisma,
+    rescheduleBooking,
+    BookingStatus,
+    AvailabilitySlotStatus,
+    BookingActionTokenType,
+    buildBookingSelfServiceActionExpiry,
+    EmailAudience,
+    EmailLogType,
+  } = await loadModules();
 
   try {
     const result = await rescheduleBooking({
@@ -744,6 +758,18 @@ dbTest("rescheduleBooking updates the existing booking, writes audit history and
       new Date(new Date(seed.newStartAt).getTime() + 60 * 60 * 1000).toISOString(),
     );
 
+    const actionTokens = await prisma.bookingActionToken.findMany({
+      where: {
+        bookingId: seed.bookingId,
+        type: { in: [BookingActionTokenType.RESCHEDULE, BookingActionTokenType.CANCEL] },
+      },
+      select: { expiresAt: true },
+    });
+    assert.equal(actionTokens.length, 2);
+    assert.ok(actionTokens.every(
+      (token) => token.expiresAt.getTime() === buildBookingSelfServiceActionExpiry(new Date(seed.newStartAt)).getTime(),
+    ));
+
     const oldSlotStillExists = await prisma.availabilitySlot.findUnique({
       where: { id: seed.oldSlotId },
       select: {
@@ -766,7 +792,16 @@ dbTest("rescheduleBooking updates the existing booking, writes audit history and
 
 dbTest("selhání klientského EmailLog rollbackne celý reschedule", async () => {
   const seed = await createSeed();
-  const { prisma, createBookingReschedulingApi, EmailLogType } = await loadModules();
+  const { prisma, createBookingReschedulingApi, BookingActionTokenType, EmailLogType } = await loadModules();
+  const originalToken = await prisma.bookingActionToken.create({
+    data: {
+      bookingId: seed.bookingId,
+      type: BookingActionTokenType.RESCHEDULE,
+      tokenHash: randomUUID(),
+      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+    },
+    select: { id: true, expiresAt: true },
+  });
   const api = createBookingReschedulingApi({
     createBookingRescheduledClientEmailLog: async () => {
       throw new Error("simulated EmailLog failure");
@@ -810,7 +845,105 @@ dbTest("selhání klientského EmailLog rollbackne celý reschedule", async () =
     assert.equal(booking.rescheduleCount, 0);
     assert.equal(historyCount, 0);
     assert.equal(emailCount, 0);
-    assert.equal(tokenCount, 0);
+    assert.equal(tokenCount, 1);
+    const tokenAfterRollback = await prisma.bookingActionToken.findUniqueOrThrow({
+      where: { id: originalToken.id },
+      select: { expiresAt: true },
+    });
+    assert.equal(tokenAfterRollback.expiresAt.getTime(), originalToken.expiresAt.getTime());
+  } finally {
+    await cleanupSeed(seed);
+  }
+});
+
+dbTest("reschedule synchronizuje pouze aktivní klientské tokeny i bez notifikace", async () => {
+  const seed = await createSeed();
+  const {
+    prisma,
+    rescheduleBooking,
+    BookingActionTokenType,
+    buildBookingActionToken,
+    buildBookingSelfServiceActionExpiry,
+    hashBookingActionToken,
+  } = await loadModules();
+  const oldExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+  const usedToken = buildBookingActionToken();
+  const revokedToken = buildBookingActionToken();
+  const approveToken = buildBookingActionToken();
+  const rejectToken = buildBookingActionToken();
+
+  await prisma.bookingActionToken.createMany({
+    data: [
+      {
+        bookingId: seed.bookingId,
+        type: BookingActionTokenType.RESCHEDULE,
+        tokenHash: hashBookingActionToken(`active-reschedule-${seed.bookingId}`),
+        expiresAt: oldExpiry,
+      },
+      {
+        bookingId: seed.bookingId,
+        type: BookingActionTokenType.CANCEL,
+        tokenHash: hashBookingActionToken(`active-cancel-${seed.bookingId}`),
+        expiresAt: oldExpiry,
+      },
+      {
+        bookingId: seed.bookingId,
+        type: BookingActionTokenType.RESCHEDULE,
+        tokenHash: usedToken.tokenHash,
+        expiresAt: oldExpiry,
+        usedAt: new Date(),
+      },
+      {
+        bookingId: seed.bookingId,
+        type: BookingActionTokenType.CANCEL,
+        tokenHash: revokedToken.tokenHash,
+        expiresAt: oldExpiry,
+        revokedAt: new Date(),
+      },
+      {
+        bookingId: seed.bookingId,
+        type: BookingActionTokenType.APPROVE,
+        tokenHash: approveToken.tokenHash,
+        expiresAt: oldExpiry,
+      },
+      {
+        bookingId: seed.bookingId,
+        type: BookingActionTokenType.REJECT,
+        tokenHash: rejectToken.tokenHash,
+        expiresAt: oldExpiry,
+      },
+    ],
+  });
+
+  try {
+    await rescheduleBooking({
+      bookingId: seed.bookingId,
+      slotId: seed.newSlotId,
+      newStartAt: seed.newStartAt,
+      changedByUserId: seed.actorUserId,
+      notifyClient: false,
+      expectedUpdatedAt: seed.bookingUpdatedAt,
+    });
+
+    const tokens = await prisma.bookingActionToken.findMany({
+      where: { bookingId: seed.bookingId },
+      orderBy: { createdAt: "asc" },
+      select: { type: true, expiresAt: true, usedAt: true, revokedAt: true },
+    });
+    const expectedExpiry = buildBookingSelfServiceActionExpiry(new Date(seed.newStartAt));
+    const activeClientTokens = tokens.filter(
+      (token) =>
+        (token.type === BookingActionTokenType.RESCHEDULE || token.type === BookingActionTokenType.CANCEL)
+        && token.usedAt === null
+        && token.revokedAt === null,
+    );
+
+    assert.equal(activeClientTokens.length, 2);
+    assert.ok(activeClientTokens.every((token) => token.expiresAt.getTime() === expectedExpiry.getTime()));
+    assert.ok(tokens.some((token) => token.type === BookingActionTokenType.APPROVE && token.expiresAt.getTime() === oldExpiry.getTime()));
+    assert.ok(tokens.some((token) => token.type === BookingActionTokenType.REJECT && token.expiresAt.getTime() === oldExpiry.getTime()));
+    assert.ok(tokens.some((token) => token.usedAt !== null && token.expiresAt.getTime() === oldExpiry.getTime()));
+    assert.ok(tokens.some((token) => token.revokedAt !== null && token.expiresAt.getTime() === oldExpiry.getTime()));
   } finally {
     await cleanupSeed(seed);
   }

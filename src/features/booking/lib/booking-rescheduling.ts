@@ -15,6 +15,7 @@ import {
   buildBookingCancellationUrl,
   buildBookingManagementUrl,
   buildBookingSelfServiceActionExpiry,
+  synchronizeActiveBookingClientActionTokenExpiry,
 } from "@/features/booking/lib/booking-action-tokens";
 import { formatBookingDateLabel } from "@/features/booking/lib/booking-format";
 import {
@@ -999,6 +1000,12 @@ async function rescheduleBookingInTransaction(
   } else if (booking.manualOverride) {
     await maybeDeleteOrphanedManualOverrideSlot(tx, booking.slotId, booking.id);
   }
+
+  await synchronizeActiveBookingClientActionTokenExpiry(tx, {
+    bookingId: booking.id,
+    scheduledStartsAt: requestedStartsAt,
+    now: rescheduledAt,
+  });
 
   const notificationStatus = input.notifyClient && booking.clientEmailSnapshot.trim().length > 0
     ? await (

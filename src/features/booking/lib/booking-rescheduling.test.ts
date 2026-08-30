@@ -122,6 +122,7 @@ async function createHarness(overrides: Partial<{
     slotUpdate: [] as Array<Record<string, unknown>>,
     slotDelete: [] as Array<Record<string, unknown>>,
     actionTokenCreate: [] as Array<Record<string, unknown>>,
+    actionTokenUpdateMany: [] as Array<Record<string, unknown>>,
     emailLogCreate: [] as Array<Record<string, unknown>>,
     notification: [] as Array<Record<string, unknown>>,
     pushover: [] as Array<Record<string, unknown>>,
@@ -188,6 +189,10 @@ async function createHarness(overrides: Partial<{
         calls.actionTokenCreate.push(input);
         return { id: "action-token-1" };
       },
+      updateMany: async (input: Record<string, unknown>) => {
+        calls.actionTokenUpdateMany.push(input);
+        return { count: 1 };
+      },
     },
     emailLog: {
       create: async (input: Record<string, unknown>) => {
@@ -210,6 +215,7 @@ async function createHarness(overrides: Partial<{
     calls.slotUpdate,
     calls.slotDelete,
     calls.actionTokenCreate,
+    calls.actionTokenUpdateMany,
     calls.emailLogCreate,
   ];
 
@@ -743,8 +749,77 @@ describe("reschedule booking", () => {
     assert.equal(harness.calls.bookingUpdate.length, 0);
     assert.equal(harness.calls.logCreate.length, 0);
     assert.equal(harness.calls.actionTokenCreate.length, 0);
+    assert.equal(harness.calls.actionTokenUpdateMany.length, 0);
     assert.equal(harness.calls.emailLogCreate.length, 0);
     assert.equal(harness.calls.notification.length, 0);
+  });
+
+  test("synchronizuje aktivní klientské tokeny i bez klientského e-mailu", async () => {
+    const harness = await createHarness();
+
+    await harness.api.rescheduleBooking({
+      bookingId: "booking-1",
+      slotId: "slot-new",
+      newStartAt: "2026-04-28T09:00:00.000Z",
+      changedByUserId: "admin-1",
+      notifyClient: false,
+    });
+
+    assert.equal(harness.calls.actionTokenUpdateMany.length, 1);
+    const synchronization = harness.calls.actionTokenUpdateMany[0];
+    assert.ok(synchronization);
+    const synchronizationWhere = synchronization.where as {
+      bookingId: string;
+      type: { in: string[] };
+      usedAt: null;
+      revokedAt: null;
+      expiresAt: { gt: Date };
+    };
+    assert.deepEqual({
+      bookingId: synchronizationWhere.bookingId,
+      type: synchronizationWhere.type,
+      usedAt: synchronizationWhere.usedAt,
+      revokedAt: synchronizationWhere.revokedAt,
+    }, {
+      bookingId: "booking-1",
+      type: {
+        in: ["RESCHEDULE", "CANCEL"],
+      },
+      usedAt: null,
+      revokedAt: null,
+    });
+    assert.ok(synchronizationWhere.expiresAt.gt instanceof Date);
+    assert.deepEqual(synchronization.data, {
+      expiresAt: new Date("2026-04-28T11:00:00.000Z"),
+    });
+  });
+
+  test("při pozdějším i dřívějším přesunu používá nový termín pro expiraci", async () => {
+    for (const newStartAt of [
+      "2026-05-28T09:00:00.000Z",
+      "2026-04-20T09:00:00.000Z",
+    ]) {
+      const harness = await createHarness({
+        requestedSlot: buildSlot({
+          id: "slot-new",
+          startsAt: new Date(newStartAt),
+          endsAt: new Date(new Date(newStartAt).getTime() + 60 * 60 * 1000),
+        }),
+      });
+
+      await harness.api.rescheduleBooking({
+        bookingId: "booking-1",
+        slotId: "slot-new",
+        newStartAt,
+        changedByUserId: "admin-1",
+        notifyClient: false,
+      });
+
+      assert.equal(
+        (harness.calls.actionTokenUpdateMany[0]?.data as { expiresAt: Date }).expiresAt.toISOString(),
+        new Date(new Date(newStartAt).getTime() + 2 * 60 * 60 * 1000).toISOString(),
+      );
+    }
   });
 
   test("serializable retry zachová jediný klientský EmailLog a jedinou dvojici tokenů", async () => {

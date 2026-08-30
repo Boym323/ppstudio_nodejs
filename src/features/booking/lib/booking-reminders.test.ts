@@ -64,6 +64,28 @@ test("evaluateBookingReminderDelivery blocks reminders already marked as sent", 
   assert.match(result.reason ?? "", /already marked as sent/i);
 });
 
+test("manual reminder resend ignores only the already-sent deduplication", async () => {
+  const { evaluateBookingReminderDelivery } = await loadReminderModule();
+  const validResend = evaluateBookingReminderDelivery({
+    bookingStatus: BookingStatus.CONFIRMED,
+    reminder24hSentAt: new Date("2026-04-23T10:05:00.000Z"),
+    scheduledStartsAt: new Date("2026-04-24T11:30:00.000Z"),
+    ignoreAlreadySent: true,
+    now: new Date("2026-04-23T10:00:00.000Z"),
+  });
+  const cancelledResend = evaluateBookingReminderDelivery({
+    bookingStatus: BookingStatus.CANCELLED,
+    reminder24hSentAt: new Date("2026-04-23T10:05:00.000Z"),
+    scheduledStartsAt: new Date("2026-04-24T11:30:00.000Z"),
+    ignoreAlreadySent: true,
+    now: new Date("2026-04-23T10:00:00.000Z"),
+  });
+
+  assert.equal(validResend.shouldSend, true);
+  assert.equal(cancelledResend.shouldSend, false);
+  assert.match(cancelledResend.reason ?? "", /no longer confirmed/i);
+});
+
 test("evaluateBookingReminderDelivery blocks bookings moved outside the reminder window", async () => {
   const { evaluateBookingReminderDelivery } = await loadReminderModule();
   const result = evaluateBookingReminderDelivery({

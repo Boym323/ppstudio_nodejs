@@ -146,42 +146,39 @@ export async function deliverEmailLog(
   }
 
   if (emailLog.type === EmailLogType.BOOKING_REMINDER && emailLog.bookingId) {
-    const bypassPreflight = shouldBypassReminderPreflight(emailLog.payload);
+    const booking = await prisma.booking.findUnique({
+      where: {
+        id: emailLog.bookingId,
+      },
+      select: {
+        status: true,
+        reminder24hSentAt: true,
+        scheduledStartsAt: true,
+      },
+    });
+    const reminderScheduledStartsAt = readReminderScheduledStartsAt(emailLog.payload);
+    const preflight = evaluateBookingReminderDelivery({
+      bookingStatus: booking?.status ?? null,
+      reminder24hSentAt: booking?.reminder24hSentAt ?? null,
+      scheduledStartsAt:
+        reminderScheduledStartsAt && booking?.scheduledStartsAt
+        && reminderScheduledStartsAt !== booking.scheduledStartsAt.toISOString()
+          ? null
+          : booking?.scheduledStartsAt ?? null,
+      ignoreAlreadySent: shouldBypassReminderPreflight(emailLog.payload),
+    });
 
-    if (!bypassPreflight) {
-      const booking = await prisma.booking.findUnique({
-        where: {
-          id: emailLog.bookingId,
-        },
-        select: {
-          status: true,
-          reminder24hSentAt: true,
-          scheduledStartsAt: true,
-        },
-      });
-      const reminderScheduledStartsAt = readReminderScheduledStartsAt(emailLog.payload);
-      const preflight = evaluateBookingReminderDelivery({
-        bookingStatus: booking?.status ?? null,
-        reminder24hSentAt: booking?.reminder24hSentAt ?? null,
-        scheduledStartsAt:
-          reminderScheduledStartsAt && booking?.scheduledStartsAt
-          && reminderScheduledStartsAt !== booking.scheduledStartsAt.toISOString()
-            ? null
-            : booking?.scheduledStartsAt ?? null,
-      });
+    if (!preflight.shouldSend) {
+      const completed = await markEmailLogSystemSkipped(
+        emailLog.id,
+        processingToken,
+        preflight.reason ?? "Reminder delivery skipped.",
+        emailLog.payload,
+      );
 
-      if (!preflight.shouldSend) {
-        const completed = await markEmailLogSystemSkipped(
-          emailLog.id,
-          processingToken,
-          preflight.reason ?? "Reminder delivery skipped.",
-          emailLog.payload,
-        );
-
-        return completed.count === 1
-          ? { status: "skipped", errorMessage: preflight.reason }
-          : { status: "skipped", errorMessage: "Claim e-mailu mezitím převzal jiný worker." };
-      }
+      return completed.count === 1
+        ? { status: "skipped", errorMessage: preflight.reason }
+        : { status: "skipped", errorMessage: "Claim e-mailu mezitím převzal jiný worker." };
     }
   }
 

@@ -305,11 +305,14 @@ export function evaluateBookingReminderDelivery({
   bookingStatus,
   reminder24hSentAt,
   scheduledStartsAt,
+  ignoreAlreadySent = false,
   now = new Date(),
 }: {
   bookingStatus: BookingStatus | null;
   reminder24hSentAt: Date | null;
   scheduledStartsAt: Date | null;
+  /** Explicitní resend smí obejít pouze deduplikaci již odeslaného reminderu. */
+  ignoreAlreadySent?: boolean;
   now?: Date;
 }): BookingReminderDeliveryPreflight {
   if (bookingStatus !== BookingStatus.CONFIRMED) {
@@ -319,7 +322,7 @@ export function evaluateBookingReminderDelivery({
     };
   }
 
-  if (reminder24hSentAt) {
+  if (reminder24hSentAt && !ignoreAlreadySent) {
     return {
       shouldSend: false,
       reason: "Booking reminder was already marked as sent.",

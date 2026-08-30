@@ -15,6 +15,7 @@ import {
   buildBookingEmailActionUrl,
   issueBookingClientActionTokens,
 } from "@/features/booking/lib/booking-action-tokens";
+import { evaluateBookingEmailPreflight } from "@/lib/email/booking-preflight";
 import { prisma } from "@/lib/prisma";
 
 const CLIENT_TOKEN_EMAIL_TEMPLATES = new Set([
@@ -196,6 +197,37 @@ export async function createResendEmailLog(input: {
     if (tokenPayloadKind && !emailLog.bookingId) {
       return null;
     }
+
+    if (tokenPayloadKind === "client" && emailLog.bookingId) {
+      // Zamknutí booking brání tomu, aby mezi preflightem a revokací tokenů
+      // proběhl souběžný přesun nebo storno.
+      await tx.$queryRaw(Prisma.sql`
+        SELECT "id"
+        FROM "Booking"
+        WHERE "id" = ${emailLog.bookingId}
+        FOR UPDATE
+      `);
+      const booking = await tx.booking.findUnique({
+        where: { id: emailLog.bookingId },
+        select: {
+          status: true,
+          scheduledStartsAt: true,
+          scheduledEndsAt: true,
+        },
+      });
+      const preflight = evaluateBookingEmailPreflight({
+        type: emailLog.type,
+        audience: emailLog.audience,
+        templateKey: emailLog.templateKey,
+        payload: emailLog.payload,
+        booking,
+      });
+
+      if (!preflight.shouldSend) {
+        return null;
+      }
+    }
+
     const tokenPayload = tokenPayloadKind
       ? await issueResendBookingActionTokens(tx, emailLog, tokenPayloadKind, new Date())
       : null;

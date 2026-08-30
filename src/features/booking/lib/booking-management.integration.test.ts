@@ -1609,7 +1609,7 @@ describe("reschedule booking flow", () => {
       const expectedNewExpiry = buildBookingSelfServiceActionExpiry(new Date(seed.replacementStartAt));
       assert.equal(
         newActionTokens.filter((token) => token.expiresAt.getTime() === expectedNewExpiry.getTime()).length,
-        2,
+        5,
       );
 
       const adminEmailLog = await prisma.emailLog.findFirstOrThrow({

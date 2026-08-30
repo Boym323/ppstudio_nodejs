@@ -36,6 +36,32 @@ export function buildBookingEmailActionExpiry(now = new Date()) {
   return buildBookingActionExpiry(now, BOOKING_EMAIL_ACTION_TOKEN_TTL_DAYS);
 }
 
+export async function synchronizeActiveBookingClientActionTokenExpiry(
+  tx: Prisma.TransactionClient,
+  input: {
+    bookingId: string;
+    scheduledStartsAt: Date;
+    now: Date;
+  },
+) {
+  await tx.bookingActionToken.updateMany({
+    where: {
+      bookingId: input.bookingId,
+      type: {
+        in: [BookingActionTokenType.RESCHEDULE, BookingActionTokenType.CANCEL],
+      },
+      usedAt: null,
+      revokedAt: null,
+      expiresAt: {
+        gt: input.now,
+      },
+    },
+    data: {
+      expiresAt: buildBookingSelfServiceActionExpiry(input.scheduledStartsAt),
+    },
+  });
+}
+
 export function buildBookingCancellationUrl(rawToken: string) {
   return `${env.NEXT_PUBLIC_APP_URL}/rezervace/storno/${rawToken}`;
 }

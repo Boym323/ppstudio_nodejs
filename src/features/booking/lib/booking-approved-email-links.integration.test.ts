@@ -358,6 +358,14 @@ dbTest("resend tokenového CLIENT e-mailu vydá nové tokeny a staré zneplatní
   const oldCancellationToken = buildBookingActionToken();
 
   try {
+    await prisma.booking.update({
+      where: { id: seed.bookingId },
+      data: { status: "CONFIRMED" },
+    });
+    const bookingTerm = await prisma.booking.findUniqueOrThrow({
+      where: { id: seed.bookingId },
+      select: { scheduledStartsAt: true, scheduledEndsAt: true },
+    });
     const oldManageRecord = await prisma.bookingActionToken.create({
       data: {
         bookingId: seed.bookingId,
@@ -390,8 +398,8 @@ dbTest("resend tokenového CLIENT e-mailu vydá nové tokeny a staré zneplatní
           bookingId: seed.bookingId,
           serviceName: "Původní služba",
           clientName: "Původní klientka",
-          scheduledStartsAt: "2026-08-17T10:00:00.000Z",
-          scheduledEndsAt: "2026-08-17T11:00:00.000Z",
+          scheduledStartsAt: bookingTerm.scheduledStartsAt.toISOString(),
+          scheduledEndsAt: bookingTerm.scheduledEndsAt.toISOString(),
           manageReservationUrl: `https://example.com/rezervace/sprava/${oldManageToken.rawToken}`,
           cancellationUrl: `https://example.com/rezervace/storno/${oldCancellationToken.rawToken}`,
           includeCalendarAttachment: true,

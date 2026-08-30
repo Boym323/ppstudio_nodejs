@@ -435,6 +435,12 @@ dbTest("selhání reconciliation neblokuje označení booking reminderu jako ode
   } = await loadModules();
   const window = await findIsolatedWorkerWindow(prisma, seed, 60);
   const fixture = await createConfirmedManualBooking(seed, window.startsAt);
+  const reminderStartsAt = addMinutes(new Date(), 120);
+  const reminderEndsAt = addMinutes(reminderStartsAt, 60);
+  await prisma.booking.update({
+    where: { id: fixture.bookingId },
+    data: { scheduledStartsAt: reminderStartsAt, scheduledEndsAt: reminderEndsAt },
+  });
   const emailLog = await prisma.emailLog.create({
     data: {
       bookingId: fixture.bookingId,
@@ -447,8 +453,8 @@ dbTest("selhání reconciliation neblokuje označení booking reminderu jako ode
         bookingId: fixture.bookingId,
         serviceName: `Worker service ${seed}`,
         clientName: `Worker klientka ${seed}`,
-        scheduledStartsAt: fixture.startsAt.toISOString(),
-        scheduledEndsAt: fixture.endsAt.toISOString(),
+        scheduledStartsAt: reminderStartsAt.toISOString(),
+        scheduledEndsAt: reminderEndsAt.toISOString(),
         manageReservationUrl: "https://example.com/rezervace/sprava/test-token",
         cancellationUrl: "https://example.com/rezervace/storno/test-token",
         manualReminderResend: true,
@@ -473,6 +479,97 @@ dbTest("selhání reconciliation neblokuje označení booking reminderu jako ode
     assert.deepEqual(result, { status: "sent" });
     assert.equal(storedEmailLog.status, EmailLogStatus.SENT);
     assert.ok(booking.reminder24hSentAt);
+  } finally {
+    await cleanupBookingFixture(fixture);
+  }
+});
+
+dbTest("manual reminder resend ignoruje jen dřívější odeslání a provider retry zůstává funkční", async () => {
+  const seed = randomUUID().slice(0, 8);
+  const { prisma, claimEmailLogForImmediateDelivery, deliverEmailLog } = await loadModules();
+  const window = await findIsolatedWorkerWindow(prisma, seed, 60);
+  const fixture = await createConfirmedManualBooking(seed, window.startsAt);
+  const startsAt = addMinutes(new Date(), 120);
+  const endsAt = addMinutes(startsAt, 60);
+
+  try {
+    await prisma.booking.update({
+      where: { id: fixture.bookingId },
+      data: { scheduledStartsAt: startsAt, scheduledEndsAt: endsAt, reminder24hSentAt: new Date() },
+    });
+    const emailLog = await prisma.emailLog.create({
+      data: {
+        bookingId: fixture.bookingId, type: EmailLogType.BOOKING_REMINDER, status: EmailLogStatus.PENDING,
+        recipientEmail: fixture.email, subject: "Reminder", templateKey: "booking-reminder-24h-v1",
+        payload: {
+          bookingId: fixture.bookingId,
+          serviceName: `Worker service ${seed}`,
+          clientName: `Worker klientka ${seed}`,
+          scheduledStartsAt: startsAt.toISOString(),
+          scheduledEndsAt: endsAt.toISOString(),
+          manageReservationUrl: "https://example.com/rezervace/sprava/test-token",
+          cancellationUrl: "https://example.com/rezervace/storno/test-token",
+          manualReminderResend: true,
+        },
+      },
+    });
+    const firstClaim = await claimEmailLogForImmediateDelivery(emailLog.id);
+    assert.ok(firstClaim);
+    assert.equal((await deliverEmailLog(emailLog.id, firstClaim, {
+      sendEmail: async () => { throw new Error("provider unavailable"); },
+    })).status, "failed");
+    await prisma.emailLog.update({ where: { id: emailLog.id }, data: { nextAttemptAt: new Date(0) } });
+    const retryClaim = await claimEmailLogForImmediateDelivery(emailLog.id);
+    assert.ok(retryClaim);
+    assert.deepEqual(await deliverEmailLog(emailLog.id, retryClaim, {
+      sendEmail: async () => ({ provider: "log", messageId: `reminder-retry-${seed}` }),
+    }), { status: "sent" });
+  } finally {
+    await cleanupBookingFixture(fixture);
+  }
+});
+
+dbTest("manual reminder resend po přesunu nebo stornu systémově přeskočí starý termín", async () => {
+  const seed = randomUUID().slice(0, 8);
+  const { prisma, claimEmailLogForImmediateDelivery, deliverEmailLog } = await loadModules();
+  const window = await findIsolatedWorkerWindow(prisma, seed, 60);
+  const fixture = await createConfirmedManualBooking(seed, window.startsAt);
+  const startsAt = addMinutes(new Date(), 120);
+  const endsAt = addMinutes(startsAt, 60);
+
+  try {
+    await prisma.booking.update({
+      where: { id: fixture.bookingId },
+      data: { scheduledStartsAt: startsAt, scheduledEndsAt: endsAt },
+    });
+    const rescheduledLog = await prisma.emailLog.create({
+      data: {
+        bookingId: fixture.bookingId, type: EmailLogType.BOOKING_REMINDER, status: EmailLogStatus.PENDING,
+        recipientEmail: fixture.email, subject: "Reminder", templateKey: "booking-reminder-24h-v1",
+        payload: { scheduledStartsAt: startsAt.toISOString(), scheduledEndsAt: endsAt.toISOString(), manualReminderResend: true },
+      },
+    });
+    const movedStartsAt = addMinutes(startsAt, 60);
+    await prisma.booking.update({ where: { id: fixture.bookingId }, data: { scheduledStartsAt: movedStartsAt, scheduledEndsAt: addMinutes(movedStartsAt, 60) } });
+    const rescheduledClaim = await claimEmailLogForImmediateDelivery(rescheduledLog.id);
+    assert.ok(rescheduledClaim);
+    assert.equal((await deliverEmailLog(rescheduledLog.id, rescheduledClaim, {
+      sendEmail: async () => ({ provider: "log", messageId: "must-not-send" }),
+    })).status, "skipped");
+
+    const cancelledLog = await prisma.emailLog.create({
+      data: {
+        bookingId: fixture.bookingId, type: EmailLogType.BOOKING_REMINDER, status: EmailLogStatus.PENDING,
+        recipientEmail: fixture.email, subject: "Reminder", templateKey: "booking-reminder-24h-v1",
+        payload: { scheduledStartsAt: movedStartsAt.toISOString(), scheduledEndsAt: addMinutes(movedStartsAt, 60).toISOString(), manualReminderResend: true },
+      },
+    });
+    await prisma.booking.update({ where: { id: fixture.bookingId }, data: { status: BookingStatus.CANCELLED } });
+    const cancelledClaim = await claimEmailLogForImmediateDelivery(cancelledLog.id);
+    assert.ok(cancelledClaim);
+    assert.equal((await deliverEmailLog(cancelledLog.id, cancelledClaim, {
+      sendEmail: async () => ({ provider: "log", messageId: "must-not-send" }),
+    })).status, "skipped");
   } finally {
     await cleanupBookingFixture(fixture);
   }
@@ -577,7 +674,7 @@ dbTest("poslední neúspěšný pokus označí log jako FAILED a atomicky redigu
   }
 });
 
-dbTest("resend scrubovaného FAILED booking e-mailu vydá nové tokeny a nový payload", async () => {
+dbTest("resend aktuálního FAILED booking e-mailu vydá nové tokeny a nový payload", async () => {
   const seed = randomUUID().slice(0, 8);
   const { prisma } = await loadModules();
   const { createResendEmailLog } = await import("@/features/admin/actions/email-log-resend");
@@ -589,16 +686,34 @@ dbTest("resend scrubovaného FAILED booking e-mailu vydá nové tokeny a nový p
       where: { id: fixture.bookingId },
       select: { clientId: true },
     });
+    const oldTokens = await Promise.all([
+      prisma.bookingActionToken.create({
+        data: {
+          bookingId: fixture.bookingId,
+          type: "RESCHEDULE",
+          tokenHash: `old-manage-${seed}`,
+          expiresAt: addMinutes(new Date(), 60),
+        },
+      }),
+      prisma.bookingActionToken.create({
+        data: {
+          bookingId: fixture.bookingId,
+          type: "CANCEL",
+          tokenHash: `old-cancel-${seed}`,
+          expiresAt: addMinutes(new Date(), 60),
+        },
+      }),
+    ]);
     const source = await prisma.emailLog.create({
       data: {
         bookingId: fixture.bookingId,
         clientId: booking.clientId,
-        type: EmailLogType.BOOKING_RECEIVED,
+        type: EmailLogType.BOOKING_CONFIRMED,
         audience: EmailAudience.CLIENT,
         status: EmailLogStatus.FAILED,
         recipientEmail: fixture.email,
-        subject: "Rezervace přijata",
-        templateKey: "booking-confirmation-v1",
+        subject: "Rezervace potvrzena",
+        templateKey: "booking-approved-v1",
         payload: {
           bookingId: fixture.bookingId,
           serviceName: `Worker service ${fixture.bookingId}`,
@@ -629,6 +744,103 @@ dbTest("resend scrubovaného FAILED booking e-mailu vydá nové tokeny a nový p
     assert.notEqual(resendPayload.manageReservationUrl, "[REDACTED]");
     assert.notEqual(resendPayload.cancellationUrl, "[REDACTED]");
     assert.equal(resendPayload.customAuditValue, "zachovat");
+    const tokenStates = await prisma.bookingActionToken.findMany({
+      where: { bookingId: fixture.bookingId },
+      select: { id: true, revokedAt: true },
+    });
+    assert.ok(tokenStates.find((token) => token.id === oldTokens[0].id)?.revokedAt);
+    assert.ok(tokenStates.find((token) => token.id === oldTokens[1].id)?.revokedAt);
+    assert.equal(tokenStates.filter((token) => token.revokedAt === null).length, 2);
+  } finally {
+    await cleanupBookingFixture(fixture);
+  }
+});
+
+dbTest("resend zastaralého potvrzení nerevokuje aktuální tokeny ani nezaloží nový log", async () => {
+  const seed = randomUUID().slice(0, 8);
+  const { prisma } = await loadModules();
+  const { createResendEmailLog } = await import("@/features/admin/actions/email-log-resend");
+  const window = await findIsolatedWorkerWindow(prisma, seed, 60);
+  const fixture = await createConfirmedManualBooking(seed, window.startsAt);
+
+  try {
+    const booking = await prisma.booking.findUniqueOrThrow({
+      where: { id: fixture.bookingId },
+      select: { clientId: true },
+    });
+    const currentTokens = await Promise.all([
+      prisma.bookingActionToken.create({
+        data: { bookingId: fixture.bookingId, type: "RESCHEDULE", tokenHash: `current-manage-${seed}`, expiresAt: addMinutes(new Date(), 60) },
+      }),
+      prisma.bookingActionToken.create({
+        data: { bookingId: fixture.bookingId, type: "CANCEL", tokenHash: `current-cancel-${seed}`, expiresAt: addMinutes(new Date(), 60) },
+      }),
+    ]);
+    const source = await prisma.emailLog.create({
+      data: {
+        bookingId: fixture.bookingId,
+        clientId: booking.clientId,
+        type: EmailLogType.BOOKING_CONFIRMED,
+        audience: EmailAudience.CLIENT,
+        status: EmailLogStatus.FAILED,
+        recipientEmail: fixture.email,
+        subject: "Rezervace potvrzena",
+        templateKey: "booking-approved-v1",
+        payload: {
+          scheduledStartsAt: fixture.startsAt.toISOString(),
+          scheduledEndsAt: fixture.endsAt.toISOString(),
+          manageReservationUrl: "[REDACTED]",
+          cancellationUrl: "[REDACTED]",
+        },
+      },
+    });
+    await prisma.booking.update({ where: { id: fixture.bookingId }, data: { status: BookingStatus.CANCELLED } });
+    const sourceForResend = await prisma.emailLog.findUniqueOrThrow({
+      where: { id: source.id },
+      include: { client: { select: { id: true, email: true } }, booking: { select: { id: true, clientEmailSnapshot: true } } },
+    });
+
+    assert.equal(await createResendEmailLog({ emailLog: sourceForResend }), null);
+    const [tokens, resendCount] = await Promise.all([
+      prisma.bookingActionToken.findMany({ where: { id: { in: currentTokens.map((token) => token.id) } }, select: { revokedAt: true } }),
+      prisma.emailLog.count({ where: { resendOfId: source.id } }),
+    ]);
+    assert.deepEqual(tokens.map((token) => token.revokedAt), [null, null]);
+    assert.equal(resendCount, 0);
+
+    await prisma.booking.update({ where: { id: fixture.bookingId }, data: { status: BookingStatus.CONFIRMED } });
+    const staleReschedule = await prisma.emailLog.create({
+      data: {
+        bookingId: fixture.bookingId,
+        clientId: booking.clientId,
+        type: EmailLogType.BOOKING_RESCHEDULED,
+        audience: EmailAudience.CLIENT,
+        status: EmailLogStatus.SENT,
+        recipientEmail: fixture.email,
+        subject: "Rezervace přesunuta",
+        templateKey: "booking-rescheduled-v1",
+        payload: {
+          scheduledStartsAt: fixture.startsAt.toISOString(),
+          scheduledEndsAt: fixture.endsAt.toISOString(),
+          manageReservationUrl: "[REDACTED]",
+          cancellationUrl: "[REDACTED]",
+        },
+      },
+    });
+    const movedStartsAt = addMinutes(fixture.startsAt, 60);
+    await prisma.booking.update({
+      where: { id: fixture.bookingId },
+      data: { scheduledStartsAt: movedStartsAt, scheduledEndsAt: addMinutes(movedStartsAt, 60) },
+    });
+    const staleRescheduleSource = await prisma.emailLog.findUniqueOrThrow({
+      where: { id: staleReschedule.id },
+      include: { client: { select: { id: true, email: true } }, booking: { select: { id: true, clientEmailSnapshot: true } } },
+    });
+    assert.equal(await createResendEmailLog({ emailLog: staleRescheduleSource }), null);
+    assert.equal(await prisma.emailLog.count({ where: { resendOfId: staleReschedule.id } }), 0);
+    assert.equal(await prisma.bookingActionToken.count({
+      where: { id: { in: currentTokens.map((token) => token.id) }, revokedAt: null },
+    }), 2);
   } finally {
     await cleanupBookingFixture(fixture);
   }
@@ -730,8 +942,14 @@ dbTest("runEmailDeliveryWorkerOnce delivers queued reminder email and marks book
   const { prisma, runEmailDeliveryWorkerOnce } = await loadModules();
   const window = await findIsolatedWorkerWindow(prisma, seed, 60);
   const fixture = await createConfirmedManualBooking(seed, window.startsAt);
+  const reminderStartsAt = addMinutes(new Date(), 120);
+  const reminderEndsAt = addMinutes(reminderStartsAt, 60);
 
   try {
+    await prisma.booking.update({
+      where: { id: fixture.bookingId },
+      data: { scheduledStartsAt: reminderStartsAt, scheduledEndsAt: reminderEndsAt },
+    });
     await prisma.emailLog.create({
       data: {
         bookingId: fixture.bookingId,
@@ -744,8 +962,8 @@ dbTest("runEmailDeliveryWorkerOnce delivers queued reminder email and marks book
           bookingId: fixture.bookingId,
           serviceName: `Worker service ${seed}`,
           clientName: `Worker klientka ${seed}`,
-          scheduledStartsAt: fixture.startsAt.toISOString(),
-          scheduledEndsAt: fixture.endsAt.toISOString(),
+          scheduledStartsAt: reminderStartsAt.toISOString(),
+          scheduledEndsAt: reminderEndsAt.toISOString(),
           manageReservationUrl: "https://example.com/rezervace/sprava/test-token",
           cancellationUrl: "https://example.com/rezervace/storno/test-token",
           manualReminderResend: true,
