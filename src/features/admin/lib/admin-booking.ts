@@ -32,6 +32,10 @@ import {
   restoreArchivedAvailabilityAfterManualOverrideShortening,
 } from "@/features/booking/lib/booking-slot-compaction";
 import { resolvePublishedSlotCoverage } from "@/features/booking/lib/booking-slot-availability";
+import {
+  enqueueBookingReminder24hForBooking,
+  getBookingReminder24hEnqueueWindowPosition,
+} from "@/features/booking/lib/booking-reminders";
 import { prisma } from "@/lib/prisma";
 import { scrubSensitiveEmailPayload } from "@/lib/email/payload-security";
 import { runSerializableTransaction } from "@/lib/serializable-transaction";
@@ -75,6 +79,7 @@ type UpdateAdminBookingServiceInput = {
   actorUserId: string | null;
   expectedUpdatedAt?: string;
   reason?: string | null;
+  now?: Date;
 };
 
 export async function applyAdminBookingStatusChange({
@@ -371,6 +376,7 @@ export async function updateAdminBookingService({
   actorUserId,
   expectedUpdatedAt,
   reason,
+  now: inputNow,
 }: UpdateAdminBookingServiceInput) {
   return runSerializableTransaction(async (tx) => {
     await tx.$queryRaw<Array<{ id: string }>>(Prisma.sql`
@@ -385,6 +391,8 @@ export async function updateAdminBookingService({
       select: {
         id: true,
         clientId: true,
+        clientEmailSnapshot: true,
+        clientNameSnapshot: true,
         status: true,
         slotId: true,
         serviceId: true,
@@ -455,6 +463,16 @@ export async function updateAdminBookingService({
     });
     const nextScheduledEndsAt = nextTiming.serviceEnd;
     const nextBlockedUntil = nextTiming.blockedUntil;
+    const now = inputNow ?? new Date();
+    const reminderWindowPosition = getBookingReminder24hEnqueueWindowPosition(
+      booking.scheduledStartsAt,
+      now,
+    );
+    const shouldEnqueueReplacementReminder = (
+      booking.status === BookingStatus.CONFIRMED
+      && booking.reminder24hSentAt === null
+      && reminderWindowPosition === "after"
+    );
     const oldBlockedUntil = booking.blockedUntil ?? booking.scheduledEndsAt;
     const lifecycleRangeEnd = new Date(Math.max(oldBlockedUntil.getTime(), nextBlockedUntil.getTime()));
 
@@ -741,6 +759,20 @@ export async function updateAdminBookingService({
         reminder24hQueuedAt: booking.reminder24hSentAt === null ? null : undefined,
       },
     });
+
+    if (shouldEnqueueReplacementReminder) {
+      await enqueueBookingReminder24hForBooking(tx, {
+        id: booking.id,
+        clientId: booking.clientId,
+        clientEmailSnapshot: booking.clientEmailSnapshot,
+        clientNameSnapshot: booking.clientNameSnapshot,
+        status: booking.status,
+        serviceId: nextService.id,
+        serviceNameSnapshot: nextService.name,
+        scheduledStartsAt: booking.scheduledStartsAt,
+        scheduledEndsAt: nextScheduledEndsAt,
+      }, now);
+    }
 
     const normalizedReason = reason?.trim() ? reason.trim() : null;
     const metadata = {

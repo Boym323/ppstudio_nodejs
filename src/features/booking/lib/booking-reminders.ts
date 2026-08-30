@@ -35,10 +35,18 @@ export type BookingReminderCandidate = {
   clientId: string;
   clientEmailSnapshot: string;
   clientNameSnapshot: string;
+  status: BookingStatus;
   serviceId: string;
   serviceNameSnapshot: string;
   scheduledStartsAt: Date;
   scheduledEndsAt: Date;
+};
+
+export type BookingReminder24hEnqueueWindowPosition = "before" | "in" | "after";
+
+export type EnqueueBookingReminder24hJobResult = {
+  created: boolean;
+  reason?: string;
 };
 
 export type EnqueueBookingReminder24hResult = {
@@ -59,6 +67,23 @@ export function getBookingReminder24hWindow(now = new Date()): BookingReminder24
     windowStart,
     windowEnd,
   };
+}
+
+export function getBookingReminder24hEnqueueWindowPosition(
+  scheduledStartsAt: Date,
+  now = new Date(),
+): BookingReminder24hEnqueueWindowPosition {
+  const { windowStart, windowEnd } = getBookingReminder24hWindow(now);
+
+  if (scheduledStartsAt > windowEnd) {
+    return "before";
+  }
+
+  if (scheduledStartsAt >= windowStart) {
+    return "in";
+  }
+
+  return "after";
 }
 
 export async function getBookingsFor24hReminder(now = new Date()): Promise<BookingReminderCandidate[]> {
@@ -85,6 +110,7 @@ export async function getBookingsFor24hReminder(now = new Date()): Promise<Booki
       clientId: true,
       clientEmailSnapshot: true,
       clientNameSnapshot: true,
+      status: true,
       serviceId: true,
       serviceNameSnapshot: true,
       scheduledStartsAt: true,
@@ -137,12 +163,158 @@ async function claimNextBookingFor24hReminder(
       clientId: true,
       clientEmailSnapshot: true,
       clientNameSnapshot: true,
+      status: true,
       serviceId: true,
       serviceNameSnapshot: true,
       scheduledStartsAt: true,
       scheduledEndsAt: true,
     },
   });
+}
+
+function isCurrentReminderPayload(
+  payload: Prisma.JsonValue | null,
+  booking: BookingReminderCandidate,
+) {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    return false;
+  }
+
+  return (
+    payload.bookingId === booking.id
+    && payload.serviceId === booking.serviceId
+    && payload.scheduledStartsAt === booking.scheduledStartsAt.toISOString()
+    && payload.scheduledEndsAt === booking.scheduledEndsAt.toISOString()
+  );
+}
+
+/**
+ * Vytvoří kanonický reminder pro konkrétní, aktuálně zamčený booking.
+ * Scheduler i service-change používají stejnou token/payload/outbox cestu.
+ */
+export async function enqueueBookingReminder24hForBooking(
+  tx: Prisma.TransactionClient,
+  booking: BookingReminderCandidate,
+  now = new Date(),
+): Promise<EnqueueBookingReminder24hJobResult> {
+  const preflight = evaluateBookingReminderDelivery({
+    bookingStatus: booking.status,
+    reminder24hSentAt: null,
+    scheduledStartsAt: booking.scheduledStartsAt,
+    now,
+  });
+
+  if (!preflight.shouldSend) {
+    return {
+      created: false,
+      reason: preflight.reason,
+    };
+  }
+
+  if (!booking.clientEmailSnapshot.trim()) {
+    return {
+      created: false,
+      reason: "Booking has no client email address.",
+    };
+  }
+
+  const pendingReminders = await tx.emailLog.findMany({
+    where: {
+      bookingId: booking.id,
+      type: EmailLogType.BOOKING_REMINDER,
+      audience: EmailAudience.CLIENT,
+      status: EmailLogStatus.PENDING,
+    },
+    select: {
+      payload: true,
+    },
+  });
+
+  if (pendingReminders.some((reminder) => isCurrentReminderPayload(reminder.payload, booking))) {
+    return {
+      created: false,
+      reason: "Current booking reminder is already pending.",
+    };
+  }
+
+  const manageToken = buildBookingActionToken();
+  const cancellationToken = buildBookingActionToken();
+  const manageReservationUrl = buildBookingManagementUrl(manageToken.rawToken);
+  const cancellationUrl = buildBookingCancellationUrl(cancellationToken.rawToken);
+  const reminderPayload = {
+    bookingId: booking.id,
+    serviceId: booking.serviceId,
+    serviceName: booking.serviceNameSnapshot,
+    clientName: booking.clientNameSnapshot,
+    scheduledStartsAt: booking.scheduledStartsAt.toISOString(),
+    scheduledEndsAt: booking.scheduledEndsAt.toISOString(),
+    manageReservationUrl,
+    cancellationUrl,
+  };
+
+  const manageActionToken = await tx.bookingActionToken.create({
+    data: {
+      bookingId: booking.id,
+      type: BookingActionTokenType.RESCHEDULE,
+      tokenHash: manageToken.tokenHash,
+      expiresAt: buildBookingSelfServiceActionExpiry(booking.scheduledStartsAt),
+      lastSentAt: now,
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  await tx.bookingActionToken.create({
+    data: {
+      bookingId: booking.id,
+      type: BookingActionTokenType.CANCEL,
+      tokenHash: cancellationToken.tokenHash,
+      expiresAt: buildBookingSelfServiceActionExpiry(booking.scheduledStartsAt),
+      lastSentAt: now,
+    },
+  });
+
+  await tx.emailLog.create({
+    data: {
+      bookingId: booking.id,
+      clientId: booking.clientId,
+      actionTokenId: manageActionToken.id,
+      type: EmailLogType.BOOKING_REMINDER,
+      audience: EmailAudience.CLIENT,
+      status: env.EMAIL_DELIVERY_MODE === "background" ? undefined : EmailLogStatus.SENT,
+      attemptCount: env.EMAIL_DELIVERY_MODE === "background" ? undefined : 1,
+      nextAttemptAt: env.EMAIL_DELIVERY_MODE === "background" ? now : undefined,
+      processingStartedAt: null,
+      processingToken: null,
+      recipientEmail: booking.clientEmailSnapshot,
+      subject: "Zítra se na vás těšíme v PP Studiu",
+      templateKey: "booking-reminder-24h-v1",
+      payload: env.EMAIL_DELIVERY_MODE === "background"
+        ? reminderPayload
+        : scrubSensitiveEmailPayload(reminderPayload),
+      provider: env.EMAIL_DELIVERY_MODE === "background" ? undefined : "log",
+      sentAt: env.EMAIL_DELIVERY_MODE === "background" ? undefined : now,
+    },
+  });
+
+  await tx.booking.update({
+    where: {
+      id: booking.id,
+    },
+    data: env.EMAIL_DELIVERY_MODE === "log"
+      ? {
+          reminder24hQueuedAt: now,
+          reminder24hSentAt: now,
+        }
+      : {
+          reminder24hQueuedAt: now,
+        },
+  });
+
+  return {
+    created: true,
+  };
 }
 
 export async function enqueueBookingReminder24hJobs(
@@ -169,87 +341,7 @@ export async function enqueueBookingReminder24hJobs(
 
         claimedBookingId = booking.id;
 
-        const manageToken = buildBookingActionToken();
-        const cancellationToken = buildBookingActionToken();
-        const manageReservationUrl = buildBookingManagementUrl(manageToken.rawToken);
-        const cancellationUrl = buildBookingCancellationUrl(cancellationToken.rawToken);
-        const reminderPayload = {
-          bookingId: booking.id,
-          serviceId: booking.serviceId,
-          serviceName: booking.serviceNameSnapshot,
-          clientName: booking.clientNameSnapshot,
-          scheduledStartsAt: booking.scheduledStartsAt.toISOString(),
-          scheduledEndsAt: booking.scheduledEndsAt.toISOString(),
-          manageReservationUrl,
-          cancellationUrl,
-        };
-
-        const manageActionToken = await tx.bookingActionToken.create({
-          data: {
-            bookingId: booking.id,
-            type: BookingActionTokenType.RESCHEDULE,
-            tokenHash: manageToken.tokenHash,
-            expiresAt: buildBookingSelfServiceActionExpiry(booking.scheduledStartsAt),
-            lastSentAt: now,
-          },
-          select: {
-            id: true,
-          },
-        });
-
-        await tx.bookingActionToken.create({
-          data: {
-            bookingId: booking.id,
-            type: BookingActionTokenType.CANCEL,
-            tokenHash: cancellationToken.tokenHash,
-            expiresAt: buildBookingSelfServiceActionExpiry(booking.scheduledStartsAt),
-            lastSentAt: now,
-          },
-        });
-
-        await tx.emailLog.create({
-          data: {
-            bookingId: booking.id,
-            clientId: booking.clientId,
-            actionTokenId: manageActionToken.id,
-            type: EmailLogType.BOOKING_REMINDER,
-            audience: EmailAudience.CLIENT,
-            status: env.EMAIL_DELIVERY_MODE === "background" ? undefined : EmailLogStatus.SENT,
-            attemptCount: env.EMAIL_DELIVERY_MODE === "background" ? undefined : 1,
-            nextAttemptAt: env.EMAIL_DELIVERY_MODE === "background" ? now : undefined,
-            processingStartedAt: null,
-            processingToken: null,
-            recipientEmail: booking.clientEmailSnapshot,
-            subject: "Zítra se na vás těšíme v PP Studiu",
-            templateKey: "booking-reminder-24h-v1",
-            payload: env.EMAIL_DELIVERY_MODE === "background"
-              ? reminderPayload
-              : scrubSensitiveEmailPayload(reminderPayload),
-            provider: env.EMAIL_DELIVERY_MODE === "background" ? undefined : "log",
-            sentAt: env.EMAIL_DELIVERY_MODE === "background" ? undefined : now,
-          },
-        });
-
-        if (env.EMAIL_DELIVERY_MODE === "log") {
-          await tx.booking.update({
-            where: {
-              id: booking.id,
-            },
-            data: {
-              reminder24hQueuedAt: now,
-              reminder24hSentAt: now,
-            },
-          });
-        } else {
-          await tx.booking.update({
-            where: {
-              id: booking.id,
-            },
-            data: {
-              reminder24hQueuedAt: now,
-            },
-          });
-        }
+        await enqueueBookingReminder24hForBooking(tx, booking, now);
 
         return booking.id;
       });

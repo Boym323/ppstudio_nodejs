@@ -121,8 +121,15 @@ async function disableAutoLunchForAdminFixture(
 async function createAdminServiceChangeFixture(
   prisma: Awaited<typeof import("@/lib/prisma")>["prisma"],
   suffix: string,
+  options: { startsAt?: Date } = {},
 ) {
-  const { startsAt, endsAt } = await findIsolatedAdminWindow(prisma, suffix, 120);
+  const isolatedWindow = options.startsAt
+    ? {
+        startsAt: options.startsAt,
+        endsAt: new Date(options.startsAt.getTime() + 120 * 60 * 1000),
+      }
+    : await findIsolatedAdminWindow(prisma, suffix, 120);
+  const { startsAt, endsAt } = isolatedWindow;
   const bookingEndsAt = new Date(startsAt.getTime() + 60 * 60 * 1000);
   const owner = await prisma.adminUser.create({
     data: {
@@ -1675,6 +1682,224 @@ dbTest("updateAdminBookingService resetuje neodeslaný reminder a scheduler zalo
     });
     assert.ok(finalBooking.reminder24hQueuedAt);
     assert.ok(finalBooking.reminder24hSentAt);
+  } finally {
+    await fixture.cleanup();
+  }
+});
+
+dbTest("updateAdminBookingService po opuštění enqueue window vytvoří replacement reminder pro novou službu", async () => {
+  const [{ prisma }, { updateAdminBookingService }, { claimEmailLogForImmediateDelivery, deliverEmailLog }] = await Promise.all([
+    import("@/lib/prisma"),
+    import("./admin-booking"),
+    import("@/lib/email/delivery"),
+  ]);
+
+  const suffix = randomUUID().slice(0, 8);
+  const now = new Date();
+  const fixture = await createAdminServiceChangeFixture(
+    prisma,
+    suffix,
+    { startsAt: new Date(now.getTime() + 24.5 * 60 * 60 * 1000) },
+  );
+  const oldReminder = await prisma.emailLog.create({
+    data: {
+      bookingId: fixture.booking.id,
+      type: EmailLogType.BOOKING_REMINDER,
+      audience: EmailAudience.CLIENT,
+      status: EmailLogStatus.PENDING,
+      recipientEmail: `client-service-change-${suffix}@example.com`,
+      subject: "Zítra se na vás těšíme v PP Studiu",
+      templateKey: "booking-reminder-24h-v1",
+      payload: {
+        bookingId: fixture.booking.id,
+        serviceId: fixture.originalService.id,
+        serviceName: `Původní změna služby ${suffix}`,
+        clientName: `Klientka změny služby ${suffix}`,
+        scheduledStartsAt: fixture.startsAt.toISOString(),
+        scheduledEndsAt: fixture.bookingEndsAt.toISOString(),
+      },
+      nextAttemptAt: new Date(0),
+    },
+    select: { id: true },
+  });
+
+  try {
+    const queuedBooking = await prisma.booking.update({
+      where: { id: fixture.booking.id },
+      data: {
+        reminder24hQueuedAt: new Date(now.getTime() - 60 * 60 * 1000),
+        reminder24hSentAt: null,
+      },
+      select: { updatedAt: true },
+    });
+    const result = await updateAdminBookingService({
+      bookingId: fixture.booking.id,
+      serviceId: fixture.replacementService.id,
+      actorUserId: fixture.owner.id,
+      expectedUpdatedAt: queuedBooking.updatedAt.toISOString(),
+      now,
+    });
+
+    assert.equal(result.status, "success");
+
+    const oldClaim = await claimEmailLogForImmediateDelivery(oldReminder.id);
+    assert.ok(oldClaim);
+    assert.deepEqual(await deliverEmailLog(oldReminder.id, oldClaim), {
+      status: "skipped",
+      errorMessage: "Booking service no longer matches the email.",
+    });
+
+    const reminderLogs = await prisma.emailLog.findMany({
+      where: { bookingId: fixture.booking.id, type: EmailLogType.BOOKING_REMINDER },
+      orderBy: { createdAt: "asc" },
+      select: { id: true, status: true, payload: true },
+    });
+    assert.equal(reminderLogs.length, 2);
+    const replacement = reminderLogs.find((log) => log.id !== oldReminder.id);
+    assert.ok(replacement);
+    assert.equal(replacement.status, EmailLogStatus.SENT);
+    assert.equal((replacement.payload as Record<string, unknown>).serviceId, fixture.replacementService.id);
+  } finally {
+    await fixture.cleanup();
+  }
+});
+
+dbTest("updateAdminBookingService uvnitř enqueue window ponechá vytvoření reminderu na scheduleru", async () => {
+  const [{ prisma }, { updateAdminBookingService }, { runBookingReminderSchedulerOnce }] = await Promise.all([
+    import("@/lib/prisma"),
+    import("./admin-booking"),
+    import("@/lib/email/worker"),
+  ]);
+
+  const suffix = randomUUID().slice(0, 8);
+  const now = new Date();
+  const fixture = await createAdminServiceChangeFixture(
+    prisma,
+    suffix,
+    { startsAt: new Date(now.getTime() + 25.5 * 60 * 60 * 1000) },
+  );
+
+  try {
+    const result = await updateAdminBookingService({
+      bookingId: fixture.booking.id,
+      serviceId: fixture.replacementService.id,
+      actorUserId: fixture.owner.id,
+      expectedUpdatedAt: fixture.booking.updatedAt.toISOString(),
+      now,
+    });
+
+    assert.equal(result.status, "success");
+    assert.equal(
+      await prisma.emailLog.count({
+        where: { bookingId: fixture.booking.id, type: EmailLogType.BOOKING_REMINDER },
+      }),
+      0,
+    );
+
+    const schedulerResult = await runBookingReminderSchedulerOnce(now);
+    assert.deepEqual(schedulerResult, { foundBookings: 1, enqueued: 1, failed: 0 });
+
+    const reminder = await prisma.emailLog.findFirstOrThrow({
+      where: { bookingId: fixture.booking.id, type: EmailLogType.BOOKING_REMINDER },
+      select: { payload: true },
+    });
+    assert.equal((reminder.payload as Record<string, unknown>).serviceId, fixture.replacementService.id);
+  } finally {
+    await fixture.cleanup();
+  }
+});
+
+dbTest("enqueue helper nereplikuje aktuální PENDING reminder", async () => {
+  const [{ prisma }, { enqueueBookingReminder24hForBooking }] = await Promise.all([
+    import("@/lib/prisma"),
+    import("@/features/booking/lib/booking-reminders"),
+  ]);
+
+  const suffix = randomUUID().slice(0, 8);
+  const now = new Date();
+  const fixture = await createAdminServiceChangeFixture(
+    prisma,
+    suffix,
+    { startsAt: new Date(now.getTime() + 24.5 * 60 * 60 * 1000) },
+  );
+  await prisma.emailLog.create({
+    data: {
+      bookingId: fixture.booking.id,
+      clientId: fixture.client.id,
+      type: EmailLogType.BOOKING_REMINDER,
+      audience: EmailAudience.CLIENT,
+      status: EmailLogStatus.PENDING,
+      recipientEmail: `client-service-change-${suffix}@example.com`,
+      subject: "Zítra se na vás těšíme v PP Studiu",
+      templateKey: "booking-reminder-24h-v1",
+      payload: {
+        bookingId: fixture.booking.id,
+        serviceId: fixture.originalService.id,
+        scheduledStartsAt: fixture.startsAt.toISOString(),
+        scheduledEndsAt: fixture.bookingEndsAt.toISOString(),
+      },
+      nextAttemptAt: now,
+    },
+  });
+
+  try {
+    const result = await prisma.$transaction((tx) => enqueueBookingReminder24hForBooking(tx, {
+      id: fixture.booking.id,
+      clientId: fixture.client.id,
+      clientEmailSnapshot: `client-service-change-${suffix}@example.com`,
+      clientNameSnapshot: `Klientka změny služby ${suffix}`,
+      status: BookingStatus.CONFIRMED,
+      serviceId: fixture.originalService.id,
+      serviceNameSnapshot: `Původní změna služby ${suffix}`,
+      scheduledStartsAt: fixture.startsAt,
+      scheduledEndsAt: fixture.bookingEndsAt,
+    }, now));
+
+    assert.deepEqual(result, {
+      created: false,
+      reason: "Current booking reminder is already pending.",
+    });
+    assert.equal(
+      await prisma.emailLog.count({
+        where: { bookingId: fixture.booking.id, type: EmailLogType.BOOKING_REMINDER },
+      }),
+      1,
+    );
+  } finally {
+    await fixture.cleanup();
+  }
+});
+
+dbTest("updateAdminBookingService po začátku rezervace replacement reminder nevytvoří", async () => {
+  const [{ prisma }, { updateAdminBookingService }] = await Promise.all([
+    import("@/lib/prisma"),
+    import("./admin-booking"),
+  ]);
+
+  const suffix = randomUUID().slice(0, 8);
+  const now = new Date();
+  const fixture = await createAdminServiceChangeFixture(
+    prisma,
+    suffix,
+    { startsAt: new Date(now.getTime() - 60 * 60 * 1000) },
+  );
+
+  try {
+    const result = await updateAdminBookingService({
+      bookingId: fixture.booking.id,
+      serviceId: fixture.replacementService.id,
+      actorUserId: fixture.owner.id,
+      expectedUpdatedAt: fixture.booking.updatedAt.toISOString(),
+      now,
+    });
+
+    assert.equal(result.status, "success");
+    assert.equal(
+      await prisma.emailLog.count({
+        where: { bookingId: fixture.booking.id, type: EmailLogType.BOOKING_REMINDER },
+      }),
+      0,
+    );
   } finally {
     await fixture.cleanup();
   }

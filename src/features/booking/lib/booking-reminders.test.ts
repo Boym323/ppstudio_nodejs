@@ -26,6 +26,24 @@ test("getBookingReminder24hWindow returns a 25h to 26h selection window", async 
   assert.equal(window.windowEnd.toISOString(), "2026-04-24T12:00:00.000Z");
 });
 
+test("getBookingReminder24hEnqueueWindowPosition rozlišuje před, uvnitř a po enqueue window", async () => {
+  const { getBookingReminder24hEnqueueWindowPosition } = await loadReminderModule();
+  const now = new Date("2026-04-23T10:00:00.000Z");
+
+  assert.equal(
+    getBookingReminder24hEnqueueWindowPosition(new Date("2026-04-24T13:00:00.000Z"), now),
+    "before",
+  );
+  assert.equal(
+    getBookingReminder24hEnqueueWindowPosition(new Date("2026-04-24T11:30:00.000Z"), now),
+    "in",
+  );
+  assert.equal(
+    getBookingReminder24hEnqueueWindowPosition(new Date("2026-04-24T10:30:00.000Z"), now),
+    "after",
+  );
+});
+
 test("evaluateBookingReminderDelivery allows confirmed bookings still in the reminder window", async () => {
   const { evaluateBookingReminderDelivery } = await loadReminderModule();
   const result = evaluateBookingReminderDelivery({
