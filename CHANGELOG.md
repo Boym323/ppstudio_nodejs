@@ -16,6 +16,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Reschedule potvrzené rezervace nyní při přesunu do 24h reminder policy zachová nový 24h reminder i po opuštění scheduler enqueue window; replacement vzniká ve stejné serializovatelné transakci s aktuálním termínem, službou a klientským snapshotem, a `notifyClient=false` na tom nic nemění.
 - Adminské potvrzení, adminské storno a owner approve/reject nyní používají e-mailový snapshot konkrétní rezervace; při prázdném snapshotu lifecycle dokončí bez klientského `EmailLog` a nových `RESCHEDULE`/`CANCEL` tokenů.
 - Změna e-mailu klientky už znovu nepoužije čekající booking e-mail se zastaralým termínem, stavem nebo službou; takový log systémově přeskočí a založí nový e-mail s kanonickým payloadem aktuální rezervace a novými self-service odkazy.
 - Admin storno rezervace nyní nabízí volitelné odeslání klientského potvrzení o zrušení; vypnutí e-mailu nemění změnu stavu, obnovu dostupnosti, historii ani revokaci self-service tokenů.

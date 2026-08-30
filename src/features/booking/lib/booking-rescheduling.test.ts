@@ -102,6 +102,7 @@ async function createHarness(overrides: Partial<{
   withinWindow: boolean;
   failEmailLog: boolean;
   serializableFailures: number;
+  pendingReminderPayloads: unknown[];
 }> = {}) {
   const { createBookingReschedulingApi } = await import("./booking-rescheduling");
 
@@ -195,6 +196,7 @@ async function createHarness(overrides: Partial<{
       },
     },
     emailLog: {
+      findMany: async () => (overrides.pendingReminderPayloads ?? []).map((payload) => ({ payload })),
       create: async (input: Record<string, unknown>) => {
         if (overrides.failEmailLog) {
           throw new Error("EmailLog create failed");
@@ -713,6 +715,122 @@ describe("state validation", () => {
 });
 
 describe("reschedule booking", () => {
+  async function rescheduleToRelativeTarget(
+    offsetHours: number,
+    options: { notifyClient?: boolean; serializableFailures?: number } = {},
+  ) {
+    const startsAt = new Date(Date.now() + offsetHours * 60 * 60 * 1000);
+    const endsAt = new Date(startsAt.getTime() + 60 * 60 * 1000);
+    const harness = await createHarness({
+      requestedSlot: buildSlot({
+        id: "slot-new",
+        startsAt,
+        endsAt,
+      }),
+      serializableFailures: options.serializableFailures,
+    });
+
+    const result = await harness.api.rescheduleBooking({
+      bookingId: "booking-1",
+      slotId: "slot-new",
+      newStartAt: startsAt.toISOString(),
+      changedByUserId: "admin-1",
+      notifyClient: options.notifyClient ?? false,
+    });
+
+    return { harness, result, startsAt, endsAt };
+  }
+
+  test("před enqueue window pouze resetuje reminder state", async () => {
+    const { harness, startsAt } = await rescheduleToRelativeTarget(27);
+
+    assert.equal(harness.calls.emailLogCreate.length, 0);
+    assert.deepEqual(harness.calls.bookingUpdate[0]?.data, {
+      slotId: "slot-new",
+      scheduledStartsAt: startsAt,
+      scheduledEndsAt: new Date(startsAt.getTime() + 60 * 60 * 1000),
+      blockedUntil: new Date(startsAt.getTime() + 60 * 60 * 1000),
+      originalAvailabilityEndsAt: new Date(startsAt.getTime() + 60 * 60 * 1000),
+      manualOverride: false,
+      rescheduledAt: harness.calls.bookingUpdate[0]?.data
+        ? (harness.calls.bookingUpdate[0].data as { rescheduledAt: Date }).rescheduledAt
+        : undefined,
+      rescheduleCount: { increment: 1 },
+      reminder24hQueuedAt: null,
+      reminder24hSentAt: null,
+    });
+  });
+
+  test("uvnitř enqueue window nechá reminder na scheduleru", async () => {
+    const { harness } = await rescheduleToRelativeTarget(25.5);
+
+    assert.equal(harness.calls.emailLogCreate.length, 0);
+    assert.equal((harness.calls.bookingUpdate[0]?.data as { reminder24hQueuedAt: null }).reminder24hQueuedAt, null);
+    assert.equal((harness.calls.bookingUpdate[0]?.data as { reminder24hSentAt: null }).reminder24hSentAt, null);
+  });
+
+  test("po opuštění enqueue window vytvoří catch-up reminder i bez reschedule notifikace", async () => {
+    const { harness, result, startsAt, endsAt } = await rescheduleToRelativeTarget(20);
+
+    assert.equal(result.notificationStatus, "skipped");
+    assert.equal(harness.calls.emailLogCreate.length, 1);
+    const reminderLog = harness.calls.emailLogCreate[0]?.data as {
+      type: string;
+      audience: string;
+      payload: Record<string, unknown>;
+    };
+    assert.equal(reminderLog.type, "BOOKING_REMINDER");
+    assert.equal(reminderLog.audience, "CLIENT");
+    assert.equal(reminderLog.payload.bookingId, "booking-1");
+    assert.equal(reminderLog.payload.serviceId, "service-1");
+    assert.equal(reminderLog.payload.scheduledStartsAt, startsAt.toISOString());
+    assert.equal(reminderLog.payload.scheduledEndsAt, endsAt.toISOString());
+  });
+
+  test("po začátku rezervace catch-up reminder nevytvoří", async () => {
+    const { harness } = await rescheduleToRelativeTarget(-1);
+
+    assert.equal(harness.calls.emailLogCreate.length, 0);
+    assert.equal((harness.calls.bookingUpdate[0]?.data as { reminder24hQueuedAt: null }).reminder24hQueuedAt, null);
+    assert.equal((harness.calls.bookingUpdate[0]?.data as { reminder24hSentAt: null }).reminder24hSentAt, null);
+  });
+
+  test("catch-up reminder se při serializable retry neduplikuje", async () => {
+    const { harness } = await rescheduleToRelativeTarget(20, { serializableFailures: 1 });
+
+    assert.equal(harness.calls.emailLogCreate.length, 1);
+    assert.equal(harness.calls.actionTokenCreate.length, 2);
+  });
+
+  test("existující current PENDING reminder se při catch-upu neduplikuje", async () => {
+    const startsAt = new Date(Date.now() + 20 * 60 * 60 * 1000);
+    const endsAt = new Date(startsAt.getTime() + 60 * 60 * 1000);
+    const harness = await createHarness({
+      requestedSlot: buildSlot({
+        id: "slot-new",
+        startsAt,
+        endsAt,
+      }),
+      pendingReminderPayloads: [{
+        bookingId: "booking-1",
+        serviceId: "service-1",
+        scheduledStartsAt: startsAt.toISOString(),
+        scheduledEndsAt: endsAt.toISOString(),
+      }],
+    });
+
+    await harness.api.rescheduleBooking({
+      bookingId: "booking-1",
+      slotId: "slot-new",
+      newStartAt: startsAt.toISOString(),
+      changedByUserId: "admin-1",
+      notifyClient: false,
+    });
+
+    assert.equal(harness.calls.emailLogCreate.length, 0);
+    assert.equal(harness.calls.actionTokenCreate.length, 0);
+  });
+
   test("reschedules to a new available slot and returns the updated booking result", async () => {
     const harness = await createHarness();
 

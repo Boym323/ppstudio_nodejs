@@ -23,6 +23,10 @@ import {
   isInternallyBlockingSlotStatus,
   resolvePublishedSlotCoverage,
 } from "@/features/booking/lib/booking-slot-availability";
+import {
+  enqueueBookingReminder24hForBooking,
+  getBookingReminder24hEnqueueWindowPosition,
+} from "@/features/booking/lib/booking-reminders";
 import { sendOwnerBookingPushover, sendOwnerSystemErrorPushover } from "@/lib/notifications/pushover";
 import { prisma } from "@/lib/prisma";
 import { scrubSensitiveEmailPayload } from "@/lib/email/payload-security";
@@ -742,6 +746,10 @@ async function rescheduleBookingInTransaction(
 
   const bookingPolicy = await dependencies.getBookingPolicySettings();
   const now = new Date();
+  const reminderWindowPosition = getBookingReminder24hEnqueueWindowPosition(
+    requestedStartsAt,
+    now,
+  );
   const isWithinPublicWindow = dependencies.isBookingWithinWindow(
     requestedStartsAt,
     now,
@@ -1027,6 +1035,23 @@ async function rescheduleBookingInTransaction(
       reminder24hSentAt: null,
     },
   });
+
+  if (
+    booking.status === BookingStatus.CONFIRMED
+    && reminderWindowPosition === "after"
+  ) {
+    await enqueueBookingReminder24hForBooking(tx, {
+      id: booking.id,
+      clientId: booking.clientId,
+      clientEmailSnapshot: booking.clientEmailSnapshot,
+      clientNameSnapshot: booking.clientNameSnapshot,
+      status: booking.status,
+      serviceId: booking.serviceId,
+      serviceNameSnapshot: booking.serviceNameSnapshot,
+      scheduledStartsAt: requestedStartsAt,
+      scheduledEndsAt: requestedEndsAt,
+    }, now);
+  }
 
   await tx.bookingRescheduleLog.create({
     data: {
