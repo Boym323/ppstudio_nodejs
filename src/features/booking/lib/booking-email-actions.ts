@@ -46,6 +46,9 @@ type LoadedBookingActionToken = {
     cancelledAt: Date | null;
     manualOverride: boolean;
     clientId: string;
+    client: {
+      email: string | null;
+    } | null;
     slotId: string;
     serviceId: string;
     clientNameSnapshot: string;
@@ -103,7 +106,7 @@ export type PerformBookingEmailActionResult =
       intent: BookingEmailActionIntent;
       resultTitle: string;
       resultDescription: string;
-      emailDeliveryStatus: "queued" | "logged";
+      emailDeliveryStatus: "queued" | "logged" | "skipped";
     })
   | BookingEmailActionTerminalState;
 
@@ -194,6 +197,9 @@ async function findActionToken(tokenHash: string) {
           cancelledAt: true,
           manualOverride: true,
           clientId: true,
+          client: {
+            select: { email: true },
+          },
           slotId: true,
           serviceId: true,
           clientNameSnapshot: true,
@@ -401,6 +407,9 @@ export async function performBookingEmailAction(
               cancelledAt: true,
               manualOverride: true,
               clientId: true,
+              client: {
+                select: { email: true },
+              },
               slotId: true,
               serviceId: true,
               clientNameSnapshot: true,
@@ -427,6 +436,7 @@ export async function performBookingEmailAction(
       const now = new Date();
       const targetStatus = getTargetStatus(intent);
       const copy = getActionCopy(intent);
+      const clientEmail = lockedToken.booking?.client?.email?.trim() ?? "";
 
       await tx.booking.update({
         where: {
@@ -501,7 +511,7 @@ export async function performBookingEmailAction(
             scheduledEndsAt: string;
           };
 
-      if (targetStatus === BookingStatus.CONFIRMED) {
+      if (targetStatus === BookingStatus.CONFIRMED && clientEmail.length > 0) {
         const manageToken = buildBookingActionToken();
         const cancellationToken = buildBookingActionToken();
 
@@ -540,41 +550,48 @@ export async function performBookingEmailAction(
         };
       }
 
-      await tx.emailLog.create({
-        data: {
-          bookingId: lockedToken.bookingId,
-          clientId: lockedToken.booking?.clientId,
-          actionTokenId: lockedToken.id,
-          type:
-            targetStatus === BookingStatus.CONFIRMED
-              ? EmailLogType.BOOKING_CONFIRMED
-              : EmailLogType.BOOKING_CANCELLED,
-          audience: EmailAudience.CLIENT,
-          status: env.EMAIL_DELIVERY_MODE === "background" ? undefined : EmailLogStatus.SENT,
-          attemptCount: env.EMAIL_DELIVERY_MODE === "background" ? undefined : 1,
-          nextAttemptAt: env.EMAIL_DELIVERY_MODE === "background" ? now : undefined,
-          processingStartedAt: null,
-          processingToken: null,
-          recipientEmail: lockedToken.booking?.clientEmailSnapshot ?? "",
-          subject:
-            targetStatus === BookingStatus.CONFIRMED
-              ? `Rezervace potvrzena: ${lockedToken.booking?.serviceNameSnapshot ?? ""}`
-              : `Rezervace nebyla potvrzena: ${lockedToken.booking?.serviceNameSnapshot ?? ""}`,
-          templateKey:
-            targetStatus === BookingStatus.CONFIRMED ? "booking-approved-v1" : "booking-rejected-v1",
-          payload: env.EMAIL_DELIVERY_MODE === "background"
-            ? bookingApprovedPayload
-            : scrubSensitiveEmailPayload(bookingApprovedPayload),
-          provider: env.EMAIL_DELIVERY_MODE === "background" ? undefined : "log",
-          sentAt: env.EMAIL_DELIVERY_MODE === "background" ? undefined : now,
-        },
-      });
+      if (clientEmail.length > 0) {
+        await tx.emailLog.create({
+          data: {
+            bookingId: lockedToken.bookingId,
+            clientId: lockedToken.booking?.clientId,
+            actionTokenId: lockedToken.id,
+            type:
+              targetStatus === BookingStatus.CONFIRMED
+                ? EmailLogType.BOOKING_CONFIRMED
+                : EmailLogType.BOOKING_CANCELLED,
+            audience: EmailAudience.CLIENT,
+            status: env.EMAIL_DELIVERY_MODE === "background" ? undefined : EmailLogStatus.SENT,
+            attemptCount: env.EMAIL_DELIVERY_MODE === "background" ? undefined : 1,
+            nextAttemptAt: env.EMAIL_DELIVERY_MODE === "background" ? now : undefined,
+            processingStartedAt: null,
+            processingToken: null,
+            recipientEmail: clientEmail,
+            subject:
+              targetStatus === BookingStatus.CONFIRMED
+                ? `Rezervace potvrzena: ${lockedToken.booking?.serviceNameSnapshot ?? ""}`
+                : `Rezervace nebyla potvrzena: ${lockedToken.booking?.serviceNameSnapshot ?? ""}`,
+            templateKey:
+              targetStatus === BookingStatus.CONFIRMED ? "booking-approved-v1" : "booking-rejected-v1",
+            payload: env.EMAIL_DELIVERY_MODE === "background"
+              ? bookingApprovedPayload
+              : scrubSensitiveEmailPayload(bookingApprovedPayload),
+            provider: env.EMAIL_DELIVERY_MODE === "background" ? undefined : "log",
+            sentAt: env.EMAIL_DELIVERY_MODE === "background" ? undefined : now,
+          },
+        });
+      }
 
       return {
         status: "completed" as const,
         intent,
         resultTitle: copy.resultTitle,
-        resultDescription: copy.resultDescription,
+        resultDescription: clientEmail.length > 0
+          ? copy.resultDescription
+          : "Rezervace byla zpracována, ale klientský e-mail nebyl vytvořen, protože klientka nemá aktuální e-mail.",
+        emailDeliveryStatus: clientEmail.length > 0
+          ? env.EMAIL_DELIVERY_MODE === "background" ? "queued" as const : "logged" as const
+          : "skipped" as const,
         details: toActionDetails(lockedToken.booking!),
       };
     },
@@ -598,7 +615,7 @@ export async function performBookingEmailAction(
     intent,
     resultTitle: transactionResult.resultTitle,
     resultDescription: transactionResult.resultDescription,
-    emailDeliveryStatus: env.EMAIL_DELIVERY_MODE === "background" ? "queued" : "logged",
+    emailDeliveryStatus: transactionResult.emailDeliveryStatus,
     ...transactionResult.details,
   };
 }

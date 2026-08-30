@@ -46,6 +46,9 @@ function buildToken(overrides: BookingEmailActionTokenOverrides = {}) {
       cancelledAt: overrides.cancelledAt ?? null,
       manualOverride: false,
       clientId: "client-1",
+      client: {
+        email: "jana@example.com",
+      },
       slotId: "slot-1",
       serviceId: "service-1",
       clientNameSnapshot: "Jana Novakova",

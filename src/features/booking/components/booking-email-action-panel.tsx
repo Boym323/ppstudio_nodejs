@@ -120,7 +120,9 @@ export function BookingEmailActionPanel({
           <p className="mt-6 text-sm leading-7 text-[var(--color-muted)]">
             {serverState.result.emailDeliveryStatus === "queued"
               ? "E-mail pro klientku je zařazený do odeslání na pozadí."
-              : "E-mail pro klientku je zapsaný v log režimu doručování."}
+              : serverState.result.emailDeliveryStatus === "logged"
+                ? "E-mail pro klientku je zapsaný v log režimu doručování."
+                : "Klientský e-mail nebyl vytvořen, protože klientka nemá aktuální e-mail."}
           </p>
           <div className="mt-8">
             <ActionLinks

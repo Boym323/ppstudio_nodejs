@@ -16,6 +16,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Adminské potvrzení a owner approve/reject nyní při chybějícím aktuálním e-mailu klientky dokončí lifecycle bez klientského `EmailLog` a bez nových `RESCHEDULE`/`CANCEL` tokenů; po doplnění kontaktu je vytvoří contact rotation.
 - Změna e-mailu klientky už znovu nepoužije čekající booking e-mail se zastaralým termínem, stavem nebo službou; takový log systémově přeskočí a založí nový e-mail s kanonickým payloadem aktuální rezervace a novými self-service odkazy.
 - Admin storno rezervace nyní nabízí volitelné odeslání klientského potvrzení o zrušení; vypnutí e-mailu nemění změnu stavu, obnovu dostupnosti, historii ani revokaci self-service tokenů.
 - Změna služby u aktivní rezervace nyní resetuje neodeslaný 24h reminder; pokud rezervace mezitím opustila scheduler enqueue window, ve stejné transakci založí replacement s kanonickým payloadem aktuální služby, zatímco starý e-mail lze systémově přeskočit podle `serviceId` a již odeslaný reminder zůstává beze změny.

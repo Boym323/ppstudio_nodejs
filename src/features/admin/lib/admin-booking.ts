@@ -148,6 +148,8 @@ export async function applyAdminBookingStatusChangeInTransaction(
       return { status: "not-found" as const };
     }
 
+    const clientEmail = booking.client.email?.trim() ?? "";
+
     if (!canApplyAdminBookingTransition(booking.status, targetStatus)) {
       return {
         status: "invalid-transition" as const,
@@ -225,7 +227,7 @@ export async function applyAdminBookingStatusChangeInTransaction(
       },
     });
 
-    if (targetStatus === BookingStatus.CONFIRMED) {
+    if (targetStatus === BookingStatus.CONFIRMED && clientEmail.length > 0) {
       const manageToken = buildBookingActionToken();
       const cancellationToken = buildBookingActionToken();
 
@@ -270,7 +272,7 @@ export async function applyAdminBookingStatusChangeInTransaction(
           nextAttemptAt: env.EMAIL_DELIVERY_MODE === "background" ? now : undefined,
           processingStartedAt: null,
           processingToken: null,
-          recipientEmail: booking.clientEmailSnapshot,
+          recipientEmail: clientEmail,
           subject: `Rezervace potvrzena: ${booking.serviceNameSnapshot}`,
           templateKey: "booking-approved-v1",
           payload: env.EMAIL_DELIVERY_MODE === "background"
@@ -281,8 +283,6 @@ export async function applyAdminBookingStatusChangeInTransaction(
         },
       });
     }
-
-    const clientEmail = booking.client.email?.trim() ?? "";
 
     if (
       targetStatus === BookingStatus.CANCELLED

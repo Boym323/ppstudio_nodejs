@@ -211,6 +211,31 @@ async function cleanupSeed(seed: Seed) {
   await prisma.adminUser.deleteMany({ where: { id: seed.actorUserId } });
 }
 
+async function removeClientEmail(seed: Seed) {
+  const { prisma } = await loadModules();
+
+  await prisma.$transaction(async (tx) => {
+    await tx.client.update({
+      where: { id: seed.clientId },
+      data: { email: null },
+    });
+    await tx.booking.update({
+      where: { id: seed.bookingId },
+      data: { clientEmailSnapshot: "" },
+    });
+  });
+}
+
+async function assertNoEmptyClientRecipients(bookingId: string) {
+  const { prisma, EmailAudience } = await loadModules();
+  const clientLogs = await prisma.emailLog.findMany({
+    where: { bookingId, audience: EmailAudience.CLIENT },
+    select: { recipientEmail: true },
+  });
+
+  assert.ok(clientLogs.every((emailLog) => emailLog.recipientEmail.trim().length > 0));
+}
+
 function assertApprovedEmailPayloadHasSelfServiceLinks(payload: unknown) {
   assert.equal(typeof payload, "object");
   assert.ok(payload && !Array.isArray(payload));
@@ -346,6 +371,205 @@ dbTest("performBookingEmailAction approve stores manage and cancellation links i
     assert.ok(actionTokens.every(
       (token) => token.expiresAt.getTime() === buildBookingSelfServiceActionExpiry(booking.scheduledStartsAt).getTime(),
     ));
+  } finally {
+    await cleanupSeed(seed);
+  }
+});
+
+dbTest("admin CONFIRMED bez aktuálního e-mailu změní lifecycle bez klientského outboxu a tokenů", async () => {
+  const seed = await createSeed();
+
+  try {
+    const { prisma, applyAdminBookingStatusChange, BookingActionTokenType, BookingStatus, EmailAudience } = await loadModules();
+    await removeClientEmail(seed);
+
+    const result = await applyAdminBookingStatusChange({
+      bookingId: seed.bookingId,
+      targetStatus: BookingStatus.CONFIRMED,
+      actorUserId: seed.actorUserId,
+      notifyClient: true,
+    });
+
+    assert.deepEqual(result, { status: "success" });
+    assert.equal(
+      (await prisma.booking.findUniqueOrThrow({ where: { id: seed.bookingId }, select: { status: true } })).status,
+      BookingStatus.CONFIRMED,
+    );
+    assert.equal(
+      await prisma.emailLog.count({ where: { bookingId: seed.bookingId, audience: EmailAudience.CLIENT } }),
+      0,
+    );
+    assert.equal(
+      await prisma.bookingActionToken.count({
+        where: {
+          bookingId: seed.bookingId,
+          type: { in: [BookingActionTokenType.RESCHEDULE, BookingActionTokenType.CANCEL] },
+        },
+      }),
+      0,
+    );
+    await assertNoEmptyClientRecipients(seed.bookingId);
+  } finally {
+    await cleanupSeed(seed);
+  }
+});
+
+dbTest("owner approve a reject bez aktuálního e-mailu zachovají action token lifecycle bez klientského outboxu", async () => {
+  const cases = [
+    { intent: "approve" as const, tokenType: "APPROVE" as const, expectedStatus: "CONFIRMED" as const },
+    { intent: "reject" as const, tokenType: "REJECT" as const, expectedStatus: "CANCELLED" as const },
+  ];
+
+  for (const testCase of cases) {
+    const seed = await createSeed(
+      testCase.intent === "approve" ? { withApproveToken: true } : { withRejectToken: true },
+    );
+
+    try {
+      const {
+        prisma,
+        performBookingEmailAction,
+        BookingActionTokenType,
+        BookingStatus,
+        EmailAudience,
+      } = await loadModules();
+      await removeClientEmail(seed);
+
+      const rawToken = testCase.intent === "approve" ? seed.approveRawToken : seed.rejectRawToken;
+      const result = await performBookingEmailAction(
+        testCase.intent,
+        rawToken!,
+        undefined,
+        { userId: seed.actorUserId },
+      );
+
+      assert.equal(result.status, "completed");
+      if (result.status === "completed") {
+        assert.equal(result.emailDeliveryStatus, "skipped");
+      }
+      assert.equal(
+        (await prisma.booking.findUniqueOrThrow({ where: { id: seed.bookingId }, select: { status: true } })).status,
+        BookingStatus[testCase.expectedStatus],
+      );
+      assert.equal(
+        await prisma.emailLog.count({ where: { bookingId: seed.bookingId, audience: EmailAudience.CLIENT } }),
+        0,
+      );
+      assert.equal(
+        await prisma.bookingActionToken.count({
+          where: {
+            bookingId: seed.bookingId,
+            type: { in: [BookingActionTokenType.RESCHEDULE, BookingActionTokenType.CANCEL] },
+          },
+        }),
+        0,
+      );
+      const actionToken = await prisma.bookingActionToken.findFirstOrThrow({
+        where: { bookingId: seed.bookingId, type: BookingActionTokenType[testCase.tokenType] },
+        select: { usedAt: true },
+      });
+      assert.ok(actionToken.usedAt);
+      await assertNoEmptyClientRecipients(seed.bookingId);
+    } finally {
+      await cleanupSeed(seed);
+    }
+  }
+});
+
+dbTest("rollback admin CONFIRMED vrátí lifecycle, action tokeny i klientský outbox atomicky", async () => {
+  const seed = await createSeed();
+
+  try {
+    const { prisma, BookingActionTokenType, BookingStatus, EmailAudience } = await loadModules();
+    const { applyAdminBookingStatusChangeInTransaction } = await import("@/features/admin/lib/admin-booking");
+
+    await assert.rejects(
+      prisma.$transaction(async (tx) => {
+        const result = await applyAdminBookingStatusChangeInTransaction(tx, {
+          bookingId: seed.bookingId,
+          targetStatus: BookingStatus.CONFIRMED,
+          actorUserId: seed.actorUserId,
+          notifyClient: true,
+        });
+        assert.deepEqual(result, { status: "success" });
+        throw new Error("rollback admin confirmation test");
+      }),
+      /rollback admin confirmation test/,
+    );
+
+    assert.equal(
+      (await prisma.booking.findUniqueOrThrow({ where: { id: seed.bookingId }, select: { status: true } })).status,
+      BookingStatus.PENDING,
+    );
+    assert.equal(
+      await prisma.bookingActionToken.count({
+        where: {
+          bookingId: seed.bookingId,
+          type: { in: [BookingActionTokenType.RESCHEDULE, BookingActionTokenType.CANCEL] },
+        },
+      }),
+      0,
+    );
+    assert.equal(
+      await prisma.emailLog.count({ where: { bookingId: seed.bookingId, audience: EmailAudience.CLIENT } }),
+      0,
+    );
+  } finally {
+    await cleanupSeed(seed);
+  }
+});
+
+dbTest("doplnění e-mailu přes contact rotation po potvrzení bez e-mailu vytvoří aktuální klientský log a tokeny", async () => {
+  const seed = await createSeed();
+  const newEmail = `rotated-${seed.bookingId}@example.com`;
+
+  try {
+    const { prisma, applyAdminBookingStatusChange, rotateClientBookingTokensForEmailChange } = await (async () => {
+      const [{ prisma }, { applyAdminBookingStatusChange }, { rotateClientBookingTokensForEmailChange }] = await Promise.all([
+        import("@/lib/prisma"),
+        import("@/features/admin/lib/admin-booking"),
+        import("@/features/admin/lib/client-contact-token-rotation"),
+      ]);
+      return { prisma, applyAdminBookingStatusChange, rotateClientBookingTokensForEmailChange };
+    })();
+    await removeClientEmail(seed);
+
+    assert.deepEqual(await applyAdminBookingStatusChange({
+      bookingId: seed.bookingId,
+      targetStatus: "CONFIRMED",
+      actorUserId: seed.actorUserId,
+      notifyClient: true,
+    }), { status: "success" });
+
+    await prisma.$transaction(async (tx) => {
+      await tx.client.update({ where: { id: seed.clientId }, data: { email: newEmail } });
+      await tx.booking.update({ where: { id: seed.bookingId }, data: { clientEmailSnapshot: newEmail } });
+      await rotateClientBookingTokensForEmailChange(tx, {
+        clientId: seed.clientId,
+        bookingIds: [seed.bookingId],
+        newEmail,
+        now: new Date(),
+      });
+    });
+
+    const { BookingActionTokenType, EmailAudience, EmailLogType } = await loadModules();
+    const emailLog = await prisma.emailLog.findFirstOrThrow({
+      where: { bookingId: seed.bookingId, audience: EmailAudience.CLIENT, type: EmailLogType.BOOKING_CONFIRMED },
+      orderBy: { createdAt: "desc" },
+      select: { recipientEmail: true },
+    });
+    assert.equal(emailLog.recipientEmail, newEmail);
+    assert.equal(
+      await prisma.bookingActionToken.count({
+        where: {
+          bookingId: seed.bookingId,
+          type: { in: [BookingActionTokenType.RESCHEDULE, BookingActionTokenType.CANCEL] },
+          revokedAt: null,
+        },
+      }),
+      2,
+    );
+    await assertNoEmptyClientRecipients(seed.bookingId);
   } finally {
     await cleanupSeed(seed);
   }
