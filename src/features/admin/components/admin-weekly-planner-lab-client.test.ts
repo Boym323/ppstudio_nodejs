@@ -81,6 +81,33 @@ test("planner má legendu a sdílené routování rezervace bez paralelního ins
   assert.match(source, /aria-label", label/);
 });
 
+test("hlavička dne odděluje svátek a prázdniny bez změny editace Planneru", async () => {
+  const source = await clientSource();
+  const styles = await readFile(new URL("./planner-lab.module.css", import.meta.url), "utf8");
+
+  assert.match(source, /function renderPlannerDayHeader\(date: Date\)/);
+  assert.match(source, /dayHeaderContent=\{\(arg\) => renderPlannerDayHeader\(arg\.date\)\}/);
+  assert.match(source, /className=\{styles\.dayHeaderDate\}/);
+  assert.match(source, /className=\{styles\.publicHolidayNotice\}/);
+  assert.match(source, /<strong>ZAVŘENO<\/strong>/);
+  assert.match(source, /context\.publicHoliday\.name/);
+  assert.match(source, /styles\.schoolHolidayBadge/);
+  assert.match(source, /context\.schoolHoliday\.name/);
+  assert.match(source, /🇨🇿 Svátek · běžně zavřeno/);
+  assert.match(source, /🎒 Školní prázdniny · informace/);
+  const schoolHeaderLine = source.split("\n").find((line) => line.includes("context.schoolHoliday ?"));
+  assert.ok(schoolHeaderLine);
+  assert.doesNotMatch(schoolHeaderLine, /ZAVŘENO/);
+  assert.match(source, /dayHeaderClass=\{\(arg\) => getPlannerCalendarContextClass\(arg\.date\)\}/);
+  assert.match(source, /slotLaneClass=\{\(arg\) => getPlannerCalendarContextClass\(arg\.date\)\}/);
+  assert.match(source, /selectable=\{canEdit && mode !== "view"\}/);
+  assert.match(source, /applyPlannerSelectionAction/);
+  assert.doesNotMatch(source, /AvailabilitySlot/);
+  assert.match(styles, /display: flex !important/);
+  assert.match(styles, /white-space: normal !important/);
+  assert.match(styles, /overflow-wrap: anywhere/);
+});
+
 test("obsazený termín zobrazuje službu pod jménem klientky", async () => {
   const source = await clientSource();
   assert.match(source, /className=\{styles\.eventMedium\}/);
