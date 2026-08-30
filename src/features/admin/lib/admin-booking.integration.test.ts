@@ -505,11 +505,8 @@ async function createAdminAutoLunchServiceChangeFixture(
     },
     select: { id: true },
   });
-  const siteSettings = await prisma.siteSettings.findUnique({
-    where: { id: "site-settings" },
-    select: { autoLunchEnabled: true },
-  });
-  assert.ok(siteSettings);
+  const { ensureSiteSettings } = await import("@/lib/site-settings");
+  const siteSettings = await ensureSiteSettings();
   await prisma.siteSettings.update({
     where: { id: "site-settings" },
     data: { autoLunchEnabled: true },
