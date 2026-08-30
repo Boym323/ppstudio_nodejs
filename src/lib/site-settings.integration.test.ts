@@ -14,7 +14,7 @@ process.env.EMAIL_DELIVERY_MODE ??= "log";
 const dbTest = process.env.RUN_DB_INTEGRATION_TESTS === "1" ? test : test.skip;
 
 dbTest("DB integration runtime čte SiteSettings produkční cestou místo snapshotu nebo defaultů", async () => {
-  const [{ prisma }, { SITE_SETTINGS_ID }] = await Promise.all([
+  const [{ prisma }, { ensureSiteSettings, SITE_SETTINGS_ID }] = await Promise.all([
     import("@/lib/prisma"),
     import("@/lib/site-settings"),
   ]);
@@ -84,7 +84,9 @@ dbTest("DB integration runtime čte SiteSettings produkční cestou místo snaps
     if (original) {
       await prisma.siteSettings.update({ where: { id: SITE_SETTINGS_ID }, data: original });
     } else {
-      await prisma.siteSettings.delete({ where: { id: SITE_SETTINGS_ID } });
+      // Ostatní DB integrační testy mohou singleton používat souběžně nebo
+      // bezprostředně po tomto testu. Nenechávej proto sdílenou tabulku prázdnou.
+      await ensureSiteSettings();
     }
   }
 });
