@@ -1,4 +1,4 @@
-export type KpiPeriod = "this_month" | "last_month" | "last_30_days" | "this_year" | "custom";
+export type KpiPeriod = "this_month" | "last_month" | "next_month" | "last_30_days" | "this_year" | "custom";
 
 export type KpiDateRange = {
   start: Date;

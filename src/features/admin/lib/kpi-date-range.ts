@@ -2,7 +2,7 @@ import { z } from "zod";
 
 import { type KpiDateRange, type KpiPeriod } from "@/features/admin/types/kpi-dashboard";
 
-const periods = ["this_month", "last_month", "last_30_days", "this_year", "custom"] as const;
+const periods = ["this_month", "last_month", "next_month", "last_30_days", "this_year", "custom"] as const;
 export const kpiSearchParamsSchema = z.object({
   period: z.enum(periods).optional(),
   dateFrom: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
@@ -50,6 +50,9 @@ export function getKpiDateRanges(input: unknown, now = new Date()) {
   if (period === "last_month") {
     const start = pragueMidnight(today.year, today.month - 1, 1);
     current = range(start, pragueMidnight(today.year, today.month, 1), "Minulý měsíc", period);
+  } else if (period === "next_month") {
+    const start = pragueMidnight(today.year, today.month + 1, 1);
+    current = range(start, pragueMidnight(today.year, today.month + 2, 1), "Příští měsíc", period);
   } else if (period === "last_30_days") {
     current = range(addPragueDays(todayStart, -29), addPragueDays(todayStart, 1), "Posledních 30 dní", period);
   } else if (period === "this_year") {

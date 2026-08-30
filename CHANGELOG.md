@@ -9,11 +9,13 @@ Formát je inspirovaný Keep a Changelog.
 ### Přidáno
 
 - Admin Planner nyní ve hlavičce a časové mřížce vizuálně označuje české státní a ostatní svátky jako informativně zavřené a zobrazuje školní prázdniny pro okres Zlín bez omezení vytváření dostupnosti nebo rezervací.
+- KPI a statistiky nyní umožňují zobrazit celý příští kalendářní měsíc.
 
 ## [3.25.2] - 2026-08-30
 
 ### Opraveno
 
+- KPI statistiky už při zobrazení budoucího měsíce neselžou u rezervací bez navázaného dostupnostního slotu.
 - Testovací prostředí nyní spolehlivě vynucuje logovací režim e-mailového doručování a neobsahuje nepoužívanou pomocnou funkci.
 
 ## [3.25.1] - 2026-08-30

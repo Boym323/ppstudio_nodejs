@@ -91,7 +91,7 @@ function summarize(
   const clientMetrics = getKpiClientMetrics(allCompleted, range);
   const disruptions = calculateDisruptionMetrics(listed.map((row) => ({
     status: row.status,
-    slotPublishedAt: row.slot.publishedAt,
+    slotPublishedAt: row.slot?.publishedAt ?? null,
     finalPriceCzk: row.finalPriceCzk,
     servicePriceFromCzk: row.servicePriceFromCzk,
   })));

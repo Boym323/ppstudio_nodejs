@@ -13,6 +13,13 @@ test("vlastní období zahrne oba dny", () => {
   const { current } = getKpiDateRanges({ period: "custom", dateFrom: "2026-07-10", dateTo: "2026-07-19" });
   assert.equal((current.end.getTime() - current.start.getTime()) / 86_400_000, 10);
 });
+test("příští měsíc je celý následující kalendářní měsíc", () => {
+  const { current, previous } = getKpiDateRanges({ period: "next_month" }, new Date("2026-12-16T10:00:00.000Z"));
+  assert.equal(current.label, "Příští měsíc");
+  assert.equal(current.start.toISOString(), "2026-12-31T23:00:00.000Z");
+  assert.equal(current.end.toISOString(), "2027-01-31T23:00:00.000Z");
+  assert.equal(previous.end.getTime(), current.start.getTime());
+});
 test("procentní změna při nulové výchozí hodnotě není zavádějící", () => {
   assert.equal(getKpiPercentChange(10, 0), null);
   assert.equal(getKpiPercentChange(15, 10), 50);

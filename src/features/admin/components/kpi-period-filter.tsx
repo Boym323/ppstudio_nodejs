@@ -6,6 +6,7 @@ import { useState } from "react";
 import { type KpiPeriod } from "@/features/admin/types/kpi-dashboard";
 
 const quickPeriods: Array<{ period: Exclude<KpiPeriod, "custom">; label: string }> = [
+  { period: "next_month", label: "Příští měsíc" },
   { period: "this_month", label: "Tento měsíc" },
   { period: "last_month", label: "Minulý měsíc" },
   { period: "last_30_days", label: "Posledních 30 dní" },
