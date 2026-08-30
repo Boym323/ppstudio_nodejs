@@ -93,8 +93,8 @@ test("hlavička dne odděluje svátek a prázdniny bez změny editace Planneru",
   assert.match(source, /context\.publicHoliday\.name/);
   assert.match(source, /styles\.schoolHolidayBadge/);
   assert.match(source, /context\.schoolHoliday\.name/);
-  assert.match(source, /🇨🇿 Svátek · běžně zavřeno/);
-  assert.match(source, /🎒 Školní prázdniny · informace/);
+  assert.match(source, /🇨🇿 Svátek · zavřeno/);
+  assert.match(source, /🎒 Školní prázdniny<\/span>/);
   const schoolHeaderLine = source.split("\n").find((line) => line.includes("context.schoolHoliday ?"));
   assert.ok(schoolHeaderLine);
   assert.doesNotMatch(schoolHeaderLine, /ZAVŘENO/);

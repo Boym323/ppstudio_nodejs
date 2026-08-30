@@ -23,8 +23,8 @@
 .legendUnsaved { background: transparent; border-style: dashed !important; border-color: #f5ca70 !important; }
 .legendError { background: #b85164; }
 .legendLunch { background: repeating-linear-gradient(135deg, #8d78cf 0 4px, #5e4c98 4px 8px); }
-.legendPublicHoliday { background: linear-gradient(135deg, rgb(190 160 120 / 55%), rgb(115 91 67 / 70%)); }
-.legendSchoolHoliday { background: rgb(215 183 102 / 32%); box-shadow: inset 0 0 0 1px rgb(215 183 102 / 42%); }
+.legendPublicHoliday { background: linear-gradient(135deg, rgb(190 145 155 / 48%), rgb(115 82 91 / 58%)); }
+.legendSchoolHoliday { background: rgb(215 183 102 / 24%); }
 .lunchControls { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem .5rem; padding: .35rem .5rem; border: 1px solid rgb(141 120 207 / 24%); border-radius: .65rem; background: rgb(141 120 207 / 7%); color: rgb(255 255 255 / 72%); font-size: .75rem; }
 .lunchControls select { min-height: 1.8rem; max-width: 13rem; border: 1px solid rgb(255 255 255 / 14%); border-radius: .35rem; background: #211d27; padding: .2rem .4rem; color: white; }
 .lunchNote { color: rgb(255 255 255 / 55%); }
@@ -42,18 +42,18 @@
 .calendar :global(.fc-col-header-cell-cushion) { display: block; width: 100%; box-sizing: border-box; padding: 0; white-space: normal !important; }
 .calendar :global(.fc-col-header-cell-cushion) > div { width: 100%; white-space: normal; }
 .dayHeader { display: flex !important; width: 100%; min-width: 0; min-height: 3.35rem; box-sizing: border-box; flex-direction: column; align-items: stretch; gap: .28rem; padding: .42rem .35rem .48rem; color: rgb(255 255 255 / 82%); text-align: center; white-space: normal !important; }
-.dayHeaderPublicHoliday { border-radius: .45rem; background: linear-gradient(180deg, rgb(190 160 120 / 18%), rgb(115 91 67 / 8%)); box-shadow: inset 0 0 0 1px rgb(245 202 112 / 25%); }
-.dayHeaderSchoolHoliday { border-radius: .45rem; background: rgb(215 183 102 / 7%); }
+.dayHeaderPublicHoliday { border-radius: .45rem; background: linear-gradient(180deg, rgb(146 93 105 / 8%), rgb(115 82 91 / 3%)); }
+.dayHeaderSchoolHoliday { border-radius: .45rem; background: rgb(215 183 102 / 4%); }
 .dayHeaderDate { display: flex; flex-direction: column; align-items: center; gap: .13rem; line-height: 1; }
 .dayWeekday { color: rgb(255 255 255 / 82%); font-size: .68rem; font-weight: 800; letter-spacing: .09em; line-height: 1.1; }
 .dayDate { color: rgb(255 255 255 / 62%); font-size: .75rem; line-height: 1.1; }
-.publicHolidayNotice { display: flex; min-width: 0; flex-direction: column; align-items: center; gap: .15rem; border-radius: .38rem; background: rgb(190 160 120 / 13%); padding: .2rem .28rem .24rem; }
-.publicHolidayBadge { display: inline-flex; align-items: center; gap: .2rem; color: #f5d58b; font-size: .63rem; line-height: 1.05; letter-spacing: .04em; white-space: nowrap; }
-.publicHolidayName { display: block; max-width: 100%; color: rgb(245 213 139 / 78%); font-size: .59rem; font-weight: 600; line-height: 1.15; overflow-wrap: anywhere; white-space: normal; }
-.schoolHolidayBadge { display: flex; width: 100%; min-width: 0; box-sizing: border-box; align-items: center; justify-content: center; gap: .18rem; border-radius: .3rem; background: rgb(215 183 102 / 15%); padding: .18rem .28rem; color: #e8ca8c; font-size: .59rem; font-weight: 700; line-height: 1.1; overflow-wrap: anywhere; white-space: normal; }
-.schoolHolidaySummer { background: rgb(215 183 102 / 7%); color: rgb(232 202 140 / 72%); font-weight: 600; }
-.publicHolidayColumn { background: linear-gradient(90deg, rgb(190 160 120 / 6%), rgb(190 160 120 / 12%), rgb(190 160 120 / 6%)); }
-.schoolHolidayColumn { box-shadow: inset 0 0 0 999px rgb(215 183 102 / 2%); }
+.publicHolidayNotice { display: flex; width: 100%; min-width: 0; box-sizing: border-box; flex-direction: column; align-items: center; gap: .15rem; border: 1px solid rgb(215 160 170 / 13%); border-radius: .38rem; background: rgb(146 93 105 / 7%); padding: .2rem .28rem .24rem; }
+.publicHolidayBadge { display: inline-flex; align-items: center; gap: .2rem; color: #f1c7bd; font-size: .65rem; font-weight: 800; line-height: 1.05; letter-spacing: .04em; white-space: nowrap; }
+.publicHolidayName { display: block; max-width: 100%; color: rgb(245 216 210 / 68%); font-size: .58rem; font-weight: 600; line-height: 1.15; overflow-wrap: anywhere; text-wrap: pretty; white-space: normal; }
+.schoolHolidayBadge { display: flex; width: 100%; min-width: 0; box-sizing: border-box; align-items: center; justify-content: center; gap: .18rem; border-radius: .3rem; background: rgb(215 183 102 / 10%); padding: .18rem .28rem; color: rgb(232 202 140 / 82%); font-size: .59rem; font-weight: 700; line-height: 1.1; overflow-wrap: anywhere; text-wrap: pretty; white-space: normal; }
+.schoolHolidaySummer { background: rgb(215 183 102 / 5%); color: rgb(232 202 140 / 68%); font-weight: 600; }
+.publicHolidayColumn { background: linear-gradient(90deg, rgb(146 93 105 / 2%), rgb(146 93 105 / 5%), rgb(146 93 105 / 2%)); }
+.schoolHolidayColumn { background: rgb(215 183 102 / 1.5%); }
 .calendar :global(.fc-timegrid-slot) { height: 2.15rem; border-color: rgb(255 255 255 / 7%); }
 .calendar :global(.fc-timegrid-slot-label) { color: rgb(255 255 255 / 45%); }
 .calendar :global(.fc-timegrid-now-indicator-line) { border-color: #f7c66d; }
