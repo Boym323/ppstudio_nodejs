@@ -114,6 +114,7 @@ export async function applyAdminBookingStatusChangeInTransaction(
         status: true,
         clientId: true,
         slotId: true,
+        serviceId: true,
         manualOverride: true,
         clientNameSnapshot: true,
         clientEmailSnapshot: true,
@@ -224,6 +225,7 @@ export async function applyAdminBookingStatusChangeInTransaction(
 
       const clientPayload = {
         bookingId: booking.id,
+        serviceId: booking.serviceId,
         serviceName: booking.serviceNameSnapshot,
         clientName: booking.clientNameSnapshot,
         scheduledStartsAt: booking.scheduledStartsAt.toISOString(),

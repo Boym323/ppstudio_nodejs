@@ -28,6 +28,7 @@ const CLIENT_TOKEN_EMAIL_TEMPLATES = new Set([
 type ResendTokenPayload = {
   manageReservationUrl: string;
   cancellationUrl: string;
+  serviceId: string;
 } | {
   approveUrl: string;
   rejectUrl: string;
@@ -73,10 +74,11 @@ async function issueResendBookingActionTokens(
     : [BookingActionTokenType.APPROVE, BookingActionTokenType.REJECT];
 
   let clientScheduledStartsAt: Date | null = null;
+  let clientServiceId: string | null = null;
   if (kind === "client") {
     const booking = await tx.booking.findUnique({
       where: { id: emailLog.bookingId },
-      select: { scheduledStartsAt: true },
+      select: { scheduledStartsAt: true, serviceId: true },
     });
 
     if (!booking) {
@@ -84,6 +86,7 @@ async function issueResendBookingActionTokens(
     }
 
     clientScheduledStartsAt = booking.scheduledStartsAt;
+    clientServiceId = booking.serviceId;
   }
 
   // PENDING zdroj může stále potřebovat své payload pro automatický retry.
@@ -102,7 +105,7 @@ async function issueResendBookingActionTokens(
   }
 
   if (kind === "client") {
-    if (clientScheduledStartsAt === null) {
+    if (clientScheduledStartsAt === null || clientServiceId === null) {
       return null;
     }
 
@@ -118,6 +121,7 @@ async function issueResendBookingActionTokens(
       payload: {
         manageReservationUrl: clientTokens.manageReservationUrl,
         cancellationUrl: clientTokens.cancellationUrl,
+        serviceId: clientServiceId,
       },
     };
   }
@@ -211,6 +215,7 @@ export async function createResendEmailLog(input: {
         where: { id: emailLog.bookingId },
         select: {
           status: true,
+          serviceId: true,
           scheduledStartsAt: true,
           scheduledEndsAt: true,
         },

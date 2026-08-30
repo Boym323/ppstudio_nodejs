@@ -824,6 +824,7 @@ export async function createBookingWithEngine(
             clientEmail: normalizedEmail,
             clientPhone: normalizedPhone,
             clientNote: normalizedClientNote,
+            serviceId: service.id,
             serviceName: service.name,
             scheduledStartsAt: booking.scheduledStartsAt,
             scheduledEndsAt: booking.scheduledEndsAt,

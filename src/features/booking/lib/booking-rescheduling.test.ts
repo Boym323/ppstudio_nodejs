@@ -1036,6 +1036,7 @@ describe("history and side effects", () => {
     assert.deepEqual(harness.calls.notification[0], {
       bookingId: "booking-1",
       clientId: "client-1",
+      serviceId: "service-1",
       clientEmail: "jana@example.com",
       clientName: "Jana Nováková",
       serviceName: "Lash lifting",
@@ -1056,6 +1057,10 @@ describe("history and side effects", () => {
     assert.equal(
       (clientEmailLog.payload as Record<string, unknown>).scheduledEndsAt,
       "2026-04-28T10:00:00.000Z",
+    );
+    assert.equal(
+      (clientEmailLog.payload as Record<string, unknown>).serviceId,
+      "service-1",
     );
     assert.equal(harness.calls.pushover.length, 1);
     assert.deepEqual(harness.calls.pushover[0], {

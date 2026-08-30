@@ -47,6 +47,7 @@ function buildToken(overrides: BookingEmailActionTokenOverrides = {}) {
       manualOverride: false,
       clientId: "client-1",
       slotId: "slot-1",
+      serviceId: "service-1",
       clientNameSnapshot: "Jana Novakova",
       clientEmailSnapshot: "jana@example.com",
       serviceNameSnapshot: "Lash lifting",

@@ -15,6 +15,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Booking e-mailový preflight nyní u nových klientských potvrzení, přijetí, přesunů a reminderů ověřuje také stabilní `serviceId`; staré payloady bez tohoto pole zůstávají kompatibilní.
 - Aktivní klientské odkazy pro správu a storno rezervace nyní po každém úspěšném přesunu expirují podle nového termínu i bez klientského e-mailu; historické budoucí odkazy se jednorázově srovnají při migraci.
 - Ruční resend tokenovaných booking e-mailů nyní před revokací existujících odkazů atomicky ověří aktuální stav a termín rezervace; zastaralý zdroj proto nezaloží nový e-mail ani tokeny a ponechá dosavadní odkazy použitelné. Ruční resend reminderu obchází jen deduplikaci dříve odeslaného reminderu, nikoli kontrolu aktuálního termínu, stavu nebo začátku rezervace.
 - Reschedule se zapnutým klientským oznámením nyní ukládá změnu rezervace, nové self-service tokeny a klientský `BOOKING_RESCHEDULED` `EmailLog` v jedné serializovatelné transakci; selhání zápisu proto přesun rollbackne a selhání providera po commitu řeší pouze outbox worker.

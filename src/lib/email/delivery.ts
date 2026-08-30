@@ -154,8 +154,31 @@ export async function deliverEmailLog(
         status: true,
         reminder24hSentAt: true,
         scheduledStartsAt: true,
+        scheduledEndsAt: true,
+        serviceId: true,
       },
     });
+    const bookingEmailPreflight = evaluateBookingEmailPreflight({
+      type: emailLog.type,
+      audience: emailLog.audience,
+      templateKey: emailLog.templateKey,
+      payload: emailLog.payload,
+      booking,
+    });
+
+    if (!bookingEmailPreflight.shouldSend) {
+      const completed = await markEmailLogSystemSkipped(
+        emailLog.id,
+        processingToken,
+        bookingEmailPreflight.reason ?? "Booking email delivery skipped.",
+        emailLog.payload,
+      );
+
+      return completed.count === 1
+        ? { status: "skipped", errorMessage: bookingEmailPreflight.reason }
+        : { status: "skipped", errorMessage: "Claim e-mailu mezitím převzal jiný worker." };
+    }
+
     const reminderScheduledStartsAt = readReminderScheduledStartsAt(emailLog.payload);
     const preflight = evaluateBookingReminderDelivery({
       bookingStatus: booking?.status ?? null,
@@ -193,6 +216,7 @@ export async function deliverEmailLog(
       },
       select: {
         status: true,
+        serviceId: true,
         scheduledStartsAt: true,
         scheduledEndsAt: true,
       },

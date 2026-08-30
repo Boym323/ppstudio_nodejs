@@ -33,6 +33,7 @@ import { BookingRescheduledEmail } from "@/lib/email/react-email/BookingReschedu
 
 const bookingConfirmationPayloadSchema = z.object({
   bookingId: z.string().min(1),
+  serviceId: z.string().min(1).optional(),
   serviceName: z.string().min(1),
   clientName: z.string().min(1),
   scheduledStartsAt: z.string().datetime(),
@@ -53,6 +54,7 @@ const bookingCancelledPayloadSchema = z.object({
 
 const bookingApprovedPayloadSchema = z.object({
   bookingId: z.string().min(1),
+  serviceId: z.string().min(1).optional(),
   serviceName: z.string().min(1),
   clientName: z.string().min(1),
   scheduledStartsAt: z.string().datetime(),
@@ -65,6 +67,7 @@ const bookingApprovedPayloadSchema = z.object({
 
 const bookingReminder24hPayloadSchema = z.object({
   bookingId: z.string().min(1),
+  serviceId: z.string().min(1).optional(),
   serviceName: z.string().min(1),
   clientName: z.string().min(1),
   scheduledStartsAt: z.string().datetime(),
@@ -75,6 +78,7 @@ const bookingReminder24hPayloadSchema = z.object({
 
 const bookingRescheduledPayloadSchema = z.object({
   bookingId: z.string().min(1),
+  serviceId: z.string().min(1).optional(),
   serviceName: z.string().min(1),
   clientName: z.string().min(1),
   previousStartsAt: z.string().datetime(),

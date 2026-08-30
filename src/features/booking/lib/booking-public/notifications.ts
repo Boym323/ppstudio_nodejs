@@ -27,6 +27,7 @@ export async function createNotificationEmailLogs(
     clientEmail: string;
     clientPhone?: string;
     clientNote?: string;
+    serviceId: string;
     serviceName: string;
     scheduledStartsAt: Date;
     scheduledEndsAt: Date;
@@ -68,8 +69,9 @@ export async function createNotificationEmailLogs(
   const manageReservationUrl = buildBookingManagementUrl(rescheduleToken.rawToken);
   const cancellationUrl = buildBookingCancellationUrl(cancellationToken.rawToken);
   const clientPayload = input.status === BookingStatus.CONFIRMED
-    ? {
+      ? {
         bookingId: input.bookingId,
+        serviceId: input.serviceId,
         serviceName: input.serviceName,
         clientName: input.clientName,
         scheduledStartsAt: input.scheduledStartsAt.toISOString(),
@@ -81,6 +83,7 @@ export async function createNotificationEmailLogs(
       }
     : {
         bookingId: input.bookingId,
+        serviceId: input.serviceId,
         serviceName: input.serviceName,
         clientName: input.clientName,
         scheduledStartsAt: input.scheduledStartsAt.toISOString(),

@@ -6,6 +6,7 @@ import {
 
 export type BookingEmailPreflightBooking = {
   status: BookingStatus;
+  serviceId: string;
   scheduledStartsAt: Date;
   scheduledEndsAt: Date;
 };
@@ -31,10 +32,19 @@ function matchesScheduledTime(payload: unknown, booking: BookingEmailPreflightBo
   );
 }
 
+function matchesService(payload: unknown, booking: BookingEmailPreflightBooking) {
+  const serviceId = readPayloadString(payload, "serviceId");
+
+  // Legacy payloads predate the service invariant. Keep them compatible with
+  // the existing status/time checks instead of guessing from serviceName.
+  return serviceId === null || serviceId === booking.serviceId;
+}
+
 function isClientBookingTemplate(templateKey: string) {
   return [
     "booking-confirmation-v1",
     "booking-approved-v1",
+    "booking-reminder-24h-v1",
     "booking-rejected-v1",
     "booking-cancelled-v1",
     "booking-rescheduled-v1",
@@ -45,8 +55,22 @@ function isBookingPreflightType(type: EmailLogType) {
   return (
     type === EmailLogType.BOOKING_RECEIVED
     || type === EmailLogType.BOOKING_CONFIRMED
+    || type === EmailLogType.BOOKING_REMINDER
     || type === EmailLogType.BOOKING_CANCELLED
     || type === EmailLogType.BOOKING_RESCHEDULED
+  );
+}
+
+function isServicePreflightEmail(type: EmailLogType, templateKey: string) {
+  return (
+    type === EmailLogType.BOOKING_RECEIVED
+    || type === EmailLogType.BOOKING_CONFIRMED
+    || type === EmailLogType.BOOKING_REMINDER
+    || type === EmailLogType.BOOKING_RESCHEDULED
+    || templateKey === "booking-confirmation-v1"
+    || templateKey === "booking-approved-v1"
+    || templateKey === "booking-reminder-24h-v1"
+    || templateKey === "booking-rescheduled-v1"
   );
 }
 
@@ -70,7 +94,6 @@ export function evaluateBookingEmailPreflight({
 }): BookingEmailPreflightResult {
   if (
     audience !== EmailAudience.CLIENT
-    || type === EmailLogType.BOOKING_REMINDER
     || (!isClientBookingTemplate(templateKey) && !isBookingPreflightType(type))
   ) {
     return { shouldSend: true };
@@ -80,6 +103,13 @@ export function evaluateBookingEmailPreflight({
     return {
       shouldSend: false,
       reason: "Booking no longer exists.",
+    };
+  }
+
+  if (isServicePreflightEmail(type, templateKey) && !matchesService(payload, booking)) {
+    return {
+      shouldSend: false,
+      reason: "Booking service no longer matches the email.",
     };
   }
 

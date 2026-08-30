@@ -35,6 +35,7 @@ export type BookingReminderCandidate = {
   clientId: string;
   clientEmailSnapshot: string;
   clientNameSnapshot: string;
+  serviceId: string;
   serviceNameSnapshot: string;
   scheduledStartsAt: Date;
   scheduledEndsAt: Date;
@@ -84,6 +85,7 @@ export async function getBookingsFor24hReminder(now = new Date()): Promise<Booki
       clientId: true,
       clientEmailSnapshot: true,
       clientNameSnapshot: true,
+      serviceId: true,
       serviceNameSnapshot: true,
       scheduledStartsAt: true,
       scheduledEndsAt: true,
@@ -135,6 +137,7 @@ async function claimNextBookingFor24hReminder(
       clientId: true,
       clientEmailSnapshot: true,
       clientNameSnapshot: true,
+      serviceId: true,
       serviceNameSnapshot: true,
       scheduledStartsAt: true,
       scheduledEndsAt: true,
@@ -172,6 +175,7 @@ export async function enqueueBookingReminder24hJobs(
         const cancellationUrl = buildBookingCancellationUrl(cancellationToken.rawToken);
         const reminderPayload = {
           bookingId: booking.id,
+          serviceId: booking.serviceId,
           serviceName: booking.serviceNameSnapshot,
           clientName: booking.clientNameSnapshot,
           scheduledStartsAt: booking.scheduledStartsAt.toISOString(),

@@ -47,6 +47,7 @@ type LoadedBookingActionToken = {
     manualOverride: boolean;
     clientId: string;
     slotId: string;
+    serviceId: string;
     clientNameSnapshot: string;
     clientEmailSnapshot: string;
     serviceNameSnapshot: string;
@@ -113,6 +114,7 @@ function buildBookingApprovedEmailPayload(
 ) {
   return {
     bookingId: booking.id,
+    serviceId: booking.serviceId,
     serviceName: booking.serviceNameSnapshot,
     clientName: booking.clientNameSnapshot,
     scheduledStartsAt: booking.scheduledStartsAt.toISOString(),
@@ -193,6 +195,7 @@ async function findActionToken(tokenHash: string) {
           manualOverride: true,
           clientId: true,
           slotId: true,
+          serviceId: true,
           clientNameSnapshot: true,
           clientEmailSnapshot: true,
           serviceNameSnapshot: true,
@@ -399,6 +402,7 @@ export async function performBookingEmailAction(
               manualOverride: true,
               clientId: true,
               slotId: true,
+              serviceId: true,
               clientNameSnapshot: true,
               clientEmailSnapshot: true,
               serviceNameSnapshot: true,
@@ -528,6 +532,7 @@ export async function performBookingEmailAction(
       } else {
         bookingApprovedPayload = {
           bookingId: lockedToken.booking!.id,
+          serviceId: lockedToken.booking!.serviceId,
           serviceName: lockedToken.booking!.serviceNameSnapshot,
           clientName: lockedToken.booking!.clientNameSnapshot,
           scheduledStartsAt: lockedToken.booking!.scheduledStartsAt.toISOString(),

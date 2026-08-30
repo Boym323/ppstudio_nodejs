@@ -11,14 +11,17 @@ import { evaluateBookingEmailPreflight } from "./booking-preflight";
 
 const scheduledStartsAt = new Date("2026-08-30T10:00:00.000Z");
 const scheduledEndsAt = new Date("2026-08-30T11:00:00.000Z");
+const serviceId = "service-current";
 const booking = {
   status: BookingStatus.CONFIRMED,
+  serviceId,
   scheduledStartsAt,
   scheduledEndsAt,
 };
 
 function payload(overrides: Record<string, unknown> = {}) {
   return {
+    serviceId,
     scheduledStartsAt: scheduledStartsAt.toISOString(),
     scheduledEndsAt: scheduledEndsAt.toISOString(),
     ...overrides,
@@ -111,4 +114,50 @@ test("received client email requires a still-pending booking and unchanged term"
 
   assert.equal(valid.shouldSend, true);
   assert.equal(approved.shouldSend, false);
+});
+
+test("service-sensitive client emails require the current service identity", () => {
+  const emailCases = [
+    [EmailLogType.BOOKING_RECEIVED, "booking-confirmation-v1", BookingStatus.PENDING],
+    [EmailLogType.BOOKING_CONFIRMED, "booking-approved-v1", BookingStatus.CONFIRMED],
+    [EmailLogType.BOOKING_RESCHEDULED, "booking-rescheduled-v1", BookingStatus.CONFIRMED],
+    [EmailLogType.BOOKING_REMINDER, "booking-reminder-24h-v1", BookingStatus.CONFIRMED],
+  ] as const;
+
+  for (const [type, templateKey, status] of emailCases) {
+    const stale = evaluateBookingEmailPreflight({
+      type,
+      audience: EmailAudience.CLIENT,
+      templateKey,
+      payload: payload({ serviceId: "service-old" }),
+      booking: { ...booking, status },
+    });
+    const valid = evaluateBookingEmailPreflight({
+      type,
+      audience: EmailAudience.CLIENT,
+      templateKey,
+      payload: payload(),
+      booking: { ...booking, status },
+    });
+
+    assert.equal(stale.shouldSend, false);
+    assert.match(stale.reason ?? "", /service no longer matches/i);
+    assert.equal(valid.shouldSend, true);
+  }
+});
+
+test("legacy client payload without serviceId remains compatible", () => {
+  const legacyPayload = Object.fromEntries(
+    Object.entries(payload()).filter(([key]) => key !== "serviceId"),
+  );
+
+  const result = evaluateBookingEmailPreflight({
+    type: EmailLogType.BOOKING_CONFIRMED,
+    audience: EmailAudience.CLIENT,
+    templateKey: "booking-approved-v1",
+    payload: legacyPayload,
+    booking: { ...booking, serviceId: "service-new" },
+  });
+
+  assert.equal(result.shouldSend, true);
 });

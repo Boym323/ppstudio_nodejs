@@ -360,6 +360,7 @@ describe("public booking intended voucher", () => {
         prisma.booking.findUniqueOrThrow({
           where: { id: result.bookingId },
           select: {
+            serviceId: true,
             serviceNameSnapshot: true,
             serviceDurationMinutes: true,
             servicePriceFromCzk: true,
@@ -392,6 +393,7 @@ describe("public booking intended voucher", () => {
       assert.equal(booking.serviceNameSnapshot, "Veřejná služba voucher");
       assert.equal(booking.serviceDurationMinutes, 60);
       assert.equal(booking.servicePriceFromCzk, 1200);
+      assert.equal(payload.serviceId, booking.serviceId);
       assert.equal(payload.serviceName, "Veřejná služba voucher");
       assert.equal(payload.scheduledStartsAt, booking.scheduledStartsAt.toISOString());
       assert.equal(payload.scheduledEndsAt, booking.scheduledEndsAt.toISOString());

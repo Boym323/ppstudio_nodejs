@@ -117,6 +117,7 @@ type BookingSlotRecord = {
 
 type RescheduleTransactionResult = {
   bookingId: string;
+  serviceId: string;
   serviceName: string;
   clientId: string;
   clientName: string;
@@ -133,6 +134,7 @@ type RescheduleTransactionResult = {
 type BookingRescheduledNotificationInput = {
   bookingId: string;
   clientId: string;
+  serviceId: string;
   clientEmail: string;
   clientName: string;
   serviceName: string;
@@ -465,6 +467,7 @@ async function createBookingRescheduledClientEmailLog(
 
   const clientPayload = {
     bookingId: input.bookingId,
+    serviceId: input.serviceId,
     serviceName: input.serviceName,
     clientName: input.clientName,
     previousStartsAt: input.previousStartsAt.toISOString(),
@@ -1014,6 +1017,7 @@ async function rescheduleBookingInTransaction(
       )(tx, {
         bookingId: booking.id,
         clientId: booking.clientId,
+        serviceId: booking.serviceId,
         clientEmail: booking.clientEmailSnapshot,
         clientName: booking.clientNameSnapshot,
         serviceName: booking.serviceNameSnapshot,
@@ -1028,6 +1032,7 @@ async function rescheduleBookingInTransaction(
 
   return {
     bookingId: booking.id,
+    serviceId: booking.serviceId,
     serviceName: booking.serviceNameSnapshot,
     clientId: booking.clientId,
     clientName: booking.clientNameSnapshot,
@@ -1090,6 +1095,7 @@ export function createBookingReschedulingApi(
               await resolvedDependencies.queueBookingRescheduledNotification({
                 bookingId: transactionResult.bookingId,
                 clientId: transactionResult.clientId,
+                serviceId: transactionResult.serviceId,
                 clientEmail: transactionResult.clientEmail,
                 clientName: transactionResult.clientName,
                 serviceName: transactionResult.serviceName,
