@@ -274,6 +274,11 @@ async function reconcilePendingClientTokenEmailLogs(
           payload: preservesManualReminderResend
             ? { ...canonicalPayload, manualReminderResend: true }
             : canonicalPayload,
+          // Přepsání na novou komunikační generaci zároveň ruší případný
+          // claim starého workeru. Ten pak nemůže nový canonical log dokončit
+          // ani systémově přeskočit svým původním processingTokenem.
+          processingStartedAt: null,
+          processingToken: null,
           nextAttemptAt: now,
           errorMessage: null,
         },

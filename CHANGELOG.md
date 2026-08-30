@@ -13,6 +13,7 @@ Formát je inspirovaný Keep a Changelog.
 - Provider delivery má explicitní timeout kratší než delivery lease a rollout `communicationGeneration` selektivně backfilluje pouze legacy logy s prokazatelně aktuálním příjemcem, službou, termínem a lifecycle stavem.
 - Tokenizovaný CLIENT resend nyní před rotací odkazů respektuje aktivní delivery lease, zvýší komunikační generaci a přepíše všechny aktuální čekající tokenové e-maily na nové credentials; zastaralé logy se bezpečně systémově přeskočí.
 - Úspěšná finalizace 24h reminderu nyní zapisuje `EmailLog=SENT` a `Booking.reminder24hSentAt` atomicky v jedné post-provider fencing transakci.
+- Tokenizovaný resend při kanonickém přepsání čekajícího CLIENT logu nyní atomicky ruší jeho starý worker claim, takže zastaralý worker nemůže novou komunikační generaci systémově přeskočit ani dokončit.
 
 ## [3.25.0] - 2026-08-30
 
