@@ -134,9 +134,6 @@ export async function applyAdminBookingStatusChangeInTransaction(
         serviceNameSnapshot: true,
         scheduledStartsAt: true,
         scheduledEndsAt: true,
-        client: {
-          select: { email: true },
-        },
         voucherRedemptions: {
           select: { id: true },
           take: 1,
@@ -148,7 +145,7 @@ export async function applyAdminBookingStatusChangeInTransaction(
       return { status: "not-found" as const };
     }
 
-    const clientEmail = booking.client.email?.trim() ?? "";
+    const clientEmail = booking.clientEmailSnapshot?.trim() ?? "";
 
     if (!canApplyAdminBookingTransition(booking.status, targetStatus)) {
       return {

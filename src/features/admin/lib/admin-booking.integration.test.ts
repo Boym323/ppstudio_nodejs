@@ -641,6 +641,7 @@ async function createAdminCancellationFixture(
   prisma: Awaited<typeof import("@/lib/prisma")>["prisma"],
   suffix: string,
   email: string | null,
+  snapshotEmail = email,
 ) {
   const { startsAt, endsAt } = await findIsolatedAdminWindow(prisma, suffix, 60);
   const owner = await prisma.adminUser.create({
@@ -698,7 +699,7 @@ async function createAdminCancellationFixture(
       status: BookingStatus.CONFIRMED,
       source: BookingSource.PHONE,
       clientNameSnapshot: `Klientka admin cancellation ${suffix}`,
-      clientEmailSnapshot: email ?? "",
+      clientEmailSnapshot: snapshotEmail ?? "",
       clientPhoneSnapshot: "+420777123456",
       serviceNameSnapshot: `Služba admin cancellation ${suffix}`,
       serviceDurationMinutes: 60,
@@ -1264,6 +1265,42 @@ dbTest("admin cancellation with notifyClient=false does not create a client emai
       }),
       0,
     );
+  } finally {
+    await fixture.cleanup();
+  }
+});
+
+dbTest("admin cancellation posílá CLIENT e-mail na snapshot rezervace, ne na master kontakt", async () => {
+  const [{ prisma }, { applyAdminBookingStatusChange }] = await Promise.all([
+    import("@/lib/prisma"),
+    import("./admin-booking"),
+  ]);
+  const suffix = randomUUID().slice(0, 8);
+  const fixture = await createAdminCancellationFixture(
+    prisma,
+    suffix,
+    `master-cancellation-${suffix}@example.com`,
+    `booking-cancellation-${suffix}@example.com`,
+  );
+
+  try {
+    const result = await applyAdminBookingStatusChange({
+      bookingId: fixture.booking.id,
+      targetStatus: BookingStatus.CANCELLED,
+      actorUserId: fixture.owner.id,
+      notifyClient: true,
+    });
+
+    assert.equal(result.status, "success");
+    const emailLog = await prisma.emailLog.findFirstOrThrow({
+      where: {
+        bookingId: fixture.booking.id,
+        type: EmailLogType.BOOKING_CANCELLED,
+        audience: EmailAudience.CLIENT,
+      },
+      select: { recipientEmail: true },
+    });
+    assert.equal(emailLog.recipientEmail, `booking-cancellation-${suffix}@example.com`);
   } finally {
     await fixture.cleanup();
   }

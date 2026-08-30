@@ -46,9 +46,6 @@ type LoadedBookingActionToken = {
     cancelledAt: Date | null;
     manualOverride: boolean;
     clientId: string;
-    client: {
-      email: string | null;
-    } | null;
     slotId: string;
     serviceId: string;
     clientNameSnapshot: string;
@@ -197,9 +194,6 @@ async function findActionToken(tokenHash: string) {
           cancelledAt: true,
           manualOverride: true,
           clientId: true,
-          client: {
-            select: { email: true },
-          },
           slotId: true,
           serviceId: true,
           clientNameSnapshot: true,
@@ -407,9 +401,6 @@ export async function performBookingEmailAction(
               cancelledAt: true,
               manualOverride: true,
               clientId: true,
-              client: {
-                select: { email: true },
-              },
               slotId: true,
               serviceId: true,
               clientNameSnapshot: true,
@@ -436,7 +427,7 @@ export async function performBookingEmailAction(
       const now = new Date();
       const targetStatus = getTargetStatus(intent);
       const copy = getActionCopy(intent);
-      const clientEmail = lockedToken.booking?.client?.email?.trim() ?? "";
+      const clientEmail = lockedToken.booking?.clientEmailSnapshot?.trim() ?? "";
 
       await tx.booking.update({
         where: {
@@ -588,7 +579,7 @@ export async function performBookingEmailAction(
         resultTitle: copy.resultTitle,
         resultDescription: clientEmail.length > 0
           ? copy.resultDescription
-          : "Rezervace byla zpracována, ale klientský e-mail nebyl vytvořen, protože klientka nemá aktuální e-mail.",
+          : "Rezervace byla zpracována, ale klientský e-mail nebyl vytvořen, protože rezervace nemá e-mailový snapshot.",
         emailDeliveryStatus: clientEmail.length > 0
           ? env.EMAIL_DELIVERY_MODE === "background" ? "queued" as const : "logged" as const
           : "skipped" as const,
