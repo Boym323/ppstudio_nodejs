@@ -6,6 +6,12 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [3.25.2] - 2026-08-30
+
+### Opraveno
+
+- Testovací prostředí nyní spolehlivě vynucuje logovací režim e-mailového doručování a neobsahuje nepoužívanou pomocnou funkci.
+
 ## [3.25.1] - 2026-08-30
 
 ### Zabezpečení
