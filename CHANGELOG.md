@@ -6,6 +6,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [3.25.1] - 2026-08-30
+
 ### Zabezpečení
 
 - CLIENT booking e-maily nyní rozlišují zastaralou autorizaci od dočasně obsazeného delivery lease; job při cizím platném lease zůstane `PENDING`, zachová payload i idempotency key a pokračuje až po bezpečné expiraci lease.
