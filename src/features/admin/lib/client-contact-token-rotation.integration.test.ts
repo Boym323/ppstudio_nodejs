@@ -15,6 +15,7 @@ import {
 process.env.NEXT_PUBLIC_APP_NAME ??= "PP Studio";
 process.env.NEXT_PUBLIC_APP_URL ??= "https://example.com";
 process.env.DATABASE_URL ??= "postgresql://postgres:postgres@localhost:5432/ppstudio?schema=public";
+process.env.EMAIL_DELIVERY_MODE = "background";
 
 const dbTest = process.env.RUN_DB_INTEGRATION_TESTS === "1" ? test : test.skip;
 
@@ -152,6 +153,33 @@ dbTest("změna nebo odstranění e-mailu rotuje jen budoucí klientské self-ser
         },
       },
     });
+    const currentPendingEmail = await prisma.emailLog.create({
+      data: {
+        bookingId: futureBookings[0].id,
+        clientId: client.id,
+        actionTokenId: await prisma.bookingActionToken.findFirstOrThrow({
+          where: { bookingId: futureBookings[0].id, type: BookingActionTokenType.RESCHEDULE },
+          select: { id: true },
+        }).then((token) => token.id),
+        type: EmailLogType.BOOKING_RECEIVED,
+        audience: EmailAudience.CLIENT,
+        status: EmailLogStatus.PENDING,
+        recipientEmail: oldEmail,
+        subject: "Test aktuální kontakt",
+        templateKey: "booking-confirmation-v1",
+        payload: {
+          bookingId: futureBookings[0].id,
+          serviceId: service.id,
+          serviceName: service.name,
+          clientName: client.fullName,
+          scheduledStartsAt: futureBookings[0].scheduledStartsAt.toISOString(),
+          scheduledEndsAt: futureBookings[0].scheduledEndsAt.toISOString(),
+          preservedField: "zachovat",
+          manageReservationUrl: "https://example.com/old-manage",
+          cancellationUrl: "https://example.com/old-cancel",
+        },
+      },
+    });
 
     const activeBookingIds = futureBookings.map((booking) => booking.id);
 
@@ -171,6 +199,16 @@ dbTest("změna nebo odstranění e-mailu rotuje jen budoucí klientské self-ser
       (await prisma.bookingActionToken.findUnique({ where: { tokenHash: hashBookingActionToken(tokenRecords.get(futureBookings[0].id)!.manage) } }))?.revokedAt,
       null,
     );
+    assert.equal(
+      await prisma.emailLog.count({
+        where: {
+          bookingId: { in: activeBookingIds },
+          status: EmailLogStatus.PENDING,
+          recipientEmail: oldEmail,
+        },
+      }),
+      2,
+    );
 
     await prisma.$transaction(async (tx) => {
       await tx.client.update({ where: { id: client.id }, data: { email: newEmail } });
@@ -187,13 +225,32 @@ dbTest("změna nebo odstranění e-mailu rotuje jen budoucí klientské self-ser
       orderBy: { createdAt: "asc" },
       select: { bookingId: true, revokedAt: true },
     });
-    assert.equal(rotatedTokens.length, 6);
-    assert.equal(rotatedTokens.filter((token) => token.revokedAt === null).length, 2);
+    assert.equal(rotatedTokens.length, 8);
+    assert.equal(rotatedTokens.filter((token) => token.revokedAt === null).length, 4);
 
-    const updatedEmail = await prisma.emailLog.findUniqueOrThrow({ where: { id: pendingEmail.id } });
-    assert.equal(updatedEmail.recipientEmail, newEmail);
-    assert.equal((updatedEmail.payload as Record<string, unknown>).oldField, "zachovat");
-    assert.match(String((updatedEmail.payload as Record<string, unknown>).manageReservationUrl), /\/rezervace\/sprava\//);
+    const [updatedEmail, receivedEmail, approvedEmail] = await Promise.all([
+      prisma.emailLog.findUniqueOrThrow({ where: { id: pendingEmail.id } }),
+      prisma.emailLog.findFirstOrThrow({
+        where: { bookingId: futureBookings[0].id, templateKey: "booking-confirmation-v1" },
+      }),
+      prisma.emailLog.findFirstOrThrow({
+        where: { bookingId: futureBookings[1].id, templateKey: "booking-approved-v1" },
+      }),
+    ]);
+    assert.equal(updatedEmail.status, EmailLogStatus.SENT);
+    assert.equal(updatedEmail.provider, "system-skip");
+    assert.equal(
+      await prisma.emailLog.count({
+        where: { bookingId: futureBookings[0].id, templateKey: "booking-confirmation-v1" },
+      }),
+      1,
+    );
+    assert.equal(receivedEmail.id, currentPendingEmail.id);
+    assert.equal(receivedEmail.recipientEmail, newEmail);
+    assert.equal(approvedEmail.recipientEmail, newEmail);
+    assert.match(String((receivedEmail.payload as Record<string, unknown>).manageReservationUrl), /\/rezervace\/sprava\//);
+    assert.match(String((approvedEmail.payload as Record<string, unknown>).manageReservationUrl), /\/rezervace\/sprava\//);
+    assert.equal((approvedEmail.payload as Record<string, unknown>).serviceId, service.id);
 
     const historicalTokens = await prisma.bookingActionToken.findMany({
       where: { bookingId: historicalBooking.id },
@@ -219,6 +276,16 @@ dbTest("změna nebo odstranění e-mailu rotuje jen budoucí klientské self-ser
           bookingId: { in: activeBookingIds },
           type: { in: [BookingActionTokenType.RESCHEDULE, BookingActionTokenType.CANCEL] },
           revokedAt: null,
+        },
+      }),
+      0,
+    );
+    assert.equal(
+      await prisma.emailLog.count({
+        where: {
+          bookingId: { in: activeBookingIds },
+          status: EmailLogStatus.PENDING,
+          audience: EmailAudience.CLIENT,
         },
       }),
       0,

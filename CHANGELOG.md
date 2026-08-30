@@ -25,6 +25,7 @@ Formát je inspirovaný Keep a Changelog.
 - Voucherové čerpání nyní vzniká pouze uvnitř atomického dokončení návštěvy po přechodu rezervace do `COMPLETED`; samostatné admin uplatnění je vypnuté, nedokončené rezervace nové čerpání nepřijmou a historické nekonzistentní čerpání zablokuje storno, `NO_SHOW` i přesun bez mazání finanční historie.
 - Self-service odkazy pro správu a storno rezervace nyní expirují až krátce po plánovaném začátku rezervace, takže zůstávají použitelné i u termínů vytvořených 60–90 dní dopředu; storno a přesun dál samostatně respektují své business limity.
 - Ruční resend klientského e-mailu nyní po explicitním odstranění aktuální adresy klientky nepoužije historického příjemce, pokud ani booking snapshot neobsahuje použitelný kontakt.
+- Změna e-mailu klientky nyní vytvoří aktuální klientský booking e-mail i tehdy, když předchozí klientské logy už byly odeslané; odpovídající čekající log se pouze znovu opatří odkazy a neaktuální čekající logy se systémově přeskočí.
 
 ## [3.23.2] - 2026-08-29
 

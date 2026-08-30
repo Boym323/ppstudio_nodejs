@@ -327,6 +327,10 @@ export async function createResendEmailLog(input: {
       await input.hooks?.afterTokenMutation?.();
     }
 
+    if (!recipientEmail) {
+      return null;
+    }
+
     return tx.emailLog.create({
       data: buildResendEmailLogCreateInput({
         resendOfId: emailLog.id,

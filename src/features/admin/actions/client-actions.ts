@@ -3,8 +3,6 @@
 import {
   BookingActorType,
   BookingStatus,
-  EmailAudience,
-  EmailLogStatus,
   Prisma,
 } from "@/generated/prisma/client";
 import { revalidatePath } from "next/cache";
@@ -277,27 +275,6 @@ export async function updateClientContactAction(
               nextPhone: normalizedPhone,
             },
           })),
-        });
-      }
-
-      const bookingIdsForPendingEmailSync = emailChanged
-        ? activeBookingIds
-        : touchedBookings.map((booking) => booking.id);
-
-      if (bookingIdsForPendingEmailSync.length > 0) {
-        await tx.emailLog.updateMany({
-          where: {
-            clientId: client.id,
-            bookingId: {
-              in: bookingIdsForPendingEmailSync,
-            },
-            status: EmailLogStatus.PENDING,
-            audience: EmailAudience.CLIENT,
-            processingStartedAt: null,
-          },
-          data: {
-            recipientEmail: normalizedEmail ?? "",
-          },
         });
       }
 
