@@ -341,6 +341,7 @@ export async function updateAdminBookingService({
         manualOverride: true,
         finalPriceCzk: true,
         intendedVoucherId: true,
+        reminder24hSentAt: true,
         updatedAt: true,
       },
     });
@@ -679,6 +680,7 @@ export async function updateAdminBookingService({
         servicePriceFromCzk: nextService.priceFromCzk,
         scheduledEndsAt: nextScheduledEndsAt,
         blockedUntil: nextBlockedUntil,
+        reminder24hQueuedAt: booking.reminder24hSentAt === null ? null : undefined,
       },
     });
 
