@@ -660,7 +660,7 @@ export function DashboardAvailableSlots({ data }: DashboardPageProps) {
                 {draftSlotsLabel}{" "}
                 <Link
                   href={data.upcomingSlotsFooterHref}
-                  className="text-[var(--color-accent-soft)] transition hover:text-white"
+                  className="text-white underline decoration-[var(--color-accent-soft)] underline-offset-4 transition hover:text-white"
                 >
                   Otevřít dostupnost
                 </Link>

@@ -25,6 +25,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Admin přihlášení nyní správně nastavuje session cookie při běhu přes HTTP E2E server ve WebKitu/Safari.
+- Admin ovládací prvky v mobilním WebKitu mají dostatečný kontrast a odkazy v přehledu jsou zřetelně odlišené.
 - KPI statistiky už při zobrazení budoucího měsíce neselžou u rezervací bez navázaného dostupnostního slotu.
 - Testovací prostředí nyní spolehlivě vynucuje logovací režim e-mailového doručování a neobsahuje nepoužívanou pomocnou funkci.
 

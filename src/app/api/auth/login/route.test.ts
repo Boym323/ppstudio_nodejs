@@ -14,12 +14,12 @@ process.env.EMAIL_DELIVERY_MODE ??= "log";
 
 type LoginOutcome = "SUCCESS" | "INVALID_PAYLOAD" | "INVALID_CREDENTIALS" | "RATE_LIMITED";
 
-function buildLoginRequest(email: string, password: string) {
+function buildLoginRequest(email: string, password: string, url = "https://example.com/api/auth/login") {
   const formData = new FormData();
   formData.set("email", email);
   formData.set("password", password);
 
-  return new Request("https://example.com/api/auth/login", {
+  return new Request(url, {
     method: "POST",
     headers: {
       "x-forwarded-for": "198.51.100.20",
@@ -59,7 +59,9 @@ test("POST rejects cross-origin login submit before auth work starts", async () 
     isSameOriginAdminRequest: () => false,
   });
 
-  const response = await api.POST(buildLoginRequest("owner@example.com", "super-safe-password"));
+  const response = await api.POST(
+    buildLoginRequest("owner@example.com", "super-safe-password"),
+  );
 
   assert.equal(response.status, 303);
   assert.equal(
@@ -217,4 +219,39 @@ test("POST sets session cookie and redirects to admin home after successful logi
   assert.match(cookieHeader, /HttpOnly/i);
 
   assert.deepEqual(loggedOutcomes, ["SUCCESS"]);
+});
+
+test("POST does not mark the session cookie secure on an HTTP E2E request", async () => {
+  const { createAdminLoginRouteApi } = await import("./route-api");
+
+  const api = createAdminLoginRouteApi({
+    normalizeAdminLoginEmail: () => "owner@example.com",
+    getAdminLoginAttemptMetadata: () => ({
+      ipHash: "ip-hash",
+      emailHash: "email-hash",
+      userAgent: "webkit-test-agent",
+    }),
+    consumeAdminLoginRateLimit: async () => ({ allowed: true, ipAttempts: 1, emailFailures: 0 }),
+    releaseAdminLoginEmailReservation: async () => {},
+    writeAdminLoginAttemptLog: async () => {},
+    authenticateAdmin: async () => ({
+      id: "admin-1",
+      email: "owner@example.com",
+      name: "Owner",
+      role: AdminRole.OWNER,
+    }),
+    createSessionToken: async () => "signed-session-token",
+    getSessionCookie: () => ({
+      name: "ppstudio-admin-session",
+      options: { httpOnly: true, sameSite: "lax" as const, secure: true, path: "/", maxAge: 43200 },
+    }),
+    buildAbsoluteUrl: (_request, path) => new URL(path, "http://127.0.0.1:3100"),
+    isSameOriginAdminRequest: () => true,
+  });
+
+  const response = await api.POST(
+    buildLoginRequest("owner@example.com", "super-safe-password", "http://127.0.0.1:3100/api/auth/login"),
+  );
+
+  assert.doesNotMatch(response.headers.get("set-cookie") ?? "", /; Secure/i);
 });

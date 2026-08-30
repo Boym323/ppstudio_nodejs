@@ -68,6 +68,12 @@ function normalizeAdminLoginNextPath(value: FormDataEntryValue | null) {
   return normalized;
 }
 
+function isSecureRequest(request: Request) {
+  const forwardedProto = request.headers.get("x-forwarded-proto")?.split(",")[0]?.trim();
+
+  return (forwardedProto ?? new URL(request.url).protocol.replace(":", "")) === "https";
+}
+
 export function createAdminLoginRouteApi(
   dependencies: AdminLoginRouteDependencies = defaultAdminLoginRouteDependencies,
 ) {
@@ -175,7 +181,10 @@ export function createAdminLoginRouteApi(
       );
 
       const sessionCookie = dependencies.getSessionCookie();
-      response.cookies.set(sessionCookie.name, token, sessionCookie.options);
+      response.cookies.set(sessionCookie.name, token, {
+        ...sessionCookie.options,
+        secure: sessionCookie.options.secure && isSecureRequest(request),
+      });
 
       return response;
     },
