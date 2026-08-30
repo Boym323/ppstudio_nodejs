@@ -16,6 +16,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Admin storno rezervace nyní nabízí volitelné odeslání klientského potvrzení o zrušení; vypnutí e-mailu nemění změnu stavu, obnovu dostupnosti, historii ani revokaci self-service tokenů.
 - Změna služby u aktivní rezervace nyní resetuje neodeslaný 24h reminder, takže starý čekající e-mail může být systémově přeskočen podle `serviceId` a scheduler vytvoří reminder pro aktuální službu; již odeslaný reminder zůstává beze změny.
 - CLIENT resend nyní rozhoduje adresáta až po zamknutí a načtení aktuálního `Client` uvnitř stejné transakce jako preflight, tokeny a nový `EmailLog`; souběžná změna kontaktu proto nemůže vydat nové odkazy na zastaralou adresu a resend bez aktuálního e-mailu se odmítne bez mutace.
 - Booking e-mailový preflight nyní u nových klientských potvrzení, přijetí, přesunů a reminderů ověřuje také stabilní `serviceId`; staré payloady bez tohoto pole zůstávají kompatibilní.

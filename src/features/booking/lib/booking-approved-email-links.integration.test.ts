@@ -245,6 +245,7 @@ dbTest("applyAdminBookingStatusChange stores manage and cancellation links in ap
       bookingId: seed.bookingId,
       targetStatus: "CONFIRMED",
       actorUserId: seed.actorUserId,
+      notifyClient: true,
       reason: "Integration test confirmation",
       internalNote: undefined,
     });

@@ -229,6 +229,7 @@ function BookingActionPanel({
           bookingId={data.id}
           availableActions={data.availableActions}
           bookingStatus={data.status}
+          clientEmail={data.clientEmail}
           initialVoucherCode={
             data.voucher.intendedVoucher?.code ??
             data.voucher.intendedVoucherCodeSnapshot ??

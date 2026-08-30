@@ -461,7 +461,7 @@ export async function getAdminBookingDetailData(
     createdAtLabel: formatDateTimeLabel(booking.createdAt),
     updatedAtLabel: formatDateTimeLabel(booking.updatedAt),
     clientName: booking.client.fullName,
-    clientEmail: booking.clientEmailSnapshot,
+    clientEmail: booking.client.email?.trim() ?? "",
     clientPhone: clientPhone ? formatClientPhoneForDisplay(clientPhone) : "Telefon není vyplněný",
     serviceId: booking.serviceId,
     serviceName: booking.serviceNameSnapshot,

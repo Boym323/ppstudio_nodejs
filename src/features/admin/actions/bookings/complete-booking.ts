@@ -350,7 +350,7 @@ export async function completeBookingVisitAction(
       let completionApplied = false;
       if (mode === "voucher" || mode === "combined") {
         const completion = await applyAdminBookingStatusChangeInTransaction(tx, {
-          bookingId: current.id, targetStatus: BookingStatus.COMPLETED, actorUserId, reason: baseReason,
+          bookingId: current.id, targetStatus: BookingStatus.COMPLETED, actorUserId, notifyClient: false, reason: baseReason,
         });
         if (completion.status !== "success") throw new CompletionPaymentError("Stav rezervace se nepodařilo změnit.");
         completionApplied = true;
@@ -390,7 +390,7 @@ export async function completeBookingVisitAction(
         : baseReason;
       if (!completionApplied) {
         const completion = await applyAdminBookingStatusChangeInTransaction(tx, {
-          bookingId: current.id, targetStatus: BookingStatus.COMPLETED, actorUserId, reason: completionReason,
+          bookingId: current.id, targetStatus: BookingStatus.COMPLETED, actorUserId, notifyClient: false, reason: completionReason,
         });
         if (completion.status !== "success") throw new CompletionPaymentError("Stav rezervace se nepodařilo změnit.");
       }

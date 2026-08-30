@@ -607,6 +607,7 @@ dbTest("createManualBooking ořízne částečný overlap zleva a cancellation o
       bookingId,
       targetStatus: BookingStatus.CANCELLED,
       actorUserId: null,
+      notifyClient: true,
       reason: "Partial overlap regression",
     });
     assert.equal(cancellation.status, "success");

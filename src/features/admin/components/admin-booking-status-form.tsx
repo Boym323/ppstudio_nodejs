@@ -12,6 +12,11 @@ import {
   type CompleteBookingVisitActionState,
 } from "@/features/admin/actions/complete-booking-visit-action-state";
 import { initialUpdateBookingStatusActionState } from "@/features/admin/actions/update-booking-status-action-state";
+import {
+  DEFAULT_ADMIN_BOOKING_NOTIFY_CLIENT,
+  hasCurrentClientEmail,
+  shouldShowAdminBookingCancellationNotification,
+} from "@/features/admin/components/admin-booking-cancellation-notification";
 import { type AdminBookingActionOption } from "@/features/admin/lib/booking/booking-display";
 import { type AdminBookingActionValue } from "@/features/booking/domain/booking-status-transition";
 import { type AdminArea } from "@/config/navigation";
@@ -29,6 +34,7 @@ type AdminBookingStatusFormProps = {
   bookingId: string;
   bookingStatus:
     "PENDING" | "CONFIRMED" | "COMPLETED" | "CANCELLED" | "NO_SHOW";
+  clientEmail: string;
   availableActions: AdminBookingActionOption[];
   initialVoucherCode?: string;
   secondaryActionSlot?: ReactNode;
@@ -43,6 +49,7 @@ export function AdminBookingStatusForm({
   area,
   bookingId,
   bookingStatus,
+  clientEmail,
   availableActions,
   initialVoucherCode = "",
   secondaryActionSlot,
@@ -61,6 +68,9 @@ export function AdminBookingStatusForm({
   const [selectedAction, setSelectedAction] = useState<
     AdminBookingActionValue | ""
   >(operationalActions[0]?.value ?? dangerAction?.value ?? "");
+  const [notifyClient, setNotifyClient] = useState(
+    DEFAULT_ADMIN_BOOKING_NOTIFY_CLIENT,
+  );
   const [serverState, formAction] = useActionState(
     updateBookingStatusAction,
     initialUpdateBookingStatusActionState,
@@ -98,6 +108,7 @@ export function AdminBookingStatusForm({
   const selectedActionOption = availableActions.find(
     (action) => action.value === selectedAction,
   );
+  const bookingEmailAvailable = hasCurrentClientEmail(clientEmail);
   const hasRemainingPayment = remainingPaymentCzk > 0;
   const helperText = useMemo(
     () => getClosedStateHelper(bookingStatus),
@@ -615,18 +626,46 @@ export function AdminBookingStatusForm({
                 {selectedAction === dangerAction.value ? "Vybráno" : "Storno"}
               </span>
             </button>
-            {selectedAction === dangerAction.value ? (
-              <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
-                <ReasonField
-                  selectedAction={selectedAction}
-                  fieldError={serverState.fieldErrors?.reason}
-                  compact
-                />
-                <SubmitButton
-                  selectedAction={dangerAction.label}
-                  danger
-                  compact
-                />
+            {shouldShowAdminBookingCancellationNotification(selectedAction) ? (
+              <div className="space-y-2">
+                <label className={cn(
+                  "flex items-start gap-2 text-sm",
+                  !bookingEmailAvailable
+                    ? "cursor-not-allowed opacity-60"
+                    : "cursor-pointer",
+                )}>
+                  <input
+                    type="checkbox"
+                    name="notifyClient"
+                    value="1"
+                    checked={notifyClient}
+                    onChange={(event) => setNotifyClient(event.currentTarget.checked)}
+                    disabled={!bookingEmailAvailable}
+                    className="mt-1 size-4 rounded border-white/20 bg-black/20 text-[var(--color-accent)]"
+                  />
+                  <span>
+                    <span className="block font-medium text-red-50">
+                      Odeslat klientce e-mail o zrušení rezervace
+                    </span>
+                    {!bookingEmailAvailable ? (
+                      <span className="mt-1 block text-xs text-red-100/65">
+                        Klientka nemá e-mailovou adresu.
+                      </span>
+                    ) : null}
+                  </span>
+                </label>
+                <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+                  <ReasonField
+                    selectedAction={selectedAction}
+                    fieldError={serverState.fieldErrors?.reason}
+                    compact
+                  />
+                  <SubmitButton
+                    selectedAction={dangerAction.label}
+                    danger
+                    compact
+                  />
+                </div>
               </div>
             ) : null}
           </div>

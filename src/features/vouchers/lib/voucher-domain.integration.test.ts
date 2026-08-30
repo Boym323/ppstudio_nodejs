@@ -602,6 +602,7 @@ describe("voucher domain", () => {
         bookingId,
         targetStatus: BookingStatus.CANCELLED,
         actorUserId: context.actorUserId,
+        notifyClient: true,
       });
       assert.equal(cancellation.status, "voucher-redemption-blocked");
 
@@ -609,6 +610,7 @@ describe("voucher domain", () => {
         bookingId,
         targetStatus: BookingStatus.NO_SHOW,
         actorUserId: context.actorUserId,
+        notifyClient: false,
         now: new Date(Date.now() + 60 * 60 * 1000),
       });
       assert.equal(noShow.status, "voucher-redemption-blocked");

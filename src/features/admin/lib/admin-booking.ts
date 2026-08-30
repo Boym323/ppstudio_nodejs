@@ -63,6 +63,7 @@ type ApplyAdminBookingStatusChangeInput = {
   bookingId: string;
   targetStatus: AdminBookingActionValue;
   actorUserId: string | null;
+  notifyClient: boolean;
   reason?: string;
   internalNote?: string;
   now?: Date;
@@ -80,21 +81,20 @@ export async function applyAdminBookingStatusChange({
   bookingId,
   targetStatus,
   actorUserId,
+  notifyClient,
   reason,
   internalNote,
   now,
 }: ApplyAdminBookingStatusChangeInput) {
-  return prisma.$transaction(
-    (tx) => applyAdminBookingStatusChangeInTransaction(tx, {
+  return runSerializableTransaction((tx) => applyAdminBookingStatusChangeInTransaction(tx, {
       bookingId,
       targetStatus,
       actorUserId,
+      notifyClient,
       reason,
       internalNote,
       now,
-    }),
-    { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
-  );
+    }));
 }
 export async function applyAdminBookingStatusChangeInTransaction(
   tx: Prisma.TransactionClient,
@@ -102,11 +102,19 @@ export async function applyAdminBookingStatusChangeInTransaction(
     bookingId,
     targetStatus,
     actorUserId,
+    notifyClient,
     reason,
     internalNote,
     now: inputNow,
   }: ApplyAdminBookingStatusChangeInput,
 ) {
+    await tx.$queryRaw<Array<{ id: string }>>(Prisma.sql`
+      SELECT "id"
+      FROM "Booking"
+      WHERE "id" = ${bookingId}
+      FOR UPDATE
+    `);
+
     const booking = await tx.booking.findUnique({
       where: { id: bookingId },
       select: {
@@ -121,6 +129,9 @@ export async function applyAdminBookingStatusChangeInTransaction(
         serviceNameSnapshot: true,
         scheduledStartsAt: true,
         scheduledEndsAt: true,
+        client: {
+          select: { email: true },
+        },
         voucherRedemptions: {
           select: { id: true },
           take: 1,
@@ -182,6 +193,15 @@ export async function applyAdminBookingStatusChangeInTransaction(
       if (booking.manualOverride) {
         await archiveOrphanedManualOverrideSlotAfterCancellation(tx, booking.slotId);
       }
+
+      await tx.bookingActionToken.updateMany({
+        where: {
+          bookingId: booking.id,
+          usedAt: null,
+          revokedAt: null,
+        },
+        data: { revokedAt: now },
+      });
     }
 
     await tx.bookingStatusHistory.create({
@@ -248,6 +268,44 @@ export async function applyAdminBookingStatusChangeInTransaction(
           recipientEmail: booking.clientEmailSnapshot,
           subject: `Rezervace potvrzena: ${booking.serviceNameSnapshot}`,
           templateKey: "booking-approved-v1",
+          payload: env.EMAIL_DELIVERY_MODE === "background"
+            ? clientPayload
+            : scrubSensitiveEmailPayload(clientPayload),
+          provider: env.EMAIL_DELIVERY_MODE === "background" ? undefined : "log",
+          sentAt: env.EMAIL_DELIVERY_MODE === "background" ? undefined : now,
+        },
+      });
+    }
+
+    const clientEmail = booking.client.email?.trim() ?? "";
+
+    if (
+      targetStatus === BookingStatus.CANCELLED
+      && notifyClient
+      && clientEmail.length > 0
+    ) {
+      const clientPayload = {
+        bookingId: booking.id,
+        serviceName: booking.serviceNameSnapshot,
+        clientName: booking.clientNameSnapshot,
+        scheduledStartsAt: booking.scheduledStartsAt.toISOString(),
+        scheduledEndsAt: booking.scheduledEndsAt.toISOString(),
+      };
+
+      await tx.emailLog.create({
+        data: {
+          bookingId: booking.id,
+          clientId: booking.clientId,
+          type: EmailLogType.BOOKING_CANCELLED,
+          audience: EmailAudience.CLIENT,
+          status: env.EMAIL_DELIVERY_MODE === "background" ? undefined : EmailLogStatus.SENT,
+          attemptCount: env.EMAIL_DELIVERY_MODE === "background" ? undefined : 1,
+          nextAttemptAt: env.EMAIL_DELIVERY_MODE === "background" ? now : undefined,
+          processingStartedAt: null,
+          processingToken: null,
+          recipientEmail: clientEmail,
+          subject: `Storno potvrzeno: ${booking.serviceNameSnapshot}`,
+          templateKey: "booking-cancelled-v1",
           payload: env.EMAIL_DELIVERY_MODE === "background"
             ? clientPayload
             : scrubSensitiveEmailPayload(clientPayload),

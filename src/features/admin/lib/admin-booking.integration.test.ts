@@ -550,6 +550,99 @@ async function createAdminAutoLunchServiceChangeFixture(
   };
 }
 
+async function createAdminCancellationFixture(
+  prisma: Awaited<typeof import("@/lib/prisma")>["prisma"],
+  suffix: string,
+  email: string | null,
+) {
+  const { startsAt, endsAt } = await findIsolatedAdminWindow(prisma, suffix, 60);
+  const owner = await prisma.adminUser.create({
+    data: {
+      email: `owner-admin-cancellation-${suffix}@example.com`,
+      name: `Owner cancellation ${suffix}`,
+      role: "OWNER",
+      isActive: true,
+    },
+    select: { id: true },
+  });
+  const category = await prisma.serviceCategory.create({
+    data: {
+      name: `Kategorie admin cancellation ${suffix}`,
+      slug: `kategorie-admin-cancellation-${suffix}`,
+      isActive: true,
+    },
+    select: { id: true },
+  });
+  const service = await prisma.service.create({
+    data: {
+      categoryId: category.id,
+      name: `Služba admin cancellation ${suffix}`,
+      slug: `sluzba-admin-cancellation-${suffix}`,
+      durationMinutes: 60,
+      priceFromCzk: 1200,
+      isActive: true,
+      isPubliclyBookable: true,
+    },
+    select: { id: true },
+  });
+  const slot = await prisma.availabilitySlot.create({
+    data: {
+      startsAt,
+      endsAt,
+      status: AvailabilitySlotStatus.PUBLISHED,
+      capacity: 1,
+    },
+    select: { id: true },
+  });
+  const client = await prisma.client.create({
+    data: {
+      fullName: `Klientka admin cancellation ${suffix}`,
+      email,
+      phone: "+420777123456",
+      isActive: true,
+    },
+    select: { id: true },
+  });
+  const booking = await prisma.booking.create({
+    data: {
+      clientId: client.id,
+      slotId: slot.id,
+      serviceId: service.id,
+      status: BookingStatus.CONFIRMED,
+      source: BookingSource.PHONE,
+      clientNameSnapshot: `Klientka admin cancellation ${suffix}`,
+      clientEmailSnapshot: email ?? "",
+      clientPhoneSnapshot: "+420777123456",
+      serviceNameSnapshot: `Služba admin cancellation ${suffix}`,
+      serviceDurationMinutes: 60,
+      servicePriceFromCzk: 1200,
+      scheduledStartsAt: startsAt,
+      scheduledEndsAt: endsAt,
+    },
+    select: { id: true },
+  });
+
+  return {
+    owner,
+    client,
+    booking,
+    slot,
+    service,
+    category,
+    async cleanup() {
+      await prisma.bookingActionToken.deleteMany({ where: { bookingId: booking.id } });
+      await prisma.emailLog.deleteMany({ where: { bookingId: booking.id } });
+      await prisma.bookingStatusHistory.deleteMany({ where: { bookingId: booking.id } });
+      await prisma.booking.deleteMany({ where: { id: booking.id } });
+      await prisma.client.deleteMany({ where: { id: client.id } });
+      await prisma.availabilitySlot.deleteMany({ where: { id: slot.id } });
+      await prisma.service.deleteMany({ where: { id: service.id } });
+      await prisma.serviceCategory.deleteMany({ where: { id: category.id } });
+      await prisma.adminUser.deleteMany({ where: { id: owner.id } });
+    },
+  };
+}
+
 dbTest("applyAdminBookingStatusChange confirms pending booking and writes side effects", async () => {
   const [{ prisma }, { applyAdminBookingStatusChange }] = await Promise.all([
     import("@/lib/prisma"),
@@ -635,6 +728,7 @@ dbTest("applyAdminBookingStatusChange confirms pending booking and writes side e
       bookingId: booking.id,
       targetStatus: BookingStatus.CONFIRMED,
       actorUserId: owner.id,
+      notifyClient: true,
       reason: "Integration confirmation",
       internalNote: "Potvrzeno z integračního testu",
     });
@@ -772,6 +866,7 @@ dbTest("applyAdminBookingStatusChange serverově odmítne předčasné no-show a
   try {
     const earlyResult = await applyAdminBookingStatusChange({
       bookingId: booking.id, targetStatus: BookingStatus.NO_SHOW, actorUserId: owner.id,
+      notifyClient: false,
       now: new Date(startsAt.getTime() - 16 * 60 * 1000),
     });
     assert.equal(earlyResult.status, "no-show-too-early");
@@ -780,6 +875,7 @@ dbTest("applyAdminBookingStatusChange serverově odmítne předčasné no-show a
 
     const validResult = await applyAdminBookingStatusChange({
       bookingId: booking.id, targetStatus: BookingStatus.NO_SHOW, actorUserId: owner.id,
+      notifyClient: false,
       now: new Date(startsAt.getTime() + 15 * 60 * 1000),
     });
     assert.equal(validResult.status, "success");
@@ -910,10 +1006,28 @@ dbTest("applyAdminBookingStatusChange compacts adjacent editable slot fragments 
   });
 
   try {
+    await prisma.bookingActionToken.createMany({
+      data: [
+        {
+          bookingId: booking.id,
+          type: BookingActionTokenType.CANCEL,
+          tokenHash: `admin-cancel-token-${suffix}`,
+          expiresAt: new Date(Date.now() + 60 * 60 * 1000),
+        },
+        {
+          bookingId: booking.id,
+          type: BookingActionTokenType.RESCHEDULE,
+          tokenHash: `admin-reschedule-token-${suffix}`,
+          expiresAt: new Date(Date.now() + 60 * 60 * 1000),
+        },
+      ],
+    });
+
     const result = await applyAdminBookingStatusChange({
       bookingId: booking.id,
       targetStatus: BookingStatus.CANCELLED,
       actorUserId: owner.id,
+      notifyClient: true,
       reason: "Integration cancellation",
     });
 
@@ -958,6 +1072,50 @@ dbTest("applyAdminBookingStatusChange compacts adjacent editable slot fragments 
         endsAt: fullEndsAt.toISOString(),
       }],
     );
+
+    const [emailLogs, actionTokens] = await Promise.all([
+      prisma.emailLog.findMany({
+        where: {
+          bookingId: booking.id,
+          type: EmailLogType.BOOKING_CANCELLED,
+        },
+        select: {
+          audience: true,
+          recipientEmail: true,
+          templateKey: true,
+        },
+      }),
+      prisma.bookingActionToken.findMany({
+        where: { bookingId: booking.id },
+        select: { revokedAt: true },
+      }),
+    ]);
+
+    assert.deepEqual(emailLogs, [{
+      audience: EmailAudience.CLIENT,
+      recipientEmail: `client-booking-cancel-${suffix}@example.com`,
+      templateKey: "booking-cancelled-v1",
+    }]);
+    assert.equal(actionTokens.length, 2);
+    assert.ok(actionTokens.every((token) => token.revokedAt));
+
+    const retry = await applyAdminBookingStatusChange({
+      bookingId: booking.id,
+      targetStatus: BookingStatus.CANCELLED,
+      actorUserId: owner.id,
+      notifyClient: true,
+    });
+    assert.equal(retry.status, "invalid-transition");
+    assert.equal(
+      await prisma.emailLog.count({
+        where: {
+          bookingId: booking.id,
+          type: EmailLogType.BOOKING_CANCELLED,
+          audience: EmailAudience.CLIENT,
+        },
+      }),
+      1,
+    );
   } finally {
     await prisma.bookingActionToken.deleteMany({
       where: { bookingId: booking.id },
@@ -986,6 +1144,83 @@ dbTest("applyAdminBookingStatusChange compacts adjacent editable slot fragments 
     await prisma.adminUser.deleteMany({
       where: { id: owner.id },
     });
+  }
+});
+
+dbTest("admin cancellation with notifyClient=false does not create a client email log", async () => {
+  const [{ prisma }, { applyAdminBookingStatusChange }] = await Promise.all([
+    import("@/lib/prisma"),
+    import("./admin-booking"),
+  ]);
+  const fixture = await createAdminCancellationFixture(
+    prisma,
+    randomUUID().slice(0, 8),
+    "client-without-notification@example.com",
+  );
+
+  try {
+    const result = await applyAdminBookingStatusChange({
+      bookingId: fixture.booking.id,
+      targetStatus: BookingStatus.CANCELLED,
+      actorUserId: fixture.owner.id,
+      notifyClient: false,
+    });
+
+    assert.equal(result.status, "success");
+    assert.equal(
+      await prisma.emailLog.count({
+        where: {
+          bookingId: fixture.booking.id,
+          type: EmailLogType.BOOKING_CANCELLED,
+          audience: EmailAudience.CLIENT,
+        },
+      }),
+      0,
+    );
+  } finally {
+    await fixture.cleanup();
+  }
+});
+
+dbTest("admin cancellation without a client email succeeds without a client email log", async () => {
+  const [{ prisma }, { applyAdminBookingStatusChange }] = await Promise.all([
+    import("@/lib/prisma"),
+    import("./admin-booking"),
+  ]);
+  const fixture = await createAdminCancellationFixture(
+    prisma,
+    randomUUID().slice(0, 8),
+    null,
+  );
+
+  try {
+    const result = await applyAdminBookingStatusChange({
+      bookingId: fixture.booking.id,
+      targetStatus: BookingStatus.CANCELLED,
+      actorUserId: fixture.owner.id,
+      notifyClient: true,
+    });
+
+    assert.equal(result.status, "success");
+    assert.equal(
+      await prisma.emailLog.count({
+        where: {
+          bookingId: fixture.booking.id,
+          type: EmailLogType.BOOKING_CANCELLED,
+          audience: EmailAudience.CLIENT,
+        },
+      }),
+      0,
+    );
+    assert.equal(
+      (await prisma.booking.findUniqueOrThrow({
+        where: { id: fixture.booking.id },
+        select: { status: true },
+      })).status,
+      BookingStatus.CANCELLED,
+    );
+  } finally {
+    await fixture.cleanup();
   }
 });
 
@@ -1055,6 +1290,7 @@ dbTest("applyAdminBookingStatusChange archives only its orphaned manual-override
       bookingId: booking.id,
       targetStatus: BookingStatus.CANCELLED,
       actorUserId: owner.id,
+      notifyClient: true,
       reason: "Integration manual override cancellation",
     });
 
@@ -1837,6 +2073,7 @@ dbTest("změna služby zkrátí manual DRAFT a obnoví původní PUBLISHED dostu
       bookingId: fixture.booking.id,
       targetStatus: BookingStatus.CANCELLED,
       actorUserId: fixture.owner.id,
+      notifyClient: true,
       reason: "Manual override service resize regression",
     });
 

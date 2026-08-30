@@ -92,6 +92,7 @@ const updateBookingStatusSchema = z.object({
     .max(1000, "Interní poznámka je příliš dlouhá.")
     .optional()
     .or(z.literal("")),
+  notifyClient: z.boolean(),
 });
 
 
@@ -105,6 +106,7 @@ export async function updateBookingStatusAction(
     targetStatus: readFormString(formData, "targetStatus"),
     reason: readFormString(formData, "reason"),
     internalNote: readFormString(formData, "internalNote"),
+    notifyClient: ["1", "true", "on"].includes(readFormString(formData, "notifyClient")),
   });
 
   if (!parsed.success) {
@@ -155,6 +157,7 @@ export async function updateBookingStatusAction(
     bookingId: parsed.data.bookingId,
     targetStatus: parsed.data.targetStatus as AdminBookingActionValue,
     actorUserId,
+    notifyClient: parsed.data.notifyClient,
     reason: parsed.data.reason || undefined,
     internalNote: parsed.data.internalNote || undefined,
   });
