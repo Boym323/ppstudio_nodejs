@@ -1078,6 +1078,125 @@ dbTest("migrace historických FAILED logů rediguje známá bearer pole a zachov
   }
 });
 
+dbTest("migrace communicationGeneration selektivně zachová jen prokazatelně aktuální legacy log", async () => {
+  const seed = randomUUID().slice(0, 8);
+  const { prisma } = await loadModules();
+  const window = await findIsolatedWorkerWindow(prisma, seed, 60);
+  const fixture = await createConfirmedManualBooking(seed, window.startsAt);
+  const migrationSql = await readFile(
+    "prisma/migrations/20260830120000_client_email_delivery_fencing/migration.sql",
+    "utf8",
+  );
+  const rollbackMarker = "migration-test-rollback";
+  let observed: Array<{ communicationGeneration: number }> = [];
+
+  try {
+    await assert.rejects(
+      prisma.$transaction(async (tx) => {
+        const payload = buildBookingEmailPayload(fixture);
+        const ambiguousPayload = Object.fromEntries(
+          Object.entries(payload).filter(([key]) => key !== "serviceId"),
+        ) satisfies Prisma.InputJsonObject;
+        const logs = await Promise.all([
+          tx.emailLog.create({
+            data: {
+              bookingId: fixture.bookingId,
+              type: EmailLogType.BOOKING_CONFIRMED,
+              audience: EmailAudience.CLIENT,
+              status: EmailLogStatus.PENDING,
+              recipientEmail: fixture.email,
+              subject: "Aktuální legacy confirmation",
+              templateKey: "booking-approved-v1",
+              payload,
+            },
+          }),
+          tx.emailLog.create({
+            data: {
+              bookingId: fixture.bookingId,
+              type: EmailLogType.BOOKING_CONFIRMED,
+              audience: EmailAudience.CLIENT,
+              status: EmailLogStatus.FAILED,
+              recipientEmail: `stale-recipient-${seed}@example.com`,
+              subject: "Stale recipient",
+              templateKey: "booking-approved-v1",
+              payload,
+            },
+          }),
+          tx.emailLog.create({
+            data: {
+              bookingId: fixture.bookingId,
+              type: EmailLogType.BOOKING_CONFIRMED,
+              audience: EmailAudience.CLIENT,
+              status: EmailLogStatus.FAILED,
+              recipientEmail: fixture.email,
+              subject: "Stale service",
+              templateKey: "booking-approved-v1",
+              payload: { ...payload, serviceId: "stale-service" },
+            },
+          }),
+          tx.emailLog.create({
+            data: {
+              bookingId: fixture.bookingId,
+              type: EmailLogType.BOOKING_CONFIRMED,
+              audience: EmailAudience.CLIENT,
+              status: EmailLogStatus.FAILED,
+              recipientEmail: fixture.email,
+              subject: "Stale term",
+              templateKey: "booking-approved-v1",
+              payload: {
+                ...payload,
+                scheduledStartsAt: addMinutes(fixture.startsAt, 15).toISOString(),
+              },
+            },
+          }),
+          tx.emailLog.create({
+            data: {
+              bookingId: fixture.bookingId,
+              type: EmailLogType.BOOKING_RECEIVED,
+              audience: EmailAudience.CLIENT,
+              status: EmailLogStatus.FAILED,
+              recipientEmail: fixture.email,
+              subject: "Status mismatch",
+              templateKey: "booking-confirmation-v1",
+              payload,
+            },
+          }),
+          tx.emailLog.create({
+            data: {
+              bookingId: fixture.bookingId,
+              type: EmailLogType.BOOKING_CONFIRMED,
+              audience: EmailAudience.CLIENT,
+              status: EmailLogStatus.FAILED,
+              recipientEmail: fixture.email,
+              subject: "Ambiguous payload",
+              templateKey: "booking-approved-v1",
+              payload: ambiguousPayload,
+            },
+          }),
+        ]);
+
+        await tx.$executeRawUnsafe(migrationSql);
+        observed = await Promise.all(
+          logs.map((log) => tx.emailLog.findUniqueOrThrow({
+            where: { id: log.id },
+            select: { communicationGeneration: true },
+          })),
+        );
+
+        throw new Error(rollbackMarker);
+      }),
+      { message: rollbackMarker },
+    );
+
+    assert.deepEqual(
+      observed.map((log) => log.communicationGeneration),
+      [1, 0, 0, 0, 0, 0],
+    );
+  } finally {
+    await cleanupBookingFixture(fixture);
+  }
+});
+
 dbTest("runBookingReminderSchedulerOnce logs 24h reminder for confirmed booking in reminder window", async () => {
   const seed = randomUUID().slice(0, 8);
   const { prisma, runBookingReminderSchedulerOnce } = await loadModules();
@@ -1266,6 +1385,121 @@ dbTest("potvrzení beze změny rezervace se doručí", async () => {
     assert.equal(stored.status, EmailLogStatus.SENT);
     assert.equal(stored.provider, "log");
     assert.deepEqual(idempotencyKeys, [`email-log/${emailLog.id}`]);
+  } finally {
+    await cleanupBookingFixture(fixture);
+  }
+});
+
+dbTest("vypršení lease před finalizací vrátí i po provider acceptance log do PENDING", async () => {
+  const seed = randomUUID().slice(0, 8);
+  const { prisma, claimEmailLogForImmediateDelivery, deliverEmailLog } = await loadModules();
+  const window = await findIsolatedWorkerWindow(prisma, seed, 60);
+  const fixture = await createConfirmedManualBooking(seed, window.startsAt);
+  const emailLog = await createPendingBookingEmailLog(fixture, {
+    type: EmailLogType.BOOKING_CONFIRMED,
+    templateKey: "booking-approved-v1",
+  });
+  let providerCalls = 0;
+
+  try {
+    const processingToken = await claimEmailLogForImmediateDelivery(emailLog.id);
+    assert.ok(processingToken);
+
+    const result = await deliverEmailLog(emailLog.id, processingToken, {
+      beforeProviderSend: async () => {
+        await prisma.booking.update({
+          where: { id: fixture.bookingId },
+          data: { clientDeliveryLeaseExpiresAt: new Date(0) },
+        });
+      },
+      sendEmail: async () => {
+        providerCalls += 1;
+        return { provider: "log", messageId: "accepted-before-finalize" };
+      },
+    });
+    const stored = await prisma.emailLog.findUniqueOrThrow({ where: { id: emailLog.id } });
+
+    assert.equal(result.status, "deferred");
+    assert.equal(providerCalls, 1);
+    assert.equal(stored.status, EmailLogStatus.PENDING);
+    assert.equal(stored.processingStartedAt, null);
+    assert.equal(stored.processingToken, null);
+    assert.deepEqual(stored.payload, emailLog.payload);
+  } finally {
+    await cleanupBookingFixture(fixture);
+  }
+});
+
+dbTest("cizí aktivní delivery lease job odloží a po expiraci pokračuje stejným idempotency key", async () => {
+  const seed = randomUUID().slice(0, 8);
+  const { prisma, claimEmailLogForImmediateDelivery, deliverEmailLog } = await loadModules();
+  const { CLIENT_DELIVERY_LEASE_BUSY_BUFFER_MS } = await import("@/lib/email/booking-delivery-fence");
+  const window = await findIsolatedWorkerWindow(prisma, seed, 60);
+  const fixture = await createConfirmedManualBooking(seed, window.startsAt);
+  const emailLog = await createPendingBookingEmailLog(fixture, {
+    type: EmailLogType.BOOKING_CONFIRMED,
+    templateKey: "booking-approved-v1",
+  });
+  const originalPayload = emailLog.payload;
+  const leaseExpiresAt = new Date(Date.now() + 60 * 1000);
+  const sentIdempotencyKeys: string[] = [];
+
+  try {
+    await prisma.booking.update({
+      where: { id: fixture.bookingId },
+      data: {
+        clientDeliveryLeaseToken: "previous-worker-token",
+        clientDeliveryLeaseExpiresAt: leaseExpiresAt,
+      },
+    });
+
+    const firstToken = await claimEmailLogForImmediateDelivery(emailLog.id);
+    assert.ok(firstToken);
+    const firstResult = await deliverEmailLog(emailLog.id, firstToken, {
+      sendEmail: async () => {
+        throw new Error("Provider nesmí být při LEASE_BUSY zavolán.");
+      },
+    });
+    const deferred = await prisma.emailLog.findUniqueOrThrow({
+      where: { id: emailLog.id },
+      select: {
+        status: true,
+        processingStartedAt: true,
+        processingToken: true,
+        nextAttemptAt: true,
+        payload: true,
+      },
+    });
+
+    assert.equal(firstResult.status, "deferred");
+    assert.equal(deferred.status, EmailLogStatus.PENDING);
+    assert.equal(deferred.processingStartedAt, null);
+    assert.equal(deferred.processingToken, null);
+    assert.ok(
+      deferred.nextAttemptAt.getTime()
+        >= leaseExpiresAt.getTime() + CLIENT_DELIVERY_LEASE_BUSY_BUFFER_MS,
+    );
+    assert.deepEqual(deferred.payload, originalPayload);
+
+    await prisma.booking.update({
+      where: { id: fixture.bookingId },
+      data: {
+        clientDeliveryLeaseToken: "previous-worker-token",
+        clientDeliveryLeaseExpiresAt: new Date(0),
+      },
+    });
+
+    const retryToken = await claimEmailLogForImmediateDelivery(emailLog.id);
+    assert.ok(retryToken);
+    const retryResult = await deliverEmailLog(emailLog.id, retryToken, {
+      sendEmail: async (input) => {
+        sentIdempotencyKeys.push(input.idempotencyKey ?? "");
+        return { provider: "log", messageId: "after-lease-expiry" };
+      },
+    });
+
+    assert.deepEqual(retryResult, { status: "sent" });
+    assert.deepEqual(sentIdempotencyKeys, [`email-log/${emailLog.id}`]);
   } finally {
     await cleanupBookingFixture(fixture);
   }

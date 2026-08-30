@@ -410,6 +410,66 @@ dbTest("owner reject posílá CLIENT e-mail na snapshot rezervace, ne na master 
   }
 });
 
+dbTest("owner approve/reject odmítne aktivní delivery lease a po expiraci zvýší generaci", async () => {
+  const cases = [
+    { intent: "approve" as const, option: { withApproveToken: true }, expectedStatus: "CONFIRMED" as const },
+    { intent: "reject" as const, option: { withRejectToken: true }, expectedStatus: "CANCELLED" as const },
+  ];
+
+  for (const testCase of cases) {
+    const seed = await createSeed(testCase.option);
+
+    try {
+      const { prisma, performBookingEmailAction, BookingStatus } = await loadModules();
+      await prisma.booking.update({
+        where: { id: seed.bookingId },
+        data: {
+          clientDeliveryLeaseToken: `owner-action-worker-${testCase.intent}`,
+          clientDeliveryLeaseExpiresAt: new Date(Date.now() + 60 * 1000),
+        },
+      });
+
+      const rawToken = testCase.intent === "approve" ? seed.approveRawToken : seed.rejectRawToken;
+      const blocked = await performBookingEmailAction(
+        testCase.intent,
+        rawToken!,
+        undefined,
+        { userId: seed.actorUserId },
+      );
+      assert.equal(blocked.status, "concurrent_modification");
+      assert.deepEqual(
+        await prisma.booking.findUniqueOrThrow({
+          where: { id: seed.bookingId },
+          select: { status: true, communicationGeneration: true },
+        }),
+        { status: BookingStatus.PENDING, communicationGeneration: 1 },
+      );
+
+      await prisma.booking.update({
+        where: { id: seed.bookingId },
+        data: { clientDeliveryLeaseExpiresAt: new Date(0) },
+      });
+
+      const completed = await performBookingEmailAction(
+        testCase.intent,
+        rawToken!,
+        undefined,
+        { userId: seed.actorUserId },
+      );
+      assert.equal(completed.status, "completed");
+      assert.deepEqual(
+        await prisma.booking.findUniqueOrThrow({
+          where: { id: seed.bookingId },
+          select: { status: true, communicationGeneration: true },
+        }),
+        { status: BookingStatus[testCase.expectedStatus], communicationGeneration: 2 },
+      );
+    } finally {
+      await cleanupSeed(seed);
+    }
+  }
+});
+
 dbTest("CLIENT lifecycle použije snapshot i při odstranění master e-mailu", async () => {
   const seed = await createSeed();
 

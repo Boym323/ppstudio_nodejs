@@ -20,7 +20,10 @@ import {
   evaluateBookingEmailPreflight,
 } from "@/lib/email/booking-preflight";
 import { scrubSensitiveEmailPayload } from "@/lib/email/payload-security";
-import { hasActiveClientDeliveryLease } from "@/lib/email/booking-delivery-fence";
+import {
+  advanceBookingCommunicationGeneration,
+  assertNoActiveClientDeliveryLease,
+} from "@/lib/email/booking-delivery-fence";
 
 async function systemSkipPendingClientEmailLog(
   tx: Prisma.TransactionClient,
@@ -102,7 +105,7 @@ export async function rotateClientBookingTokensForEmailChange(
       reminder24hSentAt: true,
     },
   });
-  const activeBookingIds = activeBookings.map((booking) => booking.id);
+  let activeBookingIds = activeBookings.map((booking) => booking.id);
 
   if (activeBookingIds.length === 0) {
     return;
@@ -142,9 +145,18 @@ export async function rotateClientBookingTokensForEmailChange(
       reminder24hSentAt: true,
     },
   });
+  activeBookingIds = activeBookings.map((booking) => booking.id);
 
-  if (activeBookings.some((booking) => hasActiveClientDeliveryLease(booking, input.now))) {
-    throw new Error("Nelze změnit kontakt během autorizovaného odesílání klientského e-mailu.");
+  if (activeBookingIds.length === 0) {
+    return;
+  }
+
+  for (const booking of activeBookings) {
+    assertNoActiveClientDeliveryLease(
+      booking,
+      input.now,
+      "Nelze změnit kontakt během autorizovaného odesílání klientského e-mailu.",
+    );
   }
 
   // Helper rotace tokenů používají i přímé maintenance flow. Snapshot rezervace
@@ -160,7 +172,7 @@ export async function rotateClientBookingTokensForEmailChange(
   const bookingsWithCurrentEmail = activeBookings.map((booking) => ({
     ...booking,
     clientEmailSnapshot: input.newEmail ?? "",
-    communicationGeneration: booking.communicationGeneration + 1,
+    communicationGeneration: advanceBookingCommunicationGeneration(booking),
   }));
 
   // Worker claim lock musí být serializovaný se změnou kontaktu; jinak by mohl

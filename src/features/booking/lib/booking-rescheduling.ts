@@ -30,7 +30,11 @@ import {
 import { sendOwnerBookingPushover, sendOwnerSystemErrorPushover } from "@/lib/notifications/pushover";
 import { prisma } from "@/lib/prisma";
 import { scrubSensitiveEmailPayload } from "@/lib/email/payload-security";
-import { hasActiveClientDeliveryLease } from "@/lib/email/booking-delivery-fence";
+import {
+  ActiveClientDeliveryLeaseError,
+  advanceBookingCommunicationGeneration,
+  assertNoActiveClientDeliveryLease,
+} from "@/lib/email/booking-delivery-fence";
 import { getBookingPolicySettings, getEmailBrandingSettings, isBookingWithinWindow } from "@/lib/site-settings";
 import { resolveBookingTimingSnapshot } from "./booking-cleanup";
 import { canPreserveAutoLunchForBooking } from "./booking-auto-lunch-enforcement";
@@ -673,11 +677,17 @@ async function rescheduleBookingInTransaction(
     );
   }
 
-  if (hasActiveClientDeliveryLease(booking, new Date())) {
-    throw new BookingRescheduleError(
-      bookingRescheduleErrorCodes.concurrentModification,
-      "Rezervace se právě zpracovává pro odeslání klientského e-mailu. Obnovte detail a zkuste to znovu.",
-    );
+  try {
+    assertNoActiveClientDeliveryLease(booking, new Date());
+  } catch (error) {
+    if (error instanceof ActiveClientDeliveryLeaseError) {
+      throw new BookingRescheduleError(
+        bookingRescheduleErrorCodes.concurrentModification,
+        "Rezervace se právě zpracovává pro odeslání klientského e-mailu. Obnovte detail a zkuste to znovu.",
+      );
+    }
+
+    throw error;
   }
 
   if (input.clientActionTokenHash) {
@@ -1027,6 +1037,7 @@ async function rescheduleBookingInTransaction(
 
   const normalizedReason = input.reason ? normalizeWhitespace(input.reason) : null;
   const rescheduledAt = new Date();
+  const nextCommunicationGeneration = advanceBookingCommunicationGeneration(booking);
 
   await tx.booking.update({
     where: {
@@ -1059,7 +1070,7 @@ async function rescheduleBookingInTransaction(
       id: booking.id,
       clientId: booking.clientId,
       clientEmailSnapshot: booking.clientEmailSnapshot,
-      communicationGeneration: booking.communicationGeneration + 1,
+      communicationGeneration: nextCommunicationGeneration,
       clientNameSnapshot: booking.clientNameSnapshot,
       status: booking.status,
       serviceId: booking.serviceId,
@@ -1108,7 +1119,7 @@ async function rescheduleBookingInTransaction(
         bookingId: booking.id,
         clientId: booking.clientId,
         serviceId: booking.serviceId,
-        communicationGeneration: booking.communicationGeneration + 1,
+        communicationGeneration: nextCommunicationGeneration,
         clientEmail: booking.clientEmailSnapshot,
         clientName: booking.clientNameSnapshot,
         serviceName: booking.serviceNameSnapshot,
@@ -1124,7 +1135,7 @@ async function rescheduleBookingInTransaction(
   return {
     bookingId: booking.id,
     serviceId: booking.serviceId,
-    communicationGeneration: booking.communicationGeneration + 1,
+    communicationGeneration: nextCommunicationGeneration,
     serviceName: booking.serviceNameSnapshot,
     clientId: booking.clientId,
     clientName: booking.clientNameSnapshot,

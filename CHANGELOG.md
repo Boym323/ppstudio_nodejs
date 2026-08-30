@@ -6,6 +6,12 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+### Zabezpečení
+
+- CLIENT booking e-maily nyní rozlišují zastaralou autorizaci od dočasně obsazeného delivery lease; job při cizím platném lease zůstane `PENDING`, zachová payload i idempotency key a pokračuje až po bezpečné expiraci lease.
+- Všechny lifecycle změny rezervace, včetně admin statusů, `NO_SHOW`, owner approve/reject a veřejného storna, nyní atomicky respektují aktivní delivery lease a zvyšují generaci komunikace; starý worker proto nemůže odeslat zneplatněný klientský e-mail.
+- Provider delivery má explicitní timeout kratší než delivery lease a rollout `communicationGeneration` selektivně backfilluje pouze legacy logy s prokazatelně aktuálním příjemcem, službou, termínem a lifecycle stavem.
+
 ## [3.25.0] - 2026-08-30
 
 ### Zabezpečení

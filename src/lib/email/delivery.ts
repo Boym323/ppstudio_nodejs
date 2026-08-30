@@ -16,11 +16,14 @@ import { reconcileUnmatchedResendWebhookEvents } from "@/lib/email/resend-webhoo
 import { scrubSensitiveEmailPayload } from "@/lib/email/payload-security";
 import {
   acquireClientDeliveryLease,
+  CLIENT_DELIVERY_LEASE_BUSY_BUFFER_MS,
+  EMAIL_WORKER_LOCK_TIMEOUT_MS,
+  hasActiveClientDeliveryLease,
   releaseClientDeliveryLease,
 } from "@/lib/email/booking-delivery-fence";
 
 export type EmailLogDeliveryOutcome = {
-  status: "sent" | "failed" | "skipped";
+  status: "sent" | "failed" | "skipped" | "deferred";
   errorMessage?: string;
 };
 
@@ -33,13 +36,11 @@ type EmailDeliveryDependencies = Partial<{
   beforeProviderSend: () => void | Promise<void>;
 }>;
 
-const WORKER_LOCK_TIMEOUT_MS = 10 * 60 * 1000;
-
 /** Atomicky převezme pending job pro explicitní (mimo worker) odeslání. */
 export async function claimEmailLogForImmediateDelivery(emailLogId: string) {
   const now = new Date();
   const processingToken = randomUUID();
-  const staleBefore = new Date(now.getTime() - WORKER_LOCK_TIMEOUT_MS);
+  const staleBefore = new Date(now.getTime() - EMAIL_WORKER_LOCK_TIMEOUT_MS);
   const claimed = await prisma.emailLog.updateMany({
     where: {
       id: emailLogId,
@@ -103,6 +104,12 @@ type ClientBookingDeliveryBooking = {
   scheduledEndsAt: Date;
   serviceId: string;
 };
+
+type ClientBookingDeliveryAuthorization =
+  | { kind: "AUTHORIZED" }
+  | { kind: "STALE"; reason: string }
+  | { kind: "LEASE_BUSY"; reason: string; leaseExpiresAt: Date }
+  | { kind: "CLAIM_LOST"; reason: string };
 
 function evaluateClientBookingDelivery(
   emailLog: {
@@ -181,9 +188,7 @@ async function authorizeClientBookingDelivery(
     communicationGeneration: number;
     bookingId: string;
   },
-) {
-  const now = new Date();
-
+): Promise<ClientBookingDeliveryAuthorization> {
   return prisma.$transaction(async (tx) => {
     await tx.$queryRaw<Array<{ id: string }>>(Prisma.sql`
       SELECT "id"
@@ -221,7 +226,7 @@ async function authorizeClientBookingDelivery(
       || currentEmailLog[0]?.processingToken !== processingToken
     ) {
       return {
-        authorized: false,
+        kind: "CLAIM_LOST" as const,
         reason: "Claim e-mailu mezitím převzal jiný worker.",
       };
     }
@@ -229,25 +234,52 @@ async function authorizeClientBookingDelivery(
     const preflight = evaluateClientBookingDelivery(emailLog, booking);
     if (!preflight.shouldSend) {
       return {
-        authorized: false,
+        kind: "STALE" as const,
         reason: preflight.reason ?? "Booking email delivery skipped.",
+      };
+    }
+
+    const now = new Date();
+    if (
+      booking
+      && hasActiveClientDeliveryLease(booking, now)
+      && booking.clientDeliveryLeaseToken !== processingToken
+    ) {
+      return {
+        kind: "LEASE_BUSY" as const,
+        reason: "Booking delivery lease currently belongs to another worker.",
+        leaseExpiresAt: booking.clientDeliveryLeaseExpiresAt!,
       };
     }
 
     const leaseAcquired = await acquireClientDeliveryLease(tx, {
       bookingId: emailLog.bookingId,
       communicationGeneration: emailLog.communicationGeneration,
-      recipientEmail: emailLog.recipientEmail.trim(),
+      recipientEmail: booking?.clientEmailSnapshot ?? emailLog.recipientEmail.trim(),
       leaseToken: processingToken,
       now,
     });
 
-    return leaseAcquired
-      ? { authorized: true as const }
-      : {
-          authorized: false as const,
-          reason: "Booking delivery lease could not be acquired.",
-        };
+    if (leaseAcquired) {
+      return { kind: "AUTHORIZED" as const };
+    }
+
+    if (
+      booking
+      && hasActiveClientDeliveryLease(booking, now)
+      && booking.clientDeliveryLeaseToken !== processingToken
+    ) {
+      return {
+        kind: "LEASE_BUSY" as const,
+        reason: "Booking delivery lease currently belongs to another worker.",
+        leaseExpiresAt: booking.clientDeliveryLeaseExpiresAt!,
+      };
+    }
+
+    return {
+      kind: "STALE" as const,
+      reason: "Booking delivery lease could not be acquired.",
+    };
   });
 }
 
@@ -280,6 +312,57 @@ async function markEmailLogSystemSkipped(
       nextAttemptAt: new Date(),
       errorMessage: reason,
       payload: scrubSensitiveEmailPayload(payload),
+    },
+  });
+}
+
+async function deferEmailLogForBusyClientDeliveryLease(
+  emailLogId: string,
+  processingToken: string,
+  leaseExpiresAt: Date,
+  reason: string,
+) {
+  const now = new Date();
+  const nextAttemptAt = new Date(
+    Math.max(
+      now.getTime(),
+      leaseExpiresAt.getTime() + CLIENT_DELIVERY_LEASE_BUSY_BUFFER_MS,
+    ),
+  );
+
+  return prisma.emailLog.updateMany({
+    where: {
+      id: emailLogId,
+      status: EmailLogStatus.PENDING,
+      processingToken,
+    },
+    data: {
+      status: EmailLogStatus.PENDING,
+      processingStartedAt: null,
+      processingToken: null,
+      nextAttemptAt,
+      errorMessage: reason,
+    },
+  });
+}
+
+async function releaseClaimedEmailLogForRetry(
+  emailLogId: string,
+  processingToken: string,
+  reason: string,
+) {
+  return prisma.emailLog.updateMany({
+    where: {
+      id: emailLogId,
+      status: EmailLogStatus.PENDING,
+      processingToken,
+    },
+    data: {
+      status: EmailLogStatus.PENDING,
+      processingStartedAt: null,
+      processingToken: null,
+      nextAttemptAt: new Date(),
+      errorMessage: reason,
     },
   });
 }
@@ -386,11 +469,24 @@ export async function deliverEmailLog(
         },
       );
 
-      if (!authorization.authorized) {
+      if (authorization.kind === "LEASE_BUSY") {
+        const deferred = await deferEmailLogForBusyClientDeliveryLease(
+          emailLog.id,
+          processingToken,
+          authorization.leaseExpiresAt,
+          authorization.reason,
+        );
+
+        return deferred.count === 1
+          ? { status: "deferred", errorMessage: authorization.reason }
+          : { status: "skipped", errorMessage: "Claim e-mailu mezitím převzal jiný worker." };
+      }
+
+      if (authorization.kind !== "AUTHORIZED") {
         const completed = await markEmailLogSystemSkipped(
           emailLog.id,
           processingToken,
-          authorization.reason ?? "Booking email delivery skipped.",
+          authorization.reason,
           emailLog.payload,
         );
 
@@ -412,30 +508,79 @@ export async function deliverEmailLog(
       idempotencyKey: `email-log/${emailLog.id}`,
     });
 
-    const completed = await prisma.emailLog.updateMany({
-      where: {
-        id: emailLog.id,
-        status: EmailLogStatus.PENDING,
-        processingToken,
-      },
-      data: {
-        status: EmailLogStatus.SENT,
-        provider: delivery.provider,
-        providerMessageId: delivery.messageId,
-        sentAt: new Date(),
-        processingStartedAt: null,
-        processingToken: null,
-        nextAttemptAt: new Date(),
-        errorMessage: null,
-        payload: scrubSensitiveEmailPayload(emailLog.payload),
-      },
+    // The short post-provider transaction is intentionally separate from the
+    // provider request. It serializes final authorization with lifecycle
+    // mutations, so an expiry cannot turn a stale provider result into SENT.
+    const completion = await prisma.$transaction(async (tx) => {
+      let completedAt = new Date();
+
+      if (clientDeliveryLeaseAcquired && emailLog.bookingId) {
+        await tx.$queryRaw<Array<{ id: string }>>(Prisma.sql`
+          SELECT "id"
+          FROM "Booking"
+          WHERE "id" = ${emailLog.bookingId}
+          FOR UPDATE
+        `);
+
+        const currentBooking = await tx.booking.findUnique({
+          where: { id: emailLog.bookingId },
+          select: {
+            communicationGeneration: true,
+            clientDeliveryLeaseToken: true,
+            clientDeliveryLeaseExpiresAt: true,
+          },
+        });
+        completedAt = new Date();
+
+        if (
+          !currentBooking
+          || currentBooking.communicationGeneration !== emailLog.communicationGeneration
+          || currentBooking.clientDeliveryLeaseToken !== processingToken
+          || !currentBooking.clientDeliveryLeaseExpiresAt
+          || currentBooking.clientDeliveryLeaseExpiresAt <= completedAt
+        ) {
+          return { count: 0, completedAt };
+        }
+      }
+
+      const completed = await tx.emailLog.updateMany({
+        where: {
+          id: emailLog.id,
+          status: EmailLogStatus.PENDING,
+          processingToken,
+        },
+        data: {
+          status: EmailLogStatus.SENT,
+          provider: delivery.provider,
+          providerMessageId: delivery.messageId,
+          sentAt: completedAt,
+          processingStartedAt: null,
+          processingToken: null,
+          nextAttemptAt: completedAt,
+          errorMessage: null,
+          payload: scrubSensitiveEmailPayload(emailLog.payload),
+        },
+      });
+
+      return { count: completed.count, completedAt };
     });
 
-    if (completed.count !== 1) {
-      return {
-        status: "skipped",
-        errorMessage: "Claim e-mailu mezitím převzal jiný worker.",
-      };
+    if (completion.count !== 1) {
+      const released = await releaseClaimedEmailLogForRetry(
+        emailLog.id,
+        processingToken,
+        "Delivery lease vypršel nebo už nepatří tomuto workeru před finalizací e-mailu.",
+      );
+
+      return released.count === 1
+        ? {
+            status: "deferred",
+            errorMessage: "Delivery lease vypršel před finalizací e-mailu.",
+          }
+        : {
+            status: "skipped",
+            errorMessage: "Claim e-mailu mezitím převzal jiný worker.",
+          };
     }
 
     if (delivery.provider === "resend" && delivery.messageId) {

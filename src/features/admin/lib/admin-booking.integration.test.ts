@@ -961,13 +961,46 @@ dbTest("applyAdminBookingStatusChange serverově odmítne předčasné no-show a
     assert.equal((await prisma.booking.findUniqueOrThrow({ where: { id: booking.id }, select: { status: true } })).status, BookingStatus.CONFIRMED);
     assert.equal((await getAvailability()).scheduleOptimization.bookedIntervals.length, 1);
 
+    await prisma.booking.update({
+      where: { id: booking.id },
+      data: {
+        clientDeliveryLeaseToken: "no-show-worker",
+        clientDeliveryLeaseExpiresAt: new Date(Date.now() + 60 * 1000),
+      },
+    });
+
+    const blockedByDeliveryLease = await applyAdminBookingStatusChange({
+      bookingId: booking.id, targetStatus: BookingStatus.NO_SHOW, actorUserId: owner.id,
+      notifyClient: false,
+      now: new Date(startsAt.getTime() + 15 * 60 * 1000),
+    });
+    assert.equal(blockedByDeliveryLease.status, "concurrent-modification");
+    assert.deepEqual(
+      await prisma.booking.findUniqueOrThrow({
+        where: { id: booking.id },
+        select: { status: true, communicationGeneration: true },
+      }),
+      { status: BookingStatus.CONFIRMED, communicationGeneration: 1 },
+    );
+
+    await prisma.booking.update({
+      where: { id: booking.id },
+      data: { clientDeliveryLeaseExpiresAt: new Date(0) },
+    });
+
     const validResult = await applyAdminBookingStatusChange({
       bookingId: booking.id, targetStatus: BookingStatus.NO_SHOW, actorUserId: owner.id,
       notifyClient: false,
       now: new Date(startsAt.getTime() + 15 * 60 * 1000),
     });
     assert.equal(validResult.status, "success");
-    assert.equal((await prisma.booking.findUniqueOrThrow({ where: { id: booking.id }, select: { status: true } })).status, BookingStatus.NO_SHOW);
+    assert.deepEqual(
+      await prisma.booking.findUniqueOrThrow({
+        where: { id: booking.id },
+        select: { status: true, communicationGeneration: true },
+      }),
+      { status: BookingStatus.NO_SHOW, communicationGeneration: 2 },
+    );
     assert.equal((await getAvailability()).scheduleOptimization.bookedIntervals.length, 0);
     assert.equal(await prisma.bookingStatusHistory.count({ where: { bookingId: booking.id, status: BookingStatus.NO_SHOW } }), 1);
   } finally {

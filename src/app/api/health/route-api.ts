@@ -4,13 +4,13 @@ import packageJson from "../../../../package.json";
 import { sendOwnerSystemErrorPushover } from "@/lib/notifications/pushover";
 import { prisma } from "@/lib/prisma";
 import { getUnresolvedEmailDeliveryFailureWhere, getUnresolvedEmailDeliveryIncidentRootWhere } from "@/lib/email/incidents";
+import { EMAIL_WORKER_LOCK_TIMEOUT_MS } from "@/lib/email/booking-delivery-fence";
 
 const DEPLOYMENT_ID_ENV_KEYS = [
   "NEXT_DEPLOYMENT_ID",
   "DEPLOYMENT_VERSION",
   "GIT_HASH",
 ] as const;
-const WORKER_LOCK_TIMEOUT_MS = 10 * 60 * 1000;
 const RECENT_EMAIL_ERROR_WINDOW_MS = 24 * 60 * 60 * 1000;
 const DB_UNAVAILABLE_ERROR_CODE = "DATABASE_UNAVAILABLE";
 const EMAIL_HEALTH_UNAVAILABLE_ERROR_CODE = "EMAIL_HEALTH_UNAVAILABLE";
@@ -55,7 +55,7 @@ function createDbFailureAlertCooldown(
 const claimDbFailureAlert = createDbFailureAlertCooldown();
 
 async function getEmailHealthData(now: Date): Promise<EmailHealthData> {
-  const staleThreshold = new Date(now.getTime() - WORKER_LOCK_TIMEOUT_MS);
+  const staleThreshold = new Date(now.getTime() - EMAIL_WORKER_LOCK_TIMEOUT_MS);
   const recentErrorThreshold = new Date(
     now.getTime() - RECENT_EMAIL_ERROR_WINDOW_MS,
   );
@@ -215,7 +215,7 @@ export function createHealthDiagnosticsRouteApi(
             },
             emailWorker: {
               status: "unknown",
-              staleClaimTimeoutMs: WORKER_LOCK_TIMEOUT_MS,
+              staleClaimTimeoutMs: EMAIL_WORKER_LOCK_TIMEOUT_MS,
               summary: "Nelze vyhodnotit bez funkční DB.",
             },
             emailQueue: {
@@ -267,7 +267,7 @@ export function createHealthDiagnosticsRouteApi(
             },
             emailWorker: {
               status: "unknown",
-              staleClaimTimeoutMs: WORKER_LOCK_TIMEOUT_MS,
+              staleClaimTimeoutMs: EMAIL_WORKER_LOCK_TIMEOUT_MS,
               summary: "Detailní stav e-mailové fronty není dostupný.",
             },
             emailQueue: {
@@ -358,7 +358,7 @@ export function createHealthDiagnosticsRouteApi(
           },
           emailWorker: {
             status: workerStatus,
-            staleClaimTimeoutMs: WORKER_LOCK_TIMEOUT_MS,
+            staleClaimTimeoutMs: EMAIL_WORKER_LOCK_TIMEOUT_MS,
             summary:
               workerStatus === "ok"
                 ? "Worker frontu zpracovává bez aktivní chyby."

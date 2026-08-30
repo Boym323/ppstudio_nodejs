@@ -8,10 +8,15 @@ import { prisma } from "@/lib/prisma";
  * commitnout novou generaci uprostřed autorizovaného delivery.
  */
 export const CLIENT_DELIVERY_LEASE_MS = 15 * 60 * 1000;
+/** Claim může být převzat dříve než lease expiruje; delivery pak musí bezpečně deferovat. */
+export const EMAIL_WORKER_LOCK_TIMEOUT_MS = 10 * 60 * 1000;
+export const CLIENT_DELIVERY_LEASE_BUSY_BUFFER_MS = 5 * 1000;
+/** Musí zůstat výrazně kratší než lease, aby po timeoutu zbyl čas na finalizaci v DB. */
+export const EMAIL_PROVIDER_TIMEOUT_MS = 30 * 1000;
 
 export type BookingClientDeliveryLeaseState = {
-  clientDeliveryLeaseToken: string | null;
-  clientDeliveryLeaseExpiresAt: Date | null;
+  clientDeliveryLeaseToken?: string | null;
+  clientDeliveryLeaseExpiresAt?: Date | null;
 };
 
 export function hasActiveClientDeliveryLease(
@@ -23,6 +28,29 @@ export function hasActiveClientDeliveryLease(
     && booking.clientDeliveryLeaseExpiresAt
     && booking.clientDeliveryLeaseExpiresAt > now,
   );
+}
+
+export class ActiveClientDeliveryLeaseError extends Error {
+  readonly code = "CLIENT_DELIVERY_LEASE_ACTIVE";
+
+  constructor(message = "Booking se právě zpracovává pro odeslání klientského e-mailu.") {
+    super(message);
+    this.name = "ActiveClientDeliveryLeaseError";
+  }
+}
+
+export function assertNoActiveClientDeliveryLease(
+  booking: BookingClientDeliveryLeaseState,
+  now = new Date(),
+  message?: string,
+) {
+  if (hasActiveClientDeliveryLease(booking, now)) {
+    throw new ActiveClientDeliveryLeaseError(message);
+  }
+}
+
+export function advanceBookingCommunicationGeneration(booking: { communicationGeneration: number }) {
+  return booking.communicationGeneration + 1;
 }
 
 export async function acquireClientDeliveryLease(
@@ -41,6 +69,7 @@ export async function acquireClientDeliveryLease(
       communicationGeneration: input.communicationGeneration,
       clientEmailSnapshot: input.recipientEmail,
       OR: [
+        { clientDeliveryLeaseToken: input.leaseToken },
         { clientDeliveryLeaseToken: null },
         { clientDeliveryLeaseExpiresAt: { lte: input.now } },
       ],

@@ -38,7 +38,11 @@ import {
 } from "@/features/booking/lib/booking-reminders";
 import { prisma } from "@/lib/prisma";
 import { scrubSensitiveEmailPayload } from "@/lib/email/payload-security";
-import { hasActiveClientDeliveryLease } from "@/lib/email/booking-delivery-fence";
+import {
+  ActiveClientDeliveryLeaseError,
+  advanceBookingCommunicationGeneration,
+  assertNoActiveClientDeliveryLease,
+} from "@/lib/email/booking-delivery-fence";
 import { runSerializableTransaction } from "@/lib/serializable-transaction";
 
 export {
@@ -133,6 +137,8 @@ export async function applyAdminBookingStatusChangeInTransaction(
         clientNameSnapshot: true,
         clientEmailSnapshot: true,
         communicationGeneration: true,
+        clientDeliveryLeaseToken: true,
+        clientDeliveryLeaseExpiresAt: true,
         serviceNameSnapshot: true,
         scheduledStartsAt: true,
         scheduledEndsAt: true,
@@ -157,6 +163,18 @@ export async function applyAdminBookingStatusChangeInTransaction(
     }
 
     const now = inputNow ?? new Date();
+
+    try {
+      assertNoActiveClientDeliveryLease(booking, now);
+    } catch (error) {
+      if (error instanceof ActiveClientDeliveryLeaseError) {
+        return { status: "concurrent-modification" as const };
+      }
+
+      throw error;
+    }
+
+    const nextCommunicationGeneration = advanceBookingCommunicationGeneration(booking);
 
     if (
       (targetStatus === BookingStatus.CANCELLED || targetStatus === BookingStatus.NO_SHOW)
@@ -189,6 +207,7 @@ export async function applyAdminBookingStatusChangeInTransaction(
         confirmedAt: targetStatus === BookingStatus.CONFIRMED ? now : undefined,
         cancelledAt: targetStatus === BookingStatus.CANCELLED ? now : undefined,
         completedAt: targetStatus === BookingStatus.COMPLETED ? now : undefined,
+        communicationGeneration: nextCommunicationGeneration,
         internalNote: internalNote ? internalNote : undefined,
       },
     });
@@ -271,7 +290,7 @@ export async function applyAdminBookingStatusChangeInTransaction(
           nextAttemptAt: env.EMAIL_DELIVERY_MODE === "background" ? now : undefined,
           processingStartedAt: null,
           processingToken: null,
-          communicationGeneration: booking.communicationGeneration,
+          communicationGeneration: nextCommunicationGeneration,
           recipientEmail: clientEmail,
           subject: `Rezervace potvrzena: ${booking.serviceNameSnapshot}`,
           templateKey: "booking-approved-v1",
@@ -291,6 +310,7 @@ export async function applyAdminBookingStatusChangeInTransaction(
     ) {
       const clientPayload = {
         bookingId: booking.id,
+        serviceId: booking.serviceId,
         serviceName: booking.serviceNameSnapshot,
         clientName: booking.clientNameSnapshot,
         scheduledStartsAt: booking.scheduledStartsAt.toISOString(),
@@ -308,7 +328,7 @@ export async function applyAdminBookingStatusChangeInTransaction(
           nextAttemptAt: env.EMAIL_DELIVERY_MODE === "background" ? now : undefined,
           processingStartedAt: null,
           processingToken: null,
-          communicationGeneration: booking.communicationGeneration,
+          communicationGeneration: nextCommunicationGeneration,
           recipientEmail: clientEmail,
           subject: `Storno potvrzeno: ${booking.serviceNameSnapshot}`,
           templateKey: "booking-cancelled-v1",
@@ -420,8 +440,14 @@ export async function updateAdminBookingService({
       return { status: "not-found" as const };
     }
 
-    if (hasActiveClientDeliveryLease(booking, inputNow ?? new Date())) {
-      return { status: "concurrent-modification" as const };
+    try {
+      assertNoActiveClientDeliveryLease(booking, inputNow ?? new Date());
+    } catch (error) {
+      if (error instanceof ActiveClientDeliveryLeaseError) {
+        return { status: "concurrent-modification" as const };
+      }
+
+      throw error;
     }
 
     if (booking.status !== BookingStatus.PENDING && booking.status !== BookingStatus.CONFIRMED) {

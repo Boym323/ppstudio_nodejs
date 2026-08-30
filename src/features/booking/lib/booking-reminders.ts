@@ -451,6 +451,7 @@ export async function markBookingReminder24hSent(
       communicationGeneration: identity.communicationGeneration,
       clientEmailSnapshot: identity.recipientEmail,
       clientDeliveryLeaseToken: identity.deliveryLeaseToken,
+      clientDeliveryLeaseExpiresAt: { gt: sentAt },
       reminder24hSentAt: null,
     },
     data: {

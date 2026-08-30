@@ -1045,6 +1045,48 @@ describe("cancel booking flow", () => {
     }
   });
 
+  dbTest("public cancellation odmítne aktivní delivery lease a po expiraci zvýší generaci", async () => {
+    const seed = await createSeed();
+    const { prisma, cancelPublicBookingByToken, BookingStatus } = await loadModules();
+
+    try {
+      await prisma.booking.update({
+        where: { id: seed.manageableBookingId },
+        data: {
+          clientDeliveryLeaseToken: "public-cancellation-worker",
+          clientDeliveryLeaseExpiresAt: new Date(Date.now() + 60 * 1000),
+        },
+      });
+
+      const blocked = await cancelPublicBookingByToken(seed.cancelTokenRaw);
+      assert.equal(blocked.status, "concurrent_modification");
+      assert.deepEqual(
+        await prisma.booking.findUniqueOrThrow({
+          where: { id: seed.manageableBookingId },
+          select: { status: true, communicationGeneration: true },
+        }),
+        { status: BookingStatus.CONFIRMED, communicationGeneration: 1 },
+      );
+
+      await prisma.booking.update({
+        where: { id: seed.manageableBookingId },
+        data: { clientDeliveryLeaseExpiresAt: new Date(0) },
+      });
+
+      const cancelled = await cancelPublicBookingByToken(seed.cancelTokenRaw);
+      assert.equal(cancelled.status, "cancelled");
+      assert.deepEqual(
+        await prisma.booking.findUniqueOrThrow({
+          where: { id: seed.manageableBookingId },
+          select: { status: true, communicationGeneration: true },
+        }),
+        { status: BookingStatus.CANCELLED, communicationGeneration: 2 },
+      );
+    } finally {
+      await cleanupSeed(seed);
+    }
+  });
+
   dbTest("cancellation restores an archived slot with a service restriction", async () => {
     const seed = await createSeed();
     const { prisma, cancelPublicBookingByToken, AvailabilitySlotStatus } = await loadModules();

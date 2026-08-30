@@ -6,11 +6,11 @@ import {
   enqueueBookingReminder24hJobs,
 } from "@/features/booking/lib/booking-reminders";
 import { deliverEmailLog } from "@/lib/email/delivery";
+import { EMAIL_WORKER_LOCK_TIMEOUT_MS } from "@/lib/email/booking-delivery-fence";
 import { prisma } from "@/lib/prisma";
 
 const WORKER_BATCH_SIZE = 10;
 const WORKER_IDLE_DELAY_MS = 5_000;
-const WORKER_LOCK_TIMEOUT_MS = 10 * 60 * 1000;
 const MAX_ITERATIONS_PER_RUN = 1_000;
 
 export type EmailWorkerConfig = {
@@ -24,7 +24,7 @@ type ClaimedEmailLog = {
 
 async function claimDueEmailLogs(limit: number): Promise<ClaimedEmailLog[]> {
   const now = new Date();
-  const staleBefore = new Date(now.getTime() - WORKER_LOCK_TIMEOUT_MS);
+  const staleBefore = new Date(now.getTime() - EMAIL_WORKER_LOCK_TIMEOUT_MS);
 
   return prisma.$transaction(async (tx) => {
     const rows = await tx.$queryRaw<Array<{ id: string }>>(Prisma.sql`

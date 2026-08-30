@@ -8,6 +8,7 @@ import {
   sanitizeEmailHeaderValue,
 } from "@/lib/email/header";
 import { getEmailBrandingSettings, getSafeEnvelopeFromEmail } from "@/lib/site-settings";
+import { EMAIL_PROVIDER_TIMEOUT_MS } from "@/lib/email/booking-delivery-fence";
 
 export type EmailDeliveryMessage = {
   to: string;
@@ -57,6 +58,9 @@ function getSmtpTransportOptions() {
             pass: env.SMTP_PASSWORD,
           }
         : undefined,
+    connectionTimeout: EMAIL_PROVIDER_TIMEOUT_MS,
+    greetingTimeout: EMAIL_PROVIDER_TIMEOUT_MS,
+    socketTimeout: EMAIL_PROVIDER_TIMEOUT_MS,
   } satisfies SMTPTransport.Options;
 }
 
@@ -107,6 +111,7 @@ async function sendViaResend(message: EmailDeliveryMessage): Promise<EmailDelive
 
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
+    signal: AbortSignal.timeout(EMAIL_PROVIDER_TIMEOUT_MS),
     headers: {
       Authorization: `Bearer ${env.RESEND_API_KEY}`,
       "Content-Type": "application/json",

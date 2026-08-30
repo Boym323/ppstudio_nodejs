@@ -29,6 +29,12 @@ import { getBookingStatusLabel } from "@/features/booking/lib/booking-status-pre
 import { sendOwnerBookingPushover } from "@/lib/notifications/pushover";
 import { prisma } from "@/lib/prisma";
 import { scrubSensitiveEmailPayload } from "@/lib/email/payload-security";
+import {
+  ActiveClientDeliveryLeaseError,
+  advanceBookingCommunicationGeneration,
+  assertNoActiveClientDeliveryLease,
+} from "@/lib/email/booking-delivery-fence";
+import { runSerializableTransaction } from "@/lib/serializable-transaction";
 
 type BookingEmailActionTargetStatus = "CONFIRMED" | "CANCELLED";
 
@@ -54,6 +60,8 @@ type LoadedBookingActionToken = {
     serviceNameSnapshot: string;
     scheduledStartsAt: Date;
     scheduledEndsAt: Date;
+    clientDeliveryLeaseToken?: string | null;
+    clientDeliveryLeaseExpiresAt?: Date | null;
     voucherRedemptions: ReadonlyArray<{ id: string }>;
   } | null;
 };
@@ -79,6 +87,7 @@ type BookingEmailActionTerminalState = Partial<BookingEmailActionDetails> & {
     | "already_cancelled"
     | "voucher_redemption_blocked"
     | "already_processed"
+    | "concurrent_modification"
     | "not_found";
   intent: BookingEmailActionIntent;
   title: string;
@@ -203,6 +212,8 @@ async function findActionToken(tokenHash: string) {
           serviceNameSnapshot: true,
           scheduledStartsAt: true,
           scheduledEndsAt: true,
+          clientDeliveryLeaseToken: true,
+          clientDeliveryLeaseExpiresAt: true,
           voucherRedemptions: {
             select: { id: true },
             take: 1,
@@ -375,7 +386,7 @@ export async function performBookingEmailAction(
 
   const tokenHash = hashBookingActionToken(rawToken);
 
-  const transactionResult = await prisma.$transaction(
+  const transactionResult = await runSerializableTransaction(
     async (tx) => {
       await tx.$queryRaw<{ id: string }[]>(Prisma.sql`
         SELECT "id"
@@ -383,6 +394,20 @@ export async function performBookingEmailAction(
         WHERE "tokenHash" = ${tokenHash}
         FOR UPDATE
       `);
+
+      const tokenIdentity = await tx.bookingActionToken.findUnique({
+        where: { tokenHash },
+        select: { bookingId: true },
+      });
+
+      if (tokenIdentity) {
+        await tx.$queryRaw<{ id: string }[]>(Prisma.sql`
+          SELECT "id"
+          FROM "Booking"
+          WHERE "id" = ${tokenIdentity.bookingId}
+          FOR UPDATE
+        `);
+      }
 
       const token = await tx.bookingActionToken.findUnique({
         where: {
@@ -411,6 +436,8 @@ export async function performBookingEmailAction(
               serviceNameSnapshot: true,
               scheduledStartsAt: true,
               scheduledEndsAt: true,
+              clientDeliveryLeaseToken: true,
+              clientDeliveryLeaseExpiresAt: true,
               voucherRedemptions: {
                 select: { id: true },
                 take: 1,
@@ -432,6 +459,24 @@ export async function performBookingEmailAction(
       const copy = getActionCopy(intent);
       const clientEmail = lockedToken.booking?.clientEmailSnapshot?.trim() ?? "";
 
+      try {
+        assertNoActiveClientDeliveryLease(lockedToken.booking!, now);
+      } catch (error) {
+        if (error instanceof ActiveClientDeliveryLeaseError) {
+          return {
+            status: "concurrent_modification" as const,
+            intent,
+            title: "Rezervaci nelze právě zpracovat",
+            message: "Rezervace se právě zpracovává pro odeslání klientského e-mailu. Obnovte prosím stránku a akci zkuste znovu.",
+            ...toActionDetails(lockedToken.booking!),
+          };
+        }
+
+        throw error;
+      }
+
+      const nextCommunicationGeneration = advanceBookingCommunicationGeneration(lockedToken.booking!);
+
       await tx.booking.update({
         where: {
           id: lockedToken.bookingId,
@@ -440,6 +485,7 @@ export async function performBookingEmailAction(
           status: targetStatus,
           confirmedAt: targetStatus === BookingStatus.CONFIRMED ? now : null,
           cancelledAt: targetStatus === BookingStatus.CANCELLED ? now : null,
+          communicationGeneration: nextCommunicationGeneration,
         },
       });
 
@@ -499,6 +545,7 @@ export async function performBookingEmailAction(
         | ReturnType<typeof buildBookingApprovedEmailPayload>
         | {
             bookingId: string;
+            serviceId: string;
             serviceName: string;
             clientName: string;
             scheduledStartsAt: string;
@@ -560,7 +607,7 @@ export async function performBookingEmailAction(
             nextAttemptAt: env.EMAIL_DELIVERY_MODE === "background" ? now : undefined,
             processingStartedAt: null,
             processingToken: null,
-            communicationGeneration: lockedToken.booking?.communicationGeneration,
+            communicationGeneration: nextCommunicationGeneration,
             recipientEmail: clientEmail,
             subject:
               targetStatus === BookingStatus.CONFIRMED
@@ -589,9 +636,6 @@ export async function performBookingEmailAction(
           : "skipped" as const,
         details: toActionDetails(lockedToken.booking!),
       };
-    },
-    {
-      isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
     },
   );
 

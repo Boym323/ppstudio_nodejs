@@ -19,6 +19,11 @@ import {
 import { sendOwnerBookingPushover } from "@/lib/notifications/pushover";
 import { prisma } from "@/lib/prisma";
 import {
+  ActiveClientDeliveryLeaseError,
+  advanceBookingCommunicationGeneration,
+  assertNoActiveClientDeliveryLease,
+} from "@/lib/email/booking-delivery-fence";
+import {
   canClientCancelBooking,
   getBookingPolicySettings,
   getEmailBrandingSettings,
@@ -60,6 +65,10 @@ export type CancelPublicBookingResult =
       serviceName?: string;
       clientName?: string;
       scheduledAtLabel?: string;
+    }
+  | {
+      status: "concurrent_modification";
+      message: string;
     };
 
 type LoadedCancellationToken = {
@@ -76,12 +85,15 @@ type LoadedCancellationToken = {
     manualOverride: boolean;
     clientId: string;
     slotId: string;
+    serviceId: string;
     clientEmailSnapshot: string;
     communicationGeneration: number;
     clientNameSnapshot: string;
     serviceNameSnapshot: string;
     scheduledStartsAt: Date;
     scheduledEndsAt: Date;
+    clientDeliveryLeaseToken: string | null;
+    clientDeliveryLeaseExpiresAt: Date | null;
     voucherRedemptions: Array<{ id: string }>;
   };
 };
@@ -142,12 +154,15 @@ async function findCancellationToken(tokenHash: string) {
           manualOverride: true,
           clientId: true,
           slotId: true,
+          serviceId: true,
           clientEmailSnapshot: true,
           communicationGeneration: true,
           clientNameSnapshot: true,
           serviceNameSnapshot: true,
           scheduledStartsAt: true,
           scheduledEndsAt: true,
+          clientDeliveryLeaseToken: true,
+          clientDeliveryLeaseExpiresAt: true,
           voucherRedemptions: {
             select: { id: true },
             take: 1,
@@ -253,7 +268,8 @@ export async function cancelPublicBookingByToken(rawToken: string): Promise<Canc
 
   type CancellationTransactionResult =
     | ReturnType<typeof resolveCancellationState>
-    | { status: "ready"; details: ReturnType<typeof toCancellationDetails> };
+    | { status: "ready"; details: ReturnType<typeof toCancellationDetails> }
+    | { status: "concurrent_modification"; message: string };
 
   let transactionResult: CancellationTransactionResult | null = null;
 
@@ -267,6 +283,20 @@ export async function cancelPublicBookingByToken(rawToken: string): Promise<Canc
         WHERE "tokenHash" = ${tokenHash}
         FOR UPDATE
       `);
+
+      const tokenIdentity = await tx.bookingActionToken.findUnique({
+        where: { tokenHash },
+        select: { bookingId: true },
+      });
+
+      if (tokenIdentity) {
+        await tx.$queryRaw<{ id: string }[]>(Prisma.sql`
+          SELECT "id"
+          FROM "Booking"
+          WHERE "id" = ${tokenIdentity.bookingId}
+          FOR UPDATE
+        `);
+      }
 
       const token = await tx.bookingActionToken.findUnique({
         where: {
@@ -287,12 +317,15 @@ export async function cancelPublicBookingByToken(rawToken: string): Promise<Canc
               manualOverride: true,
               clientId: true,
               slotId: true,
+              serviceId: true,
               clientEmailSnapshot: true,
               communicationGeneration: true,
               clientNameSnapshot: true,
               serviceNameSnapshot: true,
               scheduledStartsAt: true,
               scheduledEndsAt: true,
+              clientDeliveryLeaseToken: true,
+              clientDeliveryLeaseExpiresAt: true,
               voucherRedemptions: {
                 select: { id: true },
                 take: 1,
@@ -311,6 +344,21 @@ export async function cancelPublicBookingByToken(rawToken: string): Promise<Canc
       const lockedToken = token as LoadedCancellationToken;
       const now = new Date();
 
+      try {
+        assertNoActiveClientDeliveryLease(lockedToken.booking, now);
+      } catch (error) {
+        if (error instanceof ActiveClientDeliveryLeaseError) {
+          return {
+            status: "concurrent_modification" as const,
+            message: "Rezervace se právě zpracovává pro odeslání klientského e-mailu. Zkuste to prosím znovu.",
+          };
+        }
+
+        throw error;
+      }
+
+      const nextCommunicationGeneration = advanceBookingCommunicationGeneration(lockedToken.booking);
+
       await tx.booking.update({
         where: {
           id: lockedToken.booking.id,
@@ -318,6 +366,7 @@ export async function cancelPublicBookingByToken(rawToken: string): Promise<Canc
         data: {
           status: BookingStatus.CANCELLED,
           cancelledAt: now,
+          communicationGeneration: nextCommunicationGeneration,
         },
       });
 
@@ -375,12 +424,13 @@ export async function cancelPublicBookingByToken(rawToken: string): Promise<Canc
           nextAttemptAt: env.EMAIL_DELIVERY_MODE === "background" ? now : undefined,
           processingStartedAt: null,
           processingToken: null,
-          communicationGeneration: lockedToken.booking.communicationGeneration,
+          communicationGeneration: nextCommunicationGeneration,
           recipientEmail: lockedToken.booking.clientEmailSnapshot,
           subject: `Storno potvrzeno: ${lockedToken.booking.serviceNameSnapshot}`,
           templateKey: "booking-cancelled-v1",
           payload: {
             bookingId: lockedToken.booking.id,
+            serviceId: lockedToken.booking.serviceId,
             serviceName: lockedToken.booking.serviceNameSnapshot,
             clientName: lockedToken.booking.clientNameSnapshot,
             scheduledStartsAt: lockedToken.booking.scheduledStartsAt.toISOString(),

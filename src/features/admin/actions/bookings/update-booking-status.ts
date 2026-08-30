@@ -176,6 +176,13 @@ export async function updateBookingStatusAction(
     };
   }
 
+  if (result.status === "concurrent-modification") {
+    return {
+      status: "error",
+      formError: "Rezervace se právě zpracovává pro odeslání klientského e-mailu. Obnovte detail a zkuste to znovu.",
+    };
+  }
+
   if (result.status === "completion-too-early") {
     return {
       status: "error",

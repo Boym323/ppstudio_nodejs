@@ -250,11 +250,28 @@ export async function updateClientContactAction(
         },
       });
 
+      if (bookingIdsWithChangedEmailSnapshot.length > 0) {
+        // Rotation nejdřív zamkne Bookingy a ověří lease; teprve potom smí
+        // změnit e-mailový snapshot a zvýšit generaci.
+        await rotateClientBookingTokensForEmailChange(tx, {
+          clientId: client.id,
+          bookingIds: bookingIdsWithChangedEmailSnapshot,
+          newEmail: normalizedEmail,
+          now,
+        });
+      }
+
       if (touchedBookings.length > 0) {
         await tx.booking.updateMany({
           where: {
             id: {
               in: touchedBookings.map((booking) => booking.id),
+            },
+            status: {
+              in: [BookingStatus.PENDING, BookingStatus.CONFIRMED],
+            },
+            scheduledStartsAt: {
+              gte: now,
             },
           },
           data: {
@@ -278,15 +295,6 @@ export async function updateClientContactAction(
               nextPhone: normalizedPhone,
             },
           })),
-        });
-      }
-
-      if (bookingIdsWithChangedEmailSnapshot.length > 0) {
-        await rotateClientBookingTokensForEmailChange(tx, {
-          clientId: client.id,
-          bookingIds: bookingIdsWithChangedEmailSnapshot,
-          newEmail: normalizedEmail,
-          now,
         });
       }
 
