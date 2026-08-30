@@ -1,6 +1,6 @@
 import { createHash, randomBytes } from "node:crypto";
 
-import { BookingActionTokenType, type Prisma } from "@/generated/prisma/client";
+import { BookingActionTokenType, Prisma } from "@/generated/prisma/client";
 import { env } from "@/config/env";
 
 const BOOKING_ACTION_TOKEN_TTL_DAYS = 30;
@@ -34,6 +34,18 @@ export function buildBookingSelfServiceActionExpiry(scheduledStartsAt: Date) {
 
 export function buildBookingEmailActionExpiry(now = new Date()) {
   return buildBookingActionExpiry(now, BOOKING_EMAIL_ACTION_TOKEN_TTL_DAYS);
+}
+
+export async function lockBookingActionToken(
+  tx: Prisma.TransactionClient,
+  tokenHash: string,
+) {
+  return tx.$queryRaw<Array<{ id: string }>>(Prisma.sql`
+    SELECT "id"
+    FROM "BookingActionToken"
+    WHERE "tokenHash" = ${tokenHash}
+    FOR UPDATE
+  `);
 }
 
 export async function synchronizeActiveBookingClientActionTokenExpiry(

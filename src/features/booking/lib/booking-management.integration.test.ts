@@ -67,6 +67,7 @@ async function loadModules() {
 
   return {
     prisma,
+    createBookingManagementApi: managementModule.createBookingManagementApi,
     getPublicBookingManagementPageState: managementModule.getPublicBookingManagementPageState,
     reschedulePublicBookingByToken: managementModule.reschedulePublicBookingByToken,
     cancelPublicBookingByToken: cancellationModule.cancelPublicBookingByToken,
@@ -699,6 +700,37 @@ async function cleanupSeed(seed: SeedContext) {
   await prisma.adminUser.deleteMany({ where: { id: seed.actorUserId } });
 }
 
+async function findManageTokenSnapshot(
+  prisma: Awaited<ReturnType<typeof loadModules>>["prisma"],
+  tokenHash: string,
+) {
+  return prisma.bookingActionToken.findUnique({
+    where: { tokenHash },
+    select: {
+      id: true,
+      bookingId: true,
+      type: true,
+      expiresAt: true,
+      usedAt: true,
+      revokedAt: true,
+      booking: {
+        select: {
+          id: true,
+          status: true,
+          updatedAt: true,
+          serviceId: true,
+          serviceDurationMinutes: true,
+          cleanupBlockMinutes: true,
+          serviceNameSnapshot: true,
+          clientNameSnapshot: true,
+          scheduledStartsAt: true,
+          scheduledEndsAt: true,
+        },
+      },
+    },
+  });
+}
+
 describe("public booking access", () => {
   dbTest("returns booking detail for valid management token", async () => {
     const seed = await createSeed();
@@ -831,6 +863,86 @@ describe("cancel booking flow", () => {
       assert.equal(
         token.expiresAt.toISOString(),
         buildBookingSelfServiceActionExpiry(booking.scheduledStartsAt).toISOString(),
+      );
+    } finally {
+      await cleanupSeed(seed);
+    }
+  });
+
+  dbTest("does not issue a cancellation token when the manage token is revoked before the transaction", async () => {
+    const seed = await createSeed();
+    const {
+      prisma,
+      issuePublicCancellationUrlByManageToken,
+      hashBookingActionToken,
+      BookingActionTokenType,
+    } = await loadModules();
+
+    try {
+      const beforeCount = await prisma.bookingActionToken.count({
+        where: {
+          bookingId: seed.manageableBookingId,
+          type: BookingActionTokenType.CANCEL,
+        },
+      });
+
+      await prisma.bookingActionToken.update({
+        where: { tokenHash: hashBookingActionToken(seed.manageTokenRaw) },
+        data: { revokedAt: new Date() },
+      });
+
+      const result = await issuePublicCancellationUrlByManageToken(seed.manageTokenRaw);
+
+      assert.equal(result.status, "invalid");
+      const afterCount = await prisma.bookingActionToken.count({
+        where: {
+          bookingId: seed.manageableBookingId,
+          type: BookingActionTokenType.CANCEL,
+        },
+      });
+      assert.equal(afterCount, beforeCount);
+    } finally {
+      await cleanupSeed(seed);
+    }
+  });
+
+  dbTest("does not issue a cancellation token when revocation wins after the initial lookup", async () => {
+    const seed = await createSeed();
+    const {
+      prisma,
+      createBookingManagementApi,
+      BookingActionTokenType,
+    } = await loadModules();
+
+    try {
+      const api = createBookingManagementApi({
+        findManageToken: async (tokenHash) => {
+          const snapshot = await findManageTokenSnapshot(prisma, tokenHash);
+          await prisma.bookingActionToken.update({
+            where: { tokenHash },
+            data: { revokedAt: new Date() },
+          });
+          return snapshot;
+        },
+      });
+      const beforeCount = await prisma.bookingActionToken.count({
+        where: {
+          bookingId: seed.manageableBookingId,
+          type: BookingActionTokenType.CANCEL,
+        },
+      });
+
+      const result = await api.issuePublicCancellationUrlByManageToken(seed.manageTokenRaw);
+
+      assert.equal(result.status, "invalid");
+      assert.equal(
+        await prisma.bookingActionToken.count({
+          where: {
+            bookingId: seed.manageableBookingId,
+            type: BookingActionTokenType.CANCEL,
+          },
+        }),
+        beforeCount,
       );
     } finally {
       await cleanupSeed(seed);
@@ -1625,6 +1737,142 @@ describe("reschedule booking flow", () => {
       });
       const adminPayload = adminEmailLog.payload as Record<string, unknown>;
       assert.equal(adminPayload.scheduledStartsAt, seed.replacementStartAt);
+    } finally {
+      await cleanupSeed(seed);
+    }
+  });
+
+  dbTest("rolls back public reschedule when revocation wins after the initial lookup", async () => {
+    const seed = await createSeed();
+    const {
+      prisma,
+      createBookingManagementApi,
+      BookingActionTokenType,
+      BookingStatus,
+      EmailLogType,
+    } = await loadModules();
+
+    try {
+      const api = createBookingManagementApi({
+        findManageToken: async (tokenHash) => {
+          const snapshot = await findManageTokenSnapshot(prisma, tokenHash);
+          await prisma.bookingActionToken.update({
+            where: { tokenHash },
+            data: { revokedAt: new Date() },
+          });
+          return snapshot;
+        },
+      });
+      const beforeTokenCount = await prisma.bookingActionToken.count({
+        where: {
+          bookingId: seed.manageableBookingId,
+          type: {
+            in: [BookingActionTokenType.RESCHEDULE, BookingActionTokenType.CANCEL],
+          },
+        },
+      });
+
+      await assert.rejects(
+        api.reschedulePublicBookingByToken({
+          token: seed.manageTokenRaw,
+          slotId: seed.replacementSlotId,
+          newStartAt: seed.replacementStartAt,
+          expectedUpdatedAt: seed.manageableBookingUpdatedAt,
+        }),
+        /Odkaz pro správu rezervace už není aktivní/i,
+      );
+
+      const [booking, afterTokenCount, historyCount, emailCount] = await Promise.all([
+        prisma.booking.findUniqueOrThrow({
+          where: { id: seed.manageableBookingId },
+          select: { status: true, slotId: true, rescheduleCount: true },
+        }),
+        prisma.bookingActionToken.count({
+          where: {
+            bookingId: seed.manageableBookingId,
+            type: {
+              in: [BookingActionTokenType.RESCHEDULE, BookingActionTokenType.CANCEL],
+            },
+          },
+        }),
+        prisma.bookingRescheduleLog.count({ where: { bookingId: seed.manageableBookingId } }),
+        prisma.emailLog.count({
+          where: {
+            bookingId: seed.manageableBookingId,
+            type: EmailLogType.BOOKING_RESCHEDULED,
+          },
+        }),
+      ]);
+
+      assert.equal(booking.status, BookingStatus.CONFIRMED);
+      assert.equal(booking.slotId, seed.manageableCurrentSlotId);
+      assert.equal(booking.rescheduleCount, 0);
+      assert.equal(afterTokenCount, beforeTokenCount);
+      assert.equal(historyCount, 0);
+      assert.equal(emailCount, 0);
+    } finally {
+      await cleanupSeed(seed);
+    }
+  });
+
+  dbTest("rejects expired and used manage tokens without mutating the booking or issuing tokens", async () => {
+    const seed = await createSeed();
+    const {
+      prisma,
+      issuePublicCancellationUrlByManageToken,
+      reschedulePublicBookingByToken,
+      hashBookingActionToken,
+      BookingActionTokenType,
+    } = await loadModules();
+
+    try {
+      const beforeTokenCount = await prisma.bookingActionToken.count({
+        where: {
+          bookingId: seed.manageableBookingId,
+          type: {
+            in: [BookingActionTokenType.RESCHEDULE, BookingActionTokenType.CANCEL],
+          },
+        },
+      });
+
+      for (const invalidation of [
+        { usedAt: new Date(), expiresAt: addDays(new Date(), 30) },
+        { usedAt: null, expiresAt: addDays(new Date(), -1) },
+      ]) {
+        await prisma.bookingActionToken.update({
+          where: { tokenHash: hashBookingActionToken(seed.manageTokenRaw) },
+          data: invalidation,
+        });
+
+        const cancellationResult = await issuePublicCancellationUrlByManageToken(seed.manageTokenRaw);
+        assert.ok(cancellationResult.status === "invalid" || cancellationResult.status === "expired");
+
+        const rescheduleResult = await reschedulePublicBookingByToken({
+          token: seed.manageTokenRaw,
+          slotId: seed.replacementSlotId,
+          newStartAt: seed.replacementStartAt,
+          expectedUpdatedAt: seed.manageableBookingUpdatedAt,
+        });
+        assert.ok(rescheduleResult.status === "invalid" || rescheduleResult.status === "expired");
+      }
+
+      const booking = await prisma.booking.findUniqueOrThrow({
+        where: { id: seed.manageableBookingId },
+        select: { slotId: true, rescheduleCount: true },
+      });
+      assert.equal(booking.slotId, seed.manageableCurrentSlotId);
+      assert.equal(booking.rescheduleCount, 0);
+      assert.equal(
+        await prisma.bookingActionToken.count({
+          where: {
+            bookingId: seed.manageableBookingId,
+            type: {
+              in: [BookingActionTokenType.RESCHEDULE, BookingActionTokenType.CANCEL],
+            },
+          },
+        }),
+        beforeTokenCount,
+      );
     } finally {
       await cleanupSeed(seed);
     }

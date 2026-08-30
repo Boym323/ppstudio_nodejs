@@ -15,6 +15,7 @@ import {
   buildBookingCancellationUrl,
   buildBookingManagementUrl,
   buildBookingSelfServiceActionExpiry,
+  lockBookingActionToken,
   synchronizeActiveBookingClientActionTokenExpiry,
 } from "@/features/booking/lib/booking-action-tokens";
 import { formatBookingDateLabel } from "@/features/booking/lib/booking-format";
@@ -41,6 +42,7 @@ const EDITABLE_SLOT_CAPACITY = 1;
 
 export const bookingRescheduleErrorCodes = {
   notFound: "NOT_FOUND",
+  clientActionTokenInvalid: "CLIENT_ACTION_TOKEN_INVALID",
   statusNotAllowed: "STATUS_NOT_ALLOWED",
   invalidDateTime: "INVALID_DATE_TIME",
   sameTerm: "SAME_TERM",
@@ -73,6 +75,7 @@ export class BookingRescheduleError extends Error {
 
 export type RescheduleBookingInput = {
   bookingId: string;
+  clientActionTokenHash?: string;
   newStartAt: string;
   newEndAt?: string;
   slotId?: string;
@@ -262,6 +265,45 @@ async function lockAvailabilityCoverage(
     )
     FOR UPDATE
   `);
+}
+
+async function validateClientActionTokenInTransaction(
+  tx: Prisma.TransactionClient,
+  input: {
+    tokenHash: string;
+    bookingId: string;
+  },
+) {
+  const lockedTokenRows = await lockBookingActionToken(tx, input.tokenHash);
+
+  const token = lockedTokenRows.length > 0
+    ? await tx.bookingActionToken.findUnique({
+        where: {
+          tokenHash: input.tokenHash,
+        },
+        select: {
+          bookingId: true,
+          type: true,
+          expiresAt: true,
+          usedAt: true,
+          revokedAt: true,
+        },
+      })
+    : null;
+
+  if (
+    !token
+    || token.bookingId !== input.bookingId
+    || token.type !== BookingActionTokenType.RESCHEDULE
+    || token.usedAt !== null
+    || token.revokedAt !== null
+    || token.expiresAt <= new Date()
+  ) {
+    throw new BookingRescheduleError(
+      bookingRescheduleErrorCodes.clientActionTokenInvalid,
+      "Odkaz pro správu rezervace už není aktivní. Obnovte prosím stránku a zkuste to znovu.",
+    );
+  }
 }
 
 async function splitSlotForEditing(
@@ -618,6 +660,13 @@ async function rescheduleBookingInTransaction(
       bookingRescheduleErrorCodes.notFound,
       "Rezervaci se nepodařilo najít.",
     );
+  }
+
+  if (input.clientActionTokenHash) {
+    await validateClientActionTokenInTransaction(tx, {
+      tokenHash: input.clientActionTokenHash,
+      bookingId: booking.id,
+    });
   }
 
   if (input.expectedUpdatedAt) {

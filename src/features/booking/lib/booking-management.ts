@@ -8,6 +8,7 @@ import {
   buildBookingCancellationUrl,
   buildBookingSelfServiceActionExpiry,
   hashBookingActionToken,
+  lockBookingActionToken,
 } from "@/features/booking/lib/booking-action-tokens";
 import { formatBookingDateLabel } from "@/features/booking/lib/booking-format";
 import {
@@ -16,6 +17,7 @@ import {
 } from "@/features/booking/lib/booking-public";
 import { rescheduleBooking } from "@/features/booking/lib/booking-rescheduling";
 import { prisma } from "@/lib/prisma";
+import { runSerializableTransaction } from "@/lib/serializable-transaction";
 import {
   canClientCancelBooking,
   getBookingPolicySettings,
@@ -49,6 +51,29 @@ type LoadedManageToken = {
     scheduledEndsAt: Date;
   };
 };
+
+const manageTokenSelect = {
+  id: true,
+  bookingId: true,
+  type: true,
+  expiresAt: true,
+  usedAt: true,
+  revokedAt: true,
+  booking: {
+    select: {
+      id: true,
+      status: true,
+      updatedAt: true,
+      serviceId: true,
+      serviceDurationMinutes: true,
+      cleanupBlockMinutes: true,
+      serviceNameSnapshot: true,
+      clientNameSnapshot: true,
+      scheduledStartsAt: true,
+      scheduledEndsAt: true,
+    },
+  },
+} as const;
 
 export type BookingManagementTokenRecord = LoadedManageToken | null;
 
@@ -130,28 +155,7 @@ async function findManageToken(tokenHash: string) {
     where: {
       tokenHash,
     },
-    select: {
-      id: true,
-      bookingId: true,
-      type: true,
-      expiresAt: true,
-      usedAt: true,
-      revokedAt: true,
-      booking: {
-        select: {
-          id: true,
-          status: true,
-          updatedAt: true,
-          serviceId: true,
-          serviceDurationMinutes: true,
-          cleanupBlockMinutes: true,
-          serviceNameSnapshot: true,
-          clientNameSnapshot: true,
-          scheduledStartsAt: true,
-          scheduledEndsAt: true,
-        },
-      },
-    },
+    select: manageTokenSelect,
   });
 }
 
@@ -227,23 +231,46 @@ export function resolvePublicBookingManagementState(
 }
 
 async function issueCancellationUrl(
-  bookingId: string,
-  scheduledStartsAt: Date,
-  now = new Date(),
-) {
-  const cancellationToken = buildBookingActionToken();
+  tokenHash: string,
+  cancellationHours: number,
+): Promise<
+  | { status: "issued"; cancellationUrl: string }
+  | PublicBookingManagementBlockedState
+> {
+  return runSerializableTransaction(
+    async (tx) => {
+      await lockBookingActionToken(tx, tokenHash);
 
-  await prisma.bookingActionToken.create({
-    data: {
-      bookingId,
-      type: BookingActionTokenType.CANCEL,
-      tokenHash: cancellationToken.tokenHash,
-      expiresAt: buildBookingSelfServiceActionExpiry(scheduledStartsAt),
-      lastSentAt: now,
+      const token = await tx.bookingActionToken.findUnique({
+        where: {
+          tokenHash,
+        },
+        select: manageTokenSelect,
+      });
+      const now = new Date();
+      const resolved = resolvePublicBookingManagementState(token, cancellationHours, now);
+
+      if (resolved.status !== "ready") {
+        return resolved;
+      }
+
+      const cancellationToken = buildBookingActionToken();
+      await tx.bookingActionToken.create({
+        data: {
+          bookingId: resolved.token.booking.id,
+          type: BookingActionTokenType.CANCEL,
+          tokenHash: cancellationToken.tokenHash,
+          expiresAt: buildBookingSelfServiceActionExpiry(resolved.token.booking.scheduledStartsAt),
+          lastSentAt: now,
+        },
+      });
+
+      return {
+        status: "issued" as const,
+        cancellationUrl: buildBookingCancellationUrl(cancellationToken.rawToken),
+      };
     },
-  });
-
-  return buildBookingCancellationUrl(cancellationToken.rawToken);
+  );
 }
 
 type BookingManagementDependencies = {
@@ -263,16 +290,21 @@ const defaultBookingManagementDependencies: BookingManagementDependencies = {
 };
 
 export function createBookingManagementApi(
-  dependencies: BookingManagementDependencies = defaultBookingManagementDependencies,
+  dependencies: Partial<BookingManagementDependencies> = {},
 ) {
+  const resolvedDependencies: BookingManagementDependencies = {
+    ...defaultBookingManagementDependencies,
+    ...dependencies,
+  };
+
   return {
     async getPublicBookingManagementPageState(
       rawToken: string,
     ): Promise<PublicBookingManagementPageState> {
       const tokenHash = hashBookingActionToken(rawToken);
       const [token, bookingPolicy] = await Promise.all([
-        dependencies.findManageToken(tokenHash),
-        dependencies.getBookingPolicySettings(),
+        resolvedDependencies.findManageToken(tokenHash),
+        resolvedDependencies.getBookingPolicySettings(),
       ]);
       const resolved = resolvePublicBookingManagementState(token, bookingPolicy.cancellationHours);
 
@@ -280,7 +312,7 @@ export function createBookingManagementApi(
         return resolved;
       }
 
-      const catalog = await dependencies.getPublicBookingCatalog({
+      const catalog = await resolvedDependencies.getPublicBookingCatalog({
         includeServices: false,
         excludeBookingId: resolved.token.booking.id,
       });
@@ -313,8 +345,8 @@ export function createBookingManagementApi(
     > {
       const tokenHash = hashBookingActionToken(rawToken);
       const [token, bookingPolicy] = await Promise.all([
-        dependencies.findManageToken(tokenHash),
-        dependencies.getBookingPolicySettings(),
+        resolvedDependencies.findManageToken(tokenHash),
+        resolvedDependencies.getBookingPolicySettings(),
       ]);
       const resolved = resolvePublicBookingManagementState(token, bookingPolicy.cancellationHours);
 
@@ -322,15 +354,10 @@ export function createBookingManagementApi(
         return resolved;
       }
 
-      const cancellationUrl = await dependencies.issueCancellationUrl(
-        resolved.token.booking.id,
-        resolved.token.booking.scheduledStartsAt,
+      return resolvedDependencies.issueCancellationUrl(
+        tokenHash,
+        bookingPolicy.cancellationHours,
       );
-
-      return {
-        status: "issued",
-        cancellationUrl,
-      };
     },
 
     async reschedulePublicBookingByToken(input: {
@@ -341,8 +368,8 @@ export function createBookingManagementApi(
     }): Promise<PublicBookingManageRescheduleResult> {
       const tokenHash = hashBookingActionToken(input.token);
       const [token, bookingPolicy] = await Promise.all([
-        dependencies.findManageToken(tokenHash),
-        dependencies.getBookingPolicySettings(),
+        resolvedDependencies.findManageToken(tokenHash),
+        resolvedDependencies.getBookingPolicySettings(),
       ]);
       const resolved = resolvePublicBookingManagementState(token, bookingPolicy.cancellationHours);
 
@@ -350,8 +377,9 @@ export function createBookingManagementApi(
         return resolved;
       }
 
-      const result = await dependencies.rescheduleBooking({
+      const result = await resolvedDependencies.rescheduleBooking({
         bookingId: resolved.token.booking.id,
+        clientActionTokenHash: tokenHash,
         slotId: input.slotId,
         newStartAt: input.newStartAt,
         changedByUserId: null,

@@ -150,14 +150,18 @@ describe("public token access", () => {
 
   test("issues cancellation URL only from explicit cancellation action", async () => {
     const { createBookingManagementApi } = await import("./booking-management");
-    let issuedForBookingId: string | null = null;
+    const { hashBookingActionToken } = await import("./booking-action-tokens");
+    let issuedForTokenHash: string | null = null;
     const api = createBookingManagementApi({
       findManageToken: async () => buildToken({ bookingId: "booking-1" }),
       getBookingPolicySettings: async () => ({ cancellationHours: 48, minAdvanceHours: 2, maxAdvanceDays: 90 }),
       getPublicBookingCatalog: async () => emptyCatalog,
-      issueCancellationUrl: async (bookingId) => {
-        issuedForBookingId = bookingId;
-        return "https://example.com/cancel/booking-1";
+      issueCancellationUrl: async (tokenHash) => {
+        issuedForTokenHash = tokenHash;
+        return {
+          status: "issued",
+          cancellationUrl: "https://example.com/cancel/booking-1",
+        };
       },
       rescheduleBooking: async () => {
         throw new Error("rescheduleBooking should not be called");
@@ -167,7 +171,7 @@ describe("public token access", () => {
     const result = await api.issuePublicCancellationUrlByManageToken("valid-token");
 
     assert.equal(result.status, "issued");
-    assert.equal(issuedForBookingId, "booking-1");
+    assert.equal(issuedForTokenHash, hashBookingActionToken("valid-token"));
     if (result.status === "issued") {
       assert.equal(result.cancellationUrl, "https://example.com/cancel/booking-1");
     }
@@ -304,7 +308,10 @@ describe("reschedule booking", () => {
       findManageToken: async () => buildToken({ bookingId: "booking-1" }),
       getBookingPolicySettings: async () => ({ cancellationHours: 48, minAdvanceHours: 2, maxAdvanceDays: 90 }),
       getPublicBookingCatalog: async () => emptyCatalog,
-      issueCancellationUrl: async () => "https://example.com/cancel/booking-1",
+      issueCancellationUrl: async () => ({
+        status: "issued",
+        cancellationUrl: "https://example.com/cancel/booking-1",
+      }),
       rescheduleBooking: async (input) => {
         rescheduleCalls.push(input as Record<string, unknown>);
         return {
@@ -333,6 +340,7 @@ describe("reschedule booking", () => {
     assert.equal(rescheduleCalls.length, 1);
     assert.deepEqual(rescheduleCalls[0], {
       bookingId: "booking-1",
+      clientActionTokenHash: (await import("./booking-action-tokens")).hashBookingActionToken("valid-token"),
       slotId: "slot-2",
       newStartAt: "2026-04-28T09:00:00.000Z",
       changedByUserId: null,
@@ -350,7 +358,10 @@ describe("reschedule booking", () => {
       findManageToken: async () => null,
       getBookingPolicySettings: async () => ({ cancellationHours: 48, minAdvanceHours: 2, maxAdvanceDays: 90 }),
       getPublicBookingCatalog: async () => emptyCatalog,
-      issueCancellationUrl: async () => "https://example.com/cancel/booking-1",
+      issueCancellationUrl: async () => ({
+        status: "issued",
+        cancellationUrl: "https://example.com/cancel/booking-1",
+      }),
       rescheduleBooking: async () => {
         rescheduleCalled = true;
         throw new Error("rescheduleBooking should not be called");
@@ -375,7 +386,10 @@ describe("reschedule booking", () => {
       findManageToken: async () => buildToken({ bookingStatus: "NO_SHOW" }),
       getBookingPolicySettings: async () => ({ cancellationHours: 48, minAdvanceHours: 2, maxAdvanceDays: 90 }),
       getPublicBookingCatalog: async () => emptyCatalog,
-      issueCancellationUrl: async () => "https://example.com/cancel/booking-1",
+      issueCancellationUrl: async () => ({
+        status: "issued",
+        cancellationUrl: "https://example.com/cancel/booking-1",
+      }),
       rescheduleBooking: async () => {
         rescheduleCalled = true;
         throw new Error("rescheduleBooking should not be called");
