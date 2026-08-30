@@ -43,9 +43,19 @@ async function systemSkipPendingClientEmailLog(
 }
 
 export function hasClientEmailChanged(currentEmail: string | null, nextEmail: string | null) {
-  const normalizedCurrentEmail = currentEmail ? normalizeClientEmail(currentEmail) : null;
+  const normalizedCurrentEmail = currentEmail ? normalizeClientEmail(currentEmail) : "";
+  const normalizedNextEmail = nextEmail ? normalizeClientEmail(nextEmail) : "";
 
-  return normalizedCurrentEmail !== nextEmail;
+  return normalizedCurrentEmail !== normalizedNextEmail;
+}
+
+export function getBookingIdsWithChangedEmailSnapshot(
+  bookings: ReadonlyArray<{ id: string; clientEmailSnapshot: string }>,
+  nextEmail: string | null,
+) {
+  return bookings
+    .filter((booking) => hasClientEmailChanged(booking.clientEmailSnapshot, nextEmail))
+    .map((booking) => booking.id);
 }
 
 export async function rotateClientBookingTokensForEmailChange(

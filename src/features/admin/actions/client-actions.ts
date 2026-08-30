@@ -21,7 +21,7 @@ import {
   normalizeClientPhone,
 } from "@/features/booking/lib/booking-public";
 import {
-  hasClientEmailChanged,
+  getBookingIdsWithChangedEmailSnapshot,
   rotateClientBookingTokensForEmailChange,
 } from "@/features/admin/lib/client-contact-token-rotation";
 import { requireAdminArea } from "@/lib/auth/session";
@@ -206,14 +206,13 @@ export async function updateClientContactAction(
       `);
       const currentClient = await tx.client.findUnique({
         where: { id: client.id },
-        select: { id: true, email: true },
+        select: { id: true },
       });
 
       if (!currentClient) {
         throw new Error("Client disappeared during contact update.");
       }
 
-      const emailChanged = hasClientEmailChanged(currentClient.email, normalizedEmail);
       const now = new Date();
       const activeBookings = await tx.booking.findMany({
         where: {
@@ -232,7 +231,10 @@ export async function updateClientContactAction(
           clientPhoneSnapshot: true,
         },
       });
-      const activeBookingIds = activeBookings.map((booking) => booking.id);
+      const bookingIdsWithChangedEmailSnapshot = getBookingIdsWithChangedEmailSnapshot(
+        activeBookings,
+        normalizedEmail,
+      );
       const touchedBookings = activeBookings.filter((booking) => {
         const bookingEmail = booking.clientEmailSnapshot.trim();
         const bookingPhone = booking.clientPhoneSnapshot ?? null;
@@ -279,10 +281,10 @@ export async function updateClientContactAction(
         });
       }
 
-      if (emailChanged && activeBookingIds.length > 0) {
+      if (bookingIdsWithChangedEmailSnapshot.length > 0) {
         await rotateClientBookingTokensForEmailChange(tx, {
           clientId: client.id,
-          bookingIds: activeBookingIds,
+          bookingIds: bookingIdsWithChangedEmailSnapshot,
           newEmail: normalizedEmail,
           now,
         });
