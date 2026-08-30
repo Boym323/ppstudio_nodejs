@@ -1653,10 +1653,10 @@ dbTest("rollback změny služby vrátí i reset neodeslaného reminderu", async 
       select: { updatedAt: true },
     });
 
-    const originalTransactionDescriptor = Object.getOwnPropertyDescriptor(prisma, "$transaction");
     const originalTransaction = prisma.$transaction;
     Object.defineProperty(prisma, "$transaction", {
       configurable: true,
+      writable: true,
       value: (...args: unknown[]) => {
         const operation = args[0] as (transaction: Prisma.TransactionClient) => Promise<unknown>;
         return Reflect.apply(originalTransaction, prisma, [
@@ -1680,12 +1680,14 @@ dbTest("rollback změny služby vrátí i reset neodeslaného reminderu", async 
         /forced service change rollback/,
       );
     } finally {
-      if (originalTransactionDescriptor) {
-        Object.defineProperty(prisma, "$transaction", originalTransactionDescriptor);
-      } else {
-        delete (prisma as unknown as Record<string, unknown>).$transaction;
-      }
+      Object.defineProperty(prisma, "$transaction", {
+        configurable: true,
+        writable: true,
+        value: originalTransaction,
+      });
     }
+
+    assert.equal(typeof prisma.$transaction, "function");
 
     const booking = await prisma.booking.findUniqueOrThrow({
       where: { id: fixture.booking.id },
