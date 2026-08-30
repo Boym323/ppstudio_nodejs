@@ -860,6 +860,124 @@ dbTest("tokenizovaný CLIENT resend použije booking snapshot místo master e-ma
   }
 });
 
+dbTest("tokenizovaný CLIENT resend posune pending reminder na novou generaci a nové odkazy", async () => {
+  const seed = randomUUID().slice(0, 8);
+  const { prisma } = await loadModules();
+  const { createResendEmailLog } = await import("@/features/admin/actions/email-log-resend");
+  const window = await findIsolatedWorkerWindow(prisma, seed, 60);
+  const fixture = await createConfirmedManualBooking(seed, window.startsAt);
+  const oldManageUrl = `https://example.com/rezervace/sprava/old-manage-${seed}`;
+  const oldCancellationUrl = `https://example.com/rezervace/storno/old-cancel-${seed}`;
+
+  try {
+    const booking = await prisma.booking.findUniqueOrThrow({
+      where: { id: fixture.bookingId },
+      select: { clientId: true },
+    });
+    const oldTokens = await Promise.all([
+      prisma.bookingActionToken.create({
+        data: { bookingId: fixture.bookingId, type: "RESCHEDULE", tokenHash: `old-manage-${seed}`, expiresAt: addMinutes(new Date(), 60) },
+      }),
+      prisma.bookingActionToken.create({
+        data: { bookingId: fixture.bookingId, type: "CANCEL", tokenHash: `old-cancel-${seed}`, expiresAt: addMinutes(new Date(), 60) },
+      }),
+    ]);
+    const source = await createPendingBookingEmailLog(fixture, {
+      type: EmailLogType.BOOKING_CONFIRMED,
+      templateKey: "booking-approved-v1",
+      clientId: booking.clientId,
+    });
+    const reminder = await createPendingBookingEmailLog(fixture, {
+      type: EmailLogType.BOOKING_REMINDER,
+      templateKey: "booking-reminder-24h-v1",
+      clientId: booking.clientId,
+      payload: buildBookingEmailPayload(fixture, {
+        manageReservationUrl: oldManageUrl,
+        cancellationUrl: oldCancellationUrl,
+      }),
+    });
+    const sourceForResend = await prisma.emailLog.findUniqueOrThrow({
+      where: { id: source.id },
+      include: {
+        client: { select: { id: true, email: true } },
+        booking: { select: { id: true, clientEmailSnapshot: true } },
+      },
+    });
+
+    const resend = await createResendEmailLog({ emailLog: sourceForResend });
+    const [currentBooking, currentReminder, tokens] = await Promise.all([
+      prisma.booking.findUniqueOrThrow({ where: { id: fixture.bookingId }, select: { communicationGeneration: true } }),
+      prisma.emailLog.findUniqueOrThrow({ where: { id: reminder.id } }),
+      prisma.bookingActionToken.findMany({ where: { id: { in: oldTokens.map((token) => token.id) } }, select: { revokedAt: true } }),
+    ]);
+    const reminderPayload = currentReminder.payload as Record<string, unknown>;
+
+    assert.ok(resend);
+    assert.equal(currentBooking.communicationGeneration, 2);
+    assert.equal(currentReminder.status, EmailLogStatus.PENDING);
+    assert.equal(currentReminder.communicationGeneration, 2);
+    assert.notEqual(reminderPayload.manageReservationUrl, oldManageUrl);
+    assert.notEqual(reminderPayload.cancellationUrl, oldCancellationUrl);
+    assert.ok(tokens.every((token) => token.revokedAt));
+  } finally {
+    await cleanupBookingFixture(fixture);
+  }
+});
+
+dbTest("tokenizovaný CLIENT resend při aktivním delivery lease nerotuje credentials", async () => {
+  const seed = randomUUID().slice(0, 8);
+  const { prisma } = await loadModules();
+  const { createResendEmailLog } = await import("@/features/admin/actions/email-log-resend");
+  const { ActiveClientDeliveryLeaseError } = await import("@/lib/email/booking-delivery-fence");
+  const window = await findIsolatedWorkerWindow(prisma, seed, 60);
+  const fixture = await createConfirmedManualBooking(seed, window.startsAt);
+
+  try {
+    const booking = await prisma.booking.findUniqueOrThrow({
+      where: { id: fixture.bookingId },
+      select: { clientId: true, communicationGeneration: true },
+    });
+    const oldToken = await prisma.bookingActionToken.create({
+      data: { bookingId: fixture.bookingId, type: "RESCHEDULE", tokenHash: `leased-${seed}`, expiresAt: addMinutes(new Date(), 60) },
+    });
+    const source = await createPendingBookingEmailLog(fixture, {
+      type: EmailLogType.BOOKING_CONFIRMED,
+      templateKey: "booking-approved-v1",
+      clientId: booking.clientId,
+    });
+    const sourceForResend = await prisma.emailLog.findUniqueOrThrow({
+      where: { id: source.id },
+      include: {
+        client: { select: { id: true, email: true } },
+        booking: { select: { id: true, clientEmailSnapshot: true } },
+      },
+    });
+    await prisma.booking.update({
+      where: { id: fixture.bookingId },
+      data: {
+        clientDeliveryLeaseToken: `worker-${seed}`,
+        clientDeliveryLeaseExpiresAt: addMinutes(new Date(), 5),
+      },
+    });
+
+    await assert.rejects(
+      createResendEmailLog({ emailLog: sourceForResend }),
+      ActiveClientDeliveryLeaseError,
+    );
+    const [storedBooking, storedToken, resendCount] = await Promise.all([
+      prisma.booking.findUniqueOrThrow({ where: { id: fixture.bookingId }, select: { communicationGeneration: true } }),
+      prisma.bookingActionToken.findUniqueOrThrow({ where: { id: oldToken.id }, select: { revokedAt: true } }),
+      prisma.emailLog.count({ where: { resendOfId: source.id } }),
+    ]);
+
+    assert.equal(storedBooking.communicationGeneration, booking.communicationGeneration);
+    assert.equal(storedToken.revokedAt, null);
+    assert.equal(resendCount, 0);
+  } finally {
+    await cleanupBookingFixture(fixture);
+  }
+});
+
 dbTest("resend zastaralého potvrzení nerevokuje aktuální tokeny ani nezaloží nový log", async () => {
   const seed = randomUUID().slice(0, 8);
   const { prisma } = await loadModules();

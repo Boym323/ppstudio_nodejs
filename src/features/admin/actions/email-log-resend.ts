@@ -15,8 +15,16 @@ import {
   buildBookingEmailActionUrl,
   issueBookingClientActionTokens,
 } from "@/features/booking/lib/booking-action-tokens";
-import { evaluateBookingEmailPreflight } from "@/lib/email/booking-preflight";
-import { prisma } from "@/lib/prisma";
+import {
+  buildCanonicalClientBookingEmailPayload,
+  evaluateBookingEmailPreflight,
+} from "@/lib/email/booking-preflight";
+import {
+  advanceBookingCommunicationGeneration,
+  assertNoActiveClientDeliveryLease,
+} from "@/lib/email/booking-delivery-fence";
+import { scrubSensitiveEmailPayload } from "@/lib/email/payload-security";
+import { runSerializableTransaction } from "@/lib/serializable-transaction";
 
 const CLIENT_TOKEN_EMAIL_TEMPLATES = new Set([
   "booking-confirmation-v1",
@@ -48,6 +56,11 @@ type CurrentResendBooking = Prisma.BookingGetPayload<{
     clientEmailSnapshot: true;
     status: true;
     serviceId: true;
+    serviceNameSnapshot: true;
+    clientNameSnapshot: true;
+    intendedVoucherCodeSnapshot: true;
+    clientDeliveryLeaseToken: true;
+    clientDeliveryLeaseExpiresAt: true;
     communicationGeneration: true;
     scheduledStartsAt: true;
     scheduledEndsAt: true;
@@ -99,6 +112,11 @@ async function loadCurrentResendBooking(
       clientEmailSnapshot: true,
       status: true,
       serviceId: true,
+      serviceNameSnapshot: true,
+      clientNameSnapshot: true,
+      intendedVoucherCodeSnapshot: true,
+      clientDeliveryLeaseToken: true,
+      clientDeliveryLeaseExpiresAt: true,
       communicationGeneration: true,
       scheduledStartsAt: true,
       scheduledEndsAt: true,
@@ -134,21 +152,6 @@ async function issueResendBookingActionTokens(
 
     clientScheduledStartsAt = booking.scheduledStartsAt;
     clientServiceId = booking.serviceId;
-  }
-
-  // PENDING zdroj může stále potřebovat své payload pro automatický retry.
-  // Jeho starý token proto ponecháme platný; u SENT/FAILED už ho můžeme
-  // bezpečně zneplatnit před vydáním nových odkazů.
-  if (emailLog.status !== EmailLogStatus.PENDING) {
-    await tx.bookingActionToken.updateMany({
-      where: {
-        bookingId: emailLog.bookingId,
-        type: { in: tokenTypes },
-        usedAt: null,
-        revokedAt: null,
-      },
-      data: { revokedAt: now },
-    });
   }
 
   if (kind === "client") {
@@ -221,6 +224,81 @@ function buildResendPayload(payload: Prisma.JsonValue | null, tokenPayload: Rese
   } satisfies Prisma.InputJsonObject;
 }
 
+async function reconcilePendingClientTokenEmailLogs(
+  tx: Prisma.TransactionClient,
+  booking: CurrentResendBooking,
+  previousGeneration: number,
+  tokenPayload: Extract<ResendTokenPayload, { manageReservationUrl: string }>,
+  actionTokenId: string,
+  now: Date,
+) {
+  const pendingLogs = await tx.emailLog.findMany({
+    where: {
+      bookingId: booking.id,
+      audience: EmailAudience.CLIENT,
+      status: EmailLogStatus.PENDING,
+      templateKey: { in: Array.from(CLIENT_TOKEN_EMAIL_TEMPLATES) },
+    },
+    select: {
+      id: true,
+      communicationGeneration: true,
+      type: true,
+      templateKey: true,
+      payload: true,
+    },
+  });
+
+  const canonicalPayload = buildCanonicalClientBookingEmailPayload(booking, tokenPayload);
+  for (const emailLog of pendingLogs) {
+    const isCurrent = emailLog.communicationGeneration === previousGeneration
+      && evaluateBookingEmailPreflight({
+        type: emailLog.type,
+        audience: EmailAudience.CLIENT,
+        templateKey: emailLog.templateKey,
+        payload: emailLog.payload,
+        booking,
+      }).shouldSend;
+
+    if (isCurrent) {
+      const preservesManualReminderResend = emailLog.type === "BOOKING_REMINDER"
+        && emailLog.payload
+        && typeof emailLog.payload === "object"
+        && !Array.isArray(emailLog.payload)
+        && emailLog.payload.manualReminderResend === true;
+      await tx.emailLog.update({
+        where: { id: emailLog.id },
+        data: {
+          recipientEmail: booking.clientEmailSnapshot.trim(),
+          communicationGeneration: booking.communicationGeneration,
+          actionTokenId,
+          payload: preservesManualReminderResend
+            ? { ...canonicalPayload, manualReminderResend: true }
+            : canonicalPayload,
+          nextAttemptAt: now,
+          errorMessage: null,
+        },
+      });
+      continue;
+    }
+
+    await tx.emailLog.update({
+      where: { id: emailLog.id },
+      data: {
+        status: EmailLogStatus.SENT,
+        provider: "system-skip",
+        sentAt: now,
+        processingStartedAt: null,
+        processingToken: null,
+        nextAttemptAt: now,
+        errorMessage: "Neaktuální tokenový klientský e-mail byl nahrazen novou komunikační generací.",
+        payload: scrubSensitiveEmailPayload(emailLog.payload),
+      },
+    });
+  }
+
+  return canonicalPayload;
+}
+
 /** Vlastní zápis nového logu; server action pouze ověřuje oprávnění a navigaci. */
 export async function createResendEmailLog(input: {
   emailLog: ResendSourceEmailLog;
@@ -243,7 +321,7 @@ export async function createResendEmailLog(input: {
 
   if (!isClientAudience && !recipientEmailForNonClient) return null;
 
-  return prisma.$transaction(async (tx) => {
+  return runSerializableTransaction(async (tx) => {
     let recipientEmail = recipientEmailForNonClient;
     let currentClient: { id: string; email: string | null } | null = null;
     let currentBooking: CurrentResendBooking | null = null;
@@ -318,17 +396,99 @@ export async function createResendEmailLog(input: {
       // Zamknutí booking brání tomu, aby mezi preflightem a revokací tokenů
       // proběhl souběžný přesun nebo storno.
       currentBooking ??= await loadCurrentResendBooking(tx, emailLog.bookingId, true);
+      if (!currentBooking) return null;
+      const lockedBooking = currentBooking;
       const preflight = evaluateBookingEmailPreflight({
         type: emailLog.type,
         audience: emailLog.audience,
         templateKey: emailLog.templateKey,
         payload: emailLog.payload,
-        booking: currentBooking,
+        booking: lockedBooking,
       });
 
       if (!preflight.shouldSend) {
         return null;
       }
+
+      assertNoActiveClientDeliveryLease(
+        lockedBooking,
+        new Date(),
+        "Nelze znovu vydat klientské odkazy během autorizovaného odesílání e-mailu.",
+      );
+
+      const previousGeneration = lockedBooking.communicationGeneration;
+      await tx.booking.update({
+        where: { id: lockedBooking.id },
+        data: { communicationGeneration: { increment: 1 } },
+      });
+      const nextBooking: CurrentResendBooking = {
+        ...lockedBooking,
+        communicationGeneration: advanceBookingCommunicationGeneration(lockedBooking),
+      };
+
+      await tx.bookingActionToken.updateMany({
+        where: {
+          bookingId: nextBooking.id,
+          type: { in: [BookingActionTokenType.RESCHEDULE, BookingActionTokenType.CANCEL] },
+          usedAt: null,
+          revokedAt: null,
+        },
+        data: { revokedAt: new Date() },
+      });
+
+      const tokenPayload = await issueResendBookingActionTokens(
+        tx,
+        emailLog,
+        tokenPayloadKind,
+        new Date(),
+      );
+      if (!tokenPayload) return null;
+      if (!("manageReservationUrl" in tokenPayload.payload)) return null;
+      const clientRecipientEmail = recipientEmail;
+      if (!clientRecipientEmail) return null;
+
+      await input.hooks?.afterTokenMutation?.();
+      await reconcilePendingClientTokenEmailLogs(
+        tx,
+        nextBooking,
+        previousGeneration,
+        tokenPayload.payload,
+        tokenPayload.actionTokenId,
+        new Date(),
+      );
+
+      return tx.emailLog.create({
+        data: buildResendEmailLogCreateInput({
+          resendOfId: emailLog.id,
+          resendRootId: resolveResendIncidentRootId({
+            sourceEmailLogId: emailLog.id,
+            sourceResendRootId: emailLog.resendRootId,
+            incidentResolvedAt: incidentRoot?.incidentResolvedAt ?? emailLog.incidentResolvedAt,
+          }),
+          bookingId: emailLog.bookingId,
+          clientId: emailLog.clientId,
+          communicationGeneration: nextBooking.communicationGeneration,
+          actionTokenId: tokenPayload.actionTokenId,
+          type: emailLog.type,
+          audience: emailLog.audience,
+          recipientEmail: clientRecipientEmail,
+          subject: emailLog.subject,
+          templateKey: emailLog.templateKey,
+          payload: buildResendPayload(emailLog.payload, tokenPayload.payload),
+        }),
+      });
+    }
+
+    if (tokenPayloadKind === "admin" && emailLog.bookingId && emailLog.status !== EmailLogStatus.PENDING) {
+      await tx.bookingActionToken.updateMany({
+        where: {
+          bookingId: emailLog.bookingId,
+          type: { in: [BookingActionTokenType.APPROVE, BookingActionTokenType.REJECT] },
+          usedAt: null,
+          revokedAt: null,
+        },
+        data: { revokedAt: new Date() },
+      });
     }
 
     const tokenPayload = tokenPayloadKind

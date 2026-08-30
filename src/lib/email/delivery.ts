@@ -4,7 +4,6 @@ import { randomUUID } from "node:crypto";
 
 import {
   evaluateBookingReminderDelivery,
-  markBookingReminder24hSent,
 } from "@/features/booking/lib/booking-reminders";
 import { evaluateBookingEmailPreflight } from "@/lib/email/booking-preflight";
 import { prisma } from "@/lib/prisma";
@@ -30,7 +29,6 @@ export type EmailLogDeliveryOutcome = {
 type EmailDeliveryDependencies = Partial<{
   sendEmail: typeof sendEmail;
   reconcileUnmatchedResendWebhookEvents: typeof reconcileUnmatchedResendWebhookEvents;
-  markBookingReminder24hSent: typeof markBookingReminder24hSent;
   beforeBookingPreflight: () => void | Promise<void>;
   beforeDeliveryAuthorization: () => void | Promise<void>;
   beforeProviderSend: () => void | Promise<void>;
@@ -541,6 +539,26 @@ export async function deliverEmailLog(
         ) {
           return { count: 0, completedAt };
         }
+
+        if (emailLog.type === EmailLogType.BOOKING_REMINDER) {
+          // Stav reminderu a SENT log musí vzniknout v témže commitu. Pokud
+          // jde o explicitní resend již odeslaného reminderu, původní sentAt
+          // zachováme, ale queuedAt dál reprezentuje úspěšně finalizovaný job.
+          await tx.booking.updateMany({
+            where: {
+              id: emailLog.bookingId,
+              communicationGeneration: emailLog.communicationGeneration,
+              clientEmailSnapshot: emailLog.recipientEmail.trim(),
+              clientDeliveryLeaseToken: processingToken,
+              clientDeliveryLeaseExpiresAt: { gt: completedAt },
+              reminder24hSentAt: null,
+            },
+            data: {
+              reminder24hQueuedAt: completedAt,
+              reminder24hSentAt: completedAt,
+            },
+          });
+        }
       }
 
       const completed = await tx.emailLog.updateMany({
@@ -597,18 +615,6 @@ export async function deliverEmailLog(
           errorName: error instanceof Error ? error.name : "UnknownError",
         });
       }
-    }
-
-    if (emailLog.type === EmailLogType.BOOKING_REMINDER && emailLog.bookingId) {
-      await (dependencies.markBookingReminder24hSent ?? markBookingReminder24hSent)(
-        emailLog.bookingId,
-        new Date(),
-        {
-          communicationGeneration: emailLog.communicationGeneration,
-          recipientEmail: emailLog.recipientEmail.trim(),
-          deliveryLeaseToken: processingToken,
-        },
-      );
     }
 
     return {
