@@ -6,6 +6,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [3.24.0] - 2026-08-30
+
 ### Zabezpečení
 
 - Public self-service mutace nyní v jedné serializovatelné transakci zamknou a znovu ověří použitý `RESCHEDULE` manage token; revokovaný, použitý nebo prošlý odkaz proto nevydá storno token ani nezmění termín rezervace.
