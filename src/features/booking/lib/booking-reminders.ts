@@ -175,6 +175,7 @@ async function claimNextBookingFor24hReminder(
 function isCurrentReminderPayload(
   payload: Prisma.JsonValue | null,
   booking: BookingReminderCandidate,
+  recipientEmail?: string,
 ) {
   if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
     return false;
@@ -185,6 +186,7 @@ function isCurrentReminderPayload(
     && payload.serviceId === booking.serviceId
     && payload.scheduledStartsAt === booking.scheduledStartsAt.toISOString()
     && payload.scheduledEndsAt === booking.scheduledEndsAt.toISOString()
+    && (!recipientEmail || recipientEmail === booking.clientEmailSnapshot)
   );
 }
 
@@ -226,11 +228,12 @@ export async function enqueueBookingReminder24hForBooking(
       status: EmailLogStatus.PENDING,
     },
     select: {
+      recipientEmail: true,
       payload: true,
     },
   });
 
-  if (pendingReminders.some((reminder) => isCurrentReminderPayload(reminder.payload, booking))) {
+  if (pendingReminders.some((reminder) => isCurrentReminderPayload(reminder.payload, booking, reminder.recipientEmail))) {
     return {
       created: false,
       reason: "Current booking reminder is already pending.",

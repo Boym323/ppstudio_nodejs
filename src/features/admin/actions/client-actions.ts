@@ -26,6 +26,7 @@ import {
 } from "@/features/admin/lib/client-contact-token-rotation";
 import { requireAdminArea } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
+import { runSerializableTransaction } from "@/lib/serializable-transaction";
 
 function readFormString(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -193,7 +194,7 @@ export async function updateClientContactAction(
       },
     });
 
-    const touchedBookingIds = await prisma.$transaction(async (tx) => {
+    const touchedBookingIds = await runSerializableTransaction(async (tx) => {
       // Resend CLIENT recipient lockuje stejného Clienta před bookingy. Oba
       // flow proto používají pořadí Client -> Booking a nemohou rozhodnout o
       // kontaktu podle starého snapshotu před změnou e-mailu.

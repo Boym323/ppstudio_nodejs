@@ -11,6 +11,11 @@ import { env } from "@/config/env";
 import { issueBookingClientActionTokens } from "@/features/booking/lib/booking-action-tokens";
 import { normalizeClientEmail } from "@/features/booking/lib/booking-public";
 import {
+  enqueueBookingReminder24hForBooking,
+  evaluateBookingReminderDelivery,
+  getBookingReminder24hEnqueueWindowPosition,
+} from "@/features/booking/lib/booking-reminders";
+import {
   buildCanonicalClientBookingEmailPayload,
   evaluateBookingEmailPreflight,
 } from "@/lib/email/booking-preflight";
@@ -78,6 +83,9 @@ export async function rotateClientBookingTokensForEmailChange(
       scheduledStartsAt: true,
       scheduledEndsAt: true,
       intendedVoucherCodeSnapshot: true,
+      clientEmailSnapshot: true,
+      reminder24hQueuedAt: true,
+      reminder24hSentAt: true,
     },
   });
   const activeBookingIds = activeBookings.map((booking) => booking.id);
@@ -131,6 +139,7 @@ export async function rotateClientBookingTokensForEmailChange(
       bookingId: true,
       type: true,
       templateKey: true,
+      recipientEmail: true,
       payload: true,
     },
   });
@@ -175,9 +184,41 @@ export async function rotateClientBookingTokensForEmailChange(
         booking,
       }).shouldSend;
     });
+    const existingReminderLog = input.newEmail
+      ? pendingLogs.find((emailLog) => {
+          if (
+            emailLog.type !== EmailLogType.BOOKING_REMINDER
+            || emailLog.templateKey !== "booking-reminder-24h-v1"
+            || emailLog.recipientEmail !== input.newEmail
+          ) {
+            return false;
+          }
+
+          return evaluateBookingEmailPreflight({
+            type: emailLog.type,
+            audience: EmailAudience.CLIENT,
+            templateKey: emailLog.templateKey,
+            payload: emailLog.payload,
+            booking,
+          }).shouldSend && evaluateBookingReminderDelivery({
+            bookingStatus: booking.status,
+            reminder24hSentAt: booking.reminder24hSentAt,
+            scheduledStartsAt: booking.scheduledStartsAt,
+            now: input.now,
+          }).shouldSend;
+        })
+      : undefined;
     const obsoletePendingLogIds = pendingLogs
-      .filter((emailLog) => emailLog.id !== existingEmailLog?.id)
+      .filter((emailLog) => (
+        emailLog.id !== existingEmailLog?.id
+        && emailLog.id !== existingReminderLog?.id
+      ))
       .map((emailLog) => emailLog.id);
+    const staleReminderWasSkipped = pendingLogs.some((emailLog) => (
+      emailLog.type === EmailLogType.BOOKING_REMINDER
+      && emailLog.templateKey === "booking-reminder-24h-v1"
+      && obsoletePendingLogIds.includes(emailLog.id)
+    ));
 
     if (!input.newEmail) {
       for (const emailLog of pendingLogs) {
@@ -187,6 +228,17 @@ export async function rotateClientBookingTokensForEmailChange(
           "Klientka nemá aktuální e-mailovou adresu.",
           input.now,
         );
+      }
+
+      if (
+        staleReminderWasSkipped
+        && booking.status === BookingStatus.CONFIRMED
+        && booking.reminder24hSentAt === null
+      ) {
+        await tx.booking.update({
+          where: { id: booking.id },
+          data: { reminder24hQueuedAt: null },
+        });
       }
       continue;
     }
@@ -198,6 +250,34 @@ export async function rotateClientBookingTokensForEmailChange(
         "Neaktuální klientský booking e-mail byl nahrazen aktuální šablonou.",
         input.now,
       );
+    }
+
+    if (
+      staleReminderWasSkipped
+      && !existingReminderLog
+      && booking.status === BookingStatus.CONFIRMED
+      && booking.reminder24hSentAt === null
+    ) {
+      await tx.booking.update({
+        where: { id: booking.id },
+        data: { reminder24hQueuedAt: null },
+      });
+
+      if (
+        getBookingReminder24hEnqueueWindowPosition(booking.scheduledStartsAt, input.now) === "after"
+      ) {
+        await enqueueBookingReminder24hForBooking(tx, {
+          id: booking.id,
+          clientId: input.clientId,
+          clientEmailSnapshot: booking.clientEmailSnapshot,
+          clientNameSnapshot: booking.clientNameSnapshot,
+          status: booking.status,
+          serviceId: booking.serviceId,
+          serviceNameSnapshot: booking.serviceNameSnapshot,
+          scheduledStartsAt: booking.scheduledStartsAt,
+          scheduledEndsAt: booking.scheduledEndsAt,
+        }, input.now);
+      }
     }
 
     if (existingEmailLog) {
