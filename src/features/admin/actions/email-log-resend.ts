@@ -41,6 +41,23 @@ type ResendSourceEmailLog = Prisma.EmailLogGetPayload<{
   };
 }>;
 
+type CurrentResendBooking = Prisma.BookingGetPayload<{
+  select: {
+    id: true;
+    clientId: true;
+    clientEmailSnapshot: true;
+    status: true;
+    serviceId: true;
+    scheduledStartsAt: true;
+    scheduledEndsAt: true;
+  };
+}>;
+
+type ResendTestHooks = {
+  beforeClientLock?: () => void | Promise<void>;
+  afterTokenMutation?: () => void | Promise<void>;
+};
+
 function getResendTokenPayloadKind(emailLog: ResendSourceEmailLog) {
   if (
     emailLog.audience === EmailAudience.CLIENT
@@ -57,6 +74,34 @@ function getResendTokenPayloadKind(emailLog: ResendSourceEmailLog) {
   }
 
   return null;
+}
+
+async function loadCurrentResendBooking(
+  tx: Prisma.TransactionClient,
+  bookingId: string,
+  lock: boolean,
+) {
+  if (lock) {
+    await tx.$queryRaw<Array<{ id: string }>>(Prisma.sql`
+      SELECT "id"
+      FROM "Booking"
+      WHERE "id" = ${bookingId}
+      FOR UPDATE
+    `);
+  }
+
+  return tx.booking.findUnique({
+    where: { id: bookingId },
+    select: {
+      id: true,
+      clientId: true,
+      clientEmailSnapshot: true,
+      status: true,
+      serviceId: true,
+      scheduledStartsAt: true,
+      scheduledEndsAt: true,
+    },
+  });
 }
 
 async function issueResendBookingActionTokens(
@@ -178,26 +223,81 @@ function buildResendPayload(payload: Prisma.JsonValue | null, tokenPayload: Rese
 export async function createResendEmailLog(input: {
   emailLog: ResendSourceEmailLog;
   adminNotificationEmail?: string | null;
+  hooks?: ResendTestHooks;
 }) {
   const { emailLog } = input;
-  const recipientEmail = resolveEmailLogRecipient({
-    audience: emailLog.audience,
-    clientIsAvailable: emailLog.client !== null,
-    clientEmail: emailLog.client?.email ?? null,
-    bookingClientEmailSnapshot: emailLog.booking?.clientEmailSnapshot ?? null,
-    originalRecipientEmail: emailLog.recipientEmail,
-    adminNotificationEmail: input.adminNotificationEmail,
-  });
-  if (!recipientEmail) return null;
+  const tokenPayloadKind = getResendTokenPayloadKind(emailLog);
+  const isClientAudience = emailLog.audience === EmailAudience.CLIENT;
+  const recipientEmailForNonClient = isClientAudience
+    ? null
+    : resolveEmailLogRecipient({
+        audience: emailLog.audience,
+        clientIsAvailable: emailLog.client !== null,
+        clientEmail: emailLog.client?.email ?? null,
+        bookingClientEmailSnapshot: emailLog.booking?.clientEmailSnapshot ?? null,
+        originalRecipientEmail: emailLog.recipientEmail,
+        adminNotificationEmail: input.adminNotificationEmail,
+      });
+
+  if (!isClientAudience && !recipientEmailForNonClient) return null;
 
   return prisma.$transaction(async (tx) => {
+    let recipientEmail = recipientEmailForNonClient;
+    let currentClient: { id: string; email: string | null } | null = null;
+    let currentBooking: CurrentResendBooking | null = null;
+
+    if (isClientAudience) {
+      // clientId je u běžných logů známý už z initial lookup. Legacy log bez
+      // něj musí nejprve zjistit aktuální vazbu booking -> Client, ale vlastní
+      // lock je stále získán před čtením recipientu a před token mutation.
+      let clientId = emailLog.clientId;
+      if (!clientId && emailLog.bookingId) {
+        const bookingIdentity = await tx.booking.findUnique({
+          where: { id: emailLog.bookingId },
+          select: { clientId: true },
+        });
+        clientId = bookingIdentity?.clientId ?? null;
+      }
+
+      await input.hooks?.beforeClientLock?.();
+
+      if (clientId) {
+        await tx.$queryRaw<Array<{ id: string }>>(Prisma.sql`
+          SELECT "id"
+          FROM "Client"
+          WHERE "id" = ${clientId}
+          FOR UPDATE
+        `);
+        currentClient = await tx.client.findUnique({
+          where: { id: clientId },
+          select: { id: true, email: true },
+        });
+      }
+
+      if (!currentClient && emailLog.bookingId) {
+        currentBooking = await loadCurrentResendBooking(
+          tx,
+          emailLog.bookingId,
+          tokenPayloadKind === "client",
+        );
+      }
+
+      recipientEmail = resolveEmailLogRecipient({
+        audience: EmailAudience.CLIENT,
+        clientIsAvailable: currentClient !== null,
+        clientEmail: currentClient?.email ?? null,
+        bookingClientEmailSnapshot: currentBooking?.clientEmailSnapshot ?? null,
+        originalRecipientEmail: emailLog.recipientEmail,
+      });
+      if (!recipientEmail) return null;
+    }
+
     const incidentRoot = emailLog.resendRootId
       ? await tx.emailLog.findUnique({
           where: { id: emailLog.resendRootId },
           select: { incidentResolvedAt: true },
         })
       : emailLog;
-    const tokenPayloadKind = getResendTokenPayloadKind(emailLog);
     if (tokenPayloadKind && !emailLog.bookingId) {
       return null;
     }
@@ -205,27 +305,13 @@ export async function createResendEmailLog(input: {
     if (tokenPayloadKind === "client" && emailLog.bookingId) {
       // Zamknutí booking brání tomu, aby mezi preflightem a revokací tokenů
       // proběhl souběžný přesun nebo storno.
-      await tx.$queryRaw(Prisma.sql`
-        SELECT "id"
-        FROM "Booking"
-        WHERE "id" = ${emailLog.bookingId}
-        FOR UPDATE
-      `);
-      const booking = await tx.booking.findUnique({
-        where: { id: emailLog.bookingId },
-        select: {
-          status: true,
-          serviceId: true,
-          scheduledStartsAt: true,
-          scheduledEndsAt: true,
-        },
-      });
+      currentBooking ??= await loadCurrentResendBooking(tx, emailLog.bookingId, true);
       const preflight = evaluateBookingEmailPreflight({
         type: emailLog.type,
         audience: emailLog.audience,
         templateKey: emailLog.templateKey,
         payload: emailLog.payload,
-        booking,
+        booking: currentBooking,
       });
 
       if (!preflight.shouldSend) {
@@ -236,6 +322,10 @@ export async function createResendEmailLog(input: {
     const tokenPayload = tokenPayloadKind
       ? await issueResendBookingActionTokens(tx, emailLog, tokenPayloadKind, new Date())
       : null;
+
+    if (tokenPayload) {
+      await input.hooks?.afterTokenMutation?.();
+    }
 
     return tx.emailLog.create({
       data: buildResendEmailLogCreateInput({

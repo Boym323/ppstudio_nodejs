@@ -37,7 +37,6 @@ dbTest("resend action založí CLIENT resend na aktuální změněný e-mail kli
   });
 
   try {
-    await prisma.client.update({ where: { id: client.id }, data: { email: newEmail } });
     const sourceForResend = await prisma.emailLog.findUniqueOrThrow({
       where: { id: source.id },
       include: {
@@ -45,6 +44,7 @@ dbTest("resend action založí CLIENT resend na aktuální změněný e-mail kli
         booking: { select: { id: true, clientEmailSnapshot: true } },
       },
     });
+    await prisma.client.update({ where: { id: client.id }, data: { email: newEmail } });
 
     const resend = await createResendEmailLog({ emailLog: sourceForResend });
 
@@ -80,7 +80,6 @@ dbTest("resend action odmítne CLIENT resend bez aktuálního e-mailu a snapshot
   });
 
   try {
-    await prisma.client.update({ where: { id: client.id }, data: { email: null } });
     const sourceForResend = await prisma.emailLog.findUniqueOrThrow({
       where: { id: source.id },
       include: {
@@ -88,6 +87,7 @@ dbTest("resend action odmítne CLIENT resend bez aktuálního e-mailu a snapshot
         booking: { select: { id: true, clientEmailSnapshot: true } },
       },
     });
+    await prisma.client.update({ where: { id: client.id }, data: { email: null } });
 
     const resend = await createResendEmailLog({ emailLog: sourceForResend });
 
@@ -96,5 +96,43 @@ dbTest("resend action odmítne CLIENT resend bez aktuálního e-mailu a snapshot
   } finally {
     await prisma.emailLog.deleteMany({ where: { clientId: client.id } });
     await prisma.client.delete({ where: { id: client.id } });
+  }
+});
+
+dbTest("resend action zachová EXTERNAL recipient bez ohledu na Client.email", async () => {
+  const [{ prisma }, { createResendEmailLog }] = await Promise.all([
+    import("@/lib/prisma"),
+    import("@/features/admin/actions/email-log-resend"),
+  ]);
+  const suffix = randomUUID().slice(0, 8);
+  const source = await prisma.emailLog.create({
+    data: {
+      type: EmailLogType.GENERIC,
+      audience: EmailAudience.EXTERNAL,
+      status: EmailLogStatus.FAILED,
+      recipientEmail: `external-${suffix}@example.test`,
+      subject: "Externí resend",
+      templateKey: "external-resend",
+    },
+  });
+
+  try {
+    const sourceForResend = await prisma.emailLog.findUniqueOrThrow({
+      where: { id: source.id },
+      include: {
+        client: { select: { id: true, email: true } },
+        booking: { select: { id: true, clientEmailSnapshot: true } },
+      },
+    });
+    const resend = await createResendEmailLog({
+      emailLog: sourceForResend,
+      adminNotificationEmail: `admin-${suffix}@example.test`,
+    });
+
+    assert.ok(resend);
+    assert.equal(resend.recipientEmail, `external-${suffix}@example.test`);
+  } finally {
+    await prisma.emailLog.deleteMany({ where: { resendOfId: source.id } });
+    await prisma.emailLog.delete({ where: { id: source.id } });
   }
 });

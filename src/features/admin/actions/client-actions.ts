@@ -196,6 +196,15 @@ export async function updateClientContactAction(
     });
 
     const touchedBookingIds = await prisma.$transaction(async (tx) => {
+      // Resend CLIENT recipient lockuje stejného Clienta před bookingy. Oba
+      // flow proto používají pořadí Client -> Booking a nemohou rozhodnout o
+      // kontaktu podle starého snapshotu před změnou e-mailu.
+      await tx.$queryRaw<Array<{ id: string }>>(Prisma.sql`
+        SELECT "id"
+        FROM "Client"
+        WHERE "id" = ${client.id}
+        FOR UPDATE
+      `);
       const currentClient = await tx.client.findUnique({
         where: { id: client.id },
         select: { id: true, email: true },

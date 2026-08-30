@@ -16,7 +16,7 @@ test("CLIENT recipient resolver prefers client email and trims whitespace", asyn
   assert.equal(resolved, "klientka@example.com");
 });
 
-test("CLIENT recipient resolver falls back to booking snapshot when client email is missing", async () => {
+test("CLIENT recipient resolver odmítne booking snapshot, pokud Client nemá aktuální e-mail", async () => {
   const { resolveEmailLogRecipient } = await import("@/features/admin/actions/email-log-action-helpers");
   const resolved = resolveEmailLogRecipient({
     audience: EmailAudience.CLIENT,
@@ -26,7 +26,7 @@ test("CLIENT recipient resolver falls back to booking snapshot when client email
     originalRecipientEmail: "historical@example.com",
   });
 
-  assert.equal(resolved, "snapshot@example.com");
+  assert.equal(resolved, null);
 });
 
 test("CLIENT recipient resolver odmítne historický e-mail po explicitním odstranění aktuálního kontaktu", async () => {

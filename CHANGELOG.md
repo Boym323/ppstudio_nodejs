@@ -16,6 +16,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- CLIENT resend nyní rozhoduje adresáta až po zamknutí a načtení aktuálního `Client` uvnitř stejné transakce jako preflight, tokeny a nový `EmailLog`; souběžná změna kontaktu proto nemůže vydat nové odkazy na zastaralou adresu a resend bez aktuálního e-mailu se odmítne bez mutace.
 - Booking e-mailový preflight nyní u nových klientských potvrzení, přijetí, přesunů a reminderů ověřuje také stabilní `serviceId`; staré payloady bez tohoto pole zůstávají kompatibilní.
 - Aktivní klientské odkazy pro správu a storno rezervace nyní po každém úspěšném přesunu expirují podle nového termínu i bez klientského e-mailu; historické budoucí odkazy se jednorázově srovnají při migraci.
 - Ruční resend tokenovaných booking e-mailů nyní před revokací existujících odkazů atomicky ověří aktuální stav a termín rezervace; zastaralý zdroj proto nezaloží nový e-mail ani tokeny a ponechá dosavadní odkazy použitelné. Ruční resend reminderu obchází jen deduplikaci dříve odeslaného reminderu, nikoli kontrolu aktuálního termínu, stavu nebo začátku rezervace.

@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import test from "node:test";
 
+import { Prisma } from "@/generated/prisma/client";
+
 (process.env as Record<string, string | undefined>).NODE_ENV = "test";
 process.env.NEXT_PUBLIC_APP_NAME ??= "PP Studio";
 process.env.NEXT_PUBLIC_APP_URL ??= "https://example.com";
@@ -15,6 +17,15 @@ process.env.ADMIN_STAFF_PASSWORD ??= "change-me-staff";
 process.env.EMAIL_DELIVERY_MODE ??= "log";
 
 const dbTest = process.env.RUN_DB_INTEGRATION_TESTS === "1" ? test : test.skip;
+
+function deferred<T = void>() {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  const promise = new Promise<T>((resolvePromise) => {
+    resolve = resolvePromise;
+  });
+
+  return { promise, resolve };
+}
 
 type Seed = {
   actorUserId: string;
@@ -458,6 +469,274 @@ dbTest("resend tokenového CLIENT e-mailu vydá nové tokeny a staré zneplatní
   }
 });
 
+dbTest("CLIENT resend při odstraněném e-mailu odmítne akci před token mutation", async () => {
+  const seed = await createSeed();
+  const {
+    prisma,
+    buildBookingActionExpiry,
+    createResendEmailLog,
+    BookingActionTokenType,
+    EmailAudience,
+    EmailLogStatus,
+    EmailLogType,
+  } = await loadModules();
+
+  try {
+    await prisma.booking.update({
+      where: { id: seed.bookingId },
+      data: { status: "CONFIRMED" },
+    });
+    const [client, booking] = await Promise.all([
+      prisma.client.findUniqueOrThrow({ where: { id: seed.clientId }, select: { email: true } }),
+      prisma.booking.findUniqueOrThrow({
+        where: { id: seed.bookingId },
+        select: { scheduledStartsAt: true, scheduledEndsAt: true, serviceId: true },
+      }),
+    ]);
+    const oldTokens = await Promise.all([
+      prisma.bookingActionToken.create({
+        data: {
+          bookingId: seed.bookingId,
+          type: BookingActionTokenType.RESCHEDULE,
+          tokenHash: `missing-email-manage-${seed.bookingId}`,
+          expiresAt: buildBookingActionExpiry(new Date()),
+        },
+      }),
+      prisma.bookingActionToken.create({
+        data: {
+          bookingId: seed.bookingId,
+          type: BookingActionTokenType.CANCEL,
+          tokenHash: `missing-email-cancel-${seed.bookingId}`,
+          expiresAt: buildBookingActionExpiry(new Date()),
+        },
+      }),
+    ]);
+    const source = await prisma.emailLog.create({
+      data: {
+        bookingId: seed.bookingId,
+        clientId: seed.clientId,
+        type: EmailLogType.BOOKING_CONFIRMED,
+        audience: EmailAudience.CLIENT,
+        status: EmailLogStatus.SENT,
+        recipientEmail: client.email!,
+        subject: "Rezervace potvrzena",
+        templateKey: "booking-approved-v1",
+        payload: {
+          serviceId: booking.serviceId,
+          scheduledStartsAt: booking.scheduledStartsAt.toISOString(),
+          scheduledEndsAt: booking.scheduledEndsAt.toISOString(),
+        },
+      },
+    });
+    const sourceForResend = await prisma.emailLog.findUniqueOrThrow({
+      where: { id: source.id },
+      include: {
+        client: { select: { id: true, email: true } },
+        booking: { select: { id: true, clientEmailSnapshot: true } },
+      },
+    });
+
+    await prisma.$transaction(async (tx) => {
+      await tx.client.update({ where: { id: seed.clientId }, data: { email: null } });
+      await tx.booking.update({ where: { id: seed.bookingId }, data: { clientEmailSnapshot: "" } });
+    });
+
+    assert.equal(await createResendEmailLog({ emailLog: sourceForResend }), null);
+    assert.equal(await prisma.emailLog.count({ where: { resendOfId: source.id } }), 0);
+    const tokens = await prisma.bookingActionToken.findMany({
+      where: { id: { in: oldTokens.map((token) => token.id) } },
+      select: { revokedAt: true },
+    });
+    assert.equal(tokens.length, 2);
+    assert.ok(tokens.every((token) => token.revokedAt === null));
+  } finally {
+    await cleanupSeed(seed);
+  }
+});
+
+dbTest("CLIENT resend po souběžné změně kontaktu použije nový e-mail i pro nové tokeny", async () => {
+  const seed = await createSeed();
+  const {
+    prisma,
+    createResendEmailLog,
+    EmailAudience,
+    EmailLogStatus,
+    EmailLogType,
+  } = await loadModules();
+  const newEmail = `race-new-${seed.bookingId}@example.com`;
+  const clientLockAcquired = deferred();
+  const allowClientUpdate = deferred();
+  let clientUpdatePromise: Promise<void> | null = null;
+
+  try {
+    await prisma.booking.update({
+      where: { id: seed.bookingId },
+      data: { status: "CONFIRMED" },
+    });
+    const [client, booking] = await Promise.all([
+      prisma.client.findUniqueOrThrow({ where: { id: seed.clientId }, select: { email: true } }),
+      prisma.booking.findUniqueOrThrow({
+        where: { id: seed.bookingId },
+        select: { scheduledStartsAt: true, scheduledEndsAt: true, serviceId: true },
+      }),
+    ]);
+    const source = await prisma.emailLog.create({
+      data: {
+        bookingId: seed.bookingId,
+        clientId: seed.clientId,
+        type: EmailLogType.BOOKING_CONFIRMED,
+        audience: EmailAudience.CLIENT,
+        status: EmailLogStatus.SENT,
+        recipientEmail: client.email!,
+        subject: "Rezervace potvrzena",
+        templateKey: "booking-approved-v1",
+        payload: {
+          serviceId: booking.serviceId,
+          scheduledStartsAt: booking.scheduledStartsAt.toISOString(),
+          scheduledEndsAt: booking.scheduledEndsAt.toISOString(),
+        },
+      },
+    });
+    const sourceForResend = await prisma.emailLog.findUniqueOrThrow({
+      where: { id: source.id },
+      include: {
+        client: { select: { id: true, email: true } },
+        booking: { select: { id: true, clientEmailSnapshot: true } },
+      },
+    });
+    assert.equal(sourceForResend.client?.email, client.email);
+
+    clientUpdatePromise = prisma.$transaction(async (tx) => {
+      await tx.$queryRaw<Array<{ id: string }>>(Prisma.sql`
+        SELECT "id"
+        FROM "Client"
+        WHERE "id" = ${seed.clientId}
+        FOR UPDATE
+      `);
+      clientLockAcquired.resolve();
+      await allowClientUpdate.promise;
+      await tx.client.update({ where: { id: seed.clientId }, data: { email: newEmail } });
+      await tx.booking.update({ where: { id: seed.bookingId }, data: { clientEmailSnapshot: newEmail } });
+    });
+
+    await clientLockAcquired.promise;
+    const resendStarted = deferred();
+    const resendPromise = createResendEmailLog({
+      emailLog: sourceForResend,
+      hooks: {
+        beforeClientLock: () => resendStarted.resolve(),
+      },
+    });
+    await resendStarted.promise;
+    allowClientUpdate.resolve();
+
+    const [resend] = await Promise.all([resendPromise, clientUpdatePromise]);
+    assert.ok(resend);
+    assert.equal(resend.recipientEmail, newEmail);
+    assert.notEqual(resend.recipientEmail, client.email);
+    assert.equal(resend.actionTokenId !== null, true);
+  } finally {
+    allowClientUpdate.resolve();
+    await clientUpdatePromise?.catch(() => undefined);
+    await cleanupSeed(seed);
+  }
+});
+
+dbTest("CLIENT resend rollbackne nové tokeny i jejich revokaci při chybě zápisu logu", async () => {
+  const seed = await createSeed();
+  const {
+    prisma,
+    buildBookingActionExpiry,
+    createResendEmailLog,
+    BookingActionTokenType,
+    EmailAudience,
+    EmailLogStatus,
+    EmailLogType,
+  } = await loadModules();
+
+  try {
+    await prisma.booking.update({
+      where: { id: seed.bookingId },
+      data: { status: "CONFIRMED" },
+    });
+    const [client, booking] = await Promise.all([
+      prisma.client.findUniqueOrThrow({ where: { id: seed.clientId }, select: { email: true } }),
+      prisma.booking.findUniqueOrThrow({
+        where: { id: seed.bookingId },
+        select: { scheduledStartsAt: true, scheduledEndsAt: true, serviceId: true },
+      }),
+    ]);
+    const oldTokens = await Promise.all([
+      prisma.bookingActionToken.create({
+        data: {
+          bookingId: seed.bookingId,
+          type: BookingActionTokenType.RESCHEDULE,
+          tokenHash: `rollback-manage-${seed.bookingId}`,
+          expiresAt: buildBookingActionExpiry(new Date()),
+        },
+      }),
+      prisma.bookingActionToken.create({
+        data: {
+          bookingId: seed.bookingId,
+          type: BookingActionTokenType.CANCEL,
+          tokenHash: `rollback-cancel-${seed.bookingId}`,
+          expiresAt: buildBookingActionExpiry(new Date()),
+        },
+      }),
+    ]);
+    const source = await prisma.emailLog.create({
+      data: {
+        bookingId: seed.bookingId,
+        clientId: seed.clientId,
+        type: EmailLogType.BOOKING_CONFIRMED,
+        audience: EmailAudience.CLIENT,
+        status: EmailLogStatus.SENT,
+        recipientEmail: client.email!,
+        subject: "Rezervace potvrzena",
+        templateKey: "booking-approved-v1",
+        payload: {
+          serviceId: booking.serviceId,
+          scheduledStartsAt: booking.scheduledStartsAt.toISOString(),
+          scheduledEndsAt: booking.scheduledEndsAt.toISOString(),
+        },
+      },
+    });
+    const sourceForResend = await prisma.emailLog.findUniqueOrThrow({
+      where: { id: source.id },
+      include: {
+        client: { select: { id: true, email: true } },
+        booking: { select: { id: true, clientEmailSnapshot: true } },
+      },
+    });
+
+    await assert.rejects(
+      createResendEmailLog({
+        emailLog: sourceForResend,
+        hooks: {
+          afterTokenMutation: () => {
+            throw new Error("rollback resend test");
+          },
+        },
+      }),
+      /rollback resend test/,
+    );
+
+    const tokens = await prisma.bookingActionToken.findMany({
+      where: { bookingId: seed.bookingId },
+      select: { id: true, revokedAt: true },
+    });
+    assert.equal(tokens.length, oldTokens.length);
+    assert.deepEqual(
+      new Set(tokens.map((token) => token.id)),
+      new Set(oldTokens.map((token) => token.id)),
+    );
+    assert.ok(tokens.every((token) => token.revokedAt === null));
+    assert.equal(await prisma.emailLog.count({ where: { resendOfId: source.id } }), 0);
+  } finally {
+    await cleanupSeed(seed);
+  }
+});
+
 dbTest("resend tokenového ADMIN e-mailu vydá nové approve/reject tokeny", async () => {
   const seed = await createSeed();
   const {
@@ -528,6 +807,7 @@ dbTest("resend tokenového ADMIN e-mailu vydá nové approve/reject tokeny", asy
       adminNotificationEmail: "admin@example.com",
     });
     assert.ok(resend);
+    assert.equal(resend.recipientEmail, "admin@example.com");
     const resendPayload = resend.payload as Record<string, unknown>;
     const newApproveToken = String(resendPayload.approveUrl).split("/").pop();
     const newRejectToken = String(resendPayload.rejectUrl).split("/").pop();

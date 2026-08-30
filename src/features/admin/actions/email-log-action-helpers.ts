@@ -14,16 +14,16 @@ export function resolveEmailLogRecipient(input: {
       return clientEmail;
     }
 
+    // U dostupné Client relation je prázdný e-mail explicitní aktuální stav.
+    // Resend nesmí znovu použít ani booking snapshot, ani historického
+    // příjemce.
+    if (input.clientIsAvailable) {
+      return null;
+    }
+
     const bookingEmail = input.bookingClientEmailSnapshot?.trim() ?? "";
     if (bookingEmail) {
       return bookingEmail;
-    }
-
-    // Je-li aktuální Client dohledatelný, prázdný kontakt je explicitní stav.
-    // Historický příjemce proto smí zůstat fallbackem jen pro legacy logy bez
-    // dostupné Client relation.
-    if (input.clientIsAvailable) {
-      return null;
     }
 
     return input.originalRecipientEmail.trim() || null;
