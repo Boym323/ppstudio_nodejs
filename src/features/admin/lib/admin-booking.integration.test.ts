@@ -58,26 +58,39 @@ async function findIsolatedAdminWindow(
   const minuteCandidates = [0, 15, 30].map(
     (minute, index, list) => list[(index + minuteSeed) % list.length] ?? minute,
   );
+  const now = new Date();
 
   for (let dayStep = 0; dayStep < 45; dayStep += 1) {
     const dayOffset = 14 + ((daySeed + dayStep) % 45);
 
     for (const hour of hourCandidates) {
       for (const minute of minuteCandidates) {
-        const startsAt = new Date();
+        const startsAt = new Date(now);
         startsAt.setUTCSeconds(0, 0);
         startsAt.setUTCDate(startsAt.getUTCDate() + dayOffset);
         startsAt.setUTCHours(hour, minute, 0, 0);
         const endsAt = new Date(startsAt.getTime() + durationMinutes * 60 * 1000);
 
-        const overlappingSlots = await prisma.availabilitySlot.count({
-          where: {
-            startsAt: { lt: endsAt },
-            endsAt: { gt: startsAt },
-          },
-        });
+        const [overlappingSlots, overlappingBookings] = await Promise.all([
+          prisma.availabilitySlot.count({
+            where: {
+              startsAt: { lt: endsAt },
+              endsAt: { gt: startsAt },
+            },
+          }),
+          prisma.booking.count({
+            where: {
+              status: { in: [BookingStatus.PENDING, BookingStatus.CONFIRMED] },
+              scheduledStartsAt: { lt: endsAt },
+              OR: [
+                { blockedUntil: { gt: startsAt } },
+                { blockedUntil: null, scheduledEndsAt: { gt: startsAt } },
+              ],
+            },
+          }),
+        ]);
 
-        if (overlappingSlots === 0) {
+        if (overlappingSlots === 0 && overlappingBookings === 0) {
           return { startsAt, endsAt };
         }
       }
@@ -85,6 +98,24 @@ async function findIsolatedAdminWindow(
   }
 
   throw new Error("Nepodařilo se najít izolované okno pro admin booking integrační test.");
+}
+
+async function disableAutoLunchForAdminFixture(
+  prisma: Awaited<typeof import("@/lib/prisma")>["prisma"],
+  localDate: string,
+  ownerId: string,
+) {
+  const existingOverride = await prisma.autoLunchDayOverride.findUnique({
+    where: { dateKey: localDate },
+    select: { dateKey: true },
+  });
+
+  if (existingOverride) return false;
+
+  await prisma.autoLunchDayOverride.create({
+    data: { dateKey: localDate, updatedByUserId: ownerId },
+  });
+  return true;
 }
 
 async function createAdminServiceChangeFixture(
@@ -102,6 +133,11 @@ async function createAdminServiceChangeFixture(
     },
     select: { id: true },
   });
+  const autoLunchOverrideCreated = await disableAutoLunchForAdminFixture(
+    prisma,
+    getPragueLocalDate(startsAt),
+    owner.id,
+  );
   const category = await prisma.serviceCategory.create({
     data: {
       name: `Kategorie změny služby ${suffix}`,
@@ -193,10 +229,22 @@ async function createAdminServiceChangeFixture(
       await prisma.emailLog.deleteMany({ where: { booking: { serviceId: { in: serviceIds } } } });
       await prisma.bookingStatusHistory.deleteMany({ where: { booking: { serviceId: { in: serviceIds } } } });
       await prisma.booking.deleteMany({ where: { serviceId: { in: serviceIds } } });
-      await prisma.client.deleteMany({ where: { email: { contains: suffix } } });
+      await prisma.client.deleteMany({
+        where: {
+          OR: [
+            { email: { contains: suffix } },
+            { email: { startsWith: `concurrent-service-change-${booking.id}@` } },
+          ],
+        },
+      });
       await prisma.availabilitySlot.deleteMany({
         where: { startsAt: { gte: startsAt, lt: endsAt } },
       });
+      if (autoLunchOverrideCreated) {
+        await prisma.autoLunchDayOverride.deleteMany({
+          where: { dateKey: getPragueLocalDate(startsAt), updatedByUserId: owner.id },
+        });
+      }
       await prisma.service.deleteMany({ where: { id: { in: serviceIds } } });
       await prisma.serviceCategory.deleteMany({ where: { id: category.id } });
       await prisma.adminUser.deleteMany({ where: { id: owner.id } });
@@ -231,6 +279,11 @@ async function createAdminManualOverrideResizeFixture(
     },
     select: { id: true },
   });
+  const autoLunchOverrideCreated = await disableAutoLunchForAdminFixture(
+    prisma,
+    getPragueLocalDate(manualStartsAt),
+    owner.id,
+  );
   const category = await prisma.serviceCategory.create({
     data: {
       name: `Kategorie manual resize ${suffix}`,
@@ -382,6 +435,11 @@ async function createAdminManualOverrideResizeFixture(
           },
         },
       });
+      if (autoLunchOverrideCreated) {
+        await prisma.autoLunchDayOverride.deleteMany({
+          where: { dateKey: getPragueLocalDate(manualStartsAt), updatedByUserId: owner.id },
+        });
+      }
       await prisma.service.deleteMany({ where: { id: { in: serviceIds } } });
       await prisma.serviceCategory.deleteMany({ where: { id: category.id } });
       await prisma.adminUser.deleteMany({ where: { id: owner.id } });
@@ -400,7 +458,7 @@ async function findIsolatedAdminAutoLunchDate(
     assert.ok(nextLocalDate);
     const dayStartsAt = at(localDate, "00:00");
     const dayEndsAt = at(nextLocalDate, "00:00");
-    const [slotCount, bookingCount] = await Promise.all([
+    const [slotCount, bookingCount, overrideCount] = await Promise.all([
       prisma.availabilitySlot.count({
         where: { startsAt: { lt: dayEndsAt }, endsAt: { gt: dayStartsAt } },
       }),
@@ -413,9 +471,10 @@ async function findIsolatedAdminAutoLunchDate(
           ],
         },
       }),
+      prisma.autoLunchDayOverride.count({ where: { dateKey: localDate } }),
     ]);
 
-    if (slotCount === 0 && bookingCount === 0) return localDate;
+    if (slotCount === 0 && bookingCount === 0 && overrideCount === 0) return localDate;
   }
 
   throw new Error("Nepodařilo se najít izolovaný den pro admin auto-lunch integrační test.");
@@ -446,6 +505,21 @@ async function createAdminAutoLunchServiceChangeFixture(
     },
     select: { id: true },
   });
+  const siteSettings = await prisma.siteSettings.findUnique({
+    where: { id: "site-settings" },
+    select: { autoLunchEnabled: true },
+  });
+  assert.ok(siteSettings);
+  await prisma.siteSettings.update({
+    where: { id: "site-settings" },
+    data: { autoLunchEnabled: true },
+  });
+  const autoLunchOverrideCreated = !options.activeAutoLunch;
+  if (autoLunchOverrideCreated) {
+    await prisma.autoLunchDayOverride.create({
+      data: { dateKey: localDate, updatedByUserId: owner.id },
+    });
+  }
   const category = await prisma.serviceCategory.create({
     data: {
       name: `Kategorie admin auto lunch ${suffix}`,
@@ -543,6 +617,15 @@ async function createAdminAutoLunchServiceChangeFixture(
       await prisma.booking.deleteMany({ where: { serviceId: { in: serviceIds } } });
       await prisma.client.deleteMany({ where: { id: client.id } });
       await prisma.availabilitySlot.deleteMany({ where: { id: { in: slotIds } } });
+      if (autoLunchOverrideCreated) {
+        await prisma.autoLunchDayOverride.deleteMany({
+          where: { dateKey: localDate, updatedByUserId: owner.id },
+        });
+      }
+      await prisma.siteSettings.update({
+        where: { id: "site-settings" },
+        data: { autoLunchEnabled: siteSettings.autoLunchEnabled },
+      });
       await prisma.service.deleteMany({ where: { id: { in: serviceIds } } });
       await prisma.serviceCategory.deleteMany({ where: { id: category.id } });
       await prisma.adminUser.deleteMany({ where: { id: owner.id } });
