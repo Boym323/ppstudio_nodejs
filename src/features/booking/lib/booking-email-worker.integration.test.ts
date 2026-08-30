@@ -156,15 +156,6 @@ async function findIsolatedWorkerWindow(
   throw new Error("Nepodařilo se najít izolované okno pro worker integrační test.");
 }
 
-async function findIsolatedReminderWindow(
-  prisma: Awaited<ReturnType<typeof loadModules>>["prisma"],
-  seed: string,
-  durationMinutes: number,
-) {
-  const { startsAt, endsAt } = await findIsolatedWorkerWindow(prisma, seed, durationMinutes);
-  return { startsAt, endsAt };
-}
-
 async function findIsolatedReminderAuthorizationWindow(
   prisma: Awaited<ReturnType<typeof loadModules>>["prisma"],
   durationMinutes: number,
