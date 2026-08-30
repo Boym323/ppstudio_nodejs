@@ -722,7 +722,7 @@ dbTest("změna e-mailu zachová lifecycle neodeslaného 24h reminderu", async ()
     assert.equal((await prisma.booking.findUniqueOrThrow({ where: { id: after.booking.id } })).clientEmailSnapshot, afterEmail);
     assert.ok((await prisma.booking.findUniqueOrThrow({ where: { id: after.booking.id } })).reminder24hQueuedAt);
 
-    const removed = await createFixture("removed", 20);
+    const removed = await createFixture("removed", 18);
     await rotate(removed, null);
     const removedBooking = await prisma.booking.findUniqueOrThrow({ where: { id: removed.booking.id } });
     assert.equal(removedBooking.reminder24hQueuedAt, null);
@@ -735,7 +735,7 @@ dbTest("změna e-mailu zachová lifecycle neodeslaného 24h reminderu", async ()
       0,
     );
 
-    const alreadySent = await createFixture("sent", 20, true);
+    const alreadySent = await createFixture("sent", 16, true);
     const sentBefore = await prisma.emailLog.count({ where: { bookingId: alreadySent.booking.id, type: EmailLogType.BOOKING_REMINDER } });
     await rotate(alreadySent, `reminder-sent-new-${suffix}@example.test`);
     assert.equal(
@@ -744,7 +744,7 @@ dbTest("změna e-mailu zachová lifecycle neodeslaného 24h reminderu", async ()
     );
     assert.ok((await prisma.booking.findUniqueOrThrow({ where: { id: alreadySent.booking.id } })).reminder24hSentAt);
 
-    const rapid = await createFixture("rapid", 20);
+    const rapid = await createFixture("rapid", 14);
     const rapidB = `reminder-rapid-b-${suffix}@example.test`;
     const rapidC = `reminder-rapid-c-${suffix}@example.test`;
     await rotate(rapid, rapidB);
@@ -760,7 +760,7 @@ dbTest("změna e-mailu zachová lifecycle neodeslaného 24h reminderu", async ()
       0,
     );
 
-    const rollback = await createFixture("rollback", 30);
+    const rollback = await createFixture("rollback", 28);
     const rollbackEmail = `reminder-rollback-new-${suffix}@example.test`;
     await assert.rejects(prisma.$transaction(async (tx) => {
       await tx.client.update({ where: { id: rollback.client.id }, data: { email: rollbackEmail } });
