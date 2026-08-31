@@ -70,7 +70,7 @@
     "@radix-ui/react-toast": "^1.2.23",
     "@tanstack/react-table": "^8.21.3",
     "clsx": "^2.1.1",
-    "es-toolkit": "1.39.3",
+    "es-toolkit": "1.51.0",
     "jose": "^6.2.8",
     "next": "16.3.3",
     "nodemailer": "^9.0.4",
