@@ -11,6 +11,8 @@ process.env.ADMIN_STAFF_EMAIL ??= "staff@example.com";
 process.env.ADMIN_STAFF_PASSWORD ??= "change-me-staff";
 process.env.EMAIL_DELIVERY_MODE ??= "log";
 
+const currentSvixTimestamp = () => String(Math.floor(Date.now() / 1000));
+
 test("resend webhook route rejects request without svix headers", async () => {
   process.env.RESEND_WEBHOOK_SECRET = "whsec_test";
   const { POST } = await import("./route");
@@ -40,7 +42,7 @@ test("resend webhook route rejects an invalid Svix signature before processing",
     headers: {
       "content-type": "application/json",
       "svix-id": "msg_invalid_signature",
-      "svix-timestamp": "1786874400",
+      "svix-timestamp": currentSvixTimestamp(),
       "svix-signature": "v1,invalid",
     },
   }));
@@ -66,7 +68,7 @@ test("resend webhook route odmítne deklarované nadlimitní body bez čtení st
     headers: {
       "content-length": String(RESEND_WEBHOOK_MAX_BODY_BYTES + 1),
       "svix-id": "msg_too_large",
-      "svix-timestamp": "1786874400",
+      "svix-timestamp": currentSvixTimestamp(),
       "svix-signature": "v1,invalid",
     },
   } as RequestInit & { duplex: "half" });
@@ -87,7 +89,7 @@ test("resend webhook route vynutí limit i při lživě malém Content-Length", 
     headers: {
       "content-length": "1",
       "svix-id": "msg_stream_too_large",
-      "svix-timestamp": "1786874400",
+      "svix-timestamp": currentSvixTimestamp(),
       "svix-signature": "v1,invalid",
     },
   });
