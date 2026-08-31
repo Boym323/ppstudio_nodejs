@@ -228,7 +228,9 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: next-e2e-build
-          path: .next-e2e/
+          path: |
+            .next-e2e/
+            !.next-e2e/cache/**
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 1
