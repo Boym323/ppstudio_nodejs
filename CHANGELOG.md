@@ -13,6 +13,7 @@ Formát je inspirovaný Keep a Changelog.
 ### Změněno
 
 - GitHub CI nyní v existujícím mobilním shardování spouští také booking E2E coverage přes Playwright WebKit na profilu iPhone 15.
+- Databázové integrační testy už mezi izolovanými procesy nečekají na timeout neaktivního PostgreSQL poolu, takže GitHub CI dokončí testovací fázi výrazně rychleji.
 
 ### Opraveno
 

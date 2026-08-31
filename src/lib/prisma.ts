@@ -35,7 +35,12 @@ function hasRequiredDelegates(client: PrismaClient) {
 }
 
 function createPrismaClient() {
-  const adapter = new PrismaPg(env.DATABASE_URL);
+  const adapter = new PrismaPg({
+    connectionString: env.DATABASE_URL,
+    // Každý integrační testovací soubor běží v samostatném procesu. Bez této
+    // volby drží idle klienti event loop aktivní až do vypršení timeoutu poolu.
+    allowExitOnIdle: process.env.RUN_DB_INTEGRATION_TESTS === "1",
+  });
   const logLevels: Prisma.LogLevel[] =
     process.env.NODE_ENV === "development"
       ? ["warn", "error"]
