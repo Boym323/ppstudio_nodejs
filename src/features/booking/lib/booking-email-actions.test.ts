@@ -57,6 +57,7 @@ function buildToken(overrides: BookingEmailActionTokenOverrides = {}) {
       serviceNameSnapshot: "Lash lifting",
       scheduledStartsAt,
       scheduledEndsAt,
+      reminder24hSentAt: null,
       voucherRedemptions: overrides.voucherRedemptions ?? [],
     },
   } as const;
