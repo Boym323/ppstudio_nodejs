@@ -70,10 +70,9 @@
     "@radix-ui/react-toast": "^1.2.23",
     "@tanstack/react-table": "^8.21.3",
     "clsx": "^2.1.1",
-    "es-toolkit": "1.51.0",
     "jose": "^6.2.8",
     "next": "16.3.3",
-    "nodemailer": "^9.0.4",
+    "nodemailer": "^9.1.0",
     "pdf-lib": "^1.17.1",
     "pg": "^8.22.0",
     "qrcode": "^1.5.4",
@@ -86,7 +85,7 @@
     "svix": "^2.0.0",
     "tailwind-merge": "^3.6.0",
     "temporal-polyfill": "^1.0.3",
-    "zod": "^4.4.3"
+    "zod": "^4.5.4"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
@@ -104,7 +103,7 @@
     "eslint-config-next": "16.3.3",
     "prisma": "7.9.1",
     "tailwindcss": "^4.3.2",
-    "tsx": "^4.23.12",
+    "tsx": "^4.23.13",
     "typescript": "^5"
   },
   "allowScripts": {
