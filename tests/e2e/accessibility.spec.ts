@@ -29,6 +29,10 @@ async function expectNoAccessibilityViolations(page: Page, include?: string) {
 test.describe("přístupnost", () => {
   let fixtures: E2eFixture[] = [];
 
+  test.beforeEach(async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+  });
+
   test.afterEach(async () => {
     await Promise.all(fixtures.map((fixture) => cleanupE2eData(fixture.runId)));
     fixtures = [];
