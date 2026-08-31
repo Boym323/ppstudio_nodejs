@@ -6,6 +6,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [3.26.1] - 2026-08-31
+
 ### Odstraněno
 
 - Z detailu klientky byla odstraněna redundantní akce „Obnovit detail“, která pouze navigovala na stejnou URL bez vlastního obnovení dat nebo jiného side effectu.
