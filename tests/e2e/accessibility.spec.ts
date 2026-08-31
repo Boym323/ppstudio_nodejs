@@ -78,6 +78,9 @@ test.describe("přístupnost", () => {
     await inviteTrigger.click();
     const dialog = page.getByRole("dialog", { name: "Pozvat uživatele" });
     await expect(dialog).toBeVisible();
+    await dialog.evaluate((element) =>
+      Promise.all(element.getAnimations().map((animation) => animation.finished)),
+    );
     await expectNoAccessibilityViolations(page, '[role="dialog"]');
     await page.keyboard.press("Escape");
     await expect(dialog).toHaveCount(0);
