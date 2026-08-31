@@ -92,6 +92,9 @@ test.describe("přístupnost", () => {
     await page.keyboard.press("Enter");
     const menu = page.getByRole("menu");
     await expect(menu).toBeVisible();
+    await menu.evaluate((element) =>
+      Promise.all(element.getAnimations().map((animation) => animation.finished)),
+    );
     await page.keyboard.press("ArrowDown");
     const focusedMenuItem = menu.locator('[role="menuitem"]:focus');
     await expect(focusedMenuItem).toHaveCount(1);
