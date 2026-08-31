@@ -208,7 +208,7 @@ function SubmitButton({ mode }: { mode: "invite" | "edit" }) {
     <button
       type="submit"
       disabled={pending}
-      className="min-w-36 rounded-full bg-[var(--color-accent)] px-4 py-2.5 text-sm font-semibold text-[#ffffff] transition hover:brightness-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)] disabled:cursor-not-allowed disabled:opacity-60"
+      className="min-w-36 rounded-full bg-[var(--color-accent)] px-4 py-2.5 text-sm font-semibold text-[#ffffff] transition hover:brightness-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)] disabled:cursor-not-allowed"
     >
       {pending ? "Ukládám…" : mode === "invite" ? "Odeslat pozvánku" : "Uložit změny"}
     </button>

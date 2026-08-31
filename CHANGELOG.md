@@ -17,6 +17,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Odesílací tlačítko v dialogu pro pozvání administrátora zůstává čitelné i během ukládání, včetně mobilního Safari.
 - KPI obsazenost nyní sjednocuje překrytou historicky publikovanou kapacitu a doplňuje skutečně odpracované manuální rezervace; retenční drill-down odpovídá dashboardu i při budoucí rezervaci a kalendářní období, hranice grafu i dostupnost srovnání respektují pražský kalendář a význam jednotlivých metrik.
 - Pozdní potvrzení rezervace a výpadek reminder scheduleru už nezpůsobí ztrátu 24h připomínky; potvrzovací cesty ji zakládají okamžitě a scheduler idempotentně dohledá všechny dosud nezačaté rezervace až do horní hranice reminder okna.
 
