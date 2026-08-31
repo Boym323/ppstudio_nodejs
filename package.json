@@ -105,7 +105,7 @@
     "prisma": "7.9.1",
     "tailwindcss": "^4.3.2",
     "tsx": "^4.23.12",
-    "typescript": "^5"
+    "typescript": "^7"
   },
   "allowScripts": {
     "esbuild@0.28.1": true,
