@@ -140,14 +140,23 @@ dbTest("admin clients řadí a stránkuje globálně před načtením profilů",
     await createBooking(band12Id, new Date(reference.getTime() - 13 * 7 * 86_400_000));
     await createBooking(band16Id, new Date(reference.getTime() - 17 * 7 * 86_400_000));
     await createBooking(priorityId, new Date(reference.getTime() + 2 * 86_400_000), BookingStatus.PENDING);
+    await createBooking(retentionId, new Date(reference.getTime() + 3 * 86_400_000), BookingStatus.PENDING);
+    await createBooking(band12Id, new Date(reference.getTime() + 4 * 86_400_000), BookingStatus.CONFIRMED);
 
     const upcoming = await getAdminClientsPageData("owner", { query: suffix, view: "upcoming" });
-    assert.deepEqual(upcoming.clients.map((client) => client.id), [priorityId]);
+    assert.deepEqual(upcoming.clients.map((client) => client.id), [priorityId, retentionId, band12Id]);
     const outreach = await getAdminClientsPageData("owner", { query: suffix, view: "outreach", retentionAt: String(reference.getTime()) });
     assert.ok(!outreach.clients.some((client) => client.id === priorityId));
+    assert.ok(!outreach.clients.some((client) => client.id === retentionId));
+    assert.ok(!outreach.clients.some((client) => client.id === band12Id));
     assert.equal(outreach.outreach.bands.find((band) => band.value === "8_11")?.count, 1);
     assert.equal(outreach.outreach.bands.find((band) => band.value === "12_15")?.count, 1);
     assert.equal(outreach.outreach.bands.find((band) => band.value === "16_plus")?.count, 1);
+    const retentionWithPending = await getAdminClientsPageData("owner", { query: suffix, view: "outreach", retention: "8_11", retentionAt: String(reference.getTime()) });
+    assert.deepEqual(retentionWithPending.clients.map((client) => client.id), [retentionId]);
+    assert.notEqual(retentionWithPending.clients[0]?.nextBookingLabel, "Bez další rezervace");
+    const retentionWithConfirmed = await getAdminClientsPageData("owner", { query: suffix, view: "outreach", retention: "12_15", retentionAt: String(reference.getTime()) });
+    assert.deepEqual(retentionWithConfirmed.clients.map((client) => client.id), [band12Id]);
     const noContactView = await getAdminClientsPageData("owner", { query: suffix, view: "no_contact" });
     assert.deepEqual(noContactView.clients.map((client) => client.id), [noContact.id]);
     const inactiveView = await getAdminClientsPageData("owner", { query: suffix, view: "inactive" });

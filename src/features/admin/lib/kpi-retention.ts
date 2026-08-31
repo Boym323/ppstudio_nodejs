@@ -1,3 +1,5 @@
+import { addPragueCalendarDays, getPragueMidnight, getPragueDateParts } from "@/features/admin/lib/kpi-date-range";
+
 export type RetentionBand = "8_11" | "12_15" | "16_plus";
 
 function pragueDay(value: Date) {
@@ -18,6 +20,22 @@ export function getRetentionBand(lastVisitAt: Date | null, now = new Date()): Re
   if (elapsedWeeks >= 12) return "12_15";
   if (elapsedWeeks >= 8) return "8_11";
   return null;
+}
+
+/** Timestampové hranice odpovídající kalendářním pásmům z getRetentionBand(). */
+export function getRetentionBandDateBounds(band: RetentionBand, reference: Date) {
+  const parts = getPragueDateParts(reference);
+  const referenceDay = getPragueMidnight(parts.year, parts.month, parts.day);
+  const bounds = {
+    "8_11": { startDays: -83, endDays: -55 },
+    "12_15": { startDays: -111, endDays: -83 },
+    "16_plus": { startDays: null, endDays: -111 },
+  } as const;
+  const selected = bounds[band];
+  return {
+    start: selected.startDays === null ? null : addPragueCalendarDays(referenceDay, selected.startDays),
+    end: addPragueCalendarDays(referenceDay, selected.endDays),
+  };
 }
 
 export function getRetentionBandLabel(band: RetentionBand) {

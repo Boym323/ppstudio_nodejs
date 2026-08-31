@@ -21,7 +21,7 @@ import {
   buildClientPhoneHref,
   formatClientPhoneForDisplay,
 } from "@/features/booking/lib/client-phone";
-import { getWeeksWithoutVisit } from "@/features/admin/lib/kpi-retention";
+import { getRetentionBandDateBounds, getWeeksWithoutVisit } from "@/features/admin/lib/kpi-retention";
 import { prisma } from "@/lib/prisma";
 
 const formatDate = new Intl.DateTimeFormat("cs-CZ", {
@@ -184,11 +184,11 @@ function buildClientWhere(
   }
   if (filters.view === "new") andFilters.push({ createdAt: { gte: recentThreshold } });
   if (filters.view === "no_contact") andFilters.push(hasNoContactWhere());
-  if (filters.view === "outreach") {
-    const eightWeeksAgo = new Date(now.getTime() - 8 * 7 * 86_400_000);
+  if (filters.view === "outreach" && !filters.retention) {
+    const { end: eightWeeksBoundary } = getRetentionBandDateBounds("8_11", now);
     andFilters.push(
-      { bookings: { some: { status: BookingStatus.COMPLETED, scheduledStartsAt: { lt: eightWeeksAgo } } } },
-      { bookings: { none: { status: BookingStatus.COMPLETED, scheduledStartsAt: { gte: eightWeeksAgo, lt: now } } } },
+      { bookings: { some: { status: BookingStatus.COMPLETED, scheduledStartsAt: { lt: eightWeeksBoundary } } } },
+      { bookings: { none: { status: BookingStatus.COMPLETED, scheduledStartsAt: { gte: eightWeeksBoundary, lt: now } } } },
       { bookings: { none: { status: { in: [BookingStatus.PENDING, BookingStatus.CONFIRMED] }, scheduledStartsAt: { gte: now } } } },
     );
   }
@@ -217,15 +217,11 @@ function buildClientWhere(
   }
 
   if (filters.view === "outreach" && filters.retention) {
-    const eightWeeksAgo = new Date(now.getTime() - 8 * 7 * 86_400_000);
-    const twelveWeeksAgo = new Date(now.getTime() - 12 * 7 * 86_400_000);
-    const sixteenWeeksAgo = new Date(now.getTime() - 16 * 7 * 86_400_000);
-    const lowerBound = filters.retention === "8_11" ? twelveWeeksAgo : filters.retention === "12_15" ? sixteenWeeksAgo : undefined;
-    const upperBound = filters.retention === "8_11" ? eightWeeksAgo : filters.retention === "12_15" ? twelveWeeksAgo : sixteenWeeksAgo;
+    const bounds = getRetentionBandDateBounds(filters.retention, now);
     andFilters.push(
       { isActive: true },
-      { bookings: { some: { status: BookingStatus.COMPLETED, scheduledStartsAt: { lt: upperBound, ...(lowerBound ? { gte: lowerBound } : {}) } } } },
-      { bookings: { none: { status: BookingStatus.COMPLETED, scheduledStartsAt: { gte: upperBound, lt: now } } } },
+      { bookings: { some: { status: BookingStatus.COMPLETED, scheduledStartsAt: { lt: bounds.end, ...(bounds.start ? { gte: bounds.start } : {}) } } } },
+      { bookings: { none: { status: BookingStatus.COMPLETED, scheduledStartsAt: { gte: bounds.end, lt: now } } } },
     );
   }
 
@@ -263,11 +259,11 @@ function buildClientSqlWhere(
   }
   if (filters.view === "new") clauses.push(Prisma.sql`c."createdAt" >= ${recentThreshold}`);
   if (filters.view === "no_contact") clauses.push(Prisma.sql`(c.email IS NULL OR c.email = '') AND (c.phone IS NULL OR c.phone = '')`);
-  if (filters.view === "outreach") {
-    const eightWeeksAgo = new Date(retentionReference.getTime() - 8 * 7 * 86_400_000);
+  if (filters.view === "outreach" && !filters.retention) {
+    const { end: eightWeeksBoundary } = getRetentionBandDateBounds("8_11", retentionReference);
     clauses.push(
-      Prisma.sql`EXISTS (SELECT 1 FROM "Booking" b WHERE b."clientId" = c.id AND b.status = ${BookingStatus.COMPLETED} AND b."scheduledStartsAt" < ${eightWeeksAgo})`,
-      Prisma.sql`NOT EXISTS (SELECT 1 FROM "Booking" b WHERE b."clientId" = c.id AND b.status = ${BookingStatus.COMPLETED} AND b."scheduledStartsAt" >= ${eightWeeksAgo} AND b."scheduledStartsAt" < ${retentionReference})`,
+      Prisma.sql`EXISTS (SELECT 1 FROM "Booking" b WHERE b."clientId" = c.id AND b.status = ${BookingStatus.COMPLETED} AND b."scheduledStartsAt" < ${eightWeeksBoundary})`,
+      Prisma.sql`NOT EXISTS (SELECT 1 FROM "Booking" b WHERE b."clientId" = c.id AND b.status = ${BookingStatus.COMPLETED} AND b."scheduledStartsAt" >= ${eightWeeksBoundary} AND b."scheduledStartsAt" < ${retentionReference})`,
       Prisma.sql`NOT EXISTS (SELECT 1 FROM "Booking" b WHERE b."clientId" = c.id AND b.status IN (${BookingStatus.PENDING}, ${BookingStatus.CONFIRMED}) AND b."scheduledStartsAt" >= ${retentionReference})`,
     );
   }
@@ -285,15 +281,11 @@ function buildClientSqlWhere(
   }
 
   if (filters.view === "outreach" && filters.retention) {
-    const eightWeeksAgo = new Date(retentionReference.getTime() - 8 * 7 * 86_400_000);
-    const twelveWeeksAgo = new Date(retentionReference.getTime() - 12 * 7 * 86_400_000);
-    const sixteenWeeksAgo = new Date(retentionReference.getTime() - 16 * 7 * 86_400_000);
-    const lowerBound = filters.retention === "8_11" ? twelveWeeksAgo : filters.retention === "12_15" ? sixteenWeeksAgo : undefined;
-    const upperBound = filters.retention === "8_11" ? eightWeeksAgo : filters.retention === "12_15" ? twelveWeeksAgo : sixteenWeeksAgo;
+    const bounds = getRetentionBandDateBounds(filters.retention, retentionReference);
     clauses.push(
       Prisma.sql`c."isActive" = true`,
-      Prisma.sql`EXISTS (SELECT 1 FROM "Booking" b WHERE b."clientId" = c.id AND b.status = ${BookingStatus.COMPLETED} AND b."scheduledStartsAt" < ${upperBound}${lowerBound ? Prisma.sql` AND b."scheduledStartsAt" >= ${lowerBound}` : Prisma.empty})`,
-      Prisma.sql`NOT EXISTS (SELECT 1 FROM "Booking" b WHERE b."clientId" = c.id AND b.status = ${BookingStatus.COMPLETED} AND b."scheduledStartsAt" >= ${upperBound} AND b."scheduledStartsAt" < ${retentionReference})`,
+      Prisma.sql`EXISTS (SELECT 1 FROM "Booking" b WHERE b."clientId" = c.id AND b.status = ${BookingStatus.COMPLETED} AND b."scheduledStartsAt" < ${bounds.end}${bounds.start ? Prisma.sql` AND b."scheduledStartsAt" >= ${bounds.start}` : Prisma.empty})`,
+      Prisma.sql`NOT EXISTS (SELECT 1 FROM "Booking" b WHERE b."clientId" = c.id AND b.status = ${BookingStatus.COMPLETED} AND b."scheduledStartsAt" >= ${bounds.end} AND b."scheduledStartsAt" < ${retentionReference})`,
     );
   }
 

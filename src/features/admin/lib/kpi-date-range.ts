@@ -9,12 +9,12 @@ export const kpiSearchParamsSchema = z.object({
   dateTo: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
 });
 
-function pragueParts(value: Date) {
+export function getPragueDateParts(value: Date) {
   const parts = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Prague", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(value);
   return Object.fromEntries(parts.filter((part) => part.type !== "literal").map((part) => [part.type, Number(part.value)])) as Record<"year" | "month" | "day", number>;
 }
 
-function pragueMidnight(year: number, month: number, day: number) {
+export function getPragueMidnight(year: number, month: number, day: number) {
   const utc = Date.UTC(year, month - 1, day);
   const offset = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Prague", timeZoneName: "longOffset" }).formatToParts(new Date(utc)).find((part) => part.type === "timeZoneName")?.value ?? "GMT+00:00";
   const match = offset.match(/GMT([+-])(\d{2}):(\d{2})/);
@@ -22,10 +22,29 @@ function pragueMidnight(year: number, month: number, day: number) {
   return new Date(utc - minutes * 60_000);
 }
 
-function addPragueDays(value: Date, days: number) {
-  const parts = pragueParts(value);
+export function addPragueCalendarDays(value: Date, days: number) {
+  const parts = getPragueDateParts(value);
   const date = new Date(Date.UTC(parts.year, parts.month - 1, parts.day + days));
-  return pragueMidnight(date.getUTCFullYear(), date.getUTCMonth() + 1, date.getUTCDate());
+  return getPragueMidnight(date.getUTCFullYear(), date.getUTCMonth() + 1, date.getUTCDate());
+}
+
+export function getPragueCalendarDayCount(start: Date, end: Date) {
+  const startParts = getPragueDateParts(start);
+  const endParts = getPragueDateParts(end);
+  return Math.round((
+    Date.UTC(endParts.year, endParts.month - 1, endParts.day)
+    - Date.UTC(startParts.year, startParts.month - 1, startParts.day)
+  ) / 86_400_000);
+}
+
+export function usesMonthlyKpiBuckets(range: Pick<KpiDateRange, "start" | "end">) {
+  return getPragueCalendarDayCount(range.start, range.end) > 62;
+}
+
+function isCompletePragueCalendarMonth(range: Pick<KpiDateRange, "start" | "end">) {
+  const start = getPragueDateParts(range.start);
+  return range.start.getTime() === getPragueMidnight(start.year, start.month, 1).getTime()
+    && range.end.getTime() === getPragueMidnight(start.year, start.month + 1, 1).getTime();
 }
 
 function range(start: Date, end: Date, label: string, period: KpiPeriod): KpiDateRange {
@@ -43,32 +62,36 @@ export function getKpiDateRanges(input: unknown, now = new Date()) {
   const parsed = kpiSearchParamsSchema.safeParse(input);
   const params = parsed.success ? parsed.data : {};
   const period = params.period ?? "this_month";
-  const today = pragueParts(now);
-  const todayStart = pragueMidnight(today.year, today.month, today.day);
+  const today = getPragueDateParts(now);
+  const todayStart = getPragueMidnight(today.year, today.month, today.day);
   let current: KpiDateRange;
 
   if (period === "last_month") {
-    const start = pragueMidnight(today.year, today.month - 1, 1);
-    current = range(start, pragueMidnight(today.year, today.month, 1), "Minulý měsíc", period);
+    const start = getPragueMidnight(today.year, today.month - 1, 1);
+    current = range(start, getPragueMidnight(today.year, today.month, 1), "Minulý měsíc", period);
   } else if (period === "next_month") {
-    const start = pragueMidnight(today.year, today.month + 1, 1);
-    current = range(start, pragueMidnight(today.year, today.month + 2, 1), "Příští měsíc", period);
+    const start = getPragueMidnight(today.year, today.month + 1, 1);
+    current = range(start, getPragueMidnight(today.year, today.month + 2, 1), "Příští měsíc", period);
   } else if (period === "last_30_days") {
-    current = range(addPragueDays(todayStart, -29), addPragueDays(todayStart, 1), "Posledních 30 dní", period);
+    current = range(addPragueCalendarDays(todayStart, -29), addPragueCalendarDays(todayStart, 1), "Posledních 30 dní", period);
   } else if (period === "this_year") {
-    current = range(pragueMidnight(today.year, 1, 1), addPragueDays(todayStart, 1), "Tento rok", period);
+    current = range(getPragueMidnight(today.year, 1, 1), addPragueCalendarDays(todayStart, 1), "Tento rok", period);
   } else if (period === "custom" && params.dateFrom && params.dateTo) {
     const from = parseCalendarDate(params.dateFrom);
     const to = parseCalendarDate(params.dateTo);
-    const start = from ? pragueMidnight(from.year, from.month, from.day) : null;
-    const end = to ? addPragueDays(pragueMidnight(to.year, to.month, to.day), 1) : null;
-    current = start && end && end > start ? range(start, end, "Vlastní období", period) : range(pragueMidnight(today.year, today.month, 1), addPragueDays(todayStart, 1), "Tento měsíc", "this_month");
+    const start = from ? getPragueMidnight(from.year, from.month, from.day) : null;
+    const end = to ? addPragueCalendarDays(getPragueMidnight(to.year, to.month, to.day), 1) : null;
+    current = start && end && end > start ? range(start, end, "Vlastní období", period) : range(getPragueMidnight(today.year, today.month, 1), addPragueCalendarDays(todayStart, 1), "Tento měsíc", "this_month");
   } else {
-    current = range(pragueMidnight(today.year, today.month, 1), addPragueDays(todayStart, 1), "Tento měsíc", "this_month");
+    current = range(getPragueMidnight(today.year, today.month, 1), addPragueCalendarDays(todayStart, 1), "Tento měsíc", "this_month");
   }
 
-  const length = current.end.getTime() - current.start.getTime();
-  return { current, previous: range(new Date(current.start.getTime() - length), current.start, "Předchozí srovnatelné období", current.period) };
+  const calendarDays = getPragueCalendarDayCount(current.start, current.end);
+  const currentStart = getPragueDateParts(current.start);
+  const previousStart = isCompletePragueCalendarMonth(current)
+    ? getPragueMidnight(currentStart.year, currentStart.month - 1, 1)
+    : addPragueCalendarDays(current.start, -calendarDays);
+  return { current, previous: range(previousStart, current.start, "Předchozí srovnatelné období", current.period) };
 }
 
 export function getKpiPercentChange(value: number, previousValue: number) {
@@ -80,8 +103,8 @@ export function getKpiDateKey(value: Date, monthly: boolean) {
 }
 
 export function getKpiPeriodStart(value: Date, monthly: boolean) {
-  const parts = pragueParts(value);
-  return pragueMidnight(parts.year, parts.month, monthly ? 1 : parts.day);
+  const parts = getPragueDateParts(value);
+  return getPragueMidnight(parts.year, parts.month, monthly ? 1 : parts.day);
 }
 
 export function getKpiSeriesPeriodStarts(range: KpiDateRange, monthly: boolean) {
@@ -89,24 +112,24 @@ export function getKpiSeriesPeriodStarts(range: KpiDateRange, monthly: boolean) 
   let cursor = getKpiPeriodStart(range.start, monthly);
   while (cursor < range.end) {
     periods.push(cursor);
-    const parts = pragueParts(cursor);
+    const parts = getPragueDateParts(cursor);
     cursor = monthly
-      ? pragueMidnight(parts.year, parts.month + 1, 1)
-      : addPragueDays(cursor, 1);
+      ? getPragueMidnight(parts.year, parts.month + 1, 1)
+      : addPragueCalendarDays(cursor, 1);
   }
   return periods;
 }
 
 /** Interval očekávaných tržeb je průnik zvoleného období a budoucnosti. */
 export function getKpiExpectedRevenueRange(range: KpiDateRange, now = new Date()) {
-  const parts = pragueParts(now);
+  const parts = getPragueDateParts(now);
   let end = range.end;
 
   if (range.period === "this_month") {
-    end = pragueMidnight(parts.year, parts.month + 1, 1);
+    end = getPragueMidnight(parts.year, parts.month + 1, 1);
   }
   if (range.period === "this_year") {
-    end = pragueMidnight(parts.year + 1, 1, 1);
+    end = getPragueMidnight(parts.year + 1, 1, 1);
   }
 
   const start = new Date(Math.max(range.start.getTime(), now.getTime()));

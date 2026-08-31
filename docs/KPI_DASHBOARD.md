@@ -7,10 +7,10 @@ Tento dokument je stručný zdroj pravdy pro dashboard `/admin/statistiky` a jeh
 - Přístup mají přihlášené role `OWNER` a `SALON`; nepřihlášený uživatel je přesměrován na přihlášení.
 - Všechny intervaly používají aplikační časovou zónu `Europe/Prague` a tvar `[od, do)`.
 - Rezervace se do období řadí podle `scheduledStartsAt`, nikoli podle `createdAt`.
-- Rychlé filtry: `this_month`, `last_month`, `last_30_days`, `this_year`; vlastní období: `custom`.
+- Rychlé filtry: `this_month`, `last_month`, `next_month`, `last_30_days`, `this_year`; vlastní období: `custom`.
 - URL vlastního období: `?period=custom&dateFrom=YYYY-MM-DD&dateTo=YYYY-MM-DD`.
 - Rychlý filtr se přepočítá ihned. Datumová pole jsou vidět jen u vlastního období a změny se použijí až potvrzením.
-- Předchozí období bezprostředně předchází aktuálnímu a má stejnou délku.
+- Předchozí období bezprostředně předchází aktuálnímu a používá pražské kalendářní hranice. U celého kalendářního měsíce jde o předchozí celý měsíc, u ostatních rozsahů o stejný počet pražských kalendářních dní.
 - Retenční odkaz navíc používá `retention=8_11|12_15|16_plus` a referenční čas `retentionAt=<Unix ms>`.
 
 Implementace období: `kpi-date-range.ts`, `kpi-period-filter.tsx`.
@@ -31,7 +31,7 @@ Implementace období: `kpi-date-range.ts`, `kpi-period-filter.tsx`.
 - **Tržby:** součet historických cen rezervací ve stavu `COMPLETED`.
 - **Dokončené návštěvy:** počet rezervací ve stavu `COMPLETED`.
 - **Průměrná útrata:** tržby / počet dokončených návštěv; při nulovém počtu `0`.
-- **Neuhrazená částka:** součet `max(0, historická cena − suma BookingPayment.amountCzk)` pouze u dokončených návštěv.
+- **Neuhrazená částka:** součet `max(0, historická cena − neanulované platby − čerpání voucherů)` pouze u dokončených návštěv. Platby ve stavu `VOIDED` se ignorují.
 
 ### Klientky
 
@@ -68,16 +68,21 @@ Implementace: `kpi-expected-revenue.ts`.
 
 ### Obsazenost
 
-- Čas dokončených návštěv / čas slotů s aktuálním stavem `PUBLISHED`.
-- Používá skutečné překrytí intervalů rezervací a slotů s vybraným obdobím.
-- Historická obsazenost je orientační: model neuchovává úplnou historii publikace a opětovného uvolnění slotů.
-- Toto omezení je uvedeno v tooltipu karty.
+- Čas dokončených návštěv / fyzicky dostupný čas salonu; blokovaný úklidový čas (`blockedUntil`) fyzicky zabírá salon a je součástí návštěvy.
+- Fyzická kapacita je intervalová unie všech překrývajících se nebo navazujících slotů `PUBLISHED` a `ARCHIVED`, které byly alespoň jednou publikované. Replacement, split ani částečně překryté sloty proto stejný okamžik nezapočítají vícekrát.
+- Sloty i návštěvy se ořezávají na vybraný interval. Databázová kapacita je v PP Studio vynucená na hodnotu 1.
+- Dokončená rezervace s `isManual` nebo `manualOverride` doplní do denominatoru jen svůj skutečně odpracovaný interval, pokud už není pokryt historicky publikovanou dostupností. Celý `DRAFT` slot se automaticky nezahrnuje.
+- Auto-lunch se odečítá podle aktuálně dostupného globálního nastavení a denních override. Model neukládá historické snapshoty lunch policy, takže pozdější změna nastavení může změnit historický denominator; tooltip toto omezení uvádí a systém historickou policy nevymýšlí.
+- Clamp na 100 % zůstává pouze jako obranná pojistka. Standardní validní scénáře po sjednocení kapacity dosahují nejvýše 100 % i před clampem.
+
+Implementace: `kpi-occupancy.ts`, část obsazenosti v `kpi-dashboard.ts`.
 
 ## Grafy
 
 - „Vývoj tržeb“ a „Vývoj rezervací“ obsahují kompletní souvislou časovou řadu.
 - Oba grafy používají sloupce, protože zobrazují diskrétní součty za den nebo měsíc; nespojují body čárou, která by naznačovala neexistující průběžné hodnoty.
 - Rozsah do 62 kalendářních dní používá jeden bod za každý den; delší rozsah jeden bod za každý kalendářní měsíc.
+- Hranice 62 dní se počítá z pražských kalendářních dat, nikoli z absolutních 24hodinových intervalů, takže ji DST neposouvá.
 - Chybějící body mají nulové hodnoty.
 - Každý bod má ISO `periodStart`; řadí se podle něj chronologicky před vytvořením českého popisku.
 - Nespoléhá se na pořadí Prisma výsledků ani na lokalizovaný text.
@@ -139,15 +144,19 @@ Implementace: `kpi-acquisition.ts`.
   - `8_11`: 8–11 dokončených kalendářních týdnů,
   - `12_15`: 12–15 týdnů,
   - `16_plus`: 16 a více týdnů.
-- Budoucí aktivní rezervace pásmo nemění; klientka se v seznamu označí „Již objednaná“.
+- Budoucí aktivní rezervace pásmo nemění; klientský seznam u ní zobrazí termín další rezervace.
 - Kliknutí na kartu otevře klientský seznam se stejným pásmem i referenčním časem.
+- Explicitní retenční drill-down používá stejnou populaci jako dashboard a budoucí `PENDING` ani `CONFIRMED` rezervaci nevylučuje. Obecný pohled `view=outreach` bez retenčního pásma nadále znamená klientky bez budoucí rezervace vhodné k oslovení.
+- Dashboard i klientský seznam používají jediné pražské kalendářní hranice z `getRetentionBandDateBounds()`; SQL filtr nemá vlastní milisekundový výpočet týdnů.
 
 Implementace: `kpi-retention.ts`, retenční část `kpi-dashboard.ts`, `admin-clients.ts`.
 
 ## Porovnání KPI
 
 - Stavy: dostupné srovnání, skutečná předchozí nula, chybějící použitelná historie.
-- Při chybějících datech většiny metrik se zobrazí jedno společné upozornění; karty používají `—`.
+- Dostupnost srovnání se určuje po jednotlivých metrikách. Počty a tržby mají legitimní předchozí nulu; průměrná útrata a neuhrazená částka vyžadují předchozí dokončenou návštěvu, procentní míry svůj denominator a obsazenost předchozí fyzickou dostupnost.
+- Očekávané tržby nemají vypočtenou srovnatelnou předchozí hodnotu, proto je jejich comparison vždy nedostupný a nepoužívá falešnou nulu.
+- Při chybějících datech většiny metrik se zobrazí jedno společné upozornění; jednotlivé karty používají `—`.
 - Předchozí nula není chybějící údaj. Při růstu z nuly se zobrazí „Nově“ místo nekonečného procenta.
 - Nulový rozdíl se zobrazuje „Beze změny“.
 - U procentních KPI je relativní změna v `%`, absolutní rozdíl v `p. b.`.
@@ -209,16 +218,16 @@ Implementace testu: `kpi-consistency.test.ts`.
 Podle rozsahu spusťte nejmenší relevantní kontroly:
 
 ```bash
-node --import ./src/test/register-server-only.mjs --import tsx --test src/features/admin/lib/kpi-*.test.ts src/features/admin/lib/kpi-client-metrics.integration.test.ts
+node --import ./src/test/register-server-only.mjs --import tsx --test src/features/admin/lib/kpi-*.test.ts
 npm run typecheck
-npx eslint src/features/admin/components/admin-kpi-dashboard-page.tsx src/features/admin/components/kpi-period-filter.tsx src/features/admin/components/kpi-services-table.tsx src/features/admin/lib/kpi-*.ts
+npx eslint src/features/admin/components/admin-kpi-dashboard-page.tsx src/features/admin/lib/admin-clients.ts src/features/admin/lib/kpi-*.ts
 ```
 
 Při změně rout, filtru nebo responzivity navíc relevantní Playwright testy. Celý `npm test` a `npm run build` jsou nutné až při široké nebo rizikové změně či na výslovný požadavek.
 
 ## Známá omezení a další fáze
 
-- Historická obsazenost je orientační kvůli chybějící historii publikace slotů.
+- Historická obsazenost používá publikované a archivované intervaly, ale zůstává orientační kvůli chybějícím snapshotům historické auto-lunch policy.
 - Rezervace bez `clientId` nelze bezpečně zahrnout do klientských metrik.
 - Chybějící cenový snapshot nelze dopočítat z aktuálního ceníku bez zkreslení historie.
 - Dashboard zatím neobsahuje náklady kampaní, ROAS, marže, cohorty, predikce ani exporty, protože pro ně nejsou kompletní a spolehlivé vstupy.
