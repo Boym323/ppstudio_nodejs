@@ -15,7 +15,7 @@ async function loginAdmin(page: Page, email: string, password: string) {
   await page.getByLabel("E-mail").fill(email);
   await page.getByLabel("Heslo").fill(password);
   await page.getByRole("button", { name: "Přihlásit se" }).click();
-  await expect(page).toHaveURL(/\/admin/);
+  await expect(page).toHaveURL((url) => url.pathname === "/admin");
 }
 
 test.describe("administrační toky voucherů", () => {
