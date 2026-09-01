@@ -6,6 +6,12 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [3.26.2] - 2026-09-01
+
+### Změněno
+
+- Test webhooků Svix nyní vytváří časové razítko dynamicky, takže ověření zůstává stabilní i při běhu v různých časech.
+
 ## [3.26.1] - 2026-08-31
 
 ### Odstraněno
