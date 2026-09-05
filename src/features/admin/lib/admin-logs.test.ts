@@ -322,7 +322,7 @@ test("mobilní drawer zachová view a formuláře neposílají page", async () =
   assert.ok(source.includes('name="view" value={data.view}'));
   assert.ok(source.includes("buildAdminLogsSearchParams(data.view, data.filters)"));
   assert.ok(source.includes('value="availability">Dostupnost'));
-  assert.ok(source.includes("E-mailová fronta"));
+  assert.ok(source.includes("Technický stav e-mailové fronty"));
 });
 
 test("veřejný booking rate-limit používá vlastní atomické scopes", async () => {

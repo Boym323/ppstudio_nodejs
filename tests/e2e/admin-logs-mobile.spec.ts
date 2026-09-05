@@ -24,21 +24,20 @@ test.describe("mobilní Události a logy", () => {
   test.afterEach(async () => cleanupE2eData(runId));
 
   test("drawer, akce a technický panel fungují na 390×844", async ({ page }) => {
-    await expect(page.getByRole("heading", { name: "Události a logy" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Události" })).toBeVisible();
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
     await expect(page.getByRole("link", { name: "E-maily" })).toBeVisible();
     const filters = page.getByRole("button", { name: "Filtry" });
     await expect(filters).toBeVisible();
     await filters.click();
-    const dialog = page.getByRole("dialog", { name: "Filtry logů" });
+    const dialog = page.getByRole("dialog", { name: "Filtry událostí" });
     await expect(dialog).toBeVisible();
     const apply = dialog.getByRole("button", { name: "Použít filtry" });
     await expect(apply).toBeInViewport();
     await page.keyboard.press("Escape");
     await expect(dialog).toHaveCount(0);
     await expect(filters).toBeFocused();
-    await expect(page.getByRole("button", { name: "Zkusit znovu" })).toBeVisible();
-    const technical = page.locator("details", { hasText: "E-mailová fronta" });
-    await expect(technical).not.toHaveAttribute("open", "");
+    await expect(page.getByRole("button", { name: "Zopakovat odeslání" })).toBeVisible();
+    await expect(page.getByText("Doručování")).toBeVisible();
   });
 });
