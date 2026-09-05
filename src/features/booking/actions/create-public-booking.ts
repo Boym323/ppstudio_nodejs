@@ -24,7 +24,7 @@ import {
   publicBookingErrorCodes,
 } from "@/features/booking/lib/booking-public";
 import { type PublicBookingActionState } from "@/features/booking/actions/public-booking-action-state";
-import { sendOwnerSystemErrorPushover } from "@/lib/notifications/pushover";
+import { sendOwnerPublicBookingRateLimitPushover, sendOwnerSystemErrorPushover } from "@/lib/notifications/pushover";
 
 const availabilityRefreshMessage =
   "Tento termín byl mezitím obsazen. Nabídku jsme aktualizovali, vyberte prosím jiný čas.";
@@ -191,15 +191,16 @@ export async function createPublicBookingAction(
       },
     });
 
-    await sendOwnerSystemErrorPushover({
-      title: "PP Studio - omezeny pocet pokusu o rezervaci",
-      message: "Verejny formular rezervace narazil na rate limit.",
-      context: {
-        contextId: submissionMetadata.ipHash ?? "public-booking-rate-limited",
+    const rateLimitSourceHash = submissionMetadata.ipHash ?? emailHash;
+
+    if (rateLimitSourceHash) {
+      await sendOwnerPublicBookingRateLimitPushover({
+        sourceHash: rateLimitSourceHash,
+        sourceKind: submissionMetadata.ipHash ? "ip" : "email",
         ipAttempts,
         emailFailures,
-      },
-    });
+      });
+    }
 
     await releaseAtomicRateLimitReservation(emailRateLimit.reservationId);
 

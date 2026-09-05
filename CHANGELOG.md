@@ -6,6 +6,10 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+### Opraveno
+
+- Pushover upozornění na blokace veřejného rezervačního formuláře nyní používají perzistentní atomický cooldown 10 minut pro konkrétní hash zdroje; opakované blokace se dál zapisují do `BookingSubmissionLog`, ale nezaplňují notifikace duplicitními zprávami.
+
 ## [3.26.2] - 2026-09-01
 
 ### Změněno

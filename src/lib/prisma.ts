@@ -21,6 +21,7 @@ function hasRequiredDelegates(client: PrismaClient) {
     emailProviderWebhookEvent?: unknown;
     mediaCollectionItem?: unknown;
     serviceMedia?: unknown;
+    pushoverNotificationCooldown?: unknown;
   };
 
   return Boolean(
@@ -30,7 +31,8 @@ function hasRequiredDelegates(client: PrismaClient) {
     && candidate.siteSettingsChangeLog
     && candidate.emailProviderWebhookEvent
     && candidate.mediaCollectionItem
-    && candidate.serviceMedia,
+    && candidate.serviceMedia
+    && candidate.pushoverNotificationCooldown,
   );
 }
 

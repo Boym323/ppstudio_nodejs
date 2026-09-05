@@ -856,6 +856,18 @@ model RateLimitReservation {
   @@index([expiresAt])
 }
 
+model PushoverNotificationCooldown {
+  id         String   @id @default(cuid())
+  eventType  String
+  sourceHash String
+  lastSentAt DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([eventType, sourceHash])
+  @@index([lastSentAt])
+}
+
 model Setting {
   id              String     @id @default(cuid())
   key             String     @unique

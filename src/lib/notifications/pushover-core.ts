@@ -3,6 +3,11 @@ import { AdminRole } from "@/generated/prisma/browser";
 import { env } from "@/config/env";
 import { formatBookingCalendarDate, formatBookingTimeRange } from "@/features/booking/lib/booking-format";
 import { prisma } from "@/lib/prisma";
+import {
+  claimPushoverNotificationCooldown,
+  PUBLIC_BOOKING_RATE_LIMIT_COOLDOWN_MS,
+  PUBLIC_BOOKING_RATE_LIMIT_NOTIFICATION_TYPE,
+} from "@/lib/notifications/pushover-cooldown";
 
 export type PushoverEventType =
   | "NEW_BOOKING"
@@ -12,7 +17,8 @@ export type PushoverEventType =
   | "BOOKING_RESCHEDULED"
   | "EMAIL_FAILED"
   | "REMINDER_FAILED"
-  | "SYSTEM_ERROR";
+  | "SYSTEM_ERROR"
+  | "PUBLIC_BOOKING_RATE_LIMITED";
 
 export type OwnerPushoverInput = {
   type: PushoverEventType;
@@ -138,6 +144,8 @@ function isEventEnabled(
     case "REMINDER_FAILED":
       return settings.notifyReminderFailed;
     case "SYSTEM_ERROR":
+      return settings.notifySystemErrors;
+    case "PUBLIC_BOOKING_RATE_LIMITED":
       return settings.notifySystemErrors;
   }
 }
@@ -336,6 +344,83 @@ export async function sendOwnerSystemErrorPushover(input: OwnerSystemErrorPushov
     priority: input.priority ?? 1,
     context: input.context,
   });
+}
+
+export function buildOwnerPublicBookingRateLimitPushover(input: {
+  sourceHash: string;
+  sourceKind: "ip" | "email";
+  ipAttempts?: number;
+  emailFailures?: number;
+}): OwnerPushoverInput {
+  const diagnostics = [
+    input.ipAttempts !== undefined ? `Pokusy v okně: ${input.ipAttempts}` : null,
+    input.emailFailures !== undefined ? `Selhání e-mailového limitu: ${input.emailFailures}` : null,
+  ].filter((line): line is string => line !== null);
+
+  return {
+    type: "PUBLIC_BOOKING_RATE_LIMITED",
+    title: "PP Studio – rate limit rezervací",
+    message: [
+      "Veřejný rezervační formulář zablokoval zvýšený počet požadavků z jednoho zdroje.",
+      `Zdroj: ${input.sourceHash.slice(0, 12)}`,
+      `Ochrana: ${input.sourceKind === "ip" ? "IP rate limit" : "e-mail rate limit"}`,
+      ...diagnostics,
+      "Další stejné upozornění bude potlačeno 10 minut.",
+    ].join("\n"),
+    priority: 0,
+    context: {
+      contextId: input.sourceHash,
+      sourceHash: input.sourceHash,
+      sourceKind: input.sourceKind,
+      ipAttempts: input.ipAttempts ?? null,
+      emailFailures: input.emailFailures ?? null,
+    },
+  };
+}
+
+export type PublicBookingRateLimitPushoverDependencies = {
+  isConfigured?: () => boolean;
+  claimCooldown?: typeof claimPushoverNotificationCooldown;
+  sendPushover?: (input: OwnerPushoverInput) => Promise<void>;
+};
+
+export async function sendOwnerPublicBookingRateLimitPushover(
+  input: {
+    sourceHash: string;
+    sourceKind: "ip" | "email";
+    ipAttempts?: number;
+    emailFailures?: number;
+    now?: Date;
+  },
+  dependencies: PublicBookingRateLimitPushoverDependencies = {},
+) {
+  try {
+    const isConfigured = dependencies.isConfigured ?? (() => isPushoverGloballyEnabled() && hasPushoverAppToken());
+
+    if (!isConfigured()) {
+      return;
+    }
+
+    const claimCooldown = dependencies.claimCooldown ?? claimPushoverNotificationCooldown;
+    const claimed = await claimCooldown({
+      eventType: PUBLIC_BOOKING_RATE_LIMIT_NOTIFICATION_TYPE,
+      sourceHash: input.sourceHash,
+      cooldownMs: PUBLIC_BOOKING_RATE_LIMIT_COOLDOWN_MS,
+      now: input.now,
+    });
+
+    if (!claimed) {
+      return;
+    }
+
+    const sendPushover = dependencies.sendPushover ?? sendOwnerPushover;
+    await sendPushover(buildOwnerPublicBookingRateLimitPushover(input));
+  } catch (error) {
+    console.error("Owner public booking rate-limit Pushover notification failed", {
+      sourceHash: input.sourceHash,
+      error,
+    });
+  }
 }
 
 function getBookingTitle(type: BookingPushoverEventType) {
