@@ -43,6 +43,8 @@ type AdminBookingStatusFormProps = {
   directPaidCzk?: number;
   voucherPaidCzk?: number;
   overpaidCzk?: number;
+  paymentDetailsHref?: string;
+  onSuccess?: (message: string) => void;
 };
 
 export function AdminBookingStatusForm({
@@ -58,6 +60,8 @@ export function AdminBookingStatusForm({
   directPaidCzk = 0,
   voucherPaidCzk = 0,
   overpaidCzk = 0,
+  paymentDetailsHref = "#booking-voucher",
+  onSuccess,
 }: AdminBookingStatusFormProps) {
   const operationalActions = availableActions.filter(
     (action) => action.value !== "CANCELLED",
@@ -72,7 +76,11 @@ export function AdminBookingStatusForm({
     DEFAULT_ADMIN_BOOKING_NOTIFY_CLIENT,
   );
   const [serverState, formAction] = useActionState(
-    updateBookingStatusAction,
+    async (...args: Parameters<typeof updateBookingStatusAction>) => {
+      const result = await updateBookingStatusAction(...args);
+      if (result.status === "success") onSuccess?.(result.successMessage ?? "Rezervace potvrzena.");
+      return result;
+    },
     initialUpdateBookingStatusActionState,
   );
   const [completionIdempotencyKey, setCompletionIdempotencyKey] =
@@ -86,6 +94,7 @@ export function AdminBookingStatusForm({
 
       if (result.status === "success") {
         setCompletionIdempotencyKey(createIdempotencyKey());
+        onSuccess?.(result.successMessage ?? "Návštěva dokončena.");
       }
 
       return result;
@@ -376,7 +385,7 @@ export function AdminBookingStatusForm({
           <p className="mt-1 text-xs text-white/52">
             Potřebuješ ruční opravu plateb nebo detailní rozpad? Použij sekci{" "}
             <a
-              href="#booking-voucher"
+              href={paymentDetailsHref}
               className="underline underline-offset-2 hover:text-white"
             >
               Úhrada

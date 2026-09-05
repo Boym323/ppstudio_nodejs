@@ -83,6 +83,7 @@ function BookingDetailHeader({
   );
   const hasClientNote = Boolean(data.clientNote?.trim());
   const hasInternalNote = Boolean(data.internalNote?.trim());
+  const clientHref = `${getAdminSectionPath(data.area, "klienti")}/${data.clientId}`;
 
   return (
     <section
@@ -148,8 +149,13 @@ function BookingDetailHeader({
               ? "Detail rezervace"
               : "Provozní detail rezervace"}
           </p>
-          <h1 className="font-display text-[1.18rem] leading-tight text-white sm:text-[1.34rem]">
-            {data.clientName}
+          <h1 className="font-display text-[1.18rem] leading-tight sm:text-[1.34rem]">
+            <Link
+              href={clientHref}
+              className="text-white transition hover:text-[var(--color-accent-soft)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/55"
+            >
+              {data.clientName}
+            </Link>
           </h1>
           <p className="text-sm text-white/72">
             {data.serviceName}
@@ -276,9 +282,10 @@ function BookingActionPanel({
 }
 
 function BookingSummaryCard({ data }: { data: AdminBookingDetailData }) {
+  const clientHref = `${getAdminSectionPath(data.area, "klienti")}/${data.clientId}`;
   const items = [
     { label: "Stav", value: data.statusLabel, tone: "accent" as const },
-    { label: "Klientka", value: data.clientName },
+    { label: "Klientka", value: data.clientName, href: clientHref, tone: "strong" as const },
     {
       label: "Telefon",
       value: data.clientPhone,

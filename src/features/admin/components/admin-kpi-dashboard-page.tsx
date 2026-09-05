@@ -1,5 +1,8 @@
 import Link from "next/link";
 
+import { AnalyticsWidget } from "@/components/admin/AnalyticsWidget";
+import { env } from "@/config/env";
+
 import { BookingTrendChart, ClientMixChart, RevenueTrendChart } from "@/features/admin/components/admin-kpi-charts";
 import { AdminPanel, AdminPageShell } from "@/features/admin/components/admin-page-shell";
 import { KpiPeriodFilter } from "@/features/admin/components/kpi-period-filter";
@@ -65,6 +68,7 @@ export function AdminKpiDashboardPage({ data, area }: { data: KpiDashboardData; 
     <section className="grid gap-4 xl:grid-cols-2"><AdminPanel title="Nejvýdělečnější služby" description="Cena a skutečně rezervovaný čas dokončených návštěv." compact denseHeader><div className="pt-4"><KpiServicesTable services={data.services} /></div></AdminPanel><AdminPanel title="Nové vs. vracející se klientky" description={`Vracející se klientka měla alespoň jednu dokončenou návštěvu už před vybraným obdobím. Stav k ${new Intl.DateTimeFormat("cs-CZ", { dateStyle: "medium", timeZone: "Europe/Prague" }).format(data.retentionReference)}.`} compact denseHeader><ClientMixChart newClients={data.clientMix.newClients} returningClients={data.clientMix.returningClients} /><div className="mt-5"><h3 className="text-sm font-semibold text-white">Klientky podle doby od poslední návštěvy</h3><p className="mt-1 text-xs text-white/60">Kliknutím otevřete odpovídající seznam klientek.</p><div className="mt-3 space-y-2">{data.retention.map((item) => <Link key={item.band} href={item.href} className="flex items-center justify-between rounded-xl border border-white/10 px-3 py-3 text-sm hover:border-[var(--color-accent)]/40"><span>{item.label}</span><span className="font-display text-xl">{number.format(item.count)}</span></Link>)}</div></div></AdminPanel></section>
     <TablePanel title="Odkud přicházejí rezervace" description="Souhrn podle zdroje a plánovaného data návštěvy. Objednaná hodnota zahrnuje všechny rezervace, tržby pouze dokončené návštěvy." headers={["Zdroj", "Rezervace", "Dokončeno", "Objednaná hodnota", "Tržby z dokončených", "Průměr na rezervaci"]} empty="Pro vybrané období nejsou dostupná data o zdrojích rezervací." rows={data.acquisition.summary.map((row) => [row.source, number.format(row.bookings), number.format(row.completed), money.format(row.bookingValue), money.format(row.revenue), money.format(row.averageValue)])} />
     <TablePanel title="Podrobnosti zdrojů a kampaní" description="Podrobnější rozpad podle zdroje, typu návštěvnosti a kampaně; rezervace jsou zařazené podle plánovaného data návštěvy." headers={["Zdroj", "Typ návštěvnosti", "Kampaň", "Rezervace", "Dokončeno", "Objednaná hodnota", "Tržby z dokončených", "Průměr na rezervaci"]} empty="Pro vybrané období nejsou dostupná data o zdrojích rezervací." rows={data.acquisition.detail.map((row) => [row.source, row.medium, row.campaign, number.format(row.bookings), number.format(row.completed), money.format(row.bookingValue), money.format(row.revenue), money.format(row.averageValue)])} />
+    <AnalyticsWidget enabled={Boolean(env.MATOMO_URL && env.MATOMO_SITE_ID && env.MATOMO_AUTH_TOKEN)} />
   </AdminPageShell>;
 }
 function formatInputDate(value: Date) { return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Prague", year: "numeric", month: "2-digit", day: "2-digit" }).format(value); }

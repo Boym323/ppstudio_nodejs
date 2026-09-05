@@ -1,7 +1,6 @@
 import Link from "next/link";
 
-import { AnalyticsWidget } from "@/components/admin/AnalyticsWidget";
-import { env } from "@/config/env";
+import { DashboardBookingAction } from "./dashboard-booking-action";
 import { cn } from "@/lib/utils";
 
 import { type AdminDashboardData } from "../lib/admin-dashboard";
@@ -249,16 +248,11 @@ function getCompactCurrentStatus(value: string) {
 }
 
 export function DashboardPage({ data }: DashboardPageProps) {
-  const analyticsEnabled = Boolean(
-    env.MATOMO_URL && env.MATOMO_SITE_ID && env.MATOMO_AUTH_TOKEN,
-  );
-
   return (
     <div className="mx-auto min-h-[calc(100dvh-3rem)] max-w-[1600px] px-0.5 py-0.5 sm:px-1 sm:py-1 lg:px-1">
       <div className="space-y-4">
         <DashboardTodayHero data={data} />
         <DashboardAttentionAlert data={data} />
-        <DashboardKpiGrid data={data} />
 
         <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)]">
           <div className="min-w-0 space-y-4">
@@ -266,7 +260,7 @@ export function DashboardPage({ data }: DashboardPageProps) {
             <DashboardAvailableSlots data={data} />
           </div>
 
-          <RightSidebar data={data} analyticsEnabled={analyticsEnabled} />
+          <RightSidebar data={data} />
         </div>
       </div>
     </div>
@@ -306,9 +300,9 @@ export function DashboardTodayHero({ data }: DashboardPageProps) {
                     Další rezervace
                   </span>
                   <span className="block truncate text-sm font-medium text-white">
-                    {data.nextClient.timeRangeLabel} · {data.nextClient.serviceName}
+                    {data.nextClient.timeRangeLabel} · {data.nextClient.clientName}
                   </span>
-                  <span className="block truncate text-xs text-white/52">{data.nextClient.clientName}</span>
+                  <span className="block truncate text-xs text-white/52">{data.nextClient.serviceName}</span>
                 </span>
                 <span className="text-xs font-semibold text-[var(--color-accent-soft)]">Otevřít</span>
               </Link>
@@ -466,34 +460,20 @@ function AlertCard({
         <Link
           href={href}
           className={cn(
-            "inline-flex min-h-8 w-fit shrink-0 items-center justify-center rounded-md border border-current/20 px-2.5 py-1 text-xs font-semibold text-current transition hover:bg-black/10",
+            "inline-flex min-h-11 w-fit items-center justify-center rounded-md border border-current/20 px-3 py-2 text-sm font-semibold text-current transition hover:bg-black/10",
             priority === "primary" && "sm:min-w-[6.5rem]",
           )}
         >
-          {alertActionLabel(actionLabel)}
+          {actionLabel}
         </Link>
       </div>
     </article>
   );
 }
 
-function alertActionLabel(label: string) {
-  if (label.includes("dostupnost")) {
-    return "Dostupnost";
-  }
-
-  if (label.includes("e-mail")) {
-    return "E-mail logy";
-  }
-
-  if (label.includes("rezervace")) {
-    return "Rezervace";
-  }
-
-  return label;
-}
-
 export function DashboardTodayTimelineSection({ data }: DashboardPageProps) {
+  const activeItems = data.todayPlanItems.filter((item) => !item.isCompleted);
+  const completedItems = data.todayPlanItems.filter((item) => item.isCompleted);
   return (
     <Card className="overflow-hidden">
       <div className="border-b border-white/7 px-4 py-3">
@@ -507,72 +487,17 @@ export function DashboardTodayTimelineSection({ data }: DashboardPageProps) {
 
       {data.todayPlanItems.length > 0 ? (
         <div className="px-3 py-1.5 sm:px-4">
-          {data.todayPlanItems.map((item, index) => (
-            <article
-              key={item.id}
-              className={cn(
-                "grid min-h-14 gap-2 rounded-lg px-2.5 py-2.5 sm:px-3 md:grid-cols-[112px_minmax(0,1fr)_auto] md:items-center",
-                index < data.todayPlanItems.length - 1 && "border-b border-white/5",
-                item.isCurrent && "border border-[var(--color-accent)]/24 bg-[rgba(190,160,120,0.10)]",
-                item.isCompleted && "opacity-68",
-              )}
-            >
-              <Link
-                href={item.href}
-                className="text-sm font-semibold tracking-[0.02em] text-white/82 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/55"
-              >
-                {item.timeLabel}
-              </Link>
-              <div className="min-w-0">
-                <Link
-                  href={item.href}
-                  className="block rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/55"
-                >
-                  <p className="truncate text-[15px] font-medium text-white">{item.serviceName}</p>
-                  <p className="truncate text-xs text-white/50">{item.clientName}</p>
-                </Link>
-                {item.notes.length > 0 ? (
-                  <div className="mt-1 space-y-0.5">
-                    {item.notes.map((note) => (
-                      <details key={note.label} className="text-xs leading-5 text-white/58">
-                        <summary className="cursor-pointer truncate font-medium text-white/72">
-                          {note.label}: {note.value}
-                        </summary>
-                        <p className="mt-1 whitespace-pre-wrap break-words pl-2">{note.value}</p>
-                      </details>
-                    ))}
-                  </div>
-                ) : null}
-                <div className="mt-2">
-                  <DashboardContactActions
-                    phoneHref={item.phoneHref}
-                    emailHref={item.emailHref}
-                    compact
-                  />
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <span
-                  className={cn(
-                    "rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em]",
-                    item.isCompleted
-                      ? "border-emerald-300/18 bg-emerald-400/7 text-emerald-100/70"
-                      : item.isCurrent
-                        ? "border-[var(--color-accent)]/35 bg-[rgba(190,160,120,0.14)] text-[var(--color-accent-soft)]"
-                        : "border-violet-400/25 bg-violet-400/10 text-violet-200",
-                  )}
-                >
-                  {item.statusLabel}
-                </span>
-                <Link
-                  href={item.href}
-                  className="text-sm font-medium text-[var(--color-accent-soft)] transition hover:text-white"
-                >
-                  Otevřít
-                </Link>
-              </div>
-            </article>
-          ))}
+          {activeItems.length > 0 ? activeItems.map((item) => (
+            <DashboardBookingRow key={item.id} area={data.area} item={item} />
+          )) : <p className="px-3 py-4 text-sm text-white/72">Všechny dnešní návštěvy jsou dokončené.</p>}
+          {completedItems.length > 0 ? (
+            <details className="border-t border-white/8">
+              <summary className="min-h-11 cursor-pointer px-3 py-3 text-sm font-medium text-white/72">
+                Dokončeno dnes · {completedItems.length}
+              </summary>
+              {completedItems.map((item) => <DashboardBookingRow key={item.id} area={data.area} item={item} />)}
+            </details>
+          ) : null}
         </div>
       ) : (
         <div className="px-4 py-5">
@@ -595,41 +520,84 @@ export function DashboardTodayTimelineSection({ data }: DashboardPageProps) {
   );
 }
 
-export function DashboardKpiGrid({ data }: DashboardPageProps) {
+function DashboardBookingRow({ area, item }: {
+  area: AdminDashboardData["area"];
+  item: AdminDashboardData["todayPlanItems"][number];
+}) {
   return (
-    <Card className="grid gap-0 overflow-hidden sm:grid-cols-2 xl:grid-cols-4">
-      {data.kpis.map((item, index) => (
-        <article
-          key={item.label}
+    <article
+      key={item.id}
+      className={cn(
+        "grid min-h-14 gap-2 rounded-lg px-2.5 py-2.5 sm:px-3 md:grid-cols-[112px_minmax(0,1fr)_auto] md:items-center",
+        "border-b border-white/5 last:border-b-0",
+        item.isCurrent && "border border-[var(--color-accent)]/24 bg-[rgba(190,160,120,0.10)]",
+        item.isCompleted && "opacity-68",
+      )}
+    >
+      <Link
+        href={item.href}
+        className="text-sm font-semibold tracking-[0.02em] text-white/82 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/55"
+      >
+        {item.timeLabel}
+      </Link>
+      <div className="min-w-0">
+        <Link
+          href={item.href}
+          className="block rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/55"
+        >
+          <p className="truncate text-[15px] font-medium text-white">{item.clientName}</p>
+          <p className="truncate text-xs text-white/50">{item.serviceName}</p>
+        </Link>
+        {item.notes.length > 0 ? (
+          <div className="mt-1 space-y-0.5">
+            {item.notes.map((note) => (
+              <details key={note.label} className="text-xs leading-5 text-white/58">
+                <summary className="cursor-pointer truncate font-medium text-white/72">
+                  {note.label}: {note.value}
+                </summary>
+                <p className="mt-1 whitespace-pre-wrap break-words pl-2">{note.value}</p>
+              </details>
+            ))}
+          </div>
+        ) : null}
+        <div className="mt-2">
+          <DashboardContactActions
+            phoneHref={item.phoneHref}
+            emailHref={item.emailHref}
+            compact
+          />
+        </div>
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <span
           className={cn(
-            "border-white/7 px-4 py-3",
-            index < data.kpis.length - 1 && "border-b",
-            index % 2 === 1 && "sm:border-l",
-            index > 1 && "sm:border-b-0",
-            index > 0 && "xl:border-l",
-            "xl:border-b-0",
+            "rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em]",
+            item.isCompleted
+              ? "border-emerald-300/18 bg-emerald-400/7 text-emerald-100/70"
+              : item.isCurrent
+                ? "border-[var(--color-accent)]/35 bg-[rgba(190,160,120,0.14)] text-[var(--color-accent-soft)]"
+                : "border-violet-400/25 bg-violet-400/10 text-violet-200",
           )}
         >
-          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/60">
-            {item.label}
-          </p>
-          <p className="mt-1 text-xl font-semibold text-white/88">{item.value}</p>
-          <p className="mt-0.5 text-xs text-white/60">{item.detail}</p>
-        </article>
-      ))}
-    </Card>
+          {item.statusLabel}
+        </span>
+        {item.primaryAction ? <DashboardBookingAction area={area} item={item} /> : null}
+        <Link
+          href={item.href}
+          className="inline-flex min-h-11 items-center text-sm font-medium text-[var(--color-accent-soft)] transition hover:text-white"
+        >
+          Otevřít
+        </Link>
+      </div>
+    </article>
   );
 }
 
-export function RightSidebar({
-  data,
-  analyticsEnabled,
-}: DashboardPageProps & { analyticsEnabled: boolean }) {
+export function RightSidebar({ data }: DashboardPageProps) {
   return (
     <aside aria-label="Rychlé přehledy" className="space-y-4 xl:sticky xl:top-4">
       <DashboardQuickActions data={data} />
       <DashboardWeekSummary data={data} />
-      <AnalyticsWidget enabled={analyticsEnabled} />
     </aside>
   );
 }
@@ -744,28 +712,13 @@ export function DashboardQuickActions({ data }: DashboardPageProps) {
               <DashboardIcon name={action.icon} className="size-4" />
             </span>
             <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-white">{quickActionLabel(action.id)}</p>
+              <p className="text-sm font-semibold text-white">{action.label}</p>
             </div>
           </Link>
         ))}
       </div>
     </Card>
   );
-}
-
-function quickActionLabel(id: string) {
-  switch (id) {
-    case "bookings":
-      return "Rezervace";
-    case "availability":
-      return "Dostupnost";
-    case "clients":
-      return "Klienti";
-    case "vouchers":
-      return "Vouchery";
-    default:
-      return "Otevřít";
-  }
 }
 
 export function DashboardWeekSummary({ data }: DashboardPageProps) {
@@ -795,49 +748,15 @@ function SummaryRow({ label, value }: { label: string; value: string }) {
 
 export function DashboardPageSkeleton() {
   return (
-    <div className="mx-auto min-h-[calc(100dvh-3rem)] max-w-[1600px] animate-pulse px-0.5 py-0.5 sm:px-1 sm:py-1 lg:px-1">
-      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_320px] 2xl:grid-cols-[minmax(0,1fr)_336px]">
-        <main className="min-w-0 space-y-6">
-          <div className="rounded-[1.65rem] border border-white/7 bg-zinc-900/88 p-6">
-            <div className="h-5 w-28 rounded-full bg-white/10" />
-            <div className="mt-5 h-16 w-36 rounded-2xl bg-white/10" />
-            <div className="mt-4 h-4 w-64 rounded-full bg-white/10" />
-            <div className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-              {Array.from({ length: 4 }).map((_, index) => (
-                <div key={index} className="h-20 rounded-[1rem] bg-white/8" />
-              ))}
-            </div>
-          </div>
-
-          <div className="h-24 rounded-[1.65rem] border border-white/7 bg-zinc-900/88" />
-
-          <div className="rounded-[1.65rem] border border-white/7 bg-zinc-900/88">
-            <div className="h-24 border-b border-white/7 bg-white/[0.02]" />
-            <div className="space-y-0">
-              {Array.from({ length: 5 }).map((_, index) => (
-                <div
-                  key={index}
-                  className={cn(
-                    "grid gap-4 px-5 py-5 md:grid-cols-[132px_minmax(0,1fr)_auto]",
-                    index < 4 && "border-b border-white/5",
-                  )}
-                >
-                  <div className="h-6 rounded-full bg-white/8" />
-                  <div className="space-y-2">
-                    <div className="h-5 rounded-full bg-white/8" />
-                    <div className="h-4 w-2/3 rounded-full bg-white/8" />
-                  </div>
-                  <div className="h-10 w-40 rounded-full bg-white/8" />
-                </div>
-              ))}
-            </div>
-          </div>
-        </main>
-
-        <aside aria-label="Načítání rychlých přehledů" className="space-y-5">
-          <div className="h-72 rounded-[1.65rem] border border-white/7 bg-zinc-900/88" />
-          <div className="h-80 rounded-[1.65rem] border border-white/7 bg-zinc-900/88" />
-        </aside>
+    <div className="animate-pulse space-y-4" aria-label="Načítání přehledu">
+      <div className="h-32 rounded-[1.05rem] bg-white/8" />
+      <div className="h-20 rounded-[1.05rem] bg-white/8" />
+      <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)]">
+        <div className="space-y-4">
+          <div className="h-96 rounded-[1.05rem] bg-white/8" />
+          <div className="h-48 rounded-[1.05rem] bg-white/8" />
+        </div>
+        <div className="h-56 rounded-[1.05rem] bg-white/8" />
       </div>
     </div>
   );

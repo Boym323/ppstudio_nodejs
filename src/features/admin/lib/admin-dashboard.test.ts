@@ -188,3 +188,77 @@ test("buildUpcomingFreeWindows respects cleanup blocking and merges adjacent fre
     }],
   );
 });
+
+test("dashboard nabízí potvrzení a úhradu jen v povoleném stavu a zachová neuzavřené návštěvy", async (t) => {
+  const { getAdminDashboardData } = await import("./admin-dashboard");
+  const { prisma } = await import("@/lib/prisma");
+  const now = Date.now();
+  const booking = (id: string, status: BookingStatus, startMinutes: number, endMinutes: number) => ({
+    id, status,
+    scheduledStartsAt: new Date(now + startMinutes * 60_000),
+    scheduledEndsAt: new Date(now + endMinutes * 60_000),
+    serviceNameSnapshot: "Kosmetika", clientNameSnapshot: "Jana Nováková",
+    clientPhoneSnapshot: "+420777123456", clientEmailSnapshot: "jana@example.com",
+    clientNote: null, internalNote: null,
+  });
+  const bookings = [
+    booking("completed", BookingStatus.COMPLETED, -180, -120),
+    booking("overdue", BookingStatus.CONFIRMED, -100, -40),
+    booking("current", BookingStatus.CONFIRMED, -10, 50),
+    booking("pending", BookingStatus.PENDING, 60, 120),
+    booking("future", BookingStatus.CONFIRMED, 130, 190),
+  ];
+  const originalBookingFindMany = prisma.booking.findMany;
+  const originalBookingCount = prisma.booking.count;
+  const originalEmailCount = prisma.emailLog.count;
+  const originalSlotFindMany = prisma.availabilitySlot.findMany;
+  const originalSlotCount = prisma.availabilitySlot.count;
+  t.after(() => {
+    prisma.booking.findMany = originalBookingFindMany;
+    prisma.booking.count = originalBookingCount;
+    prisma.emailLog.count = originalEmailCount;
+    prisma.availabilitySlot.findMany = originalSlotFindMany;
+    prisma.availabilitySlot.count = originalSlotCount;
+  });
+  prisma.booking.findMany = (async (args: { select: { id?: boolean } }) => args.select.id ? bookings : []) as unknown as typeof prisma.booking.findMany;
+  prisma.booking.count = (async () => 1) as typeof prisma.booking.count;
+  prisma.emailLog.count = (async () => 1) as typeof prisma.emailLog.count;
+  prisma.availabilitySlot.findMany = (async () => []) as typeof prisma.availabilitySlot.findMany;
+  prisma.availabilitySlot.count = (async () => 0) as typeof prisma.availabilitySlot.count;
+
+  for (const area of ["owner", "salon"] as const) {
+    const data = await getAdminDashboardData(area);
+    assert.deepEqual(data.todayPlanItems.map(({ id, primaryAction, isCompleted }) => ({ id, primaryAction, isCompleted })), [
+      { id: "completed", primaryAction: null, isCompleted: true },
+      { id: "overdue", primaryAction: "COMPLETED", isCompleted: false },
+      { id: "current", primaryAction: null, isCompleted: false },
+      { id: "pending", primaryAction: "CONFIRMED", isCompleted: false },
+      { id: "future", primaryAction: null, isCompleted: false },
+    ]);
+    const base = area === "owner" ? "/admin" : "/admin/provoz";
+    assert.equal(data.todayPlanItems[1].href, `${base}/rezervace/overdue`);
+    assert.equal(data.quickActions.find((item) => item.id === "vouchers")?.href, `${base}/vouchery/novy`);
+    assert.equal(data.alerts.find((item) => item.id === "email-failures")?.href, `${base}/logy?view=attention&source=email`);
+  }
+});
+
+test("rychlá akce odmítne neplatný vstup a bez přihlášení nečte rezervaci", async (t) => {
+  const { getDashboardBookingAction } = await import("../actions/dashboard-booking-action");
+  const { prisma } = await import("@/lib/prisma");
+  const originalFindUnique = prisma.booking.findUnique;
+  let reads = 0;
+  t.after(() => { prisma.booking.findUnique = originalFindUnique; });
+  prisma.booking.findUnique = (async () => { reads += 1; return null; }) as unknown as typeof prisma.booking.findUnique;
+
+  for (const input of [
+    { area: "owner", bookingId: "", action: "COMPLETED" },
+    { area: "owner", bookingId: "booking", action: "CANCELLED" },
+    { area: "invalid", bookingId: "booking", action: "CONFIRMED" },
+  ]) {
+    assert.equal(await getDashboardBookingAction(input as Parameters<typeof getDashboardBookingAction>[0]), null);
+  }
+  for (const area of ["owner", "salon"] as const) {
+    await assert.rejects(() => getDashboardBookingAction({ area, bookingId: "booking", action: "COMPLETED" }));
+  }
+  assert.equal(reads, 0);
+});

@@ -47,6 +47,7 @@ export type AdminBookingDetailData = {
   createdAtLabel: string;
   updatedAtLabel: string;
   clientName: string;
+  clientId: string;
   clientEmail: string;
   clientPhone: string;
   serviceId: string;
@@ -461,6 +462,7 @@ export async function getAdminBookingDetailData(
     createdAtLabel: formatDateTimeLabel(booking.createdAt),
     updatedAtLabel: formatDateTimeLabel(booking.updatedAt),
     clientName: booking.client.fullName,
+    clientId: booking.clientId,
     clientEmail: booking.clientEmailSnapshot.trim(),
     clientPhone: clientPhone ? formatClientPhoneForDisplay(clientPhone) : "Telefon není vyplněný",
     serviceId: booking.serviceId,
