@@ -38,6 +38,6 @@ test.describe("mobilní Události a logy", () => {
     await expect(dialog).toHaveCount(0);
     await expect(filters).toBeFocused();
     await expect(page.getByRole("button", { name: "Zopakovat odeslání" })).toBeVisible();
-    await expect(page.getByText("Doručování")).toBeVisible();
+    await expect(page.getByRole("article").getByText(`${runId}@example.test`)).toBeVisible();
   });
 });
