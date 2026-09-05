@@ -23,6 +23,7 @@ import {
   PublicBookingError,
   publicBookingErrorCodes,
 } from "@/features/booking/lib/booking-public";
+import { selectPublicBookingRateLimitNotificationSource } from "@/features/booking/lib/public-booking-rate-limit-notification";
 import { type PublicBookingActionState } from "@/features/booking/actions/public-booking-action-state";
 import { sendOwnerPublicBookingRateLimitPushover, sendOwnerSystemErrorPushover } from "@/lib/notifications/pushover";
 
@@ -191,12 +192,16 @@ export async function createPublicBookingAction(
       },
     });
 
-    const rateLimitSourceHash = submissionMetadata.ipHash ?? emailHash;
+    const rateLimitSource = selectPublicBookingRateLimitNotificationSource({
+      ipRateLimitAllowed: ipRateLimit.allowed,
+      ipHash: submissionMetadata.ipHash,
+      emailHash,
+    });
 
-    if (rateLimitSourceHash) {
+    if (rateLimitSource.sourceHash) {
       await sendOwnerPublicBookingRateLimitPushover({
-        sourceHash: rateLimitSourceHash,
-        sourceKind: submissionMetadata.ipHash ? "ip" : "email",
+        sourceHash: rateLimitSource.sourceHash,
+        sourceKind: rateLimitSource.sourceKind,
         ipAttempts,
         emailFailures,
       });

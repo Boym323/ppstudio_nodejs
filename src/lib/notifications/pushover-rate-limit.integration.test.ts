@@ -5,6 +5,7 @@ import { randomUUID } from "node:crypto";
 import test from "node:test";
 
 import { BookingSubmissionOutcome } from "@/generated/prisma/client";
+import { selectPublicBookingRateLimitNotificationSource } from "@/features/booking/lib/public-booking-rate-limit-notification";
 
 process.env.DATABASE_URL ??= "postgresql://postgres:postgres@localhost:5432/ppstudio?schema=public";
 
@@ -20,6 +21,7 @@ dbTest("veřejný booking rate-limit posílá nejvýše jednu Pushover zprávu z
   const sourceHash = `test-ip-${runId}`;
   const otherSourceHash = `test-ip-other-${runId}`;
   const concurrentSourceHash = `test-ip-concurrent-${runId}`;
+  const emailSourceHash = `test-email-${runId}`;
   const firstAt = new Date("2026-08-16T12:00:00.000Z");
   const sentInputs: Array<{ title: string; message: string; context?: Record<string, string | number | boolean | null> }> = [];
   const dependencies = {
@@ -78,12 +80,35 @@ dbTest("veřejný booking rate-limit posílá nejvýše jednu Pushover zprávu z
       await prisma.bookingSubmissionLog.count({ where: { ipHash: concurrentSourceHash, failureCode: "RATE_LIMITED" } }),
       20,
     );
+
+    // E: stejný e-mail z různých IP používá stejný e-mailový cooldown.
+    const emailFromFirstIp = selectPublicBookingRateLimitNotificationSource({
+      ipRateLimitAllowed: true,
+      ipHash: `test-ip-email-one-${runId}`,
+      emailHash: emailSourceHash,
+    });
+    const emailFromSecondIp = selectPublicBookingRateLimitNotificationSource({
+      ipRateLimitAllowed: true,
+      ipHash: `test-ip-email-two-${runId}`,
+      emailHash: emailSourceHash,
+    });
+    await sendOwnerPublicBookingRateLimitPushover({
+      sourceHash: emailFromFirstIp.sourceHash!,
+      sourceKind: emailFromFirstIp.sourceKind,
+      now: firstAt,
+    }, dependencies);
+    await sendOwnerPublicBookingRateLimitPushover({
+      sourceHash: emailFromSecondIp.sourceHash!,
+      sourceKind: emailFromSecondIp.sourceKind,
+      now: new Date(firstAt.getTime() + 30_000),
+    }, dependencies);
+    assert.equal(sentInputs.length, 5);
   } finally {
     await prisma.bookingSubmissionLog.deleteMany({ where: { id: { in: logIds } } });
     await prisma.pushoverNotificationCooldown.deleteMany({
       where: {
         eventType: PUBLIC_BOOKING_RATE_LIMIT_NOTIFICATION_TYPE,
-        sourceHash: { in: [sourceHash, otherSourceHash, concurrentSourceHash] },
+        sourceHash: { in: [sourceHash, otherSourceHash, concurrentSourceHash, emailSourceHash] },
       },
     });
   }
