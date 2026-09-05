@@ -8,13 +8,12 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- Sekce Události má jednodušší záložky, přehled problémů k vyřešení, historii seskupenou podle data a kompaktní e-mailové i technické záznamy. Pokročilé filtry a technické údaje jsou sbalené; prázdné výsledky rozlišují aktivní filtry.
 - Provozní Přehled upřednostňuje dnešní klientky, umožňuje potvrzení a dokončení návštěvy s úhradou přímo v dialogu a dokončené návštěvy seskupuje do rozbalovacího seznamu. Upozornění a rychlé akce popisují další krok, týdenní souhrn se neopakuje a webová analytika je ve Statistikách.
 
 ### Opraveno
 
 - Z detailu rezervace lze nyní přímo otevřít profil dané klientky z jejího jména i řádku v souhrnu rezervace.
-
-### Opraveno
 
 - Security Audit nyní používá opravené verze tranzitivních balíčků `fast-uri` a `mysql2`; PostgreSQL runtime a Prisma verze zůstávají beze změny.
 - Pushover upozornění na blokace veřejného rezervačního formuláře nyní používají perzistentní atomický cooldown 10 minut pro hash skutečného limiteru (IP nebo e-mail); opakované blokace se dál zapisují do `BookingSubmissionLog`, ale nezaplňují notifikace duplicitními zprávami.

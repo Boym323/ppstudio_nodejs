@@ -36,13 +36,17 @@ export function AdminEmailLogDetailPage({ data, flashMessage }: AdminEmailLogDet
     nextAttemptAt: data.nextAttemptLabel,
     sentAt: data.sentAtLabel,
     errorMessage: data.errorMessage,
+    transportStatus: data.transportStatusLabel,
+    actionToken: data.actionTokenLabel,
+    actionTokenSummary: data.actionTokenSummary,
+    actionTokenId: data.actionTokenId,
   };
 
   return (
     <AdminPageShell
       eyebrow="E-mailový provoz"
       title="Detail e-mailu"
-      description="Provozní kontext nahoře, technický detail až když je potřeba."
+      description=""
       compact
       denseIntro
     >
@@ -53,12 +57,12 @@ export function AdminEmailLogDetailPage({ data, flashMessage }: AdminEmailLogDet
       ) : null}
 
       <EmailDetailHeader data={data} />
+      {data.errorSummary ? <EmailErrorPanel data={data} /> : null}
       <EmailQuickActions data={data} />
 
       <div className="grid gap-4 xl:grid-cols-[1.08fr_0.92fr]">
         <div className="space-y-4">
           <EmailLinkedEntities data={data} />
-          {data.errorSummary ? <EmailErrorPanel data={data} /> : null}
         </div>
 
         <div className="space-y-4">
@@ -77,7 +81,7 @@ function EmailDetailHeader({ data }: { data: EmailLogDetailData }) {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2.5">
-            <h2 className="font-display text-[1.85rem] leading-tight text-white sm:text-[2.15rem]">
+            <h2 className="text-lg font-semibold leading-tight text-white sm:text-xl">
               {data.businessTitle}
             </h2>
             <EmailStatusBadge status={data.finalStatus} label={data.finalStatusLabel} />
@@ -91,11 +95,9 @@ function EmailDetailHeader({ data }: { data: EmailLogDetailData }) {
         </div>
       </div>
 
-      <div className="mt-4 grid gap-2.5 md:grid-cols-2 xl:grid-cols-4">
+      <div className="mt-3 grid gap-2 sm:grid-cols-2">
         <HeaderFact label="Příjemce" value={data.recipientEmail} />
         <HeaderFact label="Klientka" value={data.clientName} />
-        <HeaderFact label="Rezervace" value={data.bookingTitle} />
-        <HeaderFact label="Termín" value={data.bookingScheduleLabel} />
       </div>
     </section>
   );
@@ -195,14 +197,9 @@ function EmailQuickActions({ data }: { data: EmailLogDetailData }) {
 function EmailSummaryGrid({ data }: { data: EmailLogDetailData }) {
   const items = [
     { label: "Typ emailu", value: data.typeLabel },
-    { label: "Šablona", value: data.templateKey },
-    { label: "Příjemce", value: data.recipientEmail },
-    { label: "Provider", value: data.providerLabel },
-    { label: "Odeslání providerovi", value: data.transportStatusLabel },
     { label: "Doručení příjemci", value: data.deliveryStatusLabel },
     { label: "Poslední pokus", value: data.lastAttemptLabel },
     { label: "Odesláno", value: data.sentAtLabel },
-    { label: "Počet pokusů", value: `${data.attemptCount}×` },
   ];
 
   return (
@@ -210,7 +207,7 @@ function EmailSummaryGrid({ data }: { data: EmailLogDetailData }) {
       <dl className="divide-y divide-white/8">
         {items.map((item) => (
           <div key={item.label} className="grid gap-1 py-1.5 sm:grid-cols-[6.8rem_minmax(0,1fr)] sm:items-start sm:gap-3">
-            <dt className="text-[10px] uppercase tracking-[0.18em] text-white/48">{item.label}</dt>
+            <dt className="text-xs text-white/60">{item.label}</dt>
             <dd className="text-sm leading-[1.2rem] text-white/88">{item.value}</dd>
           </div>
         ))}
@@ -230,12 +227,6 @@ function EmailLinkedEntities({ data }: { data: EmailLogDetailData }) {
           href={data.bookingHref}
         />
         <LinkedEntityRow label="Klientka" title={data.clientName} detail={data.clientSummary} />
-        <LinkedEntityRow
-          label="Token akce"
-          title={data.actionTokenLabel}
-          detail={data.actionTokenSummary}
-          sensitiveValue={data.actionTokenId}
-        />
       </div>
     </AdminPanel>
   );
@@ -249,13 +240,6 @@ function EmailTechnicalDetails({
   technicalData: Record<string, unknown>;
 }) {
   return (
-    <AdminPanel
-      title="Technický detail"
-      description="Payload a debug až když jsou opravdu potřeba."
-      compact
-      denseHeader
-      tighter
-    >
       <details className="group rounded-[1rem] border border-white/10 bg-white/[0.03]">
         <summary className="list-none cursor-pointer px-3.5 py-3 text-sm font-medium text-white transition hover:bg-white/[0.04] [&::-webkit-details-marker]:hidden">
           <span className="group-open:hidden">Zobrazit technické detaily</span>
@@ -294,7 +278,6 @@ function EmailTechnicalDetails({
           </details>
         </div>
       </details>
-    </AdminPanel>
   );
 }
 
@@ -302,21 +285,11 @@ function EmailErrorPanel({ data }: { data: EmailLogDetailData }) {
   return (
     <AdminPanel
       title="Poslední chyba"
-      description="Krátký kontext nahoře, detail až pod ním."
       compact
       denseHeader
       tighter
     >
       <div className="grid gap-3">
-        <div className="grid gap-2.5 md:grid-cols-2">
-          <ErrorMeta label="Typ emailu" value={data.typeLabel} />
-          <ErrorMeta label="Příjemce" value={data.recipientEmail} />
-          <ErrorMeta label="Rezervace" value={data.bookingTitle} />
-          <ErrorMeta label="Počet pokusů" value={`${data.attemptCount}×`} />
-          <ErrorMeta label="Čas posledního pokusu" value={data.lastAttemptLabel} />
-          <ErrorMeta label="Stav" value={data.finalStatusLabel} />
-        </div>
-
         <div className="rounded-[1rem] border border-red-300/20 bg-red-400/10 p-3.5">
           <p className="text-[10px] uppercase tracking-[0.18em] text-red-100/75">Krátký popis</p>
           <p className="mt-1.5 text-sm leading-5 text-red-50">{data.errorSummary}</p>
@@ -339,8 +312,8 @@ function EmailErrorPanel({ data }: { data: EmailLogDetailData }) {
 
 function HeaderFact({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-[1rem] border border-white/8 bg-black/15 px-3 py-2.5">
-      <p className="text-[10px] uppercase tracking-[0.18em] text-white/48">{label}</p>
+    <div className="min-w-0 py-1">
+      <p className="text-xs text-white/60">{label}</p>
       <p className="mt-1 text-sm leading-5 text-white/88">{value}</p>
     </div>
   );
@@ -392,15 +365,6 @@ function LinkedEntityRow({
           Otevřít rezervaci
         </Link>
       ) : null}
-    </div>
-  );
-}
-
-function ErrorMeta({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-[0.95rem] border border-white/8 bg-white/5 p-2.5">
-      <p className="text-[10px] uppercase tracking-[0.16em] text-white/48">{label}</p>
-      <p className="mt-1 text-sm leading-5 text-white/86">{value}</p>
     </div>
   );
 }
