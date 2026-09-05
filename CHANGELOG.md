@@ -8,6 +8,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Security Audit nyní používá opravené verze tranzitivních balíčků `fast-uri` a `mysql2`; PostgreSQL runtime a Prisma verze zůstávají beze změny.
 - Pushover upozornění na blokace veřejného rezervačního formuláře nyní používají perzistentní atomický cooldown 10 minut pro hash skutečného limiteru (IP nebo e-mail); opakované blokace se dál zapisují do `BookingSubmissionLog`, ale nezaplňují notifikace duplicitními zprávami.
 
 ## [3.26.2] - 2026-09-01
