@@ -6,6 +6,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [3.27.0] - 2026-09-06
+
 ### Změněno
 
 - Sekce Události má jednodušší záložky, přehled problémů k vyřešení, historii seskupenou podle data a kompaktní e-mailové i technické záznamy. Pokročilé filtry a technické údaje jsou sbalené; prázdné výsledky rozlišují aktivní filtry.
