@@ -90,7 +90,7 @@
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
     "@playwright/test": "^1.62.1",
-    "@react-email/ui": "6.9.3",
+    "@react-email/ui": "6.9.5",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "^26.1.2",
     "@types/nodemailer": "^8.0.1",
@@ -129,6 +129,7 @@
     "find-my-way": "9.7.0",
     "sharp": "$sharp",
     "deepmerge-ts": "8.0.1",
-    "mysql2": "3.24.3"
+    "mysql2": "3.24.3",
+    "js-yaml": "4.3.2"
   }
 }
