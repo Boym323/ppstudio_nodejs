@@ -9,6 +9,7 @@ Pro centralizovaný přehled hlavních route handler kontraktů používej i [`d
 - Stručný provozní deployment přehled pro Proxmox/LXC je v [`DEPLOYMENT.md`](../DEPLOYMENT.md).
 - Stručný runtime přehled proměnných a prostředí je v [`ENVIRONMENT.md`](../ENVIRONMENT.md).
 - Pro opakující se incidenty použij i [`TROUBLESHOOTING.md`](../TROUBLESHOOTING.md).
+- Aktuální pravidla automatického oběda, jeho denních override, planner read modelu a authoritative booking ochrany jsou shrnutá v [`SCHEDULE_OPTIMIZATION_MIGRATION.md`](SCHEDULE_OPTIMIZATION_MIGRATION.md); historické fáze v tomto dokumentu nepřepisují jeho úvodní výsledný stav.
 
 ## Verzování a release disciplína
 - `package.json` používá SemVer `MAJOR.MINOR.PATCH`; aktuální release ověř vždy přímo v `package.json`.

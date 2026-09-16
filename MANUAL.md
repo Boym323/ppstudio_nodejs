@@ -1019,6 +1019,14 @@ npm run db:clear-booking-data -- --confirm
 - Při ukládání se sousední půlhodiny automaticky sloučí do co nejmenšího počtu souvislých intervalů.
 - Planner nikdy nepřepisuje rezervace ani technicky složitější sloty; pokud by změna zasáhla do chráněného úseku, vrátí srozumitelnou chybu.
 
+## Automatická Obědová Přestávka
+- Automatický oběd trvá přesně 45 minut a počítá se v lokální zóně `Europe/Prague`. Systém hledá kandidátní začátky po 15 minutách mezi `11:00` a `13:00`.
+- Oběd se odvozuje z publikované dostupnosti a obsazených bloků včetně úklidu; nevzniká jako samostatný slot ani rezervace v databázi. Planner jej zobrazuje jako přesný read-only blok.
+- Globální přepínač je v nastavení rezervací (`SiteSettings.autoLunchEnabled`). V planneru může OWNER nebo SALON pro konkrétní den přepnout režim mezi `AUTO` a `OFF`; denní `OFF` se ukládá jako override a návrat na `AUTO` jej odstraní.
+- Pokud pro směnu nelze bezpečně umístit 45 minut, planner zobrazí varování. Veřejná rezervace ani přesun termínu nesmí spotřebovat poslední proveditelnou obědovou přestávku; stejná kontrola probíhá znovu uvnitř serializované transakce.
+- Oběd může změnit polohu podle rezervací a jejich cleanupu. Ruční admin override jej může vědomě obejít a tato výjimka se audituje.
+- Úplný technický popis politiky, feasibility, recommendation rankingu a authoritative ochrany je v [`docs/SCHEDULE_OPTIMIZATION_MIGRATION.md`](docs/SCHEDULE_OPTIMIZATION_MIGRATION.md).
+
 ## Kontrola Letního A Zimního Času
 - Salonové časy se berou jako `Europe/Prague`; v UI, e-mailech a ICS má termín 09:00-10:00 zůstat 09:00-10:00 v zimě i v létě.
 - Při kopírování dne nebo týdne v planneru se přenáší lokální půlhodinové buňky, ne pevný počet milisekund.
