@@ -182,7 +182,11 @@ export function AdminVoucherStockBatchDetailPage({ data }: { data: AdminVoucherS
           <div className="flex flex-wrap gap-2">
             {data.area === "owner" ? <a href={data.pdfHref} className={primaryButtonClassName}>Stáhnout tiskové PDF</a> : null}
             {canReceive ? <form action={receiveVoucherPrintBatchAction}><input type="hidden" name="batchId" value={data.id} /><button className={primaryButtonClassName}>Označit jako převzaté</button></form> : null}
-            {canClose ? <form action={closeVoucherPrintBatchAction}><input type="hidden" name="batchId" value={data.id} /><button className={secondaryButtonClassName}>Uzavřít sérii</button></form> : null}
+            {canClose ? <form action={closeVoucherPrintBatchAction} onSubmit={(event) => {
+              const remaining = data.counts.pendingPrint + data.counts.available;
+              const confirmed = window.confirm(`Opravdu chcete uzavřít a zneplatnit tuto sérii? ${remaining} dosud neaktivovaných kusů bude znehodnoceno. Aktivované kusy zůstanou zachovány. Tuto akci nelze vrátit.`);
+              if (!confirmed) event.preventDefault();
+            }}><input type="hidden" name="batchId" value={data.id} /><button className={secondaryButtonClassName} title="Neaktivované kusy budou znehodnoceny a sérii už nelze znovu otevřít.">Uzavřít a zneplatnit sérii</button></form> : null}
           </div>
         </div>
         <AdminVoucherTabs area={data.area} active="stock" />
