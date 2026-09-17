@@ -129,7 +129,7 @@ MEDIA_STORAGE_ROOT=/var/www/ppstudio-uploads
 ```
 
 - `NEXT_PUBLIC_APP_URL` je runtime URL aplikace pro redirecty a e-mailové odkazy.
-- `NEXT_PUBLIC_SITE_DOMAIN` a `VOUCHER_PUBLIC_DOMAIN` pomáhají držet veřejnou textovou doménu konzistentní ve voucher PDF a kontaktních výstupech.
+- `NEXT_PUBLIC_SITE_DOMAIN` a `VOUCHER_PUBLIC_DOMAIN` slouží jako povolené veřejné domény pro kontrolu důvěryhodného hostu u requestů. Neřídí texty ani grafiku voucher PDF.
 - `NEXT_PUBLIC_SITE_URL` je doporučená kanonická veřejná URL pro SEO metadata a JSON-LD (při chybějící hodnotě fallback na `NEXT_PUBLIC_APP_URL`).
 - `NEXT_PUBLIC_GOOGLE_ADS_ENABLED` a `NEXT_PUBLIC_GOOGLE_ADS_ID` volitelně zapínají veřejný Google Ads tag (`gtag.js`, typicky `AW-*`).
 - `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` je povinný stabilní klíč pro Next.js Server Actions; v produkci musí zůstat stejný mezi instancemi stejného buildu.
@@ -386,7 +386,7 @@ Praktický přehled hlavních HTTP endpointů je v [`docs/API.md`](docs/API.md).
   - `EMAIL_DELIVERY_MODE=log`: záznam se oznaci jako odeslany v log rezimu bez SMTP odeslani.
 - Email worker pro PDF prilohu importuje worker-safe `src/features/vouchers/lib/voucher-pdf-core.ts`; Next.js wrapper `src/features/vouchers/lib/voucher-pdf.ts` zustava jen pro admin routy s `import "server-only"`.
 - Email vzdy obsahuje jen bezpecna data (typ, hodnota nebo sluzba, kod, platnost, overovaci URL, instrukce) a PDF prilohu `voucher-KOD.pdf`; nikdy neobsahuje `internalNote`, historii cerpani ani technicka ID.
-- PDF voucheru obsahuje grafický základ z verzovaného PDF masteru včetně loga a pevných kontaktních/grafických údajů a pouze dynamická voucherová data: typ a hodnotu/službu, kód, platnost, QR ověření a krátké podmínky podle typu voucheru. Neobsahuje jméno ani e-mail kupujícího, interní poznámku, historii uplatnění ani technická ID. Voucher templates nejsou spravovány přes Media Manager.
+- PDF voucheru obsahuje grafický základ z verzovaného PDF masteru včetně loga, adresy, webu a ostatních pevných textů a pouze dynamická voucherová data: hodnotu nebo název služby, platnost, kód voucheru a QR kód. Neobsahuje jméno ani e-mail kupujícího, interní poznámku, historii uplatnění ani technická ID. Voucher templates nejsou spravovány přes Media Manager.
 - Veřejné ověření voucheru na `/vouchery/overeni` je `noindex` a není v sitemap. Platný voucher ukazuje jen bezpečná pole: kód, typ, zbývající hodnotu u `VALUE`, název služby ze snapshotu u `SERVICE` a platnost do. Platný stav doplňuje CTA `Rezervovat termín` na `/rezervace` a e-mailové `Napsat do studia`. Neplatný voucher ukazuje pouze obecné bezpečné důvody: nenalezený, zatím neaktivní, uplatněný, propadlý, zrušený nebo bez dostupného zůstatku.
 - Veřejné ověření voucheru má server-side rate limit podle IP hashe (okno 10 minut, max 10 pokusů). Při překročení vrací jen obecnou hlášku o dočasném omezení; neprozrazuje interní detail ani existenci konkrétního kódu.
 - Veřejné ověření voucher nikdy neuplatňuje: nevytváří `VoucherRedemption`, nemění `remainingValueCzk` ani `Voucher.status`.
@@ -992,7 +992,7 @@ npm run db:clear-booking-data -- --confirm
 - Celý admin strom `/admin/*` má zároveň explicitní HTML metadata `robots: noindex,nofollow` v `src/app/(admin)/admin/layout.tsx`; `robots.txt` a stránkové metadata se záměrně doplňují.
 - Root metadata branding (`applicationName`, title template a OpenGraph `siteName`) se načítá z `SiteSettings.salonName`; `metadataBase`, root `og:url` a page canonical/OG URL používají `siteConfig.canonicalUrl` (`NEXT_PUBLIC_SITE_URL` s fallbackem na `NEXT_PUBLIC_APP_URL`).
 - Veřejné SEO landing pages (`/`, `/sluzby`, `/cenik`, `/vouchery`, `/o-mne`, `/sluzby/[slug]`) zbytečně neoznačuj `connection()` markerem. Request-time render má zůstat jen tam, kde opravdu záleží na aktuálním requestu nebo čerstvé slotové kapacitě, typicky u `/rezervace`.
-- Voucher PDF kontaktní doména je od runtime URL oddělená: použij `VOUCHER_PUBLIC_DOMAIN` (priorita) nebo `NEXT_PUBLIC_SITE_DOMAIN`; fallback na `NEXT_PUBLIC_APP_URL` hostname se použije jen pro bezpečně veřejné hosty.
+- Voucher PDF používá pevné kontaktní údaje z verzovaného masteru. QR verification URL se skládá z aktuálního canonical/app URL mechanismu projektu; `VOUCHER_PUBLIC_DOMAIN` a `NEXT_PUBLIC_SITE_DOMAIN` slouží pouze pro kontrolu důvěryhodného hostu u requestů.
 - Veřejné čtení `SiteSettings` už při renderu nezapisuje do DB; pokud singleton dočasně chybí nebo DB read selže, veřejný web a e-mailové šablony použijí bezpečné defaulty a bootstrap zápis zůstává jen v owner admin sekci `Nastavení`.
 - Rezervační část má vlastní error boundary a loading fallback, takže výpadek booking vrstvy nepoškodí celý web.
 - Background e-mail worker lze spustit přes `npm run email:worker` jako samostatný proces; pro jednorázové dohnání fronty je k dispozici `npm run email:worker:once`.

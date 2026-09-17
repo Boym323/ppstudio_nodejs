@@ -226,7 +226,7 @@ MEDIA_STORAGE_ROOT=/var/www/ppstudio-uploads
 Co je důležité:
 
 - `NEXT_PUBLIC_APP_URL`: veřejný základ URL pro metadata, redirecty a odkazy v e-mailech
-- `NEXT_PUBLIC_SITE_DOMAIN` a `VOUCHER_PUBLIC_DOMAIN`: textová veřejná doména pro voucher PDF a kontaktní výstupy
+- `NEXT_PUBLIC_SITE_DOMAIN` a `VOUCHER_PUBLIC_DOMAIN`: povolené veřejné domény pro kontrolu důvěryhodného hostu u requestů; neřídí pevné texty ani grafiku voucher PDF
 - `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY`: stabilní klíč pro Next.js Server Actions; v produkci musí zůstat stejný mezi instancemi stejného buildu
 - `DATABASE_URL`: hlavní PostgreSQL databáze aplikace
 - `SHADOW_DATABASE_URL`: pomocná DB pro `prisma migrate dev` v lokálním vývoji

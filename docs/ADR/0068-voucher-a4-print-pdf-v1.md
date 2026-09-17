@@ -1,5 +1,7 @@
 # ADR 0068: Voucher A4 print PDF v1
 
+> Stav: nahrazeno. Toto historické rozhodnutí nahradila implementace verzovaných voucher PDF templates; původní A4 arch se již nepoužívá.
+
 ## Kontext
 - Existující voucher PDF se používá pro běžné stažení v adminu i jako příloha voucher e-mailu.
 - Pro fyzický tisk je potřeba samostatná A4 varianta, která nesmí změnit současný e-mailový ani běžný PDF layout.
@@ -25,5 +27,13 @@
 - Tisková varianta používá stejný verzovaný PDF master, stejná bezpečná voucherová data a QR ověření; logo a pevné kontaktní údaje jsou součástí masteru.
 - Do budoucna lze přidat hromadný A4 arch nebo jiné rozmístění, ale má to být samostatný export/endpoint, ne změna tohoto horního tiskového výstupu.
 
+## Náhrada
+
+Aktuální implementace je popsána v `docs/DEVELOPMENT.md` a v `src/features/vouchers/lib/voucher-pdf-core.ts`:
+
+- PRINT je jedna stránka 216 × 105 mm z verzovaného master PDF s 3mm bleedem a TrimBoxem 210 × 99 mm.
+- DIGITAL je jedna stránka 210 × 99 mm, vektorový crop téhož personalizovaného masteru.
+- Starý A4 arch, jeho slot 210 × 96 mm, rotace voucheru i tlačítko `Tisk A4` nejsou součástí současného workflow.
+
 ## Stav
-- schváleno
+- nahrazeno

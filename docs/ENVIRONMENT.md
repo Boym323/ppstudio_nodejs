@@ -19,8 +19,8 @@ Stručný runtime přehled prostředí a vazeb na infrastrukturu je v kořenové
 - `NEXT_PUBLIC_APP_NAME`: veřejný název značky.
 - `NEXT_PUBLIC_APP_URL`: runtime URL aplikace (redirecty, e-mailové odkazy, interní origin kontroly, CI/Playwright base URL).
 - `NEXT_PUBLIC_SITE_URL`: volitelná kanonická veřejná URL webu pro SEO metadata/JSON-LD; pokud chybí, fallback je `NEXT_PUBLIC_APP_URL`.
-- `NEXT_PUBLIC_SITE_DOMAIN`: volitelná veřejná doména webu bez schématu (např. `ppstudio.cz`), preferovaná pro textové zobrazení domény ve voucher PDF kontaktech.
-- `VOUCHER_PUBLIC_DOMAIN`: volitelná explicitní doména pouze pro voucher PDF kontakty; má prioritu nad `NEXT_PUBLIC_SITE_DOMAIN`.
+- `NEXT_PUBLIC_SITE_DOMAIN`: volitelná veřejná doména webu bez schématu (např. `ppstudio.cz`), kterou request-origin kontrola přijímá jako důvěryhodný host.
+- `VOUCHER_PUBLIC_DOMAIN`: volitelná explicitní veřejná doména, kterou request-origin kontrola přijímá jako důvěryhodný host; neřídí obsah voucher PDF.
 - `NEXT_PUBLIC_MATOMO_ENABLED`: zapnutí veřejného Matomo trackingu; tracking běží pouze při přesné hodnotě `true`.
 - `NEXT_PUBLIC_CLARITY_ENABLED`: zapnutí veřejného Microsoft Clarity trackingu; tracking běží pouze při přesné hodnotě `true`.
 - `NEXT_PUBLIC_META_PIXEL_ENABLED`: zapnutí veřejného Meta Pixel trackingu; tracking běží pouze při přesné hodnotě `true`.
@@ -179,7 +179,7 @@ Lokální doporučení:
 - Evidence plateb mimo voucher nepřidává žádnou platební bránu ani QR konfiguraci; metoda `Převodem / QR` je v této verzi pouze UI popisek enumu `BANK_TRANSFER`.
 - QR kód ve voucher PDF dál používá `NEXT_PUBLIC_APP_URL` přes `siteConfig.url`, takže produkční hodnota musí mířit na veřejný HTTPS origin PP Studia.
 - FAQPage JSON-LD pro `/faq` používá kanonický veřejný origin `NEXT_PUBLIC_SITE_URL` s fallbackem na `NEXT_PUBLIC_APP_URL`; změna FAQ nepřidává žádné nové env proměnné.
-- Textová doména v kontaktním řádku voucher PDF je oddělená od runtime hostu: priorita je `VOUCHER_PUBLIC_DOMAIN` -> `NEXT_PUBLIC_SITE_DOMAIN` -> hostname z `NEXT_PUBLIC_APP_URL` jen pokud je bezpečně veřejný (ne localhost ani privátní IP). Když bezpečný host chybí, doména se do kontaktu nevypíše.
+- Kontaktní doména a ostatní pevné kontaktní údaje voucher PDF jsou součástí verzovaného masteru. QR verification URL používá canonical/app URL mechanismus projektu; `NEXT_PUBLIC_SITE_DOMAIN` a `VOUCHER_PUBLIC_DOMAIN` zde nejsou zdrojem textu PDF.
 - Veřejná stránka ověření voucheru `/vouchery/overeni` nepřidává žádnou novou env proměnnou; používá stávající `DATABASE_URL` a QR odkazy z PDF dál vznikají z `NEXT_PUBLIC_APP_URL`.
 - Rucni odeslani voucheru e-mailem z admin detailu nepridava zadnou novou env promennou; pouziva existujici `EMAIL_DELIVERY_MODE`, `SMTP_*` konfiguraci a email worker/outbox flow.
 - Kompaktní refaktor admin seznamu voucherů nepřidává žádnou novou env proměnnou; metric strip, hustší filtry i tabulka se stavovými badge jsou čistě UI změna nad existujícím voucher read modelem.
