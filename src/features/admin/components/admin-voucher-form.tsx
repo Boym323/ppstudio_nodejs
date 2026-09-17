@@ -185,7 +185,7 @@ export function AdminVoucherForm({ data }: AdminVoucherFormProps) {
                   type="date"
                   name="validFrom"
                   required
-                  value={validFrom}
+                  value={validFrom ?? ""}
                   onChange={(event) => setValidFrom(event.target.value)}
                   className={inputClassName}
                 />
@@ -196,7 +196,7 @@ export function AdminVoucherForm({ data }: AdminVoucherFormProps) {
                   type="date"
                   name="validUntil"
                   required
-                  value={validUntil}
+                  value={validUntil ?? ""}
                   onChange={(event) => setValidUntil(event.target.value)}
                   className={inputClassName}
                 />
@@ -211,7 +211,7 @@ export function AdminVoucherForm({ data }: AdminVoucherFormProps) {
                   type="text"
                   name="purchaserName"
                   maxLength={160}
-                  value={purchaserName}
+                  value={purchaserName ?? ""}
                   onChange={(event) => setPurchaserName(event.target.value)}
                   placeholder="Jméno kupujícího"
                   className={inputClassName}

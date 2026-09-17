@@ -154,7 +154,7 @@ export function AdminVoucherStockCreatePage({ data }: { data: AdminVoucherStockC
           </label>
           <label className="block">
             <span className="text-xs uppercase tracking-[0.2em] text-white/50">Počet kusů</span>
-            <input name="quantity" type="number" min={1} max={500} step={1} value={quantity} onChange={(event) => setQuantity(event.target.value)} className={inputClassName} />
+                  <input name="quantity" type="number" min={1} max={500} step={1} value={quantity ?? ""} onChange={(event) => setQuantity(event.target.value)} className={inputClassName} />
             {state.fieldErrors?.quantity ? <span className="mt-1 block text-sm text-red-300">{state.fieldErrors.quantity}</span> : null}
             <div className="mt-2 flex flex-wrap gap-2">
               {[25, 50, 100].map((value) => <button key={value} type="button" onClick={() => setQuantity(String(value))} className={secondaryButtonClassName}>{value}</button>)}
@@ -247,7 +247,7 @@ export function AdminVoucherActivationPage({ data }: { data: AdminVoucherActivat
   const [activationState, activationAction, activationPending] = useActionState(activateVoucherStockItemAction, initialVoucherStockActivationState);
   const [code, setCode] = useState(data.defaultCode ?? "");
   const [type, setType] = useState<VoucherType>(VoucherType.VALUE);
-  const [serviceId, setServiceId] = useState(data.services[0]?.id ?? "");
+  const [serviceId, setServiceId] = useState("");
   const [validFrom, setValidFrom] = useState(data.defaultValidFrom ?? "");
   const [validUntil, setValidUntil] = useState(data.defaultValidUntil ?? "");
 
@@ -272,9 +272,9 @@ export function AdminVoucherActivationPage({ data }: { data: AdminVoucherActivat
     <AdminPageShell eyebrow="Dárkové vouchery" title="Aktivovat voucher" description="Předtištěný kus aktivujte až při fyzickém prodeji ve studiu." compact={data.area === "salon"}>
       <div className="space-y-4">
         <AdminVoucherTabs area={data.area} active="issued" />
-        <AdminPanel title="Najít předtištěný kus" description="Naskenujte QR kód telefonem nebo zadejte kód ručně." compact={data.area === "salon"} denseHeader>
-          <form action={lookupAction} className="flex flex-col gap-2 sm:flex-row sm:items-end">
-            <label className="min-w-0 flex-1"><span className="text-xs uppercase tracking-[0.2em] text-white/50">Kód voucheru</span><input name="code" value={code} onChange={(event) => setCode(event.target.value)} placeholder="PP-2026-XXXXXX" autoComplete="off" className={cn(inputClassName, "font-mono tracking-[0.08em]")} /></label>
+        <AdminPanel title="Najít předtištěný kus" description="Zadejte kód z voucheru. QR kód slouží k veřejnému ověření; aktivace probíhá podle kódu." compact={data.area === "salon"} denseHeader>
+            <form action={lookupAction} className="flex flex-col gap-2 sm:flex-row sm:items-end">
+            <label className="min-w-0 flex-1"><span className="text-xs uppercase tracking-[0.2em] text-white/50">Kód voucheru</span><input name="code" value={code ?? ""} onChange={(event) => setCode(event.target.value)} placeholder="PP-2026-XXXXXX" autoComplete="off" className={cn(inputClassName, "font-mono tracking-[0.08em]")} /></label>
             <button type="submit" disabled={lookupPending} className={primaryButtonClassName}>{lookupPending ? "Načítám…" : "Načíst voucher"}</button>
           </form>
           {lookupState.formError ? <ErrorBox>{lookupState.formError}</ErrorBox> : null}
@@ -291,12 +291,16 @@ export function AdminVoucherActivationPage({ data }: { data: AdminVoucherActivat
 
         {selectedItem?.status === VoucherStockItemStatus.AVAILABLE && !alreadyActivatedVoucherId ? (
           <AdminPanel title="Údaje při prodeji" description="Tyto údaje se uloží do vzniklého standardního voucheru." compact={data.area === "salon"} denseHeader>
-            <form action={activationAction} className="space-y-4">
-              <input type="hidden" name="area" value={data.area} /><input type="hidden" name="code" value={selectedItem.code} /><input type="hidden" name="type" value={type} />
+            <form action={activationAction} className="space-y-4" onSubmit={(event) => {
+              const confirmed = window.confirm(`Potvrzujete prodej a aktivaci voucheru ${selectedItem.code}? Aktivací vznikne platný voucher a tuto akci už nebude možné vrátit.`);
+              if (!confirmed) event.preventDefault();
+            }}>
+              <input type="hidden" name="area" value={data.area} /><input type="hidden" name="code" value={selectedItem.code ?? ""} /><input type="hidden" name="type" value={type ?? VoucherType.VALUE} />
               {activationState.formError ? <ErrorBox>{activationState.formError}</ErrorBox> : null}
               <div className="grid gap-2 sm:grid-cols-2"><TypeChoice active={type === VoucherType.VALUE} label="Hodnota" onClick={() => setType(VoucherType.VALUE)} /><TypeChoice active={type === VoucherType.SERVICE} label="Služba" onClick={() => setType(VoucherType.SERVICE)} /></div>
-              {type === VoucherType.VALUE ? <label className="block"><span className="text-xs uppercase tracking-[0.2em] text-white/50">Hodnota v Kč</span><input name="originalValueCzk" type="number" min={1} step={1} required className={inputClassName} placeholder="1500" />{activationState.fieldErrors?.originalValueCzk ? <span className="mt-1 block text-sm text-red-300">{activationState.fieldErrors.originalValueCzk}</span> : null}</label> : <label className="block"><span className="text-xs uppercase tracking-[0.2em] text-white/50">Aktivní služba</span><input type="hidden" name="serviceId" value={serviceId} /><div className="mt-2 grid gap-2">{data.services.map((service) => <button key={service.id} type="button" onClick={() => setServiceId(service.id)} className={cn("rounded-[0.9rem] border p-3 text-left", service.id === serviceId ? "border-[var(--color-accent)]/60 bg-[rgba(190,160,120,0.13)]" : "border-white/8 bg-white/[0.02]")}><span className="block text-sm font-medium text-white">{service.publicName ?? service.name}</span><span className="mt-1 block text-xs text-white/48">{service.category.name} · {service.priceFromCzk === null ? "Cena na dotaz" : moneyFormatter.format(service.priceFromCzk)}</span></button>)}</div></label>}
-              <div className="grid gap-3 sm:grid-cols-2"><label><span className="text-xs uppercase tracking-[0.2em] text-white/50">Platnost od</span><input name="validFrom" type="date" required value={validFrom} onChange={(event) => setValidFrom(event.target.value)} className={inputClassName} /></label><label><span className="text-xs uppercase tracking-[0.2em] text-white/50">Platnost do</span><input name="validUntil" type="date" required value={validUntil} onChange={(event) => setValidUntil(event.target.value)} className={inputClassName} /></label></div>
+              {type === VoucherType.VALUE ? <label className="block"><span className="text-xs uppercase tracking-[0.2em] text-white/50">Hodnota v Kč</span><input name="originalValueCzk" type="number" min={1} step={1} required className={inputClassName} placeholder="1500" />{activationState.fieldErrors?.originalValueCzk ? <span className="mt-1 block text-sm text-red-300">{activationState.fieldErrors.originalValueCzk}</span> : null}</label> : <label className="block"><span className="text-xs uppercase tracking-[0.2em] text-white/50">Aktivní služba</span><input type="hidden" name="serviceId" value={serviceId ?? ""} /><div className="mt-2 grid gap-2">{data.services.map((service) => <button key={service.id} type="button" onClick={() => setServiceId(service.id)} className={cn("rounded-[0.9rem] border p-3 text-left", service.id === serviceId ? "border-[var(--color-accent)]/60 bg-[rgba(190,160,120,0.13)]" : "border-white/8 bg-white/[0.02]")}><span className="block text-sm font-medium text-white">{service.publicName ?? service.name}</span><span className="mt-1 block text-xs text-white/48">{service.category.name} · {service.priceFromCzk === null ? "Cena na dotaz" : moneyFormatter.format(service.priceFromCzk)}</span></button>)}</div></label>}
+              <div className="grid gap-3 sm:grid-cols-2"><label><span className="text-xs uppercase tracking-[0.2em] text-white/50">Platnost od</span><input name="validFrom" type="date" required value={validFrom ?? ""} onChange={(event) => setValidFrom(event.target.value)} className={inputClassName} /></label><label><span className="text-xs uppercase tracking-[0.2em] text-white/50">Platnost do</span><input name="validUntil" type="date" required value={validUntil ?? ""} onChange={(event) => setValidUntil(event.target.value)} className={inputClassName} /></label></div>
+              <div className="rounded-[0.95rem] border border-amber-200/25 bg-amber-300/[0.08] px-3.5 py-3 text-sm leading-6 text-amber-50">Aktivací vznikne platný voucher. Zkontrolujte typ, hodnotu nebo službu a datum platnosti; aktivaci už nebude možné vrátit.</div>
               <button type="submit" disabled={activationPending} className={primaryButtonClassName}>{activationPending ? "Aktivuji…" : "Potvrdit prodej a aktivovat"}</button>
             </form>
           </AdminPanel>

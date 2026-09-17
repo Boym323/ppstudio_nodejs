@@ -13,6 +13,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- Aktivace předtištěného voucheru nyní jasně odděluje veřejné QR ověření od ručního zadání aktivačního kódu, vyžaduje explicitní výběr služby a před nevratným potvrzením zobrazí varování.
 - Voucherové `/pdf` nyní vrací digitální výřez 210 × 99 mm, `/pdf/tisk` vrací jednostránkové tiskové PDF 216 × 105 mm s bleedem a TrimBoxem; e-mail používá stejný digitální generátor.
 - Template registry nyní nese kompletní per-template page metadata, souřadnice a typografii; přidání dalšího designu nevyžaduje změnu centrálního rendereru ani formulářů.
 
@@ -22,6 +23,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Admin voucherové formuláře nyní drží řízené inputy konzistentně i při hydrataci a změnách stavu, takže nevzniká React warning o přechodu mezi controlled a uncontrolled inputem.
 - Voucher s dnešním datem platnosti se nyní považuje za aktivní po celý pražský kalendářní den; uložený čas už nemůže administraci ani veřejné ověření chybně zobrazit jako `Rozpracovaný`.
 - Vytvoření voucheru nyní vyžaduje explicitní vzhled, vrací jednoznačnou chybu při nepovolené kombinaci typu a šablony a před generováním ověřuje rozměr master PDF podle registru šablon.
 - Datum platnosti v digitálním voucheru se nyní vykresluje nad oddělovací linkou, nikoli přes ni.
