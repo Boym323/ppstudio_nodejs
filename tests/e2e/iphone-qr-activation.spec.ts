@@ -1,3 +1,5 @@
+import { randomBytes } from "node:crypto";
+
 import { expect, test, type Page } from "@playwright/test";
 import {
   AdminRole,
@@ -78,7 +80,7 @@ async function cleanupStockItems(batchIds: string[], codes: string[], adminEmail
 
 test.describe("iPhone QR activation v1", () => {
   test("OWNER a SALON dostanou CTA, anonymní HTML ho nikdy neobsahuje a deep-link aktivaci předvyplní", async ({ page }) => {
-    const runId = `iphone-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const runId = `iphone-${Date.now()}-${randomBytes(4).toString("hex")}`;
     const owner = await createAdminFixture(runId, AdminRole.OWNER);
     const salon = await createAdminFixture(`${runId}-salon`, AdminRole.SALON);
     const stock = await createStockItem(runId, owner.email, VoucherStockItemStatus.AVAILABLE);
@@ -134,7 +136,7 @@ test.describe("iPhone QR activation v1", () => {
   });
 
   test("PENDING_PRINT a VOID nepovolí aktivaci a ACTIVATED zůstane běžným veřejným voucherem", async ({ page }) => {
-    const runId = `iphone-status-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const runId = `iphone-status-${Date.now()}-${randomBytes(4).toString("hex")}`;
     const owner = await createAdminFixture(runId, AdminRole.OWNER);
     const pending = await createStockItem(`${runId}-pending`, owner.email, VoucherStockItemStatus.PENDING_PRINT);
     const voided = await createStockItem(`${runId}-void`, owner.email, VoucherStockItemStatus.VOID);
