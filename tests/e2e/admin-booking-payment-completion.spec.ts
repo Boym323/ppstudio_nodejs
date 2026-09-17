@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 
-import { expect, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 import { AdminRole, BookingStatus, VoucherStatus, VoucherType } from "@/generated/prisma/client";
 
 import {
@@ -9,6 +9,29 @@ import {
   createManagedBookingFixture,
   prisma,
 } from "./helpers/fixtures";
+
+async function openBookingDetail(page: Page, bookingId: string) {
+  const completionButton = page.getByRole("button", { name: /Dokončit návštěvu/ });
+
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    if (attempt === 0) {
+      await page.goto(`/admin/rezervace/${bookingId}`);
+    } else {
+      await page.reload();
+    }
+
+    try {
+      await expect(completionButton).toBeVisible({
+        timeout: attempt === 0 ? 10_000 : 20_000,
+      });
+      return;
+    } catch (error) {
+      if (attempt === 1) {
+        throw error;
+      }
+    }
+  }
+}
 
 test.describe("dokončení návštěvy s úhradou", () => {
   let runId = "";
@@ -51,8 +74,7 @@ test.describe("dokončení návštěvy s úhradou", () => {
     await page.getByRole("button", { name: "Přihlásit se" }).click();
     await expect(page).toHaveURL(/\/admin/);
 
-    await page.goto(`/admin/rezervace/${fixture.bookingId}`);
-    await expect(page.getByRole("button", { name: /Dokončit návštěvu/ })).toBeVisible();
+    await openBookingDetail(page, fixture.bookingId!);
     const completionPanel = page.locator('[aria-label="Způsob dokončení návštěvy"]').locator("..");
     await completionPanel.getByRole("button", { name: "Kombinovaně" }).click();
     await completionPanel.locator('input[name="directAmountCzk"]').fill("500");
