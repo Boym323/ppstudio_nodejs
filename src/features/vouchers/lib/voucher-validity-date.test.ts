@@ -4,6 +4,10 @@ import test from "node:test";
 import { VoucherStatus, VoucherType } from "@/generated/prisma/browser";
 
 import { getEffectiveVoucherStatus } from "./voucher-format";
+import {
+  addVoucherValidityMonths,
+  getVoucherPragueDateBoundary,
+} from "./voucher-validity-date";
 import { createVoucherSchema } from "../schemas/voucher-schemas";
 
 const emptyVoucherMeta = {
@@ -104,4 +108,48 @@ test("vytvořený voucher lze interně znovu validovat bez změny platnosti", ()
 
   assert.equal(reparsedVoucher.validFrom?.toISOString(), "2026-07-14T22:00:00.000Z");
   assert.equal(reparsedVoucher.validUntil?.toISOString(), "2026-07-15T21:59:59.999Z");
+});
+
+test("přičtení měsíce pracuje s pražským kalendářem a clampne konec ledna", () => {
+  const januaryDate = parseVoucherValidity("2026-01-31", "2026-01-31").validFrom!;
+  const leapJanuaryDate = parseVoucherValidity("2024-01-31", "2024-01-31").validFrom!;
+  const result = addVoucherValidityMonths(januaryDate, 1);
+
+  assert.equal(formatPragueDateInput(result), "2026-02-28");
+  assert.equal(result.toISOString(), "2026-02-27T23:00:00.000Z");
+  assert.equal(formatPragueDateInput(addVoucherValidityMonths(leapJanuaryDate, 1)), "2024-02-29");
+});
+
+test("přičtení měsíce zachová 29. únor v přestupném roce jako clamp do nepřestupného roku", () => {
+  const leapDate = parseVoucherValidity("2024-02-29", "2024-02-29").validFrom!;
+  const result = addVoucherValidityMonths(leapDate, 12);
+
+  assert.equal(formatPragueDateInput(result), "2025-02-28");
+});
+
+test("přičtení měsíců zachová běžný den a zvládne posun roku", () => {
+  const novemberDate = parseVoucherValidity("2026-11-30", "2026-11-30").validFrom!;
+  const result = addVoucherValidityMonths(novemberDate, 3);
+  const anniversary = parseVoucherValidity("2026-09-17", "2026-09-17").validFrom!;
+
+  assert.equal(formatPragueDateInput(result), "2027-02-28");
+  assert.equal(formatPragueDateInput(addVoucherValidityMonths(anniversary, 12)), "2027-09-17");
+});
+
+test("pražské hranice dne používají správné CET/CEST instanty", () => {
+  const springDate = new Date("2026-03-29T12:00:00.000Z");
+  const autumnDate = new Date("2026-10-25T12:00:00.000Z");
+
+  assert.equal(
+    getVoucherPragueDateBoundary(springDate, "start").toISOString(),
+    "2026-03-28T23:00:00.000Z",
+  );
+  assert.equal(
+    getVoucherPragueDateBoundary(springDate, "end").toISOString(),
+    "2026-03-29T21:59:59.999Z",
+  );
+  assert.equal(
+    getVoucherPragueDateBoundary(autumnDate, "end").toISOString(),
+    "2026-10-25T22:59:59.999Z",
+  );
 });

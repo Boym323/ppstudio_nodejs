@@ -28,6 +28,17 @@ test("výchozí platnost zachová kalendářní měsíc i na konci měsíce", as
   assert.equal(values.validUntil, "2027-02-28");
 });
 
+test("výchozí platnost admin create zachová 29. únor jako pražský kalendářní clamp", async () => {
+  const { buildVoucherCreateInitialValues } = await import("./admin-vouchers");
+  const values = buildVoucherCreateInitialValues(new Date("2024-02-29T10:00:00.000Z"), {
+    voucherDefaultTemplateKey: "classic-v1",
+    voucherDefaultValidityMonths: 12,
+  });
+
+  assert.equal(values.validFrom, "2024-02-29");
+  assert.equal(values.validUntil, "2025-02-28");
+});
+
 test("create model a nastavení používají všechny aktivní template definitions", async () => {
   const { buildVoucherCreateInitialValues } = await import("./admin-vouchers");
   const { getAdminVoucherTemplateOptions } = await import("./admin-settings-page-data");

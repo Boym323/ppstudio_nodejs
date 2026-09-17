@@ -69,6 +69,19 @@ dbTest("Voucher Stock: batch, receive, VALUE activation, idempotence, VOID a clo
     assert.equal(activatedItem.status, VoucherStockItemStatus.ACTIVATED);
     assert.equal(activatedItem.voucherId, activatedVoucher.id);
 
+    const defaultDatesActivation = await stock.activateVoucherStockItem({
+      code: createdItems[1].code,
+      type: VoucherType.VALUE,
+      originalValueCzk: 900,
+      actorUserId: owner.id,
+      validityMonths: 1,
+      now: new Date("2026-01-30T23:00:00.000Z"),
+    });
+    assert.equal(defaultDatesActivation.kind, "activated");
+    const defaultDatesVoucher = await prisma.voucher.findUniqueOrThrow({ where: { id: defaultDatesActivation.voucherId } });
+    assert.equal(defaultDatesVoucher.validFrom.toISOString(), "2026-01-30T23:00:00.000Z");
+    assert.equal(defaultDatesVoucher.validUntil?.toISOString(), "2026-02-28T22:59:59.999Z");
+
     const repeated = await stock.activateVoucherStockItem({ code: createdItems[0].code, type: VoucherType.VALUE, originalValueCzk: 999, actorUserId: owner.id });
     assert.equal(repeated.kind, "already_activated");
     assert.equal(repeated.voucherId, activatedVoucher.id);
@@ -84,8 +97,8 @@ dbTest("Voucher Stock: batch, receive, VALUE activation, idempotence, VOID a clo
 
     await stock.closeVoucherPrintBatch({ batchId: batch.id, actorUserId: owner.id });
     const finalItems = await prisma.voucherStockItem.findMany({ where: { batchId: batch.id } });
-    assert.equal(finalItems.filter((item) => item.status === VoucherStockItemStatus.ACTIVATED).length, 1);
-    assert.equal(finalItems.filter((item) => item.status === VoucherStockItemStatus.VOID).length, 2);
+    assert.equal(finalItems.filter((item) => item.status === VoucherStockItemStatus.ACTIVATED).length, 2);
+    assert.equal(finalItems.filter((item) => item.status === VoucherStockItemStatus.VOID).length, 1);
   } finally {
     await prisma.voucherStockAuditLog.deleteMany({ where: { batchId: batch.id } });
     await prisma.voucherStockItem.deleteMany({ where: { batchId: batch.id } });

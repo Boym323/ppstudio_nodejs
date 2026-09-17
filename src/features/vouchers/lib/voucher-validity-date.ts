@@ -15,21 +15,82 @@ const pragueOffsetFormatter = new Intl.DateTimeFormat("en-GB", {
 
 type VoucherValidityBoundary = "start" | "end";
 
+type PragueCalendarDateParts = {
+  year: number;
+  month: number;
+  day: number;
+};
+
+function getPragueCalendarDateParts(value: Date): PragueCalendarDateParts {
+  const parts = pragueCalendarDateFormatter.formatToParts(value);
+  const getPart = (type: "year" | "month" | "day") => {
+    const part = parts.find((item) => item.type === type)?.value;
+
+    if (!part) {
+      throw new RangeError("Unable to resolve Prague calendar " + type + ".");
+    }
+
+    return Number(part);
+  };
+
+  return {
+    year: getPart("year"),
+    month: getPart("month"),
+    day: getPart("day"),
+  };
+}
+
+function formatCalendarDate({ year, month, day }: PragueCalendarDateParts) {
+  return [
+    String(year).padStart(4, "0"),
+    String(month).padStart(2, "0"),
+    String(day).padStart(2, "0"),
+  ].join("-");
+}
+
+function isLeapYear(year: number) {
+  return year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+}
+
+function daysInMonth(year: number, month: number) {
+  if (month === 2) {
+    return isLeapYear(year) ? 29 : 28;
+  }
+
+  return [4, 6, 9, 11].includes(month) ? 30 : 31;
+}
+
 /** Vrátí kalendářní datum voucheru v časové zóně studia. */
 export function getVoucherPragueCalendarDate(value: Date) {
   return pragueCalendarDateFormatter.format(value);
 }
 
+/** Převede okamžik na začátek nebo konec jeho kalendářního dne v Praze. */
+export function getVoucherPragueDateBoundary(value: Date, boundary: VoucherValidityBoundary) {
+  return convertPragueDateInput(getVoucherPragueCalendarDate(value), boundary);
+}
+
 /** Přičte měsíce a zachová poslední platný den cílového měsíce. */
-export function addVoucherValidityMonths(value: Date, months: number) {
-  const result = new Date(value);
-  const dayOfMonth = result.getDate();
+export function addVoucherValidityMonths(
+  value: Date,
+  months: number,
+  boundary: VoucherValidityBoundary = "start",
+) {
+  if (!Number.isInteger(months)) {
+    throw new RangeError("Voucher validity months must be an integer.");
+  }
 
-  result.setDate(1);
-  result.setMonth(result.getMonth() + months);
-  result.setDate(Math.min(dayOfMonth, new Date(result.getFullYear(), result.getMonth() + 1, 0).getDate()));
+  const sourceDate = getPragueCalendarDateParts(value);
+  const targetMonthIndex = sourceDate.month - 1 + months;
+  const targetYear = sourceDate.year + Math.floor(targetMonthIndex / 12);
+  const targetMonth = ((targetMonthIndex % 12) + 12) % 12 + 1;
+  const targetDate = {
+    year: targetYear,
+    month: targetMonth,
+    day: Math.min(sourceDate.day, daysInMonth(targetYear, targetMonth)),
+  };
 
-  return result;
+  return convertPragueDateInput(formatCalendarDate(targetDate), boundary);
 }
 
 function convertPragueDateInput(value: string, boundary: VoucherValidityBoundary) {

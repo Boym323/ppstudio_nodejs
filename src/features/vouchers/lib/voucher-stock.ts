@@ -14,7 +14,10 @@ import {
   voucherTemplateRegistry,
   type VoucherTemplateRegistry,
 } from "@/features/vouchers/lib/voucher-template-registry";
-import { addVoucherValidityMonths } from "@/features/vouchers/lib/voucher-validity-date";
+import {
+  addVoucherValidityMonths,
+  getVoucherPragueDateBoundary,
+} from "@/features/vouchers/lib/voucher-validity-date";
 import {
   activateVoucherStockItemSchema,
   type ActivateVoucherStockItemInput,
@@ -371,8 +374,8 @@ export async function activateVoucherStockItem(input: ActivateVoucherStockItemOp
   const settings = input.validityMonths === undefined ? await getSiteSettings() : null;
   const validityMonths = input.validityMonths ?? settings?.voucherDefaultValidityMonths ?? 12;
   const now = input.now ?? new Date();
-  const validFrom = parsed.validFrom ?? now;
-  const validUntil = parsed.validUntil ?? addVoucherValidityMonths(validFrom, validityMonths);
+  const validFrom = parsed.validFrom ?? getVoucherPragueDateBoundary(now, "start");
+  const validUntil = parsed.validUntil ?? addVoucherValidityMonths(validFrom, validityMonths, "end");
 
   if (validUntil <= validFrom) {
     throw new VoucherStockOperationError(voucherStockOperationErrorCodes.invalidValidityRange, "Platnost do musí být po datu aktivace.");
