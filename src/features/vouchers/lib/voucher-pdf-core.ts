@@ -18,6 +18,8 @@ import {
 import { siteConfig } from "@/config/site";
 
 type VoucherPdfData = NonNullable<Awaited<ReturnType<typeof getVoucherDetail>>>;
+type VoucherStockPdfData = Pick<VoucherPdfData, "templateKey" | "code">;
+type VoucherStockBatchPdfItem = Pick<VoucherPdfData, "code">;
 
 export const MM_TO_PT = 72 / 25.4;
 const MASTER_PAGE_SIZE_TOLERANCE_MM = 0.35;
@@ -149,6 +151,93 @@ export async function generateVoucherPrintPdf(voucher: VoucherPdfData, options: 
 
   drawVoucherOverlay(page, voucher, template, regularFont, boldFont, qrImage);
   setPrintPageBoxes(page, template);
+
+  return pdf.save();
+}
+
+export function buildVoucherStockPdfFilename(batchNumber: string) {
+  const safeBatchNumber = batchNumber.replace(/[^A-Za-z0-9-]/g, "");
+
+  return `voucher-stock-${safeBatchNumber || "serie"}.pdf`;
+}
+
+export async function generateVoucherStockPrintPage(
+  stockItem: VoucherStockPdfData,
+  options: VoucherPdfOptions = {},
+) {
+  const registry = options.registry ?? voucherTemplateRegistry;
+  const template = requireVoucherTemplate(stockItem.templateKey, registry);
+  const masterPath = path.join(process.cwd(), template.masterPath);
+  const masterBytes = await readFile(masterPath);
+  const pdf = await PDFDocument.load(masterBytes);
+  validateMasterPageSize(pdf, template);
+  const page = pdf.getPage(0);
+
+  pdf.registerFontkit(fontkit);
+  pdf.setTitle(`Předtištěný voucher ${stockItem.code}`);
+  pdf.setAuthor("PP Studio");
+  pdf.setSubject(`Předtištěný voucher PP Studio · ${template.label}`);
+  pdf.setCreator("PP Studio administrace");
+  pdf.setProducer("PP Studio administrace");
+
+  const [regularLatinBytes, regularLatinExtBytes, boldLatinBytes, boldLatinExtBytes, qrPngBytes] = await Promise.all([
+    readFile(fontRegularLatinPath),
+    readFile(fontRegularLatinExtPath),
+    readFile(fontBoldLatinPath),
+    readFile(fontBoldLatinExtPath),
+    QRCode.toBuffer(buildVoucherVerificationUrl(stockItem.code), {
+      type: "png",
+      margin: 4,
+      scale: 10,
+      color: { dark: "#171311", light: "#ffffff" },
+    }),
+  ]);
+  const regularFont = createFontPair(
+    await pdf.embedFont(regularLatinBytes, { subset: true }),
+    await pdf.embedFont(regularLatinExtBytes, { subset: true }),
+  );
+  const boldFont = createFontPair(
+    await pdf.embedFont(boldLatinBytes, { subset: true }),
+    await pdf.embedFont(boldLatinExtBytes, { subset: true }),
+  );
+  const qrImage = await pdf.embedPng(qrPngBytes);
+
+  drawVoucherCodeAndQrOverlay(page, stockItem.code, template, regularFont, boldFont, qrImage);
+  setPrintPageBoxes(page, template);
+
+  return pdf.save();
+}
+
+export async function generateVoucherBatchPrintPdf(
+  batch: { batchNumber: string; templateKey: string; items: readonly VoucherStockBatchPdfItem[] },
+  options: VoucherPdfOptions = {},
+) {
+  const registry = options.registry ?? voucherTemplateRegistry;
+  const template = requireVoucherTemplate(batch.templateKey, registry);
+  const pdf = await PDFDocument.create();
+
+  for (const item of batch.items) {
+    const pageBytes = await generateVoucherStockPrintPage({ ...item, templateKey: batch.templateKey }, options);
+    const [printPage] = await pdf.embedPdf(pageBytes, [0]);
+    const page = pdf.addPage([
+      mm(template.layout.printPage.widthMm),
+      mm(template.layout.printPage.heightMm),
+    ]);
+
+    page.drawPage(printPage, {
+      x: 0,
+      y: 0,
+      width: mm(template.layout.printPage.widthMm),
+      height: mm(template.layout.printPage.heightMm),
+    });
+    setPrintPageBoxes(page, template);
+  }
+
+  pdf.setTitle(`Předtištěné vouchery ${batch.batchNumber}`);
+  pdf.setAuthor("PP Studio");
+  pdf.setSubject(`Tisková série voucherů PP Studio · ${template.label}`);
+  pdf.setCreator("PP Studio administrace");
+  pdf.setProducer("PP Studio administrace");
 
   return pdf.save();
 }
@@ -287,10 +376,21 @@ function drawVoucherOverlay(
     { fontPair: validityFont, size: validitySize, color: textColor },
   );
 
-  const codeArea = layout.codeArea;
+  drawVoucherCodeAndQrOverlay(page, voucher.code, template, regularFont, boldFont, qrImage);
+}
+
+function drawVoucherCodeAndQrOverlay(
+  page: PDFPage,
+  code: string,
+  template: VoucherTemplateDefinition,
+  regularFont: FontPair,
+  boldFont: FontPair,
+  qrImage: Parameters<PDFPage["drawImage"]>[0],
+) {
+  const codeArea = template.layout.codeArea;
   const codeFont = codeArea.typography.fontWeight === "bold" ? boldFont : regularFont;
   const codeSize = fitSingleLine(
-    voucher.code,
+    code,
     codeFont,
     mm(codeArea.widthMm - 4),
     codeArea.typography.preferredFontSizePt,
@@ -298,17 +398,17 @@ function drawVoucherOverlay(
   );
   drawTextLine(
     page,
-    voucher.code,
-    getTextX(voucher.code, codeArea, codeFont, codeSize, 2),
+    code,
+    getTextX(code, codeArea, codeFont, codeSize, 2),
     mm(codeArea.baselineMm),
-    { fontPair: codeFont, size: codeSize, color: textColor },
+    { fontPair: codeFont, size: codeSize, color: rgb(0.04, 0.08, 0.12) },
   );
 
   page.drawImage(qrImage, {
-    x: mm(layout.qrArea.xMm),
-    y: mm(layout.qrArea.yMm),
-    width: mm(layout.qrArea.widthMm),
-    height: mm(layout.qrArea.heightMm),
+    x: mm(template.layout.qrArea.xMm),
+    y: mm(template.layout.qrArea.yMm),
+    width: mm(template.layout.qrArea.widthMm),
+    height: mm(template.layout.qrArea.heightMm),
   });
 }
 

@@ -1,10 +1,12 @@
 import { randomInt } from "node:crypto";
 
-import { prisma } from "@/lib/prisma";
+import { Prisma, type Prisma as PrismaNamespace } from "@/generated/prisma/client";
+import { runSerializableTransaction } from "@/lib/serializable-transaction";
 
 const VOUCHER_CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 const VOUCHER_CODE_RANDOM_LENGTH = 6;
 const MAX_GENERATION_ATTEMPTS = 50;
+const VOUCHER_CODE_ALLOCATION_LOCK = "ppstudio:voucher-code-allocation-v1";
 
 export function normalizeVoucherCode(input: string): string {
   return input
@@ -24,20 +26,45 @@ function buildVoucherCode(year: number): string {
   return `PP-${year}-${suffix}`;
 }
 
-export async function generateVoucherCode(now = new Date()): Promise<string> {
+async function lockVoucherCodeAllocation(tx: PrismaNamespace.TransactionClient) {
+  await tx.$executeRaw(Prisma.sql`
+    SELECT pg_advisory_xact_lock(hashtext(${VOUCHER_CODE_ALLOCATION_LOCK}))
+  `);
+}
+
+export async function allocateVoucherCode(
+  tx: PrismaNamespace.TransactionClient,
+  now = new Date(),
+): Promise<string> {
+  await lockVoucherCodeAllocation(tx);
   const year = now.getFullYear();
 
   for (let attempt = 0; attempt < MAX_GENERATION_ATTEMPTS; attempt += 1) {
     const code = buildVoucherCode(year);
-    const existing = await prisma.voucher.findUnique({
-      where: { code },
-      select: { id: true },
-    });
+    const [existingVoucher, existingStockItem] = await Promise.all([
+      tx.voucher.findUnique({
+        where: { code },
+        select: { id: true },
+      }),
+      tx.voucherStockItem.findUnique({
+        where: { code },
+        select: { id: true },
+      }),
+    ]);
 
-    if (!existing) {
+    if (!existingVoucher && !existingStockItem) {
       return code;
     }
   }
 
   throw new Error("Voucher code could not be generated safely.");
+}
+
+/**
+ * Compatibility wrapper for callers that only need to reserve a code. New
+ * writes must call allocateVoucherCode inside the transaction that inserts
+ * Voucher or VoucherStockItem, so the advisory lock covers the insert too.
+ */
+export async function generateVoucherCode(now = new Date()): Promise<string> {
+  return runSerializableTransaction((tx) => allocateVoucherCode(tx, now));
 }

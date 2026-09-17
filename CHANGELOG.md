@@ -9,6 +9,7 @@ Formát je inspirovaný Keep a Changelog.
 ### Přidáno
 
 - Vouchery používají verzované master PDF šablony s uloženým `templateKey`; administrace nabízí nastavení výchozího vzhledu a výchozí platnosti nových voucherů.
+- OWNER může v `/admin/vouchery/predtistene` připravit číslovanou tiskovou sérii předtištěných voucherů; po příjmu ji OWNER nebo SALON aktivuje až při prodeji, přičemž kód a QR zůstávají stejné napříč evidencí, voucherem i veřejným ověřením.
 
 ### Změněno
 

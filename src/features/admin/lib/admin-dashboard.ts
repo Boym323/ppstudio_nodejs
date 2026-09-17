@@ -862,6 +862,12 @@ export async function getAdminDashboardData(area: AdminArea): Promise<AdminDashb
         href: `${vouchersHref}/novy`,
         icon: "voucher",
       },
+      {
+        id: "activate-voucher",
+        label: "Aktivovat voucher",
+        href: `${vouchersHref}/aktivovat`,
+        icon: "voucher",
+      },
     ],
   };
 }

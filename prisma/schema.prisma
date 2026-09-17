@@ -179,6 +179,27 @@ enum VoucherStatus {
   CANCELLED
 }
 
+enum VoucherPrintBatchStatus {
+  PENDING_PRINT
+  RECEIVED
+  CLOSED
+}
+
+enum VoucherStockItemStatus {
+  PENDING_PRINT
+  AVAILABLE
+  ACTIVATED
+  VOID
+}
+
+enum VoucherStockAuditOperation {
+  CREATE_VOUCHER_PRINT_BATCH
+  RECEIVE_VOUCHER_PRINT_BATCH
+  ACTIVATE_VOUCHER_STOCK_ITEM
+  VOID_VOUCHER_STOCK_ITEM
+  CLOSE_VOUCHER_PRINT_BATCH
+}
+
 enum AdminUserAuditOperation {
   CREATE
   UPDATE_PROFILE
@@ -242,6 +263,12 @@ model AdminUser {
   voucherChangeLogs              VoucherChangeLog[]        @relation("VoucherChangeLogActor")
   serviceChangeLogs              ServiceChangeLog[]        @relation("ServiceChangeLogActor")
   siteSettingsChangeLogs         SiteSettingsChangeLog[]   @relation("SiteSettingsChangeLogActor")
+  createdVoucherPrintBatches     VoucherPrintBatch[]       @relation("VoucherPrintBatchCreatedBy")
+  receivedVoucherPrintBatches    VoucherPrintBatch[]       @relation("VoucherPrintBatchReceivedBy")
+  closedVoucherPrintBatches      VoucherPrintBatch[]       @relation("VoucherPrintBatchClosedBy")
+  activatedVoucherStockItems     VoucherStockItem[]        @relation("VoucherStockItemActivatedBy")
+  voidedVoucherStockItems        VoucherStockItem[]        @relation("VoucherStockItemVoidedBy")
+  voucherStockAuditLogs           VoucherStockAuditLog[]    @relation("VoucherStockAuditLogActor")
 }
 
 model AdminUserAuditEvent {
@@ -637,6 +664,7 @@ model Voucher {
   intendedBookings        Booking[]           @relation("BookingIntendedVoucher")
   redemptions             VoucherRedemption[]
   changeLogs              VoucherChangeLog[]
+  stockItem               VoucherStockItem?     @relation("VoucherStockItemVoucher")
 
   @@index([code])
   @@index([status, validUntil])
@@ -645,6 +673,77 @@ model Voucher {
   @@index([createdByUserId])
   @@index([cancelledByUserId])
   @@index([updatedByUserId])
+}
+
+model VoucherPrintBatch {
+  id                String                  @id @default(cuid())
+  batchNumber       String                  @unique
+  templateKey       String
+  quantity          Int
+  status            VoucherPrintBatchStatus @default(PENDING_PRINT)
+  createdAt         DateTime                @default(now())
+  createdByUserId   String
+  receivedAt        DateTime?
+  receivedByUserId  String?
+  closedAt          DateTime?
+  closedByUserId    String?
+  createdByUser     AdminUser               @relation("VoucherPrintBatchCreatedBy", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  receivedByUser   AdminUser?              @relation("VoucherPrintBatchReceivedBy", fields: [receivedByUserId], references: [id], onDelete: SetNull)
+  closedByUser     AdminUser?              @relation("VoucherPrintBatchClosedBy", fields: [closedByUserId], references: [id], onDelete: SetNull)
+  items             VoucherStockItem[]
+  auditLogs         VoucherStockAuditLog[]
+
+  @@index([status, createdAt])
+  @@index([templateKey])
+  @@index([createdByUserId])
+  @@index([receivedByUserId])
+  @@index([closedByUserId])
+}
+
+model VoucherStockItem {
+  id                String                  @id @default(cuid())
+  batchId           String
+  sequenceNumber    Int
+  code              String                  @unique
+  status            VoucherStockItemStatus  @default(PENDING_PRINT)
+  voucherId         String?                 @unique
+  activatedAt       DateTime?
+  activatedByUserId String?
+  voidedAt          DateTime?
+  voidedByUserId    String?
+  voidReason        String?
+  createdAt         DateTime                @default(now())
+  batch             VoucherPrintBatch       @relation(fields: [batchId], references: [id], onDelete: Restrict)
+  voucher           Voucher?                @relation("VoucherStockItemVoucher", fields: [voucherId], references: [id], onDelete: Restrict)
+  activatedByUser  AdminUser?              @relation("VoucherStockItemActivatedBy", fields: [activatedByUserId], references: [id], onDelete: SetNull)
+  voidedByUser     AdminUser?              @relation("VoucherStockItemVoidedBy", fields: [voidedByUserId], references: [id], onDelete: SetNull)
+  auditLogs        VoucherStockAuditLog[]
+
+  @@unique([batchId, sequenceNumber])
+  @@index([batchId])
+  @@index([status])
+  @@index([code])
+  @@index([voucherId])
+  @@index([activatedByUserId])
+  @@index([voidedByUserId])
+}
+
+model VoucherStockAuditLog {
+  id          String                    @id @default(cuid())
+  batchId     String?
+  stockItemId String?
+  actorUserId String
+  operation   VoucherStockAuditOperation
+  metadata    Json?
+  createdAt   DateTime                  @default(now())
+  batch       VoucherPrintBatch?        @relation(fields: [batchId], references: [id], onDelete: Restrict)
+  stockItem   VoucherStockItem?         @relation(fields: [stockItemId], references: [id], onDelete: Restrict)
+  actorUser   AdminUser                 @relation("VoucherStockAuditLogActor", fields: [actorUserId], references: [id], onDelete: Restrict)
+
+  @@index([batchId, createdAt])
+  @@index([stockItemId, createdAt])
+  @@index([actorUserId, createdAt])
+  @@index([createdAt, id])
 }
 
 model VoucherChangeLog {

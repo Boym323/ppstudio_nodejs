@@ -168,6 +168,25 @@ test("historickou inactive template lze renderovat, ale není aktivní pro nové
   assert.equal((await PDFDocument.load(pdfBytes)).getPageCount(), 1);
 });
 
+test("předtištěná stránka vykreslí pouze kód a QR a batch PDF má jednu stránku na kus", async () => {
+  const { generateVoucherBatchPrintPdf, generateVoucherStockPrintPage, mm } = await import("./voucher-pdf-core");
+  const items = [
+    { code: "PP-2026-STOCK1" },
+    { code: "PP-2026-STOCK2" },
+    { code: "PP-2026-STOCK3" },
+  ];
+  const pageBytes = await generateVoucherStockPrintPage({ templateKey: "classic-v1", code: items[0].code });
+  const pagePdf = await PDFDocument.load(pageBytes);
+  const batchBytes = await generateVoucherBatchPrintPdf({ batchNumber: "2026-001", templateKey: "classic-v1", items });
+  const batchPdf = await PDFDocument.load(batchBytes);
+
+  assert.equal(pagePdf.getPageCount(), 1);
+  assert.deepEqual(roundBox(pagePdf.getPage(0).getSize()), roundBox({ width: mm(216), height: mm(105) }));
+  assert.equal(batchPdf.getPageCount(), 3);
+  assert.deepEqual(roundBox(batchPdf.getPage(1).getTrimBox()), roundBox({ x: mm(3), y: mm(3), width: mm(210), height: mm(99) }));
+  assert.notDeepEqual(getPageOverlayContent(batchPdf.getPage(0)), getPageOverlayContent(batchPdf.getPage(1)));
+});
+
 function roundBox(box: { x?: number; y?: number; width: number; height: number }) {
   return {
     x: Math.round((box.x ?? 0) * 100) / 100,

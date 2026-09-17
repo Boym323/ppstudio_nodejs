@@ -64,6 +64,44 @@ export const validateVoucherCodeSchema = z.object({
   serviceId: z.string().trim().min(1, "Vyberte službu.").max(64),
 });
 
+const stockActivationCommonFields = {
+  code: z.string().trim().min(1, "Zadejte kód voucheru.").max(64),
+  validFrom: optionalVoucherValidityDate("start"),
+  validUntil: optionalVoucherValidityDate("end"),
+};
+
+export const activateVoucherStockItemSchema = z
+  .discriminatedUnion("type", [
+    z.object({
+      type: z.literal(VoucherType.VALUE),
+      ...stockActivationCommonFields,
+      originalValueCzk: z.coerce
+        .number({ error: "Hodnotu voucheru zadejte jako celé číslo v Kč." })
+        .int("Hodnota voucheru musí být celé číslo.")
+        .min(1, "Hodnota voucheru musí být vyšší než 0."),
+      serviceId: z.undefined().optional(),
+    }),
+    z.object({
+      type: z.literal(VoucherType.SERVICE),
+      ...stockActivationCommonFields,
+      serviceId: z.string().trim().min(1, "Vyberte službu.").max(64),
+      originalValueCzk: z.undefined().optional(),
+    }),
+  ])
+  .superRefine((value, ctx) => {
+    if (
+      value.validUntil &&
+      value.validFrom &&
+      value.validUntil.getTime() <= value.validFrom.getTime()
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["validUntil"],
+        message: "Platnost do musí být po datu začátku platnosti.",
+      });
+    }
+  });
+
 export const redeemVoucherSchema = z.object({
   voucherCode: z.string().trim().min(1, "Zadejte kód voucheru.").max(64),
   bookingId: z.string().trim().min(1, "Vyberte rezervaci.").max(64),
@@ -78,4 +116,5 @@ export const redeemVoucherSchema = z.object({
 
 export type CreateVoucherInput = z.input<typeof createVoucherSchema>;
 export type ValidateVoucherCodeInput = z.infer<typeof validateVoucherCodeSchema>;
+export type ActivateVoucherStockItemInput = z.input<typeof activateVoucherStockItemSchema>;
 export type RedeemVoucherInput = z.infer<typeof redeemVoucherSchema>;

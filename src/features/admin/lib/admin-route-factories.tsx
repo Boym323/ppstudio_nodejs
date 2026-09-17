@@ -13,6 +13,12 @@ import { AdminVoucherForm } from "@/features/admin/components/admin-voucher-form
 import { AdminVoucherDetailPage } from "@/features/admin/components/admin-voucher-detail-page";
 import { AdminClientsPage } from "@/features/admin/components/admin-clients-page";
 import { AdminVouchersPage } from "@/features/admin/components/admin-vouchers-page";
+import {
+  AdminVoucherActivationPage,
+  AdminVoucherStockBatchDetailPage,
+  AdminVoucherStockCreatePage,
+  AdminVoucherStockPage,
+} from "@/features/admin/components/admin-voucher-stock-pages";
 import { AdminUsersPage } from "@/features/admin/components/admin-users-page";
 import { AdminServiceCategoriesPage } from "@/features/admin/components/admin-service-categories-page";
 import { AdminServicesPage } from "@/features/admin/components/admin-services-page";
@@ -24,6 +30,12 @@ import { requireAdminArea } from "@/lib/auth/session";
 import { getAdminBookingDetailData } from "./booking/booking-detail";
 import { getAdminClientDetailData } from "./admin-clients";
 import { getAdminVoucherCreatePageData, getAdminVoucherDetailData } from "./admin-vouchers";
+import {
+  getAdminVoucherActivationPageData,
+  getAdminVoucherStockBatchDetailData,
+  getAdminVoucherStockCreatePageData,
+  getAdminVoucherStockPageData,
+} from "./admin-voucher-stock";
 import { isAdminSectionSlug, requireAdminSectionAccess } from "./admin-guards";
 import { findSlotWeekContext } from "./admin-slots";
 
@@ -46,6 +58,10 @@ type AdminClientDetailParams = Promise<{
 
 type AdminVoucherDetailParams = Promise<{
   voucherId: string;
+}>;
+
+type AdminVoucherStockBatchParams = Promise<{
+  batchId: string;
 }>;
 
 export function createAdminOverviewRoute(area: AdminArea) {
@@ -178,6 +194,57 @@ export function createAdminVoucherCreateRoute(area: AdminArea) {
         </AdminPanel>
       </AdminPageShell>
     );
+  };
+}
+
+export function createAdminVoucherStockRoute(area: AdminArea) {
+  return async function AdminVoucherStockRoute({
+    searchParams,
+  }: {
+    searchParams: Promise<Record<string, string | string[] | undefined>>;
+  }) {
+    await requireAdminSectionAccess(area, "vouchery");
+    return <AdminVoucherStockPage data={await getAdminVoucherStockPageData(area, await searchParams)} />;
+  };
+}
+
+export function createAdminVoucherStockCreateRoute() {
+  return async function AdminVoucherStockCreateRoute() {
+    await requireAdminSectionAccess("owner", "vouchery");
+    return <AdminVoucherStockCreatePage data={getAdminVoucherStockCreatePageData()} />;
+  };
+}
+
+export function createAdminVoucherStockBatchDetailRoute(area: AdminArea) {
+  return async function AdminVoucherStockBatchDetailRoute({
+    params,
+    searchParams,
+  }: {
+    params: AdminVoucherStockBatchParams;
+    searchParams: Promise<Record<string, string | string[] | undefined>>;
+  }) {
+    await requireAdminSectionAccess(area, "vouchery");
+    const { batchId } = await params;
+    const data = await getAdminVoucherStockBatchDetailData(area, batchId, await searchParams);
+
+    if (!data) {
+      notFound();
+    }
+
+    return <AdminVoucherStockBatchDetailPage data={data} />;
+  };
+}
+
+export function createAdminVoucherActivationRoute(area: AdminArea) {
+  return async function AdminVoucherActivationRoute({
+    searchParams,
+  }: {
+    searchParams: Promise<Record<string, string | string[] | undefined>>;
+  }) {
+    await requireAdminSectionAccess(area, "vouchery");
+    const params = await searchParams;
+    const code = typeof params.code === "string" ? params.code : undefined;
+    return <AdminVoucherActivationPage data={await getAdminVoucherActivationPageData(area, code)} />;
   };
 }
 

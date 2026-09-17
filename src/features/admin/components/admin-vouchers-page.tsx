@@ -4,11 +4,13 @@ import { type VoucherStatus, type VoucherType } from "@/generated/prisma/browser
 import { type AdminArea } from "@/config/navigation";
 import { AdminPageShell, AdminPanel } from "@/features/admin/components/admin-page-shell";
 import { AdminStatePill } from "@/features/admin/components/admin-state-pill";
+import { AdminVoucherTabs } from "@/features/admin/components/admin-voucher-stock-pages";
 import {
   getAdminVouchersHref,
   getAdminVouchersPageData,
   type AdminVoucherFilters,
 } from "@/features/admin/lib/admin-vouchers";
+import { getAdminVoucherActivationHref } from "@/features/admin/lib/admin-voucher-stock";
 import { cn } from "@/lib/utils";
 
 const formatDate = new Intl.DateTimeFormat("cs-CZ", {
@@ -111,22 +113,31 @@ export async function AdminVouchersPage({
       title="Vouchery"
       description="Přehled vydaných voucherů, zůstatků a platností."
       headerActions={
-        <Link
-          href={createHref}
-          className={cn(
-            "inline-flex items-center justify-center rounded-full border border-[var(--color-accent)]/45",
-            "bg-[rgba(190,160,120,0.12)] px-4 py-2 text-sm font-semibold text-[var(--color-accent-soft)]",
-            "transition hover:border-[var(--color-accent)]/70 hover:bg-[rgba(190,160,120,0.18)]",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/60",
-          )}
-        >
-          Nový voucher
-        </Link>
+        <div className="flex flex-wrap justify-end gap-2">
+          <Link
+            href={getAdminVoucherActivationHref(area)}
+            className={cn(
+              "inline-flex items-center justify-center rounded-full border border-[var(--color-accent)]/45",
+              "bg-[rgba(190,160,120,0.12)] px-4 py-2 text-sm font-semibold text-[var(--color-accent-soft)]",
+              "transition hover:border-[var(--color-accent)]/70 hover:bg-[rgba(190,160,120,0.18)]",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/60",
+            )}
+          >
+            Aktivovat voucher
+          </Link>
+          <Link
+            href={createHref}
+            className="inline-flex items-center justify-center rounded-full border border-white/10 px-4 py-2 text-sm font-semibold text-white/80 transition hover:border-white/20 hover:bg-white/6"
+          >
+            Nový voucher
+          </Link>
+        </div>
       }
       compact={area === "salon"}
       denseIntro
     >
       <div className="flex flex-col gap-3.5">
+        <AdminVoucherTabs area={area} active="issued" />
         <AdminVoucherStatsStrip stats={data.stats} />
 
         <AdminPanel

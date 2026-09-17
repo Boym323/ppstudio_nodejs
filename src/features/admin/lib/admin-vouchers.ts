@@ -10,6 +10,7 @@ import {
 } from "@/features/vouchers/lib/voucher-template-registry";
 import { prisma } from "@/lib/prisma";
 import { getSiteSettings } from "@/lib/site-settings";
+import { addVoucherValidityMonths } from "@/features/vouchers/lib/voucher-validity-date";
 
 export type AdminVoucherTypeFilter = "all" | "value" | "service";
 export type AdminVoucherStatusFilter =
@@ -111,17 +112,6 @@ function formatDateInputValue(value: Date) {
   return pragueDateFormatter.format(value);
 }
 
-function addMonths(value: Date, months: number) {
-  const result = new Date(value);
-  const dayOfMonth = result.getDate();
-
-  result.setDate(1);
-  result.setMonth(result.getMonth() + months);
-  result.setDate(Math.min(dayOfMonth, new Date(result.getFullYear(), result.getMonth() + 1, 0).getDate()));
-
-  return result;
-}
-
 export function buildVoucherCreateInitialValues(
   today: Date,
   settings: Pick<Awaited<ReturnType<typeof getSiteSettings>>, "voucherDefaultTemplateKey" | "voucherDefaultValidityMonths">,
@@ -134,7 +124,7 @@ export function buildVoucherCreateInitialValues(
     type: "VALUE" as const,
     templateKey: defaultTemplate?.key ?? "",
     validFrom: formatDateInputValue(today),
-    validUntil: formatDateInputValue(addMonths(today, settings.voucherDefaultValidityMonths)),
+    validUntil: formatDateInputValue(addVoucherValidityMonths(today, settings.voucherDefaultValidityMonths)),
   };
 }
 

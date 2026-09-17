@@ -16,6 +16,8 @@ export const voucherValidationReasonCodes = {
   expired: "EXPIRED",
   noRemainingValue: "NO_REMAINING_VALUE",
   serviceMismatch: "SERVICE_MISMATCH",
+  notActivated: "NOT_ACTIVATED",
+  stockVoid: "STOCK_VOID",
 } as const;
 
 export type VoucherValidationReasonCode =
@@ -99,6 +101,28 @@ export async function verifyVoucherPublic(input: {
   });
 
   if (!voucher) {
+    const stockItem = await prisma.voucherStockItem.findUnique({
+      where: { code },
+      select: { id: true, status: true, voucherId: true },
+    });
+
+    if (stockItem) {
+      if (stockItem.status === "VOID") {
+        return { ok: false, reason: voucherValidationReasonCodes.stockVoid };
+      }
+
+      if (stockItem.status === "ACTIVATED") {
+        console.error("Voucher stock integrity problem: activated item has no Voucher.", {
+          stockItemId: stockItem.id,
+          voucherId: stockItem.voucherId,
+          code,
+        });
+        return { ok: false, reason: voucherValidationReasonCodes.notFound };
+      }
+
+      return { ok: false, reason: voucherValidationReasonCodes.notActivated };
+    }
+
     return { ok: false, reason: voucherValidationReasonCodes.notFound };
   }
 

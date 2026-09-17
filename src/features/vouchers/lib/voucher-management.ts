@@ -1,6 +1,6 @@
 import { Prisma, VoucherStatus, VoucherType } from "@/generated/prisma/client";
 
-import { generateVoucherCode } from "@/features/vouchers/lib/voucher-code";
+import { allocateVoucherCode } from "@/features/vouchers/lib/voucher-code";
 import { redeemVoucherForBooking } from "@/features/vouchers/lib/voucher-redemption";
 import {
   getVoucherTemplate,
@@ -15,7 +15,7 @@ import {
   type RedeemVoucherInput,
   type ValidateVoucherCodeInput,
 } from "@/features/vouchers/schemas/voucher-schemas";
-import { prisma } from "@/lib/prisma";
+import { runSerializableTransaction } from "@/lib/serializable-transaction";
 
 const MAX_CREATE_COLLISION_RETRIES = 5;
 
@@ -43,26 +43,67 @@ export async function createVoucher(input: CreateVoucherInput, createdByUserId: 
   const now = new Date();
 
   for (let attempt = 0; attempt < MAX_CREATE_COLLISION_RETRIES; attempt += 1) {
-    const code = await generateVoucherCode(now);
-
     try {
-      if (parsed.type === VoucherType.VALUE) {
-        return await prisma.voucher.create({
+      return await runSerializableTransaction(async (tx) => {
+        const code = await allocateVoucherCode(tx, now);
+
+        if (parsed.type === VoucherType.VALUE) {
+          return tx.voucher.create({
+            data: {
+              code,
+              type: VoucherType.VALUE,
+              templateKey: parsed.templateKey,
+              status: VoucherStatus.ACTIVE,
+              purchaserName: nullableText(parsed.purchaserName),
+              purchaserEmail: nullableText(parsed.purchaserEmail),
+              recipientName: nullableText(parsed.recipientName),
+              message: nullableText(parsed.message),
+              originalValueCzk: parsed.originalValueCzk,
+              remainingValueCzk: parsed.originalValueCzk,
+              serviceId: null,
+              serviceNameSnapshot: null,
+              servicePriceSnapshotCzk: null,
+              serviceDurationSnapshot: null,
+              validFrom: parsed.validFrom ?? now,
+              validUntil: parsed.validUntil ?? null,
+              issuedAt: now,
+              internalNote: nullableText(parsed.internalNote),
+              createdByUserId,
+            },
+          });
+        }
+
+        const service = await tx.service.findUnique({
+          where: { id: parsed.serviceId },
+          select: {
+            id: true,
+            name: true,
+            publicName: true,
+            priceFromCzk: true,
+            durationMinutes: true,
+          },
+        });
+
+        if (!service) {
+          throw new Error("Selected service does not exist.");
+        }
+
+        return tx.voucher.create({
           data: {
             code,
-            type: VoucherType.VALUE,
+            type: VoucherType.SERVICE,
             templateKey: parsed.templateKey,
             status: VoucherStatus.ACTIVE,
             purchaserName: nullableText(parsed.purchaserName),
             purchaserEmail: nullableText(parsed.purchaserEmail),
             recipientName: nullableText(parsed.recipientName),
             message: nullableText(parsed.message),
-            originalValueCzk: parsed.originalValueCzk,
-            remainingValueCzk: parsed.originalValueCzk,
-            serviceId: null,
-            serviceNameSnapshot: null,
-            servicePriceSnapshotCzk: null,
-            serviceDurationSnapshot: null,
+            originalValueCzk: service.priceFromCzk,
+            remainingValueCzk: null,
+            serviceId: service.id,
+            serviceNameSnapshot: service.publicName ?? service.name,
+            servicePriceSnapshotCzk: service.priceFromCzk,
+            serviceDurationSnapshot: service.durationMinutes,
             validFrom: parsed.validFrom ?? now,
             validUntil: parsed.validUntil ?? null,
             issuedAt: now,
@@ -70,45 +111,6 @@ export async function createVoucher(input: CreateVoucherInput, createdByUserId: 
             createdByUserId,
           },
         });
-      }
-
-      const service = await prisma.service.findUnique({
-        where: { id: parsed.serviceId },
-        select: {
-          id: true,
-          name: true,
-          publicName: true,
-          priceFromCzk: true,
-          durationMinutes: true,
-        },
-      });
-
-      if (!service) {
-        throw new Error("Selected service does not exist.");
-      }
-
-      return await prisma.voucher.create({
-        data: {
-          code,
-          type: VoucherType.SERVICE,
-          templateKey: parsed.templateKey,
-          status: VoucherStatus.ACTIVE,
-          purchaserName: nullableText(parsed.purchaserName),
-          purchaserEmail: nullableText(parsed.purchaserEmail),
-          recipientName: nullableText(parsed.recipientName),
-          message: nullableText(parsed.message),
-          originalValueCzk: service.priceFromCzk,
-          remainingValueCzk: null,
-          serviceId: service.id,
-          serviceNameSnapshot: service.publicName ?? service.name,
-          servicePriceSnapshotCzk: service.priceFromCzk,
-          serviceDurationSnapshot: service.durationMinutes,
-          validFrom: parsed.validFrom ?? now,
-          validUntil: parsed.validUntil ?? null,
-          issuedAt: now,
-          internalNote: nullableText(parsed.internalNote),
-          createdByUserId,
-        },
       });
     } catch (error) {
       if (isUniqueCodeCollision(error)) {

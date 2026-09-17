@@ -9,6 +9,18 @@ const pragueOffsetFormatter = new Intl.DateTimeFormat("en-GB", {
 
 type VoucherValidityBoundary = "start" | "end";
 
+/** Přičte měsíce a zachová poslední platný den cílového měsíce. */
+export function addVoucherValidityMonths(value: Date, months: number) {
+  const result = new Date(value);
+  const dayOfMonth = result.getDate();
+
+  result.setDate(1);
+  result.setMonth(result.getMonth() + months);
+  result.setDate(Math.min(dayOfMonth, new Date(result.getFullYear(), result.getMonth() + 1, 0).getDate()));
+
+  return result;
+}
+
 function convertPragueDateInput(value: string, boundary: VoucherValidityBoundary) {
   const [year, month, day] = value.split("-").map(Number);
   const localDate = new Date(0);

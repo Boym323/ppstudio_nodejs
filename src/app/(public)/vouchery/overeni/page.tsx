@@ -243,6 +243,10 @@ function getPublicReasonMessage(reason: VoucherValidationReasonCode) {
       return "Voucher je propadlý.";
     case voucherValidationReasonCodes.cancelled:
       return "Voucher není platný. Kontaktujte prosím salon.";
+    case voucherValidationReasonCodes.notActivated:
+      return "Voucher zatím nebyl aktivován.";
+    case voucherValidationReasonCodes.stockVoid:
+      return "Voucher není platný.";
     case voucherValidationReasonCodes.noRemainingValue:
       return "Voucher nemá dostupný zůstatek.";
     case voucherValidationReasonCodes.notFound:

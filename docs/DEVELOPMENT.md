@@ -95,6 +95,14 @@ Produkční HTML templates jsou v `src/lib/email/react-email/` a sdílené kompo
 - Recovery admin přístupu prováděj pouze offline příkazem `npm run admin:recover-owner -- --email owner@example.com --name 'Jméno' --confirm < heslo.txt`; webový bootstrap login neexistuje.
 - README na GitHubu má fungovat jako rozcestník i rychlý onboarding. Když měníš setup, deploy nebo monitoring workflow, promítni změnu do `README.md` a udržuj v něm krokový postup, ne jen seznam odkazů.
 
+### Voucher Stock v1
+
+Předtištěné voucherové série používají modely `VoucherPrintBatch`, `VoucherStockItem` a `VoucherStockAuditLog`. `VoucherStockItem.code` je rezervovaný globálně proti `Voucher.code`; alokace kódu i čísla série probíhá uvnitř serializované PostgreSQL transakce s transaction advisory lockem. Běžné vystavení voucheru proto nesmí generovat kód mimo transakci, která následně zapisuje `Voucher`.
+
+Tisková série vzniká atomicky v routě `/admin/vouchery/predtistene`, její PDF je deterministický výstup existujících kusů a každý kus má jednu stránku se stejným masterem, kódem a QR. Stavový workflow je `PENDING_PRINT → AVAILABLE → ACTIVATED|VOID`, přičemž příjem, aktivace, VOID a uzavření série jsou auditované a aktivace je idempotentní podle skladového kusu/kódu. `SALON` nemůže sérii založit, stáhnout ani uzavřít, ale může přijmout aktivaci a označit dostupný kus jako VOID.
+
+Při změně schématu dodrž standardní Prisma workflow: před migrací `npx prisma migrate status`, potom `npx prisma migrate dev --name <název>`, a po migraci `npx prisma validate`, `npx prisma generate` a `npx prisma migrate status`. DB scénář Voucher Stock se spouští izolovaně přes `RUN_DB_INTEGRATION_TESTS=1` a je určen pro DEV databázi.
+
 ## Architektura
 
 - Při změně mobilního admin UI drž minimální výšku hlavních dotykových ovladačů alespoň `2.75rem` a nenechávej dlouhou řadu filtrů zalomit se do nečitelných řádků: na telefonu může být vodorovně posuvná, na širším breakpointu se vrací běžné zalomení. U týdenního planneru musí fixed sheet i publish lišta počítat s `env(safe-area-inset-bottom)`.
