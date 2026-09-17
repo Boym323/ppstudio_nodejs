@@ -178,6 +178,10 @@ export async function activateVoucherStockItemAction(
       status: "success",
       voucherId: result.voucherId,
       code: result.code,
+      type: result.type,
+      originalValueCzk: result.originalValueCzk,
+      serviceNameSnapshot: result.serviceNameSnapshot,
+      servicePriceSnapshotCzk: result.servicePriceSnapshotCzk,
       validFrom: result.validFrom,
       validUntil: result.validUntil,
     };

@@ -14,6 +14,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- Success obrazovka aktivace předtištěného voucheru nyní zobrazuje prodanou hodnotu nebo službu, částku k úhradě ze snapshotu a konkrétní údaje k opsání na fyzický voucher; platební evidence ani KPI se nemění.
 - Aktivace předtištěného voucheru nyní jasně odděluje veřejné QR ověření od ručního zadání aktivačního kódu, vyžaduje explicitní výběr služby a před nevratným potvrzením zobrazí varování.
 - Voucherové `/pdf` nyní vrací digitální výřez 210 × 99 mm, `/pdf/tisk` vrací jednostránkové tiskové PDF 216 × 105 mm s bleedem a TrimBoxem; e-mail používá stejný digitální generátor.
 - Template registry nyní nese kompletní per-template page metadata, souřadnice a typografii; přidání dalšího designu nevyžaduje změnu centrálního rendereru ani formulářů.

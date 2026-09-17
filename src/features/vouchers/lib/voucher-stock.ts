@@ -506,6 +506,16 @@ export async function activateVoucherStockItem(input: ActivateVoucherStockItemOp
       },
     });
 
-    return { kind: "activated" as const, voucherId: voucher.id, code, validFrom, validUntil };
+    return {
+      kind: "activated" as const,
+      voucherId: voucher.id,
+      code,
+      type: voucher.type,
+      originalValueCzk: voucher.originalValueCzk,
+      serviceNameSnapshot: voucher.serviceNameSnapshot,
+      servicePriceSnapshotCzk: voucher.servicePriceSnapshotCzk,
+      validFrom,
+      validUntil,
+    };
   });
 }

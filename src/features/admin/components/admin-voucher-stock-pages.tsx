@@ -258,7 +258,7 @@ export function AdminVoucherActivationPage({ data }: { data: AdminVoucherActivat
       : data.initialStockItem;
 
   if (activationState.status === "success" && activationState.voucherId && activationState.code) {
-    return <ActivationSuccess area={data.area} state={{ voucherId: activationState.voucherId, code: activationState.code, validFrom: activationState.validFrom, validUntil: activationState.validUntil }} onNext={() => window.location.reload()} />;
+    return <ActivationSuccess area={data.area} state={{ voucherId: activationState.voucherId, code: activationState.code, type: activationState.type, originalValueCzk: activationState.originalValueCzk, serviceNameSnapshot: activationState.serviceNameSnapshot, servicePriceSnapshotCzk: activationState.servicePriceSnapshotCzk, validFrom: activationState.validFrom, validUntil: activationState.validUntil }} onNext={() => window.location.reload()} />;
   }
 
   const alreadyActivatedVoucherId = activationState.status === "already_activated" ? activationState.voucherId : selectedItem?.voucher?.id;
@@ -310,8 +310,55 @@ export function AdminVoucherActivationPage({ data }: { data: AdminVoucherActivat
   );
 }
 
-function ActivationSuccess({ area, state, onNext }: { area: AdminArea; state: { voucherId: string; code: string; validFrom?: Date; validUntil?: Date }; onNext: () => void }) {
-  return <AdminPageShell eyebrow="Aktivace dokončena" title="Voucher aktivován" description="Na fyzický voucher doplňte hodnotu nebo službu a datum platnosti." compact={area === "salon"}><div className="max-w-xl rounded-[1.15rem] border border-emerald-300/25 bg-emerald-400/[0.08] p-5"><p className="font-mono text-lg font-semibold tracking-[0.08em] text-white">{state.code}</p><dl className="mt-4 grid gap-3 sm:grid-cols-2"><div><dt className="text-xs uppercase tracking-[0.16em] text-white/48">Platnost od</dt><dd className="mt-1 text-sm text-white">{state.validFrom ? dateFormatter.format(state.validFrom) : "dnes"}</dd></div><div><dt className="text-xs uppercase tracking-[0.16em] text-white/48">Platnost do</dt><dd className="mt-1 text-sm text-white">{state.validUntil ? dateFormatter.format(state.validUntil) : "—"}</dd></div></dl><div className="mt-5 flex flex-wrap gap-2"><button type="button" onClick={onNext} className={primaryButtonClassName}>Aktivovat další</button><Link href={area === "owner" ? `/admin/vouchery/${state.voucherId}` : `/admin/provoz/vouchery/${state.voucherId}`} className={secondaryButtonClassName}>Otevřít voucher</Link></div></div></AdminPageShell>;
+function ActivationSuccess({ area, state, onNext }: { area: AdminArea; state: { voucherId: string; code: string; type?: VoucherType; originalValueCzk?: number | null; serviceNameSnapshot?: string | null; servicePriceSnapshotCzk?: number | null; validFrom?: Date; validUntil?: Date }; onNext: () => void }) {
+  const isValueVoucher = state.type === VoucherType.VALUE;
+  const soldLabel = isValueVoucher ? "HODNOTA VOUCHERU" : "SLUŽBA";
+  const soldValue = isValueVoucher ? state.originalValueCzk : state.serviceNameSnapshot;
+  const amountDue = isValueVoucher ? state.originalValueCzk : state.servicePriceSnapshotCzk;
+
+  return (
+    <AdminPageShell eyebrow="Aktivace dokončena" title="Voucher aktivován" description="Zkontrolujte údaje pro zákazníka a doplňte je na fyzický voucher." compact={area === "salon"}>
+      <div className="max-w-xl rounded-[1.15rem] border border-emerald-300/25 bg-emerald-400/[0.08] p-4 sm:p-5">
+        <dl className="grid gap-4">
+          <div>
+            <dt className="text-xs uppercase tracking-[0.16em] text-white/48">KÓD VOUCHERU</dt>
+            <dd className="mt-1 break-all font-mono text-lg font-semibold tracking-[0.08em] text-white">{state.code}</dd>
+          </div>
+          <div>
+            <dt className="text-xs uppercase tracking-[0.16em] text-white/48">{soldLabel}</dt>
+            <dd className="mt-1 text-base font-semibold text-white">{isValueVoucher && typeof soldValue === "number" ? moneyFormatter.format(soldValue) : soldValue ?? "—"}</dd>
+          </div>
+          <div className="rounded-[0.95rem] border border-[var(--color-accent)]/45 bg-[rgba(190,160,120,0.13)] px-3.5 py-3">
+            <dt className="text-xs uppercase tracking-[0.16em] text-white/65">K ÚHRADĚ</dt>
+            <dd className="mt-1 font-display text-3xl leading-tight text-white">{typeof amountDue === "number" ? moneyFormatter.format(amountDue) : "—"}</dd>
+          </div>
+          <div>
+            <dt className="text-xs uppercase tracking-[0.16em] text-white/48">PLATNOST DO</dt>
+            <dd className="mt-1 text-sm text-white">{state.validUntil ? dateFormatter.format(state.validUntil) : "—"}</dd>
+          </div>
+        </dl>
+
+        <div className="mt-5 rounded-[0.95rem] border border-white/10 bg-black/10 px-3.5 py-3.5">
+          <p className="text-sm font-semibold text-white">Na fyzický voucher doplňte:</p>
+          <dl className="mt-3 grid gap-3">
+            <div>
+              <dt className="text-xs uppercase tracking-[0.16em] text-white/48">VĚNOVÁNO NA</dt>
+              <dd className="mt-1 text-sm font-semibold text-white">{isValueVoucher && typeof soldValue === "number" ? moneyFormatter.format(soldValue) : soldValue ?? "—"}</dd>
+            </div>
+            <div>
+              <dt className="text-xs uppercase tracking-[0.16em] text-white/48">PLATNOST DO</dt>
+              <dd className="mt-1 text-sm font-semibold text-white">{state.validUntil ? dateFormatter.format(state.validUntil) : "—"}</dd>
+            </div>
+          </dl>
+        </div>
+
+        <div className="mt-5 flex flex-col gap-2 sm:flex-row">
+          <button type="button" onClick={onNext} className={cn(primaryButtonClassName, "w-full sm:w-auto")}>Aktivovat další</button>
+          <Link href={area === "owner" ? `/admin/vouchery/${state.voucherId}` : `/admin/provoz/vouchery/${state.voucherId}`} className={cn(secondaryButtonClassName, "w-full sm:w-auto")}>Otevřít voucher</Link>
+        </div>
+      </div>
+    </AdminPageShell>
+  );
 }
 
 function TypeChoice({ active, label, onClick }: { active: boolean; label: string; onClick: () => void }) {

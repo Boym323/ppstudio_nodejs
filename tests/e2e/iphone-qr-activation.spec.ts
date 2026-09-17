@@ -115,6 +115,12 @@ test.describe("iPhone QR activation v1", () => {
       await page.getByLabel("Hodnota v Kč").fill("1500");
       await page.getByRole("button", { name: "Potvrdit prodej a aktivovat" }).click();
       await expect(page.getByRole("heading", { name: "Voucher aktivován" })).toBeVisible();
+      await expect(page.getByText("KÓD VOUCHERU")).toBeVisible();
+      await expect(page.getByText("HODNOTA VOUCHERU")).toBeVisible();
+      await expect(page.getByText("1 500 Kč").first()).toBeVisible();
+      await expect(page.getByText("K ÚHRADĚ")).toBeVisible();
+      await expect(page.getByText("Na fyzický voucher doplňte:")).toBeVisible();
+      await expect(page.getByText("VĚNOVÁNO NA")).toBeVisible();
 
       const activated = await prisma.voucherStockItem.findUniqueOrThrow({ where: { code: stock.code }, select: { status: true } });
       expect(activated.status).toBe(VoucherStockItemStatus.ACTIVATED);

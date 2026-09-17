@@ -1,3 +1,4 @@
+import { VoucherType } from "@/generated/prisma/browser";
 import { type findVoucherStockItemByCode } from "@/features/vouchers/lib/voucher-stock";
 
 export type VoucherStockLookupItem = NonNullable<Awaited<ReturnType<typeof findVoucherStockItemByCode>>>;
@@ -14,6 +15,10 @@ export type VoucherStockActivationState = {
   status: "idle" | "success" | "already_activated" | "error";
   voucherId?: string;
   code?: string;
+  type?: VoucherType;
+  originalValueCzk?: number | null;
+  serviceNameSnapshot?: string | null;
+  servicePriceSnapshotCzk?: number | null;
   validFrom?: Date;
   validUntil?: Date;
   formError?: string;
