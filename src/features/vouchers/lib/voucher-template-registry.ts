@@ -58,10 +58,17 @@ export type VoucherTemplateRegistry = Readonly<{
 }>;
 
 export class VoucherTemplateError extends Error {
-  readonly code = "unknown_template";
+  readonly code: "unknown_template" | "invalid_master_page_size";
 
-  constructor(readonly templateKey: string | null | undefined) {
-    super(`Voucher template "${templateKey ?? ""}" is not registered.`);
+  constructor(
+    readonly templateKey: string | null | undefined,
+    options: {
+      code?: "unknown_template" | "invalid_master_page_size";
+      message?: string;
+    } = {},
+  ) {
+    super(options.message ?? `Voucher template "${templateKey ?? ""}" is not registered.`);
+    this.code = options.code ?? "unknown_template";
     this.name = "VoucherTemplateError";
   }
 }

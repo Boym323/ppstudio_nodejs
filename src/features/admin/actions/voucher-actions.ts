@@ -23,7 +23,6 @@ import {
 import { optionalVoucherValidityDate } from "@/features/vouchers/lib/voucher-validity-date";
 import { createVoucherSchema } from "@/features/vouchers/schemas/voucher-schemas";
 import {
-  getActiveVoucherTemplatesForNewVouchers,
   getVoucherTemplate,
   isVoucherTemplateAllowedForType,
 } from "@/features/vouchers/lib/voucher-template-registry";
@@ -131,14 +130,12 @@ export async function createAdminVoucherAction(
   }
 
   const template = getVoucherTemplate(parsed.data.templateKey);
-  const activeTemplates = getActiveVoucherTemplatesForNewVouchers();
-
   if (!template || !template.activeForNewVouchers || !isVoucherTemplateAllowedForType(template, parsed.data.type)) {
     return {
       status: "error",
       formError: "Vybraný vzhled voucheru už není dostupný.",
       fieldErrors: {
-        templateKey: activeTemplates[0]?.label ?? "Vyberte dostupný vzhled voucheru.",
+        templateKey: "Vyberte vzhled dostupný pro tento typ voucheru.",
       },
     };
   }

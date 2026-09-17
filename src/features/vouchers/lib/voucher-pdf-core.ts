@@ -11,6 +11,7 @@ import { type getVoucherDetail } from "@/features/vouchers/lib/voucher-read-mode
 import {
   requireVoucherTemplate,
   voucherTemplateRegistry,
+  VoucherTemplateError,
   type VoucherTemplateRegistry,
   type VoucherTemplateDefinition,
 } from "@/features/vouchers/lib/voucher-template-registry";
@@ -19,6 +20,7 @@ import { siteConfig } from "@/config/site";
 type VoucherPdfData = NonNullable<Awaited<ReturnType<typeof getVoucherDetail>>>;
 
 export const MM_TO_PT = 72 / 25.4;
+const MASTER_PAGE_SIZE_TOLERANCE_MM = 0.35;
 const classicV1Layout = voucherTemplateRegistry.require("classic-v1").layout;
 export const VOUCHER_PRINT_WIDTH_MM = classicV1Layout.printPage.widthMm;
 export const VOUCHER_PRINT_HEIGHT_MM = classicV1Layout.printPage.heightMm;
@@ -112,6 +114,7 @@ export async function generateVoucherPrintPdf(voucher: VoucherPdfData, options: 
   const masterPath = path.join(process.cwd(), template.masterPath);
   const masterBytes = await readFile(masterPath);
   const pdf = await PDFDocument.load(masterBytes);
+  validateMasterPageSize(pdf, template);
   const page = pdf.getPage(0);
 
   pdf.registerFontkit(fontkit);
@@ -148,6 +151,37 @@ export async function generateVoucherPrintPdf(voucher: VoucherPdfData, options: 
   setPrintPageBoxes(page, template);
 
   return pdf.save();
+}
+
+function validateMasterPageSize(pdf: PDFDocument, template: VoucherTemplateDefinition) {
+  if (pdf.getPageCount() === 0) {
+    throw new VoucherTemplateError(template.key, {
+      code: "invalid_master_page_size",
+      message: `Voucher template "${template.key}" has invalid page size. Expected ${formatPageSizeMm(template.layout.printPage.widthMm, template.layout.printPage.heightMm)}, got no pages.`,
+    });
+  }
+
+  const actual = pdf.getPage(0).getSize();
+  const expected = {
+    width: mm(template.layout.printPage.widthMm),
+    height: mm(template.layout.printPage.heightMm),
+  };
+  const tolerance = mm(MASTER_PAGE_SIZE_TOLERANCE_MM);
+
+  if (Math.abs(actual.width - expected.width) > tolerance || Math.abs(actual.height - expected.height) > tolerance) {
+    throw new VoucherTemplateError(template.key, {
+      code: "invalid_master_page_size",
+      message: `Voucher template "${template.key}" has invalid page size. Expected ${formatPageSizeMm(template.layout.printPage.widthMm, template.layout.printPage.heightMm)}, got ${formatPageSizeMm(actual.width / MM_TO_PT, actual.height / MM_TO_PT)}.`,
+    });
+  }
+}
+
+function formatPageSizeMm(widthMm: number, heightMm: number) {
+  return `${formatMillimeters(widthMm)} × ${formatMillimeters(heightMm)} mm`;
+}
+
+function formatMillimeters(value: number) {
+  return Number(value.toFixed(2)).toString();
 }
 
 export async function generateVoucherDigitalPdf(voucher: VoucherPdfData, options: VoucherPdfOptions = {}) {

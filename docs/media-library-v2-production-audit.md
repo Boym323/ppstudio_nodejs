@@ -2,6 +2,8 @@
 
 Stručný read-only audit produkce PP Studio, provedený 25. 8. 2026. Neobsahuje credentials, secrets ani binární data.
 
+Poznámka k aktuální architektuře: tento dokument je historický snapshot před voucher templates v1. Legacy vazba `SiteSettings.voucherPdfLogoMediaId` a auditované produkční zapojení níže zůstávají kvůli kompatibilitě zdokumentované, ale aktuální voucherový renderer ji nepoužívá. Současné PDF používá verzovaný master s pevnou grafikou a doplňuje pouze dynamická voucherová data.
+
 ## Production identity
 
 - Hostname: `lo-prod-web-ppstudio`
@@ -118,7 +120,7 @@ Cesty fungují podle uloženého `storagePath`; při migraci se nemají přesouv
 - `src/features/public/lib/public-studio-photos.ts` → salon galerie a kontaktní foto.
 - `src/lib/media/public-media-route.ts`, `src/lib/media/media-route.ts` → kanonická i legacy media route.
 - `src/features/admin/actions/settings-actions.ts` → validace a zápis `voucherPdfLogoMediaId`.
-- `src/features/vouchers/lib/voucher-pdf-core.ts`, `voucher-print-a4-pdf-core.ts` → načtení media loga do voucher PDF.
+- `src/features/vouchers/lib/voucher-pdf-core.ts`, `voucher-print-a4-pdf-core.ts` → historické načtení media loga v auditovaném release; aktuální renderer používá verzovaný PDF master.
 - `src/lib/email/templates.ts` → voucher PDF jako e-mailová příloha.
 
 ## Deterministická migrační mapa
@@ -133,6 +135,6 @@ Cesty fungují podle uloženého `storagePath`; při migraci se nemají přesouv
 
 ## Závěr
 
-Migrace může být datově deterministická bez ztráty významu, pokud se zachová explicitní role voucher loga, singularních portrétů/kontaktní fotografie a skrytý salon asset. Všech 48 DB variant je dostupných.
+Migrace může být datově deterministická bez ztráty významu, pokud se zachová legacy DB vazba voucher loga pro kompatibilitu, singularní portréty/kontaktní fotografie a skrytý salon asset. Aktuální PDF template se přes Media Manager nespravuje. Všech 48 DB variant je dostupných.
 
 Nelze nyní bezpečně odstranit `MediaType`, globální `MediaAsset.sortOrder` ani legacy duplicitní pole, protože je používá runtime. `MediaAssetKind` je redundantní, ale odstranit jej lze až po úpravě kontraktu uploadu a runtime. Orphan soubory se v relační migraci nemažou.

@@ -103,7 +103,7 @@ export function AdminSettingsPage({
       <div className="grid gap-6">
         <AdminPanel
           title="Kontakty salonu"
-          description="Veřejné kontakty pro web, e-maily a PDF voucher."
+          description="Veřejné kontakty pro web a e-maily."
         >
           <AdminSalonSettingsForm settings={settings} />
         </AdminPanel>

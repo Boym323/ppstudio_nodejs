@@ -36,6 +36,7 @@ type TestContext = {
 
 let seed: TestContext | null = null;
 const baseVoucherMeta = {
+  templateKey: "classic-v1",
   purchaserName: undefined,
   recipientName: undefined,
   message: undefined,

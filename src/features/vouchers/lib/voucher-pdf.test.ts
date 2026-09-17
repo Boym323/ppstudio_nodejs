@@ -9,6 +9,7 @@ import { PDFDocument } from "pdf-lib";
 import {
   createVoucherTemplateRegistry,
   requireVoucherTemplate,
+  VoucherTemplateError,
 } from "@/features/vouchers/lib/voucher-template-registry";
 
 process.env.NEXT_PUBLIC_APP_NAME ??= "PP Studio";
@@ -86,6 +87,31 @@ test("generuje PRINT PDF přes master s bleedem a TrimBoxem", async () => {
   assert.deepEqual(roundBox(page.getBleedBox()), roundBox({ x: 0, y: 0, width: mm(216), height: mm(105) }));
   assert.deepEqual(roundBox(page.getTrimBox()), roundBox({ x: mm(3), y: mm(3), width: mm(210), height: mm(99) }));
   assert.equal(Buffer.from(pdfBytes).subarray(0, 4).toString("utf8"), "%PDF");
+});
+
+test("odmítne master s rozměrem odlišným od layoutu šablony", async () => {
+  const { generateVoucherPrintPdf } = await import("./voucher-pdf-core");
+  const classic = requireVoucherTemplate("classic-v1");
+  const invalidSizeTemplate = {
+    ...classic,
+    key: "invalid-size-v1",
+    layout: {
+      ...classic.layout,
+      printPage: { widthMm: 215, heightMm: 105 },
+    },
+  };
+  const registry = createVoucherTemplateRegistry([invalidSizeTemplate]);
+
+  await assert.rejects(
+    () => generateVoucherPrintPdf(buildVoucherFixture({ templateKey: invalidSizeTemplate.key }), { registry }),
+    (error: unknown) => {
+      assert.ok(error instanceof VoucherTemplateError);
+      assert.equal(error.code, "invalid_master_page_size");
+      assert.match(error.message, /invalid-size-v1/);
+      assert.match(error.message, /Expected 215 × 105 mm, got 216 × 105 mm/);
+      return true;
+    },
+  );
 });
 
 test("generuje DIGITAL PDF vektorovým ořezem PRINT varianty", async () => {

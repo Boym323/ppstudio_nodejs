@@ -21,6 +21,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Vytvoření voucheru nyní vyžaduje explicitní vzhled, vrací jednoznačnou chybu při nepovolené kombinaci typu a šablony a před generováním ověřuje rozměr master PDF podle registru šablon.
 - Datum platnosti v digitálním voucheru se nyní vykresluje nad oddělovací linkou, nikoli přes ni.
 - QR kód a ověřovací URL voucheru nyní používají kanonickou veřejnou doménu i při odděleném lokálním/E2E `NEXT_PUBLIC_APP_URL`.
 - Vývojové e-mailové nástroje používají opravené verze `next` a `js-yaml`, takže lockfile již neobsahuje známé kritické a vysoce závažné zranitelnosti.

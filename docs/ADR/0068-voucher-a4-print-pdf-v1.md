@@ -22,7 +22,7 @@
 ## Důsledky
 - Tiskové PDF má vlastní layout a vlastní route handler; změny v něm nesmí měnit `generateVoucherPdf(...)`.
 - Testy ověřují A4 rozměr, horní slot souřadnice, generování bez povinného parametru pozice a dostupnost stávajícího generátoru.
-- Tisková varianta používá stejné bezpečné voucher údaje, stejné logo helpery, QR ověření a kontakty ze `SiteSettings`.
+- Tisková varianta používá stejný verzovaný PDF master, stejná bezpečná voucherová data a QR ověření; logo a pevné kontaktní údaje jsou součástí masteru.
 - Do budoucna lze přidat hromadný A4 arch nebo jiné rozmístění, ale má to být samostatný export/endpoint, ne změna tohoto horního tiskového výstupu.
 
 ## Stav

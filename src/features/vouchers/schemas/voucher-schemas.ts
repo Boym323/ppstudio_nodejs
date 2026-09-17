@@ -13,7 +13,11 @@ const optionalText = (maxLength: number) =>
     .transform((value) => value || undefined);
 
 const commonCreateVoucherFields = {
-  templateKey: z.string().trim().min(1, "Vyberte vzhled voucheru.").max(128).default("classic-v1"),
+  templateKey: z
+    .string({ error: "Vyberte vzhled voucheru." })
+    .trim()
+    .min(1, "Vyberte vzhled voucheru.")
+    .max(128),
   purchaserName: optionalText(160),
   purchaserEmail: optionalText(240).pipe(z.string().email("E-mail kupujícího není platný.").optional()),
   recipientName: optionalText(160),

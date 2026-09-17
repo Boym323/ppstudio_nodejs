@@ -7,6 +7,7 @@ import { getEffectiveVoucherStatus } from "./voucher-format";
 import { createVoucherSchema } from "../schemas/voucher-schemas";
 
 const emptyVoucherMeta = {
+  templateKey: "classic-v1",
   purchaserName: undefined,
   purchaserEmail: undefined,
   recipientName: undefined,
