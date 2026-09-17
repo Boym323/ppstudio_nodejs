@@ -80,7 +80,7 @@ export function buildVoucherPrintPdfFilename(code: string) {
   return `voucher-${safeCode || "PP"}-tiskove.pdf`;
 }
 
-export function buildVoucherVerificationUrl(code: string, baseUrl = siteConfig.url) {
+export function buildVoucherVerificationUrl(code: string, baseUrl = siteConfig.canonicalUrl) {
   const url = new URL("/vouchery/overeni", baseUrl);
   url.searchParams.set("code", code);
 

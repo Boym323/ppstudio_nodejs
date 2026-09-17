@@ -63,7 +63,7 @@ test.describe("administrační toky voucherů", () => {
     await expect(page.getByText(voucher.code)).toBeVisible();
 
     const downloadPromise = page.waitForEvent("download");
-    await page.getByRole("link", { name: "Stáhnout PDF" }).click();
+    await page.getByRole("link", { name: "Digitální PDF" }).click();
     const download = await downloadPromise;
     expect(download.suggestedFilename()).toMatch(/\.pdf$/i);
     const pdfPath = await download.path();

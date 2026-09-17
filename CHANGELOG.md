@@ -22,6 +22,7 @@ Formát je inspirovaný Keep a Changelog.
 ### Opraveno
 
 - Datum platnosti v digitálním voucheru se nyní vykresluje nad oddělovací linkou, nikoli přes ni.
+- QR kód a ověřovací URL voucheru nyní používají kanonickou veřejnou doménu i při odděleném lokálním/E2E `NEXT_PUBLIC_APP_URL`.
 - Vývojové e-mailové nástroje používají opravené verze `next` a `js-yaml`, takže lockfile již neobsahuje známé kritické a vysoce závažné zranitelnosti.
 - Týdenní planner po přesunu rezervace již nezobrazí prázdný archivovaný původní slot jako chráněný interval, takže navazující volný termín lze znovu upravit.
 - Ochranná vrstva interního draftu v planneru nyní respektuje čtvrthodinový konec úklidu a nevykreslí falešný přesah do následující půlhodiny.
