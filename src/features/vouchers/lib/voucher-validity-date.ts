@@ -21,7 +21,7 @@ type PragueCalendarDateParts = {
   day: number;
 };
 
-function getPragueCalendarDateParts(value: Date): PragueCalendarDateParts {
+export function getVoucherPragueCalendarDateParts(value: Date): PragueCalendarDateParts {
   const parts = pragueCalendarDateFormatter.formatToParts(value);
   const getPart = (type: "year" | "month" | "day") => {
     const part = parts.find((item) => item.type === type)?.value;
@@ -65,6 +65,11 @@ export function getVoucherPragueCalendarDate(value: Date) {
   return pragueCalendarDateFormatter.format(value);
 }
 
+/** Vrátí rok okamžiku podle kalendáře Europe/Prague. */
+export function getVoucherPragueCalendarYear(value: Date) {
+  return getVoucherPragueCalendarDateParts(value).year;
+}
+
 /** Převede okamžik na začátek nebo konec jeho kalendářního dne v Praze. */
 export function getVoucherPragueDateBoundary(value: Date, boundary: VoucherValidityBoundary) {
   return convertPragueDateInput(getVoucherPragueCalendarDate(value), boundary);
@@ -80,7 +85,7 @@ export function addVoucherValidityMonths(
     throw new RangeError("Voucher validity months must be an integer.");
   }
 
-  const sourceDate = getPragueCalendarDateParts(value);
+  const sourceDate = getVoucherPragueCalendarDateParts(value);
   const targetMonthIndex = sourceDate.month - 1 + months;
   const targetYear = sourceDate.year + Math.floor(targetMonthIndex / 12);
   const targetMonth = ((targetMonthIndex % 12) + 12) % 12 + 1;

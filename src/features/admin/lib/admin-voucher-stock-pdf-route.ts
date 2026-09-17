@@ -1,21 +1,50 @@
-import { AdminRole } from "@/generated/prisma/browser";
+import { AdminRole, VoucherPrintBatchStatus } from "@/generated/prisma/browser";
 import { NextResponse } from "next/server";
 
 import {
   buildVoucherStockPdfFilename,
   generateVoucherBatchPrintPdf,
 } from "@/features/vouchers/lib/voucher-pdf";
+import { canDownloadVoucherStockPdf } from "@/features/admin/lib/admin-voucher-stock-paths";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
 
 type VoucherStockPdfRouteParams = Promise<{ batchId: string }>;
 
-export function createAdminVoucherStockPdfRoute() {
+type VoucherStockPdfBatch = {
+  batchNumber: string;
+  templateKey: string;
+  status: VoucherPrintBatchStatus;
+  items: Array<{ code: string }>;
+};
+
+type VoucherStockPdfRouteDependencies = {
+  getSession?: typeof getSession;
+  findBatch?: (batchId: string) => Promise<VoucherStockPdfBatch | null>;
+  generatePdf?: typeof generateVoucherBatchPrintPdf;
+};
+
+export function createAdminVoucherStockPdfRoute(dependencies: VoucherStockPdfRouteDependencies = {}) {
+  const getSessionFn = dependencies.getSession ?? getSession;
+  const findBatch = dependencies.findBatch ?? (async (batchId: string) => prisma.voucherPrintBatch.findUnique({
+    where: { id: batchId },
+    select: {
+      batchNumber: true,
+      templateKey: true,
+      status: true,
+      items: {
+        orderBy: { sequenceNumber: "asc" },
+        select: { code: true },
+      },
+    },
+  }));
+  const generatePdf = dependencies.generatePdf ?? generateVoucherBatchPrintPdf;
+
   return async function AdminVoucherStockPdfRoute(
     _request: Request,
     { params }: { params: VoucherStockPdfRouteParams },
   ) {
-    const session = await getSession();
+    const session = await getSessionFn();
 
     if (!session) {
       return new NextResponse("Nejste přihlášeni.", { status: 401 });
@@ -26,23 +55,24 @@ export function createAdminVoucherStockPdfRoute() {
     }
 
     const { batchId } = await params;
-    const batch = await prisma.voucherPrintBatch.findUnique({
-      where: { id: batchId },
-      select: {
-        batchNumber: true,
-        templateKey: true,
-        items: {
-          orderBy: { sequenceNumber: "asc" },
-          select: { code: true },
-        },
-      },
-    });
+    const batch = await findBatch(batchId);
 
     if (!batch) {
       return new NextResponse("Tisková série nebyla nalezena.", { status: 404 });
     }
 
-    const pdfBytes = await generateVoucherBatchPrintPdf(batch);
+    if (!canDownloadVoucherStockPdf(batch.status)) {
+      return new NextResponse("Tiskové PDF již není po převzetí série dostupné.", {
+        status: 409,
+        headers: { "Cache-Control": "private, no-store" },
+      });
+    }
+
+    const pdfBytes = await generatePdf({
+      batchNumber: batch.batchNumber,
+      templateKey: batch.templateKey,
+      items: batch.items,
+    });
 
     return new NextResponse(Buffer.from(pdfBytes), {
       status: 200,

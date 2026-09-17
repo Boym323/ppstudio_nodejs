@@ -15,6 +15,32 @@ process.env.EMAIL_DELIVERY_MODE ??= "log";
 
 const dbTest = process.env.RUN_DB_INTEGRATION_TESTS === "1" ? test : test.skip;
 
+dbTest("Voucher Stock: code i batch používají rok Europe/Prague po novoročním přelomu", async () => {
+  const [{ prisma }, stock] = await Promise.all([
+    import("@/lib/prisma"),
+    import("./voucher-stock"),
+  ]);
+  const suffix = randomUUID().slice(0, 8);
+  const owner = await prisma.adminUser.create({ data: { email: `stock-year-${suffix}@example.com`, name: "Stock year owner", role: AdminRole.OWNER } });
+  const batch = await stock.createVoucherPrintBatch({
+    templateKey: "classic-v1",
+    quantity: 2,
+    createdByUserId: owner.id,
+    now: new Date("2026-12-31T23:30:00.000Z"),
+  });
+
+  try {
+    const items = await prisma.voucherStockItem.findMany({ where: { batchId: batch.id }, orderBy: { sequenceNumber: "asc" } });
+    assert.match(batch.batchNumber, /^2027-\d{3}$/);
+    assert.equal(items.every((item) => /^PP-2027-[A-Z2-9]{6}$/.test(item.code)), true);
+  } finally {
+    await prisma.voucherStockAuditLog.deleteMany({ where: { batchId: batch.id } });
+    await prisma.voucherStockItem.deleteMany({ where: { batchId: batch.id } });
+    await prisma.voucherPrintBatch.delete({ where: { id: batch.id } });
+    await prisma.adminUser.delete({ where: { id: owner.id } });
+  }
+});
+
 dbTest("Voucher Stock: batch, receive, VALUE activation, idempotence, VOID a close", async () => {
   const [{ prisma }, stock, { createVoucher }] = await Promise.all([
     import("@/lib/prisma"),

@@ -11,6 +11,7 @@ import {
 import { prisma } from "@/lib/prisma";
 import { getSiteSettings } from "@/lib/site-settings";
 import { addVoucherValidityMonths } from "@/features/vouchers/lib/voucher-validity-date";
+import { addPragueCalendarDays } from "@/features/admin/lib/kpi-date-range";
 
 export type AdminVoucherTypeFilter = "all" | "value" | "service";
 export type AdminVoucherStatusFilter =
@@ -138,14 +139,6 @@ async function countVouchers(where: Prisma.Sql = Prisma.empty) {
   return rows[0]?.count ?? 0;
 }
 
-function addDays(value: Date, days: number) {
-  const result = new Date(value);
-
-  result.setDate(result.getDate() + days);
-
-  return result;
-}
-
 function formatRemainingWorkload(valueCzk: number, serviceCount: number) {
   const parts: string[] = [];
 
@@ -169,7 +162,7 @@ export async function getAdminVouchersPageData(
   now = new Date(),
 ) {
   const filters = normalizeSearchParams(searchParams);
-  const soonThreshold = addDays(now, 30);
+  const soonThreshold = addPragueCalendarDays(now, 30);
 
   const [
     openCount,

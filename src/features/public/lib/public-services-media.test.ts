@@ -41,3 +41,11 @@ test("mapService použije ServiceMedia alt override a zachová fallback bez méd
   assert.deepEqual(withMedia.heroImage, { src: "/hero.jpg", alt: "Vlastní alt" });
   assert.deepEqual(withMedia.galleryImages, [{ src: "/optimized.jpg", alt: "Výchozí alt" }]);
 });
+
+test("fallback výsledků služby popisuje pevnou cenu bez terminologie od", async () => {
+  const { mapService } = await import("./public-services");
+  const service = mapService(baseService as never);
+
+  assert.ok(service.results.some((result) => /cenou 1\s200\sKč/.test(result)));
+  assert.ok(service.results.every((result) => !result.includes("cenou od")));
+});

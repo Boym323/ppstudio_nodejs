@@ -17,6 +17,7 @@ import {
 import {
   addVoucherValidityMonths,
   getVoucherPragueDateBoundary,
+  getVoucherPragueCalendarYear,
 } from "@/features/vouchers/lib/voucher-validity-date";
 import {
   activateVoucherStockItemSchema,
@@ -132,7 +133,7 @@ export async function createVoucherPrintBatch(input: VoucherStockBatchCreateInpu
   for (let attempt = 0; attempt < MAX_BATCH_CREATE_RETRIES; attempt += 1) {
     try {
       return await runSerializableTransaction(async (tx) => {
-        const batchNumber = await allocateBatchNumber(tx, now.getFullYear());
+        const batchNumber = await allocateBatchNumber(tx, getVoucherPragueCalendarYear(now));
         const batch = await tx.voucherPrintBatch.create({
           data: {
             batchNumber,

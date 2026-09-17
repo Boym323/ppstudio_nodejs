@@ -24,7 +24,9 @@ import {
   getAdminVoucherActivationHref,
   getAdminVoucherStockBatchHref,
   getAdminVoucherStockCreateHref,
+  canDownloadVoucherStockPdf,
   getVoucherPrintBatchStatusLabel,
+  voucherStockPdfUnavailableMessage,
   getVoucherStockItemStatusLabel,
 } from "@/features/admin/lib/admin-voucher-stock-paths";
 import type {
@@ -180,7 +182,8 @@ export function AdminVoucherStockBatchDetailPage({ data }: { data: AdminVoucherS
         <div className="flex flex-wrap items-center justify-between gap-3">
           <Link href={data.listHref} className={secondaryButtonClassName}>Zpět na série</Link>
           <div className="flex flex-wrap gap-2">
-            {data.area === "owner" ? <a href={data.pdfHref} className={primaryButtonClassName}>Stáhnout tiskové PDF</a> : null}
+            {data.area === "owner" && canDownloadVoucherStockPdf(data.status) ? <a href={data.pdfHref} className={primaryButtonClassName}>Stáhnout tiskové PDF</a> : null}
+            {data.area === "owner" && !canDownloadVoucherStockPdf(data.status) ? <p className="max-w-xs text-sm leading-5 text-white/56">{voucherStockPdfUnavailableMessage}</p> : null}
             {canReceive ? <form action={receiveVoucherPrintBatchAction}><input type="hidden" name="batchId" value={data.id} /><button className={primaryButtonClassName}>Označit jako převzaté</button></form> : null}
             {canClose ? <form action={closeVoucherPrintBatchAction} onSubmit={(event) => {
               const remaining = data.counts.pendingPrint + data.counts.available;

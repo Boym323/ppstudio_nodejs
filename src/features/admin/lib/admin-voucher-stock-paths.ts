@@ -22,6 +22,12 @@ export function getAdminVoucherStockPdfHref(batchId: string) {
   return `/admin/vouchery/predtistene/${batchId}/pdf`;
 }
 
+export function canDownloadVoucherStockPdf(status: VoucherPrintBatchStatus) {
+  return status === VoucherPrintBatchStatus.PENDING_PRINT;
+}
+
+export const voucherStockPdfUnavailableMessage = "Tiskové PDF již není po převzetí série dostupné.";
+
 export function getAdminVoucherActivationHref(area: AdminArea, code?: string) {
   const href = area === "owner" ? "/admin/vouchery/aktivovat" : "/admin/provoz/vouchery/aktivovat";
   return code ? `${href}?code=${encodeURIComponent(code)}` : href;

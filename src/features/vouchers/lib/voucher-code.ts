@@ -1,6 +1,7 @@
 import { randomInt } from "node:crypto";
 
 import { Prisma, type Prisma as PrismaNamespace } from "@/generated/prisma/client";
+import { getVoucherPragueCalendarYear } from "@/features/vouchers/lib/voucher-validity-date";
 
 const VOUCHER_CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 const VOUCHER_CODE_RANDOM_LENGTH = 6;
@@ -36,7 +37,7 @@ export async function allocateVoucherCode(
   now = new Date(),
 ): Promise<string> {
   await lockVoucherCodeAllocation(tx);
-  const year = now.getFullYear();
+  const year = getVoucherPragueCalendarYear(now);
 
   for (let attempt = 0; attempt < MAX_GENERATION_ATTEMPTS; attempt += 1) {
     const code = buildVoucherCode(year);

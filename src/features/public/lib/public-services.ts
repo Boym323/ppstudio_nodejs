@@ -216,31 +216,31 @@ function buildResults(service: PublicServiceRow) {
     case "Kosmetické ošetření":
       return [
         "větší komfort pleti a srozumitelnější směr další péče",
-        `služba s délkou ${service.durationMinutes} minut a cenou od ${formatPrice(service.priceFromCzk)}`,
+        `služba s délkou ${service.durationMinutes} minut a cenou ${formatPrice(service.priceFromCzk)}`,
         "pocit, že pleť dostala to, co právě potřebovala",
       ];
     case "Řasy a obočí":
     case "Barvení a úprava":
       return [
         "čistší rám obličeje a jistější výraz",
-        `služba s délkou ${service.durationMinutes} minut a cenou od ${formatPrice(service.priceFromCzk)}`,
+        `služba s délkou ${service.durationMinutes} minut a cenou ${formatPrice(service.priceFromCzk)}`,
         "snazší každodenní úprava bez zbytečné námahy",
       ];
     case "Masáže":
       return [
         "odlehčení, uvolnění a prostor na regeneraci",
-        `služba s délkou ${service.durationMinutes} minut a cenou od ${formatPrice(service.priceFromCzk)}`,
+        `služba s délkou ${service.durationMinutes} minut a cenou ${formatPrice(service.priceFromCzk)}`,
         "pocit, že se obličej i mysl na chvíli zpomalily",
       ];
     case "Líčení":
       return [
         "look, který sedí příležitosti i vašemu stylu",
-        `služba s délkou ${service.durationMinutes} minut a cenou od ${formatPrice(service.priceFromCzk)}`,
+        `služba s délkou ${service.durationMinutes} minut a cenou ${formatPrice(service.priceFromCzk)}`,
         "větší jistota v tom, jak působíte",
       ];
     default:
       return [
-        `přehledná služba s cenou od ${formatPrice(service.priceFromCzk)}`,
+        `přehledná služba s cenou ${formatPrice(service.priceFromCzk)}`,
         `délka nastavená na ${service.durationMinutes} minut`,
         "návštěva vedená s důrazem na pohodlí a srozumitelnost",
       ];

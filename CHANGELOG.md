@@ -14,6 +14,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- Ceník, booking a administrace nyní popisují `priceFromCzk` jako pevnou cenu služby; tiskové PDF předtištěné série je dostupné pouze do jejího převzetí a rok voucherových kódů i sérií se určuje podle Europe/Prague.
 - Success obrazovka aktivace předtištěného voucheru nyní zobrazuje prodanou hodnotu nebo službu, částku k úhradě ze snapshotu a konkrétní údaje k opsání na fyzický voucher; platební evidence ani KPI se nemění.
 - Aktivace předtištěného voucheru nyní jasně odděluje veřejné QR ověření od ručního zadání aktivačního kódu, vyžaduje explicitní výběr služby a před nevratným potvrzením zobrazí varování.
 - Voucherové `/pdf` nyní vrací digitální výřez 210 × 99 mm, `/pdf/tisk` vrací jednostránkové tiskové PDF 216 × 105 mm s bleedem a TrimBoxem; e-mail používá stejný digitální generátor.

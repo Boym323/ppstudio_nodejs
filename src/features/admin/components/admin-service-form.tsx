@@ -340,9 +340,9 @@ export function AdminServiceForm(props: EditServiceFormProps | CreateServiceForm
           </Field>
 
           <Field
-            label="Cena od (Kč)"
+            label="Cena (Kč)"
             error={serverState.fieldErrors?.priceFromCzk}
-            help="Nejnižší cena, která se zobrazí u služby na webu a v ceníku. Prázdné pole cenu nezobrazí."
+            help="Pevná cena služby, která se zobrazí na webu a v ceníku. Prázdné pole cenu nezobrazí."
           >
             <input
               type="number"

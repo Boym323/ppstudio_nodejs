@@ -6,6 +6,7 @@ import { VoucherStatus, VoucherType } from "@/generated/prisma/browser";
 import { getEffectiveVoucherStatus } from "./voucher-format";
 import {
   addVoucherValidityMonths,
+  getVoucherPragueCalendarYear,
   getVoucherPragueDateBoundary,
 } from "./voucher-validity-date";
 import { createVoucherSchema } from "../schemas/voucher-schemas";
@@ -152,4 +153,9 @@ test("pražské hranice dne používají správné CET/CEST instanty", () => {
     getVoucherPragueDateBoundary(autumnDate, "end").toISOString(),
     "2026-10-25T22:59:59.999Z",
   );
+});
+
+test("pražský kalendářní rok se určuje z okamžiku, nikoli z process TZ", () => {
+  assert.equal(getVoucherPragueCalendarYear(new Date("2026-12-31T22:30:00.000Z")), 2026);
+  assert.equal(getVoucherPragueCalendarYear(new Date("2026-12-31T23:30:00.000Z")), 2027);
 });
