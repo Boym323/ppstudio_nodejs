@@ -272,7 +272,7 @@ export function AdminVoucherActivationPage({ data }: { data: AdminVoucherActivat
     <AdminPageShell eyebrow="Dárkové vouchery" title="Aktivovat voucher" description="Předtištěný kus aktivujte až při fyzickém prodeji ve studiu." compact={data.area === "salon"}>
       <div className="space-y-4">
         <AdminVoucherTabs area={data.area} active="issued" />
-        <AdminPanel title="Najít předtištěný kus" description="Zadejte kód z voucheru. QR kód slouží k veřejnému ověření; aktivace probíhá podle kódu." compact={data.area === "salon"} denseHeader>
+        <AdminPanel title="Najít předtištěný kus" description="Na iPhonu můžete QR kód naskenovat přímo aplikací Fotoaparát. Aktivace probíhá podle kódu a vyžaduje ruční potvrzení prodeje." compact={data.area === "salon"} denseHeader>
             <form action={lookupAction} className="flex flex-col gap-2 sm:flex-row sm:items-end">
             <label className="min-w-0 flex-1"><span className="text-xs uppercase tracking-[0.2em] text-white/50">Kód voucheru</span><input name="code" value={code ?? ""} onChange={(event) => setCode(event.target.value)} placeholder="PP-2026-XXXXXX" autoComplete="off" className={cn(inputClassName, "font-mono tracking-[0.08em]")} /></label>
             <button type="submit" disabled={lookupPending} className={primaryButtonClassName}>{lookupPending ? "Načítám…" : "Načíst voucher"}</button>

@@ -6,6 +6,10 @@ import Link from "next/link";
 import { Container } from "@/components/ui/container";
 import { normalizeVoucherCode } from "@/features/vouchers/lib/voucher-code";
 import {
+  getPublicVoucherAdminActivation,
+  type PublicVoucherAdminActivation,
+} from "@/features/vouchers/lib/voucher-public-activation";
+import {
   verifyVoucherPublic,
   voucherValidationReasonCodes,
   type PublicVoucherVerificationResult,
@@ -66,8 +70,9 @@ export default async function VoucherVerificationPage({
   const requestHeaders = await headers();
   const codeInput = Array.isArray(codeParam) ? codeParam[0] : codeParam;
   const normalizedCode = normalizeVoucherCode(codeInput ?? "");
-  const [result, salonProfile] = await Promise.all([
+  const [result, adminActivation, salonProfile] = await Promise.all([
     normalizedCode ? loadVerificationResult(normalizedCode, requestHeaders) : Promise.resolve(null),
+    normalizedCode ? getPublicVoucherAdminActivation(normalizedCode) : Promise.resolve(null),
     getPublicSalonProfile(),
   ]);
   const studioMessageHref = `mailto:${salonProfile.email}?subject=${encodeURIComponent("Domluva termínu k dárkovému poukazu")}`;
@@ -109,7 +114,7 @@ export default async function VoucherVerificationPage({
               </button>
             </form>
 
-            <VerificationResult result={result} studioMessageHref={studioMessageHref} />
+            <VerificationResult result={result} studioMessageHref={studioMessageHref} adminActivation={adminActivation} />
 
             <p className="mt-6 border-t border-black/8 pt-5 text-sm leading-6 text-[var(--color-muted)]">
               Veřejné ověření nezobrazuje kupujícího, e-mail, interní poznámky, historii čerpání, rezervace ani technická ID.
@@ -124,9 +129,11 @@ export default async function VoucherVerificationPage({
 function VerificationResult({
   result,
   studioMessageHref,
+  adminActivation,
 }: {
   result: VoucherVerificationViewResult | null;
   studioMessageHref: string;
+  adminActivation: PublicVoucherAdminActivation | null;
 }) {
   if (!result) {
     return (
@@ -141,15 +148,18 @@ function VerificationResult({
 
   if (!result.ok) {
     return (
-      <div className="mt-5 rounded-[1.25rem] border border-amber-200 bg-amber-50 px-4 py-3 text-amber-950">
-        <p className="text-sm font-semibold">Voucher se nepodařilo ověřit</p>
-        <p className="mt-1 text-sm leading-6 opacity-85">
-          {result.reason === "UNKNOWN"
-            ? getUnknownVerificationMessage()
-            : result.reason === "RATE_LIMITED"
-              ? getRateLimitedVerificationMessage()
-              : getPublicReasonMessage(result.reason)}
-        </p>
+      <div className="mt-5 space-y-4">
+        <div className="rounded-[1.25rem] border border-amber-200 bg-amber-50 px-4 py-3 text-amber-950">
+          <p className="text-sm font-semibold">Voucher se nepodařilo ověřit</p>
+          <p className="mt-1 text-sm leading-6 opacity-85">
+            {result.reason === "UNKNOWN"
+              ? getUnknownVerificationMessage()
+              : result.reason === "RATE_LIMITED"
+                ? getRateLimitedVerificationMessage()
+                : getPublicReasonMessage(result.reason)}
+          </p>
+        </div>
+        {adminActivation ? <AdminActivationPanel activation={adminActivation} /> : null}
       </div>
     );
   }
@@ -199,6 +209,33 @@ function VerificationResult({
           </a>
         </div>
       </div>
+    </div>
+  );
+}
+
+function AdminActivationPanel({ activation }: { activation: PublicVoucherAdminActivation }) {
+  if (activation.kind === "pending_print") {
+    return (
+      <div className="rounded-[1.25rem] border border-black/8 bg-[#fffaf4] px-4 py-4 text-[var(--color-foreground)] sm:px-5">
+        <p className="text-sm leading-6 text-[var(--color-muted)]">
+          Tento předtištěný voucher ještě není připraven k aktivaci.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-[1.25rem] border border-[var(--color-accent)]/35 bg-[rgba(190,160,120,0.12)] px-4 py-4 text-[var(--color-foreground)] sm:px-5">
+      <p className="text-sm font-semibold leading-6">Administrace voucheru</p>
+      <p className="mt-1 text-sm leading-6 text-[var(--color-muted)]">
+        Tento předtištěný voucher je připravený k aktivaci při prodeji.
+      </p>
+      <Link
+        href={activation.href}
+        className="mt-4 inline-flex min-h-11 w-full items-center justify-center rounded-full bg-[var(--color-foreground)] px-5 py-3 text-center text-sm font-semibold text-white transition hover:bg-[#2c221d] sm:w-auto"
+      >
+        Aktivovat tento voucher
+      </Link>
     </div>
   );
 }
