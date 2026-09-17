@@ -1,8 +1,15 @@
 import assert from "node:assert/strict";
+import { access } from "node:fs/promises";
+import { inflateSync } from "node:zlib";
 import test from "node:test";
 
-import { MediaAssetVisibility, MediaStorageProvider, VoucherStatus, VoucherType } from "@/generated/prisma/browser";
+import { VoucherStatus, VoucherType } from "@/generated/prisma/browser";
 import { PDFDocument } from "pdf-lib";
+
+import {
+  createVoucherTemplateRegistry,
+  requireVoucherTemplate,
+} from "@/features/vouchers/lib/voucher-template-registry";
 
 process.env.NEXT_PUBLIC_APP_NAME ??= "PP Studio";
 process.env.NEXT_PUBLIC_APP_URL ??= "https://ppstudio.cz";
@@ -15,198 +22,170 @@ process.env.ADMIN_STAFF_EMAIL ??= "staff@example.com";
 process.env.ADMIN_STAFF_PASSWORD ??= "change-me-staff";
 process.env.EMAIL_DELIVERY_MODE ??= "log";
 
-test("vytváří pomocné údaje PDF voucheru", async () => {
-  const { buildVoucherPdfFilename, buildVoucherVerificationUrl } = await import("./voucher-pdf-core");
+test("classic-v1 master existuje ve správné cestě", async () => {
+  await access("public/brand/vouchers/classic-v1.pdf");
+});
 
-  assert.equal(buildVoucherPdfFilename("PP-2026-A7K9X2"), "voucher-PP-2026-A7K9X2.pdf");
-  assert.equal(
-    buildVoucherVerificationUrl("PP-2026-A7K9X2", "https://ppstudio.cz"),
-    "https://ppstudio.cz/vouchery/overeni?code=PP-2026-A7K9X2",
+test("overlay data obsahují českou VALUE částku a verification URL", async () => {
+  const { buildVoucherPdfOverlayData } = await import("./voucher-pdf-core");
+  const data = buildVoucherPdfOverlayData(
+    buildVoucherFixture({
+      originalValueCzk: 1500,
+      servicePriceSnapshotCzk: null,
+      serviceNameSnapshot: null,
+    }),
   );
+
+  assert.equal(data.templateKey, "classic-v1");
+  assert.match(data.value, /1\s500/);
+  assert.match(data.value, /Kč/);
+  assert.equal(data.validUntil, "16. 9. 2027");
+  assert.equal(data.code, "PP-2026-A7K9X2");
+  assert.equal(data.verificationUrl, "https://ppstudio.cz/vouchery/overeni?code=PP-2026-A7K9X2");
 });
 
-test("generuje PDF dokument pro hodnotový voucher při voucherPdfLogoMediaId=null", async () => {
-  const { generateVoucherPdf } = await import("./voucher-pdf-core");
-  const pdfBytes = await generateVoucherPdf(buildVoucherFixture(), {
-    settings: buildTestSiteSettings(),
-  });
-
-  assert.equal(Buffer.from(pdfBytes).subarray(0, 4).toString("utf8"), "%PDF");
-  assert.ok(pdfBytes.length > 1_000);
-});
-
-test("generuje PDF dokument pro službový voucher", async () => {
-  const { generateVoucherPdf } = await import("./voucher-pdf-core");
-  const pdfBytes = await generateVoucherPdf(
+test("overlay data používají snapshot SERVICE názvu včetně diakritiky", async () => {
+  const { buildVoucherPdfOverlayData } = await import("./voucher-pdf-core");
+  const data = buildVoucherPdfOverlayData(
     buildVoucherFixture({
       type: VoucherType.SERVICE,
-      serviceNameSnapshot: "Komplexní hloubkové ošetření pleti s liftingovou masáží a závěrečnou regenerací",
+      originalValueCzk: null,
+      remainingValueCzk: null,
+      serviceNameSnapshot: "Korejský Lashlifting",
+      servicePriceSnapshotCzk: 1500,
     }),
-    {
-      settings: buildTestSiteSettings(),
-    },
   );
 
-  assert.equal(Buffer.from(pdfBytes).subarray(0, 4).toString("utf8"), "%PDF");
-  assert.ok(pdfBytes.length > 1_000);
+  assert.equal(data.value, "Korejský Lashlifting");
 });
 
-test("použije textové náhradní logo, když logo PDF voucheru není nastavené", async () => {
-  const { resolveVoucherPdfLogo, VOUCHER_PDF_TEXT_LOGO } = await import("./voucher-pdf-core");
-  const logo = await resolveVoucherPdfLogo(null);
+test("overlay ignoruje osobní a interní voucherová pole", async () => {
+  const { buildVoucherPdfOverlayData } = await import("./voucher-pdf-core");
+  const data = buildVoucherPdfOverlayData(buildVoucherFixture());
 
-  assert.deepEqual(logo, { kind: "text", text: VOUCHER_PDF_TEXT_LOGO });
+  assert.doesNotMatch(JSON.stringify(data), /Marie Kupující|Obdarovaná|Soukromé věnování|Neveřejná poznámka/);
 });
 
-test("vygeneruje PDF, když nastavený soubor loga voucheru chybí", async () => {
-  const { generateVoucherPdf } = await import("./voucher-pdf-core");
-  const pdfBytes = await generateVoucherPdf(buildVoucherFixture(), {
-    settings: buildTestSiteSettings(),
-    logoAsset: {
-      id: "missing-logo",
-      storageProvider: MediaStorageProvider.LOCAL,
-      visibility: MediaAssetVisibility.PUBLIC,
-      mimeType: "image/png",
-      storagePath: "general/2099/01/missing-logo.png",
-      optimizedStoragePath: null,
-      optimizedMimeType: null,
-    },
-  });
+test("neznámý templateKey se při renderu odmítne bez fallbacku", async () => {
+  const { generateVoucherPrintPdf } = await import("./voucher-pdf-core");
 
-  assert.equal(Buffer.from(pdfBytes).subarray(0, 4).toString("utf8"), "%PDF");
-  assert.ok(pdfBytes.length > 1_000);
-});
-
-test("builds voucher PDF contact lines from salon settings", async () => {
-  process.env.VOUCHER_PUBLIC_DOMAIN = "ppstudio.cz";
-  const { buildVoucherPdfContactLines } = await import("./voucher-pdf-core");
-
-  const lines = buildVoucherPdfContactLines({
-    addressLine: "Sadová 2",
-    postalCode: "760 01",
-    city: "Zlín",
-    phone: "+420 732 856 036",
-    contactEmail: "info@ppstudio.cz",
-  });
-
-  assert.deepEqual(lines, ["Sadová 2, 760 01 Zlín", "+420 732 856 036 · info@ppstudio.cz · ppstudio.cz"]);
-});
-
-test("builds voucher PDF terms only for the voucher type", async () => {
-  const { buildVoucherPdfTerms } = await import("./voucher-pdf-core");
-  const valueTerms = buildVoucherPdfTerms({ type: VoucherType.VALUE });
-  const serviceTerms = buildVoucherPdfTerms({ type: VoucherType.SERVICE });
-  const valueText = valueTerms.join(" ");
-  const serviceText = serviceTerms.join(" ");
-
-  assert.equal(valueTerms[0], "Poukaz je možné uplatnit při rezervaci nebo osobně v salonu.");
-  assert.equal(valueTerms[1], "Poukaz není směnitelný za hotovost.");
-  assert.equal(valueTerms[2], "Hodnotový poukaz lze čerpat postupně.");
-  assert.equal(serviceTerms[0], "Poukaz je možné uplatnit při rezervaci nebo osobně v salonu.");
-  assert.equal(serviceTerms[1], "Poukaz není směnitelný za hotovost.");
-  assert.equal(serviceTerms[2], "Poukaz je určený pro uvedenou službu.");
-  assert.match(valueText, /čerpat postupně/);
-  assert.doesNotMatch(valueText, /uvedenou službu/);
-  assert.match(serviceText, /uvedenou službu/);
-  assert.doesNotMatch(serviceText, /čerpat postupně/);
-});
-
-test("voucher PDF output does not expose internal note in plain text", async () => {
-  const { generateVoucherPdf } = await import("./voucher-pdf-core");
-  const pdfBytes = await generateVoucherPdf(
-    buildVoucherFixture({
-      internalNote: "TOTO NESMI BYT VE VYSTUPU",
-    }),
-    {
-      settings: buildTestSiteSettings(),
-    },
+  await assert.rejects(
+    () => generateVoucherPrintPdf(buildVoucherFixture({ templateKey: "classic-v2" })),
+    /template "classic-v2" is not registered/i,
   );
-  const payload = Buffer.from(pdfBytes).toString("latin1");
-
-  assert.doesNotMatch(payload, /TOTO NESMI BYT VE VYSTUPU/);
 });
 
-test("keeps the existing voucher PDF generator available for email and regular download", async () => {
-  const voucherPdfCore = await import("./voucher-pdf-core");
-
-  assert.equal(typeof voucherPdfCore.generateVoucherPdf, "function");
-  assert.equal(typeof voucherPdfCore.buildVoucherPdfFilename, "function");
-});
-
-test("builds A4 print voucher slots with expected millimetre dimensions", async () => {
-  const {
-    A4_HEIGHT_PT,
-    A4_WIDTH_PT,
-    SLOT_HEIGHT_PT,
-    SLOT_WIDTH_PT,
-    getVoucherPrintSlotBox,
-    mm,
-    topSlotBottomY,
-  } = await import("./voucher-print-a4-pdf-core");
-
-  assert.equal(Math.round(A4_WIDTH_PT * 100), Math.round(mm(210) * 100));
-  assert.equal(Math.round(A4_HEIGHT_PT * 100), Math.round(mm(297) * 100));
-  assert.equal(Math.round(SLOT_WIDTH_PT * 100), Math.round(mm(210) * 100));
-  assert.equal(Math.round(SLOT_HEIGHT_PT * 100), Math.round(mm(96) * 100));
-  assert.equal(Math.round(topSlotBottomY * 100), Math.round(mm(201) * 100));
-  assert.equal(Math.round(getVoucherPrintSlotBox().y * 100), Math.round(mm(201) * 100));
-  assert.equal(Math.round(getVoucherPrintSlotBox().height * 100), Math.round(mm(96) * 100));
-});
-
-test("generates an A4 print PDF for the top voucher position", async () => {
-  const { A4_HEIGHT_PT, A4_WIDTH_PT, generateVoucherPrintA4Pdf } = await import("./voucher-print-a4-pdf-core");
-
-  const pdfBytes = await generateVoucherPrintA4Pdf(buildVoucherFixture(), {
-    settings: buildTestSiteSettings(),
-    logoAsset: null,
-  });
+test("generuje PRINT PDF přes master s bleedem a TrimBoxem", async () => {
+  const { generateVoucherPrintPdf, mm } = await import("./voucher-pdf-core");
+  const pdfBytes = await generateVoucherPrintPdf(buildVoucherFixture());
   const pdf = await PDFDocument.load(pdfBytes);
   const page = pdf.getPage(0);
-  const size = page.getSize();
 
-  assert.equal(Buffer.from(pdfBytes).subarray(0, 4).toString("utf8"), "%PDF");
   assert.equal(pdf.getPageCount(), 1);
-  assert.equal(Math.round(size.width * 100), Math.round(A4_WIDTH_PT * 100));
-  assert.equal(Math.round(size.height * 100), Math.round(A4_HEIGHT_PT * 100));
+  assert.deepEqual(roundBox(page.getSize()), roundBox({ width: mm(216), height: mm(105) }));
+  assert.deepEqual(roundBox(page.getBleedBox()), roundBox({ x: 0, y: 0, width: mm(216), height: mm(105) }));
+  assert.deepEqual(roundBox(page.getTrimBox()), roundBox({ x: mm(3), y: mm(3), width: mm(210), height: mm(99) }));
+  assert.equal(Buffer.from(pdfBytes).subarray(0, 4).toString("utf8"), "%PDF");
 });
 
-test("A4 print voucher generator has no required position parameter", async () => {
-  const { generateVoucherPrintA4Pdf } = await import("./voucher-print-a4-pdf-core");
+test("generuje DIGITAL PDF vektorovým ořezem PRINT varianty", async () => {
+  const { generateVoucherDigitalPdf, mm } = await import("./voucher-pdf-core");
+  const pdfBytes = await generateVoucherDigitalPdf(buildVoucherFixture());
+  const pdf = await PDFDocument.load(pdfBytes);
+  const page = pdf.getPage(0);
 
-  assert.equal(generateVoucherPrintA4Pdf.length, 1);
+  assert.equal(pdf.getPageCount(), 1);
+  assert.deepEqual(roundBox(page.getSize()), roundBox({ width: mm(210), height: mm(99) }));
+  assert.deepEqual(roundBox(page.getTrimBox()), roundBox({ x: 0, y: 0, width: mm(210), height: mm(99) }));
+  assert.deepEqual(roundBox(page.getCropBox()), roundBox({ x: 0, y: 0, width: mm(210), height: mm(99) }));
+  assert.equal(Buffer.from(pdfBytes).subarray(0, 4).toString("utf8"), "%PDF");
 });
 
-function buildVoucherFixture(overrides: Partial<ReturnType<typeof buildBaseVoucherFixture>> = {}) {
+test("renderer používá layout druhé template včetně QR a validity souřadnic", async () => {
+  const { generateVoucherPrintPdf, mm } = await import("./voucher-pdf-core");
+  const classic = requireVoucherTemplate("classic-v1");
+  const mockTemplate = {
+    ...classic,
+    key: "test-template-v1",
+    label: "Testovací",
+    layout: {
+      ...classic.layout,
+      validityArea: { ...classic.layout.validityArea, xMm: 24, baselineMm: 20 },
+      qrArea: { ...classic.layout.qrArea, xMm: 160, yMm: 12, widthMm: 20, heightMm: 20 },
+    },
+  };
+  const registry = createVoucherTemplateRegistry([classic, mockTemplate]);
+  const pdfBytes = await generateVoucherPrintPdf(
+    buildVoucherFixture({ templateKey: "test-template-v1" }),
+    { registry },
+  );
+  const pdf = await PDFDocument.load(pdfBytes);
+  const page = pdf.getPage(0);
+  const content = new TextDecoder().decode(getPageOverlayContent(page));
+
+  assert.match(content, new RegExp(`1 0 0 1 ${pdfNumber(mm(160))}\\d* ${pdfNumber(mm(12))}\\d* cm`));
+  assert.match(content, new RegExp(`1 0 0 1 [\\d.]+ ${pdfNumber(mm(20))}\\d* Tm`));
+});
+
+test("historickou inactive template lze renderovat, ale není aktivní pro nové vouchery", async () => {
+  const { generateVoucherDigitalPdf } = await import("./voucher-pdf-core");
+  const classic = requireVoucherTemplate("classic-v1");
+  const inactiveTemplate = { ...classic, key: "test-template-inactive-v1", activeForNewVouchers: false };
+  const registry = createVoucherTemplateRegistry([classic, inactiveTemplate]);
+
+  assert.equal(registry.getActiveForNewVouchers().some((template) => template.key === inactiveTemplate.key), false);
+  const pdfBytes = await generateVoucherDigitalPdf(
+    buildVoucherFixture({ templateKey: inactiveTemplate.key }),
+    { registry },
+  );
+
+  assert.equal((await PDFDocument.load(pdfBytes)).getPageCount(), 1);
+});
+
+function roundBox(box: { x?: number; y?: number; width: number; height: number }) {
   return {
-    ...buildBaseVoucherFixture(),
-    ...overrides,
+    x: Math.round((box.x ?? 0) * 100) / 100,
+    y: Math.round((box.y ?? 0) * 100) / 100,
+    width: Math.round(box.width * 100) / 100,
+    height: Math.round(box.height * 100) / 100,
   };
 }
 
-function buildTestSiteSettings() {
-  const now = new Date("2026-01-01T00:00:00.000Z");
+function getPageOverlayContent(page: ReturnType<PDFDocument["getPage"]>) {
+  const contents = (page as unknown as {
+    node: { Contents: () => { size: () => number; lookup: (index: number) => { getContents: () => Uint8Array } } };
+  }).node.Contents();
+  const streams = [] as Uint8Array[];
 
+  for (let index = 0; index < contents.size(); index += 1) {
+    const encoded = contents.lookup(index).getContents();
+
+    try {
+      streams.push(inflateSync(encoded));
+    } catch {
+      streams.push(encoded);
+    }
+  }
+
+  return Buffer.concat(streams);
+}
+
+function pdfNumber(value: number) {
+  return value.toFixed(6).replace(/0+$/, "").replace(/\.$/, "");
+}
+
+type VoucherFixture = Omit<
+  ReturnType<typeof buildBaseVoucherFixture>,
+  "originalValueCzk" | "remainingValueCzk"
+> & {
+  originalValueCzk: number | null;
+  remainingValueCzk: number | null;
+};
+
+function buildVoucherFixture(overrides: Partial<VoucherFixture> = {}): VoucherFixture {
   return {
-    id: "site-settings",
-    salonName: "PP Studio",
-    addressLine: "Sadová 2",
-    city: "Zlín",
-    postalCode: "760 01",
-    phone: "+420 732 856 036",
-    contactEmail: "info@ppstudio.cz",
-    instagramUrl: "https://www.instagram.com/ppstudio.cz/",
-    bookingMinAdvanceHours: 2,
-    bookingMaxAdvanceDays: 90,
-    bookingCancellationHours: 48,
-    autoLunchEnabled: true,
-    notificationAdminEmail: "owner@example.com",
-    emailSenderName: "PP Studio",
-    emailSenderEmail: "info@ppstudio.cz",
-    emailFooterText: null,
-    voucherPdfLogoMediaId: null,
-    updatedByUserId: null,
-    createdAt: now,
-    updatedAt: now,
+    ...buildBaseVoucherFixture(),
+    ...overrides,
   };
 }
 
@@ -215,6 +194,7 @@ function buildBaseVoucherFixture() {
     id: "voucher-test",
     code: "PP-2026-A7K9X2",
     type: VoucherType.VALUE as VoucherType,
+    templateKey: "classic-v1",
     status: VoucherStatus.ACTIVE as VoucherStatus,
     effectiveStatus: VoucherStatus.ACTIVE as VoucherStatus,
     typeLabel: "Hodnotový poukaz",
@@ -228,7 +208,7 @@ function buildBaseVoucherFixture() {
     servicePriceSnapshotCzk: null as number | null,
     serviceDurationSnapshot: null as number | null,
     validFrom: new Date("2026-01-01T00:00:00.000Z"),
-    validUntil: new Date("2026-12-31T00:00:00.000Z"),
+    validUntil: new Date("2027-09-16T00:00:00.000Z"),
     issuedAt: new Date("2026-01-01T00:00:00.000Z"),
     cancelledAt: null,
     cancelledByUserId: null,
@@ -236,8 +216,8 @@ function buildBaseVoucherFixture() {
     updatedByUserId: null,
     purchaserName: "Marie Kupující",
     purchaserEmail: "marie@example.com",
-    recipientName: null,
-    message: null,
+    recipientName: "Obdarovaná",
+    message: "Soukromé věnování",
     internalNote: "Neveřejná poznámka",
     createdByUserId: null,
     createdAt: new Date("2026-01-01T00:00:00.000Z"),

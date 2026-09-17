@@ -2,7 +2,14 @@ import { Prisma, type VoucherStatus, type VoucherType } from "@/generated/prisma
 
 import { type AdminArea } from "@/config/navigation";
 import { getVoucherDetail, listVouchers } from "@/features/vouchers/lib/voucher-read-models";
+import {
+  getActiveVoucherTemplatesForNewVouchers,
+  requireVoucherTemplate,
+  voucherTemplateRegistry,
+  type VoucherTemplateRegistry,
+} from "@/features/vouchers/lib/voucher-template-registry";
 import { prisma } from "@/lib/prisma";
+import { getSiteSettings } from "@/lib/site-settings";
 
 export type AdminVoucherTypeFilter = "all" | "value" | "service";
 export type AdminVoucherStatusFilter =
@@ -77,7 +84,7 @@ export function getAdminVoucherPdfHref(area: AdminArea, voucherId: string) {
   return `${getAdminVoucherHref(area, voucherId)}/pdf`;
 }
 
-export function getAdminVoucherPrintA4PdfHref(area: AdminArea, voucherId: string) {
+export function getAdminVoucherPrintPdfHref(area: AdminArea, voucherId: string) {
   return `${getAdminVoucherPdfHref(area, voucherId)}/tisk`;
 }
 
@@ -106,10 +113,29 @@ function formatDateInputValue(value: Date) {
 
 function addMonths(value: Date, months: number) {
   const result = new Date(value);
+  const dayOfMonth = result.getDate();
 
+  result.setDate(1);
   result.setMonth(result.getMonth() + months);
+  result.setDate(Math.min(dayOfMonth, new Date(result.getFullYear(), result.getMonth() + 1, 0).getDate()));
 
   return result;
+}
+
+export function buildVoucherCreateInitialValues(
+  today: Date,
+  settings: Pick<Awaited<ReturnType<typeof getSiteSettings>>, "voucherDefaultTemplateKey" | "voucherDefaultValidityMonths">,
+  registry: VoucherTemplateRegistry = voucherTemplateRegistry,
+) {
+  const templates = getActiveVoucherTemplatesForNewVouchers(registry);
+  const defaultTemplate = templates.find((template) => template.key === settings.voucherDefaultTemplateKey) ?? templates[0];
+
+  return {
+    type: "VALUE" as const,
+    templateKey: defaultTemplate?.key ?? "",
+    validFrom: formatDateInputValue(today),
+    validUntil: formatDateInputValue(addMonths(today, settings.voucherDefaultValidityMonths)),
+  };
 }
 
 async function countVouchers(where: Prisma.Sql = Prisma.empty) {
@@ -259,11 +285,12 @@ export async function getAdminVoucherDetailData(area: AdminArea, voucherId: stri
 
   return {
     ...voucher,
+    templateLabel: requireVoucherTemplate(voucher.templateKey).label,
     area,
     listHref: getAdminVouchersHref(area),
     detailHref: getAdminVoucherHref(area, voucher.id),
     pdfHref: getAdminVoucherPdfHref(area, voucher.id),
-    printA4PdfHref: getAdminVoucherPrintA4PdfHref(area, voucher.id),
+    printPdfHref: getAdminVoucherPrintPdfHref(area, voucher.id),
     redemptions: voucher.redemptions.map((redemption) => ({
       ...redemption,
       bookingHref: redemption.booking
@@ -277,8 +304,7 @@ export async function getAdminVoucherDetailData(area: AdminArea, voucherId: stri
 
 export async function getAdminVoucherCreatePageData(area: AdminArea) {
   const today = new Date();
-  const defaultValidUntil = addMonths(today, 12);
-  const services = await prisma.service.findMany({
+  const [settings, services] = await Promise.all([getSiteSettings(), prisma.service.findMany({
     where: {
       isActive: true,
     },
@@ -300,16 +326,14 @@ export async function getAdminVoucherCreatePageData(area: AdminArea) {
         },
       },
     },
-  });
+  })]);
+  const templates = getActiveVoucherTemplatesForNewVouchers();
 
   return {
     area,
     listHref: getAdminVouchersHref(area),
     services,
-    initialValues: {
-      type: "VALUE" as const,
-      validFrom: formatDateInputValue(today),
-      validUntil: formatDateInputValue(defaultValidUntil),
-    },
+    templates,
+    initialValues: buildVoucherCreateInitialValues(today, settings),
   };
 }

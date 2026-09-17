@@ -1,10 +1,23 @@
 import { ensureSiteSettings } from "@/lib/site-settings";
 import { prisma } from "@/lib/prisma";
 import { getOwnerCalendarFeedAdminState } from "@/features/calendar/lib/calendar-feed-service";
+import {
+  getActiveVoucherTemplatesForNewVouchers,
+  voucherTemplateRegistry,
+  type VoucherTemplateRegistry,
+} from "@/features/vouchers/lib/voucher-template-registry";
+
+export function getAdminVoucherTemplateOptions(registry: VoucherTemplateRegistry = voucherTemplateRegistry) {
+  return getActiveVoucherTemplatesForNewVouchers(registry).map((template) => ({
+    key: template.key,
+    label: template.label,
+    previewPath: `/${template.previewPath.replace(/^public\//, "")}`,
+  }));
+}
 
 export async function getAdminSettingsPageData(email: string) {
   const settings = await ensureSiteSettings();
-  const selectedMediaIds = [...new Set([settings.voucherPdfLogoMediaId, settings.contactPhotoMediaId, settings.homePortraitMediaId, settings.aboutPortraitMediaId].filter((id): id is string => Boolean(id)))];
+  const selectedMediaIds = [...new Set([settings.contactPhotoMediaId, settings.homePortraitMediaId, settings.aboutPortraitMediaId].filter((id): id is string => Boolean(id)))];
   const [calendarFeed, ownerNotificationSettings, mediaAssets] = await Promise.all([
     getOwnerCalendarFeedAdminState(),
     prisma.adminUser.findFirst({
@@ -50,7 +63,9 @@ export async function getAdminSettingsPageData(email: string) {
     phone: settings.phone,
     contactEmail: settings.contactEmail,
     instagramUrl: settings.instagramUrl,
-    voucherPdfLogoMediaId: settings.voucherPdfLogoMediaId,
+    voucherDefaultTemplateKey: settings.voucherDefaultTemplateKey,
+    voucherDefaultValidityMonths: settings.voucherDefaultValidityMonths,
+    voucherTemplates: getAdminVoucherTemplateOptions(),
     contactPhotoMediaId: settings.contactPhotoMediaId ?? null,
     homePortraitMediaId: settings.homePortraitMediaId ?? null,
     aboutPortraitMediaId: settings.aboutPortraitMediaId ?? null,

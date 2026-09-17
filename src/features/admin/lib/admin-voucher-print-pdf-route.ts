@@ -3,19 +3,19 @@ import { NextResponse } from "next/server";
 
 import { getVoucherDetail } from "@/features/vouchers/lib/voucher-read-models";
 import {
-  buildVoucherPrintA4PdfFilename,
-  generateVoucherPrintA4Pdf,
-} from "@/features/vouchers/lib/voucher-print-a4-pdf-core";
+  buildVoucherPrintPdfFilename,
+  generateVoucherPrintPdf,
+} from "@/features/vouchers/lib/voucher-pdf";
 import { getSession } from "@/lib/auth/session";
 
-type VoucherPrintA4PdfRouteParams = Promise<{
+type VoucherPrintPdfRouteParams = Promise<{
   voucherId: string;
 }>;
 
-export function createAdminVoucherPrintA4PdfRoute() {
-  return async function AdminVoucherPrintA4PdfRoute(
+export function createAdminVoucherPrintPdfRoute() {
+  return async function AdminVoucherPrintPdfRoute(
     _request: Request,
-    { params }: { params: VoucherPrintA4PdfRouteParams },
+    { params }: { params: VoucherPrintPdfRouteParams },
   ) {
     const session = await getSession();
 
@@ -28,20 +28,19 @@ export function createAdminVoucherPrintA4PdfRoute() {
     }
 
     const { voucherId } = await params;
-
     const voucher = await getVoucherDetail(voucherId);
 
     if (!voucher) {
       return new NextResponse("Voucher nebyl nalezen.", { status: 404 });
     }
 
-    const pdfBytes = await generateVoucherPrintA4Pdf(voucher);
+    const pdfBytes = await generateVoucherPrintPdf(voucher);
 
     return new NextResponse(Buffer.from(pdfBytes), {
       status: 200,
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename="${buildVoucherPrintA4PdfFilename(voucher.code)}"`,
+        "Content-Disposition": `attachment; filename="${buildVoucherPrintPdfFilename(voucher.code)}"`,
         "Cache-Control": "private, no-store",
       },
     });

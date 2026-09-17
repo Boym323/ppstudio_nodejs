@@ -268,6 +268,7 @@ describe("voucher domain", () => {
     );
 
     assert.equal(voucher.status, VoucherStatus.ACTIVE);
+    assert.equal(voucher.templateKey, "classic-v1");
     assert.equal(voucher.originalValueCzk, 1500);
     assert.equal(voucher.remainingValueCzk, 1500);
     assert.match(voucher.code, /^PP-\d{4}-[A-Z2-9]{6}$/);

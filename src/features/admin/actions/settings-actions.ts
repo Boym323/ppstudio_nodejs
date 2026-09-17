@@ -12,6 +12,7 @@ import {
   updateEmailSettingsSchema,
   updatePushoverSettingsSchema,
   updateSalonSettingsSchema,
+  updateVoucherSettingsSchema,
 } from "@/features/admin/lib/admin-settings-validation";
 import {
   activateCalendarFeed,
@@ -30,6 +31,10 @@ import { isPublicMediaAsset } from "@/features/media/lib/public-media-asset";
 import { isValidDateKey } from "@/features/admin/lib/admin-slots/time";
 import { persistAutoLunchDayMode } from "@/features/admin/lib/admin-auto-lunch";
 import { runSerializableTransaction } from "@/lib/serializable-transaction";
+import {
+  getActiveVoucherTemplatesForNewVouchers,
+  getVoucherTemplate,
+} from "@/features/vouchers/lib/voucher-template-registry";
 
 import { type UpdateBookingSettingsActionState } from "./update-booking-settings-action-state";
 import { type UpdateCalendarFeedActionState } from "./update-calendar-feed-action-state";
@@ -39,6 +44,7 @@ import {
   type UpdatePushoverSettingsActionState,
 } from "./update-pushover-settings-action-state";
 import { type UpdateSalonSettingsActionState } from "./update-salon-settings-action-state";
+import { type UpdateVoucherSettingsActionState } from "./update-voucher-settings-action-state";
 
 function readFormString(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -140,7 +146,6 @@ export async function updateSalonSettingsAction(
     phone: readFormString(formData, "phone"),
     contactEmail: readFormString(formData, "contactEmail"),
     instagramUrl: readFormString(formData, "instagramUrl"),
-    voucherPdfLogoMediaId: readFormString(formData, "voucherPdfLogoMediaId"),
     contactPhotoMediaId: readFormString(formData, "contactPhotoMediaId"),
     homePortraitMediaId: readFormString(formData, "homePortraitMediaId"),
     aboutPortraitMediaId: readFormString(formData, "aboutPortraitMediaId"),
@@ -160,7 +165,6 @@ export async function updateSalonSettingsAction(
         phone: fieldErrors.phone?.[0],
         contactEmail: fieldErrors.contactEmail?.[0],
         instagramUrl: fieldErrors.instagramUrl?.[0],
-        voucherPdfLogoMediaId: fieldErrors.voucherPdfLogoMediaId?.[0],
         contactPhotoMediaId: fieldErrors.contactPhotoMediaId?.[0],
         homePortraitMediaId: fieldErrors.homePortraitMediaId?.[0],
         aboutPortraitMediaId: fieldErrors.aboutPortraitMediaId?.[0],
@@ -170,7 +174,6 @@ export async function updateSalonSettingsAction(
 
   const actorUserId = await getActorUserId();
   if (!actorUserId) return { status: "error", formError: "Aktuální OWNER účet nebyl nalezen." };
-  const voucherPdfLogoMediaId = parsed.data.voucherPdfLogoMediaId || null;
   const singularMedia = {
     contactPhotoMediaId: parsed.data.contactPhotoMediaId || null,
     homePortraitMediaId: parsed.data.homePortraitMediaId || null,
@@ -184,32 +187,9 @@ export async function updateSalonSettingsAction(
     }
   }
 
-  if (voucherPdfLogoMediaId) {
-    const logoAsset = await prisma.mediaAsset.findFirst({
-      where: {
-        id: voucherPdfLogoMediaId,
-        deletionRequestedAt: null,
-      },
-      select: {
-        id: true,
-      },
-    });
-
-    if (!logoAsset) {
-      return {
-        status: "error",
-        formError: "Vybrané logo pro PDF vouchery už v médiích neexistuje.",
-        fieldErrors: {
-          voucherPdfLogoMediaId: "Vyberte existující médium nebo pole vyprázdněte.",
-        },
-      };
-    }
-  }
-
   const salonData = {
       ...parsed.data,
       instagramUrl: parsed.data.instagramUrl || null,
-      voucherPdfLogoMediaId,
       ...singularMedia,
     };
   const savedSettings = await updateSiteSettingsWithAudit({
@@ -220,7 +200,7 @@ export async function updateSalonSettingsAction(
       before: {
         salonName: current.salonName, addressLine: current.addressLine, city: current.city,
         postalCode: current.postalCode, phone: current.phone, contactEmail: current.contactEmail,
-        instagramUrl: current.instagramUrl, voucherPdfLogoMediaId: current.voucherPdfLogoMediaId,
+        instagramUrl: current.instagramUrl,
         contactPhotoMediaId: current.contactPhotoMediaId, homePortraitMediaId: current.homePortraitMediaId, aboutPortraitMediaId: current.aboutPortraitMediaId,
       },
       after: salonData,
@@ -286,6 +266,70 @@ export async function updateBookingSettingsAction(
   return {
     status: "success",
     successMessage: "Globální pravidla rezervace jsou uložená.",
+  };
+}
+
+export async function updateVoucherSettingsAction(
+  _previousState: UpdateVoucherSettingsActionState,
+  formData: FormData,
+): Promise<UpdateVoucherSettingsActionState> {
+  const parsed = updateVoucherSettingsSchema.safeParse({
+    voucherDefaultTemplateKey: readFormString(formData, "voucherDefaultTemplateKey"),
+    voucherDefaultValidityMonths: readFormString(formData, "voucherDefaultValidityMonths"),
+  });
+
+  if (!parsed.success) {
+    const fieldErrors = parsed.error.flatten().fieldErrors;
+
+    return {
+      status: "error",
+      formError: "Zkontrolujte prosím nastavení voucherů.",
+      fieldErrors: {
+        voucherDefaultTemplateKey: fieldErrors.voucherDefaultTemplateKey?.[0],
+        voucherDefaultValidityMonths: fieldErrors.voucherDefaultValidityMonths?.[0],
+      },
+    };
+  }
+
+  const activeTemplates = getActiveVoucherTemplatesForNewVouchers();
+  const template = getVoucherTemplate(parsed.data.voucherDefaultTemplateKey);
+
+  if (!template || !template.activeForNewVouchers || !activeTemplates.some((item) => item.key === template.key)) {
+    return {
+      status: "error",
+      formError: "Výchozí vzhled voucheru není dostupný pro nové vouchery.",
+      fieldErrors: {
+        voucherDefaultTemplateKey: "Vyberte aktivní vzhled voucheru.",
+      },
+    };
+  }
+
+  const actorUserId = await getActorUserId();
+  if (!actorUserId) return { status: "error", formError: "Aktuální OWNER účet nebyl nalezen." };
+
+  const currentSettings = await ensureSiteSettings();
+  const savedSettings = await updateSiteSettingsWithAudit({
+    actorUserId,
+    operation: SiteSettingsChangeOperation.UPDATE_VOUCHER_POLICY,
+    data: parsed.data,
+    snapshots: (current) => ({
+      before: {
+        voucherDefaultTemplateKey: current.voucherDefaultTemplateKey,
+        voucherDefaultValidityMonths: current.voucherDefaultValidityMonths,
+      },
+      after: parsed.data,
+    }),
+  });
+  await persistSiteSettingsSnapshot(savedSettings);
+
+  revalidateSettingsPaths();
+
+  return {
+    status: "success",
+    successMessage: currentSettings.voucherDefaultTemplateKey === parsed.data.voucherDefaultTemplateKey
+      && currentSettings.voucherDefaultValidityMonths === parsed.data.voucherDefaultValidityMonths
+      ? "Nastavení voucherů zůstalo beze změny."
+      : "Nastavení voucherů jsou uložená.",
   };
 }
 

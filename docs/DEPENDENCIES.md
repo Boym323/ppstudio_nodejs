@@ -77,8 +77,7 @@ Tichý startup readiness probe nepřidává závislost; používá stejný `curl
 - Veřejné intended zadání voucheru v booking flow nepřidává žádnou novou knihovnu; používá existující React wizard, Next.js server action, Prisma a voucher validační helper.
 - Veřejné ověření voucheru na `/vouchery/overeni` nepřidává žádnou novou knihovnu; používá existující Next.js server component route, Prisma, veřejný salon profil a serverový voucher validační helper.
 - PDF generátor voucheru přidává runtime závislosti `pdf-lib`, `qrcode`, `@pdf-lib/fontkit` a `@fontsource/noto-sans` plus dev typy `@types/qrcode`. `pdf-lib` skládá PDF server-side bez headless browseru, `qrcode` generuje ověřovací QR kód a Noto Sans přes `fontkit` řeší českou diakritiku z licenčně jasného OFL font balíčku.
-- A4 tisková varianta voucher PDF nepřidává žádnou novou závislost; používá stejný `pdf-lib`, `qrcode`, `@pdf-lib/fontkit` a Noto Sans stack jako původní voucher PDF.
-- Samostatné logo pro PDF vouchery nepřidává žádnou novou závislost; používá existující `MediaAsset`, lokální media storage a embed PNG/JPEG přes `pdf-lib`.
+- Verzované master PDF vouchery, vektorový PRINT/DIGITAL export i registry šablon nepřidávají žádnou novou závislost; používají existující `pdf-lib`, `qrcode`, `@pdf-lib/fontkit` a Noto Sans stack. Master asset je verzovaný soubor v repozitáři, nikoli Media Manager upload.
 
 ## Core
 - `next`: framework aplikace.

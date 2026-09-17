@@ -70,7 +70,8 @@ Stručný kontext aktuální implementace Media Library.
   a volitelným alt textem.
 - `SiteSettings` je singulární záznam s vazbami:
   `contactPhotoMediaId`, `homePortraitMediaId`, `aboutPortraitMediaId` a
-  `voucherPdfLogoMediaId`.
+  `voucherPdfLogoMediaId`. Poslední vazba je legacy kompatibilita; aktuální
+  voucherové PDF ani admin UI ji nepoužívají.
 
 ## Rules
 
@@ -78,7 +79,8 @@ Stručný kontext aktuální implementace Media Library.
   a `deletionRequestedAt: null`.
 - Serverová validace je autoritativní; UI výběr sám o sobě vazbu nepotvrzuje.
 - Použité médium nelze smazat. Usage guard zahrnuje SiteSettings, kolekce a
-  ServiceMedia.
+  ServiceMedia; legacy reference voucherového loga se kvůli bezpečnosti mazání
+  stále eviduje, i když už není součástí aktuálního renderingu.
 - Unpublish použitého média vyžaduje UX confirmation, protože může zmizet z webu.
 - Mazání provede DB commit nejdříve a filesystem cleanup až následně.
 - Neúspěšný filesystem cleanup po DB smazání nevrací databázovou změnu.

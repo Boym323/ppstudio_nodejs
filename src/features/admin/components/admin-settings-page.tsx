@@ -5,6 +5,7 @@ import { AdminCalendarSettingsForm } from "./admin-calendar-settings-form";
 import { AdminEmailSettingsForm } from "./admin-email-settings-form";
 import { AdminPushoverSettingsForm } from "./admin-pushover-settings-form";
 import { AdminSalonSettingsForm } from "./admin-salon-settings-form";
+import { AdminVoucherSettingsForm } from "./admin-voucher-settings-form";
 
 export function AdminSettingsPage({
   settings,
@@ -17,7 +18,13 @@ export function AdminSettingsPage({
     phone: string;
     contactEmail: string;
     instagramUrl: string | null;
-    voucherPdfLogoMediaId: string | null;
+    voucherDefaultTemplateKey: string;
+    voucherDefaultValidityMonths: number;
+    voucherTemplates: Array<{
+      key: string;
+      label: string;
+      previewPath: string;
+    }>;
     contactPhotoMediaId: string | null;
     homePortraitMediaId: string | null;
     aboutPortraitMediaId: string | null;
@@ -77,7 +84,7 @@ export function AdminSettingsPage({
       <section className="grid gap-3 rounded-[1.5rem] border border-white/8 bg-white/4 p-4 sm:grid-cols-2 sm:gap-4 xl:grid-cols-4">
         <article className="rounded-[1.2rem] border border-white/8 bg-black/10 p-4">
           <p className="text-xs uppercase tracking-[0.24em] text-white/45">Salon</p>
-          <p className="mt-2 text-sm leading-6 text-white/72">Kontakty salonu a samostatné logo pro PDF vouchery.</p>
+          <p className="mt-2 text-sm leading-6 text-white/72">Kontakty salonu a vzhled nových voucherů.</p>
         </article>
         <article className="rounded-[1.2rem] border border-white/8 bg-black/10 p-4">
           <p className="text-xs uppercase tracking-[0.24em] text-white/45">Rezervace</p>
@@ -99,6 +106,17 @@ export function AdminSettingsPage({
           description="Veřejné kontakty pro web, e-maily a PDF voucher."
         >
           <AdminSalonSettingsForm settings={settings} />
+        </AdminPanel>
+
+        <AdminPanel
+          title="Vouchery"
+          description="Výchozí vzhled a platnost pro nově vytvořené vouchery."
+        >
+          <AdminVoucherSettingsForm
+            voucherDefaultTemplateKey={settings.voucherDefaultTemplateKey}
+            voucherDefaultValidityMonths={settings.voucherDefaultValidityMonths}
+            voucherTemplates={settings.voucherTemplates}
+          />
         </AdminPanel>
 
         <AdminPanel

@@ -82,3 +82,11 @@ test("běžný unit-test runtime nečte SiteSettings z databáze", async () => {
     process.env.RUN_DB_INTEGRATION_TESTS = originalDbIntegrationFlag;
   }
 });
+
+test("výchozí SiteSettings obsahují defaultní template a platnost voucheru", async () => {
+  const { getSiteSettings } = await import("@/lib/site-settings");
+  const settings = await getSiteSettings();
+
+  assert.equal(settings.voucherDefaultTemplateKey, "classic-v1");
+  assert.equal(settings.voucherDefaultValidityMonths, 12);
+});

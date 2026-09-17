@@ -203,6 +203,7 @@ enum SiteSettingsChangeOperation {
   UPDATE_SALON
   UPDATE_BOOKING_POLICY
   UPDATE_EMAIL
+  UPDATE_VOUCHER_POLICY
 }
 
 model AdminUser {
@@ -606,6 +607,7 @@ model Voucher {
   id                      String              @id @default(cuid())
   code                    String              @unique
   type                    VoucherType
+  templateKey             String              @default("classic-v1")
   status                  VoucherStatus       @default(DRAFT)
   purchaserName           String?
   purchaserEmail          String?
@@ -900,6 +902,8 @@ model SiteSettings {
   emailSenderEmail         String
   emailFooterText          String?
   voucherPdfLogoMediaId    String?
+  voucherDefaultTemplateKey String              @default("classic-v1")
+  voucherDefaultValidityMonths Int              @default(12)
   contactPhotoMediaId      String?
   homePortraitMediaId      String?
   aboutPortraitMediaId     String?

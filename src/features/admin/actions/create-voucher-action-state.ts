@@ -4,6 +4,7 @@ export type CreateVoucherActionState = {
   fieldErrors?: Partial<
     Record<
       | "type"
+      | "templateKey"
       | "originalValueCzk"
       | "serviceId"
       | "validFrom"

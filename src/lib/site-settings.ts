@@ -30,6 +30,8 @@ export type SiteSettingsRecord = {
   emailSenderEmail: string;
   emailFooterText: string | null;
   voucherPdfLogoMediaId: string | null;
+  voucherDefaultTemplateKey: string;
+  voucherDefaultValidityMonths: number;
   contactPhotoMediaId?: string | null;
   homePortraitMediaId?: string | null;
   aboutPortraitMediaId?: string | null;
@@ -68,6 +70,8 @@ const siteSettingsSnapshotSchema = z.object({
   emailSenderEmail: z.string(),
   emailFooterText: z.string().nullable(),
   voucherPdfLogoMediaId: z.string().nullable(),
+  voucherDefaultTemplateKey: z.string().default("classic-v1"),
+  voucherDefaultValidityMonths: z.number().int().min(1).max(60).default(12),
   contactPhotoMediaId: z.string().nullable().default(null),
   homePortraitMediaId: z.string().nullable().default(null),
   aboutPortraitMediaId: z.string().nullable().default(null),
@@ -99,6 +103,8 @@ function getDefaultSiteSettingsData() {
     emailFooterText:
       "Pokud budete potřebovat pomoci, napište nám nebo zavolejte. Rádi vám pomůžeme s výběrem i změnou termínu.",
     voucherPdfLogoMediaId: null,
+    voucherDefaultTemplateKey: "classic-v1",
+    voucherDefaultValidityMonths: 12,
     contactPhotoMediaId: null,
     homePortraitMediaId: null,
     aboutPortraitMediaId: null,

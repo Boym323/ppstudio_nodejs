@@ -13,6 +13,8 @@ import {
 import { type AdminVoucherCreatePageData } from "@/features/admin/lib/admin-vouchers";
 import { cn } from "@/lib/utils";
 
+import { AdminVoucherTemplatePreview } from "./admin-voucher-template-preview";
+
 type AdminVoucherFormProps = {
   data: AdminVoucherCreatePageData;
 };
@@ -29,12 +31,21 @@ export function AdminVoucherForm({ data }: AdminVoucherFormProps) {
     initialCreateVoucherActionState,
   );
   const [type, setType] = useState<VoucherType>(data.initialValues.type);
+  const [templateKey, setTemplateKey] = useState(data.initialValues.templateKey);
   const [serviceId, setServiceId] = useState(data.services[0]?.id ?? "");
   const [originalValueCzk, setOriginalValueCzk] = useState("");
   const originalValueInputRef = useRef<HTMLInputElement>(null);
   const [validFrom, setValidFrom] = useState(data.initialValues.validFrom);
   const [validUntil, setValidUntil] = useState(data.initialValues.validUntil);
   const [purchaserName, setPurchaserName] = useState("");
+
+  const availableTemplates = useMemo(
+    () => data.templates.filter((template) => template.allowedTypes.includes(type)),
+    [data.templates, type],
+  );
+  const selectedTemplateKey = availableTemplates.some((template) => template.key === templateKey)
+    ? templateKey
+    : availableTemplates[0]?.key ?? "";
 
   useEffect(() => {
     // Na pomalejším mobilním WebKitu může uživatel vyplnit pole před hydratací.
@@ -63,6 +74,7 @@ export function AdminVoucherForm({ data }: AdminVoucherFormProps) {
     <form action={formAction} className="space-y-4">
       <input type="hidden" name="area" value={data.area} />
       <input type="hidden" name="type" value={type} />
+      <input type="hidden" name="templateKey" value={selectedTemplateKey} />
 
       {serverState.status === "error" && serverState.formError ? (
         <div className="rounded-[1.25rem] border border-red-300/20 bg-red-400/10 px-4 py-3 text-sm leading-6 text-red-50">
@@ -73,6 +85,12 @@ export function AdminVoucherForm({ data }: AdminVoucherFormProps) {
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_20rem] xl:items-start">
         <div className="min-w-0 space-y-3">
           <SectionBlock title="Typ a hodnota">
+            <TemplateChooser
+              templates={availableTemplates}
+              selectedKey={selectedTemplateKey}
+              onSelect={setTemplateKey}
+              error={serverState.fieldErrors?.templateKey}
+            />
             <div>
               <div className="grid gap-2 sm:grid-cols-2">
                 <TypeButton
@@ -246,6 +264,71 @@ export function AdminVoucherForm({ data }: AdminVoucherFormProps) {
         </aside>
       </div>
     </form>
+  );
+}
+
+function TemplateChooser({
+  templates,
+  selectedKey,
+  onSelect,
+  error,
+}: {
+  templates: AdminVoucherCreatePageData["templates"];
+  selectedKey: string;
+  onSelect: (key: string) => void;
+  error?: string;
+}) {
+  if (templates.length === 0) {
+    return <p className="mb-4 text-sm text-red-300">Není dostupný žádný vzhled voucheru.</p>;
+  }
+
+  if (templates.length === 1) {
+    const template = templates[0];
+
+    return (
+      <div className="mb-4 overflow-hidden rounded-[1rem] border border-[var(--color-accent)]/35 bg-black/20">
+        <AdminVoucherTemplatePreview
+          src={`/${template.previewPath.replace(/^public\//, "")}`}
+          alt={`Náhled šablony ${template.label}`}
+          className="h-auto w-full"
+        />
+        <div className="flex items-center justify-between gap-3 border-t border-white/8 px-3 py-2">
+          <span className="text-sm text-white/82">Vzhled: {template.label}</span>
+          {selectedKey === template.key ? <span className="text-xs text-[var(--color-accent-soft)]">Vybráno</span> : null}
+        </div>
+        {error ? <p className="px-3 pb-3 text-sm text-red-300">{error}</p> : null}
+      </div>
+    );
+  }
+
+  return (
+    <div className="mb-4">
+      <p className="mb-2 text-xs uppercase tracking-[0.2em] text-white/50">Vzhled voucheru</p>
+      <div className="grid gap-3 sm:grid-cols-2">
+        {templates.map((template) => (
+          <button
+            key={template.key}
+            type="button"
+            onClick={() => onSelect(template.key)}
+            aria-pressed={selectedKey === template.key}
+            className={cn(
+              "overflow-hidden rounded-[1rem] border text-left transition",
+              selectedKey === template.key
+                ? "border-[var(--color-accent)]/60 bg-[rgba(190,160,120,0.16)]"
+                : "border-white/10 bg-black/20 hover:border-white/20",
+            )}
+          >
+            <AdminVoucherTemplatePreview
+              src={`/${template.previewPath.replace(/^public\//, "")}`}
+              alt={`Náhled šablony ${template.label}`}
+              className="h-auto w-full"
+            />
+            <span className="block px-3 py-2 text-sm text-white/82">{template.label}</span>
+          </button>
+        ))}
+      </div>
+      {error ? <p className="mt-2 text-sm text-red-300">{error}</p> : null}
+    </div>
   );
 }
 

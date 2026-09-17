@@ -22,6 +22,11 @@ import {
 } from "@/features/vouchers/lib/voucher-operations";
 import { optionalVoucherValidityDate } from "@/features/vouchers/lib/voucher-validity-date";
 import { createVoucherSchema } from "@/features/vouchers/schemas/voucher-schemas";
+import {
+  getActiveVoucherTemplatesForNewVouchers,
+  getVoucherTemplate,
+  isVoucherTemplateAllowedForType,
+} from "@/features/vouchers/lib/voucher-template-registry";
 import { requireRole } from "@/lib/auth/session";
 import { sendOwnerSystemErrorPushover } from "@/lib/notifications/pushover";
 import { prisma } from "@/lib/prisma";
@@ -91,6 +96,7 @@ export async function createAdminVoucherAction(
   const type = readFormString(formData, "type");
   const parsed = createVoucherSchema.safeParse({
     type,
+    templateKey: readFormString(formData, "templateKey") || undefined,
     originalValueCzk: type === VoucherType.VALUE ? readFormString(formData, "originalValueCzk") : undefined,
     serviceId: type === VoucherType.SERVICE ? readFormString(formData, "serviceId") : undefined,
     validFrom: readFormString(formData, "validFrom"),
@@ -110,6 +116,7 @@ export async function createAdminVoucherAction(
       formError: "Voucher je potřeba ještě doplnit nebo opravit.",
       fieldErrors: {
         type: fieldErrors.type?.[0],
+        templateKey: fieldErrors.templateKey?.[0],
         originalValueCzk: fieldErrors.originalValueCzk?.[0],
         serviceId: fieldErrors.serviceId?.[0],
         validFrom: fieldErrors.validFrom?.[0],
@@ -119,6 +126,19 @@ export async function createAdminVoucherAction(
         recipientName: fieldErrors.recipientName?.[0],
         message: fieldErrors.message?.[0],
         internalNote: fieldErrors.internalNote?.[0],
+      },
+    };
+  }
+
+  const template = getVoucherTemplate(parsed.data.templateKey);
+  const activeTemplates = getActiveVoucherTemplatesForNewVouchers();
+
+  if (!template || !template.activeForNewVouchers || !isVoucherTemplateAllowedForType(template, parsed.data.type)) {
+    return {
+      status: "error",
+      formError: "Vybraný vzhled voucheru už není dostupný.",
+      fieldErrors: {
+        templateKey: activeTemplates[0]?.label ?? "Vyberte dostupný vzhled voucheru.",
       },
     };
   }

@@ -2,7 +2,7 @@ import { AdminRole } from "@/generated/prisma/browser";
 import { NextResponse } from "next/server";
 
 import { getVoucherDetail } from "@/features/vouchers/lib/voucher-read-models";
-import { buildVoucherPdfFilename, generateVoucherPdf } from "@/features/vouchers/lib/voucher-pdf";
+import { buildVoucherPdfFilename, generateVoucherDigitalPdf } from "@/features/vouchers/lib/voucher-pdf";
 import { getSession } from "@/lib/auth/session";
 
 type VoucherPdfRouteParams = Promise<{
@@ -31,7 +31,7 @@ export function createAdminVoucherPdfRoute() {
       return new NextResponse("Voucher nebyl nalezen.", { status: 404 });
     }
 
-    const pdfBytes = await generateVoucherPdf(voucher);
+    const pdfBytes = await generateVoucherDigitalPdf(voucher);
 
     return new NextResponse(Buffer.from(pdfBytes), {
       status: 200,

@@ -2,6 +2,10 @@ import { Prisma, VoucherStatus, VoucherType } from "@/generated/prisma/client";
 
 import { generateVoucherCode } from "@/features/vouchers/lib/voucher-code";
 import { redeemVoucherForBooking } from "@/features/vouchers/lib/voucher-redemption";
+import {
+  getVoucherTemplate,
+  isVoucherTemplateAllowedForType,
+} from "@/features/vouchers/lib/voucher-template-registry";
 import { validateVoucherForBookingInput } from "@/features/vouchers/lib/voucher-validation";
 import {
   createVoucherSchema,
@@ -30,6 +34,12 @@ function isUniqueCodeCollision(error: unknown) {
 
 export async function createVoucher(input: CreateVoucherInput, createdByUserId: string | null) {
   const parsed = createVoucherSchema.parse(input);
+  const template = getVoucherTemplate(parsed.templateKey);
+
+  if (!template || !template.activeForNewVouchers || !isVoucherTemplateAllowedForType(template, parsed.type)) {
+    throw new Error("Selected voucher template is not available for new vouchers.");
+  }
+
   const now = new Date();
 
   for (let attempt = 0; attempt < MAX_CREATE_COLLISION_RETRIES; attempt += 1) {
@@ -41,6 +51,7 @@ export async function createVoucher(input: CreateVoucherInput, createdByUserId: 
           data: {
             code,
             type: VoucherType.VALUE,
+            templateKey: parsed.templateKey,
             status: VoucherStatus.ACTIVE,
             purchaserName: nullableText(parsed.purchaserName),
             purchaserEmail: nullableText(parsed.purchaserEmail),
@@ -80,6 +91,7 @@ export async function createVoucher(input: CreateVoucherInput, createdByUserId: 
         data: {
           code,
           type: VoucherType.SERVICE,
+          templateKey: parsed.templateKey,
           status: VoucherStatus.ACTIVE,
           purchaserName: nullableText(parsed.purchaserName),
           purchaserEmail: nullableText(parsed.purchaserEmail),

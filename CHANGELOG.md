@@ -6,8 +6,22 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+### Přidáno
+
+- Vouchery používají verzované master PDF šablony s uloženým `templateKey`; administrace nabízí nastavení výchozího vzhledu a výchozí platnosti nových voucherů.
+
+### Změněno
+
+- Voucherové `/pdf` nyní vrací digitální výřez 210 × 99 mm, `/pdf/tisk` vrací jednostránkové tiskové PDF 216 × 105 mm s bleedem a TrimBoxem; e-mail používá stejný digitální generátor.
+- Template registry nyní nese kompletní per-template page metadata, souřadnice a typografii; přidání dalšího designu nevyžaduje změnu centrálního rendereru ani formulářů.
+
+### Odstraněno
+
+- Tisková varianta už negeneruje A4 arch a PDF voucher už není závislé na logu vybraném v Media Manageru; master obsahuje grafiku včetně loga.
+
 ### Opraveno
 
+- Datum platnosti v digitálním voucheru se nyní vykresluje nad oddělovací linkou, nikoli přes ni.
 - Vývojové e-mailové nástroje používají opravené verze `next` a `js-yaml`, takže lockfile již neobsahuje známé kritické a vysoce závažné zranitelnosti.
 - Týdenní planner po přesunu rezervace již nezobrazí prázdný archivovaný původní slot jako chráněný interval, takže navazující volný termín lze znovu upravit.
 - Ochranná vrstva interního draftu v planneru nyní respektuje čtvrthodinový konec úklidu a nevykreslí falešný přesah do následující půlhodiny.

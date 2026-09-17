@@ -45,7 +45,7 @@ Stručný architektonický a provozní přehled nasazení na Proxmox/LXC je v ko
    - případné staré required check names po rename nezůstaly viset jako permanentně pending
 14. Pokud release mění e-mailové šablony, spusť `npm run email:previews` a ručně otevři soubory v `tmp/email-previews`; zkontroluj HTML i textovou variantu v testech, kontakty ze `SiteSettings`, `.ics` přílohu u potvrzení a absenci přílohy u reminderu.
 15. Pokud release mění veřejné SEO JSON-LD, ověř homepage a jeden detail služby přes Google Rich Results Test nebo Schema Markup Validator; zkontroluj, že kontakt odpovídá viditelnému webu a Service schema neobsahuje recenze/ratingy.
-16. Pokud release mění voucher doménu, ověř že je aplikovaná migrace `20260427205720_add_vouchers`; aktuální serverová business vrstva nepřidává další migraci, worker ani public route.
+16. Pokud release mění voucher doménu nebo PDF workflow, ověř aplikaci migrace `20260916191934_voucher_templates_v1`, `npx prisma validate`, `npx prisma generate`, rozměry PRINT/DIGITAL PDF a e-mailovou přílohu. Migrace ponechává legacy `SiteSettings.voucherPdfLogoMediaId`, ale aktuální renderer ho nepoužívá; PDF template se nenasazuje jako Media Manager asset.
 17. Projdi ruční QA veřejného webu na mobilu i desktopu:
    - zkontroluj `robots.txt`:
      - veřejný web vrací `Allow: /`
@@ -181,10 +181,10 @@ Stručný architektonický a provozní přehled nasazení na Proxmox/LXC je v ko
      - neaktivní služby se v selectu ani server action nepovolí
      - v detailu voucheru tlačítko `Stáhnout voucher PDF` stáhne původní `application/pdf` s filename `voucher-<kod>.pdf`
      - detail voucheru nemá po načtení zobrazovat text `Rendering...`; loading indikace smí být vidět jen při skutečném načítání
-     - summary karta je kompaktní a akce `Stáhnout PDF / Tisk A4 / Poslat e-mailem` jsou na desktopu v jedné řadě
+     - summary karta je kompaktní a akce `Digitální PDF / Tiskové PDF / Poslat e-mailem` jsou na desktopu v jedné řadě
      - karty `Detaily` a `Hodnota / služba` jsou sloučené do `Parametry voucheru`
      - karty `Kupující`, `Odeslat voucher` a základní stav odeslání jsou sloučené do `Kupující a odeslání`
-     - odkaz `Tisk A4` stáhne samostatné A4 PDF na výšku s voucherem v horní třetině, bílým zbytkem stránky mimo voucher a beze změny původního e-mailového/běžného voucher PDF výstupu
+     - odkaz `Tiskové PDF` stáhne jednostránkové 216 × 105 mm PDF s bleedem a TrimBoxem 210 × 99 mm; e-mail i `Digitální PDF` používají 210 × 99 mm výřez stejného masteru
      - PDF obsahuje kód, platnost, hodnotu nebo službu, QR kód a neobsahuje e-mail kupujícího, interní poznámku, historii čerpání ani technická ID
      - QR odkaz `/vouchery/overeni?code=...` vrací veřejné noindex ověření voucheru bez 404
      - veřejné ověření platného hodnotového voucheru ukáže kód, typ, zůstatek a platnost; službový voucher ukáže kód, typ, snapshot služby a platnost
@@ -472,7 +472,7 @@ sudo /var/www/ppstudio/deploy/deploy.sh
 - Pokud je databáze v divergentním stavu a `prisma migrate dev` by nabízelo reset, neprováděj ho naslepo. Pro tuto migraci lze bezpečně použít `npx prisma db execute --file prisma/migrations/20260421113000_public_pricing_metadata/migration.sql` a až potom ověřit build.
 - Migrace `20260419140000_site_settings_singleton` přidává tabulku `SiteSettings`; po deployi ověř, že se `/admin/nastaveni` otevře bez chyby a že owner workflow `Nastavení` bezpečně založí výchozí singleton záznam i na prázdné DB.
 - Migrace `20260419230000_media_storage_v1` přidává tabulku `MediaAsset` a enumy pro lokální media storage; po deployi ověř zápis souboru do upload rootu a načtení přes `/media/public/*` nebo legacy `/media/*`.
-- Migrace `20260428133959_voucher_pdf_logo_settings` přidává nullable `SiteSettings.voucherPdfLogoMediaId` s FK na `MediaAsset`; po deployi ověř `/admin/nastaveni`, výběr `Logo pro PDF vouchery` a stažení PDF voucheru s vybraným PNG/JPEG i bez nastaveného loga.
+- Migrace `20260428133959_voucher_pdf_logo_settings` zůstává historicky v migrační historii a její nullable reference `SiteSettings.voucherPdfLogoMediaId` se nemaže kvůli kompatibilitě; aktuální `/admin/nastaveni` už logo PDF nenabízí. Pro nový voucher PDF workflow ověř migraci `20260916191934_voucher_templates_v1` a master asset `public/brand/vouchers/classic-v1.pdf`.
 - Admin workflow kategorií služeb nevyžaduje novou DB migraci; navazuje na existující model `ServiceCategory`.
 - Přepracované admin workflow služeb a kategorií nevyžaduje novou DB migraci; změna je čistě v read modelech, server actions a UI vrstvách.
 - Nový layout sekce `Kategorie služeb` také nevyžaduje novou DB migraci; změna zůstává čistě v komponentách, read modelu a server actions nad existujícím `ServiceCategory`.

@@ -103,13 +103,13 @@ export function AdminVoucherDetailPage({ data }: { data: AdminVoucherDetailData 
                 href={data.pdfHref}
                 className="rounded-full bg-[var(--color-accent)] px-4 py-2.5 text-sm font-semibold text-[var(--color-accent-contrast)] transition hover:brightness-105"
               >
-                Stáhnout PDF
+                Digitální PDF
               </Link>
               <Link
-                href={data.printA4PdfHref}
+                href={data.printPdfHref}
                 className="rounded-full border border-[var(--color-accent)]/45 px-4 py-2.5 text-sm font-semibold text-[var(--color-accent)] transition hover:border-[var(--color-accent)] hover:bg-[var(--color-accent)]/10"
               >
-                Tisk A4
+                Tiskové PDF
               </Link>
               <a
                 href="#voucher-email-panel"
@@ -242,6 +242,7 @@ function buildParameterRows(data: AdminVoucherDetailData) {
   const linkedServiceName = data.service ? data.service.publicName ?? data.service.name : null;
 
   return [
+    { label: "Vzhled", value: data.templateLabel },
     { label: "Platnost od", value: formatDateLabel(data.validFrom) },
     { label: "Platnost do", value: formatDateLabel(data.validUntil) },
     {

@@ -2,6 +2,15 @@ import { z } from "zod";
 
 import { isSafeEmailHeaderValue } from "@/lib/email/header";
 
+export const updateVoucherSettingsSchema = z.object({
+  voucherDefaultTemplateKey: z.string().trim().min(1, "Vyberte výchozí vzhled voucheru.").max(128),
+  voucherDefaultValidityMonths: z.coerce
+    .number()
+    .int("Použijte celé měsíce.")
+    .min(1, "Platnost musí být alespoň 1 měsíc.")
+    .max(60, "Platnost může být nejvýše 60 měsíců."),
+});
+
 const trimmedOptionalUrl = z
   .string()
   .trim()
@@ -35,7 +44,6 @@ export const updateSalonSettingsSchema = z.object({
     (value) => value.length === 0 || /^https?:\/\//.test(value),
     "Instagram odkaz musí začínat na http:// nebo https://.",
   ),
-  voucherPdfLogoMediaId: z.string().trim().max(128, "Vybrané médium není platné.").optional().or(z.literal("")),
   contactPhotoMediaId: z.string().trim().max(128, "Vybrané médium není platné.").optional().or(z.literal("")),
   homePortraitMediaId: z.string().trim().max(128, "Vybrané médium není platné.").optional().or(z.literal("")),
   aboutPortraitMediaId: z.string().trim().max(128, "Vybrané médium není platné.").optional().or(z.literal("")),

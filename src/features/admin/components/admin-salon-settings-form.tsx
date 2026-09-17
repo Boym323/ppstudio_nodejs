@@ -30,7 +30,7 @@ function PublicPhotoField({
   initialAsset,
   error,
 }: {
-  name: "contactPhotoMediaId" | "homePortraitMediaId" | "aboutPortraitMediaId" | "voucherPdfLogoMediaId";
+  name: "contactPhotoMediaId" | "homePortraitMediaId" | "aboutPortraitMediaId";
   label: string;
   emptyLabel: string;
   initialValue: string | null;
@@ -112,7 +112,6 @@ export function AdminSalonSettingsForm({
     phone: string;
     contactEmail: string;
     instagramUrl: string | null;
-    voucherPdfLogoMediaId: string | null;
     contactPhotoMediaId: string | null;
     homePortraitMediaId: string | null;
     aboutPortraitMediaId: string | null;
@@ -235,18 +234,6 @@ export function AdminSalonSettingsForm({
           <PublicPhotoField name="homePortraitMediaId" label="Portrét na úvodní stránce" emptyLabel="Bez portrétu" initialValue={settings.homePortraitMediaId} initialAsset={settings.selectedMediaOptions.find((asset) => asset.id === settings.homePortraitMediaId) ?? null} error={serverState.fieldErrors?.homePortraitMediaId} />
           <PublicPhotoField name="aboutPortraitMediaId" label="Portrét na stránce O mně" emptyLabel="Bez portrétu" initialValue={settings.aboutPortraitMediaId} initialAsset={settings.selectedMediaOptions.find((asset) => asset.id === settings.aboutPortraitMediaId) ?? null} error={serverState.fieldErrors?.aboutPortraitMediaId} />
         </div>
-      </SettingsSection>
-
-      <SettingsSection
-        title="PDF vouchery"
-        description="Vizuál dárkového poukazu může mít vlastní značku nezávisle na webu."
-      >
-        <PublicPhotoField name="voucherPdfLogoMediaId" label="Logo pro PDF vouchery" emptyLabel="Textové logo PP Studio" initialValue={settings.voucherPdfLogoMediaId} initialAsset={settings.selectedMediaOptions.find((asset) => asset.id === settings.voucherPdfLogoMediaId) ?? null} error={serverState.fieldErrors?.voucherPdfLogoMediaId} />
-        <p className="mt-3 rounded-[1rem] border border-white/8 bg-black/10 px-4 py-3 text-sm leading-6 text-white/60">
-          {settings.voucherPdfLogoMediaId
-            ? "PDF použije vybrané médium, pokud je dostupné jako PNG nebo JPEG. U jiných formátů se bezpečně vrátí k textovému logu."
-            : "PDF použije textové logo PP Studio."}
-        </p>
       </SettingsSection>
 
       <SettingsFormFooter note="Po uložení se veřejné kontakty hned promítnou na webu i do e-mailů." />

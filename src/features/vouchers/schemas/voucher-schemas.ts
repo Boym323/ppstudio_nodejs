@@ -13,6 +13,7 @@ const optionalText = (maxLength: number) =>
     .transform((value) => value || undefined);
 
 const commonCreateVoucherFields = {
+  templateKey: z.string().trim().min(1, "Vyberte vzhled voucheru.").max(128).default("classic-v1"),
   purchaserName: optionalText(160),
   purchaserEmail: optionalText(240).pipe(z.string().email("E-mail kupujícího není platný.").optional()),
   recipientName: optionalText(160),
@@ -71,6 +72,6 @@ export const redeemVoucherSchema = z.object({
   note: optionalText(2000),
 });
 
-export type CreateVoucherInput = z.infer<typeof createVoucherSchema>;
+export type CreateVoucherInput = z.input<typeof createVoucherSchema>;
 export type ValidateVoucherCodeInput = z.infer<typeof validateVoucherCodeSchema>;
 export type RedeemVoucherInput = z.infer<typeof redeemVoucherSchema>;

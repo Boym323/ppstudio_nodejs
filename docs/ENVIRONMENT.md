@@ -184,7 +184,7 @@ Lokální doporučení:
 - Rucni odeslani voucheru e-mailem z admin detailu nepridava zadnou novou env promennou; pouziva existujici `EMAIL_DELIVERY_MODE`, `SMTP_*` konfiguraci a email worker/outbox flow.
 - Kompaktní refaktor admin seznamu voucherů nepřidává žádnou novou env proměnnou; metric strip, hustší filtry i tabulka se stavovými badge jsou čistě UI změna nad existujícím voucher read modelem.
 - Kompaktní provozní refaktor detailu voucheru nepřidává žádnou novou env proměnnou; summary karta, sloučené panely i odstranění přetrvávajícího `Rendering...` textu jsou čistě UI změna nad existujícím read modelem.
-- Tisková A4 varianta voucher PDF nepřidává žádnou novou env proměnnou; používá stejné `NEXT_PUBLIC_APP_URL`, `VOUCHER_PUBLIC_DOMAIN` / `NEXT_PUBLIC_SITE_DOMAIN`, `SiteSettings` kontakty a `voucherPdfLogoMediaId` jako původní PDF voucher.
+- Voucherové PRINT/DIGITAL PDF nepřidávají žádnou novou env proměnnou; používají `NEXT_PUBLIC_APP_URL` pro verification URL, `VOUCHER_PUBLIC_DOMAIN` / `NEXT_PUBLIC_SITE_DOMAIN` pro bezpečný textový kontakt a `SiteSettings` kontakty. PRINT zachovává bleed, DIGITAL je výřez TrimBoxu.
 - Rate limit pro `/vouchery/overeni` nepřidává novou env proměnnou; limity jsou zatím fixované v `src/features/vouchers/lib/voucher-public-verification-rate-limit.ts` (okno 10 minut, IP limit 10).
 - Provozní editace a ruční zrušení voucheru nepřidává žádnou novou env proměnnou; používá stávající admin session, Prisma připojení přes `DATABASE_URL` a existující owner/salon admin routy.
 - `NEXT_PUBLIC_APP_URL` je stejně kritická i pro klientský self-service manage link `/rezervace/sprava/[token]`; pokud míří na špatný host nebo schéma, confirmation screen, potvrzovací e-mail i reminder povedou na neplatnou URL.
@@ -222,7 +222,7 @@ Lokální doporučení:
 - Sjednocení detailů `Služby` a `Kategorie služeb` do pravého overlay draweru i na desktopu také nepřidává nové env proměnné; jde čistě o klientské/UI chování nad existujícími route query a server actions.
 - Operativní redesign admin overview dashboardu také nepřidává nové env proměnné; nové metriky a timeline berou data jen ze stávajících modelů `Booking`, `AvailabilitySlot`, `Client`, `ServiceCategory`, `Service` a `EmailLog`.
 - Admin sekce `Nastavení` také nepřidává nové env proměnné; kontaktní údaje, booking pravidla a e-mailový branding ukládá do DB modelu `SiteSettings`.
-- Logo pro PDF vouchery nepřidává nové env proměnné. Reference je v `SiteSettings.voucherPdfLogoMediaId`, soubor se čte z existujícího lokálního `MEDIA_STORAGE_ROOT` přes `MediaAsset`.
+- `SiteSettings.voucherPdfLogoMediaId` nepřidává nové env proměnné a zůstává jen legacy DB reference; aktuální master PDF renderer ani admin UI nečtou `MEDIA_STORAGE_ROOT` kvůli voucherovému logu.
 - Přestavba sekce `Přístupy` ani invite aktivace nepřidává nové env proměnné; používá existující `ADMIN_SESSION_SECRET` (hash tokenů) a `NEXT_PUBLIC_APP_URL` (link v pozvánce), plus DB pole `AdminUser.invitedAt` a tabulku `AdminUserInviteToken`.
 - Bezpečné revokování administrátorských pozvánek při deaktivaci nevyžaduje novou konfiguraci ani migraci; vyžaduje pouze běžně podporované PostgreSQL transakce a row locky, které poskytuje stávající `DATABASE_URL`.
 - Reminder systém 24 hodin před termínem nepřidává novou env proměnnou; používá existující `EMAIL_DELIVERY_MODE`, `NEXT_PUBLIC_APP_URL` a SMTP konfiguraci stejného `email:worker`.
