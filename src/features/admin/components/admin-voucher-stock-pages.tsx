@@ -245,11 +245,11 @@ function StockItemRow({ area, batchId, item }: { area: AdminArea; batchId: strin
 export function AdminVoucherActivationPage({ data }: { data: AdminVoucherActivationPageData }) {
   const [lookupState, lookupAction, lookupPending] = useActionState(lookupVoucherStockItemAction, data.initialStockItem ? { status: "found" as const, item: data.initialStockItem } : initialVoucherStockLookupState);
   const [activationState, activationAction, activationPending] = useActionState(activateVoucherStockItemAction, initialVoucherStockActivationState);
-  const [code, setCode] = useState(data.defaultCode);
+  const [code, setCode] = useState(data.defaultCode ?? "");
   const [type, setType] = useState<VoucherType>(VoucherType.VALUE);
   const [serviceId, setServiceId] = useState(data.services[0]?.id ?? "");
-  const [validFrom, setValidFrom] = useState(data.defaultValidFrom);
-  const [validUntil, setValidUntil] = useState(data.defaultValidUntil);
+  const [validFrom, setValidFrom] = useState(data.defaultValidFrom ?? "");
+  const [validUntil, setValidUntil] = useState(data.defaultValidUntil ?? "");
 
   const selectedItem = lookupState.status === "found"
     ? lookupState.item ?? null

@@ -31,12 +31,12 @@ export function AdminVoucherForm({ data }: AdminVoucherFormProps) {
     initialCreateVoucherActionState,
   );
   const [type, setType] = useState<VoucherType>(data.initialValues.type);
-  const [templateKey, setTemplateKey] = useState(data.initialValues.templateKey);
+  const [templateKey, setTemplateKey] = useState(data.initialValues.templateKey ?? "");
   const [serviceId, setServiceId] = useState(data.services[0]?.id ?? "");
   const [originalValueCzk, setOriginalValueCzk] = useState("");
   const originalValueInputRef = useRef<HTMLInputElement>(null);
-  const [validFrom, setValidFrom] = useState(data.initialValues.validFrom);
-  const [validUntil, setValidUntil] = useState(data.initialValues.validUntil);
+  const [validFrom, setValidFrom] = useState(data.initialValues.validFrom ?? "");
+  const [validUntil, setValidUntil] = useState(data.initialValues.validUntil ?? "");
   const [purchaserName, setPurchaserName] = useState("");
 
   const availableTemplates = useMemo(
